@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesPath
 
 /-!
-# A query's cap leaf (`opening_query`, G:1226-1241)
+# A query's cap leaf (`opening_query`, G:1221-1236)
 
 The cap bits `pd + 1 .. depth - 1` of the position build `q = g^(Q)`, `Q = pos / 2^(pd+1)` (the
 parent's index among the cap's internal nodes at the level above the leaves), one factor
@@ -54,7 +54,7 @@ theorem mem_oqCapT_bit {s : Oq} {bp cap flags : V} {kL ch j : ℕ} (hj1 : 1 ≤ 
     ⟨_, List.mem_map.mpr ⟨j - 1, List.mem_range.mpr (by omega), ?_⟩, ha⟩))
   rw [Nat.sub_add_cancel hj1]
 
-/-- **The cap leaf** (G:1226-1240): with the bits `pd .. pd + cd - 1` those of `q < 2^(pd+cd)`, the
+/-- **The cap leaf** (G:1221-1235): with the bits `pd .. pd + cd - 1` those of `q < 2^(pd+cd)`, the
 parent's flag is set and the node `oqNode … pd` is stored at the cap leaf's cells. -/
 theorem oqCap_sound {s : Oq} (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8) {bp cap flags : V} {kL ch q : ℕ}
     (hA : ∀ a, Stmt.atom a ∈ oqCapT s bp cap flags kL ch → a.Holds rd σ)

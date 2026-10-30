@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Main.AggFs
 /-!
 # `__loop24`: the children's words
 
-`aggregate_claims` (G:4252-4317) keeps the batching's sponge in rows of thirteen words (`absorb`,
+`aggregate_claims` (G:4229-4328) keeps the batching's sponge in rows of thirteen words (`absorb`,
 `RowRel`: the capacity cells, then four waiting scalars' rate cells). Iteration `x = g^c`
 (`__loop24`, core function `394`) writes the child's pointers `child_fresh·x^24`,
 `child_carried·x^24` into the tables `lf`, `lc`, permutes row `c`, absorbs the child's `50` words

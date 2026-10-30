@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Gkr.GkBody
 public import LeanVM.Guest.B1.Common.Loops
 
 /-!
-# `__loop27`, completely (G:1704-1734)
+# `__loop27`, completely (G:1699-1729)
 
 An iteration of `__loop27` is B1-a's `gkBody 4` (the four rounds between records) renamed six
 values on (`l29Body_eq`, by kernel evaluation), after the record's and the row's pointers

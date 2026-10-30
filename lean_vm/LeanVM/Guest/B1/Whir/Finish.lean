@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Whir.Point
 public import LeanVM.Guest.B1.Eq.Meaning
 
 /-!
-# The finish (G:1521-1611)
+# The finish (G:1516-1606)
 
 `osFinish_sound`: from what the levels and the tail stored (`FinIn`), the returns are the claim,
 the two point buffers, the glued weight `Σ_lvl scale_lvl·sum_lvl + Σ_ol ood_ol` (`finInner`) and
@@ -127,7 +127,7 @@ def finInner (c : OsCfg) (β : ℕ → E) (X P W : ℕ → ℕ → E) (Λ : ℕ 
         W i j * lvRes (c.levels.getD i default) (dOf (c.levels.getD i default) (X i)) (P i j) +
   oodSum c Λ Z Y (c.levels.headD default).logCols 1 c.levels.tail
 
-/-- **The finish** (G:1521-1611). -/
+/-- **The finish** (G:1516-1606). -/
 theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ} {ms T Pt : List E} {β Λ : ℕ → E}
     {X P W Z Y : ℕ → ℕ → E}
     (hfm : ∀ args rets, coreProgram.Rel rd ("fold_final_msg__L" ++ natStr c.yrLog) args rets →

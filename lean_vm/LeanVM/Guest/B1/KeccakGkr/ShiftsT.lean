@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.ShiftsT
 
-  `keccak_shifts_eq`'s statements (`shiftsT`, G:2347-2395) compute the shift sums
+  `keccak_shifts_eq`'s statements (`shiftsT`, G:2342-2390) compute the shift sums
   `Σ_z eq(a, z + r) eq(b, z)`.
 -/
 
@@ -29,7 +29,7 @@ open LeanVM.Protocol.KeccakGkr Finset
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
-/-- **One bit's weights** (G:2363-2379). -/
+/-- **One bit's weights** (G:2358-2374). -/
 theorem bitT_holds {aP bP : V} {t B : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (bitT aP bP t B) next kret) :
     LoadHolds rd (σ aP) t (σ (.n B)) ∧ LoadHolds rd (σ bP) t (σ (.n (B + 1))) ∧
@@ -44,7 +44,7 @@ theorem bitT_holds {aP bP : V} {t B : ℕ} {next : Prop} {kret : List E → Prop
   · rw [e6, e2]
   · rw [e7, e2]
 
-/-- **A `carry_step`** (G:2316-2330): from the carry sums of `t` bits, those of `t + 1`. -/
+/-- **A `carry_step`** (G:2311-2325): from the carry sums of `t` bits, those of `t + 1`. -/
 theorem carryT_holds {c0 c1 : ℕ → ℕ} {e u v t B : ℕ} {as bs : List E} {α β : E}
     (hl : bs.length = as.length) (ht : as.length = t)
     (hc0 : ∀ p < 2 ^ t, σ (.n (c0 p)) = carryK as bs 0 p)
@@ -128,7 +128,7 @@ theorem uv_sum (α β : E) : (α + α * β) + (β + α * β) = α + β := by
   have h2 : (2 : E) = 0 := CharTwo.two_eq_zero
   linear_combination (α * β) * h2
 
-/-- **A `carry_wrap`** (G:2334-2343): the last bit, both carries out (`modK`). -/
+/-- **A `carry_wrap`** (G:2329-2338): the last bit, both carries out (`modK`). -/
 theorem carryWrapT_holds {c0 c1 : ℕ → ℕ} {e s t B : ℕ} {as bs : List E} {α β : E}
     (hl : bs.length = as.length) (ht : as.length = t)
     (hc0 : ∀ p < 2 ^ t, σ (.n (c0 p)) = carryK as bs 0 p)
@@ -183,7 +183,7 @@ theorem carryWrapT_holds {c0 c1 : ℕ → ℕ} {e s t B : ℕ} {as bs : List E} 
       hc0 _ (by omega), hc1 _ (by omega) (by omega), he, hs, w010, w011, w110, w111, uv_sum]
     ring
 
-/-- **The used shifts** (G:2385-2390). -/
+/-- **The used shifts** (G:2380-2385). -/
 theorem shOutT_holds {low0 low1 high : ℕ → ℕ} : ∀ (rs : List ℕ) (b : ℕ) {next : Prop}
     {kret : List E → Prop}, Stmt.HoldsList C rd σ (shOutT low0 low1 high rs b) next kret →
     (∀ r ∈ rs, σ (.n (shOutV rs b r)) = σ (.n (low0 (r % 8))) * σ (.n (high (r / 8))) +
@@ -218,7 +218,7 @@ theorem carryK_single (α β : E) {c r : ℕ} (hr : r < 2) (hc : c < 2) :
 
 theorem shiftUsed_lt : ∀ r ∈ shiftUsed, r < 64 := by decide
 
-/-- **`keccak_shifts_eq`** (G:2347-2395): the points' first six coordinates read at `aP`, `bP`,
+/-- **`keccak_shifts_eq`** (G:2342-2390): the points' first six coordinates read at `aP`, `bP`,
 and every used shift `r`'s value `Σ_z eq(a, (z + r) mod 64)·eq(b, z)`. -/
 theorem shiftsT_holds {aP bP : V} {B0 : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (shiftsT aP bP B0) next kret) :

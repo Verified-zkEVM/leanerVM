@@ -23,24 +23,24 @@ tables (`sel_eq_nibble`, `sel_g_nibble`, `selector_tables`), or a bit at a time
   `zs` with their complements `zs1` (the guest holds `1 + z` in a buffer of its own); at
   `zs1 = 1 + zs` it is `eqKernel zs` (V:642).
 * `eqLevels zs zs1`: the tables over the first `1, 2, …, |zs|` coordinates, end to end
-  (`sel_eq_nibble`, G:1799-1813: level `t` at `2^(t+1) - 2`).
-* `gTable gs`: entry `u` is `Π_t gs_t^(bit t of u)` (`sel_g_nibble`, G:1817-1828).
+  (`sel_eq_nibble`, G:1794-1808: level `t` at `2^(t+1) - 2`).
+* `gTable gs`: entry `u` is `Π_t gs_t^(bit t of u)` (`sel_g_nibble`, G:1812-1823).
 * `nib l j`: the `j`-th nibble of a run, `l[4j .. 4j+4]`.
 
 Statements (`…_Spec`, proved as `…_holds`):
 
-* `index_mle_Spec`: `index_mle__L{n}(zeta)` (G:1786-1795) is `indexMle` (V:692) of the first `n`
+* `index_mle_Spec`: `index_mle__L{n}(zeta)` (G:1781-1790) is `indexMle` (V:692) of the first `n`
   words at `zeta`, `n < 34`;
-* `sel_partial_nibble_Spec`: `sel_partial_nibble__L{w}` (G:1831-1835) writes the nibble tables of
+* `sel_partial_nibble_Spec`: `sel_partial_nibble__L{w}` (G:1826-1830) writes the nibble tables of
   width `w < 4`;
-* `shared_selector_tables_Spec`: `shared_selector_tables` (G:1838-1861) writes, for `len_g = g^n`
+* `shared_selector_tables_Spec`: `shared_selector_tables` (G:1833-1856) writes, for `len_g = g^n`
   (`n < 64`), every nibble's tables of the run of `n` coordinates;
-* `block_selector_tab_Spec`: `block_selector_tab__L{n}` (G:1864-1881) reads `n` pinned bits and,
+* `block_selector_tab_Spec`: `block_selector_tab__L{n}` (G:1859-1876) reads `n` pinned bits and,
   from those tables, returns their eq weight and `g`-power product;
-* `block_selector_Spec`: `block_selector__L{n}` (G:1884-1899) does the same a bit at a time;
-* `selector_tables_Spec`, `column_selector_Spec`: `selector_tables(point, point1)` (G:3049-3073)
+* `block_selector_Spec`: `block_selector__L{n}` (G:1879-1894) does the same a bit at a time;
+* `selector_tables_Spec`, `column_selector_Spec`: `selector_tables(point, point1)` (G:3044-3068)
   writes the opening point's nibble tables over the top coordinates (coordinate `4j + 3 - t` is
-  index bit `t`), and `column_selector__L{κ}(offset, sel_eq, sel_g)` (G:3023-3046) certifies
+  index bit `t`), and `column_selector__L{κ}(offset, sel_eq, sel_g)` (G:3018-3041) certifies
   `offset = g^o` with `o < 2^28` a multiple of `2^κ` and returns the eq weight of `o`'s bits above
   `κ` against the point's coordinates there.
 -/
@@ -91,7 +91,7 @@ def IndexMleOut (n : ℕ) (rd : Reader) : List E → List E → Prop
   | [zeta], [v] => ∃ zs : List E, zs.length = n ∧ TbReadsAt rd zeta zs ∧ v = indexMle zs
   | _, _ => False
 
-/-- **`index_mle`** (G:1786-1795; TRIAGE #44) computes `indexMle`: soundness. -/
+/-- **`index_mle`** (G:1781-1790; TRIAGE #44) computes `indexMle`: soundness. -/
 def index_mle_Spec : Prop :=
   ∀ n < 34, ∀ rd args rets,
     coreProgram.Rel rd (lName "index_mle" n) args rets → IndexMleOut n rd args rets
@@ -113,7 +113,7 @@ def SelPartialOut (w : ℕ) (rd : Reader) : List E → List E → Prop
         TbReadsAt rd eqo (eqLevels zs zs1) ∧ TbReadsAt rd go (if w = 0 then [] else gTable gl)
   | _, _ => False
 
-/-- **`sel_partial_nibble`** (G:1799-1835; TRIAGE #45-47) writes its nibble's tables: soundness. -/
+/-- **`sel_partial_nibble`** (G:1794-1830; TRIAGE #45-47) writes its nibble's tables: soundness. -/
 def sel_partial_nibble_Spec : Prop :=
   ∀ n < 4, ∀ rd args rets,
     coreProgram.Rel rd (lName "sel_partial_nibble" n) args rets → SelPartialOut n rd args rets
@@ -140,7 +140,7 @@ def SharedSelOut (rd : Reader) : List E → List E → Prop
         RunTables rd eqt gt n zs zs1 gs
   | _, _ => False
 
-/-- **`shared_selector_tables`** (G:1838-1861; TRIAGE #48) is sound. -/
+/-- **`shared_selector_tables`** (G:1833-1856; TRIAGE #48) is sound. -/
 def shared_selector_tables_Spec : Prop :=
   ∀ rd args rets, coreProgram.Rel rd "shared_selector_tables" args rets → SharedSelOut rd args rets
 
@@ -173,7 +173,7 @@ def BlockSelTabOut (n : ℕ) (rd : Reader) : List E → List E → Prop
           RunTables rd eqt gt n zs zs1 gs → eq = bitsEq bs zs zs1 ∧ rb = bitsPow bs gs
   | _, _ => False
 
-/-- **`block_selector_tab`** (G:1864-1881; TRIAGE #49) is sound. -/
+/-- **`block_selector_tab`** (G:1859-1876; TRIAGE #49) is sound. -/
 def block_selector_tab_Spec : Prop :=
   ∀ n < 34, ∀ rd args rets,
     coreProgram.Rel rd (lName "block_selector_tab" n) args rets → BlockSelTabOut n rd args rets
@@ -199,7 +199,7 @@ def BlockSelOut (n : ℕ) (rd : Reader) : List E → List E → Prop
         rb = ((List.zip bs cs).map fun p ↦ 1 + bitE p.1 * p.2).prod
   | _, _ => False
 
-/-- **`block_selector`** (G:1884-1899; TRIAGE #50) computes its selector: soundness. -/
+/-- **`block_selector`** (G:1879-1894; TRIAGE #50) computes its selector: soundness. -/
 def block_selector_Spec : Prop :=
   ∀ n < 34, ∀ rd args rets,
     coreProgram.Rel rd (lName "block_selector" n) args rets → BlockSelOut n rd args rets
@@ -241,7 +241,7 @@ def SelTablesOut (rd : Reader) : List E → List E → Prop
         SelTabsAt rd se sg p p1
   | _, _ => False
 
-/-- **`selector_tables`** (G:3049-3073; TRIAGE #69) is sound. -/
+/-- **`selector_tables`** (G:3044-3068; TRIAGE #69) is sound. -/
 def selector_tables_Spec : Prop :=
   ∀ rd args rets, coreProgram.Rel rd "selector_tables" args rets → SelTablesOut rd args rets
 
@@ -257,7 +257,7 @@ def ColSelOut (κ : ℕ) (rd : Reader) : List E → List E → Prop
             (p1.drop κ)
   | _, _ => False
 
-/-- **`column_selector`** (G:3023-3046; TRIAGE #68) is sound, `κ ≤ 28`. -/
+/-- **`column_selector`** (G:3018-3041; TRIAGE #68) is sound, `κ ≤ 28`. -/
 def column_selector_Spec : Prop :=
   ∀ κ < 29, ∀ rd args rets,
     coreProgram.Rel rd (lName "column_selector" κ) args rets → ColSelOut κ rd args rets

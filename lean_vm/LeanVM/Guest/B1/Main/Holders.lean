@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Main.Sound
 the slot: `CalleesW.xmss`) or a child's claim (the child `kidOf m`, whose rebuilt list holds the
 slot's claim, `kidStmt_eq`); likewise for leanSPHINCS.
 
-`da_rel`: the DA digest at the slot `da_pick` (G:4208-4211) is, with the direct DA check, the
+`da_rel`: the DA digest at the slot `da_pick` (G:4203-4206) is, with the direct DA check, the
 node's own slot, the digest of the claim `da_verify` returns (`CalleesW.da` opens it); without it,
 the node's own slot's zeros or child `da_pick`'s digest.
 -/

@@ -16,7 +16,7 @@ public import LeanVM.Arithmetization.Soundness.Walk
 /-!
 # The state channel
 
-At leanVM pin `93ebecc5f87ed7b1248a9772c392f9a41b6ac8d0` and Clean pin `42fe4b26`. Specification
+At leanVM pin `c445e3d51a5a85031df47240595698f3b24897bf` and Clean pin `42fe4b26`. Specification
 Proposition 6.1 (`doc/leanvm/body/06-bus-interactions.tex`, §6.1), as `exists_run_of_balanced`. It
 assumes the constraint statement `SatisfiedBy` alone, nothing of the program, and serves
 `constraintSoundness`.

@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Sort
 public import LeanVM.Protocol.EndToEnd.Complete.BusSide
 
 /-!
-# The block selectors (G:1993-2080, 2121-2131, 2316-2390)
+# The block selectors (G:1988-2075, 2116-2126, 2311-2385)
 
 The guest reads each block's log-size from `block_kappa` (`blockKappaWords`): block `b`'s is
 `vtKap lm τ b`, the side's sizes `vtSizesP` (push: the framework's `0, log_mem, 19`, then each

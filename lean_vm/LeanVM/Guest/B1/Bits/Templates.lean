@@ -11,8 +11,8 @@ public import LeanVM.Guest.B1.Common.Basic
 /-!
 # The inline field-packing helpers (TRIAGE G #1-4)
 
-* `canonicalLimbsT w b` (`canonical_limbs(w)`, G:502-508; also the body of `assert_canonical`,
-  G:491-499): the hinted low limb `b`, the derived high limb `b + 3`; `holds_canonicalLimbsT`: it
+* `canonicalLimbsT w b` (`canonical_limbs(w)`, G:497-503; also the body of `assert_canonical`,
+  G:486-494): the hinted low limb `b`, the derived high limb `b + 3`; `holds_canonicalLimbsT`: it
   holds exactly when `w` is canonical and the limbs are its limbs (`split_iff`).
 -/
 

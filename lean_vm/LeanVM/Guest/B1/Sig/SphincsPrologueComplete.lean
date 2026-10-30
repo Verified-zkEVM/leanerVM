@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsPrologueComplete
 
-  The prologue of `verify_sig_lean_sphincs` (`lean_ethereum.py:3632-3677`) completes: `P` and the
+  The prologue of `verify_sig_lean_sphincs` (`lean_ethereum.py:3627-3672`) completes: `P` and the
   message loaded, the randomizer hinted, the index's bits the digest's second cell's low bits, the
   unused bytes its bits from `106`.
 -/

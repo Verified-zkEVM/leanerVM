@@ -50,7 +50,7 @@ def BytecodeAt (ev : (List K → List E → Prog E)) (words : List K) (point : L
 /-- The order of `g`. -/
 abbrev tbOrdG : ℕ := 2 ^ 64 - 1
 
-/-- `g_squares` (`exponent_tables`, G:650-665): `g^(2^j)` at `g^j`, `j < SIZE_BITS = 34`. -/
+/-- `g_squares` (`exponent_tables`, G:645-660): `g^(2^j)` at `g^j`, `j < SIZE_BITS = 34`. -/
 def gSquaresList : List E := (List.range 34).map fun j ↦ gen ^ 2 ^ j
 
 end

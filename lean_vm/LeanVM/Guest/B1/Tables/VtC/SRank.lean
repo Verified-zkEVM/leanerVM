@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SBase
 
 /-!
-# A rank (G:1972-1991)
+# A rank (G:1967-1986)
 
 `rank0_ok`, `rank_ok`: from the template's equations (`GoodL`), its reads not stores, a memory
 holding the rank's block `g^e` in `sort_order`, its side, `g^κ` in `block_kappa`, the running

@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Bits.Meaning
 /-!
 # `decode_query_bits` (TRIAGE #20)
 
-`decode_query_bits(word, positions, bit_ptrs, depth)` (G:652-696) hints the 192 bits of `word`
+`decode_query_bits(word, positions, bit_ptrs, depth)` (G:647-691) hints the 192 bits of `word`
 into a frame run, pins each by booleanity, and for each of the `192 / depth` groups `j` stores the
 position `Σ_b bit_{j·depth + b} 2^b` (a group crossing a limb boundary as two runs joined by
 `COORD_BASIS[cut]`) and the pointer `bits·g^(j·depth)` to its bits; the leftover bits and the
@@ -384,7 +384,7 @@ theorem holds_dqGroup (d j k : ℕ) (recon : Option V) (next : Prop) (kret : Lis
   rw [holdsList_append, holdsList_append, dqR, holds_dqBits, ← dqR, dqP, holds_dqPr, ← dqP, holds_dqBp]
   simp only [and_assoc]
 
-/-- **A group** (G:666-689): its bits Boolean, its position their integer over the basis, its
+/-- **A group** (G:661-684): its bits Boolean, its position their integer over the basis, its
 pointer `bits·g^(j·d)`, and its term added to the reconstruction. -/
 theorem dqGroup_facts {d j k : ℕ} {recon : Option V} (hd0 : 0 < d) (hd : d ≤ 26)
     (hj : j * d + d ≤ 192) (hrec : recon = none → j = 0) (h : DqGroupOk rd σ d j k recon) :

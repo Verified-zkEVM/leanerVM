@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Gkr.Loop8Complete
 public import LeanVM.Guest.B1.Selectors.LayoutBasic
 
 /-!
-# `verify_bus_gkr`'s body, completely (G:1617-1783)
+# `verify_bus_gkr`'s body, completely (G:1612-1778)
 
 `vbg_holds_of`: the body evaluated forward (`vbgEvL`, the allocations answered by the buffers'
 pointers), its regions `vbR1 .. vbR8`: the range check of `g^depth` (the memory defined at `g^depth`

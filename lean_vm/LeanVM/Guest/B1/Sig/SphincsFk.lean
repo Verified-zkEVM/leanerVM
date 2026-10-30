@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsFk
 
   The forest keys of `verify_sig_lean_sphincs` (`sp_forest_top`, `sp_forest_key`,
-  `lean_ethereum.py:3546-3587`) are sound: arm `t` of a sub-tree's dispatch writes the child leaf
+  `lean_ethereum.py:3541-3582`) are sound: arm `t` of a sub-tree's dispatch writes the child leaf
   of the codeword `t`'s chains and the weight of `t`.
 -/
 

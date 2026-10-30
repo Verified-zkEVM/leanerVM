@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.VerifySub.Template
 /-!
 # Monomials in the ring map's challenges
 
-`c_table`'s section (G:3269-3277) computes, from `1` and the six challenges at `chs`, products and
+`c_table`'s section (G:3264-3272) computes, from `1` and the six challenges at `chs`, products and
 squares, each stored in or read from the table at `877`. A monomial `Π_i chs_i^(e_i)` is its six
 exponents `e` (`evVal`); a product adds them (`evAdd`).
 

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerSecA
 
-  `keccak_layer`'s first sections (G:2478-2518): the head, the product read and absorbed, the
+  `keccak_layer`'s first sections (G:2473-2513): the head, the product read and absorbed, the
   projection check, and the squeeze of `s`.
 -/
 
@@ -123,7 +123,7 @@ theorem sqT_holds {first : ℕ} (hf : first < 2) {next : Prop} {kret : List E �
     obtain ⟨hk, hch, hn⟩ := h
     exact ⟨hk, hch, by simp [sqZs, pendF], hn⟩
 
-/-- **The product and `s`** (G:2478-2518 against V:1983-1997). -/
+/-- **The product and `s`** (G:2473-2513 against V:1983-1997). -/
 theorem layerA_holds {first : ℕ} (hf : first < 2) {y : ℕ} {c : KeccakClaim} {w : E}
     (hcr : ClaimRec rd (first = 1) (σ (.n 11)) c y)
     (hw : first = 1 → IsCanonical128 (σ (.n 5)) → (σ (.n 5), σ (.n 6)) = Keccak.scalarCells w dsObserve)

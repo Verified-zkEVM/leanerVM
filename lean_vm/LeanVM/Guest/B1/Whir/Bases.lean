@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Flat
 
 /-!
-# The basis rows (G:1553-1572)
+# The basis rows (G:1548-1567)
 
 For each level and each coordinate `t` of its message (the fold challenges after its folds, then
 the tail challenges, `X t`), the guest reads `X t`, its vanishing inverse `inv_t`, stores
@@ -120,7 +120,7 @@ def BasisOut (rd : Reader) (σ : Val) (c : OsCfg) (bd ls L : ℕ) (lv : OsLv) (�
     LoadHolds rd (σ (.n bd)) (L * ligColsCap + t) ((1 + X t) / (X t * invW lv t))) ∧
   LoadHolds rd (σ (.n ls)) L (β * ∏ t ∈ Finset.range (lv.prefixLen + c.yrLog), (X t * invW lv t))
 
-/-- **Every level's basis row** (G:1553-1572). -/
+/-- **Every level's basis row** (G:1548-1567). -/
 theorem osBases_sound {c : OsCfg} {tch bd ls : ℕ} (β : ℕ → E) (X : ℕ → ℕ → E) :
     ∀ (levels : List OsLv) (lvl k : ℕ),
       (∀ i (hi : i < levels.length), BasisIn rd σ c tch (lvl + i) levels[i] (β (lvl + i))

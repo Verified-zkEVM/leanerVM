@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Opening.QueriesLeaf
 public import LeanVM.Guest.B1.Merkle.Climb
 
 /-!
-# A query's Merkle path (`verify_merkle_path`, G:1026-1041)
+# A query's Merkle path (`verify_merkle_path`, G:1021-1036)
 
 `oqPair_hash`: one `keccak(a, b, out)` of two two-cell digests (the padding run as its tail and
 capacity, `0x80` as its cell `8`) is `HashesPair` (G3's `keccak_one`).
@@ -107,7 +107,7 @@ theorem oqPath_frame {s : Oq} {bp : V} {pr kL ch : ℕ}
   simp [List.getElem_append_left (show k < ((List.range (4 * s.pd)).map fun j ↦ V.n (ch + j)).length
     by simp [hk])]
 
-/-- **One level** (G:1033-1040): with the bit `b` read and the running node `node`, the hinted
+/-- **One level** (G:1028-1035): with the bit `b` read and the running node `node`, the hinted
 children hold the node on the bit's side and a sibling on the other, the next node is their hash
 in that order, and the node is stored at `pp·g^(2b)`. -/
 theorem oqLevel_sound {s : Oq} {bp : V} {pr kL ch l : ℕ} (hl : l < s.pd)
@@ -190,7 +190,7 @@ theorem climbNode_length (leaf : Digest) (q : ℕ) (sibs : List Digest) :
     climbNode leaf q sibs sibs.length = climbD leaf q sibs := by
   simp [climbNode]
 
-/-- **The path below the cap** (`verify_merkle_path`, G:1026-1041): with the bits those of `q`
+/-- **The path below the cap** (`verify_merkle_path`, G:1021-1036): with the bits those of `q`
 and the leaf's digest the first node, the hinted children are the frame run `pathCell` of some
 siblings, each level's node is stored on its bit's side, and the last node is
 `climbD leaf q sibs` (`climb`, V:492). -/

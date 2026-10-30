@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Selectors.SelPartial
 /-!
 # `block_selector_tab` (TRIAGE G #49)
 
-`block_selector_tab(sel_bits, eq_tab, g_tab, n)` (G:1864-1881) reads, for each nibble `j` of the
+`block_selector_tab(sel_bits, eq_tab, g_tab, n)` (G:1859-1876) reads, for each nibble `j` of the
 `n` bits (the last `n - 4j` wide), its bits `4j + t` at `sel_bits`, pins each by the write-once
 store of its square, folds them into `g^u` (`u`'s bit `t` the bit `4j + t`), and multiplies the
 eq weight at `eq_tab·g^u` (offset `32j + 2^w - 2`) and the share at `g_tab·g^u` (offset `16j`).

@@ -32,7 +32,7 @@ set_option linter.unusedSectionVars false
 ## Keccak
 
 Transcribed from `python-verifier/verifier.py` at leanVM
-`93ebecc5f87ed7b1248a9772c392f9a41b6ac8d0` (branch `main`): the round constants, rotation
+`c445e3d51a5a85031df47240595698f3b24897bf` (branch `main`): the round constants, rotation
 offsets and lane permutation (`KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI`, `verifier.py:1208-1215`),
 the permutation `keccak_f` (`verifier.py:360-375`), and the hash `keccak_hash`
 (`verifier.py:191-209`) over any permutation `π` in any monad (`keccak256With`), the deployed one

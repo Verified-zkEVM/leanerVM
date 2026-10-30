@@ -27,7 +27,7 @@ import LeanVMTests.Spec.NodeVectors
   `aggregate_deferred_claims` (`crates/rec_aggregation/src/aggregation.rs`,
   `crates/fiat_shamir/src/lib.rs` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, the
   statement's digest at `990b935263dc7f793f280914f262ca7955ddc3e0`, its one DA digest at
-  `93ebecc5f87ed7b1248a9772c392f9a41b6ac8d0`) over the Python verifier's Keccak and field
+  `c445e3d51a5a85031df47240595698f3b24897bf`) over the Python verifier's Keccak and field
   arithmetic (`python-verifier/verifier.py`). The batching's
   hints are the Python's honest sumcheck messages; Lean's transcript must squeeze the same
   challenges for the claim to close at the Python's point, which is a true claim on the table.

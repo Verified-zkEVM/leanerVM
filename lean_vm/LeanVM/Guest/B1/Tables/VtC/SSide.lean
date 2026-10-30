@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SRank
 
 /-!
-# A side (G:1965-1991)
+# A side (G:1960-1986)
 
 `tbStackOrder κs`: `stack_offsets`' order of the side's log-sizes (`stackLe`, the stable sort,
 larger first): a permutation (`ord_perm`), adjacent ranks non-increasing in size, ties ascending

@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Gkr.Loop7C
 
 /-!
-# `__loop6`, completely (G:1687-1775)
+# `__loop6`, completely (G:1682-1770)
 
 `ly_iter`: from the slot of `L = 2j + sh` (`GkSlotC`), one step of two levels (`GkStepD.Ok`), its
 words at the cursor, its round records (`RecsAt`) and the slot of `L + 2` the step leads to, the

@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.SelMath
 
 /-!
-# The table blocks' selectors (G:2050-2066)
+# The table blocks' selectors (G:2045-2061)
 
 A table block `b` of table `t` (`vtSelT`): its `block_kappa` cell below `g^34`, its offset's bits
 hinted, the `block_selector_tab` arm `μ - τ_t` on the bits shifted by `τ_t` and the table's shared

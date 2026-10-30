@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.KeccakGkr.Interface
 
 `check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g, claim_cplen_g,
 lam_out, lam_pool, col_offsets, col_kappas, z_vals, c_table, point, point1, inner_total,
-yr_at_tail, sumcheck_target)` (G:3076-3142) evaluates the stacked opening's transparent weight at
+yr_at_tail, sumcheck_target)` (G:3071-3137) evaluates the stacked opening's transparent weight at
 the WHIR terminal point and checks the terminal (`whirLevels`' last `require`, V:1195-1198):
 `(inner + basis(point)) · residual = target`, `basis` the weight `verifyStackedOpening` hands WHIR
 (V:1453-1459) for the claims `verifyExecution` opens (V:1514-1517): the ring switch's, then every
@@ -110,7 +110,7 @@ def MeaningTerminal (rd : Reader) (args rets : List E) : Prop :=
       (args.getD 16 0 + stackWeight layout (openedClaims claims [out]) ringPoint coeffs lam x) *
         args.getD 17 0 = args.getD 18 0
 
-/-- **`check_opening_terminal` is sound** (G:3076-3142; TRIAGE #70). -/
+/-- **`check_opening_terminal` is sound** (G:3071-3137; TRIAGE #70). -/
 def check_opening_terminal_Spec (rd : Reader) : Prop :=
   ∀ args rets, coreProgram.Rel rd "check_opening_terminal" args rets → MeaningTerminal rd args rets
 

@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Selectors.Interface
 
 `verify_tables(fs0, …, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, block_kappa,
 g_squares, fp_w, beta, claim_pool, claim_cplen_g, chi, claim_push, claim_pull, claim_count)`
-(G:1936-2310) settles the bus against the six tables: it certifies each side's blocks' offsets
+(G:1931-2305) settles the bus against the six tables: it certifies each side's blocks' offsets
 (`busLayout`, V:548), certifies every table's log-height to be `max (log2Ceil rows) floor`
 (V:1294, by `padding_weight`), decomposes the three GKR leaf values (`accumulateSide`, V:1452),
 reads the framework's five column claims, runs the one table sumcheck (`tableSumcheck`, V:1552)
@@ -29,7 +29,7 @@ What it runs is `tablesSeg`: `verifyBusBalance` after the GKR walk (`busRest`), 
 `verify_sub`): for every `ev` taking that value at the bus's bytecode point, the run is the
 specification's.
 
-* `padding_weight_Spec`: `padding_weight__L{τ}(rows, zeta)` (G:1902-1933) holds exactly when
+* `padding_weight_Spec`: `padding_weight__L{τ}(rows, zeta)` (G:1897-1928) holds exactly when
   `rows` is an integer word `n ≤ 2^τ`; it returns `paddingWeight (zeta[..τ]) n` (V:679) and the
   two words whose `lead = 1 ∧ rest ≠ 0` says `τ = log2Ceil n` (`PadLead`, `PadRest`).
 * `verify_tables_Spec`: under `TablesPre` (what `verify_sub` establishes before the call), the
@@ -61,7 +61,7 @@ def PadWeightOut (τ : ℕ) (rd : Reader) : List E → List E → Prop
         rest = PadRest τ n
   | _, _ => False
 
-/-- **`padding_weight`** (G:1902-1933; TRIAGE #51) computes `paddingWeight`: soundness. -/
+/-- **`padding_weight`** (G:1897-1928; TRIAGE #51) computes `paddingWeight`: soundness. -/
 def padding_weight_Spec : Prop :=
   ∀ n < 29, ∀ rd args rets,
     coreProgram.Rel rd (lName "padding_weight" n) args rets → PadWeightOut n rd args rets
@@ -162,7 +162,7 @@ def TCtx (rd : Reader) (layout : Layout) (bus : BusResult) (claims : List Column
 
 /-! ## `verify_tables` -/
 
-/-- `BLOCK_KAPPA_SRC` (G:118): a bus block's log-height is source `s` of
+/-- `BLOCK_KAPPA_SRC` (G:113): a bus block's log-height is source `s` of
 `[0, log_mem, τ_0, …, τ_5]` … -/
 def blockKappaSrc : List ℕ :=
   [0, 1, 0, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7,
@@ -171,13 +171,13 @@ def blockKappaSrc : List ℕ :=
     7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 5, 5, 5, 5, 6, 6,
     6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7]
 
-/-- … plus `BLOCK_KAPPA_ADJ` (G:119): the bytecode blocks' `19`. -/
+/-- … plus `BLOCK_KAPPA_ADJ` (G:114): the bytecode blocks' `19`. -/
 def blockKappaAdj (b : ℕ) : ℕ := if b = 2 ∨ b = 56 then 19 else 0
 
 /-- `N_BLOCKS`. -/
 abbrev nBlocks : ℕ := 153
 
-/-- `block_kappa` (G:3201-3203): block `b`'s `g^κ` over `kappa_base = [1, g^log_mem, dims…]`. -/
+/-- `block_kappa` (G:3196-3198): block `b`'s `g^κ` over `kappa_base = [1, g^log_mem, dims…]`. -/
 def blockKappaWords (gLogMem : E) (dims : List E) : List E :=
   (List.range nBlocks).map fun b ↦
     (1 :: gLogMem :: dims).getD (blockKappaSrc.getD b 0) 0 * gen ^ blockKappaAdj b
@@ -222,7 +222,7 @@ def TablesOut (bytecode : List K) (pi : Digest) (logMem : ℕ) (alphas point val
         [f0', f1', f2', f3', f4'] = cap' ∧ cur' = cur * gen ^ xs.length
   | _, _ => False
 
-/-- **`verify_tables` is sound** (G:1936-2312; TRIAGE #52), for the guest's own bytecode words
+/-- **`verify_tables` is sound** (G:1931-2307; TRIAGE #52), for the guest's own bytecode words
 `bytecode`. Proved for every memory of at most `2^32` words (`verify_tables_holds`). -/
 def verify_tables_Spec (bytecode : List K) (rd : Reader) : Prop :=
   ∀ pi logMem alphas point values args rets,

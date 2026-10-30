@@ -18,16 +18,16 @@ and its tag (`pendingLanes`), overwrite the rate lanes `0..16`, zeros after them
 `16..25` are kept (`duplexInput`). The guest (`crates/rec_aggregation/guests/lean_ethereum.py` at
 leanVM `4af2cdddd`, G below) holds the sponge as the thirteen-cell output of its last permutation,
 of which only the five cells `8..12` (lanes `16..24`, `fs0 .. fs4`) travel; a waiting scalar `x`
-with tag `t` is two rate cells, `x + y²·c2` and `c2 + y·t` (`fs_pack`, G:549-557), canonical
+with tag `t` is two rate cells, `x + y²·c2` and `c2 + y·t` (`fs_pack`, G:544-552), canonical
 exactly when `c2` is `x`'s top limb (`fsPack_cells`); a permutation is `keccak(a, b, out,
-tail=, cap=sp)` (`fs_perm`, G:561-576), lowered as one `KECCAK` in the even layouts whose eight
+tail=, cap=sp)` (`fs_perm`, G:556-571), lowered as one `KECCAK` in the even layouts whose eight
 rate cells are the waiting cells (zeros past them: the zero run `keccak_pad_run() + 1`) and
 whose cells `8..12` are `sp`'s last five (`builtins.rs:31-63`).
 
 * `keccak_duplex`: that `KECCAK` writes the cells of `keccakF (duplexInput ⟨S, pending⟩)`;
 * `duplex_id`, `squeeze_id`, `absorb_id_lt`, `absorb_id_full`: the Spec's operations at
   `m = Id`, `F = keccakF`;
-* `challengeOf_cells`: `challenge_from_state` (G:526-535) reads `challengeOf`;
+* `challengeOf_cells`: `challenge_from_state` (G:521-530) reads `challengeOf`;
 * `fsPack_cells`: `fs_pack`'s two cells are the scalar's rate cells.
 -/
 
@@ -168,7 +168,7 @@ theorem absorb_id_full (sp : Compile.Sponge) (x : E) (t : ℕ) (h : sp.pending.l
 
 /-! ## Reading a challenge, packing a scalar -/
 
-/-- **`challenge_from_state`** (G:526-535): the challenge of a state is its cell `0` plus `y²` times
+/-- **`challenge_from_state`** (G:521-530): the challenge of a state is its cell `0` plus `y²` times
 the low limb of its cell `1` (which the guest hints and pins by `assert_in_k`, `split_iff`). -/
 theorem challengeOf_cells (S : KState) :
     Compile.challengeOf S =
@@ -183,7 +183,7 @@ theorem challengeOf_limb0 (S : KState) :
 /-- A `K` literal's lane. -/
 theorem ofLane_toUInt64 (t : ℕ) : K.ofLane t.toUInt64 = K.ofBits t := rfl
 
-/-- **`fs_pack(rate, k, x, tag)`** (G:549-557): with the hinted `c2` and the tag `t < 2^64` in `K`
+/-- **`fs_pack(rate, k, x, tag)`** (G:544-552): with the hinted `c2` and the tag `t < 2^64` in `K`
 (`assert_in_k(limbs[2], tag)`), the cells `x + y²·c2` and `c2 + y·E(t)` are canonical (as the
 `KECCAK` reading them requires) exactly when `c2` is `x`'s top limb, and then they are
 `scalarCells x t`. -/

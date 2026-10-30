@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Opening.Meaning
 
 /-!
-# `opening_row_weights` (G:1152-1173, TRIAGE #38), and `eq_weight` (G:808-826, TRIAGE #22)
+# `opening_row_weights` (G:1147-1168, TRIAGE #38), and `eq_weight` (G:803-821, TRIAGE #22)
 
 `eq_weight(ch, count, idx, msb_span)` multiplies, for `c < count`, the factor `ch[c]` (bit set)
 or `1 + ch[c]` (bit clear); the product starts at `1`, so the first factor is folded. Its

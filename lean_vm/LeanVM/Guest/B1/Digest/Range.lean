@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Digest.Range
 
   Range checks on a memory image, the compile-time powers of `g` the guest bounds them by, and B1
-  for `list_split` (G:3812-3824; TRIAGE #87).
+  for `list_split` (G:3807-3819; TRIAGE #87).
 -/
 
 module
@@ -89,7 +89,7 @@ theorem word_gmax : word 9272771591053052074 0 0 = gen ^ 65535 := by
 
 theorem word_g16 : word 65536 0 0 = gen ^ 16 := word_two_pow (a := 16) (by decide)
 
-/-! ## `list_split` (G:3812-3824, TRIAGE #87) -/
+/-! ## `list_split` (G:3807-3819, TRIAGE #87) -/
 
 theorem core22_body : Fn.body Data.core22 =
     [.atom (.hint (.witness "signers_split" (.stack [.n 1, .n 2]))),

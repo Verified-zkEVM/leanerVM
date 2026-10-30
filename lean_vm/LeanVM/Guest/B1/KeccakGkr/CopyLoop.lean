@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.CopyLoop
 
-  The copy loops of `verify_keccak` (`__loop10`, `__loop11`, `__loop12`, G:2808-2809, 2877-2878,
-  2943-2944): `dst[x] = src[x]` for `x` over `g^0 .. g^(m-1)`.
+  The copy loops of `verify_keccak` (`__loop10`, `__loop11`, `__loop12`, G:2803-2804, 2872-2873,
+  2938-2939): `dst[x] = src[x]` for `x` over `g^0 .. g^(m-1)`.
 -/
 
 module

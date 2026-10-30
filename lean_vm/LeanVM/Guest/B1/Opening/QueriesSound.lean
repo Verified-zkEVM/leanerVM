@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesCap
 
 /-!
-# One query, assembled (`opening_query`, G:1177-1241)
+# One query, assembled (`opening_query`, G:1172-1236)
 
 `oqQuery_sound`: the atoms of `oqQueryT` (the row, the dot product, the padding run, the leaf
 hash, the path, the cap leaf) give `QueryOpens` at the position whose bits the bit pointer reads.
@@ -37,7 +37,7 @@ theorem oqQuery_pieces {s : Oq} {bp cap flags wp : V} {b : ℕ} {emit : Bool} {p
   refine ⟨fun a h => hA a ?_, fun a h => hA a ?_, fun he a h => hA a ?_, fun a h => hA a ?_,
     fun a h => hA a ?_, fun a h => hA a ?_⟩ <;> simp only [oqQueryT, List.mem_append] <;> simp_all
 
-/-- **One query is `QueryOpens`** (G:1177-1241): with the padding run `1, 0, 0, 0, 0` and the bit
+/-- **One query is `QueryOpens`** (G:1172-1236): with the padding run `1, 0, 0, 0, 0` and the bit
 pointer reading the bits of `q < 2^(pd + cd)`, the query opens the hinted row at `q` and its value
 is the row's dot product with the weights. -/
 theorem oqQuery_sound {s : Oq} (hs : s.RowShape) (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8)

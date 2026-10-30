@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.Sound
 
-  B1 for `main` (G:4063-4231; TRIAGE #96): a run of `main`'s body establishes `NodeRel` of the
+  B1 for `main` (G:4058-4226; TRIAGE #96): a run of `main`'s body establishes `NodeRel` of the
   seed, the statement and the witness its decoders read.
 -/
 

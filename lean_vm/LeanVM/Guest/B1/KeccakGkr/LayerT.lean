@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.KeccakGkr.EqFrame
 /-!
 # `keccak_layer` as a template
 
-The specializations `keccak_layer__L{first}_L{odd}` (G:2478-2723) compile to one statement list up
+The specializations `keccak_layer__L{first}_L{odd}` (G:2473-2718) compile to one statement list up
 to the product's table (`prodTab first`), the waiting cells of the squeeze after it, the
 first layer's weight section, and a shift `d = 4·odd` of the values after the pack rounds' call
 (`odd = 1` adds a `keccak_round` call and its four values). Sections:

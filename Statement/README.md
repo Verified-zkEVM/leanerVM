@@ -21,7 +21,7 @@ soundness in the random-permutation model, the only term of its bound that depen
 argument.
 
 **The sources.** The leanVM definitions are transcribed from leanVM at
-`93ebecc5f87ed7b1248a9772c392f9a41b6ac8d0` (branch `main`, [`../leanvm-rev`](../leanvm-rev)): each
+`c445e3d51a5a85031df47240595698f3b24897bf` (branch `main`, [`../leanvm-rev`](../leanvm-rev)): each
 cites its source (`verifier.py:N`, `*.rs:N`, `doc/leanvm` sections). LeanDA's security framework is
 Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache-2.0, see
 [`../lean_da/NOTICE`](../lean_da/NOTICE)).

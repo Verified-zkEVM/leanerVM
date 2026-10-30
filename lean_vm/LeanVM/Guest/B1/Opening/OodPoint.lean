@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
 
 /-!
-# `opening_ood_point` (G:1116-1127, TRIAGE #36)
+# `opening_ood_point` (G:1111-1122, TRIAGE #36)
 
 Its body at dimension `n` (`oodBody n`): the capacity copied into `14 .. 18`, the permutation of
 the rate cells `5 .. 12` and the capacity into `19 .. 31`, its challenge (`challengeT` from `32`,

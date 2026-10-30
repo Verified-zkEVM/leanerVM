@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.KeccakGkr.VkFin
 
   `verify_keccak`'s inputs' check, the copy of their pack coordinates, the return
-  (G:2931-2943).
+  (G:2926-2938).
 -/
 
 module
@@ -30,7 +30,7 @@ theorem word_g64 : word 27 0 0 = gen ^ 64 := by
 theorem word_2p43 : word 8796093022208 0 0 = gen ^ 43 := by
   rw [show (8796093022208 : ℕ) = 2 ^ 43 from rfl]; exact word_two_pow (by decide)
 
-/-- **The inputs' check and the return** (G:2931-2943). -/
+/-- **The inputs' check and the return** (G:2926-2938). -/
 theorem vkFinT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n 17) = gen ^ (τ - 4))
     {c : KeccakClaim} (hc : ClaimRec rd ((0 : ℕ) = 1) (σ (.n 201) * gen ^ (22 * 12)) c (τ - 3))
     {slotI : List E} (hsl : slotI.length = 6) (hslR : ReadsAt rd (σ (.n 4107)) slotI)

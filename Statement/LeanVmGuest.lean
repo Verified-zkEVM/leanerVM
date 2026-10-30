@@ -64,8 +64,8 @@ LeanDA's deployed algorithms (`LeanDa.commitCodewords`, `LeanDa.vectorDigest`) a
 
 A DA claim (`DaClaim`) is held by a matrix committed to its root whose rows are orthogonal to a
 vector of its vector digest; a statement carries the claim's digest (`daClaimDigest`), or zeros (`Witness.Opens`: the guest program's `da_verify`,
-`lean_ethereum.py:3920-4058`; the digest two-level, `LeanDa.vectorDigest`, `da_vector_cell`,
-`lean_ethereum.py:4048-4058`). Only where the vector is the root's membership vector, as the deployed
+`lean_ethereum.py:3915-4053`; the digest two-level, `LeanDa.vectorDigest`, `da_vector_cell`,
+`lean_ethereum.py:4043-4053`). Only where the vector is the root's membership vector, as the deployed
 outer verifier requires (no end statement here assumes it), are the rows codewords, except with the
 membership test's error (`lean_da`'s `membershipVector_eq_dual`, `checker_sound`) and up to a
 collision of the vector digest, which is not among `collisionCandidates`; the link to `lean_da`'s
@@ -136,7 +136,7 @@ abbrev SphincsClaim : Type := Sphincs.PublicKey × Sphincs.Message
 with the digest of the vector its rows are orthogonal to. A statement carries its digest,
 `daClaimDigest`: the root then the vector digest, hashed (`root_vector_digest`,
 `aggregation.rs:559-562`; the guest program's `keccak([root_0, root_1], [vector_0, vector_1])`,
-`lean_ethereum.py:4169`). -/
+`lean_ethereum.py:4164`). -/
 structure DaClaim where
   /-- The matrix's Merkle root: the commitment to its codewords (`Da.Witness.Opens`). -/
   daRoot : Digest
@@ -163,7 +163,7 @@ structure NodeStatement where
   defer : DeferredClaim
 
 /-- The deferred claim has the shape of the bytecode `bytecode`: a point of `log₂` of its length
-(`bytecode_vars`, `aggregation.rs:795-797`; `BYTECODE_VARS`, `lean_ethereum.py:330`). -/
+(`bytecode_vars`, `aggregation.rs:795-797`; `BYTECODE_VARS`, `lean_ethereum.py:325`). -/
 def DeferredClaim.Shaped (bytecode : List K) (c : DeferredClaim) : Prop :=
   c.bytecodePoint.length = Nat.log2 bytecode.length
 
@@ -176,14 +176,14 @@ def DeferredClaim.Holds (bytecode : List K) (c : DeferredClaim) : Prop :=
     multilinearEval (bytecode.map ofK) c.bytecodePoint = c.bytecodeValue
 
 /-- What a leaf defers: the bytecode at the all-zero point (`DeferredClaim::leaf`,
-`aggregation.rs:250-252`; `main`'s leaf branch, `lean_ethereum.py:4215-4223`). The value is
+`aggregation.rs:250-252`; `main`'s leaf branch, `lean_ethereum.py:4210-4218`). The value is
 the outer verifier's to check. -/
 def DeferredClaim.AtZero (bytecode : List K) (c : DeferredClaim) : Prop :=
   c.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0
 
 /-- The cells a deferred claim is hashed and absorbed as, and a proof's claim on the bytecode
 exported as: the point, then the value (`DeferredClaim::cells`, `aggregation.rs:297-301`; the guest
-program's `defer_stmt`, and `verify_sub`'s `defer_out`, `lean_ethereum.py:3329-3334`, the point
+program's `defer_stmt`, and `verify_sub`'s `defer_out`, `lean_ethereum.py:3324-3329`, the point
 being the bus point's row coordinates, then the selector challenges). -/
 def DeferredClaim.cells (c : DeferredClaim) : List E :=
   c.bytecodePoint ++ [c.bytecodeValue]
@@ -207,7 +207,7 @@ def claimsPreimage (claims : List XmssClaim) : List UInt8 :=
   claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2
 
 /-- The digest of a list of leanXMSS or leanSPHINCS claims (`claim_list_digest`,
-`aggregation.rs:211-213`, `lean_ethereum.py:3827-3849`). -/
+`aggregation.rs:211-213`, `lean_ethereum.py:3822-3844`). -/
 def claimListDigest (claims : List XmssClaim) : Digest := keccak256 (claimsPreimage claims)
 
 /-- The bytes `daClaimDigest c` hashes: the root, then the vector digest. -/
@@ -215,11 +215,11 @@ def daPreimage (c : DaClaim) : List UInt8 :=
   digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest
 
 /-- A DA claim's digest, which a statement carries (`root_vector_digest`, `aggregation.rs:559-562`;
-`lean_ethereum.py:4169`). -/
+`lean_ethereum.py:4164`). -/
 def daClaimDigest (c : DaClaim) : Digest := keccak256 (daPreimage c)
 
 /-- The DA digest of a statement without a DA claim: zeros (`da_digest(None)`,
-`aggregation.rs:553-557`; `own_da`'s zero cells, `lean_ethereum.py:4171-4172`). -/
+`aggregation.rs:553-557`; `own_da`'s zero cells, `lean_ethereum.py:4166-4167`). -/
 def zeroDigest : Digest := Vector.replicate 4 0
 
 /-- The 24 bytes of a field element, its three limbs. -/
@@ -238,13 +238,13 @@ def statementPreimage (seed : Digest) (s : NodeStatement) : List UInt8 :=
     (paddedCells s.defer).flatMap eBytes
 
 /-- **The statement's digest under `seed`** (`statement_digest`, `aggregation.rs:331-360`,
-`lean_ethereum.py:3764-3795`). The cells carry no lengths: the digest tells two deferred claims
+`lean_ethereum.py:3759-3790`). The cells carry no lengths: the digest tells two deferred claims
 apart only at one shape. -/
 def statementDigest (seed : Digest) (s : NodeStatement) : Digest :=
   keccak256 (statementPreimage seed s)
 
-/-! ## Batching the deferred claims (`aggregate_claims`, `lean_ethereum.py:4234-4341`;
-`aggregate_deferred_claims`, `aggregation.rs:910-1012`) -/
+/-! ## Batching the deferred claims (`aggregate_claims`, `lean_ethereum.py:4229-4328`;
+`aggregate_deferred_claims`, `aggregation.rs:910-1016`) -/
 
 /-- Words padded with zeros to a whole rate, `rateScalars` words (`pad`,
 `aggregation.rs:920-924`; `AGG_CHILD_PAD`). -/
@@ -259,10 +259,15 @@ structure ChildClaims where
   carried : DeferredClaim
 
 /-- The words the batching absorbs of a child: its public input's two cells, its proof's claim,
-the claim its statement defers (`AGG_CHILD_WORDS`, `lean_ethereum.py:342`). -/
+the claim its statement defers (`AGG_CHILD_WORDS`, `lean_ethereum.py:337`). -/
 def ChildClaims.words (c : ChildClaims) : List E :=
   [(digestScalars c.publicInput).1, (digestScalars c.publicInput).2] ++ DeferredClaim.cells c.fresh ++
     c.carried.cells
+
+/-- **The lambdas of one challenge `λ`**: child `i`'s pair `(λ^(2i), λ^(2i+1))`, for its fresh claim
+and its carried one (`lean_ethereum.py:4291-4305`, `aggregation.rs:940-944`). -/
+def _root_.LeanVM.Guest.Batch.lambdaPowers (lam : E) (n : ℕ) : List (E × E) :=
+  (List.range n).map fun i ↦ (lam ^ (2 * i), lam ^ (2 * i + 1))
 
 /-- The bytecode's batched claim at the lambdas `lB`. -/
 def _root_.LeanVM.Guest.Batch.claimBOf (cs : List ChildClaims) (lB : List (E × E)) : E :=
@@ -293,8 +298,8 @@ end LeanVM.Node
 
 /-! The batching as a program of the verifier's language (`Prog`): the count `n` as `g^n` then
 three zeros, `n` children of `bytecode`'s shapes, each its words then zeros to a whole rate
-(`readChildren`), then the lambdas, the sumcheck's `log₂ |bytecode|` rounds (`roundsProg`) and
-the final value, accepted if the final claim is the value times the batched weight and the
+(`readChildren`), then one challenge, whose powers are the lambdas, the sumcheck's
+`log₂ |bytecode|` rounds (`roundsProg`) and the final value, accepted if the final claim is the value times the batched weight and the
 deferred claim meets a check (`batchRest`); run from the batching transcript's seed
 (`batchRun`). A node's batching (`NodeRel`) runs `batchOf`, the check that the claim is the node's;
 the recursion step's end statement (`BatchSound`) runs `batchAny`, the count read below a bound
@@ -350,15 +355,6 @@ noncomputable def readCount (M : ℕ) : Prog ℕ := do
   Prog.require (xs.drop 1 = List.replicate (rateScalars - 1) 0)
   liftOption (countOf M (xs.getD 0 0))
 
-/-- Sample a pair of lambdas per child. -/
-def sampleL : ℕ → Prog (List (E × E))
-  | 0 => pure []
-  | n + 1 => do
-    let a ← Prog.sampleE
-    let b ← Prog.sampleE
-    let l ← sampleL n
-    return (a, b) :: l
-
 /-- `k` rounds of the batching sumcheck from `claim`: read `g(1)` and `g(∞)`, sample the
 challenge, fold (`roundPoly`). The challenges and the final claim. -/
 def roundsProg : E → ℕ → Prog (List E × E)
@@ -371,12 +367,14 @@ def roundsProg : E → ℕ → Prog (List E × E)
     return (r :: rest.1, rest.2)
 
 open Classical in
-/-- **The batching after its children**: the lambdas, the sumcheck's `log₂ |bytecode|` rounds,
-the final value (`bc_star_hint`, read after the last challenge: no challenge follows), the final
-check, and `check` of the deferred claim. -/
+/-- **The batching after its children**: one challenge and the lambdas of its powers
+(`lambdaPowers`), the sumcheck's `log₂ |bytecode|` rounds, the final value (`bc_star_hint`, read
+after the last challenge: no challenge follows), the final check, and `check` of the deferred
+claim. -/
 noncomputable def batchRest (check : DeferredClaim → Prop) (bytecode : List K)
     (cs : List ChildClaims) : Prog Bool := do
-  let l ← sampleL cs.length
+  let lam ← Prog.sampleE
+  let l := lambdaPowers lam cs.length
   let rb ← roundsProg (claimBOf cs l) (Nat.log2 bytecode.length)
   let bv ← Prog.readE
   Prog.require (rb.2 = bv * bytecodeWeight cs l rb.1 ∧ check ⟨rb.1, bv⟩)
@@ -413,7 +411,7 @@ noncomputable def batchAny (M : ℕ) (bytecode : List K) : Prog Bool := do
 
 /-- **The batching transcript run**, for a hash function `H` and a permutation `F` in any monad:
 from the seed `F(H(label) ‖ 0)` (`FiatShamirState::from_label`; the guest program bakes its
-capacity, `AGG_SEED_*`, `aggregation.rs:2507-2510`), the program on the proof. -/
+capacity, `AGG_SEED_*`, `aggregation.rs:2511-2514`), the program on the proof. -/
 noncomputable def batchRun {m : Type → Type} [Monad m] (H : Bytes → m Digest)
     (F : KState → m KState) (prog : Prog Bool) (proof : Proof) : m Bool := do
   let seed ← F (seedInput (← H batchLabel) (Vector.replicate 4 0))
@@ -468,7 +466,7 @@ def Held {α W : Type} (holds : α → W → Prop) (claimsOf : Claims → List �
   the root, in the batched claim);
 * every signature claim of `s` is held;
 * its DA digest is that of the claim the matrix it checks opens, or, without one, zero or a
-  child's DA digest (`da_pick`, `lean_ethereum.py:4207-4211`);
+  child's DA digest (`da_pick`, `lean_ethereum.py:4202-4206`);
 * `s` defers the batching of the children's claims on the bytecode (`batchOf`, on the stream of
   the children's claims and the hints), and a node without children the bytecode at zero. -/
 def NodeRel (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWitness) : Prop :=
@@ -560,10 +558,10 @@ def guest : Program := assemble Data.functions 19 (by decide)
 
 namespace Hints
 
-/-- `STREAM_CAP` (`aggregation.rs:1326`): a child's proof stream is zero-padded to it. -/
+/-- `STREAM_CAP` (`aggregation.rs:1330`): a child's proof stream is zero-padded to it. -/
 def streamCap : ℕ := 8192
 
-/-- `MU_MIN` (`aggregation.rs:1317`): the least stack log the guest program has an opening arm
+/-- `MU_MIN` (`aggregation.rs:1321`): the least stack log the guest program has an opening arm
 for. -/
 def muMin : ℕ := 22
 
@@ -624,7 +622,7 @@ end Hints
 /-! ## The deployed limits
 
 The guest program divides by some of the verifier's challenges (the WHIR fold and tail challenges
-and each level's batching challenge `λ`, G:1251, 1560, 1565), so a zero one makes it reject a child
+and each level's batching challenge `λ`, G:1246, 1555, 1560), so a zero one makes it reject a child
 the verifier accepts; its hypothesis refuses a zero challenge anywhere (`Prog.refuseZero`), a
 slightly stronger one, each challenge being zero with probability `2^-192`. -/
 
@@ -708,8 +706,8 @@ end Limits
 /-- **A child the guest program accepts** under the seed `seed`: what the guest program asks of
 each child, `NodeRel`'s two conditions (`shaped`, `verifies`) and the deployed ones:
 * its stack log is at least `MU_MIN = 22`: the guest program has one opening arm per stack log in
-  `[22, 28]` (G:3312-3314); the verifier admits stack logs from `Whir.minLogStack`;
-* its proof stream is at most `STREAM_CAP = 8192` scalars (G:3163);
+  `[22, 28]` (G:3307-3309); the verifier admits stack logs from `Whir.minLogStack`;
+* its proof stream is at most `STREAM_CAP = 8192` scalars (G:3158);
 * its openings agree in the guest program's Merkle caps: at every query step of its deferring
   verifier, run under the node's seed, the step's openings agree wherever they meet (one tree's
   openings, the honest prover's, agree);
@@ -728,7 +726,7 @@ structure ChildOk (bytecode : List K) (seed : Digest) (c : Child) : Prop where
     Limits.verifyDeferredRZ bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true
 
 open Hints in
-/-- The coverage table's slots (`n_total`, G:4102): each region's declared claims and its
+/-- The coverage table's slots (`n_total`, G:4097): each region's declared claims and its
 duplicates, as `plan` assigns them. -/
 def coverage (s : NodeStatement) (w : NodeWitness) : ℕ :=
   let ch := w.children
@@ -741,23 +739,23 @@ open Hints in
 /-- **The deployed limits**, where `NodeRel` admits witnesses the guest program cannot run; a
 child's own limits are `ChildOk`'s. Implied by these, with `NodeRel` and `ChildOk`, and so not
 limits of their own: a child's stack log at most `28` and rate in `[1, 4]` (`readSizes`), at
-most one blob matrix checked directly (`NodeWitness.da`, G:4097), every count of `meta` below
-`2^16` (G:4090-4095), the bus depth at most `32` (G:1628), the tables' heights at most `28`
-(G:2008). -/
+most one blob matrix checked directly (`NodeWitness.da`, G:4092), every count of `meta` below
+`2^16` (G:4085-4090), the bus depth at most `32` (G:1623), the tables' heights at most `28`
+(G:2003). -/
 structure Limits (s : NodeStatement) (w : NodeWitness) : Prop where
   /-- A claim declared `n` times is held `n` times, by witnesses or by distinct entries of the
-  children's lists: each coverage slot is written once (G:3871-3872, 4153-4154, 4158-4159, 4205), where
+  children's lists: each coverage slot is written once (G:3866-3867, 4148-4149, 4153-4154, 4200), where
   `NodeRel` lets two equal claims share one holder. -/
   xmssHeld : ∀ x, s.claims.xmss.count x ≤ ((direct s.claims.xmss w.xmss).map (·.1)).count x +
     (w.children.map fun c ↦ c.statement.claims.xmss.count x).sum
   sphincsHeld : ∀ x, s.claims.sphincs.count x ≤ ((direct s.claims.sphincs w.sphincs).map (·.1)).count x +
     (w.children.map fun c ↦ c.statement.claims.sphincs.count x).sum
-  /-- At most `MAX_RECURSIONS = 16` children (G:4096). -/
+  /-- At most `MAX_RECURSIONS = 16` children (G:4091). -/
   children : w.children.length ≤ 16
-  /-- Every child's signature list below `2^16` (G:4190-4191). -/
+  /-- Every child's signature list below `2^16` (G:4185-4186). -/
   lists : ∀ c ∈ w.children, c.statement.claims.xmss.length < 2 ^ 16 ∧
     c.statement.claims.sphincs.length < 2 ^ 16
-  /-- The coverage table below `2^16` (G:4103). -/
+  /-- The coverage table below `2^16` (G:4098). -/
   coverage : coverage s w < 2 ^ 16
 
 /-! ## The leanISA guest program's completeness on the covered nodes -/
@@ -875,10 +873,11 @@ def FalseChildren (bytecode : List K) (M : ℕ) (π : Proof) : Prop :=
     ¬ ∀ c ∈ cs, c.fresh.Holds bytecode ∧ c.carried.Holds bytecode
 
 /-- **The batching program's query bound** on child counts below `M`: the seed's two queries,
-then a quarter of the program's cost. -/
+then a quarter of the program's cost (the count, the children's cells, the challenge, the
+sumcheck's rounds and the final value). -/
 def batchQueryBound (bytecode : List K) (M : ℕ) : ℕ :=
   2 + (rateScalars + (M * (childLen (Nat.log2 bytecode.length) +
-    padLen (childLen (Nat.log2 bytecode.length)) + 8) + 6 * Nat.log2 bytecode.length + 1)) / 4
+    padLen (childLen (Nat.log2 bytecode.length))) + 4 + 6 * Nat.log2 bytecode.length + 1)) / 4
 
 open LeanVM.Rpm OracleComp OracleSpec in
 /-- **The batching in the random-permutation model.** For a bytecode of power-of-two length and
@@ -886,8 +885,11 @@ a bound `M ≤ 2^64 - 1` on the children's count: an adversary of `QA` queries t
 outputs a proof; the probability that the batching's verifier, Keccak-256 the sponge over `π` and
 Keccak-f[1600] `π`, accepts it while its stream begins with fewer than `M` children of the
 bytecode's shapes one of whose claims is false is at most
-`(QA + QV + 1) · 2^-191 + 5 (QA + QV)² · 2^-256`, for `QA ≤ 2^128` and the program's query bound
-`QV = batchQueryBound bytecode M ≤ 2^96`; the adversary's private coins are free.
+`(QA + QV + 1) · M · 2^-191 + 5 (QA + QV)² · 2^-256`, for `QA ≤ 2^128` and the program's query
+bound `QV = batchQueryBound bytecode M ≤ 2^96`; the adversary's private coins are free. The
+factor `M` is the batching's one challenge `λ`: the children's `2n` claims, `n < M`, are combined
+with its powers, and a nonzero combination of degree below `2M` vanishes at fewer than `2M`
+values of `λ` (a sumcheck round's challenge at at most `2`).
 
 This is the batching run outside the circuit, with Keccak-f[1600] = `π`; it does not compose with
 the guest program's in-circuit statements, whose `KECCAK` instruction computes the deployed
@@ -898,7 +900,7 @@ def BatchSound : Prop :=
     Common.IsWeightBound A Common.permCalls QA → QA ≤ 2 ^ 128 → batchQueryBound bytecode M ≤ 2 ^ 96 →
     Pr{let z ← rpmRun A fun z ↦ batchRun queryH queryF (batchAny M bytecode) z.2}[
       z.1.2 = true ∧ FalseChildren bytecode M z.1.1.2] ≤
-      (((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ 191 +
+      (((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * M * (2 : ℝ≥0∞)⁻¹ ^ 191 +
         5 * ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 end Batch

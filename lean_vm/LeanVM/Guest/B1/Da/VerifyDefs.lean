@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Main.Body
 public import LeanVM.Guest.B1.Da.ChainSplit
 
 /-!
-# `da_verify` (G:3920-3982), checked
+# `da_verify` (G:3915-3977), checked
 
 `da_verify(g_squares)` (`core25`): the shape (`da_row_shape`), the rows' prefix bases
 (`__loop17`: `prefix_bases[x] = prefix_digests·x^128`), the rows' running sums (`__loop18`:

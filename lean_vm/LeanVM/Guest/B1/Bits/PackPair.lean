@@ -9,11 +9,11 @@ module
 public import LeanVM.Guest.B1.Bits.Templates
 
 /-!
-# `pack_pair` (G:512-522, TRIAGE #4)
+# `pack_pair` (G:507-517, TRIAGE #4)
 
 `pack_pair(out, at, s, t)` hints two limbs of each word, derives each top limb by `y⁻¹` and packs
 `(s0, s1)`, `(s2, t0)`, `(t1, t2)` into three cells with `pack64x2`. Its expansion from the value
-`b` (its callers `statement_digest`, G:3792, and `da_vector_cell`, G:4055, number it) is
+`b` (its callers `statement_digest`, G:3787, and `da_vector_cell`, G:4050, number it) is
 `packPairT s t b`: the hints at `b .. b + 3`, the cells at `b + 6`, `b + 15`, `b + 24`.
 
 * `packPairT_sound`: the template holds only at `s`'s and `t`'s limbs, and its cells are
@@ -83,7 +83,7 @@ theorem packPair_cellsBytes (s t : E) :
     Keccak.cellsBytes (packPairCells s t) = Node.eBytes s ++ Node.eBytes t := by
   simp [packPairCells, Keccak.cellsBytes, Keccak.cellBytes, Node.eBytes]
 
-/-- **`pack_pair`** (G:512-522): the template holds only at the words' limbs, and its cells are
+/-- **`pack_pair`** (G:507-517): the template holds only at the words' limbs, and its cells are
 `packPairCells s t`. -/
 theorem packPairT_sound {s t : V} {b : ℕ} (h : PackPairOk σ s t b) :
     [σ (.n (b + 6)), σ (.n (b + 15)), σ (.n (b + 24))] = packPairCells (σ s) (σ t) := by

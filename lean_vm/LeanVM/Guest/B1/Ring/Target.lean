@@ -11,9 +11,9 @@ public import LeanVM.Guest.B1.Ring.Weight
 /-!
 # `ring_switch_target` (TRIAGE G #64, #65)
 
-`ring_switch_target(slices, map_challenges)` (G:2955-2972, `Data.core13`) seeds a two-slot chain
+`ring_switch_target(slices, map_challenges)` (G:2950-2967, `Data.core13`) seeds a two-slot chain
 `(x^0, 0)` and runs `__loop13` (`Data.core259`) for `x = g^j`, `j < 8`: the loop body evaluates
-`Φ` (`ring_map`, G:2946-2952, inline: six stages, each `lin + f_p · lin^(2^shift)` by `shift`
+`Φ` (`ring_map`, G:2941-2947, inline: six stages, each `lin + f_p · lin^(2^shift)` by `shift`
 squarings, `stageT`) on the eight slices `8j .. 8j + 7` and combines them in Horner form by `g`
 (the chunk `Σ_i g^i Φ(s_(8j+i))`), then extends the chain: `x^0 ← x^0·g^8`,
 `sum ← sum + x^0·chunk`. The chain's last sum is `polyEval (s.map Φ) g`.
@@ -89,7 +89,7 @@ theorem holds_stageT {lin : V} {b d s : ℕ} (hd : 1 ≤ d) {next : Prop} {kret 
 theorem rmapT_noRet (lin : V) (b : ℕ) : Stmt.noRetList (rmapT lin b) = true := by
   simp only [rmapT, noRetList_append, stageT_noRet]; rfl
 
-/-- **`ring_map`** (G:2946-2952): the six challenges it loads from `map_challenges` (value `2`),
+/-- **`ring_map`** (G:2941-2947): the six challenges it loads from `map_challenges` (value `2`),
 and `Φ` of `lin` at them (`phiMap`, V:2103) at `b + 80`. -/
 theorem holds_rmapT {lin : V} {b : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (rmapT lin b) next kret) :

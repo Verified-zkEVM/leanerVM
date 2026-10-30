@@ -13,7 +13,7 @@ public import LeanVM.Guest.Value.Pigeonhole
 /-!
 # The coverage table
 
-The writers of `main`'s coverage table (G:4141-4205) store the marks `g^m`, `m < T`, one each:
+The writers of `main`'s coverage table (G:4136-4200) store the marks `g^m`, `m < T`, one each:
 the raw leanXMSS signatures (`m < RX`), the raw leanSPHINCS ones (`RX ≤ m < RX + RS`), and child
 `c`'s claims, from its base `a c`: its leanXMSS claims, then its leanSPHINCS ones (`Segs`). Each
 writer's slot lies in its region: leanXMSS slots below `LXS`, leanSPHINCS slots in

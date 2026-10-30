@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkStep
 
-  A step of `verify_keccak` (G:2851-2884): the claim's segment weights, its `ι` term, the layer.
+  A step of `verify_keccak` (G:2846-2879): the claim's segment weights, its `ι` term, the layer.
 -/
 
 module
@@ -82,7 +82,7 @@ theorem addChainT_holds {vs : List ℕ} (hne : vs ≠ []) {b : ℕ} {next : Prop
 
 /-! ## The `ι` term from the flips -/
 
-/-- **The `ι` term** (G:2874-2879): per segment the flips of its bits summed, times the segment's
+/-- **The `ι` term** (G:2869-2874): per segment the flips of its bits summed, times the segment's
 weight read at `st`. -/
 theorem iotaSegT_holds {s b c st : ℕ} (hs : s < 12) {F : ℕ → E} {g0 g1 : E}
     (hF : ∀ i ∈ iotaUsed s, σ (.n (flipOf s b i)) = F i)
@@ -212,7 +212,7 @@ theorem flipOf_mem {s b i : ℕ} (hi : i ∈ iotaUsed s) :
   refine ⟨rfl, List.idxOf_lt_length_of_mem hi, ?_⟩
   rw [List.getD_eq_getElem _ _ (List.idxOf_lt_length_of_mem hi), List.getElem_idxOf]
 
-/-- **The first claim's flips** (G:2864-2865): lane `0`'s weight times `x^(2^i - 1)`. -/
+/-- **The first claim's flips** (G:2859-2860): lane `0`'s weight times `x^(2^i - 1)`. -/
 theorem flipsT_holds0 {b : ℕ} {L0 : E} (hL : ∀ v, LoadHolds rd (σ (.n 274)) 30 v → v = L0)
     {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ (flipsT 0 b) next kret) :
     (∀ i ∈ iotaUsed 0, σ (.n (flipOf 0 b i)) = L0 * gen ^ (2 ^ i - 1)) ∧ next := by
@@ -252,7 +252,7 @@ theorem sum_map_getD {l : List (ℕ × ℕ)} (F : ℕ × ℕ → E) :
   rw [List.getD_eq_getElem _ _ (by simpa using this), List.getElem_map,
     List.getD_eq_getElem _ _ this]
 
-/-- **A later claim's flips** (G:2866-2872): lane `0`'s weight at `2^i - 1` through `θ`'s
+/-- **A later claim's flips** (G:2861-2867): lane `0`'s weight at `2^i - 1` through `θ`'s
 transpose, from the claim's lanes and slices. -/
 theorem flipsT_holdsL {s b : ℕ} (hs : s ≠ 0) {lp sl : E} {lanes eZ : List E}
     (hlp : LoadHolds rd (σ (.n 201)) (22 * s + 3) lp) (hsl : LoadHolds rd (σ (.n 201)) (22 * s + 5) sl)
@@ -311,7 +311,7 @@ theorem dispatch_layer {first : ℕ} (hf : first < 2) {x : V} {o : ℕ} (ho : o 
 theorem claimRec_loads {P : ℕ} {k : ℕ} {v : E} (h : LoadHolds rd (σ (.n 201) * gen ^ (22 * k)) P v) :
     LoadHolds rd (σ (.n 201)) (22 * k + P) v := (loadHolds_mul_gen_pow rd _ _ _ _).1 h
 
-/-- **Step `s ≥ 1`** (G:2851-2884): the claim at `claims·g^(22 s)`, its `ι` term, and
+/-- **Step `s ≥ 1`** (G:2846-2879): the claim at `claims·g^(22 s)`, its `ι` term, and
 `keccak_layer` on it. -/
 theorem stepT_holdsL {s b : ℕ} (hs1 : 1 ≤ s) (hs : s < 12) {c0 c1 c2 c3 c4 cur : ℕ} {τ : ℕ}
     (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n 17) = gen ^ (τ - 4))
@@ -381,7 +381,7 @@ theorem stepT_holdsL {s b : ℕ} (hs1 : 1 ≤ s) (hs : s < 12) {c0 c1 c2 c3 c4 c
 
 /-! ## The first step -/
 
-/-- **Step `0`** (G:2851-2882): the first claim, its `ι` term, and `keccak_layer` with the
+/-- **Step `0`** (G:2846-2877): the first claim, its `ι` term, and `keccak_layer` with the
 committed outputs' value waiting in the sponge. -/
 theorem stepT_holds0 {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n 17) = gen ^ (τ - 4))
     (h43 : σ (.n 43) = gen ^ ((τ - 3) / 2)) (h47 : σ (.n 47) = gen ^ ((τ - 3) % 2))

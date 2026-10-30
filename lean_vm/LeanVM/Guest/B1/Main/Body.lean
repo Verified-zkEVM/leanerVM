@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.Body
 
-  `main`'s body (G:4063-4231): its shape and its facts checked by evaluation.
+  `main`'s body (G:4058-4226): its shape and its facts checked by evaluation.
 -/
 
 module

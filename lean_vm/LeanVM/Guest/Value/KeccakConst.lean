@@ -31,10 +31,10 @@ equation between closed terms, checked here by `decide +kernel` through the eval
   (`Table.padding`, the guest's `COORD_PADDING`);
 * `batchSeed_eq`, `aggSeed_cells`: the batching transcript's initial state, whose five capacity
   cells are `AGG_SEED_0 .. AGG_SEED_4` (`FiatShamirState::from_label(RECURSION_AGG_LABEL)
-  .capacity_cells()`, `aggregation.rs:2510`);
+  .capacity_cells()`, `aggregation.rs:2514`);
 * `paddingCell_eq`, `daPadCell_cells`, `paddingRow_eq`, `daPadRow_cells`: LeanDA's padding
   digests (`lean_da::padding_digests`, `crates/lean_da/src/commit.rs:104-107`), whose two cells are
-  `DA_PAD_CELL_0/1` and `DA_PAD_ROW_0/1` (`pack_hash_state`, `aggregation.rs:2520-2529`).
+  `DA_PAD_CELL_0/1` and `DA_PAD_ROW_0/1` (`pack_hash_state`, `aggregation.rs:2524-2533`).
 
 Kernel cost (measured on the build machine): each permutation of the evaluator is milliseconds;
 Keccak-256 of the 2048-byte zero cell (16 permutations) about 6 s and 2 GB over the imports.
@@ -110,7 +110,7 @@ def aggSeed : List ℕ :=
     2936886303028784551432414362146044553]
 
 /-- **`AGG_SEED_c` is cell `8 + c` of the batching seed** (even layout): the guest's
-`seed = [AGG_SEED_0, …, AGG_SEED_4]` (`aggregate_claims`, `lean_ethereum.py:4250`) is the
+`seed = [AGG_SEED_0, …, AGG_SEED_4]` (`aggregate_claims`, `lean_ethereum.py:4245`) is the
 capacity a `cap=seed` duplex step reads. -/
 theorem aggSeed_cells (c : Fin 5) :
     LeanVM.Guest.litField (aggSeed.getD c 0) =
@@ -132,7 +132,7 @@ theorem paddingCell_eq : LeanDa.paddingCell Da.keccak = LeanVM.Protocol.Digest.t
   refine congrArg LeanVM.Protocol.Digest.toBytes ?_
   rw [keccak256_eq_iff]; decide +kernel
 
-/-- **`DA_PAD_CELL_0`, `DA_PAD_CELL_1`** (`lean_ethereum.py:4013-4014`) are the cell digest's
+/-- **`DA_PAD_CELL_0`, `DA_PAD_CELL_1`** (`lean_ethereum.py:4008-4009`) are the cell digest's
 two cells. -/
 theorem daPadCell_cells :
     (LeanVM.Guest.word 15569472805043175342 18354418831448413762 0,
@@ -150,7 +150,7 @@ theorem paddingRow_eq : LeanDa.paddingRow Da.keccak = LeanVM.Protocol.Digest.toB
   refine congrArg LeanVM.Protocol.Digest.toBytes ?_
   rw [keccak256_eq_iff]; decide +kernel
 
-/-- **`DA_PAD_ROW_0`, `DA_PAD_ROW_1`** (`lean_ethereum.py:3972-3973`) are the row digest's two
+/-- **`DA_PAD_ROW_0`, `DA_PAD_ROW_1`** (`lean_ethereum.py:3967-3968`) are the row digest's two
 cells. -/
 theorem daPadRow_cells :
     (LeanVM.Guest.word 4665334884586258498 1553031596697948144 0,

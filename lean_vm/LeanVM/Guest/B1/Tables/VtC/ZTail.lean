@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.ZSetup
 
 /-!
-# The public input's binding, completely (G:2299-2310)
+# The public input's binding, completely (G:2294-2305)
 
 `vtZt_complete`: from the sponge `S2` after the table evaluations (its waiting word's cells and
 its capacity), on canonical public words `pi_0, pi_1` and a pool holding the three binding

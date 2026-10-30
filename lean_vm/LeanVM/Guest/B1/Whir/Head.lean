@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Level
 
 /-!
-# The head (G:1299-1340)
+# The head (G:1294-1335)
 
 From the parameters (the capacity, the claim, the root's two halves, the cursor), the head reads
 the first round polynomial's two words at the cursor (`sumcheckRoundPoly 3 target`), stores the

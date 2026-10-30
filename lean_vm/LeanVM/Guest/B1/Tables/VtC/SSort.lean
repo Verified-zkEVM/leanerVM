@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SSide
 
 /-!
-# The block certification (G:1953-1991)
+# The block certification (G:1948-1986)
 
 The honest buffers, for the blocks' log-sizes `κ`: `vtSortW κ` (`sort_order`: each side's
 `stack_offsets` order, push from `0`, count from `108`; pull's slots `1`), `vtSideW`

@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Gkr.Rounds
 
 /-!
-# `__loop27` (G:1704-1734)
+# `__loop27` (G:1699-1729)
 
 `for x4 in mul_range(1, half)` in a layer of `verify_bus_gkr`: the record at
 `rd = rounds·pos·x4^4`, the point row `pt = point_row·x4^4`, four rounds (`gkRoundT`, from values

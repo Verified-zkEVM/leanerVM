@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Eq.RsLoop
 public import LeanVM.Guest.B1.Bits.GPower
 
 /-!
-# `rs_eq_run` (G:893-937, TRIAGE #28)
+# `rs_eq_run` (G:888-932, TRIAGE #28)
 
 `rs_eq_run(chain, z_vals, point1, count_g)` hints the six bits of `count` (`count_g = g^count`,
 pinned by `half_g² · odd_g = count_g`, `half_g` from bits `1 .. 5`, `odd_g` from bit `0`), runs

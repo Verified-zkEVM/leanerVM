@@ -23,7 +23,7 @@ public import LeanVM.Protocol.KeccakHash
 
 `statementDigest seed s` hashes the seed, the two claim lists' digests, the DA digest and the
 deferred claim's cells, an odd count paired with a zero cell (`statement_digest`,
-`crates/rec_aggregation/src/aggregation.rs:331-360` at leanVM `93ebecc`). Every encoding on the
+`crates/rec_aggregation/src/aggregation.rs:331-360` at leanVM `c445e3d`). Every encoding on the
 way is injective at a fixed width (`digestBytes`, 32 bytes; `claimBytes`, 64; `eBytes`, 24). So
 two statements with the same digest are equal, or one of the three Keccak-256
 hashes on the way was given two different inputs with the same output: the pairs

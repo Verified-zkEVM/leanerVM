@@ -2,7 +2,7 @@
   LeanVM.Guest.NZProgram
 
   The verifier refusing a zero challenge exactly where the guest divides: the fold and tail
-  challenges and each WHIR level's batching challenge `λ` (G:1251, 1560, 1565), as copies of the
+  challenges and each WHIR level's batching challenge `λ` (G:1246, 1555, 1560), as copies of the
   verifier's programs with one `require` each. The statement refuses a zero challenge anywhere
   (`Prog.refuseZero`, `Statement/LeanVmGuest.lean`), which accepts less
   (`LeanVM.Guest.Child.refines_refuseZero_of_nz`); the guest's proofs work with these.

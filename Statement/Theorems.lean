@@ -62,9 +62,9 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   with the deployed Keccak, where accepted, meeting every hypothesis the guest program's
   completeness assumes of a child (`LeanVmGuest.lean`). -/
   guestChildComplete : LeanVM.Guest.Budget.GuestChildComplete
-  /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · 2^-191 +
-  5 (QA + QV)² · 2^-256` for `QA ≤ 2^128`, `QV ≤ 2^96`; it does not compose with the in-circuit
-  statements (`LeanVmGuest.lean`). -/
+  /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · M · 2^-191 +
+  5 (QA + QV)² · 2^-256` for fewer than `M` children, `QA ≤ 2^128`, `QV ≤ 2^96`; it does not
+  compose with the in-circuit statements (`LeanVmGuest.lean`). -/
   batchSound : LeanVM.Guest.Batch.BatchSound
   /-- leanXMSS is strongly unforgeable: at most `(Q + 1) · 2^-127` for `Q ≥ 1` permutation
   calls (`LeanXmss.lean`). -/

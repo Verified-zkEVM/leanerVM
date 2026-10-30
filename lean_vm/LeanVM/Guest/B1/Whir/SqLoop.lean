@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Whir.Loops
 public import LeanVM.Guest.B1.Whir.Commit
 
 /-!
-# The squeeze loop (G:1426-1438)
+# The squeeze loop (G:1421-1433)
 
 At `x = g^j`, the iteration loads the sponge's capacity from the squeeze run's row
 `sqz·x^5`, squeezes with nothing waiting, stores the next capacity in the next row, and decodes

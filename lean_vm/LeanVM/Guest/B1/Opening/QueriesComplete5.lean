@@ -28,7 +28,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 variable {rd : Reader}
 
-/-- **A level-0 iteration holds** at `x = g^j` (G:1258-1262) when its two queries open at the
+/-- **A level-0 iteration holds** at `x = g^j` (G:1253-1257) when its two queries open at the
 positions the bit pointers `qptrs[2j + odd]`, `qptrs[2j + odd + 1]` spell, and the chain steps by
 their values. -/
 theorem oqIter1_complete {s : Oq} (hs : s.RowShape) (hpd : 4 * s.pd ≤ 80) (hcd : 2 ≤ s.cd)
@@ -158,7 +158,7 @@ theorem oqIter1_complete {s : Oq} (hs : s.RowShape) (hpd : 4 * s.pd ≤ 80) (hcd
     · show σ (.n (c + 11)) = σ (.n 0) * σ (.n (c + 10))
       rw [eC 11, eC 10, eP 0 (by omega)]; rfl
 
-/-- **A deeper iteration holds** at `x = g^j` (G:1263-1265) when its query opens at the position
+/-- **A deeper iteration holds** at `x = g^j` (G:1258-1260) when its query opens at the position
 the bit pointer `qptrs[j]` spells, and the chain steps by its value. -/
 theorem oqIter0_complete {s : Oq} (hs : s.RowShape) (hpd : 4 * s.pd ≤ 80) (hcd : 2 ≤ s.cd)
     (hcd8 : s.cd ≤ 8) {j : ℕ} {N qptrs cap flags wp ch mu : E}

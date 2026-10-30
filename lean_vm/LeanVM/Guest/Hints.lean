@@ -28,11 +28,11 @@ of entries in the order the guest pops them, for a run on the statement `s` unde
 `seed` held by the witness `w`; `publicInput seed s` is the initial memory, the statement's digest
 at cells `g^0` and `g^1`. They mirror the Rust producers of
 `crates/rec_aggregation/src/aggregation.rs` (leanVM `3375f7a13`) push for push (`honestPushes`,
-grouped by stream as `Hints::push` does, `aggregation.rs:1385-1391`): the node's streams
-(`aggregate_with_stats`, `aggregation.rs:1704-1961`), a raw signature's (`lean_xmss_hints`,
-`aggregation.rs:1557-1583`; `push_lean_sphincs_hints`, `aggregation.rs:1591-1660`), a child's
-(`gen_verify`, `aggregation.rs:1187-1351`), the batching's (`aggregate_deferred_claims`,
-`aggregation.rs:916-1029`) and LeanDA's.
+grouped by stream as `Hints::push` does, `aggregation.rs:1389-1395`): the node's streams
+(`aggregate_with_stats`, `aggregation.rs:1708-1965`), a raw signature's (`lean_xmss_hints`,
+`aggregation.rs:1561-1587`; `push_lean_sphincs_hints`, `aggregation.rs:1595-1664`), a child's
+(`gen_verify`, `aggregation.rs:1191-1355`), the batching's (`aggregate_deferred_claims`,
+`aggregation.rs:916-1033`) and LeanDA's.
 
 Where the Rust reads a child's proof (`verifier::replay_unchecked`), this replays the Spec's
 deferring verifier (`verifyDeferredWith`, Keccak-256 and Keccak-f[1600], from
@@ -44,7 +44,7 @@ Keccak-256 (`keccakBits`, as `xmssVerify` and `sphincsVerify` take it).
 
 Choices the witness does not fix, made as the Rust makes them:
 
-* **Coverage slots** (`plan`, `take_slot`, `aggregation.rs:1504-1514`): the raw signatures
+* **Coverage slots** (`plan`, `take_slot`, `aggregation.rs:1508-1518`): the raw signatures
   first, in the statement's order, then every child's claims, child by child; a claim takes its
   declared slot if it is still free, else the next duplicate slot. The deployed lists are
   strictly sorted, where the first free match is the slot `binary_search` finds.
@@ -179,7 +179,7 @@ def sphincsUsedBits : ℕ :=
     2 * Sphincs.forestCoords * Sphincs.subHeight
 
 /-- A field the guest dispatches on: in the exponent, and as the address cell whose `hi` it is
-(`mark`, `aggregation.rs:1572-1575`). -/
+(`mark`, `aggregation.rs:1576-1579`). -/
 def markEntry (index field : ℕ) : Entry :=
   [count index, cellOfBytes (Sphincs.fieldBytes (Sphincs.tweakFields 0 0 field 0))]
 
@@ -230,7 +230,7 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sphi
 /-! ## LeanDA -/
 
 /-- A blob matrix's hints: the vector a cell at a time, the row count and its padded log, and
-every row's cells, column by column (`aggregation.rs:1842-1862`). -/
+every row's cells, column by column (`aggregation.rs:1846-1866`). -/
 def daHints (w : Da.Witness) : List (String × Entry) :=
   (List.range LeanDa.cellsPerRow).map (fun j ↦
       ("da_weights", (w.vector.drop (LeanDa.cellSymbols * j)).take LeanDa.cellSymbols)) ++
@@ -278,7 +278,7 @@ def stepChildren (step : ℕ × Digest × Digest) : Entry :=
 /-- One level's Merkle hints, from its commitment's height, its positions and their openings:
 per query its leaf's words and the ordered children below the cap (`merkle_leaf_rows`,
 `merkle_children`), and the level's cap nodes and their parents' activity flags
-(`aggregation.rs:1273-1313`). -/
+(`aggregation.rs:1277-1317`). -/
 def levelHints (depth : ℕ) (positions : List ℕ) (openings : List Opening) :
     List (String × Entry) × Entry × Entry :=
   let capDepth := min (log2Ceil positions.length) depth
@@ -354,7 +354,7 @@ def batchPushes (h : BatchHints) : List (String × Entry) :=
     ("bc_star_hint", [h.bytecodeValue])]
 
 /-- The DA digest the node publishes, as the slot of `da_digests` it picks (`da_pick`,
-`aggregation.rs:1679-1692`): its own (`n`, the children's count) when it checks a matrix or
+`aggregation.rs:1683-1696`): its own (`n`, the children's count) when it checks a matrix or
 publishes zeros, else the first child whose DA digest it publishes. -/
 def daPick (s : NodeStatement) (w : NodeWitness) : ℕ :=
   if w.da.isSome || s.claims.da == zeroDigest then w.children.length

@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Gkr.Layer
 
 /-!
-# A layer's rounds and children (`__loop6`, G:1714-1775)
+# A layer's rounds and children (`__loop6`, G:1709-1770)
 
 * `ly_rounds`: `__loop27`, then `gkr_rounds__L2` at an odd layer index, then `gkr_rounds__L1` at
   an odd depth, run the `L = 2j + sh` rounds from the layer's first record;

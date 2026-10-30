@@ -22,7 +22,7 @@ claim on the committed column: the target `Σ_i g^i Φ(s_i)` and the weight
 | `ring_switch_target` | 2958-2974 | `polyEval (s.map (phiMap · challenges)) g` (V:2128), eight rows a loop iteration (`__loop13`) |
 | `ring_switch_weight` | 2977-2986 | `ringWeight point (1 + point1) c_table` (V:2109), the products by `rs_eq_run` |
 
-`verify_sub` builds `c_table` (G:3288-3295): `ringCoefficients challenges` (V:2117).
+`verify_sub` builds `c_table` (G:3283-3290): `ringCoefficients challenges` (V:2117).
 
 Both functions write scratch buffers (`HeapBuf`) whose words their relations read back, so
 their converse holds only over a memory holding the honest scratch; it is stated with
@@ -38,7 +38,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## `ring_switch_target` -/
 
-/-- **`ring_switch_target(slices, map_challenges)`** (G:2955-2972; TRIAGE #64, #65): the 64
+/-- **`ring_switch_target(slices, map_challenges)`** (G:2950-2967; TRIAGE #64, #65): the 64
 slices `s` at `slices` and the six map challenges at `map_challenges`; it returns
 `Σ_i g^i Φ(s_i)` (`polyEval (s.map (phiMap · challenges)) gen`, V:2128). -/
 def MeaningRingTarget (rd : Reader) : List E → List E → Prop
@@ -54,7 +54,7 @@ def ring_switch_target_Spec : Prop :=
 
 /-! ## `ring_switch_weight` -/
 
-/-- **`ring_switch_weight(z_vals, point1, c_table, qkeccakv_g)`** (G:2975-2984; TRIAGE #66):
+/-- **`ring_switch_weight(z_vals, point1, c_table, qkeccakv_g)`** (G:2970-2979; TRIAGE #66):
 `qkeccakv_g = g^n`, `n < 64`; the `n` words `r` at `z_vals`, the `n` words `p₁` at `point1` (the
 opening point's `1 + r'`), the 64 coefficients `c` at `c_table`; it returns
 `ringWeight r (p₁.map (1 + ·)) c` (V:2109). -/

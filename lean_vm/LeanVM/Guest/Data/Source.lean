@@ -31,3148 +31,3139 @@ def fn_pack64x2 : Func :=
   { name := "pack64x2", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
     inline := true,
     body := [
-      .mk 487 (.call "assert_in_k" [(.var "a"), (.var "b")]),
-      .mk 488 (.ret [(.add (.var "a") (.mul (.lit 18446744073709551616) (.var "b")))])] }
+      .mk 482 (.call "assert_in_k" [(.var "a"), (.var "b")]),
+      .mk 483 (.ret [(.add (.var "a") (.mul (.lit 18446744073709551616) (.var "b")))])] }
 
 /-- `assert_canonical`. -/
 def fn_assert_canonical : Func :=
   { name := "assert_canonical", params := [⟨"word", (.runtime .scalar)⟩], returnShapes := [.scalar],
     inline := false,
     body := [
-      .mk 494 (.let_ "lo" (.stackBuf 1)),
-      .mk 495 (.call "hint_f192_limbs" [(.var "lo"), (.var "word")]),
-      .mk 496 (.let_ "hi" (.mul (.add (.var "word") (.index (.var "lo") (.lit 0))) (.call "f192" [(.lit 1), (.lit 0), (.lit 1)]))),
-      .mk 497 (.call "assert_in_k" [(.index (.var "lo") (.lit 0)), (.var "hi")]),
-      .mk 498 (.ret [(.lit 0)])] }
+      .mk 489 (.let_ "lo" (.stackBuf 1)),
+      .mk 490 (.call "hint_f192_limbs" [(.var "lo"), (.var "word")]),
+      .mk 491 (.let_ "hi" (.mul (.add (.var "word") (.index (.var "lo") (.lit 0))) (.call "f192" [(.lit 1), (.lit 0), (.lit 1)]))),
+      .mk 492 (.call "assert_in_k" [(.index (.var "lo") (.lit 0)), (.var "hi")]),
+      .mk 493 (.ret [(.lit 0)])] }
 
 /-- `canonical_limbs`. -/
 def fn_canonical_limbs : Func :=
   { name := "canonical_limbs", params := [⟨"word", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar],
     inline := true,
     body := [
-      .mk 504 (.let_ "lo" (.stackBuf 1)),
-      .mk 505 (.call "hint_f192_limbs" [(.var "lo"), (.var "word")]),
-      .mk 506 (.let_ "hi" (.mul (.add (.var "word") (.index (.var "lo") (.lit 0))) (.call "f192" [(.lit 1), (.lit 0), (.lit 1)]))),
-      .mk 507 (.call "assert_in_k" [(.index (.var "lo") (.lit 0)), (.var "hi")]),
-      .mk 508 (.ret [(.index (.var "lo") (.lit 0)), (.var "hi")])] }
+      .mk 499 (.let_ "lo" (.stackBuf 1)),
+      .mk 500 (.call "hint_f192_limbs" [(.var "lo"), (.var "word")]),
+      .mk 501 (.let_ "hi" (.mul (.add (.var "word") (.index (.var "lo") (.lit 0))) (.call "f192" [(.lit 1), (.lit 0), (.lit 1)]))),
+      .mk 502 (.call "assert_in_k" [(.index (.var "lo") (.lit 0)), (.var "hi")]),
+      .mk 503 (.ret [(.index (.var "lo") (.lit 0)), (.var "hi")])] }
 
 /-- `pack_pair`. -/
 def fn_pack_pair : Func :=
   { name := "pack_pair", params := [⟨"out", (.runtime .scalar)⟩, ⟨"at", .const⟩, ⟨"s", (.runtime .scalar)⟩, ⟨"t", (.runtime .scalar)⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 515 (.let_ "s_lo" (.stackBuf 2)),
-      .mk 516 (.let_ "t_lo" (.stackBuf 2)),
-      .mk 517 (.call "hint_f192_limbs" [(.var "s_lo"), (.var "s")]),
-      .mk 518 (.call "hint_f192_limbs" [(.var "t_lo"), (.var "t")]),
-      .mk 519 (.store (.var "out") (.var "at") (.call "pack64x2" [(.index (.var "s_lo") (.lit 0)), (.index (.var "s_lo") (.lit 1))])),
-      .mk 520 (.store (.var "out") (.add (.var "at") (.lit 1)) (.call "pack64x2" [(.mul (.add (.mul (.add (.var "s") (.index (.var "s_lo") (.lit 0))) (.call "f192" [(.lit 1), (.lit 0), (.lit 1)])) (.index (.var "s_lo") (.lit 1))) (.call "f192" [(.lit 1), (.lit 0), (.lit 1)])), (.index (.var "t_lo") (.lit 0))])),
-      .mk 521 (.store (.var "out") (.add (.var "at") (.lit 2)) (.call "pack64x2" [(.index (.var "t_lo") (.lit 1)), (.mul (.add (.mul (.add (.var "t") (.index (.var "t_lo") (.lit 0))) (.call "f192" [(.lit 1), (.lit 0), (.lit 1)])) (.index (.var "t_lo") (.lit 1))) (.call "f192" [(.lit 1), (.lit 0), (.lit 1)]))])),
-      .mk 522 (.ret [])] }
+      .mk 510 (.let_ "s_lo" (.stackBuf 2)),
+      .mk 511 (.let_ "t_lo" (.stackBuf 2)),
+      .mk 512 (.call "hint_f192_limbs" [(.var "s_lo"), (.var "s")]),
+      .mk 513 (.call "hint_f192_limbs" [(.var "t_lo"), (.var "t")]),
+      .mk 514 (.store (.var "out") (.var "at") (.call "pack64x2" [(.index (.var "s_lo") (.lit 0)), (.index (.var "s_lo") (.lit 1))])),
+      .mk 515 (.store (.var "out") (.add (.var "at") (.lit 1)) (.call "pack64x2" [(.mul (.add (.mul (.add (.var "s") (.index (.var "s_lo") (.lit 0))) (.call "f192" [(.lit 1), (.lit 0), (.lit 1)])) (.index (.var "s_lo") (.lit 1))) (.call "f192" [(.lit 1), (.lit 0), (.lit 1)])), (.index (.var "t_lo") (.lit 0))])),
+      .mk 516 (.store (.var "out") (.add (.var "at") (.lit 2)) (.call "pack64x2" [(.index (.var "t_lo") (.lit 1)), (.mul (.add (.mul (.add (.var "t") (.index (.var "t_lo") (.lit 0))) (.call "f192" [(.lit 1), (.lit 0), (.lit 1)])) (.index (.var "t_lo") (.lit 1))) (.call "f192" [(.lit 1), (.lit 0), (.lit 1)]))])),
+      .mk 517 (.ret [])] }
 
 /-- `challenge_from_state`. -/
 def fn_challenge_from_state : Func :=
   { name := "challenge_from_state", params := [⟨"state", (.runtime .scalar)⟩], returnShapes := [.scalar],
     inline := true,
     body := [
-      .mk 531 (.let_ "d2" (.stackBuf 1)),
-      .mk 532 (.call "hint_f192_limbs" [(.var "d2"), (.index (.var "state") (.lit 1))]),
-      .mk 533 (.let_ "d3" (.mul (.add (.index (.var "state") (.lit 1)) (.index (.var "d2") (.lit 0))) (.call "f192" [(.lit 1), (.lit 0), (.lit 1)]))),
-      .mk 534 (.call "assert_in_k" [(.index (.var "d2") (.lit 0)), (.var "d3")]),
-      .mk 535 (.ret [(.add (.index (.var "state") (.lit 0)) (.mul (.mul (.lit 18446744073709551616) (.lit 18446744073709551616)) (.index (.var "d2") (.lit 0))))])] }
+      .mk 526 (.let_ "d2" (.stackBuf 1)),
+      .mk 527 (.call "hint_f192_limbs" [(.var "d2"), (.index (.var "state") (.lit 1))]),
+      .mk 528 (.let_ "d3" (.mul (.add (.index (.var "state") (.lit 1)) (.index (.var "d2") (.lit 0))) (.call "f192" [(.lit 1), (.lit 0), (.lit 1)]))),
+      .mk 529 (.call "assert_in_k" [(.index (.var "d2") (.lit 0)), (.var "d3")]),
+      .mk 530 (.ret [(.add (.index (.var "state") (.lit 0)) (.mul (.mul (.lit 18446744073709551616) (.lit 18446744073709551616)) (.index (.var "d2") (.lit 0))))])] }
 
 /-- `fs_pack`. -/
 def fn_fs_pack : Func :=
   { name := "fs_pack", params := [⟨"rate", (.runtime .scalar)⟩, ⟨"k", .const⟩, ⟨"x", (.runtime .scalar)⟩, ⟨"tag", (.runtime .scalar)⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 552 (.let_ "limbs" (.stackBuf 3)),
-      .mk 553 (.call "hint_f192_limbs" [(.var "limbs"), (.var "x")]),
-      .mk 554 (.call "assert_in_k" [(.index (.var "limbs") (.lit 2)), (.var "tag")]),
-      .mk 555 (.store (.var "rate") (.mul (.lit 2) (.var "k")) (.add (.var "x") (.mul (.mul (.lit 18446744073709551616) (.lit 18446744073709551616)) (.index (.var "limbs") (.lit 2))))),
-      .mk 556 (.store (.var "rate") (.add (.mul (.lit 2) (.var "k")) (.lit 1)) (.add (.index (.var "limbs") (.lit 2)) (.mul (.lit 18446744073709551616) (.var "tag")))),
-      .mk 557 (.ret [])] }
+      .mk 547 (.let_ "limbs" (.stackBuf 3)),
+      .mk 548 (.call "hint_f192_limbs" [(.var "limbs"), (.var "x")]),
+      .mk 549 (.call "assert_in_k" [(.index (.var "limbs") (.lit 2)), (.var "tag")]),
+      .mk 550 (.store (.var "rate") (.mul (.lit 2) (.var "k")) (.add (.var "x") (.mul (.mul (.lit 18446744073709551616) (.lit 18446744073709551616)) (.index (.var "limbs") (.lit 2))))),
+      .mk 551 (.store (.var "rate") (.add (.mul (.lit 2) (.var "k")) (.lit 1)) (.add (.index (.var "limbs") (.lit 2)) (.mul (.lit 18446744073709551616) (.var "tag")))),
+      .mk 552 (.ret [])] }
 
 /-- `fs_perm`. -/
 def fn_fs_perm : Func :=
   { name := "fs_perm", params := [⟨"sp", (.runtime .scalar)⟩, ⟨"rate", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 13)],
     inline := true,
     body := [
-      .mk 563 (.let_ "nxt" (.stackBuf 13)),
-      .mk 564 (.ite true (.var "k") (.lit 0) [
-        .mk 565 (.call "keccak" [(.list [(.lit 0), (.lit 0)]), (.list [(.lit 0), (.lit 0)]), (.var "nxt"), (.call "__kw_cap" [(.var "sp")])])] [] false),
-      .mk 566 (.ite true (.var "k") (.lit 1) [
-        .mk 567 (.call "keccak" [(.slice (.var "rate") (.lit 0) (.lit 2)), (.list [(.lit 0), (.lit 0)]), (.var "nxt"), (.call "__kw_cap" [(.var "sp")])])] [] false),
-      .mk 568 (.ite true (.var "k") (.lit 2) [
-        .mk 569 (.call "keccak" [(.slice (.var "rate") (.lit 0) (.lit 2)), (.slice (.var "rate") (.lit 2) (.lit 4)), (.var "nxt"), (.call "__kw_cap" [(.var "sp")])])] [] false),
-      .mk 570 (.ite true (.var "k") (.lit 3) [
-        .mk 571 (.store (.var "rate") (.lit 6) (.lit 0)),
-        .mk 572 (.store (.var "rate") (.lit 7) (.lit 0)),
-        .mk 573 (.call "keccak" [(.slice (.var "rate") (.lit 0) (.lit 2)), (.slice (.var "rate") (.lit 2) (.lit 4)), (.var "nxt"), (.call "__kw_tail" [(.slice (.var "rate") (.lit 4) (.lit 8))]), (.call "__kw_cap" [(.var "sp")])])] [] false),
-      .mk 574 (.ite true (.var "k") (.lit 4) [
-        .mk 575 (.call "keccak" [(.slice (.var "rate") (.lit 0) (.lit 2)), (.slice (.var "rate") (.lit 2) (.lit 4)), (.var "nxt"), (.call "__kw_tail" [(.slice (.var "rate") (.lit 4) (.lit 8))]), (.call "__kw_cap" [(.var "sp")])])] [] false),
-      .mk 576 (.ret [(.var "nxt")])] }
+      .mk 558 (.let_ "nxt" (.stackBuf 13)),
+      .mk 559 (.ite true (.var "k") (.lit 0) [
+        .mk 560 (.call "keccak" [(.list [(.lit 0), (.lit 0)]), (.list [(.lit 0), (.lit 0)]), (.var "nxt"), (.call "__kw_cap" [(.var "sp")])])] [] false),
+      .mk 561 (.ite true (.var "k") (.lit 1) [
+        .mk 562 (.call "keccak" [(.slice (.var "rate") (.lit 0) (.lit 2)), (.list [(.lit 0), (.lit 0)]), (.var "nxt"), (.call "__kw_cap" [(.var "sp")])])] [] false),
+      .mk 563 (.ite true (.var "k") (.lit 2) [
+        .mk 564 (.call "keccak" [(.slice (.var "rate") (.lit 0) (.lit 2)), (.slice (.var "rate") (.lit 2) (.lit 4)), (.var "nxt"), (.call "__kw_cap" [(.var "sp")])])] [] false),
+      .mk 565 (.ite true (.var "k") (.lit 3) [
+        .mk 566 (.store (.var "rate") (.lit 6) (.lit 0)),
+        .mk 567 (.store (.var "rate") (.lit 7) (.lit 0)),
+        .mk 568 (.call "keccak" [(.slice (.var "rate") (.lit 0) (.lit 2)), (.slice (.var "rate") (.lit 2) (.lit 4)), (.var "nxt"), (.call "__kw_tail" [(.slice (.var "rate") (.lit 4) (.lit 8))]), (.call "__kw_cap" [(.var "sp")])])] [] false),
+      .mk 569 (.ite true (.var "k") (.lit 4) [
+        .mk 570 (.call "keccak" [(.slice (.var "rate") (.lit 0) (.lit 2)), (.slice (.var "rate") (.lit 2) (.lit 4)), (.var "nxt"), (.call "__kw_tail" [(.slice (.var "rate") (.lit 4) (.lit 8))]), (.call "__kw_cap" [(.var "sp")])])] [] false),
+      .mk 571 (.ret [(.var "nxt")])] }
 
 /-- `fs_perm4`. -/
 def fn_fs_perm4 : Func :=
   { name := "fs_perm4", params := [⟨"sp", (.runtime .scalar)⟩, ⟨"r0", (.runtime .scalar)⟩, ⟨"r1", (.runtime .scalar)⟩, ⟨"r2", (.runtime .scalar)⟩, ⟨"r3", (.runtime .scalar)⟩], returnShapes := [(.stackBuf 13)],
     inline := true,
     body := [
-      .mk 583 (.let_ "nxt" (.stackBuf 13)),
-      .mk 584 (.call "keccak" [(.list [(.var "r0"), (.var "r1")]), (.list [(.var "r2"), (.var "r3")]), (.var "nxt"), (.call "__kw_cap" [(.var "sp")])]),
-      .mk 585 (.ret [(.var "nxt")])] }
+      .mk 578 (.let_ "nxt" (.stackBuf 13)),
+      .mk 579 (.call "keccak" [(.list [(.var "r0"), (.var "r1")]), (.list [(.var "r2"), (.var "r3")]), (.var "nxt"), (.call "__kw_cap" [(.var "sp")])]),
+      .mk 580 (.ret [(.var "nxt")])] }
 
 /-- `fs_absorb_nonce`. -/
 def fn_fs_absorb_nonce : Func :=
   { name := "fs_absorb_nonce", params := [⟨"sp", (.runtime .scalar)⟩, ⟨"rate", (.runtime .scalar)⟩, ⟨"k", .const⟩, ⟨"nonce", (.runtime .scalar)⟩], returnShapes := [(.stackBuf 13)],
     inline := true,
     body := [
-      .mk 592 (.call "fs_pack" [(.var "rate"), (.var "k"), (.var "nonce"), (.lit 4)]),
-      .mk 593 (.let_ "nxt" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.add (.var "k") (.lit 1))])),
-      .mk 594 (.ret [(.var "nxt")])] }
+      .mk 587 (.call "fs_pack" [(.var "rate"), (.var "k"), (.var "nonce"), (.lit 4)]),
+      .mk 588 (.let_ "nxt" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.add (.var "k") (.lit 1))])),
+      .mk 589 (.ret [(.var "nxt")])] }
 
 /-- `fs_perm_pending`. -/
 def fn_fs_perm_pending : Func :=
   { name := "fs_perm_pending", params := [⟨"cap", (.runtime .scalar)⟩, ⟨"rec", (.runtime .scalar)⟩, ⟨"at", .const⟩], returnShapes := [(.stackBuf 13)],
     inline := true,
     body := [
-      .mk 600 (.let_ "nxt" (.stackBuf 13)),
-      .mk 601 (.call "keccak" [(.list [(.index (.var "rec") (.genPow (.var "at"))), (.index (.var "rec") (.genPow (.add (.var "at") (.lit 1))))]), (.list [(.index (.var "rec") (.genPow (.add (.var "at") (.lit 2)))), (.index (.var "rec") (.genPow (.add (.var "at") (.lit 3))))]), (.var "nxt"), (.call "__kw_tail" [(.list [(.index (.var "rec") (.genPow (.add (.var "at") (.lit 4)))), (.index (.var "rec") (.genPow (.add (.var "at") (.lit 5)))), (.index (.var "rec") (.genPow (.add (.var "at") (.lit 6)))), (.index (.var "rec") (.genPow (.add (.var "at") (.lit 7))))])]), (.call "__kw_cap" [(.var "cap")])]),
-      .mk 602 (.ret [(.var "nxt")])] }
+      .mk 595 (.let_ "nxt" (.stackBuf 13)),
+      .mk 596 (.call "keccak" [(.list [(.index (.var "rec") (.genPow (.var "at"))), (.index (.var "rec") (.genPow (.add (.var "at") (.lit 1))))]), (.list [(.index (.var "rec") (.genPow (.add (.var "at") (.lit 2)))), (.index (.var "rec") (.genPow (.add (.var "at") (.lit 3))))]), (.var "nxt"), (.call "__kw_tail" [(.list [(.index (.var "rec") (.genPow (.add (.var "at") (.lit 4)))), (.index (.var "rec") (.genPow (.add (.var "at") (.lit 5)))), (.index (.var "rec") (.genPow (.add (.var "at") (.lit 6)))), (.index (.var "rec") (.genPow (.add (.var "at") (.lit 7))))])]), (.call "__kw_cap" [(.var "cap")])]),
+      .mk 597 (.ret [(.var "nxt")])] }
 
 /-- `fs_cap`. -/
 def fn_fs_cap : Func :=
   { name := "fs_cap", params := [⟨"fs0", (.runtime .scalar)⟩, ⟨"fs1", (.runtime .scalar)⟩, ⟨"fs2", (.runtime .scalar)⟩, ⟨"fs3", (.runtime .scalar)⟩, ⟨"fs4", (.runtime .scalar)⟩], returnShapes := [(.stackBuf 5)],
     inline := true,
     body := [
-      .mk 608 (.let_ "sp" (.list [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
-      .mk 609 (.ret [(.var "sp")])] }
+      .mk 603 (.let_ "sp" (.list [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
+      .mk 604 (.ret [(.var "sp")])] }
 
 /-- `fs_load`. -/
 def fn_fs_load : Func :=
   { name := "fs_load", params := [⟨"rec", (.runtime .scalar)⟩, ⟨"field", .const⟩, ⟨"stride", .const⟩], returnShapes := [(.stackBuf 5)],
     inline := true,
     body := [
-      .mk 615 (.let_ "sp" (.list [(.index (.var "rec") (.genPow (.mul (.var "field") (.var "stride")))), (.index (.var "rec") (.genPow (.mul (.add (.var "field") (.lit 1)) (.var "stride")))), (.index (.var "rec") (.genPow (.mul (.add (.var "field") (.lit 2)) (.var "stride")))), (.index (.var "rec") (.genPow (.mul (.add (.var "field") (.lit 3)) (.var "stride")))), (.index (.var "rec") (.genPow (.mul (.add (.var "field") (.lit 4)) (.var "stride"))))])),
-      .mk 616 (.ret [(.var "sp")])] }
+      .mk 610 (.let_ "sp" (.list [(.index (.var "rec") (.genPow (.mul (.var "field") (.var "stride")))), (.index (.var "rec") (.genPow (.mul (.add (.var "field") (.lit 1)) (.var "stride")))), (.index (.var "rec") (.genPow (.mul (.add (.var "field") (.lit 2)) (.var "stride")))), (.index (.var "rec") (.genPow (.mul (.add (.var "field") (.lit 3)) (.var "stride")))), (.index (.var "rec") (.genPow (.mul (.add (.var "field") (.lit 4)) (.var "stride"))))])),
+      .mk 611 (.ret [(.var "sp")])] }
 
 /-- `fs_store`. -/
 def fn_fs_store : Func :=
   { name := "fs_store", params := [⟨"rec", (.runtime .scalar)⟩, ⟨"field", .const⟩, ⟨"stride", .const⟩, ⟨"sp", (.runtime .scalar)⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 622 (.unroll "j" (.lit 0) (.lit 5) [
-        .mk 623 (.store (.var "rec") (.genPow (.mul (.add (.var "field") (.var "j")) (.var "stride"))) (.index (.var "sp") (.add (.sub (.lit 13) (.lit 5)) (.var "j"))))]),
-      .mk 624 (.ret [])] }
+      .mk 617 (.unroll "j" (.lit 0) (.lit 5) [
+        .mk 618 (.store (.var "rec") (.genPow (.mul (.add (.var "field") (.var "j")) (.var "stride"))) (.index (.var "sp") (.add (.sub (.lit 13) (.lit 5)) (.var "j"))))]),
+      .mk 619 (.ret [])] }
 
 /-- `fs_next`. -/
 def fn_fs_next : Func :=
   { name := "fs_next", params := [⟨"rate", (.runtime .scalar)⟩, ⟨"k", .const⟩, ⟨"cursor", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar],
     inline := true,
     body := [
-      .mk 633 (.let_ "x" (.index (.var "cursor") (.gpow 0))),
-      .mk 634 (.call "fs_pack" [(.var "rate"), (.var "k"), (.var "x"), (.lit 1)]),
-      .mk 635 (.ret [(.var "x"), (.mul (.var "cursor") .gen)])] }
+      .mk 628 (.let_ "x" (.index (.var "cursor") (.gpow 0))),
+      .mk 629 (.call "fs_pack" [(.var "rate"), (.var "k"), (.var "x"), (.lit 1)]),
+      .mk 630 (.ret [(.var "x"), (.mul (.var "cursor") .gen)])] }
 
 /-- `squeeze`. -/
 def fn_squeeze : Func :=
   { name := "squeeze", params := [⟨"sp", (.runtime .scalar)⟩, ⟨"rate", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 13), .scalar],
     inline := true,
     body := [
-      .mk 642 (.let_ "nxt" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.var "k")])),
-      .mk 643 (.let_ "challenge" (.call "challenge_from_state" [(.var "nxt")])),
-      .mk 644 (.ret [(.var "nxt"), (.var "challenge")])] }
+      .mk 637 (.let_ "nxt" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.var "k")])),
+      .mk 638 (.let_ "challenge" (.call "challenge_from_state" [(.var "nxt")])),
+      .mk 639 (.ret [(.var "nxt"), (.var "challenge")])] }
 
 /-- `exponent_tables`. -/
 def fn_exponent_tables : Func :=
   { name := "exponent_tables", params := [], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 657 (.let_ "g_logs_pow2" (.heapBuf 34)),
-      .mk 658 (.unroll "j" (.lit 0) (.lit 34) [
-        .mk 659 (.store (.var "g_logs_pow2") (.genPow (.var "j")) (.pow (.lit 2) (.var "j")))]),
-      .mk 660 (.let_ "g_squares" (.heapBuf 34)),
-      .mk 661 (.let_ "sq_run" .gen),
-      .mk 662 (.unroll "j" (.lit 0) (.lit 34) [
-        .mk 663 (.store (.var "g_squares") (.genPow (.var "j")) (.var "sq_run")),
-        .mk 664 (.let_ "sq_run" (.mul (.var "sq_run") (.var "sq_run")))]),
-      .mk 665 (.ret [(.var "g_logs_pow2"), (.var "g_squares")])] }
+      .mk 652 (.let_ "g_logs_pow2" (.heapBuf 34)),
+      .mk 653 (.unroll "j" (.lit 0) (.lit 34) [
+        .mk 654 (.store (.var "g_logs_pow2") (.genPow (.var "j")) (.pow (.lit 2) (.var "j")))]),
+      .mk 655 (.let_ "g_squares" (.heapBuf 34)),
+      .mk 656 (.let_ "sq_run" .gen),
+      .mk 657 (.unroll "j" (.lit 0) (.lit 34) [
+        .mk 658 (.store (.var "g_squares") (.genPow (.var "j")) (.var "sq_run")),
+        .mk 659 (.let_ "sq_run" (.mul (.var "sq_run") (.var "sq_run")))]),
+      .mk 660 (.ret [(.var "g_logs_pow2"), (.var "g_squares")])] }
 
 /-- `g_power_of_word`. -/
 def fn_g_power_of_word : Func :=
   { name := "g_power_of_word", params := [⟨"value", (.runtime .scalar)⟩], returnShapes := [.scalar],
     inline := false,
     body := [
-      .mk 671 (.let_ "bits" (.stackBuf 6)),
-      .mk 672 (.call "hint_decompose_bits" [(.var "bits"), (.var "value"), (.lit 6)]),
-      .mk 673 (.let_ "word" (.lit 0)),
-      .mk 674 (.let_ "g_value" (.gpow 0)),
-      .mk 675 (.unroll "j" (.lit 0) (.lit 6) [
-        .mk 676 (.let_ "bit" (.index (.var "bits") (.var "j"))),
-        .mk 677 (.store (.var "bits") (.var "j") (.mul (.var "bit") (.var "bit"))),
-        .mk 678 (.let_ "word" (.add (.var "word") (.mul (.var "bit") (.pow (.lit 2) (.var "j"))))),
-        .mk 679 (.let_ "g_value" (.mul (.var "g_value") (.add (.lit 1) (.mul (.var "bit") (.add (.lit 1) (.genPow (.pow (.lit 2) (.var "j"))))))))]),
-      .mk 680 (.assertEq (.var "word") (.var "value")),
-      .mk 681 (.ret [(.var "g_value")])] }
+      .mk 666 (.let_ "bits" (.stackBuf 6)),
+      .mk 667 (.call "hint_decompose_bits" [(.var "bits"), (.var "value"), (.lit 6)]),
+      .mk 668 (.let_ "word" (.lit 0)),
+      .mk 669 (.let_ "g_value" (.gpow 0)),
+      .mk 670 (.unroll "j" (.lit 0) (.lit 6) [
+        .mk 671 (.let_ "bit" (.index (.var "bits") (.var "j"))),
+        .mk 672 (.store (.var "bits") (.var "j") (.mul (.var "bit") (.var "bit"))),
+        .mk 673 (.let_ "word" (.add (.var "word") (.mul (.var "bit") (.pow (.lit 2) (.var "j"))))),
+        .mk 674 (.let_ "g_value" (.mul (.var "g_value") (.add (.lit 1) (.mul (.var "bit") (.add (.lit 1) (.genPow (.pow (.lit 2) (.var "j"))))))))]),
+      .mk 675 (.assertEq (.var "word") (.var "value")),
+      .mk 676 (.ret [(.var "g_value")])] }
 
 /-- `verify_log2_ceil`. -/
 def fn_verify_log2_ceil : Func :=
   { name := "verify_log2_ceil", params := [⟨"bits_buf", (.runtime .scalar)⟩, ⟨"g_logs_pow2", (.runtime .scalar)⟩, ⟨"g_squares", (.runtime .scalar)⟩, ⟨"floor", .const⟩, ⟨"nbits", .const⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 692 (.let_ "psum_buf" (.heapBuf 35)),
-      .mk 693 (.store (.var "psum_buf") (.gpow 0) (.lit 0)),
-      .mk 694 (.let_ "word" (.lit 0)),
-      .mk 695 (.let_ "exp_prod" (.gpow 0)),
-      .mk 696 (.unroll "j" (.lit 0) (.var "nbits") [
-        .mk 697 (.let_ "bit" (.index (.var "bits_buf") (.genPow (.var "j")))),
-        .mk 698 (.assertEq (.mul (.var "bit") (.var "bit")) (.var "bit")),
-        .mk 699 (.let_ "exp_prod" (.mul (.var "exp_prod") (.add (.lit 1) (.mul (.var "bit") (.add (.index (.var "g_squares") (.genPow (.var "j"))) (.lit 1)))))),
-        .mk 700 (.let_ "word" (.add (.var "word") (.mul (.var "bit") (.pow (.lit 2) (.var "j"))))),
-        .mk 701 (.store (.var "psum_buf") (.genPow (.add (.var "j") (.lit 1))) (.var "word"))]),
-      .mk 702 (.unroll "j" (.add (.var "nbits") (.lit 1)) (.add (.lit 34) (.lit 1)) [
-        .mk 703 (.store (.var "psum_buf") (.genPow (.var "j")) (.var "word"))]),
-      .mk 704 (.let_ "g_log" (.call "hint_log2_ceil" [(.var "bits_buf"), (.var "nbits"), (.var "floor")])),
-      .mk 705 (.assertLt (.var "g_log") (.const 34)),
-      .mk 706 (.assertLt (.fdiv (.var "g_log") (.genPow (.var "floor"))) (.const 34)),
-      .mk 707 (.let_ "low_bits" (.index (.var "psum_buf") (.var "g_log"))),
-      .mk 708 (.let_ "high_bits" (.add (.var "low_bits") (.var "word"))),
-      .mk 709 (.assertEq (.mul (.var "high_bits") (.var "low_bits")) (.lit 0)),
-      .mk 710 (.assertEq (.mul (.var "high_bits") (.add (.var "word") (.index (.var "g_logs_pow2") (.var "g_log")))) (.lit 0)),
-      .mk 711 (.ite false (.var "g_log") (.genPow (.var "floor")) [
-        .mk 714 (.ite false (.var "g_log") (.gpow 0) [
-          .mk 715 (.let_ "low_bits_prev" (.index (.var "psum_buf") (.mul (.var "g_log") (.lit 9223372036854775821)))),
-          .mk 716 (.let_ "word_vs_2logprev" (.add (.var "word") (.index (.var "g_logs_pow2") (.mul (.var "g_log") (.lit 9223372036854775821))))),
-          .mk 717 (.assertNe (.mul (.add (.var "low_bits_prev") (.var "word")) (.var "word_vs_2logprev")) (.lit 0))] [] false)] [] false),
-      .mk 718 (.ret [(.var "g_log"), (.var "exp_prod")])] }
+      .mk 687 (.let_ "psum_buf" (.heapBuf 35)),
+      .mk 688 (.store (.var "psum_buf") (.gpow 0) (.lit 0)),
+      .mk 689 (.let_ "word" (.lit 0)),
+      .mk 690 (.let_ "exp_prod" (.gpow 0)),
+      .mk 691 (.unroll "j" (.lit 0) (.var "nbits") [
+        .mk 692 (.let_ "bit" (.index (.var "bits_buf") (.genPow (.var "j")))),
+        .mk 693 (.assertEq (.mul (.var "bit") (.var "bit")) (.var "bit")),
+        .mk 694 (.let_ "exp_prod" (.mul (.var "exp_prod") (.add (.lit 1) (.mul (.var "bit") (.add (.index (.var "g_squares") (.genPow (.var "j"))) (.lit 1)))))),
+        .mk 695 (.let_ "word" (.add (.var "word") (.mul (.var "bit") (.pow (.lit 2) (.var "j"))))),
+        .mk 696 (.store (.var "psum_buf") (.genPow (.add (.var "j") (.lit 1))) (.var "word"))]),
+      .mk 697 (.unroll "j" (.add (.var "nbits") (.lit 1)) (.add (.lit 34) (.lit 1)) [
+        .mk 698 (.store (.var "psum_buf") (.genPow (.var "j")) (.var "word"))]),
+      .mk 699 (.let_ "g_log" (.call "hint_log2_ceil" [(.var "bits_buf"), (.var "nbits"), (.var "floor")])),
+      .mk 700 (.assertLt (.var "g_log") (.const 34)),
+      .mk 701 (.assertLt (.fdiv (.var "g_log") (.genPow (.var "floor"))) (.const 34)),
+      .mk 702 (.let_ "low_bits" (.index (.var "psum_buf") (.var "g_log"))),
+      .mk 703 (.let_ "high_bits" (.add (.var "low_bits") (.var "word"))),
+      .mk 704 (.assertEq (.mul (.var "high_bits") (.var "low_bits")) (.lit 0)),
+      .mk 705 (.assertEq (.mul (.var "high_bits") (.add (.var "word") (.index (.var "g_logs_pow2") (.var "g_log")))) (.lit 0)),
+      .mk 706 (.ite false (.var "g_log") (.genPow (.var "floor")) [
+        .mk 709 (.ite false (.var "g_log") (.gpow 0) [
+          .mk 710 (.let_ "low_bits_prev" (.index (.var "psum_buf") (.mul (.var "g_log") (.lit 9223372036854775821)))),
+          .mk 711 (.let_ "word_vs_2logprev" (.add (.var "word") (.index (.var "g_logs_pow2") (.mul (.var "g_log") (.lit 9223372036854775821))))),
+          .mk 712 (.assertNe (.mul (.add (.var "low_bits_prev") (.var "word")) (.var "word_vs_2logprev")) (.lit 0))] [] false)] [] false),
+      .mk 713 (.ret [(.var "g_log"), (.var "exp_prod")])] }
 
 /-- `log2_ceil_in_the_exponent`. -/
 def fn_log2_ceil_in_the_exponent : Func :=
   { name := "log2_ceil_in_the_exponent", params := [⟨"g_N", (.runtime .scalar)⟩, ⟨"g_logs_pow2", (.runtime .scalar)⟩, ⟨"g_squares", (.runtime .scalar)⟩, ⟨"floor", .const⟩, ⟨"nbits", .const⟩], returnShapes := [.scalar],
     inline := false,
     body := [
-      .mk 725 (.let_ "bits" (.heapBufDyn (.genPow (.var "nbits")))),
-      .mk 726 (.call "hint_decompose_bits_exponent" [(.var "bits"), (.var "g_N"), (.var "nbits")]),
-      .mk 727 (.letTuple ["g_log", "g_bits_value"] "verify_log2_ceil" [(.var "bits"), (.var "g_logs_pow2"), (.var "g_squares"), (.var "floor"), (.var "nbits")]),
-      .mk 728 (.assertEq (.var "g_bits_value") (.var "g_N")),
-      .mk 729 (.ret [(.var "g_log")])] }
+      .mk 720 (.let_ "bits" (.heapBufDyn (.genPow (.var "nbits")))),
+      .mk 721 (.call "hint_decompose_bits_exponent" [(.var "bits"), (.var "g_N"), (.var "nbits")]),
+      .mk 722 (.letTuple ["g_log", "g_bits_value"] "verify_log2_ceil" [(.var "bits"), (.var "g_logs_pow2"), (.var "g_squares"), (.var "floor"), (.var "nbits")]),
+      .mk 723 (.assertEq (.var "g_bits_value") (.var "g_N")),
+      .mk 724 (.ret [(.var "g_log")])] }
 
 /-- `decode_query_bits`. -/
 def fn_decode_query_bits : Func :=
   { name := "decode_query_bits", params := [⟨"squeezed_word", (.runtime .scalar)⟩, ⟨"positions_out", (.runtime .scalar)⟩, ⟨"bit_ptrs_out", (.runtime .scalar)⟩, ⟨"depth", .const⟩], returnShapes := [],
     inline := false,
     body := [
-      .mk 739 (.let_ "per_word" (.div (.lit 192) (.var "depth"))),
-      .mk 740 (.let_ "bits" (.stackBuf 192)),
-      .mk 741 (.call "hint_decompose_bits" [(.var "bits"), (.var "squeezed_word"), (.lit 192)]),
-      .mk 742 (.let_ "bits_ptr" (.call "addr" [(.var "bits")])),
-      .mk 743 (.let_ "reconstructed" (.lit 0)),
-      .mk 744 (.unroll "j" (.lit 0) (.var "per_word") [
-        .mk 745 (.let_ "base_bit" (.mul (.var "j") (.var "depth"))),
-        .mk 752 (.let_ "cut" (.sub (.lit 64) (.mod (.var "base_bit") (.lit 64)))),
-        .mk 753 (.let_ "p_lo" (.lit 0)),
-        .mk 754 (.let_ "p_hi" (.lit 0)),
-        .mk 755 (.unroll "b" (.lit 0) (.var "depth") [
-          .mk 756 (.let_ "t" (.index (.var "bits") (.add (.var "base_bit") (.var "b")))),
-          .mk 757 (.store (.var "bits") (.add (.var "base_bit") (.var "b")) (.mul (.var "t") (.var "t"))),
-          .mk 758 (.ite true (.div (.var "b") (.var "cut")) (.lit 0) [
-            .mk 759 (.let_ "p_lo" (.add (.var "p_lo") (.mul (.var "t") (.index (.var "COORD_BASIS") (.var "b")))))] [
-            .mk 761 (.let_ "p_hi" (.add (.var "p_hi") (.mul (.var "t") (.index (.var "COORD_BASIS") (.sub (.var "b") (.var "cut"))))))] false)]),
-        .mk 764 (.ite true (.div (.var "cut") (.var "depth")) (.lit 0) [
-          .mk 765 (.store (.var "positions_out") (.genPow (.var "j")) (.add (.var "p_lo") (.mul (.index (.var "COORD_BASIS") (.var "cut")) (.var "p_hi")))),
-          .mk 766 (.let_ "reconstructed" (.add (.var "reconstructed") (.add (.mul (.index (.var "COORD_BASIS") (.var "base_bit")) (.var "p_lo")) (.mul (.index (.var "COORD_BASIS") (.add (.var "base_bit") (.var "cut"))) (.var "p_hi")))))] [
-          .mk 768 (.store (.var "positions_out") (.genPow (.var "j")) (.var "p_lo")),
-          .mk 769 (.let_ "reconstructed" (.add (.var "reconstructed") (.mul (.index (.var "COORD_BASIS") (.var "base_bit")) (.var "p_lo"))))] false),
-        .mk 770 (.store (.var "bit_ptrs_out") (.genPow (.var "j")) (.mul (.var "bits_ptr") (.genPow (.var "base_bit"))))]),
-      .mk 771 (.unroll "i" (.mul (.var "per_word") (.var "depth")) (.lit 192) [
-        .mk 772 (.let_ "t" (.index (.var "bits") (.var "i"))),
-        .mk 773 (.store (.var "bits") (.var "i") (.mul (.var "t") (.var "t"))),
-        .mk 774 (.let_ "reconstructed" (.add (.var "reconstructed") (.mul (.var "t") (.index (.var "COORD_BASIS") (.var "i")))))]),
-      .mk 775 (.assertEq (.var "reconstructed") (.var "squeezed_word")),
-      .mk 776 (.ret [])] }
+      .mk 734 (.let_ "per_word" (.div (.lit 192) (.var "depth"))),
+      .mk 735 (.let_ "bits" (.stackBuf 192)),
+      .mk 736 (.call "hint_decompose_bits" [(.var "bits"), (.var "squeezed_word"), (.lit 192)]),
+      .mk 737 (.let_ "bits_ptr" (.call "addr" [(.var "bits")])),
+      .mk 738 (.let_ "reconstructed" (.lit 0)),
+      .mk 739 (.unroll "j" (.lit 0) (.var "per_word") [
+        .mk 740 (.let_ "base_bit" (.mul (.var "j") (.var "depth"))),
+        .mk 747 (.let_ "cut" (.sub (.lit 64) (.mod (.var "base_bit") (.lit 64)))),
+        .mk 748 (.let_ "p_lo" (.lit 0)),
+        .mk 749 (.let_ "p_hi" (.lit 0)),
+        .mk 750 (.unroll "b" (.lit 0) (.var "depth") [
+          .mk 751 (.let_ "t" (.index (.var "bits") (.add (.var "base_bit") (.var "b")))),
+          .mk 752 (.store (.var "bits") (.add (.var "base_bit") (.var "b")) (.mul (.var "t") (.var "t"))),
+          .mk 753 (.ite true (.div (.var "b") (.var "cut")) (.lit 0) [
+            .mk 754 (.let_ "p_lo" (.add (.var "p_lo") (.mul (.var "t") (.index (.var "COORD_BASIS") (.var "b")))))] [
+            .mk 756 (.let_ "p_hi" (.add (.var "p_hi") (.mul (.var "t") (.index (.var "COORD_BASIS") (.sub (.var "b") (.var "cut"))))))] false)]),
+        .mk 759 (.ite true (.div (.var "cut") (.var "depth")) (.lit 0) [
+          .mk 760 (.store (.var "positions_out") (.genPow (.var "j")) (.add (.var "p_lo") (.mul (.index (.var "COORD_BASIS") (.var "cut")) (.var "p_hi")))),
+          .mk 761 (.let_ "reconstructed" (.add (.var "reconstructed") (.add (.mul (.index (.var "COORD_BASIS") (.var "base_bit")) (.var "p_lo")) (.mul (.index (.var "COORD_BASIS") (.add (.var "base_bit") (.var "cut"))) (.var "p_hi")))))] [
+          .mk 763 (.store (.var "positions_out") (.genPow (.var "j")) (.var "p_lo")),
+          .mk 764 (.let_ "reconstructed" (.add (.var "reconstructed") (.mul (.index (.var "COORD_BASIS") (.var "base_bit")) (.var "p_lo"))))] false),
+        .mk 765 (.store (.var "bit_ptrs_out") (.genPow (.var "j")) (.mul (.var "bits_ptr") (.genPow (.var "base_bit"))))]),
+      .mk 766 (.unroll "i" (.mul (.var "per_word") (.var "depth")) (.lit 192) [
+        .mk 767 (.let_ "t" (.index (.var "bits") (.var "i"))),
+        .mk 768 (.store (.var "bits") (.var "i") (.mul (.var "t") (.var "t"))),
+        .mk 769 (.let_ "reconstructed" (.add (.var "reconstructed") (.mul (.var "t") (.index (.var "COORD_BASIS") (.var "i")))))]),
+      .mk 770 (.assertEq (.var "reconstructed") (.var "squeezed_word")),
+      .mk 771 (.ret [])] }
 
 /-- `grind_check`. -/
 def fn_grind_check : Func :=
   { name := "grind_check", params := [⟨"word", (.runtime .scalar)⟩, ⟨"nbits", .const⟩], returnShapes := [],
     inline := false,
     body := [
-      .mk 787 (.let_ "lanes" (.stackBuf 1)),
-      .mk 788 (.call "hint_f192_limbs" [(.var "lanes"), (.var "word")]),
-      .mk 789 (.let_ "high" (.mul (.add (.var "word") (.index (.var "lanes") (.lit 0))) (.call "f192" [(.lit 1), (.lit 0), (.lit 1)]))),
-      .mk 790 (.call "assert_in_k" [(.index (.var "lanes") (.lit 0)), (.var "high")]),
-      .mk 793 (.let_ "lane_bits" (.stackBuf 64)),
-      .mk 794 (.call "hint_decompose_bits" [(.var "lane_bits"), (.index (.var "lanes") (.lit 0)), (.lit 64)]),
-      .mk 795 (.let_ "acc" (.lit 0)),
-      .mk 796 (.unroll "i" (.var "nbits") (.lit 64) [
-        .mk 797 (.let_ "b" (.index (.var "lane_bits") (.var "i"))),
-        .mk 798 (.store (.var "lane_bits") (.var "i") (.mul (.var "b") (.var "b"))),
-        .mk 799 (.let_ "acc" (.add (.var "acc") (.mul (.var "b") (.index (.var "COORD_BASIS") (.var "i")))))]),
-      .mk 800 (.assertEq (.var "acc") (.index (.var "lanes") (.lit 0))),
-      .mk 801 (.ret [])] }
+      .mk 782 (.let_ "lanes" (.stackBuf 1)),
+      .mk 783 (.call "hint_f192_limbs" [(.var "lanes"), (.var "word")]),
+      .mk 784 (.let_ "high" (.mul (.add (.var "word") (.index (.var "lanes") (.lit 0))) (.call "f192" [(.lit 1), (.lit 0), (.lit 1)]))),
+      .mk 785 (.call "assert_in_k" [(.index (.var "lanes") (.lit 0)), (.var "high")]),
+      .mk 788 (.let_ "lane_bits" (.stackBuf 64)),
+      .mk 789 (.call "hint_decompose_bits" [(.var "lane_bits"), (.index (.var "lanes") (.lit 0)), (.lit 64)]),
+      .mk 790 (.let_ "acc" (.lit 0)),
+      .mk 791 (.unroll "i" (.var "nbits") (.lit 64) [
+        .mk 792 (.let_ "b" (.index (.var "lane_bits") (.var "i"))),
+        .mk 793 (.store (.var "lane_bits") (.var "i") (.mul (.var "b") (.var "b"))),
+        .mk 794 (.let_ "acc" (.add (.var "acc") (.mul (.var "b") (.index (.var "COORD_BASIS") (.var "i")))))]),
+      .mk 795 (.assertEq (.var "acc") (.index (.var "lanes") (.lit 0))),
+      .mk 796 (.ret [])] }
 
 /-- `eq_weight`. -/
 def fn_eq_weight : Func :=
   { name := "eq_weight", params := [⟨"ch", (.runtime .scalar)⟩, ⟨"count", .const⟩, ⟨"idx", .const⟩, ⟨"msb_span", .const⟩], returnShapes := [.scalar],
     inline := true,
     body := [
-      .mk 813 (.let_ "w" (.gpow 0)),
-      .mk 814 (.unroll "c" (.lit 0) (.var "count") [
-        .mk 815 (.let_ "cv" (.index (.var "ch") (.genPow (.var "c")))),
-        .mk 816 (.ite true (.var "msb_span") (.lit 0) [
-          .mk 817 (.ite true (.mod (.div (.var "idx") (.pow (.lit 2) (.var "c"))) (.lit 2)) (.lit 1) [
+      .mk 808 (.let_ "w" (.gpow 0)),
+      .mk 809 (.unroll "c" (.lit 0) (.var "count") [
+        .mk 810 (.let_ "cv" (.index (.var "ch") (.genPow (.var "c")))),
+        .mk 811 (.ite true (.var "msb_span") (.lit 0) [
+          .mk 812 (.ite true (.mod (.div (.var "idx") (.pow (.lit 2) (.var "c"))) (.lit 2)) (.lit 1) [
+            .mk 813 (.let_ "w" (.mul (.var "w") (.var "cv")))] [
+            .mk 815 (.let_ "w" (.mul (.var "w") (.add (.lit 1) (.var "cv"))))] false)] [
+          .mk 817 (.ite true (.mod (.div (.var "idx") (.pow (.lit 2) (.sub (.sub (.var "msb_span") (.lit 1)) (.var "c")))) (.lit 2)) (.lit 1) [
             .mk 818 (.let_ "w" (.mul (.var "w") (.var "cv")))] [
-            .mk 820 (.let_ "w" (.mul (.var "w") (.add (.lit 1) (.var "cv"))))] false)] [
-          .mk 822 (.ite true (.mod (.div (.var "idx") (.pow (.lit 2) (.sub (.sub (.var "msb_span") (.lit 1)) (.var "c")))) (.lit 2)) (.lit 1) [
-            .mk 823 (.let_ "w" (.mul (.var "w") (.var "cv")))] [
-            .mk 825 (.let_ "w" (.mul (.var "w") (.add (.lit 1) (.var "cv"))))] false)] false)]),
-      .mk 826 (.ret [(.var "w")])] }
+            .mk 820 (.let_ "w" (.mul (.var "w") (.add (.lit 1) (.var "cv"))))] false)] false)]),
+      .mk 821 (.ret [(.var "w")])] }
 
 /-- `eqtree`. -/
 def fn_eqtree : Func :=
   { name := "eqtree", params := [⟨"point_ptr", (.runtime .scalar)⟩, ⟨"out", (.runtime .scalar)⟩, ⟨"n_coords", .const⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 834 (.let_ "r0" (.index (.var "point_ptr") (.gpow 0))),
-      .mk 835 (.store (.var "out") (.gpow 0) (.add (.lit 1) (.var "r0"))),
-      .mk 836 (.store (.var "out") (.gpow 1) (.var "r0")),
-      .mk 837 (.unroll "t" (.lit 1) (.var "n_coords") [
-        .mk 838 (.let_ "rt" (.index (.var "point_ptr") (.genPow (.var "t")))),
-        .mk 839 (.let_ "one_plus_rt" (.add (.lit 1) (.var "rt"))),
-        .mk 840 (.unroll "i" (.lit 0) (.pow (.lit 2) (.var "t")) [
-          .mk 841 (.let_ "pw" (.index (.var "out") (.genPow (.add (.sub (.pow (.lit 2) (.var "t")) (.lit 2)) (.var "i"))))),
-          .mk 842 (.store (.var "out") (.genPow (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.var "i"))) (.mul (.var "pw") (.var "one_plus_rt"))),
-          .mk 843 (.store (.var "out") (.genPow (.add (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.pow (.lit 2) (.var "t"))) (.var "i"))) (.mul (.var "pw") (.var "rt")))])]),
-      .mk 844 (.ret [])] }
+      .mk 829 (.let_ "r0" (.index (.var "point_ptr") (.gpow 0))),
+      .mk 830 (.store (.var "out") (.gpow 0) (.add (.lit 1) (.var "r0"))),
+      .mk 831 (.store (.var "out") (.gpow 1) (.var "r0")),
+      .mk 832 (.unroll "t" (.lit 1) (.var "n_coords") [
+        .mk 833 (.let_ "rt" (.index (.var "point_ptr") (.genPow (.var "t")))),
+        .mk 834 (.let_ "one_plus_rt" (.add (.lit 1) (.var "rt"))),
+        .mk 835 (.unroll "i" (.lit 0) (.pow (.lit 2) (.var "t")) [
+          .mk 836 (.let_ "pw" (.index (.var "out") (.genPow (.add (.sub (.pow (.lit 2) (.var "t")) (.lit 2)) (.var "i"))))),
+          .mk 837 (.store (.var "out") (.genPow (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.var "i"))) (.mul (.var "pw") (.var "one_plus_rt"))),
+          .mk 838 (.store (.var "out") (.genPow (.add (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.pow (.lit 2) (.var "t"))) (.var "i"))) (.mul (.var "pw") (.var "rt")))])]),
+      .mk 839 (.ret [])] }
 
 /-- `eqtree_frame`. -/
 def fn_eqtree_frame : Func :=
   { name := "eqtree_frame", params := [⟨"point_ptr", (.runtime .scalar)⟩, ⟨"out", (.runtime .scalar)⟩, ⟨"n_coords", .const⟩, ⟨"count", .const⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 851 (.let_ "r0" (.index (.var "point_ptr") (.gpow 0))),
-      .mk 852 (.store (.var "out") (.lit 0) (.add (.lit 1) (.var "r0"))),
-      .mk 853 (.store (.var "out") (.lit 1) (.var "r0")),
-      .mk 854 (.unroll "t" (.lit 1) (.var "n_coords") [
-        .mk 855 (.let_ "rt" (.index (.var "point_ptr") (.genPow (.var "t")))),
-        .mk 856 (.let_ "one_plus_rt" (.add (.lit 1) (.var "rt"))),
-        .mk 857 (.unroll "i" (.lit 0) (.pow (.lit 2) (.var "t")) [
-          .mk 858 (.let_ "pw" (.index (.var "out") (.add (.sub (.pow (.lit 2) (.var "t")) (.lit 2)) (.var "i")))),
-          .mk 859 (.store (.var "out") (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.var "i")) (.mul (.var "pw") (.var "one_plus_rt"))),
-          .mk 860 (.ite true (.add (.var "t") (.lit 1)) (.var "n_coords") [
-            .mk 861 (.ite true (.div (.add (.pow (.lit 2) (.var "t")) (.var "i")) (.var "count")) (.lit 0) [
-              .mk 862 (.store (.var "out") (.add (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.pow (.lit 2) (.var "t"))) (.var "i")) (.mul (.var "pw") (.var "rt")))] [] false)] [
-            .mk 864 (.store (.var "out") (.add (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.pow (.lit 2) (.var "t"))) (.var "i")) (.mul (.var "pw") (.var "rt")))] true)])]),
-      .mk 865 (.ret [])] }
+      .mk 846 (.let_ "r0" (.index (.var "point_ptr") (.gpow 0))),
+      .mk 847 (.store (.var "out") (.lit 0) (.add (.lit 1) (.var "r0"))),
+      .mk 848 (.store (.var "out") (.lit 1) (.var "r0")),
+      .mk 849 (.unroll "t" (.lit 1) (.var "n_coords") [
+        .mk 850 (.let_ "rt" (.index (.var "point_ptr") (.genPow (.var "t")))),
+        .mk 851 (.let_ "one_plus_rt" (.add (.lit 1) (.var "rt"))),
+        .mk 852 (.unroll "i" (.lit 0) (.pow (.lit 2) (.var "t")) [
+          .mk 853 (.let_ "pw" (.index (.var "out") (.add (.sub (.pow (.lit 2) (.var "t")) (.lit 2)) (.var "i")))),
+          .mk 854 (.store (.var "out") (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.var "i")) (.mul (.var "pw") (.var "one_plus_rt"))),
+          .mk 855 (.ite true (.add (.var "t") (.lit 1)) (.var "n_coords") [
+            .mk 856 (.ite true (.div (.add (.pow (.lit 2) (.var "t")) (.var "i")) (.var "count")) (.lit 0) [
+              .mk 857 (.store (.var "out") (.add (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.pow (.lit 2) (.var "t"))) (.var "i")) (.mul (.var "pw") (.var "rt")))] [] false)] [
+            .mk 859 (.store (.var "out") (.add (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.pow (.lit 2) (.var "t"))) (.var "i")) (.mul (.var "pw") (.var "rt")))] true)])]),
+      .mk 860 (.ret [])] }
 
 /-- `eq_prefix_chain`. -/
 def fn_eq_prefix_chain : Func :=
   { name := "eq_prefix_chain", params := [⟨"chain", (.runtime .scalar)⟩, ⟨"seed", (.runtime .scalar)⟩, ⟨"a", (.runtime .scalar)⟩, ⟨"b1", (.runtime .scalar)⟩, ⟨"count_g", (.runtime .scalar)⟩], returnShapes := [],
     inline := false,
     body := [
-      .mk 873 (.assertLt (.var "count_g") (.const 41)),
-      .mk 874 (.match_ [(.var "done")] (.var "count_g") [(.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 0)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 1)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 2)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 3)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 4)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 5)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 6)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 7)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 8)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 9)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 10)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 11)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 12)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 13)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 14)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 15)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 16)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 17)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 18)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 19)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 20)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 21)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 22)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 23)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 24)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 25)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 26)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 27)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 28)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 29)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 30)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 31)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 32)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 33)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 34)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 35)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 36)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 37)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 38)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 39)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 40)])]),
-      .mk 875 (.ret [])] }
+      .mk 868 (.assertLt (.var "count_g") (.const 41)),
+      .mk 869 (.match_ [(.var "done")] (.var "count_g") [(.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 0)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 1)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 2)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 3)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 4)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 5)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 6)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 7)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 8)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 9)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 10)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 11)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 12)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 13)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 14)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 15)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 16)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 17)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 18)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 19)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 20)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 21)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 22)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 23)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 24)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 25)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 26)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 27)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 28)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 29)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 30)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 31)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 32)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 33)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 34)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 35)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 36)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 37)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 38)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 39)]), (.call "eq_prefix_run" [(.var "chain"), (.var "seed"), (.var "a"), (.var "b1"), (.lit 40)])]),
+      .mk 870 (.ret [])] }
 
 /-- `eq_prefix_run`. -/
 def fn_eq_prefix_run : Func :=
   { name := "eq_prefix_run", params := [⟨"chain", (.runtime .scalar)⟩, ⟨"seed", (.runtime .scalar)⟩, ⟨"a", (.runtime .scalar)⟩, ⟨"b1", (.runtime .scalar)⟩, ⟨"n", .const⟩], returnShapes := [.scalar],
     inline := false,
     body := [
-      .mk 879 (.store (.var "chain") (.gpow 0) (.var "seed")),
-      .mk 880 (.let_ "v" (.var "seed")),
-      .mk 881 (.unroll "k" (.lit 0) (.var "n") [
-        .mk 882 (.let_ "v" (.mul (.var "v") (.add (.index (.var "a") (.genPow (.var "k"))) (.index (.var "b1") (.genPow (.var "k")))))),
-        .mk 883 (.store (.var "chain") (.genPow (.add (.var "k") (.lit 1))) (.var "v"))]),
-      .mk 884 (.ret [(.lit 0)])] }
+      .mk 874 (.store (.var "chain") (.gpow 0) (.var "seed")),
+      .mk 875 (.let_ "v" (.var "seed")),
+      .mk 876 (.unroll "k" (.lit 0) (.var "n") [
+        .mk 877 (.let_ "v" (.mul (.var "v") (.add (.index (.var "a") (.genPow (.var "k"))) (.index (.var "b1") (.genPow (.var "k")))))),
+        .mk 878 (.store (.var "chain") (.genPow (.add (.var "k") (.lit 1))) (.var "v"))]),
+      .mk 879 (.ret [(.lit 0)])] }
 
 /-- `plus_one_run`. -/
 def fn_plus_one_run : Func :=
   { name := "plus_one_run", params := [⟨"out", (.runtime .scalar)⟩, ⟨"src", (.runtime .scalar)⟩, ⟨"n", .const⟩], returnShapes := [.scalar],
     inline := false,
     body := [
-      .mk 888 (.unroll "k" (.lit 0) (.var "n") [
-        .mk 889 (.store (.var "out") (.genPow (.var "k")) (.add (.lit 1) (.index (.var "src") (.genPow (.var "k")))))]),
-      .mk 890 (.ret [(.lit 0)])] }
+      .mk 883 (.unroll "k" (.lit 0) (.var "n") [
+        .mk 884 (.store (.var "out") (.genPow (.var "k")) (.add (.lit 1) (.index (.var "src") (.genPow (.var "k")))))]),
+      .mk 885 (.ret [(.lit 0)])] }
 
 /-- `rs_eq_run`. -/
 def fn_rs_eq_run : Func :=
   { name := "rs_eq_run", params := [⟨"chain", (.runtime .scalar)⟩, ⟨"z_vals", (.runtime .scalar)⟩, ⟨"point1", (.runtime .scalar)⟩, ⟨"count_g", (.runtime .scalar)⟩], returnShapes := [.scalar],
     inline := false,
     body := [
-      .mk 901 (.let_ "bits" (.stackBuf 6)),
-      .mk 902 (.call "hint_decompose_bits_exponent" [(.var "bits"), (.var "count_g"), (.lit 6)]),
-      .mk 903 (.let_ "odd" (.index (.var "bits") (.lit 0))),
-      .mk 904 (.store (.var "bits") (.lit 0) (.mul (.var "odd") (.var "odd"))),
-      .mk 905 (.let_ "half_g" (.gpow 0)),
-      .mk 906 (.unroll "k" (.lit 1) (.lit 6) [
-        .mk 907 (.let_ "b" (.index (.var "bits") (.var "k"))),
-        .mk 908 (.store (.var "bits") (.var "k") (.mul (.var "b") (.var "b"))),
-        .mk 909 (.let_ "half_g" (.mul (.var "half_g") (.add (.lit 1) (.mul (.var "b") (.add (.lit 1) (.genPow (.pow (.lit 2) (.sub (.var "k") (.lit 1)))))))))]),
-      .mk 910 (.let_ "odd_g" (.add (.lit 1) (.mul (.var "odd") (.add (.lit 1) .gen)))),
-      .mk 911 (.assertEq (.mul (.mul (.var "half_g") (.var "half_g")) (.var "odd_g")) (.var "count_g")),
-      .mk 912 (.for_ "xp" 0 (.runtime (.var "half_g")) [
-        .mk 913 (.let_ "pair" (.mul (.var "xp") (.var "xp"))),
-        .mk 914 (.let_ "zs" (.mul (.var "z_vals") (.var "pair"))),
-        .mk 915 (.let_ "ps" (.mul (.var "point1") (.var "pair"))),
-        .mk 916 (.let_ "zv_0" (.index (.var "zs") (.gpow 0))),
-        .mk 917 (.let_ "zv_1" (.index (.var "zs") (.gpow 1))),
-        .mk 918 (.let_ "one_plus_0" (.index (.var "ps") (.gpow 0))),
-        .mk 919 (.let_ "one_plus_1" (.index (.var "ps") (.gpow 1))),
-        .mk 920 (.let_ "row" (.mul (.var "chain") (.pow (.var "xp") (.lit 64)))),
-        .mk 921 (.let_ "nxt" (.mul (.var "row") (.gpow 64))),
-        .mk 922 (.unroll "k" (.lit 0) (.lit 64) [
-          .mk 923 (.store (.var "nxt") (.genPow (.var "k")) (.mul (.mul (.index (.var "row") (.genPow (.var "k"))) (.add (.var "zv_0") (.var "one_plus_0"))) (.add (.var "zv_1") (.var "one_plus_1")))),
-          .mk 924 (.ite false (.var "k") (.sub (.lit 64) (.lit 1)) [
-            .mk 925 (.let_ "zv_0" (.mul (.var "zv_0") (.var "zv_0"))),
-            .mk 926 (.let_ "zv_1" (.mul (.var "zv_1") (.var "zv_1")))] [] false)])]),
-      .mk 927 (.ite true (.var "odd") (.lit 1) [
-        .mk 928 (.let_ "last" (.mul (.var "half_g") (.var "half_g"))),
-        .mk 929 (.let_ "zv" (.index (.var "z_vals") (.var "last"))),
-        .mk 930 (.let_ "one_plus" (.index (.var "point1") (.var "last"))),
-        .mk 931 (.let_ "row" (.mul (.var "chain") (.pow (.var "half_g") (.lit 64)))),
-        .mk 932 (.let_ "nxt" (.mul (.var "row") (.gpow 64))),
-        .mk 933 (.unroll "k" (.lit 0) (.lit 64) [
-          .mk 934 (.store (.var "nxt") (.genPow (.var "k")) (.mul (.index (.var "row") (.genPow (.var "k"))) (.add (.var "zv") (.var "one_plus")))),
-          .mk 935 (.ite false (.var "k") (.sub (.lit 64) (.lit 1)) [
-            .mk 936 (.let_ "zv" (.mul (.var "zv") (.var "zv")))] [] false)])] [] false),
-      .mk 937 (.ret [(.mul (.var "chain") (.pow (.mul (.var "half_g") (.var "odd_g")) (.lit 64)))])] }
+      .mk 896 (.let_ "bits" (.stackBuf 6)),
+      .mk 897 (.call "hint_decompose_bits_exponent" [(.var "bits"), (.var "count_g"), (.lit 6)]),
+      .mk 898 (.let_ "odd" (.index (.var "bits") (.lit 0))),
+      .mk 899 (.store (.var "bits") (.lit 0) (.mul (.var "odd") (.var "odd"))),
+      .mk 900 (.let_ "half_g" (.gpow 0)),
+      .mk 901 (.unroll "k" (.lit 1) (.lit 6) [
+        .mk 902 (.let_ "b" (.index (.var "bits") (.var "k"))),
+        .mk 903 (.store (.var "bits") (.var "k") (.mul (.var "b") (.var "b"))),
+        .mk 904 (.let_ "half_g" (.mul (.var "half_g") (.add (.lit 1) (.mul (.var "b") (.add (.lit 1) (.genPow (.pow (.lit 2) (.sub (.var "k") (.lit 1)))))))))]),
+      .mk 905 (.let_ "odd_g" (.add (.lit 1) (.mul (.var "odd") (.add (.lit 1) .gen)))),
+      .mk 906 (.assertEq (.mul (.mul (.var "half_g") (.var "half_g")) (.var "odd_g")) (.var "count_g")),
+      .mk 907 (.for_ "xp" 0 (.runtime (.var "half_g")) [
+        .mk 908 (.let_ "pair" (.mul (.var "xp") (.var "xp"))),
+        .mk 909 (.let_ "zs" (.mul (.var "z_vals") (.var "pair"))),
+        .mk 910 (.let_ "ps" (.mul (.var "point1") (.var "pair"))),
+        .mk 911 (.let_ "zv_0" (.index (.var "zs") (.gpow 0))),
+        .mk 912 (.let_ "zv_1" (.index (.var "zs") (.gpow 1))),
+        .mk 913 (.let_ "one_plus_0" (.index (.var "ps") (.gpow 0))),
+        .mk 914 (.let_ "one_plus_1" (.index (.var "ps") (.gpow 1))),
+        .mk 915 (.let_ "row" (.mul (.var "chain") (.pow (.var "xp") (.lit 64)))),
+        .mk 916 (.let_ "nxt" (.mul (.var "row") (.gpow 64))),
+        .mk 917 (.unroll "k" (.lit 0) (.lit 64) [
+          .mk 918 (.store (.var "nxt") (.genPow (.var "k")) (.mul (.mul (.index (.var "row") (.genPow (.var "k"))) (.add (.var "zv_0") (.var "one_plus_0"))) (.add (.var "zv_1") (.var "one_plus_1")))),
+          .mk 919 (.ite false (.var "k") (.sub (.lit 64) (.lit 1)) [
+            .mk 920 (.let_ "zv_0" (.mul (.var "zv_0") (.var "zv_0"))),
+            .mk 921 (.let_ "zv_1" (.mul (.var "zv_1") (.var "zv_1")))] [] false)])]),
+      .mk 922 (.ite true (.var "odd") (.lit 1) [
+        .mk 923 (.let_ "last" (.mul (.var "half_g") (.var "half_g"))),
+        .mk 924 (.let_ "zv" (.index (.var "z_vals") (.var "last"))),
+        .mk 925 (.let_ "one_plus" (.index (.var "point1") (.var "last"))),
+        .mk 926 (.let_ "row" (.mul (.var "chain") (.pow (.var "half_g") (.lit 64)))),
+        .mk 927 (.let_ "nxt" (.mul (.var "row") (.gpow 64))),
+        .mk 928 (.unroll "k" (.lit 0) (.lit 64) [
+          .mk 929 (.store (.var "nxt") (.genPow (.var "k")) (.mul (.index (.var "row") (.genPow (.var "k"))) (.add (.var "zv") (.var "one_plus")))),
+          .mk 930 (.ite false (.var "k") (.sub (.lit 64) (.lit 1)) [
+            .mk 931 (.let_ "zv" (.mul (.var "zv") (.var "zv")))] [] false)])] [] false),
+      .mk 932 (.ret [(.mul (.var "chain") (.pow (.mul (.var "half_g") (.var "odd_g")) (.lit 64)))])] }
 
 /-- `fold_final_msg`. -/
 def fn_fold_final_msg : Func :=
   { name := "fold_final_msg", params := [⟨"msg", (.runtime .scalar)⟩, ⟨"point", (.runtime .scalar)⟩, ⟨"log_len", .const⟩], returnShapes := [.scalar],
     inline := false,
     body := [
-      .mk 941 (.let_ "weights" (.stackBuf 10)),
-      .mk 942 (.unroll "j" (.lit 0) (.var "log_len") [
-        .mk 943 (.store (.var "weights") (.mul (.lit 2) (.var "j")) (.add (.lit 1) (.index (.var "point") (.genPow (.var "j"))))),
-        .mk 944 (.store (.var "weights") (.add (.mul (.lit 2) (.var "j")) (.lit 1)) (.index (.var "point") (.genPow (.var "j"))))]),
-      .mk 947 (.let_ "l0" (.stackBuf 32)),
-      .mk 948 (.unroll "t" (.lit 0) (.div (.pow (.lit 2) (.var "log_len")) (.lit 2)) [
-        .mk 949 (.store (.var "l0") (.var "t") (.add (.mul (.index (.var "weights") (.lit 0)) (.index (.var "msg") (.genPow (.mul (.lit 2) (.var "t"))))) (.mul (.index (.var "weights") (.lit 1)) (.index (.var "msg") (.genPow (.add (.mul (.lit 2) (.var "t")) (.lit 1)))))))]),
-      .mk 950 (.let_ "cursor" (.var "l0")),
-      .mk 951 (.let_ "n" (.div (.pow (.lit 2) (.var "log_len")) (.lit 2))),
-      .mk 952 (.unroll "j" (.lit 1) (.var "log_len") [
-        .mk 953 (.let_ "nxt" (.stackBuf 32)),
-        .mk 954 (.unroll "t" (.lit 0) (.div (.var "n") (.lit 2)) [
-          .mk 955 (.store (.var "nxt") (.var "t") (.add (.mul (.index (.var "weights") (.mul (.lit 2) (.var "j"))) (.index (.var "cursor") (.mul (.lit 2) (.var "t")))) (.mul (.index (.var "weights") (.add (.mul (.lit 2) (.var "j")) (.lit 1))) (.index (.var "cursor") (.add (.mul (.lit 2) (.var "t")) (.lit 1))))))]),
-        .mk 956 (.let_ "cursor" (.var "nxt")),
-        .mk 957 (.let_ "n" (.div (.var "n") (.lit 2)))]),
-      .mk 958 (.ret [(.index (.var "cursor") (.lit 0))])] }
+      .mk 936 (.let_ "weights" (.stackBuf 10)),
+      .mk 937 (.unroll "j" (.lit 0) (.var "log_len") [
+        .mk 938 (.store (.var "weights") (.mul (.lit 2) (.var "j")) (.add (.lit 1) (.index (.var "point") (.genPow (.var "j"))))),
+        .mk 939 (.store (.var "weights") (.add (.mul (.lit 2) (.var "j")) (.lit 1)) (.index (.var "point") (.genPow (.var "j"))))]),
+      .mk 942 (.let_ "l0" (.stackBuf 32)),
+      .mk 943 (.unroll "t" (.lit 0) (.div (.pow (.lit 2) (.var "log_len")) (.lit 2)) [
+        .mk 944 (.store (.var "l0") (.var "t") (.add (.mul (.index (.var "weights") (.lit 0)) (.index (.var "msg") (.genPow (.mul (.lit 2) (.var "t"))))) (.mul (.index (.var "weights") (.lit 1)) (.index (.var "msg") (.genPow (.add (.mul (.lit 2) (.var "t")) (.lit 1)))))))]),
+      .mk 945 (.let_ "cursor" (.var "l0")),
+      .mk 946 (.let_ "n" (.div (.pow (.lit 2) (.var "log_len")) (.lit 2))),
+      .mk 947 (.unroll "j" (.lit 1) (.var "log_len") [
+        .mk 948 (.let_ "nxt" (.stackBuf 32)),
+        .mk 949 (.unroll "t" (.lit 0) (.div (.var "n") (.lit 2)) [
+          .mk 950 (.store (.var "nxt") (.var "t") (.add (.mul (.index (.var "weights") (.mul (.lit 2) (.var "j"))) (.index (.var "cursor") (.mul (.lit 2) (.var "t")))) (.mul (.index (.var "weights") (.add (.mul (.lit 2) (.var "j")) (.lit 1))) (.index (.var "cursor") (.add (.mul (.lit 2) (.var "t")) (.lit 1))))))]),
+        .mk 951 (.let_ "cursor" (.var "nxt")),
+        .mk 952 (.let_ "n" (.div (.var "n") (.lit 2)))]),
+      .mk 953 (.ret [(.index (.var "cursor") (.lit 0))])] }
 
 /-- `sumcheck_round4`. -/
 def fn_sumcheck_round4 : Func :=
   { name := "sumcheck_round4", params := [⟨"rd", (.runtime .scalar)⟩, ⟨"msg_cursor", (.runtime .scalar)⟩, ⟨"claim", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 967 (.let_ "sp" (.call "fs_load" [(.var "rd"), (.lit 0), (.lit 1)])),
-      .mk 968 (.let_ "rate" (.stackBuf 8)),
-      .mk 969 (.letTuple ["c0", "msg_cursor"] "fs_next" [(.var "rate"), (.lit 0), (.var "msg_cursor")]),
-      .mk 970 (.letTuple ["c2", "msg_cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "msg_cursor")]),
-      .mk 971 (.letTuple ["c3", "msg_cursor"] "fs_next" [(.var "rate"), (.lit 2), (.var "msg_cursor")]),
-      .mk 974 (.letTuple ["sp", "y"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 3)]),
-      .mk 975 (.call "fs_store" [(.mul (.var "rd") (.gpow 7)), (.lit 0), (.lit 1), (.var "sp")]),
-      .mk 976 (.let_ "y1" (.add (.lit 1) (.var "y"))),
-      .mk 977 (.ret [(.var "msg_cursor"), (.add (.var "c0") (.mul (.var "y") (.add (.var "claim") (.mul (.var "y1") (.add (.var "c2") (.mul (.var "y1") (.var "c3"))))))), (.var "y")])] }
+      .mk 962 (.let_ "sp" (.call "fs_load" [(.var "rd"), (.lit 0), (.lit 1)])),
+      .mk 963 (.let_ "rate" (.stackBuf 8)),
+      .mk 964 (.letTuple ["c0", "msg_cursor"] "fs_next" [(.var "rate"), (.lit 0), (.var "msg_cursor")]),
+      .mk 965 (.letTuple ["c2", "msg_cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "msg_cursor")]),
+      .mk 966 (.letTuple ["c3", "msg_cursor"] "fs_next" [(.var "rate"), (.lit 2), (.var "msg_cursor")]),
+      .mk 969 (.letTuple ["sp", "y"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 3)]),
+      .mk 970 (.call "fs_store" [(.mul (.var "rd") (.gpow 7)), (.lit 0), (.lit 1), (.var "sp")]),
+      .mk 971 (.let_ "y1" (.add (.lit 1) (.var "y"))),
+      .mk 972 (.ret [(.var "msg_cursor"), (.add (.var "c0") (.mul (.var "y") (.add (.var "claim") (.mul (.var "y1") (.add (.var "c2") (.mul (.var "y1") (.var "c3"))))))), (.var "y")])] }
 
 /-- `gkr_rounds`. -/
 def fn_gkr_rounds : Func :=
   { name := "gkr_rounds", params := [⟨"rd", (.runtime .scalar)⟩, ⟨"pt", (.runtime .scalar)⟩, ⟨"n", .const⟩], returnShapes := [],
     inline := false,
     body := [
-      .mk 985 (.let_ "sp" (.call "fs_load" [(.var "rd"), (.lit 0), (.lit 862)])),
-      .mk 986 (.let_ "cur" (.index (.var "rd") (.gpow 4310))),
-      .mk 987 (.let_ "claim" (.index (.var "rd") (.gpow 5172))),
-      .mk 988 (.unroll "q" (.lit 0) (.var "n") [
-        .mk 989 (.let_ "rate" (.stackBuf 8)),
-        .mk 990 (.letTuple ["c1", "cur"] "fs_next" [(.var "rate"), (.lit 0), (.var "cur")]),
-        .mk 991 (.letTuple ["c2", "cur"] "fs_next" [(.var "rate"), (.lit 1), (.var "cur")]),
-        .mk 992 (.letTuple ["c3", "cur"] "fs_next" [(.var "rate"), (.lit 2), (.var "cur")]),
-        .mk 993 (.letTuple ["c4", "cur"] "fs_next" [(.var "rate"), (.lit 3), (.var "cur")]),
-        .mk 994 (.letTuple ["sp", "rk"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 4)]),
-        .mk 995 (.let_ "c0" (.add (.var "claim") (.mul (.index (.var "pt") (.genPow (.var "q"))) (.add (.add (.add (.var "c1") (.var "c2")) (.var "c3")) (.var "c4"))))),
-        .mk 996 (.store (.var "pt") (.genPow (.add (.add (.lit 40) (.lit 2)) (.var "q"))) (.var "rk")),
-        .mk 997 (.let_ "claim" (.add (.var "c0") (.mul (.var "rk") (.add (.var "c1") (.mul (.var "rk") (.add (.var "c2") (.mul (.var "rk") (.add (.var "c3") (.mul (.var "rk") (.var "c4"))))))))))]),
-      .mk 998 (.let_ "rd_next" (.mul (.var "rd") (.genPow (.var "n")))),
-      .mk 999 (.call "fs_store" [(.var "rd_next"), (.lit 0), (.lit 862), (.var "sp")]),
-      .mk 1000 (.store (.var "rd_next") (.gpow 4310) (.var "cur")),
-      .mk 1001 (.store (.var "rd_next") (.gpow 5172) (.var "claim")),
-      .mk 1002 (.ret [])] }
+      .mk 980 (.let_ "sp" (.call "fs_load" [(.var "rd"), (.lit 0), (.lit 862)])),
+      .mk 981 (.let_ "cur" (.index (.var "rd") (.gpow 4310))),
+      .mk 982 (.let_ "claim" (.index (.var "rd") (.gpow 5172))),
+      .mk 983 (.unroll "q" (.lit 0) (.var "n") [
+        .mk 984 (.let_ "rate" (.stackBuf 8)),
+        .mk 985 (.letTuple ["c1", "cur"] "fs_next" [(.var "rate"), (.lit 0), (.var "cur")]),
+        .mk 986 (.letTuple ["c2", "cur"] "fs_next" [(.var "rate"), (.lit 1), (.var "cur")]),
+        .mk 987 (.letTuple ["c3", "cur"] "fs_next" [(.var "rate"), (.lit 2), (.var "cur")]),
+        .mk 988 (.letTuple ["c4", "cur"] "fs_next" [(.var "rate"), (.lit 3), (.var "cur")]),
+        .mk 989 (.letTuple ["sp", "rk"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 4)]),
+        .mk 990 (.let_ "c0" (.add (.var "claim") (.mul (.index (.var "pt") (.genPow (.var "q"))) (.add (.add (.add (.var "c1") (.var "c2")) (.var "c3")) (.var "c4"))))),
+        .mk 991 (.store (.var "pt") (.genPow (.add (.add (.lit 40) (.lit 2)) (.var "q"))) (.var "rk")),
+        .mk 992 (.let_ "claim" (.add (.var "c0") (.mul (.var "rk") (.add (.var "c1") (.mul (.var "rk") (.add (.var "c2") (.mul (.var "rk") (.add (.var "c3") (.mul (.var "rk") (.var "c4"))))))))))]),
+      .mk 993 (.let_ "rd_next" (.mul (.var "rd") (.genPow (.var "n")))),
+      .mk 994 (.call "fs_store" [(.var "rd_next"), (.lit 0), (.lit 862), (.var "sp")]),
+      .mk 995 (.store (.var "rd_next") (.gpow 4310) (.var "cur")),
+      .mk 996 (.store (.var "rd_next") (.gpow 5172) (.var "claim")),
+      .mk 997 (.ret [])] }
 
 /-- `batch_sumcheck`. -/
 def fn_batch_sumcheck : Func :=
   { name := "batch_sumcheck", params := [⟨"fs0", (.runtime .scalar)⟩, ⟨"fs1", (.runtime .scalar)⟩, ⟨"fs2", (.runtime .scalar)⟩, ⟨"fs3", (.runtime .scalar)⟩, ⟨"fs4", (.runtime .scalar)⟩, ⟨"msgs", (.runtime .scalar)⟩, ⟨"running", (.runtime .scalar)⟩, ⟨"point", (.runtime .scalar)⟩, ⟨"n_rounds", .const⟩], returnShapes := [.scalar, .scalar, .scalar, .scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 1009 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
-      .mk 1010 (.unroll "rd" (.lit 0) (.var "n_rounds") [
-        .mk 1011 (.let_ "rate" (.stackBuf 8)),
-        .mk 1012 (.letTuple ["msg_g1", "c"] "fs_next" [(.var "rate"), (.lit 0), (.mul (.var "msgs") (.genPow (.mul (.lit 2) (.var "rd"))))]),
-        .mk 1013 (.letTuple ["msg_ginf", "c"] "fs_next" [(.var "rate"), (.lit 1), (.var "c")]),
-        .mk 1014 (.letTuple ["sp", "rv"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 2)]),
-        .mk 1015 (.store (.var "point") (.genPow (.var "rd")) (.var "rv")),
-        .mk 1016 (.let_ "g_zero" (.add (.var "running") (.var "msg_g1"))),
-        .mk 1017 (.let_ "c_one" (.add (.add (.var "g_zero") (.var "msg_g1")) (.var "msg_ginf"))),
-        .mk 1018 (.let_ "running" (.add (.mul (.add (.mul (.var "msg_ginf") (.var "rv")) (.var "c_one")) (.var "rv")) (.var "g_zero")))]),
-      .mk 1019 (.ret [(.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "running")])] }
+      .mk 1004 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
+      .mk 1005 (.unroll "rd" (.lit 0) (.var "n_rounds") [
+        .mk 1006 (.let_ "rate" (.stackBuf 8)),
+        .mk 1007 (.letTuple ["msg_g1", "c"] "fs_next" [(.var "rate"), (.lit 0), (.mul (.var "msgs") (.genPow (.mul (.lit 2) (.var "rd"))))]),
+        .mk 1008 (.letTuple ["msg_ginf", "c"] "fs_next" [(.var "rate"), (.lit 1), (.var "c")]),
+        .mk 1009 (.letTuple ["sp", "rv"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 2)]),
+        .mk 1010 (.store (.var "point") (.genPow (.var "rd")) (.var "rv")),
+        .mk 1011 (.let_ "g_zero" (.add (.var "running") (.var "msg_g1"))),
+        .mk 1012 (.let_ "c_one" (.add (.add (.var "g_zero") (.var "msg_g1")) (.var "msg_ginf"))),
+        .mk 1013 (.let_ "running" (.add (.mul (.add (.mul (.var "msg_ginf") (.var "rv")) (.var "c_one")) (.var "rv")) (.var "g_zero")))]),
+      .mk 1014 (.ret [(.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "running")])] }
 
 /-- `verify_merkle_path`. -/
 def fn_verify_merkle_path : Func :=
   { name := "verify_merkle_path", params := [⟨"leaf", (.runtime .scalar)⟩, ⟨"direction_bits", (.runtime .scalar)⟩, ⟨"depth", .const⟩], returnShapes := [(.stackBuf 13)],
     inline := true,
     body := [
-      .mk 1029 (.let_ "path" (.stackBuf 80)),
-      .mk 1030 (.hintWitness (.slice (.var "path") (.lit 0) (.mul (.lit 4) (.var "depth"))) "merkle_children"),
-      .mk 1032 (.let_ "path_ptr" (.call "addr" [(.var "path")])),
-      .mk 1033 (.let_ "path_step" (.mul (.var "path_ptr") (.add (.lit 1) (.gpow 2)))),
-      .mk 1034 (.let_ "node" (.var "leaf")),
-      .mk 1035 (.unroll "level" (.lit 0) (.var "depth") [
-        .mk 1036 (.let_ "selected" (.add (.var "path_ptr") (.mul (.index (.var "direction_bits") (.genPow (.var "level"))) (.var "path_step")))),
-        .mk 1037 (.store (.var "selected") (.genPow (.mul (.lit 4) (.var "level"))) (.index (.var "node") (.lit 0))),
-        .mk 1038 (.store (.var "selected") (.genPow (.add (.mul (.lit 4) (.var "level")) (.lit 1))) (.index (.var "node") (.lit 1))),
-        .mk 1039 (.let_ "node" (.stackBuf 13)),
-        .mk 1040 (.call "keccak" [(.slice (.var "path") (.mul (.lit 4) (.var "level")) (.add (.mul (.lit 4) (.var "level")) (.lit 2))), (.slice (.var "path") (.add (.mul (.lit 4) (.var "level")) (.lit 2)) (.add (.mul (.lit 4) (.var "level")) (.lit 4))), (.var "node")])]),
-      .mk 1041 (.ret [(.var "node")])] }
+      .mk 1024 (.let_ "path" (.stackBuf 80)),
+      .mk 1025 (.hintWitness (.slice (.var "path") (.lit 0) (.mul (.lit 4) (.var "depth"))) "merkle_children"),
+      .mk 1027 (.let_ "path_ptr" (.call "addr" [(.var "path")])),
+      .mk 1028 (.let_ "path_step" (.mul (.var "path_ptr") (.add (.lit 1) (.gpow 2)))),
+      .mk 1029 (.let_ "node" (.var "leaf")),
+      .mk 1030 (.unroll "level" (.lit 0) (.var "depth") [
+        .mk 1031 (.let_ "selected" (.add (.var "path_ptr") (.mul (.index (.var "direction_bits") (.genPow (.var "level"))) (.var "path_step")))),
+        .mk 1032 (.store (.var "selected") (.genPow (.mul (.lit 4) (.var "level"))) (.index (.var "node") (.lit 0))),
+        .mk 1033 (.store (.var "selected") (.genPow (.add (.mul (.lit 4) (.var "level")) (.lit 1))) (.index (.var "node") (.lit 1))),
+        .mk 1034 (.let_ "node" (.stackBuf 13)),
+        .mk 1035 (.call "keccak" [(.slice (.var "path") (.mul (.lit 4) (.var "level")) (.add (.mul (.lit 4) (.var "level")) (.lit 2))), (.slice (.var "path") (.add (.mul (.lit 4) (.var "level")) (.lit 2)) (.add (.mul (.lit 4) (.var "level")) (.lit 4))), (.var "node")])]),
+      .mk 1036 (.ret [(.var "node")])] }
 
 /-- `verify_merkle_cap`. -/
 def fn_verify_merkle_cap : Func :=
   { name := "verify_merkle_cap", params := [⟨"cap", (.runtime .scalar)⟩, ⟨"flags", (.runtime .scalar)⟩, ⟨"depth", .const⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 1053 (.ite false (.var "depth") (.lit 0) [
-        .mk 1054 (.let_ "n_leaves" (.pow (.lit 2) (.var "depth"))),
-        .mk 1055 (.ite true (.var "depth") (.lit 4) [
-          .mk 1056 (.let_ "runs" (.stackBuf 227))] [
-          .mk 1057 (.ite true (.var "depth") (.lit 5) [
-            .mk 1058 (.let_ "runs" (.stackBuf 467))] [
-            .mk 1059 (.ite true (.var "depth") (.lit 6) [
-              .mk 1060 (.let_ "runs" (.stackBuf 947))] [
-              .mk 1061 (.ite true (.var "depth") (.lit 7) [
-                .mk 1062 (.let_ "runs" (.stackBuf 1907))] [
-                .mk 1064 (.let_ "runs" (.stackBuf 3827))] true)] true)] true)] true),
-        .mk 1066 (.unroll "node" (.lit 1) (.mul (.lit 2) (.var "n_leaves")) [
-          .mk 1067 (.ite true (.div (.var "node") (.var "n_leaves")) (.lit 0) [
-            .mk 1068 (.let_ "at" (.mul (.lit 13) (.sub (.var "node") (.lit 1))))] [
-            .mk 1070 (.let_ "at" (.add (.mul (.lit 13) (.sub (.var "n_leaves") (.lit 1))) (.mul (.lit 2) (.sub (.var "node") (.var "n_leaves")))))] true),
-          .mk 1071 (.store (.var "runs") (.var "at") (.index (.var "cap") (.genPow (.mul (.lit 2) (.var "node"))))),
-          .mk 1072 (.store (.var "runs") (.add (.var "at") (.lit 1)) (.index (.var "cap") (.genPow (.add (.mul (.lit 2) (.var "node")) (.lit 1)))))]),
-        .mk 1073 (.unroll "node" (.lit 1) (.var "n_leaves") [
-          .mk 1074 (.ite true (.div (.mul (.lit 2) (.var "node")) (.var "n_leaves")) (.lit 0) [
-            .mk 1075 (.let_ "left" (.mul (.lit 13) (.sub (.mul (.lit 2) (.var "node")) (.lit 1)))),
-            .mk 1076 (.let_ "right" (.mul (.lit 13) (.mul (.lit 2) (.var "node"))))] [
-            .mk 1078 (.let_ "left" (.add (.mul (.lit 13) (.sub (.var "n_leaves") (.lit 1))) (.mul (.lit 2) (.sub (.mul (.lit 2) (.var "node")) (.var "n_leaves"))))),
-            .mk 1079 (.let_ "right" (.add (.var "left") (.lit 2)))] true),
-          .mk 1080 (.let_ "at" (.mul (.lit 13) (.sub (.var "node") (.lit 1)))),
-          .mk 1081 (.ite true (.var "node") (.lit 1) [
-            .mk 1082 (.call "keccak" [(.slice (.var "runs") (.var "left") (.add (.var "left") (.lit 2))), (.slice (.var "runs") (.var "right") (.add (.var "right") (.lit 2))), (.slice (.var "runs") (.var "at") (.add (.var "at") (.lit 13)))])] [
-            .mk 1084 (.ite false (.index (.var "flags") (.genPow (.var "node"))) (.lit 0) [
-              .mk 1085 (.call "keccak" [(.slice (.var "runs") (.var "left") (.add (.var "left") (.lit 2))), (.slice (.var "runs") (.var "right") (.add (.var "right") (.lit 2))), (.slice (.var "runs") (.var "at") (.add (.var "at") (.lit 13)))])] [
-              .mk 1087 (.ite true (.div (.mul (.lit 2) (.var "node")) (.var "n_leaves")) (.lit 0) [
-                .mk 1088 (.store (.var "flags") (.genPow (.mul (.lit 2) (.var "node"))) (.lit 0)),
-                .mk 1089 (.store (.var "flags") (.genPow (.add (.mul (.lit 2) (.var "node")) (.lit 1))) (.lit 0))] [] true)] false)] true)]),
-        .mk 1090 (.let_ "root_0" (.index (.var "runs") (.lit 0))),
-        .mk 1091 (.let_ "root_1" (.index (.var "runs") (.lit 1)))] [
-        .mk 1093 (.let_ "root_0" (.index (.var "cap") (.gpow 2))),
-        .mk 1094 (.let_ "root_1" (.index (.var "cap") (.gpow 3)))] false),
-      .mk 1095 (.ret [(.var "root_0"), (.var "root_1")])] }
+      .mk 1048 (.ite false (.var "depth") (.lit 0) [
+        .mk 1049 (.let_ "n_leaves" (.pow (.lit 2) (.var "depth"))),
+        .mk 1050 (.ite true (.var "depth") (.lit 4) [
+          .mk 1051 (.let_ "runs" (.stackBuf 227))] [
+          .mk 1052 (.ite true (.var "depth") (.lit 5) [
+            .mk 1053 (.let_ "runs" (.stackBuf 467))] [
+            .mk 1054 (.ite true (.var "depth") (.lit 6) [
+              .mk 1055 (.let_ "runs" (.stackBuf 947))] [
+              .mk 1056 (.ite true (.var "depth") (.lit 7) [
+                .mk 1057 (.let_ "runs" (.stackBuf 1907))] [
+                .mk 1059 (.let_ "runs" (.stackBuf 3827))] true)] true)] true)] true),
+        .mk 1061 (.unroll "node" (.lit 1) (.mul (.lit 2) (.var "n_leaves")) [
+          .mk 1062 (.ite true (.div (.var "node") (.var "n_leaves")) (.lit 0) [
+            .mk 1063 (.let_ "at" (.mul (.lit 13) (.sub (.var "node") (.lit 1))))] [
+            .mk 1065 (.let_ "at" (.add (.mul (.lit 13) (.sub (.var "n_leaves") (.lit 1))) (.mul (.lit 2) (.sub (.var "node") (.var "n_leaves")))))] true),
+          .mk 1066 (.store (.var "runs") (.var "at") (.index (.var "cap") (.genPow (.mul (.lit 2) (.var "node"))))),
+          .mk 1067 (.store (.var "runs") (.add (.var "at") (.lit 1)) (.index (.var "cap") (.genPow (.add (.mul (.lit 2) (.var "node")) (.lit 1)))))]),
+        .mk 1068 (.unroll "node" (.lit 1) (.var "n_leaves") [
+          .mk 1069 (.ite true (.div (.mul (.lit 2) (.var "node")) (.var "n_leaves")) (.lit 0) [
+            .mk 1070 (.let_ "left" (.mul (.lit 13) (.sub (.mul (.lit 2) (.var "node")) (.lit 1)))),
+            .mk 1071 (.let_ "right" (.mul (.lit 13) (.mul (.lit 2) (.var "node"))))] [
+            .mk 1073 (.let_ "left" (.add (.mul (.lit 13) (.sub (.var "n_leaves") (.lit 1))) (.mul (.lit 2) (.sub (.mul (.lit 2) (.var "node")) (.var "n_leaves"))))),
+            .mk 1074 (.let_ "right" (.add (.var "left") (.lit 2)))] true),
+          .mk 1075 (.let_ "at" (.mul (.lit 13) (.sub (.var "node") (.lit 1)))),
+          .mk 1076 (.ite true (.var "node") (.lit 1) [
+            .mk 1077 (.call "keccak" [(.slice (.var "runs") (.var "left") (.add (.var "left") (.lit 2))), (.slice (.var "runs") (.var "right") (.add (.var "right") (.lit 2))), (.slice (.var "runs") (.var "at") (.add (.var "at") (.lit 13)))])] [
+            .mk 1079 (.ite false (.index (.var "flags") (.genPow (.var "node"))) (.lit 0) [
+              .mk 1080 (.call "keccak" [(.slice (.var "runs") (.var "left") (.add (.var "left") (.lit 2))), (.slice (.var "runs") (.var "right") (.add (.var "right") (.lit 2))), (.slice (.var "runs") (.var "at") (.add (.var "at") (.lit 13)))])] [
+              .mk 1082 (.ite true (.div (.mul (.lit 2) (.var "node")) (.var "n_leaves")) (.lit 0) [
+                .mk 1083 (.store (.var "flags") (.genPow (.mul (.lit 2) (.var "node"))) (.lit 0)),
+                .mk 1084 (.store (.var "flags") (.genPow (.add (.mul (.lit 2) (.var "node")) (.lit 1))) (.lit 0))] [] true)] false)] true)]),
+        .mk 1085 (.let_ "root_0" (.index (.var "runs") (.lit 0))),
+        .mk 1086 (.let_ "root_1" (.index (.var "runs") (.lit 1)))] [
+        .mk 1088 (.let_ "root_0" (.index (.var "cap") (.gpow 2))),
+        .mk 1089 (.let_ "root_1" (.index (.var "cap") (.gpow 3)))] false),
+      .mk 1090 (.ret [(.var "root_0"), (.var "root_1")])] }
 
 /-- `opening_fold`. -/
 def fn_opening_fold : Func :=
   { name := "opening_fold", params := [⟨"fs0", (.runtime .scalar)⟩, ⟨"fs1", (.runtime .scalar)⟩, ⟨"fs2", (.runtime .scalar)⟩, ⟨"fs3", (.runtime .scalar)⟩, ⟨"fs4", (.runtime .scalar)⟩, ⟨"w0", (.runtime .scalar)⟩, ⟨"w1", (.runtime .scalar)⟩, ⟨"cursor", (.runtime .scalar)⟩, ⟨"c0", (.runtime .scalar)⟩, ⟨"c1", (.runtime .scalar)⟩, ⟨"c2", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar, .scalar, .scalar, .scalar, .scalar, .scalar, .scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 1104 (.let_ "cap" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
+      .mk 1099 (.let_ "cap" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
+      .mk 1100 (.let_ "rate" (.stackBuf 8)),
+      .mk 1101 (.call "fs_pack" [(.var "rate"), (.lit 0), (.var "w0"), (.lit 1)]),
+      .mk 1102 (.call "fs_pack" [(.var "rate"), (.lit 1), (.var "w1"), (.lit 1)]),
+      .mk 1103 (.letTuple ["sp", "r"] "squeeze" [(.var "cap"), (.var "rate"), (.lit 2)]),
+      .mk 1104 (.let_ "claim" (.add (.mul (.add (.mul (.var "c2") (.var "r")) (.var "c1")) (.var "r")) (.var "c0"))),
       .mk 1105 (.let_ "rate" (.stackBuf 8)),
-      .mk 1106 (.call "fs_pack" [(.var "rate"), (.lit 0), (.var "w0"), (.lit 1)]),
-      .mk 1107 (.call "fs_pack" [(.var "rate"), (.lit 1), (.var "w1"), (.lit 1)]),
-      .mk 1108 (.letTuple ["sp", "r"] "squeeze" [(.var "cap"), (.var "rate"), (.lit 2)]),
-      .mk 1109 (.let_ "claim" (.add (.mul (.add (.mul (.var "c2") (.var "r")) (.var "c1")) (.var "r")) (.var "c0"))),
-      .mk 1110 (.let_ "rate" (.stackBuf 8)),
-      .mk 1111 (.letTuple ["c0", "cursor"] "fs_next" [(.var "rate"), (.lit 0), (.var "cursor")]),
-      .mk 1112 (.letTuple ["c2", "cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "cursor")]),
-      .mk 1113 (.ret [(.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "cursor"), (.var "claim"), (.var "c0"), (.var "c2"), (.var "r")])] }
+      .mk 1106 (.letTuple ["c0", "cursor"] "fs_next" [(.var "rate"), (.lit 0), (.var "cursor")]),
+      .mk 1107 (.letTuple ["c2", "cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "cursor")]),
+      .mk 1108 (.ret [(.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "cursor"), (.var "claim"), (.var "c0"), (.var "c2"), (.var "r")])] }
 
 /-- `opening_ood_point`. -/
 def fn_opening_ood_point : Func :=
   { name := "opening_ood_point", params := [⟨"fs0", (.runtime .scalar)⟩, ⟨"fs1", (.runtime .scalar)⟩, ⟨"fs2", (.runtime .scalar)⟩, ⟨"fs3", (.runtime .scalar)⟩, ⟨"fs4", (.runtime .scalar)⟩, ⟨"r0", (.runtime .scalar)⟩, ⟨"r1", (.runtime .scalar)⟩, ⟨"r2", (.runtime .scalar)⟩, ⟨"r3", (.runtime .scalar)⟩, ⟨"r4", (.runtime .scalar)⟩, ⟨"r5", (.runtime .scalar)⟩, ⟨"r6", (.runtime .scalar)⟩, ⟨"r7", (.runtime .scalar)⟩, ⟨"point", (.runtime .scalar)⟩, ⟨"n", .const⟩], returnShapes := [.scalar, .scalar, .scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 1119 (.let_ "cap" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
-      .mk 1120 (.let_ "sp" (.stackBuf 13)),
-      .mk 1121 (.call "keccak" [(.list [(.var "r0"), (.var "r1")]), (.list [(.var "r2"), (.var "r3")]), (.var "sp"), (.call "__kw_tail" [(.list [(.var "r4"), (.var "r5"), (.var "r6"), (.var "r7")])]), (.call "__kw_cap" [(.var "cap")])]),
-      .mk 1122 (.store (.var "point") (.gpow 0) (.call "challenge_from_state" [(.var "sp")])),
-      .mk 1123 (.let_ "no_rate" (.stackBuf 8)),
-      .mk 1124 (.unroll "x" (.lit 1) (.var "n") [
-        .mk 1125 (.letTuple ["sp", "r"] "squeeze" [(.var "sp"), (.var "no_rate"), (.lit 0)]),
-        .mk 1126 (.store (.var "point") (.genPow (.var "x")) (.var "r"))]),
-      .mk 1127 (.ret [(.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12))])] }
+      .mk 1114 (.let_ "cap" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
+      .mk 1115 (.let_ "sp" (.stackBuf 13)),
+      .mk 1116 (.call "keccak" [(.list [(.var "r0"), (.var "r1")]), (.list [(.var "r2"), (.var "r3")]), (.var "sp"), (.call "__kw_tail" [(.list [(.var "r4"), (.var "r5"), (.var "r6"), (.var "r7")])]), (.call "__kw_cap" [(.var "cap")])]),
+      .mk 1117 (.store (.var "point") (.gpow 0) (.call "challenge_from_state" [(.var "sp")])),
+      .mk 1118 (.let_ "no_rate" (.stackBuf 8)),
+      .mk 1119 (.unroll "x" (.lit 1) (.var "n") [
+        .mk 1120 (.letTuple ["sp", "r"] "squeeze" [(.var "sp"), (.var "no_rate"), (.lit 0)]),
+        .mk 1121 (.store (.var "point") (.genPow (.var "x")) (.var "r"))]),
+      .mk 1122 (.ret [(.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12))])] }
 
 /-- `opening_final_message`. -/
 def fn_opening_final_message : Func :=
   { name := "opening_final_message", params := [⟨"fs0", (.runtime .scalar)⟩, ⟨"fs1", (.runtime .scalar)⟩, ⟨"fs2", (.runtime .scalar)⟩, ⟨"fs3", (.runtime .scalar)⟩, ⟨"fs4", (.runtime .scalar)⟩, ⟨"w0", (.runtime .scalar)⟩, ⟨"w1", (.runtime .scalar)⟩, ⟨"cursor", (.runtime .scalar)⟩, ⟨"out", (.runtime .scalar)⟩, ⟨"n", .const⟩], returnShapes := [.scalar, .scalar, .scalar, .scalar, .scalar, .scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 1134 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
-      .mk 1135 (.let_ "rate" (.stackBuf 8)),
-      .mk 1136 (.call "fs_pack" [(.var "rate"), (.lit 0), (.var "w0"), (.lit 1)]),
-      .mk 1137 (.call "fs_pack" [(.var "rate"), (.lit 1), (.var "w1"), (.lit 1)]),
-      .mk 1138 (.unroll "pos" (.lit 2) (.add (.lit 2) (.var "n")) [
-        .mk 1139 (.ite true (.mod (.var "pos") (.lit 4)) (.lit 0) [
-          .mk 1140 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
-          .mk 1141 (.let_ "rate" (.stackBuf 8))] [] false),
-        .mk 1142 (.letTuple ["value", "cursor"] "fs_next" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.var "cursor")]),
-        .mk 1143 (.store (.var "out") (.genPow (.sub (.var "pos") (.lit 2))) (.var "value"))]),
-      .mk 1144 (.let_ "nonce" (.index (.var "cursor") (.gpow 0))),
-      .mk 1145 (.ite true (.mod (.add (.lit 2) (.var "n")) (.lit 4)) (.lit 0) [
-        .mk 1146 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
-        .mk 1147 (.let_ "rate" (.stackBuf 8))] [] true),
-      .mk 1148 (.let_ "sp" (.call "fs_absorb_nonce" [(.var "sp"), (.var "rate"), (.mod (.add (.lit 2) (.var "n")) (.lit 4)), (.var "nonce")])),
-      .mk 1149 (.ret [(.index (.var "sp") (.lit 0)), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.mul (.var "cursor") .gen), (.var "nonce")])] }
+      .mk 1129 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
+      .mk 1130 (.let_ "rate" (.stackBuf 8)),
+      .mk 1131 (.call "fs_pack" [(.var "rate"), (.lit 0), (.var "w0"), (.lit 1)]),
+      .mk 1132 (.call "fs_pack" [(.var "rate"), (.lit 1), (.var "w1"), (.lit 1)]),
+      .mk 1133 (.unroll "pos" (.lit 2) (.add (.lit 2) (.var "n")) [
+        .mk 1134 (.ite true (.mod (.var "pos") (.lit 4)) (.lit 0) [
+          .mk 1135 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
+          .mk 1136 (.let_ "rate" (.stackBuf 8))] [] false),
+        .mk 1137 (.letTuple ["value", "cursor"] "fs_next" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.var "cursor")]),
+        .mk 1138 (.store (.var "out") (.genPow (.sub (.var "pos") (.lit 2))) (.var "value"))]),
+      .mk 1139 (.let_ "nonce" (.index (.var "cursor") (.gpow 0))),
+      .mk 1140 (.ite true (.mod (.add (.lit 2) (.var "n")) (.lit 4)) (.lit 0) [
+        .mk 1141 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
+        .mk 1142 (.let_ "rate" (.stackBuf 8))] [] true),
+      .mk 1143 (.let_ "sp" (.call "fs_absorb_nonce" [(.var "sp"), (.var "rate"), (.mod (.add (.lit 2) (.var "n")) (.lit 4)), (.var "nonce")])),
+      .mk 1144 (.ret [(.index (.var "sp") (.lit 0)), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.mul (.var "cursor") .gen), (.var "nonce")])] }
 
 /-- `opening_row_weights`. -/
 def fn_opening_row_weights : Func :=
   { name := "opening_row_weights", params := [⟨"point", (.runtime .scalar)⟩, ⟨"out", (.runtime .scalar)⟩, ⟨"folds", .const⟩, ⟨"reverse", .const⟩], returnShapes := [],
     inline := false,
     body := [
-      .mk 1156 (.ite true (.div (.var "folds") (.lit 3)) (.lit 0) [
-        .mk 1157 (.let_ "lo" (.var "folds"))] [
-        .mk 1159 (.let_ "lo" (.lit 3))] true),
-      .mk 1160 (.let_ "hi" (.sub (.var "folds") (.var "lo"))),
-      .mk 1161 (.unroll "i" (.lit 0) (.pow (.lit 2) (.var "lo")) [
-        .mk 1162 (.ite true (.var "reverse") (.lit 1) [
-          .mk 1163 (.let_ "slot" (.sub (.sub (.pow (.lit 2) (.var "lo")) (.lit 1)) (.var "i")))] [
-          .mk 1165 (.let_ "slot" (.var "i"))] false),
-        .mk 1166 (.store (.var "out") (.genPow (.var "i")) (.call "eq_weight" [(.var "point"), (.var "lo"), (.var "slot"), (.lit 0)]))]),
-      .mk 1167 (.unroll "i" (.lit 0) (.pow (.lit 2) (.var "hi")) [
-        .mk 1168 (.ite true (.var "reverse") (.lit 1) [
-          .mk 1169 (.let_ "slot" (.sub (.sub (.pow (.lit 2) (.var "hi")) (.lit 1)) (.var "i")))] [
-          .mk 1171 (.let_ "slot" (.var "i"))] false),
-        .mk 1172 (.store (.var "out") (.genPow (.add (.pow (.lit 2) (.var "lo")) (.var "i"))) (.call "eq_weight" [(.mul (.var "point") (.genPow (.var "lo"))), (.var "hi"), (.var "slot"), (.lit 0)]))]),
-      .mk 1173 (.ret [])] }
+      .mk 1151 (.ite true (.div (.var "folds") (.lit 3)) (.lit 0) [
+        .mk 1152 (.let_ "lo" (.var "folds"))] [
+        .mk 1154 (.let_ "lo" (.lit 3))] true),
+      .mk 1155 (.let_ "hi" (.sub (.var "folds") (.var "lo"))),
+      .mk 1156 (.unroll "i" (.lit 0) (.pow (.lit 2) (.var "lo")) [
+        .mk 1157 (.ite true (.var "reverse") (.lit 1) [
+          .mk 1158 (.let_ "slot" (.sub (.sub (.pow (.lit 2) (.var "lo")) (.lit 1)) (.var "i")))] [
+          .mk 1160 (.let_ "slot" (.var "i"))] false),
+        .mk 1161 (.store (.var "out") (.genPow (.var "i")) (.call "eq_weight" [(.var "point"), (.var "lo"), (.var "slot"), (.lit 0)]))]),
+      .mk 1162 (.unroll "i" (.lit 0) (.pow (.lit 2) (.var "hi")) [
+        .mk 1163 (.ite true (.var "reverse") (.lit 1) [
+          .mk 1164 (.let_ "slot" (.sub (.sub (.pow (.lit 2) (.var "hi")) (.lit 1)) (.var "i")))] [
+          .mk 1166 (.let_ "slot" (.var "i"))] false),
+        .mk 1167 (.store (.var "out") (.genPow (.add (.pow (.lit 2) (.var "lo")) (.var "i"))) (.call "eq_weight" [(.mul (.var "point") (.genPow (.var "lo"))), (.var "hi"), (.var "slot"), (.lit 0)]))]),
+      .mk 1168 (.ret [])] }
 
 /-- `opening_query`. -/
 def fn_opening_query : Func :=
   { name := "opening_query", params := [⟨"cap", (.runtime .scalar)⟩, ⟨"flags", (.runtime .scalar)⟩, ⟨"row_eq_weights", (.runtime .scalar)⟩, ⟨"direction_bits", (.runtime .scalar)⟩, ⟨"base", .const⟩, ⟨"interleave", .const⟩, ⟨"leaf_cells", .const⟩, ⟨"depth", .const⟩, ⟨"cap_depth", .const⟩], returnShapes := [.scalar],
     inline := true,
     body := [
-      .mk 1180 (.ite true (.var "base") (.lit 1) [
-        .mk 1181 (.let_ "row_len" (.var "interleave"))] [
-        .mk 1183 (.let_ "row_len" (.mul (.lit 3) (.var "interleave")))] false),
-      .mk 1184 (.let_ "row" (.stackBuf 64)),
-      .mk 1185 (.hintWitness (.slice (.var "row") (.lit 0) (.var "row_len")) "merkle_leaf_rows"),
-      .mk 1186 (.let_ "row_dot" (.lit 0)),
-      .mk 1187 (.let_ "packed_row" (.stackBuf 32)),
-      .mk 1188 (.ite true (.var "base") (.lit 1) [
-        .mk 1190 (.unroll "jb" (.lit 0) (.div (.var "interleave") (.lit 2)) [
-          .mk 1191 (.store (.var "packed_row") (.var "jb") (.call "pack64x2" [(.index (.var "row") (.mul (.lit 2) (.var "jb"))), (.index (.var "row") (.add (.mul (.lit 2) (.var "jb")) (.lit 1)))]))])] [
-        .mk 1194 (.unroll "jb" (.lit 0) (.div (.mul (.lit 3) (.var "interleave")) (.lit 2)) [
-          .mk 1195 (.store (.var "packed_row") (.var "jb") (.call "pack64x2" [(.index (.var "row") (.mul (.lit 2) (.var "jb"))), (.index (.var "row") (.add (.mul (.lit 2) (.var "jb")) (.lit 1)))]))])] false),
-      .mk 1198 (.ite true (.div (.var "interleave") (.lit 8)) (.lit 0) [
-        .mk 1199 (.let_ "lo_len" (.var "interleave"))] [
-        .mk 1201 (.let_ "lo_len" (.lit 8))] true),
-      .mk 1202 (.unroll "h" (.lit 0) (.div (.var "interleave") (.var "lo_len")) [
-        .mk 1203 (.let_ "part" (.lit 0)),
-        .mk 1204 (.unroll "l" (.lit 0) (.var "lo_len") [
-          .mk 1205 (.let_ "jw" (.add (.mul (.var "lo_len") (.var "h")) (.var "l"))),
-          .mk 1206 (.ite true (.var "base") (.lit 1) [
-            .mk 1207 (.let_ "row_word" (.index (.var "row") (.var "jw")))] [
-            .mk 1208 (.ite true (.mod (.mul (.lit 3) (.var "jw")) (.lit 2)) (.lit 0) [
-              .mk 1210 (.let_ "row_word" (.add (.index (.var "packed_row") (.div (.mul (.lit 3) (.var "jw")) (.lit 2))) (.mul (.mul (.lit 18446744073709551616) (.lit 18446744073709551616)) (.index (.var "row") (.add (.mul (.lit 3) (.var "jw")) (.lit 2))))))] [
-              .mk 1213 (.let_ "row_word" (.add (.index (.var "row") (.mul (.lit 3) (.var "jw"))) (.mul (.lit 18446744073709551616) (.index (.var "packed_row") (.div (.add (.mul (.lit 3) (.var "jw")) (.lit 1)) (.lit 2))))))] false)] false),
-          .mk 1214 (.let_ "part" (.add (.var "part") (.mul (.var "row_word") (.index (.var "row_eq_weights") (.genPow (.var "l"))))))]),
-        .mk 1215 (.let_ "row_dot" (.add (.var "row_dot") (.mul (.index (.var "row_eq_weights") (.genPow (.add (.var "lo_len") (.var "h")))) (.var "part"))))]),
-      .mk 1217 (.let_ "leaf_hash_state" (.stackBuf 13)),
-      .mk 1218 (.call "keccak_cells" [(.slice (.var "packed_row") (.lit 0) (.var "leaf_cells")), (.var "leaf_hash_state")]),
-      .mk 1219 (.let_ "path_depth" (.sub (.var "depth") (.var "cap_depth"))),
-      .mk 1220 (.let_ "node" (.call "verify_merkle_path" [(.var "leaf_hash_state"), (.var "direction_bits"), (.var "path_depth")])),
-      .mk 1221 (.ite false (.var "cap_depth") (.lit 0) [
-        .mk 1225 (.ite true (.var "cap_depth") (.lit 1) [
-          .mk 1226 (.store (.var "flags") .gen (.lit 1)),
-          .mk 1227 (.let_ "leaf" (.mul (.var "cap") (.add (.lit 1) (.mul (.index (.var "direction_bits") (.genPow (.var "path_depth"))) (.add (.lit 1) (.gpow 2))))))] [
-          .mk 1229 (.let_ "q" (.add (.lit 1) (.mul (.index (.var "direction_bits") (.genPow (.add (.var "path_depth") (.lit 1)))) (.add (.lit 1) .gen)))),
-          .mk 1230 (.unroll "bit" (.lit 1) (.sub (.var "cap_depth") (.lit 1)) [
-            .mk 1231 (.let_ "q" (.mul (.var "q") (.add (.lit 1) (.mul (.index (.var "direction_bits") (.genPow (.add (.add (.var "path_depth") (.lit 1)) (.var "bit")))) (.add (.lit 1) (.genPow (.pow (.lit 2) (.var "bit"))))))))]),
-          .mk 1232 (.let_ "flags_q" (.mul (.var "flags") (.var "q"))),
-          .mk 1233 (.store (.var "flags_q") (.genPow (.pow (.lit 2) (.sub (.var "cap_depth") (.lit 1)))) (.lit 1)),
-          .mk 1234 (.let_ "q2" (.mul (.var "q") (.var "q"))),
-          .mk 1235 (.let_ "leaf" (.mul (.mul (.mul (.var "cap") (.var "q2")) (.var "q2")) (.add (.lit 1) (.mul (.index (.var "direction_bits") (.genPow (.var "path_depth"))) (.add (.lit 1) (.gpow 2))))))] true),
-        .mk 1236 (.store (.var "leaf") (.genPow (.pow (.lit 2) (.add (.var "cap_depth") (.lit 1)))) (.index (.var "node") (.lit 0))),
-        .mk 1237 (.store (.var "leaf") (.genPow (.add (.pow (.lit 2) (.add (.var "cap_depth") (.lit 1))) (.lit 1))) (.index (.var "node") (.lit 1)))] [
-        .mk 1239 (.store (.var "cap") (.gpow 2) (.index (.var "node") (.lit 0))),
-        .mk 1240 (.store (.var "cap") (.gpow 3) (.index (.var "node") (.lit 1)))] false),
-      .mk 1241 (.ret [(.var "row_dot")])] }
+      .mk 1175 (.ite true (.var "base") (.lit 1) [
+        .mk 1176 (.let_ "row_len" (.var "interleave"))] [
+        .mk 1178 (.let_ "row_len" (.mul (.lit 3) (.var "interleave")))] false),
+      .mk 1179 (.let_ "row" (.stackBuf 64)),
+      .mk 1180 (.hintWitness (.slice (.var "row") (.lit 0) (.var "row_len")) "merkle_leaf_rows"),
+      .mk 1181 (.let_ "row_dot" (.lit 0)),
+      .mk 1182 (.let_ "packed_row" (.stackBuf 32)),
+      .mk 1183 (.ite true (.var "base") (.lit 1) [
+        .mk 1185 (.unroll "jb" (.lit 0) (.div (.var "interleave") (.lit 2)) [
+          .mk 1186 (.store (.var "packed_row") (.var "jb") (.call "pack64x2" [(.index (.var "row") (.mul (.lit 2) (.var "jb"))), (.index (.var "row") (.add (.mul (.lit 2) (.var "jb")) (.lit 1)))]))])] [
+        .mk 1189 (.unroll "jb" (.lit 0) (.div (.mul (.lit 3) (.var "interleave")) (.lit 2)) [
+          .mk 1190 (.store (.var "packed_row") (.var "jb") (.call "pack64x2" [(.index (.var "row") (.mul (.lit 2) (.var "jb"))), (.index (.var "row") (.add (.mul (.lit 2) (.var "jb")) (.lit 1)))]))])] false),
+      .mk 1193 (.ite true (.div (.var "interleave") (.lit 8)) (.lit 0) [
+        .mk 1194 (.let_ "lo_len" (.var "interleave"))] [
+        .mk 1196 (.let_ "lo_len" (.lit 8))] true),
+      .mk 1197 (.unroll "h" (.lit 0) (.div (.var "interleave") (.var "lo_len")) [
+        .mk 1198 (.let_ "part" (.lit 0)),
+        .mk 1199 (.unroll "l" (.lit 0) (.var "lo_len") [
+          .mk 1200 (.let_ "jw" (.add (.mul (.var "lo_len") (.var "h")) (.var "l"))),
+          .mk 1201 (.ite true (.var "base") (.lit 1) [
+            .mk 1202 (.let_ "row_word" (.index (.var "row") (.var "jw")))] [
+            .mk 1203 (.ite true (.mod (.mul (.lit 3) (.var "jw")) (.lit 2)) (.lit 0) [
+              .mk 1205 (.let_ "row_word" (.add (.index (.var "packed_row") (.div (.mul (.lit 3) (.var "jw")) (.lit 2))) (.mul (.mul (.lit 18446744073709551616) (.lit 18446744073709551616)) (.index (.var "row") (.add (.mul (.lit 3) (.var "jw")) (.lit 2))))))] [
+              .mk 1208 (.let_ "row_word" (.add (.index (.var "row") (.mul (.lit 3) (.var "jw"))) (.mul (.lit 18446744073709551616) (.index (.var "packed_row") (.div (.add (.mul (.lit 3) (.var "jw")) (.lit 1)) (.lit 2))))))] false)] false),
+          .mk 1209 (.let_ "part" (.add (.var "part") (.mul (.var "row_word") (.index (.var "row_eq_weights") (.genPow (.var "l"))))))]),
+        .mk 1210 (.let_ "row_dot" (.add (.var "row_dot") (.mul (.index (.var "row_eq_weights") (.genPow (.add (.var "lo_len") (.var "h")))) (.var "part"))))]),
+      .mk 1212 (.let_ "leaf_hash_state" (.stackBuf 13)),
+      .mk 1213 (.call "keccak_cells" [(.slice (.var "packed_row") (.lit 0) (.var "leaf_cells")), (.var "leaf_hash_state")]),
+      .mk 1214 (.let_ "path_depth" (.sub (.var "depth") (.var "cap_depth"))),
+      .mk 1215 (.let_ "node" (.call "verify_merkle_path" [(.var "leaf_hash_state"), (.var "direction_bits"), (.var "path_depth")])),
+      .mk 1216 (.ite false (.var "cap_depth") (.lit 0) [
+        .mk 1220 (.ite true (.var "cap_depth") (.lit 1) [
+          .mk 1221 (.store (.var "flags") .gen (.lit 1)),
+          .mk 1222 (.let_ "leaf" (.mul (.var "cap") (.add (.lit 1) (.mul (.index (.var "direction_bits") (.genPow (.var "path_depth"))) (.add (.lit 1) (.gpow 2))))))] [
+          .mk 1224 (.let_ "q" (.add (.lit 1) (.mul (.index (.var "direction_bits") (.genPow (.add (.var "path_depth") (.lit 1)))) (.add (.lit 1) .gen)))),
+          .mk 1225 (.unroll "bit" (.lit 1) (.sub (.var "cap_depth") (.lit 1)) [
+            .mk 1226 (.let_ "q" (.mul (.var "q") (.add (.lit 1) (.mul (.index (.var "direction_bits") (.genPow (.add (.add (.var "path_depth") (.lit 1)) (.var "bit")))) (.add (.lit 1) (.genPow (.pow (.lit 2) (.var "bit"))))))))]),
+          .mk 1227 (.let_ "flags_q" (.mul (.var "flags") (.var "q"))),
+          .mk 1228 (.store (.var "flags_q") (.genPow (.pow (.lit 2) (.sub (.var "cap_depth") (.lit 1)))) (.lit 1)),
+          .mk 1229 (.let_ "q2" (.mul (.var "q") (.var "q"))),
+          .mk 1230 (.let_ "leaf" (.mul (.mul (.mul (.var "cap") (.var "q2")) (.var "q2")) (.add (.lit 1) (.mul (.index (.var "direction_bits") (.genPow (.var "path_depth"))) (.add (.lit 1) (.gpow 2))))))] true),
+        .mk 1231 (.store (.var "leaf") (.genPow (.pow (.lit 2) (.add (.var "cap_depth") (.lit 1)))) (.index (.var "node") (.lit 0))),
+        .mk 1232 (.store (.var "leaf") (.genPow (.add (.pow (.lit 2) (.add (.var "cap_depth") (.lit 1))) (.lit 1))) (.index (.var "node") (.lit 1)))] [
+        .mk 1234 (.store (.var "cap") (.gpow 2) (.index (.var "node") (.lit 0))),
+        .mk 1235 (.store (.var "cap") (.gpow 3) (.index (.var "node") (.lit 1)))] false),
+      .mk 1236 (.ret [(.var "row_dot")])] }
 
 /-- `opening_queries`. -/
 def fn_opening_queries : Func :=
   { name := "opening_queries", params := [⟨"cap", (.runtime .scalar)⟩, ⟨"flags", (.runtime .scalar)⟩, ⟨"lam", (.runtime .scalar)⟩, ⟨"lam_n", (.runtime .scalar)⟩, ⟨"query_bit_ptrs", (.runtime .scalar)⟩, ⟨"row_eq_weights", (.runtime .scalar)⟩, ⟨"n_iters_g", (.runtime .scalar)⟩, ⟨"odd", .const⟩, ⟨"base", .const⟩, ⟨"interleave", .const⟩, ⟨"leaf_cells", .const⟩, ⟨"depth", .const⟩, ⟨"cap_depth", .const⟩], returnShapes := [.scalar],
     inline := false,
     body := [
-      .mk 1251 (.let_ "mu" (.fdiv (.lit 1) (.var "lam"))),
-      .mk 1252 (.let_ "chain" (.heapBufDyn (.mul (.var "n_iters_g") .gen))),
-      .mk 1253 (.ite true (.var "odd") (.lit 1) [
-        .mk 1254 (.store (.var "chain") (.gpow 0) (.mul (.call "opening_query" [(.var "cap"), (.var "flags"), (.var "row_eq_weights"), (.index (.var "query_bit_ptrs") (.gpow 0)), (.var "base"), (.var "interleave"), (.var "leaf_cells"), (.var "depth"), (.var "cap_depth")]) (.var "mu")))] [
-        .mk 1256 (.store (.var "chain") (.gpow 0) (.lit 0))] false),
-      .mk 1257 (.for_ "xi" 0 (.runtime (.var "n_iters_g")) [
-        .mk 1258 (.ite true (.var "base") (.lit 1) [
-          .mk 1259 (.let_ "bit_ptrs" (.mul (.mul (.var "query_bit_ptrs") (.var "xi")) (.var "xi"))),
-          .mk 1260 (.let_ "d0" (.call "opening_query" [(.var "cap"), (.var "flags"), (.var "row_eq_weights"), (.index (.var "bit_ptrs") (.genPow (.var "odd"))), (.var "base"), (.var "interleave"), (.var "leaf_cells"), (.var "depth"), (.var "cap_depth")])),
-          .mk 1261 (.let_ "d1" (.call "opening_query" [(.var "cap"), (.var "flags"), (.var "row_eq_weights"), (.index (.var "bit_ptrs") (.genPow (.add (.var "odd") (.lit 1)))), (.var "base"), (.var "interleave"), (.var "leaf_cells"), (.var "depth"), (.var "cap_depth")])),
-          .mk 1262 (.store (.var "chain") (.mul (.var "xi") .gen) (.mul (.add (.mul (.add (.index (.var "chain") (.var "xi")) (.var "d0")) (.var "mu")) (.var "d1")) (.var "mu")))] [
-          .mk 1264 (.let_ "d" (.call "opening_query" [(.var "cap"), (.var "flags"), (.var "row_eq_weights"), (.index (.var "query_bit_ptrs") (.var "xi")), (.var "base"), (.var "interleave"), (.var "leaf_cells"), (.var "depth"), (.var "cap_depth")])),
-          .mk 1265 (.store (.var "chain") (.mul (.var "xi") .gen) (.mul (.add (.index (.var "chain") (.var "xi")) (.var "d")) (.var "mu")))] false)]),
-      .mk 1266 (.ret [(.mul (.index (.var "chain") (.var "n_iters_g")) (.var "lam_n"))])] }
+      .mk 1246 (.let_ "mu" (.fdiv (.lit 1) (.var "lam"))),
+      .mk 1247 (.let_ "chain" (.heapBufDyn (.mul (.var "n_iters_g") .gen))),
+      .mk 1248 (.ite true (.var "odd") (.lit 1) [
+        .mk 1249 (.store (.var "chain") (.gpow 0) (.mul (.call "opening_query" [(.var "cap"), (.var "flags"), (.var "row_eq_weights"), (.index (.var "query_bit_ptrs") (.gpow 0)), (.var "base"), (.var "interleave"), (.var "leaf_cells"), (.var "depth"), (.var "cap_depth")]) (.var "mu")))] [
+        .mk 1251 (.store (.var "chain") (.gpow 0) (.lit 0))] false),
+      .mk 1252 (.for_ "xi" 0 (.runtime (.var "n_iters_g")) [
+        .mk 1253 (.ite true (.var "base") (.lit 1) [
+          .mk 1254 (.let_ "bit_ptrs" (.mul (.mul (.var "query_bit_ptrs") (.var "xi")) (.var "xi"))),
+          .mk 1255 (.let_ "d0" (.call "opening_query" [(.var "cap"), (.var "flags"), (.var "row_eq_weights"), (.index (.var "bit_ptrs") (.genPow (.var "odd"))), (.var "base"), (.var "interleave"), (.var "leaf_cells"), (.var "depth"), (.var "cap_depth")])),
+          .mk 1256 (.let_ "d1" (.call "opening_query" [(.var "cap"), (.var "flags"), (.var "row_eq_weights"), (.index (.var "bit_ptrs") (.genPow (.add (.var "odd") (.lit 1)))), (.var "base"), (.var "interleave"), (.var "leaf_cells"), (.var "depth"), (.var "cap_depth")])),
+          .mk 1257 (.store (.var "chain") (.mul (.var "xi") .gen) (.mul (.add (.mul (.add (.index (.var "chain") (.var "xi")) (.var "d0")) (.var "mu")) (.var "d1")) (.var "mu")))] [
+          .mk 1259 (.let_ "d" (.call "opening_query" [(.var "cap"), (.var "flags"), (.var "row_eq_weights"), (.index (.var "query_bit_ptrs") (.var "xi")), (.var "base"), (.var "interleave"), (.var "leaf_cells"), (.var "depth"), (.var "cap_depth")])),
+          .mk 1260 (.store (.var "chain") (.mul (.var "xi") .gen) (.mul (.add (.index (.var "chain") (.var "xi")) (.var "d")) (.var "mu")))] false)]),
+      .mk 1261 (.ret [(.mul (.index (.var "chain") (.var "n_iters_g")) (.var "lam_n"))])] }
 
 /-- `residual_query`. -/
 def fn_residual_query : Func :=
   { name := "residual_query", params := [⟨"basis_chain", (.runtime .scalar)⟩, ⟨"row_d", (.runtime .scalar)⟩, ⟨"vanish", .const⟩, ⟨"n_cols", .const⟩], returnShapes := [.scalar],
     inline := true,
     body := [
-      .mk 1273 (.let_ "prefix_eq" (.add (.index (.var "row_d") (.gpow 0)) (.var "basis_chain"))),
-      .mk 1274 (.unroll "t" (.lit 1) (.var "n_cols") [
-        .mk 1276 (.let_ "basis_chain" (.mul (.var "basis_chain") (.add (.var "basis_chain") (.index (.var "LIG_VANISH_VALS") (.sub (.add (.var "vanish") (.var "t")) (.lit 1)))))),
-        .mk 1277 (.let_ "prefix_eq" (.mul (.var "prefix_eq") (.add (.index (.var "row_d") (.genPow (.var "t"))) (.var "basis_chain"))))]),
-      .mk 1278 (.ret [(.var "prefix_eq")])] }
+      .mk 1268 (.let_ "prefix_eq" (.add (.index (.var "row_d") (.gpow 0)) (.var "basis_chain"))),
+      .mk 1269 (.unroll "t" (.lit 1) (.var "n_cols") [
+        .mk 1271 (.let_ "basis_chain" (.mul (.var "basis_chain") (.add (.var "basis_chain") (.index (.var "LIG_VANISH_VALS") (.sub (.add (.var "vanish") (.var "t")) (.lit 1)))))),
+        .mk 1272 (.let_ "prefix_eq" (.mul (.var "prefix_eq") (.add (.index (.var "row_d") (.genPow (.var "t"))) (.var "basis_chain"))))]),
+      .mk 1273 (.ret [(.var "prefix_eq")])] }
 
 /-- `open_stacked`. -/
 def fn_open_stacked : Func :=
   { name := "open_stacked", params := [⟨"m_idx", .const⟩, ⟨"fs0", (.runtime .scalar)⟩, ⟨"fs1", (.runtime .scalar)⟩, ⟨"fs2", (.runtime .scalar)⟩, ⟨"fs3", (.runtime .scalar)⟩, ⟨"fs4", (.runtime .scalar)⟩, ⟨"target", (.runtime .scalar)⟩, ⟨"commit_root_0", (.runtime .scalar)⟩, ⟨"commit_root_1", (.runtime .scalar)⟩, ⟨"cursor", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar, .scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 1288 (.let_ "n_levels" (.index (.var "LIG_N_LEVELS") (.var "m_idx"))),
-      .mk 1289 (.let_ "yr_level" (.index (.var "LIG_YR_LEVEL") (.var "m_idx"))),
-      .mk 1290 (.let_ "yr_log" (.index (.var "LIG_YR_LOG_LEN") (.var "m_idx"))),
-      .mk 1291 (.let_ "yr_len" (.index (.var "LIG_YR_LEN") (.var "m_idx"))),
-      .mk 1292 (.let_ "n_folds" (.index (.var "LIG_TOTAL_FOLDS") (.var "m_idx"))),
-      .mk 1293 (.let_ "max_q" (.index (.var "LIG_MAX_QUERIES") (.var "m_idx"))),
-      .mk 1294 (.let_ "ood_stride" (.mul (.lit 1) (.lit 4))),
-      .mk 1302 (.let_ "msg_cursor" (.var "cursor")),
-      .mk 1303 (.let_ "round_quad_c" (.index (.var "msg_cursor") (.gpow 0))),
-      .mk 1304 (.let_ "round_quad_a" (.index (.var "msg_cursor") (.gpow 1))),
-      .mk 1305 (.let_ "msg_cursor" (.mul (.var "msg_cursor") (.gpow 2))),
-      .mk 1306 (.let_ "w0" (.var "round_quad_c")),
-      .mk 1307 (.let_ "w1" (.var "round_quad_a")),
-      .mk 1308 (.let_ "round_quad_b" (.add (.var "target") (.var "round_quad_a"))),
-      .mk 1309 (.let_ "sumcheck_target" (.var "target")),
-      .mk 1312 (.let_ "merkle_caps" (.heapBufDyn (.genPow (.mul (.lit 4) (.index (.var "LIG_CAP_LEN") (.var "m_idx")))))),
-      .mk 1313 (.hintWitness (.slice (.var "merkle_caps") (.lit 0) (.mul (.lit 4) (.index (.var "LIG_CAP_LEN") (.var "m_idx")))) "merkle_caps"),
-      .mk 1314 (.let_ "cap_flags" (.heapBufDyn (.genPow (.index (.var "LIG_CAP_LEN") (.var "m_idx"))))),
-      .mk 1315 (.hintWitness (.slice (.var "cap_flags") (.lit 0) (.index (.var "LIG_CAP_LEN") (.var "m_idx"))) "merkle_cap_active"),
-      .mk 1316 (.let_ "final_msg" (.heapBufDyn (.genPow (.var "yr_len")))),
-      .mk 1318 (.let_ "level_roots" (.heapBufDyn (.genPow (.mul (.lit 2) (.var "n_levels"))))),
-      .mk 1319 (.store (.var "level_roots") (.gpow 0) (.var "commit_root_0")),
-      .mk 1320 (.store (.var "level_roots") (.gpow 1) (.var "commit_root_1")),
-      .mk 1322 (.let_ "fold_challenges" (.heapBufDyn (.genPow (.var "n_folds")))),
-      .mk 1323 (.let_ "level_betas" (.heapBufDyn (.genPow (.var "n_levels")))),
-      .mk 1324 (.let_ "query_weights" (.heapBufDyn (.genPow (.mul (.var "n_levels") (.var "max_q"))))),
-      .mk 1325 (.let_ "query_positions" (.heapBufDyn (.genPow (.index (.var "LIG_POSITIONS_LEN") (.var "m_idx"))))),
-      .mk 1326 (.let_ "query_bit_ptrs" (.heapBufDyn (.genPow (.index (.var "LIG_POSITIONS_LEN") (.var "m_idx"))))),
-      .mk 1331 (.let_ "ood_z" (.heapBufDyn (.genPow (.mul (.mul (.var "n_levels") (.lit 1)) (.lit 22))))),
-      .mk 1332 (.let_ "ood" (.heapBufDyn (.genPow (.mul (.var "n_levels") (.var "ood_stride"))))),
-      .mk 1334 (.unroll "lvl" (.lit 0) (.var "n_levels") [
-        .mk 1335 (.let_ "ml" (.add (.mul (.var "m_idx") (.lit 6)) (.var "lvl"))),
-        .mk 1336 (.let_ "n_queries" (.index (.var "LIG_QUERIES") (.var "ml"))),
-        .mk 1337 (.let_ "depth" (.index (.var "LIG_TREE_DEPTH") (.var "ml"))),
-        .mk 1338 (.let_ "interleave" (.index (.var "LIG_INTERLEAVE") (.var "ml"))),
-        .mk 1339 (.let_ "folds_off" (.index (.var "LIG_FOLDS_OFF") (.var "ml"))),
-        .mk 1340 (.let_ "pos_off" (.index (.var "LIG_POSITIONS_OFF") (.var "ml"))),
-        .mk 1341 (.unroll "j" (.lit 0) (.index (.var "LIG_FOLDS") (.var "ml")) [
-          .mk 1342 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "msg_cursor", "sumcheck_target", "round_quad_c", "round_quad_a", "fold_challenge"] "opening_fold" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.var "w0"), (.var "w1"), (.var "msg_cursor"), (.var "round_quad_c"), (.var "round_quad_b"), (.var "round_quad_a")]),
-          .mk 1343 (.let_ "w0" (.var "round_quad_c")),
-          .mk 1344 (.let_ "w1" (.var "round_quad_a")),
-          .mk 1345 (.store (.var "fold_challenges") (.genPow (.add (.var "folds_off") (.var "j"))) (.var "fold_challenge")),
-          .mk 1346 (.let_ "round_quad_b" (.add (.var "sumcheck_target") (.var "round_quad_a")))]),
-        .mk 1348 (.ite true (.var "lvl") (.var "yr_level") [
-          .mk 1349 (.letTuple ["word0", "fs0", "fs1", "fs2", "fs3", "fs4", "msg_cursor", "q_nonce"] "opening_final_message" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.var "w0"), (.var "w1"), (.var "msg_cursor"), (.var "final_msg"), (.var "yr_len")])] [
-          .mk 1351 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
-          .mk 1352 (.let_ "rate" (.stackBuf 8)),
-          .mk 1353 (.call "fs_pack" [(.var "rate"), (.lit 0), (.var "w0"), (.lit 1)]),
-          .mk 1354 (.call "fs_pack" [(.var "rate"), (.lit 1), (.var "w1"), (.lit 1)]),
-          .mk 1355 (.letTuple ["next_root_a", "msg_cursor"] "fs_next" [(.var "rate"), (.lit 2), (.var "msg_cursor")]),
-          .mk 1356 (.letTuple ["next_root_b", "msg_cursor"] "fs_next" [(.var "rate"), (.lit 3), (.var "msg_cursor")]),
-          .mk 1359 (.let_ "canon" (.stackBuf 2)),
-          .mk 1360 (.store (.var "canon") (.lit 0) (.call "assert_canonical" [(.var "next_root_a")])),
-          .mk 1361 (.store (.var "canon") (.lit 1) (.call "assert_canonical" [(.var "next_root_b")])),
-          .mk 1362 (.store (.var "level_roots") (.genPow (.add (.mul (.lit 2) (.var "lvl")) (.lit 2))) (.var "next_root_a")),
-          .mk 1363 (.store (.var "level_roots") (.genPow (.add (.mul (.lit 2) (.var "lvl")) (.lit 3))) (.var "next_root_b")),
-          .mk 1369 (.unroll "os" (.lit 0) (.index (.var "LIG_OOD_SAMPLES") (.add (.var "ml") (.lit 1))) [
-            .mk 1370 (.let_ "oz" (.mul (.var "ood_z") (.genPow (.mul (.add (.mul (.add (.var "lvl") (.lit 1)) (.lit 1)) (.var "os")) (.lit 22))))),
-            .mk 1371 (.ite true (.var "os") (.lit 0) [
-              .mk 1372 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4"] "opening_ood_point" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.index (.var "rate") (.lit 0)), (.index (.var "rate") (.lit 1)), (.index (.var "rate") (.lit 2)), (.index (.var "rate") (.lit 3)), (.index (.var "rate") (.lit 4)), (.index (.var "rate") (.lit 5)), (.index (.var "rate") (.lit 6)), (.index (.var "rate") (.lit 7)), (.var "oz"), (.index (.var "LIG_LOG_MSG_COLS") (.var "ml"))])] [
-              .mk 1374 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4"] "opening_ood_point" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.index (.var "rate") (.lit 0)), (.index (.var "rate") (.lit 1)), (.index (.var "rate") (.lit 2)), (.index (.var "rate") (.lit 3)), (.index (.var "rate") (.lit 4)), (.index (.var "rate") (.lit 5)), (.lit 0), (.lit 0), (.var "oz"), (.index (.var "LIG_LOG_MSG_COLS") (.var "ml"))])] false),
-            .mk 1375 (.let_ "sample" (.mul (.var "ood") (.genPow (.add (.mul (.add (.var "lvl") (.lit 1)) (.var "ood_stride")) (.mul (.var "os") (.lit 4)))))),
-            .mk 1376 (.let_ "rate" (.stackBuf 8)),
-            .mk 1377 (.letTuple ["ood_y", "msg_cursor"] "fs_next" [(.var "rate"), (.lit 0), (.var "msg_cursor")]),
-            .mk 1378 (.letTuple ["ood_c0", "msg_cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "msg_cursor")]),
-            .mk 1379 (.letTuple ["ood_c2", "msg_cursor"] "fs_next" [(.var "rate"), (.lit 2), (.var "msg_cursor")]),
-            .mk 1380 (.store (.var "sample") (.gpow 1) (.var "ood_y")),
-            .mk 1381 (.store (.var "sample") (.gpow 2) (.var "ood_c0")),
-            .mk 1382 (.store (.var "sample") (.gpow 3) (.var "ood_c2"))]),
-          .mk 1383 (.let_ "q_nonce" (.index (.var "msg_cursor") (.gpow 0))),
-          .mk 1384 (.let_ "msg_cursor" (.mul (.var "msg_cursor") .gen)),
-          .mk 1385 (.ite true (.index (.var "LIG_OOD_SAMPLES") (.add (.var "ml") (.lit 1))) (.lit 0) [
-            .mk 1386 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
-            .mk 1387 (.let_ "rate" (.stackBuf 8)),
-            .mk 1388 (.let_ "sp" (.call "fs_absorb_nonce" [(.var "sp"), (.var "rate"), (.lit 0), (.var "q_nonce")]))] [
-            .mk 1390 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
-            .mk 1391 (.let_ "sp" (.call "fs_absorb_nonce" [(.var "sp"), (.var "rate"), (.lit 3), (.var "q_nonce")]))] false),
-          .mk 1392 (.let_ "word0" (.index (.var "sp") (.lit 0))),
-          .mk 1393 (.let_ "fs0" (.index (.var "sp") (.lit 8))),
-          .mk 1394 (.let_ "fs1" (.index (.var "sp") (.lit 9))),
-          .mk 1395 (.let_ "fs2" (.index (.var "sp") (.lit 10))),
-          .mk 1396 (.let_ "fs3" (.index (.var "sp") (.lit 11))),
-          .mk 1397 (.let_ "fs4" (.index (.var "sp") (.lit 12)))] false),
-        .mk 1399 (.ite false (.index (.var "LIG_QUERY_GRIND_BITS") (.var "ml")) (.lit 0) [
-          .mk 1400 (.call "grind_check" [(.var "word0"), (.index (.var "LIG_QUERY_GRIND_BITS") (.var "ml"))])] [
-          .mk 1402 (.assertEq (.var "q_nonce") (.lit 0))] false),
-        .mk 1404 (.let_ "sqz" (.heapBufDyn (.pow (.genPow (.add (.index (.var "LIG_MAX_SQUEEZES") (.var "m_idx")) (.lit 1))) (.lit 5)))),
-        .mk 1405 (.store (.var "sqz") (.gpow 0) (.var "fs0")),
-        .mk 1406 (.store (.var "sqz") (.gpow 1) (.var "fs1")),
-        .mk 1407 (.store (.var "sqz") (.gpow 2) (.var "fs2")),
-        .mk 1408 (.store (.var "sqz") (.gpow 3) (.var "fs3")),
-        .mk 1409 (.store (.var "sqz") (.gpow 4) (.var "fs4")),
-        .mk 1410 (.for_ "xs" 0 (.runtime (.genPow (.index (.var "LIG_SQUEEZES") (.var "ml")))) [
-          .mk 1413 (.let_ "depth" (.index (.var "LIG_TREE_DEPTH") (.add (.mul (.var "m_idx") (.lit 6)) (.var "lvl")))),
-          .mk 1414 (.let_ "pos_off" (.index (.var "LIG_POSITIONS_OFF") (.add (.mul (.var "m_idx") (.lit 6)) (.var "lvl")))),
-          .mk 1415 (.let_ "row" (.mul (.var "sqz") (.pow (.var "xs") (.lit 5)))),
-          .mk 1416 (.let_ "row_cap" (.call "fs_load" [(.var "row"), (.lit 0), (.lit 1)])),
-          .mk 1417 (.let_ "no_rate" (.stackBuf 8)),
-          .mk 1418 (.letTuple ["row_sp", "packed_word"] "squeeze" [(.var "row_cap"), (.var "no_rate"), (.lit 0)]),
-          .mk 1419 (.call "fs_store" [(.mul (.var "row") (.gpow 5)), (.lit 0), (.lit 1), (.var "row_sp")]),
-          .mk 1420 (.let_ "query_ptr" (.pow (.var "xs") (.div (.lit 192) (.var "depth")))),
-          .mk 1421 (.call "decode_query_bits" [(.var "packed_word"), (.mul (.mul (.var "query_positions") (.genPow (.var "pos_off"))) (.var "query_ptr")), (.mul (.mul (.var "query_bit_ptrs") (.genPow (.var "pos_off"))) (.var "query_ptr")), (.var "depth")])]),
-        .mk 1422 (.let_ "sqz_end" (.mul (.var "sqz") (.pow (.genPow (.index (.var "LIG_SQUEEZES") (.var "ml"))) (.lit 5)))),
-        .mk 1423 (.let_ "sp" (.call "fs_load" [(.var "sqz_end"), (.lit 0), (.lit 1)])),
-        .mk 1430 (.let_ "no_rate" (.stackBuf 8)),
-        .mk 1431 (.letTuple ["sp", "lam"] "squeeze" [(.var "sp"), (.var "no_rate"), (.lit 0)]),
-        .mk 1432 (.let_ "lam_pow" (.lit 1)),
-        .mk 1433 (.unroll "i" (.lit 0) (.var "n_queries") [
-          .mk 1434 (.store (.var "query_weights") (.genPow (.add (.mul (.var "lvl") (.var "max_q")) (.var "i"))) (.var "lam_pow")),
-          .mk 1435 (.let_ "lam_pow" (.mul (.var "lam_pow") (.var "lam")))]),
-        .mk 1441 (.let_ "row_eq_weights" (.heapBufDyn (.genPow (.index (.var "LIG_MAX_INTERLEAVE") (.var "m_idx"))))),
-        .mk 1442 (.call "opening_row_weights" [(.mul (.var "fold_challenges") (.genPow (.var "folds_off"))), (.var "row_eq_weights"), (.index (.var "LIG_FOLDS") (.var "ml")), (.div (.lit 1) (.add (.var "lvl") (.lit 1)))]),
-        .mk 1444 (.let_ "cap_depth" (.index (.var "LIG_CAP_DEPTH") (.var "ml"))),
-        .mk 1445 (.let_ "cap" (.mul (.var "merkle_caps") (.genPow (.mul (.lit 4) (.index (.var "LIG_CAP_OFF") (.var "ml")))))),
-        .mk 1446 (.let_ "flags" (.mul (.var "cap_flags") (.genPow (.index (.var "LIG_CAP_OFF") (.var "ml"))))),
-        .mk 1447 (.letTuple ["root_0", "root_1"] "verify_merkle_cap" [(.var "cap"), (.var "flags"), (.var "cap_depth")]),
-        .mk 1448 (.store (.var "level_roots") (.genPow (.mul (.lit 2) (.var "lvl"))) (.var "root_0")),
-        .mk 1449 (.store (.var "level_roots") (.genPow (.add (.mul (.lit 2) (.var "lvl")) (.lit 1))) (.var "root_1")),
-        .mk 1451 (.let_ "level_query_sum" (.call "opening_queries" [(.var "cap"), (.var "flags"), (.var "lam"), (.var "lam_pow"), (.mul (.var "query_bit_ptrs") (.genPow (.var "pos_off"))), (.var "row_eq_weights"), (.genPow (.div (.var "n_queries") (.add (.lit 1) (.div (.lit 1) (.add (.var "lvl") (.lit 1)))))), (.mul (.mod (.var "n_queries") (.lit 2)) (.div (.lit 1) (.add (.var "lvl") (.lit 1)))), (.div (.lit 1) (.add (.var "lvl") (.lit 1))), (.var "interleave"), (.index (.var "LIG_LEAF_CELLS") (.var "ml")), (.var "depth"), (.var "cap_depth")])),
-        .mk 1456 (.let_ "intro_c0" (.index (.var "msg_cursor") (.gpow 0))),
-        .mk 1457 (.let_ "intro_c2" (.index (.var "msg_cursor") (.gpow 1))),
-        .mk 1458 (.let_ "msg_cursor" (.mul (.var "msg_cursor") (.gpow 2))),
-        .mk 1459 (.let_ "fs0" (.index (.var "sp") (.lit 8))),
-        .mk 1460 (.let_ "fs1" (.index (.var "sp") (.lit 9))),
-        .mk 1461 (.let_ "fs2" (.index (.var "sp") (.lit 10))),
-        .mk 1462 (.let_ "fs3" (.index (.var "sp") (.lit 11))),
-        .mk 1463 (.let_ "fs4" (.index (.var "sp") (.lit 12))),
-        .mk 1464 (.let_ "w0" (.var "intro_c0")),
-        .mk 1465 (.let_ "w1" (.var "intro_c2")),
-        .mk 1466 (.let_ "intro_c1" (.add (.var "level_query_sum") (.var "intro_c2"))),
-        .mk 1467 (.ite true (.var "lvl") (.var "yr_level") [
-          .mk 1468 (.let_ "beta_lvl" (.var "lam"))] [
-          .mk 1470 (.let_ "ood_scalar" (.var "lam")),
-          .mk 1471 (.unroll "os" (.lit 0) (.index (.var "LIG_OOD_SAMPLES") (.add (.var "ml") (.lit 1))) [
-            .mk 1472 (.let_ "sample" (.mul (.var "ood") (.genPow (.add (.mul (.add (.var "lvl") (.lit 1)) (.var "ood_stride")) (.mul (.var "os") (.lit 4)))))),
-            .mk 1473 (.let_ "ood_y" (.index (.var "sample") (.gpow 1))),
-            .mk 1474 (.let_ "ood_c2" (.index (.var "sample") (.gpow 3))),
-            .mk 1475 (.store (.var "sample") (.gpow 0) (.var "ood_scalar")),
-            .mk 1476 (.let_ "round_quad_c" (.add (.var "round_quad_c") (.mul (.var "ood_scalar") (.index (.var "sample") (.gpow 2))))),
-            .mk 1477 (.let_ "round_quad_b" (.add (.var "round_quad_b") (.mul (.var "ood_scalar") (.add (.var "ood_y") (.var "ood_c2"))))),
-            .mk 1478 (.let_ "round_quad_a" (.add (.var "round_quad_a") (.mul (.var "ood_scalar") (.var "ood_c2")))),
-            .mk 1479 (.let_ "sumcheck_target" (.add (.var "sumcheck_target") (.mul (.var "ood_scalar") (.var "ood_y")))),
-            .mk 1480 (.let_ "ood_scalar" (.mul (.var "ood_scalar") (.var "lam")))]),
-          .mk 1481 (.let_ "beta_lvl" (.var "ood_scalar"))] false),
-        .mk 1482 (.store (.var "level_betas") (.genPow (.var "lvl")) (.var "beta_lvl")),
-        .mk 1483 (.let_ "round_quad_c" (.add (.var "round_quad_c") (.mul (.var "beta_lvl") (.var "intro_c0")))),
-        .mk 1484 (.let_ "round_quad_b" (.add (.var "round_quad_b") (.mul (.var "beta_lvl") (.var "intro_c1")))),
-        .mk 1485 (.let_ "round_quad_a" (.add (.var "round_quad_a") (.mul (.var "beta_lvl") (.var "intro_c2")))),
-        .mk 1486 (.let_ "sumcheck_target" (.add (.var "sumcheck_target") (.mul (.var "beta_lvl") (.var "level_query_sum"))))]),
-      .mk 1489 (.let_ "tail_challenges" (.heapBufDyn (.gpow 5))),
-      .mk 1490 (.unroll "j" (.lit 0) (.sub (.var "yr_log") (.lit 1)) [
-        .mk 1491 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "msg_cursor", "sumcheck_target", "round_quad_c", "round_quad_a", "tail_c"] "opening_fold" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.var "w0"), (.var "w1"), (.var "msg_cursor"), (.var "round_quad_c"), (.var "round_quad_b"), (.var "round_quad_a")]),
-        .mk 1492 (.let_ "w0" (.var "round_quad_c")),
-        .mk 1493 (.let_ "w1" (.var "round_quad_a")),
-        .mk 1494 (.store (.var "tail_challenges") (.genPow (.var "j")) (.var "tail_c")),
-        .mk 1495 (.let_ "round_quad_b" (.add (.var "sumcheck_target") (.var "round_quad_a")))]),
-      .mk 1497 (.let_ "tail_cap" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
-      .mk 1498 (.let_ "tail_rate" (.stackBuf 8)),
-      .mk 1499 (.call "fs_pack" [(.var "tail_rate"), (.lit 0), (.var "w0"), (.lit 1)]),
-      .mk 1500 (.call "fs_pack" [(.var "tail_rate"), (.lit 1), (.var "w1"), (.lit 1)]),
-      .mk 1501 (.letTuple ["tail_sp", "tail_last"] "squeeze" [(.var "tail_cap"), (.var "tail_rate"), (.lit 2)]),
-      .mk 1502 (.store (.var "tail_challenges") (.genPow (.sub (.var "yr_log") (.lit 1))) (.var "tail_last")),
-      .mk 1503 (.let_ "sumcheck_target" (.add (.add (.var "round_quad_c") (.mul (.var "tail_last") (.var "round_quad_b"))) (.mul (.mul (.var "tail_last") (.var "tail_last")) (.var "round_quad_a")))),
-      .mk 1504 (.unroll "j" (.var "yr_log") (.lit 5) [
-        .mk 1505 (.store (.var "tail_challenges") (.genPow (.var "j")) (.lit 0))]),
-      .mk 1507 (.let_ "yr_at_tail" (.call "fold_final_msg" [(.var "final_msg"), (.var "tail_challenges"), (.var "yr_log")])),
-      .mk 1518 (.let_ "lane_folds" (.index (.var "LIG_FOLDS") (.mul (.var "m_idx") (.lit 6)))),
-      .mk 1519 (.let_ "fold_head" (.sub (.var "n_folds") (.var "lane_folds"))),
-      .mk 1521 (.let_ "point" (.heapBuf 40)),
-      .mk 1522 (.let_ "point1" (.heapBuf 40)),
-      .mk 1523 (.unroll "j" (.lit 0) (.var "fold_head") [
-        .mk 1524 (.store (.var "point") (.genPow (.var "j")) (.index (.var "fold_challenges") (.genPow (.add (.var "lane_folds") (.var "j"))))),
-        .mk 1525 (.store (.var "point1") (.genPow (.var "j")) (.add (.lit 1) (.index (.var "fold_challenges") (.genPow (.add (.var "lane_folds") (.var "j"))))))]),
-      .mk 1526 (.unroll "j" (.lit 0) (.var "yr_log") [
-        .mk 1527 (.store (.var "point") (.genPow (.add (.var "fold_head") (.var "j"))) (.index (.var "tail_challenges") (.genPow (.var "j")))),
-        .mk 1528 (.store (.var "point1") (.genPow (.add (.var "fold_head") (.var "j"))) (.add (.lit 1) (.index (.var "tail_challenges") (.genPow (.var "j")))))]),
-      .mk 1529 (.unroll "j" (.lit 0) (.var "lane_folds") [
-        .mk 1530 (.store (.var "point") (.genPow (.add (.add (.var "fold_head") (.var "yr_log")) (.var "j"))) (.index (.var "fold_challenges") (.genPow (.var "j")))),
-        .mk 1531 (.store (.var "point1") (.genPow (.add (.add (.var "fold_head") (.var "yr_log")) (.var "j"))) (.add (.lit 1) (.index (.var "fold_challenges") (.genPow (.var "j")))))]),
-      .mk 1532 (.unroll "j" (.add (.var "n_folds") (.var "yr_log")) (.add (.lit 34) (.lit 6)) [
-        .mk 1533 (.store (.var "point") (.genPow (.var "j")) (.lit 0)),
-        .mk 1534 (.store (.var "point1") (.genPow (.var "j")) (.lit 1))]),
-      .mk 1548 (.let_ "basis_d" (.heapBufDyn (.genPow (.mul (.var "n_levels") (.lit 22))))),
-      .mk 1549 (.let_ "level_scale" (.heapBufDyn (.genPow (.var "n_levels")))),
-      .mk 1550 (.unroll "lvl" (.lit 0) (.var "n_levels") [
-        .mk 1551 (.let_ "ml" (.add (.mul (.var "m_idx") (.lit 6)) (.var "lvl"))),
-        .mk 1552 (.let_ "prefix_len" (.index (.var "LIG_RESIDUAL_PREFIX_LEN") (.var "ml"))),
-        .mk 1553 (.let_ "vanish" (.add (.mul (.var "m_idx") (.lit 78)) (.index (.var "LIG_VANISH_OFF") (.var "ml")))),
-        .mk 1554 (.let_ "scale" (.index (.var "level_betas") (.genPow (.var "lvl")))),
-        .mk 1555 (.unroll "t" (.lit 0) (.var "prefix_len") [
-          .mk 1556 (.let_ "fold_c" (.index (.var "fold_challenges") (.genPow (.add (.index (.var "LIG_RESIDUAL_FOLD_OFF") (.var "ml")) (.var "t"))))),
-          .mk 1557 (.let_ "coef_b" (.mul (.var "fold_c") (.index (.var "LIG_VANISH_INVS") (.add (.var "vanish") (.var "t"))))),
-          .mk 1558 (.store (.var "basis_d") (.genPow (.add (.mul (.var "lvl") (.lit 22)) (.var "t"))) (.fdiv (.add (.lit 1) (.var "fold_c")) (.var "coef_b"))),
+      .mk 1283 (.let_ "n_levels" (.index (.var "LIG_N_LEVELS") (.var "m_idx"))),
+      .mk 1284 (.let_ "yr_level" (.index (.var "LIG_YR_LEVEL") (.var "m_idx"))),
+      .mk 1285 (.let_ "yr_log" (.index (.var "LIG_YR_LOG_LEN") (.var "m_idx"))),
+      .mk 1286 (.let_ "yr_len" (.index (.var "LIG_YR_LEN") (.var "m_idx"))),
+      .mk 1287 (.let_ "n_folds" (.index (.var "LIG_TOTAL_FOLDS") (.var "m_idx"))),
+      .mk 1288 (.let_ "max_q" (.index (.var "LIG_MAX_QUERIES") (.var "m_idx"))),
+      .mk 1289 (.let_ "ood_stride" (.mul (.lit 1) (.lit 4))),
+      .mk 1297 (.let_ "msg_cursor" (.var "cursor")),
+      .mk 1298 (.let_ "round_quad_c" (.index (.var "msg_cursor") (.gpow 0))),
+      .mk 1299 (.let_ "round_quad_a" (.index (.var "msg_cursor") (.gpow 1))),
+      .mk 1300 (.let_ "msg_cursor" (.mul (.var "msg_cursor") (.gpow 2))),
+      .mk 1301 (.let_ "w0" (.var "round_quad_c")),
+      .mk 1302 (.let_ "w1" (.var "round_quad_a")),
+      .mk 1303 (.let_ "round_quad_b" (.add (.var "target") (.var "round_quad_a"))),
+      .mk 1304 (.let_ "sumcheck_target" (.var "target")),
+      .mk 1307 (.let_ "merkle_caps" (.heapBufDyn (.genPow (.mul (.lit 4) (.index (.var "LIG_CAP_LEN") (.var "m_idx")))))),
+      .mk 1308 (.hintWitness (.slice (.var "merkle_caps") (.lit 0) (.mul (.lit 4) (.index (.var "LIG_CAP_LEN") (.var "m_idx")))) "merkle_caps"),
+      .mk 1309 (.let_ "cap_flags" (.heapBufDyn (.genPow (.index (.var "LIG_CAP_LEN") (.var "m_idx"))))),
+      .mk 1310 (.hintWitness (.slice (.var "cap_flags") (.lit 0) (.index (.var "LIG_CAP_LEN") (.var "m_idx"))) "merkle_cap_active"),
+      .mk 1311 (.let_ "final_msg" (.heapBufDyn (.genPow (.var "yr_len")))),
+      .mk 1313 (.let_ "level_roots" (.heapBufDyn (.genPow (.mul (.lit 2) (.var "n_levels"))))),
+      .mk 1314 (.store (.var "level_roots") (.gpow 0) (.var "commit_root_0")),
+      .mk 1315 (.store (.var "level_roots") (.gpow 1) (.var "commit_root_1")),
+      .mk 1317 (.let_ "fold_challenges" (.heapBufDyn (.genPow (.var "n_folds")))),
+      .mk 1318 (.let_ "level_betas" (.heapBufDyn (.genPow (.var "n_levels")))),
+      .mk 1319 (.let_ "query_weights" (.heapBufDyn (.genPow (.mul (.var "n_levels") (.var "max_q"))))),
+      .mk 1320 (.let_ "query_positions" (.heapBufDyn (.genPow (.index (.var "LIG_POSITIONS_LEN") (.var "m_idx"))))),
+      .mk 1321 (.let_ "query_bit_ptrs" (.heapBufDyn (.genPow (.index (.var "LIG_POSITIONS_LEN") (.var "m_idx"))))),
+      .mk 1326 (.let_ "ood_z" (.heapBufDyn (.genPow (.mul (.mul (.var "n_levels") (.lit 1)) (.lit 22))))),
+      .mk 1327 (.let_ "ood" (.heapBufDyn (.genPow (.mul (.var "n_levels") (.var "ood_stride"))))),
+      .mk 1329 (.unroll "lvl" (.lit 0) (.var "n_levels") [
+        .mk 1330 (.let_ "ml" (.add (.mul (.var "m_idx") (.lit 6)) (.var "lvl"))),
+        .mk 1331 (.let_ "n_queries" (.index (.var "LIG_QUERIES") (.var "ml"))),
+        .mk 1332 (.let_ "depth" (.index (.var "LIG_TREE_DEPTH") (.var "ml"))),
+        .mk 1333 (.let_ "interleave" (.index (.var "LIG_INTERLEAVE") (.var "ml"))),
+        .mk 1334 (.let_ "folds_off" (.index (.var "LIG_FOLDS_OFF") (.var "ml"))),
+        .mk 1335 (.let_ "pos_off" (.index (.var "LIG_POSITIONS_OFF") (.var "ml"))),
+        .mk 1336 (.unroll "j" (.lit 0) (.index (.var "LIG_FOLDS") (.var "ml")) [
+          .mk 1337 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "msg_cursor", "sumcheck_target", "round_quad_c", "round_quad_a", "fold_challenge"] "opening_fold" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.var "w0"), (.var "w1"), (.var "msg_cursor"), (.var "round_quad_c"), (.var "round_quad_b"), (.var "round_quad_a")]),
+          .mk 1338 (.let_ "w0" (.var "round_quad_c")),
+          .mk 1339 (.let_ "w1" (.var "round_quad_a")),
+          .mk 1340 (.store (.var "fold_challenges") (.genPow (.add (.var "folds_off") (.var "j"))) (.var "fold_challenge")),
+          .mk 1341 (.let_ "round_quad_b" (.add (.var "sumcheck_target") (.var "round_quad_a")))]),
+        .mk 1343 (.ite true (.var "lvl") (.var "yr_level") [
+          .mk 1344 (.letTuple ["word0", "fs0", "fs1", "fs2", "fs3", "fs4", "msg_cursor", "q_nonce"] "opening_final_message" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.var "w0"), (.var "w1"), (.var "msg_cursor"), (.var "final_msg"), (.var "yr_len")])] [
+          .mk 1346 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
+          .mk 1347 (.let_ "rate" (.stackBuf 8)),
+          .mk 1348 (.call "fs_pack" [(.var "rate"), (.lit 0), (.var "w0"), (.lit 1)]),
+          .mk 1349 (.call "fs_pack" [(.var "rate"), (.lit 1), (.var "w1"), (.lit 1)]),
+          .mk 1350 (.letTuple ["next_root_a", "msg_cursor"] "fs_next" [(.var "rate"), (.lit 2), (.var "msg_cursor")]),
+          .mk 1351 (.letTuple ["next_root_b", "msg_cursor"] "fs_next" [(.var "rate"), (.lit 3), (.var "msg_cursor")]),
+          .mk 1354 (.let_ "canon" (.stackBuf 2)),
+          .mk 1355 (.store (.var "canon") (.lit 0) (.call "assert_canonical" [(.var "next_root_a")])),
+          .mk 1356 (.store (.var "canon") (.lit 1) (.call "assert_canonical" [(.var "next_root_b")])),
+          .mk 1357 (.store (.var "level_roots") (.genPow (.add (.mul (.lit 2) (.var "lvl")) (.lit 2))) (.var "next_root_a")),
+          .mk 1358 (.store (.var "level_roots") (.genPow (.add (.mul (.lit 2) (.var "lvl")) (.lit 3))) (.var "next_root_b")),
+          .mk 1364 (.unroll "os" (.lit 0) (.index (.var "LIG_OOD_SAMPLES") (.add (.var "ml") (.lit 1))) [
+            .mk 1365 (.let_ "oz" (.mul (.var "ood_z") (.genPow (.mul (.add (.mul (.add (.var "lvl") (.lit 1)) (.lit 1)) (.var "os")) (.lit 22))))),
+            .mk 1366 (.ite true (.var "os") (.lit 0) [
+              .mk 1367 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4"] "opening_ood_point" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.index (.var "rate") (.lit 0)), (.index (.var "rate") (.lit 1)), (.index (.var "rate") (.lit 2)), (.index (.var "rate") (.lit 3)), (.index (.var "rate") (.lit 4)), (.index (.var "rate") (.lit 5)), (.index (.var "rate") (.lit 6)), (.index (.var "rate") (.lit 7)), (.var "oz"), (.index (.var "LIG_LOG_MSG_COLS") (.var "ml"))])] [
+              .mk 1369 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4"] "opening_ood_point" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.index (.var "rate") (.lit 0)), (.index (.var "rate") (.lit 1)), (.index (.var "rate") (.lit 2)), (.index (.var "rate") (.lit 3)), (.index (.var "rate") (.lit 4)), (.index (.var "rate") (.lit 5)), (.lit 0), (.lit 0), (.var "oz"), (.index (.var "LIG_LOG_MSG_COLS") (.var "ml"))])] false),
+            .mk 1370 (.let_ "sample" (.mul (.var "ood") (.genPow (.add (.mul (.add (.var "lvl") (.lit 1)) (.var "ood_stride")) (.mul (.var "os") (.lit 4)))))),
+            .mk 1371 (.let_ "rate" (.stackBuf 8)),
+            .mk 1372 (.letTuple ["ood_y", "msg_cursor"] "fs_next" [(.var "rate"), (.lit 0), (.var "msg_cursor")]),
+            .mk 1373 (.letTuple ["ood_c0", "msg_cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "msg_cursor")]),
+            .mk 1374 (.letTuple ["ood_c2", "msg_cursor"] "fs_next" [(.var "rate"), (.lit 2), (.var "msg_cursor")]),
+            .mk 1375 (.store (.var "sample") (.gpow 1) (.var "ood_y")),
+            .mk 1376 (.store (.var "sample") (.gpow 2) (.var "ood_c0")),
+            .mk 1377 (.store (.var "sample") (.gpow 3) (.var "ood_c2"))]),
+          .mk 1378 (.let_ "q_nonce" (.index (.var "msg_cursor") (.gpow 0))),
+          .mk 1379 (.let_ "msg_cursor" (.mul (.var "msg_cursor") .gen)),
+          .mk 1380 (.ite true (.index (.var "LIG_OOD_SAMPLES") (.add (.var "ml") (.lit 1))) (.lit 0) [
+            .mk 1381 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
+            .mk 1382 (.let_ "rate" (.stackBuf 8)),
+            .mk 1383 (.let_ "sp" (.call "fs_absorb_nonce" [(.var "sp"), (.var "rate"), (.lit 0), (.var "q_nonce")]))] [
+            .mk 1385 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
+            .mk 1386 (.let_ "sp" (.call "fs_absorb_nonce" [(.var "sp"), (.var "rate"), (.lit 3), (.var "q_nonce")]))] false),
+          .mk 1387 (.let_ "word0" (.index (.var "sp") (.lit 0))),
+          .mk 1388 (.let_ "fs0" (.index (.var "sp") (.lit 8))),
+          .mk 1389 (.let_ "fs1" (.index (.var "sp") (.lit 9))),
+          .mk 1390 (.let_ "fs2" (.index (.var "sp") (.lit 10))),
+          .mk 1391 (.let_ "fs3" (.index (.var "sp") (.lit 11))),
+          .mk 1392 (.let_ "fs4" (.index (.var "sp") (.lit 12)))] false),
+        .mk 1394 (.ite false (.index (.var "LIG_QUERY_GRIND_BITS") (.var "ml")) (.lit 0) [
+          .mk 1395 (.call "grind_check" [(.var "word0"), (.index (.var "LIG_QUERY_GRIND_BITS") (.var "ml"))])] [
+          .mk 1397 (.assertEq (.var "q_nonce") (.lit 0))] false),
+        .mk 1399 (.let_ "sqz" (.heapBufDyn (.pow (.genPow (.add (.index (.var "LIG_MAX_SQUEEZES") (.var "m_idx")) (.lit 1))) (.lit 5)))),
+        .mk 1400 (.store (.var "sqz") (.gpow 0) (.var "fs0")),
+        .mk 1401 (.store (.var "sqz") (.gpow 1) (.var "fs1")),
+        .mk 1402 (.store (.var "sqz") (.gpow 2) (.var "fs2")),
+        .mk 1403 (.store (.var "sqz") (.gpow 3) (.var "fs3")),
+        .mk 1404 (.store (.var "sqz") (.gpow 4) (.var "fs4")),
+        .mk 1405 (.for_ "xs" 0 (.runtime (.genPow (.index (.var "LIG_SQUEEZES") (.var "ml")))) [
+          .mk 1408 (.let_ "depth" (.index (.var "LIG_TREE_DEPTH") (.add (.mul (.var "m_idx") (.lit 6)) (.var "lvl")))),
+          .mk 1409 (.let_ "pos_off" (.index (.var "LIG_POSITIONS_OFF") (.add (.mul (.var "m_idx") (.lit 6)) (.var "lvl")))),
+          .mk 1410 (.let_ "row" (.mul (.var "sqz") (.pow (.var "xs") (.lit 5)))),
+          .mk 1411 (.let_ "row_cap" (.call "fs_load" [(.var "row"), (.lit 0), (.lit 1)])),
+          .mk 1412 (.let_ "no_rate" (.stackBuf 8)),
+          .mk 1413 (.letTuple ["row_sp", "packed_word"] "squeeze" [(.var "row_cap"), (.var "no_rate"), (.lit 0)]),
+          .mk 1414 (.call "fs_store" [(.mul (.var "row") (.gpow 5)), (.lit 0), (.lit 1), (.var "row_sp")]),
+          .mk 1415 (.let_ "query_ptr" (.pow (.var "xs") (.div (.lit 192) (.var "depth")))),
+          .mk 1416 (.call "decode_query_bits" [(.var "packed_word"), (.mul (.mul (.var "query_positions") (.genPow (.var "pos_off"))) (.var "query_ptr")), (.mul (.mul (.var "query_bit_ptrs") (.genPow (.var "pos_off"))) (.var "query_ptr")), (.var "depth")])]),
+        .mk 1417 (.let_ "sqz_end" (.mul (.var "sqz") (.pow (.genPow (.index (.var "LIG_SQUEEZES") (.var "ml"))) (.lit 5)))),
+        .mk 1418 (.let_ "sp" (.call "fs_load" [(.var "sqz_end"), (.lit 0), (.lit 1)])),
+        .mk 1425 (.let_ "no_rate" (.stackBuf 8)),
+        .mk 1426 (.letTuple ["sp", "lam"] "squeeze" [(.var "sp"), (.var "no_rate"), (.lit 0)]),
+        .mk 1427 (.let_ "lam_pow" (.lit 1)),
+        .mk 1428 (.unroll "i" (.lit 0) (.var "n_queries") [
+          .mk 1429 (.store (.var "query_weights") (.genPow (.add (.mul (.var "lvl") (.var "max_q")) (.var "i"))) (.var "lam_pow")),
+          .mk 1430 (.let_ "lam_pow" (.mul (.var "lam_pow") (.var "lam")))]),
+        .mk 1436 (.let_ "row_eq_weights" (.heapBufDyn (.genPow (.index (.var "LIG_MAX_INTERLEAVE") (.var "m_idx"))))),
+        .mk 1437 (.call "opening_row_weights" [(.mul (.var "fold_challenges") (.genPow (.var "folds_off"))), (.var "row_eq_weights"), (.index (.var "LIG_FOLDS") (.var "ml")), (.div (.lit 1) (.add (.var "lvl") (.lit 1)))]),
+        .mk 1439 (.let_ "cap_depth" (.index (.var "LIG_CAP_DEPTH") (.var "ml"))),
+        .mk 1440 (.let_ "cap" (.mul (.var "merkle_caps") (.genPow (.mul (.lit 4) (.index (.var "LIG_CAP_OFF") (.var "ml")))))),
+        .mk 1441 (.let_ "flags" (.mul (.var "cap_flags") (.genPow (.index (.var "LIG_CAP_OFF") (.var "ml"))))),
+        .mk 1442 (.letTuple ["root_0", "root_1"] "verify_merkle_cap" [(.var "cap"), (.var "flags"), (.var "cap_depth")]),
+        .mk 1443 (.store (.var "level_roots") (.genPow (.mul (.lit 2) (.var "lvl"))) (.var "root_0")),
+        .mk 1444 (.store (.var "level_roots") (.genPow (.add (.mul (.lit 2) (.var "lvl")) (.lit 1))) (.var "root_1")),
+        .mk 1446 (.let_ "level_query_sum" (.call "opening_queries" [(.var "cap"), (.var "flags"), (.var "lam"), (.var "lam_pow"), (.mul (.var "query_bit_ptrs") (.genPow (.var "pos_off"))), (.var "row_eq_weights"), (.genPow (.div (.var "n_queries") (.add (.lit 1) (.div (.lit 1) (.add (.var "lvl") (.lit 1)))))), (.mul (.mod (.var "n_queries") (.lit 2)) (.div (.lit 1) (.add (.var "lvl") (.lit 1)))), (.div (.lit 1) (.add (.var "lvl") (.lit 1))), (.var "interleave"), (.index (.var "LIG_LEAF_CELLS") (.var "ml")), (.var "depth"), (.var "cap_depth")])),
+        .mk 1451 (.let_ "intro_c0" (.index (.var "msg_cursor") (.gpow 0))),
+        .mk 1452 (.let_ "intro_c2" (.index (.var "msg_cursor") (.gpow 1))),
+        .mk 1453 (.let_ "msg_cursor" (.mul (.var "msg_cursor") (.gpow 2))),
+        .mk 1454 (.let_ "fs0" (.index (.var "sp") (.lit 8))),
+        .mk 1455 (.let_ "fs1" (.index (.var "sp") (.lit 9))),
+        .mk 1456 (.let_ "fs2" (.index (.var "sp") (.lit 10))),
+        .mk 1457 (.let_ "fs3" (.index (.var "sp") (.lit 11))),
+        .mk 1458 (.let_ "fs4" (.index (.var "sp") (.lit 12))),
+        .mk 1459 (.let_ "w0" (.var "intro_c0")),
+        .mk 1460 (.let_ "w1" (.var "intro_c2")),
+        .mk 1461 (.let_ "intro_c1" (.add (.var "level_query_sum") (.var "intro_c2"))),
+        .mk 1462 (.ite true (.var "lvl") (.var "yr_level") [
+          .mk 1463 (.let_ "beta_lvl" (.var "lam"))] [
+          .mk 1465 (.let_ "ood_scalar" (.var "lam")),
+          .mk 1466 (.unroll "os" (.lit 0) (.index (.var "LIG_OOD_SAMPLES") (.add (.var "ml") (.lit 1))) [
+            .mk 1467 (.let_ "sample" (.mul (.var "ood") (.genPow (.add (.mul (.add (.var "lvl") (.lit 1)) (.var "ood_stride")) (.mul (.var "os") (.lit 4)))))),
+            .mk 1468 (.let_ "ood_y" (.index (.var "sample") (.gpow 1))),
+            .mk 1469 (.let_ "ood_c2" (.index (.var "sample") (.gpow 3))),
+            .mk 1470 (.store (.var "sample") (.gpow 0) (.var "ood_scalar")),
+            .mk 1471 (.let_ "round_quad_c" (.add (.var "round_quad_c") (.mul (.var "ood_scalar") (.index (.var "sample") (.gpow 2))))),
+            .mk 1472 (.let_ "round_quad_b" (.add (.var "round_quad_b") (.mul (.var "ood_scalar") (.add (.var "ood_y") (.var "ood_c2"))))),
+            .mk 1473 (.let_ "round_quad_a" (.add (.var "round_quad_a") (.mul (.var "ood_scalar") (.var "ood_c2")))),
+            .mk 1474 (.let_ "sumcheck_target" (.add (.var "sumcheck_target") (.mul (.var "ood_scalar") (.var "ood_y")))),
+            .mk 1475 (.let_ "ood_scalar" (.mul (.var "ood_scalar") (.var "lam")))]),
+          .mk 1476 (.let_ "beta_lvl" (.var "ood_scalar"))] false),
+        .mk 1477 (.store (.var "level_betas") (.genPow (.var "lvl")) (.var "beta_lvl")),
+        .mk 1478 (.let_ "round_quad_c" (.add (.var "round_quad_c") (.mul (.var "beta_lvl") (.var "intro_c0")))),
+        .mk 1479 (.let_ "round_quad_b" (.add (.var "round_quad_b") (.mul (.var "beta_lvl") (.var "intro_c1")))),
+        .mk 1480 (.let_ "round_quad_a" (.add (.var "round_quad_a") (.mul (.var "beta_lvl") (.var "intro_c2")))),
+        .mk 1481 (.let_ "sumcheck_target" (.add (.var "sumcheck_target") (.mul (.var "beta_lvl") (.var "level_query_sum"))))]),
+      .mk 1484 (.let_ "tail_challenges" (.heapBufDyn (.gpow 5))),
+      .mk 1485 (.unroll "j" (.lit 0) (.sub (.var "yr_log") (.lit 1)) [
+        .mk 1486 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "msg_cursor", "sumcheck_target", "round_quad_c", "round_quad_a", "tail_c"] "opening_fold" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.var "w0"), (.var "w1"), (.var "msg_cursor"), (.var "round_quad_c"), (.var "round_quad_b"), (.var "round_quad_a")]),
+        .mk 1487 (.let_ "w0" (.var "round_quad_c")),
+        .mk 1488 (.let_ "w1" (.var "round_quad_a")),
+        .mk 1489 (.store (.var "tail_challenges") (.genPow (.var "j")) (.var "tail_c")),
+        .mk 1490 (.let_ "round_quad_b" (.add (.var "sumcheck_target") (.var "round_quad_a")))]),
+      .mk 1492 (.let_ "tail_cap" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
+      .mk 1493 (.let_ "tail_rate" (.stackBuf 8)),
+      .mk 1494 (.call "fs_pack" [(.var "tail_rate"), (.lit 0), (.var "w0"), (.lit 1)]),
+      .mk 1495 (.call "fs_pack" [(.var "tail_rate"), (.lit 1), (.var "w1"), (.lit 1)]),
+      .mk 1496 (.letTuple ["tail_sp", "tail_last"] "squeeze" [(.var "tail_cap"), (.var "tail_rate"), (.lit 2)]),
+      .mk 1497 (.store (.var "tail_challenges") (.genPow (.sub (.var "yr_log") (.lit 1))) (.var "tail_last")),
+      .mk 1498 (.let_ "sumcheck_target" (.add (.add (.var "round_quad_c") (.mul (.var "tail_last") (.var "round_quad_b"))) (.mul (.mul (.var "tail_last") (.var "tail_last")) (.var "round_quad_a")))),
+      .mk 1499 (.unroll "j" (.var "yr_log") (.lit 5) [
+        .mk 1500 (.store (.var "tail_challenges") (.genPow (.var "j")) (.lit 0))]),
+      .mk 1502 (.let_ "yr_at_tail" (.call "fold_final_msg" [(.var "final_msg"), (.var "tail_challenges"), (.var "yr_log")])),
+      .mk 1513 (.let_ "lane_folds" (.index (.var "LIG_FOLDS") (.mul (.var "m_idx") (.lit 6)))),
+      .mk 1514 (.let_ "fold_head" (.sub (.var "n_folds") (.var "lane_folds"))),
+      .mk 1516 (.let_ "point" (.heapBuf 40)),
+      .mk 1517 (.let_ "point1" (.heapBuf 40)),
+      .mk 1518 (.unroll "j" (.lit 0) (.var "fold_head") [
+        .mk 1519 (.store (.var "point") (.genPow (.var "j")) (.index (.var "fold_challenges") (.genPow (.add (.var "lane_folds") (.var "j"))))),
+        .mk 1520 (.store (.var "point1") (.genPow (.var "j")) (.add (.lit 1) (.index (.var "fold_challenges") (.genPow (.add (.var "lane_folds") (.var "j"))))))]),
+      .mk 1521 (.unroll "j" (.lit 0) (.var "yr_log") [
+        .mk 1522 (.store (.var "point") (.genPow (.add (.var "fold_head") (.var "j"))) (.index (.var "tail_challenges") (.genPow (.var "j")))),
+        .mk 1523 (.store (.var "point1") (.genPow (.add (.var "fold_head") (.var "j"))) (.add (.lit 1) (.index (.var "tail_challenges") (.genPow (.var "j")))))]),
+      .mk 1524 (.unroll "j" (.lit 0) (.var "lane_folds") [
+        .mk 1525 (.store (.var "point") (.genPow (.add (.add (.var "fold_head") (.var "yr_log")) (.var "j"))) (.index (.var "fold_challenges") (.genPow (.var "j")))),
+        .mk 1526 (.store (.var "point1") (.genPow (.add (.add (.var "fold_head") (.var "yr_log")) (.var "j"))) (.add (.lit 1) (.index (.var "fold_challenges") (.genPow (.var "j")))))]),
+      .mk 1527 (.unroll "j" (.add (.var "n_folds") (.var "yr_log")) (.add (.lit 34) (.lit 6)) [
+        .mk 1528 (.store (.var "point") (.genPow (.var "j")) (.lit 0)),
+        .mk 1529 (.store (.var "point1") (.genPow (.var "j")) (.lit 1))]),
+      .mk 1543 (.let_ "basis_d" (.heapBufDyn (.genPow (.mul (.var "n_levels") (.lit 22))))),
+      .mk 1544 (.let_ "level_scale" (.heapBufDyn (.genPow (.var "n_levels")))),
+      .mk 1545 (.unroll "lvl" (.lit 0) (.var "n_levels") [
+        .mk 1546 (.let_ "ml" (.add (.mul (.var "m_idx") (.lit 6)) (.var "lvl"))),
+        .mk 1547 (.let_ "prefix_len" (.index (.var "LIG_RESIDUAL_PREFIX_LEN") (.var "ml"))),
+        .mk 1548 (.let_ "vanish" (.add (.mul (.var "m_idx") (.lit 78)) (.index (.var "LIG_VANISH_OFF") (.var "ml")))),
+        .mk 1549 (.let_ "scale" (.index (.var "level_betas") (.genPow (.var "lvl")))),
+        .mk 1550 (.unroll "t" (.lit 0) (.var "prefix_len") [
+          .mk 1551 (.let_ "fold_c" (.index (.var "fold_challenges") (.genPow (.add (.index (.var "LIG_RESIDUAL_FOLD_OFF") (.var "ml")) (.var "t"))))),
+          .mk 1552 (.let_ "coef_b" (.mul (.var "fold_c") (.index (.var "LIG_VANISH_INVS") (.add (.var "vanish") (.var "t"))))),
+          .mk 1553 (.store (.var "basis_d") (.genPow (.add (.mul (.var "lvl") (.lit 22)) (.var "t"))) (.fdiv (.add (.lit 1) (.var "fold_c")) (.var "coef_b"))),
+          .mk 1554 (.let_ "scale" (.mul (.var "scale") (.var "coef_b")))]),
+        .mk 1555 (.unroll "j" (.lit 0) (.var "yr_log") [
+          .mk 1556 (.let_ "tail_c" (.index (.var "tail_challenges") (.genPow (.var "j")))),
+          .mk 1557 (.let_ "coef_b" (.mul (.var "tail_c") (.index (.var "LIG_VANISH_INVS") (.add (.add (.var "vanish") (.var "prefix_len")) (.var "j"))))),
+          .mk 1558 (.store (.var "basis_d") (.genPow (.add (.add (.mul (.var "lvl") (.lit 22)) (.var "prefix_len")) (.var "j"))) (.fdiv (.add (.lit 1) (.var "tail_c")) (.var "coef_b"))),
           .mk 1559 (.let_ "scale" (.mul (.var "scale") (.var "coef_b")))]),
-        .mk 1560 (.unroll "j" (.lit 0) (.var "yr_log") [
-          .mk 1561 (.let_ "tail_c" (.index (.var "tail_challenges") (.genPow (.var "j")))),
-          .mk 1562 (.let_ "coef_b" (.mul (.var "tail_c") (.index (.var "LIG_VANISH_INVS") (.add (.add (.var "vanish") (.var "prefix_len")) (.var "j"))))),
-          .mk 1563 (.store (.var "basis_d") (.genPow (.add (.add (.mul (.var "lvl") (.lit 22)) (.var "prefix_len")) (.var "j"))) (.fdiv (.add (.lit 1) (.var "tail_c")) (.var "coef_b"))),
-          .mk 1564 (.let_ "scale" (.mul (.var "scale") (.var "coef_b")))]),
-        .mk 1565 (.store (.var "level_scale") (.genPow (.var "lvl")) (.var "scale"))]),
-      .mk 1566 (.let_ "inner_chain" (.heapBufDyn (.genPow (.add (.var "n_levels") (.lit 1))))),
-      .mk 1567 (.store (.var "inner_chain") (.gpow 0) (.lit 0)),
-      .mk 1568 (.unroll "lvl" (.lit 0) (.var "n_levels") [
-        .mk 1569 (.let_ "ml" (.add (.mul (.var "m_idx") (.lit 6)) (.var "lvl"))),
-        .mk 1570 (.let_ "vanish" (.add (.mul (.var "m_idx") (.lit 78)) (.index (.var "LIG_VANISH_OFF") (.var "ml")))),
-        .mk 1571 (.let_ "basis_row" (.mul (.var "lvl") (.lit 22))),
-        .mk 1572 (.let_ "residual_chain" (.heapBufDyn (.genPow (.add (.var "max_q") (.lit 1))))),
-        .mk 1573 (.store (.var "residual_chain") (.gpow 0) (.lit 0)),
-        .mk 1575 (.for_ "xr" 0 (.runtime (.genPow (.div (.index (.var "LIG_QUERIES") (.var "ml")) (.lit 2)))) [
-          .mk 1576 (.let_ "ml" (.add (.mul (.var "m_idx") (.lit 6)) (.var "lvl"))),
-          .mk 1577 (.let_ "vanish" (.add (.mul (.var "m_idx") (.lit 78)) (.index (.var "LIG_VANISH_OFF") (.var "ml")))),
-          .mk 1578 (.let_ "basis_row" (.mul (.var "lvl") (.lit 22))),
-          .mk 1579 (.let_ "max_q" (.index (.var "LIG_MAX_QUERIES") (.var "m_idx"))),
-          .mk 1580 (.let_ "pair" (.mul (.var "xr") (.var "xr"))),
-          .mk 1581 (.let_ "positions" (.mul (.mul (.var "query_positions") (.genPow (.index (.var "LIG_POSITIONS_OFF") (.var "ml")))) (.var "pair"))),
-          .mk 1582 (.let_ "weights" (.mul (.mul (.var "query_weights") (.genPow (.mul (.var "lvl") (.var "max_q")))) (.var "pair"))),
-          .mk 1583 (.let_ "row_d" (.mul (.var "basis_d") (.genPow (.var "basis_row")))),
-          .mk 1584 (.let_ "eq_0" (.call "residual_query" [(.index (.var "positions") (.gpow 0)), (.var "row_d"), (.var "vanish"), (.index (.var "LIG_LOG_MSG_COLS") (.var "ml"))])),
-          .mk 1585 (.let_ "eq_1" (.call "residual_query" [(.index (.var "positions") (.gpow 1)), (.var "row_d"), (.var "vanish"), (.index (.var "LIG_LOG_MSG_COLS") (.var "ml"))])),
-          .mk 1586 (.store (.var "residual_chain") (.mul (.var "xr") .gen) (.add (.add (.index (.var "residual_chain") (.var "xr")) (.mul (.index (.var "weights") (.gpow 0)) (.var "eq_0"))) (.mul (.index (.var "weights") (.gpow 1)) (.var "eq_1"))))]),
-        .mk 1587 (.let_ "level_sum" (.index (.var "residual_chain") (.genPow (.div (.index (.var "LIG_QUERIES") (.var "ml")) (.lit 2))))),
-        .mk 1588 (.ite true (.mod (.index (.var "LIG_QUERIES") (.var "ml")) (.lit 2)) (.lit 1) [
-          .mk 1589 (.let_ "last" (.sub (.index (.var "LIG_QUERIES") (.var "ml")) (.lit 1))),
-          .mk 1590 (.let_ "eq_last" (.call "residual_query" [(.index (.var "query_positions") (.genPow (.add (.index (.var "LIG_POSITIONS_OFF") (.var "ml")) (.var "last")))), (.mul (.var "basis_d") (.genPow (.var "basis_row"))), (.var "vanish"), (.index (.var "LIG_LOG_MSG_COLS") (.var "ml"))])),
-          .mk 1591 (.let_ "level_sum" (.add (.var "level_sum") (.mul (.index (.var "query_weights") (.genPow (.add (.mul (.var "lvl") (.var "max_q")) (.var "last")))) (.var "eq_last"))))] [] true),
-        .mk 1593 (.store (.var "inner_chain") (.genPow (.add (.var "lvl") (.lit 1))) (.add (.index (.var "inner_chain") (.genPow (.var "lvl"))) (.mul (.index (.var "level_scale") (.genPow (.var "lvl"))) (.var "level_sum"))))]),
-      .mk 1596 (.let_ "ood_inner" (.lit 0)),
-      .mk 1597 (.unroll "ood_lvl" (.lit 1) (.var "n_levels") [
-        .mk 1598 (.let_ "ml" (.add (.mul (.var "m_idx") (.lit 6)) (.var "ood_lvl"))),
-        .mk 1599 (.let_ "z_folded" (.sub (.index (.var "LIG_LOG_MSG_COLS") (.sub (.var "ml") (.lit 1))) (.var "yr_log"))),
-        .mk 1600 (.let_ "ris_start" (.index (.var "LIG_FOLDS_OFF") (.var "ml"))),
-        .mk 1601 (.unroll "os" (.lit 0) (.index (.var "LIG_OOD_SAMPLES") (.var "ml")) [
-          .mk 1602 (.let_ "oz" (.mul (.var "ood_z") (.genPow (.mul (.add (.mul (.var "ood_lvl") (.lit 1)) (.var "os")) (.lit 22))))),
-          .mk 1603 (.let_ "scalar" (.index (.var "ood") (.genPow (.add (.add (.mul (.var "ood_lvl") (.var "ood_stride")) (.mul (.var "os") (.lit 4))) (.lit 0))))),
-          .mk 1604 (.unroll "t" (.lit 0) (.var "z_folded") [
-            .mk 1605 (.let_ "scalar" (.mul (.var "scalar") (.add (.add (.lit 1) (.index (.var "oz") (.genPow (.var "t")))) (.index (.var "fold_challenges") (.genPow (.add (.var "ris_start") (.var "t")))))))]),
-          .mk 1606 (.unroll "t" (.lit 0) (.var "yr_log") [
-            .mk 1607 (.let_ "scalar" (.mul (.var "scalar") (.add (.add (.lit 1) (.index (.var "oz") (.genPow (.add (.var "z_folded") (.var "t"))))) (.index (.var "tail_challenges") (.genPow (.var "t"))))))]),
-          .mk 1608 (.let_ "ood_inner" (.add (.var "ood_inner") (.var "scalar")))])]),
-      .mk 1609 (.ret [(.var "sumcheck_target"), (.var "point"), (.var "point1"), (.add (.index (.var "inner_chain") (.genPow (.var "n_levels"))) (.var "ood_inner")), (.var "yr_at_tail")])] }
+        .mk 1560 (.store (.var "level_scale") (.genPow (.var "lvl")) (.var "scale"))]),
+      .mk 1561 (.let_ "inner_chain" (.heapBufDyn (.genPow (.add (.var "n_levels") (.lit 1))))),
+      .mk 1562 (.store (.var "inner_chain") (.gpow 0) (.lit 0)),
+      .mk 1563 (.unroll "lvl" (.lit 0) (.var "n_levels") [
+        .mk 1564 (.let_ "ml" (.add (.mul (.var "m_idx") (.lit 6)) (.var "lvl"))),
+        .mk 1565 (.let_ "vanish" (.add (.mul (.var "m_idx") (.lit 78)) (.index (.var "LIG_VANISH_OFF") (.var "ml")))),
+        .mk 1566 (.let_ "basis_row" (.mul (.var "lvl") (.lit 22))),
+        .mk 1567 (.let_ "residual_chain" (.heapBufDyn (.genPow (.add (.var "max_q") (.lit 1))))),
+        .mk 1568 (.store (.var "residual_chain") (.gpow 0) (.lit 0)),
+        .mk 1570 (.for_ "xr" 0 (.runtime (.genPow (.div (.index (.var "LIG_QUERIES") (.var "ml")) (.lit 2)))) [
+          .mk 1571 (.let_ "ml" (.add (.mul (.var "m_idx") (.lit 6)) (.var "lvl"))),
+          .mk 1572 (.let_ "vanish" (.add (.mul (.var "m_idx") (.lit 78)) (.index (.var "LIG_VANISH_OFF") (.var "ml")))),
+          .mk 1573 (.let_ "basis_row" (.mul (.var "lvl") (.lit 22))),
+          .mk 1574 (.let_ "max_q" (.index (.var "LIG_MAX_QUERIES") (.var "m_idx"))),
+          .mk 1575 (.let_ "pair" (.mul (.var "xr") (.var "xr"))),
+          .mk 1576 (.let_ "positions" (.mul (.mul (.var "query_positions") (.genPow (.index (.var "LIG_POSITIONS_OFF") (.var "ml")))) (.var "pair"))),
+          .mk 1577 (.let_ "weights" (.mul (.mul (.var "query_weights") (.genPow (.mul (.var "lvl") (.var "max_q")))) (.var "pair"))),
+          .mk 1578 (.let_ "row_d" (.mul (.var "basis_d") (.genPow (.var "basis_row")))),
+          .mk 1579 (.let_ "eq_0" (.call "residual_query" [(.index (.var "positions") (.gpow 0)), (.var "row_d"), (.var "vanish"), (.index (.var "LIG_LOG_MSG_COLS") (.var "ml"))])),
+          .mk 1580 (.let_ "eq_1" (.call "residual_query" [(.index (.var "positions") (.gpow 1)), (.var "row_d"), (.var "vanish"), (.index (.var "LIG_LOG_MSG_COLS") (.var "ml"))])),
+          .mk 1581 (.store (.var "residual_chain") (.mul (.var "xr") .gen) (.add (.add (.index (.var "residual_chain") (.var "xr")) (.mul (.index (.var "weights") (.gpow 0)) (.var "eq_0"))) (.mul (.index (.var "weights") (.gpow 1)) (.var "eq_1"))))]),
+        .mk 1582 (.let_ "level_sum" (.index (.var "residual_chain") (.genPow (.div (.index (.var "LIG_QUERIES") (.var "ml")) (.lit 2))))),
+        .mk 1583 (.ite true (.mod (.index (.var "LIG_QUERIES") (.var "ml")) (.lit 2)) (.lit 1) [
+          .mk 1584 (.let_ "last" (.sub (.index (.var "LIG_QUERIES") (.var "ml")) (.lit 1))),
+          .mk 1585 (.let_ "eq_last" (.call "residual_query" [(.index (.var "query_positions") (.genPow (.add (.index (.var "LIG_POSITIONS_OFF") (.var "ml")) (.var "last")))), (.mul (.var "basis_d") (.genPow (.var "basis_row"))), (.var "vanish"), (.index (.var "LIG_LOG_MSG_COLS") (.var "ml"))])),
+          .mk 1586 (.let_ "level_sum" (.add (.var "level_sum") (.mul (.index (.var "query_weights") (.genPow (.add (.mul (.var "lvl") (.var "max_q")) (.var "last")))) (.var "eq_last"))))] [] true),
+        .mk 1588 (.store (.var "inner_chain") (.genPow (.add (.var "lvl") (.lit 1))) (.add (.index (.var "inner_chain") (.genPow (.var "lvl"))) (.mul (.index (.var "level_scale") (.genPow (.var "lvl"))) (.var "level_sum"))))]),
+      .mk 1591 (.let_ "ood_inner" (.lit 0)),
+      .mk 1592 (.unroll "ood_lvl" (.lit 1) (.var "n_levels") [
+        .mk 1593 (.let_ "ml" (.add (.mul (.var "m_idx") (.lit 6)) (.var "ood_lvl"))),
+        .mk 1594 (.let_ "z_folded" (.sub (.index (.var "LIG_LOG_MSG_COLS") (.sub (.var "ml") (.lit 1))) (.var "yr_log"))),
+        .mk 1595 (.let_ "ris_start" (.index (.var "LIG_FOLDS_OFF") (.var "ml"))),
+        .mk 1596 (.unroll "os" (.lit 0) (.index (.var "LIG_OOD_SAMPLES") (.var "ml")) [
+          .mk 1597 (.let_ "oz" (.mul (.var "ood_z") (.genPow (.mul (.add (.mul (.var "ood_lvl") (.lit 1)) (.var "os")) (.lit 22))))),
+          .mk 1598 (.let_ "scalar" (.index (.var "ood") (.genPow (.add (.add (.mul (.var "ood_lvl") (.var "ood_stride")) (.mul (.var "os") (.lit 4))) (.lit 0))))),
+          .mk 1599 (.unroll "t" (.lit 0) (.var "z_folded") [
+            .mk 1600 (.let_ "scalar" (.mul (.var "scalar") (.add (.add (.lit 1) (.index (.var "oz") (.genPow (.var "t")))) (.index (.var "fold_challenges") (.genPow (.add (.var "ris_start") (.var "t")))))))]),
+          .mk 1601 (.unroll "t" (.lit 0) (.var "yr_log") [
+            .mk 1602 (.let_ "scalar" (.mul (.var "scalar") (.add (.add (.lit 1) (.index (.var "oz") (.genPow (.add (.var "z_folded") (.var "t"))))) (.index (.var "tail_challenges") (.genPow (.var "t"))))))]),
+          .mk 1603 (.let_ "ood_inner" (.add (.var "ood_inner") (.var "scalar")))])]),
+      .mk 1604 (.ret [(.var "sumcheck_target"), (.var "point"), (.var "point1"), (.add (.index (.var "inner_chain") (.genPow (.var "n_levels"))) (.var "ood_inner")), (.var "yr_at_tail")])] }
 
 /-- `verify_bus_gkr`. -/
 def fn_verify_bus_gkr : Func :=
   { name := "verify_bus_gkr", params := [⟨"fs0", (.runtime .scalar)⟩, ⟨"fs1", (.runtime .scalar)⟩, ⟨"fs2", (.runtime .scalar)⟩, ⟨"fs3", (.runtime .scalar)⟩, ⟨"fs4", (.runtime .scalar)⟩, ⟨"cursor", (.runtime .scalar)⟩, ⟨"g_bus_mu", (.runtime .scalar)⟩, ⟨"zeta", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar, .scalar, .scalar, .scalar, .scalar, .scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 1625 (.let_ "layers" (.heapBufDyn (.pow (.mul (.var "g_bus_mu") (.gpow 2)) (.lit 17)))),
-      .mk 1626 (.let_ "rounds" (.heapBuf 6034)),
-      .mk 1627 (.let_ "gkr_pts" (.heapBuf 1640)),
-      .mk 1628 (.assertLt (.var "g_bus_mu") (.const 33)),
-      .mk 1629 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
-      .mk 1630 (.let_ "rate" (.stackBuf 8)),
-      .mk 1631 (.letTuple ["root_push", "cursor"] "fs_next" [(.var "rate"), (.lit 0), (.var "cursor")]),
-      .mk 1632 (.let_ "root_pull" (.var "root_push")),
-      .mk 1633 (.letTuple ["root_count", "cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "cursor")]),
-      .mk 1634 (.assertNe (.var "root_count") (.lit 0)),
-      .mk 1637 (.unroll "j" (.lit 0) (.lit 5) [
-        .mk 1638 (.store (.var "layers") (.genPow (.add (.lit 0) (.var "j"))) (.index (.var "sp") (.var "j")))]),
-      .mk 1639 (.unroll "j" (.lit 0) (.lit 4) [
-        .mk 1640 (.store (.var "layers") (.genPow (.add (.lit 13) (.var "j"))) (.index (.var "rate") (.var "j")))]),
-      .mk 1641 (.store (.var "layers") (.gpow 5) (.var "cursor")),
-      .mk 1642 (.store (.var "layers") (.gpow 6) (.var "root_push")),
-      .mk 1643 (.store (.var "layers") (.gpow 7) (.var "root_pull")),
-      .mk 1644 (.store (.var "layers") (.gpow 8) (.var "root_count")),
-      .mk 1645 (.store (.var "layers") (.gpow 9) (.var "gkr_pts")),
-      .mk 1646 (.store (.var "layers") (.gpow 10) (.gpow 0)),
-      .mk 1647 (.store (.var "layers") (.gpow 11) (.gpow 0)),
-      .mk 1648 (.store (.var "layers") (.gpow 12) (.lit 0)),
-      .mk 1653 (.let_ "pair_bounds" (.heapBuf 33)),
-      .mk 1654 (.let_ "depth_shift" (.heapBuf 33)),
-      .mk 1655 (.unroll "depth" (.lit 0) (.lit 33) [
-        .mk 1656 (.store (.var "pair_bounds") (.genPow (.var "depth")) (.genPow (.div (.var "depth") (.lit 2)))),
-        .mk 1657 (.store (.var "depth_shift") (.genPow (.var "depth")) (.genPow (.mod (.var "depth") (.lit 2))))]),
-      .mk 1659 (.ite false (.index (.var "depth_shift") (.var "g_bus_mu")) (.lit 1) [
-        .mk 1662 (.let_ "layer_cap" (.call "fs_load" [(.var "layers"), (.lit 0), (.lit 1)])),
-        .mk 1663 (.let_ "tail_sp" (.call "fs_perm4" [(.var "layer_cap"), (.index (.var "layers") (.gpow 13)), (.index (.var "layers") (.gpow 14)), (.index (.var "layers") (.gpow 15)), (.index (.var "layers") (.gpow 16))])),
-        .mk 1664 (.let_ "lam" (.call "challenge_from_state" [(.var "tail_sp")])),
-        .mk 1665 (.let_ "rate" (.stackBuf 8)),
-        .mk 1666 (.let_ "tcur" (.index (.var "layers") (.gpow 5))),
-        .mk 1667 (.let_ "tclaim" (.add (.index (.var "layers") (.gpow 6)) (.mul (.var "lam") (.add (.index (.var "layers") (.gpow 7)) (.mul (.var "lam") (.index (.var "layers") (.gpow 8))))))),
-        .mk 1668 (.let_ "nextrow" (.mul (.index (.var "layers") (.gpow 9)) (.gpow 40))),
-        .mk 1669 (.let_ "evals" (.stackBuf 6)),
-        .mk 1670 (.unroll "i" (.lit 0) (.mul (.lit 2) (.lit 3)) [
-          .mk 1671 (.ite true (.mod (.var "i") (.lit 4)) (.lit 0) [
-            .mk 1672 (.ite false (.var "i") (.lit 0) [
-              .mk 1673 (.let_ "tail_sp" (.call "fs_perm" [(.var "tail_sp"), (.var "rate"), (.lit 4)])),
-              .mk 1674 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
-          .mk 1675 (.letTuple ["ev", "tcur"] "fs_next" [(.var "rate"), (.mod (.var "i") (.lit 4)), (.var "tcur")]),
-          .mk 1676 (.store (.var "evals") (.var "i") (.var "ev"))]),
-        .mk 1677 (.let_ "combined" (.lit 0)),
-        .mk 1678 (.unroll "i" (.lit 0) (.lit 3) [
-          .mk 1679 (.let_ "side" (.sub (.sub (.lit 3) (.lit 1)) (.var "i"))),
-          .mk 1680 (.let_ "combined" (.add (.mul (.index (.var "evals") (.mul (.lit 2) (.var "side"))) (.index (.var "evals") (.add (.mul (.lit 2) (.var "side")) (.lit 1)))) (.mul (.var "lam") (.var "combined"))))]),
-        .mk 1681 (.assertEq (.var "tclaim") (.var "combined")),
-        .mk 1682 (.letTuple ["tail_sp", "c0"] "squeeze" [(.var "tail_sp"), (.var "rate"), (.add (.mod (.add (.mul (.lit 2) (.lit 3)) (.lit 3)) (.lit 4)) (.lit 1))]),
-        .mk 1683 (.store (.var "nextrow") (.gpow 0) (.var "c0")),
-        .mk 1684 (.let_ "nxt" (.mul (.var "layers") (.gpow 17))),
-        .mk 1685 (.call "fs_store" [(.var "nxt"), (.lit 0), (.lit 1), (.var "tail_sp")]),
-        .mk 1686 (.unroll "j" (.lit 0) (.lit 4) [
-          .mk 1687 (.store (.var "nxt") (.genPow (.add (.lit 13) (.var "j"))) (.lit 0))]),
-        .mk 1688 (.store (.var "nxt") (.gpow 5) (.var "tcur")),
-        .mk 1689 (.unroll "side" (.lit 0) (.lit 3) [
-          .mk 1690 (.store (.var "nxt") (.genPow (.add (.lit 6) (.var "side"))) (.add (.index (.var "evals") (.mul (.lit 2) (.var "side"))) (.mul (.var "c0") (.add (.index (.var "evals") (.mul (.lit 2) (.var "side"))) (.index (.var "evals") (.add (.mul (.lit 2) (.var "side")) (.lit 1)))))))]),
-        .mk 1691 (.store (.var "nxt") (.gpow 9) (.var "nextrow")),
-        .mk 1692 (.store (.var "nxt") (.gpow 10) .gen),
-        .mk 1693 (.store (.var "nxt") (.gpow 11) (.gpow 0)),
-        .mk 1694 (.store (.var "nxt") (.gpow 12) (.lit 0))] [] false),
-      .mk 1696 (.for_ "x_pair" 0 (.runtime (.index (.var "pair_bounds") (.var "g_bus_mu"))) [
-        .mk 1697 (.let_ "sq" (.mul (.var "x_pair") (.var "x_pair"))),
-        .mk 1698 (.let_ "x_layer" (.mul (.var "sq") (.index (.var "depth_shift") (.var "g_bus_mu")))),
-        .mk 1699 (.let_ "layer" (.mul (.var "layers") (.pow (.var "x_layer") (.lit 17)))),
-        .mk 1700 (.let_ "layer_cap" (.call "fs_load" [(.var "layer"), (.lit 0), (.lit 1)])),
-        .mk 1701 (.let_ "layer_sp" (.call "fs_perm4" [(.var "layer_cap"), (.index (.var "layer") (.gpow 13)), (.index (.var "layer") (.gpow 14)), (.index (.var "layer") (.gpow 15)), (.index (.var "layer") (.gpow 16))])),
-        .mk 1702 (.let_ "lam" (.call "challenge_from_state" [(.var "layer_sp")])),
-        .mk 1703 (.let_ "point_row" (.index (.var "layer") (.gpow 9))),
-        .mk 1704 (.let_ "round_pos" (.index (.var "layer") (.gpow 10))),
-        .mk 1705 (.let_ "nextrow" (.mul (.var "point_row") (.gpow 40))),
-        .mk 1708 (.let_ "head" (.mul (.var "rounds") (.var "round_pos"))),
-        .mk 1709 (.call "fs_store" [(.var "head"), (.lit 0), (.lit 862), (.var "layer_sp")]),
-        .mk 1710 (.store (.var "head") (.gpow 4310) (.index (.var "layer") (.gpow 5))),
-        .mk 1711 (.store (.var "head") (.gpow 5172) (.add (.index (.var "layer") (.gpow 6)) (.mul (.var "lam") (.add (.index (.var "layer") (.gpow 7)) (.mul (.var "lam") (.index (.var "layer") (.gpow 8))))))),
-        .mk 1714 (.let_ "half" (.index (.var "layer") (.gpow 11))),
-        .mk 1715 (.let_ "parity" (.index (.var "layer") (.gpow 12))),
-        .mk 1716 (.for_ "x4" 0 (.runtime (.var "half")) [
-          .mk 1717 (.let_ "step" (.pow (.var "x4") (.lit 4))),
-          .mk 1718 (.let_ "rd" (.mul (.var "head") (.var "step"))),
-          .mk 1719 (.let_ "pt" (.mul (.var "point_row") (.var "step"))),
-          .mk 1720 (.let_ "round_sp" (.call "fs_load" [(.var "rd"), (.lit 0), (.lit 862)])),
-          .mk 1721 (.let_ "cur" (.index (.var "rd") (.gpow 4310))),
-          .mk 1722 (.let_ "claim" (.index (.var "rd") (.gpow 5172))),
-          .mk 1723 (.unroll "q" (.lit 0) (.lit 4) [
-            .mk 1725 (.let_ "rate" (.stackBuf 8)),
-            .mk 1726 (.letTuple ["c1", "cur"] "fs_next" [(.var "rate"), (.lit 0), (.var "cur")]),
-            .mk 1727 (.letTuple ["c2", "cur"] "fs_next" [(.var "rate"), (.lit 1), (.var "cur")]),
-            .mk 1728 (.letTuple ["c3", "cur"] "fs_next" [(.var "rate"), (.lit 2), (.var "cur")]),
-            .mk 1729 (.letTuple ["c4", "cur"] "fs_next" [(.var "rate"), (.lit 3), (.var "cur")]),
-            .mk 1730 (.letTuple ["round_sp", "rk"] "squeeze" [(.var "round_sp"), (.var "rate"), (.lit 4)]),
-            .mk 1731 (.let_ "c0" (.add (.var "claim") (.mul (.index (.var "pt") (.genPow (.var "q"))) (.add (.add (.add (.var "c1") (.var "c2")) (.var "c3")) (.var "c4"))))),
-            .mk 1732 (.store (.var "pt") (.genPow (.add (.add (.lit 40) (.lit 2)) (.var "q"))) (.var "rk")),
-            .mk 1733 (.let_ "claim" (.add (.var "c0") (.mul (.var "rk") (.add (.var "c1") (.mul (.var "rk") (.add (.var "c2") (.mul (.var "rk") (.add (.var "c3") (.mul (.var "rk") (.var "c4"))))))))))]),
-          .mk 1734 (.let_ "rd_next" (.mul (.var "rd") (.gpow 4))),
-          .mk 1735 (.call "fs_store" [(.var "rd_next"), (.lit 0), (.lit 862), (.var "round_sp")]),
-          .mk 1736 (.store (.var "rd_next") (.gpow 4310) (.var "cur")),
-          .mk 1737 (.store (.var "rd_next") (.gpow 5172) (.var "claim"))]),
-        .mk 1738 (.ite false (.var "parity") (.lit 0) [
-          .mk 1739 (.let_ "quad" (.pow (.var "half") (.lit 4))),
-          .mk 1740 (.call "gkr_rounds" [(.mul (.var "head") (.var "quad")), (.mul (.var "point_row") (.var "quad")), (.lit 2)])] [] false),
-        .mk 1741 (.ite false (.var "x_layer") (.var "sq") [
-          .mk 1742 (.call "gkr_rounds" [(.mul (.var "head") (.var "sq")), (.mul (.var "point_row") (.var "sq")), (.lit 1)])] [] false),
-        .mk 1743 (.let_ "tail" (.mul (.var "head") (.var "x_layer"))),
-        .mk 1744 (.let_ "tail_sp" (.call "fs_load" [(.var "tail"), (.lit 0), (.lit 862)])),
-        .mk 1745 (.let_ "rate" (.stackBuf 8)),
-        .mk 1746 (.let_ "tcur" (.index (.var "tail") (.gpow 4310))),
-        .mk 1747 (.let_ "tclaim" (.index (.var "tail") (.gpow 5172))),
-        .mk 1748 (.let_ "evals" (.stackBuf 12)),
-        .mk 1749 (.unroll "i" (.lit 0) (.mul (.lit 4) (.lit 3)) [
-          .mk 1750 (.ite true (.mod (.var "i") (.lit 4)) (.lit 0) [
-            .mk 1751 (.ite false (.var "i") (.lit 0) [
-              .mk 1752 (.let_ "tail_sp" (.call "fs_perm" [(.var "tail_sp"), (.var "rate"), (.lit 4)])),
-              .mk 1753 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
-          .mk 1754 (.letTuple ["ev", "tcur"] "fs_next" [(.var "rate"), (.mod (.var "i") (.lit 4)), (.var "tcur")]),
-          .mk 1755 (.store (.var "evals") (.var "i") (.var "ev"))]),
-        .mk 1756 (.let_ "combined" (.lit 0)),
-        .mk 1757 (.unroll "i" (.lit 0) (.lit 3) [
-          .mk 1758 (.let_ "side" (.sub (.sub (.lit 3) (.lit 1)) (.var "i"))),
-          .mk 1759 (.let_ "combined" (.add (.mul (.mul (.mul (.index (.var "evals") (.mul (.lit 4) (.var "side"))) (.index (.var "evals") (.add (.mul (.lit 4) (.var "side")) (.lit 1)))) (.index (.var "evals") (.add (.mul (.lit 4) (.var "side")) (.lit 2)))) (.index (.var "evals") (.add (.mul (.lit 4) (.var "side")) (.lit 3)))) (.mul (.var "lam") (.var "combined"))))]),
-        .mk 1760 (.assertEq (.var "tclaim") (.var "combined")),
-        .mk 1761 (.letTuple ["tail_sp", "c0"] "squeeze" [(.var "tail_sp"), (.var "rate"), (.add (.mod (.add (.mul (.lit 4) (.lit 3)) (.lit 3)) (.lit 4)) (.lit 1))]),
-        .mk 1762 (.letTuple ["tail_sp", "c1"] "squeeze" [(.var "tail_sp"), (.var "rate"), (.lit 0)]),
-        .mk 1763 (.store (.var "nextrow") (.gpow 0) (.var "c0")),
-        .mk 1764 (.store (.var "nextrow") (.gpow 1) (.var "c1")),
-        .mk 1765 (.let_ "nxt" (.mul (.var "layer") (.gpow 34))),
-        .mk 1766 (.call "fs_store" [(.var "nxt"), (.lit 0), (.lit 1), (.var "tail_sp")]),
-        .mk 1767 (.unroll "j" (.lit 0) (.lit 4) [
-          .mk 1768 (.store (.var "nxt") (.genPow (.add (.lit 13) (.var "j"))) (.lit 0))]),
-        .mk 1769 (.store (.var "nxt") (.gpow 5) (.var "tcur")),
-        .mk 1770 (.unroll "side" (.lit 0) (.lit 3) [
-          .mk 1771 (.let_ "lo" (.add (.index (.var "evals") (.mul (.lit 4) (.var "side"))) (.mul (.var "c0") (.add (.index (.var "evals") (.mul (.lit 4) (.var "side"))) (.index (.var "evals") (.add (.mul (.lit 4) (.var "side")) (.lit 1))))))),
-          .mk 1772 (.let_ "hi" (.add (.index (.var "evals") (.add (.mul (.lit 4) (.var "side")) (.lit 2))) (.mul (.var "c0") (.add (.index (.var "evals") (.add (.mul (.lit 4) (.var "side")) (.lit 2))) (.index (.var "evals") (.add (.mul (.lit 4) (.var "side")) (.lit 3))))))),
-          .mk 1773 (.store (.var "nxt") (.genPow (.add (.lit 6) (.var "side"))) (.add (.var "lo") (.mul (.var "c1") (.add (.var "lo") (.var "hi")))))]),
-        .mk 1774 (.store (.var "nxt") (.gpow 9) (.var "nextrow")),
-        .mk 1775 (.store (.var "nxt") (.gpow 10) (.mul (.mul (.var "round_pos") (.var "x_layer")) .gen)),
-        .mk 1776 (.store (.var "nxt") (.gpow 11) (.mul (.var "half") (.add (.lit 1) (.mul (.var "parity") (.add (.lit 1) .gen))))),
-        .mk 1777 (.store (.var "nxt") (.gpow 12) (.add (.lit 1) (.var "parity")))]),
-      .mk 1778 (.let_ "last" (.mul (.var "layers") (.pow (.var "g_bus_mu") (.lit 17)))),
-      .mk 1779 (.let_ "cursor" (.index (.var "last") (.gpow 5))),
-      .mk 1780 (.let_ "final_point_row" (.index (.var "last") (.gpow 9))),
-      .mk 1781 (.for_ "xt" 0 (.runtime (.var "g_bus_mu")) [
-        .mk 1782 (.store (.var "zeta") (.var "xt") (.index (.var "final_point_row") (.var "xt")))]),
-      .mk 1783 (.ret [(.index (.var "last") (.gpow 0)), (.index (.var "last") (.gpow 1)), (.index (.var "last") (.gpow 2)), (.index (.var "last") (.gpow 3)), (.index (.var "last") (.gpow 4)), (.var "cursor"), (.index (.var "last") (.gpow 6)), (.index (.var "last") (.gpow 7)), (.index (.var "last") (.gpow 8))])] }
+      .mk 1620 (.let_ "layers" (.heapBufDyn (.pow (.mul (.var "g_bus_mu") (.gpow 2)) (.lit 17)))),
+      .mk 1621 (.let_ "rounds" (.heapBuf 6034)),
+      .mk 1622 (.let_ "gkr_pts" (.heapBuf 1640)),
+      .mk 1623 (.assertLt (.var "g_bus_mu") (.const 33)),
+      .mk 1624 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
+      .mk 1625 (.let_ "rate" (.stackBuf 8)),
+      .mk 1626 (.letTuple ["root_push", "cursor"] "fs_next" [(.var "rate"), (.lit 0), (.var "cursor")]),
+      .mk 1627 (.let_ "root_pull" (.var "root_push")),
+      .mk 1628 (.letTuple ["root_count", "cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "cursor")]),
+      .mk 1629 (.assertNe (.var "root_count") (.lit 0)),
+      .mk 1632 (.unroll "j" (.lit 0) (.lit 5) [
+        .mk 1633 (.store (.var "layers") (.genPow (.add (.lit 0) (.var "j"))) (.index (.var "sp") (.var "j")))]),
+      .mk 1634 (.unroll "j" (.lit 0) (.lit 4) [
+        .mk 1635 (.store (.var "layers") (.genPow (.add (.lit 13) (.var "j"))) (.index (.var "rate") (.var "j")))]),
+      .mk 1636 (.store (.var "layers") (.gpow 5) (.var "cursor")),
+      .mk 1637 (.store (.var "layers") (.gpow 6) (.var "root_push")),
+      .mk 1638 (.store (.var "layers") (.gpow 7) (.var "root_pull")),
+      .mk 1639 (.store (.var "layers") (.gpow 8) (.var "root_count")),
+      .mk 1640 (.store (.var "layers") (.gpow 9) (.var "gkr_pts")),
+      .mk 1641 (.store (.var "layers") (.gpow 10) (.gpow 0)),
+      .mk 1642 (.store (.var "layers") (.gpow 11) (.gpow 0)),
+      .mk 1643 (.store (.var "layers") (.gpow 12) (.lit 0)),
+      .mk 1648 (.let_ "pair_bounds" (.heapBuf 33)),
+      .mk 1649 (.let_ "depth_shift" (.heapBuf 33)),
+      .mk 1650 (.unroll "depth" (.lit 0) (.lit 33) [
+        .mk 1651 (.store (.var "pair_bounds") (.genPow (.var "depth")) (.genPow (.div (.var "depth") (.lit 2)))),
+        .mk 1652 (.store (.var "depth_shift") (.genPow (.var "depth")) (.genPow (.mod (.var "depth") (.lit 2))))]),
+      .mk 1654 (.ite false (.index (.var "depth_shift") (.var "g_bus_mu")) (.lit 1) [
+        .mk 1657 (.let_ "layer_cap" (.call "fs_load" [(.var "layers"), (.lit 0), (.lit 1)])),
+        .mk 1658 (.let_ "tail_sp" (.call "fs_perm4" [(.var "layer_cap"), (.index (.var "layers") (.gpow 13)), (.index (.var "layers") (.gpow 14)), (.index (.var "layers") (.gpow 15)), (.index (.var "layers") (.gpow 16))])),
+        .mk 1659 (.let_ "lam" (.call "challenge_from_state" [(.var "tail_sp")])),
+        .mk 1660 (.let_ "rate" (.stackBuf 8)),
+        .mk 1661 (.let_ "tcur" (.index (.var "layers") (.gpow 5))),
+        .mk 1662 (.let_ "tclaim" (.add (.index (.var "layers") (.gpow 6)) (.mul (.var "lam") (.add (.index (.var "layers") (.gpow 7)) (.mul (.var "lam") (.index (.var "layers") (.gpow 8))))))),
+        .mk 1663 (.let_ "nextrow" (.mul (.index (.var "layers") (.gpow 9)) (.gpow 40))),
+        .mk 1664 (.let_ "evals" (.stackBuf 6)),
+        .mk 1665 (.unroll "i" (.lit 0) (.mul (.lit 2) (.lit 3)) [
+          .mk 1666 (.ite true (.mod (.var "i") (.lit 4)) (.lit 0) [
+            .mk 1667 (.ite false (.var "i") (.lit 0) [
+              .mk 1668 (.let_ "tail_sp" (.call "fs_perm" [(.var "tail_sp"), (.var "rate"), (.lit 4)])),
+              .mk 1669 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
+          .mk 1670 (.letTuple ["ev", "tcur"] "fs_next" [(.var "rate"), (.mod (.var "i") (.lit 4)), (.var "tcur")]),
+          .mk 1671 (.store (.var "evals") (.var "i") (.var "ev"))]),
+        .mk 1672 (.let_ "combined" (.lit 0)),
+        .mk 1673 (.unroll "i" (.lit 0) (.lit 3) [
+          .mk 1674 (.let_ "side" (.sub (.sub (.lit 3) (.lit 1)) (.var "i"))),
+          .mk 1675 (.let_ "combined" (.add (.mul (.index (.var "evals") (.mul (.lit 2) (.var "side"))) (.index (.var "evals") (.add (.mul (.lit 2) (.var "side")) (.lit 1)))) (.mul (.var "lam") (.var "combined"))))]),
+        .mk 1676 (.assertEq (.var "tclaim") (.var "combined")),
+        .mk 1677 (.letTuple ["tail_sp", "c0"] "squeeze" [(.var "tail_sp"), (.var "rate"), (.add (.mod (.add (.mul (.lit 2) (.lit 3)) (.lit 3)) (.lit 4)) (.lit 1))]),
+        .mk 1678 (.store (.var "nextrow") (.gpow 0) (.var "c0")),
+        .mk 1679 (.let_ "nxt" (.mul (.var "layers") (.gpow 17))),
+        .mk 1680 (.call "fs_store" [(.var "nxt"), (.lit 0), (.lit 1), (.var "tail_sp")]),
+        .mk 1681 (.unroll "j" (.lit 0) (.lit 4) [
+          .mk 1682 (.store (.var "nxt") (.genPow (.add (.lit 13) (.var "j"))) (.lit 0))]),
+        .mk 1683 (.store (.var "nxt") (.gpow 5) (.var "tcur")),
+        .mk 1684 (.unroll "side" (.lit 0) (.lit 3) [
+          .mk 1685 (.store (.var "nxt") (.genPow (.add (.lit 6) (.var "side"))) (.add (.index (.var "evals") (.mul (.lit 2) (.var "side"))) (.mul (.var "c0") (.add (.index (.var "evals") (.mul (.lit 2) (.var "side"))) (.index (.var "evals") (.add (.mul (.lit 2) (.var "side")) (.lit 1)))))))]),
+        .mk 1686 (.store (.var "nxt") (.gpow 9) (.var "nextrow")),
+        .mk 1687 (.store (.var "nxt") (.gpow 10) .gen),
+        .mk 1688 (.store (.var "nxt") (.gpow 11) (.gpow 0)),
+        .mk 1689 (.store (.var "nxt") (.gpow 12) (.lit 0))] [] false),
+      .mk 1691 (.for_ "x_pair" 0 (.runtime (.index (.var "pair_bounds") (.var "g_bus_mu"))) [
+        .mk 1692 (.let_ "sq" (.mul (.var "x_pair") (.var "x_pair"))),
+        .mk 1693 (.let_ "x_layer" (.mul (.var "sq") (.index (.var "depth_shift") (.var "g_bus_mu")))),
+        .mk 1694 (.let_ "layer" (.mul (.var "layers") (.pow (.var "x_layer") (.lit 17)))),
+        .mk 1695 (.let_ "layer_cap" (.call "fs_load" [(.var "layer"), (.lit 0), (.lit 1)])),
+        .mk 1696 (.let_ "layer_sp" (.call "fs_perm4" [(.var "layer_cap"), (.index (.var "layer") (.gpow 13)), (.index (.var "layer") (.gpow 14)), (.index (.var "layer") (.gpow 15)), (.index (.var "layer") (.gpow 16))])),
+        .mk 1697 (.let_ "lam" (.call "challenge_from_state" [(.var "layer_sp")])),
+        .mk 1698 (.let_ "point_row" (.index (.var "layer") (.gpow 9))),
+        .mk 1699 (.let_ "round_pos" (.index (.var "layer") (.gpow 10))),
+        .mk 1700 (.let_ "nextrow" (.mul (.var "point_row") (.gpow 40))),
+        .mk 1703 (.let_ "head" (.mul (.var "rounds") (.var "round_pos"))),
+        .mk 1704 (.call "fs_store" [(.var "head"), (.lit 0), (.lit 862), (.var "layer_sp")]),
+        .mk 1705 (.store (.var "head") (.gpow 4310) (.index (.var "layer") (.gpow 5))),
+        .mk 1706 (.store (.var "head") (.gpow 5172) (.add (.index (.var "layer") (.gpow 6)) (.mul (.var "lam") (.add (.index (.var "layer") (.gpow 7)) (.mul (.var "lam") (.index (.var "layer") (.gpow 8))))))),
+        .mk 1709 (.let_ "half" (.index (.var "layer") (.gpow 11))),
+        .mk 1710 (.let_ "parity" (.index (.var "layer") (.gpow 12))),
+        .mk 1711 (.for_ "x4" 0 (.runtime (.var "half")) [
+          .mk 1712 (.let_ "step" (.pow (.var "x4") (.lit 4))),
+          .mk 1713 (.let_ "rd" (.mul (.var "head") (.var "step"))),
+          .mk 1714 (.let_ "pt" (.mul (.var "point_row") (.var "step"))),
+          .mk 1715 (.let_ "round_sp" (.call "fs_load" [(.var "rd"), (.lit 0), (.lit 862)])),
+          .mk 1716 (.let_ "cur" (.index (.var "rd") (.gpow 4310))),
+          .mk 1717 (.let_ "claim" (.index (.var "rd") (.gpow 5172))),
+          .mk 1718 (.unroll "q" (.lit 0) (.lit 4) [
+            .mk 1720 (.let_ "rate" (.stackBuf 8)),
+            .mk 1721 (.letTuple ["c1", "cur"] "fs_next" [(.var "rate"), (.lit 0), (.var "cur")]),
+            .mk 1722 (.letTuple ["c2", "cur"] "fs_next" [(.var "rate"), (.lit 1), (.var "cur")]),
+            .mk 1723 (.letTuple ["c3", "cur"] "fs_next" [(.var "rate"), (.lit 2), (.var "cur")]),
+            .mk 1724 (.letTuple ["c4", "cur"] "fs_next" [(.var "rate"), (.lit 3), (.var "cur")]),
+            .mk 1725 (.letTuple ["round_sp", "rk"] "squeeze" [(.var "round_sp"), (.var "rate"), (.lit 4)]),
+            .mk 1726 (.let_ "c0" (.add (.var "claim") (.mul (.index (.var "pt") (.genPow (.var "q"))) (.add (.add (.add (.var "c1") (.var "c2")) (.var "c3")) (.var "c4"))))),
+            .mk 1727 (.store (.var "pt") (.genPow (.add (.add (.lit 40) (.lit 2)) (.var "q"))) (.var "rk")),
+            .mk 1728 (.let_ "claim" (.add (.var "c0") (.mul (.var "rk") (.add (.var "c1") (.mul (.var "rk") (.add (.var "c2") (.mul (.var "rk") (.add (.var "c3") (.mul (.var "rk") (.var "c4"))))))))))]),
+          .mk 1729 (.let_ "rd_next" (.mul (.var "rd") (.gpow 4))),
+          .mk 1730 (.call "fs_store" [(.var "rd_next"), (.lit 0), (.lit 862), (.var "round_sp")]),
+          .mk 1731 (.store (.var "rd_next") (.gpow 4310) (.var "cur")),
+          .mk 1732 (.store (.var "rd_next") (.gpow 5172) (.var "claim"))]),
+        .mk 1733 (.ite false (.var "parity") (.lit 0) [
+          .mk 1734 (.let_ "quad" (.pow (.var "half") (.lit 4))),
+          .mk 1735 (.call "gkr_rounds" [(.mul (.var "head") (.var "quad")), (.mul (.var "point_row") (.var "quad")), (.lit 2)])] [] false),
+        .mk 1736 (.ite false (.var "x_layer") (.var "sq") [
+          .mk 1737 (.call "gkr_rounds" [(.mul (.var "head") (.var "sq")), (.mul (.var "point_row") (.var "sq")), (.lit 1)])] [] false),
+        .mk 1738 (.let_ "tail" (.mul (.var "head") (.var "x_layer"))),
+        .mk 1739 (.let_ "tail_sp" (.call "fs_load" [(.var "tail"), (.lit 0), (.lit 862)])),
+        .mk 1740 (.let_ "rate" (.stackBuf 8)),
+        .mk 1741 (.let_ "tcur" (.index (.var "tail") (.gpow 4310))),
+        .mk 1742 (.let_ "tclaim" (.index (.var "tail") (.gpow 5172))),
+        .mk 1743 (.let_ "evals" (.stackBuf 12)),
+        .mk 1744 (.unroll "i" (.lit 0) (.mul (.lit 4) (.lit 3)) [
+          .mk 1745 (.ite true (.mod (.var "i") (.lit 4)) (.lit 0) [
+            .mk 1746 (.ite false (.var "i") (.lit 0) [
+              .mk 1747 (.let_ "tail_sp" (.call "fs_perm" [(.var "tail_sp"), (.var "rate"), (.lit 4)])),
+              .mk 1748 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
+          .mk 1749 (.letTuple ["ev", "tcur"] "fs_next" [(.var "rate"), (.mod (.var "i") (.lit 4)), (.var "tcur")]),
+          .mk 1750 (.store (.var "evals") (.var "i") (.var "ev"))]),
+        .mk 1751 (.let_ "combined" (.lit 0)),
+        .mk 1752 (.unroll "i" (.lit 0) (.lit 3) [
+          .mk 1753 (.let_ "side" (.sub (.sub (.lit 3) (.lit 1)) (.var "i"))),
+          .mk 1754 (.let_ "combined" (.add (.mul (.mul (.mul (.index (.var "evals") (.mul (.lit 4) (.var "side"))) (.index (.var "evals") (.add (.mul (.lit 4) (.var "side")) (.lit 1)))) (.index (.var "evals") (.add (.mul (.lit 4) (.var "side")) (.lit 2)))) (.index (.var "evals") (.add (.mul (.lit 4) (.var "side")) (.lit 3)))) (.mul (.var "lam") (.var "combined"))))]),
+        .mk 1755 (.assertEq (.var "tclaim") (.var "combined")),
+        .mk 1756 (.letTuple ["tail_sp", "c0"] "squeeze" [(.var "tail_sp"), (.var "rate"), (.add (.mod (.add (.mul (.lit 4) (.lit 3)) (.lit 3)) (.lit 4)) (.lit 1))]),
+        .mk 1757 (.letTuple ["tail_sp", "c1"] "squeeze" [(.var "tail_sp"), (.var "rate"), (.lit 0)]),
+        .mk 1758 (.store (.var "nextrow") (.gpow 0) (.var "c0")),
+        .mk 1759 (.store (.var "nextrow") (.gpow 1) (.var "c1")),
+        .mk 1760 (.let_ "nxt" (.mul (.var "layer") (.gpow 34))),
+        .mk 1761 (.call "fs_store" [(.var "nxt"), (.lit 0), (.lit 1), (.var "tail_sp")]),
+        .mk 1762 (.unroll "j" (.lit 0) (.lit 4) [
+          .mk 1763 (.store (.var "nxt") (.genPow (.add (.lit 13) (.var "j"))) (.lit 0))]),
+        .mk 1764 (.store (.var "nxt") (.gpow 5) (.var "tcur")),
+        .mk 1765 (.unroll "side" (.lit 0) (.lit 3) [
+          .mk 1766 (.let_ "lo" (.add (.index (.var "evals") (.mul (.lit 4) (.var "side"))) (.mul (.var "c0") (.add (.index (.var "evals") (.mul (.lit 4) (.var "side"))) (.index (.var "evals") (.add (.mul (.lit 4) (.var "side")) (.lit 1))))))),
+          .mk 1767 (.let_ "hi" (.add (.index (.var "evals") (.add (.mul (.lit 4) (.var "side")) (.lit 2))) (.mul (.var "c0") (.add (.index (.var "evals") (.add (.mul (.lit 4) (.var "side")) (.lit 2))) (.index (.var "evals") (.add (.mul (.lit 4) (.var "side")) (.lit 3))))))),
+          .mk 1768 (.store (.var "nxt") (.genPow (.add (.lit 6) (.var "side"))) (.add (.var "lo") (.mul (.var "c1") (.add (.var "lo") (.var "hi")))))]),
+        .mk 1769 (.store (.var "nxt") (.gpow 9) (.var "nextrow")),
+        .mk 1770 (.store (.var "nxt") (.gpow 10) (.mul (.mul (.var "round_pos") (.var "x_layer")) .gen)),
+        .mk 1771 (.store (.var "nxt") (.gpow 11) (.mul (.var "half") (.add (.lit 1) (.mul (.var "parity") (.add (.lit 1) .gen))))),
+        .mk 1772 (.store (.var "nxt") (.gpow 12) (.add (.lit 1) (.var "parity")))]),
+      .mk 1773 (.let_ "last" (.mul (.var "layers") (.pow (.var "g_bus_mu") (.lit 17)))),
+      .mk 1774 (.let_ "cursor" (.index (.var "last") (.gpow 5))),
+      .mk 1775 (.let_ "final_point_row" (.index (.var "last") (.gpow 9))),
+      .mk 1776 (.for_ "xt" 0 (.runtime (.var "g_bus_mu")) [
+        .mk 1777 (.store (.var "zeta") (.var "xt") (.index (.var "final_point_row") (.var "xt")))]),
+      .mk 1778 (.ret [(.index (.var "last") (.gpow 0)), (.index (.var "last") (.gpow 1)), (.index (.var "last") (.gpow 2)), (.index (.var "last") (.gpow 3)), (.index (.var "last") (.gpow 4)), (.var "cursor"), (.index (.var "last") (.gpow 6)), (.index (.var "last") (.gpow 7)), (.index (.var "last") (.gpow 8))])] }
 
 /-- `index_mle`. -/
 def fn_index_mle : Func :=
   { name := "index_mle", params := [⟨"zeta", (.runtime .scalar)⟩, ⟨"n", .const⟩], returnShapes := [.scalar],
     inline := false,
     body := [
-      .mk 1789 (.let_ "v" (.gpow 0)),
-      .mk 1790 (.unroll "t" (.lit 0) (.var "n") [
-        .mk 1791 (.ite true (.var "t") (.lit 0) [
-          .mk 1792 (.let_ "v" (.add (.lit 1) (.mul (.index (.var "zeta") (.genPow (.var "t"))) (.index (.var "INDEX_MLE_FACTORS") (.var "t")))))] [
-          .mk 1794 (.let_ "v" (.mul (.var "v") (.add (.lit 1) (.mul (.index (.var "zeta") (.genPow (.var "t"))) (.index (.var "INDEX_MLE_FACTORS") (.var "t"))))))] false)]),
-      .mk 1795 (.ret [(.var "v")])] }
+      .mk 1784 (.let_ "v" (.gpow 0)),
+      .mk 1785 (.unroll "t" (.lit 0) (.var "n") [
+        .mk 1786 (.ite true (.var "t") (.lit 0) [
+          .mk 1787 (.let_ "v" (.add (.lit 1) (.mul (.index (.var "zeta") (.genPow (.var "t"))) (.index (.var "INDEX_MLE_FACTORS") (.var "t")))))] [
+          .mk 1789 (.let_ "v" (.mul (.var "v") (.add (.lit 1) (.mul (.index (.var "zeta") (.genPow (.var "t"))) (.index (.var "INDEX_MLE_FACTORS") (.var "t"))))))] false)]),
+      .mk 1790 (.ret [(.var "v")])] }
 
 /-- `sel_eq_nibble`. -/
 def fn_sel_eq_nibble : Func :=
   { name := "sel_eq_nibble", params := [⟨"out", (.runtime .scalar)⟩, ⟨"z", (.runtime .scalar)⟩, ⟨"z1", (.runtime .scalar)⟩, ⟨"width", .const⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 1802 (.let_ "levels" (.stackBuf 30)),
-      .mk 1803 (.store (.var "levels") (.lit 0) (.index (.var "z1") (.gpow 0))),
-      .mk 1804 (.store (.var "levels") (.lit 1) (.index (.var "z") (.gpow 0))),
-      .mk 1805 (.unroll "t" (.lit 1) (.var "width") [
-        .mk 1806 (.let_ "r" (.index (.var "z") (.genPow (.var "t")))),
-        .mk 1807 (.let_ "r1" (.index (.var "z1") (.genPow (.var "t")))),
-        .mk 1808 (.unroll "i" (.lit 0) (.pow (.lit 2) (.var "t")) [
-          .mk 1809 (.store (.var "levels") (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.var "i")) (.mul (.index (.var "levels") (.add (.sub (.pow (.lit 2) (.var "t")) (.lit 2)) (.var "i"))) (.var "r1"))),
-          .mk 1810 (.store (.var "levels") (.add (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.pow (.lit 2) (.var "t"))) (.var "i")) (.mul (.index (.var "levels") (.add (.sub (.pow (.lit 2) (.var "t")) (.lit 2)) (.var "i"))) (.var "r")))])]),
-      .mk 1811 (.unroll "i" (.lit 0) (.sub (.pow (.lit 2) (.add (.var "width") (.lit 1))) (.lit 2)) [
-        .mk 1812 (.store (.var "out") (.genPow (.var "i")) (.index (.var "levels") (.var "i")))]),
-      .mk 1813 (.ret [])] }
+      .mk 1797 (.let_ "levels" (.stackBuf 30)),
+      .mk 1798 (.store (.var "levels") (.lit 0) (.index (.var "z1") (.gpow 0))),
+      .mk 1799 (.store (.var "levels") (.lit 1) (.index (.var "z") (.gpow 0))),
+      .mk 1800 (.unroll "t" (.lit 1) (.var "width") [
+        .mk 1801 (.let_ "r" (.index (.var "z") (.genPow (.var "t")))),
+        .mk 1802 (.let_ "r1" (.index (.var "z1") (.genPow (.var "t")))),
+        .mk 1803 (.unroll "i" (.lit 0) (.pow (.lit 2) (.var "t")) [
+          .mk 1804 (.store (.var "levels") (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.var "i")) (.mul (.index (.var "levels") (.add (.sub (.pow (.lit 2) (.var "t")) (.lit 2)) (.var "i"))) (.var "r1"))),
+          .mk 1805 (.store (.var "levels") (.add (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.pow (.lit 2) (.var "t"))) (.var "i")) (.mul (.index (.var "levels") (.add (.sub (.pow (.lit 2) (.var "t")) (.lit 2)) (.var "i"))) (.var "r")))])]),
+      .mk 1806 (.unroll "i" (.lit 0) (.sub (.pow (.lit 2) (.add (.var "width") (.lit 1))) (.lit 2)) [
+        .mk 1807 (.store (.var "out") (.genPow (.var "i")) (.index (.var "levels") (.var "i")))]),
+      .mk 1808 (.ret [])] }
 
 /-- `sel_g_nibble`. -/
 def fn_sel_g_nibble : Func :=
   { name := "sel_g_nibble", params := [⟨"out", (.runtime .scalar)⟩, ⟨"gs", (.runtime .scalar)⟩, ⟨"width", .const⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 1819 (.let_ "vals" (.stackBuf 16)),
-      .mk 1820 (.store (.var "vals") (.lit 0) (.lit 1)),
-      .mk 1821 (.store (.var "vals") (.lit 1) (.index (.var "gs") (.gpow 0))),
-      .mk 1822 (.unroll "t" (.lit 1) (.var "width") [
-        .mk 1823 (.let_ "g_t" (.index (.var "gs") (.genPow (.var "t")))),
-        .mk 1824 (.unroll "i" (.lit 0) (.pow (.lit 2) (.var "t")) [
-          .mk 1825 (.store (.var "vals") (.add (.pow (.lit 2) (.var "t")) (.var "i")) (.mul (.index (.var "vals") (.var "i")) (.var "g_t")))])]),
-      .mk 1826 (.unroll "i" (.lit 0) (.pow (.lit 2) (.var "width")) [
-        .mk 1827 (.store (.var "out") (.genPow (.var "i")) (.index (.var "vals") (.var "i")))]),
-      .mk 1828 (.ret [])] }
+      .mk 1814 (.let_ "vals" (.stackBuf 16)),
+      .mk 1815 (.store (.var "vals") (.lit 0) (.lit 1)),
+      .mk 1816 (.store (.var "vals") (.lit 1) (.index (.var "gs") (.gpow 0))),
+      .mk 1817 (.unroll "t" (.lit 1) (.var "width") [
+        .mk 1818 (.let_ "g_t" (.index (.var "gs") (.genPow (.var "t")))),
+        .mk 1819 (.unroll "i" (.lit 0) (.pow (.lit 2) (.var "t")) [
+          .mk 1820 (.store (.var "vals") (.add (.pow (.lit 2) (.var "t")) (.var "i")) (.mul (.index (.var "vals") (.var "i")) (.var "g_t")))])]),
+      .mk 1821 (.unroll "i" (.lit 0) (.pow (.lit 2) (.var "width")) [
+        .mk 1822 (.store (.var "out") (.genPow (.var "i")) (.index (.var "vals") (.var "i")))]),
+      .mk 1823 (.ret [])] }
 
 /-- `sel_partial_nibble`. -/
 def fn_sel_partial_nibble : Func :=
   { name := "sel_partial_nibble", params := [⟨"eq_out", (.runtime .scalar)⟩, ⟨"g_out", (.runtime .scalar)⟩, ⟨"z", (.runtime .scalar)⟩, ⟨"z1", (.runtime .scalar)⟩, ⟨"gs", (.runtime .scalar)⟩, ⟨"width", .const⟩], returnShapes := [.scalar],
     inline := false,
     body := [
-      .mk 1832 (.ite false (.var "width") (.lit 0) [
-        .mk 1833 (.call "sel_eq_nibble" [(.var "eq_out"), (.var "z"), (.var "z1"), (.var "width")]),
-        .mk 1834 (.call "sel_g_nibble" [(.var "g_out"), (.var "gs"), (.var "width")])] [] true),
-      .mk 1835 (.ret [(.lit 0)])] }
+      .mk 1827 (.ite false (.var "width") (.lit 0) [
+        .mk 1828 (.call "sel_eq_nibble" [(.var "eq_out"), (.var "z"), (.var "z1"), (.var "width")]),
+        .mk 1829 (.call "sel_g_nibble" [(.var "g_out"), (.var "gs"), (.var "width")])] [] true),
+      .mk 1830 (.ret [(.lit 0)])] }
 
 /-- `shared_selector_tables`. -/
 def fn_shared_selector_tables : Func :=
   { name := "shared_selector_tables", params := [⟨"eq_tab", (.runtime .scalar)⟩, ⟨"g_tab", (.runtime .scalar)⟩, ⟨"zeta_hi", (.runtime .scalar)⟩, ⟨"zeta1_hi", (.runtime .scalar)⟩, ⟨"gsq_hi", (.runtime .scalar)⟩, ⟨"len_g", (.runtime .scalar)⟩], returnShapes := [],
     inline := false,
     body := [
-      .mk 1843 (.let_ "nb" (.stackBuf 6)),
-      .mk 1844 (.call "hint_decompose_bits_exponent" [(.var "nb"), (.var "len_g"), (.lit 6)]),
-      .mk 1845 (.unroll "k" (.lit 0) (.lit 6) [
-        .mk 1846 (.let_ "b" (.index (.var "nb") (.var "k"))),
-        .mk 1847 (.store (.var "nb") (.var "k") (.mul (.var "b") (.var "b")))]),
-      .mk 1848 (.let_ "r_g" (.mul (.add (.lit 1) (.mul (.index (.var "nb") (.lit 0)) (.add (.lit 1) .gen))) (.add (.lit 1) (.mul (.index (.var "nb") (.lit 1)) (.add (.lit 1) (.gpow 2)))))),
-      .mk 1849 (.let_ "q_g" (.gpow 0)),
-      .mk 1850 (.unroll "k" (.lit 2) (.lit 6) [
-        .mk 1851 (.let_ "q_g" (.mul (.var "q_g") (.add (.lit 1) (.mul (.index (.var "nb") (.var "k")) (.add (.lit 1) (.genPow (.pow (.lit 2) (.sub (.var "k") (.lit 2)))))))))]),
-      .mk 1852 (.let_ "q4" (.pow (.var "q_g") (.lit 4))),
-      .mk 1853 (.assertEq (.mul (.var "q4") (.var "r_g")) (.var "len_g")),
-      .mk 1854 (.for_ "xq" 0 (.runtime (.var "q_g")) [
-        .mk 1855 (.let_ "x4" (.pow (.var "xq") (.lit 4))),
-        .mk 1856 (.let_ "x16" (.pow (.var "x4") (.lit 4))),
-        .mk 1857 (.call "sel_eq_nibble" [(.mul (.mul (.var "eq_tab") (.var "x16")) (.var "x16")), (.mul (.var "zeta_hi") (.var "x4")), (.mul (.var "zeta1_hi") (.var "x4")), (.lit 4)]),
-        .mk 1858 (.call "sel_g_nibble" [(.mul (.var "g_tab") (.var "x16")), (.mul (.var "gsq_hi") (.var "x4")), (.lit 4)])]),
-      .mk 1859 (.let_ "q16" (.pow (.var "q4") (.lit 4))),
-      .mk 1860 (.match_ [(.var "done")] (.var "r_g") [(.call "sel_partial_nibble" [(.mul (.mul (.var "eq_tab") (.var "q16")) (.var "q16")), (.mul (.var "g_tab") (.var "q16")), (.mul (.var "zeta_hi") (.var "q4")), (.mul (.var "zeta1_hi") (.var "q4")), (.mul (.var "gsq_hi") (.var "q4")), (.lit 0)]), (.call "sel_partial_nibble" [(.mul (.mul (.var "eq_tab") (.var "q16")) (.var "q16")), (.mul (.var "g_tab") (.var "q16")), (.mul (.var "zeta_hi") (.var "q4")), (.mul (.var "zeta1_hi") (.var "q4")), (.mul (.var "gsq_hi") (.var "q4")), (.lit 1)]), (.call "sel_partial_nibble" [(.mul (.mul (.var "eq_tab") (.var "q16")) (.var "q16")), (.mul (.var "g_tab") (.var "q16")), (.mul (.var "zeta_hi") (.var "q4")), (.mul (.var "zeta1_hi") (.var "q4")), (.mul (.var "gsq_hi") (.var "q4")), (.lit 2)]), (.call "sel_partial_nibble" [(.mul (.mul (.var "eq_tab") (.var "q16")) (.var "q16")), (.mul (.var "g_tab") (.var "q16")), (.mul (.var "zeta_hi") (.var "q4")), (.mul (.var "zeta1_hi") (.var "q4")), (.mul (.var "gsq_hi") (.var "q4")), (.lit 3)])]),
-      .mk 1861 (.ret [])] }
+      .mk 1838 (.let_ "nb" (.stackBuf 6)),
+      .mk 1839 (.call "hint_decompose_bits_exponent" [(.var "nb"), (.var "len_g"), (.lit 6)]),
+      .mk 1840 (.unroll "k" (.lit 0) (.lit 6) [
+        .mk 1841 (.let_ "b" (.index (.var "nb") (.var "k"))),
+        .mk 1842 (.store (.var "nb") (.var "k") (.mul (.var "b") (.var "b")))]),
+      .mk 1843 (.let_ "r_g" (.mul (.add (.lit 1) (.mul (.index (.var "nb") (.lit 0)) (.add (.lit 1) .gen))) (.add (.lit 1) (.mul (.index (.var "nb") (.lit 1)) (.add (.lit 1) (.gpow 2)))))),
+      .mk 1844 (.let_ "q_g" (.gpow 0)),
+      .mk 1845 (.unroll "k" (.lit 2) (.lit 6) [
+        .mk 1846 (.let_ "q_g" (.mul (.var "q_g") (.add (.lit 1) (.mul (.index (.var "nb") (.var "k")) (.add (.lit 1) (.genPow (.pow (.lit 2) (.sub (.var "k") (.lit 2)))))))))]),
+      .mk 1847 (.let_ "q4" (.pow (.var "q_g") (.lit 4))),
+      .mk 1848 (.assertEq (.mul (.var "q4") (.var "r_g")) (.var "len_g")),
+      .mk 1849 (.for_ "xq" 0 (.runtime (.var "q_g")) [
+        .mk 1850 (.let_ "x4" (.pow (.var "xq") (.lit 4))),
+        .mk 1851 (.let_ "x16" (.pow (.var "x4") (.lit 4))),
+        .mk 1852 (.call "sel_eq_nibble" [(.mul (.mul (.var "eq_tab") (.var "x16")) (.var "x16")), (.mul (.var "zeta_hi") (.var "x4")), (.mul (.var "zeta1_hi") (.var "x4")), (.lit 4)]),
+        .mk 1853 (.call "sel_g_nibble" [(.mul (.var "g_tab") (.var "x16")), (.mul (.var "gsq_hi") (.var "x4")), (.lit 4)])]),
+      .mk 1854 (.let_ "q16" (.pow (.var "q4") (.lit 4))),
+      .mk 1855 (.match_ [(.var "done")] (.var "r_g") [(.call "sel_partial_nibble" [(.mul (.mul (.var "eq_tab") (.var "q16")) (.var "q16")), (.mul (.var "g_tab") (.var "q16")), (.mul (.var "zeta_hi") (.var "q4")), (.mul (.var "zeta1_hi") (.var "q4")), (.mul (.var "gsq_hi") (.var "q4")), (.lit 0)]), (.call "sel_partial_nibble" [(.mul (.mul (.var "eq_tab") (.var "q16")) (.var "q16")), (.mul (.var "g_tab") (.var "q16")), (.mul (.var "zeta_hi") (.var "q4")), (.mul (.var "zeta1_hi") (.var "q4")), (.mul (.var "gsq_hi") (.var "q4")), (.lit 1)]), (.call "sel_partial_nibble" [(.mul (.mul (.var "eq_tab") (.var "q16")) (.var "q16")), (.mul (.var "g_tab") (.var "q16")), (.mul (.var "zeta_hi") (.var "q4")), (.mul (.var "zeta1_hi") (.var "q4")), (.mul (.var "gsq_hi") (.var "q4")), (.lit 2)]), (.call "sel_partial_nibble" [(.mul (.mul (.var "eq_tab") (.var "q16")) (.var "q16")), (.mul (.var "g_tab") (.var "q16")), (.mul (.var "zeta_hi") (.var "q4")), (.mul (.var "zeta1_hi") (.var "q4")), (.mul (.var "gsq_hi") (.var "q4")), (.lit 3)])]),
+      .mk 1856 (.ret [])] }
 
 /-- `block_selector_tab`. -/
 def fn_block_selector_tab : Func :=
   { name := "block_selector_tab", params := [⟨"sel_bits", (.runtime .scalar)⟩, ⟨"eq_tab", (.runtime .scalar)⟩, ⟨"g_tab", (.runtime .scalar)⟩, ⟨"n", .const⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 1868 (.let_ "eq" (.gpow 0)),
-      .mk 1869 (.let_ "rebuilt" (.gpow 0)),
-      .mk 1870 (.unroll "j" (.lit 0) (.div (.add (.var "n") (.lit 3)) (.lit 4)) [
-        .mk 1871 (.let_ "width" (.lit 4)),
-        .mk 1872 (.ite true (.var "j") (.div (.var "n") (.lit 4)) [
-          .mk 1873 (.let_ "width" (.sub (.var "n") (.mul (.lit 4) (.var "j"))))] [] true),
-        .mk 1874 (.let_ "idx" (.gpow 0)),
-        .mk 1875 (.unroll "t" (.lit 0) (.var "width") [
-          .mk 1876 (.let_ "sbit" (.index (.var "sel_bits") (.genPow (.add (.mul (.lit 4) (.var "j")) (.var "t"))))),
-          .mk 1877 (.store (.var "sel_bits") (.genPow (.add (.mul (.lit 4) (.var "j")) (.var "t"))) (.mul (.var "sbit") (.var "sbit"))),
-          .mk 1878 (.let_ "idx" (.mul (.var "idx") (.add (.lit 1) (.mul (.var "sbit") (.add (.lit 1) (.genPow (.pow (.lit 2) (.var "t"))))))))]),
-        .mk 1879 (.let_ "eq" (.mul (.var "eq") (.index (.var "eq_tab") (.mul (.genPow (.sub (.add (.mul (.lit 32) (.var "j")) (.pow (.lit 2) (.var "width"))) (.lit 2))) (.var "idx"))))),
-        .mk 1880 (.let_ "rebuilt" (.mul (.var "rebuilt") (.index (.var "g_tab") (.mul (.genPow (.mul (.lit 16) (.var "j"))) (.var "idx")))))]),
-      .mk 1881 (.ret [(.var "eq"), (.var "rebuilt")])] }
+      .mk 1863 (.let_ "eq" (.gpow 0)),
+      .mk 1864 (.let_ "rebuilt" (.gpow 0)),
+      .mk 1865 (.unroll "j" (.lit 0) (.div (.add (.var "n") (.lit 3)) (.lit 4)) [
+        .mk 1866 (.let_ "width" (.lit 4)),
+        .mk 1867 (.ite true (.var "j") (.div (.var "n") (.lit 4)) [
+          .mk 1868 (.let_ "width" (.sub (.var "n") (.mul (.lit 4) (.var "j"))))] [] true),
+        .mk 1869 (.let_ "idx" (.gpow 0)),
+        .mk 1870 (.unroll "t" (.lit 0) (.var "width") [
+          .mk 1871 (.let_ "sbit" (.index (.var "sel_bits") (.genPow (.add (.mul (.lit 4) (.var "j")) (.var "t"))))),
+          .mk 1872 (.store (.var "sel_bits") (.genPow (.add (.mul (.lit 4) (.var "j")) (.var "t"))) (.mul (.var "sbit") (.var "sbit"))),
+          .mk 1873 (.let_ "idx" (.mul (.var "idx") (.add (.lit 1) (.mul (.var "sbit") (.add (.lit 1) (.genPow (.pow (.lit 2) (.var "t"))))))))]),
+        .mk 1874 (.let_ "eq" (.mul (.var "eq") (.index (.var "eq_tab") (.mul (.genPow (.sub (.add (.mul (.lit 32) (.var "j")) (.pow (.lit 2) (.var "width"))) (.lit 2))) (.var "idx"))))),
+        .mk 1875 (.let_ "rebuilt" (.mul (.var "rebuilt") (.index (.var "g_tab") (.mul (.genPow (.mul (.lit 16) (.var "j"))) (.var "idx")))))]),
+      .mk 1876 (.ret [(.var "eq"), (.var "rebuilt")])] }
 
 /-- `block_selector`. -/
 def fn_block_selector : Func :=
   { name := "block_selector", params := [⟨"sel_bits", (.runtime .scalar)⟩, ⟨"zeta1_hi", (.runtime .scalar)⟩, ⟨"idxc_hi", (.runtime .scalar)⟩, ⟨"n", .const⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 1888 (.let_ "eq" (.gpow 0)),
-      .mk 1889 (.let_ "rebuilt" (.gpow 0)),
-      .mk 1890 (.unroll "k" (.lit 0) (.var "n") [
-        .mk 1891 (.let_ "sbit" (.index (.var "sel_bits") (.genPow (.var "k")))),
-        .mk 1892 (.store (.var "sel_bits") (.genPow (.var "k")) (.mul (.var "sbit") (.var "sbit"))),
-        .mk 1893 (.ite true (.var "k") (.lit 0) [
-          .mk 1894 (.let_ "eq" (.add (.var "sbit") (.index (.var "zeta1_hi") (.genPow (.var "k"))))),
-          .mk 1895 (.let_ "rebuilt" (.add (.lit 1) (.mul (.var "sbit") (.index (.var "idxc_hi") (.genPow (.var "k"))))))] [
-          .mk 1897 (.let_ "eq" (.mul (.var "eq") (.add (.var "sbit") (.index (.var "zeta1_hi") (.genPow (.var "k")))))),
-          .mk 1898 (.let_ "rebuilt" (.mul (.var "rebuilt") (.add (.lit 1) (.mul (.var "sbit") (.index (.var "idxc_hi") (.genPow (.var "k")))))))] false)]),
-      .mk 1899 (.ret [(.var "eq"), (.var "rebuilt")])] }
+      .mk 1883 (.let_ "eq" (.gpow 0)),
+      .mk 1884 (.let_ "rebuilt" (.gpow 0)),
+      .mk 1885 (.unroll "k" (.lit 0) (.var "n") [
+        .mk 1886 (.let_ "sbit" (.index (.var "sel_bits") (.genPow (.var "k")))),
+        .mk 1887 (.store (.var "sel_bits") (.genPow (.var "k")) (.mul (.var "sbit") (.var "sbit"))),
+        .mk 1888 (.ite true (.var "k") (.lit 0) [
+          .mk 1889 (.let_ "eq" (.add (.var "sbit") (.index (.var "zeta1_hi") (.genPow (.var "k"))))),
+          .mk 1890 (.let_ "rebuilt" (.add (.lit 1) (.mul (.var "sbit") (.index (.var "idxc_hi") (.genPow (.var "k"))))))] [
+          .mk 1892 (.let_ "eq" (.mul (.var "eq") (.add (.var "sbit") (.index (.var "zeta1_hi") (.genPow (.var "k")))))),
+          .mk 1893 (.let_ "rebuilt" (.mul (.var "rebuilt") (.add (.lit 1) (.mul (.var "sbit") (.index (.var "idxc_hi") (.genPow (.var "k")))))))] false)]),
+      .mk 1894 (.ret [(.var "eq"), (.var "rebuilt")])] }
 
 /-- `padding_weight`. -/
 def fn_padding_weight : Func :=
   { name := "padding_weight", params := [⟨"rows", (.runtime .scalar)⟩, ⟨"zeta", (.runtime .scalar)⟩, ⟨"tau", .const⟩], returnShapes := [.scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 1906 (.let_ "word" (.add (.var "rows") (.call "const" [(.sub (.pow (.lit 2) (.var "tau")) (.lit 1))]))),
-      .mk 1907 (.let_ "bits" (.stackBuf 29)),
-      .mk 1908 (.call "hint_decompose_bits" [(.var "bits"), (.var "word"), (.add (.var "tau") (.lit 1))]),
-      .mk 1909 (.let_ "pad" (.lit 1)),
-      .mk 1910 (.unroll "k" (.lit 0) (.var "tau") [
-        .mk 1911 (.let_ "c" (.index (.var "bits") (.var "k"))),
-        .mk 1912 (.store (.var "bits") (.var "k") (.mul (.var "c") (.var "c"))),
-        .mk 1913 (.let_ "z" (.index (.var "zeta") (.genPow (.var "k")))),
-        .mk 1914 (.let_ "pad" (.add (.mul (.var "c") (.var "z")) (.mul (.add (.var "c") (.var "z")) (.var "pad"))))]),
-      .mk 1915 (.let_ "top" (.index (.var "bits") (.var "tau"))),
-      .mk 1916 (.store (.var "bits") (.var "tau") (.mul (.var "top") (.var "top"))),
-      .mk 1919 (.ite true (.var "tau") (.lit 0) [
-        .mk 1920 (.let_ "low" (.lit 0)),
-        .mk 1921 (.let_ "lead" (.lit 1)),
-        .mk 1922 (.let_ "rest" (.lit 1))] [
-        .mk 1925 (.let_ "below" (.lit 0)),
-        .mk 1926 (.unroll "k" (.lit 1) (.var "tau") [
-          .mk 1927 (.let_ "below" (.add (.mul (.var "below") (.lit 2)) (.index (.var "bits") (.sub (.sub (.var "tau") (.lit 1)) (.var "k")))))]),
-        .mk 1928 (.let_ "low" (.add (.var "below") (.mul (.index (.var "bits") (.sub (.var "tau") (.lit 1))) (.pow (.lit 2) (.sub (.var "tau") (.lit 1)))))),
-        .mk 1929 (.let_ "lead" (.add (.add (.var "top") (.lit 1)) (.index (.var "bits") (.sub (.var "tau") (.lit 1))))),
-        .mk 1930 (.let_ "rest" (.add (.add (.var "top") (.var "below")) (.call "const" [(.sub (.pow (.lit 2) (.sub (.var "tau") (.lit 1))) (.lit 1))])))] false),
-      .mk 1931 (.assertEq (.add (.var "low") (.mul (.var "top") (.pow (.lit 2) (.var "tau")))) (.var "word")),
-      .mk 1932 (.assertEq (.mul (.var "top") (.add (.var "low") (.call "const" [(.sub (.pow (.lit 2) (.var "tau")) (.lit 1))]))) (.lit 0)),
-      .mk 1933 (.ret [(.mul (.add (.lit 1) (.var "top")) (.var "pad")), (.var "lead"), (.var "rest")])] }
+      .mk 1901 (.let_ "word" (.add (.var "rows") (.call "const" [(.sub (.pow (.lit 2) (.var "tau")) (.lit 1))]))),
+      .mk 1902 (.let_ "bits" (.stackBuf 29)),
+      .mk 1903 (.call "hint_decompose_bits" [(.var "bits"), (.var "word"), (.add (.var "tau") (.lit 1))]),
+      .mk 1904 (.let_ "pad" (.lit 1)),
+      .mk 1905 (.unroll "k" (.lit 0) (.var "tau") [
+        .mk 1906 (.let_ "c" (.index (.var "bits") (.var "k"))),
+        .mk 1907 (.store (.var "bits") (.var "k") (.mul (.var "c") (.var "c"))),
+        .mk 1908 (.let_ "z" (.index (.var "zeta") (.genPow (.var "k")))),
+        .mk 1909 (.let_ "pad" (.add (.mul (.var "c") (.var "z")) (.mul (.add (.var "c") (.var "z")) (.var "pad"))))]),
+      .mk 1910 (.let_ "top" (.index (.var "bits") (.var "tau"))),
+      .mk 1911 (.store (.var "bits") (.var "tau") (.mul (.var "top") (.var "top"))),
+      .mk 1914 (.ite true (.var "tau") (.lit 0) [
+        .mk 1915 (.let_ "low" (.lit 0)),
+        .mk 1916 (.let_ "lead" (.lit 1)),
+        .mk 1917 (.let_ "rest" (.lit 1))] [
+        .mk 1920 (.let_ "below" (.lit 0)),
+        .mk 1921 (.unroll "k" (.lit 1) (.var "tau") [
+          .mk 1922 (.let_ "below" (.add (.mul (.var "below") (.lit 2)) (.index (.var "bits") (.sub (.sub (.var "tau") (.lit 1)) (.var "k")))))]),
+        .mk 1923 (.let_ "low" (.add (.var "below") (.mul (.index (.var "bits") (.sub (.var "tau") (.lit 1))) (.pow (.lit 2) (.sub (.var "tau") (.lit 1)))))),
+        .mk 1924 (.let_ "lead" (.add (.add (.var "top") (.lit 1)) (.index (.var "bits") (.sub (.var "tau") (.lit 1))))),
+        .mk 1925 (.let_ "rest" (.add (.add (.var "top") (.var "below")) (.call "const" [(.sub (.pow (.lit 2) (.sub (.var "tau") (.lit 1))) (.lit 1))])))] false),
+      .mk 1926 (.assertEq (.add (.var "low") (.mul (.var "top") (.pow (.lit 2) (.var "tau")))) (.var "word")),
+      .mk 1927 (.assertEq (.mul (.var "top") (.add (.var "low") (.call "const" [(.sub (.pow (.lit 2) (.var "tau")) (.lit 1))]))) (.lit 0)),
+      .mk 1928 (.ret [(.mul (.add (.lit 1) (.var "top")) (.var "pad")), (.var "lead"), (.var "rest")])] }
 
 /-- `verify_tables`. -/
 def fn_verify_tables : Func :=
   { name := "verify_tables", params := [⟨"fs0", (.runtime .scalar)⟩, ⟨"fs1", (.runtime .scalar)⟩, ⟨"fs2", (.runtime .scalar)⟩, ⟨"fs3", (.runtime .scalar)⟩, ⟨"fs4", (.runtime .scalar)⟩, ⟨"cursor", (.runtime .scalar)⟩, ⟨"pi_0", (.runtime .scalar)⟩, ⟨"pi_1", (.runtime .scalar)⟩, ⟨"zeta", (.runtime .scalar)⟩, ⟨"g_bus_mu", (.runtime .scalar)⟩, ⟨"dims_g", (.runtime .scalar)⟩, ⟨"table_rows", (.runtime .scalar)⟩, ⟨"block_kappa", (.runtime .scalar)⟩, ⟨"g_squares", (.runtime .scalar)⟩, ⟨"fp_w", (.runtime .scalar)⟩, ⟨"beta", (.runtime .scalar)⟩, ⟨"claim_pool", (.runtime .scalar)⟩, ⟨"claim_cplen_g", (.runtime .scalar)⟩, ⟨"chi", (.runtime .scalar)⟩, ⟨"claim_push", (.runtime .scalar)⟩, ⟨"claim_pull", (.runtime .scalar)⟩, ⟨"claim_count", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar, .scalar, .scalar, .scalar, .scalar, .scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 1952 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
-      .mk 1953 (.let_ "rate" (.stackBuf 8)),
-      .mk 1954 (.let_ "gkr_claims" (.stackBuf 3)),
-      .mk 1955 (.store (.var "gkr_claims") (.lit 0) (.var "claim_push")),
-      .mk 1956 (.store (.var "gkr_claims") (.lit 1) (.var "claim_pull")),
-      .mk 1957 (.store (.var "gkr_claims") (.lit 2) (.var "claim_count")),
-      .mk 1958 (.let_ "sort_order" (.heapBuf 153)),
-      .mk 1959 (.hintWitness (.slice (.var "sort_order") (.lit 0) (.lit 153)) "sort_order"),
-      .mk 1960 (.let_ "block_side_tab" (.heapBuf 153)),
-      .mk 1961 (.unroll "b" (.lit 0) (.lit 153) [
-        .mk 1962 (.store (.var "block_side_tab") (.genPow (.var "b")) (.index (.var "BLOCK_SIDE") (.var "b")))]),
-      .mk 1963 (.let_ "block_off_g" (.heapBuf 153)),
-      .mk 1964 (.unroll "cert" (.lit 0) (.lit 2) [
-        .mk 1965 (.let_ "s" (.mul (.lit 2) (.var "cert"))),
-        .mk 1966 (.let_ "g_off" (.gpow 0)),
-        .mk 1967 (.let_ "prev_g" (.gpow 0)),
-        .mk 1968 (.let_ "prev_kappa" (.gpow 0)),
-        .mk 1969 (.unroll "r" (.index (.var "SIDE_BLOCK_START") (.var "s")) (.index (.var "SIDE_BLOCK_START") (.add (.var "s") (.lit 1))) [
-          .mk 1970 (.let_ "global_g" (.index (.var "sort_order") (.genPow (.var "r")))),
-          .mk 1971 (.assertLt (.var "global_g") (.const 153)),
-          .mk 1972 (.assertEq (.index (.var "block_side_tab") (.var "global_g")) (.var "s")),
-          .mk 1973 (.let_ "kappa_g" (.index (.var "block_kappa") (.var "global_g"))),
-          .mk 1974 (.ite false (.var "r") (.index (.var "SIDE_BLOCK_START") (.var "s")) [
-            .mk 1975 (.assertLt (.fdiv (.var "prev_kappa") (.var "kappa_g")) (.const 34)),
-            .mk 1976 (.ite true (.var "prev_kappa") (.var "kappa_g") [
-              .mk 1979 (.assertLt (.fdiv (.var "global_g") (.var "prev_g")) (.const 153))] [] false)] [] false),
-          .mk 1982 (.store (.var "block_off_g") (.var "global_g") (.var "g_off")),
-          .mk 1983 (.let_ "g_off" (.mul (.var "g_off") (.index (.var "g_squares") (.var "kappa_g")))),
-          .mk 1984 (.let_ "prev_g" (.var "global_g")),
-          .mk 1985 (.let_ "prev_kappa" (.var "kappa_g"))])]),
-      .mk 2001 (.letHintWitness "bc_share" "bytecode_val"),
-      .mk 2005 (.let_ "pad_weight" (.stackBuf 6)),
-      .mk 2006 (.unroll "t" (.lit 0) (.lit 6) [
-        .mk 2007 (.let_ "tau_g" (.index (.var "dims_g") (.genPow (.add (.var "t") (.lit 1))))),
-        .mk 2008 (.assertLt (.var "tau_g") (.const 29)),
-        .mk 2009 (.let_ "rows" (.index (.var "table_rows") (.genPow (.var "t")))),
-        .mk 2010 (.match_ [(.index (.var "pad_weight") (.var "t")), (.var "lead"), (.var "rest")] (.var "tau_g") [(.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 0)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 1)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 2)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 3)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 4)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 5)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 6)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 7)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 8)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 9)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 10)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 11)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 12)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 13)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 14)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 15)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 16)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 17)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 18)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 19)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 20)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 21)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 22)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 23)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 24)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 25)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 26)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 27)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 28)])]),
-        .mk 2011 (.ite true (.index (.var "FLOORS") (.var "t")) (.lit 0) [
-          .mk 2012 (.assertEq (.var "lead") (.lit 1)),
-          .mk 2013 (.assertNe (.var "rest") (.lit 0))] [
-          .mk 2015 (.assertLt (.fdiv (.var "tau_g") (.genPow (.index (.var "FLOORS") (.var "t")))) (.const 29)),
-          .mk 2016 (.ite false (.var "tau_g") (.genPow (.index (.var "FLOORS") (.var "t"))) [
-            .mk 2017 (.assertEq (.var "lead") (.lit 1)),
-            .mk 2018 (.assertNe (.var "rest") (.lit 0))] [] false)] false)]),
-      .mk 2019 (.let_ "idxc_tab" (.heapBuf 34)),
-      .mk 2020 (.unroll "t" (.lit 0) (.lit 34) [
-        .mk 2021 (.store (.var "idxc_tab") (.genPow (.var "t")) (.index (.var "INDEX_MLE_FACTORS") (.var "t")))]),
-      .mk 2022 (.let_ "zeta1" (.heapBufDyn (.var "g_bus_mu"))),
-      .mk 2023 (.match_ [(.var "zeta1_done")] (.var "g_bus_mu") [(.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 0)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 1)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 2)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 3)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 4)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 5)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 6)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 7)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 8)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 9)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 10)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 11)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 12)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 13)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 14)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 15)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 16)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 17)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 18)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 19)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 20)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 21)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 22)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 23)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 24)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 25)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 26)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 27)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 28)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 29)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 30)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 31)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 32)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 33)])]),
-      .mk 2027 (.let_ "shared_len" (.stackBuf 6)),
-      .mk 2028 (.let_ "shared_eq" (.heapBuf 1728)),
-      .mk 2029 (.let_ "shared_g" (.heapBuf 864)),
-      .mk 2030 (.unroll "t" (.lit 0) (.lit 6) [
-        .mk 2031 (.let_ "tau_g" (.index (.var "dims_g") (.genPow (.add (.var "t") (.lit 1))))),
-        .mk 2032 (.store (.var "shared_len") (.var "t") (.fdiv (.var "g_bus_mu") (.var "tau_g"))),
-        .mk 2033 (.assertLt (.index (.var "shared_len") (.var "t")) (.const 34)),
-        .mk 2034 (.call "shared_selector_tables" [(.mul (.var "shared_eq") (.genPow (.mul (.mul (.var "t") (.lit 9)) (.lit 32)))), (.mul (.var "shared_g") (.genPow (.mul (.mul (.var "t") (.lit 9)) (.lit 16)))), (.mul (.var "zeta") (.var "tau_g")), (.mul (.var "zeta1") (.var "tau_g")), (.mul (.var "g_squares") (.var "tau_g")), (.index (.var "shared_len") (.var "t"))])]),
-      .mk 2035 (.let_ "bus_table_total" (.stackBuf 3)),
-      .mk 2036 (.let_ "block_eq_hi" (.stackBuf 153)),
-      .mk 2037 (.let_ "block_index_mle" (.heapBuf 153)),
-      .mk 2038 (.let_ "beta_1" (.add (.var "beta") (.lit 1))),
-      .mk 2039 (.unroll "s" (.lit 0) (.lit 3) [
-        .mk 2040 (.let_ "acc" (.lit 0)),
-        .mk 2041 (.let_ "selector_sum" (.lit 0)),
-        .mk 2042 (.unroll "b" (.index (.var "SIDE_BLOCK_START") (.var "s")) (.index (.var "SIDE_BLOCK_START") (.add (.var "s") (.lit 1))) [
-          .mk 2043 (.let_ "block_has_public" (.lit 0)),
-          .mk 2044 (.let_ "kappa_g" (.index (.var "block_kappa") (.genPow (.var "b")))),
-          .mk 2045 (.assertLt (.var "kappa_g") (.const 34)),
-          .mk 2046 (.ite true (.var "s") (.lit 1) [
-            .mk 2047 (.let_ "eq_hi" (.index (.var "block_eq_hi") (.sub (.var "b") (.index (.var "SIDE_BLOCK_START") (.lit 1)))))] [
-            .mk 2055 (.let_ "offset_bits" (.heapBufDyn (.gpow 34))),
-            .mk 2056 (.call "hint_decompose_bits_exponent" [(.var "offset_bits"), (.index (.var "block_off_g") (.genPow (.var "b"))), (.lit 34)]),
-            .mk 2057 (.let_ "shared" (.lit 0)),
-            .mk 2058 (.ite false (.div (.index (.var "BLOCK_KAPPA_SRC") (.var "b")) (.lit 2)) (.lit 0) [
-              .mk 2059 (.ite true (.index (.var "BLOCK_KAPPA_ADJ") (.var "b")) (.lit 0) [
-                .mk 2060 (.let_ "shared" (.lit 1))] [] true)] [] true),
-            .mk 2061 (.ite true (.var "shared") (.lit 1) [
-              .mk 2062 (.let_ "t" (.sub (.index (.var "BLOCK_KAPPA_SRC") (.var "b")) (.lit 2))),
-              .mk 2063 (.let_ "sel_bits" (.mul (.var "offset_bits") (.index (.var "dims_g") (.genPow (.add (.var "t") (.lit 1)))))),
-              .mk 2064 (.let_ "len_g" (.index (.var "shared_len") (.var "t"))),
-              .mk 2065 (.let_ "tab_eq" (.mul (.var "shared_eq") (.genPow (.mul (.mul (.var "t") (.lit 9)) (.lit 32))))),
-              .mk 2066 (.let_ "tab_g" (.mul (.var "shared_g") (.genPow (.mul (.mul (.var "t") (.lit 9)) (.lit 16))))),
-              .mk 2067 (.match_ [(.var "eq_hi"), (.var "goff")] (.var "len_g") [(.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 0)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 1)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 2)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 3)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 4)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 5)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 6)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 7)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 8)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 9)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 10)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 11)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 12)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 13)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 14)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 15)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 16)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 17)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 18)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 19)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 20)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 21)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 22)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 23)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 24)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 25)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 26)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 27)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 28)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 29)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 30)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 31)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 32)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 33)])])] [
-              .mk 2069 (.let_ "sel_len_g" (.fdiv (.var "g_bus_mu") (.var "kappa_g"))),
-              .mk 2070 (.assertLt (.var "sel_len_g") (.const 34)),
-              .mk 2071 (.let_ "sel_bits" (.mul (.var "offset_bits") (.var "kappa_g"))),
-              .mk 2072 (.let_ "zeta1_hi" (.mul (.var "zeta1") (.var "kappa_g"))),
-              .mk 2073 (.let_ "idxc_hi" (.mul (.var "idxc_tab") (.var "kappa_g"))),
-              .mk 2074 (.match_ [(.var "eq_hi"), (.var "goff")] (.var "sel_len_g") [(.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 0)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 1)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 2)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 3)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 4)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 5)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 6)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 7)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 8)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 9)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 10)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 11)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 12)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 13)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 14)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 15)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 16)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 17)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 18)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 19)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 20)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 21)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 22)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 23)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 24)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 25)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 26)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 27)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 28)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 29)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 30)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 31)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 32)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 33)])])] true),
-            .mk 2075 (.assertEq (.var "goff") (.index (.var "block_off_g") (.genPow (.var "b"))))] false),
-          .mk 2076 (.let_ "selector_sum" (.add (.var "selector_sum") (.var "eq_hi"))),
-          .mk 2077 (.store (.var "block_eq_hi") (.var "b") (.var "eq_hi")),
-          .mk 2081 (.ite true (.index (.var "BLOCK_TABLE") (.var "b")) (.lit 6) [
-            .mk 2084 (.let_ "inner_sum" (.lit 0)),
-            .mk 2085 (.unroll "i" (.lit 0) (.index (.var "BLOCK_COORD_COUNT") (.var "b")) [
-              .mk 2086 (.let_ "ci" (.add (.index (.var "BLOCK_COORD_OFF") (.var "b")) (.var "i"))),
-              .mk 2087 (.ite true (.index (.var "COORD_TYPE") (.var "ci")) (.lit 0) [
-                .mk 2088 (.let_ "coord_val" (.index (.var "COORD_CONST") (.var "ci")))] [] false),
-              .mk 2089 (.ite true (.index (.var "COORD_TYPE") (.var "ci")) (.lit 1) [
-                .mk 2090 (.ite true (.index (.var "COORD_FRESH") (.var "ci")) (.lit 1) [
-                  .mk 2091 (.ite true (.mod (.index (.var "COORD_FRESH_POS") (.var "ci")) (.lit 4)) (.lit 0) [
-                    .mk 2092 (.ite false (.index (.var "COORD_FRESH_POS") (.var "ci")) (.lit 0) [
-                      .mk 2093 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
-                      .mk 2094 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
-                  .mk 2095 (.letTuple ["coord_val", "cursor"] "fs_next" [(.var "rate"), (.mod (.index (.var "COORD_FRESH_POS") (.var "ci")) (.lit 4)), (.var "cursor")]),
-                  .mk 2096 (.store (.var "claim_pool") (.genPow (.index (.var "COORD_CLAIM_SLOT") (.var "ci"))) (.var "coord_val")),
-                  .mk 2097 (.store (.var "claim_cplen_g") (.genPow (.index (.var "COORD_CLAIM_SLOT") (.var "ci"))) (.var "kappa_g"))] [
-                  .mk 2099 (.let_ "coord_val" (.index (.var "claim_pool") (.genPow (.index (.var "COORD_CLAIM_SLOT") (.var "ci")))))] false)] [] false),
-              .mk 2100 (.ite true (.index (.var "COORD_TYPE") (.var "ci")) (.lit 2) [
-                .mk 2101 (.ite true (.index (.var "COORD_FRESH") (.var "ci")) (.lit 1) [
-                  .mk 2102 (.ite true (.mod (.index (.var "COORD_FRESH_POS") (.var "ci")) (.lit 4)) (.lit 0) [
-                    .mk 2103 (.ite false (.index (.var "COORD_FRESH_POS") (.var "ci")) (.lit 0) [
-                      .mk 2104 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
-                      .mk 2105 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
-                  .mk 2106 (.letTuple ["rawv", "cursor"] "fs_next" [(.var "rate"), (.mod (.index (.var "COORD_FRESH_POS") (.var "ci")) (.lit 4)), (.var "cursor")]),
-                  .mk 2107 (.store (.var "claim_pool") (.genPow (.index (.var "COORD_CLAIM_SLOT") (.var "ci"))) (.var "rawv")),
-                  .mk 2108 (.store (.var "claim_cplen_g") (.genPow (.index (.var "COORD_CLAIM_SLOT") (.var "ci"))) (.var "kappa_g"))] [
-                  .mk 2110 (.let_ "rawv" (.index (.var "claim_pool") (.genPow (.index (.var "COORD_CLAIM_SLOT") (.var "ci")))))] false),
-                .mk 2111 (.let_ "coord_val" (.mul (.index (.var "COORD_CONST") (.var "ci")) (.var "rawv")))] [] false),
-              .mk 2112 (.ite true (.index (.var "COORD_TYPE") (.var "ci")) (.lit 3) [
-                .mk 2113 (.ite true (.var "s") (.lit 1) [
-                  .mk 2114 (.let_ "coord_val" (.index (.var "block_index_mle") (.genPow (.sub (.var "b") (.index (.var "SIDE_BLOCK_START") (.lit 1))))))] [
-                  .mk 2116 (.match_ [(.var "coord_val")] (.var "kappa_g") [(.call "index_mle" [(.var "zeta"), (.lit 0)]), (.call "index_mle" [(.var "zeta"), (.lit 1)]), (.call "index_mle" [(.var "zeta"), (.lit 2)]), (.call "index_mle" [(.var "zeta"), (.lit 3)]), (.call "index_mle" [(.var "zeta"), (.lit 4)]), (.call "index_mle" [(.var "zeta"), (.lit 5)]), (.call "index_mle" [(.var "zeta"), (.lit 6)]), (.call "index_mle" [(.var "zeta"), (.lit 7)]), (.call "index_mle" [(.var "zeta"), (.lit 8)]), (.call "index_mle" [(.var "zeta"), (.lit 9)]), (.call "index_mle" [(.var "zeta"), (.lit 10)]), (.call "index_mle" [(.var "zeta"), (.lit 11)]), (.call "index_mle" [(.var "zeta"), (.lit 12)]), (.call "index_mle" [(.var "zeta"), (.lit 13)]), (.call "index_mle" [(.var "zeta"), (.lit 14)]), (.call "index_mle" [(.var "zeta"), (.lit 15)]), (.call "index_mle" [(.var "zeta"), (.lit 16)]), (.call "index_mle" [(.var "zeta"), (.lit 17)]), (.call "index_mle" [(.var "zeta"), (.lit 18)]), (.call "index_mle" [(.var "zeta"), (.lit 19)]), (.call "index_mle" [(.var "zeta"), (.lit 20)]), (.call "index_mle" [(.var "zeta"), (.lit 21)]), (.call "index_mle" [(.var "zeta"), (.lit 22)]), (.call "index_mle" [(.var "zeta"), (.lit 23)]), (.call "index_mle" [(.var "zeta"), (.lit 24)]), (.call "index_mle" [(.var "zeta"), (.lit 25)]), (.call "index_mle" [(.var "zeta"), (.lit 26)]), (.call "index_mle" [(.var "zeta"), (.lit 27)]), (.call "index_mle" [(.var "zeta"), (.lit 28)]), (.call "index_mle" [(.var "zeta"), (.lit 29)]), (.call "index_mle" [(.var "zeta"), (.lit 30)]), (.call "index_mle" [(.var "zeta"), (.lit 31)]), (.call "index_mle" [(.var "zeta"), (.lit 32)]), (.call "index_mle" [(.var "zeta"), (.lit 33)])]),
-                  .mk 2117 (.ite true (.var "s") (.lit 0) [
-                    .mk 2118 (.store (.var "block_index_mle") (.genPow (.var "b")) (.var "coord_val"))] [] false)] false)] [] false),
-              .mk 2119 (.ite true (.index (.var "COORD_TYPE") (.var "ci")) (.lit 4) [
-                .mk 2123 (.let_ "coord_val" (.lit 0)),
-                .mk 2124 (.let_ "block_has_public" (.lit 1))] [] false),
-              .mk 2125 (.ite true (.var "s") (.lit 2) [
-                .mk 2126 (.let_ "inner_sum" (.add (.var "inner_sum") (.var "coord_val")))] [
-                .mk 2128 (.let_ "inner_sum" (.add (.var "inner_sum") (.mul (.index (.var "fp_w") (.genPow (.var "i"))) (.var "coord_val"))))] false)]),
-            .mk 2129 (.let_ "inner_sum" (.add (.var "inner_sum") (.mul (.var "block_has_public") (.var "bc_share")))),
-            .mk 2130 (.ite true (.var "s") (.lit 2) [
-              .mk 2131 (.let_ "acc" (.add (.var "acc") (.mul (.var "eq_hi") (.var "inner_sum"))))] [
-              .mk 2133 (.let_ "acc" (.add (.var "acc") (.mul (.var "eq_hi") (.add (.var "beta") (.var "inner_sum")))))] false)] [] false)]),
-        .mk 2138 (.ite true (.var "s") (.lit 1) [
-          .mk 2139 (.let_ "acc" (.add (.var "acc") (.var "push_padding")))] [
-          .mk 2141 (.let_ "padding_sum" (.lit 0)),
-          .mk 2142 (.unroll "t" (.lit 0) (.lit 6) [
-            .mk 2143 (.let_ "table_sum" (.lit 0)),
-            .mk 2144 (.unroll "b" (.index (.var "SIDE_BLOCK_START") (.var "s")) (.index (.var "SIDE_BLOCK_START") (.add (.var "s") (.lit 1))) [
-              .mk 2145 (.ite true (.index (.var "BLOCK_TABLE") (.var "b")) (.var "t") [
-                .mk 2146 (.ite true (.var "s") (.lit 2) [
-                  .mk 2147 (.let_ "coeff" (.lit 1))] [
-                  .mk 2149 (.let_ "coeff" (.var "beta_1"))] false),
-                .mk 2150 (.unroll "i" (.lit 0) (.index (.var "BLOCK_COORD_COUNT") (.var "b")) [
-                  .mk 2151 (.let_ "ci" (.add (.index (.var "BLOCK_COORD_OFF") (.var "b")) (.var "i"))),
-                  .mk 2152 (.ite false (.index (.var "COORD_PADDING") (.var "ci")) (.lit 0) [
-                    .mk 2153 (.ite true (.var "s") (.lit 2) [
-                      .mk 2154 (.let_ "coeff" (.add (.var "coeff") (.index (.var "COORD_PADDING") (.var "ci"))))] [
-                      .mk 2156 (.let_ "coeff" (.add (.var "coeff") (.mul (.index (.var "fp_w") (.genPow (.var "i"))) (.index (.var "COORD_PADDING") (.var "ci")))))] false)] [] true)]),
-                .mk 2157 (.let_ "table_sum" (.add (.var "table_sum") (.mul (.index (.var "block_eq_hi") (.var "b")) (.var "coeff"))))] [] false)]),
-            .mk 2158 (.let_ "padding_sum" (.add (.var "padding_sum") (.mul (.index (.var "pad_weight") (.var "t")) (.var "table_sum"))))]),
-          .mk 2159 (.let_ "acc" (.add (.var "acc") (.var "padding_sum"))),
-          .mk 2160 (.ite true (.var "s") (.lit 0) [
-            .mk 2161 (.let_ "push_padding" (.var "padding_sum"))] [] false)] false),
-        .mk 2162 (.let_ "acc" (.add (.var "acc") (.add (.lit 1) (.var "selector_sum")))),
-        .mk 2166 (.store (.var "bus_table_total") (.var "s") (.add (.var "acc") (.index (.var "gkr_claims") (.var "s"))))]),
-      .mk 2167 (.let_ "claim_idx" (.lit 5)),
-      .mk 2179 (.letHintWitness "g_zc_n" "zc_tau_max"),
-      .mk 2180 (.let_ "zc_is_a_tau" (.lit 1)),
-      .mk 2181 (.unroll "t" (.lit 0) (.lit 6) [
-        .mk 2182 (.let_ "tau_g" (.index (.var "dims_g") (.genPow (.add (.var "t") (.lit 1))))),
-        .mk 2183 (.assertLt (.fdiv (.var "g_zc_n") (.var "tau_g")) (.const 33)),
-        .mk 2184 (.let_ "zc_is_a_tau" (.mul (.var "zc_is_a_tau") (.add (.var "g_zc_n") (.var "tau_g"))))]),
-      .mk 2185 (.assertEq (.var "zc_is_a_tau") (.lit 0)),
-      .mk 2189 (.assertLt (.fdiv (.var "g_bus_mu") (.var "g_zc_n")) (.const 33)),
-      .mk 2190 (.letTuple ["sp", "zc_xi"] "squeeze" [(.var "sp"), (.var "rate"), (.add (.mod (.add (.lit 5) (.lit 3)) (.lit 4)) (.lit 1))]),
-      .mk 2191 (.let_ "zc_xi_pows" (.stackBuf 5)),
-      .mk 2192 (.store (.var "zc_xi_pows") (.lit 0) (.lit 1)),
-      .mk 2193 (.unroll "k" (.lit 1) (.lit 5) [
-        .mk 2194 (.store (.var "zc_xi_pows") (.var "k") (.mul (.index (.var "zc_xi_pows") (.sub (.var "k") (.lit 1))) (.var "zc_xi")))]),
-      .mk 2200 (.let_ "bus_target" (.lit 0)),
-      .mk 2201 (.unroll "sd" (.lit 0) (.lit 3) [
-        .mk 2202 (.let_ "bus_target" (.add (.var "bus_target") (.mul (.index (.var "zc_xi_pows") (.add (.lit 2) (.var "sd"))) (.index (.var "bus_table_total") (.var "sd")))))]),
-      .mk 2207 (.let_ "zc_rounds" (.heapBufDyn (.pow (.mul (.var "g_zc_n") .gen) (.lit 7)))),
-      .mk 2208 (.let_ "zc_cprod" (.heapBufDyn (.mul (.var "g_zc_n") .gen))),
-      .mk 2209 (.call "fs_store" [(.var "zc_rounds"), (.lit 0), (.lit 1), (.var "sp")]),
-      .mk 2210 (.store (.var "zc_rounds") (.gpow 5) (.var "cursor")),
-      .mk 2211 (.store (.var "zc_rounds") (.gpow 6) (.var "bus_target")),
-      .mk 2212 (.store (.var "zc_cprod") (.gpow 0) (.lit 1)),
-      .mk 2213 (.for_ "xk" 0 (.runtime (.var "g_zc_n")) [
-        .mk 2214 (.let_ "rd" (.mul (.var "zc_rounds") (.pow (.var "xk") (.lit 7)))),
-        .mk 2215 (.letTuple ["ncur", "nclaim", "rk"] "sumcheck_round4" [(.var "rd"), (.index (.var "rd") (.gpow 5)), (.index (.var "rd") (.gpow 6))]),
-        .mk 2216 (.store (.var "chi") (.fdiv (.mul (.var "g_zc_n") (.lit 9223372036854775821)) (.var "xk")) (.var "rk")),
-        .mk 2217 (.let_ "nxt" (.mul (.var "rd") (.gpow 7))),
-        .mk 2218 (.store (.var "nxt") (.gpow 5) (.var "ncur")),
-        .mk 2219 (.store (.var "nxt") (.gpow 6) (.var "nclaim")),
-        .mk 2221 (.store (.var "zc_cprod") (.mul (.var "xk") .gen) (.mul (.index (.var "zc_cprod") (.var "xk")) (.var "rk")))]),
-      .mk 2222 (.let_ "zc_last" (.mul (.var "zc_rounds") (.pow (.var "g_zc_n") (.lit 7)))),
-      .mk 2223 (.let_ "sp" (.call "fs_load" [(.var "zc_last"), (.lit 0), (.lit 1)])),
-      .mk 2224 (.let_ "rate" (.stackBuf 8)),
-      .mk 2225 (.let_ "cursor" (.index (.var "zc_last") (.gpow 5))),
-      .mk 2226 (.let_ "claim" (.index (.var "zc_last") (.gpow 6))),
-      .mk 2228 (.let_ "zc_peq" (.heapBufDyn (.mul (.var "g_zc_n") .gen))),
-      .mk 2229 (.call "eq_prefix_chain" [(.var "zc_peq"), (.lit 1), (.var "chi"), (.var "zeta1"), (.var "g_zc_n")]),
-      .mk 2232 (.let_ "air_acc" (.lit 0)),
-      .mk 2233 (.unroll "t" (.lit 0) (.lit 6) [
-        .mk 2234 (.let_ "tau_g" (.index (.var "dims_g") (.genPow (.add (.var "t") (.lit 1))))),
-        .mk 2235 (.let_ "col_evals" (.stackBuf 91)),
-        .mk 2236 (.unroll "pos" (.index (.var "TABLE_COL_BASE") (.var "t")) (.add (.index (.var "TABLE_COL_BASE") (.var "t")) (.index (.var "N_TABLE_COLS") (.var "t"))) [
-          .mk 2237 (.ite true (.mod (.var "pos") (.lit 4)) (.lit 0) [
-            .mk 2238 (.ite false (.var "pos") (.lit 0) [
-              .mk 2239 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
-              .mk 2240 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
-          .mk 2241 (.letTuple ["e", "cursor"] "fs_next" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.var "cursor")]),
-          .mk 2242 (.store (.var "col_evals") (.sub (.var "pos") (.index (.var "TABLE_COL_BASE") (.var "t"))) (.var "e")),
-          .mk 2243 (.store (.var "claim_pool") (.genPow (.var "claim_idx")) (.var "e")),
-          .mk 2244 (.store (.var "claim_cplen_g") (.genPow (.var "claim_idx")) (.var "tau_g")),
-          .mk 2245 (.let_ "claim_idx" (.add (.var "claim_idx") (.lit 1)))]),
-        .mk 2250 (.let_ "constraint_eval" (.lit 0)),
-        .mk 2251 (.ite true (.var "t") (.lit 4) [
-          .mk 2256 (.let_ "c" (.index (.var "col_evals") (.lit 5))),
-          .mk 2257 (.let_ "b" (.index (.var "col_evals") (.lit 13))),
-          .mk 2258 (.let_ "constraint_eval" (.mul (.index (.var "zc_xi_pows") (.add (.index (.var "ETA_OFFSET") (.var "t")) (.lit 0))) (.add (.var "b") (.mul (.var "c") (.index (.var "col_evals") (.lit 12)))))),
-          .mk 2259 (.let_ "constraint_eval" (.add (.var "constraint_eval") (.mul (.index (.var "zc_xi_pows") (.add (.index (.var "ETA_OFFSET") (.var "t")) (.lit 1))) (.mul (.var "c") (.add (.var "b") (.lit 1))))))] [] false),
-        .mk 2263 (.unroll "sd" (.lit 0) (.lit 3) [
-          .mk 2264 (.let_ "form" (.lit 0)),
-          .mk 2265 (.unroll "b" (.lit 0) (.lit 153) [
-            .mk 2266 (.ite true (.index (.var "BLOCK_SIDE") (.var "b")) (.var "sd") [
-              .mk 2267 (.ite true (.index (.var "BLOCK_TABLE") (.var "b")) (.var "t") [
-                .mk 2268 (.let_ "inner" (.lit 0)),
-                .mk 2269 (.unroll "i" (.lit 0) (.index (.var "BLOCK_COORD_COUNT") (.var "b")) [
-                  .mk 2274 (.let_ "ci" (.add (.index (.var "BLOCK_COORD_OFF") (.var "b")) (.var "i"))),
-                  .mk 2275 (.let_ "cv" (.lit 0)),
-                  .mk 2276 (.unroll "j" (.lit 0) (.index (.var "COORD_TERM_COUNT") (.var "ci")) [
-                    .mk 2277 (.let_ "tj" (.add (.index (.var "COORD_TERM_OFF") (.var "ci")) (.var "j"))),
-                    .mk 2278 (.ite true (.index (.var "TERM_TYPE") (.var "tj")) (.lit 0) [
-                      .mk 2279 (.let_ "cv" (.add (.var "cv") (.index (.var "TERM_CONST") (.var "tj"))))] [] false),
-                    .mk 2280 (.ite true (.index (.var "TERM_TYPE") (.var "tj")) (.lit 1) [
-                      .mk 2281 (.let_ "cv" (.add (.var "cv") (.index (.var "col_evals") (.index (.var "TERM_COL_A") (.var "tj")))))] [] false),
-                    .mk 2282 (.ite true (.index (.var "TERM_TYPE") (.var "tj")) (.lit 2) [
-                      .mk 2283 (.let_ "cv" (.add (.var "cv") (.mul (.index (.var "TERM_CONST") (.var "tj")) (.index (.var "col_evals") (.index (.var "TERM_COL_A") (.var "tj"))))))] [] false),
-                    .mk 2284 (.ite true (.index (.var "TERM_TYPE") (.var "tj")) (.lit 5) [
-                      .mk 2285 (.let_ "cv" (.add (.var "cv") (.mul (.index (.var "TERM_CONST") (.var "tj")) (.mul (.index (.var "col_evals") (.index (.var "TERM_COL_A") (.var "tj"))) (.index (.var "col_evals") (.index (.var "TERM_COL_B") (.var "tj")))))))] [] false)]),
-                  .mk 2286 (.ite true (.var "sd") (.lit 2) [
-                    .mk 2287 (.let_ "inner" (.add (.var "inner") (.var "cv")))] [
-                    .mk 2289 (.let_ "inner" (.add (.var "inner") (.mul (.index (.var "fp_w") (.genPow (.var "i"))) (.var "cv"))))] false)]),
-                .mk 2290 (.ite true (.var "sd") (.lit 2) [
-                  .mk 2291 (.let_ "form" (.add (.var "form") (.mul (.index (.var "block_eq_hi") (.var "b")) (.var "inner"))))] [
-                  .mk 2293 (.let_ "form" (.add (.var "form") (.mul (.index (.var "block_eq_hi") (.var "b")) (.add (.var "beta") (.var "inner")))))] false)] [] false)] [] false)]),
-          .mk 2294 (.let_ "constraint_eval" (.add (.var "constraint_eval") (.mul (.index (.var "zc_xi_pows") (.add (.lit 2) (.var "sd"))) (.var "form"))))]),
-        .mk 2295 (.let_ "air_acc" (.add (.var "air_acc") (.mul (.mul (.index (.var "zc_cprod") (.fdiv (.var "g_zc_n") (.var "tau_g"))) (.index (.var "zc_peq") (.var "tau_g"))) (.var "constraint_eval"))))]),
-      .mk 2296 (.assertEq (.var "air_acc") (.var "claim")),
-      .mk 2303 (.letTuple ["sp", "rm"] "squeeze" [(.var "sp"), (.var "rate"), (.add (.mod (.add (.lit 157) (.lit 3)) (.lit 4)) (.lit 1))]),
-      .mk 2304 (.letTuple ["lo_0", "hi_0"] "canonical_limbs" [(.var "pi_0")]),
-      .mk 2305 (.letTuple ["lo_1", "hi_1"] "canonical_limbs" [(.var "pi_1")]),
-      .mk 2306 (.store (.var "claim_pool") (.genPow (.var "claim_idx")) (.add (.var "lo_0") (.mul (.var "rm") (.add (.var "lo_0") (.var "lo_1"))))),
-      .mk 2307 (.let_ "claim_idx" (.add (.var "claim_idx") (.lit 1))),
-      .mk 2308 (.store (.var "claim_pool") (.genPow (.var "claim_idx")) (.add (.var "hi_0") (.mul (.var "rm") (.add (.var "hi_0") (.var "hi_1"))))),
-      .mk 2309 (.let_ "claim_idx" (.add (.var "claim_idx") (.lit 1))),
-      .mk 2310 (.store (.var "claim_pool") (.genPow (.var "claim_idx")) (.lit 0)),
-      .mk 2311 (.let_ "claim_idx" (.add (.var "claim_idx") (.lit 1))),
-      .mk 2312 (.ret [(.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "cursor"), (.var "g_zc_n"), (.var "bc_share"), (.var "rm")])] }
+      .mk 1947 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
+      .mk 1948 (.let_ "rate" (.stackBuf 8)),
+      .mk 1949 (.let_ "gkr_claims" (.stackBuf 3)),
+      .mk 1950 (.store (.var "gkr_claims") (.lit 0) (.var "claim_push")),
+      .mk 1951 (.store (.var "gkr_claims") (.lit 1) (.var "claim_pull")),
+      .mk 1952 (.store (.var "gkr_claims") (.lit 2) (.var "claim_count")),
+      .mk 1953 (.let_ "sort_order" (.heapBuf 153)),
+      .mk 1954 (.hintWitness (.slice (.var "sort_order") (.lit 0) (.lit 153)) "sort_order"),
+      .mk 1955 (.let_ "block_side_tab" (.heapBuf 153)),
+      .mk 1956 (.unroll "b" (.lit 0) (.lit 153) [
+        .mk 1957 (.store (.var "block_side_tab") (.genPow (.var "b")) (.index (.var "BLOCK_SIDE") (.var "b")))]),
+      .mk 1958 (.let_ "block_off_g" (.heapBuf 153)),
+      .mk 1959 (.unroll "cert" (.lit 0) (.lit 2) [
+        .mk 1960 (.let_ "s" (.mul (.lit 2) (.var "cert"))),
+        .mk 1961 (.let_ "g_off" (.gpow 0)),
+        .mk 1962 (.let_ "prev_g" (.gpow 0)),
+        .mk 1963 (.let_ "prev_kappa" (.gpow 0)),
+        .mk 1964 (.unroll "r" (.index (.var "SIDE_BLOCK_START") (.var "s")) (.index (.var "SIDE_BLOCK_START") (.add (.var "s") (.lit 1))) [
+          .mk 1965 (.let_ "global_g" (.index (.var "sort_order") (.genPow (.var "r")))),
+          .mk 1966 (.assertLt (.var "global_g") (.const 153)),
+          .mk 1967 (.assertEq (.index (.var "block_side_tab") (.var "global_g")) (.var "s")),
+          .mk 1968 (.let_ "kappa_g" (.index (.var "block_kappa") (.var "global_g"))),
+          .mk 1969 (.ite false (.var "r") (.index (.var "SIDE_BLOCK_START") (.var "s")) [
+            .mk 1970 (.assertLt (.fdiv (.var "prev_kappa") (.var "kappa_g")) (.const 34)),
+            .mk 1971 (.ite true (.var "prev_kappa") (.var "kappa_g") [
+              .mk 1974 (.assertLt (.fdiv (.var "global_g") (.var "prev_g")) (.const 153))] [] false)] [] false),
+          .mk 1977 (.store (.var "block_off_g") (.var "global_g") (.var "g_off")),
+          .mk 1978 (.let_ "g_off" (.mul (.var "g_off") (.index (.var "g_squares") (.var "kappa_g")))),
+          .mk 1979 (.let_ "prev_g" (.var "global_g")),
+          .mk 1980 (.let_ "prev_kappa" (.var "kappa_g"))])]),
+      .mk 1996 (.letHintWitness "bc_share" "bytecode_val"),
+      .mk 2000 (.let_ "pad_weight" (.stackBuf 6)),
+      .mk 2001 (.unroll "t" (.lit 0) (.lit 6) [
+        .mk 2002 (.let_ "tau_g" (.index (.var "dims_g") (.genPow (.add (.var "t") (.lit 1))))),
+        .mk 2003 (.assertLt (.var "tau_g") (.const 29)),
+        .mk 2004 (.let_ "rows" (.index (.var "table_rows") (.genPow (.var "t")))),
+        .mk 2005 (.match_ [(.index (.var "pad_weight") (.var "t")), (.var "lead"), (.var "rest")] (.var "tau_g") [(.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 0)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 1)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 2)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 3)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 4)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 5)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 6)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 7)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 8)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 9)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 10)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 11)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 12)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 13)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 14)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 15)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 16)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 17)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 18)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 19)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 20)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 21)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 22)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 23)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 24)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 25)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 26)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 27)]), (.call "padding_weight" [(.var "rows"), (.var "zeta"), (.lit 28)])]),
+        .mk 2006 (.ite true (.index (.var "FLOORS") (.var "t")) (.lit 0) [
+          .mk 2007 (.assertEq (.var "lead") (.lit 1)),
+          .mk 2008 (.assertNe (.var "rest") (.lit 0))] [
+          .mk 2010 (.assertLt (.fdiv (.var "tau_g") (.genPow (.index (.var "FLOORS") (.var "t")))) (.const 29)),
+          .mk 2011 (.ite false (.var "tau_g") (.genPow (.index (.var "FLOORS") (.var "t"))) [
+            .mk 2012 (.assertEq (.var "lead") (.lit 1)),
+            .mk 2013 (.assertNe (.var "rest") (.lit 0))] [] false)] false)]),
+      .mk 2014 (.let_ "idxc_tab" (.heapBuf 34)),
+      .mk 2015 (.unroll "t" (.lit 0) (.lit 34) [
+        .mk 2016 (.store (.var "idxc_tab") (.genPow (.var "t")) (.index (.var "INDEX_MLE_FACTORS") (.var "t")))]),
+      .mk 2017 (.let_ "zeta1" (.heapBufDyn (.var "g_bus_mu"))),
+      .mk 2018 (.match_ [(.var "zeta1_done")] (.var "g_bus_mu") [(.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 0)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 1)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 2)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 3)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 4)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 5)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 6)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 7)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 8)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 9)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 10)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 11)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 12)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 13)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 14)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 15)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 16)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 17)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 18)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 19)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 20)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 21)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 22)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 23)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 24)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 25)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 26)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 27)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 28)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 29)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 30)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 31)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 32)]), (.call "plus_one_run" [(.var "zeta1"), (.var "zeta"), (.lit 33)])]),
+      .mk 2022 (.let_ "shared_len" (.stackBuf 6)),
+      .mk 2023 (.let_ "shared_eq" (.heapBuf 1728)),
+      .mk 2024 (.let_ "shared_g" (.heapBuf 864)),
+      .mk 2025 (.unroll "t" (.lit 0) (.lit 6) [
+        .mk 2026 (.let_ "tau_g" (.index (.var "dims_g") (.genPow (.add (.var "t") (.lit 1))))),
+        .mk 2027 (.store (.var "shared_len") (.var "t") (.fdiv (.var "g_bus_mu") (.var "tau_g"))),
+        .mk 2028 (.assertLt (.index (.var "shared_len") (.var "t")) (.const 34)),
+        .mk 2029 (.call "shared_selector_tables" [(.mul (.var "shared_eq") (.genPow (.mul (.mul (.var "t") (.lit 9)) (.lit 32)))), (.mul (.var "shared_g") (.genPow (.mul (.mul (.var "t") (.lit 9)) (.lit 16)))), (.mul (.var "zeta") (.var "tau_g")), (.mul (.var "zeta1") (.var "tau_g")), (.mul (.var "g_squares") (.var "tau_g")), (.index (.var "shared_len") (.var "t"))])]),
+      .mk 2030 (.let_ "bus_table_total" (.stackBuf 3)),
+      .mk 2031 (.let_ "block_eq_hi" (.stackBuf 153)),
+      .mk 2032 (.let_ "block_index_mle" (.heapBuf 153)),
+      .mk 2033 (.let_ "beta_1" (.add (.var "beta") (.lit 1))),
+      .mk 2034 (.unroll "s" (.lit 0) (.lit 3) [
+        .mk 2035 (.let_ "acc" (.lit 0)),
+        .mk 2036 (.let_ "selector_sum" (.lit 0)),
+        .mk 2037 (.unroll "b" (.index (.var "SIDE_BLOCK_START") (.var "s")) (.index (.var "SIDE_BLOCK_START") (.add (.var "s") (.lit 1))) [
+          .mk 2038 (.let_ "block_has_public" (.lit 0)),
+          .mk 2039 (.let_ "kappa_g" (.index (.var "block_kappa") (.genPow (.var "b")))),
+          .mk 2040 (.assertLt (.var "kappa_g") (.const 34)),
+          .mk 2041 (.ite true (.var "s") (.lit 1) [
+            .mk 2042 (.let_ "eq_hi" (.index (.var "block_eq_hi") (.sub (.var "b") (.index (.var "SIDE_BLOCK_START") (.lit 1)))))] [
+            .mk 2050 (.let_ "offset_bits" (.heapBufDyn (.gpow 34))),
+            .mk 2051 (.call "hint_decompose_bits_exponent" [(.var "offset_bits"), (.index (.var "block_off_g") (.genPow (.var "b"))), (.lit 34)]),
+            .mk 2052 (.let_ "shared" (.lit 0)),
+            .mk 2053 (.ite false (.div (.index (.var "BLOCK_KAPPA_SRC") (.var "b")) (.lit 2)) (.lit 0) [
+              .mk 2054 (.ite true (.index (.var "BLOCK_KAPPA_ADJ") (.var "b")) (.lit 0) [
+                .mk 2055 (.let_ "shared" (.lit 1))] [] true)] [] true),
+            .mk 2056 (.ite true (.var "shared") (.lit 1) [
+              .mk 2057 (.let_ "t" (.sub (.index (.var "BLOCK_KAPPA_SRC") (.var "b")) (.lit 2))),
+              .mk 2058 (.let_ "sel_bits" (.mul (.var "offset_bits") (.index (.var "dims_g") (.genPow (.add (.var "t") (.lit 1)))))),
+              .mk 2059 (.let_ "len_g" (.index (.var "shared_len") (.var "t"))),
+              .mk 2060 (.let_ "tab_eq" (.mul (.var "shared_eq") (.genPow (.mul (.mul (.var "t") (.lit 9)) (.lit 32))))),
+              .mk 2061 (.let_ "tab_g" (.mul (.var "shared_g") (.genPow (.mul (.mul (.var "t") (.lit 9)) (.lit 16))))),
+              .mk 2062 (.match_ [(.var "eq_hi"), (.var "goff")] (.var "len_g") [(.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 0)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 1)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 2)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 3)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 4)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 5)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 6)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 7)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 8)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 9)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 10)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 11)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 12)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 13)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 14)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 15)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 16)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 17)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 18)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 19)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 20)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 21)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 22)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 23)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 24)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 25)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 26)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 27)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 28)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 29)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 30)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 31)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 32)]), (.call "block_selector_tab" [(.var "sel_bits"), (.var "tab_eq"), (.var "tab_g"), (.lit 33)])])] [
+              .mk 2064 (.let_ "sel_len_g" (.fdiv (.var "g_bus_mu") (.var "kappa_g"))),
+              .mk 2065 (.assertLt (.var "sel_len_g") (.const 34)),
+              .mk 2066 (.let_ "sel_bits" (.mul (.var "offset_bits") (.var "kappa_g"))),
+              .mk 2067 (.let_ "zeta1_hi" (.mul (.var "zeta1") (.var "kappa_g"))),
+              .mk 2068 (.let_ "idxc_hi" (.mul (.var "idxc_tab") (.var "kappa_g"))),
+              .mk 2069 (.match_ [(.var "eq_hi"), (.var "goff")] (.var "sel_len_g") [(.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 0)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 1)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 2)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 3)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 4)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 5)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 6)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 7)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 8)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 9)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 10)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 11)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 12)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 13)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 14)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 15)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 16)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 17)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 18)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 19)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 20)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 21)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 22)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 23)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 24)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 25)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 26)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 27)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 28)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 29)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 30)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 31)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 32)]), (.call "block_selector" [(.var "sel_bits"), (.var "zeta1_hi"), (.var "idxc_hi"), (.lit 33)])])] true),
+            .mk 2070 (.assertEq (.var "goff") (.index (.var "block_off_g") (.genPow (.var "b"))))] false),
+          .mk 2071 (.let_ "selector_sum" (.add (.var "selector_sum") (.var "eq_hi"))),
+          .mk 2072 (.store (.var "block_eq_hi") (.var "b") (.var "eq_hi")),
+          .mk 2076 (.ite true (.index (.var "BLOCK_TABLE") (.var "b")) (.lit 6) [
+            .mk 2079 (.let_ "inner_sum" (.lit 0)),
+            .mk 2080 (.unroll "i" (.lit 0) (.index (.var "BLOCK_COORD_COUNT") (.var "b")) [
+              .mk 2081 (.let_ "ci" (.add (.index (.var "BLOCK_COORD_OFF") (.var "b")) (.var "i"))),
+              .mk 2082 (.ite true (.index (.var "COORD_TYPE") (.var "ci")) (.lit 0) [
+                .mk 2083 (.let_ "coord_val" (.index (.var "COORD_CONST") (.var "ci")))] [] false),
+              .mk 2084 (.ite true (.index (.var "COORD_TYPE") (.var "ci")) (.lit 1) [
+                .mk 2085 (.ite true (.index (.var "COORD_FRESH") (.var "ci")) (.lit 1) [
+                  .mk 2086 (.ite true (.mod (.index (.var "COORD_FRESH_POS") (.var "ci")) (.lit 4)) (.lit 0) [
+                    .mk 2087 (.ite false (.index (.var "COORD_FRESH_POS") (.var "ci")) (.lit 0) [
+                      .mk 2088 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
+                      .mk 2089 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
+                  .mk 2090 (.letTuple ["coord_val", "cursor"] "fs_next" [(.var "rate"), (.mod (.index (.var "COORD_FRESH_POS") (.var "ci")) (.lit 4)), (.var "cursor")]),
+                  .mk 2091 (.store (.var "claim_pool") (.genPow (.index (.var "COORD_CLAIM_SLOT") (.var "ci"))) (.var "coord_val")),
+                  .mk 2092 (.store (.var "claim_cplen_g") (.genPow (.index (.var "COORD_CLAIM_SLOT") (.var "ci"))) (.var "kappa_g"))] [
+                  .mk 2094 (.let_ "coord_val" (.index (.var "claim_pool") (.genPow (.index (.var "COORD_CLAIM_SLOT") (.var "ci")))))] false)] [] false),
+              .mk 2095 (.ite true (.index (.var "COORD_TYPE") (.var "ci")) (.lit 2) [
+                .mk 2096 (.ite true (.index (.var "COORD_FRESH") (.var "ci")) (.lit 1) [
+                  .mk 2097 (.ite true (.mod (.index (.var "COORD_FRESH_POS") (.var "ci")) (.lit 4)) (.lit 0) [
+                    .mk 2098 (.ite false (.index (.var "COORD_FRESH_POS") (.var "ci")) (.lit 0) [
+                      .mk 2099 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
+                      .mk 2100 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
+                  .mk 2101 (.letTuple ["rawv", "cursor"] "fs_next" [(.var "rate"), (.mod (.index (.var "COORD_FRESH_POS") (.var "ci")) (.lit 4)), (.var "cursor")]),
+                  .mk 2102 (.store (.var "claim_pool") (.genPow (.index (.var "COORD_CLAIM_SLOT") (.var "ci"))) (.var "rawv")),
+                  .mk 2103 (.store (.var "claim_cplen_g") (.genPow (.index (.var "COORD_CLAIM_SLOT") (.var "ci"))) (.var "kappa_g"))] [
+                  .mk 2105 (.let_ "rawv" (.index (.var "claim_pool") (.genPow (.index (.var "COORD_CLAIM_SLOT") (.var "ci")))))] false),
+                .mk 2106 (.let_ "coord_val" (.mul (.index (.var "COORD_CONST") (.var "ci")) (.var "rawv")))] [] false),
+              .mk 2107 (.ite true (.index (.var "COORD_TYPE") (.var "ci")) (.lit 3) [
+                .mk 2108 (.ite true (.var "s") (.lit 1) [
+                  .mk 2109 (.let_ "coord_val" (.index (.var "block_index_mle") (.genPow (.sub (.var "b") (.index (.var "SIDE_BLOCK_START") (.lit 1))))))] [
+                  .mk 2111 (.match_ [(.var "coord_val")] (.var "kappa_g") [(.call "index_mle" [(.var "zeta"), (.lit 0)]), (.call "index_mle" [(.var "zeta"), (.lit 1)]), (.call "index_mle" [(.var "zeta"), (.lit 2)]), (.call "index_mle" [(.var "zeta"), (.lit 3)]), (.call "index_mle" [(.var "zeta"), (.lit 4)]), (.call "index_mle" [(.var "zeta"), (.lit 5)]), (.call "index_mle" [(.var "zeta"), (.lit 6)]), (.call "index_mle" [(.var "zeta"), (.lit 7)]), (.call "index_mle" [(.var "zeta"), (.lit 8)]), (.call "index_mle" [(.var "zeta"), (.lit 9)]), (.call "index_mle" [(.var "zeta"), (.lit 10)]), (.call "index_mle" [(.var "zeta"), (.lit 11)]), (.call "index_mle" [(.var "zeta"), (.lit 12)]), (.call "index_mle" [(.var "zeta"), (.lit 13)]), (.call "index_mle" [(.var "zeta"), (.lit 14)]), (.call "index_mle" [(.var "zeta"), (.lit 15)]), (.call "index_mle" [(.var "zeta"), (.lit 16)]), (.call "index_mle" [(.var "zeta"), (.lit 17)]), (.call "index_mle" [(.var "zeta"), (.lit 18)]), (.call "index_mle" [(.var "zeta"), (.lit 19)]), (.call "index_mle" [(.var "zeta"), (.lit 20)]), (.call "index_mle" [(.var "zeta"), (.lit 21)]), (.call "index_mle" [(.var "zeta"), (.lit 22)]), (.call "index_mle" [(.var "zeta"), (.lit 23)]), (.call "index_mle" [(.var "zeta"), (.lit 24)]), (.call "index_mle" [(.var "zeta"), (.lit 25)]), (.call "index_mle" [(.var "zeta"), (.lit 26)]), (.call "index_mle" [(.var "zeta"), (.lit 27)]), (.call "index_mle" [(.var "zeta"), (.lit 28)]), (.call "index_mle" [(.var "zeta"), (.lit 29)]), (.call "index_mle" [(.var "zeta"), (.lit 30)]), (.call "index_mle" [(.var "zeta"), (.lit 31)]), (.call "index_mle" [(.var "zeta"), (.lit 32)]), (.call "index_mle" [(.var "zeta"), (.lit 33)])]),
+                  .mk 2112 (.ite true (.var "s") (.lit 0) [
+                    .mk 2113 (.store (.var "block_index_mle") (.genPow (.var "b")) (.var "coord_val"))] [] false)] false)] [] false),
+              .mk 2114 (.ite true (.index (.var "COORD_TYPE") (.var "ci")) (.lit 4) [
+                .mk 2118 (.let_ "coord_val" (.lit 0)),
+                .mk 2119 (.let_ "block_has_public" (.lit 1))] [] false),
+              .mk 2120 (.ite true (.var "s") (.lit 2) [
+                .mk 2121 (.let_ "inner_sum" (.add (.var "inner_sum") (.var "coord_val")))] [
+                .mk 2123 (.let_ "inner_sum" (.add (.var "inner_sum") (.mul (.index (.var "fp_w") (.genPow (.var "i"))) (.var "coord_val"))))] false)]),
+            .mk 2124 (.let_ "inner_sum" (.add (.var "inner_sum") (.mul (.var "block_has_public") (.var "bc_share")))),
+            .mk 2125 (.ite true (.var "s") (.lit 2) [
+              .mk 2126 (.let_ "acc" (.add (.var "acc") (.mul (.var "eq_hi") (.var "inner_sum"))))] [
+              .mk 2128 (.let_ "acc" (.add (.var "acc") (.mul (.var "eq_hi") (.add (.var "beta") (.var "inner_sum")))))] false)] [] false)]),
+        .mk 2133 (.ite true (.var "s") (.lit 1) [
+          .mk 2134 (.let_ "acc" (.add (.var "acc") (.var "push_padding")))] [
+          .mk 2136 (.let_ "padding_sum" (.lit 0)),
+          .mk 2137 (.unroll "t" (.lit 0) (.lit 6) [
+            .mk 2138 (.let_ "table_sum" (.lit 0)),
+            .mk 2139 (.unroll "b" (.index (.var "SIDE_BLOCK_START") (.var "s")) (.index (.var "SIDE_BLOCK_START") (.add (.var "s") (.lit 1))) [
+              .mk 2140 (.ite true (.index (.var "BLOCK_TABLE") (.var "b")) (.var "t") [
+                .mk 2141 (.ite true (.var "s") (.lit 2) [
+                  .mk 2142 (.let_ "coeff" (.lit 1))] [
+                  .mk 2144 (.let_ "coeff" (.var "beta_1"))] false),
+                .mk 2145 (.unroll "i" (.lit 0) (.index (.var "BLOCK_COORD_COUNT") (.var "b")) [
+                  .mk 2146 (.let_ "ci" (.add (.index (.var "BLOCK_COORD_OFF") (.var "b")) (.var "i"))),
+                  .mk 2147 (.ite false (.index (.var "COORD_PADDING") (.var "ci")) (.lit 0) [
+                    .mk 2148 (.ite true (.var "s") (.lit 2) [
+                      .mk 2149 (.let_ "coeff" (.add (.var "coeff") (.index (.var "COORD_PADDING") (.var "ci"))))] [
+                      .mk 2151 (.let_ "coeff" (.add (.var "coeff") (.mul (.index (.var "fp_w") (.genPow (.var "i"))) (.index (.var "COORD_PADDING") (.var "ci")))))] false)] [] true)]),
+                .mk 2152 (.let_ "table_sum" (.add (.var "table_sum") (.mul (.index (.var "block_eq_hi") (.var "b")) (.var "coeff"))))] [] false)]),
+            .mk 2153 (.let_ "padding_sum" (.add (.var "padding_sum") (.mul (.index (.var "pad_weight") (.var "t")) (.var "table_sum"))))]),
+          .mk 2154 (.let_ "acc" (.add (.var "acc") (.var "padding_sum"))),
+          .mk 2155 (.ite true (.var "s") (.lit 0) [
+            .mk 2156 (.let_ "push_padding" (.var "padding_sum"))] [] false)] false),
+        .mk 2157 (.let_ "acc" (.add (.var "acc") (.add (.lit 1) (.var "selector_sum")))),
+        .mk 2161 (.store (.var "bus_table_total") (.var "s") (.add (.var "acc") (.index (.var "gkr_claims") (.var "s"))))]),
+      .mk 2162 (.let_ "claim_idx" (.lit 5)),
+      .mk 2174 (.letHintWitness "g_zc_n" "zc_tau_max"),
+      .mk 2175 (.let_ "zc_is_a_tau" (.lit 1)),
+      .mk 2176 (.unroll "t" (.lit 0) (.lit 6) [
+        .mk 2177 (.let_ "tau_g" (.index (.var "dims_g") (.genPow (.add (.var "t") (.lit 1))))),
+        .mk 2178 (.assertLt (.fdiv (.var "g_zc_n") (.var "tau_g")) (.const 33)),
+        .mk 2179 (.let_ "zc_is_a_tau" (.mul (.var "zc_is_a_tau") (.add (.var "g_zc_n") (.var "tau_g"))))]),
+      .mk 2180 (.assertEq (.var "zc_is_a_tau") (.lit 0)),
+      .mk 2184 (.assertLt (.fdiv (.var "g_bus_mu") (.var "g_zc_n")) (.const 33)),
+      .mk 2185 (.letTuple ["sp", "zc_xi"] "squeeze" [(.var "sp"), (.var "rate"), (.add (.mod (.add (.lit 5) (.lit 3)) (.lit 4)) (.lit 1))]),
+      .mk 2186 (.let_ "zc_xi_pows" (.stackBuf 5)),
+      .mk 2187 (.store (.var "zc_xi_pows") (.lit 0) (.lit 1)),
+      .mk 2188 (.unroll "k" (.lit 1) (.lit 5) [
+        .mk 2189 (.store (.var "zc_xi_pows") (.var "k") (.mul (.index (.var "zc_xi_pows") (.sub (.var "k") (.lit 1))) (.var "zc_xi")))]),
+      .mk 2195 (.let_ "bus_target" (.lit 0)),
+      .mk 2196 (.unroll "sd" (.lit 0) (.lit 3) [
+        .mk 2197 (.let_ "bus_target" (.add (.var "bus_target") (.mul (.index (.var "zc_xi_pows") (.add (.lit 2) (.var "sd"))) (.index (.var "bus_table_total") (.var "sd")))))]),
+      .mk 2202 (.let_ "zc_rounds" (.heapBufDyn (.pow (.mul (.var "g_zc_n") .gen) (.lit 7)))),
+      .mk 2203 (.let_ "zc_cprod" (.heapBufDyn (.mul (.var "g_zc_n") .gen))),
+      .mk 2204 (.call "fs_store" [(.var "zc_rounds"), (.lit 0), (.lit 1), (.var "sp")]),
+      .mk 2205 (.store (.var "zc_rounds") (.gpow 5) (.var "cursor")),
+      .mk 2206 (.store (.var "zc_rounds") (.gpow 6) (.var "bus_target")),
+      .mk 2207 (.store (.var "zc_cprod") (.gpow 0) (.lit 1)),
+      .mk 2208 (.for_ "xk" 0 (.runtime (.var "g_zc_n")) [
+        .mk 2209 (.let_ "rd" (.mul (.var "zc_rounds") (.pow (.var "xk") (.lit 7)))),
+        .mk 2210 (.letTuple ["ncur", "nclaim", "rk"] "sumcheck_round4" [(.var "rd"), (.index (.var "rd") (.gpow 5)), (.index (.var "rd") (.gpow 6))]),
+        .mk 2211 (.store (.var "chi") (.fdiv (.mul (.var "g_zc_n") (.lit 9223372036854775821)) (.var "xk")) (.var "rk")),
+        .mk 2212 (.let_ "nxt" (.mul (.var "rd") (.gpow 7))),
+        .mk 2213 (.store (.var "nxt") (.gpow 5) (.var "ncur")),
+        .mk 2214 (.store (.var "nxt") (.gpow 6) (.var "nclaim")),
+        .mk 2216 (.store (.var "zc_cprod") (.mul (.var "xk") .gen) (.mul (.index (.var "zc_cprod") (.var "xk")) (.var "rk")))]),
+      .mk 2217 (.let_ "zc_last" (.mul (.var "zc_rounds") (.pow (.var "g_zc_n") (.lit 7)))),
+      .mk 2218 (.let_ "sp" (.call "fs_load" [(.var "zc_last"), (.lit 0), (.lit 1)])),
+      .mk 2219 (.let_ "rate" (.stackBuf 8)),
+      .mk 2220 (.let_ "cursor" (.index (.var "zc_last") (.gpow 5))),
+      .mk 2221 (.let_ "claim" (.index (.var "zc_last") (.gpow 6))),
+      .mk 2223 (.let_ "zc_peq" (.heapBufDyn (.mul (.var "g_zc_n") .gen))),
+      .mk 2224 (.call "eq_prefix_chain" [(.var "zc_peq"), (.lit 1), (.var "chi"), (.var "zeta1"), (.var "g_zc_n")]),
+      .mk 2227 (.let_ "air_acc" (.lit 0)),
+      .mk 2228 (.unroll "t" (.lit 0) (.lit 6) [
+        .mk 2229 (.let_ "tau_g" (.index (.var "dims_g") (.genPow (.add (.var "t") (.lit 1))))),
+        .mk 2230 (.let_ "col_evals" (.stackBuf 91)),
+        .mk 2231 (.unroll "pos" (.index (.var "TABLE_COL_BASE") (.var "t")) (.add (.index (.var "TABLE_COL_BASE") (.var "t")) (.index (.var "N_TABLE_COLS") (.var "t"))) [
+          .mk 2232 (.ite true (.mod (.var "pos") (.lit 4)) (.lit 0) [
+            .mk 2233 (.ite false (.var "pos") (.lit 0) [
+              .mk 2234 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
+              .mk 2235 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
+          .mk 2236 (.letTuple ["e", "cursor"] "fs_next" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.var "cursor")]),
+          .mk 2237 (.store (.var "col_evals") (.sub (.var "pos") (.index (.var "TABLE_COL_BASE") (.var "t"))) (.var "e")),
+          .mk 2238 (.store (.var "claim_pool") (.genPow (.var "claim_idx")) (.var "e")),
+          .mk 2239 (.store (.var "claim_cplen_g") (.genPow (.var "claim_idx")) (.var "tau_g")),
+          .mk 2240 (.let_ "claim_idx" (.add (.var "claim_idx") (.lit 1)))]),
+        .mk 2245 (.let_ "constraint_eval" (.lit 0)),
+        .mk 2246 (.ite true (.var "t") (.lit 4) [
+          .mk 2251 (.let_ "c" (.index (.var "col_evals") (.lit 5))),
+          .mk 2252 (.let_ "b" (.index (.var "col_evals") (.lit 13))),
+          .mk 2253 (.let_ "constraint_eval" (.mul (.index (.var "zc_xi_pows") (.add (.index (.var "ETA_OFFSET") (.var "t")) (.lit 0))) (.add (.var "b") (.mul (.var "c") (.index (.var "col_evals") (.lit 12)))))),
+          .mk 2254 (.let_ "constraint_eval" (.add (.var "constraint_eval") (.mul (.index (.var "zc_xi_pows") (.add (.index (.var "ETA_OFFSET") (.var "t")) (.lit 1))) (.mul (.var "c") (.add (.var "b") (.lit 1))))))] [] false),
+        .mk 2258 (.unroll "sd" (.lit 0) (.lit 3) [
+          .mk 2259 (.let_ "form" (.lit 0)),
+          .mk 2260 (.unroll "b" (.lit 0) (.lit 153) [
+            .mk 2261 (.ite true (.index (.var "BLOCK_SIDE") (.var "b")) (.var "sd") [
+              .mk 2262 (.ite true (.index (.var "BLOCK_TABLE") (.var "b")) (.var "t") [
+                .mk 2263 (.let_ "inner" (.lit 0)),
+                .mk 2264 (.unroll "i" (.lit 0) (.index (.var "BLOCK_COORD_COUNT") (.var "b")) [
+                  .mk 2269 (.let_ "ci" (.add (.index (.var "BLOCK_COORD_OFF") (.var "b")) (.var "i"))),
+                  .mk 2270 (.let_ "cv" (.lit 0)),
+                  .mk 2271 (.unroll "j" (.lit 0) (.index (.var "COORD_TERM_COUNT") (.var "ci")) [
+                    .mk 2272 (.let_ "tj" (.add (.index (.var "COORD_TERM_OFF") (.var "ci")) (.var "j"))),
+                    .mk 2273 (.ite true (.index (.var "TERM_TYPE") (.var "tj")) (.lit 0) [
+                      .mk 2274 (.let_ "cv" (.add (.var "cv") (.index (.var "TERM_CONST") (.var "tj"))))] [] false),
+                    .mk 2275 (.ite true (.index (.var "TERM_TYPE") (.var "tj")) (.lit 1) [
+                      .mk 2276 (.let_ "cv" (.add (.var "cv") (.index (.var "col_evals") (.index (.var "TERM_COL_A") (.var "tj")))))] [] false),
+                    .mk 2277 (.ite true (.index (.var "TERM_TYPE") (.var "tj")) (.lit 2) [
+                      .mk 2278 (.let_ "cv" (.add (.var "cv") (.mul (.index (.var "TERM_CONST") (.var "tj")) (.index (.var "col_evals") (.index (.var "TERM_COL_A") (.var "tj"))))))] [] false),
+                    .mk 2279 (.ite true (.index (.var "TERM_TYPE") (.var "tj")) (.lit 5) [
+                      .mk 2280 (.let_ "cv" (.add (.var "cv") (.mul (.index (.var "TERM_CONST") (.var "tj")) (.mul (.index (.var "col_evals") (.index (.var "TERM_COL_A") (.var "tj"))) (.index (.var "col_evals") (.index (.var "TERM_COL_B") (.var "tj")))))))] [] false)]),
+                  .mk 2281 (.ite true (.var "sd") (.lit 2) [
+                    .mk 2282 (.let_ "inner" (.add (.var "inner") (.var "cv")))] [
+                    .mk 2284 (.let_ "inner" (.add (.var "inner") (.mul (.index (.var "fp_w") (.genPow (.var "i"))) (.var "cv"))))] false)]),
+                .mk 2285 (.ite true (.var "sd") (.lit 2) [
+                  .mk 2286 (.let_ "form" (.add (.var "form") (.mul (.index (.var "block_eq_hi") (.var "b")) (.var "inner"))))] [
+                  .mk 2288 (.let_ "form" (.add (.var "form") (.mul (.index (.var "block_eq_hi") (.var "b")) (.add (.var "beta") (.var "inner")))))] false)] [] false)] [] false)]),
+          .mk 2289 (.let_ "constraint_eval" (.add (.var "constraint_eval") (.mul (.index (.var "zc_xi_pows") (.add (.lit 2) (.var "sd"))) (.var "form"))))]),
+        .mk 2290 (.let_ "air_acc" (.add (.var "air_acc") (.mul (.mul (.index (.var "zc_cprod") (.fdiv (.var "g_zc_n") (.var "tau_g"))) (.index (.var "zc_peq") (.var "tau_g"))) (.var "constraint_eval"))))]),
+      .mk 2291 (.assertEq (.var "air_acc") (.var "claim")),
+      .mk 2298 (.letTuple ["sp", "rm"] "squeeze" [(.var "sp"), (.var "rate"), (.add (.mod (.add (.lit 157) (.lit 3)) (.lit 4)) (.lit 1))]),
+      .mk 2299 (.letTuple ["lo_0", "hi_0"] "canonical_limbs" [(.var "pi_0")]),
+      .mk 2300 (.letTuple ["lo_1", "hi_1"] "canonical_limbs" [(.var "pi_1")]),
+      .mk 2301 (.store (.var "claim_pool") (.genPow (.var "claim_idx")) (.add (.var "lo_0") (.mul (.var "rm") (.add (.var "lo_0") (.var "lo_1"))))),
+      .mk 2302 (.let_ "claim_idx" (.add (.var "claim_idx") (.lit 1))),
+      .mk 2303 (.store (.var "claim_pool") (.genPow (.var "claim_idx")) (.add (.var "hi_0") (.mul (.var "rm") (.add (.var "hi_0") (.var "hi_1"))))),
+      .mk 2304 (.let_ "claim_idx" (.add (.var "claim_idx") (.lit 1))),
+      .mk 2305 (.store (.var "claim_pool") (.genPow (.var "claim_idx")) (.lit 0)),
+      .mk 2306 (.let_ "claim_idx" (.add (.var "claim_idx") (.lit 1))),
+      .mk 2307 (.ret [(.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "cursor"), (.var "g_zc_n"), (.var "bc_share"), (.var "rm")])] }
 
 /-- `carry_step`. -/
 def fn_carry_step : Func :=
   { name := "carry_step", params := [⟨"c0", (.runtime .scalar)⟩, ⟨"c1", (.runtime .scalar)⟩, ⟨"n0", (.runtime .scalar)⟩, ⟨"n1", (.runtime .scalar)⟩, ⟨"e_t", (.runtime .scalar)⟩, ⟨"u_t", (.runtime .scalar)⟩, ⟨"v_t", (.runtime .scalar)⟩, ⟨"t", .const⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 2320 (.unroll "p" (.lit 0) (.pow (.lit 2) (.var "t")) [
-        .mk 2321 (.ite true (.var "p") (.lit 0) [
-          .mk 2322 (.store (.var "n0") (.lit 0) (.mul (.index (.var "c0") (.lit 0)) (.var "e_t"))),
-          .mk 2323 (.store (.var "n0") (.pow (.lit 2) (.var "t")) (.mul (.index (.var "c0") (.lit 0)) (.var "u_t"))),
-          .mk 2324 (.store (.var "n1") (.pow (.lit 2) (.var "t")) (.mul (.index (.var "c0") (.lit 0)) (.var "v_t")))] [
-          .mk 2326 (.store (.var "n0") (.var "p") (.add (.mul (.index (.var "c0") (.var "p")) (.var "e_t")) (.mul (.index (.var "c1") (.var "p")) (.var "u_t")))),
-          .mk 2327 (.store (.var "n1") (.var "p") (.mul (.index (.var "c1") (.var "p")) (.var "v_t"))),
-          .mk 2328 (.store (.var "n0") (.add (.var "p") (.pow (.lit 2) (.var "t"))) (.mul (.index (.var "c0") (.var "p")) (.var "u_t"))),
-          .mk 2329 (.store (.var "n1") (.add (.var "p") (.pow (.lit 2) (.var "t"))) (.add (.mul (.index (.var "c0") (.var "p")) (.var "v_t")) (.mul (.index (.var "c1") (.var "p")) (.var "e_t"))))] false)]),
-      .mk 2330 (.ret [])] }
+      .mk 2315 (.unroll "p" (.lit 0) (.pow (.lit 2) (.var "t")) [
+        .mk 2316 (.ite true (.var "p") (.lit 0) [
+          .mk 2317 (.store (.var "n0") (.lit 0) (.mul (.index (.var "c0") (.lit 0)) (.var "e_t"))),
+          .mk 2318 (.store (.var "n0") (.pow (.lit 2) (.var "t")) (.mul (.index (.var "c0") (.lit 0)) (.var "u_t"))),
+          .mk 2319 (.store (.var "n1") (.pow (.lit 2) (.var "t")) (.mul (.index (.var "c0") (.lit 0)) (.var "v_t")))] [
+          .mk 2321 (.store (.var "n0") (.var "p") (.add (.mul (.index (.var "c0") (.var "p")) (.var "e_t")) (.mul (.index (.var "c1") (.var "p")) (.var "u_t")))),
+          .mk 2322 (.store (.var "n1") (.var "p") (.mul (.index (.var "c1") (.var "p")) (.var "v_t"))),
+          .mk 2323 (.store (.var "n0") (.add (.var "p") (.pow (.lit 2) (.var "t"))) (.mul (.index (.var "c0") (.var "p")) (.var "u_t"))),
+          .mk 2324 (.store (.var "n1") (.add (.var "p") (.pow (.lit 2) (.var "t"))) (.add (.mul (.index (.var "c0") (.var "p")) (.var "v_t")) (.mul (.index (.var "c1") (.var "p")) (.var "e_t"))))] false)]),
+      .mk 2325 (.ret [])] }
 
 /-- `carry_wrap`. -/
 def fn_carry_wrap : Func :=
   { name := "carry_wrap", params := [⟨"c0", (.runtime .scalar)⟩, ⟨"c1", (.runtime .scalar)⟩, ⟨"out", (.runtime .scalar)⟩, ⟨"e_t", (.runtime .scalar)⟩, ⟨"s_t", (.runtime .scalar)⟩, ⟨"t", .const⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 2336 (.unroll "p" (.lit 0) (.pow (.lit 2) (.var "t")) [
-        .mk 2337 (.ite true (.var "p") (.lit 0) [
-          .mk 2338 (.store (.var "out") (.lit 0) (.mul (.index (.var "c0") (.lit 0)) (.var "e_t"))),
-          .mk 2339 (.store (.var "out") (.pow (.lit 2) (.var "t")) (.mul (.index (.var "c0") (.lit 0)) (.var "s_t")))] [
-          .mk 2341 (.store (.var "out") (.var "p") (.add (.mul (.index (.var "c0") (.var "p")) (.var "e_t")) (.mul (.index (.var "c1") (.var "p")) (.var "s_t")))),
-          .mk 2342 (.store (.var "out") (.add (.var "p") (.pow (.lit 2) (.var "t"))) (.add (.mul (.index (.var "c0") (.var "p")) (.var "s_t")) (.mul (.index (.var "c1") (.var "p")) (.var "e_t"))))] false)]),
-      .mk 2343 (.ret [])] }
+      .mk 2331 (.unroll "p" (.lit 0) (.pow (.lit 2) (.var "t")) [
+        .mk 2332 (.ite true (.var "p") (.lit 0) [
+          .mk 2333 (.store (.var "out") (.lit 0) (.mul (.index (.var "c0") (.lit 0)) (.var "e_t"))),
+          .mk 2334 (.store (.var "out") (.pow (.lit 2) (.var "t")) (.mul (.index (.var "c0") (.lit 0)) (.var "s_t")))] [
+          .mk 2336 (.store (.var "out") (.var "p") (.add (.mul (.index (.var "c0") (.var "p")) (.var "e_t")) (.mul (.index (.var "c1") (.var "p")) (.var "s_t")))),
+          .mk 2337 (.store (.var "out") (.add (.var "p") (.pow (.lit 2) (.var "t"))) (.add (.mul (.index (.var "c0") (.var "p")) (.var "s_t")) (.mul (.index (.var "c1") (.var "p")) (.var "e_t"))))] false)]),
+      .mk 2338 (.ret [])] }
 
 /-- `keccak_shifts_eq`. -/
 def fn_keccak_shifts_eq : Func :=
   { name := "keccak_shifts_eq", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"shifts", (.runtime .scalar)⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 2352 (.let_ "w_eq" (.stackBuf 6)),
-      .mk 2353 (.let_ "w_sum" (.stackBuf 6)),
-      .mk 2354 (.let_ "w_up" (.stackBuf 6)),
-      .mk 2355 (.let_ "w_down" (.stackBuf 6)),
-      .mk 2357 (.let_ "lo0" (.stackBuf 2)),
-      .mk 2358 (.let_ "lo1" (.stackBuf 2)),
-      .mk 2359 (.let_ "hi0" (.stackBuf 2)),
-      .mk 2360 (.let_ "hi1" (.stackBuf 2)),
-      .mk 2361 (.unroll "t" (.lit 0) (.lit 6) [
-        .mk 2362 (.let_ "a_t" (.index (.var "a") (.genPow (.var "t")))),
-        .mk 2363 (.let_ "b_t" (.index (.var "b") (.genPow (.var "t")))),
-        .mk 2364 (.let_ "both" (.mul (.var "a_t") (.var "b_t"))),
-        .mk 2365 (.store (.var "w_sum") (.var "t") (.add (.var "a_t") (.var "b_t"))),
-        .mk 2366 (.ite true (.var "t") (.lit 0) [
-          .mk 2367 (.store (.var "lo0") (.lit 0) (.add (.lit 1) (.index (.var "w_sum") (.var "t")))),
-          .mk 2368 (.store (.var "lo0") (.lit 1) (.add (.var "a_t") (.var "both"))),
-          .mk 2369 (.store (.var "lo1") (.lit 1) (.add (.var "b_t") (.var "both")))] [
-          .mk 2370 (.ite true (.var "t") (.lit 3) [
-            .mk 2371 (.store (.var "hi0") (.lit 0) (.add (.lit 1) (.index (.var "w_sum") (.var "t")))),
-            .mk 2372 (.store (.var "hi0") (.lit 1) (.add (.var "a_t") (.var "both"))),
-            .mk 2373 (.store (.var "hi1") (.lit 1) (.add (.var "b_t") (.var "both")))] [
-            .mk 2375 (.store (.var "w_eq") (.var "t") (.add (.lit 1) (.index (.var "w_sum") (.var "t")))),
-            .mk 2376 (.store (.var "w_up") (.var "t") (.add (.var "a_t") (.var "both"))),
-            .mk 2377 (.store (.var "w_down") (.var "t") (.add (.var "b_t") (.var "both")))] false)] false)]),
-      .mk 2378 (.let_ "mid0" (.stackBuf 4)),
-      .mk 2379 (.let_ "mid1" (.stackBuf 4)),
-      .mk 2380 (.call "carry_step" [(.var "lo0"), (.var "lo1"), (.var "mid0"), (.var "mid1"), (.index (.var "w_eq") (.lit 1)), (.index (.var "w_up") (.lit 1)), (.index (.var "w_down") (.lit 1)), (.lit 1)]),
-      .mk 2381 (.let_ "low0" (.stackBuf 8)),
-      .mk 2382 (.let_ "low1" (.stackBuf 8)),
-      .mk 2383 (.call "carry_step" [(.var "mid0"), (.var "mid1"), (.var "low0"), (.var "low1"), (.index (.var "w_eq") (.lit 2)), (.index (.var "w_up") (.lit 2)), (.index (.var "w_down") (.lit 2)), (.lit 2)]),
-      .mk 2384 (.let_ "hmid0" (.stackBuf 4)),
-      .mk 2385 (.let_ "hmid1" (.stackBuf 4)),
-      .mk 2386 (.call "carry_step" [(.var "hi0"), (.var "hi1"), (.var "hmid0"), (.var "hmid1"), (.index (.var "w_eq") (.lit 4)), (.index (.var "w_up") (.lit 4)), (.index (.var "w_down") (.lit 4)), (.lit 1)]),
-      .mk 2387 (.let_ "high" (.stackBuf 8)),
-      .mk 2388 (.call "carry_wrap" [(.var "hmid0"), (.var "hmid1"), (.var "high"), (.index (.var "w_eq") (.lit 5)), (.index (.var "w_sum") (.lit 5)), (.lit 2)]),
-      .mk 2389 (.unroll "r" (.lit 0) (.lit 64) [
-        .mk 2390 (.ite true (.index (.var "KECCAK_SHIFT_USED") (.var "r")) (.lit 1) [
-          .mk 2391 (.ite true (.mod (.var "r") (.lit 8)) (.lit 0) [
-            .mk 2392 (.store (.var "shifts") (.var "r") (.mul (.index (.var "low0") (.lit 0)) (.index (.var "high") (.div (.var "r") (.lit 8)))))] [
-            .mk 2394 (.store (.var "shifts") (.var "r") (.add (.mul (.index (.var "low0") (.mod (.var "r") (.lit 8))) (.index (.var "high") (.div (.var "r") (.lit 8)))) (.mul (.index (.var "low1") (.mod (.var "r") (.lit 8))) (.index (.var "high") (.mod (.add (.div (.var "r") (.lit 8)) (.lit 1)) (.lit 8))))))] false)] [] false)]),
-      .mk 2395 (.ret [])] }
+      .mk 2347 (.let_ "w_eq" (.stackBuf 6)),
+      .mk 2348 (.let_ "w_sum" (.stackBuf 6)),
+      .mk 2349 (.let_ "w_up" (.stackBuf 6)),
+      .mk 2350 (.let_ "w_down" (.stackBuf 6)),
+      .mk 2352 (.let_ "lo0" (.stackBuf 2)),
+      .mk 2353 (.let_ "lo1" (.stackBuf 2)),
+      .mk 2354 (.let_ "hi0" (.stackBuf 2)),
+      .mk 2355 (.let_ "hi1" (.stackBuf 2)),
+      .mk 2356 (.unroll "t" (.lit 0) (.lit 6) [
+        .mk 2357 (.let_ "a_t" (.index (.var "a") (.genPow (.var "t")))),
+        .mk 2358 (.let_ "b_t" (.index (.var "b") (.genPow (.var "t")))),
+        .mk 2359 (.let_ "both" (.mul (.var "a_t") (.var "b_t"))),
+        .mk 2360 (.store (.var "w_sum") (.var "t") (.add (.var "a_t") (.var "b_t"))),
+        .mk 2361 (.ite true (.var "t") (.lit 0) [
+          .mk 2362 (.store (.var "lo0") (.lit 0) (.add (.lit 1) (.index (.var "w_sum") (.var "t")))),
+          .mk 2363 (.store (.var "lo0") (.lit 1) (.add (.var "a_t") (.var "both"))),
+          .mk 2364 (.store (.var "lo1") (.lit 1) (.add (.var "b_t") (.var "both")))] [
+          .mk 2365 (.ite true (.var "t") (.lit 3) [
+            .mk 2366 (.store (.var "hi0") (.lit 0) (.add (.lit 1) (.index (.var "w_sum") (.var "t")))),
+            .mk 2367 (.store (.var "hi0") (.lit 1) (.add (.var "a_t") (.var "both"))),
+            .mk 2368 (.store (.var "hi1") (.lit 1) (.add (.var "b_t") (.var "both")))] [
+            .mk 2370 (.store (.var "w_eq") (.var "t") (.add (.lit 1) (.index (.var "w_sum") (.var "t")))),
+            .mk 2371 (.store (.var "w_up") (.var "t") (.add (.var "a_t") (.var "both"))),
+            .mk 2372 (.store (.var "w_down") (.var "t") (.add (.var "b_t") (.var "both")))] false)] false)]),
+      .mk 2373 (.let_ "mid0" (.stackBuf 4)),
+      .mk 2374 (.let_ "mid1" (.stackBuf 4)),
+      .mk 2375 (.call "carry_step" [(.var "lo0"), (.var "lo1"), (.var "mid0"), (.var "mid1"), (.index (.var "w_eq") (.lit 1)), (.index (.var "w_up") (.lit 1)), (.index (.var "w_down") (.lit 1)), (.lit 1)]),
+      .mk 2376 (.let_ "low0" (.stackBuf 8)),
+      .mk 2377 (.let_ "low1" (.stackBuf 8)),
+      .mk 2378 (.call "carry_step" [(.var "mid0"), (.var "mid1"), (.var "low0"), (.var "low1"), (.index (.var "w_eq") (.lit 2)), (.index (.var "w_up") (.lit 2)), (.index (.var "w_down") (.lit 2)), (.lit 2)]),
+      .mk 2379 (.let_ "hmid0" (.stackBuf 4)),
+      .mk 2380 (.let_ "hmid1" (.stackBuf 4)),
+      .mk 2381 (.call "carry_step" [(.var "hi0"), (.var "hi1"), (.var "hmid0"), (.var "hmid1"), (.index (.var "w_eq") (.lit 4)), (.index (.var "w_up") (.lit 4)), (.index (.var "w_down") (.lit 4)), (.lit 1)]),
+      .mk 2382 (.let_ "high" (.stackBuf 8)),
+      .mk 2383 (.call "carry_wrap" [(.var "hmid0"), (.var "hmid1"), (.var "high"), (.index (.var "w_eq") (.lit 5)), (.index (.var "w_sum") (.lit 5)), (.lit 2)]),
+      .mk 2384 (.unroll "r" (.lit 0) (.lit 64) [
+        .mk 2385 (.ite true (.index (.var "KECCAK_SHIFT_USED") (.var "r")) (.lit 1) [
+          .mk 2386 (.ite true (.mod (.var "r") (.lit 8)) (.lit 0) [
+            .mk 2387 (.store (.var "shifts") (.var "r") (.mul (.index (.var "low0") (.lit 0)) (.index (.var "high") (.div (.var "r") (.lit 8)))))] [
+            .mk 2389 (.store (.var "shifts") (.var "r") (.add (.mul (.index (.var "low0") (.mod (.var "r") (.lit 8))) (.index (.var "high") (.div (.var "r") (.lit 8)))) (.mul (.index (.var "low1") (.mod (.var "r") (.lit 8))) (.index (.var "high") (.mod (.add (.div (.var "r") (.lit 8)) (.lit 1)) (.lit 8))))))] false)] [] false)]),
+      .mk 2390 (.ret [])] }
 
 /-- `fold_node`. -/
 def fn_fold_node : Func :=
   { name := "fold_node", params := [⟨"src", (.runtime .scalar)⟩, ⟨"dst", (.runtime .scalar)⟩, ⟨"a_t", (.runtime .scalar)⟩, ⟨"p", .const⟩, ⟨"b", .const⟩, ⟨"t", .const⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 2400 (.let_ "n" (.pow (.lit 2) (.sub (.lit 6) (.var "t")))),
-      .mk 2401 (.unroll "k" (.lit 0) (.div (.var "n") (.lit 2)) [
-        .mk 2402 (.let_ "x0" (.index (.var "src") (.add (.mul (.var "p") (.var "n")) (.mod (.add (.mul (.lit 2) (.var "k")) (.mul (.sub (.var "n") (.lit 1)) (.var "b"))) (.var "n"))))),
-        .mk 2403 (.let_ "x1" (.index (.var "src") (.add (.mul (.var "p") (.var "n")) (.mod (.add (.add (.mul (.lit 2) (.var "k")) (.lit 1)) (.mul (.sub (.var "n") (.lit 1)) (.var "b"))) (.var "n"))))),
-        .mk 2404 (.store (.var "dst") (.add (.mul (.add (.var "p") (.mul (.pow (.lit 2) (.var "t")) (.var "b"))) (.div (.var "n") (.lit 2))) (.var "k")) (.add (.var "x0") (.mul (.var "a_t") (.add (.var "x0") (.var "x1")))))]),
-      .mk 2405 (.ret [])] }
+      .mk 2395 (.let_ "n" (.pow (.lit 2) (.sub (.lit 6) (.var "t")))),
+      .mk 2396 (.unroll "k" (.lit 0) (.div (.var "n") (.lit 2)) [
+        .mk 2397 (.let_ "x0" (.index (.var "src") (.add (.mul (.var "p") (.var "n")) (.mod (.add (.mul (.lit 2) (.var "k")) (.mul (.sub (.var "n") (.lit 1)) (.var "b"))) (.var "n"))))),
+        .mk 2398 (.let_ "x1" (.index (.var "src") (.add (.mul (.var "p") (.var "n")) (.mod (.add (.add (.mul (.lit 2) (.var "k")) (.lit 1)) (.mul (.sub (.var "n") (.lit 1)) (.var "b"))) (.var "n"))))),
+        .mk 2399 (.store (.var "dst") (.add (.mul (.add (.var "p") (.mul (.pow (.lit 2) (.var "t")) (.var "b"))) (.div (.var "n") (.lit 2))) (.var "k")) (.add (.var "x0") (.mul (.var "a_t") (.add (.var "x0") (.var "x1")))))]),
+      .mk 2400 (.ret [])] }
 
 /-- `fold_shifts`. -/
 def fn_fold_shifts : Func :=
   { name := "fold_shifts", params := [⟨"src", (.runtime .scalar)⟩, ⟨"dst", (.runtime .scalar)⟩, ⟨"a_t", (.runtime .scalar)⟩, ⟨"t", .const⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 2414 (.unroll "p" (.lit 0) (.pow (.lit 2) (.var "t")) [
-        .mk 2415 (.unroll "b" (.lit 0) (.lit 2) [
-          .mk 2416 (.ite true (.add (.var "t") (.lit 1)) (.lit 6) [
-            .mk 2417 (.ite true (.index (.var "KECCAK_SHIFT_USED") (.add (.var "p") (.mul (.pow (.lit 2) (.var "t")) (.var "b")))) (.lit 1) [
-              .mk 2418 (.call "fold_node" [(.var "src"), (.var "dst"), (.var "a_t"), (.var "p"), (.var "b"), (.var "t")])] [] false)] [
-            .mk 2420 (.call "fold_node" [(.var "src"), (.var "dst"), (.var "a_t"), (.var "p"), (.var "b"), (.var "t")])] true)])]),
-      .mk 2421 (.ret [])] }
+      .mk 2409 (.unroll "p" (.lit 0) (.pow (.lit 2) (.var "t")) [
+        .mk 2410 (.unroll "b" (.lit 0) (.lit 2) [
+          .mk 2411 (.ite true (.add (.var "t") (.lit 1)) (.lit 6) [
+            .mk 2412 (.ite true (.index (.var "KECCAK_SHIFT_USED") (.add (.var "p") (.mul (.pow (.lit 2) (.var "t")) (.var "b")))) (.lit 1) [
+              .mk 2413 (.call "fold_node" [(.var "src"), (.var "dst"), (.var "a_t"), (.var "p"), (.var "b"), (.var "t")])] [] false)] [
+            .mk 2415 (.call "fold_node" [(.var "src"), (.var "dst"), (.var "a_t"), (.var "p"), (.var "b"), (.var "t")])] true)])]),
+      .mk 2416 (.ret [])] }
 
 /-- `keccak_form`. -/
 def fn_keccak_form : Func :=
   { name := "keccak_form", params := [⟨"lanes", (.runtime .scalar)⟩, ⟨"shifts", (.runtime .scalar)⟩, ⟨"f_lanes", (.runtime .scalar)⟩, ⟨"f_off", .const⟩], returnShapes := [.scalar],
     inline := true,
     body := [
-      .mk 2430 (.let_ "total" (.lit 0)),
-      .mk 2431 (.let_ "column" (.stackBuf 5)),
-      .mk 2432 (.let_ "column_next" (.stackBuf 5)),
-      .mk 2433 (.let_ "f_column" (.stackBuf 5)),
-      .mk 2434 (.unroll "x" (.lit 0) (.lit 5) [
-        .mk 2435 (.let_ "acc" (.lit 0)),
-        .mk 2436 (.let_ "acc_next" (.lit 0)),
-        .mk 2437 (.let_ "f_acc" (.lit 0)),
-        .mk 2438 (.unroll "y" (.lit 0) (.lit 5) [
-          .mk 2439 (.let_ "lane_weight" (.index (.var "lanes") (.genPow (.index (.var "KECCAK_PI") (.add (.var "x") (.mul (.lit 5) (.var "y"))))))),
-          .mk 2440 (.let_ "moved" (.mul (.var "lane_weight") (.index (.var "shifts") (.index (.var "KECCAK_RHO") (.add (.var "x") (.mul (.lit 5) (.var "y"))))))),
-          .mk 2441 (.let_ "f_weight" (.index (.var "f_lanes") (.add (.add (.var "f_off") (.var "x")) (.mul (.lit 5) (.var "y"))))),
-          .mk 2442 (.let_ "total" (.add (.var "total") (.mul (.var "f_weight") (.var "moved")))),
-          .mk 2443 (.let_ "acc" (.add (.var "acc") (.var "moved"))),
-          .mk 2444 (.let_ "acc_next" (.add (.var "acc_next") (.mul (.var "lane_weight") (.index (.var "shifts") (.mod (.add (.index (.var "KECCAK_RHO") (.add (.var "x") (.mul (.lit 5) (.var "y")))) (.lit 1)) (.lit 64)))))),
-          .mk 2445 (.let_ "f_acc" (.add (.var "f_acc") (.var "f_weight")))]),
-        .mk 2446 (.store (.var "column") (.var "x") (.var "acc")),
-        .mk 2447 (.store (.var "column_next") (.var "x") (.var "acc_next")),
-        .mk 2448 (.store (.var "f_column") (.var "x") (.var "f_acc"))]),
-      .mk 2449 (.unroll "x" (.lit 0) (.lit 5) [
-        .mk 2450 (.let_ "total" (.add (.var "total") (.mul (.index (.var "f_column") (.var "x")) (.add (.index (.var "column") (.mod (.add (.var "x") (.lit 1)) (.lit 5))) (.index (.var "column_next") (.mod (.add (.var "x") (.lit 4)) (.lit 5)))))))]),
-      .mk 2451 (.ret [(.var "total")])] }
+      .mk 2425 (.let_ "total" (.lit 0)),
+      .mk 2426 (.let_ "column" (.stackBuf 5)),
+      .mk 2427 (.let_ "column_next" (.stackBuf 5)),
+      .mk 2428 (.let_ "f_column" (.stackBuf 5)),
+      .mk 2429 (.unroll "x" (.lit 0) (.lit 5) [
+        .mk 2430 (.let_ "acc" (.lit 0)),
+        .mk 2431 (.let_ "acc_next" (.lit 0)),
+        .mk 2432 (.let_ "f_acc" (.lit 0)),
+        .mk 2433 (.unroll "y" (.lit 0) (.lit 5) [
+          .mk 2434 (.let_ "lane_weight" (.index (.var "lanes") (.genPow (.index (.var "KECCAK_PI") (.add (.var "x") (.mul (.lit 5) (.var "y"))))))),
+          .mk 2435 (.let_ "moved" (.mul (.var "lane_weight") (.index (.var "shifts") (.index (.var "KECCAK_RHO") (.add (.var "x") (.mul (.lit 5) (.var "y"))))))),
+          .mk 2436 (.let_ "f_weight" (.index (.var "f_lanes") (.add (.add (.var "f_off") (.var "x")) (.mul (.lit 5) (.var "y"))))),
+          .mk 2437 (.let_ "total" (.add (.var "total") (.mul (.var "f_weight") (.var "moved")))),
+          .mk 2438 (.let_ "acc" (.add (.var "acc") (.var "moved"))),
+          .mk 2439 (.let_ "acc_next" (.add (.var "acc_next") (.mul (.var "lane_weight") (.index (.var "shifts") (.mod (.add (.index (.var "KECCAK_RHO") (.add (.var "x") (.mul (.lit 5) (.var "y")))) (.lit 1)) (.lit 64)))))),
+          .mk 2440 (.let_ "f_acc" (.add (.var "f_acc") (.var "f_weight")))]),
+        .mk 2441 (.store (.var "column") (.var "x") (.var "acc")),
+        .mk 2442 (.store (.var "column_next") (.var "x") (.var "acc_next")),
+        .mk 2443 (.store (.var "f_column") (.var "x") (.var "f_acc"))]),
+      .mk 2444 (.unroll "x" (.lit 0) (.lit 5) [
+        .mk 2445 (.let_ "total" (.add (.var "total") (.mul (.index (.var "f_column") (.var "x")) (.add (.index (.var "column") (.mod (.add (.var "x") (.lit 1)) (.lit 5))) (.index (.var "column_next") (.mod (.add (.var "x") (.lit 4)) (.lit 5)))))))]),
+      .mk 2446 (.ret [(.var "total")])] }
 
 /-- `keccak_round`. -/
 def fn_keccak_round : Func :=
   { name := "keccak_round", params := [⟨"rd", (.runtime .scalar)⟩, ⟨"pp", (.runtime .scalar)⟩, ⟨"pt", (.runtime .scalar)⟩], returnShapes := [],
     inline := false,
     body := [
-      .mk 2460 (.let_ "sp" (.call "fs_load" [(.var "rd"), (.lit 0), (.lit 16)])),
-      .mk 2461 (.let_ "cur" (.index (.var "rd") (.gpow 80))),
-      .mk 2462 (.let_ "r_eq" (.index (.var "pp") (.gpow 0))),
-      .mk 2463 (.let_ "rate" (.stackBuf 8)),
-      .mk 2464 (.letTuple ["g_1", "cur"] "fs_next" [(.var "rate"), (.lit 0), (.var "cur")]),
-      .mk 2465 (.letTuple ["g_2", "cur"] "fs_next" [(.var "rate"), (.lit 1), (.var "cur")]),
-      .mk 2466 (.letTuple ["sp", "challenge"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 2)]),
-      .mk 2467 (.store (.var "pt") (.gpow 0) (.var "challenge")),
-      .mk 2468 (.let_ "gap" (.add (.var "r_eq") (.var "challenge"))),
-      .mk 2469 (.let_ "eq_factor" (.add (.lit 1) (.var "gap"))),
-      .mk 2470 (.let_ "nxt" (.mul (.var "rd") .gen)),
-      .mk 2471 (.call "fs_store" [(.var "nxt"), (.lit 0), (.lit 16), (.var "sp")]),
-      .mk 2472 (.store (.var "nxt") (.gpow 80) (.var "cur")),
-      .mk 2473 (.store (.var "nxt") (.gpow 96) (.mul (.var "eq_factor") (.add (.add (.index (.var "rd") (.gpow 96)) (.mul (.var "gap") (.var "g_1"))) (.mul (.add (.var "r_eq") (.mul (.var "challenge") (.var "challenge"))) (.var "g_2"))))),
-      .mk 2474 (.store (.var "nxt") (.gpow 112) (.mul (.index (.var "rd") (.gpow 112)) (.var "eq_factor"))),
-      .mk 2475 (.ret [])] }
+      .mk 2455 (.let_ "sp" (.call "fs_load" [(.var "rd"), (.lit 0), (.lit 16)])),
+      .mk 2456 (.let_ "cur" (.index (.var "rd") (.gpow 80))),
+      .mk 2457 (.let_ "r_eq" (.index (.var "pp") (.gpow 0))),
+      .mk 2458 (.let_ "rate" (.stackBuf 8)),
+      .mk 2459 (.letTuple ["g_1", "cur"] "fs_next" [(.var "rate"), (.lit 0), (.var "cur")]),
+      .mk 2460 (.letTuple ["g_2", "cur"] "fs_next" [(.var "rate"), (.lit 1), (.var "cur")]),
+      .mk 2461 (.letTuple ["sp", "challenge"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 2)]),
+      .mk 2462 (.store (.var "pt") (.gpow 0) (.var "challenge")),
+      .mk 2463 (.let_ "gap" (.add (.var "r_eq") (.var "challenge"))),
+      .mk 2464 (.let_ "eq_factor" (.add (.lit 1) (.var "gap"))),
+      .mk 2465 (.let_ "nxt" (.mul (.var "rd") .gen)),
+      .mk 2466 (.call "fs_store" [(.var "nxt"), (.lit 0), (.lit 16), (.var "sp")]),
+      .mk 2467 (.store (.var "nxt") (.gpow 80) (.var "cur")),
+      .mk 2468 (.store (.var "nxt") (.gpow 96) (.mul (.var "eq_factor") (.add (.add (.index (.var "rd") (.gpow 96)) (.mul (.var "gap") (.var "g_1"))) (.mul (.add (.var "r_eq") (.mul (.var "challenge") (.var "challenge"))) (.var "g_2"))))),
+      .mk 2469 (.store (.var "nxt") (.gpow 112) (.mul (.index (.var "rd") (.gpow 112)) (.var "eq_factor"))),
+      .mk 2470 (.ret [])] }
 
 /-- `keccak_layer`. -/
 def fn_keccak_layer : Func :=
   { name := "keccak_layer", params := [⟨"fs0", (.runtime .scalar)⟩, ⟨"fs1", (.runtime .scalar)⟩, ⟨"fs2", (.runtime .scalar)⟩, ⟨"fs3", (.runtime .scalar)⟩, ⟨"fs4", (.runtime .scalar)⟩, ⟨"p0", (.runtime .scalar)⟩, ⟨"p1", (.runtime .scalar)⟩, ⟨"cursor", (.runtime .scalar)⟩, ⟨"y_g", (.runtime .scalar)⟩, ⟨"half_g", (.runtime .scalar)⟩, ⟨"y_last", (.runtime .scalar)⟩, ⟨"claim", (.runtime .scalar)⟩, ⟨"out", (.runtime .scalar)⟩, ⟨"iota", (.runtime .scalar)⟩, ⟨"first", .const⟩, ⟨"odd", .const⟩], returnShapes := [.scalar, .scalar, .scalar, .scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 2486 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
-      .mk 2487 (.let_ "rate" (.stackBuf 8)),
-      .mk 2488 (.ite true (.var "first") (.lit 1) [
-        .mk 2489 (.store (.var "rate") (.lit 0) (.var "p0")),
-        .mk 2490 (.store (.var "rate") (.lit 1) (.var "p1"))] [] false),
-      .mk 2491 (.let_ "mu" (.stackBuf 16)),
-      .mk 2492 (.unroll "i" (.lit 0) (.lit 16) [
-        .mk 2493 (.store (.var "mu") (.var "i") (.index (.var "claim") (.genPow (.add (.lit 6) (.var "i")))))]),
-      .mk 2495 (.let_ "product" (.stackBuf 47)),
-      .mk 2496 (.let_ "projected" (.lit 0)),
-      .mk 2497 (.unroll "pos" (.var "first") (.add (.var "first") (.lit 47)) [
-        .mk 2499 (.store (.var "product") (.sub (.var "pos") (.var "first")) (.index (.var "cursor") (.genPow (.sub (.var "pos") (.var "first"))))),
-        .mk 2500 (.let_ "coefficient" (.index (.var "product") (.sub (.var "pos") (.var "first")))),
-        .mk 2501 (.ite true (.mod (.var "pos") (.lit 4)) (.lit 0) [
-          .mk 2502 (.ite false (.var "pos") (.lit 0) [
-            .mk 2503 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
-            .mk 2504 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
-        .mk 2505 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.var "coefficient"), (.lit 1)]),
-        .mk 2506 (.let_ "reader" (.lit 0)),
-        .mk 2507 (.unroll "t" (.index (.var "KECCAK_PROJ_START") (.sub (.var "pos") (.var "first"))) (.index (.var "KECCAK_PROJ_START") (.add (.sub (.var "pos") (.var "first")) (.lit 1))) [
-          .mk 2508 (.let_ "reader" (.add (.var "reader") (.index (.var "mu") (.index (.var "KECCAK_PROJ_IDX") (.var "t")))))]),
-        .mk 2509 (.let_ "projected" (.add (.var "projected") (.mul (.var "reader") (.var "coefficient"))))]),
-      .mk 2510 (.let_ "cursor" (.mul (.var "cursor") (.gpow 47))),
-      .mk 2511 (.assertEq (.add (.var "projected") (.mul (.var "iota") (.index (.var "claim") (.gpow 1)))) (.index (.var "claim") (.gpow 0))),
-      .mk 2513 (.letTuple ["sp", "s"] "squeeze" [(.var "sp"), (.var "rate"), (.add (.mod (.add (.add (.var "first") (.lit 47)) (.lit 3)) (.lit 4)) (.lit 1))]),
-      .mk 2514 (.let_ "s_powers" (.stackBuf 24)),
-      .mk 2515 (.store (.var "s_powers") (.lit 0) (.lit 1)),
-      .mk 2516 (.unroll "b" (.lit 1) (.lit 24) [
-        .mk 2517 (.store (.var "s_powers") (.var "b") (.mul (.index (.var "s_powers") (.sub (.var "b") (.lit 1))) (.var "s")))]),
-      .mk 2524 (.let_ "mu_new" (.stackBuf 16)),
-      .mk 2525 (.let_ "modulus" (.lit 0)),
-      .mk 2526 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.sub (.lit 16) (.lit 1))) (.index (.var "KECCAK_EMB_START") (.lit 16)) [
-        .mk 2527 (.let_ "modulus" (.add (.var "modulus") (.index (.var "s_powers") (.index (.var "KECCAK_EMB_IDX") (.var "t")))))]),
-      .mk 2528 (.store (.var "mu_new") (.sub (.lit 16) (.lit 1)) (.var "modulus")),
-      .mk 2529 (.let_ "kappa" (.var "modulus")),
-      .mk 2530 (.let_ "paired" (.lit 0)),
-      .mk 2531 (.unroll "k" (.lit 0) (.sub (.lit 16) (.lit 1)) [
-        .mk 2532 (.ite true (.var "paired") (.lit 1) [
-          .mk 2533 (.let_ "paired" (.lit 0))] [
-          .mk 2536 (.let_ "pair" (.lit 0)),
-          .mk 2537 (.let_ "pair_top" (.lit 0)),
-          .mk 2538 (.ite false (.add (.var "k") (.lit 2)) (.lit 16) [
-            .mk 2539 (.let_ "pair" (.lit 1)),
-            .mk 2540 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.var "k")) (.index (.var "KECCAK_EMB_START") (.add (.var "k") (.lit 2))) [
-              .mk 2541 (.ite true (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.sub (.lit 24) (.lit 2)) [
-                .mk 2542 (.ite true (.var "pair_top") (.lit 1) [
-                  .mk 2543 (.let_ "pair_top" (.lit 0))] [
-                  .mk 2545 (.let_ "pair_top" (.lit 1))] true)] [] true)]),
-            .mk 2546 (.unroll "b" (.lit 0) (.lit 24) [
-              .mk 2547 (.let_ "want" (.lit 0)),
-              .mk 2548 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.var "k")) (.index (.var "KECCAK_EMB_START") (.add (.var "k") (.lit 2))) [
-                .mk 2549 (.ite true (.add (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.lit 1)) (.var "b") [
-                  .mk 2550 (.ite true (.var "want") (.lit 1) [
-                    .mk 2551 (.let_ "want" (.lit 0))] [
-                    .mk 2553 (.let_ "want" (.lit 1))] true)] [] true)]),
-              .mk 2554 (.ite true (.var "pair_top") (.lit 1) [
-                .mk 2555 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.sub (.lit 16) (.lit 1))) (.index (.var "KECCAK_EMB_START") (.lit 16)) [
-                  .mk 2556 (.ite true (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.var "b") [
-                    .mk 2557 (.ite true (.var "want") (.lit 1) [
-                      .mk 2558 (.let_ "want" (.lit 0))] [
-                      .mk 2560 (.let_ "want" (.lit 1))] true)] [] true)])] [] true),
-              .mk 2561 (.let_ "have" (.lit 0)),
-              .mk 2562 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.add (.var "k") (.lit 1))) (.index (.var "KECCAK_EMB_START") (.add (.var "k") (.lit 2))) [
-                .mk 2563 (.ite true (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.var "b") [
-                  .mk 2564 (.let_ "have" (.lit 1))] [] true)]),
-              .mk 2565 (.ite false (.var "have") (.var "want") [
-                .mk 2566 (.let_ "pair" (.lit 0))] [] true)])] [] true),
-          .mk 2568 (.let_ "shifted" (.lit 0)),
-          .mk 2569 (.let_ "top" (.lit 0)),
-          .mk 2570 (.ite false (.div (.var "k") (.lit 2)) (.lit 0) [
-            .mk 2571 (.let_ "shifted" (.lit 1)),
-            .mk 2572 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.sub (.var "k") (.lit 2))) (.index (.var "KECCAK_EMB_START") (.sub (.var "k") (.lit 1))) [
-              .mk 2573 (.ite true (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.sub (.lit 24) (.lit 2)) [
-                .mk 2574 (.let_ "top" (.lit 1))] [] true)]),
-            .mk 2575 (.unroll "b" (.lit 0) (.lit 24) [
-              .mk 2576 (.let_ "want" (.lit 0)),
-              .mk 2577 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.sub (.var "k") (.lit 2))) (.index (.var "KECCAK_EMB_START") (.sub (.var "k") (.lit 1))) [
-                .mk 2578 (.ite true (.add (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.lit 1)) (.var "b") [
-                  .mk 2579 (.let_ "want" (.lit 1))] [] true)]),
-              .mk 2580 (.ite true (.var "top") (.lit 1) [
-                .mk 2581 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.sub (.lit 16) (.lit 1))) (.index (.var "KECCAK_EMB_START") (.lit 16)) [
-                  .mk 2582 (.ite true (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.var "b") [
-                    .mk 2583 (.ite true (.var "want") (.lit 1) [
-                      .mk 2584 (.let_ "want" (.lit 0))] [
-                      .mk 2586 (.let_ "want" (.lit 1))] true)] [] true)])] [] true),
-              .mk 2587 (.let_ "have" (.lit 0)),
-              .mk 2588 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.var "k")) (.index (.var "KECCAK_EMB_START") (.add (.var "k") (.lit 1))) [
-                .mk 2589 (.ite true (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.var "b") [
-                  .mk 2590 (.let_ "have" (.lit 1))] [] true)]),
-              .mk 2591 (.ite false (.var "have") (.var "want") [
-                .mk 2592 (.let_ "shifted" (.lit 0))] [] true)])] [] true),
-          .mk 2593 (.ite true (.var "pair") (.lit 1) [
-            .mk 2594 (.let_ "lift" (.lit 0)),
-            .mk 2595 (.unroll "b" (.lit 0) (.lit 24) [
-              .mk 2596 (.let_ "in_lift" (.lit 0)),
-              .mk 2597 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.var "k")) (.index (.var "KECCAK_EMB_START") (.add (.var "k") (.lit 2))) [
-                .mk 2598 (.ite true (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.var "b") [
-                  .mk 2599 (.ite true (.var "in_lift") (.lit 1) [
-                    .mk 2600 (.let_ "in_lift" (.lit 0))] [
-                    .mk 2602 (.let_ "in_lift" (.lit 1))] true)] [] true)]),
-              .mk 2603 (.ite true (.var "in_lift") (.lit 1) [
-                .mk 2604 (.let_ "lift" (.add (.var "lift") (.index (.var "s_powers") (.var "b"))))] [] true)]),
-            .mk 2605 (.ite true (.var "pair_top") (.lit 1) [
-              .mk 2606 (.store (.var "mu_new") (.add (.var "k") (.lit 1)) (.add (.mul (.var "s") (.var "lift")) (.var "modulus")))] [
-              .mk 2608 (.store (.var "mu_new") (.add (.var "k") (.lit 1)) (.mul (.var "s") (.var "lift")))] true),
-            .mk 2609 (.store (.var "mu_new") (.var "k") (.add (.var "lift") (.index (.var "mu_new") (.add (.var "k") (.lit 1))))),
-            .mk 2610 (.let_ "kappa" (.add (.var "kappa") (.var "lift"))),
-            .mk 2611 (.let_ "paired" (.lit 1))] [
-            .mk 2612 (.ite true (.var "shifted") (.lit 1) [
-              .mk 2613 (.ite true (.var "top") (.lit 1) [
-                .mk 2614 (.store (.var "mu_new") (.var "k") (.add (.mul (.var "s") (.index (.var "mu_new") (.sub (.var "k") (.lit 2)))) (.var "modulus")))] [
-                .mk 2616 (.store (.var "mu_new") (.var "k") (.mul (.var "s") (.index (.var "mu_new") (.sub (.var "k") (.lit 2)))))] true),
-              .mk 2617 (.let_ "kappa" (.add (.var "kappa") (.index (.var "mu_new") (.var "k"))))] [
-              .mk 2619 (.let_ "weight" (.lit 0)),
-              .mk 2620 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.var "k")) (.index (.var "KECCAK_EMB_START") (.add (.var "k") (.lit 1))) [
-                .mk 2621 (.let_ "weight" (.add (.var "weight") (.index (.var "s_powers") (.index (.var "KECCAK_EMB_IDX") (.var "t")))))]),
-              .mk 2622 (.store (.var "mu_new") (.var "k") (.var "weight")),
-              .mk 2623 (.let_ "kappa" (.add (.var "kappa") (.var "weight")))] true)] true)] true)]),
-      .mk 2624 (.unroll "i" (.lit 0) (.lit 16) [
-        .mk 2625 (.store (.var "out") (.genPow (.add (.lit 6) (.var "i"))) (.index (.var "mu_new") (.var "i")))]),
-      .mk 2626 (.store (.var "out") (.gpow 1) (.var "kappa")),
-      .mk 2627 (.let_ "value" (.index (.var "product") (.sub (.lit 47) (.lit 1)))),
-      .mk 2628 (.unroll "k" (.lit 1) (.lit 47) [
-        .mk 2629 (.let_ "value" (.add (.mul (.var "value") (.var "s")) (.index (.var "product") (.sub (.sub (.lit 47) (.lit 1)) (.var "k")))))]),
-      .mk 2632 (.let_ "prev_point" (.index (.var "claim") (.gpow 2))),
-      .mk 2633 (.let_ "point" (.heapBufDyn (.var "y_g"))),
-      .mk 2634 (.let_ "rounds" (.heapBuf 128)),
-      .mk 2635 (.call "fs_store" [(.var "rounds"), (.lit 0), (.lit 16), (.var "sp")]),
-      .mk 2636 (.store (.var "rounds") (.gpow 80) (.var "cursor")),
-      .mk 2637 (.store (.var "rounds") (.gpow 96) (.var "value")),
-      .mk 2638 (.store (.var "rounds") (.gpow 112) (.lit 1)),
-      .mk 2639 (.for_ "x2" 0 (.runtime (.var "half_g")) [
-        .mk 2640 (.let_ "rd" (.mul (.var "rounds") (.var "x2"))),
-        .mk 2641 (.let_ "sq" (.mul (.var "x2") (.var "x2"))),
-        .mk 2642 (.let_ "pp" (.mul (.var "prev_point") (.var "sq"))),
-        .mk 2643 (.let_ "pt" (.mul (.var "point") (.var "sq"))),
-        .mk 2644 (.let_ "round_sp" (.call "fs_load" [(.var "rd"), (.lit 0), (.lit 16)])),
-        .mk 2645 (.let_ "cur_i" (.index (.var "rd") (.gpow 80))),
-        .mk 2646 (.let_ "run" (.index (.var "rd") (.gpow 96))),
-        .mk 2647 (.let_ "scale" (.index (.var "rd") (.gpow 112))),
-        .mk 2648 (.unroll "q" (.lit 0) (.lit 2) [
-          .mk 2650 (.let_ "r_eq" (.index (.var "pp") (.genPow (.var "q")))),
-          .mk 2651 (.let_ "rate" (.stackBuf 8)),
-          .mk 2652 (.letTuple ["g_1", "cur_i"] "fs_next" [(.var "rate"), (.lit 0), (.var "cur_i")]),
-          .mk 2653 (.letTuple ["g_2", "cur_i"] "fs_next" [(.var "rate"), (.lit 1), (.var "cur_i")]),
-          .mk 2654 (.letTuple ["round_sp", "challenge"] "squeeze" [(.var "round_sp"), (.var "rate"), (.lit 2)]),
-          .mk 2655 (.store (.var "pt") (.genPow (.var "q")) (.var "challenge")),
-          .mk 2656 (.let_ "gap" (.add (.var "r_eq") (.var "challenge"))),
-          .mk 2657 (.let_ "eq_factor" (.add (.lit 1) (.var "gap"))),
-          .mk 2658 (.let_ "run" (.mul (.var "eq_factor") (.add (.add (.var "run") (.mul (.var "gap") (.var "g_1"))) (.mul (.add (.var "r_eq") (.mul (.var "challenge") (.var "challenge"))) (.var "g_2"))))),
-          .mk 2659 (.let_ "scale" (.mul (.var "scale") (.var "eq_factor")))]),
-        .mk 2660 (.let_ "nxt" (.mul (.var "rd") .gen)),
-        .mk 2661 (.call "fs_store" [(.var "nxt"), (.lit 0), (.lit 16), (.var "round_sp")]),
-        .mk 2662 (.store (.var "nxt") (.gpow 80) (.var "cur_i")),
-        .mk 2663 (.store (.var "nxt") (.gpow 96) (.var "run")),
-        .mk 2664 (.store (.var "nxt") (.gpow 112) (.var "scale"))]),
-      .mk 2665 (.ite true (.var "odd") (.lit 1) [
-        .mk 2666 (.let_ "sq" (.mul (.var "half_g") (.var "half_g"))),
-        .mk 2667 (.call "keccak_round" [(.mul (.var "rounds") (.var "half_g")), (.mul (.var "prev_point") (.var "sq")), (.mul (.var "point") (.var "sq"))])] [] false),
-      .mk 2668 (.let_ "last" (.mul (.var "rounds") (.var "y_last"))),
-      .mk 2669 (.let_ "sp" (.call "fs_load" [(.var "last"), (.lit 0), (.lit 16)])),
-      .mk 2670 (.let_ "cursor" (.index (.var "last") (.gpow 80))),
-      .mk 2671 (.let_ "value" (.index (.var "last") (.gpow 96))),
-      .mk 2673 (.let_ "local" (.heapBuf 11)),
-      .mk 2674 (.unroll "i" (.lit 0) (.lit 11) [
-        .mk 2675 (.let_ "rate" (.stackBuf 8)),
-        .mk 2676 (.letTuple ["c0", "cursor"] "fs_next" [(.var "rate"), (.lit 0), (.var "cursor")]),
-        .mk 2677 (.letTuple ["c2", "cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "cursor")]),
-        .mk 2678 (.letTuple ["c3", "cursor"] "fs_next" [(.var "rate"), (.lit 2), (.var "cursor")]),
-        .mk 2679 (.letTuple ["sp", "challenge"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 3)]),
-        .mk 2680 (.store (.var "local") (.genPow (.var "i")) (.var "challenge")),
-        .mk 2682 (.let_ "challenge1" (.add (.lit 1) (.var "challenge"))),
-        .mk 2683 (.let_ "value" (.add (.var "c0") (.mul (.var "challenge") (.add (.var "value") (.mul (.var "challenge1") (.add (.var "c2") (.mul (.var "challenge1") (.var "c3"))))))))]),
-      .mk 2684 (.let_ "rate" (.stackBuf 8)),
-      .mk 2685 (.letTuple ["t0", "cursor"] "fs_next" [(.var "rate"), (.lit 0), (.var "cursor")]),
-      .mk 2686 (.letTuple ["t1", "cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "cursor")]),
-      .mk 2687 (.letTuple ["t2", "cursor"] "fs_next" [(.var "rate"), (.lit 2), (.var "cursor")]),
-      .mk 2689 (.let_ "f_lanes" (.stackBuf 62)),
-      .mk 2690 (.call "eqtree_frame" [(.mul (.var "local") (.gpow 6)), (.var "f_lanes"), (.lit 5), (.lit 25)]),
-      .mk 2691 (.let_ "prev_lanes" (.index (.var "claim") (.gpow 3))),
-      .mk 2692 (.let_ "weight_at_local" (.stackBuf 1)),
-      .mk 2693 (.ite true (.var "first") (.lit 1) [
-        .mk 2695 (.let_ "lanes_eq" (.lit 0)),
-        .mk 2696 (.unroll "lane" (.lit 0) (.lit 25) [
-          .mk 2697 (.let_ "lanes_eq" (.add (.var "lanes_eq") (.mul (.index (.var "f_lanes") (.add (.lit 30) (.var "lane"))) (.index (.var "prev_lanes") (.genPow (.var "lane"))))))]),
-        .mk 2698 (.unroll "t" (.lit 0) (.lit 6) [
-          .mk 2699 (.let_ "lanes_eq" (.mul (.var "lanes_eq") (.add (.lit 1) (.mul (.index (.var "local") (.genPow (.var "t"))) (.add (.lit 1) (.genPow (.pow (.lit 2) (.var "t"))))))))]),
-        .mk 2700 (.store (.var "weight_at_local") (.lit 0) (.var "lanes_eq"))] [
-        .mk 2702 (.let_ "shifts" (.stackBuf 64)),
-        .mk 2703 (.call "keccak_shifts_eq" [(.index (.var "claim") (.gpow 4)), (.var "local"), (.var "shifts")]),
-        .mk 2704 (.store (.var "weight_at_local") (.lit 0) (.call "keccak_form" [(.var "prev_lanes"), (.var "shifts"), (.var "f_lanes"), (.lit 30)]))] false),
-      .mk 2705 (.assertEq (.mul (.mul (.index (.var "last") (.gpow 112)) (.index (.var "weight_at_local") (.lit 0))) (.add (.mul (.var "kappa") (.var "t0")) (.mul (.add (.var "kappa") (.var "t1")) (.var "t2")))) (.var "value")),
-      .mk 2707 (.letTuple ["sp", "beta"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 3)]),
-      .mk 2708 (.store (.var "out") (.gpow 0) (.add (.var "t0") (.mul (.var "beta") (.add (.var "t1") (.mul (.var "beta") (.var "t2")))))),
-      .mk 2709 (.store (.var "out") (.gpow 2) (.var "point")),
-      .mk 2710 (.store (.var "out") (.gpow 4) (.var "local")),
-      .mk 2711 (.let_ "lanes" (.heapBuf 25)),
-      .mk 2712 (.unroll "y" (.lit 0) (.lit 5) [
-        .mk 2713 (.unroll "x" (.lit 0) (.lit 5) [
-          .mk 2714 (.store (.var "lanes") (.genPow (.add (.var "x") (.mul (.lit 5) (.var "y")))) (.add (.index (.var "f_lanes") (.add (.add (.lit 30) (.var "x")) (.mul (.lit 5) (.var "y")))) (.mul (.var "beta") (.add (.index (.var "f_lanes") (.add (.add (.lit 30) (.mod (.add (.var "x") (.lit 4)) (.lit 5))) (.mul (.lit 5) (.var "y")))) (.mul (.var "beta") (.index (.var "f_lanes") (.add (.add (.lit 30) (.mod (.add (.var "x") (.lit 3)) (.lit 5))) (.mul (.lit 5) (.var "y")))))))))])]),
-      .mk 2715 (.store (.var "out") (.gpow 3) (.var "lanes")),
-      .mk 2716 (.let_ "slices" (.stackBuf 126)),
-      .mk 2717 (.call "eqtree_frame" [(.var "local"), (.var "slices"), (.lit 6), (.lit 64)]),
-      .mk 2719 (.let_ "slices_out" (.heapBuf 64)),
-      .mk 2720 (.unroll "z" (.lit 0) (.lit 64) [
-        .mk 2721 (.store (.var "slices_out") (.genPow (.var "z")) (.index (.var "slices") (.add (.lit 62) (.var "z"))))]),
-      .mk 2722 (.store (.var "out") (.gpow 5) (.var "slices_out")),
-      .mk 2723 (.ret [(.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "cursor")])] }
+      .mk 2481 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
+      .mk 2482 (.let_ "rate" (.stackBuf 8)),
+      .mk 2483 (.ite true (.var "first") (.lit 1) [
+        .mk 2484 (.store (.var "rate") (.lit 0) (.var "p0")),
+        .mk 2485 (.store (.var "rate") (.lit 1) (.var "p1"))] [] false),
+      .mk 2486 (.let_ "mu" (.stackBuf 16)),
+      .mk 2487 (.unroll "i" (.lit 0) (.lit 16) [
+        .mk 2488 (.store (.var "mu") (.var "i") (.index (.var "claim") (.genPow (.add (.lit 6) (.var "i")))))]),
+      .mk 2490 (.let_ "product" (.stackBuf 47)),
+      .mk 2491 (.let_ "projected" (.lit 0)),
+      .mk 2492 (.unroll "pos" (.var "first") (.add (.var "first") (.lit 47)) [
+        .mk 2494 (.store (.var "product") (.sub (.var "pos") (.var "first")) (.index (.var "cursor") (.genPow (.sub (.var "pos") (.var "first"))))),
+        .mk 2495 (.let_ "coefficient" (.index (.var "product") (.sub (.var "pos") (.var "first")))),
+        .mk 2496 (.ite true (.mod (.var "pos") (.lit 4)) (.lit 0) [
+          .mk 2497 (.ite false (.var "pos") (.lit 0) [
+            .mk 2498 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
+            .mk 2499 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
+        .mk 2500 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.var "coefficient"), (.lit 1)]),
+        .mk 2501 (.let_ "reader" (.lit 0)),
+        .mk 2502 (.unroll "t" (.index (.var "KECCAK_PROJ_START") (.sub (.var "pos") (.var "first"))) (.index (.var "KECCAK_PROJ_START") (.add (.sub (.var "pos") (.var "first")) (.lit 1))) [
+          .mk 2503 (.let_ "reader" (.add (.var "reader") (.index (.var "mu") (.index (.var "KECCAK_PROJ_IDX") (.var "t")))))]),
+        .mk 2504 (.let_ "projected" (.add (.var "projected") (.mul (.var "reader") (.var "coefficient"))))]),
+      .mk 2505 (.let_ "cursor" (.mul (.var "cursor") (.gpow 47))),
+      .mk 2506 (.assertEq (.add (.var "projected") (.mul (.var "iota") (.index (.var "claim") (.gpow 1)))) (.index (.var "claim") (.gpow 0))),
+      .mk 2508 (.letTuple ["sp", "s"] "squeeze" [(.var "sp"), (.var "rate"), (.add (.mod (.add (.add (.var "first") (.lit 47)) (.lit 3)) (.lit 4)) (.lit 1))]),
+      .mk 2509 (.let_ "s_powers" (.stackBuf 24)),
+      .mk 2510 (.store (.var "s_powers") (.lit 0) (.lit 1)),
+      .mk 2511 (.unroll "b" (.lit 1) (.lit 24) [
+        .mk 2512 (.store (.var "s_powers") (.var "b") (.mul (.index (.var "s_powers") (.sub (.var "b") (.lit 1))) (.var "s")))]),
+      .mk 2519 (.let_ "mu_new" (.stackBuf 16)),
+      .mk 2520 (.let_ "modulus" (.lit 0)),
+      .mk 2521 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.sub (.lit 16) (.lit 1))) (.index (.var "KECCAK_EMB_START") (.lit 16)) [
+        .mk 2522 (.let_ "modulus" (.add (.var "modulus") (.index (.var "s_powers") (.index (.var "KECCAK_EMB_IDX") (.var "t")))))]),
+      .mk 2523 (.store (.var "mu_new") (.sub (.lit 16) (.lit 1)) (.var "modulus")),
+      .mk 2524 (.let_ "kappa" (.var "modulus")),
+      .mk 2525 (.let_ "paired" (.lit 0)),
+      .mk 2526 (.unroll "k" (.lit 0) (.sub (.lit 16) (.lit 1)) [
+        .mk 2527 (.ite true (.var "paired") (.lit 1) [
+          .mk 2528 (.let_ "paired" (.lit 0))] [
+          .mk 2531 (.let_ "pair" (.lit 0)),
+          .mk 2532 (.let_ "pair_top" (.lit 0)),
+          .mk 2533 (.ite false (.add (.var "k") (.lit 2)) (.lit 16) [
+            .mk 2534 (.let_ "pair" (.lit 1)),
+            .mk 2535 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.var "k")) (.index (.var "KECCAK_EMB_START") (.add (.var "k") (.lit 2))) [
+              .mk 2536 (.ite true (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.sub (.lit 24) (.lit 2)) [
+                .mk 2537 (.ite true (.var "pair_top") (.lit 1) [
+                  .mk 2538 (.let_ "pair_top" (.lit 0))] [
+                  .mk 2540 (.let_ "pair_top" (.lit 1))] true)] [] true)]),
+            .mk 2541 (.unroll "b" (.lit 0) (.lit 24) [
+              .mk 2542 (.let_ "want" (.lit 0)),
+              .mk 2543 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.var "k")) (.index (.var "KECCAK_EMB_START") (.add (.var "k") (.lit 2))) [
+                .mk 2544 (.ite true (.add (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.lit 1)) (.var "b") [
+                  .mk 2545 (.ite true (.var "want") (.lit 1) [
+                    .mk 2546 (.let_ "want" (.lit 0))] [
+                    .mk 2548 (.let_ "want" (.lit 1))] true)] [] true)]),
+              .mk 2549 (.ite true (.var "pair_top") (.lit 1) [
+                .mk 2550 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.sub (.lit 16) (.lit 1))) (.index (.var "KECCAK_EMB_START") (.lit 16)) [
+                  .mk 2551 (.ite true (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.var "b") [
+                    .mk 2552 (.ite true (.var "want") (.lit 1) [
+                      .mk 2553 (.let_ "want" (.lit 0))] [
+                      .mk 2555 (.let_ "want" (.lit 1))] true)] [] true)])] [] true),
+              .mk 2556 (.let_ "have" (.lit 0)),
+              .mk 2557 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.add (.var "k") (.lit 1))) (.index (.var "KECCAK_EMB_START") (.add (.var "k") (.lit 2))) [
+                .mk 2558 (.ite true (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.var "b") [
+                  .mk 2559 (.let_ "have" (.lit 1))] [] true)]),
+              .mk 2560 (.ite false (.var "have") (.var "want") [
+                .mk 2561 (.let_ "pair" (.lit 0))] [] true)])] [] true),
+          .mk 2563 (.let_ "shifted" (.lit 0)),
+          .mk 2564 (.let_ "top" (.lit 0)),
+          .mk 2565 (.ite false (.div (.var "k") (.lit 2)) (.lit 0) [
+            .mk 2566 (.let_ "shifted" (.lit 1)),
+            .mk 2567 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.sub (.var "k") (.lit 2))) (.index (.var "KECCAK_EMB_START") (.sub (.var "k") (.lit 1))) [
+              .mk 2568 (.ite true (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.sub (.lit 24) (.lit 2)) [
+                .mk 2569 (.let_ "top" (.lit 1))] [] true)]),
+            .mk 2570 (.unroll "b" (.lit 0) (.lit 24) [
+              .mk 2571 (.let_ "want" (.lit 0)),
+              .mk 2572 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.sub (.var "k") (.lit 2))) (.index (.var "KECCAK_EMB_START") (.sub (.var "k") (.lit 1))) [
+                .mk 2573 (.ite true (.add (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.lit 1)) (.var "b") [
+                  .mk 2574 (.let_ "want" (.lit 1))] [] true)]),
+              .mk 2575 (.ite true (.var "top") (.lit 1) [
+                .mk 2576 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.sub (.lit 16) (.lit 1))) (.index (.var "KECCAK_EMB_START") (.lit 16)) [
+                  .mk 2577 (.ite true (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.var "b") [
+                    .mk 2578 (.ite true (.var "want") (.lit 1) [
+                      .mk 2579 (.let_ "want" (.lit 0))] [
+                      .mk 2581 (.let_ "want" (.lit 1))] true)] [] true)])] [] true),
+              .mk 2582 (.let_ "have" (.lit 0)),
+              .mk 2583 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.var "k")) (.index (.var "KECCAK_EMB_START") (.add (.var "k") (.lit 1))) [
+                .mk 2584 (.ite true (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.var "b") [
+                  .mk 2585 (.let_ "have" (.lit 1))] [] true)]),
+              .mk 2586 (.ite false (.var "have") (.var "want") [
+                .mk 2587 (.let_ "shifted" (.lit 0))] [] true)])] [] true),
+          .mk 2588 (.ite true (.var "pair") (.lit 1) [
+            .mk 2589 (.let_ "lift" (.lit 0)),
+            .mk 2590 (.unroll "b" (.lit 0) (.lit 24) [
+              .mk 2591 (.let_ "in_lift" (.lit 0)),
+              .mk 2592 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.var "k")) (.index (.var "KECCAK_EMB_START") (.add (.var "k") (.lit 2))) [
+                .mk 2593 (.ite true (.index (.var "KECCAK_EMB_IDX") (.var "t")) (.var "b") [
+                  .mk 2594 (.ite true (.var "in_lift") (.lit 1) [
+                    .mk 2595 (.let_ "in_lift" (.lit 0))] [
+                    .mk 2597 (.let_ "in_lift" (.lit 1))] true)] [] true)]),
+              .mk 2598 (.ite true (.var "in_lift") (.lit 1) [
+                .mk 2599 (.let_ "lift" (.add (.var "lift") (.index (.var "s_powers") (.var "b"))))] [] true)]),
+            .mk 2600 (.ite true (.var "pair_top") (.lit 1) [
+              .mk 2601 (.store (.var "mu_new") (.add (.var "k") (.lit 1)) (.add (.mul (.var "s") (.var "lift")) (.var "modulus")))] [
+              .mk 2603 (.store (.var "mu_new") (.add (.var "k") (.lit 1)) (.mul (.var "s") (.var "lift")))] true),
+            .mk 2604 (.store (.var "mu_new") (.var "k") (.add (.var "lift") (.index (.var "mu_new") (.add (.var "k") (.lit 1))))),
+            .mk 2605 (.let_ "kappa" (.add (.var "kappa") (.var "lift"))),
+            .mk 2606 (.let_ "paired" (.lit 1))] [
+            .mk 2607 (.ite true (.var "shifted") (.lit 1) [
+              .mk 2608 (.ite true (.var "top") (.lit 1) [
+                .mk 2609 (.store (.var "mu_new") (.var "k") (.add (.mul (.var "s") (.index (.var "mu_new") (.sub (.var "k") (.lit 2)))) (.var "modulus")))] [
+                .mk 2611 (.store (.var "mu_new") (.var "k") (.mul (.var "s") (.index (.var "mu_new") (.sub (.var "k") (.lit 2)))))] true),
+              .mk 2612 (.let_ "kappa" (.add (.var "kappa") (.index (.var "mu_new") (.var "k"))))] [
+              .mk 2614 (.let_ "weight" (.lit 0)),
+              .mk 2615 (.unroll "t" (.index (.var "KECCAK_EMB_START") (.var "k")) (.index (.var "KECCAK_EMB_START") (.add (.var "k") (.lit 1))) [
+                .mk 2616 (.let_ "weight" (.add (.var "weight") (.index (.var "s_powers") (.index (.var "KECCAK_EMB_IDX") (.var "t")))))]),
+              .mk 2617 (.store (.var "mu_new") (.var "k") (.var "weight")),
+              .mk 2618 (.let_ "kappa" (.add (.var "kappa") (.var "weight")))] true)] true)] true)]),
+      .mk 2619 (.unroll "i" (.lit 0) (.lit 16) [
+        .mk 2620 (.store (.var "out") (.genPow (.add (.lit 6) (.var "i"))) (.index (.var "mu_new") (.var "i")))]),
+      .mk 2621 (.store (.var "out") (.gpow 1) (.var "kappa")),
+      .mk 2622 (.let_ "value" (.index (.var "product") (.sub (.lit 47) (.lit 1)))),
+      .mk 2623 (.unroll "k" (.lit 1) (.lit 47) [
+        .mk 2624 (.let_ "value" (.add (.mul (.var "value") (.var "s")) (.index (.var "product") (.sub (.sub (.lit 47) (.lit 1)) (.var "k")))))]),
+      .mk 2627 (.let_ "prev_point" (.index (.var "claim") (.gpow 2))),
+      .mk 2628 (.let_ "point" (.heapBufDyn (.var "y_g"))),
+      .mk 2629 (.let_ "rounds" (.heapBuf 128)),
+      .mk 2630 (.call "fs_store" [(.var "rounds"), (.lit 0), (.lit 16), (.var "sp")]),
+      .mk 2631 (.store (.var "rounds") (.gpow 80) (.var "cursor")),
+      .mk 2632 (.store (.var "rounds") (.gpow 96) (.var "value")),
+      .mk 2633 (.store (.var "rounds") (.gpow 112) (.lit 1)),
+      .mk 2634 (.for_ "x2" 0 (.runtime (.var "half_g")) [
+        .mk 2635 (.let_ "rd" (.mul (.var "rounds") (.var "x2"))),
+        .mk 2636 (.let_ "sq" (.mul (.var "x2") (.var "x2"))),
+        .mk 2637 (.let_ "pp" (.mul (.var "prev_point") (.var "sq"))),
+        .mk 2638 (.let_ "pt" (.mul (.var "point") (.var "sq"))),
+        .mk 2639 (.let_ "round_sp" (.call "fs_load" [(.var "rd"), (.lit 0), (.lit 16)])),
+        .mk 2640 (.let_ "cur_i" (.index (.var "rd") (.gpow 80))),
+        .mk 2641 (.let_ "run" (.index (.var "rd") (.gpow 96))),
+        .mk 2642 (.let_ "scale" (.index (.var "rd") (.gpow 112))),
+        .mk 2643 (.unroll "q" (.lit 0) (.lit 2) [
+          .mk 2645 (.let_ "r_eq" (.index (.var "pp") (.genPow (.var "q")))),
+          .mk 2646 (.let_ "rate" (.stackBuf 8)),
+          .mk 2647 (.letTuple ["g_1", "cur_i"] "fs_next" [(.var "rate"), (.lit 0), (.var "cur_i")]),
+          .mk 2648 (.letTuple ["g_2", "cur_i"] "fs_next" [(.var "rate"), (.lit 1), (.var "cur_i")]),
+          .mk 2649 (.letTuple ["round_sp", "challenge"] "squeeze" [(.var "round_sp"), (.var "rate"), (.lit 2)]),
+          .mk 2650 (.store (.var "pt") (.genPow (.var "q")) (.var "challenge")),
+          .mk 2651 (.let_ "gap" (.add (.var "r_eq") (.var "challenge"))),
+          .mk 2652 (.let_ "eq_factor" (.add (.lit 1) (.var "gap"))),
+          .mk 2653 (.let_ "run" (.mul (.var "eq_factor") (.add (.add (.var "run") (.mul (.var "gap") (.var "g_1"))) (.mul (.add (.var "r_eq") (.mul (.var "challenge") (.var "challenge"))) (.var "g_2"))))),
+          .mk 2654 (.let_ "scale" (.mul (.var "scale") (.var "eq_factor")))]),
+        .mk 2655 (.let_ "nxt" (.mul (.var "rd") .gen)),
+        .mk 2656 (.call "fs_store" [(.var "nxt"), (.lit 0), (.lit 16), (.var "round_sp")]),
+        .mk 2657 (.store (.var "nxt") (.gpow 80) (.var "cur_i")),
+        .mk 2658 (.store (.var "nxt") (.gpow 96) (.var "run")),
+        .mk 2659 (.store (.var "nxt") (.gpow 112) (.var "scale"))]),
+      .mk 2660 (.ite true (.var "odd") (.lit 1) [
+        .mk 2661 (.let_ "sq" (.mul (.var "half_g") (.var "half_g"))),
+        .mk 2662 (.call "keccak_round" [(.mul (.var "rounds") (.var "half_g")), (.mul (.var "prev_point") (.var "sq")), (.mul (.var "point") (.var "sq"))])] [] false),
+      .mk 2663 (.let_ "last" (.mul (.var "rounds") (.var "y_last"))),
+      .mk 2664 (.let_ "sp" (.call "fs_load" [(.var "last"), (.lit 0), (.lit 16)])),
+      .mk 2665 (.let_ "cursor" (.index (.var "last") (.gpow 80))),
+      .mk 2666 (.let_ "value" (.index (.var "last") (.gpow 96))),
+      .mk 2668 (.let_ "local" (.heapBuf 11)),
+      .mk 2669 (.unroll "i" (.lit 0) (.lit 11) [
+        .mk 2670 (.let_ "rate" (.stackBuf 8)),
+        .mk 2671 (.letTuple ["c0", "cursor"] "fs_next" [(.var "rate"), (.lit 0), (.var "cursor")]),
+        .mk 2672 (.letTuple ["c2", "cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "cursor")]),
+        .mk 2673 (.letTuple ["c3", "cursor"] "fs_next" [(.var "rate"), (.lit 2), (.var "cursor")]),
+        .mk 2674 (.letTuple ["sp", "challenge"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 3)]),
+        .mk 2675 (.store (.var "local") (.genPow (.var "i")) (.var "challenge")),
+        .mk 2677 (.let_ "challenge1" (.add (.lit 1) (.var "challenge"))),
+        .mk 2678 (.let_ "value" (.add (.var "c0") (.mul (.var "challenge") (.add (.var "value") (.mul (.var "challenge1") (.add (.var "c2") (.mul (.var "challenge1") (.var "c3"))))))))]),
+      .mk 2679 (.let_ "rate" (.stackBuf 8)),
+      .mk 2680 (.letTuple ["t0", "cursor"] "fs_next" [(.var "rate"), (.lit 0), (.var "cursor")]),
+      .mk 2681 (.letTuple ["t1", "cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "cursor")]),
+      .mk 2682 (.letTuple ["t2", "cursor"] "fs_next" [(.var "rate"), (.lit 2), (.var "cursor")]),
+      .mk 2684 (.let_ "f_lanes" (.stackBuf 62)),
+      .mk 2685 (.call "eqtree_frame" [(.mul (.var "local") (.gpow 6)), (.var "f_lanes"), (.lit 5), (.lit 25)]),
+      .mk 2686 (.let_ "prev_lanes" (.index (.var "claim") (.gpow 3))),
+      .mk 2687 (.let_ "weight_at_local" (.stackBuf 1)),
+      .mk 2688 (.ite true (.var "first") (.lit 1) [
+        .mk 2690 (.let_ "lanes_eq" (.lit 0)),
+        .mk 2691 (.unroll "lane" (.lit 0) (.lit 25) [
+          .mk 2692 (.let_ "lanes_eq" (.add (.var "lanes_eq") (.mul (.index (.var "f_lanes") (.add (.lit 30) (.var "lane"))) (.index (.var "prev_lanes") (.genPow (.var "lane"))))))]),
+        .mk 2693 (.unroll "t" (.lit 0) (.lit 6) [
+          .mk 2694 (.let_ "lanes_eq" (.mul (.var "lanes_eq") (.add (.lit 1) (.mul (.index (.var "local") (.genPow (.var "t"))) (.add (.lit 1) (.genPow (.pow (.lit 2) (.var "t"))))))))]),
+        .mk 2695 (.store (.var "weight_at_local") (.lit 0) (.var "lanes_eq"))] [
+        .mk 2697 (.let_ "shifts" (.stackBuf 64)),
+        .mk 2698 (.call "keccak_shifts_eq" [(.index (.var "claim") (.gpow 4)), (.var "local"), (.var "shifts")]),
+        .mk 2699 (.store (.var "weight_at_local") (.lit 0) (.call "keccak_form" [(.var "prev_lanes"), (.var "shifts"), (.var "f_lanes"), (.lit 30)]))] false),
+      .mk 2700 (.assertEq (.mul (.mul (.index (.var "last") (.gpow 112)) (.index (.var "weight_at_local") (.lit 0))) (.add (.mul (.var "kappa") (.var "t0")) (.mul (.add (.var "kappa") (.var "t1")) (.var "t2")))) (.var "value")),
+      .mk 2702 (.letTuple ["sp", "beta"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 3)]),
+      .mk 2703 (.store (.var "out") (.gpow 0) (.add (.var "t0") (.mul (.var "beta") (.add (.var "t1") (.mul (.var "beta") (.var "t2")))))),
+      .mk 2704 (.store (.var "out") (.gpow 2) (.var "point")),
+      .mk 2705 (.store (.var "out") (.gpow 4) (.var "local")),
+      .mk 2706 (.let_ "lanes" (.heapBuf 25)),
+      .mk 2707 (.unroll "y" (.lit 0) (.lit 5) [
+        .mk 2708 (.unroll "x" (.lit 0) (.lit 5) [
+          .mk 2709 (.store (.var "lanes") (.genPow (.add (.var "x") (.mul (.lit 5) (.var "y")))) (.add (.index (.var "f_lanes") (.add (.add (.lit 30) (.var "x")) (.mul (.lit 5) (.var "y")))) (.mul (.var "beta") (.add (.index (.var "f_lanes") (.add (.add (.lit 30) (.mod (.add (.var "x") (.lit 4)) (.lit 5))) (.mul (.lit 5) (.var "y")))) (.mul (.var "beta") (.index (.var "f_lanes") (.add (.add (.lit 30) (.mod (.add (.var "x") (.lit 3)) (.lit 5))) (.mul (.lit 5) (.var "y")))))))))])]),
+      .mk 2710 (.store (.var "out") (.gpow 3) (.var "lanes")),
+      .mk 2711 (.let_ "slices" (.stackBuf 126)),
+      .mk 2712 (.call "eqtree_frame" [(.var "local"), (.var "slices"), (.lit 6), (.lit 64)]),
+      .mk 2714 (.let_ "slices_out" (.heapBuf 64)),
+      .mk 2715 (.unroll "z" (.lit 0) (.lit 64) [
+        .mk 2716 (.store (.var "slices_out") (.genPow (.var "z")) (.index (.var "slices") (.add (.lit 62) (.var "z"))))]),
+      .mk 2717 (.store (.var "out") (.gpow 5) (.var "slices_out")),
+      .mk 2718 (.ret [(.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "cursor")])] }
 
 /-- `keccak_plain_rounds`. -/
 def fn_keccak_plain_rounds : Func :=
   { name := "keccak_plain_rounds", params := [⟨"fs0", (.runtime .scalar)⟩, ⟨"fs1", (.runtime .scalar)⟩, ⟨"fs2", (.runtime .scalar)⟩, ⟨"fs3", (.runtime .scalar)⟩, ⟨"fs4", (.runtime .scalar)⟩, ⟨"p0", (.runtime .scalar)⟩, ⟨"p1", (.runtime .scalar)⟩, ⟨"cursor", (.runtime .scalar)⟩, ⟨"value", (.runtime .scalar)⟩, ⟨"point", (.runtime .scalar)⟩, ⟨"n", .const⟩, ⟨"k0", .const⟩], returnShapes := [.scalar, .scalar, .scalar, .scalar, .scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 2730 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
-      .mk 2731 (.unroll "i" (.lit 0) (.var "n") [
-        .mk 2732 (.let_ "rate" (.stackBuf 8)),
-        .mk 2733 (.ite true (.var "i") (.lit 0) [
-          .mk 2734 (.ite true (.var "k0") (.lit 1) [
-            .mk 2735 (.store (.var "rate") (.lit 0) (.var "p0")),
-            .mk 2736 (.store (.var "rate") (.lit 1) (.var "p1")),
-            .mk 2737 (.letTuple ["c0", "cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "cursor")]),
-            .mk 2738 (.letTuple ["c2", "cursor"] "fs_next" [(.var "rate"), (.lit 2), (.var "cursor")]),
-            .mk 2739 (.letTuple ["sp", "challenge"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 3)])] [
-            .mk 2741 (.letTuple ["c0", "cursor"] "fs_next" [(.var "rate"), (.lit 0), (.var "cursor")]),
-            .mk 2742 (.letTuple ["c2", "cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "cursor")]),
-            .mk 2743 (.letTuple ["sp", "challenge"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 2)])] false)] [
-          .mk 2745 (.letTuple ["c0", "cursor"] "fs_next" [(.var "rate"), (.lit 0), (.var "cursor")]),
-          .mk 2746 (.letTuple ["c2", "cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "cursor")]),
-          .mk 2747 (.letTuple ["sp", "challenge"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 2)])] false),
-        .mk 2748 (.let_ "c1" (.add (.var "value") (.var "c2"))),
-        .mk 2749 (.store (.var "point") (.genPow (.var "i")) (.var "challenge")),
-        .mk 2750 (.let_ "value" (.add (.var "c0") (.mul (.var "challenge") (.add (.var "c1") (.mul (.var "challenge") (.var "c2"))))))]),
-      .mk 2751 (.ret [(.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "cursor"), (.var "value")])] }
+      .mk 2725 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
+      .mk 2726 (.unroll "i" (.lit 0) (.var "n") [
+        .mk 2727 (.let_ "rate" (.stackBuf 8)),
+        .mk 2728 (.ite true (.var "i") (.lit 0) [
+          .mk 2729 (.ite true (.var "k0") (.lit 1) [
+            .mk 2730 (.store (.var "rate") (.lit 0) (.var "p0")),
+            .mk 2731 (.store (.var "rate") (.lit 1) (.var "p1")),
+            .mk 2732 (.letTuple ["c0", "cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "cursor")]),
+            .mk 2733 (.letTuple ["c2", "cursor"] "fs_next" [(.var "rate"), (.lit 2), (.var "cursor")]),
+            .mk 2734 (.letTuple ["sp", "challenge"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 3)])] [
+            .mk 2736 (.letTuple ["c0", "cursor"] "fs_next" [(.var "rate"), (.lit 0), (.var "cursor")]),
+            .mk 2737 (.letTuple ["c2", "cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "cursor")]),
+            .mk 2738 (.letTuple ["sp", "challenge"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 2)])] false)] [
+          .mk 2740 (.letTuple ["c0", "cursor"] "fs_next" [(.var "rate"), (.lit 0), (.var "cursor")]),
+          .mk 2741 (.letTuple ["c2", "cursor"] "fs_next" [(.var "rate"), (.lit 1), (.var "cursor")]),
+          .mk 2742 (.letTuple ["sp", "challenge"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 2)])] false),
+        .mk 2743 (.let_ "c1" (.add (.var "value") (.var "c2"))),
+        .mk 2744 (.store (.var "point") (.genPow (.var "i")) (.var "challenge")),
+        .mk 2745 (.let_ "value" (.add (.var "c0") (.mul (.var "challenge") (.add (.var "c1") (.mul (.var "challenge") (.var "c2"))))))]),
+      .mk 2746 (.ret [(.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "cursor"), (.var "value")])] }
 
 /-- `keccak_slot_lanes`. -/
 def fn_keccak_slot_lanes : Func :=
   { name := "keccak_slot_lanes", params := [⟨"slot", (.runtime .scalar)⟩, ⟨"segment_point", (.runtime .scalar)⟩, ⟨"out", (.runtime .scalar)⟩, ⟨"first", .const⟩, ⟨"count", .const⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 2759 (.let_ "slot_weights" (.stackBuf 126)),
-      .mk 2760 (.call "eqtree_frame" [(.var "slot"), (.var "slot_weights"), (.lit 6), (.mul (.lit 25) (.lit 2))]),
-      .mk 2761 (.let_ "seg_weights" (.stackBuf 2)),
-      .mk 2762 (.call "eqtree_frame" [(.var "segment_point"), (.var "seg_weights"), (.lit 1), (.pow (.lit 2) (.lit 1))]),
-      .mk 2763 (.unroll "lane" (.lit 0) (.lit 25) [
-        .mk 2764 (.let_ "lane_acc" (.lit 0)),
-        .mk 2765 (.unroll "m" (.lit 0) (.var "count") [
-          .mk 2766 (.let_ "lane_acc" (.add (.var "lane_acc") (.mul (.index (.var "seg_weights") (.add (.sub (.pow (.lit 2) (.lit 1)) (.lit 2)) (.var "m"))) (.index (.var "slot_weights") (.add (.add (.sub (.pow (.lit 2) (.lit 6)) (.lit 2)) (.mul (.lit 25) (.add (.var "first") (.var "m")))) (.var "lane"))))))]),
-        .mk 2767 (.store (.var "out") (.var "lane") (.var "lane_acc"))]),
-      .mk 2768 (.ret [])] }
+      .mk 2754 (.let_ "slot_weights" (.stackBuf 126)),
+      .mk 2755 (.call "eqtree_frame" [(.var "slot"), (.var "slot_weights"), (.lit 6), (.mul (.lit 25) (.lit 2))]),
+      .mk 2756 (.let_ "seg_weights" (.stackBuf 2)),
+      .mk 2757 (.call "eqtree_frame" [(.var "segment_point"), (.var "seg_weights"), (.lit 1), (.pow (.lit 2) (.lit 1))]),
+      .mk 2758 (.unroll "lane" (.lit 0) (.lit 25) [
+        .mk 2759 (.let_ "lane_acc" (.lit 0)),
+        .mk 2760 (.unroll "m" (.lit 0) (.var "count") [
+          .mk 2761 (.let_ "lane_acc" (.add (.var "lane_acc") (.mul (.index (.var "seg_weights") (.add (.sub (.pow (.lit 2) (.lit 1)) (.lit 2)) (.var "m"))) (.index (.var "slot_weights") (.add (.add (.sub (.pow (.lit 2) (.lit 6)) (.lit 2)) (.mul (.lit 25) (.add (.var "first") (.var "m")))) (.var "lane"))))))]),
+        .mk 2762 (.store (.var "out") (.var "lane") (.var "lane_acc"))]),
+      .mk 2763 (.ret [])] }
 
 /-- `verify_keccak`. -/
 def fn_verify_keccak : Func :=
   { name := "verify_keccak", params := [⟨"fs0", (.runtime .scalar)⟩, ⟨"fs1", (.runtime .scalar)⟩, ⟨"fs2", (.runtime .scalar)⟩, ⟨"fs3", (.runtime .scalar)⟩, ⟨"fs4", (.runtime .scalar)⟩, ⟨"cursor", (.runtime .scalar)⟩, ⟨"tau_g", (.runtime .scalar)⟩, ⟨"chi", (.runtime .scalar)⟩, ⟨"output_lanes", (.runtime .scalar)⟩, ⟨"z_vals", (.runtime .scalar)⟩, ⟨"slices", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar, .scalar, .scalar, .scalar, .scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 2783 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
-      .mk 2784 (.let_ "no_rate" (.stackBuf 8)),
-      .mk 2785 (.let_ "pack_g" (.mul (.var "tau_g") (.pow (.lit 9223372036854775821) (.lit 4)))),
-      .mk 2786 (.let_ "y_g" (.mul (.var "pack_g") (.gpow 1))),
-      .mk 2789 (.let_ "y_bits" (.stackBuf 5)),
-      .mk 2790 (.call "hint_decompose_bits_exponent" [(.var "y_bits"), (.var "y_g"), (.lit 5)]),
-      .mk 2791 (.let_ "half_g" (.gpow 0)),
-      .mk 2792 (.unroll "j" (.lit 0) (.lit 5) [
-        .mk 2793 (.let_ "bit" (.index (.var "y_bits") (.var "j"))),
-        .mk 2794 (.store (.var "y_bits") (.var "j") (.mul (.var "bit") (.var "bit"))),
-        .mk 2795 (.ite false (.var "j") (.lit 0) [
-          .mk 2796 (.let_ "half_g" (.mul (.var "half_g") (.add (.lit 1) (.mul (.var "bit") (.add (.lit 1) (.genPow (.div (.pow (.lit 2) (.var "j")) (.lit 2))))))))] [] false)]),
-      .mk 2797 (.let_ "odd_g" (.add (.lit 1) (.mul (.index (.var "y_bits") (.lit 0)) (.add (.lit 1) .gen)))),
-      .mk 2798 (.let_ "y_last" (.mul (.var "half_g") (.var "odd_g"))),
-      .mk 2799 (.assertEq (.mul (.var "half_g") (.var "y_last")) (.var "y_g")),
-      .mk 2800 (.let_ "out_point" (.var "z_vals")),
-      .mk 2801 (.let_ "in_point" (.mul (.var "z_vals") (.gpow 39))),
-      .mk 2802 (.unroll "i" (.lit 0) (.lit 4) [
-        .mk 2803 (.store (.var "out_point") (.genPow (.var "i")) (.index (.var "chi") (.genPow (.var "i"))))]),
-      .mk 2805 (.let_ "point" (.heapBufDyn (.var "y_g"))),
-      .mk 2806 (.let_ "chi_pack" (.mul (.var "chi") (.gpow 4))),
-      .mk 2807 (.for_ "xt" 0 (.runtime (.var "pack_g")) [
-        .mk 2808 (.store (.var "point") (.var "xt") (.index (.var "chi_pack") (.var "xt")))]),
-      .mk 2809 (.let_ "segment" (.mul (.var "point") (.var "pack_g"))),
-      .mk 2810 (.unroll "i" (.lit 0) (.lit 1) [
-        .mk 2811 (.letTuple ["sp", "r"] "squeeze" [(.var "sp"), (.var "no_rate"), (.lit 0)]),
-        .mk 2812 (.store (.var "segment") (.genPow (.var "i")) (.var "r"))]),
-      .mk 2813 (.let_ "r_lane" (.heapBuf 5)),
-      .mk 2814 (.unroll "i" (.lit 0) (.lit 5) [
-        .mk 2815 (.letTuple ["sp", "r"] "squeeze" [(.var "sp"), (.var "no_rate"), (.lit 0)]),
-        .mk 2816 (.store (.var "r_lane") (.genPow (.var "i")) (.var "r"))]),
-      .mk 2818 (.let_ "value_rate" (.stackBuf 8)),
-      .mk 2819 (.letTuple ["value", "cursor"] "fs_next" [(.var "value_rate"), (.lit 0), (.var "cursor")]),
-      .mk 2820 (.let_ "fs0" (.index (.var "sp") (.lit 8))),
-      .mk 2821 (.let_ "fs1" (.index (.var "sp") (.lit 9))),
-      .mk 2822 (.let_ "fs2" (.index (.var "sp") (.lit 10))),
-      .mk 2823 (.let_ "fs3" (.index (.var "sp") (.lit 11))),
-      .mk 2824 (.let_ "fs4" (.index (.var "sp") (.lit 12))),
-      .mk 2828 (.let_ "claims" (.heapBuf 286)),
-      .mk 2829 (.store (.var "claims") (.gpow 1) (.lit 1)),
-      .mk 2830 (.store (.var "claims") (.gpow 2) (.var "point")),
-      .mk 2831 (.let_ "mu_tree" (.heapBuf 30)),
-      .mk 2832 (.call "eqtree" [(.var "out_point"), (.var "mu_tree"), (.lit 4)]),
-      .mk 2833 (.unroll "i" (.lit 0) (.lit 16) [
-        .mk 2834 (.store (.var "claims") (.genPow (.add (.lit 6) (.var "i"))) (.index (.var "mu_tree") (.genPow (.add (.sub (.pow (.lit 2) (.lit 4)) (.lit 2)) (.var "i")))))]),
-      .mk 2835 (.let_ "lane_tree" (.heapBuf 62)),
-      .mk 2836 (.call "eqtree" [(.var "r_lane"), (.var "lane_tree"), (.lit 5)]),
-      .mk 2837 (.let_ "first_lanes" (.mul (.var "lane_tree") (.gpow 30))),
-      .mk 2838 (.store (.var "claims") (.gpow 3) (.var "first_lanes")),
-      .mk 2840 (.let_ "segment_tree" (.heapBuf 2)),
-      .mk 2841 (.call "eqtree" [(.var "segment"), (.var "segment_tree"), (.lit 1)]),
-      .mk 2842 (.let_ "output" (.lit 0)),
-      .mk 2843 (.unroll "lane" (.lit 0) (.lit 25) [
-        .mk 2844 (.let_ "output" (.add (.var "output") (.mul (.index (.var "first_lanes") (.genPow (.var "lane"))) (.index (.var "output_lanes") (.genPow (.var "lane"))))))]),
-      .mk 2845 (.store (.var "claims") (.gpow 0) (.add (.var "value") (.mul (.index (.var "segment_tree") (.gpow 1)) (.var "output")))),
-      .mk 2847 (.unroll "step" (.lit 0) (.lit 12) [
-        .mk 2848 (.let_ "claim" (.mul (.var "claims") (.genPow (.mul (.var "step") (.lit 22))))),
-        .mk 2850 (.let_ "claim_point" (.index (.var "claim") (.gpow 2))),
-        .mk 2851 (.let_ "segment_tree" (.heapBuf 2)),
-        .mk 2852 (.call "eqtree" [(.mul (.var "claim_point") (.var "pack_g")), (.var "segment_tree"), (.lit 1)]),
-        .mk 2857 (.let_ "flips" (.stackBuf 7)),
-        .mk 2858 (.unroll "i" (.lit 0) (.lit 7) [
-          .mk 2859 (.let_ "used" (.lit 0)),
-          .mk 2860 (.unroll "t" (.index (.var "KECCAK_IOTA_START") (.mul (.lit 2) (.var "step"))) (.index (.var "KECCAK_IOTA_START") (.add (.mul (.lit 2) (.var "step")) (.lit 2))) [
-            .mk 2861 (.ite true (.index (.var "KECCAK_IOTA_IDX") (.var "t")) (.var "i") [
-              .mk 2862 (.let_ "used" (.lit 1))] [] true)]),
-          .mk 2863 (.ite true (.var "used") (.lit 1) [
-            .mk 2864 (.ite true (.var "step") (.lit 0) [
-              .mk 2865 (.store (.var "flips") (.var "i") (.mul (.index (.var "first_lanes") (.gpow 0)) (.genPow (.sub (.pow (.lit 2) (.var "i")) (.lit 1)))))] [
-              .mk 2867 (.let_ "claim_lanes" (.index (.var "claim") (.gpow 3))),
-              .mk 2868 (.let_ "claim_slices" (.index (.var "claim") (.gpow 5))),
-              .mk 2869 (.let_ "flipped" (.mul (.index (.var "claim_lanes") (.genPow (.index (.var "KECCAK_PI") (.lit 0)))) (.index (.var "claim_slices") (.genPow (.mod (.add (.sub (.pow (.lit 2) (.var "i")) (.lit 1)) (.index (.var "KECCAK_RHO") (.lit 0))) (.lit 64)))))),
-              .mk 2870 (.unroll "y" (.lit 0) (.lit 5) [
-                .mk 2871 (.let_ "flipped" (.add (.var "flipped") (.mul (.index (.var "claim_lanes") (.genPow (.index (.var "KECCAK_PI") (.add (.lit 1) (.mul (.lit 5) (.var "y")))))) (.index (.var "claim_slices") (.genPow (.mod (.add (.sub (.pow (.lit 2) (.var "i")) (.lit 1)) (.index (.var "KECCAK_RHO") (.add (.lit 1) (.mul (.lit 5) (.var "y"))))) (.lit 64))))))),
-                .mk 2872 (.let_ "flipped" (.add (.var "flipped") (.mul (.index (.var "claim_lanes") (.genPow (.index (.var "KECCAK_PI") (.add (.lit 4) (.mul (.lit 5) (.var "y")))))) (.index (.var "claim_slices") (.genPow (.mod (.add (.pow (.lit 2) (.var "i")) (.index (.var "KECCAK_RHO") (.add (.lit 4) (.mul (.lit 5) (.var "y"))))) (.lit 64)))))))]),
-              .mk 2873 (.store (.var "flips") (.var "i") (.var "flipped"))] false)] [] true)]),
-        .mk 2874 (.let_ "iota" (.lit 0)),
-        .mk 2875 (.unroll "m" (.lit 0) (.lit 2) [
-          .mk 2876 (.let_ "flipped" (.lit 0)),
-          .mk 2877 (.unroll "t" (.index (.var "KECCAK_IOTA_START") (.add (.mul (.lit 2) (.var "step")) (.var "m"))) (.index (.var "KECCAK_IOTA_START") (.add (.add (.mul (.lit 2) (.var "step")) (.var "m")) (.lit 1))) [
-            .mk 2878 (.let_ "flipped" (.add (.var "flipped") (.index (.var "flips") (.index (.var "KECCAK_IOTA_IDX") (.var "t")))))]),
-          .mk 2879 (.let_ "iota" (.add (.var "iota") (.mul (.index (.var "segment_tree") (.genPow (.add (.sub (.pow (.lit 2) (.lit 1)) (.lit 2)) (.var "m")))) (.var "flipped"))))]),
-        .mk 2881 (.ite true (.var "step") (.lit 0) [
-          .mk 2882 (.match_ [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.var "cursor")] (.var "odd_g") [(.call "keccak_layer" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.index (.var "value_rate") (.lit 0)), (.index (.var "value_rate") (.lit 1)), (.var "cursor"), (.var "y_g"), (.var "half_g"), (.var "y_last"), (.var "claim"), (.mul (.var "claim") (.gpow 22)), (.var "iota"), (.lit 1), (.lit 0)]), (.call "keccak_layer" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.index (.var "value_rate") (.lit 0)), (.index (.var "value_rate") (.lit 1)), (.var "cursor"), (.var "y_g"), (.var "half_g"), (.var "y_last"), (.var "claim"), (.mul (.var "claim") (.gpow 22)), (.var "iota"), (.lit 1), (.lit 1)])])] [
-          .mk 2884 (.match_ [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.var "cursor")] (.var "odd_g") [(.call "keccak_layer" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.lit 0), (.lit 0), (.var "cursor"), (.var "y_g"), (.var "half_g"), (.var "y_last"), (.var "claim"), (.mul (.var "claim") (.gpow 22)), (.var "iota"), (.lit 0), (.lit 0)]), (.call "keccak_layer" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.lit 0), (.lit 0), (.var "cursor"), (.var "y_g"), (.var "half_g"), (.var "y_last"), (.var "claim"), (.mul (.var "claim") (.gpow 22)), (.var "iota"), (.lit 0), (.lit 1)])])] false)]),
-      .mk 2889 (.let_ "out_slot" (.mul (.var "out_point") (.var "tau_g"))),
-      .mk 2890 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "cursor", "out_value"] "keccak_plain_rounds" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.lit 0), (.lit 0), (.var "cursor"), (.var "value"), (.var "out_slot"), (.lit 6), (.lit 0)]),
-      .mk 2891 (.let_ "word_rate" (.stackBuf 8)),
-      .mk 2892 (.letTuple ["word", "cursor"] "fs_next" [(.var "word_rate"), (.lit 0), (.var "cursor")]),
-      .mk 2893 (.let_ "out_lanes" (.stackBuf 25)),
-      .mk 2894 (.call "keccak_slot_lanes" [(.var "out_slot"), (.mul (.var "point") (.var "pack_g")), (.var "out_lanes"), (.lit 1), (.sub (.lit 2) (.lit 1))]),
-      .mk 2895 (.let_ "lanes_sum" (.lit 0)),
-      .mk 2896 (.unroll "lane" (.lit 0) (.lit 25) [
-        .mk 2897 (.let_ "lanes_sum" (.add (.var "lanes_sum") (.mul (.index (.var "out_lanes") (.var "lane")) (.index (.var "first_lanes") (.genPow (.var "lane"))))))]),
-      .mk 2898 (.assertEq (.mul (.var "lanes_sum") (.var "word")) (.var "out_value")),
-      .mk 2899 (.let_ "out_pack" (.mul (.var "out_point") (.gpow 4))),
-      .mk 2900 (.for_ "xt" 0 (.runtime (.var "pack_g")) [
-        .mk 2901 (.store (.var "out_pack") (.var "xt") (.index (.var "point") (.var "xt")))]),
-      .mk 2904 (.let_ "last" (.mul (.var "claims") (.gpow 264))),
-      .mk 2905 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "cursor", "low_value"] "keccak_plain_rounds" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.index (.var "word_rate") (.lit 0)), (.index (.var "word_rate") (.lit 1)), (.var "cursor"), (.index (.var "last") (.gpow 0)), (.var "in_point"), (.lit 4), (.lit 1)]),
-      .mk 2906 (.let_ "low_tree" (.heapBuf 30)),
-      .mk 2907 (.call "eqtree" [(.var "in_point"), (.var "low_tree"), (.lit 4)]),
-      .mk 2908 (.let_ "mu_at_low" (.lit 0)),
-      .mk 2909 (.unroll "i" (.lit 0) (.lit 16) [
-        .mk 2910 (.let_ "mu_at_low" (.add (.var "mu_at_low") (.mul (.index (.var "low_tree") (.genPow (.add (.sub (.pow (.lit 2) (.lit 4)) (.lit 2)) (.var "i")))) (.index (.var "last") (.genPow (.add (.lit 6) (.var "i")))))))]),
-      .mk 2911 (.let_ "in_slot" (.mul (.var "in_point") (.var "tau_g"))),
-      .mk 2912 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "cursor", "in_value"] "keccak_plain_rounds" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.lit 0), (.lit 0), (.var "cursor"), (.var "low_value"), (.var "in_slot"), (.lit 6), (.lit 0)]),
-      .mk 2913 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
-      .mk 2914 (.let_ "rate" (.stackBuf 8)),
-      .mk 2915 (.unroll "z" (.lit 0) (.lit 64) [
-        .mk 2916 (.ite true (.mod (.var "z") (.lit 4)) (.lit 0) [
-          .mk 2917 (.ite false (.var "z") (.lit 0) [
-            .mk 2918 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
-            .mk 2919 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
-        .mk 2920 (.letTuple ["w", "cursor"] "fs_next" [(.var "rate"), (.mod (.var "z") (.lit 4)), (.var "cursor")]),
-        .mk 2921 (.store (.var "slices") (.genPow (.var "z")) (.var "w"))]),
-      .mk 2922 (.letTuple ["sp", "map_0"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 4)]),
-      .mk 2923 (.let_ "last_point" (.index (.var "last") (.gpow 2))),
-      .mk 2924 (.let_ "in_lanes" (.stackBuf 25)),
-      .mk 2925 (.call "keccak_slot_lanes" [(.var "in_slot"), (.mul (.var "last_point") (.var "pack_g")), (.var "in_lanes"), (.lit 0), (.lit 2)]),
-      .mk 2928 (.let_ "last_local" (.index (.var "last") (.gpow 4))),
-      .mk 2929 (.let_ "level" (.stackBuf 64)),
-      .mk 2930 (.unroll "z" (.lit 0) (.lit 64) [
-        .mk 2931 (.store (.var "level") (.var "z") (.index (.var "slices") (.genPow (.var "z"))))]),
-      .mk 2932 (.unroll "t" (.lit 0) (.lit 6) [
-        .mk 2933 (.let_ "folded" (.stackBuf 64)),
-        .mk 2934 (.call "fold_shifts" [(.var "level"), (.var "folded"), (.index (.var "last_local") (.genPow (.var "t"))), (.var "t")]),
-        .mk 2935 (.let_ "level" (.var "folded"))]),
-      .mk 2936 (.let_ "shifts" (.var "level")),
-      .mk 2937 (.let_ "last_lanes" (.index (.var "last") (.gpow 3))),
-      .mk 2938 (.assertEq (.mul (.var "mu_at_low") (.call "keccak_form" [(.var "last_lanes"), (.var "shifts"), (.var "in_lanes"), (.lit 0)])) (.var "in_value")),
-      .mk 2939 (.let_ "in_pack" (.mul (.var "in_point") (.gpow 4))),
-      .mk 2940 (.for_ "xt" 0 (.runtime (.var "pack_g")) [
-        .mk 2941 (.store (.var "in_pack") (.var "xt") (.index (.var "last_point") (.var "xt")))]),
-      .mk 2942 (.ret [(.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "cursor"), (.var "word"), (.var "map_0")])] }
+      .mk 2778 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
+      .mk 2779 (.let_ "no_rate" (.stackBuf 8)),
+      .mk 2780 (.let_ "pack_g" (.mul (.var "tau_g") (.pow (.lit 9223372036854775821) (.lit 4)))),
+      .mk 2781 (.let_ "y_g" (.mul (.var "pack_g") (.gpow 1))),
+      .mk 2784 (.let_ "y_bits" (.stackBuf 5)),
+      .mk 2785 (.call "hint_decompose_bits_exponent" [(.var "y_bits"), (.var "y_g"), (.lit 5)]),
+      .mk 2786 (.let_ "half_g" (.gpow 0)),
+      .mk 2787 (.unroll "j" (.lit 0) (.lit 5) [
+        .mk 2788 (.let_ "bit" (.index (.var "y_bits") (.var "j"))),
+        .mk 2789 (.store (.var "y_bits") (.var "j") (.mul (.var "bit") (.var "bit"))),
+        .mk 2790 (.ite false (.var "j") (.lit 0) [
+          .mk 2791 (.let_ "half_g" (.mul (.var "half_g") (.add (.lit 1) (.mul (.var "bit") (.add (.lit 1) (.genPow (.div (.pow (.lit 2) (.var "j")) (.lit 2))))))))] [] false)]),
+      .mk 2792 (.let_ "odd_g" (.add (.lit 1) (.mul (.index (.var "y_bits") (.lit 0)) (.add (.lit 1) .gen)))),
+      .mk 2793 (.let_ "y_last" (.mul (.var "half_g") (.var "odd_g"))),
+      .mk 2794 (.assertEq (.mul (.var "half_g") (.var "y_last")) (.var "y_g")),
+      .mk 2795 (.let_ "out_point" (.var "z_vals")),
+      .mk 2796 (.let_ "in_point" (.mul (.var "z_vals") (.gpow 39))),
+      .mk 2797 (.unroll "i" (.lit 0) (.lit 4) [
+        .mk 2798 (.store (.var "out_point") (.genPow (.var "i")) (.index (.var "chi") (.genPow (.var "i"))))]),
+      .mk 2800 (.let_ "point" (.heapBufDyn (.var "y_g"))),
+      .mk 2801 (.let_ "chi_pack" (.mul (.var "chi") (.gpow 4))),
+      .mk 2802 (.for_ "xt" 0 (.runtime (.var "pack_g")) [
+        .mk 2803 (.store (.var "point") (.var "xt") (.index (.var "chi_pack") (.var "xt")))]),
+      .mk 2804 (.let_ "segment" (.mul (.var "point") (.var "pack_g"))),
+      .mk 2805 (.unroll "i" (.lit 0) (.lit 1) [
+        .mk 2806 (.letTuple ["sp", "r"] "squeeze" [(.var "sp"), (.var "no_rate"), (.lit 0)]),
+        .mk 2807 (.store (.var "segment") (.genPow (.var "i")) (.var "r"))]),
+      .mk 2808 (.let_ "r_lane" (.heapBuf 5)),
+      .mk 2809 (.unroll "i" (.lit 0) (.lit 5) [
+        .mk 2810 (.letTuple ["sp", "r"] "squeeze" [(.var "sp"), (.var "no_rate"), (.lit 0)]),
+        .mk 2811 (.store (.var "r_lane") (.genPow (.var "i")) (.var "r"))]),
+      .mk 2813 (.let_ "value_rate" (.stackBuf 8)),
+      .mk 2814 (.letTuple ["value", "cursor"] "fs_next" [(.var "value_rate"), (.lit 0), (.var "cursor")]),
+      .mk 2815 (.let_ "fs0" (.index (.var "sp") (.lit 8))),
+      .mk 2816 (.let_ "fs1" (.index (.var "sp") (.lit 9))),
+      .mk 2817 (.let_ "fs2" (.index (.var "sp") (.lit 10))),
+      .mk 2818 (.let_ "fs3" (.index (.var "sp") (.lit 11))),
+      .mk 2819 (.let_ "fs4" (.index (.var "sp") (.lit 12))),
+      .mk 2823 (.let_ "claims" (.heapBuf 286)),
+      .mk 2824 (.store (.var "claims") (.gpow 1) (.lit 1)),
+      .mk 2825 (.store (.var "claims") (.gpow 2) (.var "point")),
+      .mk 2826 (.let_ "mu_tree" (.heapBuf 30)),
+      .mk 2827 (.call "eqtree" [(.var "out_point"), (.var "mu_tree"), (.lit 4)]),
+      .mk 2828 (.unroll "i" (.lit 0) (.lit 16) [
+        .mk 2829 (.store (.var "claims") (.genPow (.add (.lit 6) (.var "i"))) (.index (.var "mu_tree") (.genPow (.add (.sub (.pow (.lit 2) (.lit 4)) (.lit 2)) (.var "i")))))]),
+      .mk 2830 (.let_ "lane_tree" (.heapBuf 62)),
+      .mk 2831 (.call "eqtree" [(.var "r_lane"), (.var "lane_tree"), (.lit 5)]),
+      .mk 2832 (.let_ "first_lanes" (.mul (.var "lane_tree") (.gpow 30))),
+      .mk 2833 (.store (.var "claims") (.gpow 3) (.var "first_lanes")),
+      .mk 2835 (.let_ "segment_tree" (.heapBuf 2)),
+      .mk 2836 (.call "eqtree" [(.var "segment"), (.var "segment_tree"), (.lit 1)]),
+      .mk 2837 (.let_ "output" (.lit 0)),
+      .mk 2838 (.unroll "lane" (.lit 0) (.lit 25) [
+        .mk 2839 (.let_ "output" (.add (.var "output") (.mul (.index (.var "first_lanes") (.genPow (.var "lane"))) (.index (.var "output_lanes") (.genPow (.var "lane"))))))]),
+      .mk 2840 (.store (.var "claims") (.gpow 0) (.add (.var "value") (.mul (.index (.var "segment_tree") (.gpow 1)) (.var "output")))),
+      .mk 2842 (.unroll "step" (.lit 0) (.lit 12) [
+        .mk 2843 (.let_ "claim" (.mul (.var "claims") (.genPow (.mul (.var "step") (.lit 22))))),
+        .mk 2845 (.let_ "claim_point" (.index (.var "claim") (.gpow 2))),
+        .mk 2846 (.let_ "segment_tree" (.heapBuf 2)),
+        .mk 2847 (.call "eqtree" [(.mul (.var "claim_point") (.var "pack_g")), (.var "segment_tree"), (.lit 1)]),
+        .mk 2852 (.let_ "flips" (.stackBuf 7)),
+        .mk 2853 (.unroll "i" (.lit 0) (.lit 7) [
+          .mk 2854 (.let_ "used" (.lit 0)),
+          .mk 2855 (.unroll "t" (.index (.var "KECCAK_IOTA_START") (.mul (.lit 2) (.var "step"))) (.index (.var "KECCAK_IOTA_START") (.add (.mul (.lit 2) (.var "step")) (.lit 2))) [
+            .mk 2856 (.ite true (.index (.var "KECCAK_IOTA_IDX") (.var "t")) (.var "i") [
+              .mk 2857 (.let_ "used" (.lit 1))] [] true)]),
+          .mk 2858 (.ite true (.var "used") (.lit 1) [
+            .mk 2859 (.ite true (.var "step") (.lit 0) [
+              .mk 2860 (.store (.var "flips") (.var "i") (.mul (.index (.var "first_lanes") (.gpow 0)) (.genPow (.sub (.pow (.lit 2) (.var "i")) (.lit 1)))))] [
+              .mk 2862 (.let_ "claim_lanes" (.index (.var "claim") (.gpow 3))),
+              .mk 2863 (.let_ "claim_slices" (.index (.var "claim") (.gpow 5))),
+              .mk 2864 (.let_ "flipped" (.mul (.index (.var "claim_lanes") (.genPow (.index (.var "KECCAK_PI") (.lit 0)))) (.index (.var "claim_slices") (.genPow (.mod (.add (.sub (.pow (.lit 2) (.var "i")) (.lit 1)) (.index (.var "KECCAK_RHO") (.lit 0))) (.lit 64)))))),
+              .mk 2865 (.unroll "y" (.lit 0) (.lit 5) [
+                .mk 2866 (.let_ "flipped" (.add (.var "flipped") (.mul (.index (.var "claim_lanes") (.genPow (.index (.var "KECCAK_PI") (.add (.lit 1) (.mul (.lit 5) (.var "y")))))) (.index (.var "claim_slices") (.genPow (.mod (.add (.sub (.pow (.lit 2) (.var "i")) (.lit 1)) (.index (.var "KECCAK_RHO") (.add (.lit 1) (.mul (.lit 5) (.var "y"))))) (.lit 64))))))),
+                .mk 2867 (.let_ "flipped" (.add (.var "flipped") (.mul (.index (.var "claim_lanes") (.genPow (.index (.var "KECCAK_PI") (.add (.lit 4) (.mul (.lit 5) (.var "y")))))) (.index (.var "claim_slices") (.genPow (.mod (.add (.pow (.lit 2) (.var "i")) (.index (.var "KECCAK_RHO") (.add (.lit 4) (.mul (.lit 5) (.var "y"))))) (.lit 64)))))))]),
+              .mk 2868 (.store (.var "flips") (.var "i") (.var "flipped"))] false)] [] true)]),
+        .mk 2869 (.let_ "iota" (.lit 0)),
+        .mk 2870 (.unroll "m" (.lit 0) (.lit 2) [
+          .mk 2871 (.let_ "flipped" (.lit 0)),
+          .mk 2872 (.unroll "t" (.index (.var "KECCAK_IOTA_START") (.add (.mul (.lit 2) (.var "step")) (.var "m"))) (.index (.var "KECCAK_IOTA_START") (.add (.add (.mul (.lit 2) (.var "step")) (.var "m")) (.lit 1))) [
+            .mk 2873 (.let_ "flipped" (.add (.var "flipped") (.index (.var "flips") (.index (.var "KECCAK_IOTA_IDX") (.var "t")))))]),
+          .mk 2874 (.let_ "iota" (.add (.var "iota") (.mul (.index (.var "segment_tree") (.genPow (.add (.sub (.pow (.lit 2) (.lit 1)) (.lit 2)) (.var "m")))) (.var "flipped"))))]),
+        .mk 2876 (.ite true (.var "step") (.lit 0) [
+          .mk 2877 (.match_ [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.var "cursor")] (.var "odd_g") [(.call "keccak_layer" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.index (.var "value_rate") (.lit 0)), (.index (.var "value_rate") (.lit 1)), (.var "cursor"), (.var "y_g"), (.var "half_g"), (.var "y_last"), (.var "claim"), (.mul (.var "claim") (.gpow 22)), (.var "iota"), (.lit 1), (.lit 0)]), (.call "keccak_layer" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.index (.var "value_rate") (.lit 0)), (.index (.var "value_rate") (.lit 1)), (.var "cursor"), (.var "y_g"), (.var "half_g"), (.var "y_last"), (.var "claim"), (.mul (.var "claim") (.gpow 22)), (.var "iota"), (.lit 1), (.lit 1)])])] [
+          .mk 2879 (.match_ [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.var "cursor")] (.var "odd_g") [(.call "keccak_layer" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.lit 0), (.lit 0), (.var "cursor"), (.var "y_g"), (.var "half_g"), (.var "y_last"), (.var "claim"), (.mul (.var "claim") (.gpow 22)), (.var "iota"), (.lit 0), (.lit 0)]), (.call "keccak_layer" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.lit 0), (.lit 0), (.var "cursor"), (.var "y_g"), (.var "half_g"), (.var "y_last"), (.var "claim"), (.mul (.var "claim") (.gpow 22)), (.var "iota"), (.lit 0), (.lit 1)])])] false)]),
+      .mk 2884 (.let_ "out_slot" (.mul (.var "out_point") (.var "tau_g"))),
+      .mk 2885 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "cursor", "out_value"] "keccak_plain_rounds" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.lit 0), (.lit 0), (.var "cursor"), (.var "value"), (.var "out_slot"), (.lit 6), (.lit 0)]),
+      .mk 2886 (.let_ "word_rate" (.stackBuf 8)),
+      .mk 2887 (.letTuple ["word", "cursor"] "fs_next" [(.var "word_rate"), (.lit 0), (.var "cursor")]),
+      .mk 2888 (.let_ "out_lanes" (.stackBuf 25)),
+      .mk 2889 (.call "keccak_slot_lanes" [(.var "out_slot"), (.mul (.var "point") (.var "pack_g")), (.var "out_lanes"), (.lit 1), (.sub (.lit 2) (.lit 1))]),
+      .mk 2890 (.let_ "lanes_sum" (.lit 0)),
+      .mk 2891 (.unroll "lane" (.lit 0) (.lit 25) [
+        .mk 2892 (.let_ "lanes_sum" (.add (.var "lanes_sum") (.mul (.index (.var "out_lanes") (.var "lane")) (.index (.var "first_lanes") (.genPow (.var "lane"))))))]),
+      .mk 2893 (.assertEq (.mul (.var "lanes_sum") (.var "word")) (.var "out_value")),
+      .mk 2894 (.let_ "out_pack" (.mul (.var "out_point") (.gpow 4))),
+      .mk 2895 (.for_ "xt" 0 (.runtime (.var "pack_g")) [
+        .mk 2896 (.store (.var "out_pack") (.var "xt") (.index (.var "point") (.var "xt")))]),
+      .mk 2899 (.let_ "last" (.mul (.var "claims") (.gpow 264))),
+      .mk 2900 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "cursor", "low_value"] "keccak_plain_rounds" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.index (.var "word_rate") (.lit 0)), (.index (.var "word_rate") (.lit 1)), (.var "cursor"), (.index (.var "last") (.gpow 0)), (.var "in_point"), (.lit 4), (.lit 1)]),
+      .mk 2901 (.let_ "low_tree" (.heapBuf 30)),
+      .mk 2902 (.call "eqtree" [(.var "in_point"), (.var "low_tree"), (.lit 4)]),
+      .mk 2903 (.let_ "mu_at_low" (.lit 0)),
+      .mk 2904 (.unroll "i" (.lit 0) (.lit 16) [
+        .mk 2905 (.let_ "mu_at_low" (.add (.var "mu_at_low") (.mul (.index (.var "low_tree") (.genPow (.add (.sub (.pow (.lit 2) (.lit 4)) (.lit 2)) (.var "i")))) (.index (.var "last") (.genPow (.add (.lit 6) (.var "i")))))))]),
+      .mk 2906 (.let_ "in_slot" (.mul (.var "in_point") (.var "tau_g"))),
+      .mk 2907 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "cursor", "in_value"] "keccak_plain_rounds" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.lit 0), (.lit 0), (.var "cursor"), (.var "low_value"), (.var "in_slot"), (.lit 6), (.lit 0)]),
+      .mk 2908 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
+      .mk 2909 (.let_ "rate" (.stackBuf 8)),
+      .mk 2910 (.unroll "z" (.lit 0) (.lit 64) [
+        .mk 2911 (.ite true (.mod (.var "z") (.lit 4)) (.lit 0) [
+          .mk 2912 (.ite false (.var "z") (.lit 0) [
+            .mk 2913 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
+            .mk 2914 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
+        .mk 2915 (.letTuple ["w", "cursor"] "fs_next" [(.var "rate"), (.mod (.var "z") (.lit 4)), (.var "cursor")]),
+        .mk 2916 (.store (.var "slices") (.genPow (.var "z")) (.var "w"))]),
+      .mk 2917 (.letTuple ["sp", "map_0"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 4)]),
+      .mk 2918 (.let_ "last_point" (.index (.var "last") (.gpow 2))),
+      .mk 2919 (.let_ "in_lanes" (.stackBuf 25)),
+      .mk 2920 (.call "keccak_slot_lanes" [(.var "in_slot"), (.mul (.var "last_point") (.var "pack_g")), (.var "in_lanes"), (.lit 0), (.lit 2)]),
+      .mk 2923 (.let_ "last_local" (.index (.var "last") (.gpow 4))),
+      .mk 2924 (.let_ "level" (.stackBuf 64)),
+      .mk 2925 (.unroll "z" (.lit 0) (.lit 64) [
+        .mk 2926 (.store (.var "level") (.var "z") (.index (.var "slices") (.genPow (.var "z"))))]),
+      .mk 2927 (.unroll "t" (.lit 0) (.lit 6) [
+        .mk 2928 (.let_ "folded" (.stackBuf 64)),
+        .mk 2929 (.call "fold_shifts" [(.var "level"), (.var "folded"), (.index (.var "last_local") (.genPow (.var "t"))), (.var "t")]),
+        .mk 2930 (.let_ "level" (.var "folded"))]),
+      .mk 2931 (.let_ "shifts" (.var "level")),
+      .mk 2932 (.let_ "last_lanes" (.index (.var "last") (.gpow 3))),
+      .mk 2933 (.assertEq (.mul (.var "mu_at_low") (.call "keccak_form" [(.var "last_lanes"), (.var "shifts"), (.var "in_lanes"), (.lit 0)])) (.var "in_value")),
+      .mk 2934 (.let_ "in_pack" (.mul (.var "in_point") (.gpow 4))),
+      .mk 2935 (.for_ "xt" 0 (.runtime (.var "pack_g")) [
+        .mk 2936 (.store (.var "in_pack") (.var "xt") (.index (.var "last_point") (.var "xt")))]),
+      .mk 2937 (.ret [(.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "cursor"), (.var "word"), (.var "map_0")])] }
 
 /-- `ring_map`. -/
 def fn_ring_map : Func :=
   { name := "ring_map", params := [⟨"lin_eval", (.runtime .scalar)⟩, ⟨"map_challenges", (.runtime .scalar)⟩], returnShapes := [.scalar],
     inline := true,
     body := [
-      .mk 2947 (.unroll "stage" (.lit 0) (.call "len" [(.var "RING_MAP_SHIFTS")]) [
-        .mk 2948 (.let_ "frobenius" (.var "lin_eval")),
-        .mk 2949 (.unroll "k" (.lit 0) (.index (.var "RING_MAP_SHIFTS") (.var "stage")) [
-          .mk 2950 (.let_ "frobenius" (.mul (.var "frobenius") (.var "frobenius")))]),
-        .mk 2951 (.let_ "lin_eval" (.add (.var "lin_eval") (.mul (.index (.var "map_challenges") (.genPow (.var "stage"))) (.var "frobenius"))))]),
-      .mk 2952 (.ret [(.var "lin_eval")])] }
+      .mk 2942 (.unroll "stage" (.lit 0) (.call "len" [(.var "RING_MAP_SHIFTS")]) [
+        .mk 2943 (.let_ "frobenius" (.var "lin_eval")),
+        .mk 2944 (.unroll "k" (.lit 0) (.index (.var "RING_MAP_SHIFTS") (.var "stage")) [
+          .mk 2945 (.let_ "frobenius" (.mul (.var "frobenius") (.var "frobenius")))]),
+        .mk 2946 (.let_ "lin_eval" (.add (.var "lin_eval") (.mul (.index (.var "map_challenges") (.genPow (.var "stage"))) (.var "frobenius"))))]),
+      .mk 2947 (.ret [(.var "lin_eval")])] }
 
 /-- `ring_switch_target`. -/
 def fn_ring_switch_target : Func :=
   { name := "ring_switch_target", params := [⟨"slices", (.runtime .scalar)⟩, ⟨"map_challenges", (.runtime .scalar)⟩], returnShapes := [.scalar],
     inline := false,
     body := [
-      .mk 2959 (.let_ "rs_chain" (.heapBuf 18)),
-      .mk 2960 (.store (.var "rs_chain") (.gpow 0) (.gpow 0)),
-      .mk 2961 (.store (.var "rs_chain") (.gpow 1) (.lit 0)),
-      .mk 2962 (.for_ "x_round" 0 (.const 8) [
-        .mk 2963 (.let_ "rows" (.mul (.var "slices") (.pow (.var "x_round") (.lit 8)))),
-        .mk 2964 (.let_ "chunk" (.call "ring_map" [(.index (.var "rows") (.gpow 7)), (.var "map_challenges")])),
-        .mk 2965 (.unroll "r" (.lit 1) (.lit 8) [
-          .mk 2966 (.let_ "chunk" (.add (.mul (.var "chunk") (.lit 2)) (.call "ring_map" [(.index (.var "rows") (.genPow (.sub (.sub (.lit 8) (.lit 1)) (.var "r")))), (.var "map_challenges")])))]),
-        .mk 2967 (.let_ "row" (.mul (.var "rs_chain") (.pow (.var "x_round") (.lit 2)))),
-        .mk 2968 (.let_ "x_pow" (.index (.var "row") (.gpow 0))),
-        .mk 2969 (.store (.var "row") (.gpow 2) (.mul (.var "x_pow") (.call "const" [(.pow (.lit 2) (.lit 8))]))),
-        .mk 2970 (.store (.var "row") (.gpow 3) (.add (.index (.var "row") (.gpow 1)) (.mul (.var "x_pow") (.var "chunk"))))]),
-      .mk 2971 (.let_ "rs_end" (.mul (.var "rs_chain") (.pow (.gpow 8) (.lit 2)))),
-      .mk 2972 (.ret [(.index (.var "rs_end") (.gpow 1))])] }
+      .mk 2954 (.let_ "rs_chain" (.heapBuf 18)),
+      .mk 2955 (.store (.var "rs_chain") (.gpow 0) (.gpow 0)),
+      .mk 2956 (.store (.var "rs_chain") (.gpow 1) (.lit 0)),
+      .mk 2957 (.for_ "x_round" 0 (.const 8) [
+        .mk 2958 (.let_ "rows" (.mul (.var "slices") (.pow (.var "x_round") (.lit 8)))),
+        .mk 2959 (.let_ "chunk" (.call "ring_map" [(.index (.var "rows") (.gpow 7)), (.var "map_challenges")])),
+        .mk 2960 (.unroll "r" (.lit 1) (.lit 8) [
+          .mk 2961 (.let_ "chunk" (.add (.mul (.var "chunk") (.lit 2)) (.call "ring_map" [(.index (.var "rows") (.genPow (.sub (.sub (.lit 8) (.lit 1)) (.var "r")))), (.var "map_challenges")])))]),
+        .mk 2962 (.let_ "row" (.mul (.var "rs_chain") (.pow (.var "x_round") (.lit 2)))),
+        .mk 2963 (.let_ "x_pow" (.index (.var "row") (.gpow 0))),
+        .mk 2964 (.store (.var "row") (.gpow 2) (.mul (.var "x_pow") (.call "const" [(.pow (.lit 2) (.lit 8))]))),
+        .mk 2965 (.store (.var "row") (.gpow 3) (.add (.index (.var "row") (.gpow 1)) (.mul (.var "x_pow") (.var "chunk"))))]),
+      .mk 2966 (.let_ "rs_end" (.mul (.var "rs_chain") (.pow (.gpow 8) (.lit 2)))),
+      .mk 2967 (.ret [(.index (.var "rs_end") (.gpow 1))])] }
 
 /-- `ring_switch_weight`. -/
 def fn_ring_switch_weight : Func :=
   { name := "ring_switch_weight", params := [⟨"z_vals", (.runtime .scalar)⟩, ⟨"point1", (.runtime .scalar)⟩, ⟨"c_table", (.runtime .scalar)⟩, ⟨"qkeccakv_g", (.runtime .scalar)⟩], returnShapes := [.scalar],
     inline := false,
     body := [
-      .mk 2977 (.let_ "prod_chains" (.heapBufDyn (.pow (.mul (.var "qkeccakv_g") .gen) (.lit 64)))),
-      .mk 2978 (.unroll "k" (.lit 0) (.lit 64) [
-        .mk 2979 (.store (.var "prod_chains") (.genPow (.var "k")) (.lit 1))]),
-      .mk 2980 (.let_ "prod_final" (.call "rs_eq_run" [(.var "prod_chains"), (.var "z_vals"), (.var "point1"), (.var "qkeccakv_g")])),
-      .mk 2981 (.let_ "rs_weight" (.lit 0)),
-      .mk 2982 (.unroll "k" (.lit 0) (.lit 64) [
-        .mk 2983 (.let_ "rs_weight" (.add (.var "rs_weight") (.mul (.index (.var "c_table") (.genPow (.var "k"))) (.index (.var "prod_final") (.genPow (.var "k"))))))]),
-      .mk 2984 (.ret [(.var "rs_weight")])] }
+      .mk 2972 (.let_ "prod_chains" (.heapBufDyn (.pow (.mul (.var "qkeccakv_g") .gen) (.lit 64)))),
+      .mk 2973 (.unroll "k" (.lit 0) (.lit 64) [
+        .mk 2974 (.store (.var "prod_chains") (.genPow (.var "k")) (.lit 1))]),
+      .mk 2975 (.let_ "prod_final" (.call "rs_eq_run" [(.var "prod_chains"), (.var "z_vals"), (.var "point1"), (.var "qkeccakv_g")])),
+      .mk 2976 (.let_ "rs_weight" (.lit 0)),
+      .mk 2977 (.unroll "k" (.lit 0) (.lit 64) [
+        .mk 2978 (.let_ "rs_weight" (.add (.var "rs_weight") (.mul (.index (.var "c_table") (.genPow (.var "k"))) (.index (.var "prod_final") (.genPow (.var "k"))))))]),
+      .mk 2979 (.ret [(.var "rs_weight")])] }
 
 /-- `certify_placement`. -/
 def fn_certify_placement : Func :=
   { name := "certify_placement", params := [⟨"kappa_base", (.runtime .scalar)⟩, ⟨"g_squares", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 2990 (.let_ "col_kappa_g" (.heapBuf 99)),
-      .mk 2991 (.unroll "c" (.lit 0) (.lit 99) [
-        .mk 2992 (.store (.var "col_kappa_g") (.genPow (.var "c")) (.mul (.index (.var "kappa_base") (.genPow (.index (.var "COL_KAPPA_SRC") (.var "c")))) (.genPow (.index (.var "COL_KAPPA_ADJ") (.var "c")))))]),
-      .mk 2993 (.let_ "col_sort_order" (.heapBuf 99)),
-      .mk 2994 (.hintWitness (.slice (.var "col_sort_order") (.lit 0) (.lit 99)) "col_sort_order"),
-      .mk 2995 (.let_ "col_off_g" (.heapBuf 99)),
-      .mk 2996 (.let_ "g_total" (.gpow 0)),
-      .mk 2997 (.let_ "prev_col" (.gpow 0)),
-      .mk 2998 (.let_ "prev_kappa" (.gpow 0)),
-      .mk 2999 (.unroll "rank" (.lit 0) (.lit 99) [
-        .mk 3000 (.let_ "col" (.index (.var "col_sort_order") (.genPow (.var "rank")))),
-        .mk 3001 (.assertLt (.var "col") (.const 99)),
-        .mk 3002 (.let_ "kappa_g" (.index (.var "col_kappa_g") (.var "col"))),
-        .mk 3003 (.ite false (.var "rank") (.lit 0) [
-          .mk 3006 (.assertLt (.fdiv (.var "prev_kappa") (.var "kappa_g")) (.const 34)),
-          .mk 3007 (.ite true (.var "prev_kappa") (.var "kappa_g") [
-            .mk 3010 (.assertLt (.fdiv (.var "col") (.var "prev_col")) (.const 99))] [] false)] [] false),
-        .mk 3011 (.store (.var "col_off_g") (.var "col") (.var "g_total")),
-        .mk 3015 (.assertLt (.var "kappa_g") (.const 34)),
-        .mk 3016 (.let_ "g_total" (.mul (.var "g_total") (.index (.var "g_squares") (.var "kappa_g")))),
-        .mk 3017 (.let_ "prev_col" (.var "col")),
-        .mk 3018 (.let_ "prev_kappa" (.var "kappa_g"))]),
-      .mk 3020 (.ret [(.var "g_total"), (.var "col_off_g"), (.var "col_kappa_g")])] }
+      .mk 2985 (.let_ "col_kappa_g" (.heapBuf 99)),
+      .mk 2986 (.unroll "c" (.lit 0) (.lit 99) [
+        .mk 2987 (.store (.var "col_kappa_g") (.genPow (.var "c")) (.mul (.index (.var "kappa_base") (.genPow (.index (.var "COL_KAPPA_SRC") (.var "c")))) (.genPow (.index (.var "COL_KAPPA_ADJ") (.var "c")))))]),
+      .mk 2988 (.let_ "col_sort_order" (.heapBuf 99)),
+      .mk 2989 (.hintWitness (.slice (.var "col_sort_order") (.lit 0) (.lit 99)) "col_sort_order"),
+      .mk 2990 (.let_ "col_off_g" (.heapBuf 99)),
+      .mk 2991 (.let_ "g_total" (.gpow 0)),
+      .mk 2992 (.let_ "prev_col" (.gpow 0)),
+      .mk 2993 (.let_ "prev_kappa" (.gpow 0)),
+      .mk 2994 (.unroll "rank" (.lit 0) (.lit 99) [
+        .mk 2995 (.let_ "col" (.index (.var "col_sort_order") (.genPow (.var "rank")))),
+        .mk 2996 (.assertLt (.var "col") (.const 99)),
+        .mk 2997 (.let_ "kappa_g" (.index (.var "col_kappa_g") (.var "col"))),
+        .mk 2998 (.ite false (.var "rank") (.lit 0) [
+          .mk 3001 (.assertLt (.fdiv (.var "prev_kappa") (.var "kappa_g")) (.const 34)),
+          .mk 3002 (.ite true (.var "prev_kappa") (.var "kappa_g") [
+            .mk 3005 (.assertLt (.fdiv (.var "col") (.var "prev_col")) (.const 99))] [] false)] [] false),
+        .mk 3006 (.store (.var "col_off_g") (.var "col") (.var "g_total")),
+        .mk 3010 (.assertLt (.var "kappa_g") (.const 34)),
+        .mk 3011 (.let_ "g_total" (.mul (.var "g_total") (.index (.var "g_squares") (.var "kappa_g")))),
+        .mk 3012 (.let_ "prev_col" (.var "col")),
+        .mk 3013 (.let_ "prev_kappa" (.var "kappa_g"))]),
+      .mk 3015 (.ret [(.var "g_total"), (.var "col_off_g"), (.var "col_kappa_g")])] }
 
 /-- `column_selector`. -/
 def fn_column_selector : Func :=
   { name := "column_selector", params := [⟨"offset", (.runtime .scalar)⟩, ⟨"sel_eq", (.runtime .scalar)⟩, ⟨"sel_g", (.runtime .scalar)⟩, ⟨"kappa", .const⟩], returnShapes := [.scalar],
     inline := false,
     body := [
-      .mk 3030 (.let_ "bits" (.stackBuf 28)),
-      .mk 3031 (.call "hint_decompose_bits_exponent" [(.var "bits"), (.var "offset"), (.mul (.lit 4) (.lit 7))]),
-      .mk 3032 (.let_ "rebuilt" (.gpow 0)),
-      .mk 3033 (.let_ "selector" (.gpow 0)),
-      .mk 3034 (.unroll "j" (.div (.var "kappa") (.lit 4)) (.lit 7) [
-        .mk 3035 (.let_ "width" (.lit 4)),
-        .mk 3036 (.ite true (.var "j") (.div (.var "kappa") (.lit 4)) [
-          .mk 3037 (.let_ "width" (.sub (.add (.mul (.lit 4) (.var "j")) (.lit 4)) (.var "kappa")))] [] true),
-        .mk 3038 (.let_ "idx" (.gpow 0)),
-        .mk 3039 (.unroll "t" (.lit 0) (.var "width") [
-          .mk 3040 (.let_ "bit" (.index (.var "bits") (.sub (.add (.mul (.lit 4) (.var "j")) (.lit 3)) (.var "t")))),
-          .mk 3041 (.store (.var "bits") (.sub (.add (.mul (.lit 4) (.var "j")) (.lit 3)) (.var "t")) (.mul (.var "bit") (.var "bit"))),
-          .mk 3042 (.let_ "idx" (.mul (.var "idx") (.add (.lit 1) (.mul (.var "bit") (.add (.lit 1) (.genPow (.pow (.lit 2) (.var "t"))))))))]),
-        .mk 3043 (.let_ "selector" (.mul (.var "selector") (.index (.var "sel_eq") (.mul (.genPow (.sub (.add (.mul (.lit 30) (.var "j")) (.pow (.lit 2) (.var "width"))) (.lit 2))) (.var "idx"))))),
-        .mk 3044 (.let_ "rebuilt" (.mul (.var "rebuilt") (.index (.var "sel_g") (.mul (.genPow (.mul (.lit 16) (.var "j"))) (.var "idx")))))]),
-      .mk 3045 (.assertEq (.var "rebuilt") (.var "offset")),
-      .mk 3046 (.ret [(.var "selector")])] }
+      .mk 3025 (.let_ "bits" (.stackBuf 28)),
+      .mk 3026 (.call "hint_decompose_bits_exponent" [(.var "bits"), (.var "offset"), (.mul (.lit 4) (.lit 7))]),
+      .mk 3027 (.let_ "rebuilt" (.gpow 0)),
+      .mk 3028 (.let_ "selector" (.gpow 0)),
+      .mk 3029 (.unroll "j" (.div (.var "kappa") (.lit 4)) (.lit 7) [
+        .mk 3030 (.let_ "width" (.lit 4)),
+        .mk 3031 (.ite true (.var "j") (.div (.var "kappa") (.lit 4)) [
+          .mk 3032 (.let_ "width" (.sub (.add (.mul (.lit 4) (.var "j")) (.lit 4)) (.var "kappa")))] [] true),
+        .mk 3033 (.let_ "idx" (.gpow 0)),
+        .mk 3034 (.unroll "t" (.lit 0) (.var "width") [
+          .mk 3035 (.let_ "bit" (.index (.var "bits") (.sub (.add (.mul (.lit 4) (.var "j")) (.lit 3)) (.var "t")))),
+          .mk 3036 (.store (.var "bits") (.sub (.add (.mul (.lit 4) (.var "j")) (.lit 3)) (.var "t")) (.mul (.var "bit") (.var "bit"))),
+          .mk 3037 (.let_ "idx" (.mul (.var "idx") (.add (.lit 1) (.mul (.var "bit") (.add (.lit 1) (.genPow (.pow (.lit 2) (.var "t"))))))))]),
+        .mk 3038 (.let_ "selector" (.mul (.var "selector") (.index (.var "sel_eq") (.mul (.genPow (.sub (.add (.mul (.lit 30) (.var "j")) (.pow (.lit 2) (.var "width"))) (.lit 2))) (.var "idx"))))),
+        .mk 3039 (.let_ "rebuilt" (.mul (.var "rebuilt") (.index (.var "sel_g") (.mul (.genPow (.mul (.lit 16) (.var "j"))) (.var "idx")))))]),
+      .mk 3040 (.assertEq (.var "rebuilt") (.var "offset")),
+      .mk 3041 (.ret [(.var "selector")])] }
 
 /-- `selector_tables`. -/
 def fn_selector_tables : Func :=
   { name := "selector_tables", params := [⟨"point", (.runtime .scalar)⟩, ⟨"point1", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 3053 (.let_ "sel_eq" (.heapBuf 210)),
-      .mk 3054 (.let_ "sel_g" (.heapBuf 112)),
-      .mk 3055 (.unroll "j" (.lit 0) (.lit 7) [
-        .mk 3056 (.let_ "levels" (.stackBuf 30)),
-        .mk 3057 (.store (.var "levels") (.lit 0) (.index (.var "point1") (.genPow (.add (.mul (.lit 4) (.var "j")) (.lit 3))))),
-        .mk 3058 (.store (.var "levels") (.lit 1) (.index (.var "point") (.genPow (.add (.mul (.lit 4) (.var "j")) (.lit 3))))),
-        .mk 3059 (.unroll "t" (.lit 1) (.lit 4) [
-          .mk 3060 (.let_ "r" (.index (.var "point") (.genPow (.sub (.add (.mul (.lit 4) (.var "j")) (.lit 3)) (.var "t"))))),
-          .mk 3061 (.let_ "r1" (.index (.var "point1") (.genPow (.sub (.add (.mul (.lit 4) (.var "j")) (.lit 3)) (.var "t"))))),
-          .mk 3062 (.unroll "i" (.lit 0) (.pow (.lit 2) (.var "t")) [
-            .mk 3063 (.store (.var "levels") (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.var "i")) (.mul (.index (.var "levels") (.add (.sub (.pow (.lit 2) (.var "t")) (.lit 2)) (.var "i"))) (.var "r1"))),
-            .mk 3064 (.store (.var "levels") (.add (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.pow (.lit 2) (.var "t"))) (.var "i")) (.mul (.index (.var "levels") (.add (.sub (.pow (.lit 2) (.var "t")) (.lit 2)) (.var "i"))) (.var "r")))])]),
-        .mk 3065 (.unroll "i" (.lit 0) (.lit 30) [
-          .mk 3066 (.store (.var "sel_eq") (.genPow (.add (.mul (.lit 30) (.var "j")) (.var "i"))) (.index (.var "levels") (.var "i")))]),
-        .mk 3067 (.unroll "u" (.lit 0) (.lit 16) [
-          .mk 3068 (.let_ "g_share" (.gpow 0)),
-          .mk 3069 (.unroll "t" (.lit 0) (.lit 4) [
-            .mk 3070 (.ite true (.mod (.div (.var "u") (.pow (.lit 2) (.var "t"))) (.lit 2)) (.lit 1) [
-              .mk 3071 (.let_ "g_share" (.mul (.var "g_share") (.genPow (.pow (.lit 2) (.sub (.add (.mul (.lit 4) (.var "j")) (.lit 3)) (.var "t"))))))] [] false)]),
-          .mk 3072 (.store (.var "sel_g") (.genPow (.add (.mul (.lit 16) (.var "j")) (.var "u"))) (.var "g_share"))])]),
-      .mk 3073 (.ret [(.var "sel_eq"), (.var "sel_g")])] }
+      .mk 3048 (.let_ "sel_eq" (.heapBuf 210)),
+      .mk 3049 (.let_ "sel_g" (.heapBuf 112)),
+      .mk 3050 (.unroll "j" (.lit 0) (.lit 7) [
+        .mk 3051 (.let_ "levels" (.stackBuf 30)),
+        .mk 3052 (.store (.var "levels") (.lit 0) (.index (.var "point1") (.genPow (.add (.mul (.lit 4) (.var "j")) (.lit 3))))),
+        .mk 3053 (.store (.var "levels") (.lit 1) (.index (.var "point") (.genPow (.add (.mul (.lit 4) (.var "j")) (.lit 3))))),
+        .mk 3054 (.unroll "t" (.lit 1) (.lit 4) [
+          .mk 3055 (.let_ "r" (.index (.var "point") (.genPow (.sub (.add (.mul (.lit 4) (.var "j")) (.lit 3)) (.var "t"))))),
+          .mk 3056 (.let_ "r1" (.index (.var "point1") (.genPow (.sub (.add (.mul (.lit 4) (.var "j")) (.lit 3)) (.var "t"))))),
+          .mk 3057 (.unroll "i" (.lit 0) (.pow (.lit 2) (.var "t")) [
+            .mk 3058 (.store (.var "levels") (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.var "i")) (.mul (.index (.var "levels") (.add (.sub (.pow (.lit 2) (.var "t")) (.lit 2)) (.var "i"))) (.var "r1"))),
+            .mk 3059 (.store (.var "levels") (.add (.add (.sub (.pow (.lit 2) (.add (.var "t") (.lit 1))) (.lit 2)) (.pow (.lit 2) (.var "t"))) (.var "i")) (.mul (.index (.var "levels") (.add (.sub (.pow (.lit 2) (.var "t")) (.lit 2)) (.var "i"))) (.var "r")))])]),
+        .mk 3060 (.unroll "i" (.lit 0) (.lit 30) [
+          .mk 3061 (.store (.var "sel_eq") (.genPow (.add (.mul (.lit 30) (.var "j")) (.var "i"))) (.index (.var "levels") (.var "i")))]),
+        .mk 3062 (.unroll "u" (.lit 0) (.lit 16) [
+          .mk 3063 (.let_ "g_share" (.gpow 0)),
+          .mk 3064 (.unroll "t" (.lit 0) (.lit 4) [
+            .mk 3065 (.ite true (.mod (.div (.var "u") (.pow (.lit 2) (.var "t"))) (.lit 2)) (.lit 1) [
+              .mk 3066 (.let_ "g_share" (.mul (.var "g_share") (.genPow (.pow (.lit 2) (.sub (.add (.mul (.lit 4) (.var "j")) (.lit 3)) (.var "t"))))))] [] false)]),
+          .mk 3067 (.store (.var "sel_g") (.genPow (.add (.mul (.lit 16) (.var "j")) (.var "u"))) (.var "g_share"))])]),
+      .mk 3068 (.ret [(.var "sel_eq"), (.var "sel_g")])] }
 
 /-- `check_opening_terminal`. -/
 def fn_check_opening_terminal : Func :=
   { name := "check_opening_terminal", params := [⟨"zeta", (.runtime .scalar)⟩, ⟨"chi", (.runtime .scalar)⟩, ⟨"rm", (.runtime .scalar)⟩, ⟨"g_bus_mu", (.runtime .scalar)⟩, ⟨"g_zc_n", (.runtime .scalar)⟩, ⟨"g_log_mem", (.runtime .scalar)⟩, ⟨"tau_keccak_g", (.runtime .scalar)⟩, ⟨"claim_cplen_g", (.runtime .scalar)⟩, ⟨"lam_out", (.runtime .scalar)⟩, ⟨"lam_pool", (.runtime .scalar)⟩, ⟨"col_offsets", (.runtime .scalar)⟩, ⟨"col_kappas", (.runtime .scalar)⟩, ⟨"z_vals", (.runtime .scalar)⟩, ⟨"c_table", (.runtime .scalar)⟩, ⟨"point", (.runtime .scalar)⟩, ⟨"point1", (.runtime .scalar)⟩, ⟨"inner_total", (.runtime .scalar)⟩, ⟨"yr_at_tail", (.runtime .scalar)⟩, ⟨"sumcheck_target", (.runtime .scalar)⟩], returnShapes := [],
     inline := false,
     body := [
-      .mk 3081 (.let_ "zeta_eq_chain" (.heapBuf 35)),
-      .mk 3082 (.call "eq_prefix_chain" [(.var "zeta_eq_chain"), (.lit 1), (.var "zeta"), (.var "point1"), (.var "g_bus_mu")]),
-      .mk 3083 (.let_ "chi_eq_chain" (.heapBuf 35)),
-      .mk 3084 (.call "eq_prefix_chain" [(.var "chi_eq_chain"), (.lit 1), (.var "chi"), (.var "point1"), (.var "g_zc_n")]),
-      .mk 3085 (.let_ "slot_point" (.mul (.var "point") (.var "tau_keccak_g"))),
-      .mk 3086 (.let_ "slot_point1" (.mul (.var "point1") (.var "tau_keccak_g"))),
-      .mk 3087 (.let_ "pi_chain" (.heapBuf 35)),
-      .mk 3088 (.store (.var "pi_chain") (.gpow 0) (.lit 1)),
-      .mk 3089 (.store (.var "pi_chain") (.gpow 1) (.add (.var "rm") (.index (.var "point1") (.gpow 0)))),
-      .mk 3090 (.for_ "xk" 1 (.runtime (.var "g_log_mem")) [
-        .mk 3091 (.store (.var "pi_chain") (.mul (.var "xk") .gen) (.mul (.index (.var "pi_chain") (.var "xk")) (.index (.var "point1") (.var "xk"))))]),
-      .mk 3092 (.let_ "pi_eq" (.index (.var "pi_chain") (.var "g_log_mem"))),
-      .mk 3094 (.letTuple ["sel_eq", "sel_g"] "selector_tables" [(.var "point"), (.var "point1")]),
-      .mk 3095 (.let_ "selectors" (.stackBuf 99)),
-      .mk 3096 (.unroll "c" (.lit 0) (.lit 99) [
-        .mk 3097 (.let_ "offset" (.index (.var "col_offsets") (.genPow (.var "c")))),
-        .mk 3098 (.let_ "kappa_g" (.index (.var "col_kappas") (.genPow (.var "c")))),
-        .mk 3099 (.match_ [(.index (.var "selectors") (.var "c"))] (.var "kappa_g") [(.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 0)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 1)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 2)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 3)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 4)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 5)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 6)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 7)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 8)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 9)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 10)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 11)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 12)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 13)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 14)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 15)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 16)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 17)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 18)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 19)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 20)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 21)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 22)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 23)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 24)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 25)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 26)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 27)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 28)])])]),
-      .mk 3101 (.let_ "inner_sum" (.var "inner_total")),
-      .mk 3102 (.unroll "j" (.lit 0) (.lit 165) [
-        .mk 3103 (.ite false (.index (.var "CLAIM_POINT_BUF") (.var "j")) (.lit 4) [
-          .mk 3104 (.ite true (.index (.var "CLAIM_POINT_BUF") (.var "j")) (.lit 2) [
-            .mk 3105 (.let_ "cplen_g" (.var "g_log_mem")),
-            .mk 3106 (.let_ "low_eq" (.var "pi_eq"))] [
-            .mk 3108 (.let_ "cplen_g" (.index (.var "claim_cplen_g") (.genPow (.var "j"))))] false),
-          .mk 3109 (.let_ "nlow" (.var "cplen_g")),
-          .mk 3110 (.ite true (.index (.var "CLAIM_POINT_BUF") (.var "j")) (.lit 0) [
-            .mk 3111 (.let_ "low_eq" (.index (.var "zeta_eq_chain") (.var "cplen_g")))] [] false),
-          .mk 3112 (.ite true (.index (.var "CLAIM_POINT_BUF") (.var "j")) (.lit 1) [
-            .mk 3113 (.let_ "low_eq" (.index (.var "chi_eq_chain") (.var "cplen_g")))] [] false),
-          .mk 3114 (.ite true (.index (.var "CLAIM_POINT_BUF") (.var "j")) (.lit 3) [
-            .mk 3116 (.let_ "slot_eq" (.gpow 0)),
-            .mk 3117 (.unroll "kk" (.lit 0) (.lit 6) [
-              .mk 3118 (.let_ "k" (.sub (.sub (.lit 6) (.lit 1)) (.var "kk"))),
-              .mk 3119 (.ite true (.index (.var "CLAIM_QKECCAK_SLOT_BITS") (.add (.mul (.lit 6) (.var "j")) (.var "k"))) (.lit 1) [
-                .mk 3120 (.let_ "slot_factor" (.index (.var "slot_point") (.genPow (.var "k"))))] [
-                .mk 3122 (.let_ "slot_factor" (.index (.var "slot_point1") (.genPow (.var "k"))))] false),
-              .mk 3123 (.ite true (.var "kk") (.lit 0) [
-                .mk 3124 (.let_ "slot_eq" (.var "slot_factor"))] [
-                .mk 3126 (.let_ "slot_eq" (.mul (.var "slot_eq") (.var "slot_factor")))] false)]),
-            .mk 3127 (.let_ "low_eq" (.mul (.var "slot_eq") (.index (.var "chi_eq_chain") (.var "cplen_g")))),
-            .mk 3128 (.let_ "nlow" (.mul (.var "cplen_g") (.gpow 6)))] [] false),
-          .mk 3129 (.assertEq (.var "nlow") (.index (.var "col_kappas") (.genPow (.index (.var "CLAIM_COMMITTED_COL") (.var "j"))))),
-          .mk 3130 (.let_ "inner_sum" (.add (.var "inner_sum") (.mul (.mul (.index (.var "lam_pool") (.genPow (.var "j"))) (.var "low_eq")) (.index (.var "selectors") (.index (.var "CLAIM_COMMITTED_COL") (.var "j"))))))] [] false)]),
-      .mk 3136 (.let_ "qkeccakv_g" (.mul (.var "tau_keccak_g") (.gpow 6))),
-      .mk 3137 (.assertEq (.var "qkeccakv_g") (.index (.var "col_kappas") (.gpow 5))),
-      .mk 3138 (.let_ "out_eq_chain" (.heapBuf 41)),
-      .mk 3139 (.call "eq_prefix_chain" [(.var "out_eq_chain"), (.lit 1), (.var "z_vals"), (.var "point1"), (.var "qkeccakv_g")]),
-      .mk 3140 (.let_ "rs_weight" (.call "ring_switch_weight" [(.mul (.var "z_vals") (.gpow 39)), (.var "point1"), (.var "c_table"), (.var "qkeccakv_g")])),
-      .mk 3141 (.let_ "inner_sum" (.add (.var "inner_sum") (.mul (.add (.var "rs_weight") (.mul (.var "lam_out") (.index (.var "out_eq_chain") (.var "qkeccakv_g")))) (.index (.var "selectors") (.lit 5))))),
-      .mk 3142 (.assertEq (.mul (.var "inner_sum") (.var "yr_at_tail")) (.var "sumcheck_target"))] }
+      .mk 3076 (.let_ "zeta_eq_chain" (.heapBuf 35)),
+      .mk 3077 (.call "eq_prefix_chain" [(.var "zeta_eq_chain"), (.lit 1), (.var "zeta"), (.var "point1"), (.var "g_bus_mu")]),
+      .mk 3078 (.let_ "chi_eq_chain" (.heapBuf 35)),
+      .mk 3079 (.call "eq_prefix_chain" [(.var "chi_eq_chain"), (.lit 1), (.var "chi"), (.var "point1"), (.var "g_zc_n")]),
+      .mk 3080 (.let_ "slot_point" (.mul (.var "point") (.var "tau_keccak_g"))),
+      .mk 3081 (.let_ "slot_point1" (.mul (.var "point1") (.var "tau_keccak_g"))),
+      .mk 3082 (.let_ "pi_chain" (.heapBuf 35)),
+      .mk 3083 (.store (.var "pi_chain") (.gpow 0) (.lit 1)),
+      .mk 3084 (.store (.var "pi_chain") (.gpow 1) (.add (.var "rm") (.index (.var "point1") (.gpow 0)))),
+      .mk 3085 (.for_ "xk" 1 (.runtime (.var "g_log_mem")) [
+        .mk 3086 (.store (.var "pi_chain") (.mul (.var "xk") .gen) (.mul (.index (.var "pi_chain") (.var "xk")) (.index (.var "point1") (.var "xk"))))]),
+      .mk 3087 (.let_ "pi_eq" (.index (.var "pi_chain") (.var "g_log_mem"))),
+      .mk 3089 (.letTuple ["sel_eq", "sel_g"] "selector_tables" [(.var "point"), (.var "point1")]),
+      .mk 3090 (.let_ "selectors" (.stackBuf 99)),
+      .mk 3091 (.unroll "c" (.lit 0) (.lit 99) [
+        .mk 3092 (.let_ "offset" (.index (.var "col_offsets") (.genPow (.var "c")))),
+        .mk 3093 (.let_ "kappa_g" (.index (.var "col_kappas") (.genPow (.var "c")))),
+        .mk 3094 (.match_ [(.index (.var "selectors") (.var "c"))] (.var "kappa_g") [(.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 0)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 1)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 2)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 3)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 4)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 5)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 6)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 7)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 8)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 9)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 10)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 11)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 12)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 13)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 14)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 15)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 16)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 17)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 18)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 19)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 20)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 21)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 22)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 23)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 24)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 25)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 26)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 27)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 28)])])]),
+      .mk 3096 (.let_ "inner_sum" (.var "inner_total")),
+      .mk 3097 (.unroll "j" (.lit 0) (.lit 165) [
+        .mk 3098 (.ite false (.index (.var "CLAIM_POINT_BUF") (.var "j")) (.lit 4) [
+          .mk 3099 (.ite true (.index (.var "CLAIM_POINT_BUF") (.var "j")) (.lit 2) [
+            .mk 3100 (.let_ "cplen_g" (.var "g_log_mem")),
+            .mk 3101 (.let_ "low_eq" (.var "pi_eq"))] [
+            .mk 3103 (.let_ "cplen_g" (.index (.var "claim_cplen_g") (.genPow (.var "j"))))] false),
+          .mk 3104 (.let_ "nlow" (.var "cplen_g")),
+          .mk 3105 (.ite true (.index (.var "CLAIM_POINT_BUF") (.var "j")) (.lit 0) [
+            .mk 3106 (.let_ "low_eq" (.index (.var "zeta_eq_chain") (.var "cplen_g")))] [] false),
+          .mk 3107 (.ite true (.index (.var "CLAIM_POINT_BUF") (.var "j")) (.lit 1) [
+            .mk 3108 (.let_ "low_eq" (.index (.var "chi_eq_chain") (.var "cplen_g")))] [] false),
+          .mk 3109 (.ite true (.index (.var "CLAIM_POINT_BUF") (.var "j")) (.lit 3) [
+            .mk 3111 (.let_ "slot_eq" (.gpow 0)),
+            .mk 3112 (.unroll "kk" (.lit 0) (.lit 6) [
+              .mk 3113 (.let_ "k" (.sub (.sub (.lit 6) (.lit 1)) (.var "kk"))),
+              .mk 3114 (.ite true (.index (.var "CLAIM_QKECCAK_SLOT_BITS") (.add (.mul (.lit 6) (.var "j")) (.var "k"))) (.lit 1) [
+                .mk 3115 (.let_ "slot_factor" (.index (.var "slot_point") (.genPow (.var "k"))))] [
+                .mk 3117 (.let_ "slot_factor" (.index (.var "slot_point1") (.genPow (.var "k"))))] false),
+              .mk 3118 (.ite true (.var "kk") (.lit 0) [
+                .mk 3119 (.let_ "slot_eq" (.var "slot_factor"))] [
+                .mk 3121 (.let_ "slot_eq" (.mul (.var "slot_eq") (.var "slot_factor")))] false)]),
+            .mk 3122 (.let_ "low_eq" (.mul (.var "slot_eq") (.index (.var "chi_eq_chain") (.var "cplen_g")))),
+            .mk 3123 (.let_ "nlow" (.mul (.var "cplen_g") (.gpow 6)))] [] false),
+          .mk 3124 (.assertEq (.var "nlow") (.index (.var "col_kappas") (.genPow (.index (.var "CLAIM_COMMITTED_COL") (.var "j"))))),
+          .mk 3125 (.let_ "inner_sum" (.add (.var "inner_sum") (.mul (.mul (.index (.var "lam_pool") (.genPow (.var "j"))) (.var "low_eq")) (.index (.var "selectors") (.index (.var "CLAIM_COMMITTED_COL") (.var "j"))))))] [] false)]),
+      .mk 3131 (.let_ "qkeccakv_g" (.mul (.var "tau_keccak_g") (.gpow 6))),
+      .mk 3132 (.assertEq (.var "qkeccakv_g") (.index (.var "col_kappas") (.gpow 5))),
+      .mk 3133 (.let_ "out_eq_chain" (.heapBuf 41)),
+      .mk 3134 (.call "eq_prefix_chain" [(.var "out_eq_chain"), (.lit 1), (.var "z_vals"), (.var "point1"), (.var "qkeccakv_g")]),
+      .mk 3135 (.let_ "rs_weight" (.call "ring_switch_weight" [(.mul (.var "z_vals") (.gpow 39)), (.var "point1"), (.var "c_table"), (.var "qkeccakv_g")])),
+      .mk 3136 (.let_ "inner_sum" (.add (.var "inner_sum") (.mul (.add (.var "rs_weight") (.mul (.var "lam_out") (.index (.var "out_eq_chain") (.var "qkeccakv_g")))) (.index (.var "selectors") (.lit 5))))),
+      .mk 3137 (.assertEq (.mul (.var "inner_sum") (.var "yr_at_tail")) (.var "sumcheck_target"))] }
 
 /-- `verify_sub`. -/
 def fn_verify_sub : Func :=
   { name := "verify_sub", params := [⟨"pi_0", (.runtime .scalar)⟩, ⟨"pi_1", (.runtime .scalar)⟩, ⟨"seed_0", (.runtime .scalar)⟩, ⟨"seed_1", (.runtime .scalar)⟩, ⟨"g_logs_pow2", (.runtime .scalar)⟩, ⟨"g_squares", (.runtime .scalar)⟩, ⟨"defer_out", (.runtime .scalar)⟩], returnShapes := [],
     inline := false,
     body := [
-      .mk 3155 (.let_ "claim_pool" (.heapBuf 165)),
-      .mk 3156 (.let_ "claim_cplen_g" (.heapBuf 165)),
-      .mk 3161 (.let_ "sp" (.stackBuf 13)),
-      .mk 3162 (.call "keccak_cells" [(.list [(.var "seed_0"), (.var "seed_1"), (.var "pi_0"), (.var "pi_1")]), (.var "sp"), (.call "__kw_final" [(.lit 0)])]),
-      .mk 3163 (.let_ "stream" (.heapBuf 8192)),
-      .mk 3164 (.hintWitness (.slice (.var "stream") (.lit 0) (.lit 8192)) "stream"),
-      .mk 3165 (.let_ "cursor" (.var "stream")),
-      .mk 3173 (.let_ "table_rows" (.heapBuf 6)),
-      .mk 3174 (.let_ "rate" (.stackBuf 8)),
-      .mk 3175 (.unroll "i" (.lit 0) (.add (.lit 6) (.lit 1)) [
-        .mk 3176 (.ite true (.mod (.var "i") (.lit 4)) (.lit 0) [
-          .mk 3177 (.ite false (.var "i") (.lit 0) [
-            .mk 3178 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
-            .mk 3179 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
-        .mk 3180 (.letTuple ["x", "cursor"] "fs_next" [(.var "rate"), (.mod (.var "i") (.lit 4)), (.var "cursor")]),
-        .mk 3181 (.ite true (.var "i") (.lit 0) [
-          .mk 3182 (.let_ "log_mem_word" (.var "x"))] [
-          .mk 3184 (.store (.var "table_rows") (.genPow (.sub (.var "i") (.lit 1))) (.var "x"))] false)]),
-      .mk 3185 (.ite true (.mod (.add (.lit 6) (.lit 1)) (.lit 4)) (.lit 0) [
-        .mk 3186 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
-        .mk 3187 (.let_ "rate" (.stackBuf 8))] [] true),
-      .mk 3188 (.letTuple ["log_inv_rate", "cursor"] "fs_next" [(.var "rate"), (.mod (.add (.lit 6) (.lit 1)) (.lit 4)), (.var "cursor")]),
-      .mk 3189 (.let_ "rate_sel" (.fdiv (.call "g_power_of_word" [(.var "log_inv_rate")]) .gen)),
-      .mk 3190 (.assertLt (.var "rate_sel") (.const 4)),
-      .mk 3191 (.let_ "dims_g" (.heapBuf 7)),
-      .mk 3192 (.let_ "g_log_mem" (.call "g_power_of_word" [(.var "log_mem_word")])),
-      .mk 3193 (.assertLt (.var "g_log_mem") (.const 33)),
-      .mk 3194 (.assertLt (.fdiv (.var "g_log_mem") (.gpow 16)) (.const 33)),
-      .mk 3195 (.store (.var "dims_g") (.gpow 0) (.var "g_log_mem")),
-      .mk 3196 (.hintWitness (.slice (.var "dims_g") (.lit 1) (.add (.lit 1) (.lit 6))) "table_logs"),
-      .mk 3201 (.let_ "kappa_base" (.heapBuf 8)),
-      .mk 3202 (.store (.var "kappa_base") (.gpow 0) (.lit 1)),
-      .mk 3203 (.store (.var "kappa_base") (.gpow 1) (.var "g_log_mem")),
-      .mk 3204 (.unroll "t" (.lit 0) (.lit 6) [
-        .mk 3205 (.store (.var "kappa_base") (.genPow (.add (.lit 2) (.var "t"))) (.index (.var "dims_g") (.genPow (.add (.var "t") (.lit 1)))))]),
-      .mk 3206 (.let_ "block_kappa" (.heapBuf 153)),
-      .mk 3207 (.unroll "b" (.lit 0) (.lit 153) [
-        .mk 3208 (.store (.var "block_kappa") (.genPow (.var "b")) (.mul (.index (.var "kappa_base") (.genPow (.index (.var "BLOCK_KAPPA_SRC") (.var "b")))) (.genPow (.index (.var "BLOCK_KAPPA_ADJ") (.var "b")))))]),
-      .mk 3211 (.let_ "push_total" (.gpow 0)),
-      .mk 3212 (.unroll "b" (.index (.var "SIDE_BLOCK_START") (.lit 0)) (.index (.var "SIDE_BLOCK_START") (.add (.lit 0) (.lit 1))) [
-        .mk 3213 (.let_ "push_total" (.mul (.var "push_total") (.index (.var "g_squares") (.index (.var "block_kappa") (.genPow (.var "b"))))))]),
-      .mk 3214 (.let_ "g_bus_mu" (.call "log2_ceil_in_the_exponent" [(.var "push_total"), (.var "g_logs_pow2"), (.var "g_squares"), (.lit 0), (.lit 34)])),
-      .mk 3215 (.let_ "zeta" (.heapBufDyn (.var "g_bus_mu"))),
-      .mk 3219 (.ite true (.mod (.add (.lit 6) (.lit 2)) (.lit 4)) (.lit 0) [
-        .mk 3220 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
-        .mk 3221 (.let_ "rate" (.stackBuf 8))] [] true),
-      .mk 3222 (.letTuple ["commit_root_0", "cursor"] "fs_next" [(.var "rate"), (.mod (.add (.lit 6) (.lit 2)) (.lit 4)), (.var "cursor")]),
-      .mk 3223 (.ite true (.mod (.add (.lit 6) (.lit 3)) (.lit 4)) (.lit 0) [
-        .mk 3224 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
-        .mk 3225 (.let_ "rate" (.stackBuf 8))] [] true),
-      .mk 3226 (.letTuple ["commit_root_1", "cursor"] "fs_next" [(.var "rate"), (.mod (.add (.lit 6) (.lit 3)) (.lit 4)), (.var "cursor")]),
-      .mk 3229 (.let_ "root_cells" (.stackBuf 2)),
-      .mk 3230 (.store (.var "root_cells") (.lit 0) (.call "assert_canonical" [(.var "commit_root_0")])),
-      .mk 3231 (.store (.var "root_cells") (.lit 1) (.call "assert_canonical" [(.var "commit_root_1")])),
-      .mk 3237 (.let_ "bus_alpha" (.heapBuf 4)),
-      .mk 3238 (.unroll "t" (.lit 0) (.lit 4) [
-        .mk 3239 (.ite true (.var "t") (.lit 0) [
-          .mk 3240 (.letTuple ["sp", "av"] "squeeze" [(.var "sp"), (.var "rate"), (.add (.mod (.add (.lit 6) (.lit 3)) (.lit 4)) (.lit 1))])] [
-          .mk 3242 (.letTuple ["sp", "av"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 0)])] false),
-        .mk 3243 (.store (.var "bus_alpha") (.genPow (.var "t")) (.var "av"))]),
-      .mk 3244 (.let_ "fp_w" (.heapBuf 16)),
-      .mk 3245 (.unroll "x" (.lit 0) (.lit 16) [
-        .mk 3246 (.store (.var "fp_w") (.genPow (.var "x")) (.call "eq_weight" [(.var "bus_alpha"), (.lit 4), (.var "x"), (.lit 0)]))]),
-      .mk 3247 (.letTuple ["sp", "beta"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 0)]),
-      .mk 3250 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "cursor", "claim_push", "claim_pull", "claim_count"] "verify_bus_gkr" [(.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "cursor"), (.var "g_bus_mu"), (.var "zeta")]),
-      .mk 3253 (.let_ "chi" (.heapBuf 34)),
-      .mk 3254 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "cursor", "g_zc_n", "bc_share", "rm"] "verify_tables" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.var "cursor"), (.var "pi_0"), (.var "pi_1"), (.var "zeta"), (.var "g_bus_mu"), (.var "dims_g"), (.var "table_rows"), (.var "block_kappa"), (.var "g_squares"), (.var "fp_w"), (.var "beta"), (.var "claim_pool"), (.var "claim_cplen_g"), (.var "chi"), (.var "claim_push"), (.var "claim_pull"), (.var "claim_count")]),
-      .mk 3257 (.let_ "tau_keccak_g" (.index (.var "dims_g") (.gpow 6))),
-      .mk 3258 (.let_ "z_vals" (.heapBuf 78)),
-      .mk 3259 (.let_ "slices" (.heapBuf 64)),
-      .mk 3260 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "cursor", "keccak_word", "map_0"] "verify_keccak" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.var "cursor"), (.var "tau_keccak_g"), (.var "chi"), (.mul (.var "claim_pool") (.gpow 110)), (.var "z_vals"), (.var "slices")]),
-      .mk 3261 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
-      .mk 3269 (.let_ "map_challenges" (.heapBuf 6)),
-      .mk 3270 (.let_ "c_table" (.heapBuf 64)),
-      .mk 3272 (.store (.var "map_challenges") (.gpow 0) (.var "map_0")),
-      .mk 3273 (.unroll "stage" (.lit 1) (.call "len" [(.var "RING_MAP_SHIFTS")]) [
-        .mk 3274 (.letTuple ["sp", "map_challenge"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 0)]),
-        .mk 3275 (.store (.var "map_challenges") (.genPow (.var "stage")) (.var "map_challenge"))]),
-      .mk 3279 (.store (.var "c_table") (.gpow 0) (.lit 1)),
-      .mk 3280 (.unroll "stage" (.lit 0) (.call "len" [(.var "RING_MAP_SHIFTS")]) [
-        .mk 3281 (.let_ "shift" (.index (.var "RING_MAP_SHIFTS") (.var "stage"))),
-        .mk 3282 (.let_ "map_challenge" (.index (.var "map_challenges") (.genPow (.var "stage")))),
-        .mk 3283 (.unroll "slot" (.lit 0) (.div (.lit 64) (.mul (.lit 2) (.var "shift"))) [
-          .mk 3284 (.let_ "coefficient" (.index (.var "c_table") (.genPow (.mul (.mul (.var "slot") (.lit 2)) (.var "shift"))))),
-          .mk 3285 (.unroll "k" (.lit 0) (.var "shift") [
-            .mk 3286 (.let_ "coefficient" (.mul (.var "coefficient") (.var "coefficient")))]),
-          .mk 3287 (.store (.var "c_table") (.genPow (.add (.mul (.mul (.var "slot") (.lit 2)) (.var "shift")) (.var "shift"))) (.mul (.var "map_challenge") (.var "coefficient")))])]),
-      .mk 3288 (.let_ "target_in" (.call "ring_switch_target" [(.var "slices"), (.var "map_challenges")])),
-      .mk 3297 (.letTuple ["sp", "lam_cl"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 0)]),
-      .mk 3298 (.let_ "target" (.var "target_in")),
-      .mk 3299 (.let_ "lam_pool" (.heapBuf 165)),
-      .mk 3300 (.let_ "lam_pow" (.var "lam_cl")),
-      .mk 3301 (.unroll "j" (.lit 0) (.lit 165) [
-        .mk 3302 (.ite false (.index (.var "CLAIM_POINT_BUF") (.var "j")) (.lit 4) [
-          .mk 3303 (.store (.var "lam_pool") (.genPow (.var "j")) (.var "lam_pow")),
-          .mk 3304 (.let_ "target" (.add (.var "target") (.mul (.var "lam_pow") (.index (.var "claim_pool") (.genPow (.var "j")))))),
-          .mk 3305 (.let_ "lam_pow" (.mul (.var "lam_pow") (.var "lam_cl")))] [] false)]),
-      .mk 3306 (.let_ "target" (.add (.var "target") (.mul (.var "lam_pow") (.var "keccak_word")))),
-      .mk 3308 (.letTuple ["g_total", "col_offsets", "col_kappas"] "certify_placement" [(.var "kappa_base"), (.var "g_squares")]),
-      .mk 3312 (.let_ "gmv" (.call "log2_ceil_in_the_exponent" [(.var "g_total"), (.var "g_logs_pow2"), (.var "g_squares"), (.lit 15), (.lit 34)])),
-      .mk 3313 (.let_ "size_sel" (.mul (.var "gmv") (.lit 8198552432976855044))),
-      .mk 3314 (.assertLt (.var "size_sel") (.const 7)),
-      .mk 3318 (.let_ "config_sel" (.mul (.var "size_sel") (.pow (.var "rate_sel") (.lit 7)))),
-      .mk 3319 (.assertLt (.var "config_sel") (.const 28)),
-      .mk 3320 (.match_ [(.var "sumcheck_target"), (.var "point"), (.var "point1"), (.var "inner_total"), (.var "yr_at_tail")] (.var "config_sel") [(.call "open_stacked" [(.lit 0), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 1), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 2), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 3), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 4), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 5), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 6), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 7), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 8), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 9), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 10), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 11), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 12), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 13), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 14), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 15), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 16), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 17), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 18), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 19), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 20), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 21), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 22), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 23), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 24), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 25), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 26), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 27), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")])]),
-      .mk 3326 (.call "check_opening_terminal" [(.var "zeta"), (.var "chi"), (.var "rm"), (.var "g_bus_mu"), (.var "g_zc_n"), (.var "g_log_mem"), (.var "tau_keccak_g"), (.var "claim_cplen_g"), (.var "lam_pow"), (.var "lam_pool"), (.var "col_offsets"), (.var "col_kappas"), (.var "z_vals"), (.var "c_table"), (.var "point"), (.var "point1"), (.var "inner_total"), (.var "yr_at_tail"), (.var "sumcheck_target")]),
-      .mk 3329 (.unroll "k" (.lit 0) (.lit 19) [
-        .mk 3330 (.store (.var "defer_out") (.genPow (.var "k")) (.index (.var "zeta") (.genPow (.var "k"))))]),
-      .mk 3331 (.unroll "k" (.lit 0) (.lit 4) [
-        .mk 3332 (.store (.var "defer_out") (.genPow (.add (.lit 19) (.var "k"))) (.index (.var "bus_alpha") (.genPow (.var "k"))))]),
-      .mk 3333 (.store (.var "defer_out") (.gpow 23) (.var "bc_share")),
-      .mk 3334 (.ret [])] }
+      .mk 3150 (.let_ "claim_pool" (.heapBuf 165)),
+      .mk 3151 (.let_ "claim_cplen_g" (.heapBuf 165)),
+      .mk 3156 (.let_ "sp" (.stackBuf 13)),
+      .mk 3157 (.call "keccak_cells" [(.list [(.var "seed_0"), (.var "seed_1"), (.var "pi_0"), (.var "pi_1")]), (.var "sp"), (.call "__kw_final" [(.lit 0)])]),
+      .mk 3158 (.let_ "stream" (.heapBuf 8192)),
+      .mk 3159 (.hintWitness (.slice (.var "stream") (.lit 0) (.lit 8192)) "stream"),
+      .mk 3160 (.let_ "cursor" (.var "stream")),
+      .mk 3168 (.let_ "table_rows" (.heapBuf 6)),
+      .mk 3169 (.let_ "rate" (.stackBuf 8)),
+      .mk 3170 (.unroll "i" (.lit 0) (.add (.lit 6) (.lit 1)) [
+        .mk 3171 (.ite true (.mod (.var "i") (.lit 4)) (.lit 0) [
+          .mk 3172 (.ite false (.var "i") (.lit 0) [
+            .mk 3173 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
+            .mk 3174 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
+        .mk 3175 (.letTuple ["x", "cursor"] "fs_next" [(.var "rate"), (.mod (.var "i") (.lit 4)), (.var "cursor")]),
+        .mk 3176 (.ite true (.var "i") (.lit 0) [
+          .mk 3177 (.let_ "log_mem_word" (.var "x"))] [
+          .mk 3179 (.store (.var "table_rows") (.genPow (.sub (.var "i") (.lit 1))) (.var "x"))] false)]),
+      .mk 3180 (.ite true (.mod (.add (.lit 6) (.lit 1)) (.lit 4)) (.lit 0) [
+        .mk 3181 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
+        .mk 3182 (.let_ "rate" (.stackBuf 8))] [] true),
+      .mk 3183 (.letTuple ["log_inv_rate", "cursor"] "fs_next" [(.var "rate"), (.mod (.add (.lit 6) (.lit 1)) (.lit 4)), (.var "cursor")]),
+      .mk 3184 (.let_ "rate_sel" (.fdiv (.call "g_power_of_word" [(.var "log_inv_rate")]) .gen)),
+      .mk 3185 (.assertLt (.var "rate_sel") (.const 4)),
+      .mk 3186 (.let_ "dims_g" (.heapBuf 7)),
+      .mk 3187 (.let_ "g_log_mem" (.call "g_power_of_word" [(.var "log_mem_word")])),
+      .mk 3188 (.assertLt (.var "g_log_mem") (.const 33)),
+      .mk 3189 (.assertLt (.fdiv (.var "g_log_mem") (.gpow 16)) (.const 33)),
+      .mk 3190 (.store (.var "dims_g") (.gpow 0) (.var "g_log_mem")),
+      .mk 3191 (.hintWitness (.slice (.var "dims_g") (.lit 1) (.add (.lit 1) (.lit 6))) "table_logs"),
+      .mk 3196 (.let_ "kappa_base" (.heapBuf 8)),
+      .mk 3197 (.store (.var "kappa_base") (.gpow 0) (.lit 1)),
+      .mk 3198 (.store (.var "kappa_base") (.gpow 1) (.var "g_log_mem")),
+      .mk 3199 (.unroll "t" (.lit 0) (.lit 6) [
+        .mk 3200 (.store (.var "kappa_base") (.genPow (.add (.lit 2) (.var "t"))) (.index (.var "dims_g") (.genPow (.add (.var "t") (.lit 1)))))]),
+      .mk 3201 (.let_ "block_kappa" (.heapBuf 153)),
+      .mk 3202 (.unroll "b" (.lit 0) (.lit 153) [
+        .mk 3203 (.store (.var "block_kappa") (.genPow (.var "b")) (.mul (.index (.var "kappa_base") (.genPow (.index (.var "BLOCK_KAPPA_SRC") (.var "b")))) (.genPow (.index (.var "BLOCK_KAPPA_ADJ") (.var "b")))))]),
+      .mk 3206 (.let_ "push_total" (.gpow 0)),
+      .mk 3207 (.unroll "b" (.index (.var "SIDE_BLOCK_START") (.lit 0)) (.index (.var "SIDE_BLOCK_START") (.add (.lit 0) (.lit 1))) [
+        .mk 3208 (.let_ "push_total" (.mul (.var "push_total") (.index (.var "g_squares") (.index (.var "block_kappa") (.genPow (.var "b"))))))]),
+      .mk 3209 (.let_ "g_bus_mu" (.call "log2_ceil_in_the_exponent" [(.var "push_total"), (.var "g_logs_pow2"), (.var "g_squares"), (.lit 0), (.lit 34)])),
+      .mk 3210 (.let_ "zeta" (.heapBufDyn (.var "g_bus_mu"))),
+      .mk 3214 (.ite true (.mod (.add (.lit 6) (.lit 2)) (.lit 4)) (.lit 0) [
+        .mk 3215 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
+        .mk 3216 (.let_ "rate" (.stackBuf 8))] [] true),
+      .mk 3217 (.letTuple ["commit_root_0", "cursor"] "fs_next" [(.var "rate"), (.mod (.add (.lit 6) (.lit 2)) (.lit 4)), (.var "cursor")]),
+      .mk 3218 (.ite true (.mod (.add (.lit 6) (.lit 3)) (.lit 4)) (.lit 0) [
+        .mk 3219 (.let_ "sp" (.call "fs_perm" [(.var "sp"), (.var "rate"), (.lit 4)])),
+        .mk 3220 (.let_ "rate" (.stackBuf 8))] [] true),
+      .mk 3221 (.letTuple ["commit_root_1", "cursor"] "fs_next" [(.var "rate"), (.mod (.add (.lit 6) (.lit 3)) (.lit 4)), (.var "cursor")]),
+      .mk 3224 (.let_ "root_cells" (.stackBuf 2)),
+      .mk 3225 (.store (.var "root_cells") (.lit 0) (.call "assert_canonical" [(.var "commit_root_0")])),
+      .mk 3226 (.store (.var "root_cells") (.lit 1) (.call "assert_canonical" [(.var "commit_root_1")])),
+      .mk 3232 (.let_ "bus_alpha" (.heapBuf 4)),
+      .mk 3233 (.unroll "t" (.lit 0) (.lit 4) [
+        .mk 3234 (.ite true (.var "t") (.lit 0) [
+          .mk 3235 (.letTuple ["sp", "av"] "squeeze" [(.var "sp"), (.var "rate"), (.add (.mod (.add (.lit 6) (.lit 3)) (.lit 4)) (.lit 1))])] [
+          .mk 3237 (.letTuple ["sp", "av"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 0)])] false),
+        .mk 3238 (.store (.var "bus_alpha") (.genPow (.var "t")) (.var "av"))]),
+      .mk 3239 (.let_ "fp_w" (.heapBuf 16)),
+      .mk 3240 (.unroll "x" (.lit 0) (.lit 16) [
+        .mk 3241 (.store (.var "fp_w") (.genPow (.var "x")) (.call "eq_weight" [(.var "bus_alpha"), (.lit 4), (.var "x"), (.lit 0)]))]),
+      .mk 3242 (.letTuple ["sp", "beta"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 0)]),
+      .mk 3245 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "cursor", "claim_push", "claim_pull", "claim_count"] "verify_bus_gkr" [(.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "cursor"), (.var "g_bus_mu"), (.var "zeta")]),
+      .mk 3248 (.let_ "chi" (.heapBuf 34)),
+      .mk 3249 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "cursor", "g_zc_n", "bc_share", "rm"] "verify_tables" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.var "cursor"), (.var "pi_0"), (.var "pi_1"), (.var "zeta"), (.var "g_bus_mu"), (.var "dims_g"), (.var "table_rows"), (.var "block_kappa"), (.var "g_squares"), (.var "fp_w"), (.var "beta"), (.var "claim_pool"), (.var "claim_cplen_g"), (.var "chi"), (.var "claim_push"), (.var "claim_pull"), (.var "claim_count")]),
+      .mk 3252 (.let_ "tau_keccak_g" (.index (.var "dims_g") (.gpow 6))),
+      .mk 3253 (.let_ "z_vals" (.heapBuf 78)),
+      .mk 3254 (.let_ "slices" (.heapBuf 64)),
+      .mk 3255 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "cursor", "keccak_word", "map_0"] "verify_keccak" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4"), (.var "cursor"), (.var "tau_keccak_g"), (.var "chi"), (.mul (.var "claim_pool") (.gpow 110)), (.var "z_vals"), (.var "slices")]),
+      .mk 3256 (.let_ "sp" (.call "fs_cap" [(.var "fs0"), (.var "fs1"), (.var "fs2"), (.var "fs3"), (.var "fs4")])),
+      .mk 3264 (.let_ "map_challenges" (.heapBuf 6)),
+      .mk 3265 (.let_ "c_table" (.heapBuf 64)),
+      .mk 3267 (.store (.var "map_challenges") (.gpow 0) (.var "map_0")),
+      .mk 3268 (.unroll "stage" (.lit 1) (.call "len" [(.var "RING_MAP_SHIFTS")]) [
+        .mk 3269 (.letTuple ["sp", "map_challenge"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 0)]),
+        .mk 3270 (.store (.var "map_challenges") (.genPow (.var "stage")) (.var "map_challenge"))]),
+      .mk 3274 (.store (.var "c_table") (.gpow 0) (.lit 1)),
+      .mk 3275 (.unroll "stage" (.lit 0) (.call "len" [(.var "RING_MAP_SHIFTS")]) [
+        .mk 3276 (.let_ "shift" (.index (.var "RING_MAP_SHIFTS") (.var "stage"))),
+        .mk 3277 (.let_ "map_challenge" (.index (.var "map_challenges") (.genPow (.var "stage")))),
+        .mk 3278 (.unroll "slot" (.lit 0) (.div (.lit 64) (.mul (.lit 2) (.var "shift"))) [
+          .mk 3279 (.let_ "coefficient" (.index (.var "c_table") (.genPow (.mul (.mul (.var "slot") (.lit 2)) (.var "shift"))))),
+          .mk 3280 (.unroll "k" (.lit 0) (.var "shift") [
+            .mk 3281 (.let_ "coefficient" (.mul (.var "coefficient") (.var "coefficient")))]),
+          .mk 3282 (.store (.var "c_table") (.genPow (.add (.mul (.mul (.var "slot") (.lit 2)) (.var "shift")) (.var "shift"))) (.mul (.var "map_challenge") (.var "coefficient")))])]),
+      .mk 3283 (.let_ "target_in" (.call "ring_switch_target" [(.var "slices"), (.var "map_challenges")])),
+      .mk 3292 (.letTuple ["sp", "lam_cl"] "squeeze" [(.var "sp"), (.var "rate"), (.lit 0)]),
+      .mk 3293 (.let_ "target" (.var "target_in")),
+      .mk 3294 (.let_ "lam_pool" (.heapBuf 165)),
+      .mk 3295 (.let_ "lam_pow" (.var "lam_cl")),
+      .mk 3296 (.unroll "j" (.lit 0) (.lit 165) [
+        .mk 3297 (.ite false (.index (.var "CLAIM_POINT_BUF") (.var "j")) (.lit 4) [
+          .mk 3298 (.store (.var "lam_pool") (.genPow (.var "j")) (.var "lam_pow")),
+          .mk 3299 (.let_ "target" (.add (.var "target") (.mul (.var "lam_pow") (.index (.var "claim_pool") (.genPow (.var "j")))))),
+          .mk 3300 (.let_ "lam_pow" (.mul (.var "lam_pow") (.var "lam_cl")))] [] false)]),
+      .mk 3301 (.let_ "target" (.add (.var "target") (.mul (.var "lam_pow") (.var "keccak_word")))),
+      .mk 3303 (.letTuple ["g_total", "col_offsets", "col_kappas"] "certify_placement" [(.var "kappa_base"), (.var "g_squares")]),
+      .mk 3307 (.let_ "gmv" (.call "log2_ceil_in_the_exponent" [(.var "g_total"), (.var "g_logs_pow2"), (.var "g_squares"), (.lit 15), (.lit 34)])),
+      .mk 3308 (.let_ "size_sel" (.mul (.var "gmv") (.lit 8198552432976855044))),
+      .mk 3309 (.assertLt (.var "size_sel") (.const 7)),
+      .mk 3313 (.let_ "config_sel" (.mul (.var "size_sel") (.pow (.var "rate_sel") (.lit 7)))),
+      .mk 3314 (.assertLt (.var "config_sel") (.const 28)),
+      .mk 3315 (.match_ [(.var "sumcheck_target"), (.var "point"), (.var "point1"), (.var "inner_total"), (.var "yr_at_tail")] (.var "config_sel") [(.call "open_stacked" [(.lit 0), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 1), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 2), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 3), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 4), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 5), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 6), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 7), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 8), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 9), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 10), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 11), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 12), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 13), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 14), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 15), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 16), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 17), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 18), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 19), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 20), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 21), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 22), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 23), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 24), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 25), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 26), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")]), (.call "open_stacked" [(.lit 27), (.index (.var "sp") (.lit 8)), (.index (.var "sp") (.lit 9)), (.index (.var "sp") (.lit 10)), (.index (.var "sp") (.lit 11)), (.index (.var "sp") (.lit 12)), (.var "target"), (.var "commit_root_0"), (.var "commit_root_1"), (.var "cursor")])]),
+      .mk 3321 (.call "check_opening_terminal" [(.var "zeta"), (.var "chi"), (.var "rm"), (.var "g_bus_mu"), (.var "g_zc_n"), (.var "g_log_mem"), (.var "tau_keccak_g"), (.var "claim_cplen_g"), (.var "lam_pow"), (.var "lam_pool"), (.var "col_offsets"), (.var "col_kappas"), (.var "z_vals"), (.var "c_table"), (.var "point"), (.var "point1"), (.var "inner_total"), (.var "yr_at_tail"), (.var "sumcheck_target")]),
+      .mk 3324 (.unroll "k" (.lit 0) (.lit 19) [
+        .mk 3325 (.store (.var "defer_out") (.genPow (.var "k")) (.index (.var "zeta") (.genPow (.var "k"))))]),
+      .mk 3326 (.unroll "k" (.lit 0) (.lit 4) [
+        .mk 3327 (.store (.var "defer_out") (.genPow (.add (.lit 19) (.var "k"))) (.index (.var "bus_alpha") (.genPow (.var "k"))))]),
+      .mk 3328 (.store (.var "defer_out") (.gpow 23) (.var "bc_share")),
+      .mk 3329 (.ret [])] }
 
 /-- `shifts`. -/
 def fn_shifts : Func :=
   { name := "shifts", params := [⟨"bits", (.runtime .scalar)⟩, ⟨"off", .const⟩, ⟨"n", .const⟩, ⟨"out", (.runtime .scalar)⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 3349 (.store (.var "out") (.sub (.var "n") (.lit 1)) (.index (.var "bits") (.sub (.add (.var "off") (.var "n")) (.lit 1)))),
-      .mk 3350 (.unroll "r" (.lit 1) (.var "n") [
-        .mk 3351 (.store (.var "out") (.sub (.sub (.var "n") (.lit 1)) (.var "r")) (.add (.index (.var "bits") (.sub (.sub (.add (.var "off") (.var "n")) (.lit 1)) (.var "r"))) (.mul .gen (.index (.var "out") (.sub (.var "n") (.var "r"))))))]),
-      .mk 3352 (.ret [])] }
+      .mk 3344 (.store (.var "out") (.sub (.var "n") (.lit 1)) (.index (.var "bits") (.sub (.add (.var "off") (.var "n")) (.lit 1)))),
+      .mk 3345 (.unroll "r" (.lit 1) (.var "n") [
+        .mk 3346 (.store (.var "out") (.sub (.sub (.var "n") (.lit 1)) (.var "r")) (.add (.index (.var "bits") (.sub (.sub (.add (.var "off") (.var "n")) (.lit 1)) (.var "r"))) (.mul .gen (.index (.var "out") (.sub (.var "n") (.var "r"))))))]),
+      .mk 3347 (.ret [])] }
 
 /-- `is_child`. -/
 def fn_is_child : Func :=
   { name := "is_child", params := [⟨"node", (.runtime .scalar)⟩, ⟨"kids", (.runtime .scalar)⟩, ⟨"k", .const⟩, ⟨"bit", (.runtime .scalar)⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 3361 (.let_ "check" (.stackBuf 1)),
-      .mk 3362 (.store (.var "check") (.lit 0) (.add (.var "node") (.index (.var "kids") (.var "k")))),
-      .mk 3363 (.store (.var "check") (.lit 0) (.mul (.var "bit") (.add (.index (.var "kids") (.var "k")) (.index (.var "kids") (.add (.var "k") (.lit 1)))))),
-      .mk 3364 (.ret [])] }
+      .mk 3356 (.let_ "check" (.stackBuf 1)),
+      .mk 3357 (.store (.var "check") (.lit 0) (.add (.var "node") (.index (.var "kids") (.var "k")))),
+      .mk 3358 (.store (.var "check") (.lit 0) (.mul (.var "bit") (.add (.index (.var "kids") (.var "k")) (.index (.var "kids") (.add (.var "k") (.lit 1)))))),
+      .mk 3359 (.ret [])] }
 
 /-- `chain_tip`. -/
 def fn_chain_tip : Func :=
   { name := "chain_tip", params := [⟨"walks", (.runtime .scalar)⟩, ⟨"i", .const⟩], returnShapes := [.scalar],
     inline := true,
     body := [
-      .mk 3370 (.let_ "tip" (.index (.var "walks") (.mul (.sub (.mul (.add (.var "i") (.lit 1)) (.lit 3)) (.lit 1)) (.lit 13)))),
-      .mk 3371 (.ret [(.var "tip")])] }
+      .mk 3365 (.let_ "tip" (.index (.var "walks") (.mul (.sub (.mul (.add (.var "i") (.lit 1)) (.lit 3)) (.lit 1)) (.lit 13)))),
+      .mk 3366 (.ret [(.var "tip")])] }
 
 /-- `walk`. -/
 def fn_walk : Func :=
   { name := "walk", params := [⟨"at", (.runtime .scalar)⟩, ⟨"pp", (.runtime .scalar)⟩, ⟨"walks", (.runtime .scalar)⟩, ⟨"tags", (.runtime .scalar)⟩, ⟨"i", .const⟩, ⟨"k", .const⟩, ⟨"lx", .const⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 3381 (.ite true (.var "k") (.lit 3) [
-        .mk 3382 (.hintWitness (.slice (.var "walks") (.mul (.sub (.mul (.add (.var "i") (.lit 1)) (.lit 3)) (.lit 1)) (.lit 13)) (.add (.mul (.sub (.mul (.add (.var "i") (.lit 1)) (.lit 3)) (.lit 1)) (.lit 13)) (.lit 1))) "chain_starts")] [
-        .mk 3384 (.letHintWitness "value" "chain_starts"),
-        .mk 3385 (.unroll "s" (.var "k") (.lit 3) [
-          .mk 3386 (.let_ "o" (.mul (.add (.mul (.lit 3) (.var "i")) (.var "s")) (.lit 13))),
-          .mk 3387 (.ite true (.var "lx") (.lit 1) [
-            .mk 3388 (.call "keccak" [(.list [(.var "pp"), (.index (.var "at") (.var "s"))]), (.list [(.var "value"), (.index (.var "tags") (.var "i"))]), (.slice (.var "walks") (.var "o") (.add (.var "o") (.lit 13)))])] [
-            .mk 3390 (.call "keccak" [(.list [(.var "pp"), (.add (.var "at") (.call "const" [(.add (.add (.lit 72057594037927936) (.mul (.var "i") (.lit 4294967296))) (.mul (.var "s") (.lit 2305843009213693952)))]))]), (.list [(.var "value"), (.lit 0)]), (.slice (.var "walks") (.var "o") (.add (.var "o") (.lit 13))), (.call "__kw_len" [(.lit 48)])])] true),
-          .mk 3391 (.let_ "value" (.index (.var "walks") (.var "o")))])] true),
-      .mk 3392 (.ret [])] }
+      .mk 3376 (.ite true (.var "k") (.lit 3) [
+        .mk 3377 (.hintWitness (.slice (.var "walks") (.mul (.sub (.mul (.add (.var "i") (.lit 1)) (.lit 3)) (.lit 1)) (.lit 13)) (.add (.mul (.sub (.mul (.add (.var "i") (.lit 1)) (.lit 3)) (.lit 1)) (.lit 13)) (.lit 1))) "chain_starts")] [
+        .mk 3379 (.letHintWitness "value" "chain_starts"),
+        .mk 3380 (.unroll "s" (.var "k") (.lit 3) [
+          .mk 3381 (.let_ "o" (.mul (.add (.mul (.lit 3) (.var "i")) (.var "s")) (.lit 13))),
+          .mk 3382 (.ite true (.var "lx") (.lit 1) [
+            .mk 3383 (.call "keccak" [(.list [(.var "pp"), (.index (.var "at") (.var "s"))]), (.list [(.var "value"), (.index (.var "tags") (.var "i"))]), (.slice (.var "walks") (.var "o") (.add (.var "o") (.lit 13)))])] [
+            .mk 3385 (.call "keccak" [(.list [(.var "pp"), (.add (.var "at") (.call "const" [(.add (.add (.lit 72057594037927936) (.mul (.var "i") (.lit 4294967296))) (.mul (.var "s") (.lit 2305843009213693952)))]))]), (.list [(.var "value"), (.lit 0)]), (.slice (.var "walks") (.var "o") (.add (.var "o") (.lit 13))), (.call "__kw_len" [(.lit 48)])])] true),
+          .mk 3386 (.let_ "value" (.index (.var "walks") (.var "o")))])] true),
+      .mk 3387 (.ret [])] }
 
 /-- `walk_group`. -/
 def fn_walk_group : Func :=
   { name := "walk_group", params := [⟨"at", (.runtime .scalar)⟩, ⟨"pp", (.runtime .scalar)⟩, ⟨"walks", (.runtime .scalar)⟩, ⟨"tags", (.runtime .scalar)⟩, ⟨"first", .const⟩, ⟨"n", .const⟩, ⟨"k", .const⟩, ⟨"lx", .const⟩, ⟨"powers", (.runtime .scalar)⟩, ⟨"product", (.runtime .scalar)⟩, ⟨"encoded", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar],
     inline := true,
     body := [
-      .mk 3401 (.unroll "r" (.lit 0) (.var "n") [
-        .mk 3402 (.call "walk" [(.var "at"), (.var "pp"), (.var "walks"), (.var "tags"), (.add (.var "first") (.var "r")), (.mod (.div (.var "k") (.pow (.lit 4) (.var "r"))) (.lit 4)), (.var "lx")])]),
-      .mk 3403 (.ret [(.mul (.var "product") (.index (.var "powers") (.index (.var "DIGIT_SUMS") (.var "k")))), (.add (.var "encoded") (.call "const" [(.mul (.var "k") (.pow (.lit 4) (.var "first")))]))])] }
+      .mk 3396 (.unroll "r" (.lit 0) (.var "n") [
+        .mk 3397 (.call "walk" [(.var "at"), (.var "pp"), (.var "walks"), (.var "tags"), (.add (.var "first") (.var "r")), (.mod (.div (.var "k") (.pow (.lit 4) (.var "r"))) (.lit 4)), (.var "lx")])]),
+      .mk 3398 (.ret [(.mul (.var "product") (.index (.var "powers") (.index (.var "DIGIT_SUMS") (.var "k")))), (.add (.var "encoded") (.call "const" [(.mul (.var "k") (.pow (.lit 4) (.var "first")))]))])] }
 
 /-- `leaf_word`. -/
 def fn_leaf_word : Func :=
   { name := "leaf_word", params := [⟨"p0", (.runtime .scalar)⟩, ⟨"p1", (.runtime .scalar)⟩, ⟨"walks", (.runtime .scalar)⟩, ⟨"j", .const⟩], returnShapes := [.scalar],
     inline := true,
     body := [
-      .mk 3409 (.let_ "w" (.var "p0")),
-      .mk 3410 (.ite true (.var "j") (.lit 1) [
-        .mk 3411 (.let_ "w" (.var "p1"))] [] true),
-      .mk 3412 (.ite false (.var "j") (.lit 0) [
-        .mk 3413 (.ite false (.var "j") (.lit 1) [
-          .mk 3414 (.let_ "w" (.call "chain_tip" [(.var "walks"), (.sub (.var "j") (.lit 2))]))] [] true)] [] true),
-      .mk 3415 (.ret [(.var "w")])] }
+      .mk 3404 (.let_ "w" (.var "p0")),
+      .mk 3405 (.ite true (.var "j") (.lit 1) [
+        .mk 3406 (.let_ "w" (.var "p1"))] [] true),
+      .mk 3407 (.ite false (.var "j") (.lit 0) [
+        .mk 3408 (.ite false (.var "j") (.lit 1) [
+          .mk 3409 (.let_ "w" (.call "chain_tip" [(.var "walks"), (.sub (.var "j") (.lit 2))]))] [] true)] [] true),
+      .mk 3410 (.ret [(.var "w")])] }
 
 /-- `wots_leaf`. -/
 def fn_wots_leaf : Func :=
   { name := "wots_leaf", params := [⟨"p0", (.runtime .scalar)⟩, ⟨"p1", (.runtime .scalar)⟩, ⟨"walks", (.runtime .scalar)⟩, ⟨"n", .const⟩, ⟨"leaf", (.runtime .scalar)⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 3421 (.call "keccak_cells" [(.listComp (.call "leaf_word" [(.var "p0"), (.var "p1"), (.var "walks"), (.var "j")]) "j" (.lit 0) (.add (.var "n") (.lit 2))), (.var "leaf")]),
-      .mk 3422 (.ret [])] }
+      .mk 3416 (.call "keccak_cells" [(.listComp (.call "leaf_word" [(.var "p0"), (.var "p1"), (.var "walks"), (.var "j")]) "j" (.lit 0) (.add (.var "n") (.lit 2))), (.var "leaf")]),
+      .mk 3417 (.ret [])] }
 
 /-- `merkle_path`. -/
 def fn_merkle_path : Func :=
   { name := "merkle_path", params := [⟨"node", (.runtime .scalar)⟩, ⟨"pp", (.runtime .scalar)⟩, ⟨"bits", (.runtime .scalar)⟩, ⟨"nodes", (.runtime .scalar)⟩, ⟨"out", (.runtime .scalar)⟩, ⟨"off", .const⟩, ⟨"height", .const⟩, ⟨"end", .const⟩, ⟨"top", .const⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 3431 (.let_ "cur" (.var "node")),
-      .mk 3432 (.unroll "level" (.lit 0) (.var "height") [
-        .mk 3433 (.let_ "kids" (.stackBuf 2)),
-        .mk 3434 (.hintWitness (.var "kids") "siblings"),
-        .mk 3435 (.call "is_child" [(.var "cur"), (.var "kids"), (.lit 0), (.index (.var "bits") (.add (.var "off") (.var "level")))]),
-        .mk 3436 (.ite true (.add (.var "level") (.lit 1)) (.var "height") [
-          .mk 3437 (.let_ "parent" (.var "out"))] [
-          .mk 3439 (.let_ "parent" (.stackBuf 13))] true),
-        .mk 3440 (.ite true (.add (.add (.var "off") (.var "level")) (.lit 1)) (.var "end") [
-          .mk 3441 (.call "keccak" [(.list [(.var "pp"), (.call "const" [(.add (.add (.lit 216172782113783808) (.mul (.add (.var "level") (.lit 1)) (.lit 4294967296))) (.mul (.var "top") (.lit 36028797018963968)))])]), (.var "kids"), (.var "parent")])] [
-          .mk 3443 (.call "keccak" [(.list [(.var "pp"), (.add (.call "const" [(.add (.add (.lit 216172782113783808) (.mul (.add (.var "level") (.lit 1)) (.lit 4294967296))) (.mul (.var "top") (.lit 36028797018963968)))]) (.index (.var "nodes") (.add (.add (.var "off") (.var "level")) (.lit 1))))]), (.var "kids"), (.var "parent")])] true),
-        .mk 3444 (.let_ "cur" (.index (.var "parent") (.lit 0)))]),
-      .mk 3445 (.ret [])] }
+      .mk 3426 (.let_ "cur" (.var "node")),
+      .mk 3427 (.unroll "level" (.lit 0) (.var "height") [
+        .mk 3428 (.let_ "kids" (.stackBuf 2)),
+        .mk 3429 (.hintWitness (.var "kids") "siblings"),
+        .mk 3430 (.call "is_child" [(.var "cur"), (.var "kids"), (.lit 0), (.index (.var "bits") (.add (.var "off") (.var "level")))]),
+        .mk 3431 (.ite true (.add (.var "level") (.lit 1)) (.var "height") [
+          .mk 3432 (.let_ "parent" (.var "out"))] [
+          .mk 3434 (.let_ "parent" (.stackBuf 13))] true),
+        .mk 3435 (.ite true (.add (.add (.var "off") (.var "level")) (.lit 1)) (.var "end") [
+          .mk 3436 (.call "keccak" [(.list [(.var "pp"), (.call "const" [(.add (.add (.lit 216172782113783808) (.mul (.add (.var "level") (.lit 1)) (.lit 4294967296))) (.mul (.var "top") (.lit 36028797018963968)))])]), (.var "kids"), (.var "parent")])] [
+          .mk 3438 (.call "keccak" [(.list [(.var "pp"), (.add (.call "const" [(.add (.add (.lit 216172782113783808) (.mul (.add (.var "level") (.lit 1)) (.lit 4294967296))) (.mul (.var "top") (.lit 36028797018963968)))]) (.index (.var "nodes") (.add (.add (.var "off") (.var "level")) (.lit 1))))]), (.var "kids"), (.var "parent")])] true),
+        .mk 3439 (.let_ "cur" (.index (.var "parent") (.lit 0)))]),
+      .mk 3440 (.ret [])] }
 
 /-- `verify_lean_xmss`. -/
 def fn_verify_lean_xmss : Func :=
   { name := "verify_lean_xmss", params := [⟨"signer", (.runtime .scalar)⟩], returnShapes := [],
     inline := false,
     body := [
-      .mk 3455 (.let_ "pp" (.index (.var "signer") .gen)),
-      .mk 3462 (.let_ "bits" (.stackBuf 32)),
-      .mk 3463 (.hintWitness (.var "bits") "leaf_index_bits"),
-      .mk 3464 (.unroll "b" (.lit 0) (.mul (.lit 2) (.lit 16)) [
-        .mk 3465 (.store (.var "bits") (.var "b") (.mul (.index (.var "bits") (.var "b")) (.index (.var "bits") (.var "b"))))]),
-      .mk 3466 (.let_ "nodes" (.stackBuf 32)),
-      .mk 3467 (.call "shifts" [(.var "bits"), (.lit 0), (.mul (.lit 2) (.lit 16)), (.var "nodes")]),
-      .mk 3468 (.let_ "powers" (.stackBuf 10)),
-      .mk 3469 (.unroll "s" (.lit 0) (.add (.mul (.lit 3) (.lit 3)) (.lit 1)) [
-        .mk 3470 (.store (.var "powers") (.var "s") (.genPow (.var "s")))]),
-      .mk 3474 (.let_ "tags" (.stackBuf 58)),
-      .mk 3475 (.unroll "i" (.lit 0) (.lit 58) [
-        .mk 3476 (.store (.var "tags") (.var "i") (.var "i"))]),
-      .mk 3478 (.unroll "layer" (.lit 0) (.lit 2) [
-        .mk 3479 (.ite true (.var "layer") (.lit 0) [
-          .mk 3480 (.let_ "idx" (.index (.var "nodes") (.lit 0)))] [
-          .mk 3482 (.let_ "idx" (.add (.index (.var "nodes") (.lit 16)) (.lit 36028797018963968)))] true),
-        .mk 3485 (.letHintWitness "rho" "randomizer"),
-        .mk 3486 (.let_ "digest" (.stackBuf 13)),
-        .mk 3487 (.ite true (.var "layer") (.lit 0) [
-          .mk 3488 (.call "keccak" [(.list [(.var "pp"), (.add (.var "idx") (.lit 864691128455135232))]), (.list [(.index (.var "signer") (.gpow 2)), (.index (.var "signer") (.gpow 3))]), (.var "digest"), (.call "__kw_tail" [(.list [(.var "rho"), (.lit 0), (.lit 0), (.lit 0)])]), (.call "__kw_len" [(.lit 80)])])] [
-          .mk 3490 (.call "keccak" [(.list [(.var "pp"), (.add (.var "idx") (.lit 864691128455135232))]), (.list [(.index (.var "root") (.lit 0)), (.var "rho")]), (.var "digest")])] true),
-        .mk 3497 (.let_ "steps" (.stackBuf 3)),
-        .mk 3498 (.unroll "st" (.lit 0) (.lit 3) [
-          .mk 3499 (.store (.var "steps") (.var "st") (.add (.var "idx") (.call "const" [(.add (.lit 72057594037927936) (.mul (.var "st") (.lit 2305843009213693952)))])))]),
-        .mk 3500 (.let_ "walks" (.stackBuf 2262)),
-        .mk 3501 (.let_ "digit_product" (.lit 1)),
-        .mk 3502 (.let_ "encoded" (.lit 0)),
-        .mk 3503 (.unroll "p" (.lit 0) (.div (.lit 58) (.lit 3)) [
-          .mk 3504 (.letHintWitness "group" "digits"),
-          .mk 3505 (.assertLt (.var "group") (.const 64)),
-          .mk 3506 (.match_ [(.var "digit_product"), (.var "encoded")] (.var "group") [(.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 0), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 1), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 2), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 3), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 4), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 5), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 6), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 7), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 8), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 9), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 10), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 11), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 12), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 13), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 14), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 15), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 16), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 17), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 18), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 19), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 20), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 21), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 22), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 23), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 24), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 25), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 26), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 27), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 28), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 29), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 30), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 31), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 32), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 33), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 34), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 35), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 36), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 37), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 38), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 39), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 40), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 41), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 42), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 43), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 44), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 45), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 46), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 47), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 48), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 49), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 50), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 51), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 52), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 53), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 54), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 55), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 56), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 57), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 58), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 59), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 60), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 61), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 62), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 63), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")])])]),
-        .mk 3507 (.letHintWitness "group" "digits"),
-        .mk 3508 (.assertLt (.var "group") (.const 4)),
-        .mk 3509 (.match_ [(.var "digit_product"), (.var "encoded")] (.var "group") [(.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.sub (.lit 58) (.lit 1)), (.lit 1), (.lit 0), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.sub (.lit 58) (.lit 1)), (.lit 1), (.lit 1), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.sub (.lit 58) (.lit 1)), (.lit 1), (.lit 2), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.sub (.lit 58) (.lit 1)), (.lit 1), (.lit 3), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")])]),
-        .mk 3510 (.store (.var "digest") (.lit 0) (.var "encoded")),
-        .mk 3511 (.assertEq (.var "digit_product") (.gpow 106)),
-        .mk 3514 (.let_ "leaf" (.stackBuf 13)),
-        .mk 3515 (.call "wots_leaf" [(.var "pp"), (.add (.var "idx") (.lit 144115188075855872)), (.var "walks"), (.lit 58), (.var "leaf")]),
-        .mk 3516 (.let_ "root" (.stackBuf 13)),
-        .mk 3517 (.call "merkle_path" [(.index (.var "leaf") (.lit 0)), (.var "pp"), (.var "bits"), (.var "nodes"), (.var "root"), (.mul (.lit 16) (.var "layer")), (.lit 16), (.mul (.lit 2) (.lit 16)), (.var "layer")])]),
-      .mk 3518 (.assertEq (.index (.var "root") (.lit 0)) (.index (.var "signer") (.lit 1))),
-      .mk 3519 (.ret [])] }
+      .mk 3450 (.let_ "pp" (.index (.var "signer") .gen)),
+      .mk 3457 (.let_ "bits" (.stackBuf 32)),
+      .mk 3458 (.hintWitness (.var "bits") "leaf_index_bits"),
+      .mk 3459 (.unroll "b" (.lit 0) (.mul (.lit 2) (.lit 16)) [
+        .mk 3460 (.store (.var "bits") (.var "b") (.mul (.index (.var "bits") (.var "b")) (.index (.var "bits") (.var "b"))))]),
+      .mk 3461 (.let_ "nodes" (.stackBuf 32)),
+      .mk 3462 (.call "shifts" [(.var "bits"), (.lit 0), (.mul (.lit 2) (.lit 16)), (.var "nodes")]),
+      .mk 3463 (.let_ "powers" (.stackBuf 10)),
+      .mk 3464 (.unroll "s" (.lit 0) (.add (.mul (.lit 3) (.lit 3)) (.lit 1)) [
+        .mk 3465 (.store (.var "powers") (.var "s") (.genPow (.var "s")))]),
+      .mk 3469 (.let_ "tags" (.stackBuf 58)),
+      .mk 3470 (.unroll "i" (.lit 0) (.lit 58) [
+        .mk 3471 (.store (.var "tags") (.var "i") (.var "i"))]),
+      .mk 3473 (.unroll "layer" (.lit 0) (.lit 2) [
+        .mk 3474 (.ite true (.var "layer") (.lit 0) [
+          .mk 3475 (.let_ "idx" (.index (.var "nodes") (.lit 0)))] [
+          .mk 3477 (.let_ "idx" (.add (.index (.var "nodes") (.lit 16)) (.lit 36028797018963968)))] true),
+        .mk 3480 (.letHintWitness "rho" "randomizer"),
+        .mk 3481 (.let_ "digest" (.stackBuf 13)),
+        .mk 3482 (.ite true (.var "layer") (.lit 0) [
+          .mk 3483 (.call "keccak" [(.list [(.var "pp"), (.add (.var "idx") (.lit 864691128455135232))]), (.list [(.index (.var "signer") (.gpow 2)), (.index (.var "signer") (.gpow 3))]), (.var "digest"), (.call "__kw_tail" [(.list [(.var "rho"), (.lit 0), (.lit 0), (.lit 0)])]), (.call "__kw_len" [(.lit 80)])])] [
+          .mk 3485 (.call "keccak" [(.list [(.var "pp"), (.add (.var "idx") (.lit 864691128455135232))]), (.list [(.index (.var "root") (.lit 0)), (.var "rho")]), (.var "digest")])] true),
+        .mk 3492 (.let_ "steps" (.stackBuf 3)),
+        .mk 3493 (.unroll "st" (.lit 0) (.lit 3) [
+          .mk 3494 (.store (.var "steps") (.var "st") (.add (.var "idx") (.call "const" [(.add (.lit 72057594037927936) (.mul (.var "st") (.lit 2305843009213693952)))])))]),
+        .mk 3495 (.let_ "walks" (.stackBuf 2262)),
+        .mk 3496 (.let_ "digit_product" (.lit 1)),
+        .mk 3497 (.let_ "encoded" (.lit 0)),
+        .mk 3498 (.unroll "p" (.lit 0) (.div (.lit 58) (.lit 3)) [
+          .mk 3499 (.letHintWitness "group" "digits"),
+          .mk 3500 (.assertLt (.var "group") (.const 64)),
+          .mk 3501 (.match_ [(.var "digit_product"), (.var "encoded")] (.var "group") [(.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 0), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 1), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 2), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 3), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 4), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 5), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 6), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 7), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 8), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 9), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 10), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 11), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 12), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 13), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 14), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 15), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 16), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 17), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 18), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 19), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 20), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 21), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 22), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 23), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 24), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 25), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 26), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 27), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 28), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 29), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 30), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 31), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 32), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 33), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 34), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 35), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 36), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 37), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 38), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 39), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 40), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 41), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 42), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 43), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 44), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 45), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 46), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 47), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 48), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 49), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 50), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 51), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 52), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 53), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 54), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 55), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 56), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 57), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 58), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 59), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 60), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 61), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 62), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 63), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")])])]),
+        .mk 3502 (.letHintWitness "group" "digits"),
+        .mk 3503 (.assertLt (.var "group") (.const 4)),
+        .mk 3504 (.match_ [(.var "digit_product"), (.var "encoded")] (.var "group") [(.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.sub (.lit 58) (.lit 1)), (.lit 1), (.lit 0), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.sub (.lit 58) (.lit 1)), (.lit 1), (.lit 1), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.sub (.lit 58) (.lit 1)), (.lit 1), (.lit 2), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "steps"), (.var "pp"), (.var "walks"), (.var "tags"), (.sub (.lit 58) (.lit 1)), (.lit 1), (.lit 3), (.lit 1), (.var "powers"), (.var "digit_product"), (.var "encoded")])]),
+        .mk 3505 (.store (.var "digest") (.lit 0) (.var "encoded")),
+        .mk 3506 (.assertEq (.var "digit_product") (.gpow 106)),
+        .mk 3509 (.let_ "leaf" (.stackBuf 13)),
+        .mk 3510 (.call "wots_leaf" [(.var "pp"), (.add (.var "idx") (.lit 144115188075855872)), (.var "walks"), (.lit 58), (.var "leaf")]),
+        .mk 3511 (.let_ "root" (.stackBuf 13)),
+        .mk 3512 (.call "merkle_path" [(.index (.var "leaf") (.lit 0)), (.var "pp"), (.var "bits"), (.var "nodes"), (.var "root"), (.mul (.lit 16) (.var "layer")), (.lit 16), (.mul (.lit 2) (.lit 16)), (.var "layer")])]),
+      .mk 3513 (.assertEq (.index (.var "root") (.lit 0)) (.index (.var "signer") (.lit 1))),
+      .mk 3514 (.ret [])] }
 
 /-- `sp_from_bytes`. -/
 def fn_sp_from_bytes : Func :=
   { name := "sp_from_bytes", params := [⟨"byte_bits", (.runtime .scalar)⟩, ⟨"marks", (.runtime .scalar)⟩, ⟨"n", .const⟩, ⟨"top", .const⟩], returnShapes := [.scalar],
     inline := true,
     body := [
-      .mk 3531 (.unroll "t" (.lit 0) (.var "n") [
-        .mk 3532 (.let_ "k" (.sub (.sub (.var "n") (.lit 1)) (.var "t"))),
-        .mk 3533 (.ite true (.var "t") (.lit 0) [
-          .mk 3534 (.ite true (.var "top") (.lit 256) [
-            .mk 3535 (.assertLt (.index (.var "marks") (.var "k")) (.const 256))] [
-            .mk 3537 (.assertLt (.index (.var "marks") (.var "k")) (.const 64))] true),
-          .mk 3538 (.let_ "value" (.index (.var "byte_bits") (.index (.var "marks") (.var "k"))))] [
-          .mk 3540 (.assertLt (.index (.var "marks") (.var "k")) (.const 256)),
-          .mk 3541 (.let_ "value" (.add (.index (.var "byte_bits") (.index (.var "marks") (.var "k"))) (.mul (.var "value") (.gpow 8))))] true)]),
-      .mk 3542 (.ret [(.var "value")])] }
+      .mk 3526 (.unroll "t" (.lit 0) (.var "n") [
+        .mk 3527 (.let_ "k" (.sub (.sub (.var "n") (.lit 1)) (.var "t"))),
+        .mk 3528 (.ite true (.var "t") (.lit 0) [
+          .mk 3529 (.ite true (.var "top") (.lit 256) [
+            .mk 3530 (.assertLt (.index (.var "marks") (.var "k")) (.const 256))] [
+            .mk 3532 (.assertLt (.index (.var "marks") (.var "k")) (.const 64))] true),
+          .mk 3533 (.let_ "value" (.index (.var "byte_bits") (.index (.var "marks") (.var "k"))))] [
+          .mk 3535 (.assertLt (.index (.var "marks") (.var "k")) (.const 256)),
+          .mk 3536 (.let_ "value" (.add (.index (.var "byte_bits") (.index (.var "marks") (.var "k"))) (.mul (.var "value") (.gpow 8))))] true)]),
+      .mk 3537 (.ret [(.var "value")])] }
 
 /-- `sp_forest_top`. -/
 def fn_sp_forest_top : Func :=
   { name := "sp_forest_top", params := [⟨"at", (.runtime .scalar)⟩, ⟨"pp", (.runtime .scalar)⟩, ⟨"tws", (.runtime .scalar)⟩, ⟨"tops", (.runtime .scalar)⟩, ⟨"t", .const⟩, ⟨"i", .const⟩], returnShapes := [.scalar],
     inline := true,
     body := [
-      .mk 3551 (.ite true (.index (.var "SP_CODEWORDS") (.add (.mul (.lit 6) (.var "t")) (.var "i"))) (.lit 0) [
-        .mk 3552 (.ite true (.div (.var "i") (.lit 2)) (.lit 0) [
-          .mk 3553 (.letHintWitness "value" "sp_forest_values")] [
-          .mk 3555 (.hintWitness (.slice (.var "tops") (.sub (.var "i") (.lit 2)) (.sub (.var "i") (.lit 1))) "sp_forest_values"),
-          .mk 3556 (.let_ "value" (.index (.var "tops") (.sub (.var "i") (.lit 2))))] true)] [
-        .mk 3558 (.letHintWitness "value" "sp_forest_values"),
-        .mk 3559 (.unroll "s" (.sub (.lit 4) (.index (.var "SP_CODEWORDS") (.add (.mul (.lit 6) (.var "t")) (.var "i")))) (.lit 4) [
-          .mk 3560 (.let_ "out" (.stackBuf 13)),
-          .mk 3561 (.call "keccak" [(.list [(.var "pp"), (.add (.var "at") (.index (.var "tws") (.add (.mul (.lit 4) (.var "i")) (.var "s"))))]), (.list [(.var "value"), (.lit 0)]), (.var "out"), (.call "__kw_len" [(.lit 48)])]),
-          .mk 3562 (.let_ "value" (.index (.var "out") (.lit 0)))]),
-        .mk 3563 (.ite false (.div (.var "i") (.lit 2)) (.lit 0) [
-          .mk 3564 (.store (.var "tops") (.sub (.var "i") (.lit 2)) (.var "value"))] [] true)] true),
-      .mk 3565 (.ret [(.var "value")])] }
+      .mk 3546 (.ite true (.index (.var "SP_CODEWORDS") (.add (.mul (.lit 6) (.var "t")) (.var "i"))) (.lit 0) [
+        .mk 3547 (.ite true (.div (.var "i") (.lit 2)) (.lit 0) [
+          .mk 3548 (.letHintWitness "value" "sp_forest_values")] [
+          .mk 3550 (.hintWitness (.slice (.var "tops") (.sub (.var "i") (.lit 2)) (.sub (.var "i") (.lit 1))) "sp_forest_values"),
+          .mk 3551 (.let_ "value" (.index (.var "tops") (.sub (.var "i") (.lit 2))))] true)] [
+        .mk 3553 (.letHintWitness "value" "sp_forest_values"),
+        .mk 3554 (.unroll "s" (.sub (.lit 4) (.index (.var "SP_CODEWORDS") (.add (.mul (.lit 6) (.var "t")) (.var "i")))) (.lit 4) [
+          .mk 3555 (.let_ "out" (.stackBuf 13)),
+          .mk 3556 (.call "keccak" [(.list [(.var "pp"), (.add (.var "at") (.index (.var "tws") (.add (.mul (.lit 4) (.var "i")) (.var "s"))))]), (.list [(.var "value"), (.lit 0)]), (.var "out"), (.call "__kw_len" [(.lit 48)])]),
+          .mk 3557 (.let_ "value" (.index (.var "out") (.lit 0)))]),
+        .mk 3558 (.ite false (.div (.var "i") (.lit 2)) (.lit 0) [
+          .mk 3559 (.store (.var "tops") (.sub (.var "i") (.lit 2)) (.var "value"))] [] true)] true),
+      .mk 3560 (.ret [(.var "value")])] }
 
 /-- `sp_forest_key`. -/
 def fn_sp_forest_key : Func :=
   { name := "sp_forest_key", params := [⟨"at", (.runtime .scalar)⟩, ⟨"pp", (.runtime .scalar)⟩, ⟨"tws", (.runtime .scalar)⟩, ⟨"t", .const⟩, ⟨"w", .const⟩], returnShapes := [.scalar, .scalar],
     inline := true,
     body := [
-      .mk 3574 (.let_ "tops" (.stackBuf 4)),
-      .mk 3575 (.let_ "top_0" (.call "sp_forest_top" [(.var "at"), (.var "pp"), (.var "tws"), (.var "tops"), (.var "t"), (.lit 0)])),
-      .mk 3576 (.let_ "top_1" (.call "sp_forest_top" [(.var "at"), (.var "pp"), (.var "tws"), (.var "tops"), (.var "t"), (.lit 1)])),
-      .mk 3577 (.unroll "i" (.lit 2) (.lit 6) [
-        .mk 3578 (.let_ "top" (.call "sp_forest_top" [(.var "at"), (.var "pp"), (.var "tws"), (.var "tops"), (.var "t"), (.var "i")]))]),
-      .mk 3580 (.let_ "leaf" (.stackBuf 13)),
-      .mk 3581 (.call "keccak" [(.list [(.var "pp"), (.add (.var "at") (.index (.var "tws") (.mul (.lit 6) (.lit 4))))]), (.list [(.var "top_0"), (.var "top_1")]), (.var "leaf"), (.call "__kw_tail" [(.var "tops")])]),
-      .mk 3582 (.ite true (.div (.var "w") (.lit 8)) (.lit 0) [
-        .mk 3583 (.let_ "weight" (.call "const" [(.mul (.var "t") (.pow (.lit 2) (.mul (.lit 8) (.var "w"))))]))] [
-        .mk 3585 (.let_ "weight" (.mul (.call "const" [(.mul (.var "t") (.pow (.lit 2) (.mul (.lit 8) (.sub (.var "w") (.lit 8)))))]) (.lit 18446744073709551616)))] true),
-      .mk 3586 (.ret [(.index (.var "leaf") (.lit 0)), (.var "weight")])] }
+      .mk 3569 (.let_ "tops" (.stackBuf 4)),
+      .mk 3570 (.let_ "top_0" (.call "sp_forest_top" [(.var "at"), (.var "pp"), (.var "tws"), (.var "tops"), (.var "t"), (.lit 0)])),
+      .mk 3571 (.let_ "top_1" (.call "sp_forest_top" [(.var "at"), (.var "pp"), (.var "tws"), (.var "tops"), (.var "t"), (.lit 1)])),
+      .mk 3572 (.unroll "i" (.lit 2) (.lit 6) [
+        .mk 3573 (.let_ "top" (.call "sp_forest_top" [(.var "at"), (.var "pp"), (.var "tws"), (.var "tops"), (.var "t"), (.var "i")]))]),
+      .mk 3575 (.let_ "leaf" (.stackBuf 13)),
+      .mk 3576 (.call "keccak" [(.list [(.var "pp"), (.add (.var "at") (.index (.var "tws") (.mul (.lit 6) (.lit 4))))]), (.list [(.var "top_0"), (.var "top_1")]), (.var "leaf"), (.call "__kw_tail" [(.var "tops")])]),
+      .mk 3577 (.ite true (.div (.var "w") (.lit 8)) (.lit 0) [
+        .mk 3578 (.let_ "weight" (.call "const" [(.mul (.var "t") (.pow (.lit 2) (.mul (.lit 8) (.var "w"))))]))] [
+        .mk 3580 (.let_ "weight" (.mul (.call "const" [(.mul (.var "t") (.pow (.lit 2) (.mul (.lit 8) (.sub (.var "w") (.lit 8)))))]) (.lit 18446744073709551616)))] true),
+      .mk 3581 (.ret [(.index (.var "leaf") (.lit 0)), (.var "weight")])] }
 
 /-- `sp_fold`. -/
 def fn_sp_fold : Func :=
   { name := "sp_fold", params := [⟨"node", (.runtime .scalar)⟩, ⟨"at", (.runtime .scalar)⟩, ⟨"pp", (.runtime .scalar)⟩, ⟨"out", (.runtime .scalar)⟩, ⟨"tws", (.runtime .scalar)⟩, ⟨"slot", .const⟩, ⟨"index", .const⟩, ⟨"height", .const⟩, ⟨"tw", .const⟩, ⟨"level_mul", .const⟩, ⟨"node_mul", .const⟩, ⟨"own_mul", .const⟩, ⟨"preset", .const⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 3598 (.let_ "cur" (.var "node")),
-      .mk 3599 (.unroll "level" (.lit 0) (.sub (.var "height") (.lit 1)) [
-        .mk 3600 (.letHintWitness "sibling" "sp_forest_nodes"),
-        .mk 3601 (.let_ "parent" (.stackBuf 13)),
-        .mk 3602 (.ite true (.var "preset") (.lit 1) [
-          .mk 3603 (.let_ "address" (.add (.var "at") (.index (.var "tws") (.add (.mul (.sub (.var "height") (.lit 1)) (.var "index")) (.var "level")))))] [
-          .mk 3605 (.let_ "address" (.add (.var "at") (.add (.call "const" [(.mul (.var "index") (.var "own_mul"))]) (.call "const" [(.add (.add (.var "tw") (.mul (.add (.var "level") (.lit 1)) (.var "level_mul"))) (.mul (.div (.var "index") (.pow (.lit 2) (.add (.var "level") (.lit 1)))) (.var "node_mul")))]))))] true),
-        .mk 3606 (.ite true (.mod (.div (.var "index") (.pow (.lit 2) (.var "level"))) (.lit 2)) (.lit 0) [
-          .mk 3607 (.call "keccak" [(.list [(.var "pp"), (.var "address")]), (.list [(.var "cur"), (.var "sibling")]), (.var "parent")])] [
-          .mk 3609 (.call "keccak" [(.list [(.var "pp"), (.var "address")]), (.list [(.var "sibling"), (.var "cur")]), (.var "parent")])] true),
-        .mk 3610 (.let_ "cur" (.index (.var "parent") (.lit 0)))]),
-      .mk 3611 (.store (.var "out") (.add (.var "slot") (.div (.var "index") (.pow (.lit 2) (.sub (.var "height") (.lit 1))))) (.var "cur")),
-      .mk 3612 (.hintWitness (.slice (.var "out") (.sub (.add (.var "slot") (.lit 1)) (.div (.var "index") (.pow (.lit 2) (.sub (.var "height") (.lit 1))))) (.sub (.add (.var "slot") (.lit 2)) (.div (.var "index") (.pow (.lit 2) (.sub (.var "height") (.lit 1)))))) "sp_forest_nodes"),
-      .mk 3613 (.ret [])] }
+      .mk 3593 (.let_ "cur" (.var "node")),
+      .mk 3594 (.unroll "level" (.lit 0) (.sub (.var "height") (.lit 1)) [
+        .mk 3595 (.letHintWitness "sibling" "sp_forest_nodes"),
+        .mk 3596 (.let_ "parent" (.stackBuf 13)),
+        .mk 3597 (.ite true (.var "preset") (.lit 1) [
+          .mk 3598 (.let_ "address" (.add (.var "at") (.index (.var "tws") (.add (.mul (.sub (.var "height") (.lit 1)) (.var "index")) (.var "level")))))] [
+          .mk 3600 (.let_ "address" (.add (.var "at") (.add (.call "const" [(.mul (.var "index") (.var "own_mul"))]) (.call "const" [(.add (.add (.var "tw") (.mul (.add (.var "level") (.lit 1)) (.var "level_mul"))) (.mul (.div (.var "index") (.pow (.lit 2) (.add (.var "level") (.lit 1)))) (.var "node_mul")))]))))] true),
+        .mk 3601 (.ite true (.mod (.div (.var "index") (.pow (.lit 2) (.var "level"))) (.lit 2)) (.lit 0) [
+          .mk 3602 (.call "keccak" [(.list [(.var "pp"), (.var "address")]), (.list [(.var "cur"), (.var "sibling")]), (.var "parent")])] [
+          .mk 3604 (.call "keccak" [(.list [(.var "pp"), (.var "address")]), (.list [(.var "sibling"), (.var "cur")]), (.var "parent")])] true),
+        .mk 3605 (.let_ "cur" (.index (.var "parent") (.lit 0)))]),
+      .mk 3606 (.store (.var "out") (.add (.var "slot") (.div (.var "index") (.pow (.lit 2) (.sub (.var "height") (.lit 1))))) (.var "cur")),
+      .mk 3607 (.hintWitness (.slice (.var "out") (.sub (.add (.var "slot") (.lit 1)) (.div (.var "index") (.pow (.lit 2) (.sub (.var "height") (.lit 1))))) (.sub (.add (.var "slot") (.lit 2)) (.div (.var "index") (.pow (.lit 2) (.sub (.var "height") (.lit 1)))))) "sp_forest_nodes"),
+      .mk 3608 (.ret [])] }
 
 /-- `sp_subtree_arm`. -/
 def fn_sp_subtree_arm : Func :=
   { name := "sp_subtree_arm", params := [⟨"node", (.runtime .scalar)⟩, ⟨"key_at", (.runtime .scalar)⟩, ⟨"pp", (.runtime .scalar)⟩, ⟨"subtops", (.runtime .scalar)⟩, ⟨"sub_tws", (.runtime .scalar)⟩, ⟨"c", .const⟩, ⟨"j", .const⟩, ⟨"a", .const⟩], returnShapes := [.scalar, .scalar],
     inline := true,
     body := [
-      .mk 3621 (.call "sp_fold" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.add (.lit 2) (.mul (.lit 2) (.var "j"))), (.var "a"), (.lit 3), (.lit 1224979098644774912), (.lit 1099511627776), (.lit 4398046511104), (.lit 1099511627776), (.lit 1)]),
-      .mk 3622 (.ret [(.call "const" [(.add (.mul (.var "j") (.lit 549755813888)) (.mul (.var "a") (.lit 1099511627776)))]), (.mul (.call "const" [(.var "a")]) (.index (.var "COORD_BASIS") (.add (.lit 58) (.mul (.add (.mul (.lit 2) (.var "c")) (.var "j")) (.lit 3)))))])] }
+      .mk 3616 (.call "sp_fold" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.add (.lit 2) (.mul (.lit 2) (.var "j"))), (.var "a"), (.lit 3), (.lit 1224979098644774912), (.lit 1099511627776), (.lit 4398046511104), (.lit 1099511627776), (.lit 1)]),
+      .mk 3617 (.ret [(.call "const" [(.add (.mul (.var "j") (.lit 549755813888)) (.mul (.var "a") (.lit 1099511627776)))]), (.mul (.call "const" [(.var "a")]) (.index (.var "COORD_BASIS") (.add (.lit 58) (.mul (.add (.mul (.lit 2) (.var "c")) (.var "j")) (.lit 3)))))])] }
 
 /-- `sp_tree_arm`. -/
 def fn_sp_tree_arm : Func :=
   { name := "sp_tree_arm", params := [⟨"node", (.runtime .scalar)⟩, ⟨"leaf_at", (.runtime .scalar)⟩, ⟨"pp", (.runtime .scalar)⟩, ⟨"tops", (.runtime .scalar)⟩, ⟨"sub_tws", (.runtime .scalar)⟩, ⟨"c", .const⟩, ⟨"s", .const⟩], returnShapes := [.scalar, .scalar],
     inline := true,
     body := [
-      .mk 3628 (.call "sp_fold" [(.var "node"), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.add (.lit 2) (.mul (.lit 2) (.var "c"))), (.var "s"), (.lit 4), (.lit 1369094286720630784), (.lit 34359738368), (.lit 274877906944), (.lit 34359738368), (.lit 0)]),
-      .mk 3629 (.ret [(.call "const" [(.add (.mul (.var "c") (.lit 4294967296)) (.mul (.var "s") (.lit 34359738368)))]), (.mul (.call "const" [(.var "s")]) (.index (.var "COORD_BASIS") (.add (.lit 26) (.mul (.var "c") (.lit 4)))))])] }
+      .mk 3623 (.call "sp_fold" [(.var "node"), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.add (.lit 2) (.mul (.lit 2) (.var "c"))), (.var "s"), (.lit 4), (.lit 1369094286720630784), (.lit 34359738368), (.lit 274877906944), (.lit 34359738368), (.lit 0)]),
+      .mk 3624 (.ret [(.call "const" [(.add (.mul (.var "c") (.lit 4294967296)) (.mul (.var "s") (.lit 34359738368)))]), (.mul (.call "const" [(.var "s")]) (.index (.var "COORD_BASIS") (.add (.lit 26) (.mul (.var "c") (.lit 4)))))])] }
 
 /-- `verify_sig_lean_sphincs`. -/
 def fn_verify_sig_lean_sphincs : Func :=
   { name := "verify_sig_lean_sphincs", params := [⟨"signer", (.runtime .scalar)⟩, ⟨"byte_bits", (.runtime .scalar)⟩], returnShapes := [],
     inline := false,
     body := [
-      .mk 3636 (.let_ "pp" (.index (.var "signer") .gen)),
-      .mk 3640 (.letHintWitness "rho" "sp_rand"),
-      .mk 3641 (.let_ "digest" (.stackBuf 13)),
-      .mk 3642 (.call "keccak" [(.list [(.var "pp"), (.lit 864691128455135232)]), (.list [(.index (.var "signer") (.gpow 2)), (.index (.var "signer") (.gpow 3))]), (.var "digest"), (.call "__kw_tail" [(.list [(.var "rho"), (.lit 0), (.lit 0), (.lit 0)])]), (.call "__kw_len" [(.lit 80)])]),
-      .mk 3650 (.let_ "bits" (.stackBuf 26)),
-      .mk 3651 (.call "hint_decompose_bits" [(.var "bits"), (.index (.var "digest") (.lit 1)), (.lit 26)]),
-      .mk 3652 (.unroll "i" (.lit 0) (.lit 26) [
-        .mk 3653 (.store (.var "bits") (.var "i") (.mul (.index (.var "bits") (.var "i")) (.index (.var "bits") (.var "i"))))]),
-      .mk 3655 (.let_ "nodes" (.stackBuf 26)),
-      .mk 3656 (.call "shifts" [(.var "bits"), (.lit 0), (.lit 26), (.var "nodes")]),
-      .mk 3657 (.let_ "idx" (.index (.var "nodes") (.lit 0))),
-      .mk 3658 (.let_ "unused_bytes" (.stackBuf 3)),
-      .mk 3659 (.hintWitness (.var "unused_bytes") "sp_unused"),
-      .mk 3660 (.let_ "unused" (.call "sp_from_bytes" [(.var "byte_bits"), (.var "unused_bytes"), (.lit 3), (.lit 64)])),
-      .mk 3661 (.let_ "bound" (.add (.var "idx") (.mul (.var "unused") (.index (.var "COORD_BASIS") (.lit 106))))),
-      .mk 3666 (.let_ "tops" (.stackBuf 19)),
-      .mk 3667 (.store (.var "tops") (.lit 0) (.var "pp")),
-      .mk 3668 (.store (.var "tops") (.lit 1) (.add (.var "idx") (.lit 288230376151711744))),
-      .mk 3669 (.let_ "encoded_words" (.lit 0)),
-      .mk 3672 (.let_ "tws" (.stackBuf 25)),
-      .mk 3673 (.unroll "i" (.lit 0) (.lit 6) [
-        .mk 3674 (.unroll "s" (.lit 0) (.lit 4) [
-          .mk 3675 (.store (.var "tws") (.add (.mul (.lit 4) (.var "i")) (.var "s")) (.call "const" [(.add (.add (.lit 1080863910568919040) (.mul (.var "i") (.lit 8796093022208))) (.mul (.var "s") (.lit 2305843009213693952)))]))])]),
-      .mk 3676 (.store (.var "tws") (.mul (.lit 6) (.lit 4)) (.lit 1152921504606846976)),
-      .mk 3678 (.let_ "sub_tws" (.stackBuf 16)),
-      .mk 3679 (.unroll "a" (.lit 0) (.lit 8) [
-        .mk 3680 (.unroll "level" (.lit 0) (.sub (.lit 3) (.lit 1)) [
-          .mk 3681 (.store (.var "sub_tws") (.add (.mul (.sub (.lit 3) (.lit 1)) (.var "a")) (.var "level")) (.add (.call "const" [(.mul (.var "a") (.lit 1099511627776))]) (.call "const" [(.add (.add (.lit 1224979098644774912) (.mul (.add (.var "level") (.lit 1)) (.lit 1099511627776))) (.mul (.div (.var "a") (.pow (.lit 2) (.add (.var "level") (.lit 1)))) (.lit 4398046511104)))])))])]),
-      .mk 3682 (.unroll "c" (.lit 0) (.lit 8) [
-        .mk 3685 (.let_ "leaf_mark" (.stackBuf 2)),
-        .mk 3686 (.hintWitness (.var "leaf_mark") "sp_leaves"),
-        .mk 3687 (.assertLt (.index (.var "leaf_mark") (.lit 0)) (.const 16)),
-        .mk 3688 (.let_ "leaf_at" (.add (.var "idx") (.index (.var "leaf_mark") (.lit 1)))),
-        .mk 3690 (.let_ "subtops" (.stackBuf 6)),
-        .mk 3691 (.store (.var "subtops") (.lit 0) (.var "pp")),
-        .mk 3692 (.store (.var "subtops") (.lit 1) (.add (.var "leaf_at") (.lit 1297036692682702848))),
-        .mk 3693 (.unroll "j" (.lit 0) (.lit 2) [
-          .mk 3695 (.let_ "key_mark" (.stackBuf 2)),
-          .mk 3696 (.hintWitness (.var "key_mark") "sp_keys"),
-          .mk 3697 (.assertLt (.index (.var "key_mark") (.lit 0)) (.const 8)),
-          .mk 3698 (.letHintWitness "word" "sp_words"),
-          .mk 3699 (.assertLt (.var "word") (.const 256)),
-          .mk 3700 (.let_ "key_at" (.add (.var "leaf_at") (.index (.var "key_mark") (.lit 1)))),
-          .mk 3701 (.match_ [(.var "node"), (.var "weight")] (.var "word") [(.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 0), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 1), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 2), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 3), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 4), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 5), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 6), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 7), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 8), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 9), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 10), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 11), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 12), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 13), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 14), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 15), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 16), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 17), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 18), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 19), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 20), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 21), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 22), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 23), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 24), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 25), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 26), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 27), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 28), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 29), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 30), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 31), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 32), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 33), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 34), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 35), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 36), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 37), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 38), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 39), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 40), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 41), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 42), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 43), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 44), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 45), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 46), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 47), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 48), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 49), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 50), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 51), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 52), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 53), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 54), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 55), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 56), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 57), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 58), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 59), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 60), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 61), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 62), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 63), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 64), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 65), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 66), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 67), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 68), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 69), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 70), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 71), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 72), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 73), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 74), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 75), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 76), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 77), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 78), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 79), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 80), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 81), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 82), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 83), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 84), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 85), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 86), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 87), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 88), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 89), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 90), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 91), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 92), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 93), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 94), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 95), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 96), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 97), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 98), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 99), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 100), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 101), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 102), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 103), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 104), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 105), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 106), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 107), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 108), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 109), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 110), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 111), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 112), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 113), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 114), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 115), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 116), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 117), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 118), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 119), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 120), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 121), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 122), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 123), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 124), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 125), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 126), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 127), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 128), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 129), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 130), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 131), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 132), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 133), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 134), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 135), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 136), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 137), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 138), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 139), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 140), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 141), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 142), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 143), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 144), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 145), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 146), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 147), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 148), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 149), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 150), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 151), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 152), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 153), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 154), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 155), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 156), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 157), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 158), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 159), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 160), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 161), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 162), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 163), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 164), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 165), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 166), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 167), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 168), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 169), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 170), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 171), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 172), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 173), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 174), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 175), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 176), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 177), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 178), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 179), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 180), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 181), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 182), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 183), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 184), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 185), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 186), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 187), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 188), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 189), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 190), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 191), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 192), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 193), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 194), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 195), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 196), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 197), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 198), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 199), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 200), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 201), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 202), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 203), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 204), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 205), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 206), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 207), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 208), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 209), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 210), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 211), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 212), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 213), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 214), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 215), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 216), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 217), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 218), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 219), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 220), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 221), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 222), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 223), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 224), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 225), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 226), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 227), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 228), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 229), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 230), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 231), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 232), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 233), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 234), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 235), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 236), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 237), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 238), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 239), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 240), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 241), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 242), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 243), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 244), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 245), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 246), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 247), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 248), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 249), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 250), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 251), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 252), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 253), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 254), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 255), (.add (.mul (.lit 2) (.var "c")) (.var "j"))])]),
-          .mk 3702 (.ite true (.add (.add (.mul (.lit 2) (.var "c")) (.var "j")) (.lit 1)) (.mul (.lit 2) (.lit 8)) [
-            .mk 3705 (.store (.var "digest") (.lit 0) (.add (.var "encoded_words") (.var "weight")))] [
-            .mk 3707 (.let_ "encoded_words" (.add (.var "encoded_words") (.var "weight")))] true),
-          .mk 3708 (.match_ [(.index (.var "key_mark") (.lit 1)), (.var "key_weight")] (.index (.var "key_mark") (.lit 0)) [(.call "sp_subtree_arm" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.var "c"), (.var "j"), (.lit 0)]), (.call "sp_subtree_arm" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.var "c"), (.var "j"), (.lit 1)]), (.call "sp_subtree_arm" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.var "c"), (.var "j"), (.lit 2)]), (.call "sp_subtree_arm" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.var "c"), (.var "j"), (.lit 3)]), (.call "sp_subtree_arm" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.var "c"), (.var "j"), (.lit 4)]), (.call "sp_subtree_arm" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.var "c"), (.var "j"), (.lit 5)]), (.call "sp_subtree_arm" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.var "c"), (.var "j"), (.lit 6)]), (.call "sp_subtree_arm" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.var "c"), (.var "j"), (.lit 7)])]),
-          .mk 3709 (.let_ "bound" (.add (.var "bound") (.var "key_weight")))]),
-        .mk 3710 (.let_ "leaf" (.stackBuf 13)),
-        .mk 3711 (.call "keccak_cells" [(.var "subtops"), (.var "leaf")]),
-        .mk 3712 (.match_ [(.index (.var "leaf_mark") (.lit 1)), (.var "leaf_weight")] (.index (.var "leaf_mark") (.lit 0)) [(.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 0)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 1)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 2)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 3)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 4)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 5)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 6)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 7)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 8)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 9)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 10)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 11)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 12)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 13)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 14)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 15)])]),
-        .mk 3713 (.ite true (.add (.var "c") (.lit 1)) (.lit 8) [
-          .mk 3714 (.store (.var "digest") (.lit 1) (.add (.var "bound") (.var "leaf_weight")))] [
-          .mk 3716 (.let_ "bound" (.add (.var "bound") (.var "leaf_weight")))] true)]),
-      .mk 3721 (.let_ "ctr_bytes" (.stackBuf 4)),
-      .mk 3722 (.hintWitness (.var "ctr_bytes") "sp_counter"),
-      .mk 3723 (.let_ "ctr" (.call "sp_from_bytes" [(.var "byte_bits"), (.var "ctr_bytes"), (.lit 4), (.lit 256)])),
-      .mk 3724 (.store (.var "tops") (.add (.lit 2) (.mul (.lit 2) (.lit 8))) (.var "ctr")),
-      .mk 3725 (.let_ "encoding" (.stackBuf 13)),
-      .mk 3726 (.call "keccak_cells" [(.var "tops"), (.var "encoding"), (.call "__kw_len" [(.lit 292)])]),
-      .mk 3733 (.let_ "walks" (.stackBuf 2496)),
-      .mk 3734 (.let_ "powers" (.stackBuf 10)),
-      .mk 3735 (.unroll "s" (.lit 0) (.add (.mul (.lit 3) (.lit 3)) (.lit 1)) [
-        .mk 3736 (.store (.var "powers") (.var "s") (.genPow (.var "s")))]),
-      .mk 3737 (.let_ "digit_product" (.lit 1)),
-      .mk 3738 (.let_ "encoded" (.lit 0)),
-      .mk 3741 (.unroll "p" (.lit 0) (.div (.lit 64) (.lit 3)) [
-        .mk 3742 (.letHintWitness "group" "digits"),
-        .mk 3743 (.assertLt (.var "group") (.const 64)),
-        .mk 3744 (.match_ [(.var "digit_product"), (.var "encoded")] (.var "group") [(.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 0), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 1), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 2), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 3), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 4), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 5), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 6), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 7), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 8), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 9), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 10), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 11), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 12), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 13), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 14), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 15), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 16), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 17), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 18), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 19), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 20), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 21), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 22), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 23), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 24), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 25), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 26), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 27), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 28), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 29), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 30), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 31), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 32), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 33), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 34), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 35), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 36), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 37), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 38), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 39), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 40), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 41), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 42), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 43), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 44), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 45), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 46), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 47), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 48), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 49), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 50), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 51), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 52), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 53), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 54), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 55), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 56), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 57), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 58), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 59), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 60), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 61), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 62), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 63), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")])])]),
-      .mk 3746 (.letHintWitness "group" "digits"),
-      .mk 3747 (.assertLt (.var "group") (.const 4)),
-      .mk 3748 (.match_ [(.var "digit_product"), (.var "encoded")] (.var "group") [(.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.sub (.lit 64) (.lit 1)), (.lit 1), (.lit 0), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.sub (.lit 64) (.lit 1)), (.lit 1), (.lit 1), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.sub (.lit 64) (.lit 1)), (.lit 1), (.lit 2), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.sub (.lit 64) (.lit 1)), (.lit 1), (.lit 3), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")])]),
-      .mk 3749 (.store (.var "encoding") (.lit 0) (.var "encoded")),
-      .mk 3750 (.assertEq (.var "digit_product") (.gpow 123)),
-      .mk 3753 (.let_ "leaf" (.stackBuf 13)),
-      .mk 3754 (.call "wots_leaf" [(.var "pp"), (.add (.var "idx") (.lit 144115188075855872)), (.var "walks"), (.lit 64), (.var "leaf")]),
-      .mk 3755 (.let_ "root" (.stackBuf 13)),
-      .mk 3756 (.call "merkle_path" [(.index (.var "leaf") (.lit 0)), (.var "pp"), (.var "bits"), (.var "nodes"), (.var "root"), (.lit 0), (.lit 26), (.lit 26), (.lit 0)]),
-      .mk 3757 (.assertEq (.index (.var "root") (.lit 0)) (.index (.var "signer") (.lit 1))),
-      .mk 3758 (.ret [])] }
+      .mk 3631 (.let_ "pp" (.index (.var "signer") .gen)),
+      .mk 3635 (.letHintWitness "rho" "sp_rand"),
+      .mk 3636 (.let_ "digest" (.stackBuf 13)),
+      .mk 3637 (.call "keccak" [(.list [(.var "pp"), (.lit 864691128455135232)]), (.list [(.index (.var "signer") (.gpow 2)), (.index (.var "signer") (.gpow 3))]), (.var "digest"), (.call "__kw_tail" [(.list [(.var "rho"), (.lit 0), (.lit 0), (.lit 0)])]), (.call "__kw_len" [(.lit 80)])]),
+      .mk 3645 (.let_ "bits" (.stackBuf 26)),
+      .mk 3646 (.call "hint_decompose_bits" [(.var "bits"), (.index (.var "digest") (.lit 1)), (.lit 26)]),
+      .mk 3647 (.unroll "i" (.lit 0) (.lit 26) [
+        .mk 3648 (.store (.var "bits") (.var "i") (.mul (.index (.var "bits") (.var "i")) (.index (.var "bits") (.var "i"))))]),
+      .mk 3650 (.let_ "nodes" (.stackBuf 26)),
+      .mk 3651 (.call "shifts" [(.var "bits"), (.lit 0), (.lit 26), (.var "nodes")]),
+      .mk 3652 (.let_ "idx" (.index (.var "nodes") (.lit 0))),
+      .mk 3653 (.let_ "unused_bytes" (.stackBuf 3)),
+      .mk 3654 (.hintWitness (.var "unused_bytes") "sp_unused"),
+      .mk 3655 (.let_ "unused" (.call "sp_from_bytes" [(.var "byte_bits"), (.var "unused_bytes"), (.lit 3), (.lit 64)])),
+      .mk 3656 (.let_ "bound" (.add (.var "idx") (.mul (.var "unused") (.index (.var "COORD_BASIS") (.lit 106))))),
+      .mk 3661 (.let_ "tops" (.stackBuf 19)),
+      .mk 3662 (.store (.var "tops") (.lit 0) (.var "pp")),
+      .mk 3663 (.store (.var "tops") (.lit 1) (.add (.var "idx") (.lit 288230376151711744))),
+      .mk 3664 (.let_ "encoded_words" (.lit 0)),
+      .mk 3667 (.let_ "tws" (.stackBuf 25)),
+      .mk 3668 (.unroll "i" (.lit 0) (.lit 6) [
+        .mk 3669 (.unroll "s" (.lit 0) (.lit 4) [
+          .mk 3670 (.store (.var "tws") (.add (.mul (.lit 4) (.var "i")) (.var "s")) (.call "const" [(.add (.add (.lit 1080863910568919040) (.mul (.var "i") (.lit 8796093022208))) (.mul (.var "s") (.lit 2305843009213693952)))]))])]),
+      .mk 3671 (.store (.var "tws") (.mul (.lit 6) (.lit 4)) (.lit 1152921504606846976)),
+      .mk 3673 (.let_ "sub_tws" (.stackBuf 16)),
+      .mk 3674 (.unroll "a" (.lit 0) (.lit 8) [
+        .mk 3675 (.unroll "level" (.lit 0) (.sub (.lit 3) (.lit 1)) [
+          .mk 3676 (.store (.var "sub_tws") (.add (.mul (.sub (.lit 3) (.lit 1)) (.var "a")) (.var "level")) (.add (.call "const" [(.mul (.var "a") (.lit 1099511627776))]) (.call "const" [(.add (.add (.lit 1224979098644774912) (.mul (.add (.var "level") (.lit 1)) (.lit 1099511627776))) (.mul (.div (.var "a") (.pow (.lit 2) (.add (.var "level") (.lit 1)))) (.lit 4398046511104)))])))])]),
+      .mk 3677 (.unroll "c" (.lit 0) (.lit 8) [
+        .mk 3680 (.let_ "leaf_mark" (.stackBuf 2)),
+        .mk 3681 (.hintWitness (.var "leaf_mark") "sp_leaves"),
+        .mk 3682 (.assertLt (.index (.var "leaf_mark") (.lit 0)) (.const 16)),
+        .mk 3683 (.let_ "leaf_at" (.add (.var "idx") (.index (.var "leaf_mark") (.lit 1)))),
+        .mk 3685 (.let_ "subtops" (.stackBuf 6)),
+        .mk 3686 (.store (.var "subtops") (.lit 0) (.var "pp")),
+        .mk 3687 (.store (.var "subtops") (.lit 1) (.add (.var "leaf_at") (.lit 1297036692682702848))),
+        .mk 3688 (.unroll "j" (.lit 0) (.lit 2) [
+          .mk 3690 (.let_ "key_mark" (.stackBuf 2)),
+          .mk 3691 (.hintWitness (.var "key_mark") "sp_keys"),
+          .mk 3692 (.assertLt (.index (.var "key_mark") (.lit 0)) (.const 8)),
+          .mk 3693 (.letHintWitness "word" "sp_words"),
+          .mk 3694 (.assertLt (.var "word") (.const 256)),
+          .mk 3695 (.let_ "key_at" (.add (.var "leaf_at") (.index (.var "key_mark") (.lit 1)))),
+          .mk 3696 (.match_ [(.var "node"), (.var "weight")] (.var "word") [(.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 0), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 1), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 2), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 3), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 4), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 5), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 6), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 7), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 8), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 9), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 10), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 11), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 12), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 13), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 14), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 15), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 16), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 17), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 18), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 19), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 20), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 21), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 22), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 23), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 24), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 25), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 26), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 27), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 28), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 29), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 30), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 31), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 32), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 33), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 34), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 35), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 36), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 37), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 38), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 39), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 40), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 41), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 42), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 43), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 44), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 45), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 46), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 47), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 48), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 49), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 50), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 51), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 52), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 53), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 54), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 55), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 56), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 57), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 58), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 59), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 60), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 61), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 62), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 63), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 64), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 65), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 66), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 67), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 68), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 69), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 70), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 71), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 72), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 73), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 74), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 75), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 76), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 77), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 78), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 79), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 80), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 81), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 82), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 83), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 84), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 85), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 86), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 87), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 88), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 89), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 90), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 91), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 92), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 93), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 94), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 95), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 96), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 97), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 98), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 99), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 100), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 101), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 102), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 103), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 104), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 105), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 106), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 107), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 108), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 109), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 110), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 111), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 112), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 113), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 114), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 115), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 116), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 117), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 118), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 119), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 120), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 121), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 122), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 123), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 124), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 125), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 126), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 127), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 128), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 129), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 130), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 131), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 132), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 133), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 134), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 135), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 136), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 137), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 138), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 139), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 140), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 141), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 142), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 143), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 144), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 145), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 146), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 147), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 148), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 149), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 150), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 151), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 152), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 153), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 154), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 155), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 156), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 157), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 158), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 159), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 160), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 161), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 162), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 163), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 164), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 165), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 166), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 167), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 168), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 169), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 170), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 171), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 172), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 173), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 174), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 175), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 176), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 177), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 178), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 179), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 180), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 181), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 182), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 183), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 184), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 185), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 186), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 187), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 188), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 189), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 190), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 191), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 192), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 193), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 194), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 195), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 196), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 197), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 198), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 199), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 200), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 201), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 202), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 203), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 204), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 205), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 206), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 207), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 208), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 209), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 210), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 211), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 212), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 213), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 214), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 215), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 216), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 217), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 218), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 219), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 220), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 221), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 222), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 223), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 224), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 225), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 226), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 227), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 228), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 229), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 230), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 231), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 232), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 233), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 234), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 235), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 236), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 237), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 238), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 239), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 240), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 241), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 242), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 243), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 244), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 245), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 246), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 247), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 248), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 249), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 250), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 251), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 252), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 253), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 254), (.add (.mul (.lit 2) (.var "c")) (.var "j"))]), (.call "sp_forest_key" [(.var "key_at"), (.var "pp"), (.var "tws"), (.lit 255), (.add (.mul (.lit 2) (.var "c")) (.var "j"))])]),
+          .mk 3697 (.ite true (.add (.add (.mul (.lit 2) (.var "c")) (.var "j")) (.lit 1)) (.mul (.lit 2) (.lit 8)) [
+            .mk 3700 (.store (.var "digest") (.lit 0) (.add (.var "encoded_words") (.var "weight")))] [
+            .mk 3702 (.let_ "encoded_words" (.add (.var "encoded_words") (.var "weight")))] true),
+          .mk 3703 (.match_ [(.index (.var "key_mark") (.lit 1)), (.var "key_weight")] (.index (.var "key_mark") (.lit 0)) [(.call "sp_subtree_arm" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.var "c"), (.var "j"), (.lit 0)]), (.call "sp_subtree_arm" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.var "c"), (.var "j"), (.lit 1)]), (.call "sp_subtree_arm" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.var "c"), (.var "j"), (.lit 2)]), (.call "sp_subtree_arm" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.var "c"), (.var "j"), (.lit 3)]), (.call "sp_subtree_arm" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.var "c"), (.var "j"), (.lit 4)]), (.call "sp_subtree_arm" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.var "c"), (.var "j"), (.lit 5)]), (.call "sp_subtree_arm" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.var "c"), (.var "j"), (.lit 6)]), (.call "sp_subtree_arm" [(.var "node"), (.var "key_at"), (.var "pp"), (.var "subtops"), (.var "sub_tws"), (.var "c"), (.var "j"), (.lit 7)])]),
+          .mk 3704 (.let_ "bound" (.add (.var "bound") (.var "key_weight")))]),
+        .mk 3705 (.let_ "leaf" (.stackBuf 13)),
+        .mk 3706 (.call "keccak_cells" [(.var "subtops"), (.var "leaf")]),
+        .mk 3707 (.match_ [(.index (.var "leaf_mark") (.lit 1)), (.var "leaf_weight")] (.index (.var "leaf_mark") (.lit 0)) [(.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 0)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 1)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 2)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 3)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 4)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 5)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 6)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 7)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 8)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 9)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 10)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 11)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 12)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 13)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 14)]), (.call "sp_tree_arm" [(.index (.var "leaf") (.lit 0)), (.var "leaf_at"), (.var "pp"), (.var "tops"), (.var "sub_tws"), (.var "c"), (.lit 15)])]),
+        .mk 3708 (.ite true (.add (.var "c") (.lit 1)) (.lit 8) [
+          .mk 3709 (.store (.var "digest") (.lit 1) (.add (.var "bound") (.var "leaf_weight")))] [
+          .mk 3711 (.let_ "bound" (.add (.var "bound") (.var "leaf_weight")))] true)]),
+      .mk 3716 (.let_ "ctr_bytes" (.stackBuf 4)),
+      .mk 3717 (.hintWitness (.var "ctr_bytes") "sp_counter"),
+      .mk 3718 (.let_ "ctr" (.call "sp_from_bytes" [(.var "byte_bits"), (.var "ctr_bytes"), (.lit 4), (.lit 256)])),
+      .mk 3719 (.store (.var "tops") (.add (.lit 2) (.mul (.lit 2) (.lit 8))) (.var "ctr")),
+      .mk 3720 (.let_ "encoding" (.stackBuf 13)),
+      .mk 3721 (.call "keccak_cells" [(.var "tops"), (.var "encoding"), (.call "__kw_len" [(.lit 292)])]),
+      .mk 3728 (.let_ "walks" (.stackBuf 2496)),
+      .mk 3729 (.let_ "powers" (.stackBuf 10)),
+      .mk 3730 (.unroll "s" (.lit 0) (.add (.mul (.lit 3) (.lit 3)) (.lit 1)) [
+        .mk 3731 (.store (.var "powers") (.var "s") (.genPow (.var "s")))]),
+      .mk 3732 (.let_ "digit_product" (.lit 1)),
+      .mk 3733 (.let_ "encoded" (.lit 0)),
+      .mk 3736 (.unroll "p" (.lit 0) (.div (.lit 64) (.lit 3)) [
+        .mk 3737 (.letHintWitness "group" "digits"),
+        .mk 3738 (.assertLt (.var "group") (.const 64)),
+        .mk 3739 (.match_ [(.var "digit_product"), (.var "encoded")] (.var "group") [(.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 0), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 1), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 2), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 3), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 4), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 5), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 6), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 7), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 8), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 9), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 10), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 11), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 12), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 13), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 14), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 15), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 16), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 17), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 18), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 19), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 20), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 21), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 22), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 23), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 24), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 25), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 26), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 27), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 28), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 29), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 30), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 31), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 32), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 33), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 34), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 35), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 36), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 37), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 38), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 39), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 40), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 41), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 42), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 43), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 44), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 45), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 46), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 47), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 48), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 49), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 50), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 51), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 52), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 53), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 54), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 55), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 56), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 57), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 58), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 59), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 60), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 61), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 62), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.mul (.lit 3) (.var "p")), (.lit 3), (.lit 63), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")])])]),
+      .mk 3741 (.letHintWitness "group" "digits"),
+      .mk 3742 (.assertLt (.var "group") (.const 4)),
+      .mk 3743 (.match_ [(.var "digit_product"), (.var "encoded")] (.var "group") [(.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.sub (.lit 64) (.lit 1)), (.lit 1), (.lit 0), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.sub (.lit 64) (.lit 1)), (.lit 1), (.lit 1), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.sub (.lit 64) (.lit 1)), (.lit 1), (.lit 2), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")]), (.call "walk_group" [(.var "idx"), (.var "pp"), (.var "walks"), (.var "powers"), (.sub (.lit 64) (.lit 1)), (.lit 1), (.lit 3), (.lit 0), (.var "powers"), (.var "digit_product"), (.var "encoded")])]),
+      .mk 3744 (.store (.var "encoding") (.lit 0) (.var "encoded")),
+      .mk 3745 (.assertEq (.var "digit_product") (.gpow 123)),
+      .mk 3748 (.let_ "leaf" (.stackBuf 13)),
+      .mk 3749 (.call "wots_leaf" [(.var "pp"), (.add (.var "idx") (.lit 144115188075855872)), (.var "walks"), (.lit 64), (.var "leaf")]),
+      .mk 3750 (.let_ "root" (.stackBuf 13)),
+      .mk 3751 (.call "merkle_path" [(.index (.var "leaf") (.lit 0)), (.var "pp"), (.var "bits"), (.var "nodes"), (.var "root"), (.lit 0), (.lit 26), (.lit 26), (.lit 0)]),
+      .mk 3752 (.assertEq (.index (.var "root") (.lit 0)) (.index (.var "signer") (.lit 1))),
+      .mk 3753 (.ret [])] }
 
 /-- `statement_digest`. -/
 def fn_statement_digest : Func :=
   { name := "statement_digest", params := [⟨"seed_0", (.runtime .scalar)⟩, ⟨"seed_1", (.runtime .scalar)⟩, ⟨"xd_0", (.runtime .scalar)⟩, ⟨"xd_1", (.runtime .scalar)⟩, ⟨"sd_0", (.runtime .scalar)⟩, ⟨"sd_1", (.runtime .scalar)⟩, ⟨"da_0", (.runtime .scalar)⟩, ⟨"da_1", (.runtime .scalar)⟩, ⟨"defer", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 3777 (.let_ "cells" (.stackBuf 44)),
-      .mk 3778 (.store (.var "cells") (.lit 0) (.var "seed_0")),
-      .mk 3779 (.store (.var "cells") (.lit 1) (.var "seed_1")),
-      .mk 3780 (.store (.var "cells") (.lit 2) (.var "xd_0")),
-      .mk 3781 (.store (.var "cells") (.lit 3) (.var "xd_1")),
-      .mk 3782 (.store (.var "cells") (.lit 4) (.var "sd_0")),
-      .mk 3783 (.store (.var "cells") (.lit 5) (.var "sd_1")),
-      .mk 3784 (.store (.var "cells") (.lit 6) (.var "da_0")),
-      .mk 3785 (.store (.var "cells") (.lit 7) (.var "da_1")),
-      .mk 3786 (.unroll "p" (.lit 0) (.lit 12) [
-        .mk 3787 (.let_ "s" (.index (.var "defer") (.genPow (.mul (.lit 2) (.var "p"))))),
-        .mk 3788 (.ite true (.add (.mul (.lit 2) (.var "p")) (.lit 1)) (.lit 24) [
-          .mk 3789 (.let_ "t" (.lit 0))] [
-          .mk 3791 (.let_ "t" (.index (.var "defer") (.genPow (.add (.mul (.lit 2) (.var "p")) (.lit 1)))))] true),
-        .mk 3792 (.call "pack_pair" [(.var "cells"), (.add (.lit 8) (.mul (.lit 3) (.var "p"))), (.var "s"), (.var "t")])]),
-      .mk 3793 (.let_ "st" (.stackBuf 13)),
-      .mk 3794 (.call "keccak_cells" [(.var "cells"), (.var "st")]),
-      .mk 3795 (.ret [(.index (.var "st") (.lit 0)), (.index (.var "st") (.lit 1))])] }
+      .mk 3772 (.let_ "cells" (.stackBuf 44)),
+      .mk 3773 (.store (.var "cells") (.lit 0) (.var "seed_0")),
+      .mk 3774 (.store (.var "cells") (.lit 1) (.var "seed_1")),
+      .mk 3775 (.store (.var "cells") (.lit 2) (.var "xd_0")),
+      .mk 3776 (.store (.var "cells") (.lit 3) (.var "xd_1")),
+      .mk 3777 (.store (.var "cells") (.lit 4) (.var "sd_0")),
+      .mk 3778 (.store (.var "cells") (.lit 5) (.var "sd_1")),
+      .mk 3779 (.store (.var "cells") (.lit 6) (.var "da_0")),
+      .mk 3780 (.store (.var "cells") (.lit 7) (.var "da_1")),
+      .mk 3781 (.unroll "p" (.lit 0) (.lit 12) [
+        .mk 3782 (.let_ "s" (.index (.var "defer") (.genPow (.mul (.lit 2) (.var "p"))))),
+        .mk 3783 (.ite true (.add (.mul (.lit 2) (.var "p")) (.lit 1)) (.lit 24) [
+          .mk 3784 (.let_ "t" (.lit 0))] [
+          .mk 3786 (.let_ "t" (.index (.var "defer") (.genPow (.add (.mul (.lit 2) (.var "p")) (.lit 1)))))] true),
+        .mk 3787 (.call "pack_pair" [(.var "cells"), (.add (.lit 8) (.mul (.lit 3) (.var "p"))), (.var "s"), (.var "t")])]),
+      .mk 3788 (.let_ "st" (.stackBuf 13)),
+      .mk 3789 (.call "keccak_cells" [(.var "cells"), (.var "st")]),
+      .mk 3790 (.ret [(.index (.var "st") (.lit 0)), (.index (.var "st") (.lit 1))])] }
 
 /-- `zero_state`. -/
 def fn_zero_state : Func :=
   { name := "zero_state", params := [⟨"chain", (.runtime .scalar)⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 3807 (.unroll "k" (.lit 0) (.lit 13) [
-        .mk 3808 (.store (.var "chain") (.genPow (.var "k")) (.lit 0))]),
-      .mk 3809 (.ret [])] }
+      .mk 3802 (.unroll "k" (.lit 0) (.lit 13) [
+        .mk 3803 (.store (.var "chain") (.genPow (.var "k")) (.lit 0))]),
+      .mk 3804 (.ret [])] }
 
 /-- `list_split`. -/
 def fn_list_split : Func :=
   { name := "list_split", params := [⟨"n_g", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 3815 (.let_ "split" (.stackBuf 2)),
-      .mk 3816 (.hintWitness (.var "split") "signers_split"),
-      .mk 3817 (.let_ "groups" (.index (.var "split") (.lit 0))),
-      .mk 3818 (.let_ "rest" (.index (.var "split") (.lit 1))),
-      .mk 3819 (.assertLt (.var "rest") (.const 17)),
-      .mk 3820 (.assertLt (.var "groups") (.const 65536)),
-      .mk 3823 (.assertEq (.mul (.pow (.var "groups") (.lit 17)) (.var "rest")) (.var "n_g")),
-      .mk 3824 (.ret [(.var "groups"), (.var "rest")])] }
+      .mk 3810 (.let_ "split" (.stackBuf 2)),
+      .mk 3811 (.hintWitness (.var "split") "signers_split"),
+      .mk 3812 (.let_ "groups" (.index (.var "split") (.lit 0))),
+      .mk 3813 (.let_ "rest" (.index (.var "split") (.lit 1))),
+      .mk 3814 (.assertLt (.var "rest") (.const 17)),
+      .mk 3815 (.assertLt (.var "groups") (.const 65536)),
+      .mk 3818 (.assertEq (.mul (.pow (.var "groups") (.lit 17)) (.var "rest")) (.var "n_g")),
+      .mk 3819 (.ret [(.var "groups"), (.var "rest")])] }
 
 /-- `claim_list_digest`. -/
 def fn_claim_list_digest : Func :=
   { name := "claim_list_digest", params := [⟨"entries_ptr", (.runtime .scalar)⟩, ⟨"n_g", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 3831 (.let_ "digest" (.stackBuf 13)),
-      .mk 3832 (.ite true (.var "n_g") (.lit 1) [
-        .mk 3833 (.call "keccak" [(.list [(.lit 0), (.lit 0)]), (.list [(.lit 0), (.lit 0)]), (.var "digest"), (.call "__kw_len" [(.lit 0)])])] [
-        .mk 3835 (.letTuple ["groups", "rest"] "list_split" [(.var "n_g")]),
-        .mk 3836 (.let_ "chain" (.heapBufDyn (.pow (.mul (.var "groups") .gen) (.lit 13)))),
-        .mk 3837 (.call "zero_state" [(.var "chain")]),
-        .mk 3838 (.for_ "xq" 0 (.runtime (.var "groups")) [
-          .mk 3839 (.let_ "st" (.mul (.var "chain") (.pow (.var "xq") (.lit 13)))),
-          .mk 3840 (.let_ "nxt" (.mul (.var "st") (.gpow 13))),
-          .mk 3841 (.let_ "blk" (.mul (.var "entries_ptr") (.pow (.var "xq") (.mul (.lit 4) (.lit 17))))),
-          .mk 3842 (.unroll "j" (.lit 0) (.lit 17) [
-            .mk 3843 (.hintWitness (.slice (.var "blk") (.mul (.lit 4) (.var "j")) (.add (.mul (.lit 4) (.var "j")) (.lit 4))) "claims")]),
-          .mk 3844 (.call "keccak_cells" [(.slice (.var "blk") (.lit 0) (.mul (.lit 4) (.lit 17))), (.slice (.var "nxt") (.lit 0) (.lit 13)), (.call "__kw_state" [(.slice (.var "st") (.lit 0) (.lit 13))]), (.call "__kw_final" [(.lit 0)])])]),
-        .mk 3845 (.let_ "last" (.mul (.var "chain") (.pow (.var "groups") (.lit 13)))),
-        .mk 3846 (.match_ [(.var "d0"), (.var "d1")] (.var "rest") [(.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 0)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 1)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 2)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 3)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 4)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 5)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 6)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 7)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 8)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 9)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 10)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 11)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 12)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 13)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 14)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 15)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 16)])]),
-        .mk 3847 (.store (.var "digest") (.lit 0) (.var "d0")),
-        .mk 3848 (.store (.var "digest") (.lit 1) (.var "d1"))] false),
-      .mk 3849 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
+      .mk 3826 (.let_ "digest" (.stackBuf 13)),
+      .mk 3827 (.ite true (.var "n_g") (.lit 1) [
+        .mk 3828 (.call "keccak" [(.list [(.lit 0), (.lit 0)]), (.list [(.lit 0), (.lit 0)]), (.var "digest"), (.call "__kw_len" [(.lit 0)])])] [
+        .mk 3830 (.letTuple ["groups", "rest"] "list_split" [(.var "n_g")]),
+        .mk 3831 (.let_ "chain" (.heapBufDyn (.pow (.mul (.var "groups") .gen) (.lit 13)))),
+        .mk 3832 (.call "zero_state" [(.var "chain")]),
+        .mk 3833 (.for_ "xq" 0 (.runtime (.var "groups")) [
+          .mk 3834 (.let_ "st" (.mul (.var "chain") (.pow (.var "xq") (.lit 13)))),
+          .mk 3835 (.let_ "nxt" (.mul (.var "st") (.gpow 13))),
+          .mk 3836 (.let_ "blk" (.mul (.var "entries_ptr") (.pow (.var "xq") (.mul (.lit 4) (.lit 17))))),
+          .mk 3837 (.unroll "j" (.lit 0) (.lit 17) [
+            .mk 3838 (.hintWitness (.slice (.var "blk") (.mul (.lit 4) (.var "j")) (.add (.mul (.lit 4) (.var "j")) (.lit 4))) "claims")]),
+          .mk 3839 (.call "keccak_cells" [(.slice (.var "blk") (.lit 0) (.mul (.lit 4) (.lit 17))), (.slice (.var "nxt") (.lit 0) (.lit 13)), (.call "__kw_state" [(.slice (.var "st") (.lit 0) (.lit 13))]), (.call "__kw_final" [(.lit 0)])])]),
+        .mk 3840 (.let_ "last" (.mul (.var "chain") (.pow (.var "groups") (.lit 13)))),
+        .mk 3841 (.match_ [(.var "d0"), (.var "d1")] (.var "rest") [(.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 0)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 1)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 2)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 3)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 4)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 5)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 6)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 7)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 8)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 9)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 10)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 11)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 12)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 13)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 14)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 15)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 16)])]),
+        .mk 3842 (.store (.var "digest") (.lit 0) (.var "d0")),
+        .mk 3843 (.store (.var "digest") (.lit 1) (.var "d1"))] false),
+      .mk 3844 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
 
 /-- `claim_list_last`. -/
 def fn_claim_list_last : Func :=
   { name := "claim_list_last", params := [⟨"state", (.runtime .scalar)⟩, ⟨"blk", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 3853 (.let_ "digest" (.stackBuf 13)),
-      .mk 3854 (.ite true (.var "k") (.lit 0) [
-        .mk 3855 (.call "keccak_cells" [(.list [(.lit 0)]), (.var "digest"), (.call "__kw_state" [(.slice (.var "state") (.lit 0) (.lit 13))]), (.call "__kw_len" [(.lit 0)])])] [
-        .mk 3857 (.unroll "j" (.lit 0) (.var "k") [
-          .mk 3858 (.hintWitness (.slice (.var "blk") (.mul (.lit 4) (.var "j")) (.add (.mul (.lit 4) (.var "j")) (.lit 4))) "claims")]),
-        .mk 3859 (.call "keccak_cells" [(.slice (.var "blk") (.lit 0) (.mul (.lit 4) (.var "k"))), (.var "digest"), (.call "__kw_state" [(.slice (.var "state") (.lit 0) (.lit 13))])])] true),
-      .mk 3860 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
+      .mk 3848 (.let_ "digest" (.stackBuf 13)),
+      .mk 3849 (.ite true (.var "k") (.lit 0) [
+        .mk 3850 (.call "keccak_cells" [(.list [(.lit 0)]), (.var "digest"), (.call "__kw_state" [(.slice (.var "state") (.lit 0) (.lit 13))]), (.call "__kw_len" [(.lit 0)])])] [
+        .mk 3852 (.unroll "j" (.lit 0) (.var "k") [
+          .mk 3853 (.hintWitness (.slice (.var "blk") (.mul (.lit 4) (.var "j")) (.add (.mul (.lit 4) (.var "j")) (.lit 4))) "claims")]),
+        .mk 3854 (.call "keccak_cells" [(.slice (.var "blk") (.lit 0) (.mul (.lit 4) (.var "k"))), (.var "digest"), (.call "__kw_state" [(.slice (.var "state") (.lit 0) (.lit 13))])])] true),
+      .mk 3855 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
 
 /-- `child_claims`. -/
 def fn_child_claims : Func :=
   { name := "child_claims", params := [⟨"entries_ptr", (.runtime .scalar)⟩, ⟨"cover", (.runtime .scalar)⟩, ⟨"marks", (.runtime .scalar)⟩, ⟨"origin_g", (.runtime .scalar)⟩, ⟨"limit_g", (.runtime .scalar)⟩, ⟨"blk", (.runtime .scalar)⟩, ⟨"n", .const⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 3869 (.unroll "j" (.lit 0) (.var "n") [
-        .mk 3870 (.letHintWitness "off_hint" "child_claim_index"),
-        .mk 3871 (.assertLt (.var "off_hint") (.runtime (.var "limit_g"))),
-        .mk 3872 (.store (.var "cover") (.mul (.var "origin_g") (.var "off_hint")) (.mul (.var "marks") (.genPow (.var "j")))),
-        .mk 3873 (.let_ "entry" (.mul (.var "entries_ptr") (.pow (.var "off_hint") (.lit 4)))),
-        .mk 3874 (.unroll "c" (.lit 0) (.lit 4) [
-          .mk 3875 (.store (.var "blk") (.add (.mul (.lit 4) (.var "j")) (.var "c")) (.index (.var "entry") (.genPow (.var "c"))))])]),
-      .mk 3876 (.ret [])] }
+      .mk 3864 (.unroll "j" (.lit 0) (.var "n") [
+        .mk 3865 (.letHintWitness "off_hint" "child_claim_index"),
+        .mk 3866 (.assertLt (.var "off_hint") (.runtime (.var "limit_g"))),
+        .mk 3867 (.store (.var "cover") (.mul (.var "origin_g") (.var "off_hint")) (.mul (.var "marks") (.genPow (.var "j")))),
+        .mk 3868 (.let_ "entry" (.mul (.var "entries_ptr") (.pow (.var "off_hint") (.lit 4)))),
+        .mk 3869 (.unroll "c" (.lit 0) (.lit 4) [
+          .mk 3870 (.store (.var "blk") (.add (.mul (.lit 4) (.var "j")) (.var "c")) (.index (.var "entry") (.genPow (.var "c"))))])]),
+      .mk 3871 (.ret [])] }
 
 /-- `child_claim_list_digest`. -/
 def fn_child_claim_list_digest : Func :=
   { name := "child_claim_list_digest", params := [⟨"entries_ptr", (.runtime .scalar)⟩, ⟨"cover", (.runtime .scalar)⟩, ⟨"base", (.runtime .scalar)⟩, ⟨"origin_g", (.runtime .scalar)⟩, ⟨"limit_g", (.runtime .scalar)⟩, ⟨"n_g", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 3883 (.let_ "digest" (.stackBuf 13)),
-      .mk 3884 (.ite true (.var "n_g") (.lit 1) [
-        .mk 3885 (.call "keccak" [(.list [(.lit 0), (.lit 0)]), (.list [(.lit 0), (.lit 0)]), (.var "digest"), (.call "__kw_len" [(.lit 0)])])] [
-        .mk 3887 (.letTuple ["groups", "rest"] "list_split" [(.var "n_g")]),
-        .mk 3888 (.let_ "chain" (.heapBufDyn (.pow (.mul (.var "groups") .gen) (.lit 13)))),
-        .mk 3889 (.call "zero_state" [(.var "chain")]),
-        .mk 3890 (.for_ "xq" 0 (.runtime (.var "groups")) [
-          .mk 3891 (.let_ "st" (.mul (.var "chain") (.pow (.var "xq") (.lit 13)))),
-          .mk 3892 (.let_ "nxt" (.mul (.var "st") (.gpow 13))),
-          .mk 3893 (.let_ "blk" (.stackBuf 68)),
-          .mk 3894 (.call "child_claims" [(.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "xq") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.var "blk"), (.lit 17)]),
-          .mk 3895 (.call "keccak_cells" [(.var "blk"), (.slice (.var "nxt") (.lit 0) (.lit 13)), (.call "__kw_state" [(.slice (.var "st") (.lit 0) (.lit 13))]), (.call "__kw_final" [(.lit 0)])])]),
-        .mk 3896 (.let_ "last" (.mul (.var "chain") (.pow (.var "groups") (.lit 13)))),
-        .mk 3897 (.match_ [(.var "d0"), (.var "d1")] (.var "rest") [(.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 0)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 1)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 2)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 3)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 4)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 5)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 6)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 7)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 8)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 9)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 10)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 11)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 12)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 13)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 14)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 15)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 16)])]),
-        .mk 3898 (.store (.var "digest") (.lit 0) (.var "d0")),
-        .mk 3899 (.store (.var "digest") (.lit 1) (.var "d1"))] false),
-      .mk 3900 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
+      .mk 3878 (.let_ "digest" (.stackBuf 13)),
+      .mk 3879 (.ite true (.var "n_g") (.lit 1) [
+        .mk 3880 (.call "keccak" [(.list [(.lit 0), (.lit 0)]), (.list [(.lit 0), (.lit 0)]), (.var "digest"), (.call "__kw_len" [(.lit 0)])])] [
+        .mk 3882 (.letTuple ["groups", "rest"] "list_split" [(.var "n_g")]),
+        .mk 3883 (.let_ "chain" (.heapBufDyn (.pow (.mul (.var "groups") .gen) (.lit 13)))),
+        .mk 3884 (.call "zero_state" [(.var "chain")]),
+        .mk 3885 (.for_ "xq" 0 (.runtime (.var "groups")) [
+          .mk 3886 (.let_ "st" (.mul (.var "chain") (.pow (.var "xq") (.lit 13)))),
+          .mk 3887 (.let_ "nxt" (.mul (.var "st") (.gpow 13))),
+          .mk 3888 (.let_ "blk" (.stackBuf 68)),
+          .mk 3889 (.call "child_claims" [(.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "xq") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.var "blk"), (.lit 17)]),
+          .mk 3890 (.call "keccak_cells" [(.var "blk"), (.slice (.var "nxt") (.lit 0) (.lit 13)), (.call "__kw_state" [(.slice (.var "st") (.lit 0) (.lit 13))]), (.call "__kw_final" [(.lit 0)])])]),
+        .mk 3891 (.let_ "last" (.mul (.var "chain") (.pow (.var "groups") (.lit 13)))),
+        .mk 3892 (.match_ [(.var "d0"), (.var "d1")] (.var "rest") [(.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 0)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 1)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 2)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 3)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 4)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 5)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 6)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 7)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 8)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 9)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 10)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 11)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 12)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 13)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 14)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 15)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 16)])]),
+        .mk 3893 (.store (.var "digest") (.lit 0) (.var "d0")),
+        .mk 3894 (.store (.var "digest") (.lit 1) (.var "d1"))] false),
+      .mk 3895 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
 
 /-- `child_claim_list_last`. -/
 def fn_child_claim_list_last : Func :=
   { name := "child_claim_list_last", params := [⟨"state", (.runtime .scalar)⟩, ⟨"entries_ptr", (.runtime .scalar)⟩, ⟨"cover", (.runtime .scalar)⟩, ⟨"marks", (.runtime .scalar)⟩, ⟨"origin_g", (.runtime .scalar)⟩, ⟨"limit_g", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 3904 (.let_ "digest" (.stackBuf 13)),
-      .mk 3905 (.ite true (.var "k") (.lit 0) [
-        .mk 3906 (.call "keccak_cells" [(.list [(.lit 0)]), (.var "digest"), (.call "__kw_state" [(.slice (.var "state") (.lit 0) (.lit 13))]), (.call "__kw_len" [(.lit 0)])])] [
-        .mk 3908 (.let_ "blk" (.stackBuf 68)),
-        .mk 3909 (.call "child_claims" [(.var "entries_ptr"), (.var "cover"), (.var "marks"), (.var "origin_g"), (.var "limit_g"), (.var "blk"), (.var "k")]),
-        .mk 3910 (.call "keccak_cells" [(.slice (.var "blk") (.lit 0) (.mul (.lit 4) (.var "k"))), (.var "digest"), (.call "__kw_state" [(.slice (.var "state") (.lit 0) (.lit 13))])])] true),
-      .mk 3911 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
+      .mk 3899 (.let_ "digest" (.stackBuf 13)),
+      .mk 3900 (.ite true (.var "k") (.lit 0) [
+        .mk 3901 (.call "keccak_cells" [(.list [(.lit 0)]), (.var "digest"), (.call "__kw_state" [(.slice (.var "state") (.lit 0) (.lit 13))]), (.call "__kw_len" [(.lit 0)])])] [
+        .mk 3903 (.let_ "blk" (.stackBuf 68)),
+        .mk 3904 (.call "child_claims" [(.var "entries_ptr"), (.var "cover"), (.var "marks"), (.var "origin_g"), (.var "limit_g"), (.var "blk"), (.var "k")]),
+        .mk 3905 (.call "keccak_cells" [(.slice (.var "blk") (.lit 0) (.mul (.lit 4) (.var "k"))), (.var "digest"), (.call "__kw_state" [(.slice (.var "state") (.lit 0) (.lit 13))])])] true),
+      .mk 3906 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
 
 /-- `da_verify`. -/
 def fn_da_verify : Func :=
   { name := "da_verify", params := [⟨"g_squares", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 3927 (.let_ "shape" (.stackBuf 2)),
-      .mk 3928 (.hintWitness (.var "shape") "da_shape"),
-      .mk 3929 (.let_ "n_blob_g" (.index (.var "shape") (.lit 0))),
-      .mk 3930 (.let_ "g_log_pad" (.index (.var "shape") (.lit 1))),
-      .mk 3931 (.letTuple ["n_pad_g", "gap_g"] "da_row_shape" [(.var "n_blob_g"), (.var "g_log_pad"), (.var "g_squares")]),
-      .mk 3933 (.let_ "prefix_digests" (.heapBufDyn (.pow (.var "n_pad_g") (.mul (.lit 2) (.lit 64))))),
-      .mk 3934 (.let_ "prefix_bases" (.heapBufDyn (.var "n_blob_g"))),
-      .mk 3935 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
-        .mk 3936 (.store (.var "prefix_bases") (.var "xi") (.mul (.var "prefix_digests") (.pow (.var "xi") (.mul (.lit 2) (.lit 64)))))]),
-      .mk 3940 (.let_ "column_digests" (.heapBuf 256)),
-      .mk 3943 (.let_ "acc" (.heapBufDyn (.pow (.var "n_blob_g") (.add (.lit 128) (.lit 1))))),
-      .mk 3944 (.let_ "rowbase" (.heapBufDyn (.var "n_blob_g"))),
-      .mk 3945 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
-        .mk 3946 (.let_ "chain" (.mul (.var "acc") (.pow (.var "xi") (.add (.lit 128) (.lit 1))))),
-        .mk 3947 (.store (.var "rowbase") (.var "xi") (.var "chain")),
-        .mk 3948 (.store (.var "chain") (.lit 1) (.lit 0))]),
-      .mk 3952 (.let_ "coltree" (.heapBuf 512)),
-      .mk 3953 (.for_ "xb" 0 (.const 64) [
-        .mk 3954 (.call "da_verify_column" [(.var "xb"), (.var "n_blob_g"), (.var "n_pad_g"), (.var "gap_g"), (.var "g_log_pad"), (.var "prefix_bases"), (.var "coltree"), (.var "rowbase"), (.var "column_digests"), (.lit 1)])]),
-      .mk 3955 (.for_ "xb" 64 (.const 128) [
-        .mk 3956 (.call "da_verify_column" [(.var "xb"), (.var "n_blob_g"), (.var "n_pad_g"), (.var "gap_g"), (.var "g_log_pad"), (.var "prefix_bases"), (.var "coltree"), (.var "rowbase"), (.var "column_digests"), (.lit 0)])]),
-      .mk 3958 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
-        .mk 3959 (.let_ "chain" (.index (.var "rowbase") (.var "xi"))),
-        .mk 3960 (.assertEq (.index (.var "chain") (.gpow 128)) (.lit 0))]),
-      .mk 3961 (.letTuple ["rc0", "rc1"] "da_levels" [(.var "coltree"), (.lit 128), (.lit 7)]),
-      .mk 3964 (.let_ "rowtree" (.heapBufDyn (.pow (.var "n_pad_g") (.lit 4)))),
-      .mk 3965 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
-        .mk 3966 (.let_ "run" (.index (.var "prefix_bases") (.var "xi"))),
-        .mk 3967 (.let_ "st" (.stackBuf 13)),
-        .mk 3968 (.call "keccak_cells" [(.slice (.var "run") (.lit 0) (.mul (.lit 2) (.lit 64))), (.var "st")]),
-        .mk 3969 (.let_ "slot" (.mul (.var "rowtree") (.pow (.var "xi") (.lit 2)))),
-        .mk 3970 (.store (.var "slot") (.lit 1) (.index (.var "st") (.lit 0))),
-        .mk 3971 (.store (.var "slot") .gen (.index (.var "st") (.lit 1)))]),
-      .mk 3972 (.for_ "xd" 0 (.runtime (.var "gap_g")) [
-        .mk 3973 (.let_ "pad" (.mul (.mul (.var "rowtree") (.pow (.var "n_blob_g") (.lit 2))) (.pow (.var "xd") (.lit 2)))),
-        .mk 3974 (.store (.var "pad") (.lit 1) (.call "f192" [(.lit 4665334884586258498), (.lit 1553031596697948144), (.lit 0)])),
-        .mk 3975 (.store (.var "pad") .gen (.call "f192" [(.lit 7487832681283088925), (.lit 14683883899259534590), (.lit 0)]))]),
-      .mk 3976 (.match_ [(.var "rr0"), (.var "rr1")] (.var "g_log_pad") [(.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 0)), (.lit 0)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 1)), (.lit 1)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 2)), (.lit 2)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 3)), (.lit 3)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 4)), (.lit 4)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 5)), (.lit 5)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 6)), (.lit 6)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 7)), (.lit 7)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 8)), (.lit 8)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 9)), (.lit 9)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 10)), (.lit 10)])]),
-      .mk 3978 (.let_ "root" (.stackBuf 13)),
-      .mk 3979 (.call "keccak" [(.list [(.var "rr0"), (.var "rr1")]), (.list [(.var "rc0"), (.var "rc1")]), (.var "root")]),
-      .mk 3980 (.let_ "vector" (.stackBuf 13)),
-      .mk 3981 (.call "keccak_cells" [(.slice (.var "column_digests") (.lit 0) (.mul (.lit 2) (.lit 128))), (.var "vector")]),
-      .mk 3982 (.ret [(.index (.var "root") (.lit 0)), (.index (.var "root") (.lit 1)), (.index (.var "vector") (.lit 0)), (.index (.var "vector") (.lit 1))])] }
+      .mk 3922 (.let_ "shape" (.stackBuf 2)),
+      .mk 3923 (.hintWitness (.var "shape") "da_shape"),
+      .mk 3924 (.let_ "n_blob_g" (.index (.var "shape") (.lit 0))),
+      .mk 3925 (.let_ "g_log_pad" (.index (.var "shape") (.lit 1))),
+      .mk 3926 (.letTuple ["n_pad_g", "gap_g"] "da_row_shape" [(.var "n_blob_g"), (.var "g_log_pad"), (.var "g_squares")]),
+      .mk 3928 (.let_ "prefix_digests" (.heapBufDyn (.pow (.var "n_pad_g") (.mul (.lit 2) (.lit 64))))),
+      .mk 3929 (.let_ "prefix_bases" (.heapBufDyn (.var "n_blob_g"))),
+      .mk 3930 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
+        .mk 3931 (.store (.var "prefix_bases") (.var "xi") (.mul (.var "prefix_digests") (.pow (.var "xi") (.mul (.lit 2) (.lit 64)))))]),
+      .mk 3935 (.let_ "column_digests" (.heapBuf 256)),
+      .mk 3938 (.let_ "acc" (.heapBufDyn (.pow (.var "n_blob_g") (.add (.lit 128) (.lit 1))))),
+      .mk 3939 (.let_ "rowbase" (.heapBufDyn (.var "n_blob_g"))),
+      .mk 3940 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
+        .mk 3941 (.let_ "chain" (.mul (.var "acc") (.pow (.var "xi") (.add (.lit 128) (.lit 1))))),
+        .mk 3942 (.store (.var "rowbase") (.var "xi") (.var "chain")),
+        .mk 3943 (.store (.var "chain") (.lit 1) (.lit 0))]),
+      .mk 3947 (.let_ "coltree" (.heapBuf 512)),
+      .mk 3948 (.for_ "xb" 0 (.const 64) [
+        .mk 3949 (.call "da_verify_column" [(.var "xb"), (.var "n_blob_g"), (.var "n_pad_g"), (.var "gap_g"), (.var "g_log_pad"), (.var "prefix_bases"), (.var "coltree"), (.var "rowbase"), (.var "column_digests"), (.lit 1)])]),
+      .mk 3950 (.for_ "xb" 64 (.const 128) [
+        .mk 3951 (.call "da_verify_column" [(.var "xb"), (.var "n_blob_g"), (.var "n_pad_g"), (.var "gap_g"), (.var "g_log_pad"), (.var "prefix_bases"), (.var "coltree"), (.var "rowbase"), (.var "column_digests"), (.lit 0)])]),
+      .mk 3953 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
+        .mk 3954 (.let_ "chain" (.index (.var "rowbase") (.var "xi"))),
+        .mk 3955 (.assertEq (.index (.var "chain") (.gpow 128)) (.lit 0))]),
+      .mk 3956 (.letTuple ["rc0", "rc1"] "da_levels" [(.var "coltree"), (.lit 128), (.lit 7)]),
+      .mk 3959 (.let_ "rowtree" (.heapBufDyn (.pow (.var "n_pad_g") (.lit 4)))),
+      .mk 3960 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
+        .mk 3961 (.let_ "run" (.index (.var "prefix_bases") (.var "xi"))),
+        .mk 3962 (.let_ "st" (.stackBuf 13)),
+        .mk 3963 (.call "keccak_cells" [(.slice (.var "run") (.lit 0) (.mul (.lit 2) (.lit 64))), (.var "st")]),
+        .mk 3964 (.let_ "slot" (.mul (.var "rowtree") (.pow (.var "xi") (.lit 2)))),
+        .mk 3965 (.store (.var "slot") (.lit 1) (.index (.var "st") (.lit 0))),
+        .mk 3966 (.store (.var "slot") .gen (.index (.var "st") (.lit 1)))]),
+      .mk 3967 (.for_ "xd" 0 (.runtime (.var "gap_g")) [
+        .mk 3968 (.let_ "pad" (.mul (.mul (.var "rowtree") (.pow (.var "n_blob_g") (.lit 2))) (.pow (.var "xd") (.lit 2)))),
+        .mk 3969 (.store (.var "pad") (.lit 1) (.call "f192" [(.lit 4665334884586258498), (.lit 1553031596697948144), (.lit 0)])),
+        .mk 3970 (.store (.var "pad") .gen (.call "f192" [(.lit 7487832681283088925), (.lit 14683883899259534590), (.lit 0)]))]),
+      .mk 3971 (.match_ [(.var "rr0"), (.var "rr1")] (.var "g_log_pad") [(.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 0)), (.lit 0)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 1)), (.lit 1)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 2)), (.lit 2)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 3)), (.lit 3)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 4)), (.lit 4)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 5)), (.lit 5)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 6)), (.lit 6)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 7)), (.lit 7)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 8)), (.lit 8)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 9)), (.lit 9)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 10)), (.lit 10)])]),
+      .mk 3973 (.let_ "root" (.stackBuf 13)),
+      .mk 3974 (.call "keccak" [(.list [(.var "rr0"), (.var "rr1")]), (.list [(.var "rc0"), (.var "rc1")]), (.var "root")]),
+      .mk 3975 (.let_ "vector" (.stackBuf 13)),
+      .mk 3976 (.call "keccak_cells" [(.slice (.var "column_digests") (.lit 0) (.mul (.lit 2) (.lit 128))), (.var "vector")]),
+      .mk 3977 (.ret [(.index (.var "root") (.lit 0)), (.index (.var "root") (.lit 1)), (.index (.var "vector") (.lit 0)), (.index (.var "vector") (.lit 1))])] }
 
 /-- `da_row_shape`. -/
 def fn_da_row_shape : Func :=
   { name := "da_row_shape", params := [⟨"n_blob_g", (.runtime .scalar)⟩, ⟨"g_log_pad", (.runtime .scalar)⟩, ⟨"g_squares", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 3986 (.assertNe (.var "n_blob_g") (.lit 1)),
-      .mk 3987 (.assertLt (.var "n_blob_g") (.const 1025)),
-      .mk 3988 (.assertLt (.var "g_log_pad") (.const 11)),
-      .mk 3989 (.let_ "n_pad_g" (.index (.var "g_squares") (.var "g_log_pad"))),
-      .mk 3991 (.let_ "gap_g" (.fdiv (.var "n_pad_g") (.var "n_blob_g"))),
-      .mk 3992 (.assertLt (.var "gap_g") (.const 1025)),
-      .mk 3993 (.assertLt (.fdiv (.mul (.var "n_blob_g") (.var "n_blob_g")) (.mul (.var "n_pad_g") .gen)) (.const 1024)),
-      .mk 3994 (.ret [(.var "n_pad_g"), (.var "gap_g")])] }
+      .mk 3981 (.assertNe (.var "n_blob_g") (.lit 1)),
+      .mk 3982 (.assertLt (.var "n_blob_g") (.const 1025)),
+      .mk 3983 (.assertLt (.var "g_log_pad") (.const 11)),
+      .mk 3984 (.let_ "n_pad_g" (.index (.var "g_squares") (.var "g_log_pad"))),
+      .mk 3986 (.let_ "gap_g" (.fdiv (.var "n_pad_g") (.var "n_blob_g"))),
+      .mk 3987 (.assertLt (.var "gap_g") (.const 1025)),
+      .mk 3988 (.assertLt (.fdiv (.mul (.var "n_blob_g") (.var "n_blob_g")) (.mul (.var "n_pad_g") .gen)) (.const 1024)),
+      .mk 3989 (.ret [(.var "n_pad_g"), (.var "gap_g")])] }
 
 /-- `da_verify_column`. -/
 def fn_da_verify_column : Func :=
   { name := "da_verify_column", params := [⟨"xb", (.runtime .scalar)⟩, ⟨"n_blob_g", (.runtime .scalar)⟩, ⟨"n_pad_g", (.runtime .scalar)⟩, ⟨"gap_g", (.runtime .scalar)⟩, ⟨"g_log_pad", (.runtime .scalar)⟩, ⟨"prefix_bases", (.runtime .scalar)⟩, ⟨"coltree", (.runtime .scalar)⟩, ⟨"rowbase", (.runtime .scalar)⟩, ⟨"column_digests", (.runtime .scalar)⟩, ⟨"store", .const⟩], returnShapes := [],
     inline := false,
     body := [
-      .mk 3998 (.let_ "lvals" (.call "da_vector_cell" [(.mul (.var "column_digests") (.mul (.var "xb") (.var "xb")))])),
-      .mk 3999 (.let_ "node" (.heapBufDyn (.pow (.var "n_pad_g") (.lit 4)))),
-      .mk 4000 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
-        .mk 4001 (.letTuple ["d0", "d1", "s"] "da_verify_cell" [(.var "lvals")]),
-        .mk 4002 (.let_ "chain" (.mul (.index (.var "rowbase") (.var "xi")) (.var "xb"))),
-        .mk 4003 (.store (.var "chain") .gen (.add (.index (.var "chain") (.lit 1)) (.var "s"))),
-        .mk 4004 (.let_ "leaf" (.mul (.var "node") (.pow (.var "xi") (.lit 2)))),
-        .mk 4005 (.store (.var "leaf") (.lit 1) (.var "d0")),
-        .mk 4006 (.store (.var "leaf") .gen (.var "d1")),
-        .mk 4007 (.ite true (.var "store") (.lit 1) [
-          .mk 4008 (.let_ "slot" (.mul (.index (.var "prefix_bases") (.var "xi")) (.mul (.var "xb") (.var "xb")))),
-          .mk 4009 (.store (.var "slot") (.lit 1) (.var "d0")),
-          .mk 4010 (.store (.var "slot") .gen (.var "d1"))] [] true)]),
-      .mk 4011 (.for_ "xd" 0 (.runtime (.var "gap_g")) [
-        .mk 4012 (.let_ "pad" (.mul (.mul (.var "node") (.pow (.var "n_blob_g") (.lit 2))) (.pow (.var "xd") (.lit 2)))),
-        .mk 4013 (.store (.var "pad") (.lit 1) (.call "f192" [(.lit 15569472805043175342), (.lit 18354418831448413762), (.lit 0)])),
-        .mk 4014 (.store (.var "pad") .gen (.call "f192" [(.lit 11782766640862828499), (.lit 15718207409690975807), (.lit 0)]))]),
-      .mk 4015 (.match_ [(.var "c0"), (.var "c1")] (.var "g_log_pad") [(.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 0)), (.lit 0)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 1)), (.lit 1)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 2)), (.lit 2)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 3)), (.lit 3)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 4)), (.lit 4)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 5)), (.lit 5)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 6)), (.lit 6)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 7)), (.lit 7)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 8)), (.lit 8)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 9)), (.lit 9)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 10)), (.lit 10)])]),
-      .mk 4016 (.let_ "out" (.mul (.var "coltree") (.mul (.var "xb") (.var "xb")))),
-      .mk 4017 (.store (.var "out") (.lit 1) (.var "c0")),
-      .mk 4018 (.store (.var "out") .gen (.var "c1")),
-      .mk 4019 (.ret [])] }
+      .mk 3993 (.let_ "lvals" (.call "da_vector_cell" [(.mul (.var "column_digests") (.mul (.var "xb") (.var "xb")))])),
+      .mk 3994 (.let_ "node" (.heapBufDyn (.pow (.var "n_pad_g") (.lit 4)))),
+      .mk 3995 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
+        .mk 3996 (.letTuple ["d0", "d1", "s"] "da_verify_cell" [(.var "lvals")]),
+        .mk 3997 (.let_ "chain" (.mul (.index (.var "rowbase") (.var "xi")) (.var "xb"))),
+        .mk 3998 (.store (.var "chain") .gen (.add (.index (.var "chain") (.lit 1)) (.var "s"))),
+        .mk 3999 (.let_ "leaf" (.mul (.var "node") (.pow (.var "xi") (.lit 2)))),
+        .mk 4000 (.store (.var "leaf") (.lit 1) (.var "d0")),
+        .mk 4001 (.store (.var "leaf") .gen (.var "d1")),
+        .mk 4002 (.ite true (.var "store") (.lit 1) [
+          .mk 4003 (.let_ "slot" (.mul (.index (.var "prefix_bases") (.var "xi")) (.mul (.var "xb") (.var "xb")))),
+          .mk 4004 (.store (.var "slot") (.lit 1) (.var "d0")),
+          .mk 4005 (.store (.var "slot") .gen (.var "d1"))] [] true)]),
+      .mk 4006 (.for_ "xd" 0 (.runtime (.var "gap_g")) [
+        .mk 4007 (.let_ "pad" (.mul (.mul (.var "node") (.pow (.var "n_blob_g") (.lit 2))) (.pow (.var "xd") (.lit 2)))),
+        .mk 4008 (.store (.var "pad") (.lit 1) (.call "f192" [(.lit 15569472805043175342), (.lit 18354418831448413762), (.lit 0)])),
+        .mk 4009 (.store (.var "pad") .gen (.call "f192" [(.lit 11782766640862828499), (.lit 15718207409690975807), (.lit 0)]))]),
+      .mk 4010 (.match_ [(.var "c0"), (.var "c1")] (.var "g_log_pad") [(.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 0)), (.lit 0)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 1)), (.lit 1)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 2)), (.lit 2)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 3)), (.lit 3)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 4)), (.lit 4)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 5)), (.lit 5)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 6)), (.lit 6)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 7)), (.lit 7)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 8)), (.lit 8)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 9)), (.lit 9)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 10)), (.lit 10)])]),
+      .mk 4011 (.let_ "out" (.mul (.var "coltree") (.mul (.var "xb") (.var "xb")))),
+      .mk 4012 (.store (.var "out") (.lit 1) (.var "c0")),
+      .mk 4013 (.store (.var "out") .gen (.var "c1")),
+      .mk 4014 (.ret [])] }
 
 /-- `da_verify_cell`. -/
 def fn_da_verify_cell : Func :=
   { name := "da_verify_cell", params := [⟨"lvals", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 4024 (.let_ "sym" (.stackBuf 256)),
-      .mk 4025 (.hintWitness (.var "sym") "da_symbols"),
-      .mk 4026 (.let_ "packed" (.stackBuf 128)),
-      .mk 4027 (.let_ "s" (.lit 0)),
-      .mk 4028 (.unroll "e" (.lit 0) (.lit 128) [
-        .mk 4029 (.store (.var "packed") (.var "e") (.call "pack64x2" [(.index (.var "sym") (.mul (.lit 2) (.var "e"))), (.index (.var "sym") (.add (.mul (.lit 2) (.var "e")) (.lit 1)))])),
-        .mk 4030 (.let_ "s" (.add (.var "s") (.mul (.index (.var "lvals") (.genPow (.mul (.lit 2) (.var "e")))) (.index (.var "sym") (.mul (.lit 2) (.var "e")))))),
-        .mk 4031 (.let_ "s" (.add (.var "s") (.mul (.index (.var "lvals") (.genPow (.add (.mul (.lit 2) (.var "e")) (.lit 1)))) (.index (.var "sym") (.add (.mul (.lit 2) (.var "e")) (.lit 1))))))]),
-      .mk 4032 (.let_ "st" (.stackBuf 13)),
-      .mk 4033 (.call "keccak_cells" [(.var "packed"), (.var "st")]),
-      .mk 4034 (.ret [(.index (.var "st") (.lit 0)), (.index (.var "st") (.lit 1)), (.var "s")])] }
+      .mk 4019 (.let_ "sym" (.stackBuf 256)),
+      .mk 4020 (.hintWitness (.var "sym") "da_symbols"),
+      .mk 4021 (.let_ "packed" (.stackBuf 128)),
+      .mk 4022 (.let_ "s" (.lit 0)),
+      .mk 4023 (.unroll "e" (.lit 0) (.lit 128) [
+        .mk 4024 (.store (.var "packed") (.var "e") (.call "pack64x2" [(.index (.var "sym") (.mul (.lit 2) (.var "e"))), (.index (.var "sym") (.add (.mul (.lit 2) (.var "e")) (.lit 1)))])),
+        .mk 4025 (.let_ "s" (.add (.var "s") (.mul (.index (.var "lvals") (.genPow (.mul (.lit 2) (.var "e")))) (.index (.var "sym") (.mul (.lit 2) (.var "e")))))),
+        .mk 4026 (.let_ "s" (.add (.var "s") (.mul (.index (.var "lvals") (.genPow (.add (.mul (.lit 2) (.var "e")) (.lit 1)))) (.index (.var "sym") (.add (.mul (.lit 2) (.var "e")) (.lit 1))))))]),
+      .mk 4027 (.let_ "st" (.stackBuf 13)),
+      .mk 4028 (.call "keccak_cells" [(.var "packed"), (.var "st")]),
+      .mk 4029 (.ret [(.index (.var "st") (.lit 0)), (.index (.var "st") (.lit 1)), (.var "s")])] }
 
 /-- `da_levels`. -/
 def fn_da_levels : Func :=
   { name := "da_levels", params := [⟨"tree", (.runtime .scalar)⟩, ⟨"n", .const⟩, ⟨"log_n", .const⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 4040 (.unroll "lvl" (.lit 0) (.var "log_n") [
-        .mk 4041 (.for_ "xp" 0 (.runtime (.genPow (.div (.var "n") (.pow (.lit 2) (.add (.var "lvl") (.lit 1)))))) [
-          .mk 4042 (.let_ "a" (.mul (.mul (.var "tree") (.genPow (.sub (.mul (.lit 4) (.var "n")) (.div (.mul (.lit 4) (.var "n")) (.pow (.lit 2) (.var "lvl")))))) (.pow (.var "xp") (.lit 4)))),
-          .mk 4043 (.let_ "b" (.mul (.mul (.var "tree") (.genPow (.sub (.mul (.lit 4) (.var "n")) (.div (.mul (.lit 4) (.var "n")) (.pow (.lit 2) (.add (.var "lvl") (.lit 1))))))) (.mul (.var "xp") (.var "xp")))),
-          .mk 4044 (.call "keccak" [(.slice (.var "a") (.lit 0) (.lit 2)), (.slice (.var "a") (.lit 2) (.lit 4)), (.slice (.var "b") (.lit 0) (.lit 2))])])]),
-      .mk 4045 (.ret [(.index (.var "tree") (.genPow (.sub (.mul (.lit 4) (.var "n")) (.lit 4)))), (.index (.var "tree") (.genPow (.sub (.mul (.lit 4) (.var "n")) (.lit 3))))])] }
+      .mk 4035 (.unroll "lvl" (.lit 0) (.var "log_n") [
+        .mk 4036 (.for_ "xp" 0 (.runtime (.genPow (.div (.var "n") (.pow (.lit 2) (.add (.var "lvl") (.lit 1)))))) [
+          .mk 4037 (.let_ "a" (.mul (.mul (.var "tree") (.genPow (.sub (.mul (.lit 4) (.var "n")) (.div (.mul (.lit 4) (.var "n")) (.pow (.lit 2) (.var "lvl")))))) (.pow (.var "xp") (.lit 4)))),
+          .mk 4038 (.let_ "b" (.mul (.mul (.var "tree") (.genPow (.sub (.mul (.lit 4) (.var "n")) (.div (.mul (.lit 4) (.var "n")) (.pow (.lit 2) (.add (.var "lvl") (.lit 1))))))) (.mul (.var "xp") (.var "xp")))),
+          .mk 4039 (.call "keccak" [(.slice (.var "a") (.lit 0) (.lit 2)), (.slice (.var "a") (.lit 2) (.lit 4)), (.slice (.var "b") (.lit 0) (.lit 2))])])]),
+      .mk 4040 (.ret [(.index (.var "tree") (.genPow (.sub (.mul (.lit 4) (.var "n")) (.lit 4)))), (.index (.var "tree") (.genPow (.sub (.mul (.lit 4) (.var "n")) (.lit 3))))])] }
 
 /-- `da_vector_cell`. -/
 def fn_da_vector_cell : Func :=
   { name := "da_vector_cell", params := [⟨"digest", (.runtime .scalar)⟩], returnShapes := [.scalar],
     inline := false,
     body := [
-      .mk 4051 (.let_ "weights" (.stackBuf 256)),
-      .mk 4052 (.hintWitness (.slice (.var "weights") (.lit 0) (.lit 256)) "da_weights"),
-      .mk 4053 (.let_ "packed" (.stackBuf 384)),
-      .mk 4054 (.unroll "p" (.lit 0) (.div (.lit 256) (.lit 2)) [
-        .mk 4055 (.call "pack_pair" [(.var "packed"), (.mul (.lit 3) (.var "p")), (.index (.var "weights") (.mul (.lit 2) (.var "p"))), (.index (.var "weights") (.add (.mul (.lit 2) (.var "p")) (.lit 1)))])]),
-      .mk 4056 (.call "keccak_cells" [(.var "packed"), (.slice (.var "digest") (.lit 0) (.lit 2))]),
-      .mk 4057 (.let_ "weights_ptr" (.call "addr" [(.var "weights")])),
-      .mk 4058 (.ret [(.var "weights_ptr")])] }
+      .mk 4046 (.let_ "weights" (.stackBuf 256)),
+      .mk 4047 (.hintWitness (.slice (.var "weights") (.lit 0) (.lit 256)) "da_weights"),
+      .mk 4048 (.let_ "packed" (.stackBuf 384)),
+      .mk 4049 (.unroll "p" (.lit 0) (.div (.lit 256) (.lit 2)) [
+        .mk 4050 (.call "pack_pair" [(.var "packed"), (.mul (.lit 3) (.var "p")), (.index (.var "weights") (.mul (.lit 2) (.var "p"))), (.index (.var "weights") (.add (.mul (.lit 2) (.var "p")) (.lit 1)))])]),
+      .mk 4051 (.call "keccak_cells" [(.var "packed"), (.slice (.var "digest") (.lit 0) (.lit 2))]),
+      .mk 4052 (.let_ "weights_ptr" (.call "addr" [(.var "weights")])),
+      .mk 4053 (.ret [(.var "weights_ptr")])] }
 
 /-- `main`. -/
 def fn_main : Func :=
   { name := "main", params := [], returnShapes := [],
     inline := false,
     body := [
-      .mk 4080 (.let_ "meta" (.stackBuf 8)),
-      .mk 4081 (.hintWitness (.var "meta") "meta"),
-      .mk 4082 (.let_ "n_lx_g" (.index (.var "meta") (.lit 0))),
-      .mk 4083 (.let_ "n_xdup_g" (.index (.var "meta") (.lit 1))),
-      .mk 4084 (.let_ "n_raw_x_g" (.index (.var "meta") (.lit 2))),
-      .mk 4085 (.let_ "n_lean_sphincs_g" (.index (.var "meta") (.lit 3))),
-      .mk 4086 (.let_ "n_sdup_g" (.index (.var "meta") (.lit 4))),
-      .mk 4087 (.let_ "n_raw_s_g" (.index (.var "meta") (.lit 5))),
-      .mk 4088 (.let_ "n_children_g" (.index (.var "meta") (.lit 6))),
-      .mk 4089 (.let_ "n_direct_da_g" (.index (.var "meta") (.lit 7))),
-      .mk 4090 (.assertLt (.var "n_lx_g") (.const 65536)),
-      .mk 4091 (.assertLt (.var "n_xdup_g") (.const 65536)),
-      .mk 4092 (.assertLt (.var "n_raw_x_g") (.const 65536)),
-      .mk 4093 (.assertLt (.var "n_lean_sphincs_g") (.const 65536)),
-      .mk 4094 (.assertLt (.var "n_sdup_g") (.const 65536)),
-      .mk 4095 (.assertLt (.var "n_raw_s_g") (.const 65536)),
-      .mk 4096 (.assertLt (.var "n_children_g") (.const 17)),
-      .mk 4097 (.assertLt (.var "n_direct_da_g") (.const 2)),
-      .mk 4098 (.let_ "lx_slots_g" (.mul (.var "n_lx_g") (.var "n_xdup_g"))),
-      .mk 4099 (.let_ "lean_sphincs_slots_g" (.mul (.var "n_lean_sphincs_g") (.var "n_sdup_g"))),
-      .mk 4102 (.let_ "n_total_g" (.mul (.var "lx_slots_g") (.var "lean_sphincs_slots_g"))),
-      .mk 4103 (.assertLt (.var "n_total_g") (.const 65536)),
-      .mk 4109 (.let_ "fs_seed" (.stackBuf 2)),
-      .mk 4110 (.hintWitness (.var "fs_seed") "fs_seed"),
-      .mk 4111 (.let_ "seed_0" (.index (.var "fs_seed") (.lit 0))),
-      .mk 4112 (.let_ "seed_1" (.index (.var "fs_seed") (.lit 1))),
-      .mk 4115 (.letTuple ["g_logs_pow2", "g_squares"] "exponent_tables" []),
-      .mk 4123 (.let_ "lx_table" (.heapBufDyn (.pow (.var "lx_slots_g") (.lit 4)))),
-      .mk 4124 (.let_ "lean_sphincs_table" (.heapBufDyn (.pow (.var "lean_sphincs_slots_g") (.lit 4)))),
-      .mk 4125 (.letTuple ["xd_0", "xd_1"] "claim_list_digest" [(.var "lx_table"), (.var "n_lx_g")]),
-      .mk 4126 (.letTuple ["sd_0", "sd_1"] "claim_list_digest" [(.var "lean_sphincs_table"), (.var "n_lean_sphincs_g")]),
-      .mk 4128 (.for_ "xd" 0 (.runtime (.var "n_xdup_g")) [
-        .mk 4129 (.let_ "dup" (.mul (.var "lx_table") (.pow (.mul (.var "n_lx_g") (.var "xd")) (.lit 4)))),
-        .mk 4130 (.hintWitness (.slice (.var "dup") (.lit 0) (.lit 4)) "dup_claims")]),
-      .mk 4131 (.for_ "xd" 0 (.runtime (.var "n_sdup_g")) [
-        .mk 4132 (.let_ "dup" (.mul (.var "lean_sphincs_table") (.pow (.mul (.var "n_lean_sphincs_g") (.var "xd")) (.lit 4)))),
-        .mk 4133 (.hintWitness (.slice (.var "dup") (.lit 0) (.lit 4)) "dup_claims")]),
-      .mk 4141 (.let_ "cover" (.heapBufDyn (.var "n_total_g"))),
-      .mk 4143 (.let_ "byte_bits" (.heapBuf 256)),
-      .mk 4144 (.unroll "v" (.lit 0) (.lit 256) [
-        .mk 4145 (.store (.var "byte_bits") (.genPow (.var "v")) (.var "v"))]),
-      .mk 4146 (.for_ "xi" 0 (.runtime (.var "n_raw_x_g")) [
-        .mk 4147 (.letHintWitness "idx" "raw_index"),
-        .mk 4153 (.assertLt (.var "idx") (.runtime (.var "lx_slots_g"))),
-        .mk 4154 (.store (.var "cover") (.var "idx") (.var "xi")),
-        .mk 4155 (.call "verify_lean_xmss" [(.mul (.var "lx_table") (.pow (.var "idx") (.lit 4)))])]),
-      .mk 4156 (.for_ "xj" 0 (.runtime (.var "n_raw_s_g")) [
-        .mk 4157 (.letHintWitness "off_hint" "sp_raw_index"),
-        .mk 4158 (.assertLt (.var "off_hint") (.runtime (.var "lean_sphincs_slots_g"))),
-        .mk 4159 (.store (.var "cover") (.mul (.var "lx_slots_g") (.var "off_hint")) (.mul (.var "n_raw_x_g") (.var "xj"))),
-        .mk 4160 (.call "verify_sig_lean_sphincs" [(.mul (.var "lean_sphincs_table") (.pow (.var "off_hint") (.lit 4))), (.var "byte_bits")])]),
-      .mk 4165 (.let_ "da_digests" (.heapBufDyn (.pow (.mul (.var "n_children_g") .gen) (.lit 2)))),
-      .mk 4166 (.let_ "own_da" (.mul (.var "da_digests") (.pow (.var "n_children_g") (.lit 2)))),
-      .mk 4167 (.ite true (.var "n_direct_da_g") .gen [
-        .mk 4168 (.letTuple ["root_0", "root_1", "vector_0", "vector_1"] "da_verify" [(.var "g_squares")]),
-        .mk 4169 (.call "keccak" [(.list [(.var "root_0"), (.var "root_1")]), (.list [(.var "vector_0"), (.var "vector_1")]), (.slice (.var "own_da") (.lit 0) (.lit 2))])] [
-        .mk 4171 (.store (.var "own_da") (.lit 1) (.lit 0)),
-        .mk 4172 (.store (.var "own_da") .gen (.lit 0))] false),
-      .mk 4175 (.let_ "child_pi" (.heapBufDyn (.mul (.var "n_children_g") (.var "n_children_g")))),
-      .mk 4176 (.let_ "child_fresh" (.heapBufDyn (.pow (.var "n_children_g") (.lit 24)))),
-      .mk 4177 (.let_ "child_carried" (.heapBufDyn (.pow (.var "n_children_g") (.lit 24)))),
-      .mk 4178 (.let_ "written" (.heapBufDyn (.mul (.var "n_children_g") .gen))),
-      .mk 4179 (.store (.var "written") (.gpow 0) (.mul (.var "n_raw_x_g") (.var "n_raw_s_g"))),
-      .mk 4180 (.for_ "xc" 0 (.runtime (.var "n_children_g")) [
-        .mk 4181 (.let_ "base" (.index (.var "written") (.var "xc"))),
-        .mk 4186 (.let_ "child_meta" (.stackBuf 2)),
-        .mk 4187 (.hintWitness (.var "child_meta") "child_meta"),
-        .mk 4188 (.let_ "nsub_x_g" (.index (.var "child_meta") (.lit 0))),
-        .mk 4189 (.let_ "nsub_s_g" (.index (.var "child_meta") (.lit 1))),
-        .mk 4190 (.assertLt (.var "nsub_x_g") (.const 65536)),
-        .mk 4191 (.assertLt (.var "nsub_s_g") (.const 65536)),
-        .mk 4192 (.let_ "nsub_g" (.mul (.var "nsub_x_g") (.var "nsub_s_g"))),
-        .mk 4193 (.letTuple ["cx_0", "cx_1"] "child_claim_list_digest" [(.var "lx_table"), (.var "cover"), (.var "base"), (.lit 1), (.var "lx_slots_g"), (.var "nsub_x_g")]),
-        .mk 4194 (.letTuple ["cs_0", "cs_1"] "child_claim_list_digest" [(.var "lean_sphincs_table"), (.var "cover"), (.mul (.var "base") (.var "nsub_x_g")), (.var "lx_slots_g"), (.var "lean_sphincs_slots_g"), (.var "nsub_s_g")]),
-        .mk 4195 (.let_ "carried" (.mul (.var "child_carried") (.pow (.var "xc") (.lit 24)))),
-        .mk 4196 (.hintWitness (.slice (.var "carried") (.lit 0) (.lit 24)) "child_defer"),
-        .mk 4197 (.let_ "child_da" (.mul (.var "da_digests") (.pow (.var "xc") (.lit 2)))),
-        .mk 4198 (.hintWitness (.slice (.var "child_da") (.lit 0) (.lit 2)) "child_da"),
-        .mk 4199 (.letTuple ["pi_0", "pi_1"] "statement_digest" [(.var "seed_0"), (.var "seed_1"), (.var "cx_0"), (.var "cx_1"), (.var "cs_0"), (.var "cs_1"), (.index (.var "child_da") (.lit 1)), (.index (.var "child_da") .gen), (.var "carried")]),
-        .mk 4200 (.let_ "pi" (.mul (.var "xc") (.var "xc"))),
-        .mk 4201 (.store (.var "child_pi") (.var "pi") (.var "pi_0")),
-        .mk 4202 (.store (.var "child_pi") (.mul (.var "pi") .gen) (.var "pi_1")),
-        .mk 4203 (.call "verify_sub" [(.var "pi_0"), (.var "pi_1"), (.var "seed_0"), (.var "seed_1"), (.var "g_logs_pow2"), (.var "g_squares"), (.mul (.var "child_fresh") (.pow (.var "xc") (.lit 24)))]),
-        .mk 4204 (.store (.var "written") (.mul (.var "xc") .gen) (.mul (.var "base") (.var "nsub_g")))]),
-      .mk 4205 (.assertEq (.index (.var "written") (.var "n_children_g")) (.var "n_total_g")),
-      .mk 4208 (.letHintWitness "da_pick" "da_pick"),
-      .mk 4209 (.assertLt (.var "da_pick") (.runtime (.mul (.var "n_children_g") .gen))),
-      .mk 4210 (.assertEq (.mul (.add (.var "da_pick") (.var "n_children_g")) (.add (.var "n_direct_da_g") (.lit 1))) (.lit 0)),
-      .mk 4211 (.let_ "da" (.mul (.var "da_digests") (.pow (.var "da_pick") (.lit 2)))),
-      .mk 4214 (.let_ "defer_stmt" (.heapBuf 24)),
-      .mk 4215 (.ite true (.var "n_children_g") (.lit 1) [
-        .mk 4220 (.letHintWitness "leaf_value" "leaf_defer"),
-        .mk 4221 (.unroll "k" (.lit 0) (.lit 23) [
-          .mk 4222 (.store (.var "defer_stmt") (.genPow (.var "k")) (.lit 0))]),
-        .mk 4223 (.store (.var "defer_stmt") (.gpow 23) (.var "leaf_value"))] [
-        .mk 4225 (.call "aggregate_claims" [(.var "n_children_g"), (.var "child_pi"), (.var "child_fresh"), (.var "child_carried"), (.var "defer_stmt")])] false),
-      .mk 4227 (.letTuple ["own_0", "own_1"] "statement_digest" [(.var "seed_0"), (.var "seed_1"), (.var "xd_0"), (.var "xd_1"), (.var "sd_0"), (.var "sd_1"), (.index (.var "da") (.lit 1)), (.index (.var "da") .gen), (.var "defer_stmt")]),
-      .mk 4228 (.let_ "pub_ptr" (.gpow 0)),
-      .mk 4229 (.assertEq (.index (.var "pub_ptr") (.lit 1)) (.var "own_0")),
-      .mk 4230 (.assertEq (.index (.var "pub_ptr") .gen) (.var "own_1")),
-      .mk 4231 (.ret [])] }
+      .mk 4075 (.let_ "meta" (.stackBuf 8)),
+      .mk 4076 (.hintWitness (.var "meta") "meta"),
+      .mk 4077 (.let_ "n_lx_g" (.index (.var "meta") (.lit 0))),
+      .mk 4078 (.let_ "n_xdup_g" (.index (.var "meta") (.lit 1))),
+      .mk 4079 (.let_ "n_raw_x_g" (.index (.var "meta") (.lit 2))),
+      .mk 4080 (.let_ "n_lean_sphincs_g" (.index (.var "meta") (.lit 3))),
+      .mk 4081 (.let_ "n_sdup_g" (.index (.var "meta") (.lit 4))),
+      .mk 4082 (.let_ "n_raw_s_g" (.index (.var "meta") (.lit 5))),
+      .mk 4083 (.let_ "n_children_g" (.index (.var "meta") (.lit 6))),
+      .mk 4084 (.let_ "n_direct_da_g" (.index (.var "meta") (.lit 7))),
+      .mk 4085 (.assertLt (.var "n_lx_g") (.const 65536)),
+      .mk 4086 (.assertLt (.var "n_xdup_g") (.const 65536)),
+      .mk 4087 (.assertLt (.var "n_raw_x_g") (.const 65536)),
+      .mk 4088 (.assertLt (.var "n_lean_sphincs_g") (.const 65536)),
+      .mk 4089 (.assertLt (.var "n_sdup_g") (.const 65536)),
+      .mk 4090 (.assertLt (.var "n_raw_s_g") (.const 65536)),
+      .mk 4091 (.assertLt (.var "n_children_g") (.const 17)),
+      .mk 4092 (.assertLt (.var "n_direct_da_g") (.const 2)),
+      .mk 4093 (.let_ "lx_slots_g" (.mul (.var "n_lx_g") (.var "n_xdup_g"))),
+      .mk 4094 (.let_ "lean_sphincs_slots_g" (.mul (.var "n_lean_sphincs_g") (.var "n_sdup_g"))),
+      .mk 4097 (.let_ "n_total_g" (.mul (.var "lx_slots_g") (.var "lean_sphincs_slots_g"))),
+      .mk 4098 (.assertLt (.var "n_total_g") (.const 65536)),
+      .mk 4104 (.let_ "fs_seed" (.stackBuf 2)),
+      .mk 4105 (.hintWitness (.var "fs_seed") "fs_seed"),
+      .mk 4106 (.let_ "seed_0" (.index (.var "fs_seed") (.lit 0))),
+      .mk 4107 (.let_ "seed_1" (.index (.var "fs_seed") (.lit 1))),
+      .mk 4110 (.letTuple ["g_logs_pow2", "g_squares"] "exponent_tables" []),
+      .mk 4118 (.let_ "lx_table" (.heapBufDyn (.pow (.var "lx_slots_g") (.lit 4)))),
+      .mk 4119 (.let_ "lean_sphincs_table" (.heapBufDyn (.pow (.var "lean_sphincs_slots_g") (.lit 4)))),
+      .mk 4120 (.letTuple ["xd_0", "xd_1"] "claim_list_digest" [(.var "lx_table"), (.var "n_lx_g")]),
+      .mk 4121 (.letTuple ["sd_0", "sd_1"] "claim_list_digest" [(.var "lean_sphincs_table"), (.var "n_lean_sphincs_g")]),
+      .mk 4123 (.for_ "xd" 0 (.runtime (.var "n_xdup_g")) [
+        .mk 4124 (.let_ "dup" (.mul (.var "lx_table") (.pow (.mul (.var "n_lx_g") (.var "xd")) (.lit 4)))),
+        .mk 4125 (.hintWitness (.slice (.var "dup") (.lit 0) (.lit 4)) "dup_claims")]),
+      .mk 4126 (.for_ "xd" 0 (.runtime (.var "n_sdup_g")) [
+        .mk 4127 (.let_ "dup" (.mul (.var "lean_sphincs_table") (.pow (.mul (.var "n_lean_sphincs_g") (.var "xd")) (.lit 4)))),
+        .mk 4128 (.hintWitness (.slice (.var "dup") (.lit 0) (.lit 4)) "dup_claims")]),
+      .mk 4136 (.let_ "cover" (.heapBufDyn (.var "n_total_g"))),
+      .mk 4138 (.let_ "byte_bits" (.heapBuf 256)),
+      .mk 4139 (.unroll "v" (.lit 0) (.lit 256) [
+        .mk 4140 (.store (.var "byte_bits") (.genPow (.var "v")) (.var "v"))]),
+      .mk 4141 (.for_ "xi" 0 (.runtime (.var "n_raw_x_g")) [
+        .mk 4142 (.letHintWitness "idx" "raw_index"),
+        .mk 4148 (.assertLt (.var "idx") (.runtime (.var "lx_slots_g"))),
+        .mk 4149 (.store (.var "cover") (.var "idx") (.var "xi")),
+        .mk 4150 (.call "verify_lean_xmss" [(.mul (.var "lx_table") (.pow (.var "idx") (.lit 4)))])]),
+      .mk 4151 (.for_ "xj" 0 (.runtime (.var "n_raw_s_g")) [
+        .mk 4152 (.letHintWitness "off_hint" "sp_raw_index"),
+        .mk 4153 (.assertLt (.var "off_hint") (.runtime (.var "lean_sphincs_slots_g"))),
+        .mk 4154 (.store (.var "cover") (.mul (.var "lx_slots_g") (.var "off_hint")) (.mul (.var "n_raw_x_g") (.var "xj"))),
+        .mk 4155 (.call "verify_sig_lean_sphincs" [(.mul (.var "lean_sphincs_table") (.pow (.var "off_hint") (.lit 4))), (.var "byte_bits")])]),
+      .mk 4160 (.let_ "da_digests" (.heapBufDyn (.pow (.mul (.var "n_children_g") .gen) (.lit 2)))),
+      .mk 4161 (.let_ "own_da" (.mul (.var "da_digests") (.pow (.var "n_children_g") (.lit 2)))),
+      .mk 4162 (.ite true (.var "n_direct_da_g") .gen [
+        .mk 4163 (.letTuple ["root_0", "root_1", "vector_0", "vector_1"] "da_verify" [(.var "g_squares")]),
+        .mk 4164 (.call "keccak" [(.list [(.var "root_0"), (.var "root_1")]), (.list [(.var "vector_0"), (.var "vector_1")]), (.slice (.var "own_da") (.lit 0) (.lit 2))])] [
+        .mk 4166 (.store (.var "own_da") (.lit 1) (.lit 0)),
+        .mk 4167 (.store (.var "own_da") .gen (.lit 0))] false),
+      .mk 4170 (.let_ "child_pi" (.heapBufDyn (.mul (.var "n_children_g") (.var "n_children_g")))),
+      .mk 4171 (.let_ "child_fresh" (.heapBufDyn (.pow (.var "n_children_g") (.lit 24)))),
+      .mk 4172 (.let_ "child_carried" (.heapBufDyn (.pow (.var "n_children_g") (.lit 24)))),
+      .mk 4173 (.let_ "written" (.heapBufDyn (.mul (.var "n_children_g") .gen))),
+      .mk 4174 (.store (.var "written") (.gpow 0) (.mul (.var "n_raw_x_g") (.var "n_raw_s_g"))),
+      .mk 4175 (.for_ "xc" 0 (.runtime (.var "n_children_g")) [
+        .mk 4176 (.let_ "base" (.index (.var "written") (.var "xc"))),
+        .mk 4181 (.let_ "child_meta" (.stackBuf 2)),
+        .mk 4182 (.hintWitness (.var "child_meta") "child_meta"),
+        .mk 4183 (.let_ "nsub_x_g" (.index (.var "child_meta") (.lit 0))),
+        .mk 4184 (.let_ "nsub_s_g" (.index (.var "child_meta") (.lit 1))),
+        .mk 4185 (.assertLt (.var "nsub_x_g") (.const 65536)),
+        .mk 4186 (.assertLt (.var "nsub_s_g") (.const 65536)),
+        .mk 4187 (.let_ "nsub_g" (.mul (.var "nsub_x_g") (.var "nsub_s_g"))),
+        .mk 4188 (.letTuple ["cx_0", "cx_1"] "child_claim_list_digest" [(.var "lx_table"), (.var "cover"), (.var "base"), (.lit 1), (.var "lx_slots_g"), (.var "nsub_x_g")]),
+        .mk 4189 (.letTuple ["cs_0", "cs_1"] "child_claim_list_digest" [(.var "lean_sphincs_table"), (.var "cover"), (.mul (.var "base") (.var "nsub_x_g")), (.var "lx_slots_g"), (.var "lean_sphincs_slots_g"), (.var "nsub_s_g")]),
+        .mk 4190 (.let_ "carried" (.mul (.var "child_carried") (.pow (.var "xc") (.lit 24)))),
+        .mk 4191 (.hintWitness (.slice (.var "carried") (.lit 0) (.lit 24)) "child_defer"),
+        .mk 4192 (.let_ "child_da" (.mul (.var "da_digests") (.pow (.var "xc") (.lit 2)))),
+        .mk 4193 (.hintWitness (.slice (.var "child_da") (.lit 0) (.lit 2)) "child_da"),
+        .mk 4194 (.letTuple ["pi_0", "pi_1"] "statement_digest" [(.var "seed_0"), (.var "seed_1"), (.var "cx_0"), (.var "cx_1"), (.var "cs_0"), (.var "cs_1"), (.index (.var "child_da") (.lit 1)), (.index (.var "child_da") .gen), (.var "carried")]),
+        .mk 4195 (.let_ "pi" (.mul (.var "xc") (.var "xc"))),
+        .mk 4196 (.store (.var "child_pi") (.var "pi") (.var "pi_0")),
+        .mk 4197 (.store (.var "child_pi") (.mul (.var "pi") .gen) (.var "pi_1")),
+        .mk 4198 (.call "verify_sub" [(.var "pi_0"), (.var "pi_1"), (.var "seed_0"), (.var "seed_1"), (.var "g_logs_pow2"), (.var "g_squares"), (.mul (.var "child_fresh") (.pow (.var "xc") (.lit 24)))]),
+        .mk 4199 (.store (.var "written") (.mul (.var "xc") .gen) (.mul (.var "base") (.var "nsub_g")))]),
+      .mk 4200 (.assertEq (.index (.var "written") (.var "n_children_g")) (.var "n_total_g")),
+      .mk 4203 (.letHintWitness "da_pick" "da_pick"),
+      .mk 4204 (.assertLt (.var "da_pick") (.runtime (.mul (.var "n_children_g") .gen))),
+      .mk 4205 (.assertEq (.mul (.add (.var "da_pick") (.var "n_children_g")) (.add (.var "n_direct_da_g") (.lit 1))) (.lit 0)),
+      .mk 4206 (.let_ "da" (.mul (.var "da_digests") (.pow (.var "da_pick") (.lit 2)))),
+      .mk 4209 (.let_ "defer_stmt" (.heapBuf 24)),
+      .mk 4210 (.ite true (.var "n_children_g") (.lit 1) [
+        .mk 4215 (.letHintWitness "leaf_value" "leaf_defer"),
+        .mk 4216 (.unroll "k" (.lit 0) (.lit 23) [
+          .mk 4217 (.store (.var "defer_stmt") (.genPow (.var "k")) (.lit 0))]),
+        .mk 4218 (.store (.var "defer_stmt") (.gpow 23) (.var "leaf_value"))] [
+        .mk 4220 (.call "aggregate_claims" [(.var "n_children_g"), (.var "child_pi"), (.var "child_fresh"), (.var "child_carried"), (.var "defer_stmt")])] false),
+      .mk 4222 (.letTuple ["own_0", "own_1"] "statement_digest" [(.var "seed_0"), (.var "seed_1"), (.var "xd_0"), (.var "xd_1"), (.var "sd_0"), (.var "sd_1"), (.index (.var "da") (.lit 1)), (.index (.var "da") .gen), (.var "defer_stmt")]),
+      .mk 4223 (.let_ "pub_ptr" (.gpow 0)),
+      .mk 4224 (.assertEq (.index (.var "pub_ptr") (.lit 1)) (.var "own_0")),
+      .mk 4225 (.assertEq (.index (.var "pub_ptr") .gen) (.var "own_1")),
+      .mk 4226 (.ret [])] }
 
 /-- `aggregate_claims`. -/
 def fn_aggregate_claims : Func :=
   { name := "aggregate_claims", params := [⟨"n_children_g", (.runtime .scalar)⟩, ⟨"child_pi", (.runtime .scalar)⟩, ⟨"child_fresh", (.runtime .scalar)⟩, ⟨"child_carried", (.runtime .scalar)⟩, ⟨"defer_stmt", (.runtime .scalar)⟩], returnShapes := [],
     inline := false,
     body := [
-      .mk 4240 (.let_ "bc_msgs" (.heapBuf 46)),
-      .mk 4241 (.hintWitness (.slice (.var "bc_msgs") (.lit 0) (.mul (.lit 2) (.lit 23))) "bc_sumcheck_msgs"),
-      .mk 4242 (.letHintWitness "bytecode_star" "bc_star_hint"),
-      .mk 4248 (.let_ "fresh_row" (.heapBufDyn (.var "n_children_g"))),
-      .mk 4249 (.let_ "carried_row" (.heapBufDyn (.var "n_children_g"))),
-      .mk 4250 (.let_ "seed" (.list [(.lit 1562680967124014521), (.lit 219987477440241922375488438384259330662), (.lit 280280212661789141853795656654516100829), (.lit 200796963667835759483519841953162816397), (.lit 2936886303028784551432414362146044553)])),
-      .mk 4251 (.let_ "rate" (.stackBuf 8)),
-      .mk 4252 (.call "fs_pack" [(.var "rate"), (.lit 0), (.var "n_children_g"), (.lit 1)]),
-      .mk 4253 (.unroll "j" (.lit 1) (.lit 4) [
-        .mk 4254 (.call "fs_pack" [(.var "rate"), (.var "j"), (.lit 0), (.lit 1)])]),
-      .mk 4255 (.let_ "absorb" (.heapBufDyn (.pow (.mul (.var "n_children_g") .gen) (.lit 13)))),
-      .mk 4256 (.unroll "j" (.lit 0) (.lit 5) [
-        .mk 4257 (.store (.var "absorb") (.genPow (.var "j")) (.index (.var "seed") (.var "j")))]),
-      .mk 4258 (.unroll "j" (.lit 0) (.lit 8) [
-        .mk 4259 (.store (.var "absorb") (.genPow (.add (.lit 5) (.var "j"))) (.index (.var "rate") (.var "j")))]),
-      .mk 4260 (.for_ "xc" 0 (.runtime (.var "n_children_g")) [
-        .mk 4261 (.let_ "row" (.mul (.var "absorb") (.pow (.var "xc") (.lit 13)))),
-        .mk 4262 (.let_ "row_cap" (.call "fs_load" [(.var "row"), (.lit 0), (.lit 1)])),
-        .mk 4263 (.let_ "st" (.call "fs_perm_pending" [(.var "row_cap"), (.var "row"), (.lit 5)])),
-        .mk 4264 (.let_ "rate" (.stackBuf 8)),
-        .mk 4265 (.let_ "pi" (.mul (.var "xc") (.var "xc"))),
-        .mk 4266 (.let_ "fresh" (.mul (.var "child_fresh") (.pow (.var "xc") (.lit 24)))),
-        .mk 4267 (.store (.var "fresh_row") (.var "xc") (.var "fresh")),
-        .mk 4268 (.let_ "carried" (.mul (.var "child_carried") (.pow (.var "xc") (.lit 24)))),
-        .mk 4269 (.store (.var "carried_row") (.var "xc") (.var "carried")),
-        .mk 4270 (.unroll "pos" (.lit 0) (.add (.lit 50) (.lit 2)) [
-          .mk 4271 (.ite true (.mod (.var "pos") (.lit 4)) (.lit 0) [
-            .mk 4272 (.ite false (.var "pos") (.lit 0) [
-              .mk 4273 (.let_ "st" (.call "fs_perm" [(.var "st"), (.var "rate"), (.lit 4)])),
-              .mk 4274 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
-          .mk 4275 (.ite true (.div (.var "pos") (.lit 2)) (.lit 0) [
-            .mk 4276 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.index (.var "child_pi") (.mul (.var "pi") (.genPow (.var "pos")))), (.lit 1)])] [] true),
-          .mk 4277 (.ite false (.div (.var "pos") (.lit 2)) (.lit 0) [
-            .mk 4278 (.ite true (.div (.sub (.var "pos") (.lit 2)) (.lit 24)) (.lit 0) [
-              .mk 4279 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.index (.var "fresh") (.genPow (.sub (.var "pos") (.lit 2)))), (.lit 1)])] [] true),
-            .mk 4280 (.ite false (.div (.sub (.var "pos") (.lit 2)) (.lit 24)) (.lit 0) [
-              .mk 4281 (.ite true (.div (.sub (.sub (.var "pos") (.lit 2)) (.lit 24)) (.lit 24)) (.lit 0) [
-                .mk 4282 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.index (.var "carried") (.genPow (.sub (.sub (.var "pos") (.lit 2)) (.lit 24)))), (.lit 1)])] [] true),
-              .mk 4283 (.ite false (.div (.sub (.sub (.var "pos") (.lit 2)) (.lit 24)) (.lit 24)) (.lit 0) [
-                .mk 4284 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.lit 0), (.lit 1)])] [] true)] [] true)] [] true)]),
-        .mk 4285 (.let_ "nxt" (.mul (.var "row") (.gpow 13))),
-        .mk 4286 (.call "fs_store" [(.var "nxt"), (.lit 0), (.lit 1), (.var "st")]),
-        .mk 4287 (.unroll "j" (.lit 0) (.lit 8) [
-          .mk 4288 (.store (.var "nxt") (.genPow (.add (.lit 5) (.var "j"))) (.index (.var "rate") (.var "j")))])]),
-      .mk 4289 (.let_ "absorbed" (.mul (.var "absorb") (.pow (.var "n_children_g") (.lit 13)))),
-      .mk 4295 (.let_ "lam_bc" (.heapBufDyn (.mul (.var "n_children_g") (.var "n_children_g")))),
-      .mk 4296 (.let_ "bc_chain" (.heapBufDyn (.pow (.mul (.var "n_children_g") .gen) (.lit 14)))),
-      .mk 4297 (.unroll "j" (.lit 0) (.lit 5) [
-        .mk 4298 (.store (.var "bc_chain") (.genPow (.add (.lit 0) (.var "j"))) (.index (.var "absorbed") (.genPow (.var "j"))))]),
-      .mk 4299 (.unroll "j" (.lit 0) (.lit 8) [
-        .mk 4300 (.store (.var "bc_chain") (.genPow (.add (.lit 5) (.var "j"))) (.index (.var "absorbed") (.genPow (.add (.lit 5) (.var "j")))))]),
-      .mk 4301 (.store (.var "bc_chain") (.gpow 13) (.lit 0)),
-      .mk 4302 (.for_ "xc" 0 (.runtime (.var "n_children_g")) [
-        .mk 4303 (.let_ "row" (.mul (.var "bc_chain") (.pow (.var "xc") (.lit 14)))),
-        .mk 4304 (.let_ "row_cap" (.call "fs_load" [(.var "row"), (.lit 0), (.lit 1)])),
-        .mk 4305 (.let_ "st" (.call "fs_perm_pending" [(.var "row_cap"), (.var "row"), (.lit 5)])),
-        .mk 4306 (.let_ "lam_fresh" (.call "challenge_from_state" [(.var "st")])),
-        .mk 4307 (.let_ "no_rate" (.stackBuf 8)),
-        .mk 4308 (.letTuple ["st", "lam_carried"] "squeeze" [(.var "st"), (.var "no_rate"), (.lit 0)]),
-        .mk 4309 (.let_ "pair" (.mul (.var "xc") (.var "xc"))),
-        .mk 4310 (.store (.var "lam_bc") (.var "pair") (.var "lam_fresh")),
-        .mk 4311 (.store (.var "lam_bc") (.mul (.var "pair") .gen) (.var "lam_carried")),
-        .mk 4312 (.let_ "fresh" (.index (.var "fresh_row") (.var "xc"))),
-        .mk 4313 (.let_ "carried" (.index (.var "carried_row") (.var "xc"))),
-        .mk 4314 (.let_ "nxt" (.mul (.var "row") (.gpow 14))),
-        .mk 4315 (.call "fs_store" [(.var "nxt"), (.lit 0), (.lit 1), (.var "st")]),
-        .mk 4316 (.unroll "j" (.lit 0) (.lit 8) [
-          .mk 4317 (.store (.var "nxt") (.genPow (.add (.lit 5) (.var "j"))) (.lit 0))]),
-        .mk 4318 (.store (.var "nxt") (.gpow 13) (.add (.add (.index (.var "row") (.gpow 13)) (.mul (.var "lam_fresh") (.index (.var "fresh") (.gpow 23)))) (.mul (.var "lam_carried") (.index (.var "carried") (.gpow 23)))))]),
-      .mk 4319 (.let_ "bc_end" (.mul (.var "bc_chain") (.pow (.var "n_children_g") (.lit 14)))),
-      .mk 4320 (.let_ "bc_running" (.index (.var "bc_end") (.gpow 13))),
-      .mk 4321 (.let_ "bc_point" (.heapBuf 23)),
-      .mk 4322 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "bc_running"] "batch_sumcheck" [(.index (.var "bc_end") (.gpow 0)), (.index (.var "bc_end") (.gpow 1)), (.index (.var "bc_end") (.gpow 2)), (.index (.var "bc_end") (.gpow 3)), (.index (.var "bc_end") (.gpow 4)), (.var "bc_msgs"), (.var "bc_running"), (.var "bc_point"), (.lit 23)]),
-      .mk 4323 (.let_ "bc_wsum" (.heapBufDyn (.mul (.var "n_children_g") .gen))),
-      .mk 4324 (.store (.var "bc_wsum") (.gpow 0) (.lit 0)),
-      .mk 4325 (.for_ "xc" 0 (.runtime (.var "n_children_g")) [
-        .mk 4326 (.let_ "fresh" (.index (.var "fresh_row") (.var "xc"))),
-        .mk 4327 (.let_ "carried" (.index (.var "carried_row") (.var "xc"))),
-        .mk 4328 (.let_ "eq_fresh" (.gpow 0)),
-        .mk 4329 (.let_ "eq_carried" (.gpow 0)),
-        .mk 4330 (.unroll "k" (.lit 0) (.lit 23) [
-          .mk 4331 (.let_ "rk" (.index (.var "bc_point") (.genPow (.var "k")))),
-          .mk 4332 (.let_ "eq_fresh" (.mul (.var "eq_fresh") (.add (.add (.lit 1) (.index (.var "fresh") (.genPow (.var "k")))) (.var "rk")))),
-          .mk 4333 (.let_ "eq_carried" (.mul (.var "eq_carried") (.add (.add (.lit 1) (.index (.var "carried") (.genPow (.var "k")))) (.var "rk"))))]),
-        .mk 4334 (.let_ "pair" (.mul (.var "xc") (.var "xc"))),
-        .mk 4335 (.store (.var "bc_wsum") (.mul (.var "xc") .gen) (.add (.add (.index (.var "bc_wsum") (.var "xc")) (.mul (.index (.var "lam_bc") (.var "pair")) (.var "eq_fresh"))) (.mul (.index (.var "lam_bc") (.mul (.var "pair") .gen)) (.var "eq_carried"))))]),
-      .mk 4336 (.assertEq (.var "bc_running") (.mul (.var "bytecode_star") (.index (.var "bc_wsum") (.var "n_children_g")))),
-      .mk 4338 (.unroll "k" (.lit 0) (.lit 23) [
-        .mk 4339 (.store (.var "defer_stmt") (.genPow (.var "k")) (.index (.var "bc_point") (.genPow (.var "k"))))]),
-      .mk 4340 (.store (.var "defer_stmt") (.gpow 23) (.var "bytecode_star")),
-      .mk 4341 (.ret [])] }
+      .mk 4235 (.let_ "bc_msgs" (.heapBuf 46)),
+      .mk 4236 (.hintWitness (.slice (.var "bc_msgs") (.lit 0) (.mul (.lit 2) (.lit 23))) "bc_sumcheck_msgs"),
+      .mk 4237 (.letHintWitness "bytecode_star" "bc_star_hint"),
+      .mk 4243 (.let_ "fresh_row" (.heapBufDyn (.var "n_children_g"))),
+      .mk 4244 (.let_ "carried_row" (.heapBufDyn (.var "n_children_g"))),
+      .mk 4245 (.let_ "seed" (.list [(.lit 1562680967124014521), (.lit 219987477440241922375488438384259330662), (.lit 280280212661789141853795656654516100829), (.lit 200796963667835759483519841953162816397), (.lit 2936886303028784551432414362146044553)])),
+      .mk 4246 (.let_ "rate" (.stackBuf 8)),
+      .mk 4247 (.call "fs_pack" [(.var "rate"), (.lit 0), (.var "n_children_g"), (.lit 1)]),
+      .mk 4248 (.unroll "j" (.lit 1) (.lit 4) [
+        .mk 4249 (.call "fs_pack" [(.var "rate"), (.var "j"), (.lit 0), (.lit 1)])]),
+      .mk 4250 (.let_ "absorb" (.heapBufDyn (.pow (.mul (.var "n_children_g") .gen) (.lit 13)))),
+      .mk 4251 (.unroll "j" (.lit 0) (.lit 5) [
+        .mk 4252 (.store (.var "absorb") (.genPow (.var "j")) (.index (.var "seed") (.var "j")))]),
+      .mk 4253 (.unroll "j" (.lit 0) (.lit 8) [
+        .mk 4254 (.store (.var "absorb") (.genPow (.add (.lit 5) (.var "j"))) (.index (.var "rate") (.var "j")))]),
+      .mk 4255 (.for_ "xc" 0 (.runtime (.var "n_children_g")) [
+        .mk 4256 (.let_ "row" (.mul (.var "absorb") (.pow (.var "xc") (.lit 13)))),
+        .mk 4257 (.let_ "row_cap" (.call "fs_load" [(.var "row"), (.lit 0), (.lit 1)])),
+        .mk 4258 (.let_ "st" (.call "fs_perm_pending" [(.var "row_cap"), (.var "row"), (.lit 5)])),
+        .mk 4259 (.let_ "rate" (.stackBuf 8)),
+        .mk 4260 (.let_ "pi" (.mul (.var "xc") (.var "xc"))),
+        .mk 4261 (.let_ "fresh" (.mul (.var "child_fresh") (.pow (.var "xc") (.lit 24)))),
+        .mk 4262 (.store (.var "fresh_row") (.var "xc") (.var "fresh")),
+        .mk 4263 (.let_ "carried" (.mul (.var "child_carried") (.pow (.var "xc") (.lit 24)))),
+        .mk 4264 (.store (.var "carried_row") (.var "xc") (.var "carried")),
+        .mk 4265 (.unroll "pos" (.lit 0) (.add (.lit 50) (.lit 2)) [
+          .mk 4266 (.ite true (.mod (.var "pos") (.lit 4)) (.lit 0) [
+            .mk 4267 (.ite false (.var "pos") (.lit 0) [
+              .mk 4268 (.let_ "st" (.call "fs_perm" [(.var "st"), (.var "rate"), (.lit 4)])),
+              .mk 4269 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
+          .mk 4270 (.ite true (.div (.var "pos") (.lit 2)) (.lit 0) [
+            .mk 4271 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.index (.var "child_pi") (.mul (.var "pi") (.genPow (.var "pos")))), (.lit 1)])] [] true),
+          .mk 4272 (.ite false (.div (.var "pos") (.lit 2)) (.lit 0) [
+            .mk 4273 (.ite true (.div (.sub (.var "pos") (.lit 2)) (.lit 24)) (.lit 0) [
+              .mk 4274 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.index (.var "fresh") (.genPow (.sub (.var "pos") (.lit 2)))), (.lit 1)])] [] true),
+            .mk 4275 (.ite false (.div (.sub (.var "pos") (.lit 2)) (.lit 24)) (.lit 0) [
+              .mk 4276 (.ite true (.div (.sub (.sub (.var "pos") (.lit 2)) (.lit 24)) (.lit 24)) (.lit 0) [
+                .mk 4277 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.index (.var "carried") (.genPow (.sub (.sub (.var "pos") (.lit 2)) (.lit 24)))), (.lit 1)])] [] true),
+              .mk 4278 (.ite false (.div (.sub (.sub (.var "pos") (.lit 2)) (.lit 24)) (.lit 24)) (.lit 0) [
+                .mk 4279 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.lit 0), (.lit 1)])] [] true)] [] true)] [] true)]),
+        .mk 4280 (.let_ "nxt" (.mul (.var "row") (.gpow 13))),
+        .mk 4281 (.call "fs_store" [(.var "nxt"), (.lit 0), (.lit 1), (.var "st")]),
+        .mk 4282 (.unroll "j" (.lit 0) (.lit 8) [
+          .mk 4283 (.store (.var "nxt") (.genPow (.add (.lit 5) (.var "j"))) (.index (.var "rate") (.var "j")))])]),
+      .mk 4284 (.let_ "absorbed" (.mul (.var "absorb") (.pow (.var "n_children_g") (.lit 13)))),
+      .mk 4291 (.let_ "absorbed_cap" (.call "fs_load" [(.var "absorbed"), (.lit 0), (.lit 1)])),
+      .mk 4292 (.let_ "st" (.call "fs_perm_pending" [(.var "absorbed_cap"), (.var "absorbed"), (.lit 5)])),
+      .mk 4293 (.let_ "lam" (.call "challenge_from_state" [(.var "st")])),
+      .mk 4294 (.let_ "lam_sq" (.mul (.var "lam") (.var "lam"))),
+      .mk 4295 (.let_ "bc_chain" (.heapBufDyn (.pow (.mul (.var "n_children_g") .gen) (.lit 2)))),
+      .mk 4296 (.store (.var "bc_chain") (.gpow 0) (.lit 1)),
+      .mk 4297 (.store (.var "bc_chain") (.gpow 1) (.lit 0)),
+      .mk 4298 (.for_ "xc" 0 (.runtime (.var "n_children_g")) [
+        .mk 4299 (.let_ "row" (.mul (.var "bc_chain") (.pow (.var "xc") (.lit 2)))),
+        .mk 4300 (.let_ "lam_pow" (.index (.var "row") (.gpow 0))),
+        .mk 4301 (.let_ "fresh" (.index (.var "fresh_row") (.var "xc"))),
+        .mk 4302 (.let_ "carried" (.index (.var "carried_row") (.var "xc"))),
+        .mk 4303 (.let_ "nxt" (.mul (.var "row") (.gpow 2))),
+        .mk 4304 (.store (.var "nxt") (.gpow 0) (.mul (.var "lam_pow") (.var "lam_sq"))),
+        .mk 4305 (.store (.var "nxt") (.gpow 1) (.add (.index (.var "row") (.gpow 1)) (.mul (.var "lam_pow") (.add (.index (.var "fresh") (.gpow 23)) (.mul (.var "lam") (.index (.var "carried") (.gpow 23)))))))]),
+      .mk 4306 (.let_ "bc_end" (.mul (.var "bc_chain") (.pow (.var "n_children_g") (.lit 2)))),
+      .mk 4307 (.let_ "bc_running" (.index (.var "bc_end") (.gpow 1))),
+      .mk 4308 (.let_ "bc_point" (.heapBuf 23)),
+      .mk 4309 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "bc_running"] "batch_sumcheck" [(.index (.var "st") (.lit 8)), (.index (.var "st") (.lit 9)), (.index (.var "st") (.lit 10)), (.index (.var "st") (.lit 11)), (.index (.var "st") (.lit 12)), (.var "bc_msgs"), (.var "bc_running"), (.var "bc_point"), (.lit 23)]),
+      .mk 4310 (.let_ "bc_wsum" (.heapBufDyn (.mul (.var "n_children_g") .gen))),
+      .mk 4311 (.store (.var "bc_wsum") (.gpow 0) (.lit 0)),
+      .mk 4312 (.for_ "xc" 0 (.runtime (.var "n_children_g")) [
+        .mk 4313 (.let_ "fresh" (.index (.var "fresh_row") (.var "xc"))),
+        .mk 4314 (.let_ "carried" (.index (.var "carried_row") (.var "xc"))),
+        .mk 4315 (.let_ "eq_fresh" (.gpow 0)),
+        .mk 4316 (.let_ "eq_carried" (.gpow 0)),
+        .mk 4317 (.unroll "k" (.lit 0) (.lit 23) [
+          .mk 4318 (.let_ "rk" (.index (.var "bc_point") (.genPow (.var "k")))),
+          .mk 4319 (.let_ "eq_fresh" (.mul (.var "eq_fresh") (.add (.add (.lit 1) (.index (.var "fresh") (.genPow (.var "k")))) (.var "rk")))),
+          .mk 4320 (.let_ "eq_carried" (.mul (.var "eq_carried") (.add (.add (.lit 1) (.index (.var "carried") (.genPow (.var "k")))) (.var "rk"))))]),
+        .mk 4321 (.let_ "row" (.mul (.var "bc_chain") (.pow (.var "xc") (.lit 2)))),
+        .mk 4322 (.store (.var "bc_wsum") (.mul (.var "xc") .gen) (.add (.index (.var "bc_wsum") (.var "xc")) (.mul (.index (.var "row") (.gpow 0)) (.add (.var "eq_fresh") (.mul (.var "lam") (.var "eq_carried"))))))]),
+      .mk 4323 (.assertEq (.var "bc_running") (.mul (.var "bytecode_star") (.index (.var "bc_wsum") (.var "n_children_g")))),
+      .mk 4325 (.unroll "k" (.lit 0) (.lit 23) [
+        .mk 4326 (.store (.var "defer_stmt") (.genPow (.var "k")) (.index (.var "bc_point") (.genPow (.var "k"))))]),
+      .mk 4327 (.store (.var "defer_stmt") (.gpow 23) (.var "bytecode_star")),
+      .mk 4328 (.ret [])] }
 
 /-- The constant array `COORD_BASIS`. -/
 def arr_COORD_BASIS : List (Nat × Nat × Nat) :=

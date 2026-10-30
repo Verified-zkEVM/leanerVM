@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Whir.Commit
 
 /-!
-# The final message (TRIAGE G #37, #42; G:1344-1345)
+# The final message (TRIAGE G #37, #42; G:1339-1340)
 
 The last level reads the final message (its `2^m` words, stored in `final_msg`) and the nonce,
 absorbing them, and permutes (`opening_final_message`, `MeaningOpeningFinalMessage`);

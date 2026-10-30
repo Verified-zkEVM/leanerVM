@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesComplete5
 
 /-!
-# `opening_queries` is complete (G:1244-1266, TRIAGE #40)
+# `opening_queries` is complete (G:1239-1261, TRIAGE #40)
 
 `oqMainA_complete`: the function's start holds at `μ = λ⁻¹`, the chain's pointer and, at an odd
 count, the first query's honest values. `oqMain1_complete`, `oqMain0_complete`: from
@@ -206,7 +206,7 @@ theorem oqMainT_complete {s : Oq} {odd : ℕ} {loop name : String} {fm : Fn}
   · rw [t5, t4, p3]
   · rw [t5]
 
-/-- **`opening_queries` at level 0 is complete** (G:1244-1266): its meaning gives its relation. -/
+/-- **`opening_queries` at level 0 is complete** (G:1239-1261): its meaning gives its relation. -/
 theorem oqMain1_complete {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hpd : 4 * s.pd ≤ 80)
     (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8) {odd : ℕ} (hodd : odd ≤ 1) {name loop : String} {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
@@ -245,7 +245,7 @@ theorem oqMain1_complete {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hpd : 4 
       simpa only [oqChain, h1, ↓reduceIte] using this)
   exact oqMainT_complete hfm hpm hbm hnG (hch m le_rfl) hp h8 h11 hT hA hK hcall
 
-/-- **`opening_queries` deeper is complete** (G:1244-1266, `base = 0`, `odd = 0`). -/
+/-- **`opening_queries` deeper is complete** (G:1239-1261, `base = 0`, `odd = 0`). -/
 theorem oqMain0_complete {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hpd : 4 * s.pd ≤ 80)
     (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8) {name loop : String} {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
@@ -278,7 +278,7 @@ theorem oqMain0_complete {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hpd : 4 
       simpa only [oqChain, h1, ↓reduceIte] using this)
   exact oqMainT_complete hfm hpm hbm hnG (hch m le_rfl) hp h8 h11 hT hA hK hcall
 
-/-- **`opening_queries` at level 0 is its meaning** (G:1244-1266), the bit pointers pointing to
+/-- **`opening_queries` at level 0 is its meaning** (G:1239-1261), the bit pointers pointing to
 bits. -/
 theorem oqMain1_iff {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hpd : 4 * s.pd ≤ 80)
     (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8) {odd : ℕ} (hodd : odd ≤ 1) {name loop : String} {fm fl : Fn}
@@ -292,7 +292,7 @@ theorem oqMain1_iff {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hpd : 4 * s.p
     ⟨oqMain1_sound hs hb1 hcd hcd8 hodd hfm hpm hbm hfl hpl hbl hbits,
       oqMain1_complete hs hb1 hpd hcd hcd8 hodd hfm hpm hbm hfl hpl hbl⟩
 
-/-- **`opening_queries` deeper is its meaning** (G:1244-1266), the bit pointers pointing to
+/-- **`opening_queries` deeper is its meaning** (G:1239-1261), the bit pointers pointing to
 bits. -/
 theorem oqMain0_iff {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hpd : 4 * s.pd ≤ 80)
     (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8) {name loop : String} {fm fl : Fn}

@@ -10,12 +10,12 @@ module
 public import LeanVM.Guest.B1.Eq.EqTree
 
 /-!
-# `eqtree_frame` (G:848-855, TRIAGE #24)
+# `eqtree_frame` (G:843-850, TRIAGE #24)
 
 `eqtree_frame(point_ptr, out, n, count)` is `eqtree` into frame cells, the last level's upper
 half cut at `count`. Its cells are values, numbered in the order the expansion computes them:
 from the value `b` (the point read at `p` from `po`; `keccak_layer`, `keccak_slot_lanes`,
-G:2690-2762, number it), `r0` at `b`, level 1's cells `1 + r0`, `r0` at `b + 2`, `b + 3`; level
+G:2685-2757, number it), `r0` at `b`, level 1's cells `1 + r0`, `r0` at `b + 2`, `b + 3`; level
 `k + 1` (`k ≥ 1`) from the block `eqtreeFrameL b k`: `r_k`, `1 + r_k`, then for each cell `i` of
 level `k` in order its products by `1 + r_k` (cell `i`) and by `r_k` (cell `2^k + i`, the latter
 omitted past `count` at the last level).
@@ -81,7 +81,7 @@ theorem eqtreeFrameT_atoms (p : V) (po b n count : ℕ) : AllAtoms (eqtreeFrameT
     · exact allAtoms_cons (allAtoms_cons allAtoms_nil)
     · exact allAtoms_cons allAtoms_nil
 
-/-- **`eqtree_frame`** (G:848-855): with the point's words `rs` (`n ≥ 1` of them) at `p` from
+/-- **`eqtree_frame`** (G:843-850): with the point's words `rs` (`n ≥ 1` of them) at `p` from
 `po`, cell `j` of level `m ≤ n` is entry `j` of `eqKernel (rs.take m)`, below `count` at the last
 level. -/
 theorem eqtreeFrame_sound {p : V} {po b n count : ℕ} (hn : 1 ≤ n)

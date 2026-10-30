@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Bits.Meaning
 
 /-!
-# `exponent_tables` (G:650-665, TRIAGE #16)
+# `exponent_tables` (G:645-660, TRIAGE #16)
 
 `exponent_tables()` fills two fresh `HeapBuf(34)` tables: `g_logs_pow2[g^j] = E(2^j)` and
 `g_squares[g^j] = g^(2^j)`, the second's constants folded by the compiler (`gSquaresBits`,

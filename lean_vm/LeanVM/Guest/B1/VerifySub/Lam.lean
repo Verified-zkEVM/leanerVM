@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.Lam
 
-  `verify_sub`'s batching (G:3279-3297): the challenge `λ`, the powers stored for the terminal, and
+  `verify_sub`'s batching (G:3274-3292): the challenge `λ`, the powers stored for the terminal, and
   the batched target.
 -/
 
@@ -137,7 +137,7 @@ theorem lam_loop {lam T : E} {vals : List E} (hlam : σ (.n 1323) = lam) (hT : �
     · rw [vsPw_succ, m2, hp, hlam]; ring
     · rw [vsTg_succ, a1, ht, m1, hp, hv, Finset.sum_range_succ]; ring
 
-/-- **The batching** (G:3279-3297), after `λ`'s squeeze (`hsq`, the squeeze's facts `SQ`):
+/-- **The batching** (G:3274-3292), after `λ`'s squeeze (`hsq`, the squeeze's facts `SQ`):
 claim `j`'s power `λ^(1 + poolRank j)` stored for every batched claim, `λ^141` at `1884`, and
 the batched target at `1886`. -/
 theorem vsLamT_holds_of {SQ : Prop}
@@ -178,7 +178,7 @@ theorem vsLamT_holds_of {SQ : Prop}
     rw [show vsPw 140 = 1884 from rfl] at hp
     rw [ht, hp]
 
-/-- **The batching** (G:3279-3297): `λ`'s squeeze, claim `j`'s power `λ^(1 + poolRank j)` stored
+/-- **The batching** (G:3274-3292): `λ`'s squeeze, claim `j`'s power `λ^(1 + poolRank j)` stored
 for every batched claim, `λ^141` at `1884`, and the batched target at `1886`. -/
 theorem vsLamT_holds (h10 : σ (.n 10) = 0) (h11 : σ (.n 11) = 0) (h12 : σ (.n 12) = 0)
     (h13 : σ (.n 13) = 0) {claims : List ColumnClaim}

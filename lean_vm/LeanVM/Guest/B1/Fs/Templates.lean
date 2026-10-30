@@ -13,19 +13,19 @@ public import LeanVM.Guest.B1.Common.Sponge
 # The inline Fiat-Shamir helpers (TRIAGE G #5-15)
 
 The helpers of the guest's sponge (`lean_ethereum.py` at leanVM `4af2cdddd`, G below,
-G:526-648) are `@inline`: their atoms sit in their callers' core IR, numbered by the caller.
+G:521-643) are `@inline`: their atoms sit in their callers' core IR, numbered by the caller.
 Their expansions are uniform (`Expand.lean`, the compiler's `builtins.rs`), so each is a template
 over its operands and its first value `b`; a caller's body is checked equal to its composition of
 templates by kernel evaluation (`stmtsEqb_sound`).
 
-* `fsPackT x b t` (`fs_pack`, G:549-557): `x`'s limbs hinted into `b .. b + 2`, then the two rate
+* `fsPackT x b t` (`fs_pack`, G:544-552): `x`'s limbs hinted into `b .. b + 2`, then the two rate
   cells `b + 6 = x + y²·x₂` and `b + 8 = x₂ + y·t`. `fsPackT_cells`: once the first cell is
   canonical (a `KECCAK` reading it), they are `Keccak.scalarCells x t` (`fsPack_cells`).
-* `fsNextT cur off b` (`fs_next`, G:628-635): the word at `cur·g^off` into `b`, then
+* `fsNextT cur off b` (`fs_next`, G:623-630): the word at `cur·g^off` into `b`, then
   `fsPackT (.n b) (b + 1) 1`: its cells `b + 7`, `b + 9`.
-* `challengeT s0 s1 b` (`challenge_from_state`, G:526-535): `b + 6` is the challenge of a state
+* `challengeT s0 s1 b` (`challenge_from_state`, G:521-530): `b + 6` is the challenge of a state
   whose cells `0`, `1` are `s0`, `s1` (`challengeT_value`, `challengeOf_cells`).
-* `keccakA` (`fs_perm`, `fs_perm4`, `fs_perm_pending`, `fs_absorb_nonce`'s permutation, G:561-602):
+* `keccakA` (`fs_perm`, `fs_perm4`, `fs_perm_pending`, `fs_absorb_nonce`'s permutation, G:556-597):
   one `KECCAK` atom in the even layouts; `keccakA_perm`: its outputs are `permOf` of its inputs.
 
 The `…Vals` functions are the honest values of each template, from which a caller builds the
@@ -66,7 +66,7 @@ theorem holds_fsPackT (x : V) (b t : ℕ) (next : Prop) (kret : List E → Prop)
     Stmt.HoldsList C rd σ (fsPackT x b t) next kret ↔ FsPackOk σ x b t ∧ next := by
   simp only [fsPackT, FsPackOk, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and, and_assoc]
 
-/-- **`fs_pack`'s cells** (G:549-557): once its first cell is canonical, the two cells are the
+/-- **`fs_pack`'s cells** (G:544-552): once its first cell is canonical, the two cells are the
 scalar's rate cells `Keccak.scalarCells x t`. -/
 theorem fsPackT_cells {x : V} {b t : ℕ} (h : FsPackOk σ x b t)
     (hcan : IsCanonical128 (σ (.n (b + 6)))) :
@@ -160,7 +160,7 @@ theorem holds_challengeT (s0 s1 : V) (b : ℕ) (next : Prop) (kret : List E → 
     Stmt.HoldsList C rd σ (challengeT s0 s1 b) next kret ↔ ChallengeOk σ s0 s1 b ∧ next := by
   simp only [challengeT, ChallengeOk, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and, and_assoc]
 
-/-- **`challenge_from_state`** (G:526-535): on the cells `0`, `1` of a state, the template's
+/-- **`challenge_from_state`** (G:521-530): on the cells `0`, `1` of a state, the template's
 challenge is `challengeOf` of the state. -/
 theorem challengeT_value {s0 s1 : V} {b : ℕ} {S : KState} (h : ChallengeOk σ s0 s1 b)
     (h0 : σ s0 = cellsOfState S false 0) (h1 : σ s1 = cellsOfState S false 1) :
@@ -207,7 +207,7 @@ theorem challengeVals_six (S : KState) :
 /-- One `KECCAK` atom in the even layouts. -/
 def keccakA (ins outs : List V) : Stmt := .atom (.keccak ins outs false false)
 
-/-- **A permutation** (`fs_perm`, `fs_perm4`, `fs_perm_pending`, G:561-602): a `KECCAK` atom in
+/-- **A permutation** (`fs_perm`, `fs_perm4`, `fs_perm_pending`, G:556-597): a `KECCAK` atom in
 the even layouts reads canonical cells and writes the cells of `permOf` of them. -/
 theorem keccakA_perm {ins outs : List V} (h : (Atom.keccak ins outs false false).Holds rd σ) :
     ins.length = 13 ∧ outs.length = 13 ∧ AllCanonical (ins.map σ) ∧

@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.PushPad
 
 /-!
-# The push side's framework blocks (G:2082-2130)
+# The push side's framework blocks (G:2077-2125)
 
 `vt_push_fw`: the accumulator after the state, memory and bytecode blocks is
 `Σ_f eq_f·(β + fp_f)` with the state fingerprint `w0 + w1 + w2`, the memory one

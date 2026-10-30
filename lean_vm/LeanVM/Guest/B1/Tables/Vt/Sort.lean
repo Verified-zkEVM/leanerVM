@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Vt.SortT
 public import LeanVM.Guest.B1.Placement.StackCert
 
 /-!
-# A side's block offsets (G:1958-1991)
+# A side's block offsets (G:1953-1986)
 
 `vt_rank0`, `vt_rank`: what a rank's template gives (`VtRankFacts`). `vt_side_cert`: when every
 block's `block_kappa` cell holds `g^κ` with `κ < 34`, the ranks of a side whose blocks are
@@ -199,7 +199,7 @@ theorem vt_side_tab {rd : Reader} {σ : Val} (h : VtH rd σ) :
   rw [← this.1]
   exact this.2
 
-/-- **`verify_tables`' block certification** (G:1965-1991): when every block's `block_kappa` cell
+/-- **`verify_tables`' block certification** (G:1960-1986): when every block's `block_kappa` cell
 holds `g^κ`, `κ < 34`, the push side's `54` blocks and the count side's `45` blocks have their
 `block_off_g` cells holding `g^` the `stackOffsets` offsets of the side's log-sizes. -/
 theorem vt_sort {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {σ : Val} (h : VtH Lm.read σ)

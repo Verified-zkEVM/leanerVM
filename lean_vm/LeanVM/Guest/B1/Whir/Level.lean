@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Whir.LevelB
 public import LeanVM.Guest.B1.Whir.Final
 
 /-!
-# A level (G:1341-1500)
+# A level (G:1336-1495)
 
 `osLevel_nonfinal_sound`, `osLevel_final_sound`: from the guest's state at a level's start against
 the Spec's (`LvIn`: the sponge it carries, the claim and the quadratic, the fold challenges stored,

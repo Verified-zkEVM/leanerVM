@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.SelFw
 
 /-!
-# The push side's padding and total (G:2131-2163)
+# The push side's padding and total (G:2126-2158)
 
 `vtPushPadData` lists the push side's table blocks with their table, the value of their eq weight's
 copy (`block_eq_hi[b]`) and their nonzero `COORD_PADDING` terms (slot, value). `vt_push_total`:

@@ -38,7 +38,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## `assert_canonical` (G:491-498, TRIAGE #2) -/
+/-! ## `assert_canonical` (G:486-493, TRIAGE #2) -/
 
 /-- **`assert_canonical(word)`**: the word has no `y²` term; it returns `0`. -/
 def MeaningAssertCanonical : List E → List E → Prop
@@ -50,7 +50,7 @@ def assert_canonical_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "assert_canonical" args rets ↔ MeaningAssertCanonical args rets
 
-/-! ## `exponent_tables` (G:650-665, TRIAGE #16) -/
+/-! ## `exponent_tables` (G:645-660, TRIAGE #16) -/
 
 /-- `SIZE_BITS`: the exponent tables' length. -/
 abbrev sizeBits : ℕ := 34
@@ -69,7 +69,7 @@ def exponent_tables_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "exponent_tables" args rets ↔ MeaningExponentTables rd args rets
 
-/-! ## `g_power_of_word` (G:668-681, TRIAGE #17) -/
+/-! ## `g_power_of_word` (G:663-676, TRIAGE #17) -/
 
 /-- **`g_power_of_word(value)`**: the value is the integer `n < 2^6` (`E(n)`), and the function
 returns `g^n`. -/
@@ -82,7 +82,7 @@ def g_power_of_word_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "g_power_of_word" args rets ↔ MeaningGPowerOfWord args rets
 
-/-! ## `verify_log2_ceil`, `log2_ceil_in_the_exponent` (G:684-729, TRIAGE #18, #19) -/
+/-! ## `verify_log2_ceil`, `log2_ceil_in_the_exponent` (G:679-724, TRIAGE #18, #19) -/
 
 /-- **`verify_log2_ceil(bits, g_logs_pow2, g_squares, floor, 34)`**: the 34 words at `bits` are
 the bits of `W < 2^34`, a heap run holds the prefix sums `E(W mod 2^j)`, the floored log
@@ -126,7 +126,7 @@ def log2_Spec : Prop :=
     log2_ceil_in_the_exponent_Spec "log2_ceil_in_the_exponent__L0_L34" 0 ∧
     log2_ceil_in_the_exponent_Spec "log2_ceil_in_the_exponent__L15_L34" 15
 
-/-! ## `decode_query_bits` (G:732-776, TRIAGE #20) -/
+/-! ## `decode_query_bits` (G:727-771, TRIAGE #20) -/
 
 /-- `p` names a frame run holding the 192 bits of `W`: every readable word at `p·g^k`, `k < 192`,
 is bit `k` (`addr(bits)`). -/
@@ -162,7 +162,7 @@ def decodeQueryBitsNames : List (String × ℕ) :=
 def decode_query_bits_all_Spec : Prop :=
   ∀ p ∈ decodeQueryBitsNames, decode_query_bits_Spec p.1 p.2
 
-/-! ## `grind_check` (G:779-801, TRIAGE #21) -/
+/-! ## `grind_check` (G:774-796, TRIAGE #21) -/
 
 /-- **`grind_check(word, bits)`** (`bits > 0`): the word, the first cell of the permutation the
 nonce's challenge comes from, is canonical and the low `bits` bits of its first limb are zero:

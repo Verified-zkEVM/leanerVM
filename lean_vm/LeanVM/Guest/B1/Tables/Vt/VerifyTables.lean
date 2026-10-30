@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Vt.AsmFinal
 public import LeanVM.Guest.B1.Tables.Vt.AsmClaims
 
 /-!
-# `verify_tables_holds` (G:1936-2312)
+# `verify_tables_holds` (G:1931-2307)
 
 For a bytecode of `2^23` words and a memory image of at most `2^32` words: the row counts are
 the ones `table_rows` holds, their heights the ones `dims_g` holds; from the carried capacity,
@@ -34,7 +34,7 @@ variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ)
 include hμ
 
 set_option maxHeartbeats 4000000 in
-/-- **`verify_tables` is sound** (G:1936-2312; TRIAGE #52), for a bytecode of `2^23` words. -/
+/-- **`verify_tables` is sound** (G:1931-2307; TRIAGE #52), for a bytecode of `2^23` words. -/
 theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     verify_tables_Spec bc Lm.read := by
   intro pi lm alphas point values args rets hpre hrel

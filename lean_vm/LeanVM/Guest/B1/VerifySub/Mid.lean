@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.Mid
 
-  `verify_sub`'s sizes, `block_kappa` and the push side's total (G:3187-3209).
+  `verify_sub`'s sizes, `block_kappa` and the push side's total (G:3182-3204).
 -/
 
 module
@@ -53,7 +53,7 @@ theorem word_pow2 {a : ℕ} (h : a < 64) : word (2 ^ a) 0 0 = gen ^ a := word_tw
 
 /-! ## The sizes -/
 
-/-- **The sizes** (G:3187-3198): the rate exponent and the memory's log-size, `dims`, and
+/-- **The sizes** (G:3182-3193): the rate exponent and the memory's log-size, `dims`, and
 `kappa_base`. -/
 theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read))
@@ -159,7 +159,7 @@ theorem kappa_loop {g : E} {ds : List E} (hds : ds.length = 6)
     · exact hb
     · exact hr x hx
 
-/-- **`block_kappa`** (G:3199-3203): block `b`'s `g^κ`, over `kappa_base`. -/
+/-- **`block_kappa`** (G:3194-3198): block `b`'s `g^κ`, over `kappa_base`. -/
 theorem vsKappaT_holds {g : E} {ds : List E} (hds : ds.length = 6)
     (hkb : ReadsAt rd (σ (.n 141)) (1 :: g :: ds))
     (h : Stmt.HoldsList C rd σ vsKappaT next kret) :
@@ -267,7 +267,7 @@ theorem push_sum_lt {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 29) (
   simp only [List.length_map, List.length_range, smul_eq_mul] at hle
   omega
 
-/-- **The push total** (G:3204-3209): the bus depth `g^(log2Ceil Σ)` over the push blocks'
+/-- **The push total** (G:3199-3204): the bus depth `g^(log2Ceil Σ)` over the push blocks'
 `Σ 2^κ_b`. -/
 theorem vsPushT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read)) (hexp : B1.ExpTables L.read (σ (.n 4)) (σ (.n 5)))

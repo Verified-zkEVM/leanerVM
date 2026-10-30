@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.KeccakGkr.Lib
 /-!
 # `keccak_round` (TRIAGE G #59)
 
-`keccak_round(rd, pp, pt)` (G:2454-2475) is `Data.core11`: it loads the round record's capacity
+`keccak_round(rd, pp, pt)` (G:2449-2470) is `Data.core11`: it loads the round record's capacity
 and cursor, the coordinate `r = pp[0]`, reads `g₁`, `g₂` (`fs_next`, values `10 .. 29`),
 squeezes (one `KECCAK` atom, `challenge_from_state` from value `48`), stores the challenge at
 `pt`, and writes the next record: the capacity cells `43 .. 47`, the cursor `·g²`, the claim

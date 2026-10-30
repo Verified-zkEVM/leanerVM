@@ -11,7 +11,7 @@ public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.Folds
 
 /-!
-# The glue (G:1482-1500, V:1775-1783)
+# The glue (G:1477-1495, V:1775-1783)
 
 `osOodGlue_sound`: the out-of-domain claim's value and intro reread from `ood` (`y`, `c0`, `c2`),
 the scalar `lam` stored, the running quadratic and claim plus `lam` times them, the next scalar

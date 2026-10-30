@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.PullTotal
 
 /-!
-# The count side's total (G:2131-2163)
+# The count side's total (G:2126-2158)
 
 The count side has no framework blocks and its blocks' padding coefficient is `1`.
 `vt_count_total`: `bus_table_total[COUNT]`.
