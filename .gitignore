@@ -12,6 +12,9 @@
 /lean_vm/scripts/guest-export/target/
 /lean_vm/target/
 
+# LaTeX builds of statement.tex (the editor's output directory)
+/.build/
+
 # Python and editors
 __pycache__/
 .vscode/
