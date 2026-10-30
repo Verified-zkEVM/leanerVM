@@ -8,8 +8,9 @@ A classic test for kernel evaluation, on the hand-built witness of the constrain
 tests (`LeanerVMTests.Arithmetization.Statement`).
 
 **The theorems applied.** On the honest witness, `mem_channel_sound` makes the product row's
-three reads correct reads of the image, and `bytecode_channel_sound` makes the `XOR` fill row's
-bytecode read the program's entry at its counter.
+three reads, their pulls and their pushes, correct reads of the image, and
+`bytecode_channel_sound` makes the `XOR` fill row's bytecode read the program's entry at its
+counter.
 
 **Lemma 6.3 concludes that every count is `0`.** The list `[0, 0]` is invariant under
 multiplication by `g` and is not empty.
@@ -20,13 +21,10 @@ seed and no finalize and no good key, the test that isolates the hypothesis. The
 tests' `zero_count_witness` shows the count product independent of the other conjuncts; its
 zero-count read is a correct read, so it does not falsify `mem_channel_sound`'s conclusion.
 
-**A wrong index column.** `badW` is the honest witness with one memory block row changed: the
-first untouched cell, `29`, which holds `0` and is never read, carries the address `g^2` of `x`,
-so its seed and finalize are both `(g^2, 1, 0)` and cancel. The witness satisfies every conjunct
-`mem_channel_sound` consumes, the memory balance (from the honest witness's), the count product,
-the caps and the seed rows, and fails `IndexColumnsAreRowIndices`; and the conclusion of
-`mem_channel_sound` fails on it: the pulled finalize `(g^2, 1, 0)` is not a read of the image,
-which holds `x` at `g^2`. The index column the verifier computes is load-bearing.
+**A wrong index column is no memory block.** A memory block whose first untouched cell, `29`,
+carries the address `g^2` of `x` would seed and finalize `(g^2, 1, 0)`, which cancel, and its
+pull would be a wrong read. The address column is a fixed column: those rows fail the block's
+`FixedRowsMatch`, which every table of a witness carries, so no witness has them.
 -/
 
 namespace LeanerVMTests.Arithmetization.Bus
@@ -37,38 +35,59 @@ open Air.Flat (Component EnsembleWitness)
 
 /-! ## Helpers -/
 
-/-- A row's message is a message of the witness. -/
-theorem mem_messagesOn {w : EnsembleWitness (leanIsaEnsemble fillProg)} {t : Air.Flat.Table K}
-    (ht : t ∈ w.tables) {row : Array K} (hrow : row ∈ t.table) {c : RawChannel K} {a : Array K}
-    (ha : a ∈ rowMessagesOn t row c) : a ∈ messagesOn w c :=
-  mem_messagesOn_of_mem_rowMessagesOn (w.mem_allTables_of_mem_tables ht) hrow ha
+/-- The `XOR` table of the witness has the fixture's row. -/
+theorem tableAt_zero : (tableAt (fillW 1 g memCnt) 0).table = xorT.table := by
+  simp only [tableAt, fillW, mkW, witnessOfTables, Air.Flat.withDerivedData, List.getElem_map,
+    List.getElem_attach]
+  rfl
+
+/-- The `MUL_NATIVE` table of the witness has the fixture's row. -/
+theorem tableAt_one : (tableAt (fillW 1 g memCnt) 1).table = (mulT g).table := by
+  simp only [tableAt, fillW, mkW, witnessOfTables, Air.Flat.withDerivedData, List.getElem_map,
+    List.getElem_attach]
+  rfl
 
 /-! ## The theorems applied to the honest witness -/
 
-/-- The product row's three memory reads are correct reads of the image. -/
-example : ∀ m ∈ (mulSends (mulRow g)).mem, MemPull.Guarantees m fillData := by
+/-- The product row's three memory reads, pulled and pushed, are correct reads of the image. -/
+example : ∀ m ∈ (mulSends (mulRow g)).mem, MemChannel.Guarantees m (fillW 1 g memCnt).data ∧
+    MemChannel.Guarantees m.bump (fillW 1 g memCnt).data := by
   intro m hm
-  have hrow := (mul_sendsOpcode (t := mulT g) rfl (rawRow (mulRow g))).mem_pull
-  rw [show valueFromOffset MulRow 0 ((mulT g).environment (rawRow (mulRow g))) = mulRow g from
-    rowAt_toElements fillData (mulRow g)] at hrow
-  have hmem : (toElements m).toArray ∈ messagesOn (fillW 1 g memCnt) MemPull.toRaw :=
-    mem_messagesOn (t := mulT g) (row := rawRow (mulRow g))
-      (List.mem_cons_of_mem _ List.mem_cons_self) List.mem_cons_self
-      (by rw [hrow]; exact List.mem_map_of_mem hm)
-  obtain ⟨i, hi, hname, hmsg⟩ := exists_interaction_of_mem_messagesOn hmem
-  exact mem_channel_sound fill_satisfiedBy i hi hname m hmsg
+  have hs := mul_sendsOpcode (t := tableAt (fillW 1 g memCnt) 1)
+    (tableAt_component _ 1) (rawRow (mulRow g))
+  rw [show valueFromOffset MulRow 0 ((tableAt (fillW 1 g memCnt) 1).environment
+    (rawRow (mulRow g))) = mulRow g from rowAt_toElements _ (mulRow g)] at hs
+  have hrow : rawRow (mulRow g) ∈ (tableAt (fillW 1 g memCnt) 1).table := by
+    rw [tableAt_one]
+    exact List.mem_cons_self
+  have hpull := mem_messagesOn_of_mem_rowMessagesOn
+    (t := tableAt (fillW 1 g memCnt) 1) (List.getElem_mem _) hrow (c := MemChannel.toRaw)
+    (d := .pull) (a := (toElements m).toArray)
+    (by rw [hs.mem_pull]; exact List.mem_map_of_mem hm)
+  have hpush := mem_messagesOn_of_mem_rowMessagesOn
+    (t := tableAt (fillW 1 g memCnt) 1) (List.getElem_mem _) hrow (c := MemChannel.toRaw)
+    (d := .push) (a := (toElements m.bump).toArray)
+    (by rw [hs.mem_push]; exact List.mem_map_of_mem hm)
+  obtain ⟨i, hi, hname, -, hmsg⟩ := exists_interaction_of_mem_messagesOn hpull
+  obtain ⟨i', hi', hname', -, hmsg'⟩ := exists_interaction_of_mem_messagesOn hpush
+  exact ⟨mem_channel_sound fill_satisfiedBy i hi hname m hmsg,
+    mem_channel_sound fill_satisfiedBy i' hi' hname' m.bump hmsg'⟩
 
 /-- The `XOR` fill row's bytecode read is the program's entry at its counter. -/
 example : ∃ k : Fin (2 ^ fillProg.logSize), (xorSends xorRow).bc.pc = gpow k ∧
     #v[(xorSends xorRow).bc.opcode] ++ (xorSends xorRow).bc.op = entry (fillProg.code k) := by
-  have hrow := (xor_sendsOpcode (t := xorT) rfl (rawRow xorRow)).bytecode_pull
-  rw [show valueFromOffset XorRow 0 (xorT.environment (rawRow xorRow)) = xorRow from
-    rowAt_toElements fillData xorRow] at hrow
-  have hmem : (toElements (xorSends xorRow).bc).toArray ∈
-      messagesOn (fillW 1 g memCnt) BytecodePull.toRaw :=
-    mem_messagesOn (t := xorT) (row := rawRow xorRow) List.mem_cons_self List.mem_cons_self
-      (by rw [hrow]; exact List.mem_singleton_self _)
-  obtain ⟨i, hi, hname, hmsg⟩ := exists_interaction_of_mem_messagesOn hmem
+  have hs := xor_sendsOpcode (t := tableAt (fillW 1 g memCnt) 0)
+    (tableAt_component _ 0) (rawRow xorRow)
+  rw [show valueFromOffset XorRow 0 ((tableAt (fillW 1 g memCnt) 0).environment
+    (rawRow xorRow)) = xorRow from rowAt_toElements _ xorRow] at hs
+  have hrow : rawRow xorRow ∈ (tableAt (fillW 1 g memCnt) 0).table := by
+    rw [tableAt_zero]
+    exact List.mem_cons_self
+  have hmem := mem_messagesOn_of_mem_rowMessagesOn
+    (t := tableAt (fillW 1 g memCnt) 0) (List.getElem_mem _) hrow (c := BytecodeChannel.toRaw)
+    (d := .pull) (a := (toElements (xorSends xorRow).bc).toArray)
+    (by rw [hs.bytecode_pull]; exact List.mem_singleton_self _)
+  obtain ⟨i, hi, hname, -, hmsg⟩ := exists_interaction_of_mem_messagesOn hmem
   exact bytecode_channel_sound fill_satisfiedBy i hi hname _ hmsg
 
 /-! ## Lemma 6.3 and the count hypothesis -/
@@ -88,212 +107,24 @@ example : ¬ ∀ (reads seeds fins : List (K × K)) (Good : K → Prop),
 
 /-! ## A wrong index column -/
 
-/-- The index column of the bad memory block: `g^i`, except at the first untouched cell, which
+/-- The index column of a bad memory block: `g^i`, except at the first untouched cell, which
 carries the address `g^2` of `x`. -/
 def idxBad (i : ℕ) : K := if i = touched then gpow 2 else gpow i
 
 /-- Row `i` of the bad memory block. -/
-def memRowArrBad (i : Fin (2 ^ minLogMem)) : Array K :=
-  (toElements (⟨idxBad i, memCnt i,
-    #v[(fillImage i).limb 0, (fillImage i).limb 1, (fillImage i).limb 2]⟩ : MemRow K)).toArray
+def memRowBad (i : Fin (2 ^ minLogMem)) : MemRow K :=
+  ⟨idxBad i, memCnt i, #v[(fillImage i).limb 0, (fillImage i).limb 1, (fillImage i).limb 2]⟩
 
-theorem memRowArrBad_eq (i : Fin (2 ^ minLogMem)) :
-    memRowArrBad i =
-      #[idxBad i, memCnt i, (fillImage i).limb 0, (fillImage i).limb 1, (fillImage i).limb 2] := by
-  with_unfolding_all rfl
-
-/-- The bad memory block. -/
-def memTBad : Air.Flat.Table K :=
-  mkT memTable (size MemRow) (List.ofFn memRowArrBad) (by
-    intro r hr
-    rw [List.mem_ofFn] at hr
-    obtain ⟨i, rfl⟩ := hr
-    exact Vector.size_toArray _)
-
-theorem memTBad_table : memTBad.table = List.ofFn memRowArrBad := by
-  dsimp only [memTBad, mkT]
-
-/-- The honest witness with the bad memory block. -/
-def badW : EnsembleWitness (leanIsaEnsemble fillProg) :=
-  mkW [xorT, mulT g, setT 1, derefT, jumpT, blakeT, memTBad, bcT]
-
-/-- The bad block's seed of cell `i`. -/
-def seedBad (i : Fin (2 ^ minLogMem)) : Array K :=
-  #[idxBad i, 1, (fillImage i).limb 0, (fillImage i).limb 1, (fillImage i).limb 2]
-
-/-- The bad block's finalize of cell `i`. -/
-def finBad (i : Fin (2 ^ minLogMem)) : Array K :=
-  #[idxBad i, memCnt i, (fillImage i).limb 0, (fillImage i).limb 1, (fillImage i).limb 2]
-
-theorem memTBad_pushes :
-    (memTBad.interactions.filter (·.channel.name = MemPush.toRaw.name)).map (·.msg) =
-      List.ofFn seedBad := by
-  rw [table_interactions_eq, List.filter_flatMap, List.map_flatMap]
-  simp only [memTBad, mkT, Air.Flat.Table.environment, memRow_push, ← List.map_eq_flatMap,
-    List.map_ofFn]
-  apply congrArg List.ofFn
-  funext i
-  dsimp only [Function.comp_apply]
-  rw [memRowArrBad_eq]
-  rfl
-
-theorem memTBad_pulls :
-    (memTBad.interactions.filter (·.channel.name = MemPull.toRaw.name)).map (·.msg) =
-      List.ofFn finBad := by
-  rw [table_interactions_eq, List.filter_flatMap, List.map_flatMap]
-  simp only [memTBad, mkT, Air.Flat.Table.environment, memRow_pull, ← List.map_eq_flatMap,
-    List.map_ofFn]
-  apply congrArg List.ofFn
-  funext i
-  dsimp only [Function.comp_apply]
-  rw [memRowArrBad_eq]
-  rfl
-
-/-- Below the first untouched cell the bad block is the honest one. -/
-theorem idxBad_of_lt {i : ℕ} (h : i < touched) : idxBad i = gpow i :=
-  ite_eq_right (by omega)
-
-/-- The bad seeds, split at the touched cells: the touched ones are the honest seeds. -/
-theorem seedsBad_split : List.ofFn seedBad =
-    (List.ofFn fun i : Fin touched ↦ seedMsg (Fin.castAdd untouched i)) ++
-      List.ofFn fun j : Fin untouched ↦ seedBad (Fin.natAdd touched j) := by
-  rw [show List.ofFn seedBad = List.ofFn fun i : Fin (touched + untouched) ↦ seedBad i from rfl,
-    List.ofFn_add]
-  refine congrArg₂ _ (congrArg _ (funext fun i ↦ ?_)) rfl
-  show #[idxBad i, 1, _, _, _] = #[gpow i, 1, _, _, _]
-  rw [idxBad_of_lt i.isLt]
-  rfl
-
-/-- The bad finalizes, split the same way: past the touched cells they are the bad seeds. -/
-theorem finsBad_split : List.ofFn finBad =
-    (List.ofFn fun i : Fin touched ↦ finMsg memCnt (Fin.castAdd untouched i)) ++
-      List.ofFn fun j : Fin untouched ↦ seedBad (Fin.natAdd touched j) := by
-  rw [show List.ofFn finBad = List.ofFn fun i : Fin (touched + untouched) ↦ finBad i from rfl,
-    List.ofFn_add]
-  refine congrArg₂ _ (congrArg _ (funext fun i ↦ ?_)) (congrArg _ (funext fun j ↦ ?_))
-  · show #[idxBad i, _, _, _, _] = #[gpow i, _, _, _, _]
-    rw [idxBad_of_lt i.isLt]
-    rfl
-  · show #[_, memCnt (touched + j), _, _, _] = #[_, 1, _, _, _]
-    rw [memCnt_of_ge (Nat.le_add_right touched j)]
-
-/-- The bad witness's memory balance is the honest witness's touched permutation. -/
-theorem badW_mem_balanced_iff :
-    BalancedPair badW MemPull.toRaw MemPush.toRaw ↔
-      (List.map (·.msg) (List.filter (·.channel.name = MemPush.toRaw.name)
-        ((fillW 1 g memCnt).verifierTable.interactions ++ xorT.interactions ++
-          (mulT g).interactions ++ (setT 1).interactions ++ derefT.interactions ++
-          jumpT.interactions ++ blakeT.interactions)) ++
-        List.ofFn fun i : Fin touched ↦ seedMsg (Fin.castAdd untouched i)).Perm
-      (List.map (·.msg) (List.filter (·.channel.name = MemPull.toRaw.name)
-        ((fillW 1 g memCnt).verifierTable.interactions ++ xorT.interactions ++
-          (mulT g).interactions ++ (setT 1).interactions ++ derefT.interactions ++
-          jumpT.interactions ++ blakeT.interactions)) ++
-        List.ofFn fun i : Fin touched ↦ finMsg memCnt (Fin.castAdd untouched i)) := by
-  unfold BalancedPair messagesOn
-  rw [EnsembleWitness.interactions]
-  simp only [EnsembleWitness.allTables, EnsembleWitness.verifierTable, badW, fillW, mkW,
-    List.flatMap_cons, List.flatMap_nil,
-    List.append_nil, List.filter_append, List.map_append,
-    bcT_filter MemPush.toRaw (by decide) (by decide),
-    bcT_filter MemPull.toRaw (by decide) (by decide), memTBad_pushes, memTBad_pulls,
-    seedsBad_split, finsBad_split, ← List.append_assoc]
-  exact List.perm_append_right_iff _
-
-/-- The memory pair of the bad witness balances. -/
-theorem badW_mem_balanced : BalancedPair badW MemPull.toRaw MemPush.toRaw :=
-  badW_mem_balanced_iff.mpr ((mem_balanced_iff 1 g memCnt fun _ ↦ memCnt_of_ge).mp
-    fill_mem_balanced)
-
-/-- Its count product holds: its six opcode tables are the honest ones. -/
-theorem badW_countsNonzero : CountsNonzero badW := by
-  have h := fill_countsNonzero
-  unfold CountsNonzero at h ⊢
-  rw [show (fillW 1 g memCnt).tables.take 6 = [xorT, mulT g, setT 1, derefT, jumpT, blakeT]
-    from rfl] at h
-  rwa [show badW.tables.take 6 = [xorT, mulT g, setT 1, derefT, jumpT, blakeT] from rfl]
-
-/-- Its caps hold. -/
-theorem badW_caps : Caps badW where
-  minLogMem_le := by rw [show badW.data = fillData from rfl, fill_logSize]
-  le_maxLogMem := by rw [show badW.data = fillData from rfl, fill_logSize]; decide
-  heights := by
-    intro t ht
-    simp only [badW, mkW, List.mem_cons, List.not_mem_nil, or_false] at ht
-    rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    · exact ⟨0, by decide, rfl⟩
-    · exact ⟨0, by decide, rfl⟩
-    · exact ⟨1, by decide, rfl⟩
-    · exact ⟨0, by decide, rfl⟩
-    · exact ⟨2, by decide, rfl⟩
-    · exact ⟨3, by decide, by rw [blakeT_table, List.length_map, List.length_ofFn]; rfl⟩
-    · exact ⟨minLogMem, by decide, by rw [memTBad_table, List.length_ofFn]⟩
-    · exact ⟨5, by decide, by rw [bcT_table, List.length_ofFn]; rfl⟩
-  blake2s_height := by
-    rw [blake2sRows, show tableAt badW 5 = blakeT from rfl, blakeT_table, List.length_map,
-      List.length_ofFn]
-    decide
-  well_shaped := fill_wellShaped
-
-/-- The seed-rows conjunct over the bad block, for any image equal to the fixture's: the image
-is substituted before anything is compared. -/
-theorem seedRowsBad_of {tables : List (Air.Flat.Table K)} {pi : PublicIO K} {h1 h2 h3}
-    (hrows : memBlockRows (⟨tables, fillData, pi, h1, h2, h3⟩ :
-      EnsembleWitness (leanIsaEnsemble fillProg)) = List.ofFn memRowArrBad) :
-    SeedRowsAreTheImage (⟨tables, fillData, pi, h1, h2, h3⟩ :
-      EnsembleWitness (leanIsaEnsemble fillProg)) := by
-  unfold SeedRowsAreTheImage
-  dsimp only
-  have key : ∀ s : (κ : ℕ) × MemImage κ, s = ⟨minLogMem, fillImage⟩ →
-      ∃ idx cntFin : Fin (2 ^ s.1) → K,
-        memBlockRows (⟨tables, fillData, pi, h1, h2, h3⟩ :
-          EnsembleWitness (leanIsaEnsemble fillProg)) = List.ofFn fun i ↦
-            (toElements (⟨idx i, cntFin i, #v[(s.2 i).limb 0, (s.2 i).limb 1, (s.2 i).limb 2]⟩ :
-              MemRow K)).toArray := by
-    rintro s rfl
-    exact ⟨fun i ↦ idxBad i, fun i ↦ memCnt i, hrows⟩
-  exact key (imageOf fillData) fill_imageOf
-
-theorem badW_memBlockRows : memBlockRows badW = List.ofFn memRowArrBad := by
-  rw [memBlockRows, show tableAt badW 6 = memTBad from rfl, memTBad_table]
-
-/-- Its memory block's rows are the image, with the bad index column. -/
-theorem badW_seedRows : SeedRowsAreTheImage badW := seedRowsBad_of badW_memBlockRows
-
-/-- Its index column is wrong at cell `29`. -/
-theorem badW_not_indexColumns : ¬ IndexColumnsAreRowIndices badW := fun h ↦ by
-  have h29 := h touched (by rw [badW_memBlockRows, List.length_ofFn]; decide)
-  simp only [badW_memBlockRows, List.getElem_ofFn, memRowArrBad, memRowAt_toElements, idxBad,
-    ↓reduceIte] at h29
-  revert h29
-  decide +kernel
-
-/-- The bad witness pulls the finalize `(g^2, 1, 0)` of cell `29`, and it is not a read of the
-image: the conclusion of `mem_channel_sound` fails. -/
-theorem badW_not_sound : ¬ ∀ i ∈ badW.interactions, i.channel.name = MemPull.name →
-    ∀ m : MemMsg K, i.msg = (toElements m).toArray → MemPull.Guarantees m badW.data := by
-  intro h
-  let m : MemMsg K := ⟨gpow 2, 1, #v[0, 0, 0]⟩
-  have hrow : memRowArrBad ⟨touched, by decide⟩ ∈ memTBad.table := by
-    rw [memTBad_table]
-    exact List.mem_ofFn.mpr ⟨_, rfl⟩
-  have hmsgs : rowMessagesOn memTBad (memRowArrBad ⟨touched, by decide⟩) MemPull.toRaw =
-      [(toElements m).toArray] := by
-    rw [memBlock_rowMessagesOn (t := memTBad) rfl (memRowArrBad ⟨touched, by decide⟩)
-      (rowAt_toElements fillData _)]
-    decide +kernel
-  have hmem : (toElements m).toArray ∈ messagesOn badW MemPull.toRaw :=
-    mem_messagesOn (t := memTBad)
-      (List.mem_cons_of_mem _ <| List.mem_cons_of_mem _ <| List.mem_cons_of_mem _ <|
-        List.mem_cons_of_mem _ <| List.mem_cons_of_mem _ <| List.mem_cons_of_mem _
-          List.mem_cons_self)
-      hrow (by rw [hmsgs]; exact List.mem_singleton_self _)
-  obtain ⟨i, hi, hname, hmsg⟩ := exists_interaction_of_mem_messagesOn hmem
-  have hg : (imageOf fillData).2.read (gpow 2) = some (E.ofLimbs 0 0 0) := h i hi hname m hmsg
-  have hread : (imageOf fillData).2.read (gpow 2) = some mulX := by
-    rw [fill_imageOf]
-    exact read_at 2 mulX
-  have hne : mulX ≠ E.ofLimbs 0 0 0 := by decide +kernel
-  exact hne (Option.some.inj (hread.symm.trans hg))
+/-- The bad rows fail the memory block's fixed address column at cell `29`: no table of a
+witness has them. -/
+example : ¬ (memComponent minLogMem).FixedRowsMatch (List.ofFn fun i ↦ rawRow (memRowBad i)) := by
+  rintro ⟨-, hfix⟩
+  have h := hfix touched (by rw [List.length_ofFn]; decide)
+  rw [List.getElem_ofFn] at h
+  have h' := (memMode_fixedAt_iff (show touched < 2 ^ minLogMem by decide) (by decide) _).mp h
+  have hidx : idxBad touched = gpow touched :=
+    (congrArg MemRow.idx (fromElements_rawRow (memRowBad ⟨touched, by decide⟩))).symm.trans h'
+  rw [idxBad, ite_eq_left (rfl : touched = touched)] at hidx
+  exact absurd hidx (by decide +kernel)
 
 end LeanerVMTests.Arithmetization.Bus

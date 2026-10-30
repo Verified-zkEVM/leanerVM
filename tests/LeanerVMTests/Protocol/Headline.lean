@@ -2,6 +2,8 @@ import LeanerVM.Protocol.Headline
 import LeanerVMTests.Protocol.RandomOracleGame
 import LeanerVMTests.Arithmetization.Steps
 import LeanerVMTests.Arithmetization.Sentinel
+import LeanerVMTests.Semantics.FillBlocks
+import LeanerVMTests.Arithmetization.Completeness.Theorem
 import LeanerVMTests.Protocol.LogScan
 
 /-!
@@ -56,9 +58,14 @@ open LeanerVM.Protocol.ProofRoots LeanerVM.Protocol.LeanVmReader OracleComp Orac
 open LeanerVMTests.Protocol.Proof (program input)
 open LeanerVMTests.Protocol.RandomOracleGame (d nodeA nodeV)
 open LeanerVMTests.Arithmetization.Statement (fillProg mulInput)
-open LeanerVMTests.Arithmetization.Steps (fill_sentinelSafe fill_wellFormed)
-open LeanerVMTests.Arithmetization.Sentinel (sentProg sentW sent_satisfiedBy sent_no_execution)
+open LeanerVMTests.Arithmetization.Steps (fill_sentinelSafe)
+open LeanerVMTests.Semantics.FillBlocks (ladderProg ladder_wellFormed)
+open LeanerVMTests.Semantics.PaddedImageRefutation (ladderJumpProg badInput ladderJump_wellFormed)
+open LeanerVMTests.Arithmetization.Completeness.Theorem (badTrace badTrace_valid badTrace_fits)
+open LeanerVMTests.Arithmetization.Sentinel (sentProg sentW sent_not_safe sent_satisfiedBy
+  sent_no_execution)
 open LeanerVMTests.Protocol.LogScan (entries scan)
+open LeanerVM.Parameters.Whir (queryGrindingBits)
 open scoped ENNReal
 
 /-! ## Nothing is extracted from the empty log -/
@@ -300,9 +307,44 @@ example (A : Adversary) {Q : ℕ} (hQ : IsTotalQueryBound A Q) :
 example (A : Adversary) {δ : ℝ≥0∞} (hB : BlakeMisbehaves fillProg mulInput A δ) :
     Pr{let g ← runBlake2s (loggedGame verifyWith fillProg mulInput A)}[
       verify fillProg mulInput g.proof = true ∧ ¬ ∃ t,
-        extractTrace (leanIsaTraceExtraction fill_sentinelSafe) mulInput g.proof g.logA =
-          some t ∧ ValidExecution fillProg mulInput t] ≤ δ :=
+        extractExecution fillProg mulInput g.proof g.logA = some t ∧
+          ValidExecution fillProg mulInput t] ≤ δ :=
   baseVerifier_extractsExecution fill_sentinelSafe hB
+
+/- The random-oracle execution form at the test vector's program. -/
+example (A : Adversary) {Q : ℕ} (hQ : IsTotalQueryBound A Q) :
+    Pr{let z ← runRandom (loggedGame verifyWith fillProg mulInput A)}[
+      z.1.ok = true ∧ ¬ ∃ t, extractExecution fillProg mulInput z.1.proof z.1.logA = some t ∧
+        ValidExecution fillProg mulInput t] ≤
+      ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : NNReal) :=
+  baseVerifier_extractsExecution_rom fill_sentinelSafe hQ
+
+/- At a program whose sentinel slot is a `JUMP` the extractor returns nothing. -/
+example (proof : Proof PrunedMerklePaths) (log : hashSpec.QueryLog) :
+    extractExecution sentProg mulInput proof log = none := by
+  simp [extractExecution, sent_not_safe]
+
+/-! ## Completeness from an execution -/
+
+/- **The completeness headline at an instance**: its hypotheses hold of the one-step trace of
+well-formed bytecode in the completeness tests, so its conclusion is not vacuous there, the
+conjunct on when `prove` returns a proof included. -/
+example : ∃ t' : Trace ladderJumpProg, t'.PaddedFrom badTrace ∧
+    ValidExecution ladderJumpProg badInput t' ∧
+      ∃ w : Air.Flat.EnsembleWitness (leanIsaEnsemble ladderJumpProg t'.κ),
+        SatisfiedBy ladderJumpProg badInput w ∧ AssignmentRepresents w t' ∧
+          ∃ s, Sizes.ofWitness w = some s ∧ ∀ fuel ρ,
+            (∀ proof, prove fuel ladderJumpProg badInput w ρ = some proof →
+              verify ladderJumpProg badInput proof = true) ∧
+            (prove fuel ladderJumpProg badInput w ρ = none →
+              maxMu < leanIsaμ ladderJumpProg s ∨ ¬ validRate ρ ∨
+                ∃ fs, ProveReaches fuel ladderJumpProg badInput w ρ fs ∧
+                  Id.run (fs.grind blake2sBytes fuel queryGrindingBits) = none) ∧
+            (leanIsaμ ladderJumpProg s ≤ maxMu → validRate ρ →
+              (∀ fs, ProveReaches fuel ladderJumpProg badInput w ρ fs →
+                Id.run (fs.grind blake2sBytes fuel queryGrindingBits) ≠ none) →
+              prove fuel ladderJumpProg badInput w ρ ≠ none) :=
+  prove_complete_of_execution ladderJump_wellFormed badTrace_valid badTrace_fits
 
 /-! ## The adaptive theorems -/
 
@@ -382,12 +424,12 @@ example (proof : Proof PrunedMerklePaths) :
       ((1 + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 1 : NNReal) :=
   baseVerifier_extractsWitness_rom_adaptive (chooser_queries _ _ _)
 
-/- The execution form for an adversary that only ever outputs the test vector's program, which
-is well-formed: the hypothesis on the adversary's programs is met. -/
+/- The execution form for an adversary that only ever outputs the fill-block ladder's program,
+which is well-formed: the hypothesis on the adversary's programs is met. -/
 example (A : Adversary) {δ : ℝ≥0∞}
-    (hB : BlakeMisbehavesAdaptive ((fun proof ↦ (fillProg, mulInput, proof)) <$> A) δ) :
+    (hB : BlakeMisbehavesAdaptive ((fun proof ↦ (ladderProg, mulInput, proof)) <$> A) δ) :
     Pr{let g ← runBlake2s (adaptiveGame verifyWith
-        ((fun proof ↦ (fillProg, mulInput, proof)) <$> A))}[
+        ((fun proof ↦ (ladderProg, mulInput, proof)) <$> A))}[
       verify g.prog g.input g.proof = true ∧ ¬ ∃ t,
         extractExecution g.prog g.input g.proof g.logA = some t ∧
           ValidExecution g.prog g.input t] ≤ δ :=
@@ -395,7 +437,7 @@ example (A : Adversary) {δ : ℝ≥0∞}
     have hg' := QueryLog.support_simulateQ_subset _ _ hg
     rw [adaptiveGame_const, support_map] at hg'
     obtain ⟨_, -, rfl⟩ := hg'
-    exact fill_wellFormed
+    exact ladder_wellFormed
 
 /-! ## The bytecode hypothesis cannot be dropped -/
 

@@ -7,8 +7,8 @@ import LeanerVM.Protocol.LeanIsa.Sound
   `M3Holds` of the leanISA instance give `SatisfiedBy` of the witness read off the stack, with no
   other hypothesis. Its BLAKE2s conjunct alone needs only the Flock clause.
 * **The bus as one bus.** On any witness of the ensemble, the two sides' tuples are one multiset
-  exactly when the three channel pairs balance, and the instance's balance is that of a witness
-  agreeing with the stack.
+  exactly when the three channels balance, pushes against pulls; Clean's multiset balance is
+  that and a bound on each channel's interactions, which the caps give.
 * **The relation's clauses are equivalences**, the direction this module does not use included:
   the counts, on a stack and a witness that agree.
 * **The limbs are read at the deployed slots.** At a size vector of the instance tests, the
@@ -37,16 +37,24 @@ example (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
   blake2sRowsValid_witnessOf _ prog s q h
 
 /-- The bus as one bus, on any witness. -/
-example (prog : Program) (w : EnsembleWitness (leanIsaEnsemble prog)) :
+example (prog : Program) (κ : ℕ) (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
     (sideTuples w .push).Perm (sideTuples w .pull) ↔
-      BalancedPair w StatePull.toRaw StatePush.toRaw ∧ BalancedPair w MemPull.toRaw MemPush.toRaw ∧
-        BalancedPair w BytecodePull.toRaw BytecodePush.toRaw := by
+      (messagesOn w StateChannel.toRaw .push).Perm (messagesOn w StateChannel.toRaw .pull) ∧
+        (messagesOn w MemChannel.toRaw .push).Perm (messagesOn w MemChannel.toRaw .pull) ∧
+          (messagesOn w BytecodeChannel.toRaw .push).Perm
+            (messagesOn w BytecodeChannel.toRaw .pull) := by
   rw [balanced_iff]
   exact ⟨fun h ↦ ⟨h 0, h 1, h 2⟩, fun h k ↦ by fin_cases k; exacts [h.1, h.2.1, h.2.2]⟩
 
+/-- Clean's multiset balance, within the caps, is the three channels' permutations. -/
+example (prog : Program) (κ : ℕ) (w : EnsembleWitness (leanIsaEnsemble prog κ)) (hc : Caps w) :
+    w.Balanced .multiset ↔ ∀ k : Fin 3,
+      (messagesOn w (channelAt k) .push).Perm (messagesOn w (channelAt k) .pull) :=
+  (balanced_multiset_iff w).trans ⟨And.right, fun h ↦ ⟨interactionsWith_length_lt hc, h⟩⟩
+
 /-- The counts, both ways, on a stack and a witness that agree. -/
-example (F : FlockSpec) (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
-    (w : EnsembleWitness (leanIsaEnsemble prog)) (h : Agrees F s q w) :
+example (F : FlockSpec) (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) (κ : ℕ)
+    (w : EnsembleWitness (leanIsaEnsemble prog κ)) (h : Agrees F s q w) :
     CountsNonzero w ↔ (leanIsaInstance F prog s).CountsNonzero q :=
   countsNonzero_iff h
 

@@ -32,22 +32,31 @@ into `SatisfiedBy prog input (witnessOf q)`. Composed with `constraintSoundness`
 are checked against, is specified in full and tied to the compilation of the oracle verifier in
 the two directions the theorems use: an accepted proof decodes to a transcript the compiled
 verifier accepts, and every transcript the compiled verifier accepts passes `verify`'s algebra.
-The headline theorem (Layer 13) is its knowledge soundness, with a computable extractor of the
-witness, and of the execution through leanISA's trace interface, for an adversary that chooses the
-program and the public input (decisions 42, 43); the evidence that `δ` is small is for an
-adversary of at most `Q` hash queries:
+The headline theorems (Layer 13) are about leanISA executions. Knowledge soundness: a computable
+extractor reads a valid execution off an accepted proof's queries, for an adversary that chooses
+the program and the public input (decisions 42, 43). Completeness: a valid execution that fits the
+caps has a witness on which every proof the deployed prover returns is accepted. The evidence that
+`δ` is small is for an adversary of at most `Q` hash queries:
 
 ```text
-baseVerifier_extractsWitness_adaptive (hB : BlakeMisbehavesAdaptive A δ) :
+baseVerifier_extractsExecution_adaptive (hB : BlakeMisbehavesAdaptive A δ) :
   for A outputting (prog, input, proof) after its queries,
   Pr over the run of A, its hash queries and the verifier's answered by BLAKE2s-256, that
-      verify prog input proof = true  and  the stack extract reads off A's queries
-      does not give SatisfiedBy prog input (witnessOf …)
+      verify prog input proof = true  and  SentinelSafe prog  and  the trace extractExecution
+      reads off A's queries is no ValidExecution prog input
     ≤ δ
--- the evidence for δ (baseVerifier_extractsWitness_rom_adaptive): for A of at most Q queries and a
--- uniformly random function in place of BLAKE2s, the same event has probability
+-- the evidence for δ (baseVerifier_extractsExecution_rom_adaptive): for A of at most Q queries and
+-- a uniformly random function in place of BLAKE2s, the same event has probability
 -- ≤ (Q + 13700)/2^128 + hashTerm 13700 Q; at a statement fixed before A runs these are
--- baseVerifier_extractsWitness and baseVerifier_extractsWitness_rom
+-- baseVerifier_extractsExecution and baseVerifier_extractsExecution_rom; each is proved from its
+-- constraint form (baseVerifier_extractsWitness…), whose event has SatisfiedBy for ValidExecution
+prove_complete_of_execution (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t)
+    (hfit : t.Fits) :
+  some padding t' of t (same steps) is a valid execution and has a witness w of SatisfiedBy that
+  represents it, and for every fuel and rate every proof prove returns on w is accepted by verify;
+  prove returns none only if the stack exceeds 2^maxMu, the rate is invalid, or a grind runs out
+  of fuel at a chain state the prover's run reaches (ProveReaches); t.Fits does not keep the
+  stack within 2^maxMu (from t.κ ≥ 26 on it is not)
 ```
 
 Every step to it is a theorem: Flock's security (with the Flock roadmap's inhabitant, #3), WHIR's
@@ -285,10 +294,10 @@ Consumed as named declarations of its
 | `iv`, `sigma`, `compress` (Layer 1) | The RFC compression `F`, which the Fiat–Shamir step, the Merkle nodes, the grinding and the Flock circuit share. |
 | `Program`, `PublicInput`, `word0`, `word1`, `minLogMem`, `maxLogMem`, `maxLogRows`, `maxLogBytecode`, `minLogRowsBlake2s` (Layer 2) | The typed statement and the caps; the top limb of a public word is zero by type. |
 | `encodeSlots` (Layer 4) | The bytecode multilinear is `encodeSlots` laid out on `2^(k_bc + 4)` points. |
-| `xorTable` … `blake2sTable`, `memTable`, `bytecodeTable`, `leanIsaVerifier` (Layers 6–8) | The opcode tables become tables of the instance; the memory, bytecode and verifier rows become boundary blocks. |
-| `StatePull` … `BytecodePush`, `MemMsg`, `Regs`, `BytecodeMsg`, `channelSep`, `channelDir`, `busTuple` (Layer 5) | A channel names its domain separator and coordinate order on the 16-slot bus. |
-| `SatisfiedBy`, `BalancedPair`, `CountsNonzero`, `Caps`, `imageOf`, `Blake2sRowsValid` (Layer 8) | The relation the adaptor targets; nothing above the adaptor mentions it (convention *The wall*). |
-| `constraintSoundness`, `constraintCompleteness`, `WellFormedBytecode` (Layer 10) | Consumed by Layer 13: `constraintCompleteness` by completeness from an execution; `constraintSoundness` through the trace interface. |
+| `xorComponent` … `blake2sComponent`, `memComponent κ`, `bytecodeComponent prog`, `leanIsaVerifier` (Layers 6–8) | The opcode tables become tables of the instance; the memory, bytecode and verifier rows become boundary blocks. |
+| `StateChannel`, `MemChannel`, `BytecodeChannel`, `MemMsg`, `Regs`, `BytecodeMsg`, `channelSep`, `busTuple` (Layer 5) | A channel names its domain separator and coordinate order on the 16-slot bus; an interaction's side is Clean's direction tag. |
+| `SatisfiedBy` (with Clean's `Balance.multiset`), `CountsNonzero`, `Caps`, `imageOf`, `Blake2sRowsValid` (Layer 8) | The relation the adaptor targets; nothing above the adaptor mentions it (convention *The wall*). |
+| `constraintSoundness`, `constraintCompleteness`, `WellFormedBytecode` (Layer 10) | Consumed by Layer 13; soundness takes `SentinelSafe prog`, completeness `WellFormedBytecode prog`. |
 | `TraceExtraction`, `checkSatisfiedBy`, `checkSatisfiedBy_eq_true_iff` (requested, beside `SatisfiedBy` in `Arithmetization/`) | The trace interface the execution-level headline takes, inhabited from Layers 9–10, and the decidable check the test vectors pass ([Boundaries](#boundaries)). |
 
 ### ArkLib
@@ -329,8 +338,8 @@ pin, so the spine stays on it (decision 24).
 | `CMlPolynomialEval R n`, `evalMle`, `evalMleLayer`, `eval₂Mle`, `eqTilde`, `lagrangeBasis`, `evalManyMleByLayers` (CompPoly `Multilinear/`) | Hypercube tables and their multilinear evaluation, computable; `eval₂Mle` is the `K → E` lift. |
 | `CMvPolynomial`, `CPolynomial` (CompPoly) | Constraint and flush polynomials of the instance; round polynomials. The conversion to Mathlib's `MvPolynomial` is noncomputable, so Layer 2 translates Clean expressions directly and proves the translation equal to Clean's polynomial. |
 | `AdditiveNTT` (CompPoly `Fields/Binary/AdditiveNTT/`) | The novel basis and the encoder of Annex B, generic over a basis; instantiated only at `GF(2^8)`, so Layer 11 supplies the `K` basis. |
-| `Expression`, `Expression.eval`, `Operations.constraints`, `Operations.interactions`, `AbstractInteraction`, `EnsembleWitness`, `Table.environment`, `Environment.fromArray` (Clean `Circuit/`, `Air/`) | Constraints and flushes as syntax over the row's variables (out-of-range variables read `0`); the witness. Clean's own balance over `K` is vacuous (#16), so `SatisfiedBy` uses `BalancedPair`. |
-| `Expression.degreeBound`, `Expression.WithinWidth`, `Expression.toBoundedPolynomial` (Clean `Circuit/ExpressionPolynomial`, held as a local copy until the pin contains it) | An expression's syntactic degree, the claim that its variables lie below a width, and its noncomputable Mathlib polynomial in that many variables; Layer 2's computable translation is proved equal to it. |
+| `Expression`, `Expression.eval`, `Operations.constraints`, `Operations.interactions`, `AbstractInteraction`, `EnsembleWitness`, `Table.environment`, `Environment.fromArray` (Clean `Circuit/`, `Air/`) | Constraints and flushes as syntax over the row's variables (out-of-range variables read `0`); the witness. `SatisfiedBy` uses Clean's `Balance.multiset`, counted in ℕ. |
+| `Expression.degreeBound`, `Expression.WithinWidth`, `Expression.toBoundedPolynomial` (Clean `Circuit/ExpressionPolynomial`, at the pin `ce2eee63`) | An expression's syntactic degree, the claim that its variables lie below a width, and its noncomputable Mathlib polynomial in that many variables; Layer 2's computable translation is proved equal to it. |
 | `MvPolynomial`, `Polynomial.card_roots'`, `UniqueFactorizationMonoid`, `Multiset.prod` (Mathlib) | Degrees and root counts behind every Schwartz–Zippel step; Lemma 5.2 by unique factorization. |
 
 ### The upstream ledger
@@ -356,9 +365,9 @@ and when the local copy goes. Nothing is worked around by a hypothesis.
 | Fiat–Shamir, BCS | `fiatShamir_completeness` admitted and for a constant oracle; `BCSTransform` commented out; `Commitment.extractability` has body `False`; the legacy state-restoration game cannot be stated for this protocol (Layer 12); #848 and #469 are single-salt and duplex-sponge Fiat–Shamir with no proof of work; #627 is a design issue. Merged after the pin: #1263, #1264 (state-restoration knowledge soundness from local round-by-round certificates, in the typed framework). Open: #1267–#1283 (cached query budgets, the Merkle terminal batch in the random-oracle model, single-salt Fiat–Shamir) | Proved here (Layer 12) by the direct route (decision 36): `core` and `misbehaves_rom` on the one hash oracle, the charged invariant (`ToVCVio/ChargedInvariant.lean`) the one generic lemma. #1263 and #1264 are a pattern only. |
 | Fresh-query bounds for the random oracle | absent at the pin; VCVio #817 gives the laws of the scalar expectation `∫⁻ r, r ∂𝒟[f <$> mx]`; VCVio #823, #824, #826 and #828 bound fresh queries with a fixed error per key | #817 is copied verbatim as `ToVCVio/ScalarExpectation.lean` and deleted at the bump that contains it. #823–#828 are not copied: their per-key errors cannot depend on the cache, which the flip charge does. The charged invariant is written here (`ToVCVio/ChargedInvariant.lean`), a VCVio candidate. |
 | Ring switching for `GF(2) → K` | the profile structure; every security leaf admitted; the protocol is Diamond–Posen's, not leanVM's | #3's; the profile structure only is consumed. |
-| Clean expressions as polynomials | on Clean's main since #466 (2026-10-05), but in no revision built for Lean 4.34 (Clean #474, the port, does not contain it) | `ToClean/ExpressionPolynomial.lean` is a verbatim copy of Clean's module; deleted when the pin contains #466 and its file is still `b449bf59`'s, its importer then importing `Clean.Circuit.ExpressionPolynomial` and the aggregate dropping it. The computable translation and the component tables (`ToClean/ComponentPolynomial.lean`) are written over Clean's names and stay. |
-| Balance counted in ℕ, direction-tagged | absent; Clean #464, #20 | leanISA's `BalancedPair` stands in. |
-| Fixed columns, sound prover data | absent; Clean #446, #23 | The instance states them as known coordinates (`Coord.known`). |
+| Clean expressions as polynomials | upstream at the pin `ce2eee63` (#466) | the local copy is deleted; `ToClean/ComponentPolynomial.lean` imports `Clean.Circuit.ExpressionPolynomial`. The computable translation and the component tables are written over Clean's names and stay. |
+| Balance counted in ℕ, direction-tagged | upstream at the pin `ce2eee63` (Clean #493) | `SatisfiedBy.balanced` is Clean's `w.Balanced .multiset`. |
+| Fixed columns, sound prover data | upstream at the pin `ce2eee63` (Clean #446, #495; #23) | The two blocks are preallocated components with fixed columns; the instance states the same columns as known coordinates (`Coord.known`). |
 
 ## Pinned conventions
 
@@ -411,7 +420,7 @@ balance summed in the field.
 | Relation | Witness | Where | What it says |
 | --- | --- | --- | --- |
 | `Ensemble.Statement ens pi` | `EnsembleWitness ens`, in `Type 1` | Clean | every row satisfies its component's constraints and every channel balances, multiplicities summed in the field. Over `K` the sum accepts a tuple pushed twice and never pulled, and the side condition `length < ringChar K` admits at most one interaction per channel, so it holds of no ensemble with a real bus (#16). Unusable here. |
-| `SatisfiedBy prog input w` | `EnsembleWitness (leanIsaEnsemble prog)` | leanISA Layer 8 | Clean's constraints and public input; three `BalancedPair`s counted in ℕ; `CountsNonzero`, `Caps`; the three fixed-column facts; `Blake2sRowsValid`; the two public words. T1's relation. |
+| `SatisfiedBy prog input w` | `EnsembleWitness (leanIsaEnsemble prog κ)` | leanISA Layer 8 | Clean's constraints and public input; Clean's multiset balance on the three channels, counted in ℕ; `CountsNonzero`, `Caps`; `Blake2sRowsValid`; the two public words. The fixed columns are the components'. T1's relation. |
 | `M3Holds I input q` | `q : Column I.μ`, in `Type 0` | the spine | what the verifier establishes about the stack. The protocol's relation. |
 | `ValidExecution prog input t` | a trace | leanISA Layer 3 | T1's target; never the protocol's relation. |
 
@@ -664,7 +673,7 @@ no other; the hole is built when the names in bold of its row are declared and m
 | transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Digest`, **`card_digest`**, `hashSpec`, `hashQuery`, `runBlake2s`, `runRandom`, `FsState`, `Block`, `FsState.checkPow`, **`FsState.challengeOf`**, `chainHistory`, **`chainHistory_determined`**, `Proof`, `Proof.sizes?`, `RoundPoly.decode`, `decodePrefix`, **`decodePrefix_mono`**, `decode`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verifyWith_simulateQ`**, `verifierQueries`, `proofDigests`, **`verifierQueries_bound`**, **`length_rootsOf_le`**, **`compiled_of_algebra`**, **`phasesAgree`** (with `accepts_of_replay` and `solved_of_decode`, the two directions between `verify` and the compiled verifier; no biconditional is stated, and the headline needs none), `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
 | the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `LogHasCollision`, `HitFrom`, `Bad`, **`bad_density`**, `FsState.seedWith`, `SeedLogged`, `stmtOf`, `programHashSlot`, `StartsSafe`, `Flip`, `FlipFor`, `HashMisbehavesFrom`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom_of`**, **`misbehaves_rom`**, `misbehaves_rom_coins`, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant in its logged form |
 | the honest prover and the test vectors | [Layer 13](#the-executable-prover-and-the-test-vectors) | `proveWith`, **`prove`**, `honestAdversary`, **`baseProver_complete`**, the executable `leanervm-vectors` and its vectors | the compiled verifier; the adaptor; for the vectors, leanISA's `checkSatisfiedBy` |
-| the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | `AdaptiveAdversary`, `adaptiveGame`, **`BlakeMisbehavesAdaptive`**, **`misbehaves_rom_adaptive`**, **`baseVerifier_extractsWitness_rom_adaptive`**, **`baseVerifier_extractsWitness_adaptive`**, **`baseVerifier_extractsWitness_adaptive_coins`**, **`baseVerifier_extractsExecution_adaptive`**, **`blakeMisbehavesAdaptive_of_comparison`**, **`blakeMisbehavesAdaptive_const`**, **`BlakeMisbehaves`**, `extractTrace`, `extractExecution`, **`baseVerifier_extractsWitness_rom`**, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsWitness_coins`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, **`prove_complete`**, `baseProver_complete_of_execution` (an unproved target) | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`) and its inhabitant `leanIsaTraceExtraction`; for completeness from an execution, leanISA's constraint completeness at the trace level |
+| the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | `AdaptiveAdversary`, `adaptiveGame`, **`BlakeMisbehavesAdaptive`**, **`misbehaves_rom_adaptive`**, **`baseVerifier_extractsWitness_rom_adaptive`**, **`baseVerifier_extractsWitness_adaptive`**, **`baseVerifier_extractsWitness_adaptive_coins`**, **`baseVerifier_extractsExecution_adaptive`**, **`blakeMisbehavesAdaptive_of_comparison`**, **`blakeMisbehavesAdaptive_const`**, **`BlakeMisbehaves`**, `extractTrace`, `extractExecution`, **`baseVerifier_extractsWitness_rom`**, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsWitness_coins`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, **`prove_complete`**, `prove_eq_none`, **`prove_complete_of_execution`**, **`baseVerifier_extractsExecution_rom`**, **`baseVerifier_extractsExecution_coins`**, **`baseVerifier_extractsExecution_adaptive_coins`** | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`) and its inhabitant `leanIsaTraceExtraction`; for completeness from an execution, leanISA's constraint completeness at the trace level |
 
 What can start is what the column *Needs* allows; the status file says what is built.
 
@@ -773,7 +782,7 @@ written with `K.ofBits`.
 
 ### Layer 2: Clean components as polynomials
 
-`LeanerVM/Protocol/ToClean/ExpressionPolynomial.lean` (an expression as a polynomial) and
+Clean's `Clean/Circuit/ExpressionPolynomial.lean` (an expression as a polynomial) and
 `LeanerVM/Protocol/ToClean/ComponentPolynomial.lean` (a component as a table; generic over any
 Clean component, its field and its type of bus sides). Upstream: Clean's pull request #466
 defines `degreeBound`, `WithinWidth` and the Mathlib polynomial `toBoundedPolynomial`; the first
@@ -1888,9 +1897,9 @@ execution form. `F` below is the deployed Flock specification, `blake2sFlockSpec
 /-- A computable execution for every satisfying witness. Owner: leanISA, whose inhabitant takes the bytecode's
 well-formedness, defines `traceOf` without `noncomputable`, and proves `valid` from `constraintSoundness`. -/
 structure TraceExtraction (prog : Program) where
-  traceOf : PublicInput → EnsembleWitness (leanIsaEnsemble prog) → Option (Trace prog)
-  valid : ∀ input w, SatisfiedBy prog input w →
-    ∃ t, traceOf input w = some t ∧ AssignmentRepresents w t ∧ ValidExecution prog input t
+  traceOf : PublicInput → (κ : ℕ) → EnsembleWitness (leanIsaEnsemble prog κ) → Option (Trace prog)
+  valid : ∀ input κ (w : EnsembleWitness (leanIsaEnsemble prog κ)), SatisfiedBy prog input w →
+    ∃ t, traceOf input κ w = some t ∧ AssignmentRepresents w t ∧ ValidExecution prog input t
 -- The adversary may output the statement: the adaptive game (AdaptiveGame.lean)
 abbrev AdaptiveAdversary := OracleComp hashSpec (Program × PublicInput × Proof PrunedMerklePaths)
 structure AdaptiveRun extends Run where
@@ -1940,19 +1949,20 @@ theorem baseVerifier_extractsExecution_rom_adaptive_wellFormed (hQ : IsTotalQuer
     Pr[fun z ↦ z.1.ok = true ∧
           ¬ ∃ t, extractExecution z.1.prog z.1.input z.1.proof z.1.logA = some t ∧ ValidExecution z.1.prog z.1.input t
       | runRandom (adaptiveGame verifyWith A)] ≤ (Q + 13700) / 2^128 + hashTerm 13700 Q
--- The headline: the deployed verifier, the witness through the adaptor
+-- The constraint form at the deployed verifier, the witness through the adaptor
 theorem baseVerifier_extractsWitness_adaptive (hB : BlakeMisbehavesAdaptive A δ) :
     Pr[fun g ↦ verify g.prog g.input g.proof = true ∧ ¬ ∃ e, extract F g.prog g.input g.proof g.logA = some e ∧
           SatisfiedBy g.prog g.input (witnessOf F g.prog e.1 e.2)
       | runBlake2s (adaptiveGame verifyWith A)] ≤ δ
 -- An adversary with coins: a distribution over coin-free ones, `δ` a probability over the coins
+-- (the constraint form; `baseVerifier_extractsExecution_adaptive_coins` is its execution form)
 theorem baseVerifier_extractsWitness_adaptive_coins {coins : ProbComp AdaptiveAdversary}
     (hB : Pr[fun g ↦ HashMisbehavesFrom [] (rootsOf g.prog g.input) (leanVmReader.FlipFor (g.prog, g.input))
         g.toRun | do let A ← coins; runBlake2s (adaptiveGame verifyWith A)] ≤ δ) :
     Pr[fun g ↦ verify g.prog g.input g.proof = true ∧ ¬ ∃ e, extract F g.prog g.input g.proof g.logA = some e ∧
           SatisfiedBy g.prog g.input (witnessOf F g.prog e.1 e.2)
       | do let A ← coins; runBlake2s (adaptiveGame verifyWith A)] ≤ δ
--- The execution, through leanISA's trace extraction
+-- The headline: the execution, through leanISA's trace extraction
 theorem baseVerifier_extractsExecution_adaptive (hB : BlakeMisbehavesAdaptive A δ) :
     Pr[fun g ↦ verify g.prog g.input g.proof = true ∧ SentinelSafe g.prog ∧
           ¬ ∃ t, extractExecution g.prog g.input g.proof g.logA = some t ∧ ValidExecution g.prog g.input t
@@ -1962,6 +1972,11 @@ theorem baseVerifier_extractsExecution_adaptive_wellFormed (hB : BlakeMisbehaves
     Pr[fun g ↦ verify g.prog g.input g.proof = true ∧
           ¬ ∃ t, extractExecution g.prog g.input g.proof g.logA = some t ∧ ValidExecution g.prog g.input t
       | runBlake2s (adaptiveGame verifyWith A)] ≤ δ
+theorem baseVerifier_extractsExecution_adaptive_coins {coins : ProbComp AdaptiveAdversary}
+    (hB : …as baseVerifier_extractsWitness_adaptive_coins…) :
+    Pr[fun g ↦ verify g.prog g.input g.proof = true ∧ SentinelSafe g.prog ∧
+          ¬ ∃ t, extractExecution g.prog g.input g.proof g.logA = some t ∧ ValidExecution g.prog g.input t
+      | do let A ← coins; runBlake2s (adaptiveGame verifyWith A)] ≤ δ
 -- The comparison form of the heuristic, a corollary
 def Blake2sActsAsRandomOracle (G : OracleComp hashSpec α) (bad : α → Prop) (δ : ℝ≥0∞) : Prop :=
   Pr[bad | runBlake2s G] ≤ Pr[fun z ↦ bad z.1 | runRandom G] + δ
@@ -1979,6 +1994,10 @@ theorem baseVerifier_extractsWitness_rom (hQ : IsTotalQueryBound A Q) :
     Pr[fun z ↦ z.1.ok = true ∧
           ¬ ∃ e, extract F prog input z.1.proof z.1.logA = some e ∧ SatisfiedBy prog input (witnessOf F prog e.1 e.2)
       | runRandom (loggedGame verifyWith prog input A)] ≤ (Q + 13700) / 2^128 + hashTerm 13700 Q
+theorem baseVerifier_extractsExecution_rom (hsafe : SentinelSafe prog) (hQ : IsTotalQueryBound A Q) :
+    Pr[fun z ↦ z.1.ok = true ∧
+          ¬ ∃ t, extractExecution prog input z.1.proof z.1.logA = some t ∧ ValidExecution prog input t
+      | runRandom (loggedGame verifyWith prog input A)] ≤ (Q + 13700) / 2^128 + hashTerm 13700 Q
 theorem baseVerifier_extractsWitness (hB : BlakeMisbehaves prog input A δ) :
     Pr[fun g ↦ verify prog input g.proof = true ∧
           ¬ ∃ e, extract F prog input g.proof g.logA = some e ∧ SatisfiedBy prog input (witnessOf F prog e.1 e.2)
@@ -1991,9 +2010,13 @@ theorem baseVerifier_extractsWitness_coins {coins : ProbComp Adversary}
       | do let A ← coins; runBlake2s (loggedGame verifyWith prog input A)] ≤ δ
 theorem baseVerifier_extractsExecution (hsafe : SentinelSafe prog) (hB : BlakeMisbehaves prog input A δ) :
     Pr[fun g ↦ verify prog input g.proof = true ∧
-          ¬ ∃ t, extractTrace (leanIsaTraceExtraction hsafe) input g.proof g.logA = some t ∧
-            ValidExecution prog input t
+          ¬ ∃ t, extractExecution prog input g.proof g.logA = some t ∧ ValidExecution prog input t
       | runBlake2s (loggedGame verifyWith prog input A)] ≤ δ
+theorem baseVerifier_extractsExecution_coins (hsafe : SentinelSafe prog)
+    (hB : …as baseVerifier_extractsWitness_coins…) :
+    Pr[fun g ↦ verify prog input g.proof = true ∧
+          ¬ ∃ t, extractExecution prog input g.proof g.logA = some t ∧ ValidExecution prog input t
+      | do let A ← coins; runBlake2s (loggedGame verifyWith prog input A)] ≤ δ
 theorem blakeMisbehaves_of_comparison (hQ : IsTotalQueryBound A Q)
     (h : Blake2sActsAsRandomOracle (loggedGame verifyWith prog input A)
       (HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input))) δ) :
@@ -2009,44 +2032,63 @@ def honestAdversary (fuel prog input w ρ) : Adversary := do
 theorem baseProver_complete (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s)
     (hadm : s.Admissible prog) (hρ : validRate ρ) (H : List UInt8 → Digest) :
     proveWith (m := Id) H fuel prog input w ρ = some proof → verifyWith (m := Id) H prog input proof = true
--- The deployed pair side by side (Headline.lean): `baseProver_complete` at `blake2sBytes`
+-- The deployed pair side by side (Headline.lean): `baseProver_complete` at `blake2sBytes`, the
+-- constraint form
 theorem prove_complete (h : SatisfiedBy prog input w) :
     prove fuel prog input w ρ = some proof → verify prog input proof = true
-/- Unproved target: it needs leanISA's constraint completeness at the trace level.
-theorem baseProver_complete_of_execution (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t)
-    (hfit : ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧ Sizes.ofWitness w = some s ∧ s.Admissible prog)
-    (hρ : validRate ρ) :
-    ∃ w, AssignmentRepresents w t ∧ ∀ fuel proof, prove fuel prog input w ρ = some proof → verify prog input proof = true -/
+theorem prove_eq_none (h : SatisfiedBy prog input w) (hp : prove fuel prog input w ρ = none) :
+    ∃ s, Sizes.ofWitness w = some s ∧ (maxMu < leanIsaμ prog s ∨ ¬ validRate ρ ∨
+      ∃ fs, ProveReaches fuel prog input w ρ fs ∧
+        Id.run (fs.grind blake2sBytes fuel queryGrindingBits) = none)
+-- ProveReaches fuel prog input w ρ fs: the writer of `prove`'s run, from the statement's seed,
+-- reaches the chain state fs after the announcement and some first rounds (Prove.RunReaches)
+theorem prove_ne_none (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s)
+    (hμ : leanIsaμ prog s ≤ maxMu) (hρ : validRate ρ)
+    (hg : ∀ fs, ProveReaches fuel prog input w ρ fs →
+      Id.run (fs.grind blake2sBytes fuel queryGrindingBits) ≠ none) :
+    prove fuel prog input w ρ ≠ none
+-- The headline's completeness: from an execution, through leanISA's constraintCompleteness
+theorem prove_complete_of_execution (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t)
+    (hfit : t.Fits) :
+    ∃ t', t'.PaddedFrom t ∧ ValidExecution prog input t' ∧
+      ∃ w : EnsembleWitness (leanIsaEnsemble prog t'.κ), SatisfiedBy prog input w ∧ AssignmentRepresents w t' ∧
+        ∃ s, Sizes.ofWitness w = some s ∧
+        ∀ fuel ρ, (∀ proof, prove fuel prog input w ρ = some proof → verify prog input proof = true) ∧
+          (prove fuel prog input w ρ = none → …as prove_eq_none at s…) ∧
+          (leanIsaμ prog s ≤ maxMu → validRate ρ → …no grind out of fuel on the run… →
+            prove fuel prog input w ρ ≠ none)
 ```
 
-The headline is `baseVerifier_extractsWitness_adaptive`. Its event is read off the deployed
-functions: `verify` accepts the statement and proof the adversary outputs, and the stack `extract`
-reads off the adversary's queries gives no satisfying witness at that statement through the
-adaptor. Its one hypothesis is `hB`. The proof is short by design: on every run `core` puts the
-event inside `HashMisbehavesFrom` at the chosen statement, its flips on that statement's chain
-(BLAKE2s is a function, so the log is consistent with one, and `verifyWith_simulateQ` makes the
-game's verdict `verify`'s), and `satisfiedBy_witnessOf` turns `M3Holds` into `SatisfiedBy` at the
-admissible sizes `extract` returns. Under the lazy random oracle the run is a possible run with a
-consistent log as well, so the same step, `flip_of_flipFor` and `misbehaves_rom_adaptive`'s closed
-form give `baseVerifier_extractsWitness_rom_adaptive`, whose event reads the game's verdict, not
-`verify`'s.
-The mathematics is in `core`, `misbehaves_rom_of` and what they rest on. At a statement fixed
-before the adversary runs, each theorem is the adaptive one at the adversary that outputs that
-statement with its proof (`adaptiveGame_const`): `baseVerifier_extractsWitness`,
-`baseVerifier_extractsWitness_rom` and the rest keep their names, bound for bound.
+The headline is `baseVerifier_extractsExecution_adaptive`, proved from its constraint form
+`baseVerifier_extractsWitness_adaptive` by leanISA's trace extraction. The constraint form's event
+is read off the deployed functions: `verify` accepts the statement and proof the adversary outputs,
+and the stack `extract` reads off the adversary's queries gives no satisfying witness at that
+statement through the adaptor. Its one hypothesis is `hB`. The proof is short by design: on every
+run `core` puts the event inside `HashMisbehavesFrom` at the chosen statement, its flips on that
+statement's chain (BLAKE2s is a function, so the log is consistent with one, and
+`verifyWith_simulateQ` makes the game's verdict `verify`'s), and `satisfiedBy_witnessOf` turns
+`M3Holds` into `SatisfiedBy` at the admissible sizes `extract` returns. Under the lazy random oracle
+the run is a possible run with a consistent log as well, so the same step, `flip_of_flipFor` and
+`misbehaves_rom_adaptive`'s closed form give `baseVerifier_extractsWitness_rom_adaptive`, whose
+event reads the game's verdict, not `verify`'s. The mathematics is in `core`, `misbehaves_rom_of`
+and what they rest on. At a statement fixed before the adversary runs, each theorem is the adaptive
+one at the adversary that outputs that statement with its proof (`adaptiveGame_const`):
+`baseVerifier_extractsWitness`, `baseVerifier_extractsWitness_rom` and the rest keep their names,
+bound for bound. Every BLAKE2s, random-oracle, coins and adaptive constraint form has its execution
+form, and the execution forms are the headline.
 
-`extractTrace` takes any inhabitant of leanISA's trace interface (decision 41), and
-`baseVerifier_extractsExecution` is stated and proved at leanISA's, `leanIsaTraceExtraction`,
-which takes `SentinelSafe prog` (the sentinel slot is not a `JUMP`), the part of the bytecode's
-well-formedness its `constraintSoundness` needs. Its extractor is computable end to end
-(acceptance test 24). `extract`, `witnessOf` and `extractTrace` keep the extracted witness and
-execution, which recursion (T6) needs. The witness form takes no bytecode hypothesis; the
-execution form takes it through the interface's inhabitant, and completeness from an execution
-would take it through `constraintCompleteness` (decision 27). A bytecode with a `JUMP` in the
-sentinel slot can have a witness of the constraint statement and no valid execution on any memory
+`extractTrace` takes any inhabitant of leanISA's trace interface (decision 41), and the execution
+forms read it through `extractExecution`, leanISA's inhabitant `leanIsaTraceExtraction`, which takes
+`SentinelSafe prog` (the sentinel slot is not a `JUMP`), the part of the bytecode's well-formedness
+its `constraintSoundness` needs. Its extractor is computable end to end (acceptance test 24).
+`extract`, `witnessOf` and `extractTrace` keep the extracted witness and execution, which recursion
+(T6) needs. The witness form takes no bytecode hypothesis; the execution form takes it through the
+interface's inhabitant, and completeness from an execution takes it through
+`constraintCompleteness` (decision 27). A bytecode with a `JUMP` in the sentinel slot can have a
+witness of the constraint statement and no valid execution on any memory
 (`exists_satisfiedBy_without_execution`), and `verify` accepts every proof `prove` returns for that
-witness (`verify_accepts_without_execution`): constraint soundness cannot drop the condition, and
-no extractor finds an execution there because there is none (acceptance test 41). That the
+witness (`verify_accepts_without_execution`): constraint soundness cannot drop the condition, and no
+extractor finds an execution there because there is none (acceptance test 41). That the
 probabilistic execution form fails without it is not proved: it needs an adversary outputting that
 program that meets `BlakeMisbehavesAdaptive`, the owed "hypothesis met by an accepted adversary".
 leanVM's compiler establishes the condition (`lean_compiler/src/lib.rs:162`).
@@ -2126,30 +2168,40 @@ over witnesses), so `δ = 0` is not claimed for it; in the random-oracle model a
 satisfying witness is not claimed either: rows of 384 or 512 bytes hash to 32, so colliding rows
 exist, and nothing excludes a satisfying witness that commits two of them.
 
-Completeness starts from a satisfying witness with admissible sizes and a valid rate
-(decision 28). `baseProver_complete` holds for every function answering the hash, so at BLAKE2s
-with no hypothesis. It composes `m3Holds_stackOf`, the compiled protocol's completeness
+Completeness is stated from an execution (`prove_complete_of_execution`) and proved from the
+constraint form, which starts from a satisfying witness (decision 28). `baseProver_complete` holds
+for every function answering the hash, so at BLAKE2s with no hypothesis. It composes
+`m3Holds_stackOf`, the compiled protocol's completeness
 (`listBinding_deployed_perfectCompleteness`), carried to every challenge vector
 (`accepts_of_perfectCompleteness`) and to the prover's run against the chain
 (`compiledProver_run`, `runWith_eq_runWithChallenges`), the wire read back by the walk (the
 transcript's wire but for the roots, the grinding nonces and the positions' reduction, which the
 algebra does not read: the oracle prover sends `0` where the wire carries the grind's nonce), the
 executable algebra's agreement with the oracle verifiers on the honest transcript, Merkle
-completeness and the determinism of the chain. From an execution,
-`baseProver_complete_of_execution` would add `constraintCompleteness` and take `hfit`, the
-resource condition [architecture.md](../architecture.md) asks for: a valid execution may need
-`κ_mem = 32`, whose memory columns exceed the stack the verifier accepts. It stays an unproved
-target (a block comment, convention *Unproved targets*): leanISA proves constraint soundness at
-the trace level (`traceOf_valid`) but no constraint completeness, from an execution to a
-satisfying witness.
+completeness and the determinism of the chain. From an execution, `prove_complete_of_execution`
+adds leanISA's `constraintCompleteness`, under `WellFormedBytecode` (the fill blocks) and `hfit`,
+the resource condition [architecture.md](../architecture.md) asks for: a valid execution may need
+`κ_mem = 32`, which leaves no room for the fill frames, or more rows than a table's cap. The
+witness represents the padding `t'` of the execution (the fill frames above the image, the same
+steps), not the execution itself, and it exists without being computed: leanISA's padded witness
+reads the image through `MemImage.read`, whose index is a classical discrete logarithm, and takes
+the fill blocks' slots from the proposition `HasFillBlocks`.
 
 Perfect completeness does not survive the transform unconditionally. The honest prover's grinding
 is a search, so `prove` takes fuel. That the search succeeds within its fuel holds for a random
 function (each nonce passes with probability `2^{−17}`) and is not claimed for BLAKE2s. So the
 completeness theorems conclude that every proof `prove` returns is accepted, not that one exists;
-`prove_complete` states it for the deployed pair `prove` and `verify`. `prove` returns no proof
-only when the witness's memory image is a single word (no sizes), its sizes are not admissible,
-the rate is not valid, or a grind runs out of fuel (`proveWith_eq_none`).
+`prove_complete` states it for the deployed pair `prove` and `verify`. For a satisfying witness
+`prove` returns no proof only when its sizes put the stack above `2^maxMu` (the statement's caps
+give the other admissibility conditions, `admissible_iff_of_satisfiedBy`), the rate is not valid,
+or a grind runs out of fuel at a chain state the prover's run reaches (`prove_eq_none`, from
+`proveWith_eq_none`; `prove_ne_none` and `proveWith_ne_none` say the same as a sufficient
+condition). The run's states are `Prove.RunReaches`: the writer's chain state after the
+announcement and some first rounds of the compiled protocol's honest prover, which is where each
+grind starts; so the grind clause depends on the witness, not on every chain state there is.
+`hfit` does not keep the stack within `2^maxMu`: four memory columns of height `2^(t.κ+1)` exceed
+it from `t.κ ≥ 26` on, so there `prove` returns none at every fuel and rate, as it does whenever
+the filled tables exceed `2^28` cells (each table's cap is `2^32` rows).
 
 Tests:
 - the replayer (acceptance test 36): `extract` on the empty log is `none` for every proof, and the
@@ -2490,15 +2542,16 @@ Base theorems:        TraceExtraction  checkSatisfiedBy  checkSatisfiedBy_eq_tru
                       blakeMisbehavesAdaptive_of_comparison  blakeMisbehavesAdaptive_const  extractExecution
                       BlakeMisbehaves  extractTrace  baseVerifier_extractsWitness_rom
                       baseVerifier_extractsWitness  baseVerifier_extractsWitness_coins
-                      baseVerifier_extractsExecution
+                      baseVerifier_extractsExecution  baseVerifier_extractsExecution_rom
+                      baseVerifier_extractsExecution_coins  baseVerifier_extractsExecution_adaptive_coins
                       Blake2sActsAsRandomOracle  blakeMisbehaves_of_comparison  proveWith  prove  honestAdversary
-                      baseProver_complete  prove_complete  baseProver_complete_of_execution
+                      baseProver_complete  prove_complete  prove_eq_none  prove_complete_of_execution
 Parameters:           initialFold  subsequentFold  initialReduction  subsequentReduction  residualMaxLog
                       queryGrindingBits  the Flock constants (Parameters/Flock.lean)
 ```
 
-The trust surface of the headline theorem, `baseVerifier_extractsWitness_adaptive`, has three
-parts.
+The trust surface of the headline theorem, `baseVerifier_extractsExecution_adaptive` through its
+constraint form `baseVerifier_extractsWitness_adaptive`, has three parts.
 - **Its definitions:** `verify`, `adaptiveGame`, `runBlake2s`, `extract`, `witnessOf`,
   `SatisfiedBy`, and `BlakeMisbehavesAdaptive` with `HashMisbehavesFrom` and its three clauses:
   the collision (`QueryLog.HasCollision`), the hit (`HitFrom`, with `inPlay` and
@@ -2534,8 +2587,10 @@ order of the 16-slot bus tuple. This roadmap consumes `SatisfiedBy` as it stands
 integer-counted balance, its fixed-column conjuncts and its public-word conjunct (the top limb is
 zero by type), and `constraintSoundness` and `constraintCompleteness` with their hypothesis
 `WellFormedBytecode`. Two open matters for leanISA: `constraintCompleteness` returns a witness of
-some heights, while base completeness from an execution needs admissible ones (the hypothesis
-`hfit` of Layer 13 stands in; a minimal-height `constraintCompleteness` would replace it); and
+some heights, while base completeness from an execution needs admissible ones, and `hfit` does not
+give them: it bounds the memory and each table, not the stack, which exceeds `2^maxMu` from
+`t.κ ≥ 26` on (a resource hypothesis bounding `leanIsaμ`, a fit at the level of `Sizes`, would
+close it); and
 `constraintCompleteness` itself needs a resource hypothesis (`Caps` bounds every table by `2^32`
 rows, `ValidExecution` bounds only the memory). The eighteen BLAKE2S value limbs are columns of
 `blake2sTable` there and strided slots of `q_flock` here, reconciled by the instance's layout.
@@ -2622,7 +2677,7 @@ recorded here in one row. Each is reversible by a pull request to this document.
 | 39. Merkle binding by log replay | the rows are read top-down off the adversary's log (`extractRows`, on `MerkleTree.fold`), `extract` reading a missing row as zero, and `binding_of_log` proves the opened rows equal to them unless the joint log shows a collision or a hit; VCVio's extraction is not consumed (amends decision 32) | Layer 12; the ledger |
 | 40. List binding through a decoder interface | the extractor list-decodes through `ListDecoder`, specified by WHIR's list relation at level 0's threshold with no repetition, and inhabited by brute force; the `exactFast` path proved to agree at every threshold from `2^κ` to `2^{κ+R}` (`ListDecoder.exactFirst`), and faster decoders as further inhabitants. The committed word is a `K` word (`KWord`), so every member of its list is a stack (`isInK_of_cl`), read in `E` for WHIR by the zero-round `openInput`; `relist` takes the front component over the new oracles (`F'`) and a `List` with a length bound; the compilation takes the height equation `hμ : κ + sh.ℓ = I.μ`; the deployed decoder is `ListDecoder.nttFirst` over `ListDecoder.bruteForce`: the exact path by the additive transform, proved to agree (`exactNtt_spec`, `ListDecoder.decode_eq_of_codeword`) | Layer 12; *Extractors*; test 24 |
 | 41. leanISA's trace through an interface | the execution-level headline takes `TraceExtraction prog`, which leanISA declares beside `SatisfiedBy` and inhabits, and the witness-level headline is stated without it | Layer 13; *Boundaries* |
-| 42. Adaptive forms at BLAKE2s | the adversary may output the program and the public input (`AdaptiveAdversary`, `adaptiveGame`); the BLAKE2s headline, its coins form and the execution form are restated over the chosen statement (`…_adaptive`), the execution form with `SentinelSafe` in the event, extracting through `leanIsaTraceExtraction` at the chosen program (`extractExecution`, amends decision 41 for the adaptive form), and a `WellFormedBytecode` corollary; `WellFormedBytecode` holds the `sentinelSafe` field, the fill blocks a later field; the random-oracle forms are adaptive by decision 43 | Layer 13; test 41 |
+| 42. Adaptive forms at BLAKE2s | the adversary may output the program and the public input (`AdaptiveAdversary`, `adaptiveGame`); the BLAKE2s headline, its coins form and the execution form are restated over the chosen statement (`…_adaptive`), the execution form with `SentinelSafe` in the event, extracting through `leanIsaTraceExtraction` at the chosen program (`extractExecution`, amends decision 41 for the adaptive form), and a `WellFormedBytecode` corollary; `WellFormedBytecode` holds the `sentinelSafe` field and the fill blocks, which soundness does not use; the random-oracle forms are adaptive by decision 43 | Layer 13; test 41 |
 | 43. Adaptive forms in the random-oracle model | the verifier and the prover compute the statement's seed through the hash (`FsState.seedWith`: the program's bytes, the seed's preimage, the first state's input), the values at BLAKE2s unchanged; one reader for every statement (`leanVmReader`), its starts the states the log logs a statement's seed at (`stmtOf`), its announcements carrying the statement; a logged 78-byte input puts its program hash in play (`programHashSlot`), each entry still at most two digests; no root in play at the start (`HashMisbehavesFrom []`, `StartsSafe []`); the verifier's bound `13700`, the seed's three queries added; `misbehaves_rom_adaptive` and the `_rom_adaptive` theorems, with the fixed-statement theorems their instances; the random-oracle bound counts the flips on every statement's chain (`Flip`), and `core` and the BLAKE2s hypotheses those on the chosen statement's chain (`FlipFor`), a smaller event. So `BlakeMisbehaves` changed meaning in its hits only: the verifier's seed queries are in the log, a logged preimage's program hash is in play, and the first state is no longer in play from the start; its flips stay those on the chain of `(prog, input)`, read from the first state at which the log holds its seed hashes (amends decisions 36, 37 and 42) | Layers 12, 13; tests 36, 42 |
 
 Open:

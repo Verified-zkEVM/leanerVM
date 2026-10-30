@@ -225,6 +225,7 @@ def Blake2sSpec (r : Blake2sRow K) (next : Regs K) (data : ProverData K) : Prop 
 `(B2S, o_{m₀}, …, o_md)`, and the nine canonical cell reads. Returns the pushed successor
 `(g·pc, fp)`; sound under `Blake2sRelation`. -/
 def blake2sTable : GeneralFormalCircuit K Blake2sRow Regs where
+  name := "blake2s"
   main r := do
     let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
     instructionStep r.pc r.fp r.rbc next .blake2s
@@ -239,8 +240,8 @@ def blake2sTable : GeneralFormalCircuit K Blake2sRow Regs where
     memRead (r.fp * (Expression.const g * r.oout)) r.rout1 #v[r.out1[0], r.out1[1], 0]
     memRead (r.fp * r.omd) r.rmd #v[r.md[0], r.md[1], 0]
     pure next
-  -- The push channels: their requirements are vacuous (Layer 5), the obligation is `Spec`.
-  channelsWithRequirements := [StatePush.toRaw, MemPush.toRaw, BytecodePush.toRaw]
+  -- The three channels: each push owes its channel's guarantee (Layer 5).
+  channelsWithRequirements := [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw]
   requirementsChannelsLawful input offset := by
     -- Without core's `BitVec.reduceNeg` simproc, which misreads `-1 : K` (finding E6).
     simp only [circuit_norm, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
@@ -252,10 +253,13 @@ def blake2sTable : GeneralFormalCircuit K Blake2sRow Regs where
   -- The local premise: the nine memory pull guarantees, the compression not among them.
   ProverAssumptions r data _ := Blake2sBindings (imageOf data).2 r
   soundness := by
-    circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
+    circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
-    -- The bytecode guarantee, that the tuple decodes, is unused (see `XOR`).
-    obtain ⟨-, hm0, hm1, hm2, hm3, hcv0, hcv1, hout0, hout1, hmd⟩ := h_holds
+    -- The bytecode guarantee, that the tuple decodes, serves only its push (see `XOR`).
+    obtain ⟨hbc, hm0, hm1, hm2, hm3, hcv0, hcv1, hout0, hout1, hmd⟩ := h_holds
+    -- Each push re-sends its pull's message: what it owes is what the pull is granted.
+    refine ⟨?_, fun _ ↦ hbc, fun _ ↦ hm0, fun _ ↦ hm1, fun _ ↦ hm2, fun _ ↦ hm3, fun _ ↦ hcv0,
+      fun _ ↦ hcv1, fun _ ↦ hout0, fun _ ↦ hout1, fun _ ↦ hmd⟩
     obtain ⟨_, _, _, _, _, _, _, _, _, hvm0, hvm1, hvm2, hvm3, hvout0, hvout1, hvcv0, hvcv1, hvmd,
       _, _, _, _, _, _, _, _, _, _⟩ := h_input
     subst hvm0 hvm1 hvm2 hvm3 hvout0 hvout1 hvcv0 hvcv1 hvmd
@@ -271,7 +275,7 @@ def blake2sTable : GeneralFormalCircuit K Blake2sRow Regs where
     · simpa only [E.ofCell, Vector.getElem_map] using hout1
     · simpa only [E.ofCell, Vector.getElem_map] using hmd
   completeness := by
-    circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
+    circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead, E.ofCell]
     -- The nine memory pull guarantees are the bindings; the tuple `main` emits decodes
     -- (Layer 4).

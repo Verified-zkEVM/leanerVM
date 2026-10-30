@@ -35,6 +35,12 @@ This directory contains stable project and operating knowledge.
   - [leanisa-layer8-statement.md](reviews/leanisa-layer8-statement.md): the review of the
     Layer 8 constraint statement (2026-09-17), whose findings the statement now meets (the
     missing BLAKE2s validity conjunct, its finding A1).
+  - [leanisa-clean-equivalence.md](reviews/leanisa-clean-equivalence.md): the review of
+    leanISA Layers 5 to 10 and the adaptor on Clean main, with the equivalence (2026-10-29);
+    no statement defect, its documentation and hygiene findings met (disposition table).
+  - [headline-over-executions.md](reviews/headline-over-executions.md): the review of the
+    headline theorems over leanISA executions (2026-10-29), whose findings the branch now meets
+    (the grind clause on the prover's run, the positive completeness conjunct; disposition table).
   - [public-input-phase.md](reviews/public-input-phase.md): the review of the public-input
     phase (2026-09-29), whose findings the branch now meets (the two checks that are not
     equivalent, one output, the line's `sent` flag, the shared lemmas).

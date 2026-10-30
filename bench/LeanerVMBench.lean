@@ -13,7 +13,7 @@ import LeanerVM.Protocol.Merkle
 import LeanerVM.Protocol.Stack
 import LeanerVM.Protocol.TableSumcheck
 import LeanerVM.Protocol.ToArkLib.ProductSumcheck
-import LeanerVM.Protocol.LeanIsa
+import LeanerVM.Protocol.LeanIsa.Conditions
 import LeanerVM.Protocol.HonestProver
 import LeanerVM.Protocol.ToArkLib.AppendLazy
 import LeanerVM.Protocol.Whir.Cached
@@ -333,7 +333,7 @@ open LeanerVMTests.Arithmetization.Statement
 open Air.Flat (EnsembleWitness)
 
 /-- The hand-built leanISA witness of the constraint statement's tests. -/
-def fillWitness : EnsembleWitness (leanIsaEnsemble fillProg) := fillW 1 g memCnt
+def fillWitness : EnsembleWitness (leanIsaEnsemble fillProg minLogMem) := fillW 1 g memCnt
 
 /-- The witness's sizes with the memory log-size replaced by `logMem`: the stack and the bus
 leaves grow with it, the memory cells past the witness's reading `0`. -/

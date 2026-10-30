@@ -29,7 +29,7 @@ the assertion `[o_C] = [o_A] + [o_B]` (§5, "M3").
 words `v_A, v_B` as three limbs each; the memory counts `r_A, r_B, r_C`; the bytecode count
 `r_bc`. The result word is never a column: its limbs ride the third memory read as the sums
 `v_{A,i} + v_{B,i}`. A three-limb column `v` is the word `E.ofLimbs v[0] v[1] v[2]`, as Layer
-5's `MemPull.Guarantees` spells it.
+5's `MemChannel.Guarantees` spells it.
 
 **The relation.** `XorBindings mem r` binds the row to an image, as named facts: `readA_eq`,
 `readB_eq`, the operand cells `fp·o_A`, `fp·o_B` hold the row's words. `XorRefines mem r next`
@@ -61,9 +61,9 @@ is `XorSpec`.
 **Soundness** assumes the guarantees of the four pulls (memory reads are the image's words, the
 bytecode entry decodes to an instruction, which for the tuple `main` emits is `XOR o_A o_B o_C`
 by Layer 4's `decode_entry`) and concludes `XorSpec`: the bindings are exactly what the memory
-pulls guarantee, and the execution follows by the arm of `execute`; the requirements of the
-three pushes are vacuous, since the push channels guarantee nothing (Layer 5: what a push must
-satisfy is this `Spec`).
+pulls guarantee, and the execution follows by the arm of `execute`; each push re-sends what its
+pull carried, so what the pushes owe (the state channel nothing, the bytecode entry decoding, a
+memory word the image holds) is what the pulls are granted.
 
 **Completeness** takes `ProverAssumptions r data _ := ∃ next, XorSpec r next data`: the row is
 an honest row, one an honest prover wrote from a valid step of the execution it proves, so it
@@ -194,6 +194,7 @@ def XorSpec (r : XorRow K) (next : Regs K) (data : ProverData K) : Prop :=
 `(XOR, o_A, o_B, o_C, 0, 0, 0, 0)`, the two operand reads, and the result read carrying the
 limb-wise sum. Returns the pushed successor `(g·pc, fp)`. -/
 def xorTable : GeneralFormalCircuit K XorRow Regs where
+  name := "xor"
   main r := do
     let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
     instructionStep r.pc r.fp r.rbc next .xor #v[r.oA, r.oB, r.oC, 0, 0, 0, 0]
@@ -201,8 +202,8 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
     memRead (r.fp * r.oB) r.rB r.vB
     memRead (r.fp * r.oC) r.rC #v[r.vA[0] + r.vB[0], r.vA[1] + r.vB[1], r.vA[2] + r.vB[2]]
     pure next
-  -- The push channels: their requirements are vacuous (Layer 5), the obligation is `Spec`.
-  channelsWithRequirements := [StatePush.toRaw, MemPush.toRaw, BytecodePush.toRaw]
+  -- The three channels: each push owes its channel's guarantee (Layer 5).
+  channelsWithRequirements := [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw]
   requirementsChannelsLawful input offset := by
     -- Clean's default tactic decides channel equalities through `Channel.toRaw_ext_iff`, whose
     -- `-1 : K` core's `BitVec.reduceNeg` simproc then rewrites as the two's-complement word,
@@ -216,11 +217,13 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
   -- `xor_exec_complete`.
   ProverAssumptions r data _ := ∃ next, XorSpec r next data
   soundness := by
-    circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
+    circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
-    -- The bytecode guarantee, that the tuple decodes, is unused: the tuple `main` emits is
-    -- `XOR`'s entry by construction, and the program is the bus's (Layer 9).
-    obtain ⟨-, hA, hB, hC⟩ := h_holds
+    -- The bytecode guarantee, that the tuple decodes, serves only its push: the tuple `main`
+    -- emits is `XOR`'s entry by construction, and the program is the bus's (Layer 9).
+    obtain ⟨hbc, hA, hB, hC⟩ := h_holds
+    -- Each push re-sends its pull's message: what it owes is what the pull is granted.
+    refine ⟨?_, fun _ ↦ hbc, fun _ ↦ hA, fun _ ↦ hB, fun _ ↦ hC⟩
     obtain ⟨_, _, _, _, _, hvA, hvB, _, _, _, _⟩ := h_input
     subst hvA hvB
     refine (xor_refines_iff _ _ _).mpr ⟨⟨?_, ?_⟩, ?_, rfl⟩
@@ -228,7 +231,7 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
     · simpa only [Vector.getElem_map] using hB
     · simpa only [add_limbs, Vector.getElem_map] using hC
   completeness := by
-    circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
+    circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
     -- The four pull guarantees, from the semantic premise: the tuple `main` emits decodes
     -- (Layer 4), and the result read carries the limbs of the sum a valid execution reads

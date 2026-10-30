@@ -12,7 +12,7 @@ the witness without elaborating the tests.
 `input₀` to the pinned destination `g^31`, the sentinel counter, and the pinned frame `g^5`. The
 `XOR` and `DEREF` fill blocks share one closing `JUMP` (slots `4`, `5`, `6`), so that the `JUMP`
 table keeps four rows, and the sentinel slot `31` holds a `JUMP` in frame `g^5` to `(g^31, 1)`.
-The image and the data are the fixture's, the `BLAKE2S` fill rows too.
+The image is the fixture's, the `BLAKE2S` fill rows too, so `Caps` holds.
 
 **The witness** `sentW` has a row for every step, the sentinel's among them; the state pair
 balances with the walk `(1, 1) → (g, 1) → (g^2, 1) → (g^3, 1) → (g^31, g^5) → (g^31, 1)`.
@@ -97,43 +97,49 @@ def sentBcCnt (i : Fin (2 ^ sentProg.logSize)) : K :=
 /-! ## The witness -/
 
 def setTS : Air.Flat.Table K :=
-  mkT setTable (size SetRow) ([setRowS0, setRowS1].map rawRow) (rows_size [setRowS0, setRowS1])
+  mkT setComponent ([setRowS0, setRowS1].map rawRow) (rawRows_size [setRowS0, setRowS1])
 
 def mulTS : Air.Flat.Table K :=
-  mkT mulTable (size MulRow) ([mulRowS].map rawRow) (rows_size [mulRowS])
+  mkT mulComponent ([mulRowS].map rawRow) (rawRows_size [mulRowS])
 
 def derefTS : Air.Flat.Table K :=
-  mkT derefTable (size DerefRow) ([derefRowS].map rawRow) (rows_size [derefRowS])
+  mkT derefComponent ([derefRowS].map rawRow) (rawRows_size [derefRowS])
 
 def jumpTS : Air.Flat.Table K :=
-  mkT jumpTable (size JumpRow + 2) ([jumpRowA, jumpRowB, jumpRow16, jumpRowS].map jumpRaw)
+  mkT jumpComponent ([jumpRowA, jumpRowB, jumpRow16, jumpRowS].map jumpRaw)
     (jumpRaw_size [jumpRowA, jumpRowB, jumpRow16, jumpRowS])
 
+/-- The bytecode block's rows: the program's. -/
+def bcRowsS : List (Array K) :=
+  List.ofFn fun i ↦ rawRow (bytecodeRowOf sentProg i (sentBcCnt i))
+
+/-- They agree with the block's fixed columns. -/
+theorem bcRowsS_fixed : (bytecodeComponent sentProg).FixedRowsMatch bcRowsS := by
+  unfold bcRowsS
+  refine ⟨?_, fun i hi ↦ ?_⟩
+  · rw [List.length_ofFn]
+    exact (UInt64.toNat_ofNat_of_lt' (by decide)).symm
+  · have hi' : i < 2 ^ sentProg.logSize := by rwa [List.length_ofFn] at hi
+    rw [List.getElem_ofFn]
+    show (bytecodeMode sentProg).FixedAt (UInt64.ofNat i) (fromElements (Air.Flat.rowPrefix
+      (size BytecodeRow) (rawRow (bytecodeRowOf sentProg ⟨i, hi'⟩ (sentBcCnt ⟨i, hi'⟩)))))
+    rw [fromElements_rawRow, bytecodeMode_fixedAt_iff sentProg hi']
+    exact ⟨rfl, cons_append_ops _⟩
+
 def bcTS : Air.Flat.Table K :=
-  mkT bytecodeTable (size BytecodeRow)
-    (List.ofFn fun i ↦ (toElements (bytecodeRowOf sentProg i (sentBcCnt i))).toArray)
-    fun r hr ↦ by
-      rw [List.mem_ofFn] at hr
+  mkT (bytecodeComponent sentProg) bcRowsS (by
+      intro r hr
+      rw [bcRowsS, List.mem_ofFn] at hr
       obtain ⟨i, rfl⟩ := hr
-      exact Vector.size_toArray _
+      exact rawRow_size _) (by rw [bcRowsS, List.length_ofFn]; decide) bcRowsS_fixed
 
-/-- A witness of the ensemble of `sentProg` over the fixture's data and input. -/
-def mkWS (ts : List (Air.Flat.Table K))
-    (hlen : (leanIsaEnsemble sentProg).tables.length = ts.length := by rfl)
-    (hc : ∀ i (hi : i < (leanIsaEnsemble sentProg).tables.length),
-      (leanIsaEnsemble sentProg).tables[i] = (ts[i]'(hlen ▸ hi)).component := by
-        intro i hi
-        have hi' : i < 8 := hi
-        interval_cases i <;> rfl)
-    (hd : ∀ t ∈ ts, t.data = fillData := by
-      intro t ht
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
-      rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> rfl) :
-    EnsembleWitness (leanIsaEnsemble sentProg) :=
-  ⟨ts, fillData, PublicIO.ofInput mulInput, hlen, hc, hd⟩
+/-- The tables of the witness. -/
+def sentTables : List (Air.Flat.Table K) :=
+  [xorT, mulTS, setTS, derefTS, jumpTS, blakeT, memT sentCnt, bcTS]
 
-/-- The witness: a row for every step of the walk to the sentinel and back to `(g^31, 1)`. -/
-def sentW : EnsembleWitness (leanIsaEnsemble sentProg) :=
-  mkWS [xorT, mulTS, setTS, derefTS, jumpTS, blakeT, memT sentCnt, bcTS]
+/-- The witness: a row for every step of the walk to the sentinel and back to `(g^31, 1)`, at the
+minimum memory size, over the fixture's input. -/
+def sentW : EnsembleWitness (leanIsaEnsemble sentProg minLogMem) :=
+  witnessOfTables sentProg minLogMem (PublicIO.ofInput mulInput) sentTables rfl
 
 end LeanerVMTests.Arithmetization.Sentinel

@@ -7,9 +7,9 @@ blueprint. What is wanted is the blueprint's; who is taking which hole is issue
 are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). Open pull requests
 are not part of `main`.
 
-The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, CompPoly
-`572f9973`, Clean `42fe4b26`, VCVio `a4232d08`, PolyFun `41d3b21d`, Lean and Mathlib `v4.34.1`
-([dependencies.md](../dependencies.md#lean-434-port-review)).
+The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, CompPoly `572f9973`,
+Clean `ce2eee63`, VCVio `a4232d08`, PolyFun `41d3b21d`, Lean
+and Mathlib `v4.34.1` ([dependencies.md](../dependencies.md#lean-434-port-review)).
 
 ## On `main`
 
@@ -116,8 +116,8 @@ at leanVM's sizes and constants (`ToArkLib/Flock/`, `Parameters/Flock.lean`); on
 #88, stacked on it, its knowledge soundness (`flockSecurity`, on the generic
 `ToArkLib/Flock/Security.lean` and the field facts of `Protocol/FlockFields.lean`). On the
 branches stacked on the oracle protocol's, the Clean bridge (`ToClean/ComponentPolynomial.lean`:
-`Expression.toCMvPolynomial` and `Component.toM3` with their two translation theorems, over a
-verbatim copy of Clean's expression polynomials in `ToClean/ExpressionPolynomial.lean`) and the
+`Expression.toCMvPolynomial` and `Component.toM3` with their two translation theorems, over
+Clean's expression polynomials `Clean.Circuit.ExpressionPolynomial`) and the
 adaptor: the leanISA instance with the deployed stack layout (`Protocol/LeanIsa.lean`:
 `leanIsaInstance`, `witnessOf`, `stackOf`, `leanIsa_conditions`), its soundness
 (`LeanIsa/Sound.lean`: `satisfiedBy_witnessOf`, which discharges `SatisfiedBy`'s BLAKE2s validity
@@ -625,11 +625,10 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 
 - **The Clean bridge (Layer 2)** is a Clean candidate (`ToClean/`), computable over CompPoly
   and written over Clean #466's `degreeBound`, `WithinWidth` and `toBoundedPolynomial` (claimed
-  by #28; on Clean's main, but in no Clean revision built for Lean 4.34). Until the pin contains
-  it, `ToClean/ExpressionPolynomial.lean` is a verbatim copy of Clean's module, deleted at the
-  bump (the watch list). Where it differs from the sketch:
-  - Tables are generic over the type of bus sides; leanISA's carry the arithmetization's
-    `Direction`, mapped to the spine's `Side` by the instance. The counted channels are a
+  by #28; upstream at the Clean pin `ce2eee63`, which the bridge imports; the verbatim copy
+  kept until then is deleted). Where it differs from the sketch:
+  - Tables are generic over the type of bus sides; leanISA's carry Clean's direction tag
+    (`BusDir`), mapped to the spine's `Side` by the instance. The counted interactions are a
     predicate, and the count columns are listed in column order, each once, as the Rust's
     `count_columns()` are.
   - Flushes drop Clean's multiplicities; `UnitMultiplicities`, which the kernel checks for
@@ -1236,11 +1235,14 @@ below proves.
     honest word's lanes past them vanish (`level0Word_honest`, by `runWithChallenges_append_fst`;
     `kwordOf_stackOf_high`), so the rows read are the word's.
   - *When the prover returns a proof* (`proveWith_ne_none`, `proveWith_eq_none`): every round of
-    the wire runs from every state when no grind runs out of fuel (`Prover.runWith_total`,
-    `RoundCodec.Every`, `ToArkLib/RunTrace.lean`), and the book keeps as many commitments as
-    positions (`book_compiled`), so the openings' size check never fails: `proveWith` returns
-    `none` only when the witness gives no sizes, its sizes are not admissible, the rate is not
-    valid, or a grind finds no nonce within its fuel at some chain state.
+    the wire but the grind runs from every state, the grind from every state at which it finds a
+    nonce, so the run returns or its first rounds reach a state at which a grind fails
+    (`Prover.runWith_total_or`, `RoundCodec.Every`, `ToArkLib/RunTrace.lean`); the book keeps as
+    many commitments as positions (`book_compiled`), so the openings' size check never fails:
+    `proveWith` returns `none` only when the witness gives no sizes, its sizes are not admissible,
+    the rate is not valid, or a grind finds no nonce within its fuel at a chain state the run
+    reaches (`Prove.RunReaches`: the writer's state after the announcement and some first rounds
+    of the compiled protocol's honest prover).
   - Owed: the honest prover's query bound and the random-oracle bound on a grind running out of
     fuel; the headline's branch below states both.
 
@@ -1326,23 +1328,23 @@ them by `dsimp only [deployedSpec]` on both sides, and seals `leanIsaμ` and `bl
 `Protocol/Headline.lean` proves Layer 13's soundness theorems, each for a statement fixed before the
 adversary runs. Each is unconditional but for the query bound or a named hypothesis on BLAKE2s:
 `BlakeMisbehaves`, or for the comparison form `Blake2sActsAsRandomOracle`.
-`baseVerifier_extractsWitness_rom` is the random-oracle form at
-`(Q + 13697)/2^128 + hashTerm 13697 Q`, for an adversary of at most `Q` queries;
-`baseVerifier_extractsWitness` and `baseVerifier_extractsExecution` (at `leanIsaTraceExtraction`,
-for a program with `SentinelSafe`) are the deployed forms under `BlakeMisbehaves`;
-`baseVerifier_extractsWitness_coins` is the witness form for an adversary with coins (a
-`ProbComp Adversary`), under `BlakeMisbehaves`'s event averaged over the coins, by the headline at
-each coin-free adversary integrated over the draw; `blakeMisbehaves_of_comparison` derives
-`BlakeMisbehaves` from `Blake2sActsAsRandomOracle` and the query bound. `prove_complete` is
-completeness for the deployed pair, `Prove.baseProver_complete` at BLAKE2s: for a witness with
-`SatisfiedBy`, `prove fuel prog input w ρ = some proof → verify prog input proof = true`. `prove`
-returns no proof in four cases only (`Prove.proveWith_eq_none`): the witness's memory image is a
-single word, so `Sizes.ofWitness` reads no sizes; the sizes are not admissible; the rate is not
-valid; or a grind finds no nonce among its `fuel` candidates at some chain state.
-`mem_support_runBlake2s` and `mem_support_runRandom` make every run under either oracle
-a possible run of the game with a consistent joint log, and under BLAKE2s give it `verify`'s
-verdict; on such a run `Core.core_of_mem_support` puts an accepted proof whose extraction fails
-inside `HashMisbehaves`, and `satisfiedBy_witnessOf` turns the extracted stack's `M3Holds` into
+`baseVerifier_extractsWitness_rom` is the random-oracle form at `(Q + 13697)/2^128 + hashTerm 13697
+Q`, for an adversary of at most `Q` queries; `baseVerifier_extractsWitness` and
+`baseVerifier_extractsExecution` (at `leanIsaTraceExtraction`, for a program with `SentinelSafe`)
+are the deployed forms under `BlakeMisbehaves`; `baseVerifier_extractsWitness_coins` is the witness
+form for an adversary with coins (a `ProbComp Adversary`), under `BlakeMisbehaves`'s event averaged
+over the coins, by the headline at each coin-free adversary integrated over the draw;
+`blakeMisbehaves_of_comparison` derives `BlakeMisbehaves` from `Blake2sActsAsRandomOracle` and the
+query bound. `prove_complete` is completeness for the deployed pair, `Prove.baseProver_complete` at
+BLAKE2s: for a witness with `SatisfiedBy`, `prove fuel prog input w ρ = some proof → verify prog
+input proof = true`. `prove` returns no proof in four cases only (`Prove.proveWith_eq_none`): the
+witness's memory log-size is `0`, so `Sizes.ofWitness` reads no sizes; the sizes are not admissible;
+the rate is not valid; or a grind finds no nonce among its `fuel` candidates at a chain state the
+prover's run reaches (`ProveReaches`); `prove_ne_none` says the same as a sufficient condition.
+`mem_support_runBlake2s` and `mem_support_runRandom` make every run under either oracle a possible
+run of the game with a consistent joint log, and under BLAKE2s give it `verify`'s verdict; on such a
+run `Core.core_of_mem_support` puts an accepted proof whose extraction fails inside
+`HashMisbehaves`, and `satisfiedBy_witnessOf` turns the extracted stack's `M3Holds` into
 `SatisfiedBy`. `#print axioms` gives the kernel's three axioms for each, and for the replayer
 theorem. The wall's allow-list names `Headline.lean` for the base theorems, where it named
 `Soundness.lean`. The tests: `extract_nil` (nothing is extracted from the empty log, whatever the
@@ -1353,16 +1355,16 @@ vector with every hash logged (487250 prover and 3291 verifier queries), with no
 hit (test 37, reduced: the flip clause is not decidable), and `extract` on the prover's log
 returning the witness's sizes and stack (in 22 s compiled, `M3Holds` decided by sorting the bus's
 tuples); `verify` as `verifyWith` at BLAKE2s and `verifyWith_simulateQ` (test 38). Owed:
-`baseProver_complete_of_execution`, which waits for leanISA's constraint completeness at the trace
-level; and `extract_honest`, that `extract` on a run of `honestAdversary` returns the witness's
-sizes and stack, which acceptance test 24 needs at leanVM (its witness there is the toy's commitment
-pick) as test 37 does. Its three pieces: on a codeword the deployed decoder's list is the exact
-path's singleton (`ListDecoder.nttFirst`, `exactNtt_of_codeword`); the pick keeps the honest stack,
-which satisfies `M3Holds` from `SatisfiedBy` (`m3Holds_stackOf`); and the Merkle-log half, that the
-honest prover's log holds every level-0 leaf query in the layout `extractAllRows` and `laneRow` read
-(the zero prefix, the lanes reversed), so that `logWord` is the committed codeword.
-`leanervm-prove log` runs `extract` on the test vector's honest log natively, and it returns the
-witness's sizes and stack; no theorem states the three pieces yet.
+`extract_honest` (completeness from an execution is now `prove_complete_of_execution`, below), that
+`extract` on a run of `honestAdversary` returns the witness's sizes and stack, which acceptance test
+24 needs at leanVM (its witness there is the toy's commitment pick) as test 37 does. Its three
+pieces: on a codeword the deployed decoder's list is the exact path's singleton
+(`ListDecoder.nttFirst`, `exactNtt_of_codeword`); the pick keeps the honest stack, which satisfies
+`M3Holds` from `SatisfiedBy` (`m3Holds_stackOf`); and the Merkle-log half, that the honest prover's
+log holds every level-0 leaf query in the layout `extractAllRows` and `laneRow` read (the zero
+prefix, the lanes reversed), so that `logWord` is the committed codeword. `leanervm-prove log` runs
+`extract` on the test vector's honest log natively, and it returns the witness's sizes and stack; no
+theorem states the three pieces yet.
 
 *On merge* of the adaptive branch (`stack/45-adaptive-blake2s`, on the headline's): the BLAKE2s
 forms of the headline are adaptive. An adaptive adversary (`AdaptiveAdversary`) outputs the
@@ -1372,8 +1374,8 @@ at the chosen statement (`mem_support_loggedGame_of_adaptive`, `mem_support_runB
 so `core` applies unchanged: `baseVerifier_extractsWitness_adaptive`, its coins form, and
 `baseVerifier_extractsExecution_adaptive` (`SentinelSafe` of the chosen program a conjunct of the
 event) with the corollary `baseVerifier_extractsExecution_adaptive_wellFormed` for an adversary whose
-programs are all `WellFormedBytecode` (`Semantics/WellFormedBytecode.lean`, the `sentinelSafe`
-field; the fill blocks a later field). `#print axioms` gives the kernel's three axioms for each. The
+programs are all `WellFormedBytecode` (`Semantics/FillBlocks.lean`: `SentinelSafe` and the fill
+blocks). `#print axioms` gives the kernel's three axioms for each. The
 hypothesis is `BlakeMisbehavesAdaptive`, which at a fixed statement is `BlakeMisbehaves`
 (`blakeMisbehavesAdaptive_const`); the adaptive replayer fails it (`adaptiveReplayer_not_blakeMisbehaves`).
 Constraint soundness cannot drop `SentinelSafe`: the sentinel tests' program, whose sentinel slot is
@@ -1474,6 +1476,34 @@ Also owed:
   the deployed rate, taken from the pinned Rust's configuration, and a fuel at which the grind's
   random-oracle bound is negligible, with `prove_complete` and that bound stated at them.
 
+*On merge* of the headline over executions (`feat/headline-execution`, PR A's leanISA on Clean main
+merged into the adaptive stack's tip): the headline theorems speak about leanISA executions.
+Soundness: every form has its execution form, the trace `extractExecution` reads off the
+adversary's queries a `ValidExecution`; new are `baseVerifier_extractsExecution_rom`,
+`baseVerifier_extractsExecution_coins` and `baseVerifier_extractsExecution_adaptive_coins`, and
+`baseVerifier_extractsExecution` now reads through `extractExecution` like the others. The
+`baseVerifier_extractsWitness…` forms stay as the constraint forms they are proved from.
+Completeness: `prove_complete_of_execution`, for `WellFormedBytecode` (now with the fill blocks)
+and a valid execution that `Fits`, gives a padding with the same steps, valid, and a witness of the
+constraint statement representing it, with sizes `s`, on which every proof `prove` returns is
+accepted; `prove` returns none only when the stack is above `2^maxMu`, the rate is invalid, or a
+grind runs out of fuel at a chain state the prover's run reaches (`ProveReaches`), and returns a
+proof when none of these holds (`prove_eq_none`, `prove_ne_none`;
+`admissible_iff_of_satisfiedBy`: the statement's caps give the rest of admissibility). The
+witness exists and is not computed (leanISA's padded witness reads the image through the classical
+`MemImage.read`). The stack's statements took the κ of `leanIsaEnsemble prog κ`; the DEREF reads
+stay in the Rust's flush order, to which leanISA's completeness rows were brought; the separator
+check of the bytecode blocks reads one channel. Owed, for an unconditional "`prove` returns a
+proof":
+  - a fit at the level of `Sizes`: `Trace.Fits` bounds the memory and each table, not the stack.
+    `prove` returns none at every fuel and rate for every `t.κ ≥ 26`, because the witness's four
+    memory columns at height `2^(t.κ+1)` hold `2^(t.κ+3)` cells, above `2^maxMu = 2^28`; more
+    generally whenever the filled tables exceed `2^28` cells, within the per-table cap `2^32`. A
+    resource hypothesis on the trace that bounds `leanIsaμ` closes it;
+  - the honest grind bound above: for `honestAdversary` under `runRandom`, the probability that a
+    grind runs out of fuel is at most `grinds · (1 − 2^-17)^fuel`. No deterministic form at
+    BLAKE2s can drop the grind clause: a fixed function can fail a grind at any given fuel.
+
 ## Upstream watch
 
 External work that may feed or replace a hole. The state of each is on GitHub.
@@ -1495,13 +1525,9 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | VCVio #571 | Merkle binding by log replay | `ToVCVio/MerkleLog.lean` | VCVio proves extraction with hashed leaves on one shared oracle |
 | VCVio #817 | the charged invariant | the laws of the scalar expectation, copied verbatim as `ToVCVio/ScalarExpectation.lean` | at the bump that contains it, delete the copy |
 | VCVio #823, #824, #826, #828 | the charged invariant | fresh-query bounds with a fixed error per key | reference only: the flip charge depends on the cache |
-| Clean #466 (merged 2026-10-05), #474 | Clean expressions as polynomials | `ToClean/ExpressionPolynomial.lean`, a verbatim copy of Clean's module | a pin holds both #466 and #474's Lean 4.34 fix; then delete the copy and import `Clean.Circuit.ExpressionPolynomial` |
-| Clean #464, #20 | the adaptor | leanISA's `BalancedPair` | merged and the pin bumped |
-| Clean #446, #23 | the adaptor | the three fixed-column conjuncts | merged and the pin bumped |
 | CompPoly (issue to open: word arithmetic for `BF64`, degree-three `Ext`) | none: compiled speed of `K` and `E` everywhere | `Parameters/ToCompPoly/BF64Fast.lean`, `Parameters/ToCompPoly/ExtensionFast.lean`. Upstream would attach the `@[csimp]` theorems to `BF64.mul` and `Ext.mul` (or store a `BF64` as a `UInt64`), so the instance-level substitutions here become unnecessary: the candidate is the algorithms and their proofs | CompPoly merges them; then delete both modules and their imports in `Parameters/Field.lean` |
 
-One check is owed at the current pins and has not been made: whether Clean `42fe4b26` contains
-any of Clean #446. Whether `ReedSolomon.mcaError_affineLine_johnson_le` meets Annex B's per-level
+Whether `ReedSolomon.mcaError_affineLine_johnson_le` meets Annex B's per-level
 budget was checked on 2026-10-19: it does, with Annex B's own constant, at every deployed level
 (least margin 128.19 bits), so the admitted `rs_mcaError_le_in_johnson_range` is not needed
 ([whir-mca-budget.md](../reviews/whir-mca-budget.md)).
