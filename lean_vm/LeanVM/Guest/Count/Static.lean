@@ -258,21 +258,21 @@ theorem kcL4_loop (op : Opcode) :
 
 /-- `aggregate_claims`' instructions: the constant. -/
 def kcAggC : Opcode → ℕ
-  | .xor => 263
-  | .mulNative => 172
-  | .setConstant => 24
-  | .deref => 210
-  | .jump => 79
-  | .keccak => 23
+  | .xor => 265
+  | .mulNative => 171
+  | .setConstant => 25
+  | .deref => 195
+  | .jump => 80
+  | .keccak => 24
 
 /-- `aggregate_claims`' instructions: per unit of `n`. -/
 def kcAggD : Opcode → ℕ
-  | .xor => 207
-  | .mulNative => 166
-  | .setConstant => 22
-  | .deref => 187
-  | .jump => 60
-  | .keccak => 15
+  | .xor => 203
+  | .mulNative => 160
+  | .setConstant => 15
+  | .deref => 160
+  | .jump => 58
+  | .keccak => 13
 
 /-- **`aggregate_claims`' instructions** on `g^n`. -/
 theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List E) (n : ℕ),
@@ -287,22 +287,22 @@ theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List 
     exact ⟨n, h0, h1, ha⟩
   have hx : argExp args 0 = n := by rw [argExp, ha, logG_ofK h1]
   cases op
-  · have := kwx_weight_le_of_stat (by rw [kwxcertOf_of_idx (j := 29) (by decide +kernel)]; rfl : kwxcertOf "aggregate_claims" = .stat [(0, 0)] ⟨263, [(0, 105), (0, 7), (0, 95)]⟩ [(.n 63, 0), (.n 96, 0), (.n 122, 0)]) hn hv hb hpre
+  · have := kwx_weight_le_of_stat (by rw [kwxcertOf_of_idx (j := 29) (by decide +kernel)]; rfl : kwxcertOf "aggregate_claims" = .stat [(0, 0)] ⟨265, [(0, 105), (0, 3), (0, 95)]⟩ [(.n 63, 0), (.n 116, 0), (.n 133, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
-  · have := kwm_weight_le_of_stat (by rw [kwmcertOf_of_idx (j := 29) (by decide +kernel)]; rfl : kwmcertOf "aggregate_claims" = .stat [(0, 0)] ⟨172, [(0, 77), (0, 26), (0, 63)]⟩ [(.n 63, 0), (.n 96, 0), (.n 122, 0)]) hn hv hb hpre
+  · have := kwm_weight_le_of_stat (by rw [kwmcertOf_of_idx (j := 29) (by decide +kernel)]; rfl : kwmcertOf "aggregate_claims" = .stat [(0, 0)] ⟨171, [(0, 77), (0, 19), (0, 64)]⟩ [(.n 63, 0), (.n 116, 0), (.n 133, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
-  · have := kws_weight_le_of_stat (by rw [kwscertOf_of_idx (j := 29) (by decide +kernel)]; rfl : kwscertOf "aggregate_claims" = .stat [(0, 0)] ⟨24, [(0, 7), (0, 11), (0, 4)]⟩ [(.n 63, 0), (.n 96, 0), (.n 122, 0)]) hn hv hb hpre
+  · have := kws_weight_le_of_stat (by rw [kwscertOf_of_idx (j := 29) (by decide +kernel)]; rfl : kwscertOf "aggregate_claims" = .stat [(0, 0)] ⟨25, [(0, 7), (0, 4), (0, 4)]⟩ [(.n 63, 0), (.n 116, 0), (.n 133, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
-  · have := kwd_weight_le_of_stat (by rw [kwdcertOf_of_idx (j := 29) (by decide +kernel)]; rfl : kwdcertOf "aggregate_claims" = .stat [(0, 0)] ⟨210, [(0, 78), (0, 34), (0, 75)]⟩ [(.n 63, 0), (.n 96, 0), (.n 122, 0)]) hn hv hb hpre
+  · have := kwd_weight_le_of_stat (by rw [kwdcertOf_of_idx (j := 29) (by decide +kernel)]; rfl : kwdcertOf "aggregate_claims" = .stat [(0, 0)] ⟨195, [(0, 78), (0, 8), (0, 74)]⟩ [(.n 63, 0), (.n 116, 0), (.n 133, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
-  · have := kwj_weight_le_of_stat (by rw [kwjcertOf_of_idx (j := 29) (by decide +kernel)]; rfl : kwjcertOf "aggregate_claims" = .stat [(0, 0)] ⟨79, [(0, 54), (0, 4), (0, 2)]⟩ [(.n 63, 0), (.n 96, 0), (.n 122, 0)]) hn hv hb hpre
+  · have := kwj_weight_le_of_stat (by rw [kwjcertOf_of_idx (j := 29) (by decide +kernel)]; rfl : kwjcertOf "aggregate_claims" = .stat [(0, 0)] ⟨80, [(0, 54), (0, 2), (0, 2)]⟩ [(.n 63, 0), (.n 116, 0), (.n 133, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
-  · have := kwk_weight_le_of_stat (by rw [kwkcertOf_of_idx (j := 29) (by decide +kernel)]; rfl : kwkcertOf "aggregate_claims" = .stat [(0, 0)] ⟨23, [(0, 13), (0, 2), (0, 0)]⟩ [(.n 63, 0), (.n 96, 0), (.n 122, 0)]) hn hv hb hpre
+  · have := kwk_weight_le_of_stat (by rw [kwkcertOf_of_idx (j := 29) (by decide +kernel)]; rfl : kwkcertOf "aggregate_claims" = .stat [(0, 0)] ⟨24, [(0, 13), (0, 0), (0, 0)]⟩ [(.n 63, 0), (.n 116, 0), (.n 133, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
 
