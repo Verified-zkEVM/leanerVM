@@ -16,7 +16,7 @@ public import LeanerVM.Arithmetization.Bus
 
 The per-row half of constraint soundness (specification §5, "an instance is accepted exactly
 when every table's constraints hold and the bus balances"; §6.1, §7), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2`, over Clean `9dd71e82`. Category A: the argument
+`a386121f84292f6fa663aaa3e570c15bc0240ea2`, over Clean `ce2eee63`. Category A: the argument
 composes this repository's components; nothing is transcribed. Artifact: the accept relation
 `SatisfiedBy`. Direction: soundness.
 

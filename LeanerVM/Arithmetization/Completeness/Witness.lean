@@ -14,7 +14,7 @@ public import LeanerVM.Arithmetization.Completeness.Bus
 /-!
 # The witness of a padded execution
 
-leanISA roadmap Layer 10 (`docs/roadmap/leanisa-blueprint.md`), at Clean pin `9dd71e82`.
+leanISA roadmap Layer 10 (`docs/roadmap/leanisa-blueprint.md`), at Clean pin `ce2eee63`.
 Category A. Given the program, the public input, the image `img` and a list of skeletons `S`
 (the states stepped from and the instructions fetched there: the run and the fill),
 `padWitness prog input img S hκ hS` is Clean's `EnsembleWitness` of `leanIsaEnsemble prog κ`,

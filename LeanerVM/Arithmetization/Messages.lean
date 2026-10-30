@@ -15,7 +15,7 @@ public import LeanerVM.Arithmetization.Completeness.Basics
 # The messages of a row
 
 leanISA roadmap Layers 9 and 10 (`docs/roadmap/leanisa-blueprint.md`), at Clean pin
-`9dd71e82`. Category A. The balance of the three channels is a statement about the messages the
+`ce2eee63`. Category A. The balance of the three channels is a statement about the messages the
 rows send, so constraint soundness (`Arithmetization.Rows`, on arbitrary rows) and the witness
 of `constraintCompleteness` (on honest rows) both read them from these closed forms. Every table's row circuit
 has the same shape: pull the state `(pc, fp)`, push the successor, read the bytecode entry at

@@ -15,7 +15,7 @@ public import LeanerVM.Arithmetization.Rows
 /-!
 # The witness satisfies the statement
 
-leanISA roadmap Layer 10 (`docs/roadmap/leanisa-blueprint.md`), at Clean pin `9dd71e82`.
+leanISA roadmap Layer 10 (`docs/roadmap/leanisa-blueprint.md`), at Clean pin `ce2eee63`.
 Category A. `padWitness prog input img S hκ hS` satisfies every conjunct of `SatisfiedBy prog
 input` (`padWitness_satisfiedBy`) when the skeletons `S` are sound for the program and the image
 (`SkelOk`: fetched, and they execute), the state channel balances (the hypothesis `hstate`,

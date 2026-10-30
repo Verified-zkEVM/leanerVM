@@ -20,7 +20,7 @@ The soundness half of T1 (`docs/architecture.md`): from `SatisfiedBy prog input 
 `t` with `AssignmentRepresents w t` and `ValidExecution prog input t`, for a program whose
 sentinel slot is not a `JUMP` (`SentinelSafe prog`, the `sentinelSafe` field of the roadmap's
 `WellFormedBytecode`). Specification Proposition 6.1 (`doc/leanvm/body/06-bus-interactions.tex:9`
-at leanVM pin `a386121f84292f6fa663aaa3e570c15bc0240ea2`, over Clean `9dd71e82`) cut at the
+at leanVM pin `a386121f84292f6fa663aaa3e570c15bc0240ea2`, over Clean `ce2eee63`) cut at the
 first arrival at the final registers. Category A. Artifact: the accept relation `SatisfiedBy`;
 the execution relation `ValidExecution`. Direction: soundness. Boundary: the BLAKE2s validity is
 a conjunct of `SatisfiedBy`, discharged by Flock; the two blocks' addresses, words and entries

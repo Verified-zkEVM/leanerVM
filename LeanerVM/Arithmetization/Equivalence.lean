@@ -16,7 +16,7 @@ public import LeanerVM.Arithmetization.Completeness.Theorem
 # leanISA and its constraints
 
 leanISA roadmap Layer 10 (`docs/roadmap/leanisa-blueprint.md`), T1 in both directions, at leanVM
-pin `a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `9dd71e82`. Category A: nothing
+pin `a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `ce2eee63`. Category A: nothing
 here is transcribed; the statements compose `constraintSoundness`
 (`LeanerVM.Arithmetization.Soundness`) and `constraintCompleteness`
 (`LeanerVM.Arithmetization.Completeness.Theorem`).
