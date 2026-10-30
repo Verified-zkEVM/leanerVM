@@ -98,7 +98,7 @@ open LeanVM.Prover (Script)
 
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.EndToEnd
   LeanVM.Protocol.Compile LeanVM.Protocol.Whir Finset
-open LeanVM.Semantics (KState)
+open LeanVM.Semantics (KeccakState)
 
 @[expose] public section
 
@@ -114,7 +114,7 @@ builds `roundQuad claim W g` from it. -/
 theorem follows_round (W g : List E) (claim : E) (cs : Commits) :
     Follows (fun cs' _ b ↦ cs' = cs ∧ b = roundQuad claim W g) (hRound W g)
       (sumcheckRoundPoly 3 claim none) cs := by
-  simp [hRound, sumcheckRoundPoly, Script.sendE, Script.sendList, Prog.readE, Prog.readN,
+  simp [hRound, sumcheckRoundPoly, Script.sendE, Script.sendList, Prog.readScalar, Prog.readScalars,
     Follows, roundQuad, Script.bind, Prog.bind]
 
 /-- The fold rounds of a level (`foldRounds`): receive the challenge, fix the first coordinate
@@ -949,10 +949,10 @@ theorem runI_openingProgram {μ R : ℕ} (hadm : Whir.Admissible μ R) (q : Colu
 /-- **Completeness of the compiled opening.** For every hash function and permutation, the
 honest compiled prover of `openingProgram` produces a proof the compiled verifier accepts, as soon
 as every proof-of-work search finds its nonce below `fuel`. -/
-theorem exists_prove_runProof_openingProgram (H : Bytes → Digest) (F : KState → KState)
+theorem exists_prove_runProof_openingProgram (H : Bytes → Digest) (F : KeccakState → KeccakState)
     {μ R : ℕ} (hadm : Whir.Admissible μ R) (q : Column μ) (claims : List StackClaim)
     (hholds : ∀ c ∈ claims, StackClaim.Holds μ c q) (hml : ∀ c ∈ claims, IsMultilinearFn μ c.1)
-    (seed : KState) (fuel : ℕ)
+    (seed : KeccakState) (fuel : ℕ)
     (hg : ∀ h bits k sp, (openingProgram μ R claims).after h = some (.grind bits k) →
       findNonce F bits sp fuel ≠ none) :
     ∃ π, prove H F (openingProgram μ R claims) (openingProver μ R q claims) seed fuel = some π ∧

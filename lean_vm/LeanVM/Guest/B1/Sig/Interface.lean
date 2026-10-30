@@ -130,7 +130,7 @@ memory image of at most `2^32` words, whenever its body holds of `σ`, it return
 when its second argument `σ (.n 1)` holds the byte table, `sigOf σ` verifies the claim at its
 first argument `σ (.n 0)`. -/
 def verify_sig_lean_sphincs_sound_Spec (sigOf : Val → Sphincs.Signature) : Prop :=
-  ∀ (C : CallRel) {κ : ℕ} (L : MemImage κ), κ ≤ 32 → ∀ (σ : Val) (rets : List E),
+  ∀ (C : CallRel) {κ : ℕ} (L : MemoryImage κ), κ ≤ 32 → ∀ (σ : Val) (rets : List E),
     Stmt.HoldsList C L.read σ Data.core20.body False (fun rs => rs = rets) →
       rets = [] ∧ (ByteBits L.read (σ (.n 1)) → SphincsOut L.read (σ (.n 0)) (sigOf σ))
 
@@ -196,7 +196,7 @@ theorem verify_lean_xmss_signed {sigOf : Val → LeanXmss.Signature}
 arguments, returns nothing, and when the second holds the byte table the claim at the first is
 signed. -/
 theorem verify_sig_lean_sphincs_signed {sigOf : Val → Sphincs.Signature}
-    (hs : verify_sig_lean_sphincs_sound_Spec sigOf) {κ : ℕ} {L : MemImage κ} (hκ : κ ≤ 32)
+    (hs : verify_sig_lean_sphincs_sound_Spec sigOf) {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32)
     {args rets : List E} (h : coreProgram.Rel L.read "verify_sig_lean_sphincs" args rets) :
     ∃ p bb, args = [p, bb] ∧ rets = [] ∧ (ByteBits L.read bb → SphincsSigned L.read p) := by
   obtain ⟨σ, hp, hb⟩ := (rel_iff_body find_verify_sig_lean_sphincs args rets).mp h

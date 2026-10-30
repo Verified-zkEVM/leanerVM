@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Da.LevelsSound
 
 LeanDA (Benedikt Wagner's framework, ported and instantiated in `lean_da`) roots a tree over the
 leaves `f 0 … f (2^d - 1)` as `merkleRoot H d f`, its nodes `H (pairBytes l r)`; the guest keeps
-a node as the two cells of its digest (`nodeCells`, `cellRoot`). With `H = Da.keccak`:
+a node as the two cells of its digest (`nodeCells`, `cellRoot`). With `H = Da.keccak256Bytes`:
 
 * `mRoot d g`: the tree of `Digest`s over the leaves `g i`; `toBytes_mRoot`: as LeanDA's bytes it
   is `merkleRoot keccak d (toBytes ∘ g)`; `cellRoot_mRoot`: as cells it is the guest's `cellRoot`;
@@ -49,15 +49,15 @@ theorem kBytes_eq (a : K) : LeanDa.kBytes a = kBytes a := by
   rw [Nat.mod_eq_of_lt (show 8 * t < 2 ^ 64 by omega), Nat.mod_eq_of_lt (show 8 * t < 64 by omega)]
   rfl
 
-theorem limbBytes_eq (es : List E) : LeanDa.limbBytes es = es.flatMap Node.eBytes := by
+theorem limbBytes_eq (es : List E) : LeanDa.limbBytes es = es.flatMap Node.extensionElementBytes := by
   simp only [LeanDa.limbBytes, List.flatMap_assoc]
   refine List.flatMap_congr fun e _ => ?_
-  simp [Node.eBytes, kBytes_eq, LeanDa.limb, List.append_assoc]
+  simp [Node.extensionElementBytes, kBytes_eq, LeanDa.limb, List.append_assoc]
 
 theorem keccak_pair (a b : Digest) :
-    LeanVM.Da.keccak (LeanDa.pairBytes (LeanVM.Protocol.Digest.toBytes a) (LeanVM.Protocol.Digest.toBytes b)) =
+    LeanVM.Da.keccak256Bytes (LeanDa.pairBytes (LeanVM.Protocol.Digest.toBytes a) (LeanVM.Protocol.Digest.toBytes b)) =
       LeanVM.Protocol.Digest.toBytes (keccak256 (digestBytes a ++ digestBytes b)) := by
-  rw [LeanVM.Da.keccak, LeanDa.pairBytes, toList_toBytes, toList_toBytes]
+  rw [LeanVM.Da.keccak256Bytes, LeanDa.pairBytes, toList_toBytes, toList_toBytes]
 
 /-! ## Trees of digests -/
 
@@ -70,7 +70,7 @@ def mRoot : ℕ → (ℕ → Digest) → Digest
   | d + 1, g => mRoot d (upD g)
 
 theorem toBytes_mRoot : ∀ (d : ℕ) (g : ℕ → Digest),
-    LeanVM.Protocol.Digest.toBytes (mRoot d g) = LeanDa.merkleRoot LeanVM.Da.keccak d (LeanVM.Protocol.Digest.toBytes ∘ g)
+    LeanVM.Protocol.Digest.toBytes (mRoot d g) = LeanDa.merkleRoot LeanVM.Da.keccak256Bytes d (LeanVM.Protocol.Digest.toBytes ∘ g)
   | 0, _ => rfl
   | d + 1, g => by
     rw [mRoot, toBytes_mRoot d, LeanDa.merkleRoot]
@@ -103,8 +103,8 @@ theorem cellRoot_mRoot : ∀ (d : ℕ) (g : ℕ → Digest),
 
 /-- **A root over blocks**: the root over `2^(a + b)` leaves is the root over the roots of the
 `2^a` blocks of `2^b` leaves. -/
-theorem merkleRoot_add (H : List UInt8 → Common.KDigest) (a : ℕ) :
-    ∀ (b : ℕ) (f : ℕ → Common.KDigest), LeanDa.merkleRoot H (a + b) f =
+theorem merkleRoot_add (H : List UInt8 → Common.DigestBytes) (a : ℕ) :
+    ∀ (b : ℕ) (f : ℕ → Common.DigestBytes), LeanDa.merkleRoot H (a + b) f =
       LeanDa.merkleRoot H a fun j => LeanDa.merkleRoot H b fun i => f (j * 2 ^ b + i)
   | 0, f => by simp [LeanDa.merkleRoot]
   | b + 1, f => by
@@ -119,7 +119,7 @@ theorem merkleRoot_add (H : List UInt8 → Common.KDigest) (a : ℕ) :
 
 /-! ## Trees built level by level -/
 
-theorem treeLevel_range (H : List UInt8 → Common.KDigest) (d : ℕ) (f : ℕ → Common.KDigest) :
+theorem treeLevel_range (H : List UInt8 → Common.DigestBytes) (d : ℕ) (f : ℕ → Common.DigestBytes) :
     LeanDa.treeLevel H ((List.range (2 ^ (d + 1))).map f) = (List.range (2 ^ d)).map (LeanDa.up H f) := by
   have hlen : 2 ^ (d + 1) / 2 = 2 ^ d := by rw [pow_succ, Nat.mul_div_cancel _ (by norm_num)]
   rw [LeanDa.treeLevel, List.length_map, List.length_range, hlen]
@@ -131,7 +131,7 @@ theorem treeLevel_range (H : List UInt8 → Common.KDigest) (d : ℕ) (f : ℕ �
     List.getElem?_range h2, Option.map_some, Option.getD_some]
 
 /-- **A tree built level by level has LeanDA's root.** -/
-theorem treeRoot_range (H : List UInt8 → Common.KDigest) (d : ℕ) (f : ℕ → Common.KDigest) :
+theorem treeRoot_range (H : List UInt8 → Common.DigestBytes) (d : ℕ) (f : ℕ → Common.DigestBytes) :
     LeanDa.treeRoot H ((List.range (2 ^ d)).map f) = LeanDa.merkleRoot H d f := by
   induction d generalizing f with
   | zero => rw [LeanDa.treeRoot]; simp [LeanDa.merkleRoot]

@@ -107,7 +107,7 @@ variable {β : Type} {C : List Ev → Set β} {εmax T : ℝ≥0∞}
 
 /-- `n` reads keep doom; lead `T` (the reads' own lead is `0` when `n > 0`). -/
 noncomputable def readNSpec (hst : Stable C) (A : β → Prop) (hT : T ≤ εmax) :
-    (n : ℕ) → Spec (Prog.readN n) (Doomed C A) (fun xs h ↦ xs.length = n ∧ Doomed C A h) εmax T T
+    (n : ℕ) → Spec (Prog.readScalars n) (Doomed C A) (fun xs h ↦ xs.length = n ∧ Doomed C A h) εmax T T
   | 0 => (Spec.ret (Post := fun xs h ↦ xs.length = 0 ∧ Doomed C A h) []).mono
       (fun _ h ↦ ⟨rfl, h⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
   | n + 1 => (doomReadN hst A hT n).mono (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl zero_le le_rfl
@@ -140,7 +140,7 @@ noncomputable def roundSpec (hst : Stable C) (A : β → Prop) (hT : T ≤ εmax
         (fun _ h ↦ ⟨by simp [h.1]; omega, split_none c0 claim tail, h.2⟩) (fun _ _ h ↦ h)
         le_rfl le_rfl le_rfl
   | some r =>
-    Spec.congr (p := Prog.readN (count - 2 + 1) >>= fun tail ↦
+    Spec.congr (p := Prog.readScalars (count - 2 + 1) >>= fun tail ↦
         Prog.ret ((claim + r * sumE tail) :: tail)) (by
           simp only [sumcheckRoundPoly, show count - 2 + 1 = count - 1 by omega]; rfl) <|
       (doomReadN hst A hT (count - 2)).bind' fun tail ↦

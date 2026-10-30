@@ -38,7 +38,7 @@ def roundChallenges (rounds : List (E × E)) (claim : E) (sp : Sponge) : List E 
 round's coordinate after the earlier challenges. -/
 def roundGap (n : ℕ) (f : List E → E) (rounds : List (E × E)) (claim : E) (sp : Sponge) (j : ℕ)
     (x : E) : E :=
-  roundPoly (rsSt rounds claim sp j).1 (rounds.getD j (0, 0)) x -
+  sumcheckRoundPolynomial (rsSt rounds claim sp j).1 (rounds.getD j (0, 0)) x -
     cubeSum n f ((roundChallenges rounds claim sp).take j ++ [x])
 
 /-- **Round `j` is bad** for `f`: its gap is not zero, and the round's challenge is a root of it. -/
@@ -76,7 +76,7 @@ theorem rounds_sound {n : ℕ} {f : List E → E} {rounds : List (E × E)} {clai
         apply ih hj'.le
         have h0 := hz 0
         have h1 := hz 1
-        simp only [roundGap, roundPoly, sub_eq_zero] at h0 h1
+        simp only [roundGap, sumcheckRoundPolynomial, sub_eq_zero] at h0 h1
         rw [cubeSum_split (by simp; omega), ← h0, ← h1]
         linear_combination (-((rsSt rounds claim sp j).1 + (rounds.getD j (0, 0)).2 +
           2 * (rounds.getD j (0, 0)).1)) * Whir.Complete.two_eq_zero_E
@@ -98,7 +98,7 @@ theorem badRound_roots {n : ℕ} {f : List E → E} (hf : QuadraticIn n f) {roun
   refine quadratic_roots (Quadratic.sub ?_ (quadratic_cubeSum hf ?_)) hbad
   · set c := (rsSt rounds claim sp j).1
     set g := rounds.getD j (0, 0)
-    exact ⟨g.2, c + g.1 + g.1 + g.2, c + g.1, fun x ↦ by simp only [roundPoly]; ring⟩
+    exact ⟨g.2, c + g.1 + g.1 + g.2, c + g.1, fun x ↦ by simp only [sumcheckRoundPolynomial]; ring⟩
   · simp [roundChallenges, rsRun_eq, hn]
     omega
 

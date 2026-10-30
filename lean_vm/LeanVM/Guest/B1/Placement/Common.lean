@@ -32,7 +32,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## Range checks -/
 
 /-- **A range check is sound** on a memory image: `x = g^e` with `e < K`. -/
-theorem tb_rc_sound {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {K : ℕ} (hK1 : 1 ≤ K)
+theorem tb_rc_sound {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {K : ℕ} (hK1 : 1 ≤ K)
     (hK : K ≤ 2 ^ μ) {x y t1 t2 k : E} (hk : k = ofK (Parameters.gpow (K - 1)))
     (h1 : LoadHolds Lm.read x 0 t1) (h2 : k = x * y) (h3 : LoadHolds Lm.read y 0 t2) :
     ∃ e < K, x = gen ^ e := by
@@ -41,7 +41,7 @@ theorem tb_rc_sound {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {K : ℕ} (h
 
 /-- **A range check is sound** on any memory image of at most `2^32` words, whatever `K ≤ 2^33`:
 both reads are below `2^32`, so their exponents' sum `K - 1` is below the order of `g`. -/
-theorem tb_rc_sound' {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {K : ℕ} (hK1 : 1 ≤ K)
+theorem tb_rc_sound' {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {K : ℕ} (hK1 : 1 ≤ K)
     (hK : K ≤ 2 ^ 33) {x y t1 t2 k : E} (hk : k = ofK (Parameters.gpow (K - 1)))
     (h1 : LoadHolds Lm.read x 0 t1) (h2 : k = x * y) (h3 : LoadHolds Lm.read y 0 t2) :
     ∃ e < K, x = gen ^ e := by
@@ -60,7 +60,7 @@ theorem tb_rc_sound' {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {K : ℕ} (
   exact ⟨i, by omega, by rw [ex, gen_pow_eq_ofK]⟩
 
 /-- The auxiliary words of a passing range check, chosen. -/
-noncomputable def tbRcAux {μ : ℕ} (Lm : MemImage μ) (x : E) (K : ℕ) : E × E × E :=
+noncomputable def tbRcAux {μ : ℕ} (Lm : MemoryImage μ) (x : E) (K : ℕ) : E × E × E :=
   open Classical in
   if h : ∃ y t1 t2 : E, LoadHolds Lm.read x 0 t1 ∧ ofK (Parameters.gpow (K - 1)) = x * y ∧
       LoadHolds Lm.read y 0 t2 then
@@ -69,7 +69,7 @@ noncomputable def tbRcAux {μ : ℕ} (Lm : MemImage μ) (x : E) (K : ℕ) : E ×
   else (0, 0, 0)
 
 /-- **A range check is complete**: `x = g^e`, `e < K`, passes with the chosen words. -/
-theorem tb_rc_complete {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {K : ℕ} (hK1 : 1 ≤ K)
+theorem tb_rc_complete {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {K : ℕ} (hK1 : 1 ≤ K)
     (hK : K ≤ 2 ^ μ) {e : ℕ} (he : e < K) :
     LoadHolds Lm.read (gen ^ e) 0 (tbRcAux Lm (gen ^ e) K).2.1 ∧
       ofK (Parameters.gpow (K - 1)) = gen ^ e * (tbRcAux Lm (gen ^ e) K).1 ∧

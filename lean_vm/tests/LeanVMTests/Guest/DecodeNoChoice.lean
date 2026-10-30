@@ -12,7 +12,7 @@ the schemes it imports (`LeanVM`, `LeanXmss`, `Sphincs`, `LeanDa`).
   `Classical.choice` or `Nat.find` are exactly the reviewed two:
   `LeanVM.Guest.Located.frameOf` (`Classical.propDecidable`: it decides, for each of the memory's
   `2^κ` frames in order, whether the guest's own code for the callee holds there on the call's
-  words, and takes the first) and `LeanVM.Semantics.gLog?` (`Classical.choose`: the index `i`
+  words, and takes the first) and `LeanVM.Semantics.addressIndex?` (`Classical.choose`: the index `i`
   with `a = g^i`, unique by the generator's order, the specification's definition of an address).
   Neither picks a witness.
 * **Positive controls.** The traversal reaches `Located.frameOf` and B1-d's child proof
@@ -22,7 +22,7 @@ the schemes it imports (`LeanVM`, `LeanXmss`, `Sphincs`, `LeanDa`).
   a signature scheme's verifier, the deferring verifier, the DA opening or the batching. This
   traversal stops at the guest's own semantics (`Core.Stmt.HoldsList`, `Core.Program.RelL`,
   `Core.Program.locN`), which `frameOf`'s test evaluates and which includes the guest's
-  in-circuit checks (a `KECCAK` atom's `KeccakCells`): those checks are the guest's, the decoder
+  in-circuit checks (a `KECCAK` atom's `KeccakCellsRelation`): those checks are the guest's, the decoder
   computes no hash and runs no verifier of its own.
 -/
 
@@ -68,7 +68,7 @@ def classical : NameSet :=
 def showHits (hits : Array (Name × Name)) : String :=
   toString ((hits.map fun p ↦ s!"{p.1} uses {p.2}").qsort (· < ·)).toList
 
-/-- info: [LeanVM.Guest.Located.frameOf uses Classical.propDecidable, LeanVM.Semantics.gLog? uses Classical.choose] -/
+/-- info: [LeanVM.Guest.Located.frameOf uses Classical.propDecidable, LeanVM.Semantics.addressIndex? uses Classical.choose] -/
 #guard_msgs in
 run_meta do
   let (_, hits) ← traverse ``LeanVM.Guest.End.decode [] classical.contains
@@ -94,9 +94,9 @@ run_meta do
 #guard_msgs in
 run_meta do
   let stop := ["Core.Stmt.HoldsList", "Core.Stmt.Holds", "Core.Stmt.HoldsArms",
-    "Core.Program.RelL", "Core.Program.locN", "Semantics.gLog?"]
-  let forbidden := ["keccak256", "keccakF", "Keccak.round", "absorbBlock", "absorbBlockWith", "xmssVerify",
+    "Core.Program.RelL", "Core.Program.locN", "Semantics.addressIndex?"]
+  let forbidden := ["keccak256", "keccakF1600", "Keccak.round", "absorbBlock", "absorbBlockWith", "xmssVerify",
     "sphincsVerify", "LeanXmss.verify", "Sphincs.verify", "verifyDeferred", "verifyDeferredWith",
-    "Verifier.verify", "verifyWith", "Witness.Opens", "Node.batch"]
+    "Verifier.verify", "verifyWith", "MatrixWitness.Opens", "Node.batch"]
   let (_, hits) ← traverse ``LeanVM.Guest.End.decode stop (endsWithAny · forbidden)
   logInfo (showHits hits)

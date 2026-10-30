@@ -98,7 +98,7 @@ theorem vt_pad_arm {rd : Reader} {σ : Val} {v : ℕ} {τ : ℕ} (hτ : τ < 29)
   exact padding_weight_holds τ hτ _ _ _ hrel
 
 section
-variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ)
+variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
 theorem vt_pad (σ : Val) (h : VtH Lm.read σ) {t : ℕ} (ht : t < 5) : VtPadOk Lm.read σ t := by

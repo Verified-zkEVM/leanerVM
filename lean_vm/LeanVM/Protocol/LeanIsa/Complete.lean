@@ -213,7 +213,7 @@ output lane `l` is lane `l` of Keccak-f[1600] of its input lanes. -/
 theorem outLane_of_satisfiedBy {input : PublicInput} (h : SatisfiedBy prog input w)
     (hs : Sizes.ofWitness w = some s) (x : ℕ) (hx : x < s.rows 5) (l : Fin 25) :
     cellOf (tableAt w 5) x (38 + l) =
-      stateLanes (keccakF (laneState (inLaneOf prog s w x))) l := by
+      stateLanes (keccakF1600 (laneState (inLaneOf prog s w x))) l := by
   obtain ⟨hp, rfl⟩ := eq_of_ofWitness hs
   have hx' : x < (tableAt w 5).table.length := hx
   have hv := congrFun (h.keccak_valid _ (List.getElem_mem hx')) l
@@ -364,8 +364,8 @@ private theorem image_words {input : PublicInput} (h : SatisfiedBy prog input w)
     (h0 : 0 < 2 ^ (imageOf w.data).1) (h1 : 1 < 2 ^ (imageOf w.data).1) :
     (imageOf w.data).2 ⟨0, h0⟩ = input.word0 ∧ (imageOf w.data).2 ⟨1, h1⟩ = input.word1 := by
   have hκ : (imageOf w.data).1 < 64 := lt_of_le_of_lt h.caps.le_maxLogMem (by decide)
-  have e0 := (MemImage.read_gpow hκ (imageOf w.data).2 ⟨0, h0⟩).symm.trans h.word0_eq
-  have e1 := (MemImage.read_gpow hκ (imageOf w.data).2 ⟨1, h1⟩).symm.trans h.word1_eq
+  have e0 := (MemoryImage.read_gpow hκ (imageOf w.data).2 ⟨0, h0⟩).symm.trans h.word0_eq
+  have e1 := (MemoryImage.read_gpow hκ (imageOf w.data).2 ⟨1, h1⟩).symm.trans h.word1_eq
   exact ⟨Option.some.inj e0, Option.some.inj e1⟩
 
 /-- The stack of a witness satisfying the constraint system holds the public lines: its memory
@@ -413,7 +413,7 @@ theorem padRow_of_not_isOut (j : Fin 6) (i : Fin (width (opIdx j)))
 /-- **The padding row's output lanes** are Keccak-f[1600] of the zero state, the permutation of
 its input lanes. -/
 theorem padRow_outCol (l : Fin 25) :
-    padRow (opIdx 5) (outCol l).2 = stateLanes (keccakF (laneState fun _ ↦ 0)) l := by
+    padRow (opIdx 5) (outCol l).2 = stateLanes (keccakF1600 (laneState fun _ ↦ 0)) l := by
   refine (padRow_keccak (outCol l).2).trans ?_
   rw [dite_eq_left (by simp [outCol]; omega)]
   congr 1

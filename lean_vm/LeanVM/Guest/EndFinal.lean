@@ -29,7 +29,7 @@ witness there.
 
 * `guest_knowledge : GuestKnowledge guest decode`: every valid execution of the guest on a public
   input decodes to a statement of that input's digest under the decoded seed, and a witness
-  holding it (`NodeRel`).
+  holding it (`NodeRelation`).
 * `aggregate_sound_outer : AggregateSound guest decode` (`EndRpm.lean`): in the
   random-permutation experiment, the verifier accepts a proof of the guest on the digest of a
   statement `s` under the deployed seed, `s` of the guest's shape, while no
@@ -71,18 +71,18 @@ theorem guest_knowledge : GuestKnowledge guest decode := guest_knowledge_sub sub
 coordinates, which the outer verifier's check that it holds implies) decodes to
 `iv` and `s₀`, or its memory and `s₀` give a Keccak-256 collision among the explicit
 candidates. -/
-theorem decode_binds {input : PublicInput} {t : Trace guest} (hv : ValidExecution guest input t)
-    {iv : Digest} {s₀ : NodeStatement} (hs₀ : s₀.defer.Shaped bytecode)
+theorem decode_binds {input : PublicInput} {t : Execution guest} (hv : ValidExecution guest input t)
+    {iv : Digest} {s₀ : NodeStatement} (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode)
     (hpub : publicDigest input = statementDigest iv s₀) :
-    ((decode t.image).seed = iv ∧ (decode t.image).statement = s₀) ∨
-      HasCollision (collisionCandidates (decode t.image).seed (decode t.image).statement iv s₀) :=
+    ((decode t.memory).seed = iv ∧ (decode t.memory).statement = s₀) ∨
+      HasCollision (collisionCandidates (decode t.memory).seed (decode t.memory).statement iv s₀) :=
   decode_binds_sub subSoundW hv hs₀ hpub
 
 /-- **Soundness, the existential form**: a valid execution of the guest on `input` gives a seed and
-a statement of the input's digest, of the guest's shape, that a witness holds (`NodeRel`). -/
-theorem guest_sound (input : PublicInput) (t : Trace guest) (hv : ValidExecution guest input t) :
-    ∃ seed s, statementDigest seed s = publicDigest input ∧ s.defer.Shaped bytecode ∧
-      ∃ w, NodeRel bytecode seed s w :=
+a statement of the input's digest, of the guest's shape, that a witness holds (`NodeRelation`). -/
+theorem guest_sound (input : PublicInput) (t : Execution guest) (hv : ValidExecution guest input t) :
+    ∃ seed s, statementDigest seed s = publicDigest input ∧ s.deferredClaim.HasBytecodeShape bytecode ∧
+      ∃ w, NodeRelation bytecode seed s w :=
   guest_sound_of (soundHyps_of_sub b2SoundL subSoundW) input t hv
 
 end

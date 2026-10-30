@@ -21,7 +21,7 @@ public import Statement.Fast.FieldWords
 
 The hash of the compiled verifier is a random oracle `Bytes →ₒ Digest` and its permutation a
 random oracle `KState →ₒ KState` (`HashSpec`); the verifier is the generic `verify` of
-`LeanVM.Protocol.Compile.Rom.History` at the queries `queryH` and `queryF` (`verifierComp`).
+`LeanVM.Protocol.Compile.Rom.History` at the queries `callKeccak256` and `callKeccakF1600` (`verifierComp`).
 
 * `simulateQ_verify`: interpreting the queries of `verifierComp` by any implementation is
   running `verify` with that implementation as the hash and the permutation; the verifier
@@ -43,33 +43,33 @@ open OracleComp OracleSpec
 
 @[expose] public section
 
-export LeanVM (HashSpec queryH queryF)
+export LeanVM (KeccakCalls callKeccak256 callKeccakF1600)
 
 /-- The seeded verifier as an oracle computation. -/
-def verifierComp (σ : Seed) (P : Prog Bool) (π : Proof) : OracleComp HashSpec Bool :=
-  verify queryH queryF σ P π
+def verifierComp (σ : Seed) (P : Prog Bool) (π : Proof) : OracleComp KeccakCalls Bool :=
+  verify callKeccak256 callKeccakF1600 σ P π
 
 /-! ## Simulation commutes with the verifier -/
 
 section Commute
 
-variable {r : Type → Type} [Monad r] [LawfulMonad r] (impl : QueryImpl HashSpec r)
+variable {r : Type → Type} [Monad r] [LawfulMonad r] (impl : QueryImpl KeccakCalls r)
 
 /-- The hash an implementation answers. -/
 def implH : Bytes → r Digest := fun x ↦ impl (.inl x)
 
 /-- The permutation an implementation answers. -/
-def implF : KState → r KState := fun s ↦ impl (.inr s)
+def implF : KeccakState → r KeccakState := fun s ↦ impl (.inr s)
 
-theorem simulateQ_queryH (x : Bytes) : simulateQ impl (queryH x) = implH impl x := by
-  simp [queryH, implH]
+theorem simulateQ_queryH (x : Bytes) : simulateQ impl (callKeccak256 x) = implH impl x := by
+  simp [callKeccak256, implH]
 
-theorem simulateQ_queryF (s : KState) : simulateQ impl (queryF s) = implF impl s := by
-  simp [queryF, implF]
+theorem simulateQ_queryF (s : KeccakState) : simulateQ impl (callKeccakF1600 s) = implF impl s := by
+  simp [callKeccakF1600, implF]
 
 theorem simulateQ_climb :
     ∀ (node : Digest) (q : ℕ) (path : List Digest),
-      simulateQ impl (climb queryH node q path) = climb (implH impl) node q path
+      simulateQ impl (climb callKeccak256 node q path) = climb (implH impl) node q path
   | _, _, [] => by simp [climb]
   | node, q, s :: ss => by
     simp only [climb]
@@ -78,7 +78,7 @@ theorem simulateQ_climb :
       congr 1; funext p; exact simulateQ_climb p _ ss
 
 theorem simulateQ_openOne (root : Digest) (ht w q : ℕ) (o : Opening) :
-    simulateQ impl (openOne queryH root ht w q o) = openOne (implH impl) root ht w q o := by
+    simulateQ impl (openOne callKeccak256 root ht w q o) = openOne (implH impl) root ht w q o := by
   simp only [openOne]
   split
   · simp only [simulateQ_bind, simulateQ_queryH, simulateQ_climb, simulateQ_pure]
@@ -86,7 +86,7 @@ theorem simulateQ_openOne (root : Digest) (ht w q : ℕ) (o : Opening) :
 
 theorem simulateQ_openAll (root : Digest) (ht w : ℕ) :
     ∀ (ps : List ℕ) (os : List Opening),
-      simulateQ impl (openAll queryH root ht w ps os) = openAll (implH impl) root ht w ps os
+      simulateQ impl (openAll callKeccak256 root ht w ps os) = openAll (implH impl) root ht w ps os
   | [], _ => by simp [openAll]
   | _ :: _, [] => by simp [openAll]
   | q :: qs, o :: os => by
@@ -97,23 +97,23 @@ theorem simulateQ_openAll (root : Digest) (ht w : ℕ) :
     · simp
 
 theorem simulateQ_duplex (sp : Sponge) :
-    simulateQ impl (duplex queryF sp) = duplex (implF impl) sp := by
+    simulateQ impl (duplex callKeccakF1600 sp) = duplex (implF impl) sp := by
   simp only [duplex, simulateQ_bind, simulateQ_queryF, simulateQ_pure]
 
 theorem simulateQ_absorb (sp : Sponge) (x : E) (tag : ℕ) :
-    simulateQ impl (Compile.absorb queryF sp x tag) = Compile.absorb (implF impl) sp x tag := by
+    simulateQ impl (Compile.absorb callKeccakF1600 sp x tag) = Compile.absorb (implF impl) sp x tag := by
   simp only [Compile.absorb]
   split
   · simp only [simulateQ_bind, simulateQ_duplex, simulateQ_pure]
   · simp
 
 theorem simulateQ_squeeze (sp : Sponge) :
-    simulateQ impl (squeeze queryF sp) = squeeze (implF impl) sp := by
+    simulateQ impl (squeeze callKeccakF1600 sp) = squeeze (implF impl) sp := by
   simp only [squeeze, simulateQ_bind, simulateQ_duplex, simulateQ_pure]
 
 theorem simulateQ_run :
-    ∀ (p : Prog Bool) (s : St),
-      simulateQ impl (run queryH queryF p s) = run (implH impl) (implF impl) p s
+    ∀ (p : Prog Bool) (s : ProgState),
+      simulateQ impl (run callKeccak256 callKeccakF1600 p s) = run (implH impl) (implF impl) p s
   | .ret a, s => by simp [run]
   | .fail, s => by simp [run]
   | .read k, s => by
@@ -153,8 +153,8 @@ theorem simulateQ_run :
       · exact simulateQ_run _ _
       · simp
 
-theorem simulateQ_runProof (P : Prog Bool) (seed : KState) (π : Proof) :
-    simulateQ impl (runProof queryH queryF P seed π) =
+theorem simulateQ_runProof (P : Prog Bool) (seed : KeccakState) (π : Proof) :
+    simulateQ impl (runProof callKeccak256 callKeccakF1600 P seed π) =
       runProof (implH impl) (implF impl) P seed π := by
   simp only [runProof, simulateQ_bind, simulateQ_run]
   congr 1; funext o
@@ -162,14 +162,14 @@ theorem simulateQ_runProof (P : Prog Bool) (seed : KState) (π : Proof) :
 
 theorem simulateQ_hsRun :
     ∀ (fs : List (List Digest → Bytes)) (ds : List Digest),
-      simulateQ impl (Seed.hsRun queryH fs ds) = Seed.hsRun (implH impl) fs ds
+      simulateQ impl (Seed.hsRun callKeccak256 fs ds) = Seed.hsRun (implH impl) fs ds
   | [], ds => by simp [Seed.hsRun]
   | f :: fs, ds => by
     simp only [Seed.hsRun, simulateQ_bind, simulateQ_queryH]
     congr 1; funext d; exact simulateQ_hsRun fs _
 
 theorem simulateQ_seedRun (σ : Seed) :
-    simulateQ impl (σ.run queryH queryF) = σ.run (implH impl) (implF impl) := by
+    simulateQ impl (σ.run callKeccak256 callKeccakF1600) = σ.run (implH impl) (implF impl) := by
   simp only [Seed.run, simulateQ_bind, simulateQ_hsRun, simulateQ_queryF]
 
 /-- **The verifier commutes with simulation.** -/
@@ -182,31 +182,31 @@ end Commute
 /-! ## Runs against the logged oracles -/
 
 /-- The answers of a log, as an implementation of the oracles in `Option`. -/
-def lookImpl (ℓ : Log) : QueryImpl HashSpec Option := logLookup ℓ
+def lookImpl (ℓ : Log) : QueryImpl KeccakCalls Option := logLookup ℓ
 
 theorem implH_lookImpl (ℓ : Log) : implH (lookImpl ℓ) = lookH ℓ := rfl
 
 theorem implF_lookImpl (ℓ : Log) : implF (lookImpl ℓ) = lookF ℓ := rfl
 
-theorem logLookup_of_prefix {ℓ ℓ' : Log} (hp : ℓ <+: ℓ') {t : Bytes ⊕ KState}
-    {v : HashSpec.Range t} (h : logLookup ℓ t = some v) : logLookup ℓ' t = some v := by
+theorem logLookup_of_prefix {ℓ ℓ' : Log} (hp : ℓ <+: ℓ') {t : Bytes ⊕ KeccakState}
+    {v : KeccakCalls.Range t} (h : logLookup ℓ t = some v) : logLookup ℓ' t = some v := by
   rcases t with x | s
   · exact lookH_of_prefix hp h
   · exact lookF_of_prefix hp h
 
-theorem logLookup_logRecord_self {ℓ : Log} {t : Bytes ⊕ KState} (h : logLookup ℓ t = none)
-    (u : HashSpec.Range t) : logLookup (logRecord ℓ t u) t = some u := by
+theorem logLookup_logRecord_self {ℓ : Log} {t : Bytes ⊕ KeccakState} (h : logLookup ℓ t = none)
+    (u : KeccakCalls.Range t) : logLookup (logRecord ℓ t u) t = some u := by
   rw [logLookup_logRecord ℓ t u h t]
   simp
 
-theorem prefix_logRecord (ℓ : Log) (t : Bytes ⊕ KState) (u : HashSpec.Range t) :
+theorem prefix_logRecord (ℓ : Log) (t : Bytes ⊕ KeccakState) (u : KeccakCalls.Range t) :
     ℓ <+: logRecord ℓ t u := by
   rcases t with x | s <;> exact List.prefix_append _ _
 
 /-- **Runs against the logged oracles.** Every outcome of a run against `loggedRO` from `ℓ` ends
 with a log extending `ℓ`, and is the computation's value when every query is answered by any
 log extending the final one. -/
-theorem simulateQ_look_of_mem_support {β : Type} (oa : OracleComp HashSpec β) :
+theorem simulateQ_look_of_mem_support {β : Type} (oa : OracleComp KeccakCalls β) :
     ∀ (ℓ : Log) (z : β × Log), z ∈ support ((simulateQ loggedRO oa).run ℓ) →
       ℓ <+: z.2 ∧ ∀ ℓ', z.2 <+: ℓ' → simulateQ (lookImpl ℓ') oa = some z.1 := by
   induction oa using OracleComp.inductionOn with
@@ -247,7 +247,7 @@ theorem simulateQ_look_of_mem_support {β : Type} (oa : OracleComp HashSpec β) 
 accepts, the seeded verifier accepts the adversary's proof with every query answered by the
 final log. -/
 theorem verify_of_mem_support_logExperiment {σ : Seed} {P : Prog Bool}
-    (A : OracleComp HashSpec Proof) {z : (Proof × Bool) × Log}
+    (A : OracleComp KeccakCalls Proof) {z : (Proof × Bool) × Log}
     (hz : z ∈ support (logExperiment A (verifierComp σ P))) (hacc : z.1.2 = true) :
     verify (lookH z.2) (lookF z.2) σ P z.1.1 = some true := by
   have h := (simulateQ_look_of_mem_support _ [] z hz).2 z.2 (List.prefix_refl _)
@@ -264,14 +264,14 @@ theorem verify_of_mem_support_logExperiment {σ : Seed} {P : Prog Bool}
 /-- **The verifier of a family of statements**: on a statement and a proof, the statement's
 seeded verifier, run from its root node. -/
 def verifierFam {X : Type} (σ : Seeds X) (P : Prog Bool) (z : X × Proof) :
-    OracleComp HashSpec Bool :=
+    OracleComp KeccakCalls Bool :=
   verifierComp (σ.seed z.1) (nodeAt P (σ.root z.1)) z.2
 
 /-- **The bridge, for a family.** On every reachable outcome of the logged experiment in which
 the verifier accepts, the statement's seeded verifier accepts the adversary's proof with every
 query answered by the final log. -/
 theorem verifyFam_of_mem_support_logExperiment {X : Type} {σ : Seeds X} {P : Prog Bool}
-    (A : OracleComp HashSpec (X × Proof)) {z : ((X × Proof) × Bool) × Log}
+    (A : OracleComp KeccakCalls (X × Proof)) {z : ((X × Proof) × Bool) × Log}
     (hz : z ∈ support (logExperiment A (verifierFam σ P))) (hacc : z.1.2 = true) :
     verify (lookH z.2) (lookF z.2) (σ.seed z.1.1.1) (nodeAt P (σ.root z.1.1.1)) z.1.1.2 =
       some true := by

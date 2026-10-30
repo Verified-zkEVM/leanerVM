@@ -17,7 +17,7 @@ public import LeanVM.Protocol.Compile.Prog
 The deferring verifier (`verifyDeferred`) differs from the deployed one (`verify`) in two
 places: its IV is given rather than hashed from the bytecode, and it takes the fixed polynomials'
 values from claims (`claimedValue c`) instead of computing them (`computedValue`).
-Under the deployed IV the seeds agree, and where the claims are true (`FixedClaims.Holds`) each
+Under the deployed IV the seeds agree, and where the claims are true (`BytecodeClaim.Holds`) each
 claimed value is either refused (the verifier asks at another point) or the computed one. So the
 deferring program refines the deployed one (`Prog.Le`: it does what the deployed one does, or
 fails), and an accepted run of it is an accepted run of the deployed verifier
@@ -126,11 +126,11 @@ end Prog
 
 section Run
 
-variable (H : Bytes → Id Digest) (F : KState → Id KState)
+variable (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
 
 /-- A refining program's successful run is the refined program's. -/
 theorem run_of_le {α : Type} {p q : Prog α} (hpq : Prog.Le p q) :
-    ∀ {s : St} {r : α × St}, run H F p s = some r → run H F q s = some r := by
+    ∀ {s : ProgState} {r : α × ProgState}, run H F p s = some r → run H F q s = some r := by
   induction hpq with
   | fail q => intro s r h; simp [run] at h
   | ret a => intro s r h; exact h
@@ -178,7 +178,7 @@ theorem run_of_le {α : Type} {p q : Prog α} (hpq : Prog.Le p q) :
       · simp at h
 
 /-- A refining program's accepted proof is the refined program's. -/
-theorem runProof_of_le {P Q : Prog Bool} (hPQ : Prog.Le P Q) {seed : KState} {π : Proof}
+theorem runProof_of_le {P Q : Prog Bool} (hPQ : Prog.Le P Q) {seed : KeccakState} {π : Proof}
     (h : runProof H F P seed π = true) : runProof H F Q seed π = true := by
   unfold runProof at h ⊢
   revert h
@@ -204,7 +204,7 @@ def Evaluations.Le (bytecode : List K) (ev ev' : (List K → List E → Prog E))
   ∀ point, Prog.Le (ev bytecode point) (ev' bytecode point)
 
 /-- True claims refine the computed values. -/
-theorem claimed_le_computed {bytecode : List K} {c : FixedClaims} (hc : c.Holds bytecode) :
+theorem claimed_le_computed {bytecode : List K} {c : BytecodeClaim} (hc : c.Holds bytecode) :
     Evaluations.Le bytecode (claimedValue c) computedValue := by
   intro point
   simp only [claimedValue, computedValue, Prog.require]
@@ -256,14 +256,14 @@ theorem verifyExecution_le {ev ev' : (List K → List E → Prog E)} {bytecode :
 /-- **The deferring verifier, its claims true, is the deployed verifier**: a proof the deferring
 verifier accepts under the deployed IV, with a true claim of the bytecode,
 the deployed verifier accepts. -/
-theorem verify_of_verifyDeferred {bytecode : List K} {publicInput : Digest} {c : FixedClaims}
+theorem verify_of_verifyDeferred {bytecode : List K} {publicInput : Digest} {c : BytecodeClaim}
     {π : Proof} (hc : c.Holds bytecode)
     (h : verifyDeferred bytecode (fiatShamirIv bytecode) publicInput c π = true) :
     verify bytecode publicInput π = true := by
   have hle : Prog.Le (deferredProgram c bytecode publicInput) (leanVmProgram bytecode publicInput) := by
     rw [deferredProgram_eq, leanVmProgram_eq]
     exact .bind (verifyExecution_le (claimed_le_computed hc) publicInput) fun _ ↦ .refl _
-  exact runProof_of_le keccak256 keccakF hle h
+  exact runProof_of_le keccak256 keccakF1600 hle h
 
 end
 end LeanVM.Protocol.Verifier

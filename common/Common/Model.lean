@@ -8,11 +8,11 @@ import Common.Game2
 
 A *random permutation* of a finite state type `S` is a uniformly random bijection `π : S ≃ S`
 that every party may query in both directions: forward, `π x`, and inverse, `π⁻¹ y`
-(`permSpec S`).
+(`permutationOracleSpec S`).
 
 Sampling `π` eagerly is out of reach for `S` the 1600-bit Keccak state, so the model samples it
 lazily, as the lazily sampled random oracle samples a function. The state of the lazy
-permutation (`lazyPerm`) is the list of edges `(x, π x)` fixed so far, newest first. A forward
+permutation (`lazyRandomPermutation`) is the list of edges `(x, π x)` fixed so far, newest first. A forward
 query at a point `x` the list answers returns the recorded `π x`; a fresh forward query draws
 `π x` uniformly from the points outside the current range, records the edge and returns it. An
 inverse query is the same with domain and range exchanged.
@@ -44,56 +44,56 @@ section Lookup
 variable [DecidableEq S]
 
 /-- A recorded forward answer comes from an edge of the log. -/
-theorem mem_of_fwdLookup_eq_some {E : PermLog S} {x y : S} (h : fwdLookup E x = some y) :
+theorem mem_of_fwdLookup_eq_some {E : PermutationEdges S} {x y : S} (h : forwardLookup E x = some y) :
     (x, y) ∈ E := by
   induction E with
-  | nil => simp [fwdLookup] at h
+  | nil => simp [forwardLookup] at h
   | cons e E ih =>
     obtain ⟨a, b⟩ := e
     by_cases hx : a = x
     · subst hx
-      simp only [fwdLookup, ↓reduceIte, Option.some.injEq] at h
+      simp only [forwardLookup, ↓reduceIte, Option.some.injEq] at h
       simp [h]
-    · simp only [fwdLookup, hx, ↓reduceIte] at h
+    · simp only [forwardLookup, hx, ↓reduceIte] at h
       exact List.mem_cons_of_mem _ (ih h)
 
 /-- A recorded inverse answer comes from an edge of the log. -/
-theorem mem_of_invLookup_eq_some {E : PermLog S} {x y : S} (h : invLookup E y = some x) :
+theorem mem_of_invLookup_eq_some {E : PermutationEdges S} {x y : S} (h : inverseLookup E y = some x) :
     (x, y) ∈ E := by
   induction E with
-  | nil => simp [invLookup] at h
+  | nil => simp [inverseLookup] at h
   | cons e E ih =>
     obtain ⟨a, b⟩ := e
     by_cases hy : b = y
     · subst hy
-      simp only [invLookup, ↓reduceIte, Option.some.injEq] at h
+      simp only [inverseLookup, ↓reduceIte, Option.some.injEq] at h
       simp [h]
-    · simp only [invLookup, hy, ↓reduceIte] at h
+    · simp only [inverseLookup, hy, ↓reduceIte] at h
       exact List.mem_cons_of_mem _ (ih h)
 
 /-- The log has no forward answer at `x` exactly when `x` is not an input of the log. -/
-theorem fwdLookup_eq_none_iff {E : PermLog S} {x : S} :
-    fwdLookup E x = none ↔ x ∉ E.map Prod.fst := by
+theorem fwdLookup_eq_none_iff {E : PermutationEdges S} {x : S} :
+    forwardLookup E x = none ↔ x ∉ E.map Prod.fst := by
   induction E with
-  | nil => simp [fwdLookup]
+  | nil => simp [forwardLookup]
   | cons e E ih =>
     obtain ⟨a, b⟩ := e
     by_cases hx : a = x
     · subst hx
-      simp [fwdLookup]
-    · simp [fwdLookup, hx, ih, Ne.symm hx]
+      simp [forwardLookup]
+    · simp [forwardLookup, hx, ih, Ne.symm hx]
 
 /-- The log has no inverse answer at `y` exactly when `y` is not an output of the log. -/
-theorem invLookup_eq_none_iff {E : PermLog S} {y : S} :
-    invLookup E y = none ↔ y ∉ E.map Prod.snd := by
+theorem invLookup_eq_none_iff {E : PermutationEdges S} {y : S} :
+    inverseLookup E y = none ↔ y ∉ E.map Prod.snd := by
   induction E with
-  | nil => simp [invLookup]
+  | nil => simp [inverseLookup]
   | cons e E ih =>
     obtain ⟨a, b⟩ := e
     by_cases hy : b = y
     · subst hy
-      simp [invLookup]
-    · simp [invLookup, hy, ih, Ne.symm hy]
+      simp [inverseLookup]
+    · simp [inverseLookup, hy, ih, Ne.symm hy]
 
 end Lookup
 
@@ -132,28 +132,28 @@ variable [Fintype S] [DecidableEq S] [SampleableType S]
 
 /-- A lazily sampled random *function* in both directions: a recorded point is answered from the
 log, a fresh answer is uniform over all of `S` (it may repeat a used point). Not a model of a
-permutation: the indifferentiability proof compares `lazyPerm` with it. -/
-noncomputable def lazyFun : QueryImpl (permSpec S) (StateT (PermLog S) ProbComp)
-  | .fwd x => StateT.mk fun A =>
-      match fwdLookup A x with
+permutation: the indifferentiability proof compares `lazyRandomPermutation` with it. -/
+noncomputable def lazyFun : QueryImpl (permutationOracleSpec S) (StateT (PermutationEdges S) ProbComp)
+  | .forward x => StateT.mk fun A =>
+      match forwardLookup A x with
       | some y => pure (y, A)
       | none => (fun y ↦ (y, (x, y) :: A)) <$> ($ᵗ S)
-  | .inv y => StateT.mk fun A =>
-      match invLookup A y with
+  | .inverse y => StateT.mk fun A =>
+      match inverseLookup A y with
       | some x => pure (x, A)
       | none => (fun x ↦ (x, (x, y) :: A)) <$> ($ᵗ S)
 
 /-- A log is a partial bijection: its inputs are distinct and its outputs are distinct. -/
-def IsPartialPerm (E : PermLog S) : Prop :=
+def IsPartialPerm (E : PermutationEdges S) : Prop :=
   (E.map Prod.fst).Nodup ∧ (E.map Prod.snd).Nodup
 
 omit [Fintype S] [DecidableEq S] [SampleableType S] in
 /-- The empty log is a partial bijection. -/
-theorem isPartialPerm_nil : IsPartialPerm ([] : PermLog S) := ⟨List.nodup_nil, List.nodup_nil⟩
+theorem isPartialPerm_nil : IsPartialPerm ([] : PermutationEdges S) := ⟨List.nodup_nil, List.nodup_nil⟩
 
 omit [DecidableEq S] [SampleableType S] in
 /-- A partial bijection whose outputs cover `S` has inputs covering `S`. -/
-theorem forall_mem_fst_of_forall_mem_snd {E : PermLog S} (hE : IsPartialPerm E)
+theorem forall_mem_fst_of_forall_mem_snd {E : PermutationEdges S} (hE : IsPartialPerm E)
     (h : ∀ y : S, y ∈ E.map Prod.snd) (x : S) : x ∈ E.map Prod.fst := by
   classical
   by_contra hx
@@ -172,7 +172,7 @@ theorem forall_mem_fst_of_forall_mem_snd {E : PermLog S} (hE : IsPartialPerm E)
 
 omit [DecidableEq S] [SampleableType S] in
 /-- A partial bijection whose inputs cover `S` has outputs covering `S`. -/
-theorem forall_mem_snd_of_forall_mem_fst {E : PermLog S} (hE : IsPartialPerm E)
+theorem forall_mem_snd_of_forall_mem_fst {E : PermutationEdges S} (hE : IsPartialPerm E)
     (h : ∀ x : S, x ∈ E.map Prod.fst) (y : S) : y ∈ E.map Prod.snd := by
   have hE' : IsPartialPerm (E.map Prod.swap) := by
     simpa [IsPartialPerm, List.map_map, Function.comp_def, And.comm] using hE
@@ -181,12 +181,12 @@ theorem forall_mem_snd_of_forall_mem_fst {E : PermLog S} (hE : IsPartialPerm E)
   simpa [List.map_map, Function.comp_def] using this
 
 /-- **The lazy permutation keeps a partial bijection.** -/
-theorem isPartialPerm_of_mem_support (q : PermQuery S) {E : PermLog S} (hE : IsPartialPerm E)
-    {z : S × PermLog S} (hz : z ∈ support ((lazyPerm q).run E)) : IsPartialPerm z.2 := by
+theorem isPartialPerm_of_mem_support (q : PermutationQuery S) {E : PermutationEdges S} (hE : IsPartialPerm E)
+    {z : S × PermutationEdges S} (hz : z ∈ support ((lazyRandomPermutation q).run E)) : IsPartialPerm z.2 := by
   cases q with
-  | fwd x =>
-    simp only [lazyPerm, StateT.run_mk] at hz
-    rcases hx : fwdLookup E x with _ | y
+  | forward x =>
+    simp only [lazyRandomPermutation, StateT.run_mk] at hz
+    rcases hx : forwardLookup E x with _ | y
     · rw [hx] at hz
       simp only [support_map, Set.mem_image] at hz
       obtain ⟨y, hy, rfl⟩ := hz
@@ -201,9 +201,9 @@ theorem isPartialPerm_of_mem_support (q : PermQuery S) {E : PermLog S} (hE : IsP
       simp only [support_pure, Set.mem_singleton_iff] at hz
       subst hz
       exact hE
-  | inv y =>
-    simp only [lazyPerm, StateT.run_mk] at hz
-    rcases hy : invLookup E y with _ | x
+  | inverse y =>
+    simp only [lazyRandomPermutation, StateT.run_mk] at hz
+    rcases hy : inverseLookup E y with _ | x
     · rw [hy] at hz
       simp only [support_map, Set.mem_image] at hz
       obtain ⟨x, hx, rfl⟩ := hz
@@ -221,15 +221,15 @@ theorem isPartialPerm_of_mem_support (q : PermQuery S) {E : PermLog S} (hE : IsP
 
 /-- **Answers are recorded.** After a forward query `π x` answered `y`, the edge `(x, y)` is in
 the log; after an inverse query `π⁻¹ y` answered `x`, the edge `(x, y)` is in the log. -/
-theorem lazyPerm_answer_mem (q : PermQuery S) {E : PermLog S}
-    {z : S × PermLog S} (hz : z ∈ support ((lazyPerm q).run E)) :
+theorem lazyPerm_answer_mem (q : PermutationQuery S) {E : PermutationEdges S}
+    {z : S × PermutationEdges S} (hz : z ∈ support ((lazyRandomPermutation q).run E)) :
     match q with
-    | .fwd x => (x, z.1) ∈ z.2
-    | .inv y => (z.1, y) ∈ z.2 := by
+    | .forward x => (x, z.1) ∈ z.2
+    | .inverse y => (z.1, y) ∈ z.2 := by
   cases q with
-  | fwd x =>
-    simp only [lazyPerm, StateT.run_mk] at hz
-    rcases hx : fwdLookup E x with _ | y
+  | forward x =>
+    simp only [lazyRandomPermutation, StateT.run_mk] at hz
+    rcases hx : forwardLookup E x with _ | y
     · rw [hx] at hz
       simp only [support_map, Set.mem_image] at hz
       obtain ⟨y, -, rfl⟩ := hz
@@ -238,9 +238,9 @@ theorem lazyPerm_answer_mem (q : PermQuery S) {E : PermLog S}
       simp only [support_pure, Set.mem_singleton_iff] at hz
       subst hz
       exact mem_of_fwdLookup_eq_some hx
-  | inv y =>
-    simp only [lazyPerm, StateT.run_mk] at hz
-    rcases hy : invLookup E y with _ | x
+  | inverse y =>
+    simp only [lazyRandomPermutation, StateT.run_mk] at hz
+    rcases hy : inverseLookup E y with _ | x
     · rw [hy] at hz
       simp only [support_map, Set.mem_image] at hz
       obtain ⟨x, -, rfl⟩ := hz
@@ -251,12 +251,12 @@ theorem lazyPerm_answer_mem (q : PermQuery S) {E : PermLog S}
       exact mem_of_invLookup_eq_some hy
 
 /-- **Edges are never removed:** the log before a query is a suffix of the log after it. -/
-theorem lazyPerm_log_suffix (q : PermQuery S) {E : PermLog S}
-    {z : S × PermLog S} (hz : z ∈ support ((lazyPerm q).run E)) : E <:+ z.2 := by
+theorem lazyPerm_log_suffix (q : PermutationQuery S) {E : PermutationEdges S}
+    {z : S × PermutationEdges S} (hz : z ∈ support ((lazyRandomPermutation q).run E)) : E <:+ z.2 := by
   cases q with
-  | fwd x =>
-    simp only [lazyPerm, StateT.run_mk] at hz
-    rcases hx : fwdLookup E x with _ | y
+  | forward x =>
+    simp only [lazyRandomPermutation, StateT.run_mk] at hz
+    rcases hx : forwardLookup E x with _ | y
     · rw [hx] at hz
       simp only [support_map, Set.mem_image] at hz
       obtain ⟨y, -, rfl⟩ := hz
@@ -265,9 +265,9 @@ theorem lazyPerm_log_suffix (q : PermQuery S) {E : PermLog S}
       simp only [support_pure, Set.mem_singleton_iff] at hz
       subst hz
       exact List.suffix_refl _
-  | inv y =>
-    simp only [lazyPerm, StateT.run_mk] at hz
-    rcases hy : invLookup E y with _ | x
+  | inverse y =>
+    simp only [lazyRandomPermutation, StateT.run_mk] at hz
+    rcases hy : inverseLookup E y with _ | x
     · rw [hy] at hz
       simp only [support_map, Set.mem_image] at hz
       obtain ⟨x, -, rfl⟩ := hz
@@ -279,8 +279,8 @@ theorem lazyPerm_log_suffix (q : PermQuery S) {E : PermLog S}
 
 /-- Over a whole run, the lazy permutation keeps a partial bijection and only adds edges. -/
 theorem isPartialPerm_suffix_of_mem_support_simulateQ {α : Type}
-    (oa : OracleComp (permSpec S) α) {E : PermLog S} (hE : IsPartialPerm E)
-    {z : α × PermLog S} (hz : z ∈ support ((simulateQ lazyPerm oa).run E)) :
+    (oa : OracleComp (permutationOracleSpec S) α) {E : PermutationEdges S} (hE : IsPartialPerm E)
+    {z : α × PermutationEdges S} (hz : z ∈ support ((simulateQ lazyRandomPermutation oa).run E)) :
     IsPartialPerm z.2 ∧ E <:+ z.2 := by
   induction oa using OracleComp.inductionOn generalizing E with
   | pure a =>
@@ -304,8 +304,8 @@ variable [Fintype S] [DecidableEq S]
 omit [DecidableEq S] in
 /-- **A partial bijection extends to a permutation.** Every log in which inputs are distinct and
 outputs are distinct is the graph of the restriction of some permutation of `S`. So the answers
-of every run of `lazyPerm` are those of a permutation. -/
-theorem exists_perm_extends {E : PermLog S} (hE : IsPartialPerm E) :
+of every run of `lazyRandomPermutation` are those of a permutation. -/
+theorem exists_perm_extends {E : PermutationEdges S} (hE : IsPartialPerm E) :
     ∃ π : Equiv.Perm S, ∀ e ∈ E, π e.1 = e.2 := by
   classical
   let f : {e // e ∈ E} → S := fun e ↦ e.1.1

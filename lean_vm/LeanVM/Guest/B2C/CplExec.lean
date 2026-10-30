@@ -28,7 +28,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Exec
 
 section Defs
 
-variable {κ : ℕ} (L : MemImage κ) (fp : K)
+variable {κ : ℕ} (L : MemoryImage κ) (fp : K)
 
 /-- **Every item of a path holds**, every branch falling through. -/
 def Fall : List Item → Prop
@@ -44,14 +44,14 @@ def Taken (oc od of : ℕ) : Prop :=
 
 /-- A counted run from `s` to `r` within the instructions of `its`, the exit `x`'s environment
 holding. -/
-def ToC (prog : Program) (s r : Regs K) (its : List Item) (x : Exit) : Prop :=
+def ToC (prog : Program) (s r : Registers K) (its : List Item) (x : Exit) : Prop :=
   ∃ c, RunC prog L s r c ∧ (∀ op, c op ≤ itemOps its op) ∧ EnvHolds L fp x.env
 
 end Defs
 
 section
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K}
 
 theorem fall_append : ∀ (l₁ l₂ : List Item), Fall L fp (l₁ ++ l₂) ↔ Fall L fp l₁ ∧ Fall L fp l₂
   | [], _ => by simp [Fall]
@@ -74,9 +74,9 @@ end
 
 section Pass
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K} {F : Facts} {prog : Program} {entry len : ℕ}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program} {entry len : ℕ}
 
-theorem reachC_trans {s t u : Regs K} {l₁ l₂ : List Item} (h₁ : ReachC L prog s t l₁)
+theorem reachC_trans {s t u : Registers K} {l₁ l₂ : List Item} (h₁ : ReachC L prog s t l₁)
     (h₂ : ReachC L prog t u l₂) : ReachC L prog s u (l₁ ++ l₂) := by
   obtain ⟨c₁, hc₁, hle₁⟩ := h₁
   obtain ⟨c₂, hc₂, hle₂⟩ := h₂
@@ -84,7 +84,7 @@ theorem reachC_trans {s t u : Regs K} {l₁ l₂ : List Item} (h₁ : ReachC L p
   rw [Pi.add_apply, itemOps_append]
   exact Nat.add_le_add (hle₁ op) (hle₂ op)
 
-theorem toC_after {s t r : Regs K} {l₁ l₂ : List Item} {x : Exit} (h₁ : ReachC L prog s t l₁)
+theorem toC_after {s t r : Registers K} {l₁ l₂ : List Item} {x : Exit} (h₁ : ReachC L prog s t l₁)
     (h : ToC L fp prog t r l₂ x) : ToC L fp prog s r (l₁ ++ l₂) x := by
   obtain ⟨c₁, hc₁, hle₁⟩ := h₁
   obtain ⟨c, hc, hle, he⟩ := h
@@ -93,7 +93,7 @@ theorem toC_after {s t r : Regs K} {l₁ l₂ : List Item} {x : Exit} (h₁ : Re
   exact Nat.add_le_add (hle₁ op) (hle op)
 
 /-- What an instruction's result gives along a path. -/
-def ResZ (L : MemImage κ) (fp : K) (prog : Program) (entry i : ℕ) : Res → Prop
+def ResZ (L : MemoryImage κ) (fp : K) (prog : Program) (entry i : ℕ) : Res → Prop
   | .go its st =>
     (Fall L fp its → St.Holds L fp st ∧
       ReachC L prog ⟨gpow (entry + i), fp⟩ ⟨gpow (entry + i + 1), fp⟩ its) ∧
@@ -130,7 +130,7 @@ theorem stepI_z (hctx : Ctx F κ fp) {i : ℕ} {st : St} {ins : OInstr}
         intro a ha op
         rw [itemOps_cons, itemOps_nil, ha]
         exact Nat.le_add_right _ _
-      have hgo : ∀ {c d f : E} {r : Regs K}, L.read (fp * gpow oc) = some c →
+      have hgo : ∀ {c d f : E} {r : Registers K}, L.read (fp * gpow oc) = some c →
           L.read (fp * gpow od) = some d → L.read (fp * gpow of) = some f → IsInK c → IsInK d →
           IsInK f → c ≠ 0 → (jumpExit F entry len i st od of).kind.Regs L fp entry r →
           RunC prog L ⟨gpow (entry + i), fp⟩ r (fun op ↦ if op = .jump then 1 else 0) ∧
@@ -183,7 +183,7 @@ theorem stepI_z (hctx : Ctx F κ fp) {i : ℕ} {st : St} {ins : OInstr}
     | _ => simp [OInstr.isJump] at hj
 
 /-- A segment being walked, at offset `i`, along a path. -/
-def CurZ (L : MemImage κ) (fp : K) (prog : Program) (entry : ℕ) (c : Cur) (i : ℕ) : Prop :=
+def CurZ (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (c : Cur) (i : ℕ) : Prop :=
   EnvHolds L fp c.env →
     (Fall L fp c.acc.reverse → St.Holds L fp c.st ∧
       ReachC L prog ⟨gpow (entry + c.start), fp⟩ ⟨gpow (entry + i), fp⟩ c.acc.reverse) ∧
@@ -193,7 +193,7 @@ def CurZ (L : MemImage κ) (fp : K) (prog : Program) (entry : ℕ) (c : Cur) (i 
 
 /-- **A segment along a path**: all its items holding, it reaches its exit's registers; leaving
 by a taken branch, that branch's, each with that exit's environment holding. -/
-def SegZ (L : MemImage κ) (fp : K) (prog : Program) (entry : ℕ) (s : Seg) : Prop :=
+def SegZ (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (s : Seg) : Prop :=
   EnvHolds L fp s.env →
     (Fall L fp s.items → ∀ r, s.exit.kind.Regs L fp entry r →
       ToC L fp prog ⟨gpow (entry + s.start), fp⟩ r s.items s.exit) ∧

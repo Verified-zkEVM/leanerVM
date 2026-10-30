@@ -112,18 +112,18 @@ theorem fail : MovesOK g c (Prog.fail : Prog α) := trivial
 theorem pure (a : α) : MovesOK g c (Pure.pure a : Prog α) := trivial
 
 /-- A read is allowed. -/
-theorem readE : MovesOK g c Prog.readE := fun _ ↦ trivial
+theorem readE : MovesOK g c Prog.readScalar := fun _ ↦ trivial
 
 /-- A sample is allowed. -/
-theorem sampleE : MovesOK g c Prog.sampleE := fun _ ↦ trivial
+theorem sampleE : MovesOK g c Prog.sampleChallenge := fun _ ↦ trivial
 
 /-- `n` reads are allowed. -/
-theorem readN : ∀ n, MovesOK g c (Prog.readN n)
+theorem readN : ∀ n, MovesOK g c (Prog.readScalars n)
   | 0 => trivial
   | n + 1 => seq readE fun _ ↦ seq (readN n) fun _ ↦ trivial
 
 /-- `n` samples are allowed. -/
-theorem sampleN : ∀ n, MovesOK g c (Prog.sampleN n)
+theorem sampleN : ∀ n, MovesOK g c (Prog.sampleChallenges n)
   | 0 => trivial
   | n + 1 => seq sampleE fun _ ↦ seq (sampleN n) fun _ ↦ trivial
 
@@ -137,13 +137,13 @@ theorem liftOption (o : Option α) : MovesOK g c (Verifier.liftOption o) := by
   cases o <;> trivial
 
 /-- A proof of work is allowed when its bits are. -/
-theorem grindP {b : ℕ} (hb : g b) : MovesOK g c (Prog.grindP b) := ⟨hb, trivial⟩
+theorem grindP {b : ℕ} (hb : g b) : MovesOK g c (Prog.grindProofOfWork b) := ⟨hb, trivial⟩
 
 /-- A commitment is allowed when commitments are. -/
-theorem commitP (hc : c) (ht w : ℕ) : MovesOK g c (Prog.commitP ht w) := ⟨hc, trivial⟩
+theorem commitP (hc : c) (ht w : ℕ) : MovesOK g c (Prog.readCommitment ht w) := ⟨hc, trivial⟩
 
 /-- An opening is allowed. -/
-theorem queryP (i : ℕ) (ps : List ℕ) : MovesOK g c (Prog.queryP i ps) := fun _ ↦ trivial
+theorem queryP (i : ℕ) (ps : List ℕ) : MovesOK g c (Prog.queryOpenings i ps) := fun _ ↦ trivial
 
 /-- A conditional is allowed when both branches are. -/
 theorem ite {q : Prop} [Decidable q] {p p' : Prog α} (hp : q → MovesOK g c p)

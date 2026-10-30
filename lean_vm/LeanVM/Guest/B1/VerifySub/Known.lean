@@ -86,7 +86,7 @@ theorem kn_stackTotal_lt {kappas : List ℕ} (hl : kappas.length = 163) (hk : �
 
 /-- **The tail of `VsKnown`**: the placement and the stack's log check put every committed
 column's log in `col_kappas` below `29`. -/
-theorem vsKnown_tail {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ)
+theorem vsKnown_tail {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read)) (hexp : B1.ExpTables L.read (σ (.n 4)) (σ (.n 5)))
     {logMem : ℕ} {hs : List ℕ} (hm : logMem ≤ 32) (hl : hs.length = 6) (hh : ∀ x ∈ hs, x < 29)
     (hkb : ReadsAt L.read (σ (.n 141)) (1 :: gen ^ logMem :: hs.map (gen ^ ·)))

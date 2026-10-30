@@ -31,7 +31,7 @@ open LeanVM.Protocol.Verifier
 variable {C : CallRel} {rd : Reader}
 
 /-- Cell `c` of a state, `0` past the thirteen. -/
-def cells13F (S : KState) (c : ℕ) : E := if h : c < 13 then cellsOfState S false ⟨c, h⟩ else 0
+def cells13F (S : KeccakState) (c : ℕ) : E := if h : c < 13 then cellsOfState S false ⟨c, h⟩ else 0
 
 /-- The sponge before the out-of-domain point: the two waiting scalars and the root's halves. -/
 def commitF1 (σ : Val) (st : OsSt) (ra rb : E) : Fs :=
@@ -60,7 +60,7 @@ def commitSegs (σ : Val) (st : OsSt) (lvl m : ℕ) (ra rb y c0 c2 nonce : E) :
     (9, fsPackVals nonce 4), (13, cells13F (commitF2 σ st ra rb m y c0 c2 nonce).perm)]
 
 /-- What a next commitment leaves: the nonce's permutation's capacity carried, nothing waiting. -/
-structure CommitOutC (σ : Val) (st st' : OsSt) (S : KState) : Prop where
+structure CommitOutC (σ : Val) (st st' : OsSt) (S : KeccakState) : Prop where
   fsv : st'.fsv σ = capOf S
   cur : st'.cur σ = st.cur σ * gen ^ 6
   fs : st'.fs.length = 5
@@ -71,7 +71,7 @@ structure CommitOutC (σ : Val) (st st' : OsSt) (S : KState) : Prop where
   w0 : st'.w0 = st.w0
   w1 : st'.w1 = st.w1
 
-theorem capOf_canonical (S : KState) : AllCanonical (capOf S) := by
+theorem capOf_canonical (S : KeccakState) : AllCanonical (capOf S) := by
   intro c hc
   simp only [capOf, List.mem_cons, List.mem_nil_iff, or_false] at hc
   rcases hc with rfl | rfl | rfl | rfl | rfl <;> exact cellsOfState_canonical _ _ _

@@ -182,15 +182,15 @@ theorem post_indep (g : Tab Root Z n) {γ : Type} (P : OracleComp (unifSpec + ro
 /-! ## Weights -/
 
 theorem isWeightBound_hQ (m : Msg) :
-    IsWeightBound (hQ (Dg := Dg) (St := St) m) (fCalls (Msg := Msg) (Dg := Dg) (St := St)) 0 :=
+    QueryCostAtMost (hQ (Dg := Dg) (St := St) m) (fCalls (Msg := Msg) (Dg := Dg) (St := St)) 0 :=
   isWeightBound_query (spec := Rom2 Msg Dg St) _ (.inr (.inl m))
 
 theorem isWeightBound_fQ (x : St) :
-    IsWeightBound (fQ (Msg := Msg) (Dg := Dg) x) (fCalls (Msg := Msg) (Dg := Dg) (St := St)) 1 :=
+    QueryCostAtMost (fQ (Msg := Msg) (Dg := Dg) x) (fCalls (Msg := Msg) (Dg := Dg) (St := St)) 1 :=
   isWeightBound_query (spec := Rom2 Msg Dg St) _ (.inr (.inr x))
 
 theorem isWeightBound_chainP (k : ℕ) (y : St) :
-    IsWeightBound (chainP D k y) (fCalls (Msg := Msg) (Dg := Dg) (St := St)) k := by
+    QueryCostAtMost (chainP D k y) (fCalls (Msg := Msg) (Dg := Dg) (St := St)) k := by
   induction k generalizing y with
   | zero => exact isWeightBound_pure _ _ _
   | succ k ih =>
@@ -199,7 +199,7 @@ theorem isWeightBound_chainP (k : ℕ) (y : St) :
       (ih y').bind fun zs ↦ isWeightBound_pure (D.out y' :: zs) _ 0).mono (by omega)
 
 theorem isWeightBound_chalP (r : Root) :
-    IsWeightBound (chalP D r) (fCalls (Msg := Msg) (Dg := Dg) (St := St)) (n + 1) := by
+    QueryCostAtMost (chalP D r) (fCalls (Msg := Msg) (Dg := Dg) (St := St)) (n + 1) := by
   unfold chalP
   have := D.n_pos
   exact ((isWeightBound_hQ (Dg := Dg) (St := St) D.label).bind fun iv ↦
@@ -297,7 +297,7 @@ theorem run_prefix {β : Type} (g : Tab Root Z n) (P : OracleComp (Rom2 Msg Dg S
 theorem tab_le [Inhabited Z] {εc : ℝ≥0∞}
     (hcap : ∀ c, Pr{let w ← ($ᵗ W : ProbComp W)}[D.capW w = c] ≤ εc) (g : Tab Root Z n)
     {β : Type} (B : OracleComp (Rom2 Msg Dg St) β) (NB : ℕ)
-    (hB : IsWeightBound B (fCalls (Msg := Msg) (Dg := Dg) (St := St)) NB) (root : β → Root)
+    (hB : QueryCostAtMost B (fCalls (Msg := Msg) (Dg := Dg) (St := St)) NB) (root : β → Root)
     (post : β → (Fin n → Z) → OracleComp (unifSpec + roSpec Msg Dg) Bool) :
     Pr{let b ← (simulateQ (tabImpl D g) ((hQ (St := St) D.label >>= fun _ ↦ B) >>= fun b ↦
         chalP D (root b) >>= fun zs ↦ simulateQ embH (post b (toVec zs)))).run'
@@ -319,7 +319,7 @@ theorem tab_le [Inhabited Z] {εc : ℝ≥0∞}
     rw [StateT.run'_eq, simulateQ_bind, StateT.run_bind, run_prefix, bind_map_left]
   have hBad : Pr{let z ← ((simulateQ (tabImpl D g) (hQ (St := St) D.label >>= fun _ ↦ B)).run ((SimSt.init : SimSt St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache))) >>= fun p ↦ (simulateQ (tabImpl D g) (chalP D (root p.1))).run p.2}[
       z.2.1.bad = true] ≤ (NB + n + 1 : ℕ) * (2 * (NB + n + 1 : ℕ) * εc) := by
-    have hX : IsWeightBound ((hQ (St := St) D.label >>= fun _ ↦ B) >>= fun b ↦ chalP D (root b))
+    have hX : QueryCostAtMost ((hQ (St := St) D.label >>= fun _ ↦ B) >>= fun b ↦ chalP D (root b))
         (fCalls (Msg := Msg) (Dg := Dg) (St := St)) (NB + n + 1) :=
       (((isWeightBound_hQ (Dg := Dg) (St := St) D.label).bind fun _ ↦ hB).bind fun b ↦
         isWeightBound_chalP (D := D) (root b)).mono (by omega)
@@ -355,7 +355,7 @@ simulated world, where `B` runs against the simulator (which first queries `H` a
 theorem duplex_le [Inhabited Z] {εc : ℝ≥0∞}
     (hcap : ∀ c, Pr{let w ← ($ᵗ W : ProbComp W)}[D.capW w = c] ≤ εc)
     {β : Type} (B : OracleComp (Rom2 Msg Dg St) β) (NB : ℕ)
-    (hB : IsWeightBound B (fCalls (Msg := Msg) (Dg := Dg) (St := St)) NB) (root : β → Root)
+    (hB : QueryCostAtMost B (fCalls (Msg := Msg) (Dg := Dg) (St := St)) NB) (root : β → Root)
     (post : β → (Fin n → Z) → OracleComp (unifSpec + roSpec Msg Dg) Bool) :
     Pr{let b ← (simulateQ (hfSpec Msg Dg St).romImpl (B >>= fun b ↦
         chalP D (root b) >>= fun zs ↦ simulateQ embH (post b (toVec zs)))).run' ∅}[b = true] ≤
@@ -416,7 +416,7 @@ to read Benedikt Wagner's knowledge-soundness term back in the random-permutatio
 theorem duplex_ge [Inhabited Z] {εc : ℝ≥0∞}
     (hcap : ∀ c, Pr{let w ← ($ᵗ W : ProbComp W)}[D.capW w = c] ≤ εc)
     {β : Type} (B : OracleComp (Rom2 Msg Dg St) β) (NB : ℕ)
-    (hB : IsWeightBound B (fCalls (Msg := Msg) (Dg := Dg) (St := St)) NB) (root : β → Root)
+    (hB : QueryCostAtMost B (fCalls (Msg := Msg) (Dg := Dg) (St := St)) NB) (root : β → Root)
     (post : β → (Fin n → Z) → OracleComp (unifSpec + roSpec Msg Dg) Bool) :
     Pr{let b ← (simulateQ (GSpec Msg Dg Root Z n).romImpl ((simulateQ (simImpl D hP gaP)
         (hQ (St := St) D.label >>= fun _ ↦ B)).run' SimSt.init >>= fun b ↦

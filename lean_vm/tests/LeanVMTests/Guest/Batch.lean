@@ -60,12 +60,12 @@ open LeanVM.Guest.Batch
 #print axioms LeanVM.Rpm.detRun_le_rom
 
 /-- The seeding, deployed, is `Node.batchSeed`; no hash answer is carried by a later step. -/
-example : Id.run (batchSeedOf.run keccak256 keccakF) = LeanVM.Node.batchSeed ∧
+example : Id.run (batchSeedOf.run keccak256 keccakF1600) = LeanVM.Node.batchSeed ∧
     batchSeeds.offs = [] :=
   ⟨batchSeedOf_run, rfl⟩
 
 /-- The count is a whole rate: `g^n`, then three zeros. -/
-example (n : ℕ) : headCells n = [Verifier.gpow n, 0, 0, 0] ∧ (headCells n).length = rateScalars :=
+example (n : ℕ) : childCountCells n = [Verifier.gpow n, 0, 0, 0] ∧ (childCountCells n).length = rateScalars :=
   ⟨rfl, rfl⟩
 
 /-- Without rounds, a false first claim leaves no bad round: the final check is what fails. -/

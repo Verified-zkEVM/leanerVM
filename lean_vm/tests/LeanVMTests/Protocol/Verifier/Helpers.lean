@@ -90,12 +90,12 @@ def samplePublicInput : Digest :=
 def sampleBytes (n : ℕ) : List UInt8 := (List.range n).map fun i ↦ (fw i 15 % 256).toUInt8
 
 /-- A sponge state: the lanes `fw(i, 12)`. -/
-def sampleState : KState := Vector.ofFn fun i : Fin 25 ↦ (fw i 12).toUInt64
+def sampleState : KeccakState := Vector.ofFn fun i : Fin 25 ↦ (fw i 12).toUInt64
 
 /-- `Transcript._duplex` from `sampleState` with these scalars waiting, and the challenge
 `sample` reads off the result. -/
 def duplexProbe (pending : List (E × ℕ)) : List UInt64 × E :=
-  let s := keccakF (duplexInput ⟨sampleState, pending⟩)
+  let s := keccakF1600 (duplexInput ⟨sampleState, pending⟩)
   (s.toList, challengeOf s)
 
 /-- The `(j, k)` pairs `keccak_along` is probed at. -/
@@ -816,7 +816,7 @@ def pythonConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
 #guard ((List.range 25).map keccakPi) =
     [0, 10, 20, 5, 15, 16, 1, 11, 21, 6, 7, 17, 2, 12, 22, 23, 8, 18, 3, 13, 14, 24, 9, 19, 4]
 
-#guard ((keccakF (Vector.replicate 25 0)).toList) =
+#guard ((keccakF1600 (Vector.replicate 25 0)).toList) =
     [0xf1258f7940e1dde7, 0x84d5ccf933c0478a, 0xd598261ea65aa9ee, 0xbd1547306f80494d,
      0x8b284e056253d057, 0xff97a42d7f8e6fd4, 0x90fee5a0a44647c4, 0x8c5bda0cd6192e76,
      0xad30a6f71b19059c, 0x30935ab7d08ffc64, 0xeb5aa93f2317d635, 0xa9a6e6260d712103,
@@ -825,7 +825,7 @@ def pythonConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
      0x940c7922ae3a2614, 0x1841f924a2c509e4, 0x16f53526e70465c2, 0x75f644e97f30a13b,
      0xeaf1ff7b5ceca249]
 
-#guard ((keccakF sampleState).toList) =
+#guard ((keccakF1600 sampleState).toList) =
     [0xbbe1405ddfd4d06, 0x7f37a0e9b1a487eb, 0x195143c6ce53241d, 0xb8a443fd55d7d522,
      0x89514f07bdba7312, 0xca68843d05b5aac6, 0x802928c9e382be60, 0xe4bb1d37351316a2,
      0xed82178ba36c6c44, 0x668e7096d504c916, 0xb1ac7a0875df7f9b, 0x3e479b5291050c73,

@@ -15,7 +15,7 @@ In the transfer's random-oracle world the adversary of `Statement/LeanVm.lean` r
 two-oracle simulator of `common` (`Common.advS2`). It makes no hash query itself: the
 simulator queries `H m` only when a fresh forward query completes a rooted sponge path that pads
 `m`, and books the path. So the hash answers in the cache when the adversary returns are exactly
-the Keccak-256 evaluations of its transcript (`hashesOf (transcriptPaths T)`, which are those of
+the Keccak-256 evaluations of its transcript (`lookupEvaluation (keccakEvaluationsOfTranscript T)`, which are those of
 `Common.pathsOf` on the transcript's bytes, `hashesOf_transcriptPaths`):
 
 * `advS2_advR`: the transcript the adversary records on lanes is the byte transcript `common`
@@ -32,34 +32,34 @@ open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 open OracleComp OracleSpec
 
 /-- The simulator's bookkeeping on Keccak states. -/
-abbrev KSim := Common.SimState Common.KDigest Common.KRest Common.KCap
+abbrev KSim := Common.SimState Common.DigestBytes Common.KRest Common.KCap
 
 /-- A byte transcript. -/
-abbrev RLog := List (Common.PermQuery Common.KState × Common.KState)
+abbrev RLog := List (Common.PermutationQuery Common.KState × Common.KState)
 
 /-- A transcript entry, on bytes. -/
-def entryToRpm (e : Common.PermQuery KState × KState) :
-    Common.PermQuery Common.KState × Common.KState :=
+def entryToRpm (e : Common.PermutationQuery KeccakState × KeccakState) :
+    Common.PermutationQuery Common.KState × Common.KState :=
   (permQueryToRpm e.1, KState.toRpm e.2)
 
 /-- A byte transcript entry, on lanes. -/
-def entryOfRpm (e : Common.PermQuery Common.KState × Common.KState) :
-    Common.PermQuery KState × KState :=
+def entryOfRpm (e : Common.PermutationQuery Common.KState × Common.KState) :
+    Common.PermutationQuery KeccakState × KeccakState :=
   (permQueryOfRpm e.1, KState.ofRpm e.2)
 
-theorem permQueryToRpm_ofRpm (q : Common.PermQuery Common.KState) :
+theorem permQueryToRpm_ofRpm (q : Common.PermutationQuery Common.KState) :
     permQueryToRpm (permQueryOfRpm q) = q := by
   cases q <;> simp [permQueryToRpm, permQueryOfRpm, toRpm_ofRpm]
 
-theorem permQueryOfRpm_toRpm (q : Common.PermQuery KState) :
+theorem permQueryOfRpm_toRpm (q : Common.PermutationQuery KeccakState) :
     permQueryOfRpm (permQueryToRpm q) = q := by
   cases q <;> simp [permQueryToRpm, permQueryOfRpm, ofRpm_toRpm]
 
-theorem entryToRpm_ofRpm (e : Common.PermQuery Common.KState × Common.KState) :
+theorem entryToRpm_ofRpm (e : Common.PermutationQuery Common.KState × Common.KState) :
     entryToRpm (entryOfRpm e) = e := by
   simp [entryToRpm, entryOfRpm, permQueryToRpm_ofRpm, toRpm_ofRpm]
 
-theorem entryOfRpm_toRpm (e : Common.PermQuery KState × KState) :
+theorem entryOfRpm_toRpm (e : Common.PermutationQuery KeccakState × KeccakState) :
     entryOfRpm (entryToRpm e) = e := by
   simp [entryToRpm, entryOfRpm, permQueryOfRpm_toRpm, ofRpm_toRpm]
 
@@ -67,7 +67,7 @@ theorem entryOfRpm_toRpm (e : Common.PermQuery KState × KState) :
 
 /-- **The lane transcript is the byte log**: the adversary recording its transcript on lanes,
 with the simulator, is the adversary with the simulator logging the byte queries in its state. -/
-theorem advImpl2_logRel {α : Type} (A : OracleComp (Common.permSpec KState) α) (T : Transcript) (σ : KSim) :
+theorem advImpl2_logRel {α : Type} (A : OracleComp (Common.permutationOracleSpec KeccakState) α) (T : PermutationTranscript) (σ : KSim) :
     (fun x ↦ (x.1.1, (x.2, x.1.2.map entryToRpm))) <$>
         (simulateQ (Common.advImpl2 Common.keccakPadding) ((simulateQ logRel A).run T)).run σ =
       (simulateQ (Common.advImplLog2 Common.keccakPadding) (simulateQ relP A)).run
@@ -114,8 +114,8 @@ def CacheInv (σ : KSim) (c : HFS.QueryCache) : Prop :=
   ∀ m d, c (.inl m) = some d → (m, d) ∈ Common.simPaths Common.keccakPadding σ
 
 /-- A new chain keeps the old rooted paths' evaluations. -/
-theorem mem_simPaths_cons {σ : KSim} {e : Common.PermLog Common.KState}
-    {p : Common.KState × List Common.KBlock} {md : Bytes × Common.KDigest}
+theorem mem_simPaths_cons {σ : KSim} {e : Common.PermutationEdges Common.KState}
+    {p : Common.KState × List Common.KBlock} {md : Bytes × Common.DigestBytes}
     (h : md ∈ Common.simPaths Common.keccakPadding σ) :
     md ∈ Common.simPaths Common.keccakPadding (⟨e, p :: σ.chains⟩ : KSim) := by
   simp only [Common.simPaths, List.filterMap_cons] at h ⊢
@@ -123,13 +123,13 @@ theorem mem_simPaths_cons {σ : KSim} {e : Common.PermLog Common.KState}
 
 /-- **One step of the simulator keeps the invariant**: it queries `H m` only to answer a fresh
 forward query completing a rooted path that pads `m`, which it books. -/
-theorem cacheInv_step (q : Common.PermQuery Common.KState) (σ : KSim) (c : HFS.QueryCache)
+theorem cacheInv_step (q : Common.PermutationQuery Common.KState) (σ : KSim) (c : HFS.QueryCache)
     (h : CacheInv σ c) {v : (Common.KState × KSim) × HFS.QueryCache}
     (hv : v ∈ support ((simulateQ HFS.romImpl
       ((Common.simulator2 (Msg := Bytes) Common.keccakPadding q).run σ)).run c)) :
     CacheInv v.1.2 v.2 := by
   cases q with
-  | inv y =>
+  | inverse y =>
     simp only [Common.simulator2, StateT.run_mk] at hv
     split at hv
     · simp at hv; subst hv; exact h
@@ -138,7 +138,7 @@ theorem cacheInv_step (q : Common.PermQuery Common.KState) (σ : KSim) (c : HFS.
         Set.mem_singleton_iff] at hv
       obtain ⟨_, -, rfl⟩ := hv
       exact h
-  | fwd x =>
+  | forward x =>
     simp only [Common.simulator2, StateT.run_mk] at hv
     split at hv
     · simp at hv; subst hv; exact h
@@ -176,7 +176,7 @@ theorem cacheInv_step (q : Common.PermQuery Common.KState) (σ : KSim) (c : HFS.
 
 /-- **The invariant along the adversary's run**: the adversary makes permutation queries only, so
 every cached hash answer is an evaluation of the simulator's rooted paths. -/
-theorem cacheInv_run {α : Type} (A : OracleComp (Common.permSpec KState) α)
+theorem cacheInv_run {α : Type} (A : OracleComp (Common.permutationOracleSpec KeccakState) α)
     (s : (KSim × RLog) × HFS.QueryCache) (hs : CacheInv s.1.1 s.2) :
     ∀ w ∈ support ((simulateQ (Common.foldRO
         (Common.advImplLog2 (Msg := Bytes) Common.keccakPadding)) (simulateQ relP A)).run s),
@@ -210,11 +210,11 @@ theorem cacheInv_run {α : Type} (A : OracleComp (Common.permSpec KState) α)
 /-- On every reachable state of the transfer's ROM adversary (from the empty cache), the
 Keccak-256 evaluations of the adversary's transcript are the random oracle's cached hash answers. -/
 theorem transcriptHashes_eq_of_mem_support (A : DetAdversary)
-    {z : ((Statement × Proof) × Transcript) ×
-      (Common.hfSpec Bytes Common.KDigest Common.KState).QueryCache}
-    (hz : z ∈ support ((simulateQ (Common.hfSpec Bytes Common.KDigest Common.KState).romImpl
+    {z : ((ProgramAndInput × Proof) × PermutationTranscript) ×
+      (Common.hfSpec Bytes Common.DigestBytes Common.KState).QueryCache}
+    (hz : z ∈ support ((simulateQ (Common.hfSpec Bytes Common.DigestBytes Common.KState).romImpl
       (Common.advS2 Common.keccakPadding Common.KState.zero (advR A))).run ∅)) :
-    hashesOf (transcriptPaths z.1.2) = fun m ↦ (z.2 (.inl m)).map Digest.ofRpm := by
+    lookupEvaluation (keccakEvaluationsOfTranscript z.1.2) = fun m ↦ (z.2 (.inl m)).map Digest.ofRpm := by
   rw [advS2_advR, simulateQ_map, StateT.run_map, Common.run_simulateQ_foldRO, Functor.map_map,
     support_map] at hz
   obtain ⟨w, hw, rfl⟩ := hz

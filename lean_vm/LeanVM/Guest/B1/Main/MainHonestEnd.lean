@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Main.MainGoalsHL5
 /-!
 # `main` on an honest run, its callees discharged
 
-`mainGoals_of`: `MainGoals` from `NodeRel`, `Limits`, a bytecode of `2^23` words, the signature
+`mainGoals_of`: `MainGoals` from `NodeRelation`, `Limits`, a bytecode of `2^23` words, the signature
 schemes' completeness (B1-e), the frame runs' certificate facts (`Lift.RunsFit`), and the
 children's loop and aggregation (`MainGoalL5`, `MainGoalAg`). `main_honest_end`:
 `main_honest_relAtInW` on those.
@@ -37,11 +37,11 @@ theorem log2_of_length (hbl : bytecode.length = 2 ^ 23) : Nat.log2 bytecode.leng
   rw [hbl]; exact Nat.log2_two_pow
 
 /-- **The children's fresh claims have `23` coordinates** (`kid_shapes`). -/
-theorem freshShaped_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w) :
+theorem freshShaped_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) :
     FreshShaped w := fun c hc => (kid_shapes hbl hr c hc).1
 
 /-- **`main`'s callees on the honest run**, but the children's loop and the aggregation. -/
-theorem mainGoals_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w)
+theorem mainGoals_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w)
     (hl : Limits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hl5 : MainGoalL5 fs cert fp seed s w) (hag : MainGoalAg fs cert fp seed s w) :
@@ -59,7 +59,7 @@ theorem mainGoals_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode see
 
 /-- **`main` at `fp` on the honest run**: `main_honest_relAtInW`, its callees discharged but the
 children's loop and the aggregation. -/
-theorem main_honest_end (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w)
+theorem main_honest_end (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w)
     (hl : Limits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hl5 : MainGoalL5 fs cert fp seed s w) (hag : MainGoalAg fs cert fp seed s w) :
@@ -85,7 +85,7 @@ def VerifySubGoals (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ
 
 /-- **`main` at `fp` on the honest run**, every callee discharged but the signature schemes'
 completeness (B1-e), the frame runs' certificate facts and each child's `verify_sub` (B1-d). -/
-theorem main_honest_full (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w)
+theorem main_honest_full (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w)
     (hl : Limits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hV : VerifySubGoals fs cert fp seed s w) :

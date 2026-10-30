@@ -97,7 +97,7 @@ def MeaningVerifyLog2Ceil (fl : ℕ) (rd : Reader) : List E → List E → Prop
 /-- `verify_log2_ceil__L{fl}_L34`'s core IR is its meaning, on a memory image of `2^κ` words,
 `6 ≤ κ ≤ 32`, holding the exponent tables. -/
 def verify_log2_ceil_Spec (name : String) (fl : ℕ) : Prop :=
-  ∀ {κ : ℕ}, κ ≤ 32 → 6 ≤ κ → ∀ (L : MemImage κ) (bits lp sq : E), ExpTables L.read lp sq →
+  ∀ {κ : ℕ}, κ ≤ 32 → 6 ≤ κ → ∀ (L : MemoryImage κ) (bits lp sq : E), ExpTables L.read lp sq →
     ∀ rets : List E, coreProgram.Rel L.read name [bits, lp, sq] rets ↔
       MeaningVerifyLog2Ceil fl L.read [bits, lp, sq] rets
 
@@ -115,7 +115,7 @@ def MeaningLog2CeilExp (fl : ℕ) (rd : Reader) : List E → List E → Prop
 /-- `log2_ceil_in_the_exponent__L{fl}_L34`'s core IR is its meaning, as for
 `verify_log2_ceil_Spec`. -/
 def log2_ceil_in_the_exponent_Spec (name : String) (fl : ℕ) : Prop :=
-  ∀ {κ : ℕ}, κ ≤ 32 → 6 ≤ κ → ∀ (L : MemImage κ) (gN lp sq : E), ExpTables L.read lp sq →
+  ∀ {κ : ℕ}, κ ≤ 32 → 6 ≤ κ → ∀ (L : MemoryImage κ) (gN lp sq : E), ExpTables L.read lp sq →
     ∀ rets : List E, coreProgram.Rel L.read name [gN, lp, sq] rets ↔
       MeaningLog2CeilExp fl L.read [gN, lp, sq] rets
 

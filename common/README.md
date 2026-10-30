@@ -11,9 +11,9 @@ Build with `lake build` (the root module `Common.lean` checks that the main theo
 
 ## Files
 
-The definitions the end statements need (the permutation oracle `permSpec`, the lazily sampled
-permutation `lazyPerm`, `IsWeightBound`, the oracles of the model `KSpec` and a game's run `runK`,
-Keccak-256 the sponge `keccak256With` over the permutation of the lane state `KState`, the SUF-CMA
+The definitions the end statements need (the permutation oracle `permutationOracleSpec`, the lazily sampled
+permutation `lazyRandomPermutation`, `QueryCostAtMost`, the oracles of the model `RandomPermutationOracles` and a game's run `runWithRandomPermutation`,
+Keccak-256 the sponge `keccak256With` over the permutation of the lane state `KeccakState`, the SUF-CMA
 game in the random-permutation model) are in
 [`Statement/RandomPermutation.lean`](../Statement/RandomPermutation.lean), namespace `Common`;
 the files below keep their proofs and the definitions only the proofs use.
@@ -29,8 +29,8 @@ the files below keep their proofs and the definitions only the proofs use.
   lazily sampled permutation is the same on either side (`lazyPerm_relabel`), and a game of the
   statement's model is the game with its permutation queries read on bytes (`relabel`), with the
   same distribution (`runK_relabel`) and the same permutation calls (`isWeightBound_relabel_iff`).
-- `Common/Model.lean`: the permutation oracle (`permSpec`: `π` and `π⁻¹`), the lazily sampled
-  random permutation (`lazyPerm`) and its validity (a partial permutation, extendable to a
+- `Common/Model.lean`: the permutation oracle (`permutationOracleSpec`: `π` and `π⁻¹`), the lazily sampled
+  random permutation (`lazyRandomPermutation`) and its validity (a partial permutation, extendable to a
   permutation), the lazily sampled random function (`lazyFun`).
 - `Common/Sponge.lean`: the sponge over an arbitrary `π : S → m S` (`spongeWith`), the laws the
   proofs need of its XOR and padding (`XorCancel`, `Padding.Lawful`; the statement uses only `^^^`,
@@ -47,7 +47,7 @@ the files below keep their proofs and the definitions only the proofs use.
 - `Common/Lemmas.lean`: weight bounds through simulations, and the permutation calls of a
   Keccak-256 hash (`keccakPad_length`: `⌊n / 136⌋ + 1` for `n` bytes).
 - `Common/Signature.lean`: the SUF-CMA game of a hash-based signature scheme in the ROM and in the
-  RPM (on byte states, `rpmGameB`, and the statement's on lanes, `rpmGame`, the one read on
+  RPM (on byte states, `rpmGameB`, and the statement's on lanes, `forgeryGame`, the one read on
   bytes: `rpmGame_relabel`), and the transfer of its bounds (`rpm_bound`, `rpm_bound_perm`; used
   by `lean_xmss` and `lean_sphincs`).
 - `Common/Eager.lean`: eager sampling of a finite part of a random oracle as a uniform table.
@@ -108,12 +108,12 @@ the direct calls are made by the honest part after the adversary has finished.
 `H : List UInt8 → D` (`D ≃` the 32 Keccak-256 bytes; leanXMSS and leanSPHINCS read them as the
 little-endian `BitVec 256`, `digestBitVec`), the ROM game (`romGame`, `romExperiment`: seed, key
 generation, the adversary with `H` and a logging signing oracle, verification, every hash call
-counted) and the RPM game (`rpmGame`, `rpmExperiment`: the same with `H` Keccak-256 over `π`, the
+counted) and the RPM game (`forgeryGame`, `forgeryExperiment`: the same with `H` Keccak-256 over `π`, the
 adversary also querying `π` and `π⁻¹`). The signer runs in the adversary's phase, so the transfer's
 adversary is the RPM adversary with the signing oracle (its key from the honest phase before), and
 the ROM adversary `romAdv A` is `A` with its permutation queries answered by the simulator (and
 its hash answers read through the bijection), against the game's own signing oracle. If the RPM
-game makes at most `Q` permutation calls on every path (`permCalls`: a hash of `n` bytes costs
+game makes at most `Q` permutation calls on every path (`permutationCallCost`: a hash of `n` bytes costs
 `⌊n / 136⌋ + 1`, a query of `π` or `π⁻¹` one) and at most `q` calls of `H`, `π`, `π⁻¹` (`oracleCalls`),
 then `romAdv A`'s ROM experiment makes at most `q` hash calls on every outcome and
 `Pr_RPM[A wins] ≤ Pr_ROM[romAdv A wins] + Q² / 2^509`; a ROM bound `q / 2^b` gives

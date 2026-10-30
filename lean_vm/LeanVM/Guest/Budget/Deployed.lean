@@ -33,11 +33,11 @@ theorem guest_complete_budget {SB SK : String → ℕ} {Pvs : NodeWitness → �
       (Memory.Tree.node "verify_lean_xmss" σ bufs kids).Valid coreProgram rd args rets →
         B2C.costW (nth Data.cplArms 20 []) σ (coreOf 20).body op ≤ C op)
     (H : ∀ op, MainCounts (B2C.ωArm C op) B2C.fs) (hS : MainStatics B2C.fs SB SK)
-    (hV : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
+    (hV : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w →
       ChildrenOk bytecode seed w →
       VerifySubGoalsTB B2C.fs B2C.cert 0 seed s w (Pvs w) (childBv Bvf w))
     (c5 s5 : Opcode → ℕ) (v5 : Opcode → ℕ → ℕ → ℕ)
-    (h5 : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
+    (h5 : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w → ∀ op (rd : Reader)
       (t : Tree) (args rets : List E), t.name = "__loop4" → t.Valid coreProgram rd args rets →
       t.BufsOk coreProgram → (mainPredsH s w (hDvNH w) (Pvs w)).T5 t →
         t.weight (B2C.ωArm C op) ≤ l5Lin (c5 op) (s5 op) (v5 op) (End.work s w)) :

@@ -34,7 +34,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {next : Prop} {kret : List E →
 /-! ## Range checks on `g`-powers -/
 
 /-- A range check against `g^a` (`a ≤ 32`): the value is `g^e`, `e ≤ a`. -/
-theorem rc_pow {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ) {x y t1 t2 k : V} {a : ℕ}
+theorem rc_pow {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ) {x y t1 t2 k : V} {a : ℕ}
     (ha : a ≤ 32) (hk : σ k = gen ^ a) (h : (Atom.rangeCheck x y t1 t2 k).Holds L.read σ) :
     ∃ e ≤ a, σ x = gen ^ e := by
   obtain ⟨l1, m, l2⟩ := h
@@ -55,7 +55,7 @@ theorem word_pow2 {a : ℕ} (h : a < 64) : word (2 ^ a) 0 0 = gen ^ a := word_tw
 
 /-- **The sizes** (G:3182-3193): the rate exponent and the memory's log-size, `dims`, and
 `kappa_base`. -/
-theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ)
+theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read))
     (h : Stmt.HoldsList C L.read σ vsSizesT next kret) :
     ∃ lir logMem : ℕ, 1 ≤ lir ∧ lir ≤ 4 ∧ σ (.n 112) = eOfNat lir ∧ σ (.n 124) = gen ^ (lir - 1) ∧
@@ -213,13 +213,13 @@ theorem pushKappa_lt {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 29) 
     omega
 
 /-- One push block: `g_squares[κ_b] = g^(2^κ_b)` read through `block_kappa[b] = g^κ_b`. -/
-theorem push_read {κ : ℕ} {L : MemImage κ} (hexp : B1.ExpTables L.read (σ (.n 4)) (σ (.n 5)))
+theorem push_read {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (σ (.n 4)) (σ (.n 5)))
     {kb q : V} {k : ℕ} (hk : k < 34) (hkb : σ kb = gen ^ k) {a : V} (ha : σ a = σ (.n 5) * σ kb)
     (hq : LoadHolds L.read (σ a) 0 (σ q)) : σ q = gen ^ 2 ^ k := by
   rw [ha, hkb, loadHolds_mul_gen_pow, add_zero] at hq
   exact loadHolds_unique hq (hexp k hk).2
 
-theorem push_loop {κ : ℕ} {L : MemImage κ} (hexp : B1.ExpTables L.read (σ (.n 4)) (σ (.n 5)))
+theorem push_loop {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (σ (.n 4)) (σ (.n 5)))
     {logMem : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32)
     (hbk : ReadsAt L.read (σ (.n 149)) (Tables.blockKappaWords (gen ^ logMem) (hs.map (gen ^ ·)))) :
     ∀ n < 54, ∀ {nx : Prop},
@@ -269,7 +269,7 @@ theorem push_sum_lt {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 29) (
 
 /-- **The push total** (G:3199-3204): the bus depth `g^(log2Ceil Σ)` over the push blocks'
 `Σ 2^κ_b`. -/
-theorem vsPushT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ)
+theorem vsPushT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read)) (hexp : B1.ExpTables L.read (σ (.n 4)) (σ (.n 5)))
     {logMem : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32)
     (hbk : ReadsAt L.read (σ (.n 149)) (Tables.blockKappaWords (gen ^ logMem) (hs.map (gen ^ ·))))

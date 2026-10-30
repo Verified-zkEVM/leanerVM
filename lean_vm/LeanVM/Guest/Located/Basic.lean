@@ -17,7 +17,7 @@ memory, `a < 2^κ` (`Check.InMem`), under its certificate's valuation there (`va
 read off the first frame passing a Boolean test (`firstFrame`). The frame of a call (`frameOf`) is
 the first at which the callee's code holds on the call's words (`BodyAt`), a classical test of the
 guest's own semantics (the callee's core IR body under the located relation, its in-circuit
-checks such as `KECCAK`'s `KeccakCells` included). The decoder computes no hash and runs no
+checks such as `KECCAK`'s `KeccakCellsRelation` included). The decoder computes no hash and runs no
 verifier of its own.
 
 * `frameDec L f wit args rets`: the witness `wit` reads off the valuation of the call's frame;
@@ -38,10 +38,10 @@ open LeanVM.Protocol.Verifier
 @[expose] public section
 
 /-- **The guest's located call relation** on the memory `L`. -/
-noncomputable abbrev RLg {κ : ℕ} (L : MemImage κ) : CallRel := RL coreProgram L certByName
+noncomputable abbrev RLg {κ : ℕ} (L : MemoryImage κ) : CallRel := RL coreProgram L certByName
 
 /-- The valuation of the guest function `f` with the memory's word `a` as its frame. -/
-noncomputable def valAt {κ : ℕ} (L : MemImage κ) (f : String) (a : ℕ) : Val :=
+noncomputable def valAt {κ : ℕ} (L : MemoryImage κ) (f : String) (a : ℕ) : Val :=
   frameVal L certByName f (gpow a)
 
 /-- The first frame `a < 2^κ` passing the test `t`. -/
@@ -58,20 +58,20 @@ theorem firstFrame_some {κ : ℕ} {t : ℕ → Bool} {a : ℕ} (ha : a < 2 ^ κ
 /-! ## The located relation -/
 
 /-- The located relation lies below the relation. -/
-theorem rlg_le_rel {κ : ℕ} (L : MemImage κ) : CallRel.Le (RLg L) (coreProgram.Rel L.read) :=
+theorem rlg_le_rel {κ : ℕ} (L : MemoryImage κ) : CallRel.Le (RLg L) (coreProgram.Rel L.read) :=
   relL_le_rel coreProgram
 
 /-! ## The frame the guest's code ran at -/
 
 /-- **The guest's code for `f` holds at the memory's frame `a`** on the argument words `args` and
 the return words `rets`: its body, under the frame's valuation, its calls located. -/
-def BodyAt {κ : ℕ} (L : MemImage κ) (f : String) (args rets : List E) (a : ℕ) : Prop :=
+def BodyAt {κ : ℕ} (L : MemoryImage κ) (f : String) (args rets : List E) (a : ℕ) : Prop :=
   ∃ fn, coreProgram.find? f = some fn ∧ fn.params.map (valAt L f a) = args ∧
     Stmt.HoldsList (RLg L) L.read (valAt L f a) fn.body False (fun rs ↦ rs = rets)
 
 /-- **A located call's frame**: a frame of the memory where the callee's body holds under its
 valuation, its own calls located. -/
-theorem rl_frame {κ : ℕ} {L : MemImage κ} {f : String} {fn : Fn}
+theorem rl_frame {κ : ℕ} {L : MemoryImage κ} {f : String} {fn : Fn}
     (hf : coreProgram.find? f = some fn) {args rets : List E} (h : RLg L f args rets) :
     ∃ a < 2 ^ κ, fn.params.map (valAt L f a) = args ∧
       Stmt.HoldsList (RLg L) L.read (valAt L f a) fn.body False (fun rs => rs = rets) := by
@@ -85,13 +85,13 @@ open Classical in
 call's words, decided classically: the test is the guest's own semantics (the callee's core IR
 body under the located relation, its in-circuit checks included); it computes no hash and runs no
 verifier of its own. -/
-noncomputable def frameOf {κ : ℕ} (L : MemImage κ) (f : String) (args rets : List E) : ℕ :=
+noncomputable def frameOf {κ : ℕ} (L : MemoryImage κ) (f : String) (args rets : List E) : ℕ :=
   match firstFrame κ (fun a ↦ decide (BodyAt L f args rets a)) with
   | some a => a
   | none => 0
 
 /-- A located call's callee holds at the call's frame. -/
-theorem bodyAt_frameOf {κ : ℕ} {L : MemImage κ} {f : String} {args rets : List E}
+theorem bodyAt_frameOf {κ : ℕ} {L : MemoryImage κ} {f : String} {args rets : List E}
     (h : RLg L f args rets) : BodyAt L f args rets (frameOf L f args rets) := by
   classical
   obtain ⟨fn, fp, hf, ⟨a, ha, rfl⟩, hp, hb⟩ := (relL_iff coreProgram f args rets).mp h
@@ -102,7 +102,7 @@ theorem bodyAt_frameOf {κ : ℕ} {L : MemImage κ} {f : String} {args rets : Li
   exact of_decide_eq_true ht
 
 /-- At the call's frame, the callee's body holds, the callee being `fn`. -/
-theorem body_frameOf {κ : ℕ} {L : MemImage κ} {f : String} {fn : Fn}
+theorem body_frameOf {κ : ℕ} {L : MemoryImage κ} {f : String} {fn : Fn}
     (hf : coreProgram.find? f = some fn) {args rets : List E} (h : RLg L f args rets) :
     fn.params.map (valAt L f (frameOf L f args rets)) = args ∧
       Stmt.HoldsList (RLg L) L.read (valAt L f (frameOf L f args rets)) fn.body False
@@ -115,13 +115,13 @@ theorem body_frameOf {κ : ℕ} {L : MemImage κ} {f : String} {fn : Fn}
 /-! ## Decoding a frame -/
 
 /-- **The witness `wit` reads off the frame of a call** (`frameOf`). -/
-noncomputable def frameDec {κ : ℕ} {α : Type} (L : MemImage κ) (f : String) (wit : Val → α)
+noncomputable def frameDec {κ : ℕ} {α : Type} (L : MemoryImage κ) (f : String) (wit : Val → α)
     (args rets : List E) : α :=
   wit (valAt L f (frameOf L f args rets))
 
 /-- **What the callee's body gives at any of its frames, the decoded witness has**, for a located
 call. -/
-theorem frameDec_spec {κ : ℕ} {L : MemImage κ} {α : Type} {f : String} {fn : Fn}
+theorem frameDec_spec {κ : ℕ} {L : MemoryImage κ} {α : Type} {f : String} {fn : Fn}
     (hf : coreProgram.find? f = some fn) {wit : Val → α} {args rets : List E}
     (h : RLg L f args rets) {t : α → Prop}
     (hT : ∀ a, fn.params.map (valAt L f a) = args →
@@ -157,7 +157,7 @@ def LoopW {α : Type} (x W : E) (B : E → α → Prop) (ws : List α) : Prop :=
 /-- **A loop's witnesses, iteration by iteration**: for a call `x :: ps`, iteration
 `j < loopCount` at `x·g^j` is the witness of the frame of the iteration's call `x·g^j :: ps`;
 `W = Wf ps` is the loop's end. -/
-noncomputable def loopDec {κ : ℕ} {α : Type} (L : MemImage κ) (f : String)
+noncomputable def loopDec {κ : ℕ} {α : Type} (L : MemoryImage κ) (f : String)
     (Wf : List E → E) (wit : Val → α) (args _rets : List E) : List α :=
   match args with
   | [] => []
@@ -167,7 +167,7 @@ noncomputable def loopDec {κ : ℕ} {α : Type} (L : MemImage κ) (f : String)
 (under any call relation below the located one) has parameters `x :: ps`, its iteration's
 outcome and, short of the end, the call on at `x·g`, the loop runs `m ≥ 1` iterations to its end,
 each at a frame of the memory. -/
-theorem loop_frames {κ : ℕ} {L : MemImage κ} {α : Type} {f : String} {fn : Fn}
+theorem loop_frames {κ : ℕ} {L : MemoryImage κ} {α : Type} {f : String} {fn : Fn}
     (hf : coreProgram.find? f = some fn) {Wf : List E → E} {B : E → List E → α → Prop}
     {wit : Val → α}
     (step : ∀ C : CallRel, CallRel.Le C (RLg L) → ∀ (σ : Val) (args rets : List E),
@@ -204,7 +204,7 @@ theorem loop_frames {κ : ℕ} {L : MemImage κ} {α : Type} {f : String} {fn : 
         | succ i => rw [pow_succ', ← mul_assoc]; exact hall i (by omega)
 
 /-- **A located loop call holds its loop's outcome at the decoded iterations.** -/
-theorem loopDec_spec {κ : ℕ} {L : MemImage κ} {α : Type} {f : String} {fn : Fn}
+theorem loopDec_spec {κ : ℕ} {L : MemoryImage κ} {α : Type} {f : String} {fn : Fn}
     (hf : coreProgram.find? f = some fn) {Wf : List E → E} {B : E → List E → α → Prop}
     {wit : Val → α}
     (step : ∀ C : CallRel, CallRel.Le C (RLg L) → ∀ (σ : Val) (args rets : List E),

@@ -31,8 +31,8 @@ theorem require_true {c : Prop} [Decidable c] (h : c) : Prog.require c = Prog.re
   simp [Prog.require, h]
 
 /-- **The deferring verifier accepts**, given its phases' runs. -/
-theorem deferred_accepts {bytecode : List K} {seed pi : Digest} {c : FixedClaims} {s0 : Fs}
-    (hs0 : s0.Carries ⟨keccakF (seedInput seed pi), []⟩)
+theorem deferred_accepts {bytecode : List K} {seed pi : Digest} {c : BytecodeClaim} {s0 : Fs}
+    (hs0 : s0.Carries ⟨keccakF1600 (seedInput seed pi), []⟩)
     {L : Layout} {lir : ℕ} {xs0 : List E} {s1 : Fs}
     (h1 : RunsTo (readSizes bytecode) s0 xs0 (L, lir) s1)
     {level : Whir.Level} {rest : List Whir.Level}
@@ -99,12 +99,12 @@ theorem deferred_accepts {bytecode : List K} {seed pi : Digest} {c : FixedClaims
   have hrun : RunsWith (deferredFlat c bytecode pi) s0
       (xs0 ++ [x0, x1] ++ xsG ++ xsT ++ xsK ++ xsW) os [] true s10 roots' :=
     RunsWith.of_eq hrun0 rfl (by simp) (by simp) rfl rfl rfl rfl
-  obtain ⟨sp, -, hsp⟩ := hrun ⟨keccakF (seedInput seed pi), []⟩ hs0 [] []
+  obtain ⟨sp, -, hsp⟩ := hrun ⟨keccakF1600 (seedInput seed pi), []⟩ hs0 [] []
   simp only [List.append_nil] at hsp
   rw [← deferred_eq] at hsp
   simp only [verifyDeferred, verifyDeferredWith, Compile.runProof]
   simp only [runId] at hsp
-  exact congrArg (fun o : Option (Bool × St) ↦ match o with
+  exact congrArg (fun o : Option (Bool × ProgState) ↦ match o with
     | some (true, s) => (s.stream.isEmpty && s.openings.isEmpty : Bool)
     | _ => false) hsp
 

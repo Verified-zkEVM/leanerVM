@@ -203,7 +203,7 @@ pub fn file() -> File {
     let rounds: Vec<String> = msgs.chunks(2).map(|p| format!("({}, {})", e(p[0]), e(p[1]))).collect();
     writeln!(
         out,
-        "/-- The Rust's batching hints (`bc_sumcheck_msgs`, `bc_star_hint`). -/\ndef hints : BatchHints :=\n  ⟨{},\n   {}⟩\n",
+        "/-- The Rust's batching hints (`bc_sumcheck_msgs`, `bc_star_hint`). -/\ndef hints : BatchingHints :=\n  ⟨{},\n   {}⟩\n",
         list(rounds),
         e(star[0])
     )

@@ -14,7 +14,7 @@ public import LeanVM.Semantics.KeccakCells
 /-!
 # The core semantics under any `KECCAK` semantics
 
-`Core.lean` gives a `KECCAK` atom the deployed relation, `KeccakCells`. Proofs over another
+`Core.lean` gives a `KECCAK` atom the deployed relation, `KeccakCellsRelation`. Proofs over another
 semantics of the permutation (`Statement/LeanIsa.lean`'s `keccakFree`, a permutation model) need them
 under that semantics, so every definition here is `Core.lean`'s with the relation a
 parameter `S : KeccakSem` (`Atom.HoldsB`, `Stmt.HoldsB`, `Fn.SemB`, `Program.relNB`,

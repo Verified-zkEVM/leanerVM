@@ -18,8 +18,8 @@ public import LeanVM.Guest.Limits
 * `runF_eq_runT`: B1-b's carried run (`Whir.runF`) is B1-c's (`Tables.runT`), field for field.
 * `runsWith_of_runF`: a carried run that consumes all the words and openings it is given is a
   `RunsWith` (`Tables.runT_frame` for any rest, `Tables.runId_of_runT` for every sponge carried).
-* `queriesOf_eq_steps`: the deployed run's query steps (`Limits.queriesOf`) are the carried run's
-  (`Whir.queryStepsOf`); `batchAgrees_of` turns G7's `Limits.BatchAgrees` into B1-b's.
+* `queriesOf_eq_steps`: the deployed run's query steps (`Limits.queryStepsOf`) are the carried run's
+  (`Whir.queryStepsOf`); `batchAgrees_of` turns G7's `Limits.OpeningsAgree` into B1-b's.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -121,7 +121,7 @@ theorem runsWith_of_runF {α : Type} {p : Prog α} {s : Fs} {xs : List E} {os : 
 /-- **The deployed run's query steps are the carried run's.** -/
 theorem queriesOf_eq_steps {α : Type} (p : Prog α) : ∀ (st : Whir.FSt) (sp : Sponge),
     st.sponge.Carries sp →
-      Limits.queriesOf p ⟨sp, st.stream, st.openings, st.roots⟩ = Whir.queryStepsOf p st := by
+      Limits.queryStepsOf p ⟨sp, st.stream, st.openings, st.roots⟩ = Whir.queryStepsOf p st := by
   induction p with
   | ret a => intro st sp hs; rfl
   | fail => intro st sp hs; rfl
@@ -135,9 +135,9 @@ theorem queriesOf_eq_steps {α : Type} (p : Prog α) : ∀ (st : Whir.FSt) (sp :
   | sample k ih =>
     intro st sp hs
     obtain ⟨e1, e2⟩ := carries_squeeze hs
-    have := ih ((Id.run (Compile.squeeze (m := Id) keccakF sp)).1)
+    have := ih ((Id.run (Compile.squeeze (m := Id) keccakF1600 sp)).1)
       ⟨st.sponge.squeeze.2, st.stream, st.openings, st.roots⟩ _ e2
-    simpa [Limits.queriesOf, Whir.queryStepsOf, e1] using this
+    simpa [Limits.queryStepsOf, Whir.queryStepsOf, e1] using this
   | grind b k ih =>
     intro st sp hs
     obtain ⟨s, stream, os, roots⟩ := st
@@ -146,11 +146,11 @@ theorem queriesOf_eq_steps {α : Type} (p : Prog α) : ∀ (st : Whir.FSt) (sp :
     | cons n xs =>
       have ha := carries_absorb hs n dsPowNonce
       obtain ⟨e1, e2⟩ := carries_squeeze ha
-      have key : Limits.queriesOf (Prog.grind b k) ⟨sp, n :: xs, os, roots⟩ =
-          (if powOk b n (Id.run (Compile.squeeze (m := Id) keccakF
-              (Id.run (Compile.absorb (m := Id) keccakF sp n dsPowNonce)))).1 = true then
-            Limits.queriesOf k ⟨(Id.run (Compile.squeeze (m := Id) keccakF
-              (Id.run (Compile.absorb (m := Id) keccakF sp n dsPowNonce)))).2, xs, os, roots⟩
+      have key : Limits.queryStepsOf (Prog.grind b k) ⟨sp, n :: xs, os, roots⟩ =
+          (if powOk b n (Id.run (Compile.squeeze (m := Id) keccakF1600
+              (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).1 = true then
+            Limits.queryStepsOf k ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600
+              (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).2, xs, os, roots⟩
           else []) := rfl
       rw [key, e1]
       simp only [Whir.queryStepsOf]
@@ -166,10 +166,10 @@ theorem queriesOf_eq_steps {α : Type} (p : Prog α) : ∀ (st : Whir.FSt) (sp :
     | x0 :: x1 :: xs =>
       have h1 := carries_absorb hs x0 dsObserve
       have h2 := carries_absorb h1 x1 dsObserve
-      have key : Limits.queriesOf (Prog.commit hh ww k) ⟨sp, x0 :: x1 :: xs, os, roots⟩ =
+      have key : Limits.queryStepsOf (Prog.commit hh ww k) ⟨sp, x0 :: x1 :: xs, os, roots⟩ =
           (match digestOfScalars (x0, x1) with
-            | some root => Limits.queriesOf k ⟨Id.run (Compile.absorb (m := Id) keccakF
-                (Id.run (Compile.absorb (m := Id) keccakF sp x0 dsObserve)) x1 dsObserve), xs, os,
+            | some root => Limits.queryStepsOf k ⟨Id.run (Compile.absorb (m := Id) keccakF1600
+                (Id.run (Compile.absorb (m := Id) keccakF1600 sp x0 dsObserve)) x1 dsObserve), xs, os,
                 roots ++ [(root, hh, ww)]⟩
             | none => []) := rfl
       rw [key]
@@ -184,7 +184,7 @@ theorem queriesOf_eq_steps {α : Type} (p : Prog α) : ∀ (st : Whir.FSt) (sp :
   | query i ps k ih =>
     intro st sp hs
     obtain ⟨s, stream, os, roots⟩ := st
-    simp only [Limits.queriesOf, Whir.queryStepsOf]
+    simp only [Limits.queryStepsOf, Whir.queryStepsOf]
     cases hr : roots[i]? with
     | none => rfl
     | some v =>
@@ -197,7 +197,7 @@ theorem queriesOf_eq_steps {α : Type} (p : Prog α) : ∀ (st : Whir.FSt) (sp :
         exact congrArg _ (ih rows ⟨s, stream, rest, roots⟩ sp hs)
 
 /-- G7's agreement of a query step's openings is B1-b's. -/
-theorem batchAgrees_of {d : ℕ} {qs : List (ℕ × Opening)} (h : Limits.BatchAgrees d qs) :
+theorem batchAgrees_of {d : ℕ} {qs : List (ℕ × Opening)} (h : Limits.OpeningsAgree d qs) :
     Whir.BatchAgrees d qs := h
 
 end

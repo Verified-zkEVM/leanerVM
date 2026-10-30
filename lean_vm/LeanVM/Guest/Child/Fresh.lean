@@ -21,7 +21,7 @@ The verifier reads the fixed polynomial once, at the bus's bytecode point (`veri
 (`prefixProg`: the sizes, the stack's root, the bus up to its reads), the evaluation at the point
 the prefix returns (`busPoint`), and a suffix (`execSplit`). So an accepted run with the computed
 value is the run with the claim of that value at that point (`run_claimed_of_computed`), a claim
-true of the bytecode (`FixedClaims.Holds`).
+true of the bytecode (`BytecodeClaim.Holds`).
 -/
 
 namespace LeanVM.Guest.Child
@@ -34,8 +34,8 @@ open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 /-! ## The compiled run of a sequence -/
 
 /-- A sequence's run is the first part's, then the continuation's. -/
-theorem run_bind' {α β : Type} (H : Bytes → Id Digest) (F : KState → Id KState) (p : Prog α)
-    (f : α → Prog β) (st : St) :
+theorem run_bind' {α β : Type} (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) (p : Prog α)
+    (f : α → Prog β) (st : ProgState) :
     Compile.run H F (p.bind f) st =
       (Compile.run H F p st).bind (fun r => Compile.run H F (f r.1) r.2) := by
   induction p generalizing st with
@@ -112,14 +112,14 @@ structure Pre where
 def prefixProg (bytecode : List K) : Prog Pre := do
   let (layout, rate) ← readSizes bytecode
   commitStack layout.stackLog rate
-  let alphas ← Prog.sampleN busBits
-  let beta ← Prog.sampleE
+  let alphas ← Prog.sampleChallenges busBits
+  let beta ← Prog.sampleChallenge
   let (countRoot, point, treeValues) ←
     verifyGkrGrandProducts (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth
   Prog.require (countRoot ≠ 0)
-  let memory ← Prog.readN 3
-  let memoryFinal ← Prog.readE
-  let bytecodeFinal ← Prog.readE
+  let memory ← Prog.readScalars 3
+  let memoryFinal ← Prog.readScalar
+  let bytecodeFinal ← Prog.readScalar
   return ⟨layout, rate, alphas, beta, point, treeValues, memory, memoryFinal, bytecodeFinal⟩
 
 /-- The point at which the verifier evaluates the bytecode. -/
@@ -201,11 +201,11 @@ theorem prefix_bytecode {bytecode : List K} {y : Pre} (h : Prog.Returns (prefixP
 
 /-- **An accepted run with the computed value is the run with a true claim**: the claim of the
 value at the point the run evaluates. -/
-theorem run_claimed_of_computed (H : Bytes → Id Digest) (F : KState → Id KState)
+theorem run_claimed_of_computed (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
     (opening : ℕ → ℕ → List StackClaim → Prog Unit) (bytecode : List K) (publicInput : Digest)
-    (k : Unit → Prog Bool) {st : St} {r : Bool × St}
+    (k : Unit → Prog Bool) {st : ProgState} {r : Bool × ProgState}
     (h : Compile.run H F ((execWith computedValue opening bytecode publicInput).bind k) st = some r) :
-    ∃ c : FixedClaims, c.Holds bytecode ∧
+    ∃ c : BytecodeClaim, c.Holds bytecode ∧
       Compile.run H F ((execWith (claimedValue c) opening bytecode publicInput).bind k) st =
         some r := by
   rw [execSplit, Prog.bind_assoc, run_bind'] at h
@@ -224,7 +224,7 @@ theorem run_claimed_of_computed (H : Bytes → Id Digest) (F : KState → Id KSt
 /-! ## The deferring verifiers -/
 
 /-- The deferring program refusing a zero challenge, as a sequence. -/
-theorem deferredProgramNZ_eq (c : FixedClaims) (bytecode : List K) (publicInput : Digest) :
+theorem deferredProgramNZ_eq (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
     Limits.deferredProgramNZ c bytecode publicInput =
       (execWith (claimedValue c) Limits.verifyStackedOpeningNZ bytecode publicInput).bind
         fun _ ↦ Prog.ret true := rfl

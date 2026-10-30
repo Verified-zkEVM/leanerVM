@@ -36,14 +36,14 @@ info: 'LeanVM.Protocol.EndToEnd.Sound.grindBits_le_of_reachable' depends on axio
 /-! ## What is load-bearing -/
 
 /-- A proof of work of `65` bits is not allowed at `64`. -/
-example : ¬ MovesOK (· ≤ 64) True (Prog.grindP 65) := fun h ↦ absurd h.1 (by decide)
+example : ¬ MovesOK (· ≤ 64) True (Prog.grindProofOfWork 65) := fun h ↦ absurd h.1 (by decide)
 
 /-- WHIR's query proof of work is allowed at `64`. -/
-example : MovesOK (· ≤ 64) True (Prog.grindP Whir.queryGrindingBits) :=
+example : MovesOK (· ≤ 64) True (Prog.grindProofOfWork Whir.queryGrindingBits) :=
   MovesOK.grindP (by decide)
 
 /-- A commitment is not allowed where commitments are excluded. -/
-example : ¬ MovesOK (fun _ ↦ False) False (Prog.commitP 1 1) := fun h ↦ h.1
+example : ¬ MovesOK (fun _ ↦ False) False (Prog.readCommitment 1 1) := fun h ↦ h.1
 
 /-- The stack's root is a commitment: `commitStack` is not commitment-free on an admissible
 stack. -/

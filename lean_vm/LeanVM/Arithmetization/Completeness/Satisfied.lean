@@ -76,7 +76,7 @@ theorem messagesOn_eq_sends {prog : Program} (w : EnsembleWitness (leanIsaEnsemb
   rfl
 
 /-- The sends of an opcode's table are those of its rows, when their instructions execute. -/
-theorem opTable_sends {κ : ℕ} (img : MemImage κ) (data : ProverData K) (R : List PRow)
+theorem opTable_sends {κ : ℕ} (img : MemoryImage κ) (data : ProverData K) (R : List PRow)
     (op : Opcode) (hR : ∀ r ∈ R, ∃ next, execute img r.sk.regs r.sk.ins = some next) :
     (opTable img data R op).table.flatMap
         (fun row ↦ rowSends (opTable img data R op).component
@@ -92,14 +92,14 @@ theorem opTable_sends {κ : ℕ} (img : MemImage κ) (data : ProverData K) (R : 
   exact PRow.rowSends_raw (hR r hr1) data
 
 /-- The sends of the memory block: per cell, the seed push and the finalize pull. -/
-def memBlockSends {κ : ℕ} (img : MemImage κ) (fin : K → ℕ) : List (String × Array K) :=
+def memBlockSends {κ : ℕ} (img : MemoryImage κ) (fin : K → ℕ) : List (String × Array K) :=
   (List.finRange (2 ^ κ)).flatMap fun i : Fin (2 ^ κ) ↦
     [(MemPush.name, #[gpow i, 1, (img i).limb 0, (img i).limb 1, (img i).limb 2]),
       (MemPull.name,
         #[gpow i, g ^ fin (gpow i), (img i).limb 0, (img i).limb 1, (img i).limb 2])]
 
 /-- The sends of the memory block's rows are `memBlockSends`. -/
-theorem memBlock_sends {κ : ℕ} (img : MemImage κ) (data : ProverData K) (fin : K → ℕ) :
+theorem memBlock_sends {κ : ℕ} (img : MemoryImage κ) (data : ProverData K) (fin : K → ℕ) :
     (memBlock img data fin).table.flatMap
         (fun row ↦ rowSends (memBlock img data fin).component
           ((memBlock img data fin).environment row)) = memBlockSends img fin := by
@@ -147,7 +147,7 @@ theorem chanOf_flatMap {α : Type} (n : String) (l : List α) (F : α → List (
 
 /-- Everything the witness sends, in the ensemble's order: the verifier's two messages, the
 rows of the six tables, the memory block, the bytecode block. -/
-noncomputable def skelSends (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel) :
+noncomputable def skelSends (prog : Program) {κ : ℕ} (img : MemoryImage κ) (S : List Skel) :
     List (String × Array K) :=
   [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])] ++
     (tableOpcodes.flatMap fun op ↦
@@ -155,7 +155,7 @@ noncomputable def skelSends (prog : Program) {κ : ℕ} (img : MemImage κ) (S :
     memBlockSends img (skelMemFin img S) ++ bcBlockSends prog (skelBcFin S)
 
 /-- **The sends of the witness.** -/
-theorem skelWitness_sends (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+theorem skelWitness_sends (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemoryImage κ)
     (S : List Skel) (hS : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) :
     ((skelWitness prog input img S).allTables.flatMap fun t ↦ t.table.flatMap fun row ↦
       rowSends t.component (t.environment row)) = skelSends prog img S := by
@@ -174,7 +174,7 @@ theorem skelWitness_sends (prog : Program) (input : PublicInput) {κ : ℕ} (img
 
 /-- **The six tables hold the rows of `R` regrouped by opcode**: on every channel their messages
 are a permutation of those of the rows in order. -/
-theorem chanOf_tables_perm {κ : ℕ} (img : MemImage κ) (n : String) (R : List PRow) :
+theorem chanOf_tables_perm {κ : ℕ} (img : MemoryImage κ) (n : String) (R : List PRow) :
     (chanOf n (tableOpcodes.flatMap fun op ↦
       (R.filter fun r ↦ r.sk.ins.opcode = op).flatMap (PRow.sends img))).Perm
       (R.flatMap fun r ↦ chanOf n (r.sends img)) := by
@@ -199,7 +199,7 @@ theorem chanOf_eq_nil {n : String} {l : List (String × Array K)} (h : ∀ x ∈
 
 /-- The witness's messages on a channel: the verifier's, the rows' of the six tables in
 order, the memory block's, the bytecode block's, up to the regrouping of the rows. -/
-theorem chanOf_skelSends_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel)
+theorem chanOf_skelSends_perm (prog : Program) {κ : ℕ} (img : MemoryImage κ) (S : List Skel)
     (n : String) :
     (chanOf n (skelSends prog img S)).Perm
       (chanOf n [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])] ++
@@ -213,14 +213,14 @@ theorem chanOf_skelSends_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S
 /-! ### The blocks' channels -/
 
 /-- The word at the address of an index, as a memory message. -/
-theorem memMsg_gpow {κ : ℕ} (hκ : κ < 64) (img : MemImage κ) (i : Fin (2 ^ κ)) (e : ℕ) :
+theorem memMsg_gpow {κ : ℕ} (hκ : κ < 64) (img : MemoryImage κ) (i : Fin (2 ^ κ)) (e : ℕ) :
     memMsg img (gpow i) e =
       #[gpow i, g ^ e, (img i).limb 0, (img i).limb 1, (img i).limb 2] := by
-  have h := MemImage.limbsAt_eq_of_read (MemImage.read_gpow hκ img i)
+  have h := MemImage.limbsAt_eq_of_read (MemoryImage.read_gpow hκ img i)
   simp [memMsg, memMsgOf, h]
 
 /-- The memory block sends only on the memory pair. -/
-theorem memBlockSends_names {κ : ℕ} (img : MemImage κ) (fin : K → ℕ) :
+theorem memBlockSends_names {κ : ℕ} (img : MemoryImage κ) (fin : K → ℕ) :
     ∀ x ∈ memBlockSends img fin, x.1 = MemPush.name ∨ x.1 = MemPull.name := by
   intro x hx
   simp only [memBlockSends, List.mem_flatMap, List.mem_cons, List.not_mem_nil, or_false] at hx
@@ -234,7 +234,7 @@ theorem bcBlockSends_names (prog : Program) (fin : K → ℕ) :
   obtain ⟨i, -, rfl | rfl⟩ := hx <;> simp
 
 /-- The memory block's seed pushes: the word of each cell with the count `g^0`. -/
-theorem memBlock_push {κ : ℕ} (hκ : κ < 64) (img : MemImage κ) (fin : K → ℕ) :
+theorem memBlock_push {κ : ℕ} (hκ : κ < 64) (img : MemoryImage κ) (fin : K → ℕ) :
     chanOf MemPush.name (memBlockSends img fin) =
       (List.finRange (2 ^ κ)).map fun i : Fin (2 ^ κ) ↦ memMsg img (gpow i) 0 := by
   unfold memBlockSends
@@ -243,7 +243,7 @@ theorem memBlock_push {κ : ℕ} (hκ : κ < 64) (img : MemImage κ) (fin : K �
   simp [chanOf, MemPush, MemPull, memMsg_gpow hκ]
 
 /-- The memory block's finalize pulls: the word of each cell with the count its row holds. -/
-theorem memBlock_pull {κ : ℕ} (hκ : κ < 64) (img : MemImage κ) (fin : K → ℕ) :
+theorem memBlock_pull {κ : ℕ} (hκ : κ < 64) (img : MemoryImage κ) (fin : K → ℕ) :
     chanOf MemPull.name (memBlockSends img fin) =
       (List.finRange (2 ^ κ)).map fun i : Fin (2 ^ κ) ↦ memMsg img (gpow i) (fin (gpow i)) := by
   unfold memBlockSends
@@ -297,7 +297,7 @@ theorem block_balance {ι α : Type} [DecidableEq ι] (keys : List ι) (hnd : ke
 
 /-- **The memory pair balances**: the rows' reads, numbered by the chain, against the block's seeds
 and finalizes. -/
-theorem mem_pair_perm (prog : Program) {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ)
+theorem mem_pair_perm (prog : Program) {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemoryImage κ)
     (S : List Skel) (hS : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) :
     (chanOf MemPush.name (skelSends prog img S)).Perm
       (chanOf MemPull.name (skelSends prog img S)) := by
@@ -308,7 +308,7 @@ theorem mem_pair_perm (prog : Program) {κ : ℕ} (hκ : κ ≤ maxLogMem) (img 
     obtain ⟨sk, hsk, ha⟩ := List.mem_flatMap.mp ha
     obtain ⟨next, hn⟩ := hS sk hsk
     obtain ⟨w, hw⟩ := readAddrs_valid (pc := sk.pc) (fp := sk.fp) hn a ha
-    obtain ⟨i, rfl, -⟩ := (MemImage.read_eq_some_iff hκ64 img).mp hw
+    obtain ⟨i, rfl, -⟩ := (MemoryImage.read_eq_some_iff hκ64 img).mp hw
     exact List.mem_map.mpr ⟨i, List.mem_finRange _, rfl⟩
   have hb := block_balance _ (gpow_keys_nodup κ hκ) (memMsg img) _ hmem
   have h1 : (skelRows img S).flatMap (fun r ↦ chanOf MemPush.name (r.sends img)) =
@@ -343,7 +343,7 @@ theorem mem_pair_perm (prog : Program) {κ : ℕ} (hκ : κ ≤ maxLogMem) (img 
 
 /-- **The bytecode pair balances**: the rows' fetches, numbered by the chain, against the block's
 seeds and finalizes. -/
-theorem bc_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel)
+theorem bc_pair_perm (prog : Program) {κ : ℕ} (img : MemoryImage κ) (S : List Skel)
     (hS : ∀ sk ∈ S, SkelOk prog img sk) :
     (chanOf BytecodePush.name (skelSends prog img S)).Perm
       (chanOf BytecodePull.name (skelSends prog img S)) := by
@@ -387,7 +387,7 @@ theorem bc_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List S
 /-- **The state pair balances**, from the hypothesis that the skeletons' states and successors
 balance with the initial and final states: the rows' pulls and pushes are those states, regrouped
 by the six tables. -/
-theorem state_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel)
+theorem state_pair_perm (prog : Program) {κ : ℕ} (img : MemoryImage κ) (S : List Skel)
     (hstate : (#[1, 1] :: S.map fun sk ↦ #[(nextOf img sk).pc, (nextOf img sk).fp]).Perm
       (#[prog.pcFinal, 1] :: S.map fun sk ↦ #[sk.pc, sk.fp])) :
     (chanOf StatePush.name (skelSends prog img S)).Perm
@@ -471,7 +471,7 @@ theorem jumpRaw_constraints (r : JumpRow K) (w b : K) (h1 : b + r.vcond * w = 0)
 
 /-- **Every table of the witness satisfies its constraints**: only the `JUMP` table
 asserts anything, and its rows carry the honest inverse and indicator. -/
-theorem skelWitness_constraints (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+theorem skelWitness_constraints (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemoryImage κ)
     (S : List Skel) : (skelWitness prog input img S).Constraints := by
   intro t ht
   simp only [EnsembleWitness.allTables, skelWitness, List.mem_cons, List.not_mem_nil,
@@ -506,7 +506,7 @@ theorem skelWitness_constraints (prog : Program) (input : PublicInput) {κ : ℕ
 /-! ## The verifier's checks -/
 
 /-- Every pull of a row's read carries a nonzero count, when the row's counts are nonzero. -/
-theorem sendsOf_counts_ne_zero {pc fp : K} {next : Regs K} {rbc : K} {e : Vector K 11}
+theorem sendsOf_counts_ne_zero {pc fp : K} {next : Registers K} {rbc : K} {e : Vector K 11}
     {reads : List (K × K × Vector K 3)} (hb : rbc ≠ 0) (hr : ∀ x ∈ reads, x.2.1 ≠ 0) :
     ∀ y ∈ sendsOf pc fp next rbc e reads,
       (y.1 = MemPull.name ∨ y.1 = BytecodePull.name) → ∃ h : 1 < y.2.size, y.2[1] ≠ 0 := by
@@ -522,7 +522,7 @@ theorem sendsOf_counts_ne_zero {pc fp : K} {next : Regs K} {rbc : K} {e : Vector
   · simp [MemPush, MemPull, BytecodePull] at hn
 
 /-- A row of the witness has nonzero counts: they are powers of `g`. -/
-theorem PRow.sends_counts_ne_zero {κ : ℕ} (img : MemImage κ) (r : PRow) :
+theorem PRow.sends_counts_ne_zero {κ : ℕ} (img : MemoryImage κ) (r : PRow) :
     ∀ y ∈ r.sends img,
       (y.1 = MemPull.name ∨ y.1 = BytecodePull.name) → ∃ h : 1 < y.2.size, y.2[1] ≠ 0 := by
   refine sendsOf_counts_ne_zero (pow_ne_zero _ g_ne_zero) fun x hx ↦ ?_
@@ -543,7 +543,7 @@ theorem mem_interactions_sends (t : Air.Flat.Table K) {i : Interaction K}
 
 /-- **Every read pull of the six tables carries a nonzero count.** -/
 theorem skelWitness_counts_nonzero (prog : Program) (input : PublicInput) {κ : ℕ}
-    (img : MemImage κ) (S : List Skel)
+    (img : MemoryImage κ) (S : List Skel)
     (hS : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) :
     CountsNonzero (skelWitness prog input img S) := by
   have hR : ∀ r ∈ skelRows img S, ∃ next, execute img r.sk.regs r.sk.ins = some next :=
@@ -564,7 +564,7 @@ theorem skelWitness_counts_nonzero (prog : Program) (input : PublicInput) {κ : 
 /-- **Every `KECCAK` row permutes**: the row of an executing instruction satisfies the relation
 its execution checks. -/
 theorem skelWitness_keccak_valid (prog : Program) (input : PublicInput) {κ : ℕ}
-    (img : MemImage κ) (S : List Skel)
+    (img : MemoryImage κ) (S : List Skel)
     (hS : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) :
     KeccakRowsValid (skelWitness prog input img S) := by
   intro row hrow
@@ -586,14 +586,14 @@ theorem skelWitness_keccak_valid (prog : Program) (input : PublicInput) {κ : �
   | jump _ _ _ => simp [Instr.opcode] at hr2
 
 /-- The memory block holds `2^κ` rows. -/
-theorem memBlockRows_length (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+theorem memBlockRows_length (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemoryImage κ)
     (S : List Skel) : (memBlockRows (skelWitness prog input img S)).length = 2 ^ κ := by
   show (List.ofFn _).length = _
   rw [List.length_ofFn]
 
 /-- **The memory block's index column is the row index.** -/
 theorem skelWitness_index_columns (prog : Program) (input : PublicInput) {κ : ℕ}
-    (img : MemImage κ) (S : List Skel) :
+    (img : MemoryImage κ) (S : List Skel) :
     IndexColumnsAreRowIndices (skelWitness prog input img S) := by
   intro i hi
   have hi' : i < 2 ^ κ := by rwa [memBlockRows_length] at hi
@@ -606,7 +606,7 @@ theorem skelWitness_index_columns (prog : Program) (input : PublicInput) {κ : �
   exact congrArg MemRow.idx (memRowAt_toElements _ _)
 
 /-- **The memory block's rows are the image.** -/
-theorem skelWitness_seed_rows (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+theorem skelWitness_seed_rows (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemoryImage κ)
     (S : List Skel) (hκ : κ ≤ maxLogMem) :
     SeedRowsAreTheImage (skelWitness prog input img S) := by
   have hs := imageOf_imageData img hκ
@@ -622,12 +622,12 @@ theorem skelWitness_seed_rows (prog : Program) (input : PublicInput) {κ : ℕ} 
 
 /-- **The bytecode block's rows are the program's.** -/
 theorem skelWitness_bytecode_rows (prog : Program) (input : PublicInput) {κ : ℕ}
-    (img : MemImage κ) (S : List Skel) :
+    (img : MemoryImage κ) (S : List Skel) :
     BytecodeRowsAreTheProgram prog (skelWitness prog input img S) :=
   ⟨fun i ↦ g ^ skelBcFin S (gpow i), rfl⟩
 
 /-- **The public words are the image's first two words.** -/
-theorem skelWitness_words (input : PublicInput) {κ : ℕ} (img : MemImage κ) (hκ : κ ≤ maxLogMem)
+theorem skelWitness_words (input : PublicInput) {κ : ℕ} (img : MemoryImage κ) (hκ : κ ≤ maxLogMem)
     (hw0 : img.read (gpow 0) = some input.word0) (hw1 : img.read (gpow 1) = some input.word1) :
     (imageOf (imageData img)).2.read (gpow 0) = some input.word0 ∧
       (imageOf (imageData img)).2.read (gpow 1) = some input.word1 := by
@@ -637,7 +637,7 @@ theorem skelWitness_words (input : PublicInput) {κ : ℕ} (img : MemImage κ) (
 /-! ## The caps -/
 
 /-- The rows of a table of the witness are the skeletons of its opcode. -/
-theorem length_filter_mkRows {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S : List Skel)
+theorem length_filter_mkRows {κ : ℕ} (img : MemoryImage κ) (sm sb : K → ℕ) (S : List Skel)
     (op : Opcode) :
     ((mkRows img sm sb S).filter fun r ↦ r.sk.ins.opcode = op).length = Skel.count op S := by
   unfold Skel.count Skel.onTable
@@ -647,7 +647,7 @@ theorem length_filter_mkRows {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) 
 
 /-- **The announced sizes are within the caps**: the memory window, every table within the row
 cap, and the data's shape. -/
-theorem skelWitness_caps (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+theorem skelWitness_caps (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemoryImage κ)
     (S : List Skel) (hκmin : minLogMem ≤ κ) (hκ : κ ≤ maxLogMem)
     (hrows : ∀ op, Skel.count op S ≤ 2 ^ maxLogRows) :
     Caps (skelWitness prog input img S) where
@@ -687,7 +687,7 @@ theorem skelWitness_caps (prog : Program) (input : PublicInput) {κ : ℕ} (img 
 /-! ## The witness satisfies the statement -/
 
 /-- The messages the witness sends on a channel. -/
-theorem messagesOn_skelWitness (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+theorem messagesOn_skelWitness (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemoryImage κ)
     (S : List Skel) (hS : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next)
     (c : RawChannel K) :
     messagesOn (skelWitness prog input img S) c = chanOf c.name (skelSends prog img S) := by
@@ -699,7 +699,7 @@ theorem messagesOn_skelWitness (prog : Program) (input : PublicInput) {κ : ℕ}
 initial and final states, every table has at most `2^maxLogRows` rows, the memory log-size is in
 the window and the image has the two
 public words, `skelWitness prog input img S` satisfies every conjunct of `SatisfiedBy`. -/
-theorem skelWitness_satisfiedBy (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+theorem skelWitness_satisfiedBy (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemoryImage κ)
     (S : List Skel) (hκmin : minLogMem ≤ κ) (hκ : κ ≤ maxLogMem)
     (hS : ∀ sk ∈ S, SkelOk prog img sk)
     (hstate : (#[1, 1] :: S.map fun sk ↦ #[(nextOf img sk).pc, (nextOf img sk).fp]).Perm

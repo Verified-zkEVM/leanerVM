@@ -30,7 +30,7 @@ open LeanVM.Protocol.EndToEnd.Complete (termsPure)
 @[expose] public section
 
 section
-variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ)
+variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
 set_option maxHeartbeats 4000000 in

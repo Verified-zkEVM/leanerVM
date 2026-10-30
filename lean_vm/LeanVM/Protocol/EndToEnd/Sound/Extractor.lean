@@ -60,12 +60,12 @@ attribute [local irreducible] instFintypeDigest instFintypeKState
 
 section XRun
 
-variable (H : Bytes → Option Digest) (F : KState → Option KState)
+variable (H : Bytes → Option Digest) (F : KeccakState → Option KeccakState)
 
 /-- **The extracted run of a sequence** is the extracted run of its first part, then of the
 second from where the first stopped. -/
 theorem xrun_bind {α β : Type} (f : α → Prog β) :
-    ∀ (p : Prog α) (s : St) (h : List Ev),
+    ∀ (p : Prog α) (s : ProgState) (h : List Ev),
       xrun H F (p.bind f) s h = (xrun H F p s h).bind fun r ↦ xrun H F (f r.1) r.2.1 r.2.2
   | .ret a, s, h => rfl
   | .fail, s, h => rfl
@@ -120,14 +120,14 @@ def ReadsCommits (l : List Ev) : Prop :=
   ∀ e ∈ l, (∃ x, e = .read x) ∨ ∃ ht w W, e = .commit ht w W
 
 /-- The run of an absorption with a total hash and permutation, at `Id`. -/
-theorem absorb_id (F' : KState → KState) (sp : Sponge) (x : E) (tag : ℕ) :
+theorem absorb_id (F' : KeccakState → KeccakState) (sp : Sponge) (x : E) (tag : ℕ) :
     ∃ sp' : Sponge, Compile.absorb (m := Id) F' sp x tag = sp' := ⟨_, rfl⟩
 
 /-- **A run of reads and commitments does not depend on the hash and the permutation**: an
 extracted run whose events are reads and commitments is a run with any hash `H'` and permutation
 `F'` from any sponge, reaching the same value and state up to the sponge. -/
-theorem run_id_of_xrun (H' : Bytes → Digest) (F' : KState → KState) {α : Type} :
-    ∀ (p : Prog α) (s : St) (h l : List Ev) {a : α} {s' : St},
+theorem run_id_of_xrun (H' : Bytes → Digest) (F' : KeccakState → KeccakState) {α : Type} :
+    ∀ (p : Prog α) (s : ProgState) (h l : List Ev) {a : α} {s' : ProgState},
       xrun H F p s h = some (a, s', h ++ l) → ReadsCommits l → ∀ sp : Sponge,
         ∃ sp', Id.run (Compile.run H' F' p { s with sponge := sp }) =
           some (a, { s' with sponge := sp' })
@@ -209,7 +209,7 @@ theorem run_id_of_xrun (H' : Bytes → Digest) (F' : KState → KState) {α : Ty
 /-- **The roots of an extracted run are its history's commitments**, the words extracted under
 the roots. -/
 theorem xrun_rootsInv {α : Type} :
-    ∀ (p : Prog α) (s : St) (h : List Ev) {a : α} {s' : St} {h' : List Ev},
+    ∀ (p : Prog α) (s : ProgState) (h : List Ev) {a : α} {s' : ProgState} {h' : List Ev},
       RootsInv H s h → xrun H F p s h = some (a, s', h') → RootsInv H s' h'
   | .ret a, s, h, _, _, _, hR, hr => by
     simp only [xrun, Option.some.injEq, Prod.mk.injEq] at hr
@@ -279,7 +279,7 @@ def announcedRoot (prog : Program) (π : Proof) : Option Digest :=
 verifier's first two steps (`afterRoot`) announce the layout of the history's announced sizes and
 its rate, and a root whose word under the hash answers is the history's first word. The sizes
 are good and the ladder has a first level. -/
-theorem commitment_eq {c : HashSpec.QueryCache} {π : Proof}
+theorem commitment_eq {c : KeccakCalls.QueryCache} {π : Proof}
     (hv : Rom.verify (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
       (leanVmSeed (bytecodeWords prog) (publicDigest input))
       (leanVmProgram (bytecodeWords prog) (publicDigest input)) π = some true)
@@ -297,7 +297,7 @@ theorem commitment_eq {c : HashSpec.QueryCache} {π : Proof}
       Good prog (verifierLayout prog s, ρ) s ∧
       ∃ level rest, Whir.ladder (verifierLayout prog s).stackLog ρ = some (level :: rest) := by
   set H : Bytes → Option Digest := fun x ↦ c (.inl x)
-  set F : KState → Option KState := fun s ↦ c (.inr s)
+  set F : KeccakState → Option KeccakState := fun s ↦ c (.inr s)
   set hist := extractedHistory H F (leanVmSeed (bytecodeWords prog) (publicDigest input))
     (leanVmProgram (bytecodeWords prog) (publicDigest input)) π with hhist
   obtain ⟨seed, sf, hseed, hx⟩ := xrun_of_verify hv
@@ -504,7 +504,7 @@ theorem spec_candidates_ncard_le {μ R : ℕ} (h : Whir.Admissible μ R) (W : Wo
 /-! ## The memory image -/
 
 /-- Halting runs of equal images are equal. -/
-theorem haltingRun_congr {κ κ' : ℕ} (L : MemImage κ) (L' : MemImage κ') (e : κ = κ')
+theorem haltingRun_congr {κ κ' : ℕ} (L : MemoryImage κ) (L' : MemoryImage κ') (e : κ = κ')
     (hL : ∀ i : Fin (2 ^ κ), L i = L' (Fin.cast (congrArg (2 ^ ·) e) i)) :
     Extraction.haltingRun prog L = Extraction.haltingRun prog L' := by
   subst e
@@ -549,7 +549,7 @@ theorem haltingRun_imageOf (s : Sizes) (hs : s.logMem ≤ maxLogMem)
   rfl
 
 /-- A witness representing a valid execution has its image's halting run, valid. -/
-theorem haltingRun_valid {w : Air.Flat.EnsembleWitness (leanIsaEnsemble prog)} {t : Trace prog}
+theorem haltingRun_valid {w : Air.Flat.EnsembleWitness (leanIsaEnsemble prog)} {t : Execution prog}
     (hrep : AssignmentRepresents w t) (hv : ValidExecution prog input t) :
     ∃ t', Extraction.haltingRun prog (imageOf w.data).2 = some t' ∧
       ValidExecution prog input t' := by
@@ -560,7 +560,7 @@ theorem haltingRun_valid {w : Air.Flat.EnsembleWitness (leanIsaEnsemble prog)} {
   dsimp only at hκ himage ⊢
   subst hκ
   obtain rfl : image' = image := funext fun i ↦ himage i i.isLt
-  have h : ∃ n, Semantics.run prog image' n Regs.initial = some (Regs.final prog) :=
+  have h : ∃ n, Semantics.run prog image' n Registers.initial = some (Registers.final prog) :=
     ⟨steps, hv.2⟩
   rcases hh : Extraction.haltingRun prog image' with _ | t'
   · simp [Extraction.haltingRun, h] at hh
@@ -589,14 +589,14 @@ theorem committedWord_eq {X : Type} {σ : Seeds X} {ℓ : Log} {k : ℕ} {r : Di
 
 /-- The logged experiment in two stages: the adversary's run from the empty log, with the log it
 leaves, then the verifier's run from that log. -/
-noncomputable def logged2 {α : Type} (A : OracleComp HashSpec α)
-    (V : α → OracleComp HashSpec Bool) : ProbComp ((α × Log) × (Bool × Log)) :=
+noncomputable def logged2 {α : Type} (A : OracleComp KeccakCalls α)
+    (V : α → OracleComp KeccakCalls Bool) : ProbComp ((α × Log) × (Bool × Log)) :=
   (simulateQ loggedRO A).run [] >>= fun p ↦
     (fun r ↦ (p, r)) <$> (simulateQ loggedRO (V p.1)).run p.2
 
 /-- The logged experiment forgets the adversary's log. -/
-theorem logExperiment_eq_logged2 {α : Type} (A : OracleComp HashSpec α)
-    (V : α → OracleComp HashSpec Bool) :
+theorem logExperiment_eq_logged2 {α : Type} (A : OracleComp KeccakCalls α)
+    (V : α → OracleComp KeccakCalls Bool) :
     logExperiment A V = (fun w ↦ ((w.1.1, w.2.1), w.2.2)) <$> logged2 A V := by
   rw [logExperiment, run_simulateQ_bind, logged2, map_bind]
   refine bind_congr fun p ↦ ?_
@@ -609,8 +609,8 @@ def RootAnswered {α : Type} (root : α → Option Digest) (a : α) (ℓ₀ ℓ 
 /-- **The verifier rarely answers the announced root afresh**: the probability that a fresh
 hash answer of the verifier, past the adversary's log, is the root `root` of the adversary's
 output is at most one `2^-256` per verifier query. Permutation answers are states, never roots. -/
-theorem prEvent_logged2_root_le {α : Type} (A : OracleComp HashSpec α)
-    (V : α → OracleComp HashSpec Bool) (QV : ℕ) (hV : ∀ a, IsTotalQueryBound (V a) QV)
+theorem prEvent_logged2_root_le {α : Type} (A : OracleComp KeccakCalls α)
+    (V : α → OracleComp KeccakCalls Bool) (QV : ℕ) (hV : ∀ a, IsTotalQueryBound (V a) QV)
     (root : α → Option Digest) :
     Pr{let w ← logged2 A V}[¬ w.1.2 <+: w.2.2 ∨ RootAnswered root w.1.1 w.1.2 w.2.2] ≤
       QV * (2 ^ 256 : ℝ≥0∞)⁻¹ := by

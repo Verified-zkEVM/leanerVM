@@ -105,14 +105,14 @@ theorem digest_canonical (d : Digest) :
 
 /-- The seed's state carries a sponge. -/
 theorem seed_carries (seed pi : Digest) :
-    ∃ sp, (⟨capOf (keccakF (seedInput seed pi)), []⟩ : Fs).Carries sp :=
-  ⟨⟨keccakF (seedInput seed pi), []⟩, rfl, rfl⟩
+    ∃ sp, (⟨capOf (keccakF1600 (seedInput seed pi)), []⟩ : Fs).Carries sp :=
+  ⟨⟨keccakF1600 (seedInput seed pi), []⟩, rfl, rfl⟩
 
 /-- **What the honest front is, against the run.** -/
 structure VsFrontH {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
     (rd : Reader) (σ : Val) : Prop extends VsFrontS rd σ c.proof.stream where
   hcap0 : [σ (.n 22), σ (.n 23), σ (.n 24), σ (.n 25), σ (.n 26)] =
-    capOf (keccakF (seedInput seed (statementDigest seed c.statement)))
+    capOf (keccakF1600 (seedInput seed (statementDigest seed c.statement)))
   hwords : vsWords σ = S.words
   h537 : σ (.n 537) = S.x0
   h547 : σ (.n 547) = S.x1
@@ -174,7 +174,7 @@ theorem vsH_spec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
   -- the announced sizes' run
   have hh := vsH_heights hbl S.hrowsL (by rw [← S.hlayout]; exact S.hmu28)
   have hr := readSizes_runsTo hbl S.h16 S.h32 S.hrowsL hh S.hr1 S.hr4 (by rw [← S.hlayout]; exact S.hmu28)
-    (⟨capOf (keccakF (seedInput seed (statementDigest seed c.statement))), []⟩ : Fs)
+    (⟨capOf (keccakF1600 (seedInput seed (statementDigest seed c.statement))), []⟩ : Fs)
   rw [← S.hlayout] at hr
   obtain ⟨-, es1, -⟩ := Tables.runsTo_det S.runS hr (seed_carries _ _) (r1 := []) (r2 := []) rfl
   have hs1 : S.s1 = ⟨[σ (.n 77), σ (.n 78), σ (.n 79), σ (.n 80), σ (.n 81)],

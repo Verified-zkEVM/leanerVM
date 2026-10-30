@@ -36,7 +36,7 @@ def paddingRow (t : Table) : List E :=
 
 theorem padding_eq (t : Table) : t.padding = paddingRow t := by
   unfold Table.padding paddingRow
-  rw [show (Vector.replicate 25 0 : KState) = Keccak.zeroState from rfl, Keccak.keccakF_zero]
+  rw [show (Vector.replicate 25 0 : KeccakState) = Keccak.zeroState from rfl, Keccak.keccakF_zero]
 
 end
 end LeanVM.Guest.B1.Tables

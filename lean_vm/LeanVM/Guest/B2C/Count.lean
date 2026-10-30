@@ -13,7 +13,7 @@ public import LeanVM.Guest.Exec
 # Counted runs
 
 `RunC prog L s t c`: some run goes from `s` to `t` executing `c op` instructions of each opcode
-`op` (`runCount`). Counted runs compose (`RunC.trans`, the counts adding), are built one
+`op` (`opcodeCountInRun`). Counted runs compose (`RunC.trans`, the counts adding), are built one
 instruction at a time as `Reach` is (`runC_step`, `runC_fallThrough`, `runC_jump`, `runC_jumpTo`,
 `runC_ret`), and a counted run from the initial to the final registers counts the trace that
 halts there (`count_eq_of_runC`), since a run reaches the final registers after one number of
@@ -35,20 +35,20 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Exec
 
 /-- **A counted run**: some run goes from `s` to `t`, executing `c op` instructions of each
 opcode `op`. -/
-def RunC {κ : ℕ} (prog : Program) (L : MemImage κ) (s t : Regs K) (c : Opcode → ℕ) : Prop :=
-  ∃ n, run prog L n s = some t ∧ ∀ op, runCount prog L op n s = c op
+def RunC {κ : ℕ} (prog : Program) (L : MemoryImage κ) (s t : Registers K) (c : Opcode → ℕ) : Prop :=
+  ∃ n, run prog L n s = some t ∧ ∀ op, opcodeCountInRun prog L op n s = c op
 
 section
 
-variable {κ : ℕ} {prog : Program} {L : MemImage κ}
+variable {κ : ℕ} {prog : Program} {L : MemoryImage κ}
 
 /-- Along a run that reaches `t`, the counts of a longer run add. -/
-theorem runCount_add_of_run {op : Opcode} : ∀ {n : ℕ} {s t : Regs K}, run prog L n s = some t →
-    ∀ m, runCount prog L op (n + m) s = runCount prog L op n s + runCount prog L op m t
+theorem runCount_add_of_run {op : Opcode} : ∀ {n : ℕ} {s t : Registers K}, run prog L n s = some t →
+    ∀ m, opcodeCountInRun prog L op (n + m) s = opcodeCountInRun prog L op n s + opcodeCountInRun prog L op m t
   | 0, s, t, h, m => by
     simp only [run_zero, Option.some.injEq] at h
     subst h
-    simp [runCount]
+    simp [opcodeCountInRun]
   | n + 1, s, t, h, m => by
     have hne := ne_final_of_run_succ h
     rw [run_succ_of_ne_final hne] at h
@@ -58,35 +58,35 @@ theorem runCount_add_of_run {op : Opcode} : ∀ {n : ℕ} {s t : Regs K}, run pr
       | none => rw [step_eq_none_of_fetch_eq_none hf] at hs'; cases hs'
       | some ins => exact ⟨ins, rfl⟩
     rw [show n + 1 + m = (n + m) + 1 by omega]
-    simp only [runCount, hins, hs', runCount_add_of_run h' m]
+    simp only [opcodeCountInRun, hins, hs', runCount_add_of_run h' m]
     omega
 
-theorem RunC.refl (s : Regs K) : RunC prog L s s 0 := ⟨0, rfl, fun _ ↦ rfl⟩
+theorem RunC.refl (s : Registers K) : RunC prog L s s 0 := ⟨0, rfl, fun _ ↦ rfl⟩
 
-theorem RunC.trans {s t u : Regs K} {c₁ c₂ : Opcode → ℕ} (h₁ : RunC prog L s t c₁)
+theorem RunC.trans {s t u : Registers K} {c₁ c₂ : Opcode → ℕ} (h₁ : RunC prog L s t c₁)
     (h₂ : RunC prog L t u c₂) : RunC prog L s u (c₁ + c₂) := by
   obtain ⟨m, hm, hcm⟩ := h₁
   obtain ⟨n, hn, hcn⟩ := h₂
   refine ⟨m + n, by rw [run_add, hm]; exact hn, fun op ↦ ?_⟩
   rw [runCount_add_of_run hm, hcm, hcn, Pi.add_apply]
 
-theorem RunC.reach {s t : Regs K} {c : Opcode → ℕ} (h : RunC prog L s t c) : Reach prog L s t :=
+theorem RunC.reach {s t : Registers K} {c : Opcode → ℕ} (h : RunC prog L s t c) : Reach prog L s t :=
   let ⟨n, hn, _⟩ := h
   ⟨n, hn⟩
 
 /-! ## Counted steps -/
 
 /-- One step from a fetched instruction away from the last slot, counting its opcode. -/
-theorem runC_step {pc : ℕ} {fp : K} {ins : OInstr} {r : Regs K}
+theorem runC_step {pc : ℕ} {fp : K} {ins : OInstr} {r : Registers K}
     (hf : prog.fetch (gpow pc) = some ins.toInstr) (hpc : pc < 2 ^ prog.logSize - 1)
     (h : execute L ⟨gpow pc, fp⟩ ins.toInstr = some r) :
     RunC prog L ⟨gpow pc, fp⟩ r (fun op ↦ if op = ins.toInstr.opcode then 1 else 0) := by
-  have hf' : prog.fetch (⟨gpow pc, fp⟩ : Regs K).pc = some ins.toInstr := hf
+  have hf' : prog.fetch (⟨gpow pc, fp⟩ : Registers K).pc = some ins.toInstr := hf
   have hs : step prog L ⟨gpow pc, fp⟩ = some r := by rw [step_of_fetch_eq_some hf', h]
   refine ⟨1, ?_, fun op ↦ ?_⟩
   · rw [run_succ_of_ne (gpow_ne_pcFinal hpc), hs]
     rfl
-  · simp only [runCount, hf', hs, add_zero]
+  · simp only [opcodeCountInRun, hf', hs, add_zero]
     by_cases ho : op = ins.toInstr.opcode
     · simp [ho]
     · simp [ho, Ne.symm ho]
@@ -99,7 +99,7 @@ theorem runC_fallThrough {pc : ℕ} {fp : K} {ins : OInstr}
   runC_step hf hpc ((execute_iff_holds hj).mpr ⟨h, rfl⟩)
 
 /-- A `JUMP` goes where it `JumpsTo`, counting one `JUMP`. -/
-theorem runC_jump {pc : ℕ} {fp : K} {oc od of : ℕ} {r : Regs K}
+theorem runC_jump {pc : ℕ} {fp : K} {oc od of : ℕ} {r : Registers K}
     (hf : prog.fetch (gpow pc) = some (OInstr.jump oc od of).toInstr)
     (hpc : pc < 2 ^ prog.logSize - 1) (h : JumpsTo L pc fp oc od of r) :
     RunC prog L ⟨gpow pc, fp⟩ r (fun op ↦ if op = .jump then 1 else 0) :=
@@ -113,7 +113,7 @@ theorem runC_jumpTo {pc oc od of : ℕ} {fp a b : K} {c : E}
     (hf' : L.read (fp * gpow of) = some (ofK b)) :
     RunC prog L ⟨gpow pc, fp⟩ ⟨a, b⟩ (fun op ↦ if op = .jump then 1 else 0) := by
   have hK : ∀ x : K, IsInK (ofK x) := fun x ↦ (isInK_iff _).mpr ⟨x, rfl⟩
-  have hr : (if c = 0 then (⟨gpow (pc + 1), fp⟩ : Regs K) else ⟨(ofK a).limb 0, (ofK b).limb 0⟩) =
+  have hr : (if c = 0 then (⟨gpow (pc + 1), fp⟩ : Registers K) else ⟨(ofK a).limb 0, (ofK b).limb 0⟩) =
       ⟨a, b⟩ := by
     rw [ite_eq_right hc0]
     simp
@@ -121,7 +121,7 @@ theorem runC_jumpTo {pc oc od of : ℕ} {fp a b : K} {c : E}
 
 /-- A return, `JUMP fp[oc], fp[0], fp[1]` with `fp[oc]` a nonzero `K` word and `fp[0]`, `fp[1]`
 words of `K`, goes to `retRegs L fp`, counting one `JUMP`. -/
-theorem runC_ret {pc oc : ℕ} {fp : K} {c d f : E} {r : Regs K}
+theorem runC_ret {pc oc : ℕ} {fp : K} {c d f : E} {r : Registers K}
     (hf : prog.fetch (gpow pc) = some (OInstr.jump oc 0 1).toInstr)
     (hpc : pc < 2 ^ prog.logSize - 1) (hc : L.read (fp * gpow oc) = some c) (hcK : IsInK c)
     (hc0 : c ≠ 0) (hd : L.read (fp * gpow 0) = some d) (hdK : IsInK d)
@@ -135,14 +135,14 @@ theorem runC_ret {pc oc : ℕ} {fp : K} {c d f : E} {r : Regs K}
 /-! ## The final registers -/
 
 /-- A run reaches the final registers after one number of steps only: it halts there. -/
-theorem run_final_unique {n m : ℕ} {s : Regs K} (hn : run prog L n s = some (Regs.final prog))
-    (hm : run prog L m s = some (Regs.final prog)) : n = m := by
-  have key : ∀ {a b : ℕ}, a < b → run prog L a s = some (Regs.final prog) →
-      run prog L b s ≠ some (Regs.final prog) := by
+theorem run_final_unique {n m : ℕ} {s : Registers K} (hn : run prog L n s = some (Registers.final prog))
+    (hm : run prog L m s = some (Registers.final prog)) : n = m := by
+  have key : ∀ {a b : ℕ}, a < b → run prog L a s = some (Registers.final prog) →
+      run prog L b s ≠ some (Registers.final prog) := by
     intro a b hab ha hb
     obtain ⟨k, rfl⟩ : ∃ k, b = a + (k + 1) := ⟨b - a - 1, by omega⟩
     rw [run_add, ha] at hb
-    change run prog L (k + 1) (Regs.final prog) = _ at hb
+    change run prog L (k + 1) (Registers.final prog) = _ at hb
     rw [run_succ_of_eq rfl] at hb
     cases hb
   rcases Nat.lt_trichotomy n m with h | h | h
@@ -152,9 +152,9 @@ theorem run_final_unique {n m : ℕ} {s : Regs K} (hn : run prog L n s = some (R
 
 /-- **A counted run to the final registers counts the trace that halts there.** -/
 theorem count_eq_of_runC {n : ℕ} {c : Opcode → ℕ}
-    (hc : RunC prog L Regs.initial (Regs.final prog) c)
-    (hn : run prog L n Regs.initial = some (Regs.final prog)) (op : Opcode) :
-    (⟨κ, L, n⟩ : Trace prog).count op = c op := by
+    (hc : RunC prog L Registers.initial (Registers.final prog) c)
+    (hn : run prog L n Registers.initial = some (Registers.final prog)) (op : Opcode) :
+    (⟨κ, L, n⟩ : Execution prog).count op = c op := by
   obtain ⟨m, hm, hcm⟩ := hc
   obtain rfl := run_final_unique hn hm
   exact hcm op
@@ -189,26 +189,26 @@ theorem itemOps_cons (a : Item) (l : List Item) (op : Opcode) :
 
 section Pass
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K} {F : Facts} {prog : Program} {entry len : ℕ}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program} {entry len : ℕ}
 
 /-- A counted run from `s` to `r` within the instructions of `its`, by an exit `x` with `X x`
 whose kind names `r` and whose environment holds. -/
-def LeavesC (L : MemImage κ) (fp : K) (prog : Program) (entry : ℕ) (s r : Regs K) (its : List Item)
+def LeavesC (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (s r : Registers K) (its : List Item)
     (X : Exit → Prop) : Prop :=
   ∃ c, RunC prog L s r c ∧ (∀ op, c op ≤ itemOps its op) ∧
     ∃ x, X x ∧ x.kind.Regs L fp entry r ∧ EnvHolds L fp x.env
 
 /-- A counted run from `s` to `t` within the instructions of `its`. -/
-def ReachC (L : MemImage κ) (prog : Program) (s t : Regs K) (its : List Item) : Prop :=
+def ReachC (L : MemoryImage κ) (prog : Program) (s t : Registers K) (its : List Item) : Prop :=
   ∃ c, RunC prog L s t c ∧ ∀ op, c op ≤ itemOps its op
 
-private theorem LeavesC.prefix {s r : Regs K} {l₁ l₂ : List Item} {X Y : Exit → Prop}
+private theorem LeavesC.prefix {s r : Registers K} {l₁ l₂ : List Item} {X Y : Exit → Prop}
     (hXY : ∀ x, X x → Y x) (h : LeavesC L fp prog entry s r l₁ X) :
     LeavesC L fp prog entry s r (l₁ ++ l₂) Y := by
   obtain ⟨c, hc, hle, x, hx, hr, he⟩ := h
   exact ⟨c, hc, fun op ↦ (hle op).trans (by rw [itemOps_append]; omega), x, hXY x hx, hr, he⟩
 
-private theorem LeavesC.after {s t r : Regs K} {l₁ l₂ : List Item} {X Y : Exit → Prop}
+private theorem LeavesC.after {s t r : Registers K} {l₁ l₂ : List Item} {X Y : Exit → Prop}
     (hXY : ∀ x, X x → Y x) (h₁ : ReachC L prog s t l₁) (h : LeavesC L fp prog entry t r l₂ X) :
     LeavesC L fp prog entry s r (l₁ ++ l₂) Y := by
   obtain ⟨c₁, hc₁, hle₁⟩ := h₁
@@ -217,7 +217,7 @@ private theorem LeavesC.after {s t r : Regs K} {l₁ l₂ : List Item} {X Y : Ex
   rw [Pi.add_apply, itemOps_append]
   exact Nat.add_le_add (hle₁ op) (hle op)
 
-private theorem ReachC.trans {s t u : Regs K} {l₁ l₂ : List Item} (h₁ : ReachC L prog s t l₁)
+private theorem ReachC.trans {s t u : Registers K} {l₁ l₂ : List Item} (h₁ : ReachC L prog s t l₁)
     (h₂ : ReachC L prog t u l₂) : ReachC L prog s u (l₁ ++ l₂) := by
   obtain ⟨c₁, hc₁, hle₁⟩ := h₁
   obtain ⟨c₂, hc₂, hle₂⟩ := h₂
@@ -227,7 +227,7 @@ private theorem ReachC.trans {s t u : Regs K} {l₁ l₂ : List Item} (h₁ : Re
 
 /-- What an instruction's result gives a run to `r`, counted: from its atoms, the run reaches `r`
 by a branch's exit, or the next offset with `Q`; or, when it stops, `r` by its exit. -/
-private def ResCompC (L : MemImage κ) (fp : K) (prog : Program) (entry i : ℕ) (r : Regs K) :
+private def ResCompC (L : MemoryImage κ) (fp : K) (prog : Program) (entry i : ℕ) (r : Registers K) :
     Res → Prop
   | .go its st => ∀ Q : Prop, Follows L fp entry r Q its →
       LeavesC L fp prog entry ⟨gpow (entry + i), fp⟩ r its (· ∈ branchExits its) ∨
@@ -243,7 +243,7 @@ private theorem itemOps_ins_facts (a : Atom) (fs : List Atom) (op : Opcode) :
 /-- **One instruction is complete, counted.** -/
 private theorem stepI_completeC (hctx : Ctx F κ fp) {i : ℕ} {st : St} {ins : OInstr}
     (hf : prog.fetch (gpow (entry + i)) = some ins.toInstr)
-    (hpc : entry + i < 2 ^ prog.logSize - 1) (hst : St.Holds L fp st) (r : Regs K) :
+    (hpc : entry + i < 2 ^ prog.logSize - 1) (hst : St.Holds L fp st) (r : Registers K) :
     ResCompC L fp prog entry i r (stepI F entry len i st ins) := by
   cases hj : ins.isJump with
   | false =>
@@ -300,7 +300,7 @@ private theorem stepI_completeC (hctx : Ctx F κ fp) {i : ℕ} {st : St} {ins : 
     | _ => simp [OInstr.isJump] at hj
 
 /-- A segment being walked, at offset `i`, complete with counts. -/
-private def CurGoodC (L : MemImage κ) (fp : K) (prog : Program) (entry : ℕ) (c : Cur) (i : ℕ) :
+private def CurGoodC (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (c : Cur) (i : ℕ) :
     Prop :=
   EnvHolds L fp c.env → ∀ r Q, Follows L fp entry r Q c.acc.reverse →
     LeavesC L fp prog entry ⟨gpow (entry + c.start), fp⟩ r c.acc.reverse
@@ -309,7 +309,7 @@ private def CurGoodC (L : MemImage κ) (fp : K) (prog : Program) (entry : ℕ) (
         ReachC L prog ⟨gpow (entry + c.start), fp⟩ ⟨gpow (entry + i), fp⟩ c.acc.reverse)
 
 /-- A segment, complete with counts and its exit. -/
-def SegGoodC (L : MemImage κ) (fp : K) (prog : Program) (entry : ℕ) (s : Seg) : Prop :=
+def SegGoodC (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (s : Seg) : Prop :=
   EnvHolds L fp s.env → ∀ r, Follows L fp entry r (s.exit.kind.Regs L fp entry r) s.items →
     LeavesC L fp prog entry ⟨gpow (entry + s.start), fp⟩ r s.items
       (fun x ↦ x = s.exit ∨ x ∈ branchExits s.items)
@@ -450,7 +450,7 @@ end Pass
 
 section Main
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K} {F : Facts} {prog : Program} {f : CompiledFn}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program} {f : CompiledFn}
 
 /-- **Completeness, counted**: on a memory satisfying the atoms of a path of a segment of
 `exec F f`, in a frame its environment holds of, a counted run from the segment's start reaches
@@ -458,7 +458,7 @@ the registers the path's exit names, each opcode's count at most the instruction
 among the segment's items; the path leaves by an exit of the segment (its own or a branch's)
 whose kind names those registers and whose environment holds. -/
 theorem exec_completeC (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {s : Seg}
-    (hs : s ∈ (exec F f).segs) (he : EnvHolds L fp s.env) {r : Regs K}
+    (hs : s ∈ (exec F f).segs) (he : EnvHolds L fp s.env) {r : Registers K}
     (h : Follows L fp f.entry r (s.exit.kind.Regs L fp f.entry r) s.items) :
     ∃ c, RunC prog L ⟨gpow (f.entry + s.start), fp⟩ r c ∧ (∀ op, c op ≤ itemOps s.items op) ∧
       ∃ x, (x = s.exit ∨ x ∈ branchExits s.items) ∧ x.kind.Regs L fp f.entry r ∧
@@ -469,7 +469,7 @@ theorem exec_completeC (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {
 /-- **Completeness on a window, counted**, as `exec_completeC`. -/
 theorem execWin_completeC (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {a b : ℕ}
     {env : List (ℕ × Sym)} {s : Seg} (hs : s ∈ (execWin F f a env b).segs)
-    (he : EnvHolds L fp s.env) {r : Regs K}
+    (he : EnvHolds L fp s.env) {r : Registers K}
     (h : Follows L fp f.entry r (s.exit.kind.Regs L fp f.entry r) s.items) :
     ∃ c, RunC prog L ⟨gpow (f.entry + s.start), fp⟩ r c ∧ (∀ op, c op ≤ itemOps s.items op) ∧
       ∃ x, (x = s.exit ∨ x ∈ branchExits s.items) ∧ x.kind.Regs L fp f.entry r ∧

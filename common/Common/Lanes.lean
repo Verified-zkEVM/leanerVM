@@ -6,7 +6,7 @@ import Common.Lemmas
 /-!
 # Lanes and bytes
 
-The statement holds a Keccak state as `25` lanes of `64` bits (`LeanVM.Semantics.KState`) and
+The statement holds a Keccak state as `25` lanes of `64` bits (`LeanVM.Semantics.KeccakState`) and
 Keccak-256 as `keccak256With` over a permutation of the lanes; the proofs of `common` hold a state
 as bytes (`Common.KState`: 32 digest bytes, 104 more bytes of the rate, 64 bytes of capacity) and
 Keccak-256 as the sponge over a permutation of the bytes (`Common.keccak256With`). Byte `8i + k`
@@ -37,17 +37,17 @@ open LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 /-- The 200 bytes of a Keccak state, as `common` splits them (32 digest bytes, 104 more bytes
 of the rate, 64 bytes of capacity): byte `8i + k` is byte `k` of lane `i`, little-endian
 (`keccak_hash`'s `unpack("<17Q", ...)`, `verifier.py:207`). -/
-def KState.toRpm (s : KState) : Common.KState :=
+def KState.toRpm (s : KeccakState) : Common.KState :=
   Common.KState.ofBytes (s.toList.flatMap wordBytes)
 
 /-- A digest of 32 bytes as four little-endian words (`Digest.words`, `verifier.py:221-223`). -/
-def Digest.ofRpm (d : Common.KDigest) : Digest :=
+def Digest.ofRpm (d : Common.DigestBytes) : Digest :=
   #v[leLane d.toList 0, leLane d.toList 1, leLane d.toList 2, leLane d.toList 3]
 
 /-- A query on the bytes of the states. -/
-def permQueryToRpm : Common.PermQuery KState → Common.PermQuery Common.KState
-  | .fwd x => .fwd (KState.toRpm x)
-  | .inv y => .inv (KState.toRpm y)
+def permQueryToRpm : Common.PermutationQuery KeccakState → Common.PermutationQuery Common.KState
+  | .forward x => .forward (KState.toRpm x)
+  | .inverse y => .inverse (KState.toRpm y)
 
 end LeanVM
 
@@ -251,12 +251,12 @@ theorem toBytes_ofBytes (bs : List UInt8) (h : bs.length = 200) :
       simp only [e]
 
 /-- The lane state of 200 bytes: lane `i` is bytes `8i` to `8i + 7`, little-endian. -/
-def KState.ofRpm (x : Common.KState) : KState := Vector.ofFn fun i : Fin 25 ↦ leLane x.toBytes i
+def KState.ofRpm (x : Common.KState) : KeccakState := Vector.ofFn fun i : Fin 25 ↦ leLane x.toBytes i
 
-theorem toBytes_toRpm (s : KState) : (KState.toRpm s).toBytes = lanesBytes s.toList :=
+theorem toBytes_toRpm (s : KeccakState) : (KState.toRpm s).toBytes = lanesBytes s.toList :=
   toBytes_ofBytes (lanesBytes s.toList) (by simp)
 
-theorem ofRpm_toRpm (s : KState) : KState.ofRpm (KState.toRpm s) = s := by
+theorem ofRpm_toRpm (s : KeccakState) : KState.ofRpm (KState.toRpm s) = s := by
   refine Vector.ext fun i hi ↦ ?_
   rw [KState.ofRpm, Vector.getElem_ofFn, toBytes_toRpm, leLane_lanesBytes _ _ (by simpa)]
   simp
@@ -266,19 +266,19 @@ theorem toRpm_ofRpm (x : Common.KState) : KState.toRpm (KState.ofRpm x) = x := b
   rw [KState.ofRpm, Vector.toList_ofFn, lanesBytes_ofFn_leLane _ 25 (by simp), ofBytes_toBytes]
 
 /-- **The Keccak state as lanes and as bytes.** -/
-def stateEquiv : KState ≃ Common.KState where
+def stateEquiv : KeccakState ≃ Common.KState where
   toFun := KState.toRpm
   invFun := KState.ofRpm
   left_inv := ofRpm_toRpm
   right_inv := toRpm_ofRpm
 
-@[simp] theorem stateEquiv_apply (s : KState) : stateEquiv s = KState.toRpm s := rfl
+@[simp] theorem stateEquiv_apply (s : KeccakState) : stateEquiv s = KState.toRpm s := rfl
 
 @[simp] theorem stateEquiv_symm_apply (x : Common.KState) :
     stateEquiv.symm x = KState.ofRpm x := rfl
 
 /-- Byte `j` of a state is byte `j % 8` of lane `j / 8`. -/
-theorem toBytes_toRpm_getElem (s : KState) (j : ℕ) (hj : j < 200) :
+theorem toBytes_toRpm_getElem (s : KeccakState) (j : ℕ) (hj : j < 200) :
     (KState.toRpm s).toBytes[j]'(by simp; omega) =
       (wordBytes (s[j / 8]'(by omega))).getD (j % 8) 0 := by
   have h := getD_lanesBytes s.toList j (by simp; omega)
@@ -306,7 +306,7 @@ theorem toRpm_zero : KState.toRpm (Vector.replicate 25 0) = Common.KState.zero :
 /-! ## The digest -/
 
 /-- The 32 bytes of a digest. -/
-def Digest.toRpm (d : Digest) : Common.KDigest :=
+def Digest.toRpm (d : Digest) : Common.DigestBytes :=
   Vector.ofFn fun i : Fin 32 ↦ (lanesBytes d.toList).getD i 0
 
 theorem toList_digestToRpm (d : Digest) : (Digest.toRpm d).toList = lanesBytes d.toList := by
@@ -325,7 +325,7 @@ theorem digestOfRpm_toRpm (d : Digest) : Digest.ofRpm (Digest.toRpm d) = d := by
   · exact e 2 (by norm_num)
   · exact e 3 (by norm_num)
 
-theorem digestToRpm_ofRpm (d : Common.KDigest) : Digest.toRpm (Digest.ofRpm d) = d := by
+theorem digestToRpm_ofRpm (d : Common.DigestBytes) : Digest.toRpm (Digest.ofRpm d) = d := by
   apply Vector.toList_inj.mp
   rw [toList_digestToRpm]
   have e : (Digest.ofRpm d).toList = List.ofFn fun i : Fin 4 ↦ leLane d.toList i := by
@@ -333,7 +333,7 @@ theorem digestToRpm_ofRpm (d : Common.KDigest) : Digest.toRpm (Digest.ofRpm d) =
   rw [e, lanesBytes_ofFn_leLane _ 4 (by simp)]
 
 /-- **The digest as lanes and as bytes.** -/
-def digestEquiv : Digest ≃ Common.KDigest where
+def digestEquiv : Digest ≃ Common.DigestBytes where
   toFun := Digest.toRpm
   invFun := Digest.ofRpm
   left_inv := digestOfRpm_toRpm
@@ -341,7 +341,7 @@ def digestEquiv : Digest ≃ Common.KDigest where
 
 @[simp] theorem digestEquiv_apply (d : Digest) : digestEquiv d = Digest.toRpm d := rfl
 
-@[simp] theorem digestEquiv_symm_apply (d : Common.KDigest) :
+@[simp] theorem digestEquiv_symm_apply (d : Common.DigestBytes) :
     digestEquiv.symm d = Digest.ofRpm d := rfl
 
 /-! ## Absorbing a block -/
@@ -361,38 +361,38 @@ theorem wordBytes_leLane_getD (bs : List UInt8) (i k : ℕ) (hk : k < 8) :
   rw [wordBytes_leLane, List.getD_eq_getElem _ _ (by simpa using hk)]
   simp
 
-theorem lane_eq_getElem (s : KState) (i : ℕ) (hi : i < 25) : Keccak.lane s i = s[i] := by
+theorem lane_eq_getElem (s : KeccakState) (i : ℕ) (hi : i < 25) : Keccak.lane s i = s[i] := by
   simp [Keccak.lane, Array.getD_eq_getD_getElem?, hi]
 
 /-- Byte `j` of a state, through `toRpm`. -/
-theorem lanesBytes_getD (s : KState) (j : ℕ) (hj : j < 200) :
+theorem lanesBytes_getD (s : KeccakState) (j : ℕ) (hj : j < 200) :
     (lanesBytes s.toList).getD j 0 = (wordBytes (s[j / 8]'(by omega))).getD (j % 8) 0 := by
   rw [getD_lanesBytes _ _ (by simp; omega)]
   simp
 
-theorem toRpm_fst_fst (s : KState) (j : ℕ) (hj : j < 32) :
+theorem toRpm_fst_fst (s : KeccakState) (j : ℕ) (hj : j < 32) :
     (KState.toRpm s).1.1[j] = (wordBytes (s[j / 8]'(by omega))).getD (j % 8) 0 := by
   rw [← lanesBytes_getD s j (by omega)]
   simp [KState.toRpm, Common.KState.ofBytes, lanesBytes]
 
-theorem toRpm_fst_snd (s : KState) (j : ℕ) (hj : j < 104) :
+theorem toRpm_fst_snd (s : KeccakState) (j : ℕ) (hj : j < 104) :
     (KState.toRpm s).1.2[j] =
       (wordBytes (s[(32 + j) / 8]'(by omega))).getD ((32 + j) % 8) 0 := by
   rw [← lanesBytes_getD s (32 + j) (by omega)]
   simp [KState.toRpm, Common.KState.ofBytes, lanesBytes]
 
-theorem toRpm_snd (s : KState) (j : ℕ) (hj : j < 64) :
+theorem toRpm_snd (s : KeccakState) (j : ℕ) (hj : j < 64) :
     (KState.toRpm s).2[j] =
       (wordBytes (s[(136 + j) / 8]'(by omega))).getD ((136 + j) % 8) 0 := by
   rw [← lanesBytes_getD s (136 + j) (by omega)]
   simp [KState.toRpm, Common.KState.ofBytes, lanesBytes]
 
 /-- **XORing a block's lanes into the rate is XORing its bytes** (`absorbBlock`, `absorb`). -/
-theorem toRpm_absorbInput (s : KState) (block : List UInt8) :
+theorem toRpm_absorbInput (s : KeccakState) (block : List UInt8) :
     KState.toRpm (Vector.ofFn fun i : Fin 25 ↦
         if i.val < 17 then Keccak.lane s i ^^^ leLane block i else Keccak.lane s i) =
       Common.absorb (KState.toRpm s) (Common.KBlock.ofBytes block) := by
-  set v : KState := Vector.ofFn fun i : Fin 25 ↦
+  set v : KeccakState := Vector.ofFn fun i : Fin 25 ↦
     if i.val < 17 then Keccak.lane s i ^^^ leLane block i else Keccak.lane s i with hv
   have hin : ∀ i (hi : i < 17), v[i]'(by omega) = s[i]'(by omega) ^^^ leLane block i := by
     intro i hi
@@ -475,15 +475,15 @@ section Sponge
 variable {m : Type → Type} [Monad m] [LawfulMonad m] (π : Common.KState → m Common.KState)
 
 /-- A permutation of the byte states, read on lane states. -/
-def lanePerm : KState → m KState := fun s ↦ KState.ofRpm <$> π (KState.toRpm s)
+def lanePerm : KeccakState → m KeccakState := fun s ↦ KState.ofRpm <$> π (KState.toRpm s)
 
 omit [LawfulMonad m] in
-theorem absorbBlockWith_lanePerm (s : KState) (block : List UInt8) :
+theorem absorbBlockWith_lanePerm (s : KeccakState) (block : List UInt8) :
     absorbBlockWith (lanePerm π) s block =
       KState.ofRpm <$> π (Common.absorb (KState.toRpm s) (Common.KBlock.ofBytes block)) := by
   rw [absorbBlockWith, lanePerm, toRpm_absorbInput]
 
-theorem absorbWith_lanePerm : ∀ (n : ℕ) (s : KState) (data : List UInt8), data.length / 136 = n →
+theorem absorbWith_lanePerm : ∀ (n : ℕ) (s : KeccakState) (data : List UInt8), data.length / 136 = n →
     absorbWith (lanePerm π) n s data =
       KState.ofRpm <$> Common.absorbAll π (KState.toRpm s)
         (Common.toBlocks (Common.keccakPadBytes data))
@@ -540,19 +540,19 @@ end Sponge
 
 /-- Keccak-256 over `keccakF` is the deployed Keccak-256. -/
 theorem keccak256With_keccakF (data : List UInt8) :
-    keccak256With (m := Id) keccakF data = keccak256 data := rfl
+    keccak256With (m := Id) keccakF1600 data = keccak256 data := rfl
 
 /-- **The deployed Keccak-256 is `common`'s Keccak-256 sponge** (`Common.keccak256With`) over
 the deployed Keccak-f[1600] read on bytes. -/
 theorem keccak256_eq_rpm (data : List UInt8) :
     keccak256 data = Digest.ofRpm
-      (Common.keccak256With (m := Id) (fun x ↦ KState.toRpm (keccakF (KState.ofRpm x))) data) := by
-  have h : lanePerm (m := Id) (fun x ↦ KState.toRpm (keccakF (KState.ofRpm x))) =
-      (keccakF : KState → Id KState) := by
+      (Common.keccak256With (m := Id) (fun x ↦ KState.toRpm (keccakF1600 (KState.ofRpm x))) data) := by
+  have h : lanePerm (m := Id) (fun x ↦ KState.toRpm (keccakF1600 (KState.ofRpm x))) =
+      (keccakF1600 : KeccakState → Id KeccakState) := by
     funext s
-    show KState.ofRpm (KState.toRpm (keccakF (KState.ofRpm (KState.toRpm s)))) = keccakF s
+    show KState.ofRpm (KState.toRpm (keccakF1600 (KState.ofRpm (KState.toRpm s)))) = keccakF1600 s
     rw [ofRpm_toRpm, ofRpm_toRpm]
-  have e := keccak256With_rpm (m := Id) (fun x ↦ KState.toRpm (keccakF (KState.ofRpm x))) data
+  have e := keccak256With_rpm (m := Id) (fun x ↦ KState.toRpm (keccakF1600 (KState.ofRpm x))) data
   rw [h, keccak256With_keccakF] at e
   exact e.trans (Id.run_map _ _)
 
@@ -560,7 +560,7 @@ theorem keccak256_eq_rpm (data : List UInt8) :
 
 /-- A state keeping lanes `16..24` of another keeps its capacity (lanes `17..24`, bytes
 `136..199`) and its byte `135` (the top byte of lane `16`). -/
-theorem toRpm_keep (x y : KState) (h : ∀ i : Fin 25, 16 ≤ i.val → x[i] = y[i]) :
+theorem toRpm_keep (x y : KeccakState) (h : ∀ i : Fin 25, 16 ≤ i.val → x[i] = y[i]) :
     (KState.toRpm x).2 = (KState.toRpm y).2 ∧
       (KState.toRpm x).1.2[103] = (KState.toRpm y).1.2[103] := by
   have h' : ∀ i (hi : 16 ≤ i) (hi' : i < 25), x[i] = y[i] := fun i hi hi' ↦ by
@@ -572,7 +572,7 @@ theorem toRpm_keep (x y : KState) (h : ∀ i : Fin 25, 16 ≤ i.val → x[i] = y
 
 /-- **A duplexing that keeps lanes `16..24` absorbs a non-final block**: from `y` to `x`, the
 capacity is kept and the block's last byte is zero (`Common.keccakNF_blockTo`). -/
-theorem keccakNF_of_keep (x y : KState) (h : ∀ i : Fin 25, 16 ≤ i.val → x[i] = y[i]) :
+theorem keccakNF_of_keep (x y : KeccakState) (h : ∀ i : Fin 25, 16 ≤ i.val → x[i] = y[i]) :
     (KState.toRpm x).2 = (KState.toRpm y).2 ∧
       Common.keccakNF (Common.blockTo (KState.toRpm y) (KState.toRpm x)) :=
   ⟨(toRpm_keep x y h).1, Common.keccakNF_blockTo _ _ (toRpm_keep x y h).2⟩
@@ -651,50 +651,50 @@ variable {S₁ S₂ : Type} [Fintype S₁] [DecidableEq S₁] [SampleableType S�
   [Fintype S₂] [DecidableEq S₂] [SampleableType S₂]
 
 /-- The edges of a log, read through `f`. -/
-def logMap (f : S₂ → S₁) (E : Common.PermLog S₂) : Common.PermLog S₁ :=
+def logMap (f : S₂ → S₁) (E : Common.PermutationEdges S₂) : Common.PermutationEdges S₁ :=
   E.map fun p ↦ (f p.1, f p.2)
 
 /-- A query read through `e`. -/
-def mapQ (e : S₁ ≃ S₂) : Common.PermQuery S₁ → Common.PermQuery S₂
-  | .fwd x => .fwd (e x)
-  | .inv y => .inv (e y)
+def mapQ (e : S₁ ≃ S₂) : Common.PermutationQuery S₁ → Common.PermutationQuery S₂
+  | .forward x => .forward (e x)
+  | .inverse y => .inverse (e y)
 
 omit [Fintype S₁] [SampleableType S₁] [Fintype S₂] [SampleableType S₂] in
-theorem fwdLookup_logMap (e : S₁ ≃ S₂) (E : Common.PermLog S₂) (x : S₁) :
-    Common.fwdLookup (logMap e.symm E) x = (Common.fwdLookup E (e x)).map e.symm := by
+theorem fwdLookup_logMap (e : S₁ ≃ S₂) (E : Common.PermutationEdges S₂) (x : S₁) :
+    Common.forwardLookup (logMap e.symm E) x = (Common.forwardLookup E (e x)).map e.symm := by
   induction E with
   | nil => rfl
   | cons p E ih =>
     obtain ⟨a, b⟩ := p
     by_cases h : a = e x
-    · subst h; simp [logMap, Common.fwdLookup]
+    · subst h; simp [logMap, Common.forwardLookup]
     · have h' : ¬ e.symm a = x := fun h' ↦ h (by rw [← h']; simp)
-      simp only [logMap, List.map_cons, Common.fwdLookup, h, h', ↓reduceIte] at ih ⊢
+      simp only [logMap, List.map_cons, Common.forwardLookup, h, h', ↓reduceIte] at ih ⊢
       exact ih
 
 omit [Fintype S₁] [SampleableType S₁] [Fintype S₂] [SampleableType S₂] in
-theorem invLookup_logMap (e : S₁ ≃ S₂) (E : Common.PermLog S₂) (y : S₁) :
-    Common.invLookup (logMap e.symm E) y = (Common.invLookup E (e y)).map e.symm := by
+theorem invLookup_logMap (e : S₁ ≃ S₂) (E : Common.PermutationEdges S₂) (y : S₁) :
+    Common.inverseLookup (logMap e.symm E) y = (Common.inverseLookup E (e y)).map e.symm := by
   induction E with
   | nil => rfl
   | cons p E ih =>
     obtain ⟨a, b⟩ := p
     by_cases h : b = e y
-    · subst h; simp [logMap, Common.invLookup]
+    · subst h; simp [logMap, Common.inverseLookup]
     · have h' : ¬ e.symm b = y := fun h' ↦ h (by rw [← h']; simp)
-      simp only [logMap, List.map_cons, Common.invLookup, h, h', ↓reduceIte] at ih ⊢
+      simp only [logMap, List.map_cons, Common.inverseLookup, h, h', ↓reduceIte] at ih ⊢
       exact ih
 
 /-- **The lazily sampled permutation through a bijection**: a query read through `e` against the
 permutation on `S₂`, its answer and edges read back, is the query against the permutation on
 `S₁` with the edges read back. -/
-theorem lazyPerm_relabel (e : S₁ ≃ S₂) (q : Common.PermQuery S₁) (E : Common.PermLog S₂) :
-    Prod.map e.symm (logMap e.symm) <$> (Common.lazyPerm (mapQ e q)).run E =ᵈ
-      (Common.lazyPerm q).run (logMap e.symm E) := by
+theorem lazyPerm_relabel (e : S₁ ≃ S₂) (q : Common.PermutationQuery S₁) (E : Common.PermutationEdges S₂) :
+    Prod.map e.symm (logMap e.symm) <$> (Common.lazyRandomPermutation (mapQ e q)).run E =ᵈ
+      (Common.lazyRandomPermutation q).run (logMap e.symm E) := by
   cases q with
-  | fwd x =>
-    simp only [mapQ, Common.lazyPerm, StateT.run_mk, fwdLookup_logMap]
-    rcases h : Common.fwdLookup E (e x) with _ | y
+  | forward x =>
+    simp only [mapQ, Common.lazyRandomPermutation, StateT.run_mk, fwdLookup_logMap]
+    rcases h : Common.forwardLookup E (e x) with _ | y
     · simp only [Option.map_none, Functor.map_map]
       have hl : (logMap e.symm E).map Prod.snd = (E.map Prod.snd).map e.symm := by
         simp [logMap, Function.comp_def]
@@ -704,9 +704,9 @@ theorem lazyPerm_relabel (e : S₁ ≃ S₂) (q : Common.PermQuery S₁) (E : Co
       rw [Functor.map_map]
       simp [logMap]
     · simp
-  | inv y =>
-    simp only [mapQ, Common.lazyPerm, StateT.run_mk, invLookup_logMap]
-    rcases h : Common.invLookup E (e y) with _ | x
+  | inverse y =>
+    simp only [mapQ, Common.lazyRandomPermutation, StateT.run_mk, invLookup_logMap]
+    rcases h : Common.inverseLookup E (e y) with _ | x
     · simp only [Option.map_none, Functor.map_map]
       have hl : (logMap e.symm E).map Prod.fst = (E.map Prod.fst).map e.symm := by
         simp [logMap, Function.comp_def]
@@ -770,14 +770,14 @@ theorem ofRpm_zero : KState.ofRpm Common.KState.zero = Vector.replicate 25 0 := 
 /-! ## The model on lanes and on bytes -/
 
 /-- The edges of a byte log, read on lanes. -/
-abbrev projLog : Common.PermLog Common.KState → Common.PermLog KState := logMap stateEquiv.symm
+abbrev projLog : Common.PermutationEdges Common.KState → Common.PermutationEdges KeccakState := logMap stateEquiv.symm
 
 /-- A forward query on bytes is the forward query on lanes, read on bytes. -/
 theorem fwd_rel (x : Common.KState) :
-    StRel projLog (Common.lazyPerm (.fwd x))
-      (KState.toRpm <$> Common.lazyPerm (S := KState) (.fwd (KState.ofRpm x))) := by
+    StRel projLog (Common.lazyRandomPermutation (.forward x))
+      (KState.toRpm <$> Common.lazyRandomPermutation (S := KeccakState) (.forward (KState.ofRpm x))) := by
   intro s
-  have h := (lazyPerm_relabel stateEquiv (.fwd (KState.ofRpm x)) s).map (Prod.map KState.toRpm id)
+  have h := (lazyPerm_relabel stateEquiv (.forward (KState.ofRpm x)) s).map (Prod.map KState.toRpm id)
   simp only [mapQ, stateEquiv_apply, Functor.map_map] at h
   rw [toRpm_ofRpm] at h
   have e : (fun a ↦ Prod.map KState.toRpm id (Prod.map (⇑stateEquiv.symm)
@@ -795,7 +795,7 @@ theorem toBytes_eq_toRpm (d : Digest) : d.toBytes = Digest.toRpm d := by
   rw [toList_digestToRpm]
   simp [Digest.toBytes, digestBytes, lanesBytes]
 
-theorem toBytes_ofRpm (d : Common.KDigest) : (Digest.ofRpm d).toBytes = d := by
+theorem toBytes_ofRpm (d : Common.DigestBytes) : (Digest.ofRpm d).toBytes = d := by
   rw [toBytes_eq_toRpm, digestToRpm_ofRpm]
 
 end LeanVM.Rpm
@@ -814,17 +814,17 @@ def relabel : QueryImpl KSpecH (OracleComp KSpecB)
 
 /-- The lanes' lazily sampled permutation, through the bytes. -/
 theorem lazyPerm_eq_lanePerm :
-    (fun x ↦ Common.lazyPerm (.fwd x) : LeanVM.Semantics.KState →
-        StateT (PermLog LeanVM.Semantics.KState) ProbComp LeanVM.Semantics.KState) =
-      lanePerm (fun x ↦ KState.toRpm <$> Common.lazyPerm (S := LeanVM.Semantics.KState)
-        (.fwd (KState.ofRpm x))) := by
+    (fun x ↦ Common.lazyRandomPermutation (.forward x) : LeanVM.Semantics.KeccakState →
+        StateT (PermutationEdges LeanVM.Semantics.KeccakState) ProbComp LeanVM.Semantics.KeccakState) =
+      lanePerm (fun x ↦ KState.toRpm <$> Common.lazyRandomPermutation (S := LeanVM.Semantics.KeccakState)
+        (.forward (KState.ofRpm x))) := by
   funext s
   simp only [lanePerm, Functor.map_map]
   rw [ofRpm_toRpm]
   simp only [ofRpm_toRpm, id_map']
 
 /-- Each query of the model on lanes is its query on bytes, the edges read on lanes. -/
-theorem relabel_step (t : KSpecH.Domain) (s : PermLog KState) :
+theorem relabel_step (t : KSpecH.Domain) (s : PermutationEdges KState) :
     Prod.map id projLog <$> ((realImpl keccakPadding KState.zero ∘ₛ relabel) t).run s =ᵈ
       (kImplH t).run (projLog s) := by
   rcases t with n | m | q
@@ -860,23 +860,23 @@ on bytes at most the weight of the query on lanes it reads. -/
 theorem isWeightBound_relabel' (w : KSpecH.Domain → ℕ) (w' : KSpecB.Domain → ℕ)
     (h0 : ∀ n, w' (.inl n) ≤ w (.inl n)) (h1 : ∀ m, w' (.inr (.inl m)) ≤ w (.inr (.inl m)))
     (h2 : ∀ q, w' (.inr (.inr (mapQ stateEquiv q))) ≤ w (.inr (.inr q))) {α : Type}
-    {G : OracleComp KSpecH α} {Q : ℕ} (h : IsWeightBound G w Q) :
-    IsWeightBound (simulateQ relabel G) w' Q := by
+    {G : OracleComp KSpecH α} {Q : ℕ} (h : QueryCostAtMost G w Q) :
+    QueryCostAtMost (simulateQ relabel G) w' Q := by
   induction G using OracleComp.inductionOn generalizing Q with
   | pure a => trivial
   | query_bind t k ih =>
     rw [isWeightBound_query_bind_iff] at h
     rw [simulateQ_query_bind]
     rcases t with n | m | q
-    · change IsWeightBound (liftM (KSpecB.query (.inl n)) >>= fun u ↦ simulateQ relabel (k u))
+    · change QueryCostAtMost (liftM (KSpecB.query (.inl n)) >>= fun u ↦ simulateQ relabel (k u))
         w' Q
       exact (isWeightBound_query_bind_iff _ _ _ _).mpr
         ⟨(h0 n).trans h.1, fun u ↦ (ih u (h.2 u)).mono (by have := h0 n; omega)⟩
-    · change IsWeightBound (liftM (KSpecB.query (.inr (.inl m))) >>= fun u ↦
+    · change QueryCostAtMost (liftM (KSpecB.query (.inr (.inl m))) >>= fun u ↦
         simulateQ relabel (k u)) w' Q
       exact (isWeightBound_query_bind_iff _ _ _ _).mpr
         ⟨(h1 m).trans h.1, fun u ↦ (ih u (h.2 u)).mono (by have := h1 m; omega)⟩
-    · change IsWeightBound ((KState.ofRpm <$>
+    · change QueryCostAtMost ((KState.ofRpm <$>
         liftM (KSpecB.query (.inr (.inr (mapQ stateEquiv q))))) >>= fun u ↦
           simulateQ relabel (k u)) w' Q
       rw [bind_map_left]
@@ -885,7 +885,7 @@ theorem isWeightBound_relabel' (w : KSpecH.Domain → ℕ) (w' : KSpecB.Domain �
 
 /-- **A game on bytes makes the permutation calls of the game on lanes.** -/
 theorem isWeightBound_relabel {α : Type} {G : OracleComp KSpecH α} {Q : ℕ}
-    (h : IsWeightBound G permCallsH Q) : IsWeightBound (simulateQ relabel G) permCallsB Q :=
+    (h : QueryCostAtMost G permCallsH Q) : QueryCostAtMost (simulateQ relabel G) permCallsB Q :=
   isWeightBound_relabel' permCallsH permCallsB (fun _ ↦ le_rfl) (fun _ ↦ le_rfl)
     (fun q ↦ by cases q <;> exact le_rfl) h
 
@@ -903,7 +903,7 @@ def relabelAdv {X β : Type} (A : X → OracleComp KSpecH β) : X → OracleComp
 def unrelabelAdv {X β : Type} (A : X → OracleComp KSpecB β) : X → OracleComp KSpecH β :=
   fun x ↦ simulateQ unrelabel (A x)
 
-theorem mapQ_mapQ_symm (q : PermQuery KState) : mapQ stateEquiv (mapQ stateEquiv.symm q) = q := by
+theorem mapQ_mapQ_symm (q : PermutationQuery KState) : mapQ stateEquiv (mapQ stateEquiv.symm q) = q := by
   cases q <;> simp [mapQ, toRpm_ofRpm]
 
 /-- Reading on lanes, then on bytes, changes nothing. -/
@@ -928,7 +928,7 @@ theorem relabelAdv_unrelabelAdv {X β : Type} (A : X → OracleComp KSpecB β) :
 
 /-- **A game on lanes weighs what it weighs on bytes**, in permutation calls. -/
 theorem isWeightBound_relabel_iff {α : Type} (G : OracleComp KSpecH α) (Q : ℕ) :
-    IsWeightBound (simulateQ relabel G) permCallsB Q ↔ IsWeightBound G permCallsH Q := by
+    QueryCostAtMost (simulateQ relabel G) permCallsB Q ↔ QueryCostAtMost G permCallsH Q := by
   refine ⟨fun h ↦ ?_, isWeightBound_relabel⟩
   induction G using OracleComp.inductionOn generalizing Q with
   | pure a => trivial
@@ -936,15 +936,15 @@ theorem isWeightBound_relabel_iff {α : Type} (G : OracleComp KSpecH α) (Q : �
     rw [simulateQ_query_bind] at h
     rw [isWeightBound_query_bind_iff]
     rcases t with n | m | q
-    · change IsWeightBound (liftM (KSpecB.query (.inl n)) >>= fun u ↦ simulateQ relabel (k u))
+    · change QueryCostAtMost (liftM (KSpecB.query (.inl n)) >>= fun u ↦ simulateQ relabel (k u))
         permCallsB Q at h
       rw [isWeightBound_query_bind_iff] at h
       exact ⟨h.1, fun u ↦ ih u _ (h.2 u)⟩
-    · change IsWeightBound (liftM (KSpecB.query (.inr (.inl m))) >>= fun u ↦
+    · change QueryCostAtMost (liftM (KSpecB.query (.inr (.inl m))) >>= fun u ↦
         simulateQ relabel (k u)) permCallsB Q at h
       rw [isWeightBound_query_bind_iff] at h
       exact ⟨h.1, fun u ↦ ih u _ (h.2 u)⟩
-    · change IsWeightBound ((KState.ofRpm <$>
+    · change QueryCostAtMost ((KState.ofRpm <$>
         liftM (KSpecB.query (.inr (.inr (mapQ stateEquiv q))))) >>= fun u ↦
           simulateQ relabel (k u)) permCallsB Q at h
       rw [bind_map_left, isWeightBound_query_bind_iff] at h

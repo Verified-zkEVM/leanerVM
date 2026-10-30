@@ -5,7 +5,7 @@
   memory, for the budget: its frame, its buffers, its callees' bounds (its column loops' and
   columns' honest ones, the others' static ones).
 
-  `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.Witness.Opens`), as ported here.
+  `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.MatrixWitness.Opens`), as ported here.
 -/
 
 module

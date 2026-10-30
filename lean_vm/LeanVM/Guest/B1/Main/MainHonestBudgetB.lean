@@ -70,7 +70,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : 
 /-- **`main`'s non-static callees on the honest run within their bounds, by trees of honest
 shape.** -/
 theorem mainGoalsTB_honest {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop} {Bv : ℕ → ℕ}
-    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w) (hl : Limits s w)
+    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : Limits s w)
     (hrf : Lift.RunsFit fs cert) (hS : MainStatics fs SB SK)
     (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
     MainGoalsTB fs cert fp seed s w (mainPredsH s w (hDvNH w) Pvs) (mainBsH fs SB SK Bv s w) :=
@@ -80,7 +80,7 @@ theorem mainGoalsTB_honest {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop
     mainGoalAgTB fs fp cert SB SK hS.l25 hS.l26 hS.l27 hS.bs hbl hr hl,
     mainGoalL5TB fs cert SB hS.main.st hbl hr hl hV (childListGoalsTB_honest cert hl hS.ls)⟩
 
-/-- **`main`'s completeness on the honest run within its words**: for `NodeRel` within `Limits`
+/-- **`main`'s completeness on the honest run within its words**: for `NodeRelation` within `Limits`
 and a bytecode of `2^23` words, from the signature schemes' completeness (B1-e), the frame runs'
 certificate facts, the static bounds (`MainStatics`) and child `c`'s `verify_sub` within `Bv c` by a
 tree satisfying `Pvs c` (B1-d): a size `n ≤ Bmain` and a layout `L` within `[fp, fp + n)`, above
@@ -89,7 +89,7 @@ and the statement's digest at words `0`, `1`, `main` holds at `fp` by its node a
 values, its walk's calls and buffers, its callees' trees satisfying `mainPredsH` and, the
 non-static ones, within their bounds. -/
 theorem main_honest_budgetB {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop} {Bv : ℕ → ℕ}
-    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w) (hl : Limits s w)
+    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : Limits s w)
     (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hS : MainStatics fs SB SK) (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :

@@ -40,8 +40,8 @@ open scoped ENNReal
 @[expose] public section
 
 /-- The statement's verifier, on a statement and a proof. -/
-abbrev stmtVerifier : LeanVM.Statement × LeanVM.Protocol.Compile.Proof → OracleComp LeanVM.HashSpec Bool :=
-  fun z ↦ LeanVM.verifier LeanVM.queryH LeanVM.queryF z.1.1 z.1.2 z.2
+abbrev stmtVerifier : LeanVM.ProgramAndInput × LeanVM.Protocol.Compile.Proof → OracleComp LeanVM.KeccakCalls Bool :=
+  fun z ↦ LeanVM.verifier LeanVM.callKeccak256 LeanVM.callKeccakF1600 z.1.1 z.1.2 z.2
 
 /-- **The statement's experiment, without the adversary's cache, is the random-oracle theorem's
 experiment.** -/
@@ -53,7 +53,7 @@ theorem experiment_map_romExperiment (A : LeanVM.Adversary) :
   simp [map_eq_bind_pure_comp]
 
 /-- **The honest prover of the statement**: the proof of `honestComp`, with its statement. -/
-noncomputable def honestProverRom (prog : Program) (input : PublicInput) (t : Trace prog)
+noncomputable def honestProverRom (prog : Program) (input : PublicInput) (t : Execution prog)
     (ρ fuel : ℕ) : LeanVM.Adversary :=
   (fun proof ↦ ((prog, input), proof)) <$> honestComp prog input t ρ fuel
 
@@ -71,12 +71,12 @@ theorem completenessError_eq (fuel : ℕ) :
 is at most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, and a fuel of at most `2^64`
 nonces: the verifier rejects the honest prover's proof with probability at most
 `completenessError fuel`. -/
-theorem completeness_le {prog : Program} {input : PublicInput} {t : Trace prog}
+theorem completeness_le {prog : Program} {input : PublicInput} {t : Execution prog}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← LeanVM.experiment (honestProverRom prog input t ρ fuel)}[z.rejected] ≤
       LeanVM.completenessError fuel := by
-  have hV : (fun π ↦ LeanVM.verifier LeanVM.queryH LeanVM.queryF prog input π) =
+  have hV : (fun π ↦ LeanVM.verifier LeanVM.callKeccak256 LeanVM.callKeccakF1600 prog input π) =
       verifierComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
         (leanVmProgram (bytecodeWords prog) (publicDigest input)) :=
     funext fun π ↦ (verifierComp_leanVm _ _ π).symm

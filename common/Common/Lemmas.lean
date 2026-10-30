@@ -5,7 +5,7 @@ import Common.Defs
 /-!
 # Lemmas for games built on the transfer
 
-Weight bounds (`IsWeightBound`) through maps, smaller weights and stateful simulations
+Weight bounds (`QueryCostAtMost`) through maps, smaller weights and stateful simulations
 (`isWeightBound_run_simulateQ`), a byte as a residue (`uInt8EquivFin`), and the number of
 permutation calls of a Keccak-256 hash (`keccakPad_length`).
 -/
@@ -21,16 +21,16 @@ section Weight
 variable {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'} {σ α β : Type}
 
 theorem isWeightBound_pure (a : α) (w : ι → ℕ) (Q : ℕ) :
-    IsWeightBound (pure a : OracleComp spec α) w Q := trivial
+    QueryCostAtMost (pure a : OracleComp spec α) w Q := trivial
 
 theorem isWeightBound_map (f : α → β) {oa : OracleComp spec α} {w : ι → ℕ} {Q : ℕ}
-    (h : IsWeightBound oa w Q) : IsWeightBound (f <$> oa) w Q := by
+    (h : QueryCostAtMost oa w Q) : QueryCostAtMost (f <$> oa) w Q := by
   have := h.bind (fun a ↦ isWeightBound_pure (f a) w 0)
   rwa [Nat.add_zero, bind_pure_comp] at this
 
 /-- A smaller weight keeps a bound. -/
-theorem IsWeightBound.mono_weight {oa : OracleComp spec α} {w w' : ι → ℕ} {Q : ℕ}
-    (h : IsWeightBound oa w' Q) (hw : ∀ t, w t ≤ w' t) : IsWeightBound oa w Q := by
+theorem QueryCostAtMost.mono_weight {oa : OracleComp spec α} {w w' : ι → ℕ} {Q : ℕ}
+    (h : QueryCostAtMost oa w' Q) (hw : ∀ t, w t ≤ w' t) : QueryCostAtMost oa w Q := by
   induction oa using OracleComp.inductionOn generalizing Q with
   | pure a => trivial
   | query_bind t k ih =>
@@ -40,9 +40,9 @@ theorem IsWeightBound.mono_weight {oa : OracleComp spec α} {w w' : ι → ℕ} 
 /-- **Weight bounds through a stateful simulation**: if every step of `impl` from every state
 weighs at most the query's weight, a simulated run weighs at most the computation's bound. -/
 theorem isWeightBound_run_simulateQ (impl : QueryImpl spec (StateT σ (OracleComp spec')))
-    (w : ι → ℕ) (w' : ι' → ℕ) (hstep : ∀ t s, IsWeightBound ((impl t).run s) w' (w t))
-    {oa : OracleComp spec α} {Q : ℕ} (h : IsWeightBound oa w Q) (s : σ) :
-    IsWeightBound ((simulateQ impl oa).run s) w' Q := by
+    (w : ι → ℕ) (w' : ι' → ℕ) (hstep : ∀ t s, QueryCostAtMost ((impl t).run s) w' (w t))
+    {oa : OracleComp spec α} {Q : ℕ} (h : QueryCostAtMost oa w Q) (s : σ) :
+    QueryCostAtMost ((simulateQ impl oa).run s) w' Q := by
   induction oa using OracleComp.inductionOn generalizing Q s with
   | pure a => trivial
   | query_bind t k ih =>
@@ -54,14 +54,14 @@ theorem isWeightBound_run_simulateQ (impl : QueryImpl spec (StateT σ (OracleCom
 /-- **Coins weigh nothing**: a lifted coin computation weighs nothing when coins do. -/
 theorem isWeightBound_liftM_probComp {ι : Type} {hs : OracleSpec ι}
     (w : (unifSpec + hs).Domain → ℕ) (hw : ∀ n, w (.inl n) = 0) (p : ProbComp α) :
-    IsWeightBound (liftM p : OracleComp (unifSpec + hs) α) w 0 := by
-  change IsWeightBound (OracleComp.liftComp p (unifSpec + hs)) w 0
+    QueryCostAtMost (liftM p : OracleComp (unifSpec + hs) α) w 0 := by
+  change QueryCostAtMost (OracleComp.liftComp p (unifSpec + hs)) w 0
   induction p using OracleComp.inductionOn with
   | pure a => trivial
   | query_bind n k ih =>
     rw [OracleComp.liftComp_bind, OracleComp.liftComp_query]
     simp only [OracleQuery.cont_query, OracleQuery.input_query, id_map]
-    change IsWeightBound (liftM ((unifSpec + hs).query (.inl n)) >>= fun u ↦
+    change QueryCostAtMost (liftM ((unifSpec + hs).query (.inl n)) >>= fun u ↦
       OracleComp.liftComp (k u) (unifSpec + hs)) w 0
     exact (isWeightBound_query_bind_iff _ _ _ _).mpr ⟨(hw n).le, fun u ↦ by
       rw [hw n]; exact ih u⟩

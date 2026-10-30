@@ -60,12 +60,12 @@ theorem constraintSoundness {prog : Program} {input : PublicInput}
     {w : EnsembleWitness (leanIsaEnsemble prog)} (h : SatisfiedBy prog input w) :
     ∃ t, AssignmentRepresents w t ∧ ValidExecution prog input t := by
   obtain ⟨f, hf, n, hn, hsteps⟩ := exists_walk h
-  let t : Trace prog := ⟨(imageOf w.data).1, (imageOf w.data).2, n⟩
-  have hv : run prog t.image t.steps Regs.initial = some (Regs.final prog) := hn
+  let t : Execution prog := ⟨(imageOf w.data).1, (imageOf w.data).2, n⟩
+  have hv : run prog t.memory t.steps Registers.initial = some (Registers.final prog) := hn
   refine ⟨t, ⟨rfl, fun _ _ ↦ rfl, ?_⟩,
     ⟨h.caps.minLogMem_le, h.caps.le_maxLogMem, h.word0_eq, h.word1_eq⟩, hn⟩
   intro k hk
-  have hlen : t.regs.length = n + 1 := Trace.regs_length hv
+  have hlen : t.regs.length = n + 1 := Execution.regs_length hv
   have e : ∀ j (hj : j < t.regs.length), t.regs[j] = stateAt t j := fun j hj ↦ by
     rw [List.getElem_of_eq (regs_eq_map hv) hj]
     simp

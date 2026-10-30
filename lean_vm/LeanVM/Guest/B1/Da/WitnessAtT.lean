@@ -4,7 +4,7 @@
   `da_verify` placed on a LeanDA witness, by a tree of its honest shape (`dvNH`) at the witness's
   row count and padded log.
 
-  The witness and `Da.Witness.Opens` are Benedikt Wagner's LeanDA formalization, as ported here.
+  The witness and `Da.MatrixWitness.Opens` are Benedikt Wagner's LeanDA formalization, as ported here.
 -/
 
 module
@@ -30,7 +30,7 @@ open LeanVM.Guest.B1 (CompleteAtDT Returns)
 
 /-- **`da_verify` is complete, placed, on a witness, by a tree of its honest shape.** -/
 theorem da_verify_completeAtT_w (fs : String → ℕ) (cert : String → V → ℕ)
-    (hcv : cert "da_vector_cell" (.n 1) + 256 ≤ fs "da_vector_cell") {w : LeanVM.Da.Witness}
+    (hcv : cert "da_vector_cell" (.n 1) + 256 ≤ fs "da_vector_cell") {w : LeanVM.Da.MatrixWitness}
     {root vd : Digest} (hw : w.Opens root vd) (s : ℕ) :
     CompleteAtDT fs cert 16 "da_verify" [(s + wLog w, [gen ^ 2 ^ wLog w])] [gen ^ s]
       (Returns (digestCells root ++ digestCells vd)) (dvNH w.rows.length (wLog w)) := by
@@ -42,7 +42,7 @@ theorem da_verify_completeAtT_w (fs : String → ℕ) (cert : String → V → �
 /-- **`da_verify` is complete, placed, on a witness, by a tree of its honest shape**, when the
 certificate's frame runs fit. -/
 theorem da_verify_completeAtT (fs : String → ℕ) (cert : String → V → ℕ)
-    (hrf : Lift.RunsFit fs cert) {w : LeanVM.Da.Witness} {root vd : Digest} (hw : w.Opens root vd)
+    (hrf : Lift.RunsFit fs cert) {w : LeanVM.Da.MatrixWitness} {root vd : Digest} (hw : w.Opens root vd)
     (s : ℕ) :
     CompleteAtDT fs cert 16 "da_verify" [(s + wLog w, [gen ^ 2 ^ wLog w])] [gen ^ s]
       (Returns (digestCells root ++ digestCells vd)) (dvNH w.rows.length (wLog w)) :=

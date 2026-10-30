@@ -67,7 +67,7 @@ theorem VsFront.capG_eq {bytecode : List K} {C : CallRel} {rd : Reader} {σ : Va
 abbrev vsTau (rowsN : List ℕ) : ℕ := (Tables.tableHeightsOf rowsN).getD 5 0
 
 /-- The claimed fixed polynomial value at the bus's bytecode point. -/
-def vsFixed (σ : Val) (point : List E) : FixedClaims :=
+def vsFixed (σ : Val) (point : List E) : BytecodeClaim :=
   ⟨point.take 19 ++ vsAlphas σ, σ (.n 856)⟩
 
 /-- **The output lanes**: their claims are on `KECCAK`'s output columns at one point, the table

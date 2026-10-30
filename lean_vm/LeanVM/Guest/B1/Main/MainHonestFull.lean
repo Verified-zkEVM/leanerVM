@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Main.MainGoalsHL5T
 /-!
 # `main` on an honest run, its tree exposed
 
-`main_honest_fullT`: for `NodeRel` within `Limits` and a bytecode of `2^23` words, from the
+`main_honest_fullT`: for `NodeRelation` within `Limits` and a bytecode of `2^23` words, from the
 signature schemes' completeness (B1-e), the frame runs' certificate facts and each child's
 `verify_sub` by a tree satisfying `Pvs c` (`VerifySubGoalsT … Pvs`, B1-d): a layout `L` within
 `[fp, fp + n)`, above `main`'s frame, pairwise disjoint, containing `main`'s honest words; on every
@@ -39,7 +39,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : 
 `da_verify`'s and `aggregate_claims`' trees satisfying `Px`, `Ps`, `Pd`, `Pa`, its children's
 loop's iterations `L5Hinted w Pxs Pss Pvs` (each child's claim lists' digests' and `verify_sub`'s
 trees satisfying `Pxs c`, `Pss c`, `Pvs c`). -/
-theorem main_honest_fullT (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w)
+theorem main_honest_fullT (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w)
     (hl : Limits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     {Px Ps Pd Pa : Tree → Prop} {Pxs Pss Pvs : ℕ → Tree → Prop}
@@ -71,7 +71,7 @@ theorem main_honest_fullT (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecod
 
 /-- **`main`'s completeness on the honest run, its tree exposed**, from `VerifySubGoals`: no
 predicate on its callees' trees but the children's loop's own shape. -/
-theorem main_honest_fullT_true (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w)
+theorem main_honest_fullT_true (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w)
     (hl : Limits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hV : VerifySubGoals fs cert fp seed s w) :

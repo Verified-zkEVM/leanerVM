@@ -75,7 +75,7 @@ value's bytes, low first. -/
 
 /- `b` is held by the raw signature, then by both children, which take duplicate slots after the
 declared `a, b, c`; `d`, undeclared, takes one too. -/
-#guard let r := plan ["a", "b", "c"] ["b"] [["a", "b"], ["b", "c", "d"]]
-  (r.dups, r.raw, r.children) == (["b", "b", "d"], [1], [[0, 3], [4, 2, 5]])
+#guard let r := coveragePlan ["a", "b", "c"] ["b"] [["a", "b"], ["b", "c", "d"]]
+  (r.duplicates, r.directSlots, r.childSlots) == (["b", "b", "d"], [1], [[0, 3], [4, 2, 5]])
 
 end LeanVMTests.Guest.Hints

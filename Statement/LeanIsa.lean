@@ -62,15 +62,15 @@ open LeanVM.Parameters
 
 open Classical in
 /-- The index of an address: `some i` when `a = g^i` with `i < 2^κ`, otherwise `none`. -/
-noncomputable def gLog? (κ : ℕ) (a : K) : Option (Fin (2 ^ κ)) :=
+noncomputable def addressIndex? (κ : ℕ) (a : K) : Option (Fin (2 ^ κ)) :=
   if h : ∃ i : Fin (2 ^ κ), a = gpow i then some (Classical.choose h) else none
 
 /-- A memory of `2^κ` words, by index. -/
-abbrev MemImage (κ : ℕ) : Type := Fin (2 ^ κ) → E
+abbrev MemoryImage (κ : ℕ) : Type := Fin (2 ^ κ) → E
 
 /-- The word at address `a`, if `a` is an address. -/
-noncomputable def MemImage.read {κ : ℕ} (L : MemImage κ) (a : K) : Option E :=
-  (gLog? κ a).map L
+noncomputable def MemoryImage.read {κ : ℕ} (L : MemoryImage κ) (a : K) : Option E :=
+  (addressIndex? κ a).map L
 
 /-- The public input: 256 bits, as four `K` lanes. -/
 structure PublicInput where
@@ -110,7 +110,7 @@ inductive Instr
   /-- One Keccak-f[1600] permutation of a state held in thirteen cells: the cells
   `[o_m₀], …, [o_m₃]`, `[g^k · o_tail]` (`k < 4`), `[o_b8]`, `[g^k · o_cap]` (`k < 4`), read in the
   layout `inOdd`, permute to the cells `[g^k · o_out]` (`k < 13`), written in the layout `outOdd`
-  (`KeccakCells`). -/
+  (`KeccakCellsRelation`). -/
   | keccak (om : Fin 4 → K) (otail ob8 ocap oout : K) (inOdd outOdd : Bool)
   deriving DecidableEq
 
@@ -131,7 +131,7 @@ structure Program where
 
 /-- The instruction at address `pc`. -/
 noncomputable def Program.fetch (prog : Program) (pc : K) : Option Instr :=
-  (gLog? prog.logSize pc).map prog.code
+  (addressIndex? prog.logSize pc).map prog.code
 
 /-! ## `KECCAK`
 
@@ -156,7 +156,7 @@ def cellLanes (odd : Bool) (c : ℕ) : Option ℕ × Option ℕ :=
 
 /-- The state thirteen cells hold in the layout `odd`: lane `l` is the limb of the cell that holds
 it (`state_of_cells`, `crates/leanvm_core/src/keccak.rs:82-94`). -/
-def stateOfCells (cells : Fin 13 → E) (odd : Bool) : KState :=
+def stateOfCells (cells : Fin 13 → E) (odd : Bool) : KeccakState :=
   (List.finRange 13).foldl (fun s (c : Fin 13) ↦
     let (lo, hi) := cellLanes odd c.val
     let s := match lo with
@@ -168,7 +168,7 @@ def stateOfCells (cells : Fin 13 → E) (odd : Bool) : KState :=
 
 /-- The thirteen cells holding a state in the layout `odd`, a limb holding no lane zero, the `y²`
 limb zero (`cells_of_state`, `crates/leanvm_core/src/keccak.rs:96-107`). -/
-def cellsOfState (s : KState) (odd : Bool) (c : Fin 13) : E :=
+def cellsOfState (s : KeccakState) (odd : Bool) (c : Fin 13) : E :=
   let limb := fun (l : Option ℕ) ↦ match l with
     | some l => K.ofLane (Keccak.lane s l)
     | none => 0
@@ -177,14 +177,14 @@ def cellsOfState (s : KState) (odd : Bool) (c : Fin 13) : E :=
 /-- What `KECCAK` checks: the thirteen cells read have no `y²` term, and the thirteen written are
 the cells, in the layout `outOdd`, of Keccak-f[1600] of the state the cells read hold in the
 layout `inOdd`. -/
-def KeccakCells (input : Fin 13 → E) (inOdd : Bool) (output : Fin 13 → E) (outOdd : Bool) :
+def KeccakCellsRelation (input : Fin 13 → E) (inOdd : Bool) (output : Fin 13 → E) (outOdd : Bool) :
     Prop :=
   (∀ c, IsCanonical128 (input c)) ∧
-    ∀ c, output c = cellsOfState (keccakF (stateOfCells input inOdd)) outOdd c
+    ∀ c, output c = cellsOfState (keccakF1600 (stateOfCells input inOdd)) outOdd c
 
 instance {input : Fin 13 → E} {inOdd : Bool} {output : Fin 13 → E} {outOdd : Bool} :
-    Decidable (KeccakCells input inOdd output outOdd) := by
-  unfold KeccakCells; infer_instance
+    Decidable (KeccakCellsRelation input inOdd output outOdd) := by
+  unfold KeccakCellsRelation; infer_instance
 
 /-- The address of read cell `c` relative to the frame: `o_m₀, …, o_m₃`, then `g^k · o_tail`
 (`k < 4`), `o_b8`, then `g^k · o_cap` (`k < 4`) (`_flushes_keccak`'s `address`,
@@ -206,7 +206,7 @@ def readCells (read : K → Option E) (fp : K) (offset : Fin 13 → K) : Option 
 /-! ## One step -/
 
 /-- The registers: the program counter and the frame pointer. -/
-structure Regs (F : Type) where
+structure Registers (F : Type) where
   pc : F
   fp : F
 
@@ -214,21 +214,21 @@ structure Regs (F : Type) where
 second field under `h ▸` for the first, whose `Eq.rec` makes the kernel compare two register
 values by definitional unfolding instead of evaluation, and `g * 1 = g ^ 1` then never
 decides. -/
-instance {F : Type} [DecidableEq F] : DecidableEq (Regs F) := fun x y ↦
+instance {F : Type} [DecidableEq F] : DecidableEq (Registers F) := fun x y ↦
   decidable_of_iff (x.pc = y.pc ∧ x.fp = y.fp) (by cases x; cases y; simp)
 
 /-- The next instruction, same frame: `(g · pc, fp)`. -/
-def Regs.next (r : Regs K) : Regs K := ⟨g * r.pc, r.fp⟩
+def Registers.next (r : Registers K) : Registers K := ⟨g * r.pc, r.fp⟩
 
 /-- What a `DEREF` stores: the local word `[o₃]`, the return address `g² · pc`, or `fp`. -/
-def derefSource : DerefMode → Regs K → E → E
+def derefSource : DerefMode → Registers K → E → E
   | .cell, _, v3 => v3
   | .pc, r, _ => ofK (g ^ 2 * r.pc)
   | .fp, r, _ => ofK r.fp
 
 /-- Execute an instruction with the memory reader `read`: read its words, check its relation, and
 return the next registers; `none` if a read or a check fails. -/
-def executeWith (read : K → Option E) (r : Regs K) : Instr → Option (Regs K)
+def executeWith (read : K → Option E) (r : Registers K) : Instr → Option (Registers K)
   | .xor oA oB oC => do
     let vA ← read (r.fp * oA)
     let vB ← read (r.fp * oB)
@@ -261,16 +261,17 @@ def executeWith (read : K → Option E) (r : Regs K) : Instr → Option (Regs K)
   | .keccak om otail ob8 ocap oout inOdd outOdd => do
     let input ← readCells read r.fp (keccakInOffset om otail ob8 ocap)
     let output ← readCells read r.fp fun c ↦ g ^ c.val * oout
-    guard (KeccakCells input inOdd output outOdd)
+    guard (KeccakCellsRelation input inOdd output outOdd)
     pure r.next
 
 /-- Execute an instruction on the memory `L`. -/
-noncomputable def execute {κ : ℕ} (L : MemImage κ) (r : Regs K) : Instr → Option (Regs K) :=
+noncomputable def execute {κ : ℕ} (L : MemoryImage κ) (r : Registers K) :
+    Instr → Option (Registers K) :=
   executeWith L.read r
 
 /-- One step: fetch the instruction at `pc` and execute it. -/
-noncomputable def step {κ : ℕ} (prog : Program) (L : MemImage κ) (r : Regs K) :
-    Option (Regs K) :=
+noncomputable def step {κ : ℕ} (prog : Program) (L : MemoryImage κ) (r : Registers K) :
+    Option (Registers K) :=
   prog.fetch r.pc >>= execute L r
 
 /-! ## Valid executions -/
@@ -288,10 +289,10 @@ def Program.pcFinal (prog : Program) : K := gpow (2 ^ prog.logSize - 1)
 abbrev fpFinal : K := 1
 
 /-- The initial state `(pcInitial, fpInitial)`. -/
-def Regs.initial : Regs K := ⟨pcInitial, fpInitial⟩
+def Registers.initial : Registers K := ⟨pcInitial, fpInitial⟩
 
 /-- The final state `(pcFinal, fpFinal)`, where the machine halts. -/
-def Regs.final (prog : Program) : Regs K := ⟨prog.pcFinal, fpFinal⟩
+def Registers.final (prog : Program) : Registers K := ⟨prog.pcFinal, fpFinal⟩
 
 /-- `n` steps from `r`, halting in the final state: `none` if a step fails or the machine halts
 first. The machine halts when both registers are the final state's, checked before each step, as
@@ -301,41 +302,44 @@ another frame executes like any other slot, and a step that falls through it, to
 (`doc/leanvm/body/02-vm-specification.tex`, §2) executes an instruction before it checks for the
 final state; the two differ only at `logSize = 0`, where the initial and final states coincide
 and this `run` and the Rust's accept a run of zero steps. -/
-noncomputable def run {κ : ℕ} (prog : Program) (L : MemImage κ) : ℕ → Regs K → Option (Regs K)
+noncomputable def run {κ : ℕ} (prog : Program) (L : MemoryImage κ) :
+    ℕ → Registers K → Option (Registers K)
   | 0, r => some r
-  | n + 1, r => if r = Regs.final prog then none else step prog L r >>= run prog L n
+  | n + 1, r => if r = Registers.final prog then none else step prog L r >>= run prog L n
 
-/-- An execution: a memory of `2^κ` words and a number of steps. -/
-structure Trace (prog : Program) where
-  κ : ℕ
-  image : MemImage κ
+/-- An execution: a memory of `2^logMemorySize` words (`2^κ` in the specification) and a number of
+steps. -/
+structure Execution (prog : Program) where
+  logMemorySize : ℕ
+  memory : MemoryImage logMemorySize
   steps : ℕ
 
 /-- The memory has between `2^16` and `2^32` words and holds the public input in words `0`, `1`. -/
-def HasPublicBoundary {prog : Program} (input : PublicInput) (t : Trace prog) : Prop :=
-  minLogMem ≤ t.κ ∧ t.κ ≤ maxLogMem ∧
-    t.image.read (gpow 0) = some input.word0 ∧ t.image.read (gpow 1) = some input.word1
+def HoldsPublicInput {prog : Program} (input : PublicInput) (t : Execution prog) : Prop :=
+  minLogMem ≤ t.logMemorySize ∧ t.logMemorySize ≤ maxLogMem ∧
+    t.memory.read (gpow 0) = some input.word0 ∧ t.memory.read (gpow 1) = some input.word1
 
 /-- **A valid execution** of `prog` on `input`: the memory holds the public input, and `t.steps`
 steps from the initial state halt in the final state. -/
-def ValidExecution (prog : Program) (input : PublicInput) (t : Trace prog) : Prop :=
-  HasPublicBoundary input t ∧ run prog t.image t.steps Regs.initial = some (Regs.final prog)
+def ValidExecution (prog : Program) (input : PublicInput) (t : Execution prog) : Prop :=
+  HoldsPublicInput input t ∧
+    run prog t.memory t.steps Registers.initial = some (Registers.final prog)
 
 /-! ## Instruction counts -/
 
 /-- The number of instructions of opcode `op` executed in `n` steps from `r`, stepping as `run`
 does; the count stops at a step that fails. -/
-noncomputable def runCount {κ : ℕ} (prog : Program) (L : MemImage κ) (op : Opcode) :
-    ℕ → Regs K → ℕ
+noncomputable def opcodeCountInRun {κ : ℕ} (prog : Program) (L : MemoryImage κ) (op : Opcode) :
+    ℕ → Registers K → ℕ
   | 0, _ => 0
   | n + 1, r =>
     match prog.fetch r.pc, step prog L r with
-    | some ins, some r' => (if ins.opcode = op then 1 else 0) + runCount prog L op n r'
+    | some ins, some r' => (if ins.opcode = op then 1 else 0) + opcodeCountInRun prog L op n r'
     | _, _ => 0
 
 /-- The number of instructions of opcode `op` an execution executes. -/
-noncomputable def Trace.count {prog : Program} (t : Trace prog) (op : Opcode) : ℕ :=
-  runCount prog t.image op t.steps Regs.initial
+noncomputable def Execution.count {prog : Program} (t : Execution prog) (op : Opcode) : ℕ :=
+  opcodeCountInRun prog t.memory op t.steps Registers.initial
 
 end LeanVM.Semantics
 
@@ -422,7 +426,7 @@ inductive OInstr
   /-- `KECCAK`: the thirteen cells `fp[m0], …, fp[m3]`, `fp[tail + k]` (`k < 4`), `fp[b8]`,
   `fp[cap + k]` (`k < 4`), in that order, hold a Keccak state in the layout `inOdd`, and the
   thirteen cells `fp[out + k]` (`k < 13`) hold its Keccak-f[1600] in the layout `outOdd`
-  (`KeccakCells`; `Op::Keccak`, `crates/leanvm_core/src/cpu/isa.rs`). -/
+  (`KeccakCellsRelation`; `Op::Keccak`, `crates/leanvm_core/src/cpu/isa.rs`). -/
   | keccak (m0 m1 m2 m3 tail b8 cap out : ℕ) (inOdd outOdd : Bool)
   deriving DecidableEq
 

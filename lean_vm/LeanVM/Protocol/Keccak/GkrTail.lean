@@ -32,7 +32,7 @@ def inputTail (h : ℕ) (claim : KeccakClaim) (outputs : List ColumnClaim) :
     Prog (List ColumnClaim × List E × List E) :=
   sumcheck claim.value 3 (List.replicate 4 none) >>= fun y ↦
   keccakOpen h claim 0 keccakSegments y.2 >>= fun x ↦
-  Prog.readN kBits >>= fun slices ↦
+  Prog.readScalars kBits >>= fun slices ↦
   Prog.require (multilinearEval claim.mu y.1 * dot x.2.1 slices = x.2.2) >>= fun _ ↦
   pure (outputs, y.1 ++ claim.point.take (h - 4) ++ x.1, slices)
 

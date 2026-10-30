@@ -38,7 +38,7 @@ theorem levelHead_eq (logN index : ℕ) (level : Whir.Level) (rest : List Whir.L
       (foldRoundsT level.fold s []).bind fun p ↦
         (do
           let r ← levelMid (logN - p.1.folds.length) rest
-          Prog.grindP Whir.queryGrindingBits
+          Prog.grindProofOfWork Whir.queryGrindingBits
           pure r).bind fun r ↦
           (levelRest (logN - p.1.folds.length) index level p.2 p.1 r.2).bind fun s' ↦
             Prog.ret (r.1, logN - p.1.folds.length, s') := by
@@ -210,7 +210,7 @@ theorem osLevel_nonfinal_sound {c : OsCfg} {lvl : ℕ} {lv lv' : OsLv} {logN : �
   rw [← hfold] at r1
   have r2 : RunsWith (do
         let r ← levelMid (logN - (ws.folds ++ chs).length) (next :: rest)
-        Prog.grindP Whir.queryGrindingBits
+        Prog.grindProofOfWork Whir.queryGrindingBits
         pure r) (st1.F σ) [ra, rb, y, c0, c2, nonce] [] R
       ([], [(y, [c0, y + c2, c2], fun x ↦ eqEval z x)]) F'
       (R ++ [(d, levelShape lv.logCols next (3 * 2 ^ next.fold))]) := by
@@ -331,7 +331,7 @@ theorem osLevel_final_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {logN : ℕ} {le
   rw [← hfold] at r1
   have r2 : RunsWith (do
         let r ← levelMid (logN - (ws.folds ++ chs).length) []
-        Prog.grindP Whir.queryGrindingBits
+        Prog.grindProofOfWork Whir.queryGrindingBits
         pure r) (st1.F σ) (ms ++ [nonce]) [] R (ms, []) ⟨st2.fsv σ, []⟩ R := by
     rw [hml']; exact RunsTo.withRoots hrun2 R
   have r3 : RunsWith (levelRest (logN - (ws.folds ++ chs).length) lvl level ([] ++ chs)

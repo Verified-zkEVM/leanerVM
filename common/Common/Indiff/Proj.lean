@@ -26,7 +26,7 @@ variable {Dg E C Msg : Type}
 
 /-- The full view's walk makes the queries of `skel`. -/
 theorem map_allWalk (used : List (Dg × E) → Bool) (pre : List (Dg × E)) (s : SpState Dg E C)
-    (A : PermLog (SpState Dg E C)) (bs : List (Dg × E)) :
+    (A : PermutationEdges (SpState Dg E C)) (bs : List (Dg × E)) :
     (fun _ ↦ ()) <$> allWalk (Msg := Msg) P used pre s A bs = skel (C := C) P pre bs := by
   induction bs generalizing pre s A with
   | nil => simp [allWalk, skel]

@@ -297,7 +297,7 @@ def LogLt (x : E) (k : ℕ) : Prop := ∃ e < k, x = gen ^ e
 
 /-- **The range check in the exponent is sound** (`zkDSL.md` §Range checks): the gadget's two
 `DEREF`s make `x` and the back-solved complement `z` addresses `g^e`, `g^e'` of a memory of at
-most `2^32` words (`Statement/LeanIsa.lean`, `MemImage.read`), and its `MUL` pins `x·z = g^(k-1)`; for
+most `2^32` words (`Statement/LeanIsa.lean`, `MemoryImage.read`), and its `MUL` pins `x·z = g^(k-1)`; for
 `1 ≤ k ≤ 2^32` that is `e < k`. -/
 theorem rangeCheck_sound {e e' k : ℕ} (he : e < 2 ^ 32) (he' : e' < 2 ^ 32) (hk : 1 ≤ k)
     (hk' : k ≤ 2 ^ 32) (h : Parameters.gpow e * Parameters.gpow e' = Parameters.gpow (k - 1)) :

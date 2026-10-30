@@ -40,15 +40,15 @@ open scoped ENNReal
 namespace LeanDa
 
 /-- A code-binding adversary's output: a commitment with its proof, and the opened cells. -/
-abbrev CbOut (r : ℕ) (Proof : Type) := (Common.KDigest × Proof) × List (Fin (r * 128) × Cell × Opening)
+abbrev CbOut (r : ℕ) (Proof : Type) := (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)
 
 /-! ## The straight-line verdict -/
 
 section Tail
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
 
 /-- The first opened cell that disagrees with a matrix. -/
 def firstBad (w : Fin (r * 128) → Cell) (l : List (Fin (r * 128) × Cell × Opening)) :
@@ -60,7 +60,7 @@ open Classical in
 verifies and the matrix satisfies the relation, whether it is not a codeword, or else whether the
 first opening that disagrees with it verifies (with a path of the tree's height). -/
 noncomputable def tailH (crs : Crs) (out : CbOut r Proof) (l : Challenges) :
-    OracleComp (unifSpec + roSpec (List UInt8) KDigest) Bool := do
+    OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool := do
   let root ← commitCellsM hH (ext crs ((), out.1.1, l) out.1.2)
   if ps.verify crs ((), out.1.1, l) out.1.2 = true ∧ root = out.1.1 ∧
       membershipCheck l (ext crs ((), out.1.1, l) out.1.2) = true then
@@ -94,15 +94,15 @@ theorem run_tailH_phiG (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Challen
   classical
   rw [← QueryImpl.simulateQ_compose]
   have hp : ∀ {α} (a : α), simulateQ (phiG h ∘ₛ embG) (pure a :
-      OracleComp (unifSpec + roSpec (List UInt8) KDigest) α) = pure a :=
+      OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α) = pure a :=
     fun a ↦ simulateQ_pure _ a
-  have hb : ∀ {α β} (x : OracleComp (unifSpec + roSpec (List UInt8) KDigest) α)
-      (f : α → OracleComp (unifSpec + roSpec (List UInt8) KDigest) β),
+  have hb : ∀ {α β} (x : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α)
+      (f : α → OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) β),
       simulateQ (phiG h ∘ₛ embG) (x >>= f) =
         simulateQ (phiG h ∘ₛ embG) x >>= fun a ↦ simulateQ (phiG h ∘ₛ embG) (f a) :=
     fun x f ↦ simulateQ_bind _ x f
   have hHs : ∀ a, shortP a → simulateQ (phiG h ∘ₛ embG) (LeanDa.hH a) =
-      (pure (Hh h a) : StateT HCache (OracleComp WSpec) Common.KDigest) := by
+      (pure (Hh h a) : StateT HCache (OracleComp WSpec) Common.DigestBytes) := by
     intro a ha
     rw [LeanDa.hH, simulateQ_spec_query, QueryImpl.apply_compose]
     simp only [embG]
@@ -183,11 +183,11 @@ theorem noCoins_mapM {β γ : Type} (F : β → OracleComp (unifSpec + hs) γ) (
     rw [List.mapM_cons]
     exact noCoins_bind (hF b) fun _ ↦ noCoins_bind ih fun _ ↦ noCoins_pure _
 
-variable (H : List UInt8 → OracleComp (unifSpec + hs) Common.KDigest) (hHc : ∀ a, NoCoins (H a))
+variable (H : List UInt8 → OracleComp (unifSpec + hs) Common.DigestBytes) (hHc : ∀ a, NoCoins (H a))
 include hHc
 
 theorem noCoins_merkleRootM (d : ℕ) :
-    ∀ L : ℕ → OracleComp (unifSpec + hs) Common.KDigest, (∀ i, NoCoins (L i)) →
+    ∀ L : ℕ → OracleComp (unifSpec + hs) Common.DigestBytes, (∀ i, NoCoins (L i)) →
       NoCoins (merkleRootM H d L) := by
   induction d with
   | zero => intro L hL; exact hL 0
@@ -200,13 +200,13 @@ theorem noCoins_commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) : NoCoins (c
       noCoins_bind (noCoins_mapM _ (fun _ ↦ hHc _) _) fun _ ↦ hHc _) fun _ ↦
     noCoins_bind (noCoins_merkleRootM H hHc _ _ fun _ ↦ hHc _) fun _ ↦ hHc _
 
-theorem noCoins_walkM (path : List Common.KDigest) :
-    ∀ (idx : ℕ) (node : Common.KDigest), NoCoins (walkM H idx node path) := by
+theorem noCoins_walkM (path : List Common.DigestBytes) :
+    ∀ (idx : ℕ) (node : Common.DigestBytes), NoCoins (walkM H idx node path) := by
   induction path with
   | nil => intro idx node; exact noCoins_pure _
   | cons s rest ih => intro idx node; exact noCoins_bind (hHc _) fun _ ↦ ih _ _
 
-theorem noCoins_verifyCellM (r : ℕ) (com : Common.KDigest) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
+theorem noCoins_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
     NoCoins (verifyCellM H r com p x τ) :=
   noCoins_bind (hHc _) fun _ ↦ noCoins_bind (noCoins_walkM H hHc _ _ _) fun _ ↦
     noCoins_bind (hHc _) fun _ ↦ noCoins_pure _
@@ -236,13 +236,13 @@ end Tail
 section World
 
 /-- Queries of `H` or of the challenges in the simulated world, one each. -/
-def hgCalls : (unifSpec + GSpec (List UInt8) KDigest Common.KDigest E 14).Domain → ℕ
+def hgCalls : (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14).Domain → ℕ
   | .inl _ => 0
   | .inr _ => 1
 
 /-- `H` as the simulated world queries it, the challenges one oracle of vectors. -/
-theorem noCoins_toV_embG {α : Type} (Y : OracleComp (unifSpec + roSpec (List UInt8) KDigest) α)
-    (hY : NoCoins Y) : NoCoins (simulateQ (toV (Msg := List UInt8) (Dg := KDigest) (Root := Common.KDigest)
+theorem noCoins_toV_embG {α : Type} (Y : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α)
+    (hY : NoCoins Y) : NoCoins (simulateQ (toV (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes)
       (Z := E) (n := 14)) (simulateQ embG Y)) := by
   induction Y using OracleComp.inductionOn with
   | pure a => exact noCoins_pure _
@@ -254,8 +254,8 @@ theorem noCoins_toV_embG {α : Type} (Y : OracleComp (unifSpec + roSpec (List UI
     simp only [embG, hP, simulateQ_spec_query, toV]
     exact (noCoins_hq_bind (hs := VS) (.inl a) _).mpr fun u ↦ ih u (hk u)
 
-theorem noCoins_toV_readVec (d : Common.KDigest) :
-    NoCoins (simulateQ toV (readVec (Msg := List UInt8) (Dg := KDigest) (Z := E) (n := 14) d)) := by
+theorem noCoins_toV_readVec (d : Common.DigestBytes) :
+    NoCoins (simulateQ toV (readVec (Msg := List UInt8) (Dg := DigestBytes) (Z := E) (n := 14) d)) := by
   rw [readVec, simulateQ_map]
   refine noCoins_map _ ?_
   rw [mapM_map (fun x ↦ simulateQ toV x) (fun a ↦ simulateQ_pure _ a)
@@ -266,12 +266,12 @@ theorem noCoins_toV_readVec (d : Common.KDigest) :
 
 /-- A cache's `H` as a partial function on the simulated world's computations with coins and
 `H`. -/
-def lookupH (c : VCache) : QueryImpl (unifSpec + roSpec (List UInt8) KDigest) Option
+def lookupH (c : VCache) : QueryImpl (unifSpec + roSpec (List UInt8) DigestBytes) Option
   | .inl _ => none
   | .inr a => c (.inl a)
 
 theorem replay_toV_embG (c : VCache) {α : Type}
-    (Y : OracleComp (unifSpec + roSpec (List UInt8) KDigest) α) :
+    (Y : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α) :
     simulateQ (replayImpl c) (simulateQ toV (simulateQ embG Y)) = simulateQ (lookupH c) Y := by
   rw [← QueryImpl.simulateQ_compose, ← QueryImpl.simulateQ_compose]
   congr 1
@@ -282,8 +282,8 @@ theorem replay_toV_embG (c : VCache) {α : Type}
   · simp only [QueryImpl.apply_compose, embG, hP, simulateQ_spec_query, toV]
     simp [replayImpl, lookupH]
 
-theorem replay_toV_readVec (c : VCache) (d : Common.KDigest) (l : Challenges)
-    (h : simulateQ (replayImpl c) (simulateQ toV (readVec (Msg := List UInt8) (Dg := KDigest)
+theorem replay_toV_readVec (c : VCache) (d : Common.DigestBytes) (l : Challenges)
+    (h : simulateQ (replayImpl c) (simulateQ toV (readVec (Msg := List UInt8) (Dg := DigestBytes)
       (n := 14) d)) = some l) : c (.inr d) = some l := by
   rw [readVec, simulateQ_map, simulateQ_map,
     mapM_map (fun x ↦ simulateQ toV x) (fun a ↦ simulateQ_pure _ a)
@@ -291,7 +291,7 @@ theorem replay_toV_readVec (c : VCache) (d : Common.KDigest) (l : Challenges)
     mapM_map (fun x ↦ simulateQ (replayImpl c) x) (fun a ↦ simulateQ_pure _ a)
       (fun x f ↦ simulateQ_bind _ x f)] at h
   have hq : ∀ j : Fin 14, simulateQ (replayImpl c) (simulateQ toV
-      (gaP (Msg := List UInt8) (Dg := KDigest) (Z := E) d j)) = (fun v : Challenges ↦ v j) <$> c (.inr d) := by
+      (gaP (Msg := List UInt8) (Dg := DigestBytes) (Z := E) d j)) = (fun v : Challenges ↦ v j) <$> c (.inr d) := by
     intro j
     simp only [gaP, simulateQ_spec_query, toV, simulateQ_map]
     rfl
@@ -315,14 +315,14 @@ theorem replay_toV_readVec (c : VCache) (d : Common.KDigest) (l : Challenges)
     rw [List.getD_eq_getElem _ _ (by simp), List.getElem_map, List.getElem_finRange]
     rfl
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
 
 /-- The tail of the simulated world: the challenges of the root, then the straight-line verdict. -/
 noncomputable def tailV (crs : Crs) (out : CbOut r Proof) :
-    OracleComp (unifSpec + GSpec (List UInt8) KDigest Common.KDigest E 14) Bool :=
-  readVec (Msg := List UInt8) (Dg := KDigest) out.1.1 >>= fun l ↦
+    OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14) Bool :=
+  readVec (Msg := List UInt8) (Dg := DigestBytes) out.1.1 >>= fun l ↦
     simulateQ embG (tailH r ps ext crs out l)
 
 /-- **A true verdict leaves a bad cache.** -/
@@ -341,14 +341,14 @@ theorem not_good_of_tail (crs : Crs) (out : CbOut r Proof) (c : VCache) {z : Boo
   obtain ⟨l, hl, hrep⟩ := hrep
   have hd := replay_toV_readVec z.2 out.1.1 l hl
   rw [replay_toV_embG] at hrep
-  set g : List UInt8 → Option Common.KDigest := fun a ↦ z.2 (.inl a)
+  set g : List UInt8 → Option Common.DigestBytes := fun a ↦ z.2 (.inl a)
   have hg : ∀ a u, g a = some u → u = fOf z.2 a := fun a u hu ↦ (fOf_of_mem hu).symm
   have hHg : ∀ a, simulateQ (lookupH z.2) (LeanDa.hH a) = g a := fun a ↦ by
     rw [LeanDa.hH, simulateQ_spec_query]; rfl
   have hpO : ∀ {α} (a : α), simulateQ (lookupH z.2) (pure a :
-      OracleComp (unifSpec + roSpec (List UInt8) KDigest) α) = pure a := fun a ↦ simulateQ_pure _ a
-  have hbO : ∀ {α β} (x : OracleComp (unifSpec + roSpec (List UInt8) KDigest) α)
-      (f : α → OracleComp (unifSpec + roSpec (List UInt8) KDigest) β),
+      OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α) = pure a := fun a ↦ simulateQ_pure _ a
+  have hbO : ∀ {α β} (x : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α)
+      (f : α → OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) β),
       simulateQ (lookupH z.2) (x >>= f) =
         simulateQ (lookupH z.2) x >>= fun a ↦ simulateQ (lookupH z.2) (f a) :=
     fun x f ↦ simulateQ_bind _ x f

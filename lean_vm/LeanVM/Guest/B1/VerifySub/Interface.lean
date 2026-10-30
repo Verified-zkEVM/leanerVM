@@ -64,7 +64,7 @@ under `seed` (`verifyDeferred`, V:2344), with `DeferredClaim.cells c` at `defer_
 nothing. -/
 def MeaningVerifySub (bytecode : List K) (rd : Reader) : List E → List E → Prop
   | [pi0, pi1, s0, s1, _, _, out], rets =>
-      rets = [] ∧ ∃ (seed pi : Digest) (c : FixedClaims) (π : Proof),
+      rets = [] ∧ ∃ (seed pi : Digest) (c : BytecodeClaim) (π : Proof),
         (s0, s1) = digestScalars seed ∧ (pi0, pi1) = digestScalars pi ∧
         verifyDeferred bytecode seed pi c π = true ∧ c.bytecodePoint.length = bytecodeVars ∧
         ReadsAt rd out (Node.DeferredClaim.cells c)
@@ -80,7 +80,7 @@ def VerifySubPre (rd : Reader) : List E → Prop
 words holding the exponent tables, for a bytecode of `2^23` words. -/
 def verify_sub_Spec (bytecode : List K) : Prop :=
   bytecode.length = 2 ^ bytecodeVars →
-    ∀ {κ : ℕ}, κ ≤ 32 → ∀ (L : MemImage κ) (args rets : List E), VerifySubPre L.read args →
+    ∀ {κ : ℕ}, κ ≤ 32 → ∀ (L : MemoryImage κ) (args rets : List E), VerifySubPre L.read args →
       coreProgram.Rel L.read "verify_sub" args rets → MeaningVerifySub bytecode L.read args rets
 
 end

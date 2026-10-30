@@ -43,7 +43,7 @@ def tableTermsClaims (constraintPowers formPowers point : List E) :
     List (Table × ℕ × List Form × E) → ℕ → E → List ColumnClaim → Prog (E × List ColumnClaim)
   | [], _, final, claims => return (final, claims)
   | (table, height, forms, weight) :: rest, cursor, final, claims => do
-    let evaluations ← Prog.readN table.width
+    let evaluations ← Prog.readScalars table.width
     let summand := dot ((constraintPowers.drop cursor).take table.nConstraints)
       (table.constraints evaluations)
     let final := final +
@@ -68,7 +68,7 @@ def tableSumcheckClaims (heights : List ℕ) (busForms : List (List Form))
 
 /-- `tablePhase`, returning the bus's and the tables' column claims. -/
 def tablePhaseClaims (layout : Layout) (bus : BusResult) : Prog (List ColumnClaim) := do
-  let xi ← Prog.sampleE
+  let xi ← Prog.sampleChallenge
   let nConstraints := (tables.map Table.nConstraints).sum
   let xiPowers := powers xi (nConstraints + 3)
   let constraintPowers := xiPowers.take nConstraints
@@ -169,7 +169,7 @@ theorem bind_congr {α β : Type} {Q : α → Prop} {f g : α → Prog β} (h : 
   | commit _ ih => exact congrArg (Prog.commit _ _) ih
   | query _ ih => exact congrArg (Prog.query _ _) (funext ih)
 
-theorem allRet_readN : ∀ n : ℕ, AllRet (Prog.readN n) fun xs ↦ xs.length = n
+theorem allRet_readN : ∀ n : ℕ, AllRet (Prog.readScalars n) fun xs ↦ xs.length = n
   | 0 => .ret rfl
   | n + 1 => .read fun x ↦
     AllRet.bind (fun xs hxs ↦ .ret (by show (x :: xs).length = n + 1; simp [hxs])) _
@@ -662,7 +662,7 @@ theorem leanVmProgram_eq (bytecode : List K) (publicInput : Digest) :
   rfl
 
 /-- The deferring verifier program on the claim-list form. -/
-theorem deferredProgram_eq (c : FixedClaims) (bytecode : List K) (publicInput : Digest) :
+theorem deferredProgram_eq (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
     deferredProgram c bytecode publicInput =
       (verifyExecutionClaims (claimedValue c) bytecode publicInput).bind fun _ ↦ Prog.ret true := by
   unfold deferredProgram

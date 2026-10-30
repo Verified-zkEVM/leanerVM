@@ -110,7 +110,7 @@ against the ROM adversary `advS P iv A` within `indiffBound |S| |C| q`. -/
 theorem transfer {β γ δ : Type} (pre : OracleComp (unifSpec + roSpec Msg Dg) β)
     (A : β → OracleComp (dSpec Msg Dg (SpState Dg E C)) γ)
     (post : β → γ → OracleComp (unifSpec + roSpec Msg Dg) δ) (q : ℕ)
-    (hq : IsWeightBound (rpmGame pre A post) (queryCost (Dg := Dg) P) q) (p : δ → Prop) :
+    (hq : QueryCostAtMost (rpmGame pre A post) (queryCost (Dg := Dg) P) q) (p : δ → Prop) :
     Pr{let a ← realGame P iv (rpmGame pre A post)}[p a] ≤
         Pr{let a ← romRun (pre >>= fun x ↦ advS P iv (A x) >>= fun a ↦ post x a)}[p a] +
           indiffBound (Fintype.card (SpState Dg E C)) (Fintype.card C) q ∧
@@ -125,15 +125,15 @@ theorem transfer {β γ δ : Type} (pre : OracleComp (unifSpec + roSpec Msg Dg) 
 /-- A transcript consistent with a function `π`: forward answers are `π`'s values, inverse answers
 are `π`'s preimages. -/
 def Consistent (π : SpState Dg E C → SpState Dg E C)
-    (log : List (PermQuery (SpState Dg E C) × SpState Dg E C)) : Prop :=
+    (log : List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) : Prop :=
   ∀ e ∈ log, match e with
-    | (.fwd x, y) => π x = y
-    | (.inv y, x) => π x = y
+    | (.forward x, y) => π x = y
+    | (.inverse y, x) => π x = y
 
 /-- The replayed bookkeeping of a consistent transcript: its edges are `π`'s, and its rooted
 states are the sponge's states along their paths. -/
 theorem replay_sound (π : SpState Dg E C → SpState Dg E C)
-    (log : List (PermQuery (SpState Dg E C) × SpState Dg E C)) (h : Consistent π log) :
+    (log : List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) (h : Consistent π log) :
     (∀ e ∈ (replay iv log).edges, π e.1 = e.2) ∧
       ∀ p ∈ (replay iv log).chains, absorbAll (m := Id) (fun x ↦ pure (π x)) iv p.2 = p.1 := by
   unfold replay
@@ -148,7 +148,7 @@ theorem replay_sound (π : SpState Dg E C → SpState Dg E C)
     obtain ⟨q, a⟩ := e
     have he' := he (q, a) (List.mem_singleton_self _)
     cases q with
-    | fwd x =>
+    | forward x =>
       simp only at he'
       simp only [replayStep]
       split
@@ -171,7 +171,7 @@ theorem replay_sound (π : SpState Dg E C → SpState Dg E C)
           rcases List.mem_cons.mp he with rfl | he
           · exact he'
           · exact hE e he
-    | inv y =>
+    | inverse y =>
       simp only at he'
       simp only [replayStep]
       split
@@ -184,7 +184,7 @@ theorem replay_sound (π : SpState Dg E C → SpState Dg E C)
 /-- **The hash queries of a transcript are correct hashes**: for a transcript consistent with a
 function `π`, every pair `(m, d)` of `pathsOf` has `d = H^π m`, the sponge over `π`. -/
 theorem pathsOf_sound (π : SpState Dg E C → SpState Dg E C)
-    (log : List (PermQuery (SpState Dg E C) × SpState Dg E C)) (h : Consistent π log)
+    (log : List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) (h : Consistent π log)
     {m : Msg} {d : Dg} (hmd : (m, d) ∈ pathsOf P iv log) :
     spongeWith (m := Id) P iv (fun x ↦ pure (π x)) m = d := by
   simp only [pathsOf, simPaths, List.mem_filterMap, Option.map_eq_some_iff,
@@ -198,10 +198,10 @@ theorem pathsOf_sound (π : SpState Dg E C → SpState Dg E C)
 /-! ## The simulator's bookkeeping is the replay of the adversary's transcript -/
 
 /-- A simulator step moves its state by the replayed bookkeeping of the query and answer. -/
-theorem simulator_step_replay (q : PermQuery (SpState Dg E C)) (σ : SimState Dg E C) {z}
+theorem simulator_step_replay (q : PermutationQuery (SpState Dg E C)) (σ : SimState Dg E C) {z}
     (hz : z ∈ support ((simulator P q).run σ)) : z.2 = replayStep σ (q, z.1) := by
   cases q with
-  | fwd x =>
+  | forward x =>
     simp only [simulator, StateT.run_mk] at hz
     simp only [replayStep]
     split at hz
@@ -217,7 +217,7 @@ theorem simulator_step_replay (q : PermQuery (SpState Dg E C)) (σ : SimState Dg
         simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
         obtain ⟨y, -, rfl⟩ := hz
         simp [hy, hch]
-  | inv y =>
+  | inverse y =>
     simp only [simulator, StateT.run_mk] at hz
     simp only [replayStep]
     split at hz
@@ -230,7 +230,7 @@ theorem simulator_step_replay (q : PermQuery (SpState Dg E C)) (σ : SimState Dg
 
 /-- The ideal world with the adversary's permutation transcript logged, oldest first. -/
 noncomputable def idealImplLog : QueryImpl (dSpec Msg Dg (SpState Dg E C))
-    (StateT (SimState Dg E C × List (PermQuery (SpState Dg E C) × SpState Dg E C))
+    (StateT (SimState Dg E C × List (PermutationQuery (SpState Dg E C) × SpState Dg E C))
       (OracleComp (unifSpec + roSpec Msg Dg)))
   | .inr (.inr q) => StateT.mk fun s ↦
       (fun z ↦ (z.1, (z.2, s.2 ++ [(q, z.1)]))) <$> (simulator P q).run s.1
@@ -238,7 +238,7 @@ noncomputable def idealImplLog : QueryImpl (dSpec Msg Dg (SpState Dg E C))
 
 /-- Forgetting the transcript gives the ideal world. -/
 theorem idealImplLog_proj {α : Type} (D : OracleComp (dSpec Msg Dg (SpState Dg E C)) α)
-    (s : SimState Dg E C × List (PermQuery (SpState Dg E C) × SpState Dg E C)) :
+    (s : SimState Dg E C × List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) :
     Prod.map id Prod.fst <$> (simulateQ (idealImplLog P) D).run s =
       (simulateQ (idealImpl P) D).run s.1 :=
   OracleComp.map_run_simulateQ_eq_of_query_map_eq _ _ _ (fun t s ↦ by
@@ -278,7 +278,7 @@ theorem fst_mem_support_of_mem_support_ro {β : Type}
 
 /-- The digests of the simulator's rooted paths are cached random-oracle answers, and stay. -/
 theorem roOK_step (t : (dSpec Msg Dg (SpState Dg E C)).Domain)
-    (s : (SimState Dg E C × List (PermQuery (SpState Dg E C) × SpState Dg E C)) ×
+    (s : (SimState Dg E C × List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) ×
       (roSpec Msg Dg).QueryCache)
     (hs : ∀ md ∈ simPaths P s.1.1, s.2 md.1 = some md.2) {z}
     (hz : z ∈ support (((foldRO (idealImplLog P)) t).run s)) :
@@ -306,14 +306,14 @@ theorem roOK_step (t : (dSpec Msg Dg (SpState Dg E C)).Domain)
     obtain ⟨w', hw', rfl⟩ := hw
     simp only at hold ⊢
     cases q with
-    | inv y =>
+    | inverse y =>
       have := simulator_step_replay P _ _ (fst_mem_support_of_mem_support_ro hw')
       rw [this]
       simp only [replayStep]
       split
       · exact hold
       · exact hold
-    | fwd x =>
+    | forward x =>
       simp only [simulator, StateT.run_mk] at hw'
       split at hw'
       · simp only [simulateQ_pure, StateT.run_pure, support_pure,

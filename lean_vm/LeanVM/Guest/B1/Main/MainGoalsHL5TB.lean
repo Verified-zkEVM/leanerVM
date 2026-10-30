@@ -385,7 +385,7 @@ theorem mainGoalL5TB (SB : String → ℕ)
     (hSD : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
     {Bv Bxs Bss : ℕ → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
     {bytecode : List K} {Pxs Pss Pvs : ℕ → Tree → Prop} (hbl : bytecode.length = 2 ^ bytecodeVars)
-    (hrel : NodeRel bytecode seed s w) (hl : Limits s w)
+    (hrel : NodeRelation bytecode seed s w) (hl : Limits s w)
     (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv)
     (hX : ChildListGoalsTB fs cert fp seed s w Pxs Pss Bxs Bss) :
     MainGoalL5TB fs cert fp seed s w (L5Hinted w Pxs Pss Pvs) (l5B fs SB Bxs Bss Bv w) := by

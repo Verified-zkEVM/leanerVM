@@ -205,7 +205,7 @@ theorem rateOf_getD_four {pend : List (E × ℕ)} (h : pend.length ≤ 2) {j : �
   split <;> rfl
 
 /-- The capacity of a permutation's state is canonical. -/
-theorem tb_capOf_canonical (S : KState) : AllCanonical (capOf S) := by
+theorem tb_capOf_canonical (S : KeccakState) : AllCanonical (capOf S) := by
   intro x hx
   simp only [capOf, List.mem_cons, List.not_mem_nil, or_false] at hx
   rcases hx with rfl | rfl | rfl | rfl | rfl <;> exact cellsOfState_canonical _ _ _

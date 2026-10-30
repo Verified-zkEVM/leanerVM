@@ -72,8 +72,8 @@ theorem thInput_keygenDomainFields (parameter : PublicParameter) (domain : Keyge
     thInput parameter (keygenDomainFields domain) (bytesLE 32 seed) =
       keygenHashInput parameter domain seed := rfl
 
-/-- The signer returned the forgery (`Common.SufCma.Contains`, a request being its message). -/
+/-- The signer returned the forgery (`Common.SufCma.SignerReturned`, a request being its message). -/
 abbrev SigningTranscript.Contains (log : OracleSpec.QueryLog SigningSpec) (forgery : Forgery) : Prop :=
-  Common.SufCma.Contains id log forgery.message forgery.signature
+  Common.SufCma.SignerReturned id log forgery.message forgery.signature
 
 end Sphincs

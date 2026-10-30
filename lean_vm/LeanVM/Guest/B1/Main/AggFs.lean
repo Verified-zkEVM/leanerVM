@@ -60,28 +60,28 @@ theorem carries_sqL (n : ℕ) {s : Fs} {sp : Sponge} (h : s.Carries sp) :
   exact ⟨by simp only [Batch.sqL, sqLF, e1'], h1⟩
 
 /-- The sponge after the batching's words. -/
-def aggAbs (cs : List ChildClaims) : Fs := aggS0.absorbAll (Batch.batchWords cs) dsObserve
+def aggAbs (cs : List ChildClaims) : Fs := aggS0.absorbAll (Batch.cellsBeforeChallenge cs) dsObserve
 
 /-- The lambdas and the sponge after them. -/
 def aggLam (cs : List ChildClaims) : List (E × E) × Fs := sqLF cs.length (aggAbs cs)
 
 /-- The sumcheck's run: its challenges and final claim, and the sponge after it. -/
-def aggRun (cs : List ChildClaims) (h : BatchHints) : (List E × E) × Fs :=
-  bsRun h.bytecodeRounds (Batch.claimBOf cs (aggLam cs).1) (aggLam cs).2
+def aggRun (cs : List ChildClaims) (h : BatchingHints) : (List E × E) × Fs :=
+  bsRun h.sumcheckMessages (Batch.batchedClaim cs (aggLam cs).1) (aggLam cs).2
 
 /-- **`Node.batch` on the carried sponge.** -/
-theorem batch_fs (cs : List ChildClaims) (h : BatchHints) :
+theorem batch_fs (cs : List ChildClaims) (h : BatchingHints) :
     batch cs h =
-      if (aggRun cs h).1.2 = h.bytecodeValue * Batch.bytecodeWeight cs (aggLam cs).1 (aggRun cs h).1.1
-      then some ⟨(aggRun cs h).1.1, h.bytecodeValue⟩ else none := by
+      if (aggRun cs h).1.2 = h.finalBytecodeValue * Batch.batchedBytecodeWeight cs (aggLam cs).1 (aggRun cs h).1.1
+      then some ⟨(aggRun cs h).1.1, h.finalBytecodeValue⟩ else none := by
   rw [Batch.batch_eq]
-  have hc := carries_obsAll (Batch.batchWords cs) carries_aggS0
+  have hc := carries_obsAll (Batch.cellsBeforeChallenge cs) carries_aggS0
   obtain ⟨e1, h1⟩ := carries_sqL cs.length hc
-  obtain ⟨sp', -, hr⟩ := B1.batchRounds_run h.bytecodeRounds (Batch.claimBOf cs (aggLam cs).1)
+  obtain ⟨sp', -, hr⟩ := B1.batchRounds_run h.sumcheckMessages (Batch.batchedClaim cs (aggLam cs).1)
     (aggLam cs).2 _ h1
   rw [Batch.batchRounds_run] at hr
   have e1' : (Batch.sqL cs.length (Batch.batchSponge cs)).1 = (aggLam cs).1 := e1
-  have hr' : (Batch.rsRun h.bytecodeRounds (Batch.claimBOf cs (aggLam cs).1)
+  have hr' : (Batch.rsRun h.sumcheckMessages (Batch.batchedClaim cs (aggLam cs).1)
       (Batch.sqL cs.length (Batch.batchSponge cs)).2).1 = (aggRun cs h).1 := congrArg Prod.fst hr
   simp only [e1', hr']
 

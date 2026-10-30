@@ -19,7 +19,7 @@ public import Mathlib.Analysis.Complex.ExponentialBounds
 
 Let `P : Prog Bool` be a verifier program, `S` a strategy that wins every interactive run of `P`
 with well-shaped words, and `σ` the seeding. The honest prover of the random-oracle model
-(`honestComp σ P S fuel`) seeds the sponge and runs `proveM queryH queryF`; when a proof-of-work
+(`honestComp σ P S fuel`) seeds the sponge and runs `proveM callKeccak256 callKeccakF1600`; when a proof-of-work
 search finds no nonce below `fuel`, it outputs the empty proof. In the experiment
 `romExperiment` the honest prover and then the compiled verifier run against the same lazily
 sampled random oracles.
@@ -72,19 +72,19 @@ theorem missProb_le_one (b : ℕ) : missProb b ≤ 1 := tsub_le_self
 
 /-- **A nonce fails with probability exactly `1 - 2^-b`.** -/
 theorem avg_miss_eq {b : ℕ} (hb0 : b ≠ 0) (hb : b ≤ 64) (n : E) :
-    (∑ u : KState, ind (powOk b n (challengeOf u) = false)) / Fintype.card KState =
+    (∑ u : KeccakState, ind (powOk b n (challengeOf u) = false)) / Fintype.card KeccakState =
       missProb b := by
-  have hc : (Fintype.card KState : ℝ≥0∞) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
-  have hct : (Fintype.card KState : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
-  have hadd : (∑ u : KState, ind (powOk b n (challengeOf u) = false)) +
-      (∑ u : KState, ind (powOk b n (challengeOf u) = true)) = Fintype.card KState := by
+  have hc : (Fintype.card KeccakState : ℝ≥0∞) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
+  have hct : (Fintype.card KeccakState : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
+  have hadd : (∑ u : KeccakState, ind (powOk b n (challengeOf u) = false)) +
+      (∑ u : KeccakState, ind (powOk b n (challengeOf u) = true)) = Fintype.card KeccakState := by
     rw [← Finset.sum_add_distrib]
-    calc ∑ u : KState, (ind (powOk b n (challengeOf u) = false) +
+    calc ∑ u : KeccakState, (ind (powOk b n (challengeOf u) = false) +
           ind (powOk b n (challengeOf u) = true))
-        = ∑ _u : KState, (1 : ℝ≥0∞) := Finset.sum_congr rfl fun u _ ↦ by
+        = ∑ _u : KeccakState, (1 : ℝ≥0∞) := Finset.sum_congr rfl fun u _ ↦ by
           cases powOk b n (challengeOf u) <;> simp [ind]
       _ = _ := by rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one]
-  have hdiv := congrArg (· / (Fintype.card KState : ℝ≥0∞)) hadd
+  have hdiv := congrArg (· / (Fintype.card KeccakState : ℝ≥0∞)) hadd
   simp only [ENNReal.add_div, ENNReal.div_self hc hct, sum_powOk_div_eq hb0 hb n] at hdiv
   exact ENNReal.eq_sub_of_add_eq (by simp) hdiv
 
@@ -159,7 +159,7 @@ theorem missProb_pow_four_le (b k : ℕ) : missProb b ^ (2 ^ b * 4 * k) ≤ 2⁻
 
 /-- The permutation input of the nonce `n` at the capacity `c` with the waiting scalars `ps`: the
 nonce absorbed with tag `4` after them, then the squeeze. -/
-def nonceInput (c : Fin 9 → UInt64) (ps : List (E × ℕ)) (n : ℕ) : KState :=
+def nonceInput (c : Fin 9 → UInt64) (ps : List (E × ℕ)) (n : ℕ) : KeccakState :=
   duplexOf c (ps ++ [(nonceOf n, dsPowNonce)])
 
 /-- A position of a proof-of-work search: the capacity and the waiting scalars. -/
@@ -202,7 +202,7 @@ variable (bits fuel : ℕ)
 
 open Classical in
 /-- The position of a nonce input below `fuel`, if the input is one. -/
-noncomputable def keyOf (t : KState) : Option PowKey :=
+noncomputable def keyOf (t : KeccakState) : Option PowKey :=
   if h : ∃ κ : PowKey, ∃ n, KeyOk κ ∧ n < fuel ∧ t = nonceInput κ.1 κ.2 n then some h.choose
   else none
 
@@ -246,7 +246,7 @@ section Step
 
 variable {bits fuel : ℕ}
 
-theorem keyOf_spec {t : KState} {κ : PowKey} (h : keyOf fuel t = some κ) :
+theorem keyOf_spec {t : KeccakState} {κ : PowKey} (h : keyOf fuel t = some κ) :
     ∃ n, KeyOk κ ∧ n < fuel ∧ t = nonceInput κ.1 κ.2 n := by
   unfold keyOf at h
   split at h
@@ -287,7 +287,7 @@ theorem powTerm_append_of_ne {ℓ : Log} {e : Entry} {κ : PowKey}
 theorem powTerm_step (hb0 : bits ≠ 0) (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64) {ℓ : Log}
     {κ : PowKey} (hκ : KeyOk κ) {n0 : ℕ} (hn0 : n0 < fuel)
     (ht : lookF ℓ (nonceInput κ.1 κ.2 n0) = none) :
-    (∑ u, powTerm bits fuel (ℓ ++ [.inr (nonceInput κ.1 κ.2 n0, u)]) κ) / Fintype.card KState ≤
+    (∑ u, powTerm bits fuel (ℓ ++ [.inr (nonceInput κ.1 κ.2 n0, u)]) κ) / Fintype.card KeccakState ≤
       powTerm bits fuel ℓ κ := by
   set t := nonceInput κ.1 κ.2 n0
   by_cases hs : Solved bits fuel ℓ κ
@@ -356,8 +356,8 @@ theorem powTerm_step (hb0 : bits ≠ 0) (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^
 /-- **The potential's step at the permutation**: a fresh query raises it by at most
 `(1 - 2^-bits)^fuel` in expectation. -/
 theorem powPot_stepF (hb0 : bits ≠ 0) (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64) {ℓ : Log}
-    {t : KState} (ht : lookF ℓ t = none) :
-    (∑ u, powPot bits fuel (ℓ ++ [.inr (t, u)])) / Fintype.card KState ≤
+    {t : KeccakState} (ht : lookF ℓ t = none) :
+    (∑ u, powPot bits fuel (ℓ ++ [.inr (t, u)])) / Fintype.card KeccakState ≤
       powPot bits fuel ℓ + missProb bits ^ fuel := by
   classical
   -- the terms of the positions other than `t`'s do not move
@@ -365,7 +365,7 @@ theorem powPot_stepF (hb0 : bits ≠ 0) (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^
       powTerm bits fuel (ℓ ++ [.inr (t, u)]) κ = powTerm bits fuel ℓ κ := fun u κ hne ↦
     powTerm_append_of_ne fun n hn ↦ lookF_append_inr_of_ne (hne n hn) u
   have havg : ∀ (K : Finset PowKey), (∀ κ ∈ K, ∀ n < fuel, nonceInput κ.1 κ.2 n ≠ t) →
-      (∑ u, ∑ κ ∈ K, powTerm bits fuel (ℓ ++ [.inr (t, u)]) κ) / Fintype.card KState =
+      (∑ u, ∑ κ ∈ K, powTerm bits fuel (ℓ ++ [.inr (t, u)]) κ) / Fintype.card KeccakState =
         ∑ κ ∈ K, powTerm bits fuel ℓ κ := by
     intro K hK
     rw [Finset.sum_comm, div_eq_mul_inv, Finset.sum_mul]
@@ -447,7 +447,7 @@ end Step
 
 section Failure
 
-variable {F : KState → Option KState}
+variable {F : KeccakState → Option KeccakState}
 
 /-- A proof-of-work step's challenge, in `Option`, is the answer at the position's nonce
 input. -/
@@ -588,9 +588,9 @@ end Failure
 prover with every hash and permutation a query; the empty proof if a proof-of-work search
 fails. -/
 def honestComp (σ : Seed) (P : Prog Bool) (S : Strategy) (fuel : ℕ) :
-    OracleComp HashSpec Proof := do
-  let seed ← σ.run queryH queryF
-  let r ← proveM queryH queryF P S seed fuel
+    OracleComp KeccakCalls Proof := do
+  let seed ← σ.run callKeccak256 callKeccakF1600
+  let r ← proveM callKeccak256 callKeccakF1600 P S seed fuel
   pure (r.getD ⟨[], []⟩)
 
 /-- The honest prover makes at most `|σ.hs| + 1 + n · proverFactor height fuel` queries. -/
@@ -632,15 +632,15 @@ theorem one_le_powPot {σ : Seed} {P : Prog Bool} {S : Strategy} {bits fuel : �
     exfalso
     cases hA
     let Ht : Bytes → Digest := fun x ↦ (lookH ℓ x).getD default
-    let Ft : KState → KState := fun s ↦ (lookF ℓ s).getD default
+    let Ft : KeccakState → KeccakState := fun s ↦ (lookF ℓ s).getD default
     have hH : ∀ x u, lookH ℓ x = some u → Ht x = u := fun x u hx ↦ by simp [Ht, hx]
     have hF : ∀ s u, lookF ℓ s = some u → Ft s = u := fun s u hs ↦ by simp [Ft, hs]
     have hseed' : σ.run (m := Id) Ht Ft = seed := by
-      have := simulateQ_id_of_look ℓ Ht Ft hH hF (σ.run queryH queryF) seed
+      have := simulateQ_id_of_look ℓ Ht Ft hH hF (σ.run callKeccak256 callKeccakF1600) seed
         (by rw [simulateQ_seedRun]; exact hseed)
       rwa [simulateQ_seedRun] at this
     have hπ : prove Ht Ft P S seed fuel = some π' := by
-      have := simulateQ_id_of_look ℓ Ht Ft hH hF (proveM queryH queryF P S seed fuel) (some π')
+      have := simulateQ_id_of_look ℓ Ht Ft hH hF (proveM callKeccak256 callKeccakF1600 P S seed fuel) (some π')
         (by rw [simulateQ_proveM]; exact hr)
       rw [simulateQ_proveM] at this
       rw [← proveM_id]

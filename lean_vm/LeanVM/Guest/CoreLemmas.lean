@@ -284,9 +284,9 @@ theorem rel_iff (P : Program) (f : String) (args rets : List E) :
 
 /-! ## Range checks -/
 
-theorem read_some_iff {κ : Nat} (hκ : κ < 64) (L : MemImage κ) (a : K) (w : E) :
+theorem read_some_iff {κ : Nat} (hκ : κ < 64) (L : MemoryImage κ) (a : K) (w : E) :
     L.read a = some w ↔ ∃ i : Fin (2 ^ κ), a = gpow i ∧ L i = w := by
-  unfold MemImage.read
+  unfold MemoryImage.read
   constructor
   · intro h
     obtain ⟨i, hi, hw⟩ := Option.map_eq_some_iff.mp h
@@ -301,7 +301,7 @@ theorem eq_ofK_limb {x : E} (h : IsInK x) : x = ofK (x.limb 0) := by
 /-- A range check's meaning: on a memory of `2^κ ≤ 2^32` words, `x` passes the check against
 `g^(K-1)`, for some complement and touched words, exactly when `x = g^e` with `e < K`, for
 `1 ≤ K ≤ 2^κ`. The compiler's cap `K ≤ 2^16` is this bound at the least memory size. -/
-theorem rangeCheck_iff {κ : Nat} (hκ : κ ≤ 32) (L : MemImage κ) (x : E) {K : Nat}
+theorem rangeCheck_iff {κ : Nat} (hκ : κ ≤ 32) (L : MemoryImage κ) (x : E) {K : Nat}
     (hK1 : 1 ≤ K) (hK : K ≤ 2 ^ κ) :
     (∃ y t1 t2 : E, LoadHolds L.read x 0 t1 ∧ ofK (gpow (K - 1)) = x * y ∧ LoadHolds L.read y 0 t2) ↔
       ∃ e < K, x = ofK (gpow e) := by

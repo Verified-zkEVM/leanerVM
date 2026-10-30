@@ -32,7 +32,7 @@ pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d`, the opcodes checked again at `4a
 The verifier rejects an announcement outside these caps before any reduction runs
 (`crates/verifier/src/layout.rs:387-395`); they are what keeps the total read count below
 `2^64 - 1`, the bound the bus argument needs (specification §6.2). Each cap is a log-2 size, as
-announced, so that `Program.logSize_le`, `HasPublicBoundary` and `Caps` state the verifier's
+announced, so that `Program.logSize_le`, `HoldsPublicInput` and `Caps` state the verifier's
 checks by name. The codes are symbolic powers of `g`; the value of `g`
 appears only in `LeanVM.Parameters.Generator`.
 -/

@@ -31,7 +31,7 @@ theorem vtW32_eq : vtW32 = ofK (Parameters.gpow 32) := by
     gen_pow_eq_ofK]
 
 section
-variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ)
+variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
 /-- **The round count.** -/

@@ -64,8 +64,8 @@ set_option maxHeartbeats 8000000 in
 words `Lin` hold, the hints of an accepting batching, writing the batching's claim, which `Lin`
 holds at `g^ds`. -/
 theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V → ℕ) {m : ℕ}
-    (hm1 : 1 ≤ m) (hm16 : m ≤ 16) {cs : List ChildClaims} (hcl : cs.length = m) {h : BatchHints}
-    {out : DeferredClaim} (hrl : h.bytecodeRounds.length = 23) (hb : batch cs h = some out)
+    (hm1 : 1 ≤ m) (hm16 : m ≤ 16) {cs : List ChildClaims} (hcl : cs.length = m) {h : BatchingHints}
+    {out : DeferredClaim} (hrl : h.sumcheckMessages.length = 23) (hb : batch cs h = some out)
     {cpi cfresh ccarried : E} {ds : ℕ} {Lin : Main.Layout}
     (hcw : ∀ rd, Main.MemL rd Lin → ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (hdst : (ds, out.cells) ∈ Lin) :

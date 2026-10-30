@@ -38,7 +38,7 @@ theorem canon_zero : IsCanonical128 (0 : E) := limb_zero 2
 theorem canon_word (a b : Nat) : IsCanonical128 (word a b 0) := by
   simp [IsCanonical128, word, Value.ofBits_zero]
 
-theorem canon_cellsOfState (s : KState) (odd : Bool) (c : Fin 13) :
+theorem canon_cellsOfState (s : KeccakState) (odd : Bool) (c : Fin 13) :
     IsCanonical128 (cellsOfState s odd c) := by
   simp [IsCanonical128, cellsOfState]
 

@@ -167,12 +167,12 @@ theorem ite {c : Prop} [Decidable c] {p q : Prog α} {n : ℕ} {Q : α → Prop}
 
 theorem pure0 (a : α) : Costs height (pure a : Prog α) 0 fun _ ↦ True := trivial
 
-theorem readE : Costs height Prog.readE 1 fun _ ↦ True := ⟨le_rfl, fun _ ↦ trivial⟩
+theorem readE : Costs height Prog.readScalar 1 fun _ ↦ True := ⟨le_rfl, fun _ ↦ trivial⟩
 
-theorem sampleE : Costs height Prog.sampleE 4 fun _ ↦ True := ⟨le_rfl, fun _ ↦ trivial⟩
+theorem sampleE : Costs height Prog.sampleChallenge 4 fun _ ↦ True := ⟨le_rfl, fun _ ↦ trivial⟩
 
 /-- `n` reads cost `n`, and return `n` scalars. -/
-theorem readN : ∀ n, Costs height (Prog.readN n) n fun xs ↦ xs.length = n
+theorem readN : ∀ n, Costs height (Prog.readScalars n) n fun xs ↦ xs.length = n
   | 0 => rfl
   | n + 1 => by
     have h := bind (height := height) readE fun x (_ : True) ↦
@@ -183,7 +183,7 @@ theorem readN : ∀ n, Costs height (Prog.readN n) n fun xs ↦ xs.length = n
     exact h.mono (by omega) fun _ h ↦ h
 
 /-- `n` samples cost `4n`, and return `n` challenges. -/
-theorem sampleN : ∀ n, Costs height (Prog.sampleN n) (4 * n) fun xs ↦ xs.length = n
+theorem sampleN : ∀ n, Costs height (Prog.sampleChallenges n) (4 * n) fun xs ↦ xs.length = n
   | 0 => rfl
   | n + 1 => by
     have h := bind (height := height) sampleE fun x (_ : True) ↦
@@ -193,14 +193,14 @@ theorem sampleN : ∀ n, Costs height (Prog.sampleN n) (4 * n) fun xs ↦ xs.len
           simp [hxs])
     exact h.mono (by omega) fun _ h ↦ h
 
-theorem grindP (bits : ℕ) : Costs height (Prog.grindP bits) 5 fun _ ↦ True :=
+theorem grindP (bits : ℕ) : Costs height (Prog.grindProofOfWork bits) 5 fun _ ↦ True :=
   ⟨le_rfl, trivial⟩
 
 theorem commitP {ht : ℕ} (w : ℕ) (hht : ht ≤ height) :
-    Costs height (Prog.commitP ht w) 2 fun _ ↦ True := ⟨hht, le_rfl, trivial⟩
+    Costs height (Prog.readCommitment ht w) 2 fun _ ↦ True := ⟨hht, le_rfl, trivial⟩
 
 theorem queryP (i : ℕ) (ps : List ℕ) :
-    Costs height (Prog.queryP i ps) (openCost height ps.length) fun _ ↦ True :=
+    Costs height (Prog.queryOpenings i ps) (openCost height ps.length) fun _ ↦ True :=
   ⟨le_rfl, fun _ ↦ trivial⟩
 
 theorem require (c : Prop) [Decidable c] {n : ℕ} :
@@ -262,23 +262,23 @@ section Run
 
 /-- A query to the hash, then a continuation of `n` queries, makes `n + 1`. -/
 theorem isTotalQueryBound_queryH_bind {β : Type} (x : Bytes)
-    {f : Digest → OracleComp HashSpec β} {n : ℕ} (h : ∀ d, IsTotalQueryBound (f d) n) :
-    IsTotalQueryBound (queryH x >>= f) (n + 1) :=
+    {f : Digest → OracleComp KeccakCalls β} {n : ℕ} (h : ∀ d, IsTotalQueryBound (f d) n) :
+    IsTotalQueryBound (callKeccak256 x >>= f) (n + 1) :=
   isTotalQueryBound_query_bind_iff.mpr ⟨by omega, fun d ↦ by simpa using h d⟩
 
 /-- A query to the permutation, then a continuation of `n` queries, makes `n + 1`. -/
-theorem isTotalQueryBound_queryF_bind {β : Type} (s : KState)
-    {f : KState → OracleComp HashSpec β} {n : ℕ} (h : ∀ d, IsTotalQueryBound (f d) n) :
-    IsTotalQueryBound (queryF s >>= f) (n + 1) :=
+theorem isTotalQueryBound_queryF_bind {β : Type} (s : KeccakState)
+    {f : KeccakState → OracleComp KeccakCalls β} {n : ℕ} (h : ∀ d, IsTotalQueryBound (f d) n) :
+    IsTotalQueryBound (callKeccakF1600 s >>= f) (n + 1) :=
   isTotalQueryBound_query_bind_iff.mpr ⟨by omega, fun d ↦ by simpa using h d⟩
 
 theorem isTotalQueryBound_pure' {β : Type} (b : β) (n : ℕ) :
-    IsTotalQueryBound (pure b : OracleComp HashSpec β) n := trivial
+    IsTotalQueryBound (pure b : OracleComp KeccakCalls β) n := trivial
 
 /-- A climb up a path makes one query per level. -/
 theorem isTotalQueryBound_climb :
     ∀ (node : Digest) (q : ℕ) (path : List Digest),
-      IsTotalQueryBound (climb queryH node q path) path.length
+      IsTotalQueryBound (climb callKeccak256 node q path) path.length
   | _, _, [] => trivial
   | node, q, s :: ss => by
     simp only [climb, List.length_cons]
@@ -286,7 +286,7 @@ theorem isTotalQueryBound_climb :
 
 /-- An opening against a root of height `ht` makes at most `1 + ht` queries. -/
 theorem isTotalQueryBound_openOne (root : Digest) (ht w q : ℕ) (o : Opening) :
-    IsTotalQueryBound (openOne queryH root ht w q o) (1 + ht) := by
+    IsTotalQueryBound (openOne callKeccak256 root ht w q o) (1 + ht) := by
   unfold openOne
   split
   · rename_i hw
@@ -299,7 +299,7 @@ theorem isTotalQueryBound_openOne (root : Digest) (ht w q : ℕ) (o : Opening) :
 /-- Opening `ps` against a root of height `ht` makes at most `|ps| · (1 + ht)` queries. -/
 theorem isTotalQueryBound_openAll (root : Digest) (ht w : ℕ) :
     ∀ (ps : List ℕ) (os : List Opening),
-      IsTotalQueryBound (openAll queryH root ht w ps os) (ps.length * (1 + ht))
+      IsTotalQueryBound (openAll callKeccak256 root ht w ps os) (ps.length * (1 + ht))
   | [], _ => trivial
   | _ :: _, [] => trivial
   | q :: qs, o :: os => by
@@ -315,9 +315,9 @@ theorem isTotalQueryBound_openAll (root : Digest) (ht w : ℕ) :
 /-- An absorption followed by a continuation: the continuation runs at the sponge with the
 scalar appended, after one permutation when four scalars wait. -/
 theorem absorb_bind {β : Type} (sp : Sponge) (x : E) (tag : ℕ)
-    (f : Sponge → OracleComp HashSpec β) :
-    (Compile.absorb queryF sp x tag >>= f) =
-      if sp.pending.length = 4 then queryF (duplexInput sp) >>= fun st ↦ f ⟨st, [(x, tag)]⟩
+    (f : Sponge → OracleComp KeccakCalls β) :
+    (Compile.absorb callKeccakF1600 sp x tag >>= f) =
+      if sp.pending.length = 4 then callKeccakF1600 (duplexInput sp) >>= fun st ↦ f ⟨st, [(x, tag)]⟩
       else f { sp with pending := sp.pending ++ [(x, tag)] } := by
   unfold Compile.absorb duplex
   split
@@ -329,8 +329,8 @@ theorem absorb_bind {β : Type} (sp : Sponge) (x : E) (tag : ℕ)
     simp [h4]
 
 /-- A squeeze followed by a continuation: one permutation. -/
-theorem squeeze_bind {β : Type} (sp : Sponge) (f : E × Sponge → OracleComp HashSpec β) :
-    (squeeze queryF sp >>= f) = queryF (duplexInput sp) >>= fun st ↦ f (challengeOf st, ⟨st, []⟩) := by
+theorem squeeze_bind {β : Type} (sp : Sponge) (f : E × Sponge → OracleComp KeccakCalls β) :
+    (squeeze callKeccakF1600 sp >>= f) = callKeccakF1600 (duplexInput sp) >>= fun st ↦ f (challengeOf st, ⟨st, []⟩) := by
   unfold squeeze duplex
   simp
 
@@ -338,10 +338,10 @@ theorem squeeze_bind {β : Type} (sp : Sponge) (f : E × Sponge → OracleComp H
 from every sponge, run from the sponge after the absorption, gives cost `n` from the sponge
 before it. -/
 theorem isTotalQueryBound_absorb {β : Type} (sp : Sponge) (hk : sp.pending.length ≤ 4) (x : E)
-    (tag : ℕ) (g : Sponge → OracleComp HashSpec β) (n : ℕ) (hn : 1 ≤ n)
+    (tag : ℕ) (g : Sponge → OracleComp KeccakCalls β) (n : ℕ) (hn : 1 ≤ n)
     (hg : ∀ sp' : Sponge, sp'.pending.length ≤ 4 →
       IsTotalQueryBound (g sp') ((n - 1 + sp'.pending.length) / 4)) :
-    IsTotalQueryBound (Compile.absorb queryF sp x tag >>= g) ((n + sp.pending.length) / 4) := by
+    IsTotalQueryBound (Compile.absorb callKeccakF1600 sp x tag >>= g) ((n + sp.pending.length) / 4) := by
   rw [absorb_bind]
   split
   · rename_i h4
@@ -357,9 +357,9 @@ theorem isTotalQueryBound_absorb {β : Type} (sp : Sponge) (hk : sp.pending.leng
 roots have height at most `height` and whose sponge has at most four scalars waiting, makes at
 most `(n + k) / 4` queries, `k` the number of waiting scalars. -/
 theorem isTotalQueryBound_run {α : Type} (height : ℕ) :
-    ∀ (p : Prog α) (s : St) (n : ℕ) (Q : α → Prop), p.Costs height n Q →
+    ∀ (p : Prog α) (s : ProgState) (n : ℕ) (Q : α → Prop), p.Costs height n Q →
       (∀ r ∈ s.roots, r.2.1 ≤ height) → s.sponge.pending.length ≤ 4 →
-      IsTotalQueryBound (run queryH queryF p s) ((n + s.sponge.pending.length) / 4)
+      IsTotalQueryBound (run callKeccak256 callKeccakF1600 p s) ((n + s.sponge.pending.length) / 4)
   | .ret a, s, n, Q, _, _, _ => trivial
   | .fail, s, n, Q, _, _, _ => trivial
   | .read k, s, n, Q, hp, hs, hk => by
@@ -427,7 +427,7 @@ theorem isTotalQueryBound_run {α : Type} (height : ℕ) :
 
 /-- A program of cost `n`, run on a proof from any seed, makes at most `n / 4` queries. -/
 theorem isTotalQueryBound_runProof {P : Prog Bool} {height n : ℕ} (hP : P.CostLE height n)
-    (seed : KState) (π : Proof) : IsTotalQueryBound (runProof queryH queryF P seed π) (n / 4) := by
+    (seed : KeccakState) (π : Proof) : IsTotalQueryBound (runProof callKeccak256 callKeccakF1600 P seed π) (n / 4) := by
   unfold runProof
   rw [← Nat.add_zero (n / 4)]
   refine isTotalQueryBound_bind ((isTotalQueryBound_run height P _ n _ hP
@@ -437,7 +437,7 @@ theorem isTotalQueryBound_runProof {P : Prog Bool} {height n : ℕ} (hP : P.Cost
 /-- The seeding's hash steps make one query each. -/
 theorem isTotalQueryBound_hsRun :
     ∀ (fs : List (List Digest → Bytes)) (ds : List Digest),
-      IsTotalQueryBound (Seed.hsRun queryH fs ds) fs.length
+      IsTotalQueryBound (Seed.hsRun callKeccak256 fs ds) fs.length
   | [], ds => trivial
   | f :: fs, ds => by
     simp only [Seed.hsRun, List.length_cons]
@@ -445,7 +445,7 @@ theorem isTotalQueryBound_hsRun :
 
 /-- The seed makes `|σ.hs| + 1` queries. -/
 theorem isTotalQueryBound_seedRun (σ : Seed) :
-    IsTotalQueryBound (σ.run queryH queryF) (σ.hs.length + 1) := by
+    IsTotalQueryBound (σ.run callKeccak256 callKeccakF1600) (σ.hs.length + 1) := by
   unfold Seed.run
   exact isTotalQueryBound_bind (isTotalQueryBound_hsRun _ _) fun ds ↦
     isTotalQueryBound_queryF_bind (n := 0) _ fun _ ↦ isTotalQueryBound_pure' _ 0

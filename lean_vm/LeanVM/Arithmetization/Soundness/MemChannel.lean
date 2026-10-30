@@ -29,7 +29,7 @@ permutations of each other. The counts of the reads are nonzero (`CountsNonzero`
 fewer than `2^64 - 1` reads (`opReads_length_lt`, from `Caps`: at most nine reads per row, `2^32`
 rows per table, six tables), and each finalize has a seed's key. So `lookup_sound` makes every
 read's key, its address and limbs, a seed's: `(g^i, m_i)`, which is a correct read of word `i`
-(`MemImage.read_gpow`, as `κ ≤ 32`).
+(`MemoryImage.read_gpow`, as `κ ≤ 32`).
 
 ## Wrong readings excluded
 
@@ -190,7 +190,7 @@ theorem mem_channel_sound (h : SatisfiedByB prog input w) :
   have hκ : (imageOf w.data).1 < 64 := lt_of_le_of_lt h.caps.le_maxLogMem (by decide)
   show (imageOf w.data).2.read m.addr = some (E.ofLimbs m.v[0] m.v[1] m.v[2])
   rw [show m.addr = gpow j from h1, show m.v = limbsOf (imageOf w.data).2 j from h2,
-    MemImage.read_gpow hκ]
+    MemoryImage.read_gpow hκ]
   simp only [limbsOf]
   exact congrArg some (ofLimbs_limb _).symm
 

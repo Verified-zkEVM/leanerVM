@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Child.RefuseZero
 
-  The statement's zero-challenge refusal (`Prog.refuseZero`, a zero refused at every sampled
+  The statement's zero-challenge refusal (`Prog.refusingZeroChallenge`, a zero refused at every sampled
   challenge) against the guest's (`Limits.verifyDeferredNZ`, `Budget.verifierNZ`, a zero refused
   at the fold, tail and level batching challenges only): it accepts less, and it is a refusal of
   zero challenges in the sense of `NZ`, so the random-oracle bound of the guest's carries over.
@@ -14,12 +14,12 @@ public import LeanVM.Guest.Child.NZRun
 /-!
 # Refusing a zero challenge anywhere
 
-`P.refuseZero` is `P` with every sampled challenge `0` a failure (`Statement/LeanVmGuest.lean`).
+`P.refusingZeroChallenge` is `P` with every sampled challenge `0` a failure (`Statement/LeanVmGuest.lean`).
 
 * It is a refusal of zero challenges of `P` (`nz_refuseZero`) and only fails more
   (`refines_refuseZero`), so the completeness argument of `NZ` programs applies to it as it is.
 * It refuses at least what any refusal of zero challenges `Q` of `P` refuses
-  (`refines_refuseZero_of_nz`: `NZ Q P → Refines P.refuseZero Q`), so a proof the statement's
+  (`refines_refuseZero_of_nz`: `NZ Q P → Refines P.refusingZeroChallenge Q`), so a proof the statement's
   refusing verifier accepts is accepted by the guest's (`verifyDeferredNZ_of_rz`,
   `verifierNZ_of_rz`).
 * It commutes with sequencing (`refuseZero_bind`), so a run of the computed verifier refusing zero
@@ -35,10 +35,10 @@ open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash LeanVM.Node
 
 variable {α β : Type}
 
-@[simp] theorem refuseZero_ret (a : α) : (Prog.ret a).refuseZero = Prog.ret a := rfl
+@[simp] theorem refuseZero_ret (a : α) : (Prog.ret a).refusingZeroChallenge = Prog.ret a := rfl
 
 @[simp] theorem refuseZero_require (c : Prop) [Decidable c] :
-    (Prog.require c).refuseZero = Prog.require c := by
+    (Prog.require c).refusingZeroChallenge = Prog.require c := by
   unfold Prog.require
   split <;> rfl
 
@@ -48,37 +48,37 @@ theorem bind_ite_fail (c : Prop) [Decidable c] (P : Prog α) (f : α → Prog β
 
 /-- **Refusing zero challenges commutes with sequencing.** -/
 theorem refuseZero_bind : ∀ (P : Prog α) (f : α → Prog β),
-    (P.bind f).refuseZero = P.refuseZero.bind fun a ↦ (f a).refuseZero
+    (P.bind f).refusingZeroChallenge = P.refusingZeroChallenge.bind fun a ↦ (f a).refusingZeroChallenge
   | .ret _, _ => rfl
   | .fail, _ => rfl
   | .read k, f => by
-    show Prog.read (fun x ↦ ((k x).bind f).refuseZero) =
-      Prog.read fun x ↦ (k x).refuseZero.bind fun a ↦ (f a).refuseZero
+    show Prog.read (fun x ↦ ((k x).bind f).refusingZeroChallenge) =
+      Prog.read fun x ↦ (k x).refusingZeroChallenge.bind fun a ↦ (f a).refusingZeroChallenge
     exact congrArg _ (funext fun x ↦ refuseZero_bind (k x) f)
   | .sample k, f => by
-    show Prog.sample (fun x ↦ if x = 0 then Prog.fail else ((k x).bind f).refuseZero) =
-      Prog.sample fun x ↦ (if x = 0 then Prog.fail else (k x).refuseZero).bind
-        fun a ↦ (f a).refuseZero
+    show Prog.sample (fun x ↦ if x = 0 then Prog.fail else ((k x).bind f).refusingZeroChallenge) =
+      Prog.sample fun x ↦ (if x = 0 then Prog.fail else (k x).refusingZeroChallenge).bind
+        fun a ↦ (f a).refusingZeroChallenge
     refine congrArg _ (funext fun x ↦ ?_)
     rw [bind_ite_fail, refuseZero_bind (k x) f]
   | .grind _ k, f => by
-    show Prog.grind _ ((k.bind f).refuseZero) = Prog.grind _ (k.refuseZero.bind _)
+    show Prog.grind _ ((k.bind f).refusingZeroChallenge) = Prog.grind _ (k.refusingZeroChallenge.bind _)
     rw [refuseZero_bind k f]
   | .commit _ _ k, f => by
-    show Prog.commit _ _ ((k.bind f).refuseZero) = Prog.commit _ _ (k.refuseZero.bind _)
+    show Prog.commit _ _ ((k.bind f).refusingZeroChallenge) = Prog.commit _ _ (k.refusingZeroChallenge.bind _)
     rw [refuseZero_bind k f]
   | .query _ _ k, f => by
-    show Prog.query _ _ (fun r ↦ ((k r).bind f).refuseZero) =
-      Prog.query _ _ fun r ↦ (k r).refuseZero.bind fun a ↦ (f a).refuseZero
+    show Prog.query _ _ (fun r ↦ ((k r).bind f).refusingZeroChallenge) =
+      Prog.query _ _ fun r ↦ (k r).refusingZeroChallenge.bind fun a ↦ (f a).refusingZeroChallenge
     exact congrArg _ (funext fun r ↦ refuseZero_bind (k r) f)
 
 /-- **Refusing zero challenges anywhere is a refusal of zero challenges.** -/
-theorem nz_refuseZero : ∀ P : Prog α, NZ P.refuseZero P
+theorem nz_refuseZero : ∀ P : Prog α, NZ P.refusingZeroChallenge P
   | .ret a => .ret a
   | .fail => .fail
   | .read k => .read fun x ↦ nz_refuseZero (k x)
   | .sample k => .sample fun c hc ↦ by
-      show NZ (if c = 0 then Prog.fail else (k c).refuseZero) (k c)
+      show NZ (if c = 0 then Prog.fail else (k c).refusingZeroChallenge) (k c)
       simp only [hc, ↓reduceIte]
       exact nz_refuseZero (k c)
   | .grind _ k => .grind (nz_refuseZero k)
@@ -86,12 +86,12 @@ theorem nz_refuseZero : ∀ P : Prog α, NZ P.refuseZero P
   | .query _ _ k => .query fun r ↦ nz_refuseZero (k r)
 
 /-- **Refusing zero challenges anywhere only fails more.** -/
-theorem refines_refuseZero : ∀ P : Prog α, Limits.Refines P.refuseZero P
+theorem refines_refuseZero : ∀ P : Prog α, Limits.Refines P.refusingZeroChallenge P
   | .ret a => .ret a
   | .fail => .fail _
   | .read k => .read fun x ↦ refines_refuseZero (k x)
   | .sample k => .sample fun c ↦ by
-      show Limits.Refines (if c = 0 then Prog.fail else (k c).refuseZero) (k c)
+      show Limits.Refines (if c = 0 then Prog.fail else (k c).refusingZeroChallenge) (k c)
       split
       · exact .fail _
       · exact refines_refuseZero (k c)
@@ -101,7 +101,7 @@ theorem refines_refuseZero : ∀ P : Prog α, Limits.Refines P.refuseZero P
 
 /-- **Refusing zero challenges anywhere refuses at least what any refusal of zero challenges
 does.** -/
-theorem refines_refuseZero_of_nz {Q P : Prog α} (h : NZ Q P) : Limits.Refines P.refuseZero Q := by
+theorem refines_refuseZero_of_nz {Q P : Prog α} (h : NZ Q P) : Limits.Refines P.refusingZeroChallenge Q := by
   induction h with
   | ret a => exact .ret a
   | fail => exact .fail _
@@ -120,10 +120,10 @@ theorem refines_refuseZero_of_nz {Q P : Prog α} (h : NZ Q P) : Limits.Refines P
 /-! ## The deferring verifier and the verifier -/
 
 /-- **The statement's refusing deferring verifier accepts only what the guest's accepts.** -/
-theorem verifyDeferredNZ_of_rz {bytecode : List K} {iv publicInput : Digest} {c : FixedClaims}
-    {π : Proof} (h : Limits.verifyDeferredRZ bytecode iv publicInput c π = true) :
+theorem verifyDeferredNZ_of_rz {bytecode : List K} {iv publicInput : Digest} {c : BytecodeClaim}
+    {π : Proof} (h : Limits.verifyDeferredRefusingZero bytecode iv publicInput c π = true) :
     Limits.verifyDeferredNZ bytecode iv publicInput c π = true := by
-  unfold Limits.verifyDeferredRZ at h
+  unfold Limits.verifyDeferredRefusingZero at h
   unfold Limits.verifyDeferredNZ
   refine Limits.runProof_refines (refines_refuseZero_of_nz ?_) _ π h
   rw [deferredProgramNZ_eq, deferredProgram_eq]
@@ -132,16 +132,16 @@ theorem verifyDeferredNZ_of_rz {bytecode : List K} {iv publicInput : Digest} {c 
 /-- A child the guest program accepts is accepted by the guest's deferring verifier refusing a
 zero fold, tail or level batching challenge. -/
 theorem _root_.LeanVM.Guest.Limits.verifyDeferredNZ_of_childOk {bytecode : List K} {seed : Digest}
-    {c : Child} (h : ChildOk bytecode seed c) :
-    Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.fresh c.proof =
+    {c : Child} (h : AcceptableChild bytecode seed c) :
+    Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof =
       true :=
   verifyDeferredNZ_of_rz h.noZeroChallenge
 
 /-- **The statement's refusing verifier accepts only what the guest's accepts.** -/
 theorem verifierNZ_of_rz {prog : Program} {input : PublicInput} {π : Proof}
-    (h : Budget.verifierRZ (m := Id) keccak256 keccakF prog input π = true) :
-    Budget.verifierNZ (m := Id) keccak256 keccakF prog input π = true := by
-  unfold Budget.verifierRZ at h
+    (h : Budget.verifierRefusingZero (m := Id) keccak256 keccakF1600 prog input π = true) :
+    Budget.verifierNZ (m := Id) keccak256 keccakF1600 prog input π = true := by
+  unfold Budget.verifierRefusingZero at h
   unfold Budget.verifierNZ
   refine Limits.runProof_refines (refines_refuseZero_of_nz ?_) _ π h
   rw [leanVmProgram_eq]
@@ -151,16 +151,16 @@ theorem verifierNZ_of_rz {prog : Program} {input : PublicInput} {π : Proof}
 
 /-- **An accepted run with the computed value, refusing zero challenges, is the run with a true
 claim**, refusing zero challenges: the claim of the value at the point the run evaluates. -/
-theorem run_claimed_of_computed_rz (H : Bytes → Id Digest) (F : KState → Id KState)
+theorem run_claimed_of_computed_rz (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
     (opening : ℕ → ℕ → List StackClaim → Prog Unit) (bytecode : List K) (publicInput : Digest)
-    (k : Unit → Prog Bool) {st : St} {r : Bool × St}
-    (h : Compile.run H F ((execWith computedValue opening bytecode publicInput).bind k).refuseZero st =
+    (k : Unit → Prog Bool) {st : ProgState} {r : Bool × ProgState}
+    (h : Compile.run H F ((execWith computedValue opening bytecode publicInput).bind k).refusingZeroChallenge st =
       some r) :
-    ∃ c : FixedClaims, c.Holds bytecode ∧
-      Compile.run H F ((execWith (claimedValue c) opening bytecode publicInput).bind k).refuseZero st =
+    ∃ c : BytecodeClaim, c.Holds bytecode ∧
+      Compile.run H F ((execWith (claimedValue c) opening bytecode publicInput).bind k).refusingZeroChallenge st =
         some r := by
   rw [execSplit, Prog.bind_assoc, refuseZero_bind, run_bind'] at h
-  rcases hp : Compile.run H F (prefixProg bytecode).refuseZero st with _ | ⟨y, s1⟩
+  rcases hp : Compile.run H F (prefixProg bytecode).refusingZeroChallenge st with _ | ⟨y, s1⟩
   · rw [hp] at h; simp at h
   rw [hp] at h
   have hy : y.layout.bytecode = bytecode :=
@@ -175,18 +175,18 @@ theorem run_claimed_of_computed_rz (H : Bytes → Id Digest) (F : KState → Id 
 
 /-- **An accepted proof with the computed value, refusing zero challenges, is accepted with a true
 claim**, refusing zero challenges. -/
-theorem runProof_claimed_of_computed_rz (H : Bytes → Id Digest) (F : KState → Id KState)
+theorem runProof_claimed_of_computed_rz (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
     (opening : ℕ → ℕ → List StackClaim → Prog Unit) (bytecode : List K) (publicInput : Digest)
-    {sd : KState} {π : Proof}
+    {sd : KeccakState} {π : Proof}
     (h : Id.run (runProof H F ((execWith computedValue opening bytecode publicInput).bind
-      fun _ ↦ Prog.ret true).refuseZero sd π) = true) :
-    ∃ c : FixedClaims, c.Holds bytecode ∧
+      fun _ ↦ Prog.ret true).refusingZeroChallenge sd π) = true) :
+    ∃ c : BytecodeClaim, c.Holds bytecode ∧
       Id.run (runProof H F ((execWith (claimedValue c) opening bytecode publicInput).bind
-        fun _ ↦ Prog.ret true).refuseZero sd π) = true := by
+        fun _ ↦ Prog.ret true).refusingZeroChallenge sd π) = true := by
   unfold runProof at h ⊢
   revert h
   match hr : Compile.run H F ((execWith computedValue opening bytecode publicInput).bind
-      fun _ ↦ Prog.ret true).refuseZero ⟨⟨sd, []⟩, π.stream, π.openings, []⟩ with
+      fun _ ↦ Prog.ret true).refusingZeroChallenge ⟨⟨sd, []⟩, π.stream, π.openings, []⟩ with
   | some (true, s) =>
     intro h
     obtain ⟨c, hc, e⟩ := run_claimed_of_computed_rz H F opening bytecode publicInput _ hr

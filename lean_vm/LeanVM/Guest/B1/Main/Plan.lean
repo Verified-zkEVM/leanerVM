@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.Plan
 
-  The honest coverage plan (`Hints.plan`): every claim made takes one slot, the slot holds that
+  The honest coverage plan (`Hints.coveragePlan`): every claim made takes one slot, the slot holds that
   claim, no slot is taken twice, and, when every declared claim is made as often as it is
   declared (`Limits`), every slot is taken.
 -/
@@ -13,7 +13,7 @@ public import LeanVM.Guest.Limits
 /-!
 # The coverage plan
 
-`Hints.plan D R Cs` assigns the claims made, the raw ones `R` then each child's `Cs[c]`, slots
+`Hints.coveragePlan D R Cs` assigns the claims made, the raw ones `R` then each child's `Cs[c]`, slots
 in the table `D ++ dups`: a claim takes the first free declared index holding it, else a new
 duplicate slot. With `made := R ++ Cs.flatten` and `slots` the slots in taking order:
 
@@ -314,19 +314,19 @@ def st0 (D : List α) : List Bool × List α := (D.map fun _ ↦ false, [])
 def made (R : List α) (Cs : List (List α)) : List α := R ++ Cs.flatten
 
 /-- The slots taken, in taking order. -/
-def slotsOf (p : Region α) : List ℕ := p.raw ++ p.children.flatten
+def slotsOf (p : CoverageRegion α) : List ℕ := p.directSlots ++ p.childSlots.flatten
 
 omit [LawfulBEq α] in
 theorem plan_parts (D R : List α) (Cs : List (List α)) :
-    (plan D R Cs).raw = (takeSlots D (st0 D) R).1 ∧
-      (plan D R Cs).children = (takeSlotsAll D (takeSlots D (st0 D) R).2 Cs).1 ∧
-      (plan D R Cs).dups = (takeSlotsAll D (takeSlots D (st0 D) R).2 Cs).2.2 := by
+    (coveragePlan D R Cs).directSlots = (takeSlots D (st0 D) R).1 ∧
+      (coveragePlan D R Cs).childSlots = (takeSlotsAll D (takeSlots D (st0 D) R).2 Cs).1 ∧
+      (coveragePlan D R Cs).duplicates = (takeSlotsAll D (takeSlots D (st0 D) R).2 Cs).2.2 := by
   exact ⟨rfl, rfl, rfl⟩
 
 omit [LawfulBEq α] in
 theorem plan_slots (D R : List α) (Cs : List (List α)) :
-    slotsOf (plan D R Cs) = (takeSlots D (st0 D) (made R Cs)).1 ∧
-      (plan D R Cs).dups = (takeSlots D (st0 D) (made R Cs)).2.2 := by
+    slotsOf (coveragePlan D R Cs) = (takeSlots D (st0 D) (made R Cs)).1 ∧
+      (coveragePlan D R Cs).duplicates = (takeSlots D (st0 D) (made R Cs)).2.2 := by
   obtain ⟨h1, h2, h3⟩ := plan_parts D R Cs
   obtain ⟨e1, e2, -⟩ := takeSlotsAll_eq D Cs (takeSlots D (st0 D) R).2
   rw [slotsOf, made, takeSlots_append, h1, h2, h3, e1, e2]
@@ -334,7 +334,7 @@ theorem plan_slots (D R : List α) (Cs : List (List α)) :
 
 /-- **The plan's invariant**: the claims made, at their slots in `D ++ dups`. -/
 theorem plan_inv (D R : List α) (Cs : List (List α)) :
-    Inv D ((takeSlots D (st0 D) (made R Cs)).2) (made R Cs) (slotsOf (plan D R Cs)) := by
+    Inv D ((takeSlots D (st0 D) (made R Cs)).2) (made R Cs) (slotsOf (coveragePlan D R Cs)) := by
   rw [(plan_slots D R Cs).1]
   have := inv_takeSlots (made R Cs) (inv_nil D)
   simp only [List.nil_append] at this
@@ -342,15 +342,15 @@ theorem plan_inv (D R : List α) (Cs : List (List α)) :
 
 omit [LawfulBEq α] in
 theorem plan_dups_eq (D R : List α) (Cs : List (List α)) :
-    (takeSlots D (st0 D) (made R Cs)).2.2 = (plan D R Cs).dups := (plan_slots D R Cs).2.symm
+    (takeSlots D (st0 D) (made R Cs)).2.2 = (coveragePlan D R Cs).duplicates := (plan_slots D R Cs).2.symm
 
 /-- **One slot per claim made.** -/
 theorem plan_length (D R : List α) (Cs : List (List α)) :
-    (slotsOf (plan D R Cs)).length = (made R Cs).length := (plan_inv D R Cs).ilen
+    (slotsOf (coveragePlan D R Cs)).length = (made R Cs).length := (plan_inv D R Cs).ilen
 
 /-- **Every slot is in the table.** -/
 theorem plan_lt (D R : List α) (Cs : List (List α)) :
-    ∀ i ∈ slotsOf (plan D R Cs), i < (D ++ (plan D R Cs).dups).length := by
+    ∀ i ∈ slotsOf (coveragePlan D R Cs), i < (D ++ (coveragePlan D R Cs).duplicates).length := by
   intro i hi
   have := (plan_inv D R Cs).lt i hi
   rw [plan_dups_eq] at this
@@ -358,20 +358,20 @@ theorem plan_lt (D R : List α) (Cs : List (List α)) :
 
 /-- **The table holds each claim at its slot.** -/
 theorem plan_claim (D R : List α) (Cs : List (List α)) (k : ℕ)
-    (hk : k < (slotsOf (plan D R Cs)).length) :
-    (D ++ (plan D R Cs).dups)[(slotsOf (plan D R Cs))[k]]? =
+    (hk : k < (slotsOf (coveragePlan D R Cs)).length) :
+    (D ++ (coveragePlan D R Cs).duplicates)[(slotsOf (coveragePlan D R Cs))[k]]? =
       some ((made R Cs)[k]'(plan_length D R Cs ▸ hk)) := by
   have := (plan_inv D R Cs).claim k hk
   rwa [plan_dups_eq] at this
 
 /-- **No slot is taken twice.** -/
-theorem plan_nodup (D R : List α) (Cs : List (List α)) : (slotsOf (plan D R Cs)).Nodup :=
+theorem plan_nodup (D R : List α) (Cs : List (List α)) : (slotsOf (coveragePlan D R Cs)).Nodup :=
   (plan_inv D R Cs).nodup
 
 /-- **Every slot is taken**, when every declared claim is made as often as it is declared. -/
 theorem plan_cover (D R : List α) (Cs : List (List α))
     (hc : ∀ x, D.count x ≤ (made R Cs).count x) :
-    ∀ t < (D ++ (plan D R Cs).dups).length, t ∈ slotsOf (plan D R Cs) := by
+    ∀ t < (D ++ (coveragePlan D R Cs).duplicates).length, t ∈ slotsOf (coveragePlan D R Cs) := by
   have h := plan_inv D R Cs
   intro t ht
   rw [List.length_append] at ht
@@ -387,7 +387,7 @@ theorem plan_cover (D R : List α) (Cs : List (List α))
 /-- **The slots are the table's indices**, each once. -/
 theorem plan_perm (D R : List α) (Cs : List (List α))
     (hc : ∀ x, D.count x ≤ (made R Cs).count x) :
-    (slotsOf (plan D R Cs)).Perm (List.range (D ++ (plan D R Cs).dups).length) :=
+    (slotsOf (coveragePlan D R Cs)).Perm (List.range (D ++ (coveragePlan D R Cs).duplicates).length) :=
   (List.perm_ext_iff_of_nodup (plan_nodup D R Cs) List.nodup_range).mpr fun t =>
     ⟨fun ht => List.mem_range.mpr (plan_lt D R Cs t ht),
       fun ht => plan_cover D R Cs hc t (List.mem_range.mp ht)⟩
@@ -395,7 +395,7 @@ theorem plan_perm (D R : List α) (Cs : List (List α))
 /-- **The table has one slot per claim made.** -/
 theorem plan_table_length (D R : List α) (Cs : List (List α))
     (hc : ∀ x, D.count x ≤ (made R Cs).count x) :
-    (D ++ (plan D R Cs).dups).length = (made R Cs).length := by
+    (D ++ (coveragePlan D R Cs).duplicates).length = (made R Cs).length := by
   rw [← plan_length, (plan_perm D R Cs hc).length_eq, List.length_range]
 
 /-! ## The segments -/
@@ -425,12 +425,12 @@ theorem getElem_flatten_sum {β : Type} : ∀ (L : List (List β)) (c k : ℕ) (
     exact e
 
 omit [LawfulBEq α] in
-theorem plan_raw_length (D R : List α) (Cs : List (List α)) : (plan D R Cs).raw.length = R.length := by
+theorem plan_raw_length (D R : List α) (Cs : List (List α)) : (coveragePlan D R Cs).directSlots.length = R.length := by
   rw [(plan_parts D R Cs).1, takeSlots_length]
 
 omit [LawfulBEq α] in
 theorem plan_children_lengths (D R : List α) (Cs : List (List α)) :
-    (plan D R Cs).children.map List.length = Cs.map List.length := by
+    (coveragePlan D R Cs).childSlots.map List.length = Cs.map List.length := by
   rw [(plan_parts D R Cs).2.1]
   exact (takeSlotsAll_eq D Cs _).2.2
 
@@ -441,28 +441,28 @@ def base (R : List α) (Cs : List (List α)) (c : ℕ) : ℕ :=
 /-- **Child `c`'s claim `k`**: its slot is the plan's, and the table holds it there. -/
 theorem plan_child (D R : List α) (Cs : List (List α)) {c k : ℕ} (hc : c < Cs.length)
     (hk : k < (Cs[c]).length) :
-    ∃ (hc' : c < (plan D R Cs).children.length) (hk' : k < ((plan D R Cs).children[c]).length)
-      (hs : base R Cs c + k < (slotsOf (plan D R Cs)).length),
-      (slotsOf (plan D R Cs))[base R Cs c + k] = ((plan D R Cs).children[c])[k] ∧
-      (D ++ (plan D R Cs).dups)[((plan D R Cs).children[c])[k]]? = some ((Cs[c])[k]) := by
+    ∃ (hc' : c < (coveragePlan D R Cs).childSlots.length) (hk' : k < ((coveragePlan D R Cs).childSlots[c]).length)
+      (hs : base R Cs c + k < (slotsOf (coveragePlan D R Cs)).length),
+      (slotsOf (coveragePlan D R Cs))[base R Cs c + k] = ((coveragePlan D R Cs).childSlots[c])[k] ∧
+      (D ++ (coveragePlan D R Cs).duplicates)[((coveragePlan D R Cs).childSlots[c])[k]]? = some ((Cs[c])[k]) := by
   have hl := plan_children_lengths D R Cs
-  have hlen : (plan D R Cs).children.length = Cs.length := by
+  have hlen : (coveragePlan D R Cs).childSlots.length = Cs.length := by
     simpa using congrArg List.length hl
-  have hc' : c < (plan D R Cs).children.length := by omega
-  have hlc : ((plan D R Cs).children[c]).length = (Cs[c]).length := by
+  have hc' : c < (coveragePlan D R Cs).childSlots.length := by omega
+  have hlc : ((coveragePlan D R Cs).childSlots[c]).length = (Cs[c]).length := by
     have := congrArg (·[c]?) hl
     simpa [List.getElem?_map, hc, hc'] using this
-  have hk' : k < ((plan D R Cs).children[c]).length := by omega
-  have htake : ((plan D R Cs).children.take c).map List.length = (Cs.take c).map List.length := by
+  have hk' : k < ((coveragePlan D R Cs).childSlots[c]).length := by omega
+  have htake : ((coveragePlan D R Cs).childSlots.take c).map List.length = (Cs.take c).map List.length := by
     rw [List.map_take, hl, ← List.map_take]
-  obtain ⟨hf, ef⟩ := getElem_flatten_sum (plan D R Cs).children c k hc' hk'
+  obtain ⟨hf, ef⟩ := getElem_flatten_sum (coveragePlan D R Cs).childSlots c k hc' hk'
   obtain ⟨hf2, ef2⟩ := getElem_flatten_sum Cs c k hc hk
   have hraw := plan_raw_length D R Cs
-  have hs : base R Cs c + k < (slotsOf (plan D R Cs)).length := by
+  have hs : base R Cs c + k < (slotsOf (coveragePlan D R Cs)).length := by
     rw [slotsOf, List.length_append, hraw]; rw [htake] at hf; unfold base; omega
   refine ⟨hc', hk', hs, ?_, ?_⟩
-  · have : (slotsOf (plan D R Cs))[base R Cs c + k] =
-        ((plan D R Cs).children.flatten)[((((plan D R Cs).children.take c).map List.length).sum + k)]'hf := by
+  · have : (slotsOf (coveragePlan D R Cs))[base R Cs c + k] =
+        ((coveragePlan D R Cs).childSlots.flatten)[((((coveragePlan D R Cs).childSlots.take c).map List.length).sum + k)]'hf := by
       simp only [slotsOf, base]
       rw [List.getElem_append_right (by rw [hraw]; omega)]
       simp only [hraw, htake]
@@ -476,9 +476,9 @@ theorem plan_child (D R : List α) (Cs : List (List α)) {c k : ℕ} (hc : c < C
       exact ef2
     have := plan_claim D R Cs (base R Cs c + k) hs
     rw [hm] at this
-    have e : (slotsOf (plan D R Cs))[base R Cs c + k] = ((plan D R Cs).children[c])[k] := by
-      have : (slotsOf (plan D R Cs))[base R Cs c + k] =
-          ((plan D R Cs).children.flatten)[((((plan D R Cs).children.take c).map List.length).sum + k)]'hf := by
+    have e : (slotsOf (coveragePlan D R Cs))[base R Cs c + k] = ((coveragePlan D R Cs).childSlots[c])[k] := by
+      have : (slotsOf (coveragePlan D R Cs))[base R Cs c + k] =
+          ((coveragePlan D R Cs).childSlots.flatten)[((((coveragePlan D R Cs).childSlots.take c).map List.length).sum + k)]'hf := by
         simp only [slotsOf, base]
         rw [List.getElem_append_right (by rw [hraw]; omega)]
         simp only [hraw, htake]
@@ -488,13 +488,13 @@ theorem plan_child (D R : List α) (Cs : List (List α)) {c k : ℕ} (hc : c < C
 
 /-- **The raw claim `k`**: its slot is the plan's, and the table holds it there. -/
 theorem plan_raw (D R : List α) (Cs : List (List α)) {k : ℕ} (hk : k < R.length) :
-    ∃ (hk' : k < (plan D R Cs).raw.length) (hs : k < (slotsOf (plan D R Cs)).length),
-      (slotsOf (plan D R Cs))[k] = (plan D R Cs).raw[k] ∧
-      (D ++ (plan D R Cs).dups)[(plan D R Cs).raw[k]]? = some R[k] := by
+    ∃ (hk' : k < (coveragePlan D R Cs).directSlots.length) (hs : k < (slotsOf (coveragePlan D R Cs)).length),
+      (slotsOf (coveragePlan D R Cs))[k] = (coveragePlan D R Cs).directSlots[k] ∧
+      (D ++ (coveragePlan D R Cs).duplicates)[(coveragePlan D R Cs).directSlots[k]]? = some R[k] := by
   have hraw := plan_raw_length D R Cs
-  have hk' : k < (plan D R Cs).raw.length := by omega
-  have hs : k < (slotsOf (plan D R Cs)).length := by rw [slotsOf, List.length_append]; omega
-  have e : (slotsOf (plan D R Cs))[k] = (plan D R Cs).raw[k] := by
+  have hk' : k < (coveragePlan D R Cs).directSlots.length := by omega
+  have hs : k < (slotsOf (coveragePlan D R Cs)).length := by rw [slotsOf, List.length_append]; omega
+  have e : (slotsOf (coveragePlan D R Cs))[k] = (coveragePlan D R Cs).directSlots[k] := by
     simp only [slotsOf]; rw [List.getElem_append_left hk']
   refine ⟨hk', hs, e, ?_⟩
   have := plan_claim D R Cs k hs
@@ -512,18 +512,18 @@ section Node
 variable (s : NodeStatement) (w : NodeWitness)
 
 /-- The leanXMSS region's plan, as `honestPushes` makes it. -/
-def xPlan : Region XmssClaim :=
-  plan s.claims.xmss ((direct s.claims.xmss w.xmss).map (·.1)) (w.children.map (·.statement.claims.xmss))
+def xPlan : CoverageRegion XmssClaim :=
+  coveragePlan s.claims.xmss ((heldDirectly s.claims.xmss w.xmss).map (·.1)) (w.children.map (·.statement.claims.xmss))
 
 /-- The leanSPHINCS region's plan. -/
-def sPlan : Region SphincsClaim :=
-  plan s.claims.sphincs ((direct s.claims.sphincs w.sphincs).map (·.1))
+def sPlan : CoverageRegion SphincsClaim :=
+  coveragePlan s.claims.sphincs ((heldDirectly s.claims.sphincs w.sphincs).map (·.1))
     (w.children.map (·.statement.claims.sphincs))
 
 /-- **The coverage table's slots** are the two regions' tables'. -/
-theorem coverage_eq : coverage s w = (s.claims.xmss ++ (xPlan s w).dups).length +
-    (s.claims.sphincs ++ (sPlan s w).dups).length := by
-  simp only [coverage, xPlan, sPlan, List.length_append]
+theorem coverage_eq : coverageSlots s w = (s.claims.xmss ++ (xPlan s w).duplicates).length +
+    (s.claims.sphincs ++ (sPlan s w).duplicates).length := by
+  simp only [coverageSlots, xPlan, sPlan, List.length_append]
   omega
 
 theorem made_count {α : Type} [BEq α] {R : List α} {Cs : List (List α)} (x : α) :
@@ -533,27 +533,27 @@ theorem made_count {α : Type} [BEq α] {R : List α} {Cs : List (List α)} (x :
 variable {bytecode : List K} {s w}
 
 theorem xPlan_held (hl : Limits s w) : ∀ x, s.claims.xmss.count x ≤
-    (made ((direct s.claims.xmss w.xmss).map (·.1)) (w.children.map (·.statement.claims.xmss))).count x :=
+    (made ((heldDirectly s.claims.xmss w.xmss).map (·.1)) (w.children.map (·.statement.claims.xmss))).count x :=
   fun x => by rw [made_count, List.map_map]; exact hl.xmssHeld x
 
 theorem sPlan_held (hl : Limits s w) : ∀ x, s.claims.sphincs.count x ≤
-    (made ((direct s.claims.sphincs w.sphincs).map (·.1))
+    (made ((heldDirectly s.claims.sphincs w.sphincs).map (·.1))
       (w.children.map (·.statement.claims.sphincs))).count x :=
   fun x => by rw [made_count, List.map_map]; exact hl.sphincsHeld x
 
 /-- **Under `Limits`, each region's slots are its table's indices.** -/
 theorem xPlan_perm (hl : Limits s w) :
-    (slotsOf (xPlan s w)).Perm (List.range (s.claims.xmss ++ (xPlan s w).dups).length) :=
+    (slotsOf (xPlan s w)).Perm (List.range (s.claims.xmss ++ (xPlan s w).duplicates).length) :=
   plan_perm _ _ _ (xPlan_held hl)
 
 theorem sPlan_perm (hl : Limits s w) :
-    (slotsOf (sPlan s w)).Perm (List.range (s.claims.sphincs ++ (sPlan s w).dups).length) :=
+    (slotsOf (sPlan s w)).Perm (List.range (s.claims.sphincs ++ (sPlan s w).duplicates).length) :=
   plan_perm _ _ _ (sPlan_held hl)
 
 /-- **Under `Limits`, the coverage table has one slot per claim made**, raw or by a child. -/
-theorem coverage_made (hl : Limits s w) : coverage s w =
-    (made ((direct s.claims.xmss w.xmss).map (·.1)) (w.children.map (·.statement.claims.xmss))).length +
-    (made ((direct s.claims.sphincs w.sphincs).map (·.1))
+theorem coverage_made (hl : Limits s w) : coverageSlots s w =
+    (made ((heldDirectly s.claims.xmss w.xmss).map (·.1)) (w.children.map (·.statement.claims.xmss))).length +
+    (made ((heldDirectly s.claims.sphincs w.sphincs).map (·.1))
       (w.children.map (·.statement.claims.sphincs))).length := by
   rw [coverage_eq, xPlan, sPlan, plan_table_length _ _ _ (xPlan_held hl),
     plan_table_length _ _ _ (sPlan_held hl)]

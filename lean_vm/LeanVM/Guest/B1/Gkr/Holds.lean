@@ -312,7 +312,7 @@ theorem vbg_walk {rd : Reader} {σ : Val} {kret : List E → Prop}
 other than `0`, it runs the specification's GKR walk and count check (`gkrPhase`) on the words it
 reads, writes the point to `zeta` and returns the sponge's capacity, the cursor past the words
 and the three values. -/
-theorem verify_bus_gkr_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) :
+theorem verify_bus_gkr_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) :
     verify_bus_gkr_Spec Lm.read := by
   intro args rets hne hrel
   obtain ⟨fn, hf, hp, hb⟩ := vbgFound

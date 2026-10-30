@@ -15,7 +15,7 @@ public import LeanVM.Guest.Batch.Node
 # `aggregate_claims` on an honest run
 
 `mem_hLmain`: buffer `i` of `main`'s honest words sits at its base. `kid_shapes`: under
-`NodeRel`, every child's two claims on the bytecode have `bytecodeVars` coordinates (the fresh
+`NodeRelation`, every child's two claims on the bytecode have `bytecodeVars` coordinates (the fresh
 one because the deferring verifier accepts its proof). `hkids_words`: `main`'s words hold each
 child's words where `aggregate_claims` reads them. `mainGoalAg`: the children's batching is the
 statement's deferred claim, which `main`'s words hold at `defer_stmt`.
@@ -57,9 +57,9 @@ variable {seed s w}
 
 /-- **The children's claims' shapes**: `bytecodeVars` coordinates each. -/
 theorem kid_shapes {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVars)
-    (hrel : NodeRel bytecode seed s w) : ∀ c ∈ w.children,
-      c.fresh.bytecodePoint.length = bytecodeVars ∧
-        c.statement.defer.bytecodePoint.length = bytecodeVars := by
+    (hrel : NodeRelation bytecode seed s w) : ∀ c ∈ w.children,
+      c.freshClaim.bytecodePoint.length = bytecodeVars ∧
+        c.statement.deferredClaim.bytecodePoint.length = bytecodeVars := by
   have hlog : Nat.log2 bytecode.length = bytecodeVars := by rw [hbl, Nat.log2_two_pow]
   intro c hc
   obtain ⟨hsh, hv⟩ := hrel.2.1 c hc
@@ -67,11 +67,11 @@ theorem kid_shapes {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVars
 
 /-- The children's claims as `aggregate_claims` batches them. -/
 abbrev hKids (seed : Digest) (w : NodeWitness) : List ChildClaims :=
-  w.children.map fun c ↦ ⟨statementDigest seed c.statement, c.fresh, c.statement.defer⟩
+  w.children.map fun c ↦ ⟨statementDigest seed c.statement, c.freshClaim, c.statement.deferredClaim⟩
 
 /-- **`main`'s words hold every child's words** where `aggregate_claims` reads them. -/
 theorem hkids_words {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVars)
-    (hrel : NodeRel bytecode seed s w) {rd : Reader}
+    (hrel : NodeRelation bytecode seed s w) {rd : Reader}
     (hM : B1.Main.MemL rd (hLmain fs fp seed s w)) :
     ∀ c (hc : c < (hKids seed w).length), ChildWordsAt rd (hm fs fp seed s w).a394
       (hm fs fp seed s w).a400 (hm fs fp seed s w).a406 c (hKids seed w)[c] := by
@@ -97,10 +97,10 @@ theorem hkids_words {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVar
   · have := p6 1 (by simp [B1.Digest.digestCells])
     rwa [loadHolds_mul_gen_pow] at this
 
-/-- **`main`'s honest `aggregate_claims` call is complete**: under `NodeRel` and `Limits`, for a
+/-- **`main`'s honest `aggregate_claims` call is complete**: under `NodeRelation` and `Limits`, for a
 bytecode of `2^bytecodeVars` words. -/
 theorem mainGoalAg (cert : String → V → ℕ) {bytecode : List K}
-    (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRel bytecode seed s w)
+    (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)
     (hl : Limits s w) : MainGoalAg fs cert fp seed s w := by
   intro hnc
   have hnc' : w.children.length ≠ 0 := hnc
@@ -108,8 +108,8 @@ theorem mainGoalAg (cert : String → V → ℕ) {bytecode : List K}
   have hb := (nodeRel_iff.mp hrel).2.2.2.2.2
   simp only [hne, ↓reduceIte] at hb
   have hlog : Nat.log2 bytecode.length = bytecodeVars := by rw [hbl, Nat.log2_two_pow]
-  have hrl : w.hints.bytecodeRounds.length = 23 := by
-    have hpt : s.defer.bytecodePoint.length = 23 := by rw [hrel.1, hlog]
+  have hrl : w.batchingHints.sumcheckMessages.length = 23 := by
+    have hpt : s.deferredClaim.bytecodePoint.length = 23 := by rw [hrel.1, hlog]
     rw [(batch_out hb).1, aggOut, aggRun, bsRun_len] at hpt
     exact hpt
   have hdst := mem_hLmain fs fp seed s w (i := 9) (by omega)

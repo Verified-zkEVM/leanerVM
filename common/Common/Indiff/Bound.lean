@@ -272,9 +272,9 @@ theorem prEvent_val_cap_le (β : List (Dg × E)) (c : ACache Msg Dg E C) (h : c 
 /-- The run of a visible forward step without path queries. -/
 theorem visImpl_false_fwd_run (x : SpState Dg E C) (vs : VState Dg E C Msg)
     (c : ACache Msg Dg E C) :
-    (simulateQ (aSpec Msg Dg E C).romImpl ((visImpl P iv false (.inr (.inr (.fwd x)))).run vs)).run
+    (simulateQ (aSpec Msg Dg E C).romImpl ((visImpl P iv false (.inr (.inr (.forward x)))).run vs)).run
       c = ($ᵗ (SpState Dg E C)) >>= fun u ↦ (fun w ↦ ((w.1.1, (w.1.2.1, vs.2.1, vs.2.2 ||
-        ((fwdLookup vs.1.edges x).isNone && decide (w.1.1.2 ∈ knownC iv vs.1)))), w.2)) <$>
+        ((forwardLookup vs.1.edges x).isNone && decide (w.1.1.2 ∈ knownC iv vs.1)))), w.2)) <$>
         (simulateQ (aSpec Msg Dg E C).romImpl (visFwd P x u vs.1)).run c := by
   simp only [visImpl, StateT.run_mk]
   rw [simulateQ_bind, StateT.run_bind, drawSt_run]
@@ -283,9 +283,9 @@ theorem visImpl_false_fwd_run (x : SpState Dg E C) (vs : VState Dg E C Msg)
 /-- The run of a visible inverse step without path queries. -/
 theorem visImpl_false_inv_run (y : SpState Dg E C) (vs : VState Dg E C Msg)
     (c : ACache Msg Dg E C) :
-    (simulateQ (aSpec Msg Dg E C).romImpl ((visImpl P iv false (.inr (.inr (.inv y)))).run vs)).run
+    (simulateQ (aSpec Msg Dg E C).romImpl ((visImpl P iv false (.inr (.inr (.inverse y)))).run vs)).run
       c = (fun u ↦ (((visInv y u vs.1).1, ((visInv y u vs.1).2, vs.2.1, vs.2.2 ||
-        ((invLookup vs.1.edges y).isNone && decide (u.2 ∈ knownC iv vs.1)))), c)) <$>
+        ((inverseLookup vs.1.edges y).isNone && decide (u.2 ∈ knownC iv vs.1)))), c)) <$>
         ($ᵗ (SpState Dg E C)) := by
   simp only [visImpl, StateT.run_mk]
   rw [simulateQ_bind, StateT.run_bind, drawSt_run]
@@ -317,9 +317,9 @@ theorem prEvent_visF_bad_le (t : (dSpec Msg Dg (SpState Dg E C)).Domain)
     simp only [Bool.not_eq_true] at hb
     rw [visF, foldRO_run, prEvent_map]
     cases q with
-    | fwd x =>
+    | forward x =>
       rw [visImpl_false_fwd_run]
-      rcases hy : fwdLookup s.1.1.edges x with _ | y
+      rcases hy : forwardLookup s.1.1.edges x with _ | y
       · rcases hch : chainOf s.1.1.chains x with _ | ⟨σ₀, β⟩
         · simp only [visFwd, hy, hch, simulateQ_pure, StateT.run_pure, map_pure, bind_pure_comp,
             prEvent_map]
@@ -337,7 +337,7 @@ theorem prEvent_visF_bad_le (t : (dSpec Msg Dg (SpState Dg E C)).Domain)
         · simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
           obtain ⟨u, -, rfl⟩ := hz
           simp [hb] at h
-    | inv y =>
+    | inverse y =>
       rw [visImpl_false_inv_run, prEvent_map]
       refine (prEvent_mono _ _ _ fun u hu ↦ ?_).trans (prEvent_cap_mem_le (knownC iv s.1.1))
       simp only [hb, Bool.false_or, Bool.and_eq_true, decide_eq_true_eq] at hu
@@ -400,7 +400,7 @@ theorem hidden_arith {v h q : ℕ} (hq : v + h ≤ q) : h * (2 * v + 1 + h) ≤ 
 a distinguisher of cost at most `q` causes a visible or a hidden collision with probability at
 most `(q (2q + 1) + q (q + 1)) / |C|`. -/
 theorem prEvent_visRun_le {α : Type} (D : OracleComp (dSpec Msg Dg (SpState Dg E C)) α) (q : ℕ)
-    (hD : IsWeightBound D (queryCost (Dg := Dg) P) q) :
+    (hD : QueryCostAtMost D (queryCost (Dg := Dg) P) q) :
     Pr{let z ← (simulateQ (aSpec Msg Dg E C).romImpl
         (visRun P iv false D (SimState.init iv, [], false))).run ∅}[
       z.1.2.2.2 = true ∨ EC P iv z.1.2 z.2] ≤

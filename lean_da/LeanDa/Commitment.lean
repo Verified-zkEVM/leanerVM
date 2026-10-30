@@ -15,11 +15,11 @@ commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanD
 
 namespace LeanDa
 
-variable (H : List UInt8 → Common.KDigest)
+variable (H : List UInt8 → Common.DigestBytes)
 
 /-! ## Trees built level by level -/
 
-theorem treeLevel_map_range (d : ℕ) (f : ℕ → Common.KDigest) :
+theorem treeLevel_map_range (d : ℕ) (f : ℕ → Common.DigestBytes) :
     treeLevel H ((List.range (2 ^ (d + 1))).map f) = (List.range (2 ^ d)).map (up H f) := by
   have hlen : 2 ^ (d + 1) / 2 = 2 ^ d := by rw [pow_succ, Nat.mul_div_cancel _ (by norm_num)]
   rw [treeLevel, List.length_map, List.length_range, hlen]
@@ -31,7 +31,7 @@ theorem treeLevel_map_range (d : ℕ) (f : ℕ → Common.KDigest) :
     List.getElem?_range h2, Option.map_some, Option.getD_some]
 
 /-- **A tree built level by level has the model's root.** -/
-theorem treeRoot_map_range (d : ℕ) (f : ℕ → Common.KDigest) :
+theorem treeRoot_map_range (d : ℕ) (f : ℕ → Common.DigestBytes) :
     treeRoot H ((List.range (2 ^ d)).map f) = merkleRoot H d f := by
   induction d generalizing f with
   | zero => rw [treeRoot]; simp [merkleRoot]
@@ -52,7 +52,7 @@ theorem ofFn_eq_map_range {α : Type} {n : ℕ} (f : ℕ → α) :
   List.ext_getElem (by simp) fun j _ _ ↦ by simp
 
 /-- `(range a).flatMap (fun j ↦ (range b).map (g j))` lists `g` column by column. -/
-theorem flatMap_range_map_range (a b : ℕ) (hb : 0 < b) (g : ℕ → ℕ → Common.KDigest) :
+theorem flatMap_range_map_range (a b : ℕ) (hb : 0 < b) (g : ℕ → ℕ → Common.DigestBytes) :
     (List.range a).flatMap (fun j ↦ (List.range b).map (g j)) =
       (List.range (a * b)).map fun l ↦ g (l / b) (l % b) := by
   induction a with

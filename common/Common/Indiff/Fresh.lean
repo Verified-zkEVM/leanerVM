@@ -44,7 +44,7 @@ variable {P iv}
 /-- A fresh rooted node's path is not yet rooted. -/
 theorem rootedPath_notMem {σ : SimState Dg E C} {c : ACache Msg Dg E C}
     (hV : VStruct P iv σ c) {x s : SpState Dg E C} {β : List (Dg × E)}
-    (hy : fwdLookup σ.edges x = none) (hch : chainOf σ.chains x = some (s, β)) :
+    (hy : forwardLookup σ.edges x = none) (hch : chainOf σ.chains x = some (s, β)) :
     β ++ [blockTo s x] ∉ σ.chains.map Prod.snd := by
   intro h
   obtain ⟨hsβ, hsx⟩ := chainOf_some hch
@@ -128,7 +128,7 @@ theorem idealT_hash_run (m : Msg) (σ : SimState Dg E C) (c : ACache Msg Dg E C)
 variable (P) in
 /-- An inverse query of the simulator over path values. -/
 theorem idealT_inv_run (y : SpState Dg E C) (σ : SimState Dg E C) (c : ACache Msg Dg E C) :
-    (simulateQ (aSpec Msg Dg E C).romImpl ((idealTImpl P (.inr (.inr (.inv y)))).run σ)).run c =
+    (simulateQ (aSpec Msg Dg E C).romImpl ((idealTImpl P (.inr (.inr (.inverse y)))).run σ)).run c =
       (fun u ↦ (visInv y u σ, c)) <$> ($ᵗ (SpState Dg E C)) := by
   simp only [idealTImpl, StateT.run_mk]
   rw [simulateQ_bind, StateT.run_bind, drawSt_run]
@@ -137,7 +137,7 @@ theorem idealT_inv_run (y : SpState Dg E C) (σ : SimState Dg E C) (c : ACache M
 variable (P) in
 /-- A forward query of the simulator over path values. -/
 theorem idealT_fwd_run (x : SpState Dg E C) (σ : SimState Dg E C) (c : ACache Msg Dg E C) :
-    (simulateQ (aSpec Msg Dg E C).romImpl ((idealTImpl P (.inr (.inr (.fwd x)))).run σ)).run c =
+    (simulateQ (aSpec Msg Dg E C).romImpl ((idealTImpl P (.inr (.inr (.forward x)))).run σ)).run c =
       ($ᵗ (SpState Dg E C)) >>= fun u ↦ (fun w ↦ ((w.1.1, w.1.2.1), w.2)) <$>
         (simulateQ (aSpec Msg Dg E C).romImpl (visFwd P x u σ)).run c := by
   simp only [idealTImpl, StateT.run_mk]

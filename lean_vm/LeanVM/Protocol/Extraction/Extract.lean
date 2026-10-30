@@ -105,7 +105,7 @@ variable {prog : Program} {input : PublicInput} {bytecode : List K}
 
 /-- **The extractor, after the announced shape and root**: the fast path's stacks, then the list
 decoder's, searched for an execution. -/
-theorem extract_eq_of_root {layout : Layout} {R : ℕ} {st : St} {root : Digest}
+theorem extract_eq_of_root {layout : Layout} {R : ℕ} {st : ProgState} {root : Digest}
     {height width : ℕ} (haf : afterRoot bytecode π = some ((layout, R), st))
     (hroot : st.roots.head? = some (root, height, width)) :
     extract prog input bytecode answers keys π =
@@ -123,7 +123,7 @@ theorem extract_eq_of_root {layout : Layout} {R : ℕ} {st : St} {root : Digest}
   rw [hroot]
 
 /-- **Whatever the extractor returns is a valid execution.** -/
-theorem extract_valid {t : Trace prog} (h : extract prog input bytecode answers keys π = some t) :
+theorem extract_valid {t : Execution prog} (h : extract prog input bytecode answers keys π = some t) :
     ValidExecution prog input t := by
   rcases haf : afterRoot bytecode π with _ | ⟨⟨layout, R⟩, st⟩
   · simp [extract, haf] at h
@@ -137,13 +137,13 @@ theorem extract_valid {t : Trace prog} (h : extract prog input bytecode answers 
 shape admissible, no collision among the answers and keys covering them, if a candidate of the
 committed word at the Johnson threshold has an execution, the extractor returns some execution,
 and it is valid. -/
-theorem extract_of_candidate {layout : Layout} {R : ℕ} {st : St} {root : Digest}
+theorem extract_of_candidate {layout : Layout} {R : ℕ} {st : ProgState} {root : Digest}
     {height width : ℕ} (haf : afterRoot bytecode π = some ((layout, R), st))
     (hroot : st.roots.head? = some (root, height, width)) (hinj : AnswersInj answers)
     (hc : KeysCover answers keys) {μ : ℕ} (e : layout.stackLog = μ) (hμ : 15 ≤ μ ∧ μ ≤ 28)
     (hR : 1 ≤ R ∧ R ≤ 4) {q : Vector K (2 ^ μ)}
     (hq : q ∈ Candidates μ R (johnsonThreshold μ R) (committedWord answers root height width))
-    {t : Trace prog} (ht : candidateExecution prog input layout q = some t) :
+    {t : Execution prog} (ht : candidateExecution prog input layout q = some t) :
     ∃ t', extract prog input bytecode answers keys π = some t' ∧ ValidExecution prog input t' := by
   subst e
   rw [← committedWordC_eq hinj hc] at hq
@@ -162,9 +162,9 @@ end Extract
 
 /-- The paths' byte strings cover their evaluations. -/
 theorem keysCover_hashesOf (P : List (Bytes × Digest)) :
-    KeysCover (LeanVM.hashesOf P) (P.map (·.1)) := by
+    KeysCover (LeanVM.lookupEvaluation P) (P.map (·.1)) := by
   intro x d h
-  simp only [LeanVM.hashesOf, Option.map_eq_some_iff] at h
+  simp only [LeanVM.lookupEvaluation, Option.map_eq_some_iff] at h
   obtain ⟨p, hp, -⟩ := h
   have hpx := List.find?_some hp
   simp only [decide_eq_true_eq] at hpx
@@ -172,15 +172,15 @@ theorem keysCover_hashesOf (P : List (Bytes × Digest)) :
 
 /-- **The extractor of the random-permutation model is `extract` on the transcript's
 evaluations**, with the keys of their support: it depends on the evaluations only. -/
-theorem extractorRpm_eq_extract (prog : Program) (input : PublicInput) (T : LeanVM.Transcript)
-    (proof : Proof) {answers : Bytes → Option Digest} (h : LeanVM.hashesOf (LeanVM.transcriptPaths T) = answers) :
-    LeanVM.extractorRpm prog input T proof =
+theorem extractorRpm_eq_extract (prog : Program) (input : PublicInput) (T : LeanVM.PermutationTranscript)
+    (proof : Proof) {answers : Bytes → Option Digest} (h : LeanVM.lookupEvaluation (LeanVM.keccakEvaluationsOfTranscript T) = answers) :
+    LeanVM.transcriptExtractor prog input T proof =
       extract prog input (bytecodeWords prog) answers (supportKeys answers) proof := by
-  have hc : KeysCover answers ((LeanVM.transcriptPaths T).map (·.1)) := by
+  have hc : KeysCover answers ((LeanVM.keccakEvaluationsOfTranscript T).map (·.1)) := by
     rw [← h]
     exact keysCover_hashesOf _
-  have e : LeanVM.extractorRpm prog input T proof =
-      extract prog input (bytecodeWords prog) answers ((LeanVM.transcriptPaths T).map (·.1)) proof := by
+  have e : LeanVM.transcriptExtractor prog input T proof =
+      extract prog input (bytecodeWords prog) answers ((LeanVM.keccakEvaluationsOfTranscript T).map (·.1)) proof := by
     rw [← h]
     rfl
   rw [e]

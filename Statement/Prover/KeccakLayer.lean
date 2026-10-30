@@ -33,32 +33,32 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Verifier
 /-! ## The states -/
 
 /-- Segment `m`'s committed input at step `x` (slots `25m .. 25m + 24` of `2^h` words). -/
-def inStateOf (col : ℕ → K) (h m x : ℕ) : KState :=
+def inStateOf (col : ℕ → K) (h m x : ℕ) : KeccakState :=
   Vector.ofFn fun l : Fin 25 ↦ K.lane (col (x + 2 ^ h * (25 * m + l)))
 
-/-- `e` rounds of `keccakF` from round `start`. -/
-def roundsOf (start e : ℕ) (a : KState) : KState :=
+/-- `e` rounds of `keccakF1600` from round `start`. -/
+def roundsOf (start e : ℕ) (a : KeccakState) : KeccakState :=
   ((keccakRC.drop start).take e).foldl Keccak.round a
 
 /-- The linear map of a round on lanes: θ, then ρ and π. -/
-def linearOf (a : KState) : KState :=
+def linearOf (a : KeccakState) : KeccakState :=
   let c : Vector UInt64 5 := Vector.ofFn fun x ↦
     Keccak.lane a x ^^^ Keccak.lane a (x + 5) ^^^ Keccak.lane a (x + 10) ^^^
       Keccak.lane a (x + 15) ^^^ Keccak.lane a (x + 20)
-  let t : KState := Vector.ofFn fun i ↦ Keccak.lane a i ^^^ c.toArray.getD ((i.val + 4) % 5) 0 ^^^
+  let t : KeccakState := Vector.ofFn fun i ↦ Keccak.lane a i ^^^ c.toArray.getD ((i.val + 4) % 5) 0 ^^^
     Keccak.rot (c.toArray.getD ((i.val + 1) % 5) 0) 1
   (List.range 25).foldl
     (fun b i ↦ b.setIfInBounds (keccakPi i) (Keccak.rot (Keccak.lane t i) (keccakRho.getD i 0)))
     (Vector.replicate 25 0)
 
 /-- Bit `j = z + 64ℓ` of a state: bit `z` of lane `ℓ`. -/
-def bitOf (a : KState) (j : ℕ) : Bool := (Keccak.lane a (j / 64)).toBitVec.getLsbD (j % 64)
+def bitOf (a : KeccakState) (j : ℕ) : Bool := (Keccak.lane a (j / 64)).toBitVec.getLsbD (j % 64)
 
 /-- The bits entering χ in pack `z` (segment `z / 2^P`, steps `16·(z mod 2^P) + i`), `e` rounds
 into the segment: per position `j`, the sixteen instances' bits as a mask. -/
 def packMasks (col : ℕ → K) (P e z : ℕ) : Array ℕ :=
   let m := z / 2 ^ P
-  let ls : Array KState := Array.ofFn (n := 16) fun i ↦
+  let ls : Array KeccakState := Array.ofFn (n := 16) fun i ↦
     linearOf (roundsOf (12 * m) e (inStateOf col (P + 4) m (i.val + 16 * (z % 2 ^ P))))
   Array.ofFn (n := 1600) fun j ↦ packBits (fun i ↦ bitOf (ls.getD i default) j.val) 16
 

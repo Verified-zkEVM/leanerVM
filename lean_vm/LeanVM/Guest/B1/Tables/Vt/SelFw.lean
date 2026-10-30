@@ -75,7 +75,7 @@ theorem vt_eq_plusOne {bs : List Bool} {zs : List E} :
       · simp only [bitE, ↓reduceIte]; rw [← add_assoc, e_add_self, zero_add]
 
 section
-variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ)
+variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
 /-- **A framework block's selector.** -/

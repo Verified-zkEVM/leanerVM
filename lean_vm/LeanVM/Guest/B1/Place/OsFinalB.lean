@@ -98,7 +98,7 @@ theorem osCalleeBounds_of {fs Bnd Kr : String → ℕ} {c : OsCfg} (hT : OsLeafB
 theorem os_completeAtB_cfg (hrf : Lift.RunsFit fs cert) {Bk : String → ℕ} {c : OsCfg} {μ r : ℕ}
     {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) (hP : OsCfgPlaced fs cert c) (hBk : OsCalleeBounds fs Bk c) {name : String}
     {fn : Fn} (hfind : coreProgram.find? name = some fn) (hp : fn.params = osParams 9)
-    (hb : fn.body = osBody c) (hloop : coreProgram.loop name = false) {S : KState} {root : Digest}
+    (hb : fn.body = osBody c) (hloop : coreProgram.loop name = false) {S : KeccakState} {root : Digest}
     {target cur : E} {xs : List E} {os : List Opening} {w : WhirEnd} {s' : Fs}
     {roots' : List (Digest × ℕ × ℕ)}
     (hrun : RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots')

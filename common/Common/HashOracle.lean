@@ -3,8 +3,8 @@ import Statement.RandomPermutation
 /-!
 # The model with a Keccak-256 oracle, a proof device
 
-The statement's model has coins, `π` and `π⁻¹` and nothing else (`KSpec`): every party hashes
-with Keccak-256 over `π` (`keccakK`). The proofs of `common`, `lean_xmss`, `lean_sphincs` and
+The statement's model has coins, `π` and `π⁻¹` and nothing else (`RandomPermutationOracles`): every party hashes
+with Keccak-256 over `π` (`keccak256OverPermutation`). The proofs of `common`, `lean_xmss`, `lean_sphincs` and
 `lean_da` reason with Keccak-256 as one more oracle, answered by the sponge over the same lazily
 sampled permutation (`KSpecH`, `kImplH`, `runKH`), a hash of `n` bytes costing its `⌊n / 136⌋ + 1`
 permutation calls (`permCallsH`), and with the SUF-CMA game over it (`SufCma.rpmGameH`,
@@ -21,7 +21,7 @@ open LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
 /-- The oracles of the model with a hash oracle: coins, Keccak-256 (its digest's 32 bytes), `π`
 and `π⁻¹`. -/
-abbrev KSpecH := unifSpec + ((List UInt8 →ₒ KDigest) + permSpec KState)
+abbrev KSpecH := unifSpec + ((List UInt8 →ₒ DigestBytes) + permutationOracleSpec KeccakState)
 
 /-- Calls of the permutation: a hash of `n` bytes costs `⌊n / 136⌋ + 1` (one per block of the
 padded message), a call of `π` or `π⁻¹` one. -/
@@ -32,10 +32,10 @@ def permCallsH : KSpecH.Domain → ℕ
 
 /-- The answers: coins forwarded, Keccak-256 over the lazily sampled permutation, `π` and `π⁻¹`
 the lazily sampled permutation. -/
-noncomputable def kImplH : QueryImpl KSpecH (StateT (PermLog KState) ProbComp)
+noncomputable def kImplH : QueryImpl KSpecH (StateT (PermutationEdges KeccakState) ProbComp)
   | .inl n => liftM (unifSpec.query n : ProbComp (Fin (n + 1)))
-  | .inr (.inl m) => Digest.toBytes <$> keccak256With (fun x ↦ lazyPerm (.fwd x)) m
-  | .inr (.inr q) => lazyPerm q
+  | .inr (.inl m) => Digest.toBytes <$> keccak256With (fun x ↦ lazyRandomPermutation (.forward x)) m
+  | .inr (.inr q) => lazyRandomPermutation q
 
 /-- A game with the hash oracle, run against the lazily sampled random permutation from no
 edge. -/
@@ -47,8 +47,8 @@ namespace SufCma
 variable {Seed PK SK Req Resp F : Type}
 
 /-- The hash as the Keccak-256 oracle (`digestBitVec`). -/
-def hashKH : QueryImpl HSpec (OracleComp KSpecH) :=
-  fun m ↦ digestBitVec <$> (liftM (KSpecH.query (.inr (.inl m))) : OracleComp KSpecH KDigest)
+def hashKH : QueryImpl SchemeHashSpec (OracleComp KSpecH) :=
+  fun m ↦ digestBitVec <$> (liftM (KSpecH.query (.inr (.inl m))) : OracleComp KSpecH DigestBytes)
 
 /-- The signing oracle with the hash oracle. -/
 def signingOracleKH (S : Scheme Seed PK SK Req Resp F) (sk : SK) :
@@ -74,7 +74,7 @@ noncomputable def rpmExperimentH (S : Scheme Seed PK SK Req Resp F)
 /-- `bits` bits of SUF-CMA security against adversaries that also query Keccak-256. -/
 def RpmSecureH (S : Scheme Seed PK SK Req Resp F) (bits : ℕ) : Prop :=
   ∀ Q, 1 ≤ Q → ∀ main : PK → OracleComp (KSpecH + (Req →ₒ Resp)) F,
-    IsWeightBound (rpmGameH S main) permCallsH Q →
+    QueryCostAtMost (rpmGameH S main) permCallsH Q →
       Pr{let b ← rpmExperimentH S main}[b = true] ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
 
 end SufCma

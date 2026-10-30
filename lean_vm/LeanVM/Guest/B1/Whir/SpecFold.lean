@@ -69,8 +69,8 @@ theorem openAll_inv (root : Digest) (height width : ℕ) :
 
 theorem sumcheck3_bind {β : Type} (claim : E) (k : List E → Prog β) :
     (sumcheckRoundPoly 3 claim none).bind k =
-      Prog.readE.bind fun d0 ↦ Prog.readE.bind fun d2 ↦ k [d0, claim + d2, d2] := by
-  simp only [sumcheckRoundPoly, Prog.readN, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc,
+      Prog.readScalar.bind fun d0 ↦ Prog.readScalar.bind fun d2 ↦ k [d0, claim + d2, d2] := by
+  simp only [sumcheckRoundPoly, Prog.readScalars, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc,
     Prog.ret_bind, sumE_single]
 
 /-- Two words read after a squeeze leave `foldStep`. -/
@@ -95,8 +95,8 @@ theorem foldsNZ_inv {β : Type} {K : WhirStateT × List E → Prog β} :
     simp only [foldsTr, List.append_nil, Nat.mul_zero, List.drop_zero]
     simpa [foldRoundsNZ] using h
   | n + 1, ws, lf, F, xs, os, R, r, h => by
-    have e : (foldRoundsNZ (n + 1) ws lf).bind K = Prog.sampleE.bind fun c ↦
-        (Prog.require (c ≠ 0)).bind fun _ ↦ Prog.readE.bind fun d0 ↦ Prog.readE.bind fun d2 ↦
+    have e : (foldRoundsNZ (n + 1) ws lf).bind K = Prog.sampleChallenge.bind fun c ↦
+        (Prog.require (c ≠ 0)).bind fun _ ↦ Prog.readScalar.bind fun d0 ↦ Prog.readScalar.bind fun d2 ↦
           (foldRoundsNZ n { ws with
             target := polyEval ws.quad c
             quad := [d0, polyEval ws.quad c + d2, d2]

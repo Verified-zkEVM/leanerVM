@@ -4,7 +4,7 @@
   `da_verify` in the uniform placed form on a LeanDA witness: a witness opening `(root, vd)` gives
   `CompleteAtD`, returning the cells of `root` and `vd`.
 
-  The witness and `Da.Witness.Opens` are Benedikt Wagner's LeanDA formalization, as ported here.
+  The witness and `Da.MatrixWitness.Opens` are Benedikt Wagner's LeanDA formalization, as ported here.
 -/
 
 module
@@ -16,7 +16,7 @@ public import LeanVM.Guest.Memory.LiftPure
 /-!
 # `da_verify` on a witness, placed
 
-`da_verify_completeAt_w`: for a witness opening `(root, vd)` (`Da.Witness.Opens`), `da_verify` is
+`da_verify_completeAt_w`: for a witness opening `(root, vd)` (`Da.MatrixWitness.Opens`), `da_verify` is
 `CompleteAtD` at `g_squares = g^s`, reading `g^(2^L)` at `g^(s + L)` (`L = wLog w`), returning the
 cells of `root` and `vd`, when the certificate's weights run fits `da_vector_cell`'s frame;
 `da_verify_completeAt_runs`, when every certificate's frame runs fit their frames (G7's
@@ -34,7 +34,7 @@ open LeanVM.Guest.B1 (CompleteAtD Returns)
 
 /-- **`da_verify` is complete, placed, on a witness.** -/
 theorem da_verify_completeAt_w (fs : String → ℕ) (cert : String → V → ℕ)
-    (hcv : cert "da_vector_cell" (.n 1) + 256 ≤ fs "da_vector_cell") {w : LeanVM.Da.Witness}
+    (hcv : cert "da_vector_cell" (.n 1) + 256 ≤ fs "da_vector_cell") {w : LeanVM.Da.MatrixWitness}
     {root vd : Digest} (hw : w.Opens root vd) (s : ℕ) :
     CompleteAtD fs cert 16 "da_verify" [(s + wLog w, [gen ^ 2 ^ wLog w])] [gen ^ s]
       (Returns (digestCells root ++ digestCells vd)) := by
@@ -57,7 +57,7 @@ theorem vec_runFits {fs : String → ℕ} {cert : String → V → ℕ} (hrf : L
 
 /-- **`da_verify` is complete, placed, on a witness**, when the certificate's frame runs fit. -/
 theorem da_verify_completeAt_runs (fs : String → ℕ) (cert : String → V → ℕ)
-    (hrf : Lift.RunsFit fs cert) {w : LeanVM.Da.Witness} {root vd : Digest} (hw : w.Opens root vd)
+    (hrf : Lift.RunsFit fs cert) {w : LeanVM.Da.MatrixWitness} {root vd : Digest} (hw : w.Opens root vd)
     (s : ℕ) :
     CompleteAtD fs cert 16 "da_verify" [(s + wLog w, [gen ^ 2 ^ wLog w])] [gen ^ s]
       (Returns (digestCells root ++ digestCells vd)) :=

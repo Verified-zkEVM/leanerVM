@@ -5,7 +5,7 @@ import Common.PiOnly
 # LeanDA's end theorems in the statement's model: `π` and `π⁻¹`, nothing else
 
 The statement's games (`Statement/LeanDa.lean`) have every party query coins, `π` and `π⁻¹` and
-hash with Keccak-256 over `π` (`Common.keccakK`); the proofs hold them with a Keccak-256 oracle
+hash with Keccak-256 over `π` (`Common.keccak256OverPermutation`); the proofs hold them with a Keccak-256 oracle
 (`LeanDa.HashOracle`). An argument of the statement's model is one with the hash oracle that never
 queries it (`liftArg`), and so is an adversary (`liftAdv`); each game of the statement is the game
 with the hash oracle, against them, with each hash call expanded into its permutation calls
@@ -33,50 +33,50 @@ section Lift
 variable {Stmt Wit Crs Proof : Type}
 
 /-- **An argument of the statement's model, with the hash oracle**: its queries embedded. -/
-def liftArg (ps : NarkRpm Stmt Wit Crs Proof) : NarkRpmH Stmt Wit Crs Proof where
+def liftArg (ps : OracleArgument Stmt Wit Crs Proof) : NarkRpmH Stmt Wit Crs Proof where
   setup := ps.setup
   prove crs stmt wit := simulateQ embed (ps.prove crs stmt wit)
   verify crs stmt proof := simulateQ embed (ps.verify crs stmt proof)
 
 /-- An adversary of the statement's model, with the hash oracle. -/
-def liftAdv {X β : Type} (A : X → OracleComp KSpec β) : X → OracleComp KSpecH β :=
+def liftAdv {X β : Type} (A : X → OracleComp RandomPermutationOracles β) : X → OracleComp KSpecH β :=
   fun x ↦ simulateQ embed (A x)
 
 /-- The answers of a permutation `π` to an embedded query are its answers. -/
-theorem permImplH_compose_embed (π : Equiv.Perm LeanVM.Semantics.KState) :
-    permImplH π ∘ₛ embed = permImpl π := by
+theorem permImplH_compose_embed (π : Equiv.Perm LeanVM.Semantics.KeccakState) :
+    permImplH π ∘ₛ embed = oraclesFromPermutation π := by
   funext t
   rcases t with n | q | q <;> rfl
 
-theorem simulateQ_permImplH_liftArg (π : Equiv.Perm LeanVM.Semantics.KState)
-    (ps : NarkRpm Stmt Wit Crs Proof) (crs : Crs) (stmt : Stmt) (wit : Wit) :
+theorem simulateQ_permImplH_liftArg (π : Equiv.Perm LeanVM.Semantics.KeccakState)
+    (ps : OracleArgument Stmt Wit Crs Proof) (crs : Crs) (stmt : Stmt) (wit : Wit) :
     simulateQ (permImplH π) ((liftArg ps).prove crs stmt wit >>= (liftArg ps).verify crs stmt) =
-      simulateQ (permImpl π) (ps.prove crs stmt wit >>= ps.verify crs stmt) := by
+      simulateQ (oraclesFromPermutation π) (ps.prove crs stmt wit >>= ps.verify crs stmt) := by
   simp only [liftArg, ← simulateQ_bind, ← QueryImpl.simulateQ_compose, permImplH_compose_embed]
 
 /-- A query of the statement's model and its answer, among those with the hash oracle. -/
-def embedEntry : (t : KSpec.Domain) × KSpec.Range t → (t : KSpecH.Domain) × KSpecH.Range t
+def embedEntry : (t : RandomPermutationOracles.Domain) × RandomPermutationOracles.Range t → (t : KSpecH.Domain) × KSpecH.Range t
   | ⟨.inl n, u⟩ => ⟨.inl n, u⟩
   | ⟨.inr q, u⟩ => ⟨.inr (.inr q), u⟩
 
 /-- A query with the hash oracle and its answer, if it is one of the statement's model. -/
-def projEntry : (t : KSpecH.Domain) × KSpecH.Range t → Option ((t : KSpec.Domain) × KSpec.Range t)
+def projEntry : (t : KSpecH.Domain) × KSpecH.Range t → Option ((t : RandomPermutationOracles.Domain) × RandomPermutationOracles.Range t)
   | ⟨.inl n, u⟩ => some ⟨.inl n, u⟩
   | ⟨.inr (.inl _), _⟩ => none
   | ⟨.inr (.inr q), u⟩ => some ⟨.inr q, u⟩
 
 /-- A transcript of the statement's model, with the hash oracle. -/
-def embedLog (l : Transcript) : TranscriptH := l.map embedEntry
+def embedLog (l : OracleQueryLog) : TranscriptH := l.map embedEntry
 
 /-- **A transcript with the hash oracle, read in the statement's model**: its hash queries
 dropped. -/
-def projLog (l : TranscriptH) : Transcript := l.filterMap projEntry
+def projLog (l : TranscriptH) : OracleQueryLog := l.filterMap projEntry
 
-theorem projEntry_embedEntry (e : (t : KSpec.Domain) × KSpec.Range t) :
+theorem projEntry_embedEntry (e : (t : RandomPermutationOracles.Domain) × RandomPermutationOracles.Range t) :
     projEntry (embedEntry e) = some e := by
   rcases e with ⟨n | q, u⟩ <;> rfl
 
-theorem projLog_embedLog (l : Transcript) : projLog (embedLog l) = l := by
+theorem projLog_embedLog (l : OracleQueryLog) : projLog (embedLog l) = l := by
   induction l with
   | nil => rfl
   | cons e l ih =>
@@ -84,27 +84,27 @@ theorem projLog_embedLog (l : Transcript) : projLog (embedLog l) = l := by
     rw [ih]
 
 /-- An extractor of the statement's model, reading a transcript with the hash oracle. -/
-def liftExt (ext : ExtractorRpm Stmt Wit Crs Proof) : ExtractorRpmH Stmt Wit Crs Proof :=
+def liftExt (ext : StraightLineExtractor Stmt Wit Crs Proof) : ExtractorRpmH Stmt Wit Crs Proof :=
   fun crs stmt proof log ↦ ext crs stmt proof (projLog log)
 
 end Lift
 
 /-! ## The oracle programs, expanded -/
 
-theorem expand_hK (a : List UInt8) : simulateQ expand (hK a) = keccakK a := by
+theorem expand_hK (a : List UInt8) : simulateQ expand (hK a) = keccak256OverPermutation a := by
   simp [hK, expand]
 
-theorem expand_pK (x : LeanVM.Semantics.KState) : simulateQ expand (pK x) = piK x := by
-  simp [pK, expand, piK]
+theorem expand_pK (x : LeanVM.Semantics.KeccakState) : simulateQ expand (pK x) = queryPermutation x := by
+  simp [pK, expand, queryPermutation]
 
-theorem expand_verifyCellM (r : ℕ) (com : Common.KDigest) (p : Fin (r * 128)) (x : Cell)
-    (τ : Opening) : simulateQ expand (verifyCellM hK r com p x τ) = verifyCellM keccakK r com p x τ := by
+theorem expand_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell)
+    (τ : Opening) : simulateQ expand (verifyCellM hK r com p x τ) = verifyCellM keccak256OverPermutation r com p x τ := by
   rw [verifyCellM_map (fun x ↦ simulateQ expand x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [expand_hK]
 
-theorem expand_relationM {r : ℕ} (root : Common.KDigest) (c : Fin (r * 128) → Cell) :
-    simulateQ expand (relationM hK pK root c) = relationM keccakK piK root c := by
+theorem expand_relationM {r : ℕ} (root : Common.DigestBytes) (c : Fin (r * 128) → Cell) :
+    simulateQ expand (relationM hK pK root c) = relationM keccak256OverPermutation queryPermutation root c := by
   simp only [relationM, simulateQ_bind, simulateQ_pure]
   rw [membershipChallengesM_map (fun x ↦ simulateQ expand x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _), commitCellsM_map (fun x ↦ simulateQ expand x)
@@ -112,11 +112,11 @@ theorem expand_relationM {r : ℕ} (root : Common.KDigest) (c : Fin (r * 128) �
   simp only [expand_hK, expand_pK]
 
 /-- One logged query, expanded. -/
-theorem expand_loggedKH_step (t : KSpec.Domain) (s : Transcript) :
+theorem expand_loggedKH_step (t : RandomPermutationOracles.Domain) (s : OracleQueryLog) :
     simulateQ expand ((simulateQ loggedKH (embed t)).run (embedLog s)) =
-      (fun p ↦ (p.1, embedLog p.2)) <$> (loggedK t).run s := by
-  have hK : (loggedK t).run s = (fun u ↦ (u, s ++ [⟨t, u⟩])) <$> liftM (KSpec.query t) := by
-    simp [loggedK]
+      (fun p ↦ (p.1, embedLog p.2)) <$> (loggedOracles t).run s := by
+  have hK : (loggedOracles t).run s = (fun u ↦ (u, s ++ [⟨t, u⟩])) <$> liftM (RandomPermutationOracles.query t) := by
+    simp [loggedOracles]
   rw [hK, Functor.map_map]
   rcases t with n | q <;>
   · simp only [embed, simulateQ_spec_query]
@@ -125,9 +125,9 @@ theorem expand_loggedKH_step (t : KSpec.Domain) (s : Transcript) :
 
 /-- **Logging, expanded**: the log of an embedded computation is the embedded log of its
 queries. -/
-theorem expand_loggedKH {α : Type} (X : OracleComp KSpec α) (s : Transcript) :
+theorem expand_loggedKH {α : Type} (X : OracleComp RandomPermutationOracles α) (s : OracleQueryLog) :
     simulateQ expand ((simulateQ loggedKH (simulateQ embed X)).run (embedLog s)) =
-      (fun p ↦ (p.1, embedLog p.2)) <$> (simulateQ loggedK X).run s := by
+      (fun p ↦ (p.1, embedLog p.2)) <$> (simulateQ loggedOracles X).run s := by
   induction X using OracleComp.inductionOn generalizing s with
   | pure a => simp
   | query_bind t k ih =>
@@ -142,8 +142,8 @@ theorem expand_loggedKH {α : Type} (X : OracleComp KSpec α) (s : Transcript) :
 
 section Games
 
-variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpm r Crs Proof)
-  (ext : ExtractorRpm Common.KDigest (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} (ps : LeanDaArgument r Crs Proof)
+  (ext : StraightLineExtractor Common.DigestBytes (Fin (r * 128) → Cell) Crs Proof)
 
 omit ps in
 theorem expand_liftM_setup {β : Type} (p : ProbComp β) :
@@ -151,13 +151,13 @@ theorem expand_liftM_setup {β : Type} (p : ProbComp β) :
   simulateQ_liftM_of_coins _ (fun _ ↦ rfl) _
 
 /-- **The position-binding game is the game with the hash oracle, expanded.** -/
-theorem posBindingGame_eq_expand (A : PosBindingAdvRpm r Crs Proof) :
-    posBindingGame r ps A = simulateQ expand (posBindingGameH r (liftArg ps) (liftAdv A)) := by
-  simp only [posBindingGame, posBindingGameH, simulateQ_bind, simulateQ_pure, expand_liftM_setup,
+theorem posBindingGame_eq_expand (A : PositionBindingAdversary r Crs Proof) :
+    positionBindingGame r ps A = simulateQ expand (posBindingGameH r (liftArg ps) (liftAdv A)) := by
+  simp only [positionBindingGame, posBindingGameH, simulateQ_bind, simulateQ_pure, expand_liftM_setup,
     liftAdv, simulateQ_expand_embed, liftArg, expand_verifyCellM]
 
 /-- **The code-binding game is the game with the hash oracle, expanded.** -/
-theorem codeBindingGame_eq_expand (A : CodeBindingAdvRpm r Crs Proof) :
+theorem codeBindingGame_eq_expand (A : CodeBindingAdversary r Crs Proof) :
     codeBindingGame r ps A = simulateQ expand (codeBindingGameH r (liftArg ps) (liftAdv A)) := by
   simp only [codeBindingGame, codeBindingGameH, simulateQ_bind, simulateQ_pure, expand_liftM_setup,
     liftAdv, simulateQ_expand_embed, liftArg]
@@ -168,9 +168,9 @@ theorem codeBindingGame_eq_expand (A : CodeBindingAdvRpm r Crs Proof) :
 
 /-- **The knowledge-soundness game is the game with the hash oracle, expanded**, against the
 adversary embedded, the extractor reading the transcript in the statement's model. -/
-theorem ksGame_eq_expand (B : KsAdvRpm Crs Proof) :
-    ksGame r ps ext B = simulateQ expand (ksGameH r (liftArg ps) (liftExt ext) (liftAdv B)) := by
-  simp only [ksGame, ksGameH, simulateQ_bind, simulateQ_pure, expand_liftM_setup, liftAdv]
+theorem ksGame_eq_expand (B : KnowledgeSoundnessAdversary Crs Proof) :
+    knowledgeSoundnessGame r ps ext B = simulateQ expand (ksGameH r (liftArg ps) (liftExt ext) (liftAdv B)) := by
+  simp only [knowledgeSoundnessGame, ksGameH, simulateQ_bind, simulateQ_pure, expand_liftM_setup, liftAdv]
   congr 1; funext crs
   have h := expand_loggedKH (B crs) []
   simp only [embedLog, List.map_nil] at h
@@ -191,7 +191,7 @@ theorem leanDa_perfectlyComplete_rpm : PerfectlyCompleteRpm := by
   have h := leanDa_perfectlyComplete_rpmH r π (liftArg ps) (fun π crs hcrs stmt wit hrel ↦ by
     rw [simulateQ_permImplH_liftArg]
     exact hps π crs hcrs stmt wit hrel) msg p
-  have e : completenessExpRpmH r π (liftArg ps) msg p = completenessExpRpm r π ps msg p := by
+  have e : completenessExpRpmH r π (liftArg ps) msg p = completenessExperiment r π ps msg p := by
     simp only [completenessExpRpmH, simulateQ_permImplH_liftArg]
     rfl
   rwa [e] at h

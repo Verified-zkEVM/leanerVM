@@ -186,7 +186,7 @@ noncomputable def interpSpec {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
     (hcard : ∀ W, (cands W).ncard ≤ L₀)
     (base : X × (Vector E m × (Fin 3 → CMlPolynomialEval E ρ))) :
     (n i : ℕ) → (pre : Vector E i) →
-      Spec (Prog.sampleN n) (HDoom cands (Gkr.childRelT 3 μ leaves riders ρ m T i) (base, pre))
+      Spec (Prog.sampleChallenges n) (HDoom cands (Gkr.childRelT 3 μ leaves riders ρ m T i) (base, pre))
         (fun ys h ↦ ys.length = n ∧ HDoom cands (Gkr.childRelT 3 μ leaves riders ρ m T (i + n))
           (base, vecOf (i + n) (pre.toList ++ ys)) h) εmax (interpLead L₀ n T') T'
   | 0, i, pre => (Spec.ret (Post := fun ys h ↦ ys.length = 0 ∧ HDoom cands
@@ -323,7 +323,7 @@ noncomputable def stepSpec {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
     let P0 := SumcheckPost (Gkr.familyT 3 μ leaves riders ρ m T) cands
       (layerStmtOf data m s, combiner) m #v[] (x, claim)
     have hP0 : ∀ h z, P0 h → P0 (h ++ [Ev.read z]) := fun _ _ hp ↦ ⟨hp.1, hp.2.append _⟩
-    have hread : Prog.readN (2 ^ ρ - 1 + 1) = Prog.readN (2 ^ ρ) := by
+    have hread : Prog.readScalars (2 ^ ρ - 1 + 1) = Prog.readScalars (2 ^ ρ) := by
       rw [Nat.sub_add_cancel Nat.one_le_two_pow]
     (Spec.congr hread (readNSuccSpec P0 hP0 zero_le (2 ^ ρ - 1))).bind' fun child0 ↦
     let P1 := fun h ↦ child0.length = 2 ^ ρ - 1 + 1 ∧ P0 h

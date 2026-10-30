@@ -65,7 +65,7 @@ theorem bind {p' p : Prog α} (h : NZ p' p) {f' f : α → Prog β} (hf : ∀ a,
 
 /-- A challenge, then programs related at every nonzero challenge. -/
 theorem sample_bind {f' f : E → Prog β} (hf : ∀ c, c ≠ 0 → NZ (f' c) (f c)) :
-    NZ (Prog.sampleE.bind f') (Prog.sampleE.bind f) :=
+    NZ (Prog.sampleChallenge.bind f') (Prog.sampleChallenge.bind f) :=
   .sample hf
 
 /-- A check that holds, then related programs. -/
@@ -170,9 +170,9 @@ theorem nz_program (ev : (List K → List E → Prog E)) (bytecode : List K) (pu
 /-! ## The runs -/
 
 /-- **With a permutation that never outputs a zero challenge, the runs agree.** -/
-theorem run_nz (H : Bytes → Id Digest) (F : KState → Id KState)
+theorem run_nz (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
     (hF : ∀ s, challengeOf (Id.run (F s)) ≠ 0) {α : Type} {p' p : Prog α} (h : NZ p' p) :
-    ∀ st : St, Compile.run H F p' st = Compile.run H F p st := by
+    ∀ st : ProgState, Compile.run H F p' st = Compile.run H F p st := by
   induction h with
   | ret a => intro st; rfl
   | fail => intro st; rfl
@@ -199,8 +199,8 @@ theorem run_nz (H : Bytes → Id Digest) (F : KState → Id KState)
     unfold Compile.run
     simp only [ih]
 
-theorem runProof_nz (H : Bytes → Id Digest) (F : KState → Id KState)
-    (hF : ∀ s, challengeOf (Id.run (F s)) ≠ 0) {p' p : Prog Bool} (h : NZ p' p) (seed : KState)
+theorem runProof_nz (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
+    (hF : ∀ s, challengeOf (Id.run (F s)) ≠ 0) {p' p : Prog Bool} (h : NZ p' p) (seed : KeccakState)
     (π : Proof) : runProof H F p' seed π = runProof H F p seed π := by
   unfold runProof
   rw [run_nz H F hF h]

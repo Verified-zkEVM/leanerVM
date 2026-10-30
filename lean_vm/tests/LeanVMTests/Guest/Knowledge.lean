@@ -6,9 +6,9 @@ import LeanVM.Guest.EndRpm
 * The end theorems from their hypotheses rest on Lean's three standard axioms only.
 * The decoder reads the seed and the statement off `main`'s frame, by definition, and the witness
   off `main`'s valuation, the memory and the memory's frame map.
-* The named form implies the existential one (`∃ w, NodeRel …` at the input's digest).
+* The named form implies the existential one (`∃ w, NodeRelation …` at the input's digest).
 * Why the existential one says little: the empty statement holds under any seed and any deferred
-  value (`∃ w, NodeRel …` of a statement with no claims, no children and the point at zero), so a digest
+  value (`∃ w, NodeRelation …` of a statement with no claims, no children and the point at zero), so a digest
   of it exists for almost every public input.
 -/
 
@@ -53,26 +53,26 @@ open LeanVM.Guest.End LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash Lea
 
 /-! ## The decoder reads `main`'s frame -/
 
-example (W : Val → Reader → FrameMap → NodeWitness) {κ : ℕ} (L : MemImage κ) :
+example (W : Val → Reader → FrameMap → NodeWitness) {κ : ℕ} (L : MemoryImage κ) :
     (decodeWith W L).seed = B1.Main.decSeed (valG L 1 (certOf 1)) := rfl
 
-example (W : Val → Reader → FrameMap → NodeWitness) {κ : ℕ} (L : MemImage κ) :
+example (W : Val → Reader → FrameMap → NodeWitness) {κ : ℕ} (L : MemoryImage κ) :
     (decodeWith W L).statement = B1.Main.decStmt (valG L 1 (certOf 1)) L.read := rfl
 
-example (W : Val → Reader → FrameMap → NodeWitness) {κ : ℕ} (L : MemImage κ) :
+example (W : Val → Reader → FrameMap → NodeWitness) {κ : ℕ} (L : MemoryImage κ) :
     (decodeWith W L).witness = W (valG L 1 (certOf 1)) L.read (Located.frameV L) := rfl
 
 /-- A call's valuation in the frame map is the valuation of the call's frame. -/
-example {κ : ℕ} (L : MemImage κ) (f : String) (args rets : List E) :
+example {κ : ℕ} (L : MemoryImage κ) (f : String) (args rets : List E) :
     Located.frameV L f args rets = frameVal L certByName f (gpow (Located.frameOf L f args rets)) :=
   rfl
 
 /-! ## The named form implies the existential one -/
 
 example (W : Val → Reader → FrameMap → NodeWitness) (h : SoundHyps W) (input : PublicInput)
-    (t : Trace guest) (hv : ValidExecution guest input t) :
-    ∃ seed s, statementDigest seed s = publicDigest input ∧ s.defer.Shaped bytecode ∧
-      ∃ w, NodeRel bytecode seed s w := by
+    (t : Execution guest) (hv : ValidExecution guest input t) :
+    ∃ seed s, statementDigest seed s = publicDigest input ∧ s.deferredClaim.HasBytecodeShape bytecode ∧
+      ∃ w, NodeRelation bytecode seed s w := by
   obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
   exact ⟨_, _, hd, hrel.1, _, hrel⟩
 
@@ -84,10 +84,10 @@ def emptyStatement (v : E) : NodeStatement :=
 
 /-- A witness holds the empty statement, whatever the seed and the deferred value: its digest
 ranges over a seed and a field element, so almost every public input is one's. -/
-example (seed : Digest) (v : E) (hints : BatchHints) :
-    ∃ w, NodeRel bytecode seed (emptyStatement v) w := by
+example (seed : Digest) (v : E) (hints : BatchingHints) :
+    ∃ w, NodeRelation bytecode seed (emptyStatement v) w := by
   have hlog : Nat.log2 bytecode.length = 23 := by rw [bytecode_length, Nat.log2_two_pow]
   refine ⟨⟨[], [], [], none, hints⟩, ⟨?_, by simp, by simp [emptyStatement],
     by simp [emptyStatement], by simp [emptyStatement], ?_⟩⟩
-  · simp [emptyStatement, DeferredClaim.Shaped, hlog]
-  · simp [emptyStatement, DeferredClaim.AtZero, hlog]
+  · simp [emptyStatement, DeferredClaim.HasBytecodeShape, hlog]
+  · simp [emptyStatement, DeferredClaim.HasZeroPoint, hlog]

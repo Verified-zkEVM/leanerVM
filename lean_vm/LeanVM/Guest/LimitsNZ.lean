@@ -17,7 +17,7 @@ public import LeanVM.Guest.Limits
 `Refines P' P`: the program `P'` is `P` with failures inserted, step for step. Running a refining
 program is running the program, where it does not fail (`run_refines`, `runProof_refines`). The
 deferring program refusing a zero fold, tail or level batching challenge refines the deferring
-program (`deferredProgramNZ_refines`), so `ChildOk`'s refusal gives every child's acceptance by the
+program (`deferredProgramNZ_refines`), so `AcceptableChild`'s refusal gives every child's acceptance by the
 Spec's deferring verifier (`verifyDeferred_of_nz`): it only removes runs, those with a zero
 challenge where the guest divides.
 -/
@@ -76,11 +76,11 @@ end Refines
 
 section Run
 
-variable {H : Bytes → Id Digest} {F : KState → Id KState}
+variable {H : Bytes → Id Digest} {F : KeccakState → Id KeccakState}
 
 /-- **Running a refining program is running the program**, where it does not fail. -/
 theorem run_refines {α : Type} {P' P : Prog α} (h : Refines P' P) :
-    ∀ (s : St) (r : α × St), Id.run (Compile.run H F P' s) = some r →
+    ∀ (s : ProgState) (r : α × ProgState), Id.run (Compile.run H F P' s) = some r →
       Id.run (Compile.run H F P s) = some r := by
   induction h with
   | fail P =>
@@ -139,7 +139,7 @@ theorem run_refines {α : Type} {P' P : Prog α} (h : Refines P' P) :
         exact ih _ _ _ hr
 
 /-- **A refining program accepts only what the program accepts.** -/
-theorem runProof_refines {P' P : Prog Bool} (h : Refines P' P) (seed : KState) (π : Proof)
+theorem runProof_refines {P' P : Prog Bool} (h : Refines P' P) (seed : KeccakState) (π : Proof)
     (hacc : Id.run (runProof H F P' seed π) = true) : Id.run (runProof H F P seed π) = true := by
   unfold runProof at hacc ⊢
   simp only [Id.run_bind] at hacc ⊢
@@ -224,7 +224,7 @@ theorem verifyStackedOpeningNZ_refines (stackLog logInvRate : ℕ) (claims : Lis
   simp only [verifyWhir_eq_target]
   repeat (first | exact verifyWhirNZ_refines _ _ _ _ | refines_step)
 
-theorem deferredProgramNZ_refines (c : FixedClaims) (bytecode : List K) (publicInput : Digest) :
+theorem deferredProgramNZ_refines (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
     Refines (deferredProgramNZ c bytecode publicInput) (deferredProgram c bytecode publicInput) := by
   unfold deferredProgramNZ
   rw [deferredProgram_eq]
@@ -234,7 +234,7 @@ theorem deferredProgramNZ_refines (c : FixedClaims) (bytecode : List K) (publicI
 
 /-- **The zero-challenge refusal only restricts**: the deferring verifier refusing a zero challenge
 accepts only proofs the Spec's deferring verifier accepts. -/
-theorem verifyDeferred_of_nz {bytecode : List K} {iv publicInput : Digest} {c : FixedClaims}
+theorem verifyDeferred_of_nz {bytecode : List K} {iv publicInput : Digest} {c : BytecodeClaim}
     {π : Proof} (h : verifyDeferredNZ bytecode iv publicInput c π = true) :
     verifyDeferred bytecode iv publicInput c π = true := by
   unfold verifyDeferredNZ at h

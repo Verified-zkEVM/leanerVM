@@ -103,7 +103,7 @@ theorem firstClaim_shape {P : ℕ} {inst segment lanesPt output : List E} (commi
   · rw [firstClaim_weights]; exact firstWeights_length lanesPt
 
 /-- The first claim's weights read a state's lanes as words. -/
-theorem sum_firstWeights {lanesPt : List E} (hl : lanesPt.length = 5) (a : KState) :
+theorem sum_firstWeights {lanesPt : List E} (hl : lanesPt.length = 5) (a : KeccakState) :
     ∑ j ∈ range 1600, (firstWeights lanesPt).getD j 0 * bitE (sbit a j) =
       ∑ l ∈ range 25, eqAt lanesPt l * ofK (laneWord a l) := by
   rw [show 1600 = 25 * 64 from rfl, sum_range_mul]

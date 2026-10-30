@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Main.Callees
 
   `main`'s callee contracts from the callees' statements: witness functions exist for which
-  `CalleesW` holds, so a run of `main` establishes `NodeRel` of some witness.
+  `CalleesW` holds, so a run of `main` establishes `NodeRelation` of some witness.
 -/
 
 module
@@ -44,8 +44,8 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
     (hd : Da.da_verify_sound_Spec) (ha : aggregate_claims_sound_Spec) {rd : Reader}
     (hm : MemOk rd) :
     ∃ (wX : E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
-      (wD : List E → List E → LeanVM.Da.Witness) (wV : List E → Proof)
-      (wA : List E → BatchHints), CalleesW bytecode rd wX wS wD wV wA := by
+      (wD : List E → List E → LeanVM.Da.MatrixWitness) (wV : List E → Proof)
+      (wA : List E → BatchingHints), CalleesW bytecode rd wX wS wD wV wA := by
   classical
   obtain ⟨κ, h16, hκ, L, rfl⟩ := hm
   have hm' : MemOk L.read := ⟨κ, h16, hκ, L, rfl⟩
@@ -72,7 +72,7 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
       exact ⟨sig, fun _ _ _ => hsig⟩
     · exact ⟨Classical.ofNonempty, fun bb hr hbb => absurd ⟨bb, hr, hbb⟩ h⟩
   -- the matrix
-  have edd : ∀ args rets : List E, ∃ w : LeanVM.Da.Witness, ∀ gsq, args = [gsq] →
+  have edd : ∀ args rets : List E, ∃ w : LeanVM.Da.MatrixWitness, ∀ gsq, args = [gsq] →
       coreProgram.Rel L.read "da_verify" [gsq] rets → Da.SquaresAt L.read gsq →
       ∃ root vd : Digest, w.Opens root vd ∧ rets = digestCells root ++ digestCells vd := by
     intro args rets
@@ -98,7 +98,7 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
       exact ⟨π, fun _ _ _ _ _ _ _ _ _ _ => hπ⟩
     · exact ⟨Classical.ofNonempty, fun a b c d e f g hargs hr he => absurd ⟨a, b, c, d, e, f, g, hargs, hr, he⟩ h⟩
   -- the batching's hints
-  have ea : ∀ args : List E, ∃ hints : BatchHints, ∀ ncg cpi cfresh ccarried dst,
+  have ea : ∀ args : List E, ∃ hints : BatchingHints, ∀ ncg cpi cfresh ccarried dst,
       args = [ncg, cpi, cfresh, ccarried, dst] →
       coreProgram.Rel L.read "aggregate_claims" args [] → ∀ m, 1 ≤ m → m ≤ 16 → ncg = gen ^ m →
       ∃ out : DeferredClaim, out.bytecodePoint.length = bytecodeVars ∧
@@ -138,7 +138,7 @@ theorem main_sound_exists [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signat
     {σ : Val} (hp0 : LoadHolds rd 1 0 (digestScalars D).1) (hp1 : LoadHolds rd 1 1 (digestScalars D).2)
     (hb : Stmt.HoldsList (coreProgram.Rel rd) rd σ Data.core0.body False (fun rs => rs = [])) :
     statementDigest (decSeed σ) (decStmt σ rd) = D ∧
-      ∃ w, NodeRel bytecode (decSeed σ) (decStmt σ rd) w := by
+      ∃ w, NodeRelation bytecode (decSeed σ) (decStmt σ rd) w := by
   obtain ⟨wX, wS, wD, wV, wA, cw⟩ := callees_exist hx hs hv hd ha hm
   obtain ⟨h1, h2⟩ := main_sound_w bytecode hbl rd hm wX wS wD wV wA cw D σ hp0 hp1 hb
   exact ⟨h1, _, h2⟩

@@ -34,7 +34,7 @@ witness `W` over any
 call relation that unfolds along a frame map (`Located.MainSoundV`).
 
 * `guest_knowledge_of`: every valid execution of the guest on a public input decodes to a
-  statement of that input's digest under the decoded seed, and a witness holding it (`NodeRel`).
+  statement of that input's digest under the decoded seed, and a witness holding it (`NodeRelation`).
   B2 gives `main`'s body at its frame with every call located (`mainBodyL_of`); the located
   relation unfolds along the memory's frame map (`Located.unfoldsV_RL`), so B1 applies to it.
 * `decode_binds_of`: a consumer whose own statement `s₀` (its deferred claim of the bytecode's
@@ -85,30 +85,30 @@ seed and a witness holding it. -/
 theorem guest_knowledge_of (h : SoundHyps W) : GuestKnowledge guest (decodeWith W) := by
   intro input t hv
   obtain ⟨hb, h0, h1⟩ := mainBodyL_of h.b2 hv
-  have hm : MemOk t.image.read := ⟨t.κ, hv.1.1, hv.1.2.1, t.image, rfl⟩
-  exact h.main bytecode_length t.image.read hm _ _ (Located.unfoldsV_RL t.image)
-    (Located.rlg_le_rel t.image) _ _ h0 h1 hb
+  have hm : MemOk t.memory.read := ⟨t.logMemorySize, hv.1.1, hv.1.2.1, t.memory, rfl⟩
+  exact h.main bytecode_length t.memory.read hm _ _ (Located.unfoldsV_RL t.memory)
+    (Located.rlg_le_rel t.memory) _ _ h0 h1 hb
 
 /-- **What a consumer learns**: a valid execution of the guest on the digest of its statement
 `s₀` under the seed `iv` (`s₀`'s deferred claim of the bytecode's shape: `bytecode`'s `23`
 coordinates, which the outer verifier's check that it holds implies) decodes to
 `iv` and `s₀`, or its memory and `s₀` give a Keccak-256 collision among the explicit
 candidates. -/
-theorem decode_binds_of (h : SoundHyps W) {input : PublicInput} {t : Trace guest}
+theorem decode_binds_of (h : SoundHyps W) {input : PublicInput} {t : Execution guest}
     (hv : ValidExecution guest input t) {iv : Digest} {s₀ : NodeStatement}
-    (hs₀ : s₀.defer.Shaped bytecode) (hpub : publicDigest input = statementDigest iv s₀) :
-    ((decodeWith W t.image).seed = iv ∧ (decodeWith W t.image).statement = s₀) ∨
-      HasCollision (collisionCandidates (decodeWith W t.image).seed
-        (decodeWith W t.image).statement iv s₀) := by
+    (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode) (hpub : publicDigest input = statementDigest iv s₀) :
+    ((decodeWith W t.memory).seed = iv ∧ (decodeWith W t.memory).statement = s₀) ∨
+      HasCollision (collisionCandidates (decodeWith W t.memory).seed
+        (decodeWith W t.memory).statement iv s₀) := by
   obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
   exact decoded_binds hs₀ hrel.1 hpub hd
 
 /-- **Soundness, the existential form**: a valid execution of the guest on `input` gives a seed
-and a statement of the input's digest of the guest's shape that a witness holds (`NodeRel`). -/
-theorem guest_sound_of (h : SoundHyps W) (input : PublicInput) (t : Trace guest)
+and a statement of the input's digest of the guest's shape that a witness holds (`NodeRelation`). -/
+theorem guest_sound_of (h : SoundHyps W) (input : PublicInput) (t : Execution guest)
     (hv : ValidExecution guest input t) :
-    ∃ seed s, statementDigest seed s = publicDigest input ∧ s.defer.Shaped bytecode ∧
-      ∃ w, NodeRel bytecode seed s w := by
+    ∃ seed s, statementDigest seed s = publicDigest input ∧ s.deferredClaim.HasBytecodeShape bytecode ∧
+      ∃ w, NodeRelation bytecode seed s w := by
   obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
   exact ⟨_, _, hd, hrel.1, _, hrel⟩
 
@@ -134,12 +134,12 @@ theorem guest_knowledge_V {piOf : Reader → Val → FrameMap → Protocol.Compi
 
 /-- **What a consumer learns**, from B2 and `verify_sub`'s statement. -/
 theorem decode_binds_V {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof} (hb2 : B2SoundL)
-    (hv : B1.Main.SubSoundW bytecode piOf) {input : PublicInput} {t : Trace guest}
+    (hv : B1.Main.SubSoundW bytecode piOf) {input : PublicInput} {t : Execution guest}
     (hvt : ValidExecution guest input t) {iv : Digest} {s₀ : NodeStatement}
-    (hs₀ : s₀.defer.Shaped bytecode) (hpub : publicDigest input = statementDigest iv s₀) :
-    ((decodeV piOf t.image).seed = iv ∧ (decodeV piOf t.image).statement = s₀) ∨
-      HasCollision (collisionCandidates (decodeV piOf t.image).seed
-        (decodeV piOf t.image).statement iv s₀) :=
+    (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode) (hpub : publicDigest input = statementDigest iv s₀) :
+    ((decodeV piOf t.memory).seed = iv ∧ (decodeV piOf t.memory).statement = s₀) ∨
+      HasCollision (collisionCandidates (decodeV piOf t.memory).seed
+        (decodeV piOf t.memory).statement iv s₀) :=
   decode_binds_of (soundHyps_of_sub hb2 hv) hvt hs₀ hpub
 
 end

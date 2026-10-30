@@ -41,7 +41,7 @@ def open_stacked_completeAtB_Spec : Prop :=
     ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (Bnd Kr : String → ℕ),
       Lift.RunsFit fs cert → OsFitsAt fs cert (osCfg (candidate μ r)) →
       OsLeafBounds fs Bnd → OsLoopBounds fs Kr (osCfg (candidate μ r)) →
-      ∀ (S : KState) (root : Digest) (target cur : E) (xs : List E) (os : List Opening)
+      ∀ (S : KeccakState) (root : Digest) (target cur : E) (xs : List E) (os : List Opening)
         (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
         RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
         Whir.NoZeroChallenge μ r target S xs os root → Whir.CapsAgree μ r target S xs os root →

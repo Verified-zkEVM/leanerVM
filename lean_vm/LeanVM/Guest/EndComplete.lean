@@ -14,7 +14,7 @@ public import LeanVM.Guest.Memory.HonestMain
 /-!
 # Completeness, the `honest` piece
 
-`MainComplete cert cnt b` is what the completeness of `main` (B1) gives for `NodeRel` within the
+`MainComplete cert cnt b` is what the completeness of `main` (B1) gives for `NodeRelation` within the
 limits, the caps agreeing and no zero challenge where the guest divides: a consistent layout `L`
 in `[2, N)`, `N ≤ 2^32` words within the budget's words, on every memory holding which and the statement's digest at words `0`, `1` `main` holds by
 a tree placed at `0` (`RelAtIn`'s tree, as `honest_of_relAtIn` takes it) within the budget's
@@ -37,13 +37,13 @@ open LeanVM.Guest.B1.Main (KFacts imageOf LConsistent Layout MemL)
 variable (fs : String → ℕ) (H : Inst → ℕ → E × E) (C : Inst → List (ℕ × E))
   (cert : String → V → ℕ) (cnt : Tree → Opcode → ℕ) (b : Budget)
 
-/-- **`main`'s completeness within the budget** (B1, `main` last): for `NodeRel` within the
+/-- **`main`'s completeness within the budget** (B1, `main` last): for `NodeRelation` within the
 limits, the caps and no zero challenge, the budget's size within `2^28`, a consistent layout of `N` words, `N` within the budget,
 on every memory holding which with the statement's digest as its header `main` holds by a tree
 placed at `0`, of `N` words, loading from its own data or its header, within the budget's
 instruction counts. -/
 def MainComplete : Prop :=
-  ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
+  ∀ seed s w, NodeRelation bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
     ∃ (N : ℕ) (L : Layout), LConsistent L ∧ (∀ q ∈ L, 2 ≤ q.1 ∧ q.1 + q.2.length ≤ N) ∧
       N ≤ 2 ^ 32 ∧ N ≤ b.words.eval (work s w) ∧
       ∀ rd, LowDef 16 rd → MemL rd L → rd 1 = some (hdrOf (statementDigest seed s)).1 →
@@ -74,12 +74,12 @@ structure CompleteParts : Prop where
   /-- The checker: `CompletePiecesWithin.b2`. -/
   b2 : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
     HonestAt coreProgram fs H C hdr T cert rd [] [] →
-      Reach guest (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Regs.final guest)
+      Reach guest (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Registers.final guest)
   /-- The checker: `CompletePiecesWithin.count`. -/
   count : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
     HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ n,
-      run guest (honest coreProgram fs H C hdr T) n Regs.initial = some (Regs.final guest) →
-        ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Trace guest).count op ≤ cnt T op
+      run guest (honest coreProgram fs H C hdr T) n Registers.initial = some (Registers.final guest) →
+        ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Execution guest).count op ≤ cnt T op
 
 variable {fs H C cert cnt b}
 
@@ -87,7 +87,7 @@ variable {fs H C cert cnt b}
 invariance. -/
 theorem honest_of_main (hm : MainComplete fs cert cnt b) (hk : KFactsAll fs H C cert)
     (hc : CntRetemp fs cnt) :
-    ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
+    ∀ seed s w, NodeRelation bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
       ∃ (rd : Reader) (T : Tree), T.name = "main" ∧
         HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
         T.total fs ≤ b.words.eval (work s w) ∧ ∀ op, cnt T op ≤ (b.instrs op).eval (work s w) := by
@@ -100,7 +100,7 @@ theorem honest_of_main (hm : MainComplete fs cert cnt b) (hk : KFactsAll fs H C 
   have hlow : LowDef 16 M.read := fun i hi => by
     have hi' : i < 2 ^ logMem N :=
       lt_of_lt_of_le hi (Nat.pow_le_pow_right (by norm_num) h16)
-    rw [MemImage.read_gpow h64 M ⟨i, hi'⟩]; rfl
+    rw [MemoryImage.read_gpow h64 M ⟨i, hi'⟩]; rfl
   have hL := B1.Main.memL_imageOf h64 hcons (fun q hq => ⟨(hin q hq).1,
     le_trans (hin q hq).2 (le_two_pow_logMem N)⟩) hdr
   obtain ⟨hh0, hh1⟩ := B1.Main.imageOf_hdr h64 (by omega) L hdr

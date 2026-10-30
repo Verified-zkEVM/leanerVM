@@ -149,7 +149,7 @@ theorem idealT_step_evalDistEq (t : (dSpec Msg Dg (SpState Dg E C)).Domain)
     simp [projT, Functor.map_map]
   · rw [idealT_fwd_run]
     simp only [projT, idealImpl, simulator, StateT.run_mk]
-    rcases hy : fwdLookup σ.edges x with _ | y
+    rcases hy : forwardLookup σ.edges x with _ | y
     · rcases hch : chainOf σ.chains x with _ | ⟨s, β⟩
       · -- a fresh unrooted node
         simp only [visFwd, hy, hch]
@@ -180,7 +180,7 @@ theorem idealT_step_evalDistEq (t : (dSpec Msg Dg (SpState Dg E C)).Domain)
       exact EvalDistEq.bind_const _ _
   · rw [idealT_inv_run]
     simp only [projT, idealImpl, simulator, StateT.run_mk, visInv]
-    rcases hx : invLookup σ.edges y with _ | x
+    rcases hx : inverseLookup σ.edges y with _ | x
     · rw [simulateQ_bind, StateT.run_bind, simulateQ_romImpl_liftM_run]
       simp [Functor.map_map, projT]
     · simp only [simulateQ_pure, StateT.run_pure, Functor.map_map]

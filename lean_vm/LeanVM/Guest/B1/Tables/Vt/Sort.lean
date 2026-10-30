@@ -55,7 +55,7 @@ def VtRankFacts (rd : Reader) (σ : Val) (v0 R0 s r : ℕ) : Prop :=
         ∃ e < 153, σ (.n v) = gen ^ e * σ (.n (vtRv v0 (r - 1)))))
 
 section
-variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ)
+variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
 theorem vt_rc {σ : Val} {x y t1 t2 k : V} {K : ℕ} (hK1 : 1 ≤ K) (hK : K ≤ 2 ^ 33)
@@ -202,7 +202,7 @@ theorem vt_side_tab {rd : Reader} {σ : Val} (h : VtH rd σ) :
 /-- **`verify_tables`' block certification** (G:1960-1986): when every block's `block_kappa` cell
 holds `g^κ`, `κ < 34`, the push side's `54` blocks and the count side's `45` blocks have their
 `block_off_g` cells holding `g^` the `stackOffsets` offsets of the side's log-sizes. -/
-theorem vt_sort {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {σ : Val} (h : VtH Lm.read σ)
+theorem vt_sort {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {σ : Val} (h : VtH Lm.read σ)
     (hkap : ∀ b < 153, ∃ κ < 34, LoadHolds Lm.read (σ (.n 12)) b (gen ^ κ))
     (hsq : ∀ j < 34, LoadHolds Lm.read (σ (.n 13)) j (gen ^ 2 ^ j)) :
     (∃ κs : List ℕ, κs.length = 54 ∧

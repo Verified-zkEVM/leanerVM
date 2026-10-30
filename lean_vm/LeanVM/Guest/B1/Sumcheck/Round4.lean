@@ -67,7 +67,7 @@ theorem round4_sponge (cap : List E) (c0 c2 c3 : E) :
   rfl
 
 /-- The honest values of `sumcheck_round4`, by index. -/
-def r4Vals (rec cur claim : E) (cap : List E) (c0 c2 c3 : E) (S : KState) (k : ℕ) : E :=
+def r4Vals (rec cur claim : E) (cap : List E) (c0 c2 c3 : E) (S : KeccakState) (k : ℕ) : E :=
   let y := challengeOf S
   if k < 3 then [rec, cur, claim].getD k 0
   else if k < 8 then cap.getD (k - 3) 0
@@ -211,7 +211,7 @@ theorem sumcheck_round4_holds : sumcheck_round4_Spec := by
       fin_cases c <;> simp [cells13, ev, r4Vals, p0.1, p0.2, p2.1, p2.2, p3.1, p3.2, z] <;>
         exact hcan _ (by simp)
     · intro c
-      have hS' : keccakF (stateOfCells (cells13 [σ (.n 15), σ (.n 17), σ (.n 25), σ (.n 27),
+      have hS' : keccakF1600 (stateOfCells (cells13 [σ (.n 15), σ (.n 17), σ (.n 25), σ (.n 27),
           σ (.n 35), σ (.n 37), σ (.n 38), σ (.n 39), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6),
           σ (.n 7)]) false) = S := hS
       rw [hS']

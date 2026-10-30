@@ -214,7 +214,7 @@ theorem transfer2 (NF : (Dg × E) → Prop) [DecidablePred NF]
     (A : β → OracleComp (dSpec Msg Dg (SpState Dg E C)) γ)
     (post : β → γ → OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) δ)
     (hpost : ∀ x a, Duplex iv NF (post x a) []) (q : ℕ)
-    (hq : IsWeightBound (rpmGame2 pre A post) (queryCost2 (Dg := Dg) P) q) (p : δ → Prop) :
+    (hq : QueryCostAtMost (rpmGame2 pre A post) (queryCost2 (Dg := Dg) P) q) (p : δ → Prop) :
     Pr{let a ← realGame2 P iv (rpmGame2 pre A post)}[p a] ≤
         Pr{let a ← romRun2 (simulateQ (hInF (E := E) (C := C)) pre >>= fun x ↦
           advS2 P iv (A x) >>= fun a ↦ post x a)}[p a] +
@@ -241,10 +241,10 @@ theorem transfer2 (NF : (Dg × E) → Prop) [DecidablePred NF]
 /-! ## Hash queries from permutation transcripts -/
 
 /-- A step of the two-oracle simulator moves its state by the replayed bookkeeping. -/
-theorem simulator2_step_replay (q : PermQuery (SpState Dg E C)) (σ : SimState Dg E C) {z}
+theorem simulator2_step_replay (q : PermutationQuery (SpState Dg E C)) (σ : SimState Dg E C) {z}
     (hz : z ∈ support ((simulator2 (Msg := Msg) P q).run σ)) : z.2 = replayStep σ (q, z.1) := by
   cases q with
-  | fwd x =>
+  | forward x =>
     simp only [simulator2, StateT.run_mk] at hz
     simp only [replayStep]
     split at hz
@@ -260,7 +260,7 @@ theorem simulator2_step_replay (q : PermQuery (SpState Dg E C)) (σ : SimState D
         simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
         obtain ⟨y, -, rfl⟩ := hz
         simp [hy, hch]
-  | inv y =>
+  | inverse y =>
     simp only [simulator2, StateT.run_mk] at hz
     simp only [replayStep]
     split at hz
@@ -273,7 +273,7 @@ theorem simulator2_step_replay (q : PermQuery (SpState Dg E C)) (σ : SimState D
 
 /-- The two-oracle ROM adversary with its permutation transcript logged, oldest first. -/
 noncomputable def advImplLog2 : QueryImpl (dSpec Msg Dg (SpState Dg E C))
-    (StateT (SimState Dg E C × List (PermQuery (SpState Dg E C) × SpState Dg E C))
+    (StateT (SimState Dg E C × List (PermutationQuery (SpState Dg E C) × SpState Dg E C))
       (OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C))))
   | .inr (.inr q) => StateT.mk fun s ↦
       (fun z ↦ (z.1, (z.2, s.2 ++ [(q, z.1)]))) <$> (simulator2 P q).run s.1
@@ -281,7 +281,7 @@ noncomputable def advImplLog2 : QueryImpl (dSpec Msg Dg (SpState Dg E C))
 
 /-- Forgetting the transcript gives the two-oracle ROM adversary. -/
 theorem advImplLog2_proj {α : Type} (A : OracleComp (dSpec Msg Dg (SpState Dg E C)) α)
-    (s : SimState Dg E C × List (PermQuery (SpState Dg E C) × SpState Dg E C)) :
+    (s : SimState Dg E C × List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) :
     Prod.map id Prod.fst <$> (simulateQ (advImplLog2 P) A).run s =
       (simulateQ (advImpl2 P) A).run s.1 :=
   OracleComp.map_run_simulateQ_eq_of_query_map_eq _ _ _ (fun t s ↦ by
@@ -321,7 +321,7 @@ theorem fst_mem_support_of_mem_support_ro2 {β : Type}
 
 /-- The digests of the simulator's rooted paths are cached `H` answers, and stay. -/
 theorem roOK2_step (t : (dSpec Msg Dg (SpState Dg E C)).Domain)
-    (s : (SimState Dg E C × List (PermQuery (SpState Dg E C) × SpState Dg E C)) ×
+    (s : (SimState Dg E C × List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) ×
       HCache Msg Dg (SpState Dg E C))
     (hs : ∀ md ∈ simPaths P s.1.1, s.2 (.inl md.1) = some md.2) {z}
     (hz : z ∈ support (((foldRO (advImplLog2 P)) t).run s)) :
@@ -350,14 +350,14 @@ theorem roOK2_step (t : (dSpec Msg Dg (SpState Dg E C)).Domain)
     obtain ⟨w', hw', rfl⟩ := hw
     simp only at hold ⊢
     cases q with
-    | inv y =>
+    | inverse y =>
       have := simulator2_step_replay P _ _ (fst_mem_support_of_mem_support_ro2 hw')
       rw [this]
       simp only [replayStep]
       split
       · exact hold
       · exact hold
-    | fwd x =>
+    | forward x =>
       simp only [simulator2, StateT.run_mk] at hw'
       split at hw'
       · simp only [simulateQ_pure, StateT.run_pure, support_pure,

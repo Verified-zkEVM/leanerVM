@@ -17,7 +17,7 @@ public import LeanVM.Protocol.ToCompPoly.PowerBatching
 # The batching's doom specification
 
 For children `cs` of the bytecode's shapes with some nonzero gap (`SomeGap`), `restSpec` is a
-specification (`LeanVM.Protocol.Compile.Spec`) of `batchRest bytecode cs` from the empty history,
+specification (`LeanVM.Protocol.Compile.Spec`) of `batchingAfterChildren bytecode cs` from the empty history,
 with doom at the start, rejection at the end, and every challenge escaping doom with
 probability at most `batchε M = 2 max(M, 1)/|E|`, for `n < M` children:
 
@@ -148,7 +148,7 @@ theorem lam_bad_card {G : List E} {n : ℕ} (hG : G.length = 2 * n) (hg : ∃ g 
 /-- **The challenge `λ`**, for `n < M` children whose `2n` gaps are not all zero: doom kept, the
 gaps' combination by `λ`'s powers nonzero, but for a fraction `batchε M` of its values. -/
 noncomputable def lamSpec (G : List E) {n M : ℕ} (hG : G.length = 2 * n) (hn : n < M) :
-    Spec Prog.sampleE (fun _ ↦ ∃ g ∈ G, g ≠ 0)
+    Spec Prog.sampleChallenge (fun _ ↦ ∃ g ∈ G, g ≠ 0)
       (fun c _ ↦ dot (flat2 (lambdaPowers c n)) G ≠ 0) (batchε M) (batchε M) 0 :=
   (Spec.sampleE (Pre := fun _ ↦ ∃ g ∈ G, g ≠ 0)
       (Post := fun c _ ↦ dot (flat2 (lambdaPowers c n)) G ≠ 0) (T := 0) (batchε M)
@@ -173,18 +173,18 @@ theorem length_flatMap_const {α β : Type} (f : α → List β) (m : ℕ) (hf :
 /-- A round's challenge breaks doom at a root of its gap: at most two. -/
 theorem round_bad {n : ℕ} {f : List E → E} (hf : QuadraticIn n f) {claim : E} {pre : List E}
     (hl : pre.length < n) (g : E × E) (hc : claim ≠ cubeSum n f pre) :
-    {r | ¬ roundPoly claim g r ≠ cubeSum n f (pre ++ [r])}.ncard ≤ 2 := by
-  have hq : Quadratic fun x ↦ roundPoly claim g x - cubeSum n f (pre ++ [x]) :=
+    {r | ¬ sumcheckRoundPolynomial claim g r ≠ cubeSum n f (pre ++ [r])}.ncard ≤ 2 := by
+  have hq : Quadratic fun x ↦ sumcheckRoundPolynomial claim g x - cubeSum n f (pre ++ [x]) :=
     Quadratic.sub ⟨g.2, claim + g.1 + g.1 + g.2, claim + g.1, fun x ↦ by
-      simp only [roundPoly]; ring⟩ (quadratic_cubeSum hf hl)
-  have hne : ∃ x, roundPoly claim g x - cubeSum n f (pre ++ [x]) ≠ 0 := by
+      simp only [sumcheckRoundPolynomial]; ring⟩ (quadratic_cubeSum hf hl)
+  have hne : ∃ x, sumcheckRoundPolynomial claim g x - cubeSum n f (pre ++ [x]) ≠ 0 := by
     by_contra hz'
-    have hz : ∀ x, roundPoly claim g x - cubeSum n f (pre ++ [x]) = 0 := fun x ↦
+    have hz : ∀ x, sumcheckRoundPolynomial claim g x - cubeSum n f (pre ++ [x]) = 0 := fun x ↦
       by_contra fun hx ↦ hz' ⟨x, hx⟩
     apply hc
     have h0 := hz 0
     have h1 := hz 1
-    simp only [roundPoly, sub_eq_zero] at h0 h1
+    simp only [sumcheckRoundPolynomial, sub_eq_zero] at h0 h1
     rw [cubeSum_split hl, ← h0, ← h1]
     linear_combination (-(claim + g.2 + 2 * g.1)) * Whir.Complete.two_eq_zero_E
   simpa [sub_eq_zero] using quadratic_roots hq hne
@@ -194,7 +194,7 @@ leaves a final claim that is not `f` at the challenges, each challenge escaping 
 of the time. -/
 noncomputable def roundsSpec (M : ℕ) {n : ℕ} {f : List E → E} (hf : QuadraticIn n f) :
     (k : ℕ) → (claim : E) → (pre : List E) → pre.length + k = n →
-    Spec (roundsProg claim k) (fun _ ↦ claim ≠ cubeSum n f pre)
+    Spec (sumcheckRoundsProgram claim k) (fun _ ↦ claim ≠ cubeSum n f pre)
       (fun r _ ↦ r.2 ≠ f (pre ++ r.1)) (batchε M) 0 0
   | 0, claim, pre, hk => (Spec.ret (Post := fun r _ ↦ r.2 ≠ f (pre ++ r.1)) ([], claim)).mono
       (fun _ h ↦ by simpa [cubeSum_full (f := f) (by simpa using hk)] using h) (fun _ _ h ↦ h)
@@ -207,7 +207,7 @@ noncomputable def roundsSpec (M : ℕ) {n : ℕ} {f : List E → E} (hf : Quadra
           (Post := fun _ _ ↦ claim ≠ cubeSum n f pre) (T := batchε M + 0) (fun _ _ h ↦ h)
           (add_zero _).le).bind' fun gInf ↦
         (Spec.sampleE (Pre := fun _ ↦ claim ≠ cubeSum n f pre)
-            (Post := fun r _ ↦ roundPoly claim (g1, gInf) r ≠ cubeSum n f (pre ++ [r]))
+            (Post := fun r _ ↦ sumcheckRoundPolynomial claim (g1, gInf) r ≠ cubeSum n f (pre ++ [r]))
             (T := 0) (batchε M) fun _ h ↦ by
               refine (card_filter_le (round_bad hf (by omega) (g1, gInf) h)).trans ?_
               exact le_of_eq_of_le (by simp) (invE_two_le_batchε M)).bind' fun r ↦
@@ -219,16 +219,16 @@ noncomputable def roundsSpec (M : ℕ) {n : ℕ} {f : List E → E} (hf : Quadra
 
 /-- Children of the bytecode's shapes have points of `log₂` of its length. -/
 theorem bytecodePoints {bytecode : List K} {cs : List ChildClaims}
-    (hs : ∀ c ∈ cs, ChildShaped bytecode c) : ∀ c ∈ cs,
-      c.fresh.bytecodePoint.length = Nat.log2 bytecode.length ∧
-        c.carried.bytecodePoint.length = Nat.log2 bytecode.length :=
+    (hs : ∀ c ∈ cs, ChildHasBytecodeShape bytecode c) : ∀ c ∈ cs,
+      c.freshClaim.bytecodePoint.length = Nat.log2 bytecode.length ∧
+        c.carriedClaim.bytecodePoint.length = Nat.log2 bytecode.length :=
   fun c hc ↦ ⟨(hs c hc).1, (hs c hc).2⟩
 
 /-- Lambdas whose combination of the gaps is nonzero leave a claim that is not the cube sum. -/
 theorem claimB_ne {bytecode : List K} (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)
-    {cs : List ChildClaims} (hs : ∀ c ∈ cs, ChildShaped bytecode c) {l : List (E × E)}
+    {cs : List ChildClaims} (hs : ∀ c ∈ cs, ChildHasBytecodeShape bytecode c) {l : List (E × E)}
     (hl : l.length = cs.length) (hd : dot (flat2 l) (gapsB bytecode cs) ≠ 0) :
-    claimBOf cs l ≠ cubeSum (Nat.log2 bytecode.length) (bytecodePoly bytecode cs l) [] := by
+    batchedClaim cs l ≠ cubeSum (Nat.log2 bytecode.length) (bytecodePoly bytecode cs l) [] := by
   rw [bytecode_cubeSum hb (bytecodePoints hs) l]
   intro heq
   exact hd ((claimB_sub bytecode cs l hl).symm.trans (sub_eq_zero.2 heq))
@@ -242,7 +242,7 @@ theorem length_gapsB (bytecode : List K) (cs : List ChildClaims) :
 noncomputable def endSpec (M : ℕ) (φ : Prop) (C : E → Prop) {_ : ∀ a, Decidable (C a)}
     (h : ∀ a, φ → C a → False) :
     Spec (do
-        let a ← Prog.readE
+        let a ← Prog.readScalar
         Prog.require (C a)
         return true) (fun _ ↦ φ) (fun b _ ↦ b = false) (batchε M) 0 0 :=
   (constSpec _ φ zero_le).bind' fun a ↦
@@ -253,12 +253,12 @@ noncomputable def endSpec (M : ℕ) (φ : Prop) (C : E → Prop) {_ : ∀ a, Dec
 challenge `λ` and the rounds tracked, then a fixed fact. -/
 noncomputable def restSpec {M : ℕ} {bytecode : List K}
     (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length) {cs : List ChildClaims}
-    (hn : cs.length < M) (hs : ∀ c ∈ cs, ChildShaped bytecode c) (hg : SomeGap bytecode cs) :
-    Spec (batchRest (DeferredClaim.Holds bytecode) bytecode cs) (fun h ↦ h = [])
+    (hn : cs.length < M) (hs : ∀ c ∈ cs, ChildHasBytecodeShape bytecode c) (hg : SomeGap bytecode cs) :
+    Spec (batchingAfterChildren (DeferredClaim.Holds bytecode) bytecode cs) (fun h ↦ h = [])
       (fun b _ ↦ b = false) (batchε M) (batchε M) 0 :=
   ((lamSpec (gapsB bytecode cs) (length_gapsB bytecode cs) hn).bind' fun lam ↦
     ((roundsSpec M (bytecode_quadraticIn hb (bytecodePoints hs) (lambdaPowers lam cs.length)) _
-        (claimBOf cs (lambdaPowers lam cs.length)) [] (by simp)).mono
+        (batchedClaim cs (lambdaPowers lam cs.length)) [] (by simp)).mono
         (fun _ h ↦ claimB_ne hb hs (length_lambdaPowers _ _) h) (fun _ _ h ↦ h) le_rfl le_rfl
         le_rfl).bind' fun rb ↦
       endSpec M _ _ fun bv hφ hc ↦ by

@@ -48,7 +48,7 @@ theorem globalColumnBases_getD : ∀ j : Fin 6, globalColumnBases.getD j 0 = tab
   decide +kernel
 
 /-- The columns, by number. -/
-theorem colsOf_getD {κ : ℕ} (img : MemImage κ) (acc : Rows) (logs : List ℕ) (n : ℕ)
+theorem colsOf_getD {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ) (n : ℕ)
     (hn : n < 163) :
     (colsOf img acc logs).getD n #[] =
       columnAt img acc logs (midStates (acc.tabs.getD 5 #[]) (logs.getD 5 0))
@@ -58,8 +58,8 @@ theorem colsOf_getD {κ : ℕ} (img : MemImage κ) (acc : Rows) (logs : List ℕ
 
 /-- The column of an opcode table's column number: an output lane derived, the table's column
 otherwise. -/
-theorem columnAt_base {κ : ℕ} (img : MemImage κ) (acc : Rows) (logs : List ℕ)
-    (mids outs : Array KState) (j : ℕ) (hj : j < 6) (i : ℕ) (hi : i < tableWidth j) :
+theorem columnAt_base {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ)
+    (mids outs : Array KeccakState) (j : ℕ) (hj : j < 6) (i : ℕ) (hi : i < tableWidth j) :
     columnAt img acc logs mids outs (tableBase j + i) =
       if j = 5 ∧ 38 ≤ i ∧ i < 63 then
         Array.ofFn (n := 2 ^ logs.getD 5 0) fun x ↦ laneK (outs.getD x.val zeroState) (i - 38)
@@ -74,19 +74,19 @@ theorem columnAt_base {κ : ℕ} (img : MemImage κ) (acc : Rows) (logs : List �
   simp only [hidx, Nat.add_sub_cancel_left]
 
 /-- The memory's limb columns, by number. -/
-theorem columnAt_limb {κ : ℕ} (img : MemImage κ) (acc : Rows) (logs : List ℕ)
-    (mids outs : Array KState) (k : ℕ) (hk : k < 3) :
+theorem columnAt_limb {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ)
+    (mids outs : Array KeccakState) (k : ℕ) (hk : k < 3) :
     columnAt img acc logs mids outs k = Array.ofFn (n := 2 ^ κ) fun x ↦ (img x).limb ⟨k, hk⟩ := by
   interval_cases k <;> rfl
 
-theorem columnAt_three {κ : ℕ} (img : MemImage κ) (acc : Rows) (logs : List ℕ)
-    (mids outs : Array KState) : columnAt img acc logs mids outs 3 = acc.mem := rfl
+theorem columnAt_three {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ)
+    (mids outs : Array KeccakState) : columnAt img acc logs mids outs 3 = acc.mem := rfl
 
-theorem columnAt_four {κ : ℕ} (img : MemImage κ) (acc : Rows) (logs : List ℕ)
-    (mids outs : Array KState) : columnAt img acc logs mids outs 4 = acc.bc := rfl
+theorem columnAt_four {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ)
+    (mids outs : Array KeccakState) : columnAt img acc logs mids outs 4 = acc.bc := rfl
 
-theorem columnAt_five {κ : ℕ} (img : MemImage κ) (acc : Rows) (logs : List ℕ)
-    (mids outs : Array KState) :
+theorem columnAt_five {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ)
+    (mids outs : Array KeccakState) :
     columnAt img acc logs mids outs 5 = qkeccakColumn (acc.tabs.getD 5 #[]) (logs.getD 5 0) mids :=
   rfl
 
@@ -121,7 +121,7 @@ end Out
 
 /-! ## Every column of an execution -/
 
-variable {prog : Program} {input : PublicInput} {t : Trace prog}
+variable {prog : Program} {input : PublicInput} {t : Execution prog}
 
 /-- The pass's tables, by number. -/
 theorem tabs_trace' (hv : ValidExecution prog input t) (j : ℕ) (hj : j < 6) :
@@ -131,8 +131,8 @@ theorem tabs_trace' (hv : ValidExecution prog input t) (j : ℕ) (hj : j < 6) :
 
 /-- **The memory columns**, computed: the image's limbs and the finalize counts. -/
 theorem memColumn_trace (hv : ValidExecution prog input t) (logs : List ℕ)
-    (mids outs : Array KState) (k : Fin 4) :
-    columnAt t.image (traceRows t) logs mids outs k =
+    (mids outs : Array KeccakState) (k : Fin 4) :
+    columnAt t.memory (traceRows t) logs mids outs k =
       (witnessColumn prog (witnessSizes (traceWitness prog input t) (traceWitness_pos hv))
         (traceWitness prog input t) (memCol k)).toArray := by
   have hlog := traceWitness_logSize (input := input) hv
@@ -141,18 +141,18 @@ theorem memColumn_trace (hv : ValidExecution prog input t) (logs : List ℕ)
   intro x
   have hR : (witnessColumn prog (witnessSizes (traceWitness prog input t) (traceWitness_pos hv))
       (traceWitness prog input t) (memCol k)).toArray[x]? =
-      if x < 2 ^ t.κ then some (cellOf (tableAt (traceWitness prog input t) 6) x (memRowCell k))
+      if x < 2 ^ t.logMemorySize then some (cellOf (tableAt (traceWitness prog input t) 6) x (memRowCell k))
       else none := by
     rw [Vector.getElem?_toArray]
     show (Vector.ofFn fun y : Fin (2 ^ (imageOf (traceWitness prog input t).data).1) ↦
       cellOf (tableAt (traceWitness prog input t) 6) y (memRowCell k))[x]? = _
     rw [Vector.getElem?_ofFn]
-    by_cases hx : x < 2 ^ t.κ
+    by_cases hx : x < 2 ^ t.logMemorySize
     · rw [dite_eq_left_of_eq_true (eq_true (by rw [hlog]; exact hx)), ite_eq_left hx]
     · rw [dite_eq_right_of_eq_false (eq_false (by rw [hlog]; exact hx)), ite_eq_right hx]
   rw [hR]
   obtain ⟨k, hk⟩ := k
-  by_cases hx : x < 2 ^ t.κ
+  by_cases hx : x < 2 ^ t.logMemorySize
   · rw [ite_eq_left hx, memCell_trace x hx]
     by_cases hk3 : k < 3
     · rw [columnAt_limb _ _ _ _ _ k hk3, Array.getElem?_ofFn, dite_eq_left_of_eq_true (eq_true hx)]
@@ -168,8 +168,8 @@ theorem memColumn_trace (hv : ValidExecution prog input t) (logs : List ℕ)
 
 /-- **The bytecode's finalize counts**, computed. -/
 theorem bfcntColumn_trace (hv : ValidExecution prog input t) (logs : List ℕ)
-    (mids outs : Array KState) :
-    columnAt t.image (traceRows t) logs mids outs 4 =
+    (mids outs : Array KeccakState) :
+    columnAt t.memory (traceRows t) logs mids outs 4 =
       (witnessColumn prog (witnessSizes (traceWitness prog input t) (traceWitness_pos hv))
         (traceWitness prog input t) bfcntCol).toArray := by
   have hI := rowsInv_trace (input := input) hv
@@ -224,7 +224,7 @@ Python number of an instance column are that column of the stack of the specific
 at its sizes: the committed columns, the `KECCAK` input lanes and spare columns, and the derived
 `KECCAK` output lanes. -/
 theorem cols_trace (hv : ValidExecution prog input t) (c : Col) :
-    (colsOf t.image (traceRows t) (tableLogsOf ((traceRows t).tabs.toList.map (·.size)))).getD
+    (colsOf t.memory (traceRows t) (tableLogsOf ((traceRows t).tabs.toList.map (·.size)))).getD
         (pyCol c) #[] =
       ((inst prog (traceSizes prog input t)).column
         (stackOf prog (traceSizes prog input t) (traceWitness prog input t)) c).values.toArray := by
@@ -242,18 +242,18 @@ theorem cols_trace (hv : ValidExecution prog input t) (c : Col) :
   | 0, _, i =>
     have hnv : ¬ IsVirtual (memCol i) := fun hk ↦ by
       have := congrArg Fin.val hk.1; simp [memCol, opIdx] at this
-    exact (congrArg (columnAt t.image (traceRows t) logs _ _) (pyCol_memCol i)).trans
+    exact (congrArg (columnAt t.memory (traceRows t) logs _ _) (pyCol_memCol i)).trans
       ((memColumn_trace hv _ _ _ i).trans (column_toArray_committed _ _ _ hnv).symm)
   | 1, _, i =>
     obtain ⟨i, hi1⟩ := i
     obtain rfl : i = 0 := by change i < 1 at hi1; omega
-    exact (congrArg (columnAt t.image (traceRows t) logs _ _) pyCol_bfcntCol).trans
+    exact (congrArg (columnAt t.memory (traceRows t) logs _ _) pyCol_bfcntCol).trans
       ((bfcntColumn_trace hv _ _ _).trans
         (column_toArray_committed _ _ bfcntCol (by decide)).symm)
   | 2, _, i =>
     obtain ⟨i, hi1⟩ := i
     obtain rfl : i = 0 := by change i < 1 at hi1; omega
-    exact (congrArg (columnAt t.image (traceRows t) logs _ _) pyCol_keccakCol).trans
+    exact (congrArg (columnAt t.memory (traceRows t) logs _ _) pyCol_keccakCol).trans
       ((columnAt_five _ _ _ _ _).trans ((qkeccak_trace hv (hl 5 (by omega))).trans
         (column_toArray_committed _ _ keccakCol not_isVirtual_keccakCol).symm))
   | j + 3, hj, i =>
@@ -264,7 +264,7 @@ theorem cols_trace (hv : ValidExecution prog input t) (c : Col) :
         _ = tableWidth j := width_opIdx_eq ⟨j, hj6⟩
     have hpy : pyCol ⟨⟨j + 3, hj⟩, ⟨i, hi⟩⟩ = tableBase j + i :=
       (pyCol_opIdx ⟨j, hj6⟩ ⟨i, hi⟩).trans (congrArg (· + i) (globalColumnBases_getD ⟨j, hj6⟩))
-    refine (congrArg (columnAt t.image (traceRows t) logs _ _) hpy).trans
+    refine (congrArg (columnAt t.memory (traceRows t) logs _ _) hpy).trans
       ((columnAt_base _ _ _ _ _ j hj6 i hiw).trans ?_)
     by_cases hout : j = 5 ∧ 38 ≤ i ∧ i < 63
     · rw [ite_eq_left hout]

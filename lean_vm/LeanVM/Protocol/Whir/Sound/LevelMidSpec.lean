@@ -96,7 +96,7 @@ noncomputable def midTailSpec (H : MidHyp μ ℓ₀ w P P' level next pre)
       (μ - r.1.folds.length - next.fold + next.logInvRate) (3 * 2 ^ next.fold)
       (fun _ _ h hW ↦ midC_of_commit next rfl H.hP' H.hR' h hW) (T := eOod P' P.κ) hεO).bind'
     fun _ ↦
-  ((Spec.ofNoMove (p := sampleN (μ - r.1.folds.length))
+  ((Spec.ofNoMove (p := sampleChallenges (μ - r.1.folds.length))
       (Pre := fun h ↦ MidC μ ℓ₀ w i P P' level.fold next.fold pre r (commits h))
       (Post := fun z h ↦ OodC μ ℓ₀ w i P P' level.fold next.fold pre r z (commits h))
       (εmax := εmax) (T := 0) (noMoves_sampleN _).noMove hOlt fun h₀ hp ↦ by

@@ -45,16 +45,16 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Verifier
 /-! ## Lanes and bits -/
 
 /-- A lane of a state is its entry. -/
-theorem lane_eq (v : KState) {i : ℕ} (hi : i < 25) : Keccak.lane v i = v[i] := by
+theorem lane_eq (v : KeccakState) {i : ℕ} (hi : i < 25) : Keccak.lane v i = v[i] := by
   simp [Keccak.lane, Array.getD, hi]
 
 /-- Bit `j = z + 64ℓ` of a state: bit `z` of lane `ℓ`. -/
-def sbit (a : KState) (j : ℕ) : Bool := (Keccak.lane a (j / 64)).toBitVec.getLsbD (j % 64)
+def sbit (a : KeccakState) (j : ℕ) : Bool := (Keccak.lane a (j / 64)).toBitVec.getLsbD (j % 64)
 
-theorem sbit_eq (a : KState) (j : ℕ) :
+theorem sbit_eq (a : KeccakState) (j : ℕ) :
     sbit a j = (Keccak.lane a (j / 64)).toBitVec.getLsbD (j % 64) := rfl
 
-theorem sbit_lane (a : KState) (l : ℕ) {z : ℕ} (hz : z < 64) :
+theorem sbit_lane (a : KeccakState) (l : ℕ) {z : ℕ} (hz : z < 64) :
     sbit a (64 * l + z) = (Keccak.lane a l).toBitVec.getLsbD z := by
   unfold sbit
   have h1 : (64 * l + z) / 64 = l := by omega
@@ -184,41 +184,41 @@ def roundB (rc : UInt64) (f : ℕ → Bool) (j : ℕ) : Bool := chiB (Lb f) j ^^
 namespace Stage
 
 /-- θ's column parities. -/
-def colV (a : KState) : Vector UInt64 5 := Vector.ofFn fun x ↦
+def colV (a : KeccakState) : Vector UInt64 5 := Vector.ofFn fun x ↦
   Keccak.lane a x ^^^ Keccak.lane a (x + 5) ^^^ Keccak.lane a (x + 10) ^^^
     Keccak.lane a (x + 15) ^^^ Keccak.lane a (x + 20)
 
 /-- θ. -/
-def theta (a : KState) : KState :=
+def theta (a : KeccakState) : KeccakState :=
   Vector.ofFn fun i ↦ Keccak.lane a i ^^^ (colV a).toArray.getD ((i.val + 4) % 5) 0 ^^^
     Keccak.rot ((colV a).toArray.getD ((i.val + 1) % 5) 0) 1
 
 /-- ρ and π. -/
-def rhoPi (a : KState) : KState :=
+def rhoPi (a : KeccakState) : KeccakState :=
   (List.range 25).foldl
     (fun b i ↦ b.setIfInBounds (keccakPi i) (Keccak.rot (Keccak.lane a i) (keccakRho.getD i 0)))
     (Vector.replicate 25 0)
 
 /-- χ. -/
-def chi (b : KState) : KState :=
+def chi (b : KeccakState) : KeccakState :=
   Vector.ofFn fun i ↦ Keccak.lane b i ^^^ (~~~ Keccak.lane b (i.val - i.val % 5 + (i.val + 1) % 5) &&&
     Keccak.lane b (i.val - i.val % 5 + (i.val + 2) % 5))
 
 /-- ι. -/
-def iota (a : KState) (rc : UInt64) : KState := a.setIfInBounds 0 (Keccak.lane a 0 ^^^ rc)
+def iota (a : KeccakState) (rc : UInt64) : KeccakState := a.setIfInBounds 0 (Keccak.lane a 0 ^^^ rc)
 
 /-- `Keccak.round` is the composition of its stages. -/
-theorem round_eq (a : KState) (rc : UInt64) :
+theorem round_eq (a : KeccakState) (rc : UInt64) :
     Keccak.round a rc = iota (chi (rhoPi (theta a))) rc := rfl
 
-theorem colV_bit (a : KState) {x z : ℕ} (hx : x < 5) (hz : z < 64) :
+theorem colV_bit (a : KeccakState) {x z : ℕ} (hx : x < 5) (hz : z < 64) :
     ((colV a).toArray.getD x 0).toBitVec.getLsbD z = colB (sbit a) x z := by
   have h : (colV a).toArray.getD x 0 = (colV a)[x] := by simp [Array.getD, hx]
   rw [h]
   simp only [colV, Vector.getElem_ofFn, UInt64.toBitVec_xor, BitVec.getLsbD_xor, colB,
     sbit_lane a _ hz]
 
-theorem sbit_theta (a : KState) {p : ℕ} (hp : p < 1600) : sbit (theta a) p = thetaB (sbit a) p := by
+theorem sbit_theta (a : KeccakState) {p : ℕ} (hp : p < 1600) : sbit (theta a) p = thetaB (sbit a) p := by
   have hl : p / 64 < 25 := by omega
   have hz : p % 64 < 64 := Nat.mod_lt _ (by omega)
   rw [sbit_eq (theta a) p, lane_eq _ hl]
@@ -232,7 +232,7 @@ theorem sbit_theta (a : KState) {p : ℕ} (hp : p < 1600) : sbit (theta a) p = t
 
 /-- A fold of writes whose targets miss `k` leaves entry `k`. -/
 theorem foldl_set_miss (σ : ℕ → ℕ) (f : ℕ → UInt64) {k : ℕ} (hk : k < 25) :
-    ∀ (l : List ℕ) (b : KState), (∀ i ∈ l, σ i ≠ k) →
+    ∀ (l : List ℕ) (b : KeccakState), (∀ i ∈ l, σ i ≠ k) →
       (l.foldl (fun b i ↦ b.setIfInBounds (σ i) (f i)) b)[k] = b[k]
   | [], _, _ => rfl
   | i :: l, b, h => by
@@ -241,7 +241,7 @@ theorem foldl_set_miss (σ : ℕ → ℕ) (f : ℕ → UInt64) {k : ℕ} (hk : k
 
 /-- A fold of writes hitting `k` once, at `i₀`, leaves `f i₀` there. -/
 theorem foldl_set_hit (σ : ℕ → ℕ) (f : ℕ → UInt64) {k i₀ : ℕ} (hk : k < 25) (hσ : σ i₀ = k) :
-    ∀ (l : List ℕ) (b : KState), i₀ ∈ l → (∀ i ∈ l, σ i = k → i = i₀) →
+    ∀ (l : List ℕ) (b : KeccakState), i₀ ∈ l → (∀ i ∈ l, σ i = k → i = i₀) →
       (l.foldl (fun b i ↦ b.setIfInBounds (σ i) (f i)) b)[k] = f i₀
   | [], _, h, _ => by simp at h
   | i :: l, b, hmem, huniq => by
@@ -256,7 +256,7 @@ theorem foldl_set_hit (σ : ℕ → ℕ) (f : ℕ → UInt64) {k i₀ : ℕ} (hk
       rw [foldl_set_miss σ f hk l _ (fun i' hi' he ↦ hl (huniq i' (by simp [hi']) he ▸ hi')),
         Vector.getElem_setIfInBounds hk, ite_eq_left hσ]
 
-theorem lane_rhoPi (a : KState) {k : ℕ} (hk : k < 25) :
+theorem lane_rhoPi (a : KeccakState) {k : ℕ} (hk : k < 25) :
     Keccak.lane (rhoPi a) k =
       Keccak.rot (Keccak.lane a (piInv k)) (keccakRho.getD (piInv k) 0) := by
   rw [lane_eq _ hk, rhoPi]
@@ -264,7 +264,7 @@ theorem lane_rhoPi (a : KState) {k : ℕ} (hk : k < 25) :
     (keccakPi_piInv k hk) _ _ (List.mem_range.2 piInv_lt) fun i hi he ↦ by
       rw [← he, piInv_keccakPi i (List.mem_range.1 hi)]
 
-theorem sbit_rhoPi (a : KState) {j : ℕ} (hj : j < 1600) : sbit (rhoPi a) j = sbit a (rhoPiSrc j) := by
+theorem sbit_rhoPi (a : KeccakState) {j : ℕ} (hj : j < 1600) : sbit (rhoPi a) j = sbit a (rhoPiSrc j) := by
   have hl : j / 64 < 25 := by omega
   have hz : j % 64 < 64 := Nat.mod_lt _ (by omega)
   have hr := keccakRho_lt (piInv (j / 64))
@@ -275,7 +275,7 @@ theorem sbit_rhoPi (a : KState) {j : ℕ} (hj : j < 1600) : sbit (rhoPi a) j = s
     unfold rhoPiSrc; omega
   rw [h1, h2]
 
-theorem sbit_chi (b : KState) {j : ℕ} (hj : j < 1600) : sbit (chi b) j = chiB (sbit b) j := by
+theorem sbit_chi (b : KeccakState) {j : ℕ} (hj : j < 1600) : sbit (chi b) j = chiB (sbit b) j := by
   have hl : j / 64 < 25 := by omega
   have hz : j % 64 < 64 := Nat.mod_lt _ (by omega)
   rw [sbit_eq (chi b) j, lane_eq _ hl]
@@ -293,7 +293,7 @@ theorem sbit_chi (b : KState) {j : ℕ} (hj : j < 1600) : sbit (chi b) j = chiB 
   rw [e1, e2]
   rfl
 
-theorem sbit_iota (a : KState) (rc : UInt64) {j : ℕ} (hj : j < 1600) :
+theorem sbit_iota (a : KeccakState) (rc : UInt64) {j : ℕ} (hj : j < 1600) :
     sbit (iota a rc) j = (sbit a j ^^ iotaB rc j) := by
   have hl : j / 64 < 25 := by omega
   unfold sbit iota iotaB
@@ -310,7 +310,7 @@ end Stage
 
 /-- **A round on bits.** Bit `j` of `Keccak.round a rc` is `ι ∘ χ ∘ L` of the bits of `a`
 (`doc/leanvm`, eq. `keccak:eq:round`). -/
-theorem sbit_round (a : KState) (rc : UInt64) {j : ℕ} (hj : j < 1600) :
+theorem sbit_round (a : KeccakState) (rc : UInt64) {j : ℕ} (hj : j < 1600) :
     sbit (Keccak.round a rc) j = roundB rc (sbit a) j := by
   rw [Stage.round_eq, Stage.sbit_iota _ _ hj, Stage.sbit_chi _ hj]
   unfold roundB chiB Lb
@@ -321,13 +321,13 @@ theorem sbit_round (a : KState) (rc : UInt64) {j : ℕ} (hj : j < 1600) :
 /-! ## Segments of rounds -/
 
 /-- `e` rounds from round `start`: rounds `start, …, start + e - 1` of `keccakF`. -/
-def roundsFrom (start e : ℕ) (a : KState) : KState :=
+def roundsFrom (start e : ℕ) (a : KeccakState) : KeccakState :=
   ((keccakRC.drop start).take e).foldl Keccak.round a
 
-theorem roundsFrom_zero (start : ℕ) (a : KState) : roundsFrom start 0 a = a := rfl
+theorem roundsFrom_zero (start : ℕ) (a : KeccakState) : roundsFrom start 0 a = a := rfl
 
 /-- One more round. -/
-theorem roundsFrom_succ {start e : ℕ} (h : start + e < 24) (a : KState) :
+theorem roundsFrom_succ {start e : ℕ} (h : start + e < 24) (a : KeccakState) :
     roundsFrom start (e + 1) a =
       Keccak.round (roundsFrom start e a) (keccakRC.getD (start + e) 0) := by
   have hlen : keccakRC.length = 24 := rfl
@@ -338,8 +338,8 @@ theorem roundsFrom_succ {start e : ℕ} (h : start + e < 24) (a : KState) :
   rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
 
 /-- `keccakF` is twelve rounds, then the twelve others. -/
-theorem keccakF_eq (a : KState) : keccakF a = roundsFrom 12 12 (roundsFrom 0 12 a) := by
-  unfold keccakF roundsFrom
+theorem keccakF_eq (a : KeccakState) : keccakF1600 a = roundsFrom 12 12 (roundsFrom 0 12 a) := by
+  unfold keccakF1600 roundsFrom
   rw [← List.foldl_append]
   rfl
 

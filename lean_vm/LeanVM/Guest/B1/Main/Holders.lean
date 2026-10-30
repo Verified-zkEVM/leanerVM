@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Main.Sound
 # The holders of the declared claims
 
 `xmss_held`, `sphincs_held`: the decoded holders (`decWit`) hold the decoded claims (`decStmt`),
-`List.Forall₂` as `NodeRel` asks. The mark `m` in a declared claim's slot has its writer there
+`List.Forall₂` as `NodeRelation` asks. The mark `m` in a declared claim's slot has its writer there
 (`Cover`); in the leanXMSS region the writer is a raw leanXMSS signature (`m < RX`, its check at
 the slot: `CalleesW.xmss`) or a child's claim (the child `kidOf m`, whose rebuilt list holds the
 slot's claim, `kidStmt_eq`); likewise for leanSPHINCS.
@@ -87,9 +87,9 @@ theorem mark_kid {m : ℕ} (h0 : (segsOf σ Kr).a 0 ≤ m) (hm : m < LXS σ + LS
   rwa [segsOf_NC] at this
 
 theorem xmss_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
-    {wD : List E → List E → LeanVM.Da.Witness} {wV : List E → Proof} {wA : List E → BatchHints}
+    {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
     (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
-    List.Forall₂ (Held (fun (c : XmssClaim) σ ↦ xmssVerify c.1 c.2 σ = true) Claims.xmss (kidsOf rd σ wV)) (decStmt σ rd).claims.xmss
+    List.Forall₂ (ClaimIsHeld (fun (c : XmssClaim) σ ↦ xmssVerify c.1 c.2 σ = true) Claims.xmss (kidsOf rd σ wV)) (decStmt σ rd).claims.xmss
       (decWit σ rd wX wS wD wV wA).xmss := by
   have hT := MF.total.2
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
@@ -138,9 +138,9 @@ theorem xmss_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E �
     rw [hC.uniq _ (by omega) m hmT hl, hslm]
 
 theorem sphincs_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
-    {wD : List E → List E → LeanVM.Da.Witness} {wV : List E → Proof} {wA : List E → BatchHints}
+    {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
     (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
-    List.Forall₂ (Held (fun (c : SphincsClaim) σ ↦ sphincsVerify c.1 c.2 σ = true) Claims.sphincs (kidsOf rd σ wV)) (decStmt σ rd).claims.sphincs
+    List.Forall₂ (ClaimIsHeld (fun (c : SphincsClaim) σ ↦ sphincsVerify c.1 c.2 σ = true) Claims.sphincs (kidsOf rd σ wV)) (decStmt σ rd).claims.sphincs
       (decWit σ rd wX wS wD wV wA).sphincs := by
   have hT := MF.total.2
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
@@ -193,11 +193,11 @@ omit hK hW hC in
 /-- **The DA digest**: with the direct DA check, the digest of the claim it returns, which the
 decoded matrix opens; without it, zeros or a child's. -/
 theorem da_rel {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
-    {wD : List E → List E → LeanVM.Da.Witness} {wV : List E → Proof} {wA : List E → BatchHints}
+    {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
     (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
-    (∀ c m, (decWit σ rd wX wS wD wV wA).da = some (c, m) →
+    (∀ c m, (decWit σ rd wX wS wD wV wA).daMatrix = some (c, m) →
       (decStmt σ rd).claims.da = daClaimDigest c ∧ m.Opens c.daRoot c.membershipVectorDigest) ∧
-    ((decWit σ rd wX wS wD wV wA).da = none → (decStmt σ rd).claims.da = zeroDigest ∨
+    ((decWit σ rd wX wS wD wV wA).daMatrix = none → (decStmt σ rd).claims.da = zeroDigest ∨
       ∃ c ∈ (decWit σ rd wX wS wD wV wA).children,
         c.statement.claims.da = (decStmt σ rd).claims.da) := by
   have eD : (decStmt σ rd).claims.da = daDigestAt rd σ (lg σ 387) := by
@@ -206,7 +206,7 @@ theorem da_rel {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → S
   have h7 := MF.direct.2
   have hown := MF.own
   by_cases hd : lg σ 7 = 1
-  · have hdec : (decWit σ rd wX wS wD wV wA).da =
+  · have hdec : (decWit σ rd wX wS wD wV wA).daMatrix =
         some (dvClaim σ, wD [σ (.n 50)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)]) := by
       unfold decWit; simp only [nDirect_eq, hd, ↓reduceIte]
     refine ⟨fun c m h => ?_, fun h => (by rw [hdec] at h; cases h)⟩
@@ -227,7 +227,7 @@ theorem da_rel {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → S
       digestBytes_ofCells, ← r0, ← r1, ← r2, ← r3]
     simp [cellsBytes]
   · have hd0 : lg σ 7 = 0 := by omega
-    have hdec : (decWit σ rd wX wS wD wV wA).da = none := by
+    have hdec : (decWit σ rd wX wS wD wV wA).daMatrix = none := by
       unfold decWit; simp only [nDirect_eq, hd, ↓reduceIte]
     refine ⟨fun c m h => (by rw [hdec] at h; cases h), fun _ => ?_⟩
     rcases Nat.lt_or_ge (lg σ 387) (lg σ 6) with hlt | hge

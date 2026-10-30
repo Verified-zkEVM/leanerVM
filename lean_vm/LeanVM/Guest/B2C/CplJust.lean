@@ -38,7 +38,7 @@ theorem imm_one : OInstr.imm 1 0 0 = 1 := (imm_of_ofBits rfl).trans ofK_one
 
 section Sem
 
-variable {κ : ℕ} (L : MemImage κ) (fp : ℕ)
+variable {κ : ℕ} (L : MemoryImage κ) (fp : ℕ)
 
 /-- The word of frame cell `o`. -/
 noncomputable abbrev rdc (o : ℕ) : Option E := L.read (gpow fp * gpow o)
@@ -61,7 +61,7 @@ def LHolds : LAtom → Prop
   | .keccak ins outs inOdd outOdd => outs.length = 13 ∧ ∃ input output : Fin 13 → E,
       (∀ c : Fin 13, rdc L fp (ins.getD c 0) = some (input c)) ∧
       (∀ c : Fin 13, rdc L fp (outs.getD c 0) = some (output c)) ∧
-      KeccakCells input inOdd output outOdd
+      KeccakCellsRelation input inOdd output outOdd
   | .addr p run => ∃ c0 rest, run = c0 :: rest ∧ rdc L fp p = some (ofK (gpow (fp + c0)))
   | .none => True
 
@@ -109,7 +109,7 @@ end Sem
 
 section Book
 
-variable {κ : ℕ} {L : MemImage κ} {fp : ℕ}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : ℕ}
 
 theorem lookC_addKeyC {a b : LAtom} {B : BookC} {o o' : ℕ} (h : b ∈ lookC (addKeyC a B o) o') :
     (b = a ∧ o' = o) ∨ b ∈ lookC B o' := by
@@ -198,7 +198,7 @@ end Book
 
 section Just
 
-variable {κ : ℕ} {L : MemImage κ} {fp : ℕ} {X : CX} {st : CW}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : ℕ} {X : CX} {st : CW}
 
 theorem statAt_sound (hX : CXOk L fp X) {o : ℕ} {p : PC} (h : statAt X o = some p) :
     rdc L fp o = some (p.word fp) := hX.stat o p h

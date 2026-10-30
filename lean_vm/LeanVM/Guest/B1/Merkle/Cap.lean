@@ -94,12 +94,12 @@ theorem noRet_mcNode (L k b : ℕ) : Stmt.noRetList (mcNode L k b) = true := by
 /-! ## One node's hash -/
 
 /-- The state a node's `KECCAK` writes, from its children's cells. -/
-def mcState (a0 a1 b0 b1 : E) : KState :=
-  keccakF (stateOfCells (cells13 [a0, a1, b0, b1, word 1 0 0, 0, 0, 0, w63, 0, 0, 0, 0]) false)
+def mcState (a0 a1 b0 b1 : E) : KeccakState :=
+  keccakF1600 (stateOfCells (cells13 [a0, a1, b0, b1, word 1 0 0, 0, 0, 0, w63, 0, 0, 0, 0]) false)
 
 /-- The digest of 64 bytes: `keccak([a0, a1], [b0, b1], out)` (`keccak_one`). -/
 theorem pair_digest (a0 a1 b0 b1 : E) (O : Fin 13 → E)
-    (hK : KeccakCells (cells13 [a0, a1, b0, b1, word 1 0 0, 0, 0, 0, w63, 0, 0, 0, 0]) false O
+    (hK : KeccakCellsRelation (cells13 [a0, a1, b0, b1, word 1 0 0, 0, 0, 0, w63, 0, 0, 0, 0]) false O
       false) :
     (O 0, O 1) = digestScalars (keccak256 (cellsBytes [a0, a1, b0, b1])) := by
   have := (keccak_one (cells := [a0, a1, b0, b1]) (len := 64) (by simp) (by decide)
@@ -220,7 +220,7 @@ theorem holds_mcBody (L : ℕ) (kret : List E → Prop) :
     List.map_cons, List.map_nil]
 
 /-- The state node `k` hashes into, from the cap's cells. -/
-def mcSt (cell : ℕ → E) (k : ℕ) : KState :=
+def mcSt (cell : ℕ → E) (k : ℕ) : KeccakState :=
   mcState (cell (4 * k)) (cell (4 * k + 1)) (cell (4 * k + 2)) (cell (4 * k + 3))
 
 /-- The honest value at offset `o` of node `k`'s values. -/

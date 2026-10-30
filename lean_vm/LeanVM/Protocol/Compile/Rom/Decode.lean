@@ -222,18 +222,18 @@ structure Dec where
   /-- The decoded states, by capacity. -/
   info : (Fin 9 → UInt64) → Option Info
   /-- One record per permutation entry read, with the entry's output. -/
-  kinds : List (Shape × KState)
+  kinds : List (Shape × KeccakState)
 
 /-- The decoder before any entry. -/
 def Dec.init : Dec := ⟨fun _ ↦ none, []⟩
 
 /-- A permutation forced by an absorption: four scalars consumed and the program about to absorb
 one more. -/
-def forced (h : List Ev) (p : Prog Bool) (ps : List (E × ℕ)) : Shape × (KState → Option Info) :=
+def forced (h : List Ev) (p : Prog Bool) (ps : List (E × ℕ)) : Shape × (KeccakState → Option Info) :=
   if ps.length = 4 then (.none, fun _ ↦ some (h, .node p)) else (.none, fun _ ↦ none)
 
 /-- The record and the decoding of the output, once the waiting scalars are consumed. -/
-def decodeAt : Cons → List (E × ℕ) → Shape × (KState → Option Info)
+def decodeAt : Cons → List (E × ℕ) → Shape × (KeccakState → Option Info)
   | .done h (.half ht w k x₀), ps =>
     if ps.length = 4 then (.none, fun _ ↦ some (h, .half ht w k x₀)) else (.none, fun _ ↦ none)
   | .done h (.node p), ps => match settle h p with
@@ -270,19 +270,19 @@ variable {X : Type} (σ : Seeds X) (P : Prog Bool)
 open Classical in
 /-- The statement whose seeding the permutation input `t` completes after the entries `ℓ`, if
 any. -/
-noncomputable def rootAt (ℓ : Log) (t : KState) : Option X :=
+noncomputable def rootAt (ℓ : Log) (t : KeccakState) : Option X :=
   if h : ∃ x ds, Answered (lookH ℓ) (σ.seed x) ds ∧ (σ.seed x).fin ds = t then some h.choose
   else none
 
 open Classical in
 /-- The seed of a statement: a state at its root history, if that history is a root. -/
-noncomputable def rootStep (h : List Ev) : Shape × (KState → Option Info) :=
+noncomputable def rootStep (h : List Ev) : Shape × (KeccakState → Option Info) :=
   if RootOk P h then (.st h (nodeAt P h) none, fun _ ↦ some (h, .node (nodeAt P h)))
   else (.none, fun _ ↦ none)
 
 /-- Reading a permutation entry with input `t` after the entries `ℓ`, decoded as `δ`: the
 record, and the decoding of the output as a function of the output. -/
-noncomputable def stepF (ℓ : Log) (δ : Dec) (t : KState) : Shape × (KState → Option Info) :=
+noncomputable def stepF (ℓ : Log) (δ : Dec) (t : KeccakState) : Shape × (KeccakState → Option Info) :=
   match rootAt σ ℓ t with
   | some x => rootStep P (σ.root x)
   | none => match δ.info (capOf t) with
@@ -332,12 +332,12 @@ theorem decode_append_inl (ℓ : Log) (p : Bytes × Digest) :
     decode σ P (ℓ ++ [.inl p]) = decode σ P ℓ := by
   rw [decode_append]; rfl
 
-theorem kinds_decode_append_inr (ℓ : Log) (t u : KState) :
+theorem kinds_decode_append_inr (ℓ : Log) (t u : KeccakState) :
     (decode σ P (ℓ ++ [.inr (t, u)])).kinds =
       (decode σ P ℓ).kinds ++ [((stepF σ P ℓ (decode σ P ℓ) t).1, u)] := by
   rw [decode_append]; rfl
 
-theorem info_decode_append_inr (ℓ : Log) (t u : KState) :
+theorem info_decode_append_inr (ℓ : Log) (t u : KeccakState) :
     (decode σ P (ℓ ++ [.inr (t, u)])).info =
       setInfo (decode σ P ℓ).info (capOf u) ((stepF σ P ℓ (decode σ P ℓ) t).2 u) := by
   rw [decode_append]; rfl
@@ -527,7 +527,7 @@ theorem setInfo_ok {f : (Fin 9 → UInt64) → Option Info} {c : Fin 9 → UInt6
     · exact hf c' i hi
 
 /-- A permutation step from a decoder whose decoded states satisfy the invariant keeps it. -/
-theorem stepF_ok_of (ℓ : Log) (δ : Dec) (t : KState)
+theorem stepF_ok_of (ℓ : Log) (δ : Dec) (t : KeccakState)
     (hδ : ∀ c i, δ.info c = some i → InfoOk P i) :
     ShapeOk P (stepF σ P ℓ δ t).1 ∧ ∀ u i, (stepF σ P ℓ δ t).2 u = some i → InfoOk P i := by
   unfold stepF
@@ -568,7 +568,7 @@ theorem decode_ok (ℓ : Log) :
         exact hstep.1
 
 /-- The record of the next permutation entry satisfies the invariant. -/
-theorem stepF_shapeOk (ℓ : Log) (t : KState) : ShapeOk P (stepF σ P ℓ (decode σ P ℓ) t).1 :=
+theorem stepF_shapeOk (ℓ : Log) (t : KeccakState) : ShapeOk P (stepF σ P ℓ (decode σ P ℓ) t).1 :=
   (stepF_ok_of ℓ (decode σ P ℓ) t (decode_ok ℓ).1).1
 
 end Invariants

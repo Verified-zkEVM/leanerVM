@@ -39,7 +39,7 @@ family's modules.
 **Cells and bytes.** A cell holds sixteen bytes, limbs `0` and `1` (`Value.Keccak.cellsBytes`;
 the `KECCAK` instruction makes every cell it reads canonical, `AllCanonical`). A digest's two
 cells are `digestScalars` (`digestCells`); a deferred cell is a full field element, hashed as its
-three limbs (`Node.eBytes`, `pack_pair`).
+three limbs (`Node.extensionElementBytes`, `pack_pair`).
 
 **The memory.** A range check (`assert log x < log b`) is an exact relation on the memory read
 (`RangeChecked`); on a memory image of `2^κ` words, `16 ≤ κ ≤ 32` (`MemOk`, as every valid
@@ -56,7 +56,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## Shared vocabulary -/
 
 /-- The reader is a memory image of `2^κ` words, `16 ≤ κ ≤ 32`, as every valid execution's is. -/
-def MemOk (rd : Reader) : Prop := ∃ κ, 16 ≤ κ ∧ κ ≤ 32 ∧ ∃ L : MemImage κ, rd = L.read
+def MemOk (rd : Reader) : Prop := ∃ κ, 16 ≤ κ ∧ κ ≤ 32 ∧ ∃ L : MemoryImage κ, rd = L.read
 
 /-- A digest's two cells (`digestScalars`), as a list. -/
 def digestCells (d : Digest) : List E := [(digestScalars d).1, (digestScalars d).2]
@@ -76,7 +76,7 @@ abbrev deferStmtCells : ℕ := 24
 
 /-- The bytes `statement_digest` hashes: the header cells (the seed, the two claim lists' digests,
 the DA digest), then the deferred cells, three limbs each. `24` is even: no zero partner. -/
-def stmtBytes (hdr defer : List E) : List UInt8 := cellsBytes hdr ++ defer.flatMap Node.eBytes
+def stmtBytes (hdr defer : List E) : List UInt8 := cellsBytes hdr ++ defer.flatMap Node.extensionElementBytes
 
 /-- **`statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da_0, da_1, defer)`**: the 24
 deferred cells at `defer`; the eight header cells are canonical (the `KECCAK` reads them), and the

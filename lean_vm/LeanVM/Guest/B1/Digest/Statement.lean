@@ -115,7 +115,7 @@ theorem cells13_map_range (σ : Val) (f : ℕ → ℕ) (c : Fin 13) :
   simp [cells13, List.getD_eq_getElem?_getD, c.isLt]
 
 theorem keccak_holds {rd : Reader} {σ : Val} {k : ℕ} (h : (sdKeccak k).Holds rd σ) :
-    KeccakCells (fun c : Fin 13 => σ (.n (sdIn k c))) (inLayout k)
+    KeccakCellsRelation (fun c : Fin 13 => σ (.n (sdIn k c))) (inLayout k)
       (fun c : Fin 13 => σ (.n (sdOut k c))) (outLayout 6 k) := by
   obtain ⟨-, -, hK⟩ := h
   have e1 : cells13 (((List.range 13).map fun c => V.n (sdIn k c)).map σ) =
@@ -228,7 +228,7 @@ theorem statement_digest_sound : statement_digest_sound_Spec := by
           rw [c345, word_zero]
     · simp only [I, O, sdIn, show ¬ c.val < 9 by omega, ↓reduceIte, show k ≠ 0 by omega]
   have hK : ∀ k < 704 / rate + 1,
-      KeccakCells (I k) (inLayout k) (O (k + 1)) (outLayout (704 / rate + 1) k) := by
+      KeccakCellsRelation (I k) (inLayout k) (O (k + 1)) (outLayout (704 / rate + 1) k) := by
     intro k hk
     rw [hB6] at hk ⊢
     have hO : O (k + 1) = fun c : Fin 13 => σ (.n (sdOut k c)) := by

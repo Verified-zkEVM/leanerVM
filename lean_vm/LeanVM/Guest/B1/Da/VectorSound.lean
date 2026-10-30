@@ -34,7 +34,7 @@ theorem da_vector_cell_val {C : CallRel} {rd : Reader} {σ : Val} {args rets : L
       IsInK (σ (.n 4462)) ∧
       (∀ k < LeanDa.cellSymbols, ∀ w, rd ((σ (.n 4462)).limb 0 * Parameters.gpow k) = some w →
         w = (vecWsOf σ).getD k 0) ∧
-      ReadsAt rd dg (digestCells (keccak256 ((vecWsOf σ).flatMap Node.eBytes))) := by
+      ReadsAt rd dg (digestCells (keccak256 ((vecWsOf σ).flatMap Node.extensionElementBytes))) := by
   have hok := vec_tmpl_ok
   have hch := vec_tail_ok
   unfold vecTmplOk at hok
@@ -86,7 +86,7 @@ theorem da_vector_cell_val {C : CallRel} {rd : Reader} {σ : Val} {args rets : L
       rfl
     have hbytes : cellsBytes ((List.range 128).flatMap fun p =>
         Digest.pairCells (σ (.n (2 * p + 1))) (σ (.n (2 * p + 2)))) =
-        (vecWsOf σ).flatMap Node.eBytes := by
+        (vecWsOf σ).flatMap Node.extensionElementBytes := by
       rw [vecWsOf, show (256 : ℕ) = 2 * 128 from rfl, flatMap_pairs, cellsBytes, List.flatMap_assoc]
       refine List.flatMap_congr fun p _ => ?_
       rw [← cellsBytes, pair_bytes]

@@ -84,21 +84,21 @@ is at most the average, over the tuples of challenges, of a bound on the sub-pro
 theorem retExp_sampleN_bind_le {β : Type} (g : β → List Ev → ℝ≥0∞) (h₀ : List Ev) :
     ∀ (n : ℕ) (k : List E → Prog β) (B : List E → ℝ≥0∞),
       (∀ xs l, Prog.retExp g h₀ l (k xs) ≤ B xs) → ∀ l,
-      Prog.retExp g h₀ l ((Prog.sampleN n).bind k) ≤
+      Prog.retExp g h₀ l ((Prog.sampleChallenges n).bind k) ≤
         ((Fintype.card E : ℝ≥0∞) ^ n)⁻¹ * ∑ v : Fin n → E, B (List.ofFn v)
   | 0, k, B, hk, l => by
-    simpa [Prog.sampleN] using hk [] l
+    simpa [Prog.sampleChallenges] using hk [] l
   | n + 1, k, B, hk, l => by
     show (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ x : E, Prog.retExp g h₀ (l ++ [Ev.sample x])
-        (((Prog.sampleN n).bind fun xs ↦ Prog.ret (x :: xs)).bind k) ≤ _
+        (((Prog.sampleChallenges n).bind fun xs ↦ Prog.ret (x :: xs)).bind k) ≤ _
     have ih : ∀ x : E, Prog.retExp g h₀ (l ++ [Ev.sample x])
-        (((Prog.sampleN n).bind fun xs ↦ Prog.ret (x :: xs)).bind k) ≤
+        (((Prog.sampleChallenges n).bind fun xs ↦ Prog.ret (x :: xs)).bind k) ≤
         ((Fintype.card E : ℝ≥0∞) ^ n)⁻¹ * ∑ v : Fin n → E, B (x :: List.ofFn v) := fun x ↦ by
       rw [Prog.bind_assoc]
       exact retExp_sampleN_bind_le g h₀ n (fun xs ↦ k (x :: xs)) (fun xs ↦ B (x :: xs))
         (fun xs l ↦ hk _ l) _
     calc (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ x : E, Prog.retExp g h₀ (l ++ [Ev.sample x])
-          (((Prog.sampleN n).bind fun xs ↦ Prog.ret (x :: xs)).bind k)
+          (((Prog.sampleChallenges n).bind fun xs ↦ Prog.ret (x :: xs)).bind k)
         ≤ (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ x : E,
           ((Fintype.card E : ℝ≥0∞) ^ n)⁻¹ * ∑ v : Fin n → E, B (x :: List.ofFn v) := by
           gcongr with x
@@ -147,7 +147,7 @@ theorem SampleOnly.not_isMove {α : Type} {q : Prog α} (hq : SampleOnly q) : ¬
 
 /-- The fingerprint challenges `(α, β)` as the wire draws them: four, then one. -/
 def abProg : Prog (List E × E) :=
-  (Prog.sampleN 4).bind fun as ↦ Prog.sampleE.bind fun b ↦ Prog.ret (as, b)
+  (Prog.sampleChallenges 4).bind fun as ↦ Prog.sampleChallenge.bind fun b ↦ Prog.ret (as, b)
 
 /-- The wire's four `α` as the protocol's. -/
 def toAlpha (as : List E) : Fin 4 → E := fun i ↦ as.getD i 0
@@ -397,9 +397,9 @@ def busTailK {β : Type} (k : BusWit → Prog β) (alphas : List E) (beta : E)
   match r with
   | (countRoot, point, values) => do
     Prog.require (countRoot ≠ 0)
-    let memory ← Prog.readN 3
-    let mf ← Prog.readE
-    let bf ← Prog.readE
+    let memory ← Prog.readScalars 3
+    let mf ← Prog.readScalar
+    let bf ← Prog.readScalar
     k ⟨alphas, beta, point, values, memory, mf, bf⟩
 
 /-- **The bus phase followed by `f`** is the fingerprint challenges, the grand product at the push

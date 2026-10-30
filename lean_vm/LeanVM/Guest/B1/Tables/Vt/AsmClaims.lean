@@ -176,7 +176,7 @@ theorem vt_readsAt_append' {rd : Reader} {p : E} {a b : List E} (ha : TbReadsAt 
     rwa [Nat.add_sub_cancel' h1] at this
 
 section
-variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ)
+variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
 /-- **The claims.** -/

@@ -52,7 +52,7 @@ def packRunF : List E → List (E × E) → E → E → Fs → (E × E × List E
   | _, _, v, sc, s => ((v, sc, []), s)
 
 theorem runsTo_readN2 (s : Fs) (a b : E) :
-    RunsTo (Prog.readN 2) s [a, b] [a, b] (s.absorbAll [a, b] dsObserve) :=
+    RunsTo (Prog.readScalars 2) s [a, b] [a, b] (s.absorbAll [a, b] dsObserve) :=
   runsTo_readN s [a, b]
 
 theorem runsTo_packRounds :
@@ -73,7 +73,7 @@ theorem runsTo_packRounds :
     have hrest := runsTo_packRounds rs ms ((1 + r + q.1) *
         polyEval [v + r * sumE [g1, g2], g1, g2] q.1) (sc * (1 + r + q.1)) q.2 hl
     have key : keccakPackRounds (r :: rs) v sc = (sumcheckRoundPoly 3 v (some r) >>= fun message ↦
-        Prog.sampleE >>= fun challenge ↦
+        Prog.sampleChallenge >>= fun challenge ↦
           keccakPackRounds rs ((1 + r + challenge) * polyEval message challenge)
             (sc * (1 + r + challenge)) >>= fun x ↦
             (pure (x.1, x.2.1, challenge :: x.2.2) : Prog (E × E × List E))) := rfl
@@ -84,7 +84,7 @@ theorem runsTo_packRounds :
       keccakPackRounds rs ((1 + r + challenge) * polyEval [v + r * sumE [g1, g2], g1, g2] challenge)
         (sc * (1 + r + challenge)) >>= fun x ↦
         (pure (x.1, x.2.1, challenge :: x.2.2) : Prog (E × E × List E))) h3
-    have h1 := hmsg.bind (f := fun message ↦ Prog.sampleE >>= fun challenge ↦
+    have h1 := hmsg.bind (f := fun message ↦ Prog.sampleChallenge >>= fun challenge ↦
           keccakPackRounds rs ((1 + r + challenge) * polyEval message challenge)
             (sc * (1 + r + challenge)) >>= fun x ↦
             (pure (x.1, x.2.1, challenge :: x.2.2) : Prog (E × E × List E))) h2
@@ -114,7 +114,7 @@ theorem runsTo_sumcheck4 :
       have h1 := runsTo_readN (s.absorb c0 dsObserve) [c2, c3]
       have h2 := h1.bind (f := fun tail ↦ (pure (c0 :: (v + sumE tail) :: tail) : Prog (List E)))
         (runsTo_ret _ _)
-      have h3 := h0.bind (f := fun constant ↦ Prog.readN 2 >>= fun tail ↦
+      have h3 := h0.bind (f := fun constant ↦ Prog.readScalars 2 >>= fun tail ↦
         (pure (constant :: (v + sumE tail) :: tail) : Prog (List E))) h2
       simpa [sumcheckRoundPoly, Fs.absorbAll] using h3
     set q := (s.absorbAll [c0, c2, c3] dsObserve).squeeze with hq
@@ -122,7 +122,7 @@ theorem runsTo_sumcheck4 :
     rw [← hq] at hs
     have hrest := runsTo_sumcheck4 ms (polyEval [c0, v + sumE [c2, c3], c2, c3] q.1) q.2
     have key : sumcheck v 4 (List.replicate ((c0, c2, c3) :: ms).length none) =
-        (sumcheckRoundPoly 4 v none >>= fun message ↦ Prog.sampleE >>= fun challenge ↦
+        (sumcheckRoundPoly 4 v none >>= fun message ↦ Prog.sampleChallenge >>= fun challenge ↦
           sumcheck (polyEval message challenge) 4 (List.replicate ms.length none) >>= fun x ↦
             (pure (challenge :: x.1, x.2) : Prog (List E × E))) := rfl
     rw [key]
@@ -132,7 +132,7 @@ theorem runsTo_sumcheck4 :
       sumcheck (polyEval [c0, v + sumE [c2, c3], c2, c3] challenge) 4
         (List.replicate ms.length none) >>= fun x ↦
         (pure (challenge :: x.1, x.2) : Prog (List E × E))) h3
-    have h1 := hmsg.bind (f := fun message ↦ Prog.sampleE >>= fun challenge ↦
+    have h1 := hmsg.bind (f := fun message ↦ Prog.sampleChallenge >>= fun challenge ↦
           sumcheck (polyEval message challenge) 4 (List.replicate ms.length none) >>= fun x ↦
             (pure (challenge :: x.1, x.2) : Prog (List E × E))) h2
     simpa [localRunF, ← hq] using h1
@@ -201,7 +201,7 @@ theorem layer_runsTo (logSteps step : ℕ) (c : KeccakClaim) (s0 : Fs) (product 
         localMsgs.flatMap (fun m ↦ [m.1, m.2.1, m.2.2]) ++ [t.1, t.2.1, t.2.2])
       (layerClaim c s0 product packMsgs localMsgs t)
       (layerBeta c s0 product packMsgs localMsgs t).2 := by
-  have r1 : RunsTo (Prog.readN productBits) s0 product product (s0.absorbAll product dsObserve) :=
+  have r1 : RunsTo (Prog.readScalars productBits) s0 product product (s0.absorbAll product dsObserve) :=
     hp ▸ runsTo_readN s0 product
   have r3 := runsTo_packRounds c.point packMsgs (polyEval product (layerSq s0 product).1) 1
     (layerSq s0 product).2 hpm

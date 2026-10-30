@@ -78,12 +78,12 @@ proof is a substitution once `xor_refines_iff` and `add_limbs` have done theirs.
 
 **Rows from executions.** `xorRowOf mem pc fp oA oB oC rA rB rC rbc` is the row of an
 execution over the image `mem`: the registers and the operands, the two operand words read back
-from the image (`MemImage.limbsAt`), and the counts as parameters. `xorRowOf_refines`
+from the image (`MemoryImage.limbsAt`), and the counts as parameters. `xorRowOf_refines`
 says it refines `XorRefines mem` whenever `XOR oA oB oC` executes from `(pc, fp)`, and
 `xor_exec_complete` pushes it through `completeness` over the prover data: every valid `XOR`
 execution has a satisfying row, its constraints holding in the row environment `rowEnv data`.
 A step of a program that fetches `XOR oA oB oC` is such an execution
-(`execute_of_step`). The builder is noncomputable, since `MemImage.read` is; an executable,
+(`execute_of_step`). The builder is noncomputable, since `MemoryImage.read` is; an executable,
 data-aware generator would be proved against these theorems.
 
 This is all a table file states. Facts about its bytecode tuple are
@@ -142,7 +142,7 @@ structure XorRow (F : Type) where
 /-! ## The relation -/
 
 /-- The row's bindings to an image: the operand cells hold the row's words. -/
-structure XorBindings {κ : ℕ} (mem : MemImage κ) (r : XorRow K) : Prop where
+structure XorBindings {κ : ℕ} (mem : MemoryImage κ) (r : XorRow K) : Prop where
   /-- The cell `fp · o_A` holds the row's word `v_A`. -/
   readA_eq : mem.read (r.fp * r.oA) = some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2])
   /-- The cell `fp · o_B` holds the row's word `v_B`. -/
@@ -151,7 +151,7 @@ structure XorBindings {κ : ℕ} (mem : MemImage κ) (r : XorRow K) : Prop where
 /-- The relation an `XOR` row refines: it is bound to the image, and from its registers the
 machine executes the instruction it names, `XOR o_A o_B o_C`, to `next` (`execute`).
 -/
-structure XorRefines {κ : ℕ} (mem : MemImage κ) (r : XorRow K) (next : Regs K) : Prop where
+structure XorRefines {κ : ℕ} (mem : MemoryImage κ) (r : XorRow K) (next : Registers K) : Prop where
   /-- The row is bound to the image. -/
   bindings : XorBindings mem r
   /-- From the row's registers the machine executes `XOR o_A o_B o_C` to `next`. -/
@@ -159,12 +159,12 @@ structure XorRefines {κ : ℕ} (mem : MemImage κ) (r : XorRow K) (next : Regs 
 
 /-- `XorRefines`, expanded: the bindings, the result cell holds the sum in `E`, and the
 successor is the fall-through `(g·pc, fp)`. -/
-theorem xor_refines_iff {κ : ℕ} (mem : MemImage κ) (r : XorRow K) (next : Regs K) :
+theorem xor_refines_iff {κ : ℕ} (mem : MemoryImage κ) (r : XorRow K) (next : Registers K) :
     XorRefines mem r next ↔
       XorBindings mem r ∧
         mem.read (r.fp * r.oC) =
           some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2] + E.ofLimbs r.vB[0] r.vB[1] r.vB[2]) ∧
-        next = Regs.next ⟨r.pc, r.fp⟩ := by
+        next = Registers.next ⟨r.pc, r.fp⟩ := by
   constructor
   · rintro ⟨⟨hA, hB⟩, hexec⟩
     refine ⟨⟨hA, hB⟩, ?_⟩
@@ -185,7 +185,7 @@ theorem xor_refines_iff {κ : ℕ} (mem : MemImage κ) (r : XorRow K) (next : Re
 
 /-- The table's `Spec`: the row refines `XorRefines` over the image the prover data names
 (`imageOf`). No program: the table is program-free (the module docstring). -/
-def XorSpec (r : XorRow K) (next : Regs K) (data : ProverData K) : Prop :=
+def XorSpec (r : XorRow K) (next : Registers K) (data : ProverData K) : Prop :=
   XorRefines (imageOf data).2 r next
 
 /-- The bytecode tuple of a row is `entry` of the instruction it names, by definition; spelled
@@ -198,9 +198,9 @@ private theorem xor_entry (a b c : K) :
 /-- The `XOR` table (specification §7.1; `tables.rs:441-526`): state step, bytecode read of
 `(XOR, o_A, o_B, o_C, 0, 0, 0, 0)`, the two operand reads, and the result read carrying the
 limb-wise sum. Returns the pushed successor `(g·pc, fp)`. -/
-def xorTable : GeneralFormalCircuit K XorRow Regs where
+def xorTable : GeneralFormalCircuit K XorRow Registers where
   main r := do
-    let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
+    let next : Var Registers K := ⟨Expression.const g * r.pc, r.fp⟩
     StatePull.pull ⟨r.pc, r.fp⟩
     StatePush.push next
     bytecodeRead r.pc r.rbc (Expression.const Opcode.xor.code) #v[r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0]
@@ -253,13 +253,13 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
 /-- The row of an execution of `XOR oA oB oC` from `(pc, fp)` over the image `mem`: the
 registers, the operands, the two operand words read back from the image, and the counts as
 parameters. Noncomputable: it reads the image. -/
-noncomputable def xorRowOf {κ : ℕ} (mem : MemImage κ) (pc fp oA oB oC rA rB rC rbc : K) :
+noncomputable def xorRowOf {κ : ℕ} (mem : MemoryImage κ) (pc fp oA oB oC rA rB rC rbc : K) :
     XorRow K :=
   ⟨pc, fp, oA, oB, oC, mem.limbsAt (fp * oA), mem.limbsAt (fp * oB), rA, rB, rC, rbc⟩
 
 /-- A valid execution of `XOR oA oB oC` is represented by `xorRowOf`, with any counts: the
 honest prover's row refines the relation, which is `ProverAssumptions` over the data. -/
-theorem xorRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp oA oB oC : K} {next : Regs K}
+theorem xorRowOf_refines {κ : ℕ} {mem : MemoryImage κ} {pc fp oA oB oC : K} {next : Registers K}
     (hexec : execute mem ⟨pc, fp⟩ (.xor oA oB oC) = some next) (rA rB rC rbc : K) :
     XorRefines mem (xorRowOf mem pc fp oA oB oC rA rB rC rbc) next := by
   have h := hexec
@@ -268,15 +268,15 @@ theorem xorRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp oA oB oC : K} {ne
   refine ⟨⟨?_, ?_⟩, hexec⟩
   · show mem.read (fp * oA) = some (E.ofLimbs (mem.limbsAt (fp * oA))[0]
       (mem.limbsAt (fp * oA))[1] (mem.limbsAt (fp * oA))[2])
-    rw [MemImage.ofLimbs_limbsAt ha]; exact ha
+    rw [MemoryImage.ofLimbs_limbsAt ha]; exact ha
   · show mem.read (fp * oB) = some (E.ofLimbs (mem.limbsAt (fp * oB))[0]
       (mem.limbsAt (fp * oB))[1] (mem.limbsAt (fp * oB))[2])
-    rw [MemImage.ofLimbs_limbsAt hb]; exact hb
+    rw [MemoryImage.ofLimbs_limbsAt hb]; exact hb
 
 /-- Every valid `XOR` execution has a satisfying row, from the execution alone: the constraints
 of `main` hold of `xorRowOf` in the row environment over the data. A step of a program that
 fetches `XOR oA oB oC` is such an execution (`execute_of_step`). -/
-theorem xor_exec_complete {data : ProverData K} {pc fp oA oB oC : K} {next : Regs K}
+theorem xor_exec_complete {data : ProverData K} {pc fp oA oB oC : K} {next : Registers K}
     (hexec : execute (imageOf data).2 ⟨pc, fp⟩ (.xor oA oB oC) = some next) (rA rB rC rbc : K) :
     ConstraintsHold.Completeness (rowEnv data)
       ((xorTable.main (const (xorRowOf (imageOf data).2 pc fp oA oB oC rA rB rC rbc))).operations

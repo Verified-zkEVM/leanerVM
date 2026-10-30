@@ -27,7 +27,7 @@ open LeanVM.Guest.Check LeanVM.Guest.Memory
 
 section Walk
 
-variable {κ : ℕ} {L : MemImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V}
+variable {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V}
   {kfps : List ℕ} {hdr : E × E} {ck : List (Opcode → ℕ)} {segs : List Exec.Seg} {X : CX}
   {wJ : ℕ} {wenv : Trie Sym}
 

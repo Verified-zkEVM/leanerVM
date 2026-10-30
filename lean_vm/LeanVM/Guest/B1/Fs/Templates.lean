@@ -162,7 +162,7 @@ theorem holds_challengeT (s0 s1 : V) (b : ℕ) (next : Prop) (kret : List E → 
 
 /-- **`challenge_from_state`** (G:521-530): on the cells `0`, `1` of a state, the template's
 challenge is `challengeOf` of the state. -/
-theorem challengeT_value {s0 s1 : V} {b : ℕ} {S : KState} (h : ChallengeOk σ s0 s1 b)
+theorem challengeT_value {s0 s1 : V} {b : ℕ} {S : KeccakState} (h : ChallengeOk σ s0 s1 b)
     (h0 : σ s0 = cellsOfState S false 0) (h1 : σ s1 = cellsOfState S false 1) :
     σ (.n (b + 6)) = challengeOf S := by
   obtain ⟨e1, e2, e3, hk, hk3, e4, e5, e6⟩ := h
@@ -193,11 +193,11 @@ theorem challengeOk_of_vals {s0 s1 : V} {b : ℕ} (hc : IsCanonical128 (σ s1))
   · rw [e 6 (by omega), e 5 (by omega)]; rfl
 
 /-- A state's cells are canonical. -/
-theorem cellsOfState_canonical (S : KState) (odd : Bool) (c : Fin 13) :
+theorem cellsOfState_canonical (S : KeccakState) (odd : Bool) (c : Fin 13) :
     IsCanonical128 (cellsOfState S odd c) := (isCanonical128_ofLimbs_iff _ _ _).mpr rfl
 
 /-- The honest challenge is the state's. -/
-theorem challengeVals_six (S : KState) :
+theorem challengeVals_six (S : KeccakState) :
     challengeVals (cellsOfState S false 0) (cellsOfState S false 1) 6 = challengeOf S := by
   rw [Keccak.challengeOf_cells]
   simp [challengeVals, word_yy]

@@ -343,13 +343,13 @@ theorem verify_sub_completeB {bytecode : List K} (hbl : bytecode.length = 2 ^ 23
     (hκ : 16 ≤ κ) (hvk : VkCompleteAtB fs cert κ Bvk) (seed : Digest) (c : Child)
     (lpE sqE outE : ℕ) (Lin : Main.Layout)
     (hmu : ∀ layout r, Verifier.announced bytecode c.proof.stream = some (layout, r) →
-      Hints.muMin ≤ layout.stackLog)
-    (hst : c.proof.stream.length ≤ Hints.streamCap)
-    (hnz : Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.fresh
+      Hints.minChildStackLog ≤ layout.stackLog)
+    (hst : c.proof.stream.length ≤ Hints.childStreamCap)
+    (hnz : Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim
       c.proof = true)
-    (hcaps : ∀ b ∈ Limits.queriesOf (deferredProgram c.fresh bytecode
-      (statementDigest seed c.statement)) (Hints.childStart seed c), Limits.BatchAgrees b.1 b.2)
-    (hexpL : ∀ q ∈ log2Lin lpE sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.fresh) ∈ Lin) :
+    (hcaps : ∀ b ∈ Limits.queryStepsOf (deferredProgram c.freshClaim bytecode
+      (statementDigest seed c.statement)) (Hints.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2)
+    (hexpL : ∀ q ∈ log2Lin lpE sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTB fs cert κ "verify_sub" Lin
       [(digestScalars (statementDigest seed c.statement)).1,
         (digestScalars (statementDigest seed c.statement)).2, (digestScalars seed).1,

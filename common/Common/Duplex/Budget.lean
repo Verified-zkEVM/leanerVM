@@ -100,7 +100,7 @@ a collision with probability at most `N · (2N · εc)`. -/
 theorem prob_bad_le {εc : ℝ≥0∞}
     (hcap : ∀ c, Pr{let w ← ($ᵗ W : ProbComp W)}[D.capW w = c] ≤ εc) (g : Tab Root Z n)
     {α : Type} (X : OracleComp (Rom2 Msg Dg St) α) (N : ℕ)
-    (hX : IsWeightBound X (fCalls (Msg := Msg) (Dg := Dg) (St := St)) N) :
+    (hX : QueryCostAtMost X (fCalls (Msg := Msg) (Dg := Dg) (St := St)) N) :
     Pr{let z ← (simulateQ (tabImpl D g) X).run
         ((SimSt.init : SimSt St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache))}[
         z.2.1.bad = true] ≤ N * (2 * N * εc) := by

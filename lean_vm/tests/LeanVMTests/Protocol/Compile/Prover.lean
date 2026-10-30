@@ -41,7 +41,7 @@ def strat : Strategy where
   word := fun _ ↦ word0
 
 /-- The seed of the sponge. -/
-def seed : KState := keccakF (seedInput (keccak256 [0x6c, 0x65, 0x61, 0x6e]) default)
+def seed : KeccakState := keccakF1600 (seedInput (keccak256 [0x6c, 0x65, 0x61, 0x6e]) default)
 
 /-! ## Interactive completeness -/
 
@@ -57,11 +57,11 @@ theorem shaped (bits : ℕ) (chal : List Ev → E) : shapedI (prog bits) strat c
 /-! ## The honest proof is accepted -/
 
 /-- The honest proof with a three-bit proof of work and a search of at most 1000 nonces. -/
-def proof? : Option Proof := prove keccak256 keccakF (prog 3) strat seed 1000
+def proof? : Option Proof := prove keccak256 keccakF1600 (prog 3) strat seed 1000
 
 /-- Accept a possibly missing proof. -/
 def accepts (bits : ℕ) : Option Proof → Bool
-  | some π => runProof (m := Id) keccak256 keccakF (prog bits) seed π
+  | some π => runProof (m := Id) keccak256 keccakF1600 (prog bits) seed π
   | none => false
 
 #guard proof?.isSome
@@ -71,18 +71,18 @@ def accepts (bits : ℕ) : Option Proof → Bool
 
 /-- Completeness at Keccak: every proof the prover produces is accepted. -/
 theorem proof_accepted {π : Proof} (h : proof? = some π) :
-    runProof (m := Id) keccak256 keccakF (prog 3) seed π = true :=
-  runProof_prove keccak256 keccakF (prog 3) strat seed 1000 (complete 3) (shaped 3) h
+    runProof (m := Id) keccak256 keccakF1600 (prog 3) seed π = true :=
+  runProof_prove keccak256 keccakF1600 (prog 3) strat seed 1000 (complete 3) (shaped 3) h
 
 /-! ## The nonce is the smallest that passes -/
 
 /-- The sponge at the proof of work: after the scalar and the root's two scalars. -/
 def grindState (π : Proof) : Sponge :=
-  π.stream.take 3 |>.foldl (fun sp x ↦ absorbI keccakF sp x dsObserve) ⟨seed, []⟩
+  π.stream.take 3 |>.foldl (fun sp x ↦ absorbI keccakF1600 sp x dsObserve) ⟨seed, []⟩
 
 /-- The nonce is the first `m` below the fuel that passes, and every smaller `m` fails. -/
 def smallestNonce (π : Proof) : Bool :=
-  let ok := fun m ↦ powOk 3 (nonceOf m) (powStep keccakF (grindState π) (nonceOf m)).1
+  let ok := fun m ↦ powOk 3 (nonceOf m) (powStep keccakF1600 (grindState π) (nonceOf m)).1
   match (List.range 1000).find? ok with
   | some m => π.stream[3]? == some (nonceOf m) && ok m && (List.range m).all (! ok ·)
   | none => false
@@ -113,8 +113,8 @@ def badStrat : Strategy where
   word := fun _ _ ↦ [w 9, w 9]
 
 /- Its honest proof authenticates, and the verdict rejects. -/
-#guard (prove keccak256 keccakF (prog 3) badStrat seed 1000).isSome
-#guard !accepts 3 (prove keccak256 keccakF (prog 3) badStrat seed 1000)
+#guard (prove keccak256 keccakF1600 (prog 3) badStrat seed 1000).isSome
+#guard !accepts 3 (prove keccak256 keccakF1600 (prog 3) badStrat seed 1000)
 
 /- A tampered root scalar. -/
 #guard !accepts 3 (proof?.map fun π ↦ { π with stream := π.stream.modify 1 (· + 1) })
@@ -128,13 +128,13 @@ def badStrat : Strategy where
 /-! ## When the prover fails -/
 
 /- No nonce below the fuel: the three-bit search with no fuel fails. -/
-#guard (prove keccak256 keccakF (prog 3) strat seed 0).isNone
+#guard (prove keccak256 keccakF1600 (prog 3) strat seed 0).isNone
 
 /- A zero-bit proof of work needs no fuel: the nonce is `0`. -/
-#guard accepts 0 (prove keccak256 keccakF (prog 0) strat seed 0)
+#guard accepts 0 (prove keccak256 keccakF1600 (prog 0) strat seed 0)
 
 /-- The search fails exactly when no nonce below the fuel passes. -/
-example (sp : Sponge) : findNonce keccakF 3 sp 0 = none :=
-  (findNonce_eq_none_iff keccakF 3 sp 0).mpr ⟨by decide, fun _ h ↦ absurd h (by omega)⟩
+example (sp : Sponge) : findNonce keccakF1600 3 sp 0 = none :=
+  (findNonce_eq_none_iff keccakF1600 3 sp 0).mpr ⟨by decide, fun _ h ↦ absurd h (by omega)⟩
 
 end LeanVMTests.Protocol.Compile.Prover

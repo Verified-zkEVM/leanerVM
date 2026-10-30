@@ -57,14 +57,14 @@ open scoped ENNReal
 
 /-- `verify_keccak`, the `do` block's join points inlined. -/
 def gkrProg (h : ℕ) (inst output : List E) : Prog (List ColumnClaim × List E × List E) :=
-  Prog.sampleN keccakSegmentBits >>= fun segment ↦
-  Prog.sampleN keccakLaneBits >>= fun lanesPt ↦
-  Prog.readE >>= fun committed ↦
+  Prog.sampleChallenges keccakSegmentBits >>= fun segment ↦
+  Prog.sampleChallenges keccakLaneBits >>= fun lanesPt ↦
+  Prog.readScalar >>= fun committed ↦
   keccakLayers h (List.range keccakDepth) (firstClaim inst segment lanesPt output committed) >>=
     fun claim ↦
   keccakOpen h (firstClaim inst segment lanesPt output committed) 1 (keccakSegments - 1)
     committed >>= fun x ↦
-  Prog.readE >>= fun word ↦
+  Prog.readScalar >>= fun word ↦
   Prog.require (x.2.1.headD 0 * word = x.2.2) >>= fun _ ↦
   inputTail h claim [(⟨qkeccak, inst.take 4 ++ inst.drop 4 ++ x.1, word⟩ : ColumnClaim)]
 
@@ -116,7 +116,7 @@ noncomputable def midSpec (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L₀)
         (firstClaim inst segment lanesPt output committed) >>= fun claim ↦
       keccakOpen (P + 4) (firstClaim inst segment lanesPt output committed) 1 (keccakSegments - 1)
         committed >>= fun x ↦
-      Prog.readE >>= fun word ↦
+      Prog.readScalar >>= fun word ↦
       Prog.require (x.2.1.headD 0 * word = x.2.2) >>= fun _ ↦
       inputTail (P + 4) claim [(⟨qkeccak, inst.take 4 ++ inst.drop 4 ++ x.1, word⟩ : ColumnClaim)])
       (Doomed C (AliveC qk R P inst segment lanesPt output committed))
@@ -243,9 +243,9 @@ noncomputable def gkrSpec (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L₀)
 theorem outClaims_iff_of_regionValid (h : ℕ) (col : ℕ → K) (inst output : List E)
     (hv : RegionValid h col) :
     outClaimsTrue h col inst output ↔ outClaimsTrueMid h col inst output := by
-  have hx : ∀ x ∈ range (2 ^ h), keccakF (inState h col 0 x) = roundsFrom 12 12 (inState h col 1 x) :=
+  have hx : ∀ x ∈ range (2 ^ h), keccakF1600 (inState h col 0 x) = roundsFrom 12 12 (inState h col 1 x) :=
     fun x hx ↦ by rw [keccakF_eq, hv x (Finset.mem_range.1 hx)]
-  have e : ∀ l, stepMle h inst (fun x ↦ laneWord (keccakF (inState h col 0 x)) l) =
+  have e : ∀ l, stepMle h inst (fun x ↦ laneWord (keccakF1600 (inState h col 0 x)) l) =
       stepMle h inst (fun x ↦ laneWord (roundsFrom 12 12 (inState h col 1 x)) l) := fun l ↦
     Finset.sum_congr rfl fun x hxr ↦ by simp only; rw [hx x hxr]
   unfold outClaimsTrue outClaimsTrueMid

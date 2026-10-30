@@ -184,8 +184,8 @@ theorem body_ofV {Vm : FrameMap} (hVm : UnfoldsV rd C Vm) {f : String} {fn : Fn}
 
 /-- **The callees' contracts with witness functions**, on the calls of `C`. -/
 structure CalleesWC (bytecode : List K) (C : CallRel) (rd : Reader) (bb0 : E)
-    (wX : E → LeanXmss.Signature) (wS : E → Sphincs.Signature) (wD : List E → List E → LeanVM.Da.Witness)
-    (wV : List E → Proof) (wA : List E → BatchHints) : Prop where
+    (wX : E → LeanXmss.Signature) (wS : E → Sphincs.Signature) (wD : List E → List E → LeanVM.Da.MatrixWitness)
+    (wV : List E → Proof) (wA : List E → BatchingHints) : Prop where
   /-- A leanXMSS check: the signature `wX p` verifies the claim at `p`. -/
   xmss : ∀ p, C "verify_lean_xmss" [p] [] → Sig.XmssOut rd p (wX p)
   /-- A leanSPHINCS check with the byte table `bb0` (`main`'s): the signature `wS p` verifies the

@@ -91,7 +91,7 @@ def gkSt (Cf : ℕ → List E) (ef : ℕ → E) (claim : E) (s : Fs) : ℕ → E
     (polyEval ((st.1 + ef q * sumE (Cf q)) :: Cf q) r.1, r.2)
 
 /-- Round `q`'s permutation. -/
-def gkP (Cf : ℕ → List E) (ef : ℕ → E) (claim : E) (s : Fs) (q : ℕ) : KState :=
+def gkP (Cf : ℕ → List E) (ef : ℕ → E) (claim : E) (s : Fs) (q : ℕ) : KeccakState :=
   ((gkSt Cf ef claim s q).2.absorbAll (Cf q) dsObserve).perm
 
 theorem gkSt_shift (Cf : ℕ → List E) (ef : ℕ → E) (claim : E) (s : Fs) :
@@ -437,7 +437,7 @@ def gkArith (c e : E) (C : List E) (r : E) : List E :=
     c + e * (c1 + c2 + c3 + c4) + r * (c1 + r * (c2 + r * (c3 + r * c4)))]
 
 /-- The honest values of `gkr_rounds` at `n` rounds, by index. -/
-def gkVals (as cap : List E) (cur : E) (Cf : ℕ → List E) (ef cl : ℕ → E) (P : ℕ → KState)
+def gkVals (as cap : List E) (cur : E) (Cf : ℕ → List E) (ef cl : ℕ → E) (P : ℕ → KeccakState)
     (n k : ℕ) : E :=
   if k < 2 then as.getD k 0
   else if k < 7 then cap.getD (k - 2) 0
@@ -464,7 +464,7 @@ macro "gk_if" : tactic => `(tactic| first
   | (rw [ite_eq_left_of_eq_true]; rotate_left; exact eq_true (by omega)))
 
 section
-variable (as cap : List E) (cur : E) (Cf : ℕ → List E) (ef cl : ℕ → E) (P : ℕ → KState)
+variable (as cap : List E) (cur : E) (Cf : ℕ → List E) (ef cl : ℕ → E) (P : ℕ → KeccakState)
 
 theorem gkVals_word {n q t : ℕ} (hq : q < n) (ht : t < 4) :
     gkVals as cap cur Cf ef cl P n (9 + 74 * q + 10 * t) = (Cf q).getD t 0 := by

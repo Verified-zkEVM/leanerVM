@@ -215,10 +215,10 @@ def gCalls : (unifSpec + GSpec Msg Dg Root Z n).Domain → ℕ
 
 /-- **Each step of the simulator makes at most one query of `G`**, and only for a call of `F`. -/
 theorem isWeightBound_simImpl (t : (Rom2 Msg Dg St).Domain) (s : SimSt St Root n) :
-    IsWeightBound ((simImpl D hP gaP t).run s) (gCalls (Msg := Msg) (Dg := Dg) (Root := Root)
+    QueryCostAtMost ((simImpl D hP gaP t).run s) (gCalls (Msg := Msg) (Dg := Dg) (Root := Root)
       (Z := Z) (n := n)) (fCalls (Msg := Msg) (Dg := Dg) (St := St) t) := by
   have hu : ∀ {β : Type} (p : ProbComp β),
-      IsWeightBound (liftM p : OracleComp (unifSpec + GSpec Msg Dg Root Z n) β) gCalls 0 :=
+      QueryCostAtMost (liftM p : OracleComp (unifSpec + GSpec Msg Dg Root Z n) β) gCalls 0 :=
     fun p ↦ isWeightBound_liftM_probComp gCalls (fun _ ↦ rfl) p
   rcases t with k | m | x
   · simp only [simImpl, StateT.run_monadLift, monadLift_self]
@@ -229,7 +229,7 @@ theorem isWeightBound_simImpl (t : (Rom2 Msg Dg St).Domain) (s : SimSt St Root n
   · simp only [simImpl, StateT.run_mk]
     split
     · trivial
-    · refine (IsWeightBound.bind (b := 0) ?_ fun _ ↦ isWeightBound_pure _ _ 0)
+    · refine (QueryCostAtMost.bind (b := 0) ?_ fun _ ↦ isWeightBound_pure _ _ 0)
       unfold freshAns
       split
       · split

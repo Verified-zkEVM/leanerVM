@@ -41,7 +41,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : 
 /-- **`main`'s completeness on the honest run, for the budget**: `main_honest_fullT`, its claim
 lists' digests', each child's and `aggregate_claims`' trees of honest shape, `da_verify`'s
 satisfying `Pd`, child `c`'s `verify_sub`'s `Pvs c`. -/
-theorem main_honest_budget (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w)
+theorem main_honest_budget (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w)
     (hl : Limits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     {Pd : Tree → Prop} {Pvs : ℕ → Tree → Prop} (hV : VerifySubGoalsT fs cert fp seed s w Pvs)
@@ -65,7 +65,7 @@ theorem main_honest_budget (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel byteco
 /-- **`main`'s completeness on the honest run, for the budget**, `da_verify`'s tree of honest
 shape too (`hDvNH`): every callee the static certificates cannot bound by a tree of honest
 shape, but each child's `verify_sub` (`Pvs c`, B1-d's). -/
-theorem main_honest_budget_dv (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w)
+theorem main_honest_budget_dv (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w)
     (hl : Limits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     {Pvs : ℕ → Tree → Prop} (hV : VerifySubGoalsT fs cert fp seed s w Pvs) :

@@ -42,14 +42,14 @@ example : GuestKnowledge guest decode := guest_knowledge
 example : AggregateSound guest decode := aggregate_sound_outer
 
 /-- The decoder reads the seed and the statement off `main`'s frame. -/
-example {κ : ℕ} (L : MemImage κ) :
+example {κ : ℕ} (L : MemoryImage κ) :
     (decode L).seed = B1.Main.decSeed (Check.valG L 1 (certOf 1)) := rfl
 
-example {κ : ℕ} (L : MemImage κ) :
+example {κ : ℕ} (L : MemoryImage κ) :
     (decode L).statement = B1.Main.decStmt (Check.valG L 1 (certOf 1)) L.read := rfl
 
 /-- The decoder's witness: `main`'s, each callee's read off its frame, each child's proof by
 `VerifySub.vsPiOf`. -/
-example {κ : ℕ} (L : MemImage κ) :
+example {κ : ℕ} (L : MemoryImage κ) :
     (decode L).witness = B1.Main.decWitV (Check.valG L 1 (certOf 1)) L.read (Located.frameV L)
       B1.VerifySub.vsPiOf := rfl

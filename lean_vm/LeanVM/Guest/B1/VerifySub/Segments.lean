@@ -23,7 +23,7 @@ challenges; `specPre_flat`: it is `specPre`.
 `runsTo_of_runF`: a carried run of a program without commitments is a `RunsTo` on the words it
 reads. `readSizes_inv`: the announced sizes' run reads `eOfNat logMem`, the row counts, `eOfNat r`
 and returns `layoutOf bytecode logMem rows` (the guest's bytecode of `2^23` words). `announced_eq`:
-the run's sizes are `Verifier.announced`'s, so G7's bound `muMin ≤ stackLog` applies.
+the run's sizes are `Verifier.announced`'s, so G7's bound `minChildStackLog ≤ stackLog` applies.
 
 `child_segments`: on G7's per-child hypotheses, the child's stream is the concatenation of the
 segments' words, each segment a carried run (`ChildSegs`).
@@ -39,22 +39,22 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## The prefix, grouped as `verify_sub` runs it -/
 
 /-- **The prefix, grouped as `verify_sub` runs it.** -/
-def flatPre (c : FixedClaims) (bytecode : List K) (pi : Digest) :
+def flatPre (c : BytecodeClaim) (bytecode : List K) (pi : Digest) :
     Prog (Layout × ℕ × List StackClaim) :=
   (readSizes bytecode).bind fun ls ↦
   (commitStack ls.1.stackLog ls.2).bind fun _ ↦
-  (Prog.sampleN busBits).bind fun alphas ↦
-  Prog.sampleE.bind fun beta ↦
+  (Prog.sampleChallenges busBits).bind fun alphas ↦
+  Prog.sampleChallenge.bind fun beta ↦
   (Tables.gkrPhase (busLayout [0, ls.1.logMemory, ls.1.logBytecode] ls.1.push).depth).bind fun r ↦
   (Tables.tablesSeg (claimedValue c) ls.1 pi alphas beta r.2.1 r.2.2).bind fun bc ↦
   (Prog.require ((lanesOf bc.2).map (·.column) = keccakOutputColumns ∧
     ∀ c ∈ lanesOf bc.2, c.point = ((lanesOf bc.2).headD default).point)).bind fun _ ↦
   (keccakSeg (ls.1.tableLogHeights.getD opKeccak 0) ((lanesOf bc.2).headD default).point
     ((lanesOf bc.2).map (·.value))).bind fun km ↦
-  (Prog.sampleN 5).bind fun chs ↦
+  (Prog.sampleChallenges 5).bind fun chs ↦
   Prog.ret (ls.1, ls.2, stackClaims ls.1 bc.2 km.1.1 km.1.2.1 km.1.2.2 (km.2 :: chs))
 
-theorem specPre_flat (c : FixedClaims) (bytecode : List K) (pi : Digest) :
+theorem specPre_flat (c : BytecodeClaim) (bytecode : List K) (pi : Digest) :
     specPre (claimedValue c) bytecode pi = flatPre c bytecode pi := by
   simp only [specPre, flatPre, restClaims, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc]
   refine congrArg _ (funext fun ls ↦ congrArg _ (funext fun _ ↦ ?_))
@@ -67,7 +67,7 @@ theorem specPre_flat (c : FixedClaims) (bytecode : List K) (pi : Digest) :
   simp only [keccakSeg, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
   refine congrArg _ (funext fun kr ↦ ?_)
   simp only [ringSwitch, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
-  rw [show ringMapShifts.length = 5 + 1 from rfl, Prog.sampleN]
+  rw [show ringMapShifts.length = 5 + 1 from rfl, Prog.sampleChallenges]
   simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
   refine congrArg _ (funext fun m ↦ congrArg _ (funext fun chs ↦ ?_))
   rfl
@@ -157,14 +157,14 @@ theorem runsTo_of_runF {α : Type} {p : Prog α} (hp : NoCommit p) {s : Fs} {T :
 /-! ## The announced sizes -/
 
 theorem runF_readN : ∀ (n : ℕ) (st : Whir.FSt) (xs : List E) (st' : Whir.FSt),
-    Whir.runF (Prog.readN n) st = some (xs, st') →
+    Whir.runF (Prog.readScalars n) st = some (xs, st') →
       st.stream = xs ++ st'.stream ∧ xs.length = n
   | 0, st, xs, st', h => by
-    simp only [Prog.readN, Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
+    simp only [Prog.readScalars, Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     exact ⟨rfl, rfl⟩
   | n + 1, st, xs, st', h => by
-    simp only [Prog.readN, Prog.bind_eq, Prog.pure_eq] at h
+    simp only [Prog.readScalars, Prog.bind_eq, Prog.pure_eq] at h
     obtain ⟨x, s1, h1, h⟩ := Whir.runF_bind_some h
     obtain ⟨ys, s2, h2, h⟩ := Whir.runF_bind_some h
     simp only [Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
@@ -172,9 +172,9 @@ theorem runF_readN : ∀ (n : ℕ) (st : Whir.FSt) (xs : List E) (st' : Whir.FSt
     obtain ⟨e2, l2⟩ := runF_readN n s1 ys s2 h2
     obtain ⟨sp, stream, os, R⟩ := st
     cases stream with
-    | nil => simp [Prog.readE, Whir.runF] at h1
+    | nil => simp [Prog.readScalar, Whir.runF] at h1
     | cons y rest =>
-      simp only [Prog.readE, Whir.runF, Option.some.injEq, Prod.mk.injEq] at h1
+      simp only [Prog.readScalar, Whir.runF, Option.some.injEq, Prod.mk.injEq] at h1
       obtain ⟨rfl, rfl⟩ := h1
       refine ⟨?_, by simp [l2]⟩
       simp only at e2 ⊢
@@ -287,10 +287,10 @@ theorem readOnly_ret {α : Type} (a : α) : ReadOnly (Prog.ret a) := (readOnly_i
 
 theorem readOnly_fail {α : Type} : ReadOnly (Prog.fail : Prog α) := (readOnly_iff _).2 trivial
 
-theorem readOnly_readN : ∀ n, ReadOnly (Prog.readN n)
+theorem readOnly_readN : ∀ n, ReadOnly (Prog.readScalars n)
   | 0 => readOnly_ret _
   | n + 1 => by
-    simp only [Prog.readN, Prog.bind_eq, Prog.pure_eq]
+    simp only [Prog.readScalars, Prog.bind_eq, Prog.pure_eq]
     refine ReadOnly.bind ((readOnly_iff _).2 fun _ ↦ trivial) fun _ ↦ ?_
     exact ReadOnly.bind (readOnly_readN n) fun _ ↦ readOnly_ret _
 
@@ -317,7 +317,7 @@ theorem readOnly_readSizes (bytecode : List K) : ReadOnly (readSizes bytecode) :
 
 /-- A run that only reads returns what the stream gives, whatever the hashes and the sponge. -/
 theorem ReadOnlyA.run_eq {α : Type} (p : Prog α) : ReadOnlyA p →
-    ∀ (H H' : Bytes → Id Digest) (F F' : KState → Id KState) (sp sp' : Sponge) (T : List E)
+    ∀ (H H' : Bytes → Id Digest) (F F' : KeccakState → Id KeccakState) (sp sp' : Sponge) (T : List E)
       (O O' : List Opening) (R R' : List (Digest × ℕ × ℕ)),
       (Id.run (Compile.run (m := Id) H F p ⟨sp, T, O, R⟩)).map (·.1) =
         (Id.run (Compile.run (m := Id) H' F' p ⟨sp', T, O', R'⟩)).map (·.1) := by
@@ -341,7 +341,7 @@ theorem announced_eq {bytecode : List K} {s : Fs} {T : List E} {O : List Opening
     Verifier.announced bytecode T = some (L, r) := by
   obtain ⟨sp', -, hr⟩ := runId_of_runF h hs
   have e := ReadOnlyA.run_eq _ ((readOnly_iff _).1 (readOnly_readSizes bytecode))
-    (fun _ ↦ default) keccak256 (fun _ ↦ default) keccakF ⟨default, []⟩ sp T [] O [] R
+    (fun _ ↦ default) keccak256 (fun _ ↦ default) keccakF1600 ⟨default, []⟩ sp T [] O [] R
   unfold Verifier.announced Compile.runPure
   rw [e]
   change (runId (readSizes bytecode) ⟨sp, T, O, R⟩).map (·.1) = _
@@ -352,16 +352,16 @@ theorem announced_eq {bytecode : List K} {s : Fs} {T : List E} {O : List Opening
 /-! ## Squeezes and the stack's root -/
 
 theorem runF_sampleN : ∀ (n : ℕ) (st : Whir.FSt) (xs : List E) (st' : Whir.FSt),
-    Whir.runF (Prog.sampleN n) st = some (xs, st') →
+    Whir.runF (Prog.sampleChallenges n) st = some (xs, st') →
       st.sponge.squeezeN n = (xs, st'.sponge) ∧ st'.stream = st.stream ∧
         st'.openings = st.openings ∧ st'.roots = st.roots
   | 0, st, xs, st', h => by
-    simp only [Prog.sampleN, Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
+    simp only [Prog.sampleChallenges, Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     exact ⟨rfl, rfl, rfl, rfl⟩
   | n + 1, st, xs, st', h => by
-    simp only [Prog.sampleN, Prog.bind_eq, Prog.pure_eq] at h
-    rw [show Prog.sampleE = Prog.sample Prog.ret from rfl] at h
+    simp only [Prog.sampleChallenges, Prog.bind_eq, Prog.pure_eq] at h
+    rw [show Prog.sampleChallenge = Prog.sample Prog.ret from rfl] at h
     simp only [Prog.bind, Whir.runF] at h
     obtain ⟨ys, s2, h2, h⟩ := Whir.runF_bind_some h
     simp only [Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
@@ -393,7 +393,7 @@ theorem commitStack_runF' {μ r : ℕ} {st : Whir.FSt} {u : Unit} {st' : Whir.FS
       obtain ⟨s, stream, os, R⟩ := st
       match stream, h with
       | x0 :: x1 :: xs, h =>
-        simp only [Prog.commitP, Whir.runF] at h
+        simp only [Prog.readCommitment, Whir.runF] at h
         split at h
         · rename_i root hr
           simp only [Option.some.injEq, Prod.mk.injEq] at h
@@ -426,7 +426,7 @@ structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type 
   hmu28 : layout.stackLog ≤ 28
   /-- The announced sizes. -/
   s1 : Fs
-  runS : RunsTo (readSizes bytecode) ⟨capOf (keccakF (seedInput seed
+  runS : RunsTo (readSizes bytecode) ⟨capOf (keccakF1600 (seedInput seed
     (Node.statementDigest seed c.statement))), []⟩
     (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat rate]) (layout, rate) s1
   /-- The stack's root. -/
@@ -449,7 +449,7 @@ structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type 
   bus : BusResult
   claims : List ColumnClaim
   s6 : Fs
-  runT : RunsTo (Tables.tablesSeg (claimedValue c.fresh) layout (Node.statementDigest seed c.statement)
+  runT : RunsTo (Tables.tablesSeg (claimedValue c.freshClaim) layout (Node.statementDigest seed c.statement)
     alphas s3.squeeze.1 rG.2.1 rG.2.2) s5 xsT (bus, claims) s6
   /-- The output lanes: the table's columns, one point. -/
   hlanes : (lanesOf claims).map (·.column) = keccakOutputColumns ∧
@@ -494,12 +494,12 @@ structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type 
 theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (seed : Digest)
     (c : Node.Child)
     (hmu : ∀ layout r, Verifier.announced bytecode c.proof.stream = some (layout, r) →
-      Hints.muMin ≤ layout.stackLog)
-    (hnz : Limits.verifyDeferredNZ bytecode seed (Node.statementDigest seed c.statement) c.fresh
+      Hints.minChildStackLog ≤ layout.stackLog)
+    (hnz : Limits.verifyDeferredNZ bytecode seed (Node.statementDigest seed c.statement) c.freshClaim
       c.proof = true)
-    (hcaps : ∀ b ∈ Limits.queriesOf
-      (deferredProgram c.fresh bytecode (Node.statementDigest seed c.statement))
-      (Hints.childStart seed c), Limits.BatchAgrees b.1 b.2) :
+    (hcaps : ∀ b ∈ Limits.queryStepsOf
+      (deferredProgram c.freshClaim bytecode (Node.statementDigest seed c.statement))
+      (Hints.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2) :
     Nonempty (ChildSegs bytecode seed c) := by
   obtain ⟨q, sq, root, xsW, w, s', roots', hpre, hrun, hnzW, hcapsW, hacc⟩ :=
     child_open seed c hnz hcaps
@@ -515,7 +515,7 @@ theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (see
     have := hsA.symm.trans hxs1
     exact (List.append_cancel_right this).symm
   subst exs1
-  have hmu22 : Hints.muMin ≤ L.stackLog := hmu L r (announced_eq (sp := ⟨keccakF (seedInput seed
+  have hmu22 : Hints.minChildStackLog ≤ L.stackLog := hmu L r (announced_eq (sp := ⟨keccakF1600 (seedInput seed
     (Node.statementDigest seed c.statement)), []⟩) ⟨rfl, rfl⟩ hA)
   obtain ⟨rA, oA⟩ := NoCommit.runF (noCommit_readSizes _) hA
   -- the stack's root
@@ -564,7 +564,7 @@ theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (see
         c.proof).stream := rfl
     rw [h0, hsA, hsB, ← hsC, hxsG, hxsT, hxsK, ← hsG]
     simp only [List.append_assoc, List.cons_append, List.nil_append]
-  · exact announced_eq (sp := ⟨keccakF (seedInput seed (Node.statementDigest seed c.statement)), []⟩)
+  · exact announced_eq (sp := ⟨keccakF1600 (seedInput seed (Node.statementDigest seed c.statement)), []⟩)
       ⟨rfl, rfl⟩ hA
 
 end

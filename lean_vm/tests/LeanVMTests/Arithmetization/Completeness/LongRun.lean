@@ -28,7 +28,7 @@ open LeanVMTests.Arithmetization.Completeness.Fixture
 def J : ℕ := 2 ^ 30
 
 /-- The image, at `κ = 32`, for the sentinel counter `fin`. -/
-def img (fin : K) : MemImage 32 := fun n ↦
+def img (fin : K) : MemoryImage 32 := fun n ↦
   if (n : ℕ) % 4 = 2 then (if (n : ℕ) / 4 = J - 1 then ofK fin else ofK g)
   else if (n : ℕ) % 4 = 3 then
     (if (n : ℕ) / 4 = J - 1 then ofK 1 else ofK (gpow (4 * ((n : ℕ) / 4 + 1))))
@@ -40,7 +40,7 @@ theorem two_pow_32 : (2 : ℕ) ^ 32 = 4 * J := by norm_num [J]
 /-- Reading the address of a cell of the image gives the cell. -/
 theorem read_img (fin : K) (n : ℕ) (hn : n < 2 ^ 32) :
     (img fin).read (gpow n) = some (img fin ⟨n, hn⟩) :=
-  MemImage.read_gpow (by decide) (img fin) ⟨n, hn⟩
+  MemoryImage.read_gpow (by decide) (img fin) ⟨n, hn⟩
 
 /-- Cell `4 j` of the image holds `g`: the operand of the `SET_CONSTANT`. -/
 theorem img_cell0 (fin : K) (j : ℕ) (hj : j < J) :
@@ -178,7 +178,7 @@ theorem run_sets (prog : Program) (fin : K) (sh : Shape prog) {j : ℕ} (hj : j 
   | zero => intro s _; rfl
   | succ m ih =>
     intro s hs
-    have hpc : (⟨gpow s, gpow (4 * j)⟩ : Regs K).pc ≠ prog.pcFinal :=
+    have hpc : (⟨gpow s, gpow (4 * j)⟩ : Registers K).pc ≠ prog.pcFinal :=
       fun h ↦ sh.pcFinal_ne (by omega) h.symm
     have h1 := run_one hpc (set_step prog fin (sh.sets s (by omega)) hj)
     have h2 := ih (s + 1) (by omega)
@@ -193,7 +193,7 @@ theorem run_body (prog : Program) (fin : K) (sh : Shape prog) {j : ℕ} (hj : j 
 
 /-- Slot `33` is not the sentinel. -/
 theorem pc33_ne (prog : Program) (sh : Shape prog) (j : ℕ) :
-    (⟨gpow 33, gpow (4 * j)⟩ : Regs K).pc ≠ prog.pcFinal :=
+    (⟨gpow 33, gpow (4 * j)⟩ : Registers K).pc ≠ prog.pcFinal :=
   fun h ↦ sh.pcFinal_ne (le_refl 33) h.symm
 
 /-- One iteration that loops. -/
@@ -226,13 +226,13 @@ theorem run_iters (prog : Program) (fin : K) (sh : Shape prog) :
 
 /-- The whole run: slot `0`, then `J - 1` looping iterations, then the last one. -/
 theorem run_full (prog : Program) (sh : Shape prog) :
-    run prog (img prog.pcFinal) (33 * J + 1) Regs.initial = some (Regs.final prog) := by
+    run prog (img prog.pcFinal) (33 * J + 1) Registers.initial = some (Registers.final prog) := by
   have hJ : 0 < J := by unfold J; omega
-  have e : (Regs.initial : Regs K) = ⟨gpow 0, gpow (4 * 0)⟩ := by
-    unfold Regs.initial
+  have e : (Registers.initial : Registers K) = ⟨gpow 0, gpow (4 * 0)⟩ := by
+    unfold Registers.initial
     rw [Nat.mul_zero]
     simp [gpow]
-  have hpc : (⟨gpow 0, gpow (4 * 0)⟩ : Regs K).pc ≠ prog.pcFinal :=
+  have hpc : (⟨gpow 0, gpow (4 * 0)⟩ : Registers K).pc ≠ prog.pcFinal :=
     fun h ↦ sh.pcFinal_ne (by norm_num : 0 ≤ 33) h.symm
   have h0 := run_one hpc (set_step prog prog.pcFinal (sh.sets 0 (by norm_num)) hJ)
   have h1 := run_trans h0 (run_iters prog prog.pcFinal sh (J - 1) le_rfl)
@@ -243,7 +243,7 @@ theorem run_full (prog : Program) (sh : Shape prog) :
 /-- **The long valid execution.**  For every program of the shape, a valid execution with more
 than `2^35 = 8 * 2^32` steps. -/
 theorem long_run_valid (prog : Program) (sh : Shape prog) :
-    ∃ (input : PublicInput) (t : Trace prog), ValidExecution prog input t ∧ 2 ^ 35 < t.steps := by
+    ∃ (input : PublicInput) (t : Execution prog), ValidExecution prog input t ∧ 2 ^ 35 < t.steps := by
   have hJ : 0 < J := by unfold J; omega
   refine ⟨⟨![g, 0, g, 0]⟩, ⟨32, img prog.pcFinal, 33 * J + 1⟩, ⟨?_, run_full prog sh⟩, ?_⟩
   · refine ⟨by show minLogMem ≤ 32; decide, by show 32 ≤ maxLogMem; decide, ?_, ?_⟩
@@ -260,8 +260,8 @@ theorem long_run_valid (prog : Program) (sh : Shape prog) :
 /-! ## Distinct states -/
 
 /-- The register states of a run that halts in the final state are pairwise distinct. -/
-theorem run_inj {κ : ℕ} {prog : Program} {L : MemImage κ} {n : ℕ} {r₀ rf : Regs K}
-    (h : run prog L n r₀ = some rf) (hf : rf = Regs.final prog) {a b : ℕ} {r : Regs K}
+theorem run_inj {κ : ℕ} {prog : Program} {L : MemoryImage κ} {n : ℕ} {r₀ rf : Registers K}
+    (h : run prog L n r₀ = some rf) (hf : rf = Registers.final prog) {a b : ℕ} {r : Registers K}
     (ha : run prog L a r₀ = some r) (hb : run prog L b r₀ = some r) : a = b := by
   -- no run continues past the final state
   have hle : ∀ m s, run prog L m r₀ = some s → m ≤ n := by
@@ -299,17 +299,17 @@ theorem run_inj {κ : ℕ} {prog : Program} {L : MemImage κ} {n : ℕ} {r₀ rf
   · exact (key b a hb ha hab).elim
 
 /-- The `k`-th register state of a valid trace is the run's state after `k` steps. -/
-theorem regs_getElem' {prog : Program} {t : Trace prog}
-    (h : run prog t.image t.steps Regs.initial = some (Regs.final prog)) (k : ℕ)
-    (hk : k < t.regs.length) : run prog t.image k Regs.initial = some t.regs[k] := by
+theorem regs_getElem' {prog : Program} {t : Execution prog}
+    (h : run prog t.memory t.steps Registers.initial = some (Registers.final prog)) (k : ℕ)
+    (hk : k < t.regs.length) : run prog t.memory k Registers.initial = some t.regs[k] := by
   have hk' : k ≤ t.steps := by
-    have := Trace.regs_length h
+    have := Execution.regs_length h
     omega
   rw [List.getElem_of_eq (regs_eq_map h) hk, List.getElem_map, List.getElem_range]
   exact run_stateAt h hk'
 
 /-- Two register pairs with the same components are equal. -/
-theorem regs_ext' {a b : Regs K} (h1 : a.pc = b.pc) (h2 : a.fp = b.fp) : a = b := by
+theorem regs_ext' {a b : Registers K} (h1 : a.pc = b.pc) (h2 : a.fp = b.fp) : a = b := by
   cases a; cases b; simp_all
 
 /-! ## The counting bound -/
@@ -317,11 +317,11 @@ theorem regs_ext' {a b : Regs K} (h1 : a.pc = b.pc) (h2 : a.fp = b.fp) : a = b :
 /-- A witness that satisfies `Caps` and represents a valid trace has at least as many rows as the
 trace has steps, over its eight tables: `t.steps ≤ 8 * 2^32`. -/
 theorem steps_le_rows {prog : Program} {input : PublicInput}
-    {w : EnsembleWitness (leanIsaEnsemble prog)} {t : Trace prog}
+    {w : EnsembleWitness (leanIsaEnsemble prog)} {t : Execution prog}
     (hv : ValidExecution prog input t) (hc : Caps w) (hr : AssignmentRepresents w t) :
     t.steps ≤ 8 * 2 ^ 32 := by
   obtain ⟨-, hrun⟩ := hv
-  have hlen : t.regs.length = t.steps + 1 := Trace.regs_length hrun
+  have hlen : t.regs.length = t.steps + 1 := Execution.regs_length hrun
   have hrow : ∀ k : Fin t.steps, ∃ (j : Fin 8) (row : Array K), row ∈ (tableAt w j).table ∧
       rowMessagesOn (tableAt w j) row StatePull.toRaw =
         [#[(t.regs[k.val]'(by omega)).pc, (t.regs[k.val]'(by omega)).fp]] := by
@@ -369,7 +369,7 @@ theorem steps_le_rows {prog : Program} {input : PublicInput}
 /-- **Completeness fails on long runs without the row cap.**  For every program of the shape, there is a
 valid execution that no witness of `SatisfiedBy` represents. -/
 theorem completeness_fails_on_long_run (prog : Program) (sh : Shape prog) :
-    ∃ (input : PublicInput) (t : Trace prog), ValidExecution prog input t ∧
+    ∃ (input : PublicInput) (t : Execution prog), ValidExecution prog input t ∧
       ¬ ∃ w : EnsembleWitness (leanIsaEnsemble prog),
           SatisfiedBy prog input w ∧ AssignmentRepresents w t := by
   obtain ⟨input, t, hv, hbig⟩ := long_run_valid prog sh
@@ -403,7 +403,7 @@ theorem shapeProg_shape : Shape shapeProg where
 `SatisfiedBy` represents; its run has more than `2^32` rows of some opcode, so
 `constraintCompleteness_rows` needs `hrows`. -/
 theorem completeness_needs_rows :
-    ∃ (input : PublicInput) (t : Trace shapeProg), ValidExecution shapeProg input t ∧
+    ∃ (input : PublicInput) (t : Execution shapeProg), ValidExecution shapeProg input t ∧
       ¬ (∀ op, t.runRows op ≤ 2 ^ maxLogRows) ∧
       ¬ ∃ w : EnsembleWitness (leanIsaEnsemble shapeProg),
           SatisfiedBy shapeProg input w ∧ AssignmentRepresents w t := by

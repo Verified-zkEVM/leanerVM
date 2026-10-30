@@ -49,7 +49,7 @@ theorem canon_add' {a b : E} (ha : IsCanonical128 a) (hb : IsCanonical128 b) :
   unfold IsCanonical128 at *
   rw [limb_add, ha, hb, add_zero]
 
-theorem canon_cellsOfState (S : KState) (odd : Bool) (c : Fin 13) :
+theorem canon_cellsOfState (S : KeccakState) (odd : Bool) (c : Fin 13) :
     IsCanonical128 (cellsOfState S odd c) := by
   unfold IsCanonical128 cellsOfState
   rw [ofLimbs_limb2]

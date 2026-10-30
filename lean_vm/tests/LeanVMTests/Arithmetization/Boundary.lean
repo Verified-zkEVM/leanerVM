@@ -65,7 +65,7 @@ theorem read_at (k : ℕ) (v : Vector K 3) (hk : k < 4 := by decide)
     (imageOf bData).2.read (gpow k) = some (E.ofLimbs v[0] v[1] v[2]) := by
   have hk' : k < 2 ^ (imageOf bData).1 := by rw [bData_logSize]; omega
   rw [show gpow k = gpow ((⟨k, hk'⟩ : Fin (2 ^ (imageOf bData).1)) : ℕ) from rfl,
-    MemImage.read_gpow (by rw [bData_logSize]; decide), imageOf_apply bData_wellShaped _ hv]
+    MemoryImage.read_gpow (by rw [bData_logSize]; decide), imageOf_apply bData_wellShaped _ hv]
 
 /-- The instruction at `g^i` of the fixture's program. -/
 theorem fetch_at (i : ℕ) (ins : Instr) (hi : i < 2 ^ bProg.logSize := by decide)
@@ -94,9 +94,9 @@ example (r : Var BytecodeRow K) : (bytecodeTable.main r).operations 0 =
 /-- The verifier of `prog`: push `(1, 1)`, pull `(prog.pcFinal, 1)`, both constants, on the state
 pair (specification §6.1; `layout.rs:420-424`). -/
 example (prog : Program) (pi : Var PublicIO K) : ((leanIsaVerifier prog).main pi).operations 0 =
-    [.interact ⟨StatePush.toRaw, 1, toElements (⟨1, 1⟩ : Regs (Expression K)), false⟩,
+    [.interact ⟨StatePush.toRaw, 1, toElements (⟨1, 1⟩ : Registers (Expression K)), false⟩,
      .interact ⟨StatePull.toRaw, -1,
-       toElements (⟨Expression.const prog.pcFinal, 1⟩ : Regs (Expression K)), true⟩] :=
+       toElements (⟨Expression.const prog.pcFinal, 1⟩ : Registers (Expression K)), true⟩] :=
   rfl
 
 /-- The seed count is the word `1 = g^0`. -/
@@ -117,11 +117,11 @@ example (prog : Program) (pi : PublicIO K) (data : ProverData K) :
 
 /-- The two boundary states are the run's: `(1, 1)`, and `(g^(N_prog - 1), 1)`, which is
 `(g^1, 1)` for the fixture's two-slot program. -/
-example (env : Environment K) : eval env (⟨1, 1⟩ : Regs (Expression K)) = Regs.initial :=
+example (env : Environment K) : eval env (⟨1, 1⟩ : Registers (Expression K)) = Registers.initial :=
   verifier_push_eval env
 
 example (env : Environment K) :
-    eval env (⟨Expression.const bProg.pcFinal, 1⟩ : Regs (Expression K)) = ⟨gpow 1, 1⟩ := by
+    eval env (⟨Expression.const bProg.pcFinal, 1⟩ : Registers (Expression K)) = ⟨gpow 1, 1⟩ := by
   rw [verifier_pull_eval]
   rfl
 
@@ -183,13 +183,13 @@ example (get : ℕ → K) :
 /-- The address `0` is no address: a row there is bound to nothing. -/
 example (cntFin : K) (m : Vector K 3) : ¬ MemSpec ⟨0, cntFin, m⟩ bData := by
   rintro ⟨h⟩
-  rw [MemImage.read_zero] at h
+  rw [MemoryImage.read_zero] at h
   cases h
 
 /-- An address past the image, `g^4` at `κ = 2`, is no address either. -/
 example (cntFin : K) (m : Vector K 3) : ¬ MemSpec ⟨gpow 4, cntFin, m⟩ bData := by
   rintro ⟨h⟩
-  rw [MemImage.read, gLog?_gpow_eq_none (by rw [bData_logSize]; decide) (by decide),
+  rw [MemoryImage.read, gLog?_gpow_eq_none (by rw [bData_logSize]; decide) (by decide),
     Option.map_none] at h
   cases h
 

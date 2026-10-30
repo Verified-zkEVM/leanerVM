@@ -30,8 +30,8 @@ composed with the protocol's theorems in the random-permutation model (`Statemen
 `LeanVM/Protocol/LeanVMRpm.lean`):
 
 * `aggregate_knowledge`: in the random-permutation experiment, the verifier accepts a proof of the
-  guest from which no execution is extracted (`extractorRpm`, on the adversary's transcript), or
-  the extracted one does not decode (`DecodesOn`), with probability at most
+  guest from which no execution is extracted (`transcriptExtractor`, on the adversary's transcript), or
+  the extracted one does not decode (`ExplainsInput`), with probability at most
   `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128`: `KnowledgeSoundness`
   (`knowledgeSoundness_holds`) and `guest_knowledge`.
 * `aggregate_sound_outer : AggregateSound guest decode`: with `decode_binds`, an accepted
@@ -54,17 +54,17 @@ variable {W : Val → Reader → FrameMap → NodeWitness}
 
 /-- **The aggregate's soundness, its witness named**: in the random-permutation experiment, the
 verifier accepts a proof of the guest from which no execution is extracted, or the extracted one
-does not decode (`DecodesOn`), with probability at most the bound of `KnowledgeSoundness`. -/
-theorem aggregate_knowledge_of (h : SoundHyps W) (A : RpmAdversary) (Q : ℕ)
-    (hA : Common.IsWeightBound A Common.permCalls Q) (hQ : Q ≤ 2 ^ 128) :
-    Pr{let z ← rpmExperiment A}[z.accepted ∧ z.program = guest ∧
-      ¬ ∃ t, extractorRpm z.program z.input z.transcript z.proof = some t ∧
-        DecodesOn guest z.input (decodeWith W t.image)] ≤
+does not decode (`ExplainsInput`), with probability at most the bound of `KnowledgeSoundness`. -/
+theorem aggregate_knowledge_of (h : SoundHyps W) (A : RandomPermutationAdversary) (Q : ℕ)
+    (hA : Common.QueryCostAtMost A Common.permutationCallCost Q) (hQ : Q ≤ 2 ^ 128) :
+    Pr{let z ← soundnessExperiment A}[z.accepted ∧ z.program = guest ∧
+      ¬ ∃ t, transcriptExtractor z.program z.input z.transcript z.proof = some t ∧
+        ExplainsInput guest z.input (decodeWith W t.memory)] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
         5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   refine le_trans (prEvent_mono _ _ _ ?_) (knowledgeSoundness_holds A Q hA hQ)
   rintro ⟨⟨⟨⟨prog, input⟩, π⟩, b⟩, T⟩ ⟨hb, hprog, hno⟩
-  dsimp only [RpmOutcome.program] at hprog
+  dsimp only [ExperimentOutcome.program] at hprog
   subst hprog
   refine ⟨hb, ?_⟩
   rintro ⟨t, hx, hv⟩
@@ -100,13 +100,13 @@ theorem aggregate_sound_outer_sub {piOf : Reader → Val → FrameMap → Protoc
 
 /-- **The aggregate's soundness, its witness named**, for the deployed guest and its decoder: in
 the random-permutation experiment, the verifier accepts a proof of the guest from which no
-execution is extracted, or the extracted one does not decode (`DecodesOn`), with probability at
+execution is extracted, or the extracted one does not decode (`ExplainsInput`), with probability at
 most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, for `Q ≤ 2^128`. -/
-theorem aggregate_knowledge (A : RpmAdversary) (Q : ℕ)
-    (hA : Common.IsWeightBound A Common.permCalls Q) (hQ : Q ≤ 2 ^ 128) :
-    Pr{let z ← rpmExperiment A}[z.accepted ∧ z.program = guest ∧
-      ¬ ∃ t, extractorRpm z.program z.input z.transcript z.proof = some t ∧
-        DecodesOn guest z.input (decode t.image)] ≤
+theorem aggregate_knowledge (A : RandomPermutationAdversary) (Q : ℕ)
+    (hA : Common.QueryCostAtMost A Common.permutationCallCost Q) (hQ : Q ≤ 2 ^ 128) :
+    Pr{let z ← soundnessExperiment A}[z.accepted ∧ z.program = guest ∧
+      ¬ ∃ t, transcriptExtractor z.program z.input z.transcript z.proof = some t ∧
+        ExplainsInput guest z.input (decode t.memory)] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
         5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 :=
   aggregate_knowledge_of (soundHyps_of_sub b2SoundL subSoundW) A Q hA hQ
@@ -125,11 +125,11 @@ an execution of the guest on the statement's digest whose honest proof, at an in
 `completenessError fuel + rpmError (completenessPermCalls fuel)` (`Rpm.completenessRpm`). -/
 theorem aggregate_complete_of {budget : NodeStatement → NodeWitness → ℕ}
     (h : GuestComplete budget) {seed : Digest} {s : NodeStatement} {w : NodeWitness}
-    (hrel : NodeRel bytecode seed s w) (hlim : Limits s w)
+    (hrel : NodeRelation bytecode seed s w) (hlim : Limits s w)
     (hok : ChildrenOk bytecode seed w) (hbudget : budget s w ≤ 2 ^ 28) :
-    ∃ t : Trace guest, ValidExecution guest (publicInputOf (statementDigest seed s)) t ∧
+    ∃ t : Execution guest, ValidExecution guest (publicInputOf (statementDigest seed s)) t ∧
       ∀ ρ fuel, 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
-        Pr{let v ← rpmCompletenessExperiment
+        Pr{let v ← verifierCompletenessExperiment
             (fun prog input t ρ fuel ↦
               LeanVM.Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel)
             guest (publicInputOf (statementDigest seed s)) t ρ fuel}[v = false] ≤

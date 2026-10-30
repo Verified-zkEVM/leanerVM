@@ -65,12 +65,12 @@ def oodBody (n : ℕ) : List Stmt :=
     .ret [.n (oodO n), .n (oodO n + 1), .n (oodO n + 2), .n (oodO n + 3), .n (oodO n + 4)]]
 
 /-- The states of the rounds: the first permutation's, then one with nothing waiting each. -/
-def oodS (S0 : KState) : ℕ → KState
+def oodS (S0 : KeccakState) : ℕ → KeccakState
   | 0 => S0
   | x + 1 => (⟨capOf (oodS S0 x), []⟩ : Fs).perm
 
 /-- `squeezeN` from a state's capacity, nothing waiting: the next states' challenges. -/
-theorem squeezeN_oodS (S0 : KState) :
+theorem squeezeN_oodS (S0 : KeccakState) :
     ∀ k x, (⟨capOf (oodS S0 x), []⟩ : Fs).squeezeN k =
       ((List.range k).map fun i ↦ challengeOf (oodS S0 (x + 1 + i)), ⟨capOf (oodS S0 (x + k)), []⟩)
   | 0, x => by simp [Fs.squeezeN]
@@ -199,7 +199,7 @@ theorem ood_sound {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
       rfl
 
 /-- The honest values of `opening_ood_point` at dimension `n`, by index. -/
-def oodVals (as : List E) (S0 : KState) (n k : ℕ) : E :=
+def oodVals (as : List E) (S0 : KeccakState) (n k : ℕ) : E :=
   if k < 14 then as.getD k 0
   else if k < 19 then as.getD (k - 14) 0
   else if k < 32 then cellsOfState S0 false ⟨(k - 19) % 13, Nat.mod_lt _ (by omega)⟩
@@ -213,7 +213,7 @@ def oodVals (as : List E) (S0 : KState) (n k : ℕ) : E :=
       (cellsOfState (oodS S0 ((k - 44) / 20 + 1)) false 1) ((k - 44) % 20 - 13))
   else cellsOfState (oodS S0 (n - 1)) false ⟨(8 + (k - 44) % 20) % 13, Nat.mod_lt _ (by omega)⟩
 
-theorem oodVals_cells (as : List E) (S0 : KState) {n x : ℕ} (hx : x < n) (c : Fin 13) :
+theorem oodVals_cells (as : List E) (S0 : KeccakState) {n x : ℕ} (hx : x < n) (c : Fin 13) :
     oodVals as S0 n (oodO x + c.val) = cellsOfState (oodS S0 x) false c := by
   have hc := c.isLt
   cases x with
@@ -229,7 +229,7 @@ theorem oodVals_cells (as : List E) (S0 : KState) {n x : ℕ} (hx : x < n) (c : 
     split_ifs <;> simp only [oodO] at * <;> try omega
     congr 1; ext; simp; try omega
 
-theorem oodVals_chal (as : List E) (S0 : KState) {n x : ℕ} (hx : x + 1 < n) {i : ℕ}
+theorem oodVals_chal (as : List E) (S0 : KeccakState) {n x : ℕ} (hx : x + 1 < n) {i : ℕ}
     (hi : i < 7) :
     oodVals as S0 n (oodO (x + 1) + 13 + i) =
       challengeVals (cellsOfState (oodS S0 (x + 1)) false 0)
@@ -240,7 +240,7 @@ theorem oodVals_chal (as : List E) (S0 : KState) {n x : ℕ} (hx : x + 1 < n) {i
   simp only [e1, e2, show 13 + i - 13 = i by omega]
   split_ifs <;> simp only [oodO] at * <;> omega
 
-theorem oodVals_copy (as : List E) (S0 : KState) {n : ℕ} (hn : 1 ≤ n) {i : ℕ} (hi : i < 5) :
+theorem oodVals_copy (as : List E) (S0 : KeccakState) {n : ℕ} (hn : 1 ≤ n) {i : ℕ} (hi : i < 5) :
     oodVals as S0 n (oodO n + i) = cellsOfState (oodS S0 (n - 1)) false ⟨8 + i, by omega⟩ := by
   obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
   unfold oodVals

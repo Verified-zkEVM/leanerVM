@@ -64,8 +64,8 @@ theorem rest_qs {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} 
           (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1
           level.queries)[k] osL[k]) = true) :
     queryStepsOf ((sampleQueries (ml + level.logInvRate) level.queries).bind fun queries ↦
-      Prog.sampleE.bind fun lam ↦ (Prog.require (lam ≠ 0)).bind fun _ ↦
-        (Prog.queryP index queries).bind fun words ↦
+      Prog.sampleChallenge.bind fun lam ↦ (Prog.require (lam ≠ 0)).bind fun _ ↦
+        (Prog.queryOpenings index queries).bind fun words ↦
           (sumcheckRoundPoly 3 (enforcedSum (if index = 0 then words.map fun row ↦ row.reverse.map ofK
             else words.map extRow) lf (powers lam queries.length)) none).bind fun intro ↦
             K (glueT lam ws1 (pending ++ [(enforcedSum (if index = 0 then

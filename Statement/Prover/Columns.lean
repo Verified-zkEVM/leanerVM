@@ -48,24 +48,24 @@ def tableColumn (R : Array (Array K)) (h i : ℕ) : Array K :=
   Array.ofFn (n := 2 ^ h) fun x ↦ cellAt R x.val i
 
 /-- Rounds `12m` to `12m + 11` of Keccak-f[1600]. -/
-def segment (m : ℕ) (a : KState) : KState :=
+def segment (m : ℕ) (a : KeccakState) : KeccakState :=
   ((keccakRC.drop (12 * m)).take 12).foldl Keccak.round a
 
 /-- The zero state. -/
-def zeroState : KState := Vector.replicate 25 0
+def zeroState : KeccakState := Vector.replicate 25 0
 
 /-- The input state of row `x` of the `KECCAK` table: its cells `13 … 37`. -/
-def inState (R : Array (Array K)) (x : ℕ) : KState :=
+def inState (R : Array (Array K)) (x : ℕ) : KeccakState :=
   Vector.ofFn fun l : Fin 25 ↦ (cellAt R x (13 + l.val)).lane
 
 /-- The state after twelve rounds of every step of the `KECCAK` table at the height `2^h`, once
 per row; a padding row's is that of the zero state, computed once. -/
-def midStates (R : Array (Array K)) (h : ℕ) : Array KState :=
+def midStates (R : Array (Array K)) (h : ℕ) : Array KeccakState :=
   let zMid := segment 0 zeroState
   Array.ofFn (n := 2 ^ h) fun x ↦ if x.val < R.size then segment 0 (inState R x.val) else zMid
 
 /-- The state after twenty-four rounds of every step, from its state after twelve. -/
-def outStates (R : Array (Array K)) (mids : Array KState) : Array KState :=
+def outStates (R : Array (Array K)) (mids : Array KeccakState) : Array KeccakState :=
   let zOut := segment 1 (segment 0 zeroState)
   Array.ofFn (n := mids.size) fun x ↦ if x.val < R.size then segment 1 mids[x] else zOut
 
@@ -76,7 +76,7 @@ def spareCol (k : ℕ) : ℕ := if k < 13 then k else 63
 /-- `QKECCAK` of the `KECCAK` table at the height `2^h`: slot `l < 25` of step `x` is input lane
 `l` of row `x`, slot `25 + l` lane `l` of its state after twelve rounds, slot `50 + k` its cell of
 the column `spareCol k`. -/
-def qkeccakColumn (R : Array (Array K)) (h : ℕ) (mids : Array KState) : Array K :=
+def qkeccakColumn (R : Array (Array K)) (h : ℕ) (mids : Array KeccakState) : Array K :=
   let p := 2 ^ h
   Array.ofFn (n := 2 ^ (h + 6)) fun i ↦
     let x := i.val % p
@@ -104,7 +104,7 @@ def tableIndexOf (c : ℕ) : ℕ :=
 `QKECCAK` `5`, then column `c - base` of the opcode table `c` falls in, the `KECCAK` output lanes
 (its columns `38 … 62`) derived from the twelve-round states `mids`, through the twenty-four-round
 states `outs`. -/
-def columnAt {κ : ℕ} (img : MemImage κ) (acc : Rows) (logs : List ℕ) (mids outs : Array KState)
+def columnAt {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ) (mids outs : Array KeccakState)
     (c : ℕ) : Array K :=
   if c = 0 then Array.ofFn (n := 2 ^ κ) fun x ↦ (img x).limb 0
   else if c = 1 then Array.ofFn (n := 2 ^ κ) fun x ↦ (img x).limb 1
@@ -121,7 +121,7 @@ def columnAt {κ : ℕ} (img : MemImage κ) (acc : Rows) (logs : List ℕ) (mids
 
 /-- **Every column of the instance**, by its global column number (`163` of them); the
 `KECCAK` states computed once per row, for `QKECCAK` and the output lanes. -/
-def colsOf {κ : ℕ} (img : MemImage κ) (acc : Rows) (logs : List ℕ) : Array (Array K) :=
+def colsOf {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ) : Array (Array K) :=
   let mids := midStates (acc.tabs.getD 5 #[]) (logs.getD 5 0)
   let outs := outStates (acc.tabs.getD 5 #[]) mids
   Array.ofFn (n := 163) fun c ↦ columnAt img acc logs mids outs c.val
@@ -161,25 +161,25 @@ structure Witness where
   stack : Array K
 
 /-- The prover's data of the run `steps` of `t`. -/
-def buildWitness (prog : Program) (t : Trace prog) (memIdx : Std.HashMap UInt64 ℕ)
+def buildWitness (prog : Program) (t : Execution prog) (memIdx : Std.HashMap UInt64 ℕ)
     (steps : Array Step) : Witness :=
-  let acc := rowsOf memIdx t.image prog.logSize steps
+  let acc := rowsOf memIdx t.memory prog.logSize steps
   let rows := acc.tabs.toList.map (·.size)
   let logs := tableLogsOf rows
-  let kappas := columnKappas t.κ prog.logSize logs
+  let kappas := columnKappas t.logMemorySize prog.logSize logs
   let μ := (placementsOf kappas).2
-  let cols := colsOf t.image acc logs
-  ⟨t.κ, rows, μ, cols, stackArray μ cols (stackOrderOf kappas)⟩
+  let cols := colsOf t.memory acc logs
+  ⟨t.logMemorySize, rows, μ, cols, stackArray μ cols (stackOrderOf kappas)⟩
 
 /-- **The prover's data of an execution**, after the check of `checkTrace`, from the same run:
 `none` when the trace is no valid execution of `prog` on `input` within `2^28` committed
 cells. -/
-def witness? (prog : Program) (input : PublicInput) (t : Trace prog) : Option Witness :=
+def witness? (prog : Program) (input : PublicInput) (t : Execution prog) : Option Witness :=
   if boundaryOK input t then
-    let memIdx := powIndex t.κ
+    let memIdx := powIndex t.logMemorySize
     match runSteps memIdx (powIndex prog.logSize) prog t with
     | some steps =>
-      if committedSizeOf prog.logSize t.κ (opCount steps) ≤ maxCommitted then
+      if committedSizeOf prog.logSize t.logMemorySize (opCount steps) ≤ maxCommitted then
         some (buildWitness prog t memIdx steps)
       else none
     | none => none

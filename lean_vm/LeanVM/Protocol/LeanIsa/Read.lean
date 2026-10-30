@@ -239,7 +239,7 @@ hold at step `x`. -/
 theorem column_outCol_of_aux (h : (leanIsaInstance prog s).aux q) (l : Fin 25)
     (x : Fin (2 ^ s.τ 5)) :
     ((leanIsaInstance prog s).column q (outCol l)).values.get x =
-      stateLanes (keccakF ((keccakRegion prog s).state
+      stateLanes (keccakF1600 ((keccakRegion prog s).state
         ((leanIsaInstance prog s).keccakColumn (keccakRegion prog s) q) 0 x)) l := by
   rw [column_outCol, h (keccakRegion prog s) rfl x, keccakF_eq_segments]
 

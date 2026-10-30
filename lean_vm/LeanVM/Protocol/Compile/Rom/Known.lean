@@ -83,7 +83,7 @@ theorem kinds_prefix (σ : Seeds X) (P : Prog Bool) (l r : Log) :
       exact ih.trans (List.prefix_append _ _)
 
 theorem kinds_mem_of_take (σ : Seeds X) (P : Prog Bool) (ℓ : Log) (j : ℕ)
-    {κ : Shape × KState} (h : κ ∈ (decode σ P (ℓ.take j)).kinds) :
+    {κ : Shape × KeccakState} (h : κ ∈ (decode σ P (ℓ.take j)).kinds) :
     κ ∈ (decode σ P ℓ).kinds := by
   have := kinds_prefix σ P (ℓ.take j) (ℓ.drop j)
   rw [List.take_append_drop] at this
@@ -93,17 +93,17 @@ theorem kinds_mem_of_take (σ : Seeds X) (P : Prog Bool) (ℓ : Log) (j : ℕ)
 
 /-- A decoding in the middle of a commitment was set by an entry whose input ends with the
 root's first half. -/
-def HalfOk (s : KState) (inf : Info) : Prop :=
+def HalfOk (s : KeccakState) (inf : Info) : Prop :=
   ∀ ht w k x₀, inf.2 = .half ht w k x₀ → slotE s 3 = x₀ ∧ slotTag s 3 = 1
 
 /-- The capacity `c` is the capacity of the output of the permutation entry `m` of `ℓ`, and every
 prefix of `ℓ` past that entry decodes it as `inf`. -/
 def Known (σ : Seeds X) (P : Prog Bool) (ℓ : Log) (c : Fin 9 → UInt64) (inf : Info) : Prop :=
-  ∃ (m : ℕ) (hm : m < ℓ.length) (s u : KState), ℓ[m] = .inr (s, u) ∧ capOf u = c ∧
+  ∃ (m : ℕ) (hm : m < ℓ.length) (s u : KeccakState), ℓ[m] = .inr (s, u) ∧ capOf u = c ∧
     HalfOk s inf ∧ ∀ j, m < j → j ≤ ℓ.length → (decode σ P (ℓ.take j)).info c = some inf
 
 /-- **Decodings are stable without failure.** -/
-theorem known_of_set {ℓ : Log} (hf : ¬ Fail σ ℓ) {m : ℕ} (hm : m < ℓ.length) {s u : KState}
+theorem known_of_set {ℓ : Log} (hf : ¬ Fail σ ℓ) {m : ℕ} (hm : m < ℓ.length) {s u : KeccakState}
     (hem : ℓ[m] = .inr (s, u)) {inf : Info} (hh : HalfOk s inf)
     (h : (decode σ P (ℓ.take (m + 1))).info (capOf u) = some inf) :
     Known σ P ℓ (capOf u) inf := by
@@ -121,7 +121,7 @@ theorem known_of_set {ℓ : Log} (hf : ¬ Fail σ ℓ) {m : ℕ} (hm : m < ℓ.l
 /-! ## The waiting scalars of a permutation input -/
 
 /-- The slots of a permutation input up to its first zero tag are its parsed scalars. -/
-theorem slot_of_parsePending {t : KState} {i : ℕ} (hi : i < (parsePending t).length) :
+theorem slot_of_parsePending {t : KeccakState} {i : ℕ} (hi : i < (parsePending t).length) :
     slotE t i = ((parsePending t)[i]).1 ∧ (slotTag t i).toNat = ((parsePending t)[i]).2 := by
   have hi' : i < ((List.range 4).takeWhile fun i ↦ slotTag t i ≠ 0).length := by
     simpa [parsePending] using hi
@@ -179,7 +179,7 @@ theorem consume_done_half {W : Digest → ℕ → ℕ → Word} :
 
 /-- Every decoding in the middle of a commitment comes from an input whose last slot is the
 root's first half. -/
-theorem halfOk_stepF (ℓ : Log) (δ : Dec) (t u : KState) {inf : Info}
+theorem halfOk_stepF (ℓ : Log) (δ : Dec) (t u : KeccakState) {inf : Info}
     (h : (stepF σ P ℓ δ t).2 u = some inf) : HalfOk t inf := by
   intro ht w k x₀ hinf
   obtain ⟨hh, hpos⟩ := inf
@@ -349,7 +349,7 @@ theorem rootOf_of_mem_rootsList {ℓ' : Log} {c : Fin 9 → UInt64} {ps : List (
 
 /-- The predecessor of a permutation input is the input of the entry that produced its state. -/
 theorem predIn_take {ℓ : Log} (hf : ¬ Fail σ ℓ) {m j : ℕ} (hm : m < ℓ.length) (hmj : m < j)
-    {s u t : KState} (hem : ℓ[m] = .inr (s, u)) (hc : capOf t = capOf u) :
+    {s u t : KeccakState} (hem : ℓ[m] = .inr (s, u)) (hc : capOf t = capOf u) :
     predIn (ℓ.take j) t = some s := by
   unfold predIn
   refine Option.map_eq_some_iff.mpr ⟨(s, u), ?_, rfl⟩
@@ -378,7 +378,7 @@ known at `(h₀, pos₀)` and the log answers the permutation input of the valid
 `ps`, the entry is read by consuming `ps` from `(h₀, pos₀)`, with the words of the whole log:
 its record is among the log's records, and the output's decoding is known. -/
 theorem duplex_read {ℓ : Log} (hf : ¬ Fail σ ℓ) {c : Fin 9 → UInt64} {h₀ : List Ev} {pos₀ : Pos}
-    (hk : Known σ P ℓ c (h₀, pos₀)) {ps : List (E × ℕ)} (hv : ValidPending ps) {v : KState}
+    (hk : Known σ P ℓ c (h₀, pos₀)) {ps : List (E × ℕ)} (hv : ValidPending ps) {v : KeccakState}
     (hl : lookF ℓ (duplexOf c ps) = some v) :
     ((decodeAt (consume (extract (lookH ℓ)) h₀ pos₀ ps) ps).1, v) ∈ (decode σ P ℓ).kinds ∧
       ∀ inf, (decodeAt (consume (extract (lookH ℓ)) h₀ pos₀ ps) ps).2 v = some inf →
@@ -434,7 +434,7 @@ theorem duplex_read {ℓ : Log} (hf : ¬ Fail σ ℓ) {c : Fin 9 → UInt64} {h�
 /-- **The seeding's hash entries come before its permutation entry.** Every hash answer of the
 seeding is answered by an entry before the `j`-th, the permutation entry of its input. -/
 theorem seed_order {ℓ : Log} (hf : ¬ Fail σ ℓ) {x : X} {ds : List Digest}
-    (hans : Answered (lookH ℓ) (σ.seed x) ds) {j : ℕ} (hj : j < ℓ.length) {v : KState}
+    (hans : Answered (lookH ℓ) (σ.seed x) ds) {j : ℕ} (hj : j < ℓ.length) {v : KeccakState}
     (hej : ℓ[j] = .inr ((σ.seed x).fin ds, v)) :
     Answered (lookH (ℓ.take j)) (σ.seed x) ds := by
   obtain ⟨hlen, hall⟩ := hans
@@ -465,8 +465,8 @@ theorem seed_order {ℓ : Log} (hf : ¬ Fail σ ℓ) {x : X} {ds : List Digest}
   exact lookH_take_of_first hk hek hn (key ds.length i hi (by omega) f hf' k hk hek)
 
 /-- The seed of a statement, computed through answers in `Option`. -/
-theorem seedRun_option {H : Bytes → Option Digest} {F : KState → Option KState} {σ₀ : Seed}
-    {s₀ : KState} (h : σ₀.run H F = some s₀) :
+theorem seedRun_option {H : Bytes → Option Digest} {F : KeccakState → Option KeccakState} {σ₀ : Seed}
+    {s₀ : KeccakState} (h : σ₀.run H F = some s₀) :
     ∃ ds, Answered H σ₀ ds ∧ F (σ₀.fin ds) = some s₀ := by
   simp only [Seed.run, bind, Option.bind_eq_some_iff] at h
   obtain ⟨ds, hds, hF⟩ := h
@@ -475,7 +475,7 @@ theorem seedRun_option {H : Bytes → Option Digest} {F : KState → Option KSta
 /-- **The seed is decoded.** If the seeding of `x` computes `s₀` through the log's answers and
 its root is a root of the program, the record `st (root x)` of `s₀` is among the log's records
 and `s₀`'s decoding is known. -/
-theorem seed_known {ℓ : Log} (hf : ¬ Fail σ ℓ) {x : X} {s₀ : KState}
+theorem seed_known {ℓ : Log} (hf : ¬ Fail σ ℓ) {x : X} {s₀ : KeccakState}
     (hs : (σ.seed x).run (lookH ℓ) (lookF ℓ) = some s₀) (hr : RootOk P (σ.root x)) :
     (Shape.st (σ.root x) (nodeAt P (σ.root x)) none, s₀) ∈ (decode σ P ℓ).kinds ∧
       Known σ P ℓ (capOf s₀) (σ.root x, .node (nodeAt P (σ.root x))) := by

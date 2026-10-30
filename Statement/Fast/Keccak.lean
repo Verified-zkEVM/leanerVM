@@ -23,8 +23,8 @@ out, the indices and rotations computed once (`round_eq_roundLanes`, lane by lan
 `KeccakHash.leLane` reads a block's bytes by indexing a list, a walk from its head per byte;
 `leLaneArray` reads them from an array (`leLane_eq_leLaneArray`).
 
-A `@[csimp]` lemma acts where code is compiled, and `keccakF` and `keccak256` were compiled with
-the definitions above. `keccakF` is restated here, word for word, so that it is compiled with the
+A `@[csimp]` lemma acts where code is compiled, and `keccakF1600` and `keccak256` were compiled with
+the definitions above. `keccakF1600` is restated here, word for word, so that it is compiled with the
 round's replacement, and `keccak256`, Keccak-256 over Keccak-f[1600] in `Id`, without the monad
 and with the blocks read from arrays (`keccak256_eq_keccak256Blocks`); the lemma equating each
 with its restatement compiles it as the restatement in every module that imports this one
@@ -42,7 +42,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 
 /-- `Keccak.round`, its lanes written out: θ's column parities `c` and their mixes `d`, ρ and π
 as the lane each `b` takes, then χ and ι. -/
-def roundLanes (a : KState) (rc : UInt64) : KState :=
+def roundLanes (a : KeccakState) (rc : UInt64) : KeccakState :=
   let c0 := Keccak.lane a 0 ^^^ Keccak.lane a 5 ^^^ Keccak.lane a 10 ^^^ Keccak.lane a 15 ^^^ Keccak.lane a 20
   let c1 := Keccak.lane a 1 ^^^ Keccak.lane a 6 ^^^ Keccak.lane a 11 ^^^ Keccak.lane a 16 ^^^ Keccak.lane a 21
   let c2 := Keccak.lane a 2 ^^^ Keccak.lane a 7 ^^^ Keccak.lane a 12 ^^^ Keccak.lane a 17 ^^^ Keccak.lane a 22
@@ -114,11 +114,11 @@ set_option maxHeartbeats 4000000 in
   all_goals simp [Keccak.round, roundLanes, Keccak.lane, keccakRho, keccakPi, List.range,
     List.range.loop, List.foldl, Vector.setIfInBounds, UInt64.xor_assoc]
 
-/-- `keccakF`, restated. -/
-def keccakFLanes (a : KState) : KState := keccakRC.foldl Keccak.round a
+/-- `keccakF1600`, restated. -/
+def keccakFLanes (a : KeccakState) : KeccakState := keccakRC.foldl Keccak.round a
 
-/-- `keccakF` compiles as its restatement. -/
-@[csimp] theorem keccakF_eq_keccakFLanes : @keccakF = @keccakFLanes := rfl
+/-- `keccakF1600` compiles as its restatement. -/
+@[csimp] theorem keccakF_eq_keccakFLanes : @keccakF1600 = @keccakFLanes := rfl
 
 /-! ## The blocks and the hash -/
 
@@ -135,13 +135,13 @@ theorem leLane_eq_leLaneArray (bytes : List UInt8) (i : ℕ) :
   simp only [leLane, leLaneArray, h]
 
 /-- Absorbing one block with Keccak-f[1600], the block read from an array. -/
-def absorbBlockArray (state : KState) (block : List UInt8) : KState :=
+def absorbBlockArray (state : KeccakState) (block : List UInt8) : KeccakState :=
   let bytes := block.toArray
-  keccakF (Vector.ofFn fun i ↦
+  keccakF1600 (Vector.ofFn fun i ↦
     if i.val < 17 then Keccak.lane state i ^^^ leLaneArray bytes i else Keccak.lane state i)
 
 /-- `absorbWith` with Keccak-f[1600], without the monad. -/
-def absorbBlocks : (blocks : ℕ) → KState → List UInt8 → KState
+def absorbBlocks : (blocks : ℕ) → KeccakState → List UInt8 → KeccakState
   | 0, state, data => absorbBlockArray state (padBlock data)
   | blocks + 1, state, data =>
     absorbBlocks blocks (absorbBlockArray state (data.take rate)) (data.drop rate)
@@ -152,8 +152,8 @@ def keccak256Blocks (data : List UInt8) : Digest :=
   #v[Keccak.lane state 0, Keccak.lane state 1, Keccak.lane state 2, Keccak.lane state 3]
 
 /-- `absorbWith` over Keccak-f[1600] in `Id` is `absorbBlocks`. -/
-theorem absorbWith_eq_absorbBlocks : ∀ (blocks : ℕ) (state : KState) (data : List UInt8),
-    absorbWith (m := Id) (fun s ↦ pure (keccakF s)) blocks state data =
+theorem absorbWith_eq_absorbBlocks : ∀ (blocks : ℕ) (state : KeccakState) (data : List UInt8),
+    absorbWith (m := Id) (fun s ↦ pure (keccakF1600 s)) blocks state data =
       absorbBlocks blocks state data
   | 0, state, data => by
     simp only [absorbWith, absorbBlockWith, absorbBlocks, absorbBlockArray, leLane_eq_leLaneArray]
@@ -165,9 +165,9 @@ theorem absorbWith_eq_absorbBlocks : ∀ (blocks : ℕ) (state : KState) (data :
     rfl
 
 /-- Keccak-256 over a function in `Id`. -/
-theorem keccak256With_id (f : KState → KState) (data : List UInt8) :
+theorem keccak256With_id (f : KeccakState → KeccakState) (data : List UInt8) :
     keccak256With (m := Id) (fun s ↦ pure (f s)) data =
-      pure ((fun state : KState ↦
+      pure ((fun state : KeccakState ↦
         #v[Keccak.lane state 0, Keccak.lane state 1, Keccak.lane state 2, Keccak.lane state 3])
         (absorbWith (m := Id) (fun s ↦ pure (f s)) (data.length / rate) (Vector.replicate 25 0)
           data)) :=

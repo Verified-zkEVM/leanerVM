@@ -71,7 +71,7 @@ example : channelSep foreign ≠ channelSep MemPull.toRaw := by decide
 
 /-! ## Element orders (specification §6.1, §6.2, §6.4; `tables.rs:131-170`) -/
 
-def st : Regs K := ⟨gpow 3, gpow 5⟩
+def st : Registers K := ⟨gpow 3, gpow 5⟩
 def mm : MemMsg K := ⟨gpow 3 * gpow 5, gpow 2, #v[K.ofBits 7, K.ofBits 8, K.ofBits 9]⟩
 def bm : BytecodeMsg K := ⟨gpow 3, gpow 4, Opcode.deref.code, #v[gpow 4, 1, gpow 5, 1, 0, 0, 0, 0, 0, 0]⟩
 
@@ -89,12 +89,12 @@ example : (toElements bm).toList =
   rw [bytecodeMsg_toElements]; rfl
 
 -- Sizes: two, five, and thirteen coordinates after the separator.
-example : size Regs = 2 := rfl
+example : size Registers = 2 := rfl
 example : size MemMsg = 5 := rfl
 example : size BytecodeMsg = 13 := rfl
 
-/-- The state message is the machine's register pair: `Regs.initial` is a message. -/
-example : (toElements Regs.initial).toList = [1, 1] := by
+/-- The state message is the machine's register pair: `Registers.initial` is a message. -/
+example : (toElements Registers.initial).toList = [1, 1] := by
   rw [regs_toElements]
   rfl
 
@@ -223,7 +223,7 @@ def one : Fin (2 ^ (imageOf sampleData).1) := ⟨1, by rw [sampleData_logSize]; 
 example : MemPull.Guarantees ⟨gpow 1, gpow 0, #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]⟩ sampleData := by
   show (imageOf sampleData).2.read (gpow 1) = some (E.ofLimbs (K.ofBits 4) (K.ofBits 5) (K.ofBits 6))
   rw [show gpow 1 = gpow (one : ℕ) from rfl,
-    MemImage.read_gpow (by rw [sampleData_logSize]; decide),
+    MemoryImage.read_gpow (by rw [sampleData_logSize]; decide),
     imageOf_apply sampleData_wellShaped one (v := #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]) (by decide +kernel)]
   rfl
 
@@ -231,7 +231,7 @@ example : MemPull.Guarantees ⟨gpow 1, gpow 0, #v[K.ofBits 4, K.ofBits 5, K.ofB
 example : ¬ MemPull.Guarantees ⟨gpow 1, gpow 0, #v[K.ofBits 4, K.ofBits 5, K.ofBits 7]⟩ sampleData := by
   show ¬ (imageOf sampleData).2.read (gpow 1) = some (E.ofLimbs (K.ofBits 4) (K.ofBits 5) (K.ofBits 7))
   rw [show gpow 1 = gpow (one : ℕ) from rfl,
-    MemImage.read_gpow (by rw [sampleData_logSize]; decide),
+    MemoryImage.read_gpow (by rw [sampleData_logSize]; decide),
     imageOf_apply sampleData_wellShaped one (v := #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]) (by decide +kernel)]
   decide +kernel
 
@@ -265,7 +265,7 @@ example (b : BytecodeMsg K) (data data' : ProverData K) :
   Iff.rfl
 
 /-- The state pull guarantees nothing. -/
-example (s : Regs K) (data : ProverData K) : StatePull.Guarantees s data := trivial
+example (s : Registers K) (data : ProverData K) : StatePull.Guarantees s data := trivial
 
 /-! ## Clean's bus over `K` -/
 

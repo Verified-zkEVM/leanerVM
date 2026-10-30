@@ -52,7 +52,7 @@ def main_sound_V (bytecode : List K) (piOf : Reader → Val → FrameMap → Pro
       LoadHolds rd 1 0 (digestScalars D).1 → LoadHolds rd 1 1 (digestScalars D).2 →
       Stmt.HoldsList C rd σ Data.core0.body False (fun rs ↦ rs = []) →
         statementDigest (decSeed σ) (decStmt σ rd) = D ∧
-          NodeRel bytecode (decSeed σ) (decStmt σ rd) (decWitV σ rd V piOf)
+          NodeRelation bytecode (decSeed σ) (decStmt σ rd) (decWitV σ rd V piOf)
 
 theorem find_verify_sub : coreProgram.find? "verify_sub" = some Data.core18 :=
   Program.find?_of_indexOf? (j := 18) (by decide +kernel) rfl
@@ -62,7 +62,7 @@ words, under a call relation that unfolds at `V` and lies below `coreProgram.Rel
 body whose arguments hold the exponent tables returns nothing, and its proof `piOf L.read σ V` is
 accepted for the public input and the seed of its arguments. -/
 def SubSoundW (bytecode : List K) (piOf : Reader → Val → FrameMap → Proof) : Prop :=
-  bytecode.length = 2 ^ bytecodeVars → ∀ {κ : ℕ} (L : MemImage κ), κ ≤ 32 →
+  bytecode.length = 2 ^ bytecodeVars → ∀ {κ : ℕ} (L : MemoryImage κ), κ ≤ 32 →
     ∀ (C : CallRel) (V : FrameMap), UnfoldsV L.read C V → CallRel.Le C (coreProgram.Rel L.read) →
       ∀ (σ : Val) (rets : List E),
         Stmt.HoldsList C L.read σ (Fn.body Data.core18) False (fun rs ↦ rs = rets) →

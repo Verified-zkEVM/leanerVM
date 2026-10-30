@@ -143,11 +143,11 @@ theorem chunkAt_prefix_append (pre : Bytes) (c : Digest) (suf : Bytes) :
 /-! ## Permutation inputs -/
 
 /-- The capacity of a state: lanes `16..25`, the part a permutation keeps. -/
-def capOf (u : KState) : Fin 9 → UInt64 := fun i ↦ Keccak.lane u (16 + i.val)
+def capOf (u : KeccakState) : Fin 9 → UInt64 := fun i ↦ Keccak.lane u (16 + i.val)
 
 /-- The input of a permutation from the capacity `c` with the waiting scalars `ps`: their lanes,
 zeros up to lane `16`, then the capacity. -/
-def duplexOf (c : Fin 9 → UInt64) (ps : List (E × ℕ)) : KState :=
+def duplexOf (c : Fin 9 → UInt64) (ps : List (E × ℕ)) : KeccakState :=
   Vector.ofFn fun i ↦ if h : i.val < 16 then (pendingLanes ps).getD i 0 else c ⟨i.val - 16, by omega⟩
 
 theorem lane_ofFn (f : Fin 25 → UInt64) (i : ℕ) (hi : i < 25) :
@@ -176,15 +176,15 @@ theorem duplexInput_eq (sp : Sponge) : duplexInput sp = duplexOf (capOf sp.state
     omega
 
 /-- The scalar in slot `i` of a permutation input: lanes `4i, 4i+1, 4i+2`. -/
-def slotE (t : KState) (i : ℕ) : E :=
+def slotE (t : KeccakState) (i : ℕ) : E :=
   E.ofLimbs (K.ofLane (Keccak.lane t (4 * i))) (K.ofLane (Keccak.lane t (4 * i + 1)))
     (K.ofLane (Keccak.lane t (4 * i + 2)))
 
 /-- The tag in slot `i` of a permutation input: lane `4i + 3`. -/
-def slotTag (t : KState) (i : ℕ) : UInt64 := Keccak.lane t (4 * i + 3)
+def slotTag (t : KeccakState) (i : ℕ) : UInt64 := Keccak.lane t (4 * i + 3)
 
 /-- The waiting scalars of a permutation input, read back: the slots up to the first zero tag. -/
-def parsePending (t : KState) : List (E × ℕ) :=
+def parsePending (t : KeccakState) : List (E × ℕ) :=
   ((List.range 4).takeWhile fun i ↦ slotTag t i ≠ 0).map fun i ↦ (slotE t i, (slotTag t i).toNat)
 
 /-- Waiting scalars as the verifier keeps them: at most four, each tagged `1` or `4`. -/
@@ -280,7 +280,7 @@ theorem parsePending_duplexOf (c : Fin 9 → UInt64) {ps : List (E × ℕ)} (hv 
   rcases htag ps[i] (List.getElem_mem hi) with h | h <;> ext <;> simp [h]
 
 /-- The first four lanes of a state, as a digest (the IV of the seed's input). -/
-def laneDigest (t : KState) : Digest :=
+def laneDigest (t : KeccakState) : Digest :=
   #v[Keccak.lane t 0, Keccak.lane t 1, Keccak.lane t 2, Keccak.lane t 3]
 
 theorem laneDigest_seedInput (iv pd : Digest) : laneDigest (seedInput iv pd) = iv := by
@@ -324,7 +324,7 @@ theorem card_vec (n : ℕ) (inst : Fintype (Vector UInt64 n)) :
 theorem card_digest : Fintype.card Digest = 2 ^ 256 := card_vec 4 _
 
 /-- `|KState| = 2^1600`. -/
-theorem card_kstate : Fintype.card KState = 2 ^ 1600 :=
+theorem card_kstate : Fintype.card KeccakState = 2 ^ 1600 :=
   (card_vec 25 _).trans (by rw [show 64 * 25 = 1600 by norm_num])
 
 /-! ## Averages through an equivalence -/
@@ -353,17 +353,17 @@ theorem sum_snd_div {α β γ : Type} [Fintype α] [Fintype β] [Fintype γ] [No
   sum_fst_div (e.trans (Equiv.prodComm β γ)) f
 
 /-- A function on `25` lanes as its first `m` lanes and the rest. -/
-def splitEquiv (m : ℕ) (hm : m ≤ 25) : KState ≃ (Fin m → UInt64) × (Fin (25 - m) → UInt64) :=
+def splitEquiv (m : ℕ) (hm : m ≤ 25) : KeccakState ≃ (Fin m → UInt64) × (Fin (25 - m) → UInt64) :=
   (vecEquiv 25).trans <|
     (Equiv.arrowCongr (finCongr (by omega : 25 = m + (25 - m))) (Equiv.refl _)).trans <|
       (Equiv.arrowCongr finSumFinEquiv.symm (Equiv.refl _)).trans (Equiv.sumArrowEquivProdArrow ..)
 
-theorem splitEquiv_fst (m : ℕ) (hm : m ≤ 25) (u : KState) (i : Fin m) :
+theorem splitEquiv_fst (m : ℕ) (hm : m ≤ 25) (u : KeccakState) (i : Fin m) :
     (splitEquiv m hm u).1 i = Keccak.lane u i := by
   simp [splitEquiv, vecEquiv, Equiv.sumArrowEquivProdArrow, Keccak.lane, Array.getD,
     show i.val < 25 by omega]
 
-theorem splitEquiv_snd (m : ℕ) (hm : m ≤ 25) (u : KState) (i : Fin (25 - m)) :
+theorem splitEquiv_snd (m : ℕ) (hm : m ≤ 25) (u : KeccakState) (i : Fin (25 - m)) :
     (splitEquiv m hm u).2 i = Keccak.lane u (m + i) := by
   simp [splitEquiv, vecEquiv, Equiv.sumArrowEquivProdArrow, Keccak.lane, Array.getD,
     show m + i.val < 25 by omega]
@@ -376,28 +376,28 @@ def limbsEquiv : (Fin 3 → UInt64) ≃ E where
   right_inv x := by simpa using ofLimbs_limb x
 
 /-- A state is its challenge and its other `22` lanes. -/
-def challengeEquiv : KState ≃ E × (Fin 22 → UInt64) :=
+def challengeEquiv : KeccakState ≃ E × (Fin 22 → UInt64) :=
   (splitEquiv 3 (by norm_num)).trans (Equiv.prodCongr limbsEquiv (Equiv.refl _))
 
 theorem limbsEquiv_apply (f : Fin 3 → UInt64) :
     limbsEquiv f = E.ofLimbs (K.ofLane (f 0)) (K.ofLane (f 1)) (K.ofLane (f 2)) := rfl
 
-theorem challengeEquiv_fst (u : KState) : (challengeEquiv u).1 = challengeOf u := by
+theorem challengeEquiv_fst (u : KeccakState) : (challengeEquiv u).1 = challengeOf u := by
   show limbsEquiv ((splitEquiv 3 (by norm_num)) u).1 = _
   rw [limbsEquiv_apply, splitEquiv_fst, splitEquiv_fst, splitEquiv_fst]
   rfl
 
 /-- **The challenge of a uniform state is uniform.** -/
 theorem sum_challengeOf_div (f : E → ℝ≥0∞) :
-    (∑ u : KState, f (challengeOf u)) / Fintype.card KState = (∑ c : E, f c) / Fintype.card E := by
+    (∑ u : KeccakState, f (challengeOf u)) / Fintype.card KeccakState = (∑ c : E, f c) / Fintype.card E := by
   have := sum_fst_div challengeEquiv f
   simp only [challengeEquiv_fst] at this
   exact this
 
 /-- A state is its rate (`16` lanes) and its capacity. -/
-def capEquiv : KState ≃ (Fin 16 → UInt64) × (Fin 9 → UInt64) := splitEquiv 16 (by norm_num)
+def capEquiv : KeccakState ≃ (Fin 16 → UInt64) × (Fin 9 → UInt64) := splitEquiv 16 (by norm_num)
 
-theorem capEquiv_snd (u : KState) : (capEquiv u).2 = capOf u := by
+theorem capEquiv_snd (u : KeccakState) : (capEquiv u).2 = capOf u := by
   funext i
   rw [capEquiv, splitEquiv_snd]
   rfl
@@ -405,7 +405,7 @@ theorem capEquiv_snd (u : KState) : (capEquiv u).2 = capOf u := by
 /-- **The capacity of a uniform state takes a given value with probability at most `2^-256`**
 (exactly `2^-576`). -/
 theorem sum_capOf_div_le (c : Fin 9 → UInt64) :
-    (∑ u : KState, ind (capOf u = c)) / Fintype.card KState ≤ 2⁻¹ ^ 256 := by
+    (∑ u : KeccakState, ind (capOf u = c)) / Fintype.card KeccakState ≤ 2⁻¹ ^ 256 := by
   have h := sum_snd_div capEquiv fun c' ↦ ind (c' = c)
   simp only [capEquiv_snd] at h
   rw [h]
@@ -501,7 +501,7 @@ theorem powOk_eq {b : ℕ} (hb : b ≠ 0) (n c : E) :
 /-- **The proof of work on the challenge of a uniform state succeeds with probability at most
 `2^-min(b, 64)`.** -/
 theorem sum_powOk_div_le (b : ℕ) (n : E) :
-    (∑ u : KState, ind (powOk b n (challengeOf u) = true)) / Fintype.card KState ≤
+    (∑ u : KeccakState, ind (powOk b n (challengeOf u) = true)) / Fintype.card KeccakState ≤
       2⁻¹ ^ min b 64 := by
   by_cases hb : b = 0
   · subst hb
@@ -529,7 +529,7 @@ theorem sum_powOk_div_le (b : ℕ) (n : E) :
 /-- **The proof of work on the challenge of a uniform state succeeds with probability exactly
 `2^-b`**, for `1 ≤ b ≤ 64`. -/
 theorem sum_powOk_div_eq {b : ℕ} (hb0 : b ≠ 0) (hb : b ≤ 64) (n : E) :
-    (∑ u : KState, ind (powOk b n (challengeOf u) = true)) / Fintype.card KState = 2⁻¹ ^ b := by
+    (∑ u : KeccakState, ind (powOk b n (challengeOf u) = true)) / Fintype.card KeccakState = 2⁻¹ ^ b := by
   rw [sum_challengeOf_div (fun c ↦ ind (powOk b n c = true))]
   have hs : (∑ c : E, ind (powOk b n c = true)) =
       ∑ c : E, if (c.limb 0).lane.toNat % 2 ^ b = 0 then (1 : ℝ≥0∞) else 0 := by

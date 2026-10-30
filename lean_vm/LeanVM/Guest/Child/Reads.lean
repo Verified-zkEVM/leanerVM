@@ -3,7 +3,7 @@
 
   The scalars a run of the leanVM verifier program reads off the stream: at most `childReads`,
   over every announced size the verifier accepts, so a proof the deferring verifier accepts has a
-  stream of at most `8192` scalars (`LeanVM.Guest.Hints.streamCap`).
+  stream of at most `8192` scalars (`LeanVM.Guest.Hints.childStreamCap`).
 -/
 
 module
@@ -96,11 +96,11 @@ theorem ite {c : Prop} [Decidable c] {p q : Prog α} {n : ℕ} {Q : α → Prop}
 
 theorem pure0 (a : α) : Reads (pure a : Prog α) 0 fun _ ↦ True := trivial
 
-theorem readE : Reads Prog.readE 1 fun _ ↦ True := ⟨le_rfl, fun _ ↦ trivial⟩
+theorem readE : Reads Prog.readScalar 1 fun _ ↦ True := ⟨le_rfl, fun _ ↦ trivial⟩
 
-theorem sampleE : Reads Prog.sampleE 0 fun _ ↦ True := fun _ ↦ trivial
+theorem sampleE : Reads Prog.sampleChallenge 0 fun _ ↦ True := fun _ ↦ trivial
 
-theorem readN : ∀ n, Reads (Prog.readN n) n fun xs ↦ xs.length = n
+theorem readN : ∀ n, Reads (Prog.readScalars n) n fun xs ↦ xs.length = n
   | 0 => rfl
   | n + 1 => by
     have h := bind readE fun x (_ : True) ↦
@@ -110,7 +110,7 @@ theorem readN : ∀ n, Reads (Prog.readN n) n fun xs ↦ xs.length = n
           simp [hxs])
     exact h.mono (by omega) fun _ h ↦ h
 
-theorem sampleN : ∀ n, Reads (Prog.sampleN n) 0 fun xs ↦ xs.length = n
+theorem sampleN : ∀ n, Reads (Prog.sampleChallenges n) 0 fun xs ↦ xs.length = n
   | 0 => rfl
   | n + 1 => by
     have h := bind sampleE fun x (_ : True) ↦
@@ -120,11 +120,11 @@ theorem sampleN : ∀ n, Reads (Prog.sampleN n) 0 fun xs ↦ xs.length = n
           simp [hxs])
     exact h.mono (by omega) fun _ h ↦ h
 
-theorem grindP (bits : ℕ) : Reads (Prog.grindP bits) 1 fun _ ↦ True := ⟨le_rfl, trivial⟩
+theorem grindP (bits : ℕ) : Reads (Prog.grindProofOfWork bits) 1 fun _ ↦ True := ⟨le_rfl, trivial⟩
 
-theorem commitP (ht w : ℕ) : Reads (Prog.commitP ht w) 2 fun _ ↦ True := ⟨le_rfl, trivial⟩
+theorem commitP (ht w : ℕ) : Reads (Prog.readCommitment ht w) 2 fun _ ↦ True := ⟨le_rfl, trivial⟩
 
-theorem queryP (i : ℕ) (ps : List ℕ) : Reads (Prog.queryP i ps) 0 fun _ ↦ True :=
+theorem queryP (i : ℕ) (ps : List ℕ) : Reads (Prog.queryOpenings i ps) 0 fun _ ↦ True :=
   fun _ ↦ trivial
 
 theorem require (c : Prop) [Decidable c] {n : ℕ} : Reads (Prog.require c) n fun _ ↦ c := by
@@ -143,8 +143,8 @@ end Reads
 /-! ## A run reads at most its reads -/
 
 /-- **A run of a program of `n` reads consumes at most `n` scalars of the stream.** -/
-theorem run_reads (H : Bytes → Id Digest) (F : KState → Id KState) :
-    ∀ {p : Prog α} {n : ℕ} {Q : α → Prop}, Reads p n Q → ∀ {s : St} {r : α × St},
+theorem run_reads (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) :
+    ∀ {p : Prog α} {n : ℕ} {Q : α → Prop}, Reads p n Q → ∀ {s : ProgState} {r : α × ProgState},
       Compile.run H F p s = some r → ∃ xs, s.stream = xs ++ r.2.stream ∧ xs.length ≤ n := by
   intro p
   induction p with
@@ -211,8 +211,8 @@ theorem run_reads (H : Bytes → Id Digest) (F : KState → Id KState) :
       · simp at h
 
 /-- **An accepted proof's stream has at most the program's reads.** -/
-theorem stream_le_of_runProof (H : Bytes → Id Digest) (F : KState → Id KState) {P : Prog Bool}
-    {n : ℕ} {Q : Bool → Prop} (hP : Reads P n Q) {seed : KState} {π : Proof}
+theorem stream_le_of_runProof (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) {P : Prog Bool}
+    {n : ℕ} {Q : Bool → Prop} (hP : Reads P n Q) {seed : KeccakState} {π : Proof}
     (h : runProof H F P seed π = true) : π.stream.length ≤ n := by
   unfold runProof at h
   revert h
@@ -336,7 +336,7 @@ def ReadsNothing (ev : (List K → List E → Prog E)) : Prop :=
 
 theorem readsNothing_computed : ReadsNothing computedValue := fun _ _ ↦ trivial
 
-theorem readsNothing_claimed (c : FixedClaims) : ReadsNothing (claimedValue c) := fun _ _ ↦
+theorem readsNothing_claimed (c : BytecodeClaim) : ReadsNothing (claimedValue c) := fun _ _ ↦
   Reads.seq (Reads.require (n := 0) _) (fun _ _ ↦ trivial) le_rfl
 
 theorem reads_verifyBusBalance {ev : (List K → List E → Prog E)} (hev : ReadsNothing ev) (layout : Layout)
@@ -706,17 +706,17 @@ theorem reads_verifyExecution {ev : (List K → List E → Prog E)} (hev : Reads
   all_goals omega
 
 /-- The reads, evaluated: at most `8192`. -/
-theorem childReads_le : childReads ≤ LeanVM.Guest.Hints.streamCap := by decide
+theorem childReads_le : childReads ≤ LeanVM.Guest.Hints.childStreamCap := by decide
 
 /-- **A proof the deferring verifier accepts has a stream of at most `8192` scalars.** -/
 theorem stream_le_of_verifyDeferred {bytecode : List K} {iv publicInput : Digest}
-    {c : FixedClaims} {π : Proof} (h : verifyDeferred bytecode iv publicInput c π = true) :
-    π.stream.length ≤ LeanVM.Guest.Hints.streamCap := by
+    {c : BytecodeClaim} {π : Proof} (h : verifyDeferred bytecode iv publicInput c π = true) :
+    π.stream.length ≤ LeanVM.Guest.Hints.childStreamCap := by
   have hP : Reads (deferredProgram c bytecode publicInput) childReads fun _ ↦ True := by
     rw [deferredProgram_eq]
     exact Reads.seq (reads_verifyExecution (readsNothing_claimed c) bytecode publicInput)
       (fun _ _ ↦ trivial) le_rfl
-  exact (stream_le_of_runProof keccak256 keccakF hP h).trans childReads_le
+  exact (stream_le_of_runProof keccak256 keccakF1600 hP h).trans childReads_le
 
 end
 end LeanVM.Guest.Child

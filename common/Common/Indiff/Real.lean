@@ -71,21 +71,21 @@ theorem freshVal_of_val_support {β γ : List (Dg × E)} {c c' : ACache Msg Dg E
 are fresh, the walk ends in the state and log of the sponge over the lazily sampled random
 function. -/
 theorem allWalk_evalDistEq (used : List (Dg × E) → Bool) (pre : List (Dg × E))
-    (s : SpState Dg E C) (A : PermLog (SpState Dg E C)) (bs : List (Dg × E))
+    (s : SpState Dg E C) (A : PermutationEdges (SpState Dg E C)) (bs : List (Dg × E))
     (c : ACache Msg Dg E C)
     (hfresh : ∀ i < bs.length, used (pre ++ bs.take (i + 1)) = false →
       FreshVal P c (pre ++ bs.take (i + 1))) :
     Prod.fst <$> (simulateQ (aSpec Msg Dg E C).romImpl (allWalk P used pre s A bs)).run c =ᵈ
-      (absorbAll (fun x ↦ lazyFun (.fwd x)) s bs).run A := by
+      (absorbAll (fun x ↦ lazyFun (.forward x)) s bs).run A := by
   induction bs generalizing pre s A c with
   | nil => simp [allWalk]
   | cons B bs ih =>
     -- the rest of the walk, from any cache the first value query can leave
     have hrest : ∀ w ∈ support ((simulateQ (aSpec Msg Dg E C).romImpl
-        (val P (pre ++ [B]))).run c), ∀ (y : SpState Dg E C) (A' : PermLog (SpState Dg E C)),
+        (val P (pre ++ [B]))).run c), ∀ (y : SpState Dg E C) (A' : PermutationEdges (SpState Dg E C)),
         Prod.fst <$> (simulateQ (aSpec Msg Dg E C).romImpl
           (allWalk P used (pre ++ [B]) y A' bs)).run w.2 =ᵈ
-          (absorbAll (fun x ↦ lazyFun (.fwd x)) y bs).run A' := by
+          (absorbAll (fun x ↦ lazyFun (.forward x)) y bs).run A' := by
       intro w hw y A'
       obtain ⟨-, -, hagree⟩ := val_support P _ c hw
       refine ih (pre ++ [B]) y A' w.2 fun i hi hu ↦ ?_
@@ -101,7 +101,7 @@ theorem allWalk_evalDistEq (used : List (Dg × E) → Bool) (pre : List (Dg × E
       exact freshVal_of_val_support P hne hagree (by simpa using this)
     simp only [allWalk, absorbAll_cons, simulateQ_bind, StateT.run_bind, drawSt_run,
       bind_map_left, map_bind]
-    rcases hx : fwdLookup A (absorb s B) with _ | y
+    rcases hx : forwardLookup A (absorb s B) with _ | y
     · simp only [lazyFun, StateT.run_mk, hx, bind_map_left]
       by_cases hu : used (pre ++ [B]) = true
       · simp only [hu, ↓reduceIte]
@@ -114,7 +114,7 @@ theorem allWalk_evalDistEq (used : List (Dg × E) → Bool) (pre : List (Dg × E
           (EvalDistEq.bind_const _ _).trans (hrest w hw w.1 _)).trans ?_
         exact bind_fst_evalDistEq (val_fresh_evalDistEq P (by
           simpa using hfresh 0 (by simp) (by simpa using hu)))
-          (fun a ↦ (absorbAll (fun x ↦ lazyFun (.fwd x)) a bs).run ((absorb s B, a) :: A))
+          (fun a ↦ (absorbAll (fun x ↦ lazyFun (.forward x)) a bs).run ((absorb s B, a) :: A))
     · simp only [lazyFun, StateT.run_mk, hx, pure_bind]
       refine (EvalDistEq.bind_congr_of_support _ fun w hw ↦
         (EvalDistEq.bind_const _ _).trans (hrest w hw y A)).trans ?_
@@ -275,7 +275,7 @@ theorem uInv_combStep (t : (dSpec Msg Dg (SpState Dg E C)).Domain) {cs : CState 
 
 /-- The run of the simulator's step at a fresh rooted node. -/
 theorem visFwd_run_rooted {σ : SimState Dg E C} {x s : SpState Dg E C} {β : List (Dg × E)}
-    (hy : fwdLookup σ.edges x = none) (hch : chainOf σ.chains x = some (s, β))
+    (hy : forwardLookup σ.edges x = none) (hch : chainOf σ.chains x = some (s, β))
     (u : SpState Dg E C) (c : ACache Msg Dg E C) :
     (simulateQ (aSpec Msg Dg E C).romImpl (visFwd P x u σ)).run c =
       (fun w ↦ ((w.1, (⟨(x, w.1) :: σ.edges, (w.1, β ++ [blockTo s x]) :: σ.chains⟩ :
@@ -306,10 +306,10 @@ theorem combReal_step_evalDistEq (t : (dSpec Msg Dg (SpState Dg E C)).Domain)
   · simp only [combStep]
     rw [combHash_run, map_bind]
     simp only [Functor.map_map, hashOut, Prod.map_apply, id_eq]
-    have h1 : ∀ w : (SpState Dg E C × PermLog (SpState Dg E C)) × ACache Msg Dg E C,
+    have h1 : ∀ w : (SpState Dg E C × PermutationEdges (SpState Dg E C)) × ACache Msg Dg E C,
         (fun d : Dg × ACache Msg Dg E C ↦ (w.1.1.1.1, w.1.2)) <$>
           roStep (hs := aSpec Msg Dg E C) (.inl m) w.2 =ᵈ
-        (pure (w.1.1.1.1, w.1.2) : ProbComp (Dg × PermLog (SpState Dg E C))) :=
+        (pure (w.1.1.1.1, w.1.2) : ProbComp (Dg × PermutationEdges (SpState Dg E C))) :=
       fun w ↦ EvalDistEq.map_const _ _
     refine (EvalDistEq.bind_right _ h1).trans ?_
     simp only [funImpl, spongeWith, StateT.run_map]
@@ -319,10 +319,10 @@ theorem combReal_step_evalDistEq (t : (dSpec Msg Dg (SpState Dg E C)).Domain)
   · simp only [combStep]
     rw [combFwd_run, map_bind]
     simp only [funImpl, lazyFun, StateT.run_mk, Functor.map_map, Prod.map_apply, id_eq]
-    rcases hA : fwdLookup cs.all x with _ | y
+    rcases hA : forwardLookup cs.all x with _ | y
     · -- a fresh node of the full view
       simp only [fwdOut, hA]
-      rcases hy : fwdLookup cs.sim.edges x with _ | y'
+      rcases hy : forwardLookup cs.sim.edges x with _ | y'
       · rcases hch : chainOf cs.sim.chains x with _ | ⟨s, β⟩
         · simp [visFwd, hy, hch]
         · simp only [visFwd_run_rooted P hy hch, Functor.map_map]
@@ -344,7 +344,7 @@ theorem combReal_step_evalDistEq (t : (dSpec Msg Dg (SpState Dg E C)).Domain)
   · simp only [combStep]
     rw [combInv_run, Functor.map_map]
     simp only [funImpl, lazyFun, StateT.run_mk, invOut]
-    rcases hA : invLookup cs.all y with _ | x
+    rcases hA : inverseLookup cs.all y with _ | x
     · simp
     · simp only [Prod.map_apply, id_eq]
       exact EvalDistEq.map_const ($ᵗ (SpState Dg E C)) (x, cs.all)

@@ -39,7 +39,7 @@ theorem rowW_snoc_13 {s : Fs} (hs : StOk s) (v : E) : (rowW s ++ [v]).getD 13 0 
   rw [List.getD_append_right _ _ _ _ (by rw [rowW_length hs]), rowW_length hs]
   rfl
 
-theorem capOf_getD (S : KState) {i : ℕ} (hi : i < 5) :
+theorem capOf_getD (S : KeccakState) {i : ℕ} (hi : i < 5) :
     (capOf S).getD i 0 = cellsOfState S false ⟨8 + i, by omega⟩ := by
   rcases (show i = 0 ∨ i = 1 ∨ i = 2 ∨ i = 3 ∨ i = 4 by omega) with rfl | rfl | rfl | rfl | rfl <;> rfl
 

@@ -5,7 +5,7 @@
   memory): the pure callees within their static bounds, `da_row_shape` within its frame, and the
   static bounds `da_verify` rests on (`DvStaticB`).
 
-  `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.Witness.Opens`), as ported here.
+  `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.MatrixWitness.Opens`), as ported here.
 -/
 
 module

@@ -309,7 +309,7 @@ def isZero : Option Sym → Bool
 inductive Atom where
   /-- A non-`JUMP` instruction at pc `g^pc` holds (`Holds`): `fp[c] = fp[a] + fp[b]`,
   `fp[c] = fp[a]·fp[b]`, `fp[o] = k`, `L[fp[o1]·g^o2] = fp[o3]` (or `g²·pc`, or `fp`),
-  `KeccakCells` over the operand cells. -/
+  `KeccakCellsRelation` over the operand cells. -/
   | instr (pc : ℕ) (ins : OInstr)
   /-- The cells a `JUMP` reads are words of `K`. -/
   | jump (oc od of : ℕ)
@@ -840,7 +840,7 @@ theorem Sym.beq_eq {a b : Sym} (h : Sym.beq a b = true) : a = b := by
 
 section Semantics
 
-variable {κ : ℕ} (L : MemImage κ) (fp : K)
+variable {κ : ℕ} (L : MemoryImage κ) (fp : K)
 
 /-- The environment holds of the frame: every known cell holds its value. -/
 def EnvHolds (env : Trie Sym) : Prop :=
@@ -878,7 +878,7 @@ def Atom.Holds : Atom → Prop
       L.read (fp * gpow z) = some (ofK (gpow (e + e')))
 
 /-- The registers `r` an exit of a function at `entry` leaves to. -/
-def Kind.Regs (entry : ℕ) (r : Semantics.Regs K) : Kind → Prop
+def Kind.Regs (entry : ℕ) (r : Semantics.Registers K) : Kind → Prop
   | .next t => r = ⟨gpow (entry + t), fp⟩
   | .ret => retRegs L fp = some r
   | .call pc q _ => ∃ p a, L.read (fp * gpow q) = some p ∧ IsInK p ∧ pc.Is L fp a ∧
@@ -892,7 +892,7 @@ def Kind.Extra : Kind → Prop
 
 /-- **Completeness along a path**: the atoms of `its` hold until the path leaves by a branch
 whose exit goes to `r`, or reaches its end with `Q`. -/
-def Follows (entry : ℕ) (r : Regs K) (Q : Prop) : List Item → Prop
+def Follows (entry : ℕ) (r : Registers K) (Q : Prop) : List Item → Prop
   | [] => Q
   | .ins a :: its => a.Holds L fp ∧ Follows entry r Q its
   | .fact _ :: its => Follows entry r Q its
@@ -1029,7 +1029,7 @@ end Values
 
 section Env
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K}
 
 theorem EnvHolds.set {env : Trie Sym} (h : EnvHolds L fp env) {o : ℕ} {v : Sym} {d : ℕ}
     (hv : L.read (fp * gpow o) = some (v.val fp)) : EnvHolds L fp (env.set v d o) := by
@@ -1098,7 +1098,7 @@ theorem self_is {F : Facts} (hfp : F.fpOne = true → fp = 1) {t : Tgt} (hs : F.
     rw [ha, gpow_zero', hfp hs]
   · exact absurd hs (by simp)
 
-theorem Kind.regs_unique {entry : ℕ} {k : Kind} {r r' : Semantics.Regs K} (h : k.Regs L fp entry r)
+theorem Kind.regs_unique {entry : ℕ} {k : Kind} {r r' : Semantics.Registers K} (h : k.Regs L fp entry r)
     (h' : k.Regs L fp entry r') : r = r' := by
   cases k with
   | next t => exact h.trans h'.symm
@@ -1120,11 +1120,11 @@ end Env
 
 section Step
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K} {F : Facts}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts}
 
 theorem read_addr (hκ : κ ≤ 32) {a : K} {v : E} (h : L.read a = some v) :
     ∃ i < 2 ^ κ, a = gpow i := by
-  obtain ⟨i, hi, -⟩ := (MemImage.read_eq_some_iff (by omega) L).mp h
+  obtain ⟨i, hi, -⟩ := (MemoryImage.read_eq_some_iff (by omega) L).mp h
   exact ⟨i, i.isLt, hi⟩
 
 /-- A word of `K` dereferenced at offset `0` is an address. -/
@@ -1409,18 +1409,18 @@ end Step
 
 section StepRun
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K} {F : Facts} {prog : Program}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program}
 
 /-- What an instruction's result says of the run from it, with `k` steps left: on to the next
 offset with one step fewer, or out by an exit. -/
-def Res.Sound (L : MemImage κ) (fp : K) (prog : Program) (entry k₀ i k : ℕ) : Res → Prop
+def Res.Sound (L : MemoryImage κ) (fp : K) (prog : Program) (entry k₀ i k : ℕ) : Res → Prop
   | .go its st => RunK L fp prog entry k₀
       (fun k' ↦ k' + 1 = k ∧ St.Holds L fp st ∧ Safe prog L k' ⟨gpow (entry + i + 1), fp⟩) its k
   | .stop its x => RunK L fp prog entry k₀ (x.Reached L fp prog entry k₀) its k
 
 /-- What an instruction's result gives a run to `r`: from its atoms, the run reaches `r` by an
 exit, or the next offset with `Q`. -/
-def Res.Comp (L : MemImage κ) (fp : K) (prog : Program) (entry i : ℕ) (r : Semantics.Regs K) :
+def Res.Comp (L : MemoryImage κ) (fp : K) (prog : Program) (entry i : ℕ) (r : Semantics.Registers K) :
     Res → Prop
   | .go its st => ∀ Q : Prop, Follows L fp entry r Q its →
       Reach prog L ⟨gpow (entry + i), fp⟩ r ∨
@@ -1444,7 +1444,7 @@ theorem runK_facts {entry k₀ k : ℕ} {Q : ℕ → Prop} {fs : List Atom}
   | cons a fs ih =>
     exact ⟨h a List.mem_cons_self, ih fun b hb ↦ h b (List.mem_cons_of_mem _ hb)⟩
 
-theorem follows_facts {entry : ℕ} {r : Semantics.Regs K} {Q : Prop} {fs : List Atom} :
+theorem follows_facts {entry : ℕ} {r : Semantics.Registers K} {Q : Prop} {fs : List Atom} :
     Follows L fp entry r Q (fs.map .fact) ↔ Q := by
   induction fs with
   | nil => rfl
@@ -1499,7 +1499,7 @@ theorem stepI_sound (hctx : Ctx F κ fp) {entry len i k k₀ : ℕ} {st : St} {i
 /-- **One instruction is complete.** -/
 theorem stepI_complete (hctx : Ctx F κ fp) {entry len i : ℕ} {st : St} {ins : OInstr}
     (hf : prog.fetch (gpow (entry + i)) = some ins.toInstr)
-    (hpc : entry + i < 2 ^ prog.logSize - 1) (hst : St.Holds L fp st) (r : Semantics.Regs K) :
+    (hpc : entry + i < 2 ^ prog.logSize - 1) (hst : St.Holds L fp st) (r : Semantics.Registers K) :
     (stepI F entry len i st ins).Comp L fp prog entry i r := by
   cases hj : ins.isJump with
   | false =>
@@ -1551,7 +1551,7 @@ end StepRun
 
 section Paths
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K} {prog : Program}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {prog : Program}
 
 theorem RunK.mono {entry k₀ : ℕ} {Q Q' : ℕ → Prop} (hQ : ∀ k, Q k → Q' k) :
     ∀ {its : List Item} {k : ℕ}, RunK L fp prog entry k₀ Q its k →
@@ -1572,7 +1572,7 @@ theorem RunK.append {entry k₀ : ℕ} {Q : ℕ → Prop} :
   | .branch _ _ _ _ :: _, _, _, ⟨ha, k', hk, h⟩ =>
     ⟨ha, k', hk, h.imp (fun h ↦ ⟨h.1, RunK.append h.2⟩) id⟩
 
-theorem Follows.append {entry : ℕ} {r : Semantics.Regs K} {Q : Prop} :
+theorem Follows.append {entry : ℕ} {r : Semantics.Registers K} {Q : Prop} :
     ∀ {l₁ l₂ : List Item}, Follows L fp entry r Q (l₁ ++ l₂) →
       Follows L fp entry r (Follows L fp entry r Q l₂) l₁
   | [], _, h => h
@@ -1610,11 +1610,11 @@ end Paths
 
 section Pass
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K} {F : Facts} {prog : Program} {entry len : ℕ}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program} {entry len : ℕ}
 
 /-- **A good segment**: from its start, with its environment, it is sound (`RunK`) and complete
 (`Follows`), and `exits` lists its exits. -/
-def SegGood (L : MemImage κ) (fp : K) (prog : Program) (entry : ℕ) (s : Seg) : Prop :=
+def SegGood (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (s : Seg) : Prop :=
   (∀ k₀, EnvHolds L fp s.env → Safe prog L k₀ ⟨gpow (entry + s.start), fp⟩ →
     RunK L fp prog entry k₀ (s.exit.Reached L fp prog entry k₀) s.items k₀) ∧
   (EnvHolds L fp s.env → ∀ r, Follows L fp entry r (s.exit.kind.Regs L fp entry r) s.items →
@@ -1622,7 +1622,7 @@ def SegGood (L : MemImage κ) (fp : K) (prog : Program) (entry : ℕ) (s : Seg) 
   (∀ x, x = s.exit ∨ x ∈ branchExits s.items → x ∈ s.exits)
 
 /-- A good segment being walked, at offset `i`. -/
-def CurGood (L : MemImage κ) (fp : K) (prog : Program) (entry : ℕ) (c : Cur) (i : ℕ) : Prop :=
+def CurGood (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (c : Cur) (i : ℕ) : Prop :=
   c.start ≤ i ∧ branchExits c.acc = c.xs ∧
   (∀ k₀, EnvHolds L fp c.env → Safe prog L k₀ ⟨gpow (entry + c.start), fp⟩ →
     RunK L fp prog entry k₀ (fun k ↦ k + i = k₀ + c.start ∧ St.Holds L fp c.st ∧
@@ -1807,7 +1807,7 @@ end Pass
 
 section Main
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K} {F : Facts} {prog : Program} {f : CompiledFn}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program} {f : CompiledFn}
 
 /-- Every segment of `exec F f` is good. -/
 theorem exec_good (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) :
@@ -1829,13 +1829,13 @@ theorem exec_sound (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {s : 
 environment holds of, the run from the segment's start reaches the registers the path's exit
 names. -/
 theorem exec_complete (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {s : Seg}
-    (hs : s ∈ (exec F f).segs) (he : EnvHolds L fp s.env) {r : Semantics.Regs K}
+    (hs : s ∈ (exec F f).segs) (he : EnvHolds L fp s.env) {r : Semantics.Registers K}
     (h : Follows L fp f.entry r (s.exit.kind.Regs L fp f.entry r) s.items) :
     Reach prog L ⟨gpow (f.entry + s.start), fp⟩ r :=
   (exec_good hctx hf s hs).2.1 he r h
 
 /-- A segment lists its exits: its final one and its branches'. -/
-theorem exec_exits (L : MemImage κ) (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {s : Seg}
+theorem exec_exits (L : MemoryImage κ) (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {s : Seg}
     (hs : s ∈ (exec F f).segs) {x : Exit} (hx : x = s.exit ∨ x ∈ branchExits s.items) :
     x ∈ s.exits :=
   (exec_good (L := L) hctx hf s hs).2.2 x hx
@@ -1864,7 +1864,7 @@ entry environment holds wherever the exit's does. -/
 theorem Result.linked_spec {R : Result} (hl : R.linked = true) {s : Seg} (hs : s ∈ R.segs)
     {x : Exit} (hx : x ∈ s.exits) {t : ℕ} (ht : t ∈ x.succ) :
     ∃ s' ∈ R.segs, s'.start = t ∧
-      ∀ {κ : ℕ} (L : MemImage κ) (fp : K), EnvHolds L fp x.env → EnvHolds L fp s'.env := by
+      ∀ {κ : ℕ} (L : MemoryImage κ) (fp : K), EnvHolds L fp x.env → EnvHolds L fp s'.env := by
   obtain ⟨segs, dead⟩ := R
   simp only [Result.linked, listSeq_eq, Trie.seq_eq, linkedWith, List.all_eq_true] at hl
   have h := hl s hs x hx t ht
@@ -1891,7 +1891,7 @@ end Main
 
 section Straight
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K} {prog : Program}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {prog : Program}
 
 /-- The atom of an item, if it has one of its own. -/
 def Item.atom? : Item → Option Atom
@@ -1927,7 +1927,7 @@ end Straight
 
 section Windows
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K} {F : Facts} {prog : Program} {f : CompiledFn}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program} {f : CompiledFn}
 
 theorem Fetches.window {pc : ℕ} {code : List OInstr} (h : Fetches prog pc code) (a n : ℕ) :
     Fetches prog (pc + a) ((code.drop a).take n) := by
@@ -1953,7 +1953,7 @@ theorem execWin_sound (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {a
 /-- **Completeness** on a window, as `exec_complete`. -/
 theorem execWin_complete (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {a b : ℕ}
     {env : List (ℕ × Sym)} {s : Seg} (hs : s ∈ (execWin F f a env b).segs)
-    (he : EnvHolds L fp s.env) {r : Semantics.Regs K}
+    (he : EnvHolds L fp s.env) {r : Semantics.Registers K}
     (h : Follows L fp f.entry r (s.exit.kind.Regs L fp f.entry r) s.items) :
     Reach prog L ⟨gpow (f.entry + s.start), fp⟩ r :=
   (execWin_good hctx hf a env b s hs).2.1 he r h
@@ -1964,9 +1964,9 @@ theorem Result.linkedExt_spec {ext : List (ℕ × List (ℕ × Sym))} {R : Resul
     (hl : R.linkedExt ext = true) {s : Seg} (hs : s ∈ R.segs) {x : Exit} (hx : x ∈ s.exits) {t : ℕ}
     (ht : t ∈ x.succ) :
     (∃ s' ∈ R.segs, s'.start = t ∧
-      ∀ {κ : ℕ} (L : MemImage κ) (fp : K), EnvHolds L fp x.env → EnvHolds L fp s'.env) ∨
+      ∀ {κ : ℕ} (L : MemoryImage κ) (fp : K), EnvHolds L fp x.env → EnvHolds L fp s'.env) ∨
     ∃ e, (t, e) ∈ ext ∧
-      ∀ {κ : ℕ} (L : MemImage κ) (fp : K), EnvHolds L fp x.env → EnvHolds L fp (envOf e) := by
+      ∀ {κ : ℕ} (L : MemoryImage κ) (fp : K), EnvHolds L fp x.env → EnvHolds L fp (envOf e) := by
   obtain ⟨segs, dead⟩ := R
   simp only [Result.linkedExt, listSeq_eq, Trie.seq_eq, linkedExtWith, List.all_eq_true] at hl
   have h := hl s hs x hx t ht

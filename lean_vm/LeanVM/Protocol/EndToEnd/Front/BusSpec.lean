@@ -61,7 +61,7 @@ variable {εmax T : ENNReal}
 values. Its lead is the follower's. -/
 noncomputable def readNSpec (P : List Ev → Prop) (hP : ∀ h x, P h → P (h ++ [Ev.read x]))
     (hT : T ≤ εmax) : (n : ℕ) →
-      Spec (Prog.readN n) P (fun xs h ↦ xs.length = n ∧ P h) εmax T T
+      Spec (Prog.readScalars n) P (fun xs h ↦ xs.length = n ∧ P h) εmax T T
   | 0 => (Spec.ret (Post := fun xs h ↦ xs.length = 0 ∧ P h) []).mono
       (fun _ h ↦ ⟨rfl, h⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
   | n + 1 =>
@@ -74,7 +74,7 @@ noncomputable def readNSpec (P : List Ev → Prop) (hP : ∀ h x, P h → P (h +
 /-- **Reading `n + 1` scalars** ends the current group of challenges: its lead is `0`. -/
 noncomputable def readNSuccSpec (P : List Ev → Prop) (hP : ∀ h x, P h → P (h ++ [Ev.read x]))
     (hT : T ≤ εmax) (n : ℕ) :
-    Spec (Prog.readN (n + 1)) P (fun xs h ↦ xs.length = n + 1 ∧ P h) εmax 0 T :=
+    Spec (Prog.readScalars (n + 1)) P (fun xs h ↦ xs.length = n + 1 ∧ P h) εmax 0 T :=
   (Spec.readE (Post := fun _ h ↦ P h) (fun h₀ x hp ↦ hP h₀ x hp) hT).bind' fun x ↦
     (readNSpec P hP hT n).bind' fun xs ↦
       (Spec.ret (Post := fun xs h ↦ xs.length = n + 1 ∧ P h) (x :: xs)).mono
@@ -230,11 +230,11 @@ noncomputable def wireRoundPolySpec (hd : 1 ≤ d) (j : ℕ) (s : SumcheckRound.
             hdoom_relMid Φ cands hp.2 _⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
   | some r =>
     Spec.congr (show (do
-        let tail ← Prog.readN (d - 1 + 1)
+        let tail ← Prog.readScalars (d - 1 + 1)
         return (s.2.2 + r * sumE tail) :: tail : Prog (List E)) =
           sumcheckRoundPoly (d + 1) s.2.2 (some r) by
         show _ = (do
-          let tail ← Prog.readN (d + 1 - 1)
+          let tail ← Prog.readScalars (d + 1 - 1)
           return (s.2.2 + r * sumE tail) :: tail)
         rw [show d - 1 + 1 = d + 1 - 1 by omega])
       ((readNSuccSpec (HDoom cands (SumcheckRound.rel Φ j) s) (hdoom_read cands) hT
@@ -255,7 +255,7 @@ noncomputable def roundChallengeSpec {m : ℕ} (H : Φ.Consistent m) (S : Φ.Sou
     (hfin : ∀ W, (cands W).Finite) (hcard : ∀ W, (cands W).ncard ≤ L₀) (j : ℕ) (hj : j < m)
     (s : SumcheckRound.Stmt X E j) (eq : Option E) (hw : Φ.weight s.1 j = wireDomain eq)
     (msg : List E) :
-    Spec Prog.sampleE (RoundPolyPost Φ cands j s eq msg)
+    Spec Prog.sampleChallenge (RoundPolyPost Φ cands j s eq msg)
       (fun c h ↦ HDoom cands (SumcheckRound.rel Φ (j + 1)) (s.1, (s.2.1.push c, polyEval msg c)) h)
       εmax (roundError L₀ d + T) T :=
   Spec.sampleE (roundError L₀ d) fun h₀ hpre ↦ by

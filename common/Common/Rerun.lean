@@ -8,7 +8,7 @@ the random oracle: run again from any later cache, it returns the same result an
 cache unchanged (`run_rerun`), every query hitting the cache. A verifier that recomputes the same
 challenges for every opening therefore computes them once.
 
-Also: a prefix of a computation weighs at most the computation (`IsWeightBound.of_bind`).
+Also: a prefix of a computation weighs at most the computation (`QueryCostAtMost.of_bind`).
 -/
 
 set_option linter.unusedSectionVars false
@@ -76,9 +76,9 @@ theorem run_rerun {α : Type} (X : OracleComp (unifSpec + hs) α) (hX : NoCoins 
     exact ih w.1 (hk w.1) w.2 hz
 
 /-- **A prefix weighs at most the computation.** -/
-theorem IsWeightBound.of_bind {ι' : Type} {spec : OracleSpec.{0, 0} ι'} {α β : Type}
+theorem QueryCostAtMost.of_bind {ι' : Type} {spec : OracleSpec.{0, 0} ι'} {α β : Type}
     {X : OracleComp spec α} {f : α → OracleComp spec β} {w : ι' → ℕ} {Q : ℕ}
-    (h : IsWeightBound (X >>= f) w Q) : IsWeightBound X w Q := by
+    (h : QueryCostAtMost (X >>= f) w Q) : QueryCostAtMost X w Q := by
   induction X using OracleComp.inductionOn generalizing Q with
   | pure a => trivial
   | query_bind t k ih =>
@@ -87,9 +87,9 @@ theorem IsWeightBound.of_bind {ι' : Type} {spec : OracleSpec.{0, 0} ι'} {α β
     exact ⟨h.1, fun u ↦ ih u (h.2 u)⟩
 
 /-- **A continuation weighs at most the computation**, on every output of the prefix. -/
-theorem IsWeightBound.of_bind_mem_support {ι' : Type} {spec : OracleSpec.{0, 0} ι'} {α β : Type}
+theorem QueryCostAtMost.of_bind_mem_support {ι' : Type} {spec : OracleSpec.{0, 0} ι'} {α β : Type}
     {X : OracleComp spec α} {f : α → OracleComp spec β} {w : ι' → ℕ} {Q : ℕ}
-    (h : IsWeightBound (X >>= f) w Q) {x : α} (hx : x ∈ support X) : IsWeightBound (f x) w Q := by
+    (h : QueryCostAtMost (X >>= f) w Q) {x : α} (hx : x ∈ support X) : QueryCostAtMost (f x) w Q := by
   induction X using OracleComp.inductionOn generalizing Q with
   | pure a =>
     simp only [support_pure, Set.mem_singleton_iff] at hx
@@ -105,9 +105,9 @@ theorem IsWeightBound.of_bind_mem_support {ι' : Type} {spec : OracleSpec.{0, 0}
 weight, the simulation weighs at most the computation's bound. -/
 theorem isWeightBound_simulateQ {ι₁ ι₂ : Type} {spec₁ : OracleSpec.{0, 0} ι₁}
     {spec₂ : OracleSpec.{0, 0} ι₂} {α : Type} (impl : QueryImpl spec₁ (OracleComp spec₂))
-    (w₁ : ι₁ → ℕ) (w₂ : ι₂ → ℕ) (hstep : ∀ t, IsWeightBound (impl t) w₂ (w₁ t))
-    {X : OracleComp spec₁ α} {Q : ℕ} (h : IsWeightBound X w₁ Q) :
-    IsWeightBound (simulateQ impl X) w₂ Q := by
+    (w₁ : ι₁ → ℕ) (w₂ : ι₂ → ℕ) (hstep : ∀ t, QueryCostAtMost (impl t) w₂ (w₁ t))
+    {X : OracleComp spec₁ α} {Q : ℕ} (h : QueryCostAtMost X w₁ Q) :
+    QueryCostAtMost (simulateQ impl X) w₂ Q := by
   induction X using OracleComp.inductionOn generalizing Q with
   | pure a => trivial
   | query_bind t k ih =>

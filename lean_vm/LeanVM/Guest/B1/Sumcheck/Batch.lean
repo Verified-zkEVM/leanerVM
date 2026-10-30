@@ -88,7 +88,7 @@ def bsSt (g : ℕ → E × E) (claim : E) (s : Fs) : ℕ → E × Fs
     (((g j).2 * r.1 + (g0 + (g j).1 + (g j).2)) * r.1 + g0, r.2)
 
 /-- Round `j`'s permutation. -/
-def bsP (g : ℕ → E × E) (claim : E) (s : Fs) (j : ℕ) : KState :=
+def bsP (g : ℕ → E × E) (claim : E) (s : Fs) (j : ℕ) : KeccakState :=
   (((bsSt g claim s j).2.absorb (g j).1 dsObserve).absorb (g j).2 dsObserve).perm
 
 theorem bsSt_succ_shift (g : ℕ → E × E) (claim : E) (s : Fs) :
@@ -428,7 +428,7 @@ def bsFoldVals (c g1 gInf r : E) : List E :=
 
 /-- The honest values of `batch_sumcheck` at `n` rounds, by index, on the rounds' words `g`, the
 claims `cl` and the permutations `P`. -/
-def bsVals (as : List E) (g : ℕ → E × E) (cl : ℕ → E) (P : ℕ → KState) (n k : ℕ) : E :=
+def bsVals (as : List E) (g : ℕ → E × E) (cl : ℕ → E) (P : ℕ → KeccakState) (n k : ℕ) : E :=
   if k < 8 then as.getD k 0
   else if k < 13 then as.getD (k - 8) 0
   else if k = 13 then (g 0).1
@@ -463,7 +463,7 @@ macro "bs_if" : tactic => `(tactic| first
   | (rw [ite_eq_left_of_eq_true]; rotate_left; exact eq_true (by omega)))
 
 section
-variable (as : List E) (g : ℕ → E × E) (cl : ℕ → E) (P : ℕ → KState)
+variable (as : List E) (g : ℕ → E × E) (cl : ℕ → E) (P : ℕ → KeccakState)
 
 theorem bsVals_round {n j i : ℕ} (hj : j + 1 < n) (hi : i < 47) :
     bsVals as g cl P n (65 + 47 * j + i) =

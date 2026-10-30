@@ -48,40 +48,40 @@ open Air.Flat (Component EnsembleWitness)
 
 /-- The prover data holding an image: its words as the `"mem"` table, one row of three limbs
 each. -/
-def imageData {κ : ℕ} (img : MemImage κ) : ProverData K := fun _ n ↦
+def imageData {κ : ℕ} (img : MemoryImage κ) : ProverData K := fun _ n ↦
   match n with
   | 3 => Array.ofFn fun i : Fin (2 ^ κ) ↦ #v[(img i).limb 0, (img i).limb 1, (img i).limb 2]
   | _ => #[]
 
 /-- The `"mem"` table of the data, read back. By `unfold` and not by `rfl`: the match on the arity
 `3` is stuck for definitional unfolding, which then unrolls `Array.ofFn` over the `2^κ` rows. -/
-theorem memRows_imageData {κ : ℕ} (img : MemImage κ) :
+theorem memRows_imageData {κ : ℕ} (img : MemoryImage κ) :
     memRows (imageData img) =
       Array.ofFn fun i : Fin (2 ^ κ) ↦ #v[(img i).limb 0, (img i).limb 1, (img i).limb 2] := by
   unfold memRows imageData
   rfl
 
 /-- The memory log-size the data names is the image's. -/
-theorem imageData_logSize {κ : ℕ} (img : MemImage κ) (hκ : κ ≤ maxLogMem) :
+theorem imageData_logSize {κ : ℕ} (img : MemoryImage κ) (hκ : κ ≤ maxLogMem) :
     (imageOf (imageData img)).1 = κ := by
   show min (Nat.log 2 (memRows (imageData img)).size) maxLogMem = κ
   rw [memRows_imageData, Array.size_ofFn, Nat.log_pow (by norm_num)]
   exact Nat.min_eq_left hκ
 
 /-- The data is well shaped. -/
-theorem imageData_wellShaped {κ : ℕ} (img : MemImage κ) (hκ : κ ≤ maxLogMem) :
+theorem imageData_wellShaped {κ : ℕ} (img : MemoryImage κ) (hκ : κ ≤ maxLogMem) :
     WellShapedData (imageData img) :=
   ⟨by rw [imageData_logSize img hκ, memRows_imageData, Array.size_ofFn]⟩
 
 /-- Row `k` of the table, through `getElem?`: a `getElem` with a bound on the `2^κ`-row table
 makes both the elaborator and the kernel unroll it. -/
-theorem imageData_row {κ : ℕ} (img : MemImage κ) (k : ℕ) (hk : k < 2 ^ κ) :
+theorem imageData_row {κ : ℕ} (img : MemoryImage κ) (k : ℕ) (hk : k < 2 ^ κ) :
     (memRows (imageData img))[k]? =
       some #v[(img ⟨k, hk⟩).limb 0, (img ⟨k, hk⟩).limb 1, (img ⟨k, hk⟩).limb 2] := by
   rw [memRows_imageData, Array.getElem?_ofFn, dite_eq_left hk]
 
 /-- Every word the data names is the image's. -/
-theorem imageData_apply' {κ : ℕ} (img : MemImage κ) (hκ : κ ≤ maxLogMem) (k : ℕ)
+theorem imageData_apply' {κ : ℕ} (img : MemoryImage κ) (hκ : κ ≤ maxLogMem) (k : ℕ)
     (hk : k < 2 ^ (imageOf (imageData img)).1) :
     (imageOf (imageData img)).2 ⟨k, hk⟩ =
       img ⟨k, by rw [imageData_logSize img hκ] at hk; exact hk⟩ := by
@@ -95,7 +95,7 @@ theorem imageData_apply' {κ : ℕ} (img : MemImage κ) (hκ : κ ≤ maxLogMem)
 /-- The image the data names, as one equality of dependent pairs: what every conjunct over
 `imageOf w.data` is rewritten with, so that nothing compares the data's log-size against `κ`
 definitionally (which would unroll the `2^κ` rows). -/
-theorem imageOf_imageData {κ : ℕ} (img : MemImage κ) (hκ : κ ≤ maxLogMem) :
+theorem imageOf_imageData {κ : ℕ} (img : MemoryImage κ) (hκ : κ ≤ maxLogMem) :
     imageOf (imageData img) = ⟨κ, img⟩ := by
   have hκ' : (imageOf (imageData img)).1 = κ := imageData_logSize img hκ
   have hpow : 2 ^ (imageOf (imageData img)).1 = 2 ^ κ := by rw [hκ']
@@ -112,12 +112,12 @@ theorem imageOf_imageData {κ : ℕ} (img : MemImage κ) (hκ : κ ≤ maxLogMem
 /-! ## The rows of a list of skeletons -/
 
 /-- The rows of a list of skeletons over the image `img`, numbered from zero. -/
-noncomputable def skelRows {κ : ℕ} (img : MemImage κ) (S : List Skel) : List PRow :=
+noncomputable def skelRows {κ : ℕ} (img : MemoryImage κ) (S : List Skel) : List PRow :=
   mkRows img (fun _ ↦ 0) (fun _ ↦ 0) S
 
 /-- How many times each memory cell is read by the rows of `S`: the exponent of its finalize
 count. -/
-noncomputable def skelMemFin {κ : ℕ} (img : MemImage κ) (S : List Skel) : K → ℕ :=
+noncomputable def skelMemFin {κ : ℕ} (img : MemoryImage κ) (S : List Skel) : K → ℕ :=
   readBump (fun _ ↦ 0) (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)
 
 /-- How many times each bytecode slot is read by the rows of `S`. -/
@@ -125,7 +125,7 @@ noncomputable def skelBcFin (S : List Skel) : K → ℕ :=
   readBump (fun _ ↦ 0) (S.map (·.pc))
 
 /-- A row of the rows of `S` is a row of a skeleton of `S`. -/
-theorem mem_mkRows_sk {κ : ℕ} {img : MemImage κ} {sm sb : K → ℕ} {S : List Skel} {r : PRow}
+theorem mem_mkRows_sk {κ : ℕ} {img : MemoryImage κ} {sm sb : K → ℕ} {S : List Skel} {r : PRow}
     (h : r ∈ mkRows img sm sb S) : r.sk ∈ S := by
   rw [← mkRows_sk img sm sb S]
   exact List.mem_map_of_mem h
@@ -133,7 +133,7 @@ theorem mem_mkRows_sk {κ : ℕ} {img : MemImage κ} {sm sb : K → ℕ} {S : Li
 /-! ## The tables -/
 
 /-- The table of an opcode: the raw rows of the rows of `R` whose instruction has the opcode. -/
-noncomputable def opTable {κ : ℕ} (img : MemImage κ) (data : ProverData K) (R : List PRow)
+noncomputable def opTable {κ : ℕ} (img : MemoryImage κ) (data : ProverData K) (R : List PRow)
     (op : Opcode) : Air.Flat.Table K where
   component := opComponent op
   width := opWidth op
@@ -147,7 +147,7 @@ noncomputable def opTable {κ : ℕ} (img : MemImage κ) (data : ProverData K) (
     simp only [PRow.raw, rowOf_size, h]
 
 /-- The memory block: one row per cell, `(g^i, g^(fin (g^i)), the word at i)`. -/
-noncomputable def memBlock {κ : ℕ} (img : MemImage κ) (data : ProverData K) (fin : K → ℕ) :
+noncomputable def memBlock {κ : ℕ} (img : MemoryImage κ) (data : ProverData K) (fin : K → ℕ) :
     Air.Flat.Table K where
   component := ⟨memTable⟩
   width := size MemRow
@@ -174,7 +174,7 @@ noncomputable def bcBlock (prog : Program) (data : ProverData K) (fin : K → �
     exact rawRow_size _
 
 /-- **The witness of a list of skeletons.** -/
-noncomputable def skelWitness (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+noncomputable def skelWitness (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemoryImage κ)
     (S : List Skel) : EnsembleWitness (leanIsaEnsemble prog) where
   tables := [opTable img (imageData img) (skelRows img S) .xor,
     opTable img (imageData img) (skelRows img S) .mulNative,

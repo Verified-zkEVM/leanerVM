@@ -34,7 +34,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 theorem sumcheck_cons_eq' (claim : E) (count : ℕ) (e : Option E) (es : List (Option E)) :
     sumcheck claim count (e :: es) =
-      sumcheckRoundPoly count claim e >>= fun message => Prog.sampleE >>= fun challenge =>
+      sumcheckRoundPoly count claim e >>= fun message => Prog.sampleChallenge >>= fun challenge =>
         sumcheck (polyEval message challenge) count es >>= fun r =>
           pure (challenge :: r.1, r.2) := by
   simp only [sumcheck]
@@ -61,7 +61,7 @@ theorem gkr_sumcheck_run : ∀ (cs : List (List E)) (es : List E) (claim : E) (s
         (runsTo_ret ((claim + e * sumE c) :: c) _)
       rw [List.append_nil, hc4] at h
       simpa [sumcheckRoundPoly] using h
-    have := hround.bind (f := fun message => Prog.sampleE >>= fun challenge =>
+    have := hround.bind (f := fun message => Prog.sampleChallenge >>= fun challenge =>
         sumcheck (polyEval message challenge) 5 (es.map some) >>= fun r =>
           pure (challenge :: r.1, r.2))
       ((runsTo_sampleE _).bind (ih.bind (f := fun r =>
@@ -75,12 +75,12 @@ theorem gkr_sumcheck_run : ∀ (cs : List (List E)) (es : List E) (claim : E) (s
 /-! ## One step of the walk -/
 
 theorem gkrStep_eq (step : ℕ) (st : GkrState) :
-    gkrStep step st = Prog.sampleE >>= fun combiner =>
+    gkrStep step st = Prog.sampleChallenge >>= fun combiner =>
       sumcheck (polyEval st.values combiner) (2 ^ step + 1) (st.point.map some) >>= fun r =>
-        Prog.readN (2 ^ step) >>= fun child0 => Prog.readN (2 ^ step) >>= fun child1 =>
-          Prog.readN (2 ^ step) >>= fun child2 =>
+        Prog.readScalars (2 ^ step) >>= fun child0 => Prog.readScalars (2 ^ step) >>= fun child1 =>
+          Prog.readScalars (2 ^ step) >>= fun child2 =>
             Prog.require (r.2 = polyEval [prodE child0, prodE child1, prodE child2] combiner) >>=
-              fun _ => Prog.sampleN step >>= fun y =>
+              fun _ => Prog.sampleChallenges step >>= fun y =>
                 pure ⟨[child0, child1, child2].map (multilinearEval · y), y ++ r.1⟩ := by
   simp only [gkrStep, List.map_cons, List.map_nil]
 
@@ -121,33 +121,33 @@ theorem gkrStep_run {step : ℕ} {st : GkrState} {s s1 : Fs} {xs : List E} {x : 
     (((s1.absorbAll ch0 dsObserve).absorbAll ch1 dsObserve).absorbAll ch2 dsObserve)
   have hc2 := r2.bind (f := fun child2 =>
     Prog.require (claim' = polyEval [prodE ch0, prodE ch1, prodE child2] s.squeeze.1) >>=
-      fun _ => Prog.sampleN step >>= fun y =>
+      fun _ => Prog.sampleChallenges step >>= fun y =>
         (pure ⟨[ch0, ch1, child2].map (multilinearEval · y), y ++ x⟩ : Prog GkrState))
-    (hq.bind (f := fun _ => Prog.sampleN step >>= fun y =>
+    (hq.bind (f := fun _ => Prog.sampleChallenges step >>= fun y =>
         (pure ⟨[ch0, ch1, ch2].map (multilinearEval · y), y ++ x⟩ : Prog GkrState))
       (hy.bind (f := fun y =>
         (pure ⟨[ch0, ch1, ch2].map (multilinearEval · y), y ++ x⟩ : Prog GkrState))
         (runsTo_ret _ _)))
-  have hc1 := r1.bind (f := fun child1 => Prog.readN (2 ^ step) >>= fun child2 =>
+  have hc1 := r1.bind (f := fun child1 => Prog.readScalars (2 ^ step) >>= fun child2 =>
     Prog.require (claim' = polyEval [prodE ch0, prodE child1, prodE child2] s.squeeze.1) >>=
-      fun _ => Prog.sampleN step >>= fun y =>
+      fun _ => Prog.sampleChallenges step >>= fun y =>
         (pure ⟨[ch0, child1, child2].map (multilinearEval · y), y ++ x⟩ : Prog GkrState)) hc2
-  have hc0 := r0.bind (f := fun child0 => Prog.readN (2 ^ step) >>= fun child1 =>
-    Prog.readN (2 ^ step) >>= fun child2 =>
+  have hc0 := r0.bind (f := fun child0 => Prog.readScalars (2 ^ step) >>= fun child1 =>
+    Prog.readScalars (2 ^ step) >>= fun child2 =>
     Prog.require (claim' = polyEval [prodE child0, prodE child1, prodE child2] s.squeeze.1) >>=
-      fun _ => Prog.sampleN step >>= fun y =>
+      fun _ => Prog.sampleChallenges step >>= fun y =>
         (pure ⟨[child0, child1, child2].map (multilinearEval · y), y ++ x⟩ : Prog GkrState)) hc1
-  have hs := hsc.bind (f := fun r => Prog.readN (2 ^ step) >>= fun child0 =>
-    Prog.readN (2 ^ step) >>= fun child1 => Prog.readN (2 ^ step) >>= fun child2 =>
+  have hs := hsc.bind (f := fun r => Prog.readScalars (2 ^ step) >>= fun child0 =>
+    Prog.readScalars (2 ^ step) >>= fun child1 => Prog.readScalars (2 ^ step) >>= fun child2 =>
     Prog.require (r.2 = polyEval [prodE child0, prodE child1, prodE child2] s.squeeze.1) >>=
-      fun _ => Prog.sampleN step >>= fun y =>
+      fun _ => Prog.sampleChallenges step >>= fun y =>
         (pure ⟨[child0, child1, child2].map (multilinearEval · y), y ++ r.1⟩ : Prog GkrState)) hc0
   have := (runsTo_sampleE s).bind (f := fun combiner =>
     sumcheck (polyEval st.values combiner) (2 ^ step + 1) (st.point.map some) >>= fun r =>
-      Prog.readN (2 ^ step) >>= fun child0 => Prog.readN (2 ^ step) >>= fun child1 =>
-        Prog.readN (2 ^ step) >>= fun child2 =>
+      Prog.readScalars (2 ^ step) >>= fun child0 => Prog.readScalars (2 ^ step) >>= fun child1 =>
+        Prog.readScalars (2 ^ step) >>= fun child2 =>
           Prog.require (r.2 = polyEval [prodE child0, prodE child1, prodE child2] combiner) >>=
-            fun _ => Prog.sampleN step >>= fun y =>
+            fun _ => Prog.sampleChallenges step >>= fun y =>
               (pure ⟨[child0, child1, child2].map (multilinearEval · y), y ++ r.1⟩ : Prog GkrState)) hs
   exact this.of_eq rfl (by simp) rfl rfl
 

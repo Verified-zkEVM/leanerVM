@@ -84,17 +84,17 @@ structure SetRow (F : Type) where
 /-- The relation a `SET_CONSTANT` row refines: from its registers the machine executes the
 instruction it names, `SET_CONSTANT o k` with the row's immediate, to `next` (`execute`).
 -/
-structure SetRefines {κ : ℕ} (mem : MemImage κ) (r : SetRow K) (next : Regs K) : Prop where
+structure SetRefines {κ : ℕ} (mem : MemoryImage κ) (r : SetRow K) (next : Registers K) : Prop where
   /-- From the row's registers the machine executes `SET_CONSTANT o k` to `next`. -/
   exec_eq :
     execute mem ⟨r.pc, r.fp⟩ (.setConstant r.o (E.ofLimbs r.k[0] r.k[1] r.k[2])) = some next
 
 /-- `SetRefines`, expanded: the cell `fp·o` holds the immediate, and the successor is the
 fall-through `(g·pc, fp)`. -/
-theorem set_refines_iff {κ : ℕ} (mem : MemImage κ) (r : SetRow K) (next : Regs K) :
+theorem set_refines_iff {κ : ℕ} (mem : MemoryImage κ) (r : SetRow K) (next : Registers K) :
     SetRefines mem r next ↔
       mem.read (r.fp * r.o) = some (E.ofLimbs r.k[0] r.k[1] r.k[2]) ∧
-        next = Regs.next ⟨r.pc, r.fp⟩ := by
+        next = Registers.next ⟨r.pc, r.fp⟩ := by
   constructor
   · rintro ⟨hexec⟩
     simp only [execute, executeWith, Option.bind_eq_bind] at hexec
@@ -114,7 +114,7 @@ theorem set_refines_iff {κ : ℕ} (mem : MemImage κ) (r : SetRow K) (next : Re
 
 /-- The table's `Spec`: the row refines `SetRefines` over the image the prover data names. No
 program: the table is program-free (the module docstring). -/
-def SetSpec (r : SetRow K) (next : Regs K) (data : ProverData K) : Prop :=
+def SetSpec (r : SetRow K) (next : Registers K) (data : ProverData K) : Prop :=
   SetRefines (imageOf data).2 r next
 
 /-- The bytecode tuple of a row is `entry` of the instruction it names, by definition; spelled
@@ -127,9 +127,9 @@ private theorem setConstant_entry (o k0 k1 k2 : K) :
 /-- The `SET_CONSTANT` table (specification §7.3; `tables.rs:532-585`): state step, bytecode
 read of `(SET, o, k₀, k₁, k₂, 0, 0, 0)`, and the read of `fp·o` carrying the immediate. Returns
 the pushed successor `(g·pc, fp)`. -/
-def setTable : GeneralFormalCircuit K SetRow Regs where
+def setTable : GeneralFormalCircuit K SetRow Registers where
   main r := do
-    let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
+    let next : Var Registers K := ⟨Expression.const g * r.pc, r.fp⟩
     StatePull.pull ⟨r.pc, r.fp⟩
     StatePush.push next
     bytecodeRead r.pc r.rbc (Expression.const Opcode.setConstant.code)
@@ -177,7 +177,7 @@ def setRowOf (pc fp o : K) (k : E) (rc rbc : K) : SetRow K :=
 
 /-- A valid execution of `SET_CONSTANT o k` is represented by `setRowOf`, with any counts: the
 honest prover's row refines the relation, which is `ProverAssumptions` over the data. -/
-theorem setRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp o : K} {k : E} {next : Regs K}
+theorem setRowOf_refines {κ : ℕ} {mem : MemoryImage κ} {pc fp o : K} {k : E} {next : Registers K}
     (hexec : execute mem ⟨pc, fp⟩ (.setConstant o k) = some next) (rc rbc : K) :
     SetRefines mem (setRowOf pc fp o k rc rbc) next :=
   ⟨by
@@ -187,7 +187,7 @@ theorem setRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp o : K} {k : E} {n
 
 /-- Every valid `SET_CONSTANT` execution has a satisfying row, from the execution alone: the
 constraints of `main` hold of `setRowOf` in the row environment over the data. -/
-theorem set_exec_complete {data : ProverData K} {pc fp o : K} {k : E} {next : Regs K}
+theorem set_exec_complete {data : ProverData K} {pc fp o : K} {k : E} {next : Registers K}
     (hexec : execute (imageOf data).2 ⟨pc, fp⟩ (.setConstant o k) = some next) (rc rbc : K) :
     ConstraintsHold.Completeness (rowEnv data)
       ((setTable.main (const (setRowOf pc fp o k rc rbc))).operations 0) :=

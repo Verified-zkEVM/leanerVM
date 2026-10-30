@@ -28,7 +28,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 @[expose] public section
 
 section
-variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ)
+variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
 theorem verify_bus_gkr_holdsC {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel Lm.read)) :

@@ -182,7 +182,7 @@ def children : List ChildClaims :=
     e 0x3ec11935538c1f61 0x8c2e669b0342c798 0xfc5075f3232bba0e⟩⟩]
 
 /-- The Rust's batching hints (`bc_sumcheck_msgs`, `bc_star_hint`). -/
-def hints : BatchHints :=
+def hints : BatchingHints :=
   ⟨[(e 0xc017e4d826a6fba1 0xe44c604a5a99c28d 0x33324dd19ffd51aa, e 0xdd7cd9adf5c9fbd3 0x5fe66c407ef0535 0x914c4fca7a1d05ac),
   (e 0xb8737d92d767a490 0xe2de3024fca56e8e 0x739d1827ccb9a66b, e 0x9cef414dbd865643 0x2f57b83cc6b073aa 0xe45690de205de05a),
   (e 0xd79ed43254c1a6f 0xee27840598820467 0x6d925e3a372cf62b, e 0x6f0101e23e58076c 0x58be32b7dce3924 0x59b9eced15806189),

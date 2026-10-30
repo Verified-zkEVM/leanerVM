@@ -35,7 +35,7 @@ theorem runsTo_roundPolyNone (s : Fs) (claim c : E) (tail : List E) (count : ℕ
   have h2 := runsTo_readN (s.absorb c dsObserve) tail
   rw [h] at h2
   exact (h1.bind (f := fun constant ↦ do
-      let tail ← Prog.readN (count - 2)
+      let tail ← Prog.readScalars (count - 2)
       return constant :: (claim + sumE tail) :: tail)
     (h2.bind (f := fun t ↦ (pure (c :: (claim + sumE t) :: t) : Prog (List E)))
       (runsTo_ret _ _))).of_eq rfl (by simp) rfl rfl
@@ -57,7 +57,7 @@ theorem runsTo_sumcheck_cons {s s1 s2 : Fs} {claim : E} {count : ℕ} {eq : Opti
     (h2 : RunsTo (sumcheck (polyEval msg s1.squeeze.1) count eqs) s1.squeeze.2 ys (pt, fin) s2) :
     RunsTo (sumcheck claim count (eq :: eqs)) s (xs ++ ys) (s1.squeeze.1 :: pt, fin) s2 := by
   have h := h1.bind (f := fun message ↦ do
-      let challenge ← Prog.sampleE
+      let challenge ← Prog.sampleChallenge
       let (point, final) ← sumcheck (polyEval message challenge) count eqs
       return (challenge :: point, final))
     ((runsTo_sampleE s1).bind (f := fun challenge ↦ do
@@ -109,16 +109,16 @@ theorem batchRounds_run : ∀ (rounds : List (E × E)) (claim : E) (s : Fs) (sp 
         (claim + g1 + g1 + gInf)) * ((s.absorb g1 dsObserve).absorb gInf dsObserve).squeeze.1 +
         (claim + g1)) _ _ e2
     refine ⟨sp', h', ?_⟩
-    set X := Id.run (Compile.absorb (m := Id) keccakF
-      (Id.run (Compile.absorb (m := Id) keccakF sp g1 dsObserve)) gInf dsObserve) with hX
-    set c := (Id.run (Compile.squeeze (m := Id) keccakF X)).1 with hc
+    set X := Id.run (Compile.absorb (m := Id) keccakF1600
+      (Id.run (Compile.absorb (m := Id) keccakF1600 sp g1 dsObserve)) gInf dsObserve) with hX
+    set c := (Id.run (Compile.squeeze (m := Id) keccakF1600 X)).1 with hc
     have key : (Node.batchRounds claim ((g1, gInf) :: rest)).run sp =
         ((c :: ((Node.batchRounds ((gInf * c + (claim + g1 + g1 + gInf)) * c + (claim + g1))
-          rest).run (Id.run (Compile.squeeze (m := Id) keccakF X)).2).1.1,
+          rest).run (Id.run (Compile.squeeze (m := Id) keccakF1600 X)).2).1.1,
           ((Node.batchRounds ((gInf * c + (claim + g1 + g1 + gInf)) * c + (claim + g1))
-          rest).run (Id.run (Compile.squeeze (m := Id) keccakF X)).2).1.2),
+          rest).run (Id.run (Compile.squeeze (m := Id) keccakF1600 X)).2).1.2),
           ((Node.batchRounds ((gInf * c + (claim + g1 + g1 + gInf)) * c + (claim + g1))
-          rest).run (Id.run (Compile.squeeze (m := Id) keccakF X)).2).2) := rfl
+          rest).run (Id.run (Compile.squeeze (m := Id) keccakF1600 X)).2).2) := rfl
     rw [key, e1, hrun]
     rfl
 

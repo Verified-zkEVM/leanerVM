@@ -3,7 +3,7 @@
 
   The batching of a node's children as the guest program computes it, a `StateM Sponge`
   transcript (`Node.batch`): moved here from `Statement/LeanVmGuest.lean`, names kept, which states
-  the batching once, as the verifier program `Batch.batchOf` (`Batch.batchRun_batchOf_iff` relates
+  the batching once, as the verifier program `Batch.nodeBatchingProgram` (`Batch.batchRun_batchOf_iff` relates
   the two).
 -/
 
@@ -23,11 +23,11 @@ abbrev Chain : Type → Type := StateM Sponge
 
 /-- Absorb a scalar (`observe`). -/
 def observe (x : E) : Chain Unit :=
-  modify fun sp ↦ Id.run (Compile.absorb (m := Id) keccakF sp x dsObserve)
+  modify fun sp ↦ Id.run (Compile.absorb (m := Id) keccakF1600 sp x dsObserve)
 
 /-- Squeeze a challenge (`sample`). -/
 def sample : Chain E := do
-  let (c, sp) := Id.run (Compile.squeeze (m := Id) keccakF (← get))
+  let (c, sp) := Id.run (Compile.squeeze (m := Id) keccakF1600 (← get))
   set sp
   return c
 
@@ -41,32 +41,32 @@ def batchRounds : E → List (E × E) → Chain (List E × E)
     observe g1
     observe gInf
     let r ← sample
-    let (rs, final) ← batchRounds (Guest.Batch.roundPoly claim (g1, gInf) r) rest
+    let (rs, final) ← batchRounds (Guest.Batch.sumcheckRoundPolynomial claim (g1, gInf) r) rest
     return (r :: rs, final)
 
 /-- The batching transcript's initial state (`FiatShamirState::from_label`): Keccak-f of the
 label's hash in lanes `0..4`, the other lanes zero. The guest program bakes its capacity
 (`AGG_SEED_*`, `aggregation.rs:2511-2514`). -/
-def batchSeed : KState := keccakF (seedInput (keccak256 batchLabel) (Vector.replicate 4 0))
+def batchSeed : KeccakState := keccakF1600 (seedInput (keccak256 batchingLabel) (Vector.replicate 4 0))
 
 /-- **The batching**: one transcript absorbs the children's count, then every child's public
 input and claims, each group padded to a whole rate; it squeezes one challenge `λ`, whose powers
 `λ^(2i)`, `λ^(2i+1)` are child `i`'s coefficients (`lambdaPowers`), and one sumcheck reduces every
 child's two claims on the bytecode to one point. The claim deferred there, if the sumcheck
 closes. -/
-def batch (children : List ChildClaims) (h : BatchHints) : Option DeferredClaim :=
+def batch (children : List ChildClaims) (h : BatchingHints) : Option DeferredClaim :=
   go.run' ⟨batchSeed, []⟩
 where
   /-- The transcript. -/
   go : Chain (Option DeferredClaim) := do
-    for x in padRate [gpow children.length] do observe x
+    for x in padToRate [gpow children.length] do observe x
     for c in children do
-      for x in padRate c.words do observe x
+      for x in padToRate c.words do observe x
     let lam ← sample
     let lambdas := Guest.Batch.lambdaPowers lam children.length
-    let (r, final) ← batchRounds (Guest.Batch.claimBOf children lambdas) h.bytecodeRounds
-    if final = h.bytecodeValue * Guest.Batch.bytecodeWeight children lambdas r then
-      return some ⟨r, h.bytecodeValue⟩
+    let (r, final) ← batchRounds (Guest.Batch.batchedClaim children lambdas) h.sumcheckMessages
+    if final = h.finalBytecodeValue * Guest.Batch.batchedBytecodeWeight children lambdas r then
+      return some ⟨r, h.finalBytecodeValue⟩
     else return none
 
 end

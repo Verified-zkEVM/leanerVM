@@ -78,7 +78,7 @@ structure RowRec where
   /-- The pulled frame pointer. -/
   fp : K
   /-- The pushed successor. -/
-  next : Regs K
+  next : Registers K
   /-- The bytecode read count. -/
   rbc : K
   /-- The bytecode coordinates `(opcode, op₁, …, op₁₀)`. -/
@@ -94,7 +94,7 @@ def RowRec.sends (x : RowRec) : List (String × Array K) :=
   sendsOf x.pc x.fp x.next x.rbc x.e x.reads
 
 /-- The pulled state of a record. -/
-def RowRec.src (x : RowRec) : Regs K := ⟨x.pc, x.fp⟩
+def RowRec.src (x : RowRec) : Registers K := ⟨x.pc, x.fp⟩
 
 /-- A component's row in the environment `env` has the shape of an opcode-table row, with at
 most twenty-six memory reads, and under the table's assumptions, constraints and pull guarantees it is
@@ -114,7 +114,7 @@ def OpRow (c : Component K) (env : Environment K) : Prop :=
 
 /-- **A deployed step is a reduction-blind step**: the cells Keccak-f writes are canonical with
 their free limb zero. -/
-theorem executeWithB_free_of_executeWith {read : K → Option E} {r next : Regs K} {ins : Instr}
+theorem executeWithB_free_of_executeWith {read : K → Option E} {r next : Registers K} {ins : Instr}
     (h : executeWith read r ins = some next) : executeWithB keccakFree read r ins = some next := by
   cases ins with
   | keccak om otail ob8 ocap oout inOdd outOdd =>
@@ -236,12 +236,12 @@ set_option maxHeartbeats 16000000 in
 /-- **The `KECCAK` table without its assumption**: the same row circuit, sound for the flags, the
 bindings and the fall-through alone, whatever the output lanes hold (the reduction-blind reading
 of a row). -/
-def keccakTableFree : GeneralFormalCircuit K KeccakRow Regs :=
+def keccakTableFree : GeneralFormalCircuit K KeccakRow Registers :=
   { keccakTable with
     Assumptions := fun _ _ ↦ True
     Spec := fun r next data ↦ (∃ inOdd outOdd : Bool, r.oddIn = flagK inOdd ∧
       r.oddOut = flagK outOdd ∧ KeccakBindings (imageOf data).2 r inOdd outOdd) ∧
-      next = Regs.next ⟨r.pc, r.fp⟩
+      next = Registers.next ⟨r.pc, r.fp⟩
     soundness := by
       circuit_proof_start [keccakTable, StatePull, StatePush, MemPull, MemPush, BytecodePull,
         BytecodePush, memRead, bytecodeRead]
@@ -294,11 +294,11 @@ theorem canonicalKeccak_laneCells (L L' : Fin 25 → K) (inOdd outOdd : Bool) (f
   · cases outOdd <;> simp [FreeLimbZero, laneCells, cellLanes, laneLimb, limb_ofLimbs]
 
 /-- A bound `KECCAK` row executes under the reduction-blind semantics. -/
-theorem keccak_free_exec {κ : ℕ} {mem : MemImage κ} {r : KeccakRow K} {inOdd outOdd : Bool}
+theorem keccak_free_exec {κ : ℕ} {mem : MemoryImage κ} {r : KeccakRow K} {inOdd outOdd : Bool}
     (h : KeccakBindings mem r inOdd outOdd) :
     executeWithB keccakFree mem.read ⟨r.pc, r.fp⟩
       (.keccak r.oms r.otail r.ob8 r.ocap r.oout inOdd outOdd) =
-        some (Regs.next ⟨r.pc, r.fp⟩) := by
+        some (Registers.next ⟨r.pc, r.fp⟩) := by
   have hin := (readCells_eq_some_iff mem.read r.fp (keccakInOffset r.oms r.otail r.ob8 r.ocap)
     (laneCells r.inLanes inOdd r.free)).mpr h.in_eq
   have hout := (readCells_eq_some_iff mem.read r.fp (fun c ↦ g ^ c.val * r.oout)
@@ -373,7 +373,7 @@ selected by the indicator `b`, the local witness at slot `n + 1`. -/
 theorem jump_output_gen (x : Var JumpRow K) (env : Environment K) (n : ℕ) (r : JumpRow K)
     (hx : eval env x = r) (b : K) (hb : env.get (n + 1) = b) :
     eval env ((jumpTable.main x).output n) =
-      (⟨b * r.vpc + b * (g * r.pc) + g * r.pc, b * r.vfp + b * r.fp + r.fp⟩ : Regs K) := by
+      (⟨b * r.vpc + b * (g * r.pc) + g * r.pc, b * r.vfp + b * r.fp + r.fp⟩ : Registers K) := by
   subst hx
   obtain ⟨pc, fp, oc, od, of, vcond, vpc, vfp, rc, rd, rf, rbc⟩ := x
   dsimp only [jumpTable]

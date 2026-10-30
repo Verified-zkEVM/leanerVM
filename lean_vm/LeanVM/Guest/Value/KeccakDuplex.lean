@@ -106,7 +106,7 @@ theorem rateCell_past (ps : List (E × ℕ)) {c : ℕ} (hc : 2 * ps.length ≤ c
 /-! ## The duplex step -/
 
 /-- The cells of a duplex step's input hold `duplexInput`. -/
-theorem stateOfCells_duplex {S : KState} {pending : List (E × ℕ)} {I : Fin 13 → E}
+theorem stateOfCells_duplex {S : KeccakState} {pending : List (E × ℕ)} {I : Fin 13 → E}
     (hrate : ∀ c : Fin 13, c.val < 8 → I c = rateCell pending c)
     (hcap : ∀ c : Fin 13, 8 ≤ c.val → I c = cellsOfState S false c) :
     stateOfCells I false = Compile.duplexInput ⟨S, pending⟩ := by
@@ -135,34 +135,34 @@ theorem stateOfCells_duplex {S : KState} {pending : List (E × ℕ)} {I : Fin 13
 `fs_perm_pending`): a `KECCAK` in the even layouts whose rate cells `0..7` are the waiting
 scalars' (`rateCell`) and whose cells `8..12` are those of a state `S` writes the cells of
 `keccakF (duplexInput ⟨S, pending⟩)`. -/
-theorem keccak_duplex {S : KState} {pending : List (E × ℕ)} {I O : Fin 13 → E}
+theorem keccak_duplex {S : KeccakState} {pending : List (E × ℕ)} {I O : Fin 13 → E}
     (hrate : ∀ c : Fin 13, c.val < 8 → I c = rateCell pending c)
     (hcap : ∀ c : Fin 13, 8 ≤ c.val → I c = cellsOfState S false c)
-    (hK : KeccakCells I false O false) :
-    O = cellsOfState (keccakF (Compile.duplexInput ⟨S, pending⟩)) false := by
+    (hK : KeccakCellsRelation I false O false) :
+    O = cellsOfState (keccakF1600 (Compile.duplexInput ⟨S, pending⟩)) false := by
   funext c
   rw [hK.2 c, stateOfCells_duplex hrate hcap]
 
 /-- `duplex` with Keccak-f. -/
 theorem duplex_id (sp : Compile.Sponge) :
-    Compile.duplex (m := Id) keccakF sp = ⟨keccakF (Compile.duplexInput sp), []⟩ := rfl
+    Compile.duplex (m := Id) keccakF1600 sp = ⟨keccakF1600 (Compile.duplexInput sp), []⟩ := rfl
 
 /-- `squeeze` with Keccak-f: a permutation, its challenge. -/
 theorem squeeze_id (sp : Compile.Sponge) :
-    Compile.squeeze (m := Id) keccakF sp =
-      (Compile.challengeOf (keccakF (Compile.duplexInput sp)),
-        ⟨keccakF (Compile.duplexInput sp), []⟩) :=
+    Compile.squeeze (m := Id) keccakF1600 sp =
+      (Compile.challengeOf (keccakF1600 (Compile.duplexInput sp)),
+        ⟨keccakF1600 (Compile.duplexInput sp), []⟩) :=
   rfl
 
 /-- `absorb` below a full queue appends. -/
 theorem absorb_id_lt (sp : Compile.Sponge) (x : E) (t : ℕ) (h : sp.pending.length < 4) :
-    Compile.absorb (m := Id) keccakF sp x t = { sp with pending := sp.pending ++ [(x, t)] } := by
+    Compile.absorb (m := Id) keccakF1600 sp x t = { sp with pending := sp.pending ++ [(x, t)] } := by
   simp [Compile.absorb, Compile.rateScalars, show sp.pending.length ≠ 4 by omega]
   rfl
 
 /-- `absorb` at a full queue permutes first. -/
 theorem absorb_id_full (sp : Compile.Sponge) (x : E) (t : ℕ) (h : sp.pending.length = 4) :
-    Compile.absorb (m := Id) keccakF sp x t = ⟨keccakF (Compile.duplexInput sp), [(x, t)]⟩ := by
+    Compile.absorb (m := Id) keccakF1600 sp x t = ⟨keccakF1600 (Compile.duplexInput sp), [(x, t)]⟩ := by
   simp [Compile.absorb, Compile.rateScalars, h]
   rfl
 
@@ -170,14 +170,14 @@ theorem absorb_id_full (sp : Compile.Sponge) (x : E) (t : ℕ) (h : sp.pending.l
 
 /-- **`challenge_from_state`** (G:521-530): the challenge of a state is its cell `0` plus `y²` times
 the low limb of its cell `1` (which the guest hints and pins by `assert_in_k`, `split_iff`). -/
-theorem challengeOf_cells (S : KState) :
+theorem challengeOf_cells (S : KeccakState) :
     Compile.challengeOf S =
       cellsOfState S false 0 + y * y * ofK ((cellsOfState S false 1).limb 0) := by
   rw [add_y_mul_y_mul_ofK]
   simp [Compile.challengeOf, cellsOfState, cellLanes]
 
 /-- The first limb of a challenge (`powOk`, `grind_check`) is cell `0`'s. -/
-theorem challengeOf_limb0 (S : KState) :
+theorem challengeOf_limb0 (S : KeccakState) :
     (Compile.challengeOf S).limb 0 = (cellsOfState S false 0).limb 0 := rfl
 
 /-- A `K` literal's lane. -/

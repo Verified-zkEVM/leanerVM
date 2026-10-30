@@ -69,7 +69,7 @@ theorem vt_pushPad_var {rd : Reader} {σ : Val} (h : VtH rd σ) :
   rw [a5, a4, a3, a2, a1, tb_word_one]
 
 section
-variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ)
+variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
 set_option maxHeartbeats 1000000 in

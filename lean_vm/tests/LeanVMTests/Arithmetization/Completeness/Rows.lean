@@ -31,15 +31,15 @@ theorem xor_row_sends (cnt : ℕ → K) (rbc : K) (data : ProverData K) :
     rowSends (opComponent (Instr.xor (gpow 0) (gpow 0) (gpow 0)).opcode)
         (Environment.fromArray
           (rowOf zeroImage (gpow 5) 1 cnt rbc (.xor (gpow 0) (gpow 0) (gpow 0))) data) =
-      sendsOf (gpow 5) 1 (Regs.next ⟨gpow 5, 1⟩) rbc (entry (.xor (gpow 0) (gpow 0) (gpow 0)))
+      sendsOf (gpow 5) 1 (Registers.next ⟨gpow 5, 1⟩) rbc (entry (.xor (gpow 0) (gpow 0) (gpow 0)))
         (readsOf zeroImage 1 cnt (.xor (gpow 0) (gpow 0) (gpow 0))) :=
   rowOf_sends zeroImage_xor cnt rbc data
 
 /-- The state pull is `(pc, fp)` and the push the fall-through. -/
 example (rbc : K) (e : Vector K 11) (reads : List (K × K × Vector K 3)) :
-    (sendsOf (gpow 5) 1 (Regs.next ⟨gpow 5, 1⟩) rbc e reads).take 2 =
+    (sendsOf (gpow 5) 1 (Registers.next ⟨gpow 5, 1⟩) rbc e reads).take 2 =
       [(StatePull.name, #[gpow 5, 1]), (StatePush.name, #[g * gpow 5, 1])] := by
-  simp only [sendsOf, List.cons_append, List.take_succ_cons, List.take_zero, Regs.next]
+  simp only [sendsOf, List.cons_append, List.take_succ_cons, List.take_zero, Registers.next]
 
 /-- The three cells an `XOR` reads, in the circuit's order. -/
 example : readAddrs zeroImage 1 (.xor (gpow 0) (gpow 1) (gpow 2)) =
@@ -47,7 +47,7 @@ example : readAddrs zeroImage 1 (.xor (gpow 0) (gpow 1) (gpow 2)) =
 
 /-- A `DEREF` reads its target at `p · o₂`, with `p` the word at `fp · o₁`, not at `fp · o₂`; the
 pointer, the target, then the local cell, the deployed order (`tables.rs:675-680`). -/
-example {κ : ℕ} (mem : MemImage κ) (fp o1 o2 o3 : K) (m : DerefMode) :
+example {κ : ℕ} (mem : MemoryImage κ) (fp o1 o2 o3 : K) (m : DerefMode) :
     readAddrs mem fp (.deref o1 o2 o3 m) = [fp * o1, (mem.limbsAt (fp * o1))[0] * o2, fp * o3] :=
   rfl
 
@@ -60,7 +60,7 @@ example : execute (badImage d₀) ⟨gpow 5, 1⟩ (.xor (gpow 0) (gpow 0) (gpow 
 /-- The row `xor_exec_sends` would describe is not `sendsOf` there: the third read of the row
 carries `v_A + v_B`, the cell's limbs plus themselves, which in characteristic two is `0`, while
 the image holds `y = (0, 1, 0)` at that cell. -/
-theorem xor_row_not_sendsOf (next : Regs K) (rA rB rC rbc : K) (data : ProverData K) :
+theorem xor_row_not_sendsOf (next : Registers K) (rA rB rC rbc : K) (data : ProverData K) :
     rowSends ⟨xorTable⟩
         (Environment.fromArray
           (rawRow (xorRowOf (badImage d₀) (gpow 5) 1 (gpow 0) (gpow 0) (gpow 0) rA rB rC rbc))

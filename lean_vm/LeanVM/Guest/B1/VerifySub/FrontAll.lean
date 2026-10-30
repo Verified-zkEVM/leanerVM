@@ -47,7 +47,7 @@ structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : T
   hseed : (σ (.n 2), σ (.n 3)) = digestScalars seed
   hpi : (σ (.n 0), σ (.n 1)) = digestScalars pi
   hcap0 : [σ (.n 22), σ (.n 23), σ (.n 24), σ (.n 25), σ (.n 26)] =
-    capOf (keccakF (seedInput seed pi))
+    capOf (keccakF1600 (seedInput seed pi))
   h10 : σ (.n 10) = 0
   h11 : σ (.n 11) = 0
   h12 : σ (.n 12) = 0
@@ -171,7 +171,7 @@ theorem tableHeights_length (rowsN : List ℕ) (h : rowsN.length = 6) :
   simp [Tables.tableHeightsOf, h, tableLogFloors]
 
 /-- **`verify_sub`'s front.** -/
-theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ) {C : CallRel}
+theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ) {C : CallRel}
     (hC : CallRel.Le C (coreProgram.Rel L.read)) (bytecode : List K)
     (hgkr : Tables.verify_bus_gkr_SpecC L.read C) (htab : Tables.verify_tables_SpecC bytecode L.read C)
     {σ : Val} {next : Prop} {kret : List E → Prop}

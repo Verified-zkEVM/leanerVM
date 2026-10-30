@@ -31,28 +31,28 @@ namespace LeanDa
 def hPart (c : TSpec.QueryCache) : HCache := QueryCache.ofFn fun a ↦ c (.inr a)
 
 /-- The challenges part of a cache. -/
-def gPart (c : TSpec.QueryCache) : (Common.KDigest →ₒ Challenges).QueryCache :=
+def gPart (c : TSpec.QueryCache) : (Common.DigestBytes →ₒ Challenges).QueryCache :=
   QueryCache.ofFn fun d ↦ c (.inl d)
 
 /-- A cache with no short string of `H`. -/
 def NoShort (c : TSpec.QueryCache) : Prop := ∀ a, shortP a → c (.inr a) = none
 
-theorem hPart_cacheQuery_inr (c : TSpec.QueryCache) (a : List UInt8) (u : KDigest) :
+theorem hPart_cacheQuery_inr (c : TSpec.QueryCache) (a : List UInt8) (u : DigestBytes) :
     hPart (c.cacheQuery (.inr a) u) = (hPart c).cacheQuery a u := by
   ext b
   by_cases h : b = a
   · subst h; simp [hPart]
   · simp [hPart, h]
 
-theorem gPart_cacheQuery_inr (c : TSpec.QueryCache) (a : List UInt8) (u : KDigest) :
+theorem gPart_cacheQuery_inr (c : TSpec.QueryCache) (a : List UInt8) (u : DigestBytes) :
     gPart (c.cacheQuery (.inr a) u) = gPart c := by
   ext d; simp [gPart]
 
-theorem hPart_cacheQuery_inl (c : TSpec.QueryCache) (d : Common.KDigest) (u : Challenges) :
+theorem hPart_cacheQuery_inl (c : TSpec.QueryCache) (d : Common.DigestBytes) (u : Challenges) :
     hPart (c.cacheQuery (.inl d) u) = hPart c := by
   ext a; simp [hPart]
 
-theorem gPart_cacheQuery_inl (c : TSpec.QueryCache) (d : Common.KDigest) (u : Challenges) :
+theorem gPart_cacheQuery_inl (c : TSpec.QueryCache) (d : Common.DigestBytes) (u : Challenges) :
     gPart (c.cacheQuery (.inl d) u) = (gPart c).cacheQuery d u := by
   ext e
   by_cases h : e = d
@@ -61,8 +61,8 @@ theorem gPart_cacheQuery_inl (c : TSpec.QueryCache) (d : Common.KDigest) (u : Ch
 
 /-- **`H` sampled in advance on short strings is `H` from a table in Wagner's world.** -/
 theorem run'_eagerImpl_tImpl (h : HTab) {α : Type} (Z : OracleComp (unifSpec + TSpec) α) :
-    (simulateQ (eagerImpl (hs := Common.KDigest →ₒ Challenges) shortP h) Z).run' ∅ =ᵈ
-      (simulateQ (Common.KDigest →ₒ Challenges).romImpl ((simulateQ (tImpl h) Z).run' ∅)).run' ∅ := by
+    (simulateQ (eagerImpl (hs := Common.DigestBytes →ₒ Challenges) shortP h) Z).run' ∅ =ᵈ
+      (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl ((simulateQ (tImpl h) Z).run' ∅)).run' ∅ := by
   rw [run'_simulateQ_foldWith]
   have h0 : (fun c : TSpec.QueryCache ↦ (hPart c, gPart c)) ∅ = (∅, ∅) := by
     simp only [Prod.mk.injEq]; constructor <;> ext <;> rfl
@@ -93,16 +93,16 @@ theorem run'_eagerImpl_tImpl (h : HTab) {α : Type} (Z : OracleComp (unifSpec + 
     · change _ <$> (unifFwdImpl _ k).run c =ᵈ _
       rw [unifFwd_run, foldWith_run]
       simp only [tImpl, StateT.run_mk, simulateQ_map, StateT.run_map, Functor.map_map]
-      rw [simulateQ_spec_query, show ((Common.KDigest →ₒ Challenges).romImpl (.inl k)).run (gPart c) =
+      rw [simulateQ_spec_query, show ((Common.DigestBytes →ₒ Challenges).romImpl (.inl k)).run (gPart c) =
         (·, gPart c) <$> (unifSpec.query k : ProbComp _) from
-        unifFwdImpl.simulateQ_run (hashSpec := Common.KDigest →ₒ Challenges)
+        unifFwdImpl.simulateQ_run (hashSpec := Common.DigestBytes →ₒ Challenges)
           (unifSpec.query k : ProbComp (Fin (k + 1))) (gPart c), Functor.map_map]
       exact EvalDistEq.rfl
     · rw [foldWith_run]
       simp only [tImpl, StateT.run_mk, simulateQ_map, StateT.run_map, Functor.map_map]
       rw [simulateQ_spec_query, romImpl_apply_inr]
       change _ <$> (TSpec.randomOracle (.inl d)).run c =ᵈ
-        _ <$> ((Common.KDigest →ₒ Challenges).randomOracle d).run (gPart c)
+        _ <$> ((Common.DigestBytes →ₒ Challenges).randomOracle d).run (gPart c)
       rw [randomOracle.run_eq, randomOracle.run_eq]
       have e : (gPart c) d = c (.inl d) := rfl
       rw [e]
@@ -142,11 +142,11 @@ theorem length_cellBytes (x : Cell) : (cellBytes x).length = 2048 := by
   rw [cellBytes, List.length_flatMap]
   simp only [length_kBytes, List.map_const', List.length_ofFn, List.sum_replicate, smul_eq_mul]
 
-theorem length_pairBytes (a b : Common.KDigest) : (pairBytes a b).length = 64 := by
+theorem length_pairBytes (a b : Common.DigestBytes) : (pairBytes a b).length = 64 := by
   simp [pairBytes]
 
-theorem walkM_congr {H₁ H₂ : List UInt8 → m Common.KDigest} (hH : ∀ a, shortP a → H₁ a = H₂ a)
-    (idx : ℕ) (node : Common.KDigest) (path : List Common.KDigest) :
+theorem walkM_congr {H₁ H₂ : List UInt8 → m Common.DigestBytes} (hH : ∀ a, shortP a → H₁ a = H₂ a)
+    (idx : ℕ) (node : Common.DigestBytes) (path : List Common.DigestBytes) :
     walkM H₁ idx node path = walkM H₂ idx node path := by
   induction path generalizing idx node with
   | nil => rfl
@@ -155,8 +155,8 @@ theorem walkM_congr {H₁ H₂ : List UInt8 → m Common.KDigest} (hH : ∀ a, s
     rw [hH _ (by split <;> simp [shortP, length_pairBytes])]
     exact bind_congr fun d ↦ ih _ _
 
-theorem verifyCellM_congr {H₁ H₂ : List UInt8 → m Common.KDigest} (hH : ∀ a, shortP a → H₁ a = H₂ a)
-    (r : ℕ) (com : Common.KDigest) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
+theorem verifyCellM_congr {H₁ H₂ : List UInt8 → m Common.DigestBytes} (hH : ∀ a, shortP a → H₁ a = H₂ a)
+    (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
     verifyCellM H₁ r com p x τ = verifyCellM H₂ r com p x τ := by
   simp only [verifyCellM]
   rw [hH _ (by simp [shortP, length_cellBytes])]
@@ -165,7 +165,7 @@ theorem verifyCellM_congr {H₁ H₂ : List UInt8 → m Common.KDigest} (hH : �
   refine bind_congr fun w ↦ ?_
   rw [hH _ (by simp [shortP, length_pairBytes])]
 
-theorem walkM_pure (H : List UInt8 → Common.KDigest) (idx : ℕ) (node : Common.KDigest) (path : List Common.KDigest) :
+theorem walkM_pure (H : List UInt8 → Common.DigestBytes) (idx : ℕ) (node : Common.DigestBytes) (path : List Common.DigestBytes) :
     walkM (m := m) (fun a ↦ pure (H a)) idx node path = pure (walk H idx node path) := by
   induction path generalizing idx node with
   | nil => rfl
@@ -173,7 +173,7 @@ theorem walkM_pure (H : List UInt8 → Common.KDigest) (idx : ℕ) (node : Commo
     simp only [walkM, pure_bind, ih, walk_cons]
 
 /-- **Over a pure hash, the verification is `verifyCell`**, in any monad. -/
-theorem verifyCellM_pure (H : List UInt8 → Common.KDigest) (r : ℕ) (com : Common.KDigest) (p : Fin (r * 128))
+theorem verifyCellM_pure (H : List UInt8 → Common.DigestBytes) (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128))
     (x : Cell) (τ : Opening) :
     verifyCellM (m := m) (fun a ↦ pure (H a)) r com p x τ = pure (verifyCell H r com p x τ) := by
   simp only [verifyCellM, pure_bind, walkM_pure, verifyCell, cellDigest]
@@ -194,21 +194,21 @@ end Short
 /-! ## The simulated world from a table of `H` -/
 
 /-- A query of Wagner's random oracle, as his scheme makes it. -/
-noncomputable abbrev wQ (d : Common.KDigest) : OracleComp WSpec Challenges :=
-  HasQuery.query (spec := (Common.KDigest →ₒ Challenges)) d
+noncomputable abbrev wQ (d : Common.DigestBytes) : OracleComp WSpec Challenges :=
+  HasQuery.query (spec := (Common.DigestBytes →ₒ Challenges)) d
 
-theorem wQ_eq (d : Common.KDigest) : wQ d = liftM (WSpec.query (.inr d)) := rfl
+theorem wQ_eq (d : Common.DigestBytes) : wQ d = liftM (WSpec.query (.inr d)) := rfl
 
 /-- The challenges of a root read component by component from Wagner's random oracle. -/
-noncomputable def readVecW (d : Common.KDigest) : OracleComp WSpec Challenges :=
+noncomputable def readVecW (d : Common.DigestBytes) : OracleComp WSpec Challenges :=
   (fun l j ↦ l.getD j default) <$> (List.finRange 14).mapM fun j ↦ (fun v : Challenges ↦ v j) <$> wQ d
 
 theorem simulateQ_phiG (h : HTab) {α : Type}
-    (X : OracleComp (unifSpec + GSpec (List UInt8) KDigest Common.KDigest E 14) α) :
+    (X : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14) α) :
     simulateQ (tImpl h) (simulateQ swapImpl (simulateQ toV X)) = simulateQ (phiG h) X := by
   rw [phiG, QueryImpl.simulateQ_compose, QueryImpl.simulateQ_compose]
 
-theorem phiG_G_run (h : HTab) (d : Common.KDigest) (j : Fin 14) (s : HCache) :
+theorem phiG_G_run (h : HTab) (d : Common.DigestBytes) (j : Fin 14) (s : HCache) :
     (phiG h (.inr (.inr (d, j)))).run s = (fun v : Challenges ↦ (v j, s)) <$> wQ d := by
   simp only [phiG, QueryImpl.apply_compose, toV, simulateQ_map, simulateQ_spec_query, swapImpl,
     tImpl, StateT.run_map, StateT.run_mk, Functor.map_map]
@@ -219,15 +219,15 @@ theorem phiG_H_run (h : HTab) (a : List UInt8) (ha : shortP a) (s : HCache) :
   simp only [phiG, QueryImpl.apply_compose, toV, simulateQ_spec_query, swapImpl, tImpl, ha,
     ↓reduceDIte, StateT.run_mk, Hh]
 
-theorem run_readVec_phiG (h : HTab) (d : Common.KDigest) (s : HCache) :
-    (simulateQ (phiG h) (readVec (Msg := List UInt8) (Dg := KDigest) (n := 14) d)).run s =
+theorem run_readVec_phiG (h : HTab) (d : Common.DigestBytes) (s : HCache) :
+    (simulateQ (phiG h) (readVec (Msg := List UInt8) (Dg := DigestBytes) (n := 14) d)).run s =
       (·, s) <$> readVecW d := by
   rw [readVec, simulateQ_map, StateT.run_map]
   have hp : ∀ {α} (a : α), simulateQ (phiG h) (pure a :
-      OracleComp (unifSpec + GSpec (List UInt8) KDigest Common.KDigest E 14) α) = pure a :=
+      OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14) α) = pure a :=
     fun a ↦ simulateQ_pure _ a
-  have hb : ∀ {α β} (x : OracleComp (unifSpec + GSpec (List UInt8) KDigest Common.KDigest E 14) α)
-      (f : α → OracleComp (unifSpec + GSpec (List UInt8) KDigest Common.KDigest E 14) β),
+  have hb : ∀ {α β} (x : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14) α)
+      (f : α → OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14) β),
       simulateQ (phiG h) (x >>= f) = simulateQ (phiG h) x >>= fun a ↦ simulateQ (phiG h) (f a) :=
     fun x f ↦ simulateQ_bind _ x f
   rw [mapM_map (fun x ↦ simulateQ (phiG h) x) hp hb,
@@ -238,31 +238,31 @@ theorem run_readVec_phiG (h : HTab) (d : Common.KDigest) (s : HCache) :
 
 /-- The win of the openings with the hash of the table `h` and the challenges `l`. -/
 noncomputable def postP (r : ℕ) {Crs Proof : Type}
-    {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (h : HTab)
-    (crs : Crs) (out : (Common.KDigest × Proof) × List (Fin (r * 128) × Cell × Opening)) (l : Challenges) :
+    {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (h : HTab)
+    (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) (l : Challenges) :
     Bool :=
   cbWin r out (out.2.map fun o ↦ verifyCell (Hh h) r out.1.1 o.1 o.2.1 o.2.2)
     (ps.verify crs ((), out.1.1, l) out.1.2)
 
 theorem run_postV_phiG (r : ℕ) {Crs Proof : Type}
-    {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (h : HTab)
-    (crs : Crs) (out : (Common.KDigest × Proof) × List (Fin (r * 128) × Cell × Opening)) (l : Challenges)
+    {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (h : HTab)
+    (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) (l : Challenges)
     (s : HCache) :
     (simulateQ (phiG h) (simulateQ embG (postV r ps crs out l))).run s =
       pure (postP r ps h crs out l, s) := by
   rw [← QueryImpl.simulateQ_compose]
   have hp : ∀ {α} (a : α), simulateQ (phiG h ∘ₛ embG) (pure a :
-      OracleComp (unifSpec + roSpec (List UInt8) KDigest) α) = pure a :=
+      OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α) = pure a :=
     fun a ↦ simulateQ_pure _ a
-  have hb : ∀ {α β} (x : OracleComp (unifSpec + roSpec (List UInt8) KDigest) α)
-      (f : α → OracleComp (unifSpec + roSpec (List UInt8) KDigest) β),
+  have hb : ∀ {α β} (x : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α)
+      (f : α → OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) β),
       simulateQ (phiG h ∘ₛ embG) (x >>= f) =
         simulateQ (phiG h ∘ₛ embG) x >>= fun a ↦ simulateQ (phiG h ∘ₛ embG) (f a) :=
     fun x f ↦ simulateQ_bind _ x f
   have hHs : ∀ a, shortP a → simulateQ (phiG h ∘ₛ embG) (LeanDa.hH a) =
-      (pure (Hh h a) : StateT HCache (OracleComp WSpec) Common.KDigest) := by
+      (pure (Hh h a) : StateT HCache (OracleComp WSpec) Common.DigestBytes) := by
     intro a ha
     rw [LeanDa.hH, simulateQ_spec_query, QueryImpl.apply_compose]
     simp only [embG]
@@ -283,8 +283,8 @@ theorem run_postV_phiG (r : ℕ) {Crs Proof : Type}
 
 section Adversary
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
 
 theorem fixCrs_of_mem {crs : Crs} (h : crs ∈ support ps.setup) : fixCrs r ps crs = crs := by
   classical
@@ -308,7 +308,7 @@ noncomputable def gameW (A : CodeBindingAdvB r Crs Proof) (h : HTab) (crs : Crs)
 theorem cbIdealG_evalDistEq (A : CodeBindingAdvB r Crs Proof) {crs : Crs}
     (hcrs : crs ∈ support ps.setup) :
     cbIdealG r ps A crs =ᵈ ($ᵗ HTab >>= fun h ↦
-      (simulateQ (Common.KDigest →ₒ Challenges).romImpl (gameW r ps A h crs)).run' ∅) := by
+      (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl (gameW r ps A h crs)).run' ∅) := by
   rw [cbIdealG]
   refine (run'_romImpl_evalDistEq_vec _).trans ?_
   refine (run'_romImpl_evalDistEq_swap _ _).trans ?_
@@ -318,7 +318,7 @@ theorem cbIdealG_evalDistEq (A : CodeBindingAdvB r Crs Proof) {crs : Crs}
   rw [simulateQ_phiG]
   have e : (simulateQ (phiG h) ((simulateQ (simImpl daDuplex hP gaP)
       (hQ (St := KState) daDuplex.label >>= fun _ ↦ advS2 keccakPadding KState.zero (A ((), crs)))).run'
-        SimSt.init >>= fun out ↦ readVec (Msg := List UInt8) (Dg := KDigest) out.1.1 >>= fun l ↦
+        SimSt.init >>= fun out ↦ readVec (Msg := List UInt8) (Dg := DigestBytes) out.1.1 >>= fun l ↦
           simulateQ embG (postV r ps crs out l))).run' ∅ = gameW r ps A h crs := by
     rw [gameW, advH, fixCrs_of_mem r ps hcrs, ← advSim, simulateQ_bind, StateT.run'_eq,
       StateT.run_bind, StateT.run'_eq, map_bind, bind_map_left]
@@ -338,19 +338,19 @@ section Verify
 variable (r : ℕ) {Crs Proof : Type}
 
 /-- Wagner's verification of the openings, the challenges queried for each. -/
-noncomputable def verifyW (H : List UInt8 → Common.KDigest) (ps : WArgument r H Crs Proof) (crs : Crs)
-    (out : (Common.KDigest × Proof) × List (Fin (r * 128) × Cell × Opening)) : OracleComp WSpec Bool := do
+noncomputable def verifyW (H : List UInt8 → Common.DigestBytes) (ps : WArgument r H Crs Proof) (crs : Crs)
+    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) : OracleComp WSpec Bool := do
   let vs ← out.2.mapM fun p ↦ (fun l ↦ ps.verify crs ((), out.1.1, l) out.1.2 &&
     verifyCell H r out.1.1 p.1 p.2.1 p.2.2) <$> wQ out.1.1
   pure (vs.all id && !decide ((code r).Consistent (out.2.map fun p ↦ (p.1, p.2.1))))
 
 /-- **Wagner's code-binding experiment for LeanDA** as a probability. -/
-theorem codeBindingExp_eq (H : List UInt8 → Common.KDigest) (ps : WArgument r H Crs Proof)
+theorem codeBindingExp_eq (H : List UInt8 → Common.DigestBytes) (ps : WArgument r H Crs Proof)
     (A : ErasureCodeCommitment.CodeBindingAdv (OracleComp WSpec) Cell (r * 128) (Unit × Crs)
-      (Common.KDigest × Proof) Opening) :
-    (leanDa r H ps).codeBindingExp (code r) (roRuntime Common.KDigest Challenges) A {true} =
+      (Common.DigestBytes × Proof) Opening) :
+    (leanDa r H ps).codeBindingExp (code r) (roRuntime Common.DigestBytes Challenges) A {true} =
       Pr{let b ← ps.setup >>= fun crs ↦
-        (simulateQ (Common.KDigest →ₒ Challenges).romImpl (A ((), crs) >>= verifyW r H ps crs)).run' ∅}[
+        (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl (A ((), crs) >>= verifyW r H ps crs)).run' ∅}[
           b = true] := by
   unfold ErasureCodeCommitment.codeBindingExp
   rw [← evalDist_simulateRom, evalDist_singleton_eq_prEvent]
@@ -363,15 +363,15 @@ theorem codeBindingExp_eq (H : List UInt8 → Common.KDigest) (ps : WArgument r 
   simp only [simulateRomWithCache, map_eq_bind_pure_comp, Function.comp_def]
   rfl
 
-abbrev WCache := (Common.KDigest →ₒ Challenges).QueryCache
+abbrev WCache := (Common.DigestBytes →ₒ Challenges).QueryCache
 
-theorem run_wQ (d : Common.KDigest) (c : WCache) :
-    (simulateQ (Common.KDigest →ₒ Challenges).romImpl (wQ d)).run c = roStep d c :=
-  run_hq (hs := Common.KDigest →ₒ Challenges) d c
+theorem run_wQ (d : Common.DigestBytes) (c : WCache) :
+    (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl (wQ d)).run c = roStep d c :=
+  run_hq (hs := Common.DigestBytes →ₒ Challenges) d c
 
-theorem run_mapM_wQ_cached {β γ : Type} (d : Common.KDigest) (f : β → Challenges → γ) (l : List β)
+theorem run_mapM_wQ_cached {β γ : Type} (d : Common.DigestBytes) (f : β → Challenges → γ) (l : List β)
     (c : WCache) (v : Challenges) (hc : c d = some v) :
-    (simulateQ (Common.KDigest →ₒ Challenges).romImpl (l.mapM fun b ↦ f b <$> wQ d)).run c =
+    (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl (l.mapM fun b ↦ f b <$> wQ d)).run c =
       pure (l.map fun b ↦ f b v, c) := by
   induction l with
   | nil => rfl
@@ -381,9 +381,9 @@ theorem run_mapM_wQ_cached {β γ : Type} (d : Common.KDigest) (f : β → Chall
       List.map_cons]
 
 /-- **Queries of one root's challenges**: the first is a random-oracle step, the others hit. -/
-theorem run_mapM_wQ {β γ : Type} (d : Common.KDigest) (f : β → Challenges → γ) (b₀ : β) (l : List β)
+theorem run_mapM_wQ {β γ : Type} (d : Common.DigestBytes) (f : β → Challenges → γ) (b₀ : β) (l : List β)
     (c : WCache) :
-    (simulateQ (Common.KDigest →ₒ Challenges).romImpl ((b₀ :: l).mapM fun b ↦ f b <$> wQ d)).run c =ᵈ
+    (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl ((b₀ :: l).mapM fun b ↦ f b <$> wQ d)).run c =ᵈ
       (fun w ↦ ((b₀ :: l).map fun b ↦ f b w.1, w.2)) <$> roStep d c := by
   rw [List.mapM_cons]
   simp only [simulateQ_bind, StateT.run_bind, run_wQ, bind_map_left, simulateQ_pure,
@@ -399,17 +399,17 @@ theorem all_map_and {β : Type} (b : Bool) (f : β → Bool) (b₀ : β) (l : Li
   cases b <;> simp
 
 /-- **The challenges read once or for every opening.** -/
-theorem prob_postP_eq_verifyW {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (h : HTab)
-    (crs : Crs) (out : (Common.KDigest × Proof) × List (Fin (r * 128) × Cell × Opening)) (c : WCache) :
-    Pr{let b ← (simulateQ (Common.KDigest →ₒ Challenges).romImpl
+theorem prob_postP_eq_verifyW {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (h : HTab)
+    (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) (c : WCache) :
+    Pr{let b ← (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl
         (postP r ps h crs out <$> readVecW out.1.1)).run' c}[b = true] =
-      Pr{let b ← (simulateQ (Common.KDigest →ₒ Challenges).romImpl
+      Pr{let b ← (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl
         (verifyW r (Hh h) (argH r ps (Hh h)) crs out)).run' c}[b = true] := by
   obtain ⟨com, l⟩ := out
   have hfin : List.finRange 14 = (0 : Fin 14) :: (List.finRange 13).map Fin.succ :=
     List.finRange_succ
-  have hread : (simulateQ (Common.KDigest →ₒ Challenges).romImpl
+  have hread : (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl
       (postP r ps h crs (com, l) <$> readVecW com.1)).run' c =ᵈ
       (fun w ↦ postP r ps h crs (com, l) w.1) <$> roStep com.1 c := by
     rw [readVecW, Functor.map_map, StateT.run'_eq, simulateQ_map, StateT.run_map, hfin,
@@ -436,7 +436,7 @@ theorem prob_postP_eq_verifyW {rel : Unit × Common.KDigest × Challenges → (F
     · simp only [support_map, Set.mem_image] at hb
       obtain ⟨w, -, rfl⟩ := hb
       simp [postP, cbWin, consistent_nil]
-  · have hW : (simulateQ (Common.KDigest →ₒ Challenges).romImpl
+  · have hW : (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl
         (verifyW r (Hh h) (argH r ps (Hh h)) crs (com, o :: l))).run' c =ᵈ
         (fun w : Challenges × WCache ↦ (((o :: l).map fun p ↦ ps.verify crs ((), com.1, w.1) com.2 &&
           verifyCell (Hh h) r com.1 p.1 p.2.1 p.2.2).all id &&
@@ -465,7 +465,7 @@ def wCalls : WSpec.Domain → ℕ
   | .inr _ => 1
 
 theorem hashQueryBound_of_isWeightBound {α : Type} {X : OracleComp WSpec α} {Q : ℕ}
-    (h : IsWeightBound X wCalls Q) : CommittedSoundness.HashQueryBound X Q := by
+    (h : QueryCostAtMost X wCalls Q) : CommittedSoundness.HashQueryBound X Q := by
   induction X using OracleComp.inductionOn generalizing Q with
   | pure a => trivial
   | query_bind t k ih =>
@@ -479,8 +479,8 @@ theorem hashQueryBound_of_isWeightBound {α : Type} {X : OracleComp WSpec α} {Q
 
 /-- **Each step of the oracles from a table makes at most one query of the challenges**, and only
 for one of `G`. -/
-theorem isWeightBound_phiG (h : HTab) (t : (unifSpec + GSpec (List UInt8) KDigest Common.KDigest E 14).Domain)
-    (s : HCache) : IsWeightBound ((phiG h t).run s) wCalls (gCalls t) := by
+theorem isWeightBound_phiG (h : HTab) (t : (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14).Domain)
+    (s : HCache) : QueryCostAtMost ((phiG h t).run s) wCalls (gCalls t) := by
   rcases t with k | m | ⟨d, j⟩
   · simp only [phiG, QueryImpl.apply_compose, toV, simulateQ_spec_query, swapImpl, tImpl,
       StateT.run_mk]
@@ -494,19 +494,19 @@ theorem isWeightBound_phiG (h : HTab) (t : (unifSpec + GSpec (List UInt8) KDiges
 
 section Bound
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
 
 /-- **Wagner's adversary makes at most `Q` queries of the challenges.** -/
 theorem hashQueryBound_advH (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
-    (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) (h : HTab) (ck : Unit × Crs) :
+    (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) (h : HTab) (ck : Unit × Crs) :
     CommittedSoundness.HashQueryBound (advH r ps A h ck) Q := by
   apply hashQueryBound_of_isWeightBound
   have hB := isWeightBound_advS2 r ps A Q hQ _ (fixCrs_mem r ps ck.2)
-  have hP : IsWeightBound (Common.Duplex.hQ (St := KState) daDuplex.label >>= fun _ ↦
+  have hP : QueryCostAtMost (Common.Duplex.hQ (St := KState) daDuplex.label >>= fun _ ↦
       advS2 keccakPadding KState.zero (A ((), fixCrs r ps ck.2)))
-      (fCalls (Msg := List UInt8) (Dg := KDigest) (St := KState)) Q := by
-    simpa using (isWeightBound_hQ (Dg := KDigest) (St := KState) daDuplex.label).bind fun _ ↦ hB
+      (fCalls (Msg := List UInt8) (Dg := DigestBytes) (St := KState)) Q := by
+    simpa using (isWeightBound_hQ (Dg := DigestBytes) (St := KState) daDuplex.label).bind fun _ ↦ hB
   have hS := isWeightBound_run_simulateQ _ _ _ (isWeightBound_simImpl (D := daDuplex)) hP
     SimSt.init
   rw [advH, advSim, StateT.run'_eq, StateT.run'_eq]
@@ -583,16 +583,16 @@ theorem prEvent_bind_congr_of_support {α β : Type} (mx : ProbComp α) (f g : �
 
 section Final
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
 
 /-- **The simulated world is the average over `H` of Wagner's worlds.** -/
 theorem prT_codeBindingExpG (A : CodeBindingAdvB r Crs Proof) :
     prT (codeBindingExpG r ps A) = prT (($ᵗ HTab : ProbComp HTab) >>= fun h ↦ ps.setup >>= fun crs ↦
-      (simulateQ (Common.KDigest →ₒ Challenges).romImpl (gameW r ps A h crs)).run' ∅) := by
+      (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl (gameW r ps A h crs)).run' ∅) := by
   rw [prT, codeBindingExpG]
   rw [prEvent_bind_congr_of_support _ _ (fun crs ↦ ($ᵗ HTab : ProbComp HTab) >>= fun h ↦
-    (simulateQ (Common.KDigest →ₒ Challenges).romImpl (gameW r ps A h crs)).run' ∅) _
+    (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl (gameW r ps A h crs)).run' ∅) _
       fun crs hcrs ↦ (cbIdealG_evalDistEq r ps A hcrs).prEvent_eq _]
   exact (EvalDistEq.bind_bind_swap _ _ _).prEvent_eq _
 
@@ -600,15 +600,15 @@ theorem prT_codeBindingExpG (A : CodeBindingAdvB r Crs Proof) :
 `Hh h`, against `advH h`. -/
 theorem prT_gameW (A : CodeBindingAdvB r Crs Proof) (h : HTab) :
     prT (ps.setup >>= fun crs ↦
-      (simulateQ (Common.KDigest →ₒ Challenges).romImpl (gameW r ps A h crs)).run' ∅) =
-      (leanDa r (Hh h) (argH r ps (Hh h))).codeBindingExp (code r) (roRuntime Common.KDigest Challenges)
+      (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl (gameW r ps A h crs)).run' ∅) =
+      (leanDa r (Hh h) (argH r ps (Hh h))).codeBindingExp (code r) (roRuntime Common.DigestBytes Challenges)
         (advH r ps A h) {true} := by
   rw [codeBindingExp_eq, prT]
   refine Common.prEvent_bind_congr _ _ _ _ _ fun crs ↦ ?_
-  have e : ∀ K : ((Common.KDigest × Proof) × List (Fin (r * 128) × Cell × Opening)) → OracleComp WSpec Bool,
-      (simulateQ (Common.KDigest →ₒ Challenges).romImpl (advH r ps A h ((), crs) >>= K)).run' ∅ =
-        (simulateQ (Common.KDigest →ₒ Challenges).romImpl (advH r ps A h ((), crs))).run ∅ >>= fun z ↦
-          (simulateQ (Common.KDigest →ₒ Challenges).romImpl (K z.1)).run' z.2 := by
+  have e : ∀ K : ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) → OracleComp WSpec Bool,
+      (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl (advH r ps A h ((), crs) >>= K)).run' ∅ =
+        (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl (advH r ps A h ((), crs))).run ∅ >>= fun z ↦
+          (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl (K z.1)).run' z.2 := by
     intro K
     simp only [StateT.run'_eq, simulateQ_bind, StateT.run_bind, map_bind]
   rw [gameW, e, e]

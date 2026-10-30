@@ -364,7 +364,7 @@ theorem isCanonical128_word (lo hi : ℕ) : IsCanonical128 (word lo hi 0) := by
   unfold IsCanonical128 word
   rw [ofLimbs_limb2, ofBits_zero]
 
-theorem isCanonical128_cellsOfState (S : KState) (odd : Bool) (c : Fin 13) :
+theorem isCanonical128_cellsOfState (S : KeccakState) (odd : Bool) (c : Fin 13) :
     IsCanonical128 (cellsOfState S odd c) := by
   unfold IsCanonical128 cellsOfState
   rw [ofLimbs_limb2]
@@ -392,7 +392,7 @@ theorem check_parts (h : s.check atoms = true) :
 
 theorem keccak_of_check (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd σ)
     {k : ℕ} (hk : k < s.nb) :
-    KeccakCells (s.I σ k) (inLayout k) (s.O σ (k + 1)) (outLayout s.nb k) := by
+    KeccakCellsRelation (s.I σ k) (inLayout k) (s.O σ (k + 1)) (outLayout s.nb k) := by
   obtain ⟨-, hb⟩ := check_parts h
   obtain ⟨hbk, -, -⟩ := hb k hk
   simp only [blockOk, Bool.and_eq_true, beq_iff_eq] at hbk
@@ -484,7 +484,7 @@ theorem chain_final {s : ChainSpec} {atoms : List Atom} (h : s.check atoms = tru
   have hcap : ∀ k < s.len / rate + 1, ∀ c : Fin 13, 9 ≤ c.val → s.I σ k c = s.O σ k c :=
     fun k hk c hc => cap_of_check h hat (by rw [hnb]; exact hk) c hc
   have hK : ∀ k < s.len / rate + 1,
-      KeccakCells (s.I σ k) (inLayout k) (s.O σ (k + 1)) (outLayout (s.len / rate + 1) k) :=
+      KeccakCellsRelation (s.I σ k) (inLayout k) (s.O σ (k + 1)) (outLayout (s.len / rate + 1) k) :=
     fun k hk => by rw [← hnb]; exact keccak_of_check h hat (by rw [hnb]; exact hk)
   have hz : ∀ j, s.len ≤ j → (cellsBytes (s.vals σ)).getD j 0 = 0 := by
     intro j hj
@@ -560,7 +560,7 @@ theorem chain_whole {s : ChainSpec} {atoms : List Atom} (h : s.check atoms = tru
     rfl
   have hcap : ∀ k < s.nb, ∀ c : Fin 13, 9 ≤ c.val → s.I σ k c = s.O σ k c :=
     fun k hk c hc => cap_of_check h hat hk c hc
-  have hK : ∀ k < s.nb, KeccakCells (s.I σ k) (inLayout k) (s.O σ (k + 1)) (outLayout s.nb k) :=
+  have hK : ∀ k < s.nb, KeccakCellsRelation (s.I σ k) (inLayout k) (s.O σ (k + 1)) (outLayout s.nb k) :=
     fun k hk => keccak_of_check h hat hk
   have hO0 : s.O σ 0 = cellsOfState (absorbChunks n zeroState pre) false := by
     funext c; simp only [O, ↓reduceIte]; exact h0 c

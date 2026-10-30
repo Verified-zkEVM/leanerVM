@@ -98,13 +98,13 @@ def KeccakRow.oms (r : KeccakRow K) : Fin 4 → K := fun i ↦ r.om[i]
 /-- The permutation on a row's lanes, as the Keccak reduction proves it: the output lanes are
 Keccak-f[1600] of the input lanes. The named assumption of the table. -/
 def KeccakRelation (r : KeccakRow K) : Prop :=
-  r.outLanes = stateLanes (keccakF (laneState r.inLanes))
+  r.outLanes = stateLanes (keccakF1600 (laneState r.inLanes))
 
 /-! ## The relation -/
 
 /-- The row's bindings to an image, in the layouts `inOdd`, `outOdd`: the cells read hold the
 input lanes, the cells written the output lanes. -/
-structure KeccakBindings {κ : ℕ} (mem : MemImage κ) (r : KeccakRow K) (inOdd outOdd : Bool) :
+structure KeccakBindings {κ : ℕ} (mem : MemoryImage κ) (r : KeccakRow K) (inOdd outOdd : Bool) :
     Prop where
   /-- Cell `c` read holds the input lanes' cell `c` in the layout `inOdd`. -/
   in_eq : ∀ c : Fin 13, mem.read (r.fp * keccakInOffset r.oms r.otail r.ob8 r.ocap c) =
@@ -115,18 +115,18 @@ structure KeccakBindings {κ : ℕ} (mem : MemImage κ) (r : KeccakRow K) (inOdd
 
 /-- The relation a `KECCAK` row refines: its flags are the layouts `inOdd`, `outOdd`, it is bound
 to the image, and from its registers the machine executes the instruction it names to `next`. -/
-def KeccakRefines {κ : ℕ} (mem : MemImage κ) (r : KeccakRow K) (next : Regs K) : Prop :=
+def KeccakRefines {κ : ℕ} (mem : MemoryImage κ) (r : KeccakRow K) (next : Registers K) : Prop :=
   ∃ inOdd outOdd : Bool, r.oddIn = flagK inOdd ∧ r.oddOut = flagK outOdd ∧
     KeccakBindings mem r inOdd outOdd ∧
     execute mem ⟨r.pc, r.fp⟩ (.keccak r.oms r.otail r.ob8 r.ocap r.oout inOdd outOdd) = some next
 
 /-- `KeccakRefines`, expanded: the flags and the bindings, the permutation on the lanes, and the
 successor `(g·pc, fp)`. -/
-theorem keccak_refines_iff {κ : ℕ} (mem : MemImage κ) (r : KeccakRow K) (next : Regs K) :
+theorem keccak_refines_iff {κ : ℕ} (mem : MemoryImage κ) (r : KeccakRow K) (next : Registers K) :
     KeccakRefines mem r next ↔
       (∃ inOdd outOdd : Bool, r.oddIn = flagK inOdd ∧ r.oddOut = flagK outOdd ∧
         KeccakBindings mem r inOdd outOdd) ∧
-      KeccakRelation r ∧ next = Regs.next ⟨r.pc, r.fp⟩ := by
+      KeccakRelation r ∧ next = Registers.next ⟨r.pc, r.fp⟩ := by
   constructor
   · rintro ⟨inOdd, outOdd, hi, ho, hb, hexec⟩
     obtain ⟨input, output, hin, hout, hcells, hnext⟩ :=
@@ -139,7 +139,7 @@ theorem keccak_refines_iff {κ : ℕ} (mem : MemImage κ) (r : KeccakRow K) (nex
     have h2 := hcells.2
     rw [hinput, houtput, stateOfCells_laneCells] at h2
     have h3 : laneCells r.outLanes outOdd 0 =
-        laneCells (stateLanes (keccakF (laneState r.inLanes))) outOdd 0 := by
+        laneCells (stateLanes (keccakF1600 (laneState r.inLanes))) outOdd 0 := by
       funext c; rw [h2 c, cellsOfState_eq_laneCells]
     exact laneCells_eq_iff.mp h3
   · rintro ⟨⟨inOdd, outOdd, hi, ho, hb⟩, hrel, rfl⟩
@@ -154,7 +154,7 @@ theorem keccak_refines_iff {κ : ℕ} (mem : MemImage κ) (r : KeccakRow K) (nex
 /-! ## The adapter to the prover data -/
 
 /-- The table's `Spec`: the row refines `KeccakRefines` over the image the prover data names. -/
-def KeccakSpec (r : KeccakRow K) (next : Regs K) (data : ProverData K) : Prop :=
+def KeccakSpec (r : KeccakRow K) (next : Registers K) (data : ProverData K) : Prop :=
   KeccakRefines (imageOf data).2 r next
 
 /-! ## Proof helpers -/
@@ -204,9 +204,9 @@ set_option maxHeartbeats 16000000 in
 `(KECCAK, o_m₀, …, o_m₃, o_tail, o_b8, o_cap, o_out, odd_in, odd_out)`, the thirteen cells read
 and the thirteen written, each as `(lo, hi, 0)` in its layout. Returns the pushed successor
 `(g·pc, fp)`; sound under `KeccakRelation`. -/
-def keccakTable : GeneralFormalCircuit K KeccakRow Regs where
+def keccakTable : GeneralFormalCircuit K KeccakRow Registers where
   main r := do
-    let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
+    let next : Var Registers K := ⟨Expression.const g * r.pc, r.fp⟩
     StatePull.pull ⟨r.pc, r.fp⟩
     StatePush.push next
     bytecodeRead r.pc r.rbc (Expression.const Opcode.keccak.code)
@@ -353,7 +353,7 @@ def keccakTable : GeneralFormalCircuit K KeccakRow Regs where
 
 /-- The cells a `KECCAK` with these operands reads at `fp` over the image, the zero word where a
 read fails. -/
-noncomputable def keccakInputCells {κ : ℕ} (mem : MemImage κ) (fp : K) (om : Fin 4 → K)
+noncomputable def keccakInputCells {κ : ℕ} (mem : MemoryImage κ) (fp : K) (om : Fin 4 → K)
     (otail ob8 ocap : K) (c : Fin 13) : E :=
   (mem.read (fp * keccakInOffset om otail ob8 ocap c)).getD 0
 
@@ -361,17 +361,17 @@ noncomputable def keccakInputCells {κ : ℕ} (mem : MemImage κ) (fp : K) (om :
 over the image `mem`: the registers, the operands, the layout flags, the input lanes the cells
 read hold and their free limb, the output lanes Keccak-f[1600] of them, and the counts as
 parameters. Noncomputable: it reads the image. -/
-noncomputable def keccakRowOf {κ : ℕ} (mem : MemImage κ) (pc fp : K) (om : Fin 4 → K)
+noncomputable def keccakRowOf {κ : ℕ} (mem : MemoryImage κ) (pc fp : K) (om : Fin 4 → K)
     (otail ob8 ocap oout : K) (inOdd outOdd : Bool) (cnt : Vector K 26) (rbc : K) :
     KeccakRow K :=
   let input := keccakInputCells mem fp om otail ob8 ocap
   let S := stateOfCells input inOdd
   ⟨pc, fp, #v[om 0, om 1, om 2, om 3], otail, ob8, ocap, oout, flagK inOdd, flagK outOdd,
-    freeLimb input inOdd, Vector.ofFn (stateLanes S), Vector.ofFn (stateLanes (keccakF S)), cnt,
+    freeLimb input inOdd, Vector.ofFn (stateLanes S), Vector.ofFn (stateLanes (keccakF1600 S)), cnt,
     rbc⟩
 
 /-- The operands of `keccakRowOf` are the instruction's. -/
-theorem keccakRowOf_oms {κ : ℕ} (mem : MemImage κ) (pc fp : K) (om : Fin 4 → K)
+theorem keccakRowOf_oms {κ : ℕ} (mem : MemoryImage κ) (pc fp : K) (om : Fin 4 → K)
     (otail ob8 ocap oout : K) (inOdd outOdd : Bool) (cnt : Vector K 26) (rbc : K) :
     (keccakRowOf mem pc fp om otail ob8 ocap oout inOdd outOdd cnt rbc).oms = om := by
   funext i; fin_cases i <;> rfl
@@ -379,8 +379,8 @@ theorem keccakRowOf_oms {κ : ℕ} (mem : MemImage κ) (pc fp : K) (om : Fin 4 �
 /-- A valid execution of `KECCAK` is represented by `keccakRowOf`, with any counts: its input
 cells are canonical, so they are the cells of the lanes they hold, and its output cells are the
 cells of Keccak-f[1600] of those lanes. -/
-theorem keccakRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp : K} {om : Fin 4 → K}
-    {otail ob8 ocap oout : K} {inOdd outOdd : Bool} {next : Regs K}
+theorem keccakRowOf_refines {κ : ℕ} {mem : MemoryImage κ} {pc fp : K} {om : Fin 4 → K}
+    {otail ob8 ocap oout : K} {inOdd outOdd : Bool} {next : Registers K}
     (hexec : execute mem ⟨pc, fp⟩ (.keccak om otail ob8 ocap oout inOdd outOdd) = some next)
     (cnt : Vector K 26) (rbc : K) :
     KeccakRefines mem (keccakRowOf mem pc fp om otail ob8 ocap oout inOdd outOdd cnt rbc) next := by
@@ -392,7 +392,7 @@ theorem keccakRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp : K} {om : Fin
       stateLanes (stateOfCells input inOdd) := by
     funext l; simp [keccakRowOf, KeccakRow.inLanes, hinput]
   have hlout : (keccakRowOf mem pc fp om otail ob8 ocap oout inOdd outOdd cnt rbc).outLanes =
-      stateLanes (keccakF (stateOfCells input inOdd)) := by
+      stateLanes (keccakF1600 (stateOfCells input inOdd)) := by
     funext l; simp [keccakRowOf, KeccakRow.outLanes, hinput]
   have hfree : (keccakRowOf mem pc fp om otail ob8 ocap oout inOdd outOdd cnt rbc).free =
       freeLimb input inOdd := by
@@ -406,7 +406,7 @@ theorem keccakRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp : K} {om : Fin
 
 /-- Every valid `KECCAK` execution has a satisfying row, from the execution alone. -/
 theorem keccak_exec_complete {data : ProverData K} {pc fp : K} {om : Fin 4 → K}
-    {otail ob8 ocap oout : K} {inOdd outOdd : Bool} {next : Regs K}
+    {otail ob8 ocap oout : K} {inOdd outOdd : Bool} {next : Registers K}
     (hexec : execute (imageOf data).2 ⟨pc, fp⟩ (.keccak om otail ob8 ocap oout inOdd outOdd) =
       some next) (cnt : Vector K 26) (rbc : K) :
     ConstraintsHold.Completeness (rowEnv data)

@@ -38,8 +38,8 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Da LeanVM.Node
 variable {rd : Reader}
 
 /-- The oracle of `aggregate_claims`' hints and its sumcheck's returns `res`. -/
-def aggOrc (P : AggPtrs) (h : BatchHints) (res : (List E × E) × Fs) (j : ℕ) : E :=
-  if j = 5 then P.msgs else if j = 6 then h.bytecodeValue else if j = 7 then P.lf
+def aggOrc (P : AggPtrs) (h : BatchingHints) (res : (List E × E) × Fs) (j : ℕ) : E :=
+  if j = 5 then P.msgs else if j = 6 then h.finalBytecodeValue else if j = 7 then P.lf
   else if j = 8 then P.lc else if j = 60 then P.absorb else if j = 111 then P.chain
   else if j = 120 then P.pt else if j = 129 then P.w
   else if j = 126 then res.1.2 else if 121 ≤ j ∧ j < 126 then res.2.cap.getD (j - 121) 0 else 0
@@ -69,10 +69,10 @@ theorem guardOk_vals {σ : Val} {P : List Stmt} {gc : V} {f : String} {one N : V
   · exact absurd ha (by simp)
 
 /-- The claim an accepting batching writes. -/
-theorem batch_out {cs : List ChildClaims} {h : BatchHints} {out : DeferredClaim}
+theorem batch_out {cs : List ChildClaims} {h : BatchingHints} {out : DeferredClaim}
     (hb : batch cs h = some out) :
     out = aggOut cs h ∧ (aggRun cs h).1.2 =
-      h.bytecodeValue * Batch.bytecodeWeight cs (aggLam cs).1 (aggRun cs h).1.1 := by
+      h.finalBytecodeValue * Batch.batchedBytecodeWeight cs (aggLam cs).1 (aggRun cs h).1.1 := by
   rw [batch_fs] at hb
   split at hb
   · rename_i hc
@@ -97,7 +97,7 @@ theorem l25_shape' : loopShapeF (coreProgram.getD 374 default) "__loop24" = true
 
 section Kids
 
-variable {cpi cfresh ccarried dst : E} {cs : List ChildClaims} {h : BatchHints} {P : AggPtrs}
+variable {cpi cfresh ccarried dst : E} {cs : List ChildClaims} {h : BatchingHints} {P : AggPtrs}
 
 /-- The absorbing rows (`__loop24`), from its guard's counter `1`. -/
 theorem agg_l25 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
@@ -126,7 +126,7 @@ theorem agg_l26 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh cc
 
 /-- The weights (`__loop26`). -/
 theorem agg_l27 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
-    (hrl : h.bytecodeRounds.length = 23) (hmem : AggMem rd cfresh ccarried dst cs h P) :
+    (hrl : h.sumcheckMessages.length = 23) (hmem : AggMem rd cfresh ccarried dst cs h P) :
     ∀ c < cs.length, LoopBlock rd (coreProgram.getD 377 default) (gen ^ c)
       (gen ^ cs.length) [P.lf, P.lc, P.pt, P.chain, P.w, lamA cs] := by
   intro c hc
@@ -140,20 +140,20 @@ theorem agg_l27 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh cc
 
 /-- The sumcheck (`batch_sumcheck__L23`), from the permutation's capacity and the last record's
 claim. -/
-theorem agg_bs (hrl : h.bytecodeRounds.length = 23) (hmem : AggMem rd cfresh ccarried dst cs h P) :
+theorem agg_bs (hrl : h.sumcheckMessages.length = 23) (hmem : AggMem rd cfresh ccarried dst cs h P) :
     coreProgram.Rel rd "batch_sumcheck__L23"
       (capOf (aggAbs cs).perm ++ [P.msgs, claimAt cs cs.length, P.pt])
       ((aggRun cs h).2.cap ++ [(aggRun cs h).1.2]) := by
-  have hrun : bsRun h.bytecodeRounds (claimAt cs cs.length)
+  have hrun : bsRun h.sumcheckMessages (claimAt cs cs.length)
       ⟨capOf (aggAbs cs).perm, []⟩ = aggRun cs h := by
     rw [aggRun, claimAt_last rfl, aggLam_snd]
-  refine (batch_sumcheck_holds rd _ _).mpr ⟨capOf_canonical _, h.bytecodeRounds, hrl, hmem.msgs,
+  refine (batch_sumcheck_holds rd _ _).mpr ⟨capOf_canonical _, h.sumcheckMessages, hrl, hmem.msgs,
     ?_, ?_⟩
-  · show ReadsAt rd P.pt (bsRun h.bytecodeRounds (claimAt cs cs.length)
+  · show ReadsAt rd P.pt (bsRun h.sumcheckMessages (claimAt cs cs.length)
       ⟨capOf (aggAbs cs).perm, []⟩).1.1
     rw [hrun]; exact hmem.pt
-  · show _ = (bsRun h.bytecodeRounds (claimAt cs cs.length) ⟨capOf (aggAbs cs).perm, []⟩).2.cap ++
-      [(bsRun h.bytecodeRounds (claimAt cs cs.length) ⟨capOf (aggAbs cs).perm, []⟩).1.2]
+  · show _ = (bsRun h.sumcheckMessages (claimAt cs cs.length) ⟨capOf (aggAbs cs).perm, []⟩).2.cap ++
+      [(bsRun h.sumcheckMessages (claimAt cs cs.length) ⟨capOf (aggAbs cs).perm, []⟩).1.2]
     rw [hrun]
 
 end Kids
@@ -163,13 +163,13 @@ end Kids
 /-- `aggregate_claims`' honest valuation: its body evaluated on its arguments, the hints and the
 sumcheck's returns `aggOrc`'s. -/
 noncomputable def aggσ (rd : Reader) (m : ℕ) (cpi cfresh ccarried dst : E) (P : AggPtrs)
-    (cs : List ChildClaims) (h : BatchHints) : Val :=
+    (cs : List ChildClaims) (h : BatchingHints) : Val :=
   B1.Val.ofArgs (ev rd (aggOrc P h (aggRun cs h)) [gen ^ m, cpi, cfresh, ccarried, dst]
     (Fn.body Data.core29))
 
 /-- **What `aggregate_claims`' honest valuation is**: its atoms hold, and its words. -/
 structure AggVals (rd : Reader) (σ : Val) (m : ℕ) (cpi cfresh ccarried dst : E) (P : AggPtrs)
-    (cs : List ChildClaims) (h : BatchHints) : Prop where
+    (cs : List ChildClaims) (h : BatchingHints) : Prop where
   atoms : ∀ a ∈ atomsIn aggP, a.Holds rd σ
   e0 : σ (.n 0) = gen ^ m
   e1 : σ (.n 1) = cpi
@@ -205,7 +205,7 @@ set_option maxHeartbeats 8000000 in
 hints of an accepting batching and the honest memory at its buffers `P`. -/
 theorem agg_core {m : ℕ} {cpi cfresh ccarried dst : E}
     {cs : List ChildClaims} (hcl : cs.length = m)
-    {h : BatchHints} {out : DeferredClaim} (hrl : h.bytecodeRounds.length = 23)
+    {h : BatchingHints} {out : DeferredClaim} (hrl : h.sumcheckMessages.length = 23)
     (hb : batch cs h = some out) {P : AggPtrs} (hmem : AggMem rd cfresh ccarried dst cs h P) :
     AggVals rd (aggσ rd m cpi cfresh ccarried dst P cs h) m cpi cfresh ccarried dst P cs h := by
   subst hcl
@@ -227,7 +227,7 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst : E}
   have hS := agg_stores
   have hbody := agg_shape
   -- the honest run
-  obtain ⟨SF, hSF⟩ := bsRun_cap h.bytecodeRounds (Batch.claimBOf cs (aggLam cs).1) (aggLam cs).2
+  obtain ⟨SF, hSF⟩ := bsRun_cap h.sumcheckMessages (Batch.batchedClaim cs (aggLam cs).1) (aggLam cs).2
     (by intro h0; rw [h0] at hrl; simp at hrl)
   have hres2 : (aggRun cs h).2 = ⟨capOf SF, []⟩ := hSF
   have hptl : (aggRun cs h).1.1.length = 23 := by rw [aggRun, bsRun_len, hrl]
@@ -257,7 +257,7 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst : E}
     Good] at hint
   obtain ⟨h5, h6, h7, h8, h60, h111, h120, h129⟩ := hint
   have v5 : σ (.n 5) = P.msgs := by rw [h5]; rfl
-  have v6 : σ (.n 6) = h.bytecodeValue := by rw [h6]; rfl
+  have v6 : σ (.n 6) = h.finalBytecodeValue := by rw [h6]; rfl
   have v7 : σ (.n 7) = P.lf := by rw [h7]; rfl
   have v8 : σ (.n 8) = P.lc := by rw [h8]; rfl
   have v60 : σ (.n 60) = P.absorb := by rw [h60]; rfl
@@ -423,7 +423,7 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst : E}
       have e := hdst 23 (by rw [hdl]; omega)
       rw [← List.getD_eq_getElem _ 0] at e
       rw [e4, v6]
-      have : (aggOut cs h).cells.getD 23 0 = h.bytecodeValue := by
+      have : (aggOut cs h).cells.getD 23 0 = h.finalBytecodeValue := by
         rw [aggOut, DeferredClaim.cells, List.getD_append_right _ _ _ _ (by rw [hptl]), hptl]
         rfl
       rw [this] at e
@@ -476,7 +476,7 @@ buffers `P`: its relation holds, and `defer_stmt` holds the batching's claim. -/
 theorem aggregate_claims_complete_mem {m : ℕ} (hm1 : 1 ≤ m) {cpi cfresh ccarried dst : E}
     {cs : List ChildClaims} (hcl : cs.length = m)
     (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
-    {h : BatchHints} {out : DeferredClaim} (hrl : h.bytecodeRounds.length = 23)
+    {h : BatchingHints} {out : DeferredClaim} (hrl : h.sumcheckMessages.length = 23)
     (hb : batch cs h = some out) {P : AggPtrs} (hmem : AggMem rd cfresh ccarried dst cs h P) :
     coreProgram.Rel rd "aggregate_claims" [gen ^ m, cpi, cfresh, ccarried, dst] [] ∧
       ReadsAt rd dst out.cells := by

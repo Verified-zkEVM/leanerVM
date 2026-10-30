@@ -29,24 +29,24 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 ## Reading order
 
 1. [`RandomPermutation.lean`](RandomPermutation.lean): Keccak-f[1600] as leanVM computes it
-   (`keccakF`, on `KState`, `25` lanes of `64` bits: the one state type of the statement) and
+   (`keccakF1600`, on `KeccakState`, `25` lanes of `64` bits: the one state type of the statement) and
    Keccak-256 over any permutation of the state in any monad (`KeccakHash.keccak256With`), the
-   deployed one over Keccak-f[1600] (`keccak256`); the random-permutation model (`permSpec`: `π`
-   and `π⁻¹`; `lazyPerm`, the lazily sampled uniform permutation); a cost bounded on every path
-   (`IsWeightBound`); the oracles of the model (`KSpec`: coins, `π` and `π⁻¹` on `KState`,
-   nothing else), Keccak-256 in the model, the sponge over `π` (`keccakK`), a game's cost in
-   calls of `π` and `π⁻¹` (`permCalls`) and its run against the lazy permutation (`runK`); the SUF-CMA game of a hash-based
-   signature scheme in the random-permutation model (`SufCma.rpmGame`, `rpmExperiment`) and its
-   security notion (`SufCma.RpmSecure`).
+   deployed one over Keccak-f[1600] (`keccak256`); the random-permutation model (`permutationOracleSpec`: `π`
+   and `π⁻¹`; `lazyRandomPermutation`, the lazily sampled uniform permutation); a cost bounded on every path
+   (`QueryCostAtMost`); the oracles of the model (`RandomPermutationOracles`: coins, `π` and `π⁻¹` on `KeccakState`,
+   nothing else), Keccak-256 in the model, the sponge over `π` (`keccak256OverPermutation`), a game's cost in
+   calls of `π` and `π⁻¹` (`permutationCallCost`) and its run against the lazy permutation (`runWithRandomPermutation`); the SUF-CMA game of a hash-based
+   signature scheme in the random-permutation model (`SufCma.forgeryGame`, `forgeryExperiment`) and its
+   security notion (`SufCma.StronglyUnforgeable`).
 2. [`LeanXmss.lean`](LeanXmss.lean): what leanXMSS and leanSPHINCS share (the tweakable hash's
    types, bytes and address, `crates/signatures/src/tweak.rs`; a hash chain, a Merkle path's fold
    and a Merkle tree's node, `walkChain`, `foldPath`, `buildTree`, which every chain, fold and tree
    of both schemes instantiates), the leanXMSS scheme and
-   `LeanXmss.Rpm.LeanXmssRpmSecurityStatement` (`RpmSecure` at 127 bits).
+   `LeanXmss.Rpm.LeanXmssStronglyUnforgeable` (`StronglyUnforgeable` at 127 bits).
 3. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part, exported
    into `Sphincs`; one tree, its signature the randomizer, the forest opening, the WOTS+C counter
    and chain values and the path) with the deterministic signer, the proved lifetimes, and
-   `Sphincs.Lifetimes.RequestedSecurityRpm` (`RpmSecure` at 127 bits at each lifetime).
+   `Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable` (`StronglyUnforgeable` at 127 bits at each lifetime).
 4. [`Field.lean`](Field.lean): `K = GF(2^64)` (CompPoly's `BF64`), `E = GF(2^192)`, the generator
    `g`; Keccak lanes, bytes and digests as field elements.
 5. [`LeanDa.lean`](LeanDa.lean): LeanDA (fields, Reed–Solomon rows, the Merkle commitment, the
@@ -54,10 +54,10 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    consistency of opened cells), the relation of LeanDA's argument (the root's challenges drawn by
    the deployed duplex over a permutation), arguments that query the model's oracles, the
    commitment and the challenges' duplex over a permutation, LeanDA's games in the
-   random-permutation model, where the adversary, the argument (`NarkRpm`, its extractor reading
-   the adversary's transcript) and the verifier query the same oracles (`KSpec`, hashing with
-   `keccakK`; position
-   binding, code binding, the argument's knowledge soundness `ksGame`, completeness for every
+   random-permutation model, where the adversary, the argument (`OracleArgument`, its extractor reading
+   the adversary's transcript) and the verifier query the same oracles (`RandomPermutationOracles`, hashing with
+   `keccak256OverPermutation`; position
+   binding, code binding, the argument's knowledge soundness `knowledgeSoundnessGame`, completeness for every
    permutation `π`), and `LeanDa.PerfectlyCompleteRpm`,
    `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`. Code binding is conditional: if the
    argument is knowledge sound in the random-permutation model with error `(q + c) · 2^-k`, LeanDA
@@ -67,7 +67,7 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    the hypothesis.
 6. [`LeanIsa.lean`](LeanIsa.lean): leanISA (memory, the six instructions, programs, one step, `run`,
    `ValidExecution`: a run from the initial state `(pcInitial, fpInitial)` that halts in the final
-   state `(pcFinal, fpFinal)`, the instruction counts `Trace.count`, the bytecode encoding, the
+   state `(pcFinal, fpFinal)`, the instruction counts `Execution.count`, the bytecode encoding, the
    bytecode table the verifier reads, `bytecodeWords`, and the public input's digest, `publicDigest`, with
    its inverse, `PublicInput.ofDigest`), and a
    program assembled from compiled functions (`CompiledFn`, `assemble`).
@@ -86,29 +86,29 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    decoder over `GF(2^64)` and pruning across the lanes), and the halting run of a candidate's
    memory image within the announced tables' rows that is a valid execution, if there is one.
 9. [`LeanVm.lean`](LeanVm.lean): a statement (a program and a public input), the verifier on it
-   (`verifier H F`), its calls as oracle queries (`HashSpec`), the honest prover's type and **the
+   (`verifier H F`), its calls as oracle queries (`KeccakCalls`), the honest prover's type and **the
    honest prover**, `prover` (`LeanVM.Prover.prove` of [`Prover/`](Prover/) with the oracle calls),
-   the committed size; the random-permutation experiment (`rpmRun`: an adversary with private
-   coins, `RpmAdversary`, its queries to `π` and `π⁻¹` counted by `permQueries`, its `Transcript`,
-   then any computation over the verifier's calls; `rpmExperiment`, the verifier's), the extractor on the
-   transcript (`extractorRpm`, on the Keccak-256 evaluations the transcript holds,
-   `transcriptPaths`), **`LeanVM.KnowledgeSoundness`, `LeanVM.Completeness`**.
+   the committed size; the random-permutation experiment (`runAdversaryThen`: an adversary with private
+   coins, `RandomPermutationAdversary`, its queries to `π` and `π⁻¹` counted by `permutationCallCost`, its `PermutationTranscript`,
+   then any computation over the verifier's calls; `soundnessExperiment`, the verifier's), the extractor on the
+   transcript (`transcriptExtractor`, on the Keccak-256 evaluations the transcript holds,
+   `keccakEvaluationsOfTranscript`), **`LeanVM.KnowledgeSoundness`, `LeanVM.Completeness`**.
 10. [`LeanVmGuest.lean`](LeanVmGuest.lean): the leanISA guest program's specification (aggregation):
     DA claims and their digest, a node's statement, its digest (Keccak-256 of a preimage), witness
-    and relation (`NodeRel`: leanXMSS and leanSPHINCS claims, a DA digest, children verified by the deferring
+    and relation (`NodeRelation`: leanXMSS and leanSPHINCS claims, a DA digest, children verified by the deferring
     verifier, the batching of their deferred claims), a decoder and what a proof of the leanISA
     guest program establishes with it (**`GuestKnowledge`**), the candidate collisions of two
     statements' digests and **`LeanVM.Node.DigestBinds`** (a digest binds the seed and a statement
     of a given shape, up to a Keccak-256 collision), the deployed leanISA guest program
     (`LeanVM.Guest.guest`, from [`Data/`](Data/)), its deployed limits (`Limits`, and of each child
-    `ChildOk`, its zero-challenge refusal `Prog.refuseZero`),
-    **`LeanVM.Guest.Budget.GuestCompleteCovered`** (the nodes `Covered` lists), the honest proof as
-    a child (`verifierRZ`, `atKeccak`,
+    `AcceptableChild`, its zero-challenge refusal `Prog.refusingZeroChallenge`),
+    **`LeanVM.Guest.Budget.GuestCompleteCovered`** (the nodes `CoveredNode` lists), the honest proof as
+    a child (`verifierRefusingZero`, `honestProofWithDeployedKeccak`,
     **`GuestChildComplete`**); and the recursion step: the batching of the children's claims as a
-    verifier program (`batchAny`, run from the batching's seed by `batchRun`), an adversary's
-    proof run through it in the random-permutation model (`LeanVM.Rpm.rpmRun`, `LeanVm.lean`), the
-    event that it accepts children with a false claim (`FalseChildren`), the program's query bound
-    (`batchQueryBound`), and **`LeanVM.Guest.Batch.BatchSound`**: the batching run outside the
+    verifier program (`boundedBatchingProgram`, run from the batching's seed by `runBatching`), an adversary's
+    proof run through it in the random-permutation model (`LeanVM.Rpm.runAdversaryThen`, `LeanVm.lean`), the
+    event that it accepts children with a false claim (`SomeChildClaimFalse`), the program's query bound
+    (`batchingQueryBound`), and **`LeanVM.Guest.Batch.BatchingSound`**: the batching run outside the
     circuit with Keccak-f[1600] = `π`, which does not compose with the guest program's in-circuit
     statements (their `KECCAK` is the deployed Keccak-f[1600]), so soundness across recursion levels
     does not follow from it.
@@ -116,9 +116,9 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 12. [`Corollaries.lean`](Corollaries.lean), optional for review: statements that follow from
     `Theorems` alone, in their composed form (`lean_vm` proves `Theorems decode → Corollaries
     decode`): what an accepted proof of the leanISA guest program establishes
-    (`LeanVM.Node.AggregateSound`, with `Explains`: `KnowledgeSoundness`, `GuestKnowledge` and
+    (`LeanVM.Node.AggregateSound`, with `ExplainsStatement`: `KnowledgeSoundness`, `GuestKnowledge` and
     `DigestBinds` composed) and the completeness on recursion nodes and leaves
-    (`GuestCompleteRecursion`, `GuestCompleteLeaf`, the first two families of `Covered`).
+    (`GuestCompleteRecursion`, `GuestCompleteLeaf`, the first two families of `CoveredNode`).
 
 [`Data/`](Data/) is the guest program's compiled bytecode, generated from leanVM's sources by
 `lean_vm/scripts/guest-export` (do not edit; `guest-export --check` fails when it is stale, as CI
@@ -176,9 +176,9 @@ theorem, `LeanVM.theorems_hold`, whose axioms the build pins to Lean's three. St
 | `LeanVM.Node.DigestBinds` | `LeanVM.Guest.Binding.digest_binds` | [`lean_vm/LeanVM/Guest/Binding.lean`](../lean_vm/LeanVM/Guest/Binding.lean) |
 | `LeanVM.Guest.Budget.GuestCompleteCovered` | `LeanVM.Guest.Budget.guest_complete_covered` | [`lean_vm/LeanVM/Guest/Child/Covered.lean`](../lean_vm/LeanVM/Guest/Child/Covered.lean) |
 | `LeanVM.Guest.Budget.GuestChildComplete` | `LeanVM.Guest.Budget.guest_child_complete` | [`lean_vm/LeanVM/Prover/End.lean`](../lean_vm/LeanVM/Prover/End.lean) |
-| `LeanVM.Guest.Batch.BatchSound` | `LeanVM.Guest.Batch.batch_sound_holds` | [`lean_vm/LeanVM/Guest/Batch/Rpm.lean`](../lean_vm/LeanVM/Guest/Batch/Rpm.lean) |
-| `LeanXmss.Rpm.LeanXmssRpmSecurityStatement` | `XmssSecurity.leanXmss_rpm_security` | [`lean_xmss/XmssSecurity/Rpm.lean`](../lean_xmss/XmssSecurity/Rpm.lean) |
-| `Sphincs.Lifetimes.RequestedSecurityRpm` | `Sphincs.Lifetimes.requestedSecurityRpm` | [`lean_sphincs/Sphincs/LifetimesRpm.lean`](../lean_sphincs/Sphincs/LifetimesRpm.lean) |
+| `LeanVM.Guest.Batch.BatchingSound` | `LeanVM.Guest.Batch.batch_sound_holds` | [`lean_vm/LeanVM/Guest/Batch/Rpm.lean`](../lean_vm/LeanVM/Guest/Batch/Rpm.lean) |
+| `LeanXmss.Rpm.LeanXmssStronglyUnforgeable` | `XmssSecurity.leanXmss_rpm_security` | [`lean_xmss/XmssSecurity/Rpm.lean`](../lean_xmss/XmssSecurity/Rpm.lean) |
+| `Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable` | `Sphincs.Lifetimes.requestedSecurityRpm` | [`lean_sphincs/Sphincs/LifetimesRpm.lean`](../lean_sphincs/Sphincs/LifetimesRpm.lean) |
 | `LeanDa.PerfectlyCompleteRpm` | `LeanDa.leanDa_perfectlyComplete_rpm` | [`lean_da/LeanDa/RpmComplete.lean`](../lean_da/LeanDa/RpmComplete.lean) |
 | `LeanDa.PositionBindingRpm` | `LeanDa.leanDa_positionBinding_rpm` | [`lean_da/LeanDa/RpmArg.lean`](../lean_da/LeanDa/RpmArg.lean) |
 | `LeanDa.CodeBindingRpm` | `LeanDa.leanDa_codeBinding_rpm_bound` | [`lean_da/LeanDa/RpmArg.lean`](../lean_da/LeanDa/RpmArg.lean) |

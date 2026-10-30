@@ -50,11 +50,11 @@ open LeanVM.Guest.B1 LeanVM.Guest.B1.Main LeanVM.Guest.B1.Digest
 @[expose] public section
 
 /-- **The frame map of the memory `L`**: a call's valuation is its frame's (`frameOf`). -/
-noncomputable def frameV {κ : ℕ} (L : MemImage κ) : FrameMap :=
+noncomputable def frameV {κ : ℕ} (L : MemoryImage κ) : FrameMap :=
   fun f args rets ↦ valAt L f (frameOf L f args rets)
 
 /-- The located relation unfolds along the memory's frame map. -/
-theorem unfoldsV_RL {κ : ℕ} (L : MemImage κ) : UnfoldsV L.read (RLg L) (frameV L) :=
+theorem unfoldsV_RL {κ : ℕ} (L : MemoryImage κ) : UnfoldsV L.read (RLg L) (frameV L) :=
   fun _ _ _ h ↦ by
     obtain ⟨fn, hf, hp, hb⟩ := bodyAt_frameOf h
     exact ⟨fn, hf, hp, hb⟩
@@ -71,7 +71,7 @@ def MainSoundV (bytecode : List K) (W : Val → Reader → FrameMap → NodeWitn
     LoadHolds rd 1 1 (digestScalars D).2 →
     Stmt.HoldsList C rd σ Data.core0.body False (fun rs => rs = []) →
       statementDigest (decSeed σ) (decStmt σ rd) = D ∧
-        NodeRel bytecode (decSeed σ) (decStmt σ rd) (W σ rd V)
+        NodeRelation bytecode (decSeed σ) (decStmt σ rd) (W σ rd V)
 
 end
 end LeanVM.Guest.Located

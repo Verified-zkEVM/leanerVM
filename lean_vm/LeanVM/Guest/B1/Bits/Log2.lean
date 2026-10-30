@@ -250,7 +250,7 @@ theorem vl_unfold {name : String} {f : Fn} (fl : ℕ) (hfind : coreProgram.find?
     word_zero, word_one, implies_true]
 
 /-- A range check against `g^33` on a memory of `2^κ ≥ 34` words: `x = g^e`, `e < 34`. -/
-theorem rangeCheck34 {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ) {x y t1 t2 k : E}
+theorem rangeCheck34 {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemoryImage κ) {x y t1 t2 k : E}
     (hk : k = word (2 ^ 33) 0 0) (h1 : LoadHolds Lm.read x 0 t1) (h2 : k = x * y)
     (h3 : LoadHolds Lm.read y 0 t2) : ∃ e < 34, x = gen ^ e := by
   obtain ⟨e, he, hx⟩ := (rangeCheck_iff hκ Lm x (K := 34) (by omega)
@@ -291,7 +291,7 @@ theorem vl_mul_gen_pow {rd : Reader} {p w : E} {L : ℕ} (h : LoadHolds rd (p * 
 
 theorem verify_log2_ceil_sound_aux {name : String} {f : Fn} (fl : ℕ) (hfl : fl < 34)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1, .n 2])
-    (hbody : f.body = vlBody fl) {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ)
+    (hbody : f.body = vlBody fl) {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemoryImage κ)
     {bits lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E)
     (h : coreProgram.Rel Lm.read name [bits, lp, sq] rets) :
     MeaningVerifyLog2Ceil fl Lm.read [bits, lp, sq] rets := by
@@ -396,7 +396,7 @@ theorem vlVals_succ (b s : ℕ → E) (m j c : ℕ) (hj : j + 1 ≤ m) (hc : c <
 
 theorem verify_log2_ceil_complete_aux {name : String} {f : Fn} (fl : ℕ) (hfl : fl < 34)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1, .n 2])
-    (hbody : f.body = vlBody fl) {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ)
+    (hbody : f.body = vlBody fl) {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemoryImage κ)
     {bits lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E)
     (h : MeaningVerifyLog2Ceil fl Lm.read [bits, lp, sq] rets) :
     coreProgram.Rel Lm.read name [bits, lp, sq] rets := by
@@ -606,7 +606,7 @@ theorem verify_log2_ceil_complete_aux {name : String} {f : Fn} (fl : ℕ) (hfl :
 on a memory of `2^κ` words, `6 ≤ κ ≤ 32`, over the exponent tables at `lp`, `sq`. -/
 theorem verify_log2_ceil_iff {name : String} {f : Fn} (fl : ℕ) (hfl : fl < 34)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1, .n 2])
-    (hbody : f.body = vlBody fl) {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ)
+    (hbody : f.body = vlBody fl) {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemoryImage κ)
     {bits lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
     coreProgram.Rel Lm.read name [bits, lp, sq] rets ↔
       MeaningVerifyLog2Ceil fl Lm.read [bits, lp, sq] rets :=
@@ -623,13 +623,13 @@ theorem find_verify_log2_ceil_L15_L34 :
     coreProgram.find? "verify_log2_ceil__L15_L34" = some Data.core386 :=
   Program.find?_of_indexOf? (j := 386) (by decide +kernel) rfl
 
-theorem verify_log2_ceil_L0_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ)
+theorem verify_log2_ceil_L0_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemoryImage κ)
     {bits lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
     coreProgram.Rel Lm.read "verify_log2_ceil__L0_L34" [bits, lp, sq] rets ↔
       MeaningVerifyLog2Ceil 0 Lm.read [bits, lp, sq] rets :=
   verify_log2_ceil_iff 0 (by decide) find_verify_log2_ceil_L0_L34 rfl core385_body hκ hκ6 Lm ht rets
 
-theorem verify_log2_ceil_L15_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ)
+theorem verify_log2_ceil_L15_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemoryImage κ)
     {bits lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
     coreProgram.Rel Lm.read "verify_log2_ceil__L15_L34" [bits, lp, sq] rets ↔
       MeaningVerifyLog2Ceil 15 Lm.read [bits, lp, sq] rets :=
@@ -648,7 +648,7 @@ def lcBody (callee : String) : List Stmt :=
 
 theorem log2_ceil_in_the_exponent_iff {name callee : String} {f : Fn} (fl : ℕ) (hfind : coreProgram.find? name = some f)
     (hparams : f.params = [.n 0, .n 1, .n 2]) (hbody : f.body = lcBody callee) {κ : ℕ}
-    (Lm : MemImage κ) {gN lp sq : E}
+    (Lm : MemoryImage κ) {gN lp sq : E}
     (hcallee : ∀ bits rets, coreProgram.Rel Lm.read callee [bits, lp, sq] rets ↔
       MeaningVerifyLog2Ceil fl Lm.read [bits, lp, sq] rets) (rets : List E) :
     coreProgram.Rel Lm.read name [gN, lp, sq] rets ↔
@@ -674,7 +674,7 @@ theorem log2_ceil_in_the_exponent_iff {name callee : String} {f : Fn} (fl : ℕ)
 
 set_option maxRecDepth 100000 in
 theorem log2_ceil_in_the_exponent_L0_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ)
-    (Lm : MemImage κ) {gN lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
+    (Lm : MemoryImage κ) {gN lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
     coreProgram.Rel Lm.read "log2_ceil_in_the_exponent__L0_L34" [gN, lp, sq] rets ↔
       MeaningLog2CeilExp 0 Lm.read [gN, lp, sq] rets :=
   log2_ceil_in_the_exponent_iff 0 (Program.find?_of_indexOf? (j := 290) (by decide +kernel) rfl)
@@ -682,7 +682,7 @@ theorem log2_ceil_in_the_exponent_L0_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6 
 
 set_option maxRecDepth 100000 in
 theorem log2_ceil_in_the_exponent_L15_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ)
-    (Lm : MemImage κ) {gN lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
+    (Lm : MemoryImage κ) {gN lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
     coreProgram.Rel Lm.read "log2_ceil_in_the_exponent__L15_L34" [gN, lp, sq] rets ↔
       MeaningLog2CeilExp 15 Lm.read [gN, lp, sq] rets :=
   log2_ceil_in_the_exponent_iff 15 (Program.find?_of_indexOf? (j := 291) (by decide +kernel) rfl)

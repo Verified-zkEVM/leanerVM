@@ -68,7 +68,7 @@ theorem svC_eq_of_le {c c' : ACache Msg Dg E C} (h : c ≤ c') {β : List (Dg ×
 /-- The full view answers a forward query with the edge it should hold. -/
 theorem fwdLookup_all {cs : CState Dg E C Msg} {c : ACache Msg Dg E C}
     (hS : Struct P iv cs c) (hC : Cons P iv cs c) (hEC : ¬ EC P iv cs.vis c)
-    {x y : SpState Dg E C} (h : GEdge P iv cs c (x, y)) : fwdLookup cs.all x = some y :=
+    {x y : SpState Dg E C} (h : GEdge P iv cs c (x, y)) : forwardLookup cs.all x = some y :=
   fwdLookup_eq_some_of_mem ((hC.allMem _).mpr h) fun e he hex ↦ by
     have := gEdge_fst_inj hS hC.vis hEC ((hC.allMem e).mp he) h hex
     rw [this]
@@ -76,7 +76,7 @@ theorem fwdLookup_all {cs : CState Dg E C Msg} {c : ACache Msg Dg E C}
 /-- The full view answers an inverse query with the edge it should hold. -/
 theorem invLookup_all {cs : CState Dg E C Msg} {c : ACache Msg Dg E C}
     (hS : Struct P iv cs c) (hC : Cons P iv cs c) (hEC : ¬ EC P iv cs.vis c)
-    {x y : SpState Dg E C} (h : GEdge P iv cs c (x, y)) : invLookup cs.all y = some x :=
+    {x y : SpState Dg E C} (h : GEdge P iv cs c (x, y)) : inverseLookup cs.all y = some x :=
   invLookup_eq_some_of_mem ((hC.allMem _).mpr h) fun e he hey ↦ by
     have := gEdge_snd_inj hS hC.vis hEC ((hC.allMem e).mp he) h hey
     rw [this]
@@ -84,7 +84,7 @@ theorem invLookup_all {cs : CState Dg E C Msg} {c : ACache Msg Dg E C}
 /-- The full view has no forward answer where it should hold no edge. -/
 theorem fwdLookup_all_none {cs : CState Dg E C Msg} {c : ACache Msg Dg E C}
     (hC : Cons P iv cs c) {x : SpState Dg E C} (h : ∀ y, ¬ GEdge P iv cs c (x, y)) :
-    fwdLookup cs.all x = none := by
+    forwardLookup cs.all x = none := by
   rw [fwdLookup_eq_none_iff]
   intro hx
   obtain ⟨⟨x', y⟩, he, rfl⟩ := List.mem_map.mp hx
@@ -93,7 +93,7 @@ theorem fwdLookup_all_none {cs : CState Dg E C Msg} {c : ACache Msg Dg E C}
 /-- The full view has no inverse answer where it should hold no edge. -/
 theorem invLookup_all_none {cs : CState Dg E C Msg} {c : ACache Msg Dg E C}
     (hC : Cons P iv cs c) {y : SpState Dg E C} (h : ∀ x, ¬ GEdge P iv cs c (x, y)) :
-    invLookup cs.all y = none := by
+    inverseLookup cs.all y = none := by
   rw [invLookup_eq_none_iff]
   intro hy
   obtain ⟨⟨x, y'⟩, he, rfl⟩ := List.mem_map.mp hy
@@ -141,7 +141,7 @@ variable (u : SpState Dg E C)
 
 /-- **Recorded input.** -/
 theorem inv_fwd_recorded {cs : CState Dg E C Msg} {c : ACache Msg Dg E C}
-    (hI : Inv P iv cs c) {x y : SpState Dg E C} (hy : fwdLookup cs.sim.edges x = some y) :
+    (hI : Inv P iv cs c) {x y : SpState Dg E C} (hy : forwardLookup cs.sim.edges x = some y) :
     Inv P iv (fwdOut P iv cs x u (y, cs.sim, none)).2 c := by
   obtain ⟨hS, hcond⟩ := hI
   refine ⟨hS.of_eq rfl rfl, fun hbad hEC ↦ ?_⟩
@@ -155,7 +155,7 @@ theorem inv_fwd_recorded {cs : CState Dg E C Msg} {c : ACache Msg Dg E C}
 
 /-- **Fresh unrooted node.** -/
 theorem inv_fwd_unrooted {cs : CState Dg E C Msg} {c : ACache Msg Dg E C}
-    (hI : Inv P iv cs c) {x : SpState Dg E C} (hy : fwdLookup cs.sim.edges x = none)
+    (hI : Inv P iv cs c) {x : SpState Dg E C} (hy : forwardLookup cs.sim.edges x = none)
     (hch : chainOf cs.sim.chains x = none) :
     Inv P iv (fwdOut P iv cs x u (u, ⟨(x, u) :: cs.sim.edges, cs.sim.chains⟩, none)).2 c := by
   obtain ⟨hS, hcond⟩ := hI
@@ -233,7 +233,7 @@ theorem hiddenEdge_back {cs : CState Dg E C Msg} {vs' : VState Dg E C Msg}
 /-- **Fresh rooted node.** -/
 theorem inv_fwd_rooted {cs : CState Dg E C Msg} {c c' : ACache Msg Dg E C}
     (hI : Inv P iv cs c) {x s v : SpState Dg E C} {β : List (Dg × E)}
-    (hy : fwdLookup cs.sim.edges x = none) (hch : chainOf cs.sim.chains x = some (s, β))
+    (hy : forwardLookup cs.sim.edges x = none) (hch : chainOf cs.sim.chains x = some (s, β))
     (hv : (v, c') ∈ support ((simulateQ (aSpec Msg Dg E C).romImpl
       (val P (β ++ [blockTo s x]))).run c)) :
     Inv P iv (fwdOut P iv cs x u (v, ⟨(x, v) :: cs.sim.edges,
@@ -449,7 +449,7 @@ theorem inv_combFwd {cs : CState Dg E C Msg} {c : ACache Msg Dg E C} (hI : Inv P
 theorem inv_invOut {cs : CState Dg E C Msg} {c : ACache Msg Dg E C} (hI : Inv P iv cs c)
     (y : SpState Dg E C) : Inv P iv (invOut iv cs y u).2 c := by
   obtain ⟨hS, hcond⟩ := hI
-  rcases hx : invLookup cs.sim.edges y with _ | x
+  rcases hx : inverseLookup cs.sim.edges y with _ | x
   · -- a fresh inverse query
     set cs' := (invOut iv cs y u).2 with hcs'
     have hsim : cs'.sim = ⟨(u, y) :: cs.sim.edges, cs.sim.chains⟩ := by

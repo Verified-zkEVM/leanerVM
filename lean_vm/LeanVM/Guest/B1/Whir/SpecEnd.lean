@@ -62,7 +62,7 @@ theorem batchOpens {R : List (Digest × ℕ × ℕ)} {d : Digest} (hOk : L.Ok R 
   exact ⟨by rw [hh]; exact L.qs_lt _ (List.getElem_mem hk), hlen, hcl⟩
 
 /-- **The level's openings agree**: they are a query step of the run. -/
-theorem batchAgrees {μ r : ℕ} {target : E} {S : KState} {xs : List E} {os : List Opening}
+theorem batchAgrees {μ r : ℕ} {target : E} {S : KeccakState} {xs : List E} {os : List Opening}
     {root : Digest} (hcaps : CapsAgree μ r target S xs os root)
     (hm : (L.height, L.qs.zip L.os) ∈ queryStepsOf (whirOpen μ r target) (osStart μ r S xs os root)) :
     BatchAgrees L.height L.batch :=

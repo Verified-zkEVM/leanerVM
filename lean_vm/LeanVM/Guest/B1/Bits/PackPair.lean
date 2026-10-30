@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Bits.Templates
 
 * `packPairT_sound`: the template holds only at `s`'s and `t`'s limbs, and its cells are
   `E.ofLimbs s0 s1 0`, `E.ofLimbs s2 t0 0`, `E.ofLimbs t1 t2 0`, whose bytes are
-  `eBytes s ++ eBytes t` (`Node.eBytes`, N:191; `packPair_cellsBytes`).
+  `eBytes s ++ eBytes t` (`Node.extensionElementBytes`, N:191; `packPair_cellsBytes`).
 * `packPairVals`, `packPairT_complete`: the honest values satisfy it.
 -/
 
@@ -80,8 +80,8 @@ def packPairCells (s t : E) : List E :=
 
 /-- The three cells' bytes are the two words' (`eBytes`). -/
 theorem packPair_cellsBytes (s t : E) :
-    Keccak.cellsBytes (packPairCells s t) = Node.eBytes s ++ Node.eBytes t := by
-  simp [packPairCells, Keccak.cellsBytes, Keccak.cellBytes, Node.eBytes]
+    Keccak.cellsBytes (packPairCells s t) = Node.extensionElementBytes s ++ Node.extensionElementBytes t := by
+  simp [packPairCells, Keccak.cellsBytes, Keccak.cellBytes, Node.extensionElementBytes]
 
 /-- **`pack_pair`** (G:507-517): the template holds only at the words' limbs, and its cells are
 `packPairCells s t`. -/

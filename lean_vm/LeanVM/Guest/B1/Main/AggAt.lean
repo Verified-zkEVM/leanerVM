@@ -58,9 +58,9 @@ def aggPtrsAt (m b0 : ℕ) : AggPtrs :=
 def chainRec (cs : List ChildClaims) (c : ℕ) : List E := [lamA cs ^ (2 * c), claimAt cs c]
 
 /-- **The words an honest run leaves in `aggregate_claims`' buffers.** -/
-def aggConts (m : ℕ) (cfresh ccarried : E) (cs : List ChildClaims) (h : BatchHints) :
+def aggConts (m : ℕ) (cfresh ccarried : E) (cs : List ChildClaims) (h : BatchingHints) :
     List (List E) :=
-  [h.bytecodeRounds.flatMap (fun g => [g.1, g.2]),
+  [h.sumcheckMessages.flatMap (fun g => [g.1, g.2]),
     (List.range m).map (fun c => cfresh * (gen ^ c) ^ 24),
     (List.range m).map (fun c => ccarried * (gen ^ c) ^ 24),
     (List.range (m + 1)).flatMap (fun c => rowW (absSt m cs c)),
@@ -69,13 +69,13 @@ def aggConts (m : ℕ) (cfresh ccarried : E) (cs : List ChildClaims) (h : BatchH
     (List.range (m + 1)).map (weightAt cs h)]
 
 /-- **`aggregate_claims`' own buffers' layout.** -/
-def aggOwn (m : ℕ) (cfresh ccarried : E) (cs : List ChildClaims) (h : BatchHints) (b0 : ℕ) :
+def aggOwn (m : ℕ) (cfresh ccarried : E) (cs : List ChildClaims) (h : BatchingHints) (b0 : ℕ) :
     Main.Layout :=
   bufL b0 (aggSizes m) (aggConts m cfresh ccarried cs h)
 
-theorem aggOwn_eq (m : ℕ) (cfresh ccarried : E) (cs : List ChildClaims) (h : BatchHints) (b0 : ℕ) :
+theorem aggOwn_eq (m : ℕ) (cfresh ccarried : E) (cs : List ChildClaims) (h : BatchingHints) (b0 : ℕ) :
     aggOwn m cfresh ccarried cs h b0 =
-      [(b0, h.bytecodeRounds.flatMap (fun g => [g.1, g.2])),
+      [(b0, h.sumcheckMessages.flatMap (fun g => [g.1, g.2])),
         (axLf b0, (List.range m).map (fun c => cfresh * (gen ^ c) ^ 24)),
         (axLc m b0, (List.range m).map (fun c => ccarried * (gen ^ c) ^ 24)),
         (axAbs m b0, (List.range (m + 1)).flatMap (fun c => rowW (absSt m cs c))),
@@ -95,8 +95,8 @@ theorem rowW_abs_len (m : ℕ) (cs : List ChildClaims) (c : ℕ) : (rowW (absSt 
   rowW_length (absSt_ok m cs c)
 
 /-- The buffers' words fit their sizes. -/
-theorem aggConts_fit {m : ℕ} {cfresh ccarried : E} {cs : List ChildClaims} {h : BatchHints}
-    (hrl : h.bytecodeRounds.length = 23) :
+theorem aggConts_fit {m : ℕ} {cfresh ccarried : E} {cs : List ChildClaims} {h : BatchingHints}
+    (hrl : h.sumcheckMessages.length = 23) :
     List.Forall₂ (fun c s => c.length ≤ s) (aggConts m cfresh ccarried cs h) (aggSizes m) := by
   simp only [aggConts, aggSizes, List.forall₂_cons, List.Forall₂.nil, and_true]
   refine ⟨?_, by simp, by simp, ?_, ?_, ?_, by simp⟩
@@ -123,7 +123,7 @@ theorem loadAt_map {rd : Reader} {p : E} {n : ℕ} {f : ℕ → E}
 
 /-- **`AggMem` off a memory holding `aggregate_claims`' buffers and the claim at `dst`.** -/
 theorem aggMem_of_memL {rd : Reader} {cfresh ccarried dst : E} {cs : List ChildClaims}
-    {h : BatchHints} {b0 : ℕ} (hm : MemL rd (aggOwn cs.length cfresh ccarried cs h b0))
+    {h : BatchingHints} {b0 : ℕ} (hm : MemL rd (aggOwn cs.length cfresh ccarried cs h b0))
     (hdst : ReadsAt rd dst (aggOut cs h).cells) :
     AggMem rd cfresh ccarried dst cs h (aggPtrsAt cs.length b0) := by
   have M : ∀ {b : ℕ} {xs : List E}, (b, xs) ∈ aggOwn cs.length cfresh ccarried cs h b0 →
@@ -264,8 +264,8 @@ set_option maxHeartbeats 8000000 in
 words `Lin` hold, the hints of an accepting batching, writing the batching's claim, which `Lin`
 holds at `g^ds`. -/
 theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {m : ℕ}
-    (hm1 : 1 ≤ m) (hm16 : m ≤ 16) {cs : List ChildClaims} (hcl : cs.length = m) {h : BatchHints}
-    {out : DeferredClaim} (hrl : h.bytecodeRounds.length = 23) (hb : batch cs h = some out)
+    (hm1 : 1 ≤ m) (hm16 : m ≤ 16) {cs : List ChildClaims} (hcl : cs.length = m) {h : BatchingHints}
+    {out : DeferredClaim} (hrl : h.sumcheckMessages.length = 23) (hb : batch cs h = some out)
     {cpi cfresh ccarried : E} {ds : ℕ} {Lin : Main.Layout}
     (hcw : ∀ rd, Main.MemL rd Lin → ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (hdst : (ds, out.cells) ∈ Lin) :

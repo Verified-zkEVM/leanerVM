@@ -80,7 +80,7 @@ open scoped ENNReal
 /-- **The deployed verifier**: `verifier` with Keccak-256 and Keccak-f[1600] (moved here from
 `Statement/LeanVm.lean`; no end statement names it). -/
 def verify (prog : Program) (input : PublicInput) (proof : Proof) : Bool :=
-  Id.run (verifier (m := Id) keccak256 keccakF prog input proof)
+  Id.run (verifier (m := Id) keccak256 keccakF1600 prog input proof)
 
 /-- `verify` is the transcription of the deployed verifier, run with Keccak-256 and
 Keccak-f[1600] (`LeanVM.Protocol.Verifier.verify`, what `lake exe leanvm-verify` runs). -/
@@ -90,8 +90,8 @@ theorem verify_eq (prog : Program) (input : PublicInput) (proof : Proof) :
   rfl
 
 /-- The verifier of the experiment, on a statement and a proof. -/
-abbrev expVerifier : Statement × Proof → OracleComp HashSpec Bool :=
-  fun z ↦ verifier queryH queryF z.1.1 z.1.2 z.2
+abbrev expVerifier : ProgramAndInput × Proof → OracleComp KeccakCalls Bool :=
+  fun z ↦ verifier callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2
 
 /-- The experiment's verifier is the random-oracle theorem's verifier of every statement. -/
 theorem expVerifier_eq : expVerifier = Rom.verifierFam Sound.leanVmSeeds Sound.anyProgram := by

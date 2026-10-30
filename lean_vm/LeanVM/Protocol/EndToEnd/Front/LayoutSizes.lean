@@ -45,16 +45,16 @@ theorem bind_eq_ret {α β : Type} {p : Prog α} {f : α → Prog β} {b : β} (
 
 /-- `readN n` returns along exactly the histories of `n` reads, with the values read. -/
 theorem after_readN_ret : ∀ (n : ℕ) {l : List Ev} {xs : List E},
-    (Prog.readN n).after l = some (.ret xs) → l = xs.map Ev.read ∧ xs.length = n
+    (Prog.readScalars n).after l = some (.ret xs) → l = xs.map Ev.read ∧ xs.length = n
   | 0, l, xs, h => by
     cases l with
-    | nil => simp [Prog.readN, Prog.after] at h; subst h; simp
-    | cons e l => cases e <;> simp [Prog.readN, Prog.after] at h
+    | nil => simp [Prog.readScalars, Prog.after] at h; subst h; simp
+    | cons e l => cases e <;> simp [Prog.readScalars, Prog.after] at h
   | n + 1, l, xs, h => by
     cases l with
-    | nil => simp [Prog.readN, Prog.readE, Prog.after, Prog.bind] at h
+    | nil => simp [Prog.readScalars, Prog.readScalar, Prog.after, Prog.bind] at h
     | cons e l =>
-      cases e <;> simp [Prog.readN, Prog.readE, Prog.after, Prog.bind] at h
+      cases e <;> simp [Prog.readScalars, Prog.readScalar, Prog.after, Prog.bind] at h
       rename_i x
       rcases Prog.after_bind_cases _ h with ⟨q, hq, hr⟩ | ⟨ys, l₁, l₂, rfl, h1, h2, h3⟩
       · obtain ⟨ys, rfl, hys⟩ := bind_eq_ret hr.symm

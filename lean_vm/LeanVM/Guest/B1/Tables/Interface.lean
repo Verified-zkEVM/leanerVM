@@ -25,7 +25,7 @@ reads the framework's five column claims, runs the one table sumcheck (`tableSum
 and the public input's binding (`publicInputPhase`, V:2198), and pools every column claim's value.
 
 What it runs is `tablesSeg`: `verifyBusBalance` after the GKR walk (`busRest`), `tablePhase`,
-`publicInputPhase`. The bytecode's value is the hinted `bytecode_val` (`FixedClaims`, exported by
+`publicInputPhase`. The bytecode's value is the hinted `bytecode_val` (`BytecodeClaim`, exported by
 `verify_sub`): for every `ev` taking that value at the bus's bytecode point, the run is the
 specification's.
 
@@ -98,9 +98,9 @@ def busRest (ev : (List K → List E → Prog E)) (layout : Layout) (alphas : Li
   let weights := eqKernel alphas
   let memoryLow := point.take layout.logMemory
   let bytecodeLow := point.take layout.logBytecode
-  let memory ← Prog.readN 3
-  let memoryFinal ← Prog.readE
-  let bytecodeFinal ← Prog.readE
+  let memory ← Prog.readScalars 3
+  let memoryFinal ← Prog.readScalar
+  let bytecodeFinal ← Prog.readScalar
   let claims : List ColumnClaim :=
     (List.zipWith (fun column value ↦ ⟨column, memoryLow, value⟩) [memory0, memory1, memory2]
       memory) ++

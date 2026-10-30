@@ -8,7 +8,7 @@ import LeanDa.Defs
 # Completeness in the random-permutation model
 
 LeanDA is perfectly complete for every permutation `π` of the Keccak state: with the hash
-Keccak-256 over `π` (`keccakWith π`), the membership challenges the deployed duplex over `π`, and
+Keccak-256 over `π` (`keccak256WithPermutation π`), the membership challenges the deployed duplex over `π`, and
 the argument's prover and verifier answered by `π`, every position of every message's honest
 commitment opens and verifies (`leanDa_perfectlyComplete_rpmH : PerfectlyCompleteRpmH`).
 
@@ -45,17 +45,17 @@ theorem leanDa_perfectlyComplete_rpmH : PerfectlyCompleteRpmH := by
   obtain ⟨crs, hcrs, ok, hok, rfl⟩ := hb
   set c := (code r).encode msg
   have hcode : c ∈ (code r).code := ⟨msg, rfl⟩
-  have hcomm : commitCellsM (m := Id) (fun a ↦ pure (keccakWith π a)) c =
-      pure (commitCells (keccakWith π) c) :=
+  have hcomm : commitCellsM (m := Id) (fun a ↦ pure (keccak256WithPermutation π a)) c =
+      pure (commitCells (keccak256WithPermutation π) c) :=
     commitCellsM_eval (fun x ↦ x) (fun _ ↦ rfl) (fun _ _ ↦ rfl) _ _ (fun _ ↦ rfl) c
-  have hrel : RelationRpm r π (commitCells (keccakWith π) c) c = true := by
-    unfold RelationRpm relationM
+  have hrel : relationForPermutation r π (commitCells (keccak256WithPermutation π) c) c = true := by
+    unfold relationForPermutation relationM
     rw [hcomm]
     simp only [Id.run_bind, Id.run_pure, decide_true, Bool.true_and]
     exact checker_complete r c hcode _
   have h1 := hps π crs hcrs _ _ hrel
   rw [OracleComp.prEvent_eq_one_iff] at h1
   rw [h1 ok hok, Bool.true_and, verifyCellM_id]
-  exact verifyCell_openCell (keccakWith π) c p
+  exact verifyCell_openCell (keccak256WithPermutation π) c p
 
 end LeanDa

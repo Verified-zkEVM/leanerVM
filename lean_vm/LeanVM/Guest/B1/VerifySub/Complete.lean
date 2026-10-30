@@ -37,7 +37,7 @@ namespace ChildSegs
 variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
 
 /-- **The own buffers fit their sizes.** -/
-theorem ownW_fits (hbl : bytecode.length = 2 ^ 23) (hst : c.proof.stream.length ≤ Hints.streamCap) :
+theorem ownW_fits (hbl : bytecode.length = 2 ^ 23) (hst : c.proof.stream.length ≤ Hints.childStreamCap) :
     List.Forall₂ (fun c s ↦ c.length ≤ s) S.ownW (vsSizes S.μ) := by
   have hpl := (S.runG' hbl).2.2.1
   have hτ := S.τ_bounds hbl
@@ -53,7 +53,7 @@ theorem ownW_fits (hbl : bytecode.length = 2 ^ 23) (hst : c.proof.stream.length 
     by simp [vsDimsW, S.hs_length], by simp [vsKbW, S.hs_length],
     by simp [vsBkW, Tables.blockKappaWords], hpl.le, S.alphas_length.le, ?_, ?_, ?_, hsll.le,
     S.rchs_length.le, by simp [ringCoefficients, kBits], (lamW_length _).le⟩
-  · simp only [vsStreamW, List.length_append, List.length_replicate, Hints.streamCap] at hst ⊢
+  · simp only [vsStreamW, List.length_append, List.length_replicate, Hints.childStreamCap] at hst ⊢
     omega
   · rw [KeccakGkr.eqKernel_length, S.alphas_length]
     norm_num
@@ -72,7 +72,7 @@ memory, and its valuation is the honest one (`completeAt_flatDepR`'s and `comple
 theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (fs : String → ℕ) {lpE sqE outE : ℕ}
     {Lin : Main.Layout} {κ : ℕ} (hκ : 16 ≤ κ) (hexpL : ∀ q ∈ log2Lin lpE sqE, q ∈ Lin)
-    (hout : (outE, DeferredClaim.cells c.fresh) ∈ Lin) :
+    (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
     let K := fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.μ)) lpE sqE
     let own := fun fp ↦ bufL (fp + fs "verify_sub") (vsSizes S.μ) S.ownW
     let args := [(digestScalars (statementDigest seed c.statement)).1,
@@ -176,7 +176,7 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
     have hfx := hL _ hout
     obtain ⟨⟨D⟩, G⟩ := vs_sig (rd := rd) hbl S rfl _ outs O hκ hlow hmem hlp hsq hfx
     have hpl := (S.runG' hbl).2.2.1
-    have hcl : 24 ≤ (DeferredClaim.cells c.fresh).length := by
+    have hcl : 24 ≤ (DeferredClaim.cells c.freshClaim).length := by
       rw [DeferredClaim.cells, S.fresh_eq hbl]
       simp only [List.length_append, List.length_take, List.length_cons, List.length_nil, hpl,
         S.alphas_length]

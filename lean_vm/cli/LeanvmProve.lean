@@ -105,9 +105,9 @@ def main (args : List String) : IO UInt32 := do
     let nums := (((← IO.FS.readFile (dir ++ "/trace.txt")).trimAscii.toString.splitOn " ")).filterMap String.toNat?
     let [κ, steps, ρ] := nums | do IO.eprintln "bad trace.txt"; return 2
     unless mem.size = 2 ^ κ do IO.eprintln "the memory is not 2^κ cells"; return 2
-    let t : Trace prog := ⟨κ, fun i ↦ mem.getD i.val 0, steps⟩
+    let t : Execution prog := ⟨κ, fun i ↦ mem.getD i.val 0, steps⟩
     let start ← IO.monoMsNow
-    let proof := LeanVM.Prover.prove (m := Id) keccak256 keccakF prog input t ρ fuel
+    let proof := LeanVM.Prover.prove (m := Id) keccak256 keccakF1600 prog input t ρ fuel
     let stream := proof.stream.flatMap scalarBytes
     let openings := proof.openings.flatMap fun o ↦ o.leaf.flatMap kBytes ++ o.path.flatMap digestBytes
     IO.FS.writeBinFile (dir ++ "/lean_stream.bin") ⟨stream.toArray⟩

@@ -102,21 +102,21 @@ theorem prEvent_uniform_mem_le (l : List S) :
     _ ≤ l.length := List.toFinset_card_le l
 
 /-- Coins forwarded, permutation queries to `impl`. -/
-noncomputable def permExt {σ : Type} (impl : QueryImpl (permSpec S) (StateT σ ProbComp)) :
-    QueryImpl (unifSpec + permSpec S) (StateT σ ProbComp)
+noncomputable def permExt {σ : Type} (impl : QueryImpl (permutationOracleSpec S) (StateT σ ProbComp)) :
+    QueryImpl (unifSpec + permutationOracleSpec S) (StateT σ ProbComp)
   | .inl n => liftM (unifSpec.query n : ProbComp (Fin (n + 1)))
   | .inr q => impl q
 
 /-- The weight of a permutation-model query: a permutation query weighs one, a coin nothing. -/
-def permWeight : (unifSpec + permSpec S).Domain → ℕ
+def permWeight : (unifSpec + permutationOracleSpec S).Domain → ℕ
   | .inl _ => 0
   | .inr _ => 1
 
 /-- The lazy permutation with a collision flag: a fresh answer is drawn uniformly; when it
 falls on a used point the flag rises and the answer is redrawn outside the used points. -/
-noncomputable def permFlag : QueryImpl (permSpec S) (StateT (PermLog S × Bool) ProbComp)
-  | .fwd x => StateT.mk fun s ↦
-      match fwdLookup s.1 x with
+noncomputable def permFlag : QueryImpl (permutationOracleSpec S) (StateT (PermutationEdges S × Bool) ProbComp)
+  | .forward x => StateT.mk fun s ↦
+      match forwardLookup s.1 x with
       | some y => pure (y, s)
       | none => do
         let u ← $ᵗ S
@@ -124,8 +124,8 @@ noncomputable def permFlag : QueryImpl (permSpec S) (StateT (PermLog S × Bool) 
           let y ← uniformAvoiding (s.1.map Prod.snd)
           pure (y, ((x, y) :: s.1, true))
         else pure (u, ((x, u) :: s.1, s.2))
-  | .inv y => StateT.mk fun s ↦
-      match invLookup s.1 y with
+  | .inverse y => StateT.mk fun s ↦
+      match inverseLookup s.1 y with
       | some x => pure (x, s)
       | none => do
         let u ← $ᵗ S
@@ -136,16 +136,16 @@ noncomputable def permFlag : QueryImpl (permSpec S) (StateT (PermLog S × Bool) 
 
 /-- The lazy random function with a collision flag: a fresh answer falling on a used point
 raises the flag. -/
-noncomputable def funFlag : QueryImpl (permSpec S) (StateT (PermLog S × Bool) ProbComp)
-  | .fwd x => StateT.mk fun s ↦
-      match fwdLookup s.1 x with
+noncomputable def funFlag : QueryImpl (permutationOracleSpec S) (StateT (PermutationEdges S × Bool) ProbComp)
+  | .forward x => StateT.mk fun s ↦
+      match forwardLookup s.1 x with
       | some y => pure (y, s)
       | none => do
         let u ← $ᵗ S
         if u ∈ s.1.map Prod.snd then pure (u, ((x, u) :: s.1, true))
         else pure (u, ((x, u) :: s.1, s.2))
-  | .inv y => StateT.mk fun s ↦
-      match invLookup s.1 y with
+  | .inverse y => StateT.mk fun s ↦
+      match inverseLookup s.1 y with
       | some x => pure (x, s)
       | none => do
         let u ← $ᵗ S
@@ -153,12 +153,12 @@ noncomputable def funFlag : QueryImpl (permSpec S) (StateT (PermLog S × Bool) P
         else pure (u, ((u, y) :: s.1, s.2))
 
 /-- The flagged lazy permutation is the lazy permutation once the flag is forgotten. -/
-theorem permFlag_proj (q : PermQuery S) (s : PermLog S × Bool) :
-    Prod.map id Prod.fst <$> (permFlag q).run s =ᵈ (lazyPerm q).run s.1 := by
+theorem permFlag_proj (q : PermutationQuery S) (s : PermutationEdges S × Bool) :
+    Prod.map id Prod.fst <$> (permFlag q).run s =ᵈ (lazyRandomPermutation q).run s.1 := by
   cases q with
-  | fwd x =>
-    simp only [permFlag, lazyPerm, StateT.run_mk]
-    rcases h : fwdLookup s.1 x with _ | y
+  | forward x =>
+    simp only [permFlag, lazyRandomPermutation, StateT.run_mk]
+    rcases h : forwardLookup s.1 x with _ | y
     · have := (uniformAvoiding_rejection (s.1.map Prod.snd)).map
         (fun y ↦ (y, (x, y) :: s.1))
       refine EvalDistEq.trans ?_ this
@@ -166,9 +166,9 @@ theorem permFlag_proj (q : PermQuery S) (s : PermLog S × Bool) :
       refine EvalDistEq.bind_right _ fun u ↦ ?_
       split_ifs <;> simp
     · simp
-  | inv y =>
-    simp only [permFlag, lazyPerm, StateT.run_mk]
-    rcases h : invLookup s.1 y with _ | x
+  | inverse y =>
+    simp only [permFlag, lazyRandomPermutation, StateT.run_mk]
+    rcases h : inverseLookup s.1 y with _ | x
     · have := (uniformAvoiding_rejection (s.1.map Prod.fst)).map
         (fun x ↦ (x, (x, y) :: s.1))
       refine EvalDistEq.trans ?_ this
@@ -178,20 +178,20 @@ theorem permFlag_proj (q : PermQuery S) (s : PermLog S × Bool) :
     · simp
 
 /-- The flagged lazy function is the lazy function once the flag is forgotten. -/
-theorem funFlag_proj (q : PermQuery S) (s : PermLog S × Bool) :
+theorem funFlag_proj (q : PermutationQuery S) (s : PermutationEdges S × Bool) :
     Prod.map id Prod.fst <$> (funFlag q).run s = (lazyFun q).run s.1 := by
   cases q with
-  | fwd x =>
+  | forward x =>
     simp only [funFlag, lazyFun, StateT.run_mk]
-    rcases h : fwdLookup s.1 x with _ | y
+    rcases h : forwardLookup s.1 x with _ | y
     · simp only [map_bind]
       rw [map_eq_bind_pure_comp]
       refine bind_congr fun u ↦ ?_
       split_ifs <;> simp
     · simp
-  | inv y =>
+  | inverse y =>
     simp only [funFlag, lazyFun, StateT.run_mk]
-    rcases h : invLookup s.1 y with _ | x
+    rcases h : inverseLookup s.1 y with _ | x
     · simp only [map_bind]
       rw [map_eq_bind_pure_comp]
       refine bind_congr fun u ↦ ?_
@@ -199,11 +199,11 @@ theorem funFlag_proj (q : PermQuery S) (s : PermLog S × Bool) :
     · simp
 
 /-- The flagged samplers agree away from a raised flag. -/
-theorem permFlag_funFlag_agree (q : PermQuery S) (s : PermLog S × Bool)
-    (p : S × (PermLog S × Bool) → Prop) :
+theorem permFlag_funFlag_agree (q : PermutationQuery S) (s : PermutationEdges S × Bool)
+    (p : S × (PermutationEdges S × Bool) → Prop) :
     Pr{let z ← (permFlag q).run s}[p z ∧ ¬ z.2.2 = true] =
       Pr{let z ← (funFlag q).run s}[p z ∧ ¬ z.2.2 = true] := by
-  have key : ∀ (l : List S) (e : S → PermLog S),
+  have key : ∀ (l : List S) (e : S → PermutationEdges S),
       Pr{let z ← (($ᵗ S) >>= fun u ↦ if u ∈ l then (uniformAvoiding l >>= fun y ↦
           pure (y, (e y, true))) else pure (u, (e u, s.2)))}[p z ∧ ¬ z.2.2 = true] =
         Pr{let z ← (($ᵗ S) >>= fun u ↦ if u ∈ l then pure (u, (e u, true))
@@ -220,21 +220,21 @@ theorem permFlag_funFlag_agree (q : PermQuery S) (s : PermLog S × Bool)
         exact h.2 rfl
     · rfl
   cases q with
-  | fwd x =>
+  | forward x =>
     simp only [permFlag, funFlag, StateT.run_mk]
     split
     · rfl
     · exact key _ fun y ↦ (x, y) :: s.1
-  | inv y =>
+  | inverse y =>
     simp only [permFlag, funFlag, StateT.run_mk]
     split
     · rfl
     · exact key _ fun x ↦ (x, y) :: s.1
 
 /-- A raised flag stays raised. -/
-theorem flag_mono (impl : QueryImpl (permSpec S) (StateT (PermLog S × Bool) ProbComp))
-    (himpl : impl = permFlag ∨ impl = funFlag) (t : (unifSpec + permSpec S).Domain)
-    (s : PermLog S × Bool) (hs : s.2 = true) {z} (hz : z ∈ support ((permExt impl t).run s)) :
+theorem flag_mono (impl : QueryImpl (permutationOracleSpec S) (StateT (PermutationEdges S × Bool) ProbComp))
+    (himpl : impl = permFlag ∨ impl = funFlag) (t : (unifSpec + permutationOracleSpec S).Domain)
+    (s : PermutationEdges S × Bool) (hs : s.2 = true) {z} (hz : z ∈ support ((permExt impl t).run s)) :
     z.2.2 = true := by
   rcases t with n | q
   · simp only [permExt, StateT.run_monadLift, monadLift_self, mem_support_bind_iff,
@@ -254,9 +254,9 @@ theorem flag_mono (impl : QueryImpl (permSpec S) (StateT (PermLog S × Bool) Pro
 
 /-- One step of a flagged sampler raises the flag with probability at most `N / |S|` from a log
 shorter than `N`. -/
-theorem flag_step_le (impl : QueryImpl (permSpec S) (StateT (PermLog S × Bool) ProbComp))
-    (himpl : impl = permFlag ∨ impl = funFlag) (N : ℕ) (t : (unifSpec + permSpec S).Domain)
-    (s : PermLog S × Bool) (hs : ¬ s.2 = true) (hN : s.1.length + permWeight t ≤ N) :
+theorem flag_step_le (impl : QueryImpl (permutationOracleSpec S) (StateT (PermutationEdges S × Bool) ProbComp))
+    (himpl : impl = permFlag ∨ impl = funFlag) (N : ℕ) (t : (unifSpec + permutationOracleSpec S).Domain)
+    (s : PermutationEdges S × Bool) (hs : ¬ s.2 = true) (hN : s.1.length + permWeight t ≤ N) :
     Pr{let z ← (permExt impl t).run s}[z.2.2 = true] ≤
       permWeight t * (N / (Fintype.card S : ℝ≥0∞)) := by
   rcases t with n | q
@@ -272,7 +272,7 @@ theorem flag_step_le (impl : QueryImpl (permSpec S) (StateT (PermLog S × Bool) 
         Pr{let u ← $ᵗ S}[u ∈ l] ≤ N / (Fintype.card S : ℝ≥0∞) := fun l hl ↦
       (prEvent_uniform_mem_le l).trans (by gcongr; exact_mod_cast (by omega : l.length ≤ N))
     -- a fresh draw raises the flag only when it falls in the used points
-    have hdraw : ∀ (l : List S) {β : Type} (f : S → ProbComp (β × (PermLog S × Bool))),
+    have hdraw : ∀ (l : List S) {β : Type} (f : S → ProbComp (β × (PermutationEdges S × Bool))),
         l.length = s.1.length →
         (∀ u, u ∉ l → ∀ z ∈ support (f u), ¬ z.2.2 = true) →
         Pr{let z ← ($ᵗ S) >>= f}[z.2.2 = true] ≤ N / (Fintype.card S : ℝ≥0∞) := by
@@ -283,7 +283,7 @@ theorem flag_step_le (impl : QueryImpl (permSpec S) (StateT (PermLog S × Bool) 
       · rw [add_zero]; exact hl l hlen
     simp only [permExt]
     rcases himpl with rfl | rfl <;> cases q with
-    | fwd x =>
+    | forward x =>
       simp only [permFlag, funFlag, StateT.run_mk]
       split
       · rw [prEvent_eq_zero_of_forall_mem_support _ _ fun z hz h ↦ ?_]
@@ -292,7 +292,7 @@ theorem flag_step_le (impl : QueryImpl (permSpec S) (StateT (PermLog S × Bool) 
       · refine hdraw (s.1.map Prod.snd) _ (by simp) fun u hu z hz h ↦ ?_
         simp only [hu, ↓reduceIte, support_pure, Set.mem_singleton_iff] at hz
         subst hz; exact hs h
-    | inv y =>
+    | inverse y =>
       simp only [permFlag, funFlag, StateT.run_mk]
       split
       · rw [prEvent_eq_zero_of_forall_mem_support _ _ fun z hz h ↦ ?_]
@@ -303,9 +303,9 @@ theorem flag_step_le (impl : QueryImpl (permSpec S) (StateT (PermLog S × Bool) 
         subst hz; exact hs h
 
 /-- A step of a flagged sampler adds at most one edge per permutation query. -/
-theorem flag_size_le (impl : QueryImpl (permSpec S) (StateT (PermLog S × Bool) ProbComp))
-    (himpl : impl = permFlag ∨ impl = funFlag) (t : (unifSpec + permSpec S).Domain)
-    (s : PermLog S × Bool) {z} (hz : z ∈ support ((permExt impl t).run s)) :
+theorem flag_size_le (impl : QueryImpl (permutationOracleSpec S) (StateT (PermutationEdges S × Bool) ProbComp))
+    (himpl : impl = permFlag ∨ impl = funFlag) (t : (unifSpec + permutationOracleSpec S).Domain)
+    (s : PermutationEdges S × Bool) {z} (hz : z ∈ support ((permExt impl t).run s)) :
     z.2.1.length ≤ s.1.length + permWeight t := by
   rcases t with n | q
   · simp only [permExt, StateT.run_monadLift, monadLift_self, mem_support_bind_iff,
@@ -325,9 +325,9 @@ theorem flag_size_le (impl : QueryImpl (permSpec S) (StateT (PermLog S × Bool) 
 
 /-- The flagged samplers raise the flag with probability at most `q² / |S|` over `q` permutation
 queries. -/
-theorem prEvent_flag_le (impl : QueryImpl (permSpec S) (StateT (PermLog S × Bool) ProbComp))
+theorem prEvent_flag_le (impl : QueryImpl (permutationOracleSpec S) (StateT (PermutationEdges S × Bool) ProbComp))
     (himpl : impl = permFlag ∨ impl = funFlag) {α : Type}
-    (oa : OracleComp (unifSpec + permSpec S) α) (q : ℕ) (hq : IsWeightBound oa permWeight q) :
+    (oa : OracleComp (unifSpec + permutationOracleSpec S) α) (q : ℕ) (hq : QueryCostAtMost oa permWeight q) :
     Pr{let z ← (simulateQ (permExt impl) oa).run ([], false)}[z.2.2 = true] ≤
       q * (q / (Fintype.card S : ℝ≥0∞)) := by
   have := prEvent_run_bad_le (spec' := unifSpec) (permExt impl) (fun s ↦ s.2 = true)
@@ -351,19 +351,19 @@ variable {Dg E C Msg : Type}
 /-- The distinguisher's queries in the permutation model: a hash query becomes the sponge's
 permutation queries. -/
 noncomputable def toPerm : QueryImpl (dSpec Msg Dg (SpState Dg E C))
-    (OracleComp (unifSpec + permSpec (SpState Dg E C)))
-  | .inl n => liftM ((unifSpec + permSpec (SpState Dg E C)).query (.inl n))
+    (OracleComp (unifSpec + permutationOracleSpec (SpState Dg E C)))
+  | .inl n => liftM ((unifSpec + permutationOracleSpec (SpState Dg E C)).query (.inl n))
   | .inr (.inl m) => spongeWith P iv (fun x ↦
-      liftM ((unifSpec + permSpec (SpState Dg E C)).query (.inr (.fwd x)))) m
-  | .inr (.inr q) => liftM ((unifSpec + permSpec (SpState Dg E C)).query (.inr q))
+      liftM ((unifSpec + permutationOracleSpec (SpState Dg E C)).query (.inr (.forward x)))) m
+  | .inr (.inr q) => liftM ((unifSpec + permutationOracleSpec (SpState Dg E C)).query (.inr q))
 
 /-- Simulating the sponge's permutation queries is the sponge over the implementation. -/
 theorem simulateQ_absorbAll {σ : Type}
-    (impl : QueryImpl (unifSpec + permSpec (SpState Dg E C)) (StateT σ ProbComp))
+    (impl : QueryImpl (unifSpec + permutationOracleSpec (SpState Dg E C)) (StateT σ ProbComp))
     (s : SpState Dg E C) (bs : List (Dg × E)) :
     simulateQ impl (absorbAll (fun x ↦
-      liftM ((unifSpec + permSpec (SpState Dg E C)).query (.inr (.fwd x)))) s bs) =
-      absorbAll (fun x ↦ impl (.inr (.fwd x))) s bs := by
+      liftM ((unifSpec + permutationOracleSpec (SpState Dg E C)).query (.inr (.forward x)))) s bs) =
+      absorbAll (fun x ↦ impl (.inr (.forward x))) s bs := by
   induction bs generalizing s with
   | nil => simp
   | cons B bs ih =>
@@ -372,7 +372,7 @@ theorem simulateQ_absorbAll {σ : Type}
 
 /-- **The real world unfolds into the permutation model.** -/
 theorem realGame_eq_toPerm {α : Type} (D : OracleComp (dSpec Msg Dg (SpState Dg E C)) α) :
-    realGame P iv D = (simulateQ (permExt lazyPerm) (simulateQ (toPerm P iv) D)).run' [] := by
+    realGame P iv D = (simulateQ (permExt lazyRandomPermutation) (simulateQ (toPerm P iv) D)).run' [] := by
   rw [realGame, ← QueryImpl.simulateQ_compose]
   congr 2
   funext t
@@ -395,31 +395,31 @@ theorem funGame_eq_toPerm {α : Type} (D : OracleComp (dSpec Msg Dg (SpState Dg 
 
 /-- The sponge makes one permutation query per block. -/
 theorem isWeightBound_absorbAll (s : SpState Dg E C) (bs : List (Dg × E)) :
-    IsWeightBound (absorbAll (fun x ↦
-      (liftM ((unifSpec + permSpec (SpState Dg E C)).query (.inr (.fwd x))) :
-        OracleComp (unifSpec + permSpec (SpState Dg E C)) _)) s bs)
+    QueryCostAtMost (absorbAll (fun x ↦
+      (liftM ((unifSpec + permutationOracleSpec (SpState Dg E C)).query (.inr (.forward x))) :
+        OracleComp (unifSpec + permutationOracleSpec (SpState Dg E C)) _)) s bs)
       permWeight bs.length := by
   induction bs generalizing s with
   | nil => trivial
   | cons B bs ih =>
     rw [absorbAll_cons, List.length_cons, add_comm]
-    exact IsWeightBound.bind (isWeightBound_query permWeight _) fun y ↦ ih y
+    exact QueryCostAtMost.bind (isWeightBound_query permWeight _) fun y ↦ ih y
 
 /-- **The unfolded distinguisher makes at most `q` permutation queries.** -/
 theorem isWeightBound_toPerm {α : Type} (D : OracleComp (dSpec Msg Dg (SpState Dg E C)) α)
-    (q : ℕ) (hD : IsWeightBound D (queryCost (Dg := Dg) P) q) :
-    IsWeightBound (simulateQ (toPerm P iv) D) permWeight q := by
+    (q : ℕ) (hD : QueryCostAtMost D (queryCost (Dg := Dg) P) q) :
+    QueryCostAtMost (simulateQ (toPerm P iv) D) permWeight q := by
   induction D using OracleComp.inductionOn generalizing q with
   | pure a => trivial
   | query_bind t k ih =>
     rw [isWeightBound_query_bind_iff] at hD
     obtain ⟨ht, hk⟩ := hD
     rw [simulateQ_query_bind]
-    have h1 : IsWeightBound (toPerm P iv t) permWeight (queryCost P t) := by
+    have h1 : QueryCostAtMost (toPerm P iv t) permWeight (queryCost P t) := by
       rcases t with n | m | q'
       · exact isWeightBound_query permWeight (.inl n)
       · simp only [toPerm, spongeWith, queryCost]
-        rw [IsWeightBound, isQueryBound_map_iff]
+        rw [QueryCostAtMost, isQueryBound_map_iff]
         exact isWeightBound_absorbAll iv (P.pad m)
       · exact isWeightBound_query permWeight (.inr q')
     have := h1.bind fun u ↦ ih u (q - queryCost P t) (hk u)
@@ -429,7 +429,7 @@ theorem isWeightBound_toPerm {α : Type} (D : OracleComp (dSpec Msg Dg (SpState 
 at most `q` permutation calls in all (counting the sponge's), the real world over the random
 permutation and over the random function give every event probabilities within `q² / |S|`. -/
 theorem realGame_funGame_le {α : Type} (D : OracleComp (dSpec Msg Dg (SpState Dg E C)) α)
-    (q : ℕ) (hD : IsWeightBound D (queryCost (Dg := Dg) P) q) (p : α → Prop) :
+    (q : ℕ) (hD : QueryCostAtMost D (queryCost (Dg := Dg) P) q) (p : α → Prop) :
     Pr{let a ← realGame P iv D}[p a] ≤ Pr{let a ← (simulateQ (funImpl P iv) D).run' []}[p a] +
         q * (q / (Fintype.card (SpState Dg E C) : ℝ≥0∞)) ∧
       Pr{let a ← (simulateQ (funImpl P iv) D).run' []}[p a] ≤ Pr{let a ← realGame P iv D}[p a] +
@@ -441,21 +441,21 @@ theorem realGame_funGame_le {α : Type} (D : OracleComp (dSpec Msg Dg (SpState D
       ((liftM (unifSpec.query n : ProbComp (Fin (n + 1))) : StateT σ ProbComp _)).run s =
         (fun u ↦ (u, s)) <$> (unifSpec.query n : ProbComp (Fin (n + 1))) := by
     intro σ n s; simp [map_eq_bind_pure_comp]
-  have hperm : (simulateQ (permExt lazyPerm) D').run' [] =ᵈ
-      (simulateQ (permExt permFlag) D').run' (([] : PermLog (SpState Dg E C)), false) :=
-    (run'_simulateQ_evalDistEq_of_inv (permExt permFlag) (permExt lazyPerm) (fun _ ↦ True)
+  have hperm : (simulateQ (permExt lazyRandomPermutation) D').run' [] =ᵈ
+      (simulateQ (permExt permFlag) D').run' (([] : PermutationEdges (SpState Dg E C)), false) :=
+    (run'_simulateQ_evalDistEq_of_inv (permExt permFlag) (permExt lazyRandomPermutation) (fun _ ↦ True)
       Prod.fst (fun _ _ _ _ _ ↦ trivial) (fun t s _ ↦ by
         rcases t with n | q'
         · simp [permExt, hcoin, Functor.map_map]
-        · exact permFlag_proj q' s) D' (([] : PermLog (SpState Dg E C)), false) trivial).symm
+        · exact permFlag_proj q' s) D' (([] : PermutationEdges (SpState Dg E C)), false) trivial).symm
   have hfun : (simulateQ (permExt lazyFun) D').run' [] =
-      (simulateQ (permExt funFlag) D').run' (([] : PermLog (SpState Dg E C)), false) :=
+      (simulateQ (permExt funFlag) D').run' (([] : PermutationEdges (SpState Dg E C)), false) :=
     (OracleComp.run'_simulateQ_eq_of_query_map_eq (permExt funFlag) (permExt lazyFun)
       Prod.fst (fun t s ↦ by
         rcases t with n | q'
         · simp [permExt, hcoin, Functor.map_map]
-        · exact funFlag_proj q' s) D' (([] : PermLog (SpState Dg E C)), false)).symm
-  have hagree : ∀ t (s : PermLog (SpState Dg E C) × Bool), ¬ s.2 = true →
+        · exact funFlag_proj q' s) D' (([] : PermutationEdges (SpState Dg E C)), false)).symm
+  have hagree : ∀ t (s : PermutationEdges (SpState Dg E C) × Bool), ¬ s.2 = true →
       ∀ r : _ → Prop, Pr{let z ← (permExt permFlag t).run s}[r z ∧ ¬ z.2.2 = true] =
         Pr{let z ← (permExt funFlag t).run s}[r z ∧ ¬ z.2.2 = true] := by
     intro t s _ r

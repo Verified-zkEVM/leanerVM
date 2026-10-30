@@ -381,7 +381,7 @@ theorem holds_transfer : ∀ (a : Atom), a.Holds rd σ →
   | .hint _, h, _ => h
 
 /-- An atom's equations hold on a memory it holds on, wherever they name an address. -/
-theorem atomEqns_read {κ : ℕ} (hκ : κ < 64) {L : MemImage κ} :
+theorem atomEqns_read {κ : ℕ} (hκ : κ < 64) {L : MemoryImage κ} :
     ∀ (a : Atom), a.Holds L.read σ → ∀ q ∈ atomEqns σ a, (∃ i : Fin (2 ^ κ), q.1 = gpow i) →
       L.read q.1 = some q.2
   | .load .., h, q, hq, _ => by
@@ -395,8 +395,8 @@ theorem atomEqns_read {κ : ℕ} (hκ : κ < 64) {L : MemImage κ} :
   | .frameAddr p run, h, q, hq, ⟨i, hi⟩ => by
       obtain ⟨k, hk, rfl⟩ := List.mem_mapIdx.mp hq
       dsimp only at hi ⊢
-      have := h.2 k hk (L i) (by rw [hi]; exact MemImage.read_gpow hκ L i)
-      rw [hi, MemImage.read_gpow hκ L i, this]
+      have := h.2 k hk (L i) (by rw [hi]; exact MemoryImage.read_gpow hκ L i)
+      rw [hi, MemoryImage.read_gpow hκ L i, this]
   | .const .., _, _, hq, _ => (List.not_mem_nil hq).elim
   | .add .., _, _, hq, _ => (List.not_mem_nil hq).elim
   | .mul .., _, _, hq, _ => (List.not_mem_nil hq).elim
@@ -428,7 +428,7 @@ theorem events_transfer {es : List Ev} (h : ∀ e ∈ es, e.Holds rd σ)
 
 /-- The equations of a path hold on a memory its events hold on, wherever they name an
 address. -/
-theorem evEqns_read {κ : ℕ} (hκ : κ < 64) {L : MemImage κ} {es : List Ev}
+theorem evEqns_read {κ : ℕ} (hκ : κ < 64) {L : MemoryImage κ} {es : List Ev}
     (h : ∀ e ∈ es, e.Holds L.read σ) :
     ∀ q ∈ evEqns σ es, (∃ i : Fin (2 ^ κ), q.1 = gpow i) → L.read q.1 = some q.2 := by
   intro q hq hi
@@ -470,7 +470,7 @@ end
 mutual
 /-- **The equations of a valid tree hold** on the memory it is valid on, wherever they name an
 address. -/
-theorem Tree.Valid.eqns_read {κ : ℕ} (hκ : κ < 64) {L : MemImage κ} :
+theorem Tree.Valid.eqns_read {κ : ℕ} (hκ : κ < 64) {L : MemoryImage κ} :
     ∀ (t : Tree) {args rets : List E}, t.Valid P L.read args rets → ∀ q ∈ t.eqns P,
       (∃ i : Fin (2 ^ κ), q.1 = gpow i) → L.read q.1 = some q.2
   | .node _ σ _ kids, _, _, ⟨fn, hf, _, es, vs, hw, _, hes, hk⟩, q, hq, hi => by
@@ -481,7 +481,7 @@ theorem Tree.Valid.eqns_read {κ : ℕ} (hκ : κ < 64) {L : MemImage κ} :
   | .phantom .., _, _, h, _, _, _ => h.elim
 
 /-- `Tree.Valid.eqns_read` for the callees. -/
-theorem Tree.KidsValid.eqns_read {κ : ℕ} (hκ : κ < 64) {L : MemImage κ} :
+theorem Tree.KidsValid.eqns_read {κ : ℕ} (hκ : κ < 64) {L : MemoryImage κ} :
     ∀ (σ : Val) (ks : List Tree) (cs : List Call), Tree.KidsValid P L.read σ cs ks →
       ∀ q ∈ Tree.eqnsKids P ks, (∃ i : Fin (2 ^ κ), q.1 = gpow i) → L.read q.1 = some q.2
   | _, [], [], _, _, hq, _ => (List.not_mem_nil hq).elim

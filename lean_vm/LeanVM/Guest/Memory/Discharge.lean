@@ -419,7 +419,7 @@ and the certificate's facts about the cells (for every re-choice `ν` of the tem
 cells fit, a temporary's cells hold only it, the other cells are the old tree's, `frameAddr` runs
 at their certificate cells, none a temporary's. -/
 structure DischargeHyps (H : Inst → ℕ → E × E) (C : Inst → List (ℕ × E)) (hdr : E × E)
-    (T : Tree) (R : ℕ → Prop) (M : MemImage (logMem (T.total fs))) (args rets : List E) : Prop where
+    (T : Tree) (R : ℕ → Prop) (M : MemoryImage (logMem (T.total fs))) (args rets : List E) : Prop where
   fresh : P.Fresh
   valid : T.Valid P M.read args rets
   bufsOk : T.BufsOk P
@@ -445,7 +445,7 @@ structure DischargeHyps (H : Inst → ℕ → E × E) (C : Inst → List (ℕ ×
       q ∈ I.cells C
 
 variable {H : Inst → ℕ → E × E} {C : Inst → List (ℕ × E)} {hdr : E × E} {T : Tree}
-  {R : ℕ → Prop} {M : MemImage (logMem (T.total fs))} {args rets : List E}
+  {R : ℕ → Prop} {M : MemoryImage (logMem (T.total fs))} {args rets : List E}
 
 variable (P fs cert H C hdr T) in
 /-- The words fixed independently of the temporaries: frame cells other than temporaries', and

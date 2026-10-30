@@ -51,7 +51,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- The five capacity cells of a state: cells `8..12` of its even layout, lanes `16..24`
 (`fs0 .. fs4`, `sp[8] .. sp[12]`). -/
-def capOf (S : KState) : List E :=
+def capOf (S : KeccakState) : List E :=
   [cellsOfState S false 8, cellsOfState S false 9, cellsOfState S false 10,
     cellsOfState S false 11, cellsOfState S false 12]
 
@@ -60,7 +60,7 @@ def capOf (S : KState) : List E :=
 def rateOf (pend : List (E × ℕ)) : List E := (List.range 8).map (Keccak.rateCell pend)
 
 /-- The state one `KECCAK` in the even layouts writes from the thirteen cells it reads. -/
-def permOf (cells : List E) : KState := keccakF (stateOfCells (cells13 cells) false)
+def permOf (cells : List E) : KeccakState := keccakF1600 (stateOfCells (cells13 cells) false)
 
 /-- Every cell canonical (`IsCanonical128`), as a `KECCAK` requires of the cells it reads. -/
 def AllCanonical (cs : List E) : Prop := ∀ c ∈ cs, IsCanonical128 c
@@ -79,7 +79,7 @@ namespace Fs
 
 /-- The state the next permutation writes: the waiting scalars over the rate, the capacity
 kept. -/
-def perm (s : Fs) : KState := permOf (rateOf s.pend ++ s.cap)
+def perm (s : Fs) : KeccakState := permOf (rateOf s.pend ++ s.cap)
 
 /-- Absorb a scalar with a tag: a full queue is permuted first (`absorb`). -/
 def absorb (s : Fs) (x : E) (t : ℕ) : Fs :=
@@ -107,8 +107,8 @@ end Fs
 /-! ## Runs of the Spec's programs -/
 
 /-- The deployed reading of a Spec program: `Compile.run` at Keccak-256 and Keccak-f. -/
-abbrev runId {α : Type} (p : Prog α) (st : St) : Option (α × St) :=
-  Compile.run (m := Id) keccak256 keccakF p st
+abbrev runId {α : Type} (p : Prog α) (st : ProgState) : Option (α × ProgState) :=
+  Compile.run (m := Id) keccak256 keccakF1600 p st
 
 /-- From any Spec sponge the guest carries as `s`, the program `p` reads exactly the stream words
 `xs` and returns `a`, leaving a sponge the guest carries as `s'`, on any rest of the stream, any

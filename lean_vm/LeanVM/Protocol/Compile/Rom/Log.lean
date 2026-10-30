@@ -78,7 +78,7 @@ attribute [local irreducible] instFintypeDigest instFintypeKState
 /-! ## Logs -/
 
 /-- An entry of the log: a hash query or a permutation query, with its answer. -/
-abbrev Entry : Type := LogEntry Bytes Digest KState KState
+abbrev Entry : Type := LogEntry Bytes Digest KeccakState KeccakState
 
 /-- The oracles' log: the fresh queries in order, with their answers. -/
 abbrev Log : Type := List Entry
@@ -87,7 +87,7 @@ abbrev Log : Type := List Entry
 abbrev lookH (ℓ : Log) : Bytes → Option Digest := lookL ℓ
 
 /-- The permutation answer a log gives (its first permutation entry with the input). -/
-abbrev lookF (ℓ : Log) : KState → Option KState := lookR ℓ
+abbrev lookF (ℓ : Log) : KeccakState → Option KeccakState := lookR ℓ
 
 /-- The hash inputs of a log. -/
 def hIns (ℓ : Log) : List Bytes := (leftOf ℓ).map Prod.fst
@@ -96,10 +96,10 @@ def hIns (ℓ : Log) : List Bytes := (leftOf ℓ).map Prod.fst
 def hOuts (ℓ : Log) : List Digest := (leftOf ℓ).map Prod.snd
 
 /-- The permutation inputs of a log. -/
-def fIns (ℓ : Log) : List KState := (rightOf ℓ).map Prod.fst
+def fIns (ℓ : Log) : List KeccakState := (rightOf ℓ).map Prod.fst
 
 /-- The permutation outputs of a log. -/
-def fOuts (ℓ : Log) : List KState := (rightOf ℓ).map Prod.snd
+def fOuts (ℓ : Log) : List KeccakState := (rightOf ℓ).map Prod.snd
 
 theorem length_leftOf_add_rightOf : ∀ ℓ : Log, (leftOf ℓ).length + (rightOf ℓ).length = ℓ.length
   | [] => rfl
@@ -115,24 +115,24 @@ theorem length_leftOf_add_rightOf : ∀ ℓ : Log, (leftOf ℓ).length + (rightO
 theorem leftOf_cons_inl (p : Bytes × Digest) (ℓ : Log) : leftOf (.inl p :: ℓ) = p :: leftOf ℓ :=
   rfl
 
-theorem leftOf_cons_inr (p : KState × KState) (ℓ : Log) : leftOf (.inr p :: ℓ) = leftOf ℓ := rfl
+theorem leftOf_cons_inr (p : KeccakState × KeccakState) (ℓ : Log) : leftOf (.inr p :: ℓ) = leftOf ℓ := rfl
 
 theorem rightOf_cons_inl (p : Bytes × Digest) (ℓ : Log) : rightOf (.inl p :: ℓ) = rightOf ℓ :=
   rfl
 
-theorem rightOf_cons_inr (p : KState × KState) (ℓ : Log) :
+theorem rightOf_cons_inr (p : KeccakState × KeccakState) (ℓ : Log) :
     rightOf (.inr p :: ℓ) = p :: rightOf ℓ := rfl
 
 theorem lookH_cons_inl (x : Bytes) (u : Digest) (ℓ : Log) (y : Bytes) :
     lookH (.inl (x, u) :: ℓ) y = if x = y then some u else lookH ℓ y := rfl
 
-theorem lookH_cons_inr (p : KState × KState) (ℓ : Log) (y : Bytes) :
+theorem lookH_cons_inr (p : KeccakState × KeccakState) (ℓ : Log) (y : Bytes) :
     lookH (.inr p :: ℓ) y = lookH ℓ y := rfl
 
-theorem lookF_cons_inl (p : Bytes × Digest) (ℓ : Log) (s : KState) :
+theorem lookF_cons_inl (p : Bytes × Digest) (ℓ : Log) (s : KeccakState) :
     lookF (.inl p :: ℓ) s = lookF ℓ s := rfl
 
-theorem lookF_cons_inr (s : KState) (u : KState) (ℓ : Log) (s' : KState) :
+theorem lookF_cons_inr (s : KeccakState) (u : KeccakState) (ℓ : Log) (s' : KeccakState) :
     lookF (.inr (s, u) :: ℓ) s' = if s = s' then some u else lookF ℓ s' := rfl
 
 /-- A hash lookup is the first hash entry with the input. -/
@@ -178,7 +178,7 @@ theorem lookH_eq_some_iff (ℓ : Log) (x : Bytes) (v : Digest) :
             simpa [lookH_cons_inr] using hn⟩
 
 /-- A permutation lookup is the first permutation entry with the input. -/
-theorem lookF_eq_some_iff (ℓ : Log) (s v : KState) :
+theorem lookF_eq_some_iff (ℓ : Log) (s v : KeccakState) :
     lookF ℓ s = some v ↔
       ∃ (i : ℕ) (hi : i < ℓ.length), ℓ[i] = .inr (s, v) ∧ lookF (ℓ.take i) s = none := by
   induction ℓ with
@@ -225,7 +225,7 @@ theorem lookH_append_of_some {ℓ : Log} {x : Bytes} {v : Digest} (h : lookH ℓ
   show lookL (ℓ ++ ℓ') x = some v
   rw [lookL_append, h', Option.some_or]
 
-theorem lookF_append_of_some {ℓ : Log} {s v : KState} (h : lookF ℓ s = some v)
+theorem lookF_append_of_some {ℓ : Log} {s v : KeccakState} (h : lookF ℓ s = some v)
     (ℓ' : Log) : lookF (ℓ ++ ℓ') s = some v := by
   have h' : lookR ℓ s = some v := h
   show lookR (ℓ ++ ℓ') s = some v
@@ -238,7 +238,7 @@ theorem lookH_of_prefix {ℓ ℓ' : Log} (hp : ℓ <+: ℓ') {x : Bytes} {v : Di
   exact lookH_append_of_some h r
 
 /-- A permutation lookup in a prefix is a lookup in the log. -/
-theorem lookF_of_prefix {ℓ ℓ' : Log} (hp : ℓ <+: ℓ') {s v : KState}
+theorem lookF_of_prefix {ℓ ℓ' : Log} (hp : ℓ <+: ℓ') {s v : KeccakState}
     (h : lookF ℓ s = some v) : lookF ℓ' s = some v := by
   obtain ⟨r, rfl⟩ := hp
   exact lookF_append_of_some h r
@@ -253,7 +253,7 @@ theorem lookH_take_of_first {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {x : Byt
 
 /-- An entry is found by a permutation lookup in every prefix that contains it, if no earlier
 entry has its input. -/
-theorem lookF_take_of_first {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {s v : KState}
+theorem lookF_take_of_first {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {s v : KeccakState}
     (hei : ℓ[i] = .inr (s, v)) (hn : lookF (ℓ.take i) s = none) {m : ℕ} (hm : i < m) :
     lookF (ℓ.take m) s = some v := by
   rw [lookF_eq_some_iff]
@@ -267,19 +267,19 @@ theorem lookH_append_inl_of_ne {ℓ : Log} {x y : Bytes} (h : y ≠ x) (u : Dige
     lookH (ℓ ++ [.inl (x, u)]) y = lookH ℓ y := by
   rw [lookH, lookL_append, lookL_inl]; simp [Ne.symm h]
 
-theorem lookH_append_inr (ℓ : Log) (p : KState × KState) (y : Bytes) :
+theorem lookH_append_inr (ℓ : Log) (p : KeccakState × KeccakState) (y : Bytes) :
     lookH (ℓ ++ [.inr p]) y = lookH ℓ y := by
   rw [lookH, lookL_append, lookL_inr]; simp
 
-theorem lookF_append_inr_self {ℓ : Log} {s : KState} (h : lookF ℓ s = none) (u : KState) :
+theorem lookF_append_inr_self {ℓ : Log} {s : KeccakState} (h : lookF ℓ s = none) (u : KeccakState) :
     lookF (ℓ ++ [.inr (s, u)]) s = some u := by
   rw [lookF, lookR_append, lookR_inr]; simp [h]
 
-theorem lookF_append_inr_of_ne {ℓ : Log} {s s' : KState} (h : s' ≠ s) (u : KState) :
+theorem lookF_append_inr_of_ne {ℓ : Log} {s s' : KeccakState} (h : s' ≠ s) (u : KeccakState) :
     lookF (ℓ ++ [.inr (s, u)]) s' = lookF ℓ s' := by
   rw [lookF, lookR_append, lookR_inr]; simp [Ne.symm h]
 
-theorem lookF_append_inl (ℓ : Log) (p : Bytes × Digest) (s : KState) :
+theorem lookF_append_inl (ℓ : Log) (p : Bytes × Digest) (s : KeccakState) :
     lookF (ℓ ++ [.inl p]) s = lookF ℓ s := by
   rw [lookF, lookR_append, lookR_inl]; simp
 
@@ -291,11 +291,11 @@ theorem mem_hOuts_of_getElem {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {x : By
     (h : ℓ[i] = .inl (x, u)) : u ∈ hOuts ℓ :=
   List.mem_map.mpr ⟨(x, u), mem_leftOf.mpr (h ▸ List.getElem_mem hi), rfl⟩
 
-theorem mem_fIns_of_getElem {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {s u : KState}
+theorem mem_fIns_of_getElem {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {s u : KeccakState}
     (h : ℓ[i] = .inr (s, u)) : s ∈ fIns ℓ :=
   List.mem_map.mpr ⟨(s, u), mem_rightOf.mpr (h ▸ List.getElem_mem hi), rfl⟩
 
-theorem mem_fOuts_of_getElem {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {s u : KState}
+theorem mem_fOuts_of_getElem {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {s u : KeccakState}
     (h : ℓ[i] = .inr (s, u)) : u ∈ fOuts ℓ :=
   List.mem_map.mpr ⟨(s, u), mem_rightOf.mpr (h ▸ List.getElem_mem hi), rfl⟩
 
@@ -312,7 +312,7 @@ structure Seed where
   /-- The hash steps. -/
   hs : List (List Digest → Bytes)
   /-- The permutation step's input. -/
-  fin : List Digest → KState
+  fin : List Digest → KeccakState
 
 /-- The hash steps from the answers `ds` so far. -/
 def Seed.hsRun {m : Type → Type} [Monad m] (H : Bytes → m Digest) :
@@ -323,8 +323,8 @@ def Seed.hsRun {m : Type → Type} [Monad m] (H : Bytes → m Digest) :
     Seed.hsRun H fs (ds ++ [d])
 
 /-- The seed, computed with a hash function and a permutation in any monad. -/
-def Seed.run {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
-    (σ : Seed) : m KState := do
+def Seed.run {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
+    (σ : Seed) : m KeccakState := do
   let ds ← Seed.hsRun H σ.hs []
   F (σ.fin ds)
 
@@ -396,23 +396,23 @@ structure Seeds (X : Type) where
 
 /-- The root two adjacent waiting scalars of tag `1`, in slots `i` and `i + 1` of a permutation
 input, encode. -/
-def pairRoot (t : KState) (i : ℕ) : Option Digest :=
+def pairRoot (t : KeccakState) (i : ℕ) : Option Digest :=
   if slotTag t i = 1 ∧ slotTag t (i + 1) = 1 then digestOfScalars (slotE t i, slotE t (i + 1))
   else none
 
 /-- The input that produced the state a permutation input continues: the first permutation
 entry of the log whose output has the input's capacity. -/
-def predIn (ℓ : Log) (t : KState) : Option KState :=
+def predIn (ℓ : Log) (t : KeccakState) : Option KeccakState :=
   ((rightOf ℓ).find? fun e ↦ decide (capOf e.2 = capOf t)).map Prod.fst
 
 /-- The root straddling a forced permutation: the last waiting scalar of the input before, and
 the first of this one, both of tag `1`. -/
-def straddleRoot (ℓ : Log) (t : KState) : Option Digest :=
+def straddleRoot (ℓ : Log) (t : KeccakState) : Option Digest :=
   (predIn ℓ t).bind fun t' ↦
     if slotTag t' 3 = 1 ∧ slotTag t 0 = 1 then digestOfScalars (slotE t' 3, slotE t 0) else none
 
 /-- The permutation input `t` absorbs the root `r` in the log `ℓ`. -/
-def RootOf (ℓ : Log) (t : KState) (r : Digest) : Prop :=
+def RootOf (ℓ : Log) (t : KeccakState) (r : Digest) : Prop :=
   (∃ i < 3, pairRoot t i = some r) ∨ straddleRoot ℓ t = some r
 
 /-- A fresh hash answer `u` at `x` appended to `ℓ` fails. -/
@@ -422,7 +422,7 @@ def BadH {X : Type} (σ : Seeds X) (ℓ : Log) (x : Bytes) (u : Digest) : Prop :
     ∃ t ∈ fIns ℓ, RootOf ℓ t u ∨ laneDigest t = u
 
 /-- A fresh permutation answer `u` at `s` appended to `ℓ` fails. -/
-def BadF (ℓ : Log) (s u : KState) : Prop :=
+def BadF (ℓ : Log) (s u : KeccakState) : Prop :=
   (∃ v ∈ fOuts ℓ, capOf v = capOf u) ∨ (∃ y ∈ s :: fIns ℓ, capOf y = capOf u) ∨ capOf u = 0
 
 /-- A fresh entry appended to `ℓ` fails. -/
@@ -493,7 +493,7 @@ theorem ind_exists_le {β : Type} (L : List β) (q : β → Prop) :
   · rw [ind_of_not h]; exact bot_le
 
 /-- The roots an input absorbs: at most four. -/
-theorem sum_rootOf_le (ℓ : Log) (t : KState) : ∑ u, ind (RootOf ℓ t u) ≤ 4 := by
+theorem sum_rootOf_le (ℓ : Log) (t : KeccakState) : ∑ u, ind (RootOf ℓ t u) ≤ 4 := by
   have hpair : ∀ i, ∑ u, ind (pairRoot t i = some u) ≤ 1 := fun i ↦
     sum_ind_le_one fun u u' hu hu' ↦ Option.some.inj (hu.symm.trans hu')
   have hstr : ∑ u, ind (straddleRoot ℓ t = some u) ≤ 1 :=
@@ -582,8 +582,8 @@ theorem sum_badH_le {X : Type} (σ : Seeds X) (ℓ : Log) (x : Bytes) :
 
 /-- **The count of failing permutation answers**: the answer's capacity avoids at most
 `2|ℓ| + 2` values, each with probability at most `2^-256`. -/
-theorem sum_badF_div_le (ℓ : Log) (s : KState) :
-    (∑ u, ind (BadF ℓ s u)) / Fintype.card KState ≤ ((2 * ℓ.length + 2 : ℕ) : ℝ≥0∞) * 2⁻¹ ^ 256 := by
+theorem sum_badF_div_le (ℓ : Log) (s : KeccakState) :
+    (∑ u, ind (BadF ℓ s u)) / Fintype.card KeccakState ≤ ((2 * ℓ.length + 2 : ℕ) : ℝ≥0∞) * 2⁻¹ ^ 256 := by
   set C : List (Fin 9 → UInt64) := (fOuts ℓ).map capOf ++ (s :: fIns ℓ).map capOf ++ [0]
   have hpt : ∀ u, ind (BadF ℓ s u) ≤ (C.map fun c ↦ ind (capOf u = c)).sum := by
     intro u
@@ -598,10 +598,10 @@ theorem sum_badF_div_le (ℓ : Log) (s : KState) :
     have := length_leftOf_add_rightOf ℓ
     simp [C, fOuts, fIns]
     omega
-  calc (∑ u, ind (BadF ℓ s u)) / Fintype.card KState
-      ≤ (∑ u, (C.map fun c ↦ ind (capOf u = c)).sum) / Fintype.card KState := by
+  calc (∑ u, ind (BadF ℓ s u)) / Fintype.card KeccakState
+      ≤ (∑ u, (C.map fun c ↦ ind (capOf u = c)).sum) / Fintype.card KeccakState := by
         gcongr with u; exact hpt u
-    _ = (C.map fun c ↦ (∑ u, ind (capOf u = c)) / Fintype.card KState).sum := by
+    _ = (C.map fun c ↦ (∑ u, ind (capOf u = c)) / Fintype.card KeccakState).sum := by
         rw [sum_list_sum_comm, div_eq_mul_inv, ← List.sum_map_mul_right]
         simp only [div_eq_mul_inv]
     _ ≤ C.length * 2⁻¹ ^ 256 := list_sum_le _ _ _ fun c _ ↦ sum_capOf_div_le c
@@ -636,7 +636,7 @@ theorem index_eq_of_hOut (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) 
 
 /-- Without failure, the capacities of permutation outputs are distinct. -/
 theorem fCap_ne (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length) (hij : i < j)
-    {s t u v : KState} (hei : ℓ[i] = .inr (s, u)) (hej : ℓ[j] = .inr (t, v)) :
+    {s t u v : KeccakState} (hei : ℓ[i] = .inr (s, u)) (hej : ℓ[j] = .inr (t, v)) :
     capOf u ≠ capOf v := by
   intro hc
   refine h ⟨j, hj, ?_⟩
@@ -646,7 +646,7 @@ theorem fCap_ne (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j <
 
 /-- Without failure, two permutation entries whose outputs have one capacity are one entry. -/
 theorem index_eq_of_fCap (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length)
-    {s t u v : KState} (hei : ℓ[i] = .inr (s, u)) (hej : ℓ[j] = .inr (t, v))
+    {s t u v : KeccakState} (hei : ℓ[i] = .inr (s, u)) (hej : ℓ[j] = .inr (t, v))
     (hc : capOf u = capOf v) : i = j := by
   rcases lt_trichotomy i j with hij | rfl | hij
   · exact absurd hc (fCap_ne h hi hj hij hei hej)
@@ -654,7 +654,7 @@ theorem index_eq_of_fCap (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) 
   · exact absurd hc.symm (fCap_ne h hj hi hij hej hei)
 
 /-- Without failure, no permutation output has the zero capacity. -/
-theorem fCap_ne_zero (h : ¬ Fail σ ℓ) {i : ℕ} (hi : i < ℓ.length) {s u : KState}
+theorem fCap_ne_zero (h : ¬ Fail σ ℓ) {i : ℕ} (hi : i < ℓ.length) {s u : KeccakState}
     (hei : ℓ[i] = .inr (s, u)) : capOf u ≠ 0 := by
   intro hc
   refine h ⟨i, hi, ?_⟩
@@ -664,7 +664,7 @@ theorem fCap_ne_zero (h : ¬ Fail σ ℓ) {i : ℕ} (hi : i < ℓ.length) {s u :
 /-- Without failure, a permutation entry whose output's capacity a permutation input carries
 comes before it. -/
 theorem lt_of_cap (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length)
-    {s t u v : KState} (hei : ℓ[i] = .inr (s, u)) (hej : ℓ[j] = .inr (t, v))
+    {s t u v : KeccakState} (hei : ℓ[i] = .inr (s, u)) (hej : ℓ[j] = .inr (t, v))
     (hc : capOf t = capOf u) : i < j := by
   by_contra hji
   refine h ⟨i, hi, ?_⟩
@@ -696,7 +696,7 @@ theorem lt_of_chunk (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj :
 /-- Without failure, a hash entry whose output is the IV a permutation input carries comes
 before it. -/
 theorem lt_of_laneDigest (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length)
-    {x : Bytes} {u : Digest} {t v : KState} (hei : ℓ[i] = .inl (x, u))
+    {x : Bytes} {u : Digest} {t v : KeccakState} (hei : ℓ[i] = .inl (x, u))
     (hej : ℓ[j] = .inr (t, v)) (hc : laneDigest t = u) : i < j := by
   by_contra hji
   have hne : j ≠ i := fun e ↦ by subst e; rw [hei] at hej; cases hej
@@ -706,7 +706,7 @@ theorem lt_of_laneDigest (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) 
     (by simpa using hej), Or.inr hc⟩)
 
 /-- The predecessor found in a prefix is found in every longer prefix. -/
-theorem predIn_take_mono {ℓ : Log} {j i : ℕ} (hji : j ≤ i) {t t' : KState}
+theorem predIn_take_mono {ℓ : Log} {j i : ℕ} (hji : j ≤ i) {t t' : KeccakState}
     (h : predIn (ℓ.take j) t = some t') : predIn (ℓ.take i) t = some t' := by
   obtain ⟨n, rfl⟩ : ∃ n, i = j + n := ⟨i - j, by omega⟩
   have hsplit : ℓ.take (j + n) = ℓ.take j ++ (ℓ.drop j).take n := by
@@ -718,7 +718,7 @@ theorem predIn_take_mono {ℓ : Log} {j i : ℕ} (hji : j ≤ i) {t t' : KState}
   rfl
 
 /-- Roots absorbed in a prefix are absorbed in every longer prefix. -/
-theorem rootOf_take_mono {ℓ : Log} {j i : ℕ} (hji : j ≤ i) {t : KState} {r : Digest}
+theorem rootOf_take_mono {ℓ : Log} {j i : ℕ} (hji : j ≤ i) {t : KeccakState} {r : Digest}
     (h : RootOf (ℓ.take j) t r) : RootOf (ℓ.take i) t r := by
   rcases h with h | h
   · exact Or.inl h
@@ -731,7 +731,7 @@ theorem rootOf_take_mono {ℓ : Log} {j i : ℕ} (hji : j ≤ i) {t : KState} {r
 /-- Without failure, a hash entry whose output is a root a permutation input absorbs comes
 before it. -/
 theorem lt_of_rootOf (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length)
-    {x : Bytes} {u : Digest} {t v : KState} (hei : ℓ[i] = .inl (x, u))
+    {x : Bytes} {u : Digest} {t v : KeccakState} (hei : ℓ[i] = .inl (x, u))
     (hej : ℓ[j] = .inr (t, v)) (hr : RootOf (ℓ.take j) t u) : i < j := by
   by_contra hji
   have hne : j ≠ i := fun e ↦ by subst e; rw [hei] at hej; cases hej

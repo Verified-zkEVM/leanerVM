@@ -27,7 +27,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- `mem_size` up to `2^33` words. -/
-theorem mem_size_big {κ : ℕ} (hκ : κ ≤ 32) (L : MemImage κ) {p : E} {n : ℕ} (hn : n ≤ 2 ^ 33)
+theorem mem_size_big {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {p : E} {n : ℕ} (hn : n ≤ 2 ^ 33)
     (h : ∀ j < n, ∃ v, LoadHolds L.read p j v) : n ≤ 2 ^ κ := by
   have hκ64 : κ < 64 := by omega
   have hidx : ∀ j : Fin n, ∃ i : Fin (2 ^ κ), p.limb 0 * Parameters.gpow j = Parameters.gpow i := by
@@ -52,7 +52,7 @@ theorem mem_size_big {κ : ℕ} (hκ : κ ≤ 32) (L : MemImage κ) {p : E} {n :
   simpa using Fintype.card_le_of_injective f hinj
 
 /-- A run of words read at one pointer is at most `2^32` long. -/
-theorem mem_size_le {κ : ℕ} (hκ : κ ≤ 32) (L : MemImage κ) {p : E} {xs : List E}
+theorem mem_size_le {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {p : E} {xs : List E}
     (h : ReadsAt L.read p xs) : xs.length ≤ 2 ^ 32 := by
   by_contra hlt
   have hb := mem_size_big hκ L (n := 2 ^ 32 + 1) (by norm_num)
@@ -61,7 +61,7 @@ theorem mem_size_le {κ : ℕ} (hκ : κ ≤ 32) (L : MemImage κ) {p : E} {xs :
   omega
 
 /-- **The stream before the opening** (the decoder's words). -/
-theorem vs_stream {κ : ℕ} (hκ : κ ≤ 32) (L : MemImage κ) {bytecode : List K} {C : CallRel}
+theorem vs_stream {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {bytecode : List K} {C : CallRel}
     {σ : Val} (F : VsFront bytecode C L.read σ) {xsK : List E}
     (hxsK : ReadsAt L.read (σ (.n 854)) xsK) (e868 : σ (.n 868) = σ (.n 854) * gen ^ xsK.length) :
     wordsAt L.read (σ (.n 27)) (cursorLen (σ (.n 27)) (σ (.n 868))) =

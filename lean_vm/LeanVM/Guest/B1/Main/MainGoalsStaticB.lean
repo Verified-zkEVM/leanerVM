@@ -24,7 +24,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value Lea
 open LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
 open LeanVM.Guest.B1.Digest
-open LeanVM.Guest.Hints (claimCells cellsOfBytes cellOfBytes direct plan)
+open LeanVM.Guest.Hints (claimCells cellsOfBytes cellOfBytes heldDirectly coveragePlan)
 open LeanVM.Guest.B1 (CompleteAtD CompleteAtDTB Returns bufL completeAt_of_rel_pureBat)
 open LeanVM.Guest.B1.Da (reads_of_memL exists_of_length_succ wLog)
 
@@ -85,17 +85,17 @@ theorem mainGoalL2B (hT : TotalLeOn coreProgram fs "__loop1" LoopPre (fun a => l
 
 /-- **`statement_digest` on the claim lists' digests and the deferred claim**, a bytecode of
 `2^23` words making the deferred claim `24` cells. -/
-theorem mainGoalStB {bytecode : List K} (hR : NodeRel bytecode seed s w)
+theorem mainGoalStB {bytecode : List K} (hR : NodeRelation bytecode seed s w)
     (hbl : bytecode.length = 2 ^ bytecodeVars) {SB : String → ℕ}
     (hT : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest")) :
     MainGoalStB fs cert fp seed s w SB := by
-  have hlen : s.defer.cells.length = 24 := by
-    have h1 : s.defer.bytecodePoint.length = Nat.log2 bytecode.length := hR.1
+  have hlen : s.deferredClaim.cells.length = 24 := by
+    have h1 : s.deferredClaim.bytecodePoint.length = Nat.log2 bytecode.length := hR.1
     rw [hbl, Nat.log2_two_pow] at h1
     simp [DeferredClaim.cells, h1, bytecodeVars]
   refine statement_completeAtB fs cert _ hT fun rd h => ?_
   have h9 := mf_reads fs fp seed s w h (i := 9) (by omega)
-  refine ⟨s.defer.cells, hlen, h9, ?_, ?_⟩
+  refine ⟨s.deferredClaim.cells, hlen, h9, ?_, ?_⟩
   · intro c hc
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
     rcases hc with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
@@ -104,7 +104,7 @@ theorem mainGoalStB {bytecode : List K} (hR : NodeRel bytecode seed s w)
       (digestBytes_eq_cells _) (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl hlen)
 
 /-- **`__loop2` on an honest run.** -/
-theorem mainGoalL3B (hn : NodeRel bytecode seed s w) (hl : Limits s w)
+theorem mainGoalL3B (hn : NodeRelation bytecode seed s w) (hl : Limits s w)
     (hc : Sig.verify_lean_xmss_complete_Spec) {SK : String → ℕ}
     (hT : TotalLeOn coreProgram fs "__loop2" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop2")) :
     MainGoalL3B fs cert fp seed s w SK := by
@@ -118,7 +118,7 @@ theorem mainGoalL3B (hn : NodeRel bytecode seed s w) (hl : Limits s w)
   exact h
 
 /-- **`__loop3` on an honest run.** -/
-theorem mainGoalL4B (hn : NodeRel bytecode seed s w) (hl : Limits s w)
+theorem mainGoalL4B (hn : NodeRelation bytecode seed s w) (hl : Limits s w)
     (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) {SK : String → ℕ}
     (hT : TotalLeOn coreProgram fs "__loop3" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop3")) :
     MainGoalL4B fs cert fp seed s w SK := by

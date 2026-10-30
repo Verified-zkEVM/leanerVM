@@ -23,13 +23,13 @@ def toyProg : Program :=
 def toyInput : PublicInput := ⟨fun _ ↦ 0⟩
 
 /-- `2^16` words, `5` at word `2`. -/
-def toyImage : MemImage 16 := fun i ↦ if i.val = 2 then E.ofLimbs (K.ofBits 5) 0 0 else 0
+def toyImage : MemoryImage 16 := fun i ↦ if i.val = 2 then E.ofLimbs (K.ofBits 5) 0 0 else 0
 
 /-- The run of one step. -/
-def toyTrace : Trace toyProg := ⟨16, toyImage, 1⟩
+def toyTrace : Execution toyProg := ⟨16, toyImage, 1⟩
 
 /-- The same memory, two steps: not a valid execution. -/
-def toyTrace2 : Trace toyProg := ⟨16, toyImage, 2⟩
+def toyTrace2 : Execution toyProg := ⟨16, toyImage, 2⟩
 
 #guard checkTrace toyProg toyInput toyTrace
 #guard !checkTrace toyProg toyInput toyTrace2

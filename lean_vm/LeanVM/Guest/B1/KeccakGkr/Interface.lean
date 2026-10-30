@@ -248,7 +248,7 @@ switch (`ringSwitch`, V:2124), which the guest draws before it returns. -/
 def keccakSeg (logSteps : ℕ) (inst output : List E) :
     Prog ((List ColumnClaim × List E × List E) × E) := do
   let r ← verifyKeccak logSteps inst output
-  let m ← Prog.sampleE
+  let m ← Prog.sampleChallenge
   return (r, m)
 
 /-- **`verify_keccak(fs0..fs4, cursor, tau_g, chi, output_lanes, z_vals, slices)`**

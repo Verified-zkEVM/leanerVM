@@ -28,7 +28,7 @@ open LeanVM.Guest.Check LeanVM.Guest.Memory
 @[expose] public section
 
 /-- The function's entry registers. -/
-noncomputable def entryRegs (j fp : ℕ) : Regs K := ⟨gpow (fnOf j).entry, gpow fp⟩
+noncomputable def entryRegs (j fp : ℕ) : Registers K := ⟨gpow (fnOf j).entry, gpow fp⟩
 
 /-- Where part `k` of window `i` starts in the body. -/
 noncomputable def partPos (j i k : ℕ) : ℕ := ((certOf j).cutAt i).start + partS j i k
@@ -36,7 +36,7 @@ noncomputable def partPos (j i k : ℕ) : ℕ := ((certOf j).cutAt i).start + pa
 /-- **The run is at part `k`'s start**: at its segment's start, or past the items the part
 starts after, within its counts, the separately counted arms passed counting `x`, and the first
 `n` callees'. -/
-def PartArr {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (ck : List (Opcode → ℕ)) (i k n : ℕ)
+def PartArr {κ : ℕ} (L : MemoryImage κ) (j fp : ℕ) (ck : List (Opcode → ℕ)) (i k n : ℕ)
     (x : Opcode → ℕ) : Prop :=
   if partM j i k = 0 then
     Arr L fp (Xp j i k) (wJW j i) (wenvW j i) ck (entryRegs j fp) (partJ j i k) (partC j i k) n x
@@ -44,7 +44,7 @@ def PartArr {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (ck : List (Opcode → ℕ
 
 /-- **The run reaches part `k` of window `i`** on a path: the path from there returns, and the
 run is at the part's start within its counts and the callees' before it. -/
-def PartReach {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (σ : Val) (es : List Ev) (vs : List V)
+def PartReach {κ : ℕ} (L : MemoryImage κ) (j fp : ℕ) (σ : Val) (es : List Ev) (vs : List V)
     (ck : List (Opcode → ℕ)) (i k : ℕ) : Prop :=
   ∃ ebef erest xc, walk σ ((coreOf j).body.drop (partPos j i k)) = .ret erest vs ∧ es = ebef ++ erest ∧
     xc + costW (nth Data.cplArms j []) σ ((coreOf j).body.drop (partPos j i k)) =
@@ -52,9 +52,9 @@ def PartReach {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (σ : Val) (es : List Ev
     PartArr L j fp ck i k (calls ebef).length xc
 
 /-- What `CplRun` concludes of one path. -/
-def CplGoal {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (σ : Val) (vs : List V) (ck : List (Opcode → ℕ)) :
+def CplGoal {κ : ℕ} (L : MemoryImage κ) (j fp : ℕ) (σ : Val) (vs : List V) (ck : List (Opcode → ℕ)) :
     Prop :=
-  ∃ (r : Regs K) (c : Opcode → ℕ), (if j = 1 then r = Regs.final guest else retRegs L (gpow fp) = some r) ∧
+  ∃ (r : Registers K) (c : Opcode → ℕ), (if j = 1 then r = Registers.final guest else retRegs L (gpow fp) = some r) ∧
     RunC guest L ⟨gpow (fnOf j).entry, gpow fp⟩ r c ∧
     (∀ op, c op ≤ pathCount j σ op + (ck.map (· op)).sum) ∧
     ∀ k (hk : k < vs.length),
@@ -221,7 +221,7 @@ theorem lastBody {j : ℕ} (hok : CplOk j)
 
 section Comp
 
-variable {κ : ℕ} {L : MemImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V}
+variable {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V}
   {kfps : List ℕ} {hdr : E × E} {ck : List (Opcode → ℕ)}
 
 theorem partArr_zero {i k n : ℕ} {x : Opcode → ℕ} (h : partM j i k = 0) : PartArr L j fp ck i k n x ↔
@@ -234,19 +234,19 @@ theorem partArr_mid {i k n : ℕ} {x : Opcode → ℕ} (h : partM j i k ≠ 0) :
   unfold PartArr
   simp only [h, ↓reduceIte]
 
-theorem arr_mono {X : CX} {wJ : ℕ} {wenv : Trie Sym} {W0 : Regs K} {J n : ℕ} {x : Opcode → ℕ}
+theorem arr_mono {X : CX} {wJ : ℕ} {wenv : Trie Sym} {W0 : Registers K} {J n : ℕ} {x : Opcode → ℕ}
     {c c' : Cnt} (h : Arr L fp X wJ wenv ck W0 J c n x) (hc : c.le c' = true) :
     Arr L fp X wJ wenv ck W0 J c' n x := by
   obtain ⟨⟨cr, hr, hle⟩, he⟩ := h
   exact ⟨⟨cr, hr, fun op ↦ by have := hle op; have := Cnt.le_spec hc op; omega⟩, he⟩
 
-theorem arrMid_mono {X : CX} {W0 : Regs K} {J m n : ℕ} {x : Opcode → ℕ} {c c' : Cnt}
+theorem arrMid_mono {X : CX} {W0 : Registers K} {J m n : ℕ} {x : Opcode → ℕ} {c c' : Cnt}
     (h : ArrMid L fp X ck W0 J m c n x) (hc : c.le c' = true) : ArrMid L fp X ck W0 J m c' n x := by
   obtain ⟨s, hs, hst, hm, he, cr, hf, hr, hle⟩ := h
   exact ⟨s, hs, hst, hm, he, cr, hf, hr, fun op ↦ by have := hle op; have := Cnt.le_spec hc op; omega⟩
 
 /-- At a segment's start, no item passed. -/
-theorem arrMid_zero {X : CX} {wJ : ℕ} {wenv : Trie Sym} {W0 : Regs K} {J n : ℕ} {x : Opcode → ℕ}
+theorem arrMid_zero {X : CX} {wJ : ℕ} {wenv : Trie Sym} {W0 : Registers K} {J n : ℕ} {x : Opcode → ℕ}
     {c : Cnt} {s : Exec.Seg}
     (h : Arr L fp X wJ wenv ck W0 J c n x) (hs : getF X.idx J = some s) (hst : s.start = J) :
     ArrMid L fp X ck W0 J 0 c n x := by

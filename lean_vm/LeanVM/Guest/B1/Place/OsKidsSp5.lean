@@ -55,7 +55,7 @@ theorem pow_div_lt {q a b : ℕ} (h : q < 2 ^ (a + b)) : q / 2 ^ a < 2 ^ b :=
 /-- **Level `l`'s `opening_queries` call, placed**, for every placement `p` of its squeeze loop,
 by a tree of at most `oqBound` words: its frame, its chain buffer and its iterations' frames. -/
 theorem os_q_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {c : OsCfg}
-    {tr : OsTr} {μ r : ℕ} {target : E} {S : KState} {xs : List E}
+    {tr : OsTr} {μ r : ℕ} {target : E} {S : KeccakState} {xs : List E}
     {os : List Opening} {root : Digest} (h : TrFit c tr)
     (hs : OsSizes c) (hrun : TrRun c μ r target S xs os root tr)
     (hcaps : Whir.CapsAgree μ r target S xs os root) {l : ℕ} (hl : l < c.levels.length)
@@ -244,7 +244,7 @@ theorem os_q_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ
 
 /-- **Level `l`'s `opening_queries` call, placed**, `CompleteAtD`. -/
 theorem os_q_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {c : OsCfg}
-    {tr : OsTr} {μ r : ℕ} {target : E} {S : KState} {xs : List E}
+    {tr : OsTr} {μ r : ℕ} {target : E} {S : KeccakState} {xs : List E}
     {os : List Opening} {root : Digest} (h : TrFit c tr)
     (hs : OsSizes c) (hrun : TrRun c μ r target S xs os root tr)
     (hcaps : Whir.CapsAgree μ r target S xs os root) {l : ℕ} (hl : l < c.levels.length)

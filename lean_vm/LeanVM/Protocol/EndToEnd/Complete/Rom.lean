@@ -50,8 +50,8 @@ open Classical in
 /-- **The honest prover against the random oracle**: the honest prover of `honestProofOf`, with
 every hash a query to the random oracle; the empty proof when the execution has no witness at
 admissible sizes or a proof-of-work search finds no nonce below `fuel`. -/
-noncomputable def honestComp (prog : Program) (input : PublicInput) (t : Trace prog)
-    (ρ fuel : ℕ) : OracleComp HashSpec Proof :=
+noncomputable def honestComp (prog : Program) (input : PublicInput) (t : Execution prog)
+    (ρ fuel : ℕ) : OracleComp KeccakCalls Proof :=
   if h : ∃ w s, HonestFor prog input t ρ w s then
     Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
       (leanVmProgram (bytecodeWords prog) (publicDigest input))
@@ -71,7 +71,7 @@ noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
 /-- **Completeness in the random-oracle model, at a witness.** For an honest witness `w` at the
 sizes `s` (`HonestFor`) and a fuel of at most `2^64` nonces, the verifier rejects the proof of the
 specification's honest prover at that witness with probability at most `completenessError fuel`. -/
-theorem romComplete_at {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
+theorem romComplete_at {prog : Program} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
     {w : EnsembleWitness (leanIsaEnsemble prog)} {s : Sizes} (hw : HonestFor prog input t ρ w s)
     {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← romExperiment (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
@@ -94,7 +94,7 @@ theorem romComplete_at {prog : Program} {input : PublicInput} {t : Trace prog} {
 /-- **Completeness in the random-oracle model.** For a valid execution whose committed size is at
 most `2^28`, at a valid rate, and a fuel of at most `2^64` nonces, the verifier rejects the honest
 prover's proof with probability at most `completenessError fuel`. -/
-theorem romComplete_leanVm {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
+theorem romComplete_leanVm {prog : Program} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
     (hρ : validRate ρ) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← romExperiment (honestComp prog input t ρ fuel)

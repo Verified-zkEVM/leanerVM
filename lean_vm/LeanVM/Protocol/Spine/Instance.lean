@@ -182,7 +182,7 @@ def KeccakRegion.word {S : Shape} (r : KeccakRegion S) (c : Column (r.logSteps +
 
 /-- The state a slot range of the region holds at step `x`: lane `l` is slot `base + l`. -/
 def KeccakRegion.state {S : Shape} (r : KeccakRegion S) (c : Column (r.logSteps + 6))
-    (base : ℕ) (x : Fin (2 ^ r.logSteps)) : KState :=
+    (base : ℕ) (x : Fin (2 ^ r.logSteps)) : KeccakState :=
   laneState fun l ↦ r.word c (base + l) x
 
 /-- What the Keccak reduction establishes of the region: at every step, the state committed

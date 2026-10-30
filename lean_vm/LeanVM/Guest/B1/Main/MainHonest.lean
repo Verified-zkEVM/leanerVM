@@ -33,7 +33,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.Hints (direct claimCells daPick)
+open LeanVM.Guest.Hints (heldDirectly claimCells daPick)
 
 @[expose] public section
 
@@ -42,8 +42,8 @@ variable (seed : Digest) (s : NodeStatement) (w : NodeWitness)
 /-! ## Counts -/
 
 /-- The raw claims, held by witnesses. -/
-def hRawX : List (XmssClaim × LeanXmss.Signature) := direct s.claims.xmss w.xmss
-def hRawS : List (SphincsClaim × Sphincs.Signature) := direct s.claims.sphincs w.sphincs
+def hRawX : List (XmssClaim × LeanXmss.Signature) := heldDirectly s.claims.xmss w.xmss
+def hRawS : List (SphincsClaim × Sphincs.Signature) := heldDirectly s.claims.sphincs w.sphincs
 
 /-- Child `c`'s claims' counts. -/
 def hEx (c : ℕ) : ℕ := (w.children.map (·.statement.claims.xmss.length)).getD c 0
@@ -75,9 +75,9 @@ def hMarkS (k : ℕ) : ℕ :=
 
 /-- **The coverage table's words**: each slot's taker's mark, region by region. -/
 def hCover : List E :=
-  ((List.range (s.claims.xmss ++ (xPlan s w).dups).length).map fun t =>
+  ((List.range (s.claims.xmss ++ (xPlan s w).duplicates).length).map fun t =>
       gen ^ hMarkX s w ((slotsOf (xPlan s w)).idxOf t)) ++
-    ((List.range (s.claims.sphincs ++ (sPlan s w).dups).length).map fun t =>
+    ((List.range (s.claims.sphincs ++ (sPlan s w).duplicates).length).map fun t =>
       gen ^ hMarkS s w ((slotsOf (sPlan s w)).idxOf t))
 
 /-! ## The oracle and the buffers -/
@@ -87,41 +87,41 @@ def daCells (c : DaClaim) : List E :=
   B1.Digest.digestCells c.daRoot ++ B1.Digest.digestCells c.membershipVectorDigest
 
 /-- The own DA digest: the checked claim's, or zeros. -/
-def hOwnDa : Digest := match w.da with
+def hOwnDa : Digest := match w.daMatrix with
   | some p => daClaimDigest p.1
   | none => zeroDigest
 
 /-- **`main`'s honest oracle** (besides pointers). -/
 def hData : MainData where
   nlx := s.claims.xmss.length
-  nxd := (xPlan s w).dups.length
+  nxd := (xPlan s w).duplicates.length
   nrx := (hRawX s w).length
   nls := s.claims.sphincs.length
-  nsd := (sPlan s w).dups.length
+  nsd := (sPlan s w).duplicates.length
   nrs := (hRawS s w).length
   nc := w.children.length
-  nd := (w.da.map fun _ => 1).getD 0
+  nd := (w.daMatrix.map fun _ => 1).getD 0
   pick := daPick s w
   seed := seed
   xd := claimListDigest s.claims.xmss
   sd := claimListDigest s.claims.sphincs
   sdg := statementDigest seed s
-  daR := (w.da.map fun p => daCells p.1).getD [0, 0, 0, 0]
+  daR := (w.daMatrix.map fun p => daCells p.1).getD [0, 0, 0, 0]
   dap := s.claims.da
-  leaf := s.defer.bytecodeValue
+  leaf := s.deferredClaim.bytecodeValue
 
 /-- **`main`'s honest buffers' words**, in allocation order. -/
 def hOwn : List (List E) :=
-  [(s.claims.xmss ++ (xPlan s w).dups).flatMap (fun c => claimCells c.1.root c.1.parameter c.2),
-    (s.claims.sphincs ++ (sPlan s w).dups).flatMap (fun c => claimCells c.1.root c.1.parameter c.2),
+  [(s.claims.xmss ++ (xPlan s w).duplicates).flatMap (fun c => claimCells c.1.root c.1.parameter c.2),
+    (s.claims.sphincs ++ (sPlan s w).duplicates).flatMap (fun c => claimCells c.1.root c.1.parameter c.2),
     hCover s w,
     (List.range 256).map fun v => word v 0 0,
     (w.children.map (·.statement.claims.da) ++ [hOwnDa w]).flatMap B1.Digest.digestCells,
     w.children.flatMap (fun c => B1.Digest.digestCells (statementDigest seed c.statement)),
-    w.children.flatMap (fun c => DeferredClaim.cells c.fresh),
-    w.children.flatMap (fun c => c.statement.defer.cells),
+    w.children.flatMap (fun c => DeferredClaim.cells c.freshClaim),
+    w.children.flatMap (fun c => c.statement.deferredClaim.cells),
     (List.range (w.children.length + 1)).map (fun c => gen ^ hW s w c),
-    s.defer.cells]
+    s.deferredClaim.cells]
 
 end
 end LeanVM.Guest.B1.Main

@@ -33,24 +33,24 @@ open scoped ENNReal
 /-! ## Statement locks -/
 
 example (f : E → ℝ≥0∞) :
-    (∑ u : KState, f (challengeOf u)) / Fintype.card KState = (∑ c : E, f c) / Fintype.card E :=
+    (∑ u : KeccakState, f (challengeOf u)) / Fintype.card KeccakState = (∑ c : E, f c) / Fintype.card E :=
   sum_challengeOf_div f
 
 example (b : ℕ) (n : E) :
-    (∑ u : KState, ind (powOk b n (challengeOf u) = true)) / Fintype.card KState ≤
+    (∑ u : KeccakState, ind (powOk b n (challengeOf u) = true)) / Fintype.card KeccakState ≤
       2⁻¹ ^ min b 64 :=
   sum_powOk_div_le b n
 
 example : Fintype.card Digest = 2 ^ 256 := card_digest
 
-example : Fintype.card KState = 2 ^ 1600 := card_kstate
+example : Fintype.card KeccakState = 2 ^ 1600 := card_kstate
 
 example {X : Type} (σ : Seeds X) (ℓ : Log) (x : Bytes) :
     ∑ u, ind (BadH σ ℓ x u) ≤ ((5 + σ.offs.length) * (ℓ.length + 1) : ℕ) :=
   sum_badH_le σ ℓ x
 
-example (ℓ : Log) (s : KState) :
-    (∑ u, ind (BadF ℓ s u)) / Fintype.card KState ≤
+example (ℓ : Log) (s : KeccakState) :
+    (∑ u, ind (BadF ℓ s u)) / Fintype.card KeccakState ≤
       ((2 * ℓ.length + 2 : ℕ) : ℝ≥0∞) * 2⁻¹ ^ 256 :=
   sum_badF_div_le ℓ s
 
@@ -60,9 +60,9 @@ example {X : Type} {P : Prog Bool} (D : List Ev → Prop) (σ : Seeds X) (ℓ : 
   step_ineqH D ℓ x
 
 example {X : Type} {P : Prog Bool} (C : Cert P) (σ : Seeds X) {εmax : ℝ≥0∞}
-    (hε : ∀ h, 2⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) (ℓ : Log) (t : KState)
+    (hε : ∀ h, 2⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) (ℓ : Log) (t : KeccakState)
     (ht : lookF ℓ t = none) :
-    (∑ u, pot C.D σ P (ℓ ++ [.inr (t, u)])) / Fintype.card KState ≤
+    (∑ u, pot C.D σ P (ℓ ++ [.inr (t, u)])) / Fintype.card KeccakState ≤
       pot C.D σ P ℓ + (εmax + ((5 + σ.offs.length) * (ℓ.length + 1) : ℕ) / 2 ^ 256) :=
   step_ineqF C hε ℓ t ht
 
@@ -80,7 +80,7 @@ example {X : Type} {P : Prog Bool} (C : Cert P) {σ : Seeds X} {ℓ : Log} (hf :
 example {X : Type} (P : Prog Bool) (C : Cert P) (σ : Seeds X)
     (hroot : ∀ x, RootOk P (σ.root x)) (εmax : ℝ≥0∞)
     (hε : ∀ h, (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax)
-    (A : OracleComp HashSpec (X × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA)
+    (A : OracleComp KeccakCalls (X × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA)
     (QV : ℕ) (hV : ∀ z, IsTotalQueryBound (verifierFam σ P z) QV) :
     Pr{let z ← romExperiment A (verifierFam σ P)}[z.1.2 = true ∧ Doomed C σ z.1.1 z.2] ≤
       (QA + QV : ℕ) * (εmax + ((5 + σ.offs.length) * (QA + QV) : ℕ) / 2 ^ 256) :=
@@ -207,13 +207,13 @@ theorem toy_eps (h : List Ev) :
     _ = _ := one_mul _
 
 /-- Every proof of the toy verifier is doomed: the empty history is a doomed boundary. -/
-theorem toy_doomed (z : Unit × Proof) (c : HashSpec.QueryCache) : Doomed toyCert toySeeds z c :=
+theorem toy_doomed (z : Unit × Proof) (c : KeccakCalls.QueryCache) : Doomed toyCert toySeeds z c :=
   ⟨[], List.nil_prefix, le_rfl, trivial, Or.inl rfl⟩
 
 /-- **The random-oracle theorem on the toy program.** Every adversary with at most `QA` queries
 makes the compiled toy verifier accept with probability at most
 `(QA + 3) · (2^-192 + 5 (QA + 3) / 2^256)`. -/
-theorem toy_accept_le (A : OracleComp HashSpec (Unit × Proof)) (QA : ℕ)
+theorem toy_accept_le (A : OracleComp KeccakCalls (Unit × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam toySeeds toyProg)}[z.1.2 = true] ≤
       (QA + 3 : ℕ) * ((2 ^ 192 : ℝ≥0∞)⁻¹ + failBound toySeeds (QA + 3)) := by
@@ -223,7 +223,7 @@ theorem toy_accept_le (A : OracleComp HashSpec (Unit × Proof)) (QA : ℕ)
   exact h
 
 /-- A concrete adversary: one fixed proof, no queries. -/
-def toyAdv : OracleComp HashSpec (Unit × Proof) := pure ((), ⟨[0], []⟩)
+def toyAdv : OracleComp KeccakCalls (Unit × Proof) := pure ((), ⟨[0], []⟩)
 
 /-- The theorem at the concrete adversary. -/
 example : Pr{let z ← romExperiment toyAdv (verifierFam toySeeds toyProg)}[z.1.2 = true] ≤

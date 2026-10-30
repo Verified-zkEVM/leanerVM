@@ -61,7 +61,7 @@ variable {X : Type} {σ : Seeds X} {P : Prog Bool}
 
 /-! ## The sponge in `Option` -/
 
-theorem absorb_option (F : KState → Option KState) (sp : Sponge) (x : E) (tag : ℕ)
+theorem absorb_option (F : KeccakState → Option KeccakState) (sp : Sponge) (x : E) (tag : ℕ)
     (sp' : Sponge) :
     Compile.absorb (m := Option) F sp x tag = some sp' ↔
       if sp.pending.length = 4 then ∃ u, F (duplexInput sp) = some u ∧ sp' = ⟨u, [(x, tag)]⟩
@@ -78,7 +78,7 @@ theorem absorb_option (F : KState → Option KState) (sp : Sponge) (x : E) (tag 
     simp only [rateScalars] at h4
     simp [h4, pure, eq_comm]
 
-theorem squeeze_option (F : KState → Option KState) (sp : Sponge) (r : E × Sponge) :
+theorem squeeze_option (F : KeccakState → Option KeccakState) (sp : Sponge) (r : E × Sponge) :
     squeeze (m := Option) F sp = some r ↔
       ∃ u, F (duplexInput sp) = some u ∧ r = (challengeOf u, ⟨u, []⟩) := by
   unfold squeeze duplex
@@ -172,13 +172,13 @@ theorem esc_eq_of_qsteps (D : List Ev → Prop) {h h' : List Ev} {p p' : Prog Bo
   | refl => rfl
   | step ha _ ih => rw [esc_query, ha]; exact ih
 
-theorem gv_eq_of_qsteps (D : List Ev → Prop) (ℓ : Log) (d : KState) {h h' : List Ev}
+theorem gv_eq_of_qsteps (D : List Ev → Prop) (ℓ : Log) (d : KeccakState) {h h' : List Ev}
     {p p' : Prog Bool} (hq : QSteps h p h' p') : gv D ℓ d h p = gv D ℓ d h' p' := by
   induction hq with
   | refl => rfl
   | step ha _ ih => simp only [gv, ha]; exact ih
 
-theorem gv1_eq_of_qsteps (D : List Ev → Prop) (ℓ : Log) (u : KState) {h h' : List Ev}
+theorem gv1_eq_of_qsteps (D : List Ev → Prop) (ℓ : Log) (u : KeccakState) {h h' : List Ev}
     {p : Prog Bool} {k : E → Prog Bool} (hq : QSteps h p h' (.sample k)) :
     gv1 D ℓ u h p = gv D ℓ u (h' ++ [Ev.sample (challengeOf u)]) (k (challengeOf u)) := by
   generalize hs : (Prog.sample k : Prog Bool) = q at hq
@@ -319,11 +319,11 @@ variable (C : Cert P) {ℓ : Log}
 /-- **Following a group with no scalar waiting.** From a state the decoder knows, the run's
 squeezes and openings up to the next prover move or the verdict are those `gv` follows. -/
 theorem follow (hf : ¬ Fail σ ℓ) :
-    ∀ (p : Prog Bool) (s : St) (h : List Ev) {s_f : St} {hist : List Ev},
+    ∀ (p : Prog Bool) (s : ProgState) (h : List Ev) {s_f : ProgState} {hist : List Ev},
       RootsInv (lookH ℓ) s h → P.Reachable h → P.after h = some p →
       s.sponge.pending = [] → SpInv σ P ℓ s.sponge h p →
       xrun (lookH ℓ) (lookF ℓ) p s h = some (true, s_f, hist) →
-      ∃ (p_e : Prog Bool) (s_e : St) (h_e : List Ev),
+      ∃ (p_e : Prog Bool) (s_e : ProgState) (h_e : List Ev),
         gv C.D ℓ s.sponge.state h p = esc C.D h_e p_e ∧
         xrun (lookH ℓ) (lookF ℓ) p_e s_e h_e = some (true, s_f, hist) ∧
         RootsInv (lookH ℓ) s_e h_e ∧ P.Reachable h_e ∧ P.after h_e = some p_e ∧
@@ -393,14 +393,14 @@ waiting scalars, consumed, end, the run's openings lead either to the group's fi
 permutation of the waiting scalars decoded as the record `sq h p`, and the rest of the group, or
 to a prover move or the verdict with no squeeze at all. -/
 theorem walk (hf : ¬ Fail σ ℓ) {h : List Ev} {p : Prog Bool} {h₀ : List Ev} {pos₀ : Pos} :
-    ∀ (p' : Prog Bool) (s : St) (h' : List Ev) {s_f : St} {hist : List Ev},
+    ∀ (p' : Prog Bool) (s : ProgState) (h' : List Ev) {s_f : ProgState} {hist : List Ev},
       Known σ P ℓ (capOf s.sponge.state) (h₀, pos₀) → ValidPending s.sponge.pending →
       s.sponge.pending ≠ [] →
       consume (extract (lookH ℓ)) h₀ pos₀ s.sponge.pending = .done h (.node p) →
       QSteps h p h' p' →
       RootsInv (lookH ℓ) s h' → P.Reachable h' → P.after h' = some p' →
       xrun (lookH ℓ) (lookF ℓ) p' s h' = some (true, s_f, hist) →
-      ∃ (p_e : Prog Bool) (s_e : St) (h_e : List Ev),
+      ∃ (p_e : Prog Bool) (s_e : ProgState) (h_e : List Ev),
         xrun (lookH ℓ) (lookF ℓ) p_e s_e h_e = some (true, s_f, hist) ∧
         RootsInv (lookH ℓ) s_e h_e ∧ P.Reachable h_e ∧ P.after h_e = some p_e ∧
         SpInv σ P ℓ s_e.sponge h_e p_e ∧ Move p_e ∧ h' <+: h_e ∧ NoBnd h' h_e ∧
@@ -466,7 +466,7 @@ theorem walk (hf : ¬ Fail σ ℓ) {h : List Ev} {p : Prog Bool} {h₀ : List Ev
 /-- The group at a boundary is carried: after the seed or a proof of work, with no scalar
 waiting, by the state's record; after a scalar or a commitment, with scalars waiting, at a
 history without proof of work, by the record of the group's first squeeze. -/
-def Carried (C : Cert P) (ℓ : Log) (s : St) (h : List Ev) (p : Prog Bool) : Prop :=
+def Carried (C : Cert P) (ℓ : Log) (s : ProgState) (h : List Ev) (p : Prog Bool) : Prop :=
   (s.sponge.pending = [] ∧ ∃ κ ∈ (decode σ P ℓ).kinds,
     ind (C.D h) * gv C.D ℓ s.sponge.state h p ≤ term C.D ℓ κ) ∨
   (s.sponge.pending ≠ [] ∧ grindBits h = 0)
@@ -474,13 +474,13 @@ def Carried (C : Cert P) (ℓ : Log) (s : St) (h : List Ev) (p : Prog Bool) : Pr
 /-- **A group.** From a boundary whose group is carried, the run reaches the next prover move or
 the verdict; either a record bounds `[D h]` times the escape probability there, or the group has
 no squeeze and its escape probability is the one at its start. -/
-theorem group (hf : ¬ Fail σ ℓ) {p : Prog Bool} {s : St} {h : List Ev} {s_f : St}
+theorem group (hf : ¬ Fail σ ℓ) {p : Prog Bool} {s : ProgState} {h : List Ev} {s_f : ProgState}
     {hist : List Ev} (hR : RootsInv (lookH ℓ) s h) (hr : P.Reachable h)
     (ha : P.after h = some p)
     (hsp : ValidPending s.sponge.pending ∧ ∃ h₀ pos₀, Known σ P ℓ (capOf s.sponge.state) (h₀, pos₀) ∧
       consume (extract (lookH ℓ)) h₀ pos₀ s.sponge.pending = .done h (.node p))
     (hcar : Carried (σ := σ) C ℓ s h p) (hx : xrun (lookH ℓ) (lookF ℓ) p s h = some (true, s_f, hist)) :
-    ∃ (p_e : Prog Bool) (s_e : St) (h_e : List Ev),
+    ∃ (p_e : Prog Bool) (s_e : ProgState) (h_e : List Ev),
       xrun (lookH ℓ) (lookF ℓ) p_e s_e h_e = some (true, s_f, hist) ∧
       RootsInv (lookH ℓ) s_e h_e ∧ P.Reachable h_e ∧ P.after h_e = some p_e ∧
       SpInv σ P ℓ s_e.sponge h_e p_e ∧ Move p_e ∧ h <+: h_e ∧ NoBnd h h_e ∧
@@ -509,11 +509,11 @@ variable (C : Cert P) {ℓ : Log}
 /-- **A prover move.** From the run at a prover move, with the sponge's invariant, the run
 reaches the next boundary, where the invariant holds with no opening pending and the group is
 carried; doom is kept. -/
-theorem move (hf : ¬ Fail σ ℓ) {p : Prog Bool} (hm : Move p) (hp : ∀ a, p ≠ .ret a) {s : St}
-    {h : List Ev} {s_f : St} {hist : List Ev} (hR : RootsInv (lookH ℓ) s h)
+theorem move (hf : ¬ Fail σ ℓ) {p : Prog Bool} (hm : Move p) (hp : ∀ a, p ≠ .ret a) {s : ProgState}
+    {h : List Ev} {s_f : ProgState} {hist : List Ev} (hR : RootsInv (lookH ℓ) s h)
     (hr : P.Reachable h) (ha : P.after h = some p) (hsp : SpInv σ P ℓ s.sponge h p)
     (hx : xrun (lookH ℓ) (lookF ℓ) p s h = some (true, s_f, hist)) :
-    ∃ (s' : St) (h' : List Ev) (p' : Prog Bool),
+    ∃ (s' : ProgState) (h' : List Ev) (p' : Prog Bool),
       s'.stream.length < s.stream.length ∧ RootsInv (lookH ℓ) s' h' ∧ P.Reachable h' ∧
       Boundary h' ∧ P.after h' = some p' ∧
       (ValidPending s'.sponge.pending ∧ ∃ h₀ pos₀, Known σ P ℓ (capOf s'.sponge.state) (h₀, pos₀) ∧
@@ -615,16 +615,16 @@ theorem eq_take_of_prefix {h₀ h₁ hist : List Ev} (h0 : h₀ <+: hist) (h1 : 
     (hl : h₀.length ≤ h₁.length) : h₀ = h₁.take h₀.length :=
   List.prefix_iff_eq_take.mp (List.prefix_of_prefix_length_le h0 h1 hl)
 
-theorem term_le_termSum {κ : Shape × KState} (hκ : κ ∈ (decode σ P ℓ).kinds) :
+theorem term_le_termSum {κ : Shape × KeccakState} (hκ : κ ∈ (decode σ P ℓ).kinds) :
     term C.D ℓ κ ≤ termSum C.D σ P ℓ :=
   List.single_le_sum (fun _ _ ↦ bot_le) _ (List.mem_map_of_mem hκ)
 
 /-- **The run from a boundary.** From a boundary of an accepting run whose group is carried, if a
 boundary at least as long on the extracted history is doomed, the records' terms sum to at least
 one. -/
-theorem from_boundary (hf : ¬ Fail σ ℓ) (hε1 : ∀ h, grindBits h = 0 → C.ε h < 1) {s_f : St}
+theorem from_boundary (hf : ¬ Fail σ ℓ) (hε1 : ∀ h, grindBits h = 0 → C.ε h < 1) {s_f : ProgState}
     {hist : List Ev} :
-    ∀ (n : ℕ) (s : St) (h : List Ev) (p : Prog Bool), s.stream.length < n →
+    ∀ (n : ℕ) (s : ProgState) (h : List Ev) (p : Prog Bool), s.stream.length < n →
       RootsInv (lookH ℓ) s h → P.Reachable h → P.after h = some p → Boundary h →
       (ValidPending s.sponge.pending ∧ ∃ h₀ pos₀, Known σ P ℓ (capOf s.sponge.state) (h₀, pos₀) ∧
         consume (extract (lookH ℓ)) h₀ pos₀ s.sponge.pending = .done h (.node p)) →

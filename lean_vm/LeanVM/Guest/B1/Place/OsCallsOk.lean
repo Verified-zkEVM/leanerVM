@@ -113,7 +113,7 @@ theorem lk_slice0 (hpt : (tr.point (c.levels.headD default).folds).length ≤ po
 /-- **The body's calls hold at `osCR`** on every memory holding the callees' words, the read words
 of the row weights, the cap, the folded message and the final message's `out` fixed there. -/
 theorem osCallsOk_honest {μ r : ℕ} {cfg : List Whir.Level}
-    (hF : CandFacts c μ r cfg) (h : TrFit c tr) (hs : OsSizes c) {target : E} {S : KState}
+    (hF : CandFacts c μ r cfg) (h : TrFit c tr) (hs : OsSizes c) {target : E} {S : KeccakState}
     {xs : List E} {os : List Opening} {root : Digest} (hrun : TrRun c μ r target S xs os root tr)
     (hcaps : Whir.CapsAgree μ r target S xs os root) (hN : OsNames c)
     (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap) (htl : tr.Lf.ml ≤ yrLogCap)

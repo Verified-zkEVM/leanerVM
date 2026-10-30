@@ -4,7 +4,7 @@
   `da_verify`'s column loops placed, by trees of their honest shape, within their words bound
   (`clB`) before the memory, for the budget.
 
-  `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.Witness.Opens`), as ported here.
+  `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.MatrixWitness.Opens`), as ported here.
 -/
 
 module

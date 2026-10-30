@@ -167,7 +167,7 @@ theorem blobLeaf_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs = 0) (h
 theorem pad_le {s : NodeStatement} {w : NodeWitness} {k : ℕ}
     (hr : (work s w).rawDaRows ≤ 2 ^ k) : (work s w).rawDaPad ≤ 2 ^ k := by
   simp only [work] at hr ⊢
-  cases h : w.da with
+  cases h : w.daMatrix with
   | none => simp
   | some p =>
     rw [h] at hr
@@ -193,7 +193,7 @@ def CoveredW (u : End.Work) : Prop :=
   (u.children = 0 ∧ u.rawXmss + u.rawSphincs = 0 ∧ u.rawDaRows ≤ 32 ∧
     u.declared ≤ 2 ^ 15 ∧ u.coverage ≤ 2 ^ 15)
 
-theorem covered_iff (s : NodeStatement) (w : NodeWitness) : Covered s w ↔ CoveredW (work s w) :=
+theorem covered_iff (s : NodeStatement) (w : NodeWitness) : CoveredNode s w ↔ CoveredW (work s w) :=
   Iff.rfl
 
 /-- **Every covered node has a valid execution of the guest.** -/
@@ -203,15 +203,15 @@ theorem guest_complete_covered : GuestCompleteCovered := by
   have hlen : (work s w).childShapes.length = (work s w).children := by simp [work]
   have hch : (work s w).children ≤ 16 := by simpa [work] using hlim.children
   have hda : (work s w).rawDa ≤ 1 := by
-    simp only [work]; cases w.da <;> simp
+    simp only [work]; cases w.daMatrix <;> simp
   have hrows : (work s w).rawDa = 0 → (work s w).rawDaRows = 0 := by
     intro hd
     simp only [work] at hd ⊢
-    cases h : w.da <;> simp_all
+    cases h : w.daMatrix <;> simp_all
   have hpad0 : (work s w).rawDa = 0 → (work s w).rawDaPad = 0 := by
     intro hd
     simp only [work] at hd ⊢
-    cases h : w.da <;> simp_all
+    cases h : w.daMatrix <;> simp_all
   have hpad : (work s w).rawDaRows ≤ 32 → (work s w).rawDaPad ≤ 32 := fun h ↦ by
     simpa using pad_le (k := 5) (by simpa using h)
   have hshapes : (work s w).children = 0 → (work s w).childShapes = [] ∧

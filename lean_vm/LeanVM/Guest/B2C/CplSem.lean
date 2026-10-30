@@ -220,7 +220,7 @@ end Walk
 
 section Frame
 
-variable {κ : ℕ} {L : MemImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V}
+variable {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V}
   {kfps : List ℕ} {hdr : E × E} {loc : CLoc}
 
 /-- A window's cells are the certificate's. -/

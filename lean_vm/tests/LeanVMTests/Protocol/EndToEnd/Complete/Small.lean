@@ -5,7 +5,7 @@ import LeanVMTests.Arithmetization.Completeness.Fixture
 # Completeness within the budget, locked
 
 Statement locks of `LeanVM/Protocol/EndToEnd/Complete/Small.lean`, with their axioms. The budget
-`Trace.committedSize ≤ 2^28` holds whenever the former caps do (at most `2^19` steps, `2^23` words
+`Execution.committedSize ≤ 2^28` holds whenever the former caps do (at most `2^19` steps, `2^23` words
 of memory and `2^23` instructions: `committedSize_le_of_caps`), in particular for the one-step
 trace of `Completeness.Fixture`. It also holds for a run of `2^20` steps, all `JUMP`s, which the
 former caps excluded, so completeness (`Complete.completeness_le`, which `LeanVM.completeness`
@@ -26,21 +26,21 @@ section Locks
 
 open LeanVM.Protocol.Verifier
 
-example {prog : Program} {input : PublicInput} {t : Trace prog}
+example {prog : Program} {input : PublicInput} {t : Execution prog}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu) :
     ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧ Sizes.ofWitness w = some s ∧
       s.Admissible prog :=
   exists_admissible_witness hv hbudget
 
-example (H : Bytes → Digest) (F : KState → KState) {prog : Program} {input : PublicInput}
-    {t : Trace prog} {ρ fuel : ℕ} {proof : Proof}
+example (H : Bytes → Digest) (F : KeccakState → KeccakState) {prog : Program} {input : PublicInput}
+    {t : Execution prog} {ρ fuel : ℕ} {proof : Proof}
     (h : honestProofOf H F prog input t ρ fuel = some proof) :
     verifyWith (m := Id) H F (bytecodeWords prog) (publicDigest input) proof = true :=
   verify_honestProofOf H F h
 
-example {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
+example {prog : Program} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
-    (hρ : validRate ρ) (H : Bytes → Digest) (F : KState → KState) (fuel : ℕ)
+    (hρ : validRate ρ) (H : Bytes → Digest) (F : KeccakState → KeccakState) (fuel : ℕ)
     (hpow : ∀ hist bits k sp,
       (leanVmProgram (bytecodeWords prog) (publicDigest input)).after hist =
           some (.grind bits k) → findNonce F bits sp fuel ≠ none) :
@@ -72,17 +72,17 @@ end Locks
 /-! ## The former caps imply the budget -/
 
 /-- A table's height is at most `2^n` when the run has at most `2^n` steps. -/
-theorem height_le {prog : Program} {t : Trace prog} {rf : Regs K} {n : ℕ}
-    (h : run prog t.image t.steps Regs.initial = some rf) (hn : t.steps ≤ 2 ^ n) (op : Opcode) :
+theorem height_le {prog : Program} {t : Execution prog} {rf : Registers K} {n : ℕ}
+    (h : run prog t.memory t.steps Registers.initial = some rf) (hn : t.steps ≤ 2 ^ n) (op : Opcode) :
     2 ^ Nat.clog 2 (t.count op) ≤ 2 ^ n := by
   refine Nat.pow_le_pow_right (by norm_num) (Nat.clog_le_of_le_pow ?_)
-  rw [Trace.count_eq_runRows h]
-  exact (Trace.runRows_le_steps h op).trans hn
+  rw [Execution.count_eq_runRows h]
+  exact (Execution.runRows_le_steps h op).trans hn
 
 /-- The `KECCAK` table's height, at least `2^9`, is at most `2^n + 2^9` with at most `2^n`
 steps. -/
-theorem keccakHeight_le {prog : Program} {t : Trace prog} {rf : Regs K} {n : ℕ}
-    (h : run prog t.image t.steps Regs.initial = some rf) (hn : t.steps ≤ 2 ^ n) :
+theorem keccakHeight_le {prog : Program} {t : Execution prog} {rf : Registers K} {n : ℕ}
+    (h : run prog t.memory t.steps Registers.initial = some rf) (hn : t.steps ≤ 2 ^ n) :
     2 ^ max (Nat.clog 2 (t.count .keccak)) 9 ≤ 2 ^ n + 512 := by
   have h5 := height_le h hn .keccak
   rcases le_total (Nat.clog 2 (t.count .keccak)) 9 with hle | hle
@@ -91,25 +91,25 @@ theorem keccakHeight_le {prog : Program} {t : Trace prog} {rf : Regs K} {n : ℕ
 
 /-- With at most `2^n` steps, the committed size is at most
 `4·2^κ + 2^logSize + 157·2^n + 46080`. -/
-theorem committedSize_le {prog : Program} {t : Trace prog} {rf : Regs K} {n : ℕ}
-    (h : run prog t.image t.steps Regs.initial = some rf) (hn : t.steps ≤ 2 ^ n) :
-    t.committedSize ≤ 4 * 2 ^ t.κ + 2 ^ prog.logSize + 157 * 2 ^ n + 46080 := by
+theorem committedSize_le {prog : Program} {t : Execution prog} {rf : Registers K} {n : ℕ}
+    (h : run prog t.memory t.steps Registers.initial = some rf) (hn : t.steps ≤ 2 ^ n) :
+    t.committedSize ≤ 4 * 2 ^ t.logMemorySize + 2 ^ prog.logSize + 157 * 2 ^ n + 46080 := by
   have h0 := height_le h hn .xor
   have h1 := height_le h hn .mulNative
   have h2 := height_le h hn .setConstant
   have h3 := height_le h hn .deref
   have h4 := height_le h hn .jump
   have h5 := keccakHeight_le h hn
-  simp only [Trace.committedSize]
+  simp only [Execution.committedSize]
   omega
 
 /-- **The former caps imply the budget**: at most `2^19` steps, `2^23` words of memory and `2^23`
 instructions. -/
-theorem committedSize_le_of_caps {prog : Program} {input : PublicInput} {t : Trace prog}
-    (hv : ValidExecution prog input t) (hsteps : t.steps ≤ 2 ^ 19) (hmem : t.κ ≤ 23)
+theorem committedSize_le_of_caps {prog : Program} {input : PublicInput} {t : Execution prog}
+    (hv : ValidExecution prog input t) (hsteps : t.steps ≤ 2 ^ 19) (hmem : t.logMemorySize ≤ 23)
     (hcode : prog.logSize ≤ 23) : t.committedSize ≤ 2 ^ 28 := by
   have := committedSize_le hv.2 hsteps
-  have hm : 2 ^ t.κ ≤ 2 ^ 23 := Nat.pow_le_pow_right (by norm_num) hmem
+  have hm : 2 ^ t.logMemorySize ≤ 2 ^ 23 := Nat.pow_le_pow_right (by norm_num) hmem
   have hc : 2 ^ prog.logSize ≤ 2 ^ 23 := Nat.pow_le_pow_right (by norm_num) hcode
   omega
 
@@ -141,14 +141,14 @@ def loopProg : Program := ⟨1, by decide, fun _ ↦ .jump (gpow 2) (gpow 2) (gp
 def loopInput : PublicInput := ⟨fun _ ↦ 0⟩
 
 /-- The image: the public words, then two words per frame. -/
-def loopImage : MemImage 22 := fun n ↦
+def loopImage : MemoryImage 22 := fun n ↦
   if (n : ℕ) = 0 then loopInput.word0
   else if (n : ℕ) = 1 then loopInput.word1
   else if (n : ℕ) % 2 = 0 then (if (n : ℕ) / 2 - 1 = J - 1 then ofK g else ofK 1)
   else if (n : ℕ) / 2 - 1 = J - 1 then ofK 1 else ofK (gpow (2 * ((n : ℕ) / 2)))
 
 /-- The execution: `J` steps on `loopImage`. -/
-def longTrace : Trace loopProg := ⟨22, loopImage, J⟩
+def longTrace : Execution loopProg := ⟨22, loopImage, J⟩
 
 theorem two_pow_22 : (2 : ℕ) ^ 22 = 4 * J := by norm_num [J]
 
@@ -171,8 +171,8 @@ theorem read_frame (j : ℕ) (hj : j < J) :
         some (if j = J - 1 then ofK 1 else ofK (gpow (2 * (j + 1)))) := by
   have := two_pow_22
   rw [← pow_add, ← pow_add]
-  refine ⟨(MemImage.read_gpow (by decide) loopImage ⟨2 * j + 2, by omega⟩).trans ?_,
-    (MemImage.read_gpow (by decide) loopImage ⟨2 * j + 3, by omega⟩).trans ?_⟩
+  refine ⟨(MemoryImage.read_gpow (by decide) loopImage ⟨2 * j + 2, by omega⟩).trans ?_,
+    (MemoryImage.read_gpow (by decide) loopImage ⟨2 * j + 3, by omega⟩).trans ?_⟩
   · simp [loopImage, show (2 * j + 2) % 2 = 0 by omega]
   · have h2 : (2 * j + 3) / 2 = j + 1 := by omega
     simp [loopImage, h2, show (2 * j + 3) % 2 = 1 by omega]
@@ -189,39 +189,39 @@ theorem step_loop {j : ℕ} (hj : j + 1 < J) :
 
 /-- The `JUMP` of the last frame goes to the sentinel with frame pointer `1`. -/
 theorem step_last :
-    run loopProg loopImage 1 ⟨1, gpow (2 * (J - 1))⟩ = some (Regs.final loopProg) := by
+    run loopProg loopImage 1 ⟨1, gpow (2 * (J - 1))⟩ = some (Registers.final loopProg) := by
   obtain ⟨hc, hf⟩ := read_frame (J - 1) (by unfold J; omega)
   simp only [↓reduceIte] at hc hf
   refine run_one one_ne_pcFinal ?_
-  rw [step_of_fetch_eq_some (r := ⟨1, gpow (2 * (J - 1))⟩) loopProg_fetch, Regs.final,
+  rw [step_of_fetch_eq_some (r := ⟨1, gpow (2 * (J - 1))⟩) loopProg_fetch, Registers.final,
     loopProg_pcFinal]
   exact executeWith_jump_taken (read := loopImage.read) (c := g) (d := g) (f := 1) hc hc hf
     g_ne_zero
 
 theorem run_frames : ∀ m, m < J →
-    run loopProg loopImage m Regs.initial = some ⟨1, gpow (2 * m)⟩ := by
+    run loopProg loopImage m Registers.initial = some ⟨1, gpow (2 * m)⟩ := by
   intro m
   induction m with
-  | zero => intro _; simp [Regs.initial, gpow]
+  | zero => intro _; simp [Registers.initial, gpow]
   | succ m ih => intro hm; exact run_trans (ih (by omega)) (step_loop hm)
 
 /-- **The long run is a valid execution.** -/
 theorem longTrace_valid : ValidExecution loopProg loopInput longTrace := by
   refine ⟨⟨by decide, by decide, ?_, ?_⟩, ?_⟩
-  · exact (MemImage.read_gpow (by decide) loopImage ⟨0, by decide⟩).trans (by simp [loopImage])
-  · exact (MemImage.read_gpow (by decide) loopImage ⟨1, by decide⟩).trans (by simp [loopImage])
+  · exact (MemoryImage.read_gpow (by decide) loopImage ⟨0, by decide⟩).trans (by simp [loopImage])
+  · exact (MemoryImage.read_gpow (by decide) loopImage ⟨1, by decide⟩).trans (by simp [loopImage])
   · have h := run_trans (run_frames (J - 1) (by unfold J; omega)) step_last
     rwa [show J - 1 + 1 = J by unfold J; omega] at h
 
 /-- No instruction of `loopProg` but `JUMP` executes. -/
 theorem count_eq_zero {op : Opcode} (hop : op ≠ .jump) : longTrace.count op = 0 := by
-  unfold Trace.count
+  unfold Execution.count
   generalize longTrace.steps = n
-  generalize Regs.initial = r
+  generalize Registers.initial = r
   induction n generalizing r with
   | zero => rfl
   | succ n ih =>
-    unfold runCount
+    unfold opcodeCountInRun
     split
     · rename_i ins _ hf _
       obtain ⟨i, -, rfl⟩ := Option.map_eq_some_iff.mp hf
@@ -230,10 +230,10 @@ theorem count_eq_zero {op : Opcode} (hop : op ≠ .jump) : longTrace.count op = 
 
 /-- The committed size of an execution of `JUMP`s alone. Stated for any trace: on `longTrace` the
 kernel would evaluate its counts, a run of `2^20` steps, when comparing the sums. -/
-theorem committedSize_le_of_jumps {prog : Program} (t : Trace prog)
+theorem committedSize_le_of_jumps {prog : Program} (t : Execution prog)
     (h0 : ∀ op, op ≠ .jump → t.count op = 0) {a : ℕ} (hj : 2 ^ Nat.clog 2 (t.count .jump) ≤ a) :
-    t.committedSize ≤ 4 * 2 ^ t.κ + 2 ^ prog.logSize + 14 * a + 46133 := by
-  simp only [Trace.committedSize, h0 .xor (by decide), h0 .mulNative (by decide),
+    t.committedSize ≤ 4 * 2 ^ t.logMemorySize + 2 ^ prog.logSize + 14 * a + 46133 := by
+  simp only [Execution.committedSize, h0 .xor (by decide), h0 .mulNative (by decide),
     h0 .setConstant (by decide), h0 .deref (by decide), h0 .keccak (by decide),
     Nat.clog_zero_right, pow_zero, show max 0 9 = 9 from rfl]
   omega
@@ -242,7 +242,7 @@ theorem committedSize_le_of_jumps {prog : Program} (t : Trace prog)
 theorem longTrace_budget : longTrace.committedSize ≤ 2 ^ 28 := by
   refine (committedSize_le_of_jumps longTrace (fun _ ↦ count_eq_zero)
     (height_le longTrace_valid.2 (le_rfl : longTrace.steps ≤ 2 ^ 20) .jump)).trans ?_
-  rw [show longTrace.κ = 22 from rfl, show loopProg.logSize = 1 from rfl]
+  rw [show longTrace.logMemorySize = 22 from rfl, show loopProg.logSize = 1 from rfl]
   norm_num
 
 /-- with more than `2^19` steps, -/

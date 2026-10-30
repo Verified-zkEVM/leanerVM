@@ -14,11 +14,11 @@ public import CompPoly.LinearAlgebra.PolynomialMatrix.MuldersStorjohannCorrectne
 # The knowledge extractor
 
 The fixed straight-line extractor of `KnowledgeSoundness` (`Statement/LeanVm.lean`), `extract`,
-which `LeanVM.extractorRpm` applies to the program's bytecode and to the Keccak-256 evaluations of
-the adversary's transcript of queries to the random permutation (the byte strings whose whole
-sponge path the adversary queried, with their digests, and the list of those byte strings,
-`keys`). It reads the statement (the program, its bytecode and the public input), the proof and
-those evaluations, and nothing else: it neither queries the permutation, nor sees the verifier's
+which `LeanVM.transcriptExtractor` applies to the program's bytecode and to the Keccak-256
+evaluations of the adversary's transcript of queries to the random permutation (the byte strings
+whose whole sponge path the adversary queried, with their digests, and the list of those byte
+strings, `keys`). It reads the statement (the program, its bytecode and the public input), the proof
+and those evaluations, and nothing else: it neither queries the permutation, nor sees the verifier's
 queries, nor runs the adversary again. It is deterministic and computable (no coins, no classical
 choice: every loop is a traversal of an explicitly sized list or array, or a recursion on an
 explicit natural number). Of the proof it reads only the stream's first `10` scalars (the
@@ -117,7 +117,7 @@ def announceSizesAndRoot (bytecode : List K) : Prog (Layout × ℕ) := do
 
 /-- The verifier's state after its steps 1 and 2 on the proof `π`: the announced layout and rate
 exponent, and the state, whose first root is the stack's; `none` if the steps reject. -/
-def afterRoot (bytecode : List K) (π : Proof) : Option ((Layout × ℕ) × St) :=
+def afterRoot (bytecode : List K) (π : Proof) : Option ((Layout × ℕ) × ProgState) :=
   runPure (announceSizesAndRoot bytecode) ⟨⟨default, []⟩, π.stream, π.openings, []⟩
 
 /-! ### 2. The committed word -/
@@ -412,7 +412,7 @@ def fastStacks (μ R : ℕ) (W : ℕ → List K) : List (Vector K (2 ^ μ)) :=
 /-- **The memory image of a stack**: `2^logMemory` words, word `i` the three limbs at cell `i` of
 the memory columns `MEMORY_0`, `MEMORY_1`, `MEMORY_2` (`verifier.py:688`), each at its placement's
 offset on the stack. -/
-def memoryImage (layout : Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) : MemImage layout.logMemory :=
+def memoryImage (layout : Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) : MemoryImage layout.logMemory :=
   fun i ↦
     let limb (column : ℕ) : K := q.getD ((layout.placement column).index + i) 0
     E.ofLimbs (limb memory0) (limb memory1) (limb memory2)
@@ -427,7 +427,7 @@ def powIndexFrom : ℕ → ℕ → K → Std.HashMap UInt64 ℕ → Std.HashMap 
 def powIndex (κ : ℕ) : Std.HashMap UInt64 ℕ := powIndexFrom (2 ^ κ) 0 1 ∅
 
 /-- The index of address `a` among `2^κ` words, looked up in `idx`: `some i` when `idx` maps the
-lane of `a` to `i < 2^κ` (`gLog?`, computed). -/
+lane of `a` to `i < 2^κ` (`addressIndex?`, computed). -/
 def gLogIn (idx : Std.HashMap UInt64 ℕ) (κ : ℕ) (a : K) : Option (Fin (2 ^ κ)) :=
   match idx[a.lane]? with
   | some i => if h : i < 2 ^ κ then some ⟨i, h⟩ else none
@@ -436,8 +436,8 @@ def gLogIn (idx : Std.HashMap UInt64 ℕ) (κ : ℕ) (a : K) : Option (Fin (2 ^ 
 /-- One step (`step`, computed) with the memory index `memIdx` and the bytecode index `codeIdx`:
 fetch the instruction at `pc`, then execute it (`executeWith`), reading the memory through
 `memIdx`. -/
-def stepIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) {κ : ℕ} (L : MemImage κ)
-    (r : Regs K) : Option (Regs K) :=
+def stepIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) {κ : ℕ} (L : MemoryImage κ)
+    (r : Registers K) : Option (Registers K) :=
   (gLogIn codeIdx prog.logSize r.pc).map prog.code >>=
     executeWith (fun a ↦ (gLogIn memIdx κ a).map L) r
 
@@ -445,10 +445,10 @@ def stepIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) {κ : ℕ}
 when the run is in the final state after `m` steps in all; `none` if a step fails or the fuel runs
 out first. -/
 def haltLoop (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) {κ : ℕ}
-    (L : MemImage κ) : ℕ → ℕ → Regs K → Option ℕ
-  | 0, n, r => if r = Regs.final prog then some n else none
+    (L : MemoryImage κ) : ℕ → ℕ → Registers K → Option ℕ
+  | 0, n, r => if r = Registers.final prog then some n else none
   | fuel + 1, n, r =>
-    if r = Regs.final prog then some n
+    if r = Registers.final prog then some n
     else
       match stepIn memIdx codeIdx prog L r with
       | none => none
@@ -457,8 +457,8 @@ def haltLoop (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) {κ : �
 /-- The image, run from the initial state `(pcInitial, fpInitial)` for the least number `n ≤ cap`
 of steps after which it is in the final state `(pcFinal, fpFinal)`, if any. -/
 def haltingRunIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) {κ : ℕ}
-    (image : MemImage κ) (cap : ℕ) : Option (Trace prog) :=
-  (haltLoop memIdx codeIdx prog image cap 0 Regs.initial).map fun n ↦ ⟨κ, image, n⟩
+    (image : MemoryImage κ) (cap : ℕ) : Option (Execution prog) :=
+  (haltLoop memIdx codeIdx prog image cap 0 Registers.initial).map fun n ↦ ⟨κ, image, n⟩
 
 /-- **The step cap of a layout**: the rows its tables hold, `2^τ_j` for each opcode table's
 log-height `τ_j`, the `2^logMemory` words of the memory and the `2^logBytecode` slots of the
@@ -466,19 +466,20 @@ bytecode. -/
 def stepCap (layout : Layout) : ℕ :=
   (layout.tableLogHeights.map (2 ^ ·)).sum + 2 ^ layout.logMemory + 2 ^ layout.logBytecode
 
-/-- **The public boundary** (`HasPublicBoundary`), decided: the memory has between `2^16` and
+/-- **The public boundary** (`HoldsPublicInput`), decided: the memory has between `2^16` and
 `2^32` words, and words `0` and `1` (at the addresses `g^0`, `g^1`) hold the public input. -/
-def boundaryOK {prog : Program} (input : PublicInput) (t : Trace prog) : Bool :=
-  if h : minLogMem ≤ t.κ ∧ t.κ ≤ maxLogMem then
-    decide (t.image ⟨0, Nat.two_pow_pos t.κ⟩ = input.word0) &&
-      decide (t.image ⟨1, Nat.one_lt_two_pow (by unfold minLogMem at h; omega)⟩ = input.word1)
+def boundaryOK {prog : Program} (input : PublicInput) (t : Execution prog) : Bool :=
+  if h : minLogMem ≤ t.logMemorySize ∧ t.logMemorySize ≤ maxLogMem then
+    decide (t.memory ⟨0, Nat.two_pow_pos t.logMemorySize⟩ = input.word0) &&
+      decide (t.memory ⟨1, Nat.one_lt_two_pow (by unfold minLogMem at h; omega)⟩ = input.word1)
   else false
 
 /-- **The execution of a stack**: the halting run of its memory image within the layout's step
 cap, if it has the public boundary of `input`; `memIdx` and `codeIdx` index the memory's and the
 bytecode's addresses. -/
 def candidateExecutionIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program)
-    (input : PublicInput) (layout : Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) : Option (Trace prog) :=
+    (input : PublicInput) (layout : Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) :
+      Option (Execution prog) :=
   (haltingRunIn memIdx codeIdx prog (memoryImage layout q) (stepCap layout)).filter
     (boundaryOK input)
 
@@ -491,7 +492,8 @@ to (`committedLeaves`), and the execution of the first decoded stack (the fast p
 list decoder's) that has one; `none` otherwise. The leaves and the two address indices are
 computed once, for every stack. -/
 def extract (prog : Program) (input : PublicInput) (bytecode : List K)
-    (answers : Bytes → Option Digest) (keys : List Bytes) (π : Proof) : Option (Trace prog) := do
+    (answers : Bytes → Option Digest) (keys : List Bytes) (π : Proof) : Option (Execution prog) :=
+      do
   let ((layout, logInverseRate), state) ← afterRoot bytecode π
   let (root, height, width) ← state.roots.head?
   let leaves := committedLeaves answers keys root height width

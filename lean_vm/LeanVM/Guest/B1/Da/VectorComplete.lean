@@ -37,7 +37,7 @@ argument, gives its core IR. -/
 def da_vector_cell_complete_Spec : Prop :=
   ∀ (rd : Reader) (dg p : E) (ws : List E), ws.length = LeanDa.cellSymbols → IsInK p →
     (∀ k < LeanDa.cellSymbols, ∀ w, rd (p.limb 0 * Parameters.gpow k) = some w → w = ws.getD k 0) →
-    ReadsAt rd dg (digestCells (keccak256 (ws.flatMap Node.eBytes))) →
+    ReadsAt rd dg (digestCells (keccak256 (ws.flatMap Node.extensionElementBytes))) →
     coreProgram.Rel rd "da_vector_cell" [dg] [p]
 
 /-- **A pack of two stack words holds** on an evaluated valuation. -/
@@ -225,7 +225,7 @@ theorem da_vector_cell_complete : da_vector_cell_complete_Spec := by
           rw [hw k (by simpa [vecWsOf] using h1), List.getD_eq_getElem _ _ h2]
         have hbytes : cellsBytes ((List.range 128).flatMap fun q =>
             Digest.pairCells (σ (.n (2 * q + 1))) (σ (.n (2 * q + 2)))) =
-            ws.flatMap Node.eBytes := by
+            ws.flatMap Node.extensionElementBytes := by
           rw [← hws, vecWsOf, show (256 : ℕ) = 2 * 128 from rfl, flatMap_pairs, cellsBytes,
             List.flatMap_assoc]
           refine List.flatMap_congr fun q _ => ?_

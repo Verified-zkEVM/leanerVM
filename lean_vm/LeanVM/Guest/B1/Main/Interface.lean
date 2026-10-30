@@ -3,7 +3,7 @@
 
   The interface of B1 for `main` and `aggregate_claims`: what the batching of the children
   computes, what `main` asks of its callees, the decoders of the seed, the statement and the
-  witness, and the statement that `main`'s run establishes `NodeRel` of what they decode.
+  witness, and the statement that `main`'s run establishes `NodeRelation` of what they decode.
 -/
 
 module
@@ -25,7 +25,7 @@ claim written at `defer_stmt`: `Node.batch` (N:272) of the children whose words 
 **`main`** (G:4058-4226, `core0`). Its callees with a witness, each through a witness function of
 the call's words (`CalleesW`): a leanXMSS signature `wX p` for the claim at `p`
 (`verify_lean_xmss`, `Sig.XmssOut`), a leanSPHINCS signature `wS p` (`verify_sig_lean_sphincs`,
-`Sig.SphincsOut`, with the byte table), a matrix `wD args rets` (`da_verify`, `Da.Witness.Opens`),
+`Sig.SphincsOut`, with the byte table), a matrix `wD args rets` (`da_verify`, `Da.MatrixWitness.Opens`),
 a child's proof `wV args` (`verify_sub`: `verifyDeferred` of the child's public input under the
 seed, its fresh claim at the call's pointer, `VerifySubOut`), and the batching's hints
 `wA args` (`aggregate_claims`). The function's other callees are the deterministic functions
@@ -47,7 +47,7 @@ whose `…_Spec`s are stated in `Digest/Interface`, `Da/Interface`, `Bits/Meanin
 
 **The statement** (`main_sound_Spec`): on a memory image, given the callees' contracts, a run of
 `main`'s body whose public input cells hold the digest `D` gives `statementDigest (decSeed σ)
-(decStmt σ rd) = D` and `NodeRel bytecode (decSeed σ) (decStmt σ rd) (decWit …)`. Its proof,
+(decStmt σ rd) = D` and `NodeRelation bytecode (decSeed σ) (decStmt σ rd) (decWit …)`. Its proof,
 `main_sound_w`, composes the `…_Spec`s of every family.
 -/
 
@@ -62,7 +62,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 /-! ## Reading the memory -/
 
 /-- The exponent of a power of `g` below `2^34` (`0` for other words). -/
-@[irreducible] noncomputable def gLog (x : E) : ℕ := ((gLog? 34 (x.limb 0)).map Fin.val).getD 0
+@[irreducible] noncomputable def gLog (x : E) : ℕ := ((addressIndex? 34 (x.limb 0)).map Fin.val).getD 0
 
 /-- The digest of two cells, their low limbs its four words (`digestOfScalars`, unchecked). -/
 def digestOfCells (a b : E) : Digest :=
@@ -82,7 +82,7 @@ abbrev bytecodeVars : ℕ := 23
 def deferOfCells (cs : List E) : DeferredClaim := ⟨cs.take bytecodeVars, cs.getD bytecodeVars 0⟩
 
 /-- A proof's claim on the bytecode of its `24` cells (`defer_out`). -/
-def fixedOfCells (cs : List E) : FixedClaims := ⟨cs.take bytecodeVars, cs.getD bytecodeVars 0⟩
+def fixedOfCells (cs : List E) : BytecodeClaim := ⟨cs.take bytecodeVars, cs.getD bytecodeVars 0⟩
 
 /-! ## `aggregate_claims` (G:4229-4328, TRIAGE #97) -/
 
@@ -90,11 +90,11 @@ def fixedOfCells (cs : List E) : FixedClaims := ⟨cs.take bytecodeVars, cs.getD
 proof's claim at `child_fresh · g^(24c)`, its statement's deferred claim at
 `child_carried · g^(24c)`, both claims at `23` coordinates. -/
 def ChildWordsAt (rd : Reader) (cpi cfresh ccarried : E) (c : ℕ) (cc : ChildClaims) : Prop :=
-  cc.fresh.bytecodePoint.length = bytecodeVars ∧ cc.carried.bytecodePoint.length = bytecodeVars ∧
+  cc.freshClaim.bytecodePoint.length = bytecodeVars ∧ cc.carriedClaim.bytecodePoint.length = bytecodeVars ∧
     LoadHolds rd cpi (2 * c) (digestScalars cc.publicInput).1 ∧
     LoadHolds rd cpi (2 * c + 1) (digestScalars cc.publicInput).2 ∧
-    ReadsAt rd (cfresh * gen ^ (24 * c)) (DeferredClaim.cells cc.fresh) ∧
-    ReadsAt rd (ccarried * gen ^ (24 * c)) cc.carried.cells
+    ReadsAt rd (cfresh * gen ^ (24 * c)) (DeferredClaim.cells cc.freshClaim) ∧
+    ReadsAt rd (ccarried * gen ^ (24 * c)) cc.carriedClaim.cells
 
 /-- **`aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt)`**, for
 `n_children_g = g^m`, `1 ≤ m ≤ 16`: it returns nothing, and for some hints the claim written at
@@ -102,7 +102,7 @@ def ChildWordsAt (rd : Reader) (cpi cfresh ccarried : E) (c : ℕ) (cc : ChildCl
 `m` children whose words the memory holds. -/
 def MeaningAggregateClaims (rd : Reader) : List E → List E → Prop
   | [ncg, cpi, cfresh, ccarried, dst], rets => ∀ m, 1 ≤ m → m ≤ 16 → ncg = gen ^ m →
-      rets = [] ∧ ∃ (h : BatchHints) (out : DeferredClaim),
+      rets = [] ∧ ∃ (h : BatchingHints) (out : DeferredClaim),
         out.bytecodePoint.length = bytecodeVars ∧ ReadsAt rd dst out.cells ∧
         ∀ cs : List ChildClaims, cs.length = m →
           (∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c]) →
@@ -122,14 +122,14 @@ argument the child proof's claim on the bytecode (`23` coordinates, then the val
 deferring verifier accepts `π` for the public input under the seed. -/
 def VerifySubOut (bytecode : List K) (rd : Reader) (args : List E) (π : Proof) : Prop :=
   ∃ pi0 pi1 s0 s1 glp gsq out, args = [pi0, pi1, s0, s1, glp, gsq, out] ∧
-    ∃ (seed pi : Digest) (fresh : FixedClaims), (s0, s1) = digestScalars seed ∧
+    ∃ (seed pi : Digest) (fresh : BytecodeClaim), (s0, s1) = digestScalars seed ∧
       (pi0, pi1) = digestScalars pi ∧ fresh.bytecodePoint.length = bytecodeVars ∧
       ReadsAt rd out (DeferredClaim.cells fresh) ∧ verifyDeferred bytecode seed pi fresh π = true
 
 /-- **The callees' contracts with witness functions**, on the call relation `coreProgram.Rel`. -/
 structure CalleesW (bytecode : List K) (rd : Reader) (wX : E → LeanXmss.Signature)
-    (wS : E → Sphincs.Signature) (wD : List E → List E → LeanVM.Da.Witness)
-    (wV : List E → Proof) (wA : List E → BatchHints) : Prop where
+    (wS : E → Sphincs.Signature) (wD : List E → List E → LeanVM.Da.MatrixWitness)
+    (wV : List E → Proof) (wA : List E → BatchingHints) : Prop where
   /-- A leanXMSS check: the signature `wX p` verifies the claim at `p`. -/
   xmss : ∀ p, coreProgram.Rel rd "verify_lean_xmss" [p] [] → Sig.XmssOut rd p (wX p)
   /-- A leanSPHINCS check with the byte table: the signature `wS p` verifies the claim at `p`. -/
@@ -253,8 +253,8 @@ noncomputable def dvClaim (σ : Val) : DaClaim :=
 /-- **The witness**: the children, a holder for every declared signature claim by its slot's
 mark, the matrix `da_verify` checks with the claim it returns, the batching's hints. -/
 noncomputable def decWit (σ : Val) (rd : Reader) (wX : E → LeanXmss.Signature)
-    (wS : E → Sphincs.Signature) (wD : List E → List E → LeanVM.Da.Witness)
-    (wV : List E → Proof) (wA : List E → BatchHints) : NodeWitness :=
+    (wS : E → Sphincs.Signature) (wD : List E → List E → LeanVM.Da.MatrixWitness)
+    (wV : List E → Proof) (wA : List E → BatchingHints) : NodeWitness :=
   ⟨(List.range (nKids σ)).map (decKid rd σ wV),
     (List.range (gLog (σ (.n 0)))).map fun k =>
       let e := markOf rd σ k
@@ -274,18 +274,18 @@ noncomputable def decWit (σ : Val) (rd : Reader) (wX : E → LeanXmss.Signature
 public input cells (`[1]`, `[g]`) hold the digest `D`, given the callees' contracts with the
 witness functions, every run of `main`'s body (under `coreProgram.Rel`) gives the seed
 `decSeed σ` and the statement `decStmt σ rd` of digest `D`, which the witness
-`decWit σ rd wX wS wD wV wA` holds (`NodeRel`) for the guest's bytecode of `2^23` words. -/
+`decWit σ rd wX wS wD wV wA` holds (`NodeRelation`) for the guest's bytecode of `2^23` words. -/
 def main_sound_Spec (bytecode : List K) : Prop :=
   bytecode.length = 2 ^ bytecodeVars →
   ∀ (rd : Reader), MemOk rd →
   ∀ (wX : E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
-    (wD : List E → List E → LeanVM.Da.Witness) (wV : List E → Proof) (wA : List E → BatchHints),
+    (wD : List E → List E → LeanVM.Da.MatrixWitness) (wV : List E → Proof) (wA : List E → BatchingHints),
     CalleesW bytecode rd wX wS wD wV wA →
   ∀ (D : Digest) (σ : Val), LoadHolds rd 1 0 (digestScalars D).1 →
     LoadHolds rd 1 1 (digestScalars D).2 →
     Stmt.HoldsList (coreProgram.Rel rd) rd σ Data.core0.body False (fun rs => rs = []) →
       statementDigest (decSeed σ) (decStmt σ rd) = D ∧
-        NodeRel bytecode (decSeed σ) (decStmt σ rd) (decWit σ rd wX wS wD wV wA)
+        NodeRelation bytecode (decSeed σ) (decStmt σ rd) (decWit σ rd wX wS wD wV wA)
 
 /-! ## The functions, found -/
 

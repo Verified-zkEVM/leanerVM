@@ -91,7 +91,7 @@ theorem vt_constraints (ev : List E) : (tables.getD 0 default).constraints ev = 
   ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 section
-variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ)
+variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
 set_option maxHeartbeats 4000000 in

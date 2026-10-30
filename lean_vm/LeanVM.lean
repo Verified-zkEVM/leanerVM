@@ -42,7 +42,7 @@ where an adversary is involved:
   the honest proof of a guest execution is a child the guest accepts (rejected with probability
   at most `2^-126` in the random-permutation model; with the deployed Keccak, where accepted,
   meeting every hypothesis the guest's completeness assumes of a child);
-* `LeanVM.Guest.Batch.batch_sound_holds : BatchSound` (`Statement/LeanVmGuest.lean`): the
+* `LeanVM.Guest.Batch.batch_sound_holds : BatchingSound` (`Statement/LeanVmGuest.lean`): the
   recursion step, the batching of the children's deferred claims run outside the circuit, sound in
   the random-permutation model (from `batch_rpm`).
 
@@ -68,7 +68,7 @@ example : LeanVM.Guest.Budget.GuestCompleteRecursion := LeanVM.Guest.Budget.gues
 example : LeanVM.Guest.Budget.GuestCompleteLeaf := LeanVM.Guest.Budget.guest_complete_leaf
 example : LeanVM.Guest.Budget.GuestCompleteCovered := LeanVM.Guest.Budget.guest_complete_covered
 example : LeanVM.Guest.Budget.GuestChildComplete := LeanVM.Guest.Budget.guest_child_complete
-example : LeanVM.Guest.Batch.BatchSound := LeanVM.Guest.Batch.batch_sound_holds
+example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_holds
 
 /-- info: 'LeanVM.knowledgeSoundness_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -214,7 +214,7 @@ theorem LeanVM.corollaries_of_theorems {decode : LeanVM.Node.Decoder}
     intro A Q hA hQ
     refine le_trans (prEvent_mono _ _ _ ?_) (h.knowledgeSoundness A Q hA hQ)
     rintro ⟨⟨⟨⟨prog, input⟩, π⟩, b⟩, T⟩ ⟨s, hb, hprog, hpub, hs, hno⟩
-    dsimp only [LeanVM.RpmOutcome.program] at hprog
+    dsimp only [LeanVM.ExperimentOutcome.program] at hprog
     subst hprog
     refine ⟨hb, ?_⟩
     rintro ⟨t, hx, hv⟩
@@ -226,12 +226,12 @@ theorem LeanVM.corollaries_of_theorems {decode : LeanVM.Node.Decoder}
   guestCompleteRecursion := by
     intro seed s w hrel hlim hok hx hs hd hdecl hcov hkids
     refine h.guestCompleteCovered seed s w hrel hlim hok ?_
-    simp only [LeanVM.Guest.Budget.Covered]
+    simp only [LeanVM.Guest.Budget.CoveredNode]
     exact Or.inl ⟨by omega, by simp [hd], hdecl, hcov, hkids⟩
   guestCompleteLeaf := by
     intro seed s w hrel hlim hok hch hd hraw hdecl hcov
     refine h.guestCompleteCovered seed s w hrel hlim hok ?_
-    simp only [LeanVM.Guest.Budget.Covered]
+    simp only [LeanVM.Guest.Budget.CoveredNode]
     exact Or.inr (Or.inl ⟨by simp [hch], by simp [hd], hraw, hdecl, hcov⟩)
 
 /-- info: 'LeanVM.corollaries_of_theorems' depends on axioms: [propext, Classical.choice, Quot.sound] -/

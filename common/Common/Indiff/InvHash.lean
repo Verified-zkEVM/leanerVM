@@ -43,8 +43,8 @@ recorded, the walk ends in the value of the whole path, records only target edge
 recorded edges, and records every node edge. -/
 theorem detWalk_spec (used : List (Dg × E) → Bool) (vf : List (Dg × E) → SpState Dg E C)
     (G : SpState Dg E C × SpState Dg E C → Prop)
-    (hfun : ∀ x y y', G (x, y) → G (x, y') → y = y') (A₀ : PermLog (SpState Dg E C)) :
-    ∀ (bs pre : List (Dg × E)) (s : SpState Dg E C) (A : PermLog (SpState Dg E C))
+    (hfun : ∀ x y y', G (x, y) → G (x, y') → y = y') (A₀ : PermutationEdges (SpState Dg E C)) :
+    ∀ (bs pre : List (Dg × E)) (s : SpState Dg E C) (A : PermutationEdges (SpState Dg E C))
       (us : List (SpState Dg E C)),
       (∀ e ∈ A, G e) → (∀ e ∈ A₀, e ∈ A) →
       (∀ i (h : i < bs.length),
@@ -83,11 +83,11 @@ theorem detWalk_spec (used : List (Dg × E) → Bool) (vf : List (Dg × E) → S
       rw [walkState_cons vf pre s y B bs i hy]
       simpa [List.take_succ_cons] using this
     -- the lookup at the first node returns the target edge
-    have hlook : ∀ y, fwdLookup A (absorb s B) = some y → y = vf (pre ++ [B]) := by
+    have hlook : ∀ y, forwardLookup A (absorb s B) = some y → y = vf (pre ++ [B]) := by
       intro y hy
       exact hfun _ _ _ (hA _ (mem_of_fwdLookup_eq_some hy)) h0
     -- the first node's edge is recorded after the walk
-    have hfirst : ∀ (A' : PermLog (SpState Dg E C)), (absorb s B, vf (pre ++ [B])) ∈ A' →
+    have hfirst : ∀ (A' : PermutationEdges (SpState Dg E C)), (absorb s B, vf (pre ++ [B])) ∈ A' →
         ∀ (us' : List (SpState Dg E C)), (∀ e ∈ A', G e) →
         (∀ e ∈ A₀, e ∈ A') → (∀ e ∈ A, e ∈ A') →
         (detWalk used vf (pre ++ [B]) (vf (pre ++ [B])) A' bs us').1 =

@@ -48,7 +48,7 @@ open LeanVM.Guest.Exec
 `check_opening_terminal`, put the `99` entries of `col_kappas` (the value `1889`) among the `29`
 arms of `column_selector`. -/
 def VsKnown : Prop :=
-  ∀ {κ : ℕ} (L : MemImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
+  ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
     B1.ExpTables L.read (σ (.n 4)) (σ (.n 5)) →
     Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 2098) True (fun _ ↦ True) →
       ∀ c < 99, ∃ e < 29, LoadHolds L.read (σ (.n 1889)) c (ofK (gpow e))
@@ -59,7 +59,7 @@ def ExpTablesSound : Prop :=
 
 /-! ## `verify_sub`'s obligation -/
 
-theorem known_vs (hvs : VsKnown) {κ : ℕ} {L : MemImage κ} (h16 : minLogMem ≤ κ)
+theorem known_vs (hvs : VsKnown) {κ : ℕ} {L : MemoryImage κ} (h16 : minLogMem ≤ κ)
     (h32 : κ ≤ maxLogMem) {fp : K} (hsem : SemHolds glob L fp (certOf 19).sem) {i : ℕ}
     (hi : i ≤ (certOf 19).cuts.length) (h0 : 0 < i)
     (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 19))
@@ -82,7 +82,7 @@ theorem known_vs (hvs : VsKnown) {κ : ℕ} {L : MemImage κ} (h16 : minLogMem �
 
 /-! ## `main`'s obligation -/
 
-theorem known_main (hexp : ExpTablesSound) {κ : ℕ} {L : MemImage κ} {fp : K} {i : ℕ}
+theorem known_main (hexp : ExpTablesSound) {κ : ℕ} {L : MemoryImage κ} {fp : K} {i : ℕ}
     (hi : i ≤ (certOf 1).cuts.length)
     (h0 : 0 < i)
     (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 1))
@@ -106,7 +106,7 @@ theorem known_main (hexp : ExpTablesSound) {κ : ℕ} {L : MemImage κ} {fp : K}
 /-- **B2's step**: each contract for runs shorter than `n + 1`, given all of them for runs
 shorter than `n`. -/
 theorem b2_step (hvs : VsKnown) :
-    ∀ {κ : ℕ} (L : MemImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ n,
+    ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ n,
       (∀ j, FunSpecLt guest L n (glob.sig j).entry (Check.Pre glob L j)
         (Check.Post coreProgram glob L certByName j)) →
       ∀ i, FunSpecLt guest L (n + 1) (glob.sig i).entry (Check.Pre glob L i)
@@ -136,7 +136,7 @@ theorem b2_step (hvs : VsKnown) :
 written and every contract holding for runs shorter than it, gives `main`'s body under its frame's
 valuation, its calls located. -/
 theorem b2_mainL (hexp : ExpTablesSound) :
-    ∀ {κ : ℕ} (L : MemImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → JumpTables L → ∀ k,
+    ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → JumpTables L → ∀ k,
       (∀ j, FunSpecLt guest L k (glob.sig j).entry (Check.Pre glob L j)
         (Check.Post coreProgram glob L certByName j)) →
       Safe guest L k ⟨gpow mainEntry, 1⟩ →
@@ -159,7 +159,7 @@ theorem b2_mainL (hexp : ExpTablesSound) :
 /-- **B2 at `main`**: a halting run from `main`'s entry at `fp = 1`, the jump table written and
 every contract holding for runs shorter than it, gives `main`'s relation. -/
 theorem b2_main (hexp : ExpTablesSound) :
-    ∀ {κ : ℕ} (L : MemImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → JumpTables L → ∀ k,
+    ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → JumpTables L → ∀ k,
       (∀ j, FunSpecLt guest L k (glob.sig j).entry (Check.Pre glob L j)
         (Check.Post coreProgram glob L certByName j)) →
       Safe guest L k ⟨gpow mainEntry, 1⟩ → coreProgram.Rel L.read "main" [] [] := by

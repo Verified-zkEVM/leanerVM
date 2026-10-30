@@ -59,15 +59,15 @@ info: 'LeanVM.Arithmetization.exists_run_of_balanced' depends on axioms:
 
 /-- Runs from one state that reach the final registers take the same number of steps: the machine
 halts there. -/
-theorem run_steps_unique {κ : ℕ} {prog : Program} {L : MemImage κ} {r : Regs K} {m n : ℕ}
-    (hm : run prog L m r = some (Regs.final prog)) (hn : run prog L n r = some (Regs.final prog)) :
+theorem run_steps_unique {κ : ℕ} {prog : Program} {L : MemoryImage κ} {r : Registers K} {m n : ℕ}
+    (hm : run prog L m r = some (Registers.final prog)) (hn : run prog L n r = some (Registers.final prog)) :
     m = n := by
-  have key : ∀ a b, run prog L a r = some (Regs.final prog) →
-      run prog L b r = some (Regs.final prog) → a < b → False := by
+  have key : ∀ a b, run prog L a r = some (Registers.final prog) →
+      run prog L b r = some (Registers.final prog) → a < b → False := by
     intro a b ha hb hab
     obtain ⟨c, rfl⟩ : ∃ c, b = a + (c + 1) := ⟨b - a - 1, by omega⟩
     rw [run_add, ha] at hb
-    change run prog L (c + 1) (Regs.final prog) = _ at hb
+    change run prog L (c + 1) (Registers.final prog) = _ at hb
     rw [run_succ_of_eq rfl] at hb
     simp at hb
   rcases Nat.lt_trichotomy m n with h | h | h

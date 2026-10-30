@@ -276,7 +276,7 @@ theorem spOk_perm {s : Fs} {st : List V × List (V × V)} (h : SpOk σ s st) {in
       hz, hlen, h.1]
   exact ⟨hp, fun k hk ↦ by rw [hp]; exact hout k hk⟩
 
-theorem capOf_outs {S : KState} {o : ℕ}
+theorem capOf_outs {S : KeccakState} {o : ℕ}
     (h : ∀ k (hk : k < 13), σ (((List.range 13).map fun j ↦ V.n (o + j)).getD k default) =
       cellsOfState S false ⟨k, hk⟩) :
     capOf S = (capOuts o).map σ := by

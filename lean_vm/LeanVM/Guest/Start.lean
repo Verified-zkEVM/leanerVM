@@ -21,7 +21,7 @@ public import LeanVM.Facts.Guest
 # The run's start
 
 `bytecode` is the guest's stacked bytecode, `2^23` words (`16 · 2^19`), the polynomial
-`NodeRel` and the verifier read; `publicInputOf d` is the public input whose digest is `d`
+`NodeRelation` and the verifier read; `publicInputOf d` is the public input whose digest is `d`
 (`publicDigest_publicInputOf`), and `hdrOf d` its two memory words, `main`'s header.
 
 The run's start is `Guest/JumpTable.lean`'s: a run starts at `(g^0, 1)` in `__jump_tables`, the

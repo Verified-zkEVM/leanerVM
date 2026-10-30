@@ -17,10 +17,10 @@ public import Statement.Fast.FieldWords
 /-!
 # Padding the memory
 
-The verifier admits a memory of any size `2^κ`, `16 ≤ κ ≤ 32` (`HasPublicBoundary`). A run on a
+The verifier admits a memory of any size `2^κ`, `16 ≤ κ ≤ 32` (`HoldsPublicInput`). A run on a
 memory reads only addresses below its end; on the memory extended past it (`padImage`) it reads
 the same words, so it steps to the same registers and executes the same instructions
-(`run_pad`, `runCount_pad`). `Trace.pad`: the trace on `2^κ'` words, `κ ≤ κ' ≤ 32`, still a valid
+(`run_pad`, `runCount_pad`). `Execution.pad`: the trace on `2^κ'` words, `κ ≤ κ' ≤ 32`, still a valid
 execution (`validExecution_pad`) of the same counts, its committed size the original's but for
 the memory's `4 · 2^κ'` cells (`committedSize_pad`). The aggregation guest pads its runs to a
 committed size of at least `2^22` this way, so its proofs have a stack log at least `MU_MIN`,
@@ -35,20 +35,20 @@ open LeanVM.Parameters LeanVM.Semantics
 @[expose] public section
 
 /-- **The memory `L` extended to `2^κ'` words**, zero past its end. -/
-noncomputable def padImage {κ : ℕ} (κ' : ℕ) (L : MemImage κ) : MemImage κ' :=
+noncomputable def padImage {κ : ℕ} (κ' : ℕ) (L : MemoryImage κ) : MemoryImage κ' :=
   fun i ↦ if h : i.val < 2 ^ κ then L ⟨i.val, h⟩ else 0
 
 /-- A reader extending another: every word the first reads, the second reads too. -/
 def ReadExt (read read' : K → Option E) : Prop := ∀ a v, read a = some v → read' a = some v
 
-theorem readExt_padImage {κ κ' : ℕ} (h : κ ≤ κ') (h' : κ' < 64) (L : MemImage κ) :
+theorem readExt_padImage {κ κ' : ℕ} (h : κ ≤ κ') (h' : κ' < 64) (L : MemoryImage κ) :
     ReadExt L.read (padImage κ' L).read := by
   intro a v hr
   have hκ : κ < 64 := by omega
-  obtain ⟨i, rfl, rfl⟩ := (MemImage.read_eq_some_iff hκ L).mp hr
+  obtain ⟨i, rfl, rfl⟩ := (MemoryImage.read_eq_some_iff hκ L).mp hr
   have hi : i.val < 2 ^ κ' := lt_of_lt_of_le i.isLt (Nat.pow_le_pow_right (by norm_num) h)
   rw [show gpow (i : ℕ) = gpow ((⟨i.val, hi⟩ : Fin (2 ^ κ')) : ℕ) from rfl,
-    MemImage.read_gpow h' (padImage κ' L) ⟨i.val, hi⟩]
+    MemoryImage.read_gpow h' (padImage κ' L) ⟨i.val, hi⟩]
   simp [padImage]
 
 theorem readCells_ext {read read' : K → Option E} (h : ReadExt read read') (fp : K)
@@ -58,8 +58,8 @@ theorem readCells_ext {read read' : K → Option E} (h : ReadExt read read') (fp
     h _ _ ((readCells_eq_some_iff read fp offset x).mp hx c)
 
 /-- **An instruction executes alike on an extending reader.** -/
-theorem executeWith_ext {read read' : K → Option E} (h : ReadExt read read') (r : Regs K)
-    (ins : Instr) {r' : Regs K} (hx : executeWith read r ins = some r') :
+theorem executeWith_ext {read read' : K → Option E} (h : ReadExt read read') (r : Registers K)
+    (ins : Instr) {r' : Registers K} (hx : executeWith read r ins = some r') :
     executeWith read' r ins = some r' := by
   cases ins with
   | xor oA oB oC =>
@@ -87,9 +87,9 @@ theorem executeWith_ext {read read' : K → Option E} (h : ReadExt read read') (
     obtain ⟨i, hi, o, ho, rest⟩ := hx
     exact ⟨i, readCells_ext h _ _ hi, o, readCells_ext h _ _ ho, rest⟩
 
-variable {prog : Program} {κ κ' : ℕ} {L : MemImage κ} {L' : MemImage κ'}
+variable {prog : Program} {κ κ' : ℕ} {L : MemoryImage κ} {L' : MemoryImage κ'}
 
-theorem step_ext (h : ReadExt L.read L'.read) {r r' : Regs K} (hs : step prog L r = some r') :
+theorem step_ext (h : ReadExt L.read L'.read) {r r' : Registers K} (hs : step prog L r = some r') :
     step prog L' r = some r' := by
   cases hf : prog.fetch r.pc with
   | none => rw [step_eq_none_of_fetch_eq_none hf] at hs; cases hs
@@ -99,11 +99,11 @@ theorem step_ext (h : ReadExt L.read L'.read) {r r' : Regs K} (hs : step prog L 
 
 /-- **A run on an extending memory**: the same registers, the same instructions. -/
 theorem run_ext (h : ReadExt L.read L'.read) :
-    ∀ (n : ℕ) (r r' : Regs K), run prog L n r = some r' →
-      run prog L' n r = some r' ∧ ∀ op, runCount prog L' op n r = runCount prog L op n r
+    ∀ (n : ℕ) (r r' : Registers K), run prog L n r = some r' →
+      run prog L' n r = some r' ∧ ∀ op, opcodeCountInRun prog L' op n r = opcodeCountInRun prog L op n r
   | 0, r, r', hr => ⟨hr, fun _ ↦ rfl⟩
   | n + 1, r, r', hr => by
-    by_cases hp : r = Regs.final prog
+    by_cases hp : r = Registers.final prog
     · rw [run_succ_of_eq hp] at hr; cases hr
     · rw [run_succ_of_ne_final hp] at hr
       obtain ⟨r1, hs, hr1⟩ := Option.bind_eq_some_iff.mp hr
@@ -112,31 +112,31 @@ theorem run_ext (h : ReadExt L.read L'.read) :
       refine ⟨by rw [run_succ_of_ne_final hp, hs']; exact ih1, fun op ↦ ?_⟩
       cases hf : prog.fetch r.pc with
       | none => rw [step_eq_none_of_fetch_eq_none hf] at hs; cases hs
-      | some ins => simp only [runCount, hf, hs, hs', ih2 op]
+      | some ins => simp only [opcodeCountInRun, hf, hs, hs', ih2 op]
 
 /-- **The trace on `2^κ'` words.** -/
-noncomputable def _root_.LeanVM.Semantics.Trace.pad (t : Trace prog) (κ' : ℕ) : Trace prog :=
-  ⟨κ', padImage κ' t.image, t.steps⟩
+noncomputable def _root_.LeanVM.Semantics.Execution.pad (t : Execution prog) (κ' : ℕ) : Execution prog :=
+  ⟨κ', padImage κ' t.memory, t.steps⟩
 
-theorem validExecution_pad {input : PublicInput} {t : Trace prog} {κ' : ℕ}
-    (hv : ValidExecution prog input t) (hκ : t.κ ≤ κ') (hκ' : κ' ≤ maxLogMem) :
+theorem validExecution_pad {input : PublicInput} {t : Execution prog} {κ' : ℕ}
+    (hv : ValidExecution prog input t) (hκ : t.logMemorySize ≤ κ') (hκ' : κ' ≤ maxLogMem) :
     ValidExecution prog input (t.pad κ') ∧ ∀ op, (t.pad κ').count op = t.count op := by
   have h64 : κ' < 64 := by unfold maxLogMem at hκ'; omega
-  have he := readExt_padImage hκ h64 t.image
+  have he := readExt_padImage hκ h64 t.memory
   obtain ⟨⟨h16, -, h0, h1⟩, hr⟩ := hv
   obtain ⟨hr', hc⟩ := run_ext he t.steps _ _ hr
   exact ⟨⟨⟨le_trans h16 hκ, hκ', he _ _ h0, he _ _ h1⟩, hr'⟩, hc⟩
 
-theorem committedSize_pad (t : Trace prog) (κ' : ℕ)
+theorem committedSize_pad (t : Execution prog) (κ' : ℕ)
     (hc : ∀ op, (t.pad κ').count op = t.count op) :
-    (t.pad κ').committedSize + 4 * 2 ^ t.κ = t.committedSize + 4 * 2 ^ κ' := by
-  simp only [Semantics.Trace.committedSize, hc]
-  simp only [Semantics.Trace.pad]
+    (t.pad κ').committedSize + 4 * 2 ^ t.logMemorySize = t.committedSize + 4 * 2 ^ κ' := by
+  simp only [Semantics.Execution.committedSize, hc]
+  simp only [Semantics.Execution.pad]
   omega
 
 /-- The memory alone commits `4` cells per word. -/
-theorem four_mul_le_committedSize (t : Trace prog) : 4 * 2 ^ t.κ ≤ t.committedSize := by
-  unfold Semantics.Trace.committedSize
+theorem four_mul_le_committedSize (t : Execution prog) : 4 * 2 ^ t.logMemorySize ≤ t.committedSize := by
+  unfold Semantics.Execution.committedSize
   simp only [Nat.add_assoc]
   exact Nat.le_add_right _ _
 

@@ -154,7 +154,7 @@ theorem fwdA_holds {σ : Val} {a : Atom} (hd : DefOK a) (hr : ∀ v ∈ aOuts a,
       have hins : ins.map (updL σ outs (kOut (ins.map σ) inOdd outOdd)) = ins.map σ :=
         List.map_congr_left fun v hv => updL_of_not_mem σ outs _ fun h => hr v h hv
       refine ⟨hl, ho, ?_⟩
-      show KeccakCells (cells13 (ins.map (updL σ outs (kOut (ins.map σ) inOdd outOdd)))) inOdd
+      show KeccakCellsRelation (cells13 (ins.map (updL σ outs (kOut (ins.map σ) inOdd outOdd)))) inOdd
         (cells13 (outs.map (updL σ outs (kOut (ins.map σ) inOdd outOdd)))) outOdd
       rw [hins]
       refine ⟨hc ins outs inOdd outOdd rfl, fun c => ?_⟩

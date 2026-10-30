@@ -22,7 +22,7 @@ challenges (`876`, 6), `c_table` (`877`, 64) and `lam_pool` (`1324`, 165). `vsSi
 sizes, the bus depth `μ`.
 
 Words fixed by the run alone (`vsStreamW`, `vsDimsW`, `vsKbW`, …): the stream padded to
-`streamCap` (`Hints.childHints`' `"stream"`), the row counts, `dims_g` (`g^logMem`, then the
+`childStreamCap` (`Hints.childHints`' `"stream"`), the row counts, `dims_g` (`g^logMem`, then the
 tables' heights as `count`, `Hints.childHints`' `"table_logs"`), `kappa_base`, `block_kappa`.
 -/
 
@@ -46,9 +46,9 @@ theorem vs_allocs : vsCPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz =
 def vsSizes (μ : ℕ) : List ℕ :=
   [165, 165, 8192, 6, 7, 8, 153, μ, 4, 16, 34, 78, 64, 6, 64, 165]
 
-/-- The stream buffer's words: the stream, padded to `streamCap` (`Hints.childHints`' `"stream"`). -/
+/-- The stream buffer's words: the stream, padded to `childStreamCap` (`Hints.childHints`' `"stream"`). -/
 def vsStreamW (stream : List E) : List E :=
-  stream ++ List.replicate (Hints.streamCap - stream.length) 0
+  stream ++ List.replicate (Hints.childStreamCap - stream.length) 0
 
 /-- `dims_g`'s words: `g^logMem`, then the tables' heights as `count` (`"table_logs"`). -/
 noncomputable def vsDimsW (logMem : ℕ) (heights : List ℕ) : List E :=

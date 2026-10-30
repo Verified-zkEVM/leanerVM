@@ -164,7 +164,7 @@ theorem hintRun_complete (σ : Val) (s : String) (b n : Nat) (f : Nat → E) :
 
 /-- The outputs of a `KECCAK` of the inputs' words. -/
 def kOut (ws : List E) (inOdd outOdd : Bool) (c : Nat) : E :=
-  if h : c < 13 then cellsOfState (keccakF (stateOfCells (cells13 ws) inOdd)) outOdd ⟨c, h⟩ else 0
+  if h : c < 13 then cellsOfState (keccakF1600 (stateOfCells (cells13 ws) inOdd)) outOdd ⟨c, h⟩ else 0
 
 /-- **A `KECCAK` completes**: its outputs are `kOut` of its canonical inputs. -/
 theorem kecS_complete (σ : Val) {ins : List V} (o : Nat) (hl : ins.length = 13)

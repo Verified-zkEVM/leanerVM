@@ -85,7 +85,7 @@ theorem always_const {α β : Type} {Q : Prop} {p : Prog α} {f : α → Prog β
   Always.bind (fun _ hq ↦ Always.mono (fun _ _ ↦ hq) _ (always_true _)) p hp
 
 /-- **The claimed evaluator is asked at its point.** -/
-theorem claimed_point {c : FixedClaims} {L : Layout} {pi : Digest} {alphas : List E} {beta : E}
+theorem claimed_point {c : BytecodeClaim} {L : Layout} {pi : Digest} {alphas : List E} {beta : E}
     {point values : List E} {s s' : Fs} {xs : List E} {bc : BusResult × List ColumnClaim}
     (h : RunsTo (Tables.tablesSeg (claimedValue c) L pi alphas beta point values) s xs bc s')
     (hc : ∃ sp, s.Carries sp) : c.bytecodePoint = point.take L.logBytecode ++ alphas := by
@@ -115,7 +115,7 @@ theorem keccakSeg_shape {τ : ℕ} {inst out : List E} {s t : Fs} {xs : List E}
     ∃ op word, km.1.1 = [⟨qkeccak, op, word⟩] := by
   obtain ⟨sp, hsp⟩ := hc
   obtain ⟨sp', -, e⟩ := h sp hsp [] [] []
-  have hr := Prog.returns_of_run keccak256 keccakF e
+  have hr := Prog.returns_of_run keccak256 keccakF1600 e
   unfold keccakSeg at hr
   obtain ⟨r, hr1, hr2⟩ := Prog.returns_bind hr
   obtain ⟨m, -, hr2⟩ := Prog.returns_bind hr2

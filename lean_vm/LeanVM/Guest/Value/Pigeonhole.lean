@@ -28,7 +28,7 @@ The corollaries: a bijection's ranks list `List.range n` up to order
 (`perm_range_of_bijective`); a list of ranks that is a permutation and adjacent-sorted by the
 guest's checks (sizes non-increasing, ties ascending) is `stackOffsets`'s `mergeSort`
 (`eq_mergeSort_of_adjacent`, `stackOffsets`, V:843-848); and a cover holds every claim,
-`List.Forall₂` (`forall₂_of_cover`, the holders of `NodeRel`, N:354-356).
+`List.Forall₂` (`forall₂_of_cover`, the holders of `NodeRelation`, N:354-356).
 -/
 
 namespace LeanVM.Guest.Value
@@ -168,7 +168,7 @@ theorem forall₂_ofFn {α β : Type*} {R : α → β → Prop} :
 
 /-- **A cover holds every claim**: if every slot `s` of the claim list `cs` has a writer
 `i < N` with `slot i = s`, and each writer's holder holds the claim in its slot, then there is a
-list of holders, one a claim, `List.Forall₂`-related to the claims (as `NodeRel`'s
+list of holders, one a claim, `List.Forall₂`-related to the claims (as `NodeRelation`'s
 `List.Forall₂ (Held …)`, N:362-365, asks). -/
 theorem forall₂_of_cover {α β : Type*} {R : α → β → Prop} {cs : List α} {N : ℕ}
     {slot : ℕ → ℕ} (holder : ℕ → β) (hcover : ∀ s < cs.length, ∃ i < N, slot i = s)

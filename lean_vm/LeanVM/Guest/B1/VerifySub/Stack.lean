@@ -21,7 +21,7 @@ theorem word_pow_eq {a : ℕ} (h : a < 64) : word (2 ^ a) 0 0 = ofK (Parameters.
   rw [word_two_pow h, gen_pow_eq_ofK]
 
 /-- A range check against `g^(K-1)` (`K ≤ 64`) on a memory of at least `64` words. -/
-theorem rc_lt {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ) {x y t1 t2 : E} {a : ℕ}
+theorem rc_lt {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ) {x y t1 t2 : E} {a : ℕ}
     (ha : a < 6 + 1) (h1 : LoadHolds L.read x 0 t1) (hk : word (2 ^ a) 0 0 = x * y)
     (h2 : LoadHolds L.read y 0 t2) : ∃ e < a + 1, x = gen ^ e := by
   have h64 : a + 1 ≤ 2 ^ κ := le_trans (show a + 1 ≤ 2 ^ 6 by omega)
@@ -31,7 +31,7 @@ theorem rc_lt {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ) {
   exact ⟨e, he, by rw [hx, gen_pow_eq_ofK]⟩
 
 /-- A range check against `g^27` on a memory of at least `64` words. -/
-theorem rc_lt28 {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ) {x y t1 t2 : E}
+theorem rc_lt28 {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ) {x y t1 t2 : E}
     (h1 : LoadHolds L.read x 0 t1) (hk : word (2 ^ 27) 0 0 = x * y)
     (h2 : LoadHolds L.read y 0 t2) : ∃ e < 28, x = gen ^ e := by
   have h64 : 28 ≤ 2 ^ κ := le_trans (show 28 ≤ 2 ^ 6 by omega)
@@ -42,7 +42,7 @@ theorem rc_lt28 {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ)
 
 /-- **The stack** (G:3294-3317): the placement certified, the stack's log `μ ∈ [22, 28]`, the
 candidate `g^((μ - 22) + 7·(r - 1))` dispatched on, and the committed columns' logs below `29`. -/
-theorem vs_stack {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ) {C : CallRel}
+theorem vs_stack {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ) {C : CallRel}
     (hLe : CallRel.Le C (coreProgram.Rel L.read)) {bytecode : List K}
     (hbl : bytecode.length = 2 ^ 23) {σ : Val} (F : VsFront bytecode C L.read σ)
     (hexp : ExpTables L.read (σ (.n 4)) (σ (.n 5)))

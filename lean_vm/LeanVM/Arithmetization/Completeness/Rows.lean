@@ -48,9 +48,9 @@ open Air.Flat (Component)
 /-! ## Reading a word back as limbs -/
 
 /-- The limbs read back at an address that holds a word are the word's. -/
-theorem MemImage.limbsAt_eq_of_read {κ : ℕ} {L : MemImage κ} {a : K} {v : E}
+theorem MemImage.limbsAt_eq_of_read {κ : ℕ} {L : MemoryImage κ} {a : K} {v : E}
     (h : L.read a = some v) : L.limbsAt a = #v[v.limb 0, v.limb 1, v.limb 2] := by
-  unfold MemImage.limbsAt
+  unfold MemoryImage.limbsAt
   rw [h]
 
 /-- The three limbs of `E.ofLimbs`, one by one. -/
@@ -74,7 +74,7 @@ def bcMsgOf (pc c : K) (e : Vector K 11) : Array K :=
 /-- What a row sends: the state pull `(pc, fp)` and push `next`, the bytecode pull of `e` at `pc`
 with count `rbc` and the push with count `g·rbc`, then for each read `(addr, count, v)` the
 memory pull and the memory push with count `g·count`, in the circuits' order. -/
-def sendsOf (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 11)
+def sendsOf (pc fp : K) (next : Registers K) (rbc : K) (e : Vector K 11)
     (reads : List (K × K × Vector K 3)) : List (String × Array K) :=
   [(StatePull.name, #[pc, fp]), (StatePush.name, #[next.pc, next.fp]),
     (BytecodePull.name, bcMsgOf pc rbc e), (BytecodePush.name, bcMsgOf pc (g * rbc) e)] ++
@@ -94,7 +94,7 @@ theorem rowSends_mk {Input Output : TypeMap} [ProvableType Input] [ProvableType 
 order): the operand cells (for `KECCAK` the thirteen read, then the thirteen written), and for
 `DEREF` the pointer cell `fp·o₁`, the pointer's target `p·o₂`
 (`p` the low limb of the word at `fp·o₁`) and the local cell `fp·o₃`. -/
-noncomputable def readAddrs {κ : ℕ} (mem : MemImage κ) (fp : K) : Instr → List K
+noncomputable def readAddrs {κ : ℕ} (mem : MemoryImage κ) (fp : K) : Instr → List K
   | .xor oA oB oC => [fp * oA, fp * oB, fp * oC]
   | .mulNative oA oB oC => [fp * oA, fp * oB, fp * oC]
   | .setConstant o _ => [fp * o]
@@ -130,7 +130,7 @@ noncomputable def readAddrs {κ : ℕ} (mem : MemImage κ) (fp : K) : Instr → 
 
 /-- The reads of an instruction's row: each cell it reads, with its count (`cnt` at its position)
 and the limbs the image holds there. -/
-noncomputable def readsOf {κ : ℕ} (mem : MemImage κ) (fp : K) (cnt : ℕ → K) (ins : Instr) :
+noncomputable def readsOf {κ : ℕ} (mem : MemoryImage κ) (fp : K) (cnt : ℕ → K) (ins : Instr) :
     List (K × K × Vector K 3) :=
   (readAddrs mem fp ins).mapIdx fun j a ↦ (a, cnt j, mem.limbsAt a)
 
@@ -138,7 +138,7 @@ noncomputable def readsOf {κ : ℕ} (mem : MemImage κ) (fp : K) (cnt : ℕ →
 
 /-- The `XOR` row of an execution sends the `XOR` messages: the third read carries the limbs of
 the word at `fp·o_C`, which the execution makes the sum. -/
-theorem xor_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oA oB oC : K} {next : Regs K}
+theorem xor_exec_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp oA oB oC : K} {next : Registers K}
     (hexec : execute mem ⟨pc, fp⟩ (.xor oA oB oC) = some next) (rA rB rC rbc : K)
     (data : ProverData K) :
     rowSends ⟨xorTable⟩
@@ -153,11 +153,11 @@ theorem xor_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oA oB oC : K} {next
   have hC' := MemImage.limbsAt_eq_of_read hC
   simp only [limb_ofLimbs] at hC'
   rw [hC']
-  simp [sendsOf, memMsgOf, bcMsgOf, entry, Regs.next]
+  simp [sendsOf, memMsgOf, bcMsgOf, entry, Registers.next]
 
 /-- The `MUL_NATIVE` row of an execution sends the `MUL_NATIVE` messages: the third read carries
 the limbs of the word at `fp·o_C`, which the execution makes the product. -/
-theorem mul_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oA oB oC : K} {next : Regs K}
+theorem mul_exec_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp oA oB oC : K} {next : Registers K}
     (hexec : execute mem ⟨pc, fp⟩ (.mulNative oA oB oC) = some next) (rA rB rC rbc : K)
     (data : ProverData K) :
     rowSends ⟨mulTable⟩
@@ -172,11 +172,11 @@ theorem mul_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oA oB oC : K} {next
   have hC' := MemImage.limbsAt_eq_of_read hC
   simp only [limb_ofLimbs] at hC'
   rw [hC']
-  simp [sendsOf, memMsgOf, bcMsgOf, entry, Regs.next]
+  simp [sendsOf, memMsgOf, bcMsgOf, entry, Registers.next]
 
 /-- The `SET_CONSTANT` row of an execution sends the `SET_CONSTANT` messages: its one read carries
 the limbs of the immediate. -/
-theorem set_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp o : K} {k : E} {next : Regs K}
+theorem set_exec_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp o : K} {k : E} {next : Registers K}
     (hexec : execute mem ⟨pc, fp⟩ (.setConstant o k) = some next) (rc rbc : K)
     (data : ProverData K) :
     rowSends ⟨setTable⟩ (Environment.fromArray (rawRow (setRowOf pc fp o k rc rbc)) data) =
@@ -187,12 +187,12 @@ theorem set_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp o : K} {k : E} {nex
   have hk' := MemImage.limbsAt_eq_of_read hk
   simp only [limb_ofLimbs, Vector.getElem_mk] at hk'
   rw [hk']
-  simp [sendsOf, memMsgOf, bcMsgOf, entry, Regs.next]
+  simp [sendsOf, memMsgOf, bcMsgOf, entry, Registers.next]
 
 /-- The `DEREF` row of an execution sends the `DEREF` messages: the pointer cell carries
 `(p, 0, 0)`, the target `p·o₂` the limbs of the mode's source, and the local cell its word. -/
-theorem deref_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp o1 o2 o3 : K} {mode : DerefMode}
-    {next : Regs K} (hexec : execute mem ⟨pc, fp⟩ (.deref o1 o2 o3 mode) = some next)
+theorem deref_exec_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp o1 o2 o3 : K} {mode : DerefMode}
+    {next : Registers K} (hexec : execute mem ⟨pc, fp⟩ (.deref o1 o2 o3 mode) = some next)
     (r1 r2 r3 rbc : K) (data : ProverData K) :
     rowSends ⟨derefTable⟩
         (Environment.fromArray (rawRow (derefRowOf mem pc fp o1 o2 o3 mode r1 r2 r3 rbc)) data) =
@@ -214,7 +214,7 @@ theorem deref_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp o1 o2 o3 : K} {mo
   have e2 := MemImage.limbsAt_eq_of_read h2
   rw [← storeCoords_eval, h4, h5] at e2
   simp only [limb0_ofLimbs, limb1_ofLimbs, limb2_ofLimbs] at e2
-  simp [sendsOf, memMsgOf, bcMsgOf, entry, Regs.next, e1', e1'', e2]
+  simp [sendsOf, memMsgOf, bcMsgOf, entry, Registers.next, e1', e1'', e2]
 
 /-- The indicator slot of a `JUMP` raw row is its second witness. -/
 theorem jumpRaw_get_indicator (r : JumpRow K) (w b : K) (data : ProverData K) :
@@ -243,7 +243,7 @@ theorem jumpRaw_sends (r : JumpRow K) (w b : K) (data : ProverData K) :
 the condition, destination and frame cells carry `(v, 0, 0)` for the words in `K` they hold, and
 the pushed successor is the destination and frame when the condition is nonzero and the
 fall-through otherwise. -/
-theorem jump_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oc od of : K} {next : Regs K}
+theorem jump_exec_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp oc od of : K} {next : Registers K}
     (hexec : execute mem ⟨pc, fp⟩ (.jump oc od of) = some next) (rc rd rf rbc : K)
     (data : ProverData K) :
     rowSends ⟨jumpTable⟩
@@ -269,7 +269,7 @@ theorem jump_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oc od of : K} {nex
   have ef2 : (mem.limbsAt (fp * of))[2] = 0 := by rw [ef]; rfl
   subst hnext
   by_cases h0 : (mem.limbsAt (fp * oc))[0] = 0
-  · simp [sendsOf, memMsgOf, bcMsgOf, entry, Regs.next, h0, ec1, ec2, ed1, ed2, ef1, ef2]
+  · simp [sendsOf, memMsgOf, bcMsgOf, entry, Registers.next, h0, ec1, ec2, ed1, ed2, ef1, ef2]
   · simp [sendsOf, memMsgOf, bcMsgOf, entry, h0, ec1, ec2, ed1, ed2, ef1, ef2, add_assoc,
       CharTwo.add_self_eq_zero]
 
@@ -280,7 +280,7 @@ theorem memMsgOf_eq (a c : K) (v : Vector K 3) : memMsgOf a c v = #[a, c] ++ v.t
   | [_, _, _], _ => rfl
 
 /-- The limbs the image holds at an address that holds a cell of lanes. -/
-theorem limbsAt_laneCells {κ : ℕ} {mem : MemImage κ} {a : K} {L : Fin 25 → K} {odd : Bool}
+theorem limbsAt_laneCells {κ : ℕ} {mem : MemoryImage κ} {a : K} {L : Fin 25 → K} {odd : Bool}
     {free : K} {c : Fin 13} (h : mem.read a = some (laneCells L odd free c)) :
     mem.limbsAt a = #v[laneLimb L free (cellLanes odd c).1, laneLimb L free (cellLanes odd c).2,
       0] := by
@@ -290,8 +290,8 @@ theorem limbsAt_laneCells {κ : ℕ} {mem : MemImage κ} {a : K} {L : Fin 25 →
 set_option maxHeartbeats 16000000 in
 /-- The `KECCAK` row of an execution sends the `KECCAK` messages: each of the twenty-six cells
 carries the limbs of its lanes in its layout and a zero third limb. -/
-theorem keccak_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp : K} {om : Fin 4 → K}
-    {otail ob8 ocap oout : K} {inOdd outOdd : Bool} {next : Regs K}
+theorem keccak_exec_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp : K} {om : Fin 4 → K}
+    {otail ob8 ocap oout : K} {inOdd outOdd : Bool} {next : Registers K}
     (hexec : execute mem ⟨pc, fp⟩ (.keccak om otail ob8 ocap oout inOdd outOdd) = some next)
     (cnt : Vector K 26) (rbc : K) (data : ProverData K) :
     rowSends ⟨keccakTable⟩
@@ -421,13 +421,13 @@ theorem keccak_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp : K} {om : Fin 4
     List.nil_append, List.append_nil, memMsgOf_eq]
   rw [hL0, hL1, hL2, hL3, hL4, hL5, hL6, hL7, hL8, hL9, hL10, hL11, hL12, hL13, hL14, hL15, hL16, hL17, hL18, hL19, hL20, hL21, hL22, hL23, hL24, hL25]
   cases i <;> cases o <;> simp [hR, keccakRowOf, KeccakRow.inLanes, KeccakRow.outLanes, bcMsgOf, laneLimb, cellLanes,
-    entry, Regs.next, flagK, CharTwo.add_self_eq_zero]
+    entry, Registers.next, flagK, CharTwo.add_self_eq_zero]
 
 /-! ## Every cell an instruction reads is an address -/
 
 /-- Every cell an executing instruction reads is an address of the image: the execution reads it
 (`*_refines_iff`, the bindings and the result cell). -/
-theorem readAddrs_valid {κ : ℕ} {mem : MemImage κ} {pc fp : K} {ins : Instr} {next : Regs K}
+theorem readAddrs_valid {κ : ℕ} {mem : MemoryImage κ} {pc fp : K} {ins : Instr} {next : Registers K}
     (hexec : execute mem ⟨pc, fp⟩ ins = some next) :
     ∀ a ∈ readAddrs mem fp ins, ∃ w, mem.read a = some w := by
   cases ins with
@@ -514,7 +514,7 @@ def opWidth : Opcode → ℕ
 /-- The raw row of an instruction executed from `(pc, fp)` over the image `mem`: the typed row of
 its table with the read counts `cnt` (positionally, in the order the circuit reads) and the
 bytecode count `rbc`, and for `JUMP` the honest inverse and indicator of the condition. -/
-noncomputable def rowOf {κ : ℕ} (mem : MemImage κ) (pc fp : K) (cnt : ℕ → K) (rbc : K) :
+noncomputable def rowOf {κ : ℕ} (mem : MemoryImage κ) (pc fp : K) (cnt : ℕ → K) (rbc : K) :
     Instr → Array K
   | .xor oA oB oC => rawRow (xorRowOf mem pc fp oA oB oC (cnt 0) (cnt 1) (cnt 2) rbc)
   | .mulNative oA oB oC => rawRow (mulRowOf mem pc fp oA oB oC (cnt 0) (cnt 1) (cnt 2) rbc)
@@ -530,14 +530,14 @@ noncomputable def rowOf {κ : ℕ} (mem : MemImage κ) (pc fp : K) (cnt : ℕ �
         rbc)
 
 /-- The raw row of an instruction has the width of its table. -/
-theorem rowOf_size {κ : ℕ} (mem : MemImage κ) (pc fp : K) (cnt : ℕ → K) (rbc : K) (ins : Instr) :
+theorem rowOf_size {κ : ℕ} (mem : MemoryImage κ) (pc fp : K) (cnt : ℕ → K) (rbc : K) (ins : Instr) :
     (rowOf mem pc fp cnt rbc ins).size = opWidth ins.opcode := by
   cases ins <;> simp [rowOf, opWidth, Instr.opcode, rawRow_size, jumpRaw]
 
 /-- **The row of an executing instruction sends `sendsOf`.** If the instruction executes from
 `(pc, fp)` to `next`, its row, in its table, sends the state step from `(pc, fp)` to `next`, the
 bytecode read of its entry at `pc`, and the reads of the cells it reads with the counts `cnt`. -/
-theorem rowOf_sends {κ : ℕ} {mem : MemImage κ} {pc fp : K} {ins : Instr} {next : Regs K}
+theorem rowOf_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp : K} {ins : Instr} {next : Registers K}
     (hexec : execute mem ⟨pc, fp⟩ ins = some next) (cnt : ℕ → K) (rbc : K)
     (data : ProverData K) :
     rowSends (opComponent ins.opcode)

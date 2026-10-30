@@ -422,7 +422,7 @@ def ChildListGoalsT (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
 /-- The children's claim lists' digests complete (`kidOk`), by trees satisfying nothing more. -/
 theorem childListGoalsT_true {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
     {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVars)
-    (hrel : NodeRel bytecode seed s w) (hl : Limits s w)
+    (hrel : NodeRelation bytecode seed s w) (hl : Limits s w)
     (hV : VerifySubGoals fs cert fp seed s w) :
     ChildListGoalsT fs cert fp seed s w (fun _ _ => True) (fun _ _ => True) := fun _ hc =>
   ⟨(kidOk cert hbl hrel hl hV hc).hX.toT, (kidOk cert hbl hrel hl hV hc).hS.toT⟩
@@ -431,7 +431,7 @@ theorem childListGoalsT_true {fp : ℕ} {seed : Digest} {s : NodeStatement} {w :
 hypotheses of `mainGoalL5`, each child's `verify_sub` call by a tree satisfying `Pvs c`. -/
 theorem mainGoalL5T {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
     {bytecode : List K} {Pxs Pss Pvs : ℕ → Tree → Prop} (hbl : bytecode.length = 2 ^ bytecodeVars)
-    (hrel : NodeRel bytecode seed s w) (hl : Limits s w)
+    (hrel : NodeRelation bytecode seed s w) (hl : Limits s w)
     (hV : VerifySubGoalsT fs cert fp seed s w Pvs) (hX : ChildListGoalsT fs cert fp seed s w Pxs Pss) :
     MainGoalL5T fs cert fp seed s w (L5Hinted w Pxs Pss Pvs) := by
   intro hnc

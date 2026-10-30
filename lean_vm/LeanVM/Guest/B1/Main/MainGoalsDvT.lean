@@ -4,7 +4,7 @@
   `main`'s `da_verify` on an honest run, by a tree of its honest shape (`Da.dvNH`) at the direct DA
   witness's row count and padded log.
 
-  The witness and `Da.Witness.Opens` are Benedikt Wagner's LeanDA formalization, as ported here.
+  The witness and `Da.MatrixWitness.Opens` are Benedikt Wagner's LeanDA formalization, as ported here.
 -/
 
 module
@@ -23,7 +23,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.Hints (direct plan)
+open LeanVM.Guest.Hints (heldDirectly coveragePlan)
 open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT Returns)
 open LeanVM.Guest.B1.Da (reads_of_memL exists_of_length_succ wLog)
 
@@ -31,7 +31,7 @@ open LeanVM.Guest.B1.Da (reads_of_memL exists_of_length_succ wLog)
 
 /-- **`da_verify`'s honest shape on the checked DA claim's witness.** -/
 def hDvNH (w : NodeWitness) : Tree → Prop :=
-  (w.da.map fun p => Da.dvNH p.2.rows.length (wLog p.2)).getD fun _ => True
+  (w.daMatrix.map fun p => Da.dvNH p.2.rows.length (wLog p.2)).getD fun _ => True
 
 /-- `da_verify` complete by a tree of its honest shape. -/
 def MainGoalDvT (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
@@ -49,7 +49,7 @@ variable {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : NodeWitnes
 variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ)
 
 /-- **`da_verify` on an honest run, by a tree of its honest shape.** -/
-theorem mainGoalDvT (hn : NodeRel bytecode seed s w) (hrf : Lift.RunsFit fs cert) :
+theorem mainGoalDvT (hn : NodeRelation bytecode seed s w) (hrf : Lift.RunsFit fs cert) :
     MainGoalDvT fs cert fp seed s w := by
   intro h1
   obtain ⟨p, hp, hR, hw⟩ := checked_da fs fp hn h1

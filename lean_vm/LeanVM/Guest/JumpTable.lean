@@ -48,7 +48,7 @@ def mainEntry : ℕ := Data.f0.len
 theorem f1_main : Data.f1.name = "main" ∧ Data.f1.entry = mainEntry := ⟨rfl, rfl⟩
 
 /-- **The jump table is written**: every slot of `Memory.tableCells` holds its word. -/
-def JumpTables {κ : ℕ} (L : MemImage κ) : Prop := ∀ q ∈ Memory.tableCells, L.read (gpow q.1) = some q.2
+def JumpTables {κ : ℕ} (L : MemoryImage κ) : Prop := ∀ q ∈ Memory.tableCells, L.read (gpow q.1) = some q.2
 
 /-- The slot a `SET` writes. -/
 def setCell? : OInstr → Option (ℕ × E)
@@ -90,7 +90,7 @@ theorem gpow_mul_one (o : ℕ) : (1 : K) * gpow o = gpow o := one_mul _
 
 /-- **The run's start, soundly**: a halting run from `(g^0, 1)` writes the jump table and halts
 from `main`'s entry at `fp = 1`. -/
-theorem safe_jumpTables {κ : ℕ} {L : MemImage κ} {k : ℕ} (h : Safe guest L k ⟨gpow 0, 1⟩) :
+theorem safe_jumpTables {κ : ℕ} {L : MemoryImage κ} {k : ℕ} (h : Safe guest L k ⟨gpow 0, 1⟩) :
     JumpTables L ∧ ∃ k', Safe guest L k' ⟨gpow mainEntry, 1⟩ := by
   have hwalk : ∀ i ≤ Data.f0.len, (∀ j < i, Holds L j 1 (Data.f0.instrAt j)) ∧
       ∃ k', Safe guest L k' ⟨gpow i, 1⟩ := by
@@ -126,7 +126,7 @@ theorem safe_jumpTables {κ : ℕ} {L : MemImage κ} {k : ℕ} (h : Safe guest L
 
 /-- **The run's start, completely**: on a memory holding the jump table, `__jump_tables` runs
 from `(g^0, 1)` to `main`'s entry at `fp = 1`. -/
-theorem reach_jumpTables {κ : ℕ} {L : MemImage κ} (h : JumpTables L) :
+theorem reach_jumpTables {κ : ℕ} {L : MemoryImage κ} (h : JumpTables L) :
     Reach guest L ⟨gpow 0, 1⟩ ⟨gpow mainEntry, 1⟩ := by
   have hwalk : ∀ i ≤ Data.f0.len, Reach guest L ⟨gpow 0, 1⟩ ⟨gpow i, 1⟩ := by
     intro i
@@ -172,7 +172,7 @@ theorem jtOk : allEntries entryOk Data.jtTrie 1 0 = true :=
         (allEntries_split (by decide +kernel) jtOk_14 jtOk_15)))
 
 /-- The jump table the checker reads is what `__jump_tables` wrote. -/
-theorem jt_of_jumpTables {κ : ℕ} {L : MemImage κ} (h : End.JumpTables L) (hpows : Data.powTree.Ok) :
+theorem jt_of_jumpTables {κ : ℕ} {L : MemoryImage κ} (h : End.JumpTables L) (hpows : Data.powTree.Ok) :
     ∀ s t, Data.jtTrie.get s = some t → L.read (gpow s) = some (ofK (gpow t)) := by
   intro s t hs
   have he := allEntries_get jtOk hs

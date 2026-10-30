@@ -137,7 +137,7 @@ def KeyHolds (rd : Reader) (out : E) (op : ℕ) (ins : List E) : Prop :=
   (op = 1 ∧ ∃ a b, ins = [a, b] ∧ out = a * b) ∨
   (56 ≤ op ∧ ∃ p, ins = [p] ∧ LoadHolds rd p (op - 56) out) ∨
   (∃ (k : Fin 13) (inOdd outOdd : Bool), op = keccakOp k inOdd outOdd ∧
-    ∃ output : Fin 13 → E, KeccakCells (cells13 ins) inOdd output outOdd ∧ output k = out)
+    ∃ output : Fin 13 → E, KeccakCellsRelation (cells13 ins) inOdd output outOdd ∧ output k = out)
 
 theorem keccakOp_lt (k : Fin 13) (inOdd outOdd : Bool) : 4 ≤ keccakOp k inOdd outOdd ∧
     keccakOp k inOdd outOdd < 56 := by
@@ -185,13 +185,13 @@ theorem keyHolds_load {rd : Reader} {out p : E} {off : ℕ} :
   · exact fun h ↦ .inr (.inr (.inl ⟨by omega, p, rfl, by rwa [Nat.add_sub_cancel]⟩))
 
 theorem keyHolds_keccak {rd : Reader} {out : E} {ins : List E} {k : Fin 13} {inOdd outOdd : Bool}
-    (output : Fin 13 → E) (h : KeccakCells (cells13 ins) inOdd output outOdd) (ho : output k = out) :
+    (output : Fin 13 → E) (h : KeccakCellsRelation (cells13 ins) inOdd output outOdd) (ho : output k = out) :
     KeyHolds rd out (keccakOp k inOdd outOdd) ins :=
   .inr (.inr (.inr ⟨k, inOdd, outOdd, rfl, output, h, ho⟩))
 
 /-- `KECCAK`'s written cells are a function of the cells it reads. -/
 theorem keccakCells_output {input output output' : Fin 13 → E} {inOdd outOdd : Bool}
-    (h : KeccakCells input inOdd output outOdd) (h' : KeccakCells input inOdd output' outOdd) :
+    (h : KeccakCellsRelation input inOdd output outOdd) (h' : KeccakCellsRelation input inOdd output' outOdd) :
     output = output' := funext fun c ↦ (h.2 c).trans (h'.2 c).symm
 
 /-- **A key's output is a function of its inputs.** -/

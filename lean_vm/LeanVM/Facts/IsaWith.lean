@@ -23,7 +23,7 @@ open LeanVM.Parameters
 # Executions under any `KECCAK` semantics
 
 The relation `KECCAK` checks of its twenty-six cells is a parameter of the machine here
-(`KeccakSem`): the deployed one, `keccakDeployed`, is `KeccakCells`; the reduction-blind one,
+(`KeccakSem`): the deployed one, `keccakDeployed`, is `KeccakCellsRelation`; the reduction-blind one,
 `keccakFree`, only asks what the bus enforces of a `KECCAK` row when the proof does not bind the
 row to the permutation: the cells read are canonical, and the cells written are canonical with
 the limb holding no lane zero. Every definition below is `Statement/LeanIsa.lean`'s with the
@@ -38,8 +38,8 @@ structure KeccakSem where
   /-- It is decidable. -/
   dec : ∀ input inOdd output outOdd, Decidable (check input inOdd output outOdd)
 
-/-- The deployed semantics: Keccak-f[1600] (`KeccakCells`). -/
-def keccakDeployed : KeccakSem := ⟨KeccakCells, fun _ _ _ _ ↦ inferInstance⟩
+/-- The deployed semantics: Keccak-f[1600] (`KeccakCellsRelation`). -/
+def keccakDeployed : KeccakSem := ⟨KeccakCellsRelation, fun _ _ _ _ ↦ inferInstance⟩
 
 /-- The limb of the cells written that holds no lane in the layout `odd` is zero: cell `0`'s
 low limb in the odd layout, cell `8`'s high limb in the even one. -/
@@ -63,7 +63,7 @@ instance {input : Fin 13 → E} {inOdd : Bool} {output : Fin 13 → E} {outOdd :
 def keccakFree : KeccakSem := ⟨CanonicalKeccak, fun _ _ _ _ ↦ inferInstance⟩
 
 /-- `executeWith` under the semantics `S`. -/
-def executeWithB (S : KeccakSem) (read : K → Option E) (r : Regs K) : Instr → Option (Regs K)
+def executeWithB (S : KeccakSem) (read : K → Option E) (r : Registers K) : Instr → Option (Registers K)
   | .xor oA oB oC => do
     let vA ← read (r.fp * oA)
     let vB ← read (r.fp * oB)
@@ -100,41 +100,41 @@ def executeWithB (S : KeccakSem) (read : K → Option E) (r : Regs K) : Instr �
     pure r.next
 
 /-- One step under the semantics `S`. -/
-noncomputable def stepB (S : KeccakSem) {κ : ℕ} (prog : Program) (L : MemImage κ) (r : Regs K) :
-    Option (Regs K) :=
+noncomputable def stepB (S : KeccakSem) {κ : ℕ} (prog : Program) (L : MemoryImage κ) (r : Registers K) :
+    Option (Registers K) :=
   prog.fetch r.pc >>= executeWithB S L.read r
 
 /-- `n` steps under the semantics `S`, halting in the final state. -/
-noncomputable def runB (S : KeccakSem) {κ : ℕ} (prog : Program) (L : MemImage κ) :
-    ℕ → Regs K → Option (Regs K)
+noncomputable def runB (S : KeccakSem) {κ : ℕ} (prog : Program) (L : MemoryImage κ) :
+    ℕ → Registers K → Option (Registers K)
   | 0, r => some r
-  | n + 1, r => if r = Regs.final prog then none else stepB S prog L r >>= runB S prog L n
+  | n + 1, r => if r = Registers.final prog then none else stepB S prog L r >>= runB S prog L n
 
 /-- **A valid execution under the semantics `S`.** -/
-def ValidExecutionB (S : KeccakSem) (prog : Program) (input : PublicInput) (t : Trace prog) :
+def ValidExecutionB (S : KeccakSem) (prog : Program) (input : PublicInput) (t : Execution prog) :
     Prop :=
-  HasPublicBoundary input t ∧ runB S prog t.image t.steps Regs.initial = some (Regs.final prog)
+  HoldsPublicInput input t ∧ runB S prog t.memory t.steps Registers.initial = some (Registers.final prog)
 
 
-theorem executeWithB_deployed (read : K → Option E) (r : Regs K) (i : Instr) :
+theorem executeWithB_deployed (read : K → Option E) (r : Registers K) (i : Instr) :
     executeWithB keccakDeployed read r i = executeWith read r i := by
   cases i <;> rfl
 
-theorem stepB_deployed {κ : ℕ} (prog : Program) (L : MemImage κ) (r : Regs K) :
+theorem stepB_deployed {κ : ℕ} (prog : Program) (L : MemoryImage κ) (r : Registers K) :
     stepB keccakDeployed prog L r = step prog L r := by
   have : executeWithB keccakDeployed L.read r = executeWith L.read r :=
     funext (executeWithB_deployed L.read r)
   simp only [stepB, step, execute, this]
 
-theorem runB_deployed {κ : ℕ} (prog : Program) (L : MemImage κ) :
-    ∀ (n : ℕ) (r : Regs K), runB keccakDeployed prog L n r = run prog L n r
+theorem runB_deployed {κ : ℕ} (prog : Program) (L : MemoryImage κ) :
+    ∀ (n : ℕ) (r : Registers K), runB keccakDeployed prog L n r = run prog L n r
   | 0, _ => rfl
   | n + 1, r => by
     have : runB keccakDeployed prog L n = run prog L n := funext (runB_deployed prog L n)
     simp only [runB, run, stepB_deployed, this]
 
 /-- **The deployed semantics gives the deployed valid executions.** -/
-theorem validExecutionB_deployed (prog : Program) (input : PublicInput) (t : Trace prog) :
+theorem validExecutionB_deployed (prog : Program) (input : PublicInput) (t : Execution prog) :
     ValidExecutionB keccakDeployed prog input t ↔ ValidExecution prog input t := by
   simp only [ValidExecutionB, ValidExecution, runB_deployed]
 

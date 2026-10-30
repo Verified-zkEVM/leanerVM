@@ -93,7 +93,7 @@ def pubClaims (layout : Verifier.Layout) (publicInput : Digest) (r : E) :
 /-- The public-input phase is a challenge, then the claims. -/
 theorem publicInputPhase_eq (layout : Verifier.Layout) (publicInput : Digest) :
     Verifier.publicInputPhase layout publicInput =
-      Prog.sampleE >>= fun r ↦ Prog.ret (pubClaims layout publicInput r) := rfl
+      Prog.sampleChallenge >>= fun r ↦ Prog.ret (pubClaims layout publicInput r) := rfl
 
 /-- The limb, computed: `(1 + r)·h₀,ℓ + r·h₁,ℓ`. -/
 theorem pubLimb_eq (publicInput : Digest) (r : E) (ℓ : Fin 3) :

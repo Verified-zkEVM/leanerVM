@@ -49,11 +49,11 @@ variable (h : ℕ)
 /-! ## States -/
 
 /-- Segment `m`'s committed input at step `x`: slots `25m .. 25m + 24`. -/
-def inState (col : ℕ → K) (m x : ℕ) : KState :=
+def inState (col : ℕ → K) (m x : ℕ) : KeccakState :=
   Vector.ofFn fun l : Fin 25 ↦ K.lane (col (x + 2 ^ h * (25 * m + l)))
 
 /-- The state `e` rounds into segment `m` at step `x`. -/
-def segState (col : ℕ → K) (m e x : ℕ) : KState := roundsFrom (12 * m) e (inState h col m x)
+def segState (col : ℕ → K) (m e x : ℕ) : KeccakState := roundsFrom (12 * m) e (inState h col m x)
 
 /-- The states at depth `d` (`12 - d` rounds into each segment), as bits. -/
 def statesAt (col : ℕ → K) (d : ℕ) : States := fun m x j ↦ sbit (segState h col m (12 - d) x) j
@@ -78,11 +78,11 @@ theorem claimTrue_round (col : ℕ → K) {d : ℕ} (hd : d < 12) (P : ℕ) (c :
 def stepMle (pt : List E) (f : ℕ → K) : E := ∑ x ∈ range (2 ^ h), eqAt pt x * ofK (f x)
 
 /-- Lane `l` of a state as a word. -/
-def laneWord (a : KState) (l : ℕ) : K := K.ofLane (Keccak.lane a l)
+def laneWord (a : KeccakState) (l : ℕ) : K := K.ofLane (Keccak.lane a l)
 
 /-- **The table's output-lane claims** at `inst`: lane `l` of `keccakF` of each step's input. -/
 def outClaimsTrue (col : ℕ → K) (inst output : List E) : Prop :=
-  ∀ l < 25, stepMle h inst (fun x ↦ laneWord (keccakF (inState h col 0 x)) l) = output.getD l 0
+  ∀ l < 25, stepMle h inst (fun x ↦ laneWord (keccakF1600 (inState h col 0 x)) l) = output.getD l 0
 
 /-- The output-lane claims against the second segment, from the committed middle state. -/
 def outClaimsTrueMid (col : ℕ → K) (inst output : List E) : Prop :=

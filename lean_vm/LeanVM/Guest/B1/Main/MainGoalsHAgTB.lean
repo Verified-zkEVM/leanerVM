@@ -23,7 +23,7 @@ open LeanVM.Guest.B1 (CompleteAtDT CompleteAtDTB CompleteAtD Returns bufL)
 variable (fs : String → ℕ) (fp : ℕ) (seed : Digest) (s : NodeStatement) (w : NodeWitness)
 variable {seed s w}
 
-/-- **`main`'s honest `aggregate_claims` call is complete within `aggB`, by a tree of honest shape**: under `NodeRel` and `Limits`, for a
+/-- **`main`'s honest `aggregate_claims` call is complete within `aggB`, by a tree of honest shape**: under `NodeRelation` and `Limits`, for a
 bytecode of `2^bytecodeVars` words. -/
 theorem mainGoalAgTB (cert : String → V → ℕ) (SB SK : String → ℕ)
     (h25 : TotalLeOn coreProgram fs "__loop24" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop24"))
@@ -31,7 +31,7 @@ theorem mainGoalAgTB (cert : String → V → ℕ) (SB SK : String → ℕ)
     (h27 : TotalLeOn coreProgram fs "__loop26" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop26"))
     (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23"))
     {bytecode : List K}
-    (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRel bytecode seed s w)
+    (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)
     (hl : Limits s w) : (hm fs fp seed s w).nc ≠ 0 →
       CompleteAtDTB fs cert 16 "aggregate_claims" (hLmain fs fp seed s w)
         [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
@@ -43,8 +43,8 @@ theorem mainGoalAgTB (cert : String → V → ℕ) (SB SK : String → ℕ)
   have hb := (nodeRel_iff.mp hrel).2.2.2.2.2
   simp only [hne, ↓reduceIte] at hb
   have hlog : Nat.log2 bytecode.length = bytecodeVars := by rw [hbl, Nat.log2_two_pow]
-  have hrl : w.hints.bytecodeRounds.length = 23 := by
-    have hpt : s.defer.bytecodePoint.length = 23 := by rw [hrel.1, hlog]
+  have hrl : w.batchingHints.sumcheckMessages.length = 23 := by
+    have hpt : s.deferredClaim.bytecodePoint.length = 23 := by rw [hrel.1, hlog]
     rw [(batch_out hb).1, aggOut, aggRun, bsRun_len] at hpt
     exact hpt
   have hdst := mem_hLmain fs fp seed s w (i := 9) (by omega)

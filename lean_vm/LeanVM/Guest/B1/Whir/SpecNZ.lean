@@ -79,14 +79,14 @@ theorem whirOpenNZ_ref (logN logInvRate : ℕ) (target : E) :
 
 /-- The start of `open_stacked`'s run: the caller's sponge state, nothing waiting, the stack's
 root committed. -/
-def osStart (μ r : ℕ) (S : KState) (xs : List E) (os : List Opening) (root : Digest) : FSt :=
+def osStart (μ r : ℕ) (S : KeccakState) (xs : List E) (os : List Opening) (root : Digest) : FSt :=
   ⟨⟨capOf S, []⟩, xs, os, [(root, stackShape μ r)]⟩
 
-theorem start_carries (S : KState) : (⟨capOf S, []⟩ : Fs).Carries ⟨S, []⟩ := ⟨rfl, rfl⟩
+theorem start_carries (S : KeccakState) : (⟨capOf S, []⟩ : Fs).Carries ⟨S, []⟩ := ⟨rfl, rfl⟩
 
 /-- **The run with no zero challenge**: the accepting run of `whirOpen` is, read with no zero
 challenge, an accepting run of `whirOpenNZ` with the same end, and the same query steps. -/
-theorem nz_run {μ r : ℕ} {target : E} {S : KState} {xs : List E} {os : List Opening}
+theorem nz_run {μ r : ℕ} {target : E} {S : KeccakState} {xs : List E} {os : List Opening}
     {root : Digest} {w : WhirEnd} {s' : Fs} {roots' : List (Digest × ℕ × ℕ)}
     (hrun : RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s'
       roots')

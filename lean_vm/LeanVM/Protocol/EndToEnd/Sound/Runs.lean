@@ -38,13 +38,13 @@ attribute [local irreducible] instFintypeDigest
 
 section XRun
 
-variable (H : Bytes → Option Digest) (F : KState → Option KState)
+variable (H : Bytes → Option Digest) (F : KeccakState → Option KeccakState)
 
 /-- **The extracted history of a compiled run is a run of the program**: it extends the
 starting history by a history along which the program returns the run's value, and every
 commitment in it holds a well-shaped word. -/
 theorem xrun_after {α : Type} :
-    ∀ (p : Prog α) (s : St) (h : List Ev) {a : α} {s' : St} {hist : List Ev},
+    ∀ (p : Prog α) (s : ProgState) (h : List Ev) {a : α} {s' : ProgState} {hist : List Ev},
       xrun H F p s h = some (a, s', hist) →
         ∃ l, hist = h ++ l ∧ p.after l = some (.ret a) ∧
           ∀ ht w W, Ev.commit ht w W ∈ l → WellShaped w W
@@ -134,7 +134,7 @@ theorem readSizes_ne_ret (bytecode : List K) (a : Layout × ℕ) : readSizes byt
   intro h
   obtain ⟨x, hx, -⟩ := bind_eq_ret_iff h
   rw [show 2 + tables.length = 7 + 1 from rfl] at hx
-  simp [Prog.readN, Prog.readE, Prog.bind] at hx
+  simp [Prog.readScalars, Prog.readScalar, Prog.bind] at hx
 
 /-- `verify_execution` does not return without an event. -/
 theorem verifyExecution_ne_ret (bytecode : List K) (publicInput : Digest) (u : Unit) :
@@ -148,7 +148,7 @@ theorem verifyBusBalance_ne_ret (layout : Layout) (b : BusResult) :
     verifyBusBalance computedValue layout ≠ .ret b := by
   intro h
   obtain ⟨x, hx, -⟩ := bind_eq_ret_iff h
-  simp [busBits, Prog.sampleN, Prog.sampleE, Prog.bind] at hx
+  simp [busBits, Prog.sampleChallenges, Prog.sampleChallenge, Prog.bind] at hx
 
 /-- **The stack's root returns after exactly one commitment**, of the shape of the ladder's first
 level. -/
@@ -176,16 +176,16 @@ theorem commitStack_after_ret {logN logInvRate : ℕ} {m : List Ev}
       | cons e es => cases e <;> simp [Prog.after] at h2
     · refine ⟨level, rest, ?_⟩
       cases l₂ with
-      | nil => simp [Prog.after, Prog.commitP] at h2
+      | nil => simp [Prog.after, Prog.readCommitment] at h2
       | cons e es =>
         cases e with
         | commit ht w W =>
-          simp only [Prog.commitP, Prog.after] at h2
+          simp only [Prog.readCommitment, Prog.after] at h2
           split_ifs at h2 with hs
           · cases es with
             | nil => exact ⟨W, rfl, by simp [hs.1, hs.2]⟩
             | cons e' es' => cases e' <;> simp [Prog.after] at h2
-        | _ => simp [Prog.after, Prog.commitP] at h2
+        | _ => simp [Prog.after, Prog.readCommitment] at h2
 
 end
 end LeanVM.Protocol.EndToEnd.Sound

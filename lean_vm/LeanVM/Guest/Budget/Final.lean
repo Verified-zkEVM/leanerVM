@@ -47,31 +47,31 @@ theorem mainComplete_of_main (fs : String → ℕ) (cert : String → V → ℕ)
     (hfs : 2 ≤ fs "main") (hxc : B1.Sig.verify_lean_xmss_complete_Spec)
     (hsc : B1.Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hS : MainStatics fs SB SK)
-    (hV : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
+    (hV : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w →
       ChildrenOk bytecode seed w →
       VerifySubGoalsTB fs cert 0 seed s w (Pvs w) (childBv Bvf w))
     (hcnt : ∀ (rd : Reader) (t : Tree), t.Valid coreProgram rd [] [] → ∀ op,
       cnt t op ≤ t.weight (ω op) + jt op)
     (Kx Ks Kd K5 : Opcode → NodeStatement → NodeWitness → ℕ)
-    (hx : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
+    (hx : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w → ∀ op (rd : Reader)
       (t : Tree) (args rets : List E), t.name = "claim_list_digest" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       (mainPredsH s w (hDvNH w) (Pvs w)).Px t → t.weight (ω op) ≤ Kx op s w)
-    (hs : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
+    (hs : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w → ∀ op (rd : Reader)
       (t : Tree) (args rets : List E), t.name = "claim_list_digest" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       (mainPredsH s w (hDvNH w) (Pvs w)).Ps t → t.weight (ω op) ≤ Ks op s w)
-    (hd : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → (hm fs 0 seed s w).nd = 1 →
+    (hd : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w → (hm fs 0 seed s w).nd = 1 →
       ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "da_verify" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       (mainPredsH s w (hDvNH w) (Pvs w)).Pd t → t.weight (ω op) ≤ Kd op s w)
-    (h5 : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
+    (h5 : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w → ∀ op (rd : Reader)
       (t : Tree) (args rets : List E), t.name = "__loop4" → t.Valid coreProgram rd args rets →
       t.BufsOk coreProgram → (mainPredsH s w (hDvNH w) (Pvs w)).T5 t →
         t.weight (ω op) ≤ K5 op s w)
-    (hwords : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
+    (hwords : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w →
       Bmain fs SB SK (childBv Bvf w) 0 seed s w ≤ b.words.eval (work s w))
-    (hinstrs : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op,
+    (hinstrs : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w → ∀ op,
       mainCount (H op) (hm fs 0 seed s w) (Kx op s w) (Ks op s w) (Kd op s w) (K5 op s w) +
         jt op ≤ (b.instrs op).eval (work s w)) :
     MainComplete fs cert cnt b := by
@@ -116,7 +116,7 @@ theorem clHonest_weight {ω fs : String → ℕ} (H : MainCounts ω fs) {n : ℕ
 /-- **`main`'s `da_verify`'s instructions** on its honest tree at the checked blob matrix: `dvA`,
 `dvR` per row and `dvP` per padded row. -/
 theorem dvNH_weight {ω fs : String → ℕ} (H : MainCounts ω fs) {seed : Digest} {s : NodeStatement} {w : NodeWitness}
-    (hr : NodeRel bytecode seed s w) (hnd : (hm fs 0 seed s w).nd = 1) (rd : Reader) (t : Tree)
+    (hr : NodeRelation bytecode seed s w) (hnd : (hm fs 0 seed s w).nd = 1) (rd : Reader) (t : Tree)
     (args rets : List E) (hnm : t.name = "da_verify") (hv : t.Valid coreProgram rd args rets)
     (hb : t.BufsOk coreProgram) (hT : hDvNH w t) :
     t.weight ω ≤ H.dvA + H.dvR * (work s w).rawDaRows + H.dvP * (work s w).rawDaPad := by
@@ -138,12 +138,12 @@ theorem mainComplete_budget (fs : String → ℕ) (cert : String → V → ℕ) 
     (hfs : 2 ≤ fs "main") (hxc : B1.Sig.verify_lean_xmss_complete_Spec)
     (hsc : B1.Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hS : MainStatics fs SB SK)
-    (hV : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
+    (hV : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w →
       ChildrenOk bytecode seed w →
       VerifySubGoalsTB fs cert 0 seed s w (Pvs w) (childBv Bvf w))
     (hcnt : ∀ (rd : Reader) (t : Tree), t.Valid coreProgram rd [] [] → ∀ op,
       cnt t op ≤ t.weight (ω op) + jt op) (c5 s5 : Opcode → ℕ) (v5 : Opcode → ℕ → ℕ → ℕ)
-    (h5 : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
+    (h5 : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w → ∀ op (rd : Reader)
       (t : Tree) (args rets : List E), t.name = "__loop4" → t.Valid coreProgram rd args rets →
       t.BufsOk coreProgram → (mainPredsH s w (hDvNH w) (Pvs w)).T5 t →
         t.weight (ω op) ≤ l5Lin (c5 op) (s5 op) (v5 op) (work s w)) :

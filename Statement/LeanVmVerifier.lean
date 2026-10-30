@@ -9,8 +9,9 @@ public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 Transcribed from `python-verifier/verifier.py` at the pin (`../leanvm-rev`); every citation
 `verifier.py:N` is a line of that file, and the sections follow the Python's: the WHIR constants
 (Part 1), the transcript (Part 2: a program `Prog` of a small language, which `runProof` reads on a
-proof with a hash function `H : Bytes → m Digest` and a permutation `F : KState → m KState` in any
-monad `m`), and the verifier (Part 3), ending with `verifyWith H F bytecode publicInput proof`.
+proof with a hash function `H : Bytes → m Digest` and a permutation
+`F : KeccakState → m KeccakState` in any monad `m`), and the verifier (Part 3), ending with
+`verifyWith H F bytecode publicInput proof`.
 
 The verifier takes the value of the polynomial the statement fixes (the bytecode's multilinear
 extension) from a parameter `ev : List K → List E → Prog E`. The deployed verifier computes it. The deferring
@@ -225,35 +226,35 @@ instance : Monad Prog where
   bind := bind
 
 /-- Read one prover scalar. -/
-def readE : Prog E := read ret
+def readScalar : Prog E := read ret
 
 /-- Read `n` prover scalars, in order. -/
-def readN : ℕ → Prog (List E)
+def readScalars : ℕ → Prog (List E)
   | 0 => ret []
   | n + 1 => do
-    let x ← readE
-    let xs ← readN n
+    let x ← readScalar
+    let xs ← readScalars n
     return x :: xs
 
 /-- Sample one challenge. -/
-def sampleE : Prog E := sample ret
+def sampleChallenge : Prog E := sample ret
 
 /-- Sample `n` challenges, in order. -/
-def sampleN : ℕ → Prog (List E)
+def sampleChallenges : ℕ → Prog (List E)
   | 0 => ret []
   | n + 1 => do
-    let x ← sampleE
-    let xs ← sampleN n
+    let x ← sampleChallenge
+    let xs ← sampleChallenges n
     return x :: xs
 
 /-- Check a proof of work of `bits` bits. -/
-def grindP (bits : ℕ) : Prog Unit := grind bits (ret ())
+def grindProofOfWork (bits : ℕ) : Prog Unit := grind bits (ret ())
 
 /-- Read a commitment to a matrix of `2^height` rows of `width` words. -/
-def commitP (height width : ℕ) : Prog Unit := commit height width (ret ())
+def readCommitment (height width : ℕ) : Prog Unit := commit height width (ret ())
 
 /-- Open rows of the `i`-th commitment. -/
-def queryP (i : ℕ) (positions : List ℕ) : Prog (List (List K)) := query i positions ret
+def queryOpenings (i : ℕ) (positions : List ℕ) : Prog (List (List K)) := query i positions ret
 
 /-- Reject unless `c` holds (the Python verifier's `require`). -/
 def require (c : Prop) [Decidable c] : Prog Unit := if c then ret () else fail
@@ -277,7 +278,7 @@ def rateScalars : ℕ := 4
 /-- The duplex sponge: the Keccak state, and the scalars waiting to be absorbed (at most
 `rateScalars`), each with its tag (`Transcript.state`, `Transcript.pending`). -/
 structure Sponge where
-  state : KState
+  state : KeccakState
   pending : List (E × ℕ)
 
 /-- The rate lanes of the waiting scalars: each its three limbs, then its tag
@@ -287,12 +288,12 @@ def pendingLanes (pending : List (E × ℕ)) : List UInt64 :=
 
 /-- The input of a permutation: the waiting scalars' lanes, zeros up to lane `16`, then the
 capacity, lanes `16..25` of the state (`_duplex`, `verifier.py:386-389`). -/
-def duplexInput (sp : Sponge) : KState :=
+def duplexInput (sp : Sponge) : KeccakState :=
   Vector.ofFn fun i ↦
     if i.val < 16 then (pendingLanes sp.pending).getD i 0 else Keccak.lane sp.state i
 
 /-- The challenge squeezed into a state: its first three lanes (`sample`, `verifier.py:401`). -/
-def challengeOf (state : KState) : E :=
+def challengeOf (state : KeccakState) : E :=
   E.ofLimbs (K.ofLane (Keccak.lane state 0)) (K.ofLane (Keccak.lane state 1))
     (K.ofLane (Keccak.lane state 2))
 
@@ -305,7 +306,7 @@ def powOk (bits : ℕ) (nonce challenge : E) : Bool :=
 
 /-- The initial state's input: the IV's four words, the public input's four words, then zeros
 (`Transcript.__init__`, `verifier.py:381`). -/
-def seedInput (iv publicInput : Digest) : KState :=
+def seedInput (iv publicInput : Digest) : KeccakState :=
   Vector.ofFn fun i ↦
     if h : i.val < 4 then iv[i.val] else if h' : i.val < 8 then publicInput[i.val - 4] else 0
 
@@ -324,7 +325,7 @@ structure Proof where
 
 /-- The compiled verifier's state: the sponge, the scalars and openings not yet read, and the
 roots read so far, each with its height and width. -/
-structure St where
+structure ProgState where
   sponge : Sponge
   stream : List E
   openings : List Opening
@@ -332,7 +333,7 @@ structure St where
 
 section Run
 
-variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
+variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
 
 /-- A permutation: the waiting scalars over the rate, the capacity kept, then Keccak-f; the queue
 empties (`_duplex`, `verifier.py:386-389`). -/
@@ -384,7 +385,7 @@ def openAll (root : Digest) (height width : ℕ) :
 
 /-- The compiled reading of a program: run it on the state, every challenge squeezed out of the
 sponge and every opening authenticated; `none` on rejection. -/
-def run {α : Type} : Prog α → St → m (Option (α × St))
+def run {α : Type} : Prog α → ProgState → m (Option (α × ProgState))
   | .ret a, s => pure (some (a, s))
   | .fail, _ => pure none
   | .read k, s => match s.stream with
@@ -419,7 +420,7 @@ def run {α : Type} : Prog α → St → m (Option (α × St))
 
 /-- Run a program on a proof from a seed state, and accept when it returns `true` with the
 stream and the openings fully consumed (`verifier.py:456-458`, `finish`). -/
-def runProof (P : Prog Bool) (seed : KState) (π : Proof) : m Bool := do
+def runProof (P : Prog Bool) (seed : KeccakState) (π : Proof) : m Bool := do
   match ← run H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
   | some (true, s) => pure (s.stream.isEmpty && s.openings.isEmpty)
   | _ => pure false
@@ -428,7 +429,7 @@ end Run
 
 /-- A run with every hash and permutation answered by `default`, for the steps that only read
 scalars: what they read does not depend on the sponge. -/
-def runPure {α : Type} (P : Prog α) (s : St) : Option (α × St) :=
+def runPure {α : Type} (P : Prog α) (s : ProgState) : Option (α × ProgState) :=
   Id.run (run (m := Id) (fun _ ↦ default) (fun _ ↦ default) P s)
 
 end LeanVM.Protocol.Compile
@@ -988,7 +989,7 @@ output lanes, a padding row permuting zeros. The pin writes `keccak_f([0] * 25)`
 `KECCAK_OUT …` by index; lane `l` of it lands in column `out_l` either way. -/
 def Table.padding (t : Table) : List E :=
   if t.opcode = opKeccak then
-    let output := keccakF (Vector.replicate 25 0)
+    let output := keccakF1600 (Vector.replicate 25 0)
     t.columns.map fun name ↦
       if name ∈ keccakOutputs then eOfNat (Keccak.lane output (keccakOutputs.idxOf name)).toNat
       else 0
@@ -1164,11 +1165,11 @@ coefficients, deriving the one the claim fixes; its coefficients, constant first
 (`verifier.py:447-454`). -/
 def sumcheckRoundPoly (count : ℕ) (claim : E) : Option E → Prog (List E)
   | none => do
-    let constant ← Prog.readE
-    let tail ← Prog.readN (count - 2)
+    let constant ← Prog.readScalar
+    let tail ← Prog.readScalars (count - 2)
     return constant :: (claim + sumE tail) :: tail
   | some eqFactor => do
-    let tail ← Prog.readN (count - 1)
+    let tail ← Prog.readScalars (count - 1)
     return (claim + eqFactor * sumE tail) :: tail
 
 /-- `sumcheck(transcript, claim, count, equalities)`: one round per entry of `equalities`, each
@@ -1178,7 +1179,7 @@ def sumcheck (claim : E) (count : ℕ) : List (Option E) → Prog (List E × E)
   | [] => return ([], claim)
   | equality :: equalities => do
     let message ← sumcheckRoundPoly count claim equality
-    let challenge ← Prog.sampleE
+    let challenge ← Prog.sampleChallenge
     let (point, final) ← sumcheck (polyEval message challenge) count equalities
     return (challenge :: point, final)
 
@@ -1199,16 +1200,16 @@ structure GkrState where
 
 /-- One step of `step` levels of the GKR walk (`verifier.py:483-494`). -/
 def gkrStep (step : ℕ) (s : GkrState) : Prog GkrState := do
-  let combiner ← Prog.sampleE
+  let combiner ← Prog.sampleChallenge
   let claim := polyEval s.values combiner
   let (x, claim) ← sumcheck claim (2 ^ step + 1) (s.point.map some)
-  let child0 ← Prog.readN (2 ^ step)
-  let child1 ← Prog.readN (2 ^ step)
-  let child2 ← Prog.readN (2 ^ step)
+  let child0 ← Prog.readScalars (2 ^ step)
+  let child1 ← Prog.readScalars (2 ^ step)
+  let child2 ← Prog.readScalars (2 ^ step)
   let children := [child0, child1, child2]
   let products := children.map prodE
   Prog.require (claim = polyEval products combiner)
-  let y ← Prog.sampleN step
+  let y ← Prog.sampleChallenges step
   let values := children.map (multilinearEval · y)
   return ⟨values, y ++ x⟩
 
@@ -1229,8 +1230,8 @@ def gkrLayers : ℕ → GkrState → Prog GkrState
 /-- `verify_gkr_grand_products(depth)`: the count root, the GKR point, and the three trees'
 values there (`verifier.py:474-497`). -/
 def verifyGkrGrandProducts (depth : ℕ) : Prog (E × List E × List E) := do
-  let shared ← Prog.readE
-  let count ← Prog.readE
+  let shared ← Prog.readScalar
+  let count ← Prog.readScalar
   let s ← gkrLayers depth ⟨[shared, shared, count], []⟩
   return (count, s.point, s.values)
 
@@ -1287,16 +1288,16 @@ def verifyBusBalance (ev : List K → List E → Prog E) (layout : Layout) : Pro
   let pushLayout := busLayout frameworkLogRows layout.push
   let pullLayout := busLayout frameworkLogRows layout.pull
   let countLayout := busLayout [] layout.count
-  let alphas ← Prog.sampleN busBits
+  let alphas ← Prog.sampleChallenges busBits
   let weights := eqKernel alphas
-  let beta ← Prog.sampleE
+  let beta ← Prog.sampleChallenge
   let (countRoot, point, treeValues) ← verifyGkrGrandProducts pushLayout.depth
   Prog.require (countRoot ≠ 0)
   let memoryLow := point.take layout.logMemory
   let bytecodeLow := point.take layout.logBytecode
-  let memory ← Prog.readN 3
-  let memoryFinal ← Prog.readE
-  let bytecodeFinal ← Prog.readE
+  let memory ← Prog.readScalars 3
+  let memoryFinal ← Prog.readScalar
+  let bytecodeFinal ← Prog.readScalar
   let claims : List ColumnClaim :=
     (List.zipWith (fun column value ↦ ⟨column, memoryLow, value⟩) [memory0, memory1, memory2]
       memory) ++
@@ -1336,7 +1337,7 @@ def tableTerms (constraintPowers formPowers point : List E) :
     List (Table × ℕ × List Form × E) → ℕ → E → Prog (E × List (List E × List E))
   | [], _, final => return (final, [])
   | (table, height, forms, weight) :: rest, cursor, final => do
-    let evaluations ← Prog.readN table.width
+    let evaluations ← Prog.readScalars table.width
     let summand := dot ((constraintPowers.drop cursor).take table.nConstraints)
       (table.constraints evaluations)
     let final := final +
@@ -1374,8 +1375,8 @@ the ladder there:
 * the root read at level `ℓ` (commitment `ℓ + 1`) is opened at level `ℓ + 1`:
   `2^(message_log_ℓ − folds[ℓ+1] + rate_{ℓ+1})` leaves of `3 · 2^folds[ℓ+1]` words.
 
-Level `ℓ` therefore opens commitment `ℓ` (`Prog.queryP ℓ`). The rows come back as raw words; the
-level-0 reversal and the regrouping of deeper rows into `E` (`_ext_row`) are the program's.
+Level `ℓ` therefore opens commitment `ℓ` (`Prog.queryOpenings ℓ`). The rows come back as raw words;
+the level-0 reversal and the regrouping of deeper rows into `E` (`_ext_row`) are the program's.
 
 **Interpretation.**
 
@@ -1400,7 +1401,7 @@ def sampleQueriesAux (depth : ℕ) : ℕ → ℕ → Prog (List ℕ)
   | fuel + 1, remaining =>
     if remaining = 0 then return []
     else do
-      let bits := eToNat (← Prog.sampleE)
+      let bits := eToNat (← Prog.sampleChallenge)
       let n := min (192 / depth) remaining
       let chunk := (List.range n).map fun c ↦ (bits >>> (c * depth)) % 2 ^ depth
       let rest ← sampleQueriesAux depth fuel (remaining - n)
@@ -1473,7 +1474,7 @@ structure WhirState where
 def foldRounds : ℕ → WhirState → List E → Prog (WhirState × List E)
   | 0, s, levelFolds => return (s, levelFolds)
   | n + 1, s, levelFolds => do
-    let challenge ← Prog.sampleE
+    let challenge ← Prog.sampleChallenge
     let quad ← sumcheckRoundPoly 3 (polyEval s.quad challenge) none
     foldRounds n { s with quad, folds := s.folds ++ [challenge] } (levelFolds ++ [challenge])
 
@@ -1483,7 +1484,7 @@ round leaves unset: the Python then raises at the terminal check. -/
 def tailRounds : ℕ → List E → Prog (List E × E)
   | 0, _ => Prog.fail
   | n + 1, quad => do
-    let challenge ← Prog.sampleE
+    let challenge ← Prog.sampleChallenge
     let target := polyEval quad challenge
     if n = 0 then return ([challenge], target)
     else do
@@ -1518,20 +1519,20 @@ def whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     -- its out-of-domain claim.
     let (residual, pending) ← match rest with
       | [] => do
-        let residual ← Prog.readN (2 ^ messageLog)
+        let residual ← Prog.readScalars (2 ^ messageLog)
         pure (residual, ([] : List (List E × (List E → E))))
       | next :: _ => do
         let (height, width) := levelShape messageLog next (3 * 2 ^ next.fold)
-        Prog.commitP height width
-        let oodPoint ← Prog.sampleN messageLog
-        let oodValue ← Prog.readE
+        Prog.readCommitment height width
+        let oodPoint ← Prog.sampleChallenges messageLog
+        let oodValue ← Prog.readScalar
         let intro ← sumcheckRoundPoly 3 oodValue none
         pure ([], [(intro, fun x ↦ eqEval oodPoint x)])
-    Prog.grindP Whir.queryGrindingBits
+    Prog.grindProofOfWork Whir.queryGrindingBits
     let queries ← sampleQueries (messageLog + level.logInvRate) level.queries
-    let lam ← Prog.sampleE
+    let lam ← Prog.sampleChallenge
     let queryWeights := powers lam queries.length
-    let words ← Prog.queryP index queries
+    let words ← Prog.queryOpenings index queries
     let rows : List (List E) :=
       if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
     let enforced := enforcedSum rows levelFolds queryWeights
@@ -1565,12 +1566,12 @@ def commitStack (logN logInvRate : ℕ) : Prog Unit := do
   | [] => Prog.fail
   | level :: _ =>
     let (height, width) := levelShape logN level (2 ^ level.fold)
-    Prog.commitP height width
+    Prog.readCommitment height width
 
 /-- `verify_stacked_opening(root, stack_log, log_inv_rate, claims)`: batch the claims with powers
 of one challenge into one WHIR opening (`verifier.py:1454-1460`). -/
 def verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) : Prog Unit := do
-  let scales := powers (← Prog.sampleE) claims.length
+  let scales := powers (← Prog.sampleChallenge) claims.length
   verifyWhir stackLog logInvRate (dot scales (claims.map (·.2)))
     fun point ↦ dot scales (claims.map fun c ↦ c.1 point)
 
@@ -1732,7 +1733,7 @@ def keccakPackRounds : List E → E → E → Prog (E × E × List E)
   | [], value, scale => return (value, scale, [])
   | r :: rs, value, scale => do
     let message ← sumcheckRoundPoly 3 value (some r)
-    let challenge ← Prog.sampleE
+    let challenge ← Prog.sampleChallenge
     let (value, scale, point) ← keccakPackRounds rs
       ((1 + r + challenge) * polyEval message challenge) (scale * (1 + r + challenge))
     return (value, scale, challenge :: point)
@@ -1743,7 +1744,7 @@ down. -/
 def verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) : Prog KeccakClaim := do
   let packBits := logSteps - 4
   -- 1] The product polynomial: the claim's weighted sum of the packs' unprojected chi.
-  let product ← Prog.readN productBits
+  let product ← Prog.readScalars productBits
   let projected := sumE ((List.range productBits).map fun c ↦
     sumE ((List.zip claim.mu rmfeProject).filterMap fun (m, mask) ↦
       if mask.testBit c then some m else none) * product.getD c 0)
@@ -1756,14 +1757,14 @@ def verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) : Prog KeccakC
   Prog.require (projected + iota * sumE claim.mu = claim.value)
   -- 2] At a random point a pack is one field element, and the polynomial's value a sumcheck
   -- claim.
-  let s ← Prog.sampleE
+  let s ← Prog.sampleChallenge
   let mu := keccakInstanceWeights s
   let kappa := sumE mu
   -- 3] The pack and the segment.
   let (value, scale, point) ← keccakPackRounds claim.point (polyEval product s) 1
   -- 4] The bit position: `Σ_j w[j] (κ T[j] + (κ + T[j + 1]) T[j + 2])`.
   let (localPoint, value) ← sumcheck value 4 (List.replicate keccakLocalBits none)
-  let t ← Prog.readN 3
+  let t ← Prog.readScalars 3
   let eq := eqKernel localPoint
   let t0 := t.getD 0 0
   let t1 := t.getD 1 0
@@ -1772,7 +1773,7 @@ def verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) : Prog KeccakC
     (scale * dot (eq.take keccakBits) claim.weights * (kappa * t0 + (kappa + t1) * t2) = value)
   -- 5] `t[k] = Σ_j eq[j] T[j + k]`: one claim on the state before chi, then on the round's
   -- input through the linear map.
-  let beta ← Prog.sampleE
+  let beta ← Prog.sampleChallenge
   let weights := (List.range keccakBits).map fun j ↦
     eq.getD j 0 + beta * (eq.getD (keccakAlong j 4) 0 + beta * eq.getD (keccakAlong j 3) 0)
   return ⟨t0 + beta * (t1 + beta * t2), mu, point, keccakLinearTranspose weights⟩
@@ -1823,27 +1824,27 @@ def verifyKeccak (logSteps : ℕ) (inst output : List E) :
     Prog (List ColumnClaim × List E × List E) := do
   let packBits := logSteps - 4
   let rLow := inst.take 4
-  let segment ← Prog.sampleN keccakSegmentBits
+  let segment ← Prog.sampleChallenges keccakSegmentBits
   let point := inst.drop 4 ++ segment
   -- The first claim combines the output lanes as words: bit `z` of a word weighs `x^z`.
-  let lanes := eqKernel (← Prog.sampleN keccakLaneBits)
+  let lanes := eqKernel (← Prog.sampleChallenges keccakLaneBits)
   let weights := (List.range keccakBits).map fun j ↦ lanes.getD (j / 64) 0 * eOfNat (2 ^ (j % 64))
   let last := (eqKernel segment).getD (keccakSegments - 1) 0 * dot (lanes.take 25) output
-  let committed ← if 1 < keccakSegments then Prog.readE else pure 0
+  let committed ← if 1 < keccakSegments then Prog.readScalar else pure 0
   let first : KeccakClaim := ⟨committed + last, eqKernel rLow, point, weights⟩
   let claim ← keccakLayers logSteps (List.range keccakDepth) first
   -- The committed outputs, whose instance weights are an eq already: slice 0 holds the slot's
   -- weight, the others `x^z` times it.
   let outputs ← if 1 < keccakSegments then do
       let (slot, weights, value) ← keccakOpen logSteps first 1 (keccakSegments - 1) committed
-      let word ← Prog.readE
+      let word ← Prog.readScalar
       Prog.require (weights.headD 0 * word = value)
       pure [(⟨qkeccak, rLow ++ inst.drop 4 ++ slot, word⟩ : ColumnClaim)]
     else pure []
   -- The inputs: the instances of a pack first, then the slot.
   let (low, value) ← sumcheck claim.value 3 (List.replicate 4 none)
   let (slot, weights, value) ← keccakOpen logSteps claim 0 keccakSegments value
-  let slices ← Prog.readN kBits
+  let slices ← Prog.readScalars kBits
   Prog.require (multilinearEval claim.mu low * dot weights slices = value)
   return (outputs, low ++ claim.point.take packBits ++ slot, slices)
 
@@ -1882,7 +1883,7 @@ def ringCoefficients (challenges : List E) : List E :=
 /-- `ring_switch(point, s)` (`verifier.py:1436-1445`): draw the map, and return the target
 `Σ_i g^i Φ(s_i)` and the weight `W(u) = Φ(eq(point, u))` as a function of the opening point. -/
 def ringSwitch (point s : List E) : Prog (E × (List E → E)) := do
-  let challenges ← Prog.sampleN ringMapShifts.length
+  let challenges ← Prog.sampleChallenges ringMapShifts.length
   let coefficients := ringCoefficients challenges
   let target := polyEval (s.map (phiMap · challenges)) gen
   return (target, fun rPrime ↦ ringWeight point rPrime coefficients)
@@ -1908,7 +1909,7 @@ experiment.
 /-- The announced sizes, read and checked, and the layout they give
 (`verifier.py:1467-1475`): the layout and the WHIR rate exponent. -/
 def readSizes (bytecode : List K) : Prog (Layout × ℕ) := do
-  let announced ← Prog.readN (2 + tables.length)
+  let announced ← Prog.readScalars (2 + tables.length)
   Prog.require (announced.all fun value ↦ value.limb 1 = 0 ∧ value.limb 2 = 0)
   let logMemory := kToNat ((announced.headD 0).limb 0)
   let tableRows := ((announced.drop 1).take tables.length).map fun value ↦ kToNat (value.limb 0)
@@ -1921,7 +1922,7 @@ def readSizes (bytecode : List K) : Prog (Layout × ℕ) := do
 /-- Step 4, the table sumcheck at the bus point (`verifier.py:1483-1489`): each table's point and
 evaluations. -/
 def tablePhase (layout : Layout) (bus : BusResult) : Prog (List (List E × List E)) := do
-  let xi ← Prog.sampleE
+  let xi ← Prog.sampleChallenge
   let nConstraints := (tables.map Table.nConstraints).sum
   let xiPowers := powers xi (nConstraints + 3)
   let constraintPowers := xiPowers.take nConstraints
@@ -1934,7 +1935,7 @@ three memory columns at `(challenge, 0, …, 0)`, each limb's claim the line thr
 the public input's two halves, evaluated at the challenge by the verifier itself. The prover sends
 nothing. -/
 def publicInputPhase (layout : Layout) (publicInput : Digest) : Prog (List ColumnClaim) := do
-  let publicChallenge ← Prog.sampleE
+  let publicChallenge ← Prog.sampleChallenge
   let halves := digestScalars publicInput
   let publicLimbs := ([0, 1, 2] : List (Fin 3)).map fun limb ↦
     multilinearEval [ofK (halves.1.limb limb), ofK (halves.2.limb limb)] [publicChallenge]
@@ -1992,18 +1993,18 @@ def computedValue (words : List K) (point : List E) : Prog E :=
 
 /-- What a proof claims of the fixed polynomial, for a verifier that does not evaluate it: the
 bytecode's value at its point. -/
-structure FixedClaims where
+structure BytecodeClaim where
   bytecodePoint : List E
   bytecodeValue : E
 
 /-- The value claimed by `c`, at the point of `c` only: the run fails where the verifier asks
 elsewhere. -/
-def claimedValue (c : FixedClaims) (_ : List K) (point : List E) : Prog E := do
+def claimedValue (c : BytecodeClaim) (_ : List K) (point : List E) : Prog E := do
   Prog.require (point = c.bytecodePoint)
   return c.bytecodeValue
 
 /-- The claim is true of `bytecode`. -/
-def FixedClaims.Holds (bytecode : List K) (c : FixedClaims) : Prop :=
+def BytecodeClaim.Holds (bytecode : List K) (c : BytecodeClaim) : Prop :=
   multilinearEval (bytecode.map ofK) c.bytecodePoint = c.bytecodeValue
 
 /-! ### The programs -/
@@ -2015,7 +2016,7 @@ def leanVmProgram (bytecode : List K) (publicInput : Digest) : Prog Bool := do
   return true
 
 /-- The verifier program with the fixed polynomial's value claimed by `c`. -/
-def deferredProgram (c : FixedClaims) (bytecode : List K) (publicInput : Digest) : Prog Bool := do
+def deferredProgram (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) : Prog Bool := do
   verifyExecution (claimedValue c) bytecode publicInput
   return true
 
@@ -2027,7 +2028,7 @@ def versionTag : Bytes := "leanvm-v1".toUTF8.toList
 
 section Hash
 
-variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
+variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
 
 /-- The IV with the hash `H`: the hash of the tag, then the bytecode as its little-endian words
 (`verifier.py:1464`). -/
@@ -2036,7 +2037,7 @@ def fiatShamirIvWith (bytecode : List K) : m Digest :=
 
 /-- The sponge's initial state with the hash `H` and the permutation `F`: `F` of the IV's and the
 public input's words, the other lanes zero (`verifier.py:1464-1465`, `Transcript.__init__`). -/
-def seedWith (bytecode : List K) (publicInput : Digest) : m KState := do
+def seedWith (bytecode : List K) (publicInput : Digest) : m KeccakState := do
   let fiatShamirIv ← fiatShamirIvWith H bytecode
   F (seedInput fiatShamirIv publicInput)
 
@@ -2049,7 +2050,7 @@ def verifyWith (bytecode : List K) (publicInput : Digest) (π : Proof) : m Bool 
 /-- **The deferring verifier** with the hash `H` and the permutation `F`, as an aggregate runs it
 on a child's proof (`verify_sub`): the IV is given rather than hashed from the bytecode, and the
 fixed polynomial's value is the one claimed by `c`. Only the bytecode's length is read. -/
-def verifyDeferredWith (bytecode : List K) (iv publicInput : Digest) (c : FixedClaims)
+def verifyDeferredWith (bytecode : List K) (iv publicInput : Digest) (c : BytecodeClaim)
     (π : Proof) : m Bool := do
   let seed ← F (seedInput iv publicInput)
   runProof H F (deferredProgram c bytecode publicInput) seed π
@@ -2061,9 +2062,9 @@ def fiatShamirIv (bytecode : List K) : Digest :=
   Id.run (fiatShamirIvWith (m := Id) keccak256 bytecode)
 
 /-- The deployed deferring verifier, with Keccak. -/
-def verifyDeferred (bytecode : List K) (iv publicInput : Digest) (c : FixedClaims) (π : Proof) :
+def verifyDeferred (bytecode : List K) (iv publicInput : Digest) (c : BytecodeClaim) (π : Proof) :
     Bool :=
-  Id.run (verifyDeferredWith (m := Id) keccak256 keccakF bytecode iv publicInput c π)
+  Id.run (verifyDeferredWith (m := Id) keccak256 keccakF1600 bytecode iv publicInput c π)
 
 /-- The announced layout and rate exponent of a stream, read by the program's own `readSizes`
 (reads only absorb: no hash or permutation is consulted for a value). -/

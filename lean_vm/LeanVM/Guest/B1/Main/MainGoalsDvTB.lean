@@ -4,7 +4,7 @@
   `main`'s `da_verify` on an honest run, by a tree of its honest shape, within its words bound
   (`hDvB`) at the direct DA witness, for the budget.
 
-  The witness and `Da.Witness.Opens` are Benedikt Wagner's LeanDA formalization, as ported here.
+  The witness and `Da.MatrixWitness.Opens` are Benedikt Wagner's LeanDA formalization, as ported here.
 -/
 
 module
@@ -24,7 +24,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.Hints (direct plan)
+open LeanVM.Guest.Hints (heldDirectly coveragePlan)
 open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT CompleteAtDTB Returns)
 open LeanVM.Guest.B1.Da (reads_of_memL exists_of_length_succ wLog)
 
@@ -44,7 +44,7 @@ theorem completeAtDTB_lin_mono {fs : String → ℕ} {cert : String → V → �
 
 /-- **`da_verify`'s words bound on the checked DA claim's witness.** -/
 def hDvB (fs : String → ℕ) (SB SK : String → ℕ) (w : NodeWitness) : ℕ :=
-  (w.da.map fun p => Da.dvB fs SB SK p.2.rows.length (wLog p.2)).getD 0
+  (w.daMatrix.map fun p => Da.dvB fs SB SK p.2.rows.length (wLog p.2)).getD 0
 
 /-- `da_verify` complete by a tree of its honest shape, within `hDvB`. -/
 def MainGoalDvTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
@@ -63,7 +63,7 @@ variable {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : NodeWitnes
 variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ)
 
 /-- **`da_verify` on an honest run, by a tree of its honest shape, within `hDvB`.** -/
-theorem mainGoalDvTB (hn : NodeRel bytecode seed s w) (hrf : Lift.RunsFit fs cert)
+theorem mainGoalDvTB (hn : NodeRelation bytecode seed s w) (hrf : Lift.RunsFit fs cert)
     {SB SK : String → ℕ} (hS : Da.DvStaticB fs SB SK) :
     MainGoalDvTB fs cert fp seed s w SB SK := by
   intro h1

@@ -76,10 +76,10 @@ abbrev KCap := Vector UInt8 64
 
 /-- The Keccak-f[1600] state as 200 bytes, split into digest, rest of the rate and capacity.
 Byte `i` of the state is byte `i % 8` of lane `i / 8`, little-endian, as in `keccak_hash`. -/
-abbrev KState := SpState KDigest KRest KCap
+abbrev KState := SpState DigestBytes KRest KCap
 
 /-- A Keccak-256 block: the 136 rate bytes. -/
-abbrev KBlock := KDigest × KRest
+abbrev KBlock := DigestBytes × KRest
 
 /-- The 200 bytes of a Keccak state, in order. -/
 def KState.toBytes (s : KState) : List UInt8 := s.1.1.toList ++ s.1.2.toList ++ s.2.toList
@@ -141,7 +141,7 @@ abbrev roSpec (Msg Dg : Type) : OracleSpec Msg := Msg →ₒ Dg
 
 /-- The distinguisher's oracles: uniform coins, the hash `H : Msg → Dg`, and the permutation
 `π` and its inverse. -/
-abbrev dSpec (Msg Dg St : Type) := unifSpec + (roSpec Msg Dg + permSpec St)
+abbrev dSpec (Msg Dg St : Type) := unifSpec + (roSpec Msg Dg + permutationOracleSpec St)
 
 variable [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
   [Fintype Dg] [Fintype E] [Fintype C]
@@ -151,10 +151,10 @@ variable [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
 /-- The real world: coins forwarded, `H` the sponge over the lazy random permutation, `π` and
 `π⁻¹` the lazy random permutation. -/
 noncomputable def realImpl (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) :
-    QueryImpl (dSpec Msg Dg (SpState Dg E C)) (StateT (PermLog (SpState Dg E C)) ProbComp)
+    QueryImpl (dSpec Msg Dg (SpState Dg E C)) (StateT (PermutationEdges (SpState Dg E C)) ProbComp)
   | .inl n => liftM (unifSpec.query n : ProbComp (Fin (n + 1)))
-  | .inr (.inl m) => spongeWith P iv (fun x ↦ lazyPerm (.fwd x)) m
-  | .inr (.inr q) => lazyPerm q
+  | .inr (.inl m) => spongeWith P iv (fun x ↦ lazyRandomPermutation (.forward x)) m
+  | .inr (.inr q) => lazyRandomPermutation q
 
 /-- **The real world** run of a distinguisher, from the empty permutation. -/
 noncomputable def realGame (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) {α : Type}
@@ -162,10 +162,10 @@ noncomputable def realGame (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) {α
   (simulateQ (realImpl P iv) D).run' []
 
 /-- **The oracles of the random-permutation model on byte states**: coins, Keccak-256 `H`, `π`
-and `π⁻¹` (`KSpec` of the statement, its states read as bytes). -/
-abbrev KSpecB := dSpec (List UInt8) KDigest KState
+and `π⁻¹` (`RandomPermutationOracles` of the statement, its states read as bytes). -/
+abbrev KSpecB := dSpec (List UInt8) DigestBytes KState
 
-/-- Calls of the permutation, on byte states (`permCalls`). -/
+/-- Calls of the permutation, on byte states (`permutationCallCost`). -/
 def permCallsB : KSpecB.Domain → ℕ
   | .inl _ => 0
   | .inr (.inl m) => m.length / 136 + 1
@@ -180,7 +180,7 @@ noncomputable def runKB {α : Type} (G : OracleComp KSpecB α) : ProbComp α :=
 their paths, newest first, ending with the initial state and the empty path. -/
 structure SimState (Dg E C : Type) where
   /-- The answered edges `(x, π x)`, newest first. -/
-  edges : PermLog (SpState Dg E C)
+  edges : PermutationEdges (SpState Dg E C)
   /-- The rooted states with their block paths, newest first. -/
   chains : List (SpState Dg E C × List (Dg × E))
 
@@ -196,22 +196,22 @@ def chainOf (VC : List (SpState Dg E C × List (Dg × E))) (x : SpState Dg E C) 
 
 /-- One step of the simulator's bookkeeping, replayed from a query and its answer. -/
 def replayStep (σ : SimState Dg E C) :
-    PermQuery (SpState Dg E C) × SpState Dg E C → SimState Dg E C
-  | (.fwd x, y) =>
-    match fwdLookup σ.edges x with
+    PermutationQuery (SpState Dg E C) × SpState Dg E C → SimState Dg E C
+  | (.forward x, y) =>
+    match forwardLookup σ.edges x with
     | some _ => σ
     | none =>
       match chainOf σ.chains x with
       | some (s, β) => ⟨(x, y) :: σ.edges, (y, β ++ [blockTo s x]) :: σ.chains⟩
       | none => ⟨(x, y) :: σ.edges, σ.chains⟩
-  | (.inv y, x) =>
-    match invLookup σ.edges y with
+  | (.inverse y, x) =>
+    match inverseLookup σ.edges y with
     | some _ => σ
     | none => ⟨(x, y) :: σ.edges, σ.chains⟩
 
 /-- The simulator's bookkeeping replayed from a transcript of permutation queries and answers,
 oldest first. -/
-def replay (log : List (PermQuery (SpState Dg E C) × SpState Dg E C)) : SimState Dg E C :=
+def replay (log : List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) : SimState Dg E C :=
   log.foldl replayStep (SimState.init iv)
 
 /-- The hash queries whose whole sponge paths a simulator state has rooted, with the digests of
@@ -222,7 +222,7 @@ def simPaths (σ : SimState Dg E C) : List (Msg × Dg) :=
 /-- **The hash queries of a permutation transcript**: the messages whose whole padded sponge path
 the transcript (oldest first) contains as a chain of forward queries from the initial state,
 each with the digest part of the path's last answer. -/
-def pathsOf (log : List (PermQuery (SpState Dg E C) × SpState Dg E C)) : List (Msg × Dg) :=
+def pathsOf (log : List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) : List (Msg × Dg) :=
   simPaths P (replay iv log)
 
 

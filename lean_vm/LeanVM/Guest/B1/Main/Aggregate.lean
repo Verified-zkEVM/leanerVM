@@ -99,21 +99,21 @@ theorem memAt_of_reads {p : E} {xs : List E} (h : ReadsAt rd p xs) {k : ℕ} (hk
 
 /-! ## A child's words -/
 
-theorem childCells_eq (cc : ChildClaims) (h1 : cc.fresh.bytecodePoint.length = 23)
-    (h2 : cc.carried.bytecodePoint.length = 23) :
+theorem childCells_eq (cc : ChildClaims) (h1 : cc.freshClaim.bytecodePoint.length = 23)
+    (h2 : cc.carriedClaim.bytecodePoint.length = 23) :
     Batch.childCells cc = cc.words ++ [0, 0] := by
   have hl : cc.words.length = 50 := by
     simp [ChildClaims.words, DeferredClaim.cells, h1, h2]
-  rw [Batch.childCells, padRate, hl]
+  rw [Batch.childCells, padToRate, hl]
   rfl
 
 /-- **A child's words, as the absorbing loop reads them.** -/
 theorem kid_words {cpi cfresh ccarried : E} {c : ℕ} {cc : ChildClaims}
     (h : ChildWordsAt rd cpi cfresh ccarried c cc) :
-    memAt rd (cfresh * (gen ^ c) ^ 24) 23 = cc.fresh.bytecodeValue ∧
-    memAt rd (ccarried * (gen ^ c) ^ 24) 23 = cc.carried.bytecodeValue ∧
-    memRun rd (cfresh * (gen ^ c) ^ 24) 23 = cc.fresh.bytecodePoint ∧
-    memRun rd (ccarried * (gen ^ c) ^ 24) 23 = cc.carried.bytecodePoint ∧
+    memAt rd (cfresh * (gen ^ c) ^ 24) 23 = cc.freshClaim.bytecodeValue ∧
+    memAt rd (ccarried * (gen ^ c) ^ 24) 23 = cc.carriedClaim.bytecodeValue ∧
+    memRun rd (cfresh * (gen ^ c) ^ 24) 23 = cc.freshClaim.bytecodePoint ∧
+    memRun rd (ccarried * (gen ^ c) ^ 24) 23 = cc.carriedClaim.bytecodePoint ∧
     l25Words rd cpi cfresh ccarried (gen ^ c) = Batch.childCells cc := by
   obtain ⟨h1, h2, hp0, hp1, hf, hc⟩ := h
   have e24 : (gen ^ c) ^ 24 = gen ^ (24 * c) := by rw [← pow_mul, mul_comm]
@@ -121,12 +121,12 @@ theorem kid_words {cpi cfresh ccarried : E} {c : ℕ} {cc : ChildClaims}
   have b23 : bytecodeVars = 23 := rfl
   rw [b23] at h1 h2
   rw [e24]
-  have hfl : (DeferredClaim.cells cc.fresh).length = 24 := by simp [DeferredClaim.cells, h1]
-  have hcl : cc.carried.cells.length = 24 := by simp [DeferredClaim.cells, h2]
-  have pf := (readsAt_append.mp (show ReadsAt rd _ (cc.fresh.bytecodePoint ++
-    [cc.fresh.bytecodeValue]) from hf)).1
-  have pc := (readsAt_append.mp (show ReadsAt rd _ (cc.carried.bytecodePoint ++
-    [cc.carried.bytecodeValue]) from hc)).1
+  have hfl : (DeferredClaim.cells cc.freshClaim).length = 24 := by simp [DeferredClaim.cells, h1]
+  have hcl : cc.carriedClaim.cells.length = 24 := by simp [DeferredClaim.cells, h2]
+  have pf := (readsAt_append.mp (show ReadsAt rd _ (cc.freshClaim.bytecodePoint ++
+    [cc.freshClaim.bytecodeValue]) from hf)).1
+  have pc := (readsAt_append.mp (show ReadsAt rd _ (cc.carriedClaim.bytecodePoint ++
+    [cc.carriedClaim.bytecodeValue]) from hc)).1
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · rw [memAt_of_reads hf (by omega)]
     simp [DeferredClaim.cells, List.getD_eq_getElem?_getD, h1]
@@ -145,29 +145,29 @@ theorem kid_words {cpi cfresh ccarried : E} {c : ℕ} {cc : ChildClaims}
     generalize hA2 : ([(digestScalars cc.publicInput).1, (digestScalars cc.publicInput).2] :
       List E) = A2
     have hA : A2.length = 2 := by rw [← hA2]; rfl
-    have hAF : (A2 ++ DeferredClaim.cells cc.fresh).length = 26 := by simp [hA, hfl]
-    have hAFC : (A2 ++ DeferredClaim.cells cc.fresh ++ cc.carried.cells).length = 50 := by
+    have hAF : (A2 ++ DeferredClaim.cells cc.freshClaim).length = 26 := by simp [hA, hfl]
+    have hAFC : (A2 ++ DeferredClaim.cells cc.freshClaim ++ cc.carriedClaim.cells).length = 50 := by
       simp [hA, hfl, hcl]
     by_cases ha : w < 50
-    · rw [List.getD_append (A2 ++ DeferredClaim.cells cc.fresh ++ cc.carried.cells) [0, 0] 0 w
+    · rw [List.getD_append (A2 ++ DeferredClaim.cells cc.freshClaim ++ cc.carriedClaim.cells) [0, 0] 0 w
         (by rw [hAFC]; exact ha)]
       by_cases hb : w < 26
-      · rw [List.getD_append (A2 ++ DeferredClaim.cells cc.fresh) cc.carried.cells 0 w
+      · rw [List.getD_append (A2 ++ DeferredClaim.cells cc.freshClaim) cc.carriedClaim.cells 0 w
           (by rw [hAF]; exact hb)]
         by_cases hc2 : w < 2
-        · rw [ite_pos' hc2, List.getD_append A2 (DeferredClaim.cells cc.fresh) 0 w (by rw [hA]; exact hc2),
+        · rw [ite_pos' hc2, List.getD_append A2 (DeferredClaim.cells cc.freshClaim) 0 w (by rw [hA]; exact hc2),
             ← hA2]
           rcases (show w = 0 ∨ w = 1 by omega) with rfl | rfl
           · exact memAt_of_load ((loadHolds_mul_gen_pow rd _ _ _ _).mpr hp0)
           · exact memAt_of_load ((loadHolds_mul_gen_pow rd _ _ _ _).mpr hp1)
         · rw [ite_neg' hc2, ite_pos' hb,
-            List.getD_append_right A2 (DeferredClaim.cells cc.fresh) 0 w (by rw [hA]; omega), hA,
+            List.getD_append_right A2 (DeferredClaim.cells cc.freshClaim) 0 w (by rw [hA]; omega), hA,
             memAt_of_reads hf (by omega)]
       · rw [ite_neg' (show ¬ w < 2 by omega), ite_neg' hb, ite_pos' ha,
-          List.getD_append_right (A2 ++ DeferredClaim.cells cc.fresh) cc.carried.cells 0 w
+          List.getD_append_right (A2 ++ DeferredClaim.cells cc.freshClaim) cc.carriedClaim.cells 0 w
             (by rw [hAF]; omega), hAF, memAt_of_reads hc (by omega)]
     · rw [ite_neg' (show ¬ w < 2 by omega), ite_neg' (show ¬ w < 26 by omega), ite_neg' ha,
-        List.getD_append_right (A2 ++ DeferredClaim.cells cc.fresh ++ cc.carried.cells) [0, 0] 0 w
+        List.getD_append_right (A2 ++ DeferredClaim.cells cc.freshClaim ++ cc.carriedClaim.cells) [0, 0] 0 w
           (by rw [hAFC]; omega), hAFC]
       rcases (show w = 50 ∨ w = 51 by omega) with rfl | rfl <;> rfl
 
@@ -179,11 +179,11 @@ theorem absorb_rows {absorb cpi cfresh lfT ccarried lcT : E} {m : ℕ} {cs : Lis
     (hcl : cs.length = m)
     (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (L25 : ∀ c < m, L25Step rd absorb cfresh lfT ccarried lcT cpi (gen ^ c))
-    (h0 : RowRel rd absorb (aggS0.absorbAll (Batch.headCells m) dsObserve))
-    (hp0 : (aggS0.absorbAll (Batch.headCells m) dsObserve).pend.length = 4) :
+    (h0 : RowRel rd absorb (aggS0.absorbAll (Batch.childCountCells m) dsObserve))
+    (hp0 : (aggS0.absorbAll (Batch.childCountCells m) dsObserve).pend.length = 4) :
     ∀ c ≤ m, RowRel rd (absorb * (gen ^ c) ^ 13)
-      (aggS0.absorbAll (Batch.headCells m ++ (cs.take c).flatMap Batch.childCells) dsObserve) ∧
-      (aggS0.absorbAll (Batch.headCells m ++ (cs.take c).flatMap Batch.childCells)
+      (aggS0.absorbAll (Batch.childCountCells m ++ (cs.take c).flatMap Batch.childCells) dsObserve) ∧
+      (aggS0.absorbAll (Batch.childCountCells m ++ (cs.take c).flatMap Batch.childCells)
         dsObserve).pend.length = 4 := by
   intro c
   induction c with
@@ -215,7 +215,7 @@ theorem chain_rows {absorb cpi cfresh lfT ccarried lcT chainT lam : E} {m : ℕ}
     (h0 : memAt rd chainT 0 = 1) (hz : memAt rd chainT 1 = 0) :
     ∀ c ≤ m, memAt rd (chainT * (gen ^ c) ^ 2) 0 = lam ^ (2 * c) ∧
       memAt rd (chainT * (gen ^ c) ^ 2) 1 = sumE (List.zipWith (fun c l ↦
-        l.1 * c.fresh.bytecodeValue + l.2 * c.carried.bytecodeValue) (cs.take c)
+        l.1 * c.freshClaim.bytecodeValue + l.2 * c.carriedClaim.bytecodeValue) (cs.take c)
         (Batch.lambdaPowers lam c)) := by
   intro c
   induction c with
@@ -246,7 +246,7 @@ theorem weight_rows {absorb cpi cfresh lfT ccarried lcT wT chainT pt lam : E} {r
     (hpow : ∀ c < m, memAt rd (chainT * (gen ^ c) ^ 2) 0 = lam ^ (2 * c))
     (hpt : memRun rd pt 23 = r) (hz : memAt rd wT 0 = 0) :
     ∀ c ≤ m, memAt rd (wT * gen ^ c) 0 = sumE (List.zipWith (fun c l ↦
-      l.1 * eqEval c.fresh.bytecodePoint r + l.2 * eqEval c.carried.bytecodePoint r) (cs.take c)
+      l.1 * eqEval c.freshClaim.bytecodePoint r + l.2 * eqEval c.carriedClaim.bytecodePoint r) (cs.take c)
       (Batch.lambdaPowers lam c)) := by
   intro c
   induction c with
@@ -265,9 +265,9 @@ theorem weight_rows {absorb cpi cfresh lfT ccarried lcT wT chainT pt lam : E} {r
 
 /-! ## `aggregate_claims` -/
 
-theorem headCells_eq (m : ℕ) : Batch.headCells m = [gen ^ m, 0, 0, 0] := rfl
+theorem headCells_eq (m : ℕ) : Batch.childCountCells m = [gen ^ m, 0, 0, 0] := rfl
 
-theorem absorb_head (m : ℕ) : aggS0.absorbAll (Batch.headCells m) dsObserve =
+theorem absorb_head (m : ℕ) : aggS0.absorbAll (Batch.childCountCells m) dsObserve =
     ⟨capOf batchSeed, [gen ^ m, 0, 0, 0].map (·, dsObserve)⟩ := by
   rw [headCells_eq, absorbAll_short aggS0 _ dsObserve (by simp [aggS0])]
   rfl
@@ -278,7 +278,7 @@ noncomputable def aggRounds (rd : Reader) (σ : Val) : List (E × E) :=
 
 /-- **`aggregate_claims`' hints**, read off its valuation and the memory: the rounds at
 `bc_sumcheck_msgs`, the bytecode's value `bc_star_hint`. -/
-noncomputable def aggHints (rd : Reader) (σ : Val) : BatchHints := ⟨aggRounds rd σ, σ (.n 6)⟩
+noncomputable def aggHints (rd : Reader) (σ : Val) : BatchingHints := ⟨aggRounds rd σ, σ (.n 6)⟩
 
 theorem pairs_getD : ∀ (l : List (E × E)) (i : ℕ),
     (l.flatMap fun g => [g.1, g.2]).getD (2 * i) 0 = (l.getD i 0).1 ∧
@@ -310,7 +310,7 @@ theorem rounds_of_reads {rd : Reader} {p : E} {rounds : List (E × E)} {n : ℕ}
 
 /-- **`aggregate_claims`, its hints named**: on a valuation of its body (its calls under a
 relation below `coreProgram.Rel`), the meaning holds with the hints `aggHints rd σ`. -/
-def MeaningAggregateClaimsW (rd : Reader) (h : BatchHints) : List E → List E → Prop
+def MeaningAggregateClaimsW (rd : Reader) (h : BatchingHints) : List E → List E → Prop
   | [ncg, cpi, cfresh, ccarried, dst], rets => ∀ m, 1 ≤ m → m ≤ 16 → ncg = gen ^ m →
       rets = [] ∧ ∃ out : DeferredClaim,
         out.bytecodePoint.length = bytecodeVars ∧ ReadsAt rd dst out.cells ∧
@@ -396,7 +396,7 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (co
     obtain ⟨hcst, hld⟩ := hseed i hi
     rw [← seed_cells i hi, ← const_sound hcst hat, ← memAt_of_load (load_sound hld hat)]
     simp [rowCap, List.getD_eq_getElem?_getD, hi]
-  have hrow0 : RowRel rd (σ (.n 60)) (aggS0.absorbAll (Batch.headCells m) dsObserve) := by
+  have hrow0 : RowRel rd (σ (.n 60)) (aggS0.absorbAll (Batch.childCountCells m) dsObserve) := by
     rw [absorb_head, ← hcap0]
     refine rowRel_full (by simp) fun j hj => ?_
     obtain ⟨r1, r2⟩ := hrate j hj
@@ -414,12 +414,12 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (co
     · have := packOf_of (packIn_sound hp43 hat)
       rw [const_sound hc43 hat, word_zero] at this
       exact this
-  have hpend0 : (aggS0.absorbAll (Batch.headCells m) dsObserve).pend.length = 4 := by
+  have hpend0 : (aggS0.absorbAll (Batch.childCountCells m) dsObserve).pend.length = 4 := by
     rw [absorb_head]; rfl
   -- the absorbing rows
   obtain ⟨hrowm, -⟩ := absorb_rows hcl hcw L25 hrow0 hpend0 m le_rfl
-  rw [List.take_of_length_le (by omega), show Batch.headCells m ++ cs.flatMap Batch.childCells =
-    Batch.batchWords cs by rw [Batch.batchWords, hcl]] at hrowm
+  rw [List.take_of_length_le (by omega), show Batch.childCountCells m ++ cs.flatMap Batch.childCells =
+    Batch.cellsBeforeChallenge cs by rw [Batch.cellsBeforeChallenge, hcl]] at hrowm
   have hrow69 : RowRel rd (σ (.n 69)) (aggAbs cs) := by
     rw [monoIs_sound hm69 hat, hN]
     exact hrowm
@@ -468,7 +468,7 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (co
   have CH := chain_rows hcl hcw L25 L26 h111 h111z
   have p118 : σ (.n 118) = σ (.n 111) * (gen ^ m) ^ 2 := by
     rw [monoIs_sound hm118 hat, hN]
-  have hclaim : Batch.claimBOf cs (aggLam cs).1 = σ (.n 119) := by
+  have hclaim : Batch.batchedClaim cs (aggLam cs).1 = σ (.n 119) := by
     obtain ⟨-, hacc⟩ := CH m le_rfl
     rw [List.take_of_length_le (by omega)] at hacc
     rw [hagg, ← memAt_of_load (load_sound hl119 hat), p118, hacc]
@@ -493,7 +493,7 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (co
     rw [memAt_of_load (load_sound hl130 hat), const_sound hc130 hat, word_zero]
   have W := weight_rows hcl hcw L25 L27 (fun c hc => (CH c hc.le).1) hptr hz129 m le_rfl
   rw [List.take_of_length_le (by omega)] at W
-  have hw : Batch.bytecodeWeight cs (aggLam cs).1 (bsRun rounds (σ (.n 119))
+  have hw : Batch.batchedBytecodeWeight cs (aggLam cs).1 (bsRun rounds (σ (.n 119))
       ⟨[σ (.n 95), σ (.n 96), σ (.n 97), σ (.n 98), σ (.n 99)], []⟩).1.1 =
       σ (.n 135) := by
     rw [hagg, ← memAt_of_load (load_sound hl135 hat), isMul_sound hm134 hat, hN, W]

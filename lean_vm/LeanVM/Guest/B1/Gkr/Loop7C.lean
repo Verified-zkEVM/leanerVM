@@ -73,7 +73,7 @@ theorem rateOf_canonical {pend : List (E × ℕ)} (h : pend.length ≤ 4) : AllC
     · exact (scalarCells_canonical _ _).2
   · rw [List.eq_of_mem_replicate hc]; exact tb_zero_canonical
 
-theorem capOf_getD (S : KState) {k : ℕ} (hk : k < 5) :
+theorem capOf_getD (S : KeccakState) {k : ℕ} (hk : k < 5) :
     (capOf S).getD k 0 = cellsOfState S false ⟨8 + k, by omega⟩ := by
   interval_cases k <;> rfl
 
@@ -584,7 +584,7 @@ theorem lyc_children (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {cap
 /-- **The check and the two new coordinates**: the children's products check the last claim at
 the combiner; the sponge after the twelve children squeezes the two coordinates and leaves the
 capacity at `283 ..`. -/
-theorem lyc_check (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {P1 : KState}
+theorem lyc_check (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {P1 : KeccakState}
     (cp : ∀ i < 12, σ (.n (lyEv i + 10)) = σ (.n (lyEv i)))
     (hpk : ∀ i < 12, FsPackOk σ (.n (lyEv i)) (lyEv i + 1) dsObserve)
     (hcells : ∀ i < 12, (σ (.n (lyEv i + 7)), σ (.n (lyEv i + 9))) =

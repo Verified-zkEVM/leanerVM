@@ -75,29 +75,29 @@ theorem runT_pure_some {α : Type} {a b : α} {st st' : TSt}
   exact ⟨h.1.symm, h.2.symm⟩
 
 theorem runT_readE_some {s : Fs} {zs : List E} {os : List Opening} {R : List (Digest × ℕ × ℕ)}
-    {x : E} {st' : TSt} (h : runT Prog.readE ⟨s, zs, os, R⟩ = some (x, st')) :
+    {x : E} {st' : TSt} (h : runT Prog.readScalar ⟨s, zs, os, R⟩ = some (x, st')) :
     ∃ zs', zs = x :: zs' ∧ st' = ⟨s.absorb x dsObserve, zs', os, R⟩ := by
   cases zs with
-  | nil => simp [Prog.readE, runT] at h
+  | nil => simp [Prog.readScalar, runT] at h
   | cons z zs' =>
-    simp only [Prog.readE, runT, Option.some.injEq, Prod.mk.injEq] at h
+    simp only [Prog.readScalar, runT, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     exact ⟨zs', rfl, rfl⟩
 
 theorem runT_sampleE (st : TSt) :
-    runT Prog.sampleE st = some (st.sponge.squeeze.1, { st with sponge := st.sponge.squeeze.2 }) :=
+    runT Prog.sampleChallenge st = some (st.sponge.squeeze.1, { st with sponge := st.sponge.squeeze.2 }) :=
   rfl
 
 /-- `n` reads take the next `n` words, absorbed. -/
 theorem runT_readN_some : ∀ (n : ℕ) (s : Fs) (zs : List E) (os : List Opening)
     (R : List (Digest × ℕ × ℕ)) (xs : List E) (st' : TSt),
-    runT (Prog.readN n) ⟨s, zs, os, R⟩ = some (xs, st') →
+    runT (Prog.readScalars n) ⟨s, zs, os, R⟩ = some (xs, st') →
       ∃ rest, xs.length = n ∧ zs = xs ++ rest ∧ st' = ⟨s.absorbAll xs dsObserve, rest, os, R⟩
   | 0, s, zs, os, R, xs, st', h => by
     obtain ⟨rfl, rfl⟩ := runT_pure_some (a := ([] : List E)) h
     exact ⟨zs, rfl, rfl, rfl⟩
   | n + 1, s, zs, os, R, xs, st', h => by
-    simp only [Prog.readN] at h
+    simp only [Prog.readScalars] at h
     obtain ⟨x, st1, h1, h2⟩ := runT_bind_some h
     obtain ⟨zs1, rfl, rfl⟩ := runT_readE_some h1
     obtain ⟨ys, st2, h3, h4⟩ := runT_bind_some h2
@@ -107,11 +107,11 @@ theorem runT_readN_some : ∀ (n : ℕ) (s : Fs) (zs : List E) (os : List Openin
 
 /-- `n` samples squeeze `n` challenges. -/
 theorem runT_sampleN : ∀ (n : ℕ) (st : TSt),
-    runT (Prog.sampleN n) st = some ((st.sponge.squeezeN n).1,
+    runT (Prog.sampleChallenges n) st = some ((st.sponge.squeezeN n).1,
       { st with sponge := (st.sponge.squeezeN n).2 })
   | 0, ⟨s, zs, os, R⟩ => rfl
   | n + 1, st => by
-    simp only [Prog.sampleN, prog_bind_eq, runT_bind, runT_sampleE, Option.bind_some]
+    simp only [Prog.sampleChallenges, prog_bind_eq, runT_bind, runT_sampleE, Option.bind_some]
     rw [runT_sampleN n]
     rfl
 

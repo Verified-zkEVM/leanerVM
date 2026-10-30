@@ -83,12 +83,12 @@ theorem osTail_sound (hC : ∀ args rets, C "opening_fold" args rets → Meaning
     simp only [OsSt.quad, polyEval, List.foldr_cons, List.foldr_nil]
     ring
   -- the Spec's side
-  have h2 : RunsTo (Prog.sampleE.bind fun cc ↦ Prog.ret (([] ++ chs) ++ [cc],
+  have h2 : RunsTo (Prog.sampleChallenge.bind fun cc ↦ Prog.ret (([] ++ chs) ++ [cc],
       polyEval (f2.quad σ) cc)) (f2.F σ) ([] ++ []) (([] ++ chs) ++ [σ (.n (j + 42))],
       σ (.n (j + 47))) (f2.F σ).squeeze.2 := by
     rw [hchv, hclaim]
     exact RunsTo.bind' (runsTo_sampleE _) (runsTo_ret _ _)
-  have h3 := RunsTo.bind' (f := fun pp : WhirStateT × List E ↦ Prog.sampleE.bind fun cc ↦
+  have h3 := RunsTo.bind' (f := fun pp : WhirStateT × List E ↦ Prog.sampleChallenge.bind fun cc ↦
     Prog.ret (pp.2 ++ [cc], polyEval pp.1.quad cc)) hrun h2
   have e := tailRounds_eq n ws.target ws.quad ws.folds ws.glued []
   refine ⟨xs, chs ++ [σ (.n (j + 42))], (f2.F σ).squeeze.2, by rw [hxl], by simp [hcl, hn], hrd, ?_, ?_, ?_⟩

@@ -47,12 +47,12 @@ def laneCells (L : Fin 25 → K) (odd : Bool) (free : K) (c : Fin 13) : E :=
   E.ofLimbs (laneLimb L free (cellLanes odd c).1) (laneLimb L free (cellLanes odd c).2) 0
 
 /-- The state of the lanes `L`, each as a 64-bit lane. -/
-def laneState (L : Fin 25 → K) : KState := Vector.ofFn fun l ↦ (L l).lane
+def laneState (L : Fin 25 → K) : KeccakState := Vector.ofFn fun l ↦ (L l).lane
 
 /-- The lanes of a state, as `K` words. -/
-def stateLanes (S : KState) (l : Fin 25) : K := K.ofLane (Keccak.lane S l)
+def stateLanes (S : KeccakState) (l : Fin 25) : K := K.ofLane (Keccak.lane S l)
 
-theorem laneState_stateLanes (S : KState) : laneState (stateLanes S) = S := by
+theorem laneState_stateLanes (S : KeccakState) : laneState (stateLanes S) = S := by
   apply Vector.ext
   intro i hi
   simp [laneState, stateLanes, Keccak.lane, Array.getD_eq_getD_getElem?]
@@ -76,7 +76,7 @@ theorem stateOfCells_laneCells (L : Fin 25 → K) (odd : Bool) (free : K) :
 
 set_option maxHeartbeats 4000000 in
 /-- **The cells `KECCAK` writes** are the cells of the state's lanes, the free limb zero. -/
-theorem cellsOfState_eq_laneCells (S : KState) (odd : Bool) :
+theorem cellsOfState_eq_laneCells (S : KeccakState) (odd : Bool) :
     cellsOfState S odd = laneCells (stateLanes S) odd 0 := by
   funext c
   cases odd <;> fin_cases c <;> simp [cellsOfState, laneCells, cellLanes, laneLimb, stateLanes]
@@ -115,8 +115,8 @@ theorem laneCells_stateOfCells {cells : Fin 13 → E} (hc : ∀ c, IsCanonical12
 /-- **The deployed check implies the reduction-blind one**: the cells Keccak-f writes are
 canonical with their free limb zero. -/
 theorem canonicalKeccak_of_keccakCells {input output : Fin 13 → E} {inOdd outOdd : Bool}
-    (h : KeccakCells input inOdd output outOdd) : CanonicalKeccak input inOdd output outOdd := by
-  have ho : output = laneCells (stateLanes (keccakF (stateOfCells input inOdd))) outOdd 0 := by
+    (h : KeccakCellsRelation input inOdd output outOdd) : CanonicalKeccak input inOdd output outOdd := by
+  have ho : output = laneCells (stateLanes (keccakF1600 (stateOfCells input inOdd))) outOdd 0 := by
     funext c; rw [h.2 c, cellsOfState_eq_laneCells]
   refine ⟨h.1, fun c ↦ ?_, ?_⟩
   · rw [ho]; show (E.ofLimbs _ _ 0).limb 2 = 0; rw [limb_ofLimbs]; rfl
@@ -126,12 +126,12 @@ theorem canonicalKeccak_of_keccakCells {input output : Fin 13 → E} {inOdd outO
 
 /-- Segment `m` of Keccak-f[1600]: its rounds `12m` to `12m + 11` (the Keccak reduction's
 `KECCAK_DEPTH = 12`, `verifier.py:695`). -/
-def keccakSegment (m : ℕ) (a : KState) : KState :=
+def keccakSegment (m : ℕ) (a : KeccakState) : KeccakState :=
   ((keccakRC.drop (12 * m)).take 12).foldl Keccak.round a
 
 /-- **Keccak-f[1600] is its two segments.** -/
-theorem keccakF_eq_segments (a : KState) : keccakF a = keccakSegment 1 (keccakSegment 0 a) := by
-  unfold keccakF keccakSegment
+theorem keccakF_eq_segments (a : KeccakState) : keccakF1600 a = keccakSegment 1 (keccakSegment 0 a) := by
+  unfold keccakF1600 keccakSegment
   rw [← List.foldl_append]
   rfl
 
@@ -205,13 +205,13 @@ theorem readCells_eq_some_iff (read : K → Option E) (fp : K) (offset : Fin 13 
 
 /-- **`execute` of a `KECCAK`**: the thirteen cells read and the thirteen written exist, and the
 relation holds of them; the successor is the next instruction. -/
-theorem execute_keccak_eq_some_iff {κ : ℕ} (mem : MemImage κ) (r : Regs K) (om : Fin 4 → K)
-    (otail ob8 ocap oout : K) (inOdd outOdd : Bool) (next : Regs K) :
+theorem execute_keccak_eq_some_iff {κ : ℕ} (mem : MemoryImage κ) (r : Registers K) (om : Fin 4 → K)
+    (otail ob8 ocap oout : K) (inOdd outOdd : Bool) (next : Registers K) :
     execute mem r (.keccak om otail ob8 ocap oout inOdd outOdd) = some next ↔
       ∃ input output : Fin 13 → E,
         (∀ c, mem.read (r.fp * keccakInOffset om otail ob8 ocap c) = some (input c)) ∧
         (∀ c : Fin 13, mem.read (r.fp * (g ^ c.val * oout)) = some (output c)) ∧
-        KeccakCells input inOdd output outOdd ∧ next = r.next := by
+        KeccakCellsRelation input inOdd output outOdd ∧ next = r.next := by
   simp only [execute, executeWith, Option.bind_eq_bind, Option.bind_eq_some_iff]
   constructor
   · rintro ⟨input, hin, output, hout, u, hu, hn⟩

@@ -14,7 +14,7 @@ public import LeanVM.Protocol.Compile.Prover
 # The batching, run
 
 `Node.batch` is a `StateM Sponge` program. `batch_eq` unfolds it: the sponge after the label's
-seed absorbs the count and the children's words, each padded to a whole rate (`batchWords`), the
+seed absorbs the count and the children's words, each padded to a whole rate (`cellsBeforeChallenge`), the
 lambdas are the powers of one squeeze (`sqL`), and the sumcheck's rounds absorb the round's two
 values and squeeze its challenge (`rsRun`); the deferred claim is the challenges and the hinted
 value, if the final claim is the hinted value times the batched weight at the challenges.
@@ -30,13 +30,13 @@ open LeanVM.Protocol.Verifier LeanVM.Node
 /-! ## The sponge, in `Id` -/
 
 /-- Absorb a scalar the prover sent (tag `1`). -/
-abbrev obs (sp : Sponge) (x : E) : Sponge := absorbI keccakF sp x dsObserve
+abbrev obs (sp : Sponge) (x : E) : Sponge := absorbI keccakF1600 sp x dsObserve
 
 /-- Absorb scalars, in order. -/
 def obsAll (sp : Sponge) (xs : List E) : Sponge := xs.foldl obs sp
 
 /-- Squeeze a challenge: the challenge and the sponge after it. -/
-abbrev sq (sp : Sponge) : E × Sponge := squeezeI keccakF sp
+abbrev sq (sp : Sponge) : E × Sponge := squeezeI keccakF1600 sp
 
 theorem obsAll_append (sp : Sponge) (xs ys : List E) :
     obsAll sp (xs ++ ys) = obsAll (obsAll sp xs) ys := List.foldl_append ..
@@ -46,7 +46,7 @@ theorem sq_fst (sp : Sponge) : (sq sp).1 = challengeOf (sq sp).2.state := rfl
 /-! ## The transcript -/
 
 /-- The sponge after the batching's absorptions. -/
-def batchSponge (cs : List ChildClaims) : Sponge := obsAll ⟨batchSeed, []⟩ (batchWords cs)
+def batchSponge (cs : List ChildClaims) : Sponge := obsAll ⟨batchSeed, []⟩ (cellsBeforeChallenge cs)
 
 /-- One squeeze, its powers the lambdas of `n` children (`lambdaPowers`): the lambdas and the
 sponge after the squeeze. -/
@@ -62,7 +62,7 @@ theorem length_sqL (n : ℕ) (sp : Sponge) : (sqL n sp).1.length = n := length_l
 /-- One round: absorb its message, squeeze the challenge, fold the claim. -/
 def rsStep (st : E × Sponge) (g : E × E) : E × Sponge :=
   let sp := (sq (obsAll st.2 [g.1, g.2])).2
-  (roundPoly st.1 g (challengeOf sp.state), sp)
+  (sumcheckRoundPolynomial st.1 g (challengeOf sp.state), sp)
 
 /-- The rounds from `claim` at `sp`: the challenges, the final claim, the sponge after them. -/
 def rsRun : List (E × E) → E → Sponge → (List E × E) × Sponge
@@ -113,7 +113,7 @@ theorem batchRounds_run (rounds : List (E × E)) (claim : E) (sp : Sponge) :
   | cons g rest ih =>
     obtain ⟨g1, gInf⟩ := g
     show (fun q ↦ (((sq (obs (obs sp g1) gInf)).1 :: q.1.1, q.1.2), q.2))
-      (StateT.run (batchRounds (roundPoly claim (g1, gInf) (sq (obs (obs sp g1) gInf)).1) rest)
+      (StateT.run (batchRounds (sumcheckRoundPolynomial claim (g1, gInf) (sq (obs (obs sp g1) gInf)).1) rest)
         (sq (obs (obs sp g1) gInf)).2) = _
     rw [ih]
     rfl
@@ -140,7 +140,7 @@ theorem forIn_observe_run (xs : List E) (sp : Sponge) :
 
 theorem forIn_children_run (cs : List ChildClaims) (sp : Sponge) :
     (forIn cs PUnit.unit (fun c _ ↦ do
-        forIn (padRate c.words) PUnit.unit fun x _ ↦ do
+        forIn (padToRate c.words) PUnit.unit fun x _ ↦ do
           observe x
           pure (ForInStep.yield PUnit.unit)
         pure (ForInStep.yield PUnit.unit)) : Chain PUnit).run sp =
@@ -153,18 +153,18 @@ theorem forIn_children_run (cs : List ChildClaims) (sp : Sponge) :
     exact ih _
 
 /-- **`Node.batch` on the sponge.** -/
-theorem batch_eq (cs : List ChildClaims) (h : BatchHints) :
+theorem batch_eq (cs : List ChildClaims) (h : BatchingHints) :
     batch cs h =
       let L := sqL cs.length (batchSponge cs)
-      let R := rsRun h.bytecodeRounds (claimBOf cs L.1) L.2
-      if R.1.2 = h.bytecodeValue * bytecodeWeight cs L.1 R.1.1 then
-        some ⟨R.1.1, h.bytecodeValue⟩
+      let R := rsRun h.sumcheckMessages (batchedClaim cs L.1) L.2
+      if R.1.2 = h.finalBytecodeValue * batchedBytecodeWeight cs L.1 R.1.1 then
+        some ⟨R.1.1, h.finalBytecodeValue⟩
       else none := by
   simp only [batch, batch.go, StateT.run'_eq, StateT.run_bind, forIn_observe_run,
     forIn_children_run, sample_run, batchRounds_run]
-  rw [show batchSponge cs = obsAll (obsAll ⟨batchSeed, []⟩ (headCells cs.length))
+  rw [show batchSponge cs = obsAll (obsAll ⟨batchSeed, []⟩ (childCountCells cs.length))
     (cs.flatMap childCells) from obsAll_append _ _ _]
-  simp only [id_bind, id_map, id_pure, ite_run, StateT.run_pure, apply_ite Prod.fst, headCells]
+  simp only [id_bind, id_map, id_pure, ite_run, StateT.run_pure, apply_ite Prod.fst, childCountCells]
   rfl
 
 end

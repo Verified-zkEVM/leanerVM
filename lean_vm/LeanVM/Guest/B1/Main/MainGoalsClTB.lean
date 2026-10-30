@@ -66,12 +66,12 @@ theorem mainGoalClXTB (hL : Limits s w) {SB SK : String → ℕ}
     MainGoalClXTB fs cert fp seed s w SB SK := by
   have hn : s.claims.xmss.length < claimGroup * maxKeys := by
     have := hL.coverage
-    simp only [coverage] at this
+    simp only [coverageSlots] at this
     simp only [claimGroup, maxKeys]
     omega
   have e : (hOwn seed s w).getD 0 [] =
       s.claims.xmss.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
-        (xPlan s w).dups.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) := by
+        (xPlan s w).duplicates.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) := by
     rw [← List.flatMap_append]; rfl
   have hl := mf_length_flatMap (fun c : XmssClaim => claimCells c.1.root c.1.parameter c.2)
     (fun c => mf_claimCells_length c.1.root c.1.parameter c.2) s.claims.xmss
@@ -101,12 +101,12 @@ theorem mainGoalClSTB (hL : Limits s w) {SB SK : String → ℕ}
     MainGoalClSTB fs cert fp seed s w SB SK := by
   have hn : s.claims.sphincs.length < claimGroup * maxKeys := by
     have := hL.coverage
-    simp only [coverage] at this
+    simp only [coverageSlots] at this
     simp only [claimGroup, maxKeys]
     omega
   have e : (hOwn seed s w).getD 1 [] =
       s.claims.sphincs.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
-        (sPlan s w).dups.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) := by
+        (sPlan s w).duplicates.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) := by
     rw [← List.flatMap_append]; rfl
   have hl := mf_length_flatMap (fun c : SphincsClaim => claimCells c.1.root c.1.parameter c.2)
     (fun c => mf_claimCells_length c.1.root c.1.parameter c.2) s.claims.sphincs

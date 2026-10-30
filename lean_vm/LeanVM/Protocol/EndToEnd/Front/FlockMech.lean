@@ -84,12 +84,12 @@ variable {C : List Ev → Set β} {εmax T : ℝ≥0∞}
 
 /-- A prover's scalar keeps doom. -/
 noncomputable def doomRead (hst : Stable C) (A : β → Prop) (hT : T ≤ εmax) :
-    Spec Prog.readE (Doomed C A) (fun _ h ↦ Doomed C A h) εmax 0 T :=
+    Spec Prog.readScalar (Doomed C A) (fun _ h ↦ Doomed C A h) εmax 0 T :=
   Spec.readE (fun _ _ hd ↦ (Doomed.append hst rfl).mpr hd) hT
 
 /-- `n` prover scalars keep doom; the lead is `0` after at least one. -/
 noncomputable def doomReadN (hst : Stable C) (A : β → Prop) (hT : T ≤ εmax) :
-    (n : ℕ) → Spec (Prog.readN (n + 1)) (Doomed C A)
+    (n : ℕ) → Spec (Prog.readScalars (n + 1)) (Doomed C A)
       (fun xs h ↦ xs.length = n + 1 ∧ Doomed C A h) εmax 0 T
   | 0 => (doomRead hst A hT).bind' fun x ↦
       (Spec.ret (Post := fun xs h ↦ xs = [] ∧ Doomed C A h) []).mono
@@ -111,7 +111,7 @@ challenge makes it alive with average at most `e`. -/
 noncomputable def doomSample (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L₀)
     (A : β → Prop) (A' : E → β → Prop) (e : ℝ≥0∞)
     (hesc : ∀ q, ¬ A q → avgE (fun c ↦ indE (A' c q)) ≤ e) :
-    Spec Prog.sampleE (Doomed C A) (fun c h ↦ Doomed C (A' c) h) εmax (L₀ * e + T) T := by
+    Spec Prog.sampleChallenge (Doomed C A) (fun c h ↦ Doomed C (A' c) h) εmax (L₀ * e + T) T := by
   classical
   refine Spec.sampleE (L₀ * e) fun h₀ hd ↦ ?_
   rw [card_filter_eq_avgE]
@@ -128,7 +128,7 @@ noncomputable def doomSampleN (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L
     (A : List E → β → Prop) (e : ℕ → ℝ≥0∞)
     (hesc : ∀ acc q, ¬ A acc q → avgE (fun c ↦ indE (A (acc ++ [c]) q)) ≤ e acc.length) :
     (n : ℕ) → (acc : List E) →
-      Spec (Prog.sampleN n) (Doomed C (A acc))
+      Spec (Prog.sampleChallenges n) (Doomed C (A acc))
         (fun l h ↦ l.length = n ∧ Doomed C (A (acc ++ l)) h) εmax
         ((∑ i ∈ Finset.range n, L₀ * e (acc.length + i)) + T) T
   | 0, acc => (Spec.ret []).mono (fun _ h ↦ ⟨rfl, by simpa using h⟩) (fun _ _ h ↦ h) le_rfl

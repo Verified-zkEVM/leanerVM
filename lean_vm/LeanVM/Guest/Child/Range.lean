@@ -40,24 +40,24 @@ variable {α β : Type}
 
 /-- **A refining program's query steps are the refined one's.** -/
 theorem queriesOf_le {p q : Prog α} (hpq : Prog.Le p q) :
-    ∀ {st : St} {b}, b ∈ Limits.queriesOf p st → b ∈ Limits.queriesOf q st := by
+    ∀ {st : ProgState} {b}, b ∈ Limits.queryStepsOf p st → b ∈ Limits.queryStepsOf q st := by
   induction hpq with
-  | fail q => intro st b h; simp [Limits.queriesOf] at h
+  | fail q => intro st b h; simp [Limits.queryStepsOf] at h
   | ret a => intro st b h; exact h
   | read _ ih =>
     intro st b h
     obtain ⟨sp, stream, os, roots⟩ := st
     cases stream with
-    | nil => simp [Limits.queriesOf] at h
-    | cons x xs => simp only [Limits.queriesOf] at h ⊢; exact ih x h
-  | sample _ ih => intro st b h; simp only [Limits.queriesOf] at h ⊢; exact ih _ h
+    | nil => simp [Limits.queryStepsOf] at h
+    | cons x xs => simp only [Limits.queryStepsOf] at h ⊢; exact ih x h
+  | sample _ ih => intro st b h; simp only [Limits.queryStepsOf] at h ⊢; exact ih _ h
   | grind bits _ ih =>
     intro st b h
     obtain ⟨sp, stream, os, roots⟩ := st
     cases stream with
-    | nil => simp [Limits.queriesOf] at h
+    | nil => simp [Limits.queryStepsOf] at h
     | cons n xs =>
-      simp only [Limits.queriesOf] at h ⊢
+      simp only [Limits.queryStepsOf] at h ⊢
       split at h
       · next hpow => simp only [hpow, ↓reduceIte]; exact ih h
       · simp at h
@@ -65,17 +65,17 @@ theorem queriesOf_le {p q : Prog α} (hpq : Prog.Le p q) :
     intro st b h
     obtain ⟨sp, stream, os, roots⟩ := st
     match stream, h with
-    | [], h => simp [Limits.queriesOf] at h
-    | [_], h => simp [Limits.queriesOf] at h
+    | [], h => simp [Limits.queryStepsOf] at h
+    | [_], h => simp [Limits.queryStepsOf] at h
     | x0 :: x1 :: xs, h =>
-      simp only [Limits.queriesOf] at h ⊢
+      simp only [Limits.queryStepsOf] at h ⊢
       split at h
       · next root hroot => exact ih h
       · simp at h
   | query i ps _ ih =>
     intro st b h
     obtain ⟨sp, stream, os, roots⟩ := st
-    simp only [Limits.queriesOf] at h ⊢
+    simp only [Limits.queryStepsOf] at h ⊢
     cases hr : roots[i]? with
     | none => simp [hr] at h
     | some x =>
@@ -250,11 +250,11 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
     cases rest with
     | nil =>
       refine InRange.nc_bind (noCommit_readN _) fun _ _ ↦ ?_
-      refine InRange.nc_bind (p := Prog.grindP Whir.queryGrindingBits)
+      refine InRange.nc_bind (p := Prog.grindProofOfWork Whir.queryGrindingBits)
         ((noCommit_iff _).2 trivial) fun _ _ ↦ ?_
       refine InRange.nc_bind (p := sampleQueries _ level.queries)
         (noCommit_sampleQueriesAux _ _ _) fun queries hq ↦ ?_
-      refine InRange.nc_bind (p := Prog.sampleE) noCommit_sampleE fun lam _ ↦ ?_
+      refine InRange.nc_bind (p := Prog.sampleChallenge) noCommit_sampleE fun lam _ ↦ ?_
       refine ⟨fun q hqq ↦ ?_, fun words ↦ ?_⟩
       · rw [← hdepth]
         exact sampleQueriesAux_returns _ _ _ hq q hqq
@@ -265,7 +265,7 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
         exact (InRange.of_noCommit (noCommit_require _)).mono fun _ _ _ ↦ trivial
     | cons next rest' =>
       simp only [Prog.pure_eq, levelShape]
-      have hc : InRange (Prog.commitP (logN - s'.folds.length - next.fold + next.logInvRate)
+      have hc : InRange (Prog.readCommitment (logN - s'.folds.length - next.fold + next.logInvRate)
           (3 * 2 ^ next.fold)) hs
           (fun _ hs' ↦ hs' = hs ++ [logN - s'.folds.length - next.fold + next.logInvRate]) :=
         rfl
@@ -279,11 +279,11 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
       refine InRange.nc_bind (noCommit_sampleN _) fun _ _ ↦ ?_
       refine InRange.nc_bind noCommit_readE fun _ _ ↦ ?_
       refine InRange.nc_bind (noCommit_sumcheckRoundPoly _ _ _) fun _ _ ↦ ?_
-      refine InRange.nc_bind (p := Prog.grindP Whir.queryGrindingBits)
+      refine InRange.nc_bind (p := Prog.grindProofOfWork Whir.queryGrindingBits)
         ((noCommit_iff _).2 trivial) fun _ _ ↦ ?_
       refine InRange.nc_bind (p := sampleQueries _ level.queries)
         (noCommit_sampleQueriesAux _ _ _) fun queries hq ↦ ?_
-      refine InRange.nc_bind (p := Prog.sampleE) noCommit_sampleE fun lam _ ↦ ?_
+      refine InRange.nc_bind (p := Prog.sampleChallenge) noCommit_sampleE fun lam _ ↦ ?_
       refine ⟨fun q hqq ↦ ?_, fun words ↦ ?_⟩
       · rw [hgi, ← hdepth]
         exact sampleQueriesAux_returns _ _ _ hq q hqq

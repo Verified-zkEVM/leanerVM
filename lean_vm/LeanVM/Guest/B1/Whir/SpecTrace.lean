@@ -126,14 +126,14 @@ theorem nz_chain {c : OsCfg} {logN lane : ℕ} : ∀ (lvs : List OsLv) (cfg : Li
   | _ :: _ :: _, [], _, _, _, _, _, _, _, hok, _, _, _, _ => by simp [LevelsOk] at hok
   | _ :: _ :: _, [_], _, _, _, _, _, _, _, hok, _, _, _, _ => by simp [LevelsOk] at hok
 
-theorem start_absorb (S : KState) (c0 c2 : E) :
+theorem start_absorb (S : KeccakState) (c0 c2 : E) :
     (((⟨capOf S, []⟩ : Fs).absorb c0 dsObserve).absorb c2 dsObserve) =
       ⟨capOf S, [(c0, dsObserve), (c2, dsObserve)]⟩ := by
   simp [Fs.absorb, rateScalars]
 
 /-- **The honest trace of an accepting run with no zero challenge**, at a candidate's facts. -/
 theorem nz_trace {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg)
-    {target : E} {S : KState} {xs : List E} {os : List Opening} {root : Digest} {w : WhirEnd}
+    {target : E} {S : KeccakState} {xs : List E} {os : List Opening} {root : Digest} {w : WhirEnd}
     {s' : Fs} {roots' : List (Digest × ℕ × ℕ)}
     (hrun : RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s'
       roots')

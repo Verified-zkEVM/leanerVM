@@ -30,7 +30,7 @@ namespace LeanDa
 abbrev HDom := {a : List UInt8 // shortP a}
 
 /-- `H` on the short strings, as an oracle. -/
-abbrev XS := HDom →ₒ KDigest
+abbrev XS := HDom →ₒ DigestBytes
 
 section Hash
 
@@ -38,7 +38,7 @@ variable {ι : Type} {Ψ : OracleSpec ι}
 
 /-- **`H` as an oracle** among `Ψ + XS`: a query on a short string, `default` on a long one (the
 value `Hh h` gives it). -/
-def hS (a : List UInt8) : OracleComp (Ψ + XS) Common.KDigest :=
+def hS (a : List UInt8) : OracleComp (Ψ + XS) Common.DigestBytes :=
   if ha : shortP a then FreeM.lift (P := (Ψ + XS).toPFunctor) (.inr ⟨a, ha⟩) else pure default
 
 theorem simulateQ_col_hS (h : HTab) (a : List UInt8) :
@@ -52,18 +52,18 @@ def xCalls : ι ⊕ HDom → ℕ
   | .inr _ => 1
 
 theorem isWeightBound_hS (a : List UInt8) :
-    IsWeightBound (hS (Ψ := Ψ) a) xCalls 1 := by
+    QueryCostAtMost (hS (Ψ := Ψ) a) xCalls 1 := by
   unfold hS
   split
   · exact isWeightBound_query (spec := Ψ + XS) xCalls (.inr _)
   · exact isWeightBound_pure _ _ _
 
 theorem isWeightBound_liftL {α : Type} (z : OracleComp Ψ α) :
-    IsWeightBound (liftL (X := XS) z) xCalls 0 := by
+    QueryCostAtMost (liftL (X := XS) z) xCalls 0 := by
   induction z using OracleComp.inductionOn with
   | pure a => trivial
   | query_bind t k ih =>
-    change IsWeightBound ((liftM ((Ψ + XS).query (.inl t)) : OracleComp (Ψ + XS) _) >>= fun u ↦
+    change QueryCostAtMost ((liftM ((Ψ + XS).query (.inl t)) : OracleComp (Ψ + XS) _) >>= fun u ↦
       liftL (k u)) xCalls 0
     exact (isWeightBound_query_bind_iff _ _ _ _).mpr ⟨le_rfl, fun u ↦ ih u⟩
 
@@ -90,7 +90,7 @@ theorem simulateQ_col_finalCheck (h : HTab) (ab : List UInt8 × List UInt8) :
   · next hab => simp [hab]
 
 theorem isWeightBound_finalCheck (ab : List UInt8 × List UInt8) :
-    IsWeightBound (finalCheck ab) xCalls 2 := by
+    QueryCostAtMost (finalCheck ab) xCalls 2 := by
   unfold finalCheck
   split
   · exact ((isWeightBound_query (spec := unifSpec + XS) xCalls (.inr _)).bind fun _ ↦
@@ -101,10 +101,10 @@ theorem isWeightBound_finalCheck (ab : List UInt8 × List UInt8) :
 /-! ## Sampling the table lazily -/
 
 /-- The lazy world's oracles: coins, a random oracle of the roots (unused), and `H`. -/
-abbrev ESpec := EagerSpec (Common.KDigest →ₒ Challenges) (List UInt8) KDigest
+abbrev ESpec := EagerSpec (Common.DigestBytes →ₒ Challenges) (List UInt8) DigestBytes
 
 /-- Its cache. -/
-abbrev ECache := ((Common.KDigest →ₒ Challenges) + (List UInt8 →ₒ KDigest)).QueryCache
+abbrev ECache := ((Common.DigestBytes →ₒ Challenges) + (List UInt8 →ₒ DigestBytes)).QueryCache
 
 /-- The queries of `XS` as queries of `H`. -/
 def embE : QueryImpl (unifSpec + XS) (OracleComp ESpec)
@@ -143,7 +143,7 @@ theorem run_eagerImpl_embE (g : HTab) {α : Type} (Y : OracleComp (unifSpec + XS
 /-- **Sampling the table in advance is sampling `H` lazily**, for a computation querying `XS`. -/
 theorem uniform_col_evalDistEq {α : Type} (Y : OracleComp (unifSpec + XS) α) :
     (($ᵗ HTab : ProbComp HTab) >>= fun h ↦ simulateQ (col h) Y) =ᵈ
-      (simulateQ ((Common.KDigest →ₒ Challenges) + (List UInt8 →ₒ KDigest)).romImpl
+      (simulateQ ((Common.DigestBytes →ₒ Challenges) + (List UInt8 →ₒ DigestBytes)).romImpl
         (simulateQ embE Y)).run' ∅ := by
   refine EvalDistEq.symm ((run'_romImpl_evalDistEq_eager shortP _ ∅).trans ?_)
   refine EvalDistEq.bind_right _ fun g ↦ ?_
@@ -159,7 +159,7 @@ def eCalls : ESpec.Domain → ℕ
   | _ => 0
 
 theorem isWeightBound_embE {α : Type} {Y : OracleComp (unifSpec + XS) α} {N : ℕ}
-    (hY : IsWeightBound Y xCalls N) : IsWeightBound (simulateQ embE Y) eCalls N :=
+    (hY : QueryCostAtMost Y xCalls N) : QueryCostAtMost (simulateQ embE Y) eCalls N :=
   isWeightBound_simulateQ embE xCalls eCalls (fun t ↦ by
     rcases t with n | d
     · exact isWeightBound_query (spec := ESpec) eCalls (.inl n)
@@ -173,10 +173,10 @@ def HColE (c : ECache) : Prop :=
   ∃ a b, a ≠ b ∧ c (.inr a) ≠ none ∧ c (.inr a) = c (.inr b)
 
 /-- The `H` part of a cache, as a function. -/
-def eOf (c : ECache) (a : List UInt8) : KDigest := (c (.inr a)).getD default
+def eOf (c : ECache) (a : List UInt8) : DigestBytes := (c (.inr a)).getD default
 
 theorem romE_step (t : ESpec.Domain) (c : ECache) {z} (hz : z ∈ support
-    ((((Common.KDigest →ₒ Challenges) + (List UInt8 →ₒ KDigest)).romImpl t).run c)) :
+    ((((Common.DigestBytes →ₒ Challenges) + (List UInt8 →ₒ DigestBytes)).romImpl t).run c)) :
     z.2 = c ∨ (∃ d u, z.2 = c.cacheQuery (.inl d) u) ∨
       (∃ a u, t = .inr (.inr a) ∧ c (.inr a) = none ∧ z.2 = c.cacheQuery (.inr a) u) := by
   rcases t with n | t
@@ -197,11 +197,11 @@ theorem romE_step (t : ESpec.Domain) (c : ECache) {z} (hz : z ∈ support
       subst hz
       exact Or.inl rfl
 
-theorem cacheQuery_inl_inrE (c : ECache) (d : Common.KDigest) (u : Challenges) (a : List UInt8) :
+theorem cacheQuery_inl_inrE (c : ECache) (d : Common.DigestBytes) (u : Challenges) (a : List UInt8) :
     (c.cacheQuery (.inl d) u) (.inr a) = c (.inr a) :=
   QueryCache.cacheQuery_of_ne _ _ (by simp)
 
-theorem cacheQuery_inr_inrE (c : ECache) (a b : List UInt8) (u : KDigest) :
+theorem cacheQuery_inr_inrE (c : ECache) (a b : List UInt8) (u : DigestBytes) :
     (c.cacheQuery (.inr a) u) (.inr b) = if b = a then some u else c (.inr b) := by
   by_cases h : b = a
   · subst h; simp
@@ -210,11 +210,11 @@ theorem cacheQuery_inr_inrE (c : ECache) (a b : List UInt8) (u : KDigest) :
 
 /-- **The birthday bound in the lazy world**: at most `N` queries of `H` end with a collision in
 the cache with probability at most `N · N / 2^256`. -/
-theorem prob_hColE_le {α : Type} (Y : OracleComp ESpec α) (N : ℕ) (hY : IsWeightBound Y eCalls N) :
-    Pr{let z ← (simulateQ ((Common.KDigest →ₒ Challenges) + (List UInt8 →ₒ KDigest)).romImpl Y).run ∅}[
+theorem prob_hColE_le {α : Type} (Y : OracleComp ESpec α) (N : ℕ) (hY : QueryCostAtMost Y eCalls N) :
+    Pr{let z ← (simulateQ ((Common.DigestBytes →ₒ Challenges) + (List UInt8 →ₒ DigestBytes)).romImpl Y).run ∅}[
       HColE z.2] ≤ N * ((N : ℝ≥0∞) / 2 ^ 256) := by
   classical
-  have h := prEvent_run_bad_le ((Common.KDigest →ₒ Challenges) + (List UInt8 →ₒ KDigest)).romImpl HColE
+  have h := prEvent_run_bad_le ((Common.DigestBytes →ₒ Challenges) + (List UInt8 →ₒ DigestBytes)).romImpl HColE
     (fun c ↦ (eDom c).Finite) eCalls (fun c ↦ (eDom c).ncard) N ((N : ℝ≥0∞) / 2 ^ 256)
     ?_ ?_ ?_ Y N hY ∅ (by simp [eDom]) (by simp [eDom])
   · refine h.trans (le_of_eq ?_)
@@ -260,8 +260,8 @@ theorem prob_hColE_le {α : Type} (Y : OracleComp ESpec α) (N : ℕ) (hY : IsWe
     · rw [romImpl_inr_run]
       rcases h : c (.inr a) with _ | v
       · rw [roStep_of_none h, bind_pure_comp, prEvent_map]
-        let V : Finset KDigest := hc.toFinset.image (eOf c)
-        have hmem : ∀ u : KDigest, HColE (c.cacheQuery (.inr a) u) → u ∈ V := by
+        let V : Finset DigestBytes := hc.toFinset.image (eOf c)
+        have hmem : ∀ u : DigestBytes, HColE (c.cacheQuery (.inr a) u) → u ∈ V := by
           rintro u ⟨a₁, b₁, hne, h₁, he⟩
           simp only [cacheQuery_inr_inrE] at h₁ he
           by_cases ha₁ : a₁ = a
@@ -282,8 +282,8 @@ theorem prob_hColE_le {α : Type} (Y : OracleComp ESpec α) (N : ℕ) (hY : IsWe
           rw [← Set.ncard_eq_toFinset_card _ hc] at h1
           have h2 : (eDom c).ncard + 1 ≤ N := by simpa [eCalls] using hN
           exact_mod_cast (h1.trans (by omega))
-        calc Pr{let x ← ($ᵗ KDigest : ProbComp KDigest)}[HColE (c.cacheQuery (.inr a) x)]
-            ≤ Pr{let x ← ($ᵗ KDigest : ProbComp KDigest)}[x ∈ V] :=
+        calc Pr{let x ← ($ᵗ DigestBytes : ProbComp DigestBytes)}[HColE (c.cacheQuery (.inr a) x)]
+            ≤ Pr{let x ← ($ᵗ DigestBytes : ProbComp DigestBytes)}[x ∈ V] :=
               prEvent_mono _ _ _ fun u hu ↦ hmem u hu
           _ = V.card / 2 ^ 256 := by
               rw [SampleableType.prEvent_uniformSample, card_digest, Finset.filter_mem_eq_inter,
@@ -299,7 +299,7 @@ theorem prob_hColE_le {α : Type} (Y : OracleComp ESpec α) (N : ℕ) (hY : IsWe
 /-- **A winning final check leaves a collision in the cache.** -/
 theorem hColE_of_finalCheck {Z : OracleComp (unifSpec + XS) (List UInt8 × List UInt8)}
     {z : Bool × ECache}
-    (hz : z ∈ support ((simulateQ ((Common.KDigest →ₒ Challenges) + (List UInt8 →ₒ KDigest)).romImpl
+    (hz : z ∈ support ((simulateQ ((Common.DigestBytes →ₒ Challenges) + (List UInt8 →ₒ DigestBytes)).romImpl
       (simulateQ embE (Z >>= finalCheck))).run ∅)) (hwin : z.1 = true) : HColE z.2 := by
   rw [simulateQ_bind, simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hz
   obtain ⟨w, -, hz⟩ := hz
@@ -308,9 +308,9 @@ theorem hColE_of_finalCheck {Z : OracleComp (unifSpec + XS) (List UInt8 × List 
   · next hab =>
     simp only [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hz
     obtain ⟨x, hx, y, hy, hz⟩ := hz
-    change x ∈ support ((simulateQ ((Common.KDigest →ₒ Challenges) + (List UInt8 →ₒ KDigest)).romImpl
+    change x ∈ support ((simulateQ ((Common.DigestBytes →ₒ Challenges) + (List UInt8 →ₒ DigestBytes)).romImpl
       (liftM (ESpec.query (.inr (.inr w.1.1))))).run w.2) at hx
-    change y ∈ support ((simulateQ ((Common.KDigest →ₒ Challenges) + (List UInt8 →ₒ KDigest)).romImpl
+    change y ∈ support ((simulateQ ((Common.DigestBytes →ₒ Challenges) + (List UInt8 →ₒ DigestBytes)).romImpl
       (liftM (ESpec.query (.inr (.inr w.1.2))))).run x.2) at hy
     rw [simulateQ_spec_query, romImpl_inr_run] at hx hy
     obtain ⟨-, hx2⟩ := le_of_mem_support_roStep _ _ hx
@@ -328,11 +328,11 @@ theorem hColE_of_finalCheck {Z : OracleComp (unifSpec + XS) (List UInt8 × List 
 /-- **A collision finder of `N` queries of `H` on short strings, against a uniformly random table**:
 its final check wins with probability at most `(N + 2)² / 2^256`. -/
 theorem prob_collision_le (Z : OracleComp (unifSpec + XS) (List UInt8 × List UInt8)) (N : ℕ)
-    (hZ : IsWeightBound Z xCalls N) :
+    (hZ : QueryCostAtMost Z xCalls N) :
     Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= fun h ↦ simulateQ (col h) (Z >>= finalCheck)}[
       b = true] ≤ ((N + 2 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 256 := by
   rw [(uniform_col_evalDistEq _).prEvent_eq, StateT.run'_eq, prEvent_map]
-  have hW : IsWeightBound (Z >>= finalCheck) xCalls (N + 2) :=
+  have hW : QueryCostAtMost (Z >>= finalCheck) xCalls (N + 2) :=
     hZ.bind fun ab ↦ isWeightBound_finalCheck ab
   calc _ ≤ _ := prEvent_mono_of_support _ _ _ fun z hz hw ↦ hColE_of_finalCheck hz hw
     _ ≤ (N + 2 : ℕ) * (((N + 2 : ℕ) : ℝ≥0∞) / 2 ^ 256) :=

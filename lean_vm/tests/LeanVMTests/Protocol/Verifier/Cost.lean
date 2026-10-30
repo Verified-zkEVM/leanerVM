@@ -28,9 +28,9 @@ open LeanVM.Protocol.Compile.Rom LeanVM.Protocol.KeccakHash LeanVM.Semantics
 
 /-- A read, a commitment of height `3`, and an opening of two positions. -/
 def small : Prog Bool := do
-  let _ ← Prog.readE
-  Prog.commitP 3 1
-  let _ ← Prog.queryP 0 [5, 6]
+  let _ ← Prog.readScalar
+  Prog.readCommitment 3 1
+  let _ ← Prog.queryOpenings 0 [5, 6]
   return true
 
 /-- Its cost at height `3`, in quarters: `1 + 2 + 4 · 2 · (1 + 3) = 35`. -/
@@ -52,11 +52,11 @@ example : ¬ small.CostLE 3 34 := by
   exact absurd (h.1) (by decide)
 
 /-- A commitment taller than the height bound is refuted, whatever the budget. -/
-example (n : ℕ) : ¬ (Prog.commitP 5 1).CostLE 4 n := fun h ↦ absurd h.1 (by decide)
+example (n : ℕ) : ¬ (Prog.readCommitment 5 1).CostLE 4 n := fun h ↦ absurd h.1 (by decide)
 
 /-- An opening is charged one leaf and one level per position: two positions at height `3` cost
 `8` queries, `32` quarters, not `31`. -/
-example : ¬ (Prog.queryP 0 [0, 1]).CostLE 3 31 := fun h ↦ absurd h.1 (by decide)
+example : ¬ (Prog.queryOpenings 0 [0, 1]).CostLE 3 31 := fun h ↦ absurd h.1 (by decide)
 
 /-! ## The leanVM constants -/
 
@@ -105,9 +105,9 @@ def countingHash (x : Bytes) : StateM ℕ Digest := do
   return keccak256 x
 
 /-- Keccak-f[1600], counting its calls. -/
-def countingPerm (s : KState) : StateM ℕ KState := do
+def countingPerm (s : KeccakState) : StateM ℕ KeccakState := do
   modify (· + 1)
-  return keccakF s
+  return keccakF1600 s
 
 /-- The verdict and the number of queries of the compiled verifier on a stream. -/
 def countedRun (n : ℕ) : Bool × ℕ :=

@@ -115,7 +115,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
     (hmem : ∀ i < 16, ReadsAt rd (ofK (gpow (bs.getD i 0))) (S.ownW.getD i []))
     (hlp : ReadsAt rd (ofK (gpow lpE)) ((List.range 34).map fun j ↦ eOfNat (2 ^ j)))
     (hsq : ReadsAt rd (ofK (gpow sqE)) Tables.gSquaresList)
-    (hfx : ReadsAt rd (ofK (gpow outE)) (DeferredClaim.cells c.fresh))
+    (hfx : ReadsAt rd (ofK (gpow outE)) (DeferredClaim.cells c.freshClaim))
     (o0 : (outs.getD 0 ([], [])).1 = [gen ^ S.rate])
     (o1 : (outs.getD 1 ([], [])).1 = [gen ^ S.logMem])
     (o6 : (outs.getD 6 ([], [])).1 = S.H.retsH (S.vtB bs sqE))
@@ -169,7 +169,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
     have := ret 7 (by norm_num) 7 (by decide)
     rw [vsRetVars_runs.2.2.1 7 (by norm_num), o7, hK7] at this
     exact this
-  have e856 : σ (.n 856) = c.fresh.bytecodeValue := by
+  have e856 : σ (.n 856) = c.freshClaim.bytecodeValue := by
     have := ret 6 (by norm_num) 7 (by decide)
     rw [vsRetVars_runs.2.1 7 (by norm_num), o6] at this
     exact this
@@ -241,7 +241,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
   have elam : σ (.n 1323) = S.lam := by
     rw [ChildSegs.lam, ← es8, hL]
   -- the fixed cells
-  have hfx' : ReadsAt rd (σ (.n 6)) (S.point.take 19 ++ S.alphas ++ [c.fresh.bytecodeValue]) := by
+  have hfx' : ReadsAt rd (σ (.n 6)) (S.point.take 19 ++ S.alphas ++ [c.freshClaim.bytecodeValue]) := by
     rw [par 6 (by norm_num), hargs]
     have := hfx
     rw [DeferredClaim.cells, S.fresh_eq hbl] at this

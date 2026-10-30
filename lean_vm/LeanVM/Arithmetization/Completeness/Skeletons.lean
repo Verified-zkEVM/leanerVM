@@ -17,8 +17,8 @@ public import LeanVM.Semantics.Lemmas
 A row of an arithmetization table is a state and the instruction fetched at it. `Skel` is that pair,
 before any column is built from it: the witness of `Completeness.Witness` builds each table's rows
 from the skeletons of its opcode. The skeletons of a run are its states stepped from, the final
-state dropped (`Trace.runSkels`), and a table's rows are those of its opcode (`Skel.count`,
-`Trace.runRows`). The witness has no other rows: the rows of a table past its count are the
+state dropped (`Execution.runSkels`), and a table's rows are those of its opcode (`Skel.count`,
+`Execution.runRows`). The witness has no other rows: the rows of a table past its count are the
 protocol's padding rows, which are not on the bus (`doc/leanvm` §`sec:e2e-pad`).
 -/
 
@@ -37,11 +37,11 @@ structure Skel where
   ins : Instr
 
 /-- The state a skeleton is stepped from. -/
-def Skel.regs (s : Skel) : Regs K := ⟨s.pc, s.fp⟩
+def Skel.regs (s : Skel) : Registers K := ⟨s.pc, s.fp⟩
 
 /-- The skeletons of the run: the states stepped from, the final state dropped, each with the
 instruction fetched there. -/
-noncomputable def Trace.runSkels {prog : Program} (t : Trace prog) : List Skel :=
+noncomputable def Execution.runSkels {prog : Program} (t : Execution prog) : List Skel :=
   t.regs.dropLast.filterMap fun r ↦ (prog.fetch r.pc).map fun ins ↦ ⟨r.pc, r.fp, ins⟩
 
 /-- The rows of table `op` among the skeletons: those whose instruction has its opcode. -/
@@ -53,13 +53,13 @@ def Skel.count (op : Opcode) (l : List Skel) : ℕ := (Skel.onTable op l).length
 
 /-- The rows of opcode `op` in the run of `t`: the states stepped from, whose fetched instruction
 has that opcode. The final state is not stepped from, so it is dropped. -/
-noncomputable def Trace.runRows {prog : Program} (t : Trace prog) (op : Opcode) : ℕ :=
+noncomputable def Execution.runRows {prog : Program} (t : Execution prog) (op : Opcode) : ℕ :=
   (t.regs.dropLast.filter fun r ↦ (prog.fetch r.pc).map Instr.opcode = some op).length
 
 /-- The run's skeletons on a table are the run's rows of it. -/
-theorem Trace.count_runSkels {prog : Program} (t : Trace prog) (op : Opcode) :
+theorem Execution.count_runSkels {prog : Program} (t : Execution prog) (op : Opcode) :
     Skel.count op t.runSkels = t.runRows op := by
-  unfold Skel.count Skel.onTable Trace.runSkels Trace.runRows
+  unfold Skel.count Skel.onTable Execution.runSkels Execution.runRows
   generalize t.regs.dropLast = l
   induction l with
   | nil => rfl
@@ -70,19 +70,19 @@ theorem Trace.count_runSkels {prog : Program} (t : Trace prog) (op : Opcode) :
       by_cases ho : ins.opcode = op <;> simp [hf, ho, ih]
 
 /-- No table has more rows than the run has steps. -/
-theorem Trace.runRows_le_steps {prog : Program} {t : Trace prog} {rf : Regs K}
-    (h : run prog t.image t.steps Regs.initial = some rf) (op : Opcode) :
+theorem Execution.runRows_le_steps {prog : Program} {t : Execution prog} {rf : Registers K}
+    (h : run prog t.memory t.steps Registers.initial = some rf) (op : Opcode) :
     t.runRows op ≤ t.steps := by
-  unfold Trace.runRows
+  unfold Execution.runRows
   refine (List.length_filter_le _ _).trans ?_
-  rw [List.length_dropLast, Trace.regs_length h]
+  rw [List.length_dropLast, Execution.regs_length h]
   simp
 
-/-- Along a run that succeeds, `runCount` counts the states stepped from whose fetched instruction
+/-- Along a run that succeeds, `opcodeCountInRun` counts the states stepped from whose fetched instruction
 has opcode `op`. -/
-theorem runCount_eq_length {κ : ℕ} {prog : Program} {L : MemImage κ} (op : Opcode) {n : ℕ}
-    {r rf : Regs K} (h : run prog L n r = some rf) :
-    runCount prog L op n r = (((List.range n).filterMap fun m ↦ run prog L m r).filter
+theorem runCount_eq_length {κ : ℕ} {prog : Program} {L : MemoryImage κ} (op : Opcode) {n : ℕ}
+    {r rf : Registers K} (h : run prog L n r = some rf) :
+    opcodeCountInRun prog L op n r = (((List.range n).filterMap fun m ↦ run prog L m r).filter
       fun r₁ ↦ (prog.fetch r₁.pc).map Instr.opcode = some op).length := by
   induction n generalizing r with
   | zero => rfl
@@ -101,14 +101,14 @@ theorem runCount_eq_length {κ : ℕ} {prog : Program} {L : MemImage κ} (op : O
       funext m
       simp only [Function.comp, run_succ_of_ne_final hne, hs, Option.bind_eq_bind, Option.bind_some]
     rw [List.range_succ_eq_map, List.filterMap_cons, run_zero, htail]
-    simp only [runCount, hf, hs, ih hr']
+    simp only [opcodeCountInRun, hf, hs, ih hr']
     by_cases ho : ins.opcode = op <;> simp [hf, ho, Nat.add_comm]
 
 /-- The instructions of an opcode an execution executes are the rows of its table. -/
-theorem Trace.count_eq_runRows {prog : Program} {t : Trace prog} {rf : Regs K}
-    (h : run prog t.image t.steps Regs.initial = some rf) (op : Opcode) :
+theorem Execution.count_eq_runRows {prog : Program} {t : Execution prog} {rf : Registers K}
+    (h : run prog t.memory t.steps Registers.initial = some rf) (op : Opcode) :
     t.count op = t.runRows op := by
-  unfold Trace.count Trace.runRows Trace.regs
+  unfold Execution.count Execution.runRows Execution.regs
   rw [List.range_succ, List.filterMap_append]
   simp only [List.filterMap_cons, List.filterMap_nil, h, List.dropLast_concat]
   exact runCount_eq_length op h

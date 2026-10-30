@@ -12,7 +12,7 @@ digest `Dg`, capacity `C`), a padding `P` of messages `Msg` into rate blocks, an
 A *distinguisher* is an oracle computation `D : OracleComp (dSpec Msg Dg St) α` with three kinds
 of query (`dSpec`): uniform coins, the hash `H m`, and the permutation `π x`, `π⁻¹ y`.
 
-* **The real world** (`realGame`): `π` is the lazily sampled random permutation `lazyPerm`, and
+* **The real world** (`realGame`): `π` is the lazily sampled random permutation `lazyRandomPermutation`, and
   `H` is the sponge over it (`spongeWith P iv π`), sharing its state.
 * **The ideal world** (`idealGame`): `H` is a lazily sampled random oracle `Msg → Dg`
   (`romImpl`), and `π`, `π⁻¹` are answered by the simulator `simulator P`, which queries the
@@ -71,10 +71,10 @@ noncomputable def rootedAnswer (P : Padding Msg (Dg × E)) [P.Lawful] (β : List
 /-- **The simulator** (Bertoni et al., EUROCRYPT 2008): answers `π` and `π⁻¹` with oracle access
 to the random oracle `H`. -/
 noncomputable def simulator (P : Padding Msg (Dg × E)) [P.Lawful] :
-    QueryImpl (permSpec (SpState Dg E C))
+    QueryImpl (permutationOracleSpec (SpState Dg E C))
       (StateT (SimState Dg E C) (OracleComp (unifSpec + roSpec Msg Dg)))
-  | .fwd x => StateT.mk fun σ ↦
-      match fwdLookup σ.edges x with
+  | .forward x => StateT.mk fun σ ↦
+      match forwardLookup σ.edges x with
       | some y => pure (y, σ)
       | none =>
         match chainOf σ.chains x with
@@ -84,8 +84,8 @@ noncomputable def simulator (P : Padding Msg (Dg × E)) [P.Lawful] :
         | none => do
           let y ← (liftM ($ᵗ (SpState Dg E C)) : OracleComp (unifSpec + roSpec Msg Dg) _)
           pure (y, ⟨(x, y) :: σ.edges, σ.chains⟩)
-  | .inv y => StateT.mk fun σ ↦
-      match invLookup σ.edges y with
+  | .inverse y => StateT.mk fun σ ↦
+      match inverseLookup σ.edges y with
       | some x => pure (x, σ)
       | none => do
         let x ← (liftM ($ᵗ (SpState Dg E C)) : OracleComp (unifSpec + roSpec Msg Dg) _)

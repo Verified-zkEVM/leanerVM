@@ -96,7 +96,7 @@ theorem RetOK.bind_true {Q : β → Prop} {p : Prog α} {f : α → Prog β}
   (RetOK.true p).bind fun a _ ↦ hf a
 
 /-- `readN n` returns `n` scalars. -/
-theorem RetOK.readN : ∀ n : ℕ, RetOK (fun xs : List E ↦ xs.length = n) (Prog.readN n)
+theorem RetOK.readN : ∀ n : ℕ, RetOK (fun xs : List E ↦ xs.length = n) (Prog.readScalars n)
   | 0 => RetOK.ret rfl
   | n + 1 => RetOK.bind_true fun _ ↦ (RetOK.readN n).bind fun xs hxs ↦
       RetOK.ret (by simp [hxs])

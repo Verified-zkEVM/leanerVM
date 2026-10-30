@@ -210,7 +210,7 @@ theorem lane_stateOfCells (cells : Fin 13 → E) (odd : Bool) (l : Fin 25) :
 
 set_option maxHeartbeats 4000000 in
 /-- The cells `KECCAK` writes hold lane `l` where `lane_stateOfCells` reads it. -/
-theorem limb_cellsOfState (S : KState) (odd : Bool) (l : Fin 25) :
+theorem limb_cellsOfState (S : KeccakState) (odd : Bool) (l : Fin 25) :
     (cellsOfState S odd (laneCell odd l)).limb (laneLimb odd l) = K.ofLane (Keccak.lane S l) := by
   cases odd <;> fin_cases l <;> rfl
 
@@ -239,11 +239,11 @@ def blockBytes (odd : Bool) (blk : List E) : List UInt8 :=
   if odd then (cellsBytes blk).drop 8 else cellsBytes blk
 
 /-- The state with a block's seventeen lanes XORed into the rate: what `absorbBlock` permutes. -/
-def xorRate (S : KState) (block : List UInt8) : KState :=
+def xorRate (S : KeccakState) (block : List UInt8) : KeccakState :=
   Vector.ofFn fun i ↦ if i.val < 17 then Keccak.lane S i ^^^ leLane block i else Keccak.lane S i
 
-theorem absorbBlock_eq (S : KState) (block : List UInt8) :
-    absorbBlock S block = keccakF (xorRate S block) := rfl
+theorem absorbBlock_eq (S : KeccakState) (block : List UInt8) :
+    absorbBlock S block = keccakF1600 (xorRate S block) := rfl
 
 /-- Lane `l` of a block is where its cells hold it in the block's layout. -/
 theorem leLane_blockBytes (odd : Bool) (blk : List E) {l : ℕ} (hl : l < 17) :
@@ -257,7 +257,7 @@ theorem leLane_blockBytes (odd : Bool) (blk : List E) {l : ℕ} (hl : l < 17) :
 
 /-- **The cells of a state plus a block's nine cells hold the state with the block XORed into
 its rate**, in the block's layout. -/
-theorem stateOfCells_xor {S : KState} {odd : Bool} {blk : List E} {I : Fin 13 → E}
+theorem stateOfCells_xor {S : KeccakState} {odd : Bool} {blk : List E} {I : Fin 13 → E}
     (hI : ∀ c : Fin 13, I c = cellsOfState S odd c + if c.val < 9 then blk.getD c 0 else 0) :
     stateOfCells I odd = xorRate S (blockBytes odd blk) := by
   apply Vector.ext
@@ -276,15 +276,15 @@ theorem stateOfCells_xor {S : KState} {odd : Bool} {blk : List E} {I : Fin 13 �
 /-- **One `KECCAK` absorbs a block**: inputs that are the cells of `S` in the block's layout plus
 the block's nine cells (the capacity cells unchanged) permute to the cells of
 `absorbBlock S (blockBytes inOdd blk)`, in the output layout. -/
-theorem keccak_block {S : KState} {inOdd outOdd : Bool} {blk : List E} {I O : Fin 13 → E}
+theorem keccak_block {S : KeccakState} {inOdd outOdd : Bool} {blk : List E} {I O : Fin 13 → E}
     (hI : ∀ c : Fin 13, I c = cellsOfState S inOdd c + if c.val < 9 then blk.getD c 0 else 0)
-    (h : KeccakCells I inOdd O outOdd) :
+    (h : KeccakCellsRelation I inOdd O outOdd) :
     O = cellsOfState (absorbBlock S (blockBytes inOdd blk)) outOdd := by
   funext c
   rw [h.2 c, stateOfCells_xor hI, absorbBlock_eq]
 
 /-- **The cells `KECCAK` writes hold the state.** -/
-theorem stateOfCells_cellsOfState (S : KState) (odd : Bool) :
+theorem stateOfCells_cellsOfState (S : KeccakState) (odd : Bool) :
     stateOfCells (cellsOfState S odd) odd = S := by
   rw [cellsOfState_eq_laneCells, stateOfCells_laneCells, laneState_stateLanes]
 

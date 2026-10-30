@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.Rpm.Paths
 
-  The Keccak-256 evaluations a transcript holds (`transcriptPaths`, `Statement/LeanVm.lean`,
+  The Keccak-256 evaluations a transcript holds (`keccakEvaluationsOfTranscript`, `Statement/LeanVm.lean`,
   on lane states) are `common`'s (`Common.pathsOf`, on byte states) read on lanes.
 -/
 
@@ -11,7 +11,7 @@ import Statement.LeanVm
 /-!
 # The transcript's paths on lanes and on bytes
 
-`Statement/LeanVm.lean` replays a transcript on lane states (`Replay.step`): a chain's state
+`Statement/LeanVm.lean` replays a transcript on lane states (`TranscriptReplay.step`): a chain's state
 carries the bytes its path absorbed, a capacity is lanes `17 … 24`, a block the bytes of the
 rates' XOR, a path's message the one Keccak-256's padding (`padded`) takes to its bytes (`unpad`).
 `common` replays it on byte states (`Common.replayStep`: a chain carries its blocks, a capacity
@@ -26,16 +26,16 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 open LeanVM.Protocol.Compile
 
 /-- The simulator's bookkeeping on byte states. -/
-abbrev KSimB := Common.SimState Common.KDigest Common.KRest Common.KCap
+abbrev KSimB := Common.SimState Common.DigestBytes Common.KRest Common.KCap
 
 /-- **The sponge paths a transcript holds, on bytes**: `common`'s bookkeeping (`Common.pathsOf`)
 replayed on the bytes of the transcript's states. -/
-def transcriptPathsB (T : Transcript) : List (Bytes × Common.KDigest) :=
+def transcriptPathsB (T : PermutationTranscript) : List (Bytes × Common.DigestBytes) :=
   Common.pathsOf Common.keccakPadding Common.KState.zero
     (T.map fun e ↦ (permQueryToRpm e.1, KState.toRpm e.2))
 
 /-- The evaluation of `x` among byte paths, its digest read on lanes. -/
-def hashesOfB (P : List (Bytes × Common.KDigest)) (x : Bytes) : Option Digest :=
+def hashesOfB (P : List (Bytes × Common.DigestBytes)) (x : Bytes) : Option Digest :=
   (P.find? (·.1 = x)).map fun p ↦ Digest.ofRpm p.2
 
 /-! ## Bytes and lanes of a state -/
@@ -54,7 +54,7 @@ theorem getD_toBytes_cap (s : Common.KState) (j : ℕ) (hj : j < 64) :
   simp
 
 /-- **Two lane states share their bytes' capacity iff they share lanes `17 … 24`.** -/
-theorem cap_toRpm_iff (a b : KState) :
+theorem cap_toRpm_iff (a b : KeccakState) :
     (KState.toRpm a).2 = (KState.toRpm b).2 ↔ a.toList.drop 17 = b.toList.drop 17 := by
   constructor
   · intro h
@@ -85,7 +85,7 @@ theorem cap_toRpm_iff (a b : KState) :
     rw [e]
 
 /-- Byte `j` of the block that takes `toRpm s` to `toRpm x`: the XOR of their bytes `j`. -/
-theorem toBytes_blockTo_getD (s x : KState) (j : ℕ) (hj : j < 136) :
+theorem toBytes_blockTo_getD (s x : KeccakState) (j : ℕ) (hj : j < 136) :
     (Common.KBlock.toBytes (Common.blockTo (KState.toRpm s) (KState.toRpm x))).getD j 0 =
       (wordBytes (s[j / 8]'(by omega))).getD (j % 8) 0 ^^^
         (wordBytes (x[j / 8]'(by omega))).getD (j % 8) 0 := by
@@ -103,7 +103,7 @@ theorem toBytes_blockTo_getD (s x : KState) (j : ℕ) (hj : j < 136) :
     simp only [show 32 + (j - 32) = j by omega]
 
 /-- The bytes of the block that takes `toRpm s` to `toRpm x`: the bytes of their rates' XOR. -/
-theorem toBytes_blockTo (s x : KState) :
+theorem toBytes_blockTo (s x : KeccakState) :
     Common.KBlock.toBytes (Common.blockTo (KState.toRpm s) (KState.toRpm x)) =
       (List.range 17).flatMap fun i ↦ wordBytes (Keccak.lane s i ^^^ Keccak.lane x i) := by
   have hr : ((List.range 17).flatMap fun i ↦ wordBytes (Keccak.lane s i ^^^ Keccak.lane x i)) =
@@ -132,28 +132,28 @@ theorem digest_ofRpm (s : Common.KState) :
 
 /-! ## The padding -/
 
-theorem length_padded (m : Bytes) : (padded m).length = 136 * (m.length / 136 + 1) := by
-  simp only [padded, rate, List.length_append, List.length_take]
+theorem length_padded (m : Bytes) : (keccakPadded m).length = 136 * (m.length / 136 + 1) := by
+  simp only [keccakPadded, rate, List.length_append, List.length_take]
   rw [length_padBlock _ (by simp only [List.length_drop]; omega)]
   rw [Nat.min_eq_left (Nat.mul_div_le _ _)]
   ring
 
 /-- Keccak-256's padded bytes are `padded`. -/
-theorem keccakPadBytes_eq_padded (m : Bytes) : Common.keccakPadBytes m = padded m := by
+theorem keccakPadBytes_eq_padded (m : Bytes) : Common.keccakPadBytes m = keccakPadded m := by
   induction h : m.length / 136 generalizing m with
   | zero =>
     have hl : m.length < 136 := by omega
     rw [keccakPadBytes_eq_padBlock m hl]
-    simp [padded, rate, h]
+    simp [keccakPadded, rate, h]
   | succ n ih =>
     have hl : 136 ≤ m.length := by omega
     have hd : (m.drop 136).length / 136 = n := by rw [List.length_drop]; omega
     rw [keccakPadBytes_of_le m hl, ih _ hd]
-    simp only [padded, rate, h, hd]
+    simp only [keccakPadded, rate, h, hd]
     rw [show 136 * (n + 1) = 136 + 136 * n by ring, List.take_add, List.drop_drop,
       List.append_assoc]
 
-theorem padded_injective : Function.Injective padded := fun m m' h ↦ by
+theorem padded_injective : Function.Injective keccakPadded := fun m m' h ↦ by
   have := congrArg Common.stripPad h
   rwa [← keccakPadBytes_eq_padded, ← keccakPadBytes_eq_padded, Common.stripPad_keccakPadBytes,
     Common.stripPad_keccakPadBytes] at this
@@ -168,16 +168,16 @@ theorem padBlock_take (rest : Bytes) (h : rest.length < 136) :
       show rest.length ≠ j by omega, show (136 : ℕ) - 1 ≠ j by omega, rate]
   · rw [List.getElem?_eq_none (by omega)]
 
-theorem padded_prefix (m : Bytes) : (padded m).take m.length = m := by
+theorem padded_prefix (m : Bytes) : (keccakPadded m).take m.length = m := by
   have hk : 136 * (m.length / 136) ≤ m.length := Nat.mul_div_le _ _
-  simp only [padded, rate]
+  simp only [keccakPadded, rate]
   rw [List.take_append, List.take_of_length_le (by simp), List.length_take,
     Nat.min_eq_left hk,
     show m.length - 136 * (m.length / 136) = (m.drop (136 * (m.length / 136))).length by simp,
     padBlock_take _ (by simp; omega), List.take_append_drop]
 
 /-- **The decoder of `padded`.** -/
-theorem unpad_eq_some_iff (bs m : Bytes) : unpad bs = some m ↔ padded m = bs := by
+theorem unpad_eq_some_iff (bs m : Bytes) : keccakUnpadded bs = some m ↔ keccakPadded m = bs := by
   constructor
   · intro h
     have := List.find?_some h
@@ -194,7 +194,7 @@ theorem unpad_eq_some_iff (bs m : Bytes) : unpad bs = some m ↔ padded m = bs :
       · have : m.length < bs.length := by rw [hlen]; omega
         rw [show bs.length - 1 - (bs.length - 1 - m.length) = m.length by omega, ← h,
           padded_prefix]
-    obtain ⟨m', hm'⟩ : ∃ m', unpad bs = some m' :=
+    obtain ⟨m', hm'⟩ : ∃ m', keccakUnpadded bs = some m' :=
       Option.isSome_iff_exists.mp (List.find?_isSome.mpr ⟨m, hmem, by simp [h]⟩)
     have h' := List.find?_some hm'
     simp only [decide_eq_true_eq] at h'
@@ -222,7 +222,7 @@ theorem toBlocks_blocksToBytes (β : List Common.KBlock) :
 
 /-- **The decoder on bytes is `common`'s on blocks.** -/
 theorem unpad_blocksToBytes (β : List Common.KBlock) :
-    unpad (Common.blocksToBytes β) = Common.keccakUnpad β := by
+    keccakUnpadded (Common.blocksToBytes β) = Common.keccakUnpad β := by
   refine Option.ext fun m ↦ ?_
   rw [unpad_eq_some_iff]
   have hc := Common.Padding.unpad_eq_some_iff (P := Common.keccakPadding) β m
@@ -237,22 +237,22 @@ theorem unpad_blocksToBytes (β : List Common.KBlock) :
 /-! ## The two bookkeepings -/
 
 /-- The byte bookkeeping read on lanes: edges and chains' states on lanes, blocks as bytes. -/
-def replayOf (σ : KSimB) : Replay :=
+def replayOf (σ : KSimB) : TranscriptReplay :=
   ⟨projLog σ.edges, σ.chains.map fun p ↦ (KState.ofRpm p.1, Common.blocksToBytes p.2)⟩
 
 /-- **One step of the lane bookkeeping is one step of the byte bookkeeping, read on lanes.** -/
-theorem step_replayOf (σ : KSimB) (e : Common.PermQuery KState × KState) :
-    Replay.step (replayOf σ) e =
+theorem step_replayOf (σ : KSimB) (e : Common.PermutationQuery KeccakState × KeccakState) :
+    TranscriptReplay.step (replayOf σ) e =
       replayOf (Common.replayStep σ (permQueryToRpm e.1, KState.toRpm e.2)) := by
   obtain ⟨q, y⟩ := e
   cases q with
-  | fwd x =>
+  | forward x =>
     have hl := fwdLookup_logMap stateEquiv σ.edges x
     simp only [stateEquiv_apply] at hl
-    simp only [Replay.step, replayOf, permQueryToRpm, Common.replayStep, projLog, hl]
-    rcases hf : Common.fwdLookup σ.edges (KState.toRpm x) with _ | z
+    simp only [TranscriptReplay.step, replayOf, permQueryToRpm, Common.replayStep, projLog, hl]
+    rcases hf : Common.forwardLookup σ.edges (KState.toRpm x) with _ | z
     · simp only [Option.map_none, List.find?_map]
-      have hP : ((fun p : KState × Bytes ↦ decide (p.1.toList.drop 17 = x.toList.drop 17)) ∘
+      have hP : ((fun p : KeccakState × Bytes ↦ decide (p.1.toList.drop 17 = x.toList.drop 17)) ∘
           fun p : Common.KState × List Common.KBlock ↦ (KState.ofRpm p.1, Common.blocksToBytes p.2)) =
             fun p ↦ decide (p.1.2 = (KState.toRpm x).2) := by
         funext p
@@ -267,16 +267,16 @@ theorem step_replayOf (σ : KSimB) (e : Common.PermQuery KState × KState) :
           List.append_nil]
         rw [← toBytes_blockTo (KState.ofRpm s) x, toRpm_ofRpm]
     · simp
-  | inv y' =>
+  | inverse y' =>
     have hl := invLookup_logMap stateEquiv σ.edges y'
     simp only [stateEquiv_apply] at hl
-    simp only [Replay.step, replayOf, permQueryToRpm, Common.replayStep, projLog, hl]
-    rcases hf : Common.invLookup σ.edges (KState.toRpm y') with _ | z
+    simp only [TranscriptReplay.step, replayOf, permQueryToRpm, Common.replayStep, projLog, hl]
+    rcases hf : Common.inverseLookup σ.edges (KState.toRpm y') with _ | z
     · simp [logMap, ofRpm_toRpm]
     · simp
 
-theorem foldl_replayOf (T : Transcript) (σ : KSimB) :
-    T.foldl Replay.step (replayOf σ) =
+theorem foldl_replayOf (T : PermutationTranscript) (σ : KSimB) :
+    T.foldl TranscriptReplay.step (replayOf σ) =
       replayOf ((T.map fun e ↦ (permQueryToRpm e.1, KState.toRpm e.2)).foldl
         Common.replayStep σ) := by
   induction T generalizing σ with
@@ -288,25 +288,25 @@ theorem replayOf_init :
     replayOf (Common.SimState.init Common.KState.zero) = ⟨[], [(Vector.replicate 25 0, [])]⟩ := by
   simp [replayOf, Common.SimState.init, projLog, logMap, ofRpm_zero, Common.blocksToBytes]
 
-theorem foldl_replay (T : Transcript) :
-    T.foldl Replay.step ⟨[], [(Vector.replicate 25 0, [])]⟩ =
+theorem foldl_replay (T : PermutationTranscript) :
+    T.foldl TranscriptReplay.step ⟨[], [(Vector.replicate 25 0, [])]⟩ =
       replayOf (Common.replay Common.KState.zero
         (T.map fun e ↦ (permQueryToRpm e.1, KState.toRpm e.2))) := by
   rw [← replayOf_init, foldl_replayOf]
   rfl
 
-theorem transcriptPaths_def (T : Transcript) :
-    transcriptPaths T = (T.foldl Replay.step ⟨[], [(Vector.replicate 25 0, [])]⟩).chains.filterMap
-      fun p ↦ (unpad p.2).map fun m ↦ (m, #v[p.1[0], p.1[1], p.1[2], p.1[3]]) := rfl
+theorem transcriptPaths_def (T : PermutationTranscript) :
+    keccakEvaluationsOfTranscript T = (T.foldl TranscriptReplay.step ⟨[], [(Vector.replicate 25 0, [])]⟩).spongePaths.filterMap
+      fun p ↦ (keccakUnpadded p.2).map fun m ↦ (m, #v[p.1[0], p.1[1], p.1[2], p.1[3]]) := rfl
 
-theorem transcriptPathsB_def (T : Transcript) :
+theorem transcriptPathsB_def (T : PermutationTranscript) :
     transcriptPathsB T = (Common.replay Common.KState.zero
       (T.map fun e ↦ (permQueryToRpm e.1, KState.toRpm e.2))).chains.filterMap
         fun p ↦ (Common.keccakUnpad p.2).map fun m ↦ (m, p.1.1.1) := rfl
 
 theorem chains_paths (σ : KSimB) :
-    (replayOf σ).chains.filterMap
-        (fun p ↦ (unpad p.2).map fun m ↦ (m, #v[p.1[0], p.1[1], p.1[2], p.1[3]])) =
+    (replayOf σ).spongePaths.filterMap
+        (fun p ↦ (keccakUnpadded p.2).map fun m ↦ (m, #v[p.1[0], p.1[1], p.1[2], p.1[3]])) =
       (σ.chains.filterMap fun p ↦ (Common.keccakUnpad p.2).map fun m ↦ (m, p.1.1.1)).map
         fun p ↦ (p.1, Digest.ofRpm p.2) := by
   simp only [replayOf, List.filterMap_map, List.map_filterMap]
@@ -318,19 +318,19 @@ theorem chains_paths (σ : KSimB) :
   | some m => simp only [Option.map_some, digest_ofRpm]
 
 /-- **The transcript's paths on lanes are its paths on bytes**, their digests read on lanes. -/
-theorem transcriptPaths_eq (T : Transcript) :
-    transcriptPaths T = (transcriptPathsB T).map fun p ↦ (p.1, Digest.ofRpm p.2) := by
+theorem transcriptPaths_eq (T : PermutationTranscript) :
+    keccakEvaluationsOfTranscript T = (transcriptPathsB T).map fun p ↦ (p.1, Digest.ofRpm p.2) := by
   rw [transcriptPaths_def, transcriptPathsB_def, foldl_replay, chains_paths]
 
 /-- The evaluations of the lane paths are those of the byte paths. -/
-theorem hashesOf_transcriptPaths (T : Transcript) :
-    hashesOf (transcriptPaths T) = hashesOfB (transcriptPathsB T) := by
+theorem hashesOf_transcriptPaths (T : PermutationTranscript) :
+    lookupEvaluation (keccakEvaluationsOfTranscript T) = hashesOfB (transcriptPathsB T) := by
   funext x
-  rw [transcriptPaths_eq, hashesOf, hashesOfB, List.find?_map, Option.map_map]
+  rw [transcriptPaths_eq, lookupEvaluation, hashesOfB, List.find?_map, Option.map_map]
   rfl
 
-theorem transcriptPaths_fst (T : Transcript) :
-    (transcriptPaths T).map (·.1) = (transcriptPathsB T).map (·.1) := by
+theorem transcriptPaths_fst (T : PermutationTranscript) :
+    (keccakEvaluationsOfTranscript T).map (·.1) = (transcriptPathsB T).map (·.1) := by
   rw [transcriptPaths_eq, List.map_map]
   rfl
 

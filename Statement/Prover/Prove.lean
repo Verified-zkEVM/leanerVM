@@ -15,7 +15,7 @@ public import Statement.Prover.Whir
 
 `LeanVM.Prover.prove H F prog input t ρ fuel`: leanVM's honest prover, with the hash `H` and the
 permutation `F` in any monad. With Keccak-256 and Keccak-f[1600] in `Id` it is the executable
-(`lake exe leanvm-prove`); with the oracle calls `queryH`, `queryF` it is the prover the
+(`lake exe leanvm-prove`); with the oracle calls `callKeccak256`, `callKeccakF1600` it is the prover the
 completeness statements name (`LeanVm.lean`, `LeanVmGuest.lean`).
 
 From the trace it computes the witness (`witness?`: one run of the program; `none` unless the
@@ -54,8 +54,8 @@ def honestScript (W : Witness) (layout : Layout) (ρ : ℕ) : Script Unit :=
 /-- **leanVM's honest prover.** The proof of the execution `t` of `prog` on `input` at the rate
 `2^-ρ`, trying `fuel` nonces per proof of work; the empty proof for a trace that is no valid
 execution within the cap, an invalid rate, or a proof-of-work search that finds no nonce. -/
-def prove {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
-    (prog : Program) (input : PublicInput) (t : Trace prog) (ρ fuel : ℕ) : m Proof :=
+def prove {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
+    (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) : m Proof :=
   match witness? prog input t with
   | none => pure ⟨[], []⟩
   | some W =>

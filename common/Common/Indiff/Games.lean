@@ -67,9 +67,9 @@ noncomputable def val (P : Padding Msg (Dg × E)) [P.Lawful] (β : List (Dg × E
 
 /-- The real world over a random function instead of a random permutation. -/
 noncomputable def funImpl (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C) :
-    QueryImpl (dSpec Msg Dg (SpState Dg E C)) (StateT (PermLog (SpState Dg E C)) ProbComp)
+    QueryImpl (dSpec Msg Dg (SpState Dg E C)) (StateT (PermutationEdges (SpState Dg E C)) ProbComp)
   | .inl n => liftM (unifSpec.query n : ProbComp (Fin (n + 1)))
-  | .inr (.inl m) => spongeWith P iv (fun x ↦ lazyFun (.fwd x)) m
+  | .inr (.inl m) => spongeWith P iv (fun x ↦ lazyFun (.forward x)) m
   | .inr (.inr q) => lazyFun q
 
 /-! ## The simulator over path values -/
@@ -81,7 +81,7 @@ noncomputable def visFwd (P : Padding Msg (Dg × E)) [P.Lawful] (x u : SpState D
     (σ : SimState Dg E C) :
     OracleComp (unifSpec + aSpec Msg Dg E C)
       (SpState Dg E C × SimState Dg E C × Option (List (Dg × E) × SpState Dg E C)) :=
-  match fwdLookup σ.edges x with
+  match forwardLookup σ.edges x with
   | some y => pure (y, σ, none)
   | none =>
     match chainOf σ.chains x with
@@ -93,7 +93,7 @@ noncomputable def visFwd (P : Padding Msg (Dg × E)) [P.Lawful] (x u : SpState D
 
 /-- The simulator's inverse step with the uniform draw `u` for a fresh query. -/
 def visInv (y u : SpState Dg E C) (σ : SimState Dg E C) : SpState Dg E C × SimState Dg E C :=
-  match invLookup σ.edges y with
+  match inverseLookup σ.edges y with
   | some x => (x, σ)
   | none => (u, ⟨(u, y) :: σ.edges, σ.chains⟩)
 
@@ -104,11 +104,11 @@ noncomputable def idealTImpl (P : Padding Msg (Dg × E)) [P.Lawful] :
   | .inl n => liftM (liftM (unifSpec.query n : ProbComp (Fin (n + 1))) :
       OracleComp (unifSpec + aSpec Msg Dg E C) _)
   | .inr (.inl m) => liftM (hq (hs := aSpec Msg Dg E C) (.inl m))
-  | .inr (.inr (.fwd x)) => StateT.mk fun σ ↦ do
+  | .inr (.inr (.forward x)) => StateT.mk fun σ ↦ do
       let u ← drawSt
       let r ← visFwd P x u σ
       pure (r.1, r.2.1)
-  | .inr (.inr (.inv y)) => StateT.mk fun σ ↦ do
+  | .inr (.inr (.inverse y)) => StateT.mk fun σ ↦ do
       let u ← drawSt
       pure (visInv y u σ)
 
@@ -128,7 +128,7 @@ def usedPath (P : Padding Msg (Dg × E)) [P.Lawful] (VC : List (SpState Dg E C �
 /-- The state of the combined game. -/
 structure CState (Dg E C Msg : Type) where
   /-- The full view: every edge of the real world, newest first. -/
-  all : PermLog (SpState Dg E C)
+  all : PermutationEdges (SpState Dg E C)
   /-- The visible view: the simulator's state. -/
   sim : SimState Dg E C
   /-- The hashed messages, newest first. -/
@@ -146,13 +146,13 @@ def CState.init (iv : SpState Dg E C) : CState Dg E C Msg :=
 path so far and a uniform state are drawn; a recorded node keeps its value, a fresh node takes
 the path's value unless the path was already used, in which case it takes the uniform state. -/
 noncomputable def allWalk (P : Padding Msg (Dg × E)) [P.Lawful] (used : List (Dg × E) → Bool) :
-    List (Dg × E) → SpState Dg E C → PermLog (SpState Dg E C) → List (Dg × E) →
-      OracleComp (unifSpec + aSpec Msg Dg E C) (SpState Dg E C × PermLog (SpState Dg E C))
+    List (Dg × E) → SpState Dg E C → PermutationEdges (SpState Dg E C) → List (Dg × E) →
+      OracleComp (unifSpec + aSpec Msg Dg E C) (SpState Dg E C × PermutationEdges (SpState Dg E C))
   | _, s, A, [] => pure (s, A)
   | pre, s, A, B :: bs => do
     let v ← val P (pre ++ [B])
     let u ← drawSt
-    match fwdLookup A (absorb s B) with
+    match forwardLookup A (absorb s B) with
     | some y => allWalk P used (pre ++ [B]) y A bs
     | none =>
       let y := if used (pre ++ [B]) then u else v
@@ -174,16 +174,16 @@ def fwdOut (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C) (cs : CS
     (x u : SpState Dg E C)
     (r : SpState Dg E C × SimState Dg E C × Option (List (Dg × E) × SpState Dg E C)) :
     (SpState Dg E C × SpState Dg E C) × CState Dg E C Msg :=
-  let aR := match fwdLookup cs.all x with
+  let aR := match forwardLookup cs.all x with
     | some y => y
     | none => match r.2.2 with
       | some (β, v) => if usedPath P cs.sim.chains cs.hashed β then u else v
       | none => u
-  let all' := match fwdLookup cs.all x with
+  let all' := match forwardLookup cs.all x with
     | some _ => cs.all
     | none => (x, aR) :: cs.all
   ((aR, r.1), ⟨all', r.2.1, cs.hashed, cs.diff || decide (aR ≠ r.1),
-    cs.bad || ((fwdLookup cs.sim.edges x).isNone && decide (r.1.2 ∈ knownC iv cs.sim))⟩)
+    cs.bad || ((forwardLookup cs.sim.edges x).isNone && decide (r.1.2 ∈ knownC iv cs.sim))⟩)
 
 /-- The combined forward step: the real answer from the full view, the ideal answer from the
 simulator, with one shared uniform draw. -/
@@ -199,14 +199,14 @@ noncomputable def combFwd (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState D
 def invOut (iv : SpState Dg E C) (cs : CState Dg E C Msg) (y u : SpState Dg E C) :
     (SpState Dg E C × SpState Dg E C) × CState Dg E C Msg :=
   let r := visInv y u cs.sim
-  let aR := match invLookup cs.all y with
+  let aR := match inverseLookup cs.all y with
     | some x => x
     | none => u
-  let all' := match invLookup cs.all y with
+  let all' := match inverseLookup cs.all y with
     | some _ => cs.all
     | none => (u, y) :: cs.all
   ((aR, r.1), ⟨all', r.2, cs.hashed, cs.diff || decide (aR ≠ r.1),
-    cs.bad || ((invLookup cs.sim.edges y).isNone && decide (u.2 ∈ knownC iv cs.sim))⟩)
+    cs.bad || ((inverseLookup cs.sim.edges y).isNone && decide (u.2 ∈ knownC iv cs.sim))⟩)
 
 /-- The combined inverse step. -/
 noncomputable def combInv (iv : SpState Dg E C) (y : SpState Dg E C) :
@@ -218,7 +218,7 @@ noncomputable def combInv (iv : SpState Dg E C) (y : SpState Dg E C) :
 /-- The outcome of the combined hash step at `m`, given the end `w` of the full view's walk and the
 random oracle's digest `d`. -/
 def hashOut (cs : CState Dg E C Msg) (m : Msg)
-    (w : SpState Dg E C × PermLog (SpState Dg E C)) (d : Dg) :
+    (w : SpState Dg E C × PermutationEdges (SpState Dg E C)) (d : Dg) :
     (Dg × Dg) × CState Dg E C Msg :=
   ((w.1.1.1, d), ⟨w.2, cs.sim, m :: cs.hashed, cs.diff || decide (w.1.1.1 ≠ d), cs.bad⟩)
 
@@ -241,8 +241,8 @@ noncomputable def combStep (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState 
       OracleComp (unifSpec + aSpec Msg Dg E C) _)
     pure (u, u)
   | .inr (.inl m) => combHash P iv m
-  | .inr (.inr (.fwd x)) => combFwd P iv x
-  | .inr (.inr (.inv y)) => combInv iv y
+  | .inr (.inr (.forward x)) => combFwd P iv x
+  | .inr (.inr (.inverse y)) => combInv iv y
 
 /-- The combined game answering with the full view: the real world over random functions. -/
 noncomputable def combReal (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C) :
@@ -275,16 +275,16 @@ noncomputable def visImpl (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState D
       if pre then skel P [] (P.pad m) else pure ()
       let d ← hq (hs := aSpec Msg Dg E C) (.inl m)
       pure (d, (vs.1, m :: vs.2.1, vs.2.2))
-  | .inr (.inr (.fwd x)) => StateT.mk fun vs ↦ do
+  | .inr (.inr (.forward x)) => StateT.mk fun vs ↦ do
       let u ← drawSt
       let r ← visFwd P x u vs.1
       pure (r.1, (r.2.1, vs.2.1, vs.2.2 ||
-        ((fwdLookup vs.1.edges x).isNone && decide (r.1.2 ∈ knownC iv vs.1))))
-  | .inr (.inr (.inv y)) => StateT.mk fun vs ↦ do
+        ((forwardLookup vs.1.edges x).isNone && decide (r.1.2 ∈ knownC iv vs.1))))
+  | .inr (.inr (.inverse y)) => StateT.mk fun vs ↦ do
       let u ← drawSt
       let r := visInv y u vs.1
       pure (r.1, (r.2, vs.2.1, vs.2.2 ||
-        ((invLookup vs.1.edges y).isNone && decide (u.2 ∈ knownC iv vs.1))))
+        ((inverseLookup vs.1.edges y).isNone && decide (u.2 ∈ knownC iv vs.1))))
 
 end Setting
 

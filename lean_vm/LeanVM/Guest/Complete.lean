@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Complete
 
-  The completeness of the aggregation guest, stated, and assembled from its pieces: `NodeRel`
+  The completeness of the aggregation guest, stated, and assembled from its pieces: `NodeRelation`
   within the deployed limits, the caps agreeing, no zero challenge where the guest divides, and
   the node within a budget give a valid execution of the guest that fits the verifier.
 -/
@@ -20,7 +20,7 @@ public import Statement.LeanVmGuest
 # Completeness
 
 **The statement** (`GuestComplete budget`): for every seed, statement `s` and witness `w` with
-`NodeRel bytecode seed s w`, within the deployed limits (`Limits`), every child one the guest
+`NodeRelation bytecode seed s w`, within the deployed limits (`Limits`), every child one the guest
 accepts (`ChildrenOk`: its openings agreeing in the guest's Merkle caps, no zero challenge where
 the guest divides, ...) and the node within the budget (`budget s w ≤ 2^28`),
 there is a valid execution of the guest on the statement's digest whose committed size is at least
@@ -34,7 +34,7 @@ linear in the node's work (`Budget`: the words a run allocates and the instructi
 opcode it executes, each a constant plus a coefficient per declared claim, coverage slot, raw
 signature or blob, blob row, child and child's claim, and a function of each child's announced
 stack log and rate, the opening arm its `verify_sub` takes, `work s w`), at
-`Trace.committedSize`'s formula (`Budget.size`), so the final statement is
+`Execution.committedSize`'s formula (`Budget.size`), so the final statement is
 `GuestCompleteWithin b`.
 
 **The pieces** (`CompletePieces`, `guest_complete_of`). The memory is the honest memory of a call
@@ -104,7 +104,7 @@ structure Budget where
 that the committed size is at least `2^22` (`Guest/Pad.lean`). -/
 def padLog (words : ℕ) : ℕ := max (Memory.logMem words) 20
 
-/-- `Trace.committedSize`'s formula for a run of the guest allocating `words` words, on
+/-- `Execution.committedSize`'s formula for a run of the guest allocating `words` words, on
 `2^padLog words` of memory, and executing `instrs op` instructions of each opcode `op`. -/
 def sizeOf (words : ℕ) (instrs : Opcode → ℕ) : ℕ :=
   let height (op : Opcode) : ℕ := 2 ^ Nat.clog 2 (instrs op)
@@ -144,15 +144,15 @@ theorem words_le_of_size {b : Budget} {u : Work} (h : b.size u ≤ 2 ^ 28) :
 
 /-- The committed size of a run on `2^logMem n` words, padded to `2^padLog n`, is `sizeOf n` at
 its counts. -/
-theorem committedSize_pad_eq {n : ℕ} (L : MemImage (Memory.logMem n)) (steps : ℕ)
-    (hc : ∀ op, ((⟨_, L, steps⟩ : Trace guest).pad (padLog n)).count op =
-      (⟨_, L, steps⟩ : Trace guest).count op) :
-    ((⟨_, L, steps⟩ : Trace guest).pad (padLog n)).committedSize =
-      sizeOf n (⟨_, L, steps⟩ : Trace guest).count := by
-  have h := committedSize_pad (⟨_, L, steps⟩ : Trace guest) (padLog n) hc
-  have h2 : (⟨_, L, steps⟩ : Trace guest).committedSize + 4 * 2 ^ padLog n =
-      sizeOf n (⟨_, L, steps⟩ : Trace guest).count + 4 * 2 ^ Memory.logMem n := by
-    unfold Semantics.Trace.committedSize sizeOf
+theorem committedSize_pad_eq {n : ℕ} (L : MemoryImage (Memory.logMem n)) (steps : ℕ)
+    (hc : ∀ op, ((⟨_, L, steps⟩ : Execution guest).pad (padLog n)).count op =
+      (⟨_, L, steps⟩ : Execution guest).count op) :
+    ((⟨_, L, steps⟩ : Execution guest).pad (padLog n)).committedSize =
+      sizeOf n (⟨_, L, steps⟩ : Execution guest).count := by
+  have h := committedSize_pad (⟨_, L, steps⟩ : Execution guest) (padLog n) hc
+  have h2 : (⟨_, L, steps⟩ : Execution guest).committedSize + 4 * 2 ^ padLog n =
+      sizeOf n (⟨_, L, steps⟩ : Execution guest).count + 4 * 2 ^ Memory.logMem n := by
+    unfold Semantics.Execution.committedSize sizeOf
     simp only
     omega
   simp only at h
@@ -160,13 +160,13 @@ theorem committedSize_pad_eq {n : ℕ} (L : MemImage (Memory.logMem n)) (steps :
 
 /-! ## The statement -/
 
-/-- **Completeness**, the statement: a witness of `NodeRel` within the deployed limits, its
+/-- **Completeness**, the statement: a witness of `NodeRelation` within the deployed limits, its
 children's openings agreeing in the caps, no zero challenge where the guest divides, and the node
 within the budget give a valid execution of the guest on the statement's digest within the
 verifier's committed size. -/
 def GuestComplete (budget : NodeStatement → NodeWitness → ℕ) : Prop :=
-  ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → budget s w ≤ 2 ^ 28 →
-    ∃ t : Trace guest, ValidExecution guest (publicInputOf (statementDigest seed s)) t ∧
+  ∀ seed s w, NodeRelation bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → budget s w ≤ 2 ^ 28 →
+    ∃ t : Execution guest, ValidExecution guest (publicInputOf (statementDigest seed s)) t ∧
       2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28
 
 /-- **Completeness within a linear budget**, the final statement's form. -/
@@ -182,7 +182,7 @@ structure CompletePieces (fs : String → ℕ) (H : Memory.Inst → ℕ → E ×
   /-- B1 (`main`'s completeness at the bump allocator's `HeapBuf` pointers), `Program.Rel.tree`
   and the discharge of `Honest`: under the hypotheses, a call tree of `main`, honest with the
   statement's digest as `main`'s header, of cost within the node's budget. -/
-  honest : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → budget s w ≤ 2 ^ 28 →
+  honest : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → budget s w ≤ 2 ^ 28 →
     ∃ (rd : Reader) (T : Memory.Tree), T.name = "main" ∧
       Memory.HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
       cost T ≤ budget s w
@@ -192,13 +192,13 @@ structure CompletePieces (fs : String → ℕ) (H : Memory.Inst → ℕ → E ×
   its entry at `fp = 1` to the halting registers. -/
   b2 : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
     Memory.HonestAt coreProgram fs H C hdr T cert rd [] [] →
-      Reach guest (Memory.honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Regs.final guest)
+      Reach guest (Memory.honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Registers.final guest)
   /-- B2 (counting): a halting run on the honest memory, padded to `2^padLog` words, commits at
   most the tree's cost. -/
   size : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
     Memory.HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ n,
-      run guest (Memory.honest coreProgram fs H C hdr T) n Regs.initial = some (Regs.final guest) →
-        ((⟨_, Memory.honest coreProgram fs H C hdr T, n⟩ : Trace guest).pad
+      run guest (Memory.honest coreProgram fs H C hdr T) n Registers.initial = some (Registers.final guest) →
+        ((⟨_, Memory.honest coreProgram fs H C hdr T, n⟩ : Execution guest).pad
           (padLog (T.total fs))).committedSize ≤ cost T
 
 /-- **What completeness within the budget `b` rests on**: `CompletePieces` with the size split
@@ -208,7 +208,7 @@ structure CompletePiecesWithin (fs : String → ℕ) (H : Memory.Inst → ℕ �
     (C : Memory.Inst → List (ℕ × E)) (cert : String → V → ℕ) (cnt : Memory.Tree → Opcode → ℕ)
     (b : Budget) : Prop where
   /-- As `CompletePieces.honest`, the tree within the budget's words and instruction counts. -/
-  honest : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
+  honest : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
     ∃ (rd : Reader) (T : Memory.Tree), T.name = "main" ∧
       Memory.HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
       T.total fs ≤ b.words.eval (work s w) ∧ ∀ op, cnt T op ≤ (b.instrs op).eval (work s w)
@@ -217,13 +217,13 @@ structure CompletePiecesWithin (fs : String → ℕ) (H : Memory.Inst → ℕ �
   /-- As `CompletePieces.b2`. -/
   b2 : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
     Memory.HonestAt coreProgram fs H C hdr T cert rd [] [] →
-      Reach guest (Memory.honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Regs.final guest)
+      Reach guest (Memory.honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Registers.final guest)
   /-- B2 (counting): a halting run on the honest memory executes at most the tree's
   instructions of each opcode. -/
   count : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
     Memory.HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ n,
-      run guest (Memory.honest coreProgram fs H C hdr T) n Regs.initial = some (Regs.final guest) →
-        ∀ op, (⟨_, Memory.honest coreProgram fs H C hdr T, n⟩ : Trace guest).count op ≤ cnt T op
+      run guest (Memory.honest coreProgram fs H C hdr T) n Registers.initial = some (Registers.final guest) →
+        ∀ op, (⟨_, Memory.honest coreProgram fs H C hdr T, n⟩ : Execution guest).count op ≤ cnt T op
 
 theorem CompletePiecesWithin.pieces {fs : String → ℕ} {H : Memory.Inst → ℕ → E × E}
     {C : Memory.Inst → List (ℕ × E)} {cert : String → V → ℕ} {cnt : Memory.Tree → Opcode → ℕ}

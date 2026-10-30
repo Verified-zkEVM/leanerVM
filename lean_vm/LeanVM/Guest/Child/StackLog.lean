@@ -38,12 +38,12 @@ open Air.Flat (EnsembleWitness)
 
 /-- **The prover on a run of reads**: when the strategy sends `l` along the reads, the prover's
 stream starts with `l`. -/
-theorem proveFrom_readN {α : Type} (H : Bytes → Digest) (F : KState → KState) (S : Strategy)
+theorem proveFrom_readN {α : Type} (H : Bytes → Digest) (F : KeccakState → KeccakState) (S : Strategy)
     (fuel : ℕ) : ∀ (l : List E) (k : List E → Prog α) (sp : Sponge) (h : List Ev),
       (∀ i (hi : i < l.length), S.msg (h ++ (l.take i).map Ev.read) = l[i]) →
-      ∃ sp', proveFrom H F S fuel ((Prog.readN l.length).bind k) sp h =
+      ∃ sp', proveFrom H F S fuel ((Prog.readScalars l.length).bind k) sp h =
         (proveFrom H F S fuel (k l) sp' (h ++ l.map Ev.read)).map fun t ↦ (l ++ t.1, t.2)
-  | [], k, sp, h, _ => ⟨sp, by simp [Prog.readN]⟩
+  | [], k, sp, h, _ => ⟨sp, by simp [Prog.readScalars]⟩
   | x :: xs, k, sp, h, hS => by
     have h0 : S.msg h = x := by
       have := hS 0 (by simp)
@@ -53,9 +53,9 @@ theorem proveFrom_readN {α : Type} (H : Bytes → Digest) (F : KState → KStat
         have := hS (i + 1) (by simp; omega)
         simpa [List.take_succ_cons, List.append_assoc] using this)
     refine ⟨sp', ?_⟩
-    have hb : (Prog.readN (x :: xs).length).bind k =
-        Prog.read fun y ↦ (Prog.readN xs.length).bind fun ys ↦ k (y :: ys) := by
-      simp only [List.length_cons, Prog.readN, Prog.readE, Prog.bind_eq, Prog.bind_assoc,
+    have hb : (Prog.readScalars (x :: xs).length).bind k =
+        Prog.read fun y ↦ (Prog.readScalars xs.length).bind fun ys ↦ k (y :: ys) := by
+      simp only [List.length_cons, Prog.readScalars, Prog.readScalar, Prog.bind_eq, Prog.bind_assoc,
         Prog.pure_eq]
       rfl
     rw [hb, proveFrom, h0, e]
@@ -73,7 +73,7 @@ theorem msgAt_sendList {α : Type} : ∀ (l : List E) (f : Unit → Script α) (
 
 /-- The verifier program reads eight scalars first. -/
 theorem leanVmProgram_readN (bytecode : List K) (publicInput : Digest) :
-    ∃ k, leanVmProgram bytecode publicInput = (Prog.readN 8).bind k :=
+    ∃ k, leanVmProgram bytecode publicInput = (Prog.readScalars 8).bind k :=
   ⟨_, by
     simp only [leanVmProgram_eq, verifyExecutionClaims, readSizes, Prog.bind_eq, Prog.bind_assoc]
     rfl⟩
@@ -95,8 +95,8 @@ theorem honestProver_sendList (prog : Program) (s : Sizes) (ρ : ℕ)
   ⟨_, by simp only [honestProver, honestRun, Script.bind_eq, script_bind_assoc]; rfl⟩
 
 /-- **The honest proof's stream starts with the announcement.** -/
-theorem stream_prefix (H : Bytes → Digest) (F : KState → KState) {prog : Program} {s : Sizes}
-    {ρ : ℕ} {q : Column (leanIsaμ prog s)} {input : PublicInput} {sd : KState} {fuel : ℕ}
+theorem stream_prefix (H : Bytes → Digest) (F : KeccakState → KeccakState) {prog : Program} {s : Sizes}
+    {ρ : ℕ} {q : Column (leanIsaμ prog s)} {input : PublicInput} {sd : KeccakState} {fuel : ℕ}
     {π : Proof}
     (h : prove H F (leanVmProgram (bytecodeWords prog) (publicDigest input))
       (leanVmProver prog s ρ q) sd fuel = some π) :
@@ -122,7 +122,7 @@ theorem stream_prefix (H : Bytes → Digest) (F : KState → KState) {prog : Pro
 /-- **A program met by sends runs on them**: if the script sending `l` follows `p`, then `p` run
 on a stream starting with `l` returns a value the relation admits, the rest of the stream left. -/
 theorem run_of_follows_sendList {β : Type} {R : Commits → Unit → β → Prop}
-    (H : Bytes → Id Digest) (F : KState → Id KState) :
+    (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) :
     ∀ (l : List E) (p : Prog β) (cs : Commits), Follows R (Script.sendList l) p cs →
       ∀ (sp : Sponge) (rest : List E) (os : List Opening) (roots : List (Digest × ℕ × ℕ)),
         ∃ b sp', Compile.run H F p ⟨sp, l ++ rest, os, roots⟩ = some (b, ⟨sp', rest, os, roots⟩) ∧
@@ -153,11 +153,11 @@ theorem announced_honest {prog : Program} {s : Sizes} (hs : s.Admissible prog) {
 
 /-- **A child's honest proof announces a stack log of at least `22`** when the execution's
 committed size is at least `2^22`. -/
-theorem muMin_le_announced {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
+theorem muMin_le_announced {prog : Program} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
     {w : EnsembleWitness (leanIsaEnsemble prog)} {s : Sizes} (hc : ChildFor prog input t ρ w s)
     (h22 : 2 ^ 22 ≤ t.committedSize) (rest : List E) :
     ∀ layout r, announced (bytecodeWords prog) (announce s ρ ++ rest) = some (layout, r) →
-      Hints.muMin ≤ layout.stackLog := by
+      Hints.minChildStackLog ≤ layout.stackLog := by
   intro layout r h
   obtain ⟨⟨hρ, -, -, hadm, -⟩, htot⟩ := hc
   rw [announced_honest hadm hρ rest] at h

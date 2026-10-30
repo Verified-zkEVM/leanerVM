@@ -29,9 +29,9 @@ open LeanVM.Guest.Value.KeccakEval LeanVM.Guest.Value.Keccak LeanVM.Guest.Value
 /-! ## The evaluator -/
 
 /-- A state with every lane different. -/
-def s1 : KState := Vector.ofFn fun i ↦ (i.val * 0x9E3779B97F4A7C15 + 7).toUInt64
+def s1 : KeccakState := Vector.ofFn fun i ↦ (i.val * 0x9E3779B97F4A7C15 + 7).toUInt64
 
-#guard keccakFN (toNats s1) = toNats (keccakF s1)
+#guard keccakFN (toNats s1) = toNats (keccakF1600 s1)
 #guard keccakFN (toNats zeroState) = toNats keccakFZero
 
 /-- `n` message bytes. -/
@@ -46,9 +46,9 @@ def bytes (n : ℕ) : List UInt8 := (List.range n).map fun i ↦ (i * 37 + 11).t
 
 /-! ## The compiler's chain -/
 
-/-- One `KECCAK`: the cells `KeccakCells` makes it write (cells as lists, computed once). -/
+/-- One `KECCAK`: the cells `KeccakCellsRelation` makes it write (cells as lists, computed once). -/
 def perm (I : List E) (inOdd outOdd : Bool) : List E :=
-  List.ofFn (cellsOfState (keccakF (stateOfCells (fun c ↦ I.getD c 0) inOdd)) outOdd)
+  List.ofFn (cellsOfState (keccakF1600 (stateOfCells (fun c ↦ I.getD c 0) inOdd)) outOdd)
 
 /-- `emit_keccak_message` over the cells `P`, `B` blocks from the cells `st0`: block `k` reads the
 previous output plus the cells from `17k / 2`, the capacity unchanged. -/
@@ -121,7 +121,7 @@ def d1 : Digest := keccak256 (bytes 5)
 def d2 : Digest := keccak256 (bytes 9)
 
 #guard toNats (absorbChunks 1 zeroState (cellsBytes [(digestScalars d1).1, (digestScalars d1).2,
-  (digestScalars d2).1, (digestScalars d2).2])) = toNats (keccakF (Compile.seedInput d1 d2))
+  (digestScalars d2).1, (digestScalars d2).2])) = toNats (keccakF1600 (Compile.seedInput d1 d2))
 
 /-- Two waiting scalars, an observed one and a nonce. -/
 def pending : List (E × ℕ) :=
@@ -131,7 +131,7 @@ def pending : List (E × ℕ) :=
 -- `keccak_duplex`: the rate cells, then the capacity of `s1`'s cells.
 #guard perm (List.ofFn fun c : Fin 13 ↦
     if c.val < 8 then rateCell pending c else cellsOfState s1 false c) false false =
-  List.ofFn (cellsOfState (keccakF (Compile.duplexInput ⟨s1, pending⟩)) false)
+  List.ofFn (cellsOfState (keccakF1600 (Compile.duplexInput ⟨s1, pending⟩)) false)
 -- `rateCell_scalar` and `fs_pack`.
 #guard (rateCell pending 2, rateCell pending 3) = scalarCells (pending.getD 1 (0, 0)).1 4
 #guard let x := (pending.getD 0 (0, 0)).1
@@ -154,7 +154,7 @@ def pending : List (E × ℕ) :=
 example (a0 a1 b0 b1 : E) (I O : Fin 13 → E)
     (hI : I = LeanVM.Guest.Core.cells13 [a0, a1, b0, b1, LeanVM.Guest.word 1 0 0, 0, 0, 0,
       LeanVM.Guest.word 9223372036854775808 0 0, 0, 0, 0, 0])
-    (hK : KeccakCells I false O false) :
+    (hK : KeccakCellsRelation I false O false) :
     (O 0, O 1) = digestScalars (keccak256 (cellsBytes [a0, a1, b0, b1])) := by
   have := (keccak_one (cells := [a0, a1, b0, b1]) (len := 64) (by simp) (by decide)
     (getD_cellsBytes_of_le (by simp))
@@ -166,12 +166,12 @@ example (a0 a1 b0 b1 : E) (I O : Fin 13 → E)
   rwa [List.take_of_length_le (by simp)] at this
 
 -- `fs_pack(rate, 0, x, DS_OBSERVE)` then `keccak(rate[0:2], [0, 0], nxt, cap=sp)`.
-example (S : KState) (x c2 : E) (I O : Fin 13 → E) (hc2 : IsInK c2)
+example (S : KeccakState) (x c2 : E) (I O : Fin 13 → E) (hc2 : IsInK c2)
     (hI : I = LeanVM.Guest.Core.cells13 [x + y * y * c2, c2 + y * Verifier.eOfNat 1, 0, 0, 0, 0,
       0, 0, cellsOfState S false 8, cellsOfState S false 9, cellsOfState S false 10,
       cellsOfState S false 11, cellsOfState S false 12])
-    (hK : KeccakCells I false O false) :
-    O = cellsOfState (keccakF (Compile.duplexInput ⟨S, [(x, 1)]⟩)) false := by
+    (hK : KeccakCellsRelation I false O false) :
+    O = cellsOfState (keccakF1600 (Compile.duplexInput ⟨S, [(x, 1)]⟩)) false := by
   have hcan : IsCanonical128 (x + y * y * c2) := by
     have := hK.1 0; rwa [hI] at this
   obtain ⟨-, hpack⟩ := fsPack_cells x c2 1 hc2 hcan

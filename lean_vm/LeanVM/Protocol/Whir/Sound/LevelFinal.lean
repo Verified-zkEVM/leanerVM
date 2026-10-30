@@ -52,10 +52,10 @@ def finFinish (r : WhirStateT × List E) (residual : List E) (qs : List ℕ) (la
 
 /-- After the fold rounds of the final level. -/
 def finTail (r : WhirStateT × List E) : Prog Unit :=
-  (readN (2 ^ (μ - r.1.folds.length))).bind fun residual ↦
-  (grindP Whir.queryGrindingBits).bind fun _ ↦
+  (readScalars (2 ^ (μ - r.1.folds.length))).bind fun residual ↦
+  (grindProofOfWork Whir.queryGrindingBits).bind fun _ ↦
   (sampleQueries (μ - r.1.folds.length + level.logInvRate) level.queries).bind fun qs ↦
-  sampleE.bind fun lam ↦ (queryP i qs).bind fun words ↦
+  sampleChallenge.bind fun lam ↦ (queryOpenings i qs).bind fun words ↦
     finFinish μ ℓ₀ w i r residual qs lam words
 
 /-- The final level, unfolded. -/

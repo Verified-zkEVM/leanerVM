@@ -223,7 +223,7 @@ theorem levelRest_run {ml lvl : ℕ} {level : Whir.Level} {lf : List E} {ws : Wh
   rw [hF4] at h4
   have e : levelRest ml lvl level lf ws pending =
       (sampleQueries (ml + level.logInvRate) level.queries).bind fun queries ↦
-        Prog.sampleE.bind fun lam ↦ (Prog.queryP lvl queries).bind fun words ↦
+        Prog.sampleChallenge.bind fun lam ↦ (Prog.queryOpenings lvl queries).bind fun words ↦
           (sumcheckRoundPoly 3 (enforcedSum (words.map (specRow lvl)) lf
             (powers lam queries.length)) none).bind fun intro ↦
             Prog.ret (glueT lam ws (pending ++ [(enforcedSum (words.map (specRow lvl)) lf

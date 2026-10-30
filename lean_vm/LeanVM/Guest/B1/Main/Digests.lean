@@ -134,7 +134,7 @@ theorem statementDigest_parts {seed : Digest} {s : NodeStatement} {s0 s1 x0 x1 y
     (hx : digestBytes (claimListDigest s.claims.xmss) = cellsBytes [x0, x1])
     (hs : digestBytes (claimListDigest s.claims.sphincs) = cellsBytes [y0, y1])
     (hda : digestBytes s.claims.da = cellsBytes [d0, d1])
-    (hdef : s.defer.cells = defer) (hlen : defer.length = 24) :
+    (hdef : s.deferredClaim.cells = defer) (hlen : defer.length = 24) :
     statementDigest seed s = keccak256 (stmtBytes [s0, s1, x0, x1, y0, y1, d0, d1] defer) := by
   unfold statementDigest statementPreimage paddedCells stmtBytes
   rw [hseed, hx, hs, hda, hdef, hlen, cellsBytes_eight]
@@ -158,7 +158,7 @@ theorem deferOfCells_point {cells : List E} (hl : cells.length = 24) :
     (deferOfCells cells).bytecodePoint.length = bytecodeVars := by
   simp [deferOfCells, hl, bytecodeVars]
 
-theorem fixedOfCells_cells {f : FixedClaims} (hl : f.bytecodePoint.length = bytecodeVars) :
+theorem fixedOfCells_cells {f : BytecodeClaim} (hl : f.bytecodePoint.length = bytecodeVars) :
     fixedOfCells (DeferredClaim.cells f) = f := by
   have hb : bytecodeVars = 23 := rfl
   unfold fixedOfCells DeferredClaim.cells

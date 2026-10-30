@@ -120,7 +120,7 @@ theorem readAt {data : ProverData K} (hlog : (imageOf data).1 = 5) (hws : WellSh
     (imageOf data).2.read (gpow k) = some (E.ofLimbs v[0] v[1] v[2]) := by
   have hk' : k < 2 ^ (imageOf data).1 := by rw [hlog]; omega
   rw [show gpow k = gpow ((⟨k, hk'⟩ : Fin (2 ^ (imageOf data).1)) : ℕ) from rfl,
-    MemImage.read_gpow (by rw [hlog]; decide), imageOf_apply hws _ hv]
+    MemoryImage.read_gpow (by rw [hlog]; decide), imageOf_apply hws _ hv]
 
 /-- The word at `g^k` of the fixture's image. -/
 theorem read_at (k : ℕ) (v : Vector K 3) (hk : k < 32 := by decide)
@@ -189,15 +189,15 @@ reads nothing. Its counter plays no part. -/
 def bogusXor : XorRow K :=
   { xorRow with pc := gpow 2, oA := 0, oB := 0, oC := 0, vA := #v[0, 0, 0] }
 
-example (next : Regs K) : ¬ XorSpec bogusXor next tabData := by
+example (next : Registers K) : ¬ XorSpec bogusXor next tabData := by
   rintro ⟨⟨hA, -⟩, -⟩
-  rw [show bogusXor.fp * bogusXor.oA = 0 from mul_zero 1, MemImage.read_zero] at hA
+  rw [show bogusXor.fp * bogusXor.oA = 0 from mul_zero 1, MemoryImage.read_zero] at hA
   cases hA
 
 /-- A changed input limb: `execute` from the registers is unchanged, the bindings fail. -/
 def xorRow' : XorRow K := { xorRow with vA := #v[x0 + 1, x1, x2] }
 
-example (next : Regs K) : ¬ XorSpec xorRow' next tabData := by
+example (next : Registers K) : ¬ XorSpec xorRow' next tabData := by
   rintro ⟨⟨hA, -⟩, -⟩
   rw [show xorRow'.fp * xorRow'.oA = 1 * gpow 2 from rfl, one_mul, read_at 2 #v[x0, x1, x2]] at hA
   exact absurd (Option.some.inj hA) (by decide +kernel)
@@ -278,7 +278,7 @@ fails `SetRefines` and the constraints fail in every environment. (Whether the p
 this immediate at `g^2` is the bus's to check.) -/
 def setRow' : SetRow K := { setRow with k := #v[K.ofBits 7, K.ofBits 8, K.ofBits 10] }
 
-example (next : Regs K) : ¬ SetSpec setRow' next tabData := by
+example (next : Registers K) : ¬ SetSpec setRow' next tabData := by
   intro h
   obtain ⟨hk, -⟩ := (set_refines_iff _ _ _).mp h
   rw [show setRow'.fp * setRow'.o = 1 * gpow 6 from rfl, one_mul, read_at 6 #v[K.ofBits 7, K.ofBits 8, K.ofBits 9]] at hk
@@ -397,7 +397,7 @@ example : execute (imageOf tabData).2 ⟨invalidDeref.pc, invalidDeref.fp⟩
   deref_exec
 
 /-- …and fails `DerefSpec` for every successor: `(1, 1)` is no store mode's flags. -/
-example (next : Regs K) : ¬ DerefSpec invalidDeref next tabData := by
+example (next : Registers K) : ¬ DerefSpec invalidDeref next tabData := by
   rintro ⟨mode, ⟨hflags, -, -⟩, -⟩
   cases mode <;> exact absurd hflags (by decide +kernel)
 
@@ -561,7 +561,7 @@ theorem keccak_bindings : KeccakBindings (imageOf (dataOf kMem)).2 keccakRow fal
 /-- The permutation of the input lanes is the executor's, in one kernel evaluation of
 Keccak-f[1600]. -/
 theorem keccak_lanes :
-    ∀ l : Fin 25, stateLanes (keccakF (laneState keccakRow.inLanes)) l = kLout[l] := by
+    ∀ l : Fin 25, stateLanes (keccakF1600 (laneState keccakRow.inLanes)) l = kLout[l] := by
   decide +kernel
 
 /-- The named assumption holds of the honest row. -/
@@ -633,7 +633,7 @@ theorem keccak'_no_relation : ¬ KeccakRelation keccakRow' := by
   intro h
   exact absurd ((congrFun h 0).trans (keccak_lanes 0)) (by decide +kernel)
 
-example (next : Regs K) : ¬ KeccakSpec keccakRow' next (dataOf (kMemOf wrongLout)) := fun h ↦
+example (next : Registers K) : ¬ KeccakSpec keccakRow' next (dataOf (kMemOf wrongLout)) := fun h ↦
   keccak'_no_relation ((keccak_refines_iff _ _ _).mp h).2.1
 
 end LeanVMTests.Arithmetization.Tables

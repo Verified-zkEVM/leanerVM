@@ -50,7 +50,7 @@ open LeanVM.Guest.Value.KeccakEval
 /-! ## Keccak-f of the zero state -/
 
 /-- Keccak-f[1600] of the zero state. -/
-def keccakFZero : KState :=
+def keccakFZero : KeccakState :=
   #v[17376452488221285863, 9571781953733019530, 15391093639620504046, 13624874521033984333,
     10027350355371872343, 18417369716475457492, 10448040663659726788, 10113917136857017974,
     12479658147685402012, 3500241080921619556, 16959053435453822517, 12224711289652453635,
@@ -60,7 +60,7 @@ def keccakFZero : KState :=
     16929593379567477321]
 
 /-- **Keccak-f[1600] of the zero state**, the `KECCAK` table's padding row's output. -/
-theorem keccakF_zero : keccakF zeroState = keccakFZero := by
+theorem keccakF_zero : keccakF1600 zeroState = keccakFZero := by
   rw [keccakF_eq_iff]; decide +kernel
 
 /-! ## The batching seed (`AGG_SEED_*`) -/
@@ -70,15 +70,15 @@ def batchLabelDigest : Digest :=
   #v[3225554803577962359, 10440387594429029835, 3141269080130101615, 2858618447650156248]
 
 /-- The batching label's bytes. -/
-theorem batchLabel_eq : Node.batchLabel = [108, 101, 97, 110, 118, 109, 47, 114, 101, 99, 117, 114,
+theorem batchLabel_eq : Node.batchingLabel = [108, 101, 97, 110, 118, 109, 47, 114, 101, 99, 117, 114,
     115, 105, 111, 110, 45, 97, 103, 103, 114, 101, 103, 97, 116, 105, 111, 110, 47, 118, 49] := by
-  rw [Node.batchLabel, show "leanvm/recursion-aggregation/v1" = String.ofList ['l', 'e', 'a', 'n',
+  rw [Node.batchingLabel, show "leanvm/recursion-aggregation/v1" = String.ofList ['l', 'e', 'a', 'n',
       'v', 'm', '/', 'r', 'e', 'c', 'u', 'r', 's', 'i', 'o', 'n', '-', 'a', 'g', 'g', 'r', 'e', 'g',
       'a', 't', 'i', 'o', 'n', '/', 'v', '1'] from rfl,
     String.toUTF8_eq_toByteArray, String.toByteArray_ofList]
   decide +kernel
 
-theorem keccak256_batchLabel : keccak256 Node.batchLabel = batchLabelDigest := by
+theorem keccak256_batchLabel : keccak256 Node.batchingLabel = batchLabelDigest := by
   rw [batchLabel_eq, keccak256_eq_iff]; decide +kernel
 
 /-- The seed input of two digests, lane by lane. -/
@@ -90,7 +90,7 @@ theorem seedInput_eq (iv pi : Digest) :
   interval_cases i <;> simp [Compile.seedInput]
 
 /-- The batching transcript's initial state. -/
-def batchSeedValue : KState :=
+def batchSeedValue : KeccakState :=
   #v[9731470080330201434, 13021276346064953969, 17641262088094796327, 15385747579934674281,
     16767942838229146784, 1929300249522848364, 2670637271811230429, 15973221218815429819,
     3410770349630169017, 12695776346224436678, 784848704834098333, 12002339076772184942,
@@ -127,8 +127,8 @@ def daPadCellDigest : Digest :=
   #v[15569472805043175342, 18354418831448413762, 11782766640862828499, 15718207409690975807]
 
 /-- **LeanDA's padding cell digest.** -/
-theorem paddingCell_eq : LeanDa.paddingCell Da.keccak = LeanVM.Protocol.Digest.toBytes daPadCellDigest := by
-  rw [LeanDa.paddingCell, Da.keccak]
+theorem paddingCell_eq : LeanDa.paddingCell Da.keccak256Bytes = LeanVM.Protocol.Digest.toBytes daPadCellDigest := by
+  rw [LeanDa.paddingCell, Da.keccak256Bytes]
   refine congrArg LeanVM.Protocol.Digest.toBytes ?_
   rw [keccak256_eq_iff]; decide +kernel
 
@@ -145,8 +145,8 @@ def daPadRowDigest : Digest :=
   #v[4665334884586258498, 1553031596697948144, 7487832681283088925, 14683883899259534590]
 
 /-- **LeanDA's padding row digest.** -/
-theorem paddingRow_eq : LeanDa.paddingRow Da.keccak = LeanVM.Protocol.Digest.toBytes daPadRowDigest := by
-  rw [LeanDa.paddingRow, paddingCell_eq, Da.keccak]
+theorem paddingRow_eq : LeanDa.paddingRow Da.keccak256Bytes = LeanVM.Protocol.Digest.toBytes daPadRowDigest := by
+  rw [LeanDa.paddingRow, paddingCell_eq, Da.keccak256Bytes]
   refine congrArg LeanVM.Protocol.Digest.toBytes ?_
   rw [keccak256_eq_iff]; decide +kernel
 

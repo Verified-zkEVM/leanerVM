@@ -116,7 +116,7 @@ noncomputable def rdAt (rd : Reader) (p : E) (k : Nat) : E := (rd (p.limb 0 * gp
 
 /-- The outputs of a `KECCAK` of the words `ws`. -/
 def kecOut (ws : List E) (inOdd outOdd : Bool) (c : Nat) : E :=
-  if h : c < 13 then cellsOfState (keccakF (stateOfCells (cells13 ws) inOdd)) outOdd ⟨c, h⟩ else 0
+  if h : c < 13 then cellsOfState (keccakF1600 (stateOfCells (cells13 ws) inOdd)) outOdd ⟨c, h⟩ else 0
 
 /-- Limb `j` of a word, in `K`. -/
 def limbAt (x : E) (j : Nat) : E := if h : j < 3 then ofK (x.limb ⟨j, h⟩) else 0
@@ -175,7 +175,7 @@ def Good (rd : Reader) (S : List Atom) (w : Nat → E) (σ : Val) : Atom → Pro
       (if k.idx < y.idx then σ y = σ k * (σ x)⁻¹ else σ k = σ x * σ y)
   | .keccak ins outs i o => ins.length = 13 ∧ outs.length = 13 ∧
       ∀ c : Fin 13, cells13 (outs.map σ) c =
-        cellsOfState (keccakF (stateOfCells (cells13 (ins.map σ)) i)) o c
+        cellsOfState (keccakF1600 (stateOfCells (cells13 (ins.map σ)) i)) o c
   | .frameAddr p _ => σ p = w p.idx
   | .hint (.limbs v ds) => ∀ j (h : j < ds.length), σ ds[j] = limbAt (σ v) j
   | .hint (.inverse x d) => σ d = (σ x)⁻¹

@@ -229,16 +229,16 @@ theorem ret_ret {R : Commits → α → β → Prop} {a : α} {b : β} {cs : Com
 
 /-- Sending a scalar meets reading it. -/
 theorem sendE_readE (x : E) (cs : Commits) :
-    Follows (fun cs' _ b ↦ cs' = cs ∧ b = x) (Script.sendE x) Prog.readE cs := by
-  simp [Follows, Script.sendE, Prog.readE]
+    Follows (fun cs' _ b ↦ cs' = cs ∧ b = x) (Script.sendE x) Prog.readScalar cs := by
+  simp [Follows, Script.sendE, Prog.readScalar]
 
 /-- Sending a list meets reading as many scalars. -/
 theorem sendList_readN (cs : Commits) :
     ∀ (xs : List E), Follows (fun cs' _ b ↦ cs' = cs ∧ b = xs) (Script.sendList xs)
-      (Prog.readN xs.length) cs
-  | [] => by simp [Follows, Script.sendList, Prog.readN]
+      (Prog.readScalars xs.length) cs
+  | [] => by simp [Follows, Script.sendList, Prog.readScalars]
   | x :: xs => by
-    simp only [Script.sendList, List.length_cons, Prog.readN, Prog.readE, Prog.bind_eq,
+    simp only [Script.sendList, List.length_cons, Prog.readScalars, Prog.readScalar, Prog.bind_eq,
       Prog.bind, Follows]
     rw [← Script.bind_ret (Script.sendList xs)]
     exact bind (fun cs' _ b h ↦ by rcases h with ⟨rfl, rfl⟩; exact ⟨rfl, rfl⟩) _ _ _
@@ -246,16 +246,16 @@ theorem sendList_readN (cs : Commits) :
 
 /-- Receiving a challenge meets sampling it. -/
 theorem sampleE_sampleE (cs : Commits) :
-    Follows (fun cs' a b ↦ cs' = cs ∧ a = b) Script.sampleE Prog.sampleE cs := by
-  simp [Follows, Script.sampleE, Prog.sampleE]
+    Follows (fun cs' a b ↦ cs' = cs ∧ a = b) Script.sampleE Prog.sampleChallenge cs := by
+  simp [Follows, Script.sampleE, Prog.sampleChallenge]
 
 /-- Receiving `n` challenges meets sampling them. -/
 theorem sampleN_sampleN (cs : Commits) :
     ∀ n, Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ b.length = n) (Script.sampleN n)
-      (Prog.sampleN n) cs
-  | 0 => by simp [Follows, Script.sampleN, Prog.sampleN]
+      (Prog.sampleChallenges n) cs
+  | 0 => by simp [Follows, Script.sampleN, Prog.sampleChallenges]
   | n + 1 => by
-    simp only [Script.sampleN, Prog.sampleN]
+    simp only [Script.sampleN, Prog.sampleChallenges]
     refine bind_of (sampleE_sampleE cs) ?_
     rintro cs' a b ⟨rfl, rfl⟩
     refine bind_of (sampleN_sampleN cs' n) ?_
@@ -264,19 +264,19 @@ theorem sampleN_sampleN (cs : Commits) :
 
 /-- Passing a proof of work meets checking it. -/
 theorem grindS_grindP (bits : ℕ) (cs : Commits) :
-    Follows (fun cs' _ _ ↦ cs' = cs) Script.grindS (Prog.grindP bits) cs := by
-  simp [Follows, Script.grindS, Prog.grindP]
+    Follows (fun cs' _ _ ↦ cs' = cs) Script.grindS (Prog.grindProofOfWork bits) cs := by
+  simp [Follows, Script.grindS, Prog.grindProofOfWork]
 
 /-- Committing a word of the announced width meets reading the commitment. -/
 theorem commitS_commitP {ht w : ℕ} {W : Word} (hW : WellShaped w W) (cs : Commits) :
-    Follows (fun cs' _ _ ↦ cs' = cs ++ [(ht, w, W)]) (Script.commitS W) (Prog.commitP ht w) cs := by
-  simp [Follows, Script.commitS, Prog.commitP, hW]
+    Follows (fun cs' _ _ ↦ cs' = cs ++ [(ht, w, W)]) (Script.commitS W) (Prog.readCommitment ht w) cs := by
+  simp [Follows, Script.commitS, Prog.readCommitment, hW]
 
 /-- Receiving rows meets an opening answered from the commitments. -/
 theorem queryS_queryP {i : ℕ} {ps : List ℕ} {cs : Commits} {rows : List (List K)}
     (h : answerOf cs i ps = some rows) :
-    Follows (fun cs' a b ↦ cs' = cs ∧ a = rows ∧ b = rows) Script.queryS (Prog.queryP i ps) cs := by
-  simp [Follows, Script.queryS, Prog.queryP, h]
+    Follows (fun cs' a b ↦ cs' = cs ∧ a = rows ∧ b = rows) Script.queryS (Prog.queryOpenings i ps) cs := by
+  simp [Follows, Script.queryS, Prog.queryOpenings, h]
 
 /-- A `require` that holds is met by stopping. -/
 theorem ret_require {R : Commits → α → Unit → Prop} {a : α} {c : Prop} [Decidable c] {cs : Commits}

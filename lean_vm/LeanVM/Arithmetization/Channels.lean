@@ -46,7 +46,7 @@ channels rather than transcribing the tuples again (issue #13).
 says that when the bus balances, every count is nonzero, and there are fewer than `2^64 - 1`
 reads, every pulled memory tuple is a correct read of the committed image and every pulled
 bytecode tuple is an entry of the public program. What a pull may assume locally is the
-channel's `Guarantees`: `MemPull` states the whole lookup fact, `MemImage.read` of the image
+channel's `Guarantees`: `MemPull` states the whole lookup fact, `MemoryImage.read` of the image
 named by the prover data, since the image is committed and lives nowhere else; `BytecodePull`
 states only that the pulled entry decodes, through `decode`, to an instruction, a static fact
 about the tuple that names no program (the paragraph on the program below), which is all a table
@@ -78,7 +78,7 @@ sees: `memRows` is its `"mem"` table, one row of three limbs per word. `imageOf`
 a channel guarantee is a total proposition on arbitrary data, and so it normalises: it takes
 the *floor* logarithm of the table's row count, capped at the verifier's bound (`maxLogMem`),
 as its log-size, which drops the rows at indices from that power of two on whenever the count
-is not exactly it. The cap also keeps `κ < 64`, the hypothesis under which `MemImage.read`
+is not exactly it. The cap also keeps `κ < 64`, the hypothesis under which `MemoryImage.read`
 reads an address as an index (`gLog?_spec`), so `MemPull.Guarantees` means what it says on
 every data. `WellShapedData` is the shape under which the reading drops nothing (the row count
 is exactly a power of two within the cap, `wellShapedData_iff`), and `imageOf_apply` is its
@@ -139,7 +139,7 @@ namespace LeanVM.Semantics
 -- The state message is the semantics' register pair: `Regs K` evaluated, `Regs (Expression K)`
 -- in a row (specification §6.1). Derived in the structure's own namespace, where Clean's handler
 -- names its helpers after the structure.
-deriving instance ProvableStruct for Regs
+deriving instance ProvableStruct for Registers
 
 end LeanVM.Semantics
 
@@ -186,7 +186,7 @@ def memRows (data : ProverData K) : Array (Vector K 3) := data memDataName 3
 count, capped at `maxLogMem`, word `i` is row `i` as limbs `(c₀, c₁, c₂)`, and a missing row
 reads as `0`. Rows at indices from `2^κ` on are dropped; `WellShapedData` is the shape under
 which there are none. -/
-def imageOf (data : ProverData K) : (κ : ℕ) × MemImage κ :=
+def imageOf (data : ProverData K) : (κ : ℕ) × MemoryImage κ :=
   ⟨min (Nat.log 2 (memRows data).size) maxLogMem,
     fun i ↦ (((memRows data)[(i : ℕ)]?).map fun v ↦ E.ofLimbs v[0] v[1] v[2]).getD 0⟩
 
@@ -200,12 +200,12 @@ structure WellShapedData (data : ProverData K) : Prop where
 /-! ## The six channels -/
 
 /-- The state pull, separator `g^0`. No guarantee: a pulled state need not be reachable. -/
-def StatePull : Channel K Regs where
+def StatePull : Channel K Registers where
   name := "st.pull"
   Guarantees _ _ := True
 
 /-- The state push, separator `g^0`. -/
-def StatePush : Channel K Regs where
+def StatePush : Channel K Registers where
   name := "st.push"
   Guarantees _ _ := True
 
@@ -290,7 +290,7 @@ def busTuple (c : RawChannel K) (msg : List K) : Vector K 16 :=
 /-! ## Load-bearing lemmas -/
 
 /-- A state message flattens to `[pc, fp]` (specification §6.1). -/
-theorem regs_toElements (s : Regs K) : (toElements s).toList = [s.pc, s.fp] := by
+theorem regs_toElements (s : Registers K) : (toElements s).toList = [s.pc, s.fp] := by
   obtain ⟨pc, fp⟩ := s
   simp [circuit_norm, explicit_provable_type, ProvableStruct.toComponents]
 

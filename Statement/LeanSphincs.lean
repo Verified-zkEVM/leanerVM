@@ -32,9 +32,10 @@ root is not: `P` binds the key), the randomizer base `S ‖ m`.
 
 Then the SUF-CMA game of `Statement/RandomPermutation.lean` with the deterministic signer, the
 proved lifetimes (`Lifetimes.full`, `pruned20`, …, `pruned8`), and the end statement
-`Sphincs.Lifetimes.RequestedSecurityRpm`, proved by `Sphincs.Lifetimes.requestedSecurityRpm`
-(`lean_sphincs`). Its budget `Q` counts the honest signer's permutation calls too, at their worst
-case: about `2^35` per signature, so at the largest lifetime the bound is about `2^-62`.
+`Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable`, proved by
+`Sphincs.Lifetimes.requestedSecurityRpm` (`lean_sphincs`). Its budget `Q` counts the honest signer's
+permutation calls too, at their worst case: about `2^35` per signature, so at the largest lifetime
+the bound is about `2^-62`.
 -/
 
 @[expose] public section
@@ -770,7 +771,8 @@ open Common Common.SufCma
 variable [Params]
 
 /-- leanSPHINCS in the generic SUF-CMA game: the seed, key generation, the deterministic signer,
-the verifier, and the winning condition: a valid transcript without the forgery (`Contains`). -/
+the verifier, and the winning condition: a valid transcript without the forgery (`SignerReturned`).
+-/
 noncomputable def scheme :
     Scheme MasterSeed PublicKey Seeded.SecretKey Message (Option Signature)
       Forgery where
@@ -779,7 +781,7 @@ noncomputable def scheme :
   sign sk message := Seeded.sign (m := OracleComp HashSpec) sk message
   verify pk forgery := Concrete.verify (m := OracleComp HashSpec) pk forgery.message forgery.signature
   win log forgery :=
-    decide (SigningTranscript.Valid log ∧ ¬Contains id log forgery.message forgery.signature)
+    decide (SigningTranscript.Valid log ∧ ¬SignerReturned id log forgery.message forgery.signature)
 
 end Rpm
 
@@ -802,15 +804,15 @@ abbrev pruned8 : Params := ⟨8, 8830, by decide⟩
 /-- **leanSPHINCS in the random-permutation model, at every proved lifetime**: at each subtree
 height (`b` = 26, 20, 14, 13, 12, 10, 8, the instances `full`, `pruned20`, …, `pruned8` with
 their signature limits), an adversary whose game makes at most `Q` permutation calls,
-`Q ≥ 1`, forges with probability at most `(Q + 1) · 2^-127` (`RpmSecure` at 127 bits).
-`Q` counts every call on the game's worst path, the honest signer's included (`IsWeightBound` is
+`Q ≥ 1`, forges with probability at most `(Q + 1) · 2^-127` (`StronglyUnforgeable` at 127 bits).
+`Q` counts every call on the game's worst path, the honest signer's included (`QueryCostAtMost` is
 structural): a signature costs about `2^35` calls at `b = 26` (`2^32` encoding counters of three
 calls, `2^33.6`; `treePath` rebuilding the kept subtree, `2^33.9`; the grinding into the kept
 subtree is one call at `b = 26` and up to `2^32` below), so at the largest lifetime, `N ≈ 2^30.4` signatures, `Q ≥ 2^65` and the bound is about
 `2^-62`. Proved by `Sphincs.Lifetimes.requestedSecurityRpm`. -/
-abbrev RequestedSecurityRpm : Prop :=
+abbrev LeanSphincsStronglyUnforgeable : Prop :=
   ∀ P ∈ [full, pruned20, pruned14, pruned13, pruned12, pruned10, pruned8],
-    RpmSecure (@Rpm.scheme P) 127
+    StronglyUnforgeable (@Rpm.scheme P) 127
 
 end Lifetimes
 

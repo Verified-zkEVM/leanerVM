@@ -44,7 +44,7 @@ theorem keccakSeg_out {τ : ℕ} {inst out : List E} {s t : Fs} {xs : List E}
   obtain ⟨op, word, hk⟩ := keccakSeg_shape h hc
   obtain ⟨sp, hsp⟩ := hc
   obtain ⟨sp', -, e⟩ := h sp hsp [] [] []
-  have hr := Prog.returns_of_run keccak256 keccakF e
+  have hr := Prog.returns_of_run keccak256 keccakF1600 e
   unfold keccakSeg at hr
   obtain ⟨r, hr1, hr2⟩ := Prog.returns_bind hr
   obtain ⟨m, -, hr2⟩ := Prog.returns_bind hr2

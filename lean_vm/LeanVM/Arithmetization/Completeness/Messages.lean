@@ -62,7 +62,7 @@ theorem vec10_toList {F : Type} (v : Vector F 10) :
   interval_cases i <;> simp
 
 /-- A state message flattens to the array `[pc, fp]`, over any type of coordinates. -/
-theorem regs_toArray {F : Type} (s : Regs F) : (toElements s).toArray = #[s.pc, s.fp] := by
+theorem regs_toArray {F : Type} (s : Registers F) : (toElements s).toArray = #[s.pc, s.fp] := by
   obtain ⟨pc, fp⟩ := s
   simp [circuit_norm, explicit_provable_type, ProvableStruct.toComponents]
 

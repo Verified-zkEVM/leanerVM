@@ -67,7 +67,7 @@ example : keccak256 [0x61, 0x62, 0x63] = abcDigest := by decide +kernel
 /-! ## Keccak-f[1600] -/
 
 /-- The zero state's image. -/
-def keccakFZero : KState :=
+def keccakFZero : KeccakState :=
   #v[0xf1258f7940e1dde7, 0x84d5ccf933c0478a, 0xd598261ea65aa9ee, 0xbd1547306f80494d,
     0x8b284e056253d057, 0xff97a42d7f8e6fd4, 0x90fee5a0a44647c4, 0x8c5bda0cd6192e76,
     0xad30a6f71b19059c, 0x30935ab7d08ffc64, 0xeb5aa93f2317d635, 0xa9a6e6260d712103,
@@ -76,11 +76,11 @@ def keccakFZero : KState :=
     0x940c7922ae3a2614, 0x1841f924a2c509e4, 0x16f53526e70465c2, 0x75f644e97f30a13b,
     0xeaf1ff7b5ceca249]
 
-#guard keccakF (Vector.replicate 25 0) = keccakFZero
+#guard keccakF1600 (Vector.replicate 25 0) = keccakFZero
 
-example : keccakF (Vector.replicate 25 0) = keccakFZero := by decide +kernel
+example : keccakF1600 (Vector.replicate 25 0) = keccakFZero := by decide +kernel
 
-#guard keccakF (Vector.ofFn fun i ↦ i.val.toUInt64) =
+#guard keccakF1600 (Vector.ofFn fun i ↦ i.val.toUInt64) =
   #v[0x8374b05252ed8115, 0x1df7a676b6569400, 0xf765194b8a51797d, 0x20477b43d1760545,
     0xd15f8ba4f3f6606a, 0xa1d7144f7c8dd493, 0x30d193965138fd3f, 0x487e9472951be3be,
     0x0cf3a858cbda7a5a, 0x2fe54e389bb17f88, 0x0b7338de0d9f268f, 0x55efdff58b256d7f,

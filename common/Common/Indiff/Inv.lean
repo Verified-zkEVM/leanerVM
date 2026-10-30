@@ -138,33 +138,33 @@ theorem mem_prefixesOf {bs β : List (Dg × E)} :
   · rintro ⟨i, hi, rfl⟩; exact ⟨i, hi, rfl⟩
 
 /-- A forward lookup finds the output of a recorded edge whose input is unique. -/
-theorem fwdLookup_eq_some_of_mem {A : PermLog (SpState Dg E C)} {x y : SpState Dg E C}
-    (h : (x, y) ∈ A) (huniq : ∀ e ∈ A, e.1 = x → e.2 = y) : fwdLookup A x = some y := by
+theorem fwdLookup_eq_some_of_mem {A : PermutationEdges (SpState Dg E C)} {x y : SpState Dg E C}
+    (h : (x, y) ∈ A) (huniq : ∀ e ∈ A, e.1 = x → e.2 = y) : forwardLookup A x = some y := by
   induction A with
   | nil => simp at h
   | cons e A ih =>
     obtain ⟨a, b⟩ := e
     by_cases hax : a = x
     · subst hax
-      simp only [fwdLookup, ↓reduceIte]
+      simp only [forwardLookup, ↓reduceIte]
       exact congrArg some (huniq (a, b) List.mem_cons_self rfl)
-    · simp only [fwdLookup, hax, ↓reduceIte]
+    · simp only [forwardLookup, hax, ↓reduceIte]
       rcases List.mem_cons.mp h with h | h
       · simp only [Prod.mk.injEq] at h; exact absurd h.1.symm hax
       · exact ih h fun e he ↦ huniq e (List.mem_cons_of_mem _ he)
 
 /-- An inverse lookup finds the input of a recorded edge whose output is unique. -/
-theorem invLookup_eq_some_of_mem {A : PermLog (SpState Dg E C)} {x y : SpState Dg E C}
-    (h : (x, y) ∈ A) (huniq : ∀ e ∈ A, e.2 = y → e.1 = x) : invLookup A y = some x := by
+theorem invLookup_eq_some_of_mem {A : PermutationEdges (SpState Dg E C)} {x y : SpState Dg E C}
+    (h : (x, y) ∈ A) (huniq : ∀ e ∈ A, e.2 = y → e.1 = x) : inverseLookup A y = some x := by
   induction A with
   | nil => simp at h
   | cons e A ih =>
     obtain ⟨a, b⟩ := e
     by_cases hby : b = y
     · subst hby
-      simp only [invLookup, ↓reduceIte]
+      simp only [inverseLookup, ↓reduceIte]
       exact congrArg some (huniq (a, b) List.mem_cons_self rfl)
-    · simp only [invLookup, hby, ↓reduceIte]
+    · simp only [inverseLookup, hby, ↓reduceIte]
       rcases List.mem_cons.mp h with h | h
       · simp only [Prod.mk.injEq] at h; exact absurd h.2.symm hby
       · exact ih h fun e he ↦ huniq e (List.mem_cons_of_mem _ he)

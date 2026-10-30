@@ -381,7 +381,7 @@ noncomputable def hStep (L₀ L₁ L₂ : List E) (k step : ℕ) (s : GkrState) 
 
 /-- Sending a list meets reading as many scalars. -/
 theorem follows_sendList_readN' (xs : List E) {n : ℕ} (h : xs.length = n) (cs : Commits) :
-    Follows (fun cs' _ b ↦ cs' = cs ∧ b = xs) (Script.sendList xs) (Prog.readN n) cs := by
+    Follows (fun cs' _ b ↦ cs' = cs ∧ b = xs) (Script.sendList xs) (Prog.readScalars n) cs := by
   subst h
   exact Follows.sendList_readN cs xs
 

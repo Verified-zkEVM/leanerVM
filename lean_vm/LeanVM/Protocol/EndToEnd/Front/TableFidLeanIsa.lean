@@ -640,11 +640,11 @@ variable {εmax : ℝ≥0∞}
 
 /-- `n` challenges are a list of `n`: continuations that agree on such lists give one program. -/
 theorem sampleN_bind_congr {β : Type} : ∀ (n : ℕ) (k k' : List E → Prog β),
-    (∀ as, as.length = n → k as = k' as) → (Prog.sampleN n).bind k = (Prog.sampleN n).bind k'
+    (∀ as, as.length = n → k as = k' as) → (Prog.sampleChallenges n).bind k = (Prog.sampleChallenges n).bind k'
   | 0, k, k', h => h [] rfl
   | n + 1, k, k', h => by
-    simp only [Prog.sampleN, Prog.bind_eq, Prog.bind_assoc]
-    exact congrArg (Prog.sampleE.bind ·) (funext fun x ↦
+    simp only [Prog.sampleChallenges, Prog.bind_eq, Prog.bind_assoc]
+    exact congrArg (Prog.sampleChallenge.bind ·) (funext fun x ↦
       sampleN_bind_congr n _ _ fun as has ↦ h (x :: as) (by simp [has]))
 
 /-- The guard that the fingerprint challenges are four. -/
@@ -657,7 +657,7 @@ theorem abProg_bind_guard : abProg.bind abGuard = abProg := by
   rw [Prog.bind_assoc]
   refine sampleN_bind_congr 4 _ _ fun as has ↦ ?_
   rw [Prog.bind_assoc]
-  refine congrArg (Prog.sampleE.bind ·) (funext fun b ↦ ?_)
+  refine congrArg (Prog.sampleChallenge.bind ·) (funext fun b ↦ ?_)
   simp [abGuard, has]
 
 variable (I : M3Instance) (hI : Bus.Conditions I) (cands : Word → Set (∀ i, TheOracle I i))

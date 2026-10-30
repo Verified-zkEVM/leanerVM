@@ -81,7 +81,7 @@ theorem find?_range_unique {N : ℕ} {P : ℕ → Bool} {n : ℕ} (hn : n < N) (
   have hmN := List.mem_range.1 (List.mem_of_find?_eq_some hm)
   rw [hm, huniq m hmN hmP]
 
-theorem ne_zero_of_load {κ : ℕ} (hκ : κ < 64) (L : MemImage κ) {p : E} {k : ℕ} {v : E}
+theorem ne_zero_of_load {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) {p : E} {k : ℕ} {v : E}
     (h : LoadHolds L.read p k v) : p ≠ 0 := by
   rintro rfl
   obtain ⟨i, hi, -⟩ := (read_some_iff hκ L _ _).mp h.2

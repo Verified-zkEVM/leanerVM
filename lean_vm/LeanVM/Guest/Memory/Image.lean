@@ -21,7 +21,7 @@ The honest memory is built as the ISA's write-once memory is filled: a list of w
 
 `logMem n` is the log of the memory size the prover commits for `n` allocated words, at least
 `minLogMem`; it is at most `maxLogMem` for `n ≤ 2^32`, and below any `k ≥ minLogMem` with
-`n ≤ 2^k`, which is how a bound on the allocation bounds `Trace.committedSize`.
+`n ≤ 2^k`, which is how a bound on the allocation bounds `Execution.committedSize`.
 -/
 
 namespace LeanVM.Guest.Memory
@@ -41,7 +41,7 @@ section
 open Classical
 
 /-- The memory of `2^κ` words holding the writes, `0` where nothing is written. -/
-noncomputable def image (κ : ℕ) (ws : List Write) : MemImage κ := fun i =>
+noncomputable def image (κ : ℕ) (ws : List Write) : MemoryImage κ := fun i =>
   match ws.find? (fun q => decide (q.1 = gpow i)) with
   | some q => q.2
   | none => 0
@@ -55,7 +55,7 @@ theorem image_read (hκ : κ < 64) (hc : Consistent ws) {q : Write} (hq : q ∈ 
     (ha : ∃ i : Fin (2 ^ κ), q.1 = gpow i) : (image κ ws).read q.1 = some q.2 := by
   classical
   obtain ⟨i, hi⟩ := ha
-  rw [hi, MemImage.read_gpow hκ]
+  rw [hi, MemoryImage.read_gpow hκ]
   congr 1
   unfold image
   split
@@ -71,7 +71,7 @@ theorem image_read (hκ : κ < 64) (hc : Consistent ws) {q : Write} (hq : q ∈ 
 theorem image_read_zero (hκ : κ < 64) (i : Fin (2 ^ κ)) (hn : ∀ q ∈ ws, q.1 ≠ gpow i) :
     (image κ ws).read (gpow i) = some 0 := by
   classical
-  rw [MemImage.read_gpow hκ]
+  rw [MemoryImage.read_gpow hκ]
   congr 1
   unfold image
   split

@@ -126,7 +126,7 @@ def P (m : ℕ) : E := if m < d.s.ncells then d.pk m else if m = d.s.ncells then
 /-- The leaf hash's state before block `k`, as the cells block `k - 1` writes. -/
 def leafO : ℕ → Fin 13 → E
   | 0, _ => 0
-  | k + 1, c => cellsOfState (keccakF (stateOfCells (fun c' ↦
+  | k + 1, c => cellsOfState (keccakF1600 (stateOfCells (fun c' ↦
       if k = 0 then (if c'.val < 9 then d.P c'.val else 0)
       else if c'.val < 9 then leafO k c' + d.P (17 * k / 2 + c'.val) else leafO k c')
       (inLayout k))) (outLayout d.s.B k) c

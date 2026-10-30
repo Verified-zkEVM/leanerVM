@@ -56,7 +56,7 @@ noncomputable def kidHdr (j fp : ℕ) (hdr : E × E) (es : List Ev) (i : ℕ) : 
 /-- **What one instance's frame holds** for the completeness check: an instance of function `j`
 at frame `fp` (cells at `g^(fp + o)`) with valuation `σ`, path `es` and returned values `vs`, its
 callees' frames at `kfps` (one per call of `es`, in order) and its header `hdr`. -/
-structure FrameHolds {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (σ : Val) (es : List Ev) (vs : List V)
+structure FrameHolds {κ : ℕ} (L : MemoryImage κ) (j fp : ℕ) (σ : Val) (es : List Ev) (vs : List V)
     (kfps : List ℕ) (hdr : E × E) : Prop where
   /-- The header. -/
   hdr0 : L.read (gpow (fp + 0)) = some hdr.1
@@ -96,7 +96,7 @@ structure FrameHolds {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (σ : Val) (es : 
 /-- **The callees on a path run**: each call entered, from its callee's entry at its frame to its
 return registers, executing `ck[i] op` instructions of each opcode, its returns left in its frame's
 cells after its arguments. -/
-def KidsRun {κ : ℕ} (L : MemImage κ) (σ : Val) (es : List Ev) (kfps : List ℕ) (ck : List (Opcode → ℕ)) :
+def KidsRun {κ : ℕ} (L : MemoryImage κ) (σ : Val) (es : List Ev) (kfps : List ℕ) (ck : List (Opcode → ℕ)) :
     Prop :=
   ck.length = (calls es).length ∧ ∀ (i : ℕ) (c : Call) (kfp : ℕ), (calls es)[i]? = some c → kfps[i]? = some kfp →
     c.taken = true → (∃ r, retRegs L (gpow kfp) = some r ∧
@@ -1022,12 +1022,12 @@ runs (`KidsRun`), a counted run from its entry to its return registers (`main`: 
 with at most `pathMax` instructions of each opcode besides its callees', its returned values left
 in its frame's cells after its arguments. -/
 def CplRun (j : ℕ) : Prop :=
-  ∀ {κ : ℕ} (L : MemImage κ), κ ≤ 32 → JTHolds glob L →
+  ∀ {κ : ℕ} (L : MemoryImage κ), κ ≤ 32 → JTHolds glob L →
     (∀ q ∈ Memory.tableCells, L.read (gpow q.1) = some q.2) → ∀ (fp : ℕ), (j = 1 → fp = 0) →
     ∀ (σ : Val) (es : List Ev) (vs : List V), walk σ (coreOf j).body = .ret es vs →
     (∀ e ∈ es, e.Holds L.read σ) → ∀ (kfps : List ℕ) (hdr : E × E),
     FrameHolds L j fp σ es vs kfps hdr → ∀ ck : List (Opcode → ℕ), KidsRun L σ es kfps ck →
-    ∃ (r : Regs K) (c : Opcode → ℕ), (if j = 1 then r = Regs.final guest else retRegs L (gpow fp) = some r) ∧
+    ∃ (r : Registers K) (c : Opcode → ℕ), (if j = 1 then r = Registers.final guest else retRegs L (gpow fp) = some r) ∧
       RunC guest L ⟨gpow (fnOf j).entry, gpow fp⟩ r c ∧
       (∀ op, c op ≤ pathCount j σ op + (ck.map (· op)).sum) ∧
       ∀ k (hk : k < vs.length),

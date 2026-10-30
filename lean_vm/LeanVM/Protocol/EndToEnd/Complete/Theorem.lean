@@ -108,7 +108,7 @@ constraint system at admissible sizes and a valid rate give, for every hash func
 permutation `F`, a strategy whose compiled proof the compiled verifier accepts, from the seed of
 the bytecode and the public digest, as soon as every proof-of-work search finds its nonce below
 `fuel`. -/
-theorem exists_prove_verifyWith (H : Bytes → Digest) (F : KState → KState) {prog : Program}
+theorem exists_prove_verifyWith (H : Bytes → Digest) (F : KeccakState → KeccakState) {prog : Program}
     {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {s : Sizes} {ρ : ℕ}
     (h : SatisfiedBy prog input w) (hsz : Sizes.ofWitness w = some s) (hs : s.Admissible prog)
     (hρ : validRate ρ) (fuel : ℕ)
@@ -132,16 +132,16 @@ theorem exists_prove_verify {prog : Program} {input : PublicInput}
     (hρ : validRate ρ) (fuel : ℕ)
     (hg : ∀ hist bits k sp,
       (leanVmProgram (bytecodeWords prog) (publicDigest input)).after hist = some (.grind bits k) →
-        findNonce keccakF bits sp fuel ≠ none) :
-    ∃ S π, prove keccak256 keccakF (leanVmProgram (bytecodeWords prog) (publicDigest input)) S
+        findNonce keccakF1600 bits sp fuel ≠ none) :
+    ∃ S π, prove keccak256 keccakF1600 (leanVmProgram (bytecodeWords prog) (publicDigest input)) S
         (seed (bytecodeWords prog) (publicDigest input)) fuel = some π ∧
       Verifier.verify (bytecodeWords prog) (publicDigest input) π = true :=
-  exists_prove_verifyWith keccak256 keccakF h hsz hs hρ fuel hg
+  exists_prove_verifyWith keccak256 keccakF1600 h hsz hs hρ fuel hg
 
 /-- **From an execution.** A valid execution of at most `2^32` steps has a witness representing
 it at some sizes; when those sizes are admissible, for every valid rate the honest strategy makes
 the verifier program accept against every challenge function. -/
-theorem leanVm_complete_of_execution {prog : Program} {input : PublicInput} {t : Trace prog}
+theorem leanVm_complete_of_execution {prog : Program} {input : PublicInput} {t : Execution prog}
     (hv : ValidExecution prog input t) (hsteps : t.steps ≤ 2 ^ maxLogRows) :
     ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧ Sizes.ofWitness w = some s ∧
       (s.Admissible prog → ∀ ρ, validRate ρ → ∃ S : Strategy, ∀ chal : List Ev → E,

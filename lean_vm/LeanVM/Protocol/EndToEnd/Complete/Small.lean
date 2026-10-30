@@ -19,7 +19,7 @@ public import Statement.Fast.FieldWords
 
 The completeness theorems of `EndToEnd.Completeness` start from a witness at admissible sizes
 (`Sizes.Admissible`), an arithmetization notion. This file closes the gap to the ISA: a valid
-execution (`ValidExecution`) whose committed size (`Trace.committedSize`, stated in the ISA's
+execution (`ValidExecution`) whose committed size (`Execution.committedSize`, stated in the ISA's
 terms in `Statement/LeanVm.lean`) is at most `2^maxMu = 2^28` has a witness representing it at
 admissible sizes (`exists_admissible_witness`), and the honest proof of that witness
 (`honestProofOf`) is accepted (`verify_honestProofOf`), and exists as soon as the proof-of-work
@@ -29,7 +29,7 @@ searches succeed (`honestProofOf_isSome`).
 
 The witness is `constraintCompleteness_rows`'s: its memory is the trace's, `2^κ` words, and each
 opcode table holds the run's rows of its opcode, as many as the instructions of that opcode the
-execution executes (`Trace.count_eq_runRows`). The stacked size counts every committed column at
+execution executes (`Execution.count_eq_runRows`). The stacked size counts every committed column at
 its table's height (`blocks_total_eq`):
 
   `4·2^logMem + 2^logSize + 2^(τ₅ + 6) + 15·2^τ₀ + 15·2^τ₁ + 8·2^τ₂ + 15·2^τ₃ + 14·2^τ₄ + 26·2^τ₅`
@@ -37,7 +37,7 @@ its table's height (`blocks_total_eq`):
 (the four memory columns, `BFCNT`, `q_keccak` of `2^6` rows per `KECCAK` row, and the committed
 columns of `XOR`, `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK`, the last without its
 fifty value lanes and the fourteen columns riding `q_keccak`'s spare slots), `τ_j = ⌈log₂ rows_j⌉`, and `τ₅` at least `9` (`TABLE_LOG_FLOORS`). At the
-witness's sizes it is the execution's committed size (`Trace.committedSize`), so it is within the
+witness's sizes it is the execution's committed size (`Execution.committedSize`), so it is within the
 verifier's cap exactly when that is at most `2^28`.
 
 ## Wrong readings excluded
@@ -97,11 +97,11 @@ theorem leanIsaμ_le_of_total_le {prog : Program} {s : Sizes}
 /-- **An admissible witness, under the budget.** A valid execution whose committed size is at most
 `2^28` has a witness representing it that satisfies leanISA's constraint system at sizes the
 verifier admits. -/
-theorem exists_admissible_witness {prog : Program} {input : PublicInput} {t : Trace prog}
+theorem exists_admissible_witness {prog : Program} {input : PublicInput} {t : Execution prog}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu) :
     ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧
       Sizes.ofWitness w = some s ∧ s.Admissible prog := by
-  have hcount : ∀ op, t.count op = t.runRows op := Trace.count_eq_runRows hv.2
+  have hcount : ∀ op, t.count op = t.runRows op := Execution.count_eq_runRows hv.2
   -- A table's rows fit in its height, which the committed size counts.
   have hheight : ∀ op, 2 ^ Nat.clog 2 (t.count op) ≤ t.committedSize := by
     intro op
@@ -109,7 +109,7 @@ theorem exists_admissible_witness {prog : Program} {input : PublicInput} {t : Tr
     have : 0 < 2 ^ prog.logSize := Nat.two_pow_pos _
     have hk : 2 ^ Nat.clog 2 (t.count .keccak) ≤ 2 ^ max (Nat.clog 2 (t.count .keccak)) 9 :=
       Nat.pow_le_pow_right (by norm_num) (le_max_left _ _)
-    simp only [Trace.committedSize]
+    simp only [Execution.committedSize]
     cases op <;> omega
   have hcap : (2 : ℕ) ^ maxMu ≤ 2 ^ maxLogRows := Nat.pow_le_pow_right (by norm_num) (by decide)
   have hrows : ∀ op, t.runRows op ≤ 2 ^ maxLogRows := fun op ↦ by
@@ -120,14 +120,14 @@ theorem exists_admissible_witness {prog : Program} {input : PublicInput} {t : Tr
   refine ⟨w, s, hw, hrep, hs, ?_⟩
   obtain ⟨hpos, rfl⟩ := eq_of_ofWitness hs
   -- The sizes: the trace's memory, and each table's row count that of the run.
-  have hmem : (witnessSizes w hpos).logMem = t.κ := hrep.κ_eq
+  have hmem : (witnessSizes w hpos).logMem = t.logMemorySize := hrep.κ_eq
   have hr : ∀ j : Fin 6, (witnessSizes w hpos).rows j = t.count (tableOpcode j) := fun j ↦
     (hlen j).trans (hcount _).symm
   have htotal : (LeanIsa.blocks prog (witnessSizes w hpos)).total = t.committedSize := by
     have e : tableOpcode 0 = .xor ∧ tableOpcode 1 = .mulNative ∧ tableOpcode 2 = .setConstant ∧
         tableOpcode 3 = .deref ∧ tableOpcode 4 = .jump ∧ tableOpcode 5 = .keccak := by decide
     rw [blocks_total_eq, hmem, pow_add 2 _ 6]
-    simp only [Sizes.τ, hr, e, Trace.committedSize]
+    simp only [Sizes.τ, hr, e, Execution.committedSize]
     have f0 : tableLogFloors.getD ((0 : Fin 6) : ℕ) 0 = 0 := rfl
     have f1 : tableLogFloors.getD ((1 : Fin 6) : ℕ) 0 = 0 := rfl
     have f2 : tableLogFloors.getD ((2 : Fin 6) : ℕ) 0 = 0 := rfl
@@ -147,7 +147,7 @@ theorem exists_admissible_witness {prog : Program} {input : PublicInput} {t : Tr
 
 /-- The honest prover's witness for an execution `t` at rate `ρ`: the rate is valid, and `w`
 satisfies leanISA's constraint system at sizes `s` the verifier admits and represents `t`. -/
-def HonestFor (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ)
+def HonestFor (prog : Program) (input : PublicInput) (t : Execution prog) (ρ : ℕ)
     (w : EnsembleWitness (leanIsaEnsemble prog)) (s : Sizes) : Prop :=
   validRate ρ ∧ SatisfiedBy prog input w ∧ Sizes.ofWitness w = some s ∧ s.Admissible prog ∧
     AssignmentRepresents w t
@@ -157,8 +157,8 @@ open Classical in
 and the permutation `F`, of a witness for `t` at rate `ρ` (`HonestFor`, chosen classically);
 `none` when there is none, or when a proof-of-work search finds no nonce below `fuel`. A
 specification. -/
-noncomputable def honestProofOf (H : Bytes → Digest) (F : KState → KState) (prog : Program)
-    (input : PublicInput) (t : Trace prog) (ρ fuel : ℕ) : Option Proof :=
+noncomputable def honestProofOf (H : Bytes → Digest) (F : KeccakState → KeccakState) (prog : Program)
+    (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) : Option Proof :=
   if h : ∃ w s, HonestFor prog input t ρ w s then
     prove H F (leanVmProgram (bytecodeWords prog) (publicDigest input))
       (leanVmProver prog h.choose_spec.choose ρ (stackOf prog h.choose_spec.choose h.choose))
@@ -167,8 +167,8 @@ noncomputable def honestProofOf (H : Bytes → Digest) (F : KState → KState) (
 
 /-- **The honest proof is accepted**, for every hash function and permutation: whenever the
 honest prover outputs a proof, the verifier accepts it. -/
-theorem verify_honestProofOf (H : Bytes → Digest) (F : KState → KState) {prog : Program}
-    {input : PublicInput} {t : Trace prog} {ρ fuel : ℕ} {proof : Proof}
+theorem verify_honestProofOf (H : Bytes → Digest) (F : KeccakState → KeccakState) {prog : Program}
+    {input : PublicInput} {t : Execution prog} {ρ fuel : ℕ} {proof : Proof}
     (h : honestProofOf H F prog input t ρ fuel = some proof) :
     verifyWith (m := Id) H F (bytecodeWords prog) (publicDigest input) proof = true := by
   unfold honestProofOf at h
@@ -181,9 +181,9 @@ theorem verify_honestProofOf (H : Bytes → Digest) (F : KState → KState) {pro
 /-- **The honest prover succeeds within the budget.** For a valid execution whose committed size is
 at most `2^28`, at a valid rate, the honest proof exists as soon as every proof-of-work search the
 verifier program asks for finds a nonce below `fuel`. -/
-theorem honestProofOf_isSome {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
+theorem honestProofOf_isSome {prog : Program} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
-    (hρ : validRate ρ) (H : Bytes → Digest) (F : KState → KState) (fuel : ℕ)
+    (hρ : validRate ρ) (H : Bytes → Digest) (F : KeccakState → KeccakState) (fuel : ℕ)
     (hpow : ∀ hist bits k sp,
       (leanVmProgram (bytecodeWords prog) (publicDigest input)).after hist =
           some (.grind bits k) → findNonce F bits sp fuel ≠ none) :
@@ -197,9 +197,9 @@ theorem honestProofOf_isSome {prog : Program} {input : PublicInput} {t : Trace p
 /-- **Completeness within the budget.** A valid execution whose committed size is at most `2^28`,
 at a valid rate: when every proof-of-work search succeeds below `fuel`, the honest prover outputs
 a proof, and the verifier accepts it, for every hash function and permutation. -/
-theorem complete_of_budget {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
+theorem complete_of_budget {prog : Program} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
-    (hρ : validRate ρ) (H : Bytes → Digest) (F : KState → KState) (fuel : ℕ)
+    (hρ : validRate ρ) (H : Bytes → Digest) (F : KeccakState → KeccakState) (fuel : ℕ)
     (hpow : ∀ hist bits k sp,
       (leanVmProgram (bytecodeWords prog) (publicDigest input)).after hist =
           some (.grind bits k) → findNonce F bits sp fuel ≠ none) :

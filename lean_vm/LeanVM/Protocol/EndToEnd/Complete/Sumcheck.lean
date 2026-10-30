@@ -205,7 +205,7 @@ theorem follows_sumcheckRoundPoly (count : ℕ) (claim : E) (mode : Option E) (c
   | none =>
     simp only [RoundSplit, List.sum_cons] at hsplit
     simp only [wire, List.headD_cons, List.drop_succ_cons, List.drop_zero, Script.sendList,
-      sumcheckRoundPoly, Prog.readE, Prog.bind_eq, Prog.bind, Follows]
+      sumcheckRoundPoly, Prog.readScalar, Prog.bind_eq, Prog.bind, Follows]
     rw [← hrest, ← Script.bind_ret (Script.sendList rest)]
     refine Follows.bind (fun cs' _ b h ↦ ?_) _ _ _ (Follows.sendList_readN cs rest)
     obtain ⟨rfl, hb⟩ := h

@@ -126,7 +126,7 @@ theorem retOK_keccakPhase (layout : Verifier.Layout) (claims : List Verifier.Col
   omega
 
 /-- `sampleN n` returns `n` challenges. -/
-theorem retOK_sampleN : ∀ n : ℕ, RetOK (fun xs : List E ↦ xs.length = n) (Prog.sampleN n)
+theorem retOK_sampleN : ∀ n : ℕ, RetOK (fun xs : List E ↦ xs.length = n) (Prog.sampleChallenges n)
   | 0 => RetOK.ret rfl
   | n + 1 => RetOK.bind_true fun _ ↦ (retOK_sampleN n).bind fun xs hxs ↦
       RetOK.ret (by simp [hxs])

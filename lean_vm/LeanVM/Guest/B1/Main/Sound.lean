@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.Sound
 
-  B1 for `main` (G:4058-4226; TRIAGE #96): a run of `main`'s body establishes `NodeRel` of the
+  B1 for `main` (G:4058-4226; TRIAGE #96): a run of `main`'s body establishes `NodeRelation` of the
   seed, the statement and the witness its decoders read.
 -/
 
@@ -71,7 +71,7 @@ theorem own_digest (MF : MainFacts C rd σ) :
     unfold decStmt; simp only [gLog_lg]
   have eD : (decStmt σ rd).claims.da = daDigestAt rd σ (lg σ 387) := by
     unfold decStmt; simp only [gLog_lg]
-  have hdef : (decStmt σ rd).defer.cells = cells := by
+  have hdef : (decStmt σ rd).deferredClaim.cells = cells := by
     unfold decStmt; simp only; rw [readCells_of_readsAt hreads hlen]; exact deferOfCells_cells hlen
   have hxd : digestBytes (claimListDigest (decStmt σ rd).claims.xmss) =
       cellsBytes [σ (.n 57), σ (.n 58)] := by

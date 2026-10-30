@@ -35,7 +35,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- `verifyBusBalance` (V:1481) as the challenges, `gkrPhase` and `busRest`. -/
 theorem verifyBusBalance_split (ev : (List K → List E → Prog E)) (layout : Layout) :
     verifyBusBalance ev layout =
-      (Prog.sampleN busBits).bind fun alphas ↦ Prog.sampleE.bind fun beta ↦
+      (Prog.sampleChallenges busBits).bind fun alphas ↦ Prog.sampleChallenge.bind fun beta ↦
         (Tables.gkrPhase (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth).bind
           fun r ↦ Tables.busRest ev layout alphas beta r.2.1 r.2.2 := by
   simp only [verifyBusBalance, Tables.gkrPhase, Tables.busRest, Prog.bind_eq, Prog.pure_eq,
@@ -53,25 +53,25 @@ def stackClaims (layout : Layout) (claims : List ColumnClaim) (outs : List Colum
     (claims.filter (fun c ↦ c.column ∉ keccakOutputColumns) ++ outs).map (·.stackClaim layout)
 
 /-- **The deferring verifier's program, regrouped.** -/
-def deferredFlat (c : FixedClaims) (bytecode : List K) (pi : Digest) : Prog Bool :=
+def deferredFlat (c : BytecodeClaim) (bytecode : List K) (pi : Digest) : Prog Bool :=
   (readSizes bytecode).bind fun ls ↦
   (commitStack ls.1.stackLog ls.2).bind fun _ ↦
-  (Prog.sampleN busBits).bind fun alphas ↦
-  Prog.sampleE.bind fun beta ↦
+  (Prog.sampleChallenges busBits).bind fun alphas ↦
+  Prog.sampleChallenge.bind fun beta ↦
   (Tables.gkrPhase (busLayout [0, ls.1.logMemory, ls.1.logBytecode] ls.1.push).depth).bind fun r ↦
   (Tables.tablesSeg (claimedValue c) ls.1 pi alphas beta r.2.1 r.2.2).bind fun bc ↦
   (Prog.require ((lanesOf bc.2).map (·.column) = keccakOutputColumns ∧
     ∀ c ∈ lanesOf bc.2, c.point = ((lanesOf bc.2).headD default).point)).bind fun _ ↦
   (keccakSeg (ls.1.tableLogHeights.getD opKeccak 0) ((lanesOf bc.2).headD default).point
     ((lanesOf bc.2).map (·.value))).bind fun km ↦
-  (Prog.sampleN 5).bind fun chs ↦
-  Prog.sampleE.bind fun lam ↦
+  (Prog.sampleChallenges 5).bind fun chs ↦
+  Prog.sampleChallenge.bind fun lam ↦
   let all := stackClaims ls.1 bc.2 km.1.1 km.1.2.1 km.1.2.2 (km.2 :: chs)
   (B1.Whir.whirOpen ls.1.stackLog ls.2 (dot (powers lam all.length) (all.map (·.2)))).bind fun w ↦
   (Prog.require (w.Accepts fun point ↦ dot (powers lam all.length) (all.map fun c ↦ c.1 point))).bind
     fun _ ↦ Prog.ret true
 
-theorem deferred_eq (c : FixedClaims) (bytecode : List K) (pi : Digest) :
+theorem deferred_eq (c : BytecodeClaim) (bytecode : List K) (pi : Digest) :
     deferredProgram c bytecode pi = deferredFlat c bytecode pi := by
   simp only [deferredProgram_eq, verifyExecutionClaims, deferredFlat, Prog.bind_eq,
     Prog.bind_assoc]
@@ -85,7 +85,7 @@ theorem deferred_eq (c : FixedClaims) (bytecode : List K) (pi : Digest) :
   simp only [keccakSeg, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
   refine congrArg _ (funext fun kr ↦ ?_)
   simp only [ringSwitch, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
-  rw [show ringMapShifts.length = 5 + 1 from rfl, Prog.sampleN]
+  rw [show ringMapShifts.length = 5 + 1 from rfl, Prog.sampleChallenges]
   simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
   refine congrArg _ (funext fun m ↦ congrArg _ (funext fun chs ↦ ?_))
   simp only [verifyStackedOpening, verifyWhir_eq_target, B1.Whir.verifyWhir_split, stackClaims, Prog.bind_eq,

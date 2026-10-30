@@ -37,25 +37,25 @@ def rowW (s : Fs) : List E := s.cap ++ rateOf s.pend
 
 /-- The absorbing row `c`'s sponge: after the count and the first `c` children's words. -/
 def absSt (m : ℕ) (cs : List ChildClaims) (c : ℕ) : Fs :=
-  aggS0.absorbAll (Batch.headCells m ++ (cs.take c).flatMap Batch.childCells) dsObserve
+  aggS0.absorbAll (Batch.childCountCells m ++ (cs.take c).flatMap Batch.childCells) dsObserve
 
 /-- The batching's challenge `λ`: the squeeze of the sponge after its words. -/
 def lamA (cs : List ChildClaims) : E := (aggAbs cs).squeeze.1
 
 /-- The running claim after `c` children. -/
 def claimAt (cs : List ChildClaims) (c : ℕ) : E :=
-  sumE (List.zipWith (fun c l ↦ l.1 * c.fresh.bytecodeValue + l.2 * c.carried.bytecodeValue)
+  sumE (List.zipWith (fun c l ↦ l.1 * c.freshClaim.bytecodeValue + l.2 * c.carriedClaim.bytecodeValue)
     (cs.take c) (Batch.lambdaPowers (lamA cs) c))
 
 /-- The running weight after `c` children, at the sumcheck's point. -/
-def weightAt (cs : List ChildClaims) (h : BatchHints) (c : ℕ) : E :=
-  sumE (List.zipWith (fun c l ↦ l.1 * eqEval c.fresh.bytecodePoint (aggRun cs h).1.1 +
-    l.2 * eqEval c.carried.bytecodePoint (aggRun cs h).1.1) (cs.take c)
+def weightAt (cs : List ChildClaims) (h : BatchingHints) (c : ℕ) : E :=
+  sumE (List.zipWith (fun c l ↦ l.1 * eqEval c.freshClaim.bytecodePoint (aggRun cs h).1.1 +
+    l.2 * eqEval c.carriedClaim.bytecodePoint (aggRun cs h).1.1) (cs.take c)
     (Batch.lambdaPowers (lamA cs) c))
 
 /-- The claim `aggregate_claims` writes: the sumcheck's point, the hinted value. -/
-def aggOut (cs : List ChildClaims) (h : BatchHints) : DeferredClaim :=
-  ⟨(aggRun cs h).1.1, h.bytecodeValue⟩
+def aggOut (cs : List ChildClaims) (h : BatchingHints) : DeferredClaim :=
+  ⟨(aggRun cs h).1.1, h.finalBytecodeValue⟩
 
 /-- `aggregate_claims`' buffers. -/
 structure AggPtrs where
@@ -70,14 +70,14 @@ structure AggPtrs where
 /-- **The memory an honest run of `aggregate_claims` leaves** at the pointers `P` and at
 `defer_stmt` (`dst`), for the children `cs` (their claims through `cfresh`, `ccarried`) and the
 hints `h`. -/
-structure AggMem (rd : Reader) (cfresh ccarried dst : E) (cs : List ChildClaims) (h : BatchHints)
+structure AggMem (rd : Reader) (cfresh ccarried dst : E) (cs : List ChildClaims) (h : BatchingHints)
     (P : AggPtrs) : Prop where
   absorb : ∀ c ≤ cs.length, ReadsAt rd (P.absorb * (gen ^ c) ^ 13) (rowW (absSt cs.length cs c))
   lf : ∀ c < cs.length, LoadHolds rd (P.lf * gen ^ c) 0 (cfresh * (gen ^ c) ^ 24)
   lc : ∀ c < cs.length, LoadHolds rd (P.lc * gen ^ c) 0 (ccarried * (gen ^ c) ^ 24)
   chain : ∀ c ≤ cs.length, ReadsAt rd (P.chain * (gen ^ c) ^ 2)
     [lamA cs ^ (2 * c), claimAt cs c]
-  msgs : ReadsAt rd P.msgs (h.bytecodeRounds.flatMap fun g => [g.1, g.2])
+  msgs : ReadsAt rd P.msgs (h.sumcheckMessages.flatMap fun g => [g.1, g.2])
   pt : ReadsAt rd P.pt (aggRun cs h).1.1
   w : ∀ c ≤ cs.length, LoadHolds rd (P.w * gen ^ c) 0 (weightAt cs h c)
   dst : ReadsAt rd dst (aggOut cs h).cells
@@ -119,9 +119,9 @@ theorem absSt_ok (m : ℕ) (cs : List ChildClaims) (c : ℕ) : StOk (absSt m cs 
 
 theorem aggAbs_ok (cs : List ChildClaims) : StOk (aggAbs cs) := stOk_absorbAll _ stOk_aggS0
 
-theorem capOf_length (S : KState) : (capOf S).length = 5 := rfl
+theorem capOf_length (S : KeccakState) : (capOf S).length = 5 := rfl
 
-theorem capOf_canonical (S : KState) : AllCanonical (capOf S) := by
+theorem capOf_canonical (S : KeccakState) : AllCanonical (capOf S) := by
   intro c hc
   simp only [capOf, List.mem_cons, List.not_mem_nil, or_false] at hc
   rcases hc with rfl | rfl | rfl | rfl | rfl <;> exact cellsOfState_canonical _ _ _

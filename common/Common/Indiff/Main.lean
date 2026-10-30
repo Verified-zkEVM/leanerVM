@@ -111,7 +111,7 @@ theorem comb_mono (sel : (t : (dSpec Msg Dg (SpState Dg E C)).Domain) →
 
 /-- The collision probability of the combined game's ideal side is bounded. -/
 theorem prEvent_comb_bad_or_EC_le {α : Type} (D : OracleComp (dSpec Msg Dg (SpState Dg E C)) α)
-    (q : ℕ) (hD : IsWeightBound D (queryCost (Dg := Dg) P) q) :
+    (q : ℕ) (hD : QueryCostAtMost D (queryCost (Dg := Dg) P) q) :
     Pr{let z ← (simulateQ (foldIdeal P iv) D).run ((CState.init iv : CState Dg E C Msg), ∅)}[
       z.2.1.bad = true ∨ EC P iv z.2.1.vis z.2.2] ≤
       ((q * (2 * q + 1) + q * (q + 1) : ℕ) : ℝ≥0∞) / (Fintype.card C : ℝ≥0∞) := by
@@ -203,7 +203,7 @@ probabilities in the real world (`H = sponge^π`, `π`, `π⁻¹` for a random p
 ideal world (`H` a random oracle, `π` and `π⁻¹` answered by the simulator) within
 `indiffBound |S| |C| q = q² / |S| + (q (2q + 1) + q (q + 1)) / |C|`. -/
 theorem indifferentiability {α : Type} (D : OracleComp (dSpec Msg Dg (SpState Dg E C)) α)
-    (q : ℕ) (hD : IsWeightBound D (queryCost (Dg := Dg) P) q) (p : α → Prop) :
+    (q : ℕ) (hD : QueryCostAtMost D (queryCost (Dg := Dg) P) q) (p : α → Prop) :
     Pr{let a ← realGame P iv D}[p a] ≤ Pr{let a ← idealGame P iv D}[p a] +
         indiffBound (Fintype.card (SpState Dg E C)) (Fintype.card C) q ∧
       Pr{let a ← idealGame P iv D}[p a] ≤ Pr{let a ← realGame P iv D}[p a] +

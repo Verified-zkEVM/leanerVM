@@ -23,7 +23,7 @@ permutation `π` of the Keccak state, Keccak-f[1600] `π` itself, the adversary 
 `π⁻¹` and flipping coins.
 
 **Knowledge soundness** (`knowledgeSoundnessRpm_coins`): for an adversary of at most `Q` queries
-to `π` and `π⁻¹`, its coins free, the probability that the verifier accepts while the extractor `extractorRpm` (the extractor of
+to `π` and `π⁻¹`, its coins free, the probability that the verifier accepts while the extractor `transcriptExtractor` (the extractor of
 `Extractor.lean` on the Keccak-256 evaluations of the adversary's transcript) does not return a valid execution is at most
 `soundnessError Q + (Q + 12006 · 2^32)² / 2^508`, which is at most `(Q + 2^14) · 2^-127` for
 `Q ≤ 2^120` (`soundnessRpm_le_bits`), at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for
@@ -69,7 +69,7 @@ open scoped ENNReal
 /-! ## The duplex discipline on bytes -/
 
 /-- An admissible permutation call on lanes is admissible on bytes. -/
-theorem admissible_toRpm {hist : List KState} {x : KState} (h : AdmissibleVm hist x) :
+theorem admissible_toRpm {hist : List KeccakState} {x : KeccakState} (h : AdmissibleVm hist x) :
     Common.Admissible Common.KState.zero Common.keccakNF (hist.map KState.toRpm)
       (KState.toRpm x) := by
   rcases h with h | ⟨y, hy, h⟩
@@ -84,7 +84,7 @@ theorem admissible_toRpm {hist : List KState} {x : KState} (h : AdmissibleVm his
 `Statement.lean` (`HashSpec`) whose permutation calls follow the duplex discipline on lanes, read
 on bytes, follows `common`'s duplex discipline (`Common.Duplex`, at the zero state, for the
 non-final blocks `Common.keccakNF`). -/
-theorem duplex_toRHF {β : Type} (V : OracleComp HashSpec β) (hist : List KState)
+theorem duplex_toRHF {β : Type} (V : OracleComp KeccakCalls β) (hist : List KeccakState)
     (hV : DuplexVm V hist) :
     Common.Duplex Common.KState.zero Common.keccakNF (simulateQ toRHF V)
       (hist.map KState.toRpm) := by
@@ -119,7 +119,7 @@ theorem duplex_map {α β : Type} (f : α → β) (X : OracleComp HFSpec α)
     · exact ⟨hX.1, fun y ↦ ih y (y :: hist) (hX.2 y)⟩
 
 /-- The verifier on bytes follows the duplex discipline. -/
-theorem duplex_postR (z : (Statement × Proof) × Transcript) :
+theorem duplex_postR (z : (ProgramAndInput × Proof) × PermutationTranscript) :
     Common.Duplex Common.KState.zero Common.keccakNF (postR z) [] :=
   duplex_map _ _ [] (duplex_toRHF _ [] (duplexVm_verifier _ _ _))
 
@@ -128,8 +128,8 @@ theorem duplex_postR (z : (Statement × Proof) × Transcript) :
 /-- Weight bounds through a stateless simulation. -/
 theorem isWeightBound_simulateQ' {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
     {α : Type} (impl : QueryImpl spec (OracleComp spec')) (w : ι → ℕ) (w' : ι' → ℕ)
-    (h : ∀ t, Common.IsWeightBound (impl t) w' (w t)) {X : OracleComp spec α} {n : ℕ}
-    (hX : Common.IsWeightBound X w n) : Common.IsWeightBound (simulateQ impl X) w' n := by
+    (h : ∀ t, Common.QueryCostAtMost (impl t) w' (w t)) {X : OracleComp spec α} {n : ℕ}
+    (hX : Common.QueryCostAtMost X w n) : Common.QueryCostAtMost (simulateQ impl X) w' n := by
   induction X using OracleComp.inductionOn generalizing n with
   | pure a => trivial
   | query_bind t k ih =>
@@ -139,15 +139,15 @@ theorem isWeightBound_simulateQ' {ι ι' : Type} {spec : OracleSpec ι} {spec' :
 
 /-- The cost of the game's queries (`Common.queryCost2`): a hash of `n` bytes `⌊n / 136⌋ + 1`,
 a permutation query or call one. -/
-abbrev gameCost : D2Spec.Domain → ℕ := Common.queryCost2 (Dg := Common.KDigest) Common.keccakPadding
+abbrev gameCost : D2Spec.Domain → ℕ := Common.queryCost2 (Dg := Common.DigestBytes) Common.keccakPadding
 
 /-- The cost of the adversary's queries (`Common.queryCost`). -/
 abbrev advCost : RSpec.Domain → ℕ :=
-  Common.queryCost (Dg := Common.KDigest) (St := Common.KState) Common.keccakPadding
+  Common.queryCost (Dg := Common.DigestBytes) (St := Common.KState) Common.keccakPadding
 
 /-- The adversary's permutation queries, one each. -/
 theorem isWeightBound_advR_cost {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
-    Common.IsWeightBound (advR A) advCost Q := by
+    Common.QueryCostAtMost (advR A) advCost Q := by
   refine Common.isWeightBound_run_simulateQ logRel (fun _ ↦ 1) _ (fun q T ↦ ?_)
     (isWeightBound_one_of_total hA) []
   simp only [logRel, StateT.run_mk, relP]
@@ -155,17 +155,17 @@ theorem isWeightBound_advR_cost {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQuer
     (Common.isWeightBound_query advCost (.inr (.inr (permQueryToRpm q)))))
 
 theorem isWeightBound_advEmbed {α : Type} {X : OracleComp RSpec α} {n : ℕ}
-    (hX : Common.IsWeightBound X advCost n) :
-    Common.IsWeightBound (simulateQ Common.advEmbed X) gameCost n := by
+    (hX : Common.QueryCostAtMost X advCost n) :
+    Common.QueryCostAtMost (simulateQ Common.advEmbed X) gameCost n := by
   refine isWeightBound_simulateQ' _ _ _ (fun t ↦ ?_) hX
   rcases t with k | m | q
   · exact Common.isWeightBound_query (spec := D2Spec) gameCost (.inl k)
   · exact Common.isWeightBound_query (spec := D2Spec) gameCost (.inr (.inl m))
   · exact Common.isWeightBound_query (spec := D2Spec) gameCost (.inr (.inr (.inl q)))
 
-theorem isWeightBound_hfEmbed_toRHF {β : Type} {V : OracleComp HashSpec β} {n : ℕ}
-    (hV : Common.IsWeightBound V hashBlocks n) :
-    Common.IsWeightBound (simulateQ Common.hfEmbed (simulateQ toRHF V)) gameCost n := by
+theorem isWeightBound_hfEmbed_toRHF {β : Type} {V : OracleComp KeccakCalls β} {n : ℕ}
+    (hV : Common.QueryCostAtMost V hashBlocks n) :
+    Common.QueryCostAtMost (simulateQ Common.hfEmbed (simulateQ toRHF V)) gameCost n := by
   rw [← QueryImpl.simulateQ_compose]
   refine isWeightBound_simulateQ' _ _ _ (fun t ↦ ?_) hV
   rcases t with m | x
@@ -183,7 +183,7 @@ theorem isWeightBound_hfEmbed_toRHF {β : Type} {V : OracleComp HashSpec β} {n 
 /-- **The permutation calls of the transfer game**: the adversary's `Q`, then at most
 `verifierPermCalls` of the verifier. -/
 theorem isWeightBound_game {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
-    Common.IsWeightBound (game A) gameCost (Q + verifierPermCalls) := by
+    Common.QueryCostAtMost (game A) gameCost (Q + verifierPermCalls) := by
   rw [game, Common.rpmGame2, simulateQ_pure, pure_bind]
   refine (isWeightBound_advEmbed (isWeightBound_advR_cost hA)).bind fun z ↦ ?_
   rw [postR, simulateQ_map]
@@ -193,13 +193,13 @@ theorem isWeightBound_game {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryBoun
 
 /-- The verifier's phase of the random-oracle experiment, from the adversary's statement and proof
 and the oracles' cache. -/
-noncomputable def verifierPhase (z : Statement × Proof) (cA : HashSpec.QueryCache) :
+noncomputable def verifierPhase (z : ProgramAndInput × Proof) (cA : KeccakCalls.QueryCache) :
     ProbComp Outcome :=
   (fun r ↦ ((z, r.1), r.2, cA)) <$>
-    (simulateQ HashSpec.randomOracle (verifier queryH queryF z.1.1 z.1.2 z.2)).run cA
+    (simulateQ KeccakCalls.randomOracle (verifier callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2)).run cA
 
-theorem experimentCoins_eq (B : OracleComp CSpec (Statement × Proof)) :
-    experimentCoins B = (simulateQ HashSpec.romImpl B).run ∅ >>= fun p ↦ verifierPhase p.1 p.2 := by
+theorem experimentCoins_eq (B : OracleComp CSpec (ProgramAndInput × Proof)) :
+    experimentCoins B = (simulateQ KeccakCalls.romImpl B).run ∅ >>= fun p ↦ verifierPhase p.1 p.2 := by
   simp only [experimentCoins, verifierPhase, bind_pure_comp]
 
 /- The extractor is an algorithm; unification must never run it on symbolic inputs. -/
@@ -214,7 +214,7 @@ on the answers only, not on which byte strings covering them it is given as keys
 theorem romGame_le (A : DetAdversary) :
     Pr{let a ← Common.romRun2 (simulateQ Common.hInF (pure ()) >>= fun x ↦
         Common.advS2 Common.keccakPadding Common.KState.zero ((fun _ ↦ advR A) x) >>= fun a ↦
-          (fun _ z ↦ postR z) x a)}[BreaksRpm a] ≤
+          (fun _ z ↦ postR z) x a)}[BreaksKnowledgeSoundness a] ≤
       Pr{let z ← experimentCoins (romAdv A)}[Breaks extractor z] := by
   set X := Common.advS2 Common.keccakPadding Common.KState.zero (advR A)
   set J := (simulateQ HFS.romImpl X).run ∅ with hJ
@@ -238,39 +238,39 @@ theorem romGame_le (A : DetAdversary) :
   have ht := transcriptHashes_eq_of_mem_support A hp
   rw [postR, simulateQ_map, StateT.run'_eq, StateT.run_map, prEvent_map, prEvent_map,
     verifierPhase, prEvent_map]
-  have h := (run'_toRHF (verifier queryH queryF p.1.1.1.1 p.1.1.1.2 p.1.1.2) p.2).prEvent_eq
-    (fun v ↦ BreaksRpm ((p.1.1, v), p.1.2))
+  have h := (run'_toRHF (verifier callKeccak256 callKeccakF1600 p.1.1.1.1 p.1.1.1.2 p.1.1.2) p.2).prEvent_eq
+    (fun v ↦ BreaksKnowledgeSoundness ((p.1.1, v), p.1.2))
   rw [StateT.run'_eq, StateT.run'_eq, prEvent_map, prEvent_map] at h
   refine h.trans ?_
   congr 2
   funext r
   have e := fun prog input proof ↦
     Extraction.ExtractProofs.extractorRpm_eq_extract prog input p.1.2 proof ht
-  simp only [BreaksRpm, Breaks, extractor, e]
+  simp only [BreaksKnowledgeSoundness, Breaks, extractor, e]
   rfl
 
 /-- **Knowledge soundness in the random-permutation model**, for a deterministic adversary. An
 adversary of at most `Q` queries to `π` and `π⁻¹` breaks soundness, for the extractor
-`extractorRpm`, with probability at most the random-oracle error at `Q` queries plus
+`transcriptExtractor`, with probability at most the random-oracle error at `Q` queries plus
 `(Q + verifierPermCalls)² / 2^508`. -/
 theorem knowledgeSoundnessRpm {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
-    Pr{let z ← detExperiment A}[BreaksRpm z] ≤
+    Pr{let z ← detExperiment A}[BreaksKnowledgeSoundness z] ≤
       soundnessError Q + rpmError (Q + verifierPermCalls) := by
   rw [(detExperiment_evalDistEq A).prEvent_eq, game]
   obtain ⟨h1, -⟩ := Common.keccak256_transfer2 (pure ()) (fun _ ↦ advR A) (fun _ z ↦ postR z)
     (fun _ z ↦ duplex_postR z) (Q + verifierPermCalls) (isWeightBound_game hA)
-    (BreaksRpm)
+    (BreaksKnowledgeSoundness)
   refine h1.trans (add_le_add ((romGame_le A).trans ?_) le_rfl)
   exact knowledgeSoundness_coins (isWeightBound_romAdv hA)
 
 /-- **Knowledge soundness in the random-permutation model**, for an adversary with coins of at
 most `Q` queries to `π` and `π⁻¹`: some deterministic adversary of at most `Q` queries does as
 well (`rpmExperiment_le_det`). -/
-theorem knowledgeSoundnessRpm_coins {B : RpmAdversary} {Q : ℕ}
-    (hB : Common.IsWeightBound B Common.permCalls Q) :
-    Pr{let z ← rpmExperiment B}[BreaksRpm z] ≤
+theorem knowledgeSoundnessRpm_coins {B : RandomPermutationAdversary} {Q : ℕ}
+    (hB : Common.QueryCostAtMost B Common.permutationCallCost Q) :
+    Pr{let z ← soundnessExperiment B}[BreaksKnowledgeSoundness z] ≤
       soundnessError Q + rpmError (Q + verifierPermCalls) := by
-  obtain ⟨A, hA, hle⟩ := rpmExperiment_le_det hB (BreaksRpm)
+  obtain ⟨A, hA, hle⟩ := rpmExperiment_le_det hB (BreaksKnowledgeSoundness)
   exact hle.trans (knowledgeSoundnessRpm hA)
 
 /-! ## Completeness -/
@@ -279,8 +279,8 @@ open LeanVM.Protocol.Rom (romExperiment)
 
 /-- The verdict of a prover then a verifier against the random oracles is the random-oracle
 experiment's. -/
-theorem run'_bind_eq (X : OracleComp HashSpec Proof) (V : Proof → OracleComp HashSpec Bool) :
-    (simulateQ HashSpec.randomOracle (X >>= V)).run' ∅ = (fun z ↦ z.1.2) <$> romExperiment X V := by
+theorem run'_bind_eq (X : OracleComp KeccakCalls Proof) (V : Proof → OracleComp KeccakCalls Bool) :
+    (simulateQ KeccakCalls.randomOracle (X >>= V)).run' ∅ = (fun z ↦ z.1.2) <$> romExperiment X V := by
   simp only [romExperiment, simulateQ_map, StateT.run_map, map_bind, simulateQ_bind,
     StateT.run'_eq, StateT.run_bind]
   refine bind_congr fun p ↦ ?_
@@ -290,11 +290,11 @@ theorem run'_bind_eq (X : OracleComp HashSpec Proof) (V : Proof → OracleComp H
 verifier: if they follow the duplex discipline and make at most `N` permutation calls, the
 rejection probability in the random-permutation model is at most the random-oracle experiment's
 plus `rpmError N` (`Common.keccak256_transfer2`). -/
-theorem rpm_le_of_rom (X : OracleComp HashSpec Proof) (V : Proof → OracleComp HashSpec Bool)
-    {N : ℕ} (hd : DuplexVm (X >>= V) []) (hN : Common.IsWeightBound (X >>= V) hashBlocks N)
+theorem rpm_le_of_rom (X : OracleComp KeccakCalls Proof) (V : Proof → OracleComp KeccakCalls Bool)
+    {N : ℕ} (hd : DuplexVm (X >>= V) []) (hN : Common.QueryCostAtMost (X >>= V) hashBlocks N)
     {ε : ℝ≥0∞} (hrom : Pr{let z ← romExperiment X V}[z.1.2 = false] ≤ ε) :
-    Pr{let v ← (simulateQ rpmImpl (X >>= V)).run' []}[v = false] ≤ ε + rpmError N := by
-  have hG : Common.IsWeightBound (honestGame (X >>= V)) gameCost N := by
+    Pr{let v ← (simulateQ keccakCallsOverRandomPermutation (X >>= V)).run' []}[v = false] ≤ ε + rpmError N := by
+  have hG : Common.QueryCostAtMost (honestGame (X >>= V)) gameCost N := by
     rw [honestGame, Common.rpmGame2, simulateQ_pure, pure_bind, simulateQ_pure, pure_bind]
     exact isWeightBound_hfEmbed_toRHF hN
   rw [(rpmHonest_evalDistEq _).prEvent_eq, honestGame]
@@ -312,18 +312,18 @@ theorem rpm_le_of_rom (X : OracleComp HashSpec Proof) (V : Proof → OracleComp 
 /-- **Completeness in the random-permutation model, at a witness**: the specification's honest
 prover at an honest witness `w` at the sizes `s` (`HonestFor`), then the verifier, at a fuel of at
 most `2^64` nonces. -/
-theorem completenessRpm_at {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
+theorem completenessRpm_at {prog : Program} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
     {w : Air.Flat.EnsembleWitness (Arithmetization.leanIsaEnsemble prog)} {s : LeanIsa.Sizes}
     (hw : EndToEnd.Complete.HonestFor prog input t ρ w s) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
-    Pr{let v ← (simulateQ rpmImpl
+    Pr{let v ← (simulateQ keccakCallsOverRandomPermutation
         (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
           (leanVmProgram (bytecodeWords prog) (publicDigest input))
           (EndToEnd.Complete.leanVmProver prog s ρ (LeanIsa.stackOf prog s w)) fuel >>= fun proof ↦
-            verifier queryH queryF prog input proof)).run' []}[v = false] ≤
+            verifier callKeccak256 callKeccakF1600 prog input proof)).run' []}[v = false] ≤
       completenessError fuel + rpmError (completenessPermCalls fuel) := by
   refine rpm_le_of_rom _ _ ((duplexVm_romHonestComp prog input _ fuel).bind fun proof ↦
     duplexVm_verifier prog input proof) (isWeightBound_romHonest hw fuel) ?_
-  have hV : verifier queryH queryF prog input =
+  have hV : verifier callKeccak256 callKeccakF1600 prog input =
       LeanVM.Protocol.Compile.Rom.verifierComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
         (leanVmProgram (bytecodeWords prog) (publicDigest input)) :=
     funext fun π ↦ (verifierComp_leanVm _ _ π).symm
@@ -332,20 +332,20 @@ theorem completenessRpm_at {prog : Program} {input : PublicInput} {t : Trace pro
 
 /-- **Completeness in the random-permutation model**, for the honest prover
 `LeanVM.Protocol.EndToEnd.Complete.honestComp`. -/
-theorem completenessRpm {prog : Program} {input : PublicInput} {t : Trace prog}
+theorem completenessRpm {prog : Program} {input : PublicInput} {t : Execution prog}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
-    Pr{let v ← rpmCompletenessExperiment
+    Pr{let v ← verifierCompletenessExperiment
         (fun prog input t ρ fuel ↦ EndToEnd.Complete.honestComp prog input t ρ fuel)
         prog input t ρ fuel}[v = false] ≤
       completenessError fuel + rpmError (completenessPermCalls fuel) := by
   obtain ⟨w, s, hw, hrep, hs, hadm⟩ := EndToEnd.Complete.exists_admissible_witness hv hbudget
   have hex : ∃ w s, EndToEnd.Complete.HonestFor prog input t ρ w s := ⟨w, s, hρ, hw, hs, hadm, hrep⟩
-  have e0 : rpmCompletenessExperiment
+  have e0 : verifierCompletenessExperiment
       (fun prog input t ρ fuel ↦ EndToEnd.Complete.honestComp prog input t ρ fuel)
-      prog input t ρ fuel = (simulateQ rpmImpl
+      prog input t ρ fuel = (simulateQ keccakCallsOverRandomPermutation
         (EndToEnd.Complete.honestComp prog input t ρ fuel >>= fun proof ↦
-          verifier queryH queryF prog input proof)).run' [] := rfl
+          verifier callKeccak256 callKeccakF1600 prog input proof)).run' [] := rfl
   rw [e0]
   unfold EndToEnd.Complete.honestComp
   simp only [hex, ↓reduceDIte]
@@ -502,7 +502,7 @@ namespace LeanVM
 /-! ## The statements of `Statement/LeanVm.lean` -/
 
 /-- **Knowledge soundness holds** (in the random-permutation model), for the extractor
-`extractorRpm`. -/
+`transcriptExtractor`. -/
 theorem knowledgeSoundness_holds : KnowledgeSoundness :=
   fun _ _ hA hQ ↦ (Rpm.knowledgeSoundnessRpm_coins hA).trans (Rpm.soundnessRpm_le_128 hQ)
 
@@ -512,9 +512,9 @@ theorem knowledgeSoundness_holds : KnowledgeSoundness :=
 /-- Keccak-256 over the deployed Keccak-f[1600] is the deployed Keccak-256, and `common`'s
 Keccak-256 sponge over it, read on bytes. -/
 theorem keccak256_eq_rpm (data : Protocol.Compile.Bytes) :
-    Protocol.KeccakHash.keccak256With (m := Id) Semantics.keccakF data = Protocol.KeccakHash.keccak256 data ∧
+    Protocol.KeccakHash.keccak256With (m := Id) Semantics.keccakF1600 data = Protocol.KeccakHash.keccak256 data ∧
       Protocol.KeccakHash.keccak256 data = Digest.ofRpm (Common.keccak256With (m := Id)
-        (fun x ↦ KState.toRpm (Semantics.keccakF (Rpm.KState.ofRpm x))) data) :=
+        (fun x ↦ KState.toRpm (Semantics.keccakF1600 (Rpm.KState.ofRpm x))) data) :=
   ⟨Rpm.keccak256With_keccakF data, Rpm.keccak256_eq_rpm data⟩
 
 end LeanVM

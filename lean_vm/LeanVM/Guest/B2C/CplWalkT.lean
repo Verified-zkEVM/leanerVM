@@ -45,7 +45,7 @@ theorem tbl_jt_mem {s t : ℕ} (h : glob.jt.get s = some t) : ∃ w, (s, w) ∈ 
   exact ⟨_, hmem⟩
 
 /-- **Slot `s` of the jump table**, holding `g^e`: the table cell found there. -/
-theorem tbl_slot {κ : ℕ} {L : MemImage κ} (hjt : JTHolds glob L)
+theorem tbl_slot {κ : ℕ} {L : MemoryImage κ} (hjt : JTHolds glob L)
     (htab : ∀ q ∈ tableCells, L.read (gpow q.1) = some q.2) {s e : ℕ} (h : glob.jt.get s = some e) :
     (tableCells.find? fun q ↦ q.1 == s) = some (s, ofK (gpow e)) ∧ s < 406 + 8456 := by
   obtain ⟨w, hw⟩ := tbl_jt_mem h
@@ -212,13 +212,13 @@ theorem tbl_walkArmsC {σ : Val} {acs : List (ℕ × List (List ℕ))} {key : Op
 
 section Walk
 
-variable {κ : ℕ} {L : MemImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V}
+variable {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V}
   {kfps : List ℕ} {hdr : E × E} {ck : List (Opcode → ℕ)} {segs : List Exec.Seg} {X : CX}
   {wJ : ℕ} {wenv : Trie Sym}
 
 /-- Entering the join `J` with counts `c`: the run is at its segment. -/
 theorem tbl_segJ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {J : ℕ} {se sj : CW}
-    (h : segAtC X J se = some sj) (hok : CWOk L fp X se) (he : EnvAt L fp X wJ wenv J) {W0 : Regs K}
+    (h : segAtC X J se = some sj) (hok : CWOk L fp X se) (he : EnvAt L fp X wJ wenv J) {W0 : Registers K}
     {n : ℕ} {xc : Opcode → ℕ} {c : Cnt} (u : ℕ) {cr : Opcode → ℕ}
     (hr : RunC guest L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr)
     (hc : ∀ op, cr op ≤ c.get op + xc op + ksum ck n op)

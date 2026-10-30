@@ -59,14 +59,14 @@ def busOut (layout : Verifier.Layout) (alphas : List E) (beta : E)
 /-- `verify_bus_balance` reads, then computes `busOut`. -/
 theorem verifyBusBalance_eq (layout : Verifier.Layout) :
     verifyBusBalance computedValue layout = (do
-      let alphas ← Prog.sampleN busBits
-      let beta ← Prog.sampleE
+      let alphas ← Prog.sampleChallenges busBits
+      let beta ← Prog.sampleChallenge
       let g ← verifyGkrGrandProducts
         (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth
       Prog.require (g.1 ≠ 0)
-      let memory ← Prog.readN 3
-      let memoryFinal ← Prog.readE
-      let bytecodeFinal ← Prog.readE
+      let memory ← Prog.readScalars 3
+      let memoryFinal ← Prog.readScalar
+      let bytecodeFinal ← Prog.readScalar
       return busOut layout alphas beta g.2.1 g.2.2 memory memoryFinal bytecodeFinal) := by
   rfl
 

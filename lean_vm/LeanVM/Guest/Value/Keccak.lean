@@ -15,7 +15,7 @@ public import LeanVM.Guest.Batch.Def
 # The Keccak library
 
 The core IR keeps one `Atom.keccak ins outs inOdd outOdd` per `KECCAK` instruction, its meaning
-`KeccakCells (cells13 (ins.map σ)) inOdd (cells13 (outs.map σ)) outOdd`; the padding `XOR`s and
+`KeccakCellsRelation (cells13 (ins.map σ)) inOdd (cells13 (outs.map σ)) outOdd`; the padding `XOR`s and
 the zero/padding run are ordinary atoms. What a call of `keccak` or `keccak_cells` computes is
 recovered here, on the words `I = cells13 (ins.map σ)`, `O = cells13 (outs.map σ)` of the atoms,
 generic in their cells. Namespace `LeanVM.Guest.Value.Keccak` (`KeccakEval` for the evaluator).
@@ -51,7 +51,7 @@ generic in their cells. Namespace `LeanVM.Guest.Value.Keccak` (`KeccakEval` for 
   (pre ++ padBytes ((cellsBytes cells).take len))) false`.
 * `keccak_one` (one `KECCAK` from the zero state, `len < 136`):
   `I c = (padCells cells len).getD c 0` for `c < 9`, `I c = 0` for `c ≥ 9`,
-  `KeccakCells I false O false` give
+  `KeccakCellsRelation I false O false` give
   `O = cellsOfState (absorbChunks 1 zeroState (padBytes msg)) false ∧
    (O 0, O 1) = digestScalars (keccak256 msg)`, `msg = (cellsBytes cells).take len`.
 * `keccak_whole` (`final=0` over whole blocks, `16 * cells.length = rate * B`): the state after
@@ -79,7 +79,7 @@ generic in their cells. Namespace `LeanVM.Guest.Value.Keccak` (`KeccakEval` for 
 * `keccakF_zero : keccakF zeroState = keccakFZero` (the `KECCAK` table's padding row).
 * `batchSeed_eq : Node.batchSeed = batchSeedValue`;
   `aggSeed_cells : litField (aggSeed.getD c 0) = cellsOfState Node.batchSeed false ⟨8 + c, _⟩`.
-* `paddingCell_eq : LeanDa.paddingCell Da.keccak = LeanVM.Protocol.Digest.toBytes daPadCellDigest`, `daPadCell_cells`
+* `paddingCell_eq : LeanDa.paddingCell Da.keccak256Bytes = LeanVM.Protocol.Digest.toBytes daPadCellDigest`, `daPadCell_cells`
   (`DA_PAD_CELL_0/1 = digestScalars daPadCellDigest`), `paddingRow_eq`, `daPadRow_cells`.
 * For new constants: `keccakF_eq_iff : keccakF a = b ↔ keccakFN (toNats a) = toNats b` and
   `keccak256_eq_iff : keccak256 data = d ↔ keccak256N (data.map UInt8.toNat) =

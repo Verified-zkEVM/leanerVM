@@ -52,25 +52,25 @@ theorem absSt_pend {cpi cfresh ccarried : E} {m : ℕ} {cs : List ChildClaims}
 
 theorem absSt_last {m : ℕ} {cs : List ChildClaims} (hcl : cs.length = m) :
     absSt m cs m = aggAbs cs := by
-  rw [absSt, List.take_of_length_le (by omega), aggAbs, Batch.batchWords, hcl]
+  rw [absSt, List.take_of_length_le (by omega), aggAbs, Batch.cellsBeforeChallenge, hcl]
 
 theorem claimAt_zero (cs : List ChildClaims) : claimAt cs 0 = 0 := by
   simp [claimAt, sumE, Batch.lambdaPowers]
 
 theorem claimAt_succ {cs : List ChildClaims} {c : ℕ} (hc : c < cs.length) :
     claimAt cs (c + 1) = claimAt cs c + lamA cs ^ (2 * c) *
-      (cs[c].fresh.bytecodeValue + lamA cs * cs[c].carried.bytecodeValue) := by
+      (cs[c].freshClaim.bytecodeValue + lamA cs * cs[c].carriedClaim.bytecodeValue) := by
   simp only [claimAt, lambdaPowers_eq]
   rw [zip_prefix _ _ _ hc]
   ring
 
-theorem weightAt_zero (cs : List ChildClaims) (h : BatchHints) : weightAt cs h 0 = 0 := by
+theorem weightAt_zero (cs : List ChildClaims) (h : BatchingHints) : weightAt cs h 0 = 0 := by
   simp [weightAt, sumE, Batch.lambdaPowers]
 
-theorem weightAt_succ {cs : List ChildClaims} {h : BatchHints} {c : ℕ} (hc : c < cs.length) :
+theorem weightAt_succ {cs : List ChildClaims} {h : BatchingHints} {c : ℕ} (hc : c < cs.length) :
     weightAt cs h (c + 1) = weightAt cs h c + lamA cs ^ (2 * c) *
-      (eqEval cs[c].fresh.bytecodePoint (aggRun cs h).1.1 +
-        lamA cs * eqEval cs[c].carried.bytecodePoint (aggRun cs h).1.1) := by
+      (eqEval cs[c].freshClaim.bytecodePoint (aggRun cs h).1.1 +
+        lamA cs * eqEval cs[c].carriedClaim.bytecodePoint (aggRun cs h).1.1) := by
   simp only [weightAt, lambdaPowers_eq]
   rw [zip_prefix _ _ _ hc]
   ring
@@ -81,12 +81,12 @@ theorem aggLam_fst {m : ℕ} {cs : List ChildClaims} (hcl : cs.length = m) :
   rfl
 
 theorem claimAt_last {m : ℕ} {cs : List ChildClaims} (hcl : cs.length = m) :
-    claimAt cs m = Batch.claimBOf cs (aggLam cs).1 := by
+    claimAt cs m = Batch.batchedClaim cs (aggLam cs).1 := by
   rw [claimAt, aggLam_fst hcl, List.take_of_length_le (by omega)]
   rfl
 
-theorem weightAt_last {m : ℕ} {cs : List ChildClaims} (hcl : cs.length = m) (h : BatchHints) :
-    weightAt cs h m = Batch.bytecodeWeight cs (aggLam cs).1 (aggRun cs h).1.1 := by
+theorem weightAt_last {m : ℕ} {cs : List ChildClaims} (hcl : cs.length = m) (h : BatchingHints) :
+    weightAt cs h m = Batch.batchedBytecodeWeight cs (aggLam cs).1 (aggRun cs h).1.1 := by
   rw [weightAt, aggLam_fst hcl, List.take_of_length_le (by omega)]
   rfl
 
@@ -108,11 +108,11 @@ theorem aggLam_snd (cs : List ChildClaims) :
 /-- **A child's words in memory**, as the loops read them. -/
 theorem kid_reads {cpi cfresh ccarried : E} {c : ℕ} {cc : ChildClaims}
     (h : ChildWordsAt rd cpi cfresh ccarried c cc) :
-    cc.fresh.bytecodePoint.length = 23 ∧ cc.carried.bytecodePoint.length = 23 ∧
-    ReadsAt rd (cfresh * (gen ^ c) ^ 24) cc.fresh.bytecodePoint ∧
-    ReadsAt rd (ccarried * (gen ^ c) ^ 24) cc.carried.bytecodePoint ∧
-    LoadHolds rd (cfresh * (gen ^ c) ^ 24) 23 cc.fresh.bytecodeValue ∧
-    LoadHolds rd (ccarried * (gen ^ c) ^ 24) 23 cc.carried.bytecodeValue ∧
+    cc.freshClaim.bytecodePoint.length = 23 ∧ cc.carriedClaim.bytecodePoint.length = 23 ∧
+    ReadsAt rd (cfresh * (gen ^ c) ^ 24) cc.freshClaim.bytecodePoint ∧
+    ReadsAt rd (ccarried * (gen ^ c) ^ 24) cc.carriedClaim.bytecodePoint ∧
+    LoadHolds rd (cfresh * (gen ^ c) ^ 24) 23 cc.freshClaim.bytecodeValue ∧
+    LoadHolds rd (ccarried * (gen ^ c) ^ 24) 23 cc.carriedClaim.bytecodeValue ∧
     (∀ o < 2, ∃ v, LoadHolds rd (cpi * (gen ^ c) ^ 2) o v) ∧
     (∀ o < 24, ∃ v, LoadHolds rd (cfresh * (gen ^ c) ^ 24) o v) ∧
     (∀ o < 24, ∃ v, LoadHolds rd (ccarried * (gen ^ c) ^ 24) o v) := by
@@ -122,11 +122,11 @@ theorem kid_reads {cpi cfresh ccarried : E} {c : ℕ} {cc : ChildClaims}
   have e24 : (gen ^ c) ^ 24 = gen ^ (24 * c) := by rw [← pow_mul, mul_comm]
   have e2 : (gen ^ c) ^ 2 = gen ^ (2 * c) := by rw [← pow_mul, mul_comm]
   rw [e24, e2]
-  have hf' : ReadsAt rd (cfresh * gen ^ (24 * c)) (cc.fresh.bytecodePoint ++ [cc.fresh.bytecodeValue]) := hf
+  have hf' : ReadsAt rd (cfresh * gen ^ (24 * c)) (cc.freshClaim.bytecodePoint ++ [cc.freshClaim.bytecodeValue]) := hf
   have hc' : ReadsAt rd (ccarried * gen ^ (24 * c))
-      (cc.carried.bytecodePoint ++ [cc.carried.bytecodeValue]) := hc
-  have hfl : (cc.fresh.bytecodePoint ++ [cc.fresh.bytecodeValue]).length = 24 := by simp [h1]
-  have hcl : (cc.carried.bytecodePoint ++ [cc.carried.bytecodeValue]).length = 24 := by simp [h2]
+      (cc.carriedClaim.bytecodePoint ++ [cc.carriedClaim.bytecodeValue]) := hc
+  have hfl : (cc.freshClaim.bytecodePoint ++ [cc.freshClaim.bytecodeValue]).length = 24 := by simp [h1]
+  have hcl : (cc.carriedClaim.bytecodePoint ++ [cc.carriedClaim.bytecodeValue]).length = 24 := by simp [h2]
   refine ⟨h1, h2, (readsAt_append.mp hf').1, (readsAt_append.mp hc').1, ?_, ?_, ?_,
     fun o ho => ⟨_, hf' o (by rw [hfl]; exact ho)⟩, fun o ho => ⟨_, hc' o (by rw [hcl]; exact ho)⟩⟩
   · have := hf' 23 (by rw [hfl]; omega)

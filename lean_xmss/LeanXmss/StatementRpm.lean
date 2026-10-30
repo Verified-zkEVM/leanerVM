@@ -39,10 +39,10 @@ noncomputable def forgeAdvantage (adversary : Adversary) : ℝ≥0∞ :=
 
 /-- Every path of the game makes at most `Q` permutation calls, the sponge's included. -/
 def HasPermutationBound (adversary : Adversary) (Q : Nat) : Prop :=
-  IsWeightBound (game adversary) permCallsH Q
+  QueryCostAtMost (game adversary) permCallsH Q
 
 /-- Every path of the game makes at most `q` calls of `H`, `π` and `π⁻¹` in all. -/
 def HasCallBound (adversary : Adversary) (q : Nat) : Prop :=
-  IsWeightBound (game adversary) oracleCalls q
+  QueryCostAtMost (game adversary) oracleCalls q
 
 end LeanXmss.Rpm

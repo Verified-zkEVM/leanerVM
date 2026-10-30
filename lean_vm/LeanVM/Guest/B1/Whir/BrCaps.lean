@@ -77,7 +77,7 @@ theorem flags_get (hs : OsSizes c) {rd : Reader} {flags : E} (hC : ReadsAt rd fl
 
 /-- **`verify_merkle_cap`'s meaning on level `i`'s honest cap**, its returns the level's root's
 cells. -/
-theorem cap_meaning_at (h : TrFit c tr) (hs : OsSizes c) {μ r : ℕ} {target : E} {S : KState}
+theorem cap_meaning_at (h : TrFit c tr) (hs : OsSizes c) {μ r : ℕ} {target : E} {S : KeccakState}
     {xs : List E} {os : List Opening} {root : Digest} (hrun : TrRun c μ r target S xs os root tr)
     (hcaps : CapsAgree μ r target S xs os root) {rd : Reader} {caps flags : E}
     (hC : ReadsAt rd caps (capsC c tr)) (hF : ReadsAt rd flags (flagsC c tr))

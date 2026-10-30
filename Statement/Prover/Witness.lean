@@ -13,8 +13,8 @@ read counts, the memory's and the bytecode's finalize counts kept as arrays by i
   each state stepped from, its bytecode slot and the instruction fetched there; `none` if a step
   fails, the machine halts early, or it is not in the final state after `t.steps` steps.
 * `checkTrace`: the execution is valid (`ValidExecution`) and its committed size is at most
-  `2^28` (`Trace.committedSize`), decided by that one run; `opCount` the instruction counts
-  (`Trace.count`).
+  `2^28` (`Execution.committedSize`), decided by that one run; `opCount` the instruction counts
+  (`Execution.count`).
 * `rowsOf`: the rows of the run, table by table, each read carrying the count of its cell so far
   (`g^n` for the `n`-th read of the cell), the counters stepping by `g` in place, and the
   bytecode slot's count likewise: the raw rows of `rowOf` (lean_vm,
@@ -45,19 +45,19 @@ structure Step where
   /-- The instruction fetched at `pc`. -/
   ins : Instr
 
-/-- The memory reader through the index `memIdx` (`MemImage.read`, computed). -/
-def readIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemImage κ) (a : K) : Option E :=
+/-- The memory reader through the index `memIdx` (`MemoryImage.read`, computed). -/
+def readIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (a : K) : Option E :=
   (gLogIn memIdx κ a).map img
 
 /-- `n` steps from `r` (`run`, computed through the indices, the instruction of slot `i` read
 from `code`, `prog.code` tabulated), the steps taken pushed on `acc`: the steps and the state
 reached; `none` if a step fails or the machine halts first. -/
 def stepsFrom (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program)
-    (code : Vector Instr (2 ^ prog.logSize)) {κ : ℕ} (img : MemImage κ) :
-    ℕ → Regs K → Array Step → Option (Array Step × Regs K)
+    (code : Vector Instr (2 ^ prog.logSize)) {κ : ℕ} (img : MemoryImage κ) :
+    ℕ → Registers K → Array Step → Option (Array Step × Registers K)
   | 0, r, acc => some (acc, r)
   | n + 1, r, acc =>
-    if r = Regs.final prog then none
+    if r = Registers.final prog then none
     else
       match gLogIn codeIdx prog.logSize r.pc with
       | none => none
@@ -69,19 +69,19 @@ def stepsFrom (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program)
 
 /-- **The run of a trace**: its `t.steps` steps from the initial state, when they end in the
 final state; `none` otherwise. The program's instructions are tabulated once. -/
-def runSteps (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) (t : Trace prog) :
+def runSteps (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) (t : Execution prog) :
     Option (Array Step) :=
-  match stepsFrom memIdx codeIdx prog (Vector.ofFn prog.code) t.image t.steps Regs.initial
+  match stepsFrom memIdx codeIdx prog (Vector.ofFn prog.code) t.memory t.steps Registers.initial
     #[] with
-  | some (acc, r) => if r = Regs.final prog then some acc else none
+  | some (acc, r) => if r = Registers.final prog then some acc else none
   | none => none
 
-/-- The number of steps of opcode `op` (`Trace.count`, computed). -/
+/-- The number of steps of opcode `op` (`Execution.count`, computed). -/
 def opCount (steps : Array Step) (op : Opcode) : ℕ :=
   steps.countP fun st ↦ decide (st.ins.opcode = op)
 
 /-- The committed size of an execution from its memory log-size and its counts
-(`Trace.committedSize`, with `log2Ceil` for `Nat.clog 2`). -/
+(`Execution.committedSize`, with `log2Ceil` for `Nat.clog 2`). -/
 def committedSizeOf (logSize κ : ℕ) (count : Opcode → ℕ) : ℕ :=
   let height (op : Opcode) : ℕ := 2 ^ log2Ceil (count op)
   let keccakHeight : ℕ := 2 ^ max (log2Ceil (count .keccak)) 9
@@ -94,23 +94,23 @@ def maxCommitted : ℕ := 2 ^ 28
 
 /-- **The check of a trace**: it has the public boundary of `input`, its run ends in the final
 state, and its committed size is at most `2^28`; one run through the address indices. -/
-def checkTrace (prog : Program) (input : PublicInput) (t : Trace prog) : Bool :=
+def checkTrace (prog : Program) (input : PublicInput) (t : Execution prog) : Bool :=
   boundaryOK input t &&
-    match runSteps (powIndex t.κ) (powIndex prog.logSize) prog t with
-    | some steps => decide (committedSizeOf prog.logSize t.κ (opCount steps) ≤ maxCommitted)
+    match runSteps (powIndex t.logMemorySize) (powIndex prog.logSize) prog t with
+    | some steps => decide (committedSizeOf prog.logSize t.logMemorySize (opCount steps) ≤ maxCommitted)
     | none => false
 
 /-! ## The rows -/
 
-/-- The limbs of the word at `a`, zero when there is none (`MemImage.limbsAt`, computed). -/
-def limbsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemImage κ) (a : K) : Vector K 3 :=
+/-- The limbs of the word at `a`, zero when there is none (`MemoryImage.limbsAt`, computed). -/
+def limbsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (a : K) : Vector K 3 :=
   match readIn memIdx img a with
   | some v => #v[v.limb 0, v.limb 1, v.limb 2]
   | none => #v[0, 0, 0]
 
 /-- The cells an instruction reads, in the order its row's reads carry them (`readAddrs`,
 computed). -/
-def addrsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemImage κ) (fp : K) :
+def addrsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (fp : K) :
     Instr → List K
   | .xor oA oB oC => [fp * oA, fp * oB, fp * oC]
   | .mulNative oA oB oC => [fp * oA, fp * oB, fp * oC]
@@ -157,16 +157,16 @@ def countReads (memIdx : Std.HashMap UInt64 ℕ) (κ : ℕ) :
 
 /-- The cells a `KECCAK` with these operands reads at `fp`, the zero word where a read fails
 (`keccakInputCells`, computed). -/
-def keccakInputIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemImage κ) (fp : K)
+def keccakInputIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (fp : K)
     (om : Fin 4 → K) (otail ob8 ocap : K) (c : Fin 13) : E :=
   (readIn memIdx img (fp * keccakInOffset om otail ob8 ocap c)).getD 0
 
 /-- The lane `l` of a state, as a `K` word. -/
-def laneK (S : KState) (l : ℕ) : K := K.ofLane (Keccak.lane S l)
+def laneK (S : KeccakState) (l : ℕ) : K := K.ofLane (Keccak.lane S l)
 
 /-- The raw row of an instruction executed from `(pc, fp)` (`rowOf`, computed): the typed row of
 its table as an array, with the read counts `c 0, c 1, …` and the bytecode count `rbc`. -/
-def rowIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemImage κ) (pc fp : K) (c : ℕ → K)
+def rowIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (pc fp : K) (c : ℕ → K)
     (rbc : K) : Instr → Array K
   | .xor oA oB oC =>
     let vA := limbsIn memIdx img (fp * oA)
@@ -189,7 +189,7 @@ def rowIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemImage κ) (pc f
   | .keccak om otail ob8 ocap oout inOdd outOdd =>
     let input := keccakInputIn memIdx img fp om otail ob8 ocap
     let S := stateOfCells input inOdd
-    let out := keccakF S
+    let out := keccakF1600 S
     #[pc, fp, om 0, om 1, om 2, om 3, otail, ob8, ocap, oout, flagK inOdd, flagK outOdd,
         if inOdd then (input 0).limb 0 else (input 8).limb 1] ++
       Array.ofFn (fun l : Fin 25 ↦ laneK S l) ++ Array.ofFn (fun l : Fin 25 ↦ laneK out l) ++
@@ -216,7 +216,7 @@ structure Rows where
 
 /-- The rows of one more step: its reads take their cells' counts, its bytecode read its slot's,
 and its row is pushed on its table. -/
-def stepRows (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemImage κ) (acc : Rows)
+def stepRows (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (acc : Rows)
     (st : Step) : Rows :=
   -- the fields taken out first, so that each counter array is updated in place
   let ⟨tabs, mem, bc⟩ := acc
@@ -225,7 +225,7 @@ def stepRows (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemImage κ) (a
   ⟨tabs.modify (opTableIdx st.ins.opcode) (·.push row), mem, bc.modify st.slot (g * ·)⟩
 
 /-- **The rows of a run**: one pass over its steps, from empty tables and every counter `1`. -/
-def rowsOf (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemImage κ) (logSize : ℕ)
+def rowsOf (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (logSize : ℕ)
     (steps : Array Step) : Rows :=
   steps.foldl (stepRows memIdx img)
     ⟨Array.replicate 6 #[], Array.replicate (2 ^ κ) 1, Array.replicate (2 ^ logSize) 1⟩

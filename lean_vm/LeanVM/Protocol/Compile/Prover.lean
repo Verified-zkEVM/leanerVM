@@ -141,7 +141,7 @@ def shapedI {α : Type} (P : Prog α) (S : Strategy) (chal : List Ev → E) : Pr
 
 section Prover
 
-variable (H : Bytes → Digest) (F : KState → KState)
+variable (H : Bytes → Digest) (F : KeccakState → KeccakState)
 
 /-- The nonce `n` as a scalar: limb `0` holds the 64-bit word `n` (`F192::new(n, 0, 0)`). -/
 def nonceOf (n : ℕ) : E := E.ofLimbs (K.ofBits n) 0 0
@@ -218,7 +218,7 @@ def proveFrom (S : Strategy) (fuel : ℕ) {α : Type} :
 
 /-- The honest prover: the proof of the program from the seed state and the empty history, or
 `none` if a proof-of-work search finds no nonce below `fuel`. -/
-def prove (P : Prog Bool) (S : Strategy) (seed : KState) (fuel : ℕ) : Option Proof :=
+def prove (P : Prog Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ) : Option Proof :=
   (proveFrom H F S fuel P ⟨seed, []⟩ []).map fun t ↦ ⟨t.1, t.2⟩
 
 end Prover
@@ -436,7 +436,7 @@ end Merkle
 
 section Simulation
 
-variable (H : Bytes → Digest) (F : KState → KState)
+variable (H : Bytes → Digest) (F : KeccakState → KeccakState)
 
 /-- The roots the compiled verifier holds after the commitments of a history. -/
 def rootsOf (cs : List (ℕ × ℕ × Word)) : List (Digest × ℕ × ℕ) :=
@@ -582,8 +582,8 @@ end Simulation
 strategy `S`, seed and fuel: if `S` wins every interactive run of `P` (whatever the
 challenges) and commits well-shaped words, then every proof the honest prover produces is
 accepted by the compiled verifier at `H` and `F`. -/
-theorem runProof_prove (H : Bytes → Digest) (F : KState → KState) (P : Prog Bool) (S : Strategy)
-    (seed : KState) (fuel : ℕ) {π : Proof} (hc : ∀ chal, runI P S chal = some true)
+theorem runProof_prove (H : Bytes → Digest) (F : KeccakState → KeccakState) (P : Prog Bool) (S : Strategy)
+    (seed : KeccakState) (fuel : ℕ) {π : Proof} (hc : ∀ chal, runI P S chal = some true)
     (hs : ∀ chal, shapedI P S chal)
     (hπ : prove H F P S seed fuel = some π) :
     runProof (m := Id) H F P seed π = true := by
@@ -603,7 +603,7 @@ theorem runProof_prove (H : Bytes → Digest) (F : KState → KState) (P : Prog 
 /-! ## When the prover produces a proof -/
 
 /-- The proof-of-work search fails exactly when `bits > 0` and no nonce below `fuel` passes. -/
-theorem findNonce_eq_none_iff (F : KState → KState) (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
+theorem findNonce_eq_none_iff (F : KeccakState → KeccakState) (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
     findNonce F bits sp fuel = none ↔
       bits ≠ 0 ∧ ∀ n < fuel, powOk bits (nonceOf n) (powStep F sp (nonceOf n)).1 = false := by
   unfold findNonce
@@ -615,7 +615,7 @@ theorem findNonce_eq_none_iff (F : KState → KState) (bits : ℕ) (sp : Sponge)
 /-- The honest prover fails only at a failed proof-of-work search: from a history at which the
 program is at `p`, if the search succeeds at every `grind` node the program can reach and every
 sponge, the prover produces a proof. -/
-theorem proveFrom_ne_none (H : Bytes → Digest) (F : KState → KState) (S : Strategy) (fuel : ℕ)
+theorem proveFrom_ne_none (H : Bytes → Digest) (F : KeccakState → KeccakState) (S : Strategy) (fuel : ℕ)
     {P : Prog Bool}
     (hg : ∀ h bits k sp, P.after h = some (.grind bits k) → findNonce F bits sp fuel ≠ none) :
     ∀ (p : Prog Bool) (h : List Ev) (sp : Sponge), P.after h = some p →
@@ -654,8 +654,8 @@ theorem proveFrom_ne_none (H : Bytes → Digest) (F : KState → KState) (S : St
 
 /-- The honest prover produces a proof as soon as the proof-of-work search succeeds at every
 `grind` node of the program, at every sponge. -/
-theorem prove_ne_none (H : Bytes → Digest) (F : KState → KState) (P : Prog Bool) (S : Strategy)
-    (seed : KState) (fuel : ℕ)
+theorem prove_ne_none (H : Bytes → Digest) (F : KeccakState → KeccakState) (P : Prog Bool) (S : Strategy)
+    (seed : KeccakState) (fuel : ℕ)
     (hg : ∀ h bits k sp, P.after h = some (.grind bits k) → findNonce F bits sp fuel ≠ none) :
     prove H F P S seed fuel ≠ none := by
   simp only [prove, ne_eq, Option.map_eq_none_iff]
@@ -664,8 +664,8 @@ theorem prove_ne_none (H : Bytes → Digest) (F : KState → KState) (P : Prog B
 /-- **Completeness, conditioned on the proof of work.** A strategy that wins every interactive
 run with well-shaped words gives, for every hash function, an accepted proof whenever every
 proof-of-work search finds its nonce below `fuel`. -/
-theorem exists_prove_runProof (H : Bytes → Digest) (F : KState → KState) (P : Prog Bool)
-    (S : Strategy) (seed : KState) (fuel : ℕ) (hc : ∀ chal, runI P S chal = some true)
+theorem exists_prove_runProof (H : Bytes → Digest) (F : KeccakState → KeccakState) (P : Prog Bool)
+    (S : Strategy) (seed : KeccakState) (fuel : ℕ) (hc : ∀ chal, runI P S chal = some true)
     (hs : ∀ chal, shapedI P S chal)
     (hg : ∀ h bits k sp, P.after h = some (.grind bits k) → findNonce F bits sp fuel ≠ none) :
     ∃ π, prove H F P S seed fuel = some π ∧ runProof (m := Id) H F P seed π = true := by

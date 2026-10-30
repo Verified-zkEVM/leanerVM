@@ -71,7 +71,7 @@ theorem isInK_imm (k : ℕ) : IsInK (OInstr.imm k 0 0) := by
 
 section
 
-variable {κ : ℕ} {L : MemImage κ}
+variable {κ : ℕ} {L : MemoryImage κ}
 
 /-! ## Soundness -/
 
@@ -157,7 +157,7 @@ theorem main_complete {p : K} {w : E} (h0 : L.read (1 * gpow 0) = some w)
     (hp0 : L.read (p * gpow 0) = some (ofK (gpow 5))) (hp1 : L.read (p * gpow 1) = some (ofK 1))
     (hp2 : L.read (p * gpow 2) = some (OInstr.imm 7 0 0))
     (hp3 : L.read (p * gpow 3) = some (OInstr.imm 1 0 0)) :
-    Reach tiny L ⟨gpow 0, 1⟩ (Regs.final tiny) := by
+    Reach tiny L ⟨gpow 0, 1⟩ (Registers.final tiny) := by
   have hK : ∀ a : K, IsInK (ofK a) := fun a ↦ (isInK_iff _).mpr ⟨a, rfl⟩
   have hseven : Returns tiny L 7 p := by
     refine ⟨⟨gpow 5, 1⟩, retRegs_of_ofK hp0 hp1, ?_⟩

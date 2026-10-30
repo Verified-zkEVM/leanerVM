@@ -12,7 +12,7 @@ public import LeanVM.Guest.Child.Range
 /-!
 # The honest proof's query steps
 
-`queriesOf_proveFrom`: `run_proveFrom`'s simulation, for the query steps `Limits.queriesOf`
+`queriesOf_proveFrom`: `run_proveFrom`'s simulation, for the query steps `Limits.queryStepsOf`
 lists. From a history whose strategy wins, the verifier's run on the honest prover's output opens,
 at each query step, the tree of one committed word of height `ht` at positions `ps` with the
 openings `openingAt keccak256 ht word` of those positions; with `InRange`, every position is below
@@ -42,14 +42,14 @@ theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
       (restS : List E) (restO : List Opening),
       S.AcceptsFrom p h → (∀ c ∈ commits h, WellShaped c.2.1 c.2.2) →
       InRange p ((commits h).map (·.1)) (fun _ _ ↦ True) →
-      proveFrom keccak256 keccakF S fuel p sp h = some (xs, os) →
-      ∀ b ∈ Limits.queriesOf p ⟨sp, xs ++ restS, os ++ restO, rootsOf keccak256 (commits h)⟩,
+      proveFrom keccak256 keccakF1600 S fuel p sp h = some (xs, os) →
+      ∀ b ∈ Limits.queryStepsOf p ⟨sp, xs ++ restS, os ++ restO, rootsOf keccak256 (commits h)⟩,
         HonestBatch b := by
   intro p
   induction p with
   | ret b =>
     intro h sp xs os restS restO _ _ _ _ b hb
-    simp [Limits.queriesOf] at hb
+    simp [Limits.queryStepsOf] at hb
   | fail =>
     intro h sp xs os restS restO hacc
     exact absurd hacc id
@@ -63,19 +63,19 @@ theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
       simpa [commits_append, commits] using hws
     have hc : commits (h ++ [Ev.read (S.msg h)]) = commits h := by
       simp [commits_append, commits]
-    simp only [List.cons_append, Limits.queriesOf] at hb
+    simp only [List.cons_append, Limits.queryStepsOf] at hb
     refine ih _ _ _ t.1 t.2 restS restO hacc hws' (hc ▸ hir _) ht b ?_
     rw [hc]
     exact hb
   | sample k ih =>
     intro h sp xs os restS restO hacc hws hir hp b hb
     simp only [proveFrom] at hp
-    have hc : commits (h ++ [Ev.sample (squeezeI keccakF sp).1]) = commits h := by
+    have hc : commits (h ++ [Ev.sample (squeezeI keccakF1600 sp).1]) = commits h := by
       simp [commits_append, commits]
-    have hws' : ∀ c ∈ commits (h ++ [Ev.sample (squeezeI keccakF sp).1]),
+    have hws' : ∀ c ∈ commits (h ++ [Ev.sample (squeezeI keccakF1600 sp).1]),
         WellShaped c.2.1 c.2.2 := by
       rw [hc]; exact hws
-    simp only [Limits.queriesOf] at hb
+    simp only [Limits.queryStepsOf] at hb
     refine ih _ _ _ xs os restS restO (hacc _) hws' (hc ▸ hir _) hp b ?_
     rw [hc]
     exact hb
@@ -92,9 +92,9 @@ theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
         simp [commits_append, commits]
       have hws' : ∀ c ∈ commits (h ++ [Ev.grind bits]), WellShaped c.2.1 c.2.2 := by
         rw [hc]; exact hws
-      have hpow := powOk_of_findNonce keccakF hn
-      simp only [List.cons_append, Limits.queriesOf] at hb
-      rw [show powOk bits n (Id.run (squeeze keccakF (Id.run (absorb keccakF sp n dsPowNonce)))).1
+      have hpow := powOk_of_findNonce keccakF1600 hn
+      simp only [List.cons_append, Limits.queryStepsOf] at hb
+      rw [show powOk bits n (Id.run (squeeze keccakF1600 (Id.run (absorb keccakF1600 sp n dsPowNonce)))).1
         = true from hpow] at hb
       simp only [↓reduceIte] at hb
       refine ih _ _ t.1 t.2 restS restO hacc hws' (hc ▸ hir) ht b ?_
@@ -122,7 +122,7 @@ theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
     have hcm : (commits (h ++ [Ev.commit ht w (S.word h)])).map (·.1) =
         (commits h).map (·.1) ++ [ht] := by
       simp [commits_append, commits]
-    simp only [List.cons_append, Limits.queriesOf, hdec] at hb
+    simp only [List.cons_append, Limits.queryStepsOf, hdec] at hb
     refine ih _ _ t.1 t.2 restS restO hacc hws' (hcm ▸ hir) htt b ?_
     rw [hroots]
     exact hb
@@ -152,7 +152,7 @@ theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
       have hopen := openAll_openingAt keccak256 hw (height := ht) ps (t.2 ++ restO)
       have hgi : ((commits h).map (·.1)).getD i 0 = ht := by
         simp [List.getD_eq_getElem?_getD, hc]
-      simp only [Limits.queriesOf, hroot, List.append_assoc] at hb
+      simp only [Limits.queryStepsOf, hroot, List.append_assoc] at hb
       rw [show Id.run (openAll (m := Id) keccak256 (treeRoot keccak256 ht word) ht w ps
         (ps.map (openingAt keccak256 ht word) ++ (t.2 ++ restO))) =
           some (ps.map fun q ↦ word (q % 2 ^ ht), t.2 ++ restO) from hopen] at hb

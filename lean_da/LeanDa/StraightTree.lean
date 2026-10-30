@@ -30,11 +30,11 @@ namespace LeanDa
 /-! ## The digests an input carries -/
 
 /-- Block `t` of a string: its bytes `32 t … 32 t + 31`, as a digest. -/
-def chunkAt (b : List UInt8) (t : ℕ) : Common.KDigest := Vector.ofFn fun i : Fin 32 ↦ b.getD (32 * t + i) 0
+def chunkAt (b : List UInt8) (t : ℕ) : Common.DigestBytes := Vector.ofFn fun i : Fin 32 ↦ b.getD (32 * t + i) 0
 
 /-- **The digests a hash input carries**: its 32-byte blocks, for the inputs of `64` bytes (a
 node's two children) and `2048` bytes (a row's leaf, its `64` cell digests). -/
-def chunks (b : List UInt8) : Finset Common.KDigest :=
+def chunks (b : List UInt8) : Finset Common.DigestBytes :=
   if b.length = 64 ∨ b.length = 2048 then (Finset.range (b.length / 32)).image (chunkAt b) else ∅
 
 theorem card_chunks_le (b : List UInt8) : (chunks b).card ≤ 64 := by
@@ -46,14 +46,14 @@ theorem card_chunks_le (b : List UInt8) : (chunks b).card ≤ 64 := by
     omega
   · simp
 
-theorem chunkAt_append_left (a : Common.KDigest) (l : List UInt8) : chunkAt (a.toList ++ l) 0 = a := by
+theorem chunkAt_append_left (a : Common.DigestBytes) (l : List UInt8) : chunkAt (a.toList ++ l) 0 = a := by
   apply Vector.ext
   intro i hi
   simp only [chunkAt, Vector.getElem_ofFn, Nat.mul_zero, Nat.zero_add]
   rw [List.getD_eq_getElem _ _ (by simp; omega), List.getElem_append_left (by simpa using hi),
     Vector.getElem_toList]
 
-theorem chunkAt_append_succ (a : Common.KDigest) (l : List UInt8) (t : ℕ) :
+theorem chunkAt_append_succ (a : Common.DigestBytes) (l : List UInt8) (t : ℕ) :
     chunkAt (a.toList ++ l) (t + 1) = chunkAt l t := by
   apply Vector.ext
   intro i hi
@@ -64,42 +64,42 @@ theorem chunkAt_append_succ (a : Common.KDigest) (l : List UInt8) (t : ℕ) :
   simp only [Vector.length_toList]
   omega
 
-theorem chunkAt_pairBytes_zero (a b : Common.KDigest) : chunkAt (pairBytes a b) 0 = a :=
+theorem chunkAt_pairBytes_zero (a b : Common.DigestBytes) : chunkAt (pairBytes a b) 0 = a :=
   chunkAt_append_left a _
 
-theorem chunkAt_pairBytes_one (a b : Common.KDigest) : chunkAt (pairBytes a b) 1 = b := by
+theorem chunkAt_pairBytes_one (a b : Common.DigestBytes) : chunkAt (pairBytes a b) 1 = b := by
   rw [pairBytes, chunkAt_append_succ, ← List.append_nil b.toList, chunkAt_append_left]
 
-theorem mem_chunks_pairBytes_left (a b : Common.KDigest) : a ∈ chunks (pairBytes a b) := by
+theorem mem_chunks_pairBytes_left (a b : Common.DigestBytes) : a ∈ chunks (pairBytes a b) := by
   unfold chunks
   rw [ite_eq_left (Or.inl (length_pairBytes a b))]
   exact Finset.mem_image.mpr ⟨0, by simp [length_pairBytes], chunkAt_pairBytes_zero a b⟩
 
-theorem mem_chunks_pairBytes_right (a b : Common.KDigest) : b ∈ chunks (pairBytes a b) := by
+theorem mem_chunks_pairBytes_right (a b : Common.DigestBytes) : b ∈ chunks (pairBytes a b) := by
   unfold chunks
   rw [ite_eq_left (Or.inl (length_pairBytes a b))]
   exact Finset.mem_image.mpr ⟨1, by simp [length_pairBytes], chunkAt_pairBytes_one a b⟩
 
 /-! ## The inputs of a Merkle tree -/
 
-variable (f : List UInt8 → Common.KDigest)
+variable (f : List UInt8 → Common.DigestBytes)
 
 /-- **The inputs a Merkle tree of depth `d` over the leaves `L` hashes**, level by level. -/
-def merkleIn : ℕ → (ℕ → Common.KDigest) → Set (List UInt8)
+def merkleIn : ℕ → (ℕ → Common.DigestBytes) → Set (List UInt8)
   | 0, _ => ∅
   | d + 1, L => {a | ∃ i < 2 ^ d, a = pairBytes (L (2 * i)) (L (2 * i + 1))} ∪ merkleIn d (up f L)
 
-theorem merkleIn_succ (d : ℕ) (L : ℕ → Common.KDigest) :
+theorem merkleIn_succ (d : ℕ) (L : ℕ → Common.DigestBytes) :
     merkleIn f (d + 1) L =
       {a | ∃ i < 2 ^ d, a = pairBytes (L (2 * i)) (L (2 * i + 1))} ∪ merkleIn f d (up f L) := rfl
 
-theorem pair_mem_merkleIn (d : ℕ) (L : ℕ → Common.KDigest) (i : ℕ) (hi : i < 2 ^ d) :
+theorem pair_mem_merkleIn (d : ℕ) (L : ℕ → Common.DigestBytes) (i : ℕ) (hi : i < 2 ^ d) :
     pairBytes (L (2 * i)) (L (2 * i + 1)) ∈ merkleIn f (d + 1) L :=
   Or.inl ⟨i, hi, rfl⟩
 
 /-- **The tree depends on the hash only on its inputs**, and on the leaves only on its own. -/
-theorem merkleIn_congr (f' : List UInt8 → Common.KDigest) (d : ℕ) :
-    ∀ L L' : ℕ → Common.KDigest, (∀ i < 2 ^ d, L i = L' i) → (∀ a ∈ merkleIn f d L, f a = f' a) →
+theorem merkleIn_congr (f' : List UInt8 → Common.DigestBytes) (d : ℕ) :
+    ∀ L L' : ℕ → Common.DigestBytes, (∀ i < 2 ^ d, L i = L' i) → (∀ a ∈ merkleIn f d L, f a = f' a) →
       merkleIn f' d L' = merkleIn f d L ∧ merkleRoot f' d L' = merkleRoot f d L := by
   induction d with
   | zero =>
@@ -123,7 +123,7 @@ theorem merkleIn_congr (f' : List UInt8 → Common.KDigest) (d : ℕ) :
     · rintro ⟨i, hi, rfl⟩; exact ⟨i, hi, by rw [(hL2 i hi).1, (hL2 i hi).2]⟩
 
 /-- **A leaf is the root or a digest an input carries.** -/
-theorem leaf_mem (d : ℕ) (L : ℕ → Common.KDigest) (i : ℕ) (hi : i < 2 ^ d) :
+theorem leaf_mem (d : ℕ) (L : ℕ → Common.DigestBytes) (i : ℕ) (hi : i < 2 ^ d) :
     L i = merkleRoot f d L ∨ ∃ b ∈ merkleIn f d L, L i ∈ chunks b := by
   rcases d with _ | d
   · obtain rfl : i = 0 := by simpa using hi
@@ -135,7 +135,7 @@ theorem leaf_mem (d : ℕ) (L : ℕ → Common.KDigest) (i : ℕ) (hi : i < 2 ^ 
 
 /-- **An input hashes to the root or to a digest an input carries.** -/
 theorem merkleIn_parent (d : ℕ) :
-    ∀ (L : ℕ → Common.KDigest) (a : List UInt8), a ∈ merkleIn f d L →
+    ∀ (L : ℕ → Common.DigestBytes) (a : List UInt8), a ∈ merkleIn f d L →
       f a = merkleRoot f d L ∨ ∃ b ∈ merkleIn f d L, f a ∈ chunks b := by
   induction d with
   | zero => intro L a ha; exact ha.elim
@@ -153,7 +153,7 @@ variable {f}
 
 /-- **Two trees of one root over an injective hash have the same leaves.** -/
 theorem merkleRoot_inj {S : Set (List UInt8)} (hinj : Set.InjOn f S) (d : ℕ) :
-    ∀ L L' : ℕ → Common.KDigest, merkleIn f d L ⊆ S → merkleIn f d L' ⊆ S →
+    ∀ L L' : ℕ → Common.DigestBytes, merkleIn f d L ⊆ S → merkleIn f d L' ⊆ S →
       merkleRoot f d L = merkleRoot f d L' → ∀ i < 2 ^ d, L i = L' i := by
   induction d with
   | zero =>
@@ -174,7 +174,7 @@ theorem merkleRoot_inj {S : Set (List UInt8)} (hinj : Set.InjOn f S) (d : ℕ) :
 variable (f)
 
 /-- The inputs a climb hashes, as a set. -/
-def walkIn : ℕ → Common.KDigest → List Common.KDigest → Set (List UInt8)
+def walkIn : ℕ → Common.DigestBytes → List Common.DigestBytes → Set (List UInt8)
   | _, _, [] => ∅
   | idx, node, s :: rest =>
     insert (if idx % 2 = 0 then pairBytes node s else pairBytes s node)
@@ -183,8 +183,8 @@ def walkIn : ℕ → Common.KDigest → List Common.KDigest → Set (List UInt8)
 variable {f}
 
 /-- **A climb that reaches a tree's root over an injective hash starts at the tree's leaf.** -/
-theorem walk_eq_leaf {S : Set (List UInt8)} (hinj : Set.InjOn f S) (path : List Common.KDigest) :
-    ∀ (d : ℕ) (L : ℕ → Common.KDigest) (idx : ℕ) (leaf : Common.KDigest), path.length = d → idx < 2 ^ d →
+theorem walk_eq_leaf {S : Set (List UInt8)} (hinj : Set.InjOn f S) (path : List Common.DigestBytes) :
+    ∀ (d : ℕ) (L : ℕ → Common.DigestBytes) (idx : ℕ) (leaf : Common.DigestBytes), path.length = d → idx < 2 ^ d →
       walkIn f idx leaf path ⊆ S → merkleIn f d L ⊆ S → walk f idx leaf path = merkleRoot f d L →
         leaf = L idx := by
   induction path with
@@ -281,7 +281,7 @@ theorem colLeaves_mem (c : Fin (r * 128) → Cell) (l : ℕ) (hl : l < 2 ^ (7 + 
   exact ⟨_, Nat.mod_lt _ hpos, _, by rw [Nat.div_lt_iff_lt_mul hpos]; omega, rfl⟩
 
 /-- **The commitment depends on the hash only on its inputs.** -/
-theorem commitIn_congr (f' : List UInt8 → Common.KDigest) (c : Fin (r * 128) → Cell)
+theorem commitIn_congr (f' : List UInt8 → Common.DigestBytes) (c : Fin (r * 128) → Cell)
     (h : ∀ a ∈ commitIn f c, f a = f' a) :
     commitIn f' c = commitIn f c ∧ commitCells f' c = commitCells f c := by
   have hcell : ∀ i < nPad r, ∀ j < 128,
@@ -421,11 +421,11 @@ end Commit
 
 section Partial
 
-variable {g : List UInt8 → Option Common.KDigest} (hg : ∀ a u, g a = some u → u = f a)
+variable {g : List UInt8 → Option Common.DigestBytes} (hg : ∀ a u, g a = some u → u = f a)
 include hg
 
-theorem upM_some (Lm : ℕ → Option Common.KDigest) (L : ℕ → Common.KDigest) (hL : ∀ i u, Lm i = some u → u = L i)
-    (i : ℕ) (v : Common.KDigest) (hv : upM g Lm i = some v) :
+theorem upM_some (Lm : ℕ → Option Common.DigestBytes) (L : ℕ → Common.DigestBytes) (hL : ∀ i u, Lm i = some u → u = L i)
+    (i : ℕ) (v : Common.DigestBytes) (hv : upM g Lm i = some v) :
     v = up f L i ∧ Lm (2 * i) ≠ none ∧ Lm (2 * i + 1) ≠ none ∧
       g (pairBytes (L (2 * i)) (L (2 * i + 1))) ≠ none := by
   simp only [upM, Option.bind_eq_bind', Option.bind_eq_some_iff] at hv
@@ -434,7 +434,7 @@ theorem upM_some (Lm : ℕ → Option Common.KDigest) (L : ℕ → Common.KDiges
   exact ⟨hg _ _ hab, by simp [ha], by simp [hb], by simp [hab]⟩
 
 theorem merkleRootM_some (d : ℕ) :
-    ∀ (Lm : ℕ → Option Common.KDigest) (L : ℕ → Common.KDigest), (∀ i u, Lm i = some u → u = L i) →
+    ∀ (Lm : ℕ → Option Common.DigestBytes) (L : ℕ → Common.DigestBytes), (∀ i u, Lm i = some u → u = L i) →
       ∀ v, merkleRootM g d Lm = some v →
         v = merkleRoot f d L ∧ (∀ i < 2 ^ d, Lm i ≠ none) ∧ ∀ a ∈ merkleIn f d L, g a ≠ none := by
   induction d with
@@ -463,8 +463,8 @@ theorem merkleRootM_some (d : ℕ) :
         exact (upM_some f hg Lm L hL _ u hu).2.2.2
       · exact h3 a ha
 
-theorem mapM_some {β : Type} (F : β → Option Common.KDigest) (F' : β → Common.KDigest)
-    (hF : ∀ b u, F b = some u → u = F' b) (l : List β) (ds : List Common.KDigest)
+theorem mapM_some {β : Type} (F : β → Option Common.DigestBytes) (F' : β → Common.DigestBytes)
+    (hF : ∀ b u, F b = some u → u = F' b) (l : List β) (ds : List Common.DigestBytes)
     (h : l.mapM F = some ds) : ds = l.map F' ∧ ∀ b ∈ l, F b ≠ none := by
   induction l generalizing ds with
   | nil =>
@@ -481,7 +481,7 @@ theorem mapM_some {β : Type} (F : β → Option Common.KDigest) (F' : β → Co
 
 /-- **A commitment over a partial hash that returns** returns the pure commitment, its inputs in
 the hash's domain. -/
-theorem commitCellsM_some {r : ℕ} (c : Fin (r * 128) → Cell) (v : Common.KDigest)
+theorem commitCellsM_some {r : ℕ} (c : Fin (r * 128) → Cell) (v : Common.DigestBytes)
     (hv : commitCellsM g c = some v) :
     v = commitCells f c ∧ ∀ a ∈ commitIn f c, g a ≠ none := by
   simp only [commitCellsM, Option.bind_eq_bind', Option.bind_eq_some_iff] at hv
@@ -516,8 +516,8 @@ theorem commitCellsM_some {r : ℕ} (c : Fin (r * 128) → Cell) (v : Common.KDi
   · rw [Set.mem_singleton_iff.mp ha]
     simp [rootInput, rowRoot, colRoot, hroot]
 
-theorem walkM_some (path : List Common.KDigest) :
-    ∀ (idx : ℕ) (node v : Common.KDigest), walkM g idx node path = some v →
+theorem walkM_some (path : List Common.DigestBytes) :
+    ∀ (idx : ℕ) (node v : Common.DigestBytes), walkM g idx node path = some v →
       v = walk f idx node path ∧ ∀ a ∈ walkIn f idx node path, g a ≠ none := by
   induction path with
   | nil =>
@@ -538,7 +538,7 @@ theorem walkM_some (path : List Common.KDigest) :
 
 /-- **An opening's check over a partial hash that returns** returns the pure check, its inputs
 in the hash's domain. -/
-theorem verifyCellM_some {r : ℕ} (com : Common.KDigest) (p : Fin (r * 128)) (x : Cell) (τ : Opening)
+theorem verifyCellM_some {r : ℕ} (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening)
     (b : Bool) (hb : verifyCellM g r com p x τ = some b) :
     b = verifyCell f r com p x τ ∧ ∀ a ∈ verifyIn f p x τ, g a ≠ none := by
   simp only [verifyCellM, Option.bind_eq_bind', Option.pure_def, Option.bind_eq_some_iff, Option.some.injEq] at hb

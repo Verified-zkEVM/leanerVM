@@ -64,7 +64,7 @@ theorem ind_mul_esc_le (C : Cert P) {εmax : ℝ≥0∞}
 
 /-- The average proof-of-work factor of a record. -/
 theorem powF_avg (pw : Option (ℕ × E)) :
-    (∑ u : KState, powF pw u) / Fintype.card KState ≤ 2⁻¹ ^ min ((pw.map Prod.fst).getD 0) 64 := by
+    (∑ u : KeccakState, powF pw u) / Fintype.card KeccakState ≤ 2⁻¹ ^ min ((pw.map Prod.fst).getD 0) 64 := by
   rcases pw with _ | ⟨b, n⟩
   · simp only [Option.map_none, Option.getD_none, Nat.zero_min, pow_zero]
     exact avg_le_of_le fun _ ↦ le_rfl
@@ -72,10 +72,10 @@ theorem powF_avg (pw : Option (ℕ × E)) :
 
 /-- **The new record averages to at most `εmax`.** -/
 theorem term_step_new (C : Cert P) {εmax : ℝ≥0∞}
-    (hε : ∀ h, 2⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) (ℓ : Log) (t : KState) :
+    (hε : ∀ h, 2⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) (ℓ : Log) (t : KeccakState) :
     (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) *
         term C.D (ℓ ++ [.inr (t, u)]) ((stepF σ P ℓ (decode σ P ℓ) t).1, u)) /
-          Fintype.card KState ≤ εmax := by
+          Fintype.card KeccakState ≤ εmax := by
   have hok := stepF_shapeOk (σ := σ) (P := P) ℓ t
   generalize (stepF σ P ℓ (decode σ P ℓ) t).1 = s at hok ⊢
   cases s with
@@ -87,16 +87,16 @@ theorem term_step_new (C : Cert P) {εmax : ℝ≥0∞}
     have hcert := ind_mul_esc_le C hε hr hb ha
     rw [hg] at hcert
     have h1 : (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) *
-        term C.D (ℓ ++ [.inr (t, u)]) (Shape.st h p pw, u)) / Fintype.card KState ≤
-          (∑ u, powF pw u * (ind (C.D h) * esc C.D h p)) / Fintype.card KState := by
+        term C.D (ℓ ++ [.inr (t, u)]) (Shape.st h p pw, u)) / Fintype.card KeccakState ≤
+          (∑ u, powF pw u * (ind (C.D h) * esc C.D h p)) / Fintype.card KeccakState := by
       refine ENNReal.div_le_div_right (Finset.sum_le_sum fun u _ ↦ ?_) _
       simp only [term]
       by_cases hf : Fresh (ℓ ++ [.inr (t, u)]) u
       · rw [ind_of hf, one_mul, gv_fresh C.D hf]
         exact le_of_eq (by ring)
       · rw [ind_of_not hf, zero_mul]; exact bot_le
-    have h2 : (∑ u, powF pw u * (ind (C.D h) * esc C.D h p)) / Fintype.card KState =
-        ((∑ u, powF pw u) / Fintype.card KState) * (ind (C.D h) * esc C.D h p) := by
+    have h2 : (∑ u, powF pw u * (ind (C.D h) * esc C.D h p)) / Fintype.card KeccakState =
+        ((∑ u, powF pw u) / Fintype.card KeccakState) * (ind (C.D h) * esc C.D h p) := by
       rw [← Finset.sum_mul, ENNReal.mul_div_right_comm]
     rw [h2] at h1
     refine h1.trans ((mul_le_mul_left (powF_avg pw) _).trans ?_)
@@ -107,9 +107,9 @@ theorem term_step_new (C : Cert P) {εmax : ℝ≥0∞}
     have hcert := ind_mul_esc_le C hε hr hb ha
     rw [hg, min_eq_left (Nat.zero_le _), pow_zero, one_mul] at hcert
     have heq : (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) *
-        term C.D (ℓ ++ [.inr (t, u)]) (Shape.sq h p, u)) / Fintype.card KState =
+        term C.D (ℓ ++ [.inr (t, u)]) (Shape.sq h p, u)) / Fintype.card KeccakState =
           ind (C.D h) * ((∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) *
-            gv1 C.D (ℓ ++ [.inr (t, u)]) u h p) / Fintype.card KState) := by
+            gv1 C.D (ℓ ++ [.inr (t, u)]) u h p) / Fintype.card KeccakState) := by
       simp only [term]
       rw [← mul_div_assoc, Finset.mul_sum]
       congr 1
@@ -143,8 +143,8 @@ theorem sum_badH_div_le (σ : Seeds X) (ℓ : Log) (x : Bytes) :
   exact ENNReal.div_le_div_right (sum_badH_le σ ℓ x) _
 
 /-- The failure bound of one permutation answer, over `2^256`. -/
-theorem sum_badF_div_le' (σ : Seeds X) (ℓ : Log) (s : KState) :
-    (∑ u, ind (BadF ℓ s u)) / Fintype.card KState ≤
+theorem sum_badF_div_le' (σ : Seeds X) (ℓ : Log) (s : KeccakState) :
+    (∑ u, ind (BadF ℓ s u)) / Fintype.card KeccakState ≤
       ((5 + σ.offs.length) * (ℓ.length + 1) : ℕ) / 2 ^ 256 := by
   refine (sum_badF_div_le ℓ s).trans ?_
   rw [div_eq_mul_inv, ENNReal.inv_pow]
@@ -182,16 +182,16 @@ theorem step_ineqH (D : List Ev → Prop) (ℓ : Log) (x : Bytes) :
 does not answer, the average of the potential after one fresh answer at `s` is at most the
 potential before it plus `εmax` plus the bound on the probability that the answer fails. -/
 theorem step_ineqF (C : Cert P) {εmax : ℝ≥0∞}
-    (hε : ∀ h, 2⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) (ℓ : Log) (t : KState)
+    (hε : ∀ h, 2⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) (ℓ : Log) (t : KeccakState)
     (ht : lookF ℓ t = none) :
-    (∑ u, pot C.D σ P (ℓ ++ [.inr (t, u)])) / Fintype.card KState ≤
+    (∑ u, pot C.D σ P (ℓ ++ [.inr (t, u)])) / Fintype.card KeccakState ≤
       pot C.D σ P ℓ + (εmax + ((5 + σ.offs.length) * (ℓ.length + 1) : ℕ) / 2 ^ 256) := by
   by_cases hf : Fail σ ℓ
   · have h1 : pot C.D σ P ℓ = 1 := by simp only [pot, hf, ↓reduceIte]
     rw [h1]
     exact (avg_le_of_le fun u ↦ pot_le_one C.D σ P _).trans le_self_add
   have hpot : pot C.D σ P ℓ = min 1 (termSum C.D σ P ℓ) := by simp only [pot, hf, ↓reduceIte]
-  set ℓ' := fun u : KState ↦ ℓ ++ [.inr (t, u)] with hℓ'
+  set ℓ' := fun u : KeccakState ↦ ℓ ++ [.inr (t, u)] with hℓ'
   set s := (stepF σ P ℓ (decode σ P ℓ) t).1
   -- the potential after the entry, pointwise
   have hpt : ∀ u, pot C.D σ P (ℓ' u) ≤
@@ -204,7 +204,7 @@ theorem step_ineqF (C : Cert P) {εmax : ℝ≥0∞}
       rw [ind_of_not hb, zero_add, ind_of (fresh_of_not_badF hb), one_mul]
       simp only [pot, hnf, ↓reduceIte, le_refl]
   -- the sum of the terms after the entry, on fresh answers
-  have hsum : (∑ u, ind (Fresh (ℓ' u) u) * termSum C.D σ P (ℓ' u)) / Fintype.card KState ≤
+  have hsum : (∑ u, ind (Fresh (ℓ' u) u) * termSum C.D σ P (ℓ' u)) / Fintype.card KeccakState ≤
       termSum C.D σ P ℓ + εmax := by
     have hsplit : ∀ u, ind (Fresh (ℓ' u) u) * termSum C.D σ P (ℓ' u) =
         ((decode σ P ℓ).kinds.map fun κ ↦ ind (Fresh (ℓ' u) u) * term C.D (ℓ' u) κ).sum +
@@ -219,16 +219,16 @@ theorem step_ineqF (C : Cert P) {εmax : ℝ≥0∞}
     exact List.sum_le_sum fun κ _ ↦ term_step_old C.D ht κ
   -- assemble
   have hfresh : (∑ u, ind (Fresh (ℓ' u) u) * min 1 (termSum C.D σ P (ℓ' u))) /
-      Fintype.card KState ≤ min 1 (termSum C.D σ P ℓ) + εmax := by
+      Fintype.card KeccakState ≤ min 1 (termSum C.D σ P ℓ) + εmax := by
     refine (le_min ?_ ?_).trans (min_one_add_le _ _)
     · exact avg_le_of_le fun u ↦
         (mul_le_mul_left (ind_le_one _) _).trans ((one_mul _).le.trans (min_le_left _ _))
     · refine le_trans (ENNReal.div_le_div_right (Finset.sum_le_sum fun u _ ↦ ?_) _) hsum
       exact mul_le_mul_right (min_le_right _ _) _
   have hbad := sum_badF_div_le' σ ℓ t
-  have h1 : (∑ u, pot C.D σ P (ℓ ++ [.inr (t, u)])) / Fintype.card KState ≤
+  have h1 : (∑ u, pot C.D σ P (ℓ ++ [.inr (t, u)])) / Fintype.card KeccakState ≤
       (∑ u, (ind (BadF ℓ t u) +
-        ind (Fresh (ℓ' u) u) * min 1 (termSum C.D σ P (ℓ' u)))) / Fintype.card KState :=
+        ind (Fresh (ℓ' u) u) * min 1 (termSum C.D σ P (ℓ' u)))) / Fintype.card KeccakState :=
     ENNReal.div_le_div_right (Finset.sum_le_sum fun u _ ↦ hpt u) _
   rw [Finset.sum_add_distrib, ENNReal.add_div] at h1
   refine h1.trans ((add_le_add hbad hfresh).trans (le_of_eq ?_))

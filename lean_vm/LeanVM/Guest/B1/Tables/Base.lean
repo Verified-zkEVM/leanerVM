@@ -40,8 +40,8 @@ def TbReadsAt (rd : Reader) (p : E) (xs : List E) : Prop :=
   ∀ k (hk : k < xs.length), LoadHolds rd p k xs[k]
 
 /-- `Compile.run` with the deployed hash and permutation. -/
-abbrev tbRun {α : Type} (p : Prog α) (s : St) : Option (α × St) :=
-  Compile.run (m := Id) keccak256 keccakF p s
+abbrev tbRun {α : Type} (p : Prog α) (s : ProgState) : Option (α × ProgState) :=
+  Compile.run (m := Id) keccak256 keccakF1600 p s
 
 /-- `ev` takes `value` for the fixed polynomial of `words` at `point`, consuming nothing. -/
 def BytecodeAt (ev : (List K → List E → Prog E)) (words : List K) (point : List E) (value : E) : Prop :=

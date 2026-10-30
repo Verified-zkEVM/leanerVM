@@ -193,33 +193,33 @@ theorem retExp_commits (G : α → List (ℕ × ℕ × Word) → ENNReal) :
 /-- A function of the answers to an opening is evaluated at the answer of the base history. -/
 theorem retExp_queryP (g : List (List K) → List Ev → ENNReal) (h₀ l : List Ev) (i : ℕ)
     (ps : List ℕ) :
-    retExp g h₀ l (queryP i ps) = match answer (h₀ ++ l) i ps with
+    retExp g h₀ l (queryOpenings i ps) = match answer (h₀ ++ l) i ps with
       | some rows => g rows (h₀ ++ l ++ [Ev.query rows])
       | none => 0 := by
-  simp only [queryP, retExp]
+  simp only [queryOpenings, retExp]
   split <;> rename_i h <;> simp [h, List.append_assoc]
 
 /-- One challenge: the average over `E`. -/
 theorem retExp_sampleE (g : E → List Ev → ENNReal) (h₀ l : List Ev) :
-    retExp g h₀ l sampleE =
+    retExp g h₀ l sampleChallenge =
       (Fintype.card E : ENNReal)⁻¹ * ∑ c : E, g c (h₀ ++ l ++ [Ev.sample c]) := by
-  simp [sampleE, retExp, List.append_assoc]
+  simp [sampleChallenge, retExp, List.append_assoc]
 
 /-! ## Uniform tuples -/
 
 /-- **`sampleN n` draws a uniform tuple**, for a function that ignores the history. -/
 theorem retExp_sampleN (G : List E → ENNReal) :
-    ∀ (n : ℕ) (h₀ l : List Ev), retExp (fun v _ ↦ G v) h₀ l (sampleN n) =
+    ∀ (n : ℕ) (h₀ l : List Ev), retExp (fun v _ ↦ G v) h₀ l (sampleChallenges n) =
       (Fintype.card E : ENNReal)⁻¹ ^ n * ∑ f : Fin n → E, G (List.ofFn f)
   | 0, h₀, l => by
-    simp only [sampleN, retExp, pow_zero, one_mul]
+    simp only [sampleChallenges, retExp, pow_zero, one_mul]
     rw [Fintype.sum_unique]
     simp
   | n + 1, h₀, l => by
-    rw [sampleN, show (do let x ← sampleE; let xs ← sampleN n; return x :: xs : Prog (List E)) =
-      sampleE.bind fun x ↦ (sampleN n).bind fun xs ↦ ret (x :: xs) from rfl, retExp_bind,
+    rw [sampleChallenges, show (do let x ← sampleChallenge; let xs ← sampleChallenges n; return x :: xs : Prog (List E)) =
+      sampleChallenge.bind fun x ↦ (sampleChallenges n).bind fun xs ↦ ret (x :: xs) from rfl, retExp_bind,
       retExp_sampleE]
-    have hin : ∀ c h, retExp (fun v _ ↦ G v) h [] ((sampleN n).bind fun xs ↦ ret (c :: xs)) =
+    have hin : ∀ c h, retExp (fun v _ ↦ G v) h [] ((sampleChallenges n).bind fun xs ↦ ret (c :: xs)) =
         (Fintype.card E : ENNReal)⁻¹ ^ n * ∑ f : Fin n → E, G (c :: List.ofFn f) := by
       intro c h
       rw [retExp_bind]

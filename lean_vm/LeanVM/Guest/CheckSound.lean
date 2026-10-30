@@ -29,7 +29,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Exec
 
 section Words
 
-variable {κ : ℕ} (L : MemImage κ) (fp : K)
+variable {κ : ℕ} (L : MemoryImage κ) (fp : K)
 
 /-- The word in frame cell `o`, `0` if none. -/
 noncomputable def wd (o : ℕ) : E := (L.read (fp * gpow o)).getD 0
@@ -54,7 +54,7 @@ end Words
 
 section Basic
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K}
 
 theorem wd_of {o : ℕ} {v : E} (h : L.read (fp * gpow o) = some v) : wd L fp o = v := by
   simp [wd, h]
@@ -119,7 +119,7 @@ end Basic
 
 section Atoms
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K} {B : Book}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {B : Book}
 
 theorem setImm_sound (hB : BookHolds L fp B) {c l0 l1 l2 : ℕ} (h : setImm B c l0 l1 l2 = true) :
     L.read (fp * gpow c) = some (OInstr.imm l0 l1 l2) := by
@@ -256,7 +256,7 @@ theorem inKOk_sound (hB : BookHolds L fp B) {a b : ℕ} (h : inKOk B a b = true)
 theorem keccakOk_sound (hB : BookHolds L fp B) {ins outs : List ℕ} {inOdd outOdd : Bool}
     (h : keccakOk B ins outs inOdd outOdd = true) :
     ins.length = 13 ∧ outs.length = 13 ∧
-      KeccakCells (Core.cells13 (ins.map (wd L fp))) inOdd (Core.cells13 (outs.map (wd L fp)))
+      KeccakCellsRelation (Core.cells13 (ins.map (wd L fp))) inOdd (Core.cells13 (outs.map (wd L fp)))
         outOdd := by
   unfold keccakOk at h
   split at h
@@ -429,7 +429,7 @@ end Atoms
 
 section Contracts
 
-variable {κ : ℕ} (P : Core.Program) (G : Glob) (L : MemImage κ)
+variable {κ : ℕ} (P : Core.Program) (G : Glob) (L : MemoryImage κ)
 
 /-- The valuation of function `f` at frame `fp`: its certificate's cells (`cert f`). -/
 noncomputable def frameVal (cert : String → Cert) (f : String) (fp : K) : Core.Val :=
@@ -475,7 +475,7 @@ end Contracts
 
 section Pos
 
-variable {κ : ℕ} (L : MemImage κ) (fp : K) (f : CompiledFn) (X : Fx)
+variable {κ : ℕ} (L : MemoryImage κ) (fp : K) (f : CompiledFn) (X : Fx)
 
 /-- **The run is at a position** with `k` steps left, its segment entered with at most `K`: the
 segment is the executor's, the book, environment and bounds hold, the rest of the segment's
@@ -515,7 +515,7 @@ end Pos
 
 section PosLemmas
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K} {f : CompiledFn} {X : Fx}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {f : CompiledFn} {X : Fx}
 
 theorem fwdL_ok {test : Book → Bool} {e k₀ : ℕ} {Q : ℕ → Prop} :
     ∀ (its : List Exec.Item) (B : Book) (k : ℕ), BookHolds L fp B →
@@ -642,12 +642,12 @@ end PosLemmas
 
 section Segs
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K} {f : CompiledFn} {X : Fx}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {f : CompiledFn} {X : Fx}
 
 /-- What a walk assumes of its context: the executor's facts hold of the frame, the code is the
 program's, the segments are good (an executor's, `exec_good`, `execWin_good`), and the index and
 links are theirs. -/
-structure WalkHyp (L : MemImage κ) (fp : K) (f : CompiledFn) (X : Fx) : Prop where
+structure WalkHyp (L : MemoryImage κ) (fp : K) (f : CompiledFn) (X : Fx) : Prop where
   ctx : Exec.Ctx X.F κ fp
   fetch : Fetches guest f.entry f.code
   entry : X.entry = f.entry
@@ -980,7 +980,7 @@ end Inv
 
 section Calls
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K} {B : Book}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {B : Book}
 
 theorem storesOk_sound (hB : BookHolds L fp B) {q : ℕ} :
     ∀ {o : ℕ} {cs : List ℕ}, storesOk B q o cs = true → ∀ i (hi : i < cs.length),
@@ -1233,7 +1233,7 @@ theorem boundOk_sound {mem : List (ℕ × ℕ × ℕ)} (hm : MemPre L fp mem) (h
 
 /-- Memory bounded through cells of the frame: for each `(c, len, n)`, every word at
 `fp[c]·g^i`, `i < len`, is `g^e` with `e < n`. -/
-def MemKnown (L : MemImage κ) (fp : K) (known : List (ℕ × ℕ × ℕ)) : Prop :=
+def MemKnown (L : MemoryImage κ) (fp : K) (known : List (ℕ × ℕ × ℕ)) : Prop :=
   ∀ k ∈ known, ∀ c < k.2.1, ∃ e < k.2.2, Core.LoadHolds L.read (wd L fp k.1) c (ofK (gpow e))
 
 theorem memOk_sound (hB : BookHolds L fp B) {known : List (ℕ × ℕ × ℕ)} (hk : MemKnown L fp known)
@@ -1457,20 +1457,20 @@ end Calls
 
 section Walk
 
-variable {κ : ℕ} {L : MemImage κ} {fp : K} {f : CompiledFn} {X : Fx} {Prog : Core.Program}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {f : CompiledFn} {X : Fx} {Prog : Core.Program}
   {cert : String → Cert}
   {Kb : ℕ}
 
 /-- The words a function returns and what its return does: the frame's return words, back to
 the caller with fewer than `Kb` steps left (but `main`), its bounds after. -/
-def RetWords (L : MemImage κ) (fp : K) (X : Fx) (Kb : ℕ) (rs : List E) : Prop :=
+def RetWords (L : MemoryImage κ) (fp : K) (X : Fx) (Kb : ℕ) (rs : List E) : Prop :=
   rs = frameWords L fp (2 + X.nargs) X.nret ∧
     (X.main = false → ∃ k' < Kb, ∃ r, retRegs L fp = some r ∧ Safe guest L k' r) ∧
     BndHolds L fp X.post
 
 /-- What a walk of runs with at most `K` steps assumes: its context, the jump table, and every
 function's contract for runs shorter than `K`. -/
-structure WalkEnv (Prog : Core.Program) (cert : String → Cert) (L : MemImage κ) (fp : K) (f : CompiledFn) (X : Fx)
+structure WalkEnv (Prog : Core.Program) (cert : String → Cert) (L : MemoryImage κ) (fp : K) (f : CompiledFn) (X : Fx)
     (Kb : ℕ) : Prop where
   hyp : WalkHyp L fp f X
   jt : JTHolds X.G L
@@ -1482,7 +1482,7 @@ structure WalkEnv (Prog : Core.Program) (cert : String → Cert) (L : MemImage �
 /-- **What the walk of a block from a position gives**: the block's core semantics under the
 check's valuation, with any continuation the run's arrival at the join gives; the pending atoms;
 and that the run arrives at the join. -/
-def WalkGood (Prog : Core.Program) (cert : String → Cert) (L : MemImage κ) (fp : K) (f : CompiledFn) (X : Fx) (Kb : ℕ)
+def WalkGood (Prog : Core.Program) (cert : String → Cert) (L : MemoryImage κ) (fp : K) (f : CompiledFn) (X : Fx) (Kb : ℕ)
     (ss : List Core.Stmt) (st : CS) (P : List Core.Atom) : Prop :=
   ∀ k (N : Prop), PosOk L fp f X Kb st k → chkL X ss st P ≠ .fail →
     (∀ J, chkL X ss st P = .join J → ∀ k', k' ≤ k → SegRun L fp f X Kb J k' → N) →
@@ -1790,7 +1790,7 @@ theorem walk_dispatch (W : WalkEnv Prog cert L fp f X Kb) (v : Core.V) (fs : Lis
   exact ⟨⟨⟨e, he, wd_of hce, hcall⟩, hl⟩, hP,
     fun J hJ ↦ (hreach J hJ).imp fun k' h ↦ ⟨by omega, h.2⟩⟩
 
-theorem frameWords_zero (L : MemImage κ) (fp : K) (o : ℕ) : frameWords L fp o 0 = [] := rfl
+theorem frameWords_zero (L : MemoryImage κ) (fp : K) (o : ℕ) : frameWords L fp o 0 = [] := rfl
 
 theorem walk_callIf (W : WalkEnv Prog cert L fp f X Kb) (c : Core.V) (f' : String) (args : List Core.V)
     (ss : List Core.Stmt) (st : CS) (P : List Core.Atom)
@@ -1999,7 +1999,7 @@ end Reach
 
 section Fn
 
-variable {κ : ℕ} {L : MemImage κ} {G : Glob} {f : CompiledFn} {cf : Core.Fn} {C : Cert}
+variable {κ : ℕ} {L : MemoryImage κ} {G : Glob} {f : CompiledFn} {cf : Core.Fn} {C : Cert}
   {cert : String → Cert}
   {Prog : Core.Program}
 
@@ -2200,12 +2200,12 @@ end Congr
 
 /-- **The run at window `i`'s start** with `k` steps left: there, its environment and the facts
 and bounds handed on hold. -/
-def WinStart (L : MemImage κ) (fp : K) (f : CompiledFn) (C : Cert) (i k : ℕ) : Prop :=
+def WinStart (L : MemoryImage κ) (fp : K) (f : CompiledFn) (C : Cert) (i k : ℕ) : Prop :=
   Safe guest L k ⟨gpow (f.entry + (C.cutAt i).J), fp⟩ ∧ EnvHolds L fp (envOf (C.cutAt i).env) ∧
     (∀ p ∈ (C.cutAt i).facts, p.2.Holds L fp) ∧ BndHolds L fp (C.cutAt i).bnd
 
 /-- What a function's return does, in every window's context. -/
-abbrev RetOf (L : MemImage κ) (fp : K) (G : Glob) (f : CompiledFn) (cf : Core.Fn) (C : Cert)
+abbrev RetOf (L : MemoryImage κ) (fp : K) (G : Glob) (f : CompiledFn) (cf : Core.Fn) (C : Cert)
     (main : Bool) (Kb : ℕ) : List E → Prop :=
   RetWords L fp (C.fxAt G f cf main 0 [] .nil .nil) Kb
 

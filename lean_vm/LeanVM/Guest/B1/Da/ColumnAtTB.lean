@@ -4,7 +4,7 @@
   A column of `da_verify` placed, by a tree of its honest shape, within its words bound (`colB`)
   before the memory, for the budget.
 
-  `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.Witness.Opens`), as ported here.
+  `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.MatrixWitness.Opens`), as ported here.
 -/
 
 module
@@ -241,7 +241,7 @@ theorem col_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ)
       show gen ^ dxC r L b0 * (gen ^ j * gen ^ j) = _
       rw [gen_sq, ← pow_add]
     have hdig : ReadsAt rd (gen ^ (dxC r L b0 + 2 * j))
-        (digestCells (keccak256 ((ws j).flatMap Node.eBytes))) := by
+        (digestCells (keccak256 ((ws j).flatMap Node.extensionElementBytes))) := by
       have := Main.readsAt_flatMap_of (f := fun j => digestCells (colD ws j)) (w := 2) (List.range 128)
         (fun _ _ => rfl) hcm.cd j (by simpa using hj)
       simp only [List.getElem_range] at this

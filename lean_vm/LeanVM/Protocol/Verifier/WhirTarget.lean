@@ -46,7 +46,7 @@ def WhirStateT.forget (s : WhirStateT) : WhirState := ⟨s.quad, s.folds, s.glue
 def foldRoundsT : ℕ → WhirStateT → List E → Prog (WhirStateT × List E)
   | 0, s, levelFolds => return (s, levelFolds)
   | n + 1, s, levelFolds => do
-    let challenge ← Prog.sampleE
+    let challenge ← Prog.sampleChallenge
     let target := polyEval s.quad challenge
     let quad ← sumcheckRoundPoly 3 target none
     foldRoundsT n { s with target, quad, folds := s.folds ++ [challenge] }
@@ -56,7 +56,7 @@ def foldRoundsT : ℕ → WhirStateT → List E → Prog (WhirStateT × List E)
 def tailRoundsT : ℕ → E → List E → Prog (List E × E)
   | 0, target, _ => return ([], target)
   | n + 1, _, quad => do
-    let challenge ← Prog.sampleE
+    let challenge ← Prog.sampleChallenge
     let target := polyEval quad challenge
     if n = 0 then return ([challenge], target)
     else do
@@ -82,20 +82,20 @@ def whirLevelsT (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     let messageLog := logN - s.folds.length
     let (residual, pending) ← match rest with
       | [] => do
-        let residual ← Prog.readN (2 ^ messageLog)
+        let residual ← Prog.readScalars (2 ^ messageLog)
         pure (residual, ([] : List (E × List E × (List E → E))))
       | next :: _ => do
         let (height, width) := levelShape messageLog next (3 * 2 ^ next.fold)
-        Prog.commitP height width
-        let oodPoint ← Prog.sampleN messageLog
-        let oodValue ← Prog.readE
+        Prog.readCommitment height width
+        let oodPoint ← Prog.sampleChallenges messageLog
+        let oodValue ← Prog.readScalar
         let intro ← sumcheckRoundPoly 3 oodValue none
         pure ([], [(oodValue, intro, fun x ↦ eqEval oodPoint x)])
-    Prog.grindP Whir.queryGrindingBits
+    Prog.grindProofOfWork Whir.queryGrindingBits
     let queries ← sampleQueries (messageLog + level.logInvRate) level.queries
-    let lam ← Prog.sampleE
+    let lam ← Prog.sampleChallenge
     let queryWeights := powers lam queries.length
-    let words ← Prog.queryP index queries
+    let words ← Prog.queryOpenings index queries
     let rows : List (List E) :=
       if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
     let enforced := enforcedSum rows levelFolds queryWeights
@@ -249,7 +249,7 @@ theorem verifyWhir_eq_target (logN logInvRate : ℕ) (target : E) (evaluateBasis
 /-- `verifyStackedOpening` on the threaded form. -/
 theorem verifyStackedOpening_eq_target (stackLog logInvRate : ℕ) (claims : List StackClaim) :
     verifyStackedOpening stackLog logInvRate claims = (do
-      let scales := powers (← Prog.sampleE) claims.length
+      let scales := powers (← Prog.sampleChallenge) claims.length
       verifyWhirT stackLog logInvRate (dot scales (claims.map (·.2)))
         fun point ↦ dot scales (claims.map fun c ↦ c.1 point)) := by
   unfold verifyStackedOpening

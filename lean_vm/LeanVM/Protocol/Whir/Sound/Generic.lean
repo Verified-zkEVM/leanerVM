@@ -65,12 +65,12 @@ variable {εmax T : ENNReal}
 
 /-- A scalar keeps a commitment invariant. -/
 noncomputable def readInv (I : CInv) (hT : T ≤ εmax) :
-    Spec readE (fun h ↦ I (commits h)) (fun _ h ↦ I (commits h)) εmax 0 T :=
+    Spec readScalar (fun h ↦ I (commits h)) (fun _ h ↦ I (commits h)) εmax 0 T :=
   Spec.readE (fun h₀ x hI ↦ by simpa using hI) hT
 
 /-- `n` scalars keep a commitment invariant (lead at most the follower's). -/
 noncomputable def readNInv (I : CInv) (hT : T ≤ εmax) :
-    (n : ℕ) → Spec (readN n) (fun h ↦ I (commits h))
+    (n : ℕ) → Spec (readScalars n) (fun h ↦ I (commits h))
       (fun xs h ↦ xs.length = n ∧ I (commits h)) εmax T T
   | 0 => (Spec.ret (Post := fun xs h ↦ xs.length = 0 ∧ I (commits h)) []).mono
       (fun _ h ↦ ⟨rfl, h⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
@@ -94,13 +94,13 @@ noncomputable def roundPolyInv (I : CInv) (σ : E) (hT : T ≤ εmax) :
 
 /-- A proof of work keeps a commitment invariant. -/
 noncomputable def grindInv (I : CInv) (b : ℕ) (hT : (2 : ENNReal)⁻¹ ^ b * T ≤ εmax) :
-    Spec (grindP b) (fun h ↦ I (commits h)) (fun _ h ↦ I (commits h)) εmax 0 T :=
+    Spec (grindProofOfWork b) (fun h ↦ I (commits h)) (fun _ h ↦ I (commits h)) εmax 0 T :=
   Spec.grindP b (fun h₀ hI ↦ by simpa using hI) hT
 
 /-- A commitment appends its word. -/
 noncomputable def commitInv (I I' : CInv) (ht wd : ℕ)
     (hI : ∀ cs W, I cs → WellShaped wd W → I' (cs ++ [(ht, wd, W)])) (hT : T ≤ εmax) :
-    Spec (commitP ht wd) (fun h ↦ I (commits h)) (fun _ h ↦ I' (commits h)) εmax 0 T :=
+    Spec (readCommitment ht wd) (fun h ↦ I (commits h)) (fun _ h ↦ I' (commits h)) εmax 0 T :=
   Spec.commitP ht wd (fun h₀ W hI0 hW ↦ by simpa using hI _ W hI0 hW) hT
 
 end

@@ -459,7 +459,7 @@ theorem kappa_of_isLane {c : Col} (h : IsLane c) : kappa prog s c = s.τ 5 :=
 def keccakRegion : KeccakRegion (shape prog s) := ⟨keccakCol, s.τ 5, rfl⟩
 
 /-- The state after twelve rounds the stack commits at step `x`: slots `25 … 49` of `QKECCAK`. -/
-def midState (q : Column (leanIsaμ prog s)) (x : Fin (2 ^ s.τ 5)) : KState :=
+def midState (q : Column (leanIsaμ prog s)) (x : Fin (2 ^ s.τ 5)) : KeccakState :=
   (keccakRegion prog s).state ((layout prog s).read q keccakCol) 25 x
 
 /-- The output column `c`: at row `x`, its lane of the last twelve rounds of Keccak-f[1600] of
@@ -518,7 +518,7 @@ def padRowK (t : Verifier.Table) : List K :=
   if t.opcode = Verifier.opKeccak then
     t.columns.map fun name ↦
       if name ∈ Verifier.keccakOutputs then
-        K.ofBits (Keccak.lane (keccakF (Vector.replicate 25 0))
+        K.ofBits (Keccak.lane (keccakF1600 (Vector.replicate 25 0))
           (Verifier.keccakOutputs.idxOf name)).toNat
       else 0
   else t.columns.map fun _ ↦ 0
@@ -585,11 +585,11 @@ state, every other column zero. -/
 theorem padRowK_keccak_getD (i : ℕ) (hi : i < 90) :
     (padRowK (Verifier.tables.getD 5 default)).getD i 0 =
       if h : 38 ≤ i ∧ i < 63 then
-        stateLanes (keccakF (laneState fun _ ↦ 0)) ⟨i - 38, by omega⟩
+        stateLanes (keccakF1600 (laneState fun _ ↦ 0)) ⟨i - 38, by omega⟩
       else 0 := by
   have ht : padRowK (Verifier.tables.getD 5 default) = Verifier.keccakColumns.map fun name ↦
       if name ∈ Verifier.keccakOutputs then
-        K.ofBits (Keccak.lane (keccakF (Vector.replicate 25 0))
+        K.ofBits (Keccak.lane (keccakF1600 (Vector.replicate 25 0))
           (Verifier.keccakOutputs.idxOf name)).toNat
       else 0 := rfl
   have hlt : i < Verifier.keccakColumns.length := by rw [keccakColumns_length]; exact hi
@@ -624,7 +624,7 @@ theorem padRow_of_ne_keccak :
 elsewhere. -/
 theorem padRow_keccak (i : Fin (width (opIdx 5))) :
     padRow (opIdx 5) i = if h : 38 ≤ i.val ∧ i.val < 63 then
-      stateLanes (keccakF (laneState fun _ ↦ 0)) ⟨i.val - 38, by omega⟩ else 0 :=
+      stateLanes (keccakF1600 (laneState fun _ ↦ 0)) ⟨i.val - 38, by omega⟩ else 0 :=
   padRowK_keccak_getD i.val (width_keccak ▸ i.isLt)
 
 end LeanIsa

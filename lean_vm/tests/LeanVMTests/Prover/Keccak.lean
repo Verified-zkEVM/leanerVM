@@ -30,7 +30,7 @@ def el (n : ℕ) : E :=
 def chal (n : ℕ) : E := el (1000 + n)
 
 /-- Step `x`'s input state. -/
-def input (x : ℕ) : KState :=
+def input (x : ℕ) : KeccakState :=
   Vector.ofFn fun l : Fin 25 ↦ (x * 6364136223846793005 + l.val * 1442695040888963407 + 3).toUInt64
 
 /-- The column: inputs, the middle state, zeros. -/
@@ -46,7 +46,7 @@ def inst : List E := [el 1, el 2, el 3, el 4]
 
 /-- The output lanes' true claims at `inst`. -/
 def output : List E := (List.range 25).map fun l ↦
-  sumRange 16 fun x ↦ (eqKernel inst).getD x 0 * ofK (K.ofLane (Keccak.lane (keccakF (input x)) l))
+  sumRange 16 fun x ↦ (eqKernel inst).getD x 0 * ofK (K.ofLane (Keccak.lane (keccakF1600 (input x)) l))
 
 -- The verifier accepts the honest prover's proof.
 #guard (drive chal (verifyKeccak 4 inst output) (keccakProve col 0 inst output) 0).isSome

@@ -76,12 +76,12 @@ theorem NoMoves.bind {p : Prog α} {f : α → Prog β} (hp : NoMoves p) (hf : �
   | sample _ ih => exact NoMoves.sample ih
   | query _ ih => exact NoMoves.query ih
 
-theorem noMoves_sampleE : NoMoves sampleE := NoMoves.sample fun c ↦ NoMoves.ret c
+theorem noMoves_sampleE : NoMoves sampleChallenge := NoMoves.sample fun c ↦ NoMoves.ret c
 
-theorem noMoves_queryP (i : ℕ) (ps : List ℕ) : NoMoves (queryP i ps) :=
+theorem noMoves_queryP (i : ℕ) (ps : List ℕ) : NoMoves (queryOpenings i ps) :=
   NoMoves.query fun rows ↦ NoMoves.ret rows
 
-theorem noMoves_sampleN : ∀ n, NoMoves (sampleN n)
+theorem noMoves_sampleN : ∀ n, NoMoves (sampleChallenges n)
   | 0 => NoMoves.ret []
   | n + 1 => noMoves_sampleE.bind fun _ ↦ (noMoves_sampleN n).bind fun _ ↦ NoMoves.ret _
 
@@ -107,7 +107,7 @@ theorem retExp_sampleQueriesAux_restrict (depth : ℕ) (g : List ℕ → List Ev
     split
     · simp [retExp]
     · simp only [bind_eq, pure_eq]
-      rw [show sampleE = (sample ret : Prog E) from rfl, Prog.bind]
+      rw [show sampleChallenge = (sample ret : Prog E) from rfl, Prog.bind]
       simp only [retExp, ret_bind]
       congr 1
       refine Finset.sum_congr rfl fun c _ ↦ ?_
@@ -150,7 +150,7 @@ theorem retExp_sampleQueriesAux_restrict_len (depth : ℕ) (h1 : 1 ≤ depth) (h
         le_min ((Nat.one_le_div_iff (by omega)).mpr h192) (by omega)
       have hnr : min (192 / depth) rem ≤ rem := min_le_right _ _
       simp only [bind_eq, pure_eq]
-      rw [show sampleE = (sample ret : Prog E) from rfl, Prog.bind]
+      rw [show sampleChallenge = (sample ret : Prog E) from rfl, Prog.bind]
       simp only [retExp, ret_bind]
       congr 1
       refine Finset.sum_congr rfl fun c _ ↦ ?_
@@ -179,7 +179,7 @@ theorem retExp_sampleQueriesAux_restrict_len (depth : ℕ) (h1 : 1 ≤ depth) (h
 
 /-- The query group: positions, `λ`, the opening of commitment `i`. -/
 def queryFrag (depth t i : ℕ) : Prog (List ℕ × E × List (List K)) :=
-  sampleQueries depth t >>= fun qs ↦ sampleE >>= fun lam ↦ queryP i qs >>= fun words ↦
+  sampleQueries depth t >>= fun qs ↦ sampleChallenge >>= fun lam ↦ queryOpenings i qs >>= fun words ↦
     Prog.ret (qs, lam, words)
 
 theorem noMoves_queryFrag (depth t i : ℕ) : NoMoves (queryFrag depth t i) :=
@@ -202,7 +202,7 @@ theorem retExp_queryFrag_le (depth t i : ℕ) (h1 : 1 ≤ depth) (h192 : depth �
   rw [retExp_bind]
   -- The inner expectation depends on the history only through its commitments.
   have hin : ∀ qs h, retExp (fun a _ ↦ F a) h []
-      ((sampleE.bind fun lam ↦ (queryP i qs).bind fun words ↦ Prog.ret (qs, lam, words))) =
+      ((sampleChallenge.bind fun lam ↦ (queryOpenings i qs).bind fun words ↦ Prog.ret (qs, lam, words))) =
       (Fintype.card E : ENNReal)⁻¹ * ∑ lam : E,
         (match answer h i qs with
           | some rows => F (qs, lam, rows)

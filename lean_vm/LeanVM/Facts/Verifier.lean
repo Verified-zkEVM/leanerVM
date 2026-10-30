@@ -50,13 +50,13 @@ def pack : ℕ := 16
 theorem pack_eq : pack = 2 ^ packBits := rfl
 
 /-- The deployed seed, with Keccak. -/
-def seed (bytecode : List K) (publicInput : Digest) : KState :=
-  Id.run (seedWith (m := Id) keccak256 keccakF bytecode publicInput)
+def seed (bytecode : List K) (publicInput : Digest) : KeccakState :=
+  Id.run (seedWith (m := Id) keccak256 keccakF1600 bytecode publicInput)
 
 /-- **The deployed leanVM verifier**: the program's compiled reading with Keccak-256 and
 Keccak-f[1600], from the deployed seed. -/
 def verify (bytecode : List K) (publicInput : Digest) (π : Proof) : Bool :=
-  Id.run (runProof (m := Id) keccak256 keccakF (leanVmProgram bytecode publicInput)
+  Id.run (runProof (m := Id) keccak256 keccakF1600 (leanVmProgram bytecode publicInput)
     (seed bytecode publicInput) π)
 
 end

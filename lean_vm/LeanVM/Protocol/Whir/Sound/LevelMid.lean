@@ -68,12 +68,12 @@ def midFinish (r : WhirStateT × List E) (z : List E) (y : E) (hy : List E) (qs 
 
 /-- After the fold rounds. -/
 def midTail (r : WhirStateT × List E) : Prog Unit :=
-  (commitP (μ - r.1.folds.length - next.fold + next.logInvRate) (3 * 2 ^ next.fold)).bind fun _ ↦
-  (sampleN (μ - r.1.folds.length)).bind fun z ↦ readE.bind fun y ↦
+  (readCommitment (μ - r.1.folds.length - next.fold + next.logInvRate) (3 * 2 ^ next.fold)).bind fun _ ↦
+  (sampleChallenges (μ - r.1.folds.length)).bind fun z ↦ readScalar.bind fun y ↦
   (sumcheckRoundPoly 3 y none).bind fun hy ↦
-  (grindP Whir.queryGrindingBits).bind fun _ ↦
+  (grindProofOfWork Whir.queryGrindingBits).bind fun _ ↦
   (sampleQueries (μ - r.1.folds.length + level.logInvRate) level.queries).bind fun qs ↦
-  sampleE.bind fun lam ↦ (queryP i qs).bind fun words ↦
+  sampleChallenge.bind fun lam ↦ (queryOpenings i qs).bind fun words ↦
     midFinish μ ℓ₀ w i next rest r z y hy qs lam words
 
 /-- The level, unfolded. -/
@@ -86,7 +86,7 @@ theorem whirLevels_mid (s : WhirStateT) :
 
 /-- The query group as one fragment. -/
 theorem query_bind (d t : ℕ) (K : List ℕ → E → List (List K) → Prog Unit) :
-    ((sampleQueries d t).bind fun qs ↦ sampleE.bind fun lam ↦ (queryP i qs).bind fun words ↦
+    ((sampleQueries d t).bind fun qs ↦ sampleChallenge.bind fun lam ↦ (queryOpenings i qs).bind fun words ↦
       K qs lam words) = (queryFrag d t i).bind fun g ↦ K g.1 g.2.1 g.2.2 := by
   simp only [queryFrag, bind_eq, Prog.bind_assoc, Prog.ret_bind]
 

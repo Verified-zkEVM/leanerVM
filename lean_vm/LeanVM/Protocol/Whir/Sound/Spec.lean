@@ -260,7 +260,7 @@ theorem card_batch_bad_le {μ R : ℕ} (P₀ : LevelCode) (hκ : P₀.κ = μ - 
 
 /-- `verifyStackedOpening`: the batching challenge, then the opening. -/
 theorem verifyStackedOpening_eq (stackLog R : ℕ) (claims : List StackClaim) :
-    verifyStackedOpening stackLog R claims = Prog.sampleE.bind fun ρ ↦
+    verifyStackedOpening stackLog R claims = Prog.sampleChallenge.bind fun ρ ↦
       verifyWhirT stackLog R (dot (powers ρ claims.length) (claims.map (·.2)))
         (fun point ↦ dot (powers ρ claims.length) (claims.map fun c ↦ c.1 point)) := by
   rw [verifyStackedOpening_eq_target]
@@ -280,7 +280,7 @@ noncomputable def stackedSpec {R : ℕ} {level : Whir.Level} {rest : List Whir.L
       (fun h ↦ StackedPre μ R (codes 0) claims (commits h)) (fun _ _ ↦ False) εmax
       (eBatch claims.length (codes 0)) T :=
   by
-  have S0 : Spec Prog.sampleE (fun h ↦ StackedPre μ R (codes 0) claims (commits h))
+  have S0 : Spec Prog.sampleChallenge (fun h ↦ StackedPre μ R (codes 0) claims (commits h))
       (fun ρ h ↦ WhirPre μ R (codes 0)
         (fun point ↦ dot (powers ρ claims.length) (claims.map fun c ↦ c.1 point))
         (dot (powers ρ claims.length) (claims.map (·.2))) (commits h)) εmax

@@ -29,28 +29,28 @@ variable {β : Type}
 
 theorem qs_readE_bind (k : E → Prog β) (F : Fs) (x : E) (xs : List E) (os : List Opening)
     (R : List (Digest × ℕ × ℕ)) :
-    queryStepsOf (Prog.readE.bind k) ⟨F, x :: xs, os, R⟩ =
+    queryStepsOf (Prog.readScalar.bind k) ⟨F, x :: xs, os, R⟩ =
       queryStepsOf (k x) ⟨F.absorb x dsObserve, xs, os, R⟩ := rfl
 
 theorem qs_sampleE_bind (k : E → Prog β) (F : Fs) (xs : List E) (os : List Opening)
     (R : List (Digest × ℕ × ℕ)) :
-    queryStepsOf (Prog.sampleE.bind k) ⟨F, xs, os, R⟩ =
+    queryStepsOf (Prog.sampleChallenge.bind k) ⟨F, xs, os, R⟩ =
       queryStepsOf (k F.squeeze.1) ⟨F.squeeze.2, xs, os, R⟩ := rfl
 
 theorem qs_grindP_bind {bits : ℕ} (k : Unit → Prog β) (F : Fs) (n : E) (xs : List E)
     (os : List Opening) (R : List (Digest × ℕ × ℕ))
     (hp : powOk bits n (F.absorb n dsPowNonce).squeeze.1 = true) :
-    queryStepsOf ((Prog.grindP bits).bind k) ⟨F, n :: xs, os, R⟩ =
+    queryStepsOf ((Prog.grindProofOfWork bits).bind k) ⟨F, n :: xs, os, R⟩ =
       queryStepsOf (k ()) ⟨(F.absorb n dsPowNonce).squeeze.2, xs, os, R⟩ := by
-  simp only [Prog.grindP, Prog.bind, queryStepsOf, hp, ↓reduceIte]
+  simp only [Prog.grindProofOfWork, Prog.bind, queryStepsOf, hp, ↓reduceIte]
 
 theorem qs_commitP_bind {hh ww : ℕ} (k : Unit → Prog β) (F : Fs) (x0 x1 : E) (xs : List E)
     (os : List Opening) (R : List (Digest × ℕ × ℕ)) {d : Digest}
     (hd : digestOfScalars (x0, x1) = some d) :
-    queryStepsOf ((Prog.commitP hh ww).bind k) ⟨F, x0 :: x1 :: xs, os, R⟩ =
+    queryStepsOf ((Prog.readCommitment hh ww).bind k) ⟨F, x0 :: x1 :: xs, os, R⟩ =
       queryStepsOf (k ()) ⟨(F.absorb x0 dsObserve).absorb x1 dsObserve, xs, os,
         R ++ [(d, hh, ww)]⟩ := by
-  simp only [Prog.commitP, Prog.bind, queryStepsOf, hd]
+  simp only [Prog.readCommitment, Prog.bind, queryStepsOf, hd]
 
 theorem qs_require_bind {c : Prop} [Decidable c] (k : Unit → Prog β) (st : FSt) (hc : c) :
     queryStepsOf ((Prog.require c).bind k) st = queryStepsOf (k ()) st := by
@@ -60,33 +60,33 @@ theorem qs_queryP_bind {i : ℕ} {ps : List ℕ} (k : List (List K) → Prog β)
     (os : List Opening) (R : List (Digest × ℕ × ℕ)) {root : Digest} {height width : ℕ}
     {rows : List (List K)} {rest : List Opening} (hR : R[i]? = some (root, height, width))
     (ho : Id.run (Compile.openAll (m := Id) keccak256 root height width ps os) = some (rows, rest)) :
-    queryStepsOf ((Prog.queryP i ps).bind k) ⟨F, xs, os, R⟩ =
+    queryStepsOf ((Prog.queryOpenings i ps).bind k) ⟨F, xs, os, R⟩ =
       (height, ps.zip os) :: queryStepsOf (k rows) ⟨F, xs, rest, R⟩ := by
   simp only [Id.run] at ho
-  simp only [Prog.queryP, Prog.bind, queryStepsOf, hR, ho, Id.run]
+  simp only [Prog.queryOpenings, Prog.bind, queryStepsOf, hR, ho, Id.run]
 
 theorem qs_readN_bind : ∀ (n : ℕ) (k : List E → Prog β) (F : Fs) (xs : List E) (os : List Opening)
     (R : List (Digest × ℕ × ℕ)), n ≤ xs.length →
-    queryStepsOf ((Prog.readN n).bind k) ⟨F, xs, os, R⟩ =
+    queryStepsOf ((Prog.readScalars n).bind k) ⟨F, xs, os, R⟩ =
       queryStepsOf (k (xs.take n)) ⟨F.absorbAll (xs.take n) dsObserve, xs.drop n, os, R⟩
-  | 0, k, F, xs, os, R, _ => by simp [Prog.readN, Fs.absorbAll]
+  | 0, k, F, xs, os, R, _ => by simp [Prog.readScalars, Fs.absorbAll]
   | n + 1, k, F, x :: xs, os, R, hl => by
-    have e : (Prog.readN (n + 1)).bind k =
-        Prog.readE.bind fun x ↦ (Prog.readN n).bind fun xs ↦ k (x :: xs) := by
-      simp only [Prog.readN, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+    have e : (Prog.readScalars (n + 1)).bind k =
+        Prog.readScalar.bind fun x ↦ (Prog.readScalars n).bind fun xs ↦ k (x :: xs) := by
+      simp only [Prog.readScalars, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
     rw [e, qs_readE_bind, qs_readN_bind n _ _ _ _ _ (by simp at hl; omega)]
     simp [Fs.absorbAll, List.take_succ_cons, List.drop_succ_cons]
   | n + 1, k, F, [], os, R, hl => by simp at hl
 
 theorem qs_sampleN_bind : ∀ (n : ℕ) (k : List E → Prog β) (F : Fs) (xs : List E)
     (os : List Opening) (R : List (Digest × ℕ × ℕ)),
-    queryStepsOf ((Prog.sampleN n).bind k) ⟨F, xs, os, R⟩ =
+    queryStepsOf ((Prog.sampleChallenges n).bind k) ⟨F, xs, os, R⟩ =
       queryStepsOf (k (F.squeezeN n).1) ⟨(F.squeezeN n).2, xs, os, R⟩
-  | 0, k, F, xs, os, R => by simp [Prog.sampleN, Fs.squeezeN]
+  | 0, k, F, xs, os, R => by simp [Prog.sampleChallenges, Fs.squeezeN]
   | n + 1, k, F, xs, os, R => by
-    have e : (Prog.sampleN (n + 1)).bind k =
-        Prog.sampleE.bind fun x ↦ (Prog.sampleN n).bind fun xs ↦ k (x :: xs) := by
-      simp only [Prog.sampleN, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+    have e : (Prog.sampleChallenges (n + 1)).bind k =
+        Prog.sampleChallenge.bind fun x ↦ (Prog.sampleChallenges n).bind fun xs ↦ k (x :: xs) := by
+      simp only [Prog.sampleChallenges, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
     rw [e, qs_sampleE_bind, qs_sampleN_bind n]
     rfl
 
@@ -103,7 +103,7 @@ theorem qs_sampleQueriesAux_bind (d : ℕ) (hd : 1 ≤ 192 / d) :
     have := ceilDiv_step (a := rem + 1) hd (Nat.succ_pos rem); omega
   | fuel + 1, rem + 1, k, F, xs, os, R, h => by
     have hs := ceilDiv_step (a := rem + 1) hd (Nat.succ_pos rem)
-    have hp : (sampleQueriesAux d (fuel + 1) (rem + 1)).bind k = Prog.sampleE.bind fun w ↦
+    have hp : (sampleQueriesAux d (fuel + 1) (rem + 1)).bind k = Prog.sampleChallenge.bind fun w ↦
         (sampleQueriesAux d fuel (rem + 1 - min (192 / d) (rem + 1))).bind fun rest ↦
           k (((List.range (min (192 / d) (rem + 1))).map fun c ↦
             (eToNat w >>> (c * d)) % 2 ^ d) ++ rest) := by
@@ -136,8 +136,8 @@ theorem qs_folds {K : WhirStateT × List E → Prog β} :
     simp only [foldsTr, List.append_nil, Nat.mul_zero, List.drop_zero]
     rfl
   | n + 1, ws, lf, F, d0 :: d2 :: xs, os, R, hl, hnz => by
-    have e : (foldRoundsNZ (n + 1) ws lf).bind K = Prog.sampleE.bind fun c ↦
-        (Prog.require (c ≠ 0)).bind fun _ ↦ Prog.readE.bind fun d0 ↦ Prog.readE.bind fun d2 ↦
+    have e : (foldRoundsNZ (n + 1) ws lf).bind K = Prog.sampleChallenge.bind fun c ↦
+        (Prog.require (c ≠ 0)).bind fun _ ↦ Prog.readScalar.bind fun d0 ↦ Prog.readScalar.bind fun d2 ↦
           (foldRoundsNZ n { ws with
             target := polyEval ws.quad c
             quad := [d0, polyEval ws.quad c + d2, d2]

@@ -61,7 +61,7 @@ variable (prog : Program) (input : PublicInput)
 
 /-- Some boundary prefix of the extracted history of the seeded verifier's run of `P` on `π`,
 under the answers of the cache `c` to both oracles, is doomed. -/
-def DoomedRun {P : Prog Bool} (C : Cert P) (σ : Seed) (π : Proof) (c : HashSpec.QueryCache) :
+def DoomedRun {P : Prog Bool} (C : Cert P) (σ : Seed) (π : Proof) (c : KeccakCalls.QueryCache) :
     Prop :=
   ∃ h₀, h₀ <+: extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s)) σ P π ∧
     Boundary h₀ ∧ C.D h₀
@@ -182,7 +182,7 @@ verifier's run, the sizes `s` and rate `ρ` it announced, and the stack's commit
 (its first commitment); a candidate of `W₀` at level 0's Johnson threshold satisfying
 `M3Holds (leanIsaInstance prog s) input`, if one exists. The candidate is a classical choice:
 the extractor specifies what is extracted, with no claim of efficiency. -/
-noncomputable def extractStack (c : HashSpec.QueryCache) (π : Proof) :
+noncomputable def extractStack (c : KeccakCalls.QueryCache) (π : Proof) :
     Option (Σ s : Sizes, Column (leanIsaμ prog s)) :=
   let hist := extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
     (leanVmSeed (bytecodeWords prog) (publicDigest input))
@@ -197,7 +197,7 @@ noncomputable def extractStack (c : HashSpec.QueryCache) (π : Proof) :
 
 /-- **The extractor succeeds**: it returns admissible sizes and a stack satisfying the leanISA
 relation. -/
-def Extracted (c : HashSpec.QueryCache) (π : Proof) : Prop :=
+def Extracted (c : KeccakCalls.QueryCache) (π : Proof) : Prop :=
   ∃ (s : Sizes) (q : Column (leanIsaμ prog s)), extractStack prog input c π = some ⟨s, q⟩ ∧
     s.Admissible prog ∧
     M3Holds (leanIsaInstance prog s) input q
@@ -213,7 +213,7 @@ theorem commits_reads_commit (xs : List E) (ht w : ℕ) (W : Word) :
 
 /-- **Accepted, and the extractor fails, is doomed**: the prefix of the extracted history up to
 the stack's root is a boundary at which the certificate's doom holds. -/
-theorem doomed_of_not_extracted {c : HashSpec.QueryCache} {π : Proof}
+theorem doomed_of_not_extracted {c : KeccakCalls.QueryCache} {π : Proof}
     (hv : Rom.verify (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
       (leanVmSeed (bytecodeWords prog) (publicDigest input))
       (leanVmProgram (bytecodeWords prog) (publicDigest input)) π = some true)

@@ -157,10 +157,10 @@ def walkCells (L : Vector K 25) : Array E :=
     [cellK 1, cellK (gpow 8), cellK (gpow 14), cellK 1, cellK (gpow 31), cellK 1]).toArray
 
 /-- The image, at the minimum size `2^16`. -/
-def walkImage (L : Vector K 25) : MemImage minLogMem := fun i ↦ ((walkCells L)[(i : ℕ)]?).getD 0
+def walkImage (L : Vector K 25) : MemoryImage minLogMem := fun i ↦ ((walkCells L)[(i : ℕ)]?).getD 0
 
 /-- The trace: four steps, over the honest image. -/
-def walkTrace : Trace walkProg := ⟨minLogMem, walkImage kLout, 4⟩
+def walkTrace : Execution walkProg := ⟨minLogMem, walkImage kLout, 4⟩
 
 /-- The `"mem"` table of the prover data: the image, one row of limbs per word. -/
 def walkRows (L : Vector K 25) : Array (Vector K 3) :=
@@ -422,7 +422,7 @@ theorem fetch_one : walkProg.fetch 1 = some (.setConstant (gpow 2) mulX) := by
 theorem read_at (L : Vector K 25) (k : ℕ) (v : E) (hk : k < 2 ^ minLogMem := by decide)
     (hv : walkImage L ⟨k, hk⟩ = v := by rfl) : (walkImage L).read (gpow k) = some v := by
   rw [show gpow k = gpow ((⟨k, hk⟩ : Fin (2 ^ minLogMem)) : ℕ) from rfl,
-    MemImage.read_gpow (by decide), hv]
+    MemoryImage.read_gpow (by decide), hv]
 
 theorem walk_step0 : step walkProg (walkImage kLout) ⟨1, 1⟩ = some ⟨gpow 1, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) fetch_one]
@@ -467,11 +467,11 @@ theorem walk_run4 : run walkProg (walkImage kLout) 4 ⟨1, 1⟩ = some ⟨gpow 3
     walk_step3, Option.bind_eq_bind, Option.bind_some, run_zero]
 
 /-- The run: four steps from `(1, 1)` to the final registers `(g^31, 1)`. -/
-theorem walk_run : run walkProg (walkImage kLout) 4 Regs.initial = some (Regs.final walkProg) :=
+theorem walk_run : run walkProg (walkImage kLout) 4 Registers.initial = some (Registers.final walkProg) :=
   walk_run4
 
 /-- The public words are in place. -/
-theorem walk_boundary : HasPublicBoundary mulInput walkTrace :=
+theorem walk_boundary : HoldsPublicInput mulInput walkTrace :=
   ⟨le_rfl, by decide, read_at kLout 0 (cellK 1), read_at kLout 1 (cellK (K.ofBits 2))⟩
 
 /-- The extended program is a valid execution of the executor's on the same input. -/
@@ -727,7 +727,7 @@ the data. -/
 theorem seedRows_gen (L : Vector K 25) {tables : List (Air.Flat.Table K)} {pi : PublicIO K}
     {h1 h2 h3} (cnt : ℕ → K) (hrows : memBlockRows (⟨tables, walkData L, pi, h1, h2, h3⟩ :
       EnsembleWitness (leanIsaEnsemble walkProg)) = List.ofFn (memRowArr L cnt))
-    (s : (κ : ℕ) × MemImage κ) (hs : s = ⟨minLogMem, walkImage L⟩) :
+    (s : (κ : ℕ) × MemoryImage κ) (hs : s = ⟨minLogMem, walkImage L⟩) :
     ∃ idx cntFin : Fin (2 ^ s.1) → K,
       memBlockRows (⟨tables, walkData L, pi, h1, h2, h3⟩ :
         EnsembleWitness (leanIsaEnsemble walkProg)) = List.ofFn fun i ↦
@@ -761,7 +761,7 @@ theorem walk_bytecodeRows (L : Vector K 25) (c rA : K) (cnt : ℕ → K) :
 /-- The executor's input lanes permute to its output lanes (the table tests' `keccak_lanes`):
 one kernel evaluation of Keccak-f[1600]. -/
 theorem keccak_lanes :
-    ∀ l : Fin 25, stateLanes (keccakF (laneState fun l ↦ kLin[l])) l = kLout[l] := by
+    ∀ l : Fin 25, stateLanes (keccakF1600 (laneState fun l ↦ kLin[l])) l = kLout[l] := by
   decide +kernel
 
 /-- The honest `KECCAK` row satisfies the relation. -/

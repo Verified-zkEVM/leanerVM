@@ -60,20 +60,20 @@ def iotaOf (P step : ℕ) (claim : KeccakClaim) : E :=
 /-- Steps 4 (after the sumcheck) and 5 of a layer. -/
 def layerTail (claim : KeccakClaim) (s : E) (res : E × E × List E) (res2 : List E × E) :
     Prog KeccakClaim :=
-  Prog.readN 3 >>= fun t ↦
+  Prog.readScalars 3 >>= fun t ↦
   Prog.require (res.2.1 * dot ((eqKernel res2.1).take keccakBits) claim.weights *
     (sumE (keccakInstanceWeights s) * t.getD 0 0 +
       (sumE (keccakInstanceWeights s) + t.getD 1 0) * t.getD 2 0) = res2.2) >>= fun _ ↦
-  Prog.sampleE >>= fun beta ↦
+  Prog.sampleChallenge >>= fun beta ↦
   Prog.ret ⟨t.getD 0 0 + beta * (t.getD 1 0 + beta * t.getD 2 0), keccakInstanceWeights s,
     res.2.2, keccakLinearTranspose (batchW res2.1 beta)⟩
 
 /-- A layer, with the tuples of the `do` block as projections. -/
 def layerProg (P step : ℕ) (claim : KeccakClaim) : Prog KeccakClaim :=
-  Prog.readN productBits >>= fun product ↦
+  Prog.readScalars productBits >>= fun product ↦
   Prog.require (projectedOf claim product + iotaOf P step claim * sumE claim.mu = claim.value) >>=
     fun _ ↦
-  Prog.sampleE >>= fun s ↦
+  Prog.sampleChallenge >>= fun s ↦
   keccakPackRounds claim.point (polyEval product s) 1 >>= fun res ↦
   sumcheck res.1 4 (List.replicate keccakLocalBits none) >>= fun res2 ↦
   layerTail claim s res res2

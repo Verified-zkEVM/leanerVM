@@ -128,12 +128,12 @@ verifier have none), so the field reduces to the `JUMP` residuals on every `JUMP
 The `public_input_eq` field is read by no component: the lanes bind the run through
 `word0_eq` and `word1_eq`, the two public words at `g^0` and `g^1` of the image the data
 names (§8.2, the evaluation claim against the committed memory; spelled as
-`HasPublicBoundary` spells it, through `MemImage.read`).
+`HoldsPublicInput` spells it, through `MemoryImage.read`).
 
 **The trace.** `AssignmentRepresents w t` says what a witness of `SatisfiedBy` is a witness
 of: the image the data names is the trace's (`κ_eq`, `image_eq`; `assignmentRepresents_image`
 reads the two as one equality of dependent pairs), and each consecutive pair `(r_k, r_{k+1})`
-of the trace's register sequence `r_0, …, r_steps` (`Trace.regs`) occurs as the
+of the trace's register sequence `r_0, …, r_steps` (`Execution.regs`) occurs as the
 state pull and the state push of some row of some table (`RowSteps`). Occurrence, not an
 injection of steps into rows: a witness with one traversal of a loop represents a trace with
 two, and the image determines the run. The remaining rows are the closed walks of §8.3, about
@@ -164,7 +164,7 @@ are proved in `LeanVM.Arithmetization.Soundness` (`mem_channel_sound`,
   table of the prover data, and `BytecodeRowsAreTheProgram prog` is the conjunct that pins the
   bytecode block's public columns to it.
 * The public words are not on the bus (§8.2): `word0_eq` and `word1_eq` read the image the
-  data names, as `HasPublicBoundary` reads the trace's.
+  data names, as `HoldsPublicInput` reads the trace's.
 * The state pull carries no guarantee: `AssignmentRepresents` claims the
   run's steps are rows, and nothing about the rows that are not.
 -/
@@ -349,21 +349,21 @@ structure SatisfiedBy (prog : Program) (input : PublicInput)
 
 /-- Some row of some table steps from `r` to `r'`: its one state pull is `r` and its one state
 push is `r'` (§6.1). -/
-def RowSteps (w : EnsembleWitness (leanIsaEnsemble prog)) (r r' : Regs K) : Prop :=
+def RowSteps (w : EnsembleWitness (leanIsaEnsemble prog)) (r r' : Registers K) : Prop :=
   ∃ t ∈ w.tables, ∃ row ∈ t.table,
     rowMessagesOn t row StatePull.toRaw = [#[r.pc, r.fp]] ∧
       rowMessagesOn t row StatePush.toRaw = [#[r'.pc, r'.fp]]
 
 /-- The witness `w` represents the trace `t`: the image the data names is the trace's, and
 each consecutive pair of the trace's register sequence `r_0, …, r_steps`
-(`Trace.regs`) occurs as the state pull and push of some row (occurrence, not an injection of
+(`Execution.regs`) occurs as the state pull and push of some row (occurrence, not an injection of
 steps into rows). The remaining rows are the closed walks of §8.3. -/
-structure AssignmentRepresents (w : EnsembleWitness (leanIsaEnsemble prog)) (t : Trace prog) :
+structure AssignmentRepresents (w : EnsembleWitness (leanIsaEnsemble prog)) (t : Execution prog) :
     Prop where
   /-- The memory log-size is the trace's. -/
-  κ_eq : (imageOf w.data).1 = t.κ
+  κ_eq : (imageOf w.data).1 = t.logMemorySize
   /-- Every word of the image is the trace's. -/
-  image_eq : ∀ i (hi : i < 2 ^ t.κ), (imageOf w.data).2 ⟨i, κ_eq ▸ hi⟩ = t.image ⟨i, hi⟩
+  image_eq : ∀ i (hi : i < 2 ^ t.logMemorySize), (imageOf w.data).2 ⟨i, κ_eq ▸ hi⟩ = t.memory ⟨i, hi⟩
   /-- Each step of the register sequence occurs as some row's state pull and push. -/
   regs_embed : ∀ k (hk : k + 1 < t.regs.length), RowSteps w t.regs[k] t.regs[k + 1]
 
@@ -431,8 +431,8 @@ theorem assumptions_of_keccakRowsValid {w : EnsembleWitness (leanIsaEnsemble pro
 
 /-- The image a representing witness names is the trace's, as one equality of dependent
 pairs. -/
-theorem assignmentRepresents_image {w : EnsembleWitness (leanIsaEnsemble prog)} {t : Trace prog}
-    (h : AssignmentRepresents w t) : imageOf w.data = ⟨t.κ, t.image⟩ := by
+theorem assignmentRepresents_image {w : EnsembleWitness (leanIsaEnsemble prog)} {t : Execution prog}
+    (h : AssignmentRepresents w t) : imageOf w.data = ⟨t.logMemorySize, t.memory⟩ := by
   obtain ⟨κ, image, steps⟩ := t
   obtain ⟨hκ, himage, -⟩ := h
   revert hκ himage

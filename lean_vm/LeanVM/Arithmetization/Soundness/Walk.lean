@@ -54,8 +54,8 @@ namespace LeanVM.Arithmetization
 open LeanVM.Parameters LeanVM.Semantics
 
 /-- Away from the final state, a run under the semantics `S` takes a step. -/
-theorem runB_succ_of_ne (S : KeccakSem) {prog : Program} {κ : ℕ} {L : MemImage κ} {r : Regs K}
-    (h : r ≠ Regs.final prog) (n : ℕ) :
+theorem runB_succ_of_ne (S : KeccakSem) {prog : Program} {κ : ℕ} {L : MemoryImage κ} {r : Registers K}
+    (h : r ≠ Registers.final prog) (n : ℕ) :
     runB S prog L (n + 1) r = stepB S prog L r >>= runB S prog L n := by
   rw [runB, ite_eq_right h]
 
@@ -63,16 +63,16 @@ theorem runB_succ_of_ne (S : KeccakSem) {prog : Program} {κ : ℕ} {L : MemImag
 `KECCAK`: edges that are steps, balanced against a start `s` and the final registers, contain a
 run from `s` to the final registers, the walk from `s` cut at its first visit of them; each step
 of the run is an edge. -/
-theorem exists_runB_of_perm (S : KeccakSem) {α : Type*} {prog : Program} {κ : ℕ} {L : MemImage κ}
-    (src dst : α → Regs K) (E : List α)
+theorem exists_runB_of_perm (S : KeccakSem) {α : Type*} {prog : Program} {κ : ℕ} {L : MemoryImage κ}
+    (src dst : α → Registers K) (E : List α)
     (hE : ∀ e ∈ E, stepB S prog L (src e) = some (dst e))
-    (s : Regs K) (hbal : (s :: E.map dst).Perm (Regs.final prog :: E.map src)) :
-    ∃ n, runB S prog L n s = some (Regs.final prog) ∧
+    (s : Registers K) (hbal : (s :: E.map dst).Perm (Registers.final prog :: E.map src)) :
+    ∃ n, runB S prog L n s = some (Registers.final prog) ∧
       ∀ k < n, ∃ e ∈ E, runB S prog L k s = some (src e) ∧
         runB S prog L (k + 1) s = some (dst e) := by
   induction hlen : E.length using Nat.strong_induction_on generalizing E s with
   | _ len ih =>
-    by_cases hs : s = Regs.final prog
+    by_cases hs : s = Registers.final prog
     · exact ⟨0, by rw [hs]; rfl, fun k hk ↦ absurd hk (Nat.not_lt_zero k)⟩
     have hmem : s ∈ E.map src := by
       have := hbal.subset List.mem_cons_self
@@ -81,13 +81,13 @@ theorem exists_runB_of_perm (S : KeccakSem) {α : Type*} {prog : Program} {κ : 
       · exact h
     obtain ⟨e, he, hse⟩ := List.mem_map.mp hmem
     obtain ⟨l₁, l₂, rfl⟩ := List.append_of_mem he
-    have hbal' : (dst e :: (l₁ ++ l₂).map dst).Perm (Regs.final prog :: (l₁ ++ l₂).map src) := by
+    have hbal' : (dst e :: (l₁ ++ l₂).map dst).Perm (Registers.final prog :: (l₁ ++ l₂).map src) := by
       have h1 : (s :: (l₁ ++ e :: l₂).map dst).Perm (s :: dst e :: (l₁ ++ l₂).map dst) := by
         refine List.Perm.cons _ ?_
         rw [List.map_append, List.map_cons, List.map_append]
         exact List.perm_middle
-      have h2 : (Regs.final prog :: (l₁ ++ e :: l₂).map src).Perm
-          (s :: Regs.final prog :: (l₁ ++ l₂).map src) := by
+      have h2 : (Registers.final prog :: (l₁ ++ e :: l₂).map src).Perm
+          (s :: Registers.final prog :: (l₁ ++ l₂).map src) := by
         rw [List.map_append, List.map_cons, hse, List.map_append]
         exact (List.Perm.cons _ List.perm_middle).trans (List.Perm.swap _ _ _)
       exact (h1.symm.trans (hbal.trans h2)).cons_inv
@@ -113,11 +113,11 @@ theorem exists_runB_of_perm (S : KeccakSem) {α : Type*} {prog : Program} {κ : 
 
 /-- **Specification Proposition 6.1, the walk decomposition**: `exists_runB_of_perm` at the
 deployed semantics. -/
-theorem exists_run_of_perm {α : Type*} {prog : Program} {κ : ℕ} {L : MemImage κ}
-    (src dst : α → Regs K) (E : List α)
+theorem exists_run_of_perm {α : Type*} {prog : Program} {κ : ℕ} {L : MemoryImage κ}
+    (src dst : α → Registers K) (E : List α)
     (hE : ∀ e ∈ E, step prog L (src e) = some (dst e))
-    (s : Regs K) (hbal : (s :: E.map dst).Perm (Regs.final prog :: E.map src)) :
-    ∃ n, run prog L n s = some (Regs.final prog) ∧
+    (s : Registers K) (hbal : (s :: E.map dst).Perm (Registers.final prog :: E.map src)) :
+    ∃ n, run prog L n s = some (Registers.final prog) ∧
       ∀ k < n, ∃ e ∈ E, run prog L k s = some (src e) ∧ run prog L (k + 1) s = some (dst e) := by
   have hE' : ∀ e ∈ E, stepB keccakDeployed prog L (src e) = some (dst e) := fun e he ↦ by
     rw [stepB_deployed]; exact hE e he

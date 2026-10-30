@@ -4,7 +4,7 @@
   Helpers for `da_verify`'s honest shapes (`Budget.NodeHonest`): callees without predicates,
   the trivial predicates, data and layout monotonicity of the placed relations with trees.
 
-  `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.Witness.Opens`), as ported here.
+  `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.MatrixWitness.Opens`), as ported here.
 -/
 
 module

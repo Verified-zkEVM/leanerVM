@@ -69,7 +69,7 @@ tests run it), but its environment carries no data, so the data-carrying environ
 `jumpEnv`, whose witness discipline is the theorem.
 
 **Rows from executions.** `jumpRowOf mem pc fp o_c o_d o_f r_c r_d r_f r_bc` reads the three
-low limbs back from the image (`MemImage.limbsAt`); `jumpRowOf_refines` proves it refines the
+low limbs back from the image (`MemoryImage.limbsAt`); `jumpRowOf_refines` proves it refines the
 relation, and `jump_exec_complete` its acceptance by `main` in `jumpEnv`, witnesses included,
 from the execution alone.
 
@@ -141,7 +141,7 @@ theorem flags_complete (c : K) :
 /-! ## The relation -/
 
 /-- The row's bindings to an image: the three cells hold the row's `K` words. -/
-structure JumpBindings {κ : ℕ} (mem : MemImage κ) (r : JumpRow K) : Prop where
+structure JumpBindings {κ : ℕ} (mem : MemoryImage κ) (r : JumpRow K) : Prop where
   /-- The condition cell `fp · o_c` holds `v_cond`, a word in `K`. -/
   cond_eq : mem.read (r.fp * r.oc) = some (E.ofLimbs r.vcond 0 0)
   /-- The destination cell `fp · o_d` holds `v_pc`, a word in `K`. -/
@@ -152,7 +152,7 @@ structure JumpBindings {κ : ℕ} (mem : MemImage κ) (r : JumpRow K) : Prop whe
 /-- The relation a `JUMP` row refines: it is bound to the image, and from its registers the
 machine executes the instruction it names, `JUMP o_c o_d o_f`, to `next` (`execute`).
 -/
-structure JumpRefines {κ : ℕ} (mem : MemImage κ) (r : JumpRow K) (next : Regs K) : Prop where
+structure JumpRefines {κ : ℕ} (mem : MemoryImage κ) (r : JumpRow K) (next : Registers K) : Prop where
   /-- The row is bound to the image. -/
   bindings : JumpBindings mem r
   /-- From the row's registers the machine executes `JUMP o_c o_d o_f` to `next`. -/
@@ -160,10 +160,10 @@ structure JumpRefines {κ : ℕ} (mem : MemImage κ) (r : JumpRow K) (next : Reg
 
 /-- `JumpRefines`, expanded: the bindings, and the successor is `(v_pc, v_fp)` when the
 condition is nonzero and the fall-through `(g·pc, fp)` otherwise. -/
-theorem jump_refines_iff {κ : ℕ} (mem : MemImage κ) (r : JumpRow K) (next : Regs K) :
+theorem jump_refines_iff {κ : ℕ} (mem : MemoryImage κ) (r : JumpRow K) (next : Registers K) :
     JumpRefines mem r next ↔
       JumpBindings mem r ∧
-        next = if r.vcond = 0 then Regs.next ⟨r.pc, r.fp⟩ else ⟨r.vpc, r.vfp⟩ := by
+        next = if r.vcond = 0 then Registers.next ⟨r.pc, r.fp⟩ else ⟨r.vpc, r.vfp⟩ := by
   constructor
   · rintro ⟨⟨hc, hd, hf⟩, hexec⟩
     refine ⟨⟨hc, hd, hf⟩, ?_⟩
@@ -181,7 +181,7 @@ theorem jump_refines_iff {κ : ℕ} (mem : MemImage κ) (r : JumpRow K) (next : 
 
 /-- The table's `Spec`: the row refines `JumpRefines` over the image the prover data names. No
 program: the table is program-free (the module docstring). -/
-def JumpSpec (r : JumpRow K) (next : Regs K) (data : ProverData K) : Prop :=
+def JumpSpec (r : JumpRow K) (next : Registers K) (data : ProverData K) : Prop :=
   JumpRefines (imageOf data).2 r next
 
 /-- The bytecode tuple of a row is `entry` of the instruction it names, by definition; spelled
@@ -195,14 +195,14 @@ private theorem jump_entry (a b c : K) :
 residual constraints, the state pull and the push of the derived successor, the bytecode read
 of `(JMP, o_c, o_d, o_f, 0, 0, 0, 0)`, and the three single-limb reads. Returns the pushed
 successor. -/
-def jumpTable : GeneralFormalCircuit K JumpRow Regs where
+def jumpTable : GeneralFormalCircuit K JumpRow Registers where
   main r := do
     -- The honest inverse `w = v_cond⁻¹` (`0` when `v_cond = 0`) and the indicator `b`.
     let w ← witness (.ite (r.vcond =? 0) 0 r.vcond⁻¹)
     let b ← witness (.ite (r.vcond =? 0) 0 1)
     assertZero (b + r.vcond * w)
     assertZero (r.vcond * (b + 1))
-    let next : Var Regs K :=
+    let next : Var Registers K :=
       ⟨b * r.vpc + b * (Expression.const g * r.pc) + Expression.const g * r.pc,
         b * r.vfp + b * r.fp + r.fp⟩
     StatePull.pull ⟨r.pc, r.fp⟩
@@ -233,7 +233,7 @@ def jumpTable : GeneralFormalCircuit K JumpRow Regs where
     refine (jump_refines_iff _ _ _).mpr ⟨⟨hc, hd, hf⟩, ?_⟩
     split_ifs at hind ⊢ with hc0
     · -- Not taken: `b = 0`, the successor is `(g·pc, fp)`.
-      simp only [hind, zero_mul, zero_add, Regs.next]
+      simp only [hind, zero_mul, zero_add, Registers.next]
     · -- Taken: `b = 1`, the successor is `(v_pc, v_fp)` since `x + x = 0`.
       simp only [hind, one_mul, add_assoc, CharTwo.add_self_eq_zero, add_zero]
   completeness := by
@@ -286,14 +286,14 @@ def jumpEnv (data : ProverData K) (r : JumpRow K) : ProverEnvironment K :=
 /-- The row of an execution of `JUMP o_c o_d o_f` from `(pc, fp)` over the image `mem`: the
 registers, the operands, the three low limbs read back from the image, and the counts as
 parameters. Noncomputable: it reads the image. -/
-noncomputable def jumpRowOf {κ : ℕ} (mem : MemImage κ) (pc fp oc od of rc rd rf rbc : K) :
+noncomputable def jumpRowOf {κ : ℕ} (mem : MemoryImage κ) (pc fp oc od of rc rd rf rbc : K) :
     JumpRow K :=
   ⟨pc, fp, oc, od, of, (mem.limbsAt (fp * oc))[0], (mem.limbsAt (fp * od))[0],
     (mem.limbsAt (fp * of))[0], rc, rd, rf, rbc⟩
 
 /-- A valid execution of `JUMP o_c o_d o_f` is represented by `jumpRowOf`, with any counts: the
 honest prover's row refines the relation, which is `ProverAssumptions` over the data. -/
-theorem jumpRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp oc od of : K} {next : Regs K}
+theorem jumpRowOf_refines {κ : ℕ} {mem : MemoryImage κ} {pc fp oc od of : K} {next : Registers K}
     (hexec : execute mem ⟨pc, fp⟩ (.jump oc od of) = some next) (rc rd rf rbc : K) :
     JumpRefines mem (jumpRowOf mem pc fp oc od of rc rd rf rbc) next := by
   have h := hexec
@@ -302,15 +302,15 @@ theorem jumpRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp oc od of : K} {n
   obtain ⟨hcK, hdK, hfK⟩ := guard_eq_some hu
   refine ⟨⟨?_, ?_, ?_⟩, hexec⟩
   · show mem.read (fp * oc) = some (E.ofLimbs (mem.limbsAt (fp * oc))[0] 0 0)
-    rw [MemImage.limbsAt_getElem_zero hc, ofLimbs_of_isInK hcK]; exact hc
+    rw [MemoryImage.limbsAt_getElem_zero hc, ofLimbs_of_isInK hcK]; exact hc
   · show mem.read (fp * od) = some (E.ofLimbs (mem.limbsAt (fp * od))[0] 0 0)
-    rw [MemImage.limbsAt_getElem_zero hd, ofLimbs_of_isInK hdK]; exact hd
+    rw [MemoryImage.limbsAt_getElem_zero hd, ofLimbs_of_isInK hdK]; exact hd
   · show mem.read (fp * of) = some (E.ofLimbs (mem.limbsAt (fp * of))[0] 0 0)
-    rw [MemImage.limbsAt_getElem_zero hf, ofLimbs_of_isInK hfK]; exact hf
+    rw [MemoryImage.limbsAt_getElem_zero hf, ofLimbs_of_isInK hfK]; exact hf
 
 /-- Every valid `JUMP` execution has a satisfying row, witnesses included, from the execution
 alone: the constraints of `main` hold of `jumpRowOf` in its honest environment over the data. -/
-theorem jump_exec_complete {data : ProverData K} {pc fp oc od of : K} {next : Regs K}
+theorem jump_exec_complete {data : ProverData K} {pc fp oc od of : K} {next : Registers K}
     (hexec : execute (imageOf data).2 ⟨pc, fp⟩ (.jump oc od of) = some next) (rc rd rf rbc : K) :
     ConstraintsHold.Completeness
       (jumpEnv data (jumpRowOf (imageOf data).2 pc fp oc od of rc rd rf rbc))

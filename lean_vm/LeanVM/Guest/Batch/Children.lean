@@ -15,7 +15,7 @@ public import LeanVM.Guest.Batch.Node
 /-!
 # A node's children
 
-`NodeRel` says the deferring verifier accepts each child's proof, its claim on the bytecode
+`NodeRelation` says the deferring verifier accepts each child's proof, its claim on the bytecode
 handed on to the node's batching. Under the deployed seed and with the node's deferred claim true
 (what the outer verifier checks of the root), `batch_sound` makes the children's claims true, or
 a batching challenge is bad; and a proof the deferring verifier accepts under the deployed IV with
@@ -41,18 +41,18 @@ open LeanVM.Node
 /-- What a node batches of its children under `seed`: each child's public input, its proof's
 claims and its statement's deferred claim. -/
 def childClaimsOf (seed : Digest) (w : NodeWitness) : List ChildClaims :=
-  w.children.map fun c ↦ ⟨statementDigest seed c.statement, c.fresh, c.statement.defer⟩
+  w.children.map fun c ↦ ⟨statementDigest seed c.statement, c.freshClaim, c.statement.deferredClaim⟩
 
 /-- **A node's children verify**, under the deployed seed with the node's deferred claim true:
 every child's proof is accepted by the deployed verifier and its deferred claim holds, or a
 challenge of the node's batching is bad. -/
 theorem children_sound {bytecode : List K} {s : NodeStatement} {w : NodeWitness}
-    (hN : NodeRel bytecode (fiatShamirIv bytecode) s w) (hs : s.defer.Holds bytecode) :
+    (hN : NodeRelation bytecode (fiatShamirIv bytecode) s w) (hs : s.deferredClaim.Holds bytecode) :
     (∀ c ∈ w.children,
         Verifier.verify bytecode (statementDigest (fiatShamirIv bytecode) c.statement) c.proof =
           true ∧
-          c.statement.defer.Holds bytecode) ∨
-      BatchBad bytecode (childClaimsOf (fiatShamirIv bytecode) w) w.hints := by
+          c.statement.deferredClaim.Holds bytecode) ∨
+      BatchBad bytecode (childClaimsOf (fiatShamirIv bytecode) w) w.batchingHints := by
   obtain ⟨-, hch, -, -, -, hbat⟩ := nodeRel_iff.mp hN
   by_cases hw : w.children = []
   · exact Or.inl fun c hc ↦ absurd hc (by simp [hw])

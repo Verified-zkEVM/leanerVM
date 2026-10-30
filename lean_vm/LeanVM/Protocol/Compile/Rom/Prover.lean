@@ -17,8 +17,8 @@ public import Statement.Prover.Run
 
 `proveM H F P S seed fuel` is the honest prover `prove` (`LeanVM.Protocol.Compile.Prover`) with
 the hash `H : Bytes → m Digest` and the permutation `F : KState → m KState` in any monad `m`, as
-the verifier `run` is. Its `Id` instance is `prove` (`proveM_id`); at `H = queryH` and
-`F = queryF` it is an oracle computation, the honest prover of the random-oracle model.
+the verifier `run` is. Its `Id` instance is `prove` (`proveM_id`); at `H = callKeccak256` and
+`F = callKeccakF1600` it is an oracle computation, the honest prover of the random-oracle model.
 
 It is written with the statement's pieces (`Statement/Prover/Run.lean`), so that it makes the
 moves of the statement's runner `LeanVM.Prover.runFrom` (`LeanVM/Prover/Refine.lean`):
@@ -30,7 +30,7 @@ moves of the statement's runner `LeanVM.Prover.runFrom` (`LeanVM/Prover/Refine.l
   sponge with tag `4` and a challenge squeezed (`LeanVM.Prover.powStepM`,
   `LeanVM.Prover.searchM`).
 
-* `simulateQ_proveM`: interpreting the queries of `proveM queryH queryF` by any implementation is
+* `simulateQ_proveM`: interpreting the queries of `proveM callKeccak256 callKeccakF1600` by any implementation is
   running `proveM` with that implementation as the hash and the permutation.
 * `simulateQ_id_of_look`: a computation whose run against a log's answers returns `r` returns
   `r` against every hash function and permutation that agree with the log.
@@ -52,7 +52,7 @@ open OracleComp OracleSpec
 
 section ProverM
 
-variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
+variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
 
 /-- The honest prover from a history `h` at sponge `sp`, the trees of the commitments so far `cs`
 (`proveFrom`): each commitment's tree built once, the openings read from it. -/
@@ -88,7 +88,7 @@ def proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
       pure (r.map fun t ↦ (t.1, ps.map tree.opening ++ t.2))
 
 /-- **The honest prover**, with the hash and the permutation in any monad (`prove`). -/
-def proveM (P : Prog Bool) (S : Strategy) (seed : KState) (fuel : ℕ) : m (Option Proof) := do
+def proveM (P : Prog Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ) : m (Option Proof) := do
   let r ← proveFromM H F S fuel P ⟨seed, []⟩ [] []
   pure (r.map fun t ↦ ⟨t.1, t.2⟩)
 
@@ -105,7 +105,7 @@ def treesOf (H : Bytes → Digest) (cs : List (ℕ × ℕ × Word)) : List Tree 
 
 section Pure
 
-variable (H : Bytes → Digest) (F : KState → KState)
+variable (H : Bytes → Digest) (F : KeccakState → KeccakState)
 
 theorem toArray_getD {α : Type} (l : List α) (i : ℕ) (d : α) : l.toArray.getD i d = l.getD i d := by
   simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
@@ -276,7 +276,7 @@ theorem proveFromM_id (S : Strategy) (fuel : ℕ) {α : Type} :
         proveFromM_id S fuel]
 
 /-- **The `Id` instance is the honest prover.** -/
-theorem proveM_id (P : Prog Bool) (S : Strategy) (seed : KState) (fuel : ℕ) :
+theorem proveM_id (P : Prog Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ) :
     proveM (m := Id) H F P S seed fuel = prove H F P S seed fuel := by
   show (proveFromM (m := Id) H F S fuel P ⟨seed, []⟩ [] (treesOf H (commits []))).map _ = _
   rw [proveFromM_id]
@@ -288,46 +288,46 @@ end Pure
 
 section Commute
 
-variable {r : Type → Type} [Monad r] [LawfulMonad r] (impl : QueryImpl HashSpec r)
+variable {r : Type → Type} [Monad r] [LawfulMonad r] (impl : QueryImpl KeccakCalls r)
 
-theorem simulateQ_mapM {α β : Type} (f : α → OracleComp HashSpec β) :
+theorem simulateQ_mapM {α β : Type} (f : α → OracleComp KeccakCalls β) :
     ∀ l : List α, simulateQ impl (l.mapM f) = l.mapM fun a ↦ simulateQ impl (f a)
   | [] => by simp
   | a :: l => by
     simp only [List.mapM_cons, simulateQ_bind, simulateQ_pure]
     congr 1; funext b; rw [simulateQ_mapM f l]
 
-theorem simulateQ_arrayMapM {α β : Type} (f : α → OracleComp HashSpec β) (xs : Array α) :
+theorem simulateQ_arrayMapM {α β : Type} (f : α → OracleComp KeccakCalls β) (xs : Array α) :
     simulateQ impl (xs.mapM f) = xs.mapM fun a ↦ simulateQ impl (f a) := by
   rw [Array.mapM_eq_mapM_toList, Array.mapM_eq_mapM_toList, simulateQ_map, simulateQ_mapM]
 
 theorem simulateQ_parentsM (level : Array Digest) (n : ℕ) :
-    simulateQ impl (parentsM queryH level n) = parentsM (implH impl) level n := by
+    simulateQ impl (parentsM callKeccak256 level n) = parentsM (implH impl) level n := by
   simp only [parentsM, simulateQ_arrayMapM, simulateQ_queryH]
 
 theorem simulateQ_levelsM :
     ∀ (k : ℕ) (level : Array Digest),
-      simulateQ impl (levelsM queryH k level) = levelsM (implH impl) k level
+      simulateQ impl (levelsM callKeccak256 k level) = levelsM (implH impl) k level
   | 0, _ => by simp [levelsM]
   | k + 1, level => by
     simp only [levelsM, simulateQ_bind, simulateQ_parentsM, simulateQ_pure]
     congr 1; funext up; rw [simulateQ_levelsM k up]
 
 theorem simulateQ_leafDigestsM (height : ℕ) (word : Word) :
-    simulateQ impl (leafDigestsM queryH height word) = leafDigestsM (implH impl) height word := by
+    simulateQ impl (leafDigestsM callKeccak256 height word) = leafDigestsM (implH impl) height word := by
   simp only [leafDigestsM, simulateQ_arrayMapM, simulateQ_queryH]
 
 theorem simulateQ_buildTreeM (height : ℕ) (word : Word) :
-    simulateQ impl (buildTreeM queryH height word) = buildTreeM (implH impl) height word := by
+    simulateQ impl (buildTreeM callKeccak256 height word) = buildTreeM (implH impl) height word := by
   simp only [buildTreeM, simulateQ_bind, simulateQ_leafDigestsM, simulateQ_levelsM,
     simulateQ_pure]
 
 theorem simulateQ_powStepM (sp : Sponge) (n : E) :
-    simulateQ impl (powStepM queryF sp n) = powStepM (implF impl) sp n := by
+    simulateQ impl (powStepM callKeccakF1600 sp n) = powStepM (implF impl) sp n := by
   simp only [powStepM, simulateQ_bind, simulateQ_absorb, simulateQ_squeeze]
 
 theorem simulateQ_searchM (bits : ℕ) (sp : Sponge) :
-    ∀ (count n : ℕ), simulateQ impl (searchM queryF bits sp n count) =
+    ∀ (count n : ℕ), simulateQ impl (searchM callKeccakF1600 bits sp n count) =
       searchM (implF impl) bits sp n count
   | 0, _ => by simp [searchM]
   | count + 1, n => by
@@ -338,7 +338,7 @@ theorem simulateQ_searchM (bits : ℕ) (sp : Sponge) :
     · exact simulateQ_searchM bits sp count (n + 1)
 
 theorem simulateQ_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
-    simulateQ impl (findNonceM queryF bits sp fuel) = findNonceM (implF impl) bits sp fuel := by
+    simulateQ impl (findNonceM callKeccakF1600 bits sp fuel) = findNonceM (implF impl) bits sp fuel := by
   unfold findNonceM
   split
   · simp
@@ -346,7 +346,7 @@ theorem simulateQ_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
 
 theorem simulateQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
     ∀ (p : Prog α) (sp : Sponge) (h : List Ev) (cs : List Tree),
-      simulateQ impl (proveFromM queryH queryF S fuel p sp h cs) =
+      simulateQ impl (proveFromM callKeccak256 callKeccakF1600 S fuel p sp h cs) =
         proveFromM (implH impl) (implF impl) S fuel p sp h cs
   | .ret _, _, _, _ => by simp [proveFromM]
   | .fail, _, _, _ => by simp [proveFromM]
@@ -376,8 +376,8 @@ theorem simulateQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
       rw [simulateQ_proveFromM S fuel]
 
 /-- **The prover commutes with simulation.** -/
-theorem simulateQ_proveM (P : Prog Bool) (S : Strategy) (seed : KState) (fuel : ℕ) :
-    simulateQ impl (proveM queryH queryF P S seed fuel) =
+theorem simulateQ_proveM (P : Prog Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ) :
+    simulateQ impl (proveM callKeccak256 callKeccakF1600 P S seed fuel) =
       proveM (implH impl) (implF impl) P S seed fuel := by
   simp only [proveM, simulateQ_bind, simulateQ_proveFromM, simulateQ_pure]
 
@@ -386,22 +386,22 @@ end Commute
 /-! ## From a log's answers to a hash function and a permutation -/
 
 /-- A hash function and a permutation, as an implementation of the oracles in `Id`. -/
-def totalImpl (H : Bytes → Digest) (F : KState → KState) : QueryImpl HashSpec Id
+def totalImpl (H : Bytes → Digest) (F : KeccakState → KeccakState) : QueryImpl KeccakCalls Id
   | .inl x => H x
   | .inr s => F s
 
-theorem implH_totalImpl (H : Bytes → Digest) (F : KState → KState) :
+theorem implH_totalImpl (H : Bytes → Digest) (F : KeccakState → KeccakState) :
     implH (totalImpl H F) = H := rfl
 
-theorem implF_totalImpl (H : Bytes → Digest) (F : KState → KState) :
+theorem implF_totalImpl (H : Bytes → Digest) (F : KeccakState → KeccakState) :
     implF (totalImpl H F) = F := rfl
 
 /-- **From the log to a hash function and a permutation.** A computation that returns `r` when
 every query is answered by the log `ℓ` returns `r` when every query is answered by a hash
 function and a permutation that agree with the log. -/
-theorem simulateQ_id_of_look {β : Type} (ℓ : Log) (H : Bytes → Digest) (F : KState → KState)
+theorem simulateQ_id_of_look {β : Type} (ℓ : Log) (H : Bytes → Digest) (F : KeccakState → KeccakState)
     (hH : ∀ x u, lookH ℓ x = some u → H x = u) (hF : ∀ s u, lookF ℓ s = some u → F s = u)
-    (oa : OracleComp HashSpec β) :
+    (oa : OracleComp KeccakCalls β) :
     ∀ r : β, simulateQ (lookImpl ℓ) oa = some r → simulateQ (totalImpl H F) oa = r := by
   induction oa using OracleComp.inductionOn with
   | pure x =>
@@ -426,7 +426,7 @@ theorem simulateQ_id_of_look {β : Type} (ℓ : Log) (H : Bytes → Digest) (F :
 
 section Queries
 
-theorem isTotalQueryBound_mapM {α β : Type} (f : α → OracleComp HashSpec β) (c : ℕ)
+theorem isTotalQueryBound_mapM {α β : Type} (f : α → OracleComp KeccakCalls β) (c : ℕ)
     (hf : ∀ a, IsTotalQueryBound (f a) c) :
     ∀ l : List α, IsTotalQueryBound (l.mapM f) (l.length * c)
   | [] => trivial
@@ -437,7 +437,7 @@ theorem isTotalQueryBound_mapM {α β : Type} (f : α → OracleComp HashSpec β
       (isTotalQueryBound_mapM f c hf l) fun _ ↦ isTotalQueryBound_pure' _ 0
 
 
-theorem isTotalQueryBound_arrayMapM {α β : Type} (f : α → OracleComp HashSpec β) (c : ℕ)
+theorem isTotalQueryBound_arrayMapM {α β : Type} (f : α → OracleComp KeccakCalls β) (c : ℕ)
     (hf : ∀ a, IsTotalQueryBound (f a) c) (xs : Array α) :
     IsTotalQueryBound (xs.mapM f) (xs.size * c) := by
   rw [Array.mapM_eq_mapM_toList, map_eq_bind_pure_comp, ← Array.length_toList,
@@ -446,15 +446,15 @@ theorem isTotalQueryBound_arrayMapM {α β : Type} (f : α → OracleComp HashSp
     isTotalQueryBound_pure' _ 0
 
 theorem isTotalQueryBound_parentsM (level : Array Digest) (n : ℕ) :
-    IsTotalQueryBound (parentsM queryH level n) n := by
-  have := isTotalQueryBound_arrayMapM (β := Digest) (fun j : ℕ ↦ queryH (digestBytes
+    IsTotalQueryBound (parentsM callKeccak256 level n) n := by
+  have := isTotalQueryBound_arrayMapM (β := Digest) (fun j : ℕ ↦ callKeccak256 (digestBytes
     (level.getD (2 * j) default) ++ digestBytes (level.getD (2 * j + 1) default))) 1
     (fun _ ↦ isTotalQueryBound_queryH_bind (f := pure) _ fun _ ↦ isTotalQueryBound_pure' _ 0
       |>.mono (by simp)) (Array.range n)
-  simpa [parentsM, queryH] using this
+  simpa [parentsM, callKeccak256] using this
 
 theorem isTotalQueryBound_levelsM :
-    ∀ (k : ℕ) (level : Array Digest), IsTotalQueryBound (levelsM queryH k level) (2 ^ k)
+    ∀ (k : ℕ) (level : Array Digest), IsTotalQueryBound (levelsM callKeccak256 k level) (2 ^ k)
   | 0, _ => trivial
   | k + 1, level => by
     simp only [levelsM]
@@ -463,15 +463,15 @@ theorem isTotalQueryBound_levelsM :
       isTotalQueryBound_bind (isTotalQueryBound_levelsM k up) fun _ ↦ isTotalQueryBound_pure' _ 0
 
 theorem isTotalQueryBound_leafDigestsM (height : ℕ) (word : Word) :
-    IsTotalQueryBound (leafDigestsM queryH height word) (2 ^ height) := by
-  have := isTotalQueryBound_arrayMapM (β := Digest) (fun i : ℕ ↦ queryH ((word i).flatMap kBytes))
+    IsTotalQueryBound (leafDigestsM callKeccak256 height word) (2 ^ height) := by
+  have := isTotalQueryBound_arrayMapM (β := Digest) (fun i : ℕ ↦ callKeccak256 ((word i).flatMap kBytes))
     1 (fun _ ↦ isTotalQueryBound_queryH_bind (f := pure) _ fun _ ↦ isTotalQueryBound_pure' _ 0
       |>.mono (by simp)) (Array.range (2 ^ height))
-  simpa [leafDigestsM, queryH] using this
+  simpa [leafDigestsM, callKeccak256] using this
 
 /-- **A commitment's tree is built with at most `2^(height + 1)` queries.** -/
 theorem isTotalQueryBound_buildTreeM (height : ℕ) (word : Word) :
-    IsTotalQueryBound (buildTreeM queryH height word) (2 ^ (height + 1)) := by
+    IsTotalQueryBound (buildTreeM callKeccak256 height word) (2 ^ (height + 1)) := by
   unfold buildTreeM
   rw [show 2 ^ (height + 1) = 2 ^ height + (2 ^ height + 0) by ring]
   exact isTotalQueryBound_bind (isTotalQueryBound_leafDigestsM height word) fun l ↦
@@ -480,8 +480,8 @@ theorem isTotalQueryBound_buildTreeM (height : ℕ) (word : Word) :
 
 /-- An absorption queries at most once. -/
 theorem isTotalQueryBound_absorb_le {β : Type} (sp : Sponge) (x : E) (tag : ℕ)
-    {g : Sponge → OracleComp HashSpec β} {n : ℕ} (hg : ∀ sp', IsTotalQueryBound (g sp') n) :
-    IsTotalQueryBound (Compile.absorb queryF sp x tag >>= g) (n + 1) := by
+    {g : Sponge → OracleComp KeccakCalls β} {n : ℕ} (hg : ∀ sp', IsTotalQueryBound (g sp') n) :
+    IsTotalQueryBound (Compile.absorb callKeccakF1600 sp x tag >>= g) (n + 1) := by
   rw [absorb_bind]
   split
   · exact isTotalQueryBound_queryF_bind _ fun st ↦ hg _
@@ -489,20 +489,20 @@ theorem isTotalQueryBound_absorb_le {β : Type} (sp : Sponge) (x : E) (tag : ℕ
 
 /-- A squeeze queries once. -/
 theorem isTotalQueryBound_squeeze_le {β : Type} (sp : Sponge)
-    {g : E × Sponge → OracleComp HashSpec β} {n : ℕ} (hg : ∀ r, IsTotalQueryBound (g r) n) :
-    IsTotalQueryBound (squeeze queryF sp >>= g) (n + 1) := by
+    {g : E × Sponge → OracleComp KeccakCalls β} {n : ℕ} (hg : ∀ r, IsTotalQueryBound (g r) n) :
+    IsTotalQueryBound (squeeze callKeccakF1600 sp >>= g) (n + 1) := by
   rw [squeeze_bind]
   exact isTotalQueryBound_queryF_bind _ fun st ↦ hg _
 
 /-- A proof-of-work step queries at most twice. -/
 theorem isTotalQueryBound_powStepM_le {β : Type} (sp : Sponge) (n : E)
-    {g : E × Sponge → OracleComp HashSpec β} {c : ℕ} (hg : ∀ r, IsTotalQueryBound (g r) c) :
-    IsTotalQueryBound (powStepM queryF sp n >>= g) (c + 2) := by
+    {g : E × Sponge → OracleComp KeccakCalls β} {c : ℕ} (hg : ∀ r, IsTotalQueryBound (g r) c) :
+    IsTotalQueryBound (powStepM callKeccakF1600 sp n >>= g) (c + 2) := by
   simp only [powStepM, bind_assoc]
   exact isTotalQueryBound_absorb_le _ _ _ fun sp' ↦ isTotalQueryBound_squeeze_le _ hg
 
 theorem isTotalQueryBound_searchM (bits : ℕ) (sp : Sponge) :
-    ∀ (count n : ℕ), IsTotalQueryBound (searchM queryF bits sp n count) (2 * count)
+    ∀ (count n : ℕ), IsTotalQueryBound (searchM callKeccakF1600 bits sp n count) (2 * count)
   | 0, _ => trivial
   | count + 1, n => by
     simp only [searchM]
@@ -513,7 +513,7 @@ theorem isTotalQueryBound_searchM (bits : ℕ) (sp : Sponge) :
     · exact isTotalQueryBound_searchM bits sp count (n + 1)
 
 theorem isTotalQueryBound_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
-    IsTotalQueryBound (findNonceM queryF bits sp fuel) (2 * fuel) := by
+    IsTotalQueryBound (findNonceM callKeccakF1600 bits sp fuel) (2 * fuel) := by
   unfold findNonceM
   split
   · trivial
@@ -539,7 +539,7 @@ at height `height` with at most `n · proverFactor height fuel` queries. -/
 theorem isTotalQueryBound_proveFromM (S : Strategy) (fuel height : ℕ) {α : Type} :
     ∀ (p : Prog α) (sp : Sponge) (h : List Ev) (cs : List Tree) (n : ℕ) (Q : α → Prop),
       p.Costs height n Q →
-      IsTotalQueryBound (proveFromM queryH queryF S fuel p sp h cs) (n * proverFactor height fuel)
+      IsTotalQueryBound (proveFromM callKeccak256 callKeccakF1600 S fuel p sp h cs) (n * proverFactor height fuel)
   | .ret _, _, _, _, _, _, _ => trivial
   | .fail, _, _, _, _, _, _ => trivial
   | .read k, sp, h, cs, n, Q, hp => by
@@ -611,8 +611,8 @@ theorem isTotalQueryBound_proveFromM (S : Strategy) (fuel height : ℕ) {α : Ty
 /-- **The honest prover's queries**: at most `n · proverFactor height fuel` for a program of
 cost `n` at `height`. -/
 theorem isTotalQueryBound_proveM {P : Prog Bool} {height n : ℕ} (hP : P.CostLE height n)
-    (S : Strategy) (seed : KState) (fuel : ℕ) :
-    IsTotalQueryBound (proveM queryH queryF P S seed fuel) (n * proverFactor height fuel) := by
+    (S : Strategy) (seed : KeccakState) (fuel : ℕ) :
+    IsTotalQueryBound (proveM callKeccak256 callKeccakF1600 P S seed fuel) (n * proverFactor height fuel) := by
   unfold proveM
   rw [← Nat.add_zero (n * _)]
   exact isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height P ⟨seed, []⟩ [] [] n _

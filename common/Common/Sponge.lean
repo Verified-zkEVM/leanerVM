@@ -237,7 +237,7 @@ def keccakRate : ℕ := 136
 bytes, capacity 64 bytes, the Keccak padding, the all-zero initial state, and the first 32 bytes of
 the final state as the digest. -/
 def keccak256With {m : Type → Type} [Monad m] (π : KState → m KState) (msg : List UInt8) :
-    m KDigest :=
+    m DigestBytes :=
   spongeWith keccakPadding KState.zero π msg
 
 /-! ## Keccak-f[1600] -/
@@ -293,7 +293,7 @@ def keccakF (s : KState) : KState :=
   KState.ofBytes (bytesOfLanes (keccakFLanes (lanesOfBytes s.toBytes)))
 
 /-- **Keccak-256**: the sponge over Keccak-f[1600]. -/
-def keccak256 (msg : List UInt8) : KDigest := keccak256With (m := Id) keccakF msg
+def keccak256 (msg : List UInt8) : DigestBytes := keccak256With (m := Id) keccakF msg
 
 /-- Hexadecimal rendering of bytes, for the test vectors. -/
 def hexOfBytes (bs : List UInt8) : String :=

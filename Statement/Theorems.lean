@@ -29,7 +29,7 @@ namespace Statement
 
 /-- **The end theorems.** -/
 structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
-  /-- leanVM is knowledge sound for the straight-line extractor `extractorRpm`: at most
+  /-- leanVM is knowledge sound for the straight-line extractor `transcriptExtractor`: at most
   `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). -/
   knowledgeSoundness : LeanVM.KnowledgeSoundness
   /-- leanVM is complete: the honest prover's (`LeanVM.prover`, the executable
@@ -43,7 +43,7 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   is the input's digest, and a witness for it: each signature claim of the statement is held, by a
   signature or a child whose proof the deferring verifier accepts, the bytecode's value at the
   child's point taken from the witness and checked only at the root, and its DA digest is that of
-  the blob matrix it checks, zeros or a child's (`NodeRel`, `LeanVmGuest.lean`). -/
+  the blob matrix it checks, zeros or a child's (`NodeRelation`, `LeanVmGuest.lean`). -/
   guestKnowledge : LeanVM.Node.GuestKnowledge LeanVM.Guest.guest decode
   /-- A statement's digest binds the seed and the statement, up to a Keccak-256 collision among
   the candidates (`LeanVmGuest.lean`). With the two fields above it gives what an accepted proof
@@ -53,9 +53,9 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   collision. The composed bound is `Statement.Corollaries`' `aggregateSound`, proved in `lean_vm`
   as `LeanVM.Guest.End.aggregate_sound_outer`. -/
   digestBinds : LeanVM.Node.DigestBinds
-  /-- The leanISA guest program is complete on the eight families of `Covered`, mixed nodes and
+  /-- The leanISA guest program is complete on the eight families of `CoveredNode`, mixed nodes and
   nodes checking one DA matrix of at most `32` rows among them. The completeness statements assume
-  the children's hypotheses (`ChildOk`), which `guestChildComplete` gives honest proofs
+  the children's hypotheses (`AcceptableChild`), which `guestChildComplete` gives honest proofs
   (`LeanVmGuest.lean`). -/
   guestCompleteCovered : LeanVM.Guest.Budget.GuestCompleteCovered
   /-- The same honest prover's proof of an execution of the guest program is a child the guest
@@ -66,15 +66,15 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · M · 2^-191 +
   5 (QA + QV)² · 2^-256` for fewer than `M` children, `QA ≤ 2^128`, `QV ≤ 2^96`; it does not
   compose with the in-circuit statements (`LeanVmGuest.lean`). -/
-  batchSound : LeanVM.Guest.Batch.BatchSound
+  batchSound : LeanVM.Guest.Batch.BatchingSound
   /-- leanXMSS is strongly unforgeable: at most `(Q + 1) · 2^-127` for `Q ≥ 1` permutation
   calls (`LeanXmss.lean`). -/
 
-  leanXmss : LeanXmss.Rpm.LeanXmssRpmSecurityStatement
+  leanXmss : LeanXmss.Rpm.LeanXmssStronglyUnforgeable
   /-- leanSPHINCS is strongly unforgeable at every proved lifetime: at most `(Q + 1) · 2^-127` for
 
   `Q ≥ 1` permutation calls (`LeanSphincs.lean`). -/
-  leanSphincs : Sphincs.Lifetimes.RequestedSecurityRpm
+  leanSphincs : Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable
 
   /-- LeanDA is perfectly complete, for every `π` (`LeanDa.lean`). -/
   leanDaComplete : LeanDa.PerfectlyCompleteRpm

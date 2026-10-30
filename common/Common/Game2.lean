@@ -36,7 +36,7 @@ abbrev fSpec (St : Type) : OracleSpec St := St →ₒ St
 abbrev hfSpec (Msg Dg St : Type) := roSpec Msg Dg + fSpec St
 
 /-- A game's oracles: coins, `H`, `π` and `π⁻¹`, and the verifier's direct calls `F`. -/
-abbrev dSpec2 (Msg Dg St : Type) := unifSpec + (roSpec Msg Dg + (permSpec St + fSpec St))
+abbrev dSpec2 (Msg Dg St : Type) := unifSpec + (roSpec Msg Dg + (permutationOracleSpec St + fSpec St))
 
 /-- The game's direct calls become permutation queries. -/
 def toOne : QueryImpl (dSpec2 Msg Dg (SpState Dg E C))
@@ -44,7 +44,7 @@ def toOne : QueryImpl (dSpec2 Msg Dg (SpState Dg E C))
   | .inl n => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inl n))
   | .inr (.inl m) => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
   | .inr (.inr (.inl q)) => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inr (.inr q)))
-  | .inr (.inr (.inr x)) => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inr (.inr (.fwd x))))
+  | .inr (.inr (.inr x)) => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inr (.inr (.forward x))))
 
 /-- **The real world** of a game: `H` the sponge over the lazily sampled random permutation, and
 `F` the permutation itself. -/

@@ -15,7 +15,7 @@ public import LeanVM.Guest.Batch.Rounds
 `Node.batch` absorbs the children's claims, squeezes one challenge `λ`, whose powers are the
 lambdas (`λ^(2i)`, `λ^(2i+1)` for child `i`), and runs one sumcheck on the bytecode, deferring one
 claim. `batch_sound`: if the batching accepts and its deferred claim holds, then every child's
-claims hold (its proof's, `FixedClaims.Holds`, and its
+claims hold (its proof's, `BytecodeClaim.Holds`, and its
 statement's, `DeferredClaim.Holds`), or a challenge is bad (`BatchBad`):
 
 * **the challenge `λ`**: the children's claims leave nonzero gaps (claimed less true values), and
@@ -44,18 +44,18 @@ open LeanVM.Protocol.Verifier LeanVM.Node
 def lambdasB (cs : List ChildClaims) : List (E × E) := (sqL cs.length (batchSponge cs)).1
 
 /-- The batched claim. -/
-def claimB (cs : List ChildClaims) : E := claimBOf cs (lambdasB cs)
+def claimB (cs : List ChildClaims) : E := batchedClaim cs (lambdasB cs)
 
 /-- The sponge at the sumcheck. -/
 def spB (cs : List ChildClaims) : Sponge := (sqL cs.length (batchSponge cs)).2
 
 /-- **`Node.batch` in the transcript's names**: the deferred claim at the sumcheck's
 challenges, if the final check passes. -/
-theorem batch_eq' (cs : List ChildClaims) (h : BatchHints) :
+theorem batch_eq' (cs : List ChildClaims) (h : BatchingHints) :
     batch cs h =
-      if (rsRun h.bytecodeRounds (claimB cs) (spB cs)).1.2 = h.bytecodeValue *
-            bytecodeWeight cs (lambdasB cs) (rsRun h.bytecodeRounds (claimB cs) (spB cs)).1.1 then
-        some ⟨(rsRun h.bytecodeRounds (claimB cs) (spB cs)).1.1, h.bytecodeValue⟩
+      if (rsRun h.sumcheckMessages (claimB cs) (spB cs)).1.2 = h.finalBytecodeValue *
+            batchedBytecodeWeight cs (lambdasB cs) (rsRun h.sumcheckMessages (claimB cs) (spB cs)).1.1 then
+        some ⟨(rsRun h.sumcheckMessages (claimB cs) (spB cs)).1.1, h.finalBytecodeValue⟩
       else none :=
   batch_eq cs h
 
@@ -65,8 +65,8 @@ theorem batch_eq' (cs : List ChildClaims) (h : BatchHints) :
 their lambdas. -/
 def gapsB (bytecode : List K) (cs : List ChildClaims) : List E :=
   cs.flatMap fun c ↦
-    [c.fresh.bytecodeValue - multilinearEval (bytecode.map ofK) c.fresh.bytecodePoint,
-      c.carried.bytecodeValue - multilinearEval (bytecode.map ofK) c.carried.bytecodePoint]
+    [c.freshClaim.bytecodeValue - multilinearEval (bytecode.map ofK) c.freshClaim.bytecodePoint,
+      c.carriedClaim.bytecodeValue - multilinearEval (bytecode.map ofK) c.carriedClaim.bytecodePoint]
 
 /-- **The lambdas are bad** for the gaps: some gap is nonzero, and the lambdas' combination of
 the gaps vanishes. -/
@@ -77,10 +77,10 @@ def LambdaBad (gaps lambdas : List E) : Prop :=
 abbrev flat2 (l : List (E × E)) : List E := l.flatMap fun p ↦ [p.1, p.2]
 
 /-- **A challenge of the batching is bad**: its lambdas, or a round of its sumcheck. -/
-def BatchBad (bytecode : List K) (cs : List ChildClaims) (h : BatchHints) : Prop :=
+def BatchBad (bytecode : List K) (cs : List ChildClaims) (h : BatchingHints) : Prop :=
   LambdaBad (gapsB bytecode cs) (flat2 (lambdasB cs)) ∨
-    ∃ j < h.bytecodeRounds.length, BadRound h.bytecodeRounds.length
-      (bytecodePoly bytecode cs (lambdasB cs)) h.bytecodeRounds (claimB cs) (spB cs) j
+    ∃ j < h.sumcheckMessages.length, BadRound h.sumcheckMessages.length
+      (bytecodePoly bytecode cs (lambdasB cs)) h.sumcheckMessages (claimB cs) (spB cs) j
 
 /-! ## Soundness -/
 
@@ -117,16 +117,16 @@ theorem gaps_cases {gaps lambdas : List E} {claimed true_ : E}
 combination of the gaps. -/
 theorem claimB_sub (bytecode : List K) (cs : List ChildClaims) (l : List (E × E))
     (hl : l.length = cs.length) :
-    claimBOf cs l - bytecodeTrue bytecode cs l = dot (flat2 l) (gapsB bytecode cs) :=
-  sub_pairs cs l hl (fun c ↦ c.fresh.bytecodeValue) (fun c ↦ c.carried.bytecodeValue)
-    (fun c ↦ multilinearEval (bytecode.map ofK) c.fresh.bytecodePoint)
-    (fun c ↦ multilinearEval (bytecode.map ofK) c.carried.bytecodePoint)
+    batchedClaim cs l - bytecodeTrue bytecode cs l = dot (flat2 l) (gapsB bytecode cs) :=
+  sub_pairs cs l hl (fun c ↦ c.freshClaim.bytecodeValue) (fun c ↦ c.carriedClaim.bytecodeValue)
+    (fun c ↦ multilinearEval (bytecode.map ofK) c.freshClaim.bytecodePoint)
+    (fun c ↦ multilinearEval (bytecode.map ofK) c.carriedClaim.bytecodePoint)
 
 /-- Zero gaps are true claims, for points of the bytecode's shape. -/
 theorem holds_of_gaps {bytecode : List K} {cs : List ChildClaims}
     (hz : ∀ g ∈ gapsB bytecode cs, g = 0) (hpow : 2 ^ Nat.log2 bytecode.length = bytecode.length)
-    (hc : ∀ c ∈ cs, c.carried.Shaped bytecode) :
-    ∀ c ∈ cs, c.fresh.Holds bytecode ∧ c.carried.Holds bytecode := by
+    (hc : ∀ c ∈ cs, c.carriedClaim.HasBytecodeShape bytecode) :
+    ∀ c ∈ cs, c.freshClaim.Holds bytecode ∧ c.carriedClaim.Holds bytecode := by
   intro c hc'
   have g := fun g hg ↦ hz g (List.mem_flatMap.mpr ⟨c, hc', hg⟩)
   have e1 := sub_eq_zero.mp (g _ (List.mem_cons_self ..))
@@ -137,21 +137,21 @@ theorem holds_of_gaps {bytecode : List K} {cs : List ChildClaims}
 /-- **The batching is sound, challenge by challenge**: an accepted batching whose deferred claim
 holds, of children whose claims have the bytecode's shape, makes every child's claims true, or
 one of its challenges is bad. -/
-theorem batch_sound {bytecode : List K} {cs : List ChildClaims} {h : BatchHints}
+theorem batch_sound {bytecode : List K} {cs : List ChildClaims} {h : BatchingHints}
     {d : DeferredClaim} (hb : batch cs h = some d) (hd : d.Holds bytecode)
-    (hf : ∀ c ∈ cs, c.fresh.bytecodePoint.length = Nat.log2 bytecode.length)
-    (hc : ∀ c ∈ cs, c.carried.Shaped bytecode) :
-    (∀ c ∈ cs, c.fresh.Holds bytecode ∧ c.carried.Holds bytecode) ∨ BatchBad bytecode cs h := by
+    (hf : ∀ c ∈ cs, c.freshClaim.bytecodePoint.length = Nat.log2 bytecode.length)
+    (hc : ∀ c ∈ cs, c.carriedClaim.HasBytecodeShape bytecode) :
+    (∀ c ∈ cs, c.freshClaim.Holds bytecode ∧ c.carriedClaim.Holds bytecode) ∨ BatchBad bytecode cs h := by
   rw [batch_eq'] at hb
   split_ifs at hb with hfin
   injection hb with hd'
   subst hd'
   obtain ⟨hlog, hpow, hval⟩ := hd
-  simp only [DeferredClaim.Shaped] at hlog hpow hval
+  simp only [DeferredClaim.HasBytecodeShape] at hlog hpow hval
   rw [length_rsRun] at hlog hpow
-  set n := h.bytecodeRounds.length
+  set n := h.sumcheckMessages.length
   have hlog' : Nat.log2 bytecode.length = n := by rw [← hpow, Nat.log2_two_pow]
-  have hpB : ∀ c ∈ cs, c.fresh.bytecodePoint.length = n ∧ c.carried.bytecodePoint.length = n :=
+  have hpB : ∀ c ∈ cs, c.freshClaim.bytecodePoint.length = n ∧ c.carriedClaim.bytecodePoint.length = n :=
     fun c hc' ↦ ⟨(hf c hc').trans hlog', (hc c hc').trans hlog'⟩
   rcases gaps_cases (claimB_sub bytecode cs (lambdasB cs) (length_sqL _ _)) with hz | hbad | hne
   · exact Or.inl (holds_of_gaps hz (by rw [hlog', hpow]) hc)

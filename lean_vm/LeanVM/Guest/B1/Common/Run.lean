@@ -32,7 +32,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- The cells of the permutation input: the rate cells of the waiting scalars, then the
 capacity's. -/
-theorem stateOfCells_carried (S : KState) (pend : List (E × ℕ)) :
+theorem stateOfCells_carried (S : KeccakState) (pend : List (E × ℕ)) :
     stateOfCells (cells13 (rateOf pend ++ capOf S)) false = duplexInput ⟨S, pend⟩ := by
   apply Keccak.stateOfCells_duplex
   · intro c hc
@@ -44,20 +44,20 @@ theorem stateOfCells_carried (S : KState) (pend : List (E × ℕ)) :
     fin_cases c <;> simp_all [cells13, rateOf, capOf]
 
 /-- **The carried sponge permutes as the Spec's.** -/
-theorem perm_eq {s : Fs} {sp : Sponge} (h : s.Carries sp) : keccakF (duplexInput sp) = s.perm := by
+theorem perm_eq {s : Fs} {sp : Sponge} (h : s.Carries sp) : keccakF1600 (duplexInput sp) = s.perm := by
   obtain ⟨h1, h2⟩ := h
   rw [Fs.perm, permOf, ← h1, stateOfCells_carried, ← h2]
 
 /-- **`Fs.absorb` is `absorb`.** -/
 theorem carries_absorb {s : Fs} {sp : Sponge} (h : s.Carries sp) (x : E) (t : ℕ) :
-    (s.absorb x t).Carries (Id.run (Compile.absorb (m := Id) keccakF sp x t)) := by
+    (s.absorb x t).Carries (Id.run (Compile.absorb (m := Id) keccakF1600 sp x t)) := by
   have hp := perm_eq h
   obtain ⟨h1, h2⟩ := h
   unfold Fs.absorb
   split_ifs with hl
   · rw [Keccak.absorb_id_full sp x t (by rw [h2]; exact hl), hp]
     exact ⟨rfl, rfl⟩
-  · have : Compile.absorb (m := Id) keccakF sp x t =
+  · have : Compile.absorb (m := Id) keccakF1600 sp x t =
         { sp with pending := sp.pending ++ [(x, t)] } := by
       simp [Compile.absorb, h2, hl]
       rfl
@@ -66,8 +66,8 @@ theorem carries_absorb {s : Fs} {sp : Sponge} (h : s.Carries sp) (x : E) (t : �
 
 /-- **`Fs.squeeze` is `squeeze`.** -/
 theorem carries_squeeze {s : Fs} {sp : Sponge} (h : s.Carries sp) :
-    (Id.run (Compile.squeeze (m := Id) keccakF sp)).1 = s.squeeze.1 ∧
-      s.squeeze.2.Carries (Id.run (Compile.squeeze (m := Id) keccakF sp)).2 := by
+    (Id.run (Compile.squeeze (m := Id) keccakF1600 sp)).1 = s.squeeze.1 ∧
+      s.squeeze.2.Carries (Id.run (Compile.squeeze (m := Id) keccakF1600 sp)).2 := by
   have hp := perm_eq h
   rw [Keccak.squeeze_id, hp]
   exact ⟨rfl, rfl, rfl⟩
@@ -78,7 +78,7 @@ theorem prog_bind_eq {α β : Type} (p : Prog α) (f : α → Prog β) : p >>= f
 
 theorem prog_pure_eq {α : Type} (a : α) : (pure a : Prog α) = Prog.ret a := rfl
 
-theorem run_bind {α β : Type} (p : Prog α) (f : α → Prog β) (st : St) :
+theorem run_bind {α β : Type} (p : Prog α) (f : α → Prog β) (st : ProgState) :
     runId (p.bind f) st = (runId p st).bind (fun r => runId (f r.1) r.2) := by
   induction p generalizing st with
   | ret a => rfl
@@ -135,53 +135,53 @@ theorem RunsTo.of_eq {α : Type} {p : Prog α} {s s' t t' : Fs} {xs xs' : List E
 /-! ## The steps -/
 
 /-- **A read** absorbs the stream word with `dsObserve`. -/
-theorem runsTo_readE (s : Fs) (x : E) : RunsTo Prog.readE s [x] x (s.absorb x dsObserve) := by
+theorem runsTo_readE (s : Fs) (x : E) : RunsTo Prog.readScalar s [x] x (s.absorb x dsObserve) := by
   intro sp hs rest os roots
   exact ⟨_, carries_absorb hs x dsObserve, rfl⟩
 
 /-- **A sample** squeezes. -/
-theorem runsTo_sampleE (s : Fs) : RunsTo Prog.sampleE s [] s.squeeze.1 s.squeeze.2 := by
+theorem runsTo_sampleE (s : Fs) : RunsTo Prog.sampleChallenge s [] s.squeeze.1 s.squeeze.2 := by
   intro sp hs rest os roots
   obtain ⟨e1, e2⟩ := carries_squeeze hs
   refine ⟨_, e2, ?_⟩
-  simp only [runId, Prog.sampleE, Compile.run, List.nil_append]
+  simp only [runId, Prog.sampleChallenge, Compile.run, List.nil_append]
   rw [← e1]
   rfl
 
 theorem runsTo_readN (s : Fs) (xs : List E) :
-    RunsTo (Prog.readN xs.length) s xs xs (s.absorbAll xs dsObserve) := by
+    RunsTo (Prog.readScalars xs.length) s xs xs (s.absorbAll xs dsObserve) := by
   induction xs generalizing s with
   | nil => exact runsTo_ret _ _
   | cons x xs ih =>
-    have h := (runsTo_readE s x).bind (f := fun x => do let xs ← Prog.readN xs.length; return x :: xs)
+    have h := (runsTo_readE s x).bind (f := fun x => do let xs ← Prog.readScalars xs.length; return x :: xs)
       ((ih (s.absorb x dsObserve)).bind (f := fun xs => (pure (x :: xs) : Prog (List E)))
         (runsTo_ret (x :: xs) _))
-    simpa [Prog.readN, Fs.absorbAll, List.foldl] using h
+    simpa [Prog.readScalars, Fs.absorbAll, List.foldl] using h
 
 theorem runsTo_sampleN (n : ℕ) (s : Fs) :
-    RunsTo (Prog.sampleN n) s [] (s.squeezeN n).1 (s.squeezeN n).2 := by
+    RunsTo (Prog.sampleChallenges n) s [] (s.squeezeN n).1 (s.squeezeN n).2 := by
   induction n generalizing s with
   | zero => exact runsTo_ret _ _
   | succ n ih =>
-    have h := (runsTo_sampleE s).bind (f := fun x => do let xs ← Prog.sampleN n; return x :: xs)
+    have h := (runsTo_sampleE s).bind (f := fun x => do let xs ← Prog.sampleChallenges n; return x :: xs)
       ((ih s.squeeze.2).bind (f := fun xs => (pure (s.squeeze.1 :: xs) : Prog (List E)))
         (runsTo_ret _ _))
-    simpa [Prog.sampleN, Fs.squeezeN] using h
+    simpa [Prog.sampleChallenges, Fs.squeezeN] using h
 
 /-- **A proof of work**: the nonce absorbed with `dsPowNonce`, a squeeze, and `powOk` of its
 challenge. -/
 theorem runsTo_grindP (bits : ℕ) (s : Fs) (n : E)
     (hok : powOk bits n (s.absorb n dsPowNonce).squeeze.1 = true) :
-    RunsTo (Prog.grindP bits) s [n] () (s.absorb n dsPowNonce).squeeze.2 := by
+    RunsTo (Prog.grindProofOfWork bits) s [n] () (s.absorb n dsPowNonce).squeeze.2 := by
   intro sp hs rest os roots
   have ha := carries_absorb hs n dsPowNonce
   obtain ⟨e1, e2⟩ := carries_squeeze ha
   refine ⟨_, e2, ?_⟩
-  have key : runId (Prog.grindP bits) ⟨sp, [n] ++ rest, os, roots⟩ =
-      (if powOk bits n (Id.run (Compile.squeeze (m := Id) keccakF
-          (Id.run (Compile.absorb (m := Id) keccakF sp n dsPowNonce)))).1 = true then
-        some ((), ⟨(Id.run (Compile.squeeze (m := Id) keccakF
-          (Id.run (Compile.absorb (m := Id) keccakF sp n dsPowNonce)))).2, rest, os, roots⟩)
+  have key : runId (Prog.grindProofOfWork bits) ⟨sp, [n] ++ rest, os, roots⟩ =
+      (if powOk bits n (Id.run (Compile.squeeze (m := Id) keccakF1600
+          (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).1 = true then
+        some ((), ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600
+          (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).2, rest, os, roots⟩)
       else none) := rfl
   rw [key, e1]
   simp only [hok, ↓reduceIte]

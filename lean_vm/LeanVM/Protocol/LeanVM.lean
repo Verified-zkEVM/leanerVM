@@ -23,7 +23,7 @@ and its numbers are proved in `LeanVM.Protocol.LeanVMSound`; this page proves co
 `(Q + 2^14) · 2^-127` for `Q ≤ 2^120` queries (`knowledgeSoundnessRom_bits`).
 
 **Completeness** (`completenessRom`): for a valid execution whose committed size
-(`Trace.committedSize`: the memory, the bytecode and a table per opcode, each at its height) is at
+(`Execution.committedSize`: the memory, the bytecode and a table per opcode, each at its height) is at
 most `2^28`, the most the verifier admits, the honest prover
 (`honestProver`), run in the same random-oracle experiment, makes the verifier reject with probability at most
 `completenessError fuel`, which is below `2^-257` at a fuel of `2^25` nonces per proof of work
@@ -63,7 +63,7 @@ oracle for Keccak-f[1600], each proof-of-work search trying at most `fuel` nonce
 if one fails). A specification: it takes a witness of leanISA's constraint system representing the
 execution (a classical choice), pads its tables with the public padding rows, and runs the honest
 strategy of every phase through the Fiat-Shamir transform (`Complete.honestProverRom`). -/
-noncomputable def honestProver (prog : Program) (input : PublicInput) (t : Trace prog)
+noncomputable def honestProver (prog : Program) (input : PublicInput) (t : Execution prog)
     (ρ fuel : ℕ) : Adversary :=
   Complete.honestProverRom prog input t ρ fuel
 
@@ -76,7 +76,7 @@ theorem completenessError_eq (fuel : ℕ) :
 /-- **Completeness in the two-oracle random-oracle model.** For a valid execution whose committed size is at most `2^28`, at an inverse
 rate `2^ρ` with `1 ≤ ρ ≤ 4`: the verifier rejects the honest prover's proof, in the random-oracle
 experiment, with probability at most `completenessError fuel`. -/
-theorem completenessRom {prog : Program} {input : PublicInput} {t : Trace prog}
+theorem completenessRom {prog : Program} {input : PublicInput} {t : Execution prog}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← experiment (honestProver prog input t ρ fuel)}[z.1.2 = false] ≤

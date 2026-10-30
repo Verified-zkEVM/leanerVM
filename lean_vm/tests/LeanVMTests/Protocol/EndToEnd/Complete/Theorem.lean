@@ -83,7 +83,7 @@ example : ∀ {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanI
         shapedI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal :=
   leanVm_complete
 
-example : ∀ (H : Bytes → Digest) (F : LeanVM.Semantics.KState → LeanVM.Semantics.KState)
+example : ∀ (H : Bytes → Digest) (F : LeanVM.Semantics.KeccakState → LeanVM.Semantics.KeccakState)
     {prog : Program} {input : PublicInput}
     {w : EnsembleWitness (leanIsaEnsemble prog)} {s : Sizes} {ρ : ℕ},
     SatisfiedBy prog input w → Sizes.ofWitness w = some s → s.Admissible prog → validRate ρ →
@@ -102,13 +102,13 @@ example : ∀ {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanI
     s.Admissible prog → validRate ρ → ∀ (fuel : ℕ),
     (∀ hist bits k sp,
       (leanVmProgram (bytecodeWords prog) (publicDigest input)).after hist = some (.grind bits k) →
-        findNonce keccakF bits sp fuel ≠ none) →
-    ∃ S π, prove keccak256 keccakF (leanVmProgram (bytecodeWords prog) (publicDigest input)) S
+        findNonce keccakF1600 bits sp fuel ≠ none) →
+    ∃ S π, prove keccak256 keccakF1600 (leanVmProgram (bytecodeWords prog) (publicDigest input)) S
         (seed (bytecodeWords prog) (publicDigest input)) fuel = some π ∧
       verify (bytecodeWords prog) (publicDigest input) π = true :=
   exists_prove_verify
 
-example : ∀ {prog : Program} {input : PublicInput} {t : Trace prog},
+example : ∀ {prog : Program} {input : PublicInput} {t : Execution prog},
     ValidExecution prog input t → t.steps ≤ 2 ^ maxLogRows →
     ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧ Sizes.ofWitness w = some s ∧
       (s.Admissible prog → ∀ ρ, validRate ρ → ∃ S : Strategy, ∀ chal : List Ev → E,

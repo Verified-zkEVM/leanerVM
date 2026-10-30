@@ -133,7 +133,7 @@ theorem tbReadsAt_take {rd : Reader} {p : E} {l : List E} (h : TbReadsAt rd p l)
 /-- Table `t`'s `dims_g` value. -/
 def vtShV (t : ℕ) : ℕ := if t = 0 then 2771 else 2781 + 14 * (t - 1)
 
-theorem vt_shared_raw {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {σ : Val} (h : VtH Lm.read σ)
+theorem vt_shared_raw {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {σ : Val} (h : VtH Lm.read σ)
     {t : ℕ} (ht : t < 6) :
     LoadHolds Lm.read (σ (.n 10)) (t + 1) (σ (.n (vtShV t))) ∧
       σ (.n 9) = σ (.n (vtShLen t)) * σ (.n (vtShV t)) ∧ (∃ d < 34, σ (.n (vtShLen t)) = gen ^ d) ∧
@@ -163,7 +163,7 @@ theorem vt_shared_raw {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {σ : Val}
     exact hcall
 
 /-- **Table `t`'s shared tables.** -/
-theorem vt_shared {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {σ : Val} (h : VtH Lm.read σ)
+theorem vt_shared {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {σ : Val} (h : VtH Lm.read σ)
     {point : List E} (hz : TbReadsAt Lm.read (σ (.n 8)) point)
     (hmu : σ (.n 9) = gen ^ point.length) (hml : point.length < 33)
     (hz1 : TbReadsAt Lm.read (σ (.n 2767)) (point.map (1 + ·)))

@@ -99,9 +99,9 @@ def pairCells (s t : E) : List E :=
   [E.ofLimbs (s.limb 0) (s.limb 1) 0, E.ofLimbs (s.limb 2) (t.limb 0) 0,
     E.ofLimbs (t.limb 1) (t.limb 2) 0]
 
-theorem pair_bytes (s t : E) : cellsBytes (pairCells s t) = Node.eBytes s ++ Node.eBytes t := by
+theorem pair_bytes (s t : E) : cellsBytes (pairCells s t) = Node.extensionElementBytes s ++ Node.extensionElementBytes t := by
   simp only [pairCells, cellsBytes, List.flatMap_cons, List.flatMap_nil, cellBytes,
-    ofLimbs_limb0, ofLimbs_limb1, Node.eBytes, List.append_assoc, List.append_nil]
+    ofLimbs_limb0, ofLimbs_limb1, Node.extensionElementBytes, List.append_assoc, List.append_nil]
 
 theorem pairCells_canonical (s t : E) : AllCanonical (pairCells s t) := by
   intro c hc

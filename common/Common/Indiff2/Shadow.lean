@@ -73,7 +73,7 @@ noncomputable def shadowImpl : QueryImpl (dSpec2 Msg Dg (SpState Dg E C))
   | .inr (.inr (.inl q)) => simulator2 P q
   | .inr (.inr (.inr x)) => StateT.mk fun σ ↦ do
       let y ← fQuery (Msg := Msg) (Dg := Dg) x
-      pure (y, replayStep σ (.fwd x, y))
+      pure (y, replayStep σ (.forward x, y))
 
 theorem shadow_F_run (x : SpState Dg E C) (s : FState Msg Dg E C) :
     ((foldRO (shadowImpl P)) (.inr (.inr (.inr x)))).run s = fStep x s := by
@@ -115,7 +115,7 @@ def rootedFinal (σ : SimState Dg E C) (x : SpState Dg E C) : Bool :=
 /-- The world with `F` and the shadow world **disagree** on a direct call `F x`: at a recorded
 input whose answer is not `F`'s, or at a fresh input ending a sponge path or with `F` known. -/
 def disagree (s : FState Msg Dg E C) (x : SpState Dg E C) : Bool :=
-  match fwdLookup s.1.edges x with
+  match forwardLookup s.1.edges x with
   | some y => decide (s.2 (.inr x) ≠ some y)
   | none => rootedFinal P s.1 x || (s.2 (.inr x)).isSome
 
@@ -129,11 +129,11 @@ def bookUpd (NF : (Dg × E) → Prop) [DecidablePred NF] :
       (dSpec2 Msg Dg (SpState Dg E C)).Range t → Book (SpState Dg E C) → Book (SpState Dg E C)
   | .inl _, _, _, b => b
   | .inr (.inl _), _, _, b => b
-  | .inr (.inr (.inl (.fwd x))), s, a, b =>
-      if fwdLookup s.1.edges x = none ∧ (rootedFinal P s.1 x = true ∨ s.2 (.inr x) = none) then
+  | .inr (.inr (.inl (.forward x))), s, a, b =>
+      if forwardLookup s.1.edges x = none ∧ (rootedFinal P s.1 x = true ∨ s.2 (.inr x) = none) then
         { b with dF := a :: b.dF } else b
-  | .inr (.inr (.inl (.inv y))), s, a, b =>
-      if invLookup s.1.edges y = none then { b with dI := a :: b.dI } else b
+  | .inr (.inr (.inl (.inverse y))), s, a, b =>
+      if inverseLookup s.1.edges y = none then { b with dI := a :: b.dI } else b
   | .inr (.inr (.inr x)), s, a, b =>
       { dF := if s.2 (.inr x) = none then a :: b.dF else b.dF
         dI := b.dI
@@ -161,7 +161,7 @@ theorem fwdStep2_eq_fStep (x : SpState Dg E C) (s : FState Msg Dg E C)
   obtain ⟨σ, c⟩ := s
   simp only [disagree] at h
   simp only [fwdStep2]
-  rcases hy : fwdLookup σ.edges x with _ | y
+  rcases hy : forwardLookup σ.edges x with _ | y
   · simp only [hy, Bool.or_eq_false_iff, Option.isSome_eq_false_iff, Option.isNone_iff_eq_none,
       rootedFinal] at h
     obtain ⟨h1, -⟩ := h

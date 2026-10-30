@@ -17,7 +17,7 @@ public import LeanVM.Guest.Child.RefuseZero
 /-!
 # The children's `verify_sub` calls, bounded
 
-`verifySubGoalsTB_of`: for `NodeRel` within `Limits`, the caps agreeing and no zero challenge,
+`verifySubGoalsTB_of`: for `NodeRelation` within `Limits`, the caps agreeing and no zero challenge,
 child `c`'s `verify_sub` call is complete within `vsBoundAt W Bvk` at its announced stack log and
 rate (`childShape`), by a node of `Budget.FlatShape` for `vsTs` (`VerifySubGoalsTB`), from
 `verify_keccak`'s completeness within `Bvk` and the frame runs' certificate facts.
@@ -58,7 +58,7 @@ at its announced stack log and rate, by a node of `Budget.FlatShape` for `vsTs`,
 candidate among `open_stacked`'s 28. -/
 theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit fs cert)
     (hap : Lift.RunsApart cert) (W : VsWords fs) {Bvk : ℕ} (hvk : VkCompleteAtB fs cert 16 Bvk)
-    (hr : NodeRel bytecode seed s w) (hok : ChildrenOk bytecode seed w) :
+    (hr : NodeRelation bytecode seed s w) (hok : ChildrenOk bytecode seed w) :
     VerifySubGoalsTB fs cert fp seed s w
       (fun c t => ∀ hc : c < w.children.length,
         B1.Whir.candidate (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2
@@ -72,7 +72,7 @@ theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit
   set outE := hP fs fp seed s w 6 + 24 * c with hout
   have h := verify_sub_completeBT (fs := fs) (cert := cert) hbl hrf hap W le_rfl hvk seed
     w.children[c] e (e + 34) outE
-    (log2Lin e (e + 34) ++ [(outE, DeferredClaim.cells w.children[c].fresh)])
+    (log2Lin e (e + 34) ++ [(outE, DeferredClaim.cells w.children[c].freshClaim)])
     (hok _ hmem).stackLog (hok _ hmem).stream (Limits.verifyDeferredNZ_of_childOk (hok _ hmem))
     (hok _ hmem).capsAgree
     (fun q hq => List.mem_append_left _ hq) (List.mem_append_right _ (List.mem_singleton_self _))
@@ -87,7 +87,7 @@ theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit
         < 28 ∧ Budget.FlatShape coreProgram "verify_sub"
           (vsTs fs W Bvk (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2) t)
     le_rfl fun t ht _ => ⟨by unfold B1.Whir.candidate; omega, ht⟩
-  have hlen : ∀ a ∈ w.children, (DeferredClaim.cells a.fresh).length = 24 := fun a ha => by
+  have hlen : ∀ a ∈ w.children, (DeferredClaim.cells a.freshClaim).length = 24 := fun a ha => by
     simp [DeferredClaim.cells, (kid_shapes hbl hr a ha).1, bytecodeVars]
   have e1 : (hm fs fp seed s w).et1 = ofK (gpow e) := gen_pow_eq_ofK _
   have e2 : (hm fs fp seed s w).et2 = ofK (gpow (e + 34)) := gen_pow_eq_ofK _

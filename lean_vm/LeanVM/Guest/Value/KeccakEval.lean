@@ -116,7 +116,7 @@ def keccakRCN : List ℕ := keccakRC.map UInt64.toNat
 def keccakFN (a : List ℕ) : List ℕ := keccakRCN.foldl roundN a
 
 /-- A state's lanes as natural numbers. -/
-def toNats (a : KState) : List ℕ := a.toList.map UInt64.toNat
+def toNats (a : KeccakState) : List ℕ := a.toList.map UInt64.toNat
 
 /-! ## The round is `Keccak.round` -/
 
@@ -132,7 +132,7 @@ theorem rotN_toNat (x : UInt64) {n : ℕ} (hn : n < 64) :
 
 set_option maxHeartbeats 4000000 in
 /-- **The round on natural numbers is `Keccak.round`.** -/
-theorem roundN_toNats (a : KState) (rc : UInt64) :
+theorem roundN_toNats (a : KeccakState) (rc : UInt64) :
     roundN (toNats a) rc.toNat = toNats (Keccak.round a rc) := by
   rw [LeanVM.Fast.Keccak.round_eq_roundLanes]
   obtain ⟨⟨l⟩, hl⟩ := a
@@ -155,21 +155,21 @@ theorem foldl_toNat {β : Type} (f : UInt64 → β → UInt64) (g : ℕ → β �
       (fun u b hb ↦ h u b (List.mem_cons_of_mem _ hb)), h u b List.mem_cons_self]
 
 /-- **Keccak-f[1600] on natural numbers is `keccakF`.** -/
-theorem keccakFN_toNats (a : KState) : keccakFN (toNats a) = toNats (keccakF a) := by
-  unfold keccakFN keccakF keccakRCN
+theorem keccakFN_toNats (a : KeccakState) : keccakFN (toNats a) = toNats (keccakF1600 a) := by
+  unfold keccakFN keccakF1600 keccakRCN
   generalize keccakRC = rcs
   induction rcs generalizing a with
   | nil => rfl
   | cons rc rcs ih => rw [List.map_cons, List.foldl_cons, List.foldl_cons, roundN_toNats, ih]
 
-theorem toNats_inj {a b : KState} : toNats a = toNats b ↔ a = b := by
+theorem toNats_inj {a b : KeccakState} : toNats a = toNats b ↔ a = b := by
   refine ⟨fun h ↦ ?_, fun h ↦ h ▸ rfl⟩
   apply Vector.toList_inj.mp
   exact List.map_injective_iff.mpr (fun _ _ h ↦ UInt64.toNat_inj.mp h) h
 
 /-- **A permutation's value, by evaluation**: `keccakF a = b` is the equation of the natural
 numbers, which `decide +kernel` checks. -/
-theorem keccakF_eq_iff (a b : KState) : keccakF a = b ↔ keccakFN (toNats a) = toNats b := by
+theorem keccakF_eq_iff (a b : KeccakState) : keccakF1600 a = b ↔ keccakFN (toNats a) = toNats b := by
   rw [keccakFN_toNats, toNats_inj]
 
 /-! ## Keccak-256 -/
@@ -198,7 +198,7 @@ def keccak256N (data : List ℕ) : List ℕ :=
   let state := absorbN (data.length / rate) (List.replicate 25 0) data
   [state.getD 0 0, state.getD 1 0, state.getD 2 0, state.getD 3 0]
 
-theorem getD_toNats (a : KState) (i : ℕ) : (toNats a).getD i 0 = (Keccak.lane a i).toNat := by
+theorem getD_toNats (a : KeccakState) (i : ℕ) : (toNats a).getD i 0 = (Keccak.lane a i).toNat := by
   have h : a.toArray[i]? = a.toList[i]? := by simp [Vector.toList]
   simp only [toNats, Keccak.lane, List.getD_eq_getElem?_getD, Array.getD_eq_getD_getElem?,
     List.getElem?_map, h]
@@ -218,10 +218,10 @@ theorem leLane_toNat (bytes : List UInt8) (i : ℕ) :
   congr 3
   rcases bytes[8 * i + k]? <;> rfl
 
-theorem lane_fin (a : KState) (i : Fin 25) : Keccak.lane a i.val = a[i] := by
+theorem lane_fin (a : KeccakState) (i : Fin 25) : Keccak.lane a i.val = a[i] := by
   simp [Keccak.lane, Array.getD_eq_getD_getElem?]
 
-theorem absorbBlock_toNats (state : KState) (block : List UInt8) :
+theorem absorbBlock_toNats (state : KeccakState) (block : List UInt8) :
     toNats (absorbBlock state block) = absorbBlockN (toNats state) (block.map UInt8.toNat) := by
   rw [absorbBlock, absorbBlockN, ← keccakFN_toNats]
   congr 1
@@ -244,7 +244,7 @@ theorem padBlock_toNat (rest : List UInt8) :
     map_modify _ _ (· ^^^ 1) (fun a ↦ by rw [UInt8.toNat_xor]; rfl)]
   simp
 
-theorem absorb_toNats : ∀ (blocks : ℕ) (state : KState) (data : List UInt8),
+theorem absorb_toNats : ∀ (blocks : ℕ) (state : KeccakState) (data : List UInt8),
     toNats (absorb blocks state data) = absorbN blocks (toNats state) (data.map UInt8.toNat)
   | 0, state, data => by
     rw [absorb, absorbN, absorbBlock_toNats, padBlock_toNat]

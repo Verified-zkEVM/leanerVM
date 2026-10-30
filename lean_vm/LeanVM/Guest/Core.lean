@@ -136,7 +136,7 @@ inductive Atom where
   | assertInK (a b : V)
   /-- `KECCAK`, one instruction: the thirteen values `ins` hold a Keccak state in the layout
   `inOdd`, and the thirteen values `outs` hold its Keccak-f[1600] in the layout `outOdd`
-  (`KeccakCells`). `ins` lists the cells the instruction reads in its order (`keccakInOffset`,
+  (`KeccakCellsRelation`). `ins` lists the cells the instruction reads in its order (`keccakInOffset`,
   `LeanVM.Guest.keccakIns`): `m0, m1, m2, m3`, the four cells of the run from `tail`, `b8`, the
   four of the run from `cap`; `outs[k]` is the cell `out + k` (`LeanVM.Guest.keccakOuts`). An
   atom whose lists are not thirteen long holds of no valuation. -/
@@ -184,7 +184,7 @@ def Program.find? (P : Program) (f : String) : Option Fn := List.find? (fun g =>
 /-- A valuation of every value. -/
 abbrev Val := V → E
 
-/-- The memory, as the ISA reads it: the word at an address, if any (`MemImage.read`). -/
+/-- The memory, as the ISA reads it: the word at an address, if any (`MemoryImage.read`). -/
 abbrev Reader := K → Option E
 
 /-- A call relation: callee, argument words, return words. -/
@@ -212,7 +212,7 @@ def Atom.Holds (rd : Reader) (σ : Val) : Atom → Prop
   | .assertInK a b => IsInK (σ a) ∧ IsInK (σ b)
   | .keccak ins outs inOdd outOdd =>
       ins.length = 13 ∧ outs.length = 13 ∧
-        KeccakCells (cells13 (ins.map σ)) inOdd (cells13 (outs.map σ)) outOdd
+        KeccakCellsRelation (cells13 (ins.map σ)) inOdd (cells13 (outs.map σ)) outOdd
   | .frameAddr p run =>
       IsInK (σ p) ∧ ∀ (k : Nat) (hk : k < run.length) (w : E),
         rd ((σ p).limb 0 * gpow k) = some w → w = σ run[k]

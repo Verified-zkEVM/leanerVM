@@ -160,7 +160,7 @@ theorem vsTailT_holds (h : Stmt.HoldsList C rd σ vsTailT next kret) :
 /-! ## The memory's size -/
 
 /-- **A memory image holding `n` words at one pointer has at least `n` words.** -/
-theorem mem_size {κ : ℕ} (hκ : κ ≤ 32) (L : MemImage κ) {p : E} {n : ℕ} (hn : n ≤ 2 ^ 32)
+theorem mem_size {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {p : E} {n : ℕ} (hn : n ≤ 2 ^ 32)
     (h : ∀ j < n, ∃ v, LoadHolds L.read p j v) : n ≤ 2 ^ κ := by
   have hκ64 : κ < 64 := by omega
   have hidx : ∀ j : Fin n, ∃ i : Fin (2 ^ κ), p.limb 0 * Parameters.gpow j = Parameters.gpow i := by

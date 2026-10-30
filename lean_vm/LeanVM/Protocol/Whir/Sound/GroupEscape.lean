@@ -48,7 +48,7 @@ open Classical in
 theorem escRet_sampleN_le (P' : LevelCode) {κ ℓ' : ℕ} (hκ : κ = ℓ' + P'.κ) (hκ1 : 1 ≤ κ)
     (Q' : (Fin ℓ' → Bool) → Fin P'.n → E) (J : List E → List (ℕ × ℕ × Word) → Prop)
     (h₀ : List Ev) (hJ : ∀ z : List E, z.length = κ → OodSep P' Q' z → J z (commits h₀)) :
-    escRet (fun z h ↦ J z (commits h)) h₀ [] (sampleN κ) ≤ eOod P' κ := by
+    escRet (fun z h ↦ J z (commits h)) h₀ [] (sampleChallenges κ) ≤ eOod P' κ := by
   unfold escRet
   rw [retExp_commits (fun z cs ↦ if J z cs then 0 else 1), List.append_nil, retExp_sampleN]
   set N := (univ.filter fun v : Vector E κ ↦ ¬ OodSep P' Q' v.toList).card

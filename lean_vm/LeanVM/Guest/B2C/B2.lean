@@ -163,7 +163,7 @@ private theorem ite_elim_neg {p : Prop} [Decidable p] {a b : Prop} (hp : ¬p) (h
 
 /-- **The jump table's prologue, counted**: `__jump_tables`' `SET`s from `(g^0, 1)` to `main`'s
 entry. -/
-theorem runC_jumpTables {κ : ℕ} {L : MemImage κ} (h : JumpTables L) :
+theorem runC_jumpTables {κ : ℕ} {L : MemoryImage κ} (h : JumpTables L) :
     RunC guest L ⟨gpow 0, 1⟩ ⟨gpow mainEntry, 1⟩ jtSets := by
   have hwalk : ∀ i ≤ Data.f0.len, RunC guest L ⟨gpow 0, 1⟩ ⟨gpow i, 1⟩
       (fun op => if op = .setConstant then i else 0) := by
@@ -205,9 +205,9 @@ theorem runC_jumpTables {κ : ℕ} {L : MemImage κ} (h : JumpTables L) :
 /-- What an instance's run gives: its return registers (`main`: the final ones), a counted run
 there from its entry at its frame within its subtree's weight, and its returns after its
 arguments. -/
-def InstRuns {κ : ℕ} (L : MemImage κ) (I : Inst) (args rets : List E) : Prop :=
-  ∃ (r : Regs K) (c : Opcode → ℕ),
-    (if I.t.name = "main" then r = Regs.final guest else retRegs L (gpow I.fp) = some r) ∧
+def InstRuns {κ : ℕ} (L : MemoryImage κ) (I : Inst) (args rets : List E) : Prop :=
+  ∃ (r : Registers K) (c : Opcode → ℕ),
+    (if I.t.name = "main" then r = Registers.final guest else retRegs L (gpow I.fp) = some r) ∧
     RunC guest L ⟨gpow (entryOf I.t.name), gpow I.fp⟩ r c ∧ (∀ op, c op ≤ weightV (fun f σ ↦ pathCountN f σ op) I.t) ∧
     ∀ k (hk : k < rets.length), L.read (gpow (I.fp + (2 + args.length + k))) = some rets[k]
 
@@ -321,7 +321,7 @@ end Insts
 /-- `main` runs from its entry at frame `1` to the final registers, within the tree's weight. -/
 theorem main_runC (h : B2Hyps) {hdr : E × E} {rd : Reader} {T : Memory.Tree} (hname : T.name = "main")
     (hH : HonestAt coreProgram fs H C hdr T cert rd [] []) :
-    ∃ c : Opcode → ℕ, RunC guest (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Regs.final guest) c ∧
+    ∃ c : Opcode → ℕ, RunC guest (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Registers.final guest) c ∧
       ∀ op, c op ≤ weightV (fun f σ ↦ pathCountN f σ op) T := by
   obtain ⟨I, hI, hIt, hfp, -⟩ := root_inst (P := coreProgram) (fs := fs) (H := H) (hdr := hdr) (T := T)
   have hv : I.t.Valid coreProgram (honest coreProgram fs H C hdr T).read [] [] := by
@@ -338,7 +338,7 @@ theorem main_runC (h : B2Hyps) {hdr : E × E} {rd : Reader} {T : Memory.Tree} (h
 `b2`). -/
 theorem b2_complete (h : B2Hyps) : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
     HonestAt coreProgram fs H C hdr T cert rd [] [] →
-      Reach guest (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Regs.final guest) := by
+      Reach guest (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Registers.final guest) := by
   intro hdr rd T hname hH
   obtain ⟨c, hc, -⟩ := main_runC h hname hH
   exact hc.reach
@@ -347,14 +347,14 @@ theorem b2_complete (h : B2Hyps) : ∀ hdr (rd : Reader) (T : Memory.Tree), T.na
 of each opcode (`End`'s `count`). -/
 theorem b2_count (h : B2Hyps) : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
     HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ n,
-      run guest (honest coreProgram fs H C hdr T) n Regs.initial = some (Regs.final guest) →
-        ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Trace guest).count op ≤ cnt T op := by
+      run guest (honest coreProgram fs H C hdr T) n Registers.initial = some (Registers.final guest) →
+        ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Execution guest).count op ≤ cnt T op := by
   intro hdr rd T hname hH n hn op
   obtain ⟨c, hc, hle⟩ := main_runC h hname hH
   have hjt : JumpTables (honest coreProgram fs H C hdr T) :=
     jumpTables_honestC hH.toHonest hname
   have hpro := runC_jumpTables hjt
-  rw [show (⟨gpow 0, 1⟩ : Regs K) = Regs.initial by rw [gpow, pow_zero]; rfl] at hpro
+  rw [show (⟨gpow 0, 1⟩ : Registers K) = Registers.initial by rw [gpow, pow_zero]; rfl] at hpro
   rw [count_eq_of_runC (hpro.trans hc) hn op, Pi.add_apply]
   have := hle op
   unfold cnt

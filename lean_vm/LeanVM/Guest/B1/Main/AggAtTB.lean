@@ -54,8 +54,8 @@ theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V
     (h26 : TotalLeOn coreProgram fs "__loop25" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop25"))
     (h27 : TotalLeOn coreProgram fs "__loop26" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop26"))
     (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")) {m : ℕ}
-    (hm1 : 1 ≤ m) (hm16 : m ≤ 16) {cs : List ChildClaims} (hcl : cs.length = m) {h : BatchHints}
-    {out : DeferredClaim} (hrl : h.bytecodeRounds.length = 23) (hb : batch cs h = some out)
+    (hm1 : 1 ≤ m) (hm16 : m ≤ 16) {cs : List ChildClaims} (hcl : cs.length = m) {h : BatchingHints}
+    {out : DeferredClaim} (hrl : h.sumcheckMessages.length = 23) (hb : batch cs h = some out)
     {cpi cfresh ccarried : E} {ds : ℕ} {Lin : Main.Layout}
     (hcw : ∀ rd, Main.MemL rd Lin → ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (hdst : (ds, out.cells) ∈ Lin) :

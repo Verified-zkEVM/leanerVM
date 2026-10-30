@@ -38,7 +38,7 @@ theorem card_kCap : Fintype.card KCap = 2 ^ 512 := by
 
 /-- The Keccak state has `2^1600` values. -/
 theorem card_kState : Fintype.card KState = 2 ^ 1600 := by
-  simp only [KState, SpState, Fintype.card_prod, KDigest, KRest, KCap, card_vector_uInt8]
+  simp only [KState, SpState, Fintype.card_prod, DigestBytes, KRest, KCap, card_vector_uInt8]
   rw [show (256 : ℕ) = 2 ^ 8 by norm_num, ← pow_mul, ← pow_mul, ← pow_mul, ← pow_add,
     ← pow_add]
 
@@ -70,8 +70,8 @@ theorem keccak_indiffBound_le (q : ℕ) :
 
 /-- **Keccak-256 is indifferentiable from a random oracle** in the random-permutation model:
 a distinguisher of cost `q` (`queryCost`) has advantage at most `q² / 2^509`. -/
-theorem keccak256_indifferentiable {α : Type} (D : OracleComp (dSpec (List UInt8) KDigest KState) α)
-    (q : ℕ) (hD : IsWeightBound D (queryCost (Dg := KDigest) keccakPadding) q) (p : α → Prop) :
+theorem keccak256_indifferentiable {α : Type} (D : OracleComp (dSpec (List UInt8) DigestBytes KState) α)
+    (q : ℕ) (hD : QueryCostAtMost D (queryCost (Dg := DigestBytes) keccakPadding) q) (p : α → Prop) :
     Pr{let a ← realGame keccakPadding KState.zero D}[p a] ≤
         Pr{let a ← idealGame keccakPadding KState.zero D}[p a] + (q ^ 2 : ℝ≥0∞) / 2 ^ 509 ∧
       Pr{let a ← idealGame keccakPadding KState.zero D}[p a] ≤
@@ -84,10 +84,10 @@ theorem keccak256_indifferentiable {α : Type} (D : OracleComp (dSpec (List UInt
 `H` and an adversary with `H`, `π` and `π⁻¹`, of cost `q` in all, every event has probabilities
 in the RPM and in the ROM against `advS keccakPadding KState.zero A` within `q² / 2^509`. -/
 theorem keccak256_transfer {β γ δ : Type}
-    (pre : OracleComp (unifSpec + roSpec (List UInt8) KDigest) β)
-    (A : β → OracleComp (dSpec (List UInt8) KDigest KState) γ)
-    (post : β → γ → OracleComp (unifSpec + roSpec (List UInt8) KDigest) δ) (q : ℕ)
-    (hq : IsWeightBound (rpmGame pre A post) (queryCost (Dg := KDigest) keccakPadding) q)
+    (pre : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) β)
+    (A : β → OracleComp (dSpec (List UInt8) DigestBytes KState) γ)
+    (post : β → γ → OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) δ) (q : ℕ)
+    (hq : QueryCostAtMost (rpmGame pre A post) (queryCost (Dg := DigestBytes) keccakPadding) q)
     (p : δ → Prop) :
     Pr{let a ← realGame keccakPadding KState.zero (rpmGame pre A post)}[p a] ≤
         Pr{let a ← romRun (pre >>= fun x ↦ advS keccakPadding KState.zero (A x) >>= fun a ↦
@@ -154,11 +154,11 @@ hashing through `H`, an adversary with `H`, `π` and `π⁻¹`, and an honest pa
 in all, every event has probabilities in the RPM and in the two-oracle ROM against
 `advS2 keccakPadding KState.zero A` within `q² / 2^508`. -/
 theorem keccak256_transfer2 {β γ δ : Type}
-    (pre : OracleComp (unifSpec + roSpec (List UInt8) KDigest) β)
-    (A : β → OracleComp (dSpec (List UInt8) KDigest KState) γ)
-    (post : β → γ → OracleComp (unifSpec + hfSpec (List UInt8) KDigest KState) δ)
+    (pre : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) β)
+    (A : β → OracleComp (dSpec (List UInt8) DigestBytes KState) γ)
+    (post : β → γ → OracleComp (unifSpec + hfSpec (List UInt8) DigestBytes KState) δ)
     (hpost : ∀ x a, Duplex KState.zero keccakNF (post x a) []) (q : ℕ)
-    (hq : IsWeightBound (rpmGame2 pre A post) (queryCost2 (Dg := KDigest) keccakPadding) q)
+    (hq : QueryCostAtMost (rpmGame2 pre A post) (queryCost2 (Dg := DigestBytes) keccakPadding) q)
     (p : δ → Prop) :
     Pr{let a ← realGame2 keccakPadding KState.zero (rpmGame2 pre A post)}[p a] ≤
         Pr{let a ← romRun2 (simulateQ hInF pre >>= fun x ↦

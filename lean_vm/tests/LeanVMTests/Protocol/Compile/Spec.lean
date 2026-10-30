@@ -51,14 +51,14 @@ example {α β : Type} {p : Prog α} {f : α → Prog β} {Pre : List Ev → Pro
 
 example {Pre : List Ev → Prop} {Post : Unit → List Ev → Prop} {εmax T : ENNReal} (b : ℕ)
     (h : ∀ h₀, Pre h₀ → Post () (h₀ ++ [Ev.grind b])) (hT : (2 : ENNReal)⁻¹ ^ b * T ≤ εmax) :
-    Spec (grindP b) Pre Post εmax 0 T :=
+    Spec (grindProofOfWork b) Pre Post εmax 0 T :=
   Spec.grindP b h hT
 
 open Classical in
 example {Pre : List Ev → Prop} {Post : E → List Ev → Prop} {εmax T : ENNReal} (e : ENNReal)
     (h : ∀ h₀, Pre h₀ → (Fintype.card E : ENNReal)⁻¹ *
       ((Finset.univ.filter fun c ↦ ¬ Post c (h₀ ++ [Ev.sample c])).card : ENNReal) ≤ e) :
-    Spec sampleE Pre Post εmax (e + T) T :=
+    Spec sampleChallenge Pre Post εmax (e + T) T :=
   Spec.sampleE e h
 
 example {α : Type} {p : Prog α} {Pre : List Ev → Prop} {Post : α → List Ev → Prop}
@@ -83,22 +83,22 @@ def tailP (x c d : E) : Prog Bool := do
 
 /-- The second group: sample `d`. -/
 def secondP (x c : E) : Prog Bool := do
-  let d ← sampleE
+  let d ← sampleChallenge
   tailP x c d
 
 /-- The proof of work, then the second group. -/
 def afterP (x c : E) : Prog Bool := do
-  grindP 3
+  grindProofOfWork 3
   secondP x c
 
 /-- The first group: sample `c`. -/
 def firstP (x : E) : Prog Bool := do
-  let c ← sampleE
+  let c ← sampleChallenge
   afterP x c
 
 /-- Read `x`, sample `c`, a three-bit proof of work, sample `d`; accept iff `c = x ∨ d = x`. -/
 def prog : Prog Bool := do
-  let x ← readE
+  let x ← readScalar
   firstP x
 
 /-- The verdict: rejection. -/
@@ -150,17 +150,17 @@ theorem cert_D_nil : cert.D [] := by
 
 /-- The certificate's doom holds after the prover's scalar. -/
 theorem cert_D_read (x : E) : cert.D [Ev.read x] :=
-  cert.read (h := []) x .nil (by simp [prog, readE, after]; rfl) cert_D_nil
+  cert.read (h := []) x .nil (by simp [prog, readScalar, after]; rfl) cert_D_nil
 
 /-! ## The follower's allowance is charged at returns in doom -/
 
 /-- A proof of work followed by a lead of `1` has no specification with `εmax = 0`. -/
 theorem no_grind_spec :
-    Spec (grindP 0) (fun _ ↦ True) (fun _ _ ↦ True) 0 0 1 → False := by
+    Spec (grindProofOfWork 0) (fun _ ↦ True) (fun _ _ ↦ True) 0 0 1 → False := by
   intro S
-  have ha0 : (grindP 0).after [] = some (.grind 0 (.ret ())) := rfl
-  have hr : (grindP 0).Reach [] ([] ++ [Ev.grind 0]) := .grind .nil ha0
-  have ha1 : (grindP 0).after ([] ++ [Ev.grind 0]) = some (.ret ()) := by simp [grindP, after]
+  have ha0 : (grindProofOfWork 0).after [] = some (.grind 0 (.ret ())) := rfl
+  have hr : (grindProofOfWork 0).Reach [] ([] ++ [Ev.grind 0]) := .grind .nil ha0
+  have ha1 : (grindProofOfWork 0).after ([] ++ [Ev.grind 0]) = some (.ret ()) := by simp [grindProofOfWork, after]
   have hD := S.grind .nil ha0 (S.start_D [] trivial)
   have hV := S.retDoom hr ha1 hD
   have hb := S.bound hr (by simp) (by simp [EndsMove]) hD
@@ -171,7 +171,7 @@ theorem no_grind_spec :
 /-! ## The counterexample to the earlier `bind` rule -/
 
 /-- Read a scalar, return a challenge. -/
-def p : Prog E := do let _ ← readE; sampleE
+def p : Prog E := do let _ ← readScalar; sampleChallenge
 
 open Classical in
 /-- Accept iff the challenge is `0`. -/

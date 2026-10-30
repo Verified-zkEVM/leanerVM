@@ -158,7 +158,7 @@ def hKid (c : ℕ) : KidH where
   cs := (w.children.map fun ch => digestScalars (claimListDigest ch.statement.claims.sphincs)).getD c
     (0, 0)
   da := (w.children.map fun ch => digestScalars ch.statement.claims.da).getD c (0, 0)
-  defer := (w.children.map fun ch => ch.statement.defer.cells).getD c []
+  defer := (w.children.map fun ch => ch.statement.deferredClaim.cells).getD c []
 
 variable {s w}
 
@@ -184,11 +184,11 @@ theorem hKid_da {c : ℕ} (hc : c < w.children.length) :
     (hKid s w c).da = digestScalars w.children[c].statement.claims.da := getD_map_lt _ _ _ hc
 
 theorem hKid_defer {c : ℕ} (hc : c < w.children.length) :
-    (hKid s w c).defer = w.children[c].statement.defer.cells := getD_map_lt _ _ _ hc
+    (hKid s w c).defer = w.children[c].statement.deferredClaim.cells := getD_map_lt _ _ _ hc
 
 /-- **Child `c`'s statement digest**, as `__loop4` computes it, is the child's statement's. -/
 theorem hKid_pi {c : ℕ} (hc : c < w.children.length)
-    (hlen : w.children[c].statement.defer.cells.length = 24) :
+    (hlen : w.children[c].statement.deferredClaim.cells.length = 24) :
     (hKid s w c).pi (digestScalars seed).1 (digestScalars seed).2 =
       digestScalars (statementDigest seed w.children[c].statement) := by
   unfold KidH.pi

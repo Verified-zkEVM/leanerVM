@@ -52,25 +52,25 @@ attribute [local irreducible] instFintypeDigest instFintypeKState
 /-! ## Freshness -/
 
 /-- The input of a squeeze from the state `d` with no scalar waiting. -/
-def sqIn (d : KState) : KState := duplexOf (capOf d) []
+def sqIn (d : KeccakState) : KeccakState := duplexOf (capOf d) []
 
 /-- The freshness of a permutation answer: no permutation input of the log carries its
 capacity. -/
-def Fresh (ℓ : Log) (u : KState) : Prop := ∀ y ∈ fIns ℓ, capOf y ≠ capOf u
+def Fresh (ℓ : Log) (u : KeccakState) : Prop := ∀ y ∈ fIns ℓ, capOf y ≠ capOf u
 
 /-- A fresh state has no squeeze in the log. -/
-theorem lookF_sqIn_of_fresh {ℓ : Log} {u : KState} (hu : Fresh ℓ u) : lookF ℓ (sqIn u) = none := by
+theorem lookF_sqIn_of_fresh {ℓ : Log} {u : KeccakState} (hu : Fresh ℓ u) : lookF ℓ (sqIn u) = none := by
   rw [lookF, lookR_eq_none_iff]
   intro hm
   exact hu _ hm (by simp [sqIn])
 
-theorem fIns_append_inr (ℓ : Log) (s u : KState) : fIns (ℓ ++ [.inr (s, u)]) = fIns ℓ ++ [s] := by
+theorem fIns_append_inr (ℓ : Log) (s u : KeccakState) : fIns (ℓ ++ [.inr (s, u)]) = fIns ℓ ++ [s] := by
   simp [fIns]
 
 theorem fIns_append_inl (ℓ : Log) (p : Bytes × Digest) : fIns (ℓ ++ [.inl p]) = fIns ℓ := by
   simp [fIns]
 
-theorem fresh_of_not_badF {ℓ : Log} {s u : KState} (h : ¬ BadF ℓ s u) :
+theorem fresh_of_not_badF {ℓ : Log} {s u : KeccakState} (h : ¬ BadF ℓ s u) :
     Fresh (ℓ ++ [.inr (s, u)]) u := by
   intro y hy hc
   rw [fIns_append_inr, List.mem_append, List.mem_singleton] at hy
@@ -133,15 +133,15 @@ theorem esc_le_eps {P : Prog Bool} (C : Cert P) {h : List Ev} {p : Prog Bool}
   | commit _ _ _ => simp [esc, hD]
 
 /-- The average of a constant times an indicator. -/
-theorem avg_ind_mul_const_le (F : KState → Prop) (c : ℝ≥0∞) :
-    (∑ u, ind (F u) * c) / Fintype.card KState ≤ c :=
+theorem avg_ind_mul_const_le (F : KeccakState → Prop) (c : ℝ≥0∞) :
+    (∑ u, ind (F u) * c) / Fintype.card KeccakState ≤ c :=
   avg_le_of_le fun _ ↦ (mul_le_mul_left (ind_le_one _) c).trans (one_mul c).le
 
 /-- **The challenge of a fresh squeeze is uniform**: the average over a state `u` of the escape
 probability after the challenge `challengeOf u` is the escape probability before it. -/
 theorem avg_esc_sample (h : List Ev) (k : E → Prog Bool) :
-    (∑ u : KState, esc D (h ++ [Ev.sample (challengeOf u)]) (k (challengeOf u))) /
-        Fintype.card KState = esc D h (.sample k) := by
+    (∑ u : KeccakState, esc D (h ++ [Ev.sample (challengeOf u)]) (k (challengeOf u))) /
+        Fintype.card KeccakState = esc D h (.sample k) := by
   rw [sum_challengeOf_div fun c ↦ esc D (h ++ [Ev.sample c]) (k c), esc_sample,
     div_eq_mul_inv, mul_comm]
 
@@ -155,7 +155,7 @@ variable (D : List Ev → Prop)
 
 /-- The escape probability of a group conditioned on the squeezes the log answers: follow them
 from the state `d` with no scalar waiting, at history `h` and node `p`, then `esc`. -/
-noncomputable def gv (ℓ : Log) : KState → List Ev → Prog Bool → ℝ≥0∞
+noncomputable def gv (ℓ : Log) : KeccakState → List Ev → Prog Bool → ℝ≥0∞
   | d, h, .sample k => match lookF ℓ (sqIn d) with
     | some u => gv ℓ u (h ++ [Ev.sample (challengeOf u)]) (k (challengeOf u))
     | none => esc D h (.sample k)
@@ -169,7 +169,7 @@ noncomputable def gv (ℓ : Log) : KState → List Ev → Prog Bool → ℝ≥0�
   | _, h, .commit ht w k => esc D h (.commit ht w k)
 
 /-- From a fresh state, the group value is the escape probability. -/
-theorem gv_fresh {ℓ : Log} {d : KState} (hd : Fresh ℓ d) :
+theorem gv_fresh {ℓ : Log} {d : KeccakState} (hd : Fresh ℓ d) :
     ∀ (h : List Ev) (p : Prog Bool), gv D ℓ d h p = esc D h p
   | h, .sample k => by simp only [gv, lookF_sqIn_of_fresh hd]
   | h, .query i ps k => by
@@ -183,7 +183,7 @@ theorem gv_fresh {ℓ : Log} {d : KState} (hd : Fresh ℓ d) :
   | _, .grind _ _ => rfl
   | _, .commit _ _ _ => rfl
 
-theorem gv_le_one (ℓ : Log) : ∀ (d : KState) (h : List Ev) (p : Prog Bool), gv D ℓ d h p ≤ 1
+theorem gv_le_one (ℓ : Log) : ∀ (d : KeccakState) (h : List Ev) (p : Prog Bool), gv D ℓ d h p ≤ 1
   | d, h, .sample k => by
     simp only [gv]
     split
@@ -202,7 +202,7 @@ theorem gv_le_one (ℓ : Log) : ∀ (d : KState) (h : List Ev) (p : Prog Bool), 
 
 /-- A hash entry leaves group values unchanged. -/
 theorem gv_append_inl (ℓ : Log) (e : Bytes × Digest) :
-    ∀ (d : KState) (h : List Ev) (p : Prog Bool), gv D (ℓ ++ [.inl e]) d h p = gv D ℓ d h p
+    ∀ (d : KeccakState) (h : List Ev) (p : Prog Bool), gv D (ℓ ++ [.inl e]) d h p = gv D ℓ d h p
   | d, h, .sample k => by
     simp only [gv, lookF_append_inl]
     split
@@ -222,10 +222,10 @@ theorem gv_append_inl (ℓ : Log) (e : Bytes × Digest) :
 /-- **Group values are supermartingales.** For a fresh permutation input `t`, the average over
 the answer `u` of the group value after the entry `(t, u)`, on the answers that are fresh, is at
 most the group value before it. -/
-theorem gv_step {ℓ : Log} {t : KState} (ht : lookF ℓ t = none) :
-    ∀ (d : KState) (h : List Ev) (p : Prog Bool),
+theorem gv_step {ℓ : Log} {t : KeccakState} (ht : lookF ℓ t = none) :
+    ∀ (d : KeccakState) (h : List Ev) (p : Prog Bool),
       (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) * gv D (ℓ ++ [.inr (t, u)]) d h p) /
-          Fintype.card KState ≤ gv D ℓ d h p
+          Fintype.card KeccakState ≤ gv D ℓ d h p
   | d, h, .sample k => by
     rcases hl : lookF ℓ (sqIn d) with _ | v
     · by_cases hx : sqIn d = t
@@ -242,9 +242,9 @@ theorem gv_step {ℓ : Log} {t : KState} (ht : lookF ℓ t = none) :
           · rw [ind_of_not hf, zero_mul]; exact bot_le
         rw [show gv D ℓ d h (.sample k) = esc D h (.sample k) by simp only [gv, hl]]
         calc (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) *
-                gv D (ℓ ++ [.inr (t, u)]) d h (.sample k)) / Fintype.card KState
+                gv D (ℓ ++ [.inr (t, u)]) d h (.sample k)) / Fintype.card KeccakState
             ≤ (∑ u, esc D (h ++ [Ev.sample (challengeOf u)]) (k (challengeOf u)))
-              / Fintype.card KState := by gcongr with u; exact hval u
+              / Fintype.card KeccakState := by gcongr with u; exact hval u
           _ = esc D h (.sample k) := avg_esc_sample D h k
       · have : ∀ u, gv D (ℓ ++ [.inr (t, u)]) d h (.sample k) = esc D h (.sample k) := by
           intro u; simp only [gv, lookF_append_inr_of_ne hx, hl]
@@ -268,7 +268,7 @@ theorem gv_step {ℓ : Log} {t : KState} (ht : lookF ℓ t = none) :
 
 /-- The group value with its first squeeze answered by `u`: follow the openings to the squeeze,
 take `u`'s challenge, then `gv`. -/
-noncomputable def gv1 (ℓ : Log) (u : KState) : List Ev → Prog Bool → ℝ≥0∞
+noncomputable def gv1 (ℓ : Log) (u : KeccakState) : List Ev → Prog Bool → ℝ≥0∞
   | h, .sample k => gv D ℓ u (h ++ [Ev.sample (challengeOf u)]) (k (challengeOf u))
   | h, .query i ps k => match answer h i ps with
     | some rows => gv1 ℓ u (h ++ [Ev.query rows]) (k rows)
@@ -279,7 +279,7 @@ noncomputable def gv1 (ℓ : Log) (u : KState) : List Ev → Prog Bool → ℝ�
   | h, .grind b k => esc D h (.grind b k)
   | h, .commit ht w k => esc D h (.commit ht w k)
 
-theorem gv1_le_one (ℓ : Log) (u : KState) : ∀ (h : List Ev) (p : Prog Bool), gv1 D ℓ u h p ≤ 1
+theorem gv1_le_one (ℓ : Log) (u : KeccakState) : ∀ (h : List Ev) (p : Prog Bool), gv1 D ℓ u h p ≤ 1
   | h, .sample k => gv_le_one D ℓ _ _ _
   | h, .query i ps k => by
     simp only [gv1]
@@ -292,7 +292,7 @@ theorem gv1_le_one (ℓ : Log) (u : KState) : ∀ (h : List Ev) (p : Prog Bool),
   | _, .grind _ _ => esc_le_one D _ _
   | _, .commit _ _ _ => esc_le_one D _ _
 
-theorem gv1_append_inl (ℓ : Log) (e : Bytes × Digest) (u : KState) :
+theorem gv1_append_inl (ℓ : Log) (e : Bytes × Digest) (u : KeccakState) :
     ∀ (h : List Ev) (p : Prog Bool), gv1 D (ℓ ++ [.inl e]) u h p = gv1 D ℓ u h p
   | h, .sample k => gv_append_inl D ℓ e _ _ _
   | h, .query i ps k => by
@@ -307,10 +307,10 @@ theorem gv1_append_inl (ℓ : Log) (e : Bytes × Digest) (u : KState) :
   | _, .commit _ _ _ => rfl
 
 /-- `gv1` is a supermartingale, as `gv` is. -/
-theorem gv1_step {ℓ : Log} {t : KState} (ht : lookF ℓ t = none) (u : KState) :
+theorem gv1_step {ℓ : Log} {t : KeccakState} (ht : lookF ℓ t = none) (u : KeccakState) :
     ∀ (h : List Ev) (p : Prog Bool),
       (∑ v, ind (Fresh (ℓ ++ [.inr (t, v)]) v) * gv1 D (ℓ ++ [.inr (t, v)]) u h p) /
-          Fintype.card KState ≤ gv1 D ℓ u h p
+          Fintype.card KeccakState ≤ gv1 D ℓ u h p
   | h, .sample k => gv_step D ht _ _ _
   | h, .query i ps k => by
     simp only [gv1]
@@ -324,15 +324,15 @@ theorem gv1_step {ℓ : Log} {t : KState} (ht : lookF ℓ t = none) (u : KState)
   | h, .commit ht' w k => by simp only [gv1]; exact avg_ind_mul_const_le _ _
 
 /-- **The first squeeze of a group, fresh, averages to the escape probability.** -/
-theorem gv1_new {ℓ : Log} {t : KState} :
+theorem gv1_new {ℓ : Log} {t : KeccakState} :
     ∀ (h : List Ev) (p : Prog Bool),
       (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) * gv1 D (ℓ ++ [.inr (t, u)]) u h p) /
-          Fintype.card KState ≤ esc D h p
+          Fintype.card KeccakState ≤ esc D h p
   | h, .sample k => by
     calc (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) * gv1 D (ℓ ++ [.inr (t, u)]) u h (.sample k)) /
-            Fintype.card KState
+            Fintype.card KeccakState
         ≤ (∑ u, esc D (h ++ [Ev.sample (challengeOf u)]) (k (challengeOf u))) /
-            Fintype.card KState := by
+            Fintype.card KeccakState := by
           gcongr with u
           simp only [gv1]
           by_cases hf : Fresh (ℓ ++ [.inr (t, u)]) u
@@ -360,22 +360,22 @@ variable (D : List Ev → Prop)
 
 /-- The proof-of-work factor of a state record: `1` after the seed, whether the proof of work
 of `b` bits passed on the state's challenge after the nonce `n`. -/
-noncomputable def powF : Option (ℕ × E) → KState → ℝ≥0∞
+noncomputable def powF : Option (ℕ × E) → KeccakState → ℝ≥0∞
   | none, _ => 1
   | some (b, n), u => ind (powOk b n (challengeOf u) = true)
 
-theorem powF_le_one (pw : Option (ℕ × E)) (u : KState) : powF pw u ≤ 1 := by
+theorem powF_le_one (pw : Option (ℕ × E)) (u : KeccakState) : powF pw u ≤ 1 := by
   rcases pw with _ | ⟨b, n⟩
   · exact le_rfl
   · exact ind_le_one _
 
 /-- The term of a record. -/
-noncomputable def term (ℓ : Log) : Shape × KState → ℝ≥0∞
+noncomputable def term (ℓ : Log) : Shape × KeccakState → ℝ≥0∞
   | (.none, _) => 0
   | (.st h p pw, u) => ind (D h) * (powF pw u * gv D ℓ u h p)
   | (.sq h p, u) => ind (D h) * gv1 D ℓ u h p
 
-theorem term_append_inl (ℓ : Log) (e : Bytes × Digest) (κ : Shape × KState) :
+theorem term_append_inl (ℓ : Log) (e : Bytes × Digest) (κ : Shape × KeccakState) :
     term D (ℓ ++ [.inl e]) κ = term D ℓ κ := by
   obtain ⟨s, u⟩ := κ
   cases s with
@@ -413,15 +413,15 @@ end Terms
 /-! ## The supermartingale property of old records -/
 
 /-- **Old records are supermartingales** at a fresh permutation answer. -/
-theorem term_step_old (D : List Ev → Prop) {ℓ : Log} {t : KState} (ht : lookF ℓ t = none)
-    (κ : Shape × KState) :
+theorem term_step_old (D : List Ev → Prop) {ℓ : Log} {t : KeccakState} (ht : lookF ℓ t = none)
+    (κ : Shape × KeccakState) :
     (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) * term D (ℓ ++ [.inr (t, u)]) κ) /
-        Fintype.card KState ≤ term D ℓ κ := by
+        Fintype.card KeccakState ≤ term D ℓ κ := by
   obtain ⟨s, d⟩ := κ
   -- pull a constant factor out of the average
-  have hpull : ∀ (a : ℝ≥0∞) (f : KState → ℝ≥0∞),
-      (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) * (a * f u)) / Fintype.card KState =
-        a * ((∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) * f u) / Fintype.card KState) := by
+  have hpull : ∀ (a : ℝ≥0∞) (f : KeccakState → ℝ≥0∞),
+      (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) * (a * f u)) / Fintype.card KeccakState =
+        a * ((∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) * f u) / Fintype.card KeccakState) := by
     intro a f
     rw [← mul_div_assoc, Finset.mul_sum]
     congr 1

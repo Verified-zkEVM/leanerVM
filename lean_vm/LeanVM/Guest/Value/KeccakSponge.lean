@@ -42,15 +42,15 @@ open LeanVM.Guest.Value.KeccakEval
 /-! ## Absorbing whole blocks -/
 
 /-- `n` blocks of `136` bytes absorbed into `S`, without padding. -/
-def absorbChunks : ℕ → KState → List UInt8 → KState
+def absorbChunks : ℕ → KeccakState → List UInt8 → KeccakState
   | 0, S, _ => S
   | n + 1, S, bs => absorbChunks n (absorbBlock S (bs.take rate)) (bs.drop rate)
 
 /-- The zero state. -/
-abbrev zeroState : KState := Vector.replicate 25 0
+abbrev zeroState : KeccakState := Vector.replicate 25 0
 
 /-- A state's digest: its first four lanes. -/
-def digestOf (S : KState) : Digest :=
+def digestOf (S : KeccakState) : Digest :=
   #v[Keccak.lane S 0, Keccak.lane S 1, Keccak.lane S 2, Keccak.lane S 3]
 
 /-- The padded message Keccak-256 absorbs: its whole blocks, then the padded last block. -/
@@ -58,10 +58,10 @@ def padBytes (data : List UInt8) : List UInt8 :=
   data.take (rate * (data.length / rate)) ++ padBlock (data.drop (rate * (data.length / rate)))
 
 /-- A block's permutation reads only its first `136` bytes. -/
-theorem absorbBlock_take (S : KState) (bs : List UInt8) :
+theorem absorbBlock_take (S : KeccakState) (bs : List UInt8) :
     absorbBlock S (bs.take rate) = absorbBlock S bs := by
   rw [absorbBlock_eq, absorbBlock_eq, xorRate, xorRate]
-  refine congrArg keccakF (congrArg Vector.ofFn (funext fun i ↦ ?_))
+  refine congrArg keccakF1600 (congrArg Vector.ofFn (funext fun i ↦ ?_))
   split
   · rename_i hi
     congr 1
@@ -73,7 +73,7 @@ theorem absorbBlock_take (S : KState) (bs : List UInt8) :
   · rfl
 
 /-- The last block of `n + 1`. -/
-theorem absorbChunks_succ (n : ℕ) (S : KState) (bs : List UInt8) :
+theorem absorbChunks_succ (n : ℕ) (S : KeccakState) (bs : List UInt8) :
     absorbChunks (n + 1) S bs =
       absorbBlock (absorbChunks n S bs) ((bs.drop (rate * n)).take rate) := by
   induction n generalizing S bs with
@@ -84,7 +84,7 @@ theorem absorbChunks_succ (n : ℕ) (S : KState) (bs : List UInt8) :
     ring
 
 /-- Blocks absorbed in two runs. -/
-theorem absorbChunks_append (n m : ℕ) (S : KState) (bs cs : List UInt8)
+theorem absorbChunks_append (n m : ℕ) (S : KeccakState) (bs cs : List UInt8)
     (h : bs.length = rate * n) :
     absorbChunks (n + m) S (bs ++ cs) = absorbChunks m (absorbChunks n S bs) cs := by
   induction n generalizing S bs with
@@ -102,7 +102,7 @@ theorem absorbChunks_append (n m : ℕ) (S : KState) (bs cs : List UInt8)
     omega
 
 /-- **The Spec's absorption with padding is `absorbChunks` of the padded bytes.** -/
-theorem absorb_eq_absorbChunks : ∀ (b : ℕ) (S : KState) (data : List UInt8),
+theorem absorb_eq_absorbChunks : ∀ (b : ℕ) (S : KeccakState) (data : List UInt8),
     rate * b ≤ data.length →
       absorb b S data =
         absorbChunks (b + 1) S (data.take (rate * b) ++ padBlock (data.drop (rate * b)))
@@ -179,11 +179,11 @@ its nine rate cells the previous output `O k` plus the message cells from `17k /
 capacity cells `O k`'s; it writes `O (k + 1)`. From `O 0`, the cells of `S0` in the even layout
 (the zero state, or a previous output for `state=`), the last output is the cells of
 `absorbChunks B S0 (cellsBytes P)` in the even layout. A message cell past `P` reads `0`. -/
-theorem keccak_chain {P : List E} {S0 : KState} {B : ℕ} {I O : ℕ → Fin 13 → E}
+theorem keccak_chain {P : List E} {S0 : KeccakState} {B : ℕ} {I O : ℕ → Fin 13 → E}
     (h0 : O 0 = cellsOfState S0 false)
     (hrate : ∀ k < B, ∀ c : Fin 13, c.val < 9 → I k c = O k c + P.getD (17 * k / 2 + c) 0)
     (hcap : ∀ k < B, ∀ c : Fin 13, 9 ≤ c.val → I k c = O k c)
-    (hK : ∀ k < B, KeccakCells (I k) (inLayout k) (O (k + 1)) (outLayout B k)) :
+    (hK : ∀ k < B, KeccakCellsRelation (I k) (inLayout k) (O (k + 1)) (outLayout B k)) :
     O B = cellsOfState (absorbChunks B S0 (cellsBytes P)) false := by
   have inv : ∀ j ≤ B, O j =
       cellsOfState (absorbChunks j S0 (cellsBytes P)) (if j < B then inLayout j else false) := by
@@ -455,7 +455,7 @@ theorem padCells_bytes (cells : List E) (len : ℕ) (hlen : len ≤ 16 * cells.l
 /-! ## The hash computed by a chain -/
 
 /-- `absorbChunks` reads only the first `136 n` bytes. -/
-theorem absorbChunks_take (n : ℕ) (S : KState) (bs : List UInt8) :
+theorem absorbChunks_take (n : ℕ) (S : KeccakState) (bs : List UInt8) :
     absorbChunks n S (bs.take (rate * n)) = absorbChunks n S bs := by
   induction n generalizing S bs with
   | zero => rfl
@@ -486,7 +486,7 @@ theorem keccak256_append (pre data : List UInt8) (n : ℕ) (h : pre.length = rat
     absorbChunks_append _ _ _ _ _ h]
 
 /-- A digest's two cells are the first two cells of the state, in the even layout. -/
-theorem digestScalars_digestOf (S : KState) :
+theorem digestScalars_digestOf (S : KeccakState) :
     digestScalars (digestOf S) = (cellsOfState S false 0, cellsOfState S false 1) := rfl
 
 /-- **A `final` chain computes Keccak-256** (`keccak(...)` and `keccak_cells(...)` with the
@@ -504,7 +504,7 @@ theorem keccak_final {cells : List E} {len : ℕ} {pre : List UInt8} {n : ℕ}
       I k c = O k c + (padCells cells len).getD (17 * k / 2 + c) 0)
     (hcap : ∀ k < len / rate + 1, ∀ c : Fin 13, 9 ≤ c.val → I k c = O k c)
     (hK : ∀ k < len / rate + 1,
-      KeccakCells (I k) (inLayout k) (O (k + 1)) (outLayout (len / rate + 1) k)) :
+      KeccakCellsRelation (I k) (inLayout k) (O (k + 1)) (outLayout (len / rate + 1) k)) :
     O (len / rate + 1) = cellsOfState (absorbChunks (n + (len / rate + 1)) zeroState
       (pre ++ padBytes ((cellsBytes cells).take len))) false := by
   rw [keccak_chain h0 hrate hcap hK, ← absorbChunks_take, padCells_bytes cells len hlen hz,
@@ -521,7 +521,7 @@ theorem keccak_final_digest {cells : List E} {len : ℕ} {pre : List UInt8} {n :
       I k c = O k c + (padCells cells len).getD (17 * k / 2 + c) 0)
     (hcap : ∀ k < len / rate + 1, ∀ c : Fin 13, 9 ≤ c.val → I k c = O k c)
     (hK : ∀ k < len / rate + 1,
-      KeccakCells (I k) (inLayout k) (O (k + 1)) (outLayout (len / rate + 1) k)) :
+      KeccakCellsRelation (I k) (inLayout k) (O (k + 1)) (outLayout (len / rate + 1) k)) :
     (O (len / rate + 1) 0, O (len / rate + 1) 1) =
       digestScalars (keccak256 (pre ++ (cellsBytes cells).take len)) := by
   have hdata : ((cellsBytes cells).take len).length = len := by simp; omega
@@ -536,7 +536,7 @@ theorem keccak_one {cells : List E} {len : ℕ} {I O : Fin 13 → E}
     (hz : ∀ j, len ≤ j → (cellsBytes cells).getD j 0 = 0)
     (hrate : ∀ c : Fin 13, c.val < 9 → I c = (padCells cells len).getD c 0)
     (hcap : ∀ c : Fin 13, 9 ≤ c.val → I c = 0)
-    (hK : KeccakCells I false O false) :
+    (hK : KeccakCellsRelation I false O false) :
     O = cellsOfState (absorbChunks 1 zeroState (padBytes ((cellsBytes cells).take len))) false ∧
       (O 0, O 1) = digestScalars (keccak256 ((cellsBytes cells).take len)) := by
   have hB : len / rate + 1 = 1 := by rw [Nat.div_eq_of_lt hlt]
@@ -553,7 +553,7 @@ theorem keccak_one {cells : List E} {len : ℕ} {I O : Fin 13 → E}
     obtain rfl : k = 0 := by omega
     simp [I', O', cellsOfState_zero, hcap c hc]
   have hK' : ∀ k < len / rate + 1,
-      KeccakCells (I' k) (inLayout k) (O' (k + 1)) (outLayout (len / rate + 1) k) := by
+      KeccakCellsRelation (I' k) (inLayout k) (O' (k + 1)) (outLayout (len / rate + 1) k) := by
     intro k hk
     obtain rfl : k = 0 := by omega
     rw [hB]
@@ -570,7 +570,7 @@ theorem keccak_whole {cells : List E} {pre : List UInt8} {n B : ℕ} {I O : ℕ 
     (h0 : O 0 = cellsOfState (absorbChunks n zeroState pre) false)
     (hrate : ∀ k < B, ∀ c : Fin 13, c.val < 9 → I k c = O k c + cells.getD (17 * k / 2 + c) 0)
     (hcap : ∀ k < B, ∀ c : Fin 13, 9 ≤ c.val → I k c = O k c)
-    (hK : ∀ k < B, KeccakCells (I k) (inLayout k) (O (k + 1)) (outLayout B k)) :
+    (hK : ∀ k < B, KeccakCellsRelation (I k) (inLayout k) (O (k + 1)) (outLayout B k)) :
     O B = cellsOfState (absorbChunks (n + B) zeroState (pre ++ cellsBytes cells)) false ∧
       (pre ++ cellsBytes cells).length = rate * (n + B) := by
   refine ⟨?_, by rw [List.length_append, hpre, length_cellsBytes, hB, Nat.mul_add]⟩
@@ -587,7 +587,7 @@ theorem keccak_whole {cells : List E} {pre : List UInt8} {n B : ℕ} {I O : ℕ 
 `keccakF (Compile.seedInput iv pi)`. -/
 theorem absorbChunks_seed (iv pi : Digest) :
     absorbChunks 1 zeroState (cellsBytes [(digestScalars iv).1, (digestScalars iv).2,
-      (digestScalars pi).1, (digestScalars pi).2]) = keccakF (Compile.seedInput iv pi) := by
+      (digestScalars pi).1, (digestScalars pi).2]) = keccakF1600 (Compile.seedInput iv pi) := by
   rw [absorbChunks, absorbChunks, absorbBlock_take, absorbBlock_eq]
   congr 1
   apply Vector.ext

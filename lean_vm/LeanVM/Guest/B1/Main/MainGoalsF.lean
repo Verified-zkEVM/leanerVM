@@ -24,7 +24,7 @@ public import LeanVM.Protocol.Verifier.Load
 * the claim tables' cells (`claimCells`) are canonical, their bytes the bytes the Spec's list
   digest hashes (`mf_xmss_digest`, `mf_sphincs_digest`);
 * `mf_reads`, `mf_region`: buffer `i` of `hLmain` holds `hOwn`'s list `i`;
-* `mainGoalSt`: the deferred claim's `24` cells (`NodeRel`'s shape on a bytecode of `2^23` words)
+* `mainGoalSt`: the deferred claim's `24` cells (`NodeRelation`'s shape on a bytecode of `2^23` words)
   hash, with the seed, the claim lists' digests and the published DA digest, to the statement's
   digest
   (`statementDigest_parts`).
@@ -216,15 +216,15 @@ theorem mainGoalL2 : MainGoalL2 fs cert fp seed s w := fun hne =>
 
 /-- **`statement_digest` on the claim lists' digests and the deferred claim**, a bytecode of
 `2^23` words making the deferred claim `24` cells. -/
-theorem mainGoalSt {bytecode : List K} (hR : NodeRel bytecode seed s w)
+theorem mainGoalSt {bytecode : List K} (hR : NodeRelation bytecode seed s w)
     (hbl : bytecode.length = 2 ^ bytecodeVars) : MainGoalSt fs cert fp seed s w := by
-  have hlen : s.defer.cells.length = 24 := by
-    have h1 : s.defer.bytecodePoint.length = Nat.log2 bytecode.length := hR.1
+  have hlen : s.deferredClaim.cells.length = 24 := by
+    have h1 : s.deferredClaim.bytecodePoint.length = Nat.log2 bytecode.length := hR.1
     rw [hbl, Nat.log2_two_pow] at h1
     simp [DeferredClaim.cells, h1, bytecodeVars]
   refine statement_completeAt fs cert fun rd h => ?_
   have h9 := mf_reads fs fp seed s w h (i := 9) (by omega)
-  refine ⟨s.defer.cells, hlen, h9, ?_, ?_⟩
+  refine ⟨s.deferredClaim.cells, hlen, h9, ?_, ?_⟩
   · intro c hc
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
     rcases hc with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl

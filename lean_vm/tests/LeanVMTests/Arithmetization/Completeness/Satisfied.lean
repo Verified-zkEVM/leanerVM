@@ -46,12 +46,12 @@ example (w : K) (data : ProverData K) :
 
 /-- The witness of no skeletons has empty tables, and they are within the caps: no table needs a
 power-of-two height, and the `KECCAK` table has no floor. -/
-theorem empty_witness_caps (img : MemImage minLogMem) :
+theorem empty_witness_caps (img : MemoryImage minLogMem) :
     Caps (skelWitness jumpProg badInput img []) :=
   skelWitness_caps jumpProg badInput img [] le_rfl (by decide) fun _ ↦ Nat.zero_le _
 
 /-- Its `XOR` table is empty. -/
-example (img : MemImage minLogMem) :
+example (img : MemoryImage minLogMem) :
     (opTable img (imageData img) (skelRows img []) .xor).table.length = 0 := rfl
 
 /-- The witness of the all-zero image is not a witness of the input whose first word is `y`: the

@@ -48,7 +48,7 @@ noncomputable def zeroPot (ℓ : Log) : ℝ≥0∞ := if ∃ u ∈ fOuts ℓ, ch
 
 theorem zeroPot_nil : zeroPot [] = 0 := by simp [zeroPot, fOuts]
 
-theorem fOuts_append_inr (ℓ : Log) (s u : KState) : fOuts (ℓ ++ [.inr (s, u)]) = fOuts ℓ ++ [u] := by
+theorem fOuts_append_inr (ℓ : Log) (s u : KeccakState) : fOuts (ℓ ++ [.inr (s, u)]) = fOuts ℓ ++ [u] := by
   simp [fOuts]
 
 theorem fOuts_append_inl (ℓ : Log) (p : Bytes × Digest) : fOuts (ℓ ++ [.inl p]) = fOuts ℓ := by
@@ -59,7 +59,7 @@ theorem zeroPot_append_inl (ℓ : Log) (p : Bytes × Digest) : zeroPot (ℓ ++ [
 
 /-- The challenge of a uniform state is zero with probability `2^-192`. -/
 theorem sum_challengeOf_zero :
-    (∑ u : KState, ind (challengeOf u = 0)) / Fintype.card KState = (2 : ℝ≥0∞)⁻¹ ^ 192 := by
+    (∑ u : KeccakState, ind (challengeOf u = 0)) / Fintype.card KeccakState = (2 : ℝ≥0∞)⁻¹ ^ 192 := by
   rw [sum_challengeOf_div (fun c ↦ ind (c = 0)), card_E,
     Finset.sum_eq_single (0 : E) (fun b _ hb ↦ by simp [ind, hb]) (by simp)]
   simp only [ind, ↓reduceIte]
@@ -67,8 +67,8 @@ theorem sum_challengeOf_zero :
 
 /-- **The zero-challenge potential's step**: a fresh permutation query raises it by at most
 `2^-192` in expectation. -/
-theorem zeroPot_stepF (ℓ : Log) (s : KState) :
-    (∑ u, zeroPot (ℓ ++ [.inr (s, u)])) / Fintype.card KState ≤
+theorem zeroPot_stepF (ℓ : Log) (s : KeccakState) :
+    (∑ u, zeroPot (ℓ ++ [.inr (s, u)])) / Fintype.card KeccakState ≤
       zeroPot ℓ + (2 : ℝ≥0∞)⁻¹ ^ 192 := by
   classical
   by_cases hz : ∃ u ∈ fOuts ℓ, challengeOf u = 0
@@ -99,7 +99,7 @@ noncomputable def nzPot (bits fuel : ℕ) (ℓ : Log) : ℝ≥0∞ := powPot bit
 /-! ## A state whose challenge is not zero -/
 
 /-- A state whose challenge is `1`. -/
-noncomputable def nzState : KState := challengeEquiv.symm (1, fun _ ↦ 0)
+noncomputable def nzState : KeccakState := challengeEquiv.symm (1, fun _ ↦ 0)
 
 theorem challengeOf_nzState : challengeOf nzState ≠ 0 := by
   have h := challengeEquiv_fst nzState
@@ -145,7 +145,7 @@ theorem one_le_nzPot {σ : Seed} {P P' : Prog Bool} (hNZ : NZ P' P) {S : Strateg
       exact le_add_self
     exfalso
     let Ht : Bytes → Digest := fun x ↦ (lookH ℓ x).getD default
-    let Ft : KState → KState := fun s ↦ (lookF ℓ s).getD nzState
+    let Ft : KeccakState → KeccakState := fun s ↦ (lookF ℓ s).getD nzState
     have hH : ∀ x u, lookH ℓ x = some u → Ht x = u := fun x u hx ↦ by simp [Ht, hx]
     have hF : ∀ s u, lookF ℓ s = some u → Ft s = u := fun s u hs ↦ by simp [Ft, hs]
     have hFnz : ∀ s, challengeOf (Id.run (Ft s)) ≠ 0 := by
@@ -159,11 +159,11 @@ theorem one_le_nzPot {σ : Seed} {P P' : Prog Bool} (hNZ : NZ P' P) {S : Strateg
         obtain ⟨i, hi, hei, -⟩ := (lookF_eq_some_iff ℓ s u).mp hl
         exact hzero ⟨u, mem_fOuts_of_getElem hi hei, h0⟩
     have hseed' : σ.run (m := Id) Ht Ft = seed := by
-      have := simulateQ_id_of_look ℓ Ht Ft hH hF (σ.run queryH queryF) seed
+      have := simulateQ_id_of_look ℓ Ht Ft hH hF (σ.run callKeccak256 callKeccakF1600) seed
         (by rw [simulateQ_seedRun]; exact hseed)
       rwa [simulateQ_seedRun] at this
     have hπ : prove Ht Ft P S seed fuel = some π' := by
-      have := simulateQ_id_of_look ℓ Ht Ft hH hF (proveM queryH queryF P S seed fuel) (some π')
+      have := simulateQ_id_of_look ℓ Ht Ft hH hF (proveM callKeccak256 callKeccakF1600 P S seed fuel) (some π')
         (by rw [simulateQ_proveM]; exact hr)
       rw [simulateQ_proveM] at this
       rw [← proveM_id]

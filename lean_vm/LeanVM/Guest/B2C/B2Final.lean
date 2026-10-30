@@ -44,14 +44,14 @@ theorem b2Hyps : B2Hyps := ⟨cplRun_all, frameHolds_all (sitesApart_all_of Cplw
 /-- **B2**: the honest memory runs from `main`'s entry to the end. -/
 theorem b2cB2 : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
     HonestAt coreProgram fs H C hdr T cert rd [] [] →
-      Reach guest (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Regs.final guest) :=
+      Reach guest (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Registers.final guest) :=
   b2_complete b2Hyps
 
 /-- **B2, counted**: a run of the honest memory to the end is within the counts. -/
 theorem b2cCount : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
     HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ n,
-      run guest (honest coreProgram fs H C hdr T) n Regs.initial = some (Regs.final guest) →
-        ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Trace guest).count op ≤ cnt T op :=
+      run guest (honest coreProgram fs H C hdr T) n Registers.initial = some (Registers.final guest) →
+        ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Execution guest).count op ≤ cnt T op :=
   b2_count b2Hyps
 
 /-- **Every piece of completeness but `main`'s**, at the deployed instance. -/
@@ -65,7 +65,7 @@ theorem completeParts_b2c {b : Budget} (hm : MainComplete fs cert cnt b) :
   count := b2cCount
 
 /-- **The guest's completeness within a budget `b`, from `main`'s completeness within it** at the
-deployed frame sizes and certificate cells: `NodeRel` within the limits, the caps agreeing, no zero
+deployed frame sizes and certificate cells: `NodeRelation` within the limits, the caps agreeing, no zero
 challenge where the guest divides and the node within `b` give a valid execution of the guest on
 the statement's digest of committed size at most `2^28`. -/
 theorem guest_complete_b2c {b : Budget} (hm : MainComplete fs cert cnt b) : GuestCompleteWithin b :=

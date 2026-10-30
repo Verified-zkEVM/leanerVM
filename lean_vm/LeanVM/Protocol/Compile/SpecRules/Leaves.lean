@@ -168,23 +168,23 @@ def fail : Spec (Prog.fail : Prog α) Pre Post εmax 0 T where
 
 /-! ## Prover moves -/
 
-private theorem reach_readE {h₀ l : List Ev} (hl : readE.Reach h₀ l) :
+private theorem reach_readE {h₀ l : List Ev} (hl : readScalar.Reach h₀ l) :
     l = [] ∨ ∃ x, l = [Ev.read x] := by
   induction hl with
   | nil => exact .inl rfl
   | read x _ ha ih =>
     rcases ih with rfl | ⟨y, rfl⟩
     · exact .inr ⟨x, rfl⟩
-    · simp [readE, after] at ha
+    · simp [readScalar, after] at ha
   | sample _ _ ha ih | grind _ ha ih | commit _ _ ha _ ih | query _ ha _ ih =>
-    rcases ih with rfl | ⟨y, rfl⟩ <;> simp [readE, after] at ha
+    rcases ih with rfl | ⟨y, rfl⟩ <;> simp [readScalar, after] at ha
 
 open Classical in
 /-- **Read** a scalar: `Post` after every scalar; the boundary after the read carries the
 follower's lead. -/
 noncomputable def readE {Post : E → List Ev → Prop}
     (h : ∀ h₀ x, Pre h₀ → Post x (h₀ ++ [Ev.read x])) (hT : T ≤ εmax) :
-    Spec Prog.readE Pre Post εmax 0 T where
+    Spec Prog.readScalar Pre Post εmax 0 T where
   D h₀ l := match l with
     | [] => Pre h₀
     | [Ev.read x] => Post x (h₀ ++ [Ev.read x])
@@ -204,38 +204,38 @@ noncomputable def readE {Post : E → List Ev → Prop}
     intro h₀ l k x hl ha hD
     rcases reach_readE hl with rfl | ⟨y, rfl⟩
     · exact h h₀ x hD
-    · simp [Prog.readE, after] at ha
+    · simp [Prog.readScalar, after] at ha
   grind := by
     intro _ _ _ _ hl ha
-    rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.readE, after] at ha
+    rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.readScalar, after] at ha
   commit := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.readE, after] at ha
+    rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.readScalar, after] at ha
   sample := by
-    intro _ _ _ hl ha; rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.readE, after] at ha
+    intro _ _ _ hl ha; rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.readScalar, after] at ha
   query := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.readE, after] at ha
+    rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.readScalar, after] at ha
   moveEnd := by
     intro h₀ l q hl ha hm hD
     rcases reach_readE hl with rfl | ⟨y, rfl⟩
     · simp [hD]
-    · simp only [Prog.readE, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
+    · simp only [Prog.readScalar, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
   retEnd := by
     intro h₀ l a hl ha hD
     rcases reach_readE hl with rfl | ⟨y, rfl⟩
-    · simp [Prog.readE, after] at ha
+    · simp [Prog.readScalar, after] at ha
     · simp only at hD ⊢; simp [hD]
   retDoom := by
     intro h₀ l a hl ha hD
     rcases reach_readE hl with rfl | ⟨y, rfl⟩
-    · simp [Prog.readE, after] at ha
+    · simp [Prog.readScalar, after] at ha
     · simp only at hD ⊢; simp [hD]
   post := by
     intro h₀ l a hl ha hD
     rcases reach_readE hl with rfl | ⟨y, rfl⟩
-    · simp [Prog.readE, after] at ha
-    · simp only [Prog.readE, after, Option.some.injEq, Prog.ret.injEq] at ha; subst ha; exact hD
+    · simp [Prog.readScalar, after] at ha
+    · simp only [Prog.readScalar, after, Option.some.injEq, Prog.ret.injEq] at ha; subst ha; exact hD
   bound := by
     intro h₀ l hl hne hm hD
     rcases reach_readE hl with rfl | ⟨y, rfl⟩
@@ -244,25 +244,25 @@ noncomputable def readE {Post : E → List Ev → Prop}
       simp only [hD, ite_true, grindBits, List.getLast?_singleton, pow_zero, one_mul]
       exact (min_le_right _ _).trans hT
 
-private theorem reach_commitP {ht w : ℕ} {h₀ l : List Ev} (hl : (commitP ht w).Reach h₀ l) :
+private theorem reach_commitP {ht w : ℕ} {h₀ l : List Ev} (hl : (readCommitment ht w).Reach h₀ l) :
     l = [] ∨ ∃ word, WellShaped w word ∧ l = [Ev.commit ht w word] := by
   induction hl with
   | nil => exact .inl rfl
   | commit word _ ha hw ih =>
     rcases ih with rfl | ⟨y, -, rfl⟩
-    · simp only [commitP, after, Option.some.injEq, Prog.commit.injEq] at ha
+    · simp only [readCommitment, after, Option.some.injEq, Prog.commit.injEq] at ha
       obtain ⟨rfl, rfl, -⟩ := ha
       exact .inr ⟨word, hw, rfl⟩
-    · simp [commitP, after] at ha
+    · simp [readCommitment, after] at ha
   | read _ _ ha ih | sample _ _ ha ih | grind _ ha ih | query _ ha _ ih =>
-    rcases ih with rfl | ⟨y, -, rfl⟩ <;> simp [commitP, after] at ha
+    rcases ih with rfl | ⟨y, -, rfl⟩ <;> simp [readCommitment, after] at ha
 
 open Classical in
 /-- **Commit** a matrix: `Post` after every well-shaped word; the boundary after the commitment
 carries the follower's lead. -/
 noncomputable def commitP {Post : Unit → List Ev → Prop} (ht w : ℕ)
     (h : ∀ h₀ word, Pre h₀ → WellShaped w word → Post () (h₀ ++ [Ev.commit ht w word]))
-    (hT : T ≤ εmax) : Spec (Prog.commitP ht w) Pre Post εmax 0 T where
+    (hT : T ≤ εmax) : Spec (Prog.readCommitment ht w) Pre Post εmax 0 T where
   D h₀ l := match l with
     | [] => Pre h₀
     | [e] => Post () (h₀ ++ [e])
@@ -280,43 +280,43 @@ noncomputable def commitP {Post : Unit → List Ev → Prop} (ht w : ℕ)
   start_V _ h := by simp [h]
   read := by
     intro _ _ _ _ hl ha
-    rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.commitP, after] at ha
+    rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.readCommitment, after] at ha
   grind := by
     intro _ _ _ _ hl ha
-    rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.commitP, after] at ha
+    rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.readCommitment, after] at ha
   commit := by
     intro h₀ l ht' w' k word hl ha hw hD
     rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩
-    · simp only [Prog.commitP, after, Option.some.injEq, Prog.commit.injEq] at ha
+    · simp only [Prog.readCommitment, after, Option.some.injEq, Prog.commit.injEq] at ha
       obtain ⟨rfl, rfl, -⟩ := ha
       exact h h₀ word hD hw
-    · simp [Prog.commitP, after] at ha
+    · simp [Prog.readCommitment, after] at ha
   sample := by
     intro _ _ _ hl ha
-    rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.commitP, after] at ha
+    rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.readCommitment, after] at ha
   query := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.commitP, after] at ha
+    rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.readCommitment, after] at ha
   moveEnd := by
     intro h₀ l q hl ha hm hD
     rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩
     · simp [hD]
-    · simp [Prog.commitP, after] at ha; subst ha
+    · simp [Prog.readCommitment, after] at ha; subst ha
       simp [IsMove] at hm
   retEnd := by
     intro h₀ l a hl ha hD
     rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩
-    · simp [Prog.commitP, after] at ha
+    · simp [Prog.readCommitment, after] at ha
     · simp only at hD ⊢; simp [hD]
   retDoom := by
     intro h₀ l a hl ha hD
     rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩
-    · simp [Prog.commitP, after] at ha
+    · simp [Prog.readCommitment, after] at ha
     · simp only at hD ⊢; simp [hD]
   post := by
     intro h₀ l a hl ha hD
     rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩
-    · simp [Prog.commitP, after] at ha
+    · simp [Prog.readCommitment, after] at ha
     · exact hD
   bound := by
     intro h₀ l hl hne hm hD
@@ -326,25 +326,25 @@ noncomputable def commitP {Post : Unit → List Ev → Prop} (ht w : ℕ)
       simp only [hD, ite_true, grindBits, List.getLast?_singleton, pow_zero, one_mul]
       exact (min_le_right _ _).trans hT
 
-private theorem reach_grindP {b : ℕ} {h₀ l : List Ev} (hl : (grindP b).Reach h₀ l) :
+private theorem reach_grindP {b : ℕ} {h₀ l : List Ev} (hl : (grindProofOfWork b).Reach h₀ l) :
     l = [] ∨ l = [Ev.grind b] := by
   induction hl with
   | nil => exact .inl rfl
   | grind _ ha ih =>
     rcases ih with rfl | rfl
-    · simp only [grindP, after, Option.some.injEq, Prog.grind.injEq] at ha
+    · simp only [grindProofOfWork, after, Option.some.injEq, Prog.grind.injEq] at ha
       obtain ⟨rfl, -⟩ := ha
       exact .inr rfl
-    · simp [grindP, after] at ha
+    · simp [grindProofOfWork, after] at ha
   | read _ _ ha ih | sample _ _ ha ih | commit _ _ ha _ ih | query _ ha _ ih =>
-    rcases ih with rfl | rfl <;> simp [grindP, after] at ha
+    rcases ih with rfl | rfl <;> simp [grindProofOfWork, after] at ha
 
 open Classical in
 /-- **Proof of work** of `b` bits: `Post` after it; the boundary after it carries the follower's
 lead discounted by `2⁻¹ ^ b`. -/
 noncomputable def grindP {Post : Unit → List Ev → Prop} (b : ℕ)
     (h : ∀ h₀, Pre h₀ → Post () (h₀ ++ [Ev.grind b]))
-    (hT : (2 : ENNReal)⁻¹ ^ b * T ≤ εmax) : Spec (Prog.grindP b) Pre Post εmax 0 T where
+    (hT : (2 : ENNReal)⁻¹ ^ b * T ≤ εmax) : Spec (Prog.grindProofOfWork b) Pre Post εmax 0 T where
   D h₀ l := match l with
     | [] => Pre h₀
     | [e] => Post () (h₀ ++ [e])
@@ -361,41 +361,41 @@ noncomputable def grindP {Post : Unit → List Ev → Prop} (b : ℕ)
   start_D _ h := h
   start_V _ h := by simp [h]
   read := by
-    intro _ _ _ _ hl ha; rcases reach_grindP hl with rfl | rfl <;> simp [Prog.grindP, after] at ha
+    intro _ _ _ _ hl ha; rcases reach_grindP hl with rfl | rfl <;> simp [Prog.grindProofOfWork, after] at ha
   grind := by
     intro h₀ l b' k hl ha hD
     rcases reach_grindP hl with rfl | rfl
-    · simp only [Prog.grindP, after, Option.some.injEq, Prog.grind.injEq] at ha
+    · simp only [Prog.grindProofOfWork, after, Option.some.injEq, Prog.grind.injEq] at ha
       obtain ⟨rfl, -⟩ := ha
       exact h h₀ hD
-    · simp [Prog.grindP, after] at ha
+    · simp [Prog.grindProofOfWork, after] at ha
   commit := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_grindP hl with rfl | rfl <;> simp [Prog.grindP, after] at ha
+    rcases reach_grindP hl with rfl | rfl <;> simp [Prog.grindProofOfWork, after] at ha
   sample := by
-    intro _ _ _ hl ha; rcases reach_grindP hl with rfl | rfl <;> simp [Prog.grindP, after] at ha
+    intro _ _ _ hl ha; rcases reach_grindP hl with rfl | rfl <;> simp [Prog.grindProofOfWork, after] at ha
   query := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_grindP hl with rfl | rfl <;> simp [Prog.grindP, after] at ha
+    rcases reach_grindP hl with rfl | rfl <;> simp [Prog.grindProofOfWork, after] at ha
   moveEnd := by
     intro h₀ l q hl ha hm hD
     rcases reach_grindP hl with rfl | rfl
     · simp [hD]
-    · simp [Prog.grindP, after] at ha; subst ha; simp [IsMove] at hm
+    · simp [Prog.grindProofOfWork, after] at ha; subst ha; simp [IsMove] at hm
   retEnd := by
     intro h₀ l a hl ha hD
     rcases reach_grindP hl with rfl | rfl
-    · simp [Prog.grindP, after] at ha
+    · simp [Prog.grindProofOfWork, after] at ha
     · simp only at hD ⊢; simp [hD]
   retDoom := by
     intro h₀ l a hl ha hD
     rcases reach_grindP hl with rfl | rfl
-    · simp [Prog.grindP, after] at ha
+    · simp [Prog.grindProofOfWork, after] at ha
     · simp only at hD ⊢; simp [hD]
   post := by
     intro h₀ l a hl ha hD
     rcases reach_grindP hl with rfl | rfl
-    · simp [Prog.grindP, after] at ha
+    · simp [Prog.grindProofOfWork, after] at ha
     · exact hD
   bound := by
     intro h₀ l hl hne hm hD
@@ -407,16 +407,16 @@ noncomputable def grindP {Post : Unit → List Ev → Prop} (b : ℕ)
 
 /-! ## Challenges and openings -/
 
-private theorem reach_sampleE {h₀ l : List Ev} (hl : sampleE.Reach h₀ l) :
+private theorem reach_sampleE {h₀ l : List Ev} (hl : sampleChallenge.Reach h₀ l) :
     l = [] ∨ ∃ c, l = [Ev.sample c] := by
   induction hl with
   | nil => exact .inl rfl
   | sample c _ ha ih =>
     rcases ih with rfl | ⟨y, rfl⟩
     · exact .inr ⟨c, rfl⟩
-    · simp [sampleE, after] at ha
+    · simp [sampleChallenge, after] at ha
   | read _ _ ha ih | grind _ ha ih | commit _ _ ha _ ih | query _ ha _ ih =>
-    rcases ih with rfl | ⟨y, rfl⟩ <;> simp [sampleE, after] at ha
+    rcases ih with rfl | ⟨y, rfl⟩ <;> simp [sampleChallenge, after] at ha
 
 /-- The doom of `Spec.sampleE`. -/
 def sampleD (Pre : List Ev → Prop) (Post : E → List Ev → Prop) (h₀ l : List Ev) : Prop :=
@@ -441,7 +441,7 @@ open Classical in
 noncomputable def sampleE {Post : E → List Ev → Prop} (e : ENNReal)
     (h : ∀ h₀, Pre h₀ → (Fintype.card E : ENNReal)⁻¹ *
       ((Finset.univ.filter fun c ↦ ¬ Post c (h₀ ++ [Ev.sample c])).card : ENNReal) ≤ e) :
-    Spec Prog.sampleE Pre Post εmax (e + T) T where
+    Spec Prog.sampleChallenge Pre Post εmax (e + T) T where
   D := sampleD Pre Post
   V h₀ l := match l with
     | [] => (Fintype.card E : ENNReal)⁻¹ * ∑ c : E, sampleG Pre Post T h₀ [Ev.sample c]
@@ -470,41 +470,41 @@ noncomputable def sampleE {Post : E → List Ev → Prop} (e : ENNReal)
       _ ≤ e + T := by gcongr; exact h h₀ hPre
   read := by
     intro _ _ _ _ hl ha
-    rcases reach_sampleE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.sampleE, after] at ha
+    rcases reach_sampleE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.sampleChallenge, after] at ha
   grind := by
     intro _ _ _ _ hl ha
-    rcases reach_sampleE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.sampleE, after] at ha
+    rcases reach_sampleE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.sampleChallenge, after] at ha
   commit := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_sampleE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.sampleE, after] at ha
+    rcases reach_sampleE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.sampleChallenge, after] at ha
   sample := by
     intro h₀ l k hl ha
     rcases reach_sampleE hl with rfl | ⟨y, rfl⟩
     · simp
-    · simp [Prog.sampleE, after] at ha
+    · simp [Prog.sampleChallenge, after] at ha
   query := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_sampleE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.sampleE, after] at ha
+    rcases reach_sampleE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.sampleChallenge, after] at ha
   moveEnd := by
     intro h₀ l q hl ha hm
     rcases reach_sampleE hl with rfl | ⟨y, rfl⟩
-    · simp only [Prog.sampleE, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
-    · simp only [Prog.sampleE, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
+    · simp only [Prog.sampleChallenge, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
+    · simp only [Prog.sampleChallenge, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
   retEnd := by
     intro h₀ l a hl ha hD
     rcases reach_sampleE hl with rfl | ⟨y, rfl⟩
-    · simp [Prog.sampleE, after] at ha
+    · simp [Prog.sampleChallenge, after] at ha
     · simp [sampleG, hD]
   retDoom := by
     intro h₀ l a hl ha hD
     rcases reach_sampleE hl with rfl | ⟨y, rfl⟩
-    · simp [Prog.sampleE, after] at ha
+    · simp [Prog.sampleChallenge, after] at ha
     · simp [sampleG, hD]
   post := by
     intro h₀ l a hl ha hD
     rcases reach_sampleE hl with rfl | ⟨y, rfl⟩
-    · simp [Prog.sampleE, after] at ha
-    · simp only [Prog.sampleE, after, Option.some.injEq, Prog.ret.injEq] at ha; subst ha; exact hD
+    · simp [Prog.sampleChallenge, after] at ha
+    · simp only [Prog.sampleChallenge, after, Option.some.injEq, Prog.ret.injEq] at ha; subst ha; exact hD
   bound := by
     intro h₀ l hl hne hm
     rcases reach_sampleE hl with rfl | ⟨y, rfl⟩
@@ -512,18 +512,18 @@ noncomputable def sampleE {Post : E → List Ev → Prop} (e : ENNReal)
     · simp [EndsMove] at hm
 
 private theorem reach_queryP {i : ℕ} {ps : List ℕ} {h₀ l : List Ev}
-    (hl : (queryP i ps).Reach h₀ l) :
+    (hl : (queryOpenings i ps).Reach h₀ l) :
     l = [] ∨ ∃ rows, answer h₀ i ps = some rows ∧ l = [Ev.query rows] := by
   induction hl with
   | nil => exact .inl rfl
   | @query l i' ps' k rows _ ha hans ih =>
     rcases ih with rfl | ⟨y, -, rfl⟩
-    · simp only [queryP, after, Option.some.injEq, Prog.query.injEq] at ha
+    · simp only [queryOpenings, after, Option.some.injEq, Prog.query.injEq] at ha
       obtain ⟨rfl, rfl, -⟩ := ha
       exact .inr ⟨rows, by simpa using hans, rfl⟩
-    · simp [queryP, after] at ha
+    · simp [queryOpenings, after] at ha
   | read _ _ ha ih | sample _ _ ha ih | grind _ ha ih | commit _ _ ha _ ih =>
-    rcases ih with rfl | ⟨y, -, rfl⟩ <;> simp [queryP, after] at ha
+    rcases ih with rfl | ⟨y, -, rfl⟩ <;> simp [queryOpenings, after] at ha
 
 /-- The doom of `Spec.queryP`. -/
 def queryD (Pre : List Ev → Prop) (Post : List (List K) → List Ev → Prop) (h₀ l : List Ev) :
@@ -538,7 +538,7 @@ open Classical in
 follower's. -/
 noncomputable def queryP {Post : List (List K) → List Ev → Prop} (i : ℕ) (ps : List ℕ)
     (h : ∀ h₀ rows, Pre h₀ → answer h₀ i ps = some rows → Post rows (h₀ ++ [Ev.query rows])) :
-    Spec (Prog.queryP i ps) Pre Post εmax T T where
+    Spec (Prog.queryOpenings i ps) Pre Post εmax T T where
   D := queryD Pre Post
   V h₀ l := if queryD Pre Post h₀ l then min 1 T else 1
   le_one _ _ := by split_ifs <;> simp
@@ -546,39 +546,39 @@ noncomputable def queryP {Post : List (List K) → List Ev → Prop} (i : ℕ) (
   start_V _ h := by simp [queryD, h]
   read := by
     intro _ _ _ _ hl ha
-    rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.queryP, after] at ha
+    rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.queryOpenings, after] at ha
   grind := by
     intro _ _ _ _ hl ha
-    rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.queryP, after] at ha
+    rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.queryOpenings, after] at ha
   commit := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.queryP, after] at ha
+    rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.queryOpenings, after] at ha
   sample := by
     intro _ _ _ hl ha
-    rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.queryP, after] at ha
+    rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.queryOpenings, after] at ha
   query := by
     intro h₀ l i' ps' k rows hl ha hans
     rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩
-    · simp only [Prog.queryP, after, Option.some.injEq, Prog.query.injEq] at ha
+    · simp only [Prog.queryOpenings, after, Option.some.injEq, Prog.query.injEq] at ha
       obtain ⟨rfl, rfl, -⟩ := ha
       by_cases hP : Pre h₀
       · have := h h₀ rows hP (by simpa using hans)
         simp [queryD, hP, this]
       · simp only [queryD, hP, ite_false]
         split_ifs <;> simp
-    · simp [Prog.queryP, after] at ha
+    · simp [Prog.queryOpenings, after] at ha
   moveEnd := by
     intro h₀ l q hl ha hm
     rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩
-    · simp only [Prog.queryP, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
-    · simp only [Prog.queryP, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
+    · simp only [Prog.queryOpenings, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
+    · simp only [Prog.queryOpenings, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
   retEnd := by intro _ _ _ _ _ hD; simp [hD]
   retDoom := by intro _ _ _ _ _ hD; simp [hD]
   post := by
     intro h₀ l a hl ha hD
     rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩
-    · simp [Prog.queryP, after] at ha
-    · simp only [Prog.queryP, after, Option.some.injEq, Prog.ret.injEq] at ha; subst ha; exact hD
+    · simp [Prog.queryOpenings, after] at ha
+    · simp only [Prog.queryOpenings, after, Option.some.injEq, Prog.ret.injEq] at ha; subst ha; exact hD
   bound := by
     intro h₀ l hl hne hm
     rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩

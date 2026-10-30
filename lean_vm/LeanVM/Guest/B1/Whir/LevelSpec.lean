@@ -31,9 +31,9 @@ open LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 def levelRest (messageLog index : ℕ) (level : Whir.Level) (levelFolds : List E)
     (s : WhirStateT) (pending : List (E × List E × (List E → E))) : Prog WhirStateT := do
   let queries ← sampleQueries (messageLog + level.logInvRate) level.queries
-  let lam ← Prog.sampleE
+  let lam ← Prog.sampleChallenge
   let queryWeights := powers lam queries.length
-  let words ← Prog.queryP index queries
+  let words ← Prog.queryOpenings index queries
   let rows : List (List E) :=
     if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
   let enforced := enforcedSum rows levelFolds queryWeights
@@ -44,7 +44,7 @@ def levelRest (messageLog index : ℕ) (level : Whir.Level) (levelFolds : List E
 theorem levelQueries_eq (messageLog index : ℕ) (level : Whir.Level) (levelFolds : List E)
     (s : WhirStateT) (pending : List (E × List E × (List E → E))) :
     levelQueries messageLog index level levelFolds s pending =
-      (Prog.grindP Whir.queryGrindingBits).bind fun _ ↦
+      (Prog.grindProofOfWork Whir.queryGrindingBits).bind fun _ ↦
         levelRest messageLog index level levelFolds s pending := rfl
 
 /-- A level up to its glued state: the residual (read at the last level), the message log after
@@ -53,7 +53,7 @@ def levelHead (logN index : ℕ) (level : Whir.Level) (rest : List Whir.Level) (
     Prog (List E × ℕ × WhirStateT) := do
   let (s, levelFolds) ← foldRoundsT level.fold s []
   let (residual, pending) ← levelMid (logN - s.folds.length) rest
-  Prog.grindP Whir.queryGrindingBits
+  Prog.grindProofOfWork Whir.queryGrindingBits
   let s' ← levelRest (logN - s.folds.length) index level levelFolds s pending
   return (residual, logN - s.folds.length, s')
 

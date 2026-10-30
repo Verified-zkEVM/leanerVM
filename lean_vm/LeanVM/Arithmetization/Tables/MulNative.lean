@@ -107,7 +107,7 @@ structure MulRow (F : Type) where
 /-! ## The relation -/
 
 /-- The row's bindings to an image: the operand cells hold the row's words. -/
-structure MulBindings {κ : ℕ} (mem : MemImage κ) (r : MulRow K) : Prop where
+structure MulBindings {κ : ℕ} (mem : MemoryImage κ) (r : MulRow K) : Prop where
   /-- The cell `fp · o_A` holds the row's word `v_A`. -/
   readA_eq : mem.read (r.fp * r.oA) = some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2])
   /-- The cell `fp · o_B` holds the row's word `v_B`. -/
@@ -115,7 +115,7 @@ structure MulBindings {κ : ℕ} (mem : MemImage κ) (r : MulRow K) : Prop where
 
 /-- The relation a `MUL_NATIVE` row refines: it is bound to the image, and from its registers
 the machine executes the instruction it names, `MUL_NATIVE o_A o_B o_C`, to `next`. -/
-structure MulRefines {κ : ℕ} (mem : MemImage κ) (r : MulRow K) (next : Regs K) : Prop where
+structure MulRefines {κ : ℕ} (mem : MemoryImage κ) (r : MulRow K) (next : Registers K) : Prop where
   /-- The row is bound to the image. -/
   bindings : MulBindings mem r
   /-- From the row's registers the machine executes `MUL_NATIVE o_A o_B o_C` to `next`. -/
@@ -123,12 +123,12 @@ structure MulRefines {κ : ℕ} (mem : MemImage κ) (r : MulRow K) (next : Regs 
 
 /-- `MulRefines`, expanded: the bindings, the result cell holds the product in `E`, and the
 successor is the fall-through `(g·pc, fp)`. -/
-theorem mul_refines_iff {κ : ℕ} (mem : MemImage κ) (r : MulRow K) (next : Regs K) :
+theorem mul_refines_iff {κ : ℕ} (mem : MemoryImage κ) (r : MulRow K) (next : Registers K) :
     MulRefines mem r next ↔
       MulBindings mem r ∧
         mem.read (r.fp * r.oC) =
           some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2] * E.ofLimbs r.vB[0] r.vB[1] r.vB[2]) ∧
-        next = Regs.next ⟨r.pc, r.fp⟩ := by
+        next = Registers.next ⟨r.pc, r.fp⟩ := by
   constructor
   · rintro ⟨⟨hA, hB⟩, hexec⟩
     refine ⟨⟨hA, hB⟩, ?_⟩
@@ -149,7 +149,7 @@ theorem mul_refines_iff {κ : ℕ} (mem : MemImage κ) (r : MulRow K) (next : Re
 
 /-- The table's `Spec`: the row refines `MulRefines` over the image the prover data names. No
 program: the table is program-free (the module docstring). -/
-def MulSpec (r : MulRow K) (next : Regs K) (data : ProverData K) : Prop :=
+def MulSpec (r : MulRow K) (next : Registers K) (data : ProverData K) : Prop :=
   MulRefines (imageOf data).2 r next
 
 /-- The bytecode tuple of a row is `entry` of the instruction it names, by definition; spelled
@@ -162,9 +162,9 @@ private theorem mulNative_entry (a b c : K) :
 /-- The `MUL_NATIVE` table (specification §7.2; `tables.rs:441-526`): state step, bytecode read
 of `(MUL, o_A, o_B, o_C, 0, 0, 0, 0)`, the two operand reads, and the result read carrying the
 tower product's three lanes. Returns the pushed successor `(g·pc, fp)`. -/
-def mulTable : GeneralFormalCircuit K MulRow Regs where
+def mulTable : GeneralFormalCircuit K MulRow Registers where
   main r := do
-    let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
+    let next : Var Registers K := ⟨Expression.const g * r.pc, r.fp⟩
     StatePull.pull ⟨r.pc, r.fp⟩
     StatePush.push next
     bytecodeRead r.pc r.rbc (Expression.const Opcode.mulNative.code)
@@ -220,13 +220,13 @@ def mulTable : GeneralFormalCircuit K MulRow Regs where
 /-- The row of an execution of `MUL_NATIVE oA oB oC` from `(pc, fp)` over the image `mem`: the
 registers, the operands, the two operand words read back from the image, and the counts as
 parameters. Noncomputable: it reads the image. -/
-noncomputable def mulRowOf {κ : ℕ} (mem : MemImage κ) (pc fp oA oB oC rA rB rC rbc : K) :
+noncomputable def mulRowOf {κ : ℕ} (mem : MemoryImage κ) (pc fp oA oB oC rA rB rC rbc : K) :
     MulRow K :=
   ⟨pc, fp, oA, oB, oC, mem.limbsAt (fp * oA), mem.limbsAt (fp * oB), rA, rB, rC, rbc⟩
 
 /-- A valid execution of `MUL_NATIVE oA oB oC` is represented by `mulRowOf`, with any counts:
 the honest prover's row refines the relation, which is `ProverAssumptions` over the data. -/
-theorem mulRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp oA oB oC : K} {next : Regs K}
+theorem mulRowOf_refines {κ : ℕ} {mem : MemoryImage κ} {pc fp oA oB oC : K} {next : Registers K}
     (hexec : execute mem ⟨pc, fp⟩ (.mulNative oA oB oC) = some next) (rA rB rC rbc : K) :
     MulRefines mem (mulRowOf mem pc fp oA oB oC rA rB rC rbc) next := by
   have h := hexec
@@ -235,14 +235,14 @@ theorem mulRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp oA oB oC : K} {ne
   refine ⟨⟨?_, ?_⟩, hexec⟩
   · show mem.read (fp * oA) = some (E.ofLimbs (mem.limbsAt (fp * oA))[0]
       (mem.limbsAt (fp * oA))[1] (mem.limbsAt (fp * oA))[2])
-    rw [MemImage.ofLimbs_limbsAt ha]; exact ha
+    rw [MemoryImage.ofLimbs_limbsAt ha]; exact ha
   · show mem.read (fp * oB) = some (E.ofLimbs (mem.limbsAt (fp * oB))[0]
       (mem.limbsAt (fp * oB))[1] (mem.limbsAt (fp * oB))[2])
-    rw [MemImage.ofLimbs_limbsAt hb]; exact hb
+    rw [MemoryImage.ofLimbs_limbsAt hb]; exact hb
 
 /-- Every valid `MUL_NATIVE` execution has a satisfying row, from the execution alone: the
 constraints of `main` hold of `mulRowOf` in the row environment over the data. -/
-theorem mul_exec_complete {data : ProverData K} {pc fp oA oB oC : K} {next : Regs K}
+theorem mul_exec_complete {data : ProverData K} {pc fp oA oB oC : K} {next : Registers K}
     (hexec : execute (imageOf data).2 ⟨pc, fp⟩ (.mulNative oA oB oC) = some next)
     (rA rB rC rbc : K) :
     ConstraintsHold.Completeness (rowEnv data)

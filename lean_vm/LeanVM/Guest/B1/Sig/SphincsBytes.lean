@@ -32,7 +32,7 @@ variable {σ : Val}
 
 /-- **A range check, sound**: against `g^(K-1)`, on a memory image of at most `2^32` words, the
 value is `g^e` for some `e < K`. -/
-theorem range_sound {κ : Nat} (hκ : κ ≤ 32) (L : MemImage κ) {x y t1 t2 : E} {K : Nat}
+theorem range_sound {κ : Nat} (hκ : κ ≤ 32) (L : MemoryImage κ) {x y t1 t2 : E} {K : Nat}
     (hK : 1 ≤ K) (hK' : K ≤ 2 ^ 32) (h1 : LoadHolds L.read x 0 t1) (hk : ofK (gpow (K - 1)) = x * y)
     (h2 : LoadHolds L.read y 0 t2) : ∃ e < K, x = ofK (gpow e) := by
   have hκ64 : κ < 64 := by omega
@@ -67,7 +67,7 @@ theorem g7W_eq : g7W = ofK (gpow 7) := by
 
 /-- **A byte, sound**: a mark range checked below `K ≤ 256` and read off the byte table at
 `σ (.n 1)` is the word of its exponent. -/
-theorem sByte_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemImage κ} {mark : V} {bound : E} {b K : Nat}
+theorem sByte_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} {mark : V} {bound : E} {b K : Nat}
     (hK : 1 ≤ K) (hK256 : K ≤ 256) (hbound : bound = ofK (gpow (K - 1)))
     (hbb : ByteBits L.read (σ (.n 1))) (h : AtomsHold L.read σ (sByte mark bound b)) :
     ∃ e < K, σ (.n (b + 5)) = eOfNat e := by
@@ -96,7 +96,7 @@ theorem sByte_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemImage κ} {mark : V} {b
 theorem word256_eq : word 256 0 0 = eOfNat (2 ^ 8) := word_eq_eOfNat 256
 
 /-- **The bytes after the top one, folded**: from a word below `M`, a word below `M · 256^n`. -/
-theorem sFromBytesRest_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemImage κ}
+theorem sFromBytesRest_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
     (hbb : ByteBits L.read (σ (.n 1))) :
     ∀ (ms : List V) (b : Nat) (val : V) (N M : Nat), σ val = eOfNat N → N < M →
       M * 256 ^ ms.length ≤ 2 ^ 64 → AtomsHold L.read σ (sFromBytesRest ms b val).1 →
@@ -129,7 +129,7 @@ theorem sFromBytesRest_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemImage κ}
 
 /-- **`sp_from_bytes`, sound**: the top byte range checked below `K`, the value is a word below
 `K · 256^n`, `n` the bytes after it. -/
-theorem sFromBytes_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemImage κ} (hbb : ByteBits L.read (σ (.n 1)))
+theorem sFromBytes_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} (hbb : ByteBits L.read (σ (.n 1)))
     {top : V} {rest : List V} {bound : E} {b K : Nat} (hK : 1 ≤ K) (hK256 : K ≤ 256)
     (hbound : bound = ofK (gpow (K - 1))) (hM : K * 256 ^ rest.length ≤ 2 ^ 64)
     (h : AtomsHold L.read σ (sFromBytes top rest bound b).1) :

@@ -133,7 +133,7 @@ theorem leaf_size_le (u : End.Work) (hxs : u.rawXmss + u.rawSphincs ≤ 2048) (h
       simp only [List.map_nil, List.sum_nil] <;> omega
 
 /-- **Every recursion node of at most `2048` claims has a valid execution of the guest**: for
-every seed, statement `s` and witness `w` with `NodeRel`, within the deployed limits (so at most
+every seed, statement `s` and witness `w` with `NodeRelation`, within the deployed limits (so at most
 `16` children, each at one of the guest's opening arms), the caps agreeing and no zero challenge
 where the guest divides, holding no raw leanXMSS or leanSPHINCS signature and no blob directly,
 with at most `2048` declared claims, coverage slots and children's claims, there is a valid
@@ -146,7 +146,7 @@ theorem guest_complete_recursion : GuestCompleteRecursion := by
   · simpa [work] using hlim.children
 
 /-- **Every leaf of at most `2048` raw signatures has a valid execution of the guest**: for every
-seed, statement `s` and witness `w` with `NodeRel`, within the deployed limits, with no child and
+seed, statement `s` and witness `w` with `NodeRelation`, within the deployed limits, with no child and
 no blob held directly, at most `2048` raw leanXMSS and leanSPHINCS signatures together and at most
 `2048` declared claims and coverage slots, there is a valid execution of the guest on the
 statement's digest of committed size in `[2^22, 2^28]`. -/

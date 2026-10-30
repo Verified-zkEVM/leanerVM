@@ -82,7 +82,7 @@ def osBodyF (c : OsCfg) (tr : OsTr) (σ : Val) (c0 c2 : E) (A : OsAt) : ℕ → 
 
 /-- **What the run gives of its trace** beyond the body: each level's query step is one of the
 run's (so `CapsAgree` speaks of it), and each level's tree has height `L.D`. -/
-structure TrRun (c : OsCfg) (μ r : ℕ) (target : E) (S : KState) (xs : List E) (os : List Opening)
+structure TrRun (c : OsCfg) (μ r : ℕ) (target : E) (S : KeccakState) (xs : List E) (os : List Opening)
     (root : Digest) (tr : OsTr) : Prop where
   qs : ∀ L ∈ tr.Ls, (L.height, L.qs.zip L.os) ∈
     queryStepsOf (whirOpen μ r target) (osStart μ r S xs os root)
@@ -92,7 +92,7 @@ structure TrRun (c : OsCfg) (μ r : ℕ) (target : E) (S : KState) (xs : List E)
 
 /-- **open_stacked's body, honestly, on the Spec's run.** -/
 theorem osBodyA_honest {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg)
-    (hs : OsSizes c) {S : KState} {root : Digest} {target : E} {xs : List E} {os : List Opening}
+    (hs : OsSizes c) {S : KeccakState} {root : Digest} {target : E} {xs : List E} {os : List Opening}
     {w : WhirEnd} {s' : Fs} {roots' : List (Digest × ℕ × ℕ)}
     (hrun : RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s'
       roots')

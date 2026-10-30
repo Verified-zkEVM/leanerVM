@@ -60,13 +60,13 @@ open scoped ENNReal
 
 /-- An adversary of the random-oracle model: a computation with oracle access to the two random
 oracles that outputs a statement and a proof. -/
-abbrev Adversary : Type := OracleComp HashSpec (Statement × Proof)
+abbrev Adversary : Type := OracleComp KeccakCalls (ProgramAndInput × Proof)
 
 /-- An outcome of the experiment: the statement and the proof, the verdict, the oracle's answers
 at the end (to the adversary's queries and the verifier's), and the oracle's answers when the
 adversary returned (to the adversary's queries). -/
 abbrev Outcome : Type :=
-  ((Statement × Proof) × Bool) × HashSpec.QueryCache × HashSpec.QueryCache
+  ((ProgramAndInput × Proof) × Bool) × KeccakCalls.QueryCache × KeccakCalls.QueryCache
 
 /-- The outcome's program. -/
 abbrev Outcome.program (z : Outcome) : Program := z.1.1.1.1
@@ -85,15 +85,15 @@ abbrev Outcome.rejected (z : Outcome) : Prop := z.1.2 = false
 
 /-- The oracle's answers to the adversary's queries: the cache when the adversary returned,
 before the verifier ran. -/
-abbrev Outcome.adversaryCache (z : Outcome) : HashSpec.QueryCache := z.2.2
+abbrev Outcome.adversaryCache (z : Outcome) : KeccakCalls.QueryCache := z.2.2
 
 /-- **The random-oracle experiment**: the adversary from the empty cache, then the verifier on its
 statement and proof, continuing from the cache the adversary left: one lazily sampled random
 oracle. -/
 noncomputable def experiment (A : Adversary) : ProbComp Outcome := do
-  let (z, adversaryCache) ← (simulateQ HashSpec.randomOracle A).run ∅
+  let (z, adversaryCache) ← (simulateQ KeccakCalls.randomOracle A).run ∅
   let (verdict, cache) ←
-    (simulateQ HashSpec.randomOracle (verifier queryH queryF z.1.1 z.1.2 z.2)).run adversaryCache
+    (simulateQ KeccakCalls.randomOracle (verifier callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2)).run adversaryCache
   return ((z, verdict), cache, adversaryCache)
 
 /-! ## Knowledge soundness -/
@@ -101,7 +101,7 @@ noncomputable def experiment (A : Adversary) : ProbComp Outcome := do
 /-- An extractor of the random-oracle model: from the oracle's answers to the adversary's queries
 and the proof, an execution of the program. -/
 abbrev Extractor : Type :=
-  (prog : Program) → PublicInput → HashSpec.QueryCache → Proof → Option (Trace prog)
+  (prog : Program) → PublicInput → KeccakCalls.QueryCache → Proof → Option (Execution prog)
 
 /-- **The extractor of the random-oracle model** (`LeanVM.Extraction.extract`,
 `Statement/Extractor.lean`) on the adversary's cached Keccak-256 answers, with the byte strings
@@ -129,7 +129,7 @@ def KnowledgeSoundnessRom : Prop :=
 
 /-- **Completeness in the two-oracle random-oracle model.** -/
 def CompletenessRom : Prop :=
-  ∃ prover : HonestProver, ∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ fuel : ℕ),
+  ∃ prover : HonestProver, ∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
     ValidExecution prog input t →
     t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
     Pr{let z ← experiment ((fun proof ↦ ((prog, input), proof)) <$> prover prog input t ρ fuel)}[

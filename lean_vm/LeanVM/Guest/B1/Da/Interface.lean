@@ -19,7 +19,7 @@ proof is the theorem `…_holds` of the family's modules.
 
 | function | G | core | meaning |
 | --- | --- | --- | --- |
-| `da_verify` | 3920-3982 | `core25` | `Da.Witness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCodewords`), orthogonal to a vector of the returned digest (`LeanDa.vectorDigest`) |
+| `da_verify` | 3920-3982 | `core25` | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCodewords`), orthogonal to a vector of the returned digest (`LeanDa.vectorDigest`) |
 | `da_row_shape` | 3985-3994 | `core26` | `n_blob = g^r`, `1 ≤ r ≤ 1024`, the padded count `2^L = LeanDa.nPad r` |
 | `da_verify_cell` | 4019-4030 | `core27` | one cell's digest (`LeanDa.listCellDigest`) and its dot product with the column's weights |
 | `da_levels__L{n}_L{k}` | 4033-4041 | `core364`, `core367-376` | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRoot`) |
@@ -64,11 +64,11 @@ def pairCells (nodes : List (E × E)) : List E := nodes.flatMap fun p ↦ [p.1, 
 /-! ## `da_verify` (G:3915-3977, TRIAGE #90) -/
 
 /-- **`da_verify(g_squares)`**: with the exponent table at `g_squares`, a witness opens the claim
-of the returned root and vector digest (`Da.Witness.Opens`), the four returned words their
+of the returned root and vector digest (`Da.MatrixWitness.Opens`), the four returned words their
 digests' cells. -/
 def MeaningDaVerify (rd : Reader) : List E → List E → Prop
   | [gsq], rets => SquaresAt rd gsq →
-      ∃ (w : LeanVM.Da.Witness) (root vd : Digest), w.Opens root vd ∧
+      ∃ (w : LeanVM.Da.MatrixWitness) (root vd : Digest), w.Opens root vd ∧
         rets = digestCells root ++ digestCells vd
   | _, _ => False
 
@@ -139,7 +139,7 @@ pointer `p` (every readable word at `p·g^k` is weight `k`), and the two cells o
 def MeaningDaVectorCell (rd : Reader) : List E → List E → Prop
   | [dg], [p] => ∃ ws : List E, ws.length = LeanDa.cellSymbols ∧ IsInK p ∧
       (∀ k < LeanDa.cellSymbols, ∀ w, rd (p.limb 0 * Parameters.gpow k) = some w → w = ws.getD k 0) ∧
-      ReadsAt rd dg (digestCells (keccak256 (ws.flatMap Node.eBytes)))
+      ReadsAt rd dg (digestCells (keccak256 (ws.flatMap Node.extensionElementBytes)))
   | _, _ => False
 
 /-- `da_vector_cell`'s core IR gives its meaning. -/

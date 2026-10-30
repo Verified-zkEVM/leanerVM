@@ -48,7 +48,7 @@ theorem runsTo_det {α : Type} {p : Prog α} {s t1 t2 : Fs} {xs1 xs2 r1 r2 : Lis
   obtain ⟨sp1, c1, e1⟩ := h1 sp hsp r1 [] []
   obtain ⟨sp2, c2, e2⟩ := h2 sp hsp r2 [] []
   rw [he, e2] at e1
-  simp only [Option.some.injEq, Prod.mk.injEq, St.mk.injEq] at e1
+  simp only [Option.some.injEq, Prod.mk.injEq, ProgState.mk.injEq] at e1
   obtain ⟨rfl, rfl, rfl, -⟩ := e1
   refine ⟨rfl, ?_, rfl⟩
   obtain ⟨c1a, c1b⟩ := c1

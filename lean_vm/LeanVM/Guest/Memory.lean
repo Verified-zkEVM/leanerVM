@@ -51,7 +51,7 @@ every equation (`Honest.read_eqn`); the evaluation and every instance in it are 
 image (`Honest.valid_image`, `Honest.inst_good`); a callee is the instance at its caller's
 callee frame (`honest_kid`), a loop helper's tail call at `fp + fs f` (`honest_kidFps_getLast?`); the
 public input is in words `0`, `1` and `minLogMem ≤ κ ≤ maxLogMem` (`Honest.publicBoundary`).
-`Trace.committedSize ≤ 2^28` is the end theorem's: `logMem_le_iff` and `two_pow_logMem_le`
+`Execution.committedSize ≤ 2^28` is the end theorem's: `logMem_le_iff` and `two_pow_logMem_le`
 bound `2^κ` by the words allocated.
 -/
 
@@ -110,7 +110,7 @@ end Valid
 
 /-- **The equations are consistent** when the evaluation is valid on a memory holding their
 addresses. -/
-theorem Tree.Valid.eqns_consistent {P : Core.Program} {κ : ℕ} (hκ : κ < 64) {M : MemImage κ}
+theorem Tree.Valid.eqns_consistent {P : Core.Program} {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ}
     {T : Tree} {args rets : List E} (hv : T.Valid P M.read args rets)
     (ha : ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ κ), q.1 = gpow i) : Consistent (T.eqns P) :=
   consistent_of_read fun q hq => hv.eqns_read hκ T q hq (ha q hq)
@@ -127,7 +127,7 @@ def honestInsts : List Inst := T.insts fs P.loop H 0 hdr
 
 /-- **The honest memory**: the frames' writes and the paths' equations, on `2^logMem` words for
 the words allocated. -/
-noncomputable def honest : MemImage (logMem (T.total fs)) :=
+noncomputable def honest : MemoryImage (logMem (T.total fs)) :=
   image (logMem (T.total fs)) (frameWrites C (honestInsts P fs H hdr T) ++ T.eqns P)
 
 /-- What the honest memory needs. -/
@@ -229,8 +229,8 @@ theorem root_inst : ∃ I ∈ honestInsts P fs H hdr T, I.t = T ∧ I.fp = 0 ∧
 it in words `0`, `1`, and has between `2^16` and `2^32` words. -/
 theorem Honest.publicBoundary {input : PublicInput} {prog : Semantics.Program}
     (h : Honest P fs H C (input.word0, input.word1) T rd args rets) :
-    HasPublicBoundary input
-      (⟨logMem (T.total fs), honest P fs H C (input.word0, input.word1) T, 0⟩ : Trace prog) := by
+    HoldsPublicInput input
+      (⟨logMem (T.total fs), honest P fs H C (input.word0, input.word1) T, 0⟩ : Execution prog) := by
   obtain ⟨I, hI, -, hfp, hh⟩ := root_inst (fs := fs) (H := H) (hdr := (input.word0, input.word1))
     (T := T)
   obtain ⟨h0, h1⟩ := h.read_hdr hI
@@ -321,7 +321,7 @@ theorem honest_eqns {q : Write} (hq : q ∈ T.eqns P) :
 
 /-- **A memory holding the frames**: a placed tree valid on a memory holding every frame write
 is `HonestAt`, its equations consistent and agreeing with the frames. -/
-theorem honestAt_of_read {cert : String → V → ℕ} {M : MemImage (logMem (T.total fs))}
+theorem honestAt_of_read {cert : String → V → ℕ} {M : MemoryImage (logMem (T.total fs))}
     (hv : T.Valid P M.read args rets) (hb : T.BufsOk P) (hp : T.Placed P fs cert 0)
     (hsize : T.total fs ≤ 2 ^ 32) (hcells : CellsOk fs C (honestInsts P fs H hdr T))
     (haddr : ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ logMem (T.total fs)), q.1 = gpow i)

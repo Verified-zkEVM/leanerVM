@@ -315,7 +315,7 @@ def keccakCap : Source.Program :=
 open LeanVM.Semantics in
 /-- Keccak-f[1600] of the thirteen cells, both layouts even. -/
 def permCells (cells : List E) : List E :=
-  (List.finRange 13).map (cellsOfState (keccakF (stateOfCells (fun c => cells.getD c.val 0) false))
+  (List.finRange 13).map (cellsOfState (keccakF1600 (stateOfCells (fun c => cells.getD c.val 0) false))
     false)
 
 /-- The duplex step's output: the message `5, 6, 7, 8`, zero, then the first permutation's

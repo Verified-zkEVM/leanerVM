@@ -1,11 +1,11 @@
 /-
   LeanVM.Guest.B1.Da.WitnessComplete
 
-  `da_verify` on a LeanDA witness: a witness opening `(root, vd)` (`Da.Witness.Opens`), and the
+  `da_verify` on a LeanDA witness: a witness opening `(root, vd)` (`Da.MatrixWitness.Opens`), and the
   memory an honest run of it leaves, give `da_verify`'s relation returning the cells of `root` and
   `vd` (TRIAGE G #90).
 
-  The witness and `Da.Witness.Opens` are Benedikt Wagner's LeanDA formalization, as ported here.
+  The witness and `Da.MatrixWitness.Opens` are Benedikt Wagner's LeanDA formalization, as ported here.
 -/
 
 module
@@ -32,15 +32,15 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 @[expose] public section
 
 /-- A witness's cells: cell `j` of codeword `i`, padded outside the matrix. -/
-def wSyms (w : LeanVM.Da.Witness) (i j : ℕ) : List K :=
+def wSyms (w : LeanVM.Da.MatrixWitness) (i j : ℕ) : List K :=
   if i < w.rows.length ∧ j < 128 then LeanDa.listCell (w.rows.getD i []) j else List.replicate 256 0
 
 /-- A witness's columns of weights, padded outside the vector. -/
-def wWs (w : LeanVM.Da.Witness) (j : ℕ) : List E :=
+def wWs (w : LeanVM.Da.MatrixWitness) (j : ℕ) : List E :=
   if j < 128 then (w.vector.drop (256 * j)).take 256 else List.replicate 256 0
 
 /-- The padded count's log. -/
-def wLog (w : LeanVM.Da.Witness) : ℕ := LeanDa.logPad w.rows.length
+def wLog (w : LeanVM.Da.MatrixWitness) : ℕ := LeanDa.logPad w.rows.length
 
 /-- A list of `128` blocks of `256` is the flattening of its blocks. -/
 theorem flatMap_blocks {α : Type} (l : List α) (d : α) (hl : l.length = 128 * 256) (f : ℕ → List α)
@@ -57,7 +57,7 @@ theorem flatMap_blocks {α : Type} (l : List α) (d : α) (hl : l.length = 128 *
   congr 2
   omega
 
-theorem wSyms_length (w : LeanVM.Da.Witness) (hrow : ∀ row ∈ w.rows, row.length = 2 ^ LeanDa.logM)
+theorem wSyms_length (w : LeanVM.Da.MatrixWitness) (hrow : ∀ row ∈ w.rows, row.length = 2 ^ LeanDa.logM)
     (i j : ℕ) : (wSyms w i j).length = 256 := by
   unfold wSyms
   split
@@ -68,7 +68,7 @@ theorem wSyms_length (w : LeanVM.Da.Witness) (hrow : ∀ row ∈ w.rows, row.len
     omega
   · rw [List.length_replicate]
 
-theorem wWs_length (w : LeanVM.Da.Witness) (hv : w.vector.length = 2 ^ LeanDa.logM) (j : ℕ) :
+theorem wWs_length (w : LeanVM.Da.MatrixWitness) (hv : w.vector.length = 2 ^ LeanDa.logM) (j : ℕ) :
     (wWs w j).length = 256 := by
   unfold wWs
   split
@@ -78,7 +78,7 @@ theorem wWs_length (w : LeanVM.Da.Witness) (hv : w.vector.length = 2 ^ LeanDa.lo
   · rw [List.length_replicate]
 
 /-- **A witness is its cells and columns.** -/
-theorem witness_eq {w : LeanVM.Da.Witness} {root vd : Digest} (hw : w.Opens root vd) :
+theorem witness_eq {w : LeanVM.Da.MatrixWitness} {root vd : Digest} (hw : w.Opens root vd) :
     w = ⟨daRows w.rows.length (wSyms w), daVector (wWs w)⟩ := by
   obtain ⟨-, -, hrow, -, hv, -, -⟩ := hw
   obtain ⟨rows, vector⟩ := w
@@ -98,18 +98,18 @@ theorem witness_eq {w : LeanVM.Da.Witness} {root vd : Digest} (hw : w.Opens root
 
 theorem toBytes_inj {d d' : Digest} (h : LeanVM.Protocol.Digest.toBytes d = LeanVM.Protocol.Digest.toBytes d') : d = d' := by
   apply LeanVM.Protocol.KeccakHash.digestBytes_injective
-  have := congrArg (fun x : Common.KDigest => x.toList) h
+  have := congrArg (fun x : Common.DigestBytes => x.toList) h
   simpa [LeanVM.Protocol.Digest.toBytes] using this
 
-theorem wSyms_len {w : LeanVM.Da.Witness} {root vd : Digest} (hw : w.Opens root vd) (i j : ℕ) :
+theorem wSyms_len {w : LeanVM.Da.MatrixWitness} {root vd : Digest} (hw : w.Opens root vd) (i j : ℕ) :
     (wSyms w i j).length = 256 := wSyms_length w hw.2.2.1 i j
 
-theorem wWs_len {w : LeanVM.Da.Witness} {root vd : Digest} (hw : w.Opens root vd) (j : ℕ) :
+theorem wWs_len {w : LeanVM.Da.MatrixWitness} {root vd : Digest} (hw : w.Opens root vd) (j : ℕ) :
     (wWs w j).length = 256 := wWs_length w hw.2.2.2.2.1 j
 
 set_option maxRecDepth 20000 in
 /-- **A witness's rows are orthogonal to its vector**, cell by cell. -/
-theorem wDot {w : LeanVM.Da.Witness} {root vd : Digest} (hw : w.Opens root vd) :
+theorem wDot {w : LeanVM.Da.MatrixWitness} {root vd : Digest} (hw : w.Opens root vd) :
     ∀ i < w.rows.length, ∑ j ∈ Finset.range 128, ∑ e ∈ Finset.range 256,
       (wWs w j).getD e 0 * ofK ((wSyms w i j).getD e 0) = 0 := by
   intro i hi
@@ -131,7 +131,7 @@ theorem wDot {w : LeanVM.Da.Witness} {root vd : Digest} (hw : w.Opens root vd) :
   rfl
 
 /-- **The claim a witness opens** is its cells' root and its columns' digest. -/
-theorem opens_eq {w : LeanVM.Da.Witness} {root vd : Digest} (hw : w.Opens root vd) :
+theorem opens_eq {w : LeanVM.Da.MatrixWitness} {root vd : Digest} (hw : w.Opens root vd) :
     root = daRoot w.rows.length (wLog w) (wSyms w) ∧ vd = daVd (wWs w) := by
   obtain ⟨hlo, -⟩ := nPad_bounds hw.1
   have ho := opens_of hw.1 hw.2.1 rfl hlo (wSyms_len hw) (wWs_len hw) (wDot hw)
@@ -143,7 +143,7 @@ theorem opens_eq {w : LeanVM.Da.Witness} {root vd : Digest} (hw : w.Opens root v
 image with the exponent table at `gsq` and the honest memory of the witness at any choice of the
 buffers `P`, `da_verify` returns the cells of `root` and `vd`. -/
 theorem da_verify_complete {rd : Reader} (hm : MemOk rd) {gsq : E} (hsq : SquaresAt rd gsq)
-    {w : LeanVM.Da.Witness} {root vd : Digest} (hw : w.Opens root vd) {P : DaPtrs}
+    {w : LeanVM.Da.MatrixWitness} {root vd : Digest} (hw : w.Opens root vd) {P : DaPtrs}
     (hmem : DaMem w.rows.length (wLog w) (wSyms w) (wWs w) rd P) :
     coreProgram.Rel rd "da_verify" [gsq] (digestCells root ++ digestCells vd) := by
   obtain ⟨e1, e2⟩ := opens_eq hw

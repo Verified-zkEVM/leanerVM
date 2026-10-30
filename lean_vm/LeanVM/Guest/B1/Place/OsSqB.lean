@@ -47,7 +47,7 @@ theorem os_sq_completeAtPB (fs : String → ℕ) (cert : String → V → ℕ) (
   have hcap0 : ((tr.L l).F2.squeezeN 0).2.cap = (tr.L l).F2.cap := rfl
   have hsqj : ∀ j, sqCapJ ((tr.L l).F2.squeezeN 0).2.cap j = ((tr.L l).F2.squeezeN j).2.cap := fun j ↦ by
     rw [hcap0, sqCapJ]; conv_rhs => rw [hF2]
-  have hcapF : ∃ S : KState, (tr.L l).F2.cap = capOf S := by
+  have hcapF : ∃ S : KeccakState, (tr.L l).F2.cap = capOf S := by
     unfold SpLv.F2; split
     · exact ⟨_, rfl⟩
     · exact ⟨_, rfl⟩

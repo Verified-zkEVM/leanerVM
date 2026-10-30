@@ -75,20 +75,20 @@ def whirLevelsOpen (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirStat
     let messageLog := logN - s.folds.length
     let (residual, pending) ← match rest with
       | [] => do
-        let residual ← Prog.readN (2 ^ messageLog)
+        let residual ← Prog.readScalars (2 ^ messageLog)
         pure (residual, ([] : List (E × List E × (List E → E))))
       | next :: _ => do
         let (height, width) := levelShape messageLog next (3 * 2 ^ next.fold)
-        Prog.commitP height width
-        let oodPoint ← Prog.sampleN messageLog
-        let oodValue ← Prog.readE
+        Prog.readCommitment height width
+        let oodPoint ← Prog.sampleChallenges messageLog
+        let oodValue ← Prog.readScalar
         let intro ← sumcheckRoundPoly 3 oodValue none
         pure ([], [(oodValue, intro, fun x ↦ eqEval oodPoint x)])
-    Prog.grindP Whir.queryGrindingBits
+    Prog.grindProofOfWork Whir.queryGrindingBits
     let queries ← sampleQueries (messageLog + level.logInvRate) level.queries
-    let lam ← Prog.sampleE
+    let lam ← Prog.sampleChallenge
     let queryWeights := powers lam queries.length
-    let words ← Prog.queryP index queries
+    let words ← Prog.queryOpenings index queries
     let rows : List (List E) :=
       if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
     let enforced := enforcedSum rows levelFolds queryWeights
@@ -162,7 +162,7 @@ def stackShape (logN logInvRate : ℕ) : ℕ × ℕ :=
 theorem commitStack_eq {logN logInvRate : ℕ} {level : Whir.Level} {rest : List Whir.Level}
     (h : Whir.ladder logN logInvRate = some (level :: rest)) :
     commitStack logN logInvRate =
-      Prog.commitP (stackShape logN logInvRate).1 (stackShape logN logInvRate).2 := by
+      Prog.readCommitment (stackShape logN logInvRate).1 (stackShape logN logInvRate).2 := by
   simp only [commitStack, stackShape, h, Prog.bind_eq]
   rfl
 

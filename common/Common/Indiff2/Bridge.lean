@@ -49,21 +49,21 @@ theorem duplexOK_query_bind_other (NF : (Dg × E) → Prop) {α : Type}
 
 /-- The cost of the unfolded game is the cost of the two-oracle game. -/
 theorem isWeightBound_toOne {α : Type} (D : OracleComp (dSpec2 Msg Dg (SpState Dg E C)) α)
-    (q : ℕ) (hD : IsWeightBound D (queryCost2 (Dg := Dg) P) q) :
-    IsWeightBound (simulateQ (toOne (E := E) (C := C)) D) (queryCost (Dg := Dg) P) q := by
+    (q : ℕ) (hD : QueryCostAtMost D (queryCost2 (Dg := Dg) P) q) :
+    QueryCostAtMost (simulateQ (toOne (E := E) (C := C)) D) (queryCost (Dg := Dg) P) q := by
   induction D using OracleComp.inductionOn generalizing q with
   | pure a => trivial
   | query_bind t k ih =>
     rw [isWeightBound_query_bind_iff] at hD
     obtain ⟨ht, hk⟩ := hD
     rw [simulateQ_query_bind]
-    have h1 : IsWeightBound (toOne (E := E) (C := C) t) (queryCost (Dg := Dg) P)
+    have h1 : QueryCostAtMost (toOne (E := E) (C := C) t) (queryCost (Dg := Dg) P)
         (queryCost2 (Dg := Dg) P t) := by
       rcases t with n | m | q' | x
       · exact isWeightBound_query (spec := dSpec Msg Dg (SpState Dg E C)) _ (.inl n)
       · exact isWeightBound_query (spec := dSpec Msg Dg (SpState Dg E C)) _ (.inr (.inl m))
       · exact isWeightBound_query (spec := dSpec Msg Dg (SpState Dg E C)) _ (.inr (.inr q'))
-      · exact isWeightBound_query (spec := dSpec Msg Dg (SpState Dg E C)) _ (.inr (.inr (.fwd x)))
+      · exact isWeightBound_query (spec := dSpec Msg Dg (SpState Dg E C)) _ (.inr (.inr (.forward x)))
     have := h1.bind fun u ↦ ih u (q - queryCost2 (Dg := Dg) P t) (hk u)
     rwa [Nat.add_sub_cancel' ht] at this
 
@@ -86,7 +86,7 @@ noncomputable def ideal1FImpl : QueryImpl (dSpec2 Msg Dg (SpState Dg E C))
       OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) _)
   | .inr (.inl m) => liftM (hQuery (Msg := Msg) (Dg := Dg) (E := E) (C := C) m)
   | .inr (.inr (.inl q)) => simulator2 P q
-  | .inr (.inr (.inr x)) => simulator2 P (.fwd x)
+  | .inr (.inr (.inr x)) => simulator2 P (.forward x)
 
 /-- The cache of the two-oracle ROM. -/
 abbrev HCache (Msg Dg St : Type) := (hfSpec Msg Dg St).QueryCache
@@ -149,11 +149,11 @@ theorem simulator2_fwd_evalDistEq (x : SpState Dg E C) (σ : SimState Dg E C)
     (c : HCache Msg Dg (SpState Dg E C))
     (hF : ∀ x', c (.inr x') ≠ none → x' ∈ σ.edges.map Prod.fst) :
     (fun w ↦ (w.1.1, (w.1.2, roPartF w.2))) <$>
-        (simulateQ (hfSpec Msg Dg (SpState Dg E C)).romImpl ((simulator2 P (.fwd x)).run σ)).run c
+        (simulateQ (hfSpec Msg Dg (SpState Dg E C)).romImpl ((simulator2 P (.forward x)).run σ)).run c
       =ᵈ (fun w ↦ (w.1.1, (w.1.2, w.2))) <$>
-        (simulateQ (roSpec Msg Dg).romImpl ((simulator P (.fwd x)).run σ)).run (roPartF c) := by
+        (simulateQ (roSpec Msg Dg).romImpl ((simulator P (.forward x)).run σ)).run (roPartF c) := by
   simp only [simulator2, simulator, StateT.run_mk]
-  rcases hy : fwdLookup σ.edges x with _ | y
+  rcases hy : forwardLookup σ.edges x with _ | y
   · have hfresh : c (.inr x) = none := by
       by_contra h
       exact (fwdLookup_eq_none_iff.mp hy) (hF x h)
@@ -177,13 +177,13 @@ abbrev FState (Msg Dg E C : Type) := SimState Dg E C × HCache Msg Dg (SpState D
 /-- A direct call `F x`, recording the edge as the simulator would. -/
 noncomputable def fStep (x : SpState Dg E C) (s : FState Msg Dg E C) :
     ProbComp (SpState Dg E C × FState Msg Dg E C) :=
-  (fun w ↦ (w.1, (replayStep s.1 (.fwd x, w.1), w.2))) <$>
+  (fun w ↦ (w.1, (replayStep s.1 (.forward x, w.1), w.2))) <$>
     roStep (hs := hfSpec Msg Dg (SpState Dg E C)) (.inr x) s.2
 
 /-- A forward step of the two-oracle simulator. -/
 noncomputable def fwdStep2 (x : SpState Dg E C) (s : FState Msg Dg E C) :
     ProbComp (SpState Dg E C × FState Msg Dg E C) :=
-  match fwdLookup s.1.edges x with
+  match forwardLookup s.1.edges x with
   | some y => pure (y, s)
   | none =>
     match chainOf s.1.chains x with
@@ -191,23 +191,23 @@ noncomputable def fwdStep2 (x : SpState Dg E C) (s : FState Msg Dg E C) :
       match P.unpad (β ++ [blockTo r x]) with
       | some m => roStep (hs := hfSpec Msg Dg (SpState Dg E C)) (.inl m) s.2 >>= fun w ↦
           ($ᵗ (E × C)) >>= fun ec ↦
-            pure (((w.1, ec.1), ec.2), (replayStep s.1 (.fwd x, ((w.1, ec.1), ec.2)), w.2))
+            pure (((w.1, ec.1), ec.2), (replayStep s.1 (.forward x, ((w.1, ec.1), ec.2)), w.2))
       | none => fStep x s
     | none => fStep x s
 
 /-- An inverse step of the two-oracle simulator. -/
 noncomputable def invStep2 (y : SpState Dg E C) (s : FState Msg Dg E C) :
     ProbComp (SpState Dg E C × FState Msg Dg E C) :=
-  match invLookup s.1.edges y with
+  match inverseLookup s.1.edges y with
   | some x => pure (x, s)
-  | none => (fun x ↦ (x, (replayStep s.1 (.inv y, x), s.2))) <$> ($ᵗ (SpState Dg E C))
+  | none => (fun x ↦ (x, (replayStep s.1 (.inverse y, x), s.2))) <$> ($ᵗ (SpState Dg E C))
 
 theorem simulator2_fwd_run (x : SpState Dg E C) (s : FState Msg Dg E C) :
     (fun y ↦ (y.1.1, (y.1.2, y.2))) <$> (simulateQ (hfSpec Msg Dg (SpState Dg E C)).romImpl
-      ((simulator2 P (.fwd x)).run s.1)).run s.2 = fwdStep2 P x s := by
+      ((simulator2 P (.forward x)).run s.1)).run s.2 = fwdStep2 P x s := by
   obtain ⟨σ, c⟩ := s
   simp only [simulator2, StateT.run_mk, fwdStep2, fStep]
-  rcases hy : fwdLookup σ.edges x with _ | y
+  rcases hy : forwardLookup σ.edges x with _ | y
   · rcases hch : chainOf σ.chains x with _ | ⟨r, β⟩
     · simp only [simulateQ_bind, StateT.run_bind, fQuery_run, simulateQ_pure, StateT.run_pure]
       simp [replayStep, hy, hch]
@@ -221,10 +221,10 @@ theorem simulator2_fwd_run (x : SpState Dg E C) (s : FState Msg Dg E C) :
 
 theorem simulator2_inv_run (y : SpState Dg E C) (s : FState Msg Dg E C) :
     (fun y ↦ (y.1.1, (y.1.2, y.2))) <$> (simulateQ (hfSpec Msg Dg (SpState Dg E C)).romImpl
-      ((simulator2 P (.inv y)).run s.1)).run s.2 = invStep2 y s := by
+      ((simulator2 P (.inverse y)).run s.1)).run s.2 = invStep2 y s := by
   obtain ⟨σ, c⟩ := s
   simp only [simulator2, StateT.run_mk, invStep2]
-  rcases hx : invLookup σ.edges y with _ | x
+  rcases hx : inverseLookup σ.edges y with _ | x
   · rw [simulateQ_bind, StateT.run_bind, simulateQ_romImpl_liftM_run]
     simp [replayStep, hx, Functor.map_map]
   · simp
@@ -251,12 +251,12 @@ theorem ideal1F_hash_run (m : Msg) (σ : SimState Dg E C) (c : HCache Msg Dg (Sp
 
 /-! ## The one-oracle ideal world is the world with `F` -/
 
-theorem ideal1Impl_fwd (q : PermQuery (SpState Dg E C)) :
+theorem ideal1Impl_fwd (q : PermutationQuery (SpState Dg E C)) :
     ideal1Impl P (.inr (.inr (.inl q))) = idealImpl P (.inr (.inr q)) := by
   simp [ideal1Impl, toOne]
 
 theorem ideal1Impl_F (x : SpState Dg E C) :
-    ideal1Impl P (.inr (.inr (.inr x))) = idealImpl P (.inr (.inr (.fwd x))) := by
+    ideal1Impl P (.inr (.inr (.inr x))) = idealImpl P (.inr (.inr (.forward x))) := by
   simp [ideal1Impl, toOne]
 
 theorem ideal1Impl_inl (n : ℕ) : ideal1Impl (Msg := Msg) (Dg := Dg) (E := E) (C := C) P (.inl n) =
@@ -272,31 +272,31 @@ def FDom (σ : SimState Dg E C) (c : HCache Msg Dg (SpState Dg E C)) : Prop :=
   ∀ x, c (.inr x) ≠ none → x ∈ σ.edges.map Prod.fst
 
 theorem mem_replayStep_edges {σ : SimState Dg E C}
-    (r : PermQuery (SpState Dg E C) × SpState Dg E C) {e : SpState Dg E C × SpState Dg E C}
+    (r : PermutationQuery (SpState Dg E C) × SpState Dg E C) {e : SpState Dg E C × SpState Dg E C}
     (he : e ∈ σ.edges) : e ∈ (replayStep σ r).edges := by
   obtain ⟨q, a⟩ := r
   cases q with
-  | fwd x =>
+  | forward x =>
     simp only [replayStep]
     split
     · exact he
     · split <;> exact List.mem_cons_of_mem _ he
-  | inv y =>
+  | inverse y =>
     simp only [replayStep]
     split
     · exact he
     · exact List.mem_cons_of_mem _ he
 
 theorem fst_mem_replayStep_fwd (σ : SimState Dg E C) (x y : SpState Dg E C) :
-    x ∈ (replayStep σ (.fwd x, y)).edges.map Prod.fst := by
+    x ∈ (replayStep σ (.forward x, y)).edges.map Prod.fst := by
   simp only [replayStep]
   split
   · next y' hy => exact List.mem_map.mpr ⟨_, mem_of_fwdLookup_eq_some hy, rfl⟩
   · split <;> simp
 
 theorem fDom_replayStep {σ : SimState Dg E C} {c c' : HCache Msg Dg (SpState Dg E C)}
-    (hF : FDom σ c) (r : PermQuery (SpState Dg E C) × SpState Dg E C)
-    (hc : ∀ x', c' (.inr x') ≠ none → c (.inr x') ≠ none ∨ r.1 = .fwd x') :
+    (hF : FDom σ c) (r : PermutationQuery (SpState Dg E C) × SpState Dg E C)
+    (hc : ∀ x', c' (.inr x') ≠ none → c (.inr x') ≠ none ∨ r.1 = .forward x') :
     FDom (replayStep σ r) c' := by
   intro x' hx'
   rcases hc x' hx' with h | h
@@ -342,15 +342,15 @@ theorem fDom_invStep2 (y : SpState Dg E C) (s : FState Msg Dg E C) (hF : FDom s.
     obtain ⟨x, -, rfl⟩ := hz
     exact fDom_replayStep hF _ fun x' hx' ↦ Or.inl hx'
 
-theorem ideal1F_fwd_run (q : PermQuery (SpState Dg E C)) (s : FState Msg Dg E C) :
+theorem ideal1F_fwd_run (q : PermutationQuery (SpState Dg E C)) (s : FState Msg Dg E C) :
     ((foldRO (ideal1FImpl P)) (.inr (.inr (.inl q)))).run s =
       match q with
-      | .fwd x => fwdStep2 P x s
-      | .inv y => invStep2 y s := by
+      | .forward x => fwdStep2 P x s
+      | .inverse y => invStep2 y s := by
   rw [foldRO_run]
   cases q with
-  | fwd x => exact simulator2_fwd_run P x s
-  | inv y => exact simulator2_inv_run P y s
+  | forward x => exact simulator2_fwd_run P x s
+  | inverse y => exact simulator2_inv_run P y s
 
 theorem ideal1F_F_run (x : SpState Dg E C) (s : FState Msg Dg E C) :
     ((foldRO (ideal1FImpl P)) (.inr (.inr (.inr x)))).run s = fwdStep2 P x s := by
@@ -374,8 +374,8 @@ theorem fDom_ideal1F (t : (dSpec2 Msg Dg (SpState Dg E C)).Domain) (s : FState M
     exact hF x' (by rwa [← hother (.inr x') (by simp)])
   · rw [ideal1F_fwd_run] at hz
     cases q with
-    | fwd x => exact fDom_fwdStep2 P x s hF hz
-    | inv y => exact fDom_invStep2 y s hF hz
+    | forward x => exact fDom_fwdStep2 P x s hF hz
+    | inverse y => exact fDom_invStep2 y s hF hz
   · rw [ideal1F_F_run] at hz
     exact fDom_fwdStep2 P x s hF hz
 
@@ -398,12 +398,12 @@ theorem ideal1F_step_evalDistEq (t : (dSpec2 Msg Dg (SpState Dg E C)).Domain)
     simp [projF, Functor.map_map]
   · rw [ideal1Impl_fwd]
     cases q with
-    | fwd x =>
+    | forward x =>
       simpa [Functor.map_map, projF, idealImpl, ideal1FImpl] using
         simulator2_fwd_evalDistEq P x σ c hF
-    | inv y =>
+    | inverse y =>
       simp only [ideal1FImpl, idealImpl, simulator2, simulator, StateT.run_mk, projF]
-      rcases hx : invLookup σ.edges y with _ | x
+      rcases hx : inverseLookup σ.edges y with _ | x
       · rw [simulateQ_bind, StateT.run_bind, simulateQ_romImpl_liftM_run, simulateQ_bind,
           StateT.run_bind, simulateQ_romImpl_liftM_run]
         simp [Functor.map_map, projF]

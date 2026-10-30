@@ -2,7 +2,7 @@
   LeanVM.Guest.Hints
 
   The honest hint generator of the aggregation guest: the witness streams and the initial memory
-  of a run on a node's statement, as functions of a `NodeRel` witness.
+  of a run on a node's statement, as functions of a `NodeRelation` witness.
 -/
 
 module
@@ -231,7 +231,7 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sphi
 
 /-- A blob matrix's hints: the vector a cell at a time, the row count and its padded log, and
 every row's cells, column by column (`aggregation.rs:1846-1866`). -/
-def daHints (w : Da.Witness) : List (String × Entry) :=
+def daHints (w : Da.MatrixWitness) : List (String × Entry) :=
   (List.range LeanDa.cellsPerRow).map (fun j ↦
       ("da_weights", (w.vector.drop (LeanDa.cellSymbols * j)).take LeanDa.cellSymbols)) ++
     [("da_shape", [count w.rows.length, count (LeanDa.logPad w.rows.length)])] ++
@@ -255,9 +255,9 @@ def recordQueries {α : Type} : Prog α → Prog (α × List (ℕ × List ℕ))
 /-- The queries the deferring verifier makes on a child's proof (`verifyDeferredWith`), each with
 the height of the commitment it opens. -/
 def childQueries (bytecode : List K) (seed : Digest) (c : Child) : List (ℕ × List ℕ) :=
-  match Id.run (Compile.run keccak256 keccakF
-      (recordQueries (deferredProgram c.fresh bytecode (statementDigest seed c.statement)))
-      (childStart seed c)) with
+  match Id.run (Compile.run keccak256 keccakF1600
+      (recordQueries (deferredProgram c.freshClaim bytecode (statementDigest seed c.statement)))
+      (childVerifierStart seed c)) with
   | some ((_, queries), st) => queries.map fun (i, ps) ↦ ((st.roots[i]?.map (·.2.1)).getD 0, ps)
   | none => []
 
@@ -339,8 +339,8 @@ def childHints (bytecode : List K) (seed : Digest) (c : Child) : List (String ×
   | none => []
   | some (layout, _) =>
     let (queries, caps, active) := merkleHints (childQueries bytecode seed c) c.proof.openings
-    [("stream", c.proof.stream ++ List.replicate (streamCap - c.proof.stream.length) 0),
-      ("bytecode_val", [c.fresh.bytecodeValue]),
+    [("stream", c.proof.stream ++ List.replicate (childStreamCap - c.proof.stream.length) 0),
+      ("bytecode_val", [c.freshClaim.bytecodeValue]),
       ("merkle_caps", caps), ("merkle_cap_active", active),
       ("zc_tau_max", [count (layout.tableLogHeights.foldl max 0)]),
       ("table_logs", layout.tableLogHeights.map count), ("col_sort_order", colSortOrder layout),
@@ -349,44 +349,44 @@ def childHints (bytecode : List K) (seed : Digest) (c : Child) : List (String ×
 /-! ## The node (`aggregate_with_stats`) -/
 
 /-- The batching's hints: the sumcheck's rounds and the bytecode's value at its end. -/
-def batchPushes (h : BatchHints) : List (String × Entry) :=
-  [("bc_sumcheck_msgs", h.bytecodeRounds.flatMap fun r ↦ [r.1, r.2]),
-    ("bc_star_hint", [h.bytecodeValue])]
+def batchPushes (h : BatchingHints) : List (String × Entry) :=
+  [("bc_sumcheck_msgs", h.sumcheckMessages.flatMap fun r ↦ [r.1, r.2]),
+    ("bc_star_hint", [h.finalBytecodeValue])]
 
 /-- The DA digest the node publishes, as the slot of `da_digests` it picks (`da_pick`,
 `aggregation.rs:1683-1696`): its own (`n`, the children's count) when it checks a matrix or
 publishes zeros, else the first child whose DA digest it publishes. -/
 def daPick (s : NodeStatement) (w : NodeWitness) : ℕ :=
-  if w.da.isSome || s.claims.da == zeroDigest then w.children.length
+  if w.daMatrix.isSome || s.claims.da == zeroDigest then w.children.length
   else (w.children.findIdx? fun c ↦ c.statement.claims.da == s.claims.da).getD w.children.length
 
 /-- **Every push of an honest run**, in the order `aggregate_with_stats` makes them. -/
 def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
     List (String × Entry) :=
-  let rawX := direct s.claims.xmss w.xmss
-  let rawS := direct s.claims.sphincs w.sphincs
-  let xr := plan s.claims.xmss (rawX.map (·.1)) (w.children.map (·.statement.claims.xmss))
-  let sr := plan s.claims.sphincs (rawS.map (·.1)) (w.children.map (·.statement.claims.sphincs))
+  let rawX := heldDirectly s.claims.xmss w.xmss
+  let rawS := heldDirectly s.claims.sphincs w.sphincs
+  let xr := coveragePlan s.claims.xmss (rawX.map (·.1)) (w.children.map (·.statement.claims.xmss))
+  let sr := coveragePlan s.claims.sphincs (rawS.map (·.1)) (w.children.map (·.statement.claims.sphincs))
   let xCells := fun (c : XmssClaim) ↦ claimCells c.1.root c.1.parameter c.2
   let sCells := fun (c : SphincsClaim) ↦ claimCells c.1.root c.1.parameter c.2
   let slots := fun (offsets : List ℕ) ↦ listPushes "child_claim_index" (offsets.map ([count ·]))
-  [("meta", [count s.claims.xmss.length, count xr.dups.length, count rawX.length,
-      count s.claims.sphincs.length, count sr.dups.length, count rawS.length,
-      count w.children.length, count ((w.da.map fun _ ↦ 1).getD 0)]),
+  [("meta", [count s.claims.xmss.length, count xr.duplicates.length, count rawX.length,
+      count s.claims.sphincs.length, count sr.duplicates.length, count rawS.length,
+      count w.children.length, count ((w.daMatrix.map fun _ ↦ 1).getD 0)]),
     ("fs_seed", digestCells seed)] ++
   listPushes "claims" (s.claims.xmss.map xCells) ++
   listPushes "claims" (s.claims.sphincs.map sCells) ++
-  (xr.dups.map xCells ++ sr.dups.map sCells).map ("dup_claims", ·) ++
-  (rawX.zip xr.raw).flatMap (fun (c, slot) ↦ ("raw_index", [count slot]) :: xmssHints c.1.1 c.1.2 c.2) ++
-  (rawS.zip sr.raw).flatMap (fun (c, slot) ↦
+  (xr.duplicates.map xCells ++ sr.duplicates.map sCells).map ("dup_claims", ·) ++
+  (rawX.zip xr.directSlots).flatMap (fun (c, slot) ↦ ("raw_index", [count slot]) :: xmssHints c.1.1 c.1.2 c.2) ++
+  (rawS.zip sr.directSlots).flatMap (fun (c, slot) ↦
     ("sp_raw_index", [count slot]) :: sphincsHints c.1.1 c.1.2 c.2) ++
-  ((w.children.zip xr.children).zip sr.children).flatMap (fun ((c, xs), ss) ↦
+  ((w.children.zip xr.childSlots).zip sr.childSlots).flatMap (fun ((c, xs), ss) ↦
     ("child_meta", [count c.statement.claims.xmss.length, count c.statement.claims.sphincs.length]) ::
       slots xs ++ slots ss ++
-      [("child_defer", c.statement.defer.cells), ("child_da", digestCells c.statement.claims.da)] ++
+      [("child_defer", c.statement.deferredClaim.cells), ("child_da", digestCells c.statement.claims.da)] ++
       childHints bytecode seed c) ++
-  (if w.children = [] then [("leaf_defer", [s.defer.bytecodeValue])] else batchPushes w.hints) ++
-  (w.da.map (fun c ↦ daHints c.2)).getD [] ++
+  (if w.children = [] then [("leaf_defer", [s.deferredClaim.bytecodeValue])] else batchPushes w.batchingHints) ++
+  (w.daMatrix.map (fun c ↦ daHints c.2)).getD [] ++
   [("da_pick", [count (daPick s w)])]
 
 /-- **The honest streams**: `honestPushes`, by stream. -/

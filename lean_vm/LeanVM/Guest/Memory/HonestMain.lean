@@ -60,7 +60,7 @@ theorem lConsistent_of_pairwise {L : Layout}
 
 open Classical in
 /-- **The image of a layout**: `hdr` at words `0` and `1`, an entry's word where one covers. -/
-noncomputable def imageOf (κ : ℕ) (L : Layout) (hdr : E × E) : MemImage κ := fun i =>
+noncomputable def imageOf (κ : ℕ) (L : Layout) (hdr : E × E) : MemoryImage κ := fun i =>
   if (i : ℕ) = 0 then hdr.1 else if (i : ℕ) = 1 then hdr.2 else
     match L.find? (fun q => decide (q.1 ≤ (i : ℕ) ∧ (i : ℕ) < q.1 + q.2.length)) with
     | some q => q.2.getD ((i : ℕ) - q.1) 0
@@ -70,9 +70,9 @@ theorem imageOf_hdr {κ : ℕ} (hκ : κ < 64) (h1 : 1 ≤ κ) (L : Layout) (hdr
     (imageOf κ L hdr).read (gpow 0) = some hdr.1 ∧ (imageOf κ L hdr).read (gpow 1) = some hdr.2 := by
   have h2 : 1 < 2 ^ κ := Nat.one_lt_two_pow (by omega)
   refine ⟨?_, ?_⟩
-  · have := MemImage.read_gpow hκ (imageOf κ L hdr) ⟨0, by omega⟩
+  · have := MemoryImage.read_gpow hκ (imageOf κ L hdr) ⟨0, by omega⟩
     simpa [imageOf] using this
-  · have := MemImage.read_gpow hκ (imageOf κ L hdr) ⟨1, h2⟩
+  · have := MemoryImage.read_gpow hκ (imageOf κ L hdr) ⟨1, h2⟩
     simpa [imageOf] using this
 
 theorem memL_imageOf {κ : ℕ} (hκ : κ < 64) {L : Layout} (hc : LConsistent L)
@@ -83,7 +83,7 @@ theorem memL_imageOf {κ : ℕ} (hκ : κ < 64) {L : Layout} (hc : LConsistent L
   refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
   rw [addr_ofK]
   have hi : q.1 + k < 2 ^ κ := by omega
-  rw [MemImage.read_gpow hκ (imageOf κ L hdr) ⟨q.1 + k, hi⟩]
+  rw [MemoryImage.read_gpow hκ (imageOf κ L hdr) ⟨q.1 + k, hi⟩]
   congr 1
   simp only [imageOf, show q.1 + k ≠ 0 by omega, show q.1 + k ≠ 1 by omega, ↓reduceIte]
   have hex : (L.find? fun q' => decide (q'.1 ≤ q.1 + k ∧ q.1 + k < q'.1 + q'.2.length)).isSome := by
@@ -128,12 +128,12 @@ structure KFacts (T : Tree) : Prop where
     I'.fp = I.fp → I'.t = I.t.retemp P fs ν I.fp → ∀ q ∈ I'.cells C, ¬ TmpOff P cert I.t q.1 →
       q ∈ I.cells C
 
-theorem read_some_gpow {κ : ℕ} (hκ : κ < 64) {M : MemImage κ} {a : K} {v : E} (h : M.read a = some v) :
+theorem read_some_gpow {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ} {a : K} {v : E} (h : M.read a = some v) :
     ∃ i : Fin (2 ^ κ), a = Parameters.gpow i :=
-  let ⟨i, hi, _⟩ := (MemImage.read_eq_some_iff hκ M).mp h; ⟨i, hi⟩
+  let ⟨i, hi, _⟩ := (MemoryImage.read_eq_some_iff hκ M).mp h; ⟨i, hi⟩
 
 /-- **Every equation names a word of the memory**. -/
-theorem dischargeAddr {κ : ℕ} (hκ : κ < 64) {M : MemImage κ} {T : Tree} {args rets : List E}
+theorem dischargeAddr {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ} {T : Tree} {args rets : List E}
     (hv : T.Valid P M.read args rets) (hp : T.Placed P fs cert 0)
     (hrun : ∀ I ∈ honestInsts P fs H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
       ∀ p r rs, Ev.atom (.frameAddr p (r :: rs)) ∈ I.t.events P →
@@ -191,7 +191,7 @@ theorem honest_of_relAtIn {N : ℕ} {L : Layout} (hcons : LConsistent L)
   have hlow : LowDef 16 M.read := fun i hi => by
     have hi' : i < 2 ^ logMem N :=
       lt_of_lt_of_le hi (Nat.pow_le_pow_right (by norm_num) h16)
-    rw [MemImage.read_gpow h64 M ⟨i, hi'⟩]; rfl
+    rw [MemoryImage.read_gpow h64 M ⟨i, hi'⟩]; rfl
   have hL := memL_imageOf h64 hcons (fun q hq => ⟨(hin q hq).1,
     le_trans (hin q hq).2 (le_two_pow_logMem N)⟩) hdr
   obtain ⟨hh0, hh1⟩ := imageOf_hdr h64 (by omega) L hdr

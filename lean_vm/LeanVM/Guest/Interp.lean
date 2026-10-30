@@ -250,7 +250,7 @@ def execAtom (fr : Nat) : Atom → IM Unit
       let xs ← ins.mapM (needV fr)
       if !(xs.all fun x => decide (IsCanonical128 x)) then
         throw "a KECCAK input cell is not canonical"
-      let out := keccakF (stateOfCells (fun c => xs.getD c.val 0) inOdd)
+      let out := keccakF1600 (stateOfCells (fun c => xs.getD c.val 0) inOdd)
       ((List.finRange 13).zip outs).forM fun (c, v) => setV fr v (cellsOfState out outOdd c)
   | .frameAddr p run => do
       let p' ← alloc run.length

@@ -17,7 +17,7 @@ public import LeanVM.Parameters.Isa
 
 The load-bearing lemmas of `LeanVM.Semantics`, by section: the memory reader, the program's
 fetch, the lanes of a `K` word, the step, and the execution loop (`run`), with the register
-sequence of a trace (`Trace.regs`).
+sequence of a trace (`Execution.regs`).
 -/
 
 namespace LeanVM.Semantics
@@ -28,11 +28,11 @@ open LeanVM.Parameters
 
 /-! ## Addressing -/
 
-/-- The specification of `gLog?`: on an address space of at most `2 ^ 63` cells, so that
-`2 ^ κ ≤ orderOf g`, `gLog? κ a = some i` exactly when `a = g ^ i`. -/
+/-- The specification of `addressIndex?`: on an address space of at most `2 ^ 63` cells, so that
+`2 ^ κ ≤ orderOf g`, `addressIndex? κ a = some i` exactly when `a = g ^ i`. -/
 theorem gLog?_spec {κ : ℕ} (hκ : κ < 64) {a : K} {i : Fin (2 ^ κ)} :
-    gLog? κ a = some i ↔ a = gpow i := by
-  unfold gLog?
+    addressIndex? κ a = some i ↔ a = gpow i := by
+  unfold addressIndex?
   split_ifs with h
   · have hc := Classical.choose_spec h
     constructor
@@ -47,22 +47,22 @@ theorem gLog?_spec {κ : ℕ} (hκ : κ < 64) {a : K} {i : Fin (2 ^ κ)} :
       exact congrArg some (Fin.ext (gpow_injOn hj hi' (hc.symm.trans hi)))
   · exact ⟨fun hi ↦ (nomatch hi), fun hi ↦ absurd ⟨i, hi⟩ h⟩
 
-/-- `gLog?` fails exactly on the addresses that are no power below `2 ^ κ`; no size bound is
+/-- `addressIndex?` fails exactly on the addresses that are no power below `2 ^ κ`; no size bound is
 needed. -/
 theorem gLog?_eq_none_iff {κ : ℕ} {a : K} :
-    gLog? κ a = none ↔ ∀ i : Fin (2 ^ κ), a ≠ gpow i := by
-  unfold gLog?
+    addressIndex? κ a = none ↔ ∀ i : Fin (2 ^ κ), a ≠ gpow i := by
+  unfold addressIndex?
   split_ifs with h
   · exact ⟨fun hn ↦ (nomatch hn), fun hn ↦ absurd h (not_exists.mpr hn)⟩
   · exact ⟨fun _ ↦ not_exists.mp h, fun _ ↦ rfl⟩
 
 /-- `0` is never an address, whatever the size. -/
-theorem gLog?_zero (κ : ℕ) : gLog? κ 0 = none :=
+theorem gLog?_zero (κ : ℕ) : addressIndex? κ 0 = none :=
   gLog?_eq_none_iff.mpr fun i h ↦ gpow_ne_zero i h.symm
 
 /-- A power past the end is no address: `g ^ j` with `2 ^ κ ≤ j < orderOf g` has no index. -/
 theorem gLog?_gpow_eq_none {κ j : ℕ} (hj : 2 ^ κ ≤ j) (hj' : j < 2 ^ 64 - 1) :
-    gLog? κ (gpow j) = none :=
+    addressIndex? κ (gpow j) = none :=
   gLog?_eq_none_iff.mpr fun i h ↦ by
     have hi : (i : ℕ) < 2 ^ 64 - 1 := by have := i.isLt; omega
     have := gpow_injOn hj' hi h
@@ -73,14 +73,14 @@ theorem gLog?_gpow_eq_none {κ j : ℕ} (hj : 2 ^ κ ≤ j) (hj' : j < 2 ^ 64 - 
 
 /-- The limbs of the word at `a`, zero when there is none: `read`, as a row's three-limb column
 (the arithmetization's row builders); specified by `ofLimbs_limbsAt`. -/
-noncomputable def MemImage.limbsAt {κ : ℕ} (L : MemImage κ) (a : K) : Vector K 3 :=
+noncomputable def MemoryImage.limbsAt {κ : ℕ} (L : MemoryImage κ) (a : K) : Vector K 3 :=
   match L.read a with
   | some v => #v[v.limb 0, v.limb 1, v.limb 2]
   | none => #v[0, 0, 0]
 
 /-- The two limbs of the word at `a`, zero when there is none: `read`, as a row's two-limb cell
 column; specified by `ofCell_cellAt`. -/
-noncomputable def MemImage.cellAt {κ : ℕ} (L : MemImage κ) (a : K) : Vector K 2 :=
+noncomputable def MemoryImage.cellAt {κ : ℕ} (L : MemoryImage κ) (a : K) : Vector K 2 :=
   match L.read a with
   | some v => #v[v.limb 0, v.limb 1]
   | none => #v[0, 0]
@@ -90,43 +90,43 @@ noncomputable def MemImage.cellAt {κ : ℕ} (L : MemImage κ) (a : K) : Vector 
 /-! ### Load-bearing lemmas -/
 
 /-- Reading at the address of index `i` gives word `i`. -/
-theorem MemImage.read_gpow {κ : ℕ} (hκ : κ < 64) (L : MemImage κ) (i : Fin (2 ^ κ)) :
+theorem MemoryImage.read_gpow {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) (i : Fin (2 ^ κ)) :
     L.read (gpow i) = some (L i) := by
-  rw [MemImage.read, (gLog?_spec hκ).mpr rfl, Option.map_some]
+  rw [MemoryImage.read, (gLog?_spec hκ).mpr rfl, Option.map_some]
 
 /-- A successful read is the word of the address's index. -/
-theorem MemImage.read_eq_some_iff {κ : ℕ} (hκ : κ < 64) (L : MemImage κ) {a : K} {v : E} :
+theorem MemoryImage.read_eq_some_iff {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) {a : K} {v : E} :
     L.read a = some v ↔ ∃ i : Fin (2 ^ κ), a = gpow i ∧ L i = v := by
-  simp only [MemImage.read, Option.map_eq_some_iff, gLog?_spec hκ]
+  simp only [MemoryImage.read, Option.map_eq_some_iff, gLog?_spec hκ]
 
 /-- A read fails exactly at the addresses that are no power below `2 ^ κ`. -/
-theorem MemImage.read_eq_none_iff {κ : ℕ} (L : MemImage κ) {a : K} :
+theorem MemoryImage.read_eq_none_iff {κ : ℕ} (L : MemoryImage κ) {a : K} :
     L.read a = none ↔ ∀ i : Fin (2 ^ κ), a ≠ gpow i := by
-  rw [MemImage.read, Option.map_eq_none_iff, gLog?_eq_none_iff]
+  rw [MemoryImage.read, Option.map_eq_none_iff, gLog?_eq_none_iff]
 
 /-- Address `0` reads nothing. -/
-theorem MemImage.read_zero {κ : ℕ} (L : MemImage κ) : L.read 0 = none := by
-  rw [MemImage.read, gLog?_zero, Option.map_none]
+theorem MemoryImage.read_zero {κ : ℕ} (L : MemoryImage κ) : L.read 0 = none := by
+  rw [MemoryImage.read, gLog?_zero, Option.map_none]
 
 /-- The limbs read back at an address that holds a word form that word. -/
-theorem MemImage.ofLimbs_limbsAt {κ : ℕ} {L : MemImage κ} {a : K} {v : E}
+theorem MemoryImage.ofLimbs_limbsAt {κ : ℕ} {L : MemoryImage κ} {a : K} {v : E}
     (h : L.read a = some v) :
     E.ofLimbs (L.limbsAt a)[0] (L.limbsAt a)[1] (L.limbsAt a)[2] = v := by
-  unfold MemImage.limbsAt
+  unfold MemoryImage.limbsAt
   rw [h]
   exact ofLimbs_limb v
 
 /-- The low limb read back at an address that holds a word is the word's. -/
-theorem MemImage.limbsAt_getElem_zero {κ : ℕ} {L : MemImage κ} {a : K} {v : E}
+theorem MemoryImage.limbsAt_getElem_zero {κ : ℕ} {L : MemoryImage κ} {a : K} {v : E}
     (h : L.read a = some v) : (L.limbsAt a)[0] = v.limb 0 := by
-  unfold MemImage.limbsAt
+  unfold MemoryImage.limbsAt
   rw [h]
   rfl
 
 /-- The two limbs read back at an address that holds a canonical word form that word. -/
-theorem MemImage.ofCell_cellAt {κ : ℕ} {L : MemImage κ} {a : K} {v : E}
+theorem MemoryImage.ofCell_cellAt {κ : ℕ} {L : MemoryImage κ} {a : K} {v : E}
     (h : L.read a = some v) (hc : IsCanonical128 v) : E.ofCell (L.cellAt a) = v := by
-  unfold MemImage.cellAt
+  unfold MemoryImage.cellAt
   rw [h]
   show E.ofLimbs (v.limb 0) (v.limb 1) 0 = v
   calc E.ofLimbs (v.limb 0) (v.limb 1) 0 = E.ofLimbs (v.limb 0) (v.limb 1) (v.limb 2) := by
@@ -192,12 +192,12 @@ theorem K.lane_injective : Function.Injective K.lane := fun a b h ↦ by
 /-! ### Load-bearing lemmas -/
 
 /-- A counter that fetches nothing steps nowhere. -/
-theorem step_eq_none_of_fetch_eq_none {κ : ℕ} {prog : Program} {L : MemImage κ} {r : Regs K}
+theorem step_eq_none_of_fetch_eq_none {κ : ℕ} {prog : Program} {L : MemoryImage κ} {r : Registers K}
     (h : prog.fetch r.pc = none) : step prog L r = none := by
   rw [step, h]; rfl
 
 /-- A step from a counter that fetches `ins` executes `ins`. -/
-theorem step_of_fetch_eq_some {κ : ℕ} {prog : Program} {L : MemImage κ} {r : Regs K}
+theorem step_of_fetch_eq_some {κ : ℕ} {prog : Program} {L : MemoryImage κ} {r : Registers K}
     {ins : Instr} (h : prog.fetch r.pc = some ins) : step prog L r = execute L r ins := by
   rw [step, h]; rfl
 
@@ -205,8 +205,8 @@ theorem step_of_fetch_eq_some {κ : ℕ} {prog : Program} {L : MemImage κ} {r :
 a program's step and an instruction's execution. The tables of the arithmetization
 are stated over `execute`, program-free as leanVM's are, and `constraintSoundness` composes them
 with `Program.fetch` through this lemma. -/
-theorem execute_of_step {κ : ℕ} {prog : Program} {L : MemImage κ} {r : Regs K} {ins : Instr}
-    {next : Regs K} (hfetch : prog.fetch r.pc = some ins) (hstep : step prog L r = some next) :
+theorem execute_of_step {κ : ℕ} {prog : Program} {L : MemoryImage κ} {r : Registers K} {ins : Instr}
+    {next : Registers K} (hfetch : prog.fetch r.pc = some ins) (hstep : step prog L r = some next) :
     execute L r ins = some next := by
   rwa [step_of_fetch_eq_some hfetch] at hstep
 
@@ -215,41 +215,41 @@ theorem execute_of_step {κ : ℕ} {prog : Program} {L : MemImage κ} {r : Regs 
 /-! ### The register sequence of a trace -/
 
 /-- The register sequence `r_0 = (1, 1), r_1, …, r_steps` of a trace; a prefix that fails to
-run is dropped, so a valid trace has exactly `steps + 1` entries (`Trace.regs_length`). -/
-noncomputable def Trace.regs {prog : Program} (t : Trace prog) : List (Regs K) :=
-  (List.range (t.steps + 1)).filterMap fun n ↦ run prog t.image n Regs.initial
+run is dropped, so a valid trace has exactly `steps + 1` entries (`Execution.regs_length`). -/
+noncomputable def Execution.regs {prog : Program} (t : Execution prog) : List (Registers K) :=
+  (List.range (t.steps + 1)).filterMap fun n ↦ run prog t.memory n Registers.initial
 
 /-! ### Load-bearing lemmas -/
 
 section
 
-variable {κ : ℕ} {prog : Program} {L : MemImage κ}
+variable {κ : ℕ} {prog : Program} {L : MemoryImage κ}
 
 /-- Zero steps go nowhere. -/
-@[simp] theorem run_zero (r : Regs K) : run prog L 0 r = some r := rfl
+@[simp] theorem run_zero (r : Registers K) : run prog L 0 r = some r := rfl
 
 /-- The loop: test for the final state, then fetch, execute, and continue. -/
-theorem run_succ (n : ℕ) (r : Regs K) :
-    run prog L (n + 1) r = if r = Regs.final prog then none else step prog L r >>= run prog L n :=
+theorem run_succ (n : ℕ) (r : Registers K) :
+    run prog L (n + 1) r = if r = Registers.final prog then none else step prog L r >>= run prog L n :=
   rfl
 
 /-- Away from the final state, a step is taken. -/
-theorem run_succ_of_ne_final {r : Regs K} (h : r ≠ Regs.final prog) (n : ℕ) :
+theorem run_succ_of_ne_final {r : Registers K} (h : r ≠ Registers.final prog) (n : ℕ) :
     run prog L (n + 1) r = step prog L r >>= run prog L n := by
   rw [run_succ, ite_eq_right h]
 
 /-- Away from the last slot, a step is taken. -/
-theorem run_succ_of_ne {r : Regs K} (h : r.pc ≠ prog.pcFinal) (n : ℕ) :
+theorem run_succ_of_ne {r : Registers K} (h : r.pc ≠ prog.pcFinal) (n : ℕ) :
     run prog L (n + 1) r = step prog L r >>= run prog L n :=
-  run_succ_of_ne_final (fun hr ↦ h (congrArg Regs.pc hr)) n
+  run_succ_of_ne_final (fun hr ↦ h (congrArg Registers.pc hr)) n
 
 /-- In the final state, no step is taken. -/
-theorem run_succ_of_eq {r : Regs K} (h : r = Regs.final prog) (n : ℕ) :
+theorem run_succ_of_eq {r : Registers K} (h : r = Registers.final prog) (n : ℕ) :
     run prog L (n + 1) r = none := by
   rw [run_succ, ite_eq_left h]
 
 /-- Runs compose. -/
-theorem run_add (m n : ℕ) (r : Regs K) :
+theorem run_add (m n : ℕ) (r : Registers K) :
     run prog L (m + n) r = run prog L m r >>= run prog L n := by
   induction m generalizing r with
   | zero => simp
@@ -261,20 +261,20 @@ theorem run_add (m n : ℕ) (r : Regs K) :
       exact bind_congr fun r' ↦ ih r'
 
 /-- A run of `m + n` steps passes through the registers after `m`. -/
-theorem run_prefix {m n : ℕ} {r r'' : Regs K} (h : run prog L (m + n) r = some r'') :
+theorem run_prefix {m n : ℕ} {r r'' : Registers K} (h : run prog L (m + n) r = some r'') :
     ∃ r', run prog L m r = some r' ∧ run prog L n r' = some r'' := by
   rw [run_add] at h
   exact Option.bind_eq_some_iff.mp h
 
 /-- A state that is stepped from is not the final state. -/
-theorem ne_final_of_run_succ {n : ℕ} {r r' : Regs K} (h : run prog L (n + 1) r = some r') :
-    r ≠ Regs.final prog :=
+theorem ne_final_of_run_succ {n : ℕ} {r r' : Registers K} (h : run prog L (n + 1) r = some r') :
+    r ≠ Registers.final prog :=
   fun hr ↦ by rw [run_succ_of_eq hr] at h; exact Option.some_ne_none r' h.symm
 
 /-- Along a run, every state before the last is not the final state: the halting test precedes
 every fetch. -/
-theorem run_intermediate {n : ℕ} {r r' : Regs K} (h : run prog L n r = some r') {m : ℕ}
-    (hm : m < n) : ∃ r₁, run prog L m r = some r₁ ∧ r₁ ≠ Regs.final prog := by
+theorem run_intermediate {n : ℕ} {r r' : Registers K} (h : run prog L n r = some r') {m : ℕ}
+    (hm : m < n) : ∃ r₁, run prog L m r = some r₁ ∧ r₁ ≠ Registers.final prog := by
   obtain ⟨k, rfl⟩ : ∃ k, n = m + (k + 1) := ⟨n - m - 1, by omega⟩
   obtain ⟨r₁, h₁, h₂⟩ := run_prefix h
   exact ⟨r₁, h₁, ne_final_of_run_succ h₂⟩
@@ -282,9 +282,9 @@ theorem run_intermediate {n : ℕ} {r r' : Regs K} (h : run prog L n r = some r'
 end
 
 /-- A trace that runs has `steps + 1` register states. -/
-theorem Trace.regs_length {prog : Program} {t : Trace prog} {r : Regs K}
-    (h : run prog t.image t.steps Regs.initial = some r) : t.regs.length = t.steps + 1 := by
-  rw [Trace.regs]
+theorem Execution.regs_length {prog : Program} {t : Execution prog} {r : Registers K}
+    (h : run prog t.memory t.steps Registers.initial = some r) : t.regs.length = t.steps + 1 := by
+  rw [Execution.regs]
   refine (List.filterMap_length_eq_length.mpr ?_).trans List.length_range
   intro n hn
   rcases Nat.lt_succ_iff_lt_or_eq.mp (List.mem_range.mp hn) with hlt | rfl

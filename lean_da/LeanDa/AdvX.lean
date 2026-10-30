@@ -29,7 +29,7 @@ noncomputable def tImplX :
   | .inr (.inr a) =>
       if ha : shortP a then
         StateT.mk fun c ↦ (·, c) <$> FreeM.lift (P := (WSpec + XS).toPFunctor) (.inr ⟨a, ha⟩)
-      else StateT.mk fun c ↦ liftL (liftM (((roSpec (List UInt8) KDigest).randomOracle a).run c))
+      else StateT.mk fun c ↦ liftL (liftM (((roSpec (List UInt8) DigestBytes).randomOracle a).run c))
 
 theorem col_tImplX (h : HTab) (t : (unifSpec + TSpec).Domain) (s : HCache) :
     simulateQ (col h) ((tImplX t).run s) = (tImpl h t).run s := by
@@ -48,12 +48,12 @@ theorem col_tImplX (h : HTab) (t : (unifSpec + TSpec).Domain) (s : HCache) :
 
 section Adversary
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
 
 /-- **Wagner's adversary with `H` on short strings as queries of `XS`** (`advH`). -/
 noncomputable def advX (A : CodeBindingAdvB r Crs Proof) (ck : Unit × Crs) :
-    OracleComp (WSpec + XS) ((Common.KDigest × Proof) × List (Fin (r * 128) × Cell × Opening)) :=
+    OracleComp (WSpec + XS) ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) :=
   (simulateQ tImplX (simulateQ (swapImpl ∘ₛ toV) (advSim r A (fixCrs r ps ck.2)))).run' ∅
 
 /-- **Answered by `h`, it is Wagner's adversary for the table `h`.** -/
@@ -63,7 +63,7 @@ theorem advH_eq (A : CodeBindingAdvB r Crs Proof) (h : HTab) (ck : Unit × Crs) 
     simulateQ_map, run_simulateQ_col_of h _ _ (col_tImplX h)]
 
 /-- Calls of `H` in the simulated world. -/
-def hCallsG : (unifSpec + GSpec (List UInt8) KDigest Common.KDigest E 14).Domain → ℕ
+def hCallsG : (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14).Domain → ℕ
   | .inr (.inl _) => 1
   | _ => 0
 
@@ -75,11 +75,11 @@ def tCalls : (unifSpec + TSpec).Domain → ℕ
 /-- **The simulated adversary calls `H` at most `Q` times**, for an RPM adversary of `Q`
 permutation calls. -/
 theorem isWeightBound_advS2_h (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
-    (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) (crs : Crs)
+    (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) (crs : Crs)
     (hcrs : crs ∈ support ps.setup) :
-    IsWeightBound (advS2 keccakPadding KState.zero (A ((), crs))) hCalls Q := by
+    QueryCostAtMost (advS2 keccakPadding KState.zero (A ((), crs))) hCalls Q := by
   rw [permCalls2_eq] at hQ
-  have hX : IsWeightBound (simulateQ (hInF (E := KRest) (C := KCap)) (liftM ps.setup) >>= fun x ↦
+  have hX : QueryCostAtMost (simulateQ (hInF (E := KRest) (C := KCap)) (liftM ps.setup) >>= fun x ↦
       advS2 keccakPadding KState.zero (A ((), x)) >>= fun a ↦ codeBindingPost r ps x a)
       hCalls Q := by
     rw [← shadow_rpmGame2, StateT.run'_eq]
@@ -90,10 +90,10 @@ theorem isWeightBound_advS2_h (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     rwa [OracleComp.support_liftComp]
   exact (hX.of_bind_mem_support hmem).of_bind
 
-theorem isWeightBound_simImpl_h (t : Rom2.Domain) (s : SimSt KState Common.KDigest 14) :
-    IsWeightBound ((simImpl daDuplex hP gaP t).run s) hCallsG (hCalls t) := by
+theorem isWeightBound_simImpl_h (t : Rom2.Domain) (s : SimSt KState Common.DigestBytes 14) :
+    QueryCostAtMost ((simImpl daDuplex hP gaP t).run s) hCallsG (hCalls t) := by
   have hu : ∀ {β : Type} (p : ProbComp β),
-      IsWeightBound (liftM p : OracleComp (unifSpec + GSpec (List UInt8) KDigest Common.KDigest E 14) β)
+      QueryCostAtMost (liftM p : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14) β)
         hCallsG 0 :=
     fun p ↦ isWeightBound_liftM_probComp hCallsG (fun _ ↦ rfl) p
   rcases t with k | m | x
@@ -104,7 +104,7 @@ theorem isWeightBound_simImpl_h (t : Rom2.Domain) (s : SimSt KState Common.KDige
   · simp only [simImpl, StateT.run_mk]
     split
     · trivial
-    · refine (IsWeightBound.bind (b := 0) ?_ fun _ ↦ isWeightBound_pure _ _ 0)
+    · refine (QueryCostAtMost.bind (b := 0) ?_ fun _ ↦ isWeightBound_pure _ _ 0)
       unfold freshAns
       split
       · split
@@ -115,14 +115,14 @@ theorem isWeightBound_simImpl_h (t : Rom2.Domain) (s : SimSt KState Common.KDige
 
 /-- **Wagner's adversary with `H` as queries makes at most `Q + 1` of them.** -/
 theorem isWeightBound_advX (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
-    (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) (ck : Unit × Crs) :
-    IsWeightBound (advX r ps A ck) xCalls (Q + 1) := by
+    (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) (ck : Unit × Crs) :
+    QueryCostAtMost (advX r ps A ck) xCalls (Q + 1) := by
   have hB := isWeightBound_advS2_h r ps A Q hQ _ (fixCrs_mem r ps ck.2)
-  have hP : IsWeightBound (Common.Duplex.hQ (St := KState) daDuplex.label >>= fun _ ↦
+  have hP : QueryCostAtMost (Common.Duplex.hQ (St := KState) daDuplex.label >>= fun _ ↦
       advS2 keccakPadding KState.zero (A ((), fixCrs r ps ck.2))) hCalls (1 + Q) :=
     (isWeightBound_query hCalls (.inr (.inl daDuplex.label))).bind fun _ ↦ hB
   have hS := isWeightBound_run_simulateQ _ _ _ isWeightBound_simImpl_h hP SimSt.init
-  have hV : IsWeightBound (simulateQ (swapImpl ∘ₛ toV) (advSim r A (fixCrs r ps ck.2))) tCalls
+  have hV : QueryCostAtMost (simulateQ (swapImpl ∘ₛ toV) (advSim r A (fixCrs r ps ck.2))) tCalls
       (1 + Q) := by
     refine isWeightBound_simulateQ _ hCallsG tCalls (fun t ↦ ?_) ?_
     · rcases t with k | m | ⟨d, j⟩

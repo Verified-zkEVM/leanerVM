@@ -70,7 +70,7 @@ def dvWsP (σ : Val) (Vm : FrameMap) (j : ℕ) : List E :=
 
 /-- **`da_verify`'s witness**: the rows of the cells' symbols, as many as the shape's count, and
 the vector of the columns' weights. -/
-noncomputable def dvWit (σ : Val) (Vm : FrameMap) : LeanVM.Da.Witness :=
+noncomputable def dvWit (σ : Val) (Vm : FrameMap) : LeanVM.Da.MatrixWitness :=
   ⟨daRows (gLog (σ (.n 1))) (dvSymsP σ Vm), daVector (dvWsP σ Vm)⟩
 
 /-! ## The calls, at the frame map -/
@@ -400,7 +400,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
   let ws : ℕ → List E := dvWs σ Vm
   have hws : ∀ j < 128, (ws j).length = 256 ∧
       (∀ k < 256, ∀ w, rd ((lv j).limb 0 * Parameters.gpow k) = some w → w = (ws j).getD k 0) ∧
-      ReadsAt rd (σ (.n 17) * (gen ^ j) ^ 2) (digestCells (keccak256 ((ws j).flatMap Node.eBytes))) := by
+      ReadsAt rd (σ (.n 17) * (gen ^ j) ^ 2) (digestCells (keccak256 ((ws j).flatMap Node.extensionElementBytes))) := by
     intro j hj
     obtain ⟨hp, hbv⟩ := body_ofV hVm find_da_vector_cell (hcol j hj).1
     obtain ⟨dg, hdg, hrv, hl, -, hfr, hrd⟩ := da_vector_cell_val hp hbv
@@ -636,7 +636,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
       have p0 := hrd 0 (by simp [digestCells])
       have p1 := hrd 1 (by simp [digestCells])
       rw [shift2] at p0 p1
-      have e2 : colD wsP (c / 2) = keccak256 ((ws (c / 2)).flatMap Node.eBytes) := by
+      have e2 : colD wsP (c / 2) = keccak256 ((ws (c / 2)).flatMap Node.extensionElementBytes) := by
         rw [colD, hwP (c / 2) (by omega)]
       rcases (show c % 2 = 0 ∨ c % 2 = 1 by omega) with h | h
       · rw [h, memAt_of_load (by simpa using p0), e2]; rfl
@@ -651,7 +651,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
     simp only [Prod.ext_iff] at hd
     rw [← hd.1, ← hd.2]
   refine ⟨daRoot r L symsP, daVd wsP, ?_, ?_⟩
-  · show (⟨daRows (gLog (σ (.n 1))) symsP, daVector wsP⟩ : LeanVM.Da.Witness).Opens _ _
+  · show (⟨daRows (gLog (σ (.n 1))) symsP, daVector wsP⟩ : LeanVM.Da.MatrixWitness).Opens _ _
     rw [hgr]
     exact opens_of hr1 (by unfold LeanDa.maxRows; exact hr) hnp.symm hrL hsL hwL hdot
   · rw [← hret, ← hrootd, ← hvd]

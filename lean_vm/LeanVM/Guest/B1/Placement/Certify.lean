@@ -251,7 +251,7 @@ def CpFacts (rd : Reader) (σ : Val) (r : ℕ) : Prop :=
         ∃ e < 99, σ (.n (cpCol r)) = gen ^ e * σ (.n (cpCol (r - 1)))))
 
 section
-variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ)
+variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
 theorem rc113 {σ : Val} {x y t1 t2 k : ℕ} (hk : σ (.n k) = w98) (h : TbRcHolds Lm.read σ x y t1 t2 k) :
@@ -324,7 +324,7 @@ theorem tb_prefixSize_strict (k : ℕ → ℕ) :
       have : 0 < 2 ^ (((List.range 99).map k).getD r 0) := Nat.two_pow_pos _
       simp only [id]; omega
 
-theorem cp_sound {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {kb sq : E}
+theorem cp_sound {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {kb sq : E}
     (hsq : ∀ j < 34, LoadHolds Lm.read sq j (gen ^ 2 ^ j)) (rets : List E)
     (h : coreProgram.Rel Lm.read "certify_placement" [kb, sq] rets) :
     MeaningCertifyPlacement Lm.read [kb, sq] rets := by
@@ -476,7 +476,7 @@ theorem cp_sound {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {kb sq : E}
       simp only [Function.comp_apply]; rw [hsize c (List.mem_range.mp hc)])
 
 /-- **`certify_placement` is sound** on every memory of at most `2^32` words. -/
-theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) :
+theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) :
     certify_placement_Spec Lm.read := by
   intro logMem hs kb sq rets hlm hl hhs hkb hsq h
   have hsq' : ∀ j < 34, LoadHolds Lm.read sq j (gen ^ 2 ^ j) := fun j hj => by

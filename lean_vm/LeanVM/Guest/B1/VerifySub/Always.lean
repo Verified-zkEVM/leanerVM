@@ -69,7 +69,7 @@ theorem Always.bind {α β : Type} {Q : α → Prop} {P : β → Prop} {f : α �
 
 /-- **A run returns one of the values.** -/
 theorem Always.run {α : Type} {P : α → Prop} (p : Prog α) :
-    ∀ {st st' : St} {a : α}, Always p P → runId p st = some (a, st') → P a := by
+    ∀ {st st' : ProgState} {a : α}, Always p P → runId p st = some (a, st') → P a := by
   induction p with
   | ret b =>
     intro st st' a h hr
@@ -92,10 +92,10 @@ theorem Always.run {α : Type} {P : α → Prop} (p : Prog α) :
     split at hr
     · cases hr
     · rename_i x xs _
-      change (if powOk b x (Compile.squeeze (m := Id) keccakF
-          (Compile.absorb (m := Id) keccakF st.sponge x dsPowNonce)).1 = true then
-        Compile.run (m := Id) keccak256 keccakF k (St.mk (Compile.squeeze (m := Id) keccakF
-          (Compile.absorb (m := Id) keccakF st.sponge x dsPowNonce)).2 xs st.openings st.roots)
+      change (if powOk b x (Compile.squeeze (m := Id) keccakF1600
+          (Compile.absorb (m := Id) keccakF1600 st.sponge x dsPowNonce)).1 = true then
+        Compile.run (m := Id) keccak256 keccakF1600 k (ProgState.mk (Compile.squeeze (m := Id) keccakF1600
+          (Compile.absorb (m := Id) keccakF1600 st.sponge x dsPowNonce)).2 xs st.openings st.roots)
         else none) = some (a, st') at hr
       split at hr
       · exact ih h hr
@@ -116,8 +116,8 @@ theorem Always.run {α : Type} {P : α → Prop} (p : Prog α) :
     · cases hr
     · rename_i _ root height width _
       change (match Compile.openAll (m := Id) keccak256 root height width ps st.openings with
-        | some (rows, rest) => Compile.run (m := Id) keccak256 keccakF (k rows)
-            (St.mk st.sponge st.stream rest st.roots)
+        | some (rows, rest) => Compile.run (m := Id) keccak256 keccakF1600 (k rows)
+            (ProgState.mk st.sponge st.stream rest st.roots)
         | none => none) = some (a, st') at hr
       split at hr
       · exact ih _ (h _) hr
@@ -131,11 +131,11 @@ theorem RunsTo.always {α : Type} {p : Prog α} {s s' : Fs} {xs : List E} {a : �
 
 /-! ## The primitives -/
 
-theorem always_readN : ∀ n : ℕ, Always (Prog.readN n) fun xs ↦ xs.length = n
+theorem always_readN : ∀ n : ℕ, Always (Prog.readScalars n) fun xs ↦ xs.length = n
   | 0 => rfl
   | n + 1 => by
     intro x
-    show Always ((Prog.readN n).bind fun xs ↦ Prog.ret (x :: xs)) _
+    show Always ((Prog.readScalars n).bind fun xs ↦ Prog.ret (x :: xs)) _
     exact Always.bind (fun xs hxs ↦ by show (x :: xs).length = n + 1; simp [hxs]) _ (always_readN n)
 
 theorem always_require (c : Prop) [Decidable c] : Always (Prog.require c) fun _ ↦ c := by

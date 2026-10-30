@@ -7,8 +7,8 @@ import LeanVM.Semantics.KeccakCells
 A plain file: each fixture is a proof that peels `run` one step at a time and decides the
 step's relation on literal words in the kernel, which needs `E` arithmetic and `DecidableEq E`
 to reduce there; they do from a plain file and not from a `module`.
-Nothing here evaluates `gLog?`: every fetch and read is `Program.fetch_gpow` or
-`MemImage.read_gpow` at a literal index, or one of the failure lemmas.
+Nothing here evaluates `addressIndex?`: every fetch and read is `Program.fetch_gpow` or
+`MemoryImage.read_gpow` at a literal index, or one of the failure lemmas.
 
 Fixtures, from leanVM's executor tests at the pin (`990b9352`): `mul_192bit_word`
 (`crates/leanvm_core/src/cpu/mod.rs:918-936`, operands and product as the test computes them with
@@ -38,24 +38,24 @@ theorem fetch_lit (prog : Program) (j : ℕ) (hj : j < 2 ^ prog.logSize := by de
 theorem fetch_one (prog : Program) : prog.fetch 1 = some (prog.code ⟨0, Nat.two_pow_pos _⟩) := by
   simpa using prog.fetch_gpow ⟨0, Nat.two_pow_pos _⟩
 
-/-- `MemImage.read_gpow` at a literal exponent. -/
-theorem read_lit {κ : ℕ} (L : MemImage κ) (j : ℕ) (hκ : κ < 64 := by decide)
+/-- `MemoryImage.read_gpow` at a literal exponent. -/
+theorem read_lit {κ : ℕ} (L : MemoryImage κ) (j : ℕ) (hκ : κ < 64 := by decide)
     (hj : j < 2 ^ κ := by decide) : L.read (gpow j) = some (L ⟨j, hj⟩) :=
-  MemImage.read_gpow hκ L ⟨j, hj⟩
+  MemoryImage.read_gpow hκ L ⟨j, hj⟩
 
-/-- `MemImage.read` at the address `1 = g^0`. -/
-theorem read_one {κ : ℕ} (L : MemImage κ) (hκ : κ < 64 := by decide) :
+/-- `MemoryImage.read` at the address `1 = g^0`. -/
+theorem read_one {κ : ℕ} (L : MemoryImage κ) (hκ : κ < 64 := by decide) :
     L.read 1 = some (L ⟨0, Nat.two_pow_pos _⟩) := by
-  simpa using MemImage.read_gpow hκ L ⟨0, Nat.two_pow_pos _⟩
+  simpa using MemoryImage.read_gpow hκ L ⟨0, Nat.two_pow_pos _⟩
 
-/-- `MemImage.read` at the address `g = g^1`. -/
-theorem read_g {κ : ℕ} (L : MemImage κ) (hκ : κ < 64 := by decide)
+/-- `MemoryImage.read` at the address `g = g^1`. -/
+theorem read_g {κ : ℕ} (L : MemoryImage κ) (hκ : κ < 64 := by decide)
     (h1 : 1 < 2 ^ κ := by decide) : L.read g = some (L ⟨1, h1⟩) := by
-  simpa using MemImage.read_gpow hκ L ⟨1, h1⟩
+  simpa using MemoryImage.read_gpow hκ L ⟨1, h1⟩
 
-/-- `MemImage.read` one past the end of a sixteen-cell memory. -/
-theorem read_sixteen (L : MemImage 4) : L.read (gpow 16) = none := by
-  rw [MemImage.read, gLog?_gpow_eq_none (by decide) (by decide), Option.map_none]
+/-- `MemoryImage.read` one past the end of a sixteen-cell memory. -/
+theorem read_sixteen (L : MemoryImage 4) : L.read (gpow 16) = none := by
+  rw [MemoryImage.read, gLog?_gpow_eq_none (by decide) (by decide), Option.map_none]
 
 /-- `g · g^i = g^(i+1)`, oriented for `simp`. -/
 theorem g_mul_gpow (i : ℕ) : g * gpow i = gpow (i + 1) := (gpow_succ i).symm
@@ -63,13 +63,13 @@ theorem g_mul_gpow (i : ℕ) : g * gpow i = gpow (i + 1) := (gpow_succ i).symm
 /-! ## The successor -/
 
 /-- The fall-through successor multiplies by `g`. -/
-example : Regs.next ⟨1, 1⟩ = ⟨g, 1⟩ := rfl
+example : Registers.next ⟨1, 1⟩ = ⟨g, 1⟩ := rfl
 
 /-- `pc + 1` would not even be injective on a run: `1 + 1 = 0` in `K`. -/
 example : (1: K) + 1 = 0 := by decide
 
 /-- Register equality decides in the kernel on a product against a power. -/
-example : Regs.next ⟨1, 1⟩ = ⟨gpow 1, 1⟩ := by decide +kernel
+example : Registers.next ⟨1, 1⟩ = ⟨gpow 1, 1⟩ := by decide +kernel
 
 /-! ## `mul_192bit_word` (`cpu/mod.rs:918-936`) -/
 
@@ -94,7 +94,7 @@ def mulInput : PublicInput := ⟨![1, 0, K.ofBits 2, 0]⟩
 
 /-- The image the executor commits, at the smallest size: the public words, the operands, the
 product, and zero elsewhere. -/
-def mulImage : MemImage minLogMem := fun i ↦
+def mulImage : MemoryImage minLogMem := fun i ↦
   match (i : ℕ) with
   | 0 => mulInput.word0
   | 1 => mulInput.word1
@@ -104,7 +104,7 @@ def mulImage : MemImage minLogMem := fun i ↦
   | _ => 0
 
 /-- Three instructions execute before the final state. -/
-def mulTrace : Trace mulProg := ⟨minLogMem, mulImage, 3⟩
+def mulTrace : Execution mulProg := ⟨minLogMem, mulImage, 3⟩
 
 theorem mul_step0 : step mulProg mulImage ⟨1, 1⟩ = some ⟨gpow 1, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one mulProg)]
@@ -125,14 +125,14 @@ theorem mul_step2 : step mulProg mulImage ⟨gpow 2, 1⟩ = some ⟨gpow 3, 1⟩
   decide +kernel
 
 /-- The run: three steps from `(1, 1)`, halting in the final state `(g^3, 1)`. -/
-theorem mul_run : run mulProg mulImage 3 Regs.initial = some (Regs.final mulProg) := by
+theorem mul_run : run mulProg mulImage 3 Registers.initial = some (Registers.final mulProg) := by
   show run mulProg mulImage 3 ⟨1, 1⟩ = some ⟨gpow 3, 1⟩
   simp (disch := decide +kernel) only [run_succ_of_ne, mul_step0, mul_step1, mul_step2,
     Option.bind_eq_bind, Option.bind_some, run_zero]
 
 /-- The two public words are in place, whatever the program and the step count. -/
 theorem mulImage_boundary {prog : Program} (steps : ℕ) :
-    HasPublicBoundary mulInput (⟨minLogMem, mulImage, steps⟩ : Trace prog) := by
+    HoldsPublicInput mulInput (⟨minLogMem, mulImage, steps⟩ : Execution prog) := by
   refine ⟨le_rfl, (by decide : minLogMem ≤ maxLogMem), ?_, ?_⟩
   · show mulImage.read (gpow 0) = some (mulImage ⟨0, by decide⟩)
     exact read_lit mulImage 0
@@ -143,12 +143,12 @@ theorem mulImage_boundary {prog : Program} (steps : ℕ) :
 example : ValidExecution mulProg mulInput mulTrace := ⟨mulImage_boundary 3, mul_run⟩
 
 /-- Its register sequence has four states. -/
-example : mulTrace.regs.length = 4 := Trace.regs_length mul_run
+example : mulTrace.regs.length = 4 := Execution.regs_length mul_run
 
 /-- A fourth step is refused: the machine halts in the final state. -/
-example : run mulProg mulImage 4 Regs.initial = none := by
+example : run mulProg mulImage 4 Registers.initial = none := by
   rw [show 4 = 3 + 1 by rfl, run_add, mul_run, Option.bind_eq_bind, Option.bind_some]
-  exact run_succ_of_eq (r := Regs.final mulProg) rfl 0
+  exact run_succ_of_eq (r := Registers.final mulProg) rfl 0
 
 /-! ## `N_prog = 1`: the empty execution -/
 
@@ -160,14 +160,14 @@ example : ValidExecution oneProg mulInput ⟨minLogMem, mulImage, 0⟩ :=
   ⟨mulImage_boundary 0, by rw [run_zero]; decide +kernel⟩
 
 /-- ...and its one slot is not executed, whatever it holds: the initial state is the final one. -/
-example : run oneProg mulImage 1 Regs.initial = none := run_succ_of_eq (by decide +kernel) 0
+example : run oneProg mulImage 1 Registers.initial = none := run_succ_of_eq (by decide +kernel) 0
 
 /-- The same with a `JUMP` in that slot. -/
 def oneJumpProg : Program := ⟨0, by decide, ![.jump 0 0 0]⟩
 
 example : ValidExecution oneJumpProg mulInput ⟨minLogMem, mulImage, 0⟩ :=
   ⟨mulImage_boundary 0, by rw [run_zero]; decide +kernel⟩
-example : run oneJumpProg mulImage 1 Regs.initial = none :=
+example : run oneJumpProg mulImage 1 Registers.initial = none :=
   run_succ_of_eq (by decide +kernel) 0
 
 /-! ## Control flow: `JUMP` and `DEREF` on a sixteen-cell image -/
@@ -175,7 +175,7 @@ example : run oneJumpProg mulImage 1 Regs.initial = none :=
 /-- Sixteen cells. `JUMP` reads `c, d, f` at `2, 3, 4` (all in `K`), or `c = 0` at `12` and
 `d = y ∉ K` at `13`; `DEREF` reads the pointer `g^7` at `5`, its local cell at `6`, and the
 target `g² · pc` at `7`; the `JUMP` to the last slot reads `g` at `14`. -/
-def ctlImage : MemImage 4 := fun i ↦
+def ctlImage : MemoryImage 4 := fun i ↦
   match (i : ℕ) with
   | 2 => E.ofLimbs 1 0 0
   | 3 => E.ofLimbs (gpow 3) 0 0
@@ -235,7 +235,7 @@ example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .pc)) ctlImage ⟨1, 1⟩ = 
   decide +kernel
 
 /-- Change only the target cell so the same pointer and local reads exercise `cell` mode. -/
-def derefCellImage : MemImage 4 := fun i ↦
+def derefCellImage : MemoryImage 4 := fun i ↦
   if i.val = 7 then ctlImage ⟨6, by decide⟩ else ctlImage i
 
 theorem derefCell_pointer : (derefCellImage ⟨5, by decide⟩).limb 0 = gpow 7 :=
@@ -252,7 +252,7 @@ example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .cell)) derefCellImage ⟨1,
   decide +kernel
 
 /-- Change the target to the frame pointer embedded in `E`; the local cell is still read. -/
-def derefFpImage : MemImage 4 := fun i ↦
+def derefFpImage : MemoryImage 4 := fun i ↦
   if i.val = 7 then E.ofLimbs 1 0 0 else ctlImage i
 
 theorem derefFp_pointer : (derefFpImage ⟨5, by decide⟩).limb 0 = gpow 7 :=
@@ -286,7 +286,7 @@ example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .fp)) ctlImage ⟨1, 1⟩ = 
   decide +kernel
 
 /-- Every mode rejects a pointer whose upper limbs are nonzero, before using it as an address. -/
-def nonKPointerImage : MemImage 4 := fun i ↦
+def nonKPointerImage : MemoryImage 4 := fun i ↦
   if i.val = 5 then E.ofLimbs (gpow 7) 1 0 else ctlImage i
 
 example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .cell)) nonKPointerImage ⟨1, 1⟩ =
@@ -318,7 +318,7 @@ example : step (oneStep (.xor (gpow 16) (gpow 2) (gpow 3))) ctlImage ⟨1, 1⟩ 
 example : step (oneStep (.xor 0 (gpow 2) (gpow 3))) ctlImage ⟨1, 1⟩ = none := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute ctlImage ⟨1, 1⟩ (.xor 0 (gpow 2) (gpow 3)) = _
-  simp only [execute, executeWith, mul_zero, MemImage.read_zero, Option.bind_eq_bind, Option.bind_none]
+  simp only [execute, executeWith, mul_zero, MemoryImage.read_zero, Option.bind_eq_bind, Option.bind_none]
 
 /-- A counter past the bytecode fetches nothing. -/
 example : step (oneStep (.xor 1 1 1)) ctlImage ⟨gpow 2, 1⟩ = none :=
@@ -331,14 +331,14 @@ example : step (oneStep (.xor 1 1 1)) ctlImage ⟨gpow 2, 1⟩ = none :=
 /-- A `JUMP` to the last slot `g` with `fp ← g`. -/
 def haltProg : Program := oneStep (.jump (gpow 2) (gpow 14) (gpow 14))
 
-theorem halt_step : step haltProg ctlImage Regs.initial = some ⟨g, g⟩ := by
-  rw [step_of_fetch_eq_some (r := Regs.initial) (fetch_one _)]
+theorem halt_step : step haltProg ctlImage Registers.initial = some ⟨g, g⟩ := by
+  rw [step_of_fetch_eq_some (r := Registers.initial) (fetch_one _)]
   show execute ctlImage ⟨1, 1⟩ (.jump (gpow 2) (gpow 14) (gpow 14)) = _
   simp only [execute, executeWith, one_mul, read_lit ctlImage 2, read_lit ctlImage 14]
   decide +kernel
 
 /-- The last slot in the frame `g` is not the final state `(g, 1)`. -/
-theorem halt_ne_final : (⟨g, g⟩ : Regs K) ≠ Regs.final haltProg := by decide +kernel
+theorem halt_ne_final : (⟨g, g⟩ : Registers K) ≠ Registers.final haltProg := by decide +kernel
 
 /-- There the `XOR` executes (cell `g`, the word `0`, is `0 + 0`) and falls through to `g^2`. -/
 theorem halt_last : step haltProg ctlImage ⟨g, g⟩ = some ⟨gpow 2, g⟩ := by
@@ -356,20 +356,20 @@ theorem halt_past : step haltProg ctlImage ⟨gpow 2, g⟩ = none :=
 /-- The run reaches the last slot after one step with `fp = g`, which is not the final state;
 it steps on to `(g^2, g)` and fails there, so no number of steps reaches `(g, 1)`: no trace over
 this image is a valid execution. -/
-example : ∀ n, run haltProg ctlImage n Regs.initial ≠ some (Regs.final haltProg) := by
+example : ∀ n, run haltProg ctlImage n Registers.initial ≠ some (Registers.final haltProg) := by
   intro n
   match n with
   | 0 => rw [run_zero]; decide +kernel
   | 1 =>
-    rw [run_succ_of_ne (prog := haltProg) (r := Regs.initial) (by decide +kernel) 0, halt_step]
+    rw [run_succ_of_ne (prog := haltProg) (r := Registers.initial) (by decide +kernel) 0, halt_step]
     decide +kernel
   | 2 =>
-    rw [show (2 : ℕ) = 1 + 1 from rfl, run_succ_of_ne (prog := haltProg) (r := Regs.initial) (by decide +kernel) 1, halt_step,
+    rw [show (2 : ℕ) = 1 + 1 from rfl, run_succ_of_ne (prog := haltProg) (r := Registers.initial) (by decide +kernel) 1, halt_step,
       Option.bind_eq_bind, Option.bind_some, run_succ_of_ne_final halt_ne_final 0, halt_last,
       Option.bind_eq_bind, Option.bind_some, run_zero]
     decide +kernel
   | n + 3 =>
-    rw [show n + 3 = n + 2 + 1 from rfl, run_succ_of_ne (prog := haltProg) (r := Regs.initial) (by decide +kernel) (n + 2),
+    rw [show n + 3 = n + 2 + 1 from rfl, run_succ_of_ne (prog := haltProg) (r := Registers.initial) (by decide +kernel) (n + 2),
       halt_step, Option.bind_eq_bind, Option.bind_some, run_succ_of_ne_final halt_ne_final (n + 1),
       halt_last, Option.bind_eq_bind, Option.bind_some,
       run_succ_of_ne (prog := haltProg) (r := ⟨gpow 2, g⟩) (by decide +kernel) n, halt_past]
@@ -410,7 +410,7 @@ def kOut : Fin 13 → E := fun c ↦
 /-- The executor's cells: the public input at `0, 1`, `a, b` at `2, 3`, the tail at `4..7`, `b8` at
 `8`, the capacity at `9..12`, and the output at `13..25`; `out` is the output cell `0`, mutated
 below. -/
-def keccakImage (out0 : E) : MemImage 5 := fun i ↦
+def keccakImage (out0 : E) : MemoryImage 5 := fun i ↦
   match (i : ℕ) with
   | 0 => ofK 7
   | 1 => ofK 11
@@ -444,7 +444,7 @@ theorem keccakOutOffset_eq : ∀ c : Fin 13, 1 * (g ^ c.val * gpow 13) = gpow (c
 /-- The row's reads, on the image with output cell `0` set to `out0`. -/
 theorem keccak_reads (out0 : E) :
     execute (keccakImage out0) ⟨1, 1⟩ keccakIns =
-      (do guard (KeccakCells kIn false (Function.update kOut 0 out0) true); pure ⟨g, 1⟩) := by
+      (do guard (KeccakCellsRelation kIn false (Function.update kOut 0 out0) true); pure ⟨g, 1⟩) := by
   have hin : readCells (keccakImage out0).read 1 (keccakInOffset ![gpow 2, gpow 3, gpow 2, gpow 3]
       (gpow 4) (gpow 8) (gpow 9)) = some kIn := by
     refine (readCells_eq_some_iff _ _ _ _).mpr fun c ↦ ?_
@@ -506,7 +506,7 @@ abbrev setLast : Program := finalProg (.setConstant (gpow 5) wOne)
 def finalInput : PublicInput := ⟨![K.ofBits 7, 0, K.ofBits 11, 0]⟩
 
 /-- The memory leanVM's executor writes: the public words and the three cells set. -/
-def finalImage : MemImage minLogMem := fun i ↦
+def finalImage : MemoryImage minLogMem := fun i ↦
   match (i : ℕ) with
   | 0 => finalInput.word0
   | 1 => finalInput.word1
@@ -516,8 +516,8 @@ def finalImage : MemImage minLogMem := fun i ↦
   | _ => 0
 
 theorem final_step0 (last : Instr) :
-    step (finalProg last) finalImage Regs.initial = some ⟨gpow 1, 1⟩ := by
-  rw [step_of_fetch_eq_some (r := Regs.initial) (fetch_one _)]
+    step (finalProg last) finalImage Registers.initial = some ⟨gpow 1, 1⟩ := by
+  rw [step_of_fetch_eq_some (r := Registers.initial) (fetch_one _)]
   show execute finalImage ⟨1, 1⟩ (.setConstant (gpow 2) wOne) = _
   simp only [execute, executeWith, one_mul, read_lit finalImage 2]
   decide +kernel
@@ -546,33 +546,33 @@ theorem final_step3 (last : Instr) :
   decide +kernel
 
 /-- The `JUMP` in the last slot, in the frame `g`, lands in the final state. -/
-theorem jumpLast_step4 : step jumpLast finalImage ⟨gpow 7, g⟩ = some (Regs.final jumpLast) := by
+theorem jumpLast_step4 : step jumpLast finalImage ⟨gpow 7, g⟩ = some (Registers.final jumpLast) := by
   rw [step_of_fetch_eq_some (r := ⟨gpow 7, g⟩) (fetch_lit jumpLast 7)]
   show execute finalImage ⟨gpow 7, g⟩ (.jump (gpow 1) (gpow 2) (gpow 1)) = some ⟨gpow 7, 1⟩
   simp only [execute, executeWith, g_mul_gpow, read_lit finalImage 2, read_lit finalImage 3]
   decide +kernel
 
 /-- The final state of the program is `(g^7, 1)`. -/
-theorem final_eq (last : Instr) : Regs.final (finalProg last) = ⟨gpow 7, 1⟩ := rfl
+theorem final_eq (last : Instr) : Registers.final (finalProg last) = ⟨gpow 7, 1⟩ := rfl
 
 /-- The last slot in the frame `g` is not the final state. -/
-theorem lastInG_ne_final (last : Instr) : (⟨gpow 7, g⟩ : Regs K) ≠ Regs.final (finalProg last) := by
+theorem lastInG_ne_final (last : Instr) : (⟨gpow 7, g⟩ : Registers K) ≠ Registers.final (finalProg last) := by
   rw [final_eq]
   decide +kernel
 
 /-- Nor is the initial state. -/
-theorem initial_ne_final (last : Instr) : Regs.initial ≠ Regs.final (finalProg last) := by
+theorem initial_ne_final (last : Instr) : Registers.initial ≠ Registers.final (finalProg last) := by
   rw [final_eq]
   decide +kernel
 
 /-- Nor is any state of `main`'s frame before the last slot. -/
 theorem main_ne_final (last : Instr) (j : ℕ) (hj : j < 7) :
-    (⟨gpow j, 1⟩ : Regs K) ≠ Regs.final (finalProg last) := by
+    (⟨gpow j, 1⟩ : Registers K) ≠ Registers.final (finalProg last) := by
   rw [final_eq]
   interval_cases j <;> decide +kernel
 
 /-- **The run halts in the final state after five steps**, the last slot's `JUMP` among them. -/
-theorem jumpLast_run : run jumpLast finalImage 5 Regs.initial = some (Regs.final jumpLast) := by
+theorem jumpLast_run : run jumpLast finalImage 5 Registers.initial = some (Registers.final jumpLast) := by
   simp (disch := decide +kernel) only [run_succ_of_ne, final_step0, final_step1, final_step2,
     final_step3, Option.bind_eq_bind, Option.bind_some]
   rw [run_succ_of_ne_final (lastInG_ne_final (.jump (gpow 1) (gpow 2) (gpow 1))), jumpLast_step4, Option.bind_eq_bind,
@@ -590,7 +590,7 @@ theorem jumpLast_valid : ValidExecution jumpLast finalInput ⟨minLogMem, finalI
 
 /-- A step through a `SET_CONSTANT` that succeeds falls through, and the cell holds the
 constant. -/
-theorem set_step {κ : ℕ} {L : MemImage κ} {r r' : Regs K} {o : K} {k : E}
+theorem set_step {κ : ℕ} {L : MemoryImage κ} {r r' : Registers K} {o : K} {k : E}
     (h : execute L r (.setConstant o k) = some r') : L.read (r.fp * o) = some k ∧ r' = r.next := by
   simp only [execute, executeWith, Option.bind_eq_bind] at h
   cases hv : L.read (r.fp * o) with
@@ -605,8 +605,8 @@ theorem set_step {κ : ℕ} {L : MemImage κ} {r r' : Regs K} {o : K} {k : E}
 
 /-- From the last slot in the frame `g`, the `SET_CONSTANT` falls through to `g^8`, no slot: no
 number of steps reaches the final state, whatever the memory. -/
-theorem setLast_from_last {κ : ℕ} (L : MemImage κ) :
-    ∀ n, run setLast L n ⟨gpow 7, g⟩ ≠ some (Regs.final setLast)
+theorem setLast_from_last {κ : ℕ} (L : MemoryImage κ) :
+    ∀ n, run setLast L n ⟨gpow 7, g⟩ ≠ some (Registers.final setLast)
   | 0 => by
     rw [run_zero]
     exact fun h ↦ lastInG_ne_final (.setConstant (gpow 5) wOne) (Option.some.inj h)
@@ -616,7 +616,7 @@ theorem setLast_from_last {κ : ℕ} (L : MemImage κ) :
       step_of_fetch_eq_some (r := ⟨gpow 7, g⟩) (fetch_lit setLast 7)] at h
     obtain ⟨r, hr, h⟩ := Option.bind_eq_some_iff.mp h
     obtain ⟨-, rfl⟩ := set_step (r := ⟨gpow 7, g⟩) hr
-    have h8 : Regs.next ⟨gpow 7, g⟩ = ⟨gpow 8, g⟩ := by decide +kernel
+    have h8 : Registers.next ⟨gpow 7, g⟩ = ⟨gpow 8, g⟩ := by decide +kernel
     rw [h8] at h
     cases n with
     | zero =>
@@ -633,18 +633,18 @@ theorem setLast_from_last {κ : ℕ} (L : MemImage κ) :
 /-- **With a `SET_CONSTANT` in the last slot there is no valid execution**, on any memory: the
 first three steps fix cells `2`, `3`, `4`, the `JUMP` then goes to the last slot in the frame `g`,
 and from there no run reaches the final state; no state before it is the final state. -/
-theorem setLast_no_run {κ : ℕ} (L : MemImage κ) (n : ℕ) :
-    run setLast L n Regs.initial ≠ some (Regs.final setLast) := by
+theorem setLast_no_run {κ : ℕ} (L : MemoryImage κ) (n : ℕ) :
+    run setLast L n Registers.initial ≠ some (Registers.final setLast) := by
   intro h
   have hne := main_ne_final (.setConstant (gpow 5) wOne)
   -- step 0
   rcases n with _ | n
   · exact initial_ne_final _ (Option.some.inj h)
   rw [run_succ_of_ne_final (initial_ne_final (.setConstant (gpow 5) wOne)),
-    step_of_fetch_eq_some (r := Regs.initial) (fetch_one setLast)] at h
+    step_of_fetch_eq_some (r := Registers.initial) (fetch_one setLast)] at h
   obtain ⟨r1, he, h⟩ := Option.bind_eq_some_iff.mp h
-  obtain ⟨h2, rfl⟩ := set_step (r := Regs.initial) he
-  have e1 : Regs.next Regs.initial = ⟨gpow 1, 1⟩ := by decide +kernel
+  obtain ⟨h2, rfl⟩ := set_step (r := Registers.initial) he
+  have e1 : Registers.next Registers.initial = ⟨gpow 1, 1⟩ := by decide +kernel
   rw [e1] at h
   -- step 1
   rcases n with _ | n
@@ -653,7 +653,7 @@ theorem setLast_no_run {κ : ℕ} (L : MemImage κ) (n : ℕ) :
     step_of_fetch_eq_some (r := ⟨gpow 1, 1⟩) (fetch_lit setLast 1)] at h
   obtain ⟨r2, he, h⟩ := Option.bind_eq_some_iff.mp h
   obtain ⟨h3, rfl⟩ := set_step (r := ⟨gpow 1, 1⟩) he
-  have e2 : Regs.next ⟨gpow 1, 1⟩ = ⟨gpow 2, 1⟩ := by decide +kernel
+  have e2 : Registers.next ⟨gpow 1, 1⟩ = ⟨gpow 2, 1⟩ := by decide +kernel
   rw [e2] at h
   -- step 2
   rcases n with _ | n
@@ -662,7 +662,7 @@ theorem setLast_no_run {κ : ℕ} (L : MemImage κ) (n : ℕ) :
     step_of_fetch_eq_some (r := ⟨gpow 2, 1⟩) (fetch_lit setLast 2)] at h
   obtain ⟨r3, he, h⟩ := Option.bind_eq_some_iff.mp h
   obtain ⟨h4, rfl⟩ := set_step (r := ⟨gpow 2, 1⟩) he
-  have e3 : Regs.next ⟨gpow 2, 1⟩ = ⟨gpow 3, 1⟩ := by decide +kernel
+  have e3 : Registers.next ⟨gpow 2, 1⟩ = ⟨gpow 3, 1⟩ := by decide +kernel
   rw [e3] at h
   -- step 3, the `JUMP`, on the cells the `SET_CONSTANT`s fixed
   rcases n with _ | n
@@ -671,7 +671,7 @@ theorem setLast_no_run {κ : ℕ} (L : MemImage κ) (n : ℕ) :
     step_of_fetch_eq_some (r := ⟨gpow 3, 1⟩) (fetch_lit setLast 3)] at h
   obtain ⟨r4, he, h⟩ := Option.bind_eq_some_iff.mp h
   have hj : execute L ⟨gpow 3, 1⟩ (.jump (gpow 2) (gpow 3) (gpow 4)) = some ⟨gpow 7, g⟩ := by
-    simp only [Regs.initial, one_mul] at h2 h3 h4
+    simp only [Registers.initial, one_mul] at h2 h3 h4
     simp only [execute, executeWith, one_mul, h2, h3, h4]
     decide +kernel
   change execute L ⟨gpow 3, 1⟩ (.jump (gpow 2) (gpow 3) (gpow 4)) = some r4 at he

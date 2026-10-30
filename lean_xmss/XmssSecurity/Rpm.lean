@@ -19,7 +19,7 @@ open OracleComp OracleSpec ENNReal Common Common.SufCma
 namespace XmssSecurity
 
 /- A weight bound of a concrete game must not be unfolded: it recurses through the whole game. -/
-attribute [local irreducible] IsWeightBound
+attribute [local irreducible] QueryCostAtMost
 
 /-- The leanXMSS ROM experiment is the generic one. -/
 theorem experiment_eq_romExperiment
@@ -69,7 +69,7 @@ theorem leanXmss_rpm_securityH : RpmSecureH LeanXmss.Rpm.scheme 127 := by
 /-- **leanXMSS in the random-permutation model**: the statement's adversary queries `π` and `π⁻¹`
 alone, and its game is the game above with each hash call expanded into its permutation calls
 (`Common.SufCma.rpmSecure_of_rpmSecureH`). -/
-theorem leanXmss_rpm_security : LeanXmss.Rpm.LeanXmssRpmSecurityStatement :=
+theorem leanXmss_rpm_security : LeanXmss.Rpm.LeanXmssStronglyUnforgeable :=
   rpmSecure_of_rpmSecureH leanXmss_rpm_securityH
 
 end XmssSecurity

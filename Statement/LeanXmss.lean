@@ -10,7 +10,7 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 
 The leanXMSS scheme (key generation, signing, verification over a hash oracle `H`), the SUF-CMA
 game of `Statement/RandomPermutation.lean` instantiated with it, and the end statement
-`LeanXmss.Rpm.LeanXmssRpmSecurityStatement`, proved by `XmssSecurity.leanXmss_rpm_security`
+`LeanXmss.Rpm.LeanXmssStronglyUnforgeable`, proved by `XmssSecurity.leanXmss_rpm_security`
 (`lean_xmss`). Its budget `Q` counts the honest signer's permutation calls too, at their worst
 case: about `2^33` per signing request, so with all `2^32` leaves used the bound is about `2^-62`.
 -/
@@ -224,7 +224,7 @@ end Codeword
 signing. Hashing routines work in any monad with access to `HashSpec`. -/
 
 /-- A hash query takes an arbitrary byte string and returns 32 bytes (the SUF-CMA game's
-`Common.SufCma.HSpec`). -/
+`Common.SufCma.SchemeHashSpec`). -/
 abbrev HashSpec := HashInput →ₒ HashOutput
 
 namespace Concrete
@@ -494,7 +494,7 @@ namespace Rpm
 open Common Common.SufCma
 
 /-- leanXMSS in the generic SUF-CMA game: the seed, key generation, the signer of a request, the
-verifier, and the winning condition: a valid transcript without the forgery (`Contains`). -/
+verifier, and the winning condition: a valid transcript without the forgery (`SignerReturned`). -/
 noncomputable def scheme :
     Scheme MasterSeed PublicKey Seeded.SecretKey SignRequest (Option Signature)
       Forgery where
@@ -504,16 +504,16 @@ noncomputable def scheme :
   verify pk forgery := Concrete.verify (m := OracleComp HashSpec) pk forgery.message forgery.signature
   win log forgery :=
     decide (SigningTranscript.Valid log ∧
-      ¬Contains SignRequest.message log forgery.message forgery.signature)
+      ¬SignerReturned SignRequest.message log forgery.message forgery.signature)
 
 /-- **leanXMSS in the random-permutation model**: an adversary whose game makes at most `Q`
 permutation calls, `Q ≥ 1`, forges with probability at most `(Q + 1) · 2^-127`
-(`RpmSecure` at 127 bits). `Q` counts every call on the game's worst path, the honest signer's
-included (`IsWeightBound` is structural): a signing request costs about `2^33` calls (each layer's
-`2^32` grinding trials, and the paths and the bottom root rebuilt, about `2^25`), so `Q ≥ 2^65`
-once the adversary uses all `2^32` leaves, where the bound is about `2^-62`. -/
-abbrev LeanXmssRpmSecurityStatement : Prop :=
-  RpmSecure scheme 127
+(`StronglyUnforgeable` at 127 bits). `Q` counts every call on the game's worst path, the honest
+signer's included (`QueryCostAtMost` is structural): a signing request costs about `2^33` calls
+(each layer's `2^32` grinding trials, and the paths and the bottom root rebuilt, about `2^25`), so
+`Q ≥ 2^65` once the adversary uses all `2^32` leaves, where the bound is about `2^-62`. -/
+abbrev LeanXmssStronglyUnforgeable : Prop :=
+  StronglyUnforgeable scheme 127
 
 end Rpm
 

@@ -39,10 +39,10 @@ theorem cmap_empty : cmap ∅ = ∅ := by
 @[simp] theorem cmap_inl (c : HFS.QueryCache) (m : Bytes) :
     cmap c (.inl m) = (c (.inl m)).map Digest.ofRpm := rfl
 
-@[simp] theorem cmap_inr (c : HFS.QueryCache) (s : KState) :
+@[simp] theorem cmap_inr (c : HFS.QueryCache) (s : KeccakState) :
     cmap c (.inr s) = (c (.inr (KState.toRpm s))).map KState.ofRpm := rfl
 
-theorem cmap_cacheQuery_inl (c : HFS.QueryCache) (m : Bytes) (u : Common.KDigest) :
+theorem cmap_cacheQuery_inl (c : HFS.QueryCache) (m : Bytes) (u : Common.DigestBytes) :
     cmap (c.cacheQuery (.inl m) u) = (cmap c).cacheQuery (.inl m) (Digest.ofRpm u) := by
   refine QueryCache.ext fun t ↦ ?_
   rcases t with m' | s
@@ -68,7 +68,7 @@ theorem cmap_cacheQuery_inr (c : HFS.QueryCache) (x u : Common.KState) :
       rw [QueryCache.cacheQuery_of_ne _ _ (by simpa using h), cmap_inr, cmap_inr,
         QueryCache.cacheQuery_of_ne _ _ (by simpa using h')]
 
-theorem cmap_cacheQuery_inr' (c : HFS.QueryCache) (x : KState) (u : Common.KState) :
+theorem cmap_cacheQuery_inr' (c : HFS.QueryCache) (x : KeccakState) (u : Common.KState) :
     cmap (c.cacheQuery (.inr (KState.toRpm x)) u) =
       (cmap c).cacheQuery (.inr x) (KState.ofRpm u) := by
   have h := cmap_cacheQuery_inr c (KState.toRpm x) u
@@ -76,9 +76,9 @@ theorem cmap_cacheQuery_inr' (c : HFS.QueryCache) (x : KState) (u : Common.KStat
 
 /-! ## The verifier's queries read on bytes -/
 
-theorem step_toRHF (t : HashSpec.Domain) (c : HFS.QueryCache) :
+theorem step_toRHF (t : KeccakCalls.Domain) (c : HFS.QueryCache) :
     Prod.map id cmap <$> ((HFS.romImpl ∘ₛ toRHF) t).run c =ᵈ
-      (HashSpec.randomOracle t).run (cmap c) := by
+      (KeccakCalls.randomOracle t).run (cmap c) := by
   rcases t with m | x
   · rw [QueryImpl.apply_compose]
     simp only [toRHF, simulateQ_map, StateT.run_map, Common.run_hq, Functor.map_map]
@@ -110,9 +110,9 @@ theorem step_toRHF (t : HashSpec.Domain) (c : HFS.QueryCache) :
 /-- **(a) The verifier's queries read on bytes**: against `common`'s two random oracles, the
 outputs are those against the two random oracles of `Rom/Statement.lean`, the caches related by
 `cmap`. -/
-theorem run'_toRHF {β : Type} (V : OracleComp HashSpec β) (c : HFS.QueryCache) :
+theorem run'_toRHF {β : Type} (V : OracleComp KeccakCalls β) (c : HFS.QueryCache) :
     (simulateQ HFS.romImpl (simulateQ toRHF V)).run' c =ᵈ
-      (simulateQ HashSpec.randomOracle V).run' (cmap c) := by
+      (simulateQ KeccakCalls.randomOracle V).run' (cmap c) := by
   rw [← QueryImpl.simulateQ_compose]
   exact Common.run'_simulateQ_evalDistEq_of_inv _ _ (fun _ ↦ True) cmap
     (fun _ _ _ _ _ ↦ trivial) (fun t c _ ↦ step_toRHF t c) V c trivial
@@ -125,7 +125,7 @@ theorem cmap_inr_ofRpm (c : HFS.QueryCache) (x : Common.KState) :
 
 theorem step_ofRHF (t : HFSpec.Domain) (c : HFS.QueryCache) :
     Prod.map id cmap <$> (HFS.romImpl t).run c =ᵈ
-      ((HashSpec.romImpl ∘ₛ ofRHF) t).run (cmap c) := by
+      ((KeccakCalls.romImpl ∘ₛ ofRHF) t).run (cmap c) := by
   rcases t with n | m | x
   · rw [QueryImpl.apply_compose]
     simp only [ofRHF, simulateQ_spec_query, roSim.run_apply_inl, Functor.map_map]
@@ -162,7 +162,7 @@ theorem step_ofRHF (t : HFSpec.Domain) (c : HFS.QueryCache) :
 `Rom/Statement.lean` (with coins), it is the computation against `common`'s two random oracles, the
 final cache read through `cmap`. -/
 theorem run_ofRHF {α : Type} (X : OracleComp HFSpec α) (c : HFS.QueryCache) :
-    (simulateQ HashSpec.romImpl (simulateQ ofRHF X)).run (cmap c) =ᵈ
+    (simulateQ KeccakCalls.romImpl (simulateQ ofRHF X)).run (cmap c) =ᵈ
       Prod.map id cmap <$> (simulateQ HFS.romImpl X).run c := by
   rw [← QueryImpl.simulateQ_compose]
   exact (Common.map_run_simulateQ_evalDistEq_of_inv _ _ (fun _ ↦ True) cmap
@@ -182,7 +182,7 @@ def wHF : HFSpec.Domain → ℕ
 
 theorem isWeightBound_one_of_total {ι : Type} {spec : OracleSpec ι} {α : Type}
     {oa : OracleComp spec α} {Q : ℕ} (h : oa.IsTotalQueryBound Q) :
-    Common.IsWeightBound oa (fun _ ↦ 1) Q := by
+    Common.QueryCostAtMost oa (fun _ ↦ 1) Q := by
   induction oa using OracleComp.inductionOn generalizing Q with
   | pure a => trivial
   | query_bind t k ih =>
@@ -191,7 +191,7 @@ theorem isWeightBound_one_of_total {ι : Type} {spec : OracleSpec ι} {α : Type
     exact ⟨h.1, fun u ↦ ih u (h.2 u)⟩
 
 theorem isWeightBound_advR {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
-    Common.IsWeightBound (advR A) wR Q := by
+    Common.QueryCostAtMost (advR A) wR Q := by
   refine Common.isWeightBound_run_simulateQ logRel (fun _ ↦ 1) wR (fun q T ↦ ?_)
     (isWeightBound_one_of_total hA) []
   simp only [logRel, StateT.run_mk, relP]
@@ -199,14 +199,14 @@ theorem isWeightBound_advR {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryBoun
     (Common.isWeightBound_query wR (.inr (.inr (permQueryToRpm q)))))
 
 theorem isWeightBound_liftM_probComp_hf {β : Type} (p : ProbComp β) :
-    Common.IsWeightBound (liftM p : OracleComp HFSpec β) wHF 0 :=
+    Common.QueryCostAtMost (liftM p : OracleComp HFSpec β) wHF 0 :=
   Common.isWeightBound_liftM_probComp wHF (fun _ ↦ rfl) p
 
 /-- Each step of the adversary with the simulator makes at most one call of the byte random
 oracles, none for a coin. -/
 theorem isWeightBound_advImpl2 (t : RSpec.Domain)
-    (s : Common.SimState Common.KDigest Common.KRest Common.KCap) :
-    Common.IsWeightBound ((Common.advImpl2 Common.keccakPadding t).run s) wHF (wR t) := by
+    (s : Common.SimState Common.DigestBytes Common.KRest Common.KCap) :
+    Common.QueryCostAtMost ((Common.advImpl2 Common.keccakPadding t).run s) wHF (wR t) := by
   rcases t with n | m | q
   · simp only [Common.advImpl2, StateT.run_monadLift, monadLift_self]
     exact (isWeightBound_liftM_probComp_hf _).bind fun _ ↦ Common.isWeightBound_pure _ _ 0
@@ -214,12 +214,12 @@ theorem isWeightBound_advImpl2 (t : RSpec.Domain)
     exact (Common.isWeightBound_query wHF (.inr (.inl m))).bind fun _ ↦
       Common.isWeightBound_pure _ _ 0
   · cases q with
-    | fwd x =>
+    | forward x =>
       simp only [Common.advImpl2, Common.simulator2, StateT.run_mk]
       split
       · trivial
       · split
-        · refine (Common.IsWeightBound.bind (b := 0) ?_ fun _ ↦ Common.isWeightBound_pure _ _ 0)
+        · refine (Common.QueryCostAtMost.bind (b := 0) ?_ fun _ ↦ Common.isWeightBound_pure _ _ 0)
           unfold Common.rootedAnswer2
           split
           · exact ((Common.isWeightBound_query wHF (.inr (.inl _))).bind fun _ ↦
@@ -227,7 +227,7 @@ theorem isWeightBound_advImpl2 (t : RSpec.Domain)
           · exact Common.isWeightBound_query wHF (.inr (.inr _))
         · exact (Common.isWeightBound_query wHF (.inr (.inr _))).bind fun _ ↦
             Common.isWeightBound_pure _ _ 0
-    | inv y =>
+    | inverse y =>
       simp only [Common.advImpl2, Common.simulator2, StateT.run_mk]
       split
       · trivial
@@ -235,15 +235,15 @@ theorem isWeightBound_advImpl2 (t : RSpec.Domain)
           Common.isWeightBound_pure _ _ 0).mono (Nat.zero_le _)
 
 theorem isWeightBound_simulateQ_ofRHF {β : Type} {Y : OracleComp HFSpec β} {Q : ℕ}
-    (h : Common.IsWeightBound Y wHF Q) :
-    Common.IsWeightBound (simulateQ ofRHF Y) hashCalls Q := by
+    (h : Common.QueryCostAtMost Y wHF Q) :
+    Common.QueryCostAtMost (simulateQ ofRHF Y) hashCalls Q := by
   induction Y using OracleComp.inductionOn generalizing Q with
   | pure a => trivial
   | query_bind t k ih =>
     rw [Common.isWeightBound_query_bind_iff] at h
     simp only [simulateQ_bind, simulateQ_query, OracleQuery.input_query,
       OracleQuery.cont_query, id_map]
-    have hstep : Common.IsWeightBound (ofRHF t) hashCalls (wHF t) := by
+    have hstep : Common.QueryCostAtMost (ofRHF t) hashCalls (wHF t) := by
       rcases t with n | m | x
       · exact Common.isWeightBound_query hashCalls (.inl n)
       · exact Common.isWeightBound_map _ (Common.isWeightBound_query hashCalls (.inr (.inl m)))
@@ -254,7 +254,7 @@ theorem isWeightBound_simulateQ_ofRHF {β : Type} {Y : OracleComp HFSpec β} {Q 
 /-- **(c) The random-oracle adversary of the transfer makes at most one oracle query per query
 of the adversary to `π` or `π⁻¹`.** -/
 theorem isWeightBound_romAdv {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
-    Common.IsWeightBound (romAdv A) hashCalls Q := by
+    Common.QueryCostAtMost (romAdv A) hashCalls Q := by
   refine Common.isWeightBound_map _ (isWeightBound_simulateQ_ofRHF ?_)
   rw [Common.advS2, StateT.run'_eq]
   exact Common.isWeightBound_map _ (Common.isWeightBound_run_simulateQ _ wR wHF

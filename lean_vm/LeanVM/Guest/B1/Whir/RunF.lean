@@ -110,7 +110,7 @@ theorem eq_fsOf {s : Fs} {sp : Sponge} (h : s.Carries sp) : s = fsOf sp := by
 
 /-- **The deployed run is the carried run.** -/
 theorem runF_of_runId {α : Type} (p : Prog α) : ∀ (st : FSt) (sp : Sponge), st.sponge.Carries sp →
-    ∀ (a : α) (t : St), runId p ⟨sp, st.stream, st.openings, st.roots⟩ = some (a, t) →
+    ∀ (a : α) (t : ProgState), runId p ⟨sp, st.stream, st.openings, st.roots⟩ = some (a, t) →
       runF p st = some (a, ⟨fsOf t.sponge, t.stream, t.openings, t.roots⟩) := by
   induction p with
   | ret a =>
@@ -132,7 +132,7 @@ theorem runF_of_runId {α : Type} (p : Prog α) : ∀ (st : FSt) (sp : Sponge), 
   | sample k ih =>
     intro st sp hs a t h
     obtain ⟨e1, e2⟩ := carries_squeeze hs
-    have := ih ((Id.run (Compile.squeeze (m := Id) keccakF sp)).1)
+    have := ih ((Id.run (Compile.squeeze (m := Id) keccakF1600 sp)).1)
       ⟨st.sponge.squeeze.2, st.stream, st.openings, st.roots⟩ _ e2 a t h
     simpa [runF, e1] using this
   | grind b k ih =>
@@ -144,10 +144,10 @@ theorem runF_of_runId {α : Type} (p : Prog α) : ∀ (st : FSt) (sp : Sponge), 
       have ha := carries_absorb hs n dsPowNonce
       obtain ⟨e1, e2⟩ := carries_squeeze ha
       have key : runId (Prog.grind b k) ⟨sp, n :: xs, os, roots⟩ =
-          (if powOk b n (Id.run (Compile.squeeze (m := Id) keccakF
-              (Id.run (Compile.absorb (m := Id) keccakF sp n dsPowNonce)))).1 = true then
-            runId k ⟨(Id.run (Compile.squeeze (m := Id) keccakF
-              (Id.run (Compile.absorb (m := Id) keccakF sp n dsPowNonce)))).2, xs, os, roots⟩
+          (if powOk b n (Id.run (Compile.squeeze (m := Id) keccakF1600
+              (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).1 = true then
+            runId k ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600
+              (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).2, xs, os, roots⟩
           else none) := rfl
       rw [key, e1] at h
       simp only [runF]
@@ -167,8 +167,8 @@ theorem runF_of_runId {α : Type} (p : Prog α) : ∀ (st : FSt) (sp : Sponge), 
       have h2 := carries_absorb h1 x1 dsObserve
       have key : runId (Prog.commit hh ww k) ⟨sp, x0 :: x1 :: xs, os, roots⟩ =
           (match digestOfScalars (x0, x1) with
-            | some root => runId k ⟨Id.run (Compile.absorb (m := Id) keccakF
-                (Id.run (Compile.absorb (m := Id) keccakF sp x0 dsObserve)) x1 dsObserve), xs, os,
+            | some root => runId k ⟨Id.run (Compile.absorb (m := Id) keccakF1600
+                (Id.run (Compile.absorb (m := Id) keccakF1600 sp x0 dsObserve)) x1 dsObserve), xs, os,
                 roots ++ [(root, hh, ww)]⟩
             | none => none) := rfl
       rw [key] at h

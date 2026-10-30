@@ -63,7 +63,7 @@ theorem fold_sponge (cap : List E) (w0 w1 : E) :
   rfl
 
 /-- The honest values of `opening_fold`, by index. -/
-def foldVals (as : List E) (d0 d2 : E) (S : KState) (k : ℕ) : E :=
+def foldVals (as : List E) (d0 d2 : E) (S : KeccakState) (k : ℕ) : E :=
   let y := challengeOf S
   if k < 11 then as.getD k 0
   else if k < 16 then as.getD (k - 11) 0
@@ -175,7 +175,7 @@ theorem opening_fold_holds : opening_fold_Spec := by
       fin_cases c <;> simp [cells13, ev, foldVals, as, p0.1, p0.2, p1.1, p1.2, z] <;>
         exact hcan _ (by simp)
     · intro c
-      have hS' : keccakF (stateOfCells (cells13 [σ (.n 22), σ (.n 24), σ (.n 31), σ (.n 33),
+      have hS' : keccakF1600 (stateOfCells (cells13 [σ (.n 22), σ (.n 24), σ (.n 31), σ (.n 33),
           σ (.n 35), σ (.n 36), σ (.n 37), σ (.n 38), σ (.n 11), σ (.n 12), σ (.n 13), σ (.n 14),
           σ (.n 15)]) false) = S := hS
       rw [hS']

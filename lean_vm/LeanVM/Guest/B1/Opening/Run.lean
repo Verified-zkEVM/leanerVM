@@ -39,7 +39,7 @@ quadratic's `d0`, `d2` read (absorbed, so waiting): the Spec's steps of `foldRou
 theorem opening_fold_run (cap : List E) (w0 w1 c0 c1 c2 d0 d2 : E) :
     let s := (⟨cap, [(w0, dsObserve), (w1, dsObserve)]⟩ : Fs)
     RunsTo (do
-        let challenge ← Prog.sampleE
+        let challenge ← Prog.sampleChallenge
         let quad ← sumcheckRoundPoly 3 (polyEval [c0, c1, c2] challenge) none
         return (challenge, quad)) s [d0, d2]
       (s.squeeze.1, [d0, polyEval [c0, c1, c2] s.squeeze.1 + sumE [d2], d2])
@@ -58,7 +58,7 @@ theorem opening_fold_run (cap : List E) (w0 w1 c0 c1 c2 d0 d2 : E) :
 theorem opening_ood_point_run (cap : List E) (pend : List (E × ℕ)) (n : ℕ) (hn : 1 ≤ n) :
     let S := permOf (rateOf pend ++ cap)
     let rest := (⟨capOf S, []⟩ : Fs).squeezeN (n - 1)
-    RunsTo (Prog.sampleN n) ⟨cap, pend⟩ [] (challengeOf S :: rest.1) rest.2 := by
+    RunsTo (Prog.sampleChallenges n) ⟨cap, pend⟩ [] (challengeOf S :: rest.1) rest.2 := by
   intro S rest
   obtain ⟨k, rfl⟩ : ∃ k, n = k + 1 := ⟨n - 1, by omega⟩
   exact (runsTo_sampleN (k + 1) ⟨cap, pend⟩).of_eq rfl rfl rfl rfl
@@ -70,8 +70,8 @@ theorem opening_final_message_run (cap : List E) (w0 w1 nonce : E) (ms : List E)
         dsObserve).absorb nonce dsPowNonce).perm false 0] []) :
     let s0 := (⟨cap, [(w0, dsObserve), (w1, dsObserve)]⟩ : Fs)
     RunsTo (do
-        let m ← Prog.readN ms.length
-        Prog.grindP Whir.queryGrindingBits
+        let m ← Prog.readScalars ms.length
+        Prog.grindProofOfWork Whir.queryGrindingBits
         return m) s0 (ms ++ [nonce]) ms
       (((s0.absorbAll ms dsObserve).absorb nonce dsPowNonce).squeeze.2) := by
   intro s0
@@ -82,7 +82,7 @@ theorem opening_final_message_run (cap : List E) (w0 w1 nonce : E) (ms : List E)
       show (17 : ℕ) ≠ 0 by decide, ↓reduceIte]
     exact decide_eq_true hlow
   have h := (runsTo_readN s0 ms).bind (f := fun m ↦ do
-      Prog.grindP Whir.queryGrindingBits
+      Prog.grindProofOfWork Whir.queryGrindingBits
       return m)
     ((runsTo_grindP Whir.queryGrindingBits _ nonce hok).bind (f := fun _ ↦ (pure ms : Prog (List E)))
       (runsTo_ret _ _))

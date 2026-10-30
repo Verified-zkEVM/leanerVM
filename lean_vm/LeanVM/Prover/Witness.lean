@@ -40,13 +40,13 @@ open Air.Flat (EnsembleWitness)
 
 @[expose] public section
 
-variable {prog : Program} {input : PublicInput} {t : Trace prog}
+variable {prog : Program} {input : PublicInput} {t : Execution prog}
 
 /-! ## The specification witness is a child's -/
 
 /-- The run's skeletons are sound. -/
 theorem skelOk_runSkels (hv : ValidExecution prog input t) :
-    ∀ sk ∈ t.runSkels, SkelOk prog t.image sk := by
+    ∀ sk ∈ t.runSkels, SkelOk prog t.memory sk := by
   intro sk hsk
   rw [runSkels_eq hv.2] at hsk
   obtain ⟨k, hk, rfl⟩ := List.mem_map.mp hsk
@@ -73,13 +73,13 @@ a valid rate: `exists_childFor`, for the concrete witness. -/
 theorem childFor_trace (hv : ValidExecution prog input t)
     (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ} (hρ : validRate ρ) :
     ChildFor prog input t ρ (traceWitness prog input t) (traceSizes prog input t) := by
-  have hcount : ∀ op, t.count op = t.runRows op := Trace.count_eq_runRows hv.2
+  have hcount : ∀ op, t.count op = t.runRows op := Execution.count_eq_runRows hv.2
   have hheight : ∀ op, 2 ^ Nat.clog 2 (t.count op) ≤ t.committedSize := by
     intro op
     have : 0 < 2 ^ prog.logSize := Nat.two_pow_pos _
     have hk : 2 ^ Nat.clog 2 (t.count .keccak) ≤ 2 ^ max (Nat.clog 2 (t.count .keccak)) 9 :=
       Nat.pow_le_pow_right (by norm_num) (le_max_left _ _)
-    simp only [Trace.committedSize]
+    simp only [Execution.committedSize]
     cases op <;> omega
   have hcap : (2 : ℕ) ^ 28 ≤ 2 ^ maxLogRows := Nat.pow_le_pow_right (by norm_num) (by decide)
   have hrows : ∀ op, t.runRows op ≤ 2 ^ maxLogRows := fun op ↦ by
@@ -88,7 +88,7 @@ theorem childFor_trace (hv : ValidExecution prog input t)
   obtain ⟨⟨hmin, hκ, hw0, hw1⟩, hrun⟩ := hv
   have hS := skelOk_runSkels (input := input) ⟨⟨hmin, hκ, hw0, hw1⟩, hrun⟩
   have hw : SatisfiedBy prog input (traceWitness prog input t) :=
-    skelWitness_satisfiedBy prog input t.image _ hmin hκ hS (runSkels_state_perm hrun)
+    skelWitness_satisfiedBy prog input t.memory _ hmin hκ hS (runSkels_state_perm hrun)
       (fun op ↦ (t.count_runSkels op).trans_le (hrows op)) hw0 hw1
   have hrep : AssignmentRepresents (traceWitness prog input t) t := by
     refine skelWitness_represents prog input hκ hrun _ (fun sk hsk ↦ (hS sk hsk).2) ?_
@@ -98,7 +98,7 @@ theorem childFor_trace (hv : ValidExecution prog input t)
   have hv : ValidExecution prog input t := ⟨⟨hmin, hκ, hw0, hw1⟩, hrun⟩
   have hs0 := ofWitness_traceWitness hv
   rw [traceSizes_eq hv] at hs0 ⊢
-  have hmem : (witnessSizes (traceWitness prog input t) (traceWitness_pos hv)).logMem = t.κ :=
+  have hmem : (witnessSizes (traceWitness prog input t) (traceWitness_pos hv)).logMem = t.logMemorySize :=
     hrep.κ_eq
   have hr : ∀ j : Fin 6,
       (witnessSizes (traceWitness prog input t) (traceWitness_pos hv)).rows j =
@@ -110,7 +110,7 @@ theorem childFor_trace (hv : ValidExecution prog input t)
     have e : tableOpcode 0 = .xor ∧ tableOpcode 1 = .mulNative ∧ tableOpcode 2 = .setConstant ∧
         tableOpcode 3 = .deref ∧ tableOpcode 4 = .jump ∧ tableOpcode 5 = .keccak := by decide
     rw [blocks_total_eq, hmem, pow_add 2 _ 6]
-    simp only [Sizes.τ, hr, e, Trace.committedSize]
+    simp only [Sizes.τ, hr, e, Execution.committedSize]
     have f0 : tableLogFloors.getD ((0 : Fin 6) : ℕ) 0 = 0 := rfl
     have f1 : tableLogFloors.getD ((1 : Fin 6) : ℕ) 0 = 0 := rfl
     have f2 : tableLogFloors.getD ((2 : Fin 6) : ℕ) 0 = 0 := rfl
@@ -131,7 +131,7 @@ theorem childFor_trace (hv : ValidExecution prog input t)
 /-- **What the executable data of an execution is**: the sizes of the specification witness
 (`traceSizes`), its stack's number of variables, every column of the instance read off its stack
 by Python column number, the stack's cells, and the announcement. -/
-structure WitnessSpec (prog : Program) (input : PublicInput) (t : Trace prog) (W : Witness) :
+structure WitnessSpec (prog : Program) (input : PublicInput) (t : Execution prog) (W : Witness) :
     Prop where
   /-- The memory log-size. -/
   logMem : W.logMem = (traceSizes prog input t).logMem
@@ -151,24 +151,24 @@ structure WitnessSpec (prog : Program) (input : PublicInput) (t : Trace prog) (W
 
 /-- The executable column log-sizes are the instance's. -/
 theorem kappas_trace (hv : ValidExecution prog input t) :
-    columnKappas t.κ prog.logSize (tableLogsOf ((traceRows t).tabs.toList.map (·.size))) =
+    columnKappas t.logMemorySize prog.logSize (tableLogsOf ((traceRows t).tabs.toList.map (·.size))) =
       pyKappas prog (traceSizes prog input t) := by
   rw [logs_trace hv, ← logMem_trace hv]
   rfl
 
 /-- **The data built from a valid run is the specification's.** -/
 theorem buildWitness_spec (hv : ValidExecution prog input t) :
-    WitnessSpec prog input t (buildWitness prog t (powIndex t.κ) (traceSteps t).toArray) := by
+    WitnessSpec prog input t (buildWitness prog t (powIndex t.logMemorySize) (traceSteps t).toArray) := by
   have hk := kappas_trace hv
-  have hμ : (placementsOf (columnKappas t.κ prog.logSize
+  have hμ : (placementsOf (columnKappas t.logMemorySize prog.logSize
       (tableLogsOf ((traceRows t).tabs.toList.map (·.size))))).2 =
       leanIsaμ prog (traceSizes prog input t) := by
     rw [hk]; exact placementsOf_snd prog _
   refine ⟨logMem_trace hv |>.symm, rowsList_trace hv, hμ, cols_trace hv, ?_, fun ρ ↦ ?_⟩
-  · show stackArray (placementsOf (columnKappas t.κ prog.logSize
+  · show stackArray (placementsOf (columnKappas t.logMemorySize prog.logSize
         (tableLogsOf ((traceRows t).tabs.toList.map (·.size))))).2
-      (colsOf t.image (traceRows t) (tableLogsOf ((traceRows t).tabs.toList.map (·.size))))
-      (stackOrderOf (columnKappas t.κ prog.logSize
+      (colsOf t.memory (traceRows t) (tableLogsOf ((traceRows t).tabs.toList.map (·.size))))
+      (stackOrderOf (columnKappas t.logMemorySize prog.logSize
         (tableLogsOf ((traceRows t).tabs.toList.map (·.size))))) = _
     rw [hμ, hk, stackOrderOf_pyKappas]
     refine stackArray_eq _ _ _ fun c hc ↦ ?_
@@ -179,13 +179,13 @@ theorem buildWitness_spec (hv : ValidExecution prog input t) :
       exact hmem.2
     rw [cols_trace hv, traceSizes_eq hv]
     exact column_toArray_committed _ _ c hnv
-  · show ((t.κ :: (traceRows t).tabs.toList.map (·.size)) ++ [ρ]).map eOfNat = _
+  · show ((t.logMemorySize :: (traceRows t).tabs.toList.map (·.size)) ++ [ρ]).map eOfNat = _
     rw [rowsList_trace hv, ← logMem_trace hv]
     rfl
 
 /-- **The executable witness of a valid execution within the cap** is built from its run. -/
 theorem witness?_eq (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28) :
-    witness? prog input t = some (buildWitness prog t (powIndex t.κ) (traceSteps t).toArray) := by
+    witness? prog input t = some (buildWitness prog t (powIndex t.logMemorySize) (traceSteps t).toArray) := by
   unfold witness?
   rw [ite_eq_left ((boundaryOK_iff input t).mpr hv.1)]
   simp only
@@ -199,19 +199,19 @@ theorem witness?_spec (hv : ValidExecution prog input t) (hcap : t.committedSize
   ⟨_, witness?_eq hv hcap, buildWitness_spec hv⟩
 
 /-- `witness?` returns exactly when `checkTrace` holds. -/
-theorem isSome_witness? (prog : Program) (input : PublicInput) (t : Trace prog) :
+theorem isSome_witness? (prog : Program) (input : PublicInput) (t : Execution prog) :
     (witness? prog input t).isSome = checkTrace prog input t := by
   unfold witness? checkTrace
   by_cases hb : boundaryOK input t = true
   · simp only [hb, Bool.true_and, ↓reduceIte]
-    cases runSteps (powIndex t.κ) (powIndex prog.logSize) prog t with
+    cases runSteps (powIndex t.logMemorySize) (powIndex prog.logSize) prog t with
     | none => rfl
     | some steps =>
-      by_cases h : committedSizeOf prog.logSize t.κ (opCount steps) ≤ maxCommitted <;> simp [h]
+      by_cases h : committedSizeOf prog.logSize t.logMemorySize (opCount steps) ≤ maxCommitted <;> simp [h]
   · simp [hb]
 
 /-- `witness?` returns exactly on a valid execution within the cap. -/
-theorem isSome_witness?_iff (prog : Program) (input : PublicInput) (t : Trace prog) :
+theorem isSome_witness?_iff (prog : Program) (input : PublicInput) (t : Execution prog) :
     (witness? prog input t).isSome = true ↔
       ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 28 := by
   rw [isSome_witness?, checkTrace_iff]

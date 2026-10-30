@@ -135,7 +135,7 @@ theorem samplesM_eq_chainP (k : ℕ) (y : KState) :
     rw [ih, daDuplex_out]
 
 /-- **Over `F`, LeanDA's challenges are the duplex's.** -/
-theorem membershipChallengesM_eq_chalP (root : Common.KDigest) :
+theorem membershipChallengesM_eq_chalP (root : Common.DigestBytes) :
     membershipChallengesM hR pR root = chalP daDuplex root := by
   simp only [membershipChallengesM, Sponge.fromLabelM, Sponge.newM, Sponge.observeM,
     Sponge.absorbM, pR, lanePerm, chalP, map_eq_bind_pure_comp, bind_assoc, pure_bind,

@@ -214,7 +214,7 @@ theorem Corr.and_allRet {α β : Type} {R : α → β → Prop} {P : β → Prop
 
 section Honest
 
-variable {prog : Program} {input : PublicInput} {t : Trace prog}
+variable {prog : Program} {input : PublicInput} {t : Execution prog}
 
 /-- The output lanes' point of an honest claim list has the `KECCAK` table's height. -/
 theorem lanes_point_length {s : Sizes} {q : Column (leanIsaμ prog s)}
@@ -307,7 +307,7 @@ end Honest
 
 section Prove
 
-variable {prog : Program} {input : PublicInput} {t : Trace prog}
+variable {prog : Program} {input : PublicInput} {t : Execution prog}
 
 /-- The prover's layout is the verifier's, at the execution's sizes. -/
 theorem buildLayout_witness (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28)
@@ -322,20 +322,20 @@ theorem buildLayout_witness (hv : ValidExecution prog input t) (hcap : t.committ
   simp only [e, hok, ↓reduceIte]
 
 /-- **The prover with the oracle calls is the specification** at the execution's witness: on a
-valid execution within the cap at a valid rate, `prove queryH queryF` is `Rom.honestComp` of the
+valid execution within the cap at a valid rate, `prove callKeccak256 callKeccakF1600` is `Rom.honestComp` of the
 specification's honest strategy at `skelWitness`, its sizes and its stack. -/
 theorem prove_eq_honestComp (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28)
     {ρ : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (fuel : ℕ) :
-    prove queryH queryF prog input t ρ fuel =
+    prove callKeccak256 callKeccakF1600 prog input t ρ fuel =
       Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
         (leanVmProgram (bytecodeWords prog) (publicDigest input))
         (leanVmProver prog (traceSizes prog input t) ρ
           (stackOf prog (traceSizes prog input t) (traceWitness prog input t))) fuel := by
   obtain ⟨W, hW, hspec⟩ := witness?_spec hv hcap
   have hL := buildLayout_witness hv hcap hspec
-  have e : prove queryH queryF prog input t ρ fuel =
-      (seedWith queryH queryF (bytecodeWords prog) (publicDigest input) >>= fun seed ↦
-        runScript queryH queryF (leanVmProgram (bytecodeWords prog) (publicDigest input))
+  have e : prove callKeccak256 callKeccakF1600 prog input t ρ fuel =
+      (seedWith callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicDigest input) >>= fun seed ↦
+        runScript callKeccak256 callKeccakF1600 (leanVmProgram (bytecodeWords prog) (publicDigest input))
           (honestScript W (verifierLayout prog (traceSizes prog input t)) ρ) seed fuel) := by
     simp only [prove, hW, hρ, and_self, ↓reduceIte, hL]
   rw [e]
@@ -344,9 +344,9 @@ theorem prove_eq_honestComp (hv : ValidExecution prog input t) (hcap : t.committ
       (stackOf prog (traceSizes prog input t) (traceWitness prog input t))
       (leanVmPhases prog (traceSizes prog input t)
         (stackOf prog (traceSizes prog input t) (traceWitness prog input t)))) fuel).symm
-  exact congrArg (fun k : KState → OracleComp HashSpec Proof ↦
-      seedWith queryH queryF (bytecodeWords prog) (publicDigest input) >>= k)
-    (funext fun seed ↦ runScript_corr queryH queryF fuel _ (corr_honestScript hv hcap hρ hspec) seed)
+  exact congrArg (fun k : KeccakState → OracleComp KeccakCalls Proof ↦
+      seedWith callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicDigest input) >>= k)
+    (funext fun seed ↦ runScript_corr callKeccak256 callKeccakF1600 fuel _ (corr_honestScript hv hcap hρ hspec) seed)
 
 /-- The statement's honest prover is `prove` with the oracle calls. -/
 abbrev oracleProver : HonestProver := LeanVM.prover
@@ -363,12 +363,12 @@ theorem specOnValid_prove_honest : SpecOnValid oracleProver HonestFor :=
     ⟨w, s, h.1, e⟩
 
 /-- **Everywhere, the prover is the specification at a child's witness or the empty proof.** -/
-theorem childSpec_prove (prog : Program) (input : PublicInput) (t : Trace prog) (ρ fuel : ℕ) :
+theorem childSpec_prove (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) :
     ChildSpec oracleProver prog input t ρ fuel := by
   by_cases h : ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 28 ∧ 1 ≤ ρ ∧ ρ ≤ 4
   · exact .inr (specOnValid_prove prog input t ρ fuel h.1 h.2.1 h.2.2)
   · left
-    show prove queryH queryF prog input t ρ fuel = pure ⟨[], []⟩
+    show prove callKeccak256 callKeccakF1600 prog input t ρ fuel = pure ⟨[], []⟩
     unfold prove
     cases hW : witness? prog input t with
     | none => rfl
@@ -382,11 +382,11 @@ end Prove
 /-! ## Completeness of the named prover -/
 
 /-- **Completeness for the statement's prover**: the body of `LeanVM.Completeness` for
-`prove queryH queryF`. -/
+`prove callKeccak256 callKeccakF1600`. -/
 theorem completeness_prove :
-    ∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ),
+    ∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
       ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
-      Pr{let v ← rpmCompletenessExperiment oracleProver prog input t ρ (2 ^ 25)}[v = false] ≤
+      Pr{let v ← verifierCompletenessExperiment oracleProver prog input t ρ (2 ^ 25)}[v = false] ≤
         (2 : ENNReal)⁻¹ ^ 256 :=
   completeness_of_spec oracleProver specOnValid_prove_honest
 

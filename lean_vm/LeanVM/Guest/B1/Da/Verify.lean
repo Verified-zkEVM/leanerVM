@@ -136,7 +136,7 @@ theorem da_verify_holds : da_verify_sound_Spec := by
   -- the columns' weights
   have vecF : ∀ j, ∃ ws : List E, j < 128 → ws.length = 256 ∧
       (∀ k < 256, ∀ w, rd ((lv j).limb 0 * Parameters.gpow k) = some w → w = ws.getD k 0) ∧
-      ReadsAt rd (σ (.n 17) * (gen ^ j) ^ 2) (digestCells (keccak256 (ws.flatMap Node.eBytes))) := by
+      ReadsAt rd (σ (.n 17) * (gen ^ j) ^ 2) (digestCells (keccak256 (ws.flatMap Node.extensionElementBytes))) := by
     intro j
     by_cases hj : j < 128
     · have := da_vector_cell_holds rd _ _ (hcol j hj).1
@@ -359,7 +359,7 @@ theorem da_verify_holds : da_verify_sound_Spec := by
       have p0 := hrd 0 (by simp [digestCells])
       have p1 := hrd 1 (by simp [digestCells])
       rw [shift2] at p0 p1
-      have e2 : colD wsP (c / 2) = keccak256 ((ws (c / 2)).flatMap Node.eBytes) := by
+      have e2 : colD wsP (c / 2) = keccak256 ((ws (c / 2)).flatMap Node.extensionElementBytes) := by
         rw [colD, hwP (c / 2) (by omega)]
       rcases (show c % 2 = 0 ∨ c % 2 = 1 by omega) with h | h
       · rw [h, memAt_of_load (by simpa using p0), e2]; rfl

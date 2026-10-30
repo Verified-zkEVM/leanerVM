@@ -29,7 +29,7 @@ open LeanVM.Node
 
 /-- **An accepted opening's terminal point has `μ` coordinates.** -/
 theorem whir_point_length {μ r : ℕ} (h1 : 22 ≤ μ) (h2 : μ ≤ 28) (h3 : 1 ≤ r) (h4 : r ≤ 4)
-    {S : KState} {root : Digest} {target : E} {xs : List E} {os : List Opening}
+    {S : KeccakState} {root : Digest} {target : E} {xs : List E} {os : List Opening}
     {w : B1.Whir.WhirEnd} {s' : Fs} {roots' : List (Digest × ℕ × ℕ)}
     (hrun : B1.Whir.RunsWith (B1.Whir.whirOpen μ r target) ⟨capOf S, []⟩ xs os
       [(root, B1.Whir.stackShape μ r)] w s' roots')

@@ -123,11 +123,11 @@ theorem drawSt_run (c : ACache Msg Dg E C) :
 
 /-- The full view's walk as a function of the path values `vf` and the uniform draws `us`. -/
 def detWalk (used : List (Dg × E) → Bool) (vf : List (Dg × E) → SpState Dg E C) :
-    List (Dg × E) → SpState Dg E C → PermLog (SpState Dg E C) → List (Dg × E) →
-      List (SpState Dg E C) → SpState Dg E C × PermLog (SpState Dg E C)
+    List (Dg × E) → SpState Dg E C → PermutationEdges (SpState Dg E C) → List (Dg × E) →
+      List (SpState Dg E C) → SpState Dg E C × PermutationEdges (SpState Dg E C)
   | _, s, A, [], _ => (s, A)
   | pre, s, A, B :: bs, us =>
-    match fwdLookup A (absorb s B) with
+    match forwardLookup A (absorb s B) with
     | some y => detWalk used vf (pre ++ [B]) y A bs us.tail
     | none =>
       let y := if used (pre ++ [B]) then us.headD s else vf (pre ++ [B])
@@ -136,9 +136,9 @@ def detWalk (used : List (Dg × E) → Bool) (vf : List (Dg × E) → SpState Dg
 /-- **The walk step.** The walk caches the values of all paths it goes through, keeps the cache
 elsewhere, and its outcome is `detWalk` over any function agreeing with the cached values. -/
 theorem allWalk_support (used : List (Dg × E) → Bool) (pre : List (Dg × E))
-    (s : SpState Dg E C) (A : PermLog (SpState Dg E C)) (bs : List (Dg × E))
+    (s : SpState Dg E C) (A : PermutationEdges (SpState Dg E C)) (bs : List (Dg × E))
     (c : ACache Msg Dg E C)
-    {z : (SpState Dg E C × PermLog (SpState Dg E C)) × ACache Msg Dg E C}
+    {z : (SpState Dg E C × PermutationEdges (SpState Dg E C)) × ACache Msg Dg E C}
     (hz : z ∈ support ((simulateQ (aSpec Msg Dg E C).romImpl
       (allWalk P used pre s A bs)).run c)) :
     c ≤ z.2 ∧ (∀ i < bs.length, valC P z.2 (pre ++ bs.take (i + 1)) ≠ none) ∧
@@ -161,7 +161,7 @@ theorem allWalk_support (used : List (Dg × E) → Bool) (pre : List (Dg × E))
     obtain ⟨u, -, rfl⟩ := h₂
     obtain ⟨hc₁, hv, hc₁'⟩ := val_support P _ c h₁
     dsimp only at hc₁ hv hc₁' hz
-    have key : ∀ (y : SpState Dg E C) (A' : PermLog (SpState Dg E C)),
+    have key : ∀ (y : SpState Dg E C) (A' : PermutationEdges (SpState Dg E C)),
         z ∈ support ((simulateQ (aSpec Msg Dg E C).romImpl
           (allWalk P used (pre ++ [B]) y A' bs)).run c₁) →
         c₁ ≤ z.2 ∧ c ≤ z.2 ∧
@@ -207,13 +207,13 @@ theorem visFwd_support (x u : SpState Dg E C) (σ : SimState Dg E C) (c : ACache
     {z : (SpState Dg E C × SimState Dg E C × Option (List (Dg × E) × SpState Dg E C)) ×
       ACache Msg Dg E C}
     (hz : z ∈ support ((simulateQ (aSpec Msg Dg E C).romImpl (visFwd P x u σ)).run c)) :
-    (∃ y, fwdLookup σ.edges x = some y ∧ z = ((y, σ, none), c)) ∨
-    (∃ s β, fwdLookup σ.edges x = none ∧ chainOf σ.chains x = some (s, β) ∧
+    (∃ y, forwardLookup σ.edges x = some y ∧ z = ((y, σ, none), c)) ∨
+    (∃ s β, forwardLookup σ.edges x = none ∧ chainOf σ.chains x = some (s, β) ∧
       (z.1.1, z.2) ∈ support ((simulateQ (aSpec Msg Dg E C).romImpl
         (val P (β ++ [blockTo s x]))).run c) ∧
       z.1 = (z.1.1, ⟨(x, z.1.1) :: σ.edges, (z.1.1, β ++ [blockTo s x]) :: σ.chains⟩,
         some (β ++ [blockTo s x], z.1.1))) ∨
-    (fwdLookup σ.edges x = none ∧ chainOf σ.chains x = none ∧
+    (forwardLookup σ.edges x = none ∧ chainOf σ.chains x = none ∧
       z = ((u, ⟨(x, u) :: σ.edges, σ.chains⟩, none), c)) := by
   unfold visFwd at hz
   split at hz

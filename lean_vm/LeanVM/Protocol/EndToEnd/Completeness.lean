@@ -50,7 +50,7 @@ theorem leanVm_interactiveComplete {prog : Program} {input : PublicInput}
   Complete.leanVm_complete h hsz hs hρ
 
 /-- **Completeness of the compiled verifier, for every hash function and permutation.** -/
-theorem leanVm_complete (H : Bytes → Digest) (F : KState → KState) {prog : Program}
+theorem leanVm_complete (H : Bytes → Digest) (F : KeccakState → KeccakState) {prog : Program}
     {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {s : Sizes} {ρ : ℕ}
     (h : SatisfiedBy prog input w) (hsz : Sizes.ofWitness w = some s) (hs : s.Admissible prog)
     (hρ : validRate ρ) (fuel : ℕ)
@@ -71,15 +71,15 @@ theorem leanVm_complete_keccak {prog : Program} {input : PublicInput}
     (hρ : validRate ρ) (fuel : ℕ)
     (hg : ∀ hist bits k sp,
       (leanVmProgram (bytecodeWords prog) (Complete.publicDigest input)).after hist =
-          some (.grind bits k) → findNonce keccakF bits sp fuel ≠ none) :
-    ∃ S π, prove keccak256 keccakF
+          some (.grind bits k) → findNonce keccakF1600 bits sp fuel ≠ none) :
+    ∃ S π, prove keccak256 keccakF1600
         (leanVmProgram (bytecodeWords prog) (Complete.publicDigest input)) S
         (seed (bytecodeWords prog) (Complete.publicDigest input)) fuel = some π ∧
       Verifier.verify (bytecodeWords prog) (Complete.publicDigest input) π = true :=
   Complete.exists_prove_verify h hsz hs hρ fuel hg
 
 /-- **Completeness from an execution.** -/
-theorem leanVm_complete_of_execution {prog : Program} {input : PublicInput} {t : Trace prog}
+theorem leanVm_complete_of_execution {prog : Program} {input : PublicInput} {t : Execution prog}
     (hv : ValidExecution prog input t) (hsteps : t.steps ≤ 2 ^ maxLogRows) :
     ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧ Sizes.ofWitness w = some s ∧
       (s.Admissible prog → ∀ ρ, validRate ρ → ∃ S : Strategy, ∀ chal : List Ev → E,

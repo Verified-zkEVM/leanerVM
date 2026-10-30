@@ -79,7 +79,7 @@ theorem RunsWith.of_eq {α : Type} {p : Prog α} {s s' t t' : Fs} {xs xs' : List
 shape. -/
 theorem runsWith_commitP (s : Fs) (x0 x1 : E) {d : Digest} (hd : digestOfScalars (x0, x1) = some d)
     (height width : ℕ) (roots : List (Digest × ℕ × ℕ)) :
-    RunsWith (Prog.commitP height width) s [x0, x1] [] roots ()
+    RunsWith (Prog.readCommitment height width) s [x0, x1] [] roots ()
       ((s.absorb x0 dsObserve).absorb x1 dsObserve) (roots ++ [(d, height, width)]) := by
   intro sp hs rest orest
   have h1 := carries_absorb hs x0 dsObserve
@@ -117,12 +117,12 @@ theorem runsWith_queryP (s : Fs) (roots : List (Digest × ℕ × ℕ)) {i : ℕ}
     (os : List Opening) (hl : os.length = ps.length)
     (hok : ∀ k (hk : k < ps.length) (ho : k < os.length),
       Id.run (Compile.openOne (m := Id) keccak256 root height width ps[k] os[k]) = true) :
-    RunsWith (Prog.queryP i ps) s [] os roots (os.map (·.leaf)) s roots := by
+    RunsWith (Prog.queryOpenings i ps) s [] os roots (os.map (·.leaf)) s roots := by
   intro sp hs rest orest
   refine ⟨sp, hs, ?_⟩
   have := openAll_eq root height width ps os orest hl hok
   simp only [Id.run] at this
-  simp only [runId, Prog.queryP, Compile.run, hi, List.nil_append, bind, this]
+  simp only [runId, Prog.queryOpenings, Compile.run, hi, List.nil_append, bind, this]
   rfl
 
 /-! ## A level of `whirLevelsOpen` -/
@@ -132,24 +132,24 @@ next commitment and its out-of-domain claim. -/
 def levelMid (messageLog : ℕ) : List Whir.Level →
     Prog (List E × List (E × List E × (List E → E)))
   | [] => do
-    let residual ← Prog.readN (2 ^ messageLog)
+    let residual ← Prog.readScalars (2 ^ messageLog)
     pure (residual, ([] : List (E × List E × (List E → E))))
   | next :: _ => do
     let (height, width) := levelShape messageLog next (3 * 2 ^ next.fold)
-    Prog.commitP height width
-    let oodPoint ← Prog.sampleN messageLog
-    let oodValue ← Prog.readE
+    Prog.readCommitment height width
+    let oodPoint ← Prog.sampleChallenges messageLog
+    let oodValue ← Prog.readScalar
     let intro ← sumcheckRoundPoly 3 oodValue none
     pure ([], [(oodValue, intro, fun x ↦ eqEval oodPoint x)])
 
 /-- A level's proof of work, queries and glue (V:1811-1823), after its folds and its claims. -/
 def levelQueries (messageLog index : ℕ) (level : Whir.Level) (levelFolds : List E)
     (s : WhirStateT) (pending : List (E × List E × (List E → E))) : Prog WhirStateT := do
-  Prog.grindP Whir.queryGrindingBits
+  Prog.grindProofOfWork Whir.queryGrindingBits
   let queries ← sampleQueries (messageLog + level.logInvRate) level.queries
-  let lam ← Prog.sampleE
+  let lam ← Prog.sampleChallenge
   let queryWeights := powers lam queries.length
-  let words ← Prog.queryP index queries
+  let words ← Prog.queryOpenings index queries
   let rows : List (List E) :=
     if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
   let enforced := enforcedSum rows levelFolds queryWeights

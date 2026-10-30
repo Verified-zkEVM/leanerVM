@@ -75,7 +75,7 @@ noncomputable def tableTermsSpec {T : ℝ≥0∞} (hT : T ≤ εmax) (P : List E
   | (table, height, forms, weight) :: rest, hw, cursor, final, claims =>
     have hw0 : 0 < table.width := hw _ List.mem_cons_self
     Spec.congr (show (do
-        let evaluations ← Prog.readN (table.width - 1 + 1)
+        let evaluations ← Prog.readScalars (table.width - 1 + 1)
         tableTermsClaims cps fps point rest (cursor + table.nConstraints)
           (final + weight * (dot ((cps.drop cursor).take table.nConstraints)
             (table.constraints evaluations) +

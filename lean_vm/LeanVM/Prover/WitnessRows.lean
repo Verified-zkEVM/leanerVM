@@ -125,27 +125,27 @@ theorem bytecodeRow_toArray {F : Type} (r : BytecodeRow F) : (toElements r).toAr
 variable {κ : ℕ}
 
 /-- The reader through the index is the image's. -/
-theorem readIn_powIndex (hκ : κ < 64) (img : MemImage κ) :
+theorem readIn_powIndex (hκ : κ < 64) (img : MemoryImage κ) :
     readIn (powIndex κ) img = img.read := by
   funext a
-  unfold readIn MemImage.read
+  unfold readIn MemoryImage.read
   rw [gLogIn_powIndex hκ]
 
 /-- The limbs through the index are the image's. -/
-theorem limbsIn_powIndex (hκ : κ < 64) (img : MemImage κ) :
+theorem limbsIn_powIndex (hκ : κ < 64) (img : MemoryImage κ) :
     limbsIn (powIndex κ) img = img.limbsAt := by
   funext a
-  unfold limbsIn MemImage.limbsAt
+  unfold limbsIn MemoryImage.limbsAt
   rw [readIn_powIndex hκ]
   cases img.read a <;> rfl
 
 /-- The cells an instruction reads, through the index, are `readAddrs`. -/
-theorem addrsIn_powIndex (hκ : κ < 64) (img : MemImage κ) (fp : K) (ins : Instr) :
+theorem addrsIn_powIndex (hκ : κ < 64) (img : MemoryImage κ) (fp : K) (ins : Instr) :
     addrsIn (powIndex κ) img fp ins = readAddrs img fp ins := by
   cases ins <;> simp only [addrsIn, readAddrs, limbsIn_powIndex hκ]
 
 /-- The cells a `KECCAK` reads, through the index, are `keccakInputCells`. -/
-theorem keccakInputIn_powIndex (hκ : κ < 64) (img : MemImage κ) (fp : K) (om : Fin 4 → K)
+theorem keccakInputIn_powIndex (hκ : κ < 64) (img : MemoryImage κ) (fp : K) (om : Fin 4 → K)
     (otail ob8 ocap : K) :
     keccakInputIn (powIndex κ) img fp om otail ob8 ocap =
       keccakInputCells img fp om otail ob8 ocap := by
@@ -154,7 +154,7 @@ theorem keccakInputIn_powIndex (hκ : κ < 64) (img : MemImage κ) (fp : K) (om 
   rw [readIn_powIndex hκ]
 
 /-- **The raw row through the index is `rowOf`.** -/
-theorem rowIn_powIndex (hκ : κ < 64) (img : MemImage κ) (pc fp : K) (c : ℕ → K) (rbc : K)
+theorem rowIn_powIndex (hκ : κ < 64) (img : MemoryImage κ) (pc fp : K) (c : ℕ → K) (rbc : K)
     (ins : Instr) : rowIn (powIndex κ) img pc fp c rbc ins = rowOf img pc fp c rbc ins := by
   cases ins with
   | xor oA oB oC =>
@@ -228,7 +228,7 @@ theorem countReads_spec (hκ : κ < 64) :
 
 /-- The rows of a list of skeletons with one more: the rows of the list, then the row of the last,
 its reads numbered from the counters the list leaves. -/
-theorem mkRows_concat (img : MemImage κ) (S : List Skel) (sk : Skel) :
+theorem mkRows_concat (img : MemoryImage κ) (S : List Skel) (sk : Skel) :
     ∀ sm sb : K → ℕ, mkRows img sm sb (S ++ [sk]) = mkRows img sm sb S ++
       [⟨sk, readExps (readBump sm (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins))
           (readAddrs img sk.fp sk.ins), readBump sb (S.map (·.pc)) sk.pc⟩] := by
@@ -243,7 +243,7 @@ theorem mkRows_concat (img : MemImage κ) (S : List Skel) (sk : Skel) :
 
 /-- What the pass has built after the steps of the skeletons `S`: each table's rows are the raw
 rows of `S`'s rows of its opcode, and the counters are `g` to the reads so far. -/
-structure RowsInv (img : MemImage κ) (logSize : ℕ) (acc : Rows) (S : List Skel) : Prop where
+structure RowsInv (img : MemoryImage κ) (logSize : ℕ) (acc : Rows) (S : List Skel) : Prop where
   tabs_size : acc.tabs.size = 6
   tabs : ∀ op, (acc.tabs.getD (opTableIdx op) #[]).toList =
     ((mkRows img (fun _ ↦ 0) (fun _ ↦ 0) S).filter fun r ↦ r.sk.ins.opcode = op).map
@@ -259,7 +259,7 @@ theorem tableOf_inj {op op' : Opcode} (h : opTableIdx op = opTableIdx op') : op 
   cases op <;> cases op' <;> first | rfl | exact absurd h (by decide)
 
 /-- The pass starts from the invariant. -/
-theorem rowsInv_init (img : MemImage κ) (logSize : ℕ) :
+theorem rowsInv_init (img : MemoryImage κ) (logSize : ℕ) :
     RowsInv img logSize ⟨Array.replicate 6 #[], Array.replicate (2 ^ κ) 1,
       Array.replicate (2 ^ logSize) 1⟩ [] := by
   refine ⟨by simp, fun op ↦ ?_, ⟨by simp, fun i h ↦ ?_⟩, ⟨by simp, fun i h ↦ ?_⟩⟩
@@ -279,7 +279,7 @@ theorem getD_map_pow (l : List ℕ) (j : ℕ) : (l.map (g ^ ·)).toArray.getD j 
   cases l[j]? <;> simp
 
 /-- One step of the pass, unfolded. -/
-theorem stepRows_eq (memIdx : Std.HashMap UInt64 ℕ) (img : MemImage κ) (acc : Rows) (st : Step) :
+theorem stepRows_eq (memIdx : Std.HashMap UInt64 ℕ) (img : MemoryImage κ) (acc : Rows) (st : Step) :
     stepRows memIdx img acc st =
       ⟨acc.tabs.modify (opTableIdx st.ins.opcode) (·.push (rowIn memIdx img st.pc st.fp
           (fun j ↦ (countReads memIdx κ (addrsIn memIdx img st.fp st.ins) #[] acc.mem).1.getD j 1)
@@ -288,7 +288,7 @@ theorem stepRows_eq (memIdx : Std.HashMap UInt64 ℕ) (img : MemImage κ) (acc :
         acc.bc.modify st.slot (g * ·)⟩ := rfl
 
 /-- **One step keeps the invariant.** -/
-theorem rowsInv_step (hκ : κ < 64) {prog : Program} (img : MemImage κ) {acc : Rows}
+theorem rowsInv_step (hκ : κ < 64) {prog : Program} (img : MemoryImage κ) {acc : Rows}
     {S : List Skel} (h : RowsInv img prog.logSize acc S) {st : Step}
     (hst : StepOk prog img st) :
     RowsInv img prog.logSize (stepRows (powIndex κ) img acc st) (S ++ [st.toSkel]) := by
@@ -296,7 +296,7 @@ theorem rowsInv_step (hκ : κ < 64) {prog : Program} (img : MemImage κ) {acc :
   have hvalid : ∀ a ∈ readAddrs img st.fp st.ins, ∃ i, i < 2 ^ κ ∧ a = gpow i := by
     intro a ha
     obtain ⟨w, hw⟩ := readAddrs_valid hex a ha
-    obtain ⟨i, hi, -⟩ := (MemImage.read_eq_some_iff hκ img).mp hw
+    obtain ⟨i, hi, -⟩ := (MemoryImage.read_eq_some_iff hκ img).mp hw
     exact ⟨i, i.isLt, hi⟩
   obtain ⟨hc1, hc2⟩ := countReads_spec hκ (readAddrs img st.fp st.ins)
     (readBump (fun _ ↦ 0) (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)) #[] acc.mem
@@ -344,7 +344,7 @@ theorem rowsInv_step (hκ : κ < 64) {prog : Program} (img : MemImage κ) {acc :
 /-- **The rows of a valid run's steps.** Over steps that each fetch and execute, the pass holds,
 table by table, the raw rows of the rows of their skeletons, and its counters are `g` to the
 finalize counts. -/
-theorem rowsInv_rowsOf (hκ : κ < 64) {prog : Program} (img : MemImage κ) (L : List Step)
+theorem rowsInv_rowsOf (hκ : κ < 64) {prog : Program} (img : MemoryImage κ) (L : List Step)
     (hL : ∀ st ∈ L, StepOk prog img st) :
     RowsInv img prog.logSize (rowsOf (powIndex κ) img prog.logSize L.toArray)
       (L.map Step.toSkel) := by

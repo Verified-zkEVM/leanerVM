@@ -93,7 +93,7 @@ theorem absorbAll_four (c : List E) (a b : E × ℕ) (x0 x1 x2 x3 : E) :
   simp [Fs.absorbAll, Fs.absorb, rateScalars]
 
 /-- The states the message's permutations write. -/
-def ofmQ (cap : List E) (w0 w1 : E) (ms : ℕ → E) : ℕ → KState
+def ofmQ (cap : List E) (w0 w1 : E) (ms : ℕ → E) : ℕ → KeccakState
   | 0 => (⟨cap, [(w0, dsObserve), (w1, dsObserve), (ms 0, dsObserve), (ms 1, dsObserve)]⟩ : Fs).perm
   | j + 1 => (⟨capOf (ofmQ cap w0 w1 ms j), [(ms (4 * j + 2), dsObserve), (ms (4 * j + 3), dsObserve),
       (ms (4 * j + 4), dsObserve), (ms (4 * j + 5), dsObserve)]⟩ : Fs).perm
@@ -406,7 +406,7 @@ theorem fin13_eq {x : ℕ} {c : Fin 13} (h : x % 13 = c.val) : fin13 x = c := Fi
 
 /-- The honest values of `opening_final_message` at `4m` words, by index, on the message `ms`,
 the nonce, the block states `Q` and the final state `S`. -/
-def ofmVals (as : List E) (ms : ℕ → E) (nonce : E) (m : ℕ) (Q : ℕ → KState) (S : KState)
+def ofmVals (as : List E) (ms : ℕ → E) (nonce : E) (m : ℕ) (Q : ℕ → KeccakState) (S : KeccakState)
     (k : ℕ) : E :=
   if k < 9 then as.getD k 0
   else if k < 14 then as.getD (k - 9) 0
@@ -439,7 +439,7 @@ macro "ofm_if" : tactic => `(tactic| first
   | (rw [ite_eq_left_of_eq_true]; rotate_left; exact eq_true (by omega)))
 
 section
-variable (as : List E) (ms : ℕ → E) (nonce : E) (Q : ℕ → KState) (S : KState)
+variable (as : List E) (ms : ℕ → E) (nonce : E) (Q : ℕ → KeccakState) (S : KeccakState)
 
 theorem ofmVals_msg {m j t : ℕ} (hj : j < m) (ht : t < 4) (h0 : j = 0 → 2 ≤ t) :
     ofmVals as ms nonce m Q S (12 + 53 * j + 10 * t) = ms (4 * j + t - 2) := by
@@ -749,7 +749,7 @@ theorem ofm_complete {name : String} {f : Fn} (m : ℕ) (hm1 : 1 ≤ m) (hm : m 
       hcan _ (by simp), hcan _ (by simp)⟩
   · intro c
     simp only [List.map_cons, List.map_nil, hin0, cells13_ofmRun]
-    rw [show keccakF (stateOfCells (cells13 _) false) = permOf _ from rfl, hK0]
+    rw [show keccakF1600 (stateOfCells (cells13 _) false) = permOf _ from rfl, hK0]
     exact vc 0 (by omega) c
   · intro j hj
     have hj' : j < m' := by simpa using hj
@@ -763,7 +763,7 @@ theorem ofm_complete {name : String} {f : Fn} (m : ℕ) (hm1 : 1 ≤ m) (hm : m 
         cellsOfState_canonical _ _ _, cellsOfState_canonical _ _ _, cellsOfState_canonical _ _ _⟩
     · intro c
       rw [cells13_ofmRun, hinB j hj',
-        show keccakF (stateOfCells (cells13 _) false) = permOf _ from rfl,
+        show keccakF1600 (stateOfCells (cells13 _) false) = permOf _ from rfl,
         perm_four (pc _ _) (pc _ _) (pc _ _) (pc _ _) rfl,
         idx _ _ (show 105 + 53 * j + c.val = 52 + 53 * (j + 1) + c.val by ring),
         vc (j + 1) (by omega) c]
@@ -786,7 +786,7 @@ theorem ofm_complete {name : String} {f : Fn} (m : ℕ) (hm1 : 1 ≤ m) (hm : m 
       zero_canonical, zero_canonical, cellsOfState_canonical _ _ _, cellsOfState_canonical _ _ _,
       cellsOfState_canonical _ _ _, cellsOfState_canonical _ _ _, cellsOfState_canonical _ _ _⟩
   · intro c
-    rw [cells13_ofmRun, hinF, show keccakF (stateOfCells (cells13 _) false) = permOf _ from rfl,
+    rw [cells13_ofmRun, hinF, show keccakF1600 (stateOfCells (cells13 _) false) = permOf _ from rfl,
       hKF, cf c]
   · show σ _ = σ _
     exact (ofmVals_out0 as ms nonce Q S (m := m' + 1)).trans (cf 0).symm

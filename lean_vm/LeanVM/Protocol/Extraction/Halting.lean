@@ -52,12 +52,12 @@ open Classical in
 Step `k` is some row's state pull and push (`regs_embed`); the pull of a row determines the state
 `r_k`, and the states of a halting run are distinct (`run_injective`), so distinct steps have
 distinct rows. -/
-theorem steps_le_rows {w : Air.Flat.EnsembleWitness (leanIsaEnsemble prog)} {t : Trace prog}
+theorem steps_le_rows {w : Air.Flat.EnsembleWitness (leanIsaEnsemble prog)} {t : Execution prog}
     (hrep : AssignmentRepresents w t)
-    (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog)) :
+    (hv : run prog t.memory t.steps Registers.initial = some (Registers.final prog)) :
     t.steps ≤ (w.tables.map fun tb ↦ tb.table.length).sum := by
-  let st : ℕ → Regs K := fun k ↦ (run prog t.image k Regs.initial).getD Regs.initial
-  have hst : ∀ k ≤ t.steps, run prog t.image k Regs.initial = some (st k) := fun k hk ↦ by
+  let st : ℕ → Registers K := fun k ↦ (run prog t.memory k Registers.initial).getD Registers.initial
+  have hst : ∀ k ≤ t.steps, run prog t.memory k Registers.initial = some (st k) := fun k hk ↦ by
     rcases hk.lt_or_eq with hk | rfl
     · obtain ⟨r₁, h₁, -⟩ := run_intermediate hv hk
       simp only [st, h₁, Option.getD_some]
@@ -213,8 +213,8 @@ variable {prog : Program} {input : PublicInput}
 
 /-- A witness representing a halting trace has the trace's halting run on the image it names. -/
 theorem haltingRun_of_represents {w : Air.Flat.EnsembleWitness (leanIsaEnsemble prog)}
-    {t : Trace prog} (hrep : AssignmentRepresents w t)
-    (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog)) :
+    {t : Execution prog} (hrep : AssignmentRepresents w t)
+    (hv : run prog t.memory t.steps Registers.initial = some (Registers.final prog)) :
     ∃ t', haltingRun prog (imageOf w.data).2 = some t' ∧ t'.steps = t.steps := by
   obtain ⟨κ, image, steps⟩ := t
   obtain ⟨hκ, himage, -⟩ := hrep

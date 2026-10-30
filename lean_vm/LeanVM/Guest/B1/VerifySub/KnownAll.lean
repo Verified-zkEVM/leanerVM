@@ -44,7 +44,7 @@ theorem vsT_take : vsT.take 2098 = vsPre ++ vsTailT.take 14 := by
 theorem noRet_mid : Stmt.noRetList (vsMapsT ++ vsCtabT ++ vsLamT) = true := by decide +kernel
 
 /-- **`VsKnown`** (G5's obligation on `verify_sub`). -/
-theorem vsKnown_holds {κ : ℕ} (L : MemImage κ) (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
+theorem vsKnown_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     (σ : Val) (hexp : B1.ExpTables L.read (σ (.n 4)) (σ (.n 5)))
     (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 2098) True
       (fun _ ↦ True)) :

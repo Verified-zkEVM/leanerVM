@@ -75,7 +75,7 @@ abbrev vecRun (cert : String → V → ℕ) (fp : ℕ) : ℕ := fp + cert "da_ve
 theorem vec_at (fs : String → ℕ) (cert : String → V → ℕ) {rd : Reader} {ws : List E}
     (hwl : ws.length = 256) {c fp : ℕ} {R : ℕ → Prop}
     (hrun : ReadsAt rd (ofK (gpow (vecRun cert fp))) ws)
-    (hdig : ReadsAt rd (gen ^ c) (digestCells (keccak256 (ws.flatMap Node.eBytes))))
+    (hdig : ReadsAt rd (gen ^ c) (digestCells (keccak256 (ws.flatMap Node.extensionElementBytes))))
     (hR : R c ∧ R (c + 1)) :
     RelAtIn coreProgram fs cert rd R
       (fun i => vecRun cert fp ≤ i ∧ i < vecRun cert fp + 256) fp (fs "da_vector_cell")

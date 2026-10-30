@@ -44,7 +44,7 @@ noncomputable def forgeAdvantage (adversary : Adversary) : ℝ≥0∞ :=
 
 /-- Every path of the game makes at most `Q` permutation calls, the sponge's included. -/
 def HasPermutationBound (adversary : Adversary) (Q : Nat) : Prop :=
-  IsWeightBound (game adversary) permCallsH Q
+  QueryCostAtMost (game adversary) permCallsH Q
 
 /-- Every adversary whose game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`, wins with
 probability at most `(Q + 1) · 2^-bits`. -/
@@ -53,12 +53,12 @@ def HasRpmSecurityBits (bits : Nat) : Prop :=
     forgeAdvantage adversary ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
 
 /- A weight bound of a concrete game must not be unfolded: it recurses through the whole game. -/
-attribute [local irreducible] IsWeightBound in
-/-- `HasRpmSecurityBits` gives the statement's `RpmSecure`, whose bound is at least one past
+attribute [local irreducible] QueryCostAtMost in
+/-- `HasRpmSecurityBits` gives the statement's `StronglyUnforgeable`, whose bound is at least one past
 `Q = 2^128` for `bits ≤ 128`: first against adversaries that also query Keccak-256, then against
 the statement's, which query `π` and `π⁻¹` alone (`Common.SufCma.rpmSecure_of_rpmSecureH`). -/
 theorem rpmSecure_of_bits {bits : Nat} (h : HasRpmSecurityBits bits) (hb : bits ≤ 128) :
-    RpmSecure scheme bits := by
+    StronglyUnforgeable scheme bits := by
   refine rpmSecure_of_rpmSecureH ?_
   intro Q hQ main hbound
   rcases le_or_gt Q (2 ^ 128) with hcap | hcap
@@ -67,7 +67,7 @@ theorem rpmSecure_of_bits {bits : Nat} (h : HasRpmSecurityBits bits) (hb : bits 
 
 /-- Every path of the game makes at most `q` calls of `H`, `π` and `π⁻¹` in all. -/
 def HasCallBound (adversary : Adversary) (q : Nat) : Prop :=
-  IsWeightBound (game adversary) oracleCalls q
+  QueryCostAtMost (game adversary) oracleCalls q
 
 /-- The refined form: every adversary whose game makes at most `q ≥ 1` calls of `H`, `π` and
 `π⁻¹` and at most `Q` permutation calls wins with probability at most

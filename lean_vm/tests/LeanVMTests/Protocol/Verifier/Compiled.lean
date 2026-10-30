@@ -58,11 +58,11 @@ def stream (rate n : ℕ) (top : ℕ := 0) : List E :=
 def prefixProgram : Prog (List E) := do
   let (layout, rate) ← readSizes sampleBytecode
   commitStack layout.stackLog rate
-  Prog.sampleN 5
+  Prog.sampleChallenges 5
 
 /-- The compiled reading of `prefixProgram` on a stream, from the deployed seed. -/
-def prefixRun (s : List E) : Option (List E × St) :=
-  Id.run (Compile.run keccak256 keccakF prefixProgram
+def prefixRun (s : List E) : Option (List E × ProgState) :=
+  Id.run (Compile.run keccak256 keccakF1600 prefixProgram
     ⟨⟨seed sampleBytecode samplePublicInput, []⟩, s, [], []⟩)
 
 /-! ## The sponge agrees with the Python's -/
@@ -99,7 +99,7 @@ def prefixRun (s : List E) : Option (List E × St) :=
 
 /-- The deployed verifier is the oracle-parametric one at `Id`, Keccak-256 and Keccak-f. -/
 example (π : Proof) :
-    Id.run (verifyWith keccak256 keccakF sampleBytecode samplePublicInput π) =
+    Id.run (verifyWith keccak256 keccakF1600 sampleBytecode samplePublicInput π) =
       verify sampleBytecode samplePublicInput π :=
   rfl
 

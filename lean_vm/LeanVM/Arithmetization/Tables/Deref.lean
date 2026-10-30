@@ -61,7 +61,7 @@ from the semantic premise through `deref_refines_iff`: the tuple `main` emits de
 
 **Rows from executions.** `derefRowOf mem pc fp o₁ o₂ o₃ mode r₁ r₂ r₃ rbc` is the row of an
 execution of `DEREF o₁ o₂ o₃ mode` over the image `mem`: the mode's flags, the pointer's low
-limb and the local word read back from the image (`MemImage.limbsAt`); `derefRowOf_refines`
+limb and the local word read back from the image (`MemoryImage.limbsAt`); `derefRowOf_refines`
 proves it refines the relation, and `deref_exec_complete` its acceptance by `main` over the
 prover data, from the execution alone.
 
@@ -135,7 +135,7 @@ theorem storeCoords_eval (mode : DerefMode) (pc fp v30 v31 v32 : K) :
 
 /-- The row's bindings to an image for a store mode: the flags are the mode's, the pointer cell
 holds `p` in `K`, and the local cell holds the row's word. -/
-structure DerefBindings {κ : ℕ} (mem : MemImage κ) (r : DerefRow K) (mode : DerefMode) :
+structure DerefBindings {κ : ℕ} (mem : MemoryImage κ) (r : DerefRow K) (mode : DerefMode) :
     Prop where
   /-- The row's flags are the mode's. -/
   flags_eq : derefFlags mode = (r.fpc, r.ffp)
@@ -148,18 +148,18 @@ structure DerefBindings {κ : ℕ} (mem : MemImage κ) (r : DerefRow K) (mode : 
 from its registers the machine executes the instruction it names in that mode,
 `DEREF o₁ o₂ o₃ mode`, to `next` (`execute`). One mode for both: the flags determine
 it (`flags_eq`), and nothing outside the row fixes it. -/
-def DerefRefines {κ : ℕ} (mem : MemImage κ) (r : DerefRow K) (next : Regs K) : Prop :=
+def DerefRefines {κ : ℕ} (mem : MemoryImage κ) (r : DerefRow K) (next : Registers K) : Prop :=
   ∃ mode, DerefBindings mem r mode ∧
     execute mem ⟨r.pc, r.fp⟩ (.deref r.o1 r.o2 r.o3 mode) = some next
 
 /-- `DerefRefines`, expanded with the same mode: the bindings, the target cell `p·o₂` holds the
 source the mode selects, and the successor is the fall-through `(g·pc, fp)`. -/
-theorem deref_refines_iff {κ : ℕ} (mem : MemImage κ) (r : DerefRow K) (next : Regs K) :
+theorem deref_refines_iff {κ : ℕ} (mem : MemoryImage κ) (r : DerefRow K) (next : Registers K) :
     DerefRefines mem r next ↔
       ∃ mode, DerefBindings mem r mode ∧
         mem.read (r.p * r.o2) =
           some (derefSource mode ⟨r.pc, r.fp⟩ (E.ofLimbs r.v3[0] r.v3[1] r.v3[2])) ∧
-        next = Regs.next ⟨r.pc, r.fp⟩ := by
+        next = Registers.next ⟨r.pc, r.fp⟩ := by
   constructor
   · rintro ⟨mode, ⟨hflags, h1, h3⟩, hexec⟩
     refine ⟨mode, ⟨hflags, h1, h3⟩, ?_⟩
@@ -182,7 +182,7 @@ theorem deref_refines_iff {κ : ℕ} (mem : MemImage κ) (r : DerefRow K) (next 
 
 /-- The table's `Spec`: the row refines `DerefRefines` over the image the prover data names. No
 program: the table is program-free (the module docstring). -/
-def DerefSpec (r : DerefRow K) (next : Regs K) (data : ProverData K) : Prop :=
+def DerefSpec (r : DerefRow K) (next : Registers K) (data : ProverData K) : Prop :=
   DerefRefines (imageOf data).2 r next
 
 /-- The bytecode tuple of a row is `entry` of the instruction it names, by definition; spelled
@@ -202,9 +202,9 @@ private theorem deref_tuple (c o1 o2 o3 fpc ffp : K) :
 at `p·o₂` carrying the flag-selected source, and the local read at `fp·o₃`, in the order of
 `tables.rs:642-647` and of the Python verifier's `_flushes_deref`, which fixes the order of the
 bus blocks. Returns the pushed successor `(g·pc, fp)`. -/
-def derefTable : GeneralFormalCircuit K DerefRow Regs where
+def derefTable : GeneralFormalCircuit K DerefRow Registers where
   main r := do
-    let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
+    let next : Var Registers K := ⟨Expression.const g * r.pc, r.fp⟩
     -- `f̄ = 1 + f_pc + f_fp`: `1` at the three store modes' flags in `cell` mode, `0` otherwise.
     let fbar : Expression K := 1 + r.fpc + r.ffp
     StatePull.pull ⟨r.pc, r.fp⟩
@@ -266,15 +266,15 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
 /-- The row of an execution of `DEREF o₁ o₂ o₃ mode` from `(pc, fp)` over the image `mem`: the
 registers, the operands, the mode's flags, the pointer's low limb and the local word read back
 from the image, and the counts as parameters. Noncomputable: it reads the image. -/
-noncomputable def derefRowOf {κ : ℕ} (mem : MemImage κ) (pc fp o1 o2 o3 : K) (mode : DerefMode)
+noncomputable def derefRowOf {κ : ℕ} (mem : MemoryImage κ) (pc fp o1 o2 o3 : K) (mode : DerefMode)
     (r1 r2 r3 rbc : K) : DerefRow K :=
   ⟨pc, fp, o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2,
     (mem.limbsAt (fp * o1))[0], mem.limbsAt (fp * o3), r1, r2, r3, rbc⟩
 
 /-- A valid execution of `DEREF o₁ o₂ o₃ mode` is represented by `derefRowOf`, with any counts:
 the honest prover's row refines the relation, which is `ProverAssumptions` over the data. -/
-theorem derefRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp o1 o2 o3 : K} {mode : DerefMode}
-    {next : Regs K} (hexec : execute mem ⟨pc, fp⟩ (.deref o1 o2 o3 mode) = some next)
+theorem derefRowOf_refines {κ : ℕ} {mem : MemoryImage κ} {pc fp o1 o2 o3 : K} {mode : DerefMode}
+    {next : Registers K} (hexec : execute mem ⟨pc, fp⟩ (.deref o1 o2 o3 mode) = some next)
     (r1 r2 r3 rbc : K) :
     DerefRefines mem (derefRowOf mem pc fp o1 o2 o3 mode r1 r2 r3 rbc) next := by
   have h := hexec
@@ -283,15 +283,15 @@ theorem derefRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp o1 o2 o3 : K} {
   have hin := guard_eq_some hu
   refine ⟨mode, ⟨rfl, ?_, ?_⟩, hexec⟩
   · show mem.read (fp * o1) = some (E.ofLimbs (mem.limbsAt (fp * o1))[0] 0 0)
-    rw [MemImage.limbsAt_getElem_zero hp, ofLimbs_of_isInK hin]; exact hp
+    rw [MemoryImage.limbsAt_getElem_zero hp, ofLimbs_of_isInK hin]; exact hp
   · show mem.read (fp * o3) = some (E.ofLimbs (mem.limbsAt (fp * o3))[0]
       (mem.limbsAt (fp * o3))[1] (mem.limbsAt (fp * o3))[2])
-    rw [MemImage.ofLimbs_limbsAt hv3]; exact hv3
+    rw [MemoryImage.ofLimbs_limbsAt hv3]; exact hv3
 
 /-- Every valid `DEREF` execution has a satisfying row, from the execution alone: the
 constraints of `main` hold of `derefRowOf` in the row environment over the data. -/
 theorem deref_exec_complete {data : ProverData K} {pc fp o1 o2 o3 : K} {mode : DerefMode}
-    {next : Regs K} (hexec : execute (imageOf data).2 ⟨pc, fp⟩ (.deref o1 o2 o3 mode) = some next)
+    {next : Registers K} (hexec : execute (imageOf data).2 ⟨pc, fp⟩ (.deref o1 o2 o3 mode) = some next)
     (r1 r2 r3 rbc : K) :
     ConstraintsHold.Completeness (rowEnv data)
       ((derefTable.main

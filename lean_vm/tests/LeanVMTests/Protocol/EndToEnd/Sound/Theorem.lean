@@ -30,13 +30,13 @@ noncomputable example (prog : Program) (input : PublicInput) :
       (fun b _ ↦ b = false) ((2 : ℝ≥0∞)⁻¹ ^ 128) 0 0 :=
   leanVmSpec prog input
 
-example (A : OracleComp HashSpec (Statement × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA) :
+example (A : OracleComp KeccakCalls (Statement × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
       ¬ Extracted z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2] ≤
       ((QA + 12006 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12006)) :=
   leanVm_knowledge A QA hA
 
-example (A : OracleComp HashSpec (Statement × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA) :
+example (A : OracleComp KeccakCalls (Statement × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
       ¬ ∃ (s : Sizes) (q : Column (leanIsaμ z.1.1.1.1 s)),
         extractStack z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2 =

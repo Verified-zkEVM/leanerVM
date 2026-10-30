@@ -38,8 +38,8 @@ namespace Prog
 variable {α : Type}
 
 /-- A program's successful run returns what the program may return. -/
-theorem returns_of_run (H : Bytes → Id Digest) (F : KState → Id KState) {p : Prog α} :
-    ∀ {s : St} {a : α} {s' : St}, run H F p s = some (a, s') → Returns p a := by
+theorem returns_of_run (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) {p : Prog α} :
+    ∀ {s : ProgState} {a : α} {s' : ProgState}, run H F p s = some (a, s') → Returns p a := by
   induction p with
   | ret b =>
     intro s a s' h
@@ -87,8 +87,8 @@ theorem returns_of_run (H : Bytes → Id Digest) (F : KState → Id KState) {p :
       · simp at h
 
 /-- An accepted proof's program may return `true`. -/
-theorem returns_of_runProof (H : Bytes → Id Digest) (F : KState → Id KState) {P : Prog Bool}
-    {seed : KState} {π : Proof} (h : runProof H F P seed π = true) : Returns P true := by
+theorem returns_of_runProof (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) {P : Prog Bool}
+    {seed : KeccakState} {π : Proof} (h : runProof H F P seed π = true) : Returns P true := by
   unfold runProof at h
   revert h
   match hr : run H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
@@ -97,19 +97,19 @@ theorem returns_of_runProof (H : Bytes → Id Digest) (F : KState → Id KState)
   | none => intro h; simp at h
 
 /-- `readN n` returns `n` scalars. -/
-theorem returns_readN : ∀ {n : ℕ} {xs : List E}, Returns (readN n) xs → xs.length = n
+theorem returns_readN : ∀ {n : ℕ} {xs : List E}, Returns (readScalars n) xs → xs.length = n
   | 0, xs, h => by rw [returns_ret h]; rfl
   | n + 1, xs, h => by
-    unfold readN at h
+    unfold readScalars at h
     obtain ⟨_, -, h⟩ := returns_bind h
     obtain ⟨ys, hys, h⟩ := returns_bind h
     rw [returns_ret h, List.length_cons, returns_readN hys]
 
 /-- `sampleN n` returns `n` challenges. -/
-theorem returns_sampleN : ∀ {n : ℕ} {xs : List E}, Returns (sampleN n) xs → xs.length = n
+theorem returns_sampleN : ∀ {n : ℕ} {xs : List E}, Returns (sampleChallenges n) xs → xs.length = n
   | 0, xs, h => by rw [returns_ret h]; rfl
   | n + 1, xs, h => by
-    unfold sampleN at h
+    unfold sampleChallenges at h
     obtain ⟨_, -, h⟩ := returns_bind h
     obtain ⟨ys, hys, h⟩ := returns_bind h
     rw [returns_ret h, List.length_cons, returns_sampleN hys]
@@ -197,7 +197,7 @@ theorem returns_verifyGkrGrandProducts {depth : ℕ} {x : E × List E × List E}
   exact (returns_gkrLayers depth ht).trans (add_zero _)
 
 /-- The claimed bytecode value is given only at the claimed point. -/
-theorem returns_claimed_bytecode {c : FixedClaims} {words : List K} {point : List E} {v : E}
+theorem returns_claimed_bytecode {c : BytecodeClaim} {words : List K} {point : List E} {v : E}
     (h : Prog.Returns (claimedValue c words point) v) :
     point = c.bytecodePoint := by
   obtain ⟨_, h, -⟩ := Prog.returns_bind h
@@ -272,7 +272,7 @@ theorem readSizes_logBytecode {bytecode : List K} {x : Layout × ℕ}
     · simp at ho
 
 /-- The bus asks for the bytecode at a point of length `logBytecode + busBits`. -/
-theorem verifyBusBalance_bytecodePoint {c : FixedClaims} {layout : Layout} {b : BusResult}
+theorem verifyBusBalance_bytecodePoint {c : BytecodeClaim} {layout : Layout} {b : BusResult}
     (h : Prog.Returns (verifyBusBalance (claimedValue c) layout) b) :
     c.bytecodePoint.length = layout.logBytecode + busBits := by
   unfold verifyBusBalance at h
@@ -292,7 +292,7 @@ theorem verifyBusBalance_bytecodePoint {c : FixedClaims} {layout : Layout} {b : 
 
 /-- **The verifier's claims, of the verifier's shapes**: a run of the verifier on the claimed
 evaluator that may return makes claims of the lengths the program fixes. -/
-theorem verifyExecution_shaped {c : FixedClaims} {bytecode : List K} {publicInput : Digest}
+theorem verifyExecution_shaped {c : BytecodeClaim} {bytecode : List K} {publicInput : Digest}
     {u : Unit} (h : Prog.Returns (verifyExecutionClaims (claimedValue c) bytecode publicInput) u) :
     c.bytecodePoint.length = Nat.log2 bytecode.length := by
   unfold verifyExecutionClaims at h
@@ -304,10 +304,10 @@ theorem verifyExecution_shaped {c : FixedClaims} {bytecode : List K} {publicInpu
 
 /-- **An accepted proof's claims are of the verifier's shapes**: a proof the deferring verifier
 accepts claims the bytecode at a point of the bytecode's log-length. -/
-theorem verifyDeferred_shaped {bytecode : List K} {iv publicInput : Digest} {c : FixedClaims}
+theorem verifyDeferred_shaped {bytecode : List K} {iv publicInput : Digest} {c : BytecodeClaim}
     {π : Proof} (h : verifyDeferred bytecode iv publicInput c π = true) :
     c.bytecodePoint.length = Nat.log2 bytecode.length := by
-  have hP := Prog.returns_of_runProof keccak256 keccakF h
+  have hP := Prog.returns_of_runProof keccak256 keccakF1600 h
   rw [deferredProgram_eq] at hP
   obtain ⟨_, hu, -⟩ := Prog.returns_bind hP
   exact verifyExecution_shaped hu

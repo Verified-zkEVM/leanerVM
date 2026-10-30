@@ -32,7 +32,7 @@ by its bytecode read, which `opRecs_bc_sound` makes the program's at the row's c
 **The run** (`exists_run_of_balanced`, Proposition 6.1). The state pair pushes `(1, 1)` (the
 verifier) and the rows' successors, and pulls `(g^(N_prog - 1), 1)` (the verifier) and the rows'
 states; its balance is the hypothesis of `exists_run_of_perm` (`Soundness.Walk`) over the rows,
-which yields a run from `Regs.initial` to `Regs.final prog`, the walk from the initial state cut at
+which yields a run from `Registers.initial` to `Registers.final prog`, the walk from the initial state cut at
 its first visit of the final state, each of whose steps is a row (`exists_walk`, which
 `Soundness.Theorem` uses for `AssignmentRepresents`). Every state before the cut is not the final
 state, so `run`, which halts in the final state only, steps from it; a row at the last slot in
@@ -166,20 +166,20 @@ theorem rowsStep_free (h : SatisfiedByB prog input w)
 /-! ## The state pair -/
 
 /-- A state message as an array. -/
-def regsArr (r : Regs K) : Array K := #[r.pc, r.fp]
+def regsArr (r : Registers K) : Array K := #[r.pc, r.fp]
 
 /-- The state of a state message, `0` for a missing coordinate. -/
-def arrRegs (a : Array K) : Regs K := ⟨a.getD 0 0, a.getD 1 0⟩
+def arrRegs (a : Array K) : Registers K := ⟨a.getD 0 0, a.getD 1 0⟩
 
 /-- Reading a state message back gives the state. -/
-theorem arrRegs_regsArr (r : Regs K) : arrRegs (regsArr r) = r := rfl
+theorem arrRegs_regsArr (r : Registers K) : arrRegs (regsArr r) = r := rfl
 
 /-- **The states a satisfying witness pushes**: the verifier's `(1, 1)` and the rows'
 successors. -/
 theorem statePush_eq (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec}
     (hf : OpRecs w f) :
     messagesOn w StatePush.toRaw =
-      regsArr Regs.initial :: (opPairs w).map fun p ↦ regsArr (f p).next := by
+      regsArr Registers.initial :: (opPairs w).map fun p ↦ regsArr (f p).next := by
   obtain ⟨mfin, bfin, hall⟩ := allSends_eq h hf
   rw [messagesOn_eq_chanOf, chanOf_allSends _ hall]
   simp only [Channel.toRaw_name]
@@ -194,7 +194,7 @@ states. -/
 theorem statePull_eq (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec}
     (hf : OpRecs w f) :
     messagesOn w StatePull.toRaw =
-      regsArr (Regs.final prog) :: (opPairs w).map fun p ↦ regsArr (f p).src := by
+      regsArr (Registers.final prog) :: (opPairs w).map fun p ↦ regsArr (f p).src := by
   obtain ⟨mfin, bfin, hall⟩ := allSends_eq h hf
   rw [messagesOn_eq_chanOf, chanOf_allSends _ hall]
   simp only [Channel.toRaw_name]
@@ -211,9 +211,9 @@ rows and a run under `S` from the initial to the final registers over the image 
 each of whose steps is a row. -/
 theorem exists_walkB (S : KeccakSem) (h : SatisfiedByB prog input w)
     (hS : ∀ f, OpRecs w f → RowsStep S w f) :
-    ∃ f, OpRecs w f ∧ ∃ n, runB S prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog) ∧
-      ∀ k < n, ∃ p ∈ opPairs w, runB S prog (imageOf w.data).2 k Regs.initial = some (f p).src ∧
-        runB S prog (imageOf w.data).2 (k + 1) Regs.initial = some (f p).next := by
+    ∃ f, OpRecs w f ∧ ∃ n, runB S prog (imageOf w.data).2 n Registers.initial = some (Registers.final prog) ∧
+      ∀ k < n, ∃ p ∈ opPairs w, runB S prog (imageOf w.data).2 k Registers.initial = some (f p).src ∧
+        runB S prog (imageOf w.data).2 (k + 1) Registers.initial = some (f p).next := by
   obtain ⟨f, hf⟩ := exists_opRecs w
   refine ⟨f, hf, ?_⟩
   have hb := h.state_balanced
@@ -222,14 +222,14 @@ theorem exists_walkB (S : KeccakSem) (h : SatisfiedByB prog input w)
   have hperm := hb.map arrRegs
   simp only [List.map_cons, List.map_map, Function.comp_def, arrRegs_regsArr] at hperm
   exact exists_runB_of_perm S (fun p ↦ (f p).src) (fun p ↦ (f p).next) (opPairs w)
-    (fun p hp ↦ (hS f hf p hp).1) Regs.initial hperm
+    (fun p hp ↦ (hS f hf p hp).1) Registers.initial hperm
 
 /-- **The walk of a satisfying witness**: records for its rows and a run from the initial to the
 final registers over the image the data names, each of whose steps is a row. -/
 theorem exists_walk (h : SatisfiedBy prog input w) :
-    ∃ f, OpRecs w f ∧ ∃ n, run prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog) ∧
-      ∀ k < n, ∃ p ∈ opPairs w, run prog (imageOf w.data).2 k Regs.initial = some (f p).src ∧
-        run prog (imageOf w.data).2 (k + 1) Regs.initial = some (f p).next := by
+    ∃ f, OpRecs w f ∧ ∃ n, run prog (imageOf w.data).2 n Registers.initial = some (Registers.final prog) ∧
+      ∀ k < n, ∃ p ∈ opPairs w, run prog (imageOf w.data).2 k Registers.initial = some (f p).src ∧
+        run prog (imageOf w.data).2 (k + 1) Registers.initial = some (f p).next := by
   simpa only [runB_deployed] using
     exists_walkB keccakDeployed h.toB fun _ hf ↦ rowsStep_deployed h hf
 
@@ -237,7 +237,7 @@ theorem exists_walk (h : SatisfiedBy prog input w) :
 run from `(1, 1)` to `(g^(N_prog - 1), 1)`, cut at its first visit of the final state; the remaining
 rows are closed walks. -/
 theorem exists_run_of_balanced (h : SatisfiedBy prog input w) :
-    ∃ n, run prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog) := by
+    ∃ n, run prog (imageOf w.data).2 n Registers.initial = some (Registers.final prog) := by
   obtain ⟨-, -, n, hn, -⟩ := exists_walk h
   exact ⟨n, hn⟩
 

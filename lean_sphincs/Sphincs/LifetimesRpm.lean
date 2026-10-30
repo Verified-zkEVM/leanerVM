@@ -17,7 +17,7 @@ open OracleComp OracleSpec ENNReal Common Common.SufCma
 namespace SphincsLayered.Lifetimes
 
 /- A weight bound of a concrete game must not be unfolded: it recurses through the whole game. -/
-attribute [local irreducible] IsWeightBound
+attribute [local irreducible] QueryCostAtMost
 
 section
 
@@ -56,7 +56,7 @@ bound `(Q + 1) · 2^-bits` in the random-permutation model, for `Q ≤ 2^128`: t
 theorem rpmBits_of_det {bits : Nat} (h : Security.Det.HasClassicalSecurityBitsDet bits)
     (hb : bits ≤ 253) : Rpm.HasRpmSecurityBits bits :=
   fun Q hQ hcap adversary hbound ↦ (rpmBitsCalls_of_det h Q Q hQ adversary
-    (IsWeightBound.mono_weight hbound oracleCalls_le_permCalls) hbound).trans
+    (QueryCostAtMost.mono_weight hbound oracleCalls_le_permCalls) hbound).trans
     (Common.bits_add_sq_le hcap hb)
 
 end
@@ -95,5 +95,5 @@ end SphincsLayered.Lifetimes
 proved lifetime, an adversary whose game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`,
 forges with probability at most `(Q + 1) · 2^-127`: the layered presentation's theorem above,
 through the bijection of the signatures (`Sphincs.OneLayer.requestedSecurityRpm_iff`). -/
-theorem Sphincs.Lifetimes.requestedSecurityRpm : Sphincs.Lifetimes.RequestedSecurityRpm :=
+theorem Sphincs.Lifetimes.requestedSecurityRpm : Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable :=
   Sphincs.OneLayer.requestedSecurityRpm_iff.mpr SphincsLayered.Lifetimes.requestedSecurityRpm

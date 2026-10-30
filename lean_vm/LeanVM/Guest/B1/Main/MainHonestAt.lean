@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Main.MainHonestFit
 # `main` on an honest run
 
 `MainGoals`: the ten callee statements of `MainGoals.lean`. `mainKids_ok`: they are what
-`main_relAtInW` asks of `mKids`. `main_honest_relAtInW`: for `NodeRel` within `Limits`, on every
+`main_relAtInW` asks of `mKids`. `main_honest_relAtInW`: for `NodeRelation` within `Limits`, on every
 memory holding `main`'s honest layout and the statement's digest at words `0`, `1`, `main` holds
 by its node at `fp`, at a valuation with the honest values (`MVals` of `hm`).
 -/
@@ -73,12 +73,12 @@ theorem mainKids_ok (hg : MainGoals fs cert fp seed s w) :
 
 variable {bytecode : List K}
 
-/-- **`main` at `fp` on the honest run**: for `NodeRel` within `Limits`, a statement of the
+/-- **`main` at `fp` on the honest run**: for `NodeRelation` within `Limits`, a statement of the
 bytecode's shape (`log₂` of its length `23`) and fresh claims at points of `23` coordinates, from
 its callees' completeness on the run: a layout `L` within `[fp, fp + n)`, pairwise disjoint,
 above `main`'s frame, containing `main`'s honest words, on every memory holding which and the statement's digest at
 words `0`, `1` `main` holds by its node at `fp`, at a valuation with the honest values. -/
-theorem main_honest_relAtInW (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRel bytecode seed s w)
+theorem main_honest_relAtInW (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytecode seed s w)
     (hl : Limits s w) (hf : FreshShaped w) (hg : MainGoals fs cert fp seed s w) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧

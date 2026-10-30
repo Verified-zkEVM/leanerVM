@@ -437,7 +437,7 @@ def BlockOK (σ : Val) (cs : List KC) (B k : Nat) (st : Option (List V)) (e : Li
   e.1.length = 13 ∧
     (∀ c < 13, σ (e.1.getD c default) =
       prevVal σ st c + if c < 9 then ((blockOf cs k).getD c .zero).val σ else 0) ∧
-    KeccakCells (cells13 (e.1.map σ)) (k % 2 == 1) (cells13 ((runV e.2 13).map σ))
+    KeccakCellsRelation (cells13 (e.1.map σ)) (k % 2 == 1) (cells13 ((runV e.2 13).map σ))
       (!(k + 1 == B) && k % 2 == 0)
 
 /-- The state block `j` of a trace starts from. -/

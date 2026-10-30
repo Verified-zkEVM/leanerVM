@@ -37,10 +37,10 @@ noncomputable def rootedAnswer2 (β : List (Dg × E)) (x : SpState Dg E C) :
   | none => fQuery (Dg := Dg) x
 
 /-- **The two-oracle simulator**: answers `π` and `π⁻¹` with oracle access to `H` and `F`. -/
-noncomputable def simulator2 : QueryImpl (permSpec (SpState Dg E C))
+noncomputable def simulator2 : QueryImpl (permutationOracleSpec (SpState Dg E C))
     (StateT (SimState Dg E C) (OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C))))
-  | .fwd x => StateT.mk fun σ ↦
-      match fwdLookup σ.edges x with
+  | .forward x => StateT.mk fun σ ↦
+      match forwardLookup σ.edges x with
       | some y => pure (y, σ)
       | none =>
         match chainOf σ.chains x with
@@ -50,8 +50,8 @@ noncomputable def simulator2 : QueryImpl (permSpec (SpState Dg E C))
         | none => do
           let y ← fQuery (Dg := Dg) x
           pure (y, ⟨(x, y) :: σ.edges, σ.chains⟩)
-  | .inv y => StateT.mk fun σ ↦
-      match invLookup σ.edges y with
+  | .inverse y => StateT.mk fun σ ↦
+      match inverseLookup σ.edges y with
       | some x => pure (x, σ)
       | none => do
         let x ← (liftM ($ᵗ (SpState Dg E C)) :

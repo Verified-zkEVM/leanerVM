@@ -54,7 +54,7 @@ example : ¬ RetOK (fun n : ℕ ↦ n ≤ 2) (Prog.ret 3) := by
   omega
 
 /-- The bound is on the returns, not the reads: `readN 4` returns four scalars, not three. -/
-example : ¬ RetOK (fun xs : List E ↦ xs.length ≤ 3) (Prog.readN 4) := by
+example : ¬ RetOK (fun xs : List E ↦ xs.length ≤ 3) (Prog.readScalars 4) := by
   intro h
   have := h ([0, 0, 0, 0].map Ev.read) [0, 0, 0, 0] rfl
   simp at this

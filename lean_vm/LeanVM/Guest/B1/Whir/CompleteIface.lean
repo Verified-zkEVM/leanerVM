@@ -54,7 +54,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 def foldRoundsNZ : ℕ → WhirStateT → List E → Prog (WhirStateT × List E)
   | 0, s, levelFolds => return (s, levelFolds)
   | n + 1, s, levelFolds => do
-    let challenge ← Prog.sampleE
+    let challenge ← Prog.sampleChallenge
     Prog.require (challenge ≠ 0)
     let target := polyEval s.quad challenge
     let quad ← sumcheckRoundPoly 3 target none
@@ -65,7 +65,7 @@ def foldRoundsNZ : ℕ → WhirStateT → List E → Prog (WhirStateT × List E)
 def tailRoundsNZ : ℕ → E → List E → Prog (List E × E)
   | 0, target, _ => return ([], target)
   | n + 1, _, quad => do
-    let challenge ← Prog.sampleE
+    let challenge ← Prog.sampleChallenge
     Prog.require (challenge ≠ 0)
     let target := polyEval quad challenge
     if n = 0 then return ([challenge], target)
@@ -82,21 +82,21 @@ def whirLevelsOpenNZ (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirSt
     let messageLog := logN - s.folds.length
     let (residual, pending) ← match rest with
       | [] => do
-        let residual ← Prog.readN (2 ^ messageLog)
+        let residual ← Prog.readScalars (2 ^ messageLog)
         pure (residual, ([] : List (E × List E × (List E → E))))
       | next :: _ => do
         let (height, width) := levelShape messageLog next (3 * 2 ^ next.fold)
-        Prog.commitP height width
-        let oodPoint ← Prog.sampleN messageLog
-        let oodValue ← Prog.readE
+        Prog.readCommitment height width
+        let oodPoint ← Prog.sampleChallenges messageLog
+        let oodValue ← Prog.readScalar
         let intro ← sumcheckRoundPoly 3 oodValue none
         pure ([], [(oodValue, intro, fun x ↦ eqEval oodPoint x)])
-    Prog.grindP Whir.queryGrindingBits
+    Prog.grindProofOfWork Whir.queryGrindingBits
     let queries ← sampleQueries (messageLog + level.logInvRate) level.queries
-    let lam ← Prog.sampleE
+    let lam ← Prog.sampleChallenge
     Prog.require (lam ≠ 0)
     let queryWeights := powers lam queries.length
-    let words ← Prog.queryP index queries
+    let words ← Prog.queryOpenings index queries
     let rows : List (List E) :=
       if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
     let enforced := enforcedSum rows levelFolds queryWeights
@@ -124,7 +124,7 @@ def whirOpenNZ (logN logInvRate : ℕ) (target : E) : Prog WhirEnd := do
 /-- **No zero challenge** (DESIGN §5.2.1): the run of `whirOpen μ r target` from the sponge
 `⟨capOf S, []⟩` on the words `xs` and the openings `os`, the root committed, passes
 `whirOpenNZ`: no fold challenge, tail challenge or level's batching challenge `λ` is zero. -/
-def NoZeroChallenge (μ r : ℕ) (target : E) (S : KState) (xs : List E) (os : List Opening)
+def NoZeroChallenge (μ r : ℕ) (target : E) (S : KeccakState) (xs : List E) (os : List Opening)
     (root : Digest) : Prop :=
   ∃ (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
     RunsWith (whirOpenNZ μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots'
@@ -190,7 +190,7 @@ def BatchAgrees (depth : ℕ) (qs : List (ℕ × Opening)) : Prop :=
 /-- **The openings agree in the caps** (DESIGN §5.2.3): at every query step of the run of
 `whirOpen μ r target` from `⟨capOf S, []⟩` on `xs` and `os`, the root committed, the step's
 openings agree wherever they meet. -/
-def CapsAgree (μ r : ℕ) (target : E) (S : KState) (xs : List E) (os : List Opening)
+def CapsAgree (μ r : ℕ) (target : E) (S : KeccakState) (xs : List E) (os : List Opening)
     (root : Digest) : Prop :=
   ∀ b ∈ queryStepsOf (whirOpen μ r target) ⟨⟨capOf S, []⟩, xs, os, [(root, stackShape μ r)]⟩,
     BatchAgrees b.1 b.2
@@ -219,7 +219,7 @@ words `xs` at the cursor, the call returns the run's claim, the point buffers' p
 glued weight and its residual's value. Proved as `open_stacked_complete_holds`. -/
 def open_stacked_complete_Spec : Prop :=
   ∀ (μ r : ℕ), 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
-    ∀ (S : KState) (root : Digest) (target cur : E) (xs : List E) (os : List Opening)
+    ∀ (S : KeccakState) (root : Digest) (target cur : E) (xs : List E) (os : List Opening)
       (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
       RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
       NoZeroChallenge μ r target S xs os root → CapsAgree μ r target S xs os root →

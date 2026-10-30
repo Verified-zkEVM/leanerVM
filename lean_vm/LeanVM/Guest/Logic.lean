@@ -54,10 +54,10 @@ open LeanVM.Parameters LeanVM.Semantics
 
 section
 
-variable {κ : ℕ} (prog : Program) (L : MemImage κ)
+variable {κ : ℕ} (prog : Program) (L : MemoryImage κ)
 
 /-- The run from `r` halts after exactly `k` steps. -/
-def Safe (k : ℕ) (r : Regs K) : Prop := run prog L k r = some (Regs.final prog)
+def Safe (k : ℕ) (r : Registers K) : Prop := run prog L k r = some (Registers.final prog)
 
 /-- What a non-`JUMP` instruction at `(g^pc, fp)` checks of the memory. -/
 def Holds (pc : ℕ) (fp : K) : OInstr → Prop
@@ -74,16 +74,16 @@ def Holds (pc : ℕ) (fp : K) : OInstr → Prop
       (∀ c : Fin 13, L.read (fp * gpow (keccakInOff m0 m1 m2 m3 tail b8 cap c.val)) =
         some (input c)) ∧
       (∀ c : Fin 13, L.read (fp * gpow (out + c.val)) = some (output c)) ∧
-      KeccakCells input inOdd output outOdd
+      KeccakCellsRelation input inOdd output outOdd
 
 /-- What a `JUMP fp[oc], fp[od], fp[of]` at `(g^pc, fp)` checks, and where it goes. -/
-def JumpsTo (pc : ℕ) (fp : K) (oc od of : ℕ) (r : Regs K) : Prop :=
+def JumpsTo (pc : ℕ) (fp : K) (oc od of : ℕ) (r : Registers K) : Prop :=
   ∃ c d f, L.read (fp * gpow oc) = some c ∧ L.read (fp * gpow od) = some d ∧
     L.read (fp * gpow of) = some f ∧ IsInK c ∧ IsInK d ∧ IsInK f ∧
     r = if c = 0 then ⟨gpow (pc + 1), fp⟩ else ⟨d.limb 0, f.limb 0⟩
 
 /-- The caller's registers a function at frame `fp` returns to: `(fp[0], fp[1])`. -/
-noncomputable def retRegs (fp : K) : Option (Regs K) :=
+noncomputable def retRegs (fp : K) : Option (Registers K) :=
   (L.read (fp * gpow 0)).bind fun d ↦ (L.read (fp * gpow 1)).map fun f ↦ ⟨d.limb 0, f.limb 0⟩
 
 /-- **A function's contract, for runs shorter than `n`**: from `(g^entry, fp)` with `P fp`, a
@@ -100,7 +100,7 @@ def FunSpec (entry : ℕ) (P Q : K → Prop) : Prop :=
     ∃ k' < k, ∃ r, retRegs L fp = some r ∧ Q fp ∧ Safe prog L k' r
 
 /-- Some run goes from `s` to `t`. -/
-def Reach (s t : Regs K) : Prop := ∃ n, run prog L n s = some t
+def Reach (s t : Registers K) : Prop := ∃ n, run prog L n s = some t
 
 /-- From `(g^entry, fp)`, a run returns to `retRegs L fp`. -/
 def Returns (entry : ℕ) (fp : K) : Prop :=
@@ -112,7 +112,7 @@ end
 
 section
 
-variable {κ : ℕ} {prog : Program} {L : MemImage κ}
+variable {κ : ℕ} {prog : Program} {L : MemoryImage κ}
 
 private theorem guard_eq_some_iff {p : Prop} [Decidable p] {u : Unit} :
     (guard p : Option Unit) = some u ↔ p := by
@@ -121,10 +121,10 @@ private theorem guard_eq_some_iff {p : Prop} [Decidable p] {u : Unit} :
 
 /-- A non-`JUMP` instruction executes exactly when it `Holds`, and falls through. -/
 theorem execute_iff_holds {pc : ℕ} {fp : K} {ins : OInstr} (hj : ins.isJump = false)
-    {r : Regs K} :
+    {r : Registers K} :
     execute L ⟨gpow pc, fp⟩ ins.toInstr = some r ↔ Holds L pc fp ins ∧ r = ⟨gpow (pc + 1), fp⟩ := by
-  have hnext : (⟨gpow pc, fp⟩ : Regs K).next = ⟨gpow (pc + 1), fp⟩ := by
-    rw [Regs.next, gpow_succ]
+  have hnext : (⟨gpow pc, fp⟩ : Registers K).next = ⟨gpow (pc + 1), fp⟩ := by
+    rw [Registers.next, gpow_succ]
   cases ins with
   | jump => simp [OInstr.isJump] at hj
   | xor a b c =>
@@ -169,11 +169,11 @@ theorem execute_iff_holds {pc : ℕ} {fp : K} {ins : OInstr} (hj : ins.isJump = 
       exact ⟨input, output, hin, hout, hk, rfl⟩
 
 /-- A `JUMP` executes exactly when its reads are in `K`, to where `JumpsTo` says. -/
-theorem execute_jump_iff {pc : ℕ} {fp : K} {oc od of : ℕ} {r : Regs K} :
+theorem execute_jump_iff {pc : ℕ} {fp : K} {oc od of : ℕ} {r : Registers K} :
     execute L ⟨gpow pc, fp⟩ (OInstr.jump oc od of).toInstr = some r ↔
       JumpsTo L pc fp oc od of r := by
-  have hnext : (⟨gpow pc, fp⟩ : Regs K).next = ⟨gpow (pc + 1), fp⟩ := by
-    rw [Regs.next, gpow_succ]
+  have hnext : (⟨gpow pc, fp⟩ : Registers K).next = ⟨gpow (pc + 1), fp⟩ := by
+    rw [Registers.next, gpow_succ]
   simp only [execute, executeWith, OInstr.toInstr, JumpsTo, Option.bind_eq_bind,
     Option.bind_eq_some_iff, guard_eq_some_iff, exists_const, Option.pure_def, Option.some.injEq, hnext]
   constructor
@@ -195,10 +195,10 @@ theorem derefSource_pc (pc : ℕ) (fp : K) (v : E) :
   rw [derefSource, gpow, gpow, pow_add, mul_comm]
 
 /-- `DEREF … [Fp]` stores the frame pointer. -/
-theorem derefSource_fp (r : Regs K) (v : E) : derefSource .fp r v = ofK r.fp := rfl
+theorem derefSource_fp (r : Registers K) (v : E) : derefSource .fp r v = ofK r.fp := rfl
 
 /-- `retRegs` reads `fp[0]` and `fp[1]`. -/
-theorem retRegs_eq_some_iff {fp : K} {r : Regs K} :
+theorem retRegs_eq_some_iff {fp : K} {r : Registers K} :
     retRegs L fp = some r ↔ ∃ d f, L.read (fp * gpow 0) = some d ∧
       L.read (fp * gpow 1) = some f ∧ r = ⟨d.limb 0, f.limb 0⟩ := by
   simp only [retRegs, Option.bind_eq_some_iff, Option.map_eq_some_iff]
@@ -220,16 +220,16 @@ end
 
 section
 
-variable {κ : ℕ} {prog : Program} {L : MemImage κ}
+variable {κ : ℕ} {prog : Program} {L : MemoryImage κ}
 
-theorem safe_zero_iff {r : Regs K} : Safe prog L 0 r ↔ r = Regs.final prog := by
+theorem safe_zero_iff {r : Registers K} : Safe prog L 0 r ↔ r = Registers.final prog := by
   simp [Safe]
 
-theorem safe_succ_iff {k : ℕ} {r : Regs K} :
+theorem safe_succ_iff {k : ℕ} {r : Registers K} :
     Safe prog L (k + 1) r ↔
-      r ≠ Regs.final prog ∧ ∃ r', step prog L r = some r' ∧ Safe prog L k r' := by
+      r ≠ Registers.final prog ∧ ∃ r', step prog L r = some r' ∧ Safe prog L k r' := by
   unfold Safe
-  by_cases h : r = Regs.final prog
+  by_cases h : r = Registers.final prog
   · rw [run_succ_of_eq h]; simp [h]
   · rw [run_succ_of_ne_final h]; simp [h, Option.bind_eq_some_iff]
 
@@ -240,7 +240,7 @@ theorem Safe.step {pc k : ℕ} {fp : K} {ins : OInstr}
     ∃ k' r, k = k' + 1 ∧ execute L ⟨gpow pc, fp⟩ ins.toInstr = some r ∧ Safe prog L k' r := by
   cases k with
   | zero =>
-    have := congrArg Regs.pc (safe_zero_iff.mp h)
+    have := congrArg Registers.pc (safe_zero_iff.mp h)
     exact absurd this (gpow_ne_pcFinal hpc)
   | succ k =>
     obtain ⟨-, r, hr, hs⟩ := safe_succ_iff.mp h
@@ -302,9 +302,9 @@ theorem Safe.ret {pc k oc : ℕ} {fp : K} {c : E}
   exact ⟨k', rfl, _, retRegs_eq_some_iff.mpr ⟨d, f, hd, hf', rfl⟩, hs⟩
 
 /-- A halting run of a valid execution starts at `(g^0, 1)`. -/
-theorem safe_of_validExecution {input : PublicInput} {t : Trace prog}
-    (h : ValidExecution prog input t) : Safe prog t.image t.steps ⟨gpow 0, 1⟩ := by
-  have : (⟨gpow 0, 1⟩ : Regs K) = Regs.initial := by rw [gpow, pow_zero]; rfl
+theorem safe_of_validExecution {input : PublicInput} {t : Execution prog}
+    (h : ValidExecution prog input t) : Safe prog t.memory t.steps ⟨gpow 0, 1⟩ := by
+  have : (⟨gpow 0, 1⟩ : Registers K) = Registers.initial := by rw [gpow, pow_zero]; rfl
   rw [this]
   exact h.2
 
@@ -314,7 +314,7 @@ end
 
 section
 
-variable {κ : ℕ} {prog : Program} {L : MemImage κ} {entry : ℕ} {P Q : K → Prop}
+variable {κ : ℕ} {prog : Program} {L : MemoryImage κ} {entry : ℕ} {P Q : K → Prop}
 
 theorem FunSpec.lt (h : FunSpec prog L entry P Q) (n : ℕ) : FunSpecLt prog L n entry P Q :=
   fun fp k _ hP hs ↦ h fp k hP hs
@@ -341,7 +341,7 @@ theorem funSpec_induction {ι : Type} {entry : ι → ℕ} {P Q : ι → K → P
 
 /-- **A call**: a halting run entering a function at frame `fp'` after the caller stored the
 return registers `r` in `fp'[0]`, `fp'[1]` comes back to `r`, in fewer steps, with `Q fp'`. -/
-theorem FunSpecLt.call {n k : ℕ} {fp' : K} {r : Regs K} (hS : FunSpecLt prog L n entry P Q)
+theorem FunSpecLt.call {n k : ℕ} {fp' : K} {r : Registers K} (hS : FunSpecLt prog L n entry P Q)
     (hk : k < n) (hP : P fp') (hret : retRegs L fp' = some r)
     (h : Safe prog L k ⟨gpow entry, fp'⟩) : ∃ k' < k, Q fp' ∧ Safe prog L k' r := by
   obtain ⟨k', hk', r', hr', hQ, hs⟩ := hS fp' k hk hP h
@@ -357,7 +357,7 @@ theorem FunSpecLt.tail {n k : ℕ} {fp fp' : K} (hS : FunSpecLt prog L n entry P
   exact ⟨k', hk', r, hret ▸ hr, hQ, hs⟩
 
 /-- `FunSpecLt.call` for a contract already proved. -/
-theorem FunSpec.call {k : ℕ} {fp' : K} {r : Regs K} (hS : FunSpec prog L entry P Q)
+theorem FunSpec.call {k : ℕ} {fp' : K} {r : Registers K} (hS : FunSpec prog L entry P Q)
     (hP : P fp') (hret : retRegs L fp' = some r) (h : Safe prog L k ⟨gpow entry, fp'⟩) :
     ∃ k' < k, Q fp' ∧ Safe prog L k' r :=
   (hS.lt (k + 1)).call (Nat.lt_succ_self k) hP hret h
@@ -368,18 +368,18 @@ end
 
 section
 
-variable {κ : ℕ} {prog : Program} {L : MemImage κ}
+variable {κ : ℕ} {prog : Program} {L : MemoryImage κ}
 
-theorem Reach.refl (s : Regs K) : Reach prog L s s := ⟨0, rfl⟩
+theorem Reach.refl (s : Registers K) : Reach prog L s s := ⟨0, rfl⟩
 
-theorem Reach.trans {s t u : Regs K} (h₁ : Reach prog L s t) (h₂ : Reach prog L t u) :
+theorem Reach.trans {s t u : Registers K} (h₁ : Reach prog L s t) (h₂ : Reach prog L t u) :
     Reach prog L s u := by
   obtain ⟨m, hm⟩ := h₁
   obtain ⟨n, hn⟩ := h₂
   exact ⟨m + n, by rw [run_add, hm]; exact hn⟩
 
 /-- One step from a fetched instruction away from the last slot. -/
-theorem reach_step {pc : ℕ} {fp : K} {ins : OInstr} {r : Regs K}
+theorem reach_step {pc : ℕ} {fp : K} {ins : OInstr} {r : Registers K}
     (hf : prog.fetch (gpow pc) = some ins.toInstr) (hpc : pc < 2 ^ prog.logSize - 1)
     (h : execute L ⟨gpow pc, fp⟩ ins.toInstr = some r) : Reach prog L ⟨gpow pc, fp⟩ r := by
   refine ⟨1, ?_⟩
@@ -394,7 +394,7 @@ theorem reach_fallThrough {pc : ℕ} {fp : K} {ins : OInstr}
   reach_step hf hpc ((execute_iff_holds hj).mpr ⟨h, rfl⟩)
 
 /-- A `JUMP` goes where it `JumpsTo`. -/
-theorem reach_jump {pc : ℕ} {fp : K} {oc od of : ℕ} {r : Regs K}
+theorem reach_jump {pc : ℕ} {fp : K} {oc od of : ℕ} {r : Registers K}
     (hf : prog.fetch (gpow pc) = some (OInstr.jump oc od of).toInstr)
     (hpc : pc < 2 ^ prog.logSize - 1) (h : JumpsTo L pc fp oc od of r) :
     Reach prog L ⟨gpow pc, fp⟩ r :=
@@ -413,7 +413,7 @@ theorem reach_jumpTo {pc oc od of : ℕ} {fp a b : K} {c : E}
 
 /-- A return, `JUMP fp[oc], fp[0], fp[1]` with `fp[oc]` a nonzero `K` word and `fp[0]`,
 `fp[1]` words of `K`, goes to `retRegs L fp`. -/
-theorem reach_ret {pc oc : ℕ} {fp : K} {c d f : E} {r : Regs K}
+theorem reach_ret {pc oc : ℕ} {fp : K} {c d f : E} {r : Registers K}
     (hf : prog.fetch (gpow pc) = some (OInstr.jump oc 0 1).toInstr)
     (hpc : pc < 2 ^ prog.logSize - 1) (hc : L.read (fp * gpow oc) = some c) (hcK : IsInK c)
     (hc0 : c ≠ 0) (hd : L.read (fp * gpow 0) = some d) (hdK : IsInK d)
@@ -426,7 +426,7 @@ theorem reach_ret {pc oc : ℕ} {fp : K} {c d f : E} {r : Regs K}
 
 /-- **A call**, for completeness: a function that returns from frame `fp'`, whose `fp'[0]`,
 `fp'[1]` hold `r`, reaches `r`. -/
-theorem Returns.reach {entry : ℕ} {fp' : K} {r : Regs K} (h : Returns prog L entry fp')
+theorem Returns.reach {entry : ℕ} {fp' : K} {r : Registers K} (h : Returns prog L entry fp')
     (hret : retRegs L fp' = some r) : Reach prog L ⟨gpow entry, fp'⟩ r := by
   obtain ⟨r', hr', hreach⟩ := h
   obtain rfl : r' = r := Option.some.inj (hr'.symm.trans hret)
@@ -449,11 +449,11 @@ theorem returns_induction {ι : Type} {entry : ι → ℕ} {P : ι → K → Pro
 /-- A run from `(g^0, 1)` to the final registers, on a memory holding the public input, is a
 valid execution. -/
 theorem validExecution_of_reach {input : PublicInput}
-    (hb : HasPublicBoundary input (⟨κ, L, 0⟩ : Trace prog))
-    (h : Reach prog L ⟨gpow 0, 1⟩ (Regs.final prog)) :
+    (hb : HoldsPublicInput input (⟨κ, L, 0⟩ : Execution prog))
+    (h : Reach prog L ⟨gpow 0, 1⟩ (Registers.final prog)) :
     ∃ n, ValidExecution prog input ⟨κ, L, n⟩ := by
   obtain ⟨n, hn⟩ := h
-  have : (⟨gpow 0, 1⟩ : Regs K) = Regs.initial := by rw [gpow, pow_zero]; rfl
+  have : (⟨gpow 0, 1⟩ : Registers K) = Registers.initial := by rw [gpow, pow_zero]; rfl
   rw [this] at hn
   exact ⟨n, hb, hn⟩
 

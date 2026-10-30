@@ -158,7 +158,7 @@ theorem word_hi_mul {N : Nat} (hN : N < 2 ^ 22) : eOfNat N * word 0 (2 ^ 42) 0 =
 
 /-- **The bound's start**: with the byte table, `idx` plus the unused bytes' word below `2^22` at
 bit `106`. -/
-theorem sPrologue_bound {κ : Nat} (hκ : κ ≤ 32) {L : MemImage κ} {σ : Val}
+theorem sPrologue_bound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} {σ : Val}
     (hbb : ByteBits L.read (σ (.n 1))) (h : AtomsHold L.read σ sPrologue) :
     ∃ N < 2 ^ 22, σ (.n 161) = σ (sNode 0) + word 0 (N * 2 ^ 42) 0 := by
   have hb := (sPrologue_sound h).bound0

@@ -17,7 +17,7 @@ import LeanVMTests.Spec.NodeVectors
 * `claimedValue` answers with the claimed value at the claimed point and rejects
   elsewhere, and the deferring verifier's seed is the deployed verifier's.
 * The deferring verifier rejects garbage, and so does the deployed one on the same proof.
-* `DeferredClaim.Shaped` rejects a bytecode point one coordinate short, which the digest alone
+* `DeferredClaim.HasBytecodeShape` rejects a bytecode point one coordinate short, which the digest alone
   cannot tell apart (`statementDigest` carries no lengths: the short claim's odd cell count is
   paired with a zero cell).
 * Known answers for the statement's encodings (`claimListDigest` of each scheme's claims,
@@ -58,7 +58,7 @@ def utf8 (s : String) : List UInt8 := s.toUTF8.toList
 /-! ## The deferring verifier -/
 
 /-- A claim on the fixed polynomial. -/
-def c : FixedClaims := ⟨[1, 0], 1⟩
+def c : BytecodeClaim := ⟨[1, 0], 1⟩
 
 example (words : List K) :
     claimedValue c words c.bytecodePoint = .ret c.bytecodeValue := by
@@ -70,7 +70,7 @@ example (words : List K) : claimedValue c words [0, 0] = .fail := by
 
 /-- The deferring verifier's seed is the deployed verifier's, from the deployed IV. -/
 example (bytecode : List K) (publicInput : Digest) :
-    seed bytecode publicInput = keccakF (seedInput (fiatShamirIv bytecode) publicInput) := rfl
+    seed bytecode publicInput = keccakF1600 (seedInput (fiatShamirIv bytecode) publicInput) := rfl
 
 /-- A bytecode of 32 words. -/
 def bytecode : List K := (List.range 32).map K.ofBits
@@ -86,8 +86,8 @@ def zeroClaim : DeferredClaim := ⟨List.replicate 5 0, 0⟩
 /-- A deferred claim one coordinate short. -/
 def shortClaim : DeferredClaim := ⟨List.replicate 4 0, 0⟩
 
-example : zeroClaim.Shaped bytecode ∧ zeroClaim.AtZero bytecode := by
-  simp [DeferredClaim.Shaped, DeferredClaim.AtZero, zeroClaim, bytecode]; decide
+example : zeroClaim.HasBytecodeShape bytecode ∧ zeroClaim.HasZeroPoint bytecode := by
+  simp [DeferredClaim.HasBytecodeShape, DeferredClaim.HasZeroPoint, zeroClaim, bytecode]; decide
 
 /-- No claims. -/
 def noClaims : Claims := ⟨[], [], zeroDigest⟩
@@ -96,8 +96,8 @@ def noClaims : Claims := ⟨[], [], zeroDigest⟩
 -- with a zero cell, the six zero cells of `zeroClaim`), and `Shaped` is what rejects it.
 #guard statementDigest default ⟨noClaims, zeroClaim⟩ = statementDigest default ⟨noClaims, shortClaim⟩
 
-example : ¬ shortClaim.Shaped bytecode := by
-  simp [DeferredClaim.Shaped, shortClaim, bytecode]; decide
+example : ¬ shortClaim.HasBytecodeShape bytecode := by
+  simp [DeferredClaim.HasBytecodeShape, shortClaim, bytecode]; decide
 
 /-- The digest is Keccak-256 of the preimage the collision candidates name. -/
 example (seed : Digest) (s : NodeStatement) :
@@ -188,10 +188,10 @@ def child (i : ℕ) : ChildClaims :=
 def children : List ChildClaims := [child 0, child 1]
 
 /- The Python's value of child 0's fresh claim. -/
-#guard (child 0).fresh.bytecodeValue = e 0x3b2 0x222 0x7ee
+#guard (child 0).freshClaim.bytecodeValue = e 0x3b2 0x222 0x7ee
 
 /-- The Python's honest hints. -/
-def hints : BatchHints :=
+def hints : BatchingHints :=
   ⟨[(e 0x79aca609cbc240eb 0x330e9f31986a68a6 0x2f43cb09de086072,
       e 0x57abf0bf21536352 0x3ff8403a19a4a63c 0x600534b9909e581d),
     (e 0x7d3effa4172e13e9 0x8b06819b75f551ab 0xf0afa16df931e5e,
@@ -207,21 +207,21 @@ def batchedPoint : List E :=
     e 0xf5e74cc7d330c218 0xb9f65ff472a53d28 0xf002b01726f8c7eb]
 
 #guard (batch children hints).map (·.bytecodePoint) = some batchedPoint
-#guard (batch children hints).map (·.bytecodeValue) = some hints.bytecodeValue
+#guard (batch children hints).map (·.bytecodeValue) = some hints.finalBytecodeValue
 
 /- The batched claim is true of the table. -/
-#guard mle batchedPoint = hints.bytecodeValue
+#guard mle batchedPoint = hints.finalBytecodeValue
 
 /- The batching with Keccak-f as a parameter, from `batchSeed`, is the same. -/
-#guard (Id.run (batchWith (m := Id) keccakF batchSeed children hints)).map (·.bytecodePoint) =
+#guard (Id.run (batchWith (m := Id) keccakF1600 batchSeed children hints)).map (·.bytecodePoint) =
   some batchedPoint
 
 -- Mutation: a wrong final value.
-#guard (batch children { hints with bytecodeValue := hints.bytecodeValue + 1 }).isNone
+#guard (batch children { hints with finalBytecodeValue := hints.finalBytecodeValue + 1 }).isNone
 
 -- Mutation: child 1's carried claim false, the same hints.
-#guard (batch [child 0, { child 1 with carried := { (child 1).carried with
-  bytecodeValue := (child 1).carried.bytecodeValue + 1 } }] hints).isNone
+#guard (batch [child 0, { child 1 with carriedClaim := { (child 1).carriedClaim with
+  bytecodeValue := (child 1).carriedClaim.bytecodeValue + 1 } }] hints).isNone
 
 -- Mutation: the children swapped, the same hints.
 #guard (batch [child 1, child 0] hints).isNone
@@ -253,7 +253,7 @@ def vectorStatement : NodeStatement :=
 
 -- Mutation: a final value one off.
 #guard (batch NodeVectors.children { NodeVectors.hints with
-  bytecodeValue := NodeVectors.hints.bytecodeValue + 1 }).isNone
+  finalBytecodeValue := NodeVectors.hints.finalBytecodeValue + 1 }).isNone
 
 /-! ## The DA claim -/
 

@@ -40,7 +40,7 @@ theorem runsTo_sumcheck3 :
       have h1 := runsTo_readN (s.absorb c0 dsObserve) [c2]
       have h2 := h1.bind (f := fun tail ↦ (pure (c0 :: (v + sumE tail) :: tail) : Prog (List E)))
         (runsTo_ret _ _)
-      have h3 := h0.bind (f := fun constant ↦ Prog.readN 1 >>= fun tail ↦
+      have h3 := h0.bind (f := fun constant ↦ Prog.readScalars 1 >>= fun tail ↦
         (pure (constant :: (v + sumE tail) :: tail) : Prog (List E))) h2
       simpa [sumcheckRoundPoly, Fs.absorbAll] using h3
     set q := ((s.absorb c0 dsObserve).absorb c2 dsObserve).squeeze with hq
@@ -50,7 +50,7 @@ theorem runsTo_sumcheck3 :
       simp [polyEval, sumE]; ring
     have hrest := runsTo_sumcheck3 ms (c0 + q.1 * ((v + c2) + q.1 * c2)) q.2
     have key : sumcheck v 3 (List.replicate ((c0, c2) :: ms).length none) =
-        (sumcheckRoundPoly 3 v none >>= fun message ↦ Prog.sampleE >>= fun challenge ↦
+        (sumcheckRoundPoly 3 v none >>= fun message ↦ Prog.sampleChallenge >>= fun challenge ↦
           sumcheck (polyEval message challenge) 3 (List.replicate ms.length none) >>= fun x ↦
             (pure (challenge :: x.1, x.2) : Prog (List E × E))) := rfl
     rw [key]
@@ -60,7 +60,7 @@ theorem runsTo_sumcheck3 :
     have h2 := hs.bind (f := fun challenge ↦
       sumcheck (polyEval [c0, v + sumE [c2], c2] challenge) 3 (List.replicate ms.length none) >>=
         fun x ↦ (pure (challenge :: x.1, x.2) : Prog (List E × E))) h3
-    have h1 := hmsg.bind (f := fun message ↦ Prog.sampleE >>= fun challenge ↦
+    have h1 := hmsg.bind (f := fun message ↦ Prog.sampleChallenge >>= fun challenge ↦
           sumcheck (polyEval message challenge) 3 (List.replicate ms.length none) >>= fun x ↦
             (pure (challenge :: x.1, x.2) : Prog (List E × E))) h2
     simpa [plainRun, ← hq, hev] using h1
@@ -89,13 +89,13 @@ theorem qkeccakSlotBits_eq' : qkeccakSlotBits = 6 := by decide
 /-- `verifyKeccak` with its two segments' branches taken. -/
 theorem verifyKeccak_eq (τ : ℕ) (inst outs : List E) :
     verifyKeccak τ inst outs =
-      (Prog.sampleN keccakSegmentBits >>= fun seg ↦ Prog.sampleN keccakLaneBits >>= fun rl ↦
-        Prog.readE >>= fun committed ↦
+      (Prog.sampleChallenges keccakSegmentBits >>= fun seg ↦ Prog.sampleChallenges keccakLaneBits >>= fun rl ↦
+        Prog.readScalar >>= fun committed ↦
         keccakLayers τ (List.range keccakDepth) (vkFirst inst outs committed seg rl) >>= fun claim ↦
         keccakOpen τ (vkFirst inst outs committed seg rl) 1 1 committed >>= fun o ↦
-        Prog.readE >>= fun word ↦ Prog.require (o.2.1.headD 0 * word = o.2.2) >>= fun _ ↦
+        Prog.readScalar >>= fun word ↦ Prog.require (o.2.1.headD 0 * word = o.2.2) >>= fun _ ↦
         sumcheck claim.value 3 (List.replicate 4 none) >>= fun x ↦
-        keccakOpen τ claim 0 2 x.2 >>= fun y ↦ Prog.readN kBits >>= fun slices ↦
+        keccakOpen τ claim 0 2 x.2 >>= fun y ↦ Prog.readScalars kBits >>= fun slices ↦
         Prog.require (multilinearEval claim.mu x.1 * dot y.2.1 slices = y.2.2) >>= fun _ ↦
         (pure ([⟨qkeccak, inst.take 4 ++ inst.drop 4 ++ o.1, word⟩], x.1 ++ claim.point.take (τ - 4) ++ y.1,
           slices) : Prog (List ColumnClaim × List E × List E))) := rfl
@@ -178,7 +178,7 @@ theorem vk_runsTo (τ : ℕ) (inst outs : List E) {s0 s1 s2 s3 s4 s5 s6 s7 : Fs}
       exact runsTo_ret _ _
     case hx => simp
   unfold keccakSeg
-  refine (hV.bind (f := fun r ↦ Prog.sampleE >>= fun m ↦ (pure (r, m) : Prog _))
+  refine (hV.bind (f := fun r ↦ Prog.sampleChallenge >>= fun m ↦ (pure (r, m) : Prog _))
     (rm.bind (f := fun m ↦ (pure (([(⟨qkeccak, inst.take 4 ++ inst.drop 4 ++ slotO, word⟩ : ColumnClaim)],
       low ++ claim.point.take (τ - 4) ++ slotI, slices), m) : Prog _)) (runsTo_ret _ _))).of_eq
     rfl ?_ ?_ ?_

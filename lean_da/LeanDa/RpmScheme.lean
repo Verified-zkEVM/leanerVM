@@ -62,14 +62,14 @@ theorem lanesToState_keep {L : Lanes} {y : KState}
 
 section Pure
 
-variable (H : List UInt8 → Common.KDigest) (P : Lanes → Lanes)
+variable (H : List UInt8 → Common.DigestBytes) (P : Lanes → Lanes)
 
 /-- **Over pure functions, the challenges are the crate's.** -/
-theorem membershipChallengesM_id (root : Common.KDigest) :
+theorem membershipChallengesM_id (root : Common.DigestBytes) :
     membershipChallengesM (m := Id) (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root =
       membershipChallenges H P root := rfl
 
-theorem walkM_id (idx : ℕ) (node : Common.KDigest) (path : List Common.KDigest) :
+theorem walkM_id (idx : ℕ) (node : Common.DigestBytes) (path : List Common.DigestBytes) :
     walkM (m := Id) (fun a ↦ pure (H a)) idx node path = walk H idx node path := by
   induction path generalizing idx node with
   | nil => rfl
@@ -78,7 +78,7 @@ theorem walkM_id (idx : ℕ) (node : Common.KDigest) (path : List Common.KDigest
     exact ih _ _
 
 /-- **Over a pure function, the verification is `verifyCell`.** -/
-theorem verifyCellM_id (r : ℕ) (com : Common.KDigest) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
+theorem verifyCellM_id (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
     verifyCellM (m := Id) (fun a ↦ pure (H a)) r com p x τ = verifyCell H r com p x τ := by
   simp only [verifyCellM, verifyCell]
   change (decide _ && decide (H (pairBytes τ.rowRoot (walkM (m := Id) _ _ _ _)) = com)) = _
@@ -153,14 +153,14 @@ theorem duplex_of_duplexP {α : Type} {X : OracleComp Rom2 α} {hist : List KSta
       exact ⟨hadm, fun y ↦ ih y (hk y)⟩
 
 theorem duplexP_hR_bind {α : Type} {post : α → List KState → Prop} (a : List UInt8)
-    (k : Common.KDigest → OracleComp Rom2 α) (hist : List KState) (hk : ∀ d, DuplexP post (k d) hist) :
+    (k : Common.DigestBytes → OracleComp Rom2 α) (hist : List KState) (hk : ∀ d, DuplexP post (k d) hist) :
     DuplexP post (hR a >>= k) hist :=
   (duplexP_query_bind_other (.inr (.inl a)) (by simp) k hist).mpr hk
 
 theorem duplexP_fQuery_bind {α : Type} {post : α → List KState → Prop} (x : KState)
     (k : KState → OracleComp Rom2 α) (hist : List KState)
     (hadm : Admissible KState.zero keccakNF hist x) (hk : ∀ y, DuplexP post (k y) (y :: hist)) :
-    DuplexP post (fQuery (Msg := List UInt8) (Dg := KDigest) x >>= k) hist :=
+    DuplexP post (fQuery (Msg := List UInt8) (Dg := DigestBytes) x >>= k) hist :=
   (duplexP_query_bind_F x k hist).mpr ⟨hadm, hk⟩
 
 theorem admissible_mono {hist hist' : List KState} {x : KState} (h : hist ⊆ hist')
@@ -185,7 +185,7 @@ theorem admissible_duplexInput {hist : List KState} {s : Sponge} (hs : SpongeOK 
   exact Or.inr ⟨y, hy, hk.1, keccakNF_blockTo y _ hk.2⟩
 
 /-- A fresh sponge permutes an admissible state. -/
-theorem admissible_newInput (hist : List KState) (iv publicInput : Common.KDigest) :
+theorem admissible_newInput (hist : List KState) (iv publicInput : Common.DigestBytes) :
     Admissible KState.zero keccakNF hist (lanesToState (newInput iv publicInput)) := by
   have hk := lanesToState_keep (L := newInput iv publicInput) (y := KState.zero) fun i hi ↦ by
     simp only [newInput, Vector.getElem_ofFn, stateToLanes_zero, Vector.getElem_replicate,
@@ -203,7 +203,7 @@ theorem duplexP_pR {hist : List KState} {L : Lanes}
   exact duplexP_fQuery_bind _ _ hist hadm fun y ↦
     duplexP_pure ⟨⟨y, List.mem_cons_self, rfl⟩, List.subset_cons_self _ _⟩
 
-theorem duplexP_newM (hist : List KState) (iv publicInput : Common.KDigest) :
+theorem duplexP_newM (hist : List KState) (iv publicInput : Common.DigestBytes) :
     DuplexP (SpongePost hist) (Sponge.newM pR iv publicInput) hist := by
   refine duplexP_bind (duplexP_pR (admissible_newInput hist iv publicInput)) fun L hist' h ↦ ?_
   obtain ⟨⟨y, hy, rfl⟩, hsub⟩ := h
@@ -240,7 +240,7 @@ theorem duplexP_samplesM (n : ℕ) {hist : List KState} {s : Sponge} (hs : Spong
     exact duplexP_bind (ih h.1) fun zs hist'' h' ↦ duplexP_pure fun _ ha ↦ h' (h.2 ha)
 
 /-- **The challenges' sponge follows the duplex discipline.** -/
-theorem duplexP_membershipChallengesR (root : Common.KDigest) (hist : List KState) :
+theorem duplexP_membershipChallengesR (root : Common.DigestBytes) (hist : List KState) :
     DuplexP (fun _ hist' ↦ hist ⊆ hist') (membershipChallengesM hR pR root) hist := by
   unfold membershipChallengesM Sponge.fromLabelM
   rw [bind_assoc]

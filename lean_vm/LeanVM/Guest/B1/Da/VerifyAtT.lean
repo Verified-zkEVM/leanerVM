@@ -6,7 +6,7 @@
   `v3`, `v4`) and its buffers' sizes, its calls, its buffers, and its column loops' trees of their
   honest shapes, their columns' too.
 
-  `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.Witness.Opens`), as ported here.
+  `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.MatrixWitness.Opens`), as ported here.
 -/
 
 module

@@ -28,10 +28,10 @@ theorem tailRounds_eq : ∀ (k : ℕ) (t : E) (q : List E) (F : List E) (G : Lis
     (lf : List E),
     (tailRoundsT (k + 1) t q).bind (fun r ↦ Prog.ret (lf ++ r.1, r.2)) =
       (foldRoundsT k ⟨t, q, F, G⟩ lf).bind fun p ↦
-        Prog.sampleE.bind fun c ↦ Prog.ret (p.2 ++ [c], polyEval p.1.quad c)
+        Prog.sampleChallenge.bind fun c ↦ Prog.ret (p.2 ++ [c], polyEval p.1.quad c)
   | 0, t, q, F, G, lf => by
     simp only [tailRoundsT, foldRoundsT, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind,
-      ↓reduceIte, Prog.sampleE]
+      ↓reduceIte, Prog.sampleChallenge]
   | k + 1, t, q, F, G, lf => by
     simp only [tailRoundsT, foldRoundsT, Nat.add_one_ne_zero, ↓reduceIte, Prog.bind_eq,
       Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]

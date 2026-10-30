@@ -31,7 +31,7 @@ hashes on the way was given two different inputs with the same output: the pairs
 
 The deferred claim's cells carry no lengths: `[x] ++ [y]` and `[x, y] ++ []` are the same cells.
 The binding needs the two deferred claims' points to have the same length, which
-`DeferredClaim.Shaped` gives at one bytecode (`statementDigest_binds_of_length` takes the length
+`DeferredClaim.HasBytecodeShape` gives at one bytecode (`statementDigest_binds_of_length` takes the length
 itself). Nothing else is assumed of the statements.
 
 A consumer compares the public input's digest with that of its own statement under the deployed
@@ -90,9 +90,9 @@ theorem flatMap_inj {α β : Type} {f : α → List β} {n : ℕ} (hn : 0 < n)
 theorem kBytes_inj {a b : K} (h : kBytes a = kBytes b) : a = b :=
   K.lane_injective (wordBytes_injective h)
 
-theorem length_eBytes (x : E) : (eBytes x).length = 24 := rfl
+theorem length_eBytes (x : E) : (extensionElementBytes x).length = 24 := rfl
 
-theorem eBytes_inj {x y : E} (h : eBytes x = eBytes y) : x = y := by
+theorem eBytes_inj {x y : E} (h : extensionElementBytes x = extensionElementBytes y) : x = y := by
   obtain ⟨h12, h3⟩ := List.append_inj h rfl
   obtain ⟨h1, h2⟩ := List.append_inj h12 rfl
   apply CompPoly.Extension.Ext.ext
@@ -153,12 +153,12 @@ theorem cells_inj {c c' : DeferredClaim}
 /-- The outer preimage determines the seed, the two claim lists' digests, the DA digest and, at a
 fixed point length, the deferred claim. -/
 theorem statementPreimage_inj {seed seed' : Digest} {s s' : NodeStatement}
-    (hb : s.defer.bytecodePoint.length = s'.defer.bytecodePoint.length)
+    (hb : s.deferredClaim.bytecodePoint.length = s'.deferredClaim.bytecodePoint.length)
     (h : statementPreimage seed s = statementPreimage seed' s') :
     seed = seed' ∧ claimListDigest s.claims.xmss = claimListDigest s'.claims.xmss ∧
       claimListDigest s.claims.sphincs = claimListDigest s'.claims.sphincs ∧
-      s.claims.da = s'.claims.da ∧ s.defer = s'.defer := by
-  have hc : s.defer.cells.length = s'.defer.cells.length := by
+      s.claims.da = s'.claims.da ∧ s.deferredClaim = s'.deferredClaim := by
+  have hc : s.deferredClaim.cells.length = s'.deferredClaim.cells.length := by
     simp [DeferredClaim.cells, hb]
   unfold statementPreimage at h
   obtain ⟨h1234, h5⟩ := List.append_inj h (by simp [digestBytes_length])
@@ -176,7 +176,7 @@ theorem statementPreimage_inj {seed seed' : Digest} {s s' : NodeStatement}
 /-- **The statement's digest binds**, at point lengths equal on both sides: the seeds and the
 statements are equal, or a candidate pair is a Keccak-256 collision. -/
 theorem statementDigest_binds_of_length {seed seed' : Digest} {s s' : NodeStatement}
-    (hb : s.defer.bytecodePoint.length = s'.defer.bytecodePoint.length)
+    (hb : s.deferredClaim.bytecodePoint.length = s'.deferredClaim.bytecodePoint.length)
     (h : statementDigest seed s = statementDigest seed' s') :
     (seed = seed' ∧ s = s') ∨ HasCollision (collisionCandidates seed s seed' s') := by
   by_cases h0 : statementPreimage seed s = statementPreimage seed' s'
@@ -207,7 +207,7 @@ deferred claims have the shape of one bytecode: the seeds and the statements are
 of the candidate pairs is a Keccak-256 collision. The shape fixes the length of the deferred
 claim's point, which its cells do not record. -/
 theorem statementDigest_binds {b : List K} {seed seed' : Digest} {s s' : NodeStatement}
-    (hs : s.defer.Shaped b) (hs' : s'.defer.Shaped b)
+    (hs : s.deferredClaim.HasBytecodeShape b) (hs' : s'.deferredClaim.HasBytecodeShape b)
     (h : statementDigest seed s = statementDigest seed' s') :
     (seed = seed' ∧ s = s') ∨ HasCollision (collisionCandidates seed s seed' s') :=
   statementDigest_binds_of_length (hs.trans hs'.symm) h
@@ -223,18 +223,18 @@ statement `s₀`'s under the deployed seed `iv`; an execution decodes a seed and
 the same digest. Then the decoded seed is `iv` and `s` is `s₀`, or a candidate pair is a
 Keccak-256 collision. -/
 theorem decoded_binds {b : List K} {iv seed : Digest} {s₀ s : NodeStatement}
-    {input : PublicInput} (hs₀ : s₀.defer.Shaped b) (hs : s.defer.Shaped b)
+    {input : PublicInput} (hs₀ : s₀.deferredClaim.HasBytecodeShape b) (hs : s.deferredClaim.HasBytecodeShape b)
     (hpub : publicDigest input = statementDigest iv s₀)
     (hdec : statementDigest seed s = publicDigest input) :
     (seed = iv ∧ s = s₀) ∨ HasCollision (collisionCandidates seed s iv s₀) :=
   statementDigest_binds hs hs₀ (hdec.trans hpub)
 
 /-- `decoded_binds` with the decoded statement's shape from where it comes: one the guest
-`bytecode` establishes (`NodeRel`); the consumer's deferred claim has the shape of `bytecode`
+`bytecode` establishes (`NodeRelation`); the consumer's deferred claim has the shape of `bytecode`
 (`AggregateSound`, `Statement/Corollaries.lean`, assumes it). -/
 theorem decoded_binds_of_nodeRel {bytecode : List K} {iv seed : Digest} {s₀ s : NodeStatement}
-    {w : NodeWitness} {input : PublicInput} (hs₀ : s₀.defer.Shaped bytecode)
-    (hrel : NodeRel bytecode seed s w)
+    {w : NodeWitness} {input : PublicInput} (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode)
+    (hrel : NodeRelation bytecode seed s w)
     (hpub : publicDigest input = statementDigest iv s₀)
     (hdec : statementDigest seed s = publicDigest input) :
     (seed = iv ∧ s = s₀) ∨ HasCollision (collisionCandidates seed s iv s₀) :=

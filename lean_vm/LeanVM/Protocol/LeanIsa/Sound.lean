@@ -123,9 +123,9 @@ private theorem memRows_witnessOf : memRows (witnessOf prog s q).data = imageRow
   simp [memRows, witnessOf, dataOf]
 
 /-- Two images are equal when their sizes are and their words agree. -/
-theorem image_sigma_eq {κ κ' : ℕ} (h : κ = κ') (f : MemImage κ) (g : MemImage κ')
+theorem image_sigma_eq {κ κ' : ℕ} (h : κ = κ') (f : MemoryImage κ) (g : MemoryImage κ')
     (hfg : ∀ i : Fin (2 ^ κ), f i = g (Fin.cast (by rw [h]) i)) :
-    (⟨κ, f⟩ : (κ : ℕ) × MemImage κ) = ⟨κ', g⟩ := by
+    (⟨κ, f⟩ : (κ : ℕ) × MemoryImage κ) = ⟨κ', g⟩ := by
   subst h
   congr
   funext i
@@ -218,7 +218,7 @@ theorem caps_witnessOf (hs : s.Admissible prog) : Caps (witnessOf prog s q) := b
 
 /-- The seed rows are the image, for an image given as a dependent pair. -/
 private def SeedRowsAre {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog))
-    (d : (κ : ℕ) × MemImage κ) : Prop :=
+    (d : (κ : ℕ) × MemoryImage κ) : Prop :=
   ∃ idx cntFin : Fin (2 ^ d.1) → K, memBlockRows w = List.ofFn fun i ↦
     (toElements (⟨idx i, cntFin i, #v[(d.2 i).limb 0, (d.2 i).limb 1, (d.2 i).limb 2]⟩ :
       MemRow K)).toArray
@@ -258,13 +258,13 @@ theorem satisfiedByB_witnessOf {input : PublicInput} (hs : s.Admissible prog)
     simp only [memBlockRowsOf, imageWord, limb_ofLimbs]
     rfl
   · rw [himg]
-    have := MemImage.read_gpow hκ (imageWord prog s q) ⟨0, Nat.two_pow_pos _⟩
+    have := MemoryImage.read_gpow hκ (imageWord prog s q) ⟨0, Nat.two_pow_pos _⟩
     refine this.trans ?_
     show some (E.ofLimbs (cell0 prog s q 0) (cell0 prog s q 1) (cell0 prog s q 2)) = _
     rw [c00, c10, c20]
     rfl
   · rw [himg]
-    have := MemImage.read_gpow hκ (imageWord prog s q)
+    have := MemoryImage.read_gpow hκ (imageWord prog s q)
       ⟨1, Nat.one_lt_two_pow s.logMem_pos.ne'⟩
     refine this.trans ?_
     show some (E.ofLimbs (cell1 prog s q 0) (cell1 prog s q 1) (cell1 prog s q 2)) = _

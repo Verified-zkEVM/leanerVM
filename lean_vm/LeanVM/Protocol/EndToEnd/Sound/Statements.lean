@@ -368,7 +368,7 @@ theorem length_flatMap_kBytes (ws : List K) : (ws.flatMap kBytes).length = 8 * w
   | cons w ws ih => simp [List.flatMap_cons, kBytes_length, ih]; ring
 
 /-- The public digest of a seeding's permutation input: its lanes `4 … 7`. -/
-def pdOf (t : KState) : Digest :=
+def pdOf (t : KeccakState) : Digest :=
   #v[Keccak.lane t 4, Keccak.lane t 5, Keccak.lane t 6, Keccak.lane t 7]
 
 theorem pdOf_seedInput (iv pd : Digest) : pdOf (seedInput iv pd) = pd := by
@@ -535,8 +535,8 @@ theorem isTotalQueryBound_leanVmFam (z : Statement × Proof) :
 /-! ## From a statement's doom to doom for every statement -/
 
 /-- A compiled run from a longer history extends the same history. -/
-theorem xrun_append_hist (H : Bytes → Option Digest) (F : KState → Option KState) {α : Type} :
-    ∀ (p : Prog α) (s : St) (h₀ h : List Ev),
+theorem xrun_append_hist (H : Bytes → Option Digest) (F : KeccakState → Option KeccakState) {α : Type} :
+    ∀ (p : Prog α) (s : ProgState) (h₀ h : List Ev),
       xrun H F p s (h₀ ++ h) = (xrun H F p s h).map fun r ↦ (r.1, r.2.1, h₀ ++ r.2.2)
   | .ret a, s, h₀, h => rfl
   | .fail, s, h₀, h => rfl
@@ -590,7 +590,7 @@ theorem xrun_append_hist (H : Bytes → Option Digest) (F : KState → Option KS
 
 /-- The extracted history of a run from a statement's root is the root followed by the
 extracted history from the empty history. -/
-theorem extractedFrom_eq (H : Bytes → Option Digest) (F : KState → Option KState) (σ : Seed)
+theorem extractedFrom_eq (H : Bytes → Option Digest) (F : KeccakState → Option KeccakState) (σ : Seed)
     (p : Prog Bool) (h₀ : List Ev) (π : Proof) (hv : Rom.verify H F σ p π = some true) :
     extractedFrom H F σ p h₀ π = h₀ ++ extractedHistory H F σ p π := by
   obtain ⟨seed, s, hseed, hx⟩ := xrun_of_verify hv
@@ -599,7 +599,7 @@ theorem extractedFrom_eq (H : Bytes → Option Digest) (F : KState → Option KS
   simp only [extractedFrom, hseed, hx']
 
 /-- **A statement's doom is doom for every statement.** -/
-theorem doomed_of_doomedRun {x : Statement} {π : Proof} {c : HashSpec.QueryCache}
+theorem doomed_of_doomedRun {x : Statement} {π : Proof} {c : KeccakCalls.QueryCache}
     (hv : Rom.verify (fun y ↦ c (.inl y)) (fun t ↦ c (.inr t))
       (leanVmSeed (bytecodeWords x.1) (publicDigest x.2))
       (leanVmProgram (bytecodeWords x.1) (publicDigest x.2)) π = some true)
@@ -629,7 +629,7 @@ random oracles,
 accept while `extractStack` does not extract admissible sizes `s` and a stack satisfying
 `M3Holds (leanIsaInstance prog s) input` for the adversary's statement with
 probability at most `(QA + 12006) · (2^-128 + failBound leanVmSeeds (QA + 12006))`. -/
-theorem leanVm_knowledge (A : OracleComp HashSpec (Statement × Proof)) (QA : ℕ)
+theorem leanVm_knowledge (A : OracleComp KeccakCalls (Statement × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
       ¬ Extracted z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2] ≤
@@ -647,7 +647,7 @@ of `QA` queries that outputs a statement and a proof makes the deployed verifier
 program with well-formed bytecode, while `extractStack` does not extract sizes `s` and a stack
 `q` whose witness represents a valid execution of the adversary's program on its public input,
 with probability at most `(QA + 12006) · (2^-128 + failBound leanVmSeeds (QA + 12006))`. -/
-theorem leanVm_execution (A : OracleComp HashSpec (Statement × Proof)) (QA : ℕ)
+theorem leanVm_execution (A : OracleComp KeccakCalls (Statement × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
       ¬ ∃ (s : Sizes) (q : Column (leanIsaμ z.1.1.1.1 s)),

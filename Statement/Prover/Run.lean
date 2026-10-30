@@ -59,7 +59,7 @@ def Tree.opening (t : Tree) (q : ℕ) : Opening :=
 
 section Monadic
 
-variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
+variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
 
 /-- The leaf digests of the `2^height` rows of a matrix (`hash_words`). -/
 def leafDigestsM (height : ℕ) (word : Word) : m (Array Digest) :=
@@ -156,7 +156,7 @@ end Script
 
 section Run
 
-variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
+variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
 
 /-- **The script `S` against the program `P`**, from the sponge `sp` and the trees `cs` committed
 so far: the scalars and the openings the proof holds from there on, or `none` if a proof-of-work
@@ -195,7 +195,7 @@ def runFrom (fuel : ℕ) {α β : Type} :
 
 /-- **A proof from a script**: the script run against the program from the seed, or the empty
 proof if a proof-of-work search finds no nonce below `fuel`. -/
-def runScript (P : Prog Bool) {β : Type} (S : Script β) (seed : KState) (fuel : ℕ) : m Proof := do
+def runScript (P : Prog Bool) {β : Type} (S : Script β) (seed : KeccakState) (fuel : ℕ) : m Proof := do
   let r ← runFrom H F fuel P (some S) ⟨seed, []⟩ []
   pure ((r.map fun t ↦ (⟨t.1, t.2⟩ : Proof)).getD ⟨[], []⟩)
 

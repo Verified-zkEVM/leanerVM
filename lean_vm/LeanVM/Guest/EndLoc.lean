@@ -36,7 +36,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 theorem coreOf_1 : coreOf 1 = Data.core0 := rfl
 
 /-- Every contract of `glob`, for runs shorter than `n`. -/
-abbrev GlobLt {κ : ℕ} (L : MemImage κ) (n : ℕ) : Prop :=
+abbrev GlobLt {κ : ℕ} (L : MemoryImage κ) (n : ℕ) : Prop :=
   ∀ j, FunSpecLt guest L n (glob.sig j).entry (Check.Pre glob L j)
     (Check.Post coreProgram glob L certByName j)
 
@@ -44,18 +44,18 @@ abbrev GlobLt {κ : ℕ} (L : MemImage κ) (n : ℕ) : Prop :=
 structure B2SoundL : Prop where
   /-- Every function's contract for runs shorter than `n + 1`, given all of them for runs shorter
   than `n`. -/
-  step : ∀ {κ : ℕ} (L : MemImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ n, GlobLt L n →
+  step : ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ n, GlobLt L n →
     ∀ i, FunSpecLt guest L (n + 1) (glob.sig i).entry (Check.Pre glob L i)
       (Check.Post coreProgram glob L certByName i)
   /-- From `main`'s entry at `fp = 1`, the jump table written and the contracts holding for runs
   shorter than `k`, a halting run gives `main`'s body at its frame, its calls located. -/
-  mainL : ∀ {κ : ℕ} (L : MemImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → JumpTables L → ∀ k,
+  mainL : ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → JumpTables L → ∀ k,
     GlobLt L k → Safe guest L k ⟨gpow mainEntry, 1⟩ →
       Stmt.HoldsList (RL coreProgram L certByName) L.read (valG L 1 (certOf 1)) (coreOf 1).body
         False (fun rs ↦ rs = [])
 
 /-- **B2 at `main`, located, for a halting run from `(g^0, 1)`**. -/
-theorem mainBodyL_of_safe (hb2 : B2SoundL) {κ : ℕ} {L : MemImage κ}
+theorem mainBodyL_of_safe (hb2 : B2SoundL) {κ : ℕ} {L : MemoryImage κ}
     (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem) {k : ℕ} (hs : Safe guest L k ⟨gpow 0, 1⟩) :
     Stmt.HoldsList (Located.RLg L) L.read (valG L 1 (certOf 1)) Data.core0.body False
       (fun rs ↦ rs = []) := by
@@ -69,11 +69,11 @@ theorem mainBodyL_of_safe (hb2 : B2SoundL) {κ : ℕ} {L : MemImage κ}
 /-- **B2 at `main`, located, for a valid execution**: `main`'s body under its frame's valuation,
 its calls located, and the public input's cells at `g^0`, `g^1`. -/
 theorem mainBodyL_of (hb2 : B2SoundL) {input : PublicInput}
-    {t : Trace guest} (hv : ValidExecution guest input t) :
-    Stmt.HoldsList (Located.RLg t.image) t.image.read (valG t.image 1 (certOf 1)) Data.core0.body
+    {t : Execution guest} (hv : ValidExecution guest input t) :
+    Stmt.HoldsList (Located.RLg t.memory) t.memory.read (valG t.memory 1 (certOf 1)) Data.core0.body
       False (fun rs ↦ rs = []) ∧
-    LoadHolds t.image.read 1 0 (digestScalars (publicDigest input)).1 ∧
-    LoadHolds t.image.read 1 1 (digestScalars (publicDigest input)).2 :=
+    LoadHolds t.memory.read 1 0 (digestScalars (publicDigest input)).1 ∧
+    LoadHolds t.memory.read 1 1 (digestScalars (publicDigest input)).2 :=
   ⟨mainBodyL_of_safe hb2 hv.1.1 hv.1.2.1 (safe_of_validExecution hv), pub_loads hv⟩
 
 end

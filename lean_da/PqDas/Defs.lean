@@ -19,7 +19,7 @@ reductions, the relation of the scheme's argument, and his reductions (committed
 fork and its collision, knowledge soundness and weak position binding). The erasure code's
 consistency is in `Statement/LeanDa.lean`, which the end statements name; his arguments of
 knowledge (`Nark`, oracle-free), moved back here when the end statements took arguments that
-query the random-permutation model's oracles (`LeanDa.NarkRpm`), are below.
+query the random-permutation model's oracles (`LeanDa.OracleArgument`), are below.
 -/
 
 section

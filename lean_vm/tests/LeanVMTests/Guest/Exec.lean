@@ -7,7 +7,7 @@ import LeanVM.Guest.Check
 
 * `assert_canonical`, straight code: its one segment, its atoms, and its contract by `exec_sound`,
   the run returning in fewer steps;
-* `claim_list_last__L0`, straight code with a `KECCAK`: its contract gives `KeccakCells` of the
+* `claim_list_last__L0`, straight code with a `KECCAK`: its contract gives `KeccakCellsRelation` of the
   thirteen cells it reads (`m0..m3`, the runs from `tail` and `cap`, `b8`) and the thirteen it
   writes;
 * the selectors bounded by booleanity (`Check.selBound`): `r_g` of `shared_selector_tables`
@@ -39,7 +39,7 @@ theorem canonical_shape : (exec F0 Data.f2).segs.map (fun s ↦ (s.start, s.env.
 
 /-- **`assert_canonical`'s contract**, from the executor: a halting run entering it returns, in
 fewer steps, with every atom holding. -/
-theorem canonical_spec {κ : ℕ} {L : MemImage κ} (hκ : κ ≤ 32) :
+theorem canonical_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
     FunSpec guest L 9203 (fun _ ↦ True) (fun fp ↦ ∀ a ∈ canonicalAtoms, a.Holds L fp) := by
   intro fp k _ h
   obtain ⟨s, hs, he⟩ := List.mem_map.mp (canonical_shape ▸ List.mem_singleton_self _)
@@ -71,11 +71,11 @@ theorem hash_shape : (exec F0 Data.f322).segs.map (fun s ↦ (s.start, s.env.sub
 /-- **`claim_list_last__L0`'s contract**: a halting run entering it returns, in fewer steps, with
 its `KECCAK` holding: the cells it reads hold a state whose Keccak-f[1600] the cells it writes
 hold. -/
-theorem hash_spec {κ : ℕ} {L : MemImage κ} (hκ : κ ≤ 32) :
+theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
     FunSpec guest L 269652 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
       (∀ c : Fin 13, L.read (fp * gpow (keccakInOff 37 20 21 22 23 39 28 c.val)) = some (input c)) ∧
       (∀ c : Fin 13, L.read (fp * gpow (6 + c.val)) = some (output c)) ∧
-      KeccakCells input false output false) := by
+      KeccakCellsRelation input false output false) := by
   intro fp k _ h
   obtain ⟨s, hs, he⟩ := List.mem_map.mp (hash_shape ▸ List.mem_singleton_self _)
   simp only [Prod.mk.injEq] at he

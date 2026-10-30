@@ -253,12 +253,12 @@ def verifierSends (prog : Program) : List (String × Array K) :=
   [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])]
 
 /-- The limbs of word `i` of an image. -/
-def limbsOf {κ : ℕ} (img : MemImage κ) (i : Fin (2 ^ κ)) : Vector K 3 :=
+def limbsOf {κ : ℕ} (img : MemoryImage κ) (i : Fin (2 ^ κ)) : Vector K 3 :=
   #v[(img i).limb 0, (img i).limb 1, (img i).limb 2]
 
 /-- What the memory block sends for the image `img` and the finalize counts `fin`: per word the
 seed push `(g^i, 1, m_i)` and the finalize pull `(g^i, fin i, m_i)`. -/
-def memSeedSends {κ : ℕ} (img : MemImage κ) (fin : Fin (2 ^ κ) → K) :
+def memSeedSends {κ : ℕ} (img : MemoryImage κ) (fin : Fin (2 ^ κ) → K) :
     List (String × Array K) :=
   (List.finRange (2 ^ κ)).flatMap fun i : Fin (2 ^ κ) ↦
     [(MemPush.name, memMsgOf (gpow i) 1 (limbsOf img i)),
@@ -375,7 +375,7 @@ theorem chanOf_verifier_eq_nil {n : String} (h1 : n ≠ StatePull.name) (h2 : n 
   simp [Ne.symm h1, Ne.symm h2]
 
 /-- The memory block pushes the seeds. -/
-theorem chanOf_memSeed_push {κ : ℕ} (img : MemImage κ) (fin : Fin (2 ^ κ) → K) :
+theorem chanOf_memSeed_push {κ : ℕ} (img : MemoryImage κ) (fin : Fin (2 ^ κ) → K) :
     chanOf MemPush.name (memSeedSends img fin) =
       (List.finRange (2 ^ κ)).map fun i : Fin (2 ^ κ) ↦ memMsgOf (gpow i) 1 (limbsOf img i) := by
   rw [memSeedSends, chanOf_flatMap, ← flatMap_singleton_eq_map]
@@ -383,7 +383,7 @@ theorem chanOf_memSeed_push {κ : ℕ} (img : MemImage κ) (fin : Fin (2 ^ κ) �
   simp [chanOf, MemPull, MemPush]
 
 /-- The memory block pulls the finalizes. -/
-theorem chanOf_memSeed_pull {κ : ℕ} (img : MemImage κ) (fin : Fin (2 ^ κ) → K) :
+theorem chanOf_memSeed_pull {κ : ℕ} (img : MemoryImage κ) (fin : Fin (2 ^ κ) → K) :
     chanOf MemPull.name (memSeedSends img fin) =
       (List.finRange (2 ^ κ)).map fun i : Fin (2 ^ κ) ↦
         memMsgOf (gpow i) (fin i) (limbsOf img i) := by
@@ -392,7 +392,7 @@ theorem chanOf_memSeed_pull {κ : ℕ} (img : MemImage κ) (fin : Fin (2 ^ κ) �
   simp [chanOf, MemPull, MemPush]
 
 /-- The memory block sends nothing on a channel other than the memory pair. -/
-theorem chanOf_memSeed_eq_nil {κ : ℕ} (img : MemImage κ) (fin : Fin (2 ^ κ) → K) {n : String}
+theorem chanOf_memSeed_eq_nil {κ : ℕ} (img : MemoryImage κ) (fin : Fin (2 ^ κ) → K) {n : String}
     (h1 : n ≠ MemPull.name) (h2 : n ≠ MemPush.name) : chanOf n (memSeedSends img fin) = [] := by
   rw [memSeedSends, chanOf_flatMap]
   simp [chanOf, Ne.symm h1, Ne.symm h2]

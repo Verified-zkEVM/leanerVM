@@ -77,9 +77,9 @@ of slot `i` of a program, `memRowOf_bindings` proves the word's row bound and
 `mem_word_complete` and `bytecode_entry_complete` push them through `completeness` over the
 prover data: every word of the image and every slot of the program has a satisfying row, in
 the row environment `rowEnv data`. Both builders are computable, since they read the image and
-the program as functions, never through `MemImage.read`. The verifier is complete for every
+the program as functions, never through `MemoryImage.read`. The verifier is complete for every
 program and public input, and `verifier_push_eval` and `verifier_pull_eval` read its two
-states as `Regs.initial` and `Regs.final prog`.
+states as `Registers.initial` and `Registers.final prog`.
 
 ## Wrong readings excluded
 
@@ -92,7 +92,7 @@ states as `Regs.initial` and `Regs.final prog`.
   Rust derives `final_pc` and neither reads nor checks one. A verifier reading the counter off
   the public input accepts a witness whose sentinel is not the program's unless a further
   conjunct ties the two, and says nothing per component; `verifier_pull_eval` says the pulled
-  state is `Regs.final prog` in every environment.
+  state is `Registers.final prog` in every environment.
 * `idx` is a column of the row here, not the verifier's index column: nothing in `main` ties
   row `i` to `g^i`. That is the statement's `IndexColumnsAreRowIndices`, and the two seed tables
   being the image and the program are its `SeedRowsAreTheImage` and `BytecodeRowsAreTheProgram`,
@@ -142,7 +142,7 @@ structure MemRow (F : Type) where
   deriving ProvableStruct
 
 /-- The row's binding to an image: the cell at its address holds its word. -/
-structure MemBindings {κ : ℕ} (mem : MemImage κ) (r : MemRow K) : Prop where
+structure MemBindings {κ : ℕ} (mem : MemoryImage κ) (r : MemRow K) : Prop where
   /-- The cell `idx` holds the row's word `m`. -/
   word_eq : mem.read r.idx = some (E.ofLimbs r.m[0] r.m[1] r.m[2])
 
@@ -180,16 +180,16 @@ def memTable : GeneralFormalCircuit K MemRow unit where
 
 /-- The seed row of word `i` of the image `mem`, with finalize count `cntFin`: the address `g^i`
 and the word's limbs. -/
-def memRowOf {κ : ℕ} (mem : MemImage κ) (i : Fin (2 ^ κ)) (cntFin : K) : MemRow K :=
+def memRowOf {κ : ℕ} (mem : MemoryImage κ) (i : Fin (2 ^ κ)) (cntFin : K) : MemRow K :=
   ⟨gpow i, cntFin, #v[(mem i).limb 0, (mem i).limb 1, (mem i).limb 2]⟩
 
 /-- On an image within the address space `gLog?_spec` covers, `memRowOf` is bound, with any
 finalize count. -/
-theorem memRowOf_bindings {κ : ℕ} (hκ : κ < 64) (mem : MemImage κ) (i : Fin (2 ^ κ))
+theorem memRowOf_bindings {κ : ℕ} (hκ : κ < 64) (mem : MemoryImage κ) (i : Fin (2 ^ κ))
     (cntFin : K) : MemBindings mem (memRowOf mem i cntFin) :=
   ⟨by
     show mem.read (gpow i) = some (E.ofLimbs ((mem i).limb 0) ((mem i).limb 1) ((mem i).limb 2))
-    rw [MemImage.read_gpow hκ, ofLimbs_limb]⟩
+    rw [MemoryImage.read_gpow hκ, ofLimbs_limb]⟩
 
 /-- Every word of the image named by the data has a satisfying seed row, from the image alone:
 the constraints of `main` hold of `memRowOf` in the row environment over the data. -/
@@ -327,15 +327,15 @@ def leanIsaVerifier (prog : Program) : GeneralFormalCircuit K PublicIO unit wher
 
 /-! ## Load-bearing lemmas -/
 
-/-- The state the verifier pushes is `Regs.initial`, in every environment. -/
+/-- The state the verifier pushes is `Registers.initial`, in every environment. -/
 theorem verifier_push_eval (env : Environment K) :
-    eval env (⟨1, 1⟩ : Regs (Expression K)) = Regs.initial := by
+    eval env (⟨1, 1⟩ : Registers (Expression K)) = Registers.initial := by
   simp only [circuit_norm]; rfl
 
-/-- The state the verifier pulls is `Regs.final prog`, in every environment: the
+/-- The state the verifier pulls is `Registers.final prog`, in every environment: the
 counter is a constant of the component, not a column or a public coordinate. -/
 theorem verifier_pull_eval (prog : Program) (env : Environment K) :
-    eval env (⟨Expression.const prog.pcFinal, 1⟩ : Regs (Expression K)) = Regs.final prog := by
+    eval env (⟨Expression.const prog.pcFinal, 1⟩ : Registers (Expression K)) = Registers.final prog := by
   simp only [circuit_norm]; rfl
 
 end LeanVM.Arithmetization

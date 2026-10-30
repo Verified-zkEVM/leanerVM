@@ -35,32 +35,32 @@ open Air.Flat (EnsembleWitness)
 
 @[expose] public section
 
-variable {prog : Program} {input : PublicInput} {t : Trace prog}
+variable {prog : Program} {input : PublicInput} {t : Execution prog}
 
 /-! ## The specification's witness and the executable pass -/
 
 /-- **The specification's witness of an execution**: the rows of its run's skeletons, its image,
 the program (`skelWitness`; the witness of `exists_childFor`). -/
-noncomputable def traceWitness (prog : Program) (input : PublicInput) (t : Trace prog) :
+noncomputable def traceWitness (prog : Program) (input : PublicInput) (t : Execution prog) :
     EnsembleWitness (leanIsaEnsemble prog) :=
-  skelWitness prog input t.image t.runSkels
+  skelWitness prog input t.memory t.runSkels
 
 /-- The executable pass over the steps of an execution's run. -/
-noncomputable def traceRows (t : Trace prog) : Rows :=
-  rowsOf (powIndex t.κ) t.image prog.logSize (traceSteps t).toArray
+noncomputable def traceRows (t : Execution prog) : Rows :=
+  rowsOf (powIndex t.logMemorySize) t.memory prog.logSize (traceSteps t).toArray
 
-/-- A valid execution's memory is within `gLog?`'s address space. -/
-theorem κ_lt_of_valid (hv : ValidExecution prog input t) : t.κ < 64 := by
+/-- A valid execution's memory is within `addressIndex?`'s address space. -/
+theorem κ_lt_of_valid (hv : ValidExecution prog input t) : t.logMemorySize < 64 := by
   have := hv.1.2.1; unfold maxLogMem at this; omega
 
 /-- The pass over a valid run keeps the invariant at the run's skeletons. -/
 theorem rowsInv_trace (hv : ValidExecution prog input t) :
-    RowsInv t.image prog.logSize (traceRows t) t.runSkels := by
-  have := rowsInv_rowsOf (κ_lt_of_valid hv) t.image (traceSteps t) (stepOk_traceSteps hv.2)
+    RowsInv t.memory prog.logSize (traceRows t) t.runSkels := by
+  have := rowsInv_rowsOf (κ_lt_of_valid hv) t.memory (traceSteps t) (stepOk_traceSteps hv.2)
   rwa [runSkels_eq_steps hv.2] at this
 
 /-- The opcode tables of `skelWitness`. -/
-theorem tableAt_skelWitness {κ : ℕ} (img : MemImage κ) (S : List Skel) (j : Fin 6) :
+theorem tableAt_skelWitness {κ : ℕ} (img : MemoryImage κ) (S : List Skel) (j : Fin 6) :
     tableAt (skelWitness prog input img S) ⟨j, by omega⟩ =
       Arithmetization.opTable img (imageData img) (skelRows img S) (tableOpcode j) := by
   fin_cases j <;> rfl
@@ -82,8 +82,8 @@ theorem tabs_trace (hv : ValidExecution prog input t) (j : Fin 6) :
 
 /-- The witness's memory log-size is the trace's. -/
 theorem traceWitness_logSize (hv : ValidExecution prog input t) :
-    (imageOf (traceWitness prog input t).data).1 = t.κ :=
-  imageData_logSize t.image hv.1.2.1
+    (imageOf (traceWitness prog input t).data).1 = t.logMemorySize :=
+  imageData_logSize t.memory hv.1.2.1
 
 /-- The witness has at least two memory cells. -/
 theorem traceWitness_pos (hv : ValidExecution prog input t) :
@@ -95,7 +95,7 @@ theorem traceWitness_pos (hv : ValidExecution prog input t) :
 
 /-- **The sizes of an execution**: those its specification witness carries (`witnessSizes`); a
 placeholder when it carries none (never, on a valid execution). -/
-noncomputable def traceSizes (prog : Program) (input : PublicInput) (t : Trace prog) : Sizes :=
+noncomputable def traceSizes (prog : Program) (input : PublicInput) (t : Execution prog) : Sizes :=
   if h : 0 < (imageOf (traceWitness prog input t).data).1 then
     witnessSizes (traceWitness prog input t) h
   else ⟨1, Nat.one_pos, fun _ ↦ 0⟩
@@ -107,7 +107,7 @@ theorem traceSizes_eq (hv : ValidExecution prog input t) :
 
 /-- The memory log-size is the trace's. -/
 theorem logMem_trace (hv : ValidExecution prog input t) :
-    (traceSizes prog input t).logMem = t.κ := by
+    (traceSizes prog input t).logMem = t.logMemorySize := by
   rw [traceSizes_eq hv]
   exact traceWitness_logSize hv
 
@@ -181,12 +181,12 @@ theorem outStates_getD (R : Array (Array K)) (h x : ℕ) (hx : x < 2 ^ h) :
     rfl
 
 /-- The memory block's cells. -/
-theorem memCell_trace (x : ℕ) (hx : x < 2 ^ t.κ) (k : ℕ) :
+theorem memCell_trace (x : ℕ) (hx : x < 2 ^ t.logMemorySize) (k : ℕ) :
     cellOf (tableAt (traceWitness prog input t) 6) x k =
-      (#[gpow x, g ^ skelMemFin t.image t.runSkels (gpow x), (t.image ⟨x, hx⟩).limb 0,
-        (t.image ⟨x, hx⟩).limb 1, (t.image ⟨x, hx⟩).limb 2][k]?).getD 0 := by
-  show ((List.ofFn fun i : Fin (2 ^ t.κ) ↦ rawRow (memRowOf t.image i
-    (g ^ skelMemFin t.image t.runSkels (gpow i))))[x]?.bind (·[k]?)).getD 0 = _
+      (#[gpow x, g ^ skelMemFin t.memory t.runSkels (gpow x), (t.memory ⟨x, hx⟩).limb 0,
+        (t.memory ⟨x, hx⟩).limb 1, (t.memory ⟨x, hx⟩).limb 2][k]?).getD 0 := by
+  show ((List.ofFn fun i : Fin (2 ^ t.logMemorySize) ↦ rawRow (memRowOf t.memory i
+    (g ^ skelMemFin t.memory t.runSkels (gpow i))))[x]?.bind (·[k]?)).getD 0 = _
   rw [List.getElem?_ofFn]
   simp [hx, rawRow, memRow_toArray, memRowOf]
 

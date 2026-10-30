@@ -106,7 +106,7 @@ def τ : ℕ := S.hs.getD 5 0
 /-- **`verify_tables`' honest data.** -/
 noncomputable def H : Tables.VtHonest :=
   Tables.vtHOf bytecode S.logMem (statementDigest seed c.statement) S.alphas S.point S.vals S.β S.rowsN S.s5.cap
-    (claimedValue c.fresh) c.fresh.bytecodeValue S.xsT S.bus S.claims S.s6.cap
+    (claimedValue c.freshClaim) c.freshClaim.bytecodeValue S.xsT S.bus S.claims S.s6.cap
 
 theorem hs_length : S.hs.length = 6 := tableHeights_length _ S.hrowsL
 
@@ -157,17 +157,17 @@ theorem s5_carries (hbl : bytecode.length = 2 ^ 23) : ∃ sp, (⟨S.s5.cap, []�
 
 /-- **The claimed bytecode point** is the bus point's bytecode part and the challenges. -/
 theorem fresh_eq (hbl : bytecode.length = 2 ^ 23) :
-    c.fresh = ⟨S.point.take 19 ++ S.alphas, c.fresh.bytecodeValue⟩ := by
+    c.freshClaim = ⟨S.point.take 19 ++ S.alphas, c.freshClaim.bytecodeValue⟩ := by
   have h := S.runT
   have hp := claimed_point h (by rw [(S.runG' hbl).2.1]; exact S.s5_carries hbl)
   rw [S.hlayout, logBytecode_eq hbl] at hp
-  have hp' : c.fresh.bytecodePoint = S.point.take 19 ++ S.alphas := hp
+  have hp' : c.freshClaim.bytecodePoint = S.point.take 19 ++ S.alphas := hp
   rw [← hp']
 
 theorem bytecodeAt (hbl : bytecode.length = 2 ^ 23) :
-    Tables.BytecodeAt (claimedValue c.fresh) (Tables.layoutOf bytecode S.logMem S.rowsN).bytecode
+    Tables.BytecodeAt (claimedValue c.freshClaim) (Tables.layoutOf bytecode S.logMem S.rowsN).bytecode
       (S.point.take (Tables.layoutOf bytecode S.logMem S.rowsN).logBytecode ++ S.alphas)
-      c.fresh.bytecodeValue := by
+      c.freshClaim.bytecodeValue := by
   rw [logBytecode_eq hbl, S.fresh_eq hbl]
   exact bytecodeAt_claimed _ _ _
 

@@ -59,11 +59,11 @@ theorem winOk_of {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
     ∀ i ≤ (certOf j).cuts.length, checkWin glob (fnOf j) (coreOf j) (certOf j) (j == 1) i = true :=
   Checked.all_ok j h1 h2
 
-theorem jtHolds_of {κ : ℕ} {L : MemImage κ} (h : JumpTables L) : JTHolds glob L :=
+theorem jtHolds_of {κ : ℕ} {L : MemoryImage κ} (h : JumpTables L) : JTHolds glob L :=
   JumpTable.jt_of_jumpTables h (PowTree.ok_of_okW Checked.powTree_ok)
 
 theorem known_plain {j : ℕ} (h0j : 1 ≤ j) (hj : j < nFns) (h1 : j ≠ 1) (h19 : j ≠ 19) {κ : ℕ}
-    {L : MemImage κ} {fp : K} {i : ℕ} (hi : i ≤ (certOf j).cuts.length) (h0 : 0 < i) :
+    {L : MemoryImage κ} {fp : K} {i : ℕ} (hi : i ≤ (certOf j).cuts.length) (h0 : 0 < i) :
     MemKnown L fp ((certOf j).cutAt i).known ∧ SemHolds glob L fp ((certOf j).cutAt i).sems := by
   obtain ⟨i, rfl⟩ : ∃ i', i = i' + 1 := ⟨i - 1, by omega⟩
   have hall := List.all_eq_true.mp (Checked.all_plain j h0j hj h1 h19)

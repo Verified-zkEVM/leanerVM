@@ -142,7 +142,7 @@ theorem heap_inj {a b j j' : ℕ} (hj : j < 2 ^ a) (hj' : j' < 2 ^ b)
 
 /-- **Every node an honest opening gives a digest** is the tree's node at its heap index. -/
 theorem nodeIs_honest {ht : ℕ} {word : Word} {q : ℕ} (hq : q < 2 ^ ht) {v : ℕ} {d : Digest}
-    (h : Limits.NodeIs ht (q, openingAt keccak256 ht word q) v d) :
+    (h : Limits.OpeningGivesNode ht (q, openingAt keccak256 ht word q) v d) :
     ∃ l ≤ ht, ∃ j < 2 ^ (ht - l), v = 2 ^ (ht - l) + j ∧ d = nodeAt word l j := by
   rcases h with ⟨l, hl, rfl, rfl⟩ | ⟨l, hl, rfl, rfl⟩
   · refine ⟨l, hl, q / 2 ^ l, ?_, rfl, climbTo_openingAt hq hl⟩
@@ -164,7 +164,7 @@ theorem nodeIs_honest {ht : ℕ} {word : Word} {q : ℕ} (hq : q < 2 ^ ht) {v : 
       generalize 2 ^ (ht - (l + 1)) = e at hlt ⊢
       unfold sibling
       split <;> omega
-    · simp only [Limits.sibNode, Limits.heapNode]
+    · simp only [Limits.siblingHeapIndex, Limits.heapIndex]
       rw [hbit, hdiv, h2]
       generalize q / 2 ^ l = x
       generalize 2 ^ (ht - (l + 1)) = e
@@ -183,7 +183,7 @@ theorem mem_zip_map {ps : List ℕ} {f : ℕ → Opening} {x : ℕ × Opening}
 
 /-- **One tree's honest openings agree** wherever they meet, at positions below its leaf count. -/
 theorem batchAgrees_honest {ht : ℕ} {word : Word} {ps : List ℕ} (hps : ∀ q ∈ ps, q < 2 ^ ht) :
-    Limits.BatchAgrees ht (ps.zip (ps.map (openingAt keccak256 ht word))) := by
+    Limits.OpeningsAgree ht (ps.zip (ps.map (openingAt keccak256 ht word))) := by
   intro a ha b hb v d d' hd hd'
   have hzip : ∀ x ∈ ps.zip (ps.map (openingAt keccak256 ht word)),
       x = (x.1, openingAt keccak256 ht word x.1) ∧ x.1 ∈ ps := fun x hx ↦ mem_zip_map hx

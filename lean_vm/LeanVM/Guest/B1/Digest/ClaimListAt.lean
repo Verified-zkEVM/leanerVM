@@ -329,7 +329,7 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
 /-! ## The chain buffer -/
 
 /-- A state's thirteen cells. -/
-def stCells (S : KState) : List E := List.ofFn (cellsOfState S false)
+def stCells (S : KeccakState) : List E := List.ofFn (cellsOfState S false)
 
 /-- **The chain buffer's honest words**: the state after each of the first `m + 1` groups. -/
 def chainCells (cells : List E) (m : ℕ) : List E :=

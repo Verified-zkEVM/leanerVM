@@ -193,7 +193,7 @@ theorem OCorr.after {S₁ : Option (Script α)} {S₂ : Option (Script β)} (h :
         | exact ⟨trivial, fun _ ↦ trivial, trivial, trivial, h⟩
         | exact ⟨trivial, fun _ ↦ trivial, trivial, trivial, fun _ ↦ trivial⟩
 
-variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
+variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
 
 /-- **The run sees only the moves**: related script states give the same proof. -/
 theorem runFrom_ocorr (fuel : ℕ) {γ : Type} :
@@ -244,7 +244,7 @@ theorem runFrom_corr (fuel : ℕ) {γ : Type} (P : Prog γ) {H₁ : Script α} {
 
 /-- **Scripts that make the same moves give the same proof**, from a seed. -/
 theorem runScript_corr (fuel : ℕ) (P : Prog Bool) {H₁ : Script α} {H₂ : Script β}
-    (h : Corr R H₁ H₂) (seed : KState) :
+    (h : Corr R H₁ H₂) (seed : KeccakState) :
     runScript H F P H₁ seed fuel = runScript H F P H₂ seed fuel := by
   simp only [runScript, runFrom_corr H F fuel P h]
 

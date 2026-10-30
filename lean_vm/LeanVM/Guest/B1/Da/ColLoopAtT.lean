@@ -5,7 +5,7 @@
   (`Budget.NodeHonest`): each iteration's node at its counter, its calls (the column, the rest of
   the loop), no `HeapBuf`.
 
-  `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.Witness.Opens`), as ported here.
+  `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.MatrixWitness.Opens`), as ported here.
 -/
 
 module

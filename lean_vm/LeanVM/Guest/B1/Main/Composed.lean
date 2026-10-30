@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.VerifySub.Interface
 # `main`, composed
 
 `main_sound_sub`: a run of `main`'s body whose public input cells hold the digest `D` decodes to
-a statement of digest `D` held by some witness (`NodeRel`), given only `verify_sub`'s contract
+a statement of digest `D` held by some witness (`NodeRelation`), given only `verify_sub`'s contract
 (`SubSound`, B1-d's `verify_sub` statement): the signature checks (B1-e's
 `verify_lean_xmss_sound_holds`, `verify_sig_lean_sphincs_sound_holds`), the DA check
 (`da_verify_holds`) and the batching (`aggregate_claims_holds`) are proved. `subSound_of`:
@@ -39,7 +39,7 @@ theorem main_sound_sub {bytecode : List K} (hv : SubSound bytecode)
     {σ : Val} (hp0 : LoadHolds rd 1 0 (digestScalars D).1) (hp1 : LoadHolds rd 1 1 (digestScalars D).2)
     (hb : Stmt.HoldsList (coreProgram.Rel rd) rd σ Data.core0.body False (fun rs => rs = [])) :
     statementDigest (decSeed σ) (decStmt σ rd) = D ∧
-      ∃ w, NodeRel bytecode (decSeed σ) (decStmt σ rd) w :=
+      ∃ w, NodeRelation bytecode (decSeed σ) (decStmt σ rd) w :=
   haveI : Nonempty LeanXmss.Signature := ⟨Sig.xmssSigOf fun _ => 0⟩
   haveI : Nonempty Sphincs.Signature := ⟨Sig.sphincsSigOf fun _ => 0⟩
   haveI : Nonempty Proof := ⟨⟨[], []⟩⟩
@@ -62,7 +62,7 @@ theorem main_sound_vsub {bytecode : List K} (hv : VerifySub.verify_sub_Spec byte
     {σ : Val} (hp0 : LoadHolds rd 1 0 (digestScalars D).1) (hp1 : LoadHolds rd 1 1 (digestScalars D).2)
     (hb : Stmt.HoldsList (coreProgram.Rel rd) rd σ Data.core0.body False (fun rs => rs = [])) :
     statementDigest (decSeed σ) (decStmt σ rd) = D ∧
-      ∃ w, NodeRel bytecode (decSeed σ) (decStmt σ rd) w :=
+      ∃ w, NodeRelation bytecode (decSeed σ) (decStmt σ rd) w :=
   main_sound_sub (subSound_of hv hbl) hbl hm hp0 hp1 hb
 
 end

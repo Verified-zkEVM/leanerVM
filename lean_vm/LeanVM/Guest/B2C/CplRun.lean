@@ -161,11 +161,11 @@ theorem lastCall_of {fn : Core.Fn} {σ : Val} {es : List Ev} {vs : List V}
 
 section Part
 
-variable {κ : ℕ} {L : MemImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V}
+variable {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V}
   {kfps : List ℕ} {hdr : E × E} {ck : List (Opcode → ℕ)}
 
 /-- **What `cpl_run` assumes of function `j`'s instance.** -/
-structure FnH (L : MemImage κ) (j fp : ℕ) (σ : Val) (es : List Ev) (vs : List V) (kfps : List ℕ)
+structure FnH (L : MemoryImage κ) (j fp : ℕ) (σ : Val) (es : List Ev) (vs : List V) (kfps : List ℕ)
     (hdr : E × E) (ck : List (Opcode → ℕ)) : Prop where
   j1 : 1 ≤ j
   jn : j < nFns

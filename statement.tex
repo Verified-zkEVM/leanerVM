@@ -44,14 +44,14 @@ the build.
 Field & End statement & Section\\\midrule
 \lean{knowledgeSoundness} & \lean{LeanVM.KnowledgeSoundness} & \ref{sec:zkvm}\\
 \lean{completeness} & \lean{LeanVM.Completeness} & \ref{sec:zkvm}\\
-\lean{leanXmss} & \lean{LeanXmss.Rpm.LeanXmssRpmSecurityStatement} & \ref{sec:schemes}\\
-\lean{leanSphincs} & \lean{Sphincs.Lifetimes.RequestedSecurityRpm} & \ref{sec:schemes}\\
+\lean{leanXmss} & \lean{LeanXmss.Rpm.LeanXmssStronglyUnforgeable} & \ref{sec:schemes}\\
+\lean{leanSphincs} & \lean{Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable} & \ref{sec:schemes}\\
 \lean{leanDaComplete} & \lean{LeanDa.PerfectlyCompleteRpm} & \ref{sec:schemes}\\
 \lean{leanDaPositionBinding} & \lean{LeanDa.PositionBindingRpm} & \ref{sec:schemes}\\
 \lean{leanDaCodeBinding} & \lean{LeanDa.CodeBindingRpm} & \ref{sec:schemes}\\
 \lean{guestKnowledge} & \texttt{LeanVM.Node.GuestKnowledge guest decode} & \ref{sec:guest}\\
 \lean{digestBinds} & \lean{LeanVM.Node.DigestBinds} & \ref{sec:guest}\\
-\lean{batchSound} & \lean{LeanVM.Guest.Batch.BatchSound} & \ref{sec:guest}\\
+\lean{batchSound} & \lean{LeanVM.Guest.Batch.BatchingSound} & \ref{sec:guest}\\
 \lean{guestCompleteCovered} & \lean{LeanVM.Guest.Budget.GuestCompleteCovered} & \ref{sec:guest}\\
 \lean{guestChildComplete} & \lean{LeanVM.Guest.Budget.GuestChildComplete} & \ref{sec:guest}\\
 \bottomrule
@@ -75,10 +75,10 @@ the deployed Keccak-256 is this sponge over Keccak-f[1600]. leanVM's Fiat--Shami
 duplex that calls Keccak-f[1600] directly, overwriting the first $16$ lanes of the state.
 
 \paragraph{The random permutation model (RPM).} Keccak-f[1600] is modelled as a uniformly random
-permutation $\pi$ of $\{0,1\}^{1600}$, sampled lazily (\lean{Common.lazyPerm},
+permutation $\pi$ of $\{0,1\}^{1600}$, sampled lazily (\lean{Common.lazyRandomPermutation},
 \lean{Statement/RandomPermutation.lean}). The model's oracles are $\pi$ and $\pi^{-1}$ and
-nothing else (\lean{Common.KSpec}): every party (adversary, scheme, argument, verifier) computes
-Keccak-256 as the sponge over $\pi$ (\lean{Common.keccakK}), and the duplex calls $\pi$. \emph{The assumption is that the
+nothing else (\lean{Common.RandomPermutationOracles}): every party (adversary, scheme, argument, verifier) computes
+Keccak-256 as the sponge over $\pi$ (\lean{Common.keccak256OverPermutation}), and the duplex calls $\pi$. \emph{The assumption is that the
 deployed Keccak-f[1600], a fixed permutation, behaves like a random one.} Every end statement with
 an adversary is in this model; \lean{Statement/} contains no random oracle. Queries are counted in
 one of two ways:
@@ -115,11 +115,11 @@ registers equal the final state's, checked before each step. This is exactly the
 verifier's state bus checks for, so knowledge soundness needs no condition on the program.
 
 \paragraph{The extractor.} Knowledge soundness is stated for \emph{one fixed} extractor,
-\lean{extractorRpm} (\lean{Statement/LeanVm.lean}). It is straight-line: it reads the proof and
+\lean{transcriptExtractor} (\lean{Statement/LeanVm.lean}). It is straight-line: it reads the proof and
 the adversary's transcript and nothing else; it neither queries $\pi$, nor rewinds the adversary,
 nor sees the verifier's queries. From the transcript it collects the Keccak-256 evaluations whose
 whole padded sponge path appears as a chain of forward queries from the zero state
-(\lean{transcriptPaths}). It reads the announced sizes and the stack's Merkle root off the proof,
+(\lean{keccakEvaluationsOfTranscript}). It reads the announced sizes and the stack's Merkle root off the proof,
 inverts the Merkle tree through those evaluations to recover the committed word, lists the stacks
 whose Reed--Solomon encoding agrees with the word on at least the Johnson threshold of columns (at
 most $2^{18}$ of them, \lean{LeanVM.candidates_ncard_le}), and returns a candidate's memory
@@ -134,7 +134,7 @@ valid execution never exceeds (proved). That it runs in polynomial time is read 
 (a cost table in \lean{Statement/Extractor.lean}), not proved.
 
 \paragraph{Knowledge soundness} (\lean{LeanVM.KnowledgeSoundness}). In the experiment
-(\lean{rpmExperiment}), an adversary $\mathcal{A}$ with oracle access to $\pi$ and $\pi^{-1}$
+(\lean{soundnessExperiment}), an adversary $\mathcal{A}$ with oracle access to $\pi$ and $\pi^{-1}$
 outputs a program $P$, a public input $x$ and a proof, and the verifier checks it with Keccak-256
 the sponge over $\pi$ and Keccak-f the permutation $\pi$. For every adversary making at most
 $Q \le 2^{128}$ queries to $\pi$ and $\pi^{-1}$ on every path,
@@ -170,7 +170,7 @@ most
 \delta(f) = Q_f\,(1-2^{-17})^{f} + (Q_f\cdot 2^{32})^2/2^{508}, \qquad
 Q_f = 12008 + 48017\,(2^{27} + 2f + 2)
 \]
-(\lean{LeanVM.Rpm.completenessRpm}). The \emph{committed size} (\lean{Trace.committedSize}) of an
+(\lean{LeanVM.Rpm.completenessRpm}). The \emph{committed size} (\lean{Execution.committedSize}) of an
 execution is
 $4\cdot 2^{\kappa} + 2^{\ell} + 15h_{\mathrm{xor}} + 15h_{\mathrm{mul}} + 8h_{\mathrm{set}} +
 15h_{\mathrm{deref}} + 14h_{\mathrm{jump}} + 26k + 2^6 k$, where $2^\kappa$ is the memory size,
@@ -184,7 +184,7 @@ above one says nothing).
 
 \subsection*{The signature schemes}
 
-\paragraph{leanXMSS} (\lean{LeanXmss.Rpm.LeanXmssRpmSecurityStatement},
+\paragraph{leanXMSS} (\lean{LeanXmss.Rpm.LeanXmssStronglyUnforgeable},
 \lean{Statement/LeanXmss.lean}): a single key is strongly unforgeable under chosen-message attack.
 The game samples the key's seed, generates the keys, and runs the adversary with $\pi$,
 $\pi^{-1}$ and a signing oracle; the adversary picks each request's leaf index and wins
@@ -198,11 +198,11 @@ and the final verification at their worst case: a signature grinds through up to
 randomizers in each of its two layers, so one request alone may cost over $2^{33}$ calls.
 
 \paragraph{leanSPHINCS} has the same game and the same bound, $(Q+1)\cdot 2^{-127}$ for every
-$Q \ge 1$ (\lean{Sphincs.Lifetimes.RequestedSecurityRpm}, \lean{Statement/LeanSphincs.lean}), with the deterministic signer and at most the lifetime's number of signing
+$Q \ge 1$ (\lean{Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable}, \lean{Statement/LeanSphincs.lean}), with the deterministic signer and at most the lifetime's number of signing
 requests, at each of the seven proved lifetimes (subtree heights $26, 20, 14, 13, 12, 10, 8$;
 \lean{Sphincs.Lifetimes.requestedSecurityRpm}). A signature costs about $2^{35}$ calls in the worst
 case, so with every request of the largest lifetime used the bound is about $2^{-62}$. Both
-schemes are stated through one game, \lean{Common.SufCma.RpmSecure}, and share one tweakable hash
+schemes are stated through one game, \lean{Common.SufCma.StronglyUnforgeable}, and share one tweakable hash
 (\texttt{tweak.rs}), hash chain, path fold and tree.
 
 \subsection*{LeanDA}
@@ -222,7 +222,7 @@ and one over columns, and publishes $\mathit{root} = H(\mathit{rowRoot} \,\|\, \
 path in the column tree; the opening verifies if they hash back to the root (\lean{verifyCellM}).
 
 \paragraph{The proof that the rows are codewords.} A Merkle root alone does not show that the rows
-are codewords. So the committer also gives a proof, from some \emph{argument} (\lean{NarkRpm}: a
+are codewords. So the committer also gives a proof, from some \emph{argument} (\lean{OracleArgument}: a
 prover and a verifier that may query the oracles), that the cells satisfy LeanDA's relation
 (\lean{relationM}):
 \begin{itemize}
@@ -259,8 +259,8 @@ positions (each with a cell and an opening). It wins if
 
 \emph{The assumption.} Code binding can only be as good as the argument, so the theorem assumes the
 argument is \emph{knowledge sound}. That means there is an extractor that, reading only the proof
-and the adversary's queries (\lean{ExtractorRpm}; it does not rewind), finds cells satisfying the
-relation whenever the verifier accepts. Precisely: in the game \lean{ksGame}, an adversary making
+and the adversary's queries (\lean{StraightLineExtractor}; it does not rewind), finds cells satisfying the
+relation whenever the verifier accepts. Precisely: in the game \lean{knowledgeSoundnessGame}, an adversary making
 $q \le 2^{128}$ calls makes the verifier accept while the extracted cells fail the relation with
 probability at most $(q + c)\cdot 2^{-k}$, for some constants $c$ and $k$.
 
@@ -324,7 +324,7 @@ data-availability claim (\lean{DaClaim}, \lean{daClaimDigest}), a matrix root $\
 (\lean{daRoot}) and the digest $\delta$ (\lean{membershipVectorDigest}) of a vector $u$, or $32$
 zero bytes without one (\lean{zeroDigest}; \texttt{da\_digest}, \texttt{aggregation.rs:550-562}).
 The claim: some matrix of $1$ to $1024$ encoded blobs with root $\rho$ has every row orthogonal to
-some $u$ with digest $\delta$ (\lean{Da.Witness.Opens}). The outer verifier holds $\rho$, derives
+some $u$ with digest $\delta$ (\lean{Da.MatrixWitness.Opens}). The outer verifier holds $\rho$, derives
 $\delta$ from $\rho$'s membership vector (Section~\ref{sec:schemes}), which makes the rows codewords
 except with probability $14/2^{192}$, and checks $\mathit{da} = H(\rho \,\|\, \delta)$;
 \item a \emph{deferred claim} $c = (z, v)$, $z \in \mathbb{E}^{23}$, $v \in \mathbb{E}$, meaning
@@ -361,10 +361,10 @@ leanSPHINCS) or the index of a child;
 
 \subsection{What one node establishes}
 
-$\mathrm{NodeRel}(B, \sigma, s, w)$ (\lean{NodeRel}) is the conjunction of:
+$\mathrm{NodeRel}(B, \sigma, s, w)$ (\lean{NodeRelation}) is the conjunction of:
 \begin{enumerate}
 \item $s$'s deferred claim has the bytecode's shape: its point has $23$ coordinates
-(\lean{DeferredClaim.Shaped}).
+(\lean{DeferredClaim.HasBytecodeShape}).
 \item Every child's deferred claim has the bytecode's shape, and the \emph{deferring verifier}
 accepts its proof: $\mathrm{verifyDeferred}(B, \sigma, \mathrm{dig}_\sigma(s_i), f_i, p_i) =
 \mathsf{true}$. The deferring verifier is the zkVM verifier except that, instead of evaluating
@@ -386,7 +386,7 @@ claims (\lean{lambdaPowers}); and runs one degree-$2$ sumcheck reducing
 $\sum_i (\lambda^{2i} v_i + \lambda^{2i+1} v'_i)$, with $v_i$
 the value of $f_i$ and $v'_i$ that of $c_i$, to one claim on $\widehat{B}$ at a new point.
 \end{enumerate}
-\lean{NodeRel} does \emph{not} say that a child's claims are true, only that the deferring verifier,
+\lean{NodeRelation} does \emph{not} say that a child's claims are true, only that the deferring verifier,
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
 with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 
@@ -432,7 +432,7 @@ decoding $(\sigma', s', w')$ has $\mathrm{dig}_{\sigma'}(s') = x$ and
 $\mathrm{NodeRel}(B, \sigma', s', w')$. Step 3 with $(\sigma_0, s_0) = (iv_G, s)$ then gives
 \lean{AggregateSound}: except with probability $\varepsilon(Q)$, if the verifier accepts a proof
 of $G$ on $\mathrm{dig}_{iv_G}(s)$, for any $s$ whose deferred claim has the bytecode's shape, the
-extracted execution $t$ \emph{explains} $s$ (\lean{Explains}):
+extracted execution $t$ \emph{explains} $s$ (\lean{ExplainsStatement}):
 \begin{itemize}
 \item $\mathrm{dec}(t) = (iv_G, s, w')$ with $\mathrm{NodeRel}(B, iv_G, s, w')$, or
 \item the decoded seed and statement, with $(iv_G, s)$, give a Keccak-256 collision among the
@@ -441,7 +441,7 @@ three pairs.
 For one execution, step 3 alone is \lean{decode_binds} (\lean{lean_vm}).
 
 Two Keccaks meet here. The verifier of step 1 runs on $\pi$: Keccak-256 is the sponge over $\pi$,
-and Keccak-f is $\pi$. The digest, \lean{NodeRel} (the children's proofs, the signatures, the
+and Keccak-f is $\pi$. The digest, \lean{NodeRelation} (the children's proofs, the signatures, the
 batching) and the collision use the deployed Keccak, which $G$ executes. The collision is therefore
 not an event of small probability: it is a concrete pair of inputs, read off $t$ and $s$, on which
 the deployed Keccak-256 collides.
@@ -469,19 +469,19 @@ That frame test is $G$'s semantics, and it is the decoder's only search: it comp
 runs no verifier. The test \lean{LeanVMTests.Guest.DecodeNoChoice} checks this by following every
 definition the decoder unfolds to.
 
-\paragraph{The batching on its own} (\lean{BatchSound}). The batching of \lean{NodeRel}'s last
+\paragraph{The batching on its own} (\lean{BatchingSound}). The batching of \lean{NodeRelation}'s last
 condition is also proved sound as a verifier in its own right, in the RPM: Keccak-256 is the sponge
 over $\pi$, Keccak-f is $\pi$, and it accepts when the sumcheck closes and the claim it outputs
-holds of $\widehat{B}$ (\lean{batchRun} of \lean{batchAny}). Fix a bytecode $B$ of power-of-two
+holds of $\widehat{B}$ (\lean{runBatching} of \lean{boundedBatchingProgram}). Fix a bytecode $B$ of power-of-two
 length and $M \le 2^{64}-1$. An adversary making $Q_A$ queries to $\pi$ and $\pi^{-1}$ outputs a
 proof. The probability that the batching accepts it while its proof stream begins with fewer than
 $M$ children of the bytecode's shape, one of whose claims (fresh or carried) is false
-(\lean{FalseChildren}), is at most
+(\lean{SomeChildClaimFalse}), is at most
 \[
 \boxed{\ (Q_A + Q_V + 1)\cdot M\cdot 2^{-191} + 5\,(Q_A+Q_V)^2\cdot 2^{-256}\ }
 \quad\text{for } Q_A \le 2^{128},\ Q_V \le 2^{96},
 \]
-where $Q_V$ (\lean{batchQueryBound}) is the batching's own query bound for $M$ children (about
+where $Q_V$ (\lean{batchingQueryBound}) is the batching's own query bound for $M$ children (about
 $2^{68}$ for $G$'s bytecode at $M = 2^{64}-1$; \lean{batch_sound_holds}). The factor $M$ comes from
 the single challenge $\lambda$. Weighted by the powers of $\lambda$, the gaps of the fewer than $2M$
 claims (claimed minus true value) form a polynomial in $\lambda$ of degree below $2M$, nonzero when
@@ -493,7 +493,7 @@ a sumcheck round's challenge. For $G$'s $16$ children, $M = 17$.
 They speak about one node. To conclude from an accepted root that every claim held at the leaves,
 one would need, at each internal node, the soundness of the children's proofs \emph{as the guest
 program verifies them}: with the real Keccak-256 and Keccak-f, not with $\pi$. That is the
-Fiat--Shamir heuristic for an instantiated hash, and it is not proved. Likewise \lean{BatchSound} is
+Fiat--Shamir heuristic for an instantiated hash, and it is not proved. Likewise \lean{BatchingSound} is
 the batching outside the circuit, with Keccak-f $= \pi$; it does not compose with the in-circuit
 statements, whose \texttt{KECCAK} instruction computes the deployed Keccak-f[1600], so soundness
 across recursion levels does not follow from it.
@@ -507,8 +507,8 @@ $\mathrm{NodeRel}(B, \sigma, s, w)$:
 $n$ times is held $n$ times, by direct signatures or by distinct entries of the children's lists;
 at most $16$ children; each child's signature lists shorter than $2^{16}$; the coverage table (the
 declared claims plus the duplicates the guest program records) shorter than $2^{16}$.
-\item \lean{ChildOk} for every child, what the guest program asks of a child beyond
-\lean{NodeRel}:
+\item \lean{AcceptableChild} for every child, what the guest program asks of a child beyond
+\lean{NodeRelation}:
   \begin{itemize}
   \item its proof announces a stack log of at least $22$ (the guest program has opening code for
   stack logs $22$ to $28$ only), and its proof stream has at most $8192$ field elements;
@@ -516,8 +516,8 @@ declared claims plus the duplicates the guest program records) shorter than $2^{
   a node of the tree (an honest prover's openings, all from one tree, agree; disagreeing ones would
   have to collide Keccak-256);
   \item \emph{no zero challenge}: its proof is also accepted by the deferring verifier run through
-  \lean{Prog.refuseZero}, which fails on every zero challenge the verifier program samples
-  (\lean{verifyDeferredRZ}). The guest program divides by the fold and tail challenges and by the
+  \lean{Prog.refusingZeroChallenge}, which fails on every zero challenge the verifier program samples
+  (\lean{verifyDeferredRefusingZero}). The guest program divides by the fold and tail challenges and by the
   batching coefficient $\lambda$ at the stacked opening; refusing every zero challenge is slightly
   stronger, each challenge being zero with probability $2^{-192}$.
   \end{itemize}
@@ -560,7 +560,7 @@ counted from its code, not measurements.
 $\mathrm{dig}_\sigma(s)$ with $2^{22} \le \mathrm{size}(t) \le 2^{28}$ (committed size).
 \begin{itemize}
 \item \lean{GuestCompleteCovered}: under hypotheses 1 and 2 (the budget is discharged in the
-proof), for every node in one of eight families (\lean{Covered}), by its $\cnt{child}$ children,
+proof), for every node in one of eight families (\lean{CoveredNode}), by its $\cnt{child}$ children,
 $\cnt{xmss} + \cnt{sphincs}$ raw signatures, $\cnt{rows}$ blobs held directly (the rows of at most
 one matrix), and claim counts $\cnt{decl}$, $\cnt{cover}$, $\cnt{childclaims}$ each at most the
 family's cap:
@@ -597,12 +597,12 @@ probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.
 The hypotheses above concern the children. For the same named prover \lean{LeanVM.prover}:
 \begin{enumerate}
 \item in the RPM, with $2^{25}$ nonces per proof of work, the verifier that also refuses every zero
-challenge (\lean{verifierRZ}, through \lean{Prog.refuseZero}) rejects its proof of any valid
+challenge (\lean{verifierRefusingZero}, through \lean{Prog.refusingZeroChallenge}) rejects its proof of any valid
 execution of committed size at most $2^{28}$, at $1 \le \rho \le 4$, with probability at most
 $2^{-126}$;
-\item with the deployed Keccak (\lean{atKeccak}), wherever \lean{verifierRZ} accepts its proof of an
+\item with the deployed Keccak (\lean{honestProofWithDeployedKeccak}), wherever \lean{verifierRefusingZero} accepts its proof of an
 execution of $G$ of committed size at least $2^{22}$ on $\mathrm{dig}_{iv_G}(s)$, for $s$ of the
-bytecode's shape, that proof is a child meeting \lean{ChildOk} for some fresh claim.
+bytecode's shape, that proof is a child meeting \lean{AcceptableChild} for some fresh claim.
 \end{enumerate}
 The guest program checks a child with the deployed Keccak, so the bad events (a proof of work with
 no nonce within its fuel, a zero challenge) are bounded in the RPM for the same prover and check,
@@ -621,9 +621,9 @@ one finds a Keccak-256 collision.
 holds only through \lean{GuestChildComplete}.
 \item That the extractor runs in polynomial time (Section~\ref{sec:zkvm}).
 \item LeanDA's code binding for an argument without access to $\pi$, and the link from the guest
-program's DA check (\lean{Da.Witness.Opens}) and the outer verifier's membership-vector check to
+program's DA check (\lean{Da.MatrixWitness.Opens}) and the outer verifier's membership-vector check to
 LeanDA's code binding.
-\item \lean{ChildOk}'s agreement of openings and absence of a zero challenge for children that are
+\item \lean{AcceptableChild}'s agreement of openings and absence of a zero challenge for children that are
 not honest proofs.
 \item The decoder \lean{LeanVM.Guest.End.decode}: a parameter of the statement, defined and read in
 \lean{lean_vm}.

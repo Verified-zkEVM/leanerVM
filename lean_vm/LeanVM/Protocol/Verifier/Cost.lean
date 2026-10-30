@@ -873,7 +873,7 @@ def leanVmSeed (bytecode : List K) (publicInput : Digest) : Seed where
 
 /-- The seeding computes `seedWith`, with any hash and permutation in any lawful monad. -/
 theorem seedRun_leanVmSeed {m : Type → Type} [Monad m] [LawfulMonad m] (H : Bytes → m Digest)
-    (F : KState → m KState) (bytecode : List K) (publicInput : Digest) :
+    (F : KeccakState → m KeccakState) (bytecode : List K) (publicInput : Digest) :
     (leanVmSeed bytecode publicInput).run H F = seedWith H F bytecode publicInput := by
   simp [Seed.run, Seed.hsRun, leanVmSeed, seedWith, fiatShamirIvWith]
 
@@ -881,7 +881,7 @@ theorem seedRun_leanVmSeed {m : Type → Type} [Monad m] [LawfulMonad m] (H : By
 compiled leanVM verifier with the hash and the permutation queries. -/
 theorem verifierComp_leanVm (bytecode : List K) (publicInput : Digest) (π : Proof) :
     verifierComp (leanVmSeed bytecode publicInput) (leanVmProgram bytecode publicInput) π =
-      verifyWith queryH queryF bytecode publicInput π := by
+      verifyWith callKeccak256 callKeccakF1600 bytecode publicInput π := by
   simp only [verifierComp, Rom.verify, verifyWith, seedRun_leanVmSeed]
 
 /-- **The query bound of the leanVM verifier**: the IV's hash, the seed's permutation, and the

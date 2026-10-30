@@ -36,7 +36,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.Hints (direct claimCells cellsOfBytes cellOfBytes plan)
+open LeanVM.Guest.Hints (heldDirectly claimCells cellsOfBytes cellOfBytes coveragePlan)
 open LeanVM.Guest.Value.Keccak (cellBytes cellsBytes)
 open LeanVM.Guest.B1 (bufL)
 open LeanVM.Guest.B1.Da (reads_of_memL regionL_of_mem)
@@ -46,34 +46,34 @@ open LeanVM.Guest.B1.Da (reads_of_memL regionL_of_mem)
 /-! ## The claims held directly -/
 
 /-- **The claims held directly are held by their witnesses.** -/
-theorem direct_held {α W : Type} {H : α → Holder W → Prop} {P : α → W → Prop}
+theorem direct_held {α W : Type} {H : α → ClaimHolder W → Prop} {P : α → W → Prop}
     (hH : ∀ c w, H c (.direct w) → P c w) :
-    ∀ {cs : List α} {hs : List (Holder W)}, List.Forall₂ H cs hs → ∀ p ∈ direct cs hs, P p.1 p.2
-  | [], [], .nil, p, hp => by simp [direct] at hp
+    ∀ {cs : List α} {hs : List (ClaimHolder W)}, List.Forall₂ H cs hs → ∀ p ∈ heldDirectly cs hs, P p.1 p.2
+  | [], [], .nil, p, hp => by simp [heldDirectly] at hp
   | c :: cs, .direct w :: hs, .cons h hr, p, hp => by
-    rw [direct, List.mem_cons] at hp
+    rw [heldDirectly, List.mem_cons] at hp
     rcases hp with rfl | hp
     · exact hH c w h
     · exact direct_held hH hr p hp
   | _ :: cs, .child _ :: hs, .cons _ hr, p, hp => by
-    rw [direct] at hp
+    rw [heldDirectly] at hp
     exact direct_held hH hr p hp
 
-theorem direct_length_le {α W : Type} : ∀ (cs : List α) (hs : List (Holder W)),
-    (direct cs hs).length ≤ cs.length
-  | [], _ => by simp [direct]
-  | _ :: _, [] => by simp [direct]
+theorem direct_length_le {α W : Type} : ∀ (cs : List α) (hs : List (ClaimHolder W)),
+    (heldDirectly cs hs).length ≤ cs.length
+  | [], _ => by simp [heldDirectly]
+  | _ :: _, [] => by simp [heldDirectly]
   | _ :: cs, .direct _ :: hs => by
-    rw [direct, List.length_cons, List.length_cons]; exact Nat.succ_le_succ (direct_length_le cs hs)
+    rw [heldDirectly, List.length_cons, List.length_cons]; exact Nat.succ_le_succ (direct_length_le cs hs)
   | _ :: cs, .child _ :: hs => by
-    rw [direct, List.length_cons]; exact Nat.le_succ_of_le (direct_length_le cs hs)
+    rw [heldDirectly, List.length_cons]; exact Nat.le_succ_of_le (direct_length_le cs hs)
 
 /-! ## Takers and marks -/
 
 /-- **The taker of slot `(slotsOf p)[k]` is `k`.** -/
 theorem idxOf_slot {α : Type} [BEq α] [LawfulBEq α] (D R : List α) (Cs : List (List α)) {k : ℕ}
-    (hk : k < (slotsOf (plan D R Cs)).length) :
-    (slotsOf (plan D R Cs)).idxOf (slotsOf (plan D R Cs))[k] = k :=
+    (hk : k < (slotsOf (coveragePlan D R Cs)).length) :
+    (slotsOf (coveragePlan D R Cs)).idxOf (slotsOf (coveragePlan D R Cs))[k] = k :=
   (plan_nodup D R Cs).idxOf_getElem k hk
 
 /-- Child `c`'s claim `j`, numbered child by child, is `(c, j)`. -/
@@ -131,8 +131,8 @@ theorem hMarkS_child {c j : ℕ} (hc : c < w.children.length)
 /-! ## The coverage table's words -/
 
 /-- The leanXMSS and leanSPHINCS regions' sizes. -/
-abbrev rX : ℕ := s.claims.xmss.length + (xPlan s w).dups.length
-abbrev rY : ℕ := s.claims.sphincs.length + (sPlan s w).dups.length
+abbrev rX : ℕ := s.claims.xmss.length + (xPlan s w).duplicates.length
+abbrev rY : ℕ := s.claims.sphincs.length + (sPlan s w).duplicates.length
 
 theorem hCover_length : (hCover s w).length = rX s w + rY s w := by
   rw [hCover]
@@ -279,15 +279,15 @@ theorem coverS_load {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {k : ℕ
 holds the claim there. -/
 theorem coverX_child {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {c j : ℕ}
     (hc : c < w.children.length) (hj : j < (w.children[c]).statement.claims.xmss.length) :
-    ∃ (hc' : c < (xPlan s w).children.length) (hj' : j < ((xPlan s w).children[c]).length),
-      LoadHolds rd (hm fs fp seed s w).a117 (((xPlan s w).children[c])[j])
+    ∃ (hc' : c < (xPlan s w).childSlots.length) (hj' : j < ((xPlan s w).childSlots[c]).length),
+      LoadHolds rd (hm fs fp seed s w).a117 (((xPlan s w).childSlots[c])[j])
         (gen ^ (hW s w c + j)) ∧
-      (s.claims.xmss ++ (xPlan s w).dups)[((xPlan s w).children[c])[j]]? =
+      (s.claims.xmss ++ (xPlan s w).duplicates)[((xPlan s w).childSlots[c])[j]]? =
         some ((w.children[c]).statement.claims.xmss[j]) := by
   obtain ⟨hc', hj', hs, e, hcl⟩ := plan_child s.claims.xmss ((hRawX s w).map (·.1))
     (w.children.map (·.statement.claims.xmss)) (c := c) (k := j) (by simpa using hc) (by simpa using hj)
   have e' : (slotsOf (xPlan s w))[base ((hRawX s w).map (·.1)) (w.children.map (·.statement.claims.xmss)) c + j]'hs =
-      ((xPlan s w).children[c]'hc')[j]'hj' := e
+      ((xPlan s w).childSlots[c]'hc')[j]'hj' := e
   have hl := coverX_load h hs
   rw [e'] at hl
   have hmk : hMarkX s w (base ((hRawX s w).map (·.1)) (w.children.map (·.statement.claims.xmss)) c + j) =
@@ -302,15 +302,15 @@ theorem coverX_child {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {c j : 
 holds the claim there. -/
 theorem coverS_child {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {c j : ℕ}
     (hc : c < w.children.length) (hj : j < (w.children[c]).statement.claims.sphincs.length) :
-    ∃ (hc' : c < (sPlan s w).children.length) (hj' : j < ((sPlan s w).children[c]).length),
-      LoadHolds rd (hm fs fp seed s w).a117 (rX s w + ((sPlan s w).children[c])[j])
+    ∃ (hc' : c < (sPlan s w).childSlots.length) (hj' : j < ((sPlan s w).childSlots[c]).length),
+      LoadHolds rd (hm fs fp seed s w).a117 (rX s w + ((sPlan s w).childSlots[c])[j])
         (gen ^ (hW s w c + hEx w c + j)) ∧
-      (s.claims.sphincs ++ (sPlan s w).dups)[((sPlan s w).children[c])[j]]? =
+      (s.claims.sphincs ++ (sPlan s w).duplicates)[((sPlan s w).childSlots[c])[j]]? =
         some ((w.children[c]).statement.claims.sphincs[j]) := by
   obtain ⟨hc', hj', hs, e, hcl⟩ := plan_child s.claims.sphincs ((hRawS s w).map (·.1))
     (w.children.map (·.statement.claims.sphincs)) (c := c) (k := j) (by simpa using hc) (by simpa using hj)
   have e' : (slotsOf (sPlan s w))[base ((hRawS s w).map (·.1)) (w.children.map (·.statement.claims.sphincs)) c + j]'hs =
-      ((sPlan s w).children[c]'hc')[j]'hj' := e
+      ((sPlan s w).childSlots[c]'hc')[j]'hj' := e
   have hl := coverS_load h hs
   rw [e'] at hl
   have hmk : hMarkS s w (base ((hRawS s w).map (·.1)) (w.children.map (·.statement.claims.sphincs)) c + j) =
@@ -323,7 +323,7 @@ theorem coverS_child {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {c j : 
 
 /-- The leanXMSS table holds the claim at slot `t`. -/
 theorem tableX_claim {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {t : ℕ} {c : XmssClaim}
-    (ht : (s.claims.xmss ++ (xPlan s w).dups)[t]? = some c) :
+    (ht : (s.claims.xmss ++ (xPlan s w).duplicates)[t]? = some c) :
     Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 0 + 4 * t)) (Sig.cellOf128 c.1.root)
       (Sig.cellOf128 c.1.parameter) (Sig.cellOf128 (c.2.extractLsb' 0 128))
       (Sig.cellOf128 (c.2.extractLsb' 128 128)) := by
@@ -339,14 +339,14 @@ theorem tableX_region {t k : ℕ} (ht : t < rX s w) (hk : k < 4) :
     RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 0 + 4 * t + k) := by
   rw [Nat.add_assoc]
   refine hOwn_region (i := 0) (by omega) ?_
-  show 4 * t + k < ((s.claims.xmss ++ (xPlan s w).dups).flatMap _).length
+  show 4 * t + k < ((s.claims.xmss ++ (xPlan s w).duplicates).flatMap _).length
   rw [length_flatMap_of _ fun (c : XmssClaim) _ => claimCells_length c.1.root c.1.parameter c.2, List.length_append]
   simp only [rX] at ht
   omega
 
 /-- The leanSPHINCS table holds the claim at slot `t`. -/
 theorem tableS_claim {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {t : ℕ} {c : SphincsClaim}
-    (ht : (s.claims.sphincs ++ (sPlan s w).dups)[t]? = some c) :
+    (ht : (s.claims.sphincs ++ (sPlan s w).duplicates)[t]? = some c) :
     Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 1 + 4 * t)) (Sig.cellOf128 c.1.root)
       (Sig.cellOf128 c.1.parameter) (Sig.cellOf128 (c.2.extractLsb' 0 128))
       (Sig.cellOf128 (c.2.extractLsb' 128 128)) := by
@@ -362,7 +362,7 @@ theorem tableS_region {t k : ℕ} (ht : t < rY s w) (hk : k < 4) :
     RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 1 + 4 * t + k) := by
   rw [Nat.add_assoc]
   refine hOwn_region (i := 1) (by omega) ?_
-  show 4 * t + k < ((s.claims.sphincs ++ (sPlan s w).dups).flatMap _).length
+  show 4 * t + k < ((s.claims.sphincs ++ (sPlan s w).duplicates).flatMap _).length
   rw [length_flatMap_of _ fun (c : SphincsClaim) _ => claimCells_length c.1.root c.1.parameter c.2, List.length_append]
   simp only [rY] at ht
   omega

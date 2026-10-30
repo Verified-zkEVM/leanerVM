@@ -72,7 +72,7 @@ theorem readsAt_append {rd : Reader} {p : E} {xs ys : List E} :
 /-! ## Sponge states in memory -/
 
 /-- The thirteen cells of the state `S` (even layout) at `p · g^off`, …, `p · g^(off + 12)`. -/
-def StateAt (rd : Reader) (p : E) (off : ℕ) (S : KState) : Prop :=
+def StateAt (rd : Reader) (p : E) (off : ℕ) (S : KeccakState) : Prop :=
   ∀ c : Fin 13, LoadHolds rd p (off + c) (cellsOfState S false c)
 
 /-- The thirteen values `vs` are loaded through `p` at offsets `off`, …, `off + 12`. -/
@@ -368,7 +368,7 @@ theorem dispatch_of_flat {C : CallRel} {rd : Reader} {σ : Val} {ss : List Stmt}
 
 theorem initCell_of_loads {rd : Reader} {σ : Val} {atoms : List Atom} {s : ChainSpec} {st : List V}
     {sp : V} (hinit : s.init = some st) (hst : stLoadsOk atoms sp st 0 = true)
-    (hat : ∀ a ∈ atoms, a.Holds rd σ) {S : KState} (hS : StateAt rd (σ sp) 0 S) (c : Fin 13) :
+    (hat : ∀ a ∈ atoms, a.Holds rd σ) {S : KeccakState} (hS : StateAt rd (σ sp) 0 S) (c : Fin 13) :
     s.initCell σ c = cellsOfState S false c := by
   rw [ChainSpec.initCell, hinit]
   have h1 := stLoads_sound hst hat c

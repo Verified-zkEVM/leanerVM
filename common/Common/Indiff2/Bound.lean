@@ -200,7 +200,7 @@ theorem prEvent_b0_step (NF : (Dg × E) → Prop) [DecidablePred NF] (N : ℕ)
 /-- **Capacity collisions are unlikely**: for a game of cost at most `q`, at most `q² / |C|`. -/
 theorem prEvent_b0_le (NF : (Dg × E) → Prop) [DecidablePred NF] {α : Type}
     (D : OracleComp (dSpec2 Msg Dg (SpState Dg E C)) α) (q : ℕ)
-    (hD : IsWeightBound D (queryCost2 (Dg := Dg) P) q) :
+    (hD : QueryCostAtMost D (queryCost2 (Dg := Dg) P) q) :
     Pr{let z ← ((simulateQ (aug2 P iv NF) D).run
       ((SimState.init iv, ∅), Book.init))}[B0 iv z.2.2] ≤ q * (q / (Fintype.card C : ℝ≥0∞)) := by
   have h := prEvent_run_bad_le (aug2 P iv NF) (fun s ↦ B0 iv s.2) (fun _ ↦ True)
@@ -232,7 +232,7 @@ whose direct calls follow the duplex discipline. -/
 theorem prEvent_disagree_le (NF : (Dg × E) → Prop) [DecidablePred NF]
     (hNF : ∀ m β B, P.pad m = β ++ [B] → ¬ NF B) {α : Type}
     (D : OracleComp (dSpec2 Msg Dg (SpState Dg E C)) α) (hD : DuplexOK iv NF D [])
-    (q : ℕ) (hq : IsWeightBound D (queryCost2 (Dg := Dg) P) q) :
+    (q : ℕ) (hq : QueryCostAtMost D (queryCost2 (Dg := Dg) P) q) :
     Pr{let z ← ((simulateQ (aug2 P iv NF) D).run
       ((SimState.init iv, ∅), Book.init))}[z.2.2.flag = true] ≤
       q * (q / (Fintype.card C : ℝ≥0∞)) := by

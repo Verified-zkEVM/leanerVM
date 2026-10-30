@@ -15,10 +15,10 @@ public import VCVio.EvalDist.Monad.UniformTable
 Read first (`Statement/README.md` states the model): Keccak-f[1600] as leanVM computes it, and
 Keccak-256 over any permutation of its state (namespaces `LeanVM.*`), then the model (namespace
 `Common`): `π` and `π⁻¹` lazily sampled, a cost bounded on every path, the oracles of the model
-and a game's run (`KSpec`: coins, `π` and `π⁻¹`, nothing else; `permCalls`, `runK`; Keccak-256
-the sponge over `π`, `keccakK`), and the SUF-CMA game of a
-signature scheme (`SufCma`). The permutation's state is one type throughout, `KState`, `25` lanes
-of `64` bits.
+and a game's run (`RandomPermutationOracles`: coins, `π` and `π⁻¹`, nothing else;
+`permutationCallCost`, `runWithRandomPermutation`; Keccak-256 the sponge over `π`,
+`keccak256OverPermutation`), and the SUF-CMA game of a signature scheme (`SufCma`). The
+permutation's state is one type throughout, `KeccakState`, `25` lanes of `64` bits.
 -/
 
 @[expose] public section
@@ -71,12 +71,12 @@ open LeanVM.Parameters
 /-! ### Keccak-f[1600] -/
 
 /-- A Keccak state: `25` lanes of `64` bits, lane `x + 5y` at index `x + 5y`. -/
-abbrev KState := Vector UInt64 25
+abbrev KeccakState := Vector UInt64 25
 
 namespace Keccak
 
 /-- Lane `i` of a state, `0` past the end. -/
-def lane (a : KState) (i : ℕ) : UInt64 := a.toArray.getD i 0
+def lane (a : KeccakState) (i : ℕ) : UInt64 := a.toArray.getD i 0
 
 /-- `rot(x, n)`: rotate a lane left by `n < 64` bits (`verifier.py:364-365`). -/
 def rot (x : UInt64) (n : ℕ) : UInt64 :=
@@ -84,19 +84,19 @@ def rot (x : UInt64) (n : ℕ) : UInt64 :=
 
 /-- One round of `keccak_f` with the round constant `rc` (`verifier.py:368-374`): θ, then ρ and π
 (`b[PI[i]] = rot(a[i], RHO[i])`), then χ and ι. -/
-def round (a : KState) (rc : UInt64) : KState :=
+def round (a : KeccakState) (rc : UInt64) : KeccakState :=
   let c : Vector UInt64 5 := Vector.ofFn fun x ↦
     lane a x ^^^ lane a (x + 5) ^^^ lane a (x + 10) ^^^ lane a (x + 15) ^^^ lane a (x + 20)
   let cAt := fun x ↦ c.toArray.getD x 0
   -- θ: `a[i] ^ c[(i - 1) % 5] ^ rot(c[(i + 1) % 5], 1)`
-  let a : KState := Vector.ofFn fun i ↦
+  let a : KeccakState := Vector.ofFn fun i ↦
     lane a i ^^^ cAt ((i.val + 4) % 5) ^^^ rot (cAt ((i.val + 1) % 5)) 1
   -- ρ and π
-  let b : KState := (List.range 25).foldl
+  let b : KeccakState := (List.range 25).foldl
     (fun b i ↦ b.setIfInBounds (keccakPi i) (rot (lane a i) (keccakRho.getD i 0)))
     (Vector.replicate 25 0)
   -- χ
-  let a : KState := Vector.ofFn fun i ↦
+  let a : KeccakState := Vector.ofFn fun i ↦
     lane b i ^^^ (~~~ lane b (i.val - i.val % 5 + (i.val + 1) % 5) &&&
       lane b (i.val - i.val % 5 + (i.val + 2) % 5))
   -- ι
@@ -105,7 +105,7 @@ def round (a : KState) (rc : UInt64) : KState :=
 end Keccak
 
 /-- **Keccak-f[1600]** (`keccak_f`, `verifier.py:360-375`): the `24` rounds. -/
-def keccakF (a : KState) : KState := keccakRC.foldl Keccak.round a
+def keccakF1600 (a : KeccakState) : KeccakState := keccakRC.foldl Keccak.round a
 
 end LeanVM.Semantics
 
@@ -137,11 +137,11 @@ def leLane (bytes : List UInt8) (i : ℕ) : UInt64 :=
 
 section With
 
-variable {m : Type → Type} [Monad m] (π : KState → m KState)
+variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-- Absorb one block of `136` bytes with the permutation `π`: XOR its `17` lanes into the rate,
 then permute (`verifier.py:207-208`). -/
-def absorbBlockWith (state : KState) (block : List UInt8) : m KState :=
+def absorbBlockWith (state : KeccakState) (block : List UInt8) : m KeccakState :=
   π (Vector.ofFn fun i ↦
     if i.val < 17 then Keccak.lane state i ^^^ leLane block i else Keccak.lane state i)
 
@@ -154,7 +154,7 @@ def padBlock (rest : List UInt8) : List UInt8 :=
 
 /-- Absorb `data` into `state` with `π`: `blocks` whole blocks of `136` bytes, then the padded
 last block, which holds the remaining `0` to `135` bytes. -/
-def absorbWith : (blocks : ℕ) → KState → List UInt8 → m KState
+def absorbWith : (blocks : ℕ) → KeccakState → List UInt8 → m KeccakState
   | 0, state, data => absorbBlockWith π state (padBlock data)
   | blocks + 1, state, data => do
     let state ← absorbBlockWith π state (data.take rate)
@@ -171,7 +171,8 @@ def keccak256With (data : List UInt8) : m Digest := do
 end With
 
 /-- **Keccak-256 of a byte string** (`keccak_hash`): Keccak-256 over Keccak-f[1600]. -/
-def keccak256 (data : List UInt8) : Digest := Id.run (keccak256With (fun s ↦ pure (keccakF s)) data)
+def keccak256 (data : List UInt8) : Digest :=
+  Id.run (keccak256With (fun s ↦ pure (keccakF1600 s)) data)
 
 /-! ### Bytes of words and digests -/
 
@@ -198,31 +199,31 @@ end LeanVM.Protocol
 namespace Common
 
 /-- A query to a permutation `π` of `S`: forward `π x` or inverse `π⁻¹ y`. -/
-inductive PermQuery (S : Type) where
+inductive PermutationQuery (S : Type) where
   /-- The forward query `π x`. -/
-  | fwd (x : S)
+  | forward (x : S)
   /-- The inverse query `π⁻¹ y`. -/
-  | inv (y : S)
+  | inverse (y : S)
   deriving DecidableEq
 
 /-- The oracle specification of the random-permutation model: both kinds of query answer a state.
 -/
-abbrev permSpec (S : Type) : OracleSpec (PermQuery S) := PermQuery S →ₒ S
+abbrev permutationOracleSpec (S : Type) : OracleSpec (PermutationQuery S) := PermutationQuery S →ₒ S
 
 /-- The state of a lazily sampled permutation: the edges `(x, π x)` fixed so far, newest first. -/
-abbrev PermLog (S : Type) := List (S × S)
+abbrev PermutationEdges (S : Type) := List (S × S)
 
 variable {S : Type} [DecidableEq S]
 
 /-- The recorded forward answer at `x`: the output of the first edge with input `x`. -/
-def fwdLookup : PermLog S → S → Option S
+def forwardLookup : PermutationEdges S → S → Option S
   | [], _ => none
-  | (a, b) :: E, x => if a = x then some b else fwdLookup E x
+  | (a, b) :: E, x => if a = x then some b else forwardLookup E x
 
 /-- The recorded inverse answer at `y`: the input of the first edge with output `y`. -/
-def invLookup : PermLog S → S → Option S
+def inverseLookup : PermutationEdges S → S → Option S
   | [], _ => none
-  | (a, b) :: E, y => if b = y then some a else invLookup E y
+  | (a, b) :: E, y => if b = y then some a else inverseLookup E y
 
 variable [Fintype S] [SampleableType S]
 
@@ -239,23 +240,26 @@ noncomputable def uniformAvoiding (l : List S) : ProbComp S :=
 fresh forward query `π x` draws `π x` uniformly outside the current range and records `(x, π x)`;
 a fresh inverse query `π⁻¹ y` draws `π⁻¹ y` uniformly outside the current domain and records
 `(π⁻¹ y, y)`. -/
-noncomputable def lazyPerm : QueryImpl (permSpec S) (StateT (PermLog S) ProbComp)
-  | .fwd x => StateT.mk fun E =>
-      match fwdLookup E x with
+noncomputable def lazyRandomPermutation :
+    QueryImpl (permutationOracleSpec S) (StateT (PermutationEdges S) ProbComp)
+  | .forward x => StateT.mk fun E =>
+      match forwardLookup E x with
       | some y => pure (y, E)
       | none => (fun y ↦ (y, (x, y) :: E)) <$> uniformAvoiding (E.map Prod.snd)
-  | .inv y => StateT.mk fun E =>
-      match invLookup E y with
+  | .inverse y => StateT.mk fun E =>
+      match inverseLookup E y with
       | some x => pure (x, E)
       | none => (fun x ↦ (x, (x, y) :: E)) <$> uniformAvoiding (E.map Prod.fst)
 
-/-! ## A cost bounded on every path of a computation -/
+/-! ## A query cost bounded on every path of a computation -/
 
-/-- A total weight bound: every path of `oa` makes queries of total weight at most `Q`, a query
-`t` weighing `w t`. -/
-def IsWeightBound {ι : Type} {spec : OracleSpec.{0, 0} ι} {α : Type} (oa : OracleComp spec α)
-    (w : ι → ℕ) (Q : ℕ) : Prop :=
-  IsQueryBound oa Q (fun t b ↦ w t ≤ b) (fun t b ↦ b - w t)
+/-- **`oa` makes queries of total cost at most `Q` on every path**: whatever the oracles answer, the
+costs of the queries `oa` makes add up to at most `Q`, a query `t` costing `cost t`. A worst-case
+count, not an expected one. With `permutationCallCost` (below) it counts the calls of `π` and
+`π⁻¹`, coins free. -/
+def QueryCostAtMost {ι : Type} {spec : OracleSpec.{0, 0} ι} {α : Type} (oa : OracleComp spec α)
+    (cost : ι → ℕ) (Q : ℕ) : Prop :=
+  IsQueryBound oa Q (fun t b ↦ cost t ≤ b) (fun t b ↦ b - cost t)
 
 /-- A byte as a residue. -/
 def uInt8EquivFin : UInt8 ≃ Fin 256 where
@@ -271,33 +275,37 @@ section
 open LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
 /-- A 32-byte Keccak-256 digest. -/
-abbrev KDigest := Vector UInt8 32
+abbrev DigestBytes := Vector UInt8 32
 
 /-- **The oracles of the random-permutation model**: coins, `π` and `π⁻¹` on Keccak states, and
-nothing else. Every party hashes with Keccak-256 over `π` (`keccakK`). -/
-abbrev KSpec := unifSpec + permSpec KState
+nothing else. Every party hashes with Keccak-256 over `π` (`keccak256OverPermutation`). -/
+abbrev RandomPermutationOracles := unifSpec + permutationOracleSpec KeccakState
 
-/-- **Calls of the permutation**: a call of `π` or `π⁻¹` costs one, a coin nothing. -/
-def permCalls : KSpec.Domain → ℕ
+/-- **The cost that counts permutation calls**: a call of `π` or `π⁻¹` costs one, a coin nothing. -/
+def permutationCallCost : RandomPermutationOracles.Domain → ℕ
   | .inl _ => 0
   | .inr _ => 1
 
 /-- A call `π x` of the permutation. -/
-def piK (x : KState) : OracleComp KSpec KState := liftM (KSpec.query (.inr (.fwd x)))
+def queryPermutation (x : KeccakState) : OracleComp RandomPermutationOracles KeccakState :=
+  liftM (RandomPermutationOracles.query (.inr (.forward x)))
 
 /-- **Keccak-256 in the model**: the sponge over `π` (`keccak256With`), one call of `π` per block
 of the padded message (`⌊n / 136⌋ + 1` for `n` bytes), its digest's 32 bytes. -/
-def keccakK (m : List UInt8) : OracleComp KSpec KDigest := Digest.toBytes <$> keccak256With piK m
+def keccak256OverPermutation (m : List UInt8) : OracleComp RandomPermutationOracles DigestBytes :=
+  Digest.toBytes <$> keccak256With queryPermutation m
 
 /-- The model's answers: coins forwarded, `π` and `π⁻¹` the lazily sampled permutation. -/
-noncomputable def kImpl : QueryImpl KSpec (StateT (PermLog KState) ProbComp)
+noncomputable def lazyRandomPermutationOracles :
+    QueryImpl RandomPermutationOracles (StateT (PermutationEdges KeccakState) ProbComp)
   | .inl n => liftM (unifSpec.query n : ProbComp (Fin (n + 1)))
-  | .inr q => lazyPerm q
+  | .inr q => lazyRandomPermutation q
 
 /-- **A game in the random-permutation model, run** against the lazily sampled random
 permutation from no edge. -/
-noncomputable def runK {α : Type} (G : OracleComp KSpec α) : ProbComp α :=
-  (simulateQ kImpl G).run' []
+noncomputable def runWithRandomPermutation {α : Type} (G : OracleComp RandomPermutationOracles α) :
+    ProbComp α :=
+  (simulateQ lazyRandomPermutationOracles G).run' []
 
 end
 
@@ -307,7 +315,7 @@ namespace SufCma
 
 /-- **The digest bytes as a bit vector**, little endian: byte `i` is bits `8 i … 8 i + 7`
 (`digestBitVec_extract`). -/
-def digestBitVec : KDigest ≃ BitVec 256 :=
+def digestBitVec : DigestBytes ≃ BitVec 256 :=
   (arrayVectorEquivFin UInt8 32).trans <|
     (Equiv.arrowCongr (Equiv.refl _) uInt8EquivFin).trans <|
       finFunctionFinEquiv.trans <| (finCongr (show 256 ^ 32 = 2 ^ 256 by norm_num)).trans
@@ -315,20 +323,20 @@ def digestBitVec : KDigest ≃ BitVec 256 :=
 
 /-- The hash of a signature scheme, `H : List UInt8 → BitVec 256`: in the model Keccak-256, its
 digest read as a little-endian number (`digestBitVec`). -/
-abbrev HSpec := List UInt8 →ₒ BitVec 256
+abbrev SchemeHashSpec := List UInt8 →ₒ BitVec 256
 
-/-- **A signature scheme** with the hash `H` (`HSpec`): a seed sampler, key generation from a
-seed, the signer answering a request `Req` with `Resp`, the verifier of a claimed forgery `F`, and
+/-- **A signature scheme** with the hash `H` (`SchemeHashSpec`): a seed sampler, key generation from
+a seed, the signer answering a request `Req` with `Resp`, the verifier of a claimed forgery `F`, and
 the winning condition on the signing transcript and the forgery. -/
 structure Scheme (Seed PK SK Req Resp F : Type) where
   /-- Sample the secret seed. -/
   sample : ProbComp Seed
   /-- Generate the keys from the seed. -/
-  keygen : Seed → OracleComp HSpec (PK × SK)
+  keygen : Seed → OracleComp SchemeHashSpec (PK × SK)
   /-- Answer a signing request. -/
-  sign : SK → Req → OracleComp HSpec Resp
+  sign : SK → Req → OracleComp SchemeHashSpec Resp
   /-- Verify a claimed forgery. -/
-  verify : PK → F → OracleComp HSpec Bool
+  verify : PK → F → OracleComp SchemeHashSpec Bool
   /-- The transcript and the forgery make a win (when the forgery verifies). -/
   win : QueryLog (Req →ₒ Resp) → F → Bool
 
@@ -336,45 +344,49 @@ variable {Seed PK SK Req Resp F : Type}
 
 /-- The signer returned the forgery: some request with the forgery's message (`message`) was
 answered with its signature. Any other signature of a signed message is a strong forgery. -/
-abbrev Contains {M S : Type} (message : Req → M) (log : QueryLog (Req →ₒ Option S)) (m : M)
+abbrev SignerReturned {M S : Type} (message : Req → M) (log : QueryLog (Req →ₒ Option S)) (m : M)
     (s : S) : Prop :=
   ∃ entry ∈ log, message entry.1 = m ∧ entry.2 = some s
 
-/-- The hash in the random-permutation model: Keccak-256 over `π` (`keccakK`), its digest read as a
-bit vector (`digestBitVec`). -/
-def hashK : QueryImpl HSpec (OracleComp KSpec) :=
-  fun m ↦ digestBitVec <$> keccakK m
+/-- The hash in the random-permutation model: Keccak-256 over `π` (`keccak256OverPermutation`), its
+digest read as a bit vector (`digestBitVec`). -/
+def schemeHashOverPermutation : QueryImpl SchemeHashSpec (OracleComp RandomPermutationOracles) :=
+  fun m ↦ digestBitVec <$> keccak256OverPermutation m
 
 /-- The signing oracle in the random-permutation model. -/
-def signingOracleK (S : Scheme Seed PK SK Req Resp F) (sk : SK) :
-    QueryImpl (Req →ₒ Resp) (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpec)) :=
-  QueryImpl.withLogging fun r ↦ simulateQ hashK (S.sign sk r)
+def loggedSigningOracle (S : Scheme Seed PK SK Req Resp F) (sk : SK) :
+    QueryImpl (Req →ₒ Resp)
+      (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp RandomPermutationOracles)) :=
+  QueryImpl.withLogging fun r ↦ simulateQ schemeHashOverPermutation (S.sign sk r)
 
 /-- **The RPM game**: the game with `H` Keccak-256 over the permutation, and an adversary that
 also queries `π` and `π⁻¹`. -/
-noncomputable def rpmGame (S : Scheme Seed PK SK Req Resp F)
-    (main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F) : OracleComp KSpec Bool := do
+noncomputable def forgeryGame (S : Scheme Seed PK SK Req Resp F)
+    (main : PK → OracleComp (RandomPermutationOracles + (Req →ₒ Resp)) F) :
+      OracleComp RandomPermutationOracles Bool := do
   let seed ← liftM S.sample
-  let (pk, sk) ← simulateQ hashK (S.keygen seed)
+  let (pk, sk) ← simulateQ schemeHashOverPermutation (S.keygen seed)
   let ((forgery, log) : F × QueryLog (Req →ₒ Resp)) ←
-    (simulateQ (QueryImpl.ofLift KSpec (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpec)) +
-      signingOracleK S sk) (main pk)).run
-  let verified ← simulateQ hashK (S.verify pk forgery)
+    (simulateQ
+      (QueryImpl.ofLift RandomPermutationOracles
+        (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp RandomPermutationOracles)) +
+      loggedSigningOracle S sk) (main pk)).run
+  let verified ← simulateQ schemeHashOverPermutation (S.verify pk forgery)
   return S.win log forgery && verified
 
 /-- **The RPM experiment**: the RPM game against the lazily sampled random permutation. -/
-noncomputable def rpmExperiment (S : Scheme Seed PK SK Req Resp F)
-    (main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F) : ProbComp Bool :=
-  runK (rpmGame S main)
+noncomputable def forgeryExperiment (S : Scheme Seed PK SK Req Resp F)
+    (main : PK → OracleComp (RandomPermutationOracles + (Req →ₒ Resp)) F) : ProbComp Bool :=
+  runWithRandomPermutation (forgeryGame S main)
 
 /-- **`bits` bits of SUF-CMA security in the random-permutation model**: every adversary `main`
 (coins, `π`, `π⁻¹` and the signing oracle) whose game, key generation, the signer's
 answers and the forgery's verification included, makes at most `Q ≥ 1` permutation calls on every
 path wins with probability at most `(Q + 1) · 2^-bits`. -/
-def RpmSecure (S : Scheme Seed PK SK Req Resp F) (bits : ℕ) : Prop :=
-  ∀ Q, 1 ≤ Q → ∀ main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F,
-    IsWeightBound (rpmGame S main) permCalls Q →
-      Pr{let b ← rpmExperiment S main}[b = true] ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
+def StronglyUnforgeable (S : Scheme Seed PK SK Req Resp F) (bits : ℕ) : Prop :=
+  ∀ Q, 1 ≤ Q → ∀ main : PK → OracleComp (RandomPermutationOracles + (Req →ₒ Resp)) F,
+    QueryCostAtMost (forgeryGame S main) permutationCallCost Q →
+      Pr{let b ← forgeryExperiment S main}[b = true] ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
 
 end SufCma
 

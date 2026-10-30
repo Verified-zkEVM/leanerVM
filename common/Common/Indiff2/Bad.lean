@@ -43,11 +43,11 @@ theorem shadow_hash_run (m : Msg) (s : FState Msg Dg E C) :
   rw [shadow_eq_ideal1F P _ (by simp), foldRO_run, ideal1F_hash_run]
   simp [Functor.map_map]
 
-theorem shadow_perm_run (q : PermQuery (SpState Dg E C)) (s : FState Msg Dg E C) :
+theorem shadow_perm_run (q : PermutationQuery (SpState Dg E C)) (s : FState Msg Dg E C) :
     ((foldRO (shadowImpl P)) (.inr (.inr (.inl q)))).run s =
       match q with
-      | .fwd x => fwdStep2 P x s
-      | .inv y => invStep2 y s := by
+      | .forward x => fwdStep2 P x s
+      | .inverse y => invStep2 y s := by
   rw [shadow_eq_ideal1F P _ (by simp)]
   exact ideal1F_fwd_run P q s
 
@@ -154,9 +154,9 @@ theorem SStruct.mono_lists {NF : (Dg × E) → Prop} {s : FState Msg Dg E C}
       · exact Or.inr (hF hr)
 
 theorem replayStep_fwd_cases (σ : SimState Dg E C) (x y : SpState Dg E C) :
-    replayStep σ (.fwd x, y) = σ ∨ (fwdLookup σ.edges x = none ∧
-      (replayStep σ (.fwd x, y)).edges = (x, y) :: σ.edges ∧
-      ∀ p ∈ (replayStep σ (.fwd x, y)).chains, p ∈ σ.chains ∨ p.1 = y) := by
+    replayStep σ (.forward x, y) = σ ∨ (forwardLookup σ.edges x = none ∧
+      (replayStep σ (.forward x, y)).edges = (x, y) :: σ.edges ∧
+      ∀ p ∈ (replayStep σ (.forward x, y)).chains, p ∈ σ.chains ∨ p.1 = y) := by
   simp only [replayStep]
   split
   · exact Or.inl rfl
@@ -177,7 +177,7 @@ theorem SStruct.fStep {NF : (Dg × E) → Prop} {σ : SimState Dg E C}
     (h : SStruct iv NF (σ, c) dF dI) (x : SpState Dg E C)
     {w} (hw : w ∈ support (roStep (hs := hfSpec Msg Dg (SpState Dg E C)) (.inr x) c))
     (hnew : c (.inr x) = none → w.1 ∈ dF') (hF : dF ⊆ dF') (hI : dI ⊆ dI') :
-    w.1 ∈ dF' ∧ SStruct iv NF (replayStep σ (.fwd x, w.1), w.2) dF' dI' := by
+    w.1 ∈ dF' ∧ SStruct iv NF (replayStep σ (.forward x, w.1), w.2) dF' dI' := by
   obtain ⟨hle, hwx, hother⟩ := roStep_support _ _ hw
   have hw1 : w.1 ∈ dF' := by
     rcases hc : c (.inr x) with _ | v
@@ -229,13 +229,13 @@ theorem SStruct.rootedFinal {NF : (Dg × E) → Prop}
     (hNF : ∀ m β B, P.pad m = β ++ [B] → ¬ NF B) {σ : SimState Dg E C}
     {c c' : HCache Msg Dg (SpState Dg E C)} {dF dI : List (SpState Dg E C)}
     (h : SStruct iv NF (σ, c) dF dI) {x r : SpState Dg E C} {β : List (Dg × E)}
-    (hy : fwdLookup σ.edges x = none) (hch : chainOf σ.chains x = some (r, β))
+    (hy : forwardLookup σ.edges x = none) (hch : chainOf σ.chains x = some (r, β))
     (hm : (P.unpad (β ++ [blockTo r x])).isSome = true)
     (hinr : ∀ x', c' (.inr x') = c (.inr x')) (a : SpState Dg E C) :
-    SStruct iv NF (replayStep σ (.fwd x, a), c') (a :: dF) dI := by
+    SStruct iv NF (replayStep σ (.forward x, a), c') (a :: dF) dI := by
   have h' := h.mono_lists (List.subset_cons_self a dF) (fun _ h ↦ h)
   obtain ⟨hrβ, hrx⟩ := chainOf_some hch
-  have hrep : replayStep σ (.fwd x, a) =
+  have hrep : replayStep σ (.forward x, a) =
       ⟨(x, a) :: σ.edges, (a, β ++ [blockTo r x]) :: σ.chains⟩ := by
     simp [replayStep, hy, hch]
   rw [hrep]
@@ -267,7 +267,7 @@ theorem b0_of_disagree {NF : (Dg × E) → Prop}
     fun r hr hrx hrnf ↦ b0_of_ne hr hbase (fun hrb ↦ hrnf (hrb ▸ hnf)) (hrx.trans hcap.symm)
   obtain ⟨σ, c⟩ := s
   simp only [disagree] at hd
-  rcases hy : fwdLookup σ.edges x with _ | y
+  rcases hy : forwardLookup σ.edges x with _ | y
   · simp only [hy, Bool.or_eq_true, rootedFinal] at hd
     rcases hd with hd | hd
     · rcases hch : chainOf σ.chains x with _ | ⟨r, β⟩
@@ -370,7 +370,7 @@ theorem sInv_step {NF : (Dg × E) → Prop} [DecidablePred NF]
       simp only [support_map, Set.mem_image] at hw
       obtain ⟨a, -, rfl⟩ := hw
       simp only [bookUpd, hx, ite_true]
-      have hrep : replayStep σ (.inv y, a) = ⟨(a, y) :: σ.edges, σ.chains⟩ := by
+      have hrep : replayStep σ (.inverse y, a) = ⟨(a, y) :: σ.edges, σ.chains⟩ := by
         simp [replayStep, hx]
       have h' := hs.st.mono_lists (dF' := b.dF) (fun _ h ↦ h) (List.subset_cons_self a b.dI)
       refine ⟨?_, hs.hist, fun hf ↦ ?_⟩

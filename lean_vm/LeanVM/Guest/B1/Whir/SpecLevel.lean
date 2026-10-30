@@ -206,8 +206,8 @@ theorem rest_inv {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E}
     {R : List (Digest × ℕ × ℕ)} {r : β × FSt} (hd : 1 ≤ 192 / (ml + level.logInvRate))
     {K : WhirStateT → Prog β}
     (h : runF ((sampleQueries (ml + level.logInvRate) level.queries).bind fun queries ↦
-      Prog.sampleE.bind fun lam ↦ (Prog.require (lam ≠ 0)).bind fun _ ↦
-        (Prog.queryP index queries).bind fun words ↦
+      Prog.sampleChallenge.bind fun lam ↦ (Prog.require (lam ≠ 0)).bind fun _ ↦
+        (Prog.queryOpenings index queries).bind fun words ↦
           (sumcheckRoundPoly 3 (enforcedSum (if index = 0 then words.map fun row ↦ row.reverse.map ofK
             else words.map extRow) lf (powers lam queries.length)) none).bind fun intro ↦
             K (glueT lam ws1 (pending ++ [(enforcedSum (if index = 0 then
@@ -250,10 +250,10 @@ theorem rest_inv {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E}
 def levelRestNZ (ml index : ℕ) (level : Whir.Level) (lf : List E) (s : WhirStateT)
     (pending : List (E × List E × (List E → E))) : Prog WhirStateT := do
   let queries ← sampleQueries (ml + level.logInvRate) level.queries
-  let lam ← Prog.sampleE
+  let lam ← Prog.sampleChallenge
   Prog.require (lam ≠ 0)
   let queryWeights := powers lam queries.length
-  let words ← Prog.queryP index queries
+  let words ← Prog.queryOpenings index queries
   let rows : List (List E) :=
     if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
   let enforced := enforcedSum rows lf queryWeights
@@ -275,8 +275,8 @@ theorem whirLevelsOpenNZ_last (logN lane index : ℕ) (level : Whir.Level) (s : 
     whirLevelsOpenNZ logN lane index [level] s = (do
       let (s, levelFolds) ← foldRoundsNZ level.fold s []
       let messageLog := logN - s.folds.length
-      let residual ← Prog.readN (2 ^ messageLog)
-      Prog.grindP Whir.queryGrindingBits
+      let residual ← Prog.readScalars (2 ^ messageLog)
+      Prog.grindProofOfWork Whir.queryGrindingBits
       let s ← levelRestNZ messageLog index level levelFolds s []
       levelTailNZ lane messageLog residual s) := by
   rw [whirLevelsOpenNZ]

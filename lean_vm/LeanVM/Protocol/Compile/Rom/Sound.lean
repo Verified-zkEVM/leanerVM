@@ -98,7 +98,7 @@ noncomputable def failBound {X : Type} (σ : Seeds X) (N : ℕ) : ℝ≥0∞ :=
 /-- Some boundary prefix, past the statement's root, of the extracted history of the verifier's
 run on the statement and proof `z`, under the answers of the cache `c`, is doomed. -/
 def Doomed {X : Type} {P : Prog Bool} (C : Cert P) (σ : Seeds X) (z : X × Proof)
-    (c : HashSpec.QueryCache) : Prop :=
+    (c : KeccakCalls.QueryCache) : Prop :=
   ∃ h₀, h₀ <+: extractedFrom (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s)) (σ.seed z.1)
       (nodeAt P (σ.root z.1)) (σ.root z.1) z.2 ∧
     (σ.root z.1).length ≤ h₀.length ∧ Boundary h₀ ∧ C.D h₀
@@ -108,9 +108,9 @@ theorem not_isTotalQueryBound_verifierComp_zero (σ₀ : Seed) (P : Prog Bool) (
     ¬ IsTotalQueryBound (verifierComp σ₀ P π) 0 := by
   unfold verifierComp verify Seed.run
   rcases hs : σ₀.hs with _ | ⟨f, fs⟩
-  · simp only [Seed.hsRun, pure_bind, queryF]
+  · simp only [Seed.hsRun, pure_bind, callKeccakF1600]
     exact fun h ↦ absurd (isTotalQueryBound_query_bind_iff.mp h).1 (lt_irrefl 0)
-  · simp only [Seed.hsRun, queryH, bind_assoc]
+  · simp only [Seed.hsRun, callKeccak256, bind_assoc]
     exact fun h ↦ absurd (isTotalQueryBound_query_bind_iff.mp h).1 (lt_irrefl 0)
 
 /-- **The step inequality, packaged for the engine**: below `N` entries, a fresh answer to either
@@ -135,7 +135,7 @@ without failure, the bad event read off the ordered log. -/
 theorem romSound_log {X : Type} (P : Prog Bool) (C : Cert P) (σ : Seeds X)
     (hroot : ∀ x, RootOk P (σ.root x)) (εmax : ℝ≥0∞)
     (hε : ∀ h, (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax)
-    (A : OracleComp HashSpec (X × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA)
+    (A : OracleComp KeccakCalls (X × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA)
     (QV : ℕ) (hV : ∀ z, IsTotalQueryBound (verifierFam σ P z) QV)
     (bad : X × Proof → Log → Prop)
     (hbad : ∀ z ℓ, ¬ Fail σ ℓ →
@@ -173,9 +173,9 @@ verifier accepts while `bad` holds is at most `romSound`'s bound. -/
 theorem romSound_of_imp {X : Type} (P : Prog Bool) (C : Cert P) (σ : Seeds X)
     (hroot : ∀ x, RootOk P (σ.root x)) (εmax : ℝ≥0∞)
     (hε : ∀ h, (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax)
-    (A : OracleComp HashSpec (X × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA)
+    (A : OracleComp KeccakCalls (X × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA)
     (QV : ℕ) (hV : ∀ z, IsTotalQueryBound (verifierFam σ P z) QV)
-    (bad : X × Proof → HashSpec.QueryCache → Prop)
+    (bad : X × Proof → KeccakCalls.QueryCache → Prop)
     (hbad : ∀ z c, verify (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s)) (σ.seed z.1)
       (nodeAt P (σ.root z.1)) z.2 = some true → bad z c → Doomed C σ z c) :
     Pr{let z ← romExperiment A (verifierFam σ P)}[z.1.2 = true ∧ bad z.1.1 z.2] ≤
@@ -195,7 +195,7 @@ certificate discounted by the proof of work before it. -/
 theorem romSound {X : Type} (P : Prog Bool) (C : Cert P) (σ : Seeds X)
     (hroot : ∀ x, RootOk P (σ.root x)) (εmax : ℝ≥0∞)
     (hε : ∀ h, (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax)
-    (A : OracleComp HashSpec (X × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA)
+    (A : OracleComp KeccakCalls (X × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA)
     (QV : ℕ) (hV : ∀ z, IsTotalQueryBound (verifierFam σ P z) QV) :
     Pr{let z ← romExperiment A (verifierFam σ P)}[z.1.2 = true ∧ Doomed C σ z.1.1 z.2] ≤
       (QA + QV : ℕ) * (εmax + failBound σ (QA + QV)) :=

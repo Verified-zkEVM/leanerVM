@@ -144,7 +144,7 @@ theorem foldRounds_succ_run (F : Fs) (ws : WhirStateT) (lf : List E) (d0 d2 : E)
       [d0, polyEval ws.quad F.squeeze.1 + d2, d2]
       ⟨F.squeeze.2.cap, [(d0, dsObserve), (d2, dsObserve)]⟩ := by
     have := hr0.bind (f := fun c ↦ do
-        let tail ← Prog.readN 1
+        let tail ← Prog.readScalars 1
         return c :: (polyEval ws.quad F.squeeze.1 + sumE tail) :: tail)
       (hr1.bind (f := fun tail ↦ (pure (d0 :: (polyEval ws.quad F.squeeze.1 + sumE tail) :: tail) :
         Prog (List E))) (runsTo_ret _ _))

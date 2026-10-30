@@ -32,7 +32,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 section With
 
-variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
+variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
 
 /-! ### The signature schemes -/
 
@@ -62,9 +62,9 @@ def sphincsListDigestWith (claims : List SphincsClaim) : m Digest :=
 def statementDigestWith (seed : Digest) (s : NodeStatement) : m Digest := do
   let xd ← xmssListDigestWith H s.claims.xmss
   let sd ← sphincsListDigestWith H s.claims.sphincs
-  let cells := s.defer.cells ++ if s.defer.cells.length % 2 = 1 then [0] else []
+  let cells := s.deferredClaim.cells ++ if s.deferredClaim.cells.length % 2 = 1 then [0] else []
   H (digestBytes seed ++ digestBytes xd ++ digestBytes sd ++ digestBytes s.claims.da ++
-    cells.flatMap eBytes)
+    cells.flatMap extensionElementBytes)
 
 /-! ### The batching -/
 
@@ -88,28 +88,28 @@ def batchRoundsWith : E → List (E × E) → ChainWith (m := m) (List E × E)
     observeWith F g1
     observeWith F gInf
     let r ← sampleWith F
-    let (rs, final) ← batchRoundsWith (Guest.Batch.roundPoly claim (g1, gInf) r) rest
+    let (rs, final) ← batchRoundsWith (Guest.Batch.sumcheckRoundPolynomial claim (g1, gInf) r) rest
     return (r :: rs, final)
 
 /-- `batchSeed` with the hash `H` and the permutation `F`. -/
-def batchSeedWith : m KState := do
-  F (seedInput (← H batchLabel) (Vector.replicate 4 0))
+def batchSeedWith : m KeccakState := do
+  F (seedInput (← H batchingLabel) (Vector.replicate 4 0))
 
 /-- **`batch` with the permutation `F`, from the sponge state `s0`** (deployed: `batchSeed`). -/
-def batchWith (s0 : KState) (children : List ChildClaims) (h : BatchHints) :
+def batchWith (s0 : KeccakState) (children : List ChildClaims) (h : BatchingHints) :
     m (Option DeferredClaim) :=
   go.run' ⟨s0, []⟩
 where
   /-- The transcript. -/
   go : ChainWith (m := m) (Option DeferredClaim) := do
-    for x in padRate [gpow children.length] do observeWith F x
+    for x in padToRate [gpow children.length] do observeWith F x
     for c in children do
-      for x in padRate c.words do observeWith F x
+      for x in padToRate c.words do observeWith F x
     let lam ← sampleWith F
     let lambdas := Guest.Batch.lambdaPowers lam children.length
-    let (r, final) ← batchRoundsWith F (Guest.Batch.claimBOf children lambdas) h.bytecodeRounds
-    if final = h.bytecodeValue * Guest.Batch.bytecodeWeight children lambdas r then
-      return some ⟨r, h.bytecodeValue⟩
+    let (r, final) ← batchRoundsWith F (Guest.Batch.batchedClaim children lambdas) h.sumcheckMessages
+    if final = h.finalBytecodeValue * Guest.Batch.batchedBytecodeWeight children lambdas r then
+      return some ⟨r, h.finalBytecodeValue⟩
     else return none
 
 /-- `keccakBits` is `digestBits` of Keccak-256. -/
@@ -136,24 +136,24 @@ theorem statementDigestWith_id (seed : Digest) (s : NodeStatement) :
   rfl
 
 /-- Absorbing with Keccak-f is `observe`. -/
-theorem observeWith_id (x : E) : observeWith (m := Id) keccakF x = observe x := rfl
+theorem observeWith_id (x : E) : observeWith (m := Id) keccakF1600 x = observe x := rfl
 
 /-- Squeezing with Keccak-f is `sample`. -/
-theorem sampleWith_id : sampleWith (m := Id) keccakF = sample := rfl
+theorem sampleWith_id : sampleWith (m := Id) keccakF1600 = sample := rfl
 
 /-- The batching's rounds with Keccak-f are `batchRounds`. -/
 theorem batchRoundsWith_id : ∀ (claim : E) (rounds : List (E × E)),
-    batchRoundsWith (m := Id) keccakF claim rounds = batchRounds claim rounds
+    batchRoundsWith (m := Id) keccakF1600 claim rounds = batchRounds claim rounds
   | _, [] => rfl
   | claim, (g1, gInf) :: rest => by
     simp only [batchRoundsWith, batchRounds, observeWith_id, sampleWith_id, batchRoundsWith_id]
 
 /-- The batching's initial state with Keccak is `batchSeed`. -/
-theorem batchSeedWith_id : Id.run (batchSeedWith (m := Id) keccak256 keccakF) = batchSeed := rfl
+theorem batchSeedWith_id : Id.run (batchSeedWith (m := Id) keccak256 keccakF1600) = batchSeed := rfl
 
 /-- The batching with Keccak-f, from `batchSeed`, is `batch`. -/
-theorem batchWith_id (children : List ChildClaims) (h : BatchHints) :
-    Id.run (batchWith (m := Id) keccakF batchSeed children h) = batch children h := by
+theorem batchWith_id (children : List ChildClaims) (h : BatchingHints) :
+    Id.run (batchWith (m := Id) keccakF1600 batchSeed children h) = batch children h := by
   simp only [batchWith, batch, batchWith.go, batch.go, observeWith_id, sampleWith_id,
     batchRoundsWith_id]
   rfl

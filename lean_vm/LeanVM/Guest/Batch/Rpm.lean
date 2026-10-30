@@ -16,15 +16,15 @@ import Common.Linear
 
 `batch_rom` bounds the batching with Keccak-256 and Keccak-f[1600] independent random oracles.
 Here both are built from one random permutation `π`, which the adversary queries forward and
-inverse (`Rpm.rpmRun`; `Rpm.detRun` for a deterministic adversary): `batch_rpm` bounds the probability that the batching program
-(`batchAny M bytecode`, from its seeding `batchSeedOf`) accepts a proof that begins with fewer than
-`M` children of the bytecode's shapes one of whose claims is false (`FalseChildren`) by
+inverse (`Rpm.runAdversaryThen`; `Rpm.detRun` for a deterministic adversary): `batch_rpm` bounds the probability that the batching program
+(`boundedBatchingProgram M bytecode`, from its seeding `batchSeedOf`) accepts a proof that begins with fewer than
+`M` children of the bytecode's shapes one of whose claims is false (`SomeChildClaimFalse`) by
 `batch_rom`'s bound at the adversary's `QA` queries, plus `rpmError (QA + QV · 2^32)`, `QV` the
 program's query bound, each query at most `2^32` permutation calls. `batch_rpm_bits`: for
 `QA + QV ≤ 2^64`, at most `(QA + QV) · 2^-188`. `batch_bound_le`: for `QA ≤ 2^128` and
 `QV ≤ 2^96`, at most `(QA + QV + 1) · 2^-191 + 5 (QA + QV)² · 2^-256`; `batch_sound_holds` is it as
-the end statement `BatchSound` of `Statement/LeanVmGuest.lean` states it: the verifier written out
-(`batchRun`, the seeding `F(H(label) ‖ 0)` then the program).
+the end statement `BatchingSound` of `Statement/LeanVmGuest.lean` states it: the verifier written out
+(`runBatching`, the seeding `F(H(label) ‖ 0)` then the program).
 
 The proof is `Rpm.detRun_le_rom` with `batch_rom` (and, for an adversary with coins, first
 `Rpm.rpmRun_le_det`, `Coins.lean`): the program follows the duplex discipline (its
@@ -42,8 +42,8 @@ open scoped ENNReal
 
 /-! ## The program commits nothing -/
 
-theorem movesOK_readCount (M : ℕ) : MovesOK (· ≤ 64) False (readCount M) := by
-  unfold readCount
+theorem movesOK_readCount (M : ℕ) : MovesOK (· ≤ 64) False (readChildCount M) := by
+  unfold readChildCount
   exact MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (movesOK_require _ _) fun _ ↦
     MovesOK.liftOption _
 
@@ -58,22 +58,22 @@ theorem movesOK_readChildren (nB : ℕ) : ∀ n, MovesOK (· ≤ 64) False (read
       MovesOK.seq (movesOK_readChildren nB n) fun _ ↦ trivial
 
 theorem movesOK_batchAny (M : ℕ) (bytecode : List K) :
-    MovesOK (· ≤ 64) False (batchAny M bytecode) := by
-  unfold batchAny batchProg
+    MovesOK (· ≤ 64) False (boundedBatchingProgram M bytecode) := by
+  unfold boundedBatchingProgram batchingProgram
   exact MovesOK.seq (movesOK_readCount M) fun n ↦
     MovesOK.seq (movesOK_readChildren _ n) fun cs ↦ movesOK_batchRest bytecode cs
 
 /-! ## The duplex discipline -/
 
 theorem hOnly_hsRun : ∀ (fs : List (List Digest → Bytes)) (ds : List Digest),
-    HOnly (Seed.hsRun queryH fs ds)
+    HOnly (Seed.hsRun callKeccak256 fs ds)
   | [], _ => hOnly_pure _
   | f :: fs, ds => by
     simp only [Seed.hsRun]
     exact (hOnly_queryH _).bind fun _ ↦ hOnly_hsRun fs _
 
-theorem duplexP_batchSeed (h : List KState) :
-    DuplexP (batchSeedOf.run queryH queryF) h fun seed h' ↦ seed ∈ h' := by
+theorem duplexP_batchSeed (h : List KeccakState) :
+    DuplexP (batchSeedOf.run callKeccak256 callKeccakF1600) h fun seed h' ↦ seed ∈ h' := by
   simp only [Seed.run, batchSeedOf]
   refine ((hOnly_hsRun _ _).duplexP h).bind fun ds h' hh ↦ ?_
   subst hh
@@ -82,25 +82,25 @@ theorem duplexP_batchSeed (h : List KState) :
 
 /-- **The batching program follows the duplex discipline.** -/
 theorem duplexVm_batch (M : ℕ) (bytecode : List K) (z : Unit × Proof) :
-    DuplexVm (verifierFam batchSeeds (batchAny M bytecode) z) [] := by
+    DuplexVm (verifierFam batchSeeds (boundedBatchingProgram M bytecode) z) [] := by
   rw [duplexVm_iff_duplexP, verifierFam_batch]
   change DuplexP (do
-    let seed ← batchSeedOf.run queryH queryF
-    runProof queryH queryF (batchAny M bytecode) seed z.2) [] _
+    let seed ← batchSeedOf.run callKeccak256 callKeccakF1600
+    runProof callKeccak256 callKeccakF1600 (boundedBatchingProgram M bytecode) seed z.2) [] _
   exact (duplexP_batchSeed []).bind fun seed h' hs ↦ duplexP_runProof _ hs _
 
 /-! ## The permutation calls -/
 
-theorem batchLabel_length : batchLabel.length ≤ 2 ^ 39 := by decide +kernel
+theorem batchLabel_length : batchingLabel.length ≤ 2 ^ 39 := by decide +kernel
 
-theorem allQ_batchSeed : AllQueriesSatisfy (batchSeedOf.run queryH queryF) Short := by
+theorem allQ_batchSeed : AllQueriesSatisfy (batchSeedOf.run callKeccak256 callKeccakF1600) Short := by
   refine allQueriesSatisfy_bind (allQ_hsRun _ _ fun f hf ds ↦ ?_) fun _ ↦ allQ_queryF _
   simp only [batchSeedOf, List.mem_cons, List.not_mem_nil, or_false] at hf
   subst hf
   exact batchLabel_length.trans (Nat.le_add_right _ _)
 
 theorem allQ_batch (M : ℕ) (bytecode : List K) (z : Unit × Proof) :
-    AllQueriesSatisfy (verifierFam batchSeeds (batchAny M bytecode) z) Short := by
+    AllQueriesSatisfy (verifierFam batchSeeds (boundedBatchingProgram M bytecode) z) Short := by
   rw [verifierFam_batch]
   exact allQueriesSatisfy_bind allQ_batchSeed fun seed ↦
     allQ_runProof _ seed z.2 (WidthsLE.of_moves (movesOK_batchAny M bytecode))
@@ -108,8 +108,8 @@ theorem allQ_batch (M : ℕ) (bytecode : List K) (z : Unit × Proof) :
 /-- **The batching program makes at most `QV · 2^32` permutation calls**, `QV` its query
 bound. -/
 theorem isWeightBound_batch (M : ℕ) (bytecode : List K) (z : Unit × Proof) :
-    Common.IsWeightBound (verifierFam batchSeeds (batchAny M bytecode) z) hashBlocks
-      (batchQueryBound bytecode M * 2 ^ 32) :=
+    Common.QueryCostAtMost (verifierFam batchSeeds (boundedBatchingProgram M bytecode) z) hashBlocks
+      (batchingQueryBound bytecode M * 2 ^ 32) :=
   isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 32) (isTotalQueryBound_batchFam M bytecode z)
     ((allQ_batch M bytecode z).mono fun _ h ↦ hashBlocks_le_of_short h)
 
@@ -124,15 +124,15 @@ shapes one of whose claims is false is at most `batch_rom`'s bound,
 `(QA + QV) · (batchε M + failBound (QA + QV))`, plus `rpmError (QA + QV · 2^32)`, `QV` the
 program's query bound. -/
 theorem batch_rpm (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length) (hM : M ≤ 2 ^ 64 - 1)
-    (A : OracleComp (Common.permSpec KState) (Unit × Proof)) (QA : ℕ) (hA : A.IsTotalQueryBound QA) :
-    Pr{let z ← detRun A (verifierFam batchSeeds (batchAny M bytecode))}[
-      z.2 = true ∧ FalseChildren bytecode M z.1.2] ≤
-      ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) *
-          (batchε M + failBound batchSeeds (QA + batchQueryBound bytecode M)) +
-        rpmError (QA + batchQueryBound bytecode M * 2 ^ 32) := by
-  obtain ⟨A', hA', hle⟩ := detRun_le_rom A (verifierFam batchSeeds (batchAny M bytecode))
+    (A : OracleComp (Common.permutationOracleSpec KeccakState) (Unit × Proof)) (QA : ℕ) (hA : A.IsTotalQueryBound QA) :
+    Pr{let z ← detRun A (verifierFam batchSeeds (boundedBatchingProgram M bytecode))}[
+      z.2 = true ∧ SomeChildClaimFalse bytecode M z.1.2] ≤
+      ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) *
+          (batchε M + failBound batchSeeds (QA + batchingQueryBound bytecode M)) +
+        rpmError (QA + batchingQueryBound bytecode M * 2 ^ 32) := by
+  obtain ⟨A', hA', hle⟩ := detRun_le_rom A (verifierFam batchSeeds (boundedBatchingProgram M bytecode))
     (duplexVm_batch M bytecode) hA (isWeightBound_batch M bytecode)
-    (fun z ↦ z.2 = true ∧ FalseChildren bytecode M z.1.2)
+    (fun z ↦ z.2 = true ∧ SomeChildClaimFalse bytecode M z.1.2)
   refine hle.trans (add_le_add (le_of_eq_of_le ?_ (batch_rom hb hM A' QA hA')) le_rfl)
   rw [romStep_eq, prEvent_map]
 
@@ -170,21 +170,21 @@ theorem two_mul_inv_pow_189 : 2 * (2 : ℝ≥0∞)⁻¹ ^ 189 = (2 : ℝ≥0∞)
 adversary's queries to `π` and `π⁻¹` and the program's query bound), the program accepts fewer
 than `M` children with a false claim with probability at most `(QA + QV) · max(M, 1) · 2^-188`. -/
 theorem batch_rpm_bits (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)
-    (hM : M ≤ 2 ^ 64 - 1) (A : OracleComp (Common.permSpec KState) (Unit × Proof)) (QA : ℕ)
-    (hA : A.IsTotalQueryBound QA) (hQ : QA + batchQueryBound bytecode M ≤ 2 ^ 64) :
-    Pr{let z ← detRun A (verifierFam batchSeeds (batchAny M bytecode))}[
-      z.2 = true ∧ FalseChildren bytecode M z.1.2] ≤
-      ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 188) := by
+    (hM : M ≤ 2 ^ 64 - 1) (A : OracleComp (Common.permutationOracleSpec KeccakState) (Unit × Proof)) (QA : ℕ)
+    (hA : A.IsTotalQueryBound QA) (hQ : QA + batchingQueryBound bytecode M ≤ 2 ^ 64) :
+    Pr{let z ← detRun A (verifierFam batchSeeds (boundedBatchingProgram M bytecode))}[
+      z.2 = true ∧ SomeChildClaimFalse bytecode M z.1.2] ≤
+      ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 188) := by
   refine (batch_rpm hb hM A QA hA).trans ?_
   have hm : (1 : ℝ≥0∞) ≤ (max M 1 : ℕ) := by exact_mod_cast (show 1 ≤ max M 1 by omega)
-  calc ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) *
-          (batchε M + failBound batchSeeds (QA + batchQueryBound bytecode M)) +
-        rpmError (QA + batchQueryBound bytecode M * 2 ^ 32)
-      ≤ ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 189) +
-          ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 189) :=
+  calc ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) *
+          (batchε M + failBound batchSeeds (QA + batchingQueryBound bytecode M)) +
+        rpmError (QA + batchingQueryBound bytecode M * 2 ^ 32)
+      ≤ ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 189) +
+          ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 189) :=
         add_le_add (by gcongr; exact batchε_add_failBound_le M hQ)
           ((rpmError_batch_le hQ).trans (by gcongr; exact le_mul_of_one_le_left zero_le hm))
-    _ = ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 188) := by
+    _ = ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 188) := by
         rw [← mul_add, ← two_mul, ← two_mul_inv_pow_189]
         ring
 
@@ -230,27 +230,27 @@ theorem batch_bound_le {QA QV M : ℕ} (hQA : QA ≤ 2 ^ 128) (hQV : QV ≤ 2 ^ 
 /-- The batching's statement family run on a proof is the batching's verifier
 (`Statement/LeanVmGuest.lean`) with the oracle calls. -/
 theorem verifierFam_eq_batchRun (M : ℕ) (bytecode : List K) :
-    verifierFam batchSeeds (batchAny M bytecode) =
-      fun z ↦ batchRun queryH queryF (batchAny M bytecode) z.2 := by
+    verifierFam batchSeeds (boundedBatchingProgram M bytecode) =
+      fun z ↦ runBatching callKeccak256 callKeccakF1600 (boundedBatchingProgram M bytecode) z.2 := by
   funext z
   rw [verifierFam_batch]
-  simp only [verifierComp, Rom.verify, Seed.run, batchSeedOf, Seed.hsRun, batchRun,
+  simp only [verifierComp, Rom.verify, Seed.run, batchSeedOf, Seed.hsRun, runBatching,
     bind_assoc, pure_bind, List.nil_append, List.getD_cons_zero]
 
 /-- No children are fewer than `0`. -/
-theorem not_falseChildren_zero (bytecode : List K) (π : Proof) : ¬ FalseChildren bytecode 0 π :=
+theorem not_falseChildren_zero (bytecode : List K) (π : Proof) : ¬ SomeChildClaimFalse bytecode 0 π :=
   fun ⟨_, hlt, _⟩ ↦ Nat.not_lt_zero _ hlt
 
-/-- **`BatchSound`** (`Statement/LeanVmGuest.lean`): no false children below `M = 0`; else the
+/-- **`BatchingSound`** (`Statement/LeanVmGuest.lean`): no false children below `M = 0`; else the
 adversary's coins do not help (`rpmRun_le_det`), then `batch_rpm` and `batch_bound_le`. -/
-theorem batch_sound_holds : BatchSound := by
+theorem batch_sound_holds : BatchingSound := by
   intro M bytecode hb hM B QA hB hQA hQV
   rcases Nat.eq_zero_or_pos M with rfl | hM1
   · refine le_of_eq_of_le ?_ zero_le
     exact (prEvent_eq_zero_iff _ _).2 fun z _ h ↦ not_falseChildren_zero bytecode _ h.2
   rw [← verifierFam_eq_batchRun]
-  obtain ⟨A, hA, hle⟩ := rpmRun_le_det hB (verifierFam batchSeeds (batchAny M bytecode))
-    (fun z ↦ z.2 = true ∧ FalseChildren bytecode M z.1.2)
+  obtain ⟨A, hA, hle⟩ := rpmRun_le_det hB (verifierFam batchSeeds (boundedBatchingProgram M bytecode))
+    (fun z ↦ z.2 = true ∧ SomeChildClaimFalse bytecode M z.1.2)
   exact hle.trans ((batch_rpm hb hM A QA hA).trans (batch_bound_le hQA hQV hM1))
 
 end LeanVM.Guest.Batch

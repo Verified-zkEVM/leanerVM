@@ -106,22 +106,22 @@ theorem noCommit_ret {α : Type} (a : α) : NoCommit (Prog.ret a) := (noCommit_i
 
 theorem noCommit_fail {α : Type} : NoCommit (Prog.fail : Prog α) := (noCommit_iff _).2 trivial
 
-theorem noCommit_readE : NoCommit Prog.readE := (noCommit_iff _).2 fun _ ↦ trivial
+theorem noCommit_readE : NoCommit Prog.readScalar := (noCommit_iff _).2 fun _ ↦ trivial
 
-theorem noCommit_sampleE : NoCommit Prog.sampleE := (noCommit_iff _).2 fun _ ↦ trivial
+theorem noCommit_sampleE : NoCommit Prog.sampleChallenge := (noCommit_iff _).2 fun _ ↦ trivial
 
-theorem noCommit_readN : ∀ n, NoCommit (Prog.readN n)
+theorem noCommit_readN : ∀ n, NoCommit (Prog.readScalars n)
   | 0 => noCommit_ret _
   | n + 1 => by
-    simp only [Prog.readN, Prog.bind_eq, Prog.pure_eq]
+    simp only [Prog.readScalars, Prog.bind_eq, Prog.pure_eq]
     refine NoCommit.bind noCommit_readE fun _ ↦ ?_
     refine NoCommit.bind (noCommit_readN n) fun _ ↦ ?_
     exact noCommit_ret _
 
-theorem noCommit_sampleN : ∀ n, NoCommit (Prog.sampleN n)
+theorem noCommit_sampleN : ∀ n, NoCommit (Prog.sampleChallenges n)
   | 0 => noCommit_ret _
   | n + 1 => by
-    simp only [Prog.sampleN, Prog.bind_eq, Prog.pure_eq]
+    simp only [Prog.sampleChallenges, Prog.bind_eq, Prog.pure_eq]
     refine NoCommit.bind noCommit_sampleE fun _ ↦ ?_
     refine NoCommit.bind (noCommit_sampleN n) fun _ ↦ ?_
     exact noCommit_ret _
@@ -224,7 +224,7 @@ theorem noCommit_tablePhase (layout : Layout) (bus : BusResult) :
   intro r
   nc
 
-theorem noCommit_tablesSeg (c : FixedClaims) (L : Layout) (pi : Digest) (alphas : List E)
+theorem noCommit_tablesSeg (c : BytecodeClaim) (L : Layout) (pi : Digest) (alphas : List E)
     (beta : E) (point tv : List E) :
     NoCommit (Tables.tablesSeg (claimedValue c) L pi alphas beta point tv) := by
   unfold Tables.tablesSeg

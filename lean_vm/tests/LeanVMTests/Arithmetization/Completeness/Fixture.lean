@@ -24,20 +24,20 @@ local notation "d₀" => (gpow 2047 : K)
 /-! ## Arms and runs -/
 
 /-- `XOR` executes to the fall-through when its result cell holds the sum of its operands. -/
-theorem executeWith_xor_of_reads {read : K → Option E} {r : Regs K} {oA oB oC : K} {a b c : E}
+theorem executeWith_xor_of_reads {read : K → Option E} {r : Registers K} {oA oB oC : K} {a b c : E}
     (hA : read (r.fp * oA) = some a) (hB : read (r.fp * oB) = some b)
     (hC : read (r.fp * oC) = some c) (h : c = a + b) :
     executeWith read r (.xor oA oB oC) = some r.next := by
   simp [executeWith, hA, hB, hC, h]
 
 /-- `SET_CONSTANT` executes to the fall-through when its cell holds its immediate. -/
-theorem executeWith_set_of_read {read : K → Option E} {r : Regs K} {o : K} {k : E}
+theorem executeWith_set_of_read {read : K → Option E} {r : Registers K} {o : K} {k : E}
     (h : read (r.fp * o) = some k) : executeWith read r (.setConstant o k) = some r.next := by
   simp [executeWith, h]
 
 /-- A `JUMP` whose three cells hold words of `K`, the condition nonzero, goes to the destination
 in the frame the third cell holds. -/
-theorem executeWith_jump_taken {read : K → Option E} {r : Regs K} {oc od of : K} {c d f : K}
+theorem executeWith_jump_taken {read : K → Option E} {r : Registers K} {oc od of : K} {c d f : K}
     (hc : read (r.fp * oc) = some (ofK c)) (hd : read (r.fp * od) = some (ofK d))
     (hf : read (r.fp * of) = some (ofK f)) (hc0 : c ≠ 0) :
     executeWith read r (.jump oc od of) = some ⟨d, f⟩ := by
@@ -50,14 +50,14 @@ theorem executeWith_jump_taken {read : K → Option E} {r : Regs K} {oc od of : 
   simp [executeWith, hc, hd, hf, hin, hne, limb_ofK]
 
 /-- One step from a state away from the last slot is a run of one step. -/
-theorem run_one {κ : ℕ} {prog : Program} {L : MemImage κ} {r r' : Regs K}
+theorem run_one {κ : ℕ} {prog : Program} {L : MemoryImage κ} {r r' : Registers K}
     (hpc : r.pc ≠ prog.pcFinal) (h : step prog L r = some r') : run prog L 1 r = some r' := by
   rw [run_succ_of_ne hpc, h]
   simp only [Option.bind_eq_bind, Option.bind_some]
   rfl
 
 /-- Runs compose. -/
-theorem run_trans {κ : ℕ} {prog : Program} {L : MemImage κ} {m n : ℕ} {r r₁ r₂ : Regs K}
+theorem run_trans {κ : ℕ} {prog : Program} {L : MemoryImage κ} {m n : ℕ} {r r₁ r₂ : Registers K}
     (h1 : run prog L m r = some r₁) (h2 : run prog L n r₁ = some r₂) :
     run prog L (m + n) r = some r₂ := by
   rw [run_add, h1]
@@ -81,9 +81,9 @@ theorem gpow_ne_pcFinal (prog : Program) {n : ℕ} (hn : n + 1 < 2 ^ prog.logSiz
   omega
 
 /-- Reading the address of a literal index gives the cell at that index. -/
-theorem read_lit {κ : ℕ} (L : MemImage κ) (j : ℕ) (hκ : κ < 64 := by decide)
+theorem read_lit {κ : ℕ} (L : MemoryImage κ) (j : ℕ) (hκ : κ < 64 := by decide)
     (hj : j < 2 ^ κ := by decide) : L.read (gpow j) = some (L ⟨j, hj⟩) :=
-  MemImage.read_gpow hκ L ⟨j, hj⟩
+  MemoryImage.read_gpow hκ L ⟨j, hj⟩
 
 /-! ## The image -/
 
@@ -120,7 +120,7 @@ theorem d₀_ne_zero : d₀ ≠ 0 := by decide +kernel
 
 /-- The image: the two public words, the `JUMP` operand cells `(d, d)` and `1`, and `y²`
 everywhere else. -/
-def badImage (d : K) : MemImage minLogMem := fun i ↦
+def badImage (d : K) : MemoryImage minLogMem := fun i ↦
   match (i : ℕ) with
   | 0 => wA
   | 1 => wB
@@ -146,8 +146,8 @@ def badInput : PublicInput := ⟨![0, 1, 0, K.ofBits 2]⟩
 
 /-- On an image where no word is the sum of two words, no `XOR` executes, whatever the operands and
 registers. -/
-theorem no_xor_execute {κ : ℕ} (hκ : κ < 64) (L : MemImage κ)
-    (hL : ∀ i j k, L k ≠ L i + L j) (r : Regs K) (oA oB oC : K) :
+theorem no_xor_execute {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ)
+    (hL : ∀ i j k, L k ≠ L i + L j) (r : Registers K) (oA oB oC : K) :
     execute L r (.xor oA oB oC) = none := by
   unfold execute executeWith
   rcases hA : L.read (r.fp * oA) with _ | vA
@@ -156,27 +156,27 @@ theorem no_xor_execute {κ : ℕ} (hκ : κ < 64) (L : MemImage κ)
   · simp [hA, hB]
   rcases hC : L.read (r.fp * oC) with _ | vC
   · simp [hA, hB, hC]
-  obtain ⟨i, -, rfl⟩ := (MemImage.read_eq_some_iff hκ L).mp hA
-  obtain ⟨j, -, rfl⟩ := (MemImage.read_eq_some_iff hκ L).mp hB
-  obtain ⟨k, -, rfl⟩ := (MemImage.read_eq_some_iff hκ L).mp hC
+  obtain ⟨i, -, rfl⟩ := (MemoryImage.read_eq_some_iff hκ L).mp hA
+  obtain ⟨j, -, rfl⟩ := (MemoryImage.read_eq_some_iff hκ L).mp hB
+  obtain ⟨k, -, rfl⟩ := (MemoryImage.read_eq_some_iff hκ L).mp hC
   simp [hA, hB, hC, hL i j k]
 
 /-- No `XOR` executes on the image, at any registers and operands. -/
-theorem badImage_no_xor (r : Regs K) (oA oB oC : K) :
+theorem badImage_no_xor (r : Registers K) (oA oB oC : K) :
     execute (badImage d₀) r (.xor oA oB oC) = none :=
   no_xor_execute (by decide) (badImage d₀)
     (fun i j k ↦ S_sumfree _ (badImage_mem d₀ i) _ (badImage_mem d₀ j) _ (badImage_mem d₀ k))
     r oA oB oC
 
 /-- The all-zero image. -/
-def zeroImage : MemImage minLogMem := fun _ ↦ 0
+def zeroImage : MemoryImage minLogMem := fun _ ↦ 0
 
 /-- Control: the sum-free hypothesis is what blocks the step. On the all-zero image, where
 `0 = 0 + 0`, an `XOR` of three cells executes. -/
 theorem zeroImage_xor :
     execute zeroImage ⟨gpow 5, 1⟩ (.xor (gpow 0) (gpow 0) (gpow 0)) =
-      some (Regs.next ⟨gpow 5, 1⟩) := by
-  have h : zeroImage.read (((⟨gpow 5, 1⟩ : Regs K).fp) * gpow 0) = some 0 := by
+      some (Registers.next ⟨gpow 5, 1⟩) := by
+  have h : zeroImage.read (((⟨gpow 5, 1⟩ : Registers K).fp) * gpow 0) = some 0 := by
     show zeroImage.read (1 * gpow 0) = some 0
     rw [one_mul]
     exact read_lit zeroImage 0
@@ -186,8 +186,8 @@ theorem zeroImage_xor :
 
 theorem bad_run (prog : Program) (d : K) (hd : prog.pcFinal = d) (hd0 : d ≠ 0) (hd1 : d ≠ 1)
     (h0 : prog.fetch 1 = some (.jump (gpow 2) (gpow 2) (gpow 3))) :
-    run prog (badImage d) 1 Regs.initial = some (Regs.final prog) := by
-  have hne : (Regs.initial : Regs K).pc ≠ prog.pcFinal := by
+    run prog (badImage d) 1 Registers.initial = some (Registers.final prog) := by
+  have hne : (Registers.initial : Registers K).pc ≠ prog.pcFinal := by
     rw [hd]; exact fun h ↦ hd1 h.symm
   have e2 : (badImage d).read (gpow 2) = some (ofK d) := by
     rw [read_lit (badImage d) 2]; rfl
@@ -200,16 +200,16 @@ theorem bad_run (prog : Program) (d : K) (hd : prog.pcFinal = d) (hd0 : d ≠ 0)
     have := congrArg (fun z : E ↦ z.limb 0) h
     simp only [limb_ofK, limb_zero] at this
     exact hd0 this
-  rw [run_succ_of_ne hne, step_of_fetch_eq_some (r := Regs.initial) h0]
+  rw [run_succ_of_ne hne, step_of_fetch_eq_some (r := Registers.initial) h0]
   show (execute (badImage d) ⟨1, 1⟩ (.jump (gpow 2) (gpow 2) (gpow 3))) >>= _ = _
   simp only [execute, executeWith, one_mul, e2, e3]
   have hin1' : IsInK (1 : E) := by simpa using hin1
   have hl1 : (1 : E).limb 0 = 1 := by simpa using limb_ofK (1 : K) 0
-  simp [hin, hin1', hne0, limb_ofK, hl1, run_zero, Regs.final, hd]
+  simp [hin, hin1', hne0, limb_ofK, hl1, run_zero, Registers.final, hd]
 
 /-- The image holds the public words at `g^0` and `g^1`. -/
 theorem bad_boundary {prog : Program} (d : K) (steps : ℕ) :
-    HasPublicBoundary badInput (⟨minLogMem, badImage d, steps⟩ : Trace prog) := by
+    HoldsPublicInput badInput (⟨minLogMem, badImage d, steps⟩ : Execution prog) := by
   refine ⟨le_rfl, (by decide : minLogMem ≤ maxLogMem), ?_, ?_⟩
   · rw [read_lit (badImage d) 0]; rfl
   · rw [read_lit (badImage d) 1]; rfl
@@ -218,7 +218,7 @@ theorem bad_boundary {prog : Program} (d : K) (steps : ℕ) :
 the sentinel is a valid execution on `badImage d₀`. -/
 theorem bad_valid (prog : Program) (hL : prog.logSize = 11)
     (h0 : prog.fetch 1 = some (.jump (gpow 2) (gpow 2) (gpow 3))) :
-    ValidExecution prog badInput (⟨minLogMem, badImage d₀, 1⟩ : Trace prog) := by
+    ValidExecution prog badInput (⟨minLogMem, badImage d₀, 1⟩ : Execution prog) := by
   have hfin : prog.pcFinal = d₀ := by
     have h : 2 ^ prog.logSize - 1 = 2047 := by rw [hL]; norm_num
     unfold Program.pcFinal
@@ -242,7 +242,7 @@ theorem jumpProg_fetch_one : jumpProg.fetch 1 = some (.jump (gpow 2) (gpow 2) (g
   simp [jumpProg]
 
 /-- The trace: one step, `JUMP` to the sentinel. -/
-def badTrace : Trace jumpProg := ⟨minLogMem, badImage d₀, 1⟩
+def badTrace : Execution jumpProg := ⟨minLogMem, badImage d₀, 1⟩
 
 /-- It is a valid execution. -/
 theorem badTrace_valid : ValidExecution jumpProg badInput badTrace :=

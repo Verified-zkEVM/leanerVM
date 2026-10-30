@@ -609,8 +609,8 @@ end Honest
 result. -/
 def busK3 (L : Verifier.Layout) (alphas : List E) (beta : E) (g : E × List E × List E) :
     Prog BusResult :=
-  (Prog.require (g.1 ≠ 0)).bind fun _ ↦ (Prog.readN 3).bind fun memory ↦
-    Prog.readE.bind fun memoryFinal ↦ Prog.readE.bind fun bytecodeFinal ↦
+  (Prog.require (g.1 ≠ 0)).bind fun _ ↦ (Prog.readScalars 3).bind fun memory ↦
+    Prog.readScalar.bind fun memoryFinal ↦ Prog.readScalar.bind fun bytecodeFinal ↦
       Prog.ret (busOut L alphas beta g.2.1 g.2.2 memory memoryFinal bytecodeFinal)
 
 /-- The verifier's bus phase after `β`. -/
@@ -619,10 +619,10 @@ def busK2 (L : Verifier.Layout) (D : ℕ) (alphas : List E) (beta : E) : Prog Bu
 
 /-- The verifier's bus phase after `α`. -/
 def busK1 (L : Verifier.Layout) (D : ℕ) (alphas : List E) : Prog BusResult :=
-  Prog.sampleE.bind (busK2 L D alphas)
+  Prog.sampleChallenge.bind (busK2 L D alphas)
 
 theorem verifyBusBalance_eq' (L : Verifier.Layout) :
-    verifyBusBalance computedValue L = (Prog.sampleN busBits).bind
+    verifyBusBalance computedValue L = (Prog.sampleChallenges busBits).bind
       (busK1 L (busLayout [0, L.logMemory, L.logBytecode] L.push).depth) := by
   rw [verifyBusBalance_eq]
   rfl
