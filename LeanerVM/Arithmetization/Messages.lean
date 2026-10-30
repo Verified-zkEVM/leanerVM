@@ -136,7 +136,7 @@ theorem activeMessages_filter_name (l : List (Interaction K)) (h : ∀ i ∈ l, 
   rw [List.filter_filter, List.filter_map, List.map_map]
   congr 1
   refine List.filter_congr fun i hi ↦ ?_
-  simp [h i hi, and_comm]
+  simp [h i hi, Bool.and_comm]
 
 /-- An interaction of multiplicity `1`, evaluated, has multiplicity `1`. -/
 theorem eval_mult_eq_one {i : AbstractInteraction K} (h : i.mult = 1) (env : Environment K) :
