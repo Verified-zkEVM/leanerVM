@@ -400,9 +400,12 @@ verifier.
 
 \subsection{Soundness}
 
-\paragraph{The decoder.} Both soundness statements take a decoder: a map from an execution of $G$
-to a seed $\sigma'$, a statement $s'$ and a witness $w'$. \lean{LeanVM.theorems_hold} proves them
-for one decoder, $\mathrm{dec}$ (\lean{LeanVM.Guest.End.decode}). It lives in \lean{lean_vm}, not
+\paragraph{The decoder.} Two statements below take a decoder, a map from an execution of $G$ to a
+seed $\sigma'$, a statement $s'$ and a witness $w'$: the end theorem \lean{GuestKnowledge} and its
+corollary \lean{AggregateSound}. Both are proved for one decoder, $\mathrm{dec}$
+(\lean{LeanVM.Guest.End.decode}): \lean{GuestKnowledge} by \lean{LeanVM.theorems_hold}, and
+\lean{AggregateSound} by \lean{LeanVM.corollaries_hold}, which derives it from the end theorems.
+$\mathrm{dec}$ lives in \lean{lean_vm}, not
 \lean{Statement/}, because it unfolds to the guest program's generated core code (about
 $471{,}000$ lines). A reviewer must read it too: a decoder that returned another statement of the
 same digest would still satisfy \lean{GuestKnowledge}, up to a Keccak-256 collision
