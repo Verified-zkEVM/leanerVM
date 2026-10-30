@@ -39,10 +39,10 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   completeness : LeanVM.Completeness
   /-- Every valid execution of the leanISA guest program proves the node statement its public
   input commits to: `decode` reads off its memory a seed, a statement whose digest under that seed
-  is the input's digest, and a witness for it: each claim of the statement is held, by a
-  signature, a blob or a child whose proof the deferring verifier accepts, the bytecode's value at
-  the child's point taken from the witness and checked only at the root (`NodeRel`,
-  `LeanVmGuest.lean`). -/
+  is the input's digest, and a witness for it: each signature claim of the statement is held, by a
+  signature or a child whose proof the deferring verifier accepts, the bytecode's value at the
+  child's point taken from the witness and checked only at the root, and its DA digest is that of
+  the blob matrix it checks, zeros or a child's (`NodeRel`, `LeanVmGuest.lean`). -/
   guestKnowledge : LeanVM.Node.GuestKnowledge LeanVM.Guest.guest decode
   /-- A statement's digest binds the seed and the statement, up to a Keccak-256 collision among
   the candidates (`LeanVmGuest.lean`). With the two fields above it gives what an accepted proof
