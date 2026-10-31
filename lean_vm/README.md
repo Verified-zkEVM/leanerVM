@@ -142,7 +142,7 @@ python3 -I scripts/prover-diff.py /tmp/prover-cases --mutations 40 --jobs 4 --id
   --expected tests/fixtures/verifier
 ```
 
-On the corpus (`--corpus`: 17 programs at the four rates, 68 proofs, memory `2^16` to `2^18` words, up to 175,053 instructions) every Lean-made proof is byte-identical to the Rust prover's (as the Rust verifier expands its pruned paths) and accepted by both verifiers, and 748 of 748 mutations of them are rejected by both (12 cases per proof, no verdict difference). The Lean prover takes 34 to 60 s per small proof and 344 to 808 s for `chain5000` (`2^18` words), 5,197 s in all against 290 s for the Rust prover (multithreaded), about 18 times slower; at small sizes most of it is the proofs of work (`2^17` Keccak-f[1600] permutations each, at the statement's compiled Keccak).
+On the corpus (`--corpus`: 17 programs at the four rates, 68 proofs, memory `2^16` to `2^18` words, up to 175,053 instructions) every Lean-made proof is byte-identical to the Rust prover's (as the Rust verifier expands its pruned paths) and accepted by both verifiers, and 748 of 748 mutations of them are rejected by both (12 cases per proof, no verdict difference). On `chain4-rate1` the Lean prover takes 16 s of CPU (36 s before `LeanVM/Prover/Fast/` and the restated instances and Keccak of `Statement/Fast/`), and on `chain5000-rate1` (`2^18` words) 188 s (339 s); the corpus, six proofs at a time on a shared machine, took 15 to 130 s per small proof and 177 to 570 s for `chain5000`, 2,876 s in all (5,197 s before), against 119 s for the Rust prover (multithreaded). The time is the field arithmetic: the carry-less products, and the conversions and allocations of `K` words that are big numbers; the proofs of work and Keccak are a few percent.
 
 ## Layout
 
