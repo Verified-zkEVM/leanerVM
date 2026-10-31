@@ -55,7 +55,8 @@ theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement}
       (publicInputOf (statementDigest (deployedSeed guest) s)) t ρ (2 ^ 25) = some proof)
     (hacc : Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 guest
       (publicInputOf (statementDigest (deployedSeed guest) s)) proof = true) :
-    ∃ fresh, LeanVM.Guest.AcceptableChild bytecode (deployedSeed guest) ⟨s, fresh, proof⟩ := by
+    ∃ fresh, fresh.Holds bytecode ∧
+      LeanVM.Guest.AcceptableChild bytecode (deployedSeed guest) ⟨s, fresh, proof⟩ := by
   set d := statementDigest (deployedSeed guest) s with hd
   have hpd : publicDigest (publicInputOf d) = d := publicDigest_publicInputOf d
   -- the claim the run evaluates
@@ -72,7 +73,7 @@ theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement}
   obtain ⟨w, sz, hchild, hprove⟩ := prove_of_some hA hsome
   obtain ⟨⟨hρ, hw, hs, hadm, -⟩, -⟩ := id hchild
   obtain ⟨rest, hrest⟩ := stream_prefix keccak256 keccakF1600 hprove
-  refine ⟨c, ⟨hsh, hV, ?_, stream_le_of_verifyDeferred hV, ?_, hRZ⟩⟩
+  refine ⟨c, hc, ⟨hsh, hV, ?_, stream_le_of_verifyDeferred hV, ?_, hRZ⟩⟩
   · -- the stack log
     show ∀ layout r, announced bytecode proof.stream = some (layout, r) → _
     rw [hrest]
@@ -108,7 +109,8 @@ theorem childOk_of_verifierRZ {s : NodeStatement} {t : Execution guest} {ρ : �
       (publicInputOf (statementDigest (deployedSeed guest) s)) t ρ (2 ^ 25) = some proof)
     (hacc : Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 guest
       (publicInputOf (statementDigest (deployedSeed guest) s)) proof = true) :
-    ∃ fresh, LeanVM.Guest.AcceptableChild bytecode (deployedSeed guest) ⟨s, fresh, proof⟩ :=
+    ∃ fresh, fresh.Holds bytecode ∧
+      LeanVM.Guest.AcceptableChild bytecode (deployedSeed guest) ⟨s, fresh, proof⟩ :=
   childOk_of_verifierRZ_of (childSpec_childProver _ _ _ _ _) h22 hsh hsome hacc
 
 end

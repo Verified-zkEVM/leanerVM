@@ -152,8 +152,9 @@ theorem guestChildComplete_of_spec (A : HonestProverWithHash) (hA : SpecOnValid 
           (2 ^ 25) = some proof →
       Guest.Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 Guest.guest input
           proof = true →
-      ∃ fresh, LeanVM.Guest.AcceptableChild (bytecodeWords Guest.guest)
-        (deployedSeed Guest.guest) ⟨s, fresh, proof⟩ := by
+      ∃ fresh, fresh.Holds (bytecodeWords Guest.guest) ∧
+        LeanVM.Guest.AcceptableChild (bytecodeWords Guest.guest)
+          (deployedSeed Guest.guest) ⟨s, fresh, proof⟩ := by
   refine ⟨fun prog input t ρ hv hbudget hρ ↦ ?_, fun s t ρ h22 hsh _ hsome hacc ↦
     childOk_of_verifierRZ_of (hA' _ _ _ _ _) h22 hsh hsome hacc⟩
   obtain ⟨w, s, hw, hAw⟩ := hA prog input t ρ (2 ^ 25) hv hbudget hρ

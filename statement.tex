@@ -619,13 +619,17 @@ execution of committed size at most $2^{28}$, at $1 \le \rho \le 4$, with probab
 $2^{-126}$;
 \item with the deployed Keccak (\lean{honestProofWithDeployedKeccak}), wherever \lean{verifierRefusingZero} accepts its proof of an
 execution of $G$ of committed size at least $2^{22}$ on $\mathrm{dig}_{iv_G}(s)$, for $s$ of the
-bytecode's shape, that proof is a child meeting \lean{AcceptableChild} for some fresh claim.
+bytecode's shape, that proof is a child meeting \lean{AcceptableChild} for some fresh claim that is true of the
+bytecode (\lean{BytecodeClaim.Holds}): the value the deferring verifier takes from the witness is
+the bytecode's at the child's point.
 \end{enumerate}
 The guest program checks a child with the deployed Keccak, so the bad events (a proof of work with
 no nonce within its fuel, a zero challenge) are bounded in the RPM for the same prover and check,
 and their absence at the deployed Keccak gives the child's hypotheses deterministically. Completeness
 thus holds level after level as far as the deployed Keccak behaves like $\pi$ for these events; that
-step is the model's assumption, not a theorem.
+step is the model's assumption, not a theorem. Not stated either: that honest batching hints exist,
+that batching true claims gives a deferred claim that holds, and that the outer verifier accepts an
+honest root (see the last section).
 
 \section{What is not proved}
 
@@ -647,6 +651,9 @@ signature schemes and for leanVM's Fiat--Shamir: every statement is about classi
 \item LeanDA's code binding for an argument without access to $\pi$, and the link from the guest
 program's DA check (\lean{Da.MatrixWitness.Opens}) and the outer verifier's membership-vector check to
 LeanDA's code binding.
+\item That a parent can always form its witness from honest children (the batching hints exist),
+that batching true claims gives a true deferred claim, and that the deployed outer verifier
+(\texttt{EthereumProof::verify}) accepts an honest root.
 \item \lean{AcceptableChild}'s agreement of openings and absence of a zero challenge for children that are
 not honest proofs.
 \item The decoder \lean{LeanVM.Guest.End.decode}: a parameter of the statement, defined and read in

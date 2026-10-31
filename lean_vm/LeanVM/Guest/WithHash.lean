@@ -93,8 +93,8 @@ for the honest prover `LeanVM.prover` (`LeanVm.lean`, `LeanVM.Prover.prove` with
 2. its proof with the deployed Keccak (`honestProofWithDeployedKeccak`), if it makes one, of an
    execution of the leanISA guest program of committed size at least `2^22` on a statement's digest
    under the deployed seed, wherever `verifierRefusingZero` with the deployed Keccak accepts it,
-   forms with the statement (its deferred claim shaped) and some claim `freshClaim` on the bytecode
-   a child the guest program accepts (`AcceptableChild`).
+   forms with the statement (its deferred claim shaped) and some true claim `freshClaim` on the
+   bytecode (`fresh.Holds`) a child the guest program accepts (`AcceptableChild`).
 Reading part 1 for the deployed Keccak, so that part 2 applies to the honest proof, is the heuristic
 that the deployed Keccak-f[1600] behaves as a random permutation, applied to this prover.
 Proved by `LeanVM.Guest.Budget.guest_child_complete`. -/
@@ -115,7 +115,8 @@ def GuestChildCompleteWithHash : Prop :=
       honestProofWithDeployedKeccakWithHash LeanVM.proverWithHash guest input t ρ (2 ^ 25) =
         some proof →
     verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 guest input proof = true →
-    ∃ fresh, AcceptableChild (bytecodeWords guest) (deployedSeed guest) ⟨s, fresh, proof⟩
+    ∃ fresh, fresh.Holds (bytecodeWords guest) ∧
+      AcceptableChild (bytecodeWords guest) (deployedSeed guest) ⟨s, fresh, proof⟩
 
 end Budget
 
