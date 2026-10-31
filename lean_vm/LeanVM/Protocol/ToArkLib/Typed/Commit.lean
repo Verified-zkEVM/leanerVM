@@ -180,26 +180,6 @@ theorem commit_output (initial : PFunctor) (impl : QueryImpl (OracleSpec.ofPFunc
 
 variable {D Q} {relIn : S → M → Prop} {relOut : Set ((U × ∀ i, OneOracle M i) × Unit)}
 
-/-- **Completeness**: if the component is complete from the witness relation at the message into
-the question's relation, every outcome of the honest execution, for any input oracles, sends the
-witness, is accepted with the question's output on the prover's statement, and lands in `relOut`
-with the message as the oracle. -/
-theorem commit_complete (C : Complete D (atSent relIn) (Q.rel relOut)) (initial : PFunctor)
-    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : S) (m : M) (h : relIn s m) :
-    ∀ x ∈ support ((commitReduction D Q initial).execute impl s m),
-      x.1.1 = m ∧ x.2.2 = some (Q.out x.2.1.1.1) ∧ ((Q.out x.2.1.1.1, sent m), ()) ∈ relOut := by
-  intro x hx
-  simp only [Oracle.Reduction.execute, commitReduction, pure_bind] at hx
-  obtain ⟨⟨rest, hrest, hruns⟩, hout⟩ := commit_output D Q initial impl s _ x hx
-  rw [commitProver, support_pure, Set.mem_singleton_iff] at hrest
-  obtain ⟨hm, hrest⟩ := Sigma.mk.inj_iff.mp hrest
-  obtain rfl := eq_of_heq hrest
-  obtain ⟨hv, ho, hcheck, hrel⟩ := C s (sent m) () h x.1.2 x.2.1 hruns
-  rw [ho] at hcheck hrel
-  refine ⟨hm, ?_, hrel⟩
-  rw [hout, commitVerdict, hv, Question.verdict, Option.bind_some, hm]
-  simp [hcheck]
-
 /-! ## Knowledge soundness -/
 
 /-- The family of the protocol's output claims, over the message as the oracle. -/
@@ -221,15 +201,6 @@ def commitExtractor
     (X : (s : S) → (o : ∀ i, OneOracle M i) → RoundExtractor σ.tree (inState _ (atSent relIn) s o))
     (s : S) : RoundExtractor (commitSlot M σ).tree ⟨M, relIn s⟩ :=
   fun m ↦ ⟨inState _ (atSent relIn) s (sent m), fun _ ↦ m, X s (sent m)⟩
-
-/-- **The extractor reads the message**: on every execution path, whatever the terminal witness,
-the extracted witness is the message the path sends. -/
-theorem extractWitness_commit
-    (X : (s : S) → (o : ∀ i, OneOracle M i) → RoundExtractor σ.tree (inState _ (atSent relIn) s o))
-    (s : S) (path : (commitSlot M σ).tree.ExecutionPath)
-    (w : ((commitExtractor X s).terminalState path).Witness) :
-    (commitExtractor X s).extractWitness path w = path.1 :=
-  rfl
 
 variable {err : Errors σ.tree σ.roles}
 

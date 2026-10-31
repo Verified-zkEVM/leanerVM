@@ -71,11 +71,6 @@ def osFoldF (σ : Val) (st : OsSt) (d0 d2 : E) (i : ℕ) : E :=
   if i < (osMat st.cb st.co st.k).2.2 then matVal σ st.cb st.co st.k i
   else (foldVals σ st d0 d2).getD (i - (osMat st.cb st.co st.k).2.2) 0
 
-theorem foldVals_length (σ : Val) (st : OsSt) (d0 d2 : E) :
-    (foldVals σ st d0 d2).length = 11 := by
-  simp only [foldVals, List.length_append, List.length_cons, List.length_nil]
-  simp [Fs.squeeze, capOf]
-
 /-- **One round, honestly.** -/
 theorem osFold_complete
     (hC : ∀ args rets, MeaningOpeningFold rd args rets → C "opening_fold" args rets)

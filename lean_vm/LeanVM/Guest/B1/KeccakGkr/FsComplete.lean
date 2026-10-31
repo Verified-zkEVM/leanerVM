@@ -34,8 +34,6 @@ variable {C : CallRel} {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val}
 theorem rdAt_load {p : E} {k : ℕ} {v : E} (h : LoadHolds rd p k v) : rdAt rd p k = v := by
   unfold rdAt; rw [h.2]; rfl
 
-theorem limbAt_two (x : E) : limbAt x 2 = ofK (x.limb 2) := rfl
-
 theorem limbAt_zero' (x : E) : limbAt x 0 = ofK (x.limb 0) := rfl
 
 /-- **`fs_pack` on an evaluated valuation**: its honest values. -/

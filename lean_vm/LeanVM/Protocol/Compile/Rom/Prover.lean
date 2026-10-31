@@ -173,12 +173,6 @@ theorem leafDigestsM_id (height : ℕ) (word : Word) :
   simp [leavesOf, leafHash]
   rfl
 
-/-- The tree `buildTreeM` builds in `Id`. -/
-theorem buildTreeM_id (height : ℕ) (word : Word) :
-    buildTreeWithHash (m := Id) H height word =
-      ⟨height, word, (levelsWithHash (m := Id) H height (leafDigestsWithHash (m := Id) H height word)).toArray⟩ :=
-  rfl
-
 /-- **The root of the tree built once** is `treeRoot`. -/
 theorem root_buildTreeM_id (height : ℕ) (word : Word) :
     (buildTreeWithHash (m := Id) H height word).root = treeRoot H height word := by
@@ -199,8 +193,6 @@ theorem opening_buildTreeM_id (height : ℕ) (word : Word) (q : ℕ) :
     ⟨word (q % 2 ^ height), _⟩
   simp only [toArray_getD, leafDigestsM_id]
   exact congrArg _ e
-
-theorem powStepM_id (sp : Sponge) (n : E) : powStepM (m := Id) F sp n = powStep F sp n := rfl
 
 theorem searchM_id (bits : ℕ) (sp : Sponge) :
     ∀ (count n : ℕ), searchM (m := Id) F bits sp n count =

@@ -71,9 +71,6 @@ theorem l29Found : ∃ fn : Fn, coreProgram.find? "__loop27" = some fn ∧
     exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
-/-- The sponge after a squeeze has nothing waiting. -/
-theorem tb_squeeze_eta (s : Fs) : s.squeeze.2 = ⟨s.squeeze.2.cap, []⟩ := rfl
-
 /-- One round of `gkrRun`, from what the guest's round gives. -/
 theorem tb_gkrRun_cons_of {c : List E} {cs : List (List E)} {e : E} {es : List E} {claim ch : E}
     {cap cap' : List E} (hch : ch = ((⟨cap, []⟩ : Fs).absorbAll c dsObserve).squeeze.1)

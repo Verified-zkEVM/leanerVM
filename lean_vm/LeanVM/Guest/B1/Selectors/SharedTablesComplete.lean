@@ -72,10 +72,6 @@ def lpVal (j : ℕ) (N eqt z z1 gt gsq : E) (zs zs1 gs : List E) (x : ℕ) : E :
   else [word 2 0 0, gen ^ j * word 2 0 0, gen ^ j * word 2 0 0 + N, word 2 0 0,
     gen ^ j * word 2 0 0].getD (x - 72) 0
 
-theorem lp_pow16 (j : ℕ) : gen ^ j * gen ^ j * (gen ^ j * gen ^ j) * (gen ^ j * gen ^ j * (gen ^ j * gen ^ j)) *
-    (gen ^ j * gen ^ j * (gen ^ j * gen ^ j) * (gen ^ j * gen ^ j * (gen ^ j * gen ^ j))) =
-    gen ^ (16 * j) := by ring
-
 theorem lp_pow4 (j : ℕ) : gen ^ j * gen ^ j * (gen ^ j * gen ^ j) = gen ^ (4 * j) := by ring
 
 /-! ## The loop's roles at the template's values -/
@@ -124,9 +120,6 @@ end Roles
 local macro "sv" : tactic => `(tactic| simp (config := { decide := true }) only [lpVal, ↓reduceIte,
   List.getD_eq_getElem?_getD, List.getElem?_cons_zero, List.getElem?_cons_succ, Option.getD_some,
   Nat.reduceSub, Nat.reduceAdd])
-
-theorem lp_isInK_pow (j : ℕ) : IsInK (gen ^ j) :=
-  (isInK_iff _).mpr ⟨_, gen_pow_eq_ofK j⟩
 
 theorem lp_isInK_add_pow (a b : ℕ) : IsInK (gen ^ a + gen ^ b) := by
   rw [gen_pow_eq_ofK, gen_pow_eq_ofK, ← ofK_add]

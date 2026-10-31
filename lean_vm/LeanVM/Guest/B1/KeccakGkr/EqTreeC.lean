@@ -35,10 +35,6 @@ def eqtreeReads (p o : V) (po b n : ℕ) : List Atom :=
 
 variable {C : CallRel} {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val}
 
-theorem eqtreeS_ge (b t : ℕ) (ht : 1 ≤ t) : b + 3 ≤ eqtreeS b t := by
-  have := eqtreeS_mono b (le_refl 1) ht
-  rw [eqtreeS_one] at this; exact this
-
 /-- **`eqtree`, completely.** -/
 theorem eqtree_complete {p o : V} {po b n : ℕ} (hn : 1 ≤ n)
     (hg : ∀ s ∈ eqtreeT p o po b n, GoodS rd S w σ s)

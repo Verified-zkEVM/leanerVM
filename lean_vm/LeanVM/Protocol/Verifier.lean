@@ -33,11 +33,6 @@ open LeanVM.Parameters
 @[expose] public section
 
 open LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
-/-- The deployed verifier is the parametric one at `Id`, Keccak-256 and Keccak-f[1600]. -/
-theorem verifyWith_keccak (bytecode : List K) (publicInput : Digest) (π : Proof) :
-    Id.run (verifyWithHash (m := Id) keccak256 keccakF1600 bytecode publicInput π) =
-      verify bytecode publicInput π :=
-  rfl
 
 /-!
 ## Loading a proof from its four files

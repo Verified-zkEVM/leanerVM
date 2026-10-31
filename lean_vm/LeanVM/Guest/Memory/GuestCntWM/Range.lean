@@ -31,21 +31,6 @@ noncomputable def kumchkIdx (j : ℕ) : Bool :=
 /-- The `n` functions from the `a`-th pass. -/
 def kumStaticRange (a n : ℕ) : Prop := (List.range' a n).all kumchkIdx = true
 
-/-- **A function checked in ranges of its body**, its certificate a bound. -/
-theorem kumchkIdx_of_split {j : ℕ} {fn : Fn} {pre : List (ℕ × ℕ)} {b : Aff} {ks : List (V × ℕ)} {R : Acc}
-    (hfn : coreProgram[j]? = some fn) (hc : kumcertJ j = .stat pre b ks) (hh : kumhandJ.any (·.1 == j) = false)
-    (hb : blockB (kumlookJ j) (kumomLookJ j) false ks fn.params fn.name ([], []) fn.body = some R)
-    (hl : (kumlnkJ j).all (fun q => decide ((coreProgram[q.2]?).map Fn.name = some q.1)) = true)
-    (hle : (Aff.leB ⟨kumomegaJ j + R.1.c, R.1.cs⟩ b && R.2.all (· ∈ pre)) = true) : kumchkIdx j = true := by
-  unfold kumchkIdx
-  rw [hfn]
-  simp only [hh, hl, Bool.true_and, Bool.false_or]
-  unfold chkFn
-  rw [hc]
-  simp only
-  rw [blockR_eq, hb]
-  exact hle
-
 theorem kumStaticRange.get {a n j : ℕ} (h : kumStaticRange a n) (h1 : a ≤ j) (h2 : j < a + n) :
     kumchkIdx j = true := by
   unfold kumStaticRange at h

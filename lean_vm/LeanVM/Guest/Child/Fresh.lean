@@ -89,14 +89,6 @@ def execWith (ev : (List K → List E → Prog E)) (opening : ℕ → ℕ → Li
   opening layout.stackLog logInverseRate
     (ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.stackClaim layout))
 
-theorem verifyExecution_eq (ev : (List K → List E → Prog E)) (bytecode : List K) (publicInput : Digest) :
-    verifyExecutionClaims ev bytecode publicInput =
-      execWith ev verifyStackedOpening bytecode publicInput := rfl
-
-theorem verifyExecutionNZ_eq (ev : (List K → List E → Prog E)) (bytecode : List K) (publicInput : Digest) :
-    Limits.verifyExecutionNZ ev bytecode publicInput =
-      execWith ev Limits.verifyStackedOpeningNZ bytecode publicInput := rfl
-
 /-- What the prefix has read when the verifier evaluates the bytecode. -/
 structure Pre where
   layout : Layout

@@ -121,10 +121,6 @@ theorem xrun_bind {α β : Type} (f : α → Prog β) :
 def ReadsCommits (l : List Ev) : Prop :=
   ∀ e ∈ l, (∃ x, e = .read x) ∨ ∃ ht w W, e = .commit ht w W
 
-/-- The run of an absorption with a total hash and permutation, at `Id`. -/
-theorem absorb_id (F' : KeccakState → KeccakState) (sp : Sponge) (x : E) (tag : ℕ) :
-    ∃ sp' : Sponge, Compile.absorb (m := Id) F' sp x tag = sp' := ⟨_, rfl⟩
-
 /-- **A run of reads and commitments does not depend on the hash and the permutation**: an
 extracted run whose events are reads and commitments is a run with any hash `H'` and permutation
 `F'` from any sponge, reaching the same value and state up to the sponge. -/

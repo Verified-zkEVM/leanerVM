@@ -135,11 +135,6 @@ theorem chunkAt_32_append (c c' : Digest) :
     chunkAt 32 (digestBytes c ++ digestBytes c') = digestBytes c' := by
   simp [chunkAt, digestBytes_length]
 
-/-- A prefix of a known length, then a digest: the digest is the chunk past the prefix. -/
-theorem chunkAt_prefix_append (pre : Bytes) (c : Digest) (suf : Bytes) :
-    chunkAt pre.length (pre ++ digestBytes c ++ suf) = digestBytes c := by
-  simp [chunkAt, digestBytes_length]
-
 /-! ## Permutation inputs -/
 
 /-- The capacity of a state: lanes `16..25`, the part a permutation keeps. -/
@@ -418,15 +413,6 @@ theorem sum_capOf_div_le (c : Fin 9 → UInt64) :
     _ ≤ 2⁻¹ ^ 256 := by
       rw [one_div, ← ENNReal.inv_pow]
       exact ENNReal.inv_le_inv.mpr (pow_le_pow_right₀ (by norm_num) (by norm_num))
-
-/-- A digest-valued function of a uniform digest that is injective: probability `2^-256`. -/
-theorem sum_digest_eq_div_le (d : Digest) :
-    (∑ u : Digest, ind (u = d)) / Fintype.card Digest ≤ 2⁻¹ ^ 256 := by
-  have h1 : ∑ u : Digest, ind (u = d) ≤ 1 := sum_ind_le_one fun u u' hu hu' ↦ hu.trans hu'.symm
-  rw [card_digest]
-  calc (∑ u : Digest, ind (u = d)) / ((2 ^ 256 : ℕ) : ℝ≥0∞) ≤ 1 / ((2 ^ 256 : ℕ) : ℝ≥0∞) := by
-        gcongr
-    _ = 2⁻¹ ^ 256 := by rw [one_div, Nat.cast_pow, Nat.cast_ofNat, ENNReal.inv_pow]
 
 /-! ## The proof of work -/
 

@@ -253,16 +253,5 @@ theorem gkrStep_invT {n : ℕ} {st st' : GkrState} {s s' : Fs} {zs rest : List E
   · rw [e1]; rfl
   · rw [es']; rfl
 
-/-- **One step of the walk, read back** from an accepting run. -/
-theorem gkrStep_inv {n : ℕ} {st st' : GkrState} {s s' : Fs} {xs : List E}
-    (h : RunsTo (gkrStep n st) s xs st' s') (hc : ∃ sp, s.Carries sp)
-    (hn : n = 2 ∨ st.point = []) :
-    ∃ D : GkStepD, D.Ok s st n ∧ xs = D.xs ∧ st' = D.st' s st n ∧ s' = D.s' s st n := by
-  obtain ⟨sp, hsp⟩ := hc
-  have e := RunsTo.toT h hsp []
-  rw [List.append_nil] at e
-  obtain ⟨D, h1, h2, h3, h4⟩ := gkrStep_invT e hn
-  exact ⟨D, h1, by rw [h2, List.append_nil], h3, h4⟩
-
 end
 end LeanVM.Guest.B1.Tables

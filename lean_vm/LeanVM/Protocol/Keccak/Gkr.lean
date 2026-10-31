@@ -267,17 +267,6 @@ noncomputable def gkrSpec_regionValid (hst : Stable C) (hcard : ∀ h, (C h).nca
       ⟨(outClaims_iff_of_regionValid _ _ _ _ hv).2 hmid, hv, hR⟩)
     (fun _ _ h' ↦ h') le_rfl le_rfl le_rfl
 
-/-- **The error budget**: for at most `2^18` candidates, the largest group's escape
-`L₀·46/|E|` is below `2^-128`. -/
-theorem errE_46_le {L₀ : ℕ} (hL : L₀ ≤ 2 ^ 18) :
-    (L₀ : ℝ≥0∞) * errE 46 ≤ ((2 : ℝ≥0∞) ^ 128)⁻¹ := by
-  rw [errE, card_E, ← mul_assoc, ← div_eq_mul_inv,
-    ENNReal.div_le_iff (by positivity) (by simp)]
-  rw [show ((2 ^ 192 : ℕ) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 128 * 2 ^ 64 by push_cast; ring,
-    ← mul_assoc, ENNReal.inv_mul_cancel (by positivity) (by simp), one_mul]
-  have : L₀ * 46 ≤ 2 ^ 64 := by omega
-  exact_mod_cast this
-
 /-- A column given on `Fin (2^(h + 6))`, read as words of `ℕ` (`0` past the end). -/
 def colOfFin {h : ℕ} (c : Fin (2 ^ (h + 6)) → K) : ℕ → K :=
   fun n ↦ if hn : n < 2 ^ (h + 6) then c ⟨n, hn⟩ else 0

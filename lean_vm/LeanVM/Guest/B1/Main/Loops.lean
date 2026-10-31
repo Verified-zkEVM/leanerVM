@@ -93,33 +93,6 @@ def RawXStep (rd : Reader) (lxs cover lxt x : E) : Prop :=
   ∃ s, BelowLog lxs s ∧ LoadHolds rd cover s x ∧
     coreProgram.Rel rd "verify_lean_xmss" [lxt * gen ^ (4 * s)] []
 
-theorem l3_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
-    (h : coreProgram.Rel rd "__loop2" (x :: ps) []) :
-    (∀ N lxs cover lxt, ps = [N, lxs, cover, lxt] → RawXStep rd lxs cover lxt x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop2" (x * gen :: ps) []) := by
-  have hf := find_of_idx l3_idx (by rw [coreProgram_length]; omega)
-  have hok := l3_ok
-  simp only [l3Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hrc⟩, hm11⟩, hl⟩, hm14⟩, hcall⟩ := hok
-  obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
-  refine ⟨fun N lxs cover lxt hN => ?_, hnext⟩
-  have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 32 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4] := by
-    have hs := hshape
-    simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
-    rw [hs.1.2, hlen]; rfl
-  rw [hpar, hN] at hps
-  simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
-  obtain ⟨-, hlxs, hcover, hlxt⟩ := hps
-  obtain ⟨s, hs, hbl⟩ := rcBound_sound hm hrc hat
-  refine ⟨s, by rwa [← hlxs], ?_, ?_⟩
-  · have := load_sound hl hat
-    rw [isMul_sound hm11 hat, hs, hcover, hx] at this
-    simpa using (loadHolds_mul_gen_pow rd _ s 0 _).mp this
-  · have := call_of_flat hall hcall
-    rwa [List.map_cons, List.map_nil, monoIs_sound hm14 hat, hs, hlxt, ← pow_mul, mul_comm s 4]
-      at this
-
 /-! ## `__loop3`: raw leanSPHINCS signatures -/
 
 def l4Ok (fn : Fn) : Bool :=
@@ -144,36 +117,6 @@ claim at slot `s`. -/
 def RawSStep (rd : Reader) (lss cover lxs nrx lst bb x : E) : Prop :=
   ∃ s, BelowLog lss s ∧ LoadHolds rd (cover * (lxs * gen ^ s)) 0 (nrx * x) ∧
     coreProgram.Rel rd "verify_sig_lean_sphincs" [lst * gen ^ (4 * s), bb] []
-
-theorem l4_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
-    (h : coreProgram.Rel rd "__loop3" (x :: ps) []) :
-    (∀ N lss cover lxs nrx lst bb, ps = [N, lss, cover, lxs, nrx, lst, bb] →
-      RawSStep rd lss cover lxs nrx lst bb x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop3" (x * gen :: ps) []) := by
-  have hf := find_of_idx l4_idx (by rw [coreProgram_length]; omega)
-  have hok := l4_ok
-  simp only [l4Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hrc⟩, hm14⟩, hm15⟩, hm16⟩, hl⟩, hm19⟩, hcall⟩ := hok
-  obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
-  refine ⟨fun N lss cover lxs nrx lst bb hN => ?_, hnext⟩
-  have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 33 default).params =
-      [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6, V.n 7] := by
-    have hs := hshape
-    simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
-    rw [hs.1.2, hlen]; rfl
-  rw [hpar, hN] at hps
-  simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
-  obtain ⟨-, hlss, hcover, hlxs, hnrx, hlst, hbb⟩ := hps
-  obtain ⟨s, hs, hbl⟩ := rcBound_sound hm hrc hat
-  refine ⟨s, by rwa [← hlss], ?_, ?_⟩
-  · have := load_sound hl hat
-    rw [isMul_sound hm16 hat, isMul_sound hm15 hat, isMul_sound hm14 hat, hs, hcover, hlxs, hnrx,
-      hx] at this
-    exact this
-  · have := call_of_flat hall hcall
-    rwa [List.map_cons, List.map_cons, List.map_nil, monoIs_sound hm19 hat, hs, hlst, hbb,
-      ← pow_mul, mul_comm s 4] at this
 
 /-! ## A two-digest hash in a block -/
 
@@ -268,53 +211,6 @@ def KidStep (rd : Reader) (written lxt cover lxs lst lss carried dadig s0 s1 cpi
     LoadHolds rd (cpi * x ^ 2) 0 p0 ∧ LoadHolds rd (cpi * x ^ 2) 1 p1 ∧
     coreProgram.Rel rd "verify_sub" [p0, p1, s0, s1, glp, gsq, cfresh * x ^ 24] [] ∧
     LoadHolds rd (written * x) 1 (base * (gen ^ ex * gen ^ es))
-
-theorem l5_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
-    (h : coreProgram.Rel rd "__loop4" (x :: ps) []) :
-    (∀ N written lxt cover lxs lst lss carried dadig s0 s1 cpi glp gsq cfresh,
-      ps = [N, written, lxt, cover, lxs, lst, lss, carried, dadig, s0, s1, cpi, glp, gsq,
-        cfresh] →
-      KidStep rd written lxt cover lxs lst lss carried dadig s0 s1 cpi glp gsq cfresh x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop4" (x * gen :: ps) []) := by
-  have hf := find_of_idx l5_idx (by rw [coreProgram_length]; omega)
-  have hok := l5_ok
-  simp only [l5Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm16⟩, hl17⟩, hrc18⟩, hrc19⟩, hm28⟩, hc29⟩, hcx⟩, hm32⟩, hcs⟩, hm40⟩, hm42⟩, hl43⟩, hl44⟩, hsd⟩, hm48⟩, hl45⟩, hm49⟩, hl46⟩, hm55⟩, hvs⟩, hm56⟩, hm57⟩, hl56⟩ := hok
-  obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
-  refine ⟨fun N written lxt cover lxs lst lss carried dadig s0 s1 cpi glp gsq cfresh hN
-    => ?_, hnext⟩
-  have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 34 default).params = (List.range 16).map V.n := by
-    have hs := hshape
-    simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
-    rw [hs.1.2, hlen]
-  rw [hpar, hN] at hps
-  simp only [List.range_succ, List.range_zero, List.nil_append, List.map_cons,
-    List.map_nil, List.cons_append, List.tail_cons, List.cons.injEq, and_true] at hps
-  obtain ⟨-, hwr, hlxt, hcov, hlxs, hlst, hlss, hcar, hdad, hs0, hs1, hcpi, hglp, hgsq,
-    hcf⟩ := hps
-  obtain ⟨ex, hex, hnx⟩ := rcConst_sound hm (by norm_num) word_gmax hrc18 hat
-  obtain ⟨es, hes, hns⟩ := rcConst_sound hm (by norm_num) word_gmax hrc19 hat
-  have h29 : σ (.n 29) = 1 := by rw [const_sound hc29 hat, word_one]
-  have h16 : σ (.n 16) = written * x := by rw [isMul_sound hm16 hat, hwr, hx]
-  have h28 : σ (.n 28) = gen ^ ex * gen ^ es := by rw [isMul_sound hm28 hat, hnx, hns]
-  refine ⟨σ (.n 17), σ (.n 30), σ (.n 31), σ (.n 33), σ (.n 34), σ (.n 43), σ (.n 44),
-    σ (.n 45), σ (.n 46), ex, es, ?_, hex, hes, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · have := load_sound hl17 hat; rwa [h16] at this
-  · have := call_of_flat hall hcx
-    simpa [h29, hlxt, hcov, hlxs, hnx] using this
-  · have := call_of_flat hall hcs
-    simpa [isMul_sound hm32 hat, hlst, hcov, hlxs, hlss, hnx, hns] using this
-  · have := load_sound hl43 hat; rwa [monoIs_sound hm42 hat, hdad, hx] at this
-  · have := load_sound hl44 hat; rwa [monoIs_sound hm42 hat, hdad, hx] at this
-  · have := call_of_flat hall hsd
-    simpa [monoIs_sound hm40 hat, hs0, hs1, hcar, hx] using this
-  · have := load_sound hl45 hat; rwa [monoIs_sound hm48 hat, hcpi, hx] at this
-  · have := load_sound hl46 hat; rwa [monoIs_sound hm49 hat, hcpi, hx] at this
-  · have := call_of_flat hall hvs
-    simpa [monoIs_sound hm55 hat, hs0, hs1, hglp, hgsq, hcf, hx] using this
-  · have := load_sound hl56 hat
-    rwa [isMul_sound hm57 hat, isMul_sound hm56 hat, h28, hwr, hx] at this
 
 end
 end LeanVM.Guest.B1.Main

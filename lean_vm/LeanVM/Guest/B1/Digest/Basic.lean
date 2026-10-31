@@ -145,10 +145,6 @@ theorem padCells_getD_lt (cells : List E) (len : ℕ) {i : ℕ} (hi : i < cells.
     List.getElem?_append_left hi]
   simp [Ne.symm h1, Ne.symm h2, List.getD_eq_getElem?_getD]
 
-theorem getD_modify {α : Type} (l : List α) (f : α → α) (i : ℕ) (d : α) (hi : i < l.length) :
-    (l.modify i f).getD i d = f (l.getD i d) := by
-  simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi]
-
 /-! ## Digests as cells -/
 
 theorem digestScalars_ofCells {a b : E} (ha : IsCanonical128 a) (hb : IsCanonical128 b) :

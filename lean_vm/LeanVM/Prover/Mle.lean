@@ -31,13 +31,6 @@ open LeanVM.Protocol.EndToEnd
 theorem getD_toList {α : Type} (a : Array α) (i : ℕ) (d : α) : a.getD i d = a.toList.getD i d := by
   simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
 
-/-- An array of a function of the indices is the list of the function over the range. -/
-theorem toList_ofFn_range {α : Type} (n : ℕ) (f : ℕ → α) :
-    (Array.ofFn (n := n) fun i ↦ f i.1).toList = (List.range n).map f := by
-  apply List.ext_getElem (by simp)
-  intro i h1 h2
-  simp
-
 /-- An array of a function of the indices, read in range. -/
 theorem getD_ofFn {α : Type} {n : ℕ} (f : Fin n → α) (i : ℕ) (h : i < n) (d : α) :
     (Array.ofFn f).getD i d = f ⟨i, h⟩ := by

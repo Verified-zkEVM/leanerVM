@@ -45,11 +45,6 @@ theorem inR_entry {L : Main.Layout} {b : ℕ} {ws : List E} (hq : (b, ws) ∈ L)
     (h : j + off < ws.length) : InR (RegionL L) (ptr b * gen ^ j) off :=
   ⟨b + j + off, ptr_mul_gen_limb b j off, ⟨(b, ws), hq, by simp; omega, by simp; omega⟩⟩
 
-theorem inR_entry0 {L : Main.Layout} {b : ℕ} {ws : List E} (hq : (b, ws) ∈ L) {off : ℕ}
-    (h : off < ws.length) : InR (RegionL L) (ptr b) off := by
-  have := inR_entry (j := 0) hq (by omega : 0 + off < ws.length)
-  simpa using this
-
 theorem memL_entry {rd : Reader} {L : Main.Layout} (h : MemL rd L) {b : ℕ} {ws : List E}
     (hq : (b, ws) ∈ L) : ReadsAt rd (ptr b) ws := h _ hq
 

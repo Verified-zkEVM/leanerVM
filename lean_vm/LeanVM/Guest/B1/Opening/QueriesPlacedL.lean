@@ -35,9 +35,6 @@ def oqChainVals (odd base : ℕ) (lam : E) (ds : ℕ → E) (N : ℕ) : List E :
 def oqRunCells (pd : ℕ) (row : List K) (q : ℕ) (sibs : List Digest) : List E :=
   (List.range (4 * pd)).map (pathCell (hashWords row) q sibs)
 
-theorem readsAt_getElem {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) {k : ℕ}
-    (hk : k < xs.length) : LoadHolds rd p k xs[k] := h k hk
-
 theorem pathCell_node (leaf : Digest) (q : ℕ) (sibs : List Digest) (l e : ℕ) (he : e < 2) :
     pathCell leaf q sibs (4 * l + (if q.testBit l then 2 else 0) + e) =
       if e = 0 then (digestScalars (climbNode leaf q sibs l)).1

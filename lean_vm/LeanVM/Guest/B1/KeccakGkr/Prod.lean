@@ -254,11 +254,6 @@ theorem pendOk_cells : ∀ {qs : List (E × ℕ)} {cs : List (V × V)}, PendOk �
   | [], _ :: _, h, _ => h.elim
   | _ :: _, [], h, _ => h.elim
 
-theorem pendCellsV_length (pv : List (V × V)) : (pendCellsV pv).length = 2 * pv.length := by
-  induction pv with
-  | nil => rfl
-  | cons c pv ih => simp [pendCellsV] at ih ⊢; omega
-
 /-- **A permutation of the guest's cells**: on the waiting cells (zeros past them) and the
 capacity, its outputs are the cells of the sponge's next permutation. -/
 theorem spOk_perm {s : Fs} {st : List V × List (V × V)} (h : SpOk σ s st) {ins outs : List V}

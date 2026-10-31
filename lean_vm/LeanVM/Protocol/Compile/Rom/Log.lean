@@ -112,17 +112,6 @@ theorem length_leftOf_add_rightOf : ∀ ℓ : Log, (leftOf ℓ).length + (rightO
     simp only [leftOf, rightOf, List.filterMap_cons, List.length_cons] at this ⊢
     omega
 
-theorem leftOf_cons_inl (p : Bytes × Digest) (ℓ : Log) : leftOf (.inl p :: ℓ) = p :: leftOf ℓ :=
-  rfl
-
-theorem leftOf_cons_inr (p : KeccakState × KeccakState) (ℓ : Log) : leftOf (.inr p :: ℓ) = leftOf ℓ := rfl
-
-theorem rightOf_cons_inl (p : Bytes × Digest) (ℓ : Log) : rightOf (.inl p :: ℓ) = rightOf ℓ :=
-  rfl
-
-theorem rightOf_cons_inr (p : KeccakState × KeccakState) (ℓ : Log) :
-    rightOf (.inr p :: ℓ) = p :: rightOf ℓ := rfl
-
 theorem lookH_cons_inl (x : Bytes) (u : Digest) (ℓ : Log) (y : Bytes) :
     lookH (.inl (x, u) :: ℓ) y = if x = y then some u else lookH ℓ y := rfl
 
@@ -251,26 +240,6 @@ theorem lookH_take_of_first {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {x : Byt
   rw [lookH_eq_some_iff]
   exact ⟨i, by simp; omega, by simpa using hei, by rwa [List.take_take, min_eq_left hm.le]⟩
 
-/-- An entry is found by a permutation lookup in every prefix that contains it, if no earlier
-entry has its input. -/
-theorem lookF_take_of_first {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {s v : KeccakState}
-    (hei : ℓ[i] = .inr (s, v)) (hn : lookF (ℓ.take i) s = none) {m : ℕ} (hm : i < m) :
-    lookF (ℓ.take m) s = some v := by
-  rw [lookF_eq_some_iff]
-  exact ⟨i, by simp; omega, by simpa using hei, by rwa [List.take_take, min_eq_left hm.le]⟩
-
-theorem lookH_append_inl_self {ℓ : Log} {x : Bytes} (h : lookH ℓ x = none) (u : Digest) :
-    lookH (ℓ ++ [.inl (x, u)]) x = some u := by
-  rw [lookH, lookL_append, lookL_inl]; simp [h]
-
-theorem lookH_append_inl_of_ne {ℓ : Log} {x y : Bytes} (h : y ≠ x) (u : Digest) :
-    lookH (ℓ ++ [.inl (x, u)]) y = lookH ℓ y := by
-  rw [lookH, lookL_append, lookL_inl]; simp [Ne.symm h]
-
-theorem lookH_append_inr (ℓ : Log) (p : KeccakState × KeccakState) (y : Bytes) :
-    lookH (ℓ ++ [.inr p]) y = lookH ℓ y := by
-  rw [lookH, lookL_append, lookL_inr]; simp
-
 theorem lookF_append_inr_self {ℓ : Log} {s : KeccakState} (h : lookF ℓ s = none) (u : KeccakState) :
     lookF (ℓ ++ [.inr (s, u)]) s = some u := by
   rw [lookF, lookR_append, lookR_inr]; simp [h]
@@ -298,11 +267,6 @@ theorem mem_fIns_of_getElem {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {s u : K
 theorem mem_fOuts_of_getElem {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {s u : KeccakState}
     (h : ℓ[i] = .inr (s, u)) : u ∈ fOuts ℓ :=
   List.mem_map.mpr ⟨(s, u), mem_rightOf.mpr (h ▸ List.getElem_mem hi), rfl⟩
-
-/-- An entry before the `i`-th, as an entry of the first `i`. -/
-theorem getElem_take_mem {ℓ : Log} {i j : ℕ} (hj : j < ℓ.length) (hji : j < i) :
-    ℓ[j] ∈ ℓ.take i :=
-  List.mem_iff_getElem.mpr ⟨j, by simp; omega, by simp⟩
 
 /-! ## The seeding -/
 
@@ -643,15 +607,6 @@ theorem fCap_ne (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j <
   rw [hej]
   exact Or.inl ⟨u, mem_fOuts_of_getElem (ℓ := ℓ.take j) (i := i) (by simp; omega)
     (by simpa using hei), hc⟩
-
-/-- Without failure, two permutation entries whose outputs have one capacity are one entry. -/
-theorem index_eq_of_fCap (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length)
-    {s t u v : KeccakState} (hei : ℓ[i] = .inr (s, u)) (hej : ℓ[j] = .inr (t, v))
-    (hc : capOf u = capOf v) : i = j := by
-  rcases lt_trichotomy i j with hij | rfl | hij
-  · exact absurd hc (fCap_ne h hi hj hij hei hej)
-  · rfl
-  · exact absurd hc.symm (fCap_ne h hj hi hij hej hei)
 
 /-- Without failure, no permutation output has the zero capacity. -/
 theorem fCap_ne_zero (h : ¬ Fail σ ℓ) {i : ℕ} (hi : i < ℓ.length) {s u : KeccakState}

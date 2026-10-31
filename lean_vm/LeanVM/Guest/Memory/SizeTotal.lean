@@ -114,11 +114,6 @@ theorem totalKids_le_weight (hl : LocLe P fs ω S) (hc : CallsIn P S) :
         omega
 end
 
-/-- **TotalLe from WeightLe.** -/
-theorem totalLe_of_weightLe (hl : LocLe P fs ω S) (hc : CallsIn P S) {f : String} (hf : S f)
-    {B : List E → ℕ} (hw : WeightLe P ω f B) : TotalLe P fs f B :=
-  fun rd t args rets hn hv hb => (total_le_weight hl hc t (hn ▸ hf) hv hb).trans (hw rd t args rets hn hv hb)
-
 mutual
 /-- **A function calling only itself weighs `ω f` per instance.** -/
 theorem weight_self {f : String} (hc : CallsIn P (· = f)) :
@@ -150,20 +145,6 @@ theorem weightKids_self {f : String} (hc : CallsIn P (· = f)) :
         obtain ⟨⟨f', σ', rfl⟩, -⟩ := hk
         simp [Tree.weight]
 end
-
-/-- **The words of a function calling only itself**, by its instances: `n` instances at most
-weigh `n * ω f`, at most `n * ω' f` words. -/
-theorem total_le_self {f : String} {ω' : String → ℕ} (hl : LocLe P fs ω' (· = f))
-    (hc : CallsIn P (· = f)) {t : Tree} {args rets : List E} (hn : t.name = f)
-    (hv : t.Valid P rd args rets) (hb : t.BufsOk P) {n : ℕ} (hω : 0 < ω f)
-    (hw : t.weight ω ≤ n * ω f) : t.total fs ≤ n * ω' f := by
-  have h1 := total_le_weight hl hc t hn hv hb
-  rw [weight_self (ω := ω') hc t hn hv] at h1
-  rw [weight_self (ω := ω) hc t hn hv, Nat.mul_comm] at hw
-  have := Nat.le_of_mul_le_mul_right hw hω
-  calc t.total fs ≤ ω' f * t.weight (fun _ => 1) := h1
-    _ ≤ ω' f * n := Nat.mul_le_mul_left _ this
-    _ = n * ω' f := Nat.mul_comm _ _
 
 end Total
 
@@ -374,18 +355,6 @@ theorem walkArms_callees (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ) {c : 
 end
 
 end Syntax
-
-/-- **`LocLe` from the syntax**: every function of `S` has a words bound `w` with
-`fs f + wordsVal fs w ≤ ω f`. -/
-theorem locLe_of_words {P : Core.Program} {fs ω : String → ℕ} {S : String → Prop}
-    (h : ∀ f, S f → ∀ fn, P.find? f = some fn →
-      ∃ w, Stmt.blockWords fn.body = some w ∧ fs f + wordsVal fs w ≤ ω f) :
-    LocLe P fs ω S := by
-  intro f hs fn hf σ es vs hw
-  obtain ⟨w, hn, hle⟩ := h f hs fn hf
-  have := walk_words (σ := σ) (fs := fs) fn.body hn
-  rw [hw] at this
-  exact (Nat.add_le_add_left this _).trans hle
 
 /-- **`CallsIn` from the syntax.** -/
 theorem callsIn_of_callees {P : Core.Program} {S : String → Prop}

@@ -42,7 +42,4 @@ instance instFiniteFieldK : FiniteField K where
   val_zero := rfl
   val_one := rfl
 
-/-- The interface introduces no second field structure: its `Field K` is CompPoly's. -/
-theorem instFiniteFieldK_toField : (instFiniteFieldK.toField : Field K) = BF64.instField := rfl
-
 end LeanVM.Parameters

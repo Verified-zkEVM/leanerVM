@@ -330,9 +330,4 @@ theorem hashesOf_transcriptPaths (T : PermutationTranscript) :
   rw [transcriptPaths_eq, lookupEvaluation, hashesOfB, List.find?_map, Option.map_map]
   rfl
 
-theorem transcriptPaths_fst (T : PermutationTranscript) :
-    (keccakEvaluationsOfTranscript T).map (·.1) = (transcriptPathsB T).map (·.1) := by
-  rw [transcriptPaths_eq, List.map_map]
-  rfl
-
 end LeanVM.Rpm

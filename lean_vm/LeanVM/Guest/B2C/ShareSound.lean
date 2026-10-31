@@ -77,14 +77,6 @@ theorem get_set_ne (a : α) : ∀ {d n m : ℕ} (t : Exec.Trie α), m ≠ n →
 
 end Trie
 
-theorem getF_setF_self {α : Type} (a : α) {d n : ℕ} (t : Exec.Trie α) (h : n + 1 < 2 ^ d) :
-    getF (setF a d t n) n = some a := by
-  rw [getF_eq, setF_eq]; exact Trie.get_set_self a t h
-
-theorem getF_setF_ne {α : Type} (a : α) {d n m : ℕ} (t : Exec.Trie α) (h : m ≠ n) :
-    getF (setF a d t n) m = getF t m := by
-  rw [getF_eq, getF_eq, setF_eq]; exact Trie.get_set_ne a t h
-
 theorem getF_setF {α : Type} {a b : α} {d n m : ℕ} {t : Exec.Trie α}
     (h : getF (setF a d t n) m = some b) : (m = n ∧ b = a) ∨ getF t m = some b := by
   rw [getF_eq, setF_eq] at h; rw [getF_eq]; exact Exec.Trie.get_set h
@@ -1121,15 +1113,7 @@ theorem conc_seq {st st1 st' : SSt} {Ψ : ℕ → E} {pre : List V} {o1 o2 : Out
     · exact hr es vs rfl
   | stuck => trivial
 
-theorem evs_seq_fall {es1 : List Ev} {o : Out} {e : Ev} (he : e ∈ o.evs) :
-    e ∈ ((Out.fall es1).seq o).evs := by
-  cases o <;> simp_all [Out.seq, Out.pre, Out.evs]
-
 theorem evs_pre {es : List Ev} {o : Out} {e : Ev} (he : e ∈ o.evs) : e ∈ (o.pre es).evs := by
-  cases o <;> simp_all [Out.pre, Out.evs]
-
-theorem evs_pre_head {es : List Ev} {o : Out} {e : Ev} (he : e ∈ es) (hs : o ≠ .stuck) :
-    e ∈ (o.pre es).evs := by
   cases o <;> simp_all [Out.pre, Out.evs]
 
 /-- A walk's end state has nothing pending. -/
@@ -1575,14 +1559,6 @@ theorem locW_get {C : Cert} {n i : ℕ} (hcont : Cont C n) (hi : i ≤ n)
     obtain ⟨⟨hjn, hlo⟩, hget⟩ := this
     obtain ⟨hm, hget⟩ := List.getElem?_eq_some_iff.mp hget
     rw [show v = nth C.los j 0 + (v - nth C.los j 0) by omega, cont_locs hcont (hn ▸ hjn) hm, hget]
-
-theorem locAgree_of {C : Cert} {n i : ℕ} {cg : V → ℕ} (hcg : ∀ v, cg v = C.locs.getD v.idx 0)
-    (hcont : Cont C n) (hi : i ≤ n) (hins : C.insOk (nth C.ins i []) = true) (hn : C.cuts.length = n)
-    (hcells : ∀ c ∈ nth C.cells i [], c < 65536) : LocAgree (locW C i) cg := fun v hv ↦ by
-  unfold Loc.cell at hv ⊢
-  cases hg : (locW C i).get? v.idx with
-  | none => rw [hg] at hv; simp at hv
-  | some c => rw [hcg, locW_get hcont hi hins hn hcells hg]; rfl
 
 end Cells
 

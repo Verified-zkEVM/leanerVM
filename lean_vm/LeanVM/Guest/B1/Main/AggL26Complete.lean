@@ -31,18 +31,6 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Da
 
 variable {rd : Reader}
 
-theorem rowW_snoc_lt {s : Fs} (hs : StOk s) (v : E) {o : ℕ} (ho : o < 13) :
-    (rowW s ++ [v]).getD o 0 = (rowW s).getD o 0 :=
-  List.getD_append _ _ _ _ (by rw [rowW_length hs]; exact ho)
-
-theorem rowW_snoc_13 {s : Fs} (hs : StOk s) (v : E) : (rowW s ++ [v]).getD 13 0 = v := by
-  rw [List.getD_append_right _ _ _ _ (by rw [rowW_length hs]), rowW_length hs]
-  rfl
-
-theorem capOf_getD (S : KeccakState) {i : ℕ} (hi : i < 5) :
-    (capOf S).getD i 0 = cellsOfState S false ⟨8 + i, by omega⟩ := by
-  rcases (show i = 0 ∨ i = 1 ∨ i = 2 ∨ i = 3 ∨ i = 4 by omega) with rfl | rfl | rfl | rfl | rfl <;> rfl
-
 set_option maxRecDepth 20000 in
 /-- **A child's record** (`__loop25`). -/
 theorem l26_block {x N chainT lfT lcT lamSq lam pf pc fv cv pw acc : E}

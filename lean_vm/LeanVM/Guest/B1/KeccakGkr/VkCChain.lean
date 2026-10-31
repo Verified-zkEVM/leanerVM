@@ -56,11 +56,6 @@ theorem chainOk_at {L : ℕ} : ∀ {steps : List ℕ} {c : KeccakClaim} {s : Fs}
   | [], _, _, _, _, _, hk => absurd hk (by simp)
   | _ :: _, _, _, [], h, _, _ => h.elim
 
-/-- The claim and sponge after all layers are the chain's end at the full length. -/
-theorem chainEnd_take_all : ∀ (steps : List ℕ) (c : KeccakClaim) (s : Fs) (Ts : List LT),
-    chainEnd (steps.take steps.length) c s (Ts.take steps.length) = chainEnd steps c s (Ts.take steps.length)
-  | steps, c, s, Ts => by rw [List.take_length]
-
 theorem chainOk_point {L : ℕ} : ∀ {steps : List ℕ} {c : KeccakClaim} {s : Fs} {Ts : List LT},
     ChainOk L steps c s Ts → ∀ k ≤ steps.length,
       (chainEnd (steps.take k) c s (Ts.take k)).1.point.length = c.point.length

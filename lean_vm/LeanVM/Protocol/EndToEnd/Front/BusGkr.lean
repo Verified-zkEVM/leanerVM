@@ -393,9 +393,6 @@ def ρOf (n : ℕ) : ℕ := if n % 2 = 1 then 1 else 2
 theorem ρOf_le {n : ℕ} (hn : n ≠ 0) : ρOf n ≤ n := by
   unfold ρOf; split_ifs <;> omega
 
-theorem one_le_ρOf (n : ℕ) : 1 ≤ ρOf n := by
-  unfold ρOf; split_ifs <;> omega
-
 theorem ρOf_le_two (n : ℕ) : ρOf n ≤ 2 := by
   unfold ρOf; split_ifs <;> omega
 

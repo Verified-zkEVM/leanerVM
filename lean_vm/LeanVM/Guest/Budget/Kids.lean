@@ -34,52 +34,6 @@ def callsT (fs : String → ℕ) (T : Call → ℕ) (cs : List Call) : ℕ :=
 
 variable {P : Core.Program} {rd : Reader} {σ : Val}
 
-theorem kids_weight_le (ω : String → ℕ) (W : Call → ℕ) :
-    ∀ (cs : List Call) (ks : List Tree), Tree.KidsValid P rd σ cs ks → Tree.BufsOkKids P ks →
-      (∀ c ∈ cs, c.taken = true → ∀ (t : Tree) (rets : List E), t.name = c.f →
-        t.Valid P rd (c.args.map σ) rets → t.BufsOk P → t.weight ω ≤ W c) →
-      Tree.weightKids ω ks ≤ callsW W cs
-  | [], [], _, _, _ => by simp [Tree.weightKids, callsW]
-  | [], _ :: _, hk, _, _ => hk.elim
-  | _ :: _, [], hk, _, _ => hk.elim
-  | c :: cs, k :: ks, ⟨hn, hk, hks⟩, ⟨hb, hbs⟩, hB => by
-    have ih := kids_weight_le ω W cs ks hks hbs fun c' hc' => hB c' (List.mem_cons_of_mem _ hc')
-    rw [Tree.weightKids]
-    unfold callsW at ih ⊢
-    rw [List.map_cons, List.sum_cons]
-    by_cases ht : c.taken = true
-    · simp only [ht, ↓reduceIte] at hk ⊢
-      exact Nat.add_le_add (hB c (List.mem_cons_self ..) ht k _ hn hk hb) ih
-    · simp only [Bool.not_eq_true] at ht
-      simp only [ht, Bool.false_eq_true, ↓reduceIte] at hk ⊢
-      obtain ⟨⟨f, σ', rfl⟩, -⟩ := hk
-      rw [Tree.weight]
-      omega
-
-theorem kids_total_le (fs : String → ℕ) (T : Call → ℕ) :
-    ∀ (cs : List Call) (ks : List Tree), Tree.KidsValid P rd σ cs ks → Tree.BufsOkKids P ks →
-      (∀ c ∈ cs, c.taken = true → ∀ (t : Tree) (rets : List E), t.name = c.f →
-        t.Valid P rd (c.args.map σ) rets → t.BufsOk P → t.total fs ≤ T c) →
-      Tree.totalKids fs ks ≤ callsT fs T cs
-  | [], [], _, _, _ => by simp [Tree.totalKids, callsT]
-  | [], _ :: _, hk, _, _ => hk.elim
-  | _ :: _, [], hk, _, _ => hk.elim
-  | c :: cs, k :: ks, ⟨hn, hk, hks⟩, ⟨hb, hbs⟩, hB => by
-    have ih := kids_total_le fs T cs ks hks hbs fun c' hc' => hB c' (List.mem_cons_of_mem _ hc')
-    rw [Tree.totalKids]
-    unfold callsT at ih ⊢
-    rw [List.map_cons, List.sum_cons]
-    by_cases ht : c.taken = true
-    · simp only [ht, ↓reduceIte] at hk ⊢
-      exact Nat.add_le_add (hB c (List.mem_cons_self ..) ht k _ hn hk hb) ih
-    · simp only [Bool.not_eq_true] at ht
-      simp only [ht, Bool.false_eq_true, ↓reduceIte] at hk ⊢
-      obtain ⟨⟨f, σ', rfl⟩, -⟩ := hk
-      simp only [Tree.name] at hn
-      subst hn
-      rw [Tree.total]
-      omega
-
 /-! ## With the callees' predicates
 
 The same, a call's bound holding of its callee's valid trees that satisfy the call's predicate

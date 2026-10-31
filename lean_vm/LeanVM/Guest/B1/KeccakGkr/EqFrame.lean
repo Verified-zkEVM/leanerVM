@@ -58,12 +58,6 @@ theorem eqfLevel0T_holds {pt : V} {off b : ℕ} {next : Prop} {kret : List E →
   · simp [eqAt, e2, e1, word_one]
   · simp [eqAt, e3]
 
-theorem eqfLevelT_noRet (pt : V) (off t B k : ℕ) (pw : ℕ → ℕ) :
-    Stmt.noRetList (eqfLevelT pt off t B k pw) = true := by
-  rw [eqfLevelT, noRetList_append]
-  refine Bool.and_eq_true_iff.mpr ⟨rfl, noRetList_flatten_map _ (fun i => ?_) _⟩
-  split <;> rfl
-
 /-- **A level of the tree**: from its parents `eqAt rs j` (`j < 2^t`) and the coordinate `r_t`
 read at `off + t`, its entries are `eqAt (rs ++ [r_t])`. -/
 theorem eqfLevelT_holds {pt : V} {off t B k : ℕ} {pw : ℕ → ℕ} {rs : List E} (hrs : rs.length = t)

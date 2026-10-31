@@ -386,36 +386,5 @@ theorem verify_bus_gkr_body {rd : Reader} {depth : ℕ} (hd1 : 1 ≤ depth) (hd 
         ← pow_add, show gkPos sh j + (2 * j + sh + 1) = gkPos sh (j + 1) by simp [gkPos]; ring]
       exact h
 
-/-- **`verify_bus_gkr` is complete** (TRIAGE G #43): at `1 ≤ depth ≤ 32`, an accepting run of
-`gkrPhase depth` from a carried capacity `cap0` reading `xs`, the words `xs` at the cursor, the
-run's point at `zeta`, the memory defined at `g^depth` and `g^(32 - depth)` (the range check) and
-holding the buffers' honest words (`vbgLay`, at any bases) give the relation, returning the run's
-capacity, the cursor past `xs` and the three values. -/
-theorem verify_bus_gkr_complete {rd : Reader} {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32)
-    {cap0 xs : List E} {r : E × List E × List E} {cap' : List E}
-    (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
-    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {cur zeta : E} (hx : TbReadsAt rd cur xs)
-    (hz : TbReadsAt rd zeta r.2.1) {eL eR eP ePa eD : ℕ}
-    (hm : MemLay rd (vbgLay depth cap0 xs cur eL eR eP ePa eD))
-    (hrc : (rd (gpow depth)).isSome = true ∧ (rd (gpow (32 - depth))).isSome = true) :
-    coreProgram.Rel rd "verify_bus_gkr" (cap0 ++ [cur, gen ^ depth, zeta])
-      (cap' ++ [cur * gen ^ xs.length] ++ r.2.2) := by
-  obtain ⟨fn, hf, hp, hb⟩ := vbgFound
-  obtain ⟨hh, hrt⟩ := verify_bus_gkr_body hd1 hd hrun hc hx hz hm hrc
-  refine (tb_rel_pre hf hb vbgPre_noRet _ _).mpr ⟨_, ?_, hh, hrt⟩
-  obtain ⟨c', hc'⟩ := Option.isSome_iff_exists.mp vb_chk
-  have hcl : cap0.length = 5 := by
-    obtain ⟨sp, hsp⟩ := hc
-    have hsc : capOf sp.state = cap0 := hsp.1
-    rw [← hsc]; simp [capOf]
-  have hl : (cap0 ++ [cur, gen ^ depth, zeta]).length = 8 := by simp [hcl]
-  rw [hp]
-  apply List.ext_getElem (by simp [hl])
-  intro i h1 _
-  simp only [List.getElem_map, List.getElem_range]
-  have hi : i < 8 := by simpa using h1
-  rw [← List.getD_eq_getElem _ 0 (by omega)]
-  exact ev_params rd _ (by rw [hl]; exact hc') (by rw [hl]; exact hi)
-
 end
 end LeanVM.Guest.B1.Tables

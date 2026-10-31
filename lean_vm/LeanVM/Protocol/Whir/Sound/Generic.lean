@@ -48,10 +48,6 @@ theorem commits_append (h l : List Ev) : commits (h ++ l) = commits h ++ commits
     commits (h ++ [Ev.sample c]) = commits h := by
   simp [commits_append, commits]
 
-@[simp] theorem commits_query (h : List Ev) (rows : List (List K)) :
-    commits (h ++ [Ev.query rows]) = commits h := by
-  simp [commits_append, commits]
-
 @[simp] theorem commits_commit (h : List Ev) (ht wd : ℕ) (W : Word) :
     commits (h ++ [Ev.commit ht wd W]) = commits h ++ [(ht, wd, W)] := by
   simp [commits_append, commits]

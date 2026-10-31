@@ -193,8 +193,6 @@ structure Ok (R : List (Digest × ℕ × ℕ)) (d : Digest) : Prop where
 
 theorem chs_length : L.chs.length = L.level.fold := foldsTr_chs_length _ _ _ _ _
 
-theorem F1_pend (h : L.F.pend.length = 2) : L.F1.pend.length = 2 := foldsTr_pend _ _ _ _ _ h
-
 theorem Fend_pend : L.Fend.pend.length = 2 := rfl
 
 end SpLv

@@ -293,10 +293,6 @@ theorem ofBits_mod (n : ℕ) : K.ofBits (n % 2 ^ 64) = K.ofBits n := by
   apply BitVec.eq_of_toNat_eq
   simp [K.ofBits]
 
-theorem eOfNat_mod (n : ℕ) : eOfNat (n % 2 ^ 64) = eOfNat n := by
-  rw [eOfNat, ofBits_mod]
-  rfl
-
 /-- Two integers below `2^64` add to zero exactly when they are equal. -/
 theorem eOfNat_add_eq_zero_iff {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) :
     eOfNat a + eOfNat b = 0 ↔ a = b := by
@@ -333,12 +329,6 @@ theorem eOfNat192_eToNat (x : E) : eOfNat192 (eToNat x) = x := by
   rw [eOfNat192, ← ofBits_mod (eToNat x), e0, ← ofBits_mod (eToNat x / 2 ^ 64), e1,
     ← ofBits_mod (eToNat x / 2 ^ 128), e2, ofBits_kToNat, ofBits_kToNat, ofBits_kToNat,
     ← eq_ofLimbs]
-
-/-- Distinct bit patterns below `2^192` are distinct words. -/
-theorem eOfNat192_inj {a b : ℕ} (ha : a < 2 ^ 192) (hb : b < 2 ^ 192)
-    (h : eOfNat192 a = eOfNat192 b) : a = b := by
-  have := congrArg eToNat h
-  rwa [eToNat_eOfNat192, eToNat_eOfNat192, Nat.mod_eq_of_lt ha, Nat.mod_eq_of_lt hb] at this
 
 /-- Below the first limb, a coordinate basis vector is `E(2^i)`. -/
 theorem coordBasis_of_lt {i : ℕ} (h : i < 64) : coordBasis i = eOfNat (2 ^ i) :=

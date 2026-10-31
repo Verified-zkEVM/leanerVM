@@ -428,29 +428,5 @@ theorem decode_some {d : LeanXmss.Digest} {enc : Encoding} (h : Codeword.decode 
       exact (base4_expand _ _ hlt).symm
   next => cases h
 
-/-- **`Codeword.decode`**: a digest decodes exactly when its digits past the `58` chains are zero
-and the first `58` sum to `106`, to its digits. -/
-theorem decode_iff {d : LeanXmss.Digest} {enc : Encoding} :
-    Codeword.decode d = some enc ↔
-      d.toNat / 2 ^ 116 = 0 ∧ ∑ i ∈ Finset.range numChains, d.toNat / 4 ^ i % 4 = targetSum ∧
-        ∀ i : ChainIndex, (enc i).val = d.toNat / 4 ^ i.val % 4 := by
-  constructor
-  · intro h
-    obtain ⟨he, hs, -⟩ := decode_some h
-    refine ⟨?_, hs, he⟩
-    simp only [Codeword.decode] at h
-    split at h
-    next hv => exact hv.1
-    next => cases h
-  · rintro ⟨h0, hs, he⟩
-    have hv : Codeword.Valid d := by
-      refine ⟨h0, ?_⟩
-      rw [Codeword.sum, ← hs, ← Fin.sum_univ_eq_sum_range]
-      exact Finset.sum_congr rfl fun i _ => digit_val d i.val
-    have henc : Codeword.encoding d = enc := by
-      funext i
-      exact Fin.ext ((digit_val d i.val).trans (he i).symm)
-    simp only [Codeword.decode, hv, ↓reduceIte, henc]
-
 end
 end LeanVM.Guest.B1.Sig

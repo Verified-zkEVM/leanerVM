@@ -102,9 +102,6 @@ theorem seq {p : Prog α} {f : α → Prog β} (hp : MovesOK g c p) (hf : ∀ a,
     MovesOK g c (p >>= f) :=
   bind hp hf
 
-/-- A return is allowed. -/
-theorem ret (a : α) : MovesOK g c (Prog.ret a) := trivial
-
 /-- A rejection is allowed. -/
 theorem fail : MovesOK g c (Prog.fail : Prog α) := trivial
 

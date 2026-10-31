@@ -48,20 +48,5 @@ theorem main_weight_le (ω : String → ℕ) (W : Call → ℕ) (Ts : List (Tree
   rw [Tree.weight]
   exact Nat.add_le_add_left (kids_weight_leT ω W _ Ts ks hk hbk hl hT hB) _
 
-/-- **`main`'s words**: its frame, its `HeapBuf`s, and its callees' bounds call by call. -/
-theorem main_total_le (fs : String → ℕ) (T : Call → ℕ) (Ts : List (Tree → Prop))
-    (hv : (Memory.Tree.node "main" σ bufs ks).Valid coreProgram rd [] [])
-    (hb : (Memory.Tree.node "main" σ bufs ks).BufsOk coreProgram) (hc : calls (mEvs σ) = mCalls σ m)
-    (hl : (mCalls σ m).length ≤ Ts.length) (hT : KidsT (mCalls σ m) Ts ks)
-    (hB : ∀ c Q, (c, Q) ∈ (mCalls σ m).zip Ts → c.taken = true → ∀ (t : Tree) (rets : List E),
-      t.name = c.f → t.Valid coreProgram rd (c.args.map σ) rets → t.BufsOk coreProgram → Q t →
-        t.total fs ≤ T c) :
-    (Memory.Tree.node "main" σ bufs ks).total fs ≤
-      fs "main" + callsT fs T (mCalls σ m) + (allocs σ (mEvs σ)).sum := by
-  obtain ⟨hk, hbk, rfl⟩ := main_node hv hb hc
-  rw [Tree.total]
-  have := kids_total_leT fs T _ Ts ks hk hbk hl hT hB
-  omega
-
 end
 end LeanVM.Guest.Budget

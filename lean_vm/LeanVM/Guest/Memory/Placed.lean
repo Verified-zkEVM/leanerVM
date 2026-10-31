@@ -229,76 +229,6 @@ theorem kidPos_not_loop {fp : ℕ} {f : String} {bufs ns : List ℕ} (hl : P.loo
   · simp [bufBase, kidPos, hl]
   · simp [bufBase, kidPos, bases]
 
-/-- **Composition**, a function that is not a loop helper (or whose path calls nothing): its
-parameters, its path, its `HeapBuf` pointers from `fp + fs f`, its `frameAddr`s in its frame, and
-its callees one after another from the end of its `HeapBuf`s give it `RelAt fp`, of its frame,
-`HeapBuf`s and callees' words. -/
-theorem relAt_of_walk (hP : P.Wf) {fp N : ℕ} {f : String} {args rets : List E} {fn : Fn}
-    {es : List Ev} {vs : List V} (hf : P.find? f = some fn) (hl : P.loop f = false ∨ calls es = [])
-    (hp : fn.params.map σ = args) (hw : walk σ fn.body = .ret es vs) (hr : vs.map σ = rets)
-    (hes : ∀ e ∈ es, e.Holds rd σ)
-    (hbuf : (allocDsts es).map σ = (bases (fp + fs f) (allocs σ es)).map fun b => ofK (gpow b))
-    (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (gpow (fp + cert f q.2)))
-    (hk : KidsFrom P fs cert rd σ (calls es) (fp + fs f + (allocs σ es).sum) N) :
-    RelAt P fs cert rd fp (fs f + (allocs σ es).sum + N) f args rets := by
-  obtain ⟨ks, hkv, hkb, hkp, hks⟩ :=
-    kids_of_kidsFrom _ _ _ (takes_of_calls hP (List.mem_of_find?_eq_some hf) hw) hk
-  have hl' : P.loop f = false ∨ ks.map (Tree.total fs) = [] := by
-    rcases hl with hl | hl
-    · exact Or.inl hl
-    · rw [hl] at hkv
-      cases ks with
-      | nil => exact Or.inr rfl
-      | cons _ _ => exact hkv.elim
-  obtain ⟨hbb, hkpos⟩ := kidPos_not_loop (fs := fs) (fp := fp) (bufs := allocs σ es) hl'
-  refine ⟨.node f σ (allocs σ es) ks, rfl, ⟨fn, hf, hp, es, vs, hw, hr, hes, hkv⟩, ?_, ?_, ?_⟩
-  · rw [Tree.BufsOk, events_node hf hw]
-    exact ⟨rfl, hkb⟩
-  · rw [placed_node, events_node hf hw, NodeAt, hbb, hkpos]
-    exact ⟨⟨hbuf, haddr⟩, hkp⟩
-  · rw [total_node, totalKids_eq_sum, hks]
-    omega
-
-/-- **Composition**, a loop helper: as `relAt_of_walk`, its tail call (its last) first, at
-`fp + fs f`, of `m` words, then its `HeapBuf`s from `fp + fs f + m`, then its other callees. -/
-theorem relAt_of_walk_loop (hP : P.Wf) {fp m N : ℕ} {f : String} {args rets : List E} {fn : Fn}
-    {es : List Ev} {vs : List V} {cs : List Call} {c : Call} (hf : P.find? f = some fn)
-    (hl : P.loop f = true) (hp : fn.params.map σ = args) (hw : walk σ fn.body = .ret es vs)
-    (hr : vs.map σ = rets) (hes : ∀ e ∈ es, e.Holds rd σ) (hc : calls es = cs ++ [c])
-    (htail : if c.taken then RelAt P fs cert rd (fp + fs f) m c.f (c.args.map σ) (c.rets.map σ)
-      else m = fs c.f)
-    (hbuf : (allocDsts es).map σ = (bases (fp + fs f + m) (allocs σ es)).map fun b => ofK (gpow b))
-    (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (gpow (fp + cert f q.2)))
-    (hk : KidsFrom P fs cert rd σ cs (fp + fs f + m + (allocs σ es).sum) N) :
-    RelAt P fs cert rd fp (fs f + m + (allocs σ es).sum + N) f args rets := by
-  have htk := takes_of_calls hP (List.mem_of_find?_eq_some hf) hw
-  rw [hc] at htk
-  obtain ⟨ks, hkv, hkb, hkp, hks⟩ := kids_of_kidsFrom _ _ _
-    (fun c' hc' => htk c' (List.mem_append_left _ hc')) hk
-  obtain ⟨k, hkv', hkb', hkp', hkt⟩ :=
-    kid_of (htk c (List.mem_append_right _ List.mem_cons_self)) htail
-  have hns : (ks ++ [k]).map (Tree.total fs) = ks.map (Tree.total fs) ++ [m] := by
-    rw [List.map_append, List.map_singleton, hkt]
-  have hbb : bufBase fs P.loop fp f ((ks ++ [k]).map (Tree.total fs)) = fp + fs f + m := by
-    rw [hns]; simp [bufBase, hl]
-  have hkpos : kidPos fs P.loop fp f (allocs σ es) ((ks ++ [k]).map (Tree.total fs)) =
-      bases (fp + fs f + m + (allocs σ es).sum) (ks.map (Tree.total fs)) ++ [fp + fs f] := by
-    rw [kidPos, ite_eq_left hl, hbb, hns, List.dropLast_concat, List.getLast?_concat]
-    rfl
-  refine ⟨.node f σ (allocs σ es) (ks ++ [k]), rfl,
-    ⟨fn, hf, hp, es, vs, hw, hr, hes, by rw [hc]; exact kidsValid_append hkv hkv'⟩, ?_, ?_, ?_⟩
-  · rw [Tree.BufsOk, events_node hf hw]
-    refine ⟨rfl, bufsOkKids_append hkb ?_⟩
-    rw [Tree.BufsOkKids, Tree.BufsOkKids]
-    exact ⟨hkb', trivial⟩
-  · rw [placed_node, events_node hf hw, NodeAt, hbb, hkpos]
-    refine ⟨⟨hbuf, haddr⟩, placedKids_append (by rw [length_bases, List.length_map]) hkp ?_⟩
-    rw [placedKids_cons]
-    exact ⟨hkp', placedKids_nil⟩
-  · rw [total_node, totalKids_eq_sum, hns, List.sum_append, hks]
-    simp only [List.sum_cons, List.sum_nil]
-    omega
-
 end Compose
 
 /-! ## Subtrees with nothing to place -/
@@ -478,14 +408,6 @@ theorem placedKids_of_pure (hS : P.PureIn S) : ∀ (ks : List Tree) (σ : Val) (
         exact placed_phantom
   | _ :: _, _, [], h, _, _, _ :: _ => h.elim
 end
-
-/-- **A function of a pure set is placed anywhere**: in a well-formed program, `Program.Rel`
-gives `RelAt` at every frame pointer, of one size. -/
-theorem relAt_of_rel_pure (hP : P.Wf) (hS : P.PureIn S) {g : String} (hg : g ∈ S)
-    {args rets : List E} (h : P.Rel rd g args rets) :
-    ∃ n, ∀ fp, RelAt P fs cert rd fp n g args rets := by
-  obtain ⟨t, hn, hv, hb⟩ := Program.Rel.tree hP h
-  exact ⟨t.total fs, fun fp => ⟨t, hn, hv, hb, placed_of_pure hS t hv hb (hn ▸ hg) fp, rfl⟩⟩
 
 end Pure
 

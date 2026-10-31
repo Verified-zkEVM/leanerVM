@@ -283,15 +283,5 @@ theorem johnsonThreshold_bounds {μ R : ℕ} (hμ : 15 ≤ μ ∧ μ ≤ 28) (hR
   have h9 : 2 ^ 9 ≤ 2 ^ (μ - initialFold) := Nat.pow_le_pow_right (by norm_num) hκ
   exact threshold_core (by omega) (by omega) he1 he2
 
-/-- **The decoder's parameters are certified at every admissible shape**: message length
-`k = 2^κ`, `n = 2^(κ+R)` points, radius `n − johnsonThreshold μ R`. -/
-theorem gsParamCert_gsParams {μ R : ℕ} (hμ : 15 ≤ μ ∧ μ ≤ 28) (hR : 1 ≤ R ∧ R ≤ 4) :
-    GSParamCert (2 ^ (μ - initialFold)) (2 ^ (μ - initialFold + R))
-      (2 ^ (μ - initialFold + R) - johnsonThreshold μ R) (gsParams μ R) := by
-  obtain ⟨hA, hcap⟩ := johnsonThreshold_bounds hμ hR
-  have hk : 1 < 2 ^ (μ - initialFold) :=
-    Nat.one_lt_two_pow (by simp only [initialFold]; omega)
-  exact gsParamCert_gsParamsFor hk hA hcap
-
 end
 end LeanVM.Extraction

@@ -261,13 +261,6 @@ theorem boolVec_zero {m : ℕ} :
   intro b hb
   simp [boolVec]
 
-/-- The point of the all-ones index has every coordinate one. -/
-theorem boolVec_onesIndex {m : ℕ} :
-    (boolVec (onesIndex m) : Vector R m) = Vector.replicate m 1 := by
-  apply Vector.ext
-  intro b hb
-  simp [boolVec, onesIndex, Nat.testBit_two_pow_sub_one]
-
 /-- The tail of a cube point is the cube point of the index halved. -/
 theorem boolVec_tail {m : ℕ} (j : Fin (2 ^ (m + 1))) :
     (boolVec j : Vector R (m + 1)).tail =
@@ -351,12 +344,6 @@ theorem lagrangeBasis_onesIndex {m : ℕ} (s : Vector R m) :
   rw [lagrangeBasis_getElem_nat _ (onesIndex m).isLt]
   refine Finset.prod_congr rfl fun b _ ↦ ?_
   simp [onesIndex, Nat.testBit_two_pow_sub_one, b.isLt]
-
-/-- The Lagrange basis at index zero is the product of the complements of the coordinates. -/
-theorem lagrangeBasis_zero_index {m : ℕ} (s : Vector R m) :
-    (lagrangeBasis s)[0]'(Nat.two_pow_pos m) = ∏ b : Fin m, (1 - s[b]) := by
-  rw [lagrangeBasis_getElem_nat _ (Nat.two_pow_pos m)]
-  simp
 
 /-- Evaluating a table at a point of the cube reads the entry. -/
 theorem evalMle_boolVec {m : ℕ} (t : CMlPolynomialEval R m) (j : Fin (2 ^ m)) :

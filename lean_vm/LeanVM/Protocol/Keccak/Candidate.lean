@@ -218,38 +218,5 @@ minus (plus, in characteristic two) the committed middle state's, at each step. 
 def midDelta (col : ℕ → K) (l x : ℕ) : E :=
   ofK (laneWord (roundsFrom 0 12 (inState h col 0 x)) l) + ofK (col (x + 2 ^ h * (25 + l)))
 
-theorem midAgree_iff (col : ℕ → K) {inst : List E} (hi : inst.length = h) :
-    midAgree h col inst ↔ ∀ l < 25, ZeroOn (midDelta h col l) inst h := by
-  have key : ∀ l, ZeroOn (midDelta h col l) inst h ↔
-      stepMle h inst (fun x ↦ laneWord (roundsFrom 0 12 (inState h col 0 x)) l) =
-        stepMle h inst (fun x ↦ col (x + 2 ^ h * (25 + l))) := by
-    intro l
-    rw [zeroOn_full _ hi, stepMle, stepMle]
-    simp only [midDelta, mul_add, Finset.sum_add_distrib]
-    constructor
-    · intro h0
-      rw [add_eq_zero_iff_eq_neg, CharTwo.neg_eq] at h0
-      exact h0
-    · intro h0; rw [h0, CharTwo.add_self_eq_zero]
-  exact ⟨fun hm l hl ↦ (key l).2 (hm l hl), fun hz l hl ↦ (key l).1 (hz l hl)⟩
-
-theorem regionValid_iff (col : ℕ → K) :
-    RegionValid h col ↔ ∀ l < 25, ZeroOn (midDelta h col l) [] h := by
-  simp only [zeroOn_nil, midDelta]
-  constructor
-  · intro hv l hl x hx
-    rw [laneWord, ← hv x hx, lane_inState h col 1 x hl, ofLane_lane,
-      show 25 * 1 + l = 25 + l by ring]
-    exact CharTwo.add_self_eq_zero _
-  · intro hz x hx
-    refine Vector.ext fun l hl ↦ ?_
-    have h0 := hz l hl x hx
-    rw [laneWord, add_eq_zero_iff_eq_neg, CharTwo.neg_eq] at h0
-    have h1 := ofK_injective h0
-    rw [← lane_eq _ hl, ← lane_eq _ hl, lane_inState h col 1 x hl]
-    have h2 := congrArg K.lane h1
-    rw [show 25 * 1 + l = 25 + l by ring]
-    exact h2.symm
-
 end
 end LeanVM.Protocol.KeccakGkr

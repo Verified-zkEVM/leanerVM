@@ -28,31 +28,5 @@ open LeanVM.Node LeanVM.Guest.B1.Main
 
 @[expose] public section
 
-/-- **`verify_sub` is complete on every honest child.** -/
-theorem verify_sub_complete_all {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) :
-    verify_sub_complete_Spec bytecode :=
-  verify_sub_complete hbl fun _ _ _ _ κ _ ↦ verify_keccak_completeAt κ
-
-/-- **`verify_sub` is complete within its words** at the deployed frame sizes. -/
-theorem verify_sub_completeB_fs {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
-    {cert : String → V → ℕ} (hrf : Lift.RunsFit LeanVM.Guest.B2C.fs cert)
-    (hap : Lift.RunsApart cert) (W : VsWords LeanVM.Guest.B2C.fs) {κ : ℕ} (hκ : 16 ≤ κ)
-    (seed : Digest) (c : Child) (lpE sqE outE : ℕ) (Lin : Main.Layout)
-    (hmu : ∀ layout r, Verifier.announced bytecode c.proof.stream = some (layout, r) →
-      Hints.minChildStackLog ≤ layout.stackLog)
-    (hst : c.proof.stream.length ≤ Hints.childStreamCap)
-    (hnz : Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim
-      c.proof = true)
-    (hcaps : ∀ b ∈ Limits.queryStepsOf (deferredProgram c.freshClaim bytecode
-      (statementDigest seed c.statement)) (Hints.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2)
-    (hexpL : ∀ q ∈ log2Lin lpE sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
-    CompleteAtDTB LeanVM.Guest.B2C.fs cert κ "verify_sub" Lin
-      [(digestScalars (statementDigest seed c.statement)).1,
-        (digestScalars (statementDigest seed c.statement)).2, (digestScalars seed).1,
-        (digestScalars seed).2, ofK (gpow lpE), ofK (gpow sqE), ofK (gpow outE)] (Returns [])
-      (fun _ ↦ True) (vsBound W vkBound) :=
-  verify_sub_completeB hbl hrf hap W hκ (verify_keccak_completeAtB_fs κ) seed c lpE sqE outE Lin
-    hmu hst hnz hcaps hexpL hout
-
 end
 end LeanVM.Guest.B1.VerifySub

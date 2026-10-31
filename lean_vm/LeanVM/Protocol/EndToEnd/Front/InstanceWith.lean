@@ -56,15 +56,6 @@ abbrev leanIsaWith (prog : Program) (s : Sizes)
 
 variable (prog : Program) (s : Sizes)
 
-/-- At `QKECCAK`, the deployed instance. -/
-theorem leanIsaWith_some :
-    leanIsaWith prog s (some (keccakRegion prog s)) = leanIsaInstance prog s :=
-  rfl
-
-/-- Without a region, the Keccak predicate holds of every stack. -/
-theorem aux_none (q : Column (leanIsaμ prog s)) : (leanIsaWith prog s none).aux q :=
-  fun _ h ↦ nomatch h
-
 /-- The boundary blocks' tuples do not read the region. -/
 theorem boundaryTuples_with (I : M3Instance) (fl : Option (KeccakRegion I.toShape))
     (q : Column I.μ) (side : Side) :
@@ -74,14 +65,6 @@ theorem boundaryTuples_with (I : M3Instance) (fl : Option (KeccakRegion I.toShap
   refine congrArg (List.map · _) (funext fun x ↦ ?_)
   refine congrArg (Vector.map · _) (funext fun co ↦ ?_)
   cases co <;> rfl
-
-/-- **The bus does not read the region**: the stacks it balances are the same at every region. -/
-theorem balanced_with (I : M3Instance) (fl : Option (KeccakRegion I.toShape)) (q : Column I.μ) :
-    ({ I with keccak := fl } : M3Instance).Balanced q ↔ I.Balanced q := by
-  have hf : ∀ side, ({ I with keccak := fl } : M3Instance).flushTuples q side =
-      I.flushTuples q side := fun _ ↦ rfl
-  unfold M3Instance.Balanced M3Instance.tuples
-  rw [hf, hf, boundaryTuples_with I fl q .push, boundaryTuples_with I fl q .pull]
 
 /-- A side's leaf count, from its blocks' log-heights. -/
 theorem leafCount_eq_κ (I : M3Instance) (k : Fin 3) :

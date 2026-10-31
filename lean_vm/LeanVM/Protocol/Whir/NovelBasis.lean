@@ -130,11 +130,6 @@ private theorem prod_range_testBit {M : Type*} [CommMonoid M] {κ : ℕ} (hκ : 
       (Nat.pow_le_pow_right (by norm_num) hi'))]
     rfl
 
-/-- `X_⟨u⟩ = ∏_{i<κ} Ŵ_i^{u_i}` for a cube point of dimension `κ ≤ 64`. -/
-theorem novel_bitsToNat {κ : ℕ} (hκ : κ ≤ 64) (u : Fin κ → Bool) :
-    novel (bitsToNat u) = ∏ i : Fin κ, if u i then normVanishing i else 1 :=
-  prod_range_testBit hκ u _
-
 /-- `X_⟨u⟩(a) = ∏_{i<κ} Ŵ_i(a)^{u_i}` for a cube point of dimension `κ ≤ 64`. -/
 theorem novelAt_bitsToNat {κ : ℕ} (hκ : κ ≤ 64) (u : Fin κ → Bool) (a : K) :
     novelAt (bitsToNat u) a = ∏ i : Fin κ, if u i then normVanishingAt i a else 1 :=
@@ -201,12 +196,6 @@ theorem enc_ofK (κ R : ℕ) (g : (Fin κ → Bool) → K) :
   change _ = algebraMap K E _
   rw [map_sum]
   exact Finset.sum_congr rfl fun u _ ↦ (ofK_mul _ _).symm
-
-/-- Every entry of the word of a `K`-valued message lies in `K`. -/
-theorem isInK_enc_ofK (κ R : ℕ) (g : (Fin κ → Bool) → K) (v : Fin (2 ^ (κ + R))) :
-    IsInK (enc κ R (fun u ↦ ofK (g u)) v) := by
-  rw [enc_ofK, isInK_iff]
-  exact ⟨_, rfl⟩
 
 /-! ## The message polynomial and the range -/
 

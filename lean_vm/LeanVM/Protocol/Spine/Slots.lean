@@ -104,23 +104,6 @@ theorem busErrors_bounded : Errors.Bounded (busSlot I).tree (busSlot I).roles (b
     (gkrErrors_bounded E (overE 1) 3 I.μBus)).append (sayErrors_bounded _)).mono
     (le_of_eq (by rw [nat_mul_overE, add_zero, add_zero, mul_one, ← overE_add]))
 
-/-- The table sumcheck's errors sum to `(B + 2)/|E| + τ_max · 3/|E|` along every path. -/
-theorem tableErrors_bounded : Errors.Bounded (tableSlot I).tree (tableSlot I).roles
-    (tableErrors I) (overE (I.B + 2) + I.τmax * overE 3) :=
-  (((drawErrors_bounded _ _).append (roundsErrors_bounded E 3 _ I.τmax)).append
-    (sayErrors_bounded _)).mono (add_zero _).le
-
-/-- The public-input phase's error sums to `1/|E|`. -/
-theorem pubErrors_bounded : Errors.Bounded pubSlot.tree pubSlot.roles pubErrors (overE 1) :=
-  fun _ ↦ le_of_eq (add_zero _)
-
-/-- The ring-switching challenges' errors sum to `(2^31 + 2^15 + 2^7 + 8 + 2 + 1)/|E|`. -/
-theorem ringErrors_bounded : Errors.Bounded (drawsSlot E 6).tree (drawsSlot E 6).roles ringErrors
-    (overE (2 ^ 31 + 2 ^ 15 + 2 ^ 7 + 8 + 2 + 1)) :=
-  (drawsErrorsOf_bounded E _ 6).mono (le_of_eq (by
-    simp only [Finset.sum_range_succ, Finset.sum_range_zero, zero_add, ← overE_add]
-    norm_num))
-
 /-! ## The question to the stack -/
 
 /-- The check on the stack's answer to a claim's weight: the answer is the claim's value. -/

@@ -77,10 +77,6 @@ theorem holdsList_split_atoms {xs ys : List Stmt} (hx : atomsOnly xs = true) {ne
     Stmt.HoldsList C rd σ xs True kret ∧ Stmt.HoldsList C rd σ ys next kret :=
   holdsList_split (noRetList_of_atomsOnly hx) h
 
-/-- One atom's relation. -/
-theorem holds_atom {a : Atom} {next : Prop} (h : Stmt.HoldsList C rd σ [.atom a] next kret) :
-    a.Holds rd σ := h.1
-
 /-- Every atom of a block holds. -/
 def AtomsHold (rd : Reader) (σ : Val) (ss : List Stmt) : Prop := ∀ a, Stmt.atom a ∈ ss → a.Holds rd σ
 
@@ -469,11 +465,6 @@ theorem kBlocks_sound {pad : Nat} (hp : PadOK σ pad) {cs : List KC} {B : Nat} {
         simp only [kTrace, List.getD_cons_succ]
         rw [show k + (j + 1) = k + 1 + j by omega, stAt_cons]
         exact ih
-
-theorem kTrace_length {pad : Nat} {cs : List KC} {B : Nat} {tailRun : Bool} {out : Option Nat} :
-    ∀ (m k : Nat) (st : Option (List V)) (b : Nat), (kTrace pad cs B tailRun out m k st b).length = m
-  | 0, _, _, _ => rfl
-  | m + 1, k, st, b => by simp [kTrace, kTrace_length m]
 
 /-- The last block writes the output run `kBlocks` returns. -/
 theorem kBlocks_out {pad : Nat} {cs : List KC} {B : Nat} {tailRun : Bool} {out : Option Nat} :

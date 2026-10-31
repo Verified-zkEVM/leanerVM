@@ -89,18 +89,5 @@ theorem rounds_sound {n : ℕ} {f : List E → E} {rounds : List (E × E)} {clai
   apply key n le_rfl
   rw [List.take_of_length_le hrsl.le, cubeSum_full hrsl, ← hfinal, rsRun_eq, hn]
 
-/-- **A bad round's challenge is one of at most two values**, those the claim before the round,
-its message and the earlier challenges fix, for `f` quadratic along each coordinate. -/
-theorem badRound_roots {n : ℕ} {f : List E → E} (hf : QuadraticIn n f) {rounds : List (E × E)}
-    {claim : E} {sp : Sponge} {j : ℕ} (hn : rounds.length = n) (hj : j < n)
-    (hbad : ∃ x, roundGap n f rounds claim sp j x ≠ 0) :
-    {x | roundGap n f rounds claim sp j x = 0}.ncard ≤ 2 := by
-  refine quadratic_roots (Quadratic.sub ?_ (quadratic_cubeSum hf ?_)) hbad
-  · set c := (rsSt rounds claim sp j).1
-    set g := rounds.getD j (0, 0)
-    exact ⟨g.2, c + g.1 + g.1 + g.2, c + g.1, fun x ↦ by simp only [sumcheckRoundPolynomial]; ring⟩
-  · simp [roundChallenges, rsRun_eq, hn]
-    omega
-
 end
 end LeanVM.Guest.Batch

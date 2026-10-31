@@ -100,22 +100,4 @@ theorem guestChildComplete_of_spec (A : HonestProverWithHash) (hA : SpecOnValid 
 
 /-! ## The classical provers are instances -/
 
-/-- The classical honest prover is the specification at an honest witness. -/
-theorem specOnValid_honestComp :
-    SpecOnValid (fun prog input t ρ fuel ↦ honestComp prog input t ρ fuel) HonestFor := by
-  intro prog input t ρ fuel hv hbudget hρ
-  obtain ⟨w, s, hw, hrep, hs, hadm⟩ := exists_admissible_witness hv hbudget
-  have hex : ∃ w s, HonestFor prog input t ρ w s := ⟨w, s, hρ, hw, hs, hadm, hrep⟩
-  refine ⟨_, _, hex.choose_spec.choose_spec, ?_⟩
-  unfold honestComp
-  simp only [hex, ↓reduceDIte]
-
-/-- The child prover is the specification at a child's witness. -/
-theorem specOnValid_childProver : SpecOnValid childProver ChildFor := by
-  intro prog input t ρ fuel hv hbudget hρ
-  have hex := exists_childFor hv hbudget hρ
-  refine ⟨_, _, hex.choose_spec.choose_spec, ?_⟩
-  unfold childProver childComp
-  simp only [hex, ↓reduceDIte]
-
 end LeanVM.Prover

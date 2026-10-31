@@ -213,15 +213,5 @@ theorem selector_tables_completeAtB (fs : String → ℕ) (cert : String → V �
       exact ⟨_, List.mem_cons_of_mem _ List.mem_cons_self, by omega, by simp [stGWords]; omega⟩
     · cases a <;> simp [Stmt.loadS, pureB] at hq ha
 
-/-- **The returned buffers hold the opening point's tables**, on any memory holding them, when
-they and the point's runs lie apart below the order of `g`. -/
-theorem st_out_tabs {ept ept1 : ℕ} {p p1 : List E} (hl : p.length = 28) (hl1 : p1.length = 28)
-    {rets : List E} {L : Layout} (h : stOut ept ept1 p p1 rets L)
-    (hd : DisjLay (L ++ stLin ept ept1 p p1)) (hlo : LowLay (L ++ stLin ept ept1 p p1))
-    {rd : Reader} (hm : MemL rd L) :
-    SelTabsAt rd (rets.getD 0 0) (rets.getD 1 0) p p1 := by
-  obtain ⟨ese, esg, rfl, rfl⟩ := h
-  exact st_tabs ept ept1 ese esg p p1 hl hl1 hd hlo rd hm
-
 end
 end LeanVM.Guest.B1.Tables

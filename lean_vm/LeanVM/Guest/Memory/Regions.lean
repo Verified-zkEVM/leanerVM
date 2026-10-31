@@ -474,14 +474,6 @@ theorem loadsInKids_of_loadsR : ∀ (ks : List Tree) (R : ℕ → Prop) (ps : Li
       exact ⟨loadsIn_of_loadsR k R p h.1, loadsInKids_of_loadsR ks R ps h.2⟩
 end
 
-/-- **A function of a pure set loading from `R` is placed anywhere**, loading from `R`. -/
-theorem relAtIn_of_relIn_pure (hS : P.PureIn S) {rd : Reader} {R : ℕ → Prop} {g : String}
-    (hg : g ∈ S) {args rets : List E} (h : P.RelIn rd R g args rets) :
-    ∃ n, ∀ fp, RelAtIn P fs cert rd R (fun _ => False) fp n g args rets := by
-  obtain ⟨t, hn, hv, hb, hl⟩ := h
-  exact ⟨t.total fs, fun fp => ⟨t, hn, hv, hb, placed_of_pure hS t hv hb (hn ▸ hg) fp, rfl,
-    loadsIn_of_loadsR t R fp hl, fun _ h => h.elim⟩⟩
-
 variable {rd : Reader} {σ : Val}
 
 /-- The callees of the frames `cs`: each call entered `RelIn R`, each not a phantom. -/
@@ -690,15 +682,6 @@ theorem loadsRKids_of_quiet (hS : P.QuietIn S) (R : ℕ → Prop) : ∀ (ks : Li
         rw [Tree.LoadsR]; trivial
   | _ :: _, _, [], h, _ => h.elim
 end
-
-/-- **A function of a quiet set is placed anywhere, loading nothing**: `Program.Rel` gives
-`RelAtIn` at every frame pointer and region, of one size. -/
-theorem relAtIn_of_rel_quiet (hP : P.Wf) (hS : P.QuietIn S) {g : String} (hg : g ∈ S)
-    {args rets : List E} (h : P.Rel rd g args rets) :
-    ∃ n, ∀ fp R, RelAtIn P fs cert rd R (fun _ => False) fp n g args rets := by
-  obtain ⟨t, hn, hv, hb⟩ := Program.Rel.tree hP h
-  exact ⟨t.total fs, fun fp R => ⟨t, hn, hv, hb, placed_of_pure hS.pureIn t hv hb (hn ▸ hg) fp, rfl,
-    loadsIn_of_loadsR t R fp (loadsR_of_quiet hS R t hv (hn ▸ hg)), fun _ h => h.elim⟩⟩
 
 end Pure
 

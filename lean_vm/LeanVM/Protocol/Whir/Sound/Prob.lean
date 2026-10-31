@@ -99,26 +99,6 @@ theorem retExp_mono {g g' : α → List Ev → ENNReal} (hg : ∀ a h, g a h ≤
     · exact retExp_mono hg _ h₀ _
     · exact le_rfl
 
-/-- Expectations are subadditive. -/
-theorem retExp_add_le (g₁ g₂ : α → List Ev → ENNReal) :
-    ∀ (q : Prog α) (h₀ l : List Ev),
-      retExp (fun a h ↦ g₁ a h + g₂ a h) h₀ l q ≤ retExp g₁ h₀ l q + retExp g₂ h₀ l q
-  | .ret a, h₀, l => by simp [retExp]
-  | .fail, h₀, l => by simp [retExp]
-  | .read k, h₀, l => by simp [retExp]
-  | .grind b k, h₀, l => by simp [retExp]
-  | .commit ht w k, h₀, l => by simp [retExp]
-  | .sample k, h₀, l => by
-    simp only [retExp]
-    rw [← mul_add, ← Finset.sum_add_distrib]
-    gcongr with c
-    exact retExp_add_le g₁ g₂ (k c) h₀ _
-  | .query i ps k, h₀, l => by
-    simp only [retExp]
-    split
-    · exact retExp_add_le g₁ g₂ _ h₀ _
-    · simp
-
 /-- Constants factor out of expectations. -/
 theorem retExp_const_mul (c : ENNReal) (g : α → List Ev → ENNReal) :
     ∀ (q : Prog α) (h₀ l : List Ev),
@@ -138,17 +118,6 @@ theorem retExp_const_mul (c : ENNReal) (g : α → List Ev → ENNReal) :
     · exact retExp_const_mul c g _ h₀ _
     · simp
 
-/-- An expectation of a function bounded by `c` is at most `c`. -/
-theorem retExp_le_const {g : α → List Ev → ENNReal} {c : ENNReal} (hg : ∀ a h, g a h ≤ c) :
-    ∀ (q : Prog α) (h₀ l : List Ev), retExp g h₀ l q ≤ c := by
-  intro q h₀ l
-  have h1 := retExp_mono (g' := fun _ _ ↦ c * 1) (fun a h ↦ by simpa using hg a h) q h₀ l
-  rw [retExp_const_mul] at h1
-  refine h1.trans ?_
-  calc c * retExp (fun _ _ ↦ 1) h₀ l q ≤ c * 1 := by
-        gcongr; exact retExp_le_one (fun _ _ ↦ le_rfl) h₀ q l
-    _ = c := mul_one c
-
 /-- The commitments of a history extended by samples and openings. -/
 theorem commits_append_sample (h : List Ev) (c : E) : commits (h ++ [Ev.sample c]) = commits h := by
   induction h with
@@ -164,10 +133,6 @@ theorem commits_append_query (h : List Ev) (rows : List (List K)) :
 theorem answer_append_sample (h : List Ev) (c : E) (i : ℕ) (ps : List ℕ) :
     answer (h ++ [Ev.sample c]) i ps = answer h i ps := by
   simp [answer, commits_append_sample]
-
-theorem answer_append_query (h : List Ev) (rows : List (List K)) (i : ℕ) (ps : List ℕ) :
-    answer (h ++ [Ev.query rows]) i ps = answer h i ps := by
-  simp [answer, commits_append_query]
 
 /-- **A function of the commitments is constant along a group.** -/
 theorem retExp_commits (G : α → List (ℕ × ℕ × Word) → ENNReal) :

@@ -65,12 +65,6 @@ theorem ptrIn_mul {R : ℕ → Prop} {p : E} {j B : ℕ} (h : PtrIn R p (j + B))
     ← pow_add]
   exact hi
 
-/-- A load's address through `p·g^j` at `off`, inside the run from `p`. -/
-theorem ptrIn_addr {R : ℕ → Prop} {p : E} {j off B : ℕ} (h : PtrIn R p B) (hb : j + off < B) :
-    ∃ i, (p * gen ^ j).limb 0 * gpow off = gpow i ∧ R i := by
-  have := (ptrIn_mul (j := j) (B := off + 1) (ptrIn_mono h (by omega))).2 off (by omega)
-  exact this
-
 /-- **A leaf loading through its parameters loads from `R`** when their runs lie in `R`. -/
 theorem relIn_of_dload {g : String} {bs : List ℕ} (hck : dloadCheck g bs = true) {rd : Reader}
     {R : ℕ → Prop} {args rets : List E}

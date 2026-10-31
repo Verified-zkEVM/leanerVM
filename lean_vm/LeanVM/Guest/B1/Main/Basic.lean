@@ -164,21 +164,6 @@ theorem cellAt_eq_memAt : cellAt = memAt := rfl
 
 theorem readCells_eq_memRun : readCells = memRun := rfl
 
-/-- The four cells of slot `s` of a table read as `cells`. -/
-theorem slotCells_of_readsAt {rd : Reader} {p : E} {cells : List E} (h : ReadsAt rd p cells)
-    {s : ℕ} (hs : 4 * s + 4 ≤ cells.length) :
-    slotCells rd p s = [cells.getD (4 * s) 0, cells.getD (4 * s + 1) 0, cells.getD (4 * s + 2) 0,
-      cells.getD (4 * s + 3) 0] := by
-  simp only [slotCells, readCells_eq_memRun, memRun, List.range_succ, List.range_zero,
-    List.nil_append, List.map_cons, List.map_nil, List.cons_append]
-  have hl : ∀ k < 4, memAt rd (p * gen ^ (4 * s)) k = cells.getD (4 * s + k) 0 := fun k hk => by
-    apply memAt_of_load
-    apply (loadHolds_mul_gen_pow rd p _ _ _).mpr
-    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
-    exact h _ _
-  rw [hl 0 (by omega), hl 1 (by omega), hl 2 (by omega), hl 3 (by omega)]
-  rfl
-
 /-! ## The claim lists -/
 
 /-- The claims of `4n` cells, by a decoder of four cells. -/

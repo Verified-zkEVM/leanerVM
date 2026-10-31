@@ -90,9 +90,5 @@ theorem foldl_max_le {M : ℕ} : ∀ (l : List ℕ) (a : ℕ), a ≤ M → (∀ 
     exact foldl_max_le l _ (max_le ha (h y List.mem_cons_self))
       fun x hx => h x (List.mem_cons_of_mem _ hx)
 
-/-- The largest of a list within `M`. -/
-theorem lmax_le {l : List ℕ} {M : ℕ} (h : ∀ x ∈ l, x ≤ M) : B1.VerifySub.lmax l ≤ M :=
-  foldl_max_le l 0 (Nat.zero_le _) h
-
 end
 end LeanVM.Guest.Count

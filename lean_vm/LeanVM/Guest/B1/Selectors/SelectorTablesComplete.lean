@@ -211,9 +211,6 @@ theorem st_holds (ept ept1 ese esg : ℕ) (p p1 : List E) (hl : p.length = 28)
   simp only [GoodS, Good] at c1 c2
   simp [c1, c2, e2, e3]
 
-theorem memLay_mem {rd : Reader} {L : TLay} (hm : MemLay rd L) {q : ℕ × List E} (hq : q ∈ L) :
-    TbReadsAt rd (ofK (gpow q.1)) q.2 := hm q hq
-
 set_option maxRecDepth 10000 in
 /-- **The buffers hold the opening point's tables**, on any memory holding them, when the runs
 lie apart below the order of `g`. -/

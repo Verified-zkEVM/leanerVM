@@ -62,26 +62,6 @@ theorem addOf_filter (hq : ∀ a, isLoadB a = false → q a = true) :
       unfold addOf at this
       exact this
 
-theorem keccakBlocks_filter (hq : ∀ a, isLoadB a = false → q a = true) :
-    ∀ l : List Atom, keccakBlocks (l.filter q) = keccakBlocks l
-  | [] => rfl
-  | a :: l => by
-    by_cases ha : q a = true
-    · simp only [List.filter_cons, ha, ite_true, keccakBlocks, List.filterMap_cons]
-      have := keccakBlocks_filter hq l
-      unfold keccakBlocks at this
-      rw [this]
-    · have hl : isLoadB a = true := by
-        cases h : isLoadB a
-        · exact absurd (hq a h) ha
-        · rfl
-      cases a <;> simp only [isLoadB, Bool.false_eq_true] at hl
-      simp only [List.filter_cons, ha, Bool.false_eq_true, ite_false, keccakBlocks,
-        List.filterMap_cons]
-      have := keccakBlocks_filter hq l
-      unfold keccakBlocks at this
-      exact this
-
 theorem const_notLoad (x : V) (lo hi : ℕ) : ∀ a, isConstAt x lo hi a = true → isLoadB a = false := by
   intro a h; cases a <;> simp_all [isConstAt, isLoadB]
 

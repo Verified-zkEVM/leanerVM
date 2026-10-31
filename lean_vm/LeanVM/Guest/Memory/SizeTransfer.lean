@@ -101,23 +101,5 @@ end WCongr
 
 variable {fs fs' ω ω' : String → ℕ} {f : String}
 
-/-- **`TotalLe` transfers** between frame sizes agreeing on `S`. -/
-theorem totalLe_transfer (hc : CallsIn P S) (hS : ∀ g, S g → ∀ fn, P.find? g = some fn → fs g = fs' g) (hf : S f)
-    {B : List E → ℕ} (h : TotalLe P fs f B) : TotalLe P fs' f B :=
-  fun rd t args rets hn hv hb => by
-    rw [← total_congr hc hS t (hn ▸ hf) hv]; exact h rd t args rets hn hv hb
-
-/-- **`TotalLeOn` transfers** between frame sizes agreeing on `S`. -/
-theorem totalLeOn_transfer (hc : CallsIn P S) (hS : ∀ g, S g → ∀ fn, P.find? g = some fn → fs g = fs' g) (hf : S f)
-    {Pre : List E → Prop} {B : List E → ℕ} (h : TotalLeOn P fs f Pre B) : TotalLeOn P fs' f Pre B :=
-  fun rd t args rets hn hp hv hb => by
-    rw [← total_congr hc hS t (hn ▸ hf) hv]; exact h rd t args rets hn hp hv hb
-
-/-- **`WeightLe` transfers** between weights agreeing on `S`. -/
-theorem weightLe_transfer (hc : CallsIn P S) (hS : ∀ g, S g → ∀ fn, P.find? g = some fn → ω g = ω' g) (hf : S f)
-    {B : List E → ℕ} (h : WeightLe P ω f B) : WeightLe P ω' f B :=
-  fun rd t args rets hn hv hb => by
-    rw [← weight_congr hc hS t (hn ▸ hf) hv]; exact h rd t args rets hn hv hb
-
 end
 end LeanVM.Guest.Memory

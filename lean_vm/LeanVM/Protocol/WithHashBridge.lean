@@ -113,9 +113,6 @@ section Hash
 
 variable {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
 
-theorem fiatShamirIvWith_eq_withHash (bytecode : List K) :
-    fiatShamirIvWith F bytecode = fiatShamirIvWithHash (keccak256With F) bytecode := rfl
-
 theorem seedWith_eq_withHash (bytecode : List K) (publicInput : Digest) :
     seedWith F bytecode publicInput = seedWithHash (keccak256With F) F bytecode publicInput := rfl
 
@@ -132,10 +129,6 @@ theorem verifyDeferredWith_eq_withHash (bytecode : List K) (iv publicInput : Dig
   simp only [verifyDeferredWith, verifyDeferredWithHash, runProof_eq_withHash]
 
 end Hash
-
-/-- The deployed IV is the form with Keccak-256. -/
-theorem fiatShamirIv_eq_withHash (bytecode : List K) :
-    fiatShamirIv bytecode = Id.run (fiatShamirIvWithHash (m := Id) keccak256 bytecode) := rfl
 
 /-- The deployed deferring verifier is the form with Keccak-256 and Keccak-f[1600]. -/
 theorem verifyDeferred_eq_withHash (bytecode : List K) (iv publicInput : Digest) (c : BytecodeClaim)

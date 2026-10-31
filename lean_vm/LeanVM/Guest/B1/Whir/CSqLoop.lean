@@ -157,9 +157,6 @@ def sqSegs (lv : OsLv) (X N sqz qpos qbp : E) (cap : List E) : List (ℕ × (ℕ
 theorem osMat_k_eq (b o k : ℕ) : (osMat b o k).2.2 = k + (if o = 0 then 0 else 2) := by
   unfold osMat; split_ifs <;> simp
 
-theorem osMat_v_eq (b o k : ℕ) : (osMat b o k).2.1 = if o = 0 then b else k + 1 := by
-  unfold osMat; split_ifs <;> simp
-
 /-- The loop's tail's first value. -/
 def sqTail (lv : OsLv) : ℕ :=
   (osMat 4 lv.posOff ((osMat 3 lv.posOff (39 + osPowLen (192 / lv.depth))).2.2 + 1)).2.2 + 1

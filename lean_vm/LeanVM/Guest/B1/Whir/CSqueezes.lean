@@ -256,27 +256,5 @@ theorem osSqueezes_completeC {C : CallRel} {c : OsCfg} {lvl : ℕ} {lv : OsLv} {
     all_goals simp [osSqueezes] at *
     all_goals omega
 
-/-- **A level's squeezes, honestly**, the loop helper run by the program's call relation. -/
-theorem osSqueezes_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val)
-    (hloop : FnIs (c.sqLoop lvl) (osParams 5) (sqLoopBody lv (c.sqLoop lvl)))
-    (hpw : digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth)
-    (hpo : lv.posOff < u128Bound)
-    (hdec : ∀ args rets, MeaningDecodeQueryBits lv.depth rd args rets →
-      coreProgram.Rel rd ("decode_query_bits__L" ++ natStr lv.depth) args rets)
-    (hn0 : 0 < lv.squeezes) (hn5 : lv.squeezes * 5 < u128Bound)
-    (hfs : st.fs.length = 5) (hb : st.Below) (hk : 34 ≤ st.k) (hcan : AllCanonical (st.fsv σ))
-    (hpad : PadOk σ st.pad) (hpk : ∀ p, st.pad = some p → p + 4 < st.k)
-    (sqz : E) (h0 : ∀ i < 5, LoadHolds rd sqz i ((st.fsv σ).getD i 0))
-    (hm : ∀ j < lv.squeezes, SqIterMem rd lv.depth lv.posOff sqz (σ (.n osQpos)) (σ (.n osQbp))
-      (gen ^ j) ((⟨st.fsv σ, []⟩ : Fs).squeezeN j).2.cap) :
-    BlkF (coreProgram.Rel rd) rd σ st.k (osSqueezes c lvl lv st).2.k
-      (fun i ↦ segLookup (sqzSegs c lv st sqz ⟨st.fsv σ, []⟩) (i - st.k)) (osSqueezes c lvl lv st).1
-      (fun σ' ↦ SqzOut σ' st (osSqueezes c lvl lv st).2
-        ((⟨st.fsv σ, []⟩ : Fs).squeezeN lv.squeezes).2 ∧ AgreeBelow st.k σ σ') := by
-  obtain ⟨fn, hfind, hps, hbody⟩ := hloop
-  exact osSqueezes_completeC σ hn0 hn5 hfs hb hk hcan hpad hpk sqz h0 (fun j hj ↦ (hm j hj).next)
-    (sqLoop_complete hfind lv hps hbody hpw hpo hdec hn0 sqz (σ (.n osQpos))
-      (σ (.n osQbp)) (st.fsv σ) (by simp [OsSt.fsv, hfs]) hcan hm)
-
 end
 end LeanVM.Guest.B1.Whir

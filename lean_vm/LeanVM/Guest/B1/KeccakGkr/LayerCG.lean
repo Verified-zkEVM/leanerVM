@@ -38,18 +38,6 @@ theorem localRunF_cap_canonical (ms : List (E × E × E)) (v : E) (s : Fs) (hne 
   rw [localRunF_snoc]
   exact ⟨squeeze_cap_canonical _, by simp [Fs.squeeze, capOf]⟩
 
-theorem readsAt_drop {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) (k : ℕ) :
-    ReadsAt rd (p * gen ^ k) (xs.drop k) := by
-  intro i hi
-  rw [loadHolds_mul_gen_pow, List.getElem_drop]
-  exact h _ _
-
-theorem kk_readsAt_take {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) (k : ℕ) :
-    ReadsAt rd p (xs.take k) := by
-  intro i hi
-  rw [List.getElem_take]
-  exact h _ _
-
 namespace LayerData
 
 variable {D : LayerData} {first : ℕ} {rd : Reader}

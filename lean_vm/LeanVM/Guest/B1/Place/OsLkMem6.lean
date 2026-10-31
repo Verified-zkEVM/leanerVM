@@ -158,10 +158,5 @@ theorem osLk_region (c : OsCfg) (tr : OsTr) (b : ℕ) (Lin : Layout) (bp : ℕ �
     RegionL (osLk c tr b Lin) (osBase c b j + k) :=
   ⟨_, osLk_mem c tr b Lin bp hj h8, by simp, by simpa using hk⟩
 
-/-- `osLk` holds the caller's words. -/
-theorem osLk_lin {c : OsCfg} {tr : OsTr} {b : ℕ} {Lin : Layout} {rd : Reader}
-    (hm : MemL rd (osLk c tr b Lin)) : MemL rd Lin :=
-  (Main.memL_append.mp hm).2
-
 end
 end LeanVM.Guest.B1

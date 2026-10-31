@@ -60,16 +60,5 @@ theorem weightKids_le_ratio (hc : CallsIn P S) (hω : ∀ g, S g → q * ω g �
         nlinarith [Nat.zero_le (p * (Tree.phantom f' σ').total fs)]
 end
 
-/-- **The functions of a list closed under calls call only functions of the list.** -/
-theorem callsIn_of_list {L : List String}
-    (h : L.all (fun g => match P.find? g with
-      | some fn => (Stmt.blockCallees fn.body).all (· ∈ L)
-      | none => true) = true) :
-    CallsIn P (· ∈ L) := by
-  refine callsIn_of_callees fun f hs fn hf g hg => ?_
-  have := List.all_eq_true.mp h f hs
-  rw [hf] at this
-  simpa using List.all_eq_true.mp this g hg
-
 end
 end LeanVM.Guest.Memory

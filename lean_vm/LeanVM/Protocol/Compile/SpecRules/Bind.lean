@@ -97,14 +97,6 @@ def mono (S : Spec p Pre Post εmax L T) (hPre : ∀ h, Pre' h → Pre h)
   post hl ha hD := hPost _ _ (S.post hl ha hD)
   bound hl hne hm hD := (S.bound hl hne hm hD).trans hε
 
-@[simp] theorem mono_D (S : Spec p Pre Post εmax L T) (hPre : ∀ h, Pre' h → Pre h)
-    (hPost : ∀ a h, Post a h → Post' a h) (hε : εmax ≤ εmax') (hL : L ≤ L') (hT : T' ≤ T) :
-    (S.mono hPre hPost hε hL hT).D = S.D := rfl
-
-@[simp] theorem mono_V (S : Spec p Pre Post εmax L T) (hPre : ∀ h, Pre' h → Pre h)
-    (hPost : ∀ a h, Post a h → Post' a h) (hε : εmax ≤ εmax') (hL : L ≤ L') (hT : T' ≤ T) :
-    (S.mono hPre hPost hε hL hT).V = S.V := rfl
-
 /-- **A dead branch**: any program from an unsatisfiable precondition, with any lead (doom never
 holds and the potential is `1`). -/
 def dead : Spec p (fun _ ↦ False) Post εmax L T where
@@ -461,9 +453,6 @@ noncomputable def bind : Spec (p.bind f) Pre Q εmax Lp T where
 
 /-- The doom of a sequence. -/
 theorem bind_D : (S.bind F).D = bindD S F := rfl
-
-/-- The potential of a sequence. -/
-theorem bind_V : (S.bind F).V = bindV S F := rfl
 
 /-- **Sequencing** in `do`-notation. -/
 noncomputable def bind' : Spec (p >>= f) Pre Q εmax Lp T := S.bind F

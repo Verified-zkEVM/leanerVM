@@ -29,9 +29,6 @@ open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
 
 variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 
-theorem k64_atoms (pad : Nat) (m0 m1 m2 m3 : V) (c o : Nat) : atomsOnly (k64 pad m0 m1 m2 m3 c o) = true :=
-  rfl
-
 /-- **A 64-byte `keccak` of four cells** writes their hash. -/
 theorem k64_sound {pad : Nat} (hp : PadOK σ pad) {m0 m1 m2 m3 : V} {c o : Nat}
     (h : AtomsHold rd σ (k64 pad m0 m1 m2 m3 c o)) :

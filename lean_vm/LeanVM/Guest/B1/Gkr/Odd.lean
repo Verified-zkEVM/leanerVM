@@ -81,8 +81,6 @@ def odBody : List Stmt :=
     .atom (.load (.n 298) (.n 15) 28), .atom (.const (.n 299) (word 0 0 0)),
     .atom (.load (.n 299) (.n 15) 29)]
 
-theorem odBody_eq : odBody = LeanVM.Guest.Data.core8.s199_e := tbStmtsEqb_sound (by decide +kernel)
-
 theorem odBody_noRet : Stmt.noRetList odBody = true := by decide +kernel
 
 /-- Child `i`'s read's first statement in `odBody`. -/

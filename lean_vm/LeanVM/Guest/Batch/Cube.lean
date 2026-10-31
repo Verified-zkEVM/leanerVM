@@ -149,25 +149,6 @@ theorem multilinear_sumE {α : Type} {n : ℕ} (l : List α) {g : α → List E 
     simp only [List.map_cons, Protocol.Whir.Complete.sumE_eq, List.sum_cons] at h ⊢
     exact h pre post hlen x
 
-/-- A product of functions of the first `a` and of the last `b` of `a + b` coordinates, each
-multilinear, is multilinear. -/
-theorem multilinear_take_mul_drop {a b : ℕ} {f g : List E → E} (hf : Multilinear a f)
-    (hg : Multilinear b g) :
-    Multilinear (a + b) fun y ↦ f (y.take a) * g (y.drop a) := by
-  intro pre post hlen x
-  simp only [List.take_append, List.drop_append]
-  by_cases hp : pre.length < a
-  · obtain ⟨k, hk⟩ : ∃ k, a - pre.length = k + 1 := ⟨a - pre.length - 1, by omega⟩
-    have hkl : pre.length + 1 + (post.take k).length = a := by simp; omega
-    simp only [List.take_of_length_le (show pre.length ≤ a by omega),
-      List.drop_eq_nil_of_le (show pre.length ≤ a by omega), hk, List.take_succ_cons,
-      List.drop_succ_cons, List.nil_append, hf pre (post.take k) hkl x]
-    ring
-  · have hkl : (pre.drop a).length + 1 + post.length = b := by simp; omega
-    simp only [show a - pre.length = 0 by omega, List.take_zero, List.drop_zero, List.append_nil,
-      hg (pre.drop a) post hkl x]
-    ring
-
 /-- A product of two multilinear functions is quadratic along each coordinate. -/
 theorem quadraticIn_mul {n : ℕ} {u v : List E → E} (hu : Multilinear n u) (hv : Multilinear n v) :
     QuadraticIn n fun y ↦ u y * v y := by

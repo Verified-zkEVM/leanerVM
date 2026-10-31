@@ -204,36 +204,6 @@ theorem kBytes_kOfBytes_of_length {c : Bytes} (h : c.length = 8) : kBytes (kOfBy
 
 theorem digestBytes_length' (d : Digest) : (digestBytes d).length = 32 := digestBytes_length d
 
-/-- **The bytecode file round-trips**: a word list is read back from its bytes. -/
-theorem decodeWords_flatMap (ws : List K) : decodeWords (ws.flatMap kBytes) = some ws :=
-  decodeAll_flatMap (by decide) kBytes_length kOfBytes_kBytes ws
-
-/-- A bytecode file that decodes is the bytes of its words. -/
-theorem flatMap_of_decodeWords {b : Bytes} {ws : List K} (h : decodeWords b = some ws) :
-    ws.flatMap kBytes = b :=
-  decodeAll_spec (fun _ ↦ kBytes_kOfBytes_of_length) h
-
-/-- **The stream file round-trips**: a stream is read back from its bytes. -/
-theorem decodeScalars_encodeScalars (xs : List E) : decodeScalars (encodeScalars xs) = some xs :=
-  decodeAll_flatMap (by decide) eBytes_length eOfBytes_eBytes xs
-
-/-- A stream file that decodes is the bytes of its scalars. -/
-theorem encodeScalars_of_decodeScalars {b : Bytes} {xs : List E} (h : decodeScalars b = some xs) :
-    encodeScalars xs = b :=
-  decodeAll_spec (fun _ ↦ eBytes_eOfBytes) h
-
-/-- **The public input file round-trips.** -/
-theorem decodeDigest_digestBytes (d : Digest) : decodeDigest (digestBytes d) = some d := by
-  simp [decodeDigest, digestBytes_length, digestOfBytes_digestBytes]
-
-/-- A public input file that decodes is the bytes of its digest. -/
-theorem digestBytes_of_decodeDigest {b : Bytes} {d : Digest} (h : decodeDigest b = some d) :
-    digestBytes d = b := by
-  unfold decodeDigest at h
-  split_ifs at h with hl
-  cases h
-  exact digestBytes_digestOfBytes hl
-
 /-! ### The openings -/
 
 /-- An opening's shape: its height (siblings) and width (leaf words). -/
@@ -284,25 +254,6 @@ theorem readOpenings_spec :
     refine ⟨by simp [hs1, hs2], ?_⟩
     simp only [encodeOpenings, List.flatMap_cons, List.append_assoc] at hb2 ⊢
     rw [hb2, hb1]
-
-/-- **The openings file round-trips**: openings are cut back out of their bytes at their own
-shapes. -/
-theorem splitOpenings_encodeOpenings (os : List Opening) :
-    splitOpenings (os.map openingShape) (encodeOpenings os) = some os := by
-  have h := readOpenings_encodeOpenings os []
-  rw [List.append_nil] at h
-  simp only [splitOpenings, h]
-
-/-- An openings file that is cut is the bytes of its openings, in the shapes asked for. -/
-theorem encodeOpenings_splitOpenings {shapes : List (ℕ × ℕ)} {b : Bytes} {os : List Opening}
-    (h : splitOpenings shapes b = some os) :
-    os.map openingShape = shapes ∧ encodeOpenings os = b := by
-  unfold splitOpenings at h
-  split at h
-  · rename_i hr
-    cases h
-    simpa using readOpenings_spec hr
-  · cases h
 
 end
 end LeanVM.Protocol.Verifier

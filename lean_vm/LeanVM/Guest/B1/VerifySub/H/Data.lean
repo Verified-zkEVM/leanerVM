@@ -110,8 +110,6 @@ noncomputable def H : Tables.VtHonest :=
 
 theorem hs_length : S.hs.length = 6 := tableHeights_length _ S.hrowsL
 
-theorem layout_eq : S.layout = Tables.layoutOf bytecode S.logMem S.rowsN := S.hlayout
-
 theorem stack28 : (Tables.layoutOf bytecode S.logMem S.rowsN).stackLog ≤ 28 := by
   rw [← S.hlayout]; exact S.hmu28
 
@@ -135,8 +133,6 @@ theorem capS_carries : ∃ sp, (⟨S.capS, []⟩ : Fs).Carries sp :=
   carrier_of_squeeze (s := S.s3) (c := S.s3.squeeze.1) rfl
 
 theorem capS_length : S.capS.length = 5 := rfl
-
-theorem capS_canonical : AllCanonical S.capS := Tables.tb_capOf_canonical _
 
 /-- **The bus's GKR from its capacity**, ending on a permutation's capacity. -/
 theorem runG' (hbl : bytecode.length = 2 ^ 23) :
@@ -182,10 +178,8 @@ theorem H_run (hbl : bytecode.length = 2 ^ 23) :
 theorem H_rows : S.H.rows = S.rowsN := rfl
 theorem H_lm : S.H.lm = S.logMem := rfl
 theorem H_point : S.H.point = S.point := rfl
-theorem H_alphas : S.H.alphas = S.alphas := rfl
 theorem H_f : S.H.f = S.s5.cap := rfl
 theorem H_claims : S.H.claims = S.claims := rfl
-theorem H_bc : S.H.bc = bytecode := rfl
 
 /-- **`verify_tables`' honest data fits its shapes.** -/
 theorem H_shape (hbl : bytecode.length = 2 ^ 23) : Tables.VtShape S.H := by

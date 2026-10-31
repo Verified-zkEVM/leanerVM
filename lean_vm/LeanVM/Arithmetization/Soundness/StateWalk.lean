@@ -60,18 +60,6 @@ variable {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanIsaEns
 
 /-! ## The rows are steps -/
 
-/-- An interaction of a table is sent by one of its rows. -/
-theorem mem_rowSends_of_mem_interactions {t : Air.Flat.Table K} {i : Interaction K}
-    (hi : i ∈ t.interactions) :
-    ∃ row ∈ t.table, i.msg ∈ chanOf i.channel.name (rowSends t.component (t.environment row)) := by
-  unfold Air.Flat.Table.interactions at hi
-  obtain ⟨row, hrow, hi⟩ := List.mem_flatMap.mp hi
-  refine ⟨row, hrow, ?_⟩
-  rw [Component.interactionsValues_eq] at hi
-  unfold chanOf rowSends
-  refine List.mem_map.mpr ⟨(i.channel.name, i.msg), List.mem_filter.mpr ⟨?_, by simp⟩, rfl⟩
-  exact List.mem_map_of_mem hi
-
 /-- The interactions of a row of a witness's table are interactions of the witness. -/
 theorem eval_mem_interactions {t : Air.Flat.Table K} (ht : t ∈ w.tables) {row : Array K}
     (hrow : row ∈ t.table) {a : AbstractInteraction K}
@@ -146,22 +134,6 @@ theorem rowsStep_deployed (h : SatisfiedBy prog input w)
   fun _ hp ↦ by
     rw [stepB_deployed]
     exact opRecs_step h hf hp
-
-/-- **Without the `KECCAK` validity, the rows are steps of the reduction-blind semantics**
-(`keccakFree`): a `KECCAK` row reads canonical cells, whatever its output holds. -/
-theorem rowsStep_free (h : SatisfiedByB prog input w)
-    {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) : RowsStep keccakFree w f := by
-  intro p hp
-  obtain ⟨ht, hrow⟩ := mem_opPairs hp
-  have hc := h.constraints p.1 (w.mem_allTables_of_mem_tables (List.mem_of_mem_take ht)) p.2 hrow
-  obtain ⟨ins, he, hexec, hnj⟩ := (hf p hp).2.2.2.2 hc (opRecs_guarantees h hf hp)
-  obtain ⟨k, hpc, hek⟩ := opRecs_bc_sound h hf hp
-  have hins : prog.code k = ins := entry_injective (hek.symm.trans he)
-  refine ⟨?_, k, hpc, fun hj ↦ hnj (hins ▸ hj)⟩
-  have hfetch : prog.fetch (f p).src.pc = some ins := by
-    rw [show (f p).src.pc = (f p).pc from rfl, hpc, Program.fetch_gpow, hins]
-  simp only [stepB, hfetch, Option.bind_eq_bind, Option.bind_some]
-  exact hexec
 
 /-! ## The state pair -/
 

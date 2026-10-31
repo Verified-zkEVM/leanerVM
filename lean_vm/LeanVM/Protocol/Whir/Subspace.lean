@@ -156,19 +156,6 @@ noncomputable def vanishing (i : ℕ) : K[X] := ∏ v ∈ Finset.range (2 ^ i), 
 @[simp] theorem eval_vanishing (i : ℕ) (a : K) : (vanishing i).eval a = vanishingAt i a := by
   simp [vanishing, vanishingAt, eval_prod]
 
-/-- For `i ≤ 64` the product over `v < 2^i` is the product over the subspace `U_i`. -/
-theorem vanishing_eq_prod_subspace {i : ℕ} (hi : i ≤ 64) :
-    vanishing i = ∏ u ∈ subspace i, (X + C u) := by
-  rw [vanishing, subspace, Finset.prod_image]
-  intro a ha b hb h
-  have hle : 2 ^ i ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) hi
-  exact ofBits_injOn (show a < 2 ^ 64 from lt_of_lt_of_le (Finset.mem_range.mp ha) hle)
-    (show b < 2 ^ 64 from lt_of_lt_of_le (Finset.mem_range.mp hb) hle) h
-
-/-- `W_i` is monic. -/
-theorem vanishing_monic (i : ℕ) : (vanishing i).Monic :=
-  monic_prod_of_monic _ _ fun _ _ ↦ monic_X_add_C _
-
 /-- `deg W_i = 2^i`. -/
 theorem natDegree_vanishing (i : ℕ) : (vanishing i).natDegree = 2 ^ i := by
   rw [vanishing, natDegree_prod_of_monic _ _ fun _ _ ↦ monic_X_add_C _]
@@ -242,13 +229,6 @@ theorem aeval_vanishing_add {A : Type*} [CommRing A] [Algebra K A] (i : ℕ) (a 
     simp only [vanishing_succ, map_mul, map_add, aeval_C, ih]
     linear_combination (aeval a (vanishing i) * aeval b (vanishing i)) * h2
 
-/-- Lemma `lem:subspace` (ii) as the bivariate polynomial identity
-`W_i(X + Y) = W_i(X) + W_i(Y)` in `K[X, Y]`. -/
-theorem vanishing_add_bivariate (i : ℕ) :
-    aeval (MvPolynomial.X 0 + MvPolynomial.X 1 : MvPolynomial (Fin 2) K) (vanishing i) =
-      aeval (MvPolynomial.X 0) (vanishing i) + aeval (MvPolynomial.X 1) (vanishing i) :=
-  aeval_vanishing_add i _ _
-
 /-- The recurrence (i), evaluated: `W_{i+1}(a) = W_i(a)^2 + W_i(e_i)·W_i(a)`, the update of the
 pinned Python's `_subspace_roots` and of the Rust `next_s`. -/
 theorem vanishingAt_succ (i : ℕ) (a : K) :
@@ -309,11 +289,6 @@ theorem normVanishing_ne_zero {i : ℕ} (hi : i < 64) : normVanishing i ≠ 0 :=
   have := natDegree_normVanishing hi
   rw [h, natDegree_zero] at this
   exact (Nat.two_pow_pos i).ne this
-
-/-- `Ŵ_0 = X`, since `e_0 = 1` and `W_0 = X`. -/
-theorem normVanishing_zero : normVanishing 0 = X := by
-  rw [normVanishing, vanishing_zero]
-  simp [vanishingAt, basisVec_zero]
 
 /-- `Ŵ_i` is additive on `K`. -/
 theorem normVanishingAt_add (i : ℕ) (a b : K) :

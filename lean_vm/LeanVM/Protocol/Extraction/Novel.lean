@@ -388,16 +388,6 @@ theorem novelInv_eval {κ : ℕ} (hκ : κ ≤ 64) (c : ℕ → K) (y : Array K)
   rw [size_novelInv y hsize] at hp
   rw [novelInv_getD hκ c y hy hp, getD_ofFn _ hp]
 
-/-- **Round trip**: coefficients → evaluations → coefficients. -/
-theorem novelInv_novelFwd {κ : ℕ} (hκ : κ ≤ 64) (c : Array K) (hc : c.size = 2 ^ κ) :
-    novelInv κ (novelFwd κ 0 c) = c := by
-  rw [novelInv_eval hκ (fun j ↦ c.getD j 0) _ (by rw [size_novelFwd, Nat.add_zero])
-    fun v hv ↦ novelFwd_getD hκ c (by rwa [Nat.add_zero])]
-  apply array_ext_getD (by rw [Array.size_ofFn, hc])
-  intro p hp
-  rw [Array.size_ofFn] at hp
-  rw [getD_ofFn _ hp]
-
 /-! ## The stages invert each other (characteristic-two algebra) -/
 
 theorem novelFwdStage_novelInvStage {m i : ℕ} (him : i < m) (b : Array K) (hb : b.size = 2 ^ m) :

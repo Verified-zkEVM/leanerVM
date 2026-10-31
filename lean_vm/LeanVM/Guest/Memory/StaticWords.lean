@@ -53,20 +53,6 @@ def HandOk (P : Core.Program) (fs : String → ℕ) (cert : String → Cert) (X 
   ∀ f, X f → ∀ (rd : Reader) (t : Tree) (args rets : List E), t.name = f → t.Valid P rd args rets →
     t.BufsOk P → Bound P true cert fs t args
 
-/-- A hand bound on the words of `f`'s trees, under its certificate's preconditions, is what
-`HandOk` asks of a `stat` certificate. -/
-theorem bound_of_total {f : String} {pre : List (ℕ × ℕ)} {b : Aff} {ks : List (V × ℕ)}
-    (hcf : cert f = .stat pre b ks)
-    (h : ∀ (rd : Reader) (t : Tree) (args rets : List E), t.name = f → t.Valid P rd args rets →
-      t.BufsOk P → ArgsPre pre args → t.total fs ≤ b.eval args)
-    {t : Tree} {args rets : List E} (hn : t.name = f) (hv : t.Valid P rd args rets) (hb : t.BufsOk P) :
-    Bound P true cert fs t args := by
-  unfold Bound
-  rw [hn, hcf]
-  intro hpre
-  rw [← total_eq_cost t hb]
-  exact h rd t args rets hn hv hb hpre
-
 /-- **A certificate checked counting words bounds the words**, under its preconditions. -/
 theorem total_le_of_stat {X : String → Prop} (hchk : CheckedExcept P true cert fs X)
     (hX : HandOk P fs cert X) {f : String} {pre : List (ℕ × ℕ)} {b : Aff} {ks : List (V × ℕ)}

@@ -84,12 +84,6 @@ theorem head (hΦ : IsMultiaffine (n + 1) Φ) (r : List E) (hr : r.length = n) (
   have := hΦ (0 :: r) (by simp [hr]) 0 (Nat.succ_pos n) X
   simpa using this
 
-/-- Binding the first coordinate keeps the weight multiaffine. -/
-theorem cons (hΦ : IsMultiaffine (n + 1) Φ) (s : E) : IsMultiaffine n fun r ↦ Φ (s :: r) := by
-  intro l hl k hk X
-  have := hΦ (s :: l) (by simp [hl]) (k + 1) (by omega) X
-  simpa using this
-
 /-- Binding a prefix keeps the weight multiaffine. -/
 theorem append {m : ℕ} (hΦ : IsMultiaffine (m + n) Φ) (pre : List E) (hpre : pre.length = m) :
     IsMultiaffine n fun r ↦ Φ (pre ++ r) := by

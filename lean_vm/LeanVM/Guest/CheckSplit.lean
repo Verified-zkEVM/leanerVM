@@ -241,19 +241,6 @@ theorem runAt_congr : ∀ (base : ℕ) (vs : List Core.V), (∀ v ∈ vs, Agree 
     simp only [runAt, cellOf_congr (h v List.mem_cons_self),
       runAt_congr (base + 1) vs (fun w hw ↦ h w (List.mem_cons_of_mem _ hw))]
 
-theorem locate_congr {a : Core.Atom} (h : ∀ v ∈ atomVals a, Agree l l' v) : locate l a = locate l' a := by
-  cases a <;> simp only [atomVals, List.mem_cons, List.mem_append, List.not_mem_nil, or_false,
-    forall_eq_or_imp, forall_eq] at h <;> simp only [locate]
-  all_goals first
-    | rfl
-    | (rw [cellOf_congr h])
-    | (rw [cellOf_congr h.1, cellOf_congr h.2])
-    | (rw [cellOf_congr h.1, cellOf_congr h.2.1, cellOf_congr h.2.2])
-    | (rw [cellOf_congr h.1, cellOf_congr h.2.1, cellOf_congr h.2.2.1, cellOf_congr h.2.2.2.1,
-        cellOf_congr h.2.2.2.2])
-    | (rw [cellsOf_congr fun v hv ↦ h v (Or.inl hv), cellsOf_congr fun v hv ↦ h v (Or.inr hv)])
-    | (rw [cellOf_congr h.1, cellsOf_congr h.2])
-
 theorem atomOk_congr (F : Exec.Facts) (B : Book) (ψ : Exec.Trie Sym) {a : Core.Atom}
     (h : ∀ v ∈ atomVals a, Agree l l' v) : atomOk F B ψ l a = atomOk F B ψ l' a := by
   cases a <;> simp only [atomVals, List.mem_cons, List.mem_append, List.not_mem_nil, or_false,
@@ -362,26 +349,6 @@ theorem chkL_match_of {X : Fx} {v : Core.V} {a0 : List Core.Stmt} {as : List (Li
     chkL X (.match_ v (a0 :: as) :: ss) st P = chkL X ss sj P := by
   simp only [chkL, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, beq_self_eq_true,
     Bool.and_self, Bool.cond_true]
-
-/-- **The walk of a `match` of atom arms on agreeing cells**: the same, when it does not fail. -/
-theorem chkL_match_congr (v : Core.V) (arms : List (List Core.Stmt)) (st : CS)
-    (hs : arms.all (·.all isAtomS) = true) (hv : Agree X.loc l' v)
-    (hvs : ∀ x ∈ armsVals arms, Agree X.loc l' x)
-    (hne : chkL X [.match_ v arms] st [] ≠ .fail) :
-    chkL X [.match_ v arms] st [] = chkL { X with loc := l' } [.match_ v arms] st [] := by
-  obtain ⟨se, t, ft, t0, ts, a0, as, base, s0, J, sj, h1, h2, h3, rfl, h4, h5, h6, h7, h8, h9, h10,
-    h11, h12, heq⟩ := chkL_match hne
-  simp only [List.all_cons, Bool.and_eq_true] at hs
-  have h0 : ∀ s, chkL X a0 s [] = chkL { X with loc := l' } a0 s [] := fun s ↦
-    chkL_atoms_congr X l' a0 s [] hs.1
-      (fun x hx ↦ hvs x (by simp only [armsVals, List.mem_append]; exact Or.inl hx)) (by simp)
-  have hA : chkArms X J as ts se.book se.bnd = chkArms { X with loc := l' } J as ts se.book se.bnd :=
-    chkArms_congr X l' J as ts se.book se.bnd hs.2
-      (fun x hx ↦ hvs x (by simp only [armsVals, List.mem_append]; exact Or.inr hx))
-  rw [heq, chkL_match_of (X := { X with loc := l' }) h1 h2 h3 h4 h5
-    (by rw [← cellOf_congr hv]; exact h6) (by rw [← cellOf_congr hv]; exact h7) h8 h9
-    (by rw [← h0]; exact h10) (by rw [← hA]; exact h11) h12]
-  exact chkL_atoms_congr X l' [] sj [] rfl (by simp [stmtsVals]) (by simp)
 
 end Walk
 
@@ -639,23 +606,6 @@ noncomputable def checkWinS (G : Glob) (j : ℕ) (cf : Core.Fn) (C : Cert) (main
 theorem winEnd_fail (C : Cert) (i : ℕ) (idx : Exec.Trie Exec.Seg) : winEnd C i idx .fail = false := by
   unfold winEnd
   cases Nat.blt i C.cuts.length <;> simp
-
-theorem mem_stmtsVals_match {v x : Core.V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)}
-    (h : x ∈ stmtsVals [.match_ v (a0 :: as)]) :
-    x = v ∨ x ∈ stmtsVals a0 ∨ ∃ e, ∃ he : e < as.length, x ∈ stmtsVals as[e] := by
-  simp only [stmtsVals, stmtVals, armsVals, List.append_nil, List.mem_cons, List.mem_append] at h
-  rcases h with h | h | h
-  · exact Or.inl h
-  · exact Or.inr (Or.inl h)
-  · right; right
-    induction as with
-    | nil => simp [armsVals] at h
-    | cons a as ih =>
-      simp only [armsVals, List.mem_append] at h
-      rcases h with h | h
-      · exact ⟨0, by simp, by simpa using h⟩
-      · obtain ⟨e, he, hx⟩ := ih h
-        exact ⟨e + 1, by simpa using he, by simpa using hx⟩
 
 theorem mem_armsVals {x : Core.V} : ∀ {as : List (List Core.Stmt)}, x ∈ armsVals as →
     ∃ e, ∃ he : e < as.length, x ∈ stmtsVals as[e]

@@ -29,9 +29,6 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-! ## Horner -/
 
-theorem hornerT_noRet (a : ℕ → ℕ) (s b : ℕ) : Stmt.noRetList (hornerT a s b) = true :=
-  noRetList_flatten_map _ (fun _ ↦ rfl) _
-
 /-- The value after `j` steps of the chain. -/
 def hornerV (a : ℕ → ℕ) (b j : ℕ) : ℕ := if j = 0 then a 46 else b + 2 * j - 1
 

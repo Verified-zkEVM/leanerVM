@@ -399,8 +399,6 @@ theorem oqTs_eq (s : Oq) (b h l : ℕ) :
     oqTs s b h l = oqK1 b s.R + gsOff s.G h + tsOff s.tsz l := by
   simp [oqTs, oqGs, gsOff, tsOff]
 
-theorem G_eq (s : Oq) : s.G = (2 + s.tsz) + (s.lo - 1) * (3 + s.tsz) + 2 := rfl
-
 
 /-- The shape's numbers. -/
 theorem shape_nums {s : Oq} (hs : s.RowShape) :

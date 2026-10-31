@@ -400,17 +400,6 @@ theorem reach_jump {pc : ℕ} {fp : K} {oc od of : ℕ} {r : Registers K}
     Reach prog L ⟨gpow pc, fp⟩ r :=
   reach_step hf hpc (execute_jump_iff.mpr h)
 
-/-- A taken `JUMP` whose target cells hold `a` and `b` goes to `(a, b)`. -/
-theorem reach_jumpTo {pc oc od of : ℕ} {fp a b : K} {c : E}
-    (hf : prog.fetch (gpow pc) = some (OInstr.jump oc od of).toInstr)
-    (hpc : pc < 2 ^ prog.logSize - 1) (hc : L.read (fp * gpow oc) = some c) (hcK : IsInK c)
-    (hc0 : c ≠ 0) (hd : L.read (fp * gpow od) = some (ofK a))
-    (hf' : L.read (fp * gpow of) = some (ofK b)) : Reach prog L ⟨gpow pc, fp⟩ ⟨a, b⟩ := by
-  have hK : ∀ x : K, IsInK (ofK x) := fun x ↦ (isInK_iff _).mpr ⟨x, rfl⟩
-  have := reach_jump (L := L) hf hpc ⟨c, _, _, hc, hd, hf', hcK, hK a, hK b, rfl⟩
-  rw [ite_eq_right hc0] at this
-  simpa using this
-
 /-- A return, `JUMP fp[oc], fp[0], fp[1]` with `fp[oc]` a nonzero `K` word and `fp[0]`,
 `fp[1]` words of `K`, goes to `retRegs L fp`. -/
 theorem reach_ret {pc oc : ℕ} {fp : K} {c d f : E} {r : Registers K}
@@ -431,20 +420,6 @@ theorem Returns.reach {entry : ℕ} {fp' : K} {r : Registers K} (h : Returns pro
   obtain ⟨r', hr', hreach⟩ := h
   obtain rfl : r' = r := Option.some.inj (hr'.symm.trans hret)
   exact hreach
-
-/-- **Strong induction on a measure**, for a family of functions shown to return together:
-assuming every call of a smaller measure returns, show that each call returns. -/
-theorem returns_induction {ι : Type} {entry : ι → ℕ} {P : ι → K → Prop} (μ : ι → K → ℕ)
-    (h : ∀ i fp, P i fp → (∀ j fp', μ j fp' < μ i fp → P j fp' → Returns prog L (entry j) fp') →
-      Returns prog L (entry i) fp)
-    (i : ι) (fp : K) (hP : P i fp) : Returns prog L (entry i) fp := by
-  have hall : ∀ m j fp', μ j fp' < m → P j fp' → Returns prog L (entry j) fp' := by
-    intro m
-    induction m with
-    | zero => exact fun _ _ hm ↦ absurd hm (Nat.not_lt_zero _)
-    | succ m ih =>
-      exact fun j fp' hm hP' ↦ h j fp' hP' fun j' fp'' hlt hP'' ↦ ih j' fp'' (by omega) hP''
-  exact hall _ i fp (Nat.lt_succ_self _) hP
 
 /-- A run from `(g^0, 1)` to the final registers, on a memory holding the public input, is a
 valid execution. -/

@@ -31,16 +31,5 @@ theorem blockCallees_append : ∀ a b : List Stmt,
     rw [List.cons_append, Stmt.blockCallees, Stmt.blockCallees, blockCallees_append a b,
       List.append_assoc]
 
-theorem krPiece_append {J : List ℕ} {i a n m : ℕ} {L1 L2 : List ℕ} (h1 : krPiece J i a n L1 = true)
-    (h2 : krPiece J i (a + n) m L2 = true) : krPiece J i a (n + m) (L1 ++ L2) = true := by
-  simp only [krPiece, Bool.and_eq_true, beq_iff_eq] at h1 h2 ⊢
-  refine ⟨?_, by rw [List.all_append, h1.2, h2.2]; rfl⟩
-  rw [List.take_add, List.drop_drop, blockCallees_append, h1.1, h2.1, List.map_append]
-
-theorem krClosedAt_of_piece {J : List ℕ} {C : ℕ → List ℕ} {i n : ℕ}
-    (h : krPiece J i 0 n (C i) = true) (hn : (krBody i).length ≤ n) : krClosedAt J C i = true := by
-  simp only [krPiece, List.drop_zero, List.take_of_length_le hn] at h
-  exact h
-
 end
 end LeanVM.Guest.Count

@@ -118,14 +118,6 @@ theorem getD_flatMap_uniform {α : Type} {f : α → List E} {w : ℕ} :
       exact getD_flatMap_uniform l (fun b hb => hw b (List.mem_cons_of_mem _ hb)) j
         (by simpa using hj) i hi
 
-theorem flatMap_range_getD {α : Type} (l : List α) (f : α → List E) (x : List E) :
-    (List.range l.length).flatMap (fun d => (l.map f).getD d x) = l.flatMap f := by
-  have : (List.range l.length).map (fun d => (l.map f).getD d x) = l.map f := by
-    refine List.ext_getElem (by simp) fun i h1 h2 => ?_
-    simp only [List.getElem_map, List.getElem_range]
-    rw [List.getD_eq_getElem _ _ (by simpa using h2), List.getElem_map]
-  rw [List.flatMap_def, this, ← List.flatMap_def]
-
 /-- **The children's claim `(sum of the first c lengths) + j`** is child `c`'s claim `j`. -/
 theorem kid_segOf_sum : ∀ (ls : List ℕ) (c j : ℕ) (hc : c < ls.length), j < ls[c] →
     segOf ls ((ls.take c).sum + j) = (c, j)

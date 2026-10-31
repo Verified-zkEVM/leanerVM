@@ -111,13 +111,6 @@ theorem experiment_eq (A : Adversary) :
   rw [← map_run_simulateQ_loggedRO, bind_map_left]
   simp [map_eq_bind_pure_comp]
 
-/-- The experiment without the adversary's cache is the generic adversary-then-verifier
-experiment. -/
-theorem experiment_map (A : Adversary) :
-    (fun z ↦ (z.1, z.2.1)) <$> experiment A = LeanVM.Protocol.Rom.romExperiment A expVerifier := by
-  rw [experiment_eq, Functor.map_map, ← LeanVM.Protocol.Rom.map_logExperiment,
-    Sound.logExperiment_eq_logged2, Functor.map_map]
-
 /-! ## Knowledge soundness -/
 
 /-- **Knowledge soundness in the random-oracle model.** For an adversary making at most `Q`

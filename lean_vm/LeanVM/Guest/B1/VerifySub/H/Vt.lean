@@ -65,8 +65,6 @@ theorem chunks_getElem_length : ∀ (ks : List ℕ) (l : List E), l.length = ks.
     simp only [chunks, List.getElem_cons_succ, List.getD_cons_succ]
     exact chunks_getElem_length ks (l.drop k) (by simp; omega) i (by simpa [chunks] using hi)
 
-theorem vtW6_sum : vtW6.sum = 157 := rfl
-
 /-- **Rows of the tables, with their evaluations cut from `157` words.** -/
 theorem zip_chunks {X : Type} (rows : List (Table × X)) (hrows : rows.map (·.1) = tables)
     (ys : List E) (hy : ys.length = 157) :

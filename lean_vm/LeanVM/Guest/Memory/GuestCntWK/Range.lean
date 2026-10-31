@@ -31,21 +31,6 @@ noncomputable def kukchkIdx (j : ℕ) : Bool :=
 /-- The `n` functions from the `a`-th pass. -/
 def kukStaticRange (a n : ℕ) : Prop := (List.range' a n).all kukchkIdx = true
 
-/-- **A function checked in ranges of its body**, its certificate a bound. -/
-theorem kukchkIdx_of_split {j : ℕ} {fn : Fn} {pre : List (ℕ × ℕ)} {b : Aff} {ks : List (V × ℕ)} {R : Acc}
-    (hfn : coreProgram[j]? = some fn) (hc : kukcertJ j = .stat pre b ks) (hh : kukhandJ.any (·.1 == j) = false)
-    (hb : blockB (kuklookJ j) (kukomLookJ j) false ks fn.params fn.name ([], []) fn.body = some R)
-    (hl : (kuklnkJ j).all (fun q => decide ((coreProgram[q.2]?).map Fn.name = some q.1)) = true)
-    (hle : (Aff.leB ⟨kukomegaJ j + R.1.c, R.1.cs⟩ b && R.2.all (· ∈ pre)) = true) : kukchkIdx j = true := by
-  unfold kukchkIdx
-  rw [hfn]
-  simp only [hh, hl, Bool.true_and, Bool.false_or]
-  unfold chkFn
-  rw [hc]
-  simp only
-  rw [blockR_eq, hb]
-  exact hle
-
 theorem kukStaticRange.get {a n j : ℕ} (h : kukStaticRange a n) (h1 : a ≤ j) (h2 : j < a + n) :
     kukchkIdx j = true := by
   unfold kukStaticRange at h

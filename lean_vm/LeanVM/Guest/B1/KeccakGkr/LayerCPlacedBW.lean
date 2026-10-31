@@ -55,66 +55,7 @@ theorem round_totalLe_fs : TotalLe coreProgram LeanVM.Guest.B2C.fs "keccak_round
   rwa [wSB_idx (j := 11) (f := "keccak_round") (by decide +kernel),
     show wSBJ 11 = 80 by decide +kernel] at h1
 
-/-- **`keccak_layer`'s words at `B2C.fs`, in numbers**: its frame (`2152`..`2525`), `y + 228`
-for its buffers, `147 + ⌊y/2⌋ * 294` for the pack loop, `80` for an odd `y`'s last round: at most
-`7420` for `y ≤ 30`. -/
-theorem layerWords_fs_le {first odd y : ℕ} (hf : first < 2) (ho : odd < 2) (hy : y ≤ 30) :
-    layerWords LeanVM.Guest.B2C.fs first odd y 294 80 ≤ 7420 := by
-  have hp : LeanVM.Guest.B2C.fs (packLoopName first odd) = 147 := by
-    interval_cases first <;> interval_cases odd
-    · rw [show packLoopName 0 0 = "__loop30" from rfl,
-      fs_idx (j := 383) (f := "__loop30") (by decide +kernel)]
-      decide +kernel
-    · rw [show packLoopName 0 1 = "__loop31" from rfl,
-      fs_idx (j := 384) (f := "__loop31") (by decide +kernel)]
-      decide +kernel
-    · rw [show packLoopName 1 0 = "__loop28" from rfl,
-      fs_idx (j := 381) (f := "__loop28") (by decide +kernel)]
-      decide +kernel
-    · rw [show packLoopName 1 1 = "__loop29" from rfl,
-      fs_idx (j := 382) (f := "__loop29") (by decide +kernel)]
-      decide +kernel
-  have hl : LeanVM.Guest.B2C.fs (layerName first odd) ≤ 2525 := by
-    interval_cases first <;> interval_cases odd
-    · rw [show layerName 0 0 = "keccak_layer__L0_L0" from rfl,
-      fs_idx (j := 253) (f := "keccak_layer__L0_L0") (by decide +kernel)]
-      decide +kernel
-    · rw [show layerName 0 1 = "keccak_layer__L0_L1" from rfl,
-      fs_idx (j := 254) (f := "keccak_layer__L0_L1") (by decide +kernel)]
-      decide +kernel
-    · rw [show layerName 1 0 = "keccak_layer__L1_L0" from rfl,
-      fs_idx (j := 251) (f := "keccak_layer__L1_L0") (by decide +kernel)]
-      decide +kernel
-    · rw [show layerName 1 1 = "keccak_layer__L1_L1" from rfl,
-      fs_idx (j := 252) (f := "keccak_layer__L1_L1") (by decide +kernel)]
-      decide +kernel
-  have hy2 : y / 2 * 294 ≤ 15 * 294 := Nat.mul_le_mul_right _ (by omega)
-  simp only [layerWords, hp]
-  omega
-
 variable {cert : String → V → ℕ}
-
-/-- **`keccak_layer` is complete, placed, within its words at `B2C.fs`**:
-`layer_completeAtFB` with the callees' words from their certificates, at most `7420` words
-(`layerWords_fs_le`). -/
-theorem layer_completeAtFB_fs {first odd : ℕ} (hf : first < 2) (ho : odd < 2) (κ : ℕ)
-    (D : LayerData) (CL : ClaimLay) (bcur bout : ℕ) {p0 p1 iota : E}
-    (hcl : D.cap.length = 5) (hcap : AllCanonical D.cap)
-    (hw : first = 1 → (p0, p1) = Keccak.scalarCells D.w0 dsObserve)
-    (hy : D.y % 2 = odd) (hy1 : 1 ≤ D.y) (hy30 : D.y ≤ 30) (hpl : D.product.length = 47)
-    (hpm : D.packMsgs.length = D.y) (hlm : D.localMsgs.length = 11)
-    (hproj : projectedOf D.c D.product + iota * sumE D.c.mu = D.c.value)
-    (hfin : LayerFinal D.c (D.s0 first) D.product D.packMsgs D.localMsgs D.t)
-    (hCL : CL.Ok first D.c D.y) :
-    CompleteAtFB LeanVM.Guest.B2C.fs cert κ (layerName first odd)
-      (fun fp ↦ layerLin D first CL bcur bout (fp + LeanVM.Guest.B2C.fs (layerName first odd)))
-      (D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 2), gen ^ (D.y / 2 + odd), ptr CL.bclaim,
-        ptr bout, iota])
-      (fun fp rets Lout ↦ rets = D.rets first (ptr bcur) ∧
-        Lout = layerBufs D first (ptr bcur) (fp + LeanVM.Guest.B2C.fs (layerName first odd)))
-      (layerWords LeanVM.Guest.B2C.fs first odd D.y 294 80) :=
-  layer_completeAtFB hf ho κ D CL bcur bout (packLoop_totalLeOn_fs hf ho) round_totalLe_fs hcl hcap
-    hw hy hy1 hy30 hpl hpm hlm hproj hfin hCL
 
 end
 end LeanVM.Guest.B1.VerifySub

@@ -136,9 +136,6 @@ theorem eOfNat_shift_mod (n k : ℕ) : eOfNat ((n >>> k) % 2) = bitE (n.testBit 
 theorem one_add_bitE (c : Bool) : 1 + bitE c = bitE (!c) := by
   cases c <;> simp [bitE, e_add_self]
 
-theorem bitE_xor_true (c : Bool) : bitE (c ^^ true) = 1 + bitE c := by
-  cases c <;> simp [bitE, e_add_self]
-
 /-- A run of bits read off a word: `Σ_{k < j} bit k · E(2^k) = E(W mod 2^j)`. -/
 theorem sum_testBit_gen_pow (W j : ℕ) (hj : j ≤ 64) :
     ∑ k ∈ Finset.range j, bitE (W.testBit k) * gen ^ k = eOfNat (W % 2 ^ j) := by

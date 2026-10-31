@@ -197,12 +197,6 @@ theorem stepCap_le_stack :
     _ = ∑ b ∈ Finset.univ.map ⟨f, hf⟩, 2 ^ (blocks prog s).size b := by rw [Finset.sum_map]; rfl
     _ ≤ ∑ b, 2 ^ (blocks prog s).size b := Finset.sum_le_sum_of_subset (Finset.subset_univ _)
 
-/-- **At admissible sizes the cap is at most `2^28`**, the largest stack. -/
-theorem stepCap_le_maxMu {prog : Program} {s : Sizes} (hs : s.Admissible prog) :
-    stepCap (verifierLayout prog s) ≤ 2 ^ maxMu :=
-  (stepCap_le_stack prog s).trans (Nat.pow_le_pow_right (by norm_num)
-    (by rw [stackLog_verifierLayout]; exact hs.2.2.2))
-
 end Structural
 
 /-! ## 3. On the extracted stack -/

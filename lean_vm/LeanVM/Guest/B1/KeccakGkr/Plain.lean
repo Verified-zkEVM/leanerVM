@@ -77,10 +77,6 @@ theorem range13_map (f : ℕ → V) :
     (List.range 13).map f = [f 0, f 1, f 2, f 3, f 4, f 5, f 6, f 7, f 8, f 9, f 10, f 11, f 12] :=
   rfl
 
-theorem fs_absorb_lt {s : Fs} (x : E) (t : ℕ) (h : s.pend.length ≠ rateScalars) :
-    s.absorb x t = ⟨s.cap, s.pend ++ [(x, t)]⟩ := by
-  simp [Fs.absorb, h]
-
 /-- The sponge of a plain round: `c₀`, `c₂` absorbed after the waiting scalars, squeezed. -/
 def plainSq (s : Fs) (c0 c2 : E) : E × Fs := ((s.absorb c0 dsObserve).absorb c2 dsObserve).squeeze
 

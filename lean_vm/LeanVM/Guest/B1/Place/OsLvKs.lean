@@ -77,30 +77,11 @@ theorem lvA_named {c : OsCfg} (hN : OsNames c) {l : ℕ} (hl : l < c.levels.leng
       · exact ⟨_, hN.ood l hl hfin⟩
   · exact ⟨_, hN.grind l hl⟩
 
-/-- **The callees a level names after its squeezes, but `opening_queries`, have kinds.** -/
-theorem lvB_named {c : OsCfg} (hN : OsNames c) {l : ℕ} (hl : l < c.levels.length) {f : String}
-    (hf : f ∈ lvBNames l (lvAt c l)) (hq : f ≠ osQueriesName l (lvAt c l)) :
-    ∃ K, osKindOf f = some K := by
-  simp only [lvBNames, List.mem_cons, List.not_mem_nil, or_false] at hf
-  rcases hf with rfl | rfl | rfl
-  · exact ⟨_, hN.rw l hl⟩
-  · exact ⟨_, hN.cap l hl⟩
-  · exact absurd rfl hq
-
 /-- **The tail's callees have kinds.** -/
 theorem tail_named {c : OsCfg} {s : OsSt} {f : String} (hf : f ∈ cnames (osTail c s).1) :
     ∃ K, osKindOf f = some K := by
   rw [osTail_cnames, List.mem_replicate] at hf
   rw [hf.2]; exact ⟨_, osKindOf_fold⟩
-
-/-- **The finish's callees, but the residual loops, have kinds.** -/
-theorem finish_named {c : OsCfg} (hN : OsNames c) {st : OsSt} {tch : ℕ} {f : String}
-    (hf : f ∈ cnames (osFinishA c st tch)) (hr : ∀ l < c.levels.length, f ≠ c.resLoop l) :
-    ∃ K, osKindOf f = some K := by
-  rw [osFinishA_cnames, List.mem_cons, List.mem_map] at hf
-  rcases hf with rfl | ⟨l, hl, rfl⟩
-  · exact ⟨_, hN.ffm⟩
-  · exact absurd rfl (hr l (by simpa using hl))
 
 
 theorem callS_nil_of_cnames {l : List Stmt} (h : cnames l = []) : l.filterMap Main.Stmt.callS = [] := by

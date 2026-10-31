@@ -157,13 +157,5 @@ theorem open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW := by
     rw [lv_getD hi] at hn
     exact lvQW_of hU hle hn
 
-/-- **`open_stacked` is sound at every candidate** (`open_stacked_sound_w` at the program's call
-relation, its frames chosen). -/
-theorem open_stacked_sound_holds : open_stacked_sound_Spec := by
-  intro rd μ r h1 h2 h3 h4 root fs target root0 root1 cur rets hfs hroot hrel
-  obtain ⟨fn, hf, σ, hp, hb⟩ := (rel_iff coreProgram _ _ _).mp hrel
-  exact (open_stacked_sound_w rd _ (relV rd) (unfoldsV_rel rd) (rel_le_rel rd) μ r h1 h2 h3 h4
-    root fs target root0 root1 cur rets fn σ hfs hroot hf hp hb).openOut
-
 end
 end LeanVM.Guest.B1.Whir

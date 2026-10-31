@@ -392,17 +392,6 @@ theorem trueValues_eq_claimed_iff (s : I.Stmt × BusOut I) (q : Column I.μ) :
       simp only [trueValues, claimed, Fin.append_right]
       exact hf side
 
-/-- **The target.** Under the bus seam the sum of the summand over the cube is
-`Σ_s ξ^(B + s) · total_s`, the value the verifier derives from the bus phase's totals. -/
-theorem tableSummand_target (x : Data I) (o : ∀ i, TheOracle I i)
-    (h : ((x.1, o), ()) ∈ Seam.bus I) :
-    Sumcheck.weightedSum (tableSummand I) Sumcheck.unitWeights ((x, o), ()) =
-      ∑ s : Fin 3, x.1.2.totals s * x.2 ^ (I.B + s.val) := by
-  simp only [Seam.bus, Seam.of, Set.mem_ofPred_eq] at h
-  rw [sum_tableSummand, (trueValues_eq_claimed_iff I x.1 (theStack o)).mpr ⟨h.1, h.2.1⟩, claimed,
-    powerBatch_append]
-  simp
-
 /-! ## The degree -/
 
 /-- A form at values of degree at most one in a coordinate has degree at most `2` there, when

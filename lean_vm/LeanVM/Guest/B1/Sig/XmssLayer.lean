@@ -53,12 +53,6 @@ structure XPre (σ : Val) : Prop where
 
 theorem xLeaf_lt (σ : Val) : xLeaf σ < 2 ^ 32 := bitsVal_lt _ _
 
-theorem atomsOnly_map_cst (base : Nat) (ws : List E) :
-    atomsOnly (ws.zipIdx.map fun (w, k) => cst (base + k) w) = true := by
-  induction ws.zipIdx with
-  | nil => rfl
-  | cons x xs ih => exact ih
-
 theorem xPrologue_atoms : atomsOnly xPrologue = true := by
   decide
 
@@ -107,15 +101,6 @@ theorem word_add_eOfNat {q lo : Nat} (hlo : lo < 2 ^ 32) :
     word (2 ^ 32 * q) 0 0 + eOfNat lo = eOfNat (2 ^ 32 * q + lo) := by
   rw [word_eq_eOfNat, Value.eOfNat_add_of_lt hlo]
 
-/-- The tweak bytes of a leanXMSS domain are the address cell of its packed fields. -/
-theorem tweakBytes_eq (dom : LeanXmss.HashDomain) :
-    LeanXmss.tweakBytes dom = cellBytes (eOfNat (addrNat (LeanXmss.hashDomainFields dom).tag.toNat
-      (LeanXmss.hashDomainFields dom).step.toNat (LeanXmss.hashDomainFields dom).hi.toNat
-      (LeanXmss.hashDomainFields dom).lo.toNat)) := by
-  rw [LeanXmss.tweakBytes, ← fieldBytes_tweakFields]
-  congr 1
-  simp [LeanXmss.tweakFields]
-
 /-- The index of layer `layer`: the leaf index's key, the top layer's bit `55` set. -/
 def xIdxNat (layer L : Nat) : Nat := 2 ^ 32 * (2 ^ 23 * layer) + L >>> (16 * layer)
 
@@ -123,15 +108,6 @@ theorem key_lt (L layer : Nat) (hL : L < 2 ^ 32) : L >>> (16 * layer) < 2 ^ 32 :
   lt_of_le_of_lt (Nat.shiftRight_le _ _) hL
 
 /-! ## Chains and folds -/
-
-theorem chainT_eq_xChain {pp : E} {adr : Nat → E} {tag : E} {i : Nat} (htag : tag = eOfNat i) :
-    ∀ (m s : Nat) (x : E), chainT (fun _ s y => (hcell [pp, adr s, y, tag]).1) i m s x =
-      xChain pp adr i m s x
-  | 0, _, _ => rfl
-  | m + 1, s, x => by
-      subst htag
-      rw [chainT, xChain]
-      exact chainT_eq_xChain rfl m (s + 1) _
 
 theorem xFold_congr {pp : E} {A A' : Nat → E} {bits bits' : Nat → Bool} {sibs sibs' : Nat → E} :
     ∀ (m : Nat), (∀ l < m, A l = A' l ∧ bits l = bits' l ∧ sibs l = sibs' l) →

@@ -189,12 +189,5 @@ theorem stackClaim_holds_eqEval_iff {μ : ℕ} (z : Vector E μ) (v : E) (q : Co
   rw [eqEval_boolPoint, mul_comm]
   simp [CMlPolynomialEval.map, Vector.getD, x.isLt]
 
-/-- `stackClaim_holds_eqEval_iff` for a point given as a list of the right length. -/
-theorem stackClaim_holds_eqEval_list_iff {μ : ℕ} (z : List E) (hz : z.length = μ) (v : E)
-    (q : Column μ) :
-    StackClaim.Holds μ (fun x ↦ eqEval z x, v) q ↔
-      eval₂Mle q.values (algebraMap K E) ⟨z.toArray, by simpa using hz⟩ = v :=
-  stackClaim_holds_eqEval_iff ⟨z.toArray, by simpa using hz⟩ v q
-
 end
 end LeanVM.Protocol.EndToEnd.Front

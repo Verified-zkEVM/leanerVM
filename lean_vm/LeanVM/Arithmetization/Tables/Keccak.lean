@@ -159,11 +159,6 @@ def KeccakSpec (r : KeccakRow K) (next : Registers K) (data : ProverData K) : Pr
 
 /-! ## Proof helpers -/
 
-/-- A cell limb in the layout a flag selects: the even lane at `0`, the odd one at `1`. -/
-theorem layoutLimb_flag (a b : K) (odd : Bool) :
-    a + flagK odd * a + flagK odd * b = if odd then b else a := by
-  cases odd <;> simp [flagK, CharTwo.add_self_eq_zero]
-
 /-- A cell limb holding the same lane in both layouts, and the others, in the layout a flag
 selects (the forms `_layout_limb` takes with a missing lane). -/
 theorem layoutLimb_flag' (a : K) (odd : Bool) :

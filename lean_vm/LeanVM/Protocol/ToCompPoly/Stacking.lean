@@ -256,10 +256,6 @@ theorem cast_lowPoint_append_highPoint {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b 
   rw [lowPoint, highPoint, lowVec_append_highVec]
   simp
 
-@[simp] theorem lowPoint_extendPoint {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
-    (z : Vector R (B.size b)) : B.lowPoint hμ b (B.extendPoint hμ b z) = z := by
-  simp [lowPoint, extendPoint]
-
 @[simp] theorem highPoint_extendPoint {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
     (z : Vector R (B.size b)) :
     B.highPoint hμ b (B.extendPoint hμ b z) = boolVec (B.selector hμ b) := by
@@ -307,19 +303,6 @@ theorem unstack_map {S : Type*} [CommRing S] (φ : R →+* S) {μ : ℕ}
   simp only [CMlPolynomialEval.map, Vector.getElem_map]
   exact congrArg φ (B.unstack_getElem hμ q b hi).symm
 
-omit [CommRing R] in
-/-- Two tables that agree on a block's window read the same block. -/
-theorem unstack_eq_of_window_eq {μ : ℕ} (hμ : B.total ≤ 2 ^ μ)
-    (q r : CMlPolynomialEval R μ) (b : Fin B.n)
-    (h : ∀ x : Fin (2 ^ μ), B.InWindow b x.val → q[x] = r[x]) :
-    B.unstack hμ q b = B.unstack hμ r b := by
-  apply Vector.ext
-  intro i hi
-  rw [B.unstack_getElem hμ q b hi, B.unstack_getElem hμ r b hi]
-  apply h ⟨i + B.offset b, by have := B.offset_add_pow_le_total b; omega⟩
-  change B.offset b ≤ i + B.offset b ∧ i + B.offset b < B.offset b + 2 ^ B.size b
-  constructor <;> omega
-
 /-! ## The selection identity -/
 
 /-- The selection identity, for any table: the table at a lifted point is the block read off
@@ -342,27 +325,11 @@ theorem unstack_eval₂ {S : Type*} [CommRing S] (φ : R →+* S) {μ : ℕ}
   rw [eval₂Mle, eval₂Mle, ← B.unstack_map]
   exact B.unstack_eval hμ (CMlPolynomialEval.map φ q) b z
 
-/-- The selection identity for the stack: the stack at a lifted point is the block at the
-point, whatever the pad. -/
-theorem stack_eval (t : B.Tables R) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad : R) (b : Fin B.n)
-    (z : Vector R (B.size b)) :
-    evalMle (B.stackAt t μ pad) (B.extendPoint hμ b z) = evalMle (t b) z := by
-  rw [B.unstack_eval, B.unstack_stackAt]
-
 /-- The selection identity for the stack at a point of another ring. -/
 theorem stack_eval₂ {S : Type*} [CommRing S] (φ : R →+* S) (t : B.Tables R) {μ : ℕ}
     (hμ : B.total ≤ 2 ^ μ) (pad : R) (b : Fin B.n) (z : Vector S (B.size b)) :
     eval₂Mle (B.stackAt t μ pad) φ (B.extendPoint hμ b z) = eval₂Mle (t b) φ z := by
   rw [B.unstack_eval₂, B.unstack_stackAt]
-
-/-- The selection identity as a sum over the cube: the block read off a table, evaluated at a
-point, is the table summed against the Lagrange basis of the lifted point. -/
-theorem unstack_eval₂_eq_sumCube {S : Type*} [CommRing S] (φ : R →+* S) {μ : ℕ}
-    (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ) (b : Fin B.n)
-    (z : Vector S (B.size b)) :
-    eval₂Mle (B.unstack hμ q b) φ z =
-      sumCube (hadamard (lagrangeBasis (B.extendPoint hμ b z)) (CMlPolynomialEval.map φ q)) := by
-  rw [← B.unstack_eval₂, eval₂Mle, evalMle_eq_sumCube_hadamard]
 
 /-! ## The product of a stack's cells -/
 

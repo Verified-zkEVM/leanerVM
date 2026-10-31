@@ -120,11 +120,6 @@ theorem total_lt_of_kid {f : String} {σ : Val} {bufs : List ℕ} {kids : List M
   have := two_le_fs f
   omega
 
-theorem weightKids_eq_sumB (ω : String → ℕ) : ∀ ks : List Tree,
-    Tree.weightKids ω ks = (ks.map (Tree.weight ω)).sum
-  | [] => by rw [Tree.weightKids]; rfl
-  | k :: ks => by rw [Tree.weightKids, weightKids_eq_sumB ω ks, List.map_cons, List.sum_cons]
-
 theorem weightVKids_eq_sumB (ω : String → Val → ℕ) : ∀ ks : List Tree,
     weightVKids ω ks = (ks.map (weightV ω)).sum
   | [] => by rw [weightVKids]; rfl

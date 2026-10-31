@@ -93,14 +93,6 @@ theorem kid_eq {S : Segs} {c m : ℕ} (hc : c < S.NC) (h1 : S.a c ≤ m) (h2 : m
 
 /-! ## Regions of a child's marks -/
 
-theorem region_x {S : Segs} {c j : ℕ} (hc : c < S.NC) (hj : j < S.ex c) :
-    S.region (S.a c + j) = 0 := by
-  have ha0 : S.a 0 ≤ S.a c := S.a_mono (Nat.zero_le c)
-  have hk : S.kid (S.a c + j) = c := kid_eq hc (by omega) (by simp only [Segs.a]; omega)
-  have h0 : S.a 0 = S.RX + S.RS := rfl
-  unfold Segs.region
-  rw [ite_neg' (by omega), ite_neg' (by omega), hk, ite_pos' (by omega)]
-
 end
 end LeanVM.Guest.B1.Main
 

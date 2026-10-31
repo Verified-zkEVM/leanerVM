@@ -209,13 +209,6 @@ theorem length_lanesOf {i ℓ : ℕ} (row : List K)
   · simp [h]
   · exact length_extRow _ row h
 
-/-- The rows the history's `i`-th commitment holds at in-range positions. -/
-theorem answer_eq {h : List Ev} {i ht wd : ℕ} {W : Word}
-    (hc : (commits h)[i]? = some (ht, wd, W)) (qs : List ℕ) (hqs : ∀ q ∈ qs, q < 2 ^ ht) :
-    answer h i qs = some (qs.map W) := by
-  simp only [answer, hc, Option.map_some, Option.some.injEq]
-  exact List.map_congr_left fun q hq ↦ by rw [Nat.mod_eq_of_lt (hqs q hq)]
-
 /-- The word of a commitment that is present. -/
 theorem wordOf_eq {cs : List (ℕ × ℕ × Word)} {i ht wd : ℕ} {W : Word}
     (hc : cs[i]? = some (ht, wd, W)) : wordOf cs i = W := by

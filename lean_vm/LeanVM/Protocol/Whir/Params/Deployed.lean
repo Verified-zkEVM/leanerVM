@@ -201,17 +201,5 @@ theorem deployed_spec_hyps {μ R : ℕ} (h : Whir.Admissible μ R) {level : Whir
   · rw [deployedCodes, codesOf, mkCode_eq h0]; exact hR
   · rw [deployedCodes, codesOf, mkCode_eq h0]; exact (Cert.listMax_le h0).trans hL
 
-/-- **Codes with escapes at most `2^-128` exist for every admissible shape.** -/
-theorem exists_codes {μ R : ℕ} (h : Whir.Admissible μ R) {config : List Whir.Level}
-    (hc : Whir.ladder μ R = some config) :
-    ∃ codes : ℕ → LevelCode, LadderArith μ codes 0 0 config ∧
-      whirEps codes config ≤ (2 : ENNReal)⁻¹ ^ 128 := by
-  obtain ⟨level, rest, rfl⟩ : ∃ level rest, config = level :: rest := by
-    have := Whir.ladder_length h config hc
-    match config, this with
-    | level :: rest, _ => exact ⟨level, rest, rfl⟩
-  obtain ⟨-, -, -, -, -, hA, hε⟩ := deployed_spec_hyps h hc
-  exact ⟨_, hA, hε⟩
-
 end
 end LeanVM.Protocol.Whir.Params

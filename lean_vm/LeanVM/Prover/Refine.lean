@@ -224,36 +224,6 @@ theorem simulateQ_seedRunScript (bytecode : List K) (publicInput : Digest) (P : 
 
 end Commute
 
-/-- **The runner with Keccak**: answering the runner's queries with Keccak-256 and
-Keccak-f[1600] (`Guest.Budget.deployedKeccakCalls`) is running it in `Id` with them. -/
-theorem simulateQ_keccak_runScript (P : Prog Bool) {β : Type} (Hs : Script β) (seed : KeccakState)
-    (fuel : ℕ) :
-    simulateQ Guest.Budget.deployedKeccakCalls (runScriptWithHash callKeccak256 callKeccakF1600 P Hs seed fuel) =
-      runScriptWithHash (m := Id) keccak256 keccakF1600 P Hs seed fuel :=
-  simulateQ_runScript Guest.Budget.deployedKeccakCalls P Hs seed fuel
-
-/-- The seed with Keccak. -/
-theorem simulateQ_keccak_seedWith (bytecode : List K) (publicInput : Digest) :
-    simulateQ Guest.Budget.deployedKeccakCalls (seedWithHash callKeccak256 callKeccakF1600 bytecode publicInput) =
-      seedWithHash (m := Id) keccak256 keccakF1600 bytecode publicInput :=
-  simulateQ_seedWith Guest.Budget.deployedKeccakCalls bytecode publicInput
-
-/-- **An honest prover that seeds and runs a script, with the deployed Keccak** (`honestProofWithDeployedKeccak`), is
-the runner in `Id` with Keccak-256 and Keccak-f[1600]. -/
-theorem atKeccak_seedRunScript (A : HonestProverWithHash) {prog : Program} {input : PublicInput}
-    {t : Execution prog} {ρ fuel : ℕ} {β : Type} (Hs : Script β)
-    (hA : A prog input t ρ fuel = (do
-      let seed ← seedWithHash callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicDigest input)
-      runScriptWithHash callKeccak256 callKeccakF1600 (leanVmProgram (bytecodeWords prog) (publicDigest input)) Hs seed
-        fuel)) :
-    Guest.Budget.honestProofWithDeployedKeccakWithHash A prog input t ρ fuel =
-      runScriptWithHash (m := Id) keccak256 keccakF1600
-        (leanVmProgram (bytecodeWords prog) (publicDigest input)) Hs
-        (seedWithHash (m := Id) keccak256 keccakF1600 (bytecodeWords prog) (publicDigest input)) fuel := by
-  unfold Guest.Budget.honestProofWithDeployedKeccakWithHash
-  rw [hA, simulateQ_seedRunScript]
-  rfl
-
 end
 
 end LeanVM.Prover

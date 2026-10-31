@@ -182,14 +182,6 @@ theorem holdsList_frame {hi : Nat} {σ σ' : Val} {ss : List Stmt}
   | nil => rfl
   | cons x xs ih => simp [ih]
 
-theorem numBelow_valsList_flatMap {α : Type} {hi : Nat} (l : List α) (f : α → List Stmt)
-    (h : ∀ a ∈ l, NumBelow hi (Stmt.valsList (f a))) : NumBelow hi (Stmt.valsList (l.flatMap f)) := by
-  induction l with
-  | nil => exact NumBelow.nil hi
-  | cons a l ih =>
-      rw [List.flatMap_cons, valsList_append]
-      exact (h a (by simp)).append (ih fun b hb => h b (by simp [hb]))
-
 theorem numBelow_valsArms {hi : Nat} (arms : List (List Stmt))
     (h : ∀ a ∈ arms, NumBelow hi (Stmt.valsList a)) : NumBelow hi (Stmt.valsArms arms) := by
   induction arms with
@@ -199,12 +191,6 @@ theorem numBelow_valsArms {hi : Nat} (arms : List (List Stmt))
       exact (h a (by simp)).append (ih fun b hb => h b (by simp [hb]))
 
 /-! ## Blocks in sequence -/
-
-/-- Two blocks hold in sequence when each does. -/
-theorem holdsList_append_iff (xs ys : List Stmt) (next : Prop) (kret : List E → Prop) (σ : Val) :
-    Stmt.HoldsList C rd σ (xs ++ ys) next kret ↔
-      Stmt.HoldsList C rd σ xs (Stmt.HoldsList C rd σ ys next kret) kret := by
-  rw [holdsList_append]
 
 @[simp] theorem holdsList_cons_atom (a : Atom) (ss : List Stmt) (next : Prop) (kret : List E → Prop)
     (σ : Val) :
@@ -244,8 +230,6 @@ def upds (σ : Val) : List (Nat × E) → Val
   | [] => σ
   | (k, e) :: l => Function.update (upds σ l) (.n k) e
 
-@[simp] theorem upds_nil (σ : Val) : upds σ [] = σ := rfl
-
 theorem upds_cons_self (σ : Val) (k : Nat) (e : E) (l : List (Nat × E)) :
     upds σ ((k, e) :: l) (.n k) = e := by simp [upds]
 
@@ -265,14 +249,6 @@ theorem upds_ext {lo hi : Nat} (σ : Val) (l : List (Nat × E)) (h : ∀ p ∈ l
     Ext lo hi σ (upds σ l) := by
   intro w hw
   exact upds_of_not_mem σ l fun p hp => hw p.1 (h p hp).1 (h p hp).2
-
-theorem upds_append_of_not_mem (σ : Val) {j : Nat} (l1 l2 : List (Nat × E)) (h : ∀ p ∈ l1, j ≠ p.1) :
-    upds σ (l1 ++ l2) (.n j) = upds σ l2 (.n j) := by
-  induction l1 with
-  | nil => rfl
-  | cons p l1 ih =>
-      obtain ⟨k, e⟩ := p
-      rw [List.cons_append, upds_cons_ne σ e _ (h (k, e) (by simp)), ih fun q hq => h q (by simp [hq])]
 
 end
 end LeanVM.Guest.B1.Sig

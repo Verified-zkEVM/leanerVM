@@ -264,9 +264,6 @@ theorem stageVal_bottom {κ : ℕ} (hκ : κ ≤ 64) (msg : ℕ → K) (p : ℕ)
 theorem size_nttStage (N i : ℕ) (tw a : Array K) : (nttStage N i tw a).size = 2 ^ N := by
   simp [nttStage, nttStage.nttStageAt]
 
-theorem size_stageTwiddles (N i : ℕ) : (stageTwiddles N i).size = 2 ^ (N - (i + 1)) := by
-  simp [stageTwiddles]
-
 /-- **One stage** takes the table at `i + 1` to the table at `i`. -/
 theorem nttStage_getD {κ N i : ℕ} (hi : i < κ) (hκ : κ ≤ 64) (hκN : κ ≤ N) (msg : ℕ → K)
     (a : Array K) (ha : ∀ q < 2 ^ N, a.getD q 0 = stageVal κ msg (i + 1) q) (p : ℕ)

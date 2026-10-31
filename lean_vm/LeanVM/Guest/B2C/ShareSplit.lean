@@ -113,9 +113,6 @@ end Congr
 
 /-! ### Pending values stay among the walked values -/
 
-theorem pendIn_mono {A : ℕ → Prop} {st st' : SSt} (h : PendIn A st) (hs : ∀ p ∈ st'.pend, p ∈ st.pend) :
-    PendIn A st' := fun p hp ↦ h p (hs p hp)
-
 theorem nameV_pend {L : Loc} {sh : ℕ} {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V} :
     ∀ p ∈ (nameV L sh kc st v).pend, p ∈ st.pend ∨ p = ⟨v.idx, L.cell v, none, [], []⟩ := by
   intro p hp

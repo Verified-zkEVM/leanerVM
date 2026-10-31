@@ -33,9 +33,6 @@ theorem check_complete {a : Atom} {σ : Val} (h : a.Holds rd σ) (lo : Nat) :
     simp only [List.mem_singleton, Stmt.atom.injEq] at hx
     subst hx; exact h)
 
-theorem holdsList_single_atom {a : Atom} {σ : Val} {next : Prop} {kret : List E → Prop}
-    (h : Stmt.HoldsList C rd σ [.atom a] next kret) : a.Holds rd σ := h.1
-
 /-- The address of a level: its constant plus the parent's index. -/
 def mA (σ : Val) (nodeOf : Nat → Option V) (addrOf : Nat → Nat) (l : Nat) : E :=
   word (addrOf l) 0 0 + match nodeOf l with
@@ -196,16 +193,6 @@ theorem merkle_level_complete {pad : Nat} {pp bit cur : V} {b c w : Nat} {nodeL 
     rw [this, h4pp, hadr, h4b, h4b1, hh.1, hh.2]
   · rw [he5.apply (Or.inl (by omega)), h4b]
   · rw [he5.apply (Or.inl (by omega)), h4b1]
-
-theorem mBase_ge (nodeOf : Nat → Option V) : ∀ (l j b : Nat), b ≤ mBase nodeOf l j b
-  | _, 0, _ => le_rfl
-  | l, j + 1, b => by
-      have := mBase_ge nodeOf (l + 1) j (mNext nodeOf l b)
-      have h2 : b ≤ mNext nodeOf l b := by
-        unfold mNext
-        cases nodeOf l <;> simp only <;> omega
-      simp only [mBase]
-      omega
 
 theorem merkleT_snd_ge (pad : Nat) (pp : V) (bitOf : Nat → V) (nodeOf : Nat → Option V)
     (addrOf : Nat → Nat) : ∀ (m l : Nat) (cur : V) (b : Nat), b ≤ (merkleT pad pp bitOf nodeOf addrOf m l cur b).2.1

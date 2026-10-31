@@ -145,12 +145,6 @@ theorem keccakIota_eq {τ s : ℕ} (hs : s < 12) (hτ : 4 ≤ τ) {c : KeccakCla
     Finset.sum_range_one]
   rw [hm 0 (by omega), hm 1 (by omega)]
 
-/-- The first claim's weight at a word bit `z < 64`: the lane `0` weight times `x^z`. -/
-theorem firstWeights_low (lanes : List E) {z : ℕ} (hz : z < 64) :
-    (firstWeights lanes).getD z 0 = lanes.getD 0 0 * gen ^ z := by
-  rw [firstWeights, List.getD_eq_getElem _ _ (by simp [keccakBits]; omega), List.getElem_map,
-    List.getElem_range, Nat.div_eq_of_lt hz, Nat.mod_eq_of_lt hz, gen_pow_eq_eOfNat hz]
-
 theorem sum_flatMap' {α : Type} (l : List α) (g : α → List E) :
     (l.flatMap g).sum = (l.map fun a ↦ (g a).sum).sum := by
   induction l with

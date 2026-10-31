@@ -518,22 +518,6 @@ def finalSecurity {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m → 
       (Typed.sayErrors (Vector F m)) :=
   Typed.sendCheckedSecurity (final_reflect V wt nodes side out h)
 
-omit [Finite F] [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] [Subsingleton W] in
-/-- **The final check is load-bearing**: the values at the final point read without the check
-have no security at any error, whatever the extractor, once a statement meets the side condition
-and its running claim is not the summand at its point: the true values are carried into the
-output relation. -/
-theorem final_unchecked_no_security
-    {hp : (SumcheckRound.Stmt X F n × ∀ i, O i) × W → Vector F m}
-    {err : Typed.Errors (Typed.sayTree (Vector F m)) (Typed.sayRoles _)}
-    (Sec : Typed.Security (Typed.sendChecked O (Vector F m) hp (fun _ _ ↦ true)
-        (finalOut (X := X) (F := F) (n := n) (m := m)))
-      (SumcheckRound.rel (family V wt nodes side) n) (relOut V side) err)
-    (s : SumcheckRound.Stmt X F n) (o : ∀ i, O i) (w : W) (hside : side ((s.1, o), w))
-    (hs : ∀ w', s.2.2 ≠ V.summand ((s.1, o), w') s.2.1.reverse) : False :=
-  Typed.sendChecked_no_security Sec s o (fun w' h ↦ hs w' ((mem_rel_self V wt nodes side _).mp h).2)
-    (V.values ((s.1, o), w) s.2.1.reverse) rfl w ⟨rfl, hside⟩
-
 /-- The typed security half of the rounds, at `d / |F|` per round. -/
 def roundsSecurity (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
     (hnodes : Function.Injective nodes) :
@@ -623,14 +607,6 @@ theorem weightedSum_eq_sum (dom : SumcheckRound.WeightedDomain F) (q : SumcheckR
     congr 1
     exact Finset.sum_congr rfl fun i _ ↦ by ring
 
-/-- In the two-point domain, coefficient `0` weighs the sum of the weights. -/
-theorem coeffWeight_pair_zero (a b : F) : coeffWeight [(0, a), (1, b)] 0 = a + b := by
-  simp [coeffWeight]
-
-/-- In the two-point domain, every other coefficient weighs the weight of `1`. -/
-theorem coeffWeight_pair_succ (a b : F) (i : ℕ) : coeffWeight [(0, a), (1, b)] (i + 1) = b := by
-  simp [coeffWeight]
-
 /-- The message with coefficient `k` derived from the running claim: the value that makes the
 round's check hold, whatever the message carried there. -/
 def decodeRound (dom : SumcheckRound.WeightedDomain F) (k : Fin (d + 1)) (claim : F)
@@ -703,20 +679,6 @@ theorem expandWire_encodeWire (k : Fin (d + 1)) (q : SumcheckRound.Message F d) 
       congr 1
       omega
 
-/-- The wire of a message that passes the round's check decodes to the message. -/
-theorem decodeWire_encodeWire {dom : SumcheckRound.WeightedDomain F} {k : Fin (d + 1)}
-    (hk : coeffWeight dom k ≠ 0) {claim : F} {q : SumcheckRound.Message F d}
-    (hq : SumcheckRound.weightedSum d dom q = claim) :
-    decodeWire dom k claim (encodeWire k q) = q := by
-  rw [decodeWire, expandWire_encodeWire, decodeRound_set, decodeRound_of_weightedSum hk hq]
-
-/-- A decoded message passes the round's check, when the derived coefficient has an invertible
-weight. -/
-theorem weightedSum_decodeWire {dom : SumcheckRound.WeightedDomain F} {k : Fin (d + 1)}
-    (hk : coeffWeight dom k ≠ 0) (claim : F) (w : Vector F d) :
-    SumcheckRound.weightedSum d dom (decodeWire dom k claim w) = claim :=
-  weightedSum_decodeRound hk claim _
-
 /-- The decoded message carries the wire in every other position: the decoding is injective. -/
 theorem encodeWire_decodeWire (dom : SumcheckRound.WeightedDomain F) (k : Fin (d + 1))
     (claim : F) (w : Vector F d) : encodeWire k (decodeWire dom k claim w) = w := by
@@ -732,11 +694,6 @@ theorem encodeWire_decodeWire (dom : SumcheckRound.WeightedDomain F) (k : Fin (d
       omega)
     simp [encodeWire, decodeWire, decodeRound, expandWire, Vector.getElem_set, h1, h1',
       show (k : ℕ) ≠ i + 1 by omega, show i + 1 ≠ (k : ℕ) by omega]
-
-/-- The decoding of the wire is injective. -/
-theorem decodeWire_injective (dom : SumcheckRound.WeightedDomain F) (k : Fin (d + 1))
-    (claim : F) : Function.Injective (decodeWire dom k claim) :=
-  Function.LeftInverse.injective (encodeWire_decodeWire dom k claim)
 
 variable {W : Type} [∀ i, OracleInterface (O i)] [DecidableEq F] [SampleableType F]
 

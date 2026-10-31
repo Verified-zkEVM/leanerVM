@@ -636,8 +636,6 @@ def honestLanes (z : Vector E (s.τ 5)) : List Verifier.ColumnClaim :=
 /-- Output lane `l`'s column of the `KECCAK` table, `38 + l`. -/
 def outIdx (l : Fin 25) : Fin (width (opIdx 5)) := ⟨38 + l, by rw [width_keccak]; omega⟩
 
-theorem outCol_eq (l : Fin 25) : outCol l = ⟨opIdx 5, outIdx l⟩ := rfl
-
 /-- The output lanes are, among the `KECCAK` table's columns, its `38`th to `62`nd. -/
 theorem finRange_filter_out :
     (List.finRange (width (opIdx 5))).filter

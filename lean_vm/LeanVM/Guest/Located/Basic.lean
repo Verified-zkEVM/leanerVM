@@ -69,17 +69,6 @@ def BodyAt {κ : ℕ} (L : MemoryImage κ) (f : String) (args rets : List E) (a 
   ∃ fn, coreProgram.find? f = some fn ∧ fn.params.map (valAt L f a) = args ∧
     Stmt.HoldsList (RLg L) L.read (valAt L f a) fn.body False (fun rs ↦ rs = rets)
 
-/-- **A located call's frame**: a frame of the memory where the callee's body holds under its
-valuation, its own calls located. -/
-theorem rl_frame {κ : ℕ} {L : MemoryImage κ} {f : String} {fn : Fn}
-    (hf : coreProgram.find? f = some fn) {args rets : List E} (h : RLg L f args rets) :
-    ∃ a < 2 ^ κ, fn.params.map (valAt L f a) = args ∧
-      Stmt.HoldsList (RLg L) L.read (valAt L f a) fn.body False (fun rs => rs = rets) := by
-  obtain ⟨fn', fp, hf', ⟨a, ha, rfl⟩, hp, hb⟩ := (relL_iff coreProgram f args rets).mp h
-  rw [hf] at hf'
-  cases hf'
-  exact ⟨a, ha, hp, hb⟩
-
 open Classical in
 /-- **The frame of a call**: the first frame of the memory at which the callee's code holds on the
 call's words, decided classically: the test is the guest's own semantics (the callee's core IR
@@ -202,30 +191,6 @@ theorem loop_frames {κ : ℕ} {L : MemoryImage κ} {α : Type} {f : String} {fn
       · cases j with
         | zero => rw [pow_zero, mul_one]; exact hRL
         | succ i => rw [pow_succ', ← mul_assoc]; exact hall i (by omega)
-
-/-- **A located loop call holds its loop's outcome at the decoded iterations.** -/
-theorem loopDec_spec {κ : ℕ} {L : MemoryImage κ} {α : Type} {f : String} {fn : Fn}
-    (hf : coreProgram.find? f = some fn) {Wf : List E → E} {B : E → List E → α → Prop}
-    {wit : Val → α}
-    (step : ∀ C : CallRel, CallRel.Le C (RLg L) → ∀ (σ : Val) (args rets : List E),
-      fn.params.map σ = args → Stmt.HoldsList C L.read σ fn.body False (fun rs => rs = rets) →
-      ∃ x ps, args = x :: ps ∧ rets = [] ∧ B x ps (wit σ) ∧ (x * gen ≠ Wf ps → C f (x * gen :: ps) []))
-    {args rets : List E} (h : RLg L f args rets) :
-    ∃ x ps, args = x :: ps ∧ rets = [] ∧
-      LoopW x (Wf ps) (fun y a => B y ps a) (loopDec L f Wf wit args rets) := by
-  obtain ⟨n, hn⟩ := h
-  obtain ⟨x, ps, rfl, rfl, m, hm, hW, hfirst, hall⟩ := loop_frames hf step n _ _ hn
-  refine ⟨x, ps, rfl, rfl, ?_⟩
-  show LoopW x (Wf ps) _ ((List.range (loopCount x (Wf ps))).map _)
-  rw [loopCount_eq hm hW hfirst]
-  refine ⟨by simpa using hm, by simpa using hW, fun j h1 h2 => hfirst j h1 (by simpa using h2),
-    fun j hj => ?_⟩
-  simp only [List.getElem_map, List.getElem_range]
-  refine frameDec_spec hf (hall j (by simpa using hj)) fun a hp hb => ?_
-  obtain ⟨x', ps', he, -, hB, -⟩ := step _ (fun _ _ _ h => h) _ _ _ hp hb
-  simp only [List.cons.injEq] at he
-  obtain ⟨rfl, rfl⟩ := he
-  exact hB
 
 end
 end LeanVM.Guest.Located

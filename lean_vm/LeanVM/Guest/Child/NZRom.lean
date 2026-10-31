@@ -296,11 +296,6 @@ theorem leanVmProgram_execWith (bytecode : List K) (publicInput : Digest) :
   rw [Verifier.leanVmProgram_eq]
   rfl
 
-theorem nz_nzProgram (bytecode : List K) (publicInput : Digest) :
-    NZ (nzProgram bytecode publicInput) (leanVmProgram bytecode publicInput) := by
-  rw [leanVmProgram_execWith]
-  exact nz_program computedValue bytecode publicInput
-
 /-- The program refusing zero challenges only fails more. -/
 theorem refines_nzProgram (bytecode : List K) (publicInput : Digest) :
     Limits.Refines (nzProgram bytecode publicInput) (leanVmProgram bytecode publicInput) := by
@@ -330,12 +325,6 @@ theorem costs_of_refines {α : Type} {height : ℕ} {P' P : Prog α} (h : Limits
   | grind _ ih => intro n Q hc; exact ⟨hc.1, ih hc.2⟩
   | commit _ ih => intro n Q hc; exact ⟨hc.1, hc.2.1, ih hc.2.2⟩
   | query _ ih => intro n Q hc; exact ⟨hc.1, fun r ↦ ih r (hc.2 r)⟩
-
-/-- **The cost of the program refusing zero challenges.** -/
-theorem costLE_nzProgram (bytecode : List K) (publicInput : Digest) :
-    (nzProgram bytecode publicInput).CostLE costHeight leanVmCost :=
-  costs_of_refines (refines_nzProgram bytecode publicInput)
-    (costLE_leanVmProgram bytecode publicInput)
 
 end
 end LeanVM.Guest.Child

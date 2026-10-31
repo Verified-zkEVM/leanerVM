@@ -101,8 +101,6 @@ theorem runF_bind_some {α β : Type} {p : Prog α} {f : α → Prog β} {st : F
 /-- The `Fs` a sponge's carrier is. -/
 def fsOf (sp : Sponge) : Fs := ⟨capOf sp.state, sp.pending⟩
 
-theorem fsOf_carries (sp : Sponge) : (fsOf sp).Carries sp := ⟨rfl, rfl⟩
-
 theorem eq_fsOf {s : Fs} {sp : Sponge} (h : s.Carries sp) : s = fsOf sp := by
   obtain ⟨h1, h2⟩ := h
   cases s

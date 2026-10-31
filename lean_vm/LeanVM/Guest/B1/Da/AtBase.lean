@@ -102,18 +102,6 @@ theorem slEvs_holds {rd : Reader} {σ : Val} {pre : List Stmt} (h : ∀ s ∈ pr
   | .dispatch .., _, he => simp [Main.slEvs] at he
   | .ret _, _, he => simp [Main.slEvs] at he
 
-/-- `SlOk` from `Stmt.Holds` of a straight statement. -/
-theorem slOk_of_sholds {C : CallRel} {rd : Reader} {σ : Val} {s : Stmt}
-    (h : SHolds C rd σ s) : SlOk rd σ s := by
-  match s, h with
-  | .atom _, h => exact h
-  | .callIf .., h => exact h.1
-  | .call .., _ => trivial
-  | .ite .., _ => trivial
-  | .match_ .., _ => trivial
-  | .dispatch .., _ => trivial
-  | .ret _, _ => trivial
-
 /-! ## Trees as buffers -/
 
 /-- The cells of the tree over `leaves`, levels `0` to `k`. -/
@@ -174,9 +162,6 @@ theorem length_treeCells {leaves : List (E × E)} {k : ℕ} (hlen : leaves.lengt
   omega
 
 /-! ## Layout entries -/
-
-theorem memL_of_sub {rd : Reader} {L L' : Layout} (h : MemL rd L) (hs : ∀ q ∈ L', q ∈ L) :
-    MemL rd L' := fun q hq => h q (hs q hq)
 
 theorem reads_of_memL {rd : Reader} {L : Layout} (h : MemL rd L) {b : ℕ} {xs : List E}
     (hq : (b, xs) ∈ L) : ReadsAt rd (gen ^ b) xs := by

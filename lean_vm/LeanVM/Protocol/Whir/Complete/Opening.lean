@@ -871,17 +871,6 @@ theorem runFrom_verifyStackedOpening {μ R : ℕ} (hadm : Whir.Admissible μ R) 
     (hcs ▸ follows_verifyStackedOpening hadm q claims hholds hml)
   exact ⟨hb, hsh⟩
 
-/-- The same for the replayed honest strategy itself. -/
-theorem runFrom_openingStrategy {μ R : ℕ} (hadm : Whir.Admissible μ R) (q : Column μ)
-    (claims : List StackClaim) (hholds : ∀ c ∈ claims, StackClaim.Holds μ c q)
-    (hml : ∀ c ∈ claims, IsMultilinearFn μ c.1) (h : List Ev)
-    (hcs : commits h = [stackCommit μ R q]) (chal : List Ev → E) :
-    (openingStrategy μ R q claims h.length).runFrom chal (verifyStackedOpening μ R claims) h =
-        some () ∧
-      (openingStrategy μ R q claims h.length).ShapedFrom chal (verifyStackedOpening μ R claims) h :=
-  runFrom_verifyStackedOpening hadm q claims hholds hml h hcs _
-    (ofScript_agrees _ h) chal
-
 /-- The commitment and the opening in sequence, as the honest prover runs them when no other
 phase commits in between. -/
 def honestCommitOpening (μ R : ℕ) (q : Column μ) (claims : List StackClaim) : Script Unit := do
@@ -897,19 +886,6 @@ theorem follows_commitStack_verifyStackedOpening {μ R : ℕ} (hadm : Whir.Admis
       (do commitStack μ R; verifyStackedOpening μ R claims) [] :=
   Follows.bind_of (follows_commitStack hadm q []) fun _ _ _ h ↦ by
     subst h; exact follows_verifyStackedOpening hadm q claims hholds hml
-
-/-- **The commitment and the opening, from a history without commitments.** -/
-theorem runFrom_commitStack_verifyStackedOpening {μ R : ℕ} (hadm : Whir.Admissible μ R)
-    (q : Column μ) (claims : List StackClaim) (hholds : ∀ c ∈ claims, StackClaim.Holds μ c q)
-    (hml : ∀ c ∈ claims, IsMultilinearFn μ c.1) (h : List Ev) (hcs : commits h = [])
-    (chal : List Ev → E) :
-    let S := Strategy.ofScript (honestCommitOpening μ R q claims) h.length
-    S.runFrom chal (do commitStack μ R; verifyStackedOpening μ R claims) h = some () ∧
-      S.ShapedFrom chal (do commitStack μ R; verifyStackedOpening μ R claims) h := by
-  intro S
-  obtain ⟨⟨b, hb, -⟩, hsh⟩ := runFrom_of_follows' S chal (ofScript_agrees _ h)
-    (hcs ▸ follows_commitStack_verifyStackedOpening hadm q claims hholds hml)
-  exact ⟨hb, hsh⟩
 
 /-! ## Through the compilation -/
 

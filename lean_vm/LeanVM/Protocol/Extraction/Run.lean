@@ -90,10 +90,6 @@ theorem gLogIn_powIndex {κ : ℕ} (hκ : κ < 64) (a : K) : gLogIn (powIndex κ
       powIndexFrom_of_not _ 0 _ fun j _ hj hl ↦ h ⟨⟨j, by omega⟩, (K.lane_injective hl).symm⟩,
       Std.HashMap.getElem?_empty]
 
-/-- **`gLogC` is `addressIndex?`** on at most `2^63` words. -/
-theorem gLogC_eq {κ : ℕ} (hκ : κ < 64) (a : K) : gLogC κ a = addressIndex? κ a :=
-  gLogIn_powIndex hκ a
-
 /-! ## 2. The step and the run -/
 
 /-- The bytecode's address space is within `addressIndex?`'s. -/
@@ -112,16 +108,6 @@ theorem stepIn_powIndex {prog : Program} {κ : ℕ} (hκ : κ < 64) (L : MemoryI
 theorem stepC_eq {prog : Program} {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) (r : Registers K) :
     stepC prog L r = step prog L r :=
   stepIn_powIndex hκ L r
-
-/-- **`runC` is `run`.** -/
-theorem runC_eq {prog : Program} {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
-    ∀ (n : ℕ) (r : Registers K), runC prog L n r = run prog L n r
-  | 0, _ => rfl
-  | n + 1, r => by
-    rw [runC, run, stepC_eq hκ]
-    split_ifs
-    · rfl
-    · exact bind_congr fun r' ↦ runC_eq hκ L n r'
 
 /-! ## 3. The search -/
 
@@ -256,12 +242,6 @@ theorem haltingRunC_eq_haltingRun (hκ : κ < 64) {cap : ℕ}
   refine Option.ext fun t ↦ ?_
   rw [haltingRunC_eq_some_iff hκ, haltingRun_eq_some_iff]
   exact ⟨fun ⟨n, h, _, h'⟩ ↦ ⟨n, h, h'⟩, fun ⟨n, h, h'⟩ ↦ ⟨n, h, hcap n h', h'⟩⟩
-
-/-- **What the capped search returns, `haltingRun` returns.** -/
-theorem haltingRunC_sound (hκ : κ < 64) {cap : ℕ} {t : Execution prog}
-    (h : haltingRunC prog L cap = some t) : haltingRun prog L = some t := by
-  obtain ⟨n, ht, -, hn⟩ := (haltingRunC_eq_some_iff hκ).mp h
-  exact haltingRun_eq_some_iff.mpr ⟨n, ht, hn⟩
 
 end Search
 

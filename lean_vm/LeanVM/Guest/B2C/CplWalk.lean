@@ -93,17 +93,6 @@ theorem calls_at {ebef rest : List Ev} {ev : Ev} {c : Call} (hc : ev.call? = som
     (calls (ebef ++ ev :: rest))[(calls ebef).length]? = some c := by
   simp [calls, List.filterMap_append, hc]
 
-theorem calls_len_gt {ebef rest : List Ev} {ev : Ev} {c : Call} (hc : ev.call? = some c)
-    (hr : ∃ e ∈ rest, (Ev.call? e).isSome) :
-    (calls ebef).length + 1 < (calls (ebef ++ ev :: rest)).length := by
-  obtain ⟨e, he, hs⟩ := hr
-  obtain ⟨c', hc'⟩ := Option.isSome_iff_exists.mp hs
-  have : 0 < (calls rest).length := List.length_pos_of_mem (List.mem_filterMap.mpr ⟨e, he, hc'⟩)
-  have hl : (calls (ebef ++ ev :: rest)).length = (calls ebef).length + 1 + (calls rest).length := by
-    simp [calls, List.filterMap_append, hc]
-    omega
-  omega
-
 theorem calls_append_one {ebef : List Ev} {ev : Ev} {c : Call} (hc : ev.call? = some c) :
     (calls (ebef ++ [ev])).length = (calls ebef).length + 1 := by
   simp [calls, List.filterMap_append, hc]
@@ -338,10 +327,6 @@ theorem endAtC_reach (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st se 
 
 theorem endAtC_nm {st se : CW} (he : endAtC X st = .ok se) : se.nm = st.nm := by
   obtain ⟨c, -, rfl⟩ := endAtC_eq he
-  rfl
-
-theorem segAtC_nm {t : ℕ} {st sn : CW} (h : segAtC X t st = some sn) : sn.nm = st.nm := by
-  obtain ⟨s, -, -, rfl⟩ := segAtC_eq h
   rfl
 
 theorem brAtC_eq {st st' : CW} {oc od of : ℕ} {x : Exit}

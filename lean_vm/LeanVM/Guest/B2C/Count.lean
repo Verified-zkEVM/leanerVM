@@ -105,33 +105,6 @@ theorem runC_jump {pc : ℕ} {fp : K} {oc od of : ℕ} {r : Registers K}
     RunC prog L ⟨gpow pc, fp⟩ r (fun op ↦ if op = .jump then 1 else 0) :=
   runC_step hf hpc (execute_jump_iff.mpr h)
 
-/-- A taken `JUMP` whose target cells hold `a` and `b` goes to `(a, b)`, counting one `JUMP`. -/
-theorem runC_jumpTo {pc oc od of : ℕ} {fp a b : K} {c : E}
-    (hf : prog.fetch (gpow pc) = some (OInstr.jump oc od of).toInstr)
-    (hpc : pc < 2 ^ prog.logSize - 1) (hc : L.read (fp * gpow oc) = some c) (hcK : IsInK c)
-    (hc0 : c ≠ 0) (hd : L.read (fp * gpow od) = some (ofK a))
-    (hf' : L.read (fp * gpow of) = some (ofK b)) :
-    RunC prog L ⟨gpow pc, fp⟩ ⟨a, b⟩ (fun op ↦ if op = .jump then 1 else 0) := by
-  have hK : ∀ x : K, IsInK (ofK x) := fun x ↦ (isInK_iff _).mpr ⟨x, rfl⟩
-  have hr : (if c = 0 then (⟨gpow (pc + 1), fp⟩ : Registers K) else ⟨(ofK a).limb 0, (ofK b).limb 0⟩) =
-      ⟨a, b⟩ := by
-    rw [ite_eq_right hc0]
-    simp
-  exact runC_jump hf hpc ⟨c, _, _, hc, hd, hf', hcK, hK a, hK b, hr.symm⟩
-
-/-- A return, `JUMP fp[oc], fp[0], fp[1]` with `fp[oc]` a nonzero `K` word and `fp[0]`, `fp[1]`
-words of `K`, goes to `retRegs L fp`, counting one `JUMP`. -/
-theorem runC_ret {pc oc : ℕ} {fp : K} {c d f : E} {r : Registers K}
-    (hf : prog.fetch (gpow pc) = some (OInstr.jump oc 0 1).toInstr)
-    (hpc : pc < 2 ^ prog.logSize - 1) (hc : L.read (fp * gpow oc) = some c) (hcK : IsInK c)
-    (hc0 : c ≠ 0) (hd : L.read (fp * gpow 0) = some d) (hdK : IsInK d)
-    (hf' : L.read (fp * gpow 1) = some f) (hfK : IsInK f) (hr : retRegs L fp = some r) :
-    RunC prog L ⟨gpow pc, fp⟩ r (fun op ↦ if op = .jump then 1 else 0) := by
-  obtain ⟨d', f', hd', hf'', rfl⟩ := retRegs_eq_some_iff.mp hr
-  obtain rfl : d' = d := Option.some.inj (hd'.symm.trans hd)
-  obtain rfl : f' = f := Option.some.inj (hf''.symm.trans hf')
-  exact runC_jump hf hpc ⟨c, d', f', hc, hd, hf', hcK, hdK, hfK, by rw [ite_eq_right hc0]⟩
-
 /-! ## The final registers -/
 
 /-- A run reaches the final registers after one number of steps only: it halts there. -/
@@ -451,31 +424,6 @@ end Pass
 section Main
 
 variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program} {f : CompiledFn}
-
-/-- **Completeness, counted**: on a memory satisfying the atoms of a path of a segment of
-`exec F f`, in a frame its environment holds of, a counted run from the segment's start reaches
-the registers the path's exit names, each opcode's count at most the instructions of that opcode
-among the segment's items; the path leaves by an exit of the segment (its own or a branch's)
-whose kind names those registers and whose environment holds. -/
-theorem exec_completeC (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {s : Seg}
-    (hs : s ∈ (exec F f).segs) (he : EnvHolds L fp s.env) {r : Registers K}
-    (h : Follows L fp f.entry r (s.exit.kind.Regs L fp f.entry r) s.items) :
-    ∃ c, RunC prog L ⟨gpow (f.entry + s.start), fp⟩ r c ∧ (∀ op, c op ≤ itemOps s.items op) ∧
-      ∃ x, (x = s.exit ∨ x ∈ branchExits s.items) ∧ x.kind.Regs L fp f.entry r ∧
-        EnvHolds L fp x.env :=
-  passC_good hctx f.code 0 _ [] [] 0 (by simpa using hf)
-    (fun _ h ↦ Option.some.inj h ▸ curGoodC_init 0 _) (fun _ h ↦ by cases h) s hs he r h
-
-/-- **Completeness on a window, counted**, as `exec_completeC`. -/
-theorem execWin_completeC (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {a b : ℕ}
-    {env : List (ℕ × Sym)} {s : Seg} (hs : s ∈ (execWin F f a env b).segs)
-    (he : EnvHolds L fp s.env) {r : Registers K}
-    (h : Follows L fp f.entry r (s.exit.kind.Regs L fp f.entry r) s.items) :
-    ∃ c, RunC prog L ⟨gpow (f.entry + s.start), fp⟩ r c ∧ (∀ op, c op ≤ itemOps s.items op) ∧
-      ∃ x, (x = s.exit ∨ x ∈ branchExits s.items) ∧ x.kind.Regs L fp f.entry r ∧
-        EnvHolds L fp x.env :=
-  passC_good hctx _ a _ [] [] 0 (hf.window a (b - a))
-    (fun _ h ↦ Option.some.inj h ▸ curGoodC_init a _) (fun _ h ↦ by cases h) s hs he r h
 
 end Main
 

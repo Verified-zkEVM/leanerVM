@@ -214,21 +214,6 @@ theorem os_res_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (
   exact resLoop_completeAtB fs cert κ hf c l (lvAt c l) hps hb hst.ml1 hst.posOff hst.wo
     (by omega) hne (os_res_mem h hs hl b Lin) hB
 
-/-- `os_res_completeAtB` from the loop's `TotalLe`: by a tree of at most `B` at its arguments. -/
-theorem os_res_completeAtB_of_totalLe (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
-    {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) (h : TrFit c tr) (hs : OsSizes c)
-    {l : ℕ} (hl : l < c.levels.length) {fn : Fn} (hf : coreProgram.find? (c.resLoop l) = some fn)
-    (hps : fn.params = osParams 6) (hb : fn.body = resLoopBody c l (lvAt c l) (c.resLoop l))
-    (hne : 1 + gen ^ ((lvAt c l).queries / 2) ≠ 0) (b : ℕ) (Lin : Layout) {B : List E → ℕ}
-    (hB : TotalLe coreProgram fs (c.resLoop l) B) :
-    CompleteAtB fs cert κ (c.resLoop l) (osLk c tr b Lin)
-      [1, gen ^ ((lvAt c l).queries / 2), (osAtOf c b).P.qpos, (osAtOf c b).P.qw, (osAtOf c b).BD,
-        (osAtOf c b).rc l] (Returns [])
-      (B [1, gen ^ ((lvAt c l).queries / 2), (osAtOf c b).P.qpos, (osAtOf c b).P.qw,
-        (osAtOf c b).BD, (osAtOf c b).rc l]) :=
-  os_res_completeAtB fs cert κ hF h hs hl hf hps hb hne b Lin
-    fun rd t hn hv hbo ↦ hB rd t _ [] hn hv hbo
-
 end Honest
 
 end

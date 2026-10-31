@@ -50,11 +50,6 @@ theorem vtB_const (hl : args.length = 22) {d : V} {c : E} (hm : Stmt.atom (.cons
     vtσ rd wo args d = c :=
   vt_goodS (rd := rd) (w := wo) hl hm
 
-/-- A copy's word. -/
-theorem vtB_copy (hl : args.length = 22) {d s : V} (hm : Stmt.atom (.copy d s) ∈ vtPre) :
-    vtσ rd wo args d = vtσ rd wo args s :=
-  vt_goodS (rd := rd) (w := wo) hl hm
-
 /-- **A stream read, complete.** -/
 theorem vtc_fsNext (hl : args.length = 22) {cur : V} {off b pos : ℕ}
     (hcheck : tbStmtsEqb (fsNextT cur off b) ((vtPre.drop pos).take (fsNextT cur off b).length) =

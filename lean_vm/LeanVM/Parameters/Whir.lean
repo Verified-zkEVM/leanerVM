@@ -44,16 +44,6 @@ def blockLogs (μ : ℕ) : List Level → List ℕ
   | [] => []
   | l :: rest => (μ - l.fold + l.logInvRate) :: blockLogs (μ - l.fold) rest
 
-/-- `whir_config.rs:80`: the first reduction never exceeds the first fold. -/
-theorem initialReduction_le_initialFold : initialReduction ≤ initialFold := by decide
-
-/-- `whir_config.rs:81`: a later reduction never exceeds a later fold. -/
-theorem subsequentReduction_le_subsequentFold : subsequentReduction ≤ subsequentFold := by
-  decide
-
-/-- `whir_config.rs:92`: the residual is never longer than the lane fold. -/
-theorem residualMaxLog_le_initialFold : residualMaxLog ≤ initialFold := by decide
-
 /-! ## Structure of the table
 
 Each fact below is decided over the 56 admissible pairs; the general statement follows by
@@ -80,28 +70,6 @@ theorem ladder_length {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
       ∀ levels, ladder μ r = some levels → 2 ≤ levels.length := by decide +kernel
   obtain ⟨h1, h2⟩ := admissible_bounded h
   exact key μ h1 logInvRate h2 h
-
-/-- The residual is at most `residualMaxLog` variables. -/
-theorem residualLog_le {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
-    residualLog μ logInvRate ≤ residualMaxLog := by
-  have key : ∀ μ < maxLogStack + 1, ∀ r < maxLogInvRate + 1, Admissible μ r →
-      residualLog μ r ≤ residualMaxLog := by decide +kernel
-  obtain ⟨h1, h2⟩ := admissible_bounded h
-  exact key μ h1 logInvRate h2 h
-
-/-- Every level's code fits in `K`: its block length is at most `2^64` (Annex B, §B.2 requires
-`κ_i + R_i ≤ 64`), and its query count is at most its block length (`whir_config.rs:641`). -/
-theorem ladder_blocks {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
-    ∀ levels, ladder μ logInvRate = some levels →
-      ∀ p ∈ List.zip (blockLogs μ levels) levels, p.1 ≤ 64 ∧ p.2.queries ≤ 2 ^ p.1 := by
-  have key : ∀ μ < maxLogStack + 1, ∀ r < maxLogInvRate + 1, Admissible μ r →
-      ∀ levels, ladder μ r = some levels →
-        (List.zip (blockLogs μ levels) levels).all
-          (fun p ↦ decide (p.1 ≤ 64 ∧ p.2.queries ≤ 2 ^ p.1)) = true := by
-    decide +kernel
-  obtain ⟨h1, h2⟩ := admissible_bounded h
-  intro levels hl p hp
-  exact of_decide_eq_true ((List.all_eq_true.mp (key μ h1 logInvRate h2 h levels hl)) p hp)
 
 end
 end LeanVM.Parameters.Whir

@@ -139,17 +139,5 @@ theorem opens_eq {w : LeanVM.Da.MatrixWitness} {root vd : Digest} (hw : w.Opens 
   exact ⟨toBytes_inj (hw.2.2.2.1.symm.trans ho.2.2.2.1),
     toBytes_inj (hw.2.2.2.2.2.1.symm.trans ho.2.2.2.2.2.1)⟩
 
-/-- **`da_verify` is complete on a witness**: for a witness opening `(root, vd)`, on a memory
-image with the exponent table at `gsq` and the honest memory of the witness at any choice of the
-buffers `P`, `da_verify` returns the cells of `root` and `vd`. -/
-theorem da_verify_complete {rd : Reader} (hm : MemOk rd) {gsq : E} (hsq : SquaresAt rd gsq)
-    {w : LeanVM.Da.MatrixWitness} {root vd : Digest} (hw : w.Opens root vd) {P : DaPtrs}
-    (hmem : DaMem w.rows.length (wLog w) (wSyms w) (wWs w) rd P) :
-    coreProgram.Rel rd "da_verify" [gsq] (digestCells root ++ digestCells vd) := by
-  obtain ⟨e1, e2⟩ := opens_eq hw
-  rw [e1, e2]
-  exact da_verify_complete_mem hm hsq hw.1 hw.2.1 rfl (wSyms_len hw) (wWs_len hw)
-    (fun i hi => wDot hw i hi) hmem
-
 end
 end LeanVM.Guest.B1.Da

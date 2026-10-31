@@ -58,15 +58,5 @@ def canonicalLimbsVals (w : E) : ℕ → E
   | 2 => word 1 0 1
   | _ => ofK (w.limb 1)
 
-/-- **The honest values satisfy `canonical_limbs`** at a canonical word. -/
-theorem holds_canonicalLimbsT_of_vals {w : V} {b : ℕ} (hc : IsCanonical128 (σ w))
-    (h : ∀ i < 4, σ (.n (b + i)) = canonicalLimbsVals (σ w) i) {next : Prop}
-    {kret : List E → Prop} (hn : next) :
-    Stmt.HoldsList C rd σ (canonicalLimbsT w b) next kret :=
-  (holds_canonicalLimbsT w b next kret).mpr
-    ⟨⟨hc, h 0 (by omega), by
-      have e0 : σ (.n b) = ofK ((σ w).limb 0) := h 0 (by omega)
-      rw [h 1 (by omega), e0]; rfl, h 2 (by omega), h 3 (by omega)⟩, hn⟩
-
 end
 end LeanVM.Guest.B1

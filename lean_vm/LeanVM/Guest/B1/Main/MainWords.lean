@@ -322,39 +322,9 @@ theorem aggB_eq (m : ℕ) : aggB fs SB SK m = agA0 fs SB + agA1 SK * m := by
 
 /-! ## `main`'s callees' words -/
 
-theorem kidsBoundL_le_sum : ∀ (ks : List Kid) (Bs : List ℕ),
-    kidsBoundL fs ks Bs ≤ Bs.sum + (ks.map fun k => fs k.f).sum
-  | [], _ => Nat.zero_le _
-  | k :: ks, [] => by
-    have := kidsBoundL_le_sum ks []
-    simp only [kidsBoundL, List.headD_nil, List.tail_nil, List.sum_nil, List.map_cons,
-      List.sum_cons] at this ⊢
-    have := ite_le_add (p := k.taken = true) 0 (fs k.f)
-    omega
-  | k :: ks, B :: Bs => by
-    have := kidsBoundL_le_sum ks Bs
-    simp only [kidsBoundL, List.headD_cons, List.tail_cons, List.map_cons, List.sum_cons] at this ⊢
-    have := ite_le_add (p := k.taken = true) B (fs k.f)
-    omega
-
-theorem kidsBoundL_append (b : List Kid) (Bb : List ℕ) : ∀ (a : List Kid) (Ba : List ℕ),
-    a.length = Ba.length → kidsBoundL fs (a ++ b) (Ba ++ Bb) = kidsBoundL fs a Ba + kidsBoundL fs b Bb
-  | [], [], _ => by simp [kidsBoundL]
-  | k :: a, B :: Ba, h => by
-    simp only [List.cons_append, kidsBoundL, List.headD_cons, List.tail_cons]
-    rw [kidsBoundL_append b Bb a Ba (by simpa using h)]
-    omega
-  | [], _ :: _, h => by simp at h
-  | _ :: _, [], h => by simp at h
-
 /-- Child `c`'s `verify_sub` words, `Bvf` at its announced stack log and rate (`childShape`). -/
 def childBv (Bvf : ℕ → ℕ → ℕ) (w : NodeWitness) (c : ℕ) : ℕ :=
   (w.children.map fun ch => Bvf (childShape End.bytecode ch).1 (childShape End.bytecode ch).2).getD c 0
-
-theorem childBv_of_lt (Bvf : ℕ → ℕ → ℕ) (w : NodeWitness) {c : ℕ} (hc : c < w.children.length) :
-    childBv Bvf w c = Bvf (childShape End.bytecode w.children[c]).1
-      (childShape End.bytecode w.children[c]).2 := by
-  simp [childBv, List.getD_eq_getElem?_getD, hc]
 
 theorem sum_childBv (Bvf : ℕ → ℕ → ℕ) (s : NodeStatement) (w : NodeWitness) :
     ∑ c ∈ Finset.range w.children.length, childBv Bvf w c =

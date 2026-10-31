@@ -39,9 +39,6 @@ def vtTieB (v pc : ℕ) : List Stmt :=
 def vtRankReads (v R : ℕ) : List Atom :=
   [.load (.n v) (.n 30) R, .load (.n (v + 6)) (.n (v + 5)) 0, .load (.n (v + 9)) (.n (v + 8)) 0]
 
-theorem gen_pow_add_ne {a b : ℕ} (ha : a < 34) (hb : b < 34) (h : a ≠ b) : gen ^ a + gen ^ b ≠ 0 :=
-  fun h0 => h (gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp h0))
-
 /-- **The side's first rank.** -/
 theorem rank0_ok (hlow : LowDefB 8 rd) {v R s e κ : ℕ} (hv : 186 ≤ v)
     (hg : GoodL rd w σ (vtRank0T v R s))

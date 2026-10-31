@@ -275,52 +275,6 @@ theorem coverS_load {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {k : ℕ
     LoadHolds rd (hm fs fp seed s w).a117 (rX s w + (slotsOf (sPlan s w))[k]) (gen ^ hMarkS s w k) :=
   cover_load h (hCover_takerS s w hk)
 
-/-- **Child `c`'s leanXMSS claim `j`**: its slot's coverage word is `g` to its mark, and the table
-holds the claim there. -/
-theorem coverX_child {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {c j : ℕ}
-    (hc : c < w.children.length) (hj : j < (w.children[c]).statement.claims.xmss.length) :
-    ∃ (hc' : c < (xPlan s w).childSlots.length) (hj' : j < ((xPlan s w).childSlots[c]).length),
-      LoadHolds rd (hm fs fp seed s w).a117 (((xPlan s w).childSlots[c])[j])
-        (gen ^ (hW s w c + j)) ∧
-      (s.claims.xmss ++ (xPlan s w).duplicates)[((xPlan s w).childSlots[c])[j]]? =
-        some ((w.children[c]).statement.claims.xmss[j]) := by
-  obtain ⟨hc', hj', hs, e, hcl⟩ := plan_child s.claims.xmss ((hRawX s w).map (·.1))
-    (w.children.map (·.statement.claims.xmss)) (c := c) (k := j) (by simpa using hc) (by simpa using hj)
-  have e' : (slotsOf (xPlan s w))[base ((hRawX s w).map (·.1)) (w.children.map (·.statement.claims.xmss)) c + j]'hs =
-      ((xPlan s w).childSlots[c]'hc')[j]'hj' := e
-  have hl := coverX_load h hs
-  rw [e'] at hl
-  have hmk : hMarkX s w (base ((hRawX s w).map (·.1)) (w.children.map (·.statement.claims.xmss)) c + j) =
-      hW s w c + j := by
-    rw [base, List.length_map]
-    exact hMarkX_child s w hc hj
-  rw [hmk] at hl
-  simp only [List.getElem_map] at hcl
-  exact ⟨hc', hj', hl, hcl⟩
-
-/-- **Child `c`'s leanSPHINCS claim `j`**: its slot's coverage word is `g` to its mark, and the table
-holds the claim there. -/
-theorem coverS_child {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {c j : ℕ}
-    (hc : c < w.children.length) (hj : j < (w.children[c]).statement.claims.sphincs.length) :
-    ∃ (hc' : c < (sPlan s w).childSlots.length) (hj' : j < ((sPlan s w).childSlots[c]).length),
-      LoadHolds rd (hm fs fp seed s w).a117 (rX s w + ((sPlan s w).childSlots[c])[j])
-        (gen ^ (hW s w c + hEx w c + j)) ∧
-      (s.claims.sphincs ++ (sPlan s w).duplicates)[((sPlan s w).childSlots[c])[j]]? =
-        some ((w.children[c]).statement.claims.sphincs[j]) := by
-  obtain ⟨hc', hj', hs, e, hcl⟩ := plan_child s.claims.sphincs ((hRawS s w).map (·.1))
-    (w.children.map (·.statement.claims.sphincs)) (c := c) (k := j) (by simpa using hc) (by simpa using hj)
-  have e' : (slotsOf (sPlan s w))[base ((hRawS s w).map (·.1)) (w.children.map (·.statement.claims.sphincs)) c + j]'hs =
-      ((sPlan s w).childSlots[c]'hc')[j]'hj' := e
-  have hl := coverS_load h hs
-  rw [e'] at hl
-  have hmk : hMarkS s w (base ((hRawS s w).map (·.1)) (w.children.map (·.statement.claims.sphincs)) c + j) =
-      hW s w c + hEx w c + j := by
-    rw [base, List.length_map]
-    exact hMarkS_child s w hc hj
-  rw [hmk] at hl
-  simp only [List.getElem_map] at hcl
-  exact ⟨hc', hj', hl, hcl⟩
-
 /-- The leanXMSS table holds the claim at slot `t`. -/
 theorem tableX_claim {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {t : ℕ} {c : XmssClaim}
     (ht : (s.claims.xmss ++ (xPlan s w).duplicates)[t]? = some c) :

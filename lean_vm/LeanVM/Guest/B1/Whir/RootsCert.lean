@@ -221,8 +221,6 @@ theorem inv_20 : invOk 20 = true := by decide +kernel
 
 theorem inv_21 : invOk 21 = true := by decide +kernel
 
-theorem invK_length : invK.length = 22 := by decide +kernel
-
 theorem inv_all : ∀ t < 22, invOk t = true := by
   intro t ht
   interval_cases t

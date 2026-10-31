@@ -38,13 +38,6 @@ open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash LeanVM.Node
 
 variable {α β : Type}
 
-@[simp] theorem refuseZero_ret (a : α) : (Prog.ret a).refusingZeroChallenge = Prog.ret a := rfl
-
-@[simp] theorem refuseZero_require (c : Prop) [Decidable c] :
-    (Prog.require c).refusingZeroChallenge = Prog.require c := by
-  unfold Prog.require
-  split <;> rfl
-
 theorem bind_ite_fail (c : Prop) [Decidable c] (P : Prog α) (f : α → Prog β) :
     (if c then (Prog.fail : Prog α) else P).bind f = if c then Prog.fail else P.bind f := by
   split <;> rfl

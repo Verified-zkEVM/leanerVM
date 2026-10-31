@@ -533,19 +533,5 @@ theorem subtreeLeaves_congr {pairs pairs' : List (Bytes × Digest)}
   | zero => simp only [subtreeLeaves, leafOf, h]
   | succ ht ih => simp only [subtreeLeaves, h, ih]
 
-/-- **The computed committed word does not depend on the covering keys** (no injectivity
-needed). -/
-theorem committedWordC_keys_congr {answers : Bytes → Option Digest} {keys keys' : List Bytes}
-    (hc : KeysCover answers keys) (hc' : KeysCover answers keys') (root : Digest)
-    (height width : ℕ) :
-    committedWordC answers keys root height width = committedWordC answers keys' root height width := by
-  simp only [committedWordC, committedLeaves, subtreeLeaves_congr (preimage_keys_congr hc hc')]
-
-/-- Reading bound leaves is the computed committed word. -/
-theorem leafAt_committedLeaves (answers : Bytes → Option Digest) (keys : List Bytes)
-    (root : Digest) (height width : ℕ) :
-    leafAt (committedLeaves answers keys root height width) height width =
-      committedWordC answers keys root height width := rfl
-
 end
 end LeanVM.Extraction.MerkleProofs

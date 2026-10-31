@@ -28,8 +28,5 @@ abbrev NoOracle : Fin 0 → Type := fun i ↦ i.elim0
 /-- Exactly one oracle, of type `M`. -/
 abbrev OneOracle (M : Type) : Fin 1 → Type := fun _ ↦ M
 
-/-- All functions out of `Fin 0` are equal, so the empty oracle family has one inhabitant. -/
-theorem noOracle_eq (o o' : ∀ i, NoOracle i) : o = o' := funext fun i ↦ i.elim0
-
 end
 end LeanVM.Protocol

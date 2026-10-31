@@ -857,19 +857,6 @@ theorem valueOf_eq {I : M3Instance} (vals : Vector E I.busClaims) {c : I.ColumnI
   rw [List.getD_eq_getElem _ _ (by simpa using hlt), Vector.getElem_toList]
   rfl
 
-/-- A side's sum against boundary values first and zeros after. -/
-theorem sum_append_replicate (sel : ℕ → E) (A : List E) (n : ℕ) :
-    ∑ i ∈ range (A.length + n), sel i * (A ++ List.replicate n 0).getD i 0 =
-      ∑ i ∈ range A.length, sel i * A.getD i 0 := by
-  rw [Finset.sum_range_add]
-  have h0 : ∑ i ∈ range n, sel (A.length + i) * (A ++ List.replicate n 0).getD (A.length + i) 0 =
-      0 := Finset.sum_eq_zero fun i hi ↦ by
-    rw [List.getD_append_right _ _ _ _ (by omega), Nat.add_sub_cancel_left,
-      List.getD_eq_getElem _ _ (by simpa using hi), List.getElem_replicate, mul_zero]
-  rw [h0, add_zero]
-  exact Finset.sum_congr rfl fun i hi ↦ by
-    rw [List.getD_append _ _ _ _ (Finset.mem_range.mp hi)]
-
 /-- A sum against ones. -/
 theorem sum_map_one {X : Type} (sel : ℕ → E) (L : List X) :
     ∑ i ∈ range L.length, sel i * (L.map fun _ ↦ (1 : E)).getD i 0 = ∑ i ∈ range L.length, sel i :=

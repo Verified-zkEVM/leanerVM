@@ -111,16 +111,4 @@ theorem exists_runB_of_perm (S : KeccakSem) {α : Type*} {prog : Program} {κ : 
       · exact List.mem_append_left _ h
       · exact List.mem_append_right _ (List.mem_cons_of_mem _ h)
 
-/-- **Specification Proposition 6.1, the walk decomposition**: `exists_runB_of_perm` at the
-deployed semantics. -/
-theorem exists_run_of_perm {α : Type*} {prog : Program} {κ : ℕ} {L : MemoryImage κ}
-    (src dst : α → Registers K) (E : List α)
-    (hE : ∀ e ∈ E, step prog L (src e) = some (dst e))
-    (s : Registers K) (hbal : (s :: E.map dst).Perm (Registers.final prog :: E.map src)) :
-    ∃ n, run prog L n s = some (Registers.final prog) ∧
-      ∀ k < n, ∃ e ∈ E, run prog L k s = some (src e) ∧ run prog L (k + 1) s = some (dst e) := by
-  have hE' : ∀ e ∈ E, stepB keccakDeployed prog L (src e) = some (dst e) := fun e he ↦ by
-    rw [stepB_deployed]; exact hE e he
-  simpa only [runB_deployed] using exists_runB_of_perm keccakDeployed src dst E hE' s hbal
-
 end LeanVM.Arithmetization

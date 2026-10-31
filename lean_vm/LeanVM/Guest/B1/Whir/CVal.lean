@@ -159,17 +159,6 @@ def segLookup : List (ℕ × (ℕ → E)) → ℕ → E
 /-- The total length of segments. -/
 def segLen (segs : List (ℕ × (ℕ → E))) : ℕ := (segs.map (·.1)).sum
 
-theorem segLookup_at : ∀ (pre : List (ℕ × (ℕ → E))) (n : ℕ) (g : ℕ → E)
-    (post : List (ℕ × (ℕ → E))) (i : ℕ), i < n →
-    segLookup (pre ++ (n, g) :: post) (segLen pre + i) = g i
-  | [], n, g, post, i, h => by simp [segLookup, segLen, h]
-  | (m, h') :: pre, n, g, post, i, hi => by
-    have := segLookup_at pre n g post i hi
-    simp only [List.cons_append, segLookup, segLen, List.map_cons, List.sum_cons] at this ⊢
-    simp only [show ¬ (m + (pre.map (·.1)).sum + i < m) by omega, ↓reduceIte]
-    rw [show m + (pre.map (·.1)).sum + i - m = (pre.map (·.1)).sum + i by omega]
-    exact this
-
 theorem segLookup_get : ∀ (segs : List (ℕ × (ℕ → E))) (m : ℕ) (hm : m < segs.length) (i : ℕ)
     (_ : i < segs[m].1), segLookup segs (segLen (segs.take m) + i) = segs[m].2 i
   | (n, g) :: _, 0, _, i, hi => by simp [segLookup, segLen, show i < n from hi]

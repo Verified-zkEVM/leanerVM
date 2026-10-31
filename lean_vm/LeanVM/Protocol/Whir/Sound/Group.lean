@@ -96,39 +96,6 @@ theorem noMoves_sampleQueriesAux (depth : ℕ) : ∀ fuel rem, NoMoves (sampleQu
 
 /-! ## The positions are in range -/
 
-/-- An expectation over `sample_queries` only sees position lists below `2^depth`. -/
-theorem retExp_sampleQueriesAux_restrict (depth : ℕ) (g : List ℕ → List Ev → ENNReal) :
-    ∀ fuel rem h₀ l, retExp g h₀ l (sampleQueriesAux depth fuel rem) =
-      retExp (fun qs h ↦ if ∀ q ∈ qs, q < 2 ^ depth then g qs h else 0) h₀ l
-        (sampleQueriesAux depth fuel rem)
-  | 0, rem, h₀, l => by simp [sampleQueriesAux, retExp]
-  | fuel + 1, rem, h₀, l => by
-    unfold sampleQueriesAux
-    split
-    · simp [retExp]
-    · simp only [bind_eq, pure_eq]
-      rw [show sampleChallenge = (sample ret : Prog E) from rfl, Prog.bind]
-      simp only [retExp, ret_bind]
-      congr 1
-      refine Finset.sum_congr rfl fun c _ ↦ ?_
-      rw [retExp_bind, retExp_bind]
-      rw [retExp_sampleQueriesAux_restrict depth _ fuel _ h₀ _]
-      conv_rhs => rw [retExp_sampleQueriesAux_restrict depth _ fuel _ h₀ _]
-      congr 1
-      funext rest h
-      simp only [retExp]
-      by_cases hr : ∀ q ∈ rest, q < 2 ^ depth
-      · have hall : ∀ q ∈ (List.range (min (192 / depth) rem)).map
-            (fun k ↦ (eToNat c >>> (k * depth)) % 2 ^ depth) ++ rest, q < 2 ^ depth := by
-          intro q hq
-          rcases List.mem_append.mp hq with hq | hq
-          · obtain ⟨a, -, rfl⟩ := List.mem_map.mp hq
-            exact Nat.mod_lt _ (Nat.two_pow_pos _)
-          · exact hr q hq
-        split_ifs
-        simp_all
-      · simp [hr]
-
 /-- An expectation over `sample_queries` only sees position lists of the requested length below
 `2^depth`. -/
 theorem retExp_sampleQueriesAux_restrict_len (depth : ℕ) (h1 : 1 ≤ depth) (h192 : depth ≤ 192)

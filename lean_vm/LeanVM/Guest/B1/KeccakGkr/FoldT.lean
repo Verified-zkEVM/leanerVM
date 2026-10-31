@@ -24,8 +24,6 @@ def foldFilt (t : ℕ) : List ℕ :=
   (List.range (2 ^ (t + 1))).filter fun q' ↦
     t + 1 < 6 || shiftUsed.contains (q' / 2 + 2 ^ t * (q' % 2))
 
-theorem foldFilt_nodup (t : ℕ) : (foldFilt t).Nodup := (List.nodup_range).filter _
-
 theorem foldLevelT_mem {src : ℕ → ℕ} {b : ℕ} {a : V} {t : ℕ} {q' : ℕ} (hq : q' ∈ foldFilt t)
     {k : ℕ} (hk : k < 2 ^ (6 - t) / 2) :
     let n := 2 ^ (6 - t)

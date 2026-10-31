@@ -83,12 +83,5 @@ theorem holdsList_of_vsh {C : CallRel} {rd : Reader} {σ : Val} {kret : List E �
 
 theorem vt_iteOk : vtPre.all iteOk = true := by decide +kernel
 
-/-- **The relation from the statements.** -/
-theorem vt_rel_of {rd : Reader} {σ : Val} (hs : ∀ s ∈ vtPre, VSH (coreProgram.Rel rd) rd σ s) :
-    coreProgram.Rel rd "verify_tables" ((List.range 22).map fun k ↦ σ (.n k)) (vtRets.map σ) := by
-  obtain ⟨fn, hf, hp, hb⟩ := vtFound
-  refine (tb_rel_pre hf hb vtPre_noRet _ _).mpr ⟨σ, by rw [hp, List.map_map]; rfl, ?_, rfl⟩
-  exact holdsList_of_vsh vtPre vt_iteOk hs trivial
-
 end
 end LeanVM.Guest.B1.Tables

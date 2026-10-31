@@ -201,9 +201,6 @@ theorem holds_mcNode (L k b : ℕ) (kret : List E → Prop) :
 
 /-! ## The meaning -/
 
-theorem mcBase_two (L : ℕ) (hL : 16 ≤ L) : mcBase L 2 = mcP L + 17 := by
-  unfold mcBase mcP; split_ifs <;> omega
-
 theorem holds_mcBody (L : ℕ) (kret : List E → Prop) :
     Stmt.HoldsList C rd σ (mcBody L) False kret ↔
       (∀ i < 4 * L - 2, LoadHolds rd (σ (.n 0)) (i + 2) (σ (.n (i + 2)))) ∧

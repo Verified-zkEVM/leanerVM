@@ -117,10 +117,5 @@ theorem xmssArmC_spec : ∀ op σ bufs kids rd args rets,
       costW (nth Data.cplArms 20 []) σ (coreOf 20).body op ≤ xmssArmC op :=
   fun op σ _ _ _ _ _ _ => (costW_le_max _ σ op _).trans (costMaxW_xmss op).le
 
-/-- **The counts within the weights `ωArm xmssArmC`** on valid trees. -/
-theorem cnt_le_weight_xmss : ∀ (rd : Reader) (t : Tree), t.Valid coreProgram rd [] [] → ∀ op,
-    cnt t op ≤ t.weight (ωArm xmssArmC op) + jtSets op :=
-  cnt_le_weight_arm xmssArmC xmssArmC_spec
-
 end
 end LeanVM.Guest.B2C

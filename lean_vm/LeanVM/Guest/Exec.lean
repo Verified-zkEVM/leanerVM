@@ -1006,21 +1006,6 @@ theorem exec_sound (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {s : 
     RunK L fp prog f.entry k (s.exit.Reached L fp prog f.entry k) s.items k :=
   (exec_good hctx hf s hs).1 k he h
 
-/-- **Completeness**: on a memory satisfying the atoms of a path of a segment, in a frame its
-environment holds of, the run from the segment's start reaches the registers the path's exit
-names. -/
-theorem exec_complete (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {s : Seg}
-    (hs : s ∈ (exec F f).segs) (he : EnvHolds L fp s.env) {r : Semantics.Registers K}
-    (h : Follows L fp f.entry r (s.exit.kind.Regs L fp f.entry r) s.items) :
-    Reach prog L ⟨gpow (f.entry + s.start), fp⟩ r :=
-  (exec_good hctx hf s hs).2.1 he r h
-
-/-- A segment lists its exits: its final one and its branches'. -/
-theorem exec_exits (L : MemoryImage κ) (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {s : Seg}
-    (hs : s ∈ (exec F f).segs) {x : Exit} (hx : x = s.exit ∨ x ∈ branchExits s.items) :
-    x ∈ s.exits :=
-  (exec_good (L := L) hctx hf s hs).2.2 x hx
-
 theorem index_get {segs : List Seg} {t : ℕ} {s : Seg} (h : (index segs).get t = some s) :
     s ∈ segs := by
   have key : ∀ (l : List Seg) (acc : Trie Seg),
@@ -1123,21 +1108,6 @@ theorem execWin_good (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) (a 
     (env : List (ℕ × Sym)) (b : ℕ) : ∀ s ∈ (execWin F f a env b).segs, SegGood L fp prog f.entry s :=
   pass_good hctx _ a _ [] [] 0 (hf.window a (b - a))
     (fun _ h ↦ Option.some.inj h ▸ curGood_init a _) (fun _ h ↦ by cases h)
-
-/-- **Soundness** on a window, as `exec_sound`. -/
-theorem execWin_sound (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {a b : ℕ}
-    {env : List (ℕ × Sym)} {s : Seg} (hs : s ∈ (execWin F f a env b).segs) {k : ℕ}
-    (he : EnvHolds L fp s.env) (h : Safe prog L k ⟨gpow (f.entry + s.start), fp⟩) :
-    RunK L fp prog f.entry k (s.exit.Reached L fp prog f.entry k) s.items k :=
-  (execWin_good hctx hf a env b s hs).1 k he h
-
-/-- **Completeness** on a window, as `exec_complete`. -/
-theorem execWin_complete (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {a b : ℕ}
-    {env : List (ℕ × Sym)} {s : Seg} (hs : s ∈ (execWin F f a env b).segs)
-    (he : EnvHolds L fp s.env) {r : Semantics.Registers K}
-    (h : Follows L fp f.entry r (s.exit.kind.Regs L fp f.entry r) s.items) :
-    Reach prog L ⟨gpow (f.entry + s.start), fp⟩ r :=
-  (execWin_good hctx hf a env b s hs).2.1 he r h
 
 /-- **Linking across windows**: every successor of an exit of a window starts one of its
 segments, or one of the windows `ext`, with an environment holding where the exit's does. -/

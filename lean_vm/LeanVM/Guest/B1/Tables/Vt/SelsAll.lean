@@ -99,10 +99,6 @@ theorem vt_pushSel_last : vtSelSum (vtPushSel.getD 50 default).2.2.1
 theorem vt_countSel_last : vtSelSum (vtCountSel.getD 44 default).2.2.1
     (vtCountSel.getD 44 default).2.2.2.1 (vtCountSel.getD 44 default).2.2.2.2 = 5761 := by decide
 
-theorem vt_countSel_first : vtSelSum (vtCountSel.getD 0 default).2.2.1
-    (vtCountSel.getD 0 default).2.2.2.1 (vtCountSel.getD 0 default).2.2.2.2 =
-    vtSelE (vtCountSel.getD 0 default).2.2.1 (vtCountSel.getD 0 default).2.2.2.1 := by decide
-
 /-- A running sum: each step adds its term to the previous step's sum. -/
 theorem vt_running_sum (S : ℕ → E) (prev : ℕ → E) (x : ℕ → E) (s0 : E) (n : ℕ)
     (hstep : ∀ i < n, S i = prev i + x i) (h0 : prev 0 = s0)

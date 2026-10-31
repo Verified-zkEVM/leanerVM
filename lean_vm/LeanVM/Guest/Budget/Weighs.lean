@@ -51,11 +51,6 @@ theorem weighsLe_of_on {ω : String → ℕ} {f : String} {Pre : List E → Prop
     (hp : Pre args) : WeighsLe P ω B t := fun rd' args' rets' hv' hb' =>
   h rd' t args' rets' hn (valid_args_eq hv hv' ▸ hp) hv' hb'
 
-/-- **A bound on every valid tree of `f`, for a tree of `f`.** -/
-theorem weighsLe_of_weightLe {ω : String → ℕ} {f : String} {B : ℕ}
-    (h : WeightLe P ω f fun _ => B) {t : Tree} (hn : t.name = f) : WeighsLe P ω B t :=
-  fun rd args rets hv hb => h rd t args rets hn hv hb
-
 theorem WeighsLe.mono {ω : String → ℕ} {B B' : ℕ} {t : Tree} (h : WeighsLe P ω B t) (hB : B ≤ B') :
     WeighsLe P ω B' t := fun rd args rets hv hb => (h rd args rets hv hb).trans hB
 

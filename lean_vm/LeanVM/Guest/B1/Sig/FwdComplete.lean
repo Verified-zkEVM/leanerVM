@@ -183,10 +183,6 @@ theorem outs_sub_vals (a : Atom) : ∀ v ∈ aOuts a, v ∈ a.vals := by
       all_goals simp [aOuts] at hv
   all_goals simp_all [aOuts, Atom.vals]
 
-theorem reads_sub_vals (a : Atom) : ∀ v ∈ aReads a, v ∈ a.vals := by
-  intro v hv
-  cases a <;> simp_all [aReads, Atom.vals]
-
 /-- **A block in single-assignment form, evaluated, holds**, its `KECCAK`s on canonical inputs. -/
 theorem fwd_holds : ∀ (ss : List Stmt) (σ : Val), SSA ss → KCanon (fwd ss σ) ss →
     AtomsHold rd (fwd ss σ) ss

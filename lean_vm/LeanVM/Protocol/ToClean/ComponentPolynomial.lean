@@ -167,20 +167,6 @@ def constValue : Expression F → Option F
     | some a, some b => some (a * b)
     | _, _ => none
 
-omit [DecidableEq F] in
-/-- An expression with a value evaluates to it in every environment. -/
-theorem eval_of_constValue {e : Expression F} {m : F} (h : e.constValue = some m)
-    (env : Environment F) : e.eval env = m := by
-  induction e generalizing m with
-  | var v => simp [constValue] at h
-  | const c => simpa [constValue, eval] using h
-  | add x y hx hy =>
-    cases hx' : x.constValue <;> cases hy' : y.constValue <;> simp [constValue, hx', hy'] at h
-    rw [eval, hx hx', hy hy', h]
-  | mul x y hx hy =>
-    cases hx' : x.constValue <;> cases hy' : y.constValue <;> simp [constValue, hx', hy'] at h
-    rw [eval, hx hx', hy hy', h]
-
 end Expression
 
 namespace LeanVM.Protocol
@@ -225,18 +211,6 @@ theorem flushPolys_eval (sep : RawChannel F → F) {n : ℕ} (row : Fin n → F)
 
 /-- The first `a` message coordinates of a sixteen-slot tuple, after its separator. -/
 def tupleMsg (a : ℕ) (v : Vector F 16) : Array F := Array.ofFn fun k : Fin a ↦ v[k.val + 1]?.getD 0
-
-omit [DecidableEq F] in
-/-- A message of at most fifteen coordinates is read back off its tuple: the tuple determines
-the message, given its length. -/
-theorem tupleMsg_flushTuple (sep : RawChannel F → F) (i : Interaction F) (h : i.msg.size ≤ 15) :
-    tupleMsg i.msg.size (flushTuple sep i) = i.msg := by
-  apply Array.ext (by simp [tupleMsg])
-  intro k _ hk
-  simp only [tupleMsg, Array.getElem_ofFn]
-  rw [Vector.getElem?_eq_getElem (by omega), Option.getD_some]
-  simp only [flushTuple, Vector.getElem_ofFn, Nat.add_one_ne_zero, ite_false, Nat.add_sub_cancel]
-  rw [Array.getElem?_eq_getElem hk, Option.getD_some]
 
 /-- The flush polynomials' total degree is at most `d` when every message coordinate's
 syntactic degree is: the separator is a constant, the padding zero. -/
@@ -373,28 +347,5 @@ def UnitMultiplicities : Prop :=
 
 instance : Decidable (UnitMultiplicities c) :=
   inferInstanceAs (Decidable (∀ i ∈ c.rowOperations.interactions, _))
-
-/-- When counts are variables, every counted interaction has a count column. -/
-theorem exists_count_of_counted (h : CountsAreVariables c counted)
-    {i : AbstractInteraction F} (hi : i ∈ c.rowOperations.interactions) (hc : counted i.channel) :
-    ∃ k ∈ (c.toM3 sep dir counted).count, countVar c.width i = some k := by
-  obtain ⟨k, hk⟩ := Option.isSome_iff_exists.mp (h i hi hc)
-  exact ⟨k, (mem_toM3_count_iff c sep dir counted k).mpr ⟨i, hi, hc, hk⟩, hk⟩
-
-omit [DecidableEq F] in
-/-- Coordinate `1` of an interaction whose count column is `k` evaluates, on a row, to the
-row's cell `k`. -/
-theorem msg_one_of_countVar {n : ℕ} {i : AbstractInteraction F} {k : Fin n}
-    (h : countVar n i = some k) (row : Fin n → F) (data : ProverData F) :
-    (i.eval (Environment.fromArray (Array.ofFn row) data)).msg[1]? = some (row k) := by
-  unfold countVar at h
-  simp only [AbstractInteraction.eval, Vector.toArray_map, Array.getElem?_map]
-  split at h
-  · next v hv =>
-    split_ifs at h with hn
-    obtain rfl := Option.some.inj h
-    rw [hv]
-    simp [Expression.eval, Environment.fromArray, Array.getElem?_ofFn, hn]
-  · exact absurd h (by simp)
 
 end LeanVM.Protocol

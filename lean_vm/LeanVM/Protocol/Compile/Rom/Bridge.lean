@@ -185,10 +185,6 @@ end Commute
 /-- The answers of a log, as an implementation of the oracles in `Option`. -/
 def lookImpl (ℓ : Log) : QueryImpl KeccakCalls Option := logLookup ℓ
 
-theorem implH_lookImpl (ℓ : Log) : implH (lookImpl ℓ) = lookH ℓ := rfl
-
-theorem implF_lookImpl (ℓ : Log) : implF (lookImpl ℓ) = lookF ℓ := rfl
-
 theorem logLookup_of_prefix {ℓ ℓ' : Log} (hp : ℓ <+: ℓ') {t : Bytes ⊕ KeccakState}
     {v : KeccakCalls.Range t} (h : logLookup ℓ t = some v) : logLookup ℓ' t = some v := by
   rcases t with x | s
@@ -243,24 +239,6 @@ theorem simulateQ_look_of_mem_support {β : Type} (oa : OracleComp KeccakCalls �
     change (logLookup ℓ' t).bind (fun u ↦ simulateQ _ (mx u)) = _
     rw [logLookup_of_prefix (h1.trans hℓ') hp'.2]
     exact h2 ℓ' hℓ'
-
-/-- **The bridge.** On every reachable outcome of the logged experiment in which the verifier
-accepts, the seeded verifier accepts the adversary's proof with every query answered by the
-final log. -/
-theorem verify_of_mem_support_logExperiment {σ : Seed} {P : Prog Bool}
-    (A : OracleComp KeccakCalls Proof) {z : (Proof × Bool) × Log}
-    (hz : z ∈ support (logExperiment A (verifierComp σ P))) (hacc : z.1.2 = true) :
-    verify (lookH z.2) (lookF z.2) σ P z.1.1 = some true := by
-  have h := (simulateQ_look_of_mem_support _ [] z hz).2 z.2 (List.prefix_refl _)
-  rw [simulateQ_bind] at h
-  obtain ⟨π, -, h⟩ := Option.bind_eq_some_iff.mp h
-  rw [simulateQ_map] at h
-  obtain ⟨b, hb, hπb⟩ := Option.map_eq_some_iff.mp h
-  rw [← hπb] at hacc ⊢
-  rw [simulateQ_verify] at hb
-  simp only at hacc
-  rw [← hacc]
-  exact hb
 
 /-- **The verifier of a family of statements**: on a statement and a proof, the statement's
 seeded verifier, run from its root node. -/

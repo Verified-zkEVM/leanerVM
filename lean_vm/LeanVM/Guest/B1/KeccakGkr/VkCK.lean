@@ -63,13 +63,6 @@ theorem w_bits {j : ℕ} (hj : j < 5) : D.w B curE (20 + j) = Value.bitE ((D.τ 
   simp only [w, Nat.le_add_right, true_and, show 20 + j < 25 by omega, ↓reduceIte,
     Nat.add_sub_cancel_left]
 
-theorem w_58 : D.w B curE 58 = ptr B := rfl
-theorem w_90 : D.w B curE 90 = ptr (B + (D.τ - 3)) := rfl
-theorem w_201 : D.w B curE 201 = ptr (B + D.o201) := rfl
-theorem w_203 : D.w B curE 203 = ptr (B + D.τ + 288) := rfl
-theorem w_274 : D.w B curE 274 = ptr (B + D.o274) := rfl
-theorem w_382 : D.w B curE 382 = ptr (B + D.τ + 380) := rfl
-theorem w_3987 : D.w B curE 3987 = ptr (B + D.τ + 406) := rfl
 
 theorem w_o {j : ℕ} (hj : j < 7) : D.w B curE (3694 + j) = (D.oRets curE).getD j 0 := by
   interval_cases j <;> rfl

@@ -66,11 +66,6 @@ theorem rcConst_sound {rd : Reader} (hm : MemOk rd) {σ : Val} {atoms : List Ato
     exact rc_const hm hc (by rw [const_sound h hat, hw]) ⟨h1, h2, h3⟩
   · exact absurd h (by simp)
 
-set_option maxRecDepth 100000 in
-theorem word_g257 : word 139298 0 0 = gen ^ 257 := by
-  rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
-  congr 1
-
 theorem word_g1 : word 2 0 0 = gen ^ 1 := by rw [word_gen, pow_one]
 
 /-! ## Loop helpers with calls -/

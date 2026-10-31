@@ -122,13 +122,6 @@ theorem vt_param (hl : args.length = 22) {i : ℕ} (hi : i < 22) :
     vtσ rd w args (.n i) = args.getD i 0 :=
   ev_params rd w (by rw [hl]; exact vt_chk) (by rw [hl]; exact hi)
 
-theorem vt_params (hl : args.length = 22) :
-    (List.range 22).map (fun k ↦ vtσ rd w args (.n k)) = args := by
-  apply List.ext_getElem (by simp [hl])
-  intro i h1 _
-  simp only [List.getElem_map, List.getElem_range]
-  rw [vt_param hl (by simpa using h1), List.getD_eq_getElem _ _ (by simp at h1; omega)]
-
 /-! ## By position -/
 
 theorem vt_mem_slice {n : ℕ} {blk : List Stmt}
@@ -152,20 +145,6 @@ theorem vt_goodL (hl : args.length = 22) (n : ℕ) (blk : List Stmt)
     fun s hs ↦ vt_goodS hl (vt_mem_slice heq hs)
   clear heq
   induction blk with
-  | nil => trivial
-  | cons s ss ih =>
-    exact ⟨h s List.mem_cons_self, ih fun t ht ↦ h t (List.mem_cons_of_mem _ ht)⟩
-
-/-- **An `ite`'s branches' equations.** -/
-theorem vt_goodIte (hl : args.length = 22) (n : ℕ) {c : V} {z nb : List Stmt}
-    (heq : tbStmtsEqb [.ite c z nb] ((vtPre.drop n).take 1) = true) :
-    GoodL rd w (vtσ rd w args) (z ++ nb) := by
-  have hm : Stmt.ite c z nb ∈ vtPre := vt_mem_slice (blk := [_]) heq List.mem_cons_self
-  have h : ∀ t ∈ z ++ nb, GoodS rd vtSL w (vtσ rd w args) (fixNe t) :=
-    fun t ht ↦ vt_good hl _ (vtEvL_mem_ite hm ht)
-  clear heq hm
-  generalize z ++ nb = l at h
-  induction l with
   | nil => trivial
   | cons s ss ih =>
     exact ⟨h s List.mem_cons_self, ih fun t ht ↦ h t (List.mem_cons_of_mem _ ht)⟩
@@ -256,16 +235,6 @@ theorem vt_bufLoad (hl : args.length = 22) {ps : List (ℕ × ℕ)} (hok : loads
   simp only [GoodS, Good] at h
   rw [h.resolve_left hS, rdAt, hm.2]
   rfl
-
-/-- `vt_bufLoad` at a position of `vtPre`. -/
-theorem vt_bufLoadAt (hl : args.length = 22) {ps : List (ℕ × ℕ)} (hok : loadsBelow ps = true)
-    {p b : ℕ} (hpb : (p, b) ∈ ps) {W : List E} (hW : TbReadsAt rd (vtσ rd w args (.n p)) W)
-    (hb : b ≤ W.length) (n : ℕ) {d : V} {off : ℕ}
-    (heq : tbStmtsEqb [.atom (.load d (.n p) off)] ((vtPre.drop n).take 1) = true) :
-    LoadHolds rd (vtσ rd w args (.n p)) off (W.getD off 0) ∧
-      (Atom.load d (.n p) off ∉ vtSL → vtσ rd w args d = W.getD off 0) :=
-  vt_bufLoad hl hok hpb hW hb
-    (vtEvL_mem (vt_mem_slice (blk := [_]) heq List.mem_cons_self) (fun _ _ _ h ↦ by cases h))
 
 end
 

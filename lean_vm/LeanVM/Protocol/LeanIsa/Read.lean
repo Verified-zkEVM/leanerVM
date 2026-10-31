@@ -140,9 +140,6 @@ theorem column_inCol_stack (l : Fin 25) (x : Fin (2 ^ s.τ 5)) :
     (route_kappa prog s (inCol l)) ?_).trans rfl
   simp only [route, hl, dite_true, qSlot_inCol]
 
-/-- `QKECCAK` is the Keccak region's column. -/
-theorem keccakRegion_col : (keccakRegion prog s).col = keccakCol := rfl
-
 /-- Word `x` of slot `slot < 64` is a cell of `QKECCAK`. -/
 theorem slot_lt {n : ℕ} (x : Fin (2 ^ n)) (slot : ℕ) (hslot : slot < 64) :
     x.val + 2 ^ n * slot < 2 ^ (n + 6) :=

@@ -239,9 +239,6 @@ theorem batchW_getD (p : List E) (hp : p.length = 11) (beta : E) {j : ℕ} (hj :
   simp only [Option.map_some, Option.getD_some]
   rw [hA 4, hA 3, eqKernel_getD, hp, ite_eq_left (by omega)]
 
-theorem batchW_length (p : List E) (beta : E) : (batchW p beta).length = 1600 := by
-  simp [batchW, keccakBits]
-
 /-- **The batched claim** (eqs. `keccak:eq:flat` and step 6): `T_0 + β(T_1 + βT_2)` at the
 position point is the claim's sum on the states before the round, at the pack point `c`, with
 instance weights `emb_i(s)` and position weights `Lᵀ` of the batched weights. -/

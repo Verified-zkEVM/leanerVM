@@ -40,11 +40,6 @@ theorem weightVKids_le (ω : String → Val → ℕ) (ω' : String → ℕ) (h :
     exact Nat.add_le_add (weightV_le ω ω' h k) (weightVKids_le ω ω' h ks)
 end
 
-/-- **The counts within the weights**, each instance's path count within its function's. -/
-theorem cnt_le_weight_of (ω : Opcode → String → ℕ) (h : ∀ op f σ, pathCountN f σ op ≤ ω op f)
-    (t : Tree) (op : Opcode) : cnt t op ≤ t.weight (ω op) + jtSets op :=
-  Nat.add_le_add_right (weightV_le _ _ (h op) t) _
-
 section Valid
 
 variable {P : Core.Program} {rd : Reader} (ω : String → Val → ℕ) (ω' : String → ℕ)

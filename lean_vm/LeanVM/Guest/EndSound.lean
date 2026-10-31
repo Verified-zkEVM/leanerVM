@@ -50,12 +50,6 @@ theorem b2SoundL_of (hvs : VsKnown) : B2SoundL := ⟨b2_step hvs, b2_mainL expTa
 /-- **B2, proved.** -/
 theorem b2SoundL : B2SoundL := b2SoundL_of vsKnown_proved
 
-/-- **What the end theorems rest on**, from `verify_sub`'s column logs and `main`'s soundness with
-the witness `W`. -/
-theorem soundHyps_of {W : Val → Reader → FrameMap → NodeWitness} (hvs : VsKnown)
-    (hm : Located.MainSoundV bytecode W) : SoundHyps W :=
-  ⟨b2SoundL_of hvs, hm⟩
-
 variable {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof}
 
 /-- **Soundness of the deployed guest, its witness named**, from `verify_sub`'s statement. -/

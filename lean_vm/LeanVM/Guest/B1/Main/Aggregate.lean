@@ -66,9 +66,6 @@ theorem lambdaPowers_eq (lam : E) (n : ℕ) :
     Batch.lambdaPowers lam n = (List.range n).map fun i ↦ (lam ^ (2 * i), lam ^ (2 * i + 1)) :=
   rfl
 
-theorem sumE_snoc (xs : List E) (y : E) : sumE (xs ++ [y]) = sumE xs + y := by
-  simp [sumE, List.foldl_append]
-
 /-- A running sum over the first `c + 1` children. -/
 theorem zip_prefix {α : Type} (F : α → E × E → E) (cs : List α) (L : ℕ → E × E) {c : ℕ}
     (hc : c < cs.length) :
@@ -82,16 +79,6 @@ theorem bsRun_len : ∀ (rounds : List (E × E)) (claim : E) (s : Fs),
     (bsRun rounds claim s).1.1.length = rounds.length
   | [], _, _ => rfl
   | (_, _) :: rest, _, _ => by simp [bsRun, bsRun_len rest]
-
-/-- A row read at other words. -/
-theorem rowRel_congr {p p' : E} {s : Fs} (h : RowRel rd p s)
-    (he : ∀ k < 13, memAt rd p' k = memAt rd p k) : RowRel rd p' s := by
-  obtain ⟨hc, hl, hk⟩ := h
-  refine ⟨?_, hl, fun k hk4 => ?_⟩
-  · rw [hc, rowCap, rowCap]
-    exact List.map_congr_left fun i hi => (he i (by simp at hi; omega)).symm
-  · rw [he (5 + 2 * k) (by omega), he (6 + 2 * k) (by omega)]
-    exact hk k hk4
 
 theorem memAt_of_reads {p : E} {xs : List E} (h : ReadsAt rd p xs) {k : ℕ} (hk : k < xs.length) :
     memAt rd p k = xs.getD k 0 := by

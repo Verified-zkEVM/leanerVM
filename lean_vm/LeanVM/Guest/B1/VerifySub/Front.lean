@@ -51,10 +51,6 @@ theorem vsRun_drop8 (b : ℕ) :
     ((vsRun b 13).drop 8).map σ =
       [σ (.n (b + 8)), σ (.n (b + 9)), σ (.n (b + 10)), σ (.n (b + 11)), σ (.n (b + 12))] := rfl
 
-theorem vsRun_five (b : ℕ) :
-    (vsRun b 5).map σ = [σ (.n b), σ (.n (b + 1)), σ (.n (b + 2)), σ (.n (b + 3)), σ (.n (b + 4))] :=
-  rfl
-
 theorem holds_ld1 {d p off : ℕ} {X : Prop} :
     Stmt.HoldsList C rd σ [vsLd d p off] X kret ↔ LoadHolds rd (σ (.n p)) off (σ (.n d)) ∧ X :=
   Iff.rfl

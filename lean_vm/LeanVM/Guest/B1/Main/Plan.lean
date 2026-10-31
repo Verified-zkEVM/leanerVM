@@ -541,15 +541,6 @@ theorem sPlan_held (hl : Limits s w) : ∀ x, s.claims.sphincs.count x ≤
       (w.children.map (·.statement.claims.sphincs))).count x :=
   fun x => by rw [made_count, List.map_map]; exact hl.sphincsHeld x
 
-/-- **Under `Limits`, each region's slots are its table's indices.** -/
-theorem xPlan_perm (hl : Limits s w) :
-    (slotsOf (xPlan s w)).Perm (List.range (s.claims.xmss ++ (xPlan s w).duplicates).length) :=
-  plan_perm _ _ _ (xPlan_held hl)
-
-theorem sPlan_perm (hl : Limits s w) :
-    (slotsOf (sPlan s w)).Perm (List.range (s.claims.sphincs ++ (sPlan s w).duplicates).length) :=
-  plan_perm _ _ _ (sPlan_held hl)
-
 /-- **Under `Limits`, the coverage table has one slot per claim made**, raw or by a child. -/
 theorem coverage_made (hl : Limits s w) : coverageSlots s w =
     (made ((heldDirectly s.claims.xmss w.xmss).map (·.1)) (w.children.map (·.statement.claims.xmss))).length +

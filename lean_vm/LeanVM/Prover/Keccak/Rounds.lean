@@ -28,8 +28,6 @@ open LeanVM.Protocol.EndToEnd.Complete (coeffsOf hSumcheck)
 
 @[expose] public section
 
-theorem sbind {α β : Type} (x : Script α) (f : α → Script β) : x >>= f = x.bind f := rfl
-
 /-- Two results related. -/
 theorem corr_ret {α β : Type} {R : α → β → Prop} {a : α} {b : β} (h : R a b) :
     Corr R (Script.ret a) (Script.ret b) := h

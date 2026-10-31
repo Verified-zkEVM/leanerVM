@@ -47,8 +47,6 @@ theorem completes_atoms {lo hi : Nat} {ss : List Stmt} (hs : atomsOnly ss = true
     Completes C rd lo hi ss σ Post :=
   ⟨σ', he, hp, fun next kret hn => holdsList_of_atomsHold hs h next kret hn⟩
 
-theorem nb_of_lt {k hi : Nat} (h : k < hi) : ∃ j < hi, V.n k = .n j := ⟨k, h, rfl⟩
-
 theorem upds_single_ne (σ : Val) {k : Nat} (e : E) {v : V} (hv : v ≠ .n k) :
     upds σ [(k, e)] v = σ v := by
   simp only [upds]
@@ -152,15 +150,6 @@ theorem updRun_below (σ : Val) (b n : Nat) (f : Nat → E) {v : V} (hv : ∃ j 
     updRun σ b n f v = σ v := by
   obtain ⟨j, hj, rfl⟩ := hv
   exact (updRun_ext σ b n f).apply (Or.inl hj)
-
-/-- **A hint of a run of fresh values**, set to `f`. -/
-theorem hintRun_complete (σ : Val) (s : String) (b n : Nat) (f : Nat → E) :
-    Completes C rd b (b + n) [hintW s (runV b n)] σ (fun σ' => ∀ j < n, σ' (.n (b + j)) = f j) :=
-  completes_atoms rfl (updRun_ext σ b n f) (fun j hj => updRun_at σ b n f hj)
-    (fun a ha => by
-      simp only [hintW, List.mem_singleton, Stmt.atom.injEq] at ha
-      subst ha
-      trivial)
 
 /-- The outputs of a `KECCAK` of the inputs' words. -/
 def kOut (ws : List E) (inOdd outOdd : Bool) (c : Nat) : E :=

@@ -96,18 +96,6 @@ theorem dot_map : ∀ (c : List E) (fs : List (List E → E)), (∀ f ∈ fs, Co
       (dot_map c fs fun g hg ↦ h g (by simp [hg]))).congr fun _ _ ↦ by
         simp only [List.map_cons, dot_cons]
 
-/-- A coordinate of the point has degree one. -/
-theorem getD (n i : ℕ) : CoordPoly 1 n fun r ↦ r.getD i 0 := by
-  intro r _ v _
-  by_cases hvi : v = i
-  · subst hvi
-    refine PolyLE.id.congr fun x ↦ ?_
-    by_cases hv : v < r.length
-    · simp [List.getD_eq_getElem?_getD, List.getElem?_set_self hv]
-    · simp_all
-  · exact (PolyLE.const 1 (r.getD i 0)).congr fun x ↦ by
-      simp [List.getD_eq_getElem?_getD, List.getElem?_set_ne hvi]
-
 end CoordPoly
 
 /-- A product of one factor per coordinate, each a polynomial of degree at most one in its

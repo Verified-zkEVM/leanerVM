@@ -77,26 +77,11 @@ theorem roundsErrors_le (d : ℕ) {e e' : ℝ≥0} (h : e ≤ e') : (m : ℕ) �
       (Errors.Le.append (sayTree _) (sayRoles _) (Errors.Le.refl _ _ _) ⟨h, fun _ ↦ trivial⟩)
       (roundsErrors_le d h m)
 
-/-- Each challenge's error at most another's makes the challenges' errors at most theirs. -/
-theorem drawsErrors_le {e e' : ℝ≥0} (h : e ≤ e') : (k : ℕ) →
-    Errors.Le (drawsSlot C k).tree (drawsSlot C k).roles (drawsErrors C e k) (drawsErrors C e' k)
-  | 0 => trivial
-  | k + 1 => Errors.Le.append (drawsSlot C k).tree (drawsSlot C k).roles (drawsErrors_le h k)
-      ⟨h, fun _ ↦ trivial⟩
-
 /-- The error `f p` on the `p`-th challenge. -/
 def drawsErrorsOf (f : ℕ → ℝ≥0) : (k : ℕ) → Errors (drawsSlot C k).tree (drawsSlot C k).roles
   | 0 => doneErrors
   | k + 1 => Errors.append (drawsSlot C k).tree (drawsSlot C k).roles (drawsErrorsOf f k)
       (drawErrors C (f k))
-
-/-- An error at most each challenge's makes the challenges' errors at most theirs. -/
-theorem drawsErrors_le_of {e : ℝ≥0} {f : ℕ → ℝ≥0} : (k : ℕ) → (∀ p < k, e ≤ f p) →
-    Errors.Le (drawsSlot C k).tree (drawsSlot C k).roles (drawsErrors C e k)
-      (drawsErrorsOf C f k)
-  | 0, _ => trivial
-  | k + 1, h => Errors.Le.append (drawsSlot C k).tree (drawsSlot C k).roles
-      (drawsErrors_le_of k fun p hp ↦ h p (by omega)) ⟨h k (by omega), fun _ ↦ trivial⟩
 
 /-! ## The grand-product argument -/
 

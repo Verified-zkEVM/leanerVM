@@ -76,28 +76,7 @@ theorem cover_of_writeOnce {α : Type*} {N M : ℕ} {slot : ℕ → ℕ} {mark :
   have : f ⟨j, hj⟩ = f i := Fin.ext (by simp only [f]; rw [hjs, hi'])
   exact congrArg Fin.val (hbij.1 this)
 
-/-- The guest's marks are g-powers at distinct exponents below the order of `g`. -/
-theorem gen_pow_marks {N : ℕ} {e : ℕ → ℕ} (he : ∀ i < N, e i < 2 ^ 64 - 1)
-    (hinj : ∀ i < N, ∀ j < N, e i = e j → i = j) :
-    ∀ i < N, ∀ j < N, gen ^ e i = gen ^ e j → i = j :=
-  fun i hi j hj h ↦ hinj i hi j hj (gen_pow_inj (he i hi) (he j hj) h)
-
 /-! ## Sorted orders (`sort_order`, `col_sort_order`) -/
-
-/-- A bijection's ranks are `List.range n` up to order. -/
-theorem perm_range_of_bijective {n : ℕ} {σ : Fin n → Fin n} (h : Function.Bijective σ) :
-    (List.ofFn fun r ↦ (σ r : ℕ)).Perm (List.range n) := by
-  rw [List.perm_ext_iff_of_nodup]
-  · intro a
-    simp only [List.mem_ofFn, List.mem_range]
-    constructor
-    · rintro ⟨r, rfl⟩
-      exact (σ r).2
-    · intro ha
-      obtain ⟨r, hr⟩ := h.2 ⟨a, ha⟩
-      exact ⟨r, by rw [hr]⟩
-  · exact List.nodup_ofFn.mpr fun i j hij ↦ h.1 (Fin.ext hij)
-  · exact List.nodup_range
 
 /-- A list sorted on adjacent entries by a transitive relation is pairwise sorted. -/
 theorem pairwise_of_adjacent {α : Type*} {r : α → α → Prop}
@@ -165,19 +144,6 @@ theorem forall₂_ofFn {α β : Type*} {R : α → β → Prop} :
   | c :: cs, f, h => by
     rw [List.ofFn_succ]
     exact List.Forall₂.cons (h 0) (forall₂_ofFn cs (fun s ↦ f s.succ) fun s ↦ h s.succ)
-
-/-- **A cover holds every claim**: if every slot `s` of the claim list `cs` has a writer
-`i < N` with `slot i = s`, and each writer's holder holds the claim in its slot, then there is a
-list of holders, one a claim, `List.Forall₂`-related to the claims (as `NodeRelation`'s
-`List.Forall₂ (Held …)`, N:362-365, asks). -/
-theorem forall₂_of_cover {α β : Type*} {R : α → β → Prop} {cs : List α} {N : ℕ}
-    {slot : ℕ → ℕ} (holder : ℕ → β) (hcover : ∀ s < cs.length, ∃ i < N, slot i = s)
-    (hR : ∀ i < N, ∀ h : slot i < cs.length, R cs[slot i] (holder i)) :
-    ∃ hs : List β, List.Forall₂ R cs hs := by
-  choose w hw hws using hcover
-  refine ⟨List.ofFn fun s : Fin cs.length ↦ holder (w s s.2), forall₂_ofFn cs _ fun s ↦ ?_⟩
-  have := hR (w s s.2) (hw s s.2) (by rw [hws]; exact s.2)
-  simpa [hws] using this
 
 end
 end LeanVM.Guest.Value

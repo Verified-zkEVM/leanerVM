@@ -251,12 +251,5 @@ theorem claimSum_zero {κ : ℕ} (Φ : List E → E) (g : (Fin 0 → Bool) → (
     fun u hu ↦ absurd (funext fun i ↦ i.elim0) hu]
   simp only [bitsL_zero, List.nil_append]
 
-/-- Claims are linear in the weight. -/
-theorem claimSum_add_smul {m κ : ℕ} (Φ Ψ : List E → E) (c : E)
-    (g : (Fin m → Bool) → (Fin κ → Bool) → E) :
-    claimSum (fun r ↦ Φ r + c * Ψ r) g = claimSum Φ g + c * claimSum Ψ g := by
-  simp only [claimSum, Finset.mul_sum, ← Finset.sum_add_distrib]
-  exact Finset.sum_congr rfl fun u _ ↦ Finset.sum_congr rfl fun x _ ↦ by ring
-
 end
 end LeanVM.Protocol.Whir.Sound

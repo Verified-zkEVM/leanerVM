@@ -210,15 +210,6 @@ theorem laneCoeffs_mem_laneListAt {μ R A : ℕ} (hμ : 7 ≤ μ) (hn : μ - ini
   rw [laneListAt, List.mem_dedup, List.mem_map]
   exact ⟨cp, hcp, toNovel_of_toPoly (by omega) cp _ hcpq⟩
 
-/-- **At the deployed shapes**: lane `u` of every candidate at the Johnson threshold is in the
-lane's list. -/
-theorem laneCoeffs_mem_laneList {μ R : ℕ} (hμ : 15 ≤ μ ∧ μ ≤ 28) (hR : 1 ≤ R ∧ R ≤ 4)
-    (W : ℕ → List K) {q : Vector K (2 ^ μ)} (hq : q ∈ Candidates μ R (johnsonThreshold μ R) W)
-    {u : ℕ} (hu : u < 2 ^ initialFold) :
-    laneCoeffs q u ∈ laneListAt (μ - initialFold) R (johnsonThreshold μ R) W u := by
-  obtain ⟨hA, hcap⟩ := johnsonThreshold_bounds hμ hR
-  exact laneCoeffs_mem_laneListAt (by omega) (by simp only [initialFold]; omega) hA hcap W hq hu
-
 /-! ## The lane lists are sound (for the running time) -/
 
 /-- **The lane decoder is sound**: everything it returns has degree `< 2^κ` and agrees with lane

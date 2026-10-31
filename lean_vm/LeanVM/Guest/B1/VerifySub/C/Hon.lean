@@ -56,13 +56,6 @@ theorem vsC_param (hl : args.length = 7) {i : ℕ} (hi : i < 7) :
     vsσ rd w args (.n i) = args.getD i 0 :=
   ev_params rd w (by rw [hl]; exact vs_chk') (by rw [hl]; exact hi)
 
-theorem vsC_params (hl : args.length = 7) :
-    (List.range 7).map (fun k ↦ vsσ rd w args (.n k)) = args := by
-  apply List.ext_getElem (by simp [hl])
-  intro i h1 _
-  simp only [List.getElem_map, List.getElem_range]
-  rw [vsC_param hl (by simpa using h1), List.getD_eq_getElem _ _ (by simp at h1; omega)]
-
 /-- A statement of the body is in the list as `fixNe` reads it (no `ite` in the body). -/
 theorem vsEvL_mem {s : Stmt} (hs : s ∈ vsCPre) (hni : ∀ c z n, s ≠ .ite c z n) :
     fixNe s ∈ vsEvL :=
@@ -81,18 +74,6 @@ theorem vs_goodS (hl : args.length = 7) {s : Stmt} (hs : s ∈ vsCPre) :
     trivial
   · exact vs_good hl _ (vsEvL_mem hs fun c z n h ↦ hi ⟨c, z, n, h⟩)
 
-/-- **A block's equations**, read at position `n`. -/
-theorem vs_goodL (hl : args.length = 7) (n : ℕ) (blk : List Stmt)
-    (heq : tbStmtsEqb blk ((vsCPre.drop n).take blk.length) = true) :
-    VsGoodL rd w (vsσ rd w args) blk := by
-  have h : ∀ s ∈ blk, GoodS rd vsSL w (vsσ rd w args) (fixNe s) :=
-    fun s hs ↦ vs_goodS hl (vs_mem_slice heq hs)
-  clear heq
-  induction blk with
-  | nil => trivial
-  | cons s ss ih =>
-    exact ⟨h s List.mem_cons_self, ih fun t ht ↦ h t (List.mem_cons_of_mem _ ht)⟩
-
 /-- **A read** gives the word at its address (`0` if none). -/
 theorem vs_read (hl : args.length = 7) (n : ℕ) {d p : V} {off : ℕ}
     (heq : tbStmtsEqb [.atom (.load d p off)] ((vsCPre.drop n).take 1) = true)
@@ -101,17 +82,6 @@ theorem vs_read (hl : args.length = 7) (n : ℕ) {d p : V} {off : ℕ}
   have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (blk := [_]) heq List.mem_cons_self)
   simp only [fixNe, GoodS, Good] at h
   exact h.resolve_left hS
-
-/-- A read of a word the memory holds holds, and reads it. -/
-theorem vs_readH (hl : args.length = 7) (n : ℕ) {d p : V} {off : ℕ}
-    (heq : tbStmtsEqb [.atom (.load d p off)] ((vsCPre.drop n).take 1) = true)
-    (hS : Atom.load d p off ∉ vsSL) {v : E} (hm : LoadHolds rd (vsσ rd w args p) off v) :
-    vsσ rd w args d = v ∧ VSH (coreProgram.Rel rd) rd (vsσ rd w args) (.atom (.load d p off)) := by
-  have e : vsσ rd w args d = v := by
-    rw [vs_read hl n heq hS, rdAt, hm.2]; rfl
-  refine ⟨e, ?_⟩
-  show LoadHolds rd _ _ _
-  rw [e]; exact hm
 
 /-- An atom evaluation alone settles (a constant, a sum, a copy, a product of older values, a
 hint) holds. -/

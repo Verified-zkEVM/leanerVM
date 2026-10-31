@@ -469,11 +469,6 @@ theorem allQ_leafDigestsM (height : ℕ) {word : Word} (hw : RowsLE word) :
     AllQueriesSatisfy (leafDigestsWithHash callKeccak256 height word) Short :=
   allQ_arrayMapM _ _ fun i _ ↦ allQ_queryH₀ (row_length hw i)
 
-theorem allQ_buildTreeM (height : ℕ) {word : Word} (hw : RowsLE word) :
-    AllQueriesSatisfy (buildTreeWithHash callKeccak256 height word) Short :=
-  allQueriesSatisfy_bind (allQ_leafDigestsM height hw) fun _ ↦
-    allQueriesSatisfy_bind (allQ_levelsM _ _) fun _ ↦ allQ_pure _
-
 theorem allQ_powStepM (sp : Sponge) (n : E) : AllQueriesSatisfy (powStepM callKeccakF1600 sp n) Short :=
   allQueriesSatisfy_bind (allQ_absorb _ _ _) fun _ ↦ allQ_squeeze _
 
@@ -716,16 +711,6 @@ theorem isWeightBound_proverVerifier {X : OracleComp KeccakCalls Proof} (prog : 
   exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 32) hN
     ((allQueriesSatisfy_bind hXq fun proof ↦
       allQ_verifier prog input proof).mono fun _ h ↦ hashBlocks_le_of_short h)
-
-/-- **The honest prover and the verifier make at most `completenessPermCalls fuel` permutation
-calls.** -/
-theorem isWeightBound_honest (prog : Program) (input : PublicInput) (t : Execution prog)
-    (ρ fuel : ℕ) :
-    Common.QueryCostAtMost
-      (LeanVM.Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel >>= fun proof ↦
-        verifierWithHash callKeccak256 callKeccakF1600 prog input proof) hashBlocks (completenessPermCalls fuel) :=
-  isWeightBound_proverVerifier prog input (isTotalQueryBound_honestComp' prog input t ρ fuel)
-    (allQ_honestComp prog input t ρ fuel)
 
 /-- The specification's honest prover of any strategy makes at most
 `2 + 48017 · (2^27 + 2·fuel + 2)` queries. -/

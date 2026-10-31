@@ -178,15 +178,6 @@ theorem checkTrace_iff (input : PublicInput) (t : Execution prog) :
     simp only [Bool.false_eq_true, false_iff, not_and]
     exact fun hv ↦ absurd ((boundaryOK_iff input t).mpr hv.1) (by rw [hb]; simp)
 
-/-- **The counts, computed**: on a valid execution the run's step counts are `Execution.count`. -/
-theorem opCount_runSteps {input : PublicInput} {t : Execution prog}
-    (hv : ValidExecution prog input t) :
-    ∃ steps, runSteps (powIndex t.logMemorySize) (powIndex prog.logSize) prog t = some steps ∧
-      ∀ op, opCount steps op = t.count op := by
-  have hκ : t.logMemorySize < 64 := by have := hv.1.2.1; unfold maxLogMem at this; omega
-  rw [runSteps_eq t hκ, ite_eq_left hv.2]
-  exact ⟨_, rfl, opCount_traceSteps hv.2⟩
-
 end
 
 end LeanVM.Prover

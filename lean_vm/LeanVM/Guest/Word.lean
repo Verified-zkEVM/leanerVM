@@ -92,9 +92,6 @@ def gpowE (e : Nat) : E := ofK (gpowK e)
 /-- `b^k` for `k < 2^32` (`field_pow`). -/
 def fieldPow (b : E) (k : Nat) : E := powBin 32 b 1 k
 
-theorem fieldPow_eq {b : E} {k : Nat} (h : k < u32Bound) : fieldPow b k = b ^ k := by
-  rw [fieldPow, powBin_eq 32 b 1 k h, one_mul]
-
 /-- `g⁻¹`, as `g^(2^64 - 2)` (`G.inv()`): the range check's runtime bound multiplies by it. -/
 def gInv : K := gpowK (2 ^ 64 - 2)
 

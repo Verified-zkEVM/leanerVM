@@ -211,37 +211,6 @@ theorem eqtreeS_mono (b : ℕ) {t u : ℕ} (ht : 1 ≤ t) (h : t ≤ u) : eqtree
     · rw [eqtreeS_succ b u (by omega)]; have := ih (by omega); omega
     · rw [show t = u + 1 by omega]
 
-/-- Below `b` the valuation is `σ`'s. -/
-theorem eqtreeSig_lt (σ : Val) (rs : List E) (b : ℕ) : ∀ m k, k < b →
-    eqtreeSig σ rs b m (.n k) = σ (.n k)
-  | 0, k, hk => set_n_lt hk
-  | m + 1, k, hk => by
-    have h1 := eqtreeS_mono b (le_refl 1) (show 1 ≤ m + 1 by omega)
-    rw [eqtreeS_one] at h1
-    rw [eqtreeSig, set_n_lt (by omega), eqtreeSig_lt σ rs b m k hk]
-
-/-- The head's values. -/
-theorem eqtreeSig_head (σ : Val) (rs : List E) (b : ℕ) : ∀ m o, o < 3 →
-    eqtreeSig σ rs b m (.n (b + o)) = [rs.getD 0 0, 1, 1 + rs.getD 0 0].getD o 0
-  | 0, o, ho => by rw [eqtreeSig, set_n_in (by omega) (by omega), Nat.add_sub_cancel_left]
-  | m + 1, o, ho => by
-    have h1 := eqtreeS_mono b (le_refl 1) (show 1 ≤ m + 1 by omega)
-    rw [eqtreeS_one] at h1
-    rw [eqtreeSig, set_n_lt (by omega), eqtreeSig_head σ rs b m o ho]
-
-/-- Level `t`'s values, through any later level. -/
-theorem eqtreeSig_lvl (σ : Val) (rs : List E) (b : ℕ) : ∀ m t o, 1 ≤ t → t ≤ m →
-    o < 3 + 3 * 2 ^ t → eqtreeSig σ rs b m (.n (eqtreeS b t + o)) = eqtreeLvlVal rs t o
-  | 0, t, o, h1, h2, _ => absurd h2 (by omega)
-  | m + 1, t, o, h1, h2, ho => by
-    rw [eqtreeSig]
-    rcases Nat.lt_or_ge t (m + 1) with h | h
-    · have h3 := eqtreeS_mono b (show 1 ≤ t + 1 by omega) (show t + 1 ≤ m + 1 by omega)
-      rw [eqtreeS_succ b t h1] at h3
-      rw [set_n_lt (by omega), eqtreeSig_lvl σ rs b m t o h1 (by omega) ho]
-    · obtain rfl : t = m + 1 := by omega
-      rw [set_n_in (by omega) (by omega), Nat.add_sub_cancel_left]
-
 /-- **The honest values satisfy `eqtree`**: with the point's words at `p`, the run `o` holding
 every level's `eqKernel` entries, and the template's values those of `eqtreeSig`. -/
 theorem eqtreeT_complete {p o : V} {po b n : ℕ} (hn : 1 ≤ n) {rs : List E} (hrs : rs.length = n)

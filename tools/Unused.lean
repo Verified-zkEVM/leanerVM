@@ -20,6 +20,7 @@ open Lean
 def main (args : List String) : IO UInt32 := do
   let rec split : List String → List String × List String
     | "--prefix" :: p :: rest => let (r, ps) := split rest; (r, p :: ps)
+    | "--spans" :: rest => split rest
     | a :: rest => let (r, ps) := split rest; (a :: r, ps)
     | [] => ([], [])
   let (roots, prefixes) := split args
@@ -59,11 +60,12 @@ def main (args : List String) : IO UInt32 := do
     if last.startsWith "eq_" || last == "eq_def" || last.startsWith "match_" ||
         last.startsWith "proof_" then continue
     let acts := (Meta.isInstanceCore env c) || (Meta.simpExtension.getState env).lemmaNames.contains (.decl c)
-    let lines := match declRangeExt.find? env c with
-      | some r => r.range.endPos.line - r.range.pos.line + 1
-      | none => 0
+    let (lines, span) := match declRangeExt.find? env c with
+      | some r => (r.range.endPos.line - r.range.pos.line + 1,
+          s!" {r.range.pos.line}-{r.range.endPos.line}")
+      | none => (0, "")
     unused := unused.push ((modOf c).getD .anonymous, c,
-      s!"{kind}{if acts then " (acts unnamed)" else ""} {lines} lines")
+      s!"{kind}{if acts then " (acts unnamed)" else ""} {lines} lines{if args.contains "--spans" then span else ""}")
   let sorted := unused.qsort fun a b ↦ a.1.toString < b.1.toString ||
     (a.1 == b.1 && a.2.1.toString < b.2.1.toString)
   for (m, c, k) in sorted do

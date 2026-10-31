@@ -43,8 +43,6 @@ theorem inStateOf_eq {P : ℕ} {col' col : ℕ → K} (hcol : ColAgree P col' co
   funext l
   rw [hcol _ (slot_lt hx (by omega))]
 
-theorem linearOf_eq (a : KeccakState) : linearOf a = Stage.rhoPi (Stage.theta a) := rfl
-
 theorem bitOf_linearOf (a : KeccakState) {j : ℕ} (hj : j < 1600) :
     bitOf (linearOf a) j = Lb (sbit a) j := by
   show sbit (Stage.rhoPi (Stage.theta a)) j = _

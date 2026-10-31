@@ -169,19 +169,6 @@ theorem mkRows_sk {κ : ℕ} (img : MemoryImage κ) (sm sb : K → ℕ) (S : Lis
   | nil => rfl
   | cons sk S ih => simp [mkRows, ih]
 
-/-- A row has a number for each memory read. -/
-theorem mkRows_exps_length {κ : ℕ} (img : MemoryImage κ) (sm sb : K → ℕ) (S : List Skel) :
-    ∀ r ∈ mkRows img sm sb S,
-      r.exps.length = (readAddrs img r.sk.fp r.sk.ins).length := by
-  induction S generalizing sm sb with
-  | nil => simp [mkRows]
-  | cons sk S ih =>
-    intro r hr
-    simp only [mkRows, List.mem_cons] at hr
-    rcases hr with rfl | hr
-    · exact readExps_length _ _
-    · exact ih _ _ r hr
-
 /-! ## The messages of the memory and bytecode pairs -/
 
 /-- The message of the memory cell `a` with the number `e`: `(a, g^e, v)` for the word the image

@@ -36,8 +36,6 @@ def headVals (c : OsCfg) (target : E) (P : OsPtrs) (c0 c2 : E) : List E :=
 def headF (c : OsCfg) (σ : Val) (P : OsPtrs) (c0 c2 : E) : ℕ → E :=
   fun i ↦ (headVals c (σ (.n 5)) P c0 c2).getD (i - 9) 0
 
-theorem osHead_k (c : OsCfg) : (osHead c).2.k = 34 := rfl
-
 /-- **The head, honestly.** -/
 theorem osHead_complete {c : OsCfg} (σ : Val) (P : OsPtrs) {c0 c2 : E}
     (h0 : LoadHolds rd (σ (.n 8)) 0 c0) (h2 : LoadHolds rd (σ (.n 8)) 1 c2)

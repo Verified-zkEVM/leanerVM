@@ -76,20 +76,6 @@ def Ly7Mem (rd : Reader) (dsh gmu layers : E) (sh M : ℕ) : Prop :=
     ∀ j < M, LoadHolds rd layers (17 * (2 * j + sh) + 11) (gen ^ (j / 2)) ∧
       LoadHolds rd layers (17 * (2 * j + sh) + 12) (bitE (j % 2 = 1))
 
-theorem tb_list_append_single_split {α β : Type} {r : α → β → Prop} :
-    ∀ {cs : List α} {c : α} {ks : List β}, List.Forall₂ r (cs ++ [c]) ks →
-      ∃ ks' k, ks = ks' ++ [k] ∧ List.Forall₂ r cs ks' ∧ r c k
-  | [], c, ks, h => by
-    obtain ⟨k, rfl, hk, -⟩ : ∃ k, ks = [k] ∧ r c k ∧ True := by
-      cases h with
-      | cons hr ht => cases ht; exact ⟨_, rfl, hr, trivial⟩
-    exact ⟨[], k, rfl, List.Forall₂.nil, hk⟩
-  | a :: cs, c, ks, h => by
-    cases h with
-    | cons hr ht =>
-      obtain ⟨ks', k, rfl, h1, h2⟩ := tb_list_append_single_split ht
-      exact ⟨_ :: ks', k, rfl, List.Forall₂.cons hr h1, h2⟩
-
 theorem kidsValid_split {P : Core.Program} {rd : Reader} {σ : Val} :
     ∀ {cs : List Call} {c : Call} {ks : List Tree}, Tree.KidsValid P rd σ (cs ++ [c]) ks →
       ∃ ks' k, ks = ks' ++ [k] ∧ ks'.length = cs.length ∧

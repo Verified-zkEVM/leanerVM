@@ -136,22 +136,6 @@ def tableOf {n : ℕ} (G : (Fin n → Bool) → E) : CMlPolynomialEval E n :=
 /-- A point as a vector. -/
 def vecOf (z : List E) : Vector E z.length := ⟨z.toArray, by simp⟩
 
-/-- **The out-of-domain claim reads the extension.** The inner product of `eq_eval(z, ·)` with a
-message is the message's multilinear extension at `z`. -/
-theorem sum_eqEval_mul_eq_evalMle (z : List E) (G : (Fin z.length → Bool) → E) :
-    ∑ p, eqEval z (bitsL p) * G p = evalMle (tableOf G) (vecOf z) := by
-  rw [evalMle_eq_sum, ← Equiv.sum_comp (bitsEquiv z.length)]
-  refine Finset.sum_congr rfl fun p _ ↦ ?_
-  have ht : (tableOf G)[bitsEquiv z.length p] = G p := by
-    simp [tableOf, Fin.getElem_fin, Vector.getElem_ofFn, Fin.eta, Equiv.symm_apply_apply]
-  have hl : (lagrangeBasis (vecOf z))[bitsEquiv z.length p] = eqEval z (bitsL p) := by
-    rw [Fin.getElem_fin, lagrangeBasis_getElem_nat _ (bitsEquiv z.length p).isLt,
-      eqEval_bitsL z rfl]
-    refine Finset.prod_congr rfl fun b _ ↦ ?_
-    rw [bitsEquiv_val, testBit_bitsToNat]
-    simp [vecOf, List.getD_eq_getElem?_getD]
-  rw [ht, hl, mul_comm]
-
 /-! ## The rotated opening weight -/
 
 /-- `p[j:] ++ p[:j]`, the verifier's rotation of the terminal point. -/

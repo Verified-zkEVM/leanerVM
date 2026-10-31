@@ -79,18 +79,6 @@ theorem eq_eOfNat_of_limbs {x : E} (h1 : x.limb 1 = 0) (h2 : x.limb 2 = 0) :
 /-- The eight scalars that announce the sizes `s` and the rate `ρ`, as the Python reads them. -/
 def announce (s : Sizes) (ρ : ℕ) : List E := (s.logMem :: List.ofFn s.rows ++ [ρ]).map eOfNat
 
-/-- A program with no event returns only at the empty history. -/
-theorem pure_after_ret {α : Type} {p : Prog α} {l : List Ev} {a : α}
-    (hp : ∀ b, p ≠ .ret b → p = .fail) (h : p.after l = some (.ret a)) : l = [] ∧ p = .ret a := by
-  cases l with
-  | nil => simp [Prog.after] at h; exact ⟨rfl, h⟩
-  | cons e l =>
-    by_cases hr : ∃ b, p = .ret b
-    · obtain ⟨b, rfl⟩ := hr; cases e <;> simp [Prog.after] at h
-    · simp only [not_exists] at hr
-      rw [hp _ (hr a)] at h
-      cases e <;> simp [Prog.after] at h
-
 /-- A program with no event: a return or a rejection. -/
 def IsPure {α : Type} (p : Prog α) : Prop := (∃ a, p = .ret a) ∨ p = .fail
 

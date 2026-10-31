@@ -674,22 +674,5 @@ theorem main_relAtInW (fs : String → ℕ) (cert : String → V → ℕ) (fp : 
     let ⟨t, ht, σ, bufs, ks, he, hv, _⟩ := h4 rd hl hm h0 h1
     ⟨t, ht, σ, bufs, ks, he, hv⟩⟩
 
-/-- **`main` at `fp`** (`main_relAtInW` without the valuation). -/
-theorem main_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
-    (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
-    (hb : MainBounds (d.toIn fs fp))
-    (hok : ∀ k ∈ mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp),
-      k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out)
-    (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
-      LoadHolds rd 1 0 (digestScalars d.sdg).1 → LoadHolds rd gen 0 (digestScalars d.sdg).2 →
-        MainMem rd (d.toIn fs fp)) :
-    ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ DisjL L ∧
-      (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
-      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestScalars d.sdg).1 →
-        LoadHolds rd gen 0 (digestScalars d.sdg).2 →
-        RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] [] :=
-  let ⟨n, L, h1, _, h2, h3, h4⟩ := main_relAtInW fs cert fp d own hfit hb hok hmm
-  ⟨n, L, h1, h2, h3, fun rd hl hm h0 h1 => (h4 rd hl hm h0 h1).relAtIn⟩
-
 end
 end LeanVM.Guest.B1.Main

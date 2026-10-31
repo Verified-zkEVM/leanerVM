@@ -31,10 +31,6 @@ noncomputable def overE (c : ℕ) : ℝ≥0 := (c : ℝ≥0) / (Fintype.card E :
 theorem overE_add (a b : ℕ) : overE (a + b) = overE a + overE b := by
   simp only [overE, Nat.cast_add, add_div]
 
-theorem overE_mono {a b : ℕ} (h : a ≤ b) : overE a ≤ overE b := by
-  unfold overE
-  exact div_le_div_of_nonneg_right (Nat.cast_le.mpr h) (by positivity)
-
 theorem nat_mul_overE (n c : ℕ) : (n : ℝ≥0) * overE c = overE (n * c) := by
   simp only [overE, Nat.cast_mul]
   ring

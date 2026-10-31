@@ -144,18 +144,6 @@ theorem holds_match_iff (x : V) (arms : List (List Stmt)) (next : Prop) (kret : 
         Stmt.HoldsList C rd σ arms[j] next kret := by
   simp only [Stmt.Holds, holdsArms_iff, Nat.zero_add]
 
-/-- A fused `match` of calls holds of one callee `j < fs.length`, at `x = g^j`. -/
-theorem holds_dispatch_iff (x : V) (fs : List String) (args rets : List V) (next : Prop)
-    (kret : List E → Prop) :
-    Stmt.Holds C rd σ (.dispatch x fs args rets) next kret ↔
-      (∃ (j : Nat) (h : j < fs.length), σ x = ofK (gpow j) ∧
-        C fs[j] (args.map σ) (rets.map σ)) ∧ next := Iff.rfl
-
-/-- A call holds exactly when the call relation relates its argument and return words. -/
-theorem holds_call_iff (f : String) (args rets : List V) (next : Prop) (kret : List E → Prop) :
-    Stmt.Holds C rd σ (.call f args rets) next kret ↔ C f (args.map σ) (rets.map σ) ∧ next :=
-  Iff.rfl
-
 /-! ## Calls -/
 
 /-- One call relation below another. -/
@@ -333,11 +321,6 @@ theorem rangeCheck_iff {κ : Nat} (hκ : κ ≤ 32) (L : MemoryImage κ) (x : E)
     · rw [limb_ofK]
       simp only [gpow, pow_zero, mul_one]
       exact (read_some_iff hκ64 L _ _).mpr ⟨⟨K - 1 - e, hc⟩, rfl, rfl⟩
-
-/-- The range-check atom, its auxiliary values chosen freely, is `rangeCheck_iff`'s relation. -/
-theorem holds_rangeCheck (x y t1 t2 k : V) :
-    (Atom.rangeCheck x y t1 t2 k).Holds rd σ ↔
-      LoadHolds rd (σ x) 0 (σ t1) ∧ σ k = σ x * σ y ∧ LoadHolds rd (σ y) 0 (σ t2) := Iff.rfl
 
 end
 end LeanVM.Guest.Core

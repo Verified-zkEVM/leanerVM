@@ -83,23 +83,5 @@ theorem log2_L15_completeAt (κ : ℕ) (hκ6 : 6 ≤ κ) : ∀ (N lpE sqE : ℕ)
       (Returns [gen ^ max 15 (log2Ceil N)]) :=
   fun N lpE sqE hN hL => (log2_L15_completeAtB κ hκ6 N lpE sqE hN hL).toCompleteAtD
 
-/-- `log2_ceil_in_the_exponent__L0_L34`, placed, bounded, any tree. -/
-theorem log2_L0_completeAtDTB (κ : ℕ) (hκ6 : 6 ≤ κ) (N lpE sqE : ℕ) (hN : N < 2 ^ 34)
-    (hL : max 0 (log2Ceil N) < 34) :
-    CompleteAtDTB fs cert κ "log2_ceil_in_the_exponent__L0_L34" (log2Lin lpE sqE)
-      [gen ^ N, ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)]
-      (Returns [gen ^ max 0 (log2Ceil N)]) (fun _ => True)
-      (fs "log2_ceil_in_the_exponent__L0_L34" + 34 + (fs "verify_log2_ceil__L0_L34" + 35)) :=
-  (log2_L0_completeAtB κ hκ6 N lpE sqE hN hL).toDTB
-
-/-- `log2_ceil_in_the_exponent__L15_L34`, placed, bounded, any tree. -/
-theorem log2_L15_completeAtDTB (κ : ℕ) (hκ6 : 6 ≤ κ) (N lpE sqE : ℕ) (hN : N < 2 ^ 34)
-    (hL : max 15 (log2Ceil N) < 34) :
-    CompleteAtDTB fs cert κ "log2_ceil_in_the_exponent__L15_L34" (log2Lin lpE sqE)
-      [gen ^ N, ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)]
-      (Returns [gen ^ max 15 (log2Ceil N)]) (fun _ => True)
-      (fs "log2_ceil_in_the_exponent__L15_L34" + 34 + (fs "verify_log2_ceil__L15_L34" + 35)) :=
-  (log2_L15_completeAtB κ hκ6 N lpE sqE hN hL).toDTB
-
 end
 end LeanVM.Guest.B1

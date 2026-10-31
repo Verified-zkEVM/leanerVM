@@ -87,8 +87,6 @@ noncomputable def args : List E :=
     H.beta, ofK (gpow B.pool), ofK (gpow B.cplen), ofK (gpow B.chi), H.values.getD 0 0,
     H.values.getD 1 0, H.values.getD 2 0]
 
-theorem args_length : (H.args B).length = 22 := rfl
-
 /-- `dims_g`'s words. -/
 noncomputable def dimsW : List E := gen ^ H.lm :: (vtTauList H.τ).map (gen ^ ·)
 

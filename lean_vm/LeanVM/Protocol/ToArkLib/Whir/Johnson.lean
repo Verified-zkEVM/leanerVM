@@ -272,28 +272,6 @@ theorem card_iList_rs_le_johnson (domain : ι ↪ F) {D A : ℕ} {η : ℝ} (hD 
   · intro U V hU hV hne
     exact Nat.lt_succ_iff.mp (card_agreeSet_lt domain hU hV hne)
 
-/-- **Johnson bound for interleaved Reed-Solomon codes, sharp real form.** With `D ≤ n`, the list
-at threshold `A ≥ (√ρ₋ + η) n` satisfies `|Λ| (2 η √ρ₋ + η²) ≤ 1 - ρ₋`, also at `D = 0`. -/
-theorem card_iList_rs_mul_le_johnson (domain : ι ↪ F) {D A : ℕ} {η : ℝ}
-    (hDn : D ≤ Fintype.card ι) (hn : 0 < Fintype.card ι) (hη : 0 ≤ η)
-    (hA : (√((D : ℝ) / Fintype.card ι) + η) * Fintype.card ι ≤ A) (O : ρ → ι → F) :
-    ((iList (ReedSolomon.code domain (D + 1)) A O).card : ℝ) *
-        (2 * η * √((D : ℝ) / Fintype.card ι) + η ^ 2) ≤ 1 - (D : ℝ) / Fintype.card ι := by
-  have hnR : (0 : ℝ) < Fintype.card ι := by exact_mod_cast hn
-  refine card_iList_mul_le_johnson _ D A hn (by positivity) ?_ hη ?_ ?_ hA O
-  · rw [div_le_one hnR]; exact_mod_cast hDn
-  · rw [div_mul_cancel₀ _ hnR.ne']
-  · intro U V hU hV hne
-    exact Nat.lt_succ_iff.mp (card_agreeSet_lt domain hU hV hne)
-
-omit [DecidableEq F] in
-/-- At ArkLib's Johnson radius `1 - johnsonAgreement n D η`, the list of relative radius is the
-list at the threshold `⌈johnsonAgreement n D η * n⌉₊`. -/
-theorem iListRad_one_sub_johnsonAgreement {n : ℕ} (C : Submodule F (Fin n → F)) (D : ℕ)
-    (η : ℝ) (O : ρ → Fin n → F) :
-    iListRad C (1 - johnsonAgreement n D η) O = iList C ⌈johnsonAgreement n D η * n⌉₊ O := by
-  simp only [iListRad, radiusThreshold, sub_sub_cancel, Fintype.card_fin]
-
 /-- **Johnson bound at ArkLib's Johnson threshold.** The list of an interleaved word of the
 Reed-Solomon code of dimension `D + 1` on `n` points, at the threshold
 `⌈johnsonAgreement n D η * n⌉₊` of `ReedSolomon.mcaError_affineLine_johnson_le` (radius

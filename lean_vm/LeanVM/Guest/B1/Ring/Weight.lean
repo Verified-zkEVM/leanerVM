@@ -171,8 +171,6 @@ theorem rsw_acc (hm : ∀ k < 64, (k ≠ 0 → σ (.n (4 * k + 80)) = σ (.n (4 
   | k + 1, hk => by
     rw [hm (k + 1) hk (by omega), Nat.add_sub_cancel, rsw_acc hm k (by omega), gsum_succ (n := k + 1)]
 
-theorem two_mul_half_ge (n : ℕ) : n ≤ 2 * ((n + 1) / 2) := by omega
-
 /-- **`ring_switch_weight` computes `ringWeight`**, given `rs_eq_run`'s meaning. -/
 theorem ring_switch_weight_holds (hrs : rs_eq_run_Spec) : ring_switch_weight_Spec := by
   intro rd args rets h

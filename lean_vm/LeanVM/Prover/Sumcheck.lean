@@ -84,33 +84,5 @@ theorem wire_eq (mode : Option E) (c : List E) :
     wire mode c = LeanVM.Protocol.EndToEnd.Complete.wire mode c := by
   cases mode <;> rfl
 
-/-- **The stateful sumcheck makes the specification's moves**: given an invariant along the
-rounds under which the state's `count` coefficients evaluate as the round's claim, and which
-each fold keeps, the two send the same messages, and end with the same challenges, the state
-satisfying the invariant and the specification's claim the claim at the challenges. -/
-theorem corr_sumcheckBy {σ : Type} (count : ℕ) (hc : 1 ≤ count) (hc' : count ≤ 2 ^ 192)
-    (claimOf : List E → E) (round : σ → List E) (fold : σ → E → σ) (Inv : List E → σ → Prop)
-    (hround : ∀ pre st, Inv pre st →
-      (round st).length = count ∧ ∀ x, polyEval (round st) x = claimOf (pre ++ [x]))
-    (hfold : ∀ pre st c, Inv pre st → Inv (pre ++ [c]) (fold st c)) :
-    ∀ (modes : List (Option E)) (pre : List E) (st : σ), Inv pre st →
-      Corr (fun a b ↦ a.1 = b.1 ∧ Inv (pre ++ a.1) a.2 ∧ b.2 = claimOf (pre ++ b.1))
-        (sumcheckBy round fold modes st) (hSumcheck count claimOf modes pre)
-  | [], pre, st, h => by
-    simp only [sumcheckBy, hSumcheck, Corr, List.append_nil]
-    exact ⟨trivial, h, trivial⟩
-  | mode :: modes, pre, st, h => by
-    obtain ⟨hlen, hev⟩ := hround pre st h
-    have hco : coeffsOf (count - 1) (fun x ↦ claimOf (pre ++ [x])) = round st :=
-      coeffsOf_eq (by omega) (by omega) hev
-    simp only [sumcheckBy, hSumcheck, hco, ← wire_eq]
-    refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun c ↦ ?_
-    refine Corr.bind (fun a b hab ↦ ?_) _ _
-      (corr_sumcheckBy count hc hc' claimOf round fold Inv hround hfold modes (pre ++ [c])
-        (fold st c) (hfold pre st c h))
-    obtain ⟨h1, h2, h3⟩ := hab
-    simp only [Corr, List.append_assoc, List.singleton_append] at h2 h3 ⊢
-    exact ⟨by rw [h1], h2, h3⟩
-
 end
 end LeanVM.Prover

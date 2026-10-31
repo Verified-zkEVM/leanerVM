@@ -57,10 +57,6 @@ open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.
 
 /-! ## The encoder at a position -/
 
-/-- `enc` at a domain point is `encAt` at its index. -/
-theorem enc_eq_encAt (κ R : ℕ) (g : (Fin κ → Bool) → E) (v : Fin (2 ^ (κ + R))) :
-    enc κ R g v = encAt κ g v := rfl
-
 /-- The `K`-valued encoder lifted to `E` is the encoder of the lifted message. -/
 theorem ofK_encKAt (κ : ℕ) (g : (Fin κ → Bool) → K) (p : ℕ) :
     ofK (encKAt κ g p) = encAt κ (fun u ↦ ofK (g u)) p := by

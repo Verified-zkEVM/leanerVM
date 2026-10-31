@@ -98,15 +98,6 @@ def bFold : Nat → List Nat → Nat
   | N, [] => N
   | N, v :: vs => bFold (256 * N + v) vs
 
-theorem bFold_lt : ∀ (vs : List Nat) (N M : Nat), N < M → (∀ v ∈ vs, v < 256) →
-    bFold N vs < M * 256 ^ vs.length
-  | [], N, M, h, _ => by simpa [bFold] using h
-  | v :: vs, N, M, h, hv => by
-      have h1 := hv v (by simp)
-      have := bFold_lt vs (256 * N + v) (M * 256) (by omega) (fun w hw => hv w (by simp [hw]))
-      simp only [bFold, List.length_cons, pow_succ] at this ⊢
-      linarith
-
 theorem sFromBytesRest_shape : ∀ (ms : List V) (b : Nat) (val : V), (∀ m ∈ ms, NBv b m) → NBv b val →
     (sFromBytesRest ms b val).2.1 = b + 9 * ms.length ∧
       NBv (b + 9 * ms.length) (sFromBytesRest ms b val).2.2 ∧

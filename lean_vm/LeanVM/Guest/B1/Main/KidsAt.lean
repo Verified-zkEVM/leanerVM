@@ -100,14 +100,6 @@ def l5Kind : Stmt → Bool
 set_option maxRecDepth 100000 in
 theorem l5_kinds : l5Pre.all l5Kind = true := by decide +kernel
 
-theorem regionL_append_left {L L' : Layout} {i : ℕ} (h : RegionL L i) : RegionL (L ++ L') i :=
-  let ⟨q, hq, h1, h2⟩ := h
-  ⟨q, List.mem_append_left _ hq, h1, h2⟩
-
-theorem regionL_append_right {L L' : Layout} {i : ℕ} (h : RegionL L' i) : RegionL (L ++ L') i :=
-  let ⟨q, hq, h1, h2⟩ := h
-  ⟨q, List.mem_append_right _ hq, h1, h2⟩
-
 theorem l5Pre_straight : (l5Pre ++ [l5Tail]).all Main.Stmt.straight = true := by decide
 
 theorem l5Body_split : l5Body = (l5Pre ++ [l5Tail]) ++ [.ret []] := by

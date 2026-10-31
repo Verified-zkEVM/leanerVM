@@ -263,12 +263,6 @@ theorem honest_kidFps {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) :
     I.kidFps = kidPos fs P.loop I.fp I.t.name I.t.bufs (I.t.kids.map (Tree.total fs)) :=
   (insts_placed T 0 hdr I hI).1
 
-/-- An instance's `HeapBuf`s: the `j`-th of `bufs[j]` words from `bufBases[j]`, in the
-allocation, apart from every frame (`frameWrites_not_buf`). -/
-theorem honest_bufBases {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) :
-    I.bufBases = bases (bufBase fs P.loop I.fp I.t.name (I.t.kids.map (Tree.total fs))) I.t.bufs :=
-  (insts_placed T 0 hdr I hI).2
-
 /-! ## Discharging the hypotheses -/
 
 /-- A frame write is at a word of an instance's frame. -/
@@ -313,41 +307,6 @@ theorem HonestAt.nodeAt {cert : String → V → ℕ} (h : HonestAt P fs H C hdr
       ∀ q ∈ addrs (I.t.events P), σ q.1 = ofK (gpow (I.fp + cert f q.2)) :=
   Inst.nodeAt (insts_placedAt T 0 hdr h.placed I hI) (insts_placed T 0 hdr I hI) ht
 
-/-- **Every equation is an instance's**: an atom's on the path of a node instance. -/
-theorem honest_eqns {q : Write} (hq : q ∈ T.eqns P) :
-    ∃ I ∈ honestInsts P fs H hdr T, (∃ f σ bufs kids, I.t = .node f σ bufs kids) ∧
-      ∃ a, Ev.atom a ∈ I.t.events P ∧ q ∈ atomEqns I.t.val a :=
-  eqns_insts T 0 hdr q hq
-
-/-- **A memory holding the frames**: a placed tree valid on a memory holding every frame write
-is `HonestAt`, its equations consistent and agreeing with the frames. -/
-theorem honestAt_of_read {cert : String → V → ℕ} {M : MemoryImage (logMem (T.total fs))}
-    (hv : T.Valid P M.read args rets) (hb : T.BufsOk P) (hp : T.Placed P fs cert 0)
-    (hsize : T.total fs ≤ 2 ^ 32) (hcells : CellsOk fs C (honestInsts P fs H hdr T))
-    (haddr : ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ logMem (T.total fs)), q.1 = gpow i)
-    (hf : ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), M.read a.1 = some a.2) :
-    HonestAt P fs H C hdr T cert M.read args rets := by
-  have hκ : logMem (T.total fs) < 64 := by
-    have := logMem_le_maxLogMem hsize; unfold maxLogMem at this; omega
-  exact ⟨⟨hv, hsize, hcells, haddr, hv.eqns_consistent hκ haddr,
-    cross_of_read hf fun b hb => hv.eqns_read hκ T b hb (haddr b hb)⟩, hb, hp⟩
-
-/-- **The equations agree with the frames** when each lies in a `HeapBuf`, is itself a frame
-write, or agrees with the frames. -/
-theorem cross_of_cases (hcells : CellsOk fs C (honestInsts P fs H hdr T))
-    (hsize : T.total fs ≤ 2 ^ 32)
-    (h : ∀ b ∈ T.eqns P, (∃ I ∈ honestInsts P fs H hdr T, ∃ i, I.Buf i ∧ b.1 = gpow i) ∨
-      b ∈ frameWrites C (honestInsts P fs H hdr T) ∨
-      ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), a.1 = b.1 → a.2 = b.2) :
-    ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), ∀ b ∈ T.eqns P, a.1 = b.1 → a.2 = b.2 := by
-  intro a ha b hb hab
-  rcases h b hb with ⟨I, hI, i, hi, he⟩ | hb' | hb'
-  · exact absurd (hab.trans he) (frameWrites_not_buf hcells hsize hI hi a ha)
-  · exact frameWrites_consistent (insts_pairwise T 0 hdr) hcells (fun I hI => by
-      have := honest_within hI (by have := hcells.two_le I hI; omega)
-      omega) a ha b hb' hab
-  · exact hb' a ha hab
-
 /-- **A `frameAddr`'s equations are frame writes** of a placed instance whose cells hold its run
 at the certificate's offsets. -/
 theorem HonestAt.frameAddr_eqns {cert : String → V → ℕ}
@@ -376,24 +335,6 @@ def valueCells (cert : String → V → ℕ) (dom : Inst → List V) (I : Inst) 
 theorem mem_valueCells {cert : String → V → ℕ} {dom : Inst → List V} {I : Inst} {v : V}
     (hv : v ∈ dom I) : (cert I.t.name v, I.t.val v) ∈ valueCells cert dom I :=
   List.mem_map.mpr ⟨v, hv, rfl⟩
-
-/-- A certificate's cells are `CellsOk` when its offsets are past the header and in the frame,
-and values sharing a cell hold one word: injectivity on the frame's values, or the compiler's
-sharing of equal values. -/
-theorem cellsOk_valueCells {Is : List Inst} {cert : String → V → ℕ} {dom : Inst → List V}
-    (h2 : ∀ I ∈ Is, 2 ≤ fs I.t.name)
-    (hoff : ∀ I ∈ Is, ∀ v ∈ dom I, 2 ≤ cert I.t.name v ∧ cert I.t.name v < fs I.t.name)
-    (hshare : ∀ I ∈ Is, ∀ v ∈ dom I, ∀ w ∈ dom I, cert I.t.name v = cert I.t.name w →
-      I.t.val v = I.t.val w) :
-    CellsOk fs (valueCells cert dom) Is where
-  two_le := h2
-  off I hI q hq := by
-    obtain ⟨v, hv, rfl⟩ := List.mem_map.mp hq
-    exact hoff I hI v hv
-  agree I hI q hq q' hq' he := by
-    obtain ⟨v, hv, rfl⟩ := List.mem_map.mp hq
-    obtain ⟨w, hw, rfl⟩ := List.mem_map.mp hq'
-    exact hshare I hI v hv w hw he
 
 /-- Cells from two sources, agreeing where they meet. -/
 theorem CellsOk.append {Is : List Inst} {C₁ C₂ : Inst → List (ℕ × E)} (h₁ : CellsOk fs C₁ Is)

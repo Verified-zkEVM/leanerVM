@@ -45,16 +45,6 @@ variable {X : Type} {σ : Seeds X} {P : Prog Bool}
 
 /-! ## Recording decodings -/
 
-theorem setInfo_eq_some {f : (Fin 9 → UInt64) → Option Info} {c c' : Fin 9 → UInt64}
-    {o : Option Info} {i : Info} (h : setInfo f c o c' = some i) :
-    (c' = c ∧ o = some i) ∨ f c' = some i := by
-  rcases o with _ | j
-  · exact Or.inr h
-  · simp only [setInfo, Function.update_apply] at h
-    split at h
-    · exact Or.inl ⟨by assumption, h⟩
-    · exact Or.inr h
-
 theorem setInfo_of_ne {f : (Fin 9 → UInt64) → Option Info} {c c' : Fin 9 → UInt64}
     (o : Option Info) (h : c' ≠ c) : setInfo f c o c' = f c' := by
   rcases o with _ | j

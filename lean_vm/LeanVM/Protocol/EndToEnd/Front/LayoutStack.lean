@@ -216,24 +216,6 @@ theorem stackPoint_aligned (v off μ : ℕ) (z : List E) :
       z ++ boolPoint (μ - v) (off / 2 ^ v) := by
   simp [Placement.stackPoint, selectorPoint_eq_boolPoint, drop_boolPoint]
 
-/-- **A strided placement** at slot `slot` of an aligned region of `2 ^ (k + v)` cells at `off`:
-the slot's bits, the point, then the region's bits above it. -/
-theorem stackPoint_strided (v k off slot μ : ℕ) (hk : k + v ≤ μ) (hoff : 2 ^ (k + v) ∣ off)
-    (hslot : slot < 2 ^ k) (z : List E) :
-    ({ vars := v, index := off + slot, low := k } : Placement).stackPoint z μ =
-      boolPoint k slot ++ z ++ boolPoint (μ - (k + v)) (off / 2 ^ (k + v)) := by
-  simp only [Placement.stackPoint, selectorPoint_eq_boolPoint, drop_boolPoint,
-    take_boolPoint μ k _ (by omega)]
-  obtain ⟨m, rfl⟩ := hoff
-  have hk' : 2 ^ k ∣ 2 ^ (k + v) * m := Dvd.dvd.mul_right (pow_dvd_pow 2 (by omega)) m
-  congr 2
-  · rw [← boolPoint_mod, Nat.add_mod, Nat.mod_eq_zero_of_dvd hk', zero_add,
-      Nat.mod_mod, boolPoint_mod]
-  · rw [Nat.mul_div_cancel_left _ (Nat.two_pow_pos _), Nat.add_comm,
-      Nat.add_mul_div_left _ _ (Nat.two_pow_pos _),
-      Nat.div_eq_of_lt (lt_of_lt_of_le hslot (Nat.pow_le_pow_right (by norm_num) (by omega))),
-      zero_add]
-
 /-- The cube point of `x + 2 ^ a · m`, for `x < 2 ^ a`: the bits of `x`, then those of `m`. -/
 theorem boolPoint_add_two_pow_mul (a b x m : ℕ) (hx : x < 2 ^ a) :
     boolPoint (a + b) (x + 2 ^ a * m) = boolPoint a x ++ boolPoint b m := by

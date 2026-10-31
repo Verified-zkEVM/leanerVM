@@ -88,22 +88,6 @@ theorem verify_lean_xmss_relIn (hc : B1.Sig.verify_lean_xmss_complete_Spec) {rd 
       exact hreg off hoff)
     (B1.Sig.verify_lean_xmss_rel hc hrd hat hv)
 
-/-- **`verify_lean_xmss` is complete, placed**: on memories defined below `2^κ`, `κ ≥ 6`, holding
-the caller's words `Lin`, among them the four words of a claim at `p` that `sig` verifies. -/
-theorem verify_lean_xmss_completeAtD (hc : B1.Sig.verify_lean_xmss_complete_Spec) {κ : ℕ}
-    (hκ : 6 ≤ κ) {Lin : Layout} {p : E} {pk : LeanXmss.PublicKey} {m : LeanXmss.Message}
-    {sig : LeanXmss.Signature} (hreg : ∀ k < 4, ∃ i, p.limb 0 * gpow k = gpow i ∧ RegionL Lin i)
-    (hat : ∀ rd, LowDef κ rd → MemL rd Lin →
-      B1.Sig.ClaimAt rd p (B1.Sig.cellOf128 pk.root) (B1.Sig.cellOf128 pk.parameter)
-        (B1.Sig.cellOf128 (m.extractLsb' 0 128)) (B1.Sig.cellOf128 (m.extractLsb' 128 128)))
-    (hv : Node.xmssVerify pk m sig = true) :
-    CompleteAtD fs cert κ "verify_lean_xmss" Lin [p] (Returns []) :=
-  completeAtD_of_relIn xmss_pure (List.mem_singleton_self _) fun rd hl hL =>
-    verify_lean_xmss_relIn hc
-      (fun i hi => hl i (lt_of_lt_of_le hi (show 64 ≤ 2 ^ κ from
-        (show (64 : ℕ) = 2 ^ 6 from rfl) ▸ Nat.pow_le_pow_right (by decide) hκ)))
-      (hat rd hl hL) hv hreg
-
 /-! ## `verify_sig_lean_sphincs` -/
 
 theorem sphincs_pure : coreProgram.PureIn ["verify_sig_lean_sphincs"] :=
@@ -136,26 +120,6 @@ theorem verify_sig_lean_sphincs_relIn (hc : B1.Sig.verify_sig_lean_sphincs_compl
     rcases hloads es vs hw A hA with ⟨k, hk, rfl⟩ | ⟨v, hv', rfl⟩
     · exact hreg k hk
     · exact hregb v hv'
-
-/-- **`verify_sig_lean_sphincs` is complete, placed**: on memories defined below `2^κ`, `κ ≥ 8`,
-holding the caller's words `Lin`, among them the four words of a claim at `p` that `sig`
-verifies and the byte table at `bb`. -/
-theorem verify_sig_lean_sphincs_completeAtD
-    (hc : B1.Sig.verify_sig_lean_sphincs_complete_loads_Spec) {κ : ℕ} (hκ : 8 ≤ κ) {Lin : Layout}
-    {p bb : E} {pk : Sphincs.PublicKey} {m : Sphincs.Message} {sig : Sphincs.Signature}
-    (hreg : ∀ k < 4, ∃ i, p.limb 0 * gpow k = gpow i ∧ RegionL Lin i)
-    (hregb : ∀ v < 256, ∃ i, bb.limb 0 * gpow v = gpow i ∧ RegionL Lin i)
-    (hbb : ∀ rd, LowDef κ rd → MemL rd Lin → B1.Sig.ByteBits rd bb)
-    (hat : ∀ rd, LowDef κ rd → MemL rd Lin →
-      B1.Sig.ClaimAt rd p (B1.Sig.cellOf128 pk.root) (B1.Sig.cellOf128 pk.parameter)
-        (B1.Sig.cellOf128 (m.extractLsb' 0 128)) (B1.Sig.cellOf128 (m.extractLsb' 128 128)))
-    (hv : Node.sphincsVerify pk m sig = true) :
-    CompleteAtD fs cert κ "verify_sig_lean_sphincs" Lin [p, bb] (Returns []) :=
-  completeAtD_of_relIn sphincs_pure (List.mem_singleton_self _) fun rd hl hL =>
-    verify_sig_lean_sphincs_relIn hc
-      (fun i hi => hl i (lt_of_lt_of_le hi (show 256 ≤ 2 ^ κ from
-        (show (256 : ℕ) = 2 ^ 8 from rfl) ▸ Nat.pow_le_pow_right (by decide) hκ)))
-      (hbb rd hl hL) (hat rd hl hL) hv hreg hregb
 
 end
 end LeanVM.Guest.Lift

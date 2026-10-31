@@ -37,9 +37,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem readsAt_cons_uniq {rd : Reader} {p : E} {xs ys : List E} (hl : xs.length = ys.length)
-    (hx : ReadsAt rd p xs) (hy : ReadsAt rd p ys) : xs = ys := readsAt_ext hl hx hy
-
 /-- The announced words are the memory's log, the rows and the rate, as integer words. -/
 theorem vsWords_eq {bytecode : List K} {C : CallRel} {rd : Reader} {σ : Val}
     (F : VsFront bytecode C rd σ) :
@@ -274,18 +271,6 @@ theorem verify_sub_sound_w (bytecode : List K) : Main.SubSoundW bytecode vsPiOf 
   · rw [hπ]
     simp only [vsOsW, vsOsArgs, vsOsRets]
     exact hacc'
-
-/-- **`verify_sub` is sound**, in the existential form of `verify_sub_Spec`: the call relation
-`coreProgram.Rel`, its frames chosen (`relV`). -/
-theorem verify_sub_holds (bytecode : List K) : verify_sub_Spec bytecode := by
-  intro hbl κ hκ L args rets hpre hrel
-  obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_vs args rets).mp hrel
-  subst hpar
-  obtain ⟨hr, π0, π1, s0, s1, glp, gsq, out, hargs, seed, pi, c, hs, hp, hlen, hrd, hacc⟩ :=
-    verify_sub_sound_w bytecode hbl L hκ (coreProgram.Rel L.read) (relV L.read)
-      (unfoldsV_rel L.read) (rel_le_rel L.read) σ rets hb hpre
-  rw [hargs]
-  exact ⟨hr, seed, pi, c, _, hs, hp, hacc, hlen, hrd⟩
 
 end
 end LeanVM.Guest.B1.VerifySub

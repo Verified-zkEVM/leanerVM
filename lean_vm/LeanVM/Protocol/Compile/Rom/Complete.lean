@@ -111,18 +111,6 @@ theorem missProb_eq_ofReal (b : ℕ) : missProb b = ENNReal.ofReal (1 - (1 / 2 :
   rw [missProb, one_div, ENNReal.ofReal_inv_of_pos (by norm_num)]
   norm_num
 
-/-- **`2^b · k` failed nonces are as unlikely as `k` fair coins all landing tails**:
-`(1 - 2^-b)^(2^b · k) ≤ 2^-k`. -/
-theorem missProb_pow_le (b k : ℕ) : missProb b ^ (2 ^ b * k) ≤ 2⁻¹ ^ k := by
-  rw [pow_mul]
-  refine pow_le_pow_left₀ bot_le ?_ k
-  rw [missProb_eq_ofReal, ← ENNReal.ofReal_pow (by
-    have : (1 / 2 : ℝ) ^ b ≤ 1 := pow_le_one₀ (by norm_num) (by norm_num)
-    linarith)]
-  calc ENNReal.ofReal ((1 - (1 / 2 : ℝ) ^ b) ^ (2 ^ b)) ≤ ENNReal.ofReal (1 / 2) :=
-        ENNReal.ofReal_le_ofReal (one_sub_pow_le_half b)
-    _ = 2⁻¹ := by rw [one_div, ENNReal.ofReal_inv_of_pos (by norm_num)]; norm_num
-
 /-- `(1 - 2^-b)^(2^b) ≤ e^-1 < 3/8`, over the reals. -/
 theorem one_sub_pow_le_three_eighths (b : ℕ) : (1 - (1 / 2 : ℝ) ^ b) ^ (2 ^ b) ≤ 3 / 8 := by
   have hy0 : 0 ≤ 1 - (1 / 2 : ℝ) ^ b := by
@@ -229,12 +217,6 @@ noncomputable def powTerm (ℓ : Log) (κ : PowKey) : ℝ≥0∞ :=
 
 /-- **The proof-of-work potential**: the terms of the positions the log holds. -/
 noncomputable def powPot (ℓ : Log) : ℝ≥0∞ := ∑ κ ∈ keys fuel ℓ, powTerm bits fuel ℓ κ
-
-theorem powTerm_le_one (ℓ : Log) (κ : PowKey) : powTerm bits fuel ℓ κ ≤ 1 := by
-  unfold powTerm
-  split
-  · exact zero_le_one
-  · exact pow_le_one₀ bot_le (missProb_le_one bits)
 
 theorem powPot_nil : powPot bits fuel [] = 0 := by
   simp [powPot, keys, fIns]

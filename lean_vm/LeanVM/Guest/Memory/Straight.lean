@@ -268,11 +268,6 @@ theorem runs_straight (σ : Val) : ∀ pre : List Stmt, pre.all Stmt.straight = 
     | .callIf c f args, _ => by_cases hc : σ c = 0 <;>
       simp [slEvs, hc, Ev.run?, stmtRun?, List.filterMap_cons, List.filterMap_nil]
 
-/-- An atom of a straight body holds when its path's events are `Ok`. -/
-theorem atom_holds_of_ok {C : CallRel} {rd : Reader} {σ : Val} {pre : List Stmt} {a : Atom}
-    (ha : Stmt.atom a ∈ pre) (h : ∀ e ∈ pre.flatMap (slEvs σ), e.Ok C rd σ) : a.Holds rd σ :=
-  (h (.atom a) (List.mem_flatMap.mpr ⟨_, ha, by simp [slEvs]⟩)).1
-
 /-! ## A fused dispatch between straight runs -/
 
 theorem pick_eq (σ : Val) (x : V) (args rets : List V) : ∀ (fs : List String) (j i : ℕ),

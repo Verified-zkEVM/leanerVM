@@ -155,18 +155,6 @@ theorem contractPow_getElem (ρ : ℕ) {n : ℕ} (t : CMlPolynomialEval R (n + �
       by ring), getElem_congr_idx (show 2 * (c.val + 2 ^ ρ * x.val) + 1 =
         1 + 2 * c.val + 2 ^ (ρ + 1) * x.val by ring)]
 
-/-- The layer identity: a node `ρ` levels up, extended to `r`, is the sum over the cube of
-`eq(r, x)` times the product of the descendants of `x`. -/
-theorem evalMle_contractPow (ρ : ℕ) {n : ℕ} (t : CMlPolynomialEval R (n + ρ)) (r : Vector R n) :
-    evalMle (contractPow ρ t) r =
-      ∑ x : Fin (2 ^ n), (lagrangeBasis r)[x] * ∏ c : Fin (2 ^ ρ),
-        evalMle t (childPoint ρ c (boolVec x)) := by
-  rw [evalMle_eq_sum]
-  refine Finset.sum_congr rfl fun x _ ↦ ?_
-  rw [contractPow_getElem, mul_comm]
-  congr 1
-  exact Finset.prod_congr rfl fun c _ ↦ (evalMle_childPoint_boolVec ρ t c x).symm
-
 /-! ## The layers of a tree -/
 
 /-- The level of the tree of `t` on `m` variables: `t` at `m = μ`, the root at `m = 0`, and a

@@ -108,14 +108,6 @@ theorem rowRel_full {p : E} {ws : List E} (hws : ws.length = 4)
   rw [e]
   exact hpk k hk
 
-/-- An empty row, from its words. -/
-theorem rowRel_empty {p : E} (hz : ∀ c < 8, memAt rd p (5 + c) = 0) :
-    RowRel rd p ⟨rowCap rd p, []⟩ := by
-  refine ⟨rfl, by simp, fun k hk => ?_⟩
-  split
-  · exact absurd (by assumption) (show ¬ (k < ([] : List (E × ℕ)).length) by simp)
-  exact ⟨hz (2 * k) (by omega), by rw [show 6 + 2 * k = 5 + (2 * k + 1) by omega]; exact hz _ (by omega)⟩
-
 /-! ## The words of a chain -/
 
 /-- The `fs_pack`s of a list of atoms: each packed value and its base. -/

@@ -87,9 +87,6 @@ theorem dvConts_fit (hrL : r ≤ 2 ^ L) :
   · rw [length_treeCells length_colLeaves]; omega
   · rw [length_treeCells length_rowLeaves]; omega
 
-theorem dvSizes_sum : (dvSizes r L).sum = dxW r L 0 + 4 * 2 ^ L := by
-  simp only [dvSizes, dxW, dxT, dxB, dxA, dxC, dxP, List.sum_cons, List.sum_nil]; omega
-
 /-- **The memory `da_verify` and its callees read in its own buffers.** -/
 structure DvBufMem (r L : ℕ) (syms : ℕ → ℕ → List K) (ws : ℕ → List E) (rd : Reader) (P : DaPtrs) :
     Prop where

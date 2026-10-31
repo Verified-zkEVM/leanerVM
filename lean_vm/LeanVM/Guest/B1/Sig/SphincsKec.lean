@@ -71,8 +71,6 @@ theorem padCells_eight (a b c d e f g h : E) :
   simp [padCells, xorByte, padRead, rate, byteCell]
   exact e
 
-theorem k48_atoms (a v : V) (c o : Nat) : atomsOnly (k48 a v c o) = true := rfl
-
 /-- **A chain step's `keccak([P, a], [v, 0], len=48)`.** -/
 theorem k48_sound (hp : PadOK σ sPad) {a v : V} {c o : Nat} (h : AtomsHold rd σ (k48 a v c o)) :
     (σ (.n o), σ (.n (o + 1))) = hcell [σ sPP, σ a, σ v] := by

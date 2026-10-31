@@ -128,8 +128,6 @@ def ssS : List Stmt := [
 /-- The body's dispatch. -/
 def ssDispV : Stmt := .dispatch (.n 20) ["sel_partial_nibble__L0", "sel_partial_nibble__L1", "sel_partial_nibble__L2", "sel_partial_nibble__L3"] [.n 49, .n 50, .n 51, .n 52, .n 53] [.n 54]
 
-theorem ssA_eq : ssPre.take 42 = ssA := rfl
-
 theorem ssPre_eq_disp : ssPre = ssS ++ [ssDispV] := rfl
 
 theorem ssA_eq_take : ssS.take 42 = ssA := rfl

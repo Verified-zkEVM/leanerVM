@@ -67,16 +67,6 @@ theorem busBlocks_eq (s : Sizes) :
   simp only [busBlocks, zip_tables_tableLogs, List.flatMap, List.map_ofFn]
   refine Prod.ext ?_ (Prod.ext ?_ ?_) <;> simp only <;> congr 1
 
-/-- Every block of a flattened table-by-table list is owned by a table, at its height. -/
-theorem mem_flatten_ofFn {α : Type} (s : Sizes) (f : Fin 6 → List α) (g : Fin 6 → α → BusBlock)
-    (hg : ∀ t a, (g t a).owner = t ∧ (g t a).logRows = s.τ t) (b : BusBlock)
-    (hb : b ∈ (List.ofFn fun t ↦ (f t).map (g t)).flatten) :
-    ∃ t : Fin 6, b.owner = t ∧ b.logRows = s.τ t := by
-  obtain ⟨l, hl, hbl⟩ := List.mem_flatten.mp hb
-  obtain ⟨t, rfl⟩ := List.mem_ofFn.mp hl
-  obtain ⟨a, -, rfl⟩ := List.mem_map.mp hbl
-  exact ⟨t, hg t a⟩
-
 /-! ## A side's decomposition -/
 
 theorem getD_map_range (n j : ℕ) (F : ℕ → E) (hj : j < n) :

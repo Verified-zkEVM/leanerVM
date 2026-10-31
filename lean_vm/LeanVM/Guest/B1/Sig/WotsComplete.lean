@@ -51,8 +51,6 @@ theorem outsList_hint (s : String) (vs : List V) : outsList [hintW s vs] = vs :=
 theorem valsList_hint (s : String) (vs : List V) : Stmt.valsList [hintW s vs] = vs := by
   simp [hintW, Stmt.vals, Atom.vals, Hint.vals, Dest.vals]
 
-theorem ssa_nil : SSA [] := trivial
-
 /-- The steps of a walk, `m` of them. -/
 def walkSteps (W : WotsT) (i : Nat) (slot : Nat → Nat) (stride d b : Nat) (m : Nat) : List Stmt :=
   (List.range m).flatMap fun j =>

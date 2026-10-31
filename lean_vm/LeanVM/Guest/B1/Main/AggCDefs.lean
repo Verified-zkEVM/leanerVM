@@ -109,9 +109,6 @@ theorem stOk_absorbAll : ∀ (xs : List E) {s : Fs}, StOk s → StOk (s.absorbAl
   | [], _, h => h
   | x :: xs, _, h => stOk_absorbAll xs (stOk_absorb h x)
 
-theorem stOk_squeeze (s : Fs) : StOk s.squeeze.2 :=
-  ⟨⟨_, rfl⟩, by simp [Fs.squeeze], fun q hq => by simp [Fs.squeeze] at hq⟩
-
 theorem stOk_aggS0 : StOk aggS0 := ⟨⟨_, rfl⟩, by simp [aggS0], fun q hq => by simp [aggS0] at hq⟩
 
 theorem absSt_ok (m : ℕ) (cs : List ChildClaims) (c : ℕ) : StOk (absSt m cs c) :=

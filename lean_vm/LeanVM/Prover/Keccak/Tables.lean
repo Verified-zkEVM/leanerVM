@@ -76,9 +76,6 @@ theorem eqTable_getD_lt (pt : List E) {w : ℕ} (hw : w < 2 ^ pt.length) :
     (eqTable pt).getD w 0 = eqAt pt w := by
   rw [eqTable_getD, ite_eq_left hw]
 
-theorem eqTable_size (pt : List E) : (eqTable pt).size = 2 ^ pt.length := by
-  rw [eqTable_eq, List.size_toArray, eqKernel_length]
-
 /-! ## Folded tables -/
 
 /-- `F` is affine in each coordinate, between its values at `0` and `1`. -/

@@ -55,18 +55,6 @@ theorem chainWords_get (s chs : List E) {k : ℕ} (hk : k < (chainWords s chs).l
     (chainWords s chs)[k] = if k % 2 = 0 then gen ^ (8 * (k / 2)) else runL s chs (k / 2) := by
   simp [chainWords]
 
-theorem chainWords_even (s chs : List E) {j : ℕ} (hj : j ≤ 8) :
-    (chainWords s chs)[2 * j]'(by rw [chainWords_length]; omega) = gen ^ (8 * j) := by
-  simp only [chainWords, List.getElem_map, List.getElem_range]
-  rw [ite_pos' (by omega : (2 * j) % 2 = 0)]
-  congr 2; omega
-
-theorem chainWords_odd (s chs : List E) {j : ℕ} (hj : j ≤ 8) :
-    (chainWords s chs)[2 * j + 1]'(by rw [chainWords_length]; omega) = runL s chs j := by
-  simp only [chainWords, List.getElem_map, List.getElem_range]
-  rw [ite_neg' (by omega : ¬ (2 * j + 1) % 2 = 0)]
-  congr 1; omega
-
 /-! ## Helpers -/
 
 theorem rt_rdAt_of_load {rd : Reader} {p : E} {k : ℕ} {v : E} (h : LoadHolds rd p k v) :

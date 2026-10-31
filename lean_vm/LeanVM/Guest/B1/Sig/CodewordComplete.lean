@@ -63,11 +63,6 @@ theorem Completes.keep {lo hi : Nat} {ss : List Stmt} {σ : Val} {P : Val → Pr
   let ⟨σ', he, hp, hh⟩ := h
   ⟨σ', he, ⟨hp, ht σ' he hq⟩, hh⟩
 
-theorem armB_ge (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k : Nat) :
-    b + 5 ≤ armB W first n fold prodIn encIn b k := by
-  rw [← armB_zero W first n fold prodIn encIn b]
-  exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
-
 theorem cwState_in (W : WotsT) {b : Nat} (hb : 0 < b) :
     ∀ p, NBv (cwState W b p).2.2 (cwState W b p).1 ∧ NBv (cwState W b p).2.2 (cwState W b p).2.1
   | 0 => ⟨⟨0, hb, rfl⟩, ⟨0, hb, rfl⟩⟩

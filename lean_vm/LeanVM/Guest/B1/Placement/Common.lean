@@ -31,14 +31,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## Range checks -/
 
-/-- **A range check is sound** on a memory image: `x = g^e` with `e < K`. -/
-theorem tb_rc_sound {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {K : ℕ} (hK1 : 1 ≤ K)
-    (hK : K ≤ 2 ^ μ) {x y t1 t2 k : E} (hk : k = ofK (Parameters.gpow (K - 1)))
-    (h1 : LoadHolds Lm.read x 0 t1) (h2 : k = x * y) (h3 : LoadHolds Lm.read y 0 t2) :
-    ∃ e < K, x = gen ^ e := by
-  obtain ⟨e, he, hx⟩ := (rangeCheck_iff hμ Lm x hK1 hK).mp ⟨y, t1, t2, h1, by rw [← h2, hk], h3⟩
-  exact ⟨e, he, by rw [hx, gen_pow_eq_ofK]⟩
-
 /-- **A range check is sound** on any memory image of at most `2^32` words, whatever `K ≤ 2^33`:
 both reads are below `2^32`, so their exponents' sum `K - 1` is below the order of `g`. -/
 theorem tb_rc_sound' {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {K : ℕ} (hK1 : 1 ≤ K)
@@ -67,18 +59,6 @@ noncomputable def tbRcAux {μ : ℕ} (Lm : MemoryImage μ) (x : E) (K : ℕ) : E
     (Classical.choose h, Classical.choose (Classical.choose_spec h),
       Classical.choose (Classical.choose_spec (Classical.choose_spec h)))
   else (0, 0, 0)
-
-/-- **A range check is complete**: `x = g^e`, `e < K`, passes with the chosen words. -/
-theorem tb_rc_complete {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {K : ℕ} (hK1 : 1 ≤ K)
-    (hK : K ≤ 2 ^ μ) {e : ℕ} (he : e < K) :
-    LoadHolds Lm.read (gen ^ e) 0 (tbRcAux Lm (gen ^ e) K).2.1 ∧
-      ofK (Parameters.gpow (K - 1)) = gen ^ e * (tbRcAux Lm (gen ^ e) K).1 ∧
-      LoadHolds Lm.read (tbRcAux Lm (gen ^ e) K).1 0 (tbRcAux Lm (gen ^ e) K).2.2 := by
-  have h : ∃ y t1 t2 : E, LoadHolds Lm.read (gen ^ e) 0 t1 ∧
-      ofK (Parameters.gpow (K - 1)) = gen ^ e * y ∧ LoadHolds Lm.read y 0 t2 :=
-    (rangeCheck_iff hμ Lm (gen ^ e) hK1 hK).mpr ⟨e, he, gen_pow_eq_ofK e⟩
-  simp only [tbRcAux, h, ↓reduceDIte]
-  exact Classical.choose_spec (Classical.choose_spec (Classical.choose_spec h))
 
 /-- A run of mapped words, entry by entry. -/
 theorem tbReadsAt_map_iff {rd : Reader} {p : E} {l : List ℕ} {f : ℕ → E} :

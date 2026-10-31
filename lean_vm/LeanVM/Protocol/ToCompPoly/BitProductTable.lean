@@ -82,20 +82,6 @@ theorem evalMle_bitProductTable {n : ℕ} (f : Fin n → Bool → R) (x : Vector
     congr 1
     exact Finset.prod_congr rfl fun k _ ↦ by simp [Nat.add_comm]
 
-/-- The extension at a point of another ring, after mapping the entries. -/
-theorem eval₂Mle_bitProductTable {n : ℕ} (φ : R →+* S) (f : Fin n → Bool → R)
-    (x : Vector S n) :
-    eval₂Mle (bitProductTable f) φ x =
-      ∏ k : Fin n, ((1 - x[k]) * φ (f k false) + x[k] * φ (f k true)) := by
-  rw [eval₂Mle, map_bitProductTable, evalMle_bitProductTable]
-
-/-- The Lagrange basis factors over the index bits. -/
-theorem lagrangeBasis_eq_bitProductTable {n : ℕ} (w : Vector R n) :
-    lagrangeBasis w = bitProductTable fun k b ↦ if b then w[k] else 1 - w[k] := by
-  apply Vector.ext
-  intro i hi
-  rw [lagrangeBasis_getElem_nat w hi, bitProductTable_getElem _ hi]
-
 /-- A power is the product of the repeated squares its exponent's bits select. -/
 theorem pow_eq_prod_testBit (a : R) {n i : ℕ} (hi : i < 2 ^ n) :
     a ^ i = ∏ k : Fin n, if i.testBit k then a ^ 2 ^ k.val else 1 := by

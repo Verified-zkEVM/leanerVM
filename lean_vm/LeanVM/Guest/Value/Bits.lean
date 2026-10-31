@@ -73,15 +73,6 @@ theorem testBit_bitsVal (f : ℕ → Bool) (n i : ℕ) :
       · have hlt : 1 < 2 ^ (i - n) := Nat.one_lt_two_pow (by omega)
         cases hf : f n <;> simp [h, show ¬ i < n + 1 by omega, Nat.testBit_lt_two_pow hlt]
 
-/-- The low `j` bits of the integer of `n ≥ j` bits are the integer of the first `j`. -/
-theorem bitsVal_mod (f : ℕ → Bool) {n j : ℕ} (h : j ≤ n) : bitsVal f n % 2 ^ j = bitsVal f j := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  rw [Nat.testBit_mod_two_pow, testBit_bitsVal, testBit_bitsVal]
-  by_cases hi : i < j
-  · simp [hi, show i < n by omega]
-  · simp [hi]
-
 /-- The integer of a number's own bits. -/
 theorem bitsVal_testBit {N n : ℕ} (hN : N < 2 ^ n) : bitsVal N.testBit n = N := by
   apply Nat.eq_of_testBit_eq
@@ -223,14 +214,6 @@ theorem gen_pow_eq_one_iff {a : ℕ} (ha : a < 2 ^ 64 - 1) : gen ^ a = 1 ↔ a =
   · rintro rfl
     exact pow_zero gen
 
-/-- **A range-checked quotient** (`assert log(a / b) < k`): if `g^a / g^b = g^c` with all three
-exponents below `2^63`, then `a = b + c`, so `b ≤ a` (G:701, G:1970, G:2184, G:3001). -/
-theorem gen_pow_div_eq {a b c : ℕ} (ha : a < 2 ^ 63) (hb : b < 2 ^ 63) (hc : c < 2 ^ 63)
-    (h : gen ^ a / gen ^ b = gen ^ c) : a = b + c := by
-  have : gen ^ a = gen ^ (b + c) := by
-    rw [pow_add, ← h, mul_div_cancel₀ _ (gen_pow_ne_zero b)]
-  exact gen_pow_inj (by omega) (by omega) this
-
 /-- **Bits pinned in the exponent** (`hint_decompose_bits_exponent(bits, x, n)` and the checks
 after it, `column_selector`, G:3018-3041, `log2_ceil_in_the_exponent`, G:716-724): Boolean `b_j`
 whose product `Π_{j < n} (1 + b_j·(g^(2^j) + 1))` is `x = g^N`, with `n ≤ 63` and `N` below the
@@ -271,25 +254,6 @@ theorem g_power_of_word_spec {n : ℕ} (hn : n ≤ 63) {b : ℕ → E} (hb : ∀
   rw [hbits j hj]
   cases N.testBit j <;> simp [bitE]
 
-/-- **Bits in the exponent, weighed and shifted**: Boolean bits whose g-power product is
-`x = g^N`, `N` below the order of `g`, weigh to `E(N)`, and the final product by
-`COORD_BASIS[shift]` is `E(2^shift · N)` when it does not reduce. -/
-theorem bits_of_exponent_shift {n N shift : ℕ} (hn : n ≤ 63) (hN : N < 2 ^ 64 - 1) (hs : shift < 64)
-    (hfit : 2 ^ shift * 2 ^ n ≤ 2 ^ 64) {b : ℕ → E} (hb : ∀ j < n, b j * b j = b j)
-    (hx : ∏ j ∈ Finset.range n, (1 + b j * (gen ^ 2 ^ j + 1)) = gen ^ N) :
-    N < 2 ^ n ∧
-      (∑ j ∈ Finset.range n, b j * coordBasis j) * coordBasis shift = eOfNat (2 ^ shift * N) := by
-  obtain ⟨hNn, hbits⟩ := bits_of_exponent hn hN hb hx
-  refine ⟨hNn, ?_⟩
-  have hsum : ∑ j ∈ Finset.range n, b j * coordBasis j =
-      ∑ j ∈ Finset.range n, bitE (N.testBit j) * coordBasis (0 + j) :=
-    Finset.sum_congr rfl fun j hj ↦ by rw [hbits j (Finset.mem_range.mp hj), Nat.zero_add]
-  have hfit' : 2 ^ shift * N < 2 ^ 64 :=
-    lt_of_lt_of_le (Nat.mul_lt_mul_of_pos_left hNn (Nat.two_pow_pos shift)) hfit
-  have hNlt : N < 2 ^ 64 := lt_of_le_of_lt (Nat.le_mul_of_pos_left _ (Nat.two_pow_pos _)) hfit'
-  rw [hsum, reconstruct_bits 0 hNn, Nat.pow_zero, Nat.one_mul, eOfNat192_of_lt hNlt, mul_comm,
-    coordBasis_of_lt hs, eOfNat_two_pow_mul hfit']
-
 /-! ## The range check in the exponent -/
 
 /-- `assert log(x) < k` (`zkDSL.md` §Range checks): `x` is `g^e` with `e < k`. -/
@@ -307,19 +271,6 @@ theorem rangeCheck_sound {e e' k : ℕ} (he : e < 2 ^ 32) (he' : e' < 2 ^ 32) (h
   have := gpow_injOn (show e + e' ∈ Set.Iio (2 ^ 64 - 1) by simp only [Set.mem_Iio]; omega)
     (show k - 1 ∈ Set.Iio (2 ^ 64 - 1) by simp only [Set.mem_Iio]; omega) this
   omega
-
-/-- **The range check is complete**: for `e < k` the complement `g^(k-1-e)` balances it. -/
-theorem rangeCheck_complete {e k : ℕ} (h : e < k) :
-    Parameters.gpow e * Parameters.gpow (k - 1 - e) = Parameters.gpow (k - 1) := by
-  rw [Parameters.gpow, Parameters.gpow, Parameters.gpow, ← pow_add]
-  congr 1
-  omega
-
-/-- The range check, as a cell in `K`: `x = ofK (g^e)` with `e < k`. -/
-theorem logLt_of_rangeCheck {x : E} {e e' k : ℕ} (hx : x = ofK (Parameters.gpow e))
-    (he : e < 2 ^ 32) (he' : e' < 2 ^ 32) (hk : 1 ≤ k) (hk' : k ≤ 2 ^ 32)
-    (h : Parameters.gpow e * Parameters.gpow e' = Parameters.gpow (k - 1)) : LogLt x k :=
-  ⟨e, rangeCheck_sound he he' hk hk' h, by rw [hx, gen_pow_eq_ofK]⟩
 
 /-! ## `log2Ceil`, certified by its two bounds (`verify_log2_ceil`, G:679-713) -/
 

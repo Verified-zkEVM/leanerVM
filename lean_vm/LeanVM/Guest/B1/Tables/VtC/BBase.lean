@@ -97,21 +97,6 @@ theorem vtP_honest (hl : args.length = 22) {W : List E} (hW16 : 16 ≤ W.length)
 
 /-! ## Statements -/
 
-/-- A read of a word the memory holds. -/
-theorem vshB_read (hl : args.length = 22) (n : ℕ) {d p : V} {off : ℕ}
-    (heq : tbStmtsEqb [.atom (.load d p off)] ((vtPre.drop n).take 1) = true)
-    (hS : Atom.load d p off ∉ vtSL) {W : List E} (hW : TbReadsAt rd (vtσ rd w args p) W)
-    (hoff : off < W.length) :
-    VSH (coreProgram.Rel rd) rd (vtσ rd w args) (.atom (.load d p off)) :=
-  (vt_readH hl n heq hS (hW off hoff)).2
-
-/-- The word of a read: the memory's. -/
-theorem vtB_readW (hl : args.length = 22) (n : ℕ) {d p : V} {off : ℕ}
-    (heq : tbStmtsEqb [.atom (.load d p off)] ((vtPre.drop n).take 1) = true)
-    (hS : Atom.load d p off ∉ vtSL) {v : E} (hm : LoadHolds rd (vtσ rd w args p) off v) :
-    vtσ rd w args d = v :=
-  (vt_readH hl n heq hS hm).1
-
 theorem vtB_gpow_isSome {K : ℕ} (hlow : ∀ i < K, (rd (Parameters.gpow i)).isSome) {e : ℕ}
     (he : e < K) : ∃ v, LoadHolds rd (gen ^ e) 0 v ∧ rdAt rd (gen ^ e) 0 = v := by
   obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp (hlow e he)
@@ -119,27 +104,6 @@ theorem vtB_gpow_isSome {K : ℕ} (hlow : ∀ i < K, (rd (Parameters.gpow i)).is
     rw [gen_pow_eq_ofK]; simp [Parameters.gpow]
   refine ⟨v, ⟨tb_gen_pow_isInK e, by rw [ha, hv]⟩, ?_⟩
   rw [rdAt, ha, hv]; rfl
-
-/-- **A range check** `log x < K` on `x = g^e`, `e < K`, the memory defined at `g^i`, `i < K`. -/
-theorem vshB_rc (hl : args.length = 22) (n : ℕ) {x y t1 t2 k : V}
-    (heq : tbStmtsEqb [.atom (.rangeCheck x y t1 t2 k)] ((vtPre.drop n).take 1) = true)
-    (hky : k.idx < y.idx) {K e : ℕ} (hx : vtσ rd w args x = gen ^ e)
-    (hk : vtσ rd w args k = gen ^ (K - 1)) (he : e < K)
-    (hlow : ∀ i < K, (rd (Parameters.gpow i)).isSome) :
-    VSH (coreProgram.Rel rd) rd (vtσ rd w args) (.atom (.rangeCheck x y t1 t2 k)) := by
-  have hg := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice (blk := [_]) heq List.mem_cons_self)
-  simp only [fixNe, GoodS, Good] at hg
-  rw [ite_pos' hky] at hg
-  obtain ⟨g1, g2, g3⟩ := hg
-  have hy : vtσ rd w args y = gen ^ (K - 1 - e) := by
-    rw [g3, hk, hx, ← pow_sub₀ _ gen_ne_zero (by omega : e ≤ K - 1)]
-  obtain ⟨v1, l1, r1⟩ := vtB_gpow_isSome hlow he
-  obtain ⟨v2, l2, r2⟩ := vtB_gpow_isSome hlow (e := K - 1 - e) (by omega)
-  show LoadHolds rd _ 0 _ ∧ _ ∧ LoadHolds rd _ 0 _
-  refine ⟨?_, ?_, ?_⟩
-  · rw [g1, hx, r1]; exact l1
-  · rw [hk, hx, hy, ← pow_add, show e + (K - 1 - e) = K - 1 by omega]
-  · rw [g2, hy, r2]; exact l2
 
 /-- **An equality check.** -/
 theorem vshB_eq {σ : Val} {x y : V} (h : σ x = σ y) :
@@ -152,13 +116,6 @@ theorem vshB_dispatch {σ : Val} {x : V} {fs : List String} {args' rets : List V
     (hr : coreProgram.Rel rd fs[j] (args'.map σ) (rets.map σ)) :
     VSH (coreProgram.Rel rd) rd σ (.dispatch x fs args' rets) :=
   ⟨j, hj, by rw [hx, gen_pow_eq_ofK], hr⟩
-
-/-- The returns of a dispatch: the oracle's. -/
-theorem vtB_retsW (hl : args.length = 22) (n : ℕ) {x : V} {fs : List String} {args' rets : List V}
-    (heq : tbStmtsEqb [.dispatch x fs args' rets] ((vtPre.drop n).take 1) = true) :
-    ∀ v ∈ rets, vtσ rd w args v = w v.idx := by
-  have hg := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice (blk := [_]) heq List.mem_cons_self)
-  exact hg
 
 
 /-! ## By membership -/

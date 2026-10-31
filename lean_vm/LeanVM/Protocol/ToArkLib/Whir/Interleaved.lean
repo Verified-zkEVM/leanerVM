@@ -131,13 +131,6 @@ noncomputable def iList (C : Submodule F (ι → F)) (A : ℕ) (O : ρ → ι �
   classical
   simp [iList]
 
-/-- A lower threshold gives a larger list. -/
-theorem iList_anti (C : Submodule F (ι → F)) {A A' : ℕ} (hA : A' ≤ A) (O : ρ → ι → F) :
-    iList C A O ⊆ iList C A' O := by
-  intro U hU
-  rw [mem_iList] at hU ⊢
-  exact ⟨hU.1, hU.2.mono hA⟩
-
 /-- The agreement threshold of the relative radius `γ` on `n` coordinates: `⌈(1 - γ) n⌉₊`. -/
 noncomputable def radiusThreshold (n : ℕ) (γ : ℝ) : ℕ :=
   ⌈(1 - γ) * n⌉₊
@@ -152,11 +145,6 @@ codewords `γ`-close to `O`, agreeing with it on at least `(1 - γ) |ι|` coordi
 noncomputable def iListRad (C : Submodule F (ι → F)) (γ : ℝ) (O : ρ → ι → F) :
     Finset (ρ → ι → F) :=
   iList C (radiusThreshold (Fintype.card ι) γ) O
-
-theorem mem_iListRad (C : Submodule F (ι → F)) (γ : ℝ) (O U : ρ → ι → F) :
-    U ∈ iListRad C γ O ↔ IsInterleavedCodeword C U ∧
-      ∃ S : Finset ι, (1 - γ) * Fintype.card ι ≤ S.card ∧ AgreeOn O U S := by
-  simp only [iListRad, mem_iList, IsClose, radiusThreshold_le_iff]
 
 end List
 

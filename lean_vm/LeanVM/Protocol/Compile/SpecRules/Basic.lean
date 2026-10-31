@@ -349,18 +349,6 @@ theorem reach_of_reach_bind_of_retSplit {p : Prog α} {f : α → Prog β} {h₀
     p.Reach h₀ l₁ ∧ (f a).Reach (h₀ ++ l₁) l₂ :=
   (bindRun hl).2 a l₁ l₂ hs
 
-/-- The decomposition of a local run of `p.bind f`: a run of `p`, or a run of `p` to a return at
-`l₁` followed by a run of `f a` after `h₀ ++ l₁`. -/
-theorem reach_bind_cases {p : Prog α} {f : α → Prog β} {h₀ l : List Ev}
-    (hl : (p.bind f).Reach h₀ l) :
-    p.Reach h₀ l ∨ ∃ a l₁ l₂, l = l₁ ++ l₂ ∧ p.Reach h₀ l₁ ∧ p.after l₁ = some (ret a) ∧
-      (f a).Reach (h₀ ++ l₁) l₂ := by
-  rcases hs : p.retSplit l with _ | ⟨a, l₁, l₂⟩
-  · exact .inl (reach_of_reach_bind hl hs)
-  · obtain ⟨h1, h2⟩ := reach_of_reach_bind_of_retSplit hl hs
-    obtain ⟨he, ha⟩ := retSplit_eq_some_iff.1 hs
-    exact .inr ⟨a, l₁, l₂, he, h1, ha, h2⟩
-
 /-! ## Runs from the empty history -/
 
 /-- The local runs from the empty history are the interactive runs. -/

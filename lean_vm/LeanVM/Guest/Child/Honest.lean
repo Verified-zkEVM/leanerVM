@@ -218,40 +218,5 @@ theorem prove_of_verifierNZ_of {A : HonestProverWithHash} {prog : Program} {inpu
       rw [hk] at hacc
       exact absurd hacc (by simp [runProof_read_empty])
 
-/-- **A child's proof with Keccak that the verifier accepts** is the pure prover's proof of a
-child's witness. -/
-theorem prove_of_verifierNZ {prog : Program} {input : PublicInput} {t : Execution prog} {ρ fuel : ℕ}
-    (hacc : Budget.verifierNZ (m := Id) keccak256 keccakF1600 prog input
-      (Budget.honestProofWithDeployedKeccakWithHash childProver prog input t ρ fuel) = true) :
-    ∃ h : ∃ w s, ChildFor prog input t ρ w s,
-      prove keccak256 keccakF1600 (leanVmProgram (bytecodeWords prog) (publicDigest input))
-        (leanVmProver prog h.choose_spec.choose ρ (stackOf prog h.choose_spec.choose h.choose))
-        (seed (bytecodeWords prog) (publicDigest input)) fuel =
-        some (Budget.honestProofWithDeployedKeccakWithHash childProver prog input t ρ fuel) := by
-  by_cases h : ∃ w s, ChildFor prog input t ρ w s
-  · refine ⟨h, ?_⟩
-    have e := atKeccak_childComp (fuel := fuel) h
-    revert hacc
-    rw [e]
-    cases hp : prove keccak256 keccakF1600 _ _ _ fuel with
-    | some π => intro _; rfl
-    | none =>
-      intro hacc
-      rw [verifierNZ_eq] at hacc
-      obtain ⟨k, hk⟩ := execWith_bind_read computedValue Limits.verifyStackedOpeningNZ
-        (bytecodeWords prog) (publicDigest input) fun _ ↦ Prog.ret true
-      rw [hk] at hacc
-      exact absurd hacc (by simp [runProof_read_empty])
-  · exfalso
-    have e : Budget.honestProofWithDeployedKeccakWithHash childProver prog input t ρ fuel = ⟨[], []⟩ := by
-      unfold Budget.honestProofWithDeployedKeccakWithHash childProver childComp
-      simp only [h, ↓reduceDIte, simulateQ_pure]
-      rfl
-    rw [e, verifierNZ_eq] at hacc
-    obtain ⟨k, hk⟩ := execWith_bind_read computedValue Limits.verifyStackedOpeningNZ
-      (bytecodeWords prog) (publicDigest input) fun _ ↦ Prog.ret true
-    rw [hk] at hacc
-    exact absurd hacc (by simp [runProof_read_empty])
-
 end
 end LeanVM.Guest.Child

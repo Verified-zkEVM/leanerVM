@@ -65,8 +65,6 @@ theorem vt_zip_rows {rows : List ℕ} (hr : rows.length = 6) :
       List.getD_eq_getElem _ _ (by rw [vt_tableHeightsOf_length hr]; omega),
       List.getD_eq_getElem _ _ (by omega)]
 
-theorem vt_opcode : ∀ t : Fin 6, (tables.getD t default).opcode = t := by decide
-
 /-- **`layoutOf`'s blocks.** -/
 theorem vt_layout_blocks (bc : List K) (lm : ℕ) {rows : List ℕ} (hr : rows.length = 6) :
     (layoutOf bc lm rows).push = vtPushBlocks rows ∧ (layoutOf bc lm rows).pull = vtPullBlocks rows ∧
@@ -79,9 +77,6 @@ theorem vt_layout_logBytecode (bc : List K) (lm : ℕ) (rows : List ℕ) (hbc : 
   simp only [layoutOf, hbc]
   rw [Nat.log2_two_pow]
   rfl
-
-theorem vt_layout_heights (bc : List K) (lm : ℕ) (rows : List ℕ) :
-    (layoutOf bc lm rows).tableLogHeights = tableHeightsOf rows := rfl
 
 theorem vt_layout_logMemory (bc : List K) (lm : ℕ) (rows : List ℕ) :
     (layoutOf bc lm rows).logMemory = lm := rfl

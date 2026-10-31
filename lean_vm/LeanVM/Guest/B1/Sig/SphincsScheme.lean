@@ -151,10 +151,6 @@ theorem sphincsVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
   rw [Node.sphincsVerify_eq_withHash, idRun]
   exact sVerify_iff pk msg σ
 
-theorem signaturePath_lt (σ : Signature) (l : Nat) (hl : l < totalHeight) :
-    signaturePath σ l = σ.path ⟨l, hl⟩ := by
-  simp [signaturePath, hl]
-
 /-! ## The one-time signature -/
 
 theorem encode_id (P : PublicParameter) (leaf : Index)
@@ -636,14 +632,6 @@ theorem forestRecover_id (P : PublicParameter) (index : Index) (marks : Coord �
     @forestRecoverWithHash Id _ inst P index marks opening =
       fun c => @coordRecoverWithHash Id _ inst P index c (marks c) (opening c) := by
   rw [forestRecoverWithHash.eq_def, sSequenceFin_id]
-
-theorem orderTops_fst (bit : Bool) (current sibling : Sphincs.Digest) :
-    (orderTops bit current sibling).1 = if bit then sibling else current := by
-  cases bit <;> rfl
-
-theorem orderTops_snd (bit : Bool) (current sibling : Sphincs.Digest) :
-    (orderTops bit current sibling).2 = if bit then current else sibling := by
-  cases bit <;> rfl
 
 /-- The codeword table's entries, as base-5 digits. -/
 theorem lut_val (t : LutIdx) (i : FChain) :

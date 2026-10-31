@@ -270,11 +270,6 @@ theorem flatten_getD : ∀ (l : List (List E)) (t i : ℕ), t < l.length → i <
       Nat.add_sub_cancel_left]
     exact flatten_getD l t i (by omega) hi
 
-/-- The constraint counts of the tables before `JUMP`'s. -/
-theorem constraints_length_lt_seven :
-    ∀ j : Fin 9, j.val < 7 → (LeanIsa.constraints j).length = 0 := by
-  decide +kernel
-
 /-- A prefix sum over the instance's tables, kept on the sumcheck tables, as a sum over the
 opcode tables before. -/
 theorem prefix_onSumcheck (f : Fin (leanIsaWith prog s fl).ntab → ℕ) (t : Fin 6) :

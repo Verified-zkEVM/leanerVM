@@ -101,8 +101,6 @@ theorem vsRootsT_complete (hl : args.length = 7)
     rw [e8, e9]
     exact ⟨hC0, hC1, trivial, hn⟩
 
-theorem vsAlphasT_noNe : vsAlphasT.all noNeB = true := by decide +kernel
-
 set_option maxRecDepth 100000 in
 /-- **The bus challenges, honestly.** -/
 theorem vsAlphasT_complete (hl : args.length = 7)

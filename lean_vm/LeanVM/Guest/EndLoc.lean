@@ -33,8 +33,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
 @[expose] public section
 
-theorem coreOf_1 : coreOf 1 = Data.core0 := rfl
-
 /-- Every contract of `glob`, for runs shorter than `n`. -/
 abbrev GlobLt {κ : ℕ} (L : MemoryImage κ) (n : ℕ) : Prop :=
   ∀ j, FunSpecLt guest L n (glob.sig j).entry (Check.Pre glob L j)

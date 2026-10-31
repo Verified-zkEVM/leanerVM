@@ -28,21 +28,6 @@ open LeanVM.Guest.B1 (LowDef DisjL Within Kid CompleteAtD CompleteAtDT KidsDT Re
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-theorem kidsDT_append {κ : ℕ} {ks2 : List Kid} {Ts2 : List (Tree → Prop)} :
-    ∀ (ks1 : List Kid) (Ts1 : List (Tree → Prop)), ks1.length = Ts1.length →
-      KidsDT fs cert κ ks1 Ts1 → KidsDT fs cert κ ks2 Ts2 → KidsDT fs cert κ (ks1 ++ ks2) (Ts1 ++ Ts2)
-  | [], [], _, _, h2 => h2
-  | k :: ks1, T :: Ts1, hl, h1, h2 =>
-    ⟨h1.1, kidsDT_append ks1 Ts1 (by simpa using hl) h1.2 h2⟩
-  | [], _ :: _, hl, _, _ => by simp at hl
-  | _ :: _, [], hl, _, _ => by simp at hl
-
-theorem kidsDT_rep {κ : ℕ} : ∀ (ks : List Kid),
-    (∀ k ∈ ks, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out) →
-      KidsDT fs cert κ ks (List.replicate ks.length fun _ => True)
-  | [], _ => trivial
-  | k :: ks, h => ⟨fun ht => (h k (by simp) ht).toT, kidsDT_rep ks fun k' hk' => h k' (by simp [hk'])⟩
-
 /-- **The predicates on `main`'s callees' trees**: on its claim lists' digests (`Px`, `Ps`),
 `da_verify`'s (`Pd`), `aggregate_claims`' (`Pa`), the children's loop's (`T5`). -/
 structure MainPreds where

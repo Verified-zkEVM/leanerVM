@@ -42,21 +42,6 @@ theorem squeezeN_pend (n : ℕ) (s : Fs) : (s.squeezeN (n + 1)).2.pend = [] :=
 theorem fs_eta_of_pend {s : Fs} (h : s.pend = []) : s = ⟨s.cap, []⟩ := by
   cases s; simp only at h; simp [h]
 
-/-- **A run of the bus's GKR ends with nothing waiting.** -/
-theorem gkr_end {depth : ℕ} (hd : 1 ≤ depth) {cap0 xs : List E} {r : E × List E × List E}
-    {sF : Fs} (h : RunsTo (Tables.gkrPhase depth) ⟨cap0, []⟩ xs r sF)
-    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) : sF = ⟨sF.cap, []⟩ := by
-  obtain ⟨-, -, -, -, -, hsF, -, -⟩ := Tables.gk_walk h hc
-  refine fs_eta_of_pend ?_
-  rw [hsF]
-  rcases h2 : depth / 2 with _ | k
-  · have h1 : depth % 2 = 1 := by omega
-    rw [h1]
-    simp only [Tables.gkSl, Tables.gkSl0, ↓reduceIte, Tables.GkStepD.s']
-    exact squeezeN_pend 0 _
-  · simp only [Tables.gkSl, Tables.GkStepD.s']
-    exact squeezeN_pend 1 _
-
 theorem squeezeN_capOf (n : ℕ) : ∀ (s : Fs), ∃ K, (s.squeezeN (n + 1)).2 = ⟨capOf K, []⟩ := by
   induction n with
   | zero => intro s; exact ⟨s.perm, by simp only [Fs.squeezeN, Fs.squeeze]⟩
@@ -103,10 +88,6 @@ theorem claimed_point {c : BytecodeClaim} {L : Layout} {pi : Digest} {alphas : L
   refine always_const ?_
   simp only [claimedValue, Prog.bind_eq]
   exact Always.bind (fun _ hq ↦ by show _ = _; exact hq) _ (always_require _)
-
-theorem always_bind_true {α β : Type} {p : Prog α} {f : α → Prog β} {P : β → Prop}
-    (h : ∀ a, Always (f a) P) : Always (p.bind f) P :=
-  Always.bind (fun a _ ↦ h a) p (always_true p)
 
 /-- **`keccakSeg` returns one committed outputs' claim, on `q_keccak`.** -/
 theorem keccakSeg_shape {τ : ℕ} {inst out : List E} {s t : Fs} {xs : List E}

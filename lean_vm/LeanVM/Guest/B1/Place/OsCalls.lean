@@ -62,12 +62,6 @@ def sqCallS (c : OsCfg) (lvl : ℕ) (k : ℕ) : Option V × String × List V × 
   (some (.n (k + 2 + 2)), c.sqLoop lvl,
     .n (k + 2 + 3) :: .n (k + 2 + 4) :: [k + 1, osQpos, osQbp].map V.n, [])
 
-theorem filterMap_callS_atoms (l : List Atom) :
-    (l.map Stmt.atom).filterMap Main.Stmt.callS = [] := by
-  induction l with
-  | nil => rfl
-  | cons a l _ih => simp [Main.Stmt.callS]
-
 theorem osSqueezes_callS (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     (osSqueezes c lvl lv s).1.filterMap Main.Stmt.callS = [sqCallS c lvl s.k] := by
   have hpad : (osPad s.pad (s.k + 14)).1.filterMap Main.Stmt.callS = [] := by

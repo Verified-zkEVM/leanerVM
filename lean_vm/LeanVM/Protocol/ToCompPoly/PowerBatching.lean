@@ -72,14 +72,6 @@ theorem evalMle_batchWeight (w : Fin J → CMlPolynomialEval R μ) (ρ : R) (r :
   rw [Finset.sum_comm]
   simp_rw [mul_right_comm _ (ρ ^ _) _]
 
-/-- A family of true weighted claims always produces a true batch. -/
-theorem sumCube_hadamard_batchWeight_of_forall (w : Fin J → CMlPolynomialEval R μ)
-    (q : CMlPolynomialEval R μ) (v : Fin J → R)
-    (h : ∀ j, sumCube (hadamard (w j) q) = v j) (ρ : R) :
-    sumCube (hadamard (batchWeight w ρ) q) = powerBatch v ρ := by
-  rw [pairing_batchWeight]
-  simp_rw [h]
-
 /-- The polynomial whose coefficients are the differences of the individual claims. -/
 noncomputable def batchDifference (a v : Fin J → R) : Polynomial R :=
   ∑ j : Fin J, Polynomial.monomial j.val (a j - v j)
@@ -117,10 +109,6 @@ theorem natDegree_batchDifference_le (a v : Fin J → R) :
 theorem singleton_batch_ne (a v : Fin 1 → R) (h : a 0 ≠ v 0) (ρ : R) :
     powerBatch a ρ ≠ powerBatch v ρ := by
   simpa [powerBatch] using h
-
-/-- The empty batch is the trivial zero target. -/
-@[simp] theorem empty_powerBatch (a : Fin 0 → R) (ρ : R) : powerBatch a ρ = 0 := by
-  simp [powerBatch]
 
 section FiniteField
 

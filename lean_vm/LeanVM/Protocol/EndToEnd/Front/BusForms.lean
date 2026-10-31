@@ -140,33 +140,5 @@ theorem accStep_row_length (side : ℕ) (sideWeights : List E) (sideBeta : E)
   rw [accStep, getD_modify _ _ _ _ _ ht]
   split_ifs <;> simp
 
-/-- **The accumulated forms**: the form of table `t` and side `k` gains, on the accumulated side,
-the contributions of the blocks `t` owns. -/
-theorem formVal_foldl_accStep (side : ℕ) (sideWeights : List E) (sideBeta : E)
-    (column : ℕ → E) (zipped : List (E × BusBlock)) :
-    ∀ (forms : List (List Form)) (t k : ℕ), t < forms.length → k < (forms.getD t []).length →
-      formVal (zipped.foldl (accStep side sideWeights sideBeta) forms) t k column =
-        formVal forms t k column + if k = side then
-          ((zipped.filter fun sb ↦ sb.2.owner = t).map fun sb ↦
-            blockVal sideWeights sideBeta sb.1 sb.2 column).sum else 0 := by
-  induction zipped with
-  | nil => intro forms t k _ _; simp
-  | cons sb zipped ih =>
-    intro forms t k ht hk
-    rw [List.foldl_cons, ih _ t k (by rwa [accStep_length])
-      (by rwa [accStep_row_length _ _ _ _ _ _ ht])]
-    unfold formVal
-    rw [accStep, getD_modify _ _ _ _ _ ht]
-    by_cases ho : sb.2.owner = t
-    · simp only [ho, ↓reduceIte, List.filter_cons, decide_true]
-      rw [getD_modify _ _ _ _ _ hk]
-      split_ifs with hs hs' hs'
-      · subst hs; rw [evaluate_blockForm]; simp only [List.map_cons, List.sum_cons]; ring
-      · exact absurd hs.symm hs'
-      · exact absurd hs'.symm hs
-      · simp
-    · simp only [ho, ↓reduceIte, List.filter_cons, decide_false]
-      rfl
-
 end
 end LeanVM.Protocol.EndToEnd.Front

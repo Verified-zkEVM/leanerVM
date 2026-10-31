@@ -48,24 +48,8 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 
 /-! ## The bytes each digest hashes (`Statement/LeanVmGuest.lean`) -/
 
-theorem statementDigest_eq (seed : Digest) (s : NodeStatement) :
-    statementDigest seed s = keccak256 (statementPreimage seed s) := rfl
-
-theorem xmssListDigest_eq (claims : List XmssClaim) :
-    claimListDigest claims = keccak256 (claimsPreimage claims) := rfl
-
-theorem sphincsListDigest_eq (claims : List SphincsClaim) :
-    claimListDigest claims = keccak256 (claimsPreimage claims) := rfl
-
 
 /-! ## Fixed-width encodings are injective -/
-
-theorem length_flatMap_const {α β : Type} {f : α → List β} {n : ℕ}
-    (hlen : ∀ a, (f a).length = n) : ∀ l : List α, (l.flatMap f).length = n * l.length
-  | [] => by simp
-  | a :: l => by
-    rw [List.flatMap_cons, List.length_append, hlen, length_flatMap_const hlen l,
-      List.length_cons, Nat.mul_succ, Nat.add_comm]
 
 /-- A concatenation of encodings of one positive width is injective. -/
 theorem flatMap_inj {α β : Type} {f : α → List β} {n : ℕ} (hn : 0 < n)

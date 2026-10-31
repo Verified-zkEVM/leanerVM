@@ -41,20 +41,6 @@ theorem flatCalls_length (pre : List Stmt) (σ : Val) :
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-theorem kidsDT_of_getElem {κ : ℕ} {σS : Val} {L : Layout} :
-    ∀ (cs : List Call) (Ts : List (Tree → Prop)),
-      (∀ i (c : Call), cs[i]? = some c → c.taken = true →
-        CompleteAtDT fs cert κ c.f L (c.args.map σS) (Returns (c.rets.map σS))
-          (Ts.getD i fun _ ↦ True)) →
-      KidsDT fs cert κ (cs.map (kidOf σS L)) Ts
-  | [], _, _ => trivial
-  | c :: cs, Ts, h => by
-    refine ⟨fun ht ↦ ?_, kidsDT_of_getElem cs Ts.tail fun i c' hc ht ↦ ?_⟩
-    · have := h 0 c rfl ht
-      cases Ts <;> exact this
-    · have := h (i + 1) c' (by simpa using hc) ht
-      cases Ts <;> simpa using this
-
 /-- The callees' words, call by call: an entered call's bound, another's frame. -/
 def callsBound (fs : String → ℕ) : List Call → List ℕ → ℕ
   | c :: cs, Bs => (if c.taken then Bs.headD 0 else fs c.f) + callsBound fs cs Bs.tail
@@ -72,9 +58,6 @@ def ifFrames (fs : String → ℕ) (pre : List Stmt) : ℕ :=
   (pre.filterMap fun s ↦ match s with
     | .callIf _ f _ => some (fs f)
     | _ => none).sum
-
-theorem headD_le_sum (Bs : List ℕ) : Bs.headD 0 ≤ Bs.sum := by
-  cases Bs <;> simp
 
 theorem sum_eq_headD_tail (Bs : List ℕ) : Bs.sum = Bs.headD 0 + Bs.tail.sum := by
   cases Bs <;> simp

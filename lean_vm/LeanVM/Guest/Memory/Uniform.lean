@@ -77,12 +77,6 @@ theorem memL_append {rd : Reader} {L L' : Layout} : MemL rd (L ++ L') ↔ MemL r
   exact ⟨fun h => ⟨fun q hq => h q (Or.inl hq), fun q hq => h q (Or.inr hq)⟩,
     fun h q hq => hq.elim (h.1 q) (h.2 q)⟩
 
-theorem memL_nil {rd : Reader} : MemL rd [] ↔ True := by simp [MemL]
-
-theorem memL_cons {rd : Reader} {q : ℕ × List E} {L : Layout} :
-    MemL rd (q :: L) ↔ ReadsAt rd (ofK (gpow q.1)) q.2 ∧ MemL rd L := by
-  simp only [MemL, List.mem_cons, forall_eq_or_imp]
-
 /-- **A layout held survives restricting the memory to it.** -/
 theorem memL_restrict {rd : Reader} {L : Layout} {S : ℕ → Prop} (h : MemL rd L)
     (hS : ∀ i, RegionL L i → S i) : MemL (restrict rd S) L := fun q hq k hk =>
@@ -321,15 +315,6 @@ theorem kidsFromIn_of_kids' (κ : ℕ) : ∀ (ks : List Kid),
             exact this
 
 
-theorem kidsFromIn_of_kids (κ : ℕ) (ks : List Kid)
-    (hok : ∀ k ∈ ks, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out) (b : ℕ) :
-    ∃ (N : ℕ) (L : Layout) (outs : List (List E × Layout)), OutsOk ks outs ∧ Within L b N ∧
-      ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop), CallsMatch σ cs ks outs →
-        LowDef κ rd → MemL rd L → MemL rd (Kid.lins ks) → RegionsOk R Dacc ks outs →
-        KidsFromIn coreProgram fs cert rd σ R Dacc cs b N (fun i => Dacc i ∨ outRegion ks outs i) :=
-  let ⟨N, L, outs, ho, hW, _, hK⟩ := kidsFromIn_of_kids' κ ks hok b
-  ⟨N, L, outs, ho, hW, hK⟩
-
 theorem regionsOk_of {R : ℕ → Prop} : ∀ {Dacc : ℕ → Prop} {ks : List Kid} {outs : List (List E × Layout)},
     (∀ k ∈ ks, k.taken = true → ∀ i, RegionL k.Lin i → R i ∨ Dacc i) → RegionsOk R Dacc ks outs
   | _, k :: _, _ :: _, h => ⟨h k List.mem_cons_self, regionsOk_of fun k' hk' ht i hi =>
@@ -354,33 +339,6 @@ theorem relAtIn_dmono {rd : Reader} {R D D' : ℕ → Prop} {fp n : ℕ} {f : St
     RelAtIn coreProgram fs cert rd R D' fp n f args rets :=
   let ⟨t, hn, hv, hb, hp, ht, hl, hd⟩ := h
   ⟨t, hn, hv, hb, hp, ht, hl, fun i hi => hd i (hD i hi)⟩
-
-/-- **A pure function complete on every memory holding `Lin` is `CompleteAt`**, returning `rets`
-and no buffer. -/
-theorem completeAt_of_rel_pure {S : List String} (hS : coreProgram.PureIn S) {g : String}
-    (hg : g ∈ S) {Lin : Layout} {args rets : List E}
-    (h : ∀ rd, MemL rd Lin → coreProgram.Rel rd g args rets) (k : ℕ) :
-    CompleteAt fs cert k g Lin args (Returns rets) := by
-  intro fp
-  classical
-  by_cases hex : ∃ rd1, MemL rd1 Lin
-  swap
-  · exact ⟨0, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], fun rd _ hL => absurd ⟨rd, by simpa using hL⟩ hex⟩
-  obtain ⟨rd1, h1⟩ := hex
-  set rd0 := Main.restrict rd1 (RegionL Lin)
-  have h0 : MemL rd0 Lin := Main.memL_restrict h1 fun i hi => hi
-  have hsupp := Main.restrict_supp' rd1 (RegionL Lin)
-  obtain ⟨n, hn⟩ := relAtIn_uniform_pure (fs := fs) (cert := cert) coreProgram_fresh hS hg
-    (Main.relIn_of_rel_supp coreProgram_wf hsupp (h rd0 h0))
-  refine ⟨n, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], fun rd _ hL => ?_⟩
-  have hL' : MemL rd Lin := by simpa using hL
-  refine relAtIn_dmono (hn fp rd (fun i hi => ?_) (fun A hA => ?_)) (fun i hi => ?_)
-  · rw [Main.memL_agree hL' h1 i hi, Main.restrict_of ⟨i, rfl, hi⟩]
-  · obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp hA
-    obtain ⟨i, rfl, hi⟩ := hsupp _ _ hv
-    rw [Main.memL_agree hL' h1 i hi, ← Main.restrict_of (rd := rd1) (S := RegionL Lin) ⟨i, rfl, hi⟩, hv]
-    rfl
-  · obtain ⟨q, hq, _⟩ := hi; simp at hq
 
 /-! ## Range checks on a memory defined below `2^k` -/
 
@@ -437,36 +395,6 @@ theorem bufL_within : ∀ (b : ℕ) (sizes : List ℕ) (cs : List (List E)),
     · simp only [List.sum_cons]; omega
     · have := bufL_within (b + s) sizes cs h q hq
       simp only [List.sum_cons]; omega
-
-/-- **A function calling nothing is complete** when, at every frame pointer and on every memory
-holding its buffers' honest words `own fp` and the caller's words, a valuation walks its body with
-no call and no `frameAddr`, its `HeapBuf` hints of the sizes `sizes` from `fp + fs f`, loading from
-its buffers or `Lin`. -/
-theorem completeAt_leaf {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
-    (hl : coreProgram.loop f = false) (k : ℕ) (Lin : Layout) (args rets : List E) (sizes : List ℕ)
-    (own : ℕ → List (List E)) (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
-    (hσ : ∀ fp rd, LowDef k rd → MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
-      ∃ (σ : Val) (es : List Ev) (vs : List V), fn.params.map σ = args ∧
-        walk σ fn.body = .ret es vs ∧ vs.map σ = rets ∧ (∀ e ∈ es, e.Holds rd σ) ∧
-        calls es = [] ∧ addrs es = [] ∧ allocs σ es = sizes ∧
-        (allocDsts es).map σ = (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
-        ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧
-          (RegionL (bufL (fp + fs f) sizes (own fp)) i ∨ RegionL Lin i)) :
-    CompleteAt fs cert k f Lin args (Returns rets) := by
-  intro fp
-  refine ⟨fs f + sizes.sum, bufL (fp + fs f) sizes (own fp), rets, [], ⟨rfl, rfl⟩,
-    by simpa using (bufL_within _ _ _ (hown fp)).mono (by omega) (by omega), fun rd hlow hL => ?_⟩
-  simp only [List.nil_append] at hL
-  obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
-  obtain ⟨σ, es, vs, hp, hw, hr, hes, hc, ha, hal, hbuf, hload⟩ := hσ fp rd hlow hL1 hL2
-  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
-    (D := RegionL []) (Dk := fun _ => False) (N := 0) (fp := fp) coreProgram_wf hf (Or.inl hl) hp hw
-    hr hes (by rw [hal]; exact hbuf) (by rw [ha]; simp) (by rw [hc]; exact ⟨rfl, fun _ h => h⟩) (fun A hA => ?_)
-    (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
-  · rw [hal] at h; simpa using h
-  · obtain ⟨i, hi, h | h⟩ := hload A hA
-    · exact ⟨i, hi, Or.inl (Or.inl (by rw [hal]; exact bufL_region _ _ _ (hown fp) i h))⟩
-    · exact ⟨i, hi, Or.inr (Or.inl h)⟩
 
 /-! ## Loads of a straight-line body -/
 
@@ -528,15 +456,6 @@ theorem pick_eq (σ : Val) (x : V) (args rets : List V) : ∀ (fs : List String)
       simp only [e, List.getElem_cons_succ]
 
 /-! ## Callees in batches -/
-
-theorem kidsFromIn_dacc {rd : Reader} {σ : Val} {R : ℕ → Prop} :
-    ∀ (cs : List Call) (Dacc Dacc' : ℕ → Prop) (b n : ℕ) (D : ℕ → Prop), (∀ i, Dacc i → Dacc' i) →
-      KidsFromIn coreProgram fs cert rd σ R Dacc cs b n D →
-      KidsFromIn coreProgram fs cert rd σ R Dacc' cs b n D
-  | [], _, _, _, _, _, h, ⟨hn, hD⟩ => ⟨hn, fun i hi => h i (hD i hi)⟩
-  | _ :: cs, _, _, _, _, _, h, ⟨m, n', Rk, Dk, hn, hR, hc, hk⟩ =>
-      ⟨m, n', Rk, Dk, hn, fun i hi => (hR i hi).imp_right (h i), hc,
-        kidsFromIn_dacc cs _ _ _ _ _ (fun i hi => hi.imp_left (h i)) hk⟩
 
 /-- **Two batches of callees in sequence**: the second from any data that contains the first's
 claims. -/
@@ -704,34 +623,6 @@ theorem completeAt_of_rel_pureD {S : List String} (hS : coreProgram.PureIn S) {g
     rw [Main.memL_agree hL' h1 i hi, ← Main.restrict_of (rd := rd1) (S := RegionL Lin) ⟨i, rfl, hi⟩, hv]
     rfl
   · obtain ⟨q, hq, _⟩ := hi; simp at hq
-
-/-- `completeAt_leaf`, on disjoint layouts (the function's own buffers). -/
-theorem completeAt_leafD {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
-    (hl : coreProgram.loop f = false) (k : ℕ) (Lin : Layout) (args rets : List E) (sizes : List ℕ)
-    (own : ℕ → List (List E)) (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
-    (hσ : ∀ fp rd, LowDef k rd → MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
-      ∃ (σ : Val) (es : List Ev) (vs : List V), fn.params.map σ = args ∧
-        walk σ fn.body = .ret es vs ∧ vs.map σ = rets ∧ (∀ e ∈ es, e.Holds rd σ) ∧
-        calls es = [] ∧ addrs es = [] ∧ allocs σ es = sizes ∧
-        (allocDsts es).map σ = (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
-        ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧
-          (RegionL (bufL (fp + fs f) sizes (own fp)) i ∨ RegionL Lin i)) :
-    CompleteAtD fs cert k f Lin args (Returns rets) := by
-  intro fp
-  refine ⟨fs f + sizes.sum, bufL (fp + fs f) sizes (own fp), rets, [], ⟨rfl, rfl⟩,
-    by simpa using (bufL_within _ _ _ (hown fp)).mono (by omega) (by omega),
-    by simpa using bufL_disj _ _ _ (hown fp), fun rd hlow hL => ?_⟩
-  simp only [List.nil_append] at hL
-  obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
-  obtain ⟨σ, es, vs, hp, hw, hr, hes, hc, ha, hal, hbuf, hload⟩ := hσ fp rd hlow hL1 hL2
-  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
-    (D := RegionL []) (Dk := fun _ => False) (N := 0) (fp := fp) coreProgram_wf hf (Or.inl hl) hp hw
-    hr hes (by rw [hal]; exact hbuf) (by rw [ha]; simp) (by rw [hc]; exact ⟨rfl, fun _ h => h⟩) (fun A hA => ?_)
-    (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
-  · rw [hal] at h; simpa using h
-  · obtain ⟨i, hi, h | h⟩ := hload A hA
-    · exact ⟨i, hi, Or.inl (Or.inl (by rw [hal]; exact bufL_region _ _ _ (hown fp) i h))⟩
-    · exact ⟨i, hi, Or.inr (Or.inl h)⟩
 
 
 /-! ## Completeness with bounded trees

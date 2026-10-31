@@ -109,17 +109,6 @@ theorem sum {ι : Type} (s : Finset ι) {F : ι → E → E} (h : ∀ i ∈ s, P
     refine (add (h a (by simp)) (ih fun i hi ↦ h i (by simp [hi]))).congr fun x ↦ ?_
     rw [Finset.sum_insert ha]
 
-/-- Finite products: the degrees add. -/
-theorem prod {ι : Type} (s : Finset ι) {F : ι → E → E} (h : ∀ i ∈ s, PolyLE d (F i)) :
-    PolyLE (s.card * d) fun x ↦ ∏ i ∈ s, F i x := by
-  classical
-  induction s using Finset.induction_on with
-  | empty => exact (const _ 1).congr fun x ↦ by simp
-  | insert a s ha ih =>
-    refine ((mul (h a (by simp)) (ih fun i hi ↦ h i (by simp [hi]))).mono ?_).congr fun x ↦ ?_
-    · rw [Finset.card_insert_of_notMem ha]; nlinarith
-    · rw [Finset.prod_insert ha]
-
 end PolyLE
 
 /-! ## Coefficient lists -/

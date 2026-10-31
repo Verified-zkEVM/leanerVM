@@ -81,21 +81,6 @@ theorem sumcheck_round4_run (cap : List E) (c0 c2 c3 claim : E) :
       (((⟨cap, []⟩ : Fs).absorb c0 dsObserve).absorbAll [c2, c3] dsObserve).squeeze.1) 4)
   exact h.of_eq rfl rfl rfl rfl
 
-/-- **`gkrRun` is the equality-mode rounds of `sumcheck`** (`gkrStep 2`, five coefficients). -/
-theorem gkrRun_run : ∀ (cs : List (List E)) (es : List E) (claim : E) (s : Fs),
-    (∀ c ∈ cs, c.length = 4) → es.length = cs.length →
-    RunsTo (sumcheck claim 5 (es.map some)) s cs.flatten
-      ((gkrRun cs es claim s).1, (gkrRun cs es claim s).2.1) (gkrRun cs es claim s).2.2
-  | [], [], claim, s, _, _ => runsTo_sumcheck_nil s claim 5
-  | [], _ :: _, _, _, _, h => by simp at h
-  | _ :: _, [], _, _, _, h => by simp at h
-  | c :: cs, e :: es, claim, s, h4, hl => by
-    have hc : c.length = 4 := h4 c List.mem_cons_self
-    have h := runsTo_sumcheck_cons (runsTo_roundPolySome s claim e c 5 (by rw [hc]))
-      (gkrRun_run cs es _ ((s.absorbAll c dsObserve).squeeze.2)
-        (fun x hx ↦ h4 x (List.mem_cons_of_mem _ hx)) (by simpa using hl))
-    exact h.of_eq rfl (by simp) rfl rfl
-
 /-- **`bsRun` is `Node.batchRounds`** on a sponge the guest carries. -/
 theorem batchRounds_run : ∀ (rounds : List (E × E)) (claim : E) (s : Fs) (sp : Sponge),
     s.Carries sp → ∃ sp', (bsRun rounds claim s).2.Carries sp' ∧

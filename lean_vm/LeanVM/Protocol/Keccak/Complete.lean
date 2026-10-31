@@ -249,15 +249,5 @@ theorem follows_keccak (col : ℕ → K) {inst output : List E} (hi : inst.lengt
   rw [List.take_append_drop, ← hx6, col_split hi, Qo, hx6]
   rfl
 
-/-- **Completeness against `keccakF`**: a valid region with true output claims. -/
-theorem follows_keccak_regionValid (col : ℕ → K) {inst output : List E}
-    (hi : inst.length = P + 4) (ho : output.length = 25) (hv : RegionValid (P + 4) col)
-    (hout : outClaimsTrue (P + 4) col inst output) (cs : Commits) :
-    Follows (fun cs' a res ↦ cs' = cs ∧ a = res ∧ (∀ c ∈ res.1, colTrue (P + 4) col c) ∧
-        slicesTrue (P + 4) col res.2.1 res.2.2)
-      (hKeccak P col inst output) (verifyKeccak (P + 4) inst output) cs :=
-  have h := outClaims_of_regionValid (P + 4) col inst output hv hout
-  follows_keccak P col hi ho h.1 h.2 cs
-
 end
 end LeanVM.Protocol.KeccakGkr

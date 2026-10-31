@@ -430,37 +430,11 @@ end Blocks
 def tbSetv (σ : Val) (b n : ℕ) (f : ℕ → E) : Val := fun v =>
   if v.path = [] ∧ v.tag = 0 ∧ b ≤ v.idx ∧ v.idx < b + n then f (v.idx - b) else σ v
 
-theorem tb_set_n_in {σ : Val} {b n k : ℕ} {f : ℕ → E} (h1 : b ≤ k) (h2 : k < b + n) :
-    tbSetv σ b n f (.n k) = f (k - b) := by
-  unfold tbSetv
-  split
-  · rfl
-  · rename_i h
-    exact absurd ⟨rfl, rfl, h1, h2⟩ h
-
-theorem tb_set_n_lt {σ : Val} {b n k : ℕ} {f : ℕ → E} (h : k < b) :
-    tbSetv σ b n f (.n k) = σ (.n k) := by
-  unfold tbSetv
-  split
-  · rename_i h'
-    exact absurd h'.2.2.1 (by simp only; omega)
-  · rfl
-
-theorem tb_set_n_ge {σ : Val} {b n k : ℕ} {f : ℕ → E} (h : b + n ≤ k) :
-    tbSetv σ b n f (.n k) = σ (.n k) := by
-  unfold tbSetv
-  split
-  · rename_i h'
-    exact absurd h'.2.2.2 (by simp only; omega)
-  · rfl
-
 /-- The valuation of a function's arguments, `.n k ↦ args[k]`. -/
 def tbOfArgs (args : List E) : Val := fun v => args.getD v.idx 0
 
 /-- `σ` with the values from `.n b` on set to the words `l`. -/
 abbrev tbSetl (σ : Val) (b : ℕ) (l : List E) : Val := tbSetv σ b l.length (fun k => l.getD k 0)
-
-theorem tb_ofArgs_n (args : List E) (k : ℕ) : tbOfArgs args (.n k) = args.getD k 0 := rfl
 
 /-- Evaluate a lookup in a valuation built by `tbSetv`/`tbSetl` on `tbOfArgs`, the side
 conditions by `omega` from the context. -/
@@ -541,43 +515,6 @@ theorem tb_gen_pow_ordG : gen ^ tbOrdG = 1 := by
     pow_orderOf_eq_one, ofK_one]
 
 theorem tb_ordG_pos : 0 < tbOrdG := Nat.sub_pos_of_lt (Nat.one_lt_two_pow (by decide))
-
-/-- **A loop behind its guard** (`for x in mul_range(1, N)`: `callIf (1 + N) f [1, …]`): the guard
-is in `K` and, when nonzero, the loop runs, exactly when `N = g^m` for some `m` below the order of
-`g` and the body holds at every `g^j`, `j < m`. -/
-theorem tb_guarded_loop_iff {P : Core.Program} {rd : Reader} {f : String} {ps : List E} {N : E}
-    {B : E → Prop}
-    (hstep : ∀ d x, P.relN rd (d + 1) f (x :: ps) [] ↔
-      B x ∧ IsInK (x * gen + N) ∧ (x * gen + N ≠ 0 → P.relN rd d f (x * gen :: ps) [])) :
-    (IsInK (1 + N) ∧ (1 + N ≠ 0 → P.Rel rd f (1 :: ps) [])) ↔
-      ∃ m < tbOrdG, N = gen ^ m ∧ ∀ j < m, B (gen ^ j) := by
-  have hl := tb_loop_iff hstep 0
-  rw [pow_zero] at hl
-  constructor
-  · rintro ⟨hK, hrun⟩
-    by_cases h1 : 1 + N = 0
-    · refine ⟨0, by decide, ?_, fun j hj => absurd hj (Nat.not_lt_zero j)⟩
-      rw [pow_zero]; exact (e_add_eq_zero_iff.mp h1).symm
-    · obtain ⟨m, hm, hN, hfirst, hall⟩ := hl.mp (hrun h1)
-      refine ⟨m, ?_, hN, fun j hj => hall j (Nat.zero_le j) hj⟩
-      by_contra hge
-      rcases Nat.lt_or_ge tbOrdG m with hgt | hle
-      · have : gen ^ (m - tbOrdG) = N := by
-          obtain ⟨t, rfl⟩ : ∃ t, m = tbOrdG + t := ⟨m - tbOrdG, by omega⟩
-          rw [hN, pow_add, tb_gen_pow_ordG, one_mul, Nat.add_sub_cancel_left]
-        exact hfirst (m - tbOrdG) (Nat.sub_pos_of_lt hgt) (Nat.sub_lt (by omega) tb_ordG_pos) this
-      · have hm' : m = tbOrdG := by omega
-        rw [hm', tb_gen_pow_ordG] at hN
-        exact h1 (by rw [hN]; exact e_add_self 1)
-  · rintro ⟨m, hm, hN, hall⟩
-    refine ⟨?_, fun h1 => ?_⟩
-    · rw [hN]
-      exact tb_isInK_add (by rw [← pow_zero gen]; exact tb_gen_pow_isInK 0) (tb_gen_pow_isInK m)
-    have hm0 : 0 < m := by
-      rcases Nat.eq_zero_or_pos m with h | h
-      · exact absurd (show 1 + N = 0 by rw [hN, h, pow_zero]; exact e_add_self 1) h1
-      · exact h
-    exact hl.mpr ⟨m, hm0, hN, tb_first_hit_of_lt hm hN, fun j _ hj => hall j hj⟩
 
 /-- **A `mul_range` loop, soundness**: if `f`'s relation at depth `d + 1` gives its body's meaning
 `B x` and the next call, then `f` holding at `g^k` gives `N = g^m` for some `m > k` and `B` at every

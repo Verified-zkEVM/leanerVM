@@ -54,13 +54,6 @@ theorem commits_append : ∀ h l : List Ev, commits (h ++ l) = commits h ++ comm
   | Ev.grind _ :: h, l => commits_append h l
   | Ev.query _ :: h, l => commits_append h l
 
-/-- **Candidates read off the commitments are stable**: a run with no commitment does not change
-them. For the leanVM program, the candidates of the level-0 commitment (`Candidates`, at the word
-of commitment `0`) are of this form. -/
-theorem stable_of_commits (f : List (ℕ × ℕ × Word) → Set β) : Stable fun h ↦ f (commits h) := by
-  intro h₀ l hl
-  simp only [commits_append, hl, List.append_nil]
-
 /-- Doom for a predicate gives doom for a stronger one. -/
 theorem Doomed.mono {C : List Ev → Set β} {A A' : β → Prop} {h : List Ev}
     (hd : Doomed C A h) (hA : ∀ q, A' q → A q) : Doomed C A' h :=

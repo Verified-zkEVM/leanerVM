@@ -279,19 +279,6 @@ noncomputable def gv1 (ℓ : Log) (u : KeccakState) : List Ev → Prog Bool → 
   | h, .grind b k => esc D h (.grind b k)
   | h, .commit ht w k => esc D h (.commit ht w k)
 
-theorem gv1_le_one (ℓ : Log) (u : KeccakState) : ∀ (h : List Ev) (p : Prog Bool), gv1 D ℓ u h p ≤ 1
-  | h, .sample k => gv_le_one D ℓ _ _ _
-  | h, .query i ps k => by
-    simp only [gv1]
-    split
-    · exact gv1_le_one ℓ u _ _
-    · exact zero_le_one
-  | _, .ret _ => esc_le_one D _ _
-  | _, .fail => esc_le_one D _ _
-  | _, .read _ => esc_le_one D _ _
-  | _, .grind _ _ => esc_le_one D _ _
-  | _, .commit _ _ _ => esc_le_one D _ _
-
 theorem gv1_append_inl (ℓ : Log) (e : Bytes × Digest) (u : KeccakState) :
     ∀ (h : List Ev) (p : Prog Bool), gv1 D (ℓ ++ [.inl e]) u h p = gv1 D ℓ u h p
   | h, .sample k => gv_append_inl D ℓ e _ _ _
@@ -363,11 +350,6 @@ of `b` bits passed on the state's challenge after the nonce `n`. -/
 noncomputable def powF : Option (ℕ × E) → KeccakState → ℝ≥0∞
   | none, _ => 1
   | some (b, n), u => ind (powOk b n (challengeOf u) = true)
-
-theorem powF_le_one (pw : Option (ℕ × E)) (u : KeccakState) : powF pw u ≤ 1 := by
-  rcases pw with _ | ⟨b, n⟩
-  · exact le_rfl
-  · exact ind_le_one _
 
 /-- The term of a record. -/
 noncomputable def term (ℓ : Log) : Shape × KeccakState → ℝ≥0∞

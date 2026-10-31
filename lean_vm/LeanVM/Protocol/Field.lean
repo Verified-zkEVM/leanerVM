@@ -99,10 +99,6 @@ instance innerProductOracle (n : ℕ) : OracleInterface (Column n) where
     { spec := Weight E n →ₒ E
       impl := fun W ↦ do return W.pair (algebraMap K E) (← read).values }
 
-/-- The oracle answers the inner product of the weight with the column. -/
-theorem innerProductOracle_answer {n : ℕ} (q : Column n) (W : Weight E n) :
-    OracleInterface.answer q W = W.pair (algebraMap K E) q.values := rfl
-
 /-- The answer to the equality kernel at `p` is the column's extension at `p`. -/
 theorem answer_eqWeight {n : ℕ} (q : Column n) (p : Vector E n) :
     OracleInterface.answer q (eqWeight p) =

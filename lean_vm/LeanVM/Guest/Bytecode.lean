@@ -39,9 +39,6 @@ def guestArray : Program := assembleArray Data.functions 19 (by decide)
 
 theorem guestArray_eq : guestArray = guest := assembleArray_eq _ _ _
 
-/-- The exported size is the one `guest` is assembled at. -/
-theorem logSize_eq : Data.logSize = 19 := rfl
-
 /-- The functions lie one after another from pc `0` to `codeLen`. -/
 theorem functions_consecutive : consecutive 0 Data.functions Data.codeLen = true := by
   decide +kernel

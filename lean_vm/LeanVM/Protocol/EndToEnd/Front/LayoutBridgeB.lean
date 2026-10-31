@@ -139,10 +139,6 @@ theorem tableLogHeights_keccak :
 theorem not_isVirtual_memCol (i : Fin 4) : ¬ IsVirtual (memCol i) := by
   revert i; decide
 
-/-- The memory columns are not output lanes. -/
-theorem not_isOut_memCol (i : Fin 4) : ¬ IsOut (memCol i) :=
-  fun h ↦ not_isVirtual_memCol i h.isVirtual
-
 /-- The public point of the program is the instance's line point. -/
 theorem pubPoint_eq (r : E) :
     pubPoint (verifierLayout prog s) r = (PublicInput.linePoint s.logMem_pos r).toList := by
@@ -170,25 +166,6 @@ theorem pubLayoutHyp_verifierLayout :
     rw [pyCol_memCol]; rfl
   rw [hcol, pubPoint_eq] at h
   exact (wireHolds_iff prog s (memCol j.castSucc) (PublicInput.linePoint s.logMem_pos r) v q).mp h
-
-/-- A stack's extension read on equal variables. -/
-theorem eval₂Mle_castColumn {a b : ℕ} (h : a = b) (q : Column a) (v : Vector E b) :
-    eval₂Mle (castColumn h q).values (algebraMap K E) v =
-      eval₂Mle q.values (algebraMap K E) (Vector.cast h.symm v) := by
-  subst h
-  simp [castColumn]
-
-/-- An aligned placement's weight at a cube point: the equality with the placed point. -/
-theorem eqAbove_mul_eqEval (v off μ : ℕ) (hv : v ≤ μ) (p : List E) (hp : p.length = v)
-    (x : ℕ) :
-    ({ vars := v, index := off } : Placement).eqAbove (boolPoint μ x) *
-        eqEval p ((boolPoint μ x).take v) =
-      eqEval (({ vars := v, index := off } : Placement).stackPoint p μ) (boolPoint μ x) := by
-  rw [stackPoint_aligned, ← List.take_append_drop v (boolPoint μ x),
-    eqEval_append _ _ _ _ (by simp [hp]; omega), List.take_append_drop, mul_comm]
-  congr 1
-  simp only [Placement.eqAbove, zero_add, length_boolPoint, Nat.sub_zero,
-    selectorPoint_eq_boolPoint, Nat.shiftRight_eq_div_pow]
 
 end
 end LeanVM.Protocol.EndToEnd.Front

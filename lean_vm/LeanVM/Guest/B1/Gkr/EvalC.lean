@@ -124,24 +124,6 @@ def autoBG : Stmt → Bool
   | .atom a => pureB a
   | _ => false
 
-/-- **A block of pure atoms and hints holds** on its equations. -/
-theorem holdsList_auto {C : CallRel} {kret : List E → Prop} :
-    ∀ (blk : List Stmt), blk.all autoBG = true → (∀ s ∈ blk, GoodS rd S w σ s) →
-      ∀ {next : Prop}, next → Stmt.HoldsList C rd σ blk next kret
-  | [], _, _, _, hn => hn
-  | s :: blk, ha, hg, next, hn => by
-    simp only [List.all_cons, Bool.and_eq_true] at ha
-    have ih := holdsList_auto (C := C) (kret := kret) blk ha.2
-      (fun t ht => hg t (List.mem_cons_of_mem _ ht)) hn
-    have g0 := hg s List.mem_cons_self
-    cases s with
-    | atom a =>
-      refine ⟨?_, ih⟩
-      cases a with
-      | hint h => trivial
-      | _ => exact holds_of_pure (S := S) (w := w) (by simpa [autoBG] using ha.1) g0
-    | _ => simp [autoBG] at ha
-
 /-! ## The Fiat-Shamir templates -/
 
 /-- **`fs_next` on its equations**: the word read, its two cells, and the template holding. -/

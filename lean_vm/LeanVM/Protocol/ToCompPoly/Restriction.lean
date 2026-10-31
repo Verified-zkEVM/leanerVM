@@ -251,24 +251,6 @@ private theorem Partial.point_set_bool {n : ℕ} (σ : Partial R) (k : ℕ) (hk 
   · rw [Vector.getElem_set_ne hk hj (Ne.symm hjk)]
     simp [Partial.point, boolVec, testBit_setBitIndex, hjk]
 
-/-- **Zero stays zero.** A table zero on a partial point is zero on it with one more coordinate
-fixed, if that coordinate was free: the extension is affine in the coordinate and vanishes at
-both cube values. -/
-theorem restrictedZero_update_of_none {n : ℕ} {t : CMlPolynomialEval R n} {σ : Partial R}
-    (h : RestrictedZero t σ) {k : ℕ} (hσ : σ k = Option.none) (c : R) :
-    RestrictedZero t (Function.update σ k (some c)) := by
-  intro b
-  by_cases hk : k < n
-  · rw [Partial.point_update σ k hk c b, evalMle_set t _ hk]
-    have h0 := h (setBitIndex b k hk false)
-    have h1 := h (setBitIndex b k hk true)
-    rw [← Partial.point_set_bool σ k hk hσ b] at h0 h1
-    simp only [Bool.false_eq_true, ite_false, ite_true] at h0 h1
-    rw [h0, h1]
-    ring
-  · rw [Partial.point_update_of_le σ k (by omega) c b]
-    exact h b
-
 open scoped Classical in
 /-- **One escape at most.** A table that is not zero on a partial point is zero on it with one
 more coordinate fixed for at most one value of that coordinate: its extension is affine in
@@ -305,15 +287,6 @@ theorem card_filter_restrictedZero_update_le [IsDomain R] [Fintype R] {n : ℕ}
   · intro b
     have := h₁.2 b
     rwa [Partial.point_update_of_le σ k (by omega) c₁ b] at this
-
-/-- **One escape at most**, counted by `Nat.card`: no decidability in the statement. -/
-theorem natCard_restrictedZero_update_le [IsDomain R] [Finite R] {n : ℕ}
-    (t : CMlPolynomialEval R n) (σ : Partial R) (k : ℕ) (hne : ¬ RestrictedZero t σ) :
-    Nat.card {c // RestrictedZero t (Function.update σ k (some c))} ≤ 1 := by
-  have := Fintype.ofFinite R
-  classical
-  rw [Nat.card_eq_fintype_card, Fintype.card_subtype]
-  convert card_filter_restrictedZero_update_le t σ k hne
 
 end
 end LeanVM.Protocol

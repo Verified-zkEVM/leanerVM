@@ -160,10 +160,6 @@ theorem map_soundnessExperiment (A : RandomPermutationAdversary) :
     runWithRandomPermutation, simulateQ_bind, simulateQ_pure, StateT.run'_eq, StateT.run_bind,
     StateT.run_pure, map_bind, map_pure, hA, bind_map_left, hV]
 
-theorem breaks_iff (z : ExperimentOutcome) :
-    BreaksKnowledgeSoundness z ↔
-      BreaksKnowledgeSoundnessWithHash (z.1, permutationQueries z.2) := Iff.rfl
-
 /-- **Knowledge soundness, from the two-call experiment.** -/
 theorem knowledgeSoundness_of_withHash (h : KnowledgeSoundnessWithHash) : KnowledgeSoundness := by
   intro A Q hQ hcap

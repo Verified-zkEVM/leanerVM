@@ -50,10 +50,5 @@ theorem corr_ringFast (point slices : List E) :
   obtain ⟨rfl, hl⟩ := h
   exact ⟨rfl, rfl, hl⟩
 
-/-- The description of ring switching's claim denotes the specification's ring claim. -/
-theorem denote_ringOut_claim (r : RingOut) (layout : Layout) :
-    (r.claim layout).denote = ringSwitchClaim layout r.target
-      (fun rPrime ↦ ringWeight r.point rPrime (ringCoefficients r.challenges)) := rfl
-
 end
 end LeanVM.Prover

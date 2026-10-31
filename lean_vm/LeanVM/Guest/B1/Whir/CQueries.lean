@@ -35,11 +35,6 @@ theorem matVal_congr {σ σ' : Val} {base off k : ℕ} (h : σ' (.n base) = σ (
     matVal σ base off k = matVal σ' base off k := by
   funext i; simp only [matVal, h]
 
-theorem osMat_ptr_lt (base off k : ℕ) (hb : base < k) : (osMat base off k).2.1 < (osMat base off k).2.2 := by
-  unfold osMat; split_ifs
-  · exact hb
-  · simp
-
 /-- The queries block's number of statements' values: the next free value. -/
 theorem osQueries_k (c : OsCfg) (lvl : ℕ) (lv : OsLv) (lam lamN : ℕ) (s : OsSt) :
     (osQueries c lvl lv lam lamN s).2.1 =

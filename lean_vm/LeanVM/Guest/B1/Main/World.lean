@@ -75,8 +75,6 @@ theorem written_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ
     rw [Segs.a.eq_2, segsOf_ex, segsOf_es]
     exact this
 
-theorem lg_lt (MF : MainFacts C rd σ) : LXS σ + LSS σ ≤ 65535 := MF.total.2
-
 set_option maxRecDepth 20000 in
 /-- **The writers of the coverage table.** -/
 theorem writers (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) :

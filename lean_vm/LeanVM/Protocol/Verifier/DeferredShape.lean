@@ -98,15 +98,6 @@ theorem returns_of_runProof (H : Bytes → Id Digest) (F : KeccakState → Id Ke
   | some (false, _) => intro h; simp at h
   | none => intro h; simp at h
 
-/-- `readN n` returns `n` scalars. -/
-theorem returns_readN : ∀ {n : ℕ} {xs : List E}, Returns (readScalars n) xs → xs.length = n
-  | 0, xs, h => by rw [returns_ret h]; rfl
-  | n + 1, xs, h => by
-    unfold readScalars at h
-    obtain ⟨_, -, h⟩ := returns_bind h
-    obtain ⟨ys, hys, h⟩ := returns_bind h
-    rw [returns_ret h, List.length_cons, returns_readN hys]
-
 /-- `sampleN n` returns `n` challenges. -/
 theorem returns_sampleN : ∀ {n : ℕ} {xs : List E}, Returns (sampleChallenges n) xs → xs.length = n
   | 0, xs, h => by rw [returns_ret h]; rfl

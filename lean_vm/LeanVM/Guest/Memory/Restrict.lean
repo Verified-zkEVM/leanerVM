@@ -175,21 +175,11 @@ end Uniform
 
 /-! ## Events -/
 
-theorem mem_calls_taken {es : List Ev} {c : Call} (hc : c ∈ calls es) (ht : c.taken = true) :
-    Ev.call c.f c.args c.rets ∈ es := by
-  obtain ⟨e, he, hce⟩ := List.mem_filterMap.mp hc
-  cases e with
-  | call f args rets => simp only [Ev.call?, Option.some.injEq] at hce; subst hce; exact he
-  | skip f args => simp only [Ev.call?, Option.some.injEq] at hce; subst hce; simp at ht
-  | atom _ => simp [Ev.call?] at hce
-  | inK _ => simp [Ev.call?] at hce
-
 theorem allocs_append (σ : Val) (a b : List Ev) : allocs σ (a ++ b) = allocs σ a ++ allocs σ b :=
   List.filterMap_append
 theorem allocDsts_append (a b : List Ev) : allocDsts (a ++ b) = allocDsts a ++ allocDsts b :=
   List.filterMap_append
 theorem addrs_append (a b : List Ev) : addrs (a ++ b) = addrs a ++ addrs b := List.filterMap_append
-theorem runs_append (a b : List Ev) : runs (a ++ b) = runs a ++ runs b := List.filterMap_append
 theorem calls_append (a b : List Ev) : calls (a ++ b) = calls a ++ calls b := List.filterMap_append
 theorem loadAddrs_append (σ : Val) (a b : List Ev) : loadAddrs σ (a ++ b) = loadAddrs σ a ++ loadAddrs σ b :=
   List.filterMap_append

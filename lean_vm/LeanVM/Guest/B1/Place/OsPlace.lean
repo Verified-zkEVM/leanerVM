@@ -59,14 +59,6 @@ theorem os_kidsFromIn_rmono {rd : Reader} {σ : Val} {R R' : ℕ → Prop} (hR :
   | _ :: cs, _, _, _, _, ⟨m, n', Rk, Dk, hn, hRk, hc, hk⟩ =>
     ⟨m, n', Rk, Dk, hn, fun i hi => (hRk i hi).imp_left (hR i), hc, os_kidsFromIn_rmono hR cs _ _ _ _ hk⟩
 
-theorem os_take_getD_drop {α : Type} : ∀ (l : List α) (j : ℕ) (d : α), j < l.length →
-    l = l.take j ++ l.getD j d :: l.drop (j + 1)
-  | [], _, _, h => absurd h (by simp)
-  | a :: l, 0, _, _ => rfl
-  | a :: l, j + 1, d, h => by
-    simp only [List.take_succ_cons, List.getD_cons_succ, List.drop_succ_cons, List.cons_append]
-    exact congrArg (a :: ·) (os_take_getD_drop l j d (by simpa using h))
-
 theorem os_bases_getD : ∀ (b : ℕ) (sizes : List ℕ) (j : ℕ), j < sizes.length →
     (bases b sizes).getD j 0 = b + (sizes.take j).sum
   | _, [], _, h => absurd h (by simp)

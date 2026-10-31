@@ -69,13 +69,6 @@ coordinates at the block's selector. -/
 def selectorWeight {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (z : Vector R μ) : R :=
   (lagrangeBasis (B.highPoint hμ b z))[B.selector hμ b]
 
-/-- At a lifted point of block `b`, the weight of block `b` is one. -/
-theorem selectorWeight_extendPoint_self {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
-    (z : Vector R (B.size b)) : B.selectorWeight hμ b (B.extendPoint hμ b z) = 1 := by
-  rw [selectorWeight, highPoint_extendPoint]
-  have h := lagrangeBasis_boolVec (R := R) (B.selector hμ b) (B.selector hμ b)
-  simpa using h
-
 /-- A table placed in a block's window, zero outside it. -/
 def windowTable {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
     (t : CMlPolynomialEval R (B.size b)) : CMlPolynomialEval R μ :=
@@ -166,15 +159,6 @@ theorem sum_selectorWeight_of_total_eq {μ : ℕ} (h : B.total = 2 ^ μ) (z : Ve
     add_left_cancel (by simpa only [zero_mul, add_zero] using h1)
   rw [one_mul] at hc
   exact (sub_eq_zero.mp hc.symm).symm
-
-/-- The stack at an arbitrary point of another ring. -/
-theorem stack_eval₂_ambient {S : Type*} [CommRing S] (φ : R →+* S) (t : B.Tables R) {μ : ℕ}
-    (hμ : B.total ≤ 2 ^ μ) (pad : R) (z : Vector S μ) :
-    eval₂Mle (B.stackAt t μ pad) φ z =
-      (∑ b : Fin B.n, B.selectorWeight hμ b z * eval₂Mle (t b) φ (B.lowPoint hμ b z)) +
-      φ pad * (1 - ∑ b : Fin B.n, B.selectorWeight hμ b z) := by
-  rw [eval₂Mle, B.map_stackAt]
-  exact B.stack_eval_ambient (fun b ↦ CMlPolynomialEval.map φ (t b)) hμ (φ pad) z
 
 end Blocks
 

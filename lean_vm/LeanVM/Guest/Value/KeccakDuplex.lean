@@ -51,12 +51,6 @@ def rateCell (pending : List (E × ℕ)) (c : ℕ) : E :=
 def scalarCells (x : E) (t : ℕ) : E × E :=
   (E.ofLimbs (x.limb 0) (x.limb 1) 0, E.ofLimbs (x.limb 2) (K.ofLane t.toUInt64) 0)
 
-theorem pendingLanes_append (ps : List (E × ℕ)) (x : E) (t : ℕ) :
-    Compile.pendingLanes (ps ++ [(x, t)]) =
-      Compile.pendingLanes ps ++
-        [(x.limb 0).lane, (x.limb 1).lane, (x.limb 2).lane, t.toUInt64] := by
-  simp [Compile.pendingLanes]
-
 theorem length_pendingLanes (ps : List (E × ℕ)) :
     (Compile.pendingLanes ps).length = 4 * ps.length := by
   induction ps with
@@ -143,21 +137,11 @@ theorem keccak_duplex {S : KeccakState} {pending : List (E × ℕ)} {I O : Fin 1
   funext c
   rw [hK.2 c, stateOfCells_duplex hrate hcap]
 
-/-- `duplex` with Keccak-f. -/
-theorem duplex_id (sp : Compile.Sponge) :
-    Compile.duplex (m := Id) keccakF1600 sp = ⟨keccakF1600 (Compile.duplexInput sp), []⟩ := rfl
-
 /-- `squeeze` with Keccak-f: a permutation, its challenge. -/
 theorem squeeze_id (sp : Compile.Sponge) :
     Compile.squeeze (m := Id) keccakF1600 sp =
       (Compile.challengeOf (keccakF1600 (Compile.duplexInput sp)),
         ⟨keccakF1600 (Compile.duplexInput sp), []⟩) :=
-  rfl
-
-/-- `absorb` below a full queue appends. -/
-theorem absorb_id_lt (sp : Compile.Sponge) (x : E) (t : ℕ) (h : sp.pending.length < 4) :
-    Compile.absorb (m := Id) keccakF1600 sp x t = { sp with pending := sp.pending ++ [(x, t)] } := by
-  simp [Compile.absorb, Compile.rateScalars, show sp.pending.length ≠ 4 by omega]
   rfl
 
 /-- `absorb` at a full queue permutes first. -/

@@ -260,12 +260,5 @@ theorem plain41_complete (rd : Reader) (args rets : List E) (hpc : PlainCellsOk 
   simp only [List.map_cons, List.map_nil, c204, c205, c206, c207, c208, c211, m210, c209, c212,
     p7, word_256, List.cons_append, List.nil_append]
 
-/-- **`keccak_plain_rounds` is complete**: both specializations. -/
-theorem keccak_plain_rounds_complete : keccak_plain_rounds_complete_Spec := by
-  intro k0 hk rd args rets hpc hm
-  interval_cases k0
-  · exact plain60_complete rd args rets hm
-  · exact plain41_complete rd args rets hpc hm
-
 end
 end LeanVM.Guest.B1.VerifySub

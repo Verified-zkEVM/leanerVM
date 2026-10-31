@@ -34,11 +34,6 @@ theorem memOK_of_memOk (hm : MemOk rd) : Sig.MemOK rd (2 ^ 16) := by
   have hi' : i < 2 ^ κ := lt_of_lt_of_le hi (Nat.pow_le_pow_right (by norm_num) h16)
   exact Option.isSome_iff_exists.mpr ⟨L ⟨i, hi'⟩, (read_some_iff (by omega) L _ _).mpr ⟨⟨i, hi'⟩, rfl, rfl⟩⟩
 
-/-- A word is defined at `g^i`, `i < 2^16`. -/
-theorem load_gen (hm : MemOk rd) {i : ℕ} (hi : i < 2 ^ 16) : ∃ w, LoadHolds rd (gen ^ i) 0 w := by
-  rw [gen_pow_eq_ofK]
-  exact Sig.load_gpow (memOK_of_memOk hm) hi
-
 /-- **A range check of `g^k` against `g^K` holds** on a memory defined below `2^16`, `k ≤ K < 2^16`,
 its witness `g^(K - k)`. -/
 theorem rc_holds' (hm : Sig.MemOK rd (2 ^ 16)) {k K : ℕ} (hk : k ≤ K) (hK : K < 2 ^ 16) :
@@ -49,12 +44,6 @@ theorem rc_holds' (hm : Sig.MemOK rd (2 ^ 16)) {k K : ℕ} (hk : k ≤ K) (hK : 
   obtain ⟨t2, h2⟩ : ∃ w, LoadHolds rd (gen ^ (K - k)) 0 w := by
     rw [gen_pow_eq_ofK]; exact Sig.load_gpow hm (show K - k < 2 ^ 16 by omega)
   exact ⟨t1, t2, h1, by rw [← pow_add]; congr 1; omega, h2⟩
-
-/-- **A range check of `g^k` against `g^K` holds**, `k ≤ K < 2^16`, its witness `g^(K - k)`. -/
-theorem rc_holds (hm : MemOk rd) {k K : ℕ} (hk : k ≤ K) (hK : K < 2 ^ 16) :
-    ∃ t1 t2, LoadHolds rd (gen ^ k) 0 t1 ∧ gen ^ K = gen ^ k * gen ^ (K - k) ∧
-      LoadHolds rd (gen ^ (K - k)) 0 t2 :=
-  rc_holds' (memOK_of_memOk hm) hk hK
 
 /-- **`list_split` is complete** on a memory defined below `2^16`. -/
 theorem list_split_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 16)) (args rets : List E)

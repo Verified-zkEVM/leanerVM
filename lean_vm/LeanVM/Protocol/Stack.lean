@@ -179,18 +179,6 @@ def stridedLayout (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (k : ℕ) {ι : Type}
     simp only [Vector.cast_cast, Vector.cast_rfl]
     rw [eval₂Mle, eval₂Mle, sliceLow_map, evalMle_boolVec_append]
 
-/-- A strided slot's cell `x` is the block's cell `slot + x · 2 ^ k`, at the block's offset. -/
-theorem get_stridedLayout (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (k : ℕ) {ι : Type}
-    {κ : ι → ℕ} (slot : ι → Fin (2 ^ k)) (h : ∀ c, B.size b = k + κ c) (q : Column μ) (c : ι)
-    (x : Fin (2 ^ κ c)) :
-    q.values.get (boolIndex ((B.stridedLayout hμ b k slot h).extend c (boolVec x))) =
-      q.values[(cubeIndex (slot c) x).val + B.offset b]'(by
-        have := B.offset_add_pow_le_total b
-        have h1 := (cubeIndex (slot c) x).isLt
-        have h2 : 2 ^ (k + κ c) = 2 ^ B.size b := by rw [h c]
-        omega) := by
-  simp only [stridedLayout, boolVec_append, boolVec_cast, get_extendPoint, Fin.val_cast]
-
 /-! ## Slices of a block -/
 
 /-- Reading through a slice lift: the column at slot `slot c` of block `b` is the slice at that

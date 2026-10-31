@@ -48,10 +48,5 @@ theorem coreProgram_indexOf?_getElem {j : ℕ} (h : j < coreProgram.length) :
     (hi := by simp; omega) (hj := by simp; omega)).mp (by simpa using he)
   omega
 
-theorem fsOf_getElem {j : ℕ} (h : j < coreProgram.length) :
-    fsOf coreProgram[j].name = fsAt (j + 1) := by
-  unfold fsOf
-  rw [coreProgram_indexOf?_getElem h]
-
 end
 end LeanVM.Guest

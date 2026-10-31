@@ -90,26 +90,6 @@ noncomputable def toMvPolynomial : Expression F → MvPolynomial ℕ F
   | .add a b => a.toMvPolynomial + b.toMvPolynomial
   | .mul a b => a.toMvPolynomial*b.toMvPolynomial
 
-/-- Polynomial evaluation agrees with the expression evaluator in every environment. -/
-theorem eval_toMvPolynomial (e : Expression F) (env : Environment F) :
-    MvPolynomial.eval env.get e.toMvPolynomial = e.eval env := by
-  induction e with
-  | var v => simp [toMvPolynomial, eval]
-  | const c => simp [toMvPolynomial, eval]
-  | add a b ha hb => simp [toMvPolynomial, eval, ha, hb]
-  | mul a b ha hb => simp [toMvPolynomial, eval, ha, hb]
-
-/-- Total polynomial degree is at most the syntactic bound. -/
-theorem totalDegree_toMvPolynomial_le (e : Expression F) :
-    e.toMvPolynomial.totalDegree ≤ e.degreeBound := by
-  induction e with
-  | var v => simp [toMvPolynomial, degreeBound]
-  | const c => simp [toMvPolynomial, degreeBound]
-  | add a b ha hb =>
-    exact (MvPolynomial.totalDegree_add _ _).trans (max_le_max ha hb)
-  | mul a b ha hb =>
-    exact (MvPolynomial.totalDegree_mul _ _).trans (Nat.add_le_add ha hb)
-
 /-- Interpret an expression over exactly `width` variables, using its range proof. -/
 noncomputable def toBoundedPolynomial (width : ℕ) (e : Expression F)
     (h : e.WithinWidth width) : MvPolynomial (Fin width) F :=
@@ -118,34 +98,6 @@ noncomputable def toBoundedPolynomial (width : ℕ) (e : Expression F)
   | .const c => MvPolynomial.C c
   | .add a b => a.toBoundedPolynomial width h.1 + b.toBoundedPolynomial width h.2
   | .mul a b => a.toBoundedPolynomial width h.1*b.toBoundedPolynomial width h.2
-
-/-- The finite-variable interpretation has the same syntactic degree bound. -/
-theorem totalDegree_toBoundedPolynomial_le (width : ℕ) (e : Expression F)
-    (h : e.WithinWidth width) :
-    (e.toBoundedPolynomial width h).totalDegree ≤ e.degreeBound := by
-  induction e with
-  | var v => simp [toBoundedPolynomial, degreeBound]
-  | const c => simp [toBoundedPolynomial, degreeBound]
-  | add a b ha hb =>
-    exact (MvPolynomial.totalDegree_add _ _).trans (max_le_max (ha h.1) (hb h.2))
-  | mul a b ha hb =>
-    exact (MvPolynomial.totalDegree_mul _ _).trans (Nat.add_le_add (ha h.1) (hb h.2))
-
-/-- In-range row entries evaluate exactly as Clean's array-backed environment. The width
-hypothesis prevents out-of-range variables from being silently replaced by zero. -/
-theorem eval_toBoundedPolynomial (width : ℕ) (e : Expression F)
-    (h : e.WithinWidth width) (row : Vector F width) (data : ProverData F) :
-    MvPolynomial.eval (fun i : Fin width ↦ row[i.val]) (e.toBoundedPolynomial width h) =
-      e.eval (Environment.fromArray row.toArray data) := by
-  induction e with
-  | var v =>
-    have hv : v.index < row.toArray.size := by
-      rw [row.size_toArray]
-      exact h
-    simp [toBoundedPolynomial, eval, Array.getElem?_eq_getElem hv]
-  | const c => simp [toBoundedPolynomial, eval]
-  | add a b ha hb => simp [toBoundedPolynomial, eval, ha h.1, hb h.2]
-  | mul a b ha hb => simp [toBoundedPolynomial, eval, ha h.1, hb h.2]
 
 end
 end Expression

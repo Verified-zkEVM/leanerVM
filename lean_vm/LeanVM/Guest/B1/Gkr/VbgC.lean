@@ -477,44 +477,6 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
     rfl
 
 
-/-- **`verify_bus_gkr`'s body, completely**, at `1 ≤ depth ≤ 32`: the range check's words
-defined, the two roots at the cursor (the count nonzero), the root slot, the tables, the binary
-layer's words at an odd depth, every layer's words (`LyIter`), and the last slot with its point at
-`zeta` give the relation, returning the last slot's capacity, cursor and values. -/
-theorem vbg_holds_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 : List E}
-    (hcl : cap0.length = 5) {cur zeta layers rounds rows pairs dsh : E}
-    (hrc : (rd (gpow depth)).isSome = true ∧ (rd (gpow (32 - depth))).isSome = true)
-    {x0 x1 : E} (hx0 : LoadHolds rd cur 0 x0) (hx1 : LoadHolds rd cur 1 x1) (hcnt : x1 ≠ 0)
-    (hroot : GkSlotC rd layers 0 ⟨cap0, [(x0, dsObserve), (x1, dsObserve)]⟩ (cur * gen ^ 2)
-      ⟨[x0, x0, x1], []⟩ rows 1 1 0)
-    (hpairs : TbReadsAt rd pairs ((List.range 33).map fun k ↦ gen ^ (k / 2)))
-    (hdsh : TbReadsAt rd dsh ((List.range 33).map fun k ↦ gen ^ (k % 2)))
-    (hodd : depth % 2 = 1 → ∃ D : GkStepD,
-      D.Ok ⟨cap0, [(x0, dsObserve), (x1, dsObserve)]⟩ ⟨[x0, x0, x1], []⟩ 1 ∧
-      TbReadsAt rd (cur * gen ^ 2) D.xs ∧
-      GkSlotC rd layers 1 (D.s' ⟨cap0, [(x0, dsObserve), (x1, dsObserve)]⟩ ⟨[x0, x0, x1], []⟩ 1)
-        (cur * gen ^ 2 * gen ^ 6)
-        (D.st' ⟨cap0, [(x0, dsObserve), (x1, dsObserve)]⟩ ⟨[x0, x0, x1], []⟩ 1)
-        (rows * gen ^ 40) gen 1 0)
-    (hit : ∀ j < depth / 2, LyIter rd layers rounds (depth % 2) j)
-    {sF : Fs} {curF : E} {stF : GkrState} {rowF posF halfF parF : E}
-    (hlast : GkSlotC rd layers depth sF curF stF rowF posF halfF parF)
-    (hz : TbReadsAt rd zeta stF.point) :
-    coreProgram.Rel rd "verify_bus_gkr" (cap0 ++ [cur, gen ^ depth, zeta])
-      (sF.cap ++ [curF] ++ stF.values) := by
-  obtain ⟨fn, hf, hp, hb⟩ := vbgFound
-  obtain ⟨hh, hr⟩ := vbg_body_of hd1 hd hcl hrc hx0 hx1 hcnt hroot hpairs hdsh hodd hit hlast hz
-  refine (tb_rel_pre hf hb vbgPre_noRet _ _).mpr ⟨_, ?_, hh, hr⟩
-  obtain ⟨c', hc'⟩ := Option.isSome_iff_exists.mp vb_chk
-  have hl : (cap0 ++ [cur, gen ^ depth, zeta]).length = 8 := by simp [hcl]
-  rw [hp]
-  apply List.ext_getElem (by simp [hl])
-  intro i h1 _
-  simp only [List.getElem_map, List.getElem_range]
-  have hi : i < 8 := by simpa using h1
-  rw [← List.getD_eq_getElem _ 0 (by omega)]
-  exact ev_params rd _ (by rw [hl]; exact hc') (by rw [hl]; exact hi)
-
 end Body
 
 end

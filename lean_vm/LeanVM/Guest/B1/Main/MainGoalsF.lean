@@ -130,12 +130,6 @@ theorem mf_canon_flatMap {α : Type} (f : α → List E) (hf : ∀ a, AllCanonic
   obtain ⟨a, -, hc⟩ := List.mem_flatMap.mp hc
   exact hf a c hc
 
-theorem mf_digestCells_canon (d : Digest) : AllCanonical (digestCells d) := by
-  intro c hc
-  simp only [digestCells, List.mem_cons, List.not_mem_nil, or_false] at hc
-  rcases hc with rfl | rfl
-  exacts [(digestScalars_canonical d).1, (digestScalars_canonical d).2]
-
 /-! ### The signature claims -/
 
 theorem mf_claimBytes_length (r p : BitVec 128) (m : BitVec 256) : (claimBytes r p m).length = 64 := by

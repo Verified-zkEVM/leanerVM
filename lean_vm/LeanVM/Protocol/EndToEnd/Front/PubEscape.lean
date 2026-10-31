@@ -104,12 +104,6 @@ theorem avgE_indE_eq_prEvent (p : E → Prop) :
   unfold indE
   rw [Finset.sum_ite, Finset.sum_const_zero, add_zero, Finset.sum_const, nsmul_eq_mul, mul_one]
 
-/-- A bound on the uniform probability of an event bounds the average of its indicator. -/
-theorem avgE_indE_le_of_prEvent {p : E → Prop} {ε : ℝ≥0∞}
-    (h : Pr{let c ← $ᵗ E}[p c] ≤ ε) : avgE (fun x ↦ indE (p x)) ≤ ε := by
-  rw [avgE_indE_eq_prEvent]
-  exact h
-
 /-- The average is additive over a finite sum. -/
 private theorem avgE_finset_sum {β : Type} (s : Finset β) (f : β → E → ℝ≥0∞) :
     avgE (fun x ↦ ∑ b ∈ s, f b x) = ∑ b ∈ s, avgE (f b) := by

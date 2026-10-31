@@ -450,9 +450,6 @@ theorem holds_ite_noRet {C : CallRel} {rd : Reader} {σ : Val} (c : V) (z n : Li
 set_option maxRecDepth 8000 in
 theorem e_mul_inv_cancel {z : E} (h : z ≠ 0) : z * z⁻¹ = 1 := mul_inv_cancel₀ h
 
-theorem eToNat_ofK (a : K) : eToNat (ofK a) = kToNat a := by
-  simp [eToNat, limb_ofK, kToNat]
-
 end
 end LeanVM.Guest.B1
 

@@ -433,12 +433,6 @@ theorem _root_.LeanVM.Guest.Core.Program.Rel.tree (hP : P.Wf) {f : String} {args
   let ⟨n, hn⟩ := h
   relN_tree hP n f args rets hn
 
-/-- **`Program.Rel` is the valid trees** of a well-formed program. -/
-theorem rel_iff_tree (hP : P.Wf) {f : String} {args rets : List E} :
-    P.Rel rd f args rets ↔ ∃ t : Tree, t.name = f ∧ t.Valid P rd args rets :=
-  ⟨fun h => let ⟨t, hn, hv, _⟩ := Program.Rel.tree hP h; ⟨t, hn, hv⟩,
-    fun ⟨t, hn, hv⟩ => hn ▸ hv.rel t⟩
-
 end Tree
 
 end

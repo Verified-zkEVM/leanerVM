@@ -156,26 +156,5 @@ theorem b2_mainL (hexp : ExpTablesSound) :
   rw [hnret] at hbody
   exact hbody
 
-/-- **B2 at `main`**: a halting run from `main`'s entry at `fp = 1`, the jump table written and
-every contract holding for runs shorter than it, gives `main`'s relation. -/
-theorem b2_main (hexp : ExpTablesSound) :
-    ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → JumpTables L → ∀ k,
-      (∀ j, FunSpecLt guest L k (glob.sig j).entry (Check.Pre glob L j)
-        (Check.Post coreProgram glob L certByName j)) →
-      Safe guest L k ⟨gpow mainEntry, 1⟩ → coreProgram.Rel L.read "main" [] [] := by
-  intro κ L _ h32 hjtab k hlt hsafe
-  have hc := winOk_of (j := 1) le_rfl (by decide)
-  obtain ⟨henv, hpre, hmem, hsem, hnret, hparams, hname⟩ := main_facts
-  obtain ⟨hrel, -⟩ := checkWins_run (Prog := coreProgram) (fp := 1) hc (fnOf_mem (by decide))
-    (coreOf_find le_rfl (by decide)) (certOf_pows_ok 1) h32 (fun _ ↦ rfl)
-    (certByName_coreOf le_rfl (by decide)) hlt
-    (jtHolds_of hjtab) (by rw [Facts.entryEnv, henv]; exact EnvHolds.nil)
-    (by rw [hpre]; intro _ h; simp at h) (by rw [hmem]; intro _ h; simp at h)
-    (by rw [hsem]; intro _ h; simp at h)
-    (fun i hi h0 hl ↦ known_main hexp hi h0 (holdsList_mono (relL_le_rel _) _ id (fun _ h ↦ h) hl))
-    (by rw [fnOf_1]; exact hsafe)
-  rw [hname, hparams, hnret] at hrel
-  exact relL_le_rel _ _ _ _ hrel
-
 end
 end LeanVM.Guest.End

@@ -104,18 +104,6 @@ theorem bytecodeColumn_injective {prog prog' : Program} (h : prog.logSize = prog
   subst hcode
   rfl
 
-/-- The bit order, stated at the extension: at the cube point whose low coordinates are the
-bits of the instruction index and whose high four are the bits of the slot, the column holds
-that slot of that instruction (§8.1: the opcode of instruction `z` is `P(z, 1, 1, 0, 0)`). -/
-theorem bytecodeColumn_answer_boolVec (prog : Program) (i : Fin (2 ^ prog.logSize))
-    (s : Fin 16) :
-    eval₂Mle (bytecodeColumn prog).values (algebraMap K E)
-        ((boolVec i : Vector E prog.logSize) ++ (boolVec (m := 4) s : Vector E 4)) =
-      algebraMap K E ((encodeSlots (prog.code i))[s]) := by
-  rw [eval₂Mle, evalMle_append_boolVec, evalMle_boolVec, slice_getElem]
-  simpa only [CMlPolynomialEval.map, Fin.getElem_fin, Vector.getElem_map] using
-    congrArg (algebraMap K E) (bytecodeColumn_slot prog i s)
-
 /-- Native bytecode evaluation from the public instruction and slot tables. -/
 def bytecodeColumnEval (prog : Program) (z : Vector E prog.logSize) (w : Vector E 4) : E :=
   ∑ s : Fin 16, (lagrangeBasis w)[s] *

@@ -52,22 +52,12 @@ theorem walkSum_zero_digits (S : Nat) : ∀ (r t : Nat), walkSum S 0 r t = t * (
       simp [walkSize, dig]
       ring
 
-theorem walkSize_le (stride d : Nat) : walkSize stride d ≤ 1 + 3 * stride := by
-  unfold walkSize
-  split
-  · omega
-  · have := Nat.mul_le_mul_right stride (show 3 - d ≤ 3 by omega); omega
-
 /-- The region of the walks of arm `k` from `b0`, stride `S`. -/
 def WalksR (slots : Nat → Nat → Nat) (S k n b0 : Nat) (x : V) : Prop :=
   ∃ t < n, WalkR (slots t) S (dig k t) (walkBase S k 0 t b0) x
 
 theorem ssa_single_atom {a : Atom} (hd : DefOK a) (hr : ∀ v ∈ aOuts a, v ∉ aReads a) : SSA [.atom a] :=
   ⟨hd, hr, fun _ h => by simp [outsList] at h, trivial⟩
-
-theorem vals_cons_mem {a : Atom} {ss : List Stmt} {x : V} (h : x ∈ Stmt.valsList (.atom a :: ss)) :
-    x ∈ a.vals ∨ x ∈ Stmt.valsList ss := by
-  simpa [valsList_cons, Stmt.vals] using h
 
 /-- **An arm is in single-assignment form.** -/
 theorem armT_ssa {W : WotsT} {B : Nat} (hW : StepShape W B) {slots : Nat → Nat → Nat}
@@ -232,8 +222,6 @@ theorem armT_ssa {W : WotsT} {B : Nat} (hW : StepShape W B) {slots : Nat → Nat
         · exact Or.inl h
       · cases fold <;> simp [mulS, copyS, cst, addS, outsList, aOuts] at h <;>
           rcases h with rfl | rfl | rfl <;> simp [hk]
-
-theorem kcanon_nil (σ : Val) : KCanon σ [] := fun _ _ _ _ h => by simp at h
 
 theorem kcanon_noKec {σ : Val} {ss : List Stmt}
     (h : ∀ x ∈ ss, ∀ ins outs i o, x ≠ .atom (.keccak ins outs i o)) : KCanon σ ss :=

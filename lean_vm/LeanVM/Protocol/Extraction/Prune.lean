@@ -125,9 +125,6 @@ theorem mem_pruneStep {A : ℕ} {sym : ℕ → K} {L : List (Array K × Array K)
   · rintro ⟨s, hs, ce, hce, hA, rfl⟩
     exact ⟨s, hs, ce, hce, by rw [ite_eq_left hA]⟩
 
-theorem pruneStep_nil (A : ℕ) (sym : ℕ → K) (L : List (Array K × Array K)) :
-    pruneStep A sym L [] = [] := rfl
-
 theorem pruneUpTo_zero (κ R A : ℕ) (W : ℕ → List K) :
     pruneUpTo κ R A W 0 = [([], List.range (2 ^ (κ + R)))] := rfl
 
@@ -271,13 +268,6 @@ theorem candidates_subset_decodeStacks {μ R : ℕ} (hμ : 15 ≤ μ ∧ μ ≤ 
   change q ∈ decodeStacksAt μ R (johnsonThreshold μ R) W
   exact mem_decodeStacksAt (by omega) (by simp only [initialFold]; omega) hA hcap W hq
 
-/-- The same, at the statement's real-valued threshold (`johnsonThreshold_eq_real`). -/
-theorem candidates_real_subset_decodeStacks {μ R : ℕ} (hμ : 15 ≤ μ ∧ μ ≤ 28)
-    (hR : 1 ≤ R ∧ R ≤ 4) (W : ℕ → List K) :
-    Candidates μ R (johnsonThresholdReal μ R) W ⊆ {q | q ∈ decodeStacks μ R W} := by
-  rw [johnsonThreshold_eq_real]
-  exact candidates_subset_decodeStacks hμ hR W
-
 /-! ## Distinct survivors -/
 
 /-- **The survivors' prefixes are pairwise distinct.** -/
@@ -345,56 +335,6 @@ theorem injOn_evalTuple {κ R A : ℕ} (hκ : κ ≤ 64) (W : ℕ → List K) (U
   simpa [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hu,
     List.getElem?_eq_getElem hu'] using e
 
-/-- **The number of survivors after `U ≥ 1` lanes** is at most the size of any set of `U`-tuples
-of words that contains the encodings of every `U` arrays of size `2^κ` whose encodings agree with
-the word's first `U` lanes on at least `A` common columns. -/
-theorem length_pruneUpTo_le {κ R A : ℕ} (hκ : κ ≤ 64) (W : ℕ → List K) {U : ℕ} (hU : 0 < U)
-    (T : Finset (Fin U → Fin (2 ^ (κ + R)) → K))
-    (hT : ∀ cs : List (Array K), cs.length = U → (∀ u < U, (cs.getD u #[]).size = 2 ^ κ) →
-      A ≤ (commonCols κ R W cs U).length → evalTuple κ R U cs ∈ T) :
-    (pruneUpTo κ R A W U).length ≤ T.card := by
-  classical
-  have hnd := nodup_pruneUpTo κ R A W U
-  have hinj : ∀ x ∈ (pruneUpTo κ R A W U).map Prod.fst,
-      ∀ y ∈ (pruneUpTo κ R A W U).map Prod.fst, evalTuple κ R U x = evalTuple κ R U y → x = y := by
-    intro x hx y hy hxy
-    simp only [List.mem_map] at hx hy
-    obtain ⟨⟨x1, x2⟩, hx, rfl⟩ := hx
-    obtain ⟨⟨y1, y2⟩, hy, rfl⟩ := hy
-    exact injOn_evalTuple hκ W U ⟨x2, hx⟩ ⟨y2, hy⟩ hxy
-  have hnd' := hnd.map_on hinj
-  rw [← List.length_map (f := Prod.fst), ← List.length_map (f := evalTuple κ R U),
-    ← List.toFinset_card_of_nodup hnd']
-  refine Finset.card_le_card fun t ht ↦ ?_
-  simp only [List.mem_toFinset, List.mem_map] at ht
-  obtain ⟨cs, ⟨⟨cs', S⟩, hx, rfl⟩, rfl⟩ := ht
-  obtain ⟨hlen, hlist, hcols, hA⟩ := mem_pruneUpTo hx
-  exact hT cs' hlen (fun u hu ↦ size_of_mem_laneListAt (hlist u hu)) (hcols ▸ hA hU)
-
-/-- **The size of a lane's list** is at most the size of any set of words that contains the
-encodings of every array of size `2^κ` whose encoding agrees with lane `u` on at least `A`
-columns (with lean_vm's `iList` at `ρ = Unit`, the Johnson bound). -/
-theorem length_laneListAt_le {κ R A : ℕ} (hκ : 1 ≤ κ) (hn : κ + R ≤ 64) (hA : A ≤ 2 ^ (κ + R))
-    (hcap : (2 ^ κ - 1) * 2 ^ (κ + R) < A * A) (W : ℕ → List K) (u : ℕ)
-    (T : Finset (Fin (2 ^ (κ + R)) → K))
-    (hT : ∀ c : Array K, c.size = 2 ^ κ → A ≤ ((Finset.range (2 ^ (κ + R))).filter fun v ↦
-      (novelFwd κ R c).getD v 0 = laneSymbol W u v).card →
-        (fun v : Fin (2 ^ (κ + R)) ↦ (novelFwd κ R c).getD v.val 0) ∈ T) :
-    (laneListAt κ R A W u).length ≤ T.card := by
-  classical
-  let e : Array K → Fin (2 ^ (κ + R)) → K := fun c v ↦ (novelFwd κ R c).getD v.val 0
-  have hnd : (laneListAt κ R A W u).Nodup := List.nodup_dedup _
-  have hinj : ∀ x ∈ laneListAt κ R A W u, ∀ y ∈ laneListAt κ R A W u, e x = e y → x = y :=
-    fun x hx y hy hxy ↦ eq_of_novelFwd_eq (R := R) (by omega)
-      (laneListAt_sound hκ hn hA hcap W u hx).1 (laneListAt_sound hκ hn hA hcap W u hy).1
-      fun v hv ↦ congrFun hxy ⟨v, hv⟩
-  rw [← List.length_map (f := e), ← List.toFinset_card_of_nodup (hnd.map_on hinj)]
-  refine Finset.card_le_card fun t ht ↦ ?_
-  simp only [List.mem_toFinset, List.mem_map] at ht
-  obtain ⟨c, hc, rfl⟩ := ht
-  obtain ⟨hsize, hagree⟩ := laneListAt_sound hκ hn hA hcap W u hc
-  exact hT c hsize hagree
-
 /-! ## Encodings are Reed–Solomon codewords -/
 
 /-- **The encoding of any array is a Reed–Solomon codeword** of message length `2^κ` on the
@@ -410,12 +350,6 @@ theorem encoding_mem_code {κ R : ℕ} (hn : κ + R ≤ 64) (c : Array K) :
   rw [novelFwd_getD (by omega) _ v.isLt]
   simp [Polynomial.eval_finsetSum, eval_novelPoly]
   rfl
-
-/-- Every row of `evalTuple` is a Reed–Solomon codeword. -/
-theorem evalTuple_mem_code {κ R U : ℕ} (hn : κ + R ≤ 64) (cs : List (Array K)) (u : Fin U) :
-    evalTuple κ R U cs u ∈
-      ReedSolomon.code (domainEmb (2 ^ (κ + R)) (Nat.pow_le_pow_right (by norm_num) hn)) (2 ^ κ) :=
-  encoding_mem_code hn _
 
 /-! ## The decoded stacks are distinct candidates -/
 

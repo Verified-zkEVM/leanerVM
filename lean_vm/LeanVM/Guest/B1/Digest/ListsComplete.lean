@@ -28,14 +28,6 @@ open LeanVM.Guest.B1.Fwd
 
 variable {rd : Reader}
 
-/-- **The claim list's returns are determined** by the memory. -/
-theorem claimListOut_unique {p : E} {n : ℕ} {r r' : List E} (h : ClaimListOut rd p n r)
-    (h' : ClaimListOut rd p n r') : r = r' := by
-  obtain ⟨cells, hl, hr, -, hd⟩ := h
-  obtain ⟨cells', hl', hr', -, hd'⟩ := h'
-  have hc : cells = cells' := by rw [readsAt_memRun hr, readsAt_memRun hr', hl, hl']
-  rw [hd, hd', hc]
-
 theorem good_load_of_any {S : List Atom} {w : ℕ → E} {σ : Val} {atoms : List Atom} {x p : V}
     {o : ℕ} (hS : S = []) (hg : ∀ a ∈ atoms, Good rd S w σ a) (h : atoms.any (isLoadAt x p o) = true) :
     σ x = rdAt rd (σ p) o := by

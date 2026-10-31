@@ -114,16 +114,5 @@ theorem extractor_of_extracted {X : Type} (σ : Seeds X) {ℓ : Log} {k : ℕ} {
     · simp at hx
   · simp at hx
 
-/-- **The extractor's list is short**: at every admissible shape, the stacks the list decoder
-returns are distinct candidates of the word, so at most `2^18` (`spec_candidates_ncard_le`). -/
-theorem decodeStacks_length_le {μ R : ℕ} (h : Whir.Admissible μ R) (W : ℕ → List K) :
-    (Extraction.decodeStacks μ R W).length ≤ 2 ^ 18 := by
-  have h1 := h.1
-  have h2 := h.2.1
-  unfold Whir.minLogStack at h1
-  unfold Whir.maxLogStack at h2
-  exact (Extraction.PruneProofs.length_decodeStacksAt_le (by show 6 ≤ μ; omega)
-    (by show μ - 6 ≤ 64; omega) W).trans (spec_candidates_ncard_le h W)
-
 end
 end LeanVM.Protocol.EndToEnd.Sound

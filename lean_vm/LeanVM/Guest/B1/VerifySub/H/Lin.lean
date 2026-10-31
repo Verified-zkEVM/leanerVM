@@ -35,10 +35,6 @@ def SubOf (L : Main.Layout) (q : ℕ × List E) : Prop :=
 theorem subOf_self {L : Main.Layout} {q : ℕ × List E} (hq : q ∈ L) : SubOf L q :=
   ⟨q, hq, 0, by simp, by simp, by simp⟩
 
-theorem subOf_mono {L L' : Main.Layout} (hLL : ∀ x ∈ L, x ∈ L') {q : ℕ × List E} (h : SubOf L q) :
-    SubOf L' q :=
-  let ⟨q', hq', off, h1, h2, h3⟩ := h; ⟨q', hLL q' hq', off, h1, h2, h3⟩
-
 theorem subOf_memL {rd : Reader} {L : Main.Layout} (hL : Main.MemL rd L) {q : ℕ × List E} (h : SubOf L q) :
     ReadsAt rd (ofK (gpow q.1)) q.2 := by
   obtain ⟨q', hq', off, h1, h2, h3⟩ := h

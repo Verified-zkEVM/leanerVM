@@ -556,19 +556,6 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
   · show [gen ^ cpPre lm hs 99, ofK (gpow e121), ofK (gpow e2)] = _
     rw [cpPre_total]
 
-/-- **`certify_placement` is complete**: on a memory holding its base and squares table, its
-three buffers holding the columns' `g^κ`, `stackOffsets`'s order and `g^offset`, defined below
-`2^7`, the relation holds with the stack's total and the buffers. -/
-theorem cp_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 32)
-    (hhs : ∀ h ∈ hs, h < 29) (h5 : hs.getD 5 0 ≤ 27) (ekb esq e2 e120 e121 : ℕ) (rd : Reader)
-    (hm : MemLay rd (cpOwn lm hs e2 e120 e121 ++ cpLin lm hs ekb esq)) (hlow : LowDefB 7 rd) :
-    coreProgram.Rel rd "certify_placement" [ofK (gpow ekb), ofK (gpow esq)]
-      [gen ^ stackTotal (columnKappas lm guestLogBytecode hs), ofK (gpow e121), ofK (gpow e2)] := by
-  rw [tb_rel_iff_sem (by exact Program.find?_of_indexOf? (j := 15) (by decide +kernel) rfl),
-    core15_body]
-  exact ⟨cpσ lm hs ekb esq e2 e120 e121 rd, rfl,
-    cp_body_holds hl hlm hhs h5 ekb esq e2 e120 e121 rd hm hlow⟩
-
 /-- **The buffers satisfy `PCtx`** on any memory holding them. -/
 theorem cp_ctx {lm : ℕ} {hs : List ℕ} {e2 e120 e121 : ℕ} {rd : Reader}
     (hm : MemLay rd (cpOwn lm hs e2 e120 e121)) :

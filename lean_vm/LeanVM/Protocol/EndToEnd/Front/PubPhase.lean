@@ -105,20 +105,12 @@ theorem pubLimb_eq (publicInput : Digest) (r : E) (ℓ : Fin 3) :
 
 /-! ## The statement of the instance -/
 
-/-- The digest's halves are the two public words of its public input. -/
-theorem digestScalars_eq_words (d : Digest) :
-    digestScalars d = ((PublicInput.ofDigest d).word0, (PublicInput.ofDigest d).word1) := rfl
-
 /-! ## The fidelity of the claims -/
 
 section Fidelity
 
 variable (prog : Program) (s : LeanIsa.Sizes)
   {fl : Option (KeccakRegion (LeanIsa.shape prog s))}
-
-/-- The leanISA instance sends no line. -/
-theorem unsentLines (input : PublicInput) :
-    ((leanIsaWith prog s fl).publicLines input).toList.filter (·.sent) = [] := rfl
 
 /-- **The phase's line values are the program's limbs.** When the statement is the digest's, the
 value the ArkLib phase computes for line `j` (`MEM_LO, MEM_HI, MEM_TOP`) is the program's limb

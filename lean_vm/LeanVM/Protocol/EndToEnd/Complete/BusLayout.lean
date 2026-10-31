@@ -128,10 +128,6 @@ theorem sum_flatten_ofFn {α : Type} (f : Fin 6 → List α) (g : α → ℕ) :
   rw [List.map_flatten, List.sum_flatten, List.map_ofFn, List.map_ofFn, List.sum_ofFn]
   rfl
 
-/-- Each table pulls as often as it pushes. -/
-theorem length_pySide_pull : ∀ t : Fin 6, (pySide t .pull).length = (pySide t .push).length := by
-  decide +kernel
-
 /-- Each table has at least one count column per push, at most. -/
 theorem length_countColumns_le :
     ∀ t : Fin 6, (tables.getD t default).countColumns.length ≤ (pySide t .push).length := by

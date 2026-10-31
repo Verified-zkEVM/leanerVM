@@ -43,28 +43,6 @@ open Air.Flat (EnsembleWitness)
 
 @[expose] public section
 
-/-- An accepted run with the computed value is accepted with a true claim. -/
-theorem runProof_claimed_of_computed (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
-    (opening : ℕ → ℕ → List StackClaim → Prog Unit) (bytecode : List K) (publicInput : Digest)
-    {sd : KeccakState} {π : Proof}
-    (h : Id.run (runProofWithHash H F ((execWith computedValue opening bytecode publicInput).bind
-      fun _ ↦ Prog.ret true) sd π) = true) :
-    ∃ c : BytecodeClaim, c.Holds bytecode ∧
-      Id.run (runProofWithHash H F ((execWith (claimedValue c) opening bytecode publicInput).bind
-        fun _ ↦ Prog.ret true) sd π) = true := by
-  unfold runProofWithHash at h ⊢
-  revert h
-  match hr : Compile.runWithHash H F ((execWith computedValue opening bytecode publicInput).bind
-      fun _ ↦ Prog.ret true) ⟨⟨sd, []⟩, π.stream, π.openings, []⟩ with
-  | some (true, s) =>
-    intro h
-    obtain ⟨c, hc, e⟩ := run_claimed_of_computed H F opening bytecode publicInput _ hr
-    refine ⟨c, hc, ?_⟩
-    rw [e]
-    exact h
-  | some (false, _) => intro h; cases h
-  | none => intro h; cases h
-
 /-- **An accepted proof of a prover that is the specification at a child's witness (or the empty
 proof) is a child the guest accepts.** -/
 theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement} {t : Execution guest} {ρ : ℕ}

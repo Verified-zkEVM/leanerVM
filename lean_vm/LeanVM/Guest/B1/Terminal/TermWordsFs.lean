@@ -169,47 +169,5 @@ theorem rs_totalLeOn_fs : ∀ c ≤ 34,
 
 /-! ## At `B2C.fs` -/
 
-/-- **`ring_switch_target` is complete, placed, within `10606` words at `B2C.fs`.** -/
-theorem rst_completeAtB_fs (cert : String → V → ℕ) (κ : ℕ) {bs bm : ℕ} {s chs : List E}
-    (hs : s.length = 64) (hc : chs.length = 6) :
-    CompleteAtB B2C.fs cert κ "ring_switch_target" [(bs, s), (bm, chs)]
-      [ofK (Parameters.gpow bs), ofK (Parameters.gpow bm)]
-      (Returns [polyEval (s.map (phiMap · chs)) gen]) 10606 :=
-  (rst_completeAtB κ hs hc l14_totalLeOn_fs).mono le_rfl (by rw [fs_rst])
-
-/-- **`ring_switch_weight` is complete, placed, within `275 + 64 · (count + 1) + 16433` words at
-`B2C.fs`**, on at most `34` coordinates. -/
-theorem rsw_completeAtB_fs (cert : String → V → ℕ) (κ : ℕ) {bz bp bc count : ℕ}
-    {zs ps cs : List E} (hcount : count ≤ 34) (hz : zs.length = count) (hp : ps.length = count)
-    (hc : cs.length = 64) :
-    CompleteAtB B2C.fs cert κ "ring_switch_weight" [(bz, zs), (bp, ps), (bc, cs)]
-      [ofK (Parameters.gpow bz), ofK (Parameters.gpow bp), ofK (Parameters.gpow bc), gen ^ count]
-      (Returns [ringWeight zs (ps.map (1 + ·)) cs]) (275 + 64 * (count + 1) + 16433) :=
-  (rsw_completeAtB κ (by omega) hz hp hc (rs_totalLeOn_fs count hcount)).mono le_rfl
-    (by rw [fs_rsw])
-
-/-- **`check_opening_terminal` is complete, placed, within `38888` words at `B2C.fs`**
-(`check_opening_terminal_completeAtB` with the callees' words of the certificates and
-`rs_totalLeOn_fs`). -/
-theorem check_opening_terminal_completeAtB_fs (cert : String → V → ℕ) (κ : ℕ) (hκ : 6 ≤ κ)
-    (B : TermBases) (Lin : Main.Layout)
-    {layout : Verifier.Layout} {bus : BusResult} {claims : List ColumnClaim} {out : ColumnClaim}
-    {lam : E} {ringPoint coeffs x : List E} {rm gmu gzcn glm gtau lamOut inner yr target : E}
-    {nc : ℕ} (hnc : nc ≤ 40) (hgz : gzcn = gen ^ nc)
-    (hpre : ∀ rd, LowDef κ rd → MemL rd Lin → TermPre rd layout bus claims out lam ringPoint coeffs x
-      (termArgs B rm gmu gzcn glm gtau lamOut inner yr target))
-    (hreg : ∀ i, TermRegion B bus.point.length nc (layout.tableLogHeights.getD opKeccak 0) i →
-      RegionL Lin i)
-    (hbus : bus.point.length ≤ 34)
-    (hlen : ∀ c ∈ claims, c.point.length =
-      (columnKappas layout.logMemory layout.logBytecode layout.tableLogHeights).getD c.column 0)
-    (hfin : (inner + stackWeight layout (openedClaims claims [out]) ringPoint coeffs lam x) * yr =
-      target) :
-    CompleteAtB B2C.fs cert κ "check_opening_terminal" Lin
-      (termArgs B rm gmu gzcn glm gtau lamOut inner yr target) (Returns []) 38888 :=
-  (check_opening_terminal_completeAtB κ hκ B Lin hnc hgz hpre hreg hbus hlen hfin eqc_totalLe_fs
-    l15_totalLeOn_fs cs_totalLe_fs cs_fs_le rs_totalLeOn_fs).mono le_rfl
-    (by rw [fs_cot, fs_l15, fs_st, fs_rsw]; decide)
-
 end
 end LeanVM.Guest.B1.VerifySub

@@ -111,21 +111,5 @@ theorem logMem_le_iff {n k : ℕ} : logMem n ≤ k ↔ minLogMem ≤ k ∧ n ≤
 theorem logMem_le_maxLogMem {n : ℕ} (h : n ≤ 2 ^ 32) : logMem n ≤ maxLogMem :=
   logMem_le_iff.mpr ⟨by decide, h⟩
 
-/-- The memory is less than twice the words, or the least memory. -/
-theorem two_pow_logMem_le (n : ℕ) : 2 ^ logMem n ≤ max (2 ^ minLogMem) (2 * n) := by
-  rcases le_total (Nat.clog 2 n) minLogMem with h | h
-  · rw [logMem, max_eq_left h]; exact le_max_left _ _
-  · rw [logMem, max_eq_right h]
-    have h1 : 1 < n := by
-      by_contra h1
-      have : Nat.clog 2 n = 0 := Nat.clog_of_right_le_one (by omega) 2
-      simp only [minLogMem] at h; omega
-    have := Nat.pow_pred_clog_lt_self (b := 2) (by decide) h1
-    have hpos := Nat.clog_pos (b := 2) (by decide) h1
-    refine le_max_of_le_right ?_
-    calc 2 ^ Nat.clog 2 n = 2 * 2 ^ (Nat.clog 2 n).pred := by
-          rw [← pow_succ', Nat.add_one, Nat.succ_pred_eq_of_pos hpos]
-      _ ≤ 2 * n := by omega
-
 end
 end LeanVM.Guest.Memory

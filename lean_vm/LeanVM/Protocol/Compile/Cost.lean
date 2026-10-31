@@ -221,14 +221,6 @@ theorem ret' (a : α) (n : ℕ) : CostLE height (ret a) n := trivial
 
 theorem fail' (n : ℕ) : CostLE height (fail : Prog α) n := trivial
 
-theorem mono {p : Prog α} {n m : ℕ} (h : CostLE height p n) (hnm : n ≤ m) :
-    CostLE height p m := Costs.mono h hnm fun _ h ↦ h
-
-/-- Sequencing: the costs add. -/
-theorem bind {p : Prog α} {f : α → Prog β} {n m : ℕ} (hp : CostLE height p n)
-    (hf : ∀ a, CostLE height (f a) m) : CostLE height (p.bind f) (n + m) :=
-  Costs.bind hp fun a _ ↦ hf a
-
 theorem read {k : E → Prog α} {n : ℕ} (h : ∀ x, CostLE height (k x) n) :
     CostLE height (Prog.read k) (n + 1) :=
   ⟨by omega, fun x ↦ by rw [Nat.add_sub_cancel]; exact h x⟩
@@ -236,9 +228,6 @@ theorem read {k : E → Prog α} {n : ℕ} (h : ∀ x, CostLE height (k x) n) :
 theorem sample {k : E → Prog α} {n : ℕ} (h : ∀ c, CostLE height (k c) n) :
     CostLE height (Prog.sample k) (n + 4) :=
   ⟨by omega, fun x ↦ by rw [Nat.add_sub_cancel]; exact h x⟩
-
-theorem grind (bits : ℕ) {k : Prog α} {n : ℕ} (h : CostLE height k n) :
-    CostLE height (Prog.grind bits k) (n + 5) := ⟨by omega, by rw [Nat.add_sub_cancel]; exact h⟩
 
 theorem commit {ht : ℕ} (w : ℕ) {k : Prog α} {n : ℕ} (hht : ht ≤ height)
     (h : CostLE height k n) : CostLE height (Prog.commit ht w k) (n + 2) :=
@@ -248,10 +237,6 @@ theorem query (i : ℕ) (ps : List ℕ) {k : List (List K) → Prog α} {n : ℕ
     (h : ∀ rows, CostLE height (k rows) n) :
     CostLE height (Prog.query i ps k) (n + openCost height ps.length) :=
   ⟨by omega, fun r ↦ by rw [Nat.add_sub_cancel]; exact h r⟩
-
-theorem ite {c : Prop} [Decidable c] {p q : Prog α} {n : ℕ} (hp : c → CostLE height p n)
-    (hq : ¬ c → CostLE height q n) : CostLE height (if c then p else q) n :=
-  Costs.ite hp hq
 
 end CostLE
 

@@ -114,13 +114,6 @@ theorem soundnessError_le_bits {Q : ℕ} (hQ : Q ≤ 2 ^ 120) :
     _ ≤ Q * 2 ^ 129 + 2 ^ 14 * 2 ^ 129 := Nat.add_le_add_left (by norm_num) _
     _ = (Q + 2 ^ 14) * 2 ^ 129 := by ring
 
-/-- **Knowledge soundness in bits, in the two-oracle random-oracle model**: an adversary of at most `Q ≤ 2^120` queries breaks
-soundness, for the extractor `extractor`, with probability at most `(Q + 2^14) · 2^-127`. -/
-theorem knowledgeSoundnessRom_bits : ∀ (A : Adversary) (Q : ℕ), A.IsTotalQueryBound Q →
-    Q ≤ 2 ^ 120 →
-      Pr{let z ← experiment A}[Breaks extractor z] ≤ (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127 :=
-  fun _ _ hA hQ ↦ (knowledgeSoundnessRom hA).trans (soundnessError_le_bits hQ)
-
 /-! ## The statement of `LeanVM/Protocol/Rom/Statement.lean` -/
 
 /-- **Completeness in the two-oracle random-oracle model holds**, with the honest prover

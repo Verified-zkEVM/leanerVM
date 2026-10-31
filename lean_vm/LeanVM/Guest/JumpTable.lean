@@ -46,8 +46,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 /-- `main`'s entry pc, after `__jump_tables`. -/
 def mainEntry : ℕ := Data.f0.len
 
-theorem f1_main : Data.f1.name = "main" ∧ Data.f1.entry = mainEntry := ⟨rfl, rfl⟩
-
 /-- **The jump table is written**: every slot of `Memory.tableCells` holds its word. -/
 def JumpTables {κ : ℕ} (L : MemoryImage κ) : Prop := ∀ q ∈ Memory.tableCells, L.read (gpow q.1) = some q.2
 

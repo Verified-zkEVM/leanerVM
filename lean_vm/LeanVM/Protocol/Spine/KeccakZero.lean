@@ -257,11 +257,6 @@ theorem auxStage_full (q : Column I.μ) {ch : List E} (hch : ch.length = I.τmax
 theorem auxAt_of_aux {q : Column I.μ} (h : I.aux q) (point : List E) : I.auxAt point q :=
   fun r hr ↦ r.holdsOn_of_holds (h r hr) _ ((List.length_take_le _ _).trans (min_le_left _ _))
 
-/-- The Keccak predicate holds at every stage. -/
-theorem auxStage_of_aux {q : Column I.μ} (h : I.aux q) (ch : List E)
-    (hch : ch.length ≤ I.τmax) : I.auxStage ch q := fun r hr ↦
-  r.holdsOn_of_holds (h r hr) _ (by simp only [List.length_reverse, List.length_drop]; omega)
-
 /-- **The escape at a round of the table sumcheck**: a failing Keccak predicate passes after a
 fresh challenge at one value at most. -/
 theorem card_auxStage_push_le (q : Column I.μ) {ch : List E} (hch : ch.length < I.τmax)

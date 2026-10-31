@@ -92,16 +92,6 @@ theorem two_le_pushLeaves_leanIsa (prog : Program) (s : Sizes) :
   rw [pushLeaves_leanIsa]
   exact le_add_right (le_add_right (le_add_left (Nat.le_self_pow s.logMem_pos.ne' 2)))
 
-/-- The instance's bus depth is positive. -/
-theorem μBus_leanIsa_ne_zero (prog : Program) (s : Sizes) :
-    (leanIsaInstance prog s).μBus ≠ 0 :=
-  (Nat.clog_pos (by norm_num) (two_le_pushLeaves_leanIsa prog s)).ne'
-
-/-- The instance's degree bound is `2`. -/
-theorem d_leanIsa_le (prog : Program) (s : Sizes) :
-    (leanIsaInstance prog s).d ≤ 2 :=
-  le_rfl
-
 /-- The instance's constraint counts: `JUMP` (table `7`) has two, the others none. -/
 theorem length_constraints : ∀ j : Fin 9,
     (LeanIsa.constraints j).length = if j = opIdx 4 then 2 else 0 := by

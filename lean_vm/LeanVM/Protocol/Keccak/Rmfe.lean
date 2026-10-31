@@ -90,15 +90,6 @@ set_option maxRecDepth 100000 in
 /-- **The embedding lemma**, checked by the kernel on the literals. -/
 theorem rmfeOk_lit : rmfeOk embedLit projectLit = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
-/-- The embedding lemma with the verifier's own `carryless` and `bitParity`: the parity of
-`mask_i ∧ (emb_a · emb_b)` is `[i = a = b]`. -/
-theorem rmfe_carryless : ∀ a < 16, ∀ b < 16, ∀ i < 16,
-    bitParity (rmfeProject.getD i 0 &&& carryless (rmfeEmbed.getD a 0) (rmfeEmbed.getD b 0)) =
-      if i = a ∧ a = b then 1 else 0 := by
-  rw [rmfeEmbed_eq, rmfeProject_eq]
-  decide +kernel
-
 theorem rmfeOk_at {a b i : ℕ} (ha : a < 16) (hb : b < 16) (hi : i < 16) :
     parityL (rmfeProject.getD i 0)
       (mulGF2 (bitsFrom (rmfeEmbed.getD a 0) 24) (bitsFrom (rmfeEmbed.getD b 0) 24)) =

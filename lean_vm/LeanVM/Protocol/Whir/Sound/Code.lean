@@ -220,11 +220,6 @@ theorem consRows_unconsRows {m : ℕ} {ι M : Type*} (Q : Bool × (Fin m → Boo
   funext r
   simp [consRows, unconsRows]
 
-theorem unconsRows_consRows {m : ℕ} {ι M : Type*} (Q : (Fin (m + 1) → Bool) → ι → M) :
-    unconsRows (consRows Q) = Q := by
-  funext u
-  simp [consRows, unconsRows]
-
 /-- Folding the integer-indexed oracle is folding its split rows. -/
 theorem rowsOf_foldN {m : ℕ} {ι : Type*} (s : E) (O : ℕ → ι → E) :
     rowsOf m (foldN s O) = fold s (consRows (rowsOf (m + 1) O)) := by

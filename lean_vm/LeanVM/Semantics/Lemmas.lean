@@ -201,15 +201,6 @@ theorem step_of_fetch_eq_some {κ : ℕ} {prog : Program} {L : MemoryImage κ} {
     {ins : Instr} (h : prog.fetch r.pc = some ins) : step prog L r = execute L r ins := by
   rw [step, h]; rfl
 
-/-- A step that fetches `ins` and reaches `next` executes `ins` to `next`: the one join between
-a program's step and an instruction's execution. The tables of the arithmetization
-are stated over `execute`, program-free as leanVM's are, and `constraintSoundness` composes them
-with `Program.fetch` through this lemma. -/
-theorem execute_of_step {κ : ℕ} {prog : Program} {L : MemoryImage κ} {r : Registers K} {ins : Instr}
-    {next : Registers K} (hfetch : prog.fetch r.pc = some ins) (hstep : step prog L r = some next) :
-    execute L r ins = some next := by
-  rwa [step_of_fetch_eq_some hfetch] at hstep
-
 /-! ## Execution -/
 
 /-! ### The register sequence of a trace -/

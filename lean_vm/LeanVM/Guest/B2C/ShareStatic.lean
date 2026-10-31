@@ -40,8 +40,6 @@ noncomputable def apartOkN (j vb : ℕ) : Bool :=
     (certOf j).facts.env.all (fun p ↦ (plumbOf j).stat.any fun q ↦ Nat.beq q.1 p.1 && q.2 == .fpg 0) &&
     (bif Nat.beq j 1 then Nat.blt (Nat.lor (Nat.lor trsv sc) ac) (2 ^ 406) else true)
 
-theorem apartOk_eq (j : ℕ) : apartOk j = apartOkN j (bitsOf (certOf j).locs) := rfl
-
 /-- `shareStatic` with the bit set of the values' cells given. -/
 noncomputable def shareStaticN (j vb : ℕ) : Bool :=
   (locW (certOf j) 0).seq fun loc ↦ natSeq (tmpCells (plumbOf j)) fun tc ↦

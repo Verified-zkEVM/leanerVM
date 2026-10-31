@@ -77,8 +77,6 @@ theorem carries_squeeze {s : Fs} {sp : Sponge} (h : s.Carries sp) :
 
 theorem prog_bind_eq {α β : Type} (p : Prog α) (f : α → Prog β) : p >>= f = p.bind f := rfl
 
-theorem prog_pure_eq {α : Type} (a : α) : (pure a : Prog α) = Prog.ret a := rfl
-
 theorem run_bind {α β : Type} (p : Prog α) (f : α → Prog β) (st : ProgState) :
     runId (p.bind f) st = (runId p st).bind (fun r => runId (f r.1) r.2) := by
   induction p generalizing st with

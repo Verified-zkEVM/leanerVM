@@ -313,18 +313,5 @@ theorem pack_guard {name : String} {fn : Fn} (hf : coreProgram.find? name = some
     refine ⟨σ, by rw [hpar]; exact hp, ?_⟩
     rw [hpre]; exact hb
 
-/-- **The pack rounds' loop is complete**: an honest iteration at every `g^j`, `j < m`, gives the
-guard and the loop run of `keccak_layer`'s call. -/
-theorem packLoop_complete (first odd : ℕ) {rd : Reader} {rec pp pt : E} {m : ℕ}
-    (hs : ∀ j < m, PackStep rd rec pp pt (gen ^ j)) :
-    IsInK (1 + gen ^ m) ∧
-      (1 + gen ^ m ≠ 0 → coreProgram.Rel rd (packLoopName first odd) [1, gen ^ m, rec, pp, pt] []) := by
-  unfold packLoopName
-  split
-  · exact pack_guard find_packLoop30 pack_shape30 pack_loopPre30 rfl hs
-  · exact pack_guard find_packLoop31 pack_shape31 pack_loopPre31 rfl hs
-  · exact pack_guard find_packLoop32 pack_shape32 pack_loopPre32 rfl hs
-  · exact pack_guard find_packLoop33 pack_shape33 pack_loopPre33 rfl hs
-
 end
 end LeanVM.Guest.B1.VerifySub

@@ -336,8 +336,6 @@ ones. -/
 def ReadsNothing (ev : (List K → List E → Prog E)) : Prop :=
   ∀ words point, Reads (ev words point) 0 fun _ ↦ True
 
-theorem readsNothing_computed : ReadsNothing computedValue := fun _ _ ↦ trivial
-
 theorem readsNothing_claimed (c : BytecodeClaim) : ReadsNothing (claimedValue c) := fun _ _ ↦
   Reads.seq (Reads.require (n := 0) _) (fun _ _ ↦ trivial) le_rfl
 

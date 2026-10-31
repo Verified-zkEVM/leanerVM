@@ -361,24 +361,6 @@ def roundSecurity (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consistent m)
       (Typed.roundErrors F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0))) :=
   (sendPolySecurity j Φ).append (drawChallengeSecurity j Φ H S hj)
 
-omit [∀ i, OracleInterface (O i)] [DecidableEq F] [Finite F] in
-/-- **The round check is load-bearing**: the challenge drawn without checking the recorded
-polynomial has no knowledge error below one, whatever the extractor, once a statement's running
-claim is off the family's and the invariant holds after every challenge: the honest polynomial
-is carried into the next relation at every challenge. -/
-theorem drawChallenge_unchecked_one_le (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consistent m)
-    (hj : j < m) {e : ℝ≥0}
-    (Sec : Typed.Security (Typed.sampleChallenge O F (fun _ ↦ true)
-        (fun p : MidStmt X F j d ↦ fun c ↦ next j p.1 (evaluate d p.2 c) c))
-      (relMid Φ j) (rel Φ (j + 1)) (Typed.drawErrors F e))
-    (s : Stmt X F j) (o : ∀ i, O i) (w : W) (hclaim : s.2.2 ≠ Φ.claim ((s.1, o), w) j s.2.1)
-    (hinv : ∀ x, Φ.inv ((s.1, o), w) (j + 1) (s.2.1.push x)) : 1 ≤ e :=
-  Typed.sampleChallenge_one_le Sec (s, Φ.poly ((s.1, o), w) j s.2.1) o
-    (fun w' hmid ↦ by
-      rw [Subsingleton.elim w' w] at hmid
-      exact hclaim hmid.1.2)
-    rfl fun x ↦ ⟨w, hinv x, H.next ((s.1, o), w) j s.2.1 x hj⟩
-
 /-! ## The rounds of a sumcheck -/
 
 /-- The `i` rounds from stage `j` to stage `m = j + i`, as a typed component. -/

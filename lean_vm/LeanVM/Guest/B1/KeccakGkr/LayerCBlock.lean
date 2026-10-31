@@ -88,29 +88,6 @@ theorem inK_of_inKVals (hσ : ∀ v, σ v = σ (.n v.idx)) {as : List Atom}
     · simp at hi
   | _ => simp at hi
 
-/-- **A block of atoms holds** on an evaluated valuation: its canonical `KECCAK` inputs checked
-from the canonical values `A`, the atoms `resid` leaves holding or with their side conditions. -/
-theorem block_holds {B : List Stmt} (hall : B.all isAtom = true) (hσ : ∀ v, σ v = σ (.n v.idx))
-    {A : List ℕ} (hk : canonChk A (atomsL B) = true) (hg : ∀ s ∈ B, GoodS rd S w σ s)
-    (hA : ∀ i ∈ A, IsCanonical128 (σ (.n i)))
-    (hR : ∀ a ∈ resid (atomsL B), a.Holds rd σ ∨ Side rd S σ a) :
-    ∀ {next : Prop} {kret : List E → Prop}, next → Stmt.HoldsList C rd σ B next kret := by
-  intro next kret hn
-  have hg' : ∀ a ∈ atomsL B, Good rd S w σ a := fun a ha ↦ hg _ (mem_atomsL.mp ha)
-  have H := atoms_holds hσ hk hg' hA fun a ha hns ↦ by
-    cases hik : inkB (inKVals (atomsL B)) a
-    · exact hR a (List.mem_filter.mpr ⟨ha, by simp [hns, hik]⟩)
-    · left
-      cases a with
-      | assertInK x y =>
-        simp only [inkB, Bool.and_eq_true, List.contains_iff_mem] at hik
-        show IsInK (σ x) ∧ IsInK (σ y)
-        rw [hσ x, hσ y]
-        exact ⟨inK_of_inKVals hσ hg' hik.1, inK_of_inKVals hσ hg' hik.2⟩
-      | _ => simp [inkB] at hik
-  exact (holdsList_atoms (allAtoms_of_all hall) next kret).2
-    ⟨fun a ha ↦ H a (mem_atomsL.mpr ha), hn⟩
-
 /-- **`block_holds` after a prefix `P`**: the canonical `KECCAK` inputs checked along `P ++ B`,
 whose atoms satisfy their equations. -/
 theorem block_holdsP {P B : List Stmt} (hall : B.all isAtom = true)
@@ -169,27 +146,12 @@ theorem side_loadVia {d p : V} {off : ℕ} (hS : Atom.load d p off ∉ S) {W : L
     (hW : ReadsAt rd (σ p) W) (hoff : off < W.length) : Side rd S σ (.load d p off) :=
   side_load hS (hW off hoff)
 
-/-- A store of the word the memory holds: its side condition. -/
-theorem side_store {d p : V} {off : ℕ} (hS : Atom.load d p off ∈ S) {v : E}
-    (h : LoadHolds rd (σ p) off v) (hv : σ d = v) : Side rd S σ (.load d p off) := by
-  simp only [Side, hS, ↓reduceIte]
-  rw [hv]; exact h
-
 /-- A load that is not a store reads the memory's word. -/
 theorem load_val {d p : V} {off : ℕ} (hg : Good rd S w σ (.load d p off))
     (hS : Atom.load d p off ∉ S) {v : E} (h : LoadHolds rd (σ p) off v) : σ d = v := by
   rcases hg with h' | h'
   · exact absurd h' hS
   · rw [h', rdAt_load h]
-
-/-- A load that is not a store holds and reads the memory's word. -/
-theorem load_holds {d p : V} {off : ℕ} (hg : Good rd S w σ (.load d p off))
-    (hS : Atom.load d p off ∉ S) {v : E} (h : LoadHolds rd (σ p) off v) :
-    σ d = v ∧ (Atom.load d p off).Holds rd σ := by
-  have e := load_val hg hS h
-  refine ⟨e, ?_⟩
-  show LoadHolds rd _ _ _
-  rw [e]; exact h
 
 end
 end LeanVM.Guest.B1.VerifySub

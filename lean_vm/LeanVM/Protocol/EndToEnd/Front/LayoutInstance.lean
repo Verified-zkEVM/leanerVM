@@ -147,12 +147,6 @@ theorem getElem_columns_pyCol (c : Col) :
     columns[pyCol c]'(length_columns ▸ pyCol_lt c) = c :=
   List.getElem_idxOf _
 
-/-- Distinct columns have distinct numbers. -/
-theorem pyCol_injective : Function.Injective pyCol := by
-  intro a b h
-  rw [← getElem_columns_pyCol a, ← getElem_columns_pyCol b]
-  simp only [h]
-
 /-- The memory columns are global columns `0 to 3`: `MEMORY_0, MEMORY_1, MEMORY_2` and
 `MEMORY_FINAL_COUNTERS`. -/
 theorem pyCol_memCol (i : Fin 4) : pyCol (memCol i) = i := by

@@ -86,8 +86,6 @@ theorem oqQueryT_atoms (s : Oq) (bp cap flags wp : V) (b : ℕ) (emit : Bool) (p
   · exact oqPadT_atoms _
   · exact allAtoms_nil
 
-theorem atoms_list {ss : List Stmt} (h : ∀ s ∈ ss, ∃ a, s = .atom a) : AllAtoms ss := h
-
 theorem oqLoop1A_atoms (s : Oq) (odd : ℕ) : AllAtoms (oqLoop1A s odd) := by
   unfold oqLoop1A
   dsimp only

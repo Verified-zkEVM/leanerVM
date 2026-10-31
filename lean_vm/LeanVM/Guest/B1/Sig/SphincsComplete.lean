@@ -318,11 +318,5 @@ theorem sphincs_complete_val (C : CallRel) (rd : Reader) (p bb : E) (pk : Sphinc
     rw [hroot, hEf]
     exact e_add_self _
 
-/-- **`verify_sig_lean_sphincs` is complete.** -/
-theorem verify_sig_lean_sphincs_complete_holds : verify_sig_lean_sphincs_complete_Spec := by
-  intro C rd p bb pk m sig hm hbb hat hv
-  obtain ⟨σf, h0, h1, hb, -⟩ := sphincs_complete_val C rd p bb pk m sig hm hbb hat hv
-  exact ⟨σf, h0, h1, hb⟩
-
 end
 end LeanVM.Guest.B1.Sig

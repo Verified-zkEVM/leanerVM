@@ -527,16 +527,6 @@ theorem KB_append {es es' : List Ev} {X Y : ℕ} (h : KB P rd σ cert ω α es X
     (h' ks₂ h2 ho2 fun k hk' => hb k (List.mem_append_right _ hk'))
   omega
 
-theorem KB_nocall {es : List Ev} (hc : calls es = []) (ha : aw α σ es = 0) (X : ℕ) :
-    KB P rd σ cert ω α es X := by
-  intro kids hk ho hb
-  rw [hc] at hk
-  have := KB_nil (P := P) (α := α) (rd := rd) (σ := σ) (cert := cert) (ω := ω) X kids
-    (by simpa [calls] using hk) ho hb
-  rw [aw_nil] at this
-  rw [ha]
-  exact this
-
 theorem KB_seq {o k : Out} {X Y : ℕ} (hh : HoldsAll rd σ (o.seq k).evs)
     (h1 : HoldsAll rd σ o.evs → KB P rd σ cert ω α o.evs X)
     (h2 : ∀ es, o = .fall es → HoldsAll rd σ es → HoldsAll rd σ k.evs → KB P rd σ cert ω α k.evs Y) :
@@ -587,19 +577,6 @@ theorem pick_cases {x : V} {a r : List V} : ∀ (gs : List String) (j : ℕ),
       · rcases pick_cases gs (j + 1) with h | ⟨g', hg', h⟩
         · exact Or.inl h
         · exact Or.inr ⟨g', List.mem_cons_of_mem _ hg', h⟩
-
-theorem sumB_mem {α : Type} {f : α → Option Acc} {args : List E} :
-    ∀ {l : List α} {R : Acc}, sumB f l = some R → ∀ a ∈ l,
-      ∃ Ra, f a = some Ra ∧ Ra.1.eval args ≤ R.1.eval args ∧ (ArgsPre R.2 args → ArgsPre Ra.2 args)
-  | [], _, _, _, ha => (List.not_mem_nil ha).elim
-  | b :: l, R, h, a, ha => by
-      simp only [sumB] at h
-      obtain ⟨rx, ry, hx, hy, rfl⟩ := addAcc_some h
-      simp only [Acc.add, Aff.eval_add]
-      rcases List.mem_cons.mp ha with rfl | ha
-      · exact ⟨rx, hx, Nat.le_add_right _ _, fun h' => (argsPre_append.mp h').1⟩
-      · obtain ⟨Ra, h1, h2, h3⟩ := sumB_mem hy a ha
-        exact ⟨Ra, h1, by omega, fun h' => h3 (argsPre_append.mp h').2⟩
 
 theorem maxB_mem {α : Type} {f : α → Option Acc} {args : List E} :
     ∀ {l : List α} {R : Acc}, maxB f l = some R → ∀ a ∈ l,
@@ -1349,13 +1326,6 @@ theorem countKids_le : ∀ {ks : List Tree} {k : Tree}, k ∈ ks → k.count ≤
 theorem count_pos : ∀ t : Tree, 1 ≤ t.count
   | .node .. => by rw [Tree.count]; omega
   | .phantom .. => by rw [Tree.count]
-
-theorem getD_tail {a : E} {l l' : List E} (h : a :: l = l') {k : ℕ} (hk : k ≠ 0) (b : E) :
-    (b :: l).getD k 0 = l'.getD k 0 := by
-  subst h
-  cases k with
-  | zero => exact absurd rfl hk
-  | succ k => simp
 
 /-- **Soundness of the static checker**: if every function of the program passes, every valid
 tree satisfies its certificate. -/

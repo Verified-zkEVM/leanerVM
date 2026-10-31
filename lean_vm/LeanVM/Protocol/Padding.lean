@@ -44,17 +44,5 @@ where the high coordinates are all ones, and everything else is zero. -/
 def padHigh {k : ℕ} (t : CMlPolynomialEval R k) (m : ℕ) : CMlPolynomialEval R (k + m) :=
   placeSlice t (onesIndex m)
 
-/-- Back-loaded padding preserves the sum over the cube. -/
-theorem sumCube_padHigh {k : ℕ} (t : CMlPolynomialEval R k) (m : ℕ) :
-    sumCube (padHigh t m) = sumCube t :=
-  sumCube_placeSlice t (onesIndex m)
-
-/-- The extension of a padded table is the table's extension times the product of the high
-coordinates. -/
-theorem evalMle_padHigh {k m : ℕ} (t : CMlPolynomialEval R k) (z : Vector R k)
-    (s : Vector R m) :
-    evalMle (padHigh t m) (z ++ s) = evalMle t z * ∏ b : Fin m, s[b] := by
-  rw [padHigh, evalMle_placeSlice, Fin.getElem_fin, lagrangeBasis_onesIndex, mul_comm]
-
 end
 end LeanVM.Protocol

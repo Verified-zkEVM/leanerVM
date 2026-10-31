@@ -172,9 +172,6 @@ theorem cellOf128_cellVal {x : E} (h : IsCanonical128 x) : cellOf128 (cellVal x)
     rw [BitVec.extractLsb'_toNat, Nat.shiftRight_eq_div_pow, ht, cellNat,
       Nat.add_mul_div_left _ _ (by norm_num), Nat.div_eq_of_lt h0, zero_add, Nat.mod_eq_of_lt h1]
 
-theorem cellBytes_cellOf128 (v : BitVec 128) : cellBytes (cellOf128 v) = LeanXmss.bytesLE 16 v := by
-  rw [← bytesLE_cellVal, cellVal_cellOf128]
-
 /-- Two canonical cells are equal when their values are. -/
 theorem cellVal_inj {x y : E} (hx : IsCanonical128 x) (hy : IsCanonical128 y)
     (h : cellVal x = cellVal y) : x = y := by

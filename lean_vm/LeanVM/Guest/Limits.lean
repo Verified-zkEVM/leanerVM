@@ -63,12 +63,5 @@ theorem fresh_shaped_of_nodeRel {bytecode : List K} {seed : Digest} {s : NodeSta
     ∀ c ∈ w.children, c.freshClaim.bytecodePoint.length = Nat.log2 bytecode.length :=
   fun c hc => verifyDeferred_shaped (h.2.1 c hc).2
 
-/-- **At the deployed guest's `2^23` words, every child's fresh point has 23 coordinates**
-(B1-f's `FreshShaped w`). -/
-theorem fresh_shaped_23 {bytecode : List K} {seed : Digest} {s : NodeStatement}
-    {w : NodeWitness} (h : NodeRelation bytecode seed s w) (hb : bytecode.length = 2 ^ 23) :
-    ∀ c ∈ w.children, c.freshClaim.bytecodePoint.length = 23 := fun c hc => by
-  rw [fresh_shaped_of_nodeRel h c hc, hb, Nat.log2_two_pow]
-
 end
 end LeanVM.Guest

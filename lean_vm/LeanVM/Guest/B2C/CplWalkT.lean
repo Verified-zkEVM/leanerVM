@@ -118,20 +118,6 @@ section Paths
 
 variable {σ : Val}
 
-/-- The arm a `match` takes: the first `k` with the selector `g^(i + k)`. -/
-theorem tbl_walkArms {x : V} : ∀ (arms : List (List Stmt)) (i : ℕ) {e : List Ev},
-    walkArms σ x i arms = .fall e →
-      ∃ k, ∃ hk : k < arms.length, σ x = ofK (gpow (i + k)) ∧ walk σ arms[k] = .fall e
-  | [], _, _, h => by simp [walkArms] at h
-  | a :: as, i, e, h => by
-    unfold walkArms at h
-    split_ifs at h with hx
-    · exact ⟨0, by simp, by simpa using hx, h⟩
-    · obtain ⟨k, hk, h1, h2⟩ := tbl_walkArms as (i + 1) h
-      refine ⟨k + 1, by simpa using hk, by rw [show i + (k + 1) = i + 1 + k by omega]; exact h1, ?_⟩
-      rw [List.getElem_cons_succ]
-      exact h2
-
 /-- The callee a `dispatch` calls: the first `k` with the selector `g^(i + k)`. -/
 theorem tbl_pick {x : V} {a r : List V} : ∀ (gs : List String) (i : ℕ) {e : List Ev},
     pick σ x a r i gs = .fall e →

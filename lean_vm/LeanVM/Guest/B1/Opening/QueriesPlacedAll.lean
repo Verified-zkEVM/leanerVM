@@ -89,10 +89,5 @@ theorem opening_queries_completeAtB (fs : String → ℕ) (cert : String → V �
   · exact oqD_680 fs cert
   · exact oqD_757 fs cert
 
-/-- **Every deployed `opening_queries` is `CompleteAtD`.** -/
-theorem opening_queries_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) :
-    ∀ p ∈ openingQueriesLoops, OqCompleteD fs cert p.1 p.2.1 p.2.2.1 p.2.2.2 :=
-  fun p hp ↦ (opening_queries_completeAtB fs cert p hp).toD
-
 end
 end LeanVM.Guest.B1

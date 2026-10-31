@@ -24,12 +24,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 
 variable {C : CallRel} {rd : Reader}
 
-theorem prodT_eq (W : WotsT) (fold : Bool) (n b : Nat) :
-    prodT W fold n b = .n (groupStart fold b + chainStride W * n) := rfl
-
-theorem encT_eq (W : WotsT) (fold : Bool) (n b : Nat) :
-    encT W fold n b = .n (groupStart fold b + chainStride W * n + 1) := rfl
-
 /-- **An arm of a group completes.** -/
 theorem groupArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
     (hc : StepCanon W B good) {first n : Nat} {fold : Bool} {prodIn encIn : V} {b k : Nat}

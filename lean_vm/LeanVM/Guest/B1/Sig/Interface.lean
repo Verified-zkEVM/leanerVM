@@ -214,18 +214,5 @@ theorem verify_lean_xmss_rel (hc : verify_lean_xmss_complete_Spec) {p : E}
   obtain ⟨σ, hσ, hb⟩ := hc _ rd p pk m sig hrd hat hv
   exact (rel_iff_body find_verify_lean_xmss [p] []).mpr ⟨σ, by simp [core19_params, hσ], hb⟩
 
-/-- **`verify_sig_lean_sphincs` holds of every signed claim** in its canonical cells, on a memory of
-at least `256` words with the byte table at `bb`. -/
-theorem verify_sig_lean_sphincs_rel (hc : verify_sig_lean_sphincs_complete_Spec) {p bb : E}
-    {pk : Sphincs.PublicKey} {m : Sphincs.Message} {sig : Sphincs.Signature} (hrd : MemOK rd 256)
-    (hbb : ByteBits rd bb)
-    (hat : ClaimAt rd p (cellOf128 pk.root) (cellOf128 pk.parameter)
-      (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)))
-    (hv : Node.sphincsVerify pk m sig = true) :
-    coreProgram.Rel rd "verify_sig_lean_sphincs" [p, bb] [] := by
-  obtain ⟨σ, h0, h1, hb⟩ := hc _ rd p bb pk m sig hrd hbb hat hv
-  exact (rel_iff_body find_verify_sig_lean_sphincs [p, bb] []).mpr
-    ⟨σ, by simp [core20_params, h0, h1], hb⟩
-
 end
 end LeanVM.Guest.B1.Sig

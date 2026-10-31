@@ -172,12 +172,6 @@ theorem esc_eq_of_qsteps (D : List Ev → Prop) {h h' : List Ev} {p p' : Prog Bo
   | refl => rfl
   | step ha _ ih => rw [esc_query, ha]; exact ih
 
-theorem gv_eq_of_qsteps (D : List Ev → Prop) (ℓ : Log) (d : KeccakState) {h h' : List Ev}
-    {p p' : Prog Bool} (hq : QSteps h p h' p') : gv D ℓ d h p = gv D ℓ d h' p' := by
-  induction hq with
-  | refl => rfl
-  | step ha _ ih => simp only [gv, ha]; exact ih
-
 theorem gv1_eq_of_qsteps (D : List Ev → Prop) (ℓ : Log) (u : KeccakState) {h h' : List Ev}
     {p : Prog Bool} {k : E → Prog Bool} (hq : QSteps h p h' (.sample k)) :
     gv1 D ℓ u h p = gv D ℓ u (h' ++ [Ev.sample (challengeOf u)]) (k (challengeOf u)) := by
@@ -185,21 +179,6 @@ theorem gv1_eq_of_qsteps (D : List Ev → Prop) (ℓ : Log) (u : KeccakState) {h
   induction hq with
   | refl => subst hs; rfl
   | step ha _ ih => simp only [gv1, ha]; exact ih hs
-
-theorem prefix_noBnd_of_qsteps {h h' : List Ev} {p p' : Prog Bool} (hq : QSteps h p h' p') :
-    h <+: h' ∧ NoBnd h h' := by
-  induction hq with
-  | refl h p => exact ⟨List.prefix_refl _, noBnd_refl _⟩
-  | step _ _ ih =>
-    exact ⟨(List.prefix_append _ _).trans ih.1,
-      noBnd_trans (noBnd_append_single (not_boundary_append_query _ _)) ih.2 ih.1⟩
-
-/-- Openings keep reachability. -/
-theorem reach_of_qsteps {h h' : List Ev} {p p' : Prog Bool} (hq : QSteps h p h' p') :
-    P.Reachable h → P.after h = some p → P.Reachable h' ∧ P.after h' = some p' := by
-  induction hq with
-  | refl => exact fun hr ha ↦ ⟨hr, ha⟩
-  | step ha' _ ih => exact fun hr ha ↦ ih (Prog.Reachable.query hr ha ha') (after_query_step ha _)
 
 /-! ## Consumption, continued -/
 

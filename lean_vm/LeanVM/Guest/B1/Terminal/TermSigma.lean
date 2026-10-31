@@ -66,8 +66,6 @@ def isAtomB : Stmt → Bool
 
 theorem claims_atoms : termClaims.all isAtomB = true := by decide +kernel
 
-theorem sels_noDisp : ∀ c, (selBlockT c).filterMap Main.Stmt.callS = [] := fun _ => rfl
-
 theorem getD_seg {α : Type} (A M Z : List α) (d : α) (hA : A.length = 4) (hM : M.length = 99)
     (j : ℕ) : (A ++ M ++ Z).getD j d =
       if j < 4 then A.getD j d else if j < 103 then M.getD (j - 4) d else Z.getD (j - 103) d := by

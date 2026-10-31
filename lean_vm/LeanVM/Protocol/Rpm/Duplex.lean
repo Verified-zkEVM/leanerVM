@@ -73,20 +73,9 @@ theorem admissibleVm_mono {h h' : List KeccakState} (hs : h ⊆ h') {x : KeccakS
   · exact Or.inl hx
   · exact Or.inr ⟨y, hs hy, hx⟩
 
-theorem duplexVm_pure (a : α) (h : List KeccakState) : DuplexVm (pure a : OracleComp KeccakCalls α) h :=
-  trivial
-
-theorem duplexP_pure {a : α} {h : List KeccakState} {Q : α → List KeccakState → Prop} (ha : Q a h) :
-    DuplexP (pure a : OracleComp KeccakCalls α) h Q := ha
-
 theorem duplexP_queryF_bind (x : KeccakState) (k : KeccakState → OracleComp KeccakCalls α) (h : List KeccakState)
     (Q : α → List KeccakState → Prop) :
     DuplexP (callKeccakF1600 x >>= k) h Q ↔ AdmissibleVm h x ∧ ∀ y, DuplexP (k y) (y :: h) Q :=
-  Iff.rfl
-
-theorem duplexP_queryH_bind (x : Bytes) (k : Digest → OracleComp KeccakCalls α) (h : List KeccakState)
-    (Q : α → List KeccakState → Prop) :
-    DuplexP (callKeccak256 x >>= k) h Q ↔ ∀ u, DuplexP (k u) h Q :=
   Iff.rfl
 
 theorem duplexVm_query_bind (t : KeccakCalls.Domain) (k : KeccakCalls.Range t → OracleComp KeccakCalls α)
@@ -463,11 +452,5 @@ theorem duplexVm_honestComp (prog : Program) (input : PublicInput) (t : Executio
   split
   · exact duplexVm_romHonestComp prog input _ fuel
   · trivial
-
-/-- **The honest prover, then the verifier, follow the duplex discipline.** -/
-theorem duplexVm_honest (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) :
-    DuplexVm (LeanVM.Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel >>= fun proof ↦
-      verifierWithHash callKeccak256 callKeccakF1600 prog input proof) [] :=
-  (duplexVm_honestComp prog input t ρ fuel).bind fun proof ↦ duplexVm_verifier prog input proof
 
 end LeanVM.Rpm

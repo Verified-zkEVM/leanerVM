@@ -119,15 +119,6 @@ def colWeightE (κ : ℕ) (x : K) : Weight E κ where
   mle r := ∏ i : Fin κ, ((1 + r[i]) + r[i] * ofK (normVanishingAt i x))
   mle_eq r := (eval₂Mle_colWeightTable κ x r).symm
 
-/-- A codeword entry is the inner product of the column weight with the message table. -/
-theorem enc_eq_pair {κ : ℕ} (R : ℕ) (hκ : κ ≤ 64) (g : (Fin κ → Bool) → E)
-    (v : Fin (2 ^ (κ + R))) :
-    enc κ R g v = (colWeightE κ (K.ofBits v)).pair (RingHom.id E) (msgTable g) := by
-  rw [enc_eq_sum_colWeight R hκ, Weight.pair,
-    ← Equiv.sum_comp (bitsEquiv κ).symm (fun u ↦ ofK (colWeight (K.ofBits v) u) * g u)]
-  refine Finset.sum_congr rfl fun j _ ↦ ?_
-  simp [colWeightE, map, colWeightTable, msgTable]
-
 /-! ## The Python verifier's induced weight -/
 
 /-- `_subspace_roots(log_n)` (`verifier.py:964-970`):

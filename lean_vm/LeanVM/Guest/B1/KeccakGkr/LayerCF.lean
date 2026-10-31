@@ -119,9 +119,6 @@ theorem tail_kernel {first odd : ℕ} (hf : first < 2) (ho : odd < 2) :
 def tailSq (σ : Val) (d : ℕ) : E × Fs :=
   sq3 ((cap5 (d + 1966)).map σ) (σ (.n (d + 1986))) (σ (.n (d + 1996))) (σ (.n (d + 2006)))
 
-theorem good_at {B : List Stmt} (hg : ∀ s ∈ B, GoodS rd S w σ s) {a : Atom} (h : Stmt.atom a ∈ B) :
-    Good rd S w σ a := hg _ h
-
 set_option maxRecDepth 20000 in
 /-- **The tail, completely.** -/
 theorem layer_tail_complete {first odd : ℕ} (hf : first < 2) (ho : odd < 2)

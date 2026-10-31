@@ -30,40 +30,6 @@ def TotalAt (fs : String → ℕ) (f : String) (args : List E) (B : ℕ) : Prop 
 theorem TotalLe.at {f : String} {B : List E → ℕ} (h : TotalLe coreProgram fs f B) (args : List E) :
     TotalAt fs f args (B args) := fun rd t rets hn hv hb => h rd t args rets hn hv hb
 
-/-- **`verify_lean_xmss`, placed within its words bound.** -/
-theorem verify_lean_xmss_completeAtDTB (hc : B1.Sig.verify_lean_xmss_complete_Spec) {κ : ℕ}
-    (hκ : 6 ≤ κ) {Lin : Layout} {p : E} {pk : LeanXmss.PublicKey} {m : LeanXmss.Message}
-    {sig : LeanXmss.Signature} (hreg : ∀ k < 4, ∃ i, p.limb 0 * gpow k = gpow i ∧ RegionL Lin i)
-    (hat : ∀ rd, LowDef κ rd → MemL rd Lin →
-      B1.Sig.ClaimAt rd p (B1.Sig.cellOf128 pk.root) (B1.Sig.cellOf128 pk.parameter)
-        (B1.Sig.cellOf128 (m.extractLsb' 0 128)) (B1.Sig.cellOf128 (m.extractLsb' 128 128)))
-    (hv : Node.xmssVerify pk m sig = true) {B : ℕ} (hB : TotalAt fs "verify_lean_xmss" [p] B) :
-    CompleteAtDTB fs cert κ "verify_lean_xmss" Lin [p] (Returns []) (fun _ => True) B :=
-  completeAtDTB_of_relIn Lift.xmss_pure (List.mem_singleton_self _) hB fun rd hl hL =>
-    Lift.verify_lean_xmss_relIn hc
-      (fun i hi => hl i (lt_of_lt_of_le hi (show 64 ≤ 2 ^ κ from
-        (show (64 : ℕ) = 2 ^ 6 from rfl) ▸ Nat.pow_le_pow_right (by decide) hκ)))
-      (hat rd hl hL) hv hreg
-
-/-- **`verify_sig_lean_sphincs`, placed within its words bound.** -/
-theorem verify_sig_lean_sphincs_completeAtDTB
-    (hc : B1.Sig.verify_sig_lean_sphincs_complete_loads_Spec) {κ : ℕ} (hκ : 8 ≤ κ) {Lin : Layout}
-    {p bb : E} {pk : Sphincs.PublicKey} {m : Sphincs.Message} {sig : Sphincs.Signature}
-    (hreg : ∀ k < 4, ∃ i, p.limb 0 * gpow k = gpow i ∧ RegionL Lin i)
-    (hregb : ∀ v < 256, ∃ i, bb.limb 0 * gpow v = gpow i ∧ RegionL Lin i)
-    (hbb : ∀ rd, LowDef κ rd → MemL rd Lin → B1.Sig.ByteBits rd bb)
-    (hat : ∀ rd, LowDef κ rd → MemL rd Lin →
-      B1.Sig.ClaimAt rd p (B1.Sig.cellOf128 pk.root) (B1.Sig.cellOf128 pk.parameter)
-        (B1.Sig.cellOf128 (m.extractLsb' 0 128)) (B1.Sig.cellOf128 (m.extractLsb' 128 128)))
-    (hv : Node.sphincsVerify pk m sig = true) {B : ℕ}
-    (hB : TotalAt fs "verify_sig_lean_sphincs" [p, bb] B) :
-    CompleteAtDTB fs cert κ "verify_sig_lean_sphincs" Lin [p, bb] (Returns []) (fun _ => True) B :=
-  completeAtDTB_of_relIn Lift.sphincs_pure (List.mem_singleton_self _) hB fun rd hl hL =>
-    Lift.verify_sig_lean_sphincs_relIn hc
-      (fun i hi => hl i (lt_of_lt_of_le hi (show 256 ≤ 2 ^ κ from
-        (show (256 : ℕ) = 2 ^ 8 from rfl) ▸ Nat.pow_le_pow_right (by decide) hκ)))
-      (hbb rd hl hL) (hat rd hl hL) hv hreg hregb
-
 /-- `CompleteRelRegD` within the words bound `B args`. -/
 def CompleteRelRegDB (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String)
     (Pre : Reader → List E → List E → Prop) (Reg : List E → (ℕ → Prop) → Prop) (B : List E → ℕ) :

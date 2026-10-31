@@ -38,15 +38,6 @@ open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 /-! ## Linearity and bookkeeping -/
 
-theorem claimSum_add {m κ : ℕ} (Φ Ψ : List E → E) (g : (Fin m → Bool) → (Fin κ → Bool) → E) :
-    claimSum (fun r ↦ Φ r + Ψ r) g = claimSum Φ g + claimSum Ψ g := by
-  simp only [claimSum, add_mul, Finset.sum_add_distrib]
-
-theorem claimSum_const_mul {m κ : ℕ} (c : E) (Φ : List E → E)
-    (g : (Fin m → Bool) → (Fin κ → Bool) → E) :
-    claimSum (fun r ↦ c * Φ r) g = c * claimSum Φ g := by
-  simp only [claimSum, Finset.mul_sum, mul_assoc]
-
 theorem claimSum_glue2 {m κ : ℕ} (Φ Ψ₁ Ψ₂ : List E → E) (a b : E)
     (g : (Fin m → Bool) → (Fin κ → Bool) → E) :
     claimSum (fun r ↦ Φ r + a * Ψ₁ r + b * Ψ₂ r) g =
