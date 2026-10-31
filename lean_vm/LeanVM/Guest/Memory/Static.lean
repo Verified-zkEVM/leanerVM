@@ -10,7 +10,6 @@ module
 
 public import LeanVM.Guest.Memory.Size
 public import LeanVM.Guest.Pow
-public import LeanVM.Guest.Value.Tower
 
 /-!
 # Static weight bounds

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Guest.ExpTables
 
 /-!
 # Bits, logs and the exponent: meanings (TRIAGE G #2, #16-21)
@@ -51,13 +52,6 @@ def assert_canonical_Spec : Prop :=
     coreProgram.Rel rd "assert_canonical" args rets ↔ MeaningAssertCanonical args rets
 
 /-! ## `exponent_tables` (G:645-660, TRIAGE #16) -/
-
-/-- `SIZE_BITS`: the exponent tables' length. -/
-abbrev sizeBits : ℕ := 34
-
-/-- The two exponent tables at `p`, `q`: `p[g^j] = E(2^j)`, `q[g^j] = g^(2^j)`, `j < 34`. -/
-def ExpTables (rd : Reader) (p q : E) : Prop :=
-  ∀ j < sizeBits, LoadHolds rd p j (eOfNat (2 ^ j)) ∧ LoadHolds rd q j (gen ^ 2 ^ j)
 
 /-- **`exponent_tables()`**: it returns two pointers holding the exponent tables. -/
 def MeaningExponentTables (rd : Reader) : List E → List E → Prop
