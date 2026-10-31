@@ -33,6 +33,16 @@ open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Tables
 /-- The stores of the evaluation list. -/
 def vsSL : List Atom := storesOf 7 vsEvL
 
+/-- The pointers of `verify_sub`'s stores (`vsSL_ptrs`). -/
+def vsStorePtrs : List ℕ := [6, 28, 129, 141, 149, 559, 640, 876, 877, 1324]
+
+theorem vsSL_ptrs : vsSL.all (ptrInB vsStorePtrs) = true := by decide +kernel
+
+/-- `a ∉ vsSL` by the read's numbers, its pointer first (`Fwd.notStoredB`): without evaluating
+`vsSL` when no store goes through the read's pointer. -/
+instance (priority := high) instDecidableNotMemVsSL (a : Atom) : Decidable (a ∉ vsSL) :=
+  decidable_of_iff _ (notStoredB_iff vsSL_ptrs a)
+
 theorem vs_chk' : chk 7 vsEvL = some 1934 := by decide +kernel
 
 /-- **The honest valuation** of `verify_sub`. -/

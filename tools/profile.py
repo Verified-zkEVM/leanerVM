@@ -66,6 +66,16 @@ def parse(out):
     return roots
 
 
+def proof_steps(node):
+    """A proof's steps at its outermost level: the tactic block's own steps, looking through the
+    wrappers the profiler adds (`focus`, a sequence's unnamed node)."""
+    for k in node.kids:
+        if k.cls == "Elab.step" and NOISE.match(k.text):
+            yield from proof_steps(k)
+        elif k.cls == "Elab.step":
+            yield k
+
+
 def name_of(cmd):
     """A command's declaration: its `Elab.definition.value` node, else its first words."""
     for n in cmd.walk():
@@ -108,6 +118,14 @@ def main():
             if n.own() < max(0.2, 0.05 * c.secs):
                 break
             print(f"  {n.own():6.1f} s  {n.cls}: {n.text[:100]}")
+        # a proof whose time is spread: its own steps, by their whole time
+        body = [n for n in c.walk() if n.cls == "Elab.definition.value"]
+        if body:
+            parts = sorted(proof_steps(body[0]), key=lambda n: -n.secs)
+            if parts and parts[0].secs >= max(0.5, 0.1 * c.secs):
+                print("  the proof's steps, by their whole time:")
+                for n in parts[:5]:
+                    print(f"  {n.secs:6.1f} s  {n.text[:100]}")
 
 
 if __name__ == "__main__":
