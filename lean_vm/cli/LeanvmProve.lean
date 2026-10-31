@@ -1,4 +1,5 @@
 import Statement.Prover.Prove
+import LeanVM.Prover.Fast.Prover
 import LeanVM.Protocol.Verifier
 
 /-!
@@ -13,7 +14,8 @@ import LeanVM.Protocol.Verifier
 * `memory.bin`: the execution's memory, 24 bytes per cell;
 * `trace.txt`: `<log2 cells> <steps> <rate>`;
 
-runs `LeanVM.Prover.prove` with Keccak-256 and Keccak-f[1600] (the deployed hashes, `Id`) at
+runs `LeanVM.Prover.prove` with Keccak-256 and Keccak-f[1600] (the deployed hashes, `Id`),
+compiled as its copy with `E`'s arithmetic on machine words (`LeanVM.Prover.Fast.Prover`), at
 `fuel` nonces per proof of work (default `2^25`), and writes the proof in the four-file format
 of the Rust prover's fixtures (`lean_stream.bin`, `lean_merkle_openings.bin` in the case
 directory), which `leanvm-verify` and the Rust verifier read. It prints the time taken; if the
