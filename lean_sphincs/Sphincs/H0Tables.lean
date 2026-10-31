@@ -139,7 +139,7 @@ theorem getD_sumTL (U u : ℕ) (hu : u ≤ U) : ∀ (d : ℕ) (a b : NT d),
       rw [getD_zipWith_add _ _ (by simp [List.length_zipWith, length_sumTL]),
         getD_zipWith_add _ _ (by simp [List.length_zipWith, length_sumTL]),
         getD_zipWith_add _ _ (by simp [List.length_zipWith, length_sumTL]),
-        getD_zipWith_add _ _ (by simp [List.length_zipWith, length_sumTL])]
+        getD_zipWith_add _ _ (by simp [length_sumTL])]
       simp only [getD_sumTL U u hu d]
 
 /-! The kernel's cache grows with the number of powers one declaration evaluates, so `H0FTab.lean`

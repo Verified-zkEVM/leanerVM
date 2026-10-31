@@ -28,7 +28,7 @@ theorem schemeSeedInput_injective : Function.Injective schemeSeedInput := fun se
 
 theorem schemeSeedInput_probability_le (input : HashInput) :
     Pr{let seed ← sampleMasterSeed}[schemeSeedInput seed = input] ≤ 1 / (2 : ℝ≥0∞) ^ 256 := by
-  letI := SampleableType.ofFintype MasterSeed
+  let := SampleableType.ofFintype MasterSeed
   rw [show sampleMasterSeed = ($ᵗ MasterSeed : ProbComp MasterSeed) from rfl,
     SampleableType.prEvent_uniformSample]
   have hcard : (Finset.univ.filter fun seed => schemeSeedInput seed = input).card ≤ 1 := by
@@ -140,7 +140,7 @@ theorem evalDist_table_point {β : Type} (point : ShortIn) (H : MasterSeed → E
     (($ᵗ Eager.Table : ProbComp Eager.Table) >>= fun table => H (table point) table) =ᵈ
       (($ᵗ Eager.Table : ProbComp Eager.Table) >>= fun table => sampleMasterSeed >>= fun value =>
         H value (Function.update table point value)) := by
-  letI : SampleableType MasterSeed := SampleableType.ofFintype MasterSeed
+  let : SampleableType MasterSeed := SampleableType.ofFintype MasterSeed
   have hfst : (Prod.fst <$> ($ᵗ (Eager.Table × MasterSeed) : ProbComp (Eager.Table × MasterSeed))) =ᵈ
       ($ᵗ Eager.Table : ProbComp Eager.Table) := fun p => by
     rw [prEvent_map, SampleableType.prEvent_uniformSample_inst_irrel _

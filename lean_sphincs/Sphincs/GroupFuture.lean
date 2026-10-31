@@ -188,6 +188,7 @@ theorem grp_stop_le (hp : p ≤ 1) (hU : U.Nonempty) (st : α → St) (ext : α 
   calc F d = freshAvg U (fun _ => F d) := (freshAvg_const U hU _).symm
     _ ≤ _ := freshAvg_mono U fun v _ => hF _ _ (Multiset.le_add_right _ _)
 
+omit [DecidableEq α] in
 /-- Disclosing less at the hits can only lower the group of a monotone function. -/
 theorem grp_ext_mono (st : α → St) {ext ext' : α → Multiset V} (h : ∀ x, ext x ≤ ext' x) {F : Multiset V → ℝ≥0∞}
     (hF : Monotone' F) (d : Multiset V) : grp σ p A U st ext F d ≤ grp σ p A U st ext' F d := by

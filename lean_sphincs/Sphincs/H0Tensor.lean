@@ -161,7 +161,7 @@ theorem getT_deltaT : ∀ (d : ℕ) (a : NT d) (m : Fin d → FPos),
       have hcons : ∀ y : FPos, (fun m' => (getT (d + 1) a (Fin.cons y m') : ℝ)) =
           fun m' => (getT d ((show Five (NT d) from a).sel y) m' : ℝ) := fun y => funext fun m' => by
         rw [getT_cons]
-      simp only [hcons, sel_of_val, sel_of_valN]
+      simp only [hcons, sel_of_valN]
       rcases fpos_val_cases (m 0) with h | h | h | h | h <;> simp only [h, chainTop] <;>
         simp [deltaT, getT_zipT, getT_deltaT d]
 
@@ -214,9 +214,9 @@ theorem getT_cumT : ∀ (d : ℕ) (a : NT d) (m : Fin d → FPos),
       have hcons : ∀ y : FPos, (fun m'' => (getT (d + 1) a (Fin.cons y m'') : ℝ)) =
           fun m'' => (getT d ((show Five (NT d) from a).sel y) m'' : ℝ) := fun y => funext fun m' => by
         rw [getT_cons]
-      simp only [hcons, sum_fpos, sel_of_val, sel_of_valN, Fin.le_iff_val_le_val]
+      simp only [hcons, sum_fpos, sel_of_valN, Fin.le_iff_val_le_val]
       rcases fpos_val_cases (m 0) with h | h | h | h | h <;> simp only [h] <;>
-        simp [cumT, getT_zipT, getT_cumT d] <;> ring
+        simp [cumT, getT_zipT, getT_cumT d]
 
 theorem getT_incT : ∀ (d : ℕ) (a : NT d) (c m : Fin d → FPos),
     getT d (incT d a c) m = getT d a m + if m = c then 1 else 0
@@ -254,14 +254,14 @@ theorem getT_incT : ∀ (d : ℕ) (a : NT d) (c m : Fin d → FPos),
       have ih := getT_incT d
       rcases fpos_val_cases (c 0) with hc0 | hc0 | hc0 | hc0 | hc0 <;>
         rcases fpos_val_cases (m 0) with hm0 | hm0 | hm0 | hm0 | hm0 <;>
-        simp only [hc0, hm0, heq, ih] <;> simp [ih]
+        simp only [hc0, hm0, heq] <;> simp [ih]
 
 theorem sumT2_eq (f : ℤ → ℤ → ℤ) : ∀ (d : ℕ) (a b : NT d),
     (sumT2 d f a b : ℝ) = ∑ m : Fin d → FPos, (f (getT d a m) (getT d b m) : ℝ)
   | 0, _, _ => by rw [Fintype.sum_unique]; rfl
   | d + 1, a, b => by
       rw [sum_fin_succ_fun]
-      simp only [getT_cons, sum_fpos, sel_of_val, sel_of_valN]
+      simp only [getT_cons, sum_fpos, sel_of_valN]
       simp only [sumT2, Int.cast_add, sumT2_eq f d]
       simp
 

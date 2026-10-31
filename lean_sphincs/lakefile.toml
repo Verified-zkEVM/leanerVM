@@ -2,6 +2,9 @@ name = "lean-sphincs-security"
 version = "0.1.0"
 defaultTargets = ["Sphincs"]
 
+[leanOptions]
+warningAsError = true
+
 # The statement: definitions and end statements only (`Statement/`).
 [[require]]
 name = "statement"

@@ -27,7 +27,7 @@ noncomputable def avgN (φ : Multiset U → ℝ≥0∞) : ℕ → Multiset U →
 
 theorem avgN_mono {φ ψ : Multiset U → ℝ≥0∞} (h : ∀ X, φ X ≤ ψ X) : ∀ n X, avgN φ n X ≤ avgN ψ n X
   | 0, X => h X
-  | n + 1, X => freshAvg_mono _ fun u _ => avgN_mono h n _
+  | n + 1, _X => freshAvg_mono _ fun _u _ => avgN_mono h n _
 
 theorem avgN_add (φ ψ : Multiset U → ℝ≥0∞) : ∀ n X, avgN (fun Y => φ Y + ψ Y) n X = avgN φ n X + avgN ψ n X
   | 0, X => rfl
@@ -131,7 +131,7 @@ theorem avgL_sum_marks (φ : ι → Multiset M → ℝ≥0∞) :
         simp only [ite_true, List.count_cons_self, avgN]
         rfl
       · simp only [ite_eq_right h, add_zero, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-        rw [List.count_cons, ite_eq_right (by simp [beq_iff_eq, h, Ne.symm h]), add_zero, ← mul_assoc,
+        rw [List.count_cons, ite_eq_right (by simp [beq_iff_eq, h]), add_zero, ← mul_assoc,
           ENNReal.inv_mul_cancel (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _), one_mul]
 
 /-- **Domination by separable count functions.** If `f` is below a sum plus a multiple of a

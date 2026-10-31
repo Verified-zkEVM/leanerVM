@@ -34,6 +34,7 @@ noncomputable def tOf (p : ℝ≥0∞) (σ : St R V) (x : R) : ℝ≥0∞ :=
   | some none => 1
   | some (some _) => 0
 
+omit [DecidableEq R] [DecidableEq V] in
 theorem sOf_add_tOf {p : ℝ≥0∞} (hp : p ≤ 1) (σ : St R V) (x : R) : sOf p σ x + tOf p σ x = 1 := by
   unfold sOf tOf
   rcases σ x with _ | _ | _
@@ -41,12 +42,15 @@ theorem sOf_add_tOf {p : ℝ≥0∞} (hp : p ≤ 1) (σ : St R V) (x : R) : sOf 
   · simp
   · simp
 
+omit [DecidableEq R] [DecidableEq V] in
 theorem sOf_ne_top {p : ℝ≥0∞} (hp : p ≤ 1) (σ : St R V) (x : R) : sOf p σ x ≠ ⊤ :=
   ne_top_of_le_ne_top ENNReal.one_ne_top (by rw [← sOf_add_tOf hp σ x]; exact le_self_add)
 
+omit [DecidableEq R] [DecidableEq V] in
 theorem tOf_ne_top {p : ℝ≥0∞} (hp : p ≤ 1) (σ : St R V) (x : R) : tOf p σ x ≠ ⊤ :=
   ne_top_of_le_ne_top ENNReal.one_ne_top (by rw [← sOf_add_tOf hp σ x]; exact le_add_self)
 
+omit [DecidableEq R] [DecidableEq V] in
 theorem tOf_le_one (p : ℝ≥0∞) (σ : St R V) (x : R) : tOf p σ x ≤ 1 := by
   unfold tOf
   rcases σ x with _ | _ | _
@@ -61,6 +65,7 @@ noncomputable def pay (σ : St R V) (ex : R → Bool) (h : Multiset V → ℝ≥
   | some (some v) => if ex x then h d else h (d + {v})
   | _ => b
 
+omit [DecidableEq V] in
 theorem sOf_landed (p : ℝ≥0∞) (σ : St R V) (y : R) (v : V) :
     sOf p (Function.update σ y (some (some v))) = Function.update (sOf p σ) y 1 := by
   funext x
@@ -68,6 +73,7 @@ theorem sOf_landed (p : ℝ≥0∞) (σ : St R V) (y : R) (v : V) :
   · subst hx; simp [sOf]
   · simp [sOf, Function.update_of_ne hx]
 
+omit [DecidableEq V] in
 theorem tOf_landed (p : ℝ≥0∞) (σ : St R V) (y : R) (v : V) :
     tOf p (Function.update σ y (some (some v))) = Function.update (tOf p σ) y 0 := by
   funext x
@@ -75,6 +81,7 @@ theorem tOf_landed (p : ℝ≥0∞) (σ : St R V) (y : R) (v : V) :
   · subst hx; simp [tOf]
   · simp [tOf, Function.update_of_ne hx]
 
+omit [DecidableEq V] in
 theorem sOf_unlanded (p : ℝ≥0∞) (σ : St R V) (y : R) :
     sOf p (Function.update σ y (some none)) = Function.update (sOf p σ) y 0 := by
   funext x
@@ -82,6 +89,7 @@ theorem sOf_unlanded (p : ℝ≥0∞) (σ : St R V) (y : R) :
   · subst hx; simp [sOf]
   · simp [sOf, Function.update_of_ne hx]
 
+omit [DecidableEq V] in
 theorem tOf_unlanded (p : ℝ≥0∞) (σ : St R V) (y : R) :
     tOf p (Function.update σ y (some none)) = Function.update (tOf p σ) y 1 := by
   funext x
@@ -89,6 +97,7 @@ theorem tOf_unlanded (p : ℝ≥0∞) (σ : St R V) (y : R) :
   · subst hx; simp [tOf]
   · simp [tOf, Function.update_of_ne hx]
 
+omit [DecidableEq V] in
 theorem pay_landed (σ : St R V) (ex : R → Bool) (h : Multiset V → ℝ≥0∞) (d : Multiset V) (b : ℝ≥0∞) (y : R)
     (v : V) (hex : ex y = false) :
     pay (Function.update σ y (some (some v))) ex h d b = Function.update (pay σ ex h d b) y (h (d + {v})) := by
@@ -97,6 +106,7 @@ theorem pay_landed (σ : St R V) (ex : R → Bool) (h : Multiset V → ℝ≥0�
   · subst hx; simp [pay, hex]
   · simp [pay, Function.update_of_ne hx]
 
+omit [DecidableEq V] in
 theorem pay_unlanded (σ : St R V) (ex : R → Bool) (h : Multiset V → ℝ≥0∞) (d : Multiset V) (b : ℝ≥0∞) (y : R)
     (hy : σ y = none) : pay (Function.update σ y (some none)) ex h d b = pay σ ex h d b := by
   funext x
@@ -122,18 +132,23 @@ noncomputable def grp (σ : St R V) (ex : R → Bool) (h : Multiset V → ℝ≥
 
 variable {e p L}
 
+omit [DecidableEq R] in
 theorem card_inv_ne_top : (((Fintype.card R : ℕ) : ℝ≥0∞))⁻¹ ≠ ⊤ :=
   ENNReal.inv_ne_top.2 (by exact_mod_cast Fintype.card_ne_zero)
 
+omit [DecidableEq R] in
 theorem card_inv_mul_card : (((Fintype.card R : ℕ) : ℝ≥0∞))⁻¹ * ((Fintype.card R : ℕ) : ℝ≥0∞) = 1 :=
   ENNReal.inv_mul_cancel (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _)
 
+omit [DecidableEq V] [Nonempty V] in
 theorem rep_avgT : Rep (fun (h : Multiset V → ℝ≥0∞) d => avgT h d) := by
   have := Rep.freshAvg (Finset.univ : Finset V)
     (fun (v : V) (h : Multiset V → ℝ≥0∞) (d : Multiset V) => h (d + ({v} : Multiset V)))
     fun v => Rep.translate ({v} : Multiset V)
   exact this
 
+omit [Nonempty V] in
+omit [DecidableEq R] in
 theorem rep_grp (hp : p ≤ 1) (σ : St R V) (ex : R → Bool) : Rep (fun h d => grp e p L σ ex h d) := by
   refine (Rep.finset_sum Finset.univ (fun x0 h d => grpAt e p L σ ex h d x0) fun x0 => ?_).const_mul card_inv_ne_top
   have hbase : Rep (fun (h : Multiset V → ℝ≥0∞) d => baseOf σ h d x0) := by
@@ -152,6 +167,7 @@ theorem rep_grp (hp : p ≤ 1) (σ : St R V) (ex : R → Bool) : Rep (fun h d =>
     · exact Rep.id
     · exact Rep.translate {v}
 
+omit [DecidableEq R] [Fintype R] [Nonempty R] in
 theorem le_baseOf {h : Multiset V → ℝ≥0∞} (hmono : Monotone' h) (σ : St R V) (d : Multiset V) (x0 : R) :
     h d ≤ baseOf σ h d x0 := by
   unfold baseOf
@@ -159,6 +175,7 @@ theorem le_baseOf {h : Multiset V → ℝ≥0∞} (hmono : Monotone' h) (σ : St
   · exact le_avgT hmono d
   · exact le_rfl
 
+omit [DecidableEq R] [DecidableEq V] [Fintype R] [Nonempty R] [Fintype V] [Nonempty V] in
 theorem le_pay {h : Multiset V → ℝ≥0∞} (hmono : Monotone' h) (σ : St R V) (ex : R → Bool) (d : Multiset V)
     {b : ℝ≥0∞} (hb : h d ≤ b) (x : R) : h d ≤ pay σ ex h d b x := by
   unfold pay
@@ -170,6 +187,7 @@ theorem le_pay {h : Multiset V → ℝ≥0∞} (hmono : Monotone' h) (σ : St R 
     · exact le_rfl
     · exact hmono _ _ (Multiset.le_add_right _ _)
 
+omit [DecidableEq R] in
 theorem grp_const (hp : p ≤ 1) (σ : St R V) (ex : R → Bool) (K : ℝ≥0∞) (d : Multiset V) :
     grp e p L σ ex (fun _ => K) d = K := by
   have hat : ∀ x0, grpAt e p L σ ex (fun _ => K) d x0 = K := by
@@ -190,6 +208,7 @@ theorem grp_const (hp : p ≤ 1) (σ : St R V) (ex : R → Bool) (K : ℝ≥0∞
   simp only [hat, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
   rw [← mul_assoc, card_inv_mul_card, one_mul]
 
+omit [DecidableEq R] in
 theorem le_grp (hp : p ≤ 1) {h : Multiset V → ℝ≥0∞} (hmono : Monotone' h) (σ : St R V) (ex : R → Bool)
     (d : Multiset V) : h d ≤ grp e p L σ ex h d := by
   have hat : ∀ x0, h d ≤ grpAt e p L σ ex h d x0 := fun x0 =>
@@ -200,6 +219,7 @@ theorem le_grp (hp : p ≤ 1) {h : Multiset V → ℝ≥0∞} (hmono : Monotone'
         rw [← mul_assoc, card_inv_mul_card, one_mul]
     _ ≤ _ := mul_le_mul_right (Finset.sum_le_sum fun x0 _ => hat x0) _
 
+omit [DecidableEq R] [Nonempty R] [Nonempty V] in
 /-- Excluding more known values lowers the mean. -/
 theorem grp_ex_mono {h : Multiset V → ℝ≥0∞} (hmono : Monotone' h) (σ : St R V) {ex ex' : R → Bool}
     (hex : ∀ x, ex x = true → ex' x = true) (d : Multiset V) : grp e p L σ ex' h d ≤ grp e p L σ ex h d := by
@@ -217,6 +237,7 @@ theorem grp_ex_mono {h : Multiset V → ℝ≥0∞} (hmono : Monotone' h) (σ : 
       · exact hmono _ _ (Multiset.le_add_right _ _)
       · exact le_rfl
 
+omit [DecidableEq R] in
 /-- **Signing.** The base value, plus the gains of the known landed values weighted by their exact
 selection probabilities, is at most the mean of the group. -/
 theorem grp_ge_pool (hp : p ≤ 1) {h : Multiset V → ℝ≥0∞} (hmono : Monotone' h) (σ : St R V) (ex : R → Bool)
@@ -254,6 +275,7 @@ theorem grp_ge_pool (hp : p ≤ 1) {h : Multiset V → ℝ≥0∞} (hmono : Mono
         rw [← mul_assoc, card_inv_mul_card, one_mul]
     _ ≤ _ := mul_le_mul_right (Finset.sum_le_sum fun x0 _ => hat x0) _
 
+omit [Nonempty R] in
 /-- **A new landed value, seen by itself.** With its own item excluded, the group after a landing
 query is at most the group before. -/
 theorem grp_landed_excl_le (hp : p ≤ 1) {h : Multiset V → ℝ≥0∞} (hmono : Monotone' h) (σ : St R V) (y : R)
@@ -270,9 +292,10 @@ theorem grp_landed_excl_le (hp : p ≤ 1) {h : Multiset V → ℝ≥0∞} (hmono
   rw [hbase, sOf_landed, tOf_landed]
   refine val_stop_le e _ _ y (sOf_add_tOf hp σ) (K := h d)
     (le_pay hmono σ ex d (le_baseOf hmono σ d x0)) (le_baseOf hmono σ d x0) (fun x hx => ?_) ?_ L x0
-  · simp [pay, Function.update_of_ne hx, hx]
+  · simp [pay, hx]
   · simp [pay]
 
+omit [Nonempty R] in
 /-- **One more query.** -/
 theorem grp_step (hp : p ≤ 1) (hp0 : p ≠ 0) (A : ℕ) (hL : L ≤ A + 1) (hL1 : 1 ≤ L)
     (hfree : ∀ (y : R) j, j < A → e^[j] (e y) ≠ y) {h : Multiset V → ℝ≥0∞} (hmono : Monotone' h)

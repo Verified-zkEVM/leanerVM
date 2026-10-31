@@ -66,7 +66,7 @@ theorem parseSeed_verifier (parameter : PublicParameter) (domain : HashDomain) (
 theorem seedHit_probability_le (input : HashInput) :
     Pr{let x ← sampleMasterSeed}[(SeedHit input) x] ≤ 1 / (2 : ℝ≥0∞) ^ 256 := by
   classical
-  letI := SampleableType.ofFintype MasterSeed
+  let := SampleableType.ofFintype MasterSeed
   rw [show sampleMasterSeed = ($ᵗ MasterSeed : ProbComp MasterSeed) from rfl,
     SampleableType.prEvent_uniformSample]
   have hcard : (Finset.univ.filter (SeedHit input)).card ≤ 1 := by

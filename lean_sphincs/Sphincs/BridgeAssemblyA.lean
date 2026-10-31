@@ -25,7 +25,7 @@ end SphincsLayered.Security.HiddenBridge
 namespace SphincsLayered.Security.ForsPotential
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner HiddenReveal SphincsFors.Security.Domination
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.SphincsLayered.Security.Graph Assembly Reduce Internalize
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000

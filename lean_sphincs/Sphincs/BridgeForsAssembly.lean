@@ -104,7 +104,7 @@ end Tick
 
 section Chain
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.SphincsLayered.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
@@ -244,7 +244,7 @@ end Chain
 
 section FailSet
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.SphincsLayered.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
@@ -373,7 +373,7 @@ end FailSet
 
 section Total
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.SphincsLayered.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
@@ -407,7 +407,7 @@ end Total
 
 section Clean
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.SphincsLayered.Security.Graph Assembly Reduce Internalize
 
 omit [Params] in
 theorem noQ_sequenceFin {bad : HashInput → Prop} [DecidablePred bad] {α : Type} :
@@ -450,7 +450,7 @@ end Clean
 
 section FailBound
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.SphincsLayered.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
@@ -599,8 +599,8 @@ theorem tsum_elim_le {β : Type} (mx : ProbComp ((Index → Option β) × QueryC
   rw [OracleComp.prEvent_eq_tsum_ite mx (fun x => x.1 i = none)]
   refine ENNReal.tsum_le_tsum fun x => ?_
   cases hx : x.1 i with
-  | none => simp [hx]
-  | some v => simp [hx]
+  | none => simp
+  | some v => simp
 
 /-- **Expected share of failing indices.** -/
 theorem expectedFail_le : expectedFail ≤ (2 : ℝ≥0∞)⁻¹ ^ 201 := by
@@ -645,7 +645,7 @@ end FailBound
 
 section Close
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.SphincsLayered.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable

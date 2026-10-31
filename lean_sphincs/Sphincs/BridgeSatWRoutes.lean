@@ -170,7 +170,7 @@ end RestW
 
 section ChainW
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.SphincsLayered.Security.Graph Assembly Reduce Internalize
 
 /-- The targeting facts at every prepared sample of a parameter set. -/
 def TargetingAll : Prop :=

@@ -291,7 +291,7 @@ theorem upClosed_append {L1 L2 : List Coordinate} (h1 : UpClosed L1) (h2 : UpClo
 
 omit [Params] in
 theorem upClosed_of_noFc {L : List Coordinate} (h : ∀ x ∈ L, ¬IsFc x) : UpClosed L :=
-  fun index c sp j a i q _ hq _ => absurd ⟨_, _, _, _, _, _, _, rfl⟩ (h _ hq)
+  fun _index _c _sp _j _a _i _q _ hq _ => absurd ⟨_, _, _, _, _, _, _, rfl⟩ (h _ hq)
 
 omit [Params] in
 theorem closedRuns_of_revealsIn {α : Type} {computation : OracleComp CostSpec α}

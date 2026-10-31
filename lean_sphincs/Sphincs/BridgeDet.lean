@@ -48,7 +48,7 @@ theorem randHit_unique {input : HashInput} {seed seed' : MasterSeed}
 
 theorem randHit_probability_le (input : HashInput) :
     Pr{let x ← sampleMasterSeed}[(RandHit input) x] ≤ 1 / (2 : ℝ≥0∞) ^ 256 := by
-  letI := SampleableType.ofFintype MasterSeed
+  let := SampleableType.ofFintype MasterSeed
   rw [show sampleMasterSeed = ($ᵗ MasterSeed : ProbComp MasterSeed) from rfl,
     SampleableType.prEvent_uniformSample]
   have hcard : (Finset.univ.filter (RandHit input)).card ≤ 1 := by

@@ -79,7 +79,6 @@ theorem PoisT.tail {t : PoisT} (ht : checkPT t = true) (k : ℕ) :
         unfold PoisT.r
         push_cast
         apply div_le_div_of_nonneg_left hmu0 (by positivity)
-        push_cast
         linarith [(Nat.cast_nonneg k : (0 : ℝ) ≤ k)]
       calc pR (t.mu : ℝ) (t.n1 + 1 + k) * (t.mu : ℝ) / (((t.n1 + 1 + k : ℕ) : ℝ) + 1)
           = pR (t.mu : ℝ) (t.n1 + 1 + k) * ((t.mu : ℝ) / (((t.n1 + 1 + k : ℕ) : ℝ) + 1)) := by ring

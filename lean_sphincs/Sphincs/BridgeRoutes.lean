@@ -10,7 +10,7 @@ open OracleComp OracleSpec ENNReal
 namespace SphincsLayered.Security.HiddenBridge
 
 open HiddenReveal HiddenCost Eager Short Concrete
-open Completeness SeedModel Graph Assembly Reduce HiddenGraph Internalize GraphView
+open Completeness SeedModel _root_.SphincsLayered.Security.Graph Assembly Reduce HiddenGraph Internalize GraphView
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000

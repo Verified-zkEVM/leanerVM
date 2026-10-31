@@ -105,7 +105,7 @@ theorem probEvent_none_map_fst (X : ProbComp (Option (Randomness × Index) × Qu
       (Option.map Prod.fst x.1, x.2)) <$> X from (map_eq_bind_pure_comp _ _ _).symm, prEvent_map]
   congr 1
   refine congrArg (· <$> X) (funext fun r => ?_)
-  simp [Function.comp]
+  simp
 
 /-- The grinding loop from a uniform base randomizer exhausts its full budget with probability at
 most `2^(-2^(b+5))` from a cache with no message-digest inputs. -/

@@ -89,7 +89,7 @@ theorem fullDigestView_injective : Function.Injective fullDigestView := by
       (∀ j : SubIdx, left.extractLsb' (wordOffset c j) 8 = right.extractLsb' (wordOffset c j) 8) := by
     intro c
     have hcomponent := congrArg (fun view : FullDigestView => BitVec.ofFin (view.2 c)) heq
-    simp only [fullDigestView, coordField, BitVec.ofFin_toFin] at hcomponent
+    simp only [fullDigestView, coordField] at hcomponent
     obtain ⟨hs, hc0, hw0, hc1, hw1⟩ := field_inj hcomponent
     exact ⟨hs, Fin.forall_fin_two.2 ⟨hc0, hc1⟩, Fin.forall_fin_two.2 ⟨hw0, hw1⟩⟩
   apply BitVec.eq_of_getLsbD_eq
@@ -142,7 +142,7 @@ theorem digestMarks_eq (digest : MessageDigest) (c : Coord) :
   obtain ⟨hs, hc0, hw0, hc1, hw1⟩ := field_parts (digest.extractLsb' (wordOffset c 1) 8)
     (digest.extractLsb' (childOffset c 1) 3) (digest.extractLsb' (wordOffset c 0) 8)
     (digest.extractLsb' (childOffset c 0) 3) (digest.extractLsb' (superOffset c) 4)
-  simp only [digestMarks, decodeMark, coordField, BitVec.ofFin_toFin]
+  simp only [digestMarks, decodeMark, coordField]
   congr 1
   · exact congrArg BitVec.toFin hs.symm
   · funext j

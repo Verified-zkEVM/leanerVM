@@ -81,7 +81,7 @@ theorem sep_countGood {g h : ℕ → ℝ≥0∞} (hg : SepGood g) (hh : SepGood 
       rw [hR (fun l => k l + if l = i then 1 else 0) (fun l hi hj => by simp [hi]),
         hR (fun l => k l + if l = j then 1 else 0) (fun l hi hj => by simp [hj]),
         hR (fun l => k l + (if l = i then 1 else 0) + if l = j then 1 else 0) (fun l hi hj => by simp [hi, hj])]
-      simp only [eq_self_iff_true, ite_true, ite_eq_right hij, ite_eq_right (Ne.symm hij), add_zero]
+      simp only [ite_true, ite_eq_right hij, ite_eq_right (Ne.symm hij), add_zero]
       set R := ∏ l ∈ (Finset.univ.erase i).erase j, h (k l)
       have hc := cross_le (hh.mono (Nat.le_succ (k i))) (hh.mono (Nat.le_succ (k j)))
       calc h (k i + 1) * h (k j) * R + h (k i) * h (k j + 1) * R =
@@ -119,7 +119,7 @@ theorem sep_countGood {g h : ℕ → ℝ≥0∞} (hg : SepGood g) (hh : SepGood 
         rw [he l (Finset.mem_erase.1 hl).1]
       rw [hR (fun l => k l + if l = i then 1 else 0) (fun l hi => by simp [hi]),
         hR (fun l => k l + (if l = i then 1 else 0) + if l = i then 1 else 0) (fun l hi => by simp [hi])]
-      simp only [eq_self_iff_true, ite_true]
+      simp only [ite_true]
       set R := ∏ l ∈ Finset.univ.erase i, h (k l)
       calc h (k i + 1) * R + h (k i + 1) * R = (h (k i + 1) + h (k i + 1)) * R := by ring
         _ ≤ (h (k i + 2) + h (k i)) * R := mul_le_mul_left (hh.convex (k i)) R

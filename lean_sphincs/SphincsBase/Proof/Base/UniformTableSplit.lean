@@ -60,8 +60,8 @@ theorem uniform_product {Left Right : Type} [Fintype Left] [Fintype Right] [None
     PMF.uniformOfFintype (Left × Right) =
       (PMF.uniformOfFintype Left).bind (fun left => (PMF.uniformOfFintype Right).map (fun right => (left, right))) := by
   classical
-  letI : DecidableEq Left := Classical.decEq Left
-  letI : DecidableEq Right := Classical.decEq Right
+  let : DecidableEq Left := Classical.decEq Left
+  let : DecidableEq Right := Classical.decEq Right
   apply PMF.ext
   rintro ⟨left, right⟩
   have hmap : ∀ a : Left,

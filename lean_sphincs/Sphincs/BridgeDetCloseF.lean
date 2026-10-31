@@ -24,7 +24,7 @@ attribute [local instance] Classical.propDecidable
 
 variable [Params]
 
-open Completeness SeedModel Graph Assembly Reduce Internalize in
+open Completeness SeedModel _root_.SphincsLayered.Security.Graph Assembly Reduce Internalize in
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
 
@@ -184,7 +184,7 @@ theorem small_closeFF (q qh : ℕ) (hq1 : 1 ≤ q) (hq' : q - keygenCost ≤ qh)
 
 section Close
 
-open Completeness SeedModel Graph Assembly Reduce Internalize
+open Completeness SeedModel _root_.SphincsLayered.Security.Graph Assembly Reduce Internalize
 
 set_option maxRecDepth 100000 in
 /-- **Small budgets, seed-free win.** -/

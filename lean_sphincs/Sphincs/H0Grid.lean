@@ -24,7 +24,7 @@ theorem telescope1 (h : FPos → ℝ) (x : FPos) :
   have key : ∀ (h : Fin 5 → ℝ) (x : Fin 5), ∑ y : Fin 5, (if x ≤ y then (1 : ℝ) else 0) *
       (h y - if hy : y.val < 4 then h ⟨y.val + 1, by omega⟩ else 0) = h x := by
     intro h x
-    fin_cases x <;> simp [Fin.sum_univ_five] <;> ring_nf <;> rfl
+    fin_cases x <;> simp [Fin.sum_univ_five]
   unfold D1
   exact key h x
 

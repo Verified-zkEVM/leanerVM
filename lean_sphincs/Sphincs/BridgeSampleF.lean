@@ -26,7 +26,7 @@ attribute [local instance] Classical.propDecidable
 
 variable [Params]
 
-open Completeness SeedModel Graph Assembly Reduce Internalize in
+open Completeness SeedModel _root_.SphincsLayered.Security.Graph Assembly Reduce Internalize in
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
 
@@ -89,7 +89,7 @@ end Flagged
 
 section Pointwise
 
-open Completeness SeedModel Graph Assembly Reduce Internalize
+open Completeness SeedModel _root_.SphincsLayered.Security.Graph Assembly Reduce Internalize
 
 variable (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
   (remaining : RemainingOutputs) (prepared : (Index → Option (Counter × Encoding)) × QueryCache HashSpec)
@@ -147,7 +147,7 @@ end Pointwise
 
 section Helpers
 
-open Completeness SeedModel Graph Assembly Reduce Internalize
+open Completeness SeedModel _root_.SphincsLayered.Security.Graph Assembly Reduce Internalize
 
 theorem targetingA_msgF (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
     (remaining : RemainingOutputs) (results : Index → Option (Counter × Encoding)) (x : HashInput)
@@ -194,6 +194,7 @@ theorem revRate_eq : revRate = ENNReal.ofReal (123 * ((2 : ℝ) ^ subtreeHeight 
   push_cast
   norm_num
 
+omit [Params] in
 /-- One contact split between the A4 payment `(1 - κ) 2^-128` and `κ 2^-128`. -/
 theorem arm_splitF (κ : ℝ) : ν ≤ ν * ENNReal.ofReal (1 - κ) + ENNReal.ofReal κ * ν :=
   calc ν = ν * ENNReal.ofReal ((1 - κ) + κ) := by rw [sub_add_cancel, ENNReal.ofReal_one, mul_one]

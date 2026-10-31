@@ -12,7 +12,7 @@ open OracleComp OracleSpec ENNReal
 
 namespace SphincsLayered.Security.PotentialA
 
-open Concrete Completeness Graph HiddenGraph HiddenDebt HiddenBridge HiddenCost HiddenReveal EncodingCode
+open Concrete Completeness _root_.SphincsLayered.Security.Graph HiddenGraph HiddenDebt HiddenBridge HiddenCost HiddenReveal EncodingCode
   TargetAssignment
 
 set_option backward.isDefEq.respectTransparency false

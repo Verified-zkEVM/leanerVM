@@ -57,7 +57,7 @@ theorem evalDist_completion_exposeT {β : Type} (next : (ι → Digest) → Know
 
 end Generic
 
-open Completeness SeedModel Graph Assembly Reduce HiddenGraph Internalize GraphView
+open Completeness SeedModel _root_.SphincsLayered.Security.Graph Assembly Reduce HiddenGraph Internalize GraphView
 
 variable [Params]
 

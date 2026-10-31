@@ -25,7 +25,7 @@ noncomputable def βf (e : Bool) (w : LutIdx) (T : Finset FChain) (w' : LutIdx) 
 theorem avgR_ite_two {β : Type} [Fintype β] [DecidableEq β] (b0 b1 : β) (h : b0 ≠ b1) (V0 V1 : ℝ) :
     avgR (fun b : β => if b = b0 then V0 else if b = b1 then V1 else 1) =
       ((Fintype.card β : ℝ) - 2) / Fintype.card β + V0 / Fintype.card β + V1 / Fintype.card β := by
-  haveI : Nonempty β := ⟨b0⟩
+  have : Nonempty β := ⟨b0⟩
   have hsplit : (fun b : β => if b = b0 then V0 else if b = b1 then V1 else 1) =
       fun b => (if b = b0 then V0 - 1 else 0) + ((if b = b1 then V1 - 1 else 0) + 1) := by
     funext b

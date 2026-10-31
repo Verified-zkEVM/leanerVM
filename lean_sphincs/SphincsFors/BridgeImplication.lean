@@ -39,7 +39,7 @@ theorem otsSignFrom_firstEncoding (f : QueryImpl HashSpec Id) (parameter : Publi
           exact ⟨word, by simp only [Prefix.firstEncoding, hencode, hword]⟩
       | some encoding =>
           rw [hencode] at h
-          simp only [eval_sequenceFin, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
+          simp only [evalWithAnswerFn_bind, evalWithAnswerFn_pure,
             Option.some.injEq, Prod.mk.injEq] at h
           obtain ⟨rfl, -⟩ := h
           exact ⟨encoding, by simp only [Prefix.firstEncoding, hencode]⟩

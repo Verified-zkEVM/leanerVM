@@ -228,7 +228,7 @@ theorem costRun_withReveals_sequenceFin_det {α : Type} :
         (fun i => L i.succ) (fun i => h i.succ) third hthird] at hfourth ⊢
       rw [costRun_withReveals_pure, support_pure, Set.mem_singleton_iff] at hfourth
       subst fourth
-      simp only [List.ofFn_succ, List.flatten_cons, List.append_nil, List.nil_append]
+      simp only [List.ofFn_succ, List.flatten_cons, List.append_nil]
       congr 2
       funext index
       cases index using Fin.cases <;> rfl

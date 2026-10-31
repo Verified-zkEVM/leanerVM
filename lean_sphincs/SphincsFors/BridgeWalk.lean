@@ -106,7 +106,7 @@ theorem val_arrive :
       simp only [val, arrive, val_arrive a (e x)]
       by_cases hx : x = y
       · subst hx; simp
-      · simp [hx, Function.update_of_ne hx]
+      · simp [hx]
 
 /-- **Martingale identity.** A point `y` that stops with weight `p` (payoff `c y`) becomes a stop
 with payoff `cL` with probability `p` and a pass with probability `1 - p`: the mean value changes
@@ -176,6 +176,7 @@ noncomputable def bsum (z : R) : ℕ → (R → ℝ≥0∞) → ℝ≥0∞
   | 0, _ => 0
   | a + 1, w => w z + bsum z a (fun x => tStop t y (e.symm x) * w (e.symm x))
 
+omit [Fintype R] in
 theorem arrive_succ (a : ℕ) (x : R) :
     arrive e t y (a + 1) x = (if x = y then 1 else 0) + tStop t y x * arrive e t y a (e x) := by
   simp only [arrive, tStop]
@@ -199,6 +200,7 @@ theorem sum_arrive : ∀ a (w : R → ℝ≥0∞), ∑ x, w x * arrive e t y a x
           _ = _ := sum_arrive a _
       simp only [arrive_succ, bsum, mul_add, Finset.sum_add_distrib, h1, h2]
 
+omit [Fintype R] in
 theorem bsum_push : ∀ a (w : R → ℝ≥0∞) (z : R),
     bsum e t y z a (fun x => tStop t y (e.symm x) * w (e.symm x)) =
       tStop t y (e.symm z) * bsum e t y (e.symm z) a w
@@ -207,6 +209,7 @@ theorem bsum_push : ∀ a (w : R → ℝ≥0∞) (z : R),
       simp only [bsum]
       rw [bsum_push a (fun x => tStop t y (e.symm x) * w (e.symm x)) z, mul_add]
 
+omit [Fintype R] in
 theorem bsum_eq_back (w : R → ℝ≥0∞) : ∀ a z, bsum e t y z a w = back e t y w a z
   | 0, _ => rfl
   | a + 1, z => by

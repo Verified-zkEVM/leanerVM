@@ -159,6 +159,7 @@ theorem pow_le_cap (n : ℕ) (hn : 0 < n) : (1 + 1 / (n : ℝ)) ^ n ≤ (65 / 64
     norm_num
   exact h2.trans h3
 
+set_option exponentiation.threshold 32768 in
 /-- **The cap term at the start is negligible**: `lam (LmaxOf q) 0 q ≤ (64/65)^(2^15)`. -/
 theorem lam_start (q : ℕ) : lam (LmaxOf q) 0 q ≤ ENNReal.ofReal ((64 / 65 : ℝ) ^ (2 ^ 15 : ℕ)) := by
   have hM : (1 : ℝ) ≤ (scanM : ℝ) := by exact_mod_cast scanM_pos

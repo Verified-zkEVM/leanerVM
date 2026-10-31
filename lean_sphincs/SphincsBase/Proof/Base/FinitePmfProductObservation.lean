@@ -10,7 +10,7 @@ variable {Index Value : Type} [Fintype Index] [DecidableEq Index] [Fintype Value
 
 theorem marginal (family : Index → PMF Value) (index : Index) :
     (law family).map (fun values => values index) = family index := by
-  letI : DecidableEq Value := Classical.decEq Value
+  let : DecidableEq Value := Classical.decEq Value
   apply PMF.ext
   intro value
   have hfactor (values : Index → Value) :
@@ -44,7 +44,7 @@ theorem marginal (family : Index → PMF Value) (index : Index) :
 
 theorem fin_succ {n : Nat} (family : Fin (n + 1) → PMF Value) :
     law family = (family 0).bind (fun first => (law (fun index : Fin n => family index.succ)).map (Fin.cons first)) := by
-  letI : DecidableEq Value := Classical.decEq Value
+  let : DecidableEq Value := Classical.decEq Value
   apply PMF.ext
   intro values
   have hmap (first : Value) :

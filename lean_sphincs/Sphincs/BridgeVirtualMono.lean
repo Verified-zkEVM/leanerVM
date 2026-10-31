@@ -23,7 +23,7 @@ variable (U : Finset V) {f : Multiset V → ℝ≥0∞}
 
 theorem fresh_mono (hmono : Monotone' f) : ∀ m, Monotone' (fresh U f m)
   | 0 => hmono
-  | m + 1 => fun small large hle => freshAvg_mono U fun u _ =>
+  | m + 1 => fun _small _large hle => freshAvg_mono U fun _u _ =>
       fresh_mono hmono m _ _ (add_le_add hle le_rfl)
 
 theorem fresh_ne_top (hU : U.Nonempty) (hfin : ∀ d, f d ≠ ⊤) : ∀ m d, fresh U f m d ≠ ⊤

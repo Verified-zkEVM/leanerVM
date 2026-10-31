@@ -158,6 +158,7 @@ variable [Params]
 attribute [local irreducible] ReferenceChoice.search encodingAttemptLimit digestAttemptLimit
   Concrete.messageDigest Concrete.messageDigestCall
 
+omit [Params] in
 theorem OnlyC.coordCostSource (data : PublicData) (index : Index) (c : Coord) (mark : CoordMark) :
     OnlyC (GraphView.coordCostSource data index c mark) := by
   unfold GraphView.coordCostSource

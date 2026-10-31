@@ -88,7 +88,7 @@ theorem avgL_const_mul (c : ℝ≥0∞) (f : Multiset (ι × M) → ℝ≥0∞) 
 theorem avgL_mono {f g : Multiset (ι × M) → ℝ≥0∞} (h : ∀ d, f d ≤ g d) :
     ∀ (L : List ι) d0, avgL f L d0 ≤ avgL g L d0
   | [], d0 => h d0
-  | l :: L, d0 => freshAvg_mono _ fun m _ => avgL_mono h L _
+  | _l :: L, _d0 => freshAvg_mono _ fun _m _ => avgL_mono h L _
 
 theorem avgI_freshAvg {α : Type} (U : Finset α) (g : α → List (ι × M) → ℝ≥0∞) :
     ∀ (J : List ι), avgI (fun I => freshAvg U fun u => g u I) J = freshAvg U fun u => avgI (g u) J

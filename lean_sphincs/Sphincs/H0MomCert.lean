@@ -204,7 +204,6 @@ theorem hR_le (s : ℕ) :
   push_cast
   refine Finset.sum_le_sum fun u _ => ?_
   rw [pascal_getD]
-  push_cast
   have h1 := fR_unit u
   have h2 := fR_unit (s - u)
   have h3 := fR_le_fQ u
@@ -243,7 +242,6 @@ theorem gR_le (s : ℕ) (hs : s ≤ 150) :
   refine Finset.sum_le_sum fun i hi => ?_
   have hi' := Finset.mem_range.1 hi
   rw [pascal_getD, μL_getD i (by omega), μL_getD (s - i) (by omega)]
-  push_cast
   have h1 := μR_bounds i
   have h2 := μR_bounds (s - i)
   gcongr

@@ -246,7 +246,7 @@ theorem φF_le_one (Xs : Multiset FieldVal) : φF Xs ≤ 1 := by
 
 omit [Params] in
 theorem yM_le_one (Ms : Multiset (Coord → FieldVal)) : yM Ms ≤ 1 :=
-  Finset.prod_le_one fun c _ => φF_le_one _
+  Finset.prod_le_one fun _c _ => φF_le_one _
 
 omit [Params] in
 theorem yM_ne_top (Ms : Multiset (Coord → FieldVal)) : yM Ms ≠ ⊤ :=

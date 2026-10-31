@@ -29,7 +29,7 @@ theorem realRun_expectation (auxiliary : State → QueryImpl auxSpec PMF)
       ∑' result, idealRun auxiliary computation observed result *
         (meanPreimages result.2.2 result.1 * payoff result) := by
   classical
-  letI : DecidableEq (Fin n → State → State) := Classical.decEq _
+  let : DecidableEq (Fin n → State → State) := Classical.decEq _
   simp only [realRun, expectation_bind, expectation_map]
   rw [EndpointPreimageDensity.real_payoff, ENNReal.tsum_prod', ENNReal.tsum_comm]
   simp only [EndpointPreimageDensity.ideal_apply, div_eq_mul_inv]
