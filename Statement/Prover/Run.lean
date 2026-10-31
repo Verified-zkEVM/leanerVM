@@ -195,11 +195,12 @@ def runFrom (fuel : ℕ) {α β : Type} :
       let r ← runFrom fuel (k rows) (Script.afterQuery rows S) sp cs
       pure (r.map fun t ↦ (t.1, ps.map tree.opening ++ t.2))
 
-/-- **A proof from a script**: the script run against the program from the seed, or the empty
-proof if a proof-of-work search finds no nonce below `fuel`. -/
-def runScript (P : Prog Bool) {β : Type} (S : Script β) (seed : KeccakState) (fuel : ℕ) : m Proof := do
+/-- **A proof from a script**: the script run against the program from the seed, or `none` if a
+proof-of-work search finds no nonce below `fuel`. -/
+def runScript (P : Prog Bool) {β : Type} (S : Script β) (seed : KeccakState) (fuel : ℕ) :
+    m (Option Proof) := do
   let r ← runFrom F fuel P (some S) ⟨seed, []⟩ []
-  pure ((r.map fun t ↦ (⟨t.1, t.2⟩ : Proof)).getD ⟨[], []⟩)
+  pure (r.map fun t ↦ (⟨t.1, t.2⟩ : Proof))
 
 end Run
 

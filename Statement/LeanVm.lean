@@ -84,14 +84,15 @@ abbrev ProgramAndInput : Type := Program × PublicInput
 /-! ### The honest prover and the committed size -/
 
 /-- An honest prover: over a permutation `F` in any monad, from a statement, an execution, the
-commitment's rate exponent `ρ` and a fuel of nonces per proof of work, a proof. -/
+commitment's rate exponent `ρ` and a fuel of nonces per proof of work, a proof, or `none` when it
+makes none. -/
 abbrev HonestProver : Type 1 :=
   {m : Type → Type} → [Monad m] → (KeccakState → m KeccakState) → (prog : Program) →
-    (input : PublicInput) → Execution prog → (ρ fuel : ℕ) → m Proof
+    (input : PublicInput) → Execution prog → (ρ fuel : ℕ) → m (Option Proof)
 
 /-- **The honest prover**: `LeanVM.Prover.prove` (`Statement/Prover/Prove.lean`). From the
-execution `t` it computes the witness (`witness?`, the empty proof unless `t` is a valid execution
-within `2^28` committed cells), and, at a valid rate, runs the honest script against the verifier's
+execution `t` it computes the witness (`witness?`, no proof unless `t` is a valid execution within
+`2^28` committed cells), and, at a valid rate, runs the honest script against the verifier's
 own program `leanVmProgram`, trying `fuel` nonces per proof of work. -/
 def prover : HonestProver :=
   fun F prog input t ρ fuel ↦ Prover.prove F prog input t ρ fuel
@@ -235,12 +236,14 @@ def KnowledgeSoundness : Prop :=
 /-! ### Completeness -/
 
 /-- **The completeness experiment in the random-permutation model**: the honest prover's proof,
-then the verifier's verdict on it, both over `π`, run against the lazily sampled permutation. -/
+then the verifier's verdict on it, both over `π`, run against the lazily sampled permutation; no
+proof is a failure. -/
 noncomputable def verifierCompletenessExperiment (prover : HonestProver) (prog : Program)
     (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) : ProbComp Bool :=
   Common.runWithRandomPermutation do
-    let proof ← prover queryPermutation prog input t ρ fuel
-    verifier queryPermutation prog input proof
+    match ← prover queryPermutation prog input t ρ fuel with
+    | none => pure false
+    | some proof => verifier queryPermutation prog input proof
 
 /-- **Completeness in the random-permutation model**: trying `2^25` nonces per proof of work, the
 honest prover's (`prover`) proof of an execution within the verifier's size cap is rejected with

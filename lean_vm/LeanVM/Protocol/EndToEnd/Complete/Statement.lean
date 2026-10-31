@@ -98,9 +98,12 @@ theorem statement_completenessError_le :
   rw [completenessError_eq]
   exact completenessError_le
 
-/-- **Completeness holds**, with the honest prover `honestComp`. -/
+/-- **Completeness holds**, with the honest prover `honestComp` (which always makes a proof). -/
 theorem completeness_holds : LeanVM.CompletenessRom :=
-  ⟨honestComp, fun _ _ _ _ _ hv hbudget hρ hfuel ↦ completeness_le hv hbudget hρ hfuel⟩
+  ⟨fun prog input t ρ fuel ↦ some <$> honestComp prog input t ρ fuel,
+    fun _ _ _ _ _ hv hbudget hρ hfuel ↦ by
+      simp only [Functor.map_map, Option.getD_some]
+      exact completeness_le hv hbudget hρ hfuel⟩
 
 end
 end LeanVM.Protocol.EndToEnd.Complete

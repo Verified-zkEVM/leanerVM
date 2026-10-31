@@ -146,8 +146,8 @@ prog input t ρ fuel` (`Prove.lean`), over a permutation `F` in any monad, Kecca
 over `F`: over the model's `π` it is the prover `LeanVM.prover` that `Completeness` and
 `GuestChildComplete` name, and over Keccak-f[1600] in `Id` it is `lake exe leanvm-prove`, whose proofs the
 Rust and Lean verifiers accept (`lean_vm/README.md`). It is definitions only: the witness from the
-trace (`Witness.lean`, `Columns.lean`: one run of the program; the empty proof unless the trace is
-a valid execution within `2^28` committed cells), a script of the prover's moves (`Script.lean`)
+trace (`Witness.lean`, `Columns.lean`: one run of the program; no proof, `none`, unless the trace
+is a valid execution within `2^28` committed cells), a script of the prover's moves (`Script.lean`)
 for each phase of the verifier (`Ntt.lean`, `Bus.lean`, `Gkr.lean`, `Table.lean`, `Public.lean`,
 `Keccak*.lean`, `Ring.lean`, `Whir.lean`; `Mle.lean`, `Sumcheck.lean`, `Code.lean` their helpers),
 and its run against the verifier's own program (`Run.lean`: the challenges squeezed from the

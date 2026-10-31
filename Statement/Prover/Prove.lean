@@ -52,21 +52,21 @@ def honestScript (W : Witness) (layout : Layout) (ρ : ℕ) : Script Unit :=
     fun _ ↦ .ret ()
 
 /-- **leanVM's honest prover.** The proof of the execution `t` of `prog` on `input` at the rate
-`2^-ρ`, trying `fuel` nonces per proof of work; the empty proof for a trace that is no valid
-execution within the cap, an invalid rate, or a proof-of-work search that finds no nonce. -/
+`2^-ρ`, trying `fuel` nonces per proof of work; `none` for a trace that is no valid execution
+within the cap, an invalid rate, or a proof-of-work search that finds no nonce. -/
 def prove {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState) (prog : Program)
-    (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) : m Proof :=
+    (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) : m (Option Proof) :=
   match witness? prog input t with
-  | none => pure ⟨[], []⟩
+  | none => pure none
   | some W =>
     if 1 ≤ ρ ∧ ρ ≤ 4 then
       match buildLayout (bytecodeWords prog) W.logMem W.rows with
-      | none => pure ⟨[], []⟩
+      | none => pure none
       | some layout => do
         let seed ← seedWith F (bytecodeWords prog) (publicDigest input)
         runScript F (leanVmProgram (bytecodeWords prog) (publicDigest input))
           (honestScript W layout ρ) seed fuel
-    else pure ⟨[], []⟩
+    else pure none
 
 end LeanVM.Prover
 

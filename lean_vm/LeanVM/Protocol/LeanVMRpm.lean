@@ -338,16 +338,17 @@ theorem completenessRpm {prog : Program} {input : PublicInput} {t : Execution pr
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let v ← verifierCompletenessExperimentWithHash
-        (fun prog input t ρ fuel ↦ EndToEnd.Complete.honestComp prog input t ρ fuel)
+        (fun prog input t ρ fuel ↦ some <$> EndToEnd.Complete.honestComp prog input t ρ fuel)
         prog input t ρ fuel}[v = false] ≤
       completenessError fuel + rpmError (completenessPermCalls fuel) := by
   obtain ⟨w, s, hw, hrep, hs, hadm⟩ := EndToEnd.Complete.exists_admissible_witness hv hbudget
   have hex : ∃ w s, EndToEnd.Complete.HonestFor prog input t ρ w s := ⟨w, s, hρ, hw, hs, hadm, hrep⟩
   have e0 : verifierCompletenessExperimentWithHash
-      (fun prog input t ρ fuel ↦ EndToEnd.Complete.honestComp prog input t ρ fuel)
+      (fun prog input t ρ fuel ↦ some <$> EndToEnd.Complete.honestComp prog input t ρ fuel)
       prog input t ρ fuel = (simulateQ keccakCallsOverRandomPermutation
         (EndToEnd.Complete.honestComp prog input t ρ fuel >>= fun proof ↦
-          verifierWithHash callKeccak256 callKeccakF1600 prog input proof)).run' [] := rfl
+          verifierWithHash callKeccak256 callKeccakF1600 prog input proof)).run' [] := by
+    simp only [verifierCompletenessExperimentWithHash, bind_map_left]
   rw [e0]
   unfold EndToEnd.Complete.honestComp
   simp only [hex, ↓reduceDIte]

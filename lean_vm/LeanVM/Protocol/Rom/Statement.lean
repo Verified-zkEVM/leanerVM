@@ -128,12 +128,14 @@ def KnowledgeSoundnessRom : Prop :=
 
 /-! ## Completeness -/
 
-/-- **Completeness in the two-oracle random-oracle model.** -/
+/-- **Completeness in the two-oracle random-oracle model.** The experiment takes a proof: no
+proof (`none`) enters it as the empty proof, which the verifier rejects. -/
 def CompletenessRom : Prop :=
   ∃ prover : HonestProverWithHash, ∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
     ValidExecution prog input t →
     t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
-    Pr{let z ← experiment ((fun proof ↦ ((prog, input), proof)) <$> prover prog input t ρ fuel)}[
+    Pr{let z ← experiment
+        ((fun proof ↦ ((prog, input), proof.getD ⟨[], []⟩)) <$> prover prog input t ρ fuel)}[
       z.rejected] ≤ completenessError fuel
 
 end

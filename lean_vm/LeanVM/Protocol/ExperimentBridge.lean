@@ -177,6 +177,9 @@ theorem verifierCompletenessExperiment_eq_withHash (prog : Program) (input : Pub
     runWithRandomPermutation, prover_queryPermutation, verifier_queryPermutation]
   rw [← simulateQ_lazy_keccakCallsOverQueryPermutation, simulateQ_bind, simulateQ_bind]
   simp only [simulateQ_bind]
+  congr 2
+  funext x
+  cases x <;> simp only [simulateQ_pure]
 
 /-- **Completeness, from the two-call experiment.** -/
 theorem completeness_of_withHash (h : CompletenessWithHash) : Completeness := by

@@ -845,36 +845,38 @@ def verifierRefusingZero {m : Type → Type} [Monad m] (F : KeccakState → m Ke
   runProof F
     (leanVmProgram (bytecodeWords prog) (publicDigest input)).refusingZeroChallenge seed proof
 
-/-- **An honest prover's proof over the deployed Keccak-f[1600]**, the hash Keccak-256. -/
+/-- **An honest prover's proof over the deployed Keccak-f[1600]**, the hash Keccak-256, if it
+makes one. -/
 def honestProofWithDeployedKeccak (prover : HonestProver) (prog : Program) (input : PublicInput)
-    (t : Execution prog) (ρ fuel : ℕ) : Proof :=
+    (t : Execution prog) (ρ fuel : ℕ) : Option Proof :=
   prover (m := Id) keccakF1600 prog input t ρ fuel
 
 open OracleComp OracleSpec in
 /-- **The honest proof of an execution of the guest program is a child the guest program accepts**:
 for the honest prover `LeanVM.prover` (`LeanVm.lean`, `LeanVM.Prover.prove`),
-1. in the random-permutation model, at `2^25` nonces per proof of work, `verifierRefusingZero`
-   rejects its proof of a valid execution of committed size at most `2^28`, at an inverse rate
-   `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`;
-2. its proof with the deployed Keccak (`honestProofWithDeployedKeccak`) of an execution of the
-   leanISA guest program of committed size at least `2^22` on a statement's digest under the
-   deployed seed, wherever `verifierRefusingZero` with the deployed Keccak accepts it, forms with
-   the statement (its deferred claim shaped) and some claim `freshClaim` on the bytecode a child the
-guest program accepts (`AcceptableChild`). Reading part 1 for the deployed Keccak, so that part 2
-applies to the honest proof, is the heuristic that the deployed Keccak-f[1600] behaves as a random
-permutation, applied to this prover.
+1. in the random-permutation model, at `2^25` nonces per proof of work, it makes no proof, or
+   `verifierRefusingZero` rejects its proof, of a valid execution of committed size at most
+   `2^28`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`;
+2. its proof with the deployed Keccak (`honestProofWithDeployedKeccak`), if it makes one, of an
+   execution of the leanISA guest program of committed size at least `2^22` on a statement's digest
+   under the deployed seed, wherever `verifierRefusingZero` with the deployed Keccak accepts it,
+   forms with the statement (its deferred claim shaped) and some claim `freshClaim` on the bytecode
+   a child the guest program accepts (`AcceptableChild`).
+Reading part 1 for the deployed Keccak, so that part 2 applies to the honest proof, is the heuristic
+that the deployed Keccak-f[1600] behaves as a random permutation, applied to this prover.
 Proved by `LeanVM.Guest.Budget.guest_child_complete`. -/
 def GuestChildComplete : Prop :=
   (∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
     ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← Common.runWithRandomPermutation (do
-        let proof ← LeanVM.prover Common.queryPermutation prog input t ρ (2 ^ 25)
-        verifierRefusingZero Common.queryPermutation prog input proof)}[v = false] ≤
+        match ← LeanVM.prover Common.queryPermutation prog input t ρ (2 ^ 25) with
+        | none => pure false
+        | some proof => verifierRefusingZero Common.queryPermutation prog input proof)}[v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
   ∀ (s : NodeStatement) (t : Execution guest) (ρ : ℕ), 2 ^ 22 ≤ t.committedSize →
     s.deferredClaim.HasBytecodeShape (bytecodeWords guest) →
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guest) s)
-    let proof := honestProofWithDeployedKeccak LeanVM.prover guest input t ρ (2 ^ 25)
+    ∀ proof, honestProofWithDeployedKeccak LeanVM.prover guest input t ρ (2 ^ 25) = some proof →
     verifierRefusingZero (m := Id) keccakF1600 guest input proof = true →
     ∃ fresh, AcceptableChild (bytecodeWords guest) (deployedSeed guest) ⟨s, fresh, proof⟩
 

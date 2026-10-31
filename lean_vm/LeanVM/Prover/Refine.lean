@@ -29,11 +29,8 @@ Along a history whose walk ends at the runner's node (`Hs.walk h = S`), they are
 (`runFrom_eq_proveFromM`): the runner's moves on a matching node are the replay's (`msgAt`,
 `wordAt`), and off one (`0`, the empty rows) too.
 
-* `runScript_eq_proveM`: from a seed, the runner's proof is the honest prover's, or the empty
-  proof where it fails.
-* `honestComp_ofScript`: the specification's honest prover of the random-oracle model
-  (`Rom.honestComp`) of a script's replay is the seed (`seedWith`), then the runner, with every
-  hash and permutation a query; `honestComp_ofScript_leanVm` at leanVM's seed and program.
+* `runScript_eq_proveM`: from a seed, the runner's proof is the honest prover's, `none` where it
+  fails.
 * `simulateQ_runScript`, `simulateQ_seedRunScript`: answering the queries by any implementation
   is running with it; at Keccak-256 and Keccak-f[1600] (`Guest.Budget.deployedKeccakCalls`) the runner in
   `Id` (`atKeccak_seedRunScript`).
@@ -157,39 +154,15 @@ theorem runFrom_eq_proveFromM (fuel : ℕ) {α β : Type} (Hs : Script β) :
       congr 1
       exact ih _ _ _ _ _ (by rw [Script.walk_append, hw, Script.afterQuery_eq])
 
-variable [LawfulMonad m]
-
-/-- **From a seed**: the runner's proof is the honest prover's of the script's replay, the empty
-proof where a proof of work fails. -/
+/-- **From a seed**: the runner's proof is the honest prover's of the script's replay, `none`
+where a proof of work fails. -/
 theorem runScript_eq_proveM (P : Prog Bool) {β : Type} (Hs : Script β) (seed : KeccakState)
     (fuel : ℕ) :
-    runScriptWithHash H F P Hs seed fuel =
-      (fun r ↦ r.getD ⟨[], []⟩) <$> proveM H F P (Strategy.ofScript Hs 0) seed fuel := by
+    runScriptWithHash H F P Hs seed fuel = proveM H F P (Strategy.ofScript Hs 0) seed fuel := by
   unfold runScriptWithHash proveM
-  rw [runFrom_eq_proveFromM H F fuel Hs P (some Hs) ⟨seed, []⟩ [] [] rfl, map_bind]
-  simp only [map_pure]
+  rw [runFrom_eq_proveFromM H F fuel Hs P (some Hs) ⟨seed, []⟩ [] [] rfl]
 
 end Bridge
-
-/-- **The specification's honest prover of a script's replay is the runner**, with every hash
-and permutation a query: the seed, then the script run against the program. -/
-theorem honestComp_ofScript (σ : Seed) (P : Prog Bool) {β : Type} (Hs : Script β) (fuel : ℕ) :
-    Rom.honestComp σ P (Strategy.ofScript Hs 0) fuel = (do
-      let seed ← σ.run callKeccak256 callKeccakF1600
-      runScriptWithHash callKeccak256 callKeccakF1600 P Hs seed fuel) := by
-  unfold Rom.honestComp
-  congr 1; funext seed
-  rw [runScript_eq_proveM, map_eq_bind_pure_comp]
-  rfl
-
-/-- **At leanVM's seed and program.** -/
-theorem honestComp_ofScript_leanVm (bytecode : List K) (publicInput : Digest) {β : Type}
-    (Hs : Script β) (fuel : ℕ) :
-    Rom.honestComp (leanVmSeed bytecode publicInput) (leanVmProgram bytecode publicInput)
-        (Strategy.ofScript Hs 0) fuel = (do
-      let seed ← seedWithHash callKeccak256 callKeccakF1600 bytecode publicInput
-      runScriptWithHash callKeccak256 callKeccakF1600 (leanVmProgram bytecode publicInput) Hs seed fuel) := by
-  rw [honestComp_ofScript, seedRun_leanVmSeed]
 
 /-! ## Simulation -/
 
@@ -202,7 +175,7 @@ theorem simulateQ_runScript (P : Prog Bool) {β : Type} (Hs : Script β) (seed :
     (fuel : ℕ) :
     simulateQ impl (runScriptWithHash callKeccak256 callKeccakF1600 P Hs seed fuel) =
       runScriptWithHash (implH impl) (implF impl) P Hs seed fuel := by
-  rw [runScript_eq_proveM, runScript_eq_proveM, simulateQ_map, simulateQ_proveM]
+  rw [runScript_eq_proveM, runScript_eq_proveM, simulateQ_proveM]
 
 /-- The seed commutes with simulation. -/
 theorem simulateQ_seedWith (bytecode : List K) (publicInput : Digest) :

@@ -16,7 +16,8 @@ import LeanVM.Protocol.Verifier
 runs `LeanVM.Prover.prove` with Keccak-256 and Keccak-f[1600] (the deployed hashes, `Id`) at
 `fuel` nonces per proof of work (default `2^25`), and writes the proof in the four-file format
 of the Rust prover's fixtures (`lean_stream.bin`, `lean_merkle_openings.bin` in the case
-directory), which `leanvm-verify` and the Rust verifier read. It prints the time taken.
+directory), which `leanvm-verify` and the Rust verifier read. It prints the time taken; if the
+prover makes no proof (`none`), it says so and exits with `1`.
 -/
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
@@ -107,7 +108,11 @@ def main (args : List String) : IO UInt32 := do
     unless mem.size = 2 ^ κ do IO.eprintln "the memory is not 2^κ cells"; return 2
     let t : Execution prog := ⟨κ, fun i ↦ mem.getD i.val 0, steps⟩
     let start ← IO.monoMsNow
-    let proof := LeanVM.Prover.prove (m := Id) keccakF1600 prog input t ρ fuel
+    let some proof := LeanVM.Prover.prove (m := Id) keccakF1600 prog input t ρ fuel
+      | do
+        IO.eprintln s!"{dir}: no proof (the trace is no valid execution within the cap, the rate \
+          is invalid, or a proof of work found no nonce below {fuel})"
+        return 1
     let stream := proof.stream.flatMap scalarBytes
     let openings := proof.openings.flatMap fun o ↦ o.leaf.flatMap kBytes ++ o.path.flatMap digestBytes
     IO.FS.writeBinFile (dir ++ "/lean_stream.bin") ⟨stream.toArray⟩
@@ -115,7 +120,7 @@ def main (args : List String) : IO UInt32 := do
     let stop ← IO.monoMsNow
     IO.println s!"{dir}: {proof.stream.length} scalars, {proof.openings.length} openings, \
       {(stop - start).toFloat / 1000} s"
-    return (if proof.stream.isEmpty then 1 else 0)
+    return 0
   | _ =>
     IO.eprintln "usage: leanvm-prove <case dir> [fuel]"
     return 2

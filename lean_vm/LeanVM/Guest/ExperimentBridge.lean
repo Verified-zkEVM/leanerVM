@@ -120,28 +120,21 @@ theorem honestProofWithDeployedKeccak_eq_withHash (prog : Program) (input : Publ
 /-- **`GuestChildComplete`, from the statement with the two calls.** -/
 theorem guestChildComplete_of_withHash (h : GuestChildCompleteWithHash) : GuestChildComplete := by
   refine ⟨fun prog input t ρ hv hs hρ ↦ ?_, fun s t ρ hs hshape ↦ ?_⟩
-  · have e : runWithRandomPermutation (do
-          let proof ← LeanVM.prover queryPermutation prog input t ρ (2 ^ 25)
-          verifierRefusingZero queryPermutation prog input proof) =
-        (simulateQ keccakCallsOverRandomPermutation (do
-          let proof ← LeanVM.proverWithHash prog input t ρ (2 ^ 25)
-          verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input proof)).run' [] :=
-            by
-      rw [← simulateQ_lazy_keccakCallsOverQueryPermutation]
-      simp only [runWithRandomPermutation, prover_queryPermutation, simulateQ_bind,
-        simulateQ_verifierRefusingZeroWithHash, verifierRefusingZero_eq_withHash]
+  · convert h.1 prog input t ρ hv hs hρ using 3
+    rw [← simulateQ_lazy_keccakCallsOverQueryPermutation]
+    simp only [runWithRandomPermutation, prover_queryPermutation, simulateQ_bind]
+    congr 2
+    funext x
+    cases x
+    · simp only [simulateQ_pure]
+    · simp only [simulateQ_verifierRefusingZeroWithHash, verifierRefusingZero_eq_withHash]
       rfl
-    rw [e]
-    exact h.1 prog input t ρ hv hs hρ
-  · intro input proof hacc
+  · intro input proof hsome hacc
     have key := h.2 s t ρ hs hshape
     simp only at key
-    have e : proof = honestProofWithDeployedKeccakWithHash proverWithHash guest input t ρ
-      (2 ^ 25) :=
-      honestProofWithDeployedKeccak_eq_withHash guest input t ρ (2 ^ 25)
-    rw [verifierRefusingZero_eq_withHash, e] at hacc
-    rw [e]
-    exact key hacc
+    rw [honestProofWithDeployedKeccak_eq_withHash] at hsome
+    rw [verifierRefusingZero_eq_withHash] at hacc
+    exact key proof hsome hacc
 
 end Budget
 

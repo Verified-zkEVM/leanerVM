@@ -225,32 +225,32 @@ def runFromWithHash (fuel : ℕ) {α β : Type} :
       let r ← runFromWithHash fuel (k rows) (Script.afterQuery rows S) sp cs
       pure (r.map fun t ↦ (t.1, ps.map tree.opening ++ t.2))
 
-/-- **A proof from a script**: the script run against the program from the seed, or the empty
-proof if a proof-of-work search finds no nonce below `fuel`. -/
+/-- **A proof from a script**: the script run against the program from the seed, or `none` if a
+proof-of-work search finds no nonce below `fuel`. -/
 def runScriptWithHash (P : Prog Bool) {β : Type} (S : Script β) (seed : KeccakState) (fuel : ℕ) :
-    m Proof := do
+    m (Option Proof) := do
   let r ← runFromWithHash H F fuel P (some S) ⟨seed, []⟩ []
-  pure ((r.map fun t ↦ (⟨t.1, t.2⟩ : Proof)).getD ⟨[], []⟩)
+  pure (r.map fun t ↦ (⟨t.1, t.2⟩ : Proof))
 
 end Run
 
 /-- **leanVM's honest prover.** The proof of the execution `t` of `prog` on `input` at the rate
-`2^-ρ`, trying `fuel` nonces per proof of work; the empty proof for a trace that is no valid
-execution within the cap, an invalid rate, or a proof-of-work search that finds no nonce. -/
+`2^-ρ`, trying `fuel` nonces per proof of work; `none` for a trace that is no valid execution
+within the cap, an invalid rate, or a proof-of-work search that finds no nonce. -/
 def proveWithHash {m : Type → Type} [Monad m] (H : Bytes → m Digest)
     (F : KeccakState → m KeccakState)
-    (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) : m Proof :=
+    (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) : m (Option Proof) :=
   match witness? prog input t with
-  | none => pure ⟨[], []⟩
+  | none => pure none
   | some W =>
     if 1 ≤ ρ ∧ ρ ≤ 4 then
       match buildLayout (bytecodeWords prog) W.logMem W.rows with
-      | none => pure ⟨[], []⟩
+      | none => pure none
       | some layout => do
         let seed ← seedWithHash H F (bytecodeWords prog) (publicDigest input)
         runScriptWithHash H F (leanVmProgram (bytecodeWords prog) (publicDigest input))
           (honestScript W layout ρ) seed fuel
-    else pure ⟨[], []⟩
+    else pure none
 
 end LeanVM.Prover
 
@@ -289,15 +289,15 @@ def callKeccakF1600 (s : KeccakState) : OracleComp KeccakCalls KeccakState :=
 
 
 /-- An honest prover: from a statement, an execution, the commitment's rate exponent `ρ` and a
-fuel of nonces per proof of work, a proof, computed with calls to Keccak-256 and Keccak-f[1600]
-(`KeccakCalls`), which the model answers. -/
+fuel of nonces per proof of work, a proof, or `none` when it makes none, computed with calls to
+Keccak-256 and Keccak-f[1600] (`KeccakCalls`), which the model answers. -/
 abbrev HonestProverWithHash : Type :=
   (prog : Program) → (input : PublicInput) → Execution prog → (ρ fuel : ℕ) →
-    OracleComp KeccakCalls Proof
+    OracleComp KeccakCalls (Option Proof)
 
 /-- **The honest prover**: `LeanVM.Prover.prove` (`Statement/Prover/Prove.lean`) with Keccak-256 and
-Keccak-f[1600] the oracle calls. From the execution `t` it computes the witness (`witness?`, the
-empty proof unless `t` is a valid execution within `2^28` committed cells), and, at a valid rate,
+Keccak-f[1600] the oracle calls. From the execution `t` it computes the witness (`witness?`, no
+proof unless `t` is a valid execution within `2^28` committed cells), and, at a valid rate,
 runs the honest script against the verifier's own program `leanVmProgram`, trying `fuel` nonces
 per proof of work. -/
 def proverWithHash : HonestProverWithHash :=
@@ -404,8 +404,9 @@ noncomputable def verifierCompletenessExperimentWithHash (proverWithHash : Hones
     (prog : Program)
     (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) : ProbComp Bool :=
   (simulateQ keccakCallsOverRandomPermutation (do
-    let proof ← proverWithHash prog input t ρ fuel
-    verifierWithHash callKeccak256 callKeccakF1600 prog input proof)).run' []
+    match ← proverWithHash prog input t ρ fuel with
+    | none => pure false
+    | some proof => verifierWithHash callKeccak256 callKeccakF1600 prog input proof)).run' []
 
 /-- **Completeness in the random-permutation model**: trying `2^25` nonces per proof of work, the
 honest prover's (`prover`) proof of an execution within the verifier's size cap is rejected with

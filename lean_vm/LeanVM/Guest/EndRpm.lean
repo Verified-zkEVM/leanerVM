@@ -132,7 +132,7 @@ theorem aggregate_complete_of {budget : NodeStatement → NodeWitness → ℕ}
       ∀ ρ fuel, 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
         Pr{let v ← verifierCompletenessExperimentWithHash
             (fun prog input t ρ fuel ↦
-              LeanVM.Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel)
+              some <$> LeanVM.Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel)
             guest (publicInputOf (statementDigest seed s)) t ρ fuel}[v = false] ≤
           completenessError fuel + rpmError (completenessPermCalls fuel) := by
   obtain ⟨t, hv, -, hsize⟩ := h seed s w hrel hlim hok hbudget
