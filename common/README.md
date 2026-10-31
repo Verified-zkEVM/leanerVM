@@ -104,7 +104,7 @@ adversary saw a direct call's full answer `y = F x` and then queried `π` at `y 
 block `B`, the RPM would tie the answer to `H` while the ROM simulator would not know `y`. Hence
 the direct calls are made by the honest part after the adversary has finished.
 
-**Signature games** (`SufCma.rpm_le_rom`, `SufCma.rpm_bound`). For a scheme hashing with
+**Signature games** (`SufCma.rpm_le_romB`, `SufCma.rpm_bound`). For a scheme hashing with
 `H : List UInt8 → D` (`D ≃` the 32 Keccak-256 bytes; leanXMSS and leanSPHINCS read them as the
 little-endian `BitVec 256`, `digestBitVec`), the ROM game (`romGame`, `romExperiment`: seed, key
 generation, the adversary with `H` and a logging signing oracle, verification, every hash call

@@ -27,6 +27,7 @@ Lake rebuilds a module when a module it imports, directly or not, changes. For a
 
 * `python3 -I tools/deps.py cone FILE` says what an edit of `FILE`'s interface rebuilds: the modules, their CPU time and the longest chain, from the import graph and the times of the last `lake-build.py` runs; `deps.py slow` lists the slowest modules and how many modules can rebuild each, `deps.py path` the longest chain of a full build.
 * `lake env lean --run ../tools/NeededImports.lean MODULE`, in a project after building `MODULE`, says which of the repository's modules `MODULE` imports without needing them, and which needed modules bring them in (the modules to split). Kernel-checked modules are guarded by such a check in the build (`lean_sphincs/Sphincs/TablesFirewall.lean`).
+* `python3 -I tools/docnames.py` lists the names the READMEs and `statement.tex` cite that no Lean file has (renamed or removed declarations; some hits are leanVM's Rust names).
 * To iterate on `lean_vm`, `lake build MODULE` builds one module and what it needs, and `python3 -I lake-build.py lean_vm --dev …` skips the kernel (see `lean_vm`'s README); the gate, `lake build` here, is for a change that is done.
 
 ## Against leanVM
