@@ -2,6 +2,7 @@ import Sphincs.BridgeSampleBoundF
 import Sphincs.BridgeRoutes
 import Sphincs.BridgeSatWRoutes
 import Sphincs.BridgeDetMemo
+import Sphincs.LifetimeCheck
 
 /-! **The deterministic signer of the forest at 127 bits.** Small budgets (`q - keygenCost ≤ qh`):
 the sample bound averaged over the prepared samples, in closed form from one rational check
@@ -275,18 +276,6 @@ theorem det_smallF (hb : 0 < subtreeHeight) (adversary : Adversary) (q : ℕ)
 end Close
 
 /-! ### The rational check -/
-
-/-- The rational small-route check at the right end `qh` of the small budgets: the coin term is
-`(2 M − 1) qh / (M 2^129)` with `M = 2^(26 − b)` (the creation rate of the scan signer), the near term
-is multiplied by `κ = 2 - ρ + qh / 2^128 + N · 123 / (2^b 2^15)`. -/
-def checkSmallF (b N qh : ℕ) (ρ cthr B c : ℚ) : Bool :=
-  decide (3 / 2 ≤ ρ) && decide (ρ ≤ 2) &&
-    decide (1 + 4032 * (2 - ρ) * ((qh : ℚ) / 2 ^ 128) ≤ ρ) && decide (1 + 66 * ((qh : ℚ) / 2 ^ 128) ≤ ρ) &&
-    decide (64 * ((qh : ℚ) / 2 ^ 128) ≤ 1) && decide (qh ≤ 2 ^ 127) && decide (N ≤ 2 ^ 70) &&
-    decide (cthr ≤ ρ / 2 ^ 128) && decide (0 ≤ B) && decide (0 ≤ c) &&
-    decide ((N : ℚ) * 123 / (2 ^ b * 2 ^ 15) ≤ ρ - 1 - (qh : ℚ) / 2 ^ 128) &&
-    decide (ρ + 2 ^ 128 * B + (2 * (H0.scanMb b : ℚ) - 1) * (qh : ℚ) / ((H0.scanMb b : ℚ) * 2 ^ 129) +
-      (2 - ρ + (qh : ℚ) / 2 ^ 128 + (N : ℚ) * 123 / (2 ^ b * 2 ^ 15)) * qh * c + 1 / 2 ^ 60 ≤ 2)
 
 omit [Params] in
 theorem checkSmallF_sound {b N qh : ℕ} {ρ cthr B c : ℚ} (h : checkSmallF b N qh ρ cthr B c = true) :

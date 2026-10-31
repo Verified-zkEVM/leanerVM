@@ -1,5 +1,7 @@
 import Sphincs.LifetimeCertificates
 import Sphincs.Layered
+import Sphincs.BridgeHeavyCert
+import Sphincs.StatementDet
 
 /-! **Proved lifetimes of the forest variant** for the deterministic signer (seed-derived
 randomizers): 127 classical bits against any adversary. Small budgets use the linear potential, the

@@ -1,5 +1,7 @@
 import Sphincs.H0MomCert
 import Sphincs.H0Forest
+import Sphincs.LifetimeCheck
+import SphincsFors.H0SplitCert
 
 /-! **Kernel-checkable certificates for the forest H-term.** A Poisson table (rate bound
 `μ̄ = m / 2^64`, weight bounds `pm[n] / 2^P` up to `n1 + 1`, geometric tail with ratio
@@ -15,30 +17,6 @@ open Concrete SphincsFors.Security.H0 SphincsFors.Security.Domination H0Avg
 set_option linter.unusedSectionVars false
 
 /-! ### The Poisson table -/
-
-/-- A Poisson table: rate bound `m / 2^64`, weight bounds `pm[n] / 2^P` for `n ≤ n1 + 1`, and `J`
-series terms for `e^μ̄`. -/
-structure PoisT where
-  m : ℕ
-  P : ℕ
-  J : ℕ
-  pm : List ℕ
-
-namespace PoisT
-
-def mu (t : PoisT) : ℚ := (t.m : ℚ) / 2 ^ 64
-def n1 (t : PoisT) : ℕ := t.pm.length - 2
-def pb (t : PoisT) (n : ℕ) : ℚ := (t.pm.getD n 0 : ℚ) / 2 ^ t.P
-def r (t : PoisT) : ℚ := t.mu / (t.n1 + 2)
-
-end PoisT
-
-/-- The check of a Poisson table. -/
-def checkPT (t : PoisT) : Bool :=
-  decide (2 ≤ t.pm.length) &&
-    decide ((2 : ℚ) ^ t.P ≤ (t.pm.getD 0 0 : ℚ) * expLow t.mu t.J t.P) &&
-    decide (∀ n < t.pm.length - 1, t.pm.getD n 0 * t.m ≤ t.pm.getD (n + 1) 0 * ((n + 1) * 2 ^ 64)) &&
-    decide (t.r < 1)
 
 theorem PoisT.mu_nonneg (t : PoisT) : (0 : ℚ) ≤ t.mu := by unfold PoisT.mu; positivity
 theorem PoisT.pb_nonneg (t : PoisT) (n : ℕ) : (0 : ℚ) ≤ t.pb n := by unfold PoisT.pb; positivity
@@ -134,13 +112,6 @@ theorem tsum_geom_lin (r a J : ℝ) (hr0 : 0 ≤ r) (hr1 : r < 1) :
 /-- A table extended linearly with slope `J` beyond its last entry. -/
 def leafQ (tab : List ℚ) (J : ℚ) (n : ℕ) : ℚ :=
   if n < tab.length then tab.getD n 0 else tab.getD (tab.length - 1) 0 + J * ((n - (tab.length - 1) : ℕ) : ℚ)
-
-/-- Nonnegative, increasing and convex, with an extension slope at least the last increment. -/
-def checkLeaf (tab : List ℚ) (J : ℚ) : Bool :=
-  decide (2 ≤ tab.length) && decide (0 ≤ tab.getD 0 0) &&
-    decide (∀ n < tab.length - 1, tab.getD n 0 ≤ tab.getD (n + 1) 0) &&
-    decide (∀ n < tab.length - 2, 2 * tab.getD (n + 1) 0 ≤ tab.getD n 0 + tab.getD (n + 2) 0) &&
-    decide (tab.getD (tab.length - 1) 0 - tab.getD (tab.length - 2) 0 ≤ J)
 
 theorem checkLeaf_parts {tab : List ℚ} {J : ℚ} (h : checkLeaf tab J = true) :
     2 ≤ tab.length ∧ 0 ≤ tab.getD 0 0 ∧ (∀ n < tab.length - 1, tab.getD n 0 ≤ tab.getD (n + 1) 0) ∧

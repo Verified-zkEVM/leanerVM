@@ -1,6 +1,7 @@
 import Sphincs.H0ForestCert
 import Sphincs.H0PTab
 import Sphincs.H0Fair
+import Sphincs.LifetimeCheck
 
 /-! **One option of the forest H-term certificate.** An option fixes the cap `c1`, the Chernoff
 parameter `θ` and the threshold `cthr`, and carries the leaf tables `ḡ` (the excess part) and
@@ -14,50 +15,6 @@ namespace SphincsLayered.Security.H0
 open Concrete ForestPrice SphincsFors.Security.H0 SphincsFors.Security.Domination H0Avg
 
 set_option linter.unusedSectionVars false
-
-/-- The per-index weight `2^-26` of the cover probability. -/
-def κQ : ℚ := 1 / 2 ^ 26
-
-/-- One option of the certificate. -/
-structure OptF where
-  c1 : ℚ
-  θ : ℚ
-  cthr : ℚ
-  s : ℕ
-  eC : ℚ
-  A2 : ℚ
-  gt : List ℚ
-  Jg : ℚ
-  ht : List ℚ
-  Jh : ℚ
-  Eg : ℚ
-  Ee : ℚ
-  B : ℚ
-
-/-- The excess part bound at `n` from the moment tables. -/
-def gBound (o : OptF) (n : ℕ) : ℚ :=
-  min (κQ * P1tab.getD n 0 ^ 8) (κQ ^ 2 * P2tab.getD n 0 ^ 8 / (4 * o.c1))
-
-/-- The Chernoff factor bound (minus one) at `n` from the moment tables. -/
-def hBound (o : OptF) (n : ℕ) : ℚ :=
-  min (o.eC - 1) (o.θ * κQ * P1tab.getD n 0 ^ 8 + o.A2 * κQ ^ 2 * P2tab.getD n 0 ^ 8)
-
-/-- The check of an option against a Poisson table, for subtree height `b`. -/
-def checkOptF (b : ℕ) (t : PoisT) (o : OptF) : Bool :=
-  decide (0 < o.c1) && decide (0 < o.θ) && decide (0 ≤ o.cthr) && decide (o.θ * o.c1 < 2 ^ o.s) &&
-    decide (expUp (o.θ * o.c1) o.s t.P ≤ o.eC) &&
-    decide ((o.eC - 1 - o.θ * o.c1) / o.c1 ^ 2 ≤ o.A2) &&
-    decide (t.n1 ≤ 150) && decide (o.gt.length = t.n1 + 1) && decide (o.ht.length = t.n1 + 1) &&
-    checkLeaf o.gt o.Jg && checkLeaf o.ht o.Jh &&
-    decide (∀ n < t.n1 + 1, gBound o n ≤ o.gt.getD n 0) &&
-    decide (∀ n < t.n1 + 1, hBound o n ≤ o.ht.getD n 0) &&
-    decide (κQ ≤ o.gt.getD t.n1 0 + o.Jg) && decide (o.eC - 1 ≤ o.ht.getD t.n1 0 + o.Jh) &&
-    decide ((((List.range (t.n1 + 1)).map fun n => t.pb n * o.gt.getD n 0).sum +
-      t.pb (t.n1 + 1) * (o.gt.getD t.n1 0 / (1 - t.r) + o.Jg / (1 - t.r) ^ 2)) ≤ o.Eg) &&
-    decide ((((List.range (t.n1 + 1)).map fun n => t.pb n * o.ht.getD n 0).sum +
-      t.pb (t.n1 + 1) * (o.ht.getD t.n1 0 / (1 - t.r) + o.Jh / (1 - t.r) ^ 2)) ≤ o.Ee) &&
-    decide (2 ^ b * o.Eg + sqUp t.P b (1 + o.Ee) / (expLow (o.θ * o.cthr) t.J t.P * eLowQ * o.θ) ≤ o.B) &&
-    decide (0 ≤ o.Eg) && decide (0 ≤ o.Ee)
 
 
 theorem checkOptF_parts {b : ℕ} {t : PoisT} {o : OptF} (h : checkOptF b t o = true) :

@@ -1,5 +1,5 @@
 import Sphincs.BridgeForsGeneric
-import Sphincs.H0NearMom
+import Sphincs.H0NearField
 
 /-! **The near witness.** A target is near covered at the free subtree `(c, j')` when every chain
 outside that subtree is opened deep enough by disclosed views at its index; the witness counts the

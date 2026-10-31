@@ -506,6 +506,9 @@ def pname(b): return 'full' if b == 26 else 'pruned%d' % b
 
 def emit_lifetimes(certs, path):
     out = ['''import Sphincs.LifetimeCertificates
+import Sphincs.Layered
+import Sphincs.BridgeHeavyCert
+import Sphincs.StatementDet
 
 /-! **Proved lifetimes of the forest variant** for the deterministic signer (seed-derived
 randomizers): 127 classical bits against any adversary. Small budgets use the linear potential, the

@@ -1,5 +1,5 @@
 import Sphincs.H0FTab
-import SphincsFors.H0SplitCert
+import SphincsFors.H0Round
 
 /-! **Rational upper bounds of the per-tree moments.** From the kernel-checked codeword tables
 (`f(u)` exactly for `u ≤ 40`, `f(u) ≤ 1` beyond) the closed forms of `Ψ1(n)` and `Ψ2(n)` give
@@ -9,7 +9,7 @@ open ENNReal
 
 namespace SphincsLayered.Security.H0
 
-open Concrete SphincsFors.Security.H0
+open SphincsFors.Security.H0
 
 set_option linter.unusedSectionVars false
 attribute [local irreducible] lut codewordCodes

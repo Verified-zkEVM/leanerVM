@@ -1,5 +1,6 @@
 import SphincsFors.H0BoundOnce
 import SphincsFors.H0Split
+import SphincsFors.H0Round
 
 /-! Kernel-checkable rational certificates for the split bound of the one-coin H-term. A
 certificate has a Poisson table (a rate bound `μ̄ = m / 2^64`, upper bounds `pm[n] / 2^P` for the
@@ -20,33 +21,8 @@ set_option exponentiation.threshold 512
 
 /-! ### Rounding and exponential bounds -/
 
-/-- Round down to a multiple of `2^-P`. -/
-def rdown (x : ℚ) (P : ℕ) : ℚ := ((⌊x * 2 ^ P⌋ : ℤ) : ℚ) / 2 ^ P
-
-/-- Round up to a multiple of `2^-P`. -/
-def rup (x : ℚ) (P : ℕ) : ℚ := ((⌈x * 2 ^ P⌉ : ℤ) : ℚ) / 2 ^ P
-
-/-- Iterated squaring, rounded up: an upper bound for `x^(2^s)`. -/
-def sqUp (P : ℕ) : ℕ → ℚ → ℚ
-  | 0, x => x
-  | s + 1, x => sqUp P s (rup (x * x) P)
-
-/-- Upper bound for `e^u`: `(1 - u / 2^s)^(-2^s)`, rounded up. -/
-def expUp (u : ℚ) (s P : ℕ) : ℚ := sqUp P s (rup (1 / (1 - u / 2 ^ s)) P)
-
-/-- Partial sums of the exponential series with rounded-down terms. -/
-def expLowGo (u : ℚ) (P : ℕ) : ℕ → ℕ → ℚ → ℚ → ℚ
-  | 0, _, t, acc => acc + t
-  | r + 1, j, t, acc => expLowGo u P r (j + 1) (rdown (t * u / (j + 1)) P) (acc + t)
-
-/-- Lower bound for `e^u` from `J + 1` terms of the series. -/
-def expLow (u : ℚ) (J P : ℕ) : ℚ := expLowGo u P J 0 1 0
-
 /-- `κ n^24` with `κ = 2^-266`. -/
 def yQ (n : ℕ) : ℚ := ((n ^ 24 : ℕ) : ℚ) / ((2 ^ 266 : ℕ) : ℚ)
-
-/-- A lower bound for `e`. -/
-def eLowQ : ℚ := 27182818283 / 10 ^ 10
 
 theorem rdown_le (x : ℚ) (P : ℕ) : rdown x P ≤ x := by
   unfold rdown
@@ -57,11 +33,6 @@ theorem rdown_nonneg {x : ℚ} (hx : 0 ≤ x) (P : ℕ) : 0 ≤ rdown x P := by
   unfold rdown
   have : (0 : ℤ) ≤ ⌊x * 2 ^ P⌋ := Int.floor_nonneg.mpr (by positivity)
   positivity
-
-theorem le_rup (x : ℚ) (P : ℕ) : x ≤ rup x P := by
-  unfold rup
-  rw [le_div_iff₀ (by positivity)]
-  exact Int.le_ceil _
 
 theorem sqUp_ge (P : ℕ) : ∀ (s : ℕ) (x : ℚ) (y : ℝ), 0 ≤ y → y ≤ x → y ^ (2 ^ s) ≤ (sqUp P s x : ℝ)
   | 0, x, y, _, h => by simpa [sqUp] using h

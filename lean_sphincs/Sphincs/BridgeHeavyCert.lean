@@ -1,5 +1,6 @@
 import Sphincs.BridgeDetCloseF
 import Sphincs.BridgeHeavyRoutes
+import Sphincs.LifetimeCheck
 
 /-! **The certificate of the large route with one heavy message.** The heavy coin `wbarH q` pays the
 rate at `q / 2` cached digests (`fair_ofH`); a heavy cover (`checkCoverH`) is a light cover checked
@@ -17,22 +18,6 @@ set_option linter.unusedSectionVars false
 set_option exponentiation.threshold 512
 
 /-! ### The checker -/
-
-/-- The identity mass of a group under the heavy coin, times `2^128`, at subtree height `b` and
-budget `q`. -/
-def denHB (b q : ℕ) : ℕ := 2 ^ 128 - (q / 2 + (scanMb b - 1) * lmaxB b q)
-
-/-- The heavy coin is fair up to the budget `qtop`, and the table rate covers `N + 1` signatures and
-the creations of the scan signer under the heavy coin at every budget `q ≤ qtop`. -/
-def checkRateH (b N qtop : ℕ) (t : PoisT) : Bool :=
-  decide (qtop / 2 + (scanMb b - 1) * lmaxB b qtop + (2 * scanMb b - 1) ≤ 2 ^ 128) &&
-    decide (((N : ℚ) + 1) / 2 ^ b +
-      ((2 * scanMb b - 1 : ℕ) : ℚ) * qtop / (scanMb b * denHB b qtop * 2 ^ b) ≤ t.mu)
-
-/-- A heavy cover of every budget `qstart ≤ q ≤ qtop`. -/
-def checkCoverH (b N qstart : ℕ) (c : CoverW) : Bool :=
-  checkRateH b N c.qtop c.tab && checkPT c.tab && c.opts.all (checkOptF b c.tab) &&
-    chainF b N c.qtop c.opts qstart c.entries
 
 variable [Params]
 
@@ -311,17 +296,6 @@ set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 /-! ### A chain of light covers, then heavy covers -/
-
-/-- A chain of heavy covers of the large budgets, ending once every budget `q'` with
-`q' + keygenCost < 2^127` is covered. -/
-def checkCoversHeavy (b N : ℕ) : ℕ → List H0.CoverW → Bool
-  | qstart, [] => decide (2 ^ 127 ≤ qstart + (226 * 2 ^ b + 2 * (26 - b)))
-  | qstart, c :: heavy => H0.checkCoverH b N qstart c && checkCoversHeavy b N (c.qtop + 1) heavy
-
-/-- A chain of covers of the large budgets: light covers first, then heavy covers. -/
-def checkCoversH (b N : ℕ) : ℕ → List H0.CoverW → List H0.CoverW → Bool
-  | qstart, [], heavy => checkCoversHeavy b N qstart heavy
-  | qstart, c :: light, heavy => H0.checkCoverW b N qstart c && checkCoversH b N (c.qtop + 1) light heavy
 
 theorem checkCoversH_cons (b N qstart : ℕ) (c : H0.CoverW) (light heavy : List H0.CoverW) :
     checkCoversH b N qstart (c :: light) heavy =

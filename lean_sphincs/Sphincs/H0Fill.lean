@@ -1,4 +1,4 @@
-import Sphincs.BridgeHeavyCert
+import Sphincs.LifetimeCheck
 
 /-! **Certificates rebuilt from their scalars.** A Poisson table, an option and a near certificate
 are deterministic functions of a few scalars: the functions below rebuild them, as

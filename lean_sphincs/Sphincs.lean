@@ -1,5 +1,6 @@
 import Sphincs.Axioms
 import Sphincs.WithHash
+import Sphincs.TablesFirewall
 
 /-! # The end theorem of leanSPHINCS
 

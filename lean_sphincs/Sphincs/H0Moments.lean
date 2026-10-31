@@ -1,4 +1,5 @@
-import Sphincs.H0Mark
+import Mathlib
+import Sphincs.LayeredForest
 
 /-! **Per-tree cover moments by inclusion-exclusion.** A tree's mark is a tree leaf and, per
 subtree, a WOTS key and a codeword. A target mark is covered by a multiset `X` of disclosed marks
@@ -11,7 +12,6 @@ open ENNReal
 
 namespace SphincsLayered.Security.H0
 
-open Concrete
 
 set_option linter.unusedSectionVars false
 attribute [local irreducible] lut codewordCodes
@@ -55,6 +55,13 @@ theorem avgNR_const_mul (c : ℝ) (φ : Multiset α → ℝ) :
   | n + 1, X => by
       simp only [avgNR, avgNR_const_mul c φ n]
       exact avgR_const_mul c _
+
+theorem avgNR_nonneg {φ : Multiset α → ℝ} (hφ : ∀ X, 0 ≤ φ X) : ∀ n X, 0 ≤ avgNR φ n X
+  | 0, X => hφ X
+  | n + 1, X => by
+      unfold avgNR avgR
+      exact mul_nonneg (inv_nonneg.2 (Nat.cast_nonneg _))
+        (Finset.sum_nonneg fun x _ => avgNR_nonneg hφ n (X + {x}))
 
 /-- The average of a product over the elements is a power of the one-element average. -/
 theorem avgNR_prod_map (g : α → ℝ) : ∀ n X,
@@ -108,20 +115,6 @@ theorem prod_one_sub_mul {ι : Type} [Fintype ι] [DecidableEq ι] (a b : ι →
 /-- A mark: the tree leaf and, per subtree, the WOTS key and the codeword index. -/
 abbrev MT := SuperIdx × (SubIdx → ChildIdx × LutIdx)
 
-def toMT (m : CoordMark) : MT := (m.super, fun j => (m.child j, m.word j))
-
-def ofMT (x : MT) : CoordMark := ⟨x.1, fun j => (x.2 j).1, fun j => (x.2 j).2⟩
-
-/-- Fields are uniform tuples. -/
-def fieldMT : FieldVal ≃ MT where
-  toFun v := toMT (markEquiv v)
-  invFun x := markEquiv.symm (ofMT x)
-  left_inv v := by
-    simp only [toMT, ofMT]
-    rw [show (⟨(markEquiv v).super, fun j => (markEquiv v).child j, fun j => (markEquiv v).word j⟩ : CoordMark) =
-      markEquiv v from rfl, Equiv.symm_apply_apply]
-  right_inv x := by
-    simp only [Equiv.apply_symm_apply, toMT, ofMT]
 
 /-- The deficit of chain `i` of subtree `j`. -/
 def need (x : MT) (j : SubIdx) (i : FChain) : ℕ := (lut (x.2 j).2 i).val

@@ -1,6 +1,7 @@
 import Sphincs.H0NTab
 import Sphincs.BridgeForestNear
 import Sphincs.BridgeDetW
+import Sphincs.LifetimeCheck
 
 /-! **The near H-term certificate.** The per-index near value is dominated by a convex increasing
 table `n̄` (extended linearly beyond `n1`) above `16 κ ΨH(n) Ψ1(n)^7` and the cap `16 κ`; the near
@@ -13,22 +14,6 @@ namespace SphincsLayered.Security.H0
 open Concrete ForestPrice SphincsFors.Security.H0 SphincsFors.Security.Domination H0Avg ForsPotential
 
 set_option linter.unusedSectionVars false
-
-/-- The near bound at `n` from the moment tables. -/
-def nBound (n : ℕ) : ℚ := 16 * κQ * PHtab.getD n 0 * P1tab.getD n 0 ^ 7
-
-/-- A near certificate: the table, its extension slope, and its Poisson mean. -/
-structure OptN where
-  nt : List ℚ
-  Jn : ℚ
-  En : ℚ
-
-/-- The check of a near certificate against a Poisson table. -/
-def checkOptN (t : PoisT) (o : OptN) : Bool :=
-  decide (t.n1 ≤ 150) && decide (o.nt.length = t.n1 + 1) && checkLeaf o.nt o.Jn &&
-    decide (∀ n < t.n1 + 1, nBound n ≤ o.nt.getD n 0) && decide (16 * κQ ≤ o.nt.getD t.n1 0 + o.Jn) &&
-    decide ((((List.range (t.n1 + 1)).map fun n => t.pb n * o.nt.getD n 0).sum +
-      t.pb (t.n1 + 1) * (o.nt.getD t.n1 0 / (1 - t.r) + o.Jn / (1 - t.r) ^ 2)) ≤ o.En)
 
 theorem checkOptN_parts {t : PoisT} {o : OptN} (h : checkOptN t o = true) :
     t.n1 ≤ 150 ∧ o.nt.length = t.n1 + 1 ∧ checkLeaf o.nt o.Jn = true ∧

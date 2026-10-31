@@ -1,6 +1,7 @@
 import Sphincs.H0ForestOpt
 import Sphincs.BridgeSatWRoutes
 import SphincsFors.H0Numeric
+import Sphincs.LifetimeCheck
 
 /-! Forest split-bound covers at the survival-weighted baseline `baselineW` (thresholds `betaWQ`): a
 successful cover check bounds the large-route term at every budget it covers. -/
@@ -10,55 +11,6 @@ open ENNReal NNReal
 namespace SphincsLayered.Security.H0
 
 open Concrete ForestPrice SphincsFors.Security.H0 SphincsFors.Security.Domination
-
-/-- Keygen credit `K` of the forest signer: the `226 · 2^b + 2 (26 − b)` hash calls of key
-generation from the scheme seed (`Prefix.hashCalls_keygenFromMaster`), with one seed derivation for
-the starts of two chains. The call deriving the scheme seed is not credited. -/
-def kCreditF (b : ℕ) : ℕ := 226 * 2 ^ b + 2 * (26 - b)
-
-/-- A cover entry: budgets `[qa, qb]` and the index of its option. -/
-abbrev EntryF := ℕ × ℕ × ℕ
-
-/-- A forest cover: a Poisson table, options, entries. -/
-structure CoverW where
-  qtop : ℕ
-  tab : PoisT
-  opts : List OptF
-  entries : List EntryF
-
-/-- The inverse landing probability at subtree height `b`. -/
-def scanMb (b : ℕ) : ℕ := 2 ^ (26 - b)
-
-/-- The cap on the landed pairs at subtree height `b` and budget `q`. -/
-def lmaxB (b q : ℕ) : ℕ := 65 * ((q + 64 * scanMb b - 1) / (64 * scanMb b)) + 2 ^ 15
-
-/-- The identity mass of a group, times `2^128`, at subtree height `b` and budget `q`. -/
-def denB (b q : ℕ) : ℕ := 2 ^ 128 - (q + 2 ^ 32 + (scanMb b - 1) * lmaxB b q)
-
-/-- The scan coin is fair up to the budget `qtop`, and the table rate covers the signatures and the
-creations of the scan signer (`(2 − landing) q / denB` per unit) at every budget `q ≤ qtop`. -/
-def checkRate (b N qtop : ℕ) (t : PoisT) : Bool :=
-  decide (qtop + 2 ^ 32 + (scanMb b - 1) * lmaxB b qtop + (2 * scanMb b - 1) ≤ 2 ^ 128) &&
-    decide ((N : ℚ) / 2 ^ b + ((2 * scanMb b - 1 : ℕ) : ℚ) * qtop / (scanMb b * denB b qtop * 2 ^ b) ≤ t.mu)
-
-/-- The check of one entry. -/
-def checkEntryF (b N : ℕ) (opts : List OptF) (e : EntryF) : Bool :=
-  match opts[e.2.2]? with
-  | none => false
-  | some o =>
-      decide (2 * e.2.1 ≤ 2 ^ 128) && decide (o.cthr ≤ ForsPotential.betaWQ e.2.1) &&
-        decide ((e.2.1 : ℚ) * o.B + ((e.2.1 : ℚ) + kCreditF b + N) / 2 ^ 200 ≤
-          ((e.1 : ℚ) / 2 ^ 128) ^ 2 + (kCreditF b : ℚ) / 2 ^ 127)
-
-/-- Consecutive entries cover `[last, 2^127]`. -/
-def chainF (b N qtop : ℕ) (opts : List OptF) : ℕ → List EntryF → Bool
-  | last, [] => decide (qtop < last)
-  | last, e :: rest => decide (e.1 ≤ last) && checkEntryF b N opts e && chainF b N qtop opts (e.2.1 + 1) rest
-
-/-- A cover of every budget `qstart ≤ q ≤ qtop`. -/
-def checkCoverW (b N qstart : ℕ) (c : CoverW) : Bool :=
-  checkRate b N c.qtop c.tab && checkPT c.tab && c.opts.all (checkOptF b c.tab) &&
-    chainF b N c.qtop c.opts qstart c.entries
 
 theorem chainF_sound (b N qtop : ℕ) (opts : List OptF) : ∀ (cover : List EntryF) (last : ℕ),
     chainF b N qtop opts last cover = true →

@@ -6,7 +6,7 @@ import Sphincs.H0NearMom
 
 namespace SphincsLayered.Security.H0
 
-open Concrete SphincsFors.Security.H0
+open SphincsFors.Security.H0
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 0

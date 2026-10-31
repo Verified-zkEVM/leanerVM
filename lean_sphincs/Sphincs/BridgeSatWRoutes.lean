@@ -5,6 +5,7 @@ import Sphincs.BridgeDet
 import Sphincs.H0Fair
 import Sphincs.BridgeTargeting
 import Common.WithHash
+import Sphincs.LifetimeCheck
 
 /-! The large-budget route with the weighted baseline. The saturation pays each digest query the
 baseline times the current survival weight, and the one-coin FORS potential is weighted by the
@@ -27,9 +28,6 @@ attribute [local instance] Classical.propDecidable
 variable [Params]
 
 /-! ### The weighted baseline as a rational threshold -/
-
-/-- Rational form of the weighted baseline at budget `qb`: `(2 (2^128 - qb) + 1) / 2^256`. -/
-def betaWQ (qb : ℕ) : ℚ := (2 * ((2 : ℚ) ^ 128 - qb) + 1) / 2 ^ 256
 
 theorem baselineW_eq_betaWQ (q : ℕ) : HiddenDebt.baselineW q = ENNReal.ofReal (betaWQ q : ℝ) := by
   unfold HiddenDebt.baselineW HiddenDebt.spaceReal betaWQ

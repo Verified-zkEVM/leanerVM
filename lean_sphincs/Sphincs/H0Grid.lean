@@ -9,7 +9,6 @@ open ENNReal
 
 namespace SphincsLayered.Security.H0
 
-open Concrete
 
 set_option linter.unusedSectionVars false
 attribute [local irreducible] lut codewordCodes

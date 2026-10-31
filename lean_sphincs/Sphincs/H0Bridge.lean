@@ -1,4 +1,5 @@
 import Sphincs.H0Tables
+import Sphincs.H0MarkMT
 import Sphincs.BridgeForestPrice
 import Sphincs.BridgeForsPotential
 import SphincsFors.H0Split
@@ -158,14 +159,6 @@ theorem freshAvg_ofReal {α : Type} [Fintype α] [Nonempty α] (g : α → ℝ) 
     ENNReal.ofReal_inv_of_pos hc, ENNReal.ofReal_natCast]
 
 omit [Params] in
-theorem avgNR_nonneg {α : Type} [Fintype α] {φ : Multiset α → ℝ} (hφ : ∀ X, 0 ≤ φ X) :
-    ∀ n X, 0 ≤ avgNR φ n X
-  | 0, X => hφ X
-  | n + 1, X => by
-      unfold avgNR avgR
-      exact mul_nonneg (inv_nonneg.2 (Nat.cast_nonneg _))
-        (Finset.sum_nonneg fun x _ => avgNR_nonneg hφ n (X + {x}))
-
 omit [Params] in
 theorem coverR_nonneg (t : MT) (X : Multiset MT) : 0 ≤ coverR t X := by
   unfold coverR; split_ifs <;> norm_num
