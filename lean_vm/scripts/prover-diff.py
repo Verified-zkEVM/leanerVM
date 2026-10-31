@@ -6,21 +6,27 @@ its public input, an execution's memory and `trace.txt`, and the Rust prover's p
   1. runs `lake exe leanvm-prove` (cli/LeanvmProve.lean: `LeanVM.Prover.prove` with Keccak-256
      and Keccak-f[1600], the statement's prover compiled) on the case, timing it, and sets the
      time beside the Rust prover's (`rust.txt`);
-  2. checks that the Lean-made proof is byte-identical to the Rust prover's (reported, not
-     required: the Rust prover may change its encoding without changing the statement);
+  2. checks that the Lean-made proof is byte-identical to the Rust prover's, and, with
+     `--expected <dir>`, to the committed proof `<dir>/<case>/{stream,merkle_openings}.bin`
+     (tests/fixtures/verifier: the same twelve cases, export-verifier-fixtures-rust.sh); reported,
+     and required with `--identical` (as the gate runs it);
   3. writes the Lean-made proof as a verifier fixture (bytecode, public input, stream, openings)
      and runs scripts/fuzz-verifier.py on the fixtures: the Lean verifier (`leanvm-verify`) and
      the Rust verifier (`scripts/rust-verifier-cli`) on the honest Lean-made proof and on
      `--mutations` mutations of it, structured and random.
 
 It fails unless every Lean-made proof is accepted by both verifiers and every mutation is
-rejected by both (and the two verifiers agree everywhere).
+rejected by both (and the two verifiers agree everywhere), and, with `--identical`, unless every
+Lean-made proof is the Rust prover's (and the committed one) byte for byte. The proofs are made
+`--jobs` at a time.
 
 Usage (the three executables built first, see lean_vm/README.md):
-  python3 -I scripts/prover-diff.py <cases dir> [--mutations 60] [--fuel N] [--jobs 4] [case ...]
+  python3 -I scripts/prover-diff.py <cases dir> [--mutations 60] [--fuel N] [--jobs 4]
+      [--identical] [--expected tests/fixtures/verifier] [case ...]
 """
 
 import argparse
+import concurrent.futures
 import resource
 import shutil
 import subprocess
@@ -51,6 +57,10 @@ def main() -> None:
     parser.add_argument("--jobs", type=int, default=4)
     parser.add_argument("--memory-gb", type=int, default=16)
     parser.add_argument("--prove-exe", type=Path, default=PROVE_EXE)
+    parser.add_argument("--identical", action="store_true",
+                        help="fail unless every Lean-made proof is the Rust prover's byte for byte")
+    parser.add_argument("--expected", type=Path,
+                        help="committed proofs to compare with too: <dir>/<case>/{stream,merkle_openings}.bin")
     arguments = parser.parse_args()
     if not arguments.prove_exe.exists():
         sys.exit(f"{arguments.prove_exe} is not built (lake build leanvm-prove)")
@@ -60,32 +70,49 @@ def main() -> None:
     rows = []
     failed = False
     try:
-        for name in names:
-            directory = cases / name
-            command = [str(arguments.prove_exe), str(directory)]
+        def prove(name):
+            command = [str(arguments.prove_exe), str(cases / name)]
             if arguments.fuel is not None:
                 command.append(str(arguments.fuel))
             start = time.monotonic()
             run = subprocess.run(command, capture_output=True, text=True,
                                  preexec_fn=limit(arguments.memory_gb))
-            seconds = time.monotonic() - start
+            return run, time.monotonic() - start
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=arguments.jobs) as pool:
+            runs = list(pool.map(prove, names))
+        for name, (run, seconds) in zip(names, runs):
+            directory = cases / name
             if run.returncode != 0:
                 print(f"{name}: leanvm-prove failed ({run.returncode}): {run.stdout}{run.stderr}")
                 failed = True
                 continue
             rust = (directory / "rust.txt").read_text().strip() if (directory / "rust.txt").exists() else "-"
+            parts = ("stream.bin", "merkle_openings.bin")
             identical = all(
                 (directory / f"lean_{f}").read_bytes() == (directory / f).read_bytes()
-                for f in ("stream.bin", "merkle_openings.bin") if (directory / f).exists())
+                for f in parts if (directory / f).exists())
+            expected = "-"
+            if arguments.expected is not None:
+                committed = arguments.expected.resolve() / name
+                expected = "yes" if all(
+                    (committed / f).exists()
+                    and (directory / f"lean_{f}").read_bytes() == (committed / f).read_bytes()
+                    for f in parts) else "no"
+            if arguments.identical and (not identical or expected == "no"):
+                print(f"FAIL {name}: the Lean-made proof is not the Rust prover's (identical: "
+                      f"{'yes' if identical else 'no'}, committed: {expected})")
+                failed = True
             target = fixtures / name
             target.mkdir()
             for f in ("bytecode.bin", "public_input.bin"):
                 shutil.copy(directory / f, target / f)
-            for f in ("stream.bin", "merkle_openings.bin"):
+            for f in parts:
                 shutil.copy(directory / f"lean_{f}", target / f)
-            rows.append((name, f"{seconds:.1f}", rust, "yes" if identical else "no"))
+            rows.append((name, f"{seconds:.1f}", rust, "yes" if identical else "no", expected))
             print(f"{name}: Lean prover {seconds:.1f} s, Rust prover {rust} s, "
-                  f"identical to the Rust proof: {'yes' if identical else 'no'}", flush=True)
+                  f"identical to the Rust proof: {'yes' if identical else 'no'}, "
+                  f"to the committed proof: {expected}", flush=True)
         if not rows:
             sys.exit("no proof to test")
         log = fixtures / "fuzz.log"
@@ -111,9 +138,9 @@ def main() -> None:
                     bad.append(f"{fixture} #{index} {label}: Lean {lean}, Rust {rust}")
         print(f"\nLean-made proofs accepted by both verifiers: {accepted} of {len(rows)}; "
               f"mutations rejected by both: {rejected}")
-        print("\ncase                 Lean prover s  Rust prover s  identical")
+        print("\ncase                    Lean prover s  Rust prover s  identical  committed")
         for row in rows:
-            print(f"{row[0]:20} {row[1]:>13}  {row[2]:>13}  {row[3]:>9}")
+            print(f"{row[0]:23} {row[1]:>13}  {row[2]:>13}  {row[3]:>9}  {row[4]:>9}")
         for b in bad:
             print("FAIL", b)
         sys.exit(1 if failed or bad or accepted != len(rows) else 0)

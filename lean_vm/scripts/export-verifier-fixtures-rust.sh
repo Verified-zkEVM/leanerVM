@@ -12,8 +12,9 @@
 #
 # The proof is the RAW proof: the wire proof's scalar stream, and the Merkle path of every query
 # the Rust `verify` walked (`verifier::Summary::merkle_paths`), written exactly as `encode` in
-# python_verifier.rs writes them. The guests are that test's program at smaller loop counts and
-# crates/lean_compiler/tests/programs/fibonacci.py, read from the source tree. Every proof is
+# python_verifier.rs writes them. The guests (`fixed`) are that test's program at 4, 300 and 1000
+# loop steps, crates/lean_compiler/tests/programs/fibonacci.py, and eight more programs of that
+# suite, three at each of the four rates, read from the source tree. Every proof is
 # verified by the Rust `cpu::verify` before it is written and by the Python verifier
 # before the script returns. The fixtures are consumed by scripts/fuzz-verifier.py, which runs
 # the Lean and the Rust verifier on them and on mutations of them.
@@ -189,6 +190,30 @@ fn corpus(checkout: &Path) -> Vec<(String, (Program, [F192; 2]), usize)> {
     fixtures
 }
 
+// The fixed cases: three per rate, the chain at three loop counts and suite programs that hash
+// (`hash_*`, `wots_walk`), branch (`conditionals`, `match_arms`), read hints (`hint`), allocate
+// (`heapbuf_dyn`) and unroll (`unroll`).
+fn fixed(checkout: &Path) -> Vec<(String, (Program, [F192; 2]), usize)> {
+    let suite = |name: &str| {
+        suite_program(&checkout.join(format!("crates/lean_compiler/tests/programs/{name}.py")))
+            .expect("a suite program with a declared public input")
+    };
+    vec![
+        ("chain4-rate1".to_string(), chain(4), 1usize),
+        ("wots-walk-rate1".to_string(), suite("wots_walk"), 1),
+        ("hash-slices-rate1".to_string(), suite("hash_slices"), 1),
+        ("chain300-rate2".to_string(), chain(300), 2),
+        ("conditionals-rate2".to_string(), suite("conditionals"), 2),
+        ("heapbuf-dyn-rate2".to_string(), suite("heapbuf_dyn"), 2),
+        ("hash-heap-chain-rate3".to_string(), suite("hash_heap_chain"), 3),
+        ("match-arms-rate3".to_string(), suite("match_arms"), 3),
+        ("chain1000-rate3".to_string(), chain(1000), 3),
+        ("fibonacci-rate4".to_string(), fibonacci(checkout), 4),
+        ("hint-rate4".to_string(), suite("hint"), 4),
+        ("unroll-rate4".to_string(), suite("unroll"), 4),
+    ]
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let checkout = Path::new(&args[1]);
@@ -196,11 +221,7 @@ fn main() {
     let fixtures = if args.get(3).is_some_and(|flag| flag == "--corpus") {
         corpus(checkout)
     } else {
-        vec![
-            ("chain4-rate1".to_string(), chain(4), 1usize),
-            ("chain300-rate2".to_string(), chain(300), 2),
-            ("fibonacci-rate4".to_string(), fibonacci(checkout), 4),
-        ]
+        fixed(checkout)
     };
     for (name, (program, public_input), log_inv_rate) in fixtures {
         let directory = out.join(&name);

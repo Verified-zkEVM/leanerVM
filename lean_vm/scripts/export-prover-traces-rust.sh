@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # The traces of small guest programs, for the Lean prover's differential test
 # (`lake exe leanvm-prove`, `scripts/prover-diff.py`): the programs and public inputs of
-# `export-verifier-fixtures-rust.sh` (the chain of crates/leanvm_core/tests/verifiers/
-# python_verifier.rs at several loop counts, fibonacci.py, and with `--corpus` every suite
-# program that declares its public input), each executed by the leanVM Rust interpreter
+# `export-verifier-fixtures-rust.sh` (the twelve fixed cases, three per rate: the chain of
+# crates/leanvm_core/tests/verifiers/python_verifier.rs at several loop counts, fibonacci.py and
+# eight more suite programs; with `--corpus` every suite program that declares its public input
+# and the chain at three sizes, at the four rates), each executed by the leanVM Rust interpreter
 # (`Program::execute`) and proved by the Rust prover at the rate in its name, at the leanVM
 # commit in `../leanvm-rev`. Per case directory:
 #
@@ -178,6 +179,30 @@ fn corpus(checkout: &Path) -> Vec<(String, (Program, [F192; 2]), usize)> {
     fixtures
 }
 
+// The fixed cases: three per rate, the chain at three loop counts and suite programs that hash
+// (`hash_*`, `wots_walk`), branch (`conditionals`, `match_arms`), read hints (`hint`), allocate
+// (`heapbuf_dyn`) and unroll (`unroll`).
+fn fixed(checkout: &Path) -> Vec<(String, (Program, [F192; 2]), usize)> {
+    let suite = |name: &str| {
+        suite_program(&checkout.join(format!("crates/lean_compiler/tests/programs/{name}.py")))
+            .expect("a suite program with a declared public input")
+    };
+    vec![
+        ("chain4-rate1".to_string(), chain(4), 1usize),
+        ("wots-walk-rate1".to_string(), suite("wots_walk"), 1),
+        ("hash-slices-rate1".to_string(), suite("hash_slices"), 1),
+        ("chain300-rate2".to_string(), chain(300), 2),
+        ("conditionals-rate2".to_string(), suite("conditionals"), 2),
+        ("heapbuf-dyn-rate2".to_string(), suite("heapbuf_dyn"), 2),
+        ("hash-heap-chain-rate3".to_string(), suite("hash_heap_chain"), 3),
+        ("match-arms-rate3".to_string(), suite("match_arms"), 3),
+        ("chain1000-rate3".to_string(), chain(1000), 3),
+        ("fibonacci-rate4".to_string(), fibonacci(checkout), 4),
+        ("hint-rate4".to_string(), suite("hint"), 4),
+        ("unroll-rate4".to_string(), suite("unroll"), 4),
+    ]
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let checkout = Path::new(&args[1]);
@@ -185,12 +210,7 @@ fn main() {
     let fixtures = if args.get(3).is_some_and(|flag| flag == "--corpus") {
         corpus(checkout)
     } else {
-        vec![
-            ("chain4-rate1".to_string(), chain(4), 1usize),
-            ("chain4-rate4".to_string(), chain(4), 4),
-            ("chain300-rate2".to_string(), chain(300), 2),
-            ("fibonacci-rate4".to_string(), fibonacci(checkout), 4),
-        ]
+        fixed(checkout)
     };
     for (name, (program, public_input), log_inv_rate) in fixtures {
         let directory = out.join(&name);
