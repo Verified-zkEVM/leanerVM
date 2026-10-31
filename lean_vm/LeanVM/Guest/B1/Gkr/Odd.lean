@@ -42,44 +42,48 @@ def odVal (t : ℕ) : List Stmt :=
 
 /-- The binary layer (`s199_e`). -/
 def odBody : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n (128 + k)) (.n 15) k)) ++
-  (List.range 4).map (fun k ↦ .atom (.load (.n (133 + k)) (.n 15) (13 + k))) ++
-  [.atom (.const (.n 137) (word 1 0 0)), .atom (.const (.n 138) (word 0 0 0)),
-    .atom (.const (.n 139) (word 0 0 0)), .atom (.const (.n 140) (word 0 0 0)),
-    .atom (.const (.n 141) (word 0 0 0)),
-    keccakA ([.n 133, .n 134, .n 135, .n 136, .n 138, .n 139, .n 140, .n 141] ++
-      (List.range 5).map fun k ↦ .n (128 + k)) (lyOuts 142)] ++
-  challengeT (.n 142) (.n 143) 155 ++
-  [.atom (.load (.n 162) (.n 15) 5), .atom (.load (.n 163) (.n 15) 6),
-    .atom (.load (.n 164) (.n 15) 7), .atom (.load (.n 165) (.n 15) 8),
-    .atom (.mul (.n 166) (.n 161) (.n 165)), .atom (.add (.n 167) (.n 164) (.n 166)),
-    .atom (.mul (.n 168) (.n 161) (.n 167)), .atom (.add (.n 169) (.n 163) (.n 168)),
-    .atom (.load (.n 170) (.n 15) 9), .atom (.const (.n 171) (word 1099511627776 0 0)),
-    .atom (.mul (.n 172) (.n 170) (.n 171))] ++
-  ((List.range 4).map odEvT).flatten ++
-  [keccakA ([.n 180, .n 182, .n 191, .n 193, .n 202, .n 204, .n 213, .n 215] ++ lyCap 142)
-    (lyOuts 217)] ++
-  odEvT 4 ++ odEvT 5 ++
-  [.atom (.mul (.n 252) (.n 240) (.n 251)), .atom (.const (.n 253) (word 0 0 0)),
-    .atom (.mul (.n 254) (.n 161) (.n 253)), .atom (.add (.n 255) (.n 252) (.n 254)),
-    .atom (.mul (.n 256) (.n 205) (.n 216)), .atom (.mul (.n 257) (.n 161) (.n 255)),
-    .atom (.add (.n 258) (.n 256) (.n 257)), .atom (.mul (.n 259) (.n 183) (.n 194)),
-    .atom (.mul (.n 260) (.n 161) (.n 258)), .atom (.add (.n 261) (.n 259) (.n 260)),
-    .atom (.assertEq (.n 169) (.n 261)),
-    keccakA ([.n 237, .n 239, .n 248, .n 250, .n 138, .n 139, .n 140, .n 141] ++ lyCap 217)
-      (lyOuts 262)] ++
-  challengeT (.n 262) (.n 263) 275 ++
-  [.atom (.load (.n 281) (.n 172) 0)] ++
-  (List.range 5).map (fun k ↦ .atom (.load (.n (270 + k)) (.n 15) (17 + k))) ++
-  ((List.range 4).map fun k ↦ [.atom (.const (.n (282 + k)) (word 0 0 0)),
-    .atom (.load (.n (282 + k)) (.n 15) (30 + k))]).flatten ++
-  [.atom (.const (.n 286) (word 64 0 0)), .atom (.mul (.n 287) (.n 162) (.n 286)),
-    .atom (.load (.n 287) (.n 15) 22)] ++
-  odVal 0 ++ odVal 1 ++ odVal 2 ++
-  [.atom (.load (.n 172) (.n 15) 26), .atom (.const (.n 297) (word 2 0 0)),
-    .atom (.load (.n 297) (.n 15) 27), .atom (.const (.n 298) (word 1 0 0)),
-    .atom (.load (.n 298) (.n 15) 28), .atom (.const (.n 299) (word 0 0 0)),
-    .atom (.load (.n 299) (.n 15) 29)]
+  List.flatten [
+    (List.range 5).map (fun k ↦ .atom (.load (.n (128 + k)) (.n 15) k)),
+    (List.range 4).map (fun k ↦ .atom (.load (.n (133 + k)) (.n 15) (13 + k))),
+    [.atom (.const (.n 137) (word 1 0 0)), .atom (.const (.n 138) (word 0 0 0)),
+      .atom (.const (.n 139) (word 0 0 0)), .atom (.const (.n 140) (word 0 0 0)),
+      .atom (.const (.n 141) (word 0 0 0)),
+      keccakA ([.n 133, .n 134, .n 135, .n 136, .n 138, .n 139, .n 140, .n 141] ++
+        (List.range 5).map fun k ↦ .n (128 + k)) (lyOuts 142)],
+    challengeT (.n 142) (.n 143) 155,
+    [.atom (.load (.n 162) (.n 15) 5), .atom (.load (.n 163) (.n 15) 6),
+      .atom (.load (.n 164) (.n 15) 7), .atom (.load (.n 165) (.n 15) 8),
+      .atom (.mul (.n 166) (.n 161) (.n 165)), .atom (.add (.n 167) (.n 164) (.n 166)),
+      .atom (.mul (.n 168) (.n 161) (.n 167)), .atom (.add (.n 169) (.n 163) (.n 168)),
+      .atom (.load (.n 170) (.n 15) 9), .atom (.const (.n 171) (word 1099511627776 0 0)),
+      .atom (.mul (.n 172) (.n 170) (.n 171))],
+    ((List.range 4).map odEvT).flatten,
+    [keccakA ([.n 180, .n 182, .n 191, .n 193, .n 202, .n 204, .n 213, .n 215] ++ lyCap 142)
+      (lyOuts 217)],
+    odEvT 4,
+    odEvT 5,
+    [.atom (.mul (.n 252) (.n 240) (.n 251)), .atom (.const (.n 253) (word 0 0 0)),
+      .atom (.mul (.n 254) (.n 161) (.n 253)), .atom (.add (.n 255) (.n 252) (.n 254)),
+      .atom (.mul (.n 256) (.n 205) (.n 216)), .atom (.mul (.n 257) (.n 161) (.n 255)),
+      .atom (.add (.n 258) (.n 256) (.n 257)), .atom (.mul (.n 259) (.n 183) (.n 194)),
+      .atom (.mul (.n 260) (.n 161) (.n 258)), .atom (.add (.n 261) (.n 259) (.n 260)),
+      .atom (.assertEq (.n 169) (.n 261)),
+      keccakA ([.n 237, .n 239, .n 248, .n 250, .n 138, .n 139, .n 140, .n 141] ++ lyCap 217)
+        (lyOuts 262)],
+    challengeT (.n 262) (.n 263) 275,
+    [.atom (.load (.n 281) (.n 172) 0)],
+    (List.range 5).map (fun k ↦ .atom (.load (.n (270 + k)) (.n 15) (17 + k))),
+    ((List.range 4).map fun k ↦ [.atom (.const (.n (282 + k)) (word 0 0 0)),
+      .atom (.load (.n (282 + k)) (.n 15) (30 + k))]).flatten,
+    [.atom (.const (.n 286) (word 64 0 0)), .atom (.mul (.n 287) (.n 162) (.n 286)),
+      .atom (.load (.n 287) (.n 15) 22)],
+    odVal 0,
+    odVal 1,
+    odVal 2,
+    [.atom (.load (.n 172) (.n 15) 26), .atom (.const (.n 297) (word 2 0 0)),
+      .atom (.load (.n 297) (.n 15) 27), .atom (.const (.n 298) (word 1 0 0)),
+      .atom (.load (.n 298) (.n 15) 28), .atom (.const (.n 299) (word 0 0 0)),
+      .atom (.load (.n 299) (.n 15) 29)]]
 
 theorem odBody_noRet : Stmt.noRetList odBody = true := by decide +kernel
 
