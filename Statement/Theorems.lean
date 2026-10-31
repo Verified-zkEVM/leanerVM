@@ -68,12 +68,12 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   compose with the in-circuit statements (`LeanVmGuest.lean`). -/
   batchSound : LeanVM.Guest.Batch.BatchingSound
   /-- leanXMSS is strongly unforgeable: at most `(Q + 1) · 2^-127` for `Q ≥ 1` permutation
-  calls (`LeanXmss.lean`). -/
-
+  calls of the whole game (`LeanXmss.lean`), key generation and the honest signer's worst-case
+  grinding, about `2^33` calls per signing request, included: about `2^-62` at a full lifetime. -/
   leanXmss : LeanXmss.Rpm.LeanXmssStronglyUnforgeable
   /-- leanSPHINCS is strongly unforgeable at every proved lifetime: at most `(Q + 1) · 2^-127` for
-
-  `Q ≥ 1` permutation calls (`LeanSphincs.lean`). -/
+  `Q ≥ 1` permutation calls of the whole game (`LeanSphincs.lean`), key generation and the honest
+  signer's worst-case grinding, up to about `2^35` calls per signing request, included. -/
   leanSphincs : Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable
 
   /-- LeanDA is perfectly complete, for every `π` (`LeanDa.lean`). -/

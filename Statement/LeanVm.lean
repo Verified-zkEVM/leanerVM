@@ -47,7 +47,15 @@ rejected with probability at most `2^-256`.
 
 * The deployed Keccak-f[1600] is a fixed permutation; that it behaves as a random one is the
   assumption of this model. Inside the executed program the `KECCAK` instruction computes the
-  deployed Keccak-f[1600], not `π`.
+  deployed Keccak-f[1600], not `π`: in the model the transcript's permutation and the one a
+  proved program computes are independent, while deployed they are the same function. The model
+  so excludes, by construction, programs that evaluate their own proof's Fiat-Shamir duplex, the
+  setting of the known attacks on Fiat-Shamir for GKR-based systems (Khovratovich, Rothblum and
+  Soukhanov, 2025): the assumption is that the deployed Keccak-f[1600] behaves as a random
+  permutation even to programs that compute it. The adversary's code is fixed before `π` is
+  sampled (no advice that depends on the permutation).
+* The adversary is classical: no statement covers quantum adversaries (a quantum
+  random-permutation model).
 * A proof is the Python verifier's format: the scalar stream and one full Merkle path per query.
   The Rust prover ships pruned paths, which the deployed Rust verifier expands into these paths;
   that expansion is not formalized.

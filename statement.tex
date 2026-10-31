@@ -22,7 +22,8 @@
 \noindent This document states, in plain mathematics, every end statement the repository proves:
 leanVM is knowledge sound and complete; its leanISA guest program, which aggregates signatures,
 data-availability claims and other proofs, is sound and complete as an aggregation step; leanXMSS
-and leanSPHINCS are strongly unforgeable; and LeanDA binds its commitments. Each is a Lean~4
+and leanSPHINCS are strongly unforgeable; and LeanDA's commitments are position binding, and code
+binding for arguments whose relation is evaluated over the model's permutation. Each is a Lean~4
 proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classical.choice},
 \lean{Quot.sound}): no \lean{sorry}, no \lean{native_decide}, no added axiom. The system is
 leanVM at commit \texttt{c445e3d5} of its \texttt{main} branch.
@@ -84,7 +85,13 @@ calls it; the model gives every party $\pi$ (\lean{Common.queryPermutation}), th
 instance Keccak-f[1600]. Each experiment is one game run against the lazily sampled permutation
 (\lean{Common.runWithRandomPermutation}), the adversary's queries recorded where an extractor reads
 them (\lean{Common.loggedOracles}). \emph{The assumption is that the
-deployed Keccak-f[1600], a fixed permutation, behaves like a random one.} Every end statement with
+deployed Keccak-f[1600], a fixed permutation, behaves like a random one}, even to programs that
+compute it: the \texttt{KECCAK} instruction a proved program executes computes the deployed
+Keccak-f[1600], so in the model the transcript's permutation and a program's are independent,
+while deployed they are the same function. The model thus excludes, by construction, programs that
+evaluate their own proof's Fiat--Shamir duplex, the setting of the known attacks on Fiat--Shamir
+for GKR-based systems (Khovratovich, Rothblum and Soukhanov, 2025). The adversary is classical,
+and its code is fixed before $\pi$ is sampled (no advice that depends on the permutation). Every end statement with
 an adversary is in this model; \lean{Statement/} contains no random oracle. Queries are counted in
 one of two ways:
 \begin{itemize}
@@ -137,7 +144,9 @@ candidates lane by lane with the Guruswami--Sudan list decoder over $\mathbb{F}_
 splitting for the field roots), and it is proved to list every candidate. It runs each
 candidate for at most as many steps as the announced tables have rows (\lean{stepCap}), which a
 valid execution never exceeds (proved). That it runs in polynomial time is read off its loops
-(a cost table in \lean{Statement/Extractor.lean}), not proved.
+(a cost table in \lean{Statement/Extractor.lean}), not proved; on the words with errors an
+adversary chooses it is infeasible at deployed sizes. It gives straight-line knowledge, not a
+concrete-time extraction: the collision clauses below carry no concrete reduction cost.
 
 \paragraph{Knowledge soundness} (\lean{LeanVM.KnowledgeSoundness}). In the experiment
 (\lean{soundnessExperiment}), an adversary $\mathcal{A}$ with oracle access to $\pi$ and $\pi^{-1}$
@@ -294,10 +303,12 @@ the weaker $(Q + c + 2^{22})\cdot 2^{-k} + (Q + 2^{20})\cdot 2^{-93} + (Q + 2^{2
 
 \emph{What is open.} The assumption can be met: the argument whose proof is simply all the cells
 is complete and knowledge sound, though its proof is as large as the matrix (an observation, not
-formalized). The deployed argument is leanVM proving the relation inside the guest program. That it
-meets the assumption is not proved: it would need leanVM's knowledge soundness together with a
-proof that the guest program's DA check computes the relation, and the guest program hashes with
-the real Keccak, not with $\pi$ (Section~\ref{sec:notgive}).
+formalized). The deployed argument is leanVM proving the relation inside the guest program. It cannot
+meet the assumption in this model: its relation uses the real Keccak-f[1600], not $\pi$, so an
+adversary computes a root with no query to $\pi$ and proves its opening honestly, and no
+straight-line extractor finds a $\pi$-preimage of it. Code binding covers the arguments whose
+relation is evaluated over $\pi$; for the deployed one it would need a model that ties the guest
+program's Keccak to $\pi$ (Section~\ref{sec:notgive}, and the first item of the last section).
 
 \section{The leanISA guest program (aggregation)}\label{sec:guest}
 
@@ -620,12 +631,19 @@ step is the model's assumption, not a theorem.
 
 \begin{itemize}
 \item The \texttt{KECCAK} instruction a program executes computes the real Keccak-f[1600], not
-$\pi$: the RPM idealizes the proof system's hash, not the guest program's computation. Statements
+$\pi$: the RPM idealizes the proof system's hash, not the guest program's computation. It thus
+excludes, by construction, programs that evaluate their own proof's Fiat--Shamir duplex
+(Khovratovich, Rothblum and Soukhanov, 2025); the assumption is that Keccak-f[1600] behaves as a
+random permutation even to programs that compute it. Statements
 about the guest program's own execution use the deployed Keccak-256, under the assumption that no
 one finds a Keccak-256 collision.
 \item Soundness across recursion levels (Section~\ref{sec:notgive}); completeness across levels
 holds only through \lean{GuestChildComplete}.
-\item That the extractor runs in polynomial time (Section~\ref{sec:zkvm}).
+\item That the extractor runs in polynomial time (Section~\ref{sec:zkvm}); at deployed sizes, on
+words with errors, it is infeasible, so the collision clause of \lean{AggregateSound} has no
+concrete reduction cost.
+\item Security against quantum adversaries (a quantum random-permutation model), for the
+signature schemes and for leanVM's Fiat--Shamir: every statement is about classical adversaries.
 \item LeanDA's code binding for an argument without access to $\pi$, and the link from the guest
 program's DA check (\lean{Da.MatrixWitness.Opens}) and the outer verifier's membership-vector check to
 LeanDA's code binding.

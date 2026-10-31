@@ -746,7 +746,11 @@ challenges already carries; it exceeds one before `Q = 2^124`.
 The argument queries the oracles the adversary does, so its knowledge soundness here is the
 usual one of an argument in the random-permutation model, with a straight-line extractor reading
 the adversary's queries, as leanVM's (`LeanVM.KnowledgeSoundness`); an argument may satisfy it and
-be perfectly complete for every permutation (`PerfectlyCompleteRpm`). Proved by
+be perfectly complete for every permutation (`PerfectlyCompleteRpm`). An argument whose relation
+uses the deployed Keccak-f[1600] instead of `π`, such as leanVM proving the guest program's DA
+check, cannot meet the hypothesis in this model: an adversary computes such a root with no query
+to `π` and proves its opening honestly, and no straight-line extractor finds a `π`-preimage of it.
+The theorem covers arguments whose relation is evaluated over `π`. Proved by
 `LeanDa.leanDa_codeBinding_rpm_bound`. -/
 abbrev CodeBindingRpm : Prop :=
   ∀ (r : ℕ) {Crs Proof : Type} (ps : LeanDaArgument r Crs Proof)

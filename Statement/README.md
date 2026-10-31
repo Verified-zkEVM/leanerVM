@@ -11,13 +11,19 @@ and imports it.
 **The model.** Every end statement with an adversary is in the random-permutation model: one
 uniformly random permutation `π` of the 1600-bit Keccak state, which every party queries forward
 (`π x`) and inverse (`π⁻¹ y`), Keccak-256 the sponge over `π` and Keccak-f[1600] `π` itself. That
-the deployed Keccak-f[1600], a fixed permutation, behaves as a random one is the assumption.
+the deployed Keccak-f[1600], a fixed permutation, behaves as a random one is the assumption,
+even to programs that compute it: in the model the `KECCAK` instruction a proved program executes
+computes the deployed Keccak-f[1600], independent of the transcript's `π`, which excludes by
+construction programs that evaluate their own proof's Fiat-Shamir duplex (the setting of the known
+attacks on Fiat-Shamir for GKR-based systems, Khovratovich, Rothblum and Soukhanov, 2025). The
+adversary is classical, its code fixed before `π` is sampled; quantum adversaries are not covered.
 `Statement/` contains no random oracle: the random-oracle model and the sponge's
 indifferentiability, through which the proofs pass, are proof steps, and their definitions
 (the two-oracle and duplex simulators, Wagner's reductions and his random-oracle terms) are in
 `common` and `lean_da`. LeanDA's code binding is conditional on the argument's knowledge
 soundness in the random-permutation model, the only term of its bound that depends on the
-argument.
+argument; an argument whose relation uses the deployed Keccak-f[1600] instead of `π` (leanVM
+proving the guest program's DA check) cannot meet that hypothesis in this model.
 
 **The sources.** The leanVM definitions are transcribed from leanVM at
 `c445e3d51a5a85031df47240595698f3b24897bf` (branch `main`, [`../leanvm-rev`](../leanvm-rev)): each
@@ -48,11 +54,14 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    Merkle path's fold and a Merkle tree's node (`walkChain`, `foldPath`, `buildTree`), which every
    chain, fold and tree of both schemes instantiates.
 5. [`LeanXmss.lean`](LeanXmss.lean): the leanXMSS scheme over a permutation `π`, on the shared
-   part, and `LeanXmss.Rpm.LeanXmssStronglyUnforgeable` (`StronglyUnforgeable` at 127 bits).
+   part, and `LeanXmss.Rpm.LeanXmssStronglyUnforgeable` (`StronglyUnforgeable` at 127 bits, `Q`
+   counting every permutation call of the game, key generation and the honest signer's worst-case
+   grinding included: about `2^-62` at a full lifetime).
 6. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part, exported
    into `Sphincs`; one tree, its signature the randomizer, the forest opening, the WOTS+C counter
    and chain values and the path) with the deterministic signer, the proved lifetimes, and
-   `Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable` (`StronglyUnforgeable` at 127 bits at each lifetime).
+   `Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable` (`StronglyUnforgeable` at 127 bits at each
+   lifetime, `Q` counting the honest signer's worst-case grinding too).
 7. [`Field.lean`](Field.lean): `K = GF(2^64)` (CompPoly's `BF64`), `E = GF(2^192)`, the generator
    `g`; Keccak lanes, bytes and digests as field elements.
 8. [`LeanDa.lean`](LeanDa.lean): LeanDA (fields, Reed–Solomon rows, the Merkle commitment, the
