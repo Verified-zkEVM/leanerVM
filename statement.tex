@@ -148,7 +148,10 @@ valid execution never exceeds (proved). That it runs in polynomial time is read 
 \texttt{lean\_vm/scripts/extractor-cost}), not proved; on the words with errors an adversary
 chooses it is infeasible at deployed sizes: about $2^{133}$ operations at the worst shape, the
 Roth--Ruckenstein substitution as implemented dominating, then the interpolation ($2^{107.5}$),
-and cubic in the number $N$ of evaluations through its lookups. It gives straight-line knowledge, not a
+and cubic in the number $N$ of evaluations through its lookups. The same function is computed,
+provably (\lean{LeanVM.Extraction.Fast.transcriptExtractorFast_eq}, in \texttt{lean\_vm}), in
+about $2^{107.5}$ operations at the worst shape, the interpolation dominating, and in expected
+time linear in $N$. It gives straight-line knowledge, not a
 concrete-time extraction: the collision clauses below carry no concrete reduction cost.
 
 \paragraph{Knowledge soundness} (\lean{LeanVM.KnowledgeSoundness}). In the experiment

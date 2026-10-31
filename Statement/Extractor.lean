@@ -84,7 +84,17 @@ over all 64 lanes, from `lean_vm/scripts/extractor-cost` (a model of the code, n
 The whole is dominated by Roth–Ruckenstein's substitution as implemented, then the interpolation,
 and, in `N`, by the lookups, cubic. Polynomial, but not a meaningful concrete bound: an extractor
 of `2^133` operations, or `N³` for an adversary of `N` queries, makes a reduction no better than
-generic search. The Annexes are cited at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
+generic search.
+
+**The same function, faster** (proof side, `lean_vm/LeanVM/Protocol/Extraction/Fast/`):
+`transcriptExtractorFast`, proved equal to `transcriptExtractor` (`transcriptExtractorFast_eq`),
+substitutes in Roth–Ruckenstein by a Taylor shift with binomials by parity (`ℓ²·w/2` per
+substitution, `2^91.8` in all), skips the final root check where the Guruswami–Sudan lemma makes it
+redundant, and keeps the replay, the first answers and the preimages in hash maps (`O(N·L)`
+expected in `N`, keeping evaluations of at most `L = max(64, 8·width)` bytes): about `2^107.5` at
+the worst shape, the interpolation dominating.
+
+The Annexes are cited at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
 
 **Credits.** The list decoder over `K` is CompPoly's (github.com/Verified-zkEVM/CompPoly at
 `572f997390aa4fc131ef30b1186fa1dcf292ca10`, Apache-2.0, "Copyright (c) 2026 CompPoly

@@ -37,9 +37,10 @@ def flags (env : Environment) (c : Name) : List String := Id.run do
   if has (fun n ↦ (`Vector).isPrefixOf n) then fs := "vector" :: fs
   if has (fun n ↦ (`Fin).isPrefixOf n) then fs := "fin" :: fs
   if has (fun n ↦ (`Float).isPrefixOf n || (`Real).isPrefixOf n) then fs := "real/float" :: fs
-  if (Compiler.getImplementedBy? env c).isSome then fs := "implemented_by" :: fs
+  if (Compiler.getImplementedBy? env c).isSome then fs := "implementedBy" :: fs
   if isExtern env c then fs := "extern" :: fs
-  if Meta.isInstanceCore env c then fs := "instance" :: fs
+  -- (the instance extension's state is not loaded without initializers: instances by name)
+  if c.components.any (fun n ↦ n.toString.startsWith "inst") then fs := "instance" :: fs
   return fs
 
 def modOf (env : Environment) (c : Name) : String :=
@@ -52,10 +53,9 @@ def topOf (m : String) : String :=
   | a :: _ => a
   | [] => m
 
-unsafe def main (args : List String) : IO Unit := do
+def main (args : List String) : IO Unit := do
   initSearchPath (← findSysroot)
-  enableInitializersExecution
-  let env ← importModules #[{ module := `Statement.LeanVm }] {} 0 (loadExts := true)
+  let env ← importModules #[{ module := `Statement.LeanVm }] {} 0 (loadExts := false)
   let root : Name := match args with
     | r :: _ => r.toName
     | [] => `LeanVM.transcriptExtractor
@@ -96,5 +96,5 @@ unsafe def main (args : List String) : IO Unit := do
     let t := topOf (modOf env c)
     if (t == "Statement" || t == "CompPoly") &&
         fs.any (fun f ↦ f == "wf" || f == "hashmap" || f == "real/float" ||
-          f == "implemented_by") then
+          f == "implementedBy") then
       IO.println s!"    {c} [{modOf env c}] {fs}"

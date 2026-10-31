@@ -96,7 +96,8 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    computable, with running time polynomial in the announced committed size `2^μ` and the number
    of evaluations, not in the proof's size, and infeasible at deployed sizes (its cost table, a
    model of the code, not proved: about `2^133` operations at the worst shape, Roth–Ruckenstein's
-   substitution as implemented dominating, and cubic in the number of evaluations): from the proof and the adversary's Keccak-256 evaluations, the
+   substitution as implemented dominating, and cubic in the number of evaluations; the same
+   function is computed, provably, in about `2^107.5`, by `lean_vm`'s `transcriptExtractorFast`): from the proof and the adversary's Keccak-256 evaluations, the
    announced sizes and the stack's root, the committed word (the Merkle tree inverted through the
    evaluations), its Johnson list (at most `2^18` stacks, listed by CompPoly's Guruswami–Sudan list
    decoder over `GF(2^64)` and pruning across the lanes), and the halting run of a candidate's
