@@ -13,7 +13,8 @@ lakefile's pin), and its derivation is in the comments.
 Three tiers:
 * tier 0: today's code;
 * tier 1 (E1): Roth-Ruckenstein with a linear Taylor shift, binomials by parity and truncated
-  substitution (the textbook bound), no final root check, sorted lookups;
+  substitution (the textbook bound), no final root check, sorted lookups; "as built": E1 as
+  implemented (`LeanVM/Protocol/Extraction/Fast/`), the substitution untruncated;
 * tier 2 (E2): tier 1 with a fast interpolation (Chowdhury et al. 2015) in place of
   Lee-O'Sullivan and Mulders-Storjohann.
 
@@ -58,6 +59,10 @@ def costs(r):
     # ... and a `Nat.choose y t` per monomial, a bignum of about y bits built by y
     # multiplications: about y^2/64 word operations, y <= ell.
     t["binom0"] = LANES + lg(k) + lg(q) + lg(ell / 2) + 2 * lg(ell) - 6
+    # Roth-Ruckenstein with the Taylor shift, untruncated (E1 as built, `substituteFast`): for
+    # each t <= ell, the sum over y >= t of the Q_y, each of X-degree at most W: ell^2 W / 2 per
+    # substitution, k per path, between 1 and ell paths.
+    t["rrTaylor"] = LANES + lg(k) + lg(ell * ell * w / 2) + lg(ell)
     # Roth-Ruckenstein, textbook (tier 1): O(ell log^2 ell k (n + ell log q)).
     t["rr1"] = LANES + lg(ell) + 2 * lg(lg(ell)) + lg(k) + lg(n + 64 * ell)
     # The final root check (`isRootYDegreeLtBool`, `composeYHorner`): ell Horner steps, each a
@@ -82,13 +87,16 @@ def main():
     rows = list(csv.DictReader(open(sys.argv[1])))
     table = [(int(r["mu"]), int(r["R"]), costs(r)) for r in rows]
     if "--worst" in sys.argv:
-        keys = ["interp0", "interp2", "rr0", "binom0", "rr1", "final0", "filter", "prune", "runs"]
+        keys = ["interp0", "interp2", "rr0", "binom0", "rrTaylor", "rr1", "final0", "filter",
+                "prune", "runs"]
         for key in keys:
             mu, R, t = max(table, key=lambda x: x[2][key])
             print(f"{key:9s} 2^{t[key]:6.1f}  at ({mu}, {R})")
         tier = {
             0: lambda t: max(t["interp0"], t["rr0"] + t["rr0paths"], t["final0"], t["prune"],
                              t["runs"]),
+            "1 as built (E1)": lambda t: max(t["interp0"], t["rrTaylor"], t["filter"], t["prune"],
+                                             t["runs"]),
             1: lambda t: max(t["interp0"], t["rr1"], t["prune"], t["runs"]),
             2: lambda t: max(t["interp2"] + t["interp2log"], t["rr1"], t["prune"], t["runs"]),
         }
@@ -96,7 +104,7 @@ def main():
             mu, R, t = max(table, key=lambda x: f(x[2]))
             print(f"tier {i}: C0 = 2^{f(t):.1f} at ({mu}, {R})")
         print("plus, in N: tier 0  136 N^3/6 + 2^14 N^2 + 2^27 N (lookups and paths);"
-              " tiers 1-2  about 2^27 log N + N log N")
+              " E1 as built  O(N L) expected (hash maps, L = max(64, 8 width) bytes)")
         return
     print("mu  R | interp0 interp2(+log) | rr0 (1..ell paths) binom0 rr1 | final0 filter "
           "prune runs")
