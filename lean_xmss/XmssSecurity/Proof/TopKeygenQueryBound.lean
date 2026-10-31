@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.HonestKeygenRun
+module
+
+public import XmssSecurity.Proof.HonestKeygenRun
+
+@[expose] public section
 
 /-!
 # Key generation queries each top chain, leaf and Merkle address at most once

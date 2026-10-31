@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.CappedEncodingEventProbability
-import XmssSecurity.Proof.CappedUnifiedStructuralCollision
+module
+
+public import XmssSecurity.Proof.CappedEncodingEventProbability
+public import XmssSecurity.Proof.CappedUnifiedStructuralCollision
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.CappedEncodingExpectedBound
-import XmssSecurity.Proof.CappedUnifiedStructuralCollision
-import XmssSecurity.Proof.ExactKeygenQueryCount
-import XmssSecurity.Proof.LossDecomposition
+module
+
+public import XmssSecurity.Proof.CappedEncodingExpectedBound
+public import XmssSecurity.Proof.CappedUnifiedStructuralCollision
+public import XmssSecurity.Proof.ExactKeygenQueryCount
+public import XmssSecurity.Proof.LossDecomposition
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 set_option backward.isDefEq.respectTransparency false

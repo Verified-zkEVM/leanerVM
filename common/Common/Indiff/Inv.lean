@@ -1,4 +1,8 @@
-import Common.Indiff.Support
+module
+
+public import Common.Indiff.Support
+
+@[expose] public section
 
 /-!
 # Indifferentiability: the invariant of the combined game

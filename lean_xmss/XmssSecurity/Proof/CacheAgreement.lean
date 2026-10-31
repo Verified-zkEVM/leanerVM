@@ -1,8 +1,12 @@
-import XmssSecurity.Proof.CausalAuthenticationPathIndependence
-import XmssSecurity.Proof.ChainOraclePresampling
-import XmssSecurity.Proof.MerkleQueryPresence
-import XmssSecurity.Proof.CausalKeygenCoupling
-import VCVio.ProgramLogic.Relational.Basic
+module
+
+public import XmssSecurity.Proof.CausalAuthenticationPathIndependence
+public import XmssSecurity.Proof.ChainOraclePresampling
+public import XmssSecurity.Proof.MerkleQueryPresence
+public import XmssSecurity.Proof.CausalKeygenCoupling
+public import VCVio.ProgramLogic.Relational.Basic
+
+@[expose] public section
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational

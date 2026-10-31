@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.CacheReplayEval
-import XmssSecurity.Proof.IdealStatement
-import XmssSecurity.Proof.Execution
-import XmssSecurity.Proof.LazyScheme
+module
+
+public import XmssSecurity.Proof.CacheReplayEval
+public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Proof.Execution
+public import XmssSecurity.Proof.LazyScheme
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

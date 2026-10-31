@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.CappedGlobalChainOutputUniformity
-import XmssSecurity.Proof.CappedGlobalCausalSetup
-import XmssSecurity.Proof.MarginalCoupling
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.CappedGlobalChainOutputUniformity
+public import XmssSecurity.Proof.CappedGlobalCausalSetup
+public import XmssSecurity.Proof.MarginalCoupling
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational

@@ -1,5 +1,9 @@
-import XmssSecurity.Scan.Ghost
-import XmssSecurity.Scan.Step
+module
+
+public import XmssSecurity.Scan.Ghost
+public import XmssSecurity.Scan.Step
+
+@[expose] public section
 
 /-!
 # Per-leaf bookkeeping of the adversary phase

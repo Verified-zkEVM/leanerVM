@@ -1,7 +1,11 @@
-import LeanDa.StraightBad
-import LeanDa.KsRpm
-import LeanDa.AdvX
-import LeanDa.WithHash
+module
+
+public import LeanDa.StraightBad
+public import LeanDa.KsRpm
+public import LeanDa.AdvX
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # Code binding by a straight-line argument

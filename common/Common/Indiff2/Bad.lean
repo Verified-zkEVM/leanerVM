@@ -1,4 +1,8 @@
-import Common.Indiff2.Shadow
+module
+
+public import Common.Indiff2.Shadow
+
+@[expose] public section
 
 /-!
 # The two-oracle model: disagreement needs a capacity collision

@@ -14,8 +14,12 @@ of the vector commitment.
 Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
 modified for VCVio afa6593.
 -/
-import PqDas.Target.Scheme
-import PqDas.VcvioExtras
+module
+
+public import PqDas.Target.Scheme
+public import PqDas.VcvioExtras
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

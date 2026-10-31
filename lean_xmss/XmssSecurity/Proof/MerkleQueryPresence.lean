@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.MerkleQueryBound
-import XmssSecurity.Proof.QueryPresence
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.MerkleQueryBound
+public import XmssSecurity.Proof.QueryPresence
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

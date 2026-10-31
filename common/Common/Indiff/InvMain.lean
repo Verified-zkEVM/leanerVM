@@ -1,5 +1,9 @@
-import Common.Indiff.InvHash
-import Common.Fold
+module
+
+public import Common.Indiff.InvHash
+public import Common.Fold
+
+@[expose] public section
 
 /-!
 # Indifferentiability: the invariant holds along every run

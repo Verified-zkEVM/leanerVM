@@ -1,5 +1,9 @@
-import Common.Prob
-import Common.Defs
+module
+
+public import Common.Prob
+public import Common.Defs
+
+@[expose] public section
 
 /-!
 # Random-oracle queries commute

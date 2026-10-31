@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.IdealStatement
-import XmssSecurity.Proof.StatementLemmas
-import XmssSecurity.Proof.EncodingLemmas
-import Mathlib.Tactic.NormNum
+module
+
+public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Proof.StatementLemmas
+public import XmssSecurity.Proof.EncodingLemmas
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 open OracleSpec
 

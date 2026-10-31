@@ -1,5 +1,9 @@
-import Statement.RandomPermutation
-import Common.WithHash
+module
+
+public import Statement.RandomPermutation
+public import Common.WithHash
+
+@[expose] public section
 
 /-!
 # The model with a Keccak-256 oracle, a proof device

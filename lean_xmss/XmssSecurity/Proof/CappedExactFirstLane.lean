@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.CappedJointExactLoss
+module
+
+public import XmssSecurity.Proof.CappedJointExactLoss
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

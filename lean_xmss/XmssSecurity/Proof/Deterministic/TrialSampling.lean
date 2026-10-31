@@ -1,9 +1,13 @@
-import XmssSecurity.Proof.EvalDistEq
-import XmssSecurity.Proof.Deterministic.TableSigner
-import XmssSecurity.Proof.Deterministic.World
-import XmssSecurity.Proof.StatementLemmas
-import XmssSecurity.Proof.RandomOracle
-import XmssSecurity.Proof.UniformFiniteTable
+module
+
+public import XmssSecurity.Proof.EvalDistEq
+public import XmssSecurity.Proof.Deterministic.TableSigner
+public import XmssSecurity.Proof.Deterministic.World
+public import XmssSecurity.Proof.StatementLemmas
+public import XmssSecurity.Proof.RandomOracle
+public import XmssSecurity.Proof.UniformFiniteTable
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

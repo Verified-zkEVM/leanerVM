@@ -1,5 +1,9 @@
-import Common.Signature
-import Common.WithHash
+module
+
+public import Common.Signature
+public import Common.WithHash
+
+@[expose] public section
 
 /-!
 # The statement's model: `π` and `π⁻¹`, nothing else

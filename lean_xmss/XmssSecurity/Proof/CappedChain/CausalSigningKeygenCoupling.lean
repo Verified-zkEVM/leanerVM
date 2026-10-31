@@ -1,11 +1,15 @@
-import XmssSecurity.Proof.CacheAgreement
-import XmssSecurity.Proof.ChainWalkCache
-import XmssSecurity.Proof.BoundedSignProbability
-import XmssSecurity.Proof.PrecomputedBoundedSignProbability
-import XmssSecurity.Proof.CappedChain.TreeCacheStable
-import XmssSecurity.Proof.CausalTreeCoupling
-import XmssSecurity.Proof.KeygenCache
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.CacheAgreement
+public import XmssSecurity.Proof.ChainWalkCache
+public import XmssSecurity.Proof.BoundedSignProbability
+public import XmssSecurity.Proof.PrecomputedBoundedSignProbability
+public import XmssSecurity.Proof.CappedChain.TreeCacheStable
+public import XmssSecurity.Proof.CausalTreeCoupling
+public import XmssSecurity.Proof.KeygenCache
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational

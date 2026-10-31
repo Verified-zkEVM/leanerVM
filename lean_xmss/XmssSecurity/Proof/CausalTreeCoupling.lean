@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.TreeCacheVocabulary
-import XmssSecurity.Proof.CacheAgreement
+module
+
+public import XmssSecurity.Proof.TreeCacheVocabulary
+public import XmssSecurity.Proof.CacheAgreement
+
+@[expose] public section
 
 /-!
 # Coupling key generation over two chain tables

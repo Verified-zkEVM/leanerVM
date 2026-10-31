@@ -1,4 +1,8 @@
-import Common.Duplex.Inv
+module
+
+public import Common.Duplex.Inv
+
+@[expose] public section
 
 /-!
 # Without collision, the derived challenges are the table's

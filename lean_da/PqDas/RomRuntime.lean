@@ -19,13 +19,17 @@ the two agree: `evalDist_simulateRomWithCache`.
 Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
 modified for VCVio afa6593.
 -/
-import VCVio.OracleComp.HasQuery.Morphism
-import VCVio.OracleComp.ProbCompLift
-import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
-import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
-import VCVio.OracleComp.Coercions.Add.Basic
-import VCVio.OracleComp.SimSemantics.StateT.BundledSemantics
-import PqDas.Defs
+module
+
+public import VCVio.OracleComp.HasQuery.Morphism
+public import VCVio.OracleComp.ProbCompLift
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import VCVio.OracleComp.Coercions.Add.Basic
+public import VCVio.OracleComp.SimSemantics.StateT.BundledSemantics
+public import PqDas.Defs
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

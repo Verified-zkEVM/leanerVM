@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.ConcreteCorrectness
-import XmssSecurity.Proof.TreeQueryBound
+module
+
+public import XmssSecurity.Proof.ConcreteCorrectness
+public import XmssSecurity.Proof.TreeQueryBound
+
+@[expose] public section
 
 namespace XmssSecurity
 

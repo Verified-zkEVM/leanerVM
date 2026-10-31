@@ -1,4 +1,8 @@
-import Common.Indiff.Commute
+module
+
+public import Common.Indiff.Commute
+
+@[expose] public section
 
 /-!
 # Indifferentiability: the simulator's path oracle is queried only at rooted paths

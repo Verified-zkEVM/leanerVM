@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.Bridge.Model
-import XmssSecurity.Proof.Bridge.SchemeSeed
-import XmssSecurity.Proof.Interface
+module
+
+public import XmssSecurity.Proof.Bridge.Model
+public import XmssSecurity.Proof.Bridge.SchemeSeed
+public import XmssSecurity.Proof.Interface
+
+@[expose] public section
 
 /-!
 # leanXMSS has 127 bits of security

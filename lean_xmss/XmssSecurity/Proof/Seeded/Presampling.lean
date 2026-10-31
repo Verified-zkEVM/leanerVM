@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.EvalDistEq
-import XmssSecurity.Proof.Seeded.StoppedRun
-import XmssSecurity.Proof.ConsistentQueryBound
+module
+
+public import XmssSecurity.Proof.EvalDistEq
+public import XmssSecurity.Proof.Seeded.StoppedRun
+public import XmssSecurity.Proof.ConsistentQueryBound
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

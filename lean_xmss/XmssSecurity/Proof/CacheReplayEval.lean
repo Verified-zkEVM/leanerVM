@@ -1,9 +1,13 @@
-import XmssSecurity.Proof.CacheVerify
-import XmssSecurity.Proof.LazyScheme
-import VCVio.OracleComp.QueryTracking.CachingOracle
-import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
-import VCVio.OracleComp.SimSemantics.StateT.PreservesInv
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.CacheVerify
+public import XmssSecurity.Proof.LazyScheme
+public import VCVio.OracleComp.QueryTracking.CachingOracle
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import VCVio.OracleComp.SimSemantics.StateT.PreservesInv
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

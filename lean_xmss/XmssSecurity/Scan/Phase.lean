@@ -1,6 +1,10 @@
-import XmssSecurity.Scan.Ledger
-import XmssSecurity.Scan.MomentLift
-import XmssSecurity.Scan.Card
+module
+
+public import XmssSecurity.Scan.Ledger
+public import XmssSecurity.Scan.MomentLift
+public import XmssSecurity.Scan.Card
+
+@[expose] public section
 
 /-!
 # The adversary phase, query by query

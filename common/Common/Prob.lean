@@ -1,10 +1,14 @@
-import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
-import VCVio.OracleComp.Constructions.SampleableType.Measure
-import VCVio.OracleComp.QueryTracking.QueryBound.Basic
-import VCVio.OracleComp.SimSemantics.StateT.StateProjection
-import VCVio.EvalDist.ProbabilityBounds
-import Common.Defs
-import Common.Game2
+module
+
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
+public import VCVio.OracleComp.QueryTracking.QueryBound.Basic
+public import VCVio.OracleComp.SimSemantics.StateT.StateProjection
+public import VCVio.EvalDist.ProbabilityBounds
+public import Common.Defs
+public import Common.Game2
+
+@[expose] public section
 
 /-!
 # Game-playing lemmas for stateful simulations

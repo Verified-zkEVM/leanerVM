@@ -1,9 +1,13 @@
-import LeanDa.RpmCodeBinding
-import LeanDa.HashOracle
-import LeanDa.MerkleM
-import PqDas.Target.Scheme
-import LeanDa.Defs
-import LeanDa.WithHash
+module
+
+public import LeanDa.RpmCodeBinding
+public import LeanDa.HashOracle
+public import LeanDa.MerkleM
+public import PqDas.Target.Scheme
+public import LeanDa.Defs
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # Completeness in the random-permutation model

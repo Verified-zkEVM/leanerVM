@@ -35,11 +35,15 @@ probabilities.
 Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
 modified for VCVio afa6593.
 -/
-import PqDas.Target.Scheme
-import PqDas.Proof.CommittedSoundness.Defs
-import PqDas.VcvioExtras
-import VCVio.OracleComp.EvalDist.Sum
-import PqDas.Defs
+module
+
+public import PqDas.Target.Scheme
+public import PqDas.Proof.CommittedSoundness.Defs
+public import PqDas.VcvioExtras
+public import VCVio.OracleComp.EvalDist.Sum
+public import PqDas.Defs
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
@@ -121,7 +125,7 @@ variable [Nonempty Γ] [Fintype Γ] [DecidableEq Λ] [DecidableEq ComVC] [Sample
 appended: sample both keys, run the adversary in the simulated random-oracle
 world, then query the oracle once on the vector-commitment part of its output
 commitment (a cache hit if the adversary already queried it). -/
-private noncomputable def challengedRun :
+noncomputable def challengedRun :
     ProbComp (CkVC × Crs × ((ComVC × Proof) × List (Fin n × Λ × Opn)) × L) := do
   let ckVC ← vc.setup
   let crs ← ps.setup
@@ -133,7 +137,7 @@ private noncomputable def challengedRun :
 /-- The code-binding game's winning bit as a function of the shared prefix
 outcome: all openings verify (each verification's oracle query returns the
 pinned challenge) and no codeword is consistent with the opened symbols. -/
-private def gameWinBit (ckVC : CkVC) (crs : Crs)
+def gameWinBit (ckVC : CkVC) (crs : Crs)
     (out : (ComVC × Proof) × List (Fin n × Λ × Opn)) (l : L) : Bool :=
   ((out.2.map fun p => ps.verify crs (ckVC, out.1.1, l) out.1.2 &&
       vc.verify ckVC out.1.1 p.1 p.2.1 p.2.2).all id) &&
@@ -141,14 +145,14 @@ private def gameWinBit (ckVC : CkVC) (crs : Crs)
 
 /-- The knowledge-soundness reduction's winning bit as a function of the
 shared prefix outcome. -/
-private def ksWinBit (ckVC : CkVC) (crs : Crs)
+def ksWinBit (ckVC : CkVC) (crs : Crs)
     (out : (ComVC × Proof) × List (Fin n × Λ × Opn)) (l : L) : Bool :=
   ps.verify crs (ckVC, out.1.1, l) out.1.2 &&
     !schemeRel vc chk (ckVC, out.1.1, l) (ext crs (ckVC, out.1.1, l) out.1.2)
 
 /-- The committed-soundness reduction's winning bit as a function of the
 shared prefix outcome. -/
-private def csWinBit (ckVC : CkVC) (crs : Crs)
+def csWinBit (ckVC : CkVC) (crs : Crs)
     (out : (ComVC × Proof) × List (Fin n × Λ × Opn)) (l : L) : Bool :=
   decide (ext crs (ckVC, out.1.1, l) out.1.2 ∉ C.code) &&
     chk.check l (ext crs (ckVC, out.1.1, l) out.1.2) &&
@@ -156,7 +160,7 @@ private def csWinBit (ckVC : CkVC) (crs : Crs)
 
 /-- The weak position-binding reduction's winning bit as a function of the
 shared prefix outcome. -/
-private def wpbWinBit (ckVC : CkVC) (crs : Crs)
+def wpbWinBit (ckVC : CkVC) (crs : Crs)
     (out : (ComVC × Proof) × List (Fin n × Λ × Opn)) (l : L) : Bool :=
   match out.2.find? fun p =>
       decide (p.2.1 ≠ ext crs (ckVC, out.1.1, l) out.1.2 p.1) with

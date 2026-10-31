@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.Execution
-import XmssSecurity.Proof.ConsistentQueryBound
+module
+
+public import XmssSecurity.Proof.Execution
+public import XmssSecurity.Proof.ConsistentQueryBound
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

@@ -1,6 +1,10 @@
-import Statement.LeanDa
-import Common.HashOracle
-import LeanDa.WithHash
+module
+
+public import Statement.LeanDa
+public import Common.HashOracle
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # LeanDA's games with a Keccak-256 oracle, a proof device

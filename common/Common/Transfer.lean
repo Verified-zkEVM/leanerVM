@@ -1,5 +1,9 @@
-import Common.Indiff.Main
-import Common.Defs
+module
+
+public import Common.Indiff.Main
+public import Common.Defs
+
+@[expose] public section
 
 /-!
 # Transfer: from the random-oracle model to the random-permutation model

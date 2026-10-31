@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.RevealTraceReplay
-import XmssSecurity.Proof.RunObservedAppend
+module
+
+public import XmssSecurity.Proof.RevealTraceReplay
+public import XmssSecurity.Proof.RunObservedAppend
+
+@[expose] public section
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational

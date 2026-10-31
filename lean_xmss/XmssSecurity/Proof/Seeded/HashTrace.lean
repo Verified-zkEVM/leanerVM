@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.Seeded.CacheCoupling
-import XmssSecurity.Proof.ConsistentQueryBound
+module
+
+public import XmssSecurity.Proof.Seeded.CacheCoupling
+public import XmssSecurity.Proof.ConsistentQueryBound
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

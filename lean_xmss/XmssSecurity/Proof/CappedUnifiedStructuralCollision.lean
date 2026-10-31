@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.CappedGlobalCollisionProbability
-import XmssSecurity.Proof.CappedLeafEventProbability
-import XmssSecurity.Proof.GlobalWinningChainValueRevealed
-import XmssSecurity.Proof.TopStructural
+module
+
+public import XmssSecurity.Proof.CappedGlobalCollisionProbability
+public import XmssSecurity.Proof.CappedLeafEventProbability
+public import XmssSecurity.Proof.GlobalWinningChainValueRevealed
+public import XmssSecurity.Proof.TopStructural
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

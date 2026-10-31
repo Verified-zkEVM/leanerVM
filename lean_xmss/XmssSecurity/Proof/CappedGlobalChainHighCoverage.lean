@@ -1,9 +1,13 @@
-import XmssSecurity.Proof.CappedGlobalChainHighReplay
-import XmssSecurity.Proof.CappedGlobalCausalUniformTrace
-import XmssSecurity.Proof.CappedChain.SourceDirectTrace
-import XmssSecurity.Proof.CappedChain.ReturnedChainValueCoverage
-import XmssSecurity.Proof.EncodingHashCacheReplay
-import XmssSecurity.Proof.RunObservedAppend
+module
+
+public import XmssSecurity.Proof.CappedGlobalChainHighReplay
+public import XmssSecurity.Proof.CappedGlobalCausalUniformTrace
+public import XmssSecurity.Proof.CappedChain.SourceDirectTrace
+public import XmssSecurity.Proof.CappedChain.ReturnedChainValueCoverage
+public import XmssSecurity.Proof.EncodingHashCacheReplay
+public import XmssSecurity.Proof.RunObservedAppend
+
+@[expose] public section
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational

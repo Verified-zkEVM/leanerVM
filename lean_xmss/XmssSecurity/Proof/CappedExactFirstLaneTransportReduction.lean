@@ -1,9 +1,13 @@
-import XmssSecurity.Proof.CappedExactFirstLaneSourceCoupling
-import XmssSecurity.Proof.CappedGlobalFirstLaneExperiment
-import XmssSecurity.Proof.CappedGlobalChainHighReduction
-import XmssSecurity.Proof.CappedChain.DirectQueryAccounting
-import XmssSecurity.Proof.StateLens
-import XmssSecurity.Proof.EagerTraceInvariant
+module
+
+public import XmssSecurity.Proof.CappedExactFirstLaneSourceCoupling
+public import XmssSecurity.Proof.CappedGlobalFirstLaneExperiment
+public import XmssSecurity.Proof.CappedGlobalChainHighReduction
+public import XmssSecurity.Proof.CappedChain.DirectQueryAccounting
+public import XmssSecurity.Proof.StateLens
+public import XmssSecurity.Proof.EagerTraceInvariant
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 open OracleComp.ProgramLogic.Relational

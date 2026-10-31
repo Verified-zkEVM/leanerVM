@@ -1,7 +1,11 @@
-import Common.Eager
-import Common.Lemmas
-import Common.Keccak
-import Statement.RandomPermutation
+module
+
+public import Common.Eager
+public import Common.Lemmas
+public import Common.Keccak
+public import Statement.RandomPermutation
+
+@[expose] public section
 
 /-!
 # A duplex challenge derivation: definitions

@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.Bridge.Signer
-import XmssSecurity.Proof.Deterministic.TranscriptReduction
-import Common.WithHash
+module
+
+public import XmssSecurity.Proof.Bridge.Signer
+public import XmssSecurity.Proof.Deterministic.TranscriptReduction
+public import Common.WithHash
+
+@[expose] public section
 
 /-!
 # The real game as the model's

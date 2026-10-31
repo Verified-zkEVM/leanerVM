@@ -1,7 +1,11 @@
-import LeanXmss.Statement
-import Common.Signature
-import Statement.LeanXmss
-import Common.WithHash
+module
+
+public import LeanXmss.Statement
+public import Common.Signature
+public import Statement.LeanXmss
+public import Common.WithHash
+
+@[expose] public section
 
 /-!
 # leanXMSS security statement in the random-permutation model

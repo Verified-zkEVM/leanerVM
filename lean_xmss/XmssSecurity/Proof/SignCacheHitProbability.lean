@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.EncodingTargetMap
-import XmssSecurity.Proof.SigningRandomnessUniformity
-import Mathlib.Data.Set.Card.Arithmetic
+module
+
+public import XmssSecurity.Proof.EncodingTargetMap
+public import XmssSecurity.Proof.SigningRandomnessUniformity
+public import Mathlib.Data.Set.Card.Arithmetic
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

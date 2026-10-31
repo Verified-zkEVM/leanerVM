@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.CappedExactFirstLaneTransportReduction
-import XmssSecurity.Proof.BoundedFirstLaneCoupling
-import XmssSecurity.Proof.CappedGlobalTopGuessOrigin
-import VCVio.OracleComp.SimSemantics.StateT.StateProjection
+module
+
+public import XmssSecurity.Proof.CappedExactFirstLaneTransportReduction
+public import XmssSecurity.Proof.BoundedFirstLaneCoupling
+public import XmssSecurity.Proof.CappedGlobalTopGuessOrigin
+public import VCVio.OracleComp.SimSemantics.StateT.StateProjection
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 set_option backward.isDefEq.respectTransparency false

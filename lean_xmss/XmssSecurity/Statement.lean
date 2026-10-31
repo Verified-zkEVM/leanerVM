@@ -1,5 +1,9 @@
-import XmssSecurity.Scheme
-import VCVio.OracleComp.QueryTracking.WriterCost
+module
+
+public import XmssSecurity.Scheme
+public import VCVio.OracleComp.QueryTracking.WriterCost
+
+@[expose] public section
 
 /-!
 # XMSS security statement

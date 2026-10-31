@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.ChainTrajectoryUniformity
+module
+
+public import XmssSecurity.Proof.ChainTrajectoryUniformity
+
+@[expose] public section
 
 namespace XmssSecurity
 

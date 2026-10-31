@@ -1,6 +1,10 @@
-import LeanDa.Scheme
-import LeanDa.Defs
-import LeanDa.WithHash
+module
+
+public import LeanDa.Scheme
+public import LeanDa.Defs
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # The Merkle commitment to the cells

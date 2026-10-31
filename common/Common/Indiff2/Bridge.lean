@@ -1,5 +1,9 @@
-import Common.Indiff2.Defs
-import Common.Indiff.Ideal
+module
+
+public import Common.Indiff2.Defs
+public import Common.Indiff.Ideal
+
+@[expose] public section
 
 /-!
 # The two-oracle model: from the one-oracle ideal world to the simulator with `F`

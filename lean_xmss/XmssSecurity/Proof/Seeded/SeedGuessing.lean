@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.Deterministic.Inputs
+module
+
+public import XmssSecurity.Proof.Deterministic.Inputs
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

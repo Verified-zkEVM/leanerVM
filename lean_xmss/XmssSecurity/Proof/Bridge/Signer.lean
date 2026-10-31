@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.Bridge.Real
-import Common.WithHash
+module
+
+public import XmssSecurity.Proof.Bridge.Real
+public import Common.WithHash
+
+@[expose] public section
 
 /-!
 # The real signer

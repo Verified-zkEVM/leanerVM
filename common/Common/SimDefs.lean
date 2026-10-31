@@ -1,5 +1,9 @@
-import Common.Sponge
-import Statement.RandomPermutation
+module
+
+public import Common.Sponge
+public import Statement.RandomPermutation
+
+@[expose] public section
 
 /-!
 # The simulators of the two-oracle random-oracle model

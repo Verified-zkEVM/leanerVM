@@ -1,9 +1,13 @@
-import LeanDa.RpmScheme
-import LeanDa.RpmGames
-import LeanDa.Security
-import LeanDa.Defs
-import Common.Linear
-import LeanDa.WithHash
+module
+
+public import LeanDa.RpmScheme
+public import LeanDa.RpmGames
+public import LeanDa.Security
+public import LeanDa.Defs
+public import Common.Linear
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # LeanDA in the random-permutation model

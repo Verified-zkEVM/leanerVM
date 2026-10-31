@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.QueryCounting
-import VCVio.OracleComp.QueryTracking.SubSpec
-import XmssSecurity.Proof.IdealStatement
+module
+
+public import XmssSecurity.Proof.QueryCounting
+public import VCVio.OracleComp.QueryTracking.SubSpec
+public import XmssSecurity.Proof.IdealStatement
+
+@[expose] public section
 
 namespace XmssSecurity
 
@@ -112,7 +116,7 @@ theorem simulateQ_countHashQueries {α : Type} (computation : OracleComp OracleW
   rw [countHashQueries, QueryCounting.simulate_withCost]
   congr 2
   funext input
-  cases input <;> rfl
+  cases input <;> simp [countedRomImpl, QueryImpl.withAddCost_apply]
 
 theorem hasHashQueryBound_iff {Key : Type} (scheme : Scheme Key) (adversary : Adversary) (q : Nat) :
     HasHashQueryBound scheme adversary q ↔ HashQueryBound (gameCore scheme adversary) ∅ q := by

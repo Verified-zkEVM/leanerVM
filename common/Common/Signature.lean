@@ -1,10 +1,14 @@
-import Common.Keccak
-import Common.Lemmas
-import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
-import VCVio.OracleComp.QueryTracking.WriterCost
-import Common.Lanes
-import Common.Rerun
-import Common.WithHash
+module
+
+public import Common.Keccak
+public import Common.Lemmas
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.WriterCost
+public import Common.Lanes
+public import Common.Rerun
+public import Common.WithHash
+
+@[expose] public section
 
 /-!
 # Signature games in the random-permutation model

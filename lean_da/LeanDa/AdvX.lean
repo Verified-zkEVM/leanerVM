@@ -1,4 +1,8 @@
-import LeanDa.Birthday
+module
+
+public import LeanDa.Birthday
+
+@[expose] public section
 
 /-!
 # Wagner's adversary with `H` as an oracle

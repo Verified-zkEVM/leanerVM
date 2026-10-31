@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.SignCacheHitProbability
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.SignCacheHitProbability
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

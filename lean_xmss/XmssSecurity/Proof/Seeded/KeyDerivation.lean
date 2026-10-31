@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.IdealStatement
-import XmssSecurity.Proof.HashInputLemmas
+module
+
+public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Proof.HashInputLemmas
+
+@[expose] public section
 
 namespace XmssSecurity
 

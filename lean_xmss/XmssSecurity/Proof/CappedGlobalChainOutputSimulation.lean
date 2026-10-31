@@ -1,6 +1,11 @@
-import XmssSecurity.Proof.CappedGlobalKeygen
-import XmssSecurity.Proof.CappedGlobalTreeCacheCorrespondence
-import XmssSecurity.Proof.EvalDistEq
+module
+
+public import XmssSecurity.Proof.CappedGlobalKeygen
+public import XmssSecurity.Proof.CappedGlobalTreeCacheCorrespondence
+public import XmssSecurity.Proof.EvalDistEq
+import all Init.Data.Array.Basic
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

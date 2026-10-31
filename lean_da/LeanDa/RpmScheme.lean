@@ -1,8 +1,12 @@
-import LeanDa.Merkle
-import Common.Keccak
-import Common.Lemmas
-import LeanDa.Defs
-import LeanDa.WithHash
+module
+
+public import LeanDa.Merkle
+public import Common.Keccak
+public import Common.Lemmas
+public import LeanDa.Defs
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # LeanDA's hashing and challenges over a permutation oracle

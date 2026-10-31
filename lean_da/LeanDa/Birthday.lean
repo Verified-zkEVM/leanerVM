@@ -1,7 +1,11 @@
-import LeanDa.Collapse
-import LeanDa.MerkleM
-import LeanDa.RpmWagner
-import Common.Eager
+module
+
+public import LeanDa.Collapse
+public import LeanDa.MerkleM
+public import LeanDa.RpmWagner
+public import Common.Eager
+
+@[expose] public section
 
 /-!
 # A collision of a uniformly random table of `H`, found by a bounded search

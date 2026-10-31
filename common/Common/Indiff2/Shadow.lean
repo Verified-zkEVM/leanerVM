@@ -1,4 +1,8 @@
-import Common.Indiff2.Bridge
+module
+
+public import Common.Indiff2.Bridge
+
+@[expose] public section
 
 /-!
 # The two-oracle model: the shadow world

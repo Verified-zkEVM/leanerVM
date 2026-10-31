@@ -1,5 +1,9 @@
-import XmssSecurity.Scan.Potential
-import XmssSecurity.Proof.AdaptiveFreshTarget
+module
+
+public import XmssSecurity.Scan.Potential
+public import XmssSecurity.Proof.AdaptiveFreshTarget
+
+@[expose] public section
 
 /-!
 # One encoding query and the partner potential

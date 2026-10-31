@@ -1,8 +1,12 @@
-import LeanDa.Membership
-import LeanDa.Merkle
-import PqDas.Proof.PositionBinding
-import PqDas.Proof.CorollaryCodeBinding
-import LeanDa.Defs
+module
+
+public import LeanDa.Membership
+public import LeanDa.Merkle
+public import PqDas.Proof.PositionBinding
+public import PqDas.Proof.CorollaryCodeBinding
+public import LeanDa.Defs
+
+@[expose] public section
 
 /-!
 # LeanDA in Wagner's framework

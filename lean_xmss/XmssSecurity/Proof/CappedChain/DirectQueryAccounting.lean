@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.CappedChain.SourceDirectTrace
+module
+
+public import XmssSecurity.Proof.CappedChain.SourceDirectTrace
+
+@[expose] public section
 
 open OracleComp OracleSpec
 set_option backward.isDefEq.respectTransparency false

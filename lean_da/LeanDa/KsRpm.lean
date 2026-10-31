@@ -1,5 +1,10 @@
-import LeanDa.WpbBound
-import LeanDa.WithHash
+module
+
+public import LeanDa.WpbBound
+public import LeanDa.WithHash
+import all Init.Data.String.Defs
+
+@[expose] public section
 
 /-!
 # Wagner's knowledge-soundness term, from the argument's knowledge soundness in the

@@ -1,4 +1,8 @@
-import XmssSecurity.Scan.Phase
+module
+
+public import XmssSecurity.Scan.Phase
+
+@[expose] public section
 
 /-!
 # One key: the cached-selection collision against the encoding queries

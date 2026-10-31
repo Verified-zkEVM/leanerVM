@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.ChainOraclePresampling
-import XmssSecurity.Proof.EncodingOracleSimulation
+module
+
+public import XmssSecurity.Proof.ChainOraclePresampling
+public import XmssSecurity.Proof.EncodingOracleSimulation
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

@@ -31,11 +31,15 @@ a forking lemma.
 Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
 modified for VCVio afa6593.
 -/
-import PqDas.Assumptions.ErasureCode
-import PqDas.Assumptions.VectorCommitment
-import PqDas.Assumptions.CodeChecker
-import PqDas.RomRuntime
-import PqDas.Defs
+module
+
+public import PqDas.Assumptions.ErasureCode
+public import PqDas.Assumptions.VectorCommitment
+public import PqDas.Assumptions.CodeChecker
+public import PqDas.RomRuntime
+public import PqDas.Defs
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

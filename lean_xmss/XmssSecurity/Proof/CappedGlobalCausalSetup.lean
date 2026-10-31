@@ -1,13 +1,17 @@
-import XmssSecurity.Proof.CappedGlobalKeygen
-import XmssSecurity.Proof.CappedGlobalTreeCacheCorrespondence
-import XmssSecurity.Proof.CappedChain.ChainTracedGame
-import XmssSecurity.Proof.PrecomputedKeygenCache
-import XmssSecurity.Proof.CappedGlobalChainOrigin
-import XmssSecurity.Proof.CappedChain.ChainRevealFiltering
-import XmssSecurity.Proof.CappedChain.SignatureChainValue
-import XmssSecurity.Proof.RevealProbeOracleSimulation
-import XmssSecurity.Proof.CappedChain.CausalSigningKeygenCoupling
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.CappedGlobalKeygen
+public import XmssSecurity.Proof.CappedGlobalTreeCacheCorrespondence
+public import XmssSecurity.Proof.CappedChain.ChainTracedGame
+public import XmssSecurity.Proof.PrecomputedKeygenCache
+public import XmssSecurity.Proof.CappedGlobalChainOrigin
+public import XmssSecurity.Proof.CappedChain.ChainRevealFiltering
+public import XmssSecurity.Proof.CappedChain.SignatureChainValue
+public import XmssSecurity.Proof.RevealProbeOracleSimulation
+public import XmssSecurity.Proof.CappedChain.CausalSigningKeygenCoupling
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational

@@ -1,12 +1,16 @@
-import XmssSecurity.Proof.QueryPresence
-import XmssSecurity.Proof.StatementLemmas
-import XmssSecurity.Proof.ChainTableUniformity
-import XmssSecurity.Proof.AdaptiveFreshTarget
-import XmssSecurity.Proof.RandomOraclePresampling
-import XmssSecurity.Proof.HiddenValue
-import XmssSecurity.Proof.UniformFiniteTable
-import XmssSecurity.Proof.HonestKeygenRun
-import XmssSecurity.Proof.TopKeygenFacts
+module
+
+public import XmssSecurity.Proof.QueryPresence
+public import XmssSecurity.Proof.StatementLemmas
+public import XmssSecurity.Proof.ChainTableUniformity
+public import XmssSecurity.Proof.AdaptiveFreshTarget
+public import XmssSecurity.Proof.RandomOraclePresampling
+public import XmssSecurity.Proof.HiddenValue
+public import XmssSecurity.Proof.UniformFiniteTable
+public import XmssSecurity.Proof.HonestKeygenRun
+public import XmssSecurity.Proof.TopKeygenFacts
+
+@[expose] public section
 
 /-!
 # Presampling the chains of key generation

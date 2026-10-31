@@ -1,8 +1,13 @@
-import LeanDa.RpmScheme
-import Common.Duplex.Vec
-import Common.Rerun
-import LeanDa.Defs
-import LeanDa.WithHash
+module
+
+public import LeanDa.RpmScheme
+public import Common.Duplex.Vec
+public import Common.Rerun
+public import LeanDa.Defs
+public import LeanDa.WithHash
+import all Init.Data.Array.Basic
+
+@[expose] public section
 
 /-!
 # LeanDA's challenges as a duplex

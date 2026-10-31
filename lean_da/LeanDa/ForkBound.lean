@@ -1,5 +1,9 @@
-import LeanDa.AdvX
-import LeanDa.WithHash
+module
+
+public import LeanDa.AdvX
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # The collision term of Wagner's forking reduction, bounded

@@ -1,8 +1,12 @@
-import XmssSecurity.Proof.GlobalBadEvent
-import XmssSecurity.Proof.AdaptiveFreshTarget
-import XmssSecurity.Proof.TopKeygenCache
-import XmssSecurity.Proof.TopVerificationQueryPresence
-import XmssSecurity.Proof.CappedSuffixEventProbability
+module
+
+public import XmssSecurity.Proof.GlobalBadEvent
+public import XmssSecurity.Proof.AdaptiveFreshTarget
+public import XmssSecurity.Proof.TopKeygenCache
+public import XmssSecurity.Proof.TopVerificationQueryPresence
+public import XmssSecurity.Proof.CappedSuffixEventProbability
+
+@[expose] public section
 
 /-!
 # The top layer's bad events

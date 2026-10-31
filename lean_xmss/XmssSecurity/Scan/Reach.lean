@@ -1,4 +1,8 @@
-import XmssSecurity.Scan.LoopWalk
+module
+
+public import XmssSecurity.Scan.LoopWalk
+
+@[expose] public section
 
 /-!
 # Reaching positions under one more query

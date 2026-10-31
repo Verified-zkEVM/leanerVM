@@ -1,11 +1,15 @@
-import XmssSecurity.Proof.ExactQueryCount
-import XmssSecurity.Proof.CacheReplayEval
-import XmssSecurity.Proof.DetailedExecution
-import XmssSecurity.Proof.CappedChain.EncodingQueryBound
-import XmssSecurity.Proof.QueryBoundSupport
-import XmssSecurity.Proof.IdealStatement
-import XmssSecurity.Proof.StatementLemmas
-import VCVio.OracleComp.QueryTracking.SubSpec
+module
+
+public import XmssSecurity.Proof.ExactQueryCount
+public import XmssSecurity.Proof.CacheReplayEval
+public import XmssSecurity.Proof.DetailedExecution
+public import XmssSecurity.Proof.CappedChain.EncodingQueryBound
+public import XmssSecurity.Proof.QueryBoundSupport
+public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Proof.StatementLemmas
+public import VCVio.OracleComp.QueryTracking.SubSpec
+
+@[expose] public section
 
 open OracleComp OracleSpec
 open scoped BigOperators

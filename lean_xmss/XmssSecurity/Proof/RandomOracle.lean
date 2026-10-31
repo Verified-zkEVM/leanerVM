@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.IdealStatement
-import XmssSecurity.Proof.EvalDistEq
-import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
-import VCVio.OracleComp.QueryTracking.Unpredictability
+module
+
+public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Proof.EvalDistEq
+public import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
+public import VCVio.OracleComp.QueryTracking.Unpredictability
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
@@ -24,13 +28,13 @@ noncomputable local instance : UniformAnswerMeasure HashSpec :=
 theorem card_hashOutput : Fintype.card HashOutput = 2 ^ hashOutputBits := by
   simp
 
-private def joinDigest (high low : Digest) : HashOutput :=
+def joinDigest (high low : Digest) : HashOutput :=
   (high ++ low).cast hashOutputBits_eq.symm
 
-private def highDigest (output : HashOutput) : Digest :=
+def highDigest (output : HashOutput) : Digest :=
   (splitHashOutput output).extractLsb' digestBits digestBits
 
-private def digestFiberEquiv (target : Digest) :
+def digestFiberEquiv (target : Digest) :
     Digest ≃ {output : HashOutput // truncateHash output = target} where
   toFun high := ⟨joinDigest high target, by
     change BitVec.extractLsb' 0 digestBits (high ++ target) = target

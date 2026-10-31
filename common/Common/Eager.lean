@@ -1,6 +1,10 @@
-import Common.RomComm
-import Common.Fold
-import VCVio.EvalDist.Monad.UniformTable
+module
+
+public import Common.RomComm
+public import Common.Fold
+public import VCVio.EvalDist.Monad.UniformTable
+
+@[expose] public section
 
 /-!
 # Eager sampling of part of a random oracle

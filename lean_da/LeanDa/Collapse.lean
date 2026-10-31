@@ -1,4 +1,8 @@
-import LeanDa.ForkCollapse
+module
+
+public import LeanDa.ForkCollapse
+
+@[expose] public section
 
 /-!
 # Answering an extra oracle by a fixed function, through simulations

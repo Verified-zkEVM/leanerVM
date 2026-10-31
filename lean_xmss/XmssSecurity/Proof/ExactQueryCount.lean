@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.IdealStatement
+module
+
+public import XmssSecurity.Proof.IdealStatement
+
+@[expose] public section
 
 open OracleComp OracleSpec
 open scoped BigOperators

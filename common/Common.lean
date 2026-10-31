@@ -1,5 +1,6 @@
 import Common.Model
 import Common.Sponge
+import Common.SpongeTests
 import Common.Indiff.Main
 import Common.Transfer
 import Common.Transfer2

@@ -1,4 +1,8 @@
-import Common.Indiff.Bound
+module
+
+public import Common.Indiff.Bound
+
+@[expose] public section
 
 /-!
 # Indifferentiability of the sponge from a random oracle

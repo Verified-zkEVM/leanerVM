@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.Seeded.FreshTable
+module
+
+public import XmssSecurity.Proof.Seeded.FreshTable
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

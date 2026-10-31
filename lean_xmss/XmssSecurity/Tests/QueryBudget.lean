@@ -1,11 +1,16 @@
-import XmssSecurity.Statement
-import XmssSecurity.Proof.ConsistentQueryBound
+module
+
+public import XmssSecurity.Statement
+public import XmssSecurity.Proof.ConsistentQueryBound
+
+@[expose] public section
+
 open OracleComp OracleSpec XmssSecurity XmssSecurity.Security
 set_option backward.isDefEq.respectTransparency false
 
 namespace XmssSecurity.QueryBudgetChecks
 
-private def inconsistentBranch : OracleComp OracleWorld Unit := do
+def inconsistentBranch : OracleComp OracleWorld Unit := do
   let a ← liftM (OracleWorld.query (.inr []))
   let b ← liftM (OracleWorld.query (.inr []))
   if a = b then return ()

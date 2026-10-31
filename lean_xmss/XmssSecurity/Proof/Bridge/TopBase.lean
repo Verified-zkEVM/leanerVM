@@ -1,9 +1,13 @@
-import VCVio.OracleComp.SimSemantics.StateT.Measure
-import XmssSecurity.Proof.EvalDistEq
-import XmssSecurity.Proof.Bridge.Naturality
-import XmssSecurity.Proof.Bridge.Program
-import XmssSecurity.Proof.Deterministic.FreshRequests
-import XmssSecurity.Proof.RandomOracle
+module
+
+public import VCVio.OracleComp.SimSemantics.StateT.Measure
+public import XmssSecurity.Proof.EvalDistEq
+public import XmssSecurity.Proof.Bridge.Naturality
+public import XmssSecurity.Proof.Bridge.Program
+public import XmssSecurity.Proof.Deterministic.FreshRequests
+public import XmssSecurity.Proof.RandomOracle
+
+@[expose] public section
 
 /-!
 # The top randomizer bases

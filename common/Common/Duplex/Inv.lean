@@ -1,4 +1,8 @@
-import Common.Duplex.Table
+module
+
+public import Common.Duplex.Table
+
+@[expose] public section
 
 /-!
 # The simulator's invariant

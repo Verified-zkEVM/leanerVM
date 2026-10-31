@@ -1,7 +1,11 @@
-import Mathlib.GroupTheory.Perm.Basic
-import Mathlib.Basic.ENNReal.BigOperators
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Algebra.BigOperators.Ring.Finset
+module
+
+public import Mathlib.GroupTheory.Perm.Basic
+public import Mathlib.Basic.ENNReal.BigOperators
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+
+@[expose] public section
 
 /-!
 # The value of the scan loop `R = R0 + i`

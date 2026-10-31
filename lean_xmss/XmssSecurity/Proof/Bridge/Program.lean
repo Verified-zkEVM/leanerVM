@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.Bridge.Derivation
+module
+
+public import XmssSecurity.Proof.Bridge.Derivation
+
+@[expose] public section
 
 /-!
 # The programmed derivation cache

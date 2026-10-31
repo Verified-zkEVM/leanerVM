@@ -17,7 +17,11 @@ event to the fork point and to discharge the forking lemma's side conditions:
 Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
 modified for VCVio afa6593.
 -/
-import PqDas.Proof.CommittedSoundness.Fork
+module
+
+public import PqDas.Proof.CommittedSoundness.Fork
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

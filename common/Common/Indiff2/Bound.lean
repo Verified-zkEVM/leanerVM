@@ -1,5 +1,9 @@
-import Common.Indiff2.Bad
-import Common.Indiff.Bound
+module
+
+public import Common.Indiff2.Bad
+public import Common.Indiff.Bound
+
+@[expose] public section
 
 /-!
 # The two-oracle model: the disagreement bound

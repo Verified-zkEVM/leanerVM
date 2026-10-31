@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.Bridge.Resolution
-import Common.WithHash
+module
+
+public import XmssSecurity.Proof.Bridge.Resolution
+public import Common.WithHash
+
+@[expose] public section
 
 /-!
 # The real scheme's honest computations

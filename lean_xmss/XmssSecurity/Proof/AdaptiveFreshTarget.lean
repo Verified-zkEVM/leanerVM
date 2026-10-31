@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.HashInputLemmas
-import XmssSecurity.Proof.StatementLemmas
-import XmssSecurity.Proof.Execution
-import XmssSecurity.Proof.RandomOracle
+module
+
+public import XmssSecurity.Proof.HashInputLemmas
+public import XmssSecurity.Proof.StatementLemmas
+public import XmssSecurity.Proof.Execution
+public import XmssSecurity.Proof.RandomOracle
+
+@[expose] public section
 
 open OracleComp ENNReal
 

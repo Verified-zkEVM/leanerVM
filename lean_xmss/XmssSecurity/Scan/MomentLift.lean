@@ -1,6 +1,10 @@
-import XmssSecurity.Scan.Moment
-import Mathlib.Basic.ENNReal.Real
-import Mathlib.Basic.ENNReal.Operations
+module
+
+public import XmssSecurity.Scan.Moment
+public import Mathlib.Basic.ENNReal.Real
+public import Mathlib.Basic.ENNReal.Operations
+
+@[expose] public section
 
 /-!
 # The quadratic potential in `ℝ≥0∞`

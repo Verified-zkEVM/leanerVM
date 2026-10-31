@@ -1,4 +1,8 @@
-import Common.Indiff.Real
+module
+
+public import Common.Indiff.Real
+
+@[expose] public section
 
 /-!
 # Indifferentiability: a random permutation is a random function, up to collisions

@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.MerkleQueryPresence
+module
+
+public import XmssSecurity.Proof.MerkleQueryPresence
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

@@ -24,8 +24,12 @@ verifying a concrete instantiation, e.g. a barycentric Reed-Solomon check).
 Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
 modified for VCVio afa6593.
 -/
-import PqDas.Assumptions.ErasureCode
-import PqDas.Defs
+module
+
+public import PqDas.Assumptions.ErasureCode
+public import PqDas.Defs
+
+@[expose] public section
 
 open OracleComp ENNReal
 

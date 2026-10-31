@@ -1,4 +1,8 @@
-import Common.Transfer2
+module
+
+public import Common.Transfer2
+
+@[expose] public section
 
 /-!
 # Keccak-256 in the random-permutation model

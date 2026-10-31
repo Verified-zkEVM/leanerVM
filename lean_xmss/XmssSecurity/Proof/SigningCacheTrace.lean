@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.SigningLogConsistency
+module
+
+public import XmssSecurity.Proof.SigningLogConsistency
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

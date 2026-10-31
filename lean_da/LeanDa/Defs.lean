@@ -1,7 +1,11 @@
-import PqDas.Defs
-import Common.SimDefs
-import Common.Lanes
-import LeanDa.WithHash
+module
+
+public import PqDas.Defs
+public import Common.SimDefs
+public import Common.Lanes
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # LeanDA in Benedikt Wagner's framework: the definitions of the proofs

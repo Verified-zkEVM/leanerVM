@@ -1,6 +1,10 @@
-import LeanDa.StraightBound
-import LeanDa.RpmComplete
-import LeanDa.WithHash
+module
+
+public import LeanDa.StraightBound
+public import LeanDa.RpmComplete
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # LeanDA's binding with an argument that queries the oracles

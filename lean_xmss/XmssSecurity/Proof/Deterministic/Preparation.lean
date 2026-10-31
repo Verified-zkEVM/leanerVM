@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.Deterministic.MemoErasure
-import XmssSecurity.Proof.Seeded.Presampling
+module
+
+public import XmssSecurity.Proof.Deterministic.MemoErasure
+public import XmssSecurity.Proof.Seeded.Presampling
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

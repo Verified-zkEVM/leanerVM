@@ -18,8 +18,12 @@ types.
 Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
 modified for VCVio afa6593.
 -/
-import PqDas.Proof.CommittedSoundness.Fork
-import VCVio.OracleComp.EvalDist.Sum
+module
+
+public import PqDas.Proof.CommittedSoundness.Fork
+public import VCVio.OracleComp.EvalDist.Sum
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
@@ -138,7 +142,7 @@ private lemma evalDistEq_query_inl (i : ℕ) :
     (query (spec := wrappedSpec L) (Sum.inl i) :
         OracleComp (wrappedSpec L) ((wrappedSpec L).Range (Sum.inl i))) =ᵈ
       (query (spec := unifSpec) i : ProbComp (unifSpec.Range i)) := by
-  intro p
+  refine EvalDistEq.of_forall_prEvent_eq fun p => ?_
   classical
   rw [prEvent_query_eq_card_div (spec := wrappedSpec L), prEvent_query_eq_card_div (spec := unifSpec)]
   rfl
@@ -147,7 +151,7 @@ private lemma evalDistEq_query_inl (i : ℕ) :
 private lemma evalDistEq_query_inr :
     (liftM ((wrappedSpec L).query (Sum.inr ())) : OracleComp (wrappedSpec L) L) =ᵈ
       ($ᵗ L : ProbComp L) := by
-  intro p
+  refine EvalDistEq.of_forall_prEvent_eq fun p => ?_
   classical
   rw [prEvent_liftM_query_eq_card_div (spec := wrappedSpec L) (Sum.inr ()),
     SampleableType.prEvent_uniformSample]
@@ -157,7 +161,7 @@ omit [SampleableType L] in
 /-- `pure` is distributed alike in the wrapped world and in `ProbComp`. -/
 private lemma evalDistEq_pure {α : Type} (x : α) :
     (pure x : OracleComp (wrappedSpec L) α) =ᵈ (pure x : ProbComp α) := by
-  intro p
+  refine EvalDistEq.of_forall_prEvent_eq fun p => ?_
   classical
   rw [prEvent_pure, prEvent_pure]
 

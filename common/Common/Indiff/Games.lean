@@ -1,4 +1,8 @@
-import Common.Indiff.Defs
+module
+
+public import Common.Indiff.Defs
+
+@[expose] public section
 
 /-!
 # Indifferentiability: the intermediate games

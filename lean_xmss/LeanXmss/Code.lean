@@ -1,4 +1,8 @@
-import LeanXmss.Scheme
+module
+
+public import LeanXmss.Scheme
+
+@[expose] public section
 
 /-!
 # The codewords

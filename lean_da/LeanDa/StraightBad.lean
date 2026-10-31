@@ -1,6 +1,10 @@
-import LeanDa.StraightTree
-import Common.Duplex.Vec
-import LeanDa.WithHash
+module
+
+public import LeanDa.StraightTree
+public import Common.Duplex.Vec
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # The straight-line world and its bad events

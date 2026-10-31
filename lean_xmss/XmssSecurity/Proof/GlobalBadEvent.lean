@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.CappedSigningLogReplay
+module
+
+public import XmssSecurity.Proof.CappedSigningLogReplay
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

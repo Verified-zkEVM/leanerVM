@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.Deterministic.FreshRequests
+module
+
+public import XmssSecurity.Proof.Deterministic.FreshRequests
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

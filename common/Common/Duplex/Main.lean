@@ -1,5 +1,9 @@
-import Common.Duplex.Budget
-import VCVio.OracleComp.EvalDist.Sum
+module
+
+public import Common.Duplex.Budget
+public import VCVio.OracleComp.EvalDist.Sum
+
+@[expose] public section
 
 /-!
 # The duplex challenges are a random oracle of the roots, up to collisions

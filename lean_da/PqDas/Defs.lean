@@ -1,13 +1,17 @@
-import Statement.LeanDa
-import VCVio.CryptoFoundations.CommitmentScheme
-import VCVio.CryptoFoundations.ReplayFork
-import VCVio.OracleComp.Constructions.Fork.Basic
-import VCVio.OracleComp.HasQuery.Morphism
-import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
-import VCVio.OracleComp.SimSemantics.StateT.BundledSemantics
-import VCVio.CryptoFoundations.SignatureAlg
-import VCVio.EvalDist.Inequalities
-import Mathlib.Data.Set.Finite.List
+module
+
+public import Statement.LeanDa
+public import VCVio.CryptoFoundations.CommitmentScheme
+public import VCVio.CryptoFoundations.ReplayFork
+public import VCVio.OracleComp.Constructions.Fork.Basic
+public import VCVio.OracleComp.HasQuery.Morphism
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
+public import VCVio.OracleComp.SimSemantics.StateT.BundledSemantics
+public import VCVio.CryptoFoundations.SignatureAlg
+public import VCVio.EvalDist.Inequalities
+public import Mathlib.Data.Set.Finite.List
+
+@[expose] public section
 
 /-!
 # Benedikt Wagner's framework: the definitions his proofs and reductions use

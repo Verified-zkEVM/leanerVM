@@ -1,4 +1,8 @@
-import Common.Indiff.InvFwd
+module
+
+public import Common.Indiff.InvFwd
+
+@[expose] public section
 
 /-!
 # Indifferentiability: the hash step keeps the invariant

@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.HonestKeygenRun
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.HonestKeygenRun
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

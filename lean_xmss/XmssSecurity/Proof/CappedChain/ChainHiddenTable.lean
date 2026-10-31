@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.CappedChain.ChainOriginProbability
-import XmssSecurity.Proof.ChainKey
+module
+
+public import XmssSecurity.Proof.CappedChain.ChainOriginProbability
+public import XmssSecurity.Proof.ChainKey
+
+@[expose] public section
 
 open OracleSpec
 

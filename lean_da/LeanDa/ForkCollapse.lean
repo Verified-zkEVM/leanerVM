@@ -1,5 +1,9 @@
-import VCVio.CryptoFoundations.ReplayFork
-import VCVio.CryptoFoundations.ReplayForkCost
+module
+
+public import VCVio.CryptoFoundations.ReplayFork
+public import VCVio.CryptoFoundations.ReplayForkCost
+
+@[expose] public section
 
 /-!
 # The replay fork commutes with answering an extra oracle by a fixed function

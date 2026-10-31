@@ -1,6 +1,10 @@
-import Common.Sponge
-import Common.RomComm
-import Statement.RandomPermutation
+module
+
+public import Common.Sponge
+public import Common.RomComm
+public import Statement.RandomPermutation
+
+@[expose] public section
 
 /-!
 # Indifferentiability: the two worlds and the simulator

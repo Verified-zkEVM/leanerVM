@@ -1,7 +1,11 @@
-import LeanDa.RpmCodeBinding
-import Mathlib.Data.Set.Finite.List
-import LeanDa.Defs
-import LeanDa.WithHash
+module
+
+public import LeanDa.RpmCodeBinding
+public import Mathlib.Data.Set.Finite.List
+public import LeanDa.Defs
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # Code binding in the random-permutation model: Wagner's bound for each `H`

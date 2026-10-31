@@ -1,5 +1,9 @@
-import LeanDa.Merkle
-import LeanDa.WithHash
+module
+
+public import LeanDa.Merkle
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # The deployed commitment is the model's

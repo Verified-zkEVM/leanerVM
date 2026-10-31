@@ -1,4 +1,8 @@
-import Common.Indiff.Fresh
+module
+
+public import Common.Indiff.Fresh
+
+@[expose] public section
 
 /-!
 # Indifferentiability: the simulator over path values is the simulator

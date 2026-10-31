@@ -1,10 +1,14 @@
-import XmssSecurity.Proof.CappedChain.ChainRevealFiltering
-import XmssSecurity.Proof.ChainOraclePresampling
-import XmssSecurity.Proof.HashOutputHigh
-import XmssSecurity.Proof.UniformFiniteTable
-import XmssSecurity.Proof.CausalKeygenCoupling
-import XmssSecurity.Proof.CausalTreeCoupling
-import XmssSecurity.Proof.TopKeygenFacts
+module
+
+public import XmssSecurity.Proof.CappedChain.ChainRevealFiltering
+public import XmssSecurity.Proof.ChainOraclePresampling
+public import XmssSecurity.Proof.HashOutputHigh
+public import XmssSecurity.Proof.UniformFiniteTable
+public import XmssSecurity.Proof.CausalKeygenCoupling
+public import XmssSecurity.Proof.CausalTreeCoupling
+public import XmssSecurity.Proof.TopKeygenFacts
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 open OracleComp.ProgramLogic.Relational

@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.Deterministic.LoggedSigning
-import XmssSecurity.Proof.Deterministic.TableSigner
+module
+
+public import XmssSecurity.Proof.Deterministic.LoggedSigning
+public import XmssSecurity.Proof.Deterministic.TableSigner
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

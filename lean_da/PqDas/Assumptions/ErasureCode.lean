@@ -12,8 +12,12 @@ formalized here. Compare Foundations of Data Availability Sampling
 Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
 modified for VCVio afa6593.
 -/
-import VCVio.CryptoFoundations.CommitmentScheme
-import PqDas.Defs
+module
+
+public import VCVio.CryptoFoundations.CommitmentScheme
+public import PqDas.Defs
+
+@[expose] public section
 
 namespace PqDas
 

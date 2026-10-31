@@ -1,6 +1,10 @@
-import LeanDa.RpmWagner
-import LeanDa.MerkleM
-import LeanDa.WithHash
+module
+
+public import LeanDa.RpmWagner
+public import LeanDa.MerkleM
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # The commitment's tree, read off the hash calls

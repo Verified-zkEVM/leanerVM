@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.PrecomputedKeyConsistency
-import XmssSecurity.Proof.ConcreteForgery
-import XmssSecurity.Proof.TopKeygenQueryBound
-import XmssSecurity.Proof.TopVerificationQueryPresence
+module
+
+public import XmssSecurity.Proof.PrecomputedKeyConsistency
+public import XmssSecurity.Proof.ConcreteForgery
+public import XmssSecurity.Proof.TopKeygenQueryBound
+public import XmssSecurity.Proof.TopVerificationQueryPresence
+
+@[expose] public section
 
 /-!
 # Key generation's cache: the bottom forest's nodes and the top layer

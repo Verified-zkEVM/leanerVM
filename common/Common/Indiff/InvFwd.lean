@@ -1,4 +1,8 @@
-import Common.Indiff.InvLemmas
+module
+
+public import Common.Indiff.InvLemmas
+
+@[expose] public section
 
 /-!
 # Indifferentiability: the forward step keeps the invariant

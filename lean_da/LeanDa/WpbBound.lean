@@ -1,5 +1,9 @@
-import LeanDa.ForkBound
-import LeanDa.WithHash
+module
+
+public import LeanDa.ForkBound
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # The collision term of Wagner's weak-position-binding reduction, bounded

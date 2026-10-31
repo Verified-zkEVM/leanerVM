@@ -1,5 +1,9 @@
-import LeanDa.Straight
-import LeanDa.WithHash
+module
+
+public import LeanDa.Straight
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # The straight-line code-binding bound

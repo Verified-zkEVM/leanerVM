@@ -1,7 +1,11 @@
-import LeanDa.RpmArg
-import Common.PiOnly
-import Common.WithHash
-import LeanDa.WithHashBridge
+module
+
+public import LeanDa.RpmArg
+public import Common.PiOnly
+public import Common.WithHash
+public import LeanDa.WithHashBridge
+
+@[expose] public section
 
 /-!
 # LeanDA's end theorems in the statement's model: `π` and `π⁻¹`, nothing else

@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.Seeded.StoppedRun
+module
+
+public import XmssSecurity.Proof.Seeded.StoppedRun
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

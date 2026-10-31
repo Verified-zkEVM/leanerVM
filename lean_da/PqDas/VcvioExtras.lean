@@ -17,8 +17,12 @@ removed discrete API compared a computation with a `pure` Boolean.
 Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
 modified for VCVio afa6593.
 -/
-import VCVio.CryptoFoundations.ReplayFork
-import VCVio.OracleComp.Constructions.Fork.Basic
+module
+
+public import VCVio.CryptoFoundations.ReplayFork
+public import VCVio.OracleComp.Constructions.Fork.Basic
+
+@[expose] public section
 
 open OracleSpec ENNReal
 

@@ -1,5 +1,9 @@
-import XmssSecurity.Scan.Leaves
-import XmssSecurity.Scan.Selection
+module
+
+public import XmssSecurity.Scan.Leaves
+public import XmssSecurity.Scan.Selection
+
+@[expose] public section
 
 /-!
 # A signing request at an unsigned leaf index

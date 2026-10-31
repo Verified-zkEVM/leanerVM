@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.FirstLaneEagerSimulation
-import XmssSecurity.Proof.RunObservedAppend
+module
+
+public import XmssSecurity.Proof.FirstLaneEagerSimulation
+public import XmssSecurity.Proof.RunObservedAppend
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

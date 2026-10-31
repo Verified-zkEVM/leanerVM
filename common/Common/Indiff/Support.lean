@@ -1,4 +1,8 @@
-import Common.Indiff.Games
+module
+
+public import Common.Indiff.Games
+
+@[expose] public section
 
 /-!
 # Indifferentiability: what the combined game's steps can reach

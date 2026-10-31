@@ -1,7 +1,11 @@
-import LeanDa.Merkle
-import Common.Lemmas
-import LeanDa.RpmCodeBinding
-import LeanDa.WithHash
+module
+
+public import LeanDa.Merkle
+public import Common.Lemmas
+public import LeanDa.RpmCodeBinding
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # LeanDA's Merkle commitment over a hash oracle

@@ -1,4 +1,8 @@
-import Common.RomComm
+module
+
+public import Common.RomComm
+
+@[expose] public section
 
 /-!
 # Folding a random oracle into the state

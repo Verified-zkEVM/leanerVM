@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.TreeQueryBound
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.TreeQueryBound
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 namespace XmssSecurity
 

@@ -1,4 +1,8 @@
-import Common.Defs
+module
+
+public import Common.Defs
+
+@[expose] public section
 
 /-!
 # Games with direct calls of the permutation

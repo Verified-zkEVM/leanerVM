@@ -25,12 +25,16 @@ soundness game and `Q` bounds the adversary's random-oracle queries.
 Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
 modified for VCVio afa6593.
 -/
-import PqDas.Proof.CommittedSoundness.Bridge
-import VCVio.EvalDist.Inequalities
-import PqDas.Proof.CommittedSoundness.Coupling
-import PqDas.Proof.CommittedSoundness.Lockstep
-import PqDas.VcvioExtras
-import PqDas.Defs
+module
+
+public import PqDas.Proof.CommittedSoundness.Bridge
+public import VCVio.EvalDist.Inequalities
+public import PqDas.Proof.CommittedSoundness.Coupling
+public import PqDas.Proof.CommittedSoundness.Lockstep
+public import PqDas.VcvioExtras
+public import PqDas.Defs
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
@@ -203,7 +207,7 @@ private lemma contextFork_eq_filterMap {ι : Type} {spec : OracleSpec ι}
 
 /-- Per-path continuation of the unfolded contextual fork: locate the selected
 occurrence, complete it once more, and classify the resulting fork view. -/
-private noncomputable def forkLeaf (ckVC : CkVC)
+noncomputable def forkLeaf (ckVC : CkVC)
     (path : PFunctor.FreeM.Path (runTrace C vc chk A ckVC)) :
     OracleComp (wrappedSpec L) (Option (Trace Λ n ComVC L × Trace Λ n ComVC L)) :=
   match forkPoint Q

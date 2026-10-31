@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.RandomizedStatement
-import XmssSecurity.Proof.UniformFiniteTable
+module
+
+public import XmssSecurity.Proof.RandomizedStatement
+public import XmssSecurity.Proof.UniformFiniteTable
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

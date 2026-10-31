@@ -1,6 +1,10 @@
-import LeanDa.RpmDuplex
-import LeanDa.RpmSecurity
-import LeanDa.WithHash
+module
+
+public import LeanDa.RpmDuplex
+public import LeanDa.RpmSecurity
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # Code binding in the random-permutation model, through the duplex lemma

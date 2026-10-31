@@ -1,5 +1,9 @@
-import Mathlib.Basic.ENNReal.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Basic.ENNReal.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # The arithmetic of the code-binding bound

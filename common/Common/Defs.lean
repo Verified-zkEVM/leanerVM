@@ -1,4 +1,8 @@
-import Statement.RandomPermutation
+module
+
+public import Statement.RandomPermutation
+
+@[expose] public section
 
 /-!
 # The sponge over byte states

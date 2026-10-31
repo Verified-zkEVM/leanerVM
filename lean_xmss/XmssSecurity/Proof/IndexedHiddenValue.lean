@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.HiddenValue
-import XmssSecurity.Proof.EvalDistEq
-import VCVio.OracleComp.Constructions.SampleableType
+module
+
+public import XmssSecurity.Proof.HiddenValue
+public import XmssSecurity.Proof.EvalDistEq
+public import VCVio.OracleComp.Constructions.SampleableType
+
+@[expose] public section
 
 open OracleComp ENNReal
 

@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.ExpectedQueryCount
+module
+
+public import XmssSecurity.Proof.ExpectedQueryCount
+
+@[expose] public section
 
 open OracleSpec OracleComp ENNReal
 

@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.WinningEventReduction
-import XmssSecurity.Proof.HashInputLemmas
+module
+
+public import XmssSecurity.Proof.WinningEventReduction
+public import XmssSecurity.Proof.HashInputLemmas
+
+@[expose] public section
 
 open OracleSpec
 

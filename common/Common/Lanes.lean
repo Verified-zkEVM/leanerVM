@@ -1,7 +1,11 @@
-import Mathlib.Data.List.GetD
-import Common.Keccak
-import Common.HashOracle
-import Common.Lemmas
+module
+
+public import Mathlib.Data.List.GetD
+public import Common.Keccak
+public import Common.HashOracle
+public import Common.Lemmas
+
+@[expose] public section
 
 /-!
 # Lanes and bytes

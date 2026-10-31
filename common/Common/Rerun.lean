@@ -1,4 +1,8 @@
-import Common.RomComm
+module
+
+public import Common.RomComm
+
+@[expose] public section
 
 /-!
 # Recomputing a coin-free computation in the random oracle model

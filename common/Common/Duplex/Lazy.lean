@@ -1,5 +1,9 @@
-import Common.Duplex.Defs
-import Common.Defs
+module
+
+public import Common.Duplex.Defs
+public import Common.Defs
+
+@[expose] public section
 
 /-!
 # The simulator with lazy challenges is the random function

@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.Seeded.BudgetTransfer
-import XmssSecurity.Proof.Execution
+module
+
+public import XmssSecurity.Proof.Seeded.BudgetTransfer
+public import XmssSecurity.Proof.Execution
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

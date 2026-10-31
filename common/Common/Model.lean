@@ -1,7 +1,11 @@
-import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
-import VCVio.OracleComp.Constructions.SampleableType.Measure
-import Common.Defs
-import Common.Game2
+module
+
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
+public import Common.Defs
+public import Common.Game2
+
+@[expose] public section
 
 /-!
 # The random-permutation model

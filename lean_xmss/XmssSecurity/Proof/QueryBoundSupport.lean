@@ -1,4 +1,8 @@
-import VCVio.OracleComp.QueryTracking.QueryBound
+module
+
+public import VCVio.OracleComp.QueryTracking.QueryBound
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

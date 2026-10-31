@@ -1,4 +1,8 @@
-import Common.Duplex.Chal
+module
+
+public import Common.Duplex.Chal
+
+@[expose] public section
 
 /-!
 # The probability of a collision

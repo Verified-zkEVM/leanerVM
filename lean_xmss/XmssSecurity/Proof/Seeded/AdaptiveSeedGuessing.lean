@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.Seeded.HashTrace
-import XmssSecurity.Proof.Seeded.SeedGuessing
+module
+
+public import XmssSecurity.Proof.Seeded.HashTrace
+public import XmssSecurity.Proof.Seeded.SeedGuessing
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

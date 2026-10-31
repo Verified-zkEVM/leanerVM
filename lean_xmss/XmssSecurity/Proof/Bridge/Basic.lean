@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.Deterministic.Preparation
+module
+
+public import XmssSecurity.Proof.Deterministic.Preparation
+
+@[expose] public section
 
 /-!
 # Deterministic executions, query counts and query domains

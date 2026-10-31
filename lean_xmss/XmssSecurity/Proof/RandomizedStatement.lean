@@ -1,4 +1,8 @@
-import XmssSecurity.Statement
+module
+
+public import XmssSecurity.Statement
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

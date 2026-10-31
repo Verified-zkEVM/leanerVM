@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.Deterministic.RequestSampling
-import XmssSecurity.Proof.Deterministic.ReferenceSource
-import XmssSecurity.Proof.Deterministic.MemoGame
-import XmssSecurity.Proof.Deterministic.CostState
+module
+
+public import XmssSecurity.Proof.Deterministic.RequestSampling
+public import XmssSecurity.Proof.Deterministic.ReferenceSource
+public import XmssSecurity.Proof.Deterministic.MemoGame
+public import XmssSecurity.Proof.Deterministic.CostState
+
+@[expose] public section
 
 /-!
 # From the table signer to the model's signer

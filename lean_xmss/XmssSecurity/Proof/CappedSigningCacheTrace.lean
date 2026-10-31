@@ -1,7 +1,12 @@
-import XmssSecurity.Proof.CappedSigningLogReplay
-import XmssSecurity.Proof.PrecomputedBoundedSignCache
-import XmssSecurity.Proof.SigningCacheTrace
-import VCVio.OracleComp.SimSemantics.StateT.PreservesInv
+module
+
+public import XmssSecurity.Proof.CappedSigningLogReplay
+public import XmssSecurity.Proof.PrecomputedBoundedSignCache
+public import XmssSecurity.Proof.SigningCacheTrace
+public import VCVio.OracleComp.SimSemantics.StateT.PreservesInv
+import all PolyFun.PFunctor.Handler.Instrumentation
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

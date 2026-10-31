@@ -1,4 +1,8 @@
-import Common.Indiff.Ideal
+module
+
+public import Common.Indiff.Ideal
+
+@[expose] public section
 
 /-!
 # Indifferentiability: the combined game's real side is the real world over random functions

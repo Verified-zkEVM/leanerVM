@@ -1,4 +1,8 @@
-import Common.Indiff.Inv
+module
+
+public import Common.Indiff.Inv
+
+@[expose] public section
 
 /-!
 # Indifferentiability: consequences of the invariant

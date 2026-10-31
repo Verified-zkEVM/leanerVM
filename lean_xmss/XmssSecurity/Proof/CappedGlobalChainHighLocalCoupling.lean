@@ -1,7 +1,11 @@
-import VCVio.ProgramLogic.Relational.FromUnary
-import XmssSecurity.Proof.CappedGlobalChainHighSetup
-import XmssSecurity.Proof.CappedChain.KeygenUnaddressedCache
-import XmssSecurity.Proof.RunObservedAppend
+module
+
+public import VCVio.ProgramLogic.Relational.FromUnary
+public import XmssSecurity.Proof.CappedGlobalChainHighSetup
+public import XmssSecurity.Proof.CappedChain.KeygenUnaddressedCache
+public import XmssSecurity.Proof.RunObservedAppend
+
+@[expose] public section
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational

@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.EvalDistEq
-import XmssSecurity.Proof.Bridge.TopBase
-import XmssSecurity.Proof.Bridge.Honest
-import XmssSecurity.Proof.Deterministic.TrialSampling
+module
+
+public import XmssSecurity.Proof.EvalDistEq
+public import XmssSecurity.Proof.Bridge.TopBase
+public import XmssSecurity.Proof.Bridge.Honest
+public import XmssSecurity.Proof.Deterministic.TrialSampling
+
+@[expose] public section
 
 /-!
 # The prepared key is the model's key

@@ -1,6 +1,10 @@
-import Common.Prob
-import Common.Sponge
-import Common.Defs
+module
+
+public import Common.Prob
+public import Common.Sponge
+public import Common.Defs
+
+@[expose] public section
 
 /-!
 # Lemmas for games built on the transfer

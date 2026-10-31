@@ -1,7 +1,11 @@
-import VCVio.EvalDist.EvalDistEq
-import VCVio.OracleComp.Constructions.SampleableType.Measure
-import VCVio.OracleComp.EvalDist.Sum
-import VCVio.EvalDist.Monad.UniformTable
+module
+
+public import VCVio.EvalDist.EvalDistEq
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
+public import VCVio.OracleComp.EvalDist.Sum
+public import VCVio.EvalDist.Monad.UniformTable
+
+@[expose] public section
 
 /-! Elaboration aids for equality in distribution (`=ᵈ`). -/
 

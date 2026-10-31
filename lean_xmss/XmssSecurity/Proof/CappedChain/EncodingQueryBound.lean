@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.CappedEncodingQueryBound
-import XmssSecurity.Proof.EncodingQueryAccounting
+module
+
+public import XmssSecurity.Proof.CappedEncodingQueryBound
+public import XmssSecurity.Proof.EncodingQueryAccounting
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

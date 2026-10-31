@@ -1,7 +1,11 @@
-import LeanDa.RpmScheme
-import Common.Rerun
-import LeanDa.HashOracle
-import LeanDa.WithHash
+module
+
+public import LeanDa.RpmScheme
+public import Common.Rerun
+public import LeanDa.HashOracle
+public import LeanDa.WithHash
+
+@[expose] public section
 
 /-!
 # The games of the statement in the two-oracle form

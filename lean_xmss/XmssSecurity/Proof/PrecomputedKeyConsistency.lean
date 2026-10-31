@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.CappedChain.TreeCacheStable
-import XmssSecurity.Proof.MerkleQueryPresence
-import XmssSecurity.Proof.PrecomputedKeygenCache
+module
+
+public import XmssSecurity.Proof.CappedChain.TreeCacheStable
+public import XmssSecurity.Proof.MerkleQueryPresence
+public import XmssSecurity.Proof.PrecomputedKeygenCache
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

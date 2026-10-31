@@ -1,5 +1,9 @@
-import Common.Indiff.InvMain
-import Common.Indiff.Proj
+module
+
+public import Common.Indiff.InvMain
+public import Common.Indiff.Proj
+
+@[expose] public section
 
 /-!
 # Indifferentiability: postponing the sponge's path queries

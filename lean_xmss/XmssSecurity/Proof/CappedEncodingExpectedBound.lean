@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.CappedEncodingQueryBound
-import XmssSecurity.Proof.ExpectedQueryCount
-import XmssSecurity.Proof.EncodingTargetMap
+module
+
+public import XmssSecurity.Proof.CappedEncodingQueryBound
+public import XmssSecurity.Proof.ExpectedQueryCount
+public import XmssSecurity.Proof.EncodingTargetMap
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

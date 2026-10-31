@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.Bridge.Game
-import XmssSecurity.Proof.Seeded.Presampling
+module
+
+public import XmssSecurity.Proof.Bridge.Game
+public import XmssSecurity.Proof.Seeded.Presampling
+
+@[expose] public section
 
 /-!
 # From the real experiment to the table game

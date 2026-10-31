@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.MerkleVerificationQueryPresence
-import XmssSecurity.Proof.ChainOraclePresampling
+module
+
+public import XmssSecurity.Proof.MerkleVerificationQueryPresence
+public import XmssSecurity.Proof.ChainOraclePresampling
+
+@[expose] public section
 
 /-!
 # The top layer's queries in a successful verification

@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.Bridge.Seed
-import XmssSecurity.Proof.Bridge.Reference
-import XmssSecurity.Proof.Bridge.Keygen
+module
+
+public import XmssSecurity.Proof.Bridge.Seed
+public import XmssSecurity.Proof.Bridge.Reference
+public import XmssSecurity.Proof.Bridge.Keygen
+
+@[expose] public section
 
 /-!
 # From the clean table game to the model

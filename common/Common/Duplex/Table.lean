@@ -1,4 +1,8 @@
-import Common.Duplex.Lazy
+module
+
+public import Common.Duplex.Lazy
+
+@[expose] public section
 
 /-!
 # The simulator against a fixed table of challenges

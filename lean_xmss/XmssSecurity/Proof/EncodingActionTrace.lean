@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.AdaptiveLeafIndexCollision
-import XmssSecurity.Proof.EncodingTargetMap
-import XmssSecurity.Proof.SigningCacheTrace
+module
+
+public import XmssSecurity.Proof.AdaptiveLeafIndexCollision
+public import XmssSecurity.Proof.EncodingTargetMap
+public import XmssSecurity.Proof.SigningCacheTrace
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

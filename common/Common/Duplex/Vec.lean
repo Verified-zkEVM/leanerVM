@@ -1,7 +1,11 @@
-import Common.Duplex.Main
-import Common.Rerun
-import VCVio.OracleComp.Constructions.SampleableType.Measure
-import Common.Defs
+module
+
+public import Common.Duplex.Main
+public import Common.Rerun
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
+public import Common.Defs
+
+@[expose] public section
 
 /-!
 # The challenges as one random oracle of vectors

@@ -1,4 +1,8 @@
-import XmssSecurity.Scan.SignStep
+module
+
+public import XmssSecurity.Scan.SignStep
+
+@[expose] public section
 
 /-!
 # The potentials of the adversary phase

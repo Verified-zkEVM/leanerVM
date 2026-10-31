@@ -1,5 +1,9 @@
-import Common.Indiff2.Bound
-import Common.Defs
+module
+
+public import Common.Indiff2.Bound
+public import Common.Defs
+
+@[expose] public section
 
 /-!
 # Transfer in the two-oracle model: a hash `H` and direct permutation calls `F`

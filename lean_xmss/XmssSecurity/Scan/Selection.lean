@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.PrecomputedBoundedSignProbability
-import XmssSecurity.Proof.CappedEncodingRejection
-import XmssSecurity.Proof.RandomOracle
-import XmssSecurity.Scan.LoopWalk
+module
+
+public import XmssSecurity.Proof.PrecomputedBoundedSignProbability
+public import XmssSecurity.Proof.CappedEncodingRejection
+public import XmssSecurity.Proof.RandomOracle
+public import XmssSecurity.Scan.LoopWalk
+
+@[expose] public section
 
 /-!
 # The selection law of the scan signer

@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.Seeded.AdaptiveSeedGuessing
+module
+
+public import XmssSecurity.Proof.Seeded.AdaptiveSeedGuessing
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

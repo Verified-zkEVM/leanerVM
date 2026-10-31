@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.KeygenCache
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.KeygenCache
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

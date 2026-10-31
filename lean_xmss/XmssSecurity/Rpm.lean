@@ -1,8 +1,12 @@
-import LeanXmss.StatementRpm
-import XmssSecurity.Proof.Bridge.Security
-import Common.Linear
-import Common.PiOnly
-import Common.WithHashBridge
+module
+
+public import LeanXmss.StatementRpm
+public import XmssSecurity.Proof.Bridge.Security
+public import Common.Linear
+public import Common.PiOnly
+public import Common.WithHashBridge
+
+@[expose] public section
 
 /-!
 # leanXMSS in the random-permutation model

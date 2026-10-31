@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.CappedGlobalChainHighLocalCoupling
-import XmssSecurity.Proof.ObservedTraceMonitor
+module
+
+public import XmssSecurity.Proof.CappedGlobalChainHighLocalCoupling
+public import XmssSecurity.Proof.ObservedTraceMonitor
+
+@[expose] public section
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational

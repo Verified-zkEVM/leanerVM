@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.CappedUnifiedExpectedDigest
-import XmssSecurity.Proof.CappedEncodingGameTrace
-import XmssSecurity.Scan.Frame
+module
+
+public import XmssSecurity.Proof.CappedUnifiedExpectedDigest
+public import XmssSecurity.Proof.CappedEncodingGameTrace
+public import XmssSecurity.Scan.Frame
+
+@[expose] public section
 
 /-!
 # The adversary phase with a ghost query count

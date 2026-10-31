@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.CachedSelectionBound
-import XmssSecurity.Proof.CappedUnifiedExpectedDigest
-import XmssSecurity.Proof.LossDecomposition
+module
+
+public import XmssSecurity.Proof.CachedSelectionBound
+public import XmssSecurity.Proof.CappedUnifiedExpectedDigest
+public import XmssSecurity.Proof.LossDecomposition
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

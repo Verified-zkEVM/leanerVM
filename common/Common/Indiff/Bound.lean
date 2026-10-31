@@ -1,4 +1,8 @@
-import Common.Indiff.Perm
+module
+
+public import Common.Indiff.Perm
+
+@[expose] public section
 
 /-!
 # Indifferentiability: the collision bound

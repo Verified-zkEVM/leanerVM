@@ -1,4 +1,8 @@
-import Common.WithHash
+module
+
+public import Common.WithHash
+
+@[expose] public section
 
 /-!
 # The statement's SUF-CMA game and leanXMSS are the hash-query forms, the hash over `π`

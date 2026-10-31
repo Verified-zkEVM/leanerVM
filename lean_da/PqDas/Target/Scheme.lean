@@ -37,13 +37,17 @@ Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 
 modified for VCVio afa6593; the core of his completeness proof is stated on its own
 (`honest_verify`), for LeanDA's completeness in the random-permutation model.
 -/
-import PqDas.Assumptions.ErasureCode
-import PqDas.Assumptions.VectorCommitment
-import PqDas.Assumptions.CodeChecker
-import PqDas.Defs
-import PqDas.Target.ErasureCodeCommitment
-import PqDas.RomRuntime
-import VCVio.CryptoFoundations.SignatureAlg
+module
+
+public import PqDas.Assumptions.ErasureCode
+public import PqDas.Assumptions.VectorCommitment
+public import PqDas.Assumptions.CodeChecker
+public import PqDas.Defs
+public import PqDas.Target.ErasureCodeCommitment
+public import PqDas.RomRuntime
+public import VCVio.CryptoFoundations.SignatureAlg
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

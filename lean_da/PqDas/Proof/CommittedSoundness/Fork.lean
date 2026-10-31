@@ -26,9 +26,13 @@ challenge of the *first* (hence every) query on the target commitment.
 Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
 modified for VCVio afa6593.
 -/
-import PqDas.Proof.CommittedSoundness.Defs
-import VCVio.CryptoFoundations.ReplayFork
-import PqDas.Defs
+module
+
+public import PqDas.Proof.CommittedSoundness.Defs
+public import VCVio.CryptoFoundations.ReplayFork
+public import PqDas.Defs
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

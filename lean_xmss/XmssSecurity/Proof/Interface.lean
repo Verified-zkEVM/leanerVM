@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.CappedExactFirstLaneBound
+module
+
+public import XmssSecurity.Proof.CappedExactFirstLaneBound
+
+@[expose] public section
 
 namespace XmssSecurity.Proof
 

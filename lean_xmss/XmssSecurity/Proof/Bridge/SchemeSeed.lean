@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.EvalDistEq
-import XmssSecurity.Proof.Bridge.Reduction
-import XmssSecurity.Proof.Seeded.BudgetTransfer
-import LeanXmss.Bytes
+module
+
+public import XmssSecurity.Proof.EvalDistEq
+public import XmssSecurity.Proof.Bridge.Reduction
+public import XmssSecurity.Proof.Seeded.BudgetTransfer
+public import LeanXmss.Bytes
+
+@[expose] public section
 
 /-!
 # The scheme's seed

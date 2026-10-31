@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.IdealStatement
-import Mathlib.Data.BitVec
+module
+
+public import XmssSecurity.Proof.IdealStatement
+public import Mathlib.Data.BitVec
+
+@[expose] public section
 
 namespace XmssSecurity
 

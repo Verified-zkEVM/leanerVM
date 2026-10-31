@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.CappedEncodingRejection
-import XmssSecurity.Proof.EvalDistEq
+module
+
+public import XmssSecurity.Proof.CappedEncodingRejection
+public import XmssSecurity.Proof.EvalDistEq
+
+@[expose] public section
 
 open OracleComp ENNReal
 

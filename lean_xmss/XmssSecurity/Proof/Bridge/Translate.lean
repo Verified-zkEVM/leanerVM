@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.Bridge.Basic
-import LeanXmss.Statement
-import Common.WithHash
+module
+
+public import XmssSecurity.Proof.Bridge.Basic
+public import LeanXmss.Statement
+public import Common.WithHash
+
+@[expose] public section
 
 /-!
 # The real scheme in the model's terms

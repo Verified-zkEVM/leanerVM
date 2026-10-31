@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.RandomizedStatement
-import XmssSecurity.Proof.EvalDistEq
+module
+
+public import XmssSecurity.Proof.RandomizedStatement
+public import XmssSecurity.Proof.EvalDistEq
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

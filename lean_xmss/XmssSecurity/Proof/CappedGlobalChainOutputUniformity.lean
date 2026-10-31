@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.CappedGlobalChainOutputSimulation
+module
+
+public import XmssSecurity.Proof.CappedGlobalChainOutputSimulation
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

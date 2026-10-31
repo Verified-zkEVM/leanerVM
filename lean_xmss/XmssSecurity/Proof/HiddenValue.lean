@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.EvalDistEq
-import XmssSecurity.Proof.IdealStatement
-import VCVio.OracleComp.Constructions.SampleableType
+module
+
+public import XmssSecurity.Proof.EvalDistEq
+public import XmssSecurity.Proof.IdealStatement
+public import VCVio.OracleComp.Constructions.SampleableType
+
+@[expose] public section
 
 open OracleComp ENNReal
 

@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.CappedGlobalChainHighReduction
-import XmssSecurity.Proof.FirstLaneOracleSimulation
-import XmssSecurity.Proof.CappedEncodingActionTrace
-import XmssSecurity.Proof.FirstLaneEagerSimulation
+module
+
+public import XmssSecurity.Proof.CappedGlobalChainHighReduction
+public import XmssSecurity.Proof.FirstLaneOracleSimulation
+public import XmssSecurity.Proof.CappedEncodingActionTrace
+public import XmssSecurity.Proof.FirstLaneEagerSimulation
+
+@[expose] public section
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational

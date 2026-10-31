@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.EvalDistEq
-import XmssSecurity.Proof.Bridge.Reduction
-import XmssSecurity.Proof.Seeded.BudgetTransfer
+module
+
+public import XmssSecurity.Proof.EvalDistEq
+public import XmssSecurity.Proof.Bridge.Reduction
+public import XmssSecurity.Proof.Seeded.BudgetTransfer
+
+@[expose] public section
 
 /-!
 # Eliminating the seed

@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.RevealProbeOracleSimulation
+module
+
+public import XmssSecurity.Proof.RevealProbeOracleSimulation
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

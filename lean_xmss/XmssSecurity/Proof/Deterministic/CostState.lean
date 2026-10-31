@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.Deterministic.World
-import XmssSecurity.Proof.ConsistentQueryBound
+module
+
+public import XmssSecurity.Proof.Deterministic.World
+public import XmssSecurity.Proof.ConsistentQueryBound
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

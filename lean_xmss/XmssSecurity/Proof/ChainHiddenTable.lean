@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.ChainInputTrace
-import XmssSecurity.Proof.HashInputLemmas
-import XmssSecurity.Proof.WinningEventReduction
-import XmssSecurity.Proof.ChainKey
+module
+
+public import XmssSecurity.Proof.ChainInputTrace
+public import XmssSecurity.Proof.HashInputLemmas
+public import XmssSecurity.Proof.WinningEventReduction
+public import XmssSecurity.Proof.ChainKey
+
+@[expose] public section
 
 open OracleSpec
 

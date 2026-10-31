@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.EvalDistEq
-import XmssSecurity.Proof.Seeded.KeyDerivation
+module
+
+public import XmssSecurity.Proof.EvalDistEq
+public import XmssSecurity.Proof.Seeded.KeyDerivation
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

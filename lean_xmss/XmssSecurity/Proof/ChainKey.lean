@@ -1,5 +1,10 @@
-import XmssSecurity.Proof.HashInputLemmas
-import XmssSecurity.Proof.HashAddress
+module
+
+public import XmssSecurity.Proof.HashInputLemmas
+public import XmssSecurity.Proof.HashAddress
+import all Init.Data.Sum.Basic
+
+@[expose] public section
 
 /-!
 # One-time keys of either layer

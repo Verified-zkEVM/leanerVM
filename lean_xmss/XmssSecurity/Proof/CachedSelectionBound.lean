@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.CappedEncodingExpectedBound
-import XmssSecurity.Proof.LossDecomposition
-import XmssSecurity.Scan.PerKey
+module
+
+public import XmssSecurity.Proof.CappedEncodingExpectedBound
+public import XmssSecurity.Proof.LossDecomposition
+public import XmssSecurity.Scan.PerKey
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

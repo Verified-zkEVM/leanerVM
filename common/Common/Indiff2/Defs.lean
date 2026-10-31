@@ -1,5 +1,9 @@
-import Common.Transfer
-import Common.SimDefs
+module
+
+public import Common.Transfer
+public import Common.SimDefs
+
+@[expose] public section
 
 /-!
 # The two-oracle model: a hash `H` and a random function `F`
