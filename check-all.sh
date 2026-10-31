@@ -154,7 +154,8 @@ leanvm() {
   pd=$(mktemp -d)
   lean_vm/scripts/export-prover-traces-rust.sh "$pd" > /dev/null
   (cd lean_vm && lake build leanvm-prove)
-  (cd lean_vm && python3 -I scripts/prover-diff.py "$pd" chain4-rate1 --mutations 40 --jobs 4)
+  (cd lean_vm && python3 -I scripts/prover-diff.py "$pd" --mutations 40 --jobs 4 --identical \
+    --expected tests/fixtures/verifier)
   rm -rf "$pd"
 }
 
