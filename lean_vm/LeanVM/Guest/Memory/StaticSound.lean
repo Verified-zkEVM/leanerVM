@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.Memory.Static
 public import LeanVM.Guest.Memory.Fresh
 public import LeanVM.Guest.Memory.Restrict
-public import LeanVM.Guest.Value.Tower
+public import LeanVM.Guest.Value.FieldBits
 
 /-!
 # Soundness of the static checker

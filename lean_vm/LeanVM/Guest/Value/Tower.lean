@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Parameters.Field
+public import LeanVM.Guest.Value.FieldBits
 public import Statement.LeanVmVerifier
 public import Statement.Fast.Keccak
 public import Statement.Fast.CubicExt
@@ -59,10 +60,6 @@ theorem k_two : (2 : K) = 0 := CharTwo.two_eq_zero
 
 /-- In `K`, `a + a = 0`. -/
 theorem k_add_self (a : K) : a + a = 0 := CharTwo.add_self_eq_zero a
-
-/-- In `E`, `a + b = 0` exactly when `a = b`. -/
-theorem e_add_eq_zero_iff {a b : E} : a + b = 0 ↔ a = b := by
-  rw [add_eq_zero_iff_eq_neg, CharTwo.neg_eq]
 
 /-! ## `ofK` and the limb view -/
 
@@ -254,8 +251,6 @@ theorem ofBits_xor (a b : ℕ) : K.ofBits (a ^^^ b) = K.ofBits a + K.ofBits b :=
   simp only [K.ofBits, BitVec.ofNat_xor]
   rfl
 
-theorem ofBits_zero : K.ofBits 0 = 0 := rfl
-
 theorem ofBits_one : K.ofBits 1 = 1 := rfl
 
 theorem ofBits_inj {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) (h : K.ofBits a = K.ofBits b) :
@@ -366,41 +361,6 @@ theorem eOfNat_add_of_lt {s q r : ℕ} (hr : r < 2 ^ s) :
 
 /-! ## Products by powers of `x` -/
 
-/-- The word `2^s` is `1 <<< s`. -/
-private theorem ofNat_two_pow_mul {s v : ℕ} :
-    BitVec.ofNat 64 (2 ^ s * v) = BitVec.ofNat 64 v <<< s := by
-  apply BitVec.eq_of_toNat_eq
-  rw [BitVec.toNat_ofNat, BitVec.toNat_shiftLeft, BitVec.toNat_ofNat, Nat.shiftLeft_eq,
-    Nat.mod_mul_mod, Nat.mul_comm]
-
-/-- **No reduction**: `x^s · v` for `v` of degree below `64 - s` is the shifted word, the
-product the guest's query positions (`decode_query_bits`, G:727-771) rely on. -/
-theorem ofBits_two_pow_mul {s v : ℕ} (h : 2 ^ s * v < 2 ^ 64) :
-    K.ofBits (2 ^ s) * K.ofBits v = K.ofBits (2 ^ s * v) := by
-  rcases Nat.eq_zero_or_pos v with rfl | hv
-  · rw [ofBits_zero, mul_zero, Nat.mul_zero, ofBits_zero]
-  have hs : s < 64 := by
-    by_contra hs
-    have : 2 ^ 64 ≤ 2 ^ s * v :=
-      le_trans (Nat.pow_le_pow_right (by decide) (Nat.le_of_not_lt hs)) (Nat.le_mul_of_pos_right _ hv)
-    omega
-  apply BF64.toQuot_injective
-  rw [BF64.toQuot_mul]
-  simp only [BF64.toQuot, BF64.toPolyBF64, K.ofBits, BF64.toBitVec_ofBitVec, ofNat_two_pow_mul]
-  have hx : BinaryField.toPoly (BitVec.ofNat 64 (2 ^ s)) = Polynomial.X ^ s := by
-    have := BinaryField.toPoly_one_shiftLeft (w := 64) s hs
-    rw [Nat.one_shiftLeft] at this
-    exact this
-  rw [hx, ← map_mul,
-    BinaryField.toPoly_shiftLeft_no_overflow (d := 64 - s) (BitVec.ofNat 64 v) ?_ (by omega),
-    mul_comm]
-  rw [BitVec.toNat_ofNat]
-  have : v < 2 ^ (64 - s) := by
-    have h2 : 2 ^ 64 = 2 ^ s * 2 ^ (64 - s) := by rw [← Nat.pow_add]; congr 1; omega
-    rw [h2] at h
-    exact Nat.lt_of_mul_lt_mul_left h
-  exact lt_of_le_of_lt (Nat.mod_le _ _) this
-
 /-- `E(2^s) · E(v) = E(2^s · v)` without reduction. -/
 theorem eOfNat_two_pow_mul {s v : ℕ} (h : 2 ^ s * v < 2 ^ 64) :
     eOfNat (2 ^ s) * eOfNat v = eOfNat (2 ^ s * v) := by
@@ -458,15 +418,6 @@ theorem coordBasis_mul_eOfNat {i v : ℕ} (hi : i < 192) (h : 2 ^ (i % 64) * v <
     rw [coordBasis, pow_add, eOfNat192_two_pow_128_mul, eOfNat, ofLimbs_mul_ofK, Nat.mul_assoc,
       eOfNat192_two_pow_128_mul, ofBits_two_pow_mul h]
     simp
-
-/-- `g^a` is the word `2^a` below the first reduction. -/
-theorem g_pow_eq_ofBits {a : ℕ} (h : a < 64) : g ^ a = K.ofBits (2 ^ a) := by
-  induction a with
-  | zero => rfl
-  | succ a ih =>
-    rw [pow_succ', ih (by omega), g, show K.ofBits 0x2 = K.ofBits (2 ^ 1) from rfl,
-      ofBits_two_pow_mul (by rw [← pow_add]; exact Nat.pow_lt_pow_right (by decide) (by omega)),
-      ← pow_add, add_comm]
 
 /-- `gen^a = E(2^a)` below the first reduction (a compile-time `GEN ** a`). -/
 theorem gen_pow_eq_eOfNat {a : ℕ} (h : a < 64) : gen ^ a = eOfNat (2 ^ a) := by
