@@ -1,8 +1,8 @@
 /-
   Statement.Fast.Keccak
 
-  Keccak-f[1600] and Keccak-256 as the compiled verifier runs them: the round with its lanes
-  written out, and a block's lanes read from an array, each proved equal to the definition it
+  Keccak-f[1600] and Keccak-256 as the compiled verifier runs them: the rounds with their lanes
+  written out as scalars, and a block's lanes read from an array, each proved equal to the definition it
   replaces and swapped in for compilation by `@[csimp]`.
 
   Speed only: `@[csimp]` lemmas, each proved, that change how the statement's definitions are
@@ -25,8 +25,11 @@ out, the indices and rotations computed once (`round_eq_roundLanes`, lane by lan
 `leLaneArray` reads them from an array (`leLane_eq_leLaneArray`).
 
 A `@[csimp]` lemma acts where code is compiled, and `keccakF1600` and `keccak256` were compiled with
-the definitions above. `keccakF1600` is restated here, word for word, so that it is compiled with the
-round's replacement, and `keccak256`, Keccak-256 over Keccak-f[1600] in `Id`, without the monad
+the definitions above. `keccakF1600` compiles as `keccakFScalar`: the twenty-four rounds of
+`roundLanes` as one loop whose twenty-five lanes are scalars passed from round to round
+(`keccakLoop`), so that it allocates the final state only, with `Keccak.rot` inlined
+(`keccakF_eq_keccakFScalar`, from `keccakLoop_lanes`); and `keccak256`, Keccak-256 over
+Keccak-f[1600] in `Id`, without the monad
 and with the blocks read from arrays (`keccak256_eq_keccak256Blocks`); the lemma equating each
 with its restatement compiles it as the restatement in every module that imports this one
 (`Statement.Field` and `Statement.LeanDa` do, so the statement's own definitions and every module
@@ -44,6 +47,13 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 @[expose] public section
 
 /-! ## The round -/
+
+/-- `Keccak.rot`, inlined: at a constant offset it compiles to two shifts. -/
+@[inline] def rotInline (x : UInt64) (n : ℕ) : UInt64 :=
+  if n = 0 then x else (x <<< n.toUInt64) ||| (x >>> (64 - n).toUInt64)
+
+/-- `Keccak.rot` compiles inlined. -/
+@[csimp] theorem rot_eq_rotInline : @Keccak.rot = @rotInline := rfl
 
 /-- `Keccak.round`, its lanes written out: θ's column parities `c` and their mixes `d`, ρ and π
 as the lane each `b` takes, then χ and ι. -/
@@ -122,8 +132,130 @@ set_option maxHeartbeats 4000000 in
 /-- `keccakF1600`, restated. -/
 def keccakFLanes (a : KeccakState) : KeccakState := keccakRC.foldl Keccak.round a
 
-/-- `keccakF1600` compiles as its restatement. -/
-@[csimp] theorem keccakF_eq_keccakFLanes : @keccakF1600 = @keccakFLanes := rfl
+/-- `keccakF1600` is its restatement. -/
+theorem keccakF_eq_keccakFLanes : @keccakF1600 = @keccakFLanes := rfl
+
+/-! ## The permutation on lanes held in scalars -/
+
+/-- The round constants as an array. -/
+def keccakRCArray : Array UInt64 := keccakRC.toArray
+
+/-- Keccak-f[1600] from round `i` on, the state's lanes held in scalars: `roundLanes` with the
+lane `k` read from `ak`, the next round's lanes passed on, so that the compiled loop allocates
+only the final state. -/
+def keccakLoop (i : ℕ)
+    (a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 a22 a23 a24 : UInt64) :
+    KeccakState :=
+  if i < 24 then
+    let rc := keccakRCArray.getD i 0
+    let c0 := a0 ^^^ a5 ^^^ a10 ^^^ a15 ^^^ a20
+    let c1 := a1 ^^^ a6 ^^^ a11 ^^^ a16 ^^^ a21
+    let c2 := a2 ^^^ a7 ^^^ a12 ^^^ a17 ^^^ a22
+    let c3 := a3 ^^^ a8 ^^^ a13 ^^^ a18 ^^^ a23
+    let c4 := a4 ^^^ a9 ^^^ a14 ^^^ a19 ^^^ a24
+    let d0 := c4 ^^^ Keccak.rot c1 1
+    let d1 := c0 ^^^ Keccak.rot c2 1
+    let d2 := c1 ^^^ Keccak.rot c3 1
+    let d3 := c2 ^^^ Keccak.rot c4 1
+    let d4 := c3 ^^^ Keccak.rot c0 1
+    let b0 := Keccak.rot (a0 ^^^ d0) 0
+    let b1 := Keccak.rot (a6 ^^^ d1) 44
+    let b2 := Keccak.rot (a12 ^^^ d2) 43
+    let b3 := Keccak.rot (a18 ^^^ d3) 21
+    let b4 := Keccak.rot (a24 ^^^ d4) 14
+    let b5 := Keccak.rot (a3 ^^^ d3) 28
+    let b6 := Keccak.rot (a9 ^^^ d4) 20
+    let b7 := Keccak.rot (a10 ^^^ d0) 3
+    let b8 := Keccak.rot (a16 ^^^ d1) 45
+    let b9 := Keccak.rot (a22 ^^^ d2) 61
+    let b10 := Keccak.rot (a1 ^^^ d1) 1
+    let b11 := Keccak.rot (a7 ^^^ d2) 6
+    let b12 := Keccak.rot (a13 ^^^ d3) 25
+    let b13 := Keccak.rot (a19 ^^^ d4) 8
+    let b14 := Keccak.rot (a20 ^^^ d0) 18
+    let b15 := Keccak.rot (a4 ^^^ d4) 27
+    let b16 := Keccak.rot (a5 ^^^ d0) 36
+    let b17 := Keccak.rot (a11 ^^^ d1) 10
+    let b18 := Keccak.rot (a17 ^^^ d2) 15
+    let b19 := Keccak.rot (a23 ^^^ d3) 56
+    let b20 := Keccak.rot (a2 ^^^ d2) 62
+    let b21 := Keccak.rot (a8 ^^^ d3) 55
+    let b22 := Keccak.rot (a14 ^^^ d4) 39
+    let b23 := Keccak.rot (a15 ^^^ d0) 41
+    let b24 := Keccak.rot (a21 ^^^ d1) 2
+    keccakLoop (i + 1)
+      ((b0 ^^^ (~~~ b1 &&& b2)) ^^^ rc)
+      (b1 ^^^ (~~~ b2 &&& b3))
+      (b2 ^^^ (~~~ b3 &&& b4))
+      (b3 ^^^ (~~~ b4 &&& b0))
+      (b4 ^^^ (~~~ b0 &&& b1))
+      (b5 ^^^ (~~~ b6 &&& b7))
+      (b6 ^^^ (~~~ b7 &&& b8))
+      (b7 ^^^ (~~~ b8 &&& b9))
+      (b8 ^^^ (~~~ b9 &&& b5))
+      (b9 ^^^ (~~~ b5 &&& b6))
+      (b10 ^^^ (~~~ b11 &&& b12))
+      (b11 ^^^ (~~~ b12 &&& b13))
+      (b12 ^^^ (~~~ b13 &&& b14))
+      (b13 ^^^ (~~~ b14 &&& b10))
+      (b14 ^^^ (~~~ b10 &&& b11))
+      (b15 ^^^ (~~~ b16 &&& b17))
+      (b16 ^^^ (~~~ b17 &&& b18))
+      (b17 ^^^ (~~~ b18 &&& b19))
+      (b18 ^^^ (~~~ b19 &&& b15))
+      (b19 ^^^ (~~~ b15 &&& b16))
+      (b20 ^^^ (~~~ b21 &&& b22))
+      (b21 ^^^ (~~~ b22 &&& b23))
+      (b22 ^^^ (~~~ b23 &&& b24))
+      (b23 ^^^ (~~~ b24 &&& b20))
+      (b24 ^^^ (~~~ b20 &&& b21))
+  else #v[a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18,
+    a19, a20, a21, a22, a23, a24]
+termination_by 24 - i
+
+/-- The loop from round `i` on a state's lanes is the rounds from `i` on. -/
+theorem keccakLoop_lanes (i : ℕ) (a : KeccakState) :
+    keccakLoop i
+      (Keccak.lane a 0) (Keccak.lane a 1) (Keccak.lane a 2) (Keccak.lane a 3) (Keccak.lane a 4)
+      (Keccak.lane a 5) (Keccak.lane a 6) (Keccak.lane a 7) (Keccak.lane a 8) (Keccak.lane a 9)
+      (Keccak.lane a 10) (Keccak.lane a 11) (Keccak.lane a 12) (Keccak.lane a 13)
+      (Keccak.lane a 14) (Keccak.lane a 15) (Keccak.lane a 16) (Keccak.lane a 17)
+      (Keccak.lane a 18) (Keccak.lane a 19) (Keccak.lane a 20) (Keccak.lane a 21)
+      (Keccak.lane a 22) (Keccak.lane a 23) (Keccak.lane a 24) =
+      (keccakRC.drop i).foldl roundLanes a := by
+  rw [keccakLoop]
+  split
+  · rename_i h
+    have hd : keccakRC.drop i = keccakRC.getD i 0 :: keccakRC.drop (i + 1) := by
+      have hi : i < keccakRC.length := by simpa [keccakRC] using h
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some]
+      exact List.drop_eq_getElem_cons hi
+    have hrc : keccakRCArray.getD i 0 = keccakRC.getD i 0 := by
+      simp [keccakRCArray, Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
+    rw [hd, List.foldl_cons, ← keccakLoop_lanes (i + 1) (roundLanes a (keccakRC.getD i 0)), hrc]
+    rfl
+  · rename_i h
+    have : keccakRC.drop i = [] := List.drop_eq_nil_of_le (by simp [keccakRC]; omega)
+    rw [this, List.foldl_nil]
+    apply Vector.ext
+    intro j hj
+    interval_cases j <;> simp [Keccak.lane, Array.getD_eq_getD_getElem?]
+termination_by 24 - i
+
+/-- Keccak-f[1600] on scalars. -/
+def keccakFScalar (a : KeccakState) : KeccakState :=
+  keccakLoop 0
+    (Keccak.lane a 0) (Keccak.lane a 1) (Keccak.lane a 2) (Keccak.lane a 3) (Keccak.lane a 4)
+    (Keccak.lane a 5) (Keccak.lane a 6) (Keccak.lane a 7) (Keccak.lane a 8) (Keccak.lane a 9)
+    (Keccak.lane a 10) (Keccak.lane a 11) (Keccak.lane a 12) (Keccak.lane a 13) (Keccak.lane a 14)
+    (Keccak.lane a 15) (Keccak.lane a 16) (Keccak.lane a 17) (Keccak.lane a 18) (Keccak.lane a 19)
+    (Keccak.lane a 20) (Keccak.lane a 21) (Keccak.lane a 22) (Keccak.lane a 23) (Keccak.lane a 24)
+
+/-- **Keccak-f[1600] on scalars is `keccakF1600`**, and compiles in its place: the compiled
+permutation allocates its final state only. -/
+@[csimp] theorem keccakF_eq_keccakFScalar : @keccakF1600 = @keccakFScalar := by
+  funext a
+  rw [keccakFScalar, keccakLoop_lanes, List.drop_zero, keccakF1600, round_eq_roundLanes]
 
 /-! ## The blocks and the hash -/
 
