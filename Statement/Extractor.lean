@@ -2,7 +2,13 @@ module
 
 public import Statement.LeanIsa
 public import Statement.LeanVmVerifier
-public import Statement.Decode.Bf64Trace
+public import CompPoly.Univariate.Roots.Shoup.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.CharP.Lemmas
+public import Mathlib.Algebra.CharP.Two
+public import Mathlib.Algebra.Polynomial.BigOperators
+public import Mathlib.Algebra.Polynomial.Roots
+public import Mathlib.FieldTheory.Finite.Basic
 public import CompPoly.Bivariate.GuruswamiSudan.Executable
 public import CompPoly.Bivariate.GuruswamiSudan.Interpolation.LeeOSullivan.Correctness.Completeness
 public import CompPoly.Bivariate.GuruswamiSudan.Root.RothRuckenstein.Correctness
@@ -265,13 +271,249 @@ evaluations on `U_κ`. -/
 def toNovel (κ : ℕ) (p : CPolynomial K) : Array K :=
   novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦ p.eval (K.ofBits v.val))
 
+end LeanVM.Extraction
+
+/-! ### The facts the root finder needs (theorems only)
+
+Shoup's trace context (`traceCtx`, §5) takes two proofs about `K = GF(2^64)`, its basis
+`x^i = K.ofBits (2^i)`, `i < 64`, and the trace `Tr(z) = Σ_{i<64} z^(2^i)` (CompPoly's
+`tracePowerSum 2 64`): `Tr(z) ∈ {0, 1}` (`tracePowerSum_mem_base`, as `Tr(z)^2 = Tr(z)`), and for
+`a ≠ b` some basis element `β` with `Tr(β·(a − b)) ≠ 0` (`tracePowerSum_separates`: `β ↦ Tr(β·c)`
+is additive, every element is a sum of basis elements, `ofBits_eq_sum`, and `Σ_{i<64} X^(2^i)`, of
+degree at most `2^63`, cannot have `2^64` roots). With them, the facts about words they use:
+`K.ofBits` is injective below `2^64`, turns `xor` into `+`, and the word with bits `v` is
+`Σ_c v_c · x^c`. Every declaration of this section is a theorem: nothing in it changes what the
+extractor computes, and a reviewer may skip it.
+
+Credits: the obligations are those of `SmallPrimeTraceContext` and `tracePowerSum`
+(`CompPoly/Univariate/Roots/Shoup/Basic.lean`, Valerii Huhnin), and `K` is `BF64`
+(`CompPoly/Fields/Binary/BF64/Impl.lean`, Nicolas Schleicher), both from CompPoly
+(github.com/Verified-zkEVM/CompPoly) at `572f997390aa4fc131ef30b1186fa1dcf292ca10`, Apache-2.0.
+The word facts are adapted from `lean_vm/LeanVM/Protocol/Whir/Subspace.lean`. -/
+
+namespace LeanVM.Extraction.Words
+
+open LeanVM.Parameters
+
+
+/-- `K.ofBits 0 = 0`. -/
+theorem ofBits_zero : K.ofBits 0 = 0 := rfl
+
+/-- A word below `2^64` is read back exactly. -/
+theorem toNat_ofBits {n : ℕ} (hn : n < 2 ^ 64) : (K.ofBits n).toBitVec.toNat = n := by
+  simpa [K.ofBits] using hn
+
+/-- Every element is the word of its bits. -/
+theorem ofBits_toNat (a : K) : K.ofBits a.toBitVec.toNat = a := by
+  apply BF64.ext
+  simp [K.ofBits]
+
+/-- The bits of an element are below `2^64`. -/
+theorem toNat_lt (a : K) : a.toBitVec.toNat < 2 ^ 64 := a.toBitVec.isLt
+
+/-- Words below `2^64` are distinct field elements. -/
+theorem ofBits_injOn : Set.InjOn K.ofBits {n | n < 2 ^ 64} := by
+  intro a ha b hb h
+  rw [← toNat_ofBits ha, ← toNat_ofBits hb, h]
+
+/-- A word below `2^64` is zero only when it is `0`. -/
+theorem ofBits_eq_zero_iff {n : ℕ} (hn : n < 2 ^ 64) : K.ofBits n = 0 ↔ n = 0 :=
+  ⟨fun h ↦ ofBits_injOn (show n < 2 ^ 64 from hn) (show 0 < 2 ^ 64 by norm_num) h,
+    fun h ↦ h ▸ ofBits_zero⟩
+
+/-- Below `2^i`, adding `2^i` sets a bit that is clear: it is the exclusive or. -/
+theorem two_pow_add_eq_xor {i v : ℕ} (hv : v < 2 ^ i) : 2 ^ i + v = 2 ^ i ^^^ v := by
+  have h := Nat.two_pow_add_eq_or_of_lt hv 1
+  rw [mul_one] at h
+  rw [h]
+  apply Nat.eq_of_testBit_eq
+  intro j
+  rw [Nat.testBit_or, Nat.testBit_xor, Nat.testBit_two_pow]
+  by_cases hj : i = j
+  · subst hj
+    simp [Nat.testBit_lt_two_pow hv]
+  · simp [hj]
+
+/-- Sum in `K` is bitwise exclusive or of words. -/
+theorem ofBits_xor (a b : ℕ) : K.ofBits (a ^^^ b) = K.ofBits a + K.ofBits b := by
+  simp only [K.ofBits, BitVec.ofNat_xor]
+  rfl
+
+/-- `x_{2^i + v} = x^i + x_v` for `v < 2^i`. -/
+theorem ofBits_two_pow_add {i v : ℕ} (hv : v < 2 ^ i) :
+    K.ofBits (2 ^ i + v) = K.ofBits (2 ^ i) + K.ofBits v := by
+  rw [two_pow_add_eq_xor hv, ofBits_xor]
+
+/-- The word with bits `v` is `Σ_c v_c · x^c`. -/
+theorem ofBits_eq_sum {i v : ℕ} (hv : v < 2 ^ i) :
+    K.ofBits v = ∑ c ∈ Finset.range i, if v.testBit c then K.ofBits (2 ^ c) else 0 := by
+  induction i generalizing v with
+  | zero =>
+    obtain rfl : v = 0 := by simpa using hv
+    simp [ofBits_zero]
+  | succ i ih =>
+    rw [Finset.sum_range_succ]
+    by_cases hb : v.testBit i
+    · have hlt : v - 2 ^ i < 2 ^ i := by
+        have := Nat.ge_two_pow_of_testBit hb
+        rw [pow_succ] at hv
+        omega
+      have hv' : v = 2 ^ i + (v - 2 ^ i) := by
+        have := Nat.ge_two_pow_of_testBit hb
+        omega
+      have hbits : ∀ c < i, v.testBit c = (v - 2 ^ i).testBit c := by
+        intro c hc
+        conv_lhs => rw [hv']
+        exact Nat.testBit_two_pow_add_gt hc _
+      have hb' : (2 ^ i + (v - 2 ^ i)).testBit i = true := by rw [← hv']; exact hb
+      rw [hv', ofBits_two_pow_add hlt, ih hlt, hb']
+      simp only [ite_true]
+      rw [add_comm]
+      congr 1
+      refine Finset.sum_congr rfl fun c hc ↦ ?_
+      rw [← hv', hbits c (Finset.mem_range.mp hc)]
+    · have hlt : v < 2 ^ i := by
+        by_contra h
+        have h1 : 2 ^ i ≤ v := not_lt.mp h
+        have : v.testBit i = true := by
+          have hv2 : v - 2 ^ i < 2 ^ i := by rw [pow_succ] at hv; omega
+          have := Nat.testBit_two_pow_add_eq (v - 2 ^ i) i
+          rw [Nat.add_sub_cancel' h1, Nat.testBit_lt_two_pow hv2] at this
+          simpa using this
+        exact hb this
+      simp only [Bool.not_eq_true] at hb
+      rw [ih hlt, hb]
+      simp
+
+end LeanVM.Extraction.Words
+
+namespace LeanVM.Extraction.Bf64Trace
+
+open LeanVM.Parameters LeanVM.Extraction.Words Polynomial
+open CompPoly.CPolynomial.Roots.FiniteField
+
+
+/-- Frobenius fixes `K`: `a^(2^64) = a`. -/
+theorem pow_two_pow_64 (a : K) : a ^ 2 ^ 64 = a := by
+  let _ : Fintype K := Fintype.ofFinite K
+  have h := FiniteField.pow_card a
+  rwa [BF64.card_bf64] at h
+
+/-- The trace as a sum. -/
+theorem trace_eq_sum (z : K) : tracePowerSum 2 64 z = ∑ i ∈ Finset.range 64, z ^ 2 ^ i :=
+  tracePowerSum_eq_sum_range 2 64 z
+
+/-- The trace is additive. -/
+theorem trace_add (a b : K) :
+    tracePowerSum 2 64 (a + b) = tracePowerSum 2 64 a + tracePowerSum 2 64 b := by
+  simp only [trace_eq_sum, add_pow_char_pow, Finset.sum_add_distrib]
+
+/-- The trace of a finite sum. -/
+theorem trace_sum {ι : Type*} (s : Finset ι) (f : ι → K) :
+    tracePowerSum 2 64 (∑ i ∈ s, f i) = ∑ i ∈ s, tracePowerSum 2 64 (f i) :=
+  map_sum (AddMonoidHom.mk' (tracePowerSum 2 64) trace_add) f s
+
+/-- `Tr(z)^2 = Tr(z)`. -/
+theorem trace_sq (z : K) : tracePowerSum 2 64 z ^ 2 = tracePowerSum 2 64 z := by
+  rw [trace_eq_sum, sum_pow_char]
+  have hshift : ∑ i ∈ Finset.range 64, (z ^ 2 ^ i) ^ 2 = ∑ i ∈ Finset.range 64, z ^ 2 ^ (i + 1) :=
+    Finset.sum_congr rfl fun i _ ↦ by rw [← pow_mul, pow_succ]
+  rw [hshift]
+  have h := Finset.sum_range_succ' (fun i ↦ z ^ 2 ^ i) 64
+  rw [Finset.sum_range_succ, pow_two_pow_64, pow_zero, pow_one] at h
+  exact add_right_cancel h.symm
+
+/-- **The trace lies in the base field** `{0, 1}`. -/
+theorem tracePowerSum_mem_base (z : K) : tracePowerSum 2 64 z ∈ (#[0, 1] : Array K).toList := by
+  have h := trace_sq z
+  have h' : tracePowerSum 2 64 z * (tracePowerSum 2 64 z - 1) = 0 := by
+    rw [mul_sub, mul_one, ← pow_two, h, sub_self]
+  rcases mul_eq_zero.mp h' with h0 | h1
+  · simp [h0]
+  · simp [sub_eq_zero.mp h1]
+
+/-- The trace polynomial `Σ_{i<64} X^(2^i)` evaluates to the trace. -/
+theorem eval_tracePoly (z : K) :
+    (∑ i ∈ Finset.range 64, (X : K[X]) ^ 2 ^ i).eval z = tracePowerSum 2 64 z := by
+  simp [eval_finsetSum, trace_eq_sum]
+
+/-- The trace polynomial is not zero: its coefficient of `X` is `1`. -/
+theorem tracePoly_ne_zero : (∑ i ∈ Finset.range 64, (X : K[X]) ^ 2 ^ i) ≠ 0 := by
+  intro h
+  have h1 := congrArg (fun p : K[X] ↦ p.coeff 1) h
+  simp only [finsetSum_coeff, coeff_X_pow, coeff_zero] at h1
+  rw [Finset.sum_range_succ'] at h1
+  have hrest : ∑ i ∈ Finset.range 63, (if 1 = 2 ^ (i + 1) then (1 : K) else 0) = 0 :=
+    Finset.sum_eq_zero fun i _ ↦ by
+      rw [ite_eq_right_iff]
+      intro h1
+      have : 2 ≤ 2 ^ (i + 1) := by
+        calc 2 = 2 ^ 1 := rfl
+          _ ≤ 2 ^ (i + 1) := Nat.pow_le_pow_right (by norm_num) (by omega)
+      omega
+  rw [hrest] at h1
+  simp at h1
+
+/-- The trace polynomial has degree at most `2^63`. -/
+theorem natDegree_tracePoly_le :
+    (∑ i ∈ Finset.range 64, (X : K[X]) ^ 2 ^ i).natDegree ≤ 2 ^ 63 := by
+  apply natDegree_sum_le_of_forall_le
+  intro i hi
+  rw [natDegree_X_pow]
+  exact Nat.pow_le_pow_right (by norm_num) (by simpa [Nat.lt_succ_iff] using hi)
+
+/-- The trace is not identically zero. -/
+theorem exists_trace_ne_zero : ∃ z : K, tracePowerSum 2 64 z ≠ 0 := by
+  by_contra! h
+  let _ : Fintype K := Fintype.ofFinite K
+  have hsub : (Finset.univ : Finset K).val ⊆
+      (∑ i ∈ Finset.range 64, (X : K[X]) ^ 2 ^ i).roots := by
+    intro z _
+    rw [mem_roots tracePoly_ne_zero, IsRoot, eval_tracePoly, h z]
+  have hcard := card_le_degree_of_subset_roots hsub
+  rw [Finset.card_univ, BF64.card_bf64] at hcard
+  have := hcard.trans natDegree_tracePoly_le
+  norm_num at this
+
+/-- **The trace separates** distinct elements on the basis `x^i`. -/
+theorem tracePowerSum_separates {a b : K} (hab : a ≠ b) :
+    ∃ beta, beta ∈ (Array.ofFn fun i : Fin 64 ↦ K.ofBits (2 ^ i.val)).toList ∧
+      tracePowerSum 2 64 (beta * (a - b)) ≠ 0 := by
+  have hc : a - b ≠ 0 := sub_ne_zero.mpr hab
+  by_contra! h
+  have hbasis : ∀ c < 64, tracePowerSum 2 64 (K.ofBits (2 ^ c) * (a - b)) = 0 := by
+    intro c hc64
+    refine h _ ?_
+    rw [Array.mem_toList_iff, Array.mem_ofFn]
+    exact ⟨⟨c, hc64⟩, Eq.refl (K.ofBits (2 ^ c))⟩
+  have hall : ∀ y : K, tracePowerSum 2 64 (y * (a - b)) = 0 := by
+    intro y
+    rw [← ofBits_toNat y, ofBits_eq_sum (toNat_lt y), Finset.sum_mul, trace_sum]
+    refine Finset.sum_eq_zero fun c hc64 ↦ ?_
+    split
+    · exact hbasis c (Finset.mem_range.mp hc64)
+    · simp [trace_eq_sum]
+  obtain ⟨z, hz⟩ := exists_trace_ne_zero
+  apply hz
+  have := hall (z * (a - b)⁻¹)
+  rw [inv_mul_cancel_right₀ hc] at this
+  exact this
+
+end LeanVM.Extraction.Bf64Trace
+
+namespace LeanVM.Extraction
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
+open LeanVM.Protocol.Verifier LeanVM.Parameters.Whir LeanVM.Protocol.KeccakHash
+open CompPoly CompPoly.GuruswamiSudan CompPoly.CPolynomial.Roots.FiniteField
+
 /-! ### 5. The list decoder of one lane
 
 CompPoly's executable Guruswami–Sudan decoder over `K`, deterministic: Lee–O'Sullivan
 interpolation, Roth–Ruckenstein roots, and the roots of a univariate polynomial as its `gcd` with
 `X^(2^64) − X`, split by Shoup's trace splitter at `p = 2`, `k = 64` over the basis `x^i`, with
 the trace `Tr(z) = Σ_{i<64} z^(2^i)`. A context's proof fields are theorems (CompPoly's, and the
-two trace facts of `Statement/Decode/Bf64Trace.lean`); only its data is run. -/
+two trace facts above); only its data is run. -/
 
 /-- Shoup's trace context over `K`: `q = 2^64`, base constants `{0, 1}`, the basis `x^i`,
 `i < 64`, and the trace `Σ_{i<64} z^(2^i)`. -/

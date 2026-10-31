@@ -1,16 +1,14 @@
-import Statement.Decode.Words
-import Statement.Decode.Bf64Trace
 import Statement.Extractor
 import LeanVM.Protocol.Extraction.Extract
 
 /-!
-# Tests: `Statement/Decode/` holds theorems only; the extractor's axioms
+# Tests: the extractor's trace facts are theorems only; the extractor's axioms
 
-`Statement/Decode/` is the folder of the statement that needs no review: the theorems the
-extractor's decoder takes as proof fields (`traceCtx`, `Statement/Extractor.lean`). By proof
-irrelevance nothing in it can change what the extractor computes or what a statement says, as long
-as every constant it declares is a proof. `#propsOnly` checks that: it fails if a module of
-`Statement.Decode` declares a constant whose type is not a proposition.
+The section of `Statement/Extractor.lean` a reviewer may skip, the facts the root finder needs
+(`traceCtx`'s proof fields, namespaces `LeanVM.Extraction.Words` and `LeanVM.Extraction.Bf64Trace`):
+by proof irrelevance nothing in it can change what the extractor computes or what a statement says,
+as long as every constant it declares is a proof. `#propsOnly` checks that: it fails if a constant
+of those namespaces has a type that is not a proposition.
 
 Then the axioms of the extractor's data (its decoder context carries proofs) and of the theorems
 that relate it to the knowledge-soundness proof: Lean's three.
@@ -18,22 +16,21 @@ that relate it to the knowledge-soundness proof: Lean's three.
 
 open Lean Elab Command
 
-/-- Fails unless every constant the given modules declare (internal names aside) has a
-proposition as its type. -/
-elab "#propsOnly " mods:ident* : command => do
+/-- Fails unless every constant of the given namespaces (internal names aside) has a proposition
+as its type. -/
+elab "#propsOnly " nss:ident* : command => do
   let env ← getEnv
-  for m in mods do
-    let some idx := env.getModuleIdx? m.getId | throwError "no module {m.getId}"
+  for ns in nss do
     let mut bad : Array Name := #[]
     let mut n : Nat := 0
     for (name, ci) in env.constants.toList do
-      if env.getModuleIdxFor? name == some idx && !name.isInternal then
+      if ns.getId.isPrefixOf name && !name.isInternal then
         n := n + 1
         unless ← liftTermElabM (Meta.isProp ci.type) do bad := bad.push name
-    unless bad.isEmpty do throwError "{m.getId}: not a proof: {bad}"
-    if n == 0 then throwError "{m.getId}: no constants"
+    unless bad.isEmpty do throwError "{ns.getId}: not a proof: {bad}"
+    if n == 0 then throwError "{ns.getId}: no constants"
 
-#propsOnly Statement.Decode.Words Statement.Decode.Bf64Trace
+#propsOnly LeanVM.Extraction.Words LeanVM.Extraction.Bf64Trace
 
 /-- info: 'LeanVM.Extraction.extract' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

@@ -32,9 +32,8 @@ rev = "v4.34.1"
 
 # The statement files are `Statement/*.lean` (modules `Statement.<Name>`), the generated guest
 # data `Statement/Data/*.lean`, the proved `@[csimp]` lemmas `Statement/Fast/*.lean` that
-# make the compiled definitions fast, and the theorems the extractor's decoder needs as proof fields,
-# `Statement/Decode/*.lean`; the package directory is `Statement/`, so the sources are found
-# from its parent.
+# make the compiled definitions fast; the package directory is `Statement/`, so the sources are
+# found from its parent.
 [[lean_lib]]
 name = "Statement"
 srcDir = ".."
@@ -42,4 +41,4 @@ globs = ["Statement.Keccak", "Statement.RandomPermutation", "Statement.SufCma", 
   "Statement.Field", "Statement.LeanDa", "Statement.LeanIsa", "Statement.LeanVmVerifier",
   "Statement.Extractor", "Statement.LeanVm", "Statement.LeanVmGuest", "Statement.Theorems",
   "Statement.Corollaries",
-  "Statement.Data.+", "Statement.Fast.+", "Statement.Decode.+", "Statement.Prover.+"]
+  "Statement.Data.+", "Statement.Fast.+", "Statement.Prover.+"]
