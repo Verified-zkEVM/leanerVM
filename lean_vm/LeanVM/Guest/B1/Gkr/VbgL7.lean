@@ -30,7 +30,6 @@ theorem gkPos_closed (sh : ℕ) : ∀ j, gkPos sh j = sh + j * j + j * sh
   | 0 => by simp [gkPos]
   | j + 1 => by rw [gkPos, gkPos_closed sh j]; ring
 
-set_option maxHeartbeats 400000 in
 /-- **`__loop6` loads from the buffers** (TRIAGE G #43): at `2 ≤ depth ≤ 32`, an accepting run of
 `gkrPhase depth`, the buffers' honest words in memory (`vbgLay`), `__loop6`'s relation from `1`
 below `g^(depth/2)` loads from any region holding the cursor's words and the buffers. -/

@@ -129,7 +129,6 @@ theorem tb_gen_pow_add_eq_zero {a b : ℕ} (ha : a < 2 ^ 62) (hb : b < 2 ^ 62) :
     exact gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp h)
   · rintro rfl; exact e_add_self _
 
-set_option maxHeartbeats 1000000 in
 /-- **`__loop6`'s valid trees are chains of honest shape**: iteration `c < M`, on a memory holding
 its bounds' words, runs `M - c` iterations, each pinning `ly7Q`. -/
 theorem ly7_chain {rd : Reader} {dsh gmu layers rounds : E} {sh M : ℕ} (hsh2 : sh < 2)
@@ -313,7 +312,6 @@ theorem ly7Rounds_length {sh c : ℕ} {σ : Val} (hQ : ly7Q sh c σ) (hsh2 : sh 
     · have : σ (.n 70) = 0 := e70.mpr (by omega)
       simp [this, hs]
 
-set_option maxHeartbeats 1000000 in
 /-- **`__loop6`'s chain's words**: within the iterations' bounds `ly7B` and the last tail's
 frame, given `__loop27`'s words linear in its end's exponent and the rounds' bound `R`. -/
 theorem ly7_total {P : Core.Program} {rd : Reader} (fs : String → ℕ) {sh K29 R : ℕ}

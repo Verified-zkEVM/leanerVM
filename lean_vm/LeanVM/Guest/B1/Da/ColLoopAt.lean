@@ -55,7 +55,6 @@ def clσ (k endLo : ℕ) (p1 p2 p3 p4 p5 p6 p7 p8 : E) : Val :=
 variable (fs : String → ℕ) (cert : String → V → ℕ)
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 2000000 in
 /-- **One step of a column loop, placed**: column `k` and the rest of the loop. -/
 theorem colLoop_stepAt {f col : String} {j endLo : ℕ} (hj : j < coreProgram.length)
     (hok : (colLoopOk (coreProgram.getD j default) col f endLo &&

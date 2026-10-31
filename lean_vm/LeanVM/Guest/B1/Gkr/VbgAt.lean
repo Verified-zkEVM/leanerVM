@@ -126,7 +126,6 @@ def VbgVals (σ : Val) (depth eL eR eD : ℕ) : Prop :=
     σ (.n 57) = ofK (gpow eD) ∧ σ (.n 15) = ofK (gpow eL) ∧ σ (.n 16) = ofK (gpow eR) ∧
     σ (.n 303) = 1 + gen ^ (depth / 2)
 
-set_option maxHeartbeats 1000000 in
 /-- **`verify_bus_gkr`'s honest valuation on a memory holding its words**: every statement holds,
 its calls loading from `R`; its loads land inside its buffers; its allocations are the buffers; it
 returns the accepting run's capacity, cursor and values. -/
@@ -327,7 +326,6 @@ noncomputable def vbgBufs (fs : String → ℕ) (depth : ℕ) (xs : List E) (ec 
     (ofK (gpow (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034 + 1640)), 33),
     (ofK (gpow (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034 + 1640 + 33)), 33)]
 
-set_option maxHeartbeats 1000000 in
 /-- **What `verify_bus_gkr`'s placed lift needs**: its buffers' honest words fit their sizes, the
 buffers it loads from lie in its layout, and on every memory defined below `2^κ` holding the layout
 its honest valuation runs (`vbg_run` at the bump allocator's bases), its calls' values

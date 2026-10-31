@@ -159,7 +159,6 @@ section Odd
 
 variable {C : CallRel} {rd : Reader} {w : ℕ → E} {σ : Val} {kret : List E → Prop}
 
-set_option maxHeartbeats 400000 in
 /-- **The binary layer, completely**: from the root slot, one step of one level (no point), its
 words at the cursor, and the slot of `L = 1`. -/
 theorem odc_holds (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) {s : Fs} {cur : E} {st : GkrState}

@@ -32,7 +32,6 @@ namespace VkData
 variable {D : VkData} {rd : Reader} {B curE chiE olE zvE slE : ℕ} {ls : ℕ → ℕ}
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **The head and the first record, on the layout.** -/
 theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE) :

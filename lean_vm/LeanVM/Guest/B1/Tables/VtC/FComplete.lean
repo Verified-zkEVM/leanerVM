@@ -36,7 +36,6 @@ theorem vtF_split : tbStmtsEqb ((vtPre.drop vtFLo).take (10209 - vtFLo))
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-set_option maxHeartbeats 1000000 in
 /-- **Statements `5259 ..< 10209` complete**, and what they leave: `VtF`, the evaluations' values
 and the sponge after them. -/
 theorem vtF_complete (hl : args.length = 22) (bc : List K) (hbc : bc.length = 2 ^ 23)

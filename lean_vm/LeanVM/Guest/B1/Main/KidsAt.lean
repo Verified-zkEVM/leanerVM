@@ -121,7 +121,6 @@ theorem l5_loop : coreProgram.loop "__loop4" = true := by
   simp [l5Tail]
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **One child of `__loop4`, placed**: child `c` and the rest of the loop. -/
 theorem l5_stepAt {Lin : Layout} {W D Pi Cr nk c : ℕ}
     {lxt cover lxs lst lss s0 s1 glp gsq cfresh : E} {k : KidH}

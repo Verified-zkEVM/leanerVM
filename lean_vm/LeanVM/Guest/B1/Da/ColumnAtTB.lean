@@ -41,7 +41,6 @@ def colB (fs : String → ℕ) (SB SK : String → ℕ) (fname rl gl : String) (
     (r * SK rl + ((if 2 ^ L - r ≠ 0 then (2 ^ L - r) * SK gl else fs gl) + SB dlNames[L]!))
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **A column is complete, placed, by a tree of its honest shape** (`colNH`), **within
 `colB`**. -/
 theorem col_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ)

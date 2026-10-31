@@ -31,7 +31,6 @@ theorem os_run_7_1 : stmtsEqb ((Data.core299.body.drop 1100).take 1100)
     (((osBody (osCfg 7)).drop 1100).take 1100) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 2000000 in
 theorem osData_7 : OsData 7 := by
   have hl : (osCfg 7).levels.length = 4 := by decide +kernel
   have hb : Data.core299.body.drop 0 = (osBody (osCfg 7)).drop 0 :=

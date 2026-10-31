@@ -73,7 +73,6 @@ theorem vkFirst_kernel :
   decide +kernel
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **The first claim's record, completely.** -/
 theorem vkFirst_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ vkFirstT, GoodS rd vkSt w σ s)
     {chis outs rl : List E} {r0 : E} (h4 : 4 ≤ chis.length)

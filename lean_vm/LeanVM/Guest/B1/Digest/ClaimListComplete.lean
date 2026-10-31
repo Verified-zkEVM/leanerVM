@@ -92,7 +92,6 @@ theorem cl_clNames {j : ℕ} (hj : j < clNames.length) : clNames[j] = clNames.ge
 theorem cl_param (σ : Val) : (Fn.params Data.core23).map σ = [σ (.n 0), σ (.n 1)] := rfl
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 2000000 in
 /-- **`claim_list_digest` is complete**: on a memory image, the `n < 17 · 2^16` claims at `entries`
 and the memory an honest run leaves at a chain buffer `chain` give its relation returning their
 digest. -/

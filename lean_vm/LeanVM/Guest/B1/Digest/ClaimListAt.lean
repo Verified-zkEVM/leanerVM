@@ -111,7 +111,6 @@ noncomputable def clσ (rd : Reader) (entries : E) (n : ℕ) (chain : E) (D : Di
 variable {rd : Reader}
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 2000000 in
 /-- **The empty list's valuation**: its atoms hold, it returns the empty string's digest. -/
 theorem clz_core (entries : E) :
     (∀ a ∈ atomsIn clZEval, a.Holds rd (clzσ rd entries)) ∧ clzσ rd entries (.n 0) = entries ∧
@@ -193,7 +192,6 @@ theorem cl_size_atoms : ∀ a ∈ [Atom.const (.n 25) (word 2 0 0), .mul (.n 26)
   decide +kernel
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 2000000 in
 /-- **The nonempty list's valuation**: on a memory holding the zero state at the chain buffer. -/
 theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd chain 0 zeroState) :
     ClVals rd (clσ rd entries n chain D) entries n chain D := by
@@ -397,7 +395,6 @@ theorem slOk_atomS {rd : Reader} {σ : Val} {s : Stmt} (hs : isAtomS s = true)
   exact h _ rfl
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **`claim_list_digest` is complete, placed**: `n < 17 · 2^16` canonical claims' cells at `g^eP`
 among the caller's words, its chain buffer after its frame holding the states after each group;
 it returns their digest's cells. -/

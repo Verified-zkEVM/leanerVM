@@ -284,7 +284,6 @@ theorem find_l420 : coreProgram.find? "__loop418" = some (coreProgram.getD 877 d
   have h := gap420_ok; simp only [Bool.and_eq_true, decide_eq_true_eq] at h
   exact find_of_idx h.2 (by rw [coreProgram_length]; omega)
 
-set_option maxHeartbeats 1000000 in
 /-- **Column `j` holds** on the memory it reads. -/
 theorem dv_colM {P : DaPtrs} {j : ℕ} (hm : ColMem r L syms ws rd P j) (hL : L ≤ 10)
     (hrL : r ≤ 2 ^ L) (hsl : ∀ i j, (syms i j).length = 256) (hwl : ∀ j, (ws j).length = 256)

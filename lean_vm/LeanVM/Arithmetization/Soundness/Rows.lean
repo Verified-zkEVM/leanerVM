@@ -232,7 +232,6 @@ theorem deref_opRow (env : Environment K) : OpRow ⟨derefTable⟩ env := by
     · rw [← show ((⟨derefTable⟩ : Component K).rowOutput env) = ⟨g * r.pc, r.fp⟩ from hnext]
       exact hexec
 
-set_option maxHeartbeats 16000000 in
 /-- **The `KECCAK` table without its assumption**: the same row circuit, sound for the flags, the
 bindings and the fall-through alone, whatever the output lanes hold (the reduction-blind reading
 of a row). -/
@@ -469,7 +468,6 @@ theorem jump_channelOk : ∀ a ∈ (⟨jumpTable⟩ : Component K).operations.in
     channelOk_bytecodePull, channelOk_statePull, channelOk_statePush, channelOk_memPush,
     channelOk_bytecodePush, and_self]
 
-set_option maxHeartbeats 16000000 in
 /-- Every interaction of the `KECCAK` table is on one of the six channels. -/
 theorem keccak_channelOk : ∀ a ∈ (⟨keccakTable⟩ : Component K).operations.interactions,
     ChannelOk a.channel := by

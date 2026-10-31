@@ -68,7 +68,6 @@ theorem vsTailPre_good (hl : args.length = 7) :
   rwa [fixNe_of_noNe (List.all_eq_true.mp vsTailPre_noNe s hs)] at h
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 1000000 in
 /-- **The tail, honestly.** -/
 theorem vsTailPre_complete (hl : args.length = 7) {κ : ℕ} (hκ6 : 6 ≤ κ) (hlow : LowDef κ rd)
     {m r : ℕ} (hm22 : 22 ≤ m) (hm28 : m ≤ 28) (hr1 : 1 ≤ r) (hr4 : r ≤ 4)

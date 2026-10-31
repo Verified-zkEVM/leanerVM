@@ -117,7 +117,6 @@ theorem vtB_ksC (lm : ℕ) (τ : ℕ → ℕ) : vtKsC (vtKap lm τ) = vtSizesC �
 
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 8000000 in
 /-- **`verify_tables`' bus sides complete** (statements `2404 ..< 5152`). -/
 theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
     (∀ s ∈ (vtPre.drop 2404).take 2748, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s) ∧

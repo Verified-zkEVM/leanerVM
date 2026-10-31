@@ -126,7 +126,6 @@ structure VsFrontH {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSeg
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-set_option maxHeartbeats 1000000 in
 /-- **The honest front is the run's.** -/
 theorem vsH_spec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest} {c : Child}
     (S : ChildSegs bytecode seed c) {lp sq out : E}

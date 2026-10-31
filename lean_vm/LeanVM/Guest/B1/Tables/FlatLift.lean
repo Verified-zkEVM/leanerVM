@@ -324,7 +324,6 @@ where
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 1000000 in
 /-- **A flat function is complete, placed**, from its honest valuation on every memory holding its
 layout, its calls by relations loading from that layout, and the callees placed from those. -/
 theorem flat_completeAt (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : List E)

@@ -66,7 +66,6 @@ theorem vtSel_v : (∀ i < 51, 2770 < (vtPushSel.getD i default).2.2.1) ∧
 section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}
 
-set_option maxHeartbeats 4000000 in
 /-- **All the block selectors, complete.** -/
 theorem vtc_sels (hl : args.length = 22) {point : List E}
     (hmu : vtσ rd wo args (.n 9) = gen ^ point.length) (hml : point.length < 33) {lm : ℕ}

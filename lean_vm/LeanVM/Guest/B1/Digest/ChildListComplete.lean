@@ -96,7 +96,6 @@ theorem cc_cclNames {j : ℕ} (hj : j < cclNames.length) : cclNames[j] = cclName
   rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj]; rfl
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 2000000 in
 /-- **`child_claim_list_digest` is complete**: on a memory image, `n < 17 · 2^16` honest records
 at slots below the bound `g^L` (whose range checks read defined words) and the memory an honest
 run leaves at a chain buffer `chain` give its relation returning the cells' digest. -/

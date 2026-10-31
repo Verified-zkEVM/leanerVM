@@ -41,7 +41,6 @@ theorem regionL_append_right {L L' : Main.Layout} {i : ℕ} (h : RegionL L' i) :
   let ⟨q, hq, h1, h2⟩ := h; ⟨q, List.mem_append_right _ hq, h1, h2⟩
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **`child_claim_list_digest` is complete, placed**: `n < 17 · 2^16` honest records among the
 caller's words, its chain buffer after its frame holding the states after each group; it returns
 their cells' digest. -/

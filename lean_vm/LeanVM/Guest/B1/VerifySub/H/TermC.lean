@@ -47,7 +47,6 @@ theorem lamW_get (j : ℕ) (hj : j < 165)
 
 end ChildSegs
 
-set_option maxHeartbeats 4000000 in
 /-- **The terminal's precondition on an honest child.** -/
 theorem vsH_termPre {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (bs : List ℕ) {rd : Reader} {e2 e120 e121 pb pb1 : ℕ}
@@ -134,7 +133,6 @@ theorem regionL_of {L : Main.Layout} {q : ℕ × List E} (hq : q ∈ L) {i : ℕ
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-set_option maxHeartbeats 4000000 in
 /-- **The terminal is complete on an honest child**, entered on what `certify_placement` and
 `open_stacked` return. -/
 theorem term_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}

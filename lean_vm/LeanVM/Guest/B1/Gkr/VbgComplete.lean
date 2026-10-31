@@ -249,7 +249,6 @@ def vbgLay (depth : ℕ) (cap0 xs : List E) (cur : E) (eL eR eP ePa eD : ℕ) : 
   [(ePa, (List.range 33).map fun k ↦ gen ^ (k / 2)),
     (eD, (List.range 33).map fun k ↦ gen ^ (k % 2))]
 
-set_option maxHeartbeats 800000 in
 /-- **`verify_bus_gkr`'s body holds of its honest valuation** (TRIAGE G #43): at `1 ≤ depth ≤ 32`, an accepting run of
 `gkrPhase depth` from a carried capacity `cap0` reading `xs`, the words `xs` at the cursor, the
 run's point at `zeta`, the memory defined at `g^depth` and `g^(32 - depth)` (the range check) and

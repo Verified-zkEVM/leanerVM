@@ -414,7 +414,6 @@ theorem cp_rank (hlow : LowDefB 7 rd)
 
 end
 
-set_option maxHeartbeats 1000000 in
 /-- **`certify_placement`'s body holds** of the honest valuation: on a memory holding its base and squares table, its
 three buffers holding the columns' `g^κ`, `stackOffsets`'s order and `g^offset`, defined below
 `2^7`, the relation holds with the stack's total and the buffers. -/

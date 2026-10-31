@@ -335,7 +335,6 @@ noncomputable def VtHonest.retsH (H : VtHonest) (B : VtBases) : List E :=
   H.s3.squeeze.2.cap ++ [ofK (gpow B.cur) * gen ^ 5 * gen ^ (3 * H.n) * gen ^ 157, gen ^ H.n, H.bv,
     H.rm]
 
-set_option maxHeartbeats 4000000 in
 set_option maxRecDepth 20000 in
 /-- **`verify_tables` is complete at the `Rel` level.** -/
 theorem vt_rel_complete {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases) {w : ℕ → E}

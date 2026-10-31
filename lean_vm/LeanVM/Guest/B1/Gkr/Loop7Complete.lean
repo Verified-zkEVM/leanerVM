@@ -44,7 +44,6 @@ theorem tb_squeezeN_two (s : Fs) : s.squeezeN 2 =
     ([challengeOf s.perm, challengeOf (permOf (rateOf [] ++ capOf s.perm))],
       ⟨capOf (permOf (rateOf [] ++ capOf s.perm)), []⟩) := rfl
 
-set_option maxHeartbeats 400000 in
 /-- **An iteration of `__loop6`, completely.** -/
 theorem ly_iter {rd : Reader} {N dsb gmu layers rounds : E} {j sh : ℕ} (hj : j < 2 ^ 30)
     (hsh2 : sh < 2) (hN : IsInK N) (hsh : LoadHolds rd (dsb * gmu) 0 (gen ^ sh))

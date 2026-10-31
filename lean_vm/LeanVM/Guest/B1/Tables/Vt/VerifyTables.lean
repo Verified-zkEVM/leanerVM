@@ -33,7 +33,6 @@ section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
-set_option maxHeartbeats 4000000 in
 /-- **`verify_tables` is sound** (G:1931-2307; TRIAGE #52), for a bytecode of `2^23` words. -/
 theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     verify_tables_Spec bc Lm.read := by

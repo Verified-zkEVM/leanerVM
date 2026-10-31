@@ -113,7 +113,6 @@ theorem CL_mem (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {s : ℕ} (
 theorem step_bounds : ∀ s < 12, 202 ≤ stepT0 s (stepB s) ∧ 17 ≤ stepB s := by decide +kernel
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **Step `s`, on the layout.** -/
 theorem step_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE) {s : ℕ} (hs : s < 12)

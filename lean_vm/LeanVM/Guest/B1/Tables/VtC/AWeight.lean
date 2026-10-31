@@ -43,7 +43,6 @@ def vtKidW {ι : Type} (ω : ι → String → ℕ) (Wss W10 : ι → ℕ) (t : 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **`verify_tables` is complete, placed, within its bound, by a node of honest shape whose
 callees are within their weights.** -/
 theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 8 ≤ κ) {H : VtHonest} (h : H.Ok)
@@ -321,7 +320,6 @@ theorem callsW_flatCalls_le {σ : Val} (W : Call → ℕ) (bnd : Stmt → ℕ) :
         ↓reduceIte]
       split <;> omega
 
-set_option maxHeartbeats 1000000 in
 /-- **`verify_tables`' node of honest shape weighs at most** its frame's weight and its calls'
 bounds: the shared tables' `Wss i`, the rounds loop's `28 · K10w i`, the others' `Kw i`. -/
 theorem vt_weight_le {ι : Type} (ω : ι → String → ℕ) (Kw : ι → String → ℕ) (Wss K10w : ι → ℕ)

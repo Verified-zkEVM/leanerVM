@@ -65,7 +65,6 @@ theorem selBits_reads {rd : Reader} {p : E} {off τ d : ℕ} (hd : τ + d ≤ 34
 section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}
 
-set_option maxHeartbeats 1000000 in
 /-- **A table block's selector, complete.** -/
 theorem vtc_selblock (hl : args.length = 22) {v b t pos : ℕ} {prev : Option ℕ}
     (hcheck : tbStmtsEqb (vtSelT v b t prev) ((vtPre.drop pos).take (vtSelT v b t prev).length) =
@@ -218,7 +217,6 @@ theorem vtc_selblock (hl : args.length = 22) {v b t pos : ℕ} {prev : Option �
     · cases prev <;> simp only [vtSelTail, List.mem_cons, List.not_mem_nil, or_false] at hs <;>
         rcases hs with rfl | rfl <;> simp [autoB, pureB, hintB] at ha
 
-set_option maxHeartbeats 1000000 in
 /-- **A framework block's selector, complete.** -/
 theorem vtc_fwblock (hl : args.length = 22) {v b pos : ℕ} {prev : Option ℕ}
     (hcheck : tbStmtsEqb (vtFwSelT v b prev) ((vtPre.drop pos).take (vtFwSelT v b prev).length) =

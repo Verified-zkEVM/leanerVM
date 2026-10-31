@@ -96,7 +96,6 @@ theorem getElem?_filter_mem {l : List Stmt} {p : Stmt → Bool} {i : ℕ} {s : S
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **`verify_tables` is complete, placed, within its bound**: from the specification's accepting
 run (`H.Ok`) and the deployed shapes (`VtShape`), on the caller's honest buffers `H.linL B`, for
 memories defined below `2^κ`, `κ ≥ 8`, its tree of at most `fs "verify_tables"` words, its

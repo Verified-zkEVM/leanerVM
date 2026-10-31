@@ -120,7 +120,6 @@ section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
-set_option maxHeartbeats 1000000 in
 /-- **All the block selectors.** -/
 theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
     (hz : TbReadsAt Lm.read (σ (.n 8)) point) (hmu : σ (.n 9) = gen ^ point.length)

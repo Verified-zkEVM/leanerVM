@@ -146,7 +146,6 @@ theorem div_of_ratio {w A t B : ℕ} (h : 1000 * w ≤ A * t) (ht : t ≤ B) : w
   (Nat.le_div_iff_mul_le (by norm_num)).mpr (by
     have := Nat.mul_le_mul_left A ht; rw [Nat.mul_comm w]; omega)
 
-set_option maxHeartbeats 4000000 in
 /-- **`verify_sub`'s instructions of `op`**: a node of B1-d's shape at `Count.vsWords` (`vsTs`)
 weighs at most its frame's weight and `vsWs op (candidate μ r) (vsBsAt vsWords Bvk μ r)`. -/
 theorem vs_weight_le (op : Opcode) {μ r : ℕ} (hc : B1.Whir.candidate μ r < 28) {Bvk : ℕ}

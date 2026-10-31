@@ -106,7 +106,6 @@ noncomputable def l3σ (rd : Reader) (i nrx X cv tb s : ℕ) : Val :=
     gen ^ i * word 2 0 0 + gen ^ nrx, word 2 0 0, gen ^ i * word 2 0 0]
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **`__loop2` loads from the caller's words**, from every counter below the count. -/
 theorem rawX_relIn (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ} {Lin : Layout}
     (D : RawXData nrx X cv tb Lin) (hX : X ≤ 2 ^ 16) (hnrx : nrx < 2 ^ 34) {rd : Reader}
@@ -189,7 +188,6 @@ noncomputable def l4σ (rd : Reader) (j nrs Y cv X nrx tb bb s : ℕ) : Val :=
     gen ^ j * word 2 0 0 + gen ^ nrs, word 2 0 0, gen ^ j * word 2 0 0]
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **`__loop3` loads from the caller's words**, from every counter below the count. -/
 theorem rawS_relIn (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec)
     {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin)

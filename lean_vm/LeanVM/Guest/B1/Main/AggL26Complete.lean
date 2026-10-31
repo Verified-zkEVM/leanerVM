@@ -44,7 +44,6 @@ theorem capOf_getD (S : KeccakState) {i : ℕ} (hi : i < 5) :
   rcases (show i = 0 ∨ i = 1 ∨ i = 2 ∨ i = 3 ∨ i = 4 by omega) with rfl | rfl | rfl | rfl | rfl <;> rfl
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **A child's record** (`__loop25`). -/
 theorem l26_block {x N chainT lfT lcT lamSq lam pf pc fv cv pw acc : E}
     (hrow : ReadsAt rd (chainT * x ^ 2) [pw, acc])
@@ -138,7 +137,6 @@ theorem l26_block {x N chainT lfT lcT lamSq lam pf pc fv cv pw acc : E}
     exact ⟨hat a (mem_atomsIn hs), trivial⟩
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **A child's weight** (`__loop26`). -/
 theorem l27_block {x N lfT lcT pt chainT wT lam pf pc pw wc : E} {pp pq r : List E}
     (hlf : LoadHolds rd (lfT * x) 0 pf) (hlc : LoadHolds rd (lcT * x) 0 pc)

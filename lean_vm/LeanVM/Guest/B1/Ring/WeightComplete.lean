@@ -185,7 +185,6 @@ theorem rswTerm_mem {k : ℕ} (hk : k < 64) (s : Stmt) (hs : s ∈ rswTerm k) : 
   simp only [rswPre, List.mem_append, List.mem_flatten, List.mem_map, List.mem_range]
   exact Or.inl (Or.inr ⟨rswTerm k, ⟨k, hk, rfl⟩, hs⟩)
 
-set_option maxHeartbeats 1000000 in
 /-- **`ring_switch_weight`'s statements hold** on their evaluated valuation, over the honest
 chain, the coordinates, the point and the coefficients. -/
 theorem rsw_block {rd : Reader} {bz bp bc bb count : ℕ} {zs ps cs : List E} (hcount : count < 64)
@@ -405,7 +404,6 @@ theorem rsw_loads_ok {q : V × ℕ} (hq : q ∈ rswPre.filterMap Stmt.loadS) :
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-set_option maxHeartbeats 1000000 in
 /-- **`ring_switch_weight` is complete, placed**: on the coordinates, the point and the
 coefficients, at every frame pointer, its chain at the bump allocator's position, returning
 `ringWeight`. -/

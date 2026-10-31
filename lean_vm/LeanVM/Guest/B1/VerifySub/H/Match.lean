@@ -47,7 +47,6 @@ theorem ChildSegs.candidate_lt (S : ChildSegs bytecode seed c) :
   unfold B1.Whir.candidate
   omega
 
-set_option maxHeartbeats 2000000 in
 set_option maxRecDepth 100000 in
 /-- **`verify_sub`'s frames are its callees.** -/
 theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {lpE outE : ℕ}

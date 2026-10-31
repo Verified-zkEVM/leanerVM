@@ -68,7 +68,6 @@ end ChildSegs
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-set_option maxHeartbeats 1000000 in
 /-- **`verify_sub`'s callees but the terminal are complete, placed.** -/
 theorem kid_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 16 ≤ κ) (hrf : Lift.RunsFit fs cert)

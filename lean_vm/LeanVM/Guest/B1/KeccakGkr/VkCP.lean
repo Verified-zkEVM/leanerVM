@@ -59,7 +59,6 @@ theorem sRets_cap (h : D.Ok) : (List.range 5).map (fun j ↦ (D.sRets curE).getD
   rw [List.getD_append _ _ _ _ h2, List.getD_eq_getElem _ _ h2]
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **The inputs' opening, on the layout.** -/
 theorem in_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE) (h6 : σ (.n 6) = gen ^ D.τ)
@@ -138,7 +137,6 @@ theorem in_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
   exact hsq
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **The inputs' check and the return, on the layout.** -/
 theorem fin_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE) (h9 : σ (.n 9) = ptr zvE)

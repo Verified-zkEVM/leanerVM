@@ -291,7 +291,6 @@ theorem col_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel 
 
 /-! ## `da_verify` -/
 
-set_option maxHeartbeats 4000000 in
 /-- **`da_verify`, soundly, its witness named**: under a call relation that unfolds at `Vm` and
 lies below `coreProgram.Rel`, on a memory image with the exponent table at its argument, the
 returned words are a root and a vector digest that `dvWit σ Vm` opens. -/

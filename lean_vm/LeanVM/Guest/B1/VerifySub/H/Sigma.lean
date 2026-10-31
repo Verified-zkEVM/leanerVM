@@ -104,7 +104,6 @@ structure VsSig {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs b
 
 variable {rd : Reader} {args : List E}
 
-set_option maxHeartbeats 1000000 in
 /-- **The honest valuation holds `VsSig`**, with the section data. -/
 theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest} {c : Child}
     (S : ChildSegs bytecode seed c) {lpE sqE outE : ℕ}

@@ -32,7 +32,6 @@ variable {rd : Reader} {w : ℕ → E} {σ : Val}
 theorem one_add_gen_pow_inK (k : ℕ) : IsInK (1 + gen ^ k) :=
   isInK_add ((isInK_iff _).mpr ⟨1, ofK_one.symm⟩) ((isInK_iff _).mpr ⟨_, gen_pow_eq_ofK k⟩)
 
-set_option maxHeartbeats 1000000 in
 /-- **The committed outputs' opening, completely.** -/
 theorem vkOut_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkOutT, GoodS rd vkSt w σ st)
     {τ : ℕ} (h17 : σ (.n 17) = gen ^ (τ - 4)) {wd : E}

@@ -188,7 +188,6 @@ theorem rsw_completeAtB_fs (cert : String → V → ℕ) (κ : ℕ) {bz bp bc co
   (rsw_completeAtB κ (by omega) hz hp hc (rs_totalLeOn_fs count hcount)).mono le_rfl
     (by rw [fs_rsw])
 
-set_option maxHeartbeats 400000 in
 /-- **`check_opening_terminal` is complete, placed, within `38888` words at `B2C.fs`**
 (`check_opening_terminal_completeAtB` with the callees' words of the certificates and
 `rs_totalLeOn_fs`). -/

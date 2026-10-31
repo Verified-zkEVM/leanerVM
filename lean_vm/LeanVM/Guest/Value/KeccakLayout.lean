@@ -192,7 +192,6 @@ def laneCell (odd : Bool) (l : Fin 25) : Fin 13 := ⟨laneCellIdx odd l, laneCel
 /-- The limb holding lane `l`. -/
 def laneLimb (odd : Bool) (l : ℕ) : Fin 3 := ⟨laneLimbIdx odd l, laneLimbIdx_lt odd l⟩
 
-set_option maxHeartbeats 4000000 in
 private theorem lane_stateOfCells_nat (cells : Fin 13 → E) (odd : Bool) (l : ℕ) (hl : l < 25) :
     Keccak.lane (stateOfCells cells odd) l =
       ((cells ⟨laneCellIdx odd l, laneCellIdx_lt odd hl⟩).limb (laneLimb odd l)).lane := by
@@ -208,7 +207,6 @@ theorem lane_stateOfCells (cells : Fin 13 → E) (odd : Bool) (l : Fin 25) :
       ((cells (laneCell odd l)).limb (laneLimb odd l)).lane :=
   lane_stateOfCells_nat cells odd l l.isLt
 
-set_option maxHeartbeats 4000000 in
 /-- The cells `KECCAK` writes hold lane `l` where `lane_stateOfCells` reads it. -/
 theorem limb_cellsOfState (S : KeccakState) (odd : Bool) (l : Fin 25) :
     (cellsOfState S odd (laneCell odd l)).limb (laneLimb odd l) = K.ofLane (Keccak.lane S l) := by

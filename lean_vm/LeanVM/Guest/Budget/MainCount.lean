@@ -102,7 +102,6 @@ theorem callsW_le_sum (W : Call → ℕ) : ∀ cs : List Call, callsW W cs ≤ (
     rw [List.map_cons, List.sum_cons, List.map_cons, List.sum_cons]
     split <;> omega
 
-set_option maxHeartbeats 1000000 in
 /-- `main`'s calls' bounds sum to `mainCount` past its frame. -/
 theorem mainCalls_sum (H : MainCounts ω fs) (σ : Val) (m : MainIn) (Kx Ks Kd K5 : ℕ) :
     ω "main" + ((mCalls σ m).map (mainCallW H m Kx Ks Kd K5)).sum ≤ mainCount H m Kx Ks Kd K5 := by
@@ -133,7 +132,6 @@ theorem loop_case {f : String} {K : ℕ} (hL : LoopW ω f K) {args : List V} {t 
     rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)] at h1
     simpa using h1
 
-set_option maxHeartbeats 4000000 in
 set_option maxRecDepth 10000 in
 /-- **`main`'s weight at `ω`** on its tree: its frame's and `mainCount`'s callees' bounds, the
 claim lists within `Kx`, `Ks`, `da_verify` within `Kd` (a direct blob held) and the children's

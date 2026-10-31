@@ -71,7 +71,6 @@ def ccCalls (n : ℕ) (_ : Val) : List Call :=
       ⟨cclNames[n % 17]!, [.n 58, .n 0, .n 1, .n 64, .n 3, .n 4], [.n 65, .n 66], true⟩]
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **`claim_list_digest` is complete, placed, by a tree of honest shape**: `n < 17 · 2^16` canonical claims' cells at `g^eP`
 among the caller's words, its chain buffer after its frame holding the states after each group;
 it returns their digest's cells. -/
@@ -385,7 +384,6 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
 
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **`child_claim_list_digest` is complete, placed, by a tree of honest shape**: `n < 17 · 2^16` honest records among the
 caller's words, its chain buffer after its frame holding the states after each group; it returns
 their cells' digest. -/

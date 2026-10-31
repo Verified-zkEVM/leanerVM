@@ -319,7 +319,6 @@ def MeaningAggregateClaimsW (rd : Reader) (h : BatchingHints) : List E → List 
           batch cs h = some out
   | _, _ => False
 
-set_option maxHeartbeats 1000000 in
 /-- **`aggregate_claims` at a valuation** writes the batching, with the hints `aggHints rd σ`, of
 the children whose words the memory holds. -/
 theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (coreProgram.Rel rd))

@@ -121,7 +121,6 @@ theorem vtSideW_get {rd : Reader} {p : E} (h : TbReadsAt rd p vtSideW) {b : ℕ}
   have := h b (by simp [vtSideW]; exact hb)
   simpa [vtSideW] using this
 
-set_option maxHeartbeats 2000000 in
 /-- **The two sides' ranks**, rank by rank. -/
 theorem vtS_sides (hl : args.length = 22) (hlow : LowDefB 8 rd) (κ : ℕ → ℕ)
     (hκ : ∀ b < 153, κ b < 34)
@@ -200,7 +199,6 @@ theorem vtS_sides (hl : args.length = 22) (hlow : LowDefB 8 rd) (κ : ℕ → �
     hsq'
   exact ⟨H1, H2⟩
 
-set_option maxHeartbeats 2000000 in
 /-- **Statements `0 ..< 2189`.** -/
 theorem vtS_sort (hl : args.length = 22) (hlow : LowDefB 8 rd) (κ : ℕ → ℕ)
     (hκ : ∀ b < 153, κ b < 34)

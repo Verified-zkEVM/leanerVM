@@ -79,7 +79,6 @@ theorem vt_hint1 (hl : args.length = 22) (n : ℕ) {d : ℕ} {h : Hint}
     vtσ rd w args (.n d) = w d :=
   hh (vt_goodS hl (vt_mem_slice (blk := [_]) heq List.mem_cons_self))
 
-set_option maxHeartbeats 4000000 in
 /-- **Statements `2189 ..< 2404`.** -/
 theorem vtS_p2 (hl : args.length = 22) (hlow : LowDefB 8 rd) (point : List E)
     (hμ33 : point.length < 33) (τ n : ℕ → ℕ)

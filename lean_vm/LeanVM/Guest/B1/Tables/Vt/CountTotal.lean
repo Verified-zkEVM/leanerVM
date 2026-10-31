@@ -39,7 +39,6 @@ def vtCountPadData : List (ℕ × ℕ × ℕ × List (ℕ × ℕ)) :=
     (152, 5, 5762, [])]
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 4000000 in
 /-- **The count side's total.** -/
 theorem vt_count_total {rd : Reader} {σ : Val} (h : VtH rd σ) (W : ℕ → E) :
     σ (.n 5816) = vtPadSum (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t))) W 1 vtCountPadData +

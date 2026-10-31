@@ -53,7 +53,6 @@ theorem fn_name_of_find' {f : String} {fn : Fn} (h : coreProgram.find? f = some 
   have := List.find?_some h
   simpa using this
 
-set_option maxHeartbeats 2000000 in
 /-- **One step of a loop of atoms, placed**: the block at `g^k` and the rest of the loop. -/
 theorem loopA_stepAt {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hok : loopShapeF fn f = true) (hA : (loopPre fn).all isAtomS = true)

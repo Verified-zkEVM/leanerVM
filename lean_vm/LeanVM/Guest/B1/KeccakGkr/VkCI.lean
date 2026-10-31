@@ -270,7 +270,6 @@ theorem sMeaning (h : D.Ok) {rd : Reader} {curE chiE olE zvE slE : ℕ}
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-set_option maxHeartbeats 4000000 in
 /-- **The calls, complete where `verify_keccak` places them.** -/
 theorem kids_complete (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) :
     ∀ k ∈ D.kids fs B curE chiE olE zvE slE, k.taken = true → ∀ ps,

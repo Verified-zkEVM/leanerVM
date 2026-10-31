@@ -64,7 +64,6 @@ theorem layer_match (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE (D.lsOf fs
   exact hr
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 1000000 in
 /-- **The frames match the callees.** -/
 theorem calls_match (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE (D.lsOf fs fps))
     {σ : Val} (hσd : σ = D.val rd B curE chiE olE zvE slE) (hfl : fps.length = 18)

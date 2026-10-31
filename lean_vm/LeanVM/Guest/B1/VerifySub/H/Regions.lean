@@ -41,7 +41,6 @@ theorem curW_eq (hbl : bytecode.length = 2 ^ 23) : S.H.curW = S.xsT := (S.H_run 
 
 end ChildSegs
 
-set_option maxHeartbeats 2000000 in
 /-- **The callees but the terminal read the caller's words and the own buffers.** -/
 theorem kid_lin_sub {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (b : ℕ) {lpE sqE : ℕ} {Lin : Main.Layout}

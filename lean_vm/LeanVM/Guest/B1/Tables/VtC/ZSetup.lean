@@ -165,7 +165,6 @@ noncomputable def zRest : List Stmt := [
     .call "eq_prefix_chain" [.n 5936, .n 5937, .n 18, .n 2767, .n 5817] []]
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 4000000 in
 /-- **Statements `5152 ..< 5259`, completely** (G:2178-2223): the hinted `g^n` with `n` the
 largest `τ_t` (at most `m = |point|`), the squeeze `ξ` of the sponge `S` after the bus words,
 the target, the first record, `__loop9`'s rounds on the honest buffers (records, running

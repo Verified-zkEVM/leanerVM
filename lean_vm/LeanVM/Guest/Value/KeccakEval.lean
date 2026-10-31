@@ -130,7 +130,6 @@ theorem rotN_toNat (x : UInt64) {n : ℕ} (hn : n < 64) :
     simp only [h0, ↓reduceIte, UInt64.toNat_or, UInt64.toNat_shiftLeft, UInt64.toNat_shiftRight,
       h1, h2, Nat.mod_eq_of_lt hn, Nat.mod_eq_of_lt (show 64 - n < 64 by omega)]
 
-set_option maxHeartbeats 4000000 in
 /-- **The round on natural numbers is `Keccak.round`.** -/
 theorem roundN_toNats (a : KeccakState) (rc : UInt64) :
     roundN (toNats a) rc.toNat = toNats (Keccak.round a rc) := by

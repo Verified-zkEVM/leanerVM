@@ -54,7 +54,6 @@ def colFrom (f col : String) (m : ℕ) (Tc : Tree → Prop) : ℕ → ℕ → Tr
 variable (fs : String → ℕ) (cert : String → V → ℕ)
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 2000000 in
 /-- **One step of a column loop, placed, by a tree of its honest shape** (`colLoopNH`). -/
 theorem colLoop_stepAtT {Tc Tt : Tree → Prop} {f col : String} {j endLo : ℕ} (hj : j < coreProgram.length)
     (hok : (colLoopOk (coreProgram.getD j default) col f endLo &&

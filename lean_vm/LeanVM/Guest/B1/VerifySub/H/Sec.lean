@@ -103,7 +103,6 @@ theorem s7_eta (hbl : bytecode.length = 2 ^ 23) : S.s7 = ⟨S.s7.cap, []⟩ := b
 
 end ChildSegs
 
-set_option maxHeartbeats 4000000 in
 set_option maxRecDepth 100000 in
 /-- **The sections' data of the honest valuation on an honest child.** -/
 theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest} {c : Child}

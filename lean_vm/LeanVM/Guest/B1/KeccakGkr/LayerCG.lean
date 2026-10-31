@@ -87,7 +87,6 @@ theorem outW_mu {D : LayerData} {first : ℕ} {pt lp lc sl : E} {i : ℕ} :
   simp
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **A layer's body, completely.** -/
 theorem layer_body_complete {first odd : ℕ} (hf : first < 2) (ho : odd < 2) (D : LayerData)
     {rd : Reader} {w : ℕ → E} {p0 p1 cur claim out iota : E} {cw : List E}

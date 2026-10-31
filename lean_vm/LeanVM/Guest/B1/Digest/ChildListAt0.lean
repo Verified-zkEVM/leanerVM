@@ -127,7 +127,6 @@ noncomputable def ccσ (rd : Reader) (args : List E) (n : ℕ) (chain : E) (D : 
 variable {rd : Reader}
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 2000000 in
 /-- **The empty list's valuation**: its atoms hold, it returns the empty string's digest. -/
 theorem ccz_core (entries cover base origin limit : E) :
     let σ := cczσ rd [entries, cover, base, origin, limit, gen ^ 0]
@@ -212,7 +211,6 @@ theorem cc_size_atoms : ∀ a ∈ [Atom.const (.n 29) (word 2 0 0), .mul (.n 30)
   decide +kernel
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 2000000 in
 /-- **The nonempty list's valuation**: on a memory holding the zero state at the chain buffer. -/
 theorem cc_core {entries cover base origin limit chain : E} {n : ℕ} (D : Digest)
     (hz0 : StateAt rd chain 0 zeroState) :

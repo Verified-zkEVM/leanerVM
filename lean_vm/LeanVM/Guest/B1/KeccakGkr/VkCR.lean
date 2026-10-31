@@ -62,7 +62,6 @@ theorem claims_length (h : D.Ok) : (D.claims B ls).length = 286 := by
   simp [outWs_length]
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 16000000 in
 /-- **Every load lands in the layout.** -/
 theorem loads_in (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE) {T : ℕ → Prop}

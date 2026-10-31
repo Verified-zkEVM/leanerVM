@@ -248,7 +248,6 @@ theorem vt_sizes_sum : S.H.sizes.sum = 6604 + S.H.μ + 9 * (S.H.n + 1) := by
 
 end ChildSegs
 
-set_option maxHeartbeats 2000000 in
 /-- **`verify_sub`'s callees on an honest child, each within its bound**, `open_stacked` within its
 candidate's. -/
 theorem vs_kidsDepBAt {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
@@ -335,7 +334,6 @@ theorem vs_kidsDepB {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed :
     (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons hB
       (.cons le_rfl .nil))))))))))))
 
-set_option maxHeartbeats 2000000 in
 /-- **`verify_sub` is complete on every honest child within `vsBound W Bvk` words**, its callees'
 words facts `W` and `verify_keccak`'s bounded completeness assumed. -/
 theorem verify_sub_completeB {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)

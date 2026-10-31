@@ -40,7 +40,6 @@ theorem _root_.LeanVM.Guest.B1.CompleteAtDTB.toCompleteAtB {k : ℕ} {f : String
     let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
     ⟨n, Lown, rets, Lout, ho, hw, hd, hn, fun rd hl hm => (hr rd hl hm).relAtIn⟩
 
-set_option maxHeartbeats 400000 in
 /-- **`ring_switch_target` is complete, placed, within `fs "ring_switch_target" + 18 + B14`**: its
 frame, its chain (`18` words) and `__loop13`'s words, at most `B14` when called from `1` (`hl14`;
 at `B2C.fs` its words certificate gives `7 · 1322`). -/
@@ -161,7 +160,6 @@ theorem rst_completeAtB (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length
         rw [hw16, rt_addr_mul]
 
 
-set_option maxHeartbeats 1000000 in
 /-- **`ring_switch_weight` is complete, placed, within
 `fs "ring_switch_weight" + 64 · (count + 1) + Brs`**: its frame, its chain (`allocDyn`, at most
 `64 · (count + 1)` words) and `rs_eq_run`'s words, at most `Brs` on `count` coordinates (`hrs`). -/

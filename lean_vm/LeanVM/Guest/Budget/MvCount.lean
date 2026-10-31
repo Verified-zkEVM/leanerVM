@@ -137,7 +137,6 @@ padding loop's `Kr`, `Kg` per iteration. -/
 def colW (ωc Kr Kg r L : ℕ) : ℕ :=
   ωc + (kcDvStT op).getD 1 0 + r * Kr + (2 ^ L - r) * Kg + (kcDlT op).getD L 0
 
-set_option maxHeartbeats 1000000 in
 /-- **A column's instructions** on a tree of its honest shape. -/
 theorem col_weight_le {fname rl gl : String} {Kr Kg r L : ℕ}
     (hlr : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) rl Kr)
@@ -224,7 +223,6 @@ theorem dvCol_weight_le {f col rl gl : String} {jf jc jr jg : ℕ} {r L m k : �
   rw [← hf, ← hc, mvOm_eq op hjf, mvOm_eq op hjc] at this
   exact this
 
-set_option maxHeartbeats 4000000 in
 /-- **`da_verify`'s instructions of `op`** on a tree of its honest shape `Da.dvNH r L`. -/
 theorem dv_weight_le {r L : ℕ} (hr : 0 < r) (hrL : r ≤ 2 ^ L) (hL : L < 11) {rd : Reader}
     {t : Tree} {args rets : List E} (h : B1.Da.dvNH r L t) (hv : t.Valid coreProgram rd args rets)
@@ -272,7 +270,6 @@ theorem dv_weight_le {r L : ℕ} (hr : 0 < r) (hrL : r ≤ 2 ^ L) (hL : L < 11) 
   unfold dvW
   omega
 
-set_option maxHeartbeats 4000000 in
 /-- **`da_verify`'s instructions on `r` rows padded to `2^L`** within
 `kcDvA op + kcDvR op · r + kcDvP op · 2^L`. -/
 theorem dvW_le {r L : ℕ} (hlo : r ≤ 2 ^ L) (hL : L < 11) :
@@ -288,7 +285,6 @@ theorem dvW_le {r L : ℕ} (hlo : r ≤ 2 ^ L) (hL : L < 11) :
 def clW (n : ℕ) : ℕ :=
   (mvOmT op).getD 5 0 + (if n = 0 then 0 else kcLs op + n / 17 * kcL16 op + (kcClT op).getD (n % 17) 0)
 
-set_option maxHeartbeats 1000000 in
 /-- **`claim_list_digest`'s instructions** on a tree of honest shape. -/
 theorem cl_weight_le {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : Reader} {t : Tree}
     {args rets : List E} (h : B1.Main.clHonest n t) (hv : t.Valid coreProgram rd args rets)

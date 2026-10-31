@@ -153,7 +153,6 @@ noncomputable def l14σ (rd : Reader) (x sl mc ch : E) : Val :=
   B1.Val.ofArgs (ev rd (fun _ => 0) [x, sl, mc, ch] loop14T)
 
 set_option maxRecDepth 10000 in
-set_option maxHeartbeats 1000000 in
 /-- **`__loop13`'s block holds** on its evaluated valuation, at `x = g^j` over the honest row. -/
 theorem l14_block {rd : Reader} {x sl mc ch : E} {vs chs : List E} {xp run : E}
     (hvl : vs.length = 8) (hcl : chs.length = 6) (hvs : ReadsAt rd (sl * x ^ 8) vs)

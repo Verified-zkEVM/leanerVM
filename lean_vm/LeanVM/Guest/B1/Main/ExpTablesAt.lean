@@ -57,7 +57,6 @@ theorem expTables_of_reads {rd : Reader} {b : ℕ}
   exact ⟨a, b⟩
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **`exponent_tables` at `fp`**, on a memory holding its two tables. -/
 theorem et_at (fs : String → ℕ) (cert : String → V → ℕ) {rd : Reader} {fp : ℕ} {R : ℕ → Prop}
     (hm : ExpTables rd (gen ^ etB fs fp) (gen ^ (etB fs fp + 34))) :

@@ -155,7 +155,6 @@ theorem vtP_push_fw {rd : Reader} {σ : Val} (h : VtP rd σ) {W : ℕ → E}
   ring
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 4000000 in
 /-- **The push side's total.** -/
 theorem vtP_push_total {rd : Reader} {σ : Val} (h : VtP rd σ) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i)) :
@@ -763,7 +762,6 @@ theorem vtP_push_total {rd : Reader} {σ : Val} (h : VtP rd σ) {W : ℕ → E}
   rw [← t0, ← t1, ← t2, ← t3, ← t4, ← t5, tb_word_one]
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 4000000 in
 /-- **The pull side's total.** -/
 theorem vtP_pull_total {rd : Reader} {σ : Val} (h : VtP rd σ) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i)) :
@@ -1066,7 +1064,6 @@ theorem vtPPullSels5 {rd : Reader} {σ : Val} (h : VtP rd σ) :
   rw [a4164, a4169, a4174, a4179, a4184, a4189, a4194, a4199, a4204, a4209, a4214, a4219, a4224, a4229, a4234, a4239, a4244, a4249, a4254, a4259, a4264, a4269, a4274, a4279, a4284, a4289, a4294, a4299]
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 4000000 in
 /-- **The count side's total.** -/
 theorem vtP_count_total {rd : Reader} {σ : Val} (h : VtP rd σ) (W : ℕ → E) :
     σ (.n 5816) = vtPadSum (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t))) W 1 vtCountPadData +

@@ -43,7 +43,6 @@ theorem mem_stepCoreI {s b : ℕ} {st : Stmt}
     st ∈ stepCore s b :=
   List.mem_append_right _ h
 
-set_option maxHeartbeats 1000000 in
 /-- **A step's core, completely**, given its flips. -/
 theorem stepCore_of_flips {s b : ℕ} (hs : s < 12) (hb : 17 ≤ b) (hσ : ∀ v, σ v = σ (.n v.idx))
     (hg : ∀ st ∈ stepCore s b, GoodS rd vkSt w σ st) (hk : stepKer s b)

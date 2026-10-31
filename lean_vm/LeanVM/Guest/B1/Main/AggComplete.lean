@@ -200,7 +200,6 @@ structure AggVals (rd : Reader) (σ : Val) (m : ℕ) (cpi cfresh ccarried dst : 
     (aggRun cs h).2.cap ++ [(aggRun cs h).1.2]
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **`aggregate_claims`' honest valuation** on `m` children whose words the memory holds, the
 hints of an accepting batching and the honest memory at its buffers `P`. -/
 theorem agg_core {m : ℕ} {cpi cfresh ccarried dst : E}
@@ -469,7 +468,6 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst : E}
     rfl
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 2000000 in
 /-- **`aggregate_claims` is complete** on `m` children whose words the memory holds, the hints of
 an accepting batching (`batch cs h = some out`) and the honest memory at any choice of its
 buffers `P`: its relation holds, and `defer_stmt` holds the batching's claim. -/

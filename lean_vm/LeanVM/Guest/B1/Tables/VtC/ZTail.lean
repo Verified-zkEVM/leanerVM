@@ -44,7 +44,6 @@ def ZtOut (σ : Val) (S2 : Fs) : Prop :=
     σ (.n 11244) = σ (.n 2639) ∧ σ (.n 11245) = S2.squeeze.1
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 4000000 in
 /-- **Statements `10209 ..< 10251`, completely.** -/
 theorem vtZt_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 22) {S2 : Fs}
     (hSr : rateOf S2.pend =

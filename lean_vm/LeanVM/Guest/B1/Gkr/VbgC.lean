@@ -158,7 +158,6 @@ theorem vb_goodS (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) (n : ℕ) (s : St
   good_slice (G := fun s => GoodS rd vbgS w σ (fixNe s))
     (fun s hs => hG _ (List.mem_map_of_mem hs)) n [s] heq (by simp [hni]) s List.mem_cons_self
 
-set_option maxHeartbeats 800000 in
 /-- **`verify_bus_gkr`'s body, completely**, on its honest valuation, at `1 ≤ depth ≤ 32`: the range check's words
 defined, the two roots at the cursor (the count nonzero), the root slot, the tables, the binary
 layer's words at an odd depth, every layer's words (`LyIter`), and the last slot with its point at

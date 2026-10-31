@@ -161,7 +161,6 @@ theorem stagesOf_snoc_of_le (acc : List E) (c : E) (h : 6 ≤ acc.length) :
   unfold stagesOf
   rw [zip_append_of_le acc [c] ringMapShifts (by simpa [ringMapShifts] using h)]
 
-set_option maxHeartbeats 4000000 in
 /-- The program's closed-form coefficients are the Frobenius terms' of its stages: a
 computation over six named coefficients. -/
 theorem frobTerms_stagesOf (f0 f1 f2 f3 f4 f5 : E) (F : ℕ → E) :

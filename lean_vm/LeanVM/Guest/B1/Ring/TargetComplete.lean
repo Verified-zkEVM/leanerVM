@@ -122,7 +122,6 @@ theorem l14_relIn_lin {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.le
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-set_option maxHeartbeats 400000 in
 /-- **`ring_switch_target` is complete, placed**: on the slices and the challenges, at every frame
 pointer, its chain at the bump allocator's position, returning `Σ_i g^i Φ(s_i)`. -/
 theorem rst_completeAt (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length = 64)

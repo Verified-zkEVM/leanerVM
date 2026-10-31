@@ -20,7 +20,6 @@ open LeanVM.Node LeanVM.Guest.Memory
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-set_option maxHeartbeats 4000000 in
 /-- **The terminal is complete on an honest child within `termBound`, by a tree within its
 weights** (`term_completeB` by `check_opening_terminal_completeAtBW`). -/
 theorem term_completeBW {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}

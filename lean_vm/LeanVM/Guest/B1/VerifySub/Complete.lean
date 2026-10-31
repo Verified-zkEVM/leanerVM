@@ -64,7 +64,6 @@ theorem ownW_fits (hbl : bytecode.length = 2 ^ 23) (hst : c.proof.stream.length 
 
 end ChildSegs
 
-set_option maxHeartbeats 2000000 in
 /-- **`verify_sub`'s lift obligations on an honest child**, but its callees' completeness: its
 callees read the caller's words, its own buffers and the results before them, those words are in
 memory, and its valuation is the honest one (`completeAt_flatDepR`'s and `completeAt_flatDepRB`'s
@@ -196,7 +195,6 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
         holdsList_append]
       exact vsCPre_complete D (by simp [Stmt.HoldsList, Stmt.Holds])
 
-set_option maxHeartbeats 2000000 in
 /-- **`verify_sub` is complete on every honest child**, `verify_keccak` complete. -/
 theorem verify_sub_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
     (hvk : ∀ (fs : String → ℕ) (cert : String → V → ℕ), Lift.RunsFit fs cert →

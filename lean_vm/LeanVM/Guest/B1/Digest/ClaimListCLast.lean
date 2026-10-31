@@ -63,7 +63,6 @@ theorem cl_cells_unique {blk : E} {cells cells' : List E} (h : ReadsAt rd blk ce
   rw [readsAt_memRun h, readsAt_memRun h', hl]
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 1000000 in
 /-- **`claim_list_last__L{k}` is complete**: from the state after whole blocks `pre` at `sp` and
 `4k` canonical cells at `blk`, it returns the digest of `pre ++` the cells. -/
 theorem claimLast_complete {k : ℕ} (hk : k < 17) {sp blk : E} {n : ℕ} {pre : List UInt8}
@@ -178,7 +177,6 @@ theorem cl_mem_atoms {ss : List Stmt} {a : Atom} (h : Stmt.atom a ∈ ss) : a �
   List.mem_filterMap.mpr ⟨_, h, rfl⟩
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 1000000 in
 /-- **A group of claims** (`__loop15`'s block at the counter `x`): the state after whole blocks
 `pre` at `chain · x^13`, the 68 canonical cells at `entries · x^68`, the state after them at
 `chain · x^13` from offset `13`. -/

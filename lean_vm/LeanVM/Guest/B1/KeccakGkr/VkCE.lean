@@ -32,7 +32,6 @@ theorem not_mem_of_contains {a : Atom} {S : List Atom} (h : S.contains a = false
   fun hm ↦ by rw [List.contains_iff_mem.mpr hm] at h; exact absurd h (by decide)
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **The slices, completely.** -/
 theorem slices_complete (hσ : ∀ v, σ v = σ (.n v.idx))
     (hg : ∀ st ∈ slicesT (.n 4115) 4117 4122, GoodS rd vkSt w σ st)
@@ -127,7 +126,6 @@ theorem slices_complete (hσ : ∀ v, σ v = σ (.n v.idx))
   exact ⟨fun z hz ↦ (R z hz).1, hsq, H⟩
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **The inputs' opening, completely.** -/
 theorem vkIn_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkInT, GoodS rd vkSt w σ st)
     {v12 : E} (hv : LoadHolds rd (σ (.n 201)) 264 v12) {low : List E} (hlowL : low.length = 4)

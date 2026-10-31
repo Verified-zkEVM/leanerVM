@@ -85,7 +85,6 @@ theorem vpair_holds {S : List Atom} {w : ℕ → E} {σ : Val} {s t : V} {b : �
 def vecOrc (p : E) (ws : List E) (j : ℕ) : E := if j = 4461 then p else ws.getD (j - 1) 0
 
 set_option maxRecDepth 10000 in
-set_option maxHeartbeats 1000000 in
 /-- **`da_vector_cell` is complete.** -/
 theorem da_vector_cell_complete : da_vector_cell_complete_Spec := by
   intro rd dg p ws hwl hp hfr hdig

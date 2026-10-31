@@ -50,7 +50,6 @@ theorem ccl_ne {k : ℕ} (hk : k < 17) :
     B1.Digest.cclNames[k]! ≠ "list_split" ∧ B1.Digest.cclNames[k]! ≠ "__loop16" := by
   interval_cases k <;> decide
 
-set_option maxHeartbeats 1000000 in
 /-- **`child_claim_list_digest`'s instructions** on a tree of honest shape. -/
 theorem ccl_weight_le (op : Opcode) {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : Reader} {t : Tree}
     {args rets : List E} (h : ccHonest n t) (hv : t.Valid coreProgram rd args rets)
@@ -116,7 +115,6 @@ theorem l5_walk {σ : Val} {fn : Fn} {es : List Ev} {vs : List V}
   injection hw with h1
   exact h1.symm
 
-set_option maxHeartbeats 4000000 in
 set_option maxRecDepth 10000 in
 /-- **The children loop's instructions**: the iterations from child `c` weigh at most the sum of
 their `l5B`. -/
@@ -259,7 +257,6 @@ theorem hEs_lt {s : NodeStatement} {w : NodeWitness}
   · rw [List.getD_eq_default _ _ (by simpa using hc)]
     norm_num
 
-set_option maxHeartbeats 1000000 in
 /-- **The honest children's loop's instructions of `op`**: on the tree `main`'s completeness gives
 it (`mainPredsH`'s `T5`), each child's `verify_sub` within `vsCnt op` at its announced stack log
 and rate, at most `l5C op` per child, `ccS op` per child's claim and `vsCnt op μ r` per child of

@@ -157,7 +157,6 @@ theorem completeAtDTB_of_relIn_on {S : List String} (hS : coreProgram.PureIn S) 
     · exact hl i hi
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **A flat function is complete, placed, by a tree of honest shape, within its frame, its
 buffers and its callees' bounds.** -/
 theorem flat_completeAtTB (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : List E)

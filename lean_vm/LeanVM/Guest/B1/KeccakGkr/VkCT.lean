@@ -47,7 +47,6 @@ theorem steps_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : 
     (S 8 (by norm_num) (S 9 (by norm_num) (S 10 (by norm_num) (S 11 (by norm_num) hn)))))))))))
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 16000000 in
 /-- **The body, on the layout.** -/
 theorem body_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE) {cap' : List E} {m0 : E}
@@ -125,7 +124,6 @@ theorem stepE_succ : ∀ s < 11, stepE s = stepB (s + 1) := by decide
 theorem stepT0_lt : ∀ s < 12, 6 ≤ stepT0 s (stepB s) := by decide +kernel
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 16000000 in
 /-- **Layer `s`'s call**: its name, arguments and returns, as the callee is placed. -/
 theorem layer_call (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE) {s : ℕ} (hs : s < 12) (fs : String → ℕ)

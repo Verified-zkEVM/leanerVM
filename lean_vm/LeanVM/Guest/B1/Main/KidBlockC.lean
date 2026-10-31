@@ -91,7 +91,6 @@ theorem low_load {rd : Reader} (hlow : LowDef 16 rd) {e : ℕ} (he : e < 2 ^ 16)
   exact this
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **A child's block holds** on its honest valuation. -/
 theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
     {N written lxt cover lxs lst lss carried dadig s0 s1 cpi glp gsq cfresh : E}

@@ -41,7 +41,6 @@ def l5K (SB : String → ℕ) (Bx Bs Bv : ℕ) : ℕ := Bx + Bs + SB "statement_
 variable (fs : String → ℕ) (cert : String → V → ℕ)
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **One child of `__loop4` within its bound, placed, its tree exposed**: `l5_stepAtT` (same
 proof), its callees within their bounds, the tail call within `Bt`. -/
 theorem l5_stepAtTB (SB : String → ℕ)

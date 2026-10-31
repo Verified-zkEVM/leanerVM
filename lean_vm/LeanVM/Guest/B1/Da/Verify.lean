@@ -39,7 +39,6 @@ theorem list_eq_getD {l1 l2 : List E} {n : ℕ} (h1 : l1.length = n) (h2 : l2.le
 
 theorem ordG_of {x : ℕ} (h : x ≤ 4096) : x < ordG := by unfold ordG; omega
 
-set_option maxHeartbeats 4000000 in
 /-- **`da_verify`'s core IR gives its meaning.** -/
 theorem da_verify_holds : da_verify_sound_Spec := by
   intro rd hm args rets hrel

@@ -123,7 +123,6 @@ theorem good_at {B : List Stmt} (hg : ∀ s ∈ B, GoodS rd S w σ s) {a : Atom}
     Good rd S w σ a := hg _ h
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 1000000 in
 /-- **The tail, completely.** -/
 theorem layer_tail_complete {first odd : ℕ} (hf : first < 2) (ho : odd < 2)
     (hσ : ∀ v, σ v = σ (.n v.idx))

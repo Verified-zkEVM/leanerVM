@@ -115,7 +115,6 @@ theorem cellRead_val {j c e : ℕ} {v : E} (h : A.any (isCellRead (A.filter pure
 
 theorem gen_mul_ginvW : gen * ginvW = 1 := by rw [mul_comm]; exact ginvW_mul_gen
 
-set_option maxHeartbeats 1000000 in
 /-- **A record's side atom holds**: a range check, a mark's store, a cell's read. -/
 theorem recSide_holds {os : ℕ → ℕ} {cells : List E} {L : ℕ}
     (hF : ∀ a ∈ A.filter pureB, a.Holds rd σ) (hg : ∀ a ∈ A, Good rd S w σ a)

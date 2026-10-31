@@ -113,7 +113,6 @@ theorem vtS_loads_checks :
 section
 variable {args : List E}
 
-set_option maxHeartbeats 2000000 in
 /-- **Where statements `0 ..< 2404` load**: in `vtBufsS`, under `vtS_complete`'s hypotheses. -/
 theorem vtS_loads (hl : args.length = 22) (hlow : LowDefB 8 rd) (κ : ℕ → ℕ)
     (hκ : ∀ b < 153, κ b < 34)

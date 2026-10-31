@@ -78,7 +78,6 @@ theorem gap420_shape : loopShapeF (coreProgram.getD 877 default) "__loop418" = t
     (coreProgram.getD 877 default).params.length = 4 := by decide +kernel
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 2000000 in
 /-- **A prefix column's row** (`__loop415`): the cell check, the running sum's step, the cell's
 words at the node and in the row's prefix. -/
 theorem row_block1 {x N lv rowbase xb node pb d0 d1 s a prev pp : E}
@@ -102,7 +101,6 @@ theorem row_block1 {x N lv rowbase xb node pb d0 d1 s a prev pp : E}
   exacts [hcell, ha, hprev, hnew, hn0, hn1, hpp, hq0, hq1]
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 2000000 in
 /-- **A row of the other columns** (`__loop417`). -/
 theorem row_block0 {x N lv rowbase xb node pb d0 d1 s a prev : E}
     (hcell : coreProgram.Rel rd "da_verify_cell" [lv] [d0, d1, s])
@@ -124,7 +122,6 @@ theorem row_block0 {x N lv rowbase xb node pb d0 d1 s a prev : E}
   exacts [hcell, ha, hprev, hnew, hn0, hn1]
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 2000000 in
 /-- **A padding row of a column** (`__loop416`, `__loop418`): the padding cell at the node. -/
 theorem gap_block {j : ℕ} {f : String} (hs : loopShapeF (coreProgram.getD j default) f = true)
     (hl : (coreProgram.getD j default).params.length = 4)

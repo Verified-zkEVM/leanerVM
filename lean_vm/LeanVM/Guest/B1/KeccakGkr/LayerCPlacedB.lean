@@ -68,7 +68,6 @@ theorem layerKids_bound (fs : String → ℕ) (D : LayerData) {first odd : ℕ} 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **`keccak_layer` is complete, placed, within `layerWords fs first odd D.y KP KR` words**, for
 its four specializations: `layer_completeAtF` with the pack loop at most `KP` words per iteration
 and `keccak_round` at most `KR`. -/

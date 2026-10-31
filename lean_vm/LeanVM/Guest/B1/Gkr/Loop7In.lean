@@ -135,7 +135,6 @@ def Ly7In (rd : Reader) (R : ℕ → Prop) (layers rounds : E) (sh j : ℕ) : Pr
 theorem tb_lName_gkr_rounds : lName "gkr_rounds" 1 = "gkr_rounds__L1" ∧
     lName "gkr_rounds" 2 = "gkr_rounds__L2" := ⟨rfl, rfl⟩
 
-set_option maxHeartbeats 1000000 in
 /-- **`__loop6` loads from `R`**, every iteration `j < m`, its slots, rows, records and cursors
 in `R` (`Ly7In`) and `depth_shift[g_bus_mu]` at `dsh·gmu`, holding `g^sh`. -/
 theorem loop7_relIn {rd : Reader} {R : ℕ → Prop} {dsh gmu layers rounds : E} {sh m : ℕ}

@@ -94,7 +94,6 @@ theorem ccMsg_vals {σ : Val} {o0 K : ℕ} {cells : List E} (hl : cells.length =
     List.getD_eq_getElem _ _ h2]
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 2000000 in
 /-- **`child_claim_list_last__L{k}` is complete**: from the state after whole blocks `pre` at
 `sp` and `k` honest records, it returns the digest of `pre ++` their cells. -/
 theorem ccLast_complete {k : ℕ} (hk : k < 17) {sp entries cover marks origin limit : E} {n : ℕ}
@@ -204,7 +203,6 @@ theorem ccLast_complete {k : ℕ} (hk : k < 17) {sp entries cover marks origin l
   · exact absurd hok (by simp)
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 2000000 in
 /-- **A group of child claims** (`__loop16`'s block at the counter `x`): the state after whole
 blocks `pre` at `chain · x^13`, 17 honest records with the marks `base · x^17`, the state after
 their cells at `chain · x^13` from offset `13`. -/

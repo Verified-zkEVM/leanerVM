@@ -55,7 +55,6 @@ def colNH (fname rl gl : String) (r L : ℕ) : Tree → Prop :=
     (List.replicate 4 fun _ => True)
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **A column is complete, placed, by a tree of its honest shape** (`colNH`). -/
 theorem col_completeAtT (fs : String → ℕ) (cert : String → V → ℕ)
     (hcv : cert "da_vector_cell" (.n 1) + 256 ≤ fs "da_vector_cell")

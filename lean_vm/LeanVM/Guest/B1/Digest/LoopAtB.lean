@@ -30,7 +30,6 @@ open LeanVM.Guest.B1.Da (SlOk slEvs_holds)
 
 variable (fs : String → ℕ) (cert : String → V → ℕ)
 
-set_option maxHeartbeats 2000000 in
 /-- **One step of a loop of atoms, placed**: the block at `g^k` and the rest of the loop. -/
 theorem loopA_stepAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hok : loopShapeF fn f = true) (hA : (loopPre fn).all isAtomS = true)

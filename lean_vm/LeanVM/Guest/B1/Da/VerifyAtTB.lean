@@ -60,7 +60,6 @@ def dvB (fs : String → ℕ) (SB SK : String → ℕ) (r L : ℕ) : ℕ :=
   fs "da_verify" + (dvSizes r L).sum + dvKB fs SB SK r L
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **`da_verify` is complete, placed, by a tree of its honest shape** (`dvNH r L`), **within
 `dvB`**, its statically bounded callees within their static bounds (`DvStaticB`). -/
 theorem dvT_completeAtB (fs : String → ℕ) (cert : String → V → ℕ)

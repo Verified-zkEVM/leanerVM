@@ -131,7 +131,6 @@ theorem layerPre_noLoadIte {first odd : ℕ} (hf : first < 2) (ho : odd < 2) :
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **`keccak_layer` is complete, placed**, for its four specializations. -/
 theorem layer_completeAtF {first odd : ℕ} (hf : first < 2) (ho : odd < 2) (κ : ℕ) (D : LayerData)
     (CL : ClaimLay) (bcur bout : ℕ) {p0 p1 iota : E}

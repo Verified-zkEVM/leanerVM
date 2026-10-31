@@ -42,7 +42,6 @@ theorem pad_dispatch {v τ n : ℕ} {zs : List E} (hτ : τ < 29) (hv : σ (.n v
   simp only [vtPadNames, List.getElem_map, List.getElem_range, List.map_cons, List.map_nil]
   exact padding_weight_complete_holds τ hτ rd _ _ ⟨n, zs, hn, hrow, hzl, hz, h6, h7, h8⟩
 
-set_option maxHeartbeats 1000000 in
 /-- **Table `t < 5`'s height.** -/
 theorem pad_ok {v t τ n : ℕ} {zs : List E} (hlow : LowDefB 8 rd)
     (hg : GoodL rd w σ (vtPadT v t))
@@ -82,7 +81,6 @@ theorem pad_ok {v t τ n : ℕ} {zs : List E} (hlow : LowDefB 8 rd)
     refine ⟨g13, ?_⟩
     rw [g13, g12, mul_inv_cancel₀ (by rw [e11]; exact hlr2)]
 
-set_option maxHeartbeats 1000000 in
 /-- **The `KECCAK` table's height**, its floor `9`. -/
 theorem pad5_ok {v τ n : ℕ} {zs : List E} (hlow : LowDefB 8 rd)
     (hg : GoodL rd w σ (vtPad5T v))

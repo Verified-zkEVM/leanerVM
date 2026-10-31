@@ -149,7 +149,6 @@ structure VsFrontS (rd : Reader) (σ : Val) (ws : List E) : Prop where
   hc825 : ∀ i < 5, IsCanonical128 (σ (.n (825 + i)))
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 1000000 in
 /-- **The front, honestly**: with the statement's and the seed's cells canonical and the stream's
 first ten words in memory. -/
 theorem vsH_front (hl : args.length = 7) (hc4 : ∀ i < 4, IsCanonical128 (args.getD i 0))

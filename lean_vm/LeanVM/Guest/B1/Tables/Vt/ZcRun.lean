@@ -36,7 +36,6 @@ theorem vt_chi_index {n j : ℕ} {y : E} (hj : j < n) (hy : gen ^ n * vtWInvGen 
     rw [h1, ← pow_add, show n - 1 - j + (j + 1) = n by omega]
   exact mul_right_cancel₀ (pow_ne_zero _ gen_ne_zero) e
 
-set_option maxHeartbeats 1000000 in
 /-- **The table sumcheck.** -/
 theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 33)
     (hgn : σ (.n 5817) = gen ^ n) :

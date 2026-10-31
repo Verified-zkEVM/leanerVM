@@ -53,7 +53,6 @@ def mainInstrs (H : MainCounts ω fs) (c5 s5 : ℕ) (v5 : ℕ → ℕ → ℕ) (
   childClaims := s5
   childShape := v5
 
-set_option maxHeartbeats 1000000 in
 /-- **`main`'s instruction bound within the budget** on the honest run within the limits, the
 claim lists within their affine bounds on their claims, `da_verify` on its rows, the children's
 loop within `l5Lin c5 s5 v5`. -/

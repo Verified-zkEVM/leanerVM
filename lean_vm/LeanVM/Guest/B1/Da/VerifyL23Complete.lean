@@ -42,7 +42,6 @@ theorem good_load {S : List Atom} {w : ℕ → E} {σ : Val} {d p : V} {o : ℕ}
   · exact h
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 1000000 in
 /-- **A row's digest** (`__loop22`). -/
 theorem l23_block {x N pb rt run : E} {cells : List E} (hrun : LoadHolds rd (pb * x) 0 run)
     (hcells : ReadsAt rd run cells) (hlen : cells.length = 128) (hcan : AllCanonical cells)

@@ -57,7 +57,6 @@ theorem termKids_names (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
     exact List.forall₂_same.mpr fun _ _ _ => rfl
   · exact .cons (fun _ => rfl) (.cons (fun _ => rfl) .nil)
 
-set_option maxHeartbeats 4000000 in
 /-- **The terminal's node weighs at most** its frame's weight and `termWs` at each `ω i`. -/
 theorem term_weight_le {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wcs Wrsw : ι → ℕ)
     (hEqcW : ∀ i, WeightLe coreProgram (ω i) "eq_prefix_chain" fun _ => Weqc i)
@@ -112,7 +111,6 @@ theorem term_weight_le {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wc
     · exact hEqcW i rd' t' args' rets' hn hv' hb'
     · exact hrswW i rd' t' args' rets' hn hv' hb' htot
 
-set_option maxHeartbeats 1000000 in
 /-- **`check_opening_terminal` is complete, placed, within a bound, by a tree within its weights**
 (`check_opening_terminal_completeAtB` by a node of `Budget.FlatShape`): at each `ω i`, its frame's
 weight, its three prefix chains' `Weqc i`, `__loop14`'s `W15 i`, `selector_tables`' `Wst i`, each

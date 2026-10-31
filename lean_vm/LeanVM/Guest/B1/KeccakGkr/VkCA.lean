@@ -214,7 +214,6 @@ theorem sq_kernelL : ∀ i < 5,
   decide +kernel
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 2000000 in
 /-- **`verify_keccak`'s head, completely.** -/
 theorem vkHead_complete (hσ : ∀ v, σ v = σ (.n v.idx))
     (hg : ∀ s ∈ vkHeadT, pinB s = false → GoodS rd S w σ s)

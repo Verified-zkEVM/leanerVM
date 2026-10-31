@@ -81,7 +81,6 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 open VkData in
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **What `completeAt_flatG` asks of `verify_keccak`'s body**, on an honest run's data. -/
 theorem vk_obl {D : VkData} (h : D.Ok) {cap' : List E} {m0 : E} (hfin : D.fin = (m0, ⟨cap', []⟩))
     (curE chiE olE zvE slE fp : ℕ) (fps : List ℕ) (outs : List (List E × Main.Layout))

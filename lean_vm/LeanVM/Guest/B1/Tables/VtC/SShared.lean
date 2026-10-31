@@ -91,7 +91,6 @@ theorem sh_call {t μ τ : ℕ} {point : List E} (hμ : point.length = μ) (hμ3
   exact shared_selector_tables_complete_holds rd eqt gt z z1 gsq (μ - τ) _ _ _ (by omega)
     (by simp; omega) (by simp; omega) (by simp [hsql]; omega) hzv hz1v hsqv hrun
 
-set_option maxHeartbeats 1000000 in
 /-- **Table `t ≥ 1`'s shared tables.** -/
 theorem sh_ok (hlow : LowDefB 8 rd) {v t μ τ : ℕ} {point : List E}
     (hv : 2781 ≤ v) (ht : t < 6)
@@ -135,7 +134,6 @@ theorem sh_ok (hlow : LowDefB 8 rd) {v t μ τ : ℕ} {point : List E}
       have := tbReadsAt_drop hz1 τ; exact this)
     (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun
 
-set_option maxHeartbeats 1000000 in
 /-- **Table `0`'s shared tables.** -/
 theorem sh0_ok (hlow : LowDefB 8 rd) {μ τ : ℕ} {point : List E}
     (hg : GoodL rd w (vtσ rd w args) vtSh0T)

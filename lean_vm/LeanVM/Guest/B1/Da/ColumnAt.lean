@@ -73,7 +73,6 @@ theorem dlNames_mem_pure {L : ℕ} (hL : L ≤ 10) : dlNames[L]! ∈ daPureSet :
 /-! ## The column -/
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **A column is complete, placed**: its node tree after its frame, its vector cell's weights in
 that cell's frame run, reading `da_verify`'s buffers. -/
 theorem col_completeAt (fs : String → ℕ) (cert : String → V → ℕ)

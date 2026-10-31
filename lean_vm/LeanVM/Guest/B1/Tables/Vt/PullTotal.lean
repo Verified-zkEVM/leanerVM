@@ -27,7 +27,6 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 abbrev vtWFinalPc : E := word 12261764870545049476 0 0
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 4000000 in
 /-- **The pull side's total.** -/
 theorem vt_pull_total {rd : Reader} {σ : Val} (h : VtH rd σ) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i)) :

@@ -42,7 +42,6 @@ def VtPullSelsH (σ : Val) : Prop :=
   ([σ (.n 4695), σ (.n 4702), σ (.n 4709), σ (.n 4716), σ (.n 4723)] = [σ (.n 3377), σ (.n 3396), σ (.n 3415), σ (.n 3434), σ (.n 3453)]) ∧
   ([σ (.n 4730), σ (.n 4737), σ (.n 4744), σ (.n 4751), σ (.n 4758), σ (.n 4765), σ (.n 4772), σ (.n 4779), σ (.n 4786), σ (.n 4793), σ (.n 4800), σ (.n 4807), σ (.n 4814), σ (.n 4821), σ (.n 4828), σ (.n 4835), σ (.n 4842), σ (.n 4849), σ (.n 4856), σ (.n 4863), σ (.n 4870), σ (.n 4877), σ (.n 4884), σ (.n 4891), σ (.n 4898), σ (.n 4905), σ (.n 4912), σ (.n 4919)] = [σ (.n 3472), σ (.n 3491), σ (.n 3510), σ (.n 3529), σ (.n 3548), σ (.n 3567), σ (.n 3586), σ (.n 3605), σ (.n 3624), σ (.n 3643), σ (.n 3662), σ (.n 3681), σ (.n 3700), σ (.n 3719), σ (.n 3738), σ (.n 3757), σ (.n 3776), σ (.n 3795), σ (.n 3814), σ (.n 3833), σ (.n 3852), σ (.n 3871), σ (.n 3890), σ (.n 3909), σ (.n 3928), σ (.n 3947), σ (.n 3966), σ (.n 3985)])
 
-set_option maxHeartbeats 1000000 in
 /-- **The forms' values.** -/
 theorem vt_forms_valF {rd : Reader} {σ : Val} (hF : VtF rd σ) (bc : List K)
     (hbc : bc.length = 2 ^ 23) {point : List E} {lm : ℕ} {rows : List ℕ} (hr : rows.length = 6)
@@ -94,7 +93,6 @@ theorem vt_forms_valF {rd : Reader} {σ : Val} (hF : VtF rd σ) (bc : List K)
     rfl
 
 
-set_option maxHeartbeats 4000000 in
 /-- **The final check.** -/
 theorem vt_asm_finalF {rd : Reader} {σ : Val} (hV : VtF rd σ) (bc : List K)
     (hbc : bc.length = 2 ^ 23) {point : List E} {lm : ℕ} {rows : List ℕ} (hr : rows.length = 6)

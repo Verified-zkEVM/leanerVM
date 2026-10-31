@@ -106,7 +106,6 @@ theorem completeAtDT_mono {fs : String → ℕ} {cert : String → V → ℕ} {�
 variable (fs : String → ℕ) (cert : String → V → ℕ)
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **One child of `__loop4`, placed, its tree exposed**: `l5_stepAt` (same proof), by the node
 at the block's valuation, its hinted counts `k`'s, its calls' trees satisfying `Px`, `Ps`, `Pv`,
 its tail call's `Tt`. -/

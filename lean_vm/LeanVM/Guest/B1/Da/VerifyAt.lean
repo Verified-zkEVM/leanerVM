@@ -210,7 +210,6 @@ theorem mem_daPure_of {g : String} (h : g ∈ ["__loop17", "__loop18", "__loop21
   rcases h with rfl | rfl | rfl | rfl | rfl | rfl <;> decide
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **`da_verify` is complete, placed**: on `r` rows of symbols `syms` orthogonal to the columns'
 weights `ws`, reading `g^(2^L)` at `g^(s + L)` (`g_squares = g^s`), returning the claim's cells. -/
 theorem da_verify_completeAt (fs : String → ℕ) (cert : String → V → ℕ)

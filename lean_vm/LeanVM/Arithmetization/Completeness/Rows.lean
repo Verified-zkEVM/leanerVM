@@ -287,7 +287,6 @@ theorem limbsAt_laneCells {κ : ℕ} {mem : MemoryImage κ} {a : K} {L : Fin 25 
   rw [MemImage.limbsAt_eq_of_read h]
   simp [laneCells, limb_ofLimbs]
 
-set_option maxHeartbeats 16000000 in
 /-- The `KECCAK` row of an execution sends the `KECCAK` messages: each of the twenty-six cells
 carries the limbs of its lanes in its layout and a zero third limb. -/
 theorem keccak_exec_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp : K} {om : Fin 4 → K}

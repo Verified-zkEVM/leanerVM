@@ -42,7 +42,6 @@ theorem rec_word (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val
   have := ClaimLay.getD_load hcw (k := k) (by rw [(D.CL_ok h B ls hs.le).1]; exact hk)
   exact (loadHolds_mul_gen_pow rd _ _ _ _).1 this
 
-set_option maxHeartbeats 4000000 in
 /-- **Step `s`'s pointers.** -/
 theorem step_ptrs (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE) {s : ℕ} (hs : s < 12)

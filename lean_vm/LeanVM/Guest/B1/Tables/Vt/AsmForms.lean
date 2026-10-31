@@ -113,7 +113,6 @@ section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
-set_option maxHeartbeats 1000000 in
 /-- **The forms' values.** -/
 theorem vt_forms_val {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.length = 2 ^ 23)
     {point : List E} (hz : TbReadsAt Lm.read (σ (.n 8)) point)

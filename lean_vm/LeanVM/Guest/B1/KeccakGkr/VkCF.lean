@@ -28,7 +28,6 @@ open LeanVM.Protocol.KeccakGkr LeanVM.Guest.B1.Fwd Finset
 variable {rd : Reader} {w : ℕ → E} {σ : Val}
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **The inputs' check and the return, completely.** -/
 theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFinT, GoodS rd vkSt w σ st)
     {τ : ℕ} (hτ : 4 ≤ τ) (h17 : σ (.n 17) = gen ^ (τ - 4)) {pp lc lp : E}

@@ -204,7 +204,6 @@ theorem vt_xs5_split {xs5 : List E} (h : xs5.length = 5) :
   match xs5, h with
   | [a, b, c, d, e], _ => rfl
 
-set_option maxHeartbeats 1000000 in
 /-- **An accepting run is the honest one**: the bus result, the claims, the final capacity, and
 the table sumcheck's final check. -/
 theorem vt_spec {H : VtHonest} (h : H.Ok) :

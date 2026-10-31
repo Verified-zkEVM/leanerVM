@@ -153,7 +153,6 @@ def mCalls (σ : Val) (m : MainIn) : List Call :=
       [.n 431, .n 432], true⟩])
 
 set_option maxRecDepth 40000 in
-set_option maxHeartbeats 16000000 in
 /-- **`main` at `fp`**: its honest valuation on a memory holding its buffers `own`,
 `exponent_tables`' tables, its callees' layouts and its header holds by a tree placed at `fp`,
 loading outside its own data only its header (words `0`, `1`); the tree is `main`'s node at a

@@ -82,7 +82,6 @@ def dvNH (r L : ℕ) : Tree → Prop :=
   NodeHonest coreProgram "da_verify" (dvQ r L) (fun _ => dvCallList r L) (fun _ => dvSizes r L) (dvTs r L)
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **`da_verify` is complete, placed, by a tree of its honest shape** (`dvNH r L`). -/
 theorem dvT_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
     (hcv : cert "da_vector_cell" (.n 1) + 256 ≤ fs "da_vector_cell") {r L : ℕ}

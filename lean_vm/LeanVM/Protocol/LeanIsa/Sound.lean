@@ -48,14 +48,12 @@ open Air.Flat (Component EnsembleWitness)
 
 @[expose] public section
 
-set_option maxHeartbeats 2000000 in
 /-- Input lane `l` of a raw `KECCAK` row is its cell `13 + l`. -/
 theorem keccakRowAt_lin {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog)) (row : Array K)
     (l : Fin 25) : (keccakRowAt w row).lin[l] = row[13 + l.val]?.getD 0 := by
   simp [keccakRowAt, valueFromOffset, explicit_provable_type, circuit_norm]
   fin_cases l <;> simp
 
-set_option maxHeartbeats 2000000 in
 /-- Output lane `l` of a raw `KECCAK` row is its cell `38 + l`. -/
 theorem keccakRowAt_lout {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog)) (row : Array K)
     (l : Fin 25) : (keccakRowAt w row).lout[l] = row[38 + l.val]?.getD 0 := by

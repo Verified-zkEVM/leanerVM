@@ -67,7 +67,6 @@ def vtPushPadData : List (ℕ × ℕ × ℕ × List (ℕ × ℕ)) :=
     (53, 5, 3985, [(0, 2), (3, 8500057116360352059), (4, 16929593379567477321)])]
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 4000000 in
 /-- **The push side's total.** -/
 theorem vt_push_total {rd : Reader} {σ : Val} (h : VtH rd σ) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i)) :

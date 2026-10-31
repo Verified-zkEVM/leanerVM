@@ -122,7 +122,6 @@ def RankOut (σ : Val) (v0 : ℕ) (e κ : ℕ → ℕ) (pre : ℕ → ℕ) (r : 
   σ (.n (vtRv v0 r)) = gen ^ e r ∧ σ (.n (vtRv v0 r + 9)) = gen ^ κ (e r) ∧
     σ (.n (vtGout v0 r)) = gen ^ pre (r + 1)
 
-set_option maxHeartbeats 1000000 in
 /-- **A side's ranks hold**, rank by rank. -/
 theorem side_ranks (hl : args.length = 22) (hlow : LowDefB 8 rd) {v0 p0 R0 s base : ℕ}
     (κs : List ℕ) (hv0 : 186 ≤ v0)

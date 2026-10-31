@@ -54,7 +54,6 @@ variable {cert : String → V → ℕ}
 
 open VkData in
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **`verify_keccak` is complete, placed, within `vkBound` words at `B2C.fs`.** -/
 theorem verify_keccak_completeAtB_fs (κ : ℕ) :
     VkCompleteAtBK LeanVM.Guest.B2C.fs cert κ vkBound := by

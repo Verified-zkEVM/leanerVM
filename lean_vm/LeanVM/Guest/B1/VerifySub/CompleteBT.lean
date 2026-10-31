@@ -159,7 +159,6 @@ theorem vs_kidsDepBP {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed 
     omega
 
 
-set_option maxHeartbeats 2000000 in
 /-- **`verify_sub` is complete on every honest child within its own bound**, by a node whose
 callees are calls of their names within their bounds, at the child's announced stack log and
 rate. -/

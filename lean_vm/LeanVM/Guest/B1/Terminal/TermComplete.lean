@@ -62,7 +62,6 @@ theorem readsAt_transfer {rd rd' : Reader} {L : Main.Layout} (h : MemL rd L) (h'
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-set_option maxHeartbeats 1000000 in
 /-- **`check_opening_terminal` is complete, placed** (the honest direction of `MeaningTerminal`):
 on the caller's words making `TermPre` true, reading only them, when the WHIR terminal equation
 holds, it returns nothing at every frame pointer. -/

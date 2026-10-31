@@ -59,7 +59,6 @@ theorem good_rets {w : ℕ → E} {s : Stmt} (h : GoodS rd S w σ s) :
 
 /-! ## The head -/
 
-set_option maxHeartbeats 1000000 in
 /-- **The head, completely**: the chains' buffers, the slot points, the public input's chain (its
 first two words stored, its loop, its value at `g^m`), the selector tables. -/
 theorem head_complete (hS : StoresAt25 S) {b0 : ℕ} {outs : List (List E × Main.Layout)}
@@ -209,7 +208,6 @@ theorem termTailPre_eq : termTailPre =
       .atom (.mul (.n 2006) (.n 2005) (.n 53)), .atom (.add (.n 2007) (.n 1989) (.n 2006)),
       .atom (.mul (.n 2008) (.n 2007) (.n 17)), .atom (.assertEq (.n 2008) (.n 18))] := rfl
 
-set_option maxHeartbeats 1000000 in
 /-- **The tail, completely**: the outputs' chain, the ring switch's weight, the terminal's
 check (given its value). -/
 theorem tail_complete (hS : StoresAt25 S) {b0 : ℕ} {outs : List (List E × Main.Layout)}

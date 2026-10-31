@@ -113,7 +113,6 @@ def vbgBound (fs : String → ℕ) (K29 R K8 depth : ℕ) : ℕ :=
 
 variable {cert : String → V → ℕ}
 
-set_option maxHeartbeats 1000000 in
 /-- **`verify_bus_gkr` is complete, placed, within `vbgBound` words** (TRIAGE G #43), given the
 words of `__loop27` (linear in its end's exponent, `K29`), of the rounds (`R`) and of `__loop7`
 (linear in its end's exponent, `K8`), on every reader. -/

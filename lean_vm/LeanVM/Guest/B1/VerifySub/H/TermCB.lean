@@ -24,7 +24,6 @@ def termBound (fs : String → ℕ) (Beqc K15 Bcs Brs : ℕ) : ℕ :=
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-set_option maxHeartbeats 4000000 in
 /-- **The terminal is complete on an honest child within `termBound`**, entered on what
 `certify_placement` and `open_stacked` return, its pure callees' words by hypotheses. -/
 theorem term_completeB {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}

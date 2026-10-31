@@ -98,7 +98,6 @@ theorem L_cap (h : D.Ok) (j : ℕ) :
     D.L.2.cap.getD j 0 = (D.chain 12).2.cap.getD j 0 := by rw [L_eq h]
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **The committed outputs' opening, on the layout.** -/
 theorem out_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE) (h6 : σ (.n 6) = gen ^ D.τ)

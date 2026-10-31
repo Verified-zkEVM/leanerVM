@@ -31,7 +31,6 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Da
 variable {rd : Reader}
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
 /-- **A child's absorption** (`__loop24`). -/
 theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : StOk st)
     (hp4 : st.pend.length = 4) (hrow : ReadsAt rd (absorb * x ^ 13) (rowW st))

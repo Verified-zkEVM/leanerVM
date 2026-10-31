@@ -135,7 +135,6 @@ theorem kids_boundB (B curE chiE olE zvE slE KC KP KR KO KI : ℕ) :
     List.not_mem_nil, or_false] at hk
   rcases hk with ((rfl | ⟨s, -, rfl⟩) | rfl | rfl | rfl | rfl | rfl) <;> rfl
 
-set_option maxHeartbeats 4000000 in
 /-- **The calls, complete where `verify_keccak` places them, within `D.kidsB`**: the copy loops
 at most `KC` words per iteration, the layers' pack loops `KP`, `keccak_round` `KR`, the openings'
 rounds `KO` (`plainName 0`) and `KI` (`plainName 1`). -/

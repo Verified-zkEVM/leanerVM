@@ -130,7 +130,6 @@ structure DvVals (rd : Reader) (σ : Val) (gsq : E) (r L : ℕ) (P : DaPtrs) (cr
   rets : [σ (.n 993), σ (.n 994), σ (.n 995), σ (.n 996)] = digestCells root ++ digestCells vd
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **`da_verify`'s honest valuation**, on a memory holding the column digests at `P.cd`. -/
 theorem dv_core {gsq : E} {r L : ℕ}
     {syms : ℕ → ℕ → List K} {ws : ℕ → List E} {P : DaPtrs} (hcd : ReadsAt rd P.cd (cdCells ws)) :
@@ -303,7 +302,6 @@ theorem dv_core {gsq : E} {r L : ℕ}
       show 2 ^ L * (3 + 1) = 4 * 2 ^ L by ring]
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **`da_verify` is complete** on the honest memory of `r` rows of symbols `syms` and the columns'
 weights `ws`, the rows orthogonal to the vector, at any choice of its buffers `P`. -/
 theorem da_verify_complete_mem (hm : MemOk rd) {gsq : E} (hsq : SquaresAt rd gsq) {r L : ℕ}

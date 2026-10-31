@@ -122,7 +122,6 @@ theorem rowsT_fst (H : VtHonest) (hr : H.rows.length = 6) : H.rowsT.map (·.1) =
   simp only [List.length_zip, hh, hf, LeanVM.Protocol.EndToEnd.Complete.length_tableWeights]
   decide
 
-set_option maxHeartbeats 2000000 in
 /-- **A run of `tablesSeg` is `verify_tables`' honest run**: its words cut in place, `Ok`, and
 nothing waiting at its end. -/
 theorem vtH_run {bc : List K} {lm : ℕ} {pi : Digest} {alphas point values : List E} {beta : E}
