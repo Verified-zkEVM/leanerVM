@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Exec
+public import LeanVM.Guest.ExecCore
 public import LeanVM.Guest.Data.Pows
 
 /-!

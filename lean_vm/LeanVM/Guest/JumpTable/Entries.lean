@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Guest.Bytecode
 public import LeanVM.Guest.Pow
 public import Statement.Data.Bytecode00
 public import LeanVM.Guest.Code

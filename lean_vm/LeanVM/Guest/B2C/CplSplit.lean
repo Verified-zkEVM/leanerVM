@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B2C.Cpl
+public import LeanVM.Guest.B2C.CplSpec
 public import LeanVM.Guest.B2C.CplSem
 public import LeanVM.Guest.B2C.ShareSplit
 

@@ -8,22 +8,19 @@
 
 module
 
-public import LeanVM.Guest.B2C.Cells
+public import LeanVM.Guest.B2C.Defs
 public import LeanVM.Guest.Data.CplParts
 public import LeanVM.Guest.Data.CplArms
-public import LeanVM.Guest.B2C.Count
 public import LeanVM.Guest.ExecC
 
 /-!
 # The completeness check
 
-`FrameHolds L j fp σ es vs kfps hdr` is what the check reads of the memory for one instance of
-function `j` at frame `fp` on the path `es` of its valuation `σ` (`walk σ (coreOf j).body =
-.ret es vs`), its callees' frames at `kfps` and its header `hdr`: the header, every value the
-path names and every range check temporary at its certificate cell, the fixed cells
-(`Plumb.stat`), the frame addresses, the table jumps' targets, each call site's callee frame
-pointer and dispatch target, and each callee frame's header, arguments, returns and self frame
-pointer cells. `KidsRun` is the callees' runs.
+`cplWin j i k`: the check of part `k` of window `i` of function `j`, the walk of its statements
+against the compiled code (`cplRes`), which the kernel evaluates (`B2C/Cplw/`); `CplOk j`, every
+part of every window. What the check means of a run, the frame it reads (`FrameHolds`), the
+callees' runs (`KidsRun`) and what it gives (`CplRun`), is `CplSpec.lean`: apart, so that the
+kernel-checked certificates import the check alone.
 -/
 
 namespace LeanVM.Guest.B2C
@@ -32,77 +29,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Guest.Exec LeanVM.Guest.Check
 
 @[expose] public section
-
-/-! ## What the check reads of the memory -/
-
-/-- The self frame pointer cells of a function, by name. -/
-noncomputable def selfCells (f : String) : List ℕ :=
-  match idxOf f with
-  | some j => (certOf j).facts.env.map (·.1)
-  | none => []
-
-/-- The header of the callee of the `i`-th call on a path `es` of function `j` at `fp` with
-header `hdr` (`H`'s): the caller's own for a loop's tail call, its last; else its call site's
-return pc and the caller's frame. -/
-noncomputable def kidHdr (j fp : ℕ) (hdr : E × E) (es : List Ev) (i : ℕ) : E × E :=
-  match (calls es)[i]? with
-  | some c =>
-    if (coreOf j).loop = true ∧ i + 1 = (calls es).length then hdr
-    else match siteOf j c with
-      | some s => (ofK (gpow s.r), ofK (gpow fp))
-      | none => (0, 0)
-  | none => (0, 0)
-
-/-- **What one instance's frame holds** for the completeness check: an instance of function `j`
-at frame `fp` (cells at `g^(fp + o)`) with valuation `σ`, path `es` and returned values `vs`, its
-callees' frames at `kfps` (one per call of `es`, in order) and its header `hdr`. -/
-structure FrameHolds {κ : ℕ} (L : MemoryImage κ) (j fp : ℕ) (σ : Val) (es : List Ev) (vs : List V)
-    (kfps : List ℕ) (hdr : E × E) : Prop where
-  /-- The header. -/
-  hdr0 : L.read (gpow (fp + 0)) = some hdr.1
-  hdr1 : L.read (gpow (fp + 1)) = some hdr.2
-  /-- A function but `main` returns to registers of `K`. -/
-  hdrK : j ≠ 1 → IsInK hdr.1 ∧ IsInK hdr.2
-  /-- Every value the path names, at its cell. -/
-  val : ∀ v ∈ namedOf (coreOf j).params es vs, 2 ≤ cellJ j v → cellJ j v < fsN j →
-    L.read (gpow (fp + cellJ j v)) = some (σ v)
-  /-- The range checks' temporaries, at their cells. -/
-  tmp : ∀ e ∈ es, ∀ t ∈ e.tmps, 2 ≤ cellJ j t → cellJ j t < fsN j →
-    L.read (gpow (fp + cellJ j t)) = some (σ t)
-  /-- The fixed cells. -/
-  stat : ∀ p ∈ (plumbOf j).stat, 2 ≤ p.1 → p.1 < fsN j →
-    L.read (gpow (fp + p.1)) = some (p.2.word fp)
-  /-- The frame addresses point into the frame. -/
-  addr : ∀ q ∈ addrs es, σ q.1 = ofK (gpow (fp + cellJ j q.2))
-  /-- The table jumps' targets. -/
-  arm : ∀ a ∈ (plumbOf j).arms, 2 ≤ a.2.1 → a.2.1 < fsN j →
-    L.read (gpow (fp + a.2.1)) = some (armWord σ a.1 a.2.2)
-  /-- One callee frame per call. -/
-  len : kfps.length = (calls es).length
-  /-- A call site's callee frame pointer and dispatch target. -/
-  site : ∀ (i : ℕ) (c : Call) (kfp : ℕ) (s : Site), (calls es)[i]? = some c → kfps[i]? = some kfp → siteOf j c = some s →
-    (2 ≤ s.q → s.q < fsN j → L.read (gpow (fp + s.q)) = some (ofK (gpow kfp))) ∧
-    (s.tgt ≠ 0 → 2 ≤ s.tgt → s.tgt < fsN j →
-      L.read (gpow (fp + s.tgt)) = some (ofK (gpow (entryOf c.f))))
-  /-- Each callee frame's header, arguments and self frame pointer cells. -/
-  kid : ∀ (i : ℕ) (c : Call) (kfp : ℕ), (calls es)[i]? = some c → kfps[i]? = some kfp →
-    L.read (gpow (kfp + 0)) = some (kidHdr j fp hdr es i).1 ∧
-    L.read (gpow (kfp + 1)) = some (kidHdr j fp hdr es i).2 ∧
-    (∀ k (hk : k < c.args.length), L.read (gpow (kfp + (2 + k))) = some (σ c.args[k])) ∧
-    (∀ o ∈ selfCells c.f, L.read (gpow (kfp + o)) = some (ofK (gpow kfp)))
-  /-- A loop's tail call, its last, has its frame right after the caller's. -/
-  tail : (coreOf j).loop = true → ∀ kfp, kfps.getLast? = some kfp → kfp = fp + fsN j
-
-/-- **The callees on a path run**: each call entered, from its callee's entry at its frame to its
-return registers, executing `ck[i] op` instructions of each opcode, its returns left in its frame's
-cells after its arguments. -/
-def KidsRun {κ : ℕ} (L : MemoryImage κ) (σ : Val) (es : List Ev) (kfps : List ℕ) (ck : List (Opcode → ℕ)) :
-    Prop :=
-  ck.length = (calls es).length ∧ ∀ (i : ℕ) (c : Call) (kfp : ℕ), (calls es)[i]? = some c → kfps[i]? = some kfp →
-    c.taken = true → (∃ r, retRegs L (gpow kfp) = some r ∧
-      RunC guest L ⟨gpow (entryOf c.f), gpow kfp⟩ r (ck.getD i 0)) ∧
-      ∀ k (hk : k < c.rets.length), L.read (gpow (kfp + (2 + c.args.length + k))) = some (σ c.rets[k])
-
 
 /-! ## A window's cells
 
@@ -1015,23 +941,6 @@ noncomputable def cplWin (j i k : ℕ) : Bool :=
 /-- **The completeness check of function `j`**: every part of every window. -/
 noncomputable def CplOk (j : ℕ) : Prop :=
   ∀ i ≤ (certOf j).cuts.length, ∀ k < nParts j i, cplWin j i k = true
-
-/-- **What the completeness check gives of function `j`** (`cpl_run`): on a memory holding the
-jump table, from an instance's frame holding what the check reads (`FrameHolds`) and its callees'
-runs (`KidsRun`), a counted run from its entry to its return registers (`main`: the final ones),
-with at most `pathMax` instructions of each opcode besides its callees', its returned values left
-in its frame's cells after its arguments. -/
-def CplRun (j : ℕ) : Prop :=
-  ∀ {κ : ℕ} (L : MemoryImage κ), κ ≤ 32 → JTHolds glob L →
-    (∀ q ∈ Memory.tableCells, L.read (gpow q.1) = some q.2) → ∀ (fp : ℕ), (j = 1 → fp = 0) →
-    ∀ (σ : Val) (es : List Ev) (vs : List V), walk σ (coreOf j).body = .ret es vs →
-    (∀ e ∈ es, e.Holds L.read σ) → ∀ (kfps : List ℕ) (hdr : E × E),
-    FrameHolds L j fp σ es vs kfps hdr → ∀ ck : List (Opcode → ℕ), KidsRun L σ es kfps ck →
-    ∃ (r : Registers K) (c : Opcode → ℕ), (if j = 1 then r = Registers.final guest else retRegs L (gpow fp) = some r) ∧
-      RunC guest L ⟨gpow (fnOf j).entry, gpow fp⟩ r c ∧
-      (∀ op, c op ≤ pathCount j σ op + (ck.map (· op)).sum) ∧
-      ∀ k (hk : k < vs.length),
-        L.read (gpow (fp + (2 + (coreOf j).params.length + k))) = some (σ vs[k])
 
 end
 end LeanVM.Guest.B2C

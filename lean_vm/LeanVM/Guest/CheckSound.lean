@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.Exec
 public import LeanVM.Guest.Check
 public import LeanVM.Guest.CoreLoc
 

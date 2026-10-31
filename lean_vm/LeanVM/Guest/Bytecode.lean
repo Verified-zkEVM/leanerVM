@@ -9,6 +9,7 @@ module
 
 public import Statement.Data.Bytecode
 public import LeanVM.Guest.Code
+public import LeanVM.Guest.FunctionTable
 public import Statement.LeanVmGuest
 
 /-!
@@ -46,10 +47,6 @@ theorem functions_consecutive : consecutive 0 Data.functions Data.codeLen = true
   decide +kernel
 
 theorem codeLen_lt : Data.codeLen < 2 ^ 19 - 1 := by decide
-
-/-- Every function's chunks hold exactly its instructions. -/
-theorem functions_wellChunked : Data.functions.all (fun f ↦ chunked chunkSize f.chunks f.len) = true := by
-  decide +kernel
 
 theorem CompiledFn.wellChunked_of_mem {f : CompiledFn} (hf : f ∈ Data.functions) :
     f.WellChunked :=

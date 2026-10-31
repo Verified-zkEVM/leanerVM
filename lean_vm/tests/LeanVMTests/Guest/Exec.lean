@@ -1,3 +1,4 @@
+import LeanVM.Guest.Exec
 import LeanVM.Guest.Check
 
 /-!

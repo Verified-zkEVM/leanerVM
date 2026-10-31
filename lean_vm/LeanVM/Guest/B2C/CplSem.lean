@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.B2C.CplSpec
 public import LeanVM.Guest.B2C.CplJust
 public import LeanVM.Guest.B2C.CplInv
 

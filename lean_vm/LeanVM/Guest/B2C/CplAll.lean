@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Guest.B2C.CplSpec
 public import LeanVM.Guest.B2C.CplSites
 public import LeanVM.Guest.SoundFacts
 

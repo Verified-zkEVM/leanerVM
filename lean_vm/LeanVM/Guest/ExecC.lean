@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.Glob
-public import LeanVM.Guest.Bytecode
+public import LeanVM.Guest.FunctionTable
 
 /-!
 # A window's code, by chunks

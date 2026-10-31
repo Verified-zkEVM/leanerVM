@@ -2244,7 +2244,7 @@ def gtabText : String := Id.run do
 /-- The frame sizes, by compiled function index. -/
 def framesFile (fsz : List ℕ) : String :=
   header "FrameSizes" "The frame size of each compiled function, by index." ++
-  "public import LeanVM.Guest.Exec\n" ++ preamble ++
+  "public import LeanVM.Guest.ExecCore\n" ++ preamble ++
   "/-- Frame sizes by compiled function index (`__jump_tables` shares `main`'s frame): a loop\n" ++
   "helper's is where its tail call puts the next frame, any other's past every frame cell its\n" ++
   "code and certificate name. -/\n" ++
@@ -2256,7 +2256,7 @@ def powsFile (T : Tables) : String :=
   let (top, subs) := powTop ps powCut 0
   let jt := trieLit ((T.jt.toList.mergeSort (·.1 ≤ ·.1)).map fun (s, e) => (s, toString e))
   header "Pows" "The powers of `g` the guest's constants name, and its jump table." ++
-  "public import LeanVM.Guest.Exec\n" ++ preamble ++
+  "public import LeanVM.Guest.ExecCore\n" ++ preamble ++
   String.join (subs.zipIdx.map fun (sub, i) =>
     s!"/-- Subtree {i} of `powTree`. -/\nnoncomputable def powT{i} : PowTree := {powTreeText sub}\n\n") ++
   s!"/-- The powers of `g` the guest's `SET`s name, bits to exponent, a search tree. -/
@@ -2662,7 +2662,7 @@ def snapsFiles (ss : List (ℕ × List String)) : List (String × String) := Id.
   let name (k : ℕ) : String := if k < 10 then s!"Snaps0{k}" else s!"Snaps{k}"
   let parts := fs.toList.zipIdx.map fun (ds, k) =>
     (name k, header (name k) "The sharing check's snapshots of the guest's compiled functions." ++
-      "public import LeanVM.Guest.Exec\npublic import LeanVM.Guest.B2C.Types\n" ++ preamble ++
+      "public import LeanVM.Guest.ExecCore\npublic import LeanVM.Guest.B2C.Types\n" ++ preamble ++
       "\n".intercalate ds.toList ++ tail)
   let index := header "Snaps" "The sharing check's snapshots, by compiled function index." ++
     String.join (parts.map fun (m, _) => s!"public import LeanVM.Guest.Data.{m}\n") ++
@@ -3114,7 +3114,7 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
   let plumbName (k : ℕ) : String := if k < 10 then s!"Plumb0{k}" else s!"Plumb{k}"
   let plumbFiles := pfs.toList.zipIdx.map fun (cs, k) =>
     (plumbName k, header (plumbName k) "Completeness data of the guest's compiled functions." ++
-      "public import LeanVM.Guest.Exec\npublic import LeanVM.Guest.B2C.Types\n" ++ preamble ++
+      "public import LeanVM.Guest.ExecCore\npublic import LeanVM.Guest.B2C.Types\n" ++ preamble ++
       "\n".intercalate cs.toList ++ tail)
   let n := P.length
   let pnames := "plumb0" :: (List.range n).map fun i => s!"plumb{i + 1}"

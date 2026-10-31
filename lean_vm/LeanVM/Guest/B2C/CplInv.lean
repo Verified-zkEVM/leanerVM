@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B2C.Cpl
+public import LeanVM.Guest.B2C.CplSpec
 
 /-!
 # Inverting the walk

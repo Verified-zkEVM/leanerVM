@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Exec
+public import LeanVM.Guest.ExecCore
 
 namespace LeanVM.Guest.Data
 

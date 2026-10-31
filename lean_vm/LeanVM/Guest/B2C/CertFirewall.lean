@@ -8,14 +8,19 @@ The generated certificates (`B2C/Cplw`, `B2C/Shared`, `Checked`, `Memory/GuestCn
 of `lean_vm`'s build (kernel evaluation), and a module is rebuilt whenever what a module it
 imports exports changes. Each imports its family's base (`B2C.Cpl`, `B2C.ShareStatic`,
 `CheckWinC`, `Memory.StaticSplit`), and those import the guest program's code, its compiled form
-and the functions the checks evaluate, not B1's proofs, the protocol's, the verifier's facts, the
-schemes, LeanDA or `common`: an edit there rebuilds no certificate. This module, which imports the
+and the functions the checks evaluate (of the statement: the ISA, the field, the verifier's
+definitions and the bytecode), not the guest's statement, the program logic, B1's proofs, the
+protocol's, the verifier's facts, the schemes, LeanDA or `common`: an edit there rebuilds no
+certificate. This module, which imports the
 four bases, fails to build if their imports reach any of those. -/
 
 open Lean Elab Command in
 #eval show CommandElabM Unit from do
-  let forbidden := [`LeanVM.Guest.B1, `LeanVM.Protocol, `LeanVM.Facts.Verifier, `LeanXmss, `Sphincs,
-    `LeanDa, `Common]
+  let forbidden := [`LeanVM.Guest.B1, `LeanVM.Protocol, `LeanVM.Facts.Verifier, `LeanVM.Guest.Logic,
+    `LeanVM.Guest.Bytecode, `LeanXmss, `Sphincs, `LeanDa, `Common, `Statement.LeanVm,
+    `Statement.LeanVmGuest, `Statement.Prover, `Statement.Extractor, `Statement.LeanXmss,
+    `Statement.LeanSphincs, `Statement.LeanDa, `Statement.Fast.Schemes, `Statement.Theorems,
+    `Statement.Corollaries]
   let reached := (← getEnv).header.moduleNames.filter fun m ↦ forbidden.any (·.isPrefixOf m)
   unless reached.isEmpty do
     throwError m!"the guest's certificates import {reached.toList}: keep the functions they \

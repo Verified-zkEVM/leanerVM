@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.B2C.CplSpec
 public import LeanVM.Guest.B2C.Frame
 public import LeanVM.Guest.B2C.KFacts
 public import LeanVM.Guest.B2C.Cpl

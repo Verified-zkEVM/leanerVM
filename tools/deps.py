@@ -124,6 +124,12 @@ def main():
         crit = max(tail(m) for m in mods)
         print(f"an interface change of {', '.join(mods)} rebuilds {len(down)} modules, "
               f"{hm(sum(cpu(m) for m in down))}, at least {crit / 60:.1f} min on enough cores")
+        m = max(mods, key=tail)
+        print("its longest chain:")
+        while m:
+            if wall(m) >= 10:
+                print(f"  {wall(m):7.0f} s  {m}")
+            m = max(importers[m], key=tail) if importers[m] else None
         any_edit = sorted(m for m in down if m in legacy)
         print(f"any edit rebuilds {len(any_edit)} of them (outside the module system), "
               f"{hm(sum(cpu(m) for m in any_edit))}")

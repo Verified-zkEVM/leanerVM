@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.B2C.CplSpec
 public import LeanVM.Guest.B2C.CplAll
 public import LeanVM.Guest.B2C.Table
 public import LeanVM.Guest.Sound
