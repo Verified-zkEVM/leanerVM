@@ -183,23 +183,6 @@ theorem gv_fresh {ℓ : Log} {d : KeccakState} (hd : Fresh ℓ d) :
   | _, .grind _ _ => rfl
   | _, .commit _ _ _ => rfl
 
-theorem gv_le_one (ℓ : Log) : ∀ (d : KeccakState) (h : List Ev) (p : Prog Bool), gv D ℓ d h p ≤ 1
-  | d, h, .sample k => by
-    simp only [gv]
-    split
-    · exact gv_le_one ℓ _ _ _
-    · exact esc_le_one D _ _
-  | d, h, .query i ps k => by
-    simp only [gv]
-    split
-    · exact gv_le_one ℓ _ _ _
-    · exact zero_le_one
-  | _, _, .ret _ => esc_le_one D _ _
-  | _, _, .fail => esc_le_one D _ _
-  | _, _, .read _ => esc_le_one D _ _
-  | _, _, .grind _ _ => esc_le_one D _ _
-  | _, _, .commit _ _ _ => esc_le_one D _ _
-
 /-- A hash entry leaves group values unchanged. -/
 theorem gv_append_inl (ℓ : Log) (e : Bytes × Digest) :
     ∀ (d : KeccakState) (h : List Ev) (p : Prog Bool), gv D (ℓ ++ [.inl e]) d h p = gv D ℓ d h p

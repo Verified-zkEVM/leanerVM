@@ -96,25 +96,3 @@ theorem hkids_words {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVar
     rwa [loadHolds_mul_gen_pow, Nat.add_zero] at this
   · have := p6 1 (by simp [B1.Digest.digestCells])
     rwa [loadHolds_mul_gen_pow] at this
-
-/-- **`main`'s honest `aggregate_claims` call is complete**: under `NodeRelation` and `Limits`, for a
-bytecode of `2^bytecodeVars` words. -/
-theorem mainGoalAg (cert : String → V → ℕ) {bytecode : List K}
-    (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)
-    (hl : Limits s w) : MainGoalAg fs cert fp seed s w := by
-  intro hnc
-  have hnc' : w.children.length ≠ 0 := hnc
-  have hne : w.children ≠ [] := fun h => hnc' (by rw [h, List.length_nil])
-  have hb := (nodeRel_iff.mp hrel).2.2.2.2.2
-  simp only [hne, ↓reduceIte] at hb
-  have hlog : Nat.log2 bytecode.length = bytecodeVars := by rw [hbl, Nat.log2_two_pow]
-  have hrl : w.batchingHints.sumcheckMessages.length = 23 := by
-    have hpt : s.deferredClaim.bytecodePoint.length = 23 := by rw [hrel.1, hlog]
-    rw [(batch_out hb).1, aggOut, aggRun, bsRun_len] at hpt
-    exact hpt
-  have hdst := mem_hLmain fs fp seed s w (i := 9) (by omega)
-  simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero] at hdst
-  have := aggregate_claims_completeAt fs cert (m := w.children.length) (by omega) hl.children
-    (cs := hKids seed w) (by rw [List.length_map]) hrl hb
-    (fun rd hM => hkids_words fs fp hbl hrel hM) hdst
-  exact this

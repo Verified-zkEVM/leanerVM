@@ -311,30 +311,6 @@ theorem chkL_atoms_congr : ∀ (ss : List Core.Stmt) (st : CS) (P : List Core.At
   | .dispatch .. :: _, _, _, hs, _, _ => by simp [isAtomS] at hs
   | .ret .. :: _, _, _, hs, _, _ => by simp [isAtomS] at hs
 
-theorem chkArms_congr (J : ℕ) : ∀ (as : List (List Core.Stmt)) (ts : List ℕ) (B : Book)
-    (bnd : List (ℕ × ℕ)), as.all (·.all isAtomS) = true → (∀ v ∈ armsVals as, Agree X.loc l' v) →
-      chkArms X J as ts B bnd = chkArms { X with loc := l' } J as ts B bnd
-  | [], [], _, _, _, _ => by simp [chkArms]
-  | [], _ :: _, _, _, _, _ => by simp [chkArms]
-  | _ :: _, [], _, _, _, _ => by simp [chkArms]
-  | a :: as, t :: ts, B, bnd, hs, hv => by
-    simp only [List.all_cons, Bool.and_eq_true] at hs
-    have ha : ∀ v ∈ stmtsVals a, Agree X.loc l' v := fun v hv' ↦
-      hv v (by simp only [armsVals, List.mem_append]; exact Or.inl hv')
-    have has : ∀ v ∈ armsVals as, Agree X.loc l' v := fun v hv' ↦
-      hv v (by simp only [armsVals, List.mem_append]; exact Or.inr hv')
-    simp only [chkArms]
-    rw [chkArms_congr J as ts B bnd hs.2 has]
-    congr 1
-    show (match segAt X t B bnd with
-      | some st => chkL X a st [] == Res.join J
-      | none => false) = (match segAt X t B bnd with
-      | some st => chkL { X with loc := l' } a st [] == Res.join J
-      | none => false)
-    split
-    · rw [chkL_atoms_congr X l' a _ [] hs.1 ha (by simp)]
-    · rfl
-
 /-- A `match`'s walk from its parts. -/
 theorem chkL_match_of {X : Fx} {v : Core.V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)}
     {ss : List Core.Stmt} {st : CS} {P : List Core.Atom} {se : CS} {t : ℕ} {ft : Tgt} {t0 : ℕ}

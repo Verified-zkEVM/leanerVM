@@ -99,28 +99,6 @@ def blockVal (sideWeights : List E) (sideBeta selector : E) (block : BusBlock)
   selector * sideBeta + (block.coordinates.zipIdx.map fun (coordinate, slot) ↦
     selector * sideWeights.getD slot 0 * coordinate.evaluate column).sum
 
-theorem evaluate_blockForm (form : Form) (sideWeights : List E) (sideBeta selector : E)
-    (block : BusBlock) (column : ℕ → E) :
-    (block.coordinates.zipIdx.foldl (fun form x ↦
-        form.addScaled x.1 (selector * sideWeights.getD x.2 0))
-      (form.addScaled (Form.const sideBeta) selector)).evaluate column =
-      form.evaluate column + blockVal sideWeights sideBeta selector block column := by
-  unfold blockVal
-  generalize hcs : block.coordinates.zipIdx = cs
-  have key : ∀ (cs : List (Form × ℕ)) (g : Form), (cs.foldl (fun form x ↦
-      form.addScaled x.1 (selector * sideWeights.getD x.2 0)) g).evaluate column =
-      g.evaluate column + (cs.map fun (coordinate, slot) ↦
-        selector * sideWeights.getD slot 0 * coordinate.evaluate column).sum := by
-    intro cs
-    induction cs with
-    | nil => simp
-    | cons c cs ih =>
-      intro g
-      rw [List.foldl_cons, ih, Form.evaluate_addScaled, List.map_cons, List.sum_cons]
-      ring
-  rw [key, Form.evaluate_addScaled, Form.evaluate_const]
-  ring
-
 /-- One block's step of the accumulation. -/
 def accStep (side : ℕ) (sideWeights : List E) (sideBeta : E) (forms : List (List Form))
     (sb : E × BusBlock) : List (List Form) :=
@@ -128,17 +106,6 @@ def accStep (side : ℕ) (sideWeights : List E) (sideBeta : E) (forms : List (Li
     sb.2.coordinates.zipIdx.foldl
       (fun form x ↦ form.addScaled x.1 (sb.1 * sideWeights.getD x.2 0))
       (form.addScaled (Form.const sideBeta) sb.1)
-
-theorem accStep_length (side : ℕ) (sideWeights : List E) (sideBeta : E)
-    (forms : List (List Form)) (sb : E × BusBlock) :
-    (accStep side sideWeights sideBeta forms sb).length = forms.length := by
-  simp [accStep]
-
-theorem accStep_row_length (side : ℕ) (sideWeights : List E) (sideBeta : E)
-    (forms : List (List Form)) (sb : E × BusBlock) (t : ℕ) (ht : t < forms.length) :
-    ((accStep side sideWeights sideBeta forms sb).getD t []).length = (forms.getD t []).length := by
-  rw [accStep, getD_modify _ _ _ _ _ ht]
-  split_ifs <;> simp
 
 end
 end LeanVM.Protocol.EndToEnd.Front

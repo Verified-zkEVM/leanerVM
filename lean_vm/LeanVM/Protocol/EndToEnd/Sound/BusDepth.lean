@@ -86,12 +86,6 @@ theorem busLayout_depth_leanIsa (prog : Program) (s : Sizes) :
   rw [busLayout_depth_verifier, busDepth, log2Ceil_eq_clog, blockTotal_push_eq_pushLeaves]
   rfl
 
-/-- The instance has at least two push leaves: the memory seed's. -/
-theorem two_le_pushLeaves_leanIsa (prog : Program) (s : Sizes) :
-    2 ≤ (leanIsaInstance prog s).pushLeaves := by
-  rw [pushLeaves_leanIsa]
-  exact le_add_right (le_add_right (le_add_left (Nat.le_self_pow s.logMem_pos.ne' 2)))
-
 /-- The instance's constraint counts: `JUMP` (table `7`) has two, the others none. -/
 theorem length_constraints : ∀ j : Fin 9,
     (LeanIsa.constraints j).length = if j = opIdx 4 then 2 else 0 := by

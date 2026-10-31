@@ -55,12 +55,6 @@ theorem sum_eqEval_mul {μ : ℕ} (z : Vector E μ) (q : Column μ) :
   rw [eqEval_boolPoint, mul_comm]
   simp [CMlPolynomialEval.map, Vector.getD, x.isLt]
 
-/-- `eq_eval` splits over concatenations of equal-length prefixes. -/
-theorem eqEval_append (a b c d : List E) (h : a.length = c.length) :
-    eqEval (a ++ b) (c ++ d) = eqEval a c * eqEval b d := by
-  rw [eqEval_eq_list_prod, eqEval_eq_list_prod, eqEval_eq_list_prod, List.zipWith_append h,
-    List.prod_append]
-
 variable (prog : Program) (s : Sizes)
 
 /-- **A candidate read on the instance's stack**: the cast along `stackLog_verifierLayout`. -/

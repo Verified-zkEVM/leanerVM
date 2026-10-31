@@ -54,14 +54,5 @@ abbrev ChildrenOk (bytecode : List K) (seed : Digest) (w : NodeWitness) : Prop :
 
 /-! ## What `NodeRelation` gives of the children's fresh claims -/
 
-/-- **Every child's fresh claim has the bytecode's shape**: the deferring verifier accepts each
-child's proof (`NodeRelation`), and an accepted proof claims the bytecode at the verifier's own bus
-point, `bytecodeLow ++ alphas`, of the bytecode's log-length (`verifyDeferred_shaped`). Not a
-hypothesis: `NodeRelation` implies it. -/
-theorem fresh_shaped_of_nodeRel {bytecode : List K} {seed : Digest} {s : NodeStatement}
-    {w : NodeWitness} (h : NodeRelation bytecode seed s w) :
-    ∀ c ∈ w.children, c.freshClaim.bytecodePoint.length = Nat.log2 bytecode.length :=
-  fun c hc => verifyDeferred_shaped (h.2.1 c hc).2
-
 end
 end LeanVM.Guest

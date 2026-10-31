@@ -217,18 +217,6 @@ theorem vanishing_succ (i : ℕ) :
     vanishing (i + 1) = vanishing i * (vanishing i + C (vanishingAt i (basisVec i))) :=
   (vanishing_comp_add_and_succ i).2
 
-/-- Lemma `lem:subspace` (ii) in any commutative `K`-algebra: `W_i(a + b) = W_i(a) + W_i(b)`. -/
-theorem aeval_vanishing_add {A : Type*} [CommRing A] [Algebra K A] (i : ℕ) (a b : A) :
-    aeval (a + b) (vanishing i) = aeval a (vanishing i) + aeval b (vanishing i) := by
-  have h2 : (2 : A) = 0 := by
-    have := congrArg (algebraMap K A) (CharTwo.two_eq_zero : (2 : K) = 0)
-    rwa [map_ofNat, map_zero] at this
-  induction i with
-  | zero => simp [vanishing_zero]
-  | succ i ih =>
-    simp only [vanishing_succ, map_mul, map_add, aeval_C, ih]
-    linear_combination (aeval a (vanishing i) * aeval b (vanishing i)) * h2
-
 /-- The recurrence (i), evaluated: `W_{i+1}(a) = W_i(a)^2 + W_i(e_i)·W_i(a)`, the update of the
 pinned Python's `_subspace_roots` and of the Rust `next_s`. -/
 theorem vanishingAt_succ (i : ℕ) (a : K) :

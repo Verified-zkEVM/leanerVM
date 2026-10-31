@@ -334,36 +334,5 @@ theorem vs_kidsDepB {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed :
     (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons hB
       (.cons le_rfl .nil))))))))))))
 
-/-- **`verify_sub` is complete on every honest child within `vsBound W Bvk` words**, its callees'
-words facts `W` and `verify_keccak`'s bounded completeness assumed. -/
-theorem verify_sub_completeB {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
-    (hrf : Lift.RunsFit fs cert) (hap : Lift.RunsApart cert) (W : VsWords fs) {Bvk κ : ℕ}
-    (hκ : 16 ≤ κ) (hvk : VkCompleteAtB fs cert κ Bvk) (seed : Digest) (c : Child)
-    (lpE sqE outE : ℕ) (Lin : Main.Layout)
-    (hmu : ∀ layout r, Verifier.announced bytecode c.proof.stream = some (layout, r) →
-      Hints.minChildStackLog ≤ layout.stackLog)
-    (hst : c.proof.stream.length ≤ Hints.childStreamCap)
-    (hnz : Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim
-      c.proof = true)
-    (hcaps : ∀ b ∈ Limits.queryStepsOf (deferredProgram c.freshClaim bytecode
-      (statementDigest seed c.statement)) (Hints.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2)
-    (hexpL : ∀ q ∈ log2Lin lpE sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
-    CompleteAtDTB fs cert κ "verify_sub" Lin
-      [(digestScalars (statementDigest seed c.statement)).1,
-        (digestScalars (statementDigest seed c.statement)).2, (digestScalars seed).1,
-        (digestScalars seed).2, ofK (gpow lpE), ofK (gpow sqE), ofK (gpow outE)] (Returns [])
-      (fun _ ↦ True) (vsBound W Bvk) := by
-  obtain ⟨S⟩ := child_segments hbl seed c hmu hnz hcaps
-  obtain ⟨hkr, hkm, hσ⟩ := vs_obligations hbl S fs hκ hexpL hout
-  have h := completeAt_flatDepRB (fs := fs) (cert := cert) find_vs vs_not_loop κ Lin _ []
-    (vs_body.trans vsT_splitPre) vs_cflat vs_caddrs vs_notIte (vsSizes S.μ) (fun _ ↦ S.ownW)
-    (fun _ ↦ S.ownW_fits hbl hst)
-    (fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.μ)) lpE sqE) (vsBs W Bvk)
-    (fun fp ↦ vs_kidsDepB hbl S hκ hrf hap W hvk _ lpE sqE) hkr hkm hσ
-  refine (h.mono le_rfl ?_).toDTB
-  have := (S.μ_bounds hbl).2
-  simp only [vsSizes, List.sum_cons, List.sum_nil, vsBound]
-  omega
-
 end
 end LeanVM.Guest.B1.VerifySub

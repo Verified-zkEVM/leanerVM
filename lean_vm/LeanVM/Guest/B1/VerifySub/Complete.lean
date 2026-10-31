@@ -195,27 +195,5 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
         holdsList_append]
       exact vsCPre_complete D (by simp [Stmt.HoldsList, Stmt.Holds])
 
-/-- **`verify_sub` is complete on every honest child**, `verify_keccak` complete. -/
-theorem verify_sub_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
-    (hvk : ∀ (fs : String → ℕ) (cert : String → V → ℕ), Lift.RunsFit fs cert →
-      Lift.RunsApart cert → ∀ κ, 16 ≤ κ → VkCompleteAt fs cert κ) :
-    verify_sub_complete_Spec bytecode := by
-  intro fs cert hrf hap seed c lpE sqE outE Lin κ hκ _ hmu hst hnz hcaps hexpL hout
-  obtain ⟨S⟩ := child_segments hbl seed c hmu hnz hcaps
-  have hfits := fun μ r h1 h2 h3 h4 ↦ osFitsAt_all fs cert hrf hap μ r h1 h2 h3 h4
-  have hvk' := hvk fs cert hrf hap κ hκ
-  obtain ⟨hkr, hkm, hσ⟩ := vs_obligations hbl S fs hκ hexpL hout
-  refine completeAt_flatDepR find_vs vs_not_loop κ Lin _ [] (vs_body.trans vsT_splitPre) vs_cflat
-    vs_caddrs vs_notIte (vsSizes S.μ) (fun _ ↦ S.ownW) (fun _ ↦ S.ownW_fits hbl hst)
-    (fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.μ)) lpE sqE) ?_ hkr hkm hσ
-  intro fp k hk pv ht
-  obtain ⟨j, hj, rfl⟩ := List.mem_iff_getElem.mp hk
-  have hj13 : j < 13 := by simpa [ChildSegs.kids_length] using hj
-  rw [← List.getD_eq_getElem _ noKid hj] at ht ⊢
-  by_cases h12 : j < 12
-  · exact kid_complete hbl S (by omega) hrf hvk' hfits _ lpE sqE h12 pv
-  · obtain rfl : j = 12 := by omega
-    exact term_complete hbl S hκ _ lpE sqE pv ht
-
 end
 end LeanVM.Guest.B1.VerifySub

@@ -211,44 +211,5 @@ theorem st_holds (ept ept1 ese esg : ℕ) (p p1 : List E) (hl : p.length = 28)
   simp only [GoodS, Good] at c1 c2
   simp [c1, c2, e2, e3]
 
-set_option maxRecDepth 10000 in
-/-- **The buffers hold the opening point's tables**, on any memory holding them, when the runs
-lie apart below the order of `g`. -/
-theorem st_tabs (ept ept1 ese esg : ℕ) (p p1 : List E) (hl : p.length = 28)
-    (hl1 : p1.length = 28)
-    (hd : DisjLay (stOwn ept ept1 ese esg p p1 ++ stLin ept ept1 p p1))
-    (hlo : LowLay (stOwn ept ept1 ese esg p p1 ++ stLin ept ept1 p p1))
-    (rd : Reader) (hm : MemLay rd (stOwn ept ept1 ese esg p p1)) :
-    SelTabsAt rd (ofK (gpow ese)) (ofK (gpow esg)) p p1 := by
-  set L := stOwn ept ept1 ese esg p p1 ++ stLin ept ept1 p p1 with hL
-  have hm1 := memLay_layRd hd hlo
-  have hrel := st_holds ept ept1 ese esg p p1 hl hl1 (layRd L) hm1
-  have hout := selector_tables_sound hrel
-  simp only [SelTablesOut] at hout
-  obtain ⟨hmo1, hmi1⟩ := memLay_append.mp hm1
-  have h3 := hout p p1 hl hl1 (hmi1 (ept, p) (by simp [stLin]))
-    (hmi1 (ept1, p1) (by simp [stLin]))
-  have hqe : (ese, stEqWords (stVal ept ept1 ese esg p p1)) ∈ stOwn ept ept1 ese esg p p1 := by
-    unfold stOwn; exact List.mem_cons_self
-  have hqg : (esg, stGWords) ∈ stOwn ept ept1 ese esg p p1 := by
-    unfold stOwn; exact List.mem_cons_of_mem _ List.mem_cons_self
-  refine ⟨fun j hj k hk => ?_, fun j hj k hk => ?_⟩
-  · have hj7 : j < 7 := hj
-    have h := h3.1 j hj k hk
-    rw [tb_loadHolds_mul_gen_pow] at h ⊢
-    have hk' : k < 30 := by
-      have : (eqLevels (topNib p j) (topNib p1 j)).length = 30 := by
-        rw [eqLevels_length (topNib_length hl hj) (topNib_length hl1 hj)]; rfl
-      omega
-    exact lay_transfer hmo1 hm hqe (by simp [stEqWords]; omega) h
-  · have hj7 : j < 7 := hj
-    have h := h3.2 j hj k hk
-    rw [tb_loadHolds_mul_gen_pow] at h ⊢
-    have hk' : k < 16 := by
-      have : (gTable (topShares j)).length = 16 := by
-        rw [gTable_length (n := 4) (by simp [topShares])]; rfl
-      omega
-    exact lay_transfer hmo1 hm hqg (by simp [stGWords]; omega) h
-
 end
 end LeanVM.Guest.B1.Tables

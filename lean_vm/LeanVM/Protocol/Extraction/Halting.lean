@@ -179,24 +179,6 @@ theorem sum_kappa_capCol :
   rw [e0, e1, e2, e3, e4, e5]
   omega
 
-/-- **The cap is at most the stack's size**: each table the cap counts owns a committed column,
-hence a block of the stack of its height, and the blocks fit on the stack. -/
-theorem stepCap_le_stack :
-    stepCap (verifierLayout prog s) ≤ 2 ^ (verifierLayout prog s).stackLog := by
-  rw [stackLog_verifierLayout, stepCap_verifierLayout, ← sum_kappa_capCol]
-  refine le_trans ?_ (blocks_fits prog s)
-  rw [Blocks.total_eq_sum]
-  let f : Fin 8 → Fin (blocks prog s).n := fun i ↦ blockOf (capCol i) (not_isVirtual_capCol i)
-  have hf : Function.Injective f := fun a b hab ↦ capCol_injective (by
-    rw [← stackOrder_blockOf prog s (capCol a) (not_isVirtual_capCol a),
-      ← stackOrder_blockOf prog s (capCol b) (not_isVirtual_capCol b)]
-    exact congrArg (fun b : Fin (blocks prog s).n ↦ (stackOrder prog s)[(b : ℕ)]'(by
-      have := b.isLt; exact this)) hab)
-  calc ∑ i, 2 ^ kappa prog s (capCol i) = ∑ i, 2 ^ (blocks prog s).size (f i) := by
-        simp only [f, size_blockOf]
-    _ = ∑ b ∈ Finset.univ.map ⟨f, hf⟩, 2 ^ (blocks prog s).size b := by rw [Finset.sum_map]; rfl
-    _ ≤ ∑ b, 2 ^ (blocks prog s).size b := Finset.sum_le_sum_of_subset (Finset.subset_univ _)
-
 end Structural
 
 /-! ## 3. On the extracted stack -/

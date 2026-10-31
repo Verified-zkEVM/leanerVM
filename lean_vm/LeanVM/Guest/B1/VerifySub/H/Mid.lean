@@ -35,13 +35,6 @@ theorem squeezeN_pend_of : ∀ (n : ℕ) (s : Fs), s.pend = [] → (s.squeezeN n
   | 0, _, h => h
   | n + 1, s, _ => squeezeN_pend_of n s.squeeze.2 rfl
 
-/-- **After a squeeze nothing waits.** -/
-theorem squeezeN_pend (n : ℕ) (s : Fs) : (s.squeezeN (n + 1)).2.pend = [] :=
-  squeezeN_pend_of n s.squeeze.2 rfl
-
-theorem fs_eta_of_pend {s : Fs} (h : s.pend = []) : s = ⟨s.cap, []⟩ := by
-  cases s; simp only at h; simp [h]
-
 theorem squeezeN_capOf (n : ℕ) : ∀ (s : Fs), ∃ K, (s.squeezeN (n + 1)).2 = ⟨capOf K, []⟩ := by
   induction n with
   | zero => intro s; exact ⟨s.perm, by simp only [Fs.squeezeN, Fs.squeeze]⟩

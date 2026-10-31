@@ -63,9 +63,6 @@ theorem loads_claim {σ : Val} {es : List Ev} (h : ∀ e ∈ es, EvLeafOk claimL
     | _ => simp [Ev.loadAddr?] at hea
   | _ => simp [Ev.loadAddr?] at hea
 
-theorem xmss_pure : coreProgram.PureIn ["verify_lean_xmss"] :=
-  pureIn_of_leafOk B1.Sig.find_verify_lean_xmss xmss_leafOk
-
 set_option maxRecDepth 100000 in
 /-- **`verify_lean_xmss` loads only the claim**, from B1's completeness. -/
 theorem verify_lean_xmss_relIn (hc : B1.Sig.verify_lean_xmss_complete_Spec) {rd : Reader}
@@ -89,9 +86,6 @@ theorem verify_lean_xmss_relIn (hc : B1.Sig.verify_lean_xmss_complete_Spec) {rd 
     (B1.Sig.verify_lean_xmss_rel hc hrd hat hv)
 
 /-! ## `verify_sig_lean_sphincs` -/
-
-theorem sphincs_pure : coreProgram.PureIn ["verify_sig_lean_sphincs"] :=
-  pureIn_of_leafOk B1.Sig.find_verify_sig_lean_sphincs sphincs_leafOk
 
 set_option maxRecDepth 100000 in
 /-- **`verify_sig_lean_sphincs` loads only the claim and the byte table**, from B1's completeness

@@ -12,7 +12,9 @@ and its tests, so that what they check counts as used.
 A declaration nothing uses is either a result of the project (an end theorem, which the end module
 mentions, or a lemma kept for a reader) or dead: proved, compiled and maintained for nothing. The
 list is a starting point for deleting, read before deleting: instances, `@[simp]` and `@[csimp]`
-lemmas and attributes act without being named, and are reported apart.
+lemmas and attributes act without being named, and are reported apart. The executables (`lean_vm/cli/`) cannot be roots
+together (each declares `main`): what only they use is reported unused, so build them after
+deleting.
 -/
 
 open Lean

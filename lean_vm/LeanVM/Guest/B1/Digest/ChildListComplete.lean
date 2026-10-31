@@ -58,35 +58,8 @@ theorem l17_shapeF : loopShapeF (coreProgram.getD 338 default) "__loop16" = true
   simp only [l17cOk, Bool.and_eq_true] at h
   exact h.1.1.1.1.1.1.1.1.1.1
 
-/-- The groups of child claims: `__loop16`'s block at every group below `n / 17`. -/
-theorem cc_blocks {entries cover base origin limit chain : E} {n L : ℕ} {o : ℕ → ℕ}
-    {cells : List E} (hl : cells.length = 4 * n) (hc : AllCanonical cells)
-    (hrec : RecMem rd cover origin limit entries base n o cells) (hL : limit = gen ^ L)
-    (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L) (hmem : ChildChainMem rd chain cells n) :
-    ∀ j < n / 17, LoopBlock rd (coreProgram.getD 338 default) (gen ^ j) (gen ^ (n / 17))
-      [chain, entries, cover, base, origin, limit] := by
-  intro j hj
-  have hS := hmem j (by omega)
-  have hS1 := hmem (j + 1) (by omega)
-  rw [show 68 * (j + 1) = 68 * j + 68 by ring, List.take_add, cellsBytes_append] at hS1
-  have hpre : (cellsBytes (cells.take (68 * j))).length = rate * (8 * j) := by
-    rw [length_cellsBytes, List.length_take, Nat.min_eq_left (by omega)]
-    show 16 * (68 * j) = 136 * (8 * j); omega
-  have hr := recMem_group hrec (s := 17 * j) (k := 17) (by omega)
-  rw [show 4 * (17 * j) = 68 * j by ring, show 4 * 17 = 68 by rfl, mul_comm 17 j, pow_mul] at hr
-  refine l17_block hpre (by rw [gen_pow_pow]; exact hS) (cells := ((cells.drop (68 * j)).take 68))
-    (by simp; omega) (canon_take (canon_drop hc _) _) hr hL hL33 hdef fun c => ?_
-  have := hS1 c
-  rw [gen_pow_pow, loadHolds_mul_gen_pow]
-  rw [loadHolds_mul_gen_pow, show 13 * (j + 1) + (0 + c.val) = 13 * j + (13 + c.val) by ring,
-    show 8 * (j + 1) = 8 * j + 8 by ring] at this
-  exact this
-
 theorem cc_param (σ : Val) : (Fn.params Data.core24).map σ =
     [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] := rfl
-
-theorem cc_cclNames {j : ℕ} (hj : j < cclNames.length) : cclNames[j] = cclNames.getD j "" := by
-  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj]; rfl
 
 end
 end LeanVM.Guest.B1.Digest

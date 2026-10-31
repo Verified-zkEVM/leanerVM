@@ -135,11 +135,6 @@ noncomputable def iList (C : Submodule F (ι → F)) (A : ℕ) (O : ρ → ι �
 noncomputable def radiusThreshold (n : ℕ) (γ : ℝ) : ℕ :=
   ⌈(1 - γ) * n⌉₊
 
-/-- A set reaches the threshold of `γ` exactly when it has at least `(1 - γ) n` elements. -/
-theorem radiusThreshold_le_iff (n : ℕ) (γ : ℝ) (m : ℕ) :
-    radiusThreshold n γ ≤ m ↔ (1 - γ) * n ≤ m :=
-  Nat.ceil_le
-
 /-- **The list `Λ_γ(O)` at relative radius `γ`** (Annex B, `def:interleaved`): the interleaved
 codewords `γ`-close to `O`, agreeing with it on at least `(1 - γ) |ι|` coordinates. -/
 noncomputable def iListRad (C : Submodule F (ι → F)) (γ : ℝ) (O : ρ → ι → F) :

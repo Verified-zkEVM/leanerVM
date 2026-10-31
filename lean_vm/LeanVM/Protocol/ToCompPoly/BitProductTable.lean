@@ -48,12 +48,6 @@ theorem bitProductTable_getElem {n : ℕ} (f : Fin n → Bool → R) {i : ℕ} (
     (bitProductTable f)[i] = ∏ k : Fin n, f k (i.testBit k) := by
   simp [bitProductTable]
 
-theorem map_bitProductTable {n : ℕ} (φ : R →+* S) (f : Fin n → Bool → R) :
-    CMlPolynomialEval.map φ (bitProductTable f) = bitProductTable fun k b ↦ φ (f k b) := by
-  apply Vector.ext
-  intro i hi
-  simp [CMlPolynomialEval.map, bitProductTable]
-
 /-- The extension of a table that factors over the index bits factors over the coordinates. -/
 theorem evalMle_bitProductTable {n : ℕ} (f : Fin n → Bool → R) (x : Vector R n) :
     evalMle (bitProductTable f) x =

@@ -37,44 +37,6 @@ namespace Trie
 
 variable {α : Type}
 
-theorem get_set_self (a : α) : ∀ {d n : ℕ} (t : Exec.Trie α), n + 1 < 2 ^ d →
-    (t.set a d n).get n = some a
-  | 0, n, _, h => by simp at h
-  | d + 1, n, t, h => by
-    have h2 : 2 ^ (d + 1) = 2 * 2 ^ d := by rw [pow_succ]; ring
-    rw [Exec.Trie.set_succ]
-    by_cases h0 : n = 0
-    · simp [h0, Exec.Trie.get_node]
-    · by_cases h1 : n % 2 = 1
-      · simp only [h0, h1, ↓reduceIte, Exec.Trie.get_node]
-        exact get_set_self a _ (by omega)
-      · simp only [h0, h1, ↓reduceIte, Exec.Trie.get_node]
-        exact get_set_self a _ (by omega)
-
-theorem get_set_ne (a : α) : ∀ {d n m : ℕ} (t : Exec.Trie α), m ≠ n →
-    (t.set a d n).get m = t.get m
-  | 0, _, _, _, _ => rfl
-  | d + 1, n, m, t, hmn => by
-    rw [Exec.Trie.set_succ, Exec.Trie.get_eq_node t m]
-    by_cases h0 : n = 0
-    · subst h0
-      simp [Exec.Trie.get_node, hmn]
-    · by_cases h1 : n % 2 = 1
-      · simp only [h0, h1, ↓reduceIte, Exec.Trie.get_node]
-        by_cases hm : m = 0
-        · simp [hm]
-        · by_cases hm1 : m % 2 = 1
-          · simp only [hm, hm1, ↓reduceIte]
-            exact get_set_ne a _ (by omega)
-          · simp [hm, hm1]
-      · simp only [h0, h1, ↓reduceIte, Exec.Trie.get_node]
-        by_cases hm : m = 0
-        · simp [hm]
-        · by_cases hm1 : m % 2 = 1
-          · simp [hm, hm1]
-          · simp only [hm, hm1, ↓reduceIte]
-            exact get_set_ne a _ (by omega)
-
 end Trie
 
 theorem getF_setF {α : Type} {a b : α} {d n m : ℕ} {t : Exec.Trie α}

@@ -157,25 +157,6 @@ theorem simulateQ_commitLeaf (initial : PFunctor)
     rw [simulateQ_map, simulateQ_priorQuery, map_pure]
     rfl
 
-/-- **The verifier outputs the verdict**: on every outcome of an execution, with any prover, the
-verifier's output is the verdict on the execution path. -/
-theorem commit_output (initial : PFunctor) (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id)
-    (s : S) {A : Type}
-    (p : Prover.Strategy unifSpec (commitSlot M σ).tree (commitSlot M σ).roles fun _ ↦ A) :
-    ∀ x ∈ support (executeStrategies unifSpec (commitSlot M σ).tree (commitSlot M σ).roles
-      (commitSlot M σ).oracles initial impl p (commitVerifier D Q initial s)),
-      Runs (commitSlot M σ).tree (commitSlot M σ).roles σ.samplers p x.1 x.2.1 ∧
-        x.2.2 = commitVerdict D Q s x.1 := by
-  intro x hx
-  obtain ⟨hruns, hleaf⟩ := runs_of_mem_support_leaf (commitSlot M σ).tree (commitSlot M σ).roles
-    (commitSlot M σ).oracles initial impl (commitSlot M σ).samplers p
-    (fun path ↦ commitLeaf D Q initial s path.2) x hx
-  have hv : x.2.2 ∈ support (pure (commitVerdict D Q s x.1) : OracleComp unifSpec _) := by
-    rw [← simulateQ_commitLeaf D Q initial impl s x.1]
-    exact hleaf
-  rw [support_pure, Set.mem_singleton_iff] at hv
-  exact ⟨hruns, hv⟩
-
 /-! ## Completeness -/
 
 variable {D Q} {relIn : S → M → Prop} {relOut : Set ((U × ∀ i, OneOracle M i) × Unit)}

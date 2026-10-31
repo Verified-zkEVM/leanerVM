@@ -54,21 +54,6 @@ theorem fsB_idx {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some
     rw [← h, ← hfn]
     exact wfs_eq hlt
 
-theorem fs_cot : B2C.fs "check_opening_terminal" = 1795 := by
-  rw [fsB_idx (j := 17) (by decide +kernel)]; decide +kernel
-
-theorem fs_l15 : B2C.fs "__loop14" = 19 := by
-  rw [fsB_idx (j := 260) (by decide +kernel)]; decide +kernel
-
-theorem fs_st : B2C.fs "selector_tables" = 366 := by
-  rw [fsB_idx (j := 16) (by decide +kernel)]; decide +kernel
-
-theorem fs_rsw : B2C.fs "ring_switch_weight" = 275 := by
-  rw [fsB_idx (j := 14) (by decide +kernel)]; decide +kernel
-
-theorem fs_rst : B2C.fs "ring_switch_target" = 12 := by
-  rw [fsB_idx (j := 13) (by decide +kernel)]; decide +kernel
-
 theorem fs_rs : B2C.fs "rs_eq_run" = 317 := by
   rw [fsB_idx (j := 5) (by decide +kernel)]; decide +kernel
 

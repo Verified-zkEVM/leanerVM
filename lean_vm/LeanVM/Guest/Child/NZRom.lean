@@ -296,24 +296,6 @@ theorem leanVmProgram_execWith (bytecode : List K) (publicInput : Digest) :
   rw [Verifier.leanVmProgram_eq]
   rfl
 
-/-- The program refusing zero challenges only fails more. -/
-theorem refines_nzProgram (bytecode : List K) (publicInput : Digest) :
-    Limits.Refines (nzProgram bytecode publicInput) (leanVmProgram bytecode publicInput) := by
-  rw [leanVmProgram_execWith]
-  refine Limits.Refines.bind ?_ fun _ ↦ Limits.Refines.refl _
-  unfold execWith
-  refine Limits.Refines.bind (Limits.Refines.refl _) fun ls ↦ ?_
-  obtain ⟨layout, r⟩ := ls
-  refine Limits.Refines.bind (Limits.Refines.refl _) fun _ ↦ ?_
-  refine Limits.Refines.bind (Limits.Refines.refl _) fun bus ↦ ?_
-  refine Limits.Refines.bind (Limits.Refines.refl _) fun claims ↦ ?_
-  refine Limits.Refines.bind (Limits.Refines.refl _) fun pub ↦ ?_
-  refine Limits.Refines.bind (Limits.Refines.refl _) fun kr ↦ ?_
-  obtain ⟨cl, kp, ks⟩ := kr
-  refine Limits.Refines.bind (Limits.Refines.refl _) fun rs ↦ ?_
-  obtain ⟨rt, rw⟩ := rs
-  exact Limits.verifyStackedOpeningNZ_refines _ _ _
-
 /-- A refining program costs at most what the refined one costs. -/
 theorem costs_of_refines {α : Type} {height : ℕ} {P' P : Prog α} (h : Limits.Refines P' P) :
     ∀ {n : ℕ} {Q : α → Prop}, Prog.Costs height P n Q → Prog.Costs height P' n Q := by

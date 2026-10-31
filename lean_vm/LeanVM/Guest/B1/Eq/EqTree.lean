@@ -201,16 +201,6 @@ theorem eqtreeS_succ (b t : ℕ) (ht : 1 ≤ t) :
       _ ≤ 2 ^ t := Nat.pow_le_pow_right (by decide) ht
   omega
 
-theorem eqtreeS_one (b : ℕ) : eqtreeS b 1 = b + 3 := by simp [eqtreeS]
-
-theorem eqtreeS_mono (b : ℕ) {t u : ℕ} (ht : 1 ≤ t) (h : t ≤ u) : eqtreeS b t ≤ eqtreeS b u := by
-  induction u with
-  | zero => omega
-  | succ u ih =>
-    rcases Nat.lt_or_ge t (u + 1) with h' | h'
-    · rw [eqtreeS_succ b u (by omega)]; have := ih (by omega); omega
-    · rw [show t = u + 1 by omega]
-
 /-- **The honest values satisfy `eqtree`**: with the point's words at `p`, the run `o` holding
 every level's `eqKernel` entries, and the template's values those of `eqtreeSig`. -/
 theorem eqtreeT_complete {p o : V} {po b n : ℕ} (hn : 1 ≤ n) {rs : List E} (hrs : rs.length = n)

@@ -83,12 +83,5 @@ theorem osBosAt_eq {μ r : ℕ} (h : candidate μ r < 28) :
   rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range h, Option.map_some,
     Option.getD_some, natStr_eq]
 
-theorem foldl_max_le {M : ℕ} : ∀ (l : List ℕ) (a : ℕ), a ≤ M → (∀ x ∈ l, x ≤ M) → l.foldl max a ≤ M
-  | [], _, ha, _ => ha
-  | y :: l, a, ha, h => by
-    rw [List.foldl_cons]
-    exact foldl_max_le l _ (max_le ha (h y List.mem_cons_self))
-      fun x hx => h x (List.mem_cons_of_mem _ hx)
-
 end
 end LeanVM.Guest.Count

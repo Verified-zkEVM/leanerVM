@@ -159,15 +159,5 @@ theorem pairCollision_of_climb_eq :
       · exact ⟨s, d, s', d', fun e ↦ hne (Prod.mk.inj e).2, hnode⟩
     · exact pairCollision_of_climb_eq p p' _ _ (i / 2) (by simpa using hl) hnode h
 
-/-- Two paths of equal length from different leaves at the same index that reach the same root
-exhibit a collision of the leaf hash or of the pair hash. -/
-theorem collision_of_rootOfPath_eq {leaf leaf' : L} {i : ℕ} {p p' : List D}
-    (hl : p.length = p'.length) (hne : leaf ≠ leaf')
-    (h : rootOfPath hashLeaf hashPair leaf i p = rootOfPath hashLeaf hashPair leaf' i p') :
-    LeafCollision hashLeaf ∨ PairCollision hashPair := by
-  by_cases hd : hashLeaf leaf = hashLeaf leaf'
-  · exact Or.inl ⟨leaf, leaf', hne, hd⟩
-  · exact Or.inr (pairCollision_of_climb_eq hashPair p p' _ _ i hl hd h)
-
 end
 end LeanVM.Protocol.MerkleTree

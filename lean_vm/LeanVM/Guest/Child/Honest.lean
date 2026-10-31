@@ -139,20 +139,6 @@ theorem atKeccak_of_eq {A : HonestProverWithHash} {prog : Program} {input : Publ
   rw [← proveM_id]
   rfl
 
-/-- **The child's proof with Keccak**, in the branch with a witness: the pure prover's proof, or
-the empty proof. -/
-theorem atKeccak_childComp {prog : Program} {input : PublicInput} {t : Execution prog} {ρ fuel : ℕ}
-    (h : ∃ w s, ChildFor prog input t ρ w s) :
-    Budget.honestProofWithDeployedKeccakWithHash childProver prog input t ρ fuel =
-      (prove keccak256 keccakF1600 (leanVmProgram (bytecodeWords prog) (publicDigest input))
-        (leanVmProver prog h.choose_spec.choose ρ (stackOf prog h.choose_spec.choose h.choose))
-        (seed (bytecodeWords prog) (publicDigest input)) fuel).getD ⟨[], []⟩ := by
-  unfold Budget.honestProofWithDeployedKeccakWithHash childProver childComp
-  simp only [h, ↓reduceDIte, keccakImpl_eq, Rom.honestComp, simulateQ_bind,
-    simulateQ_proveM, simulateQ_pure, implH_totalImpl, implF_totalImpl, seedRun_leanVmSeed]
-  rw [← proveM_id]
-  rfl
-
 /-- The verifier refusing a zero challenge, at Keccak, is the run of `execWith`. -/
 theorem verifierNZ_eq (prog : Program) (input : PublicInput) (π : Proof) :
     Budget.verifierNZ (m := Id) keccak256 keccakF1600 prog input π =

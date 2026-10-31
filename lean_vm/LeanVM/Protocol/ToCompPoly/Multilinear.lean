@@ -92,12 +92,6 @@ theorem evalMle_eq_sum {n : ℕ} (t : CMlPolynomialEval R n) (x : Vector R n) :
   rw [eval_mle_eq_eval, CMlPolynomialEval.eval, Vector.dotProduct_eq_root_dotProduct]
   simp [dotProduct, Vector.get_eq_getElem]
 
-/-- Evaluating at `r` is summing the table against the Lagrange basis at `r`. -/
-theorem evalMle_eq_sumCube_hadamard {n : ℕ} (t : CMlPolynomialEval R n) (r : Vector R n) :
-    evalMle t r = sumCube (hadamard (lagrangeBasis r) t) := by
-  rw [evalMle_eq_sum, sumCube]
-  exact Finset.sum_congr rfl fun i _ ↦ by rw [hadamard_getElem, mul_comm]
-
 /-- Evaluation is invariant under casting the number of variables. -/
 theorem evalMle_cast {n n' : ℕ} (h : n = n') (t : CMlPolynomialEval R n) (x : Vector R n) :
     evalMle (Vector.cast (congrArg (2 ^ ·) h) t) (Vector.cast h x) = evalMle t x := by
@@ -338,13 +332,6 @@ theorem lagrangeBasis_boolVec {m : ℕ} (j i : Fin (2 ^ m)) :
   · simp [hij]
   · simp [hij, (fin_eq_iff_testBit i j).not.mp hij]
 
-/-- The Lagrange basis at the all-ones index is the product of the coordinates. -/
-theorem lagrangeBasis_onesIndex {m : ℕ} (s : Vector R m) :
-    (lagrangeBasis s)[(onesIndex m).val] = ∏ b : Fin m, s[b] := by
-  rw [lagrangeBasis_getElem_nat _ (onesIndex m).isLt]
-  refine Finset.prod_congr rfl fun b _ ↦ ?_
-  simp [onesIndex, Nat.testBit_two_pow_sub_one, b.isLt]
-
 /-- Evaluating a table at a point of the cube reads the entry. -/
 theorem evalMle_boolVec {m : ℕ} (t : CMlPolynomialEval R m) (j : Fin (2 ^ m)) :
     evalMle t (boolVec j) = t[j] := by
@@ -463,18 +450,6 @@ theorem evalMle_placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^
   · intro h _ hh
     simp [slice_placeSlice, hh, evalMle_replicate]
   · simp
-
-/-- Placing a table keeps its sum over the cube. -/
-theorem sumCube_placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m)) :
-    sumCube (placeSlice t j) = sumCube t := by
-  rw [sumCube, sum_cube_split, Finset.sum_eq_single j]
-  · simp only [← slice_getElem, slice_placeSlice, ite_true]
-    rfl
-  · intro h _ hh
-    simp only [← slice_getElem, slice_placeSlice, ite_eq_right hh]
-    simp
-  · intro h
-    exact absurd (Finset.mem_univ _) h
 
 /-! ## Splitting the low coordinates, and one coordinate at a time -/
 

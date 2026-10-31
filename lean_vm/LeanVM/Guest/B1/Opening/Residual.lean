@@ -95,12 +95,5 @@ def residualVal (vals : List E) (x : E) (d : ℕ → E) (o : ℕ) : E :=
     [vals.getD t 0, residualChain vals x t + vals.getD t 0, residualChain vals x (t + 1), d (t + 1),
       d (t + 1) + residualChain vals x (t + 1), residualProd vals x d (t + 2)].getD ((o - 2) % 6) 0
 
-theorem residualVal_blk (vals : List E) (x : E) (d : ℕ → E) (t j : ℕ) (hj : j < 6) :
-    residualVal vals x d (2 + 6 * t + j) =
-      [vals.getD t 0, residualChain vals x t + vals.getD t 0, residualChain vals x (t + 1), d (t + 1),
-        d (t + 1) + residualChain vals x (t + 1), residualProd vals x d (t + 2)].getD j 0 := by
-  simp only [residualVal, show ¬ 2 + 6 * t + j = 0 by omega, show ¬ 2 + 6 * t + j = 1 by omega,
-    ↓reduceIte, show (2 + 6 * t + j - 2) / 6 = t by omega, show (2 + 6 * t + j - 2) % 6 = j by omega]
-
 end
 end LeanVM.Guest.B1

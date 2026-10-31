@@ -137,13 +137,5 @@ theorem eq_mergeSort_of_adjacent {n : ℕ} (size : ℕ → ℕ) {ord : List ℕ}
 
 /-! ## Coverage as `List.Forall₂` -/
 
-theorem forall₂_ofFn {α β : Type*} {R : α → β → Prop} :
-    ∀ (cs : List α) (f : Fin cs.length → β), (∀ s : Fin cs.length, R cs[s] (f s)) →
-      List.Forall₂ R cs (List.ofFn f)
-  | [], _, _ => List.Forall₂.nil
-  | c :: cs, f, h => by
-    rw [List.ofFn_succ]
-    exact List.Forall₂.cons (h 0) (forall₂_ofFn cs (fun s ↦ f s.succ) fun s ↦ h s.succ)
-
 end
 end LeanVM.Guest.Value

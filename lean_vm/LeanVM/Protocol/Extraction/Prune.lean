@@ -320,36 +320,7 @@ theorem eq_of_novelFwd_eq {κ R : ℕ} (hκ : κ ≤ 64) {c c' : Array K} (hc : 
   rw [← key c hc, ← key c' hc']
   exact congrArg (novelInv κ) (congrArg Array.ofFn (funext fun v ↦ h v.val (by omega)))
 
-/-- Survivors with the same encodings are the same. -/
-theorem injOn_evalTuple {κ R A : ℕ} (hκ : κ ≤ 64) (W : ℕ → List K) (U : ℕ) :
-    Set.InjOn (evalTuple κ R U) {cs | ∃ S, (cs, S) ∈ pruneUpTo κ R A W U} := by
-  rintro cs ⟨S, hS⟩ cs' ⟨S', hS'⟩ h
-  obtain ⟨hlen, hlist, -⟩ := mem_pruneUpTo hS
-  obtain ⟨hlen', hlist', -⟩ := mem_pruneUpTo hS'
-  apply List.ext_getElem (by simp [hlen, hlen'])
-  intro u hu hu'
-  have hu0 : u < U := by simpa [hlen] using hu
-  have e := eq_of_novelFwd_eq (R := R) hκ (size_of_mem_laneListAt (hlist u hu0))
-    (size_of_mem_laneListAt (hlist' u hu0)) fun v hv ↦
-      congrFun (congrFun h ⟨u, hu0⟩) ⟨v, hv⟩
-  simpa [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hu,
-    List.getElem?_eq_getElem hu'] using e
-
 /-! ## Encodings are Reed–Solomon codewords -/
-
-/-- **The encoding of any array is a Reed–Solomon codeword** of message length `2^κ` on the
-points `x_v`, `v < 2^(κ+R)` (ArkLib's `ReedSolomon.code`): it is the evaluation of
-`Σ_{j<2^κ} c_j·X_j`, of degree `< 2^κ`. With this, the tuples `evalTuple` of the survivors are
-interleaved codewords, as `iList` requires. -/
-theorem encoding_mem_code {κ R : ℕ} (hn : κ + R ≤ 64) (c : Array K) :
-    (fun v : Fin (2 ^ (κ + R)) ↦ (novelFwd κ R c).getD v.val 0) ∈
-      ReedSolomon.code (domainEmb (2 ^ (κ + R)) (Nat.pow_le_pow_right (by norm_num) hn)) (2 ^ κ) := by
-  refine ReedSolomon.mem_code_of_polynomial_of_degree_lt_of_eval
-    (∑ j ∈ Finset.range (2 ^ κ), Polynomial.C (c.getD j 0) * novelPoly j)
-    (degree_novelSum_lt (by omega) _) fun v ↦ ?_
-  rw [novelFwd_getD (by omega) _ v.isLt]
-  simp [Polynomial.eval_finsetSum, eval_novelPoly]
-  rfl
 
 /-! ## The decoded stacks are distinct candidates -/
 
@@ -417,15 +388,6 @@ theorem nodup_decodeStacksAt {μ R A : ℕ} (hμ : initialFold ≤ μ) (W : ℕ 
 theorem finite_vector_K (n : ℕ) : Finite (Vector K n) :=
   Finite.of_injective (fun v : Vector K n ↦ fun i : Fin n ↦ v[i]) fun _ _ h ↦
     Vector.ext fun i hi ↦ congrFun h ⟨i, hi⟩
-
-/-- **The decoded stacks are at most the candidates.** -/
-theorem length_decodeStacksAt_le {μ R A : ℕ} (hμ : initialFold ≤ μ) (hκ : μ - initialFold ≤ 64)
-    (W : ℕ → List K) : (decodeStacksAt μ R A W).length ≤ (Candidates μ R A W).ncard := by
-  have hnd := nodup_decodeStacksAt (R := R) (A := A) hμ W
-  rw [← List.toFinset_card_of_nodup hnd, ← Set.ncard_coe_finset]
-  have := finite_vector_K (2 ^ μ)
-  exact Set.ncard_le_ncard (fun q hq ↦ decodeStacksAt_sound hμ hκ W (List.mem_toFinset.mp hq))
-    (Set.toFinite _)
 
 end
 end LeanVM.Extraction.PruneProofs

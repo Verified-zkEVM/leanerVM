@@ -214,23 +214,6 @@ theorem gen_pow_eq_one_iff {a : ℕ} (ha : a < 2 ^ 64 - 1) : gen ^ a = 1 ↔ a =
   · rintro rfl
     exact pow_zero gen
 
-/-- **Bits pinned in the exponent** (`hint_decompose_bits_exponent(bits, x, n)` and the checks
-after it, `column_selector`, G:3018-3041, `log2_ceil_in_the_exponent`, G:716-724): Boolean `b_j`
-whose product `Π_{j < n} (1 + b_j·(g^(2^j) + 1))` is `x = g^N`, with `n ≤ 63` and `N` below the
-order of `g`, are the bits of `N`, and `N < 2^n`. -/
-theorem bits_of_exponent {n N : ℕ} (hn : n ≤ 63) (hN : N < 2 ^ 64 - 1) {b : ℕ → E}
-    (hb : ∀ j < n, b j * b j = b j)
-    (hx : ∏ j ∈ Finset.range n, (1 + b j * (gen ^ 2 ^ j + 1)) = gen ^ N) :
-    N < 2 ^ n ∧ ∀ j < n, b j = bitE (N.testBit j) := by
-  rw [prod_gen_pow_of_bool hb] at hx
-  have hlt := bitsVal_lt (fun j ↦ decide (b j = 1)) n
-  have h2n : 2 ^ n ≤ 2 ^ 63 := Nat.pow_le_pow_right (by decide) hn
-  have hv := gen_pow_inj (by omega) hN hx
-  subst hv
-  refine ⟨hlt, fun j hj ↦ ?_⟩
-  rw [bitE_of_mul_self (hb j hj), testBit_bitsVal]
-  simp [hj]
-
 /-- **`g_power_of_word(value)`** (G:663-676, `n = LOG_WORD_BITS`): Boolean bits with
 `Σ_{j < n} b_j · E(2^j) = value`, `n ≤ 63`, make `value` a word in `K` below `2^n`, and the
 product `Π (1 + b_j·(1 + g^(2^j)))` its g-power, `gpow (kToNat value.limb0)`. -/
@@ -258,19 +241,6 @@ theorem g_power_of_word_spec {n : ℕ} (hn : n ≤ 63) {b : ℕ → E} (hb : ∀
 
 /-- `assert log(x) < k` (`zkDSL.md` §Range checks): `x` is `g^e` with `e < k`. -/
 def LogLt (x : E) (k : ℕ) : Prop := ∃ e < k, x = gen ^ e
-
-/-- **The range check in the exponent is sound** (`zkDSL.md` §Range checks): the gadget's two
-`DEREF`s make `x` and the back-solved complement `z` addresses `g^e`, `g^e'` of a memory of at
-most `2^32` words (`Statement/LeanIsa.lean`, `MemoryImage.read`), and its `MUL` pins `x·z = g^(k-1)`; for
-`1 ≤ k ≤ 2^32` that is `e < k`. -/
-theorem rangeCheck_sound {e e' k : ℕ} (he : e < 2 ^ 32) (he' : e' < 2 ^ 32) (hk : 1 ≤ k)
-    (hk' : k ≤ 2 ^ 32) (h : Parameters.gpow e * Parameters.gpow e' = Parameters.gpow (k - 1)) :
-    e < k := by
-  have : Parameters.gpow (e + e') = Parameters.gpow (k - 1) := by
-    rw [← h, Parameters.gpow, Parameters.gpow, pow_add]
-  have := gpow_injOn (show e + e' ∈ Set.Iio (2 ^ 64 - 1) by simp only [Set.mem_Iio]; omega)
-    (show k - 1 ∈ Set.Iio (2 ^ 64 - 1) by simp only [Set.mem_Iio]; omega) this
-  omega
 
 /-! ## `log2Ceil`, certified by its two bounds (`verify_log2_ceil`, G:679-713) -/
 

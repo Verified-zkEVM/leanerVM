@@ -382,26 +382,5 @@ theorem sqIter_complete (lv : OsLv)
     hm.row hm.next (hdec _ _ hm.dec)
   ⟨_, h.1, h.2.1.1, h.2.2.1, h.2.2.2⟩
 
-/-- **The squeeze loop, honestly**: every iteration's memory honest, the capacities the squeeze
-chain's from `cap0`, the loop holds of its entry behind the guard `1 + g^n`. -/
-theorem sqLoop_complete {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
-    (lv : OsLv) (hps : fn.params = osParams 5) (hb : fn.body = sqLoopBody lv name)
-    (hpw : digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth)
-    (hpo : lv.posOff < u128Bound)
-    (hdec : ∀ args rets, MeaningDecodeQueryBits lv.depth rd args rets →
-      coreProgram.Rel rd ("decode_query_bits__L" ++ natStr lv.depth) args rets)
-    {n : ℕ} (hn0 : 0 < n) (sqz qpos qbp : E) (cap0 : List E) (hcl : cap0.length = 5)
-    (hcan : AllCanonical cap0)
-    (hm : ∀ j < n, SqIterMem rd lv.depth lv.posOff sqz qpos qbp (gen ^ j)
-      ((⟨cap0, []⟩ : Fs).squeezeN j).2.cap) :
-    IsInK (1 + gen ^ n) ∧ (1 + gen ^ n ≠ 0 →
-      coreProgram.Rel rd name [1, gen ^ n, sqz, qpos, qbp] []) := by
-  rw [sqLoopBody_split] at hb
-  refine loop_complete (rest := [sqz, qpos, qbp]) hf (sqLoopA_flat lv) hb hn0 rfl fun j hj ↦ ?_
-  obtain ⟨σ, hp, hA, hg, ha⟩ := sqIter_complete lv hpw hpo hdec (gen ^ j) (gen ^ n) sqz qpos qbp
-    ((⟨cap0, []⟩ : Fs).squeezeN j).2.cap (squeezeN_cap_length _ _ hcl)
-    (squeezeN_cap_canonical _ _ hcan) (hm j hj)
-  exact ⟨σ, by rw [hps]; exact hp, hA, hg, ha⟩
-
 end
 end LeanVM.Guest.B1.Whir

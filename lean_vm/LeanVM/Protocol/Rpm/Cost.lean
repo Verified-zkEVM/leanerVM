@@ -660,15 +660,6 @@ theorem shaped_of {prog : Program} {input : PublicInput} {t : Execution prog} {�
   exact h.2
 
 -- As for `shaped_of`.
-set_option maxHeartbeats 1000000 in
-/-- **Every hash of the honest prover is short.** -/
-theorem allQ_honestComp (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) :
-    AllQueriesSatisfy (Complete.honestComp prog input t ρ fuel) Short := by
-  unfold Complete.honestComp
-  split
-  · rename_i hex
-    exact allQ_romHonestComp prog input _ fuel (shaped_of hex.choose_spec.choose_spec)
-  · exact allQ_pure _
 
 /-- The honest prover's queries: the seed's four, and `leanVmCost = 48017` quarters at the
 prover's factor. -/

@@ -457,9 +457,6 @@ the lengths agree by construction (the table sizes are `2^k` for the `k` coordin
 passes), so these functions are total here: an excess entry is ignored, as `zip` ignores it.
 -/
 
-/-- The Python `E(n)`: the 64-bit word `n` in limb `0` (`verifier.py:97-100`). -/
-def eOfNat (n : ℕ) : E := ofK (K.ofBits n)
-
 /-- The integer value of a `K` word (`K.__index__`). -/
 def kToNat (a : K) : ℕ := a.toBitVec.toNat
 
@@ -467,10 +464,6 @@ def kToNat (a : K) : ℕ := a.toBitVec.toNat
 (`verifier.py:124-125`). -/
 def eToNat (e : E) : ℕ :=
   kToNat (e.limb 0) + 2 ^ 64 * kToNat (e.limb 1) + 2 ^ 128 * kToNat (e.limb 2)
-
-/-- `GEN = E(2)`, the generator `x` whose powers index the bytecode and the memory
-(`verifier.py:181`): `Field.lean`'s `g` in limb `0`. -/
-def gen : E := eOfNat 2
 
 /-- `_gpow(index) = GEN ** index` (`verifier.py:724-725`): `Parameters.gpow index`, the same
 power in `K`, in limb `0` (this file opens `Parameters` without its `gpow`). -/

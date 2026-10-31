@@ -245,28 +245,5 @@ theorem query_opens_root {D depth : ℕ} (hD : 2 ≤ D) (hDd : D ≤ depth) {rd 
   obtain ⟨cs, hcl, hc⟩ := cap_climb hD hcap hroot hp h0 h1 hfl
   exact ⟨cs, hcl, by rw [climbD_append, hsl, hc]⟩
 
-/-- **The query's opening passes `openOne`** (V:501) against the root: the row hashed
-(`hashWords`), its path the siblings below the cap then the cap's. -/
-theorem query_openOne {D depth width : ℕ} (hD : 2 ≤ D) (hDd : D ≤ depth) {rd : Reader}
-    {cap flags r0 r1 : E} {root : Digest}
-    (hcap : MeaningVerifyMerkleCap D rd [cap, flags] [r0, r1])
-    (hroot : (r0, r1) = digestScalars root) {q : ℕ} (hq : q < 2 ^ depth) {row : List K}
-    (hw : row.length = width) {sibs : List Digest} (hsl : sibs.length = depth - D)
-    (h0 : LoadHolds rd cap (2 * (2 ^ D + q / 2 ^ (depth - D)))
-      (digestScalars (climbD (hashWords row) q sibs)).1)
-    (h1 : LoadHolds rd cap (2 * (2 ^ D + q / 2 ^ (depth - D)) + 1)
-      (digestScalars (climbD (hashWords row) q sibs)).2)
-    (hfl : LoadHolds rd flags (2 ^ (D - 1) + q / 2 ^ (depth - D + 1)) 1) :
-    ∃ capSibs : List Digest, capSibs.length = D ∧
-      Id.run (Compile.openOneWithHash (m := Id) keccak256 root depth width q ⟨row, sibs ++ capSibs⟩) =
-        true := by
-  obtain ⟨cs, hcl, hc⟩ := query_opens_root hD hDd hcap hroot hq hsl h0 h1 hfl
-  refine ⟨cs, hcl, ?_⟩
-  unfold Compile.openOneWithHash
-  rw [ite_pos' ⟨hw, by simp [hsl, hcl]; omega⟩]
-  show decide ((climbD (hashWords row) q (sibs ++ cs)).toList = root.toList) = true
-  rw [hc]
-  exact decide_eq_true rfl
-
 end
 end LeanVM.Guest.B1

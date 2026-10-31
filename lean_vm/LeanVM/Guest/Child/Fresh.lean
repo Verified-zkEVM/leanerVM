@@ -192,28 +192,6 @@ theorem prefix_bytecode {bytecode : List K} {y : Pre} (h : Prog.Returns (prefixP
   rw [Prog.returns_ret h]
   exact hb
 
-/-- **An accepted run with the computed value is the run with a true claim**: the claim of the
-value at the point the run evaluates. -/
-theorem run_claimed_of_computed (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
-    (opening : ℕ → ℕ → List StackClaim → Prog Unit) (bytecode : List K) (publicInput : Digest)
-    (k : Unit → Prog Bool) {st : ProgState} {r : Bool × ProgState}
-    (h : Compile.runWithHash H F ((execWith computedValue opening bytecode publicInput).bind k) st = some r) :
-    ∃ c : BytecodeClaim, c.Holds bytecode ∧
-      Compile.runWithHash H F ((execWith (claimedValue c) opening bytecode publicInput).bind k) st =
-        some r := by
-  rw [execSplit, Prog.bind_assoc, run_bind'] at h
-  rcases hp : Compile.runWithHash H F (prefixProg bytecode) st with _ | ⟨y, s1⟩
-  · rw [hp] at h; simp at h
-  rw [hp] at h
-  have hy : y.layout.bytecode = bytecode :=
-    prefix_bytecode (Prog.returns_of_run H F hp)
-  refine ⟨⟨busPoint y, multilinearEval (bytecode.map ofK) (busPoint y)⟩, rfl, ?_⟩
-  rw [execSplit, Prog.bind_assoc, run_bind', hp]
-  simp only [Option.bind_some] at h ⊢
-  rw [← h, hy]
-  simp only [claimedValue, computedValue, Prog.require, Prog.bind_eq,
-    Prog.pure_eq, Prog.ret_bind, ↓reduceIte]
-
 /-! ## The deferring verifiers -/
 
 /-- The deferring program refusing a zero challenge, as a sequence. -/

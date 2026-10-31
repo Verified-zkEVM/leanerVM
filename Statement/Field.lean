@@ -109,4 +109,17 @@ def digestOfScalars (s : E × E) : Option Digest :=
 
 end LeanVM.Protocol.KeccakHash
 
+namespace LeanVM.Protocol.Verifier
+
+open LeanVM.Parameters
+
+/-- The Python `E(n)`: the 64-bit word `n` in limb `0` (`verifier.py:97-100`). -/
+def eOfNat (n : ℕ) : E := ofK (K.ofBits n)
+
+/-- `GEN = E(2)`, the generator `x` whose powers index the bytecode and the memory
+(`verifier.py:181`): `g` in limb `0`. -/
+def gen : E := eOfNat 2
+
+end LeanVM.Protocol.Verifier
+
 end

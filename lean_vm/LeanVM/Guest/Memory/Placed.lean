@@ -187,26 +187,6 @@ theorem kid_of {c : Call} {b m : ℕ} (hc : c.taken = false → P.Takes c.f c.ar
     refine ⟨.phantom c.f σ', ⟨rfl, by rw [ite_eq_right ht]; exact ⟨⟨_, _, rfl⟩, hph⟩, trivial⟩,
       by rw [Tree.BufsOk]; trivial, placed_phantom, by rw [Tree.total, h]⟩
 
-/-- The callees of `KidsFrom`, placed one after another from `b`. -/
-theorem kids_of_kidsFrom : ∀ (cs : List Call) (b n : ℕ),
-    (∀ c ∈ cs, c.taken = false → P.Takes c.f c.args.length = true) →
-    KidsFrom P fs cert rd σ cs b n →
-    ∃ ks : List Tree, Tree.KidsValid P rd σ cs ks ∧ Tree.BufsOkKids P ks ∧
-      Tree.PlacedKids P fs cert (bases b (ks.map (Tree.total fs))) ks ∧
-      (ks.map (Tree.total fs)).sum = n
-  | [], _, n, _, h => ⟨[], by simp [Tree.KidsValid], by rw [Tree.BufsOkKids]; trivial,
-      placedKids_nil, by rw [KidsFrom] at h; simp [h]⟩
-  | c :: cs, b, n, hw, h => by
-      rw [KidsFrom] at h
-      obtain ⟨m, n', rfl, hc, hcs⟩ := h
-      obtain ⟨k, hkv, hkb, hkp, hkt⟩ := kid_of (hw c List.mem_cons_self) hc
-      obtain ⟨ks, hv, hb, hp, hs⟩ :=
-        kids_of_kidsFrom cs (b + m) n' (fun c' hc' => hw c' (List.mem_cons_of_mem _ hc')) hcs
-      refine ⟨k :: ks, ⟨hkv.1, hkv.2.1, hv⟩, by rw [Tree.BufsOkKids]; exact ⟨hkb, hb⟩, ?_, ?_⟩
-      · rw [List.map_cons, bases, placedKids_cons, hkt]
-        exact ⟨hkp, hp⟩
-      · rw [List.map_cons, List.sum_cons, hkt, hs]
-
 /-- A frame set up and not entered is one its callee takes, in a well-formed program. -/
 theorem takes_of_calls (hP : P.Wf) {fn : Fn} (hfn : fn ∈ P) {es : List Ev} {vs : List V}
     (hw : walk σ fn.body = .ret es vs) :

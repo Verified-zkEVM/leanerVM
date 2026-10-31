@@ -225,21 +225,6 @@ A body's statements without `ret`, `pre`, hold one by one: the statement at posi
 by kernel evaluation (`stmtEqb`), holds. `body_pre` splits a body into its statements and its
 final `ret`. -/
 
-/-- The statement at position `k` of a block without `ret` holds. -/
-theorem holds_at {pre : List Stmt} (hnr : Stmt.noRetList pre = true) {kret : List E → Prop}
-    (h : Stmt.HoldsList C rd σ pre True kret) (k : ℕ) {s : Stmt}
-    (hk : stmtEqb (pre.getD k (.ret [])) s = true) (hlt : k < pre.length) :
-    Stmt.HoldsList C rd σ [s] True kret := by
-  rw [← stmtEqb_sound hk]
-  have hsplit : pre = pre.take k ++ [pre.getD k (.ret [])] ++ pre.drop (k + 1) := by
-    rw [List.getD_eq_getElem _ _ hlt]
-    simp
-  rw [hsplit] at h hnr
-  rw [noRetList_append, noRetList_append, Bool.and_eq_true, Bool.and_eq_true] at hnr
-  rw [holdsList_append, holdsList_append, holdsList_noRet _ hnr.1.1,
-    holdsList_noRet _ hnr.1.2] at h
-  exact h.2.1
-
 /-! ## Blocks of atoms, by kernel evaluation -/
 
 /-- An atom statement. -/

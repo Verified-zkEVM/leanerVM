@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Core
-public import Statement.LeanVmVerifier
+public import Statement.Field
 
 /-!
 # The exponent tables

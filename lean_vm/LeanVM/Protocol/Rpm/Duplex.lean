@@ -445,12 +445,4 @@ theorem duplexVm_romHonestComp (prog : Program) (input : PublicInput) (S : Strat
   exact (duplexP_seedWith _ _ []).bind fun seed h' hs ↦
     (duplexP_proveFromM _ _ _ _ _ _ _ hs).bind fun _ _ _ ↦ trivial
 
-/-- **The honest prover follows the duplex discipline.** -/
-theorem duplexVm_honestComp (prog : Program) (input : PublicInput) (t : Execution prog)
-    (ρ fuel : ℕ) : DuplexVm (LeanVM.Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel) [] := by
-  unfold LeanVM.Protocol.EndToEnd.Complete.honestComp
-  split
-  · exact duplexVm_romHonestComp prog input _ fuel
-  · trivial
-
 end LeanVM.Rpm

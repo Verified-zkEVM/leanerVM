@@ -36,9 +36,6 @@ theorem le_nameSum {g : String → ℕ} {names : List String} {n j : ℕ} (hj : 
     g names[j]! ≤ nameSum g names n :=
   List.single_le_sum (fun _ _ => Nat.zero_le _) _ (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩)
 
-theorem ite_le_add {p : Prop} [Decidable p] (a b : ℕ) : (if p then a else b) ≤ a + b := by
-  split <;> omega
-
 variable (fs SB SK : String → ℕ)
 
 /-! ## `da_verify` -/

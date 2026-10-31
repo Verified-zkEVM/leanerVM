@@ -56,16 +56,6 @@ abbrev leanIsaWith (prog : Program) (s : Sizes)
 
 variable (prog : Program) (s : Sizes)
 
-/-- The boundary blocks' tuples do not read the region. -/
-theorem boundaryTuples_with (I : M3Instance) (fl : Option (KeccakRegion I.toShape))
-    (q : Column I.μ) (side : Side) :
-    ({ I with keccak := fl } : M3Instance).boundaryTuples q side = I.boundaryTuples q side := by
-  unfold M3Instance.boundaryTuples
-  refine congrArg (List.flatMap · _) (funext fun b ↦ ?_)
-  refine congrArg (List.map · _) (funext fun x ↦ ?_)
-  refine congrArg (Vector.map · _) (funext fun co ↦ ?_)
-  cases co <;> rfl
-
 /-- A side's leaf count, from its blocks' log-heights. -/
 theorem leafCount_eq_κ (I : M3Instance) (k : Fin 3) :
     Bus.leafCount I k = (((Bus.sources I k).map Bus.Source.κ).map (2 ^ ·)).sum := by

@@ -174,22 +174,6 @@ theorem vk_obl {D : VkData} (h : D.Ok) {cap' : List E} {m0 : E} (hfin : D.fin = 
 
 
 open VkData in
-/-- **`verify_keccak` is complete, placed.** -/
-theorem verify_keccak_completeAt (κ : ℕ) : VkCompleteAtK fs cert κ := by
-  intro τ f chis outs xs op point slices cap' word m0 curE chiE olE zvE slE hτ1 hτ2 hchis houts
-    hf hcan hc hrun
-  obtain ⟨D, rfl, rfl, rfl, rfl, rfl, rfl, h, rfl, rfl, rfl, hfin⟩ :=
-    vkData_of_run hτ1 hτ2 hchis houts hf hcan hc hrun
-  exact completeAt_flatG (fs := fs) (cert := cert) find_vk vk_loop κ
-    (D.lin curE chiE olE zvE slE) (D.args curE chiE olE zvE slE)
-    (cap' ++ [ptr curE * gen ^ D.xs.length, D.word, m0]) (vk_body.trans vkT_pre)
-    vkPre_kernel.1 vkPre_kernel.2.1 vk_noLoadIte D.sizes
-    (fun fp fps ↦ D.own (fp + fs "verify_keccak") (D.lsOf fs fps))
-    (fun fp fps ↦ own_fit h _ _)
-    (fun fp ↦ D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE)
-    (fun fp ↦ kids_complete h κ _ curE chiE olE zvE slE)
-    (fun fp fps outs hlen _ hout rd _ hB hLin hto ↦
-      vk_obl h hfin curE chiE olE zvE slE fp fps outs hlen hout rd hB hLin hto)
 
 end
 end LeanVM.Guest.B1.VerifySub

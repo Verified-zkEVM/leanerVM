@@ -24,12 +24,5 @@ noncomputable def krPiece (J : List ℕ) (i a n : ℕ) (L : List ℕ) : Bool :=
   (Stmt.blockCallees (((krBody i).drop a).take n) == L.map krName) &&
     L.all fun k => decide (k ∈ J) && Nat.blt k 878
 
-theorem blockCallees_append : ∀ a b : List Stmt,
-    Stmt.blockCallees (a ++ b) = Stmt.blockCallees a ++ Stmt.blockCallees b
-  | [], _ => rfl
-  | s :: a, b => by
-    rw [List.cons_append, Stmt.blockCallees, Stmt.blockCallees, blockCallees_append a b,
-      List.append_assoc]
-
 end
 end LeanVM.Guest.Count

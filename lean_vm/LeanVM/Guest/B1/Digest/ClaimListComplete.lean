@@ -86,9 +86,6 @@ theorem cl_blocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.len
       show 8 * (j + 1) = 8 * j + 8 by ring] at this
     exact this
 
-theorem cl_clNames {j : ℕ} (hj : j < clNames.length) : clNames[j] = clNames.getD j "" := by
-  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj]; rfl
-
 theorem cl_param (σ : Val) : (Fn.params Data.core23).map σ = [σ (.n 0), σ (.n 1)] := rfl
 
 end

@@ -75,9 +75,5 @@ theorem list_split_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 16)) (args re
   | [], h => exact h.elim
   | _ :: _ :: _, h => exact h.elim
 
-/-- **`list_split` is complete.** -/
-theorem list_split_complete : list_split_complete_Spec := fun rd hm args rets h =>
-  list_split_complete' rd (memOK_of_memOk hm) args rets h
-
 end
 end LeanVM.Guest.B1.Digest

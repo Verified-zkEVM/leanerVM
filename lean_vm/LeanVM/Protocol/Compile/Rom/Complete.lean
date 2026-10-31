@@ -69,8 +69,6 @@ attribute [local irreducible] instFintypeDigest instFintypeKState
 /-- The probability that one nonce fails a proof of work of `b` bits: `1 - 2^-b`. -/
 noncomputable def missProb (b : ℕ) : ℝ≥0∞ := 1 - 2⁻¹ ^ b
 
-theorem missProb_le_one (b : ℕ) : missProb b ≤ 1 := tsub_le_self
-
 /-- **A nonce fails with probability exactly `1 - 2^-b`.** -/
 theorem avg_miss_eq {b : ℕ} (hb0 : b ≠ 0) (hb : b ≤ 64) (n : E) :
     (∑ u : KeccakState, ind (powOk b n (challengeOf u) = false)) / Fintype.card KeccakState =
@@ -88,23 +86,6 @@ theorem avg_miss_eq {b : ℕ} (hb0 : b ≠ 0) (hb : b ≤ 64) (n : E) :
   have hdiv := congrArg (· / (Fintype.card KeccakState : ℝ≥0∞)) hadd
   simp only [ENNReal.add_div, ENNReal.div_self hc hct, sum_powOk_div_eq hb0 hb n] at hdiv
   exact ENNReal.eq_sub_of_add_eq (by simp) hdiv
-
-/-- `(1 - 2^-b)^(2^b) ≤ e^-1 < 1/2`, over the reals. -/
-theorem one_sub_pow_le_half (b : ℕ) : (1 - (1 / 2 : ℝ) ^ b) ^ (2 ^ b) ≤ 1 / 2 := by
-  have hy0 : 0 ≤ 1 - (1 / 2 : ℝ) ^ b := by
-    have : (1 / 2 : ℝ) ^ b ≤ 1 := pow_le_one₀ (by norm_num) (by norm_num)
-    linarith
-  have he : Real.exp (-1) < 1 / 2 := by
-    have h2 : 1 + 1 < Real.exp 1 := Real.add_one_lt_exp one_ne_zero
-    rw [Real.exp_neg, one_div]
-    exact inv_strictAnti₀ (by norm_num) (by linarith)
-  calc (1 - (1 / 2 : ℝ) ^ b) ^ (2 ^ b) ≤ (Real.exp (-(1 / 2 : ℝ) ^ b)) ^ (2 ^ b) :=
-        pow_le_pow_left₀ hy0 (by have := Real.add_one_le_exp (-(1 / 2 : ℝ) ^ b); linarith) _
-    _ = Real.exp (-1) := by
-        rw [← Real.exp_nat_mul]; congr 1
-        push_cast
-        rw [mul_neg, ← mul_pow]; norm_num
-    _ ≤ 1 / 2 := he.le
 
 theorem missProb_eq_ofReal (b : ℕ) : missProb b = ENNReal.ofReal (1 - (1 / 2 : ℝ) ^ b) := by
   rw [ENNReal.ofReal_sub _ (by positivity), ENNReal.ofReal_one, ENNReal.ofReal_pow (by norm_num)]

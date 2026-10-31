@@ -74,15 +74,6 @@ theorem vs_goodS (hl : args.length = 7) {s : Stmt} (hs : s ∈ vsCPre) :
     trivial
   · exact vs_good hl _ (vsEvL_mem hs fun c z n h ↦ hi ⟨c, z, n, h⟩)
 
-/-- **A read** gives the word at its address (`0` if none). -/
-theorem vs_read (hl : args.length = 7) (n : ℕ) {d p : V} {off : ℕ}
-    (heq : tbStmtsEqb [.atom (.load d p off)] ((vsCPre.drop n).take 1) = true)
-    (hS : Atom.load d p off ∉ vsSL) :
-    vsσ rd w args d = rdAt rd (vsσ rd w args p) off := by
-  have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (blk := [_]) heq List.mem_cons_self)
-  simp only [fixNe, GoodS, Good] at h
-  exact h.resolve_left hS
-
 /-- An atom evaluation alone settles (a constant, a sum, a copy, a product of older values, a
 hint) holds. -/
 theorem vs_auto (hl : args.length = 7) {s : Stmt} (hs : s ∈ vsCPre) (ha : autoB s = true) :

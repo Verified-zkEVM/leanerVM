@@ -289,13 +289,6 @@ theorem frameWrites_not_buf (hok : CellsOk fs C (honestInsts P fs H hdr T))
     exact (insts_placed T 0 hdr I hI).frame_buf hF hi
   · exact (insts_pairwise T 0 hdr).forall hI hJ hIJ i (Or.inr hi) (Or.inl hF)
 
-/-- The equations agree with the frames when one memory holds both. -/
-theorem cross_of_read {rd' : Reader}
-    (hf : ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), rd' a.1 = some a.2)
-    (he : ∀ b ∈ T.eqns P, rd' b.1 = some b.2) :
-    ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), ∀ b ∈ T.eqns P, a.1 = b.1 → a.2 = b.2 :=
-  fun a ha b hb hab => Option.some.inj ((hf a ha).symm.trans (hab ▸ he b hb))
-
 /-! ## A placed tree -/
 
 /-- **A placed instance**: its `HeapBuf` pointers are its `bufBases`, its `frameAddr`s the

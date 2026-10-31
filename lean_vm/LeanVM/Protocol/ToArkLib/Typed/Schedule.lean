@@ -168,14 +168,6 @@ theorem drawsErrors_bounded (e : ℝ≥0) : (k : ℕ) →
   | k + 1 => ((drawsErrors_bounded e k).append (drawErrors_bounded C e)).mono
       (le_of_eq (by push_cast; ring))
 
-/-- `k` challenges' errors `f p`: their sum. -/
-theorem drawsErrorsOf_bounded (f : ℕ → ℝ≥0) : (k : ℕ) →
-    Errors.Bounded (drawsSlot C k).tree (drawsSlot C k).roles (drawsErrorsOf C f k)
-      (∑ p ∈ Finset.range k, f p)
-  | 0 => doneErrors_bounded.mono (by simp)
-  | k + 1 => ((drawsErrorsOf_bounded f k).append (drawErrors_bounded C (f k))).mono
-      (le_of_eq (Finset.sum_range_succ f k).symm)
-
 /-- One layer's errors: the combiner's, `2 ^ ρ · u` per round, `u` per combination challenge. -/
 theorem stepErrors_bounded (nside ρ m : ℕ) (combiner u : ℝ≥0) :
     Errors.Bounded (stepSlot C nside ρ m).tree (stepSlot C nside ρ m).roles

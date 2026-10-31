@@ -104,11 +104,6 @@ theorem stepIn_powIndex {prog : Program} {κ : ℕ} (hκ : κ < 64) (L : MemoryI
   rw [stepIn, hread, gLogIn_powIndex (logSize_lt prog)]
   rfl
 
-/-- `stepC` is `step`. -/
-theorem stepC_eq {prog : Program} {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) (r : Registers K) :
-    stepC prog L r = step prog L r :=
-  stepIn_powIndex hκ L r
-
 /-! ## 3. The search -/
 
 section Search

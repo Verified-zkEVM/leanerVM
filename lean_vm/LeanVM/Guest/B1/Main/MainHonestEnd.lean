@@ -57,22 +57,6 @@ theorem mainGoals_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecod
   ag := hag
   st := mainGoalSt fs cert fp seed s w hr hbl
 
-/-- **`main` at `fp` on the honest run**: `main_honest_relAtInW`, its callees discharged but the
-children's loop and the aggregation. -/
-theorem main_honest_end (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w)
-    (hl : Limits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
-    (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
-    (hl5 : MainGoalL5 fs cert fp seed s w) (hag : MainGoalAg fs cert fp seed s w) :
-    ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
-      (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
-      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L →
-        LoadHolds rd 1 0 (digestScalars (statementDigest seed s)).1 →
-        LoadHolds rd gen 0 (digestScalars (statementDigest seed s)).2 →
-        RelAtInW coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
-          (fun σ => MVals rd σ (hm fs fp seed s w)) :=
-  main_honest_relAtInW (log2_of_length hbl) hr hl (freshShaped_of hbl hr)
-    (mainGoals_of hbl hr hl hxc hsc hrf hl5 hag)
-
 /-- **Each child's `verify_sub` on the honest run**, at the words `main`'s children's loop passes
 it (B1-d's `verify_sub` completeness, per honest child). -/
 def VerifySubGoals (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)

@@ -613,40 +613,6 @@ def decodeRound (dom : SumcheckRound.WeightedDomain F) (k : Fin (d + 1)) (claim 
     (q : SumcheckRound.Message F d) : SumcheckRound.Message F d :=
   q.set k ((claim - ∑ i ∈ Finset.univ.erase k, q[i] * coeffWeight dom i) / coeffWeight dom k)
 
-/-- The decoding ignores the coefficient it derives. -/
-theorem decodeRound_set (dom : SumcheckRound.WeightedDomain F) (k : Fin (d + 1)) (claim a : F)
-    (q : SumcheckRound.Message F d) :
-    decodeRound dom k claim (q.set k a) = decodeRound dom k claim q := by
-  have h : ∀ i ∈ Finset.univ.erase k, (q.set k a)[i] = q[i] := fun i hi ↦
-    Vector.getElem_set_ne _ _ fun h ↦ (Finset.mem_erase.mp hi).1 (Fin.ext h).symm
-  rw [decodeRound, decodeRound, Finset.sum_congr rfl fun i hi ↦ by rw [h i hi], Vector.set_set]
-
-/-- A decoded message passes the round's check, when the derived coefficient has an invertible
-weight. -/
-theorem weightedSum_decodeRound {dom : SumcheckRound.WeightedDomain F} {k : Fin (d + 1)}
-    (hk : coeffWeight dom k ≠ 0) (claim : F) (q : SumcheckRound.Message F d) :
-    SumcheckRound.weightedSum d dom (decodeRound dom k claim q) = claim := by
-  rw [weightedSum_eq_sum, ← Finset.add_sum_erase _ _ (Finset.mem_univ k)]
-  have h : ∀ i ∈ Finset.univ.erase k, (decodeRound dom k claim q)[i] = q[i] := fun i hi ↦
-    Vector.getElem_set_ne _ _ fun h ↦ (Finset.mem_erase.mp hi).1 (Fin.ext h).symm
-  rw [Finset.sum_congr rfl fun i hi ↦ by rw [h i hi]]
-  simp only [decodeRound, Fin.getElem_fin, Vector.getElem_set_self]
-  field_simp
-  ring
-
-/-- Decoding a message that passes the round's check returns it: the honest message survives
-the wire. -/
-theorem decodeRound_of_weightedSum {dom : SumcheckRound.WeightedDomain F} {k : Fin (d + 1)}
-    (hk : coeffWeight dom k ≠ 0) {claim : F} {q : SumcheckRound.Message F d}
-    (hq : SumcheckRound.weightedSum d dom q = claim) : decodeRound dom k claim q = q := by
-  have hval : (claim - ∑ i ∈ Finset.univ.erase k, q[i] * coeffWeight dom i) /
-      coeffWeight dom k = q[k] := by
-    rw [← hq, weightedSum_eq_sum, ← Finset.add_sum_erase _ _ (Finset.mem_univ k)]
-    field_simp
-    ring
-  rw [decodeRound, hval]
-  exact Vector.set_getElem_self _
-
 variable {X : Type} {ι : Type} {O : ι → Type}
 
 /-- The wire's message: the coefficients but coefficient `k`, in order. -/
@@ -663,37 +629,6 @@ def expandWire (k : Fin (d + 1)) (w : Vector F d) : SumcheckRound.Message F d :=
 def decodeWire (dom : SumcheckRound.WeightedDomain F) (k : Fin (d + 1)) (claim : F)
     (w : Vector F d) : SumcheckRound.Message F d :=
   decodeRound dom k claim (expandWire k w)
-
-/-- Expanding the wire of a message is the message with coefficient `k` set to `0`. -/
-theorem expandWire_encodeWire (k : Fin (d + 1)) (q : SumcheckRound.Message F d) :
-    expandWire k (encodeWire k q) = q.set k 0 := by
-  apply Vector.ext
-  intro i hi
-  simp only [expandWire, encodeWire, Vector.getElem_ofFn, Vector.getElem_set]
-  by_cases h1 : i < k.val
-  · simp [h1, show (k : ℕ) ≠ i by omega]
-  · by_cases h2 : i = k.val
-    · simp [h2]
-    · simp only [h1, h2, dite_false, ite_false, show ¬ (i - 1 < k.val) by omega,
-        show (k : ℕ) ≠ i by omega]
-      congr 1
-      omega
-
-/-- The decoded message carries the wire in every other position: the decoding is injective. -/
-theorem encodeWire_decodeWire (dom : SumcheckRound.WeightedDomain F) (k : Fin (d + 1))
-    (claim : F) (w : Vector F d) : encodeWire k (decodeWire dom k claim w) = w := by
-  apply Vector.ext
-  intro i hi
-  by_cases h1 : i < k.val
-  · have h1' : (⟨i, by omega⟩ : Fin (d + 1)) < k := h1
-    simp [encodeWire, decodeWire, decodeRound, expandWire, Vector.getElem_set, h1, h1',
-      show (k : ℕ) ≠ i by omega]
-  · have h1' : ¬ (⟨i + 1, by omega⟩ : Fin (d + 1)) < k := fun h ↦ h1 (by
-      have := Fin.lt_def.mp h
-      simp only at this
-      omega)
-    simp [encodeWire, decodeWire, decodeRound, expandWire, Vector.getElem_set, h1, h1',
-      show (k : ℕ) ≠ i + 1 by omega, show i + 1 ≠ (k : ℕ) by omega]
 
 variable {W : Type} [∀ i, OracleInterface (O i)] [DecidableEq F] [SampleableType F]
 

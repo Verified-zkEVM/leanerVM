@@ -43,17 +43,6 @@ def Doomed (C : List Ev → Set β) (A : β → Prop) (h : List Ev) : Prop := �
 /-- The candidates a history binds do not change along a run with no commitment. -/
 def Stable (C : List Ev → Set β) : Prop := ∀ h₀ l, commits l = [] → C (h₀ ++ l) = C h₀
 
-/-- The commitments of a concatenation are the concatenation of the commitments. -/
-theorem commits_append : ∀ h l : List Ev, commits (h ++ l) = commits h ++ commits l
-  | [], _ => rfl
-  | Ev.commit ht w word :: h, l => by
-    rw [List.cons_append]
-    simp only [commits, commits_append h l, List.cons_append]
-  | Ev.read _ :: h, l => commits_append h l
-  | Ev.sample _ :: h, l => commits_append h l
-  | Ev.grind _ :: h, l => commits_append h l
-  | Ev.query _ :: h, l => commits_append h l
-
 /-- Doom for a predicate gives doom for a stronger one. -/
 theorem Doomed.mono {C : List Ev → Set β} {A A' : β → Prop} {h : List Ev}
     (hd : Doomed C A h) (hA : ∀ q, A' q → A q) : Doomed C A' h :=

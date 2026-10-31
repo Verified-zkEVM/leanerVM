@@ -40,16 +40,6 @@ theorem runsTo_roundPolyNone (s : Fs) (claim c : E) (tail : List E) (count : ℕ
     (h2.bind (f := fun t ↦ (pure (c :: (claim + sumE t) :: t) : Prog (List E)))
       (runsTo_ret _ _))).of_eq rfl (by simp) rfl rfl
 
-/-- An equality-mode round polynomial: the coefficients from `c1`, each absorbed. -/
-theorem runsTo_roundPolySome (s : Fs) (claim e : E) (tail : List E) (count : ℕ)
-    (h : tail.length = count - 1) :
-    RunsTo (sumcheckRoundPoly count claim (some e)) s tail
-      ((claim + e * sumE tail) :: tail) (s.absorbAll tail dsObserve) := by
-  have h2 := runsTo_readN s tail
-  rw [h] at h2
-  exact (h2.bind (f := fun t ↦ (pure ((claim + e * sumE t) :: t) : Prog (List E)))
-    (runsTo_ret _ _)).of_eq rfl (by simp) rfl rfl
-
 /-- One round of `sumcheck`: its polynomial, a sample, the rounds after it. -/
 theorem runsTo_sumcheck_cons {s s1 s2 : Fs} {claim : E} {count : ℕ} {eq : Option E}
     {eqs : List (Option E)} {xs ys msg pt : List E} {fin : E}

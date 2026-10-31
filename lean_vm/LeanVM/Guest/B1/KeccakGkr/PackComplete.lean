@@ -288,30 +288,7 @@ theorem packBlock_complete {rd : Reader} {x N rec pp pt : E} (hs : PackStep rd r
     ld v5 rfl (hcO 3 (by norm_num)), ld v5 rfl (hcO 4 (by norm_num)), e126, e127,
     ld v5 v127 lcur', ld v5 v124 lcl', ld v5 v125 lsc', e128, e129, e130, e131, e132⟩
 
-theorem pack_loopPre30 : Digest.loopPre Data.core381 = packPre :=
-  stmtsEqb_sound (by decide +kernel)
-theorem pack_loopPre31 : Digest.loopPre Data.core382 = packPre :=
-  stmtsEqb_sound (by decide +kernel)
-theorem pack_loopPre32 : Digest.loopPre Data.core383 = packPre :=
-  stmtsEqb_sound (by decide +kernel)
-theorem pack_loopPre33 : Digest.loopPre Data.core384 = packPre :=
-  stmtsEqb_sound (by decide +kernel)
 
-theorem pack_shape30 : Digest.loopShapeF Data.core381 "__loop28" = true := by decide +kernel
-theorem pack_shape31 : Digest.loopShapeF Data.core382 "__loop29" = true := by decide +kernel
-theorem pack_shape32 : Digest.loopShapeF Data.core383 "__loop30" = true := by decide +kernel
-theorem pack_shape33 : Digest.loopShapeF Data.core384 "__loop31" = true := by decide +kernel
-
-theorem pack_guard {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
-    (hok : Digest.loopShapeF fn name = true) (hpre : Digest.loopPre fn = packPre)
-    (hpar : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4]) {rd : Reader} {rec pp pt : E} {m : ℕ}
-    (hs : ∀ j < m, PackStep rd rec pp pt (gen ^ j)) :
-    IsInK (1 + gen ^ m) ∧
-      (1 + gen ^ m ≠ 0 → coreProgram.Rel rd name [1, gen ^ m, rec, pp, pt] []) :=
-  Digest.guard_complete hf hok fun j hj ↦ by
-    obtain ⟨σ, hp, hb, -⟩ := packBlock_complete (N := gen ^ m) (hs j hj)
-    refine ⟨σ, by rw [hpar]; exact hp, ?_⟩
-    rw [hpre]; exact hb
 
 end
 end LeanVM.Guest.B1.VerifySub

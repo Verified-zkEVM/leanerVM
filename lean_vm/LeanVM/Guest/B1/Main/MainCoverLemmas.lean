@@ -98,36 +98,6 @@ theorem hMarkS_raw {k : ℕ} (hk : k < (hRawS s w).length) :
     hMarkS s w k = (hRawX s w).length + k := by
   simp [hMarkS, hk]
 
-/-- **Child `c`'s leanXMSS claim `j`'s mark** is `hW c + j`. -/
-theorem hMarkX_child {c j : ℕ} (hc : c < w.children.length)
-    (hj : j < (w.children[c]).statement.claims.xmss.length) :
-    hMarkX s w ((hRawX s w).length +
-      (((w.children.map (·.statement.claims.xmss)).take c).map List.length).sum + j) =
-      hW s w c + j := by
-  have e : ((w.children.map (·.statement.claims.xmss)).take c).map List.length =
-      (w.children.map (·.statement.claims.xmss.length)).take c := by
-    rw [List.map_take, List.map_map]; rfl
-  have h1 : ¬ (hRawX s w).length + (((w.children.map (·.statement.claims.xmss.length)).take c).sum + j) <
-      (hRawX s w).length := by omega
-  have h2 := segOf_sum (w.children.map (·.statement.claims.xmss.length)) (c := c) (j := j)
-    (by simpa using hc) (by simpa using hj)
-  simp only [e, hMarkX, h1, ↓reduceIte, Nat.add_assoc, Nat.add_sub_cancel_left, h2]
-
-/-- **Child `c`'s leanSPHINCS claim `j`'s mark** is `hW c + hEx c + j`. -/
-theorem hMarkS_child {c j : ℕ} (hc : c < w.children.length)
-    (hj : j < (w.children[c]).statement.claims.sphincs.length) :
-    hMarkS s w ((hRawS s w).length +
-      (((w.children.map (·.statement.claims.sphincs)).take c).map List.length).sum + j) =
-      hW s w c + hEx w c + j := by
-  have e : ((w.children.map (·.statement.claims.sphincs)).take c).map List.length =
-      (w.children.map (·.statement.claims.sphincs.length)).take c := by
-    rw [List.map_take, List.map_map]; rfl
-  have h1 : ¬ (hRawS s w).length + (((w.children.map (·.statement.claims.sphincs.length)).take c).sum + j) <
-      (hRawS s w).length := by omega
-  have h2 := segOf_sum (w.children.map (·.statement.claims.sphincs.length)) (c := c) (j := j)
-    (by simpa using hc) (by simpa using hj)
-  simp only [e, hMarkS, h1, ↓reduceIte, Nat.add_assoc, Nat.add_sub_cancel_left, h2]
-
 /-! ## The coverage table's words -/
 
 /-- The leanXMSS and leanSPHINCS regions' sizes. -/

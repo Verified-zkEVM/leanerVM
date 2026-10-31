@@ -256,11 +256,6 @@ theorem cast_lowPoint_append_highPoint {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b 
   rw [lowPoint, highPoint, lowVec_append_highVec]
   simp
 
-@[simp] theorem highPoint_extendPoint {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
-    (z : Vector R (B.size b)) :
-    B.highPoint hμ b (B.extendPoint hμ b z) = boolVec (B.selector hμ b) := by
-  simp [highPoint, extendPoint]
-
 /-! ## Reading a block off a table -/
 
 /-- Block `b` read off a table of `μ` variables: the cells of its window. The table need not be

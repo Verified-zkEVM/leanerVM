@@ -231,19 +231,6 @@ private theorem iList_johnson_hyps (C : Submodule F (ι → F)) (d A : ℕ) {r �
     (hdist U V ((mem_iList C A O U).mp hU).1 ((mem_iList C A O V).mp hV).1 hne)
   exact (by exact_mod_cast hc : ((agreeSet O U ∩ agreeSet O V).card : ℝ) ≤ d).trans hd
 
-/-- **Johnson bound for lists, real form.** If distinct interleaved codewords of `C` agree on at
-most `d ≤ r n` coordinates, with `0 ≤ r ≤ 1`, `0 ≤ η` and the threshold `A ≥ (√r + η) n`, the
-list of every interleaved word satisfies `|Λ| (2 η √r + η²) ≤ 1 - r`. -/
-theorem card_iList_mul_le_johnson (C : Submodule F (ι → F)) (d A : ℕ) {r η : ℝ}
-    (hn : 0 < Fintype.card ι) (hr0 : 0 ≤ r) (hr1 : r ≤ 1) (hη : 0 ≤ η)
-    (hd : (d : ℝ) ≤ r * Fintype.card ι)
-    (hdist : ∀ U V : ρ → ι → F, IsInterleavedCodeword C U → IsInterleavedCodeword C V →
-      U ≠ V → (agreeSet U V).card ≤ d)
-    (hA : (√r + η) * Fintype.card ι ≤ A) (O : ρ → ι → F) :
-    ((iList C A O).card : ℝ) * (2 * η * √r + η ^ 2) ≤ 1 - r :=
-  let h := iList_johnson_hyps C d A hd hdist hA O
-  card_mul_johnson_le _ (agreeSet O) hn hr0 hr1 hη h.1 h.2
-
 /-- **Johnson bound for lists** (Annex B, `thm:johnson-general`): if distinct interleaved
 codewords of `C` agree on at most `d ≤ r n` coordinates, with `r > 0`, `η > 0` and the threshold
 `A ≥ (√r + η) n`, the list of every interleaved word has at most `1 / (2 η √r)` members. -/

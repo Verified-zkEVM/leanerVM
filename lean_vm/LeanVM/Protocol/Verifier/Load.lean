@@ -121,22 +121,6 @@ theorem digestBytes_digestOfBytes {b : Bytes} (h : b.length = 32) :
       wordBytes_laneOfBytes (by simp), wordBytes_laneOfBytes (by simp)]
     rfl
 
-theorem eBytes_length (x : E) : (eBytes x).length = 24 := rfl
-
-theorem eOfBytes_eBytes (x : E) : eOfBytes (eBytes x) = x := by
-  simp only [eOfBytes, eBytes, List.append_assoc, kOfBytes_kBytes_append]
-  rw [show 16 = 8 + 8 from rfl, ← List.drop_drop, List.drop_left' (kBytes_length _),
-    List.drop_left' (kBytes_length _), kOfBytes_kBytes_append, kOfBytes_kBytes]
-  exact ofLimbs_limb x
-
-theorem eBytes_eOfBytes {b : Bytes} (h : b.length = 24) : eBytes (eOfBytes b) = b := by
-  simp only [eBytes, eOfBytes, limb_ofLimbs, Matrix.cons_val_zero, Matrix.cons_val_one,
-    Matrix.cons_val_two, Matrix.head_cons, Matrix.tail_cons]
-  rw [kBytes_kOfBytes (by omega), kBytes_kOfBytes (by simp; omega),
-    kBytes_kOfBytes (by simp; omega), List.take_of_length_le (l := b.drop 16) (by simp; omega),
-    show 16 = 8 + 8 from rfl, ← List.drop_drop, List.append_assoc, List.take_append_drop,
-    List.take_append_drop]
-
 
 /-! ### Lists of fixed-size values -/
 
@@ -179,22 +163,6 @@ theorem readMany_spec (henc : ∀ c, c.length = size → enc (decode c) = c) :
     refine ⟨by simp [h1], ?_⟩
     rw [List.flatMap_cons, henc _ hs, List.append_assoc, h2, List.take_append_drop]
 
-theorem decodeAll_flatMap (hpos : 0 < size) (hlen : ∀ x, (enc x).length = size)
-    (hdec : ∀ x, decode (enc x) = x) (xs : List α) :
-    decodeAll size decode (xs.flatMap enc) = some xs := by
-  have h := readMany_flatMap hlen hdec xs []
-  rw [List.append_nil] at h
-  simp only [decodeAll, length_flatMap_of_length hlen, Nat.mul_div_cancel _ hpos, h]
-
-theorem decodeAll_spec (henc : ∀ c, c.length = size → enc (decode c) = c) {b : Bytes}
-    {xs : List α} (h : decodeAll size decode b = some xs) : xs.flatMap enc = b := by
-  unfold decodeAll at h
-  split at h
-  · rename_i hr
-    cases h
-    simpa using (readMany_spec henc hr).2
-  · cases h
-
 end ReadMany
 
 /-! ### The files -/
@@ -225,35 +193,6 @@ theorem readOpening_spec {height width : ℕ} {b rest : Bytes} {o : Opening}
   obtain ⟨hl2, hb2⟩ := readMany_spec (fun _ ↦ digestBytes_digestOfBytes) h2
   refine ⟨by simp [openingShape, hl1, hl2], ?_⟩
   simp only [openingBytes, List.append_assoc, hb2, hb1]
-
-theorem readOpenings_encodeOpenings (os : List Opening) (rest : Bytes) :
-    readOpenings (os.map openingShape) (encodeOpenings os ++ rest) = some (os, rest) := by
-  induction os with
-  | nil => rfl
-  | cons o os ih =>
-    simp only [List.map_cons, openingShape, encodeOpenings, List.flatMap_cons,
-      List.append_assoc, readOpenings, readOpening_bytes]
-    simp only [encodeOpenings] at ih
-    simp [ih]
-
-theorem readOpenings_spec :
-    ∀ {shapes : List (ℕ × ℕ)} {b rest : Bytes} {os : List Opening},
-      readOpenings shapes b = some (os, rest) →
-        os.map openingShape = shapes ∧ encodeOpenings os ++ rest = b
-  | [], b, rest, os, h => by
-    simp only [readOpenings, Option.some.injEq, Prod.mk.injEq] at h
-    obtain ⟨rfl, rfl⟩ := h
-    simp [encodeOpenings]
-  | (height, width) :: shapes, b, rest, os, h => by
-    simp only [readOpenings, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
-    obtain ⟨⟨o, b1⟩, h1, ⟨os', b2⟩, h2, he⟩ := h
-    simp only [Option.pure_def, Option.some.injEq, Prod.mk.injEq] at he
-    obtain ⟨rfl, rfl⟩ := he
-    obtain ⟨hs1, hb1⟩ := readOpening_spec h1
-    obtain ⟨hs2, hb2⟩ := readOpenings_spec h2
-    refine ⟨by simp [hs1, hs2], ?_⟩
-    simp only [encodeOpenings, List.flatMap_cons, List.append_assoc] at hb2 ⊢
-    rw [hb2, hb1]
 
 end
 end LeanVM.Protocol.Verifier

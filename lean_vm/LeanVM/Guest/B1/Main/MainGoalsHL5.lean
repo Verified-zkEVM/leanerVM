@@ -422,30 +422,5 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
     · rw [Nat.add_assoc]; exact region_buf fs fp seed s w (by omega) (by rw [hlenD]; omega)
     · rw [Nat.add_assoc]; exact region_buf fs fp seed s w (by omega) (by rw [hlenPi]; omega)
 
-/-- **`main`'s honest children loop is complete**: under `NodeRelation` and `Limits`, for a bytecode of
-`2^bytecodeVars` words, given each child's `verify_sub` call complete at `main`'s words. -/
-theorem mainGoalL5 (cert : String → V → ℕ) {bytecode : List K}
-    (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)
-    (hl : Limits s w)
-    (hV : ∀ c (hc : c < w.children.length), CompleteAtD fs cert 16 "verify_sub" (hLmain fs fp seed s w)
-      [(digestScalars (statementDigest seed w.children[c].statement)).1,
-        (digestScalars (statementDigest seed w.children[c].statement)).2,
-        (digestScalars seed).1, (digestScalars seed).2, (hm fs fp seed s w).et1,
-        (hm fs fp seed s w).et2, (hm fs fp seed s w).a400 * gen ^ (24 * c)] (Returns [])) :
-    MainGoalL5 fs cert fp seed s w := by
-  intro hnc
-  have hnc16 := hl.children
-  have h := l5_completeAt fs cert (Lin := hLmain fs fp seed s w) (W := hP fs fp seed s w 8)
-    (D := hP fs fp seed s w 4) (Pi := hP fs fp seed s w 5) (Cr := hP fs fp seed s w 7)
-    (nk := w.children.length) (kid := hKid s w) (by omega)
-    (fun x hx => by
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
-      rcases hx with rfl | rfl
-      · exact (digestScalars_canonical _).1
-      · exact (digestScalars_canonical _).2)
-    (fun c hc => kidOk cert hbl hrel hl hV hc) 0 (by have : w.children.length ≠ 0 := hnc; omega)
-  rw [pow_zero] at h
-  exact h
-
 end
 end LeanVM.Guest.B1.Main

@@ -114,20 +114,6 @@ theorem lane_inState (col : ℕ → K) (m x : ℕ) {l : ℕ} (hl : l < 25) :
     Keccak.lane (inState h col m x) l = K.lane (col (x + 2 ^ h * (25 * m + l))) := by
   rw [lane_eq _ hl, inState, Vector.getElem_ofFn]
 
-/-- **A valid region with true output claims** has true middle-state claims. -/
-theorem outClaims_of_regionValid (col : ℕ → K) (inst output : List E) (hv : RegionValid h col)
-    (ho : outClaimsTrue h col inst output) :
-    outClaimsTrueMid h col inst output ∧ midAgree h col inst := by
-  have hx : ∀ x ∈ range (2 ^ h), inState h col 1 x = roundsFrom 0 12 (inState h col 0 x) :=
-    fun x hx ↦ hv x (Finset.mem_range.1 hx)
-  refine ⟨fun l hl ↦ ?_, fun l hl ↦ ?_⟩
-  · rw [← ho l hl, stepMle, stepMle]
-    refine Finset.sum_congr rfl fun x hxr ↦ ?_
-    rw [hx x hxr, keccakF_eq]
-  · rw [stepMle, stepMle]
-    refine Finset.sum_congr rfl fun x hxr ↦ ?_
-    rw [← hx x hxr, laneWord, lane_inState h col 1 x hl, ofLane_lane]
-
 /-! ## A multilinear zero test -/
 
 /-- The table `δ` with its first `|acc|` coordinates bound to `acc`, at the remaining index `v`. -/
