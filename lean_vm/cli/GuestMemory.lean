@@ -255,7 +255,11 @@ theorem fresh_of_freshOn (h : FreshOn 0 coreProgram.length) : coreProgram.Fresh 
       steps := steps.push s!"\ntheorem from{j}_{a} : RangeFresh (Data.core{j}.body.drop {a}) ({suffix}) temps{j} :=\n  rangeFresh_drop (l := Data.core{j}.body) (a := {a}) (n := {n}) (ts := ts{j}_{a}) (ts' := {prevSuffix}) fresh{j}_{a} from{j}_{prev}\n"
       prev := a
     steps := steps.push s!"\nset_option maxRecDepth 100000 in\ntheorem all{j} : ({suffix}) = temps{j} := by decide +kernel\n"
-    steps := steps.push s!"\nset_option maxRecDepth 100000 in\ntheorem nodup{j} : temps{j}.Nodup := by decide +kernel\n"
+    -- increasing temporaries are distinct by one pass, not by comparing every pair
+    let increasing := (allT.zip allT.tail).all fun (x, y) => x < y
+    steps := steps.push (if increasing then
+      s!"\nset_option maxRecDepth 100000 in\ntheorem nodup{j} : temps{j}.Nodup :=\n  (List.isChain_iff_pairwise.mp (by decide +kernel : temps{j}.IsChain (· < ·))).nodup\n"
+    else s!"\nset_option maxRecDepth 100000 in\ntheorem nodup{j} : temps{j}.Nodup := by decide +kernel\n")
     steps := steps.push s!"\nset_option maxRecDepth 100000 in\ntheorem params{j} : (temps{j}.all fun t => !(idxMask Data.core{j}.params).testBit t) = true := by\n  decide +kernel\n"
     let imps := String.join (names.toList.map fun nm => s!"public import LeanVM.Guest.Memory.GuestFresh.{nm}\n")
     imports := imports.push s!"public import LeanVM.Guest.Memory.GuestFresh.Fresh{j}\n"

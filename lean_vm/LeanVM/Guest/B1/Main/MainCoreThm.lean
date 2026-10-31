@@ -28,7 +28,6 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
 @[expose] public section
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 16000000 in
 /-- **`main`'s honest valuation holds** on a memory defined below `2^16` holding `main`'s words. -/
 theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : MainBounds m)
     (hm : MainMem rd m) : MVals rd (mσ rd m) m := by
@@ -80,77 +79,77 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
   have v6 : σ (.n 6) = gen ^ m.nc := by rw [hO (by decide)]; rfl
   have v7 : σ (.n 7) = gen ^ m.nd := by rw [hO (by decide)]; rfl
   have v40 : σ (.n 40) = gen ^ (m.nlx + m.nxd) := by
-    rw [gM 40 0 1 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v0, v1, pow_add]
+    rw [gM 40 0 1 (by norm_num) (by norm_num) (by decide +kernel), v0, v1, pow_add]
   have v41 : σ (.n 41) = gen ^ (m.nls + m.nsd) := by
-    rw [gM 41 3 4 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v3, v4, pow_add]
+    rw [gM 41 3 4 (by norm_num) (by norm_num) (by decide +kernel), v3, v4, pow_add]
   have v42 : σ (.n 42) = gen ^ m.total := by
-    rw [gM 42 40 41 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v40, v41, ← pow_add]; rfl
+    rw [gM 42 40 41 (by norm_num) (by norm_num) (by decide +kernel), v40, v41, ← pow_add]; rfl
   have v52 : σ (.n 52) = gen ^ (4 * (m.nlx + m.nxd)) := by
-    rw [gM 52 51 51 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 51 40 40 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v40, ← pow_add, ← pow_add]
+    rw [gM 52 51 51 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 51 40 40 (by norm_num) (by norm_num) (by decide +kernel), v40, ← pow_add, ← pow_add]
     exact congrArg (HPow.hPow gen) (by ring)
   have v55 : σ (.n 55) = gen ^ (4 * (m.nls + m.nsd)) := by
-    rw [gM 55 54 54 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 54 41 41 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v41, ← pow_add, ← pow_add]
+    rw [gM 55 54 54 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 54 41 41 (by norm_num) (by norm_num) (by decide +kernel), v41, ← pow_add, ← pow_add]
     exact congrArg (HPow.hPow gen) (by ring)
   have vDa : σ (.n 334) = m.aDa := by rw [hO (by decide)]; simp [mOrc]
   have v409 : σ (.n 380) = m.a409 := by rw [hO (by decide)]; simp [mOrc]
   have vpick : σ (.n 387) = gen ^ m.pick := by rw [hO (by decide)]; simp [mOrc]
   have v333 : σ (.n 333) = gen ^ (2 * (m.nc + 1)) := by
-    rw [gM 333 332 332 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 332 6 331 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6,
-      two 331 (by simp [mDefAtoms]), ← pow_succ, ← pow_add]
+    rw [gM 333 332 332 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 332 6 331 (by norm_num) (by norm_num) (by decide +kernel), v6,
+      two 331 (by decide +kernel), ← pow_succ, ← pow_add]
     exact congrArg (HPow.hPow gen) (by ring)
   have v336 : σ (.n 336) = m.aDa * gen ^ (2 * m.nc) := by
-    rw [gM 336 334 335 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 335 6 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), vDa, v6, ← pow_add, two_mul]
+    rw [gM 336 334 335 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 335 6 6 (by norm_num) (by norm_num) (by decide +kernel), vDa, v6, ← pow_add, two_mul]
   have v338 : σ (.n 338) = gen ^ m.nd + gen := by
-    rw [gA 338 7 337 (by simp [mDefAtoms]), v7, two 337 (by simp [mDefAtoms])]
+    rw [gA 338 7 337 (by decide +kernel), v7, two 337 (by decide +kernel)]
   have v364 : σ (.n 364) = gen ^ (2 * m.nc) := by
-    rw [gM 364 6 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6, ← pow_add, two_mul]
+    rw [gM 364 6 6 (by norm_num) (by norm_num) (by decide +kernel), v6, ← pow_add, two_mul]
   have v370 : σ (.n 370) = gen ^ (24 * m.nc) := by
-    rw [gM 370 369 369 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 369 368 368 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 368 367 367 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 367 366 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 366 6 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6, ← pow_add, ← pow_add,
+    rw [gM 370 369 369 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 369 368 368 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 368 367 367 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 367 366 6 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 366 6 6 (by norm_num) (by norm_num) (by decide +kernel), v6, ← pow_add, ← pow_add,
       ← pow_add, ← pow_add, ← pow_add]
     exact congrArg (HPow.hPow gen) (by ring)
   have v376 : σ (.n 376) = gen ^ (24 * m.nc) := by
-    rw [gM 376 375 375 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 375 374 374 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 374 373 373 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 373 372 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 372 6 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6, ← pow_add, ← pow_add,
+    rw [gM 376 375 375 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 375 374 374 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 374 373 373 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 373 372 6 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 372 6 6 (by norm_num) (by norm_num) (by decide +kernel), v6, ← pow_add, ← pow_add,
       ← pow_add, ← pow_add, ← pow_add]
     exact congrArg (HPow.hPow gen) (by ring)
   have v379 : σ (.n 379) = gen ^ (m.nc + 1) := by
-    rw [gM 379 6 378 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6,
-      two 378 (by simp [mDefAtoms]), pow_succ]
+    rw [gM 379 6 378 (by norm_num) (by norm_num) (by decide +kernel), v6,
+      two 378 (by decide +kernel), pow_succ]
   have v381 : σ (.n 381) = gen ^ (m.nrx + m.nrs) := by
-    rw [gM 381 2 5 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v2, v5, pow_add]
+    rw [gM 381 2 5 (by norm_num) (by norm_num) (by decide +kernel), v2, v5, pow_add]
   have v385 : σ (.n 385) = m.a409 * gen ^ m.nc := by
-    rw [gM 385 380 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v409, v6]
+    rw [gM 385 380 6 (by norm_num) (by norm_num) (by decide +kernel), v409, v6]
   have v389 : σ (.n 389) = gen ^ (m.nc + 1) := by
-    rw [gM 389 6 388 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6,
-      two 388 (by simp [mDefAtoms]), pow_succ]
+    rw [gM 389 6 388 (by norm_num) (by norm_num) (by decide +kernel), v6,
+      two 388 (by decide +kernel), pow_succ]
   have v391 : σ (.n 391) = gen ^ m.nc := by
-    rw [gM 391 389 390 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v389,
-      gC 390 (word 9223372036854775821 0 0) (by simp [mDefAtoms]), gen_pow_mul_ginv (by omega), Nat.add_sub_cancel]
+    rw [gM 391 389 390 (by norm_num) (by norm_num) (by decide +kernel), v389,
+      gC 390 (word 9223372036854775821 0 0) (by decide +kernel), gen_pow_mul_ginv (by omega), Nat.add_sub_cancel]
   have v398 : σ (.n 398) = (gen ^ m.pick + gen ^ m.nc) * (gen ^ m.nd + 1) := by
-    rw [gM 398 395 397 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gA 395 387 6 (by simp [mDefAtoms]), gA 397 7 396 (by simp [mDefAtoms]), vpick, v6, v7,
-      one 396 (by simp [mDefAtoms])]
+    rw [gM 398 395 397 (by norm_num) (by norm_num) (by decide +kernel),
+      gA 395 387 6 (by decide +kernel), gA 397 7 396 (by decide +kernel), vpick, v6, v7,
+      one 396 (by decide +kernel)]
   have v401 : σ (.n 401) = m.aDa * gen ^ (2 * m.pick) := by
-    rw [gM 401 334 400 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 400 387 387 (by norm_num) (by norm_num) (by simp [mDefAtoms]), vDa, vpick, ← pow_add,
+    rw [gM 401 334 400 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 400 387 387 (by norm_num) (by norm_num) (by decide +kernel), vDa, vpick, ← pow_add,
       two_mul]
   have v404 : σ (.n 404) = gen ^ m.nc + 1 := by
-    rw [gA 404 6 403 (by simp [mDefAtoms]), v6, one 403 (by simp [mDefAtoms])]
-  have v433 : σ (.n 433) = 1 := one 433 (by simp [mDefAtoms])
+    rw [gA 404 6 403 (by decide +kernel), v6, one 403 (by decide +kernel)]
+  have v433 : σ (.n 433) = 1 := one 433 (by decide +kernel)
   have v437 : σ (.n 437) = gen := by
-    rw [gM 437 435 436 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      one 435 (by simp [mDefAtoms]), two 436 (by simp [mDefAtoms]), one_mul]
+    rw [gM 437 435 436 (by norm_num) (by norm_num) (by decide +kernel),
+      one 435 (by decide +kernel), two 436 (by decide +kernel), one_mul]
   -- the reads
   have rdL : ∀ d p o v, Atom.load (.n d) (.n p) o ∈ mDefAtoms →
       Atom.load (.n d) (.n p) o ∉ mStoresL → LoadHolds rd (σ (.n p)) o v → σ (.n d) = v := by
@@ -159,17 +158,17 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
     · exact absurd (by rw [mStores_eq] at h; exact h) hn
     · rw [h, rdAt_of_load hv]
   have r386 : σ (.n 386) = gen ^ m.total :=
-    rdL 386 385 0 _ (by simp [mDefAtoms]) (by simp [mStoresL]) (by rw [v385]; exact hm.wN)
+    rdL 386 385 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v385]; exact hm.wN)
   have r429 : σ (.n 429) = (digestScalars m.dap).1 :=
-    rdL 429 401 0 _ (by simp [mDefAtoms]) (by simp [mStoresL]) (by
+    rdL 429 401 0 _ (by decide +kernel) (by simp [mStoresL]) (by
       rw [v401]; exact hm.dap 0 (by simp [digestCells]))
   have r430 : σ (.n 430) = (digestScalars m.dap).2 :=
-    rdL 430 401 1 _ (by simp [mDefAtoms]) (by simp [mStoresL]) (by
+    rdL 430 401 1 _ (by decide +kernel) (by simp [mStoresL]) (by
       rw [v401]; exact hm.dap 1 (by simp [digestCells]))
   have r434 : σ (.n 434) = (digestScalars m.sdg).1 :=
-    rdL 434 433 0 _ (by simp [mDefAtoms]) (by simp [mStoresL]) (by rw [v433]; exact hm.h0)
+    rdL 434 433 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v433]; exact hm.h0)
   have r438 : σ (.n 438) = (digestScalars m.sdg).2 :=
-    rdL 438 437 0 _ (by simp [mDefAtoms]) (by simp [mStoresL]) (by rw [v437]; exact hm.h1)
+    rdL 438 437 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v437]; exact hm.h1)
   -- the side conditions
   have hS : ∀ a ∈ atomsIn mFlat, a ∉ mStores → needsSide a = true →
       a.Holds rd σ ∨ Side rd mStores σ a := by
@@ -188,15 +187,15 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       simp only [rcPairs, List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at hp
       rcases hp with ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ |
           ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ <;> rw [h1, h2] at hg ⊢ <;> rw [h2] at hlt
-      · exact rc_side hl v0 (by rw [gC 8 (word 9272771591053052074 0 0) (by simp [mDefAtoms]), word_gmax]) hb.lx (by norm_num) hlt hg
-      · exact rc_side hl v1 (by rw [gC 12 (word 9272771591053052074 0 0) (by simp [mDefAtoms]), word_gmax]) hb.xd (by norm_num) hlt hg
-      · exact rc_side hl v2 (by rw [gC 16 (word 9272771591053052074 0 0) (by simp [mDefAtoms]), word_gmax]) hb.rx (by norm_num) hlt hg
-      · exact rc_side hl v3 (by rw [gC 20 (word 9272771591053052074 0 0) (by simp [mDefAtoms]), word_gmax]) hb.ls (by norm_num) hlt hg
-      · exact rc_side hl v4 (by rw [gC 24 (word 9272771591053052074 0 0) (by simp [mDefAtoms]), word_gmax]) hb.sd (by norm_num) hlt hg
-      · exact rc_side hl v5 (by rw [gC 28 (word 9272771591053052074 0 0) (by simp [mDefAtoms]), word_gmax]) hb.rs (by norm_num) hlt hg
-      · exact rc_side hl v6 (by rw [gC 32 (word 65536 0 0) (by simp [mDefAtoms]), word_g16]) hb.nc (by norm_num) hlt hg
-      · exact rc_side hl v7 (by rw [gC 36 (word 2 0 0) (by simp [mDefAtoms]), word_g1]) hb.nd (by norm_num) hlt hg
-      · exact rc_side hl v42 (by rw [gC 43 (word 9272771591053052074 0 0) (by simp [mDefAtoms]), word_gmax]) hb.total (by norm_num)
+      · exact rc_side hl v0 (by rw [gC 8 (word 9272771591053052074 0 0) (by decide +kernel), word_gmax]) hb.lx (by norm_num) hlt hg
+      · exact rc_side hl v1 (by rw [gC 12 (word 9272771591053052074 0 0) (by decide +kernel), word_gmax]) hb.xd (by norm_num) hlt hg
+      · exact rc_side hl v2 (by rw [gC 16 (word 9272771591053052074 0 0) (by decide +kernel), word_gmax]) hb.rx (by norm_num) hlt hg
+      · exact rc_side hl v3 (by rw [gC 20 (word 9272771591053052074 0 0) (by decide +kernel), word_gmax]) hb.ls (by norm_num) hlt hg
+      · exact rc_side hl v4 (by rw [gC 24 (word 9272771591053052074 0 0) (by decide +kernel), word_gmax]) hb.sd (by norm_num) hlt hg
+      · exact rc_side hl v5 (by rw [gC 28 (word 9272771591053052074 0 0) (by decide +kernel), word_gmax]) hb.rs (by norm_num) hlt hg
+      · exact rc_side hl v6 (by rw [gC 32 (word 65536 0 0) (by decide +kernel), word_g16]) hb.nc (by norm_num) hlt hg
+      · exact rc_side hl v7 (by rw [gC 36 (word 2 0 0) (by decide +kernel), word_g1]) hb.nd (by norm_num) hlt hg
+      · exact rc_side hl v42 (by rw [gC 43 (word 9272771591053052074 0 0) (by decide +kernel), word_gmax]) hb.total (by norm_num)
           hlt hg
       · exact rc_side hl vpick v391 hb.pick (by have := hb.nc; omega) hlt hg
     | load d p o =>
@@ -237,7 +236,7 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       rw [e_add_eq_zero_iff]
       rcases hok with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
       · rw [r386, v42]
-      · rw [v398, gC 399 (word 0 0 0) (by simp [mDefAtoms]), word_zero]
+      · rw [v398, gC 399 (word 0 0 0) (by decide +kernel), word_zero]
         rcases Nat.le_one_iff_eq_zero_or_eq_one.mp hb.nd with h | h
         · rw [h, pow_zero, show (1 : E) + 1 = 0 from e_add_eq_zero_iff.mpr rfl, mul_zero]
         · rw [hb.pickD h, show gen ^ m.nc + gen ^ m.nc = 0 from e_add_eq_zero_iff.mpr rfl,
@@ -374,12 +373,12 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
     mB1 (by intro s hs; clear * - hs; simp only [List.mem_append]; tauto),
     mB1 (by intro s hs; clear * - hs; simp only [List.mem_append]; tauto),
     hDa, hDaZ, hLeaf, horc, v40, v41, v42, v52, v55,
-    gd 62 61 1 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v1, one 63 (by simp [mDefAtoms]),
-    gd 65 64 4 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v4, one 66 (by simp [mDefAtoms]),
-    gd 326 325 2 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v2, one 327 (by simp [mDefAtoms]),
-    gd 329 328 5 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v5, one 330 (by simp [mDefAtoms]),
+    gd 62 61 1 _ (by decide +kernel) (by decide +kernel) v1, one 63 (by decide +kernel),
+    gd 65 64 4 _ (by decide +kernel) (by decide +kernel) v4, one 66 (by decide +kernel),
+    gd 326 325 2 _ (by decide +kernel) (by decide +kernel) v2, one 327 (by decide +kernel),
+    gd 329 328 5 _ (by decide +kernel) (by decide +kernel) v5, one 330 (by decide +kernel),
     v333, v336, v338, v364, v370, v376, v379, v381,
-    gd 383 382 6 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v6, one 384 (by simp [mDefAtoms]),
+    gd 383 382 6 _ (by decide +kernel) (by decide +kernel) v6, one 384 (by decide +kernel),
     v385, v401, v404, r429, r430, v433, v437⟩
 
 end

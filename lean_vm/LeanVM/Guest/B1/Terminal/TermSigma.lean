@@ -127,7 +127,15 @@ theorem termKids_getD_104 (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
 
 /-! ## The honest valuation -/
 
-set_option maxHeartbeats 2000000 in
+/-- `termKind` by ranges, for `omega` (rather than splitting its `if`s in a large context). -/
+theorem termKind_spec (j : ℕ) : (termKind j = 0 ↔ j < 5) ∧
+    (termKind j = 1 ↔ 5 ≤ j ∧ j < 72 ∨ 135 < j ∧ j < 162) ∧
+    (termKind j = 2 ↔ 72 ≤ j ∧ j < 110 ∨ j = 135) ∧ (termKind j = 3 ↔ 162 ≤ j) ∧
+    (termKind j = 4 ↔ 110 ≤ j ∧ j < 135) := by
+  refine ⟨⟨?_, ?_⟩, ⟨?_, ?_⟩, ⟨?_, ?_⟩, ⟨?_, ?_⟩, ⟨?_, ?_⟩⟩ <;> intro h <;> unfold termKind at * <;>
+    split_ifs at * <;> omega
+
+set_option maxHeartbeats 600000 in
 set_option maxRecDepth 4000 in
 /-- **`check_opening_terminal`'s honest valuation**, on a memory holding the caller's words, the
 buffers and the callees' results: what `completeAt_flatDepR` asks of it. -/
@@ -237,7 +245,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       kc_getD hkap (termCol_lt hj)]
   have hcpτ : ∀ j < 165, termKind j = 2 → cp j = τ := fun j hj hk ↦ by
     show (claims.getD j default).point.length = _
-    have h2 : (72 ≤ j ∧ j < 110) ∨ j = 135 := by unfold termKind at hk; split_ifs at hk <;> omega
+    have h2 : (72 ≤ j ∧ j < 110) ∨ j = 135 := by have := termKind_spec j; omega
     rw [hlen _ (hmemj j hj), claim_column hcols hj,
       show claimColOf j = j + 1 by unfold claimColOf; split_ifs <;> omega]
     exact kappas_keccak hHL (by omega) (by omega)
@@ -370,6 +378,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     rw [List.nil_append, termKids_getD_sel Lin D b0 hc] at this
     obtain ⟨h1, -⟩ := this
     rw [(hsl c hc).2.2.2.2.2, h1]
+    rw [List.getD_cons_zero]
     show selRet x KC (stackOffsets KC).1 c = _
     unfold selRet pt28 pt128 p1Of
     rw [bitsEq_sel _ (by have := hK c hc; omega) hxl40,
@@ -388,7 +397,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
         ⟨B.pt1 + τ + k, rt_addr_mul _ _ _, Or.inl (hreg _ (by simp only [TermRegion]; omega))⟩⟩
   have hnotout : ∀ j < 165, termKind j ≠ 4 →
       Tables.claimColumns.getD j 0 ∉ keccakOutputColumns := fun j hj hk hm => hk (by
-    have := (claimCol_out hj).mp hm; unfold termKind; split_ifs <;> omega)
+    have := (claimCol_out hj).mp hm; have := termKind_spec j; omega)
   have hlamR : ∀ j < 165, termKind j ≠ 4 →
       (∃ v, LoadHolds rd (σ (.n 9)) j v) ∧ AddrIn R (σ (.n 9)) j := fun j hj hk => by
     rw [e9]
@@ -400,7 +409,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     unfold ClaimIn
     split
     · rename_i hk
-      have hj5 : j < 5 := by unfold termKind at hk; split_ifs at hk; omega
+      have hj5 : j < 5 := by have := termKind_spec j; omega
       have hle := hpz' j hj5
       obtain ⟨l9, a9⟩ := hlamR j hj' (by omega)
       refine ⟨by rw [e7]; exact hcpR j (by omega), by rw [e7]; exact aL _ _ (by simp only [TermRegion]; omega),
@@ -412,7 +421,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       · rw [e19]
         exact ⟨b0 + cp j + 0, rt_addr_mul _ _ _, rB _ ⟨_, m0, by omega, by rw [eqChain_length]; omega⟩⟩
     · rename_i hk
-      have hj5 : 5 ≤ j ∧ j < 162 := by unfold termKind at hk; split_ifs at hk <;> omega
+      have hj5 : 5 ≤ j ∧ j < 162 := by have := termKind_spec j; omega
       have hle := hpc' j hj5.1 hj5.2
       obtain ⟨l9, a9⟩ := hlamR j hj' (by omega)
       refine ⟨by rw [e7]; exact hcpR j (by omega), by rw [e7]; exact aL _ _ (by simp only [TermRegion]; omega),
@@ -425,7 +434,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
         exact ⟨b0 + 35 + cp j + 0, rt_addr_mul _ _ _,
           rB _ ⟨_, m1, by omega, by rw [eqChain_length]; omega⟩⟩
     · rename_i hk
-      have hj5 : 5 ≤ j ∧ j < 162 := by unfold termKind at hk; split_ifs at hk <;> omega
+      have hj5 : 5 ≤ j ∧ j < 162 := by have := termKind_spec j; omega
       have hle := hpc' j hj5.1 hj5.2
       obtain ⟨l9, a9⟩ := hlamR j hj' (by omega)
       refine ⟨by rw [e7]; exact hcpR j (by omega), by rw [e7]; exact aL _ _ (by simp only [TermRegion]; omega),
@@ -438,7 +447,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
           rB _ ⟨_, m1, by omega, by rw [eqChain_length]; omega⟩⟩
       · rw [e11, hcpτ j hj' hk, hw64, ← pow_add, ← hK5]; exact hkv' 5 (by decide)
     · rename_i hk
-      have hj5 : 162 ≤ j := by unfold termKind at hk; split_ifs at hk <;> omega
+      have hj5 : 162 ≤ j := by have := termKind_spec j; omega
       have htc3 : termCol j < 3 := by unfold termCol; split_ifs <;> omega
       obtain ⟨l9, a9⟩ := hlamR j hj' (by omega)
       refine ⟨?_, by rw [e11]; exact aL _ _ (by simp only [TermRegion]; omega), l9, a9⟩
@@ -465,7 +474,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     | _ => simp [isAtomB] at hat
   have hCp : ∀ j ∈ List.range 165, CpAt rd σ cp j := fun j hj hk v hv => by
     have hj' := List.mem_range.mp hj
-    have hj2 : j < 162 := by unfold termKind at hk; split_ifs at hk <;> omega
+    have hj2 : j < 162 := by have := termKind_spec j; omega
     rw [e7] at hv
     exact loadHolds_unique hv (hcpR j hj2)
   obtain ⟨hsum, hoks, -⟩ := claimsT_sound (C := TrivC) (cp := cp) (List.range 165) claimsStart 16
@@ -632,7 +641,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
           (stRes (outs.take (4 + c))).1.getD 0 0, (stRes (outs.take (4 + c))).1.getD 1 0]
         rw [stRes_take, ite_pos' (by omega), e36, e34, e35]
       · show [σ (.n (selV c))] = _
-        rw [esel, (hOK ht).1]; rfl
+        rw [esel, (hOK ht).1, List.getD_cons_zero]
     · have : j = 103 ∨ j = 104 := by omega
       rcases this with rfl | rfl
       · rw [termKids_getD_103] at hOK ⊢

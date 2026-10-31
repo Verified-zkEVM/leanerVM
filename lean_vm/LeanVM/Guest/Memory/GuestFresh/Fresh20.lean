@@ -303,7 +303,8 @@ set_option maxRecDepth 100000 in
 theorem all20 : (ts20_0 ++ ts20_150 ++ ts20_199 ++ ts20_200 ++ ts20_209 ++ ts20_210 ++ ts20_235 ++ ts20_236 ++ ts20_246 ++ ts20_247 ++ ts20_272 ++ ts20_273 ++ ts20_283 ++ ts20_284 ++ ts20_309 ++ ts20_310 ++ ts20_320 ++ ts20_321 ++ ts20_346 ++ ts20_347 ++ ts20_357 ++ ts20_358 ++ ts20_383 ++ ts20_384 ++ ts20_394 ++ ts20_395 ++ ts20_420 ++ ts20_421 ++ ts20_431 ++ ts20_432 ++ ts20_457 ++ ts20_458 ++ ts20_468 ++ ts20_469 ++ ts20_538 ++ ts20_539 ++ ts20_542 ++ ts20_543 ++ ts20_546 ++ ts20_547 ++ ts20_550 ++ ts20_551 ++ ts20_554 ++ ts20_555 ++ ts20_558 ++ ts20_559 ++ ts20_562 ++ ts20_563 ++ ts20_566 ++ ts20_567 ++ ts20_570 ++ ts20_571 ++ ts20_574 ++ ts20_575 ++ ts20_578 ++ ts20_579 ++ ts20_582 ++ ts20_583 ++ ts20_586 ++ ts20_587 ++ ts20_590 ++ ts20_591 ++ ts20_594 ++ ts20_595 ++ ts20_598 ++ ts20_599 ++ ts20_602 ++ ts20_603 ++ ts20_606 ++ ts20_607 ++ ts20_610 ++ ts20_611 ++ ts20_614 ++ ts20_615 ++ ts20_618 ++ ts20_619 ++ ts20_769 ++ []) = temps20 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem nodup20 : temps20.Nodup := by decide +kernel
+theorem nodup20 : temps20.Nodup :=
+  (List.isChain_iff_pairwise.mp (by decide +kernel : temps20.IsChain (· < ·))).nodup
 
 set_option maxRecDepth 100000 in
 theorem params20 : (temps20.all fun t => !(idxMask Data.core20.params).testBit t) = true := by

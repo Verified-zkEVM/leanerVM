@@ -241,7 +241,8 @@ set_option maxRecDepth 100000 in
 theorem all10 : (ts10_0 ++ ts10_150 ++ ts10_300 ++ ts10_450 ++ ts10_600 ++ ts10_750 ++ ts10_900 ++ ts10_1050 ++ ts10_1200 ++ ts10_1350 ++ ts10_1500 ++ ts10_1650 ++ ts10_1800 ++ ts10_1950 ++ ts10_2100 ++ ts10_2250 ++ ts10_2400 ++ ts10_2550 ++ ts10_2700 ++ ts10_2850 ++ ts10_3000 ++ ts10_3150 ++ ts10_3300 ++ ts10_3450 ++ ts10_3600 ++ ts10_3750 ++ ts10_3900 ++ ts10_4050 ++ ts10_4200 ++ ts10_4350 ++ ts10_4500 ++ ts10_4650 ++ ts10_4800 ++ ts10_4950 ++ ts10_5100 ++ ts10_5250 ++ ts10_5400 ++ ts10_5550 ++ ts10_5700 ++ ts10_5850 ++ ts10_6000 ++ ts10_6150 ++ ts10_6300 ++ ts10_6450 ++ ts10_6600 ++ ts10_6750 ++ ts10_6900 ++ ts10_7050 ++ ts10_7200 ++ ts10_7350 ++ ts10_7500 ++ ts10_7650 ++ ts10_7800 ++ ts10_7950 ++ ts10_8100 ++ ts10_8250 ++ ts10_8400 ++ ts10_8550 ++ ts10_8700 ++ ts10_8850 ++ ts10_9000 ++ ts10_9150 ++ ts10_9300 ++ ts10_9450 ++ ts10_9600 ++ ts10_9750 ++ ts10_9900 ++ ts10_10050 ++ ts10_10200 ++ []) = temps10 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem nodup10 : temps10.Nodup := by decide +kernel
+theorem nodup10 : temps10.Nodup :=
+  (List.isChain_iff_pairwise.mp (by decide +kernel : temps10.IsChain (· < ·))).nodup
 
 set_option maxRecDepth 100000 in
 theorem params10 : (temps10.all fun t => !(idxMask Data.core10.params).testBit t) = true := by

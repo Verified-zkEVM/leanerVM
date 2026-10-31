@@ -92,7 +92,8 @@ set_option maxRecDepth 100000 in
 theorem all19 : (ts19_0 ++ ts19_150 ++ ts19_229 ++ ts19_237 ++ ts19_245 ++ ts19_253 ++ ts19_261 ++ ts19_269 ++ ts19_277 ++ ts19_285 ++ ts19_293 ++ ts19_443 ++ ts19_525 ++ ts19_533 ++ ts19_541 ++ ts19_549 ++ ts19_557 ++ ts19_565 ++ ts19_573 ++ ts19_581 ++ ts19_589 ++ ts19_739 ++ []) = temps19 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem nodup19 : temps19.Nodup := by decide +kernel
+theorem nodup19 : temps19.Nodup :=
+  (List.isChain_iff_pairwise.mp (by decide +kernel : temps19.IsChain (· < ·))).nodup
 
 set_option maxRecDepth 100000 in
 theorem params19 : (temps19.all fun t => !(idxMask Data.core19.params).testBit t) = true := by
