@@ -136,14 +136,6 @@ theorem debts_mono {before after : DebtState D R ι} (h : Extends before after) 
   · exact Or.inl (h.2.2 _ hg)
   · exact Or.inr ⟨input, output, h.1 input output hc, hi, hk, ht⟩
 
-omit [Fintype ι] [SampleableType R] in
-/-- A decided hit stays decided. -/
-theorem realized_of_extends {before after : DebtState D R ι} (h : Extends before after)
-    (hr : Realized tg initial before) : Realized tg initial after := by
-  rcases hr with ⟨input, output, value, hc, hi, hk, ht⟩ | ⟨coordinate, value, hk, hv⟩
-  · exact Or.inl ⟨input, output, value, h.1 input output hc, hi, hk, ht⟩
-  · exact Or.inr ⟨coordinate, value, h.2.1 coordinate value hk, debts_mono tg initial h coordinate hv⟩
-
 /-! ### Reveals follow the reveal queries -/
 
 /-- Every reveal query of the computation satisfies `allowed`. -/
@@ -249,54 +241,6 @@ omit [Fintype ι] in
 theorem presample_mass (x : D) (state : DebtState D R ι) :
     ∑' s, Pr{let y ← presample x state}[y = s] = 1 := by
   exact OracleComp.tsum_prEvent_eq_one _
-
-omit [Fintype ι] in
-/-- A final value that can only grow when an untargeted input is presampled at the end. -/
-theorem interp_presample_le (x : D) (hk : tg.kind x = .none) {α : Type}
-    (computation : OracleComp (SourceCostSpec D R ι) α) (budget : ℕ) (state : DebtState D R ι)
-    (F : Run D ι α × DebtState D R ι → ℝ≥0∞)
-    (hF : ∀ out (s : DebtState D R ι), s ∈ support (presample x out.2) → F out ≤ F (out.1, s)) :
-    ∑' out, Pr{let x ← interp tg initial model computation budget state}[x = out] * F out ≤
-      ∑' s, Pr{let y ← presample x state}[y = s] *
-        ∑' out, Pr{let x ← interp tg initial model computation budget s}[x = out] * F out := by
-  have heq : ∑' s, Pr{let y ← presample x state}[y = s] *
-      ∑' out, Pr{let x ← interp tg initial model computation budget s}[x = out] * F out =
-      ∑' out, Pr{let y ← (interp tg initial model computation budget state >>= fun out =>
-        (fun s => (out.1, s)) <$> presample x out.2)}[y = out] * F out := by
-    rw [← OracleComp.tsum_prEvent_bind_mul]
-    exact tsum_congr fun out => congrArg (· * _) ((presample_interp tg initial model x hk computation budget state).prEvent_eq _)
-  rw [heq, OracleComp.tsum_prEvent_bind_mul]
-  refine ENNReal.tsum_le_tsum fun out => ?_
-  by_cases hout : out ∈ support (interp tg initial model computation budget state)
-  · refine mul_le_mul_right ?_ _
-    rw [OracleComp.tsum_prEvent_map_mul]
-    calc F out = ∑' s, Pr{let y ← presample x out.2}[y = s] * F out := by
-          rw [ENNReal.tsum_mul_right, presample_mass, one_mul]
-      _ ≤ _ := ENNReal.tsum_le_tsum fun s => by
-          by_cases hs : s ∈ support (presample x out.2)
-          · exact mul_le_mul_right (hF out s hs) _
-          · rw [(prEvent_eq_zero_of_not_mem_support _) hs, zero_mul, zero_mul]
-  · rw [(prEvent_eq_zero_of_not_mem_support _) hout, zero_mul, zero_mul]
-
-omit [Fintype ι] in
-/-- A value of the run alone is unchanged by presampling. -/
-theorem interp_presample_eq (x : D) (hk : tg.kind x = .none) {α : Type}
-    (computation : OracleComp (SourceCostSpec D R ι) α) (budget : ℕ) (state : DebtState D R ι)
-    (F : Run D ι α → ℝ≥0∞) :
-    ∑' s, Pr{let y ← presample x state}[y = s] *
-        ∑' out, Pr{let x ← interp tg initial model computation budget s}[x = out] * F out.1 =
-      ∑' out, Pr{let x ← interp tg initial model computation budget state}[x = out] * F out.1 := by
-  have heq : ∑' s, Pr{let y ← presample x state}[y = s] *
-      ∑' out, Pr{let x ← interp tg initial model computation budget s}[x = out] * F out.1 =
-      ∑' out, Pr{let y ← (interp tg initial model computation budget state >>= fun out =>
-        (fun s => (out.1, s)) <$> presample x out.2)}[y = out] * F out.1 := by
-    rw [← OracleComp.tsum_prEvent_bind_mul]
-    exact tsum_congr fun out => congrArg (· * _) ((presample_interp tg initial model x hk computation budget state).prEvent_eq _)
-  rw [heq, OracleComp.tsum_prEvent_bind_mul]
-  refine tsum_congr fun out => ?_
-  rw [OracleComp.tsum_prEvent_map_mul]
-  simp only
-  rw [ENNReal.tsum_mul_right, presample_mass, one_mul]
 
 /-! ### Decomposing a sequential run -/
 

@@ -194,35 +194,4 @@ theorem eq_of_encoding_eq {d d' : Digest} (hd : Valid d) (hd' : Valid d')
     (h : encoding d = encoding d') : d = d' := by
   rw [← pack_encoding hd, ← pack_encoding hd', h]
 
-/-- There are `codeCount T` codewords. -/
-theorem card_valid :
-    (Finset.univ.filter fun d : Digest => Valid d).card = codeCount targetSum := by
-  rw [codeCount]
-  apply Finset.card_bij' (fun d _ => encoding d) (fun x _ => pack x)
-  · intro d hd; exact Finset.mem_filter.mpr ⟨Finset.mem_univ _, (Finset.mem_filter.mp hd).2.2⟩
-  · intro x hx; exact Finset.mem_filter.mpr ⟨Finset.mem_univ _, valid_pack (Finset.mem_filter.mp hx).2⟩
-  · intro d hd; exact pack_encoding (Finset.mem_filter.mp hd).2
-  · intro x _; exact encoding_pack x
-
-/-- Chain walks only raise digits, so a revealed codeword cannot be turned into another one. -/
-theorem encoding_antichain {x y : Encoding} (hx : sum x = targetSum) (hy : sum y = targetSum)
-    (hle : ∀ i, (x i).val ≤ (y i).val) : x = y := by
-  have hsum : sum x = sum y := hx.trans hy.symm
-  funext i
-  refine Fin.ext (le_antisymm (hle i) ?_)
-  by_contra hnot
-  have hstrict : (x i).val < (y i).val := by omega
-  have : sum x < sum y :=
-    Finset.sum_lt_sum (fun j _ => hle j) ⟨i, Finset.mem_univ i, hstrict⟩
-  omega
-
-/-- Verification walks `3v - T = 68` chain steps. -/
-theorem verification_chain_steps (word : Encoding) (hword : sum word = targetSum) :
-    (∑ i : ChainIndex, (chainLength - 1 - (word i).val)) = 68 := by
-  have hle : ∀ i ∈ (Finset.univ : Finset ChainIndex), (word i).val ≤ chainLength - 1 :=
-    fun i _ => Nat.le_of_lt_succ (word i).isLt
-  rw [Finset.sum_tsub_distrib Finset.univ hle,
-    show (∑ i : ChainIndex, (word i).val) = targetSum from hword]
-  simp [chainLength, winternitzBits, numChains, targetSum]
-
 end LeanXmss.Codeword

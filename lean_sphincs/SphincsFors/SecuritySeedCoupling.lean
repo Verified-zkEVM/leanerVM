@@ -528,16 +528,6 @@ theorem countHashQueries_sampling_bind {α β : Type} (sampling : ProbComp α)
   simp only [Nat.zero_add, Prod.mk.eta, bind_pure]
   rfl
 
-/-- The seed can be sampled after the material while preserving the counted continuation. -/
-theorem evalDist_seeded_prepared_counted {α : Type}
-    (next : MasterSeed → OracleComp OracleWorld α) :
-    ((simulateQ countedOracle
-      ((liftM sampleMasterSeed : OracleComp OracleWorld MasterSeed) >>= next)).run.run' ∅) =ᵈ (sampleMaterial >>= fun material => sampleMasterSeed >>= fun seed =>
-        (simulateQ countedOracle (next seed)).run.run' (programCache ∅ seed material)) := by
-  rw [← simulateQ_countHashQueries, countHashQueries_sampling_bind]
-  simpa only [simulateQ_countHashQueries] using
-    evalDist_seeded_prepared (fun seed => countHashQueries (next seed))
-
 variable [Params]
 
 /-- The actual SUF-CMA computation after its master-seed sample; honest algorithms are unchanged. -/

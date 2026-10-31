@@ -73,16 +73,6 @@ def keyChainHash (parameter : PublicParameter) (key : ChainKey) (chain : ChainIn
     (step : ChainStep) (value : Digest) : m Digest :=
   tweakableHash parameter (key.chainDomain chain step) (bytesLE 16 value)
 
-theorem keyChainHash_inl (parameter : PublicParameter) (leafIndex : LeafIndex)
-    (chain : ChainIndex) (step : ChainStep) (value : Digest) :
-    keyChainHash (m := m) parameter (.inl leafIndex) chain step value =
-      chainHash parameter leafIndex chain step value := rfl
-
-theorem keyChainHash_inr (parameter : PublicParameter) (key : TopIndex)
-    (chain : ChainIndex) (step : ChainStep) (value : Digest) :
-    keyChainHash (m := m) parameter (.inr key) chain step value =
-      topChainHash parameter key chain step value := rfl
-
 /-- A chain walk of a key of either layer, as `chainWalk`. -/
 def keyChainWalk (parameter : PublicParameter) (key : ChainKey) (chain : ChainIndex) :
     Nat → Nat → Digest → m Digest
@@ -117,12 +107,6 @@ def keyChainInput (parameter : PublicParameter) (key : ChainKey) (chain : ChainI
     (position : ChainStep) (value : Digest) : HashInput :=
   XmssSecurity.tweakableHashInput parameter (key.chainDomain chain position)
     (Concrete.digestBytes value)
-
-@[simp] theorem keyChainInput_inl (parameter : PublicParameter) (leafIndex : LeafIndex) :
-    keyChainInput parameter (.inl leafIndex) = chainInput parameter leafIndex := rfl
-
-@[simp] theorem keyChainInput_inr (parameter : PublicParameter) (key : TopIndex) :
-    keyChainInput parameter (.inr key) = topChainInput parameter key := rfl
 
 theorem keyChainInput_eq_iff (parameter : PublicParameter)
     (leftKey rightKey : ChainKey) (leftChain rightChain : ChainIndex)
@@ -174,12 +158,6 @@ theorem keyChainStep_eq (cache : QueryCache HashSpec) (parameter : PublicParamet
 def keyLeafInput (parameter : PublicParameter) (key : ChainKey)
     (endpoints : ChainIndex → Digest) : HashInput :=
   XmssSecurity.tweakableHashInput parameter key.leafDomain (Concrete.leafPayload endpoints)
-
-@[simp] theorem keyLeafInput_inl (parameter : PublicParameter) (leafIndex : LeafIndex) :
-    keyLeafInput parameter (.inl leafIndex) = leafInput parameter leafIndex := rfl
-
-@[simp] theorem keyLeafInput_inr (parameter : PublicParameter) (key : TopIndex) :
-    keyLeafInput parameter (.inr key) = topLeafInput parameter key := rfl
 
 theorem keyLeafInput_eq_iff (parameter : PublicParameter) (leftKey rightKey : ChainKey)
     (left right : ChainIndex → Digest) :

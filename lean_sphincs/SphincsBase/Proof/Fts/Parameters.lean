@@ -17,14 +17,6 @@ irreducible_def ftsOpenHashCost : Nat := ∑ _tree : FtsTree, ∑ level : Fin ft
 /-- A few-time public key: every tree root, then the hash of the roots. -/
 irreducible_def ftsKeyHashCost : Nat := ∑ _tree : FtsTree, (2 ^ (ftsTreeHeight + 1) - 1) + 1
 
-theorem two_pow_ftsTreeHeight_le_ftsOpenHashCost : 2 ^ ftsTreeHeight ≤ ftsOpenHashCost := by
-  rw [ftsOpenHashCost_def]
-  decide
-
-theorem ftsOpenHashCost_le_digestAttemptLimit : ftsOpenHashCost ≤ digestAttemptLimit := by
-  rw [ftsOpenHashCost_def]
-  decide
-
 /-- The length of the uniform proposal word that both budget routes price certificates against. -/
 irreducible_def fixedProposalLength : Nat := 25313293
 

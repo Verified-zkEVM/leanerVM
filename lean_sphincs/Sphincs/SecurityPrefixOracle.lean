@@ -63,9 +63,6 @@ theorem parse_some_iff (segment : Segment) (bytes : HashInput) (query : Query se
     · intro h; cases h
     · intro heq; exact False.elim (hnone ⟨query, heq.symm⟩)
 
-theorem parse_input (segment : Segment) (query : Query segment) :
-    parse segment (input segment query) = some query := (parse_some_iff segment _ query).mpr rfl
-
 noncomputable def combine (low : Digest) (high : High) : HashOutput :=
   (splitHashOutputEquiv digestBits (by decide)).symm (low, high)
 

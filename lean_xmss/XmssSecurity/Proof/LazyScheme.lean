@@ -23,14 +23,6 @@ namespace Concrete
 noncomputable local instance : SampleableType (LeafIndex → ChainIndex → Digest) :=
   SampleableType.ofFintype (LeafIndex → ChainIndex → Digest)
 
-@[simp]
-theorem probOutput_sampleSecret
-    (secret : LeafIndex → ChainIndex → Digest) :
-    Pr{let x ← sampleSecret}[x = secret] =
-      (Fintype.card (LeafIndex → ChainIndex → Digest) : ENNReal)⁻¹ := by
-  rw [sampleSecret_eq]
-  exact SampleableType.prEvent_uniformSample_eq_singleton secret
-
 noncomputable def keygen : OracleComp OracleWorld (PublicKey × SecretKey) := do
   let parameter ← liftM samplePublicParameter
   let secret ← liftM sampleSecret

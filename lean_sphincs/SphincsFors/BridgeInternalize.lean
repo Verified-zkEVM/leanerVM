@@ -564,24 +564,6 @@ theorem OnlyW.verifyPart (publicKey : PublicKey) (output : Forgery × QueryLog S
     OnlyW (verifyPart publicKey output) :=
   OnlyW.bind (OnlyW.liftHash (Short.Only.verify _ _ _)) (fun _ => OnlyW.pure' _)
 
-omit [Params] in
-theorem merge_empty : merge ∅ ∅ = (∅ : QueryCache HashSpec) := by
-  refine QueryCache.ext fun input => ?_
-  simp [merge]
-
-omit [Params] in
-/-- The short-count run and the total-count run are projections of one split-count run. -/
-theorem leftRun_eq_split {α : Type} (oa : OracleComp OracleWorld α) (cache : QueryCache HashSpec) :
-    leftRun oa cache = (fun result => ((result.1.1.1, result.1.2), result.2)) <$>
-      (simulateQ romImpl (count2 oa)).run cache := by
-  rw [leftRun, countShort_eq_count2, simulateQ_map, StateT.run_map]
-
-omit [Params] in
-theorem rightRun_eq_split {α : Type} (oa : OracleComp OracleWorld α) (cache : QueryCache HashSpec) :
-    rightRun oa cache = (fun result => ((result.1.1.1, result.1.2 + result.1.1.2), result.2)) <$>
-      (simulateQ romImpl (count2 oa)).run cache := by
-  rw [rightRun, countHashQueries_eq_count2, simulateQ_map, StateT.run_map]
-
 end SphincsFors.Security.Internalize
 
 namespace SphincsFors.Security.Internalize

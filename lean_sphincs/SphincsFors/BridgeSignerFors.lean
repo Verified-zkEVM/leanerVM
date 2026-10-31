@@ -291,47 +291,6 @@ theorem fresh_view_mean (parameter : PublicParameter) (gf : Lifetime.KeptDigestV
   rw [← Finset.sum_mul, Domination.freshAvg, Finset.card_univ]
   ring
 
-omit [Params] in
-/-- The fixed point of one grinding trial: cached items, cached rejections and fresh trials. -/
-theorem loop_arith (a S w l F N u : ℝ≥0∞) (ha : a ≠ ⊤) (hS : S ≠ ⊤) (hw : w ≠ ⊤) (hFN : F + N ≤ 1)
-    (hl : l ≤ 1) (hu : u ≤ w * F * l) :
-    u * S + N * (a + w * S) + F * (l * a + (1 - l) * (a + w * S)) ≤ a + w * S := by
-  have hF : F ≠ ⊤ := ne_top_of_le_ne_top ENNReal.one_ne_top (le_trans le_self_add hFN)
-  have hN : N ≠ ⊤ := ne_top_of_le_ne_top ENNReal.one_ne_top (le_trans le_add_self hFN)
-  have hlt : l ≠ ⊤ := ne_top_of_le_ne_top ENNReal.one_ne_top hl
-  have hut : u ≠ ⊤ := ne_top_of_le_ne_top (by finiteness) hu
-  have hl1 : (1 - l).toReal = 1 - l.toReal := by
-    rw [ENNReal.toReal_sub_of_le hl ENNReal.one_ne_top, ENNReal.toReal_one]
-  have hwS : w * S ≠ ⊤ := ENNReal.mul_ne_top hw hS
-  have haw : a + w * S ≠ ⊤ := ENNReal.add_ne_top.2 ⟨ha, hwS⟩
-  have hla : l * a ≠ ⊤ := ENNReal.mul_ne_top hlt ha
-  have hl1t : (1 - l) ≠ ⊤ := ne_top_of_le_ne_top ENNReal.one_ne_top tsub_le_self
-  have hlaw : (1 - l) * (a + w * S) ≠ ⊤ := ENNReal.mul_ne_top hl1t haw
-  have hin : l * a + (1 - l) * (a + w * S) ≠ ⊤ := ENNReal.add_ne_top.2 ⟨hla, hlaw⟩
-  have h1 : u * S ≠ ⊤ := ENNReal.mul_ne_top hut hS
-  have h2 : N * (a + w * S) ≠ ⊤ := ENNReal.mul_ne_top hN haw
-  have h3 : F * (l * a + (1 - l) * (a + w * S)) ≠ ⊤ := ENNReal.mul_ne_top hF hin
-  have h12 : u * S + N * (a + w * S) ≠ ⊤ := ENNReal.add_ne_top.2 ⟨h1, h2⟩
-  have hwF : w * F * l ≠ ⊤ := ENNReal.mul_ne_top (ENNReal.mul_ne_top hw hF) hlt
-  rw [← ENNReal.toReal_le_toReal (ENNReal.add_ne_top.2 ⟨h12, h3⟩) haw]
-  rw [← ENNReal.toReal_le_toReal hut hwF] at hu
-  rw [← ENNReal.toReal_le_toReal (ENNReal.add_ne_top.2 ⟨hF, hN⟩) ENNReal.one_ne_top,
-    ENNReal.toReal_add hF hN, ENNReal.toReal_one] at hFN
-  rw [← ENNReal.toReal_le_toReal hlt ENNReal.one_ne_top, ENNReal.toReal_one] at hl
-  rw [ENNReal.toReal_add h12 h3, ENNReal.toReal_add h1 h2, ENNReal.toReal_mul, ENNReal.toReal_mul,
-    ENNReal.toReal_mul, ENNReal.toReal_add hla hlaw, ENNReal.toReal_mul, ENNReal.toReal_mul, hl1,
-    ENNReal.toReal_add ha hwS, ENNReal.toReal_mul]
-  rw [ENNReal.toReal_mul, ENNReal.toReal_mul] at hu
-  have h0a := ENNReal.toReal_nonneg (a := a)
-  have h0S := ENNReal.toReal_nonneg (a := S)
-  have h0w := ENNReal.toReal_nonneg (a := w)
-  have h0F := ENNReal.toReal_nonneg (a := F)
-  have h0N := ENNReal.toReal_nonneg (a := N)
-  have h0l := ENNReal.toReal_nonneg (a := l)
-  nlinarith [mul_nonneg h0a (by linarith : (0 : ℝ) ≤ 1 - N.toReal - F.toReal),
-    mul_nonneg h0S (mul_nonneg h0w (by linarith : (0 : ℝ) ≤ 1 - N.toReal - F.toReal)),
-    mul_nonneg h0S (by linarith : (0 : ℝ) ≤ w.toReal * F.toReal * l.toReal - u.toReal)]
-
 section Loop
 
 variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
@@ -413,27 +372,6 @@ theorem related_store (reference state : DebtState HashInput HashOutput Coordina
           exact payload_randomness_injective data.root message (tweakableInput_injective h).2.2)
       rw [store_cache_ne state _ _ hne u]
       exact hrel.2 ρ'
-
-omit [Params] in
-theorem cachedCount_store (state : DebtState HashInput HashOutput Coordinate) (ρ : Randomness) (u : HashOutput) :
-    cachedCount parameter data message (state.store (blk parameter data message ρ 0) u) ≤
-      cachedCount parameter data message state + 1 := by
-  unfold cachedCount
-  calc (Finset.univ.filter fun ρ' : Randomness =>
-          (state.store (blk parameter data message ρ 0) u).cache (blk parameter data message ρ' 0) ≠ none).card
-      ≤ (insert ρ (Finset.univ.filter fun ρ' : Randomness =>
-          state.cache (blk parameter data message ρ' 0) ≠ none)).card := by
-        refine Finset.card_le_card fun ρ' hρ' => ?_
-        rw [Finset.mem_filter] at hρ'
-        rw [Finset.mem_insert, Finset.mem_filter]
-        by_cases h : ρ' = ρ
-        · exact Or.inl h
-        · refine Or.inr ⟨Finset.mem_univ _, ?_⟩
-          have hne : blk parameter data message ρ' 0 ≠ blk parameter data message ρ 0 := fun heq =>
-            h (payload_randomness_injective data.root message (tweakableInput_injective heq).2.2)
-          rw [store_cache_ne state _ _ hne u] at hρ'
-          exact hρ'.2
-    _ ≤ _ := Finset.card_insert_le _ _
 
 /-- The weight of a completed assembly is the weight of its own pair. -/
 theorem outWeight_finish_le (reference : DebtState HashInput HashOutput Coordinate)
@@ -542,9 +480,6 @@ theorem trial_bound
   · rw [OracleComp.tsum_prEvent_pure_mul]
     simp only [outWeight]
     exact bot_le
-
-omit [Params] in
-theorem card_randomness : Fintype.card Randomness = 2 ^ 128 := HiddenDebt.card_digest
 
 theorem landed_mass (parameter : PublicParameter) :
     ∑' u0, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u0] *
@@ -697,34 +632,6 @@ theorem walk_bound
             simp [-SampleableType.prEvent_uniformSample, poolValue, hc, hl, h1]
           · have hσ : stat parameter data message reference ρ = some none := by simp [stat, hc, hl]
             simp only [ite_eq_right hl, Walk.sOf, Walk.tOf, walkPay, hσ, one_mul, zero_mul, zero_add, le_refl]
-
-/-- **The selection law of the grinding signer.** A uniform base, then the walk: the expected
-weight of a signing call is the mean walk value over the starts. -/
-theorem loop_bound
-    (hparse : ∀ ρ call, model.parse (blk parameter data message ρ call) = none)
-    (reference : DebtState HashInput HashOutput Coordinate)
-    (hnob1 : ∀ ρ, reference.cache (blk parameter data message ρ 0) = none →
-      reference.cache (blk parameter data message ρ 1) = none)
-    (hlandb1 : ∀ ρ u0, reference.cache (blk parameter data message ρ 0) = some u0 →
-      Landed parameter (blockIndex u0) → reference.cache (blk parameter data message ρ 1) ≠ none)
-    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomness → Lifetime.KeptDigestView → ℝ≥0∞)
-    (attempts : ℕ) (hatt : attempts ≤ 2 ^ 128) (budget : ℕ) :
-    ∑' out, Pr{let x ← interp tg initial model (signCostSourceLoop parameter data message attempts) budget reference}[x = out] *
-        outWeight parameter data message reference gf gp out ≤
-      ((Fintype.card Randomness : ℕ) : ℝ≥0∞)⁻¹ * ∑ ρ, Walk.val (fun x : Randomness => x + 1)
-        (Walk.sOf ForsPrice.landing (stat parameter data message reference))
-        (Walk.tOf ForsPrice.landing (stat parameter data message reference))
-        (walkPay parameter data message reference gf gp) 0 attempts ρ := by
-  unfold signCostSourceLoop
-  rw [interp_liftProb_bind, OracleComp.tsum_prEvent_bind_mul]
-  have hpr : ∀ ρ, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = ρ] = ((Fintype.card Randomness : ℕ) : ℝ≥0∞)⁻¹ := by
-    intro ρ
-    rw [SampleableType.prEvent_uniformSample_eq_singleton]
-  simp only [hpr]
-  rw [ENNReal.tsum_mul_left, tsum_fintype]
-  refine mul_le_mul_right (Finset.sum_le_sum fun ρ _ => ?_) _
-  exact walk_bound tg initial model parameter data message hparse reference hnob1 hlandb1 gf gp attempts ρ budget
-    reference hatt ⟨fun _ => rfl, fun _ => Or.inl rfl⟩ fun _ _ => rfl
 
 /-! ### Fresh pairs completed by a signing call -/
 
@@ -948,30 +855,6 @@ theorem walk_bound_fresh
           split_ifs
           · exact bot_le
           · exact le_rfl
-
-/-- **Fresh pairs of the grinding signer.** Whatever the cache, the pairs a signing call completes
-have, in total, at most the uniform landed-view weight. -/
-theorem loop_bound_fresh
-    (hparse : ∀ ρ call, model.parse (blk parameter data message ρ call) = none)
-    (reference : DebtState HashInput HashOutput Coordinate)
-    (hnob1 : ∀ ρ, reference.cache (blk parameter data message ρ 0) = none →
-      reference.cache (blk parameter data message ρ 1) = none)
-    (hlandb1 : ∀ ρ u0, reference.cache (blk parameter data message ρ 0) = some u0 →
-      Landed parameter (blockIndex u0) → reference.cache (blk parameter data message ρ 1) ≠ none)
-    (gf : Lifetime.KeptDigestView → ℝ≥0∞) :
-    ∀ attempts budget state, Related parameter data message reference state →
-      ∑' out, Pr{let x ← interp tg initial model (signCostSourceLoop parameter data message attempts) budget state}[x = out] *
-          freshNewWeight parameter data message reference gf out ≤ Domination.freshAvg Finset.univ gf := by
-  intro attempts budget state hrel
-  unfold signCostSourceLoop
-  rw [interp_liftProb_bind, OracleComp.tsum_prEvent_bind_mul]
-  calc _ ≤ ∑' ρ, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = ρ] * Domination.freshAvg Finset.univ gf :=
-        ENNReal.tsum_le_tsum fun ρ => mul_le_mul_right
-          (walk_bound_fresh tg initial model parameter data message hparse reference hnob1 hlandb1 gf
-            attempts ρ budget state hrel) _
-    _ ≤ _ := by
-        rw [ENNReal.tsum_mul_right]
-        exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
 
 end Loop
 

@@ -208,10 +208,6 @@ end Model
 
 /-! ### The final payoff -/
 
-theorem payoff_le_one (T : Coordinate → Digest) (s : St) : K.payoff T s ≤ 1 := by
-  unfold payoff
-  split_ifs <;> simp
-
 /-- Completing an unexposed coordinate hits a set with its share of the space. -/
 theorem completion_mem (known : Knowledge Coordinate) (c : Coordinate) (hc : known c = none)
     (S : Set Digest) : Pr{let T ← completion known}[T c ∈ S] ≤ (S.encard : ℝ≥0∞) * ν := by

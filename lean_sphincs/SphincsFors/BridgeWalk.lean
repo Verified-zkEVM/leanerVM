@@ -35,13 +35,6 @@ theorem val_add (c c' : R → ℝ≥0∞) (ev ev' : ℝ≥0∞) :
       simp only [val, val_add c c' ev ev' a (e x)]
       ring
 
-theorem val_const_mul (k : ℝ≥0∞) (c : R → ℝ≥0∞) (ev : ℝ≥0∞) :
-    ∀ a x, val e s t (fun z => k * c z) (k * ev) a x = k * val e s t c ev a x
-  | 0, _ => rfl
-  | a + 1, x => by
-      simp only [val, val_const_mul k c ev a (e x)]
-      ring
-
 theorem val_const (hst : ∀ x, s x + t x = 1) (K : ℝ≥0∞) : ∀ a x, val e s t (fun _ => K) K a x = K
   | 0, _ => rfl
   | a + 1, x => by

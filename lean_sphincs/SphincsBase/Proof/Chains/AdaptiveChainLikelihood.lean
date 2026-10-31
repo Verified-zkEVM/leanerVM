@@ -39,24 +39,4 @@ theorem run_weighted_payoff {Result : Type} (auxiliary : QueryImpl auxSpec PMF)
   congr 1
   simp only [meanPreimages, ← mul_assoc, ENNReal.tsum_mul_right]
 
-theorem run_allocated_cost_lower {Result : Type} (auxiliary : QueryImpl auxSpec PMF)
-    (computation : OracleComp (auxSpec + PrefixSpec n State) Result) (observed : Fin n → State → Option State)
-    (endpoint : State) (payoff : Result × (Fin n → State → Option State) → ENNReal) (budget : Nat)
-    (hbudget : ∀ result ∈ (lazyRun auxiliary computation observed).support, queryCount result.2 ≤ budget) :
-    (1 - (budget : ENNReal) / Fintype.card State) *
-        (∑' result, lazyRun auxiliary computation observed result * payoff result) ≤
-      ∑' tables, completeTables observed tables * ∑' result, observedRun auxiliary tables computation observed result *
-        ((EndpointPreimageDensity.preimages evaluate tables endpoint : ENNReal) * payoff result) := by
-  rw [run_weighted_payoff, ← ENNReal.tsum_mul_left]
-  apply ENNReal.tsum_le_tsum
-  intro result
-  by_cases hzero : lazyRun auxiliary computation observed result = 0
-  · simp only [hzero, zero_mul, mul_zero, le_refl]
-  · have hlower := meanPreimages_ge_budget result.2 endpoint budget
-      (hbudget result hzero)
-    calc
-      _ = lazyRun auxiliary computation observed result *
-          ((1 - (budget : ENNReal) / Fintype.card State) * payoff result) := by ring
-      _ ≤ _ := mul_le_mul_right (mul_le_mul_left hlower (payoff result)) _
-
 end SphincsBase.Concrete.PartialChainEndpoint

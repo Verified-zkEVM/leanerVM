@@ -118,18 +118,6 @@ theorem le_grpAll (s : State) (excl : Pair → Prop) {F : Multiset View → ℝ�
   | _ :: Ms, d => le_trans (le_grpAll s excl hF Ms d)
       (le_grp landing_le_one Finset.univ_nonempty _ _ (grpAll_mono s excl hF Ms) d)
 
-/-- The group of a message commutes with the groups of a list. -/
-theorem grpM_grpAll (s : State) (excl : Pair → Prop) (m : Message) (F : Multiset View → ℝ≥0∞) :
-    ∀ (Ms : List Message) (d : Multiset View),
-      grpM parameter data s excl m (grpAll parameter data s excl Ms F) d =
-        grpAll parameter data s excl Ms (grpM parameter data s excl m F) d
-  | [], _ => rfl
-  | m' :: Ms, d => by
-      have h1 : grpM parameter data s excl m (grpM parameter data s excl m' (grpAll parameter data s excl Ms F)) d =
-          grpM parameter data s excl m' (grpM parameter data s excl m (grpAll parameter data s excl Ms F)) d :=
-        grp_comm nextRand digestAttemptLimit _ _ _ _ _ d
-      exact h1.trans (grp_congr _ _ (fun e => grpM_grpAll s excl m F Ms e) d)
-
 /-- The groups do not depend on the order of the messages. -/
 theorem grpAll_perm (s : State) (excl : Pair → Prop) (F : Multiset View → ℝ≥0∞) {Ms Ms' : List Message}
     (h : Ms.Perm Ms') : ∀ d, grpAll parameter data s excl Ms F d = grpAll parameter data s excl Ms' F d := by

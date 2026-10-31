@@ -208,93 +208,6 @@ theorem grp_const (hp : p ≤ 1) (σ : St R V) (ex : R → Bool) (K : ℝ≥0∞
   simp only [hat, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
   rw [← mul_assoc, card_inv_mul_card, one_mul]
 
-omit [DecidableEq R] in
-theorem le_grp (hp : p ≤ 1) {h : Multiset V → ℝ≥0∞} (hmono : Monotone' h) (σ : St R V) (ex : R → Bool)
-    (d : Multiset V) : h d ≤ grp e p L σ ex h d := by
-  have hat : ∀ x0, h d ≤ grpAt e p L σ ex h d x0 := fun x0 =>
-    val_ge e _ _ (sOf_add_tOf hp σ) (le_pay hmono σ ex d (le_baseOf hmono σ d x0)) (le_baseOf hmono σ d x0) L x0
-  unfold grp
-  calc h d = ((Fintype.card R : ℕ) : ℝ≥0∞)⁻¹ * ∑ _x0 : R, h d := by
-        simp only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-        rw [← mul_assoc, card_inv_mul_card, one_mul]
-    _ ≤ _ := mul_le_mul_right (Finset.sum_le_sum fun x0 _ => hat x0) _
-
-omit [DecidableEq R] [Nonempty R] [Nonempty V] in
-/-- Excluding more known values lowers the mean. -/
-theorem grp_ex_mono {h : Multiset V → ℝ≥0∞} (hmono : Monotone' h) (σ : St R V) {ex ex' : R → Bool}
-    (hex : ∀ x, ex x = true → ex' x = true) (d : Multiset V) : grp e p L σ ex' h d ≤ grp e p L σ ex h d := by
-  unfold grp grpAt
-  refine mul_le_mul_right (Finset.sum_le_sum fun x0 _ => val_mono e _ _ (fun x => ?_) le_rfl L x0) _
-  unfold pay
-  rcases σ x with _ | _ | v
-  · exact le_rfl
-  · exact le_rfl
-  · simp only
-    by_cases h1 : ex x
-    · rw [ite_eq_left h1, ite_eq_left (hex x h1)]
-    · rw [ite_eq_right h1]
-      split_ifs
-      · exact hmono _ _ (Multiset.le_add_right _ _)
-      · exact le_rfl
-
-omit [DecidableEq R] in
-/-- **Signing.** The base value, plus the gains of the known landed values weighted by their exact
-selection probabilities, is at most the mean of the group. -/
-theorem grp_ge_pool (hp : p ≤ 1) {h : Multiset V → ℝ≥0∞} (hmono : Monotone' h) (σ : St R V) (ex : R → Bool)
-    (d : Multiset V) :
-    h d + ((Fintype.card R : ℕ) : ℝ≥0∞)⁻¹ * ∑ x0, val e (sOf p σ) (tOf p σ)
-        (fun x => match σ x with
-          | some (some v) => if ex x then 0 else gain h d v
-          | _ => 0) 0 L x0 ≤
-      grp e p L σ ex h d := by
-  set gp : R → ℝ≥0∞ := fun x => match σ x with
-    | some (some v) => if ex x then 0 else gain h d v
-    | _ => 0 with hgp
-  have hat : ∀ x0, h d + val e (sOf p σ) (tOf p σ) gp 0 L x0 ≤ grpAt e p L σ ex h d x0 := by
-    intro x0
-    have h1 : h d + val e (sOf p σ) (tOf p σ) gp 0 L x0 =
-        val e (sOf p σ) (tOf p σ) (fun z => h d + gp z) (h d + 0) L x0 := by
-      rw [val_add, val_const e _ _ (sOf_add_tOf hp σ)]
-    rw [h1]
-    unfold grpAt
-    refine val_mono e _ _ (fun x => ?_) (by rw [add_zero]; exact le_baseOf hmono σ d x0) L x0
-    simp only [hgp]
-    unfold pay
-    rcases σ x with _ | _ | v
-    · rw [add_zero]; exact le_baseOf hmono σ d x0
-    · rw [add_zero]; exact le_baseOf hmono σ d x0
-    · simp only
-      split_ifs
-      · rw [add_zero]
-      · exact le_of_eq (add_gain h hmono d v).symm
-  unfold grp
-  calc h d + ((Fintype.card R : ℕ) : ℝ≥0∞)⁻¹ * ∑ x0, val e (sOf p σ) (tOf p σ) gp 0 L x0
-      = ((Fintype.card R : ℕ) : ℝ≥0∞)⁻¹ * ∑ x0 : R, (h d + val e (sOf p σ) (tOf p σ) gp 0 L x0) := by
-        rw [Finset.sum_add_distrib, mul_add]
-        simp only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-        rw [← mul_assoc, card_inv_mul_card, one_mul]
-    _ ≤ _ := mul_le_mul_right (Finset.sum_le_sum fun x0 _ => hat x0) _
-
-omit [Nonempty R] in
-/-- **A new landed value, seen by itself.** With its own item excluded, the group after a landing
-query is at most the group before. -/
-theorem grp_landed_excl_le (hp : p ≤ 1) {h : Multiset V → ℝ≥0∞} (hmono : Monotone' h) (σ : St R V) (y : R)
-    (hy : σ y = none) (v : V) (ex : R → Bool) (d : Multiset V) :
-    grp e p L (Function.update σ y (some (some v))) (fun x => decide (x = y) || ex x) h d ≤ grp e p L σ ex h d := by
-  unfold grp
-  refine mul_le_mul_right (Finset.sum_le_sum fun x0 _ => ?_) _
-  have hbase : baseOf (Function.update σ y (some (some v))) h d x0 = baseOf σ h d x0 := by
-    unfold baseOf
-    by_cases hx : x0 = y
-    · subst hx; simp [hy]
-    · rw [Function.update_of_ne hx]
-  unfold grpAt
-  rw [hbase, sOf_landed, tOf_landed]
-  refine val_stop_le e _ _ y (sOf_add_tOf hp σ) (K := h d)
-    (le_pay hmono σ ex d (le_baseOf hmono σ d x0)) (le_baseOf hmono σ d x0) (fun x hx => ?_) ?_ L x0
-  · simp [pay, hx]
-  · simp [pay]
-
 omit [Nonempty R] in
 /-- **One more query.** -/
 theorem grp_step (hp : p ≤ 1) (hp0 : p ≠ 0) (A : ℕ) (hL : L ≤ A + 1) (hL1 : 1 ≤ L)
@@ -470,42 +383,6 @@ theorem grp_step (hp : p ≤ 1) (hp0 : p ≠ 0) (A : ℕ) (hL : L ≤ A + 1) (hL
         ring
     _ ≤ u * ∑ x0, grpAt e p L σ ex h d x0 + u * g * (1 + (1 - p)) := by gcongr
     _ = _ := by ring
-
-/-- **One more query, in mixture form.** The mean after a query is at most the mixture of the mean
-and of its average after one more uniform disclosure, with weight `(2 - p) / |R|`. -/
-theorem grp_avg_step (hp : p ≤ 1) (hp0 : p ≠ 0) (A : ℕ) (hL : L ≤ A + 1) (hL1 : 1 ≤ L)
-    (hfree : ∀ (y : R) j, j < A → e^[j] (e y) ≠ y) {h : Multiset V → ℝ≥0∞}
-    (hf : Monotone' h ∧ Supermodular h ∧ ∀ D, h D ≠ ⊤) (σ : St R V) (y : R) (hy : σ y = none) (ex : R → Bool)
-    (hex : ex y = false) (r : ℝ≥0∞) (hr : r = (1 + (1 - p)) * ((Fintype.card R : ℕ) : ℝ≥0∞)⁻¹) (hr1 : r ≤ 1)
-    (d : Multiset V) :
-    p * freshAvg Finset.univ (fun v => grp e p L (Function.update σ y (some (some v))) ex h d) +
-        (1 - p) * grp e p L (Function.update σ y (some none)) ex h d ≤
-      (1 - r) * grp e p L σ ex h d + r * avgT (grp e p L σ ex h) d := by
-  have hR := rep_grp (e := e) (L := L) hp σ ex
-  set T := grp e p L σ ex h with hT
-  have hTp := hR.props hf
-  set g := avgT h d - h d with hg
-  have hstep := grp_step hp hp0 A hL hL1 hfree hf.1 hf.2.2 σ y hy ex hex d
-  rw [← hr] at hstep
-  have hgain : T d + g ≤ avgT T d := by
-    have h1 : avgT T d = grp e p L σ ex (fun D => avgT h D) d := by
-      unfold avgT
-      rw [hR.map_freshAvg]
-      congr 1
-      funext v
-      exact (hR.map_translate h {v} d).symm
-    rw [h1]
-    calc T d + g = grp e p L σ ex (fun D => h D + (fun _ => g) D) d := by
-          rw [hR.map_add, grp_const hp]
-      _ ≤ _ := hR.map_mono_above d fun D hD => add_avgGain_le hf.1 hf.2.1 hf.2.2 d D hD
-  have hTd : T d ≠ ⊤ := hTp.2.2 d
-  have hg' : g ≤ avgT T d - T d := ENNReal.le_sub_of_add_le_left hTd hgain
-  have hTle : T d ≤ avgT T d := le_avgT hTp.1 d
-  refine le_trans hstep ?_
-  calc T d + r * g ≤ T d + r * (avgT T d - T d) := by gcongr
-    _ = (1 - r) * T d + r * (T d + (avgT T d - T d)) := by
-        rw [mul_add, ← add_assoc, ← add_mul, tsub_add_cancel_of_le hr1, one_mul]
-    _ = _ := by rw [add_tsub_cancel_of_le hTle]
 
 end Group
 

@@ -76,27 +76,6 @@ theorem lazyRun_erase_query_bind {α : Type} (input : (SourceCostSpec D R ι).Do
       change _ = (pure ((), state) >>= _)
       rw [pure_bind]
 
-omit [Fintype ι] in
-/-- The interpreter agrees with the lazy run of the wrapped computation. -/
-theorem lazyRun_wrapped {α : Type} (computation : OracleComp (SourceCostSpec D R ι) α)
-    (budget : ℕ) (state : DebtState D R ι) :
-    lazyRun model (erase (trace (withReveals (cap computation budget)))) state =
-      (fun out => (((out.1.1, out.1.2.1), out.1.2.2.1), out.2)) <$>
-        interp tg initial model computation budget state := by
-  induction computation using OracleComp.inductionOn generalizing budget state with
-  | pure value => rfl
-  | query_bind input next ih =>
-      rw [interp_query_bind]
-      change lazyRun model (erase (trace (withReveals (if sourceCost input ≤ budget then
-        liftM ((SourceCostSpec D R ι).query input) >>= fun value => cap (next value) (budget - sourceCost input)
-        else pure none)))) state = _
-      split_ifs with hcost
-      · rw [withReveals_query_bind, trace_query_bind, lazyRun_erase_query_bind, map_bind]
-        refine bind_congr fun result => ?_
-        rw [trace_map, erase_map, lazyRun_map, erase_map, lazyRun_map, ih, Functor.map_map,
-          Functor.map_map, Functor.map_map]
-      · rfl
-
 /-! ### The saturation payments in the interpreter -/
 
 /-- Flagged digest touches: digest queries made before any hit was decided. -/

@@ -40,11 +40,6 @@ theorem merkleHashInput_topMerkleInput (parameter : PublicParameter) (level : Me
       (Concrete.CacheView.topMerkleInput parameter level node left right) :=
   ⟨.topMerkle level node, trivial, (atHashAddress_tweakableHashInput_iff parameter _ _ _).2 rfl⟩
 
-theorem merkleHashInput_topEncodingInput (parameter : PublicParameter) (key : TopIndex)
-    (input : Digest × Randomness) :
-    MerkleHashInput parameter (Concrete.CacheView.topEncodingInput parameter key input) :=
-  ⟨.topEncoding key, trivial, (atHashAddress_tweakableHashInput_iff parameter _ _ _).2 rfl⟩
-
 theorem not_merkleHashInput_of_atHashAddress (parameter : PublicParameter) (domain : HashDomain)
     (input : HashInput) (haddress : AtHashAddress parameter domain input)
     (hdomain : ¬ domain.Retained) : ¬ MerkleHashInput parameter input := by
@@ -99,13 +94,6 @@ theorem MerkleHashInput.chainFree {parameter : PublicParameter} {input : HashInp
   intro key chain step heq
   subst domain
   cases key <;> exact hretained
-
-theorem chainFreeInput_keyLeafInput (parameter : PublicParameter) (key : ChainKey)
-    (endpoints : ChainIndex → Digest) :
-    ChainFreeInput parameter (Concrete.CacheView.keyLeafInput parameter key endpoints) :=
-  fun chainKey chain step value heq =>
-    Concrete.CacheView.keyChainInput_ne_keyLeafInput parameter chainKey chain step value key
-      endpoints heq.symm
 
 theorem merkleHashInput_ne_keyLeafInput
     (parameter : PublicParameter) (key : ChainKey)

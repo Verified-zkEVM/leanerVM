@@ -65,16 +65,6 @@ theorem thInput_hashDomainFields (parameter : PublicParameter) (domain : HashDom
     thInput parameter (hashDomainFields domain) payload =
       tweakableHashInput parameter domain payload := rfl
 
-theorem thInput_keygenDomainFields (parameter : PublicParameter) (domain : KeygenDomain)
-    (seed : MasterSeed) :
-    thInput parameter (keygenDomainFields domain) (bytesLE 32 seed) =
-      keygenHashInput parameter domain seed := rfl
-
-theorem thInput_randomizer (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
-    (seed : MasterSeed) (message : HashInput) :
-    thInput parameter (tweakFields 7 0 (layerHi lay 0) key) (bytesLE 32 seed ++ message) =
-      randomizerHashInput parameter lay key seed message := rfl
-
 /-- The signer returned the forgery (`Common.SufCma.SignerReturned` at the requests' messages). -/
 abbrev SigningTranscript.Contains (log : OracleSpec.QueryLog SigningSpec) (forgery : Forgery) : Prop :=
   Common.SufCma.SignerReturned SignRequest.message log forgery.message forgery.signature

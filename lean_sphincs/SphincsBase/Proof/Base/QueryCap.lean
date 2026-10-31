@@ -97,22 +97,6 @@ theorem run_queryBound (computation : OracleComp spec Result) (budget : Nat) :
           ↓reduceIte, true_and]
         exact fun answer => ih answer budget
 
-theorem run_bind (computation : OracleComp spec Result) (next : Result → OracleComp spec Next) (budget : Nat) :
-    run selected (computation >>= next) budget = (do
-      match ← run selected computation budget with
-      | none => pure none
-      | some result => run selected (next result.1) result.2) := by
-  induction computation using OracleComp.inductionOn generalizing budget with
-  | pure result => simp only [pure_bind, run_pure]
-  | query_bind input continuation ih =>
-      rw [bind_assoc, run_query_bind, run_query_bind]
-      by_cases hselected : selected input
-      · rw [ite_eq_left hselected, ite_eq_left hselected]
-        cases budget with
-        | zero => simp only [pure_bind]
-        | succ budget => simp only [bind_assoc, ih]
-      · simp only [ite_eq_right hselected, bind_assoc, ih]
-
 def finish (budget : Nat) (result : Result × Nat) : Option (Result × Nat) :=
   if result.2 ≤ budget then some (result.1, budget - result.2) else none
 

@@ -448,16 +448,6 @@ theorem globalChainInputProbe?_encodingInput
   cases key <;> simp [ChainKey.chainDomain]
 
 @[simp]
-theorem globalChainInputProbe?_leafInput
-    (parameter : PublicParameter) (leafIndex : LeafIndex)
-    (endpoints : ChainIndex → Digest) :
-    globalChainInputProbe? parameter
-      (Concrete.CacheView.leafInput parameter leafIndex endpoints) = none := by
-  apply globalChainInputProbe?_eq_none_of_tweakableHashInput
-  intro key chain step
-  cases key <;> simp [ChainKey.chainDomain]
-
-@[simp]
 theorem globalChainInputProbe?_keyLeafInput
     (parameter : PublicParameter) (key : ChainKey)
     (endpoints : ChainIndex → Digest) :
@@ -466,16 +456,6 @@ theorem globalChainInputProbe?_keyLeafInput
   apply globalChainInputProbe?_eq_none_of_tweakableHashInput
   intro chainKey chain step
   cases chainKey <;> cases key <;> simp [ChainKey.chainDomain, ChainKey.leafDomain]
-
-theorem globalChainInputProbe?_merkleHashInput
-    (parameter : PublicParameter) (input : HashInput)
-    (hinput : MerkleHashInput parameter input) :
-    globalChainInputProbe? parameter input = none := by
-  obtain ⟨domain, hretained, haddress⟩ := hinput
-  apply globalChainInputProbe?_eq_none_of_atHashAddress parameter domain input haddress
-  intro key chain step heq
-  subst domain
-  cases key <;> exact hretained
 
 def FilteredCacheExtensionRelation
     (leftBase left right : QueryCache HashSpec) : Prop :=

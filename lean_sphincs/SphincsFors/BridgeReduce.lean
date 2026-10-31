@@ -71,33 +71,6 @@ theorem sampleCoordinates_eq (material : Material) (seed : MasterSeed) (answers 
     ← GraphCorrectness.materialOts_eq _ seed material (sample_agreement material seed answers table),
     ← GraphCorrectness.materialFts_eq _ seed material (sample_agreement material seed answers table)]
 
-omit [Params] in
-/-- Every realized capped trace respects the budget. -/
-theorem costRun_cap_cost_le {α : Type} (f : HashInput → HashOutput) (table : HiddenGraph.Table)
-    (computation : OracleComp CostSpec α) (budget : Nat)
-    (result : Option α × List (Entry HashInput))
-    (hresult : result ∈ support (costRun f table (cap computation budget))) :
-    traceCost result.2 ≤ budget := by
-  induction computation using OracleComp.inductionOn generalizing budget result with
-  | pure value =>
-      rw [cap_pure', costRun_pure, support_pure, Set.mem_singleton_iff] at hresult
-      subst hresult
-      simp [traceCost]
-  | query_bind input next ih =>
-      rw [cap_query_bind'] at hresult
-      split at hresult
-      · rename_i hcost
-        rw [costRun_query_bind, mem_support_bind_iff] at hresult
-        obtain ⟨answer, _, hmap⟩ := hresult
-        rw [support_map] at hmap
-        obtain ⟨tail, htail, rfl⟩ := hmap
-        have h := ih answer (budget - sourceCost input) tail htail
-        simp only [traceCost_append, recorded_cost]
-        omega
-      · rw [costRun_pure, support_pure, Set.mem_singleton_iff] at hresult
-        subst hresult
-        simp [traceCost]
-
 /-- One seed-free capped graph-view run. -/
 noncomputable def seedFreeRun (adversary : Adversary) (q : Nat) (material : Material)
     (answers : CanonicalGraphLabels) (table : Eager.Table) :
@@ -114,31 +87,5 @@ noncomputable def seedFreeExperiment (adversary : Adversary) (q : Nat) :
 
 def Win (result : Option Bool × List (Entry HashInput)) : Prop :=
   ∃ value, result.1 = some value ∧ value = true
-
-omit [Params] in
-theorem probEvent_bind_le_add {α β γ δ : Type} (p : ProbComp α) (k : α → ProbComp β)
-    (k₁ : α → ProbComp γ) (k₂ : α → ProbComp δ) (event : β → Prop) (event₁ : γ → Prop)
-    (event₂ : δ → Prop) (h : ∀ a, Pr{let x ← k a}[event x] ≤ Pr{let x ← k₁ a}[event₁ x] + Pr{let x ← k₂ a}[event₂ x]) :
-    Pr{let x ← p >>= k}[event x] ≤ Pr{let x ← p >>= k₁}[event₁ x] + Pr{let x ← p >>= k₂}[event₂ x] := by
-  simp only [OracleComp.prEvent_bind_eq_tsum]
-  rw [← ENNReal.tsum_add]
-  exact ENNReal.tsum_le_tsum fun a => (mul_le_mul' le_rfl (h a)).trans_eq (mul_add ..)
-
-omit [Params] in
-theorem probEvent_bind_le_of {α β : Type} (p : ProbComp α) (k : α → ProbComp β) (event : β → Prop)
-    (bound : ℝ≥0∞) (h : ∀ a, Pr{let x ← k a}[event x] ≤ bound) : Pr{let x ← p >>= k}[event x] ≤ bound := by
-  rw [OracleComp.prEvent_bind_eq_tsum]
-  calc
-    _ ≤ ∑' a, Pr{let x ← p}[x = a] * bound := ENNReal.tsum_le_tsum fun a => mul_le_mul' le_rfl (h a)
-    _ ≤ bound := by
-      rw [ENNReal.tsum_mul_right]
-      exact mul_le_of_le_one_left bot_le (OracleComp.tsum_prEvent_le_one _)
-
-omit [Params] in
-theorem probEvent_bind_mono {α β : Type} (p : ProbComp α) (k₁ k₂ : α → ProbComp β)
-    (event : β → Prop) (h : ∀ a, Pr{let x ← k₁ a}[event x] ≤ Pr{let x ← k₂ a}[event x]) :
-    Pr{let x ← p >>= k₁}[event x] ≤ Pr{let x ← p >>= k₂}[event x] := by
-  simp only [OracleComp.prEvent_bind_eq_tsum]
-  exact ENNReal.tsum_le_tsum fun a => mul_le_mul' le_rfl (h a)
 
 end SphincsFors.Security.Reduce

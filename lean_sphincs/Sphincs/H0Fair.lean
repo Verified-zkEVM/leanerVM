@@ -41,11 +41,6 @@ theorem landing_eq : landing = ENNReal.ofReal (1 / 2 ^ (26 - subtreeHeight)) := 
   push_cast
   rfl
 
-theorem card_eq : ((Fintype.card (Fin (2 ^ subtreeHeight)) : ℕ) : ℝ≥0∞) = ENNReal.ofReal (2 ^ subtreeHeight) := by
-  rw [Fintype.card_fin, ← ENNReal.ofReal_natCast]
-  push_cast
-  rfl
-
 theorem scanM_pos : 0 < scanM := Nat.two_pow_pos _
 
 theorem landing_eq_M : landing = ENNReal.ofReal (1 / (scanM : ℝ)) := by

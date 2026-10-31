@@ -65,17 +65,6 @@ theorem evalDist_simulateQ_congr {ι : Type} {spec : OracleSpec ι} {m₁ m₂ :
       rw [simulateQ_bind, simulateQ_bind, simulateQ_spec_query, simulateQ_spec_query]
       exact (h input).bind ih
 
-theorem evalDist_fixedRom_eq_fixedHashWorld (f : HashInput → HashOutput) {α : Type}
-    (oa : OracleComp OracleWorld α) :
-    simulateQ (fixedRom f) oa =ᵈ simulateQ (Prefix.fixedHashWorld f) oa := by
-  refine evalDist_simulateQ_congr _ _ (fun input => ?_) oa
-  cases input with
-  | inl draw =>
-      exact evalDistEq_unifQuery_pmf draw
-  | inr bytes =>
-      simp [fixedRom, Prefix.fixedHashWorld]
-      exact evalDistEq_pure (m₁ := ProbComp) (m₂ := PMF) (f bytes)
-
 noncomputable local instance assemblyLabelsSampleable : SampleableType CanonicalGraphLabels :=
   graphLabelsSampleable
 
@@ -158,16 +147,6 @@ theorem sample_boundary (material : Material) (seed : MasterSeed) (answers : Can
   simp only [labelsOf, completedLabels, hnot, ↓reduceIte]
   exact PrunedGraph.initialLabels_boundary _ _ position value hboundary
 
-theorem sample_parameter (material : Material) (seed : MasterSeed) (answers : CanonicalGraphLabels)
-    (table : Eager.Table) :
-    evalWithAnswerFn (sampleFn material seed answers table)
-      (deriveKey 0 .parameter seed : OracleComp HashSpec Digest) = parameter material := by
-  simp only [deriveKey, evalWithAnswerFn_bind, evalWithAnswerFn_pure]
-  change truncateHash (sampleFn material seed answers table (parameterInput seed)) = _
-  rw [show sampleFn material seed answers table (parameterInput seed) = material.1 from
-    extend_cached (preparedCache_parameter material seed answers)]
-  rfl
-
 /-- Coordinates of one sample, read from its answer function. -/
 noncomputable def sampleCoordinates (material : Material) (seed : MasterSeed)
     (answers : CanonicalGraphLabels) (table : Eager.Table) : HiddenGraph.Table :=
@@ -175,15 +154,5 @@ noncomputable def sampleCoordinates (material : Material) (seed : MasterSeed)
     (GraphCorrectness.otsSecrets (sampleFn material seed answers table) (parameter material) seed)
     (GraphCorrectness.ftsSecrets (sampleFn material seed answers table) (parameter material) seed)
     (labelsOf material answers)
-
-omit [Params] in
-theorem fixedHashWorld_countHashQueries (f : QueryImpl HashSpec Id) {α : Type}
-    (oa : OracleComp OracleWorld α) :
-    simulateQ (Prefix.fixedHashWorld f) (countHashQueries oa) =
-      (simulateQ (Prefix.fixedWorldCost f) oa).run := by
-  rw [countHashQueries, SphincsBase.QueryCap.simulate_withCost]
-  congr 2
-  funext input
-  cases input <;> rfl
 
 end SphincsFors.Security.Assembly

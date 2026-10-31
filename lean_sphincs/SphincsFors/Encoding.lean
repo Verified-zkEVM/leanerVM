@@ -51,21 +51,4 @@ theorem failMass_encoding_add_le :
     exact_mod_cast hnat
   exact (add_le_add le_rfl hshare).trans_eq ((add_comm _ _).trans hcompl)
 
-/-- All 2^32 WOTS+C encoding attempts fail with probability at most 2^(-2^22),
-provided these counter inputs are initially fresh. -/
-theorem encoding_exhaustion_bound (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (seed : MasterSeed) (message : FtsTops) (cache : QueryCache HashSpec)
-    (hfresh : ∀ c, c < encodingAttemptLimit →
-      cache (encodeInput parameter lay tree leaf message c) = none) :
-    Pr{let r ← ((simulateQ randomOracle
-        (Seeded.otsSign parameter lay tree leaf seed message
-          : OracleComp HashSpec (Option (Counter × (ChainIndex → Digest))))).run cache)}[r.1 = none]
-      ≤ (2⁻¹ : ℝ≥0∞) ^ (2 ^ 22) := by
-  apply (probEvent_otsSign parameter lay tree leaf seed message cache hfresh).trans
-  have hhalf := pow_le_half_ennreal (2 ^ 10) (by positivity)
-    (failMass (fun out => TargetSum.decodeDigest (truncateHash out)))
-    (by simpa only [Nat.cast_pow, Nat.cast_ofNat] using failMass_encoding_add_le)
-  rw [show encodingAttemptLimit = 2 ^ 10 * 2 ^ 22 by decide, pow_mul]
-  exact pow_le_pow_left₀ (by positivity) hhalf _
-
 end SphincsFors.Completeness

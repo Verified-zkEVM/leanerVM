@@ -55,8 +55,6 @@ theorem nextRand_no_return (ρ : Randomness) (j : ℕ) (h0 : 0 < j) (hj : j < si
 /-- The mean of `f` over a uniform oracle output. -/
 noncomputable def ex (f : HashOutput → ℝ≥0∞) : ℝ≥0∞ := ∑ u, Pr{let x ← $ᵗ HashOutput}[x = u] * f u
 
-theorem ex_def (f : HashOutput → ℝ≥0∞) : ex f = ∑ u, Pr{let x ← $ᵗ HashOutput}[x = u] * f u := rfl
-
 theorem ex_const (c : ℝ≥0∞) : ex (fun _ => c) = c := by
   simp only [ex, SampleableType.prEvent_uniformSample_eq_singleton, ← Finset.sum_mul, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
   rw [ENNReal.mul_inv_cancel (by simp) (by simp), one_mul]
@@ -88,10 +86,6 @@ theorem ex_digest (d : Digest) :
     ex (fun u => if truncateHash u = d then 1 else 0) = ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
   rw [← Rom.uniform_truncate_probability d, OracleComp.prEvent_eq_tsum_ite, tsum_fintype, ex]
   exact Finset.sum_congr rfl fun u _ => by split_ifs <;> simp only [mul_one, mul_zero]
-
-theorem probOutput_truncate (d : Digest) :
-    Pr{let u ← $ᵗ HashOutput}[truncateHash u = d] = ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ :=
-  Rom.uniform_truncate_probability d
 
 theorem ex_valid : ex (fun u => if TargetSum.ValidDigest (truncateHash u) then 1 else 0) = landing := by
   have h : ∀ u : HashOutput, (if TargetSum.ValidDigest (truncateHash u) then (1 : ℝ≥0∞) else 0) =
@@ -356,13 +350,6 @@ theorem ex_W (y : Position) :
       (fun j h0 hj => nextRand_no_return _ j h0 hj) r
   · simp_rw [W_cacheQuery_of_ne x _ hm]
     exact ex_const _
-
-/-- **Martingale of a fixed set.** -/
-theorem ex_sum_W (P : Finset Position) :
-    ex (fun u => ∑ y ∈ P, W (cache.cacheQuery (input parameter leafIndex x) u) parameter leafIndex y) =
-      ∑ y ∈ P, W cache parameter leafIndex y := by
-  rw [ex_sum]
-  exact Finset.sum_congr rfl fun y _ => ex_W hx y
 
 theorem not_isHit_x : ¬ IsHit cache parameter leafIndex x := by
   rw [isHit_iff]; simp [status, hx]

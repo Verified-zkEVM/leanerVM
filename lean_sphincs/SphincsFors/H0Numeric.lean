@@ -89,12 +89,6 @@ theorem touchGo_eq : ∀ (l : List ℕ) (μ p : ℚ),
 /-- Touchard polynomial `T_n(μ) = Σ_j S(n,j) μ^j`, computed from the Stirling row. -/
 def touchQ (n : ℕ) (μ : ℚ) : ℚ := touchGo (stirRow n) μ 1
 
-theorem touchQ_eq (n : ℕ) (μ : ℚ) :
-    touchQ n μ = ∑ j ∈ Finset.range (n + 1), (Nat.stirlingSecond n j : ℚ) * μ ^ j := by
-  rw [touchQ, touchGo_eq, one_mul, stirRow_length]
-  refine Finset.sum_congr rfl fun j _ => ?_
-  rw [stirRow_getD]
-
 /-! ### The interval check -/
 
 /-- Upper bound for the Poisson rate at the right end `qb` of an interval. -/

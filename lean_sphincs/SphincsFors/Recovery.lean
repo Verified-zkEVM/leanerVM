@@ -41,12 +41,6 @@ theorem secretHalf_of_second {domain : KeygenDomain} (h : domain.second = true)
     (output : HashOutput) : secretHalf domain output = truncateHashHigh output := by
   simp [secretHalf, h]
 
-@[simp] theorem secretHalf_parameter (output : HashOutput) :
-    secretHalf .parameter output = truncateHash output := rfl
-
-@[simp] theorem secretHalf_surrogate (level : Fin totalHeight) (output : HashOutput) :
-    secretHalf (.surrogate level) output = truncateHash output := rfl
-
 open Seeded in
 @[simp] theorem secretHalf_evenChain (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (pair : Fin (numChains / 2)) (output : HashOutput) :

@@ -97,15 +97,6 @@ theorem sum_reach_probe (hp : p ≤ 1) (st : α → St) {x : α} (hx : st x = .f
 
 variable [Fintype α]
 
-/-- The martingale for a set of targets, summed over the starts. -/
-theorem sum_sum_reach_probe (hp : p ≤ 1) (st : α → St) {x : α} (hx : st x = .fresh) (P : Finset α) (A : ℕ)
-    (hA : ∀ j, 0 < j → j < A → (σ ^ j) x ≠ x) :
-    p * ∑ r, ∑ y ∈ P, reach σ p (Function.update st x .hit) y A r +
-        (1 - p) * ∑ r, ∑ y ∈ P, reach σ p (Function.update st x .miss) y A r =
-      ∑ r, ∑ y ∈ P, reach σ p st y A r := by
-  rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
-  exact Finset.sum_congr rfl fun r _ => sum_reach_probe hp st hx P A hA r
-
 variable (σ p) in
 /-- Probability that the walk from `r` stops at a cached hit. -/
 noncomputable def hitReach (st : α → St) (A : ℕ) (r : α) : ℝ≥0∞ :=

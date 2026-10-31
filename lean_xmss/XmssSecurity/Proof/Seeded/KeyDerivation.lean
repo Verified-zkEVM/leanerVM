@@ -44,24 +44,4 @@ theorem keygenHashInput_injective {p₁ p₂ : PublicParameter} {d₁ d₂ : Key
   exact ⟨bytesLE_injective 16 hparameter,
     keygenDomainFields_injective (fieldBytes_injective htweak), bytesLE_injective 32 hseed⟩
 
-/-- Derivation hashes and verification hashes have disjoint input sets, for all parameters and payloads. -/
-theorem keygenHashInput_ne_tweakableHashInput (p₁ p₂ : PublicParameter)
-    (d₁ : KeygenDomain) (d₂ : HashDomain) (seed : MasterSeed) (payload : HashInput) :
-    keygenHashInput p₁ d₁ seed ≠ tweakableHashInput p₂ d₂ payload := by
-  intro h
-  unfold keygenHashInput tweakableHashInput tweakBytes at h
-  simp only [List.append_assoc] at h
-  obtain ⟨_, h⟩ := List.append_inj h (by simp)
-  obtain ⟨htweak, _⟩ := List.append_inj h (by simp)
-  have htag := congrArg TweakFields.tag (fieldBytes_injective htweak)
-  cases d₁ <;> cases d₂ <;> simp [keygenDomainFields, hashDomainFields, tweakFields] at htag
-
-/-- One raw oracle query can name at most one master seed. -/
-theorem keygenHashInput_seed_unique (input : HashInput) {s₁ s₂ : MasterSeed}
-    (h₁ : ∃ p d, keygenHashInput p d s₁ = input)
-    (h₂ : ∃ p d, keygenHashInput p d s₂ = input) : s₁ = s₂ := by
-  obtain ⟨p₁, d₁, h₁⟩ := h₁
-  obtain ⟨p₂, d₂, h₂⟩ := h₂
-  exact (keygenHashInput_injective (h₁.trans h₂.symm)).2.2
-
 end XmssSecurity

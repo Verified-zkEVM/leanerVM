@@ -297,17 +297,6 @@ attribute [local instance] Classical.propDecidable
 
 /-! ### A chain of light covers, then heavy covers -/
 
-theorem checkCoversH_cons (b N qstart : ℕ) (c : H0.CoverW) (light heavy : List H0.CoverW) :
-    checkCoversH b N qstart (c :: light) heavy =
-      (H0.checkCoverW b N qstart c && checkCoversH b N (c.qtop + 1) light heavy) := rfl
-
-theorem checkCoversH_nil_cons (b N qstart : ℕ) (c : H0.CoverW) (heavy : List H0.CoverW) :
-    checkCoversH b N qstart [] (c :: heavy) =
-      (H0.checkCoverH b N qstart c && checkCoversH b N (c.qtop + 1) [] heavy) := rfl
-
-theorem checkCoversH_nil_nil (b N qstart : ℕ) :
-    checkCoversH b N qstart [] [] = decide (2 ^ 127 ≤ qstart + (226 * 2 ^ b + 2 * (26 - b))) := rfl
-
 /-- Every budget from `qstart` on with `q' + keygenCost < 2^127` lies in a checked heavy cover. -/
 theorem checkCoversHeavy_sound (b N : ℕ) : ∀ (heavy : List H0.CoverW) (qstart : ℕ),
     checkCoversHeavy b N qstart heavy = true → ∀ q', qstart ≤ q' → q' + (226 * 2 ^ b + 2 * (26 - b)) < 2 ^ 127 →

@@ -97,11 +97,6 @@ theorem grp_const [Nonempty α] (hU : U.Nonempty) (st : α → St) (ext : α →
     ENNReal.inv_mul_cancel (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _), one_mul]
 
 omit [DecidableEq α] in
-theorem grp_le [Nonempty α] (hU : U.Nonempty) (st : α → St) (ext : α → Multiset V) {F : Multiset V → ℝ≥0∞}
-    {B : ℝ≥0∞} (h : ∀ e, F e ≤ B) (d : Multiset V) : grp σ p A U st ext F d ≤ B :=
-  (grp_le_of_le st ext h d).trans (le_of_eq (grp_const hp hU st ext B d))
-
-omit [DecidableEq α] in
 /-- The group only adds disclosures. -/
 theorem le_grp [Nonempty α] (hU : U.Nonempty) (st : α → St) (ext : α → Multiset V) {F : Multiset V → ℝ≥0∞}
     (hF : Monotone' F) (d : Multiset V) : F d ≤ grp σ p A U st ext F d := by
@@ -162,14 +157,6 @@ theorem grp_freshAvg {W : Type} [DecidableEq W] (T : Finset W) (st : α → St) 
   rw [gv_const_mul, gv_sum, Finset.mul_sum, Finset.mul_sum, Finset.mul_sum]
   refine Finset.sum_congr rfl fun t _ => ?_
   ring
-
-omit [DecidableEq α] in
-/-- The group commutes with one coin. -/
-theorem grp_coin (st : α → St) (ext : α → Multiset V) (F : Multiset V → ℝ≥0∞) (w : ℝ≥0∞) (m d : Multiset V) :
-    grp σ p A U st ext (fun e => w * F (e + m) + (1 - w) * F e) d =
-      w * grp σ p A U st ext F (d + m) + (1 - w) * grp σ p A U st ext F d := by
-  rw [grp_add st ext (fun e => w * F (e + m)) (fun e => (1 - w) * F e), grp_const_mul, grp_const_mul,
-    grp_shift]
 
 /-- **A stopped group is below the group.** A fresh position that becomes a hit disclosing nothing
 can only lower the group of a monotone function. -/
@@ -261,25 +248,6 @@ theorem grp_comm {β : Type} [Fintype β] [DecidableEq β] (τ : Equiv.Perm β) 
   obtain ⟨M, hM⟩ := grp_eq_mixAp (σ := σ) (p := p) (A := A) (U := U) st ext
   rw [hM, ← grp_mixAp]
   exact (grp_congr st' ext' (fun e => hM F e) d).symm
-
-omit [DecidableEq α] in
-/-- **The true law is below the group and one fresh slot.** The signature of the message uses a
-cached hit `x` (payoff at most `G` after `ext x` and a fresh view) or a fresh landing view. -/
-theorem sign_le (hU : U.Nonempty) (st : α → St) (ext : α → Multiset V) {G : Multiset V → ℝ≥0∞}
-    (hG : Monotone' G) (d : Multiset V) (item : α → ℝ≥0∞) (fr : ℝ≥0∞)
-    (hitem : ∀ x, item x ≤ freshAvg U fun v => G (d + ext x + {v}))
-    (hfr : fr ≤ freshAvg U fun v => G (d + {v})) :
-    (Fintype.card α : ℝ≥0∞)⁻¹ * ∑ r, walk σ p st item fr 0 A r ≤
-      grp σ p A U st ext (fun e => freshAvg U fun v => G (e + {v})) d := by
-  unfold grp gv
-  refine mul_le_mul' le_rfl (Finset.sum_le_sum fun r _ => walk_mono st hitem ?_ bot_le A r)
-  split_ifs
-  · exact hfr
-  · refine le_trans hfr ?_
-    calc freshAvg U (fun v => G (d + {v})) = freshAvg U (fun _ => freshAvg U fun v => G (d + {v})) :=
-          (freshAvg_const U hU _).symm
-      _ ≤ _ := freshAvg_mono U fun v' _ => freshAvg_mono U fun v _ =>
-          hG _ _ (add_le_add (Multiset.le_add_right _ _) le_rfl)
 
 /-- **One digest query.** The fresh position `y` of the message is queried: with probability `p` it
 becomes a hit with a uniform view, otherwise a miss. In the mean the group is at most the group of

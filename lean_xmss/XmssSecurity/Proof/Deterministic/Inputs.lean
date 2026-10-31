@@ -27,36 +27,9 @@ theorem randomizerHashInput_injective {p₁ p₂ : PublicParameter} {s₁ s₂ :
       Nat.mod_eq_of_lt e₂.isLt] using h
   exact ⟨bytesLE_injective 16 hp, bytesLE_injective 32 hs, he, bytesLE_injective 32 hm⟩
 
-theorem randomizerHashInput_ne_keygenHashInput (p₁ p₂ : PublicParameter)
-    (s₁ s₂ : MasterSeed) (leafIndex : LeafIndex) (message : Message) (domain : KeygenDomain) :
-    randomizerHashInput p₁ s₁ leafIndex message ≠ keygenHashInput p₂ domain s₂ := by
-  intro h
-  have := congrArg List.length h
-  simp [randomizerHashInput, keygenHashInput, fieldBytes, length_bytesLE] at this
-
-theorem randomizerHashInput_ne_tweakableHashInput (p₁ p₂ : PublicParameter)
-    (seed : MasterSeed) (leafIndex : LeafIndex) (message : Message)
-    (domain : HashDomain) (payload : HashInput) :
-    randomizerHashInput p₁ seed leafIndex message ≠ tweakableHashInput p₂ domain payload := by
-  intro h
-  simp only [randomizerHashInput, tweakableHashInput, tweakBytes, List.append_assoc] at h
-  obtain ⟨_, h⟩ := List.append_inj h (by simp [length_bytesLE])
-  obtain ⟨htweak, _⟩ := List.append_inj h (by simp [fieldBytes, length_bytesLE])
-  have htag := congrArg TweakFields.tag (fieldBytes_injective htweak)
-  cases domain <;> simp [hashDomainFields, tweakFields] at htag
-
 /-- Every seed-derived input puts the complete seed in bytes 32 through 63. -/
 def DerivationSeedHit (input : HashInput) (seed : MasterSeed) : Prop :=
   (input.drop 32).take 32 = bytesLE 32 seed
-
-theorem derivationSeedHit_keygen (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
-    DerivationSeedHit (keygenHashInput parameter domain seed) seed := by
-  simp [DerivationSeedHit, keygenHashInput, fieldBytes, bytesLE]
-
-theorem derivationSeedHit_randomizer (parameter : PublicParameter) (seed : MasterSeed)
-    (leafIndex : LeafIndex) (message : Message) :
-    DerivationSeedHit (randomizerHashInput parameter seed leafIndex message) seed := by
-  simp [DerivationSeedHit, randomizerHashInput, fieldBytes, bytesLE]
 
 theorem derivationSeedHit_unique {input : HashInput} {left right : MasterSeed}
     (hl : DerivationSeedHit input left) (hr : DerivationSeedHit input right) : left = right :=

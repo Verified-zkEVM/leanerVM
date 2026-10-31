@@ -43,28 +43,6 @@ def domain : Position → HashDomain
   | .ftsNode index tree level nodeIdx => HashDomain.ftsNode index tree (level.val + 1) nodeIdx.val
   | .ftsRoots index => HashDomain.ftsRoots index
 
-theorem domain_inRange (p : Position) : p.domain.InRange := by
-  cases p with
-  | node lay tree level nodeIdx =>
-      have hlevel := level.isLt
-      have hnode := nodeIdx.isLt
-      simp only [maxLayerHeight] at hlevel hnode
-      show level.val + 1 < 2 ^ 32 ∧ nodeIdx.val < 2 ^ 32
-      exact ⟨by omega, by omega⟩
-  | ftsNode index tree level nodeIdx =>
-      have hlevel := level.isLt
-      have hnode := nodeIdx.isLt
-      simp only [ftsTreeHeight] at hlevel hnode
-      show level.val + 1 < 2 ^ 32 ∧ nodeIdx.val < 2 ^ 32
-      exact ⟨by omega, by omega⟩
-  | chain => exact (trivial : True)
-  | leaf => exact (trivial : True)
-  | ftsLeaf => exact (trivial : True)
-  | ftsRoots => exact (trivial : True)
-
-theorem domain_injective {p q : Position} (h : p.domain = q.domain) : p = q := by
-  cases p <;> cases q <;> simp only [domain] at h <;> simp_all [Fin.ext_iff]
-
 /-- The last chain step, the one whose answer is the chain's endpoint. -/
 def lastChainStep : ChainStep := ⟨chainLength - 2, by have := OtsCode.two_le_chainLength; omega⟩
 
@@ -97,13 +75,6 @@ def children : Position → List Position
       List.ofFn fun tree : FtsTree =>
         .ftsNode index tree ⟨ftsTreeHeight - 1, by decide⟩ ⟨0, by positivity⟩
 
-/-- The widest payload of the instance is a one-time leaf's `v` chain endpoints. -/
-theorem children_length_le (p : Position) : p.children.length ≤ numChains := by
-  have htwo := OtsCode.two_le_numChains
-  have hroots := OtsCode.ftsRoots_le_numChains
-  cases p <;> simp only [children] <;> (try split_ifs) <;>
-    simp only [List.length_ofFn, List.length_cons, List.length_nil] <;> omega
-
 /-! ### Children and parent agree
 
 No position has two parents, which is what keeps the accounting's charge on a position's settling
@@ -117,43 +88,6 @@ def depth : Position → Nat
   | .ftsLeaf _ _ _ => 0
   | .ftsNode _ _ level _ => 1 + level.val
   | .ftsRoots _ => 1 + ftsTreeHeight
-
-theorem depth_lt_of_mem_children {c d : Position} (hmem : c ∈ d.children) :
-    c.depth < d.depth := by
-  cases d with
-  | chain lay tree leafIdx chainIdx step =>
-      rw [children] at hmem
-      split at hmem
-      · rw [List.mem_singleton] at hmem
-        subst hmem
-        simp only [depth]
-        omega
-      · simp at hmem
-  | leaf =>
-      simp only [children, List.mem_ofFn] at hmem
-      obtain ⟨chainIdx, hmem⟩ := hmem
-      subst hmem
-      have := OtsCode.two_le_chainLength
-      simp only [depth, lastChainStep]
-      omega
-  | node lay tree level nodeIdx =>
-      rw [children] at hmem
-      split at hmem
-      · split at hmem <;> rcases List.mem_pair.mp hmem with h | h <;> subst h <;>
-          simp only [depth] <;> omega
-      · simp at hmem
-  | ftsLeaf => simp [children] at hmem
-  | ftsNode index tree level nodeIdx =>
-      rw [children] at hmem
-      split at hmem
-      · split at hmem <;> rcases List.mem_pair.mp hmem with h | h <;> subst h <;>
-          simp only [depth] <;> omega
-      · simp at hmem
-  | ftsRoots =>
-      simp only [children, List.mem_ofFn] at hmem
-      obtain ⟨tree, hmem⟩ := hmem
-      subst hmem
-      simp [depth, ftsTreeHeight]
 
 end Position
 

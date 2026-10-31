@@ -31,18 +31,9 @@ theorem bytesLE_injective {n : Nat} {x y : BitVec (8 * n)} (h : bytesLE n x = by
 theorem bytesLE_length (n : Nat) (x : BitVec (8 * n)) : (bytesLE n x).length = n := by
   simp [bytesLE]
 
-@[simp] theorem bytesLE_length_digest (x : Digest) : (bytesLE 16 x).length = 16 :=
-  bytesLE_length 16 x
-
 @[simp] theorem bytesLE_length_publicParameter (x : PublicParameter) :
     (bytesLE 16 x).length = 16 :=
   bytesLE_length 16 x
-
-@[simp] theorem bytesLE_length_message (x : Message) : (bytesLE 32 x).length = 32 :=
-  bytesLE_length 32 x
-
-@[simp] theorem bytesLE_length_masterSeed (x : MasterSeed) : (bytesLE 32 x).length = 32 :=
-  bytesLE_length 32 x
 
 /-- A bit vector determines the natural it encodes, below the wrap. -/
 theorem ofNat_inj_of_lt {w a b : Nat} (ha : a < 2 ^ w) (hb : b < 2 ^ w)
@@ -102,29 +93,6 @@ theorem seedHashInput_length (keySeed : MasterSeed) : (seedHashInput keySeed).le
 
 theorem seedHashInput_injective : Function.Injective seedHashInput :=
   fun _ _ h => bytesLE_injective (List.append_cancel_left h)
-
-theorem seedHashInput_ne_keygen (keySeed : MasterSeed) (parameter : PublicParameter)
-    (domain : KeygenDomain) (seed : MasterSeed) :
-    seedHashInput keySeed ≠ keygenHashInput parameter domain seed := by
-  intro h
-  have := congrArg List.length h
-  simp [seedHashInput_length, keygenHashInput, fieldBytes, bytesLE_length] at this
-
-theorem seedHashInput_ne_randomizer (keySeed : MasterSeed) (parameter : PublicParameter) (lay : Layer)
-    (key : KeyIndex) (seed : MasterSeed) (message : HashInput) :
-    seedHashInput keySeed ≠ randomizerHashInput parameter lay key seed message := by
-  intro h
-  have := congrArg List.length h
-  simp [seedHashInput_length, randomizerHashInput, thInput, fieldBytes, bytesLE_length] at this
-  omega
-
-theorem seedHashInput_ne_tweakable (keySeed : MasterSeed) (parameter : PublicParameter)
-    (domain : HashDomain) {payload : HashInput} (hpayload : payload.length ≠ 8) :
-    seedHashInput keySeed ≠ tweakableHashInput parameter domain payload := by
-  intro h
-  have := congrArg List.length h
-  simp [seedHashInput_length, tweakableHashInput, tweakBytes, fieldBytes, bytesLE_length] at this
-  omega
 
 /-! ### Address fields -/
 

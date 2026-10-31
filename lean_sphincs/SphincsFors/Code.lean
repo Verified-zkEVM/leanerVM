@@ -176,13 +176,4 @@ theorem encoding_antichain {x y : Encoding} (hx : Valid x) (hy : Valid y)
     Finset.sum_lt_sum (fun j _ => hle j) ⟨i, Finset.mem_univ i, hstrict⟩
   omega
 
-/-- Every admissible WOTS+C encoding leaves exactly 72 hash steps for its verifier. -/
-theorem verification_chain_steps (word : Encoding) (hword : Valid word) :
-    (∑ i : ChainIndex, (chainLength - 1 - (word i).val)) = 72 := by
-  have hle : ∀ i ∈ (Finset.univ : Finset ChainIndex), (word i).val ≤ chainLength - 1 :=
-    fun i _ => Nat.le_of_lt_succ (word i).isLt
-  rw [Finset.sum_tsub_distrib Finset.univ hle,
-    show (∑ i : ChainIndex, (word i).val) = targetSum from hword]
-  simp [chainLength, winternitzBits, numChains, targetSum]
-
 end SphincsFors.Completeness

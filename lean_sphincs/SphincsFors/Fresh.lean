@@ -74,15 +74,6 @@ theorem sequenceFin {α : Type} {n : Nat} (target : HashInput)
       rw [Concrete.sequenceFin]
       exact bind (h 0) (fun _ => bind (ih _ (fun i => h i.succ)) (fun _ => pure' _ _))
 
-theorem messageDigest {target : HashInput} (parameter : PublicParameter) (root : Digest)
-    (message : Message) (randomness : Randomness)
-    (hs : ∀ block : Fin 2,
-      tweakableHashInput parameter (.message block)
-        (messageDigestPayload root message randomness) ≠ target) :
-    PreservesFresh target (Concrete.messageDigest parameter root message randomness) := by
-  rw [Concrete.messageDigest]
-  exact bind (query (hs 0)) (fun _ => bind (query (hs 1)) (fun _ => pure' _ _))
-
 end PreservesFresh
 
 /-- Domain separation is independent of the public parameter and payload. -/
@@ -130,31 +121,6 @@ theorem structuralFresh_of_tag (parameter : PublicParameter) (fields : TweakFiel
     apply fieldInput_ne_of_tag_ne_across
     rw [hfields]
     rcases htag with rfl | rfl <;> simp [hashDomainFields, tweakFields]
-
-/-- Every counter-search input is separate from all structural tree inputs. -/
-theorem structuralFresh_encoding (parameter : PublicParameter) (lay : Layer)
-    (tree : TreeIndex) (leaf : LeafIndex) (message : FtsTops) (c : Nat) :
-    StructuralFresh (encodeInput parameter lay tree leaf message c) :=
-  structuralFresh_of_tag parameter (hashDomainFields (.encoding lay tree leaf))
-    _ 4 (Or.inl rfl) rfl
-
-/-- Message hashing cannot populate any encoding-search cache entry, even for another key. -/
-theorem messageInput_ne_encoding (parameter : PublicParameter) (root : Digest)
-    (message : Message) (randomness : Randomness) (block : Fin 2)
-    (encodingParameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (encodingMessage : FtsTops) (c : Nat) :
-    tweakableHashInput parameter (.message block)
-      (messageDigestPayload root message randomness) ≠
-        encodeInput encodingParameter lay tree leaf encodingMessage c := by
-  apply fieldInput_ne_of_tag_ne_across
-  simp [hashDomainFields, tweakFields]
-
-/-- Message inputs are separate from structural key generation for all public parameters. -/
-theorem structuralFresh_message (parameter : PublicParameter) (root : Digest)
-    (message : Message) (randomness : Randomness) (block : Fin 2) :
-    StructuralFresh (tweakableHashInput parameter (.message block)
-      (messageDigestPayload root message randomness)) :=
-  structuralFresh_of_tag parameter (hashDomainFields (.message block)) _ 12 (Or.inr rfl) rfl
 
 namespace PreservesFresh
 
@@ -244,20 +210,6 @@ theorem ftsNode (parameter : PublicParameter) (index : Index) (tree : FtsTree)
       | succ level =>
           rw [Seeded.ftsNode]
           exact bind (ih _) (fun _ => bind (ih _) (fun _ => tweakableHash _ _ _ _ (hs.ftsNode _ _ _ _ _ _)))
-
-omit [Params] in
-theorem ftsKey (parameter : PublicParameter) (index : Index) (seed : MasterSeed) :
-    PreservesFresh target (Seeded.ftsKey parameter index seed) := by
-  rw [Seeded.ftsKey]
-  exact sequenceFin _ _ (fun _ => bind (ftsNode hs _ _ _ _ _ _)
-    (fun _ => bind (ftsNode hs _ _ _ _ _ _) (fun _ => pure' _ _)))
-
-omit [Params] in
-theorem ftsOpen (parameter : PublicParameter) (index : Index)
-    (leaves : IndexGroup → FtsLeaf) (seed : MasterSeed) :
-    PreservesFresh target (Seeded.ftsOpen parameter index leaves seed) := by
-  rw [Seeded.ftsOpen]
-  exact sequenceFin _ _ (fun _ => sequenceFin _ _ (fun _ => ftsNode hs _ _ _ _ _ _))
 
 end PreservesFresh
 

@@ -21,13 +21,6 @@ include h
 
 variable [Params]
 
-theorem signAttempt (sk : Seeded.SecretKey) (message : Message) (randomness : Randomness)
-    (hparameter : sk.parameter = parameter) :
-    evalWithAnswerFn left (Seeded.signAttempt sk message randomness : OracleComp HashSpec (Option Index)) =
-      evalWithAnswerFn right (Seeded.signAttempt sk message randomness : OracleComp HashSpec (Option Index)) := by
-  simp only [Seeded.signAttempt, evalWithAnswerFn_bind, hparameter, h.digestCall]
-  split <;> rfl
-
 end PublicAgreement
 
 variable [Params]

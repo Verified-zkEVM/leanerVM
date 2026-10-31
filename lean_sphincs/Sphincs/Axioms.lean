@@ -86,7 +86,6 @@ import Sphincs.BridgeVirtualMono
 import Sphincs.BridgeWsum
 import Sphincs.Bytes
 import Sphincs.Code
-import Sphincs.Compat
 import Sphincs.Correctness
 import Sphincs.Counter
 import Sphincs.Decay
@@ -165,7 +164,6 @@ import Sphincs.SecurityPrefixCountedSign
 import Sphincs.SecurityPrefixErasedGame
 import Sphincs.SecurityPrefixErasedKeygen
 import Sphincs.SecurityPrefixFullSign
-import Sphincs.SecurityPrefixMaterialCost
 import Sphincs.SecurityPrefixMaterialSampling
 import Sphincs.SecurityPrefixMaterialView
 import Sphincs.SecurityPrefixOracle
@@ -197,10 +195,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.capped_splitF
 
-/-- info: 'SphincsLayered.Security.ForsPotential.coinPotF_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.coinPotF_mono
-
 /-- info: 'SphincsLayered.Security.ForsPotential.coinPotF_newPair' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.coinPotF_newPair
@@ -220,10 +214,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.ForsPotential.coinRiskF_newPair' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.coinRiskF_newPair
-
-/-- info: 'SphincsLayered.Security.ForsPotential.coinRiskF_start' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.coinRiskF_start
 
 /-- info: 'SphincsLayered.Security.ForsPotential.gA_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -757,10 +747,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.checkSmallF_sound
 
-/-- info: 'SphincsLayered.Security.ForsPotential.det_bitsF' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.det_bitsF
-
 /-- info: 'SphincsLayered.Security.ForsPotential.det_smallF' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.det_smallF
@@ -772,10 +758,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.ForsPotential.lam_start_leF' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.lam_start_leF
-
-/-- info: 'SphincsLayered.Security.ForsPotential.ofReal_natCast_invF' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.ofReal_natCast_invF
 
 /-- info: 'SphincsLayered.Security.ForsPotential.one_le_keygenCostF' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -1425,10 +1407,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.HiddenDebt.fleafCount_cons_inr
 
-/-- info: 'SphincsLayered.Security.HiddenDebt.fleafCount_nil' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.HiddenDebt.fleafCount_nil
-
 /-- info: 'SphincsLayered.Security.HiddenDebt.fleafCount_recorded_eq_zero' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.HiddenDebt.fleafCount_recorded_eq_zero
@@ -1721,10 +1699,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.potG_grow
 
-/-- info: 'SphincsLayered.Security.ForsPotential.potG_le_coreG' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.potG_le_coreG
-
 /-- info: 'SphincsLayered.Security.ForsPotential.priceW_props' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.priceW_props
@@ -1781,10 +1755,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.finalValue_ordinary
 
-/-- info: 'SphincsLayered.Security.ForsPotential.finalValue_presample' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.finalValue_presample
-
 /-- info: 'SphincsLayered.Security.ForsPotential.flagged_ordinary' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.flagged_ordinary
@@ -1805,14 +1775,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.interp_mass
 
-/-- info: 'SphincsLayered.Security.ForsPotential.items_congr' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.items_congr
-
-/-- info: 'SphincsLayered.Security.ForsPotential.items_withPair' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.items_withPair
-
 /-- info: 'SphincsLayered.Security.ForsPotential.landed_of_cached' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.landed_of_cached
@@ -1832,10 +1794,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.ForsPotential.mem_newPairs' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.mem_newPairs
-
-/-- info: 'SphincsLayered.Security.ForsPotential.mem_others' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.mem_others
 
 /-- info: 'SphincsLayered.Security.ForsPotential.newPairs_nodup' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -1868,10 +1826,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.ForsPotential.ordinaryStep_extends' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.ordinaryStep_extends
-
-/-- info: 'SphincsLayered.Security.ForsPotential.others_nodup' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.others_nodup
 
 /-- info: 'SphincsLayered.Security.ForsPotential.pairE_add' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -1933,10 +1887,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.readOutside_cache_ne
 
-/-- info: 'SphincsLayered.Security.ForsPotential.related_self' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.related_self
-
 /-- info: 'SphincsLayered.Security.ForsPotential.same_items' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.same_items
@@ -1948,10 +1898,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.ForsPotential.tsum_list_sum' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.tsum_list_sum
-
-/-- info: 'SphincsLayered.Security.ForsPotential.tsum_swap2' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.tsum_swap2
 
 /-- info: 'SphincsLayered.Security.ForsPotential.unsigned_of_append' does not depend on any axioms -/
 #guard_msgs (whitespace := lax) in
@@ -2369,10 +2315,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.grpAll_withPair_other
 
-/-- info: 'SphincsLayered.Security.ForsPotential.grpM_grpAll' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.grpM_grpAll
-
 /-- info: 'SphincsLayered.Security.ForsPotential.grpM_untouched' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.grpM_untouched
@@ -2565,10 +2507,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.heavy_withPair_self
 
-/-- info: 'SphincsLayered.Security.ForsPotential.heavy_withPair_value' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.heavy_withPair_value
-
 /-- info: 'SphincsLayered.Security.ForsPotential.innerH_blocksOn' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.innerH_blocksOn
@@ -2596,10 +2534,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.ForsPotential.innerH_ne_top' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.innerH_ne_top
-
-/-- info: 'SphincsLayered.Security.ForsPotential.innerH_none' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.innerH_none
 
 /-- info: 'SphincsLayered.Security.ForsPotential.innerH_perm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -2637,10 +2571,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.newPair_cases
 
-/-- info: 'SphincsLayered.Security.ForsPotential.perm_heavy_cons' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.perm_heavy_cons
-
 /-- info: 'SphincsLayered.Security.ForsPotential.post_term_leH' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.post_term_leH
@@ -2677,10 +2607,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.sgnM_stop
 
-/-- info: 'SphincsLayered.Security.ForsPotential.sgnM_withPair_other' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.sgnM_withPair_other
-
 /-- info: 'SphincsLayered.Security.ForsPotential.sgnM_withPair_self' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.sgnM_withPair_self
@@ -2709,17 +2635,9 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.termH_newPair
 
-/-- info: 'SphincsLayered.Security.ForsPotential.termH_nil' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.termH_nil
-
 /-- info: 'SphincsLayered.Security.ForsPotential.termH_stop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.termH_stop
-
-/-- info: 'SphincsLayered.Security.ForsPotential.term_expectH' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.term_expectH
 
 /-- info: 'SphincsLayered.Security.ForsPotential.totalCount_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -2757,10 +2675,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.valH_mono
 
-/-- info: 'SphincsLayered.Security.ForsPotential.valH_ne_top' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.valH_ne_top
-
 /-- info: 'SphincsLayered.Security.ForsPotential.valH_perm_msgs' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.valH_perm_msgs
@@ -2772,18 +2686,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.ForsPotential.virtualOnce_forecast' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.virtualOnce_forecast
-
-/-- info: 'SphincsLayered.Security.ForsPotential.checkCoversH_cons' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.checkCoversH_cons
-
-/-- info: 'SphincsLayered.Security.ForsPotential.checkCoversH_nil_cons' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.checkCoversH_nil_cons
-
-/-- info: 'SphincsLayered.Security.ForsPotential.checkCoversH_nil_nil' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.checkCoversH_nil_nil
 
 /-- info: 'SphincsLayered.Security.ForsPotential.checkCoversH_sound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -3693,14 +3595,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.HiddenDebt.interp_extends
 
-/-- info: 'SphincsLayered.Security.HiddenDebt.interp_presample_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.HiddenDebt.interp_presample_eq
-
-/-- info: 'SphincsLayered.Security.HiddenDebt.interp_presample_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.HiddenDebt.interp_presample_le
-
 /-- info: 'SphincsLayered.Security.HiddenDebt.interp_reveals' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.HiddenDebt.interp_reveals
@@ -4557,10 +4451,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.PotentialA.Ctx.inv_step
 
-/-- info: 'SphincsLayered.Security.PotentialA.Ctx.payoff_le_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.PotentialA.Ctx.payoff_le_one
-
 /-- info: 'SphincsLayered.Security.PotentialA.Ctx.payoff_le_split' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.PotentialA.Ctx.payoff_le_split
@@ -4845,10 +4735,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.freshAvg_opensAt
 
-/-- info: 'SphincsLayered.Security.ForsPotential.hitMass_le_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.hitMass_le_one
-
 /-- info: 'SphincsLayered.Security.ForsPotential.litCount_le_all' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.litCount_le_all
@@ -4857,17 +4743,9 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.opensAt_le_one
 
-/-- info: 'SphincsLayered.Security.ForsPotential.reveal_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.reveal_le
-
 /-- info: 'SphincsLayered.Security.ForsPotential.reveal_le_all' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForsPotential.reveal_le_all
-
-/-- info: 'SphincsLayered.Security.ForsPotential.reveal_point' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.ForsPotential.reveal_point
 
 /-- info: 'SphincsLayered.Security.ForsPotential.reveal_scan_all' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -5157,10 +5035,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.HiddenDebt.survival_le_of_extendsW
 
-/-- info: 'SphincsLayered.Security.HiddenDebt.two_reads_bound₂W' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.HiddenDebt.two_reads_bound₂W
-
 /-- info: 'SphincsLayered.Security.HiddenDebt.weight_le_of_extendsW' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.HiddenDebt.weight_le_of_extendsW
@@ -5176,10 +5050,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.HiddenDebt.wflag_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.HiddenDebt.wflag_bind
-
-/-- info: 'SphincsLayered.Security.HiddenDebt.wflag_presample_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.HiddenDebt.wflag_presample_le
 
 /-- info: 'SphincsLayered.Security.HiddenDebt.wflag_pure' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -6153,10 +6023,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.HiddenDebt.interp_result_mem
 
-/-- info: 'SphincsLayered.Security.HiddenDebt.two_reads_bound₂' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.HiddenDebt.two_reads_bound₂
-
 /-- info: 'SphincsLayered.Security.ForestSigner.NoMsg.bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.ForestSigner.NoMsg.bind
@@ -6196,10 +6062,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.GraphView.blk_ne_of_ne' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.GraphView.blk_ne_of_ne
-
-/-- info: 'SphincsLayered.Security.GraphView.cachedCount_store' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.GraphView.cachedCount_store
 
 /-- info: 'SphincsLayered.Security.GraphView.card_randomness' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -6521,10 +6383,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.Domination.list_sum_sub_le
 
-/-- info: 'SphincsLayered.Security.Domination.once_slot_coupling' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.Domination.once_slot_coupling
-
 /-- info: 'SphincsLayered.Security.Domination.slotValue_coupling' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.Domination.slotValue_coupling
@@ -6685,14 +6543,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.weight_pow
 
-/-- info: 'Sphincs.thInput_hashDomainFields' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms Sphincs.thInput_hashDomainFields
-
-/-- info: 'Sphincs.thInput_keygenDomainFields' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms Sphincs.thInput_keygenDomainFields
-
 /-- info: 'SphincsLayered.Completeness.correct' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.correct
@@ -6777,10 +6627,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.two_pow_div_two_pow
 
-/-- info: 'SphincsLayered.Completeness.cached_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Completeness.cached_run
-
 /-- info: 'SphincsLayered.Completeness.digestFactor_pow_bound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.digestFactor_pow_bound
@@ -6793,10 +6639,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.digestReject_add
 
-/-- info: 'SphincsLayered.Completeness.digestReject_le_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Completeness.digestReject_le_one
-
 /-- info: 'SphincsLayered.Completeness.msgInput_inj' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.msgInput_inj
@@ -6804,10 +6646,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Completeness.tsum_uniform_ite' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.tsum_uniform_ite
-
-/-- info: 'SphincsLayered.Completeness.encoding_exhaustion_bound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Completeness.encoding_exhaustion_bound
 
 /-- info: 'SphincsLayered.Completeness.failMass_encoding_add_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -6913,14 +6751,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.PreservesFresh.deriveOutput
 
-/-- info: 'SphincsLayered.Completeness.PreservesFresh.forestKey' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Completeness.PreservesFresh.forestKey
-
-/-- info: 'SphincsLayered.Completeness.PreservesFresh.forestOpen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Completeness.PreservesFresh.forestOpen
-
 /-- info: 'SphincsLayered.Completeness.PreservesFresh.forestSecrets' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.PreservesFresh.forestSecrets
@@ -6928,14 +6758,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Completeness.PreservesFresh.forestWalk' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.PreservesFresh.forestWalk
-
-/-- info: 'SphincsLayered.Completeness.PreservesFresh.keygenFromMaster' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Completeness.PreservesFresh.keygenFromMaster
-
-/-- info: 'SphincsLayered.Completeness.PreservesFresh.messageDigest' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Completeness.PreservesFresh.messageDigest
 
 /-- info: 'SphincsLayered.Completeness.PreservesFresh.oneTimePublicKey' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -7033,18 +6855,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.keygenDomain_tag_ne
 
-/-- info: 'SphincsLayered.Completeness.messageInput_ne_encoding' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Completeness.messageInput_ne_encoding
-
-/-- info: 'SphincsLayered.Completeness.structuralFresh_encoding' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Completeness.structuralFresh_encoding
-
-/-- info: 'SphincsLayered.Completeness.structuralFresh_message' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Completeness.structuralFresh_message
-
 /-- info: 'SphincsLayered.Completeness.structuralFresh_of_tag' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.structuralFresh_of_tag
@@ -7056,10 +6866,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.LoopWalk.grp_add' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.LoopWalk.grp_add
-
-/-- info: 'SphincsLayered.LoopWalk.grp_coin' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.LoopWalk.grp_coin
 
 /-- info: 'SphincsLayered.LoopWalk.grp_comm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -7097,10 +6903,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.LoopWalk.grp_freshAvg
 
-/-- info: 'SphincsLayered.LoopWalk.grp_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.LoopWalk.grp_le
-
 /-- info: 'SphincsLayered.LoopWalk.grp_le_of_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.LoopWalk.grp_le_of_le
@@ -7136,10 +6938,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.LoopWalk.probe_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.LoopWalk.probe_step
-
-/-- info: 'SphincsLayered.LoopWalk.sign_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.LoopWalk.sign_le
 
 /-- info: 'SphincsLayered.LoopWalk.grp_le_sgn' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -7224,10 +7022,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.H0Avg.avgI_freshAvg' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.H0Avg.avgI_freshAvg
-
-/-- info: 'SphincsLayered.Security.H0Avg.avgI_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.H0Avg.avgI_mono
 
 /-- info: 'SphincsLayered.Security.H0Avg.avgL_add' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -7465,10 +7259,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.H0Avg.avgN_prod_coords
 
-/-- info: 'SphincsLayered.Security.H0Avg.avgN_prod_map' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.H0Avg.avgN_prod_map
-
 /-- info: 'SphincsLayered.Security.H0Avg.dominated_of_split' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.H0Avg.dominated_of_split
@@ -7496,10 +7286,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.H0.LmaxOf_mono' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.H0.LmaxOf_mono
-
-/-- info: 'SphincsLayered.Security.H0.card_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.H0.card_eq
 
 /-- info: 'SphincsLayered.Security.H0.denOf_anti' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -9337,10 +9123,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.LoopWalk.gv_fresh
 
-/-- info: 'SphincsLayered.LoopWalk.gv_ge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.LoopWalk.gv_ge
-
 /-- info: 'SphincsLayered.LoopWalk.gv_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.LoopWalk.gv_mono
@@ -9368,10 +9150,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.LoopWalk.mass_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.LoopWalk.mass_le
-
-/-- info: 'SphincsLayered.LoopWalk.pass_le_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.LoopWalk.pass_le_one
 
 /-- info: 'SphincsLayered.LoopWalk.probe_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -9472,10 +9250,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.LoopWalk.walk_succ_miss' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.LoopWalk.walk_succ_miss
-
-/-- info: 'SphincsLayered.LoopWalk.walk_update_item' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.LoopWalk.walk_update_item
 
 /-- info: 'SphincsLayered.LoopWalk.walk_update_of_not_visit' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -9625,10 +9399,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.probEvent_scanLoop
 
-/-- info: 'SphincsLayered.Completeness.randomized_digest_exhaustion_bound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Completeness.randomized_digest_exhaustion_bound
-
 /-- info: 'SphincsLayered.Completeness.randomness_add_ne' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.randomness_add_ne
@@ -9677,17 +9447,9 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.scanLoop_support
 
-/-- info: 'SphincsLayered.Completeness.verify_of_keygen_sign_support' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Completeness.verify_of_keygen_sign_support
-
 /-- info: 'SphincsLayered.Completeness.chainWalk_add' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.chainWalk_add
-
-/-- info: 'SphincsLayered.Completeness.eval_chainValue' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Completeness.eval_chainValue
 
 /-- info: 'SphincsLayered.Completeness.eval_childLeaf' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -9920,14 +9682,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Completeness.otsSignFrom_eq_searchLoop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.otsSignFrom_eq_searchLoop
-
-/-- info: 'SphincsLayered.Completeness.probEvent_bind_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Completeness.probEvent_bind_le
-
-/-- info: 'SphincsLayered.Completeness.probEvent_bind_le_add' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Completeness.probEvent_bind_le_add
 
 /-- info: 'SphincsLayered.Completeness.probEvent_searchLoop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -10353,10 +10107,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.GraphCorrectness.forest_key_value
 
-/-- info: 'SphincsLayered.Security.GraphCorrectness.honestChain_eq_chainValueOf' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.GraphCorrectness.honestChain_eq_chainValueOf
-
 /-- info: 'SphincsLayered.Security.GraphCorrectness.leaf_input' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.GraphCorrectness.leaf_input
@@ -10392,10 +10142,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.GraphCorrectness.quotient_range' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.GraphCorrectness.quotient_range
-
-/-- info: 'SphincsLayered.Security.GraphCorrectness.roots_input' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.GraphCorrectness.roots_input
 
 /-- info: 'SphincsLayered.Security.GraphCorrectness.spineIndex_range' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -10749,10 +10495,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.HiddenGraph.Coordinate.fchain.sizeOf_spec
 
-/-- info: 'SphincsLayered.Security.HiddenGraph.answer_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.HiddenGraph.answer_canonical
-
 /-- info: 'SphincsLayered.Security.HiddenGraph.input_injective' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.HiddenGraph.input_injective
@@ -10800,6 +10542,10 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.HiddenGraph.row_miss_all_inputs' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.HiddenGraph.row_miss_all_inputs
+
+/-- info: 'SphincsBase.Concrete.UniformTableSplit.join.congr_simp' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms SphincsBase.Concrete.UniformTableSplit.join.congr_simp
 
 /-- info: 'SphincsLayered.Security.HiddenGraph.assemble_coordinate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -11161,10 +10907,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.Prefix.hashCalls_bind
 
-/-- info: 'SphincsLayered.Security.Prefix.hashCalls_chainValue' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.Prefix.hashCalls_chainValue
-
 /-- info: 'SphincsLayered.Security.Prefix.hashCalls_chainWalk' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.Prefix.hashCalls_chainWalk
@@ -11289,10 +11031,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.Prefix.fixedHashWorld_lift_hash
 
-/-- info: 'SphincsLayered.Security.Prefix.PublicAgreement.signAttempt' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.Prefix.PublicAgreement.signAttempt
-
 /-- info: 'SphincsLayered.Security.Prefix.instNonemptyErasedMaterial' depends on axioms: [propext] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.Prefix.instNonemptyErasedMaterial
@@ -11304,10 +11042,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.Prefix.PublicAgreement.chainValue' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.Prefix.PublicAgreement.chainValue
-
-/-- info: 'SphincsLayered.Security.Prefix.PublicAgreement.cutoff' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.Prefix.PublicAgreement.cutoff
 
 /-- info: 'SphincsLayered.Security.Prefix.PublicAgreement.digest' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -11324,10 +11058,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.Prefix.PublicAgreement.endpoints' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.Prefix.PublicAgreement.endpoints
-
-/-- info: 'SphincsLayered.Security.Prefix.PublicAgreement.finishSign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.Prefix.PublicAgreement.finishSign
 
 /-- info: 'SphincsLayered.Security.Prefix.PublicAgreement.firstEncoding_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -11404,10 +11134,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.Prefix.input_injective' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.Prefix.input_injective
-
-/-- info: 'SphincsLayered.Security.Prefix.parse_input' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.Prefix.parse_input
 
 /-- info: 'SphincsLayered.Security.Prefix.parse_some_iff' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -11496,10 +11222,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.PreparedScheme.compile_tweakableHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.PreparedScheme.compile_tweakableHash
-
-/-- info: 'SphincsLayered.Security.PreparedScheme.compiled_chainValue_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.PreparedScheme.compiled_chainValue_eq
 
 /-- info: 'SphincsLayered.Security.PreparedScheme.compiled_childLeaf_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -11837,14 +11559,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.SeedGuess.parseSeed_eq_some_iff
 
-/-- info: 'SphincsLayered.Security.SeedGuess.parseSeed_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.SeedGuess.parseSeed_keygen
-
-/-- info: 'SphincsLayered.Security.SeedGuess.parseSeed_verifier' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.SeedGuess.parseSeed_verifier
-
 /-- info: 'SphincsLayered.Security.SeedGuess.seedHit_probability_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.SeedGuess.seedHit_probability_le
@@ -11945,10 +11659,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.SeedModel.programCache_parameter
 
-/-- info: 'SphincsLayered.Security.SeedModel.programCache_secret' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.SeedModel.programCache_secret
-
 /-- info: 'SphincsLayered.Security.SeedModel.programCache_verifier' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.SeedModel.programCache_verifier
@@ -11957,10 +11667,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.SeedModel.secretDerivation_surjective
 
-/-- info: 'SphincsLayered.Security.SeedModel.secretDomain_ne_parameter' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.SeedModel.secretDomain_ne_parameter
-
 /-- info: 'SphincsLayered.Security.SeedModel.secretHalf_derivedOutput' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.SeedModel.secretHalf_derivedOutput
@@ -11968,10 +11674,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.SeedModel.secretInput_eq' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.SeedModel.secretInput_eq
-
-/-- info: 'SphincsLayered.Security.SeedModel.secretInput_ne_parameterInput' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.SeedModel.secretInput_ne_parameterInput
 
 /-- info: 'SphincsLayered.Security.SeedModel.secret_prepared' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -12089,10 +11791,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.merkleValue_succ
 
-/-- info: 'SphincsLayered.Security.merkleValue_zero' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.merkleValue_zero
-
 /-- info: 'SphincsLayered.Security.nodePayload_injective' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.nodePayload_injective
@@ -12136,10 +11834,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.Security.rootsPayload_len' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Security.rootsPayload_len
-
-/-- info: 'SphincsLayered.Security.verification_forest_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.Security.verification_forest_run
 
 /-- info: 'SphincsLayered.Security.verified_tree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -12228,10 +11922,6 @@ import Sphincs.World
 /-- info: 'SphincsLayered.hashOutput_eq_of_extract' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.hashOutput_eq_of_extract
-
-/-- info: 'SphincsLayered.probEvent_uniform_truncateHash_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms SphincsLayered.probEvent_uniform_truncateHash_eq
 
 /-- info: 'SphincsLayered.probEvent_uniform_truncateHash_mem' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

@@ -26,10 +26,4 @@ theorem evalDist_stoppedExperiment_lazy {A α : Type}
   rw [map_bind]
   exact EvalDistEq.bind_right _ fun table => evalDist_stopped_lazy model table computation hshort known cache
 
-theorem probEvent_bind_congr₂ {α β γ : Type} (p : ProbComp α) (k₁ : α → ProbComp β)
-    (k₂ : α → ProbComp γ) (event₁ : β → Prop) (event₂ : γ → Prop)
-    (h : ∀ a, Pr{let x ← k₁ a}[event₁ x] = Pr{let x ← k₂ a}[event₂ x]) :
-    Pr{let x ← p >>= k₁}[event₁ x] = Pr{let x ← p >>= k₂}[event₂ x] := by
-  simp only [OracleComp.prEvent_bind_eq_tsum, h]
-
 end SphincsFors.Security.HiddenBridge

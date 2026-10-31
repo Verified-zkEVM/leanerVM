@@ -185,41 +185,4 @@ theorem hiddenRun_eq (adversary : Adversary) (q : Nat) (parameterOutput : HashOu
   unfold hiddenRun sampleModel sampleProgram
   rw [rowModel_answer]
 
-/-- **Seed-free to stopped.** Every event of the seed-free experiment is bounded by the same
-event or a hidden-input stop in the existing stopped hidden-row experiment, averaged over the
-public and structural samples. -/
-theorem seedFree_le_stopped (adversary : Adversary) (q : Nat)
-    (event : Option Bool × List (HiddenCost.Entry HashInput) → Prop) :
-    Pr{let x ← seedFreeExperiment adversary q}[event x] ≤
-      Pr{let x ← (do
-        let parameterOutput ← $ᵗ HashOutput
-        let fixed ← $ᵗ HiddenGraph.Table
-        let highs ← $ᵗ CoordinateHighs
-        let remaining ← $ᵗ RemainingOutputs
-        let outsideTable ← $ᵗ Eager.Table
-        HiddenRows.stoppedExperiment (sampleModel parameterOutput highs)
-          (outsideFn (splitMaterial parameterOutput highs remaining fixed)
-            (splitAnswers highs remaining fixed) outsideTable)
-          (HiddenCost.erase (HiddenCost.trace
-            (sampleProgram adversary q parameterOutput fixed highs remaining)))
-          (knownOf (truncateHash parameterOutput) fixed))}[(HiddenReveal.StopOr event) x] := by
-  rw [(evalDist_seedFree_completion adversary q).prEvent_eq]
-  refine probEvent_bind_mono_support _ _ _ _ _ fun parameterOutput _ => ?_
-  refine probEvent_bind_mono_support _ _ _ _ _ fun fixed _ => ?_
-  refine probEvent_bind_mono_support _ _ _ _ _ fun highs _ => ?_
-  refine probEvent_bind_mono_support _ _ _ _ _ fun remaining _ => ?_
-  refine probEvent_bind_mono_support _ _ _ _ _ fun outsideTable _ => ?_
-  unfold HiddenRows.stoppedExperiment
-  rw [(evalDist_completion_bind _ _).prEvent_eq, (evalDist_completion_bind _ _).prEvent_eq]
-  refine probEvent_bind_mono_support _ _ _ _ _ fun fresh _ => ?_
-  have hagree := HiddenRows.knownAgrees_completion (knownOf (truncateHash parameterOutput) fixed) fresh
-  have h := costRun_le_stopped (sampleModel parameterOutput highs)
-    (tableExtending (knownOf (truncateHash parameterOutput) fixed) fresh)
-    (outsideFn (splitMaterial parameterOutput highs remaining fixed)
-      (splitAnswers highs remaining fixed) outsideTable)
-    (sampleProgram adversary q parameterOutput fixed highs remaining)
-    (knownOf (truncateHash parameterOutput) fixed) hagree event
-  rw [hiddenRun_eq]
-  exact h
-
 end SphincsFors.Security.HiddenBridge

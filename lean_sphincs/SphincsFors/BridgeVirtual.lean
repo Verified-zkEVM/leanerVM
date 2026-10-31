@@ -499,17 +499,6 @@ theorem creations_freshAvg {W : Type} [DecidableEq W] (T : Finset W) (G : W → 
   unfold freshAvg
   rw [creations_const_mul, creations_finset_sum]
 
-/-- Comparing base functions only on lists that extend the starting items. -/
-theorem creations_mono_suffix {G H : List V → ℝ≥0∞} :
-    ∀ k (I : List V), (∀ news, G (news ++ I) ≤ H (news ++ I)) → creations U land G k I ≤ creations U land H k I
-  | 0, I, h => by simpa [creations] using h []
-  | k + 1, I, h => by
-      simp only [creations]
-      gcongr
-      · exact creations_mono_suffix k I h
-      · exact freshAvg_mono U fun v _ => creations_mono_suffix k (v :: I) fun news => by
-          simpa using h (news ++ [v])
-
 end More
 
 end SphincsFors.Security.Domination

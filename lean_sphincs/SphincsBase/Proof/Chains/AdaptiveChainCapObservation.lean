@@ -125,12 +125,4 @@ theorem realRun_cap_contact_eq :
     (realRun_cap_erased_observed auxiliary computation cost budget hcharge hreal)
   simpa only [← PMF.monad_map_eq_map, prEvent_map, Function.comp_def] using h
 
-theorem realRun_contact_le_cap_cost (hsmall : budget < Fintype.card State) :
-    Pr{let result ← realRun auxiliary computation (fun _ _ => none)}[Contact result.2.2 result.1] ≤
-      (2 / Fintype.card State) * ∑' result,
-        idealRun auxiliary (fun endpoint => QueryCap.run IsPrefixQuery (computation endpoint) budget) (fun _ _ => none) result *
-          (QueryCap.spent budget result.2.1 : ENNReal) := by
-  rw [← realRun_cap_contact_eq auxiliary computation cost budget hcharge hreal]
-  exact realRun_cap_contact_le auxiliary computation cost budget hcharge hreal hsmall
-
 end SphincsBase.Concrete.PartialChainEndpoint

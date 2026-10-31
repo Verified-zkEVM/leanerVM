@@ -35,11 +35,6 @@ theorem binomialAverage_mul_left (rate factor : ENNReal) (steps : Nat) (f : Nat 
       simp only [binomialAverage_succ, ih]
       ring
 
-theorem binomialAverage_mul_right (rate factor : ENNReal) (steps : Nat) (f : Nat → ENNReal) :
-    binomialAverage rate steps (fun count => f count * factor) =
-      binomialAverage rate steps f * factor := by
-  simpa only [mul_comm] using binomialAverage_mul_left rate factor steps f
-
 theorem binomialAverage_sum {α : Type*} (rate : ENNReal) (steps : Nat) (set : Finset α)
     (f : α → Nat → ENNReal) :
     binomialAverage rate steps (fun count => ∑ i ∈ set, f i count) =
@@ -231,26 +226,6 @@ theorem binomialAverage_shifted_power (rate shift : ENNReal) (steps degree : Nat
   rw [binomialAverage_sum]
   simp_rw [binomialAverage_mul_left]
 
-theorem binomialAverage_shifted_power_le {rate : ENNReal} (hrate : rate ≤ 1)
-    (shift : ENNReal) (steps degree : Nat) :
-    binomialAverage rate steps (fun count => (shift + count) ^ degree) ≤
-      (shift + steps * rate + degree) ^ degree := by
-  rw [binomialAverage_shifted_power]
-  calc
-    _ ≤ ∑ order ∈ Finset.range (degree + 1),
-        (degree.choose order : ENNReal) * shift ^ (degree - order) *
-          ((steps : ENNReal) * rate + degree) ^ order := by
-      apply Finset.sum_le_sum
-      intro order horder
-      have ho : order ≤ degree := Nat.le_of_lt_succ (Finset.mem_range.mp horder)
-      exact mul_le_mul' le_rfl ((binomialAverage_power_le hrate steps order).trans
-        (pow_le_pow_left' (add_le_add le_rfl (Nat.cast_le.mpr ho)) _))
-    _ = _ := by
-      rw [show shift + steps * rate + degree = steps * rate + degree + shift by ac_rfl, add_pow]
-      apply Finset.sum_congr rfl
-      intro order _
-      ring
-
 theorem binomialAverage_power_mono_of_factorial {rate nextRate : ENNReal}
     (hrate : rate ≤ 1) (hnext : nextRate ≤ 1) (steps nextSteps degree : Nat)
     (hmoments : ∀ order, order ≤ degree →
@@ -291,25 +266,5 @@ theorem mass_pow_le_descFactorial (mass : ENNReal) (count degree : Nat)
     ENNReal.le_of_add_le_add_right (by finiteness) (hroom.trans_eq hcancel.symm)
   apply (pow_le_pow_left' hmass degree).trans
   exact_mod_cast Nat.pow_sub_le_descFactorial count degree
-
-theorem binomialAverage_shifted_power_le_of_room {rate nextRate shift nextShift mass : ENNReal}
-    (hrate : rate ≤ 1) (hnext : nextRate ≤ 1) (hshift : shift ≤ nextShift)
-    (steps nextSteps degree : Nat)
-    (hmean : (steps : ENNReal) * rate ≤ mass * nextRate)
-    (hroom : mass + degree ≤ ((nextSteps + 1 : Nat) : ENNReal)) :
-    binomialAverage rate steps (fun count => (shift + count) ^ degree) ≤
-      binomialAverage nextRate nextSteps (fun count => (nextShift + count) ^ degree) := by
-  apply binomialAverage_shifted_power_mono_of_factorial hrate hnext hshift steps nextSteps degree
-  intro order horder
-  have hfall : (steps.descFactorial order : ENNReal) ≤ (steps : ENNReal) ^ order := by
-    exact_mod_cast Nat.descFactorial_le_pow steps order
-  calc
-    _ ≤ (steps : ENNReal) ^ order * rate ^ order := mul_le_mul' hfall le_rfl
-    _ = ((steps : ENNReal) * rate) ^ order := (mul_pow _ _ _).symm
-    _ ≤ (mass * nextRate) ^ order := pow_le_pow_left' hmean order
-    _ = mass ^ order * nextRate ^ order := mul_pow _ _ _
-    _ ≤ _ := mul_le_mul'
-      (mass_pow_le_descFactorial mass nextSteps order
-        ((add_le_add le_rfl (Nat.cast_le.mpr horder)).trans hroom)) le_rfl
 
 end SphincsBase.Concrete

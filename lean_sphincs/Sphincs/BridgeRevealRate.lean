@@ -189,15 +189,6 @@ noncomputable def hitMass (s : State) (m : Message) : ℝ≥0∞ :=
   (Fintype.card Randomness : ℝ≥0∞)⁻¹ *
     ∑ ρ, walk nextRand landing (stOf parameter data m s) (fun _ => 1) 0 0 digestAttemptLimit ρ
 
-theorem hitMass_le_one (s : State) : hitMass parameter data s m ≤ 1 := by
-  unfold hitMass
-  have hcard : (Fintype.card Randomness : ℝ≥0∞)⁻¹ * (Fintype.card Randomness : ℝ≥0∞) = 1 :=
-    ENNReal.inv_mul_cancel (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _)
-  calc _ ≤ (Fintype.card Randomness : ℝ≥0∞)⁻¹ * ∑ _ρ : Randomness, (1 : ℝ≥0∞) :=
-        mul_le_mul' le_rfl (Finset.sum_le_sum fun ρ _ =>
-          walk_le landing_le_one _ (fun _ => le_rfl) bot_le bot_le _ ρ)
-    _ = 1 := by rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one, hcard]
-
 /-- A walk paying 1 at the cached landed pairs and `x` at a fresh landing pays at most `x` plus the
 walk of the cached landed pairs alone. -/
 theorem walk_hit_split (st : Randomness → St) (x : ℝ≥0∞) (attempts : ℕ) (ρ : Randomness) :
@@ -207,47 +198,6 @@ theorem walk_hit_split (st : Randomness → St) (x : ℝ≥0∞) (attempts : ℕ
   simp only [zero_add, add_zero] at h
   rw [h]
   exact add_le_add (walk_le landing_le_one st (fun _ => bot_le) le_rfl bot_le attempts ρ) le_rfl
-
-/-- A completed signing call that opens a chain selected a pair whose view opens it, fresh or cached. -/
-theorem reveal_point (hparse : ∀ p, model.parse (pblk parameter data p) = none)
-    {s : State} (hprep : Prepared initial s)
-    (attempts budget : ℕ) (start : Randomness) (o1 : Run HashInput Coordinate (Option Signature) × State)
-    (ho1 : o1 ∈ support (interp tg initial model (signCostSourceLoop parameter data m attempts start) budget s))
-    (r : Option Signature) (hr : o1.1.1 = some r)
-    (index : Index) (c : Coord) (sp : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) (k : ℕ) (q : FPos)
-    (hq : q.val ≤ k) (hrev : Coordinate.fchain index c sp j a i q ∈ o1.1.2.1) :
-    1 ≤ freshNewWeight parameter data m s (opensAt index c sp j a i k) o1 +
-      outWeight parameter data m s (fun _ => 0) (fun _ v => opensAt index c sp j a i k v) o1 := by
-  have hpost := scan_post tg initial model parameter data m (fun ρ => hparse (m, ρ)) Finset.univ
-    (fun _ _ _ _ _ _ _ _ => Finset.mem_univ _) attempts budget s start hprep o1 ho1 r hr
-  rcases hpost with ⟨_, hnil, _⟩ | ⟨ρ, u0, hsel, hfts, hsig, hfl⟩
-  · rw [hnil] at hrev
-    cases hrev
-  · obtain ⟨hi, hs, ha, hpos⟩ := hfts _ hrev index c sp j a i q rfl
-    have hmarks := digestMarks_eq (truncateMessageDigest u0) c
-    have hhit : opensAt index c sp j a i k (viewOf u0) = 1 := by
-      unfold opensAt viewOf
-      rw [ite_eq_left]
-      refine ⟨by rw [localDigestView_fst, hi], ?_, ?_, ?_⟩
-      · rw [localDigestView_snd, ← hmarks, hs]
-      · rw [localDigestView_snd, ← hmarks, ha]
-      · rw [localDigestView_snd, ← hmarks]
-        exact le_trans hpos hq
-    rcases hsel.2.2.1 with hs0 | hs0
-    · have h := freshNewWeight_ge hr hs0 hsel.1 hsel.2.1 (opensAt index c sp j a i k)
-      rw [hhit] at h
-      exact le_trans h le_self_add
-    · rcases r with _ | sig
-      · rw [(hfl rfl).1] at hrev
-        cases hrev
-      · have hρ := hsig sig rfl
-        refine le_trans (le_of_eq ?_) le_add_self
-        unfold outWeight
-        rw [hr]
-        simp only
-        rw [hρ, hsel.1]
-        simp only [Option.elim, pairWeight, hs0, reduceCtorEq, ite_false]
-        exact hhit.symm
 
 /-- Every reveal of a run of the final assembly from a cached digest block is opened by its digest. -/
 theorem finish_reveals_ok (ρ : Randomness) (b : ℕ) (s' : State) (u0 : HashOutput)
@@ -356,23 +306,6 @@ theorem reveal_le_all (hparse : ∀ p, model.parse (pblk parameter data p) = non
         rw [Finset.sum_add_distrib, Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_add, ← mul_assoc, hcard,
           one_mul]
         rfl
-
-/-- **One signing call** completes and opens a given chain at or below `k < 4` with probability at
-most the reveal rate plus the probability that the scan signs with a cached landed pair of the
-signed message. -/
-theorem reveal_le (hparse : ∀ p, model.parse (pblk parameter data p) = none)
-    {s : State} (budget : ℕ)
-    (index : Index) (c : Coord) (sp : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) (k : ℕ) (hk : k < chainTop) :
-    ∑' o1, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = o1] *
-        (if o1.1.1.isSome ∧ ∃ q : FPos, q.val ≤ k ∧ Coordinate.fchain index c sp j a i q ∈ o1.1.2.1 then 1 else 0) ≤
-      revRate + hitMass parameter data s m := by
-  refine le_trans (ENNReal.tsum_le_tsum fun o1 => mul_le_mul' le_rfl ?_)
-    (reveal_le_all tg initial model parameter data m hparse budget index c sp j a i k hk)
-  split_ifs with h1 h2
-  · exact le_rfl
-  · exact absurd h1.2 h2
-  · exact bot_le
-  · exact le_rfl
 
 end Reveal
 

@@ -68,19 +68,6 @@ theorem evalDist_eager_prefix {β γ : Type} (computation : OracleComp HashSpec 
           change _ =ᵈ uniformSampleImpl (spec := HashSpec) input >>= _
           exact EvalDistEq.bind_right _ fun answer => ih answer (hnext answer) _
 
-theorem evalDist_stoppedExperiment_prep {A α : Type}
-    (model : HiddenRows.Model HashInput HashOutput A HiddenGraph.Coordinate)
-    (base : QueryCache HashSpec) (parameter : PublicParameter) (forsKey : Index → FtsTops)
-    (computation : OracleComp (HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate) α)
-    (hshort : OnlyShort computation) (known : HiddenReveal.Knowledge HiddenGraph.Coordinate) :
-    (($ᵗ Eager.Table) >>= fun outside =>
-        HiddenRows.stoppedExperiment model (extend base outside) computation known) =ᵈ ((simulateQ randomOracle (searchAll parameter forsKey)).run base >>= fun prepared =>
-        Option.map Prod.fst <$> HiddenOutside.stoppedExperiment model computation known prepared.2) := by
-  refine (evalDist_eager_prefix (searchAll parameter forsKey) (Only.searchAll parameter forsKey) base
-    (fun outside => HiddenRows.stoppedExperiment model outside computation known)).trans ?_
-  exact EvalDistEq.bind_right _ fun prepared =>
-    evalDist_stoppedExperiment_lazy model _ computation hshort known
-
 section Game
 
 open Completeness SeedModel Graph Assembly Reduce HiddenGraph Internalize GraphView

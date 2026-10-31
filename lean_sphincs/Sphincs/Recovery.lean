@@ -354,11 +354,6 @@ omit i in
 def chainValueOf (seed : MasterSeed) (pos : Nat) : Digest :=
   fwalk f parameter index c s j a i 0 pos (forestSecret f parameter index c s j a i seed)
 
-theorem eval_chainValue (seed : MasterSeed) (pos : Nat) :
-    evalWithAnswerFn f (Seeded.chainValue parameter index c s j a i seed pos : OracleComp HashSpec Digest)
-      = chainValueOf f parameter index c s j a i seed pos := by
-  simp only [Seeded.chainValue, chainValueOf, fwalk, forestSecret, evalWithAnswerFn_bind]
-
 /-- The verifier's half of an opened forest chain reaches the chain top. -/
 theorem eval_forestRecoverChain (seed : MasterSeed) (deficit : FPos) :
     evalWithAnswerFn f (forestRecoverChain parameter index c s j a i deficit

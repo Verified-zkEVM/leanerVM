@@ -47,18 +47,6 @@ theorem avgN_const (c : ℝ≥0∞) : ∀ n X, avgN (fun _ : Multiset U => c) n 
       simp only [avgN, avgN_const c n]
       exact freshAvg_const _ Finset.univ_nonempty c
 
-/-- The average of a product over the elements is a power of the one-element average. -/
-theorem avgN_prod_map (g : U → ℝ≥0∞) : ∀ n X,
-    avgN (fun Y => (Y.map g).prod) n X = (X.map g).prod * (freshAvg Finset.univ g) ^ n
-  | 0, X => by simp [avgN]
-  | n + 1, X => by
-      simp only [avgN, avgN_prod_map g n, Multiset.map_add, Multiset.prod_add, Multiset.map_singleton,
-        Multiset.prod_singleton]
-      rw [show (fun u => (X.map g).prod * g u * freshAvg Finset.univ g ^ n) =
-        fun u => ((X.map g).prod * freshAvg Finset.univ g ^ n) * g u from funext fun u => by ring,
-        freshAvg_mul, pow_succ]
-      ring
-
 end AvgN
 
 /-! ### Marks at an index -/

@@ -176,18 +176,6 @@ theorem layer (secrets : Secrets) (frontier : Digest) (surrogates : Nat → Dige
   subst parameter
   simp only [publicLayer, h.firstEncoding_eq, h.values segment rfl, h.path segment rfl]
 
-theorem finishSign (secrets : Secrets) (frontier : Digest) (surrogates : Nat → Digest)
-    (message : Message) (randomness : Randomness) :
-    publicFinishSign segment left secrets frontier surrogates seed message randomness =
-      publicFinishSign segment right secrets frontier surrogates seed message randomness := by
-  subst parameter
-  simp only [publicFinishSign, h.digest, h.forsOpen, h.forsKey, h.layer segment rfl]
-
-omit [Params] in
-theorem cutoff : ReferenceCutoff segment left seed ↔ ReferenceCutoff segment right seed := by
-  subst parameter
-  simp only [ReferenceCutoff, h.forsKey, h.firstEncoding_eq]
-
 end PublicAgreement
 
 end SphincsLayered.Security.Prefix

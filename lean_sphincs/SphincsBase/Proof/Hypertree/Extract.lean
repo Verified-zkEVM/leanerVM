@@ -32,12 +32,6 @@ both cases hold by `rfl` and rewriting the bit needs no reasoning about `Decidab
 def orderedPayload (bit : Bool) (current sibling : Digest) : HashInput :=
   bit.rec (nodePayload current sibling) (nodePayload sibling current)
 
-@[simp] theorem orderedPayload_false (current sibling : Digest) :
-    orderedPayload false current sibling = nodePayload current sibling := rfl
-
-@[simp] theorem orderedPayload_true (current sibling : Digest) :
-    orderedPayload true current sibling = nodePayload sibling current := rfl
-
 /-- The payload the fold hashes on its way from `level` to `level + 1`. -/
 def foldPayload (value : Digest) (level : Nat) : HashInput :=
   orderedPayload (leaf.val.testBit level)
@@ -72,59 +66,5 @@ def NodeHit (level nodeIdx : Nat) (payload : HashInput) : Prop :=
       (honestNode f parameter lay tree secret level (2 * nodeIdx + 1))
     ∧ truncateHash (f (tweakableHashInput parameter (.node lay tree (level + 1) nodeIdx) payload))
       = honestNode f parameter lay tree secret (level + 1) nodeIdx
-
-/-- **The first divergence.** A fold that reaches the honest node above the leaf either used the
-honest leaf and the honest siblings throughout, or hit a node value somewhere along the way. -/
-theorem treeFold_extract (value : Digest) (levels : Nat)
-    (hfold : foldValue f parameter lay tree leaf path value levels
-      = honestNode f parameter lay tree secret levels (leaf.val / 2 ^ levels)) :
-    (value = honestNode f parameter lay tree secret 0 leaf.val
-        ∧ ∀ level, level < levels → path level
-            = honestNode f parameter lay tree secret level (Nat.xor (leaf.val / 2 ^ level) 1))
-      ∨ ∃ level, level < levels
-          ∧ NodeHit f parameter lay tree secret level (leaf.val / 2 ^ (level + 1))
-              (foldPayload f parameter lay tree leaf path value level) := by
-  induction levels with
-  | zero =>
-      left
-      refine ⟨?_, fun level hlevel => absurd hlevel (by omega)⟩
-      simpa [foldValue] using hfold
-  | succ levels ih =>
-      obtain ⟨j, hcase⟩ := index_sibling_cases (leaf.val / 2 ^ levels)
-      have hj : leaf.val / 2 ^ (levels + 1) = j := by
-        rw [div_pow_succ]
-        rcases hcase with ⟨hc, _, _⟩ | ⟨hc, _, _⟩ <;> omega
-      have hhash : truncateHash (f (tweakableHashInput parameter
-            (.node lay tree (levels + 1) (leaf.val / 2 ^ (levels + 1)))
-            (foldPayload f parameter lay tree leaf path value levels)))
-          = honestNode f parameter lay tree secret (levels + 1) (leaf.val / 2 ^ (levels + 1)) := by
-        rw [← foldValue_succ]
-        exact hfold
-      by_cases hagree : foldPayload f parameter lay tree leaf path value levels
-          = nodePayload (honestNode f parameter lay tree secret levels (2 * j))
-              (honestNode f parameter lay tree secret levels (2 * j + 1))
-      · have hstep : foldValue f parameter lay tree leaf path value levels
-              = honestNode f parameter lay tree secret levels (leaf.val / 2 ^ levels)
-            ∧ path levels = honestNode f parameter lay tree secret levels
-              (Nat.xor (leaf.val / 2 ^ levels) 1) := by
-          rw [foldPayload] at hagree
-          rcases hcase with ⟨hc, hsibling, hmod⟩ | ⟨hc, hsibling, hmod⟩
-          · rw [show leaf.val.testBit levels = false by
-              rw [Bool.eq_false_iff, ne_eq, testBit_iff_div_mod]; omega] at hagree
-            obtain ⟨hcur, hsib⟩ := nodePayload_injective hagree
-            exact ⟨by rw [hcur, hc], by rw [hsib, hsibling]⟩
-          · rw [show leaf.val.testBit levels = true by
-              rw [testBit_iff_div_mod]; omega] at hagree
-            obtain ⟨hsib, hcur⟩ := nodePayload_injective hagree
-            exact ⟨by rw [hcur, hc], by rw [hsib, hsibling]⟩
-        rcases ih hstep.1 with ⟨hvalue, hpaths⟩ | ⟨level, hlevel, hnode⟩
-        · left
-          refine ⟨hvalue, fun level hlevel => ?_⟩
-          rcases Nat.lt_succ_iff_lt_or_eq.mp hlevel with hlt | heq
-          · exact hpaths level hlt
-          · subst heq; exact hstep.2
-        · exact Or.inr ⟨level, by omega, hnode⟩
-      · right
-        exact ⟨levels, by omega, by rw [hj]; exact hagree, hhash⟩
 
 end SphincsBase.Concrete

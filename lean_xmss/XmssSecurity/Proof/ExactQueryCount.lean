@@ -51,76 +51,10 @@ theorem map {computation : OracleComp spec α} {count : Nat}
   simp [map_eq_bind_pure_comp]
 
 
-theorem withQueryLog {computation : OracleComp spec α} {count : Nat}
-    (hcomputation : ExactQueryCount computation count) :
-    ExactQueryCount computation.withQueryLog count := by
-  induction hcomputation with
-  | pure value => simpa using ExactQueryCount.pure (value, [])
-  | query input next count hnext ih =>
-      rw [OracleComp.withQueryLog_bind, OracleComp.withQueryLog_query, bind_assoc]
-      exact .query input (fun output =>
-        Prod.map id ([⟨input, output⟩] ++ ·) <$> (next output).withQueryLog)
-        count (fun output => by
-          exact (ih output).map (Prod.map id ([⟨input, output⟩] ++ ·)))
-
-theorem liftComp_predicate
-    {index : Type} {spec : OracleSpec index} {superIndex : Type} {superSpec : OracleSpec superIndex}
-    [inclusion : spec ⊂ₒ superSpec]
-    {computation : OracleComp spec α} {count : Nat}
-    (hexact : ExactQueryCount computation count)
-    (predicate : superSpec.Domain → Prop) [DecidablePred predicate]
-    (hpredicate : ∀ input, predicate (inclusion.onQuery input)) :
-    ExactPredicateQueryCount predicate
-      (OracleComp.liftComp computation superSpec) count := by
-  induction hexact with
-  | pure value => exact .pure value
-  | query input next count hnext ih =>
-      rw [OracleComp.liftComp_bind (spec := spec) superSpec,
-        OracleComp.liftComp_query (spec := spec) superSpec]
-      change ExactPredicateQueryCount predicate
-        (((liftM (spec.query input) : OracleComp superSpec (spec.Range input)) >>=
-          fun output => OracleComp.liftComp (next output) superSpec)) (count + 1)
-      rw [show
-          (liftM (spec.query input) : OracleComp superSpec (spec.Range input)) =
-            liftM (superSpec.query (inclusion.onQuery input)) >>= fun output =>
-              Pure.pure (inclusion.onResponse input output) by
-        change ((liftM (spec.query input) :
-          OracleQuery superSpec (spec.Range input)) :
-            OracleComp superSpec (spec.Range input)) = _
-        rw [show
-            (liftM (spec.query input) : OracleQuery superSpec (spec.Range input)) =
-              ⟨inclusion.onQuery input, inclusion.onResponse input⟩ from
-          inclusion.liftM_eq_lift _]
-        rfl, bind_assoc]
-      have hp : predicate (inclusion.onQuery input) := hpredicate input
-      convert ExactPredicateQueryCount.query (inclusion.onQuery input)
-        (fun output => OracleComp.liftComp
-          (next (inclusion.onResponse input output)) superSpec)
-        count (fun output => by
-          simpa only [pure_bind] using ih (inclusion.onResponse input output)) using 1
-      · simp
-      · rw [ite_eq_left hp]
-
 namespace ExactPredicateQueryCount
 
 variable {index : Type} {spec : OracleSpec index}
 variable {predicate : spec.Domain → Prop} [DecidablePred predicate]
-
-theorem bind {computation : OracleComp spec α} {count : Nat}
-    (hcomputation : ExactPredicateQueryCount predicate computation count)
-    (next : α → OracleComp spec β) (nextCount : Nat)
-    (hnext : ∀ value, ExactPredicateQueryCount predicate (next value) nextCount) :
-    ExactPredicateQueryCount predicate (computation >>= next) (count + nextCount) := by
-  induction hcomputation with
-  | pure value => simpa using hnext value
-  | query input rest restCount hrest ih =>
-      rw [bind_assoc]
-      convert ExactPredicateQueryCount.query input
-        (fun output => rest output >>= next) (restCount + nextCount) ih using 1
-      by_cases hinput : predicate input
-      · simp [hinput]
-        omega
-      · simp [hinput]
 
 theorem of_isQueryBoundP_zero
     {computation : OracleComp spec α}
@@ -133,57 +67,6 @@ theorem of_isQueryBoundP_zero
       have hinput : ¬predicate input := hbound.1.resolve_right (by omega)
       simpa [hinput] using ExactPredicateQueryCount.query input next 0
         (fun output => ih output (by simpa [hinput] using hbound.2 output))
-
-theorem bind_right_of_mem_support
-    {computation : OracleComp spec α} {next : α → OracleComp spec β}
-    {count bound : Nat}
-    (hexact : ExactPredicateQueryCount predicate computation count)
-    (hbound : (computation >>= next).IsQueryBoundP predicate bound)
-    (result : α) (hresult : result ∈ support computation) :
-    count ≤ bound ∧
-      (next result).IsQueryBoundP predicate (bound - count) := by
-  induction hexact generalizing bound result with
-  | pure value =>
-      simp only [support_pure, Set.mem_singleton_iff] at hresult
-      subst result
-      simpa only [pure_bind, Nat.sub_zero] using And.intro (Nat.zero_le bound) hbound
-  | query input rest restCount hrest ih =>
-      rw [bind_assoc, OracleComp.isQueryBoundP_query_bind_iff] at hbound
-      rw [mem_support_bind_iff] at hresult
-      obtain ⟨output, _hquery, hresult⟩ := hresult
-      by_cases hinput : predicate input
-      · have hpositive : 0 < bound := hbound.1.resolve_left (not_not.mpr hinput)
-        have hrec := ih output (by simpa [hinput] using hbound.2 output) result hresult
-        constructor
-        · simpa [hinput] using show restCount + 1 ≤ bound by omega
-        · simpa [hinput, Nat.sub_sub, Nat.add_comm] using hrec.2
-      · have hrec := ih output (by simpa [hinput] using hbound.2 output) result hresult
-        constructor
-        · simpa [hinput] using hrec.1
-        · simpa [hinput] using hrec.2
-
-theorem le_of_isQueryBoundP
-    {index : Type} {spec : OracleSpec index} [∀ input, Inhabited (spec.Range input)]
-    {predicate : spec.Domain → Prop} [DecidablePred predicate]
-    {computation : OracleComp spec α} {count bound : Nat}
-    (hexact : ExactPredicateQueryCount predicate computation count)
-    (hbound : computation.IsQueryBoundP predicate bound) :
-    count ≤ bound := by
-  induction hexact generalizing bound with
-  | pure value => exact Nat.zero_le bound
-  | query input next count hnext ih =>
-      rw [OracleComp.isQueryBoundP_query_bind_iff] at hbound
-      by_cases hinput : predicate input
-      · have hpositive : 0 < bound := hbound.1.resolve_left (not_not.mpr hinput)
-        have hrest : (next default).IsQueryBoundP predicate (bound - 1) := by
-          simpa [hinput] using hbound.2 default
-        have hrec := ih default (bound := bound - 1) hrest
-        simp only [hinput, ite_true]
-        omega
-      · have hrest : (next default).IsQueryBoundP predicate bound := by
-          simpa [hinput] using hbound.2 default
-        have hrec := ih default hrest
-        simpa [hinput] using hrec
 
 end ExactPredicateQueryCount
 

@@ -107,26 +107,4 @@ theorem probEvent_none_map_fst (X : ProbComp (Option (Randomness × Index) × Qu
   refine congrArg (· <$> X) (funext fun r => ?_)
   simp
 
-/-- The grinding loop from a uniform base randomizer exhausts its full budget with probability at
-most `2^(-2^(b+5))` from a cache with no message-digest inputs. -/
-theorem randomized_digest_exhaustion_bound (sk : Seeded.SecretKey) (message : Message)
-    (cache : QueryCache HashSpec) (hfresh : ∀ ρ, cache (msgInput sk message ρ) = none) :
-    Pr{let r ← (simulateQ romImpl (Randomized.signDigestLoop sk message digestAttemptLimit)).run cache}[r.1 = none]
-      ≤ (2⁻¹ : ℝ≥0∞) ^ (2 ^ (subtreeHeight + 5)) := by
-  have hloop : ∀ base : Randomness,
-      Pr{let r ← ((simulateQ randomOracle (Seeded.signDigestLoop sk message digestAttemptLimit base :
-          OracleComp HashSpec (Option (Randomness × Index)))).run cache)}[r.1 = none]
-        ≤ (2⁻¹ : ℝ≥0∞) ^ (2 ^ (subtreeHeight + 5)) := fun base =>
-    (probEvent_walk sk message digestAttemptLimit base cache
-      (by simp [digestAttemptLimit]) (fun j _ => hfresh _)).trans
-      ((pow_le_pow_left₀ (by positivity) (digestReject_le_digestFactor sk.parameter) _).trans
-        (digestFactor_pow_bound sk.parameter))
-  rw [run_randomizedDigest, OracleComp.prEvent_bind_eq_tsum]
-  calc _ ≤ ∑' base : Randomness, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = base] *
-          (2⁻¹ : ℝ≥0∞) ^ (2 ^ (subtreeHeight + 5)) := by
-        refine ENNReal.tsum_le_tsum fun base => mul_le_mul_right ?_ _
-        rw [probEvent_none_map_fst]
-        exact hloop base
-    _ = _ := by rw [ENNReal.tsum_mul_right, OracleComp.tsum_prEvent_eq_one _, one_mul]
-
 end SphincsFors.Completeness

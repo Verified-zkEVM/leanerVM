@@ -11,11 +11,6 @@ variable {Index Cell Answer : Type}
 
 abbrev Outside (embed : Index → Cell) := {cell : Cell // cell ∉ Set.range embed}
 
-theorem inclusion_not_range {α : Type} {small large : Set α} (hsubset : small ⊆ large)
-    (cell : large) (houtside : cell.val ∉ small) : cell ∉ Set.range (Set.inclusion hsubset) := by
-  rintro ⟨input, heq⟩
-  exact houtside ((congrArg Subtype.val heq) ▸ input.property)
-
 noncomputable def split (embed : Index → Cell) (hinj : Function.Injective embed) :
     (Cell → Answer) ≃ (Index → Answer) × (Outside embed → Answer) :=
   (Equiv.arrowCongr ((Equiv.Set.sumCompl (Set.range embed)).symm.trans
@@ -50,11 +45,6 @@ noncomputable def join (embed : Index → Cell) (hinj : Function.Injective embed
   have h := congrArg Prod.snd ((split embed hinj).apply_symm_apply (rows, outside))
   rw [split_snd] at h
   exact congrFun h cell
-
-@[simp] theorem join_split (embed : Index → Cell) (hinj : Function.Injective embed) (table : Cell → Answer) :
-    join embed hinj (table ∘ embed) (fun cell => table cell.val) = table := by
-  rw [← split_fst embed hinj table, ← split_snd embed hinj table]
-  exact (split embed hinj).symm_apply_apply table
 
 theorem uniform_product {Left Right : Type} [Fintype Left] [Fintype Right] [Nonempty Left] [Nonempty Right] :
     PMF.uniformOfFintype (Left × Right) =
@@ -99,13 +89,5 @@ theorem uniform_join (embed : Index → Cell) (hinj : Function.Injective embed) 
     (split embed hinj).symm.bijective
   rw [uniform_product, PMF.map_bind] at h
   simpa only [PMF.map_comp, Function.comp_def] using h.symm
-
-theorem uniform_bind_split {Result : Type} (embed : Index → Cell) (hinj : Function.Injective embed)
-    (next : (Cell → Answer) → PMF Result) :
-    (PMF.uniformOfFintype (Cell → Answer)).bind next =
-      (PMF.uniformOfFintype (Index → Answer)).bind (fun rows =>
-        (PMF.uniformOfFintype (Outside embed → Answer)).bind (fun outside => next (join embed hinj rows outside))) := by
-  conv_lhs => rw [uniform_join embed hinj]
-  simp only [PMF.bind_bind, PMF.bind_map, Function.comp_def]
 
 end SphincsBase.Concrete.UniformTableSplit

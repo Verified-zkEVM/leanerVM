@@ -31,9 +31,6 @@ theorem fleafCount_append (IsFleaf : D → Prop) (first second : List (Entry D))
   simp [fleafCount, List.filter_append]
 
 @[simp]
-theorem fleafCount_nil (IsFleaf : D → Prop) : fleafCount IsFleaf ([] : List (Entry D)) = 0 := rfl
-
-@[simp]
 theorem fleafCount_cons_inr (IsFleaf : D → Prop) (amount : ℕ) (entries : List (Entry D)) :
     fleafCount IsFleaf (.inr amount :: entries) = fleafCount IsFleaf entries := by
   simp [fleafCount]

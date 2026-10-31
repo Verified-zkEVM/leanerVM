@@ -216,22 +216,4 @@ theorem evalDist_activeGraph_programmed (active : Position → Prop) (initial : 
     (graphOrder_nodup active) (graphOrder_sorted active) initial cache
     (freshPositions_of_structural parameter otsSecret ftsSecret _ cache hfresh)
 
-/-- Eager independent graph programming preserves every actual-world continuation. Query
-counts already included in the output remain unchanged; preparation itself is unobserved. -/
-theorem evalDist_graph_continuation {α : Type} (program : OracleComp OracleWorld α)
-    (active : Position → Prop) (initial : CanonicalGraphLabels)
-    (cache : QueryCache HashSpec) (hfresh : FreshStructural parameter cache) :
-    ((simulateQ romImpl program).run' cache) =ᵈ (do
-        let answers ← $ᵗ CanonicalGraphLabels
-        let labels := completedLabels (graphOrder active) initial answers
-        (simulateQ romImpl program).run'
-          (programGraphCache parameter otsSecret ftsSecret (graphOrder active) labels cache)) := by
-  refine (SeedCoupling.evalDist_presample_computation program
-    (liftM (prepare parameter otsSecret ftsSecret (graphOrder active) initial) :
-      OracleComp OracleWorld CanonicalGraphLabels) cache).trans ?_
-  rw [simulate_lift_hash]
-  refine ((evalDist_activeGraph_programmed parameter otsSecret ftsSecret active initial cache
-    hfresh).bind_left _).trans ?_
-  rw [bind_map_left]
-
 end SphincsFors.Security.Graph

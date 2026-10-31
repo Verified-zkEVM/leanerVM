@@ -251,16 +251,6 @@ theorem compiled_forestSecrets_eq (left right : MasterSeed) (material : Material
   simp only [Seeded.forestSecrets, simulate_sequenceFin, simulateQ_bind, compile_forest, simulateQ_pure]
 
 omit [Params] in
-theorem compiled_chainValue_eq (left right : MasterSeed) (material : Material)
-    (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) (pos : Nat) :
-    simulateQ (compileHash left material)
-      (Seeded.chainValue (parameter material) index c s j a i left pos : OracleComp HashSpec Digest) =
-    simulateQ (compileHash right material)
-      (Seeded.chainValue (parameter material) index c s j a i right pos : OracleComp HashSpec Digest) := by
-  simp only [Seeded.chainValue, Seeded.forestStart, simulateQ_bind, compile_forest, compile_forestWalk,
-    simulateQ_pure]
-
-omit [Params] in
 theorem compiled_childLeaf_eq (left right : MasterSeed) (material : Material)
     (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) :
     simulateQ (compileHash left material)

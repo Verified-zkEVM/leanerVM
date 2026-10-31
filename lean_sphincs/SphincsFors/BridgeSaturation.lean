@@ -243,36 +243,6 @@ theorem weight_le_noHit_of (state : DebtState D R ι)
         ENNReal.div_self (by simp) (by simp)]
     · rfl
 
-omit [SampleableType R] in
-/-- At the end, the survival weight is at most the probability that completion avoids a hit. -/
-theorem weight_le_noHit (state : DebtState D R ι) :
-    weight tg initial state ≤ Pr{let table ← completion state.known}[¬Hit tg initial table state] := by
-  by_cases hfinite : ∀ coordinate, state.known coordinate = none → (debts tg initial state coordinate).Finite
-  · exact weight_le_noHit_of tg initial state hfinite
-  · push Not at hfinite
-    obtain ⟨coordinate, hc, hinfinite⟩ := hfinite
-    have hzero : weight tg initial state = 0 := by
-      unfold weight
-      split_ifs
-      · rfl
-      · unfold survival
-        refine Finset.prod_eq_zero (Finset.mem_univ coordinate) ?_
-        rw [ite_eq_left hc, Set.Infinite.encard_eq hinfinite, ENat.toENNReal_top,
-          ENNReal.top_div_of_ne_top (by simp [space] : space ≠ ⊤)]
-        exact tsub_eq_zero_of_le le_top
-    rw [hzero]
-    exact bot_le
-
-omit [SampleableType R] in
-theorem weight_le_one (state : DebtState D R ι) : weight tg initial state ≤ 1 := by
-  unfold weight survival
-  split_ifs
-  · exact zero_le_one
-  · refine Finset.prod_le_one fun coordinate _ => ?_
-    split_ifs
-    · exact tsub_le_self
-    · exact le_rfl
-
 /-! ### Exposing a coordinate is a martingale step -/
 
 omit [Fintype ι] [SampleableType R] in
@@ -459,15 +429,6 @@ theorem survival_store_eq (state : DebtState D R ι) (input : D) (output : R)
   split_ifs with hc
   · rw [debts_store tg initial state input output hfresh hinitial, ite_eq_right (fun h => hkind coordinate h hc)]
   · rfl
-
-omit [Fintype ι] [SampleableType R] in
-theorem realized_store_of_none (state : DebtState D R ι) (input : D) (output : R)
-    (hfresh : state.cache input = none) (hinitial : initial input = none) (hkind : tg.kind input = .none) :
-    Realized tg initial (state.store input output) ↔ Realized tg initial state := by
-  have hknown : (state.store input output).known = state.known := rfl
-  simp only [Realized, fixedHit_store tg initial state input output hfresh hinitial, hkind,
-    debts_store tg initial state input output hfresh hinitial, reduceCtorEq, ite_false, false_and,
-    exists_false, or_false, hknown]
 
 /-- The truncated values that a fresh answer must avoid, given its target. -/
 def Fatal : TargetKind ι → Knowledge ι → Digest → Prop
@@ -656,16 +617,6 @@ noncomputable def budget (probes remaining : ℕ) : ℝ≥0∞ :=
 noncomputable def probeFactor (probes : ℕ) : ℝ≥0∞ :=
   ENNReal.ofReal (1 - 1 / (spaceReal - probes))
 
-theorem budget_le_one (probes remaining : ℕ) (hbudget : (probes + remaining : ℝ) < spaceReal) :
-    budget probes remaining ≤ 1 := by
-  rw [budget, ← ENNReal.ofReal_one]
-  apply ENNReal.ofReal_le_ofReal
-  have hden : 0 < spaceReal - probes := by linarith
-  have hnum : 0 ≤ (spaceReal - probes - remaining) / (spaceReal - probes) := div_nonneg (by linarith) hden.le
-  have hone : (spaceReal - probes - remaining) / (spaceReal - probes) ≤ 1 :=
-    (div_le_one hden).mpr (by linarith [(Nat.cast_nonneg remaining : (0 : ℝ) ≤ remaining)])
-  nlinarith
-
 theorem budget_succ_le (probes remaining : ℕ) (hbudget : (probes + remaining + 1 : ℝ) ≤ spaceReal) :
     budget probes (remaining + 1) ≤ budget probes remaining := by
   rw [budget, budget]
@@ -678,18 +629,6 @@ theorem budget_succ_le (probes remaining : ℕ) (hbudget : (probes + remaining +
       (spaceReal - probes - remaining) / (spaceReal - probes) :=
     div_le_div_of_nonneg_right (by linarith) hden.le
   nlinarith
-
-theorem budget_le_of_le (probes before after : ℕ) (horder : before ≤ after)
-    (hbudget : (probes + after : ℝ) ≤ spaceReal) :
-    budget probes after ≤ budget probes before := by
-  obtain ⟨extra, rfl⟩ := Nat.exists_eq_add_of_le horder
-  induction extra with
-  | zero => rfl
-  | succ extra ih =>
-      have hcast : ((before + (extra + 1) : ℕ) : ℝ) = (before + extra : ℕ) + 1 := by push_cast; ring
-      rw [hcast] at hbudget
-      exact (budget_succ_le probes (before + extra) (by linarith)).trans
-        (ih (by omega) (by linarith))
 
 /-- One probe step: two hazards of size `1 / (N - p)` move one unit of budget into the probe count. -/
 theorem budget_probe (probes remaining : ℕ) (hbudget : (probes + remaining + 1 : ℝ) < spaceReal) :
@@ -851,36 +790,6 @@ theorem survival_record (state : DebtState D R ι) (guess : ι × Digest) (hc : 
   refine Finset.prod_congr rfl fun other hother => ?_
   have hne : other ≠ guess.1 := by simpa using hother
   simp only [hknown, factor, debts_record, hne, ite_false]
-
-omit [SampleableType R] in
-/-- **Guess.** Recording a guess at an unexposed coordinate with at most `p` debts keeps a
-`probeFactor p` share of the survival weight. -/
-theorem weight_record (state : DebtState D R ι) (guess : ι × Digest) (hc : state.known guess.1 = none)
-    (hfinite : (debts tg initial state guess.1).Finite) (probes : ℕ)
-    (hcount : (debts tg initial state guess.1).encard ≤ probes) (hprobes : (probes : ℝ) < spaceReal) :
-    probeFactor probes * weight tg initial state ≤ weight tg initial (state.record guess) := by
-  by_cases hrealized : Realized tg initial state
-  · rw [weight, ite_eq_left hrealized, mul_zero]
-    exact bot_le
-  rw [weight, weight, ite_eq_right hrealized, ite_eq_right (by rwa [realized_record tg initial state guess hc]),
-    survival_record tg initial state guess hc, survival_split' tg initial state guess.1, ite_eq_left hc, factor,
-    ← mul_assoc]
-  refine mul_le_mul_left ?_ _
-  set count := hfinite.toFinset.card with hcountdef
-  have hencard : ((debts tg initial state guess.1).encard : ℝ≥0∞) = (count : ℝ≥0∞) := by
-    rw [Set.Finite.encard_eq_coe_toFinset_card hfinite, ENat.toENNReal_coe]
-  have hcount' : count ≤ probes := by
-    have h : ((count : ℕ) : ℕ∞) ≤ probes := by
-      rw [hcountdef, ← Set.Finite.encard_eq_coe_toFinset_card hfinite]
-      exact hcount
-    exact_mod_cast h
-  by_cases hv : guess.2 ∈ debts tg initial state guess.1
-  · rw [Set.insert_eq_of_mem hv]
-    exact mul_le_of_le_one_left' (probeFactor_le_one probes hprobes)
-  · rw [Set.encard_insert_of_notMem hv, ENat.toENNReal_add, hencard]
-    have h := probeFactor_debt count probes hcount' hprobes
-    push_cast at h ⊢
-    exact h
 
 /-! ### The invariant -/
 
@@ -1063,93 +972,12 @@ theorem sampleCoordinate_unknown (coordinate : ι) (state : DebtState D R ι) (h
   rfl
 
 omit [SampleableType R] in
-theorem meanWeight_sample (coordinate : ι) (state : DebtState D R ι)
-    (hfinite : (debts tg initial state coordinate).Finite) :
-    meanWeight tg initial (sampleCoordinate coordinate state) = weight tg initial state := by
-  cases hc : state.known coordinate with
-  | none =>
-      rw [meanWeight, sampleCoordinate_unknown coordinate state hc, OracleComp.tsum_prEvent_map_mul]
-      exact weight_expose_mean tg initial state coordinate hc hfinite
-  | some value => rw [meanWeight, sampleCoordinate_known coordinate state value hc, OracleComp.tsum_prEvent_pure_mul]
-
-omit [SampleableType R] in
-theorem meanWeight_map {β γ : Type} (f : β → γ) (step : ProbComp (β × DebtState D R ι)) :
-    meanWeight tg initial ((fun result => (f result.1, result.2)) <$> step) = meanWeight tg initial step := by
-  rw [meanWeight, meanWeight, OracleComp.tsum_prEvent_map_mul]
-
-theorem meanWeight_readOutside_none (bytes : D) (state : DebtState D R ι) (hk : tg.kind bytes = .none)
-    (hprepared : Prepared initial state) :
-    meanWeight tg initial (readOutside bytes state) = weight tg initial state := by
-  cases hc : state.cache bytes with
-  | some output => rw [meanWeight, readOutside_cached bytes state output hc, OracleComp.tsum_prEvent_pure_mul]
-  | none =>
-      rw [meanWeight, readOutside_fresh bytes state hc, OracleComp.tsum_prEvent_map_mul]
-      have hinitial := initial_none_of_fresh initial state hprepared bytes hc
-      have hsame : ∀ output, weight tg initial (state.store bytes output) = weight tg initial state := by
-        intro output
-        rw [weight, weight, survival_store_eq tg initial state bytes output hc hinitial
-          (fun coordinate h => by rw [hk] at h; cases h)]
-        simp only [realized_store tg initial state bytes output hc hinitial, hk, Fatal, or_false]
-      simp only [hsame]
-      exact tsum_uniform_const _
-
-omit [SampleableType R] in
 theorem sum_target_le (input : D) :
     ∑ coordinate, (if tg.kind input = .hidden coordinate then 1 else 0 : ℕ) ≤ 1 := by
   cases tg.kind input with
   | none => simp
   | fixed value => simp
   | hidden target => simp [TargetKind.hidden.injEq]
-
-theorem inv_readOutside (bytes : D) (state : DebtState D R ι) (probes : ℕ) (hinv : Inv tg initial state probes)
-    (result : R × DebtState D R ι) (hresult : result ∈ support (readOutside bytes state)) :
-    Inv tg initial result.2 (probes + 1) := by
-  rcases readOutside_support bytes state result hresult with h | ⟨hc, h⟩
-  · rw [h]
-    exact hinv.mono tg initial (Nat.le_succ _)
-  · rw [h]
-    exact hinv.grow tg initial (growth_store tg initial state bytes result.1 hc
-      (initial_none_of_fresh initial state hinv.prepared bytes hc))
-      (fun coordinate => by split_ifs <;> omega) ((sum_target_le tg bytes).trans (by norm_num))
-      (prepared_store initial state hinv.prepared bytes result.1 hc)
-
-theorem inv_readOutside_none (bytes : D) (state : DebtState D R ι) (probes : ℕ)
-    (hinv : Inv tg initial state probes) (hk : tg.kind bytes = .none)
-    (result : R × DebtState D R ι) (hresult : result ∈ support (readOutside bytes state)) :
-    Inv tg initial result.2 probes := by
-  rcases readOutside_support bytes state result hresult with h | ⟨hc, h⟩
-  · rw [h]
-    exact hinv
-  · rw [h]
-    have hinitial := initial_none_of_fresh initial state hinv.prepared bytes hc
-    refine hinv.same tg initial (fun coordinate => ?_) (prepared_store initial state hinv.prepared bytes result.1 hc)
-    rw [debts_store tg initial state bytes result.1 hc hinitial, ite_eq_right (by rw [hk]; exact fun h => by cases h)]
-
-theorem inv_guess (bytes : D) (state : DebtState D R ι) (guess : ι × Digest) (probes : ℕ)
-    (hinv : Inv tg initial state probes) (hrow : tg.kind bytes ≠ .hidden guess.1)
-    (result : R × DebtState D R ι) (hresult : result ∈ support (readOutside bytes (state.record guess))) :
-    Inv tg initial result.2 (probes + 1) := by
-  have hprepared : Prepared initial (state.record guess) := hinv.prepared
-  have hfirst := growth_record tg initial state guess
-  have hone : (∑ coordinate, (if coordinate = guess.1 then 1 else 0 : ℕ)) = 1 := by simp
-  rcases readOutside_support bytes _ result hresult with h | ⟨hc, h⟩
-  · rw [h]
-    refine hinv.grow tg initial hfirst (fun coordinate => by split_ifs <;> omega) (by rw [hone]; norm_num)
-      hprepared
-  · rw [h]
-    have hinitial := initial_none_of_fresh initial _ hprepared bytes hc
-    refine hinv.grow tg initial (hfirst.trans tg initial (growth_store tg initial _ bytes result.1 hc hinitial))
-      (fun coordinate => ?_) ?_ (prepared_store initial _ hprepared bytes result.1 hc)
-    · simp only [Pi.add_apply]
-      by_cases hcoord : coordinate = guess.1
-      · subst hcoord
-        rw [ite_eq_left rfl, ite_eq_right hrow]
-      · rw [ite_eq_right hcoord, zero_add]
-        split_ifs <;> omega
-    · simp only [Pi.add_apply]
-      rw [Finset.sum_add_distrib, hone]
-      have := sum_target_le tg bytes
-      omega
 
 /-! ### Budget inequalities for one step -/
 
@@ -1158,32 +986,6 @@ theorem probe_inequality (probes remaining : ℕ) (weightValue mean : ℝ≥0∞
     budget probes (remaining + 1) * weightValue ≤ budget (probes + 1) remaining * mean := by
   rw [budget_probe probes remaining hbudget, mul_comm (probeFactor probes ^ 2), mul_assoc]
   gcongr
-
-/-- Combining one step with the induction hypothesis. -/
-theorem combine {β : Type} (step : ProbComp β) (nextWeight nextPay nextEnd : β → ℝ≥0∞)
-    (current payment paid nextBudget : ℝ≥0∞)
-    (hstep : current + payment * paid ≤ nextBudget * ∑' x, Pr{let y ← step}[y = x] * nextWeight x)
-    (hih : ∀ x ∈ support step, nextBudget * nextWeight x + payment * nextPay x ≤ nextEnd x) :
-    current + payment * ∑' x, Pr{let y ← step}[y = x] * (paid + nextPay x) ≤ ∑' x, Pr{let y ← step}[y = x] * nextEnd x := by
-  have hmass : ∑' x, Pr{let y ← step}[y = x] = 1 := OracleComp.tsum_prEvent_eq_one _
-  calc current + payment * ∑' x, Pr{let y ← step}[y = x] * (paid + nextPay x)
-      = (current + payment * paid) + ∑' x, Pr{let y ← step}[y = x] * (payment * nextPay x) := by
-        simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, hmass, one_mul]
-        rw [← ENNReal.tsum_mul_left]
-        simp only [mul_left_comm payment]
-        ring
-    _ ≤ nextBudget * (∑' x, Pr{let y ← step}[y = x] * nextWeight x) + ∑' x, Pr{let y ← step}[y = x] * (payment * nextPay x) :=
-        add_le_add hstep le_rfl
-    _ = ∑' x, Pr{let y ← step}[y = x] * (nextBudget * nextWeight x + payment * nextPay x) := by
-        rw [← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
-        refine tsum_congr fun x => ?_
-        ring
-    _ ≤ ∑' x, Pr{let y ← step}[y = x] * nextEnd x := by
-        refine ENNReal.tsum_le_tsum fun x => ?_
-        by_cases hx : x ∈ support step
-        · gcongr
-          exact hih x hx
-        · rw [(prEvent_eq_zero_of_not_mem_support _) hx, zero_mul, zero_mul]
 
 end Steps
 
@@ -1213,15 +1015,6 @@ theorem probeFactor_sq_le (probes : ℕ) (hprobes : (probes : ℝ) < spaceReal) 
     _ ≤ 1 * probeFactor probes := by gcongr; exact probeFactor_le_one probes hprobes
     _ ≤ _ := by rw [one_mul]; exact probeFactor_le_fresh probes hprobes
 
-theorem readOutside_step (htrunc : UniformTruncation (R := R) tg) (bytes : D) (state : DebtState D R ι)
-    (probes remaining : ℕ) (hinv : Inv tg initial state probes)
-    (hbudget : (probes + remaining + 1 : ℝ) < spaceReal) :
-    budget probes (remaining + 1) * weight tg initial state ≤
-      budget (probes + 1) remaining * meanWeight tg initial (readOutside bytes state) := by
-  refine probe_inequality probes remaining _ _ hbudget ?_
-  exact (probeFactor_sq_le probes (by linarith [(Nat.cast_nonneg remaining : (0 : ℝ) ≤ remaining)]) _).trans
-    (weight_readOutside_mean tg initial htrunc bytes state hinv.prepared hinv.finite)
-
 /-- The starting state of the comparison: the prepared cache and no guesses. -/
 def DebtState.start (known : Knowledge ι) : DebtState D R ι := ⟨known, initial, []⟩
 
@@ -1234,28 +1027,6 @@ theorem debts_start (known : Knowledge ι) (coordinate : ι) :
   intro input output hcache hinitial
   rw [hcache] at hinitial
   cases hinitial
-
-omit [SampleableType R] in
-theorem inv_start (known : Knowledge ι) : Inv tg initial (DebtState.start initial known) 0 where
-  finite coordinate := by rw [debts_start]; exact Set.finite_empty
-  bound coordinate := by rw [debts_start]; simp
-  total := by simp [debts_start]
-  prepared := fun _ _ h => h
-
-omit [SampleableType R] in
-theorem weight_start (known : Knowledge ι) : weight tg initial (DebtState.start initial known) = 1 := by
-  have hrealized : ¬Realized tg initial (DebtState.start initial known) := by
-    rintro (⟨input, output, value, hcache, hinitial, _⟩ | ⟨coordinate, value, _, hv⟩)
-    · change initial input = some output at hcache
-      rw [hcache] at hinitial
-      cases hinitial
-    · rw [debts_start] at hv
-      exact hv
-  rw [weight, ite_eq_right hrealized, survival]
-  refine Finset.prod_eq_one fun coordinate _ => ?_
-  split_ifs
-  · simp [debts_start]
-  · rfl
 
 end Main
 

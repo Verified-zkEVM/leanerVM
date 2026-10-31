@@ -98,11 +98,4 @@ theorem uniformIndex_univ : UniformIndex (Prod.fst : View → Fin (2 ^ subtreeHe
   rw [Nat.cast_mul, ENNReal.mul_inv (Or.inr hBt) (Or.inl (ENNReal.natCast_ne_top _)), mul_assoc,
     ← mul_assoc _ _ (∑ l, g l), ENNReal.inv_mul_cancel hB hBt, one_mul]
 
-/-- The FORS excess in count form. -/
-theorem excess_eq (b0 : ℝ≥0∞) :
-    ForsPotential.excess b0 = fun D => countPrice Prod.fst kappa D - b0 := by
-  funext D
-  unfold ForsPotential.excess
-  rw [price_eq]
-
 end SphincsFors.Security.H0

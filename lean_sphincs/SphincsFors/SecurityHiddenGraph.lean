@@ -97,13 +97,6 @@ noncomputable def answer (parameter : PublicParameter) (active : Address → Pro
       Prefix.combine (table query.1.outputCoordinate) (high query.1)
     else outside bytes
 
-theorem answer_canonical (parameter : PublicParameter) (active : Address → Prop) (table : Table)
-    (high : Address → Prefix.High) (outside : HashInput → HashOutput) (address : Address) (hactive : active address) :
-    answer parameter active table high outside (input parameter (address, table address.inputCoordinate)) =
-      Prefix.combine (table address.outputCoordinate) (high address) := by
-  rw [answer, parse_input _ _ _ hactive]
-  exact ite_eq_left rfl
-
 /-- The parser enforces the candidate's complete byte layout and retained-row selection.
 The generic compiler therefore has only one possible input coordinate for each raw query. -/
 noncomputable def rowModel (parameter : PublicParameter) (active : Address → Prop)

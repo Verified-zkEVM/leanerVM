@@ -15,8 +15,4 @@ irreducible_def budgetSplit : Nat := 3 * 2 ^ 114
 
 noncomputable irreducible_def primitiveCoefficient : ENNReal := 7 / 4
 
-theorem budgetSplit_le : budgetSplit ≤ 2 ^ 127 := by
-  rw [budgetSplit_def]
-  norm_num
-
 end SphincsBase.Concrete

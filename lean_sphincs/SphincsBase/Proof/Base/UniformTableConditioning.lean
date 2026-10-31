@@ -20,13 +20,6 @@ variable {ι α : Type} [Fintype ι] [DecidableEq ι] [DecidableEq α]
 noncomputable def uniformTable (allowed : ι → Finset α) (hallowed : ∀ coordinate, (allowed coordinate).Nonempty) :
     PMF (ι → α) := PMF.uniformOfFinset (Fintype.piFinset allowed) (Fintype.piFinset_nonempty.mpr hallowed)
 
-theorem uniformTable_apply (allowed : ι → Finset α) (hallowed : ∀ coordinate, (allowed coordinate).Nonempty)
-    (table : ι → α) :
-    uniformTable allowed hallowed table =
-      if ∀ coordinate, table coordinate ∈ allowed coordinate then
-        ((∏ coordinate, (allowed coordinate).card : Nat) : ENNReal)⁻¹ else 0 := by
-  simp only [uniformTable, PMF.uniformOfFinset_apply, Fintype.mem_piFinset, Fintype.card_piFinset]
-
 theorem uniformTable_restrict (allowed reduced : ι → Finset α)
     (ha : ∀ coordinate, (allowed coordinate).Nonempty) (hr : ∀ coordinate, (reduced coordinate).Nonempty)
     (hsub : ∀ coordinate, reduced coordinate ⊆ allowed coordinate) (table : ι → α) :

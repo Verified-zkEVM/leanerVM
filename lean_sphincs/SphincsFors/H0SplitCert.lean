@@ -740,31 +740,6 @@ theorem hTermO_fors_le_opt (b N : ℕ) (t : PoisTable) (o : OptS) (ht : checkTab
 /-- The check of a general-threshold bound: a table and one option. -/
 def checkThreshS (b N : ℕ) (t : PoisTable) (o : OptS) : Bool := checkTable b N t && checkOpt b t o
 
-/-- **General threshold**, from one Bool check: for a rational threshold `cthr` (any finite
-`β ≥ cthr`), the one-coin FORS H-term at every budget `q ≤ 2^127` is at most `B`. -/
-theorem hTermO_fors_le_of_check (b N : ℕ) (t : PoisTable) (o : OptS) (hc : checkThreshS b N t o = true)
-    (hb : subtreeHeight = b) (hN : signatureLimit = N) (q : ℕ) (hq : 2 * q ≤ 2 ^ 128) (β : ℝ≥0∞)
-    (hβ : β ≠ ⊤) (hβc : ENNReal.ofReal (o.cthr : ℝ) ≤ β) :
-    hTermO (Finset.univ : Finset View) (wbarOf q) landing signatureLimit q
-        (fun d => countPrice (Prod.fst : View → Fin (2 ^ subtreeHeight)) kappa d - β) ≤
-      ENNReal.ofReal (o.B : ℝ) := by
-  simp only [checkThreshS, Bool.and_eq_true] at hc
-  exact hTermO_fors_le_opt b N t o hc.1 hc.2 hb hN q hq β hβ hβc
-
-theorem opt_B_nonneg {b N : ℕ} {t : PoisTable} {o : OptS} (ht : checkTable b N t = true)
-    (ho : checkOpt b t o = true) : 0 ≤ o.B := by
-  obtain ⟨hθ, -, hcthr, -, -, -, -, h8⟩ := checkOpt_parts ho
-  have hEh := opt_Eh_nonneg ht ho
-  have hEe := opt_Ee_nonneg ht ho
-  have hsq0 : 0 ≤ sqUp t.P b (1 + o.Ee) := by
-    have h := sqUp_ge t.P b (1 + o.Ee) ((1 + o.Ee : ℚ) : ℝ) (by push_cast; positivity) le_rfl
-    have h0 : (0 : ℝ) ≤ ((1 + o.Ee : ℚ) : ℝ) ^ (2 ^ b) := by push_cast; positivity
-    exact_mod_cast le_trans h0 h
-  have hE := one_le_expLow (o.θ * o.cthr) t.J t.P (by positivity)
-  have he : (0 : ℚ) < eLowQ := by unfold eLowQ; norm_num
-  refine le_trans ?_ h8
-  positivity
-
 /-! ### Covers of budget intervals -/
 
 /-- A cover entry: budgets `[qa, qb]` and the index of its option. -/

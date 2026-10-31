@@ -99,13 +99,6 @@ theorem compile_ftsPair (seed : MasterSeed) (material : Material) (index : Index
         truncateHashHigh (pairOutput material.2 (.inr (.inl (index, tree, leaf)))))) := by
   simpa only [secretDomain] using compile_pair seed material (.inr (.inl (index, tree, leaf)))
 
-theorem compile_ots (seed : MasterSeed) (material : Material) (lay : Layer)
-    (tree : TreeIndex) (leaf : LeafIndex) (chain : ChainIndex) :
-    simulateQ (compileHash seed material)
-      (deriveKey (parameter material) (.ots lay tree leaf chain) seed : OracleComp HashSpec Digest) =
-      (do let _ ← tick; pure (truncateHash (material.2 (.inl (lay, tree, leaf, chain))))) := by
-  simpa only [secretDomain] using compile_secret seed material (.inl (lay, tree, leaf, chain))
-
 theorem compile_fts (seed : MasterSeed) (material : Material) (index : Index)
     (tree : FtsTree) (leaf : FtsLeaf) :
     simulateQ (compileHash seed material)

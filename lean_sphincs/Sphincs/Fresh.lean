@@ -76,14 +76,6 @@ theorem sequenceFin {α : Type} {n : Nat} (target : HashInput)
       rw [Concrete.sequenceFin]
       exact bind (h 0) (fun _ => bind (ih _ (fun i => h i.succ)) (fun _ => pure' _ _))
 
-theorem messageDigest {target : HashInput} (parameter : PublicParameter)
-    (message : Message) (randomness : Randomness)
-    (hs : tweakableHashInput parameter .message
-        (messageDigestPayload message randomness) ≠ target) :
-    PreservesFresh target (Concrete.messageDigest parameter message randomness) := by
-  rw [Concrete.messageDigest]
-  exact bind (query hs) (fun _ => pure' _ _)
-
 end PreservesFresh
 
 /-- Domain separation is independent of the public parameter and payload: the type byte is at
@@ -140,31 +132,6 @@ theorem structuralFresh_of_tag (parameter : PublicParameter) (fields : TweakFiel
     apply fieldInput_ne_of_tag_ne_across
     rw [hfields]
     rcases htag with rfl | rfl <;> simp [hashDomainFields, tweakFields]
-
-/-- Every counter-search input is separate from all structural tree inputs. -/
-theorem structuralFresh_encoding (parameter : PublicParameter) (lay : Layer)
-    (tree : TreeIndex) (leaf : LeafIndex) (message : ForestKey) (c : Nat) :
-    StructuralFresh (encodeInput parameter lay tree leaf message c) :=
-  structuralFresh_of_tag parameter (hashDomainFields (.encoding lay tree leaf))
-    _ 4 (Or.inl rfl) rfl
-
-/-- Message hashing cannot populate any encoding-search cache entry, even for another key. -/
-theorem messageInput_ne_encoding (parameter : PublicParameter)
-    (message : Message) (randomness : Randomness)
-    (encodingParameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (encodingMessage : ForestKey) (c : Nat) :
-    tweakableHashInput parameter .message
-      (messageDigestPayload message randomness) ≠
-        encodeInput encodingParameter lay tree leaf encodingMessage c := by
-  apply fieldInput_ne_of_tag_ne_across
-  simp [hashDomainFields, tweakFields]
-
-/-- Message inputs are separate from structural key generation for all public parameters. -/
-theorem structuralFresh_message (parameter : PublicParameter)
-    (message : Message) (randomness : Randomness) :
-    StructuralFresh (tweakableHashInput parameter .message
-      (messageDigestPayload message randomness)) :=
-  structuralFresh_of_tag parameter (hashDomainFields .message) _ 12 (Or.inr rfl) rfl
 
 namespace PreservesFresh
 
@@ -225,12 +192,6 @@ theorem spineNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
       refine bind ih (fun _ => bind (surrogate hs _ _ _) (fun _ => ?_))
       dsimp only
       split <;> exact tweakableHash _ _ _ _ (hs.node _ _ _ _ _ _)
-
-theorem keygenFromMaster (seed : MasterSeed) :
-    PreservesFresh target (Seeded.keygenFromMaster seed) := by
-  rw [Seeded.keygenFromMaster]
-  exact bind (deriveKey _ _ _ _ (hs.derive _ _ _)) (fun _ =>
-    bind (spineNode hs _ _ _ _ _) (fun _ => pure' _ _))
 
 omit [Params] in
 theorem forestWalk (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
@@ -309,13 +270,6 @@ theorem topNode (parameter : PublicParameter) (index : Index) (c : Coord)
       · exact pure' _ _
 
 omit [Params] in
-theorem forestKey (parameter : PublicParameter) (index : Index) (seed : MasterSeed) :
-    PreservesFresh target (Seeded.forestKey parameter index seed) := by
-  rw [Seeded.forestKey]
-  exact sequenceFin _ _ (fun _ => bind (topNode hs _ _ _ _ _ _) (fun _ =>
-    bind (topNode hs _ _ _ _ _ _) (fun _ => pure' _ _)))
-
-omit [Params] in
 theorem coordOpen (parameter : PublicParameter) (index : Index) (c : Coord) (mark : CoordMark)
     (seed : MasterSeed) :
     PreservesFresh target (Seeded.coordOpen parameter index c mark seed) := by
@@ -325,13 +279,6 @@ theorem coordOpen (parameter : PublicParameter) (index : Index) (c : Coord) (mar
   exact bind (forestSecrets hs _ _ _ _ _ _ _) (fun _ =>
     bind (sequenceFin _ _ (fun _ => forestWalk hs _ _ _ _ _ _ _ _ _ _)) (fun _ =>
       bind (sequenceFin _ _ (fun _ => subNode hs _ _ _ _ _ _ _ _)) (fun _ => pure' _ _)))
-
-omit [Params] in
-theorem forestOpen (parameter : PublicParameter) (index : Index)
-    (marks : Coord → CoordMark) (seed : MasterSeed) :
-    PreservesFresh target (Seeded.forestOpen parameter index marks seed) := by
-  rw [Seeded.forestOpen]
-  exact sequenceFin _ _ (fun _ => coordOpen hs _ _ _ _ _)
 
 end PreservesFresh
 

@@ -151,15 +151,4 @@ theorem probEvent_randomizedDigest (sk : Seeded.SecretKey) (message : Message)
     exact add_le_add (mul_le_of_le_one_right' (prEvent_le_one _))
       (probEvent_randomness_mem_le R n)
 
-/-- The randomized grinding loop exhausts its full budget with probability at most `2^(-2^(b+5))`
-from a cache with no message-digest inputs. -/
-theorem randomized_digest_exhaustion_bound (sk : Seeded.SecretKey) (message : Message)
-    (cache : QueryCache HashSpec) (hfresh : ∀ ρ, cache (msgInput sk message ρ) = none) :
-    Pr{let r ← (simulateQ romImpl (Randomized.signDigestLoop sk message digestAttemptLimit)).run cache}[r.1 = none]
-      ≤ (2⁻¹ : ℝ≥0∞) ^ (2 ^ (subtreeHeight + 5)) := by
-  refine (probEvent_randomizedDigest sk message digestAttemptLimit cache ∅
-    (by simp [digestAttemptLimit]) (fun ρ _ => hfresh ρ)).trans ?_
-  rw [Finset.card_empty, Nat.mul_zero, Nat.cast_zero, ENNReal.zero_div, add_zero]
-  exact (pow_le_pow_left₀ (by positivity) le_self_add _).trans (digestFactor_pow_bound sk.parameter)
-
 end SphincsLayered.Completeness

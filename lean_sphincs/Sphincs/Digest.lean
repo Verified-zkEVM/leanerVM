@@ -33,12 +33,6 @@ theorem msgInput_inj (secretKey : Seeded.SecretKey) (message : Message)
   exact SphincsLayered.bytesLE_injective (List.append_cancel_left (List.append_cancel_left
     (List.append_cancel_left h)))
 
-omit [Params] in
-theorem cached_run (input : HashInput) (cache : QueryCache HashSpec) (answer : HashOutput)
-    (hcached : cache input = some answer) :
-    (randomOracle (spec := HashSpec) input).run cache = pure (answer, cache) :=
-  QueryImpl.withCaching_run_some _ hcached
-
 /-- The share of fresh answers the admissibility test rejects. -/
 noncomputable def digestReject (parameter : PublicParameter) : ℝ≥0∞ :=
   Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[¬ Landed parameter (blockIndex u)]
@@ -52,8 +46,6 @@ theorem digestReject_add (parameter : PublicParameter) :
   rw [fresh_landing_probability_inv] at h
   rw [add_comm]
   exact h
-
-theorem digestReject_le_one (parameter : PublicParameter) : digestReject parameter ≤ 1 := (prEvent_le_one _)
 
 omit [Params] in
 /-- Averaging a two-valued function over one uniform answer. -/

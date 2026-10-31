@@ -32,10 +32,6 @@ theorem mem_unitNeighbors {reference candidate : Encoding} {lowered : ChainIndex
 noncomputable def allUnitNeighbors (reference : Encoding) : Finset Encoding :=
   Finset.univ.biUnion (unitNeighbors reference)
 
-theorem mem_allUnitNeighbors {reference candidate : Encoding} :
-    candidate ∈ allUnitNeighbors reference ↔ ∃ lowered, UnitNeighborAt reference candidate lowered := by
-  simp only [allUnitNeighbors, Finset.mem_biUnion, Finset.mem_univ, true_and, mem_unitNeighbors]
-
 /-- The unit neighbors of a word at one lowered chain. -/
 def unitNeighborBound : Nat := numChains - 1
 
@@ -124,24 +120,7 @@ theorem unitNeighbors_card_le (reference : Encoding) (lowered : ChainIndex) :
   rw [unitNeighborBound]
   simpa only [unitNeighbors] using hcard
 
-theorem allUnitNeighbors_card_le (reference : Encoding) : (allUnitNeighbors reference).card ≤ neighborBound := by
-  calc
-    _ ≤ ∑ lowered : ChainIndex, (unitNeighbors reference lowered).card := Finset.card_biUnion_le
-    _ ≤ ∑ _lowered : ChainIndex, unitNeighborBound :=
-      Finset.sum_le_sum fun lowered _ => unitNeighbors_card_le reference lowered
-    _ = neighborBound := by
-      simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul, neighborBound,
-        unitNeighborBound]
-
 /-! ### Values, for the closing arithmetic only -/
-
-theorem unitNeighborBound_eq : unitNeighborBound = 63 := by
-  rw [unitNeighborBound]
-  rfl
-
-theorem neighborBound_eq : neighborBound = 4032 := by
-  rw [neighborBound]
-  rfl
 
 /-- The chain steps an adversary must invert to turn `reference` into `candidate`. -/
 def backwardWeight (reference candidate : Encoding) : Nat :=
@@ -249,17 +228,5 @@ noncomputable def decodingDigests (words : Finset Encoding) : Finset Digest :=
 theorem mem_decodingDigests {words : Finset Encoding} {digest : Digest} :
     digest ∈ decodingDigests words ↔ ∃ word ∈ words, decodeDigest digest = some word := by
   simp only [decodingDigests, Finset.mem_filter, Finset.mem_univ, true_and]
-
-theorem decodingDigests_card_le (words : Finset Encoding) :
-    (decodingDigests words).card ≤ words.card := by
-  apply Finset.card_le_card_of_injOn (fun digest => (decodeDigest digest).getD (fun _ => ⟨0, by decide⟩))
-  · intro digest hd
-    obtain ⟨word, hw, hdecode⟩ := mem_decodingDigests.mp hd
-    simpa only [hdecode, Option.getD_some, Finset.mem_coe] using hw
-  · intro left hl right hr he
-    obtain ⟨leftWord, _, hleft⟩ := mem_decodingDigests.mp hl
-    obtain ⟨rightWord, _, hright⟩ := mem_decodingDigests.mp hr
-    simp only [hleft, hright, Option.getD_some] at he
-    exact decode_some_injective hleft (by rw [he]; exact hright)
 
 end SphincsFors.Security.EncodingCode

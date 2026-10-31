@@ -65,17 +65,6 @@ theorem selected_mul_afterSelect (decode : Answer → Option Value) (n : Nat) (r
     obtain ⟨index, hindex⟩ := hex
     exact Finset.prod_eq_zero (Finset.mem_univ index) (ite_eq_right hindex)
 
-theorem uniform_bind_eq_selected {Result : Type} (decode : Answer → Option Value) (n : Nat)
-    (next : (Index → Option (Fin n × Value)) → (Index → Fin n → Answer) → PMF Result) :
-    (PMF.uniformOfFintype (Index → Fin n → Answer)).bind (fun tables => next (select decode n tables) tables) =
-      (selected decode n).bind (fun results => (afterSelect decode n results).bind (next results)) := by
-  apply PMF.ext
-  intro output
-  simp only [PMF.bind_apply, ← ENNReal.tsum_mul_left, ← mul_assoc, selected_mul_afterSelect,
-    ite_mul, zero_mul]
-  rw [ENNReal.tsum_comm]
-  simp
-
 end FirstSuccessFamily
 
 end SphincsBase.Concrete

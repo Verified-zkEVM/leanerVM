@@ -51,18 +51,6 @@ def verificationFors (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : Mes
   evalWithAnswerFn f (ftsRecover pk.parameter (digestIndex digest) (digestLeaves digest)
     signature.ftsSecret signature.ftsPath : OracleComp HashSpec FtsTops)
 
-theorem verification_fors_run (f : QueryImpl HashSpec Id) (pk : PublicKey)
-    (message : Message) (signature : Signature) :
-    ContainsRun f (queriedInputs f (Concrete.verify pk message signature : OracleComp HashSpec Bool))
-      (ftsRecover pk.parameter (digestIndex (verificationDigest f pk message signature))
-        (digestLeaves (verificationDigest f pk message signature)) signature.ftsSecret signature.ftsPath) := by
-  have hrun : ContainsRun f
-      (queriedInputs f (Concrete.verify pk message signature : OracleComp HashSpec Bool))
-      (Concrete.verify pk message signature : OracleComp HashSpec Bool) := fun _ hi => hi
-  rw [verify_eq_single_layer] at hrun
-  simpa only [← verify_eq_single_layer pk message signature, verificationDigest] using
-    hrun.bind_right.bind_left
-
 /-- Successful verification contains a WOTS recovery and a root-matching Merkle fold. -/
 theorem verified_tree (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : Message)
     (signature : Signature)

@@ -51,32 +51,6 @@ def attackerActionFragment
   | .inr request => [.sign request output]
 
 @[simp]
-theorem attackerActionFragment_uniform
-    (index : unifSpec.Domain) (output : unifSpec.Range index) :
-    attackerActionFragment (.inl (.inl index)) output = [] := rfl
-
-@[simp]
-theorem attackerActionFragment_hash (input : HashInput) (output : HashOutput) :
-    attackerActionFragment (.inl (.inr input)) output = [.hash input] := rfl
-
-@[simp]
-theorem attackerActionFragment_sign
-    (request : SignRequest) (signature : Option Signature) :
-    attackerActionFragment (.inr request) signature = [.sign request signature] := rfl
-
-@[simp]
-theorem attackerActionFragment_hashInputs
-    (input : (OracleWorld + SigningSpec).Domain)
-    (output : (OracleWorld + SigningSpec).Range input) :
-    (attackerActionFragment input output).hashInputs =
-      match input with
-      | .inl (.inr hashInput) => [hashInput]
-      | _ => [] := by
-  cases input with
-  | inl worldInput => cases worldInput <;> rfl
-  | inr request => rfl
-
-@[simp]
 theorem attackerActionFragment_toSigningLog
     (input : (OracleWorld + SigningSpec).Domain)
     (output : (OracleWorld + SigningSpec).Range input) :

@@ -48,11 +48,6 @@ theorem ftsNode_succ_eq (parameter : PublicParameter) (index : Index) (tree : Ft
           tweakableHash parameter (.ftsNode index tree (level + 1) nodeIdx)
             (nodePayload left right)) := rfl
 
-@[simp]
-theorem treeFold_zero_eq (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (path : Nat → Digest) (value : Digest) :
-    treeFold (m := m) parameter lay tree leaf path 0 value = pure value := rfl
-
 theorem treeFold_succ_eq (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
     (leaf : LeafIndex) (path : Nat → Digest) (levels : Nat) (value : Digest) :
     treeFold (m := m) parameter lay tree leaf path (levels + 1) value
@@ -64,11 +59,6 @@ theorem treeFold_succ_eq (parameter : PublicParameter) (lay : Layer) (tree : Tre
           else
             tweakableHash parameter (.node lay tree (levels + 1) (leaf.val / 2 ^ (levels + 1)))
               (nodePayload current (path levels))) := rfl
-
-@[simp]
-theorem ftsFold_zero_eq (parameter : PublicParameter) (index : Index) (tree : FtsTree)
-    (leaf : FtsLeaf) (path : Fin ftsTreeHeight → Digest) (value : Digest) :
-    ftsFold (m := m) parameter index tree leaf path 0 value = pure value := rfl
 
 theorem ftsFold_succ_eq (parameter : PublicParameter) (index : Index) (tree : FtsTree)
     (leaf : FtsLeaf) (path : Fin ftsTreeHeight → Digest) (levels : Nat) (value : Digest) :
@@ -82,36 +72,6 @@ theorem ftsFold_succ_eq (parameter : PublicParameter) (index : Index) (tree : Ft
           else
             tweakableHash parameter (.ftsNode index tree (levels + 1) (leaf.val / 2 ^ (levels + 1)))
               (nodePayload current sibling)) := rfl
-
-@[simp]
-theorem verifyLayers_zero_eq (parameter : PublicParameter) (index : Index) (signature : Signature)
-    (message : Digest) :
-    verifyLayers (m := m) parameter index signature 0 message = pure (some message) := rfl
-
-theorem verifyLayers_succ_eq (parameter : PublicParameter) (index : Index) (signature : Signature)
-    (remaining : Nat) (message : Digest) :
-    verifyLayers (m := m) parameter index signature (remaining + 1) message
-      = (if hlayer : remaining < numLayers then
-          (do
-            match ← otsLeafAttempt parameter ⟨remaining, hlayer⟩ (treeIndexAt index ⟨remaining, hlayer⟩)
-                (leafIndexAt index ⟨remaining, hlayer⟩) message
-                (signature.counter ⟨remaining, hlayer⟩)
-                (signature.chainValue ⟨remaining, hlayer⟩) with
-            | none => pure none
-            | some value => do
-                let root ← treeFold parameter ⟨remaining, hlayer⟩
-                  (treeIndexAt index ⟨remaining, hlayer⟩) (leafIndexAt index ⟨remaining, hlayer⟩)
-                  (signaturePath signature ⟨remaining, hlayer⟩) (layerHeight ⟨remaining, hlayer⟩)
-                  value
-                verifyLayers parameter index signature remaining root)
-        else pure none) := by
-  rw [verifyLayers]
-  split
-  · simp only [otsLeaf_eq]
-    apply bind_congr
-    intro result
-    cases result <;> rfl
-  · rfl
 
 attribute [local irreducible] verifyLayers
 
@@ -165,9 +125,6 @@ theorem sign_eq (secretKey : SecretKey) (message : Message) :
                       ftsPath := ftsPath
                       layers := fun lay => LayerSignature.ofPadded lay (parts lay) }) := rfl
 
-theorem sampleRandomness_eq :
-    sampleRandomness = ($ᵗ Randomness : ProbComp Randomness) := rfl
-
 example : ∀ failure : Fin 4,
     let result := (sequenceLayers (m := WriterT (List Nat) Id) fun lay =>
       WriterT.mk (pure (if lay.val = failure.val then none else some lay.val, [lay.val]))).run
@@ -190,49 +147,5 @@ example : (heightBelow topLayer, heightBelow middleLayer, heightBelow bottomLaye
 
 /-- The digest is `h + k * a = 176` bits and has to fit in one oracle output. -/
 example : messageDigestBits = 176 ∧ messageDigestBits ≤ hashOutputBits := by decide
-
-theorem treeIndexAt_val (index : Index) (lay : Layer) :
-    (treeIndexAt index lay).val = index.val / 2 ^ (totalHeight - heightAbove lay) := rfl
-
-theorem leafIndexAt_val (index : Index) (lay : Layer) :
-    (leafIndexAt index lay).val = index.val / 2 ^ heightBelow lay % 2 ^ layerHeight lay := rfl
-
-/-- Layer `0` holds a single tree, the public key's. -/
-theorem treeIndexAt_topLayer (index : Index) : (treeIndexAt index topLayer).val = 0 := by
-  have hlt : index.val < 2 ^ 26 := index.isLt
-  have h0 : totalHeight - heightAbove topLayer = 26 := by decide
-  simp only [treeIndexAt_val, h0]
-  omega
-
-/-- The layers link: the tree used on a layer is the one whose root sits at leaf `e_(lay-1)` of the
-tree used on the layer above. -/
-theorem layers_link_top (index : Index) :
-    (treeIndexAt index middleLayer).val
-      = (treeIndexAt index topLayer).val * 2 ^ layerHeight topLayer
-        + (leafIndexAt index topLayer).val := by
-  have hlt : index.val < 2 ^ 26 := index.isLt
-  have h0 : totalHeight - heightAbove topLayer = 26 := by decide
-  have h1 : totalHeight - heightAbove middleLayer = 14 := by decide
-  have hb : heightBelow topLayer = 14 := by decide
-  have hh : layerHeight topLayer = 12 := by decide
-  simp only [treeIndexAt_val, leafIndexAt_val, h0, h1, hb, hh]
-  omega
-
-theorem layers_link_middle (index : Index) :
-    (treeIndexAt index bottomLayer).val
-      = (treeIndexAt index middleLayer).val * 2 ^ layerHeight middleLayer
-        + (leafIndexAt index middleLayer).val := by
-  have h1 : totalHeight - heightAbove middleLayer = 14 := by decide
-  have h2 : totalHeight - heightAbove bottomLayer = 7 := by decide
-  have hb : heightBelow middleLayer = 7 := by decide
-  have hh : layerHeight middleLayer = 7 := by decide
-  simp only [treeIndexAt_val, leafIndexAt_val, h1, h2, hb, hh]
-  omega
-
-/-- The bottom layer's leaves are the `2^h` indices themselves. -/
-theorem leafIndexAt_bottomLayer (index : Index) :
-    (leafIndexAt index bottomLayer).val = index.val % 2 ^ layerHeight bottomLayer := by
-  have hb : heightBelow bottomLayer = 0 := by decide
-  simp [leafIndexAt_val, hb]
 
 end SphincsBase.Concrete

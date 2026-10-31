@@ -68,34 +68,4 @@ theorem search_query_classification (f : QueryImpl HashSpec Id) (parameter : Pub
           refine ⟨_, rfl, Or.inr ?_⟩
           simp only [firstEncoding, he, Option.map_some]
 
-/-- The prepared search cannot itself contain an exceptional encoding query. -/
-theorem search_targets_empty_or_miss (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : FtsTops)
-    (table : Table)
-    (hentry : table (hashDomainFields (.encoding lay tree leaf)) =
-      some ⟨exemptInput f parameter lay tree leaf message, target f parameter lay tree leaf message⟩)
-    (input : HashInput)
-    (hinput : input ∈ queriedInputs f
-      (search parameter lay tree leaf message encodingAttemptLimit 0)) :
-    truncateHash (f input) ∉ targets parameter table input := by
-  obtain ⟨counter, rfl, hcase⟩ := search_query_classification f parameter lay tree leaf message
-    encodingAttemptLimit 0 input hinput
-  rw [Wots.encodingInput, targets_at_entry _ _ _ _ _ hentry]
-  rcases hcase with hrejected | hexempt
-  · split_ifs with hexempt
-    · exact Finset.notMem_empty _
-    · simp only [Finset.mem_singleton]
-      intro hmatch
-      have hd := target_decodes f parameter lay tree leaf message
-      have hencode := hrejected
-      simp only [encode, evalWithAnswerFn_bind, eval_tweakableHash, evalWithAnswerFn_pure] at hencode
-      rw [hmatch] at hencode
-      rw [hd] at hencode
-      cases hencode
-  · have hexempt' : exemptInput f parameter lay tree leaf message =
-        some (tweakableHashInput parameter (.encoding lay tree leaf)
-          (ftsTopsPayload message ++ bytesLE 4 counter)) := hexempt
-    rw [ite_eq_left hexempt']
-    exact Finset.notMem_empty _
-
 end SphincsFors.Security.ReferenceChoice

@@ -121,10 +121,6 @@ def merkleInput (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (orderedPayload (index.testBit level)
       (merkleValue f parameter domain index path value level) (path level))
 
-@[simp] theorem merkleValue_zero (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (domain : Nat → Nat → HashDomain) (index : Nat) (path : Nat → Digest) (value : Digest) :
-    merkleValue f parameter domain index path value 0 = value := rfl
-
 theorem merkleValue_succ (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (domain : Nat → Nat → HashDomain) (index : Nat) (path : Nat → Digest)
     (value : Digest) (level : Nat) :

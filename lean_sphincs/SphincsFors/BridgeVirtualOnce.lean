@@ -91,21 +91,6 @@ theorem virtualOnce_perm (m : ℕ) {coins coins' : List V} (hperm : coins.Perm c
     virtualOnce U w f m coins d = virtualOnce U w f m coins' d :=
   slotValue_perm _ (hperm.map _) _
 
-/-- More coins, more virtual disclosures. -/
-theorem virtualOnce_le_cons (hU : U.Nonempty) (hw : w ≤ 1) (hmono : Monotone' f) (hsuper : Supermodular f)
-    (hfin : ∀ m, f m ≠ ⊤) (m : ℕ) (coins : List V) (v : V) (d : Multiset V) :
-    virtualOnce U w f m coins d ≤ virtualOnce U w f m (v :: coins) d := by
-  have hG := virtualOnce_props hU hw hmono hsuper hfin m coins
-  unfold virtualOnce
-  rw [itemCoins_cons]
-  simp only [slotValue]
-  change virtualOnce U w f m coins d ≤ w * virtualOnce U w f m coins (d + {v}) + (1 - w) * virtualOnce U w f m coins d
-  have hab : virtualOnce U w f m coins d ≤ virtualOnce U w f m coins (d + {v}) :=
-    hG.1 _ _ (Multiset.le_add_right _ _)
-  calc virtualOnce U w f m coins d = w * virtualOnce U w f m coins d + (1 - w) * virtualOnce U w f m coins d := by
-        rw [← add_mul, add_tsub_cancel_of_le hw, one_mul]
-    _ ≤ _ := by gcongr
-
 theorem virtualOnce_add (hU : U.Nonempty) (f g : Multiset V → ℝ≥0∞) (m : ℕ) (coins : List V) (d : Multiset V) :
     virtualOnce U w (fun x => f x + g x) m coins d = virtualOnce U w f m coins d + virtualOnce U w g m coins d := by
   unfold virtualOnce
@@ -135,21 +120,6 @@ theorem virtualOnce_mono_base {f g : Multiset V → ℝ≥0∞} (hfg : ∀ x, f 
   rw [fresh_eq_virtual m [] e, fresh_eq_virtual m [] e]
   exact virtual_mono_base hfg m [] e
 
-/-- The virtual future only adds disclosures. -/
-theorem base_le_virtualOnce (hU : U.Nonempty) (hw : w ≤ 1) (hmono : Monotone' f) (hsuper : Supermodular f)
-    (hfin : ∀ m, f m ≠ ⊤) (m : ℕ) (coins : List V) (d : Multiset V) : f d ≤ virtualOnce U w f m coins d := by
-  have hF := fresh_props hU hmono hsuper hfin m
-  have h1 : f d ≤ fresh U f m d := by
-    rw [fresh_eq_virtual m [] d]
-    exact base_le_virtual hU zero_le_one hmono hsuper hfin m [] d
-  refine le_trans h1 ?_
-  have hcoins := coins_gain (fresh U f m) hF.1 hF.2.1 hF.2.2 (coins.map fun v => (w, v))
-    (by intro i hi; obtain ⟨v, _, rfl⟩ := List.mem_map.1 hi; exact hw) d d le_rfl
-  have hc' : coinsOf (coins.map fun v => (w, v)) = itemCoins w coins := by
-    simp [coinsOf, itemCoins, Function.comp_def]
-  rw [hc'] at hcoins
-  exact le_trans le_self_add hcoins
-
 /-- One fresh slot after the coins of `rest`: the virtual future of one more slot, seen through the
 coins of the other items. -/
 theorem virtualOnce_succ (m : ℕ) (first rest : List V) (d : Multiset V) :
@@ -174,49 +144,6 @@ theorem virtualOnce_freshAvg (hU : U.Nonempty) {W : Type} [DecidableEq W] (T : F
   congr 1
   funext i
   exact slotValue_congr (fun e => (fresh_eq_virtual m [] e).symm) _ _
-
-/-- **The once-coined slot dominates a base value plus its fresh and pool gains.** -/
-theorem once_slot_ge (hU : U.Nonempty) (hw : w ≤ 1) (hmono : Monotone' f) (hsuper : Supermodular f)
-    (hfin : ∀ m, f m ≠ ⊤) (m : ℕ) (first rest : List V) (d : Multiset V) :
-    virtualOnce U w f m rest d + freshAvg U (gain (virtualOnce U w f m rest) d) +
-        (first.map fun v => w * gain (virtualOnce U w f m rest) d v).sum ≤
-      virtualOnce U w f (m + 1) (first ++ rest) d := by
-  set G := virtualOnce U w f m rest with hGdef
-  have hG := virtualOnce_props hU hw hmono hsuper hfin m rest
-  set H : Multiset V → ℝ≥0∞ := fun e => freshAvg U fun u => G (e + {u}) with hHdef
-  have hHmono : Monotone' H := mono_freshAvg U fun u => mono_translate hG.1 {u}
-  have hHsuper : Supermodular H := super_freshAvg U fun u => super_translate hG.2.1 {u}
-  have hHfin : ∀ e, H e ≠ ⊤ := fun e => freshAvg_ne_top hU fun u => hG.2.2 _
-  rw [virtualOnce_succ]
-  change G d + freshAvg U (gain G d) + (first.map fun v => w * gain G d v).sum ≤ slotValue H d (itemCoins w first)
-  have hcoins := coins_gain H hHmono hHsuper hHfin (first.map fun v => (w, v))
-    (by intro i hi; obtain ⟨v, _, rfl⟩ := List.mem_map.1 hi; exact hw) d d le_rfl
-  have hc' : coinsOf (first.map fun v => (w, v)) = itemCoins w first := by
-    simp [coinsOf, itemCoins, Function.comp_def]
-  rw [hc', List.map_map] at hcoins
-  refine le_trans ?_ hcoins
-  have hHd : H d = G d + freshAvg U (gain G d) := by
-    simp only [hHdef]
-    rw [← freshAvg_const U hU (G d), ← freshAvg_add]
-    congr 1
-    funext u
-    exact add_gain G hG.1 d u
-  rw [hHd]
-  refine add_le_add le_rfl (List.sum_le_sum fun v _ => ?_)
-  simp only [Function.comp_apply]
-  refine mul_le_mul_right ?_ w
-  show gain G d v ≤ gain H d v
-  unfold gain
-  refine ENNReal.le_sub_of_add_le_left (hHfin d) ?_
-  calc H d + (G (d + {v}) - G d) = freshAvg U (fun u => G (d + {u}) + (G (d + {v}) - G d)) := by
-        simp only [hHdef]
-        rw [freshAvg_add, freshAvg_const U hU]
-    _ ≤ freshAvg U fun u => G (d + {v} + {u}) := freshAvg_mono U fun u _ => by
-        have h := gain_le_of_le G hG.1 hG.2.1 hG.2.2 d (d + {u}) (Multiset.le_add_right _ _) v
-        unfold gain at h
-        rw [add_right_comm]
-        exact h
-    _ = H (d + {v}) := rfl
 
 end Once
 

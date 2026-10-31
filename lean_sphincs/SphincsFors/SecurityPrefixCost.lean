@@ -160,10 +160,4 @@ theorem hashCalls_messageDigest (f : QueryImpl HashSpec Id) (parameter : PublicP
     hashCalls f (messageDigest parameter root message randomness : OracleComp HashSpec MessageDigest) = 2 := by
   simp only [messageDigest, hashCalls_bind, hashCalls_messageDigestCall, hashCalls_pure]
 
-theorem hashCalls_signAttempt (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey)
-    (message : Message) (randomness : Randomness) :
-    hashCalls f (Seeded.signAttempt sk message randomness : OracleComp HashSpec (Option Index)) = 1 := by
-  rw [Seeded.signAttempt, hashCalls_bind, hashCalls_messageDigestCall]
-  split <;> rfl
-
 end SphincsFors.Security.Prefix

@@ -64,16 +64,6 @@ abbrev deriveRandomizer (parameter : PublicParameter) (seed : MasterSeed) (messa
 abbrev schemeSeed (seed : MasterSeed) : m MasterSeed :=
   Concrete.taggedSeedWithHash seedTag seed
 
-theorem thInput_hashDomainFields (parameter : PublicParameter) (domain : HashDomain)
-    (payload : HashInput) :
-    thInput parameter (hashDomainFields domain) payload =
-      tweakableHashInput parameter domain payload := rfl
-
-theorem thInput_keygenDomainFields (parameter : PublicParameter) (domain : KeygenDomain)
-    (seed : MasterSeed) :
-    thInput parameter (keygenDomainFields domain) (bytesLE 32 seed) =
-      keygenHashInput parameter domain seed := rfl
-
 /-- The signer returned the forgery (`Common.SufCma.SignerReturned`, a request being its message). -/
 abbrev SigningTranscript.Contains (log : OracleSpec.QueryLog SigningSpec) (forgery : Forgery) : Prop :=
   Common.SufCma.SignerReturned id log forgery.message forgery.signature

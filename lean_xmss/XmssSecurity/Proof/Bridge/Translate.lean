@@ -30,9 +30,6 @@ def topKey (key : TopIndex) : LeanXmss.KeyIndex :=
 
 @[simp] theorem topKey_val (key : TopIndex) : (topKey key).val = key.val := rfl
 
-theorem topKey_injective : Function.Injective topKey := fun _ _ h =>
-  Fin.ext (by simpa using congrArg Fin.val h)
-
 theorem keyAt_bottom (index : LeafIndex) :
     LeanXmss.keyAt index LeanXmss.bottomLayer = index := by
   apply Fin.ext
@@ -133,8 +130,6 @@ theorem topMessage_input (parameter : PublicParameter) (key : TopIndex) (root : 
 
 
 /-! ## Hashing routines -/
-
-theorem chainLength_eq : LeanXmss.chainLength = chainLength := rfl
 
 theorem chainWalk_bottom (parameter : PublicParameter) (key : LeafIndex) (chain : ChainIndex)
     (start steps : Nat) (value : Digest) :
@@ -339,8 +334,6 @@ theorem topLayer_ne_bottom : LeanXmss.topLayer ≠ LeanXmss.bottomLayer := by de
   rcases layer_cases lay with h | h <;> subst h
   · simp
   · simp [topLayer_ne_bottom]
-
-theorem toModelPk_toRealPk (publicKey : PublicKey) : toModelPk (toRealPk publicKey) = publicKey := rfl
 
 theorem recoverChain_bottom (parameter : PublicParameter) (key : LeafIndex) (chain : ChainIndex)
     (digit : Digit) (value : Digest) :

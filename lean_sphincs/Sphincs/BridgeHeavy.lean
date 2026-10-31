@@ -257,26 +257,6 @@ theorem heavy_withPair_other {Qtot : ℕ} (s : State) (p : Pair) (u0 : HashOutpu
     Heavy parameter data Qtot (withPair parameter data s p u0) m ↔ Heavy parameter data Qtot s m :=
   heavy_congr fun ρ => withPair_other_pair s p (m, ρ) (fun h => hm (congrArg Prod.fst h)) u0
 
-omit [Params] in
-/-- Heaviness after a new pair does not depend on the value of its block. -/
-theorem heavy_withPair_value {Qtot : ℕ} (s : State) (p : Pair) (u0 u0' : HashOutput) (m : Message) :
-    Heavy parameter data Qtot (withPair parameter data s p u0) m ↔
-      Heavy parameter data Qtot (withPair parameter data s p u0') m := by
-  have hc : ∀ u : HashOutput, cachedCount parameter data m (withPair parameter data s p u) =
-      (Finset.univ.filter fun ρ : Randomness => (m, ρ) = p ∨ s.cache (blk parameter data m ρ) ≠ none).card := by
-    intro u
-    unfold cachedCount
-    refine congrArg Finset.card (Finset.filter_congr fun ρ _ => ?_)
-    by_cases hq : ((m, ρ) : Pair) = p
-    · have h1 : (withPair parameter data s p u).cache (blk parameter data m ρ) = some u := by
-        rw [← hq]; exact withPair_self s (m, ρ) u
-      simp [h1, hq]
-    · have h1 : (withPair parameter data s p u).cache (blk parameter data m ρ) = s.cache (blk parameter data m ρ) :=
-        withPair_other_pair s p (m, ρ) hq u
-      simp [h1, hq]
-  unfold Heavy
-  rw [hc u0, hc u0']
-
 end Count
 
 /-! ### The total invariant is kept -/
@@ -449,20 +429,6 @@ theorem lightMsgs_of_none {s : State} {l : List Message} (h : heavyMsg parameter
   exact List.filter_eq_self.2 fun m hm => by simpa using heavyMsg_eq_none.1 h m hm
 
 omit [Params] in
-/-- The list is its heavy message and its light messages. -/
-theorem perm_heavy_cons {s : State} {l : List Message} {h : Message} (hnd : l.Nodup)
-    (hh : heavyMsg parameter data Qtot s l = some h) (huniq : ∀ m ∈ l, Heavy parameter data Qtot s m → m = h) :
-    l.Perm (h :: lightMsgs parameter data Qtot s l) := by
-  obtain ⟨hmem, hheavy⟩ := heavyMsg_some hh
-  refine (List.perm_cons_erase hmem).trans (List.Perm.cons h (List.Perm.of_eq ?_))
-  rw [hnd.erase_eq_filter]
-  unfold lightMsgs
-  refine List.filter_congr fun m hm => ?_
-  rw [Bool.eq_iff_iff]
-  simp only [bne_iff_ne, ne_eq, decide_eq_true_eq]
-  exact ⟨fun hne hm' => hne (huniq m hm hm'), fun hnh heq => hnh (heq ▸ hheavy)⟩
-
-omit [Params] in
 theorem lightMsgs_nodup {s : State} {l : List Message} (h : l.Nodup) : (lightMsgs parameter data Qtot s l).Nodup :=
   h.filter _
 
@@ -476,9 +442,6 @@ variable {parameter : PublicParameter} {data : PublicData} {w : ℝ≥0∞}
 
 theorem innerH_some (s : State) (excl : Pair → Prop) (h : Message) (f : Multiset View → ℝ≥0∞) (n : ℕ) (I : List View) :
     innerH parameter data w s excl (some h) f n I = sgnM parameter data s excl h (virtualOnce Finset.univ w f n I) := rfl
-
-theorem innerH_none (s : State) (excl : Pair → Prop) (f : Multiset View → ℝ≥0∞) (n : ℕ) (I : List View) :
-    innerH parameter data w s excl none f n I = virtualOnce Finset.univ w f (n + 1) I := rfl
 
 theorem sgnM_mono (s : State) (excl : Pair → Prop) (m : Message) {F : Multiset View → ℝ≥0∞} (hF : Monotone' F) :
     Monotone' (sgnM parameter data s excl m F) := sgn_mono _ _ hF
@@ -658,11 +621,6 @@ theorem valH_mono {f : Multiset View → ℝ≥0∞} (hf : Monotone' f) (s : Sta
     Monotone' (valH parameter data w s excl Ls hv f n I) :=
   grpAll_mono s excl (innerH_mono hf s excl hv n I) Ls
 
-theorem valH_ne_top (hw : w ≤ 1) {f : Multiset View → ℝ≥0∞} (hfin : ∀ D, f D ≠ ⊤) (s : State) (excl : Pair → Prop)
-    (Ls : List Message) (hv : Option Message) (n : ℕ) (I : List View) (e : Multiset View) :
-    valH parameter data w s excl Ls hv f n I e ≠ ⊤ :=
-  grpAll_ne_top s excl (innerH_ne_top hw hfin s excl hv n I) Ls e
-
 /-- The value does not depend on the order of the light messages. -/
 theorem valH_perm_msgs (s : State) (excl : Pair → Prop) {Ls Ls' : List Message} (h : Ls.Perm Ls')
     (hv : Option Message) (f : Multiset View → ℝ≥0∞) (n : ℕ) (I : List View) (e : Multiset View) :
@@ -753,12 +711,6 @@ theorem termH_blocks {s s' : State} (h : ∀ q, s'.cache (pblk parameter data q)
   unfold baseH
   rw [lightMsgs_congr hheavy, heavyMsg_congr hheavy]
   exact valH_blocksOn excl (fun m _ => hb m) (fun m _ => hb m) f n I d
-
-/-- **The start value.** With no listed message a term is the one-coin future with its spare slot. -/
-theorem termH_nil (s : State) (L : QueryLog SigningSpec) (excl : Pair → Prop) (f : Multiset View → ℝ≥0∞)
-    (d : Multiset View) (n k : ℕ) :
-    termH parameter data Qtot w s [] L excl f d n k =
-      creations Finset.univ landing (fun I => virtualOnce Finset.univ w f (n + 1) I d) k [] := rfl
 
 /-- Listing one more message does not change a term: it has no cached digest yet. -/
 theorem termH_addMsg {s : State} {Ms : List Message} (hM : MInv parameter data s Ms) (L : QueryLog SigningSpec)
@@ -885,11 +837,6 @@ theorem grpAll_probeG (hw : w ≤ 1) (s : State) (p : Pair) (hp0 : s.cache (pblk
   rw [hR1, show (fun v => grpAll parameter data s excl Ms (G (v :: I)) d) = _ from funext hR2]
   unfold grpM
   rw [grp_add _ _ (fun e => (1 - landing) * X e), grp_const_mul, grp_const_mul, grp_freshAvg]
-
-theorem sgnM_withPair_other (s : State) (p : Pair) (u0 : HashOutput) (excl : Pair → Prop) {m : Message}
-    (hm : m ≠ p.1) (F : Multiset View → ℝ≥0∞) (d : Multiset View) :
-    sgnM parameter data (withPair parameter data s p u0) excl m F d = sgnM parameter data s excl m F d :=
-  sgnM_blocksOn excl (fun ρ => withPair_other_pair s p (m, ρ) (fun h => hm (congrArg Prod.fst h)) u0) F d
 
 theorem sgnM_withPair_self (s : State) (p : Pair) (u0 : HashOutput) (excl : Pair → Prop)
     (F : Multiset View → ℝ≥0∞) (d : Multiset View) :
@@ -1350,79 +1297,6 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate) (initial : 
   (model : HiddenRows.Model HashInput HashOutput A Coordinate)
   {parameter : PublicParameter} {data : PublicData} {Qtot : ℕ} {w : ℝ≥0∞} {m : Message} {s : State} {n : ℕ}
   {d : Multiset View} {f : Multiset View → ℝ≥0∞}
-
-/-- **A dominated term.** Averaged over a signing call of a live message, the upper value of a term
-is at most its value with one more signature left: the group of the signed message with one fresh
-slot if it is light, the law of its signed view (which takes the spare slot) if it is heavy. -/
-theorem term_expectH (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = none) (hf : MonoFin f)
-    {Ms : List Message} (hM : MInv parameter data s Ms) {budgetT : ℕ} (hT : TotalInv parameter data Qtot s budgetT)
-    {L : QueryLog SigningSpec} (hm : MsgLive L m) (excl : Pair → Prop) (budget k : ℕ) :
-    ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
-        creations Finset.univ landing (fun J => upperH parameter data Qtot w m s n d f L Ms excl out J) k [] ≤
-      termH parameter data Qtot w s Ms L excl f d (n + 1) k := by
-  rw [← termH_addMsg hM L excl m f d (n + 1) k]
-  unfold termH
-  rw [creations_tsum]
-  refine creations_mono (fun J => ?_) k []
-  have hperm : (live L (addMsg Ms m)).Perm (m :: restMsgs m L Ms) := live_perm hm hM.nodup
-  have hrestne : ∀ m' ∈ restMsgs m L Ms, m' ≠ m := by
-    intro m' hm'
-    unfold restMsgs at hm'
-    simpa using (List.mem_filter.1 hm').2
-  have hX : Monotone' (restH parameter data Qtot w m s n f L Ms excl J) := valH_mono hf.1 s excl _ _ n J
-  by_cases hH : Heavy parameter data Qtot s m
-  · -- the signed message is heavy: the law of its signed view
-    have hnoneR : heavyMsg parameter data Qtot s (restMsgs m L Ms) = none :=
-      heavyMsg_eq_none.2 fun m' hm' hh => hrestne m' hm' (heavy_unique hT hh hH)
-    have hlightR : lightMsgs parameter data Qtot s (restMsgs m L Ms) = restMsgs m L Ms := lightMsgs_of_none hnoneR
-    have hsomeV : heavyMsg parameter data Qtot s (live L (addMsg Ms m)) = some m :=
-      (heavyMsg_eq_some_iff hT).2 ⟨hperm.mem_iff.2 (List.mem_cons_self ..), hH⟩
-    have hlightV : (lightMsgs parameter data Qtot s (live L (addMsg Ms m))).Perm (restMsgs m L Ms) := by
-      have h1 := hperm.filter (fun m' => decide (¬Heavy parameter data Qtot s m'))
-      rw [List.filter_cons, ite_eq_right (by simpa using hH)] at h1
-      rw [← hlightR]
-      exact h1
-    refine le_trans (sign_termS tg initial model parameter data m hparse hX s d excl budget) (le_of_eq ?_)
-    have hL : sgnM parameter data s excl m (restH parameter data Qtot w m s n f L Ms excl J) d =
-        sgnM parameter data s excl m
-          (grpAll parameter data s excl (restMsgs m L Ms) (virtualOnce Finset.univ w f (n + 1) J)) d := by
-      unfold restH
-      rw [hnoneR, hlightR]
-      rfl
-    have hR : baseH parameter data Qtot w s (addMsg Ms m) L excl f d (n + 1) J =
-        sgnM parameter data s excl m
-          (grpAll parameter data s excl (restMsgs m L Ms) (virtualOnce Finset.univ w f (n + 1) J)) d := by
-      unfold baseH
-      rw [hsomeV, valH_perm_msgs s excl hlightV, valH_heavy_eq]
-    rw [hL, hR]
-  · -- the signed message is light: its group and one fresh slot
-    have hhv : heavyMsg parameter data Qtot s (live L (addMsg Ms m)) =
-        heavyMsg parameter data Qtot s (restMsgs m L Ms) := by
-      cases hR : heavyMsg parameter data Qtot s (restMsgs m L Ms) with
-      | none =>
-          refine heavyMsg_eq_none.2 fun m' hm' => ?_
-          rcases List.mem_cons.1 (hperm.mem_iff.1 hm') with h | h
-          · rw [h]; exact hH
-          · exact heavyMsg_eq_none.1 hR m' h
-      | some h =>
-          exact (heavyMsg_eq_some_iff hT).2
-            ⟨hperm.mem_iff.2 (List.mem_cons_of_mem _ (heavyMsg_some hR).1), (heavyMsg_some hR).2⟩
-    have hlightV : (lightMsgs parameter data Qtot s (live L (addMsg Ms m))).Perm
-        (m :: lightMsgs parameter data Qtot s (restMsgs m L Ms)) := by
-      have h1 := hperm.filter (fun m' => decide (¬Heavy parameter data Qtot s m'))
-      rw [List.filter_cons, ite_eq_left (by simpa using hH)] at h1
-      exact h1
-    refine le_trans (sign_term tg initial model parameter data m hparse hX s d excl budget) (le_of_eq ?_)
-    have hR : baseH parameter data Qtot w s (addMsg Ms m) L excl f d (n + 1) J =
-        grpM parameter data s excl m (valH parameter data w s excl
-          (lightMsgs parameter data Qtot s (restMsgs m L Ms))
-          (heavyMsg parameter data Qtot s (restMsgs m L Ms)) f (n + 1) J) d := by
-      unfold baseH
-      rw [hhv, valH_perm_msgs s excl hlightV]
-      rfl
-    rw [hR]
-    unfold grpM
-    exact grp_congr _ _ (fun e => (valH_succ excl _ _ J e).symm) d
 
 end SignExpectH
 

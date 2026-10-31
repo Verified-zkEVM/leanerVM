@@ -104,14 +104,6 @@ theorem scanStatus_cacheQuery_of_ne (secretKey : SecretKey) (leafIndex : LeafInd
 /-- The scan's successor `ρ ↦ ρ + 1`. -/
 def nextRand : Equiv.Perm Randomness := Equiv.addRight 1
 
-theorem nextRand_pow_apply (randomness : Randomness) (j : ℕ) :
-    (nextRand ^ j) randomness = randomness + (j : Randomness) := by
-  induction j with
-  | zero => simp
-  | succ j ih =>
-      rw [pow_succ', Equiv.Perm.mul_apply, ih]
-      simp [nextRand, add_assoc]
-
 theorem nextRand_trial (base : Randomness) (trial : ℕ) :
     nextRand (base + BitVec.ofNat randomnessBits trial) =
       base + BitVec.ofNat randomnessBits (trial + 1) := by

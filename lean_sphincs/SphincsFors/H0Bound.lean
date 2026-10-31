@@ -97,40 +97,4 @@ theorem fair_of (q : ℕ) (hq : 2 * q ≤ 2 ^ 128) : ForsPotential.Fair (wbarOf 
 
 /-! ### Real forms of the ingredients -/
 
-/-- Touchard sums commute with `ofReal`. -/
-theorem touchard_ofReal (n : ℕ) (r : ℝ) (hr : 0 ≤ r) :
-    touchard n (ENNReal.ofReal r) =
-      ENNReal.ofReal (∑ j ∈ Finset.range (n + 1), (Nat.stirlingSecond n j : ℝ) * r ^ j) := by
-  unfold touchard
-  rw [ENNReal.ofReal_sum_of_nonneg (fun j _ => by positivity)]
-  refine Finset.sum_congr rfl fun j _ => ?_
-  rw [ENNReal.ofReal_mul (by positivity), ENNReal.ofReal_pow hr, ENNReal.ofReal_natCast]
-
-theorem touchard_mono (n : ℕ) {μ μ' : ℝ≥0∞} (h : μ ≤ μ') : touchard n μ ≤ touchard n μ' := by
-  unfold touchard
-  gcongr
-
-/-- The final real inequality. -/
-theorem final_real (q qa qb Kc Nn Ar Le Y : ℝ) (hqa : qa ≤ q) (hqb : q ≤ qb) (hqa0 : 0 ≤ qa)
-    (hAr : 0 ≤ Ar) (hLe0 : 0 ≤ Le) (hLe1 : Le < 1) (hY : Y ≤ Le / (1 - Le))
-    (hcheck : qb * Ar * (Le / (1 - Le)) + (qb + Kc + Nn) / 2 ^ 200 ≤ (qa / 2 ^ 128) ^ 2 + Kc / 2 ^ 127) :
-    (1 - ((2 ^ 128 - 0 - q) / (2 ^ 128 - 0)) ^ 2) + q * (Ar * Y) + (q + Kc + Nn) / 2 ^ 200 ≤
-      (q + Kc) / 2 ^ 127 := by
-  have hq0 : 0 ≤ q := le_trans hqa0 hqa
-  have hF : 0 ≤ Le / (1 - Le) := div_nonneg hLe0 (by linarith)
-  have h1 : q * (Ar * Y) ≤ qb * Ar * (Le / (1 - Le)) := by
-    calc q * (Ar * Y) ≤ q * (Ar * (Le / (1 - Le))) := by gcongr
-      _ ≤ qb * (Ar * (Le / (1 - Le))) := by gcongr
-      _ = qb * Ar * (Le / (1 - Le)) := by ring
-  have h2 : (qa / 2 ^ 128) ^ 2 ≤ (q / 2 ^ 128) ^ 2 := by gcongr
-  have h3 : (q + Kc + Nn) / 2 ^ 200 ≤ (qb + Kc + Nn) / 2 ^ 200 := by gcongr
-  have h4 : (1 - ((2 ^ 128 - 0 - q) / (2 ^ 128 - 0)) ^ 2) = 2 * q / 2 ^ 128 - (q / 2 ^ 128) ^ 2 := by
-    simp only [sub_zero]
-    field_simp
-    ring
-  have h5 : (q + Kc) / 2 ^ 127 = 2 * q / 2 ^ 128 + Kc / 2 ^ 127 := by
-    field_simp
-  rw [h4, h5]
-  linarith
-
 end SphincsFors.Security.H0

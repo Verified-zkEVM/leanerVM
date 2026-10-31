@@ -173,48 +173,6 @@ theorem getLsbD_truncateMessageDigest (first second : HashOutput) (i : Nat) :
     rw [show i - 146 - 60 = i - 206 by omega]
   · simp only [h0, h1, h2, h3, h4, ite_false, decide_false, Bool.false_and]
 
-/-- Where the FORS indices are (`digest_fields` in `crates/sphincs/src/scheme.rs`): index `kappa` is
-in call `kappa / 12`, at bit `64 * ((kappa % 12) / 6) + 10 * (kappa % 6)`, so six indices lie in each
-of the first two 64-bit words of a call and none across two words. -/
-theorem digestLeaves_truncate (first second : HashOutput) (tree : IndexGroup) :
-    Concrete.digestLeaves (truncateMessageDigest first second) tree =
-      ((if tree.val < 12 then first else second).extractLsb'
-        (64 * (tree.val % 12 / 6) + 10 * (tree.val % 6)) ftsTreeHeight).toFin := by
-  have htree : tree.val < 24 := tree.isLt
-  unfold Concrete.digestLeaves
-  generalize tree.val = kappa at htree ⊢
-  congr 1
-  apply BitVec.eq_of_getLsbD_eq
-  intro i hi
-  have hi' : i < 10 := hi
-  rw [BitVec.getLsbD_extractLsb', BitVec.getLsbD_extractLsb', getLsbD_truncateMessageDigest]
-  congr 1
-  change (if 26 + 10 * kappa + i < 26 then first.getLsbD (128 + (26 + 10 * kappa + i))
-      else if 26 + 10 * kappa + i < 86 then first.getLsbD (26 + 10 * kappa + i - 26)
-      else if 26 + 10 * kappa + i < 146 then first.getLsbD (64 + (26 + 10 * kappa + i - 86))
-      else if 26 + 10 * kappa + i < 206 then second.getLsbD (26 + 10 * kappa + i - 146)
-      else if 26 + 10 * kappa + i < 266 then second.getLsbD (64 + (26 + 10 * kappa + i - 206))
-      else false) = _
-  by_cases h0 : kappa < 6
-  · simp only [show ¬ 26 + 10 * kappa + i < 26 by omega, show 26 + 10 * kappa + i < 86 by omega,
-      show kappa < 12 by omega, ite_true, ite_false]
-    rw [show 26 + 10 * kappa + i - 26 = 64 * (kappa % 12 / 6) + 10 * (kappa % 6) + i by omega]
-  by_cases h1 : kappa < 12
-  · simp only [show ¬ 26 + 10 * kappa + i < 26 by omega, show ¬ 26 + 10 * kappa + i < 86 by omega,
-      show 26 + 10 * kappa + i < 146 by omega, h1, ite_true, ite_false]
-    rw [show 64 + (26 + 10 * kappa + i - 86) =
-      64 * (kappa % 12 / 6) + 10 * (kappa % 6) + i by omega]
-  by_cases h2 : kappa < 18
-  · simp only [show ¬ 26 + 10 * kappa + i < 26 by omega, show ¬ 26 + 10 * kappa + i < 86 by omega,
-      show ¬ 26 + 10 * kappa + i < 146 by omega, show 26 + 10 * kappa + i < 206 by omega, h1,
-      ite_true, ite_false]
-    rw [show 26 + 10 * kappa + i - 146 = 64 * (kappa % 12 / 6) + 10 * (kappa % 6) + i by omega]
-  · simp only [show ¬ 26 + 10 * kappa + i < 26 by omega, show ¬ 26 + 10 * kappa + i < 86 by omega,
-      show ¬ 26 + 10 * kappa + i < 146 by omega, show ¬ 26 + 10 * kappa + i < 206 by omega,
-      show 26 + 10 * kappa + i < 266 by omega, h1, ite_true, ite_false]
-    rw [show 64 + (26 + 10 * kappa + i - 206) =
-      64 * (kappa % 12 / 6) + 10 * (kappa % 6) + i by omega]
-
 /-- The bits of a hash output that are not a field of digest call `0`: the top four bits of its
 first two 64-bit words, and what follows the index. -/
 def firstCallRest (output : HashOutput) : BitVec 110 :=
@@ -304,14 +262,6 @@ theorem evalDist_blockIndexBits_uniform :
 theorem evalDist_truncateHash_uniform :
     (truncateHash <$> ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ Digest : ProbComp Digest) := by
   exact evalDist_hashOutput_extract_uniform (width := digestBits) (by decide)
-
-theorem probEvent_uniform_truncateHash_eq (target : Digest) :
-    Pr{let output ← ($ᵗ HashOutput : ProbComp HashOutput)}[truncateHash output = target] =
-      (Fintype.card Digest : ℝ≥0∞)⁻¹ := by
-  have h := evalDist_truncateHash_uniform.prEvent_eq (· = target)
-  rw [prEvent_map] at h
-  rw [h]
-  exact SampleableType.prEvent_uniformSample_eq_singleton target
 
 theorem probEvent_uniform_truncateHash_mem (targets : Finset Digest) :
     Pr{let output ← ($ᵗ HashOutput : ProbComp HashOutput)}[truncateHash output ∈ targets] =

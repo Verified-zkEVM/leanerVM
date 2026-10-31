@@ -156,21 +156,6 @@ noncomputable def encodingTracedLift
   encodingTracedLiftOf secretKey input Prod.fst Prod.snd
     (fun _ next trace => (next, trace)) cache base
 
-@[simp]
-theorem encodingTracedLift_run
-    {m : Type → Type} [Monad m]
-    (secretKey : SecretKey)
-    (input : (OracleWorld + SigningSpec).Domain)
-    (cache : σ → QueryCache HashSpec)
-    (base : StateT σ m ((OracleWorld + SigningSpec).Range input))
-    (initial : σ × EncodingActionTrace) :
-    (encodingTracedLift secretKey input cache base).run initial =
-      (fun result => (result.1, (result.2,
-        encodingActionTraceUpdate secretKey input
-          (cache initial.1, []) result.1 (cache result.2, []) initial.2))) <$>
-        base.run initial.1 := by
-  rfl
-
 theorem encodingActionTraceUpdate_eq_or_append
     (secretKey : SecretKey)
     (input : (OracleWorld + SigningSpec).Domain)

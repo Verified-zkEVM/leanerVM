@@ -48,49 +48,7 @@ theorem leafAt (parameter : PublicParameter)
     (fun endpoints => tweakableHash parameter (.leaf leafIndex)
       (Concrete.leafPayload endpoints))
 
-theorem treeNode (parameter : PublicParameter)
-    (secret : LeafIndex → ChainIndex → Digest) (levels : Nat) (node : MerkleNode)
-    (hlevels : levels ≤ treeHeight) :
-    ExactQueryCount
-      (Concrete.treeNode (m := OracleComp HashSpec) parameter secret levels node)
-      (treeHashQueryCount levels) := by
-  induction levels generalizing node with
-  | zero =>
-      rw [Concrete.treeNode_zero_eq]
-      exact leafAt parameter secret node
-  | succ levels ih =>
-      have hlevel : levels < treeHeight := Nat.lt_of_succ_le hlevels
-      rw [Concrete.treeNode_succ_eq]
-      have hleft := ih (Concrete.childNode node false) (Nat.le_of_succ_le hlevels)
-      have hright := ih (Concrete.childNode node true) (Nat.le_of_succ_le hlevels)
-      have hcontinuation (left : Digest) :
-          ExactQueryCount (do
-            let right ← Concrete.treeNode (m := OracleComp HashSpec) parameter secret levels
-              (Concrete.childNode node true)
-            Concrete.nodeHash parameter ⟨levels, hlevel⟩ node left right)
-            (treeHashQueryCount levels + 1) :=
-        hright.bind
-          (fun right => Concrete.nodeHash parameter ⟨levels, hlevel⟩ node left right) 1
-          (fun right => tweakableHash parameter (.merkle ⟨levels, hlevel⟩ node)
-            (Concrete.nodePayload left right))
-      simpa [hlevel, treeHashQueryCount, Nat.add_assoc, Nat.add_comm,
-        Nat.add_left_comm, Nat.two_mul] using
-        hleft.bind
-          (fun left => do
-            let right ← Concrete.treeNode (m := OracleComp HashSpec) parameter secret levels
-              (Concrete.childNode node true)
-            Concrete.nodeHash parameter ⟨levels, hlevel⟩ node left right)
-          (treeHashQueryCount levels + 1) hcontinuation
-
 end ExactQueryCount
-
-theorem treeHashQueryCount_base_le (levels : Nat) :
-    numChains * (chainLength - 1) + 1 ≤ treeHashQueryCount levels := by
-  induction levels with
-  | zero => rfl
-  | succ levels ih =>
-      simp only [treeHashQueryCount]
-      omega
 
 def IsHashQuery : OracleWorld.Domain → Prop := fun input => input matches .inr _
 
@@ -100,25 +58,7 @@ instance : DecidablePred IsHashQuery := by
 
 namespace ExactQueryCount.ExactPredicateQueryCount
 
-theorem liftProbComp_hashCount_zero (computation : ProbComp α) :
-    ExactPredicateQueryCount IsHashQuery
-      (liftM computation : OracleComp OracleWorld α) 0 := by
-  apply ExactQueryCount.ExactPredicateQueryCount.of_isQueryBoundP_zero
-  exact OracleComp.IsQueryBoundP.liftComp_subSpec
-    (p := fun _ : unifSpec.Domain => False) (q := IsHashQuery)
-    (fun input => by simp [IsHashQuery])
-    (OracleComp.isQueryBoundP_false computation 0)
-
 end ExactQueryCount.ExactPredicateQueryCount
-
-theorem countHashQueries_of_exact {α : Type} {computation : OracleComp OracleWorld α} {count : Nat}
-    (hexact : ExactPredicateQueryCount IsHashQuery computation count) :
-    countHashQueries computation = (fun value => (value, count)) <$> computation := by
-  induction hexact with
-  | pure value => simp only [countHashQueries_pure, map_pure]
-  | query input next count hnext ih =>
-      simp only [countHashQueries_query_bind, ih, map_bind, bind_pure_comp, Functor.map_map]
-      cases input <;> simp [IsHashQuery, Nat.add_comm]
 
 /-- The after-key-generation budget bounds every run after key generation. -/
 theorem afterKeygen_hashQueryBound (adversary : Adversary) (q : Nat)

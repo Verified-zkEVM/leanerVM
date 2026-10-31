@@ -49,19 +49,6 @@ theorem parseSeed_eq_some_iff (input : HashInput) (seed : MasterSeed) :
     · intro hseed
       exact False.elim (h ⟨seed, hseed⟩)
 
-theorem parseSeed_keygen (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
-    parseSeed (keygenHashInput parameter domain seed) = some seed :=
-  (parseSeed_eq_some_iff _ _).2 ⟨parameter, domain, rfl⟩
-
-/-- Verifier inputs can never be mistaken for derivation inputs, even across public parameters. -/
-theorem parseSeed_verifier (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :
-    parseSeed (tweakableHashInput parameter domain payload) = none := by
-  cases h : parseSeed (tweakableHashInput parameter domain payload) with
-  | none => rfl
-  | some seed =>
-      obtain ⟨parameter', domain', heq⟩ := (parseSeed_eq_some_iff _ _).1 h
-      exact False.elim (keygenInput_ne_hashInput parameter' parameter domain' domain seed payload heq)
-
 /-- Each fixed byte input contributes at most one equality guess against a uniform hidden seed. -/
 theorem seedHit_probability_le (input : HashInput) :
     Pr{let x ← sampleMasterSeed}[(SeedHit input) x] ≤ 1 / (2 : ℝ≥0∞) ^ 256 := by

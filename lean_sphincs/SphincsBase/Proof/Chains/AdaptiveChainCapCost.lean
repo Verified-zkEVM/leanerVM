@@ -33,20 +33,4 @@ theorem realRun_cap_count_payoff (payoff : Result × Nat → ENNReal) :
     (realRun_cap_recover_count auxiliary computation cost budget hcharge hreal)
   simpa only [expectation_map, Option.elim_map, Option.elim_some, Function.comp_def] using h
 
-theorem idealRun_cap_spent_lower :
-    (1 - (budget : ENNReal) / Fintype.card State) *
-        (∑' result, idealRun auxiliary (fun endpoint => QueryCap.run IsPrefixQuery (computation endpoint) budget)
-          (fun _ _ => none) result * (QueryCap.spent budget result.2.1 : ENNReal)) ≤
-      ∑' result, realRun auxiliary (fun endpoint => QueryCap.counted IsPrefixQuery (computation endpoint))
-        (fun _ _ => none) result * (result.2.1.2 : ENNReal) := by
-  apply (realRun_empty_cost_lower auxiliary (fun endpoint => QueryCap.run IsPrefixQuery (computation endpoint) budget)
-    budget (fun endpoint => QueryCap.run_queryBound IsPrefixQuery (computation endpoint) budget)
-    (fun result => (QueryCap.spent budget result.2.1 : ENNReal))).trans_eq
-  have h := realRun_cap_count_payoff auxiliary computation cost budget hcharge hreal (fun result => (result.2 : ENNReal))
-  convert h using 1
-  apply tsum_congr
-  intro result
-  congr 1
-  cases result.2.1 <;> simp only [QueryCap.spent, Option.elim_none, Option.elim_some, Nat.cast_zero]
-
 end SphincsBase.Concrete.PartialChainEndpoint

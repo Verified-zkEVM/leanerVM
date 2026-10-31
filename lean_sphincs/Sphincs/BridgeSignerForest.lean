@@ -371,25 +371,6 @@ theorem related_store (reference state : DebtState HashInput HashOutput Coordina
   · rw [store_cache_ne state _ _ (blk_ne_of_ne parameter data message hρ) u]
     exact hrel ρ'
 
-omit [Params] in
-theorem cachedCount_store (state : DebtState HashInput HashOutput Coordinate) (ρ : Randomness) (u : HashOutput) :
-    cachedCount parameter data message (state.store (blk parameter data message ρ) u) ≤
-      cachedCount parameter data message state + 1 := by
-  unfold cachedCount
-  calc (Finset.univ.filter fun ρ' : Randomness =>
-          (state.store (blk parameter data message ρ) u).cache (blk parameter data message ρ') ≠ none).card
-      ≤ (insert ρ (Finset.univ.filter fun ρ' : Randomness =>
-          state.cache (blk parameter data message ρ') ≠ none)).card := by
-        refine Finset.card_le_card fun ρ' hρ' => ?_
-        rw [Finset.mem_filter] at hρ'
-        rw [Finset.mem_insert, Finset.mem_filter]
-        by_cases h : ρ' = ρ
-        · exact Or.inl h
-        · refine Or.inr ⟨Finset.mem_univ _, ?_⟩
-          rw [store_cache_ne state _ _ (blk_ne_of_ne parameter data message h) u] at hρ'
-          exact hρ'.2
-    _ ≤ _ := Finset.card_insert_le _ _
-
 /-- The weight of a completed assembly is the weight of its own pair. -/
 theorem outWeight_finish_le (reference : DebtState HashInput HashOutput Coordinate)
     (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomness → Lifetime.KeptDigestView → ℝ≥0∞)

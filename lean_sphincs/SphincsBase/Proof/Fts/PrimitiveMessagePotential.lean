@@ -24,20 +24,6 @@ theorem hazard (space probes : ℝ) (hspace : space - probes ≠ 0) :
   unfold value
   field_simp
 
-theorem toReal_hazard (space probes : Nat) (hprobes : probes < space) :
-    (1 - (1 - ((space - probes : Nat) : ENNReal)⁻¹) ^ 2 : ENNReal).toReal = value space probes 1 := by
-  have hminimum : 1 ≤ space - probes := Nat.sub_pos_of_lt hprobes
-  have hinverse : ((space - probes : Nat) : ENNReal)⁻¹ ≤ 1 := by
-    apply ENNReal.inv_le_one.mpr
-    exact_mod_cast hminimum
-  have hsub : (1 - ((space - probes : Nat) : ENNReal)⁻¹ : ENNReal) ≤ 1 := tsub_le_self
-  have hsquare : (1 - ((space - probes : Nat) : ENNReal)⁻¹) ^ 2 ≤ (1 : ENNReal) := by
-    simpa only [pow_two, mul_one] using mul_le_mul' hsub hsub
-  have hden : (space : ℝ) - probes ≠ 0 := ne_of_gt (sub_pos.mpr (Nat.cast_lt.mpr hprobes))
-  rw [ENNReal.toReal_sub_of_le hsquare (by simp), ENNReal.toReal_one, ENNReal.toReal_pow,
-    ENNReal.toReal_sub_of_le hinverse (by simp), ENNReal.toReal_one, ENNReal.toReal_inv,
-    ENNReal.toReal_natCast, Nat.cast_sub hprobes.le, hazard _ _ hden]
-
 theorem bounds (space probes remaining : ℝ) (hremaining : 0 ≤ remaining)
     (hbudget : probes + remaining < space) :
     0 ≤ value space probes remaining ∧ value space probes remaining < 1 := by
@@ -75,16 +61,6 @@ theorem message_payment (space probes remaining : ℝ) (hspace : 0 < space)
   rw [← message_increment space probes remaining (ne_of_gt hden)] at hpay
   linarith
 
-theorem mono_remaining (space probes before after : ℝ) (hbefore : 0 ≤ before)
-    (horder : before ≤ after) (hbudget : probes + after < space) :
-    value space probes before ≤ value space probes after := by
-  have hden : 0 < space - probes := by linarith
-  have hsmall : 0 ≤ (space - probes - after) / (space - probes) := div_nonneg (by linarith) hden.le
-  have hratio : (space - probes - after) / (space - probes) ≤ (space - probes - before) / (space - probes) :=
-    (div_le_div_iff_of_pos_right hden).mpr (by linarith)
-  unfold value
-  nlinarith [mul_self_le_mul_self hsmall hratio]
-
 theorem mono_probes (space before after remaining : ℝ) (hremaining : 0 ≤ remaining)
     (horder : before ≤ after) (hbudget : after + remaining < space) :
     value space before remaining ≤ value space after remaining := by
@@ -103,21 +79,6 @@ theorem mono_probes (space before after remaining : ℝ) (hremaining : 0 ≤ rem
   nlinarith [mul_self_le_mul_self hnonnegative (show 1 - remaining / (space - after) ≤
     1 - remaining / (space - before) by linarith)]
 
-theorem nonmessage_step (space probes after remaining probability : ℝ)
-    (hremaining : 0 ≤ remaining) (hafter : after ≤ probes + 1) (hbudget : probes + remaining + 1 < space)
-    (hhazard : probability ≤ value space probes 1) :
-    probability + (1 - probability) * value space after remaining ≤ value space probes (remaining + 1) := by
-  have hnext := bounds space (probes + 1) remaining hremaining (by linarith)
-  have hfirst := bounds space probes 1 (by norm_num) (by linarith)
-  have hcontinuation := mono_probes space after (probes + 1) remaining hremaining hafter (by linarith)
-  have hsurvive : 0 ≤ 1 - probability := by linarith
-  calc
-    _ ≤ probability + (1 - probability) * value space (probes + 1) remaining :=
-      add_le_add le_rfl (mul_le_mul_of_nonneg_left hcontinuation hsurvive)
-    _ ≤ value space probes 1 + (1 - value space probes 1) * value space (probes + 1) remaining := by
-      nlinarith [mul_nonneg (sub_nonneg.mpr hhazard) (sub_nonneg.mpr hnext.2.le)]
-    _ = _ := probe_balance space probes remaining (by linarith) (by linarith)
-
 theorem messages_payment (space probes remaining : ℝ) (calls : Nat) (hspace : 0 < space)
     (hprobes : 0 ≤ probes) (hremaining : 0 ≤ remaining) (hbudget : 2 * (probes + remaining + calls) ≤ space) :
     (calls : ℝ) / space + value space probes remaining ≤ value space probes (remaining + calls) := by
@@ -135,13 +96,5 @@ theorem messages_payment (space probes remaining : ℝ) (calls : Nat) (hspace : 
         _ = 1 / space + ((calls : ℝ) / space + value space probes remaining) := by ring
         _ ≤ 1 / space + value space probes (remaining + calls) := add_le_add le_rfl hbefore
         _ ≤ _ := hlast
-
-theorem work_payment (space probes remaining : ℝ) (messages cost : Nat) (hspace : 0 < space)
-    (hprobes : 0 ≤ probes) (hremaining : 0 ≤ remaining) (hcost : messages ≤ cost)
-    (hbudget : 2 * (probes + remaining + cost) ≤ space) :
-    (messages : ℝ) / space + value space probes remaining ≤ value space probes (remaining + cost) := by
-  have hm : (messages : ℝ) ≤ cost := by exact_mod_cast hcost
-  exact (add_le_add (div_le_div_of_nonneg_right hm hspace.le) le_rfl).trans
-    (messages_payment space probes remaining cost hspace hprobes hremaining hbudget)
 
 end SphincsBase.Concrete.PrimitiveMessagePotential

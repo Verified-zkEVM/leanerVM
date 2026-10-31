@@ -115,9 +115,6 @@ theorem ofNat_inj {w a b : Nat} (ha : a < 2 ^ w) (hb : b < 2 ^ w)
   have := congrArg BitVec.toNat h
   rwa [BitVec.toNat_ofNat, BitVec.toNat_ofNat, Nat.mod_eq_of_lt ha, Nat.mod_eq_of_lt hb] at this
 
-theorem tag_of_fields {a b c d a' b' c' d' : Nat} (h : tweakFields a b c d = tweakFields a' b' c' d') :
-    BitVec.ofNat 5 a = BitVec.ofNat 5 a' := congrArg TweakFields.tag h
-
 theorem hi_of_fields {a b c d a' b' c' d' : Nat} (h : tweakFields a b c d = tweakFields a' b' c' d')
     (hc : c < 2 ^ 24) (hc' : c' < 2 ^ 24) : c = c' := ofNat_inj hc hc' (congrArg TweakFields.hi h)
 

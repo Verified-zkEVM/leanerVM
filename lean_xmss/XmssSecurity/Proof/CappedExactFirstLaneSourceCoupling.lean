@@ -56,20 +56,6 @@ theorem sourceSigningTracedMappedAdversaryImpl_query_eq_map
   intro result
   rfl
 
-theorem sourceSigningTracedMappedAdversaryImpl_query_projection
-    (publicKey : PublicKey) (secretKey : SecretKey)
-    (input : (OracleWorld + SigningSpec).Domain)
-    (initialState : SourceSigningTracedState) :
-    (fun result => (result.1,
-        sourceSigningTracedStateProjection result.2)) <$>
-        (sourceSigningTracedMappedAdversaryImpl publicKey secretKey input).run
-          initialState =
-      (sourceDirectTracedMappedAdversaryImpl publicKey secretKey input).run
-        (sourceSigningTracedStateProjection initialState) := by
-  rw [sourceSigningTracedMappedAdversaryImpl_query_eq_map]
-  simp [Functor.map_map, sourceSigningTracedQueryResult,
-    sourceSigningTracedStateProjection]
-
 def GlobalSigningMonitoredTracedStateRelation
     (left : ProgrammedGlobalChainKeygenView)
     (right : ProgrammedGlobalChainKeygenView ×

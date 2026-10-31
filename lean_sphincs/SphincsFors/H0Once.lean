@@ -37,16 +37,6 @@ theorem hTermO_const_mul (U : Finset V) (w lam : ℝ≥0∞) (N q : ℕ) (c : �
   simp only [virtualOnce_const_mul c f]
   exact creations_const_mul c _ q []
 
-theorem hTermO_sum {τ : Type} [DecidableEq τ] (U : Finset V) (hU : U.Nonempty) (w lam : ℝ≥0∞) (hw : w ≤ 1)
-    (hlam : lam ≤ 1) (N q : ℕ) (s : Finset τ) (c : τ → ℝ≥0∞) (g : τ → Multiset V → ℝ≥0∞) :
-    hTermO U w lam N q (fun d => ∑ x ∈ s, c x * g x d) = ∑ x ∈ s, c x * hTermO U w lam N q (g x) := by
-  induction s using Finset.induction_on with
-  | empty => simpa using hTermO_zero U hU w lam hw hlam N q
-  | insert j s hj ih =>
-      simp only [Finset.sum_insert hj]
-      rw [hTermO_add U hU w lam N q (fun d => c j * g j d) (fun d => ∑ x ∈ s, c x * g x d), ih,
-        hTermO_const_mul]
-
 /-- **Fresh slots and coins.** The one-coin future of a falling-factorial monomial is dominated by
 the Charlier product at the fresh rate plus `w` per item. -/
 theorem virtualOnce_le_chProd (U : Finset V) (hU : UniformIndex idx U) (k : ι → ℕ) (K : ℕ)
@@ -108,18 +98,5 @@ theorem creations_leO (U : Finset V) (hU : UniformIndex idx U) (k : ι → ℕ) 
         _ = _ := by
             refine Finset.prod_congr rfl fun l _ => ?_
             push_cast; ring_nf
-
-/-- **Joint factorial moments of the one-coin H-term are Poisson-dominated.** -/
-theorem H0_fallMono_leO (U : Finset V) (hU : UniformIndex idx U) (k : ι → ℕ) (K : ℕ) (hk : ∀ l, k l ≤ K + 1)
-    (N q : ℕ) (hN : 1 ≤ N) (α w lam γ : ℝ≥0∞) (hw : w ≤ 1) (hlam : lam ≤ 1) (hL : (Fintype.card ι : ℝ≥0∞) ≠ 0)
-    (hLα : 1 ≤ (Fintype.card ι : ℝ≥0∞) * α)
-    (hγ : lam * w * (1 + w * Fintype.card ι) ^ K ≤ Fintype.card ι * γ) :
-    creations U lam (fun I => virtualOnce U w (fallMono idx k) N I 0) q [] ≤ ((N : ℝ≥0∞) * α + q * γ) ^ ∑ l, k l := by
-  calc creations U lam (fun I => virtualOnce U w (fallMono idx k) N I 0) q []
-      ≤ creations U lam (fun I => chProd idx k (fun l => (N : ℝ≥0∞) * α + w * nItems idx I l) 0) q [] :=
-        creations_mono (fun I => virtualOnce_le_chProd idx U hU k K hk N α w hw hL hLα I 0) q []
-    _ ≤ ∏ l, ((N : ℝ≥0∞) * α + w * nItems idx [] l + q * γ) ^ k l :=
-        creations_leO idx U hU k K hk N hN α w lam γ hlam hL hLα hγ q []
-    _ = _ := by simp [nItems, Finset.prod_pow_eq_pow_sum]
 
 end SphincsFors.Security.H0

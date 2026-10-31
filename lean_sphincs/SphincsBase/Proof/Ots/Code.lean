@@ -20,15 +20,6 @@ irreducible_def Valid (x : Encoding) : Prop := TargetSum.Valid x
 
 irreducible_def decode (digest : Digest) : Option Encoding := TargetSum.decodeDigest digest
 
-theorem decode_valid {digest : Digest} {word : Encoding} (hdecode : decode digest = some word) : Valid word := by
-  rw [decode_def] at hdecode
-  rw [Valid_def]
-  by_cases hvalid : digest.getLsbD 63 = false ∧ digest.getLsbD 127 = false ∧ TargetSum.Valid (TargetSum.digestEncoding digest)
-  · rw [TargetSum.decodeDigest, ite_eq_left hvalid] at hdecode
-    exact Option.some.inj hdecode ▸ hvalid.2.2
-  · rw [TargetSum.decodeDigest, ite_eq_right hvalid] at hdecode
-    simp at hdecode
-
 private theorem digest_eq_of_encoding_eq_of_padding {left right : Digest}
     (hencoding : TargetSum.digestEncoding left = TargetSum.digestEncoding right)
     (hleft63 : left.getLsbD 63 = false) (hleft127 : left.getLsbD 127 = false)
@@ -96,16 +87,6 @@ private theorem digest_eq_of_encoding_eq_of_padding {left right : Digest}
         subst bit
         rw [hleft127, hright127]
 
-theorem decode_some_injective {left right : Digest} {word : Encoding}
-    (hleft : decode left = some word) (hright : decode right = some word) : left = right := by
-  rw [decode_def, TargetSum.decodeDigest] at hleft hright
-  split at hleft <;> split at hright
-  · rename_i hleftValid hrightValid
-    exact digest_eq_of_encoding_eq_of_padding (Option.some.inj hleft |>.trans
-      (Option.some.inj hright).symm) hleftValid.1 hleftValid.2.1
-      hrightValid.1 hrightValid.2.1
-  all_goals simp at hleft hright
-
 /-- Two valid words cannot be ordered componentwise unless they are equal: walking chains forward from a revealed word never reaches another valid word. -/
 theorem eq_of_le_of_valid {x y : Encoding} (hx : Valid x) (hy : Valid y)
     (hle : ∀ i, (x i).val ≤ (y i).val) : x = y := by
@@ -122,14 +103,6 @@ theorem eq_of_le_of_valid {x y : Encoding} (hx : Valid x) (hy : Valid y)
 /-- A valid word, used where the proof needs a word before the reference encoding is known. -/
 irreducible_def defaultWord : Encoding :=
   fun index => if index.val < 27 then ⟨7, by decide⟩ else if index.val = 27 then ⟨2, by decide⟩ else ⟨0, by decide⟩
-
-theorem defaultWord_valid : Valid defaultWord := by
-  rw [Valid_def]
-  change (∑ index : ChainIndex, (defaultWord index).val) = 191
-  simp only [defaultWord_def]
-  change (∑ index : Fin 42, if index.val < 27 then (7 : Nat) else if index.val = 27 then 2 else 0) = 191
-  rw [Fin.sum_univ_eq_sum_range (fun i => if i < 27 then (7 : Nat) else if i = 27 then 2 else 0)]
-  decide
 
 /-- The chain steps a signer walks to reveal a word. -/
 def signingSteps (word : Encoding) : Nat := ∑ index, (word index).val
@@ -165,10 +138,6 @@ theorem mem_unitNeighbors {reference candidate : Encoding} {lowered : ChainIndex
 
 noncomputable def allUnitNeighbors (reference : Encoding) : Finset Encoding :=
   Finset.univ.biUnion (unitNeighbors reference)
-
-theorem mem_allUnitNeighbors {reference candidate : Encoding} :
-    candidate ∈ allUnitNeighbors reference ↔ ∃ lowered, UnitNeighborAt reference candidate lowered := by
-  simp only [allUnitNeighbors, Finset.mem_biUnion, Finset.mem_univ, true_and, mem_unitNeighbors]
 
 /-- The unit neighbors of a word at one lowered chain. -/
 irreducible_def unitNeighborBound : Nat := numChains - 1
@@ -259,24 +228,7 @@ theorem unitNeighbors_card_le (reference : Encoding) (lowered : ChainIndex) :
   rw [unitNeighborBound_def]
   simpa only [unitNeighbors] using hcard
 
-theorem allUnitNeighbors_card_le (reference : Encoding) : (allUnitNeighbors reference).card ≤ neighborBound := by
-  calc
-    _ ≤ ∑ lowered : ChainIndex, (unitNeighbors reference lowered).card := Finset.card_biUnion_le
-    _ ≤ ∑ _lowered : ChainIndex, unitNeighborBound :=
-      Finset.sum_le_sum fun lowered _ => unitNeighbors_card_le reference lowered
-    _ = neighborBound := by
-      simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul, neighborBound_def,
-        unitNeighborBound_def]
-
 /-! ### Values, for the closing arithmetic only -/
-
-theorem unitNeighborBound_eq : unitNeighborBound = 41 := by
-  rw [unitNeighborBound_def]
-  rfl
-
-theorem neighborBound_eq : neighborBound = 1722 := by
-  rw [neighborBound_def]
-  rfl
 
 /-! ### Parameter facts the rest of the proof needs -/
 

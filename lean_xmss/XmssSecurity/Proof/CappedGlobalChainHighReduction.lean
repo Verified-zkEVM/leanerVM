@@ -502,12 +502,6 @@ theorem globalHighMonitoredPublicProjection_eq_append_direct
   rw [globalHighMonitored_forgeryProbeTrace_eq_direct result]
   rfl
 
-theorem evalDist_map_congr_of_evalDist_eq
-    (project : α → β) (left right : ProbComp α)
-    (hdist : left =ᵈ right) :
-    (project <$> left) =ᵈ (project <$> right) :=
-  hdist.map project
-
 
 
 abbrev GlobalHighDirectTracedState :=

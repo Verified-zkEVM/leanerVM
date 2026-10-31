@@ -161,9 +161,6 @@ theorem map_mono_above (hT : Rep T) {f g : Multiset V → ℝ≥0∞} (d : Multi
 theorem map_mono (hT : Rep T) {f g : Multiset V → ℝ≥0∞} (h : ∀ D, f D ≤ g D) (d : Multiset V) : T f d ≤ T g d :=
   hT.map_mono_above d fun D _ => h D
 
-theorem map_congr (hT : Rep T) {f g : Multiset V → ℝ≥0∞} (h : ∀ D, f D = g D) (d : Multiset V) : T f d = T g d :=
-  le_antisymm (hT.map_mono (fun D => (h D).le) d) (hT.map_mono (fun D => (h D).ge) d)
-
 theorem map_translate (hT : Rep T) (f : Multiset V → ℝ≥0∞) (e d : Multiset V) :
     T (fun D => f (D + e)) d = T f (d + e) := by
   obtain ⟨K, _, hK⟩ := hT
@@ -186,27 +183,6 @@ theorem map_freshAvg (hT : Rep T) {W : Type} (U : Finset W) (F : W → Multiset 
     T (fun D => Domination.freshAvg U fun u => F u D) d = Domination.freshAvg U fun u => T (F u) d := by
   unfold Domination.freshAvg
   rw [hT.map_const_mul, hT.map_finset_sum]
-
-/-- Expectations over an outcome commute with the operator. -/
-theorem map_tsum (hT : Rep T) {β : Type} (w : β → ℝ≥0∞) (F : β → Multiset V → ℝ≥0∞) (d : Multiset V) :
-    T (fun D => ∑' x, w x * F x D) d = ∑' x, w x * T (F x) d := by
-  obtain ⟨K, _, hK⟩ := hT
-  simp only [hK, mix_tsum]
-
-/-- Any two such operators commute. -/
-theorem comm (hT : Rep T) (hT' : Rep T') (f : Multiset V → ℝ≥0∞) (d : Multiset V) :
-    T (fun D => T' f D) d = T' (fun D => T f D) d := by
-  obtain ⟨K, _, hK⟩ := hT
-  have h1 : T (fun D => T' f D) d = (K.map fun c => c.1 * T' f (d + c.2)).sum := by rw [hK]; rfl
-  have h2 : T' (fun D => T f D) d = (K.map fun c => T' (fun D => c.1 * f (D + c.2)) d).sum := by
-    have : (fun D => T f D) = fun D => (K.map fun c => c.1 * f (D + c.2)).sum := by
-      funext D; rw [hK]; rfl
-    rw [this]
-    exact hT'.map_list_sum (fun c D => c.1 * f (D + c.2)) d K
-  rw [h1, h2]
-  congr 1
-  refine List.map_congr_left fun c _ => ?_
-  rw [hT'.map_const_mul, hT'.map_translate]
 
 theorem monotone' (hT : Rep T) {f : Multiset V → ℝ≥0∞} (hf : Monotone' f) : Monotone' (T f) := by
   obtain ⟨K, _, hK⟩ := hT
@@ -268,17 +244,6 @@ theorem rep_virtualOnce (U : Finset V) {w : ℝ≥0∞} (hw : w ≤ 1) (m : ℕ)
   have := h1.comp (rep_fresh U m)
   simpa only [virtualOnce] using this
 
-theorem rep_creations (U : Finset V) {land : ℝ≥0∞} (hland : land ≤ 1)
-    (T : List V → (Multiset V → ℝ≥0∞) → Multiset V → ℝ≥0∞) (hT : ∀ J, Rep (T J)) :
-    ∀ (k : ℕ) (I : List V), Rep (fun h d => creations U land (fun J => T J h d) k I)
-  | 0, I => hT I
-  | k + 1, I => by
-      have h1 := (rep_creations U hland T hT k I).const_mul (k := 1 - land)
-        (ne_top_of_le_ne_top ENNReal.one_ne_top tsub_le_self)
-      have h2 := (Rep.freshAvg U (fun v h d => creations U land (fun J => T J h d) k (v :: I))
-        fun v => rep_creations U hland T hT k (v :: I)).const_mul (ne_top_of_le_ne_top ENNReal.one_ne_top hland)
-      simpa only [creations] using h1.add h2
-
 theorem rep_val {R : Type} (e : R → R) (s t : R → ℝ≥0∞) (hs : ∀ x, s x ≠ ⊤) (ht : ∀ x, t x ≠ ⊤)
     (c : (Multiset V → ℝ≥0∞) → Multiset V → R → ℝ≥0∞) (ev : (Multiset V → ℝ≥0∞) → Multiset V → ℝ≥0∞)
     (hc : ∀ x, Rep (fun h d => c h d x)) (hev : Rep ev) :
@@ -334,64 +299,6 @@ theorem convex_weight_le {a b r r' : ℝ≥0∞} (hab : a ≤ b) (hr : r ≤ r')
   calc ((1 - (r + δ)) + δ) * a + r * b = (1 - (r + δ)) * a + r * b + δ * a := by ring
     _ ≤ (1 - (r + δ)) * a + r * b + δ * b := by gcongr
     _ = _ := by ring
-
-/-- **One more future pair.** A base function mixed with weight `r` towards one more uniform
-disclosure is paid by one more future pair when `r ≤ land · w`. -/
-theorem creations_avg_step [DecidableEq V] {land w r : ℝ≥0∞} (hland : land ≤ 1) (hw : w ≤ 1) (hr : r ≤ land * w)
-    {h : Multiset V → ℝ≥0∞} (hf : Monotone' h ∧ Supermodular h ∧ ∀ D, h D ≠ ⊤) (n : ℕ) (d : Multiset V)
-    (k : ℕ) (I : List V) :
-    creations Finset.univ land
-        (fun J => virtualOnce Finset.univ w (fun D => (1 - r) * h D + r * avgT h D) n J d) k I ≤
-      creations Finset.univ land (fun J => virtualOnce Finset.univ w h n J d) (k + 1) I := by
-  set G : List V → ℝ≥0∞ := fun J => virtualOnce Finset.univ w h n J d with hG
-  have hperm : ∀ a b : List V, a.Perm b → G a = G b := fun _ _ hab => virtualOnce_perm n hab d
-  have hlw : land * w ≤ 1 := le_trans (mul_le_mul' hland hw) (by rw [one_mul])
-  have hpoint : ∀ J, virtualOnce Finset.univ w (fun D => (1 - r) * h D + r * avgT h D) n J d ≤
-      (1 - land) * G J + land * freshAvg Finset.univ (fun v => G ([v] ++ J)) := by
-    intro J
-    have hR := rep_virtualOnce (Finset.univ : Finset V) hw n J
-    have hprops := virtualOnce_props (U := (Finset.univ : Finset V)) Finset.univ_nonempty hw hf.1 hf.2.1 hf.2.2 n J
-    set X := virtualOnce Finset.univ w h n J with hX
-    have h1 : virtualOnce Finset.univ w (fun D => (1 - r) * h D + r * avgT h D) n J d =
-        (1 - r) * X d + r * avgT X d := by
-      have := hR.map_add (fun D => (1 - r) * h D) (fun D => r * avgT h D) d
-      rw [this, hR.map_const_mul, hR.map_const_mul]
-      congr 2
-      unfold avgT
-      rw [hR.map_freshAvg]
-      congr 1
-      funext v
-      exact hR.map_translate h {v} d
-    have h2 : ∀ v, G ([v] ++ J) = w * X (d + {v}) + (1 - w) * X d := by
-      intro v
-      simp only [hG, hX, virtualOnce, List.singleton_append, itemCoins_cons, slotValue]
-    have h3 : (1 - land) * G J + land * freshAvg Finset.univ (fun v => G ([v] ++ J)) =
-        (1 - land * w) * X d + land * w * avgT X d := by
-      simp only [h2]
-      rw [freshAvg_add, freshAvg_mul, freshAvg_mul, freshAvg_const _ Finset.univ_nonempty]
-      have hXd : X d ≠ ⊤ := hprops.2.2 d
-      have hw' : w ≠ ⊤ := ne_top_of_le_ne_top ENNReal.one_ne_top hw
-      have hl' : land ≠ ⊤ := ne_top_of_le_ne_top ENNReal.one_ne_top hland
-      have hsplit : (1 - land * w) = (1 - land) + land * (1 - w) := by
-        rw [ENNReal.mul_sub (fun _ _ => hl'), mul_one]
-        have h5 : land * w ≤ land := by simpa using mul_le_mul_right hw land
-        rw [← AddLECancellable.add_tsub_assoc_of_le (ENNReal.cancel_of_ne (ENNReal.mul_ne_top hl' hw')) h5,
-          tsub_add_cancel_of_le hland]
-      rw [hsplit]
-      unfold avgT
-      ring
-    rw [h1, h3]
-    exact convex_weight_le (le_avgT hprops.1 d) hr hlw
-  calc _ ≤ creations Finset.univ land
-        (fun J => (1 - land) * G J + land * freshAvg Finset.univ (fun v => G ([v] ++ J))) k I :=
-        creations_mono hpoint k I
-    _ = (1 - land) * creations Finset.univ land G k I +
-          land * freshAvg Finset.univ (fun v => creations Finset.univ land G k (v :: I)) := by
-        have hpre : ∀ v, creations Finset.univ land (fun J => G ([v] ++ J)) k I =
-            creations Finset.univ land G k (v :: I) := fun v => (creations_prepend hperm [v] k I).symm
-        rw [creations_add, creations_const_mul, creations_const_mul, creations_freshAvg]
-        simp only [hpre]
-    _ = _ := rfl
 
 end Step
 

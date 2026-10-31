@@ -43,24 +43,8 @@ theorem fieldBytes_injective {t1 t2 : TweakFields} (h : fieldBytes t1 = fieldByt
   have hs : step1 = step2 := BitVec.eq_of_toNat_eq (by omega)
   simp only [ht, hs, bytesLE_injective hhi, bytesLE_injective hlo]
 
-/-- The layout test of `crates/sphincs/src/hash.rs`: type `10`, step `5`, `hi = 0x123456`,
-`lo = 0x89abcdef`. -/
-theorem fieldBytes_layout_example :
-    fieldBytes (tweakFields 10 5 0x123456 0x89abcdef) =
-      [0xef, 0xcd, 0xab, 0x89, 0x56, 0x34, 0x12, 0xaa, 0, 0, 0, 0, 0, 0, 0, 0] := by
-  decide
-
 theorem fieldBytes_length (fields : TweakFields) : (fieldBytes fields).length = 16 := by
   simp [fieldBytes, bytesLE_length]
-
-/-- A digest call hashes 80 bytes, `P || A || m || rho`, one 136-byte Keccak block
-(`message_digest` in `crates/signatures/src/lean_sphincs/scheme.rs`). -/
-theorem messageDigestInput_length (parameter : PublicParameter) (root : Digest) (message : Message)
-    (randomness : Randomness) (call : Fin 2) :
-    (tweakableHashInput parameter (.message call)
-      (Concrete.messageDigestPayload root message randomness)).length = 80 := by
-  simp [tweakableHashInput, tweakBytes, fieldBytes_length, Concrete.messageDigestPayload,
-    bytesLE]
 
 /-- The scheme has one layer and one tree: these two arguments of a call are not serialized. -/
 theorem layer_eq (lay lay' : Layer) : lay = lay' := by

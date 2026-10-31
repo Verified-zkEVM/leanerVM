@@ -42,24 +42,4 @@ def TwoEdgeEvent : {depth : Nat} → (Fin depth → State → Option State) → 
   | 1, _, _ => False
   | _ + 2, observed, endpoint => TwoEdge observed endpoint
 
-omit hcharge hreal in
-theorem realRun_twoEdgeEvent_le_cap_cost {depth : Nat} (auxiliary : State → QueryImpl auxSpec PMF)
-    (computation : State → OracleComp (auxSpec + PrefixSpec depth State) Result)
-    (cost : Result → Nat) (budget : Nat)
-    (hcharge : ∀ endpoint result, result ∈ support (QueryCap.counted IsPrefixQuery (computation endpoint)) →
-      result.2 ≤ cost result.1)
-    (hreal : ∀ result ∈ (realRun auxiliary computation (fun _ _ => none)).support, cost result.2.1 ≤ budget)
-    (hsmall : budget < Fintype.card State) :
-    Pr{let result ← realRun auxiliary computation (fun _ _ => none)}[TwoEdgeEvent result.2.2 result.1] ≤
-      (((3 / 2 : ENNReal) + 4 * ((budget : ENNReal) / Fintype.card State) +
-        2 * ((budget : ENNReal) / Fintype.card State)^2) / Fintype.card State) *
-          ∑' result, idealRun auxiliary (fun endpoint => QueryCap.run IsPrefixQuery (computation endpoint) budget)
-            (fun _ _ => none) result * (QueryCap.spent budget result.2.1 : ENNReal) := by
-  cases depth with
-  | zero => simp only [TwoEdgeEvent, PMF.prEvent_eq_tsum_ite, ite_false, tsum_zero]; exact bot_le
-  | succ depth =>
-      cases depth with
-      | zero => simp only [TwoEdgeEvent, PMF.prEvent_eq_tsum_ite, ite_false, tsum_zero]; exact bot_le
-      | succ depth => exact realRun_twoEdge_le_cap_cost auxiliary computation cost budget hcharge hreal hsmall
-
 end SphincsBase.Concrete.PartialChainEndpoint

@@ -15,11 +15,6 @@ def ordinaryCostSource : QueryImpl OracleWorld (OracleComp CostSpec)
   | .inl request => liftM (CostSpec.query (.inl (.inl request)))
   | .inr request => liftM (CostSpec.query (.inl (.inr (.inl request))))
 
-theorem fixedCostSource_ordinary (f : QueryImpl HashSpec Id) (table : HiddenGraph.Table)
-    (request : OracleWorld.Domain) :
-    simulateQ (fixedCostSource f table) (ordinaryCostSource request) = fixedWorldCost f request := by
-  cases request <;> rw [ordinaryCostSource, simulateQ_spec_query] <;> rfl
-
 variable [Params]
 
 noncomputable def costInteraction (parameter : PublicParameter) (data : PublicData) :
@@ -39,16 +34,5 @@ noncomputable def costGame (parameter : PublicParameter) (data : PublicData) (ad
     OracleComp CostSpec Bool := do
   HiddenCost.tick (226 * 2 ^ subtreeHeight + 2 * (totalHeight - subtreeHeight))
   costRest parameter data adversary
-
-theorem fixedWorldCost_keygen_graph (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (seed : MasterSeed) (data : PublicData) (hdata : DataCorrect f parameter seed data)
-    (hparameter : evalWithAnswerFn f (deriveKey 0 .parameter seed : OracleComp HashSpec Digest) = parameter) :
-    simulateQ (fixedWorldCost f) (liftM (Seeded.keygenFromSeed seed) :
-      OracleComp OracleWorld (PublicKey × Seeded.SecretKey)) =
-      WriterT.mk (PMF.pure ((⟨data.root, parameter⟩, ⟨seed, parameter, data.root⟩),
-        Multiplicative.ofAdd (226 * 2 ^ subtreeHeight + 2 * (totalHeight - subtreeHeight)))) := by
-  rw [fixedWorldCost_lift_hash, hashCalls_keygenFromSeed]
-  simp only [Seeded.keygenFromSeed, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
-    hparameter, ← hdata.root]
 
 end SphincsFors.Security.GraphView

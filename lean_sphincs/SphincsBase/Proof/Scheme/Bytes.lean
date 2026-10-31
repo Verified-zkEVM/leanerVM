@@ -102,30 +102,6 @@ theorem tweakBytes_injective {d1 d2 : HashDomain} (h1 : d1.InRange) (h2 : d2.InR
 theorem tweakBytes_length (domain : HashDomain) : (tweakBytes domain).length = 16 := by
   simp [tweakBytes, fieldBytes, bytesLE_length]
 
-/-- What the reduction reads off a query: the tweak is a fixed-length prefix of the hashed input, so
-the input determines both the position it names and the payload. -/
-theorem tweakableHashInput_injective (parameter : PublicParameter) {d1 d2 : HashDomain}
-    (h1 : d1.InRange) (h2 : d2.InRange) {payload1 payload2 : HashInput}
-    (h : tweakableHashInput parameter d1 payload1 = tweakableHashInput parameter d2 payload2) :
-    d1 = d2 ∧ payload1 = payload2 := by
-  simp only [tweakableHashInput] at h
-  obtain ⟨hprefix, hpayload⟩ := List.append_inj h (by simp [tweakBytes_length, bytesLE_length])
-  obtain ⟨htweak, _⟩ := List.append_inj' hprefix (by simp [bytesLE_length])
-  exact ⟨tweakBytes_injective h1 h2 htweak, hpayload⟩
-
-theorem tweakableHashInput_ne_message (parameter : PublicParameter) (domain : HashDomain)
-    (hdomain : domain ≠ .message) (payload messagePayload : HashInput) :
-    tweakableHashInput parameter domain payload ≠
-      tweakableHashInput parameter .message messagePayload := by
-  intro hinput
-  simp only [tweakableHashInput] at hinput
-  obtain ⟨hprefix, _⟩ := List.append_inj hinput
-    (by simp [tweakBytes_length, bytesLE_length])
-  obtain ⟨htweak, _⟩ := List.append_inj' hprefix (by simp [bytesLE_length])
-  apply hdomain
-  cases domain <;>
-    simp_all [tweakBytes_eq_iff, hashDomainFields, tweakFields, TweakFields.mk.injEq]
-
 /-! ### Payloads
 
 A node's payload is its two children, a leaf's is its `v` chain endpoints, and a few-time key's is
@@ -169,12 +145,6 @@ theorem flatMap_ofFn_injective {α β : Type} (g : α → List β) (len : Nat)
 theorem leafPayload_injective {endpoints endpoints' : ChainIndex → Digest}
     (h : Concrete.leafPayload endpoints = Concrete.leafPayload endpoints') :
     endpoints = endpoints' :=
-  flatMap_ofFn_injective Concrete.digestBytes 16 digestBytes_length
-    (fun _ _ => digestBytes_injective) h
-
-/-- A few-time public key's payload is its `k - 1` roots. -/
-theorem ftsRootsPayload_injective {roots roots' : FtsTree → Digest}
-    (h : Concrete.ftsRootsPayload roots = Concrete.ftsRootsPayload roots') : roots = roots' :=
   flatMap_ofFn_injective Concrete.digestBytes 16 digestBytes_length
     (fun _ _ => digestBytes_injective) h
 

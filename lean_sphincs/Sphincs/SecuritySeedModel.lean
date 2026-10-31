@@ -125,9 +125,6 @@ def secretHalf : SecretPosition → HashOutput → Digest
 def secretDomain (position : SecretPosition) : KeygenDomain :=
   derivationDomain (secretDerivation position)
 
-theorem secretDomain_ne_parameter (position : SecretPosition) : secretDomain position ≠ .parameter :=
-  derivationDomain_ne_parameter _
-
 /-- Chain `2t` of a one-time key. -/
 def evenChain (pair : ChainPair) : ChainIndex := ⟨2 * pair.val, by have := pair.isLt; simp only [numChains]; omega⟩
 /-- Chain `2t + 1` of a one-time key. -/
@@ -307,10 +304,6 @@ theorem derivationInput_ne_parameterInput (seed : MasterSeed) (material : Materi
   intro h
   exact derivationDomain_ne_parameter derivation (keygenInput_injective h).2.1
 
-theorem secretInput_ne_parameterInput (seed : MasterSeed) (material : Material)
-    (position : SecretPosition) : secretInput seed material position ≠ parameterInput seed :=
-  derivationInput_ne_parameterInput seed material _
-
 /-- Program the complete derivation table over a base cache. This definition overwrites its
 specified entries; a later lemma explicitly requires those entries fresh to preserve the base. -/
 noncomputable def programCache (base : QueryCache HashSpec) (seed : MasterSeed)
@@ -334,14 +327,6 @@ theorem programCache_derivation (base : QueryCache HashSpec) (seed : MasterSeed)
   rw [dite_eq_left h]
   exact congrArg (fun p => some (derivedOutput material.2 p))
     (derivationInput_injective seed material (Classical.choose_spec h).symm)
-
-/-- The input of the derivation of a secret holds the answer of that derivation: the secret is its
-half `secretHalf position` (`secretHalf_derivedOutput`). -/
-theorem programCache_secret (base : QueryCache HashSpec) (seed : MasterSeed)
-    (material : Material) (position : SecretPosition) :
-    programCache base seed material (secretInput seed material position) =
-      some (derivedOutput material.2 (secretDerivation position)) :=
-  programCache_derivation base seed material (secretDerivation position)
 
 /-- Precisely the addressed parameter/secret entries are programmed; other seed-bearing inputs
 are left alone, including derivations under any other public parameter. -/

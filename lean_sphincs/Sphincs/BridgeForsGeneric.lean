@@ -268,15 +268,6 @@ theorem coreG_congr {s s' : State} (h : ∀ q, s'.cache (pblk parameter data q) 
   unfold coreG hValueG candG candValueG
   simp only [hv, termO_blocks wbar h]
 
-theorem potG_le_coreG (gate : State → Prop) (s : State) (P : List Pair) (Ms : List Message)
-    (L : QueryLog SigningSpec) (d : Multiset View) (k : ℕ) :
-    potG parameter data W wbar b0 Fail gate s P Ms L d k ≤
-      coreG parameter data W wbar b0 Fail s P Ms L d (signatureLimit - L.length) k := by
-  unfold potG
-  split_ifs
-  · exact bot_le
-  · exact le_rfl
-
 /-- A grown state with the same digest blocks has no larger potential. -/
 theorem potG_grow (hW : WitnessProps W) {gate : State → Prop}
     (hgate : ∀ s s' : State, Extends s s' → gate s → gate s') (hw : wbar ≤ 1) (hb0 : b0 ≠ ⊤) {s s' : State}

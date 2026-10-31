@@ -66,11 +66,4 @@ theorem forgeAdvantage_eq_detailedGameWithCache
     prEvent_map]
 
 
-/-- Retaining the detailed outcome does not change the hash-query count. -/
-theorem hasHashQueryBound_iff_detailedGameCore
-    (scheme : Scheme SecretKey) (adversary : Adversary) (q : Nat) :
-    HasHashQueryBound scheme adversary q ↔
-      HashQueryBound (detailedGameCore scheme adversary) ∅ q := by
-  rw [hasHashQueryBound_iff, gameCore_eq_map_detailedGameCore, hashQueryBound_map_iff]
-
 end XmssSecurity

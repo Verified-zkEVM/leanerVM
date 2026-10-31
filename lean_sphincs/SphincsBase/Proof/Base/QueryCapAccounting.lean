@@ -61,20 +61,4 @@ theorem counted_writer_bind_le {Trace Next : Type} [Monoid Trace] (cost : Trace 
   rw [hcost]
   exact Nat.add_le_add (hfirst middle hmiddle) (hnext middle.1.1 tail htail)
 
-theorem counted_writer_simulate_le {SourceIndex Trace : Type} {source : OracleSpec SourceIndex} [Monoid Trace]
-    (cost : Trace → Nat) (hcost : ∀ first second, cost (first * second) = cost first + cost second)
-    (impl : QueryImpl source (WriterT Trace (OracleComp spec)))
-    (hstep : ∀ input result, result ∈ support (counted selected (impl input).run) → result.2 ≤ cost result.1.2)
-    (computation : OracleComp source Result) (result : (Result × Trace) × Nat)
-    (hresult : result ∈ support (counted selected (simulateQ impl computation).run)) : result.2 ≤ cost result.1.2 := by
-  induction computation using OracleComp.inductionOn generalizing result with
-  | pure value =>
-      simp only [simulateQ_pure, WriterT.run_pure, counted_pure, mem_support_pure_iff] at hresult
-      subst result
-      exact Nat.zero_le _
-  | query_bind input next ih =>
-      rw [simulateQ_bind, simulateQ_spec_query] at hresult
-      exact counted_writer_bind_le selected cost hcost (impl input) (fun answer => simulateQ impl (next answer))
-        (hstep input) ih result hresult
-
 end SphincsBase.QueryCap

@@ -108,13 +108,6 @@ theorem hashCalls_forestWalk (f : QueryImpl HashSpec Id) (parameter : PublicPara
   | succ steps ih =>
       rw [forestWalk_eq_succ, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash, ih _ _ (by omega)]
 
-theorem hashCalls_chainValue (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain)
-    (seed : MasterSeed) (pos : Nat) (hpos : pos ≤ chainTop) :
-    hashCalls f (Seeded.chainValue parameter index c s j a i seed pos : OracleComp HashSpec Digest) = 1 + pos := by
-  rw [Seeded.chainValue, Seeded.forestStart, hashCalls_bind, hashCalls_bind, hashCalls_deriveOutput,
-    hashCalls_pure, hashCalls_forestWalk f _ _ _ _ _ _ _ _ _ _ (by omega)]
-
 /-- The 6 chain starts of a forest child cost 3 seed derivations. -/
 theorem hashCalls_forestSecrets (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (seed : MasterSeed) :

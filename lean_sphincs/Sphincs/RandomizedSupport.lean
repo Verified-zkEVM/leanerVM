@@ -159,26 +159,4 @@ theorem correct_randomized_assembly (f : QueryImpl HashSpec Id) (seed : MasterSe
   subst sk
   exact verify_of_finishSign f ⟨seed, parameter⟩ message ρ hrootval.symm hland hsign
 
-/-- Every successful honest signature verifies in the actual lazy random oracle, for any pruning
-height and any initial cache. Private uniform randomizer sampling is included in the run. -/
-theorem verify_of_keygen_sign_support (seed : MasterSeed) (pk : PublicKey)
-    (sk : Seeded.SecretKey) (message : Message) (signature : Signature) (accepted : Bool)
-    (cache₀ cacheK cacheS cacheV : QueryCache HashSpec)
-    (hkey : ((pk, sk), cacheK) ∈ support
-      ((simulateQ randomOracle (Seeded.keygenFromMaster seed)).run cache₀))
-    (hsign : (some signature, cacheS) ∈ support
-      ((simulateQ romImpl (Randomized.sign sk message)).run cacheK))
-    (hverify : (accepted, cacheV) ∈ support
-      ((simulateQ randomOracle (Concrete.verify pk message signature
-        : OracleComp HashSpec Bool)).run cacheS)) : accepted = true := by
-  obtain ⟨f, hf⟩ := QueryCache.exists_agreesWithFn cacheV
-  obtain ⟨hverifyLe, hevalVerify⟩ := replay_hash_support _ _ _ _ hverify f hf
-  have hfS : cacheS.AgreesWithFn f := fun _ _ h => hf (hverifyLe h)
-  obtain ⟨hsignLe, ρ, hland, hevalSign⟩ :=
-    randomized_sign_replay sk message signature cacheK cacheS hsign f hfS
-  have hfK : cacheK.AgreesWithFn f := fun _ _ h => hfS (hsignLe h)
-  have hevalKey := (replay_hash_support _ _ _ _ hkey f hfK).2
-  exact hevalVerify.symm.trans
-    (correct_randomized_assembly f seed pk sk message ρ signature hevalKey hland hevalSign)
-
 end SphincsLayered.Completeness

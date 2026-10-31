@@ -137,20 +137,6 @@ theorem fixed_finishCostSource (f : QueryImpl HashSpec Id) (parameter : PublicPa
         Option.map_some, Option.isSome_some, ↓reduceIte, map_pure, mul_one]
       simp only [← ofAdd_add, ← Nat.add_assoc]
 
-theorem finishCostSource_correct (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (seed : MasterSeed) (data : PublicData) (table : HiddenGraph.Table)
-    (hdata : DataCorrect f parameter seed data) (htable : CoordinatesCorrect f parameter seed table)
-    (message : Message) (randomness : Randomness)
-    (hland : Landed parameter (digestIndex (evalWithAnswerFn f
-      (messageDigest parameter data.root message randomness : OracleComp HashSpec MessageDigest)))) :
-    simulateQ (fixedCostSource f table) (finishCostSource parameter data message randomness) =
-      simulateQ (fixedWorldCost f)
-        (liftM (Randomized.finishSign ⟨seed, parameter, data.root⟩ message randomness) :
-          OracleComp OracleWorld (Option Signature)) := by
-  rw [fixed_finishCostSource, fixedWorldCost_lift_hash,
-    eval_finishSign_assembled f parameter seed data table hdata htable message randomness hland,
-    hashCalls_finishSign_exact f parameter seed data hdata]
-
 /-- The grinding walk in the graph view: try `rho`, `rho + 1`, ... -/
 noncomputable def signCostSourceWalk (parameter : PublicParameter) (data : PublicData)
     (message : Message) : Nat → Randomness → OracleComp CostSpec (Option Signature)

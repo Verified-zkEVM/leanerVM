@@ -24,27 +24,6 @@ theorem eval_chainWalk_add (chainIdx : ChainIndex) (start a b : Nat) (value : Di
           (evalWithAnswerFn f (chainWalk parameter lay tree leaf chainIdx start a value))) := by
   rw [chainWalk_add, evalWithAnswerFn_bind]
 
-/-- Revealing a chain at its codeword digit and walking the rest reaches the public value. -/
-theorem eval_recoverChain (chainIdx : ChainIndex) (digit : Digit) (value : Digest) :
-    evalWithAnswerFn f (recoverChain parameter lay tree leaf chainIdx digit
-        (evalWithAnswerFn f (chainWalk parameter lay tree leaf chainIdx 0 digit.val value)))
-      = evalWithAnswerFn f (chainWalk parameter lay tree leaf chainIdx 0 (chainLength - 1) value) := by
-  have hdigit : digit.val + (chainLength - 1 - digit.val) = chainLength - 1 := by
-    have hlt := digit.isLt
-    simp only [chainLength, winternitzBits] at hlt
-    simp only [chainLength, winternitzBits]
-    omega
-  calc evalWithAnswerFn f (recoverChain parameter lay tree leaf chainIdx digit
-          (evalWithAnswerFn f (chainWalk parameter lay tree leaf chainIdx 0 digit.val value)))
-      = evalWithAnswerFn f (chainWalk parameter lay tree leaf chainIdx
-          (0 + digit.val) (chainLength - 1 - digit.val)
-          (evalWithAnswerFn f (chainWalk parameter lay tree leaf chainIdx 0 digit.val value))) := by
-        rw [recoverChain, Nat.zero_add]
-    _ = evalWithAnswerFn f (chainWalk parameter lay tree leaf chainIdx 0
-          (digit.val + (chainLength - 1 - digit.val)) value) := (eval_chainWalk_add ..).symm
-    _ = evalWithAnswerFn f (chainWalk parameter lay tree leaf chainIdx 0 (chainLength - 1) value) := by
-        rw [hdigit]
-
 /-- The honest one-time public value of one chain. -/
 theorem eval_oneTimePublicKey (secret : ChainIndex → Digest) :
     evalWithAnswerFn f (oneTimePublicKey parameter lay tree leaf secret)

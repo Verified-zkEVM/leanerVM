@@ -97,37 +97,4 @@ theorem query_cache_origin (queried input : HashInput) (cache : QueryCache HashS
       · exact Or.inr hi
       · exact Or.inl (by rwa [QueryCache.cacheQuery_of_ne _ _ hi] at hentry)
 
-omit parameter otsSecret ftsSecret in
-/-- Every final cache entry either existed initially or occurs in this supported run's trace. -/
-theorem hash_cache_origin {α : Type} (oa : OracleComp HashSpec α)
-    (cache : QueryCache HashSpec) (result : α) (cache' : QueryCache HashSpec)
-    (hmem : (result, cache') ∈ support ((simulateQ randomOracle oa).run cache))
-    (f : QueryImpl HashSpec Id) (hf : cache'.AgreesWithFn f)
-    (input : HashInput) (value : HashOutput) (hentry : cache' input = some value) :
-    cache input = some value ∨ input ∈ queriedInputs f oa := by
-  induction oa using OracleComp.inductionOn generalizing cache result cache' with
-  | pure x =>
-      simp only [simulateQ_pure, StateT.run_pure, support_pure,
-        Set.mem_singleton_iff, Prod.mk.injEq] at hmem
-      obtain ⟨rfl, rfl⟩ := hmem
-      exact Or.inl hentry
-  | query_bind queried next ih =>
-      simp only [simulateQ_query_bind, StateT.run_bind, mem_support_bind_iff] at hmem
-      obtain ⟨⟨answer, mid⟩, hquery, hnext⟩ := hmem
-      obtain ⟨_, hcached⟩ := query_support_cached queried cache answer mid hquery
-      have hle := hash_support_cache_le _ mid result cache' hnext
-      have hanswer : f queried = answer := hf (hle hcached)
-      rw [queriedInputs_query_bind, hanswer]
-      rcases ih answer mid result cache' hnext hf hentry with hold | htrace
-      · rcases query_cache_origin queried input cache answer mid hquery value hold with hold | rfl
-        · exact Or.inl hold
-        · exact Or.inr (List.mem_cons_self ..)
-      · exact Or.inr (List.mem_cons_of_mem _ htrace)
-
-/-- All programmed seed material is disjoint from structural graph addresses. -/
-theorem material_freshStructural (seed : MasterSeed) (material : SeedModel.Material) :
-    FreshStructural parameter (SeedModel.programCache ∅ seed material) := by
-  intro position payload
-  exact SeedModel.programCache_verifier ∅ seed material parameter position.domain payload
-
 end SphincsFors.Security.Graph

@@ -154,12 +154,6 @@ noncomputable def richProgram (adversary : Adversary) (q : Nat) (parameter : Pub
     (data : PublicData) : OracleComp CostSpec (Option Outcome × List HiddenGraph.Coordinate) :=
   withReveals (cap (costGameX parameter data adversary) q)
 
-theorem cap_costGame_eq (adversary : Adversary) (q : Nat) (parameter : PublicParameter)
-    (data : PublicData) :
-    cap (costGame parameter data adversary) q =
-      (fun result => Option.map outcomeWins result.1) <$> richProgram adversary q parameter data := by
-  rw [richProgram, ← Functor.map_map, fst_withReveals, costGame_eq_map, cap_map]
-
 open Completeness SeedModel Graph Assembly Reduce HiddenGraph Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
