@@ -1,5 +1,6 @@
 import LeanVM.Protocol.KeccakHash
 import Statement.Fast.Keccak
+import Statement.LeanVmGuest
 
 /-!
 # Keccak tests

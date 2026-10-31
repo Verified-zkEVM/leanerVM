@@ -699,6 +699,11 @@ def heapIndex (depth q l : ℕ) : ℕ := 2 ^ (depth - l) + q / 2 ^ l
 /-- The heap index of the sibling of the node at level `l < depth` above the leaf `q`. -/
 def siblingHeapIndex (depth q l : ℕ) : ℕ := 2 * heapIndex depth q (l + 1) + (!q.testBit l).toNat
 
+/-- The digest of a Merkle leaf: Keccak-256 of its words as bytes (`Transcript.merkle`,
+`verifier.py:433-445`), the leaf an opening's climb starts from. -/
+def _root_.LeanVM.Protocol.KeccakHash.hashWords (words : List K) : Digest :=
+  keccak256 (words.flatMap kBytes)
+
 /-- The digest an opening's climb reaches from `node` at position `q` over `path`. -/
 def climbTo (node : Digest) (q : ℕ) (path : List Digest) : Digest :=
   Id.run (climb (m := Id) keccakF1600 node q path)

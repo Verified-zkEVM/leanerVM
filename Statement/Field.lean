@@ -22,8 +22,8 @@ g = x                                        a generator of K^× (order 2^64 - 1
 `K` wraps a `BitVec 64` whose bit `i` is the coefficient of `x^i`; `E` is a `Vector K 3` whose
 limb `i` is the coefficient of `y^i`. Natural-number casts follow characteristic two
 (`2 : K = 0`); wire words go through `K.ofBits`. Then the field encodings of Keccak
-(`verifier.py`): a lane as a `K` word, a `K` word as bytes, the Merkle leaf hash of words, and a
-digest as two `E` elements.
+(`verifier.py`): a lane as a `K` word, a `K` word as bytes, and a digest as
+two `E` elements.
 -/
 
 @[expose] public section
@@ -90,10 +90,6 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-- The eight little-endian bytes of a `K` word (`K.to_bytes`, `verifier.py:50-52`). -/
 def kBytes (a : K) : List UInt8 := wordBytes a.lane
-
-/-- The digest of a Merkle leaf: Keccak-256 of its words as bytes (`Transcript.merkle`,
-`verifier.py:433-445`). -/
-def hashWords (words : List K) : Digest := keccak256 (words.flatMap kBytes)
 
 /-- A digest as the two field elements a transcript carries it in, its 128-bit halves
 `E(w0, w1)`, `E(w2, w3)` (`Digest.halves`, `verifier.py:225-228`). -/
