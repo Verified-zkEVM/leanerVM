@@ -1,5 +1,6 @@
 import Sphincs.Scheme
 import Mathlib.Data.Nat.Bitwise
+import Common.WithHash
 
 /-!
 # Recovery: what the signer produces, the verifier accepts
@@ -30,8 +31,8 @@ variable (f : QueryImpl HashSpec Id)
 /-! ## Evaluating the hash wrappers -/
 
 @[simp] theorem eval_oracleHash (input : HashInput) :
-    evalWithAnswerFn f (oracleHash input : OracleComp HashSpec HashOutput) = f input := by
-  simp only [oracleHash, HasQuery.query]
+    evalWithAnswerFn f (oracleHashWithHash input : OracleComp HashSpec HashOutput) = f input := by
+  simp only [oracleHashWithHash, HasQuery.query]
   exact simulateQ_spec_query f input
 
 @[simp] theorem eval_tweakableHash (parameter : PublicParameter) (domain : HashDomain)

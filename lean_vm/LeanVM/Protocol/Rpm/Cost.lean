@@ -15,6 +15,7 @@ import Statement.Fast.Keccak
 import Statement.Fast.CubicExt
 import Statement.Fast.FieldWords
 import Common.Prob
+import LeanVM.Protocol.WithHash
 
 /-!
 # The permutation calls of the verifier and the honest prover
@@ -38,7 +39,7 @@ namespace LeanVM.Rpm
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.EndToEnd LeanVM.Protocol.EndToEnd.Sound
-open LeanVM.Prover (Tree buildTreeM leafDigestsM parentsM levelsM powStepM searchM findNonceM)
+open LeanVM.Prover (Tree buildTreeWithHash leafDigestsWithHash parentsWithHash levelsWithHash powStepM searchM findNonceM)
 open OracleComp OracleSpec
 
 /-- The permutation calls of a query: a Keccak-256 hash of `n` bytes costs `⌊n / 136⌋ + 1`
@@ -289,16 +290,16 @@ theorem allQ_squeeze (sp : Sponge) : AllQueriesSatisfy (squeeze callKeccakF1600 
   allQueriesSatisfy_bind (allQ_duplex sp) fun _ ↦ allQ_pure _
 
 theorem allQ_climb : ∀ (node : Digest) (q : ℕ) (ss : List Digest),
-    AllQueriesSatisfy (climb callKeccak256 node q ss) Short
+    AllQueriesSatisfy (climbWithHash callKeccak256 node q ss) Short
   | _, _, [] => trivial
   | node, q, s :: ss => by
-    simp only [climb]
+    simp only [climbWithHash]
     split <;>
       exact allQueriesSatisfy_bind (allQ_queryH₀ (pair_length _ _)) fun _ ↦ allQ_climb _ _ ss
 
 theorem allQ_openOne (root : Digest) (height width q : ℕ) (o : Opening)
-    (hw : width ≤ maxWidth) : AllQueriesSatisfy (openOne callKeccak256 root height width q o) Short := by
-  unfold openOne
+    (hw : width ≤ maxWidth) : AllQueriesSatisfy (openOneWithHash callKeccak256 root height width q o) Short := by
+  unfold openOneWithHash
   split
   · rename_i h
     refine allQueriesSatisfy_bind (allQ_queryH ?_) fun _ ↦
@@ -310,32 +311,32 @@ theorem allQ_openOne (root : Digest) (height width q : ℕ) (o : Opening)
 
 theorem allQ_openAll (root : Digest) (height width : ℕ) (hw : width ≤ maxWidth) :
     ∀ (ps : List ℕ) (os : List Opening),
-      AllQueriesSatisfy (openAll callKeccak256 root height width ps os) Short
+      AllQueriesSatisfy (openAllWithHash callKeccak256 root height width ps os) Short
   | [], _ => trivial
   | _ :: _, [] => trivial
   | q :: qs, o :: os => by
-    simp only [openAll]
+    simp only [openAllWithHash]
     refine allQueriesSatisfy_bind (allQ_openOne _ _ _ _ _ hw) fun b ↦ ?_
     split
     · exact allQueriesSatisfy_bind (allQ_openAll root height width hw qs os) fun _ ↦ trivial
     · trivial
 
 theorem allQ_run {α : Type} : ∀ (P : Prog α) (s : ProgState), WidthsLE maxWidth P →
-    (∀ r ∈ s.roots, r.2.2 ≤ maxWidth) → AllQueriesSatisfy (Compile.run callKeccak256 callKeccakF1600 P s) Short
+    (∀ r ∈ s.roots, r.2.2 ≤ maxWidth) → AllQueriesSatisfy (Compile.runWithHash callKeccak256 callKeccakF1600 P s) Short
   | .ret _, _, _, _ => trivial
   | .fail, _, _, _ => trivial
   | .read k, s, hP, hr => by
-    simp only [Compile.run]
+    simp only [Compile.runWithHash]
     split
     · trivial
     · exact allQueriesSatisfy_bind (allQ_absorb _ _ _) fun sp ↦ allQ_run _ _ (hP _) hr
   | .sample k, s, hP, hr => by
-    simp only [Compile.run]
+    simp only [Compile.runWithHash]
     refine allQueriesSatisfy_bind (allQ_squeeze _) fun r ↦ ?_
     obtain ⟨c, sp⟩ := r
     exact allQ_run _ _ (hP _) hr
   | .grind bits k, s, hP, hr => by
-    simp only [Compile.run]
+    simp only [Compile.runWithHash]
     split
     · trivial
     · refine allQueriesSatisfy_bind (allQ_absorb _ _ _) fun sp ↦
@@ -345,7 +346,7 @@ theorem allQ_run {α : Type} : ∀ (P : Prog α) (s : ProgState), WidthsLE maxWi
       · exact allQ_run _ _ hP hr
       · trivial
   | .commit height width k, s, hP, hr => by
-    simp only [Compile.run]
+    simp only [Compile.runWithHash]
     split
     · refine allQueriesSatisfy_bind (allQ_absorb _ _ _) fun sp ↦
         allQueriesSatisfy_bind (allQ_absorb _ _ _) fun sp' ↦ ?_
@@ -359,7 +360,7 @@ theorem allQ_run {α : Type} : ∀ (P : Prog α) (s : ProgState), WidthsLE maxWi
       · trivial
     · trivial
   | .query i ps k, s, hP, hr => by
-    simp only [Compile.run]
+    simp only [Compile.runWithHash]
     split
     · trivial
     · rename_i root height width hi
@@ -370,8 +371,8 @@ theorem allQ_run {α : Type} : ∀ (P : Prog α) (s : ProgState), WidthsLE maxWi
       · trivial
 
 theorem allQ_runProof (P : Prog Bool) (seed : KeccakState) (π : Proof) (hP : WidthsLE maxWidth P) :
-    AllQueriesSatisfy (runProof callKeccak256 callKeccakF1600 P seed π) Short := by
-  unfold runProof
+    AllQueriesSatisfy (runProofWithHash callKeccak256 callKeccakF1600 P seed π) Short := by
+  unfold runProofWithHash
   refine allQueriesSatisfy_bind (allQ_run P _ hP fun r hr ↦ by simp at hr) fun o ↦ ?_
   split <;> trivial
 
@@ -399,13 +400,13 @@ theorem allQ_seedRun (prog : Program) (input : PublicInput) :
 
 /-- The verifier of the statement is the seeded verifier at the leanVM seed and program. -/
 theorem verifier_eq (prog : Program) (input : PublicInput) (proof : Proof) :
-    verifier callKeccak256 callKeccakF1600 prog input proof =
+    verifierWithHash callKeccak256 callKeccakF1600 prog input proof =
       verifierComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
         (leanVmProgram (bytecodeWords prog) (publicDigest input)) proof :=
   (verifierComp_leanVm _ _ _).symm
 
 theorem allQ_verifier (prog : Program) (input : PublicInput) (proof : Proof) :
-    AllQueriesSatisfy (verifier callKeccak256 callKeccakF1600 prog input proof) Short := by
+    AllQueriesSatisfy (verifierWithHash callKeccak256 callKeccakF1600 prog input proof) Short := by
   rw [verifier_eq]
   exact allQueriesSatisfy_bind (allQ_seedRun prog input) fun seed ↦
     allQ_runProof _ seed proof (widthsLE_leanVmProgram _ _)
@@ -413,7 +414,7 @@ theorem allQ_verifier (prog : Program) (input : PublicInput) (proof : Proof) :
 /-- **The verifier makes at most `verifierPermCalls` permutation calls** on every statement and
 proof. -/
 theorem isWeightBound_verifier (prog : Program) (input : PublicInput) (proof : Proof) :
-    Common.QueryCostAtMost (verifier callKeccak256 callKeccakF1600 prog input proof) hashBlocks
+    Common.QueryCostAtMost (verifierWithHash callKeccak256 callKeccakF1600 prog input proof) hashBlocks
       verifierPermCalls := by
   have hN := isTotalQueryBound_leanVm (bytecodeWords prog) (publicDigest input) proof
   rw [leanVmQueryBound_eq, ← verifier_eq] at hN
@@ -443,14 +444,14 @@ theorem allQ_arrayMapM {β γ : Type} (f : β → OracleComp KeccakCalls γ) (xs
   exact allQueriesSatisfy_bind (allQ_mapM f _ h) fun _ ↦ allQ_pure _
 
 theorem allQ_parentsM (level : Array Digest) (n : ℕ) :
-    AllQueriesSatisfy (parentsM callKeccak256 level n) Short :=
+    AllQueriesSatisfy (parentsWithHash callKeccak256 level n) Short :=
   allQ_arrayMapM _ _ fun _ _ ↦ allQ_queryH₀ (pair_length _ _)
 
 theorem allQ_levelsM : ∀ (k : ℕ) (level : Array Digest),
-    AllQueriesSatisfy (levelsM callKeccak256 k level) Short
+    AllQueriesSatisfy (levelsWithHash callKeccak256 k level) Short
   | 0, _ => allQ_pure _
   | k + 1, level => by
-    simp only [levelsM]
+    simp only [levelsWithHash]
     exact allQueriesSatisfy_bind (allQ_parentsM _ _) fun _ ↦
       allQueriesSatisfy_bind (allQ_levelsM k _) fun _ ↦ allQ_pure _
 
@@ -465,11 +466,11 @@ theorem row_length {word : Word} (hw : RowsLE word) (p : ℕ) :
   omega
 
 theorem allQ_leafDigestsM (height : ℕ) {word : Word} (hw : RowsLE word) :
-    AllQueriesSatisfy (leafDigestsM callKeccak256 height word) Short :=
+    AllQueriesSatisfy (leafDigestsWithHash callKeccak256 height word) Short :=
   allQ_arrayMapM _ _ fun i _ ↦ allQ_queryH₀ (row_length hw i)
 
 theorem allQ_buildTreeM (height : ℕ) {word : Word} (hw : RowsLE word) :
-    AllQueriesSatisfy (buildTreeM callKeccak256 height word) Short :=
+    AllQueriesSatisfy (buildTreeWithHash callKeccak256 height word) Short :=
   allQueriesSatisfy_bind (allQ_leafDigestsM height hw) fun _ ↦
     allQueriesSatisfy_bind (allQ_levelsM _ _) fun _ ↦ allQ_pure _
 
@@ -603,7 +604,7 @@ theorem allQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
         allQueriesSatisfy_bind (allQ_proveFromM S fuel k r.2 _ cs hP (fun chal ↦ hG chal)
           (histOK_append_of_nil _ rfl hh) (treesOK_append_of_nil _ rfl hT)) fun _ ↦ allQ_pure _
   | .commit ht w k, sp, h, cs, hP, hG, hh, hT => by
-    simp only [proveFromM, buildTreeM, bind_assoc, pure_bind]
+    simp only [proveFromM, buildTreeWithHash, bind_assoc, pure_bind]
     have hs : WellShaped w (S.word h) := (hG fun _ ↦ 0).1
     have hrows : RowsLE (S.word h) := fun p ↦ (hs p).symm ▸ hP.1
     have hh' : HistOK (h ++ [Ev.commit ht w (S.word h)]) := by
@@ -702,9 +703,9 @@ theorem isWeightBound_proverVerifier {X : OracleComp KeccakCalls Proof} (prog : 
     (input : PublicInput) {fuel : ℕ}
     (hX : IsTotalQueryBound X (2 + 48017 * (2 ^ 27 + 2 * fuel + 2)))
     (hXq : AllQueriesSatisfy X Short) :
-    Common.QueryCostAtMost (X >>= fun proof ↦ verifier callKeccak256 callKeccakF1600 prog input proof) hashBlocks
+    Common.QueryCostAtMost (X >>= fun proof ↦ verifierWithHash callKeccak256 callKeccakF1600 prog input proof) hashBlocks
       (completenessPermCalls fuel) := by
-  have hN : IsTotalQueryBound (X >>= fun proof ↦ verifier callKeccak256 callKeccakF1600 prog input proof)
+  have hN : IsTotalQueryBound (X >>= fun proof ↦ verifierWithHash callKeccak256 callKeccakF1600 prog input proof)
       (12008 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
     have h := isTotalQueryBound_bind hX fun proof ↦ by
         have := isTotalQueryBound_leanVm (bytecodeWords prog) (publicDigest input) proof
@@ -722,7 +723,7 @@ theorem isWeightBound_honest (prog : Program) (input : PublicInput) (t : Executi
     (ρ fuel : ℕ) :
     Common.QueryCostAtMost
       (LeanVM.Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel >>= fun proof ↦
-        verifier callKeccak256 callKeccakF1600 prog input proof) hashBlocks (completenessPermCalls fuel) :=
+        verifierWithHash callKeccak256 callKeccakF1600 prog input proof) hashBlocks (completenessPermCalls fuel) :=
   isWeightBound_proverVerifier prog input (isTotalQueryBound_honestComp' prog input t ρ fuel)
     (allQ_honestComp prog input t ρ fuel)
 
@@ -751,7 +752,7 @@ theorem isWeightBound_romHonest {prog : Program} {input : PublicInput} {t : Exec
       (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
         (leanVmProgram (bytecodeWords prog) (publicDigest input))
         (Complete.leanVmProver prog s ρ (LeanIsa.stackOf prog s w)) fuel >>= fun proof ↦
-          verifier callKeccak256 callKeccakF1600 prog input proof) hashBlocks (completenessPermCalls fuel) :=
+          verifierWithHash callKeccak256 callKeccakF1600 prog input proof) hashBlocks (completenessPermCalls fuel) :=
   isWeightBound_proverVerifier prog input (isTotalQueryBound_romHonestComp prog input _ fuel)
     (allQ_romHonestComp prog input _ fuel (shaped_of hw))
 

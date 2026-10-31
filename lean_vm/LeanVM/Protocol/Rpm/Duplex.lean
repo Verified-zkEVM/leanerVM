@@ -6,6 +6,7 @@
 -/
 
 import LeanVM.Protocol.LeanVM
+import LeanVM.Protocol.WithHash
 
 /-!
 # The duplex discipline
@@ -31,7 +32,7 @@ namespace LeanVM.Rpm
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
-open LeanVM.Prover (Tree buildTreeM parentsM levelsM powStepM searchM findNonceM)
+open LeanVM.Prover (Tree buildTreeWithHash parentsWithHash levelsWithHash powStepM searchM findNonceM)
 open OracleComp OracleSpec
 
 /-! ## The discipline -/
@@ -261,25 +262,25 @@ theorem duplexP_squeeze {h : List KeccakState} {sp : Sponge} (hs : sp.state ∈ 
 /-! ## The verifier -/
 
 theorem hOnly_climb : ∀ (node : Digest) (q : ℕ) (path : List Digest),
-    HOnly (climb callKeccak256 node q path)
+    HOnly (climbWithHash callKeccak256 node q path)
   | _, _, [] => trivial
   | node, q, s :: ss => by
-    simp only [climb]
+    simp only [climbWithHash]
     split <;> exact (hOnly_queryH _).bind fun _ ↦ hOnly_climb _ _ ss
 
 theorem hOnly_openOne (root : Digest) (height width q : ℕ) (o : Opening) :
-    HOnly (openOne callKeccak256 root height width q o) := by
-  simp only [openOne]
+    HOnly (openOneWithHash callKeccak256 root height width q o) := by
+  simp only [openOneWithHash]
   split
   · exact (hOnly_queryH _).bind fun _ ↦ (hOnly_climb _ _ _).bind fun _ ↦ trivial
   · trivial
 
 theorem hOnly_openAll (root : Digest) (height width : ℕ) :
-    ∀ (qs : List ℕ) (os : List Opening), HOnly (openAll callKeccak256 root height width qs os)
+    ∀ (qs : List ℕ) (os : List Opening), HOnly (openAllWithHash callKeccak256 root height width qs os)
   | [], _ => trivial
   | _ :: _, [] => trivial
   | q :: qs, o :: os => by
-    simp only [openAll]
+    simp only [openAllWithHash]
     refine (hOnly_openOne _ _ _ _ _).bind fun b ↦ ?_
     split
     · exact (hOnly_openAll root height width qs os).bind fun _ ↦ trivial
@@ -288,23 +289,23 @@ theorem hOnly_openAll (root : Digest) (height width : ℕ) :
 /-- **The compiled run keeps the discipline**, from a sponge whose state is an earlier answer. -/
 theorem duplexP_run {α : Type} (P : Prog α) :
     ∀ (s : ProgState) (h : List KeccakState), s.sponge.state ∈ h →
-      DuplexP (Compile.run callKeccak256 callKeccakF1600 P s) h fun _ _ ↦ True := by
+      DuplexP (Compile.runWithHash callKeccak256 callKeccakF1600 P s) h fun _ _ ↦ True := by
   induction P with
   | ret a => intro s h _; trivial
   | fail => intro s h _; trivial
   | read k ih =>
     intro s h hs
-    simp only [Compile.run]
+    simp only [Compile.runWithHash]
     split
     · trivial
     · exact (duplexP_absorb hs _ _).bind fun sp h' hsp ↦ ih _ _ _ hsp
   | sample k ih =>
     intro s h hs
-    simp only [Compile.run]
+    simp only [Compile.runWithHash]
     exact (duplexP_squeeze hs).bind fun r h' hr ↦ ih _ _ _ hr
   | grind bits k ih =>
     intro s h hs
-    simp only [Compile.run]
+    simp only [Compile.runWithHash]
     split
     · trivial
     · refine (duplexP_absorb hs _ _).bind fun sp h' hsp ↦ ?_
@@ -314,7 +315,7 @@ theorem duplexP_run {α : Type} (P : Prog α) :
       · trivial
   | commit height width k ih =>
     intro s h hs
-    simp only [Compile.run]
+    simp only [Compile.runWithHash]
     split
     · refine (duplexP_absorb hs _ _).bind fun sp h' hsp ↦ ?_
       refine (duplexP_absorb hsp _ _).bind fun sp' h'' hsp' ↦ ?_
@@ -324,7 +325,7 @@ theorem duplexP_run {α : Type} (P : Prog α) :
     · trivial
   | query i ps k ih =>
     intro s h hs
-    simp only [Compile.run]
+    simp only [Compile.runWithHash]
     split
     · trivial
     · refine ((hOnly_openAll _ _ _ _ _).duplexP h).bind fun r h' hh ↦ ?_
@@ -334,14 +335,14 @@ theorem duplexP_run {α : Type} (P : Prog α) :
       · trivial
 
 theorem duplexP_runProof (P : Prog Bool) {seed : KeccakState} {h : List KeccakState} (hs : seed ∈ h)
-    (π : Proof) : DuplexP (runProof callKeccak256 callKeccakF1600 P seed π) h fun _ _ ↦ True := by
-  simp only [runProof]
+    (π : Proof) : DuplexP (runProofWithHash callKeccak256 callKeccakF1600 P seed π) h fun _ _ ↦ True := by
+  simp only [runProofWithHash]
   refine (duplexP_run P _ h hs).bind fun r h' _ ↦ ?_
   split <;> trivial
 
 theorem hOnly_fiatShamirIvWith (bytecode : List K) :
-    HOnly (fiatShamirIvWith callKeccak256 bytecode) := by
-  simp only [fiatShamirIvWith]
+    HOnly (fiatShamirIvWithHash callKeccak256 bytecode) := by
+  simp only [fiatShamirIvWithHash]
   exact hOnly_queryH _
 
 /-- The seed's input is zero from lane `8` on. -/
@@ -353,8 +354,8 @@ theorem admissibleVm_seedInput (h : List KeccakState) (iv publicInput : Digest) 
   simp [seedInput, h4, h8]
 
 theorem duplexP_seedWith (bytecode : List K) (publicInput : Digest) (h : List KeccakState) :
-    DuplexP (seedWith callKeccak256 callKeccakF1600 bytecode publicInput) h fun seed h' ↦ seed ∈ h' := by
-  simp only [seedWith]
+    DuplexP (seedWithHash callKeccak256 callKeccakF1600 bytecode publicInput) h fun seed h' ↦ seed ∈ h' := by
+  simp only [seedWithHash]
   refine ((hOnly_fiatShamirIvWith bytecode).duplexP h).bind fun iv h' hh ↦ ?_
   subst hh
   exact (duplexP_queryF_bind _ _ _ _).mpr
@@ -362,10 +363,10 @@ theorem duplexP_seedWith (bytecode : List K) (publicInput : Digest) (h : List Ke
 
 /-- **The verifier follows the duplex discipline.** -/
 theorem duplexVm_verifier (prog : Program) (input : PublicInput) (proof : Proof) :
-    DuplexVm (verifier callKeccak256 callKeccakF1600 prog input proof) [] := by
+    DuplexVm (verifierWithHash callKeccak256 callKeccakF1600 prog input proof) [] := by
   rw [duplexVm_iff_duplexP]
-  change DuplexP (verifyWith callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicDigest input) proof) [] _
-  simp only [verifyWith]
+  change DuplexP (verifyWithHash callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicDigest input) proof) [] _
+  simp only [verifyWithHash]
   exact (duplexP_seedWith _ _ []).bind fun seed h' hs ↦ duplexP_runProof _ hs _
 
 /-! ## The honest prover -/
@@ -375,14 +376,14 @@ theorem hOnly_arrayMapM {β γ : Type} (f : γ → OracleComp KeccakCalls β) (h
   rw [Array.mapM_eq_mapM_toList, map_eq_bind_pure_comp]
   exact (hOnly_mapM f hf _).bind fun _ ↦ trivial
 
-theorem hOnly_parentsM (level : Array Digest) (n : ℕ) : HOnly (parentsM callKeccak256 level n) :=
+theorem hOnly_parentsM (level : Array Digest) (n : ℕ) : HOnly (parentsWithHash callKeccak256 level n) :=
   hOnly_arrayMapM _ (fun _ ↦ hOnly_queryH _) _
 
-theorem hOnly_levelsM : ∀ (k : ℕ) (level : Array Digest), HOnly (levelsM callKeccak256 k level)
+theorem hOnly_levelsM : ∀ (k : ℕ) (level : Array Digest), HOnly (levelsWithHash callKeccak256 k level)
   | 0, _ => trivial
   | k + 1, _ => (hOnly_parentsM _ _).bind fun _ ↦ (hOnly_levelsM k _).bind fun _ ↦ trivial
 
-theorem hOnly_buildTreeM (height : ℕ) (word : Word) : HOnly (buildTreeM callKeccak256 height word) :=
+theorem hOnly_buildTreeM (height : ℕ) (word : Word) : HOnly (buildTreeWithHash callKeccak256 height word) :=
   (hOnly_arrayMapM _ (fun _ ↦ hOnly_queryH _) _).bind fun _ ↦
     (hOnly_levelsM _ _).bind fun _ ↦ trivial
 
@@ -466,7 +467,7 @@ theorem duplexVm_honestComp (prog : Program) (input : PublicInput) (t : Executio
 /-- **The honest prover, then the verifier, follow the duplex discipline.** -/
 theorem duplexVm_honest (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) :
     DuplexVm (LeanVM.Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel >>= fun proof ↦
-      verifier callKeccak256 callKeccakF1600 prog input proof) [] :=
+      verifierWithHash callKeccak256 callKeccakF1600 prog input proof) [] :=
   (duplexVm_honestComp prog input t ρ fuel).bind fun proof ↦ duplexVm_verifier prog input proof
 
 end LeanVM.Rpm

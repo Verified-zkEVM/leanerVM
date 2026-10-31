@@ -77,8 +77,13 @@ duplex that calls Keccak-f[1600] directly, overwriting the first $16$ lanes of t
 \paragraph{The random permutation model (RPM).} Keccak-f[1600] is modelled as a uniformly random
 permutation $\pi$ of $\{0,1\}^{1600}$, sampled lazily (\lean{Common.lazyRandomPermutation},
 \lean{Statement/RandomPermutation.lean}). The model's oracles are $\pi$ and $\pi^{-1}$ and
-nothing else (\lean{Common.RandomPermutationOracles}): every party (adversary, scheme, argument, verifier) computes
-Keccak-256 as the sponge over $\pi$ (\lean{Common.keccak256OverPermutation}), and the duplex calls $\pi$. \emph{The assumption is that the
+nothing else (\lean{Common.RandomPermutationOracles}). No hash is an oracle or a parameter of
+the statement: every algorithm (verifier, prover, scheme, argument) is written over one
+permutation and computes Keccak-256 as the sponge over it (\lean{keccak256With}), and its duplex
+calls it; the model gives every party $\pi$ (\lean{Common.queryPermutation}), the deployed
+instance Keccak-f[1600]. Each experiment is one game run against the lazily sampled permutation
+(\lean{Common.runWithRandomPermutation}), the adversary's queries recorded where an extractor reads
+them (\lean{Common.loggedOracles}). \emph{The assumption is that the
 deployed Keccak-f[1600], a fixed permutation, behaves like a random one.} Every end statement with
 an adversary is in this model; \lean{Statement/} contains no random oracle. Queries are counted in
 one of two ways:
@@ -97,11 +102,11 @@ oracles (Keccak-256 a random function on byte strings and, for leanVM and LeanDA
 function on states), then moved to the RPM by the project \lean{common}: the sponge over $\pi$ is
 indifferentiable from a random oracle, so an experiment of $q$ permutation calls changes
 probability by at most $q^2/2^{509}$, or $q^2/2^{508}$ with the duplex's direct calls
-(\lean{Common.keccak256_transfer}, \lean{keccak256_transfer2}). For the signature schemes and LeanDA
-the proofs first give Keccak-256 an oracle of its own over the same $\pi$; a game with each such
-call expanded into its permutation calls is the statement's game, with the same distribution and
-the same permutation calls (\lean{Common.PiOnly}). These are proof steps; their costs are included
-in the bounds below.
+(\lean{Common.keccak256_transfer}, \lean{keccak256_transfer2}). The proofs reason with Keccak-256 as a call or parameter of its own, over
+the same $\pi$; with that hash Keccak-256 over the permutation these forms are the statement's
+algorithms and games, with the same distribution and the same permutation calls (the
+\lean{WithHashBridge} files of each project, \lean{Common.PiOnly}). These are proof steps; their
+costs are included in the bounds below.
 
 \section{The zkVM: knowledge soundness and completeness}\label{sec:zkvm}
 
@@ -117,7 +122,8 @@ verifier's state bus checks for, so knowledge soundness needs no condition on th
 \paragraph{The extractor.} Knowledge soundness is stated for \emph{one fixed} extractor,
 \lean{transcriptExtractor} (\lean{Statement/LeanVm.lean}). It is straight-line: it reads the proof and
 the adversary's transcript and nothing else; it neither queries $\pi$, nor rewinds the adversary,
-nor sees the verifier's queries. From the transcript it collects the Keccak-256 evaluations whose
+nor sees the verifier's queries. From the transcript's permutation queries (its coins left out,
+\lean{permutationQueries}) it collects the Keccak-256 evaluations whose
 whole padded sponge path appears as a chain of forward queries from the zero state
 (\lean{keccakEvaluationsOfTranscript}). It reads the announced sizes and the stack's Merkle root off the proof,
 inverts the Merkle tree through those evaluations to recover the committed word, lists the stacks

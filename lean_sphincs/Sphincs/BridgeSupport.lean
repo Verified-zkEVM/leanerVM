@@ -1,4 +1,5 @@
 import Sphincs.BridgeRich
+import Common.WithHash
 
 /-! Every non-stopped lazy run is a run of one fixed answer function read off its final
 cache, and each canonical row query in it had a reachable incoming coordinate: initially

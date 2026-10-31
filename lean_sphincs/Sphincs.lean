@@ -1,4 +1,5 @@
 import Sphincs.Axioms
+import Sphincs.WithHash
 
 /-! # The end theorem of leanSPHINCS
 

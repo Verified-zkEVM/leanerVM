@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.Child.NZRun
 public import LeanVM.Protocol.Compile.Rom.Complete
 public import LeanVM.Protocol.Verifier.Cost
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Refusing a zero challenge, against the random oracles
@@ -172,7 +173,7 @@ theorem one_le_nzPot {σ : Seed} {P P' : Prog Bool} (hNZ : NZ P' P) {S : Strateg
     have hv := simulateQ_id_of_look ℓ Ht Ft hH hF (verifierComp σ P' π') false hb'
     rw [simulateQ_verify] at hv
     have hacc := runProof_prove Ht Ft P S seed fuel hc hs hπ
-    have hv' : runProof (m := Id) Ht Ft P' (σ.run (m := Id) Ht Ft) π' = false := hv
+    have hv' : runProofWithHash (m := Id) Ht Ft P' (σ.run (m := Id) Ht Ft) π' = false := hv
     rw [hseed', runProof_nz Ht Ft hFnz hNZ, hacc] at hv'
     cases hv'
   | none =>

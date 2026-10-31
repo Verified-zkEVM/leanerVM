@@ -10,6 +10,7 @@ module
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.SpecLevel
 public import LeanVM.Guest.B1.Whir.SpecQS
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The run, level by level
@@ -59,7 +60,7 @@ theorem rest_qs {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} 
     (hok : ∀ k (hk : k < (queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
       (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1 level.queries).length)
       (ho : k < osL.length),
-      Id.run (Compile.openOne (m := Id) keccak256 root height width
+      Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width
         (queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
           (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1
           level.queries)[k] osL[k]) = true) :

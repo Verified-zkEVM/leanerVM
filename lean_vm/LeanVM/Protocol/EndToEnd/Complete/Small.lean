@@ -13,6 +13,7 @@ public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
 public import Statement.Fast.CubicExt
 public import Statement.Fast.FieldWords
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Completeness for executions within the budget
@@ -162,7 +163,7 @@ noncomputable def honestProofOf (H : Bytes → Digest) (F : KeccakState → Kecc
   if h : ∃ w s, HonestFor prog input t ρ w s then
     prove H F (leanVmProgram (bytecodeWords prog) (publicDigest input))
       (leanVmProver prog h.choose_spec.choose ρ (stackOf prog h.choose_spec.choose h.choose))
-      (Id.run (seedWith (m := Id) H F (bytecodeWords prog) (publicDigest input))) fuel
+      (Id.run (seedWithHash (m := Id) H F (bytecodeWords prog) (publicDigest input))) fuel
   else none
 
 /-- **The honest proof is accepted**, for every hash function and permutation: whenever the
@@ -170,7 +171,7 @@ honest prover outputs a proof, the verifier accepts it. -/
 theorem verify_honestProofOf (H : Bytes → Digest) (F : KeccakState → KeccakState) {prog : Program}
     {input : PublicInput} {t : Execution prog} {ρ fuel : ℕ} {proof : Proof}
     (h : honestProofOf H F prog input t ρ fuel = some proof) :
-    verifyWith (m := Id) H F (bytecodeWords prog) (publicDigest input) proof = true := by
+    verifyWithHash (m := Id) H F (bytecodeWords prog) (publicDigest input) proof = true := by
   unfold honestProofOf at h
   split_ifs at h with hc
   obtain ⟨hρ, hw, hs, hadm, -⟩ := hc.choose_spec.choose_spec
@@ -204,7 +205,7 @@ theorem complete_of_budget {prog : Program} {input : PublicInput} {t : Execution
       (leanVmProgram (bytecodeWords prog) (publicDigest input)).after hist =
           some (.grind bits k) → findNonce F bits sp fuel ≠ none) :
     ∃ proof, honestProofOf H F prog input t ρ fuel = some proof ∧
-      verifyWith (m := Id) H F (bytecodeWords prog) (publicDigest input) proof = true := by
+      verifyWithHash (m := Id) H F (bytecodeWords prog) (publicDigest input) proof = true := by
   obtain ⟨proof, h⟩ := Option.isSome_iff_exists.mp
     (honestProofOf_isSome hv hbudget hρ H F fuel hpow)
   exact ⟨proof, h, verify_honestProofOf H F h⟩

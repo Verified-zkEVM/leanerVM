@@ -1,4 +1,5 @@
 import Sphincs.SecurityPrefixExecution
+import Common.WithHash
 
 /-! The public one-time keys, tree nodes and authentication paths reconstructed from one selected
 chain frontier, and the secrets derived from the seed. The reconstructed functions never read the

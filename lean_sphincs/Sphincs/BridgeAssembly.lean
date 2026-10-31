@@ -1,6 +1,7 @@
 import Sphincs.BridgeEager
 import Sphincs.SecurityGraphCountedGame
 import Sphincs.SecurityGraphSampling
+import Common.WithHash
 
 /-! One sample of the short-query experiment: independent seed material, canonical graph labels
 and a uniform table on all remaining short inputs give a prepared cache and a fixed answer function.

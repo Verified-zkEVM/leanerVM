@@ -1,4 +1,5 @@
 import LeanDa.ForkBound
+import LeanDa.WithHash
 
 /-!
 # The collision term of Wagner's weak-position-binding reduction, bounded
@@ -58,11 +59,11 @@ theorem findCollision_take (H : List UInt8 → Common.DigestBytes) (l₁ : List 
 collision. -/
 theorem openingsCollision_take {r : ℕ} (H : List UInt8 → Common.DigestBytes) (i : Fin (r * 128)) (x : Cell)
     (τ : Opening) (c : Fin (r * 128) → Cell) :
-    openingsCollision H r i x ⟨τ.rowRoot, τ.path.take (8 + logPad r)⟩ (c i) (openCell H c i) =
-      openingsCollision H r i x τ (c i) (openCell H c i) := by
-  have hl : (hashInputs H (colIndex i) (cellBytes (c i)) (openCell H c i).path
-      (openCell H c i).rowRoot).length = 9 + logPad r := by
-    rw [length_hashInputs]; simp [openCell, length_merklePath]; omega
+    openingsCollision H r i x ⟨τ.rowRoot, τ.path.take (8 + logPad r)⟩ (c i) (openCellWithHash H c i) =
+      openingsCollision H r i x τ (c i) (openCellWithHash H c i) := by
+  have hl : (hashInputs H (colIndex i) (cellBytes (c i)) (openCellWithHash H c i).path
+      (openCellWithHash H c i).rowRoot).length = 9 + logPad r := by
+    rw [length_hashInputs]; simp [openCellWithHash, length_merklePath]; omega
   simp only [openingsCollision]
   rw [findCollision_take H _ _ (9 + logPad r) hl.le,
     findCollision_take H (hashInputs H (colIndex i) (cellBytes x) τ.path τ.rowRoot) _ (9 + logPad r)
@@ -86,7 +87,7 @@ def wpbColX (r : ℕ) (c : Fin (r * 128) → Cell) (i : Fin (r * 128)) (x : Cell
 
 theorem wpbColX_eval (r : ℕ) (h : HTab) (c : Fin (r * 128) → Cell) (i : Fin (r * 128)) (x : Cell)
     (τ : Opening) :
-    simulateQ (col h) (wpbColX r c i x τ) = pure (openingsCollision (Hh h) r i x τ (c i) (openCell (Hh h) c i)) := by
+    simulateQ (col h) (wpbColX r c i x τ) = pure (openingsCollision (Hh h) r i x τ (c i) (openCellWithHash (Hh h) c i)) := by
   have hp : ∀ {α} (a : α), simulateQ (col (Ψ := unifSpec) h) (pure a) = pure a := fun _ ↦ rfl
   have hb : ∀ {α β} (x : OracleComp (unifSpec + XS) α) (f : α → OracleComp (unifSpec + XS) β),
       simulateQ (col h) (x >>= f) = simulateQ (col h) x >>= fun a ↦ simulateQ (col h) (f a) :=
@@ -96,12 +97,12 @@ theorem wpbColX_eval (r : ℕ) (h : HTab) (c : Fin (r * 128) → Cell) (i : Fin 
     findCollisionM_eval (fun x ↦ simulateQ (col h) x) hp hb hS (Hh h) (simulateQ_col_hS h), pure_bind]
   rw [← openingsCollision_take]
   congr 1
-  have e1 : (openCell (Hh h) c i).path.take (7 + logPad r) = (openCell (Hh h) c i).path :=
-    List.take_of_length_le (by simp [openCell, length_merklePath])
-  have e2 : (hashInputs (Hh h) (colIndex i) (cellBytes (c i)) (openCell (Hh h) c i).path
-      (openCell (Hh h) c i).rowRoot).take (9 + logPad r) = hashInputs (Hh h) (colIndex i)
-        (cellBytes (c i)) (openCell (Hh h) c i).path (openCell (Hh h) c i).rowRoot :=
-    List.take_of_length_le (by rw [length_hashInputs]; simp [openCell, length_merklePath]; omega)
+  have e1 : (openCellWithHash (Hh h) c i).path.take (7 + logPad r) = (openCellWithHash (Hh h) c i).path :=
+    List.take_of_length_le (by simp [openCellWithHash, length_merklePath])
+  have e2 : (hashInputs (Hh h) (colIndex i) (cellBytes (c i)) (openCellWithHash (Hh h) c i).path
+      (openCellWithHash (Hh h) c i).rowRoot).take (9 + logPad r) = hashInputs (Hh h) (colIndex i)
+        (cellBytes (c i)) (openCellWithHash (Hh h) c i).path (openCellWithHash (Hh h) c i).rowRoot :=
+    List.take_of_length_le (by rw [length_hashInputs]; simp [openCellWithHash, length_merklePath]; omega)
   simp only [openingsCollision, e1, e2]
 
 theorem isWeightBound_wpbColX (r : ℕ) (c : Fin (r * 128) → Cell) (i : Fin (r * 128)) (x : Cell)
@@ -198,7 +199,7 @@ theorem prEvent_pure_le {x y : Bool} (h : x = true → y = true) :
 /-- The pair Wagner's weak-position-binding reduction compares. -/
 def wpbPair (H : List UInt8 → Common.DigestBytes) (t : (Fin (r * 128) → Cell) × Fin (r * 128) × Cell × Opening) :
     List UInt8 × List UInt8 :=
-  openingsCollision H r t.2.1 t.2.2.1 t.2.2.2 (t.1 t.2.1) (openCell H t.1 t.2.1)
+  openingsCollision H r t.2.1 t.2.2.1 t.2.2.2 (t.1 t.2.1) (openCellWithHash H t.1 t.2.1)
 
 /-- **Wagner's weak-position-binding collision term is a birthday bound**: at most
 `(N + 2)² / 2^256` for the `N = wpbCalls r Q` hash calls of the search, for an RPM adversary of

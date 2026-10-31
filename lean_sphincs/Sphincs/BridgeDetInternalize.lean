@@ -1,5 +1,6 @@
 import Sphincs.StatementDet
 import Sphincs.BridgeAssembly
+import Common.WithHash
 
 /-! Internalizing long adversarial hash inputs for the deterministic-randomizer game, and its
 fixed-function form. `Seeded.sign` only makes short queries (its randomizer derivation is 88

@@ -1,4 +1,5 @@
 import Sphincs.BridgeAssembly
+import Common.WithHash
 
 /-! Probabilistic semantics of the graph-view game with an explicit cost trace, and the exact
 "identical until the seed is named" comparison for two fixed answer functions. -/

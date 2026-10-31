@@ -37,8 +37,8 @@ theorem slot_lt {P x o : ℕ} (hx : x < 2 ^ (P + 4)) (ho : o < 64) :
   omega
 
 theorem inStateOf_eq {P : ℕ} {col' col : ℕ → K} (hcol : ColAgree P col' col) {m x : ℕ}
-    (hm : m < 2) (hx : x < 2 ^ (P + 4)) : inStateOf col' (P + 4) m x = inState (P + 4) col m x := by
-  unfold inStateOf inState
+    (hm : m < 2) (hx : x < 2 ^ (P + 4)) : inStateOf col' (P + 4) m x = LeanVM.Protocol.KeccakGkr.inState (P + 4) col m x := by
+  unfold inStateOf LeanVM.Protocol.KeccakGkr.inState
   congr 1
   funext l
   rw [hcol _ (slot_lt hx (by omega))]

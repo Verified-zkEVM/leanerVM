@@ -16,6 +16,7 @@ public import Statement.Fast.FieldWords
 public import LeanVM.Protocol.Compile.Prog
 public import LeanVM.Protocol.KeccakHash
 public import LeanVM.Parameters.Field
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The verifier on its four files
@@ -34,7 +35,7 @@ open LeanVM.Parameters
 open LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
 /-- The deployed verifier is the parametric one at `Id`, Keccak-256 and Keccak-f[1600]. -/
 theorem verifyWith_keccak (bytecode : List K) (publicInput : Digest) (π : Proof) :
-    Id.run (verifyWith (m := Id) keccak256 keccakF1600 bytecode publicInput π) =
+    Id.run (verifyWithHash (m := Id) keccak256 keccakF1600 bytecode publicInput π) =
       verify bytecode publicInput π :=
   rfl
 

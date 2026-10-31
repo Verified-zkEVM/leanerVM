@@ -16,8 +16,9 @@ Read first (`Statement/README.md` states the model): Keccak-f[1600] as leanVM co
 Keccak-256 over any permutation of its state (namespaces `LeanVM.*`), then the model (namespace
 `Common`): `π` and `π⁻¹` lazily sampled, a cost bounded on every path, the oracles of the model
 and a game's run (`RandomPermutationOracles`: coins, `π` and `π⁻¹`, nothing else;
-`permutationCallCost`, `runWithRandomPermutation`; Keccak-256 the sponge over `π`,
-`keccak256OverPermutation`), and the SUF-CMA game of a signature scheme (`SufCma`). The
+`permutationCallCost`, `runWithRandomPermutation`; a computation's queries recorded,
+`loggedOracles`), and the SUF-CMA game of a signature scheme over `π` (`SufCma`). Every party
+hashes with Keccak-256 over the permutation it is given (`keccak256With`), `π` in the model. The
 permutation's state is one type throughout, `KeccakState`, `25` lanes of `64` bits.
 -/
 
@@ -278,7 +279,7 @@ open LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 abbrev DigestBytes := Vector UInt8 32
 
 /-- **The oracles of the random-permutation model**: coins, `π` and `π⁻¹` on Keccak states, and
-nothing else. Every party hashes with Keccak-256 over `π` (`keccak256OverPermutation`). -/
+nothing else. Every party hashes with Keccak-256 over `π` (`keccak256With queryPermutation`). -/
 abbrev RandomPermutationOracles := unifSpec + permutationOracleSpec KeccakState
 
 /-- **The cost that counts permutation calls**: a call of `π` or `π⁻¹` costs one, a coin nothing. -/
@@ -286,14 +287,10 @@ def permutationCallCost : RandomPermutationOracles.Domain → ℕ
   | .inl _ => 0
   | .inr _ => 1
 
-/-- A call `π x` of the permutation. -/
+/-- A call `π x` of the permutation. Keccak-256 over `π`, `keccak256With queryPermutation`, makes
+one per block of the padded message (`⌊n / 136⌋ + 1` for `n` bytes). -/
 def queryPermutation (x : KeccakState) : OracleComp RandomPermutationOracles KeccakState :=
   liftM (RandomPermutationOracles.query (.inr (.forward x)))
-
-/-- **Keccak-256 in the model**: the sponge over `π` (`keccak256With`), one call of `π` per block
-of the padded message (`⌊n / 136⌋ + 1` for `n` bytes), its digest's 32 bytes. -/
-def keccak256OverPermutation (m : List UInt8) : OracleComp RandomPermutationOracles DigestBytes :=
-  Digest.toBytes <$> keccak256With queryPermutation m
 
 /-- The model's answers: coins forwarded, `π` and `π⁻¹` the lazily sampled permutation. -/
 noncomputable def lazyRandomPermutationOracles :
@@ -306,6 +303,19 @@ permutation from no edge. -/
 noncomputable def runWithRandomPermutation {α : Type} (G : OracleComp RandomPermutationOracles α) :
     ProbComp α :=
   (simulateQ lazyRandomPermutationOracles G).run' []
+
+/-- A transcript: the queries of the model's oracles with their answers, in order (VCVio's
+`QueryLog`): coins, `π` and `π⁻¹`. -/
+abbrev OracleQueryLog := QueryLog RandomPermutationOracles
+
+/-- **A computation's queries, recorded**: each query asked of the model's oracles, and appended
+with its answer to the transcript. -/
+def loggedOracles :
+    QueryImpl RandomPermutationOracles
+      (StateT OracleQueryLog (OracleComp RandomPermutationOracles)) := fun t ↦ do
+  let u ← liftM (RandomPermutationOracles.query t)
+  modify (· ++ [⟨t, u⟩])
+  pure u
 
 end
 
@@ -321,22 +331,19 @@ def digestBitVec : DigestBytes ≃ BitVec 256 :=
       finFunctionFinEquiv.trans <| (finCongr (show 256 ^ 32 = 2 ^ 256 by norm_num)).trans
         ⟨BitVec.ofFin, BitVec.toFin, fun _ ↦ rfl, fun _ ↦ rfl⟩
 
-/-- The hash of a signature scheme, `H : List UInt8 → BitVec 256`: in the model Keccak-256, its
-digest read as a little-endian number (`digestBitVec`). -/
-abbrev SchemeHashSpec := List UInt8 →ₒ BitVec 256
-
-/-- **A signature scheme** with the hash `H` (`SchemeHashSpec`): a seed sampler, key generation from
-a seed, the signer answering a request `Req` with `Resp`, the verifier of a claimed forgery `F`, and
-the winning condition on the signing transcript and the forgery. -/
+/-- **A signature scheme** over the model's oracles: a seed sampler, key generation from a seed,
+the signer answering a request `Req` with `Resp`, the verifier of a claimed forgery `F`, and the
+winning condition on the signing transcript and the forgery. Key generation, the signer and the
+verifier hash with Keccak-256 over `π` (`keccak256With queryPermutation`). -/
 structure Scheme (Seed PK SK Req Resp F : Type) where
   /-- Sample the secret seed. -/
   sample : ProbComp Seed
   /-- Generate the keys from the seed. -/
-  keygen : Seed → OracleComp SchemeHashSpec (PK × SK)
+  keygen : Seed → OracleComp RandomPermutationOracles (PK × SK)
   /-- Answer a signing request. -/
-  sign : SK → Req → OracleComp SchemeHashSpec Resp
+  sign : SK → Req → OracleComp RandomPermutationOracles Resp
   /-- Verify a claimed forgery. -/
-  verify : PK → F → OracleComp SchemeHashSpec Bool
+  verify : PK → F → OracleComp RandomPermutationOracles Bool
   /-- The transcript and the forgery make a win (when the forgery verifies). -/
   win : QueryLog (Req →ₒ Resp) → F → Bool
 
@@ -348,33 +355,28 @@ abbrev SignerReturned {M S : Type} (message : Req → M) (log : QueryLog (Req �
     (s : S) : Prop :=
   ∃ entry ∈ log, message entry.1 = m ∧ entry.2 = some s
 
-/-- The hash in the random-permutation model: Keccak-256 over `π` (`keccak256OverPermutation`), its
-digest read as a bit vector (`digestBitVec`). -/
-def schemeHashOverPermutation : QueryImpl SchemeHashSpec (OracleComp RandomPermutationOracles) :=
-  fun m ↦ digestBitVec <$> keccak256OverPermutation m
-
-/-- The signing oracle in the random-permutation model. -/
+/-- The signing oracle: the signer's answer, each request and answer recorded. -/
 def loggedSigningOracle (S : Scheme Seed PK SK Req Resp F) (sk : SK) :
     QueryImpl (Req →ₒ Resp)
       (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp RandomPermutationOracles)) :=
-  QueryImpl.withLogging fun r ↦ simulateQ schemeHashOverPermutation (S.sign sk r)
+  QueryImpl.withLogging fun r ↦ S.sign sk r
 
-/-- **The RPM game**: the game with `H` Keccak-256 over the permutation, and an adversary that
-also queries `π` and `π⁻¹`. -/
+/-- **The game**: key generation, then the adversary, which queries coins, `π`, `π⁻¹` and the
+signing oracle, then the verification of its forgery. -/
 noncomputable def forgeryGame (S : Scheme Seed PK SK Req Resp F)
     (main : PK → OracleComp (RandomPermutationOracles + (Req →ₒ Resp)) F) :
       OracleComp RandomPermutationOracles Bool := do
   let seed ← liftM S.sample
-  let (pk, sk) ← simulateQ schemeHashOverPermutation (S.keygen seed)
+  let (pk, sk) ← S.keygen seed
   let ((forgery, log) : F × QueryLog (Req →ₒ Resp)) ←
     (simulateQ
       (QueryImpl.ofLift RandomPermutationOracles
         (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp RandomPermutationOracles)) +
       loggedSigningOracle S sk) (main pk)).run
-  let verified ← simulateQ schemeHashOverPermutation (S.verify pk forgery)
+  let verified ← S.verify pk forgery
   return S.win log forgery && verified
 
-/-- **The RPM experiment**: the RPM game against the lazily sampled random permutation. -/
+/-- **The experiment**: the game against the lazily sampled random permutation. -/
 noncomputable def forgeryExperiment (S : Scheme Seed PK SK Req Resp F)
     (main : PK → OracleComp (RandomPermutationOracles + (Req →ₒ Resp)) F) : ProbComp Bool :=
   runWithRandomPermutation (forgeryGame S main)

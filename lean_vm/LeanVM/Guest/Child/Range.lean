@@ -12,6 +12,8 @@ public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.NZBridge
 public import LeanVM.Guest.Child.Fresh
 public import LeanVM.Guest.Child.Reads
+public import LeanVM.Protocol.WithHashBridge
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Query positions in range
@@ -80,8 +82,8 @@ theorem queriesOf_le {p q : Prog α} (hpq : Prog.Le p q) :
     | none => simp [hr] at h
     | some x =>
       obtain ⟨root, height, width⟩ := x
-      simp only [hr] at h ⊢
-      cases ho : Id.run (openAll (m := Id) keccak256 root height width ps os) with
+      simp only [hr, openAll_eq_withHash, keccak256With_keccakF1600] at h ⊢
+      cases ho : Id.run (openAllWithHash (m := Id) keccak256 root height width ps os) with
       | none => simp [ho] at h
       | some y =>
         obtain ⟨rows, rest⟩ := y

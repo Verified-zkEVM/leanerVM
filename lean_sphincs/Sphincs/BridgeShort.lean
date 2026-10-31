@@ -1,6 +1,7 @@
 import Sphincs.SecurityVerifier
 import Sphincs.Randomized
 import VCVio.OracleComp.QueryTracking.QueryBound
+import Common.WithHash
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,8 +47,8 @@ theorem Only.ite {α : Type} (condition : Prop) [Decidable condition]
   · exact hright
 
 theorem Only.query {input : HashInput} (h : IsShort input) :
-    Only (oracleHash input : OracleComp HashSpec HashOutput) := by
-  simp only [Only, oracleHash, HasQuery.query]
+    Only (oracleHashWithHash input : OracleComp HashSpec HashOutput) := by
+  simp only [Only, oracleHashWithHash, HasQuery.query]
   rw [isQueryBoundP_query_iff]
   intro hlong
   exact absurd h hlong

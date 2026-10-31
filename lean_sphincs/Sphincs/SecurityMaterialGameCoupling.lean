@@ -2,6 +2,7 @@ import Sphincs.SecurityPreparedScheme
 import Sphincs.Statement
 import Sphincs.RandomizedSupport
 import Sphincs.SecurityTreeWitness
+import Common.WithHash
 
 /-!
 Composing privileged honest-code compilation with an unchanged shared adversarial oracle: the

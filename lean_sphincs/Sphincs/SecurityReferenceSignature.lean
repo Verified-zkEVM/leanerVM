@@ -1,5 +1,6 @@
 import Sphincs.SecurityReferenceChoice
 import Sphincs.SecuritySignatureWitness
+import Common.WithHash
 
 /-! The reference WOTS word and counter chosen by the actual canonical encoding search at each
 leaf, defined also for unsigned leaves and exhausted searches. -/

@@ -1,5 +1,6 @@
 import LeanDa.StraightBound
 import LeanDa.RpmComplete
+import LeanDa.WithHash
 
 /-!
 # LeanDA's binding with an argument that queries the oracles
@@ -123,7 +124,7 @@ theorem toK_hR' (a : List UInt8) : simulateQ toK (hR a) = hKB a := toK_hR a
 
 theorem toK_cbPostV (crs : Crs) (out : CbOut r (PrfV Proof)) :
     simulateQ toK (cbPostV r ps crs out) = (do
-      let vs ← out.2.mapM fun o ↦ verifyCellM hKB r out.1.1 o.1 o.2.1 o.2.2
+      let vs ← out.2.mapM fun o ↦ verifyCellMWithHash hKB r out.1.1 o.1 o.2.1 o.2.2
       pure (cbWin r out vs out.1.2.2.2)) := by
   rw [cbPostV, simulateQ_embH_postV, simulateQ_bind,
     mapM_map (fun x ↦ simulateQ toK x) (fun _ ↦ simulateQ_pure _ _)
@@ -168,7 +169,7 @@ theorem relabel_ksGame (A : CodeBindingAdvRpmH r Crs Proof) :
     bind_map_left, map_bind, bind_assoc, simulateQ_pure, pure_bind, map_pure]
   refine bind_congr fun p ↦ ?_
   refine bind_congr fun ok ↦ ?_
-  simp only [relationM, simulateQ_bind, relabel_membershipChallengesM, bind_assoc]
+  simp only [relationMWithHash, simulateQ_bind, relabel_membershipChallengesM, bind_assoc]
   refine bind_congr fun zs ↦ ?_
   simp only [ksPost, simulateQ_bind, toK_commitCellsM, relabel_commitCellsM, simulateQ_pure,
     pure_bind]
@@ -185,8 +186,8 @@ noncomputable def advP (A : PosBindingAdvRpmH r Crs Proof) (ck : Unit × Crs) :
 def posPostV (_ : Crs)
     (out : (Common.DigestBytes × (Proof × Bool)) × Fin (r * 128) × Cell × Opening × Cell × Opening) :
     OracleComp Rom2 Bool := do
-  let b ← verifyCellM hR r out.1.1 out.2.1 out.2.2.1 out.2.2.2.1
-  let b' ← verifyCellM hR r out.1.1 out.2.1 out.2.2.2.2.1 out.2.2.2.2.2
+  let b ← verifyCellMWithHash hR r out.1.1 out.2.1 out.2.2.1 out.2.2.2.1
+  let b' ← verifyCellMWithHash hR r out.1.1 out.2.1 out.2.2.2.2.1 out.2.2.2.2.2
   pure (decide (out.2.2.1 ≠ out.2.2.2.2.1) && out.1.2.2 && b && b')
 
 theorem relabel_posBindingGame (A : PosBindingAdvRpmH r Crs Proof) :

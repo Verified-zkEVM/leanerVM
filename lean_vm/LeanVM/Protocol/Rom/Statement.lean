@@ -18,6 +18,7 @@ public import Statement.Fast.FieldWords
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
 public import VCVio.OracleComp.QueryTracking.QueryBound.Basic
 public import VCVio.EvalDist.ProbabilityNotation
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The two-oracle random-oracle model, a step of the proofs
@@ -93,7 +94,7 @@ oracle. -/
 noncomputable def experiment (A : Adversary) : ProbComp Outcome := do
   let (z, adversaryCache) ← (simulateQ KeccakCalls.randomOracle A).run ∅
   let (verdict, cache) ←
-    (simulateQ KeccakCalls.randomOracle (verifier callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2)).run adversaryCache
+    (simulateQ KeccakCalls.randomOracle (verifierWithHash callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2)).run adversaryCache
   return ((z, verdict), cache, adversaryCache)
 
 /-! ## Knowledge soundness -/
@@ -129,7 +130,7 @@ def KnowledgeSoundnessRom : Prop :=
 
 /-- **Completeness in the two-oracle random-oracle model.** -/
 def CompletenessRom : Prop :=
-  ∃ prover : HonestProver, ∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
+  ∃ prover : HonestProverWithHash, ∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
     ValidExecution prog input t →
     t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
     Pr{let z ← experiment ((fun proof ↦ ((prog, input), proof)) <$> prover prog input t ρ fuel)}[

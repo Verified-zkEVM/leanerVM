@@ -1,4 +1,5 @@
 import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.WithHashBridge
 
 /-!
 # The compiled verifier: the Fiat-Shamir sponge against the Python's, and garbage rejected
@@ -62,7 +63,7 @@ def prefixProgram : Prog (List E) := do
 
 /-- The compiled reading of `prefixProgram` on a stream, from the deployed seed. -/
 def prefixRun (s : List E) : Option (List E × ProgState) :=
-  Id.run (Compile.run keccak256 keccakF1600 prefixProgram
+  Id.run (Compile.run (m := Id) keccakF1600 prefixProgram
     ⟨⟨seed sampleBytecode samplePublicInput, []⟩, s, [], []⟩)
 
 /-! ## The sponge agrees with the Python's -/
@@ -97,10 +98,11 @@ def prefixRun (s : List E) : Option (List E × ProgState) :=
 #guard verify sampleBytecode samplePublicInput ⟨stream 4 100, []⟩ = false
 #guard verify sampleBytecode samplePublicInput ⟨stream 5 100, []⟩ = false
 
-/-- The deployed verifier is the oracle-parametric one at `Id`, Keccak-256 and Keccak-f. -/
+/-- The deployed verifier is the one over a permutation, at `Id` and Keccak-f[1600]. -/
 example (π : Proof) :
-    Id.run (verifyWith keccak256 keccakF1600 sampleBytecode samplePublicInput π) =
-      verify sampleBytecode samplePublicInput π :=
+    Id.run (verifyWith (m := Id) keccakF1600 sampleBytecode samplePublicInput π) =
+      verify sampleBytecode samplePublicInput π := by
+  rw [verifyWith_eq_withHash, keccak256With_keccakF1600]
   rfl
 
 end LeanVMTests.Protocol.Verifier.Compiled

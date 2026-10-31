@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Protocol.Compile.Rom.Extract
 public import LeanVM.Protocol.Compile.Prover
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The extracted history of a run
@@ -46,7 +47,7 @@ proof. -/
 def verify {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState) (σ : Seed)
     (P : Prog Bool) (π : Proof) : m Bool := do
   let seed ← σ.run H F
-  runProof H F P seed π
+  runProofWithHash H F P seed π
 
 /-! ## The run with its history -/
 
@@ -84,21 +85,21 @@ noncomputable def xrun {α : Type} : Prog α → ProgState → List Ev → Optio
     | _ => none
   | .query i ps k, s, h => match s.roots[i]? with
     | none => none
-    | some (root, height, width) => match openAll H root height width ps s.openings with
+    | some (root, height, width) => match openAllWithHash H root height width ps s.openings with
       | some (some (rows, rest)) => xrun (k rows) { s with openings := rest } (h ++ [Ev.query rows])
       | _ => none
 
 /-- An accepting run in `Option` has an extracted history, ending at the same state. -/
 theorem xrun_of_run {α : Type} :
     ∀ (p : Prog α) (s : ProgState) (h : List Ev) {a : α} {s' : ProgState},
-      run (m := Option) H F p s = some (some (a, s')) → ∃ hist, xrun H F p s h = some (a, s', hist)
+      runWithHash (m := Option) H F p s = some (some (a, s')) → ∃ hist, xrun H F p s h = some (a, s', hist)
   | .ret a, s, h, _, _, hr => by
-    simp only [run, pure, Option.some.injEq, Prod.mk.injEq] at hr
+    simp only [runWithHash, pure, Option.some.injEq, Prod.mk.injEq] at hr
     obtain ⟨rfl, rfl⟩ := hr
     exact ⟨h, rfl⟩
-  | .fail, s, h, _, _, hr => by simp [run, pure] at hr
+  | .fail, s, h, _, _, hr => by simp [runWithHash, pure] at hr
   | .read k, s, h, _, _, hr => by
-    simp only [run] at hr
+    simp only [runWithHash] at hr
     split at hr
     · simp [pure] at hr
     · rename_i x xs hs
@@ -108,12 +109,12 @@ theorem xrun_of_run {α : Type} :
       refine ⟨hist, ?_⟩
       simp only [xrun, hs, hsp, Option.bind_some, hh]
   | .sample k, s, h, _, _, hr => by
-    simp only [run, bind, Option.bind_eq_some_iff] at hr
+    simp only [runWithHash, bind, Option.bind_eq_some_iff] at hr
     obtain ⟨r, hr0, hr⟩ := hr
     obtain ⟨hist, hh⟩ := xrun_of_run _ _ (h ++ [Ev.sample r.1]) hr
     exact ⟨hist, by simp only [xrun, hr0, Option.bind_some, hh]⟩
   | .grind bits k, s, h, _, _, hr => by
-    simp only [run] at hr
+    simp only [runWithHash] at hr
     split at hr
     · simp [pure] at hr
     · rename_i n xs hs
@@ -125,7 +126,7 @@ theorem xrun_of_run {α : Type} :
         exact ⟨hist, by simp only [xrun, hs, hsp, hr0, Option.bind_some, hp, ↓reduceIte, hh]⟩
       · simp [pure] at hr
   | .commit height width k, s, h, _, _, hr => by
-    simp only [run] at hr
+    simp only [runWithHash] at hr
     split at hr
     · rename_i x0 x1 xs hs
       simp only [bind, Option.bind_eq_some_iff] at hr
@@ -138,7 +139,7 @@ theorem xrun_of_run {α : Type} :
       · simp [pure] at hr
     · simp [pure] at hr
   | .query i ps k, s, h, _, _, hr => by
-    simp only [run] at hr
+    simp only [runWithHash] at hr
     split at hr
     · simp [pure] at hr
     · rename_i root height width hroot
@@ -203,14 +204,14 @@ word holds at the positions. -/
 theorem rows_of_openAll {H : Bytes → Option Digest} (hH : AnswersInj H) (root : Digest)
     (ht w : ℕ) :
     ∀ (ps : List ℕ) (os : List Opening) {rows : List (List K)} {rest : List Opening},
-      openAll (m := Option) H root ht w ps os = some (some (rows, rest)) →
+      openAllWithHash (m := Option) H root ht w ps os = some (some (rows, rest)) →
         rows = ps.map fun q ↦ extract H root ht w (q % 2 ^ ht)
   | [], os, rows, rest, h => by
-    simp only [openAll, pure, Option.some.injEq, Prod.mk.injEq] at h
+    simp only [openAllWithHash, pure, Option.some.injEq, Prod.mk.injEq] at h
     rw [← h.1]; rfl
-  | _ :: _, [], _, _, h => by simp [openAll, pure] at h
+  | _ :: _, [], _, _, h => by simp [openAllWithHash, pure] at h
   | q :: qs, o :: os, rows, rest, h => by
-    simp only [openAll, bind, Option.bind_eq_some_iff] at h
+    simp only [openAllWithHash, bind, Option.bind_eq_some_iff] at h
     obtain ⟨b, hb, h⟩ := h
     cases b
     · simp [pure] at h
@@ -232,7 +233,7 @@ theorem answer_of_openAll {H : Bytes → Option Digest} (hH : AnswersInj H) {s :
     {h : List Ev} (hR : RootsInv H s h) {i : ℕ} {root : Digest} {ht w : ℕ}
     (hi : s.roots[i]? = some (root, ht, w)) {ps : List ℕ} {rows : List (List K)}
     {rest : List Opening}
-    (ho : openAll (m := Option) H root ht w ps s.openings = some (some (rows, rest))) :
+    (ho : openAllWithHash (m := Option) H root ht w ps s.openings = some (some (rows, rest))) :
     answer h i ps = some rows := by
   rw [answer, hR, List.getElem?_map, hi, rows_of_openAll hH root ht w ps s.openings ho]
   rfl
@@ -293,7 +294,7 @@ theorem xrun_of_verify_from {H : Bytes → Option Digest} {F : KeccakState → O
         some (true, s, extractedFrom H F σ p h₀ π) := by
   simp only [verify, bind, Option.bind_eq_some_iff] at hv
   obtain ⟨seed, hseed, hv⟩ := hv
-  simp only [runProof, bind, Option.bind_eq_some_iff] at hv
+  simp only [runProofWithHash, bind, Option.bind_eq_some_iff] at hv
   obtain ⟨r, hr, hv⟩ := hv
   rcases r with _ | ⟨_ | _, s⟩
   · simp [pure] at hv

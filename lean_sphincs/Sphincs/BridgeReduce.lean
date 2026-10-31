@@ -1,6 +1,7 @@
 import Sphincs.BridgeStop
 import Sphincs.SecurityHiddenCost
 import Sphincs.SecuritySeedGuess
+import Common.WithHash
 
 /-! The seed-free, budget-capped graph-view game: the canonical graph cache and answer function of
 a sample without any seed-addressed entry, the seed-free run and experiment averaged over

@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Protocol.Compile.Rom.Bridge
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The query cost of a verifier program
@@ -278,16 +279,16 @@ theorem isTotalQueryBound_pure' {β : Type} (b : β) (n : ℕ) :
 /-- A climb up a path makes one query per level. -/
 theorem isTotalQueryBound_climb :
     ∀ (node : Digest) (q : ℕ) (path : List Digest),
-      IsTotalQueryBound (climb callKeccak256 node q path) path.length
+      IsTotalQueryBound (climbWithHash callKeccak256 node q path) path.length
   | _, _, [] => trivial
   | node, q, s :: ss => by
-    simp only [climb, List.length_cons]
+    simp only [climbWithHash, List.length_cons]
     split <;> exact isTotalQueryBound_queryH_bind _ fun p ↦ isTotalQueryBound_climb p _ ss
 
 /-- An opening against a root of height `ht` makes at most `1 + ht` queries. -/
 theorem isTotalQueryBound_openOne (root : Digest) (ht w q : ℕ) (o : Opening) :
-    IsTotalQueryBound (openOne callKeccak256 root ht w q o) (1 + ht) := by
-  unfold openOne
+    IsTotalQueryBound (openOneWithHash callKeccak256 root ht w q o) (1 + ht) := by
+  unfold openOneWithHash
   split
   · rename_i hw
     rw [show 1 + ht = (o.path.length + 0) + 1 by omega]
@@ -299,11 +300,11 @@ theorem isTotalQueryBound_openOne (root : Digest) (ht w q : ℕ) (o : Opening) :
 /-- Opening `ps` against a root of height `ht` makes at most `|ps| · (1 + ht)` queries. -/
 theorem isTotalQueryBound_openAll (root : Digest) (ht w : ℕ) :
     ∀ (ps : List ℕ) (os : List Opening),
-      IsTotalQueryBound (openAll callKeccak256 root ht w ps os) (ps.length * (1 + ht))
+      IsTotalQueryBound (openAllWithHash callKeccak256 root ht w ps os) (ps.length * (1 + ht))
   | [], _ => trivial
   | _ :: _, [] => trivial
   | q :: qs, o :: os => by
-    simp only [openAll]
+    simp only [openAllWithHash]
     rw [show (q :: qs).length * (1 + ht) = (1 + ht) + qs.length * (1 + ht) by
       simp only [List.length_cons]; ring]
     refine isTotalQueryBound_bind (isTotalQueryBound_openOne root ht w q o) fun b ↦ ?_
@@ -359,18 +360,18 @@ most `(n + k) / 4` queries, `k` the number of waiting scalars. -/
 theorem isTotalQueryBound_run {α : Type} (height : ℕ) :
     ∀ (p : Prog α) (s : ProgState) (n : ℕ) (Q : α → Prop), p.Costs height n Q →
       (∀ r ∈ s.roots, r.2.1 ≤ height) → s.sponge.pending.length ≤ 4 →
-      IsTotalQueryBound (run callKeccak256 callKeccakF1600 p s) ((n + s.sponge.pending.length) / 4)
+      IsTotalQueryBound (runWithHash callKeccak256 callKeccakF1600 p s) ((n + s.sponge.pending.length) / 4)
   | .ret a, s, n, Q, _, _, _ => trivial
   | .fail, s, n, Q, _, _, _ => trivial
   | .read k, s, n, Q, hp, hs, hk => by
-    simp only [run]
+    simp only [runWithHash]
     split
     · trivial
     · rename_i x xs _
       exact isTotalQueryBound_absorb _ hk _ _ _ n hp.1 fun sp' hsp' ↦
         isTotalQueryBound_run height (k x) _ (n - 1) Q (hp.2 x) hs hsp'
   | .sample k, s, n, Q, hp, hs, hk => by
-    simp only [run]
+    simp only [runWithHash]
     rw [squeeze_bind]
     refine (isTotalQueryBound_queryF_bind (n := (n - 4) / 4) _ fun st ↦ ?_).mono ?_
     · simpa using isTotalQueryBound_run height (k (challengeOf st))
@@ -378,7 +379,7 @@ theorem isTotalQueryBound_run {α : Type} (height : ℕ) :
     · have := hp.1
       omega
   | .grind bits k, s, n, Q, hp, hs, hk => by
-    simp only [run]
+    simp only [runWithHash]
     split
     · trivial
     · rename_i nn xs _
@@ -393,7 +394,7 @@ theorem isTotalQueryBound_run {α : Type} (height : ℕ) :
         · trivial
       · omega
   | .commit ht w k, s, n, Q, hp, hs, hk => by
-    simp only [run]
+    simp only [runWithHash]
     split
     · rename_i x0 x1 xs _
       have h2 := hp.2.1
@@ -410,7 +411,7 @@ theorem isTotalQueryBound_run {α : Type} (height : ℕ) :
       · trivial
     · trivial
   | .query i ps k, s, n, Q, hp, hs, hk => by
-    simp only [run]
+    simp only [runWithHash]
     split
     · trivial
     · rename_i root ht w hroot
@@ -427,8 +428,8 @@ theorem isTotalQueryBound_run {α : Type} (height : ℕ) :
 
 /-- A program of cost `n`, run on a proof from any seed, makes at most `n / 4` queries. -/
 theorem isTotalQueryBound_runProof {P : Prog Bool} {height n : ℕ} (hP : P.CostLE height n)
-    (seed : KeccakState) (π : Proof) : IsTotalQueryBound (runProof callKeccak256 callKeccakF1600 P seed π) (n / 4) := by
-  unfold runProof
+    (seed : KeccakState) (π : Proof) : IsTotalQueryBound (runProofWithHash callKeccak256 callKeccakF1600 P seed π) (n / 4) := by
+  unfold runProofWithHash
   rw [← Nat.add_zero (n / 4)]
   refine isTotalQueryBound_bind ((isTotalQueryBound_run height P _ n _ hP
     (by intro r hr; simp at hr) (by simp)).mono (by simp)) fun o ↦ ?_

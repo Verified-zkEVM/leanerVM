@@ -29,7 +29,12 @@ round's replacement, and `keccak256`, Keccak-256 over Keccak-f[1600] in `Id`, wi
 and with the blocks read from arrays (`keccak256_eq_keccak256Blocks`); the lemma equating each
 with its restatement compiles it as the restatement in every module that imports this one
 (`Statement.Field` and `Statement.LeanDa` do, so the statement's own definitions and every module
-of the repository compile them so). Nothing here transcribes a source.
+of the repository compile them so). `keccak256With`, over any permutation in any monad, is
+restated with the blocks read from arrays (`keccak256With_eq_keccak256WithArray`): the verifier,
+the prover and the schemes hash with it, over Keccak-f[1600] when run; and the schemes' reading
+of a digest's bytes as a number (`Common.SufCma.digestBitVec`, a sum of powers through Mathlib's
+equivalences) as a fold (`digestBitVec_eq_digestBitVecFast`; `Statement.LeanXmss` imports this
+module for both). Nothing here transcribes a source.
 -/
 
 namespace LeanVM.Fast.Keccak
@@ -178,6 +183,99 @@ theorem keccak256With_id (f : KeccakState → KeccakState) (data : List UInt8) :
   funext data
   rw [keccak256, keccak256With_id, absorbWith_eq_absorbBlocks]
   rfl
+
+/-! ## Keccak-256 over any permutation -/
+
+section With
+
+variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
+
+/-- `absorbBlockWith`, the block read from an array. -/
+def absorbBlockWithArray (state : KeccakState) (block : List UInt8) : m KeccakState :=
+  let bytes := block.toArray
+  π (Vector.ofFn fun i ↦
+    if i.val < 17 then Keccak.lane state i ^^^ leLaneArray bytes i else Keccak.lane state i)
+
+/-- `absorbWith`, with `absorbBlockWithArray`. -/
+def absorbWithArray : (blocks : ℕ) → KeccakState → List UInt8 → m KeccakState
+  | 0, state, data => absorbBlockWithArray π state (padBlock data)
+  | blocks + 1, state, data => do
+    let state ← absorbBlockWithArray π state (data.take rate)
+    absorbWithArray blocks state (data.drop rate)
+
+/-- `keccak256With`, with `absorbWithArray`. -/
+def keccak256WithArray (data : List UInt8) : m Digest := do
+  let state ← absorbWithArray π (data.length / rate) (Vector.replicate 25 0) data
+  pure #v[Keccak.lane state 0, Keccak.lane state 1, Keccak.lane state 2, Keccak.lane state 3]
+
+/-- `absorbWith` is `absorbWithArray`. -/
+theorem absorbWith_eq_absorbWithArray : ∀ (blocks : ℕ) (state : KeccakState) (data : List UInt8),
+    absorbWith π blocks state data = absorbWithArray π blocks state data
+  | 0, state, data => by
+    simp only [absorbWith, absorbWithArray, absorbBlockWith, absorbBlockWithArray,
+      leLane_eq_leLaneArray]
+  | blocks + 1, state, data => by
+    simp only [absorbWith, absorbWithArray, absorbBlockWith, absorbBlockWithArray,
+      leLane_eq_leLaneArray, absorbWith_eq_absorbWithArray blocks]
+
+end With
+
+/-- `keccak256With` compiles as `keccak256WithArray`, over every permutation in every monad. -/
+@[csimp] theorem keccak256With_eq_keccak256WithArray :
+    @keccak256With = @keccak256WithArray := by
+  funext m _ π data
+  simp only [keccak256With, keccak256WithArray, absorbWith_eq_absorbWithArray]
+
+/-! ## A digest's bytes as a number -/
+
+/-- `Common.SufCma.digestBitVec`, the bytes' little-endian number by a fold. -/
+def digestBitVecFold (d : Common.DigestBytes) : BitVec 256 :=
+  BitVec.ofNat 256 (d.toList.foldr (fun b acc ↦ b.toNat + 256 * acc) 0)
+
+/-- The little-endian number of a list of bytes is the sum of its bytes' weights. -/
+theorem foldr_bytes_eq_sum : ∀ l : List UInt8,
+    l.foldr (fun b acc ↦ b.toNat + 256 * acc) 0 =
+      ∑ i ∈ Finset.range l.length, (l.getD i 0).toNat * 256 ^ i
+  | [] => rfl
+  | b :: l => by
+    rw [List.foldr_cons, foldr_bytes_eq_sum l, List.length_cons, Finset.sum_range_succ',
+      Finset.mul_sum]
+    simp only [List.getD_cons_succ, List.getD_cons_zero, pow_zero, mul_one, pow_succ]
+    rw [add_comm]
+    congr 1
+    refine Finset.sum_congr rfl fun i _ ↦ ?_
+    ring
+
+/-- **`digestBitVec` is the fold.** -/
+theorem digestBitVec_eq_digestBitVecFold (d : Common.DigestBytes) :
+    Common.SufCma.digestBitVec d = digestBitVecFold d := by
+  have hval : (Common.SufCma.digestBitVec d).toNat =
+      ∑ i : Fin 32, (d[(i : ℕ)]).toNat * 256 ^ (i : ℕ) := by
+    change ((finFunctionFinEquiv
+      (fun i : Fin 32 ↦ Common.uInt8EquivFin (d[(i : ℕ)])) : Fin (256 ^ 32)) : ℕ) = _
+    rw [finFunctionFinEquiv_apply]
+    rfl
+  have hsum : ∑ i : Fin 32, (d[(i : ℕ)]).toNat * 256 ^ (i : ℕ) =
+      ∑ i ∈ Finset.range d.toList.length, (d.toList.getD i 0).toNat * 256 ^ i := by
+    rw [Vector.length_toList,
+      ← Fin.sum_univ_eq_sum_range (fun i ↦ (d.toList.getD i 0).toNat * 256 ^ i)]
+    refine Finset.sum_congr rfl fun i _ ↦ ?_
+    simp [List.getD_eq_getElem?_getD]
+  apply BitVec.eq_of_toNat_eq
+  rw [digestBitVecFold, BitVec.toNat_ofNat, foldr_bytes_eq_sum, ← hsum, ← hval,
+    Nat.mod_eq_of_lt (Common.SufCma.digestBitVec d).isLt]
+
+/-- `Common.SufCma.digestBitVec` with the fold for its function. -/
+def digestBitVecFast : Common.DigestBytes ≃ BitVec 256 where
+  toFun := digestBitVecFold
+  invFun := Common.SufCma.digestBitVec.symm
+  left_inv d := by rw [← digestBitVec_eq_digestBitVecFold, Equiv.symm_apply_apply]
+  right_inv b := by rw [← digestBitVec_eq_digestBitVecFold, Equiv.apply_symm_apply]
+
+/-- `Common.SufCma.digestBitVec` compiles as `digestBitVecFast`. -/
+@[csimp] theorem digestBitVec_eq_digestBitVecFast :
+    @Common.SufCma.digestBitVec = @digestBitVecFast :=
+  Equiv.ext digestBitVec_eq_digestBitVecFold
 
 end
 

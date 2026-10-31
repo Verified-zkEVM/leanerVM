@@ -1,6 +1,7 @@
 import LeanDa.Merkle
 import Common.Lemmas
 import LeanDa.RpmCodeBinding
+import LeanDa.WithHash
 
 /-!
 # LeanDA's Merkle commitment over a hash oracle
@@ -33,13 +34,13 @@ def merklePathM : ℕ → (ℕ → m Common.DigestBytes) → ℕ → m (List Com
   | 0, _, _ => pure []
   | d + 1, f, idx => do
     let s ← f (sibling idx)
-    let rest ← merklePathM d (upM H f) (idx / 2)
+    let rest ← merklePathM d (upMWithHash H f) (idx / 2)
     pure (s :: rest)
 
 /-- The honest opening of a position over an oracle (`openCell`). -/
 def openCellM {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : m Opening := do
-  let rr ← rowRootM H c
-  let path ← merklePathM H (7 + logPad r) (colLeavesM H c) (colIndex p)
+  let rr ← rowRootMWithHash H c
+  let path ← merklePathM H (7 + logPad r) (colLeavesMWithHash H c) (colIndex p)
   pure ⟨rr, path⟩
 
 /-- The hash inputs of a climb over an oracle (`hashInputs`). -/
@@ -78,11 +79,11 @@ variable {m n : Type → Type} [Monad m] [LawfulMonad m] [Monad n] [LawfulMonad 
 include hpure hbind hH
 
 theorem upM_eval (f : ℕ → m Common.DigestBytes) (f' : ℕ → Common.DigestBytes) (hf : ∀ i, φ (f i) = pure (f' i))
-    (i : ℕ) : φ (upM H f i) = pure (up H' f' i) := by
-  simp only [upM, hbind, hf, pure_bind, hH, up]
+    (i : ℕ) : φ (upMWithHash H f i) = pure (upWithHash H' f' i) := by
+  simp only [upMWithHash, hbind, hf, pure_bind, hH, upWithHash]
 
 theorem merkleRootM_eval (d : ℕ) : ∀ (f : ℕ → m Common.DigestBytes) (f' : ℕ → Common.DigestBytes),
-    (∀ i, φ (f i) = pure (f' i)) → φ (merkleRootM H d f) = pure (merkleRoot H' d f') := by
+    (∀ i, φ (f i) = pure (f' i)) → φ (merkleRootMWithHash H d f) = pure (merkleRootWithHash H' d f') := by
   induction d with
   | zero => intro f f' hf; exact hf 0
   | succ d ih =>
@@ -91,35 +92,35 @@ theorem merkleRootM_eval (d : ℕ) : ∀ (f : ℕ → m Common.DigestBytes) (f' 
 
 theorem merklePathM_eval (d : ℕ) : ∀ (f : ℕ → m Common.DigestBytes) (f' : ℕ → Common.DigestBytes),
     (∀ i, φ (f i) = pure (f' i)) → ∀ idx,
-      φ (merklePathM H d f idx) = pure (merklePath H' d f' idx) := by
+      φ (merklePathM H d f idx) = pure (merklePathWithHash H' d f' idx) := by
   induction d with
   | zero => intro f f' _ idx; exact hpure _
   | succ d ih =>
     intro f f' hf idx
-    simp only [merklePathM, merklePath, hbind, hf, pure_bind,
+    simp only [merklePathM, merklePathWithHash, hbind, hf, pure_bind,
       ih _ _ (upM_eval φ hpure hbind H H' hH f f' hf), hpure]
 
 theorem rowLeavesM_eval {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) :
-    φ (rowLeavesM H c i) = pure (rowLeaves H' c i) := by
-  simp only [rowLeavesM, hbind, mapM_map φ hpure hbind, hH, List.mapM_pure, pure_bind]
-  rw [rowLeaves, ofFn_val_eq_map_range (g := fun j ↦ cellDigest H' (paddedCell c i j))]
+    φ (rowLeavesMWithHash H c i) = pure (rowLeavesWithHash H' c i) := by
+  simp only [rowLeavesMWithHash, hbind, mapM_map φ hpure hbind, hH, List.mapM_pure, pure_bind]
+  rw [rowLeavesWithHash, ofFn_val_eq_map_range (g := fun j ↦ cellDigestWithHash H' (paddedCell c i j))]
   rfl
 
 theorem colLeavesM_eval {r : ℕ} (c : Fin (r * 128) → Cell) (l : ℕ) :
-    φ (colLeavesM H c l) = pure (colLeaves H' c l) :=
+    φ (colLeavesMWithHash H c l) = pure (colLeavesWithHash H' c l) :=
   hH _
 
 theorem commitCellsM_eval {r : ℕ} (c : Fin (r * 128) → Cell) :
-    φ (commitCellsM H c) = pure (commitCells H' c) := by
-  simp only [commitCellsM, rowRootM, colRootM, hbind,
+    φ (commitCellsMWithHash H c) = pure (commitCellsWithHash H' c) := by
+  simp only [commitCellsMWithHash, rowRootMWithHash, colRootMWithHash, hbind,
     merkleRootM_eval φ hpure hbind H H' hH _ _ _ (rowLeavesM_eval φ hpure hbind H H' hH c),
     merkleRootM_eval φ hpure hbind H H' hH _ _ _ (colLeavesM_eval φ hpure hbind H H' hH c),
     pure_bind, hH]
   rfl
 
 theorem openCellM_eval {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
-    φ (openCellM H c p) = pure (openCell H' c p) := by
-  simp only [openCellM, rowRootM, hbind,
+    φ (openCellM H c p) = pure (openCellWithHash H' c p) := by
+  simp only [openCellM, rowRootMWithHash, hbind,
     merkleRootM_eval φ hpure hbind H H' hH _ _ _ (rowLeavesM_eval φ hpure hbind H H' hH c),
     merklePathM_eval φ hpure hbind H H' hH _ _ _ (colLeavesM_eval φ hpure hbind H H' hH c),
     pure_bind, hpure]
@@ -200,15 +201,15 @@ variable (H : List UInt8 → OracleComp spec Common.DigestBytes) (w : ι → ℕ
 include hP in
 theorem isWeightBound_upM (f : ℕ → OracleComp spec Common.DigestBytes) (c : ℕ)
     (hf : ∀ i, QueryCostAtMost (f i) w c) (i : ℕ) :
-    QueryCostAtMost (upM H f i) w (2 * c + cP) :=
+    QueryCostAtMost (upMWithHash H f i) w (2 * c + cP) :=
   ((hf _).bind fun _ ↦ (hf _).bind fun _ ↦ hP _ _).mono (by omega)
 
 include hP in
 theorem isWeightBound_merkleRootM (d : ℕ) : ∀ (f : ℕ → OracleComp spec Common.DigestBytes) (c : ℕ),
     (∀ i, QueryCostAtMost (f i) w c) →
-      QueryCostAtMost (merkleRootM H d f) w (2 ^ d * c + (2 ^ d - 1) * cP) := by
+      QueryCostAtMost (merkleRootMWithHash H d f) w (2 ^ d * c + (2 ^ d - 1) * cP) := by
   induction d with
-  | zero => intro f c hf; simpa [merkleRootM] using hf 0
+  | zero => intro f c hf; simpa [merkleRootMWithHash] using hf 0
   | succ d ih =>
     intro f c hf
     refine (ih _ _ (isWeightBound_upM H w cP hP f c hf)).mono ?_
@@ -238,8 +239,8 @@ theorem isWeightBound_merklePathM (d : ℕ) : ∀ (f : ℕ → OracleComp spec C
 
 include hC hR in
 theorem isWeightBound_rowLeavesM {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) :
-    QueryCostAtMost (rowLeavesM H c i) w (64 * cC + cR) := by
-  unfold rowLeavesM
+    QueryCostAtMost (rowLeavesMWithHash H c i) w (64 * cC + cR) := by
+  unfold rowLeavesMWithHash
   refine IsWeightBound.bind_of_mem_support ((isWeightBound_mapM
     (fun j : ℕ ↦ H (cellBytes (paddedCell c i j))) w cC (fun j ↦ hC (paddedCell c i j))
     (List.range 64)).mono (by rw [List.length_range])) fun ds hds ↦ ?_
@@ -247,9 +248,9 @@ theorem isWeightBound_rowLeavesM {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ
 
 include hP hC hR in
 theorem isWeightBound_commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) :
-    QueryCostAtMost (commitCellsM H c) w
+    QueryCostAtMost (commitCellsMWithHash H c) w
       (nPad r * (64 * cC + cR + cP) + 128 * nPad r * (cC + cP) + cP) := by
-  unfold commitCellsM rowRootM colRootM
+  unfold commitCellsMWithHash rowRootMWithHash colRootMWithHash
   refine (((isWeightBound_merkleRootM H w cP hP _ _ _
     (isWeightBound_rowLeavesM H w cC cR hC hR c)).bind fun _ ↦
       (isWeightBound_merkleRootM H w cP hP _ _ _ fun _ ↦ hC _).bind fun _ ↦ hP _ _)).mono ?_
@@ -263,7 +264,7 @@ theorem isWeightBound_commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) :
 include hP hC hR in
 theorem isWeightBound_openCellM {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
     QueryCostAtMost (openCellM H c p) w (nPad r * (64 * cC + cR + cP) + 128 * nPad r * (cC + cP)) := by
-  unfold openCellM rowRootM
+  unfold openCellM rowRootMWithHash
   refine (((isWeightBound_merkleRootM H w cP hP _ _ _
     (isWeightBound_rowLeavesM H w cC cR hC hR c)).bind fun _ ↦
       (isWeightBound_merklePathM H w cP hP _ _ _ (fun _ ↦ hC _) _).bind fun _ ↦

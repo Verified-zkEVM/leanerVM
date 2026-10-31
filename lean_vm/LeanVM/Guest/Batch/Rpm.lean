@@ -10,6 +10,9 @@
 import LeanVM.Guest.Batch.Rom
 import LeanVM.Protocol.Rpm.Generic
 import Common.Linear
+import LeanVM.Protocol.WithHash
+import LeanVM.Guest.ExperimentBridge
+import LeanVM.Guest.WithHash
 
 /-!
 # The batching in the random-permutation model
@@ -86,7 +89,7 @@ theorem duplexVm_batch (M : ℕ) (bytecode : List K) (z : Unit × Proof) :
   rw [duplexVm_iff_duplexP, verifierFam_batch]
   change DuplexP (do
     let seed ← batchSeedOf.run callKeccak256 callKeccakF1600
-    runProof callKeccak256 callKeccakF1600 (boundedBatchingProgram M bytecode) seed z.2) [] _
+    runProofWithHash callKeccak256 callKeccakF1600 (boundedBatchingProgram M bytecode) seed z.2) [] _
   exact (duplexP_batchSeed []).bind fun seed h' hs ↦ duplexP_runProof _ hs _
 
 /-! ## The permutation calls -/
@@ -231,10 +234,10 @@ theorem batch_bound_le {QA QV M : ℕ} (hQA : QA ≤ 2 ^ 128) (hQV : QV ≤ 2 ^ 
 (`Statement/LeanVmGuest.lean`) with the oracle calls. -/
 theorem verifierFam_eq_batchRun (M : ℕ) (bytecode : List K) :
     verifierFam batchSeeds (boundedBatchingProgram M bytecode) =
-      fun z ↦ runBatching callKeccak256 callKeccakF1600 (boundedBatchingProgram M bytecode) z.2 := by
+      fun z ↦ runBatchingWithHash callKeccak256 callKeccakF1600 (boundedBatchingProgram M bytecode) z.2 := by
   funext z
   rw [verifierFam_batch]
-  simp only [verifierComp, Rom.verify, Seed.run, batchSeedOf, Seed.hsRun, runBatching,
+  simp only [verifierComp, Rom.verify, Seed.run, batchSeedOf, Seed.hsRun, runBatchingWithHash,
     bind_assoc, pure_bind, List.nil_append, List.getD_cons_zero]
 
 /-- No children are fewer than `0`. -/
@@ -243,7 +246,7 @@ theorem not_falseChildren_zero (bytecode : List K) (π : Proof) : ¬ SomeChildCl
 
 /-- **`BatchingSound`** (`Statement/LeanVmGuest.lean`): no false children below `M = 0`; else the
 adversary's coins do not help (`rpmRun_le_det`), then `batch_rpm` and `batch_bound_le`. -/
-theorem batch_sound_holds : BatchingSound := by
+theorem batchingSoundWithHash_holds : BatchingSoundWithHash := by
   intro M bytecode hb hM B QA hB hQA hQV
   rcases Nat.eq_zero_or_pos M with rfl | hM1
   · refine le_of_eq_of_le ?_ zero_le
@@ -252,5 +255,10 @@ theorem batch_sound_holds : BatchingSound := by
   obtain ⟨A, hA, hle⟩ := rpmRun_le_det hB (verifierFam batchSeeds (boundedBatchingProgram M bytecode))
     (fun z ↦ z.2 = true ∧ SomeChildClaimFalse bytecode M z.1.2)
   exact hle.trans ((batch_rpm hb hM A QA hA).trans (batch_bound_le hQA hQV hM1))
+
+/-- **`BatchingSound`** (`Statement/LeanVmGuest.lean`): the game over `π` is the experiment with
+the two calls (`batchingSound_of_withHash`). -/
+theorem batch_sound_holds : BatchingSound :=
+  batchingSound_of_withHash batchingSoundWithHash_holds
 
 end LeanVM.Guest.Batch

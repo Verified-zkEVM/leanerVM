@@ -10,6 +10,7 @@ module
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.SpecFold
 public import LeanVM.Guest.B1.Whir.CCommit
+public import LeanVM.Protocol.WithHash
 
 /-!
 # A level of the run, backwards
@@ -188,7 +189,7 @@ structure Ok (R : List (Digest × ℕ × ℕ)) (d : Digest) : Prop where
   root : R[L.index]? = some (L.root, L.height, L.width)
   osLen : L.os.length = L.qs.length
   opens : ∀ k (hk : k < L.qs.length) (ho : k < L.os.length),
-    Id.run (Compile.openOne (m := Id) keccak256 L.root L.height L.width L.qs[k] L.os[k]) = true
+    Id.run (Compile.openOneWithHash (m := Id) keccak256 L.root L.height L.width L.qs[k] L.os[k]) = true
 
 theorem chs_length : L.chs.length = L.level.fold := foldsTr_chs_length _ _ _ _ _
 
@@ -223,7 +224,7 @@ theorem rest_inv {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E}
       os = osL ++ osR ∧ xs = ic0 :: ic2 :: xsR ∧ lam ≠ 0 ∧
       R[index]? = some (root, height, width) ∧ osL.length = qs.length ∧
       (∀ k (hk : k < qs.length) (ho : k < osL.length),
-        Id.run (Compile.openOne (m := Id) keccak256 root height width qs[k] osL[k]) = true) ∧
+        Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width qs[k] osL[k]) = true) ∧
       runF (K (glueT lam ws1 (pending ++ [(enforcedSum (if index = 0 then
           (osL.map (·.leaf)).map fun row ↦ row.reverse.map ofK else (osL.map (·.leaf)).map extRow)
           lf (powers lam qs.length),
@@ -296,7 +297,7 @@ theorem rest_inv' {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E
       os = osL ++ osR ∧ xs = ic0 :: ic2 :: xsR ∧ lam ≠ 0 ∧
       R[index]? = some (root, height, width) ∧ osL.length = qs.length ∧
       (∀ k (hk : k < qs.length) (ho : k < osL.length),
-        Id.run (Compile.openOne (m := Id) keccak256 root height width qs[k] osL[k]) = true) ∧
+        Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width qs[k] osL[k]) = true) ∧
       runF (K (glueT lam ws1 (pending ++ [(enforcedSum (if index = 0 then
           (osL.map (·.leaf)).map fun row ↦ row.reverse.map ofK else (osL.map (·.leaf)).map extRow)
           lf (powers lam qs.length),

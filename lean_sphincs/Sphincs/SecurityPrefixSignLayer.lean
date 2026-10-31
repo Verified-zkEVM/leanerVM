@@ -1,4 +1,5 @@
 import Sphincs.SecurityPrefixSigning
+import Common.WithHash
 
 /-! The single-layer signature reconstructed from the selected chain frontier (`publicLayer`), and
 the cutoff condition under which it is the actual one: the selected leaf's first successful

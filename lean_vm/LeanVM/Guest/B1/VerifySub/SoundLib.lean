@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.VerifySub.FrontAll
 public import LeanVM.Guest.B1.VerifySub.Lanes
 public import LeanVM.Guest.B1.VerifySub.Accept
 public import LeanVM.Guest.B1.Whir.FactsAll
+public import LeanVM.Protocol.WithHash
 
 namespace LeanVM.Guest.B1.VerifySub
 
@@ -136,7 +137,7 @@ theorem depth_ge {logMem : ℕ} {hs : List ℕ} (hl : hs.length = 6) :
 theorem bytecodeAt_claimed (bytecode : List K) (pt : List E) (v : E) :
     Tables.BytecodeAt (claimedValue ⟨pt, v⟩) bytecode pt v := by
   intro s
-  simp [claimedValue, Tables.tbRun, Prog.require, Compile.run]
+  simp [claimedValue, Tables.tbRun, Prog.require, Compile.runWithHash]
   rfl
 
 /-! ## The stack's log -/

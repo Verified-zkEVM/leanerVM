@@ -3,6 +3,7 @@ import Sphincs.BridgeAssemblyA
 import Sphincs.BridgeForsGameOnce
 import Sphincs.BridgeForsAssemblyOnce
 import Sphincs.H0NearOpt
+import Common.WithHash
 
 /-! **One sample of the small-budget route.** On the stopped experiment with the above-word values
 exposed, a correct guess or the refined bad event of a valid finished run is a payoff event of the

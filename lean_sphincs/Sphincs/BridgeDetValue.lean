@@ -2,6 +2,7 @@ import Sphincs.BridgeDetCost
 import Sphincs.BridgeDetMemo
 import Sphincs.BridgeStop
 import Sphincs.BridgeReduce
+import Common.WithHash
 
 /-! The budgeted win value of a graph-view cost program on a fixed answer function, and the
 comparisons it supports: monotonicity in the budget, averaging a family of continuations, and

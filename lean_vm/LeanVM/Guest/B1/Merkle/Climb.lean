@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Merkle.Meaning
 public import LeanVM.Guest.B1.Opening.Meaning
 public import LeanVM.Protocol.KeccakHash
+public import LeanVM.Protocol.WithHash
 
 /-!
 # A query below the cap reaches the root (TRIAGE G #33, #34)
@@ -80,7 +81,7 @@ theorem climbD_cons (x : Digest) (q : ℕ) (s : Digest) (ss : List Digest) :
     climbD x q (s :: ss) =
       climbD (if q % 2 = 0 then hashPair x s else hashPair s x) (q / 2) ss := by
   unfold climbD
-  simp only [Compile.climb]
+  simp only [Compile.climbWithHash]
   split <;> rfl
 
 theorem climbD_append (ss ts : List Digest) (x : Digest) (q : ℕ) :
@@ -257,11 +258,11 @@ theorem query_openOne {D depth width : ℕ} (hD : 2 ≤ D) (hDd : D ≤ depth) {
       (digestScalars (climbD (hashWords row) q sibs)).2)
     (hfl : LoadHolds rd flags (2 ^ (D - 1) + q / 2 ^ (depth - D + 1)) 1) :
     ∃ capSibs : List Digest, capSibs.length = D ∧
-      Id.run (Compile.openOne (m := Id) keccak256 root depth width q ⟨row, sibs ++ capSibs⟩) =
+      Id.run (Compile.openOneWithHash (m := Id) keccak256 root depth width q ⟨row, sibs ++ capSibs⟩) =
         true := by
   obtain ⟨cs, hcl, hc⟩ := query_opens_root hD hDd hcap hroot hq hsl h0 h1 hfl
   refine ⟨cs, hcl, ?_⟩
-  unfold Compile.openOne
+  unfold Compile.openOneWithHash
   rw [ite_pos' ⟨hw, by simp [hsl, hcl]; omega⟩]
   show decide ((climbD (hashWords row) q (sibs ++ cs)).toList = root.toList) = true
   rw [hc]

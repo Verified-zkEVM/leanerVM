@@ -15,28 +15,30 @@ random-permutation model (`RandomPermutation.lean`), `LeanVM.KnowledgeSoundness`
 `LeanVM.Completeness`, proved by `LeanVM.knowledgeSoundness_holds` and `completeness_holds`
 (`lean_vm/README.md` says how they reach this model).
 
-The verifier (`verifier H F`, for any hash function `H` and permutation `F` in any monad) and the
-honest prover call Keccak-256 and Keccak-f[1600] as oracle queries (`KeccakCalls`), which the model
-answers (`keccakCallsOverRandomPermutation`): Keccak-256 the sponge over the lazily sampled
-permutation `π` (`keccak256With`, `Common.lazyRandomPermutation`), Keccak-f[1600] `π` itself. The
-adversary (`RandomPermutationAdversary`) flips private coins and queries `π` and `π⁻¹`
-(`Common.RandomPermutationOracles`), every query and its answer recorded, in order
-(`PermutationTranscript`), its coins neither recorded nor counted (`Common.permutationCallCost`); a
-Keccak-256 evaluation is a sequence of forward queries, which it makes itself. The experiment
-(`soundnessExperiment`) runs it from no edge, then the verifier on its statement and proof against
-the same permutation.
+The model has one random object, the permutation `π` of the Keccak state, lazily sampled
+(`Common.lazyRandomPermutation`); its oracles are coins, `π` and `π⁻¹`
+(`Common.RandomPermutationOracles`), and nothing else. The verifier (`verifier F`) and the honest
+prover are written over a permutation `F` in any monad, Keccak-256 the sponge over `F`
+(`keccak256With F`); in the model `F` is `π` (`Common.queryPermutation`), with Keccak-f[1600] in
+`Id` they are the deployed ones. The adversary (`RandomPermutationAdversary`) flips private coins
+and queries `π` and `π⁻¹`, every query and its answer recorded in order (`Common.loggedOracles`,
+`Common.OracleQueryLog`), its coins not counted (`Common.permutationCallCost`); a Keccak-256
+evaluation is a sequence of forward queries, which it makes itself. The experiment
+(`soundnessExperiment`) is one game: the adversary, then the verifier on its statement and proof,
+run against the lazily sampled permutation from no edge (`Common.runWithRandomPermutation`).
 
 **Knowledge soundness** is stated for one extractor, `transcriptExtractor`, which is straight-line:
 it reads the statement, the proof and the adversary's transcript, and nothing else (it neither
 queries `π` nor rewinds the adversary). It is `Extractor.lean`'s `extract` on the Keccak-256
-evaluations the transcript holds (`keccakEvaluationsOfTranscript`). An accepted proof thus commits,
+evaluations the transcript's permutation queries hold (`keccakEvaluationsOfTranscript`; the coins
+left out, `permutationQueries`). An accepted proof thus commits,
 except with the bound's probability, to a stack whose memory columns hold a valid execution, among
 the at most `2^18` stacks the word the adversary hashed is close to (proved for every admissible
 shape and word: `LeanVM.candidates_ncard_le`).
 
 **Completeness** is stated for one honest prover, `prover`: `LeanVM.Prover.prove`
-(`Statement/Prover/Prove.lean`) with the oracle calls, an executable program (with Keccak-256 and
-Keccak-f[1600] it is `lake exe leanvm-prove`; `Statement/README.md` says what a reviewer checks of
+(`Statement/Prover/Prove.lean`), an executable program (over Keccak-f[1600] it is
+`lake exe leanvm-prove`; `Statement/README.md` says what a reviewer checks of
 it). Given a valid execution whose committed size is at most `2^28`, the most the verifier admits,
 at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying `2^25` nonces per proof of work, its proof is
 rejected with probability at most `2^-256`.
@@ -61,7 +63,8 @@ namespace LeanVM
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 open OracleComp OracleSpec
-open Common (permutationOracleSpec PermutationEdges)
+open Common
+  (RandomPermutationOracles OracleQueryLog PermutationQuery PermutationEdges queryPermutation)
 open scoped ENNReal
 
 /-! ### The verifier on a statement -/
@@ -69,47 +72,29 @@ open scoped ENNReal
 -- The bytecode the verifier reads (`bytecodeWords`) and the public input as it reads it
 -- (`publicDigest`) are `LeanIsa.lean`'s, where the encoding is.
 
-/-- **The leanVM verifier**, for a hash function `H` and a permutation `F` in any monad `m`: does
-`proof` show that `prog` runs on `input`? -/
-def verifier {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
-    (prog : Program) (input : PublicInput) (proof : Proof) : m Bool :=
-  verifyWith H F (bytecodeWords prog) (publicDigest input) proof
-
-/-! ### The oracle calls -/
-
-/-- The verifier's and the honest prover's calls: Keccak-256, a function from byte strings to
-digests (queries `.inl x`), and Keccak-f[1600], a function from states to states (queries
-`.inr s`). What answers them is the model's (`keccakCallsOverRandomPermutation`, below: the sponge
-over a random permutation, and the permutation). -/
-abbrev KeccakCalls : OracleSpec (Bytes ⊕ KeccakState) :=
-  (Bytes →ₒ Digest) + (KeccakState →ₒ KeccakState)
-
-/-- A call to the hash. -/
-def callKeccak256 (x : Bytes) : OracleComp KeccakCalls Digest := liftM (KeccakCalls.query (.inl x))
-
-/-- A call to the permutation. -/
-def callKeccakF1600 (s : KeccakState) : OracleComp KeccakCalls KeccakState :=
-  liftM (KeccakCalls.query (.inr s))
+/-- **The leanVM verifier** over a permutation `F` in any monad `m`, Keccak-256 the sponge over
+`F`: does `proof` show that `prog` runs on `input`? -/
+def verifier {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState) (prog : Program)
+    (input : PublicInput) (proof : Proof) : m Bool :=
+  verifyWith F (bytecodeWords prog) (publicDigest input) proof
 
 /-- A statement: a program and a public input. -/
 abbrev ProgramAndInput : Type := Program × PublicInput
 
 /-! ### The honest prover and the committed size -/
 
-/-- An honest prover: from a statement, an execution, the commitment's rate exponent `ρ` and a
-fuel of nonces per proof of work, a proof, computed with calls to Keccak-256 and Keccak-f[1600]
-(`KeccakCalls`), which the model answers. -/
-abbrev HonestProver : Type :=
-  (prog : Program) → (input : PublicInput) → Execution prog → (ρ fuel : ℕ) →
-    OracleComp KeccakCalls Proof
+/-- An honest prover: over a permutation `F` in any monad, from a statement, an execution, the
+commitment's rate exponent `ρ` and a fuel of nonces per proof of work, a proof. -/
+abbrev HonestProver : Type 1 :=
+  {m : Type → Type} → [Monad m] → (KeccakState → m KeccakState) → (prog : Program) →
+    (input : PublicInput) → Execution prog → (ρ fuel : ℕ) → m Proof
 
-/-- **The honest prover**: `LeanVM.Prover.prove` (`Statement/Prover/Prove.lean`) with Keccak-256 and
-Keccak-f[1600] the oracle calls. From the execution `t` it computes the witness (`witness?`, the
-empty proof unless `t` is a valid execution within `2^28` committed cells), and, at a valid rate,
-runs the honest script against the verifier's own program `leanVmProgram`, trying `fuel` nonces
-per proof of work. -/
+/-- **The honest prover**: `LeanVM.Prover.prove` (`Statement/Prover/Prove.lean`). From the
+execution `t` it computes the witness (`witness?`, the empty proof unless `t` is a valid execution
+within `2^28` committed cells), and, at a valid rate, runs the honest script against the verifier's
+own program `leanVmProgram`, trying `fuel` nonces per proof of work. -/
 def prover : HonestProver :=
-  fun prog input t ρ fuel ↦ Prover.prove callKeccak256 callKeccakF1600 prog input t ρ fuel
+  fun F prog input t ρ fuel ↦ Prover.prove F prog input t ρ fuel
 
 /-- **The committed size of an execution**: the number of cells the honest prover commits to,
 every committed column at its table's height, the least power of two holding the table's rows
@@ -127,67 +112,33 @@ noncomputable def Semantics.Execution.committedSize {prog : Program} (t : Execut
     15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
     14 * height .jump + 26 * keccakHeight + 2 ^ 6 * keccakHeight
 
-/-! ### The random permutation -/
-
-/-- `π x`: a forward query to the lazily sampled uniform permutation
-(`Common.lazyRandomPermutation`), whose state is the edges `(x, π x)` fixed so far, newest first.
-The model's oracle is `permutationOracleSpec KeccakState`: `π` and `π⁻¹` on Keccak states, a query
-`.forward x` or `.inverse y`. -/
-noncomputable def lazyPermutationForward (x : KeccakState) :
-    StateT (PermutationEdges KeccakState) ProbComp KeccakState :=
-  Common.lazyRandomPermutation (.forward x)
-
-/-- **The verifier's calls (`KeccakCalls`) in the random-permutation model**: Keccak-256 is the
-sponge over the random permutation, Keccak-f[1600] is the random permutation. -/
-noncomputable def keccakCallsOverRandomPermutation :
-    QueryImpl KeccakCalls (StateT (PermutationEdges KeccakState) ProbComp)
-  | .inl x => keccak256With lazyPermutationForward x
-  | .inr s => lazyPermutationForward s
-
 /-! ### The experiment -/
 
 /-- An adversary in the random-permutation model: a computation with private coins and oracle
 access to `π` and `π⁻¹` that outputs a statement and a proof. -/
 abbrev RandomPermutationAdversary : Type :=
-  OracleComp Common.RandomPermutationOracles (ProgramAndInput × Proof)
-
-/-- A transcript: queries to `π` and `π⁻¹` with their answers, oldest first. -/
-abbrev PermutationTranscript : Type := List (Common.PermutationQuery KeccakState × KeccakState)
-
-/-- The adversary's oracles: a coin is uniform and not recorded; `π` and `π⁻¹` are the lazily
-sampled permutation, each query and its answer appended to the transcript. -/
-noncomputable def loggedRandomPermutationOracles :
-    QueryImpl Common.RandomPermutationOracles
-      (StateT (PermutationEdges KeccakState × PermutationTranscript) ProbComp)
-  | .inl n => liftM (unifSpec.query n : ProbComp (Fin (n + 1)))
-  | .inr q => StateT.mk fun s ↦
-    (fun r ↦ (r.1, (r.2, s.2 ++ [(q, r.1)]))) <$> (Common.lazyRandomPermutation q).run s.1
+  OracleComp RandomPermutationOracles (ProgramAndInput × Proof)
 
 /-- An outcome of the experiment: the statement (`program`, `input`) and the `proof`, the
-verdict (`accepted`), and the adversary's `transcript`. -/
-abbrev ExperimentOutcome : Type := ((ProgramAndInput × Proof) × Bool) × PermutationTranscript
+verdict (`accepted`), and the adversary's `transcript`, its queries and their answers in order. -/
+abbrev ExperimentOutcome : Type := ((ProgramAndInput × Proof) × Bool) × OracleQueryLog
 
 abbrev ExperimentOutcome.program (z : ExperimentOutcome) : Program := z.1.1.1.1
 abbrev ExperimentOutcome.input (z : ExperimentOutcome) : PublicInput := z.1.1.1.2
 abbrev ExperimentOutcome.proof (z : ExperimentOutcome) : Proof := z.1.1.2
 abbrev ExperimentOutcome.accepted (z : ExperimentOutcome) : Prop := z.1.2 = true
-abbrev ExperimentOutcome.transcript (z : ExperimentOutcome) : PermutationTranscript := z.2
+abbrev ExperimentOutcome.transcript (z : ExperimentOutcome) : OracleQueryLog := z.2
 
-/-- **The random-permutation experiment of an adversary and a computation**: the adversary
-against the lazily sampled permutation from no edge, its queries recorded; then a computation `V`
-over the verifier's calls on its output, with Keccak-256 the sponge over the same permutation and
-Keccak-f[1600] the permutation. The outputs, and the transcript. -/
-noncomputable def Rpm.runAdversaryThen {α β : Type}
-    (A : OracleComp Common.RandomPermutationOracles α)
-    (V : α → OracleComp KeccakCalls β) : ProbComp ((α × β) × PermutationTranscript) := do
-  let (z, perms, transcript) ← (simulateQ loggedRandomPermutationOracles A).run ([], [])
-  let v ← (simulateQ keccakCallsOverRandomPermutation (V z)).run' perms
-  return ((z, v), transcript)
-
-/-- **The random-permutation experiment**: the verifier on the adversary's statement and proof. -/
-noncomputable abbrev soundnessExperiment (A : RandomPermutationAdversary) :
+/-- **The random-permutation experiment**: the adversary, its queries recorded
+(`Common.loggedOracles`), then the verifier over `π` (`Common.queryPermutation`) on its statement
+and proof, the whole game run against the lazily sampled permutation from no edge
+(`Common.runWithRandomPermutation`). -/
+noncomputable def soundnessExperiment (A : RandomPermutationAdversary) :
     ProbComp ExperimentOutcome :=
-  Rpm.runAdversaryThen A fun z ↦ verifier callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2
+  Common.runWithRandomPermutation do
+    let (z, transcript) ← (simulateQ Common.loggedOracles A).run []
+    let accepted ← verifier queryPermutation z.1.1 z.1.2 z.2
+    return ((z, accepted), transcript)
 
 /-! ### The extractor -/
 
@@ -214,7 +165,7 @@ structure TranscriptReplay where
 state `s` with the capacity of `x` (lanes `17 … 24`), if there is one, by the block that takes
 `s` to `x`: the bytes of their rates' XOR, lanes `0 … 16`. An inverse query extends no chain. -/
 def TranscriptReplay.step (σ : TranscriptReplay) :
-    Common.PermutationQuery KeccakState × KeccakState → TranscriptReplay
+    PermutationQuery KeccakState × KeccakState → TranscriptReplay
   | (.forward x, y) =>
     match Common.forwardLookup σ.edges x with
     | some _ => σ
@@ -234,9 +185,16 @@ path the transcript (oldest first) holds as a chain of forward queries from the 
 query absorbing the next block into the answer of the one before and each the query that first
 fixed its edge (an edge first fixed by an inverse query extends no path), with the first four lanes
 of the path's last answer. -/
-def keccakEvaluationsOfTranscript (T : PermutationTranscript) : List (Bytes × Digest) :=
+def keccakEvaluationsOfTranscript (T : List (PermutationQuery KeccakState × KeccakState)) :
+    List (Bytes × Digest) :=
   (T.foldl TranscriptReplay.step ⟨[], [(Vector.replicate 25 0, [])]⟩).spongePaths.filterMap fun p ↦
     (keccakUnpadded p.2).map fun m ↦ (m, #v[p.1[0], p.1[1], p.1[2], p.1[3]])
+
+/-- The permutation queries of a transcript and their answers, oldest first: its coins left out. -/
+def permutationQueries (T : OracleQueryLog) : List (PermutationQuery KeccakState × KeccakState) :=
+  T.filterMap fun
+    | ⟨.inl _, _⟩ => none
+    | ⟨.inr q, y⟩ => some (q, y)
 
 /-- The Keccak-256 evaluation of `x` among the paths `P`, if `P` holds one. -/
 def lookupEvaluation (P : List (Bytes × Digest)) (x : Bytes) : Option Digest :=
@@ -244,12 +202,12 @@ def lookupEvaluation (P : List (Bytes × Digest)) (x : Bytes) : Option Digest :=
 
 /-- **The extractor in the random-permutation model**: from the statement, the adversary's
 transcript and the proof, an execution of the program: the extractor of `Extractor.lean`
-(`LeanVM.Extraction.extract`) on the Keccak-256 evaluations of the transcript
-(`lookupEvaluation (keccakEvaluationsOfTranscript T)`), the byte strings they answer being those of
-the transcript's paths. The paths are computed once. -/
-def transcriptExtractor (prog : Program) (input : PublicInput) (T : PermutationTranscript)
+(`LeanVM.Extraction.extract`) on the Keccak-256 evaluations of the transcript's permutation queries
+(`lookupEvaluation (keccakEvaluationsOfTranscript (permutationQueries T))`), the byte strings they
+answer being those of the transcript's paths. The paths are computed once. -/
+def transcriptExtractor (prog : Program) (input : PublicInput) (T : OracleQueryLog)
     (proof : Proof) : Option (Execution prog) :=
-  let paths := keccakEvaluationsOfTranscript T
+  let paths := keccakEvaluationsOfTranscript (permutationQueries T)
   Extraction.extract prog input (bytecodeWords prog) (lookupEvaluation paths)
     (paths.map (·.1)) proof
 
@@ -277,13 +235,12 @@ def KnowledgeSoundness : Prop :=
 /-! ### Completeness -/
 
 /-- **The completeness experiment in the random-permutation model**: the honest prover's proof,
-then the verifier's verdict on it, both with Keccak-256 the sponge over the lazily sampled
-permutation and Keccak-f[1600] the permutation. -/
+then the verifier's verdict on it, both over `π`, run against the lazily sampled permutation. -/
 noncomputable def verifierCompletenessExperiment (prover : HonestProver) (prog : Program)
     (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) : ProbComp Bool :=
-  (simulateQ keccakCallsOverRandomPermutation (do
-    let proof ← prover prog input t ρ fuel
-    verifier callKeccak256 callKeccakF1600 prog input proof)).run' []
+  Common.runWithRandomPermutation do
+    let proof ← prover queryPermutation prog input t ρ fuel
+    verifier queryPermutation prog input proof
 
 /-- **Completeness in the random-permutation model**: trying `2^25` nonces per proof of work, the
 honest prover's (`prover`) proof of an execution within the verifier's size cap is rejected with

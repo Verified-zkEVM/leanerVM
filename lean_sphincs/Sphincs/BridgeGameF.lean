@@ -1,6 +1,7 @@
 import Sphincs.BridgeRevealRate
 import Sphincs.BridgePotentialA8
 import Sphincs.BridgeForsGameOnce
+import Common.WithHash
 
 /-! **Paid potentials of the lazy run.** A potential of the state, the cached landed pairs, the
 signing log, the disclosed views, the reveals and the remaining budget pays a final value of the

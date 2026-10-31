@@ -1,5 +1,6 @@
 import LeanVM.Protocol.Verifier.WhirTarget
 import LeanVM.Protocol.Whir.Complete.Opening
+import LeanVM.Protocol.WithHash
 
 /-!
 # Completeness of the WHIR opening: tests
@@ -51,7 +52,7 @@ example : ∀ (H : Bytes → Digest) (F : LeanVM.Semantics.KeccakState → LeanV
     (∀ h bits k sp, (openingProgram μ R claims).after h = some (.grind bits k) →
       findNonce F bits sp fuel ≠ none) →
     ∃ π, prove H F (openingProgram μ R claims) (openingProver μ R q claims) seed fuel = some π ∧
-      runProof (m := Id) H F (openingProgram μ R claims) seed π = true :=
+      runProofWithHash (m := Id) H F (openingProgram μ R claims) seed π = true :=
   @exists_prove_runProof_openingProgram
 
 example : ∀ {μ lf : ℕ} {f₀ : List E} {B : List E → E}, f₀.length = 2 ^ μ → μ ≤ 64 →

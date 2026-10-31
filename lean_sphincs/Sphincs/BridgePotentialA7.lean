@@ -1,4 +1,5 @@
 import Sphincs.BridgePotentialA6
+import Common.WithHash
 
 /-! **The linear potential on the small-budget route: the sample's setting.** The targeting,
 context and payoff of the linear potential for the sample's comparison, started from the prepared

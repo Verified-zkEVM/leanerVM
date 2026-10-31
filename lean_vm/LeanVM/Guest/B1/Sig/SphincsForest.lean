@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Sig.SphincsTail
+public import Sphincs.WithHash
+public import LeanVM.Guest.WithHash
 
 /-!
 # The forest, as the Spec's
@@ -66,9 +68,9 @@ theorem subTops_eq (hpre : SPre rd σ) {c : Coord} {s : SuperIdx} {j : SubIdx} {
     (hleaf : σ leafAt = eOfNat (sIdx σ) + word (c.val * hiMul + s.val * 2 ^ 35) 0 0)
     {index : Index} (hidx : index.val = sIdx σ) :
     orderTops (a.val.testBit (subHeight - 1))
-        (@subFold Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) index c s j a
+        (@subFoldWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) index c s j a
           (subOpening σ c.val j.val enc b).path (subHeight - 1)
-          (@childRecover Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) index c s j a (lut t)
+          (@childRecoverWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) index c s j a (lut t)
             (subOpening σ c.val j.val enc b).values))
         ((subOpening σ c.val j.val enc b).path subTopLevel) =
       (sv (σ (subFd c.val j.val enc b).2.2.1), sv (σ (subFd c.val j.val enc b).2.2.2.1)) := by
@@ -81,9 +83,9 @@ theorem subTops_eq (hpre : SPre rd σ) {c : Coord} {s : SuperIdx} {j : SubIdx} {
       word (j.val * 2 ^ 39 + a.val * 2 ^ 40) 0 0 := by
     rw [f.keyOK, hleaf, ha]
   -- the child leaf
-  have hcr : @childRecover Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) index c s j a (lut t)
+  have hcr : @childRecoverWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) index c s j a (lut t)
       (subOpening σ c.val j.val enc b).values = sv (σ (subFk c.val j.val b).2.2.1) := by
-    show @childRecover Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) index c s j a (lut t)
+    show @childRecoverWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) index c s j a (lut t)
       (fun i => sv (subVal σ c.val j.val b i.val)) = _
     rw [sChildRecover_cells sq_keccak (ka := σ (.n (b + 11)))
       (aL := σ (.n (b + 11)) + word (tw 16) 0 0) (lut t) (subVal σ c.val j.val b)
@@ -141,7 +143,7 @@ theorem subTops_eq (hpre : SPre rd σ) {c : Coord} {s : SuperIdx} {j : SubIdx} {
     · simp only [hA, hl2, ↓reduceIte, ha]
     · simp only [subSib, hl2, ↓reduceIte]
   show orderTops (a.val.testBit (subHeight - 1))
-      (@subFold Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) index c s j a
+      (@subFoldWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) index c s j a
         (fun l => sv (subSib σ c.val j.val enc b l.val)) (subHeight - 1) _)
       (sv (subSib σ c.val j.val enc b (subHeight - 1))) = _
   rw [hcr, hsf, hreach]
@@ -182,7 +184,7 @@ theorem coordKey_eq (hpre : SPre rd σ) {c : Coord} {enc : Option V} {bound : V}
     (ht0 : (mark.word 0).val = subT σ (b + 10))
     (ht1 : (mark.word 1).val = subT σ (coordS0 c.val enc bound b).2.1)
     {index : Index} (hidx : index.val = sIdx σ) :
-    @coordRecover Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) index c mark (coordOpening σ c.val enc bound b) =
+    @coordRecoverWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) index c mark (coordOpening σ c.val enc bound b) =
       (sv (σ (coordFd c.val b (coordS1 c.val enc bound b).2.1).2.2.1),
         sv (σ (coordFd c.val b (coordS1 c.val enc bound b).2.1).2.2.2.1)) := by
   have hidx26 := sIdx_lt σ
@@ -242,7 +244,7 @@ theorem coordKey_eq (hpre : SPre rd σ) {c : Coord} {enc : Option V} {bound : V}
     · simp only [hA, hl3, ↓reduceIte, hs]
     · simp only [topSib, hl3, ↓reduceIte]
   show orderTops (s.testBit (topHeight - 1))
-      (@topFold Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) index c mark.super
+      (@topFoldWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) index c mark.super
         (fun l => sv (topSib σ c.val enc bound b l.val)) (topHeight - 1) (sv (σ (.n (f + 5)))))
       (sv (topSib σ c.val enc bound b (topHeight - 1))) = _
   rw [htf, hreach]

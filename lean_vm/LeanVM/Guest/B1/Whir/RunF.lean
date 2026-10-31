@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.CompleteIface
 public import LeanVM.Guest.B1.Whir.Run
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Runs on the carried sponge
@@ -53,7 +54,7 @@ def runF {α : Type} : Prog α → FSt → Option (α × FSt)
   | .query i ps k, s => match s.roots[i]? with
     | none => none
     | some (root, height, width) =>
-      match Id.run (Compile.openAll (m := Id) keccak256 root height width ps s.openings) with
+      match Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps s.openings) with
       | some (rows, rest) => runF (k rows) { s with openings := rest }
       | none => none
 
@@ -115,18 +116,18 @@ theorem runF_of_runId {α : Type} (p : Prog α) : ∀ (st : FSt) (sp : Sponge), 
   induction p with
   | ret a =>
     intro st sp hs a' t h
-    simp only [runId, Compile.run, pure, Option.some.injEq, Prod.mk.injEq] at h
+    simp only [runId, Compile.runWithHash, pure, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     rw [← eq_fsOf hs]
     rfl
   | fail =>
     intro st sp hs a t h
-    simp [runId, Compile.run, pure] at h
+    simp [runId, Compile.runWithHash, pure] at h
   | read k ih =>
     intro st sp hs a t h
     obtain ⟨s, stream, os, roots⟩ := st
     cases stream with
-    | nil => simp [runId, Compile.run, pure] at h
+    | nil => simp [runId, Compile.runWithHash, pure] at h
     | cons x xs =>
       exact ih x ⟨s.absorb x dsObserve, xs, os, roots⟩ _ (carries_absorb hs x dsObserve) a t h
   | sample k ih =>
@@ -139,7 +140,7 @@ theorem runF_of_runId {α : Type} (p : Prog α) : ∀ (st : FSt) (sp : Sponge), 
     intro st sp hs a t h
     obtain ⟨s, stream, os, roots⟩ := st
     cases stream with
-    | nil => simp [runId, Compile.run, pure] at h
+    | nil => simp [runId, Compile.runWithHash, pure] at h
     | cons n xs =>
       have ha := carries_absorb hs n dsPowNonce
       obtain ⟨e1, e2⟩ := carries_squeeze ha
@@ -160,8 +161,8 @@ theorem runF_of_runId {α : Type} (p : Prog α) : ∀ (st : FSt) (sp : Sponge), 
     intro st sp hs a t h
     obtain ⟨s, stream, os, roots⟩ := st
     match stream with
-    | [] => simp [runId, Compile.run, pure] at h
-    | [_] => simp [runId, Compile.run, pure] at h
+    | [] => simp [runId, Compile.runWithHash, pure] at h
+    | [_] => simp [runId, Compile.runWithHash, pure] at h
     | x0 :: x1 :: xs =>
       have h1 := carries_absorb hs x0 dsObserve
       have h2 := carries_absorb h1 x1 dsObserve
@@ -181,14 +182,14 @@ theorem runF_of_runId {α : Type} (p : Prog α) : ∀ (st : FSt) (sp : Sponge), 
   | query i ps k ih =>
     intro st sp hs a t h
     obtain ⟨s, stream, os, roots⟩ := st
-    simp only [runId, Compile.run, bind] at h
+    simp only [runId, Compile.runWithHash, bind] at h
     simp only [runF]
     cases hr : roots[i]? with
     | none => simp [hr, pure] at h
     | some v =>
       obtain ⟨root, height, width⟩ := v
       simp only [hr] at h ⊢
-      cases ho : Id.run (Compile.openAll (m := Id) keccak256 root height width ps os) with
+      cases ho : Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps os) with
       | none =>
         simp only [Id.run] at ho
         simp [ho, pure] at h
@@ -254,7 +255,7 @@ theorem queriesOf_bind {α β : Type} (p : Prog α) (f : α → Prog β) (st : F
     | none => simp [Prog.bind, queryStepsOf, runF, hr]
     | some v =>
       obtain ⟨root, height, width⟩ := v
-      cases ho : Id.run (Compile.openAll (m := Id) keccak256 root height width ps os) with
+      cases ho : Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps os) with
       | none =>
         simp only [Id.run] at ho
         simp [Prog.bind, queryStepsOf, runF, hr, ho, Id.run]

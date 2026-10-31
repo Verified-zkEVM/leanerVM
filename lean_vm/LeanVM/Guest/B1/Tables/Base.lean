@@ -12,6 +12,7 @@ public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.CoreLemmas
 public import LeanVM.Guest.Value.Keccak
 public import LeanVM.Guest.Value.Bits
+public import LeanVM.Protocol.WithHash
 
 /-!
 # B1 of the bus and the tables: vocabulary
@@ -41,7 +42,7 @@ def TbReadsAt (rd : Reader) (p : E) (xs : List E) : Prop :=
 
 /-- `Compile.run` with the deployed hash and permutation. -/
 abbrev tbRun {α : Type} (p : Prog α) (s : ProgState) : Option (α × ProgState) :=
-  Compile.run (m := Id) keccak256 keccakF1600 p s
+  Compile.runWithHash (m := Id) keccak256 keccakF1600 p s
 
 /-- `ev` takes `value` for the fixed polynomial of `words` at `point`, consuming nothing. -/
 def BytecodeAt (ev : (List K → List E → Prog E)) (words : List K) (point : List E) (value : E) : Prop :=

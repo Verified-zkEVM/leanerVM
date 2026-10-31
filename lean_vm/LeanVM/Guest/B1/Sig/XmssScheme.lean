@@ -8,6 +8,9 @@ module
 
 public import LeanVM.Guest.B1.Sig.Bytes
 public import LeanVM.Guest.B1.Sig.Shapes
+public import Common.WithHash
+public import LeanVM.Guest.WithHashBridge
+public import LeanVM.Guest.WithHash
 
 /-!
 # leanXMSS over cells
@@ -51,9 +54,9 @@ variable {inst : HasQuery LeanXmss.HashSpec Id}
 first cell of their `hcell`. -/
 theorem tweakableHash_cells (hq : XQ inst) {P : PublicParameter} {dom : HashDomain}
     {payload : HashInput} {cs : List E} (h : tweakableHashInput P dom payload = cs.flatMap cellBytes) :
-    @tweakableHash Id _ inst P dom payload = cellVal (hcell cs).1 := by
-  unfold tweakableHash th
-  simp only [bind, pure, oracleHash]
+    @tweakableHashWithHash Id _ inst P dom payload = cellVal (hcell cs).1 := by
+  unfold tweakableHashWithHash thWithHash
+  simp only [bind, pure, oracleHashWithHash]
   rw [hq, show thInput P (hashDomainFields dom) payload = cs.flatMap cellBytes from h,
     truncateHash_keccakBits]
   rfl
@@ -69,12 +72,12 @@ theorem sequenceFin_id {α : Type} : ∀ {n : Nat} (f : Fin n → Id α), sequen
 
 /-- **Verification**: the bottom layer's root, then the top layer's from it, is the key's. -/
 theorem verify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
-    @LeanXmss.Concrete.verify Id _ inst pk msg σ = true ↔
-      ∃ r0, @layerRoot Id _ inst pk.parameter bottomLayer (keyAt σ.leafIndex bottomLayer)
+    @LeanXmss.Concrete.verifyWithHash Id _ inst pk msg σ = true ↔
+      ∃ r0, @layerRootWithHash Id _ inst pk.parameter bottomLayer (keyAt σ.leafIndex bottomLayer)
           (bytesLE 32 msg) (σ.layers bottomLayer) = some r0 ∧
-        @layerRoot Id _ inst pk.parameter topLayer (keyAt σ.leafIndex topLayer) (bytesLE 16 r0)
+        @layerRootWithHash Id _ inst pk.parameter topLayer (keyAt σ.leafIndex topLayer) (bytesLE 16 r0)
           (σ.layers topLayer) = some pk.root := by
-  rw [LeanXmss.Concrete.verify.eq_def]
+  rw [LeanXmss.Concrete.verifyWithHash.eq_def]
   simp only [bind, pure]
   split
   next r0 h1 =>
@@ -102,40 +105,40 @@ theorem idRun {α : Type} (x : Id α) : Id.run x = x := rfl
 
 theorem xmssVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
     Node.xmssVerify pk msg σ = true ↔
-      ∃ r0, @layerRoot Id _ ⟨Node.keccakBits⟩ pk.parameter bottomLayer
+      ∃ r0, @layerRootWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter bottomLayer
           (keyAt σ.leafIndex bottomLayer) (bytesLE 32 msg) (σ.layers bottomLayer) = some r0 ∧
-        @layerRoot Id _ ⟨Node.keccakBits⟩ pk.parameter topLayer (keyAt σ.leafIndex topLayer)
+        @layerRootWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter topLayer (keyAt σ.leafIndex topLayer)
           (bytesLE 16 r0) (σ.layers topLayer) = some pk.root := by
-  rw [Node.xmssVerify.eq_def, idRun]
+  rw [Node.xmssVerify_eq_withHash, idRun]
   exact verify_iff pk msg σ
 
 /-! ## The routines in `Id` -/
 
 theorem layerRoot_id (P : PublicParameter) (lay : Layer) (key : KeyIndex) (msg : HashInput)
     (part : LayerSignature) :
-    @layerRoot Id _ inst P lay key msg part =
-      (@otsLeaf Id _ inst P lay key msg part.randomness part.chainValues).map
-        (fun leaf => @treeFold Id _ inst P lay key part.path layerHeight leaf) := by
-  rw [layerRoot.eq_def]
+    @layerRootWithHash Id _ inst P lay key msg part =
+      (@otsLeafWithHash Id _ inst P lay key msg part.randomness part.chainValues).map
+        (fun leaf => @treeFoldWithHash Id _ inst P lay key part.path layerHeight leaf) := by
+  rw [layerRootWithHash.eq_def]
   simp only [bind, pure]
   split
   next leaf h => rw [h]; rfl
   next h =>
-    cases h' : @otsLeaf Id _ inst P lay key msg part.randomness part.chainValues with
+    cases h' : @otsLeafWithHash Id _ inst P lay key msg part.randomness part.chainValues with
     | none => rfl
     | some leaf => exact absurd h' (h leaf)
 
 theorem otsLeaf_id (P : PublicParameter) (lay : Layer) (key : KeyIndex) (msg : HashInput)
     (R : Randomness) (vals : ChainIndex → LeanXmss.Digest) :
-    @otsLeaf Id _ inst P lay key msg R vals =
-      (Codeword.decode (@messageDigest Id _ inst P lay key msg R)).map fun enc =>
-        @leafHash Id _ inst P lay key fun i => @recoverChain Id _ inst P lay key i (enc i) (vals i) := by
-  rw [otsLeaf.eq_def]
+    @otsLeafWithHash Id _ inst P lay key msg R vals =
+      (Codeword.decode (@messageDigestWithHash Id _ inst P lay key msg R)).map fun enc =>
+        @leafHashWithHash Id _ inst P lay key fun i => @recoverChainWithHash Id _ inst P lay key i (enc i) (vals i) := by
+  rw [otsLeafWithHash.eq_def]
   simp only [bind, pure]
   split
   next enc h => rw [h, sequenceFin_id]; rfl
   next h =>
-    cases h' : Codeword.decode (@messageDigest Id _ inst P lay key msg R) with
+    cases h' : Codeword.decode (@messageDigestWithHash Id _ inst P lay key msg R) with
     | none => rfl
     | some enc => exact absurd h' (h enc)
 
@@ -144,10 +147,10 @@ theorem dite_of {c : Prop} [Decidable c] (h : c) {α : Sort*} (t : c → α) (e 
 
 theorem chainWalk_succ (P : PublicParameter) (lay : Layer) (key : KeyIndex) (i : ChainIndex)
     (start n : Nat) (v : LeanXmss.Digest) :
-    @chainWalk Id _ inst P lay key i start (n + 1) v =
+    @chainWalkWithHash Id _ inst P lay key i start (n + 1) v =
       if hstep : start + n < chainLength - 1 then
-        @tweakableHash Id _ inst P (.chain lay key ⟨start + n, hstep⟩)
-          (chainPayload i (@chainWalk Id _ inst P lay key i start n v))
+        @tweakableHashWithHash Id _ inst P (.chain lay key ⟨start + n, hstep⟩)
+          (chainPayload i (@chainWalkWithHash Id _ inst P lay key i start n v))
       else 0 := by
   rw [chainWalk_eq_succ]
   simp only [bind]
@@ -157,9 +160,9 @@ theorem chainWalk_succ (P : PublicParameter) (lay : Layer) (key : KeyIndex) (i :
 theorem chainWalk_shift (P : PublicParameter) (lay : Layer) (key : KeyIndex) (i : ChainIndex) :
     ∀ (n start : Nat) (v : LeanXmss.Digest) (hs : start < chainLength - 1),
       start + n + 1 ≤ chainLength - 1 →
-      @chainWalk Id _ inst P lay key i start (n + 1) v =
-        @chainWalk Id _ inst P lay key i (start + 1) n
-          (@tweakableHash Id _ inst P (.chain lay key ⟨start, hs⟩) (chainPayload i v))
+      @chainWalkWithHash Id _ inst P lay key i start (n + 1) v =
+        @chainWalkWithHash Id _ inst P lay key i (start + 1) n
+          (@tweakableHashWithHash Id _ inst P (.chain lay key ⟨start, hs⟩) (chainPayload i v))
   | 0, start, v, hs, _ => by
       rw [chainWalk_succ, dite_of (by omega), chainWalk_eq_zero, chainWalk_eq_zero]
       rfl
@@ -173,13 +176,13 @@ theorem chainWalk_shift (P : PublicParameter) (lay : Layer) (key : KeyIndex) (i 
 
 theorem treeFold_succ (P : PublicParameter) (lay : Layer) (key : KeyIndex)
     (path : Fin layerHeight → LeanXmss.Digest) (m : Nat) (v : LeanXmss.Digest) :
-    @treeFold Id _ inst P lay key path (m + 1) v =
-      let current := @treeFold Id _ inst P lay key path m v
+    @treeFoldWithHash Id _ inst P lay key path (m + 1) v =
+      let current := @treeFoldWithHash Id _ inst P lay key path m v
       let sibling := if hlevel : m < layerHeight then path ⟨m, hlevel⟩ else 0
       if key.val.testBit m then
-        @tweakableHash Id _ inst P (.node lay (m + 1) (key.val / 2 ^ (m + 1))) (nodePayload sibling current)
+        @tweakableHashWithHash Id _ inst P (.node lay (m + 1) (key.val / 2 ^ (m + 1))) (nodePayload sibling current)
       else
-        @tweakableHash Id _ inst P (.node lay (m + 1) (key.val / 2 ^ (m + 1))) (nodePayload current sibling) := by
+        @tweakableHashWithHash Id _ inst P (.node lay (m + 1) (key.val / 2 ^ (m + 1))) (nodePayload current sibling) := by
   rw [treeFold_eq_succ]
   simp only [bind]
 
@@ -202,12 +205,12 @@ theorem bytesLE_ofNat_cell {i : Nat} (hi : i < 2 ^ 64) :
 /-- A hash of cells, as a digest. -/
 theorem tweakableHash_xv (hq : XQ inst) {P : PublicParameter} {dom : HashDomain}
     {payload : HashInput} {cs : List E} (h : tweakableHashInput P dom payload = cs.flatMap cellBytes) :
-    @tweakableHash Id _ inst P dom payload = xv (hcell cs).1 := tweakableHash_cells hq h
+    @tweakableHashWithHash Id _ inst P dom payload = xv (hcell cs).1 := tweakableHash_cells hq h
 
 /-- **A chain step over cells**, its address's bytes those of the step's tweak. -/
 theorem chainStep_cells (hq : XQ inst) {pp a x : E} {lay : Layer} {key : KeyIndex} {i : ChainIndex}
     {s : ChainStep} (ha : cellBytes a = tweakBytes (.chain lay key s)) :
-    @tweakableHash Id _ inst (xpp pp) (.chain lay key s) (chainPayload i (xv x)) =
+    @tweakableHashWithHash Id _ inst (xpp pp) (.chain lay key s) (chainPayload i (xv x)) =
       xv (hcell [pp, a, x, eOfNat i.val]).1 := by
   apply tweakableHash_xv hq
   show bytesLE 16 (xpp pp) ++ tweakBytes _ ++ (bytesLE 16 (xv x) ++ bytesLE 16 (BitVec.ofNat 128 i.val)) = _
@@ -224,10 +227,10 @@ def xChain (pp : E) (adr : Nat → E) (i : Nat) : Nat → Nat → E → E
 /-- **A chain walked from digit `d` over cells.** -/
 theorem recoverChain_cells (hq : XQ inst) {pp : E} {adr : Nat → E} {lay : Layer} {key : KeyIndex}
     {i : ChainIndex} (hadr : ∀ (s : ChainStep), cellBytes (adr s) = tweakBytes (.chain lay key s)) :
-    ∀ (d : Digit) (x : E), @recoverChain Id _ inst (xpp pp) lay key i d (xv x) =
+    ∀ (d : Digit) (x : E), @recoverChainWithHash Id _ inst (xpp pp) lay key i d (xv x) =
       xv (xChain pp adr i.val (3 - d.val) d.val x) := by
   have hwalk : ∀ (n start : Nat) (x : E), start + n ≤ chainLength - 1 →
-      @chainWalk Id _ inst (xpp pp) lay key i start n (xv x) = xv (xChain pp adr i.val n start x) := by
+      @chainWalkWithHash Id _ inst (xpp pp) lay key i start n (xv x) = xv (xChain pp adr i.val n start x) := by
     intro n
     induction n with
     | zero => intro start x _; rw [chainWalk_eq_zero]; rfl
@@ -239,7 +242,7 @@ theorem recoverChain_cells (hq : XQ inst) {pp : E} {adr : Nat → E} {lay : Laye
   intro d x
   have hd := d.isLt
   simp only [chainLength, winternitzBits] at hd
-  rw [recoverChain, show chainLength - 1 - d.val = 3 - d.val by simp [chainLength, winternitzBits]]
+  rw [recoverChainWithHash, show chainLength - 1 - d.val = 3 - d.val by simp [chainLength, winternitzBits]]
   exact hwalk _ _ _ (by simp [chainLength, winternitzBits]; omega)
 
 theorem ofFn_val_eq {α : Type} (n : Nat) (g : Nat → α) :
@@ -257,7 +260,7 @@ theorem flatMap_bytesLE_xv : ∀ (l : List E), List.flatMap (bytesLE 16) (l.map 
 /-- **The one-time leaf over cells.** -/
 theorem leafHash_cells (hq : XQ inst) {pp a : E} {lay : Layer} {key : KeyIndex} (tips : Nat → E)
     (ha : cellBytes a = tweakBytes (.leaf lay key)) :
-    @leafHash Id _ inst (xpp pp) lay key (fun i => xv (tips i.val)) =
+    @leafHashWithHash Id _ inst (xpp pp) lay key (fun i => xv (tips i.val)) =
       xv (hcell (pp :: a :: (List.range numChains).map tips)).1 := by
   apply tweakableHash_xv hq
   show bytesLE 16 (xpp pp) ++ tweakBytes _ ++
@@ -271,7 +274,7 @@ theorem leafHash_cells (hq : XQ inst) {pp a : E} {lay : Layer} {key : KeyIndex} 
 theorem messageDigest_cells (hq : XQ inst) {pp a rho : E} {lay : Layer} {key : KeyIndex}
     {M : HashInput} {cs : List E} (ha : cellBytes a = tweakBytes (.message lay key))
     (hM : M = cs.flatMap cellBytes) :
-    @messageDigest Id _ inst (xpp pp) lay key M (xv rho) = xv (hcell (pp :: a :: cs ++ [rho])).1 := by
+    @messageDigestWithHash Id _ inst (xpp pp) lay key M (xv rho) = xv (hcell (pp :: a :: cs ++ [rho])).1 := by
   apply tweakableHash_xv hq
   show bytesLE 16 (xpp pp) ++ tweakBytes _ ++ (M ++ bytesLE 16 (xv rho)) = _
   rw [bytesLE_xpp, bytesLE_xv, ← ha, hM]
@@ -291,7 +294,7 @@ theorem treeFold_cells (hq : XQ inst) {pp : E} {A : Nat → E} {lay : Layer} {ke
     (hA : ∀ l < layerHeight, cellBytes (A l) = tweakBytes (.node lay (l + 1) (key.val / 2 ^ (l + 1))))
     (sibs : Nat → E) :
     ∀ m ≤ layerHeight, ∀ x : E,
-      @treeFold Id _ inst (xpp pp) lay key (fun l => xv (sibs l.val)) m (xv x) =
+      @treeFoldWithHash Id _ inst (xpp pp) lay key (fun l => xv (sibs l.val)) m (xv x) =
         xv (xFold pp A (fun l => key.val.testBit l) sibs m x)
   | 0, _, x => by rw [treeFold_eq_zero]; rfl
   | m + 1, hm, x => by

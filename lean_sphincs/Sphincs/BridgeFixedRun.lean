@@ -3,6 +3,7 @@ import Sphincs.SecurityHiddenOutside
 import Sphincs.SecurityHiddenCost
 import Sphincs.SecuritySeedGuess
 import Sphincs.SecurityHiddenGraph
+import Common.WithHash
 
 /-! Support facts for fixed-function runs of the rich graph-view program: decomposition over
 binds, hash-only and private-only phases, and reveals. -/

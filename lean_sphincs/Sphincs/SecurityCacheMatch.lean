@@ -2,6 +2,7 @@ import Sphincs.Statement
 import Sphincs.RandomizedSupport
 import Sphincs.SecurityTreeWitness
 import Sphincs.Uniform
+import Common.WithHash
 
 /-!
 Cached matches against fixed input-indexed target sets: a cache is bad when some cached answer

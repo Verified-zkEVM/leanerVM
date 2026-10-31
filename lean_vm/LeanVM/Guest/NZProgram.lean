@@ -13,6 +13,7 @@ module
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import Statement.LeanVmGuest
+public import LeanVM.Protocol.WithHash
 
 @[expose] public section
 
@@ -129,7 +130,7 @@ def deferredProgramNZ (c : BytecodeClaim) (bytecode : List K) (publicInput : Dig
 `verifyDeferred` with `deferredProgramNZ`. -/
 def verifyDeferredNZ (bytecode : List K) (iv publicInput : Digest) (c : BytecodeClaim)
     (π : Proof) : Bool :=
-  Id.run (runProof (m := Id) keccak256 keccakF1600 (deferredProgramNZ c bytecode publicInput)
+  Id.run (runProofWithHash (m := Id) keccak256 keccakF1600 (deferredProgramNZ c bytecode publicInput)
     (keccakF1600 (seedInput iv publicInput)) π)
 
 end Limits
@@ -140,8 +141,8 @@ namespace Budget
 `verifier H F` with `Limits.verifyExecutionNZ`. -/
 def verifierNZ {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
     (prog : Program) (input : PublicInput) (proof : Proof) : m Bool := do
-  let seed ← seedWith H F (bytecodeWords prog) (publicDigest input)
-  runProof H F (do
+  let seed ← seedWithHash H F (bytecodeWords prog) (publicDigest input)
+  runProofWithHash H F (do
     Limits.verifyExecutionNZ computedValue (bytecodeWords prog) (publicDigest input)
     return true) seed proof
 

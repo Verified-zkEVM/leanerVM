@@ -1,6 +1,7 @@
 import Sphincs.SecuritySeedGuess
 import Sphincs.Recovery
 import Sphincs.Uniform
+import Common.WithHash
 
 /-!
 Seed-independent prepared key material and its exact full-output oracle programming interface.

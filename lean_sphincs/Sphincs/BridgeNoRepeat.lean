@@ -1,5 +1,6 @@
 import Sphincs.BridgeNoRepeatDef
 import Sphincs.BridgeInternalize
+import Common.WithHash
 
 /-! Adversaries that never request a signature on the same message twice stay so when their long
 hash inputs are internalized. -/

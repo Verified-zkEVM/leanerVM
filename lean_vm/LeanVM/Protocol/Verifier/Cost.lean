@@ -12,6 +12,7 @@ public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Compile.Cost
 public import LeanVM.Protocol.Verifier
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The query cost of the leanVM verifier
@@ -874,15 +875,15 @@ def leanVmSeed (bytecode : List K) (publicInput : Digest) : Seed where
 /-- The seeding computes `seedWith`, with any hash and permutation in any lawful monad. -/
 theorem seedRun_leanVmSeed {m : Type → Type} [Monad m] [LawfulMonad m] (H : Bytes → m Digest)
     (F : KeccakState → m KeccakState) (bytecode : List K) (publicInput : Digest) :
-    (leanVmSeed bytecode publicInput).run H F = seedWith H F bytecode publicInput := by
-  simp [Seed.run, Seed.hsRun, leanVmSeed, seedWith, fiatShamirIvWith]
+    (leanVmSeed bytecode publicInput).run H F = seedWithHash H F bytecode publicInput := by
+  simp [Seed.run, Seed.hsRun, leanVmSeed, seedWithHash, fiatShamirIvWithHash]
 
 /-- The seeded verifier of the random-oracle theorem at the leanVM seed and program is the
 compiled leanVM verifier with the hash and the permutation queries. -/
 theorem verifierComp_leanVm (bytecode : List K) (publicInput : Digest) (π : Proof) :
     verifierComp (leanVmSeed bytecode publicInput) (leanVmProgram bytecode publicInput) π =
-      verifyWith callKeccak256 callKeccakF1600 bytecode publicInput π := by
-  simp only [verifierComp, Rom.verify, verifyWith, seedRun_leanVmSeed]
+      verifyWithHash callKeccak256 callKeccakF1600 bytecode publicInput π := by
+  simp only [verifierComp, Rom.verify, verifyWithHash, seedRun_leanVmSeed]
 
 /-- **The query bound of the leanVM verifier**: the IV's hash, the seed's permutation, and the
 program's cost in quarters. -/

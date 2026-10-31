@@ -15,6 +15,7 @@ import Statement.Fast.CubicExt
 import Statement.Fast.FieldWords
 import LeanVM.Protocol.Rpm.Coins
 import Common.Keccak
+import LeanVM.Protocol.WithHash
 
 /-!
 # The experiment as a transfer game
@@ -79,11 +80,11 @@ def toRHF : QueryImpl KeccakCalls (OracleComp HFSpec)
 
 /-- The verifier on the adversary's statement and proof, its queries read on bytes, with the
 adversary's transcript. -/
-def postR (z : (ProgramAndInput × Proof) × PermutationTranscript) : OracleComp HFSpec ExperimentOutcome :=
-  (fun v ↦ ((z.1, v), z.2)) <$> simulateQ toRHF (verifier callKeccak256 callKeccakF1600 z.1.1.1 z.1.1.2 z.1.2)
+def postR (z : (ProgramAndInput × Proof) × PermutationTranscript) : OracleComp HFSpec ExperimentOutcomeWithHash :=
+  (fun v ↦ ((z.1, v), z.2)) <$> simulateQ toRHF (verifierWithHash callKeccak256 callKeccakF1600 z.1.1.1 z.1.1.2 z.1.2)
 
 /-- **The transfer game** of the random-permutation experiment. -/
-def game (A : DetAdversary) : OracleComp D2Spec ExperimentOutcome :=
+def game (A : DetAdversary) : OracleComp D2Spec ExperimentOutcomeWithHash :=
   Common.rpmGame2 (pure ()) (fun _ ↦ advR A) (fun _ z ↦ postR z)
 
 /-- The transfer's oracles read on lanes: coins, the hash (its 32 bytes), the permutation. -/

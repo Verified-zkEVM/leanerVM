@@ -1,6 +1,7 @@
 import Sphincs.BridgeImplication
 import Sphincs.BridgeSignerForest
 import Sphincs.BridgeInterpSupport
+import Common.WithHash
 
 /-! Hit inclusion: the sample's fixed targets, read as a `Targeting` of the saturation potential.
 Row addresses (chain steps and FORS leaves) target their output coordinate; every other address

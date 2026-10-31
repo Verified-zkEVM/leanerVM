@@ -1,6 +1,7 @@
 import LeanDa.RpmCodeBinding
 import Mathlib.Data.Set.Finite.List
 import LeanDa.Defs
+import LeanDa.WithHash
 
 /-!
 # Code binding in the random-permutation model: Wagner's bound for each `H`
@@ -147,18 +148,18 @@ theorem length_pairBytes (a b : Common.DigestBytes) : (pairBytes a b).length = 6
 
 theorem walkM_congr {H₁ H₂ : List UInt8 → m Common.DigestBytes} (hH : ∀ a, shortP a → H₁ a = H₂ a)
     (idx : ℕ) (node : Common.DigestBytes) (path : List Common.DigestBytes) :
-    walkM H₁ idx node path = walkM H₂ idx node path := by
+    walkMWithHash H₁ idx node path = walkMWithHash H₂ idx node path := by
   induction path generalizing idx node with
   | nil => rfl
   | cons s rest ih =>
-    simp only [walkM]
+    simp only [walkMWithHash]
     rw [hH _ (by split <;> simp [shortP, length_pairBytes])]
     exact bind_congr fun d ↦ ih _ _
 
 theorem verifyCellM_congr {H₁ H₂ : List UInt8 → m Common.DigestBytes} (hH : ∀ a, shortP a → H₁ a = H₂ a)
     (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
-    verifyCellM H₁ r com p x τ = verifyCellM H₂ r com p x τ := by
-  simp only [verifyCellM]
+    verifyCellMWithHash H₁ r com p x τ = verifyCellMWithHash H₂ r com p x τ := by
+  simp only [verifyCellMWithHash]
   rw [hH _ (by simp [shortP, length_cellBytes])]
   refine bind_congr fun d ↦ ?_
   rw [walkM_congr hH]
@@ -166,17 +167,17 @@ theorem verifyCellM_congr {H₁ H₂ : List UInt8 → m Common.DigestBytes} (hH 
   rw [hH _ (by simp [shortP, length_pairBytes])]
 
 theorem walkM_pure (H : List UInt8 → Common.DigestBytes) (idx : ℕ) (node : Common.DigestBytes) (path : List Common.DigestBytes) :
-    walkM (m := m) (fun a ↦ pure (H a)) idx node path = pure (walk H idx node path) := by
+    walkMWithHash (m := m) (fun a ↦ pure (H a)) idx node path = pure (walk H idx node path) := by
   induction path generalizing idx node with
   | nil => rfl
   | cons s rest ih =>
-    simp only [walkM, pure_bind, ih, walk_cons]
+    simp only [walkMWithHash, pure_bind, ih, walk_cons]
 
 /-- **Over a pure hash, the verification is `verifyCell`**, in any monad. -/
 theorem verifyCellM_pure (H : List UInt8 → Common.DigestBytes) (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128))
     (x : Cell) (τ : Opening) :
-    verifyCellM (m := m) (fun a ↦ pure (H a)) r com p x τ = pure (verifyCell H r com p x τ) := by
-  simp only [verifyCellM, pure_bind, walkM_pure, verifyCell, cellDigest]
+    verifyCellMWithHash (m := m) (fun a ↦ pure (H a)) r com p x τ = pure (verifyCell H r com p x τ) := by
+  simp only [verifyCellMWithHash, pure_bind, walkM_pure, verifyCell, cellDigestWithHash]
   rfl
 
 theorem run_mapM_const_state {σ β γ : Type} (f : β → StateT σ m γ) (g : β → m γ)
@@ -272,7 +273,7 @@ theorem run_postV_phiG (r : ℕ) {Crs Proof : Type}
     rfl
   rw [postV, hb, mapM_map (fun x ↦ simulateQ (phiG h ∘ₛ embG) x) hp hb]
   simp only [verifyCellM_map (fun x ↦ simulateQ (phiG h ∘ₛ embG) x) hp hb]
-  rw [show (fun o : Fin (r * 128) × Cell × Opening ↦ verifyCellM
+  rw [show (fun o : Fin (r * 128) × Cell × Opening ↦ verifyCellMWithHash
       (fun a ↦ simulateQ (phiG h ∘ₛ embG) (LeanDa.hH a)) r out.1.1 o.1 o.2.1 o.2.2) =
       fun o ↦ pure (verifyCell (Hh h) r out.1.1 o.1 o.2.1 o.2.2) from
     funext fun o ↦ (verifyCellM_congr hHs _ _ _ _ _).trans (verifyCellM_pure _ _ _ _ _ _)]

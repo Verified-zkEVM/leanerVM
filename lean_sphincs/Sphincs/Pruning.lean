@@ -1,4 +1,5 @@
 import Sphincs.Recovery
+import Common.WithHash
 
 /-!
 Correctness of the pruned Merkle path, including the surrogate spine.

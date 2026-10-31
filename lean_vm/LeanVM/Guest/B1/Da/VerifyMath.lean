@@ -7,6 +7,9 @@
 module
 
 public import LeanVM.Guest.B1.Da.Tree
+public import LeanDa.WithHash
+public import LeanVM.Guest.WithHashBridge
+public import LeanVM.Guest.WithHash
 
 /-!
 # The claim `da_verify` returns is opened
@@ -68,12 +71,12 @@ theorem block_eq {α : Type} [Inhabited α] (f : ℕ → List α) (m : ℕ) (hf 
 
 theorem merkleRoot_congr (H : List UInt8 → Common.DigestBytes) :
     ∀ (d : ℕ) {f g : ℕ → Common.DigestBytes}, (∀ i < 2 ^ d, f i = g i) →
-      LeanDa.merkleRoot H d f = LeanDa.merkleRoot H d g
+      LeanDa.merkleRootWithHash H d f = LeanDa.merkleRootWithHash H d g
   | 0, f, g, h => h 0 (by norm_num)
   | d + 1, f, g, h => by
-    rw [LeanDa.merkleRoot, LeanDa.merkleRoot]
+    rw [LeanDa.merkleRootWithHash, LeanDa.merkleRootWithHash]
     refine merkleRoot_congr H d fun i hi => ?_
-    simp only [LeanDa.up]
+    simp only [LeanDa.upWithHash]
     rw [h (2 * i) (by rw [pow_succ]; omega), h (2 * i + 1) (by rw [pow_succ]; omega)]
 
 /-! ## The digests -/
@@ -136,26 +139,26 @@ theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List K} {ws : ℕ → List 
     rw [length_flatMap_range _ 256 _ (hsyms i)]; rfl
   have hcell : ∀ i, ∀ j < 128, LeanDa.listCell ((List.range 128).flatMap (syms i)) j = syms i j :=
     fun i j hj => block_eq (syms i) 256 (hsyms i) hj 0
-  have hlcd : ∀ i, ∀ j < 128, LeanDa.listCellDigest LeanVM.Da.keccak256Bytes
+  have hlcd : ∀ i, ∀ j < 128, LeanDa.listCellDigestWithHash LeanVM.Da.keccak256Bytes
       ((List.range 128).flatMap (syms i)) j = LeanVM.Protocol.Digest.toBytes (cellD syms i j) := fun i j hj => by
-    rw [LeanDa.listCellDigest, hcell i j hj, keccak_eq, cellD, show LeanDa.kBytes = kBytes from
+    rw [LeanDa.listCellDigestWithHash, hcell i j hj, keccak_eq, cellD, show LeanDa.kBytes = kBytes from
       funext kBytes_eq]
   have hlen : (daRows r syms).length = r := by simp [daRows]
   -- the row tree
-  have hrd : ∀ i (hi : i < r), LeanDa.rowDigest LeanVM.Da.keccak256Bytes
+  have hrd : ∀ i (hi : i < r), LeanDa.rowDigestWithHash LeanVM.Da.keccak256Bytes
       ((daRows r syms)[i]'(by rw [hlen]; exact hi)) = LeanVM.Protocol.Digest.toBytes (rowD syms i) := by
     intro i hi
     have : (daRows r syms)[i]'(by rw [hlen]; exact hi) = (List.range 128).flatMap (syms i) := by
       simp [daRows]
-    rw [this, LeanDa.rowDigest, keccak_eq, rowD]
+    rw [this, LeanDa.rowDigestWithHash, keccak_eq, rowD]
     congr 2
     refine List.flatMap_congr fun j hj => ?_
     have hj' : j < 64 := by simpa [LeanDa.payloadCells] using List.mem_range.mp hj
     rw [hlcd i j (by omega), toList_toBytes]
-  have hRow : LeanDa.treeRoot LeanVM.Da.keccak256Bytes ((daRows r syms).map
-      (LeanDa.rowDigest LeanVM.Da.keccak256Bytes) ++ List.replicate
+  have hRow : LeanDa.treeRootWithHash LeanVM.Da.keccak256Bytes ((daRows r syms).map
+      (LeanDa.rowDigestWithHash LeanVM.Da.keccak256Bytes) ++ List.replicate
         (LeanDa.nPad (daRows r syms).length - (daRows r syms).length)
-        (LeanDa.paddingRow LeanVM.Da.keccak256Bytes)) = LeanVM.Protocol.Digest.toBytes (mRoot L (rowLeaf r syms)) := by
+        (LeanDa.paddingRowWithHash LeanVM.Da.keccak256Bytes)) = LeanVM.Protocol.Digest.toBytes (mRoot L (rowLeaf r syms)) := by
     rw [hlen, hL, toBytes_mRoot, ← treeRoot_range]
     congr 1
     refine List.ext_getElem (by simp [hlen]; omega) fun i h1 h2 => ?_
@@ -166,16 +169,16 @@ theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List K} {ws : ℕ → List 
     · rw [List.getElem_append_right (by simp [hlen]; omega), List.getElem_replicate, ite_neg' hi,
         paddingRow_eq]
   -- the column tree
-  have hCol : LeanDa.treeRoot LeanVM.Da.keccak256Bytes ((List.range LeanDa.cellsPerRow).flatMap fun j =>
+  have hCol : LeanDa.treeRootWithHash LeanVM.Da.keccak256Bytes ((List.range LeanDa.cellsPerRow).flatMap fun j =>
       (List.range (LeanDa.nPad (daRows r syms).length)).map fun i => if h : i < (daRows r syms).length then
-        LeanDa.listCellDigest LeanVM.Da.keccak256Bytes (daRows r syms)[i] j
-      else LeanDa.paddingCell LeanVM.Da.keccak256Bytes) =
+        LeanDa.listCellDigestWithHash LeanVM.Da.keccak256Bytes (daRows r syms)[i] j
+      else LeanDa.paddingCellWithHash LeanVM.Da.keccak256Bytes) =
       LeanVM.Protocol.Digest.toBytes (mRoot 7 fun j => mRoot L (cellLeaf r syms j)) := by
     rw [show LeanDa.nPad (daRows r syms).length = 2 ^ L by rw [hlen, hL]]
     have e1 : ((List.range LeanDa.cellsPerRow).flatMap fun j =>
         (List.range (2 ^ L)).map fun i => if h : i < (daRows r syms).length then
-          LeanDa.listCellDigest LeanVM.Da.keccak256Bytes (daRows r syms)[i] j
-        else LeanDa.paddingCell LeanVM.Da.keccak256Bytes) =
+          LeanDa.listCellDigestWithHash LeanVM.Da.keccak256Bytes (daRows r syms)[i] j
+        else LeanDa.paddingCellWithHash LeanVM.Da.keccak256Bytes) =
         (List.range 128).flatMap fun j => (List.range (2 ^ L)).map fun i =>
           LeanVM.Protocol.Digest.toBytes (cellLeaf r syms j i) := by
       refine List.flatMap_congr fun j hj => List.map_congr_left fun i _ => ?_
@@ -204,16 +207,17 @@ theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List K} {ws : ℕ → List 
     obtain ⟨i, -, rfl⟩ := List.mem_map.mp hrow'
     exact hrow i
   · -- the commitment
-    simp only [LeanDa.commitCodewords]
+    rw [Da.commitCodewords_keccakF1600]
+    simp only [LeanDa.commitCodewordsWithHash]
     rw [hRow, hCol, keccak_pair]
     rfl
   · rw [daVector, length_flatMap_range _ 256 _ hws]; rfl
   · -- the vector's digest
-    rw [LeanDa.vectorDigest, keccak_eq, daVd]
+    rw [Da.vectorDigest_keccakF1600, LeanDa.vectorDigestWithHash, keccak_eq, daVd]
     congr 2
     refine List.flatMap_congr fun j hj => ?_
     have hj' : j < 128 := List.mem_range.mp hj
-    rw [LeanDa.columnDigest, show LeanDa.cellSymbols = 256 from rfl, daVector,
+    rw [LeanDa.columnDigestWithHash, show LeanDa.cellSymbols = 256 from rfl, daVector,
       block_eq ws 256 hws hj' 0, limbBytes_eq, keccak_eq, toList_toBytes]
     rfl
   · -- orthogonality

@@ -1,4 +1,5 @@
 import Sphincs.SecurityTreeWitness
+import Common.WithHash
 
 /-! Chain divergence and prefix-inversion contacts on the actual verifier query trace.
 Adapted from leanVM b7a107256. No hash-injectivity assumption is used. -/

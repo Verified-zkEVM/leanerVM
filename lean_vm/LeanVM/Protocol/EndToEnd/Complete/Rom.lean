@@ -14,6 +14,7 @@ public import LeanVM.Protocol.Errors
 public import LeanVM.Protocol.EndToEnd.Sound.Moves
 public import LeanVM.Protocol.Compile.Rom.Complete
 public import LeanVM.Protocol.Verifier.Cost
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Completeness against the random oracle

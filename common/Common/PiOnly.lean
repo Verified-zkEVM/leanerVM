@@ -1,4 +1,5 @@
 import Common.Signature
+import Common.WithHash
 
 /-!
 # The statement's model: `π` and `π⁻¹`, nothing else
@@ -260,14 +261,14 @@ theorem simulateQ_expand_hashKH {β : Type} (X : OracleComp SchemeHashSpec β) :
 
 /-- **The statement's RPM game is the game with the hash oracle, expanded**, against the
 adversary embedded. -/
-theorem rpmGame_eq_expand (S : Scheme Seed PK SK Req Resp F)
+theorem rpmGame_eq_expand (S : SchemeWithHash Seed PK SK Req Resp F)
     (main : PK → OracleComp (RandomPermutationOracles + (Req →ₒ Resp)) F) :
-    forgeryGame S main = simulateQ expand (rpmGameH S fun pk ↦ simulateQ embedS (main pk)) := by
+    forgeryGameWithHash S main = simulateQ expand (rpmGameH S fun pk ↦ simulateQ embedS (main pk)) := by
   have hmid : ∀ (sk : SK) {α : Type} (oa : OracleComp (KSpecH + (Req →ₒ Resp)) α),
       simulateQ expand ((simulateQ (QueryImpl.ofLift KSpecH
         (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecH)) + signingOracleKH S sk) oa).run) =
       (simulateQ (QueryImpl.ofLift RandomPermutationOracles
-        (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp RandomPermutationOracles)) + loggedSigningOracle S sk)
+        (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp RandomPermutationOracles)) + loggedSigningOracleWithHash S sk)
           (simulateQ expandS oa)).run := by
     intro sk α oa
     refine simulateQ_writer_run_comm _ _ _ _ (fun t ↦ ?_) oa
@@ -276,7 +277,7 @@ theorem rpmGame_eq_expand (S : Scheme Seed PK SK Req Resp F)
           signingOracleKH S sk) (.inl t)).run =
             (·, ∅) <$> (liftM (KSpecH.query t) : OracleComp KSpecH _) := rfl
       have h5 : (QueryImpl.ofLift RandomPermutationOracles (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp RandomPermutationOracles)) +
-          loggedSigningOracle S sk) ∘ₛ (fun u ↦ liftM ((RandomPermutationOracles + (Req →ₒ Resp)).query (.inl u)) :
+          loggedSigningOracleWithHash S sk) ∘ₛ (fun u ↦ liftM ((RandomPermutationOracles + (Req →ₒ Resp)).query (.inl u)) :
             QueryImpl RandomPermutationOracles (OracleComp (RandomPermutationOracles + (Req →ₒ Resp)))) =
           QueryImpl.ofLift RandomPermutationOracles (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp RandomPermutationOracles)) := by
         funext u
@@ -290,22 +291,22 @@ theorem rpmGame_eq_expand (S : Scheme Seed PK SK Req Resp F)
             simulateQ hashKH (S.sign sk r) := by
         simp [signingOracleKH]
       have h3' : ((QueryImpl.ofLift RandomPermutationOracles (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp RandomPermutationOracles)) +
-          loggedSigningOracle S sk) (.inr r)).run = (fun u ↦ (u, [⟨r, u⟩])) <$>
+          loggedSigningOracleWithHash S sk) (.inr r)).run = (fun u ↦ (u, [⟨r, u⟩])) <$>
             simulateQ schemeHashOverPermutation (S.sign sk r) := by
-        simp [loggedSigningOracle]
+        simp [loggedSigningOracleWithHash]
       rw [h3, simulateQ_map, simulateQ_expand_hashKH, expandS, simulateQ_spec_query, h3']
-  simp only [forgeryGame, rpmGameH, simulateQ_bind, simulateQ_pure, simulateQ_expand_hashKH, hmid,
+  simp only [forgeryGameWithHash, rpmGameH, simulateQ_bind, simulateQ_pure, simulateQ_expand_hashKH, hmid,
     simulateQ_expandS_embedS]
   rw [simulateQ_liftM_of_coins _ (fun n ↦ rfl)]
 
 /-- **SUF-CMA security against adversaries that query the hash oracle is SUF-CMA security in the
 statement's model**: the statement's game is the game with the hash oracle expanded, against the
 embedded adversary, with one distribution and one number of permutation calls. -/
-theorem rpmSecure_of_rpmSecureH {S : Scheme Seed PK SK Req Resp F} {bits : ℕ}
-    (h : RpmSecureH S bits) : StronglyUnforgeable S bits := by
+theorem rpmSecure_of_rpmSecureH {S : SchemeWithHash Seed PK SK Req Resp F} {bits : ℕ}
+    (h : RpmSecureH S bits) : StronglyUnforgeableWithHash S bits := by
   intro Q hQ main hbound
   rw [rpmGame_eq_expand, isWeightBound_expand_iff] at hbound
-  rw [forgeryExperiment, rpmGame_eq_expand, runK_expand]
+  rw [forgeryExperimentWithHash, rpmGame_eq_expand, runK_expand]
   exact h Q hQ _ hbound
 
 end SufCma

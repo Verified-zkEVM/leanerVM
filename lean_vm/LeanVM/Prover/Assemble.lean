@@ -17,6 +17,7 @@ import LeanVM.Prover.Keccak
 import LeanVM.Prover.Ring
 import LeanVM.Prover.Whir
 import LeanVM.Prover.Ntt
+import LeanVM.Protocol.WithHash
 
 /-!
 # The honest prover is the specification at the execution's witness
@@ -326,18 +327,18 @@ valid execution within the cap at a valid rate, `prove callKeccak256 callKeccakF
 specification's honest strategy at `skelWitness`, its sizes and its stack. -/
 theorem prove_eq_honestComp (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28)
     {ρ : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (fuel : ℕ) :
-    prove callKeccak256 callKeccakF1600 prog input t ρ fuel =
+    proveWithHash callKeccak256 callKeccakF1600 prog input t ρ fuel =
       Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
         (leanVmProgram (bytecodeWords prog) (publicDigest input))
         (leanVmProver prog (traceSizes prog input t) ρ
           (stackOf prog (traceSizes prog input t) (traceWitness prog input t))) fuel := by
   obtain ⟨W, hW, hspec⟩ := witness?_spec hv hcap
   have hL := buildLayout_witness hv hcap hspec
-  have e : prove callKeccak256 callKeccakF1600 prog input t ρ fuel =
-      (seedWith callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicDigest input) >>= fun seed ↦
-        runScript callKeccak256 callKeccakF1600 (leanVmProgram (bytecodeWords prog) (publicDigest input))
+  have e : proveWithHash callKeccak256 callKeccakF1600 prog input t ρ fuel =
+      (seedWithHash callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicDigest input) >>= fun seed ↦
+        runScriptWithHash callKeccak256 callKeccakF1600 (leanVmProgram (bytecodeWords prog) (publicDigest input))
           (honestScript W (verifierLayout prog (traceSizes prog input t)) ρ) seed fuel) := by
-    simp only [prove, hW, hρ, and_self, ↓reduceIte, hL]
+    simp only [proveWithHash, hW, hρ, and_self, ↓reduceIte, hL]
   rw [e]
   refine Eq.trans ?_ (honestComp_ofScript_leanVm (bytecodeWords prog) (publicDigest input)
     (LeanVM.Protocol.EndToEnd.Complete.honestProver prog (traceSizes prog input t) ρ
@@ -345,11 +346,11 @@ theorem prove_eq_honestComp (hv : ValidExecution prog input t) (hcap : t.committ
       (leanVmPhases prog (traceSizes prog input t)
         (stackOf prog (traceSizes prog input t) (traceWitness prog input t)))) fuel).symm
   exact congrArg (fun k : KeccakState → OracleComp KeccakCalls Proof ↦
-      seedWith callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicDigest input) >>= k)
+      seedWithHash callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicDigest input) >>= k)
     (funext fun seed ↦ runScript_corr callKeccak256 callKeccakF1600 fuel _ (corr_honestScript hv hcap hρ hspec) seed)
 
 /-- The statement's honest prover is `prove` with the oracle calls. -/
-abbrev oracleProver : HonestProver := LeanVM.prover
+abbrev oracleProver : HonestProverWithHash := LeanVM.proverWithHash
 
 /-- **The hypothesis of the completeness theorems**: on valid executions within the cap at a
 valid rate, the prover is the specification at a child's witness. -/
@@ -368,8 +369,8 @@ theorem childSpec_prove (prog : Program) (input : PublicInput) (t : Execution pr
   by_cases h : ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 28 ∧ 1 ≤ ρ ∧ ρ ≤ 4
   · exact .inr (specOnValid_prove prog input t ρ fuel h.1 h.2.1 h.2.2)
   · left
-    show prove callKeccak256 callKeccakF1600 prog input t ρ fuel = pure ⟨[], []⟩
-    unfold prove
+    show proveWithHash callKeccak256 callKeccakF1600 prog input t ρ fuel = pure ⟨[], []⟩
+    unfold proveWithHash
     cases hW : witness? prog input t with
     | none => rfl
     | some W =>
@@ -386,7 +387,7 @@ end Prove
 theorem completeness_prove :
     ∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
       ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
-      Pr{let v ← verifierCompletenessExperiment oracleProver prog input t ρ (2 ^ 25)}[v = false] ≤
+      Pr{let v ← verifierCompletenessExperimentWithHash oracleProver prog input t ρ (2 ^ 25)}[v = false] ≤
         (2 : ENNReal)⁻¹ ^ 256 :=
   completeness_of_spec oracleProver specOnValid_prove_honest
 

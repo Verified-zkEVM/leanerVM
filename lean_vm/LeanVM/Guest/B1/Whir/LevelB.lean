@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.LevelRest
+public import LeanVM.Protocol.WithHash
 
 /-!
 # A level's queries and glue, soundly (G:1402-1495)
@@ -144,7 +145,7 @@ theorem osLevelB_common {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) 
       (σ (.n (bLam c lvl lv st)) ^ i)) ∧
     ∃ (os : List Opening) (ic0 ic2 : E), os = bOs c lvl lv st rd σ W ∧ os.length = lv.queries ∧
       (∀ k (hk : k < qs.length) (ho : k < os.length),
-        Id.run (Compile.openOne (m := Id) keccak256 root lv.depth
+        Id.run (Compile.openOneWithHash (m := Id) keccak256 root lv.depth
           (if lvl = 0 then lv.interleave else 3 * lv.interleave) qs[k] os[k]) = true) ∧
       σ (.n (bQ c lvl lv st).2.2.1) = enforcedSum ((os.map (·.leaf)).map (specRow lvl)) lf
         (powers (σ (.n (bLam c lvl lv st))) lv.queries) ∧
@@ -195,7 +196,7 @@ theorem levelRest_run {ml lvl : ℕ} {level : Whir.Level} {lf : List E} {ws : Wh
     {height width : ℕ} (hR : R[lvl]? = some (root, height, width)) (os : List Opening)
     (hol : os.length = (queriesOf (192 / d) d (F.squeezeN nsq).1 level.queries).length)
     (hop : ∀ k (hk : k < (queriesOf (192 / d) d (F.squeezeN nsq).1 level.queries).length)
-      (ho : k < os.length), Id.run (Compile.openOne (m := Id) keccak256 root height width
+      (ho : k < os.length), Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width
         (queriesOf (192 / d) d (F.squeezeN nsq).1 level.queries)[k] os[k]) = true)
     (ic0 ic2 : E) :
     let qs := queriesOf (192 / d) d (F.squeezeN nsq).1 level.queries

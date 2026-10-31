@@ -1,4 +1,5 @@
 import Sphincs.BridgePotentialA7
+import Common.WithHash
 
 /-! The refined events of a final state against the payoff of the linear potential. The
 prepared cache holds structural inputs and the encoding search queries only, and no search

@@ -1,4 +1,5 @@
 import LeanDa.WpbBound
+import LeanDa.WithHash
 
 /-!
 # Wagner's knowledge-soundness term, from the argument's knowledge soundness in the
@@ -42,21 +43,21 @@ variable {H₁ H₂ : List UInt8 → m Common.DigestBytes} (hH : ∀ a, shortP a
 include hH
 
 theorem upM_congr {f₁ f₂ : ℕ → m Common.DigestBytes} (hf : ∀ i, f₁ i = f₂ i) (i : ℕ) :
-    upM H₁ f₁ i = upM H₂ f₂ i := by
-  simp only [upM, hf]
+    upMWithHash H₁ f₁ i = upMWithHash H₂ f₂ i := by
+  simp only [upMWithHash, hf]
   exact bind_congr fun a ↦ bind_congr fun b ↦ hH _ (by simp [shortP, length_pairBytes])
 
 theorem merkleRootM_congr (d : ℕ) : ∀ {f₁ f₂ : ℕ → m Common.DigestBytes}, (∀ i, f₁ i = f₂ i) →
-    merkleRootM H₁ d f₁ = merkleRootM H₂ d f₂ := by
+    merkleRootMWithHash H₁ d f₁ = merkleRootMWithHash H₂ d f₂ := by
   induction d with
   | zero => intro f₁ f₂ hf; exact hf 0
   | succ d ih => intro f₁ f₂ hf; exact ih (upM_congr hH hf)
 
 /-- **The commitment over two hashes that agree on short strings.** -/
 theorem commitCellsM_congr {r : ℕ} (c : Fin (r * 128) → Cell) :
-    commitCellsM H₁ c = commitCellsM H₂ c := by
-  have hrow : ∀ i, rowLeavesM H₁ c i = rowLeavesM H₂ c i := fun i ↦ by
-    unfold rowLeavesM
+    commitCellsMWithHash H₁ c = commitCellsMWithHash H₂ c := by
+  have hrow : ∀ i, rowLeavesMWithHash H₁ c i = rowLeavesMWithHash H₂ c i := fun i ↦ by
+    unfold rowLeavesMWithHash
     rw [show (fun j : ℕ ↦ H₁ (cellBytes (paddedCell c i j))) =
       fun j : ℕ ↦ H₂ (cellBytes (paddedCell c i j)) from
         funext fun j ↦ hH _ (by simp [shortP, length_cellBytes])]
@@ -64,9 +65,9 @@ theorem commitCellsM_congr {r : ℕ} (c : Fin (r * 128) → Cell) :
     simp only [shortP, List.length_flatMap, Vector.length_toList, List.map_const', List.sum_replicate,
       smul_eq_mul, hds, List.length_range]
     omega
-  have hcol : ∀ l, colLeavesM H₁ c l = colLeavesM H₂ c l := fun l ↦
+  have hcol : ∀ l, colLeavesMWithHash H₁ c l = colLeavesMWithHash H₂ c l := fun l ↦
     hH _ (by simp [shortP, length_cellBytes])
-  simp only [commitCellsM, rowRootM, colRootM, merkleRootM_congr hH _ hrow,
+  simp only [commitCellsMWithHash, rowRootMWithHash, colRootMWithHash, merkleRootM_congr hH _ hrow,
     merkleRootM_congr hH _ hcol]
   refine bind_congr fun a ↦ bind_congr fun b ↦ hH _ (by simp [shortP, length_pairBytes])
 
@@ -91,20 +92,20 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Chall
 challenges of its root by the deployed duplex over `π`, and output the statement and its proof. -/
 noncomputable def ksAdv : KsAdvB Crs Proof := fun crs ↦ do
   let out ← A ((), crs)
-  let zs ← membershipChallengesM keccakA (lanePerm piA) out.1.1
+  let zs ← membershipChallengesMWithHash keccakA (lanePerm piA) out.1.1
   pure (((), out.1.1, toChallenges zs), out.1.2)
 
 /-- The same game with the challenges computed by the verifier's direct calls. -/
 noncomputable def postK (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) :
     OracleComp Rom2 Bool := do
-  let zs ← membershipChallengesM hR pR out.1.1
+  let zs ← membershipChallengesMWithHash hR pR out.1.1
   ksPost r ps ext crs (((), out.1.1, toChallenges zs), out.1.2)
 
 theorem toOne_chal (root : Common.DigestBytes) :
     simulateQ (toOne (E := KRest) (C := KCap)) (simulateQ (advEmbed (Msg := List UInt8))
-        (membershipChallengesM keccakA (lanePerm piA) root)) =
+        (membershipChallengesMWithHash keccakA (lanePerm piA) root)) =
       simulateQ (toOne (E := KRest) (C := KCap)) (simulateQ (hfEmbed (Msg := List UInt8))
-        (membershipChallengesM hR pR root)) := by
+        (membershipChallengesMWithHash hR pR root)) := by
   have m1 := membershipChallengesM_map
     (fun {α} (x : OracleComp AdvSpec α) ↦ simulateQ (toOne (E := KRest) (C := KCap))
       (simulateQ (advEmbed (Msg := List UInt8)) x)) (fun _ ↦ rfl)
@@ -209,8 +210,8 @@ theorem isWeightBound_absorbM (s : Sponge) (x : E) (tag : K) :
 include hH hP in
 /-- **The challenges' sponge makes at most `18` calls.** -/
 theorem isWeightBound_membershipChallengesM (root : Common.DigestBytes) :
-    QueryCostAtMost (membershipChallengesM H P root) w 18 := by
-  unfold membershipChallengesM Sponge.fromLabelM Sponge.newM Sponge.observeM
+    QueryCostAtMost (membershipChallengesMWithHash H P root) w 18 := by
+  unfold membershipChallengesMWithHash Sponge.fromLabelMWithHash Sponge.newM Sponge.observeM
   exact ((hH.bind fun _ ↦ (hP _).bind fun _ ↦ isWeightBound_pure _ _ 0).bind fun _ ↦
     (isWeightBound_absorbM w P hP _ _ _).bind fun _ ↦ (isWeightBound_absorbM w P hP _ _ _).bind
       fun _ ↦ isWeightBound_samplesM w P hP logK _).mono (by simp [logK])
@@ -271,7 +272,7 @@ theorem isWeightBound_ksGame (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGame2 r
     fun x hx ↦ (?_ : QueryCostAtMost _ permCalls2 (ksCalls r Q))).mono (by omega)
   have e : simulateQ (advEmbed (Msg := List UInt8) (Dg := DigestBytes) (E := KRest) (C := KCap))
       (ksAdv r A x) = simulateQ advEmbed (A ((), x)) >>= fun out ↦
-        simulateQ advEmbed (membershipChallengesM keccakA (lanePerm piA) out.1.1) >>= fun zs ↦
+        simulateQ advEmbed (membershipChallengesMWithHash keccakA (lanePerm piA) out.1.1) >>= fun zs ↦
           pure (((), out.1.1, toChallenges zs), out.1.2) := by
     simp only [ksAdv, simulateQ_bind, simulateQ_pure]
   rw [e]
@@ -297,7 +298,7 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Chall
 /-- The knowledge-soundness verdict with `H` among coins and `H`, for the challenges `l`. -/
 noncomputable def ksPostH (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening))
     (l : Challenges) : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool := do
-  let root ← commitCellsM hH (ext crs ((), out.1.1, l) out.1.2)
+  let root ← commitCellsMWithHash hH (ext crs ((), out.1.1, l) out.1.2)
   pure (ps.verify crs ((), out.1.1, l) out.1.2 &&
     !(decide (root = out.1.1) && membershipCheck l (ext crs ((), out.1.1, l) out.1.2)))
 
@@ -398,7 +399,7 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Chall
 noncomputable def ksP (h : HTab) (crs : Crs)
     (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) (l : Challenges) : Bool :=
   ps.verify crs ((), out.1.1, l) out.1.2 &&
-    !(decide (commitCells (Hh h) (ext crs ((), out.1.1, l) out.1.2) = out.1.1) &&
+    !(decide (commitCellsWithHash (Hh h) (ext crs ((), out.1.1, l) out.1.2) = out.1.1) &&
       membershipCheck l (ext crs ((), out.1.1, l) out.1.2))
 
 theorem run_ksPostH_phiG (h : HTab) (crs : Crs)

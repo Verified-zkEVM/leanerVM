@@ -1,6 +1,7 @@
 import Sphincs.SecurityGraphSigner
 import Sphincs.SecurityPrefixErasedKeygen
 import Sphincs.SecurityHiddenCost
+import Common.WithHash
 
 /-! Exact original honest hash costs for the graph-reveal signer. The simulation retains
 ordinary message/encoding queries and represents the remaining internal work by explicit

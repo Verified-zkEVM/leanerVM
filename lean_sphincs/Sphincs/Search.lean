@@ -2,6 +2,7 @@ import Sphincs.Scheme
 import VCVio.OracleComp.Constructions.SampleableType.Measure
 import VCVio.OracleComp.EvalDist.Sum
 import VCVio.EvalDist.ProbabilityBounds
+import Common.WithHash
 
 /-!
 # Exhausting a search
@@ -29,7 +30,7 @@ def searchLoop (inputs : Nat → HashInput) (decode : HashOutput → Option β)
     (success : Nat → β → OracleComp HashSpec γ) : Nat → Nat → OracleComp HashSpec (Option γ)
   | 0, _ => pure none
   | n + 1, t => do
-      let answer ← Concrete.oracleHash (inputs t)
+      let answer ← Concrete.oracleHashWithHash (inputs t)
       match decode answer with
       | some value => some <$> success t value
       | none => searchLoop inputs decode success n (t + 1)
@@ -68,7 +69,7 @@ theorem probEvent_searchLoop (inputs : Nat → HashInput) (decode : HashOutput �
   | succ n ih =>
       intro t hbound cache hfresh
       rw [searchLoop]
-      simp only [Concrete.oracleHash, HasQuery.query, simulateQ_bind, simulateQ_spec_query,
+      simp only [Concrete.oracleHashWithHash, HasQuery.query, simulateQ_bind, simulateQ_spec_query,
         StateT.run_bind]
       rw [fresh_run (inputs t) cache (hfresh t (Nat.le_refl t) (by omega))]
       have hterm : ∀ u : HashOutput,
@@ -202,7 +203,7 @@ theorem otsSignFrom_eq_searchLoop (parameter : PublicParameter) (lay : Layer) (t
   | succ n ih =>
       intro t
       rw [otsSignFrom, searchLoop]
-      simp only [encode, tweakableHash, oracleHash, bind_assoc, pure_bind,
+      simp only [encode, tweakableHash, oracleHashWithHash, bind_assoc, pure_bind,
         map_eq_bind_pure_comp, Function.comp_def, ih]
       refine bind_congr fun answer => ?_
       cases TargetSum.decodeDigest (truncateHash answer) <;> rfl

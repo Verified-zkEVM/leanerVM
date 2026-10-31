@@ -1,6 +1,7 @@
 module
 
 public import Sphincs.Scheme
+public import Common.WithHash
 
 /-!
 The signer variant with a truly uniform randomizer base per signing call (attempt `i` uses

@@ -1,4 +1,5 @@
 import Sphincs.SecurityPrefixMaterialCost
+import Common.WithHash
 
 /-! The exact hash cost of key generation, `226 · 2^b + 2 (26 - b) + 1` calls: the scheme seed, then
 `226 · 2^b + 2 (26 - b)` from it, including the surrogate spine. -/

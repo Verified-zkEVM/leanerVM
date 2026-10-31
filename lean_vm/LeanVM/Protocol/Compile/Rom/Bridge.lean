@@ -15,6 +15,7 @@ public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
 public import Statement.Fast.CubicExt
 public import Statement.Fast.FieldWords
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The verifier against the random oracles
@@ -69,28 +70,28 @@ theorem simulateQ_queryF (s : KeccakState) : simulateQ impl (callKeccakF1600 s) 
 
 theorem simulateQ_climb :
     ∀ (node : Digest) (q : ℕ) (path : List Digest),
-      simulateQ impl (climb callKeccak256 node q path) = climb (implH impl) node q path
-  | _, _, [] => by simp [climb]
+      simulateQ impl (climbWithHash callKeccak256 node q path) = climbWithHash (implH impl) node q path
+  | _, _, [] => by simp [climbWithHash]
   | node, q, s :: ss => by
-    simp only [climb]
+    simp only [climbWithHash]
     split <;>
     · simp only [simulateQ_bind, simulateQ_queryH]
       congr 1; funext p; exact simulateQ_climb p _ ss
 
 theorem simulateQ_openOne (root : Digest) (ht w q : ℕ) (o : Opening) :
-    simulateQ impl (openOne callKeccak256 root ht w q o) = openOne (implH impl) root ht w q o := by
-  simp only [openOne]
+    simulateQ impl (openOneWithHash callKeccak256 root ht w q o) = openOneWithHash (implH impl) root ht w q o := by
+  simp only [openOneWithHash]
   split
   · simp only [simulateQ_bind, simulateQ_queryH, simulateQ_climb, simulateQ_pure]
   · simp
 
 theorem simulateQ_openAll (root : Digest) (ht w : ℕ) :
     ∀ (ps : List ℕ) (os : List Opening),
-      simulateQ impl (openAll callKeccak256 root ht w ps os) = openAll (implH impl) root ht w ps os
-  | [], _ => by simp [openAll]
-  | _ :: _, [] => by simp [openAll]
+      simulateQ impl (openAllWithHash callKeccak256 root ht w ps os) = openAllWithHash (implH impl) root ht w ps os
+  | [], _ => by simp [openAllWithHash]
+  | _ :: _, [] => by simp [openAllWithHash]
   | q :: qs, o :: os => by
-    simp only [openAll, simulateQ_bind, simulateQ_openOne]
+    simp only [openAllWithHash, simulateQ_bind, simulateQ_openOne]
     congr 1; funext b
     split
     · simp only [simulateQ_bind, simulateQ_openAll root ht w qs os, simulateQ_pure]
@@ -113,20 +114,20 @@ theorem simulateQ_squeeze (sp : Sponge) :
 
 theorem simulateQ_run :
     ∀ (p : Prog Bool) (s : ProgState),
-      simulateQ impl (run callKeccak256 callKeccakF1600 p s) = run (implH impl) (implF impl) p s
-  | .ret a, s => by simp [run]
-  | .fail, s => by simp [run]
+      simulateQ impl (runWithHash callKeccak256 callKeccakF1600 p s) = runWithHash (implH impl) (implF impl) p s
+  | .ret a, s => by simp [runWithHash]
+  | .fail, s => by simp [runWithHash]
   | .read k, s => by
-    simp only [run]
+    simp only [runWithHash]
     split
     · simp
     · simp only [simulateQ_bind, simulateQ_absorb]
       congr 1; funext sp; exact simulateQ_run _ _
   | .sample k, s => by
-    simp only [run, simulateQ_bind, simulateQ_squeeze]
+    simp only [runWithHash, simulateQ_bind, simulateQ_squeeze]
     congr 1; funext r; exact simulateQ_run _ _
   | .grind bits k, s => by
-    simp only [run]
+    simp only [runWithHash]
     split
     · simp
     · simp only [simulateQ_bind, simulateQ_absorb, simulateQ_squeeze]
@@ -135,7 +136,7 @@ theorem simulateQ_run :
       · exact simulateQ_run _ _
       · simp
   | .commit ht w k, s => by
-    simp only [run]
+    simp only [runWithHash]
     split
     · simp only [simulateQ_bind, simulateQ_absorb]
       congr 1; funext sp0; congr 1; funext sp1
@@ -144,7 +145,7 @@ theorem simulateQ_run :
       · simp
     · simp
   | .query i ps k, s => by
-    simp only [run]
+    simp only [runWithHash]
     split
     · simp
     · simp only [simulateQ_bind, simulateQ_openAll]
@@ -154,9 +155,9 @@ theorem simulateQ_run :
       · simp
 
 theorem simulateQ_runProof (P : Prog Bool) (seed : KeccakState) (π : Proof) :
-    simulateQ impl (runProof callKeccak256 callKeccakF1600 P seed π) =
-      runProof (implH impl) (implF impl) P seed π := by
-  simp only [runProof, simulateQ_bind, simulateQ_run]
+    simulateQ impl (runProofWithHash callKeccak256 callKeccakF1600 P seed π) =
+      runProofWithHash (implH impl) (implF impl) P seed π := by
+  simp only [runProofWithHash, simulateQ_bind, simulateQ_run]
   congr 1; funext o
   split <;> simp
 

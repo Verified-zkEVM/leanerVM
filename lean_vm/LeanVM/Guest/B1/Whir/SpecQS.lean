@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.SpecFold
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Query steps, step by step
@@ -59,7 +60,7 @@ theorem qs_require_bind {c : Prop} [Decidable c] (k : Unit → Prog β) (st : FS
 theorem qs_queryP_bind {i : ℕ} {ps : List ℕ} (k : List (List K) → Prog β) (F : Fs) (xs : List E)
     (os : List Opening) (R : List (Digest × ℕ × ℕ)) {root : Digest} {height width : ℕ}
     {rows : List (List K)} {rest : List Opening} (hR : R[i]? = some (root, height, width))
-    (ho : Id.run (Compile.openAll (m := Id) keccak256 root height width ps os) = some (rows, rest)) :
+    (ho : Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps os) = some (rows, rest)) :
     queryStepsOf ((Prog.queryOpenings i ps).bind k) ⟨F, xs, os, R⟩ =
       (height, ps.zip os) :: queryStepsOf (k rows) ⟨F, xs, rest, R⟩ := by
   simp only [Id.run] at ho

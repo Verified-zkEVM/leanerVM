@@ -1,5 +1,6 @@
 import Statement.LeanDa
 import Common.HashOracle
+import LeanDa.WithHash
 
 /-!
 # LeanDA's games with a Keccak-256 oracle, a proof device
@@ -91,8 +92,8 @@ def posBindingGameH (A : PosBindingAdvRpmH r Crs Proof) : OracleComp KSpecH Bool
   let crs ← liftM ps.setup
   let (com, p, x, τ, x', τ') ← A ((), crs)
   let ok ← ps.verify crs com.1 com.2
-  let b ← verifyCellM hK r com.1 p x τ
-  let b' ← verifyCellM hK r com.1 p x' τ'
+  let b ← verifyCellMWithHash hK r com.1 p x τ
+  let b' ← verifyCellMWithHash hK r com.1 p x' τ'
   pure (decide (x ≠ x') && ok && b && b')
 
 /-- A code-binding adversary: from the commitment key, a commitment and a list of opened
@@ -106,7 +107,7 @@ noncomputable def codeBindingGameH (A : CodeBindingAdvRpmH r Crs Proof) : Oracle
   let crs ← liftM ps.setup
   let (com, opened) ← A ((), crs)
   let ok ← ps.verify crs com.1 com.2
-  let verdicts ← opened.mapM fun o ↦ verifyCellM hK r com.1 o.1 o.2.1 o.2.2
+  let verdicts ← opened.mapM fun o ↦ verifyCellMWithHash hK r com.1 o.1 o.2.1 o.2.2
   pure (ok && verdicts.all id && !decide ((code r).Consistent (opened.map fun o ↦ (o.1, o.2.1))))
 
 /-- **The adversary's oracles, logged**: each query asked, and appended with its answer to the
@@ -128,7 +129,7 @@ noncomputable def ksGameH (B : KsAdvRpmH Crs Proof) : OracleComp KSpecH Bool := 
   let crs ← liftM ps.setup
   let ((root, proof), log) ← (simulateQ loggedKH (B crs)).run []
   let v ← ps.verify crs root proof
-  let ok ← relationM hK pK root (ext crs root proof log)
+  let ok ← relationMWithHash hK pK root (ext crs root proof log)
   pure (v && !ok)
 
 /-- **The completeness experiment for a permutation `π`** (Wagner's, Foundations Definition 8,
@@ -140,10 +141,10 @@ noncomputable def completenessExpRpmH (π : Equiv.Perm KeccakState) (ps : Argume
     (msg : Fin r → Payload) (p : Fin (r * 128)) : ProbComp Bool := do
   let crs ← ps.setup
   let c := (code r).encode msg
-  let root := commitCells (keccak256WithPermutation π) c
+  let root := commitCellsWithHash (keccak256WithPermutation π) c
   let ok ← simulateQ (permImplH π) (ps.prove crs root c >>= ps.verify crs root)
-  pure (ok && Id.run (verifyCellM (fun a ↦ pure (keccak256WithPermutation π a)) r root p (c p)
-    (openCell (keccak256WithPermutation π) c p)))
+  pure (ok && Id.run (verifyCellMWithHash (fun a ↦ pure (keccak256WithPermutation π a)) r root p (c p)
+    (openCellWithHash (keccak256WithPermutation π) c p)))
 
 /-! ### The end statements, in the model with the hash oracle -/
 
@@ -157,7 +158,7 @@ for every outcome of the binding statements' uniformly random permutation. The p
 completeness proof, transferred. Proved by `LeanDa.leanDa_perfectlyComplete_rpmH`. -/
 abbrev PerfectlyCompleteRpmH : Prop :=
   ∀ (r : ℕ) (π : Equiv.Perm KeccakState) {Crs Proof : Type} (ps : ArgumentRpmH r Crs Proof),
-    ps.PerfectlyComplete (relationForPermutation r) →
+    ps.PerfectlyComplete (relationForPermutationWithHash r) →
       ∀ (msg : Fin r → Payload) (p : Fin (r * 128)),
         Pr{let b ← completenessExpRpmH r π ps msg p}[b = true] = 1
 

@@ -21,6 +21,8 @@ public import LeanDa.Scheme
 public import Statement.Fast.Keccak
 public import Statement.Fast.CubicExt
 public import Statement.Fast.FieldWords
+import LeanDa.WithHash
+public import LeanVM.Guest.WithHash
 
 namespace LeanVM.Da
 
@@ -31,7 +33,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 /-- **The vector digest of a root**, as the outer verifier derives it
 (`vector_digest(membership_vector(root))`, `crates/verifier/src/da.rs:87-103`). -/
 def vectorDigestOf (root : Digest) : Common.DigestBytes :=
-  LeanDa.vectorDigest keccak256Bytes (LeanDa.membershipVector keccak256Bytes keccakF1600 root.toBytes)
+  LeanDa.vectorDigestWithHash keccak256Bytes (LeanDa.membershipVector keccak256Bytes keccakF1600 root.toBytes)
 
 section With
 
@@ -167,24 +169,24 @@ variable (H : List UInt8 → Common.DigestBytes) (P : KeccakState → KeccakStat
 
 /-- A tree level with the pure hash is `LeanDa.treeLevel`. -/
 theorem treeLevelWith_id (nodes : List Common.DigestBytes) :
-    Id.run (treeLevelWith (m := Id) H nodes) = LeanDa.treeLevel H nodes := by
-  simp only [treeLevelWith, mapM_id, LeanDa.treeLevel]
+    Id.run (treeLevelWith (m := Id) H nodes) = LeanDa.treeLevelWithHash H nodes := by
+  simp only [treeLevelWith, mapM_id, LeanDa.treeLevelWithHash]
   rfl
 
 /-- A tree level halves the nodes. -/
 theorem length_treeLevel (nodes : List Common.DigestBytes) :
-    (LeanDa.treeLevel H nodes).length = nodes.length / 2 := by
-  simp [LeanDa.treeLevel]
+    (LeanDa.treeLevelWithHash H nodes).length = nodes.length / 2 := by
+  simp [LeanDa.treeLevelWithHash]
 
 /-- Enough fuel builds the tree. -/
 theorem treeRootFuel_id : ∀ (fuel : ℕ) (nodes : List Common.DigestBytes), nodes.length ≤ fuel →
-    Id.run (treeRootFuel (m := Id) H fuel nodes) = LeanDa.treeRoot H nodes
+    Id.run (treeRootFuel (m := Id) H fuel nodes) = LeanDa.treeRootWithHash H nodes
   | 0, nodes, h => by
-    rw [LeanDa.treeRoot]
+    rw [LeanDa.treeRootWithHash]
     simp only [show nodes.length ≤ 1 by omega, ↓reduceIte]
     rfl
   | fuel + 1, nodes, h => by
-    rw [treeRootFuel, LeanDa.treeRoot]
+    rw [treeRootFuel, LeanDa.treeRootWithHash]
     split
     · rfl
     · rename_i hn
@@ -194,20 +196,20 @@ theorem treeRootFuel_id : ∀ (fuel : ℕ) (nodes : List Common.DigestBytes), no
 
 /-- The tree's root with the pure hash is `LeanDa.treeRoot`. -/
 theorem treeRootWith_id (nodes : List Common.DigestBytes) :
-    Id.run (treeRootWith (m := Id) H nodes) = LeanDa.treeRoot H nodes :=
+    Id.run (treeRootWith (m := Id) H nodes) = LeanDa.treeRootWithHash H nodes :=
   treeRootFuel_id H _ nodes le_rfl
 
 /-- A row's digest with the pure hash is `LeanDa.rowDigest`. -/
 theorem rowDigestWith_id (row : List K) :
-    Id.run (rowDigestWith (m := Id) H row) = LeanDa.rowDigest H row := by
-  simp only [rowDigestWith, listCellDigestWith, LeanDa.rowDigest, LeanDa.listCellDigest]
+    Id.run (rowDigestWith (m := Id) H row) = LeanDa.rowDigestWithHash H row := by
+  simp only [rowDigestWith, listCellDigestWith, LeanDa.rowDigestWithHash, LeanDa.listCellDigestWithHash]
   rfl
 
 /-- The commitment with the pure hash and LeanDA's padding digests is `LeanDa.commitCodewords`. -/
 theorem commitCodewordsWith_id (rows : List (List K)) :
-    Id.run (commitCodewordsWith (m := Id) H (LeanDa.paddingCell H) (LeanDa.paddingRow H) rows) =
-      LeanDa.commitCodewords H rows := by
-  simp only [commitCodewordsWith, LeanDa.commitCodewords]
+    Id.run (commitCodewordsWith (m := Id) H (LeanDa.paddingCellWithHash H) (LeanDa.paddingRowWithHash H) rows) =
+      LeanDa.commitCodewordsWithHash H rows := by
+  simp only [commitCodewordsWith, LeanDa.commitCodewordsWithHash]
   show H (LeanDa.pairBytes (Id.run (treeRootWith (m := Id) H _))
     (Id.run (treeRootWith (m := Id) H _))) = _
   rw [treeRootWith_id, treeRootWith_id]
@@ -248,7 +250,7 @@ theorem membershipVectorWith_id (root : Common.DigestBytes) :
 
 /-- The vector digest with the pure hash is `LeanDa.vectorDigest`. -/
 theorem vectorDigestWith_id (vector : List E) :
-    Id.run (vectorDigestWith (m := Id) H vector) = LeanDa.vectorDigest H vector := by
+    Id.run (vectorDigestWith (m := Id) H vector) = LeanDa.vectorDigestWithHash H vector := by
   show H ((Id.run ((List.range LeanDa.cellsPerRow).mapM (m := Id)
     (columnDigestWith (m := Id) H vector))).flatMap fun d ↦ d.toList) = _
   rw [mapM_id]

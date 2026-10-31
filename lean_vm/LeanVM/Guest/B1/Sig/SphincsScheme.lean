@@ -8,6 +8,10 @@
 module
 
 public import LeanVM.Guest.B1.Sig.XmssScheme
+public import Common.WithHash
+public import Sphincs.WithHash
+public import LeanVM.Guest.WithHashBridge
+public import LeanVM.Guest.WithHash
 
 /-!
 # leanSPHINCS over cells
@@ -66,9 +70,9 @@ theorem sflatMap_bytesLE_sv : ∀ (l : List E),
 /-- **A hash of bytes**: a tweakable hash is the value of the first digest cell of its input. -/
 theorem sHash_bytes (hq : SQ inst) {P : PublicParameter} {dom : HashDomain}
     {payload : HashInput} {r : List UInt8} (h : tweakableHashInput P dom payload = r) :
-    @tweakableHash Id _ inst P dom payload = sv (digestScalars (keccak256 r)).1 := by
-  unfold tweakableHash th
-  simp only [bind, pure, oracleHash]
+    @tweakableHashWithHash Id _ inst P dom payload = sv (digestScalars (keccak256 r)).1 := by
+  unfold tweakableHashWithHash thWithHash
+  simp only [bind, pure, oracleHashWithHash]
   rw [hq, show thInput P (hashDomainFields dom) payload = r from h, sphincs_truncateHash_keccakBits]
   rfl
 
@@ -76,7 +80,7 @@ theorem sHash_bytes (hq : SQ inst) {P : PublicParameter} {dom : HashDomain}
 first cell of their `hcell`. -/
 theorem sHash_cells (hq : SQ inst) {P : PublicParameter} {dom : HashDomain}
     {payload : HashInput} {cs : List E} (h : tweakableHashInput P dom payload = cs.flatMap cellBytes) :
-    @tweakableHash Id _ inst P dom payload = sv (hcell cs).1 := sHash_bytes hq h
+    @tweakableHashWithHash Id _ inst P dom payload = sv (hcell cs).1 := sHash_bytes hq h
 
 theorem sSequenceFin_id {α : Type} : ∀ {n : Nat} (f : Fin n → Id α),
     Sphincs.Concrete.sequenceFin f = f
@@ -104,17 +108,17 @@ def signaturePath (σ : Signature) (l : Nat) : Sphincs.Digest :=
 /-- **Verification**: the digest selects the forest key, which the one-time signature signs
 under a leaf whose path reaches the key's root. -/
 theorem sVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
-    @Sphincs.Concrete.verify Id _ inst pk msg σ = true ↔
-      ∃ leaf, @otsLeaf Id _ inst pk.parameter
-          (digestIndex (@messageDigest Id _ inst pk.parameter msg σ.randomness))
-          (@forestRecover Id _ inst pk.parameter
-            (digestIndex (@messageDigest Id _ inst pk.parameter msg σ.randomness))
-            (digestMarks (@messageDigest Id _ inst pk.parameter msg σ.randomness)) σ.forest)
+    @Sphincs.Concrete.verifyWithHash Id _ inst pk msg σ = true ↔
+      ∃ leaf, @otsLeafWithHash Id _ inst pk.parameter
+          (digestIndex (@messageDigestWithHash Id _ inst pk.parameter msg σ.randomness))
+          (@forestRecoverWithHash Id _ inst pk.parameter
+            (digestIndex (@messageDigestWithHash Id _ inst pk.parameter msg σ.randomness))
+            (digestMarks (@messageDigestWithHash Id _ inst pk.parameter msg σ.randomness)) σ.forest)
           σ.counter σ.chainValues = some leaf ∧
-        @treeFold Id _ inst pk.parameter
-          (digestIndex (@messageDigest Id _ inst pk.parameter msg σ.randomness))
+        @treeFoldWithHash Id _ inst pk.parameter
+          (digestIndex (@messageDigestWithHash Id _ inst pk.parameter msg σ.randomness))
           (signaturePath σ) totalHeight leaf = pk.root := by
-  rw [Sphincs.Concrete.verify.eq_def]
+  rw [Sphincs.Concrete.verifyWithHash.eq_def]
   simp only [bind, pure]
   split
   next v hv =>
@@ -132,19 +136,19 @@ theorem sVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
 
 theorem sphincsVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
     Node.sphincsVerify pk msg σ = true ↔
-      ∃ leaf, @otsLeaf Id _ ⟨Node.keccakBits⟩ pk.parameter
-          (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter msg
+      ∃ leaf, @otsLeafWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter
+          (digestIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter msg
             σ.randomness))
-          (@forestRecover Id _ ⟨Node.keccakBits⟩ pk.parameter
-            (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter msg σ.randomness))
-            (digestMarks (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter msg σ.randomness))
+          (@forestRecoverWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter
+            (digestIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter msg σ.randomness))
+            (digestMarks (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter msg σ.randomness))
             σ.forest)
           σ.counter σ.chainValues = some leaf ∧
-        @treeFold Id _ ⟨Node.keccakBits⟩ pk.parameter
-          (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter msg
+        @treeFoldWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter
+          (digestIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter msg
             σ.randomness))
           (signaturePath σ) totalHeight leaf = pk.root := by
-  rw [Node.sphincsVerify.eq_def, idRun]
+  rw [Node.sphincsVerify_eq_withHash, idRun]
   exact sVerify_iff pk msg σ
 
 theorem signaturePath_lt (σ : Signature) (l : Nat) (hl : l < totalHeight) :
@@ -155,31 +159,31 @@ theorem signaturePath_lt (σ : Signature) (l : Nat) (hl : l < totalHeight) :
 
 theorem encode_id (P : PublicParameter) (leaf : Index)
     (K : ForestKey) (ctr : Counter) :
-    @encode Id _ inst P leaf K ctr =
-      TargetSum.decodeDigest (@tweakableHash Id _ inst P (.encoding leaf)
+    @encodeWithHash Id _ inst P leaf K ctr =
+      TargetSum.decodeDigest (@tweakableHashWithHash Id _ inst P (.encoding leaf)
         (rootsPayload K ++ Sphincs.bytesLE 4 ctr)) := rfl
 
 theorem sOtsLeaf_id (P : PublicParameter) (leaf : Index)
     (K : ForestKey) (ctr : Counter) (vals : ChainIndex → Sphincs.Digest) :
-    @otsLeaf Id _ inst P leaf K ctr vals =
-      (@encode Id _ inst P leaf K ctr).map fun enc =>
-        @leafHash Id _ inst P leaf fun i =>
-          @recoverChain Id _ inst P leaf i (enc i) (vals i) := by
-  rw [otsLeaf.eq_def]
+    @otsLeafWithHash Id _ inst P leaf K ctr vals =
+      (@encodeWithHash Id _ inst P leaf K ctr).map fun enc =>
+        @leafHashWithHash Id _ inst P leaf fun i =>
+          @recoverChainWithHash Id _ inst P leaf i (enc i) (vals i) := by
+  rw [otsLeafWithHash.eq_def]
   simp only [bind, pure]
   split
   next enc h => rw [h, sSequenceFin_id]; rfl
   next h =>
-    cases h' : @encode Id _ inst P leaf K ctr with
+    cases h' : @encodeWithHash Id _ inst P leaf K ctr with
     | none => rfl
     | some enc => exact absurd h' (h enc)
 
 theorem sChainWalk_succ (P : PublicParameter) (leaf : Index)
     (i : ChainIndex) (start n : Nat) (v : Sphincs.Digest) :
-    @chainWalk Id _ inst P leaf i start (n + 1) v =
+    @chainWalkWithHash Id _ inst P leaf i start (n + 1) v =
       if hstep : start + n < chainLength - 1 then
-        @tweakableHash Id _ inst P (.chain leaf i ⟨start + n, hstep⟩)
-          (Sphincs.bytesLE 16 (@chainWalk Id _ inst P leaf i start n v))
+        @tweakableHashWithHash Id _ inst P (.chain leaf i ⟨start + n, hstep⟩)
+          (Sphincs.bytesLE 16 (@chainWalkWithHash Id _ inst P leaf i start n v))
       else 0 := by
   rw [chainWalk_eq_succ]
   simp only [bind]
@@ -189,9 +193,9 @@ theorem sChainWalk_shift (P : PublicParameter) (leaf : Index)
     (i : ChainIndex) :
     ∀ (n start : Nat) (v : Sphincs.Digest) (hs : start < chainLength - 1),
       start + n + 1 ≤ chainLength - 1 →
-      @chainWalk Id _ inst P leaf i start (n + 1) v =
-        @chainWalk Id _ inst P leaf i (start + 1) n
-          (@tweakableHash Id _ inst P (.chain leaf i ⟨start, hs⟩) (Sphincs.bytesLE 16 v))
+      @chainWalkWithHash Id _ inst P leaf i start (n + 1) v =
+        @chainWalkWithHash Id _ inst P leaf i (start + 1) n
+          (@tweakableHashWithHash Id _ inst P (.chain leaf i ⟨start, hs⟩) (Sphincs.bytesLE 16 v))
   | 0, start, v, hs, _ => by
       rw [sChainWalk_succ, dite_of (by omega), chainWalk_eq_zero, chainWalk_eq_zero]
       rfl
@@ -206,7 +210,7 @@ theorem sChainWalk_shift (P : PublicParameter) (leaf : Index)
 /-- **A one-time chain step over cells.** -/
 theorem sChainStep_cells (hq : SQ inst) {pp a x : E} {leaf : Index} {i : ChainIndex} {s : ChainStep}
     (ha : cellBytes a = tweakBytes (.chain leaf i s)) :
-    @tweakableHash Id _ inst (spp pp) (.chain leaf i s) (Sphincs.bytesLE 16 (sv x)) =
+    @tweakableHashWithHash Id _ inst (spp pp) (.chain leaf i s) (Sphincs.bytesLE 16 (sv x)) =
       sv (hcell [pp, a, x]).1 := by
   apply sHash_cells hq
   show Sphincs.bytesLE 16 (spp pp) ++ tweakBytes _ ++ Sphincs.bytesLE 16 (sv x) = _
@@ -224,10 +228,10 @@ tweaks. -/
 theorem sRecoverChain_cells (hq : SQ inst) {pp : E} {adr : Nat → E}
     {leaf : Index} {i : ChainIndex}
     (hadr : ∀ (s : ChainStep), cellBytes (adr s) = tweakBytes (.chain leaf i s)) :
-    ∀ (d : Digit) (x : E), @recoverChain Id _ inst (spp pp) leaf i d (sv x) =
+    ∀ (d : Digit) (x : E), @recoverChainWithHash Id _ inst (spp pp) leaf i d (sv x) =
       sv (sChain pp adr (3 - d.val) d.val x) := by
   have hwalk : ∀ (n start : Nat) (x : E), start + n ≤ chainLength - 1 →
-      @chainWalk Id _ inst (spp pp) leaf i start n (sv x) = sv (sChain pp adr n start x) := by
+      @chainWalkWithHash Id _ inst (spp pp) leaf i start n (sv x) = sv (sChain pp adr n start x) := by
     intro n
     induction n with
     | zero => intro start x _; rw [chainWalk_eq_zero]; rfl
@@ -239,12 +243,12 @@ theorem sRecoverChain_cells (hq : SQ inst) {pp : E} {adr : Nat → E}
   intro d x
   have hd := d.isLt
   simp only [chainLength, winternitzBits] at hd
-  rw [recoverChain, show chainLength - 1 - d.val = 3 - d.val by simp [chainLength, winternitzBits]]
+  rw [recoverChainWithHash, show chainLength - 1 - d.val = 3 - d.val by simp [chainLength, winternitzBits]]
   exact hwalk _ _ _ (by simp [chainLength, winternitzBits]; omega)
 
 /-- **The one-time leaf over cells.** -/
 theorem sLeafHash_cells (hq : SQ inst) {pp a : E} {leaf : Index} (tips : Nat → E) (ha : cellBytes a = tweakBytes (.leaf leaf)) :
-    @leafHash Id _ inst (spp pp) leaf (fun i => sv (tips i.val)) =
+    @leafHashWithHash Id _ inst (spp pp) leaf (fun i => sv (tips i.val)) =
       sv (hcell (pp :: a :: (List.range numChains).map tips)).1 := by
   apply sHash_cells hq
   show Sphincs.bytesLE 16 (spp pp) ++ tweakBytes _ ++
@@ -261,7 +265,7 @@ theorem sTreeFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {leaf : Index}
       cellBytes (A l) = tweakBytes (.node (l + 1) (leaf.val / 2 ^ (l + 1))))
     (sibs : Nat → E) :
     ∀ m ≤ totalHeight, ∀ x : E,
-      @treeFold Id _ inst (spp pp) leaf (fun l => sv (sibs l)) m (sv x) =
+      @treeFoldWithHash Id _ inst (spp pp) leaf (fun l => sv (sibs l)) m (sv x) =
         sv (xFold pp A (fun l => leaf.val.testBit l) sibs m x)
   | 0, _, x => by rw [treeFold_eq_zero]; rfl
   | m + 1, hm, x => by
@@ -292,7 +296,7 @@ theorem sEncode_cells (hq : SQ inst) {pp aE x : E} {leaf : Index} {K : ForestKey
     (hK : ∀ c : Coord, K c = (sv (T (2 * c.val)), sv (T (2 * c.val + 1))))
     (hE : cellBytes aE = tweakBytes (.encoding leaf))
     (hc : Sphincs.bytesLE 4 ctr = (cellBytes x).take 4) :
-    @encode Id _ inst (spp pp) leaf K ctr =
+    @encodeWithHash Id _ inst (spp pp) leaf K ctr =
       TargetSum.decodeDigest
         (sv (digestScalars (keccak256 ((cellsBytes
           (pp :: aE :: (List.range 16).map T ++ [x])).take 292))).1) := by
@@ -391,7 +395,7 @@ theorem truncateMessageDigest_keccakBits (I : List UInt8) :
 theorem sMessageDigest_cells (hq : SQ inst) {pp a m0 m1 rho : E}
     {m : Message} (ha : cellBytes a = tweakBytes .message)
     (hm : Sphincs.bytesLE 32 m = cellBytes m0 ++ cellBytes m1) :
-    @messageDigest Id _ inst (spp pp) m (sv rho) =
+    @messageDigestWithHash Id _ inst (spp pp) m (sv rho) =
       BitVec.ofNat messageDigestBits (cellNat (hcell [pp, a, m0, m1, rho]).1 +
         2 ^ 128 * cellNat (hcell [pp, a, m0, m1, rho]).2) := by
   have hI : tweakableHashInput (spp pp) .message (messageDigestPayload m (sv rho)) =
@@ -400,8 +404,8 @@ theorem sMessageDigest_cells (hq : SQ inst) {pp a m0 m1 rho : E}
       (Sphincs.bytesLE 32 m ++ Sphincs.bytesLE 16 (sv rho)) = _
     rw [bytesLE_spp, bytesLE_sv, ← ha, hm]
     simp
-  rw [messageDigest.eq_def]
-  simp only [bind, pure, messageDigestCall, thPair, oracleHash]
+  rw [messageDigestWithHash.eq_def]
+  simp only [bind, pure, messageDigestCallWithHash, thPairWithHash, oracleHashWithHash]
   rw [hq, truncateMessageDigest_keccakBits,
     show thInput (spp pp) (hashDomainFields .message) (messageDigestPayload m (sv rho)) = _ from hI]
   rfl
@@ -494,7 +498,7 @@ theorem sForestWalk_cells (hq : SQ inst) {pp ka : E} {index : Index} {c : Coord}
     (hadr : ∀ t : FStep, cellBytes (ka + eOfNat (tw 15 + i.val * 2 ^ 43 + t.val * stepMul)) =
       tweakBytes (.fchain index c s j a i t)) (start : Nat) (x : E) :
     ∀ n, start + n ≤ chainTop →
-      @forestWalk Id _ inst (spp pp) index c s j a i start n (sv x) = sv (fChain pp ka i.val start x n)
+      @forestWalkWithHash Id _ inst (spp pp) index c s j a i start n (sv x) = sv (fChain pp ka i.val start x n)
   | 0, _ => by rw [forestWalk_eq_zero]; rfl
   | n + 1, h => by
       rw [forestWalk_eq_succ]
@@ -510,7 +514,7 @@ theorem sForestRecoverChain_cells (hq : SQ inst) {pp ka : E} {index : Index} {c 
     {s : SuperIdx} {j : SubIdx} {a : ChildIdx} {i : FChain}
     (hadr : ∀ t : FStep, cellBytes (ka + eOfNat (tw 15 + i.val * 2 ^ 43 + t.val * stepMul)) =
       tweakBytes (.fchain index c s j a i t)) (d : FPos) (x : E) :
-    @forestRecoverChain Id _ inst (spp pp) index c s j a i d (sv x) =
+    @forestRecoverChainWithHash Id _ inst (spp pp) index c s j a i d (sv x) =
       sv (fChain pp ka i.val (4 - d.val) x d.val) :=
   sForestWalk_cells hq hadr _ x _ (by have := d.isLt; simp only [chainTop] at this ⊢; omega)
 
@@ -526,9 +530,9 @@ theorem sChildRecover_cells (hq : SQ inst) {pp ka aL : E} {index : Index} {c : C
       cellBytes (ka + eOfNat (tw 15 + i.val * 2 ^ 43 + t.val * stepMul)) =
         tweakBytes (.fchain index c s j a i t))
     (hL : cellBytes aL = tweakBytes (.childLeaf index c s j a)) :
-    @childRecover Id _ inst (spp pp) index c s j a word (fun i => sv (vals i.val)) =
+    @childRecoverWithHash Id _ inst (spp pp) index c s j a word (fun i => sv (vals i.val)) =
       sv (hcell (pp :: aL :: (List.range 6).map (fEnds pp ka word vals))).1 := by
-  rw [childRecover.eq_def]
+  rw [childRecoverWithHash.eq_def]
   simp only [bind, sSequenceFin_id]
   apply sHash_cells hq
   show Sphincs.bytesLE 16 (spp pp) ++ tweakBytes _ ++ (List.ofFn _).flatMap (Sphincs.bytesLE 16) = _
@@ -552,7 +556,7 @@ theorem sSubFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {index : Index} {
       cellBytes (A l.val) = tweakBytes (.subNode index c s j l node))
     (sibs : Nat → E) :
     ∀ m ≤ subHeight, ∀ x : E,
-      @subFold Id _ inst (spp pp) index c s j a (fun l => sv (sibs l.val)) m (sv x) =
+      @subFoldWithHash Id _ inst (spp pp) index c s j a (fun l => sv (sibs l.val)) m (sv x) =
         sv (xFold pp A (fun l => a.val.testBit l) sibs m x)
   | 0, _, x => by rw [subFold_eq_zero]; rfl
   | m + 1, hm, x => by
@@ -578,7 +582,7 @@ theorem sTopFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {index : Index} {
       cellBytes (A l.val) = tweakBytes (.topNode index c l node))
     (sibs : Nat → E) :
     ∀ m ≤ topHeight, ∀ x : E,
-      @topFold Id _ inst (spp pp) index c s (fun l => sv (sibs l.val)) m (sv x) =
+      @topFoldWithHash Id _ inst (spp pp) index c s (fun l => sv (sibs l.val)) m (sv x) =
         sv (xFold pp A (fun l => s.val.testBit l) sibs m x)
   | 0, _, x => by rw [topFold_eq_zero]; rfl
   | m + 1, hm, x => by
@@ -602,7 +606,7 @@ theorem sSuperHash_cells (hq : SQ inst) {pp aS t00 t01 t10 t11 : E} {index : Ind
     {s : SuperIdx} {tops : SubIdx → Sphincs.Digest × Sphincs.Digest}
     (h0 : tops 0 = (sv t00, sv t01)) (h1 : tops 1 = (sv t10, sv t11))
     (hS : cellBytes aS = tweakBytes (.superChild index c s)) :
-    @superHash Id _ inst (spp pp) index c s tops = sv (hcell [pp, aS, t00, t01, t10, t11]).1 := by
+    @superHashWithHash Id _ inst (spp pp) index c s tops = sv (hcell [pp, aS, t00, t01, t10, t11]).1 := by
   apply sHash_cells hq
   show Sphincs.bytesLE 16 (spp pp) ++ tweakBytes _ ++ superPayload _ = _
   rw [bytesLE_spp, ← hS]
@@ -612,26 +616,26 @@ theorem sSuperHash_cells (hq : SQ inst) {pp aS t00 t01 t10 t11 : E} {index : Ind
 super-child hashed, folded and ordered. -/
 theorem coordRecover_id (P : PublicParameter) (index : Index) (c : Coord) (mark : CoordMark)
     (opening : CoordOpening) :
-    @coordRecover Id _ inst P index c mark opening =
+    @coordRecoverWithHash Id _ inst P index c mark opening =
       orderTops (mark.super.val.testBit (topHeight - 1))
-        (@topFold Id _ inst P index c mark.super opening.top (topHeight - 1)
-          (@superHash Id _ inst P index c mark.super fun j =>
+        (@topFoldWithHash Id _ inst P index c mark.super opening.top (topHeight - 1)
+          (@superHashWithHash Id _ inst P index c mark.super fun j =>
             orderTops ((mark.child j).val.testBit (subHeight - 1))
-              (@subFold Id _ inst P index c mark.super j (mark.child j) (opening.sub j).path
+              (@subFoldWithHash Id _ inst P index c mark.super j (mark.child j) (opening.sub j).path
                 (subHeight - 1)
-                (@childRecover Id _ inst P index c mark.super j (mark.child j) (lut (mark.word j))
+                (@childRecoverWithHash Id _ inst P index c mark.super j (mark.child j) (lut (mark.word j))
                   (opening.sub j).values))
               ((opening.sub j).path subTopLevel)))
         (opening.top topTopLevel) := by
-  rw [coordRecover.eq_def]
+  rw [coordRecoverWithHash.eq_def]
   simp only [bind, pure, sSequenceFin_id]
 
 /-- The forest key in `Id`: each coordinate's two top nodes. -/
 theorem forestRecover_id (P : PublicParameter) (index : Index) (marks : Coord → CoordMark)
     (opening : Coord → CoordOpening) :
-    @forestRecover Id _ inst P index marks opening =
-      fun c => @coordRecover Id _ inst P index c (marks c) (opening c) := by
-  rw [forestRecover.eq_def, sSequenceFin_id]
+    @forestRecoverWithHash Id _ inst P index marks opening =
+      fun c => @coordRecoverWithHash Id _ inst P index c (marks c) (opening c) := by
+  rw [forestRecoverWithHash.eq_def, sSequenceFin_id]
 
 theorem orderTops_fst (bit : Bool) (current sibling : Sphincs.Digest) :
     (orderTops bit current sibling).1 = if bit then sibling else current := by

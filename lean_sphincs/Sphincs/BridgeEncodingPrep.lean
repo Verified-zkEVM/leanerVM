@@ -1,4 +1,5 @@
 import Sphincs.BridgeSupport
+import Common.WithHash
 
 /-! Every canonical WOTS encoding-search input of the candidate key is answered from an
 independent pre-sampled table placed in the lazy outside oracle's initial cache. Encoding

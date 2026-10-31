@@ -10,6 +10,8 @@ module
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.Limits
+public import LeanVM.Protocol.WithHashBridge
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The zero-challenge refusal is a restriction
@@ -80,16 +82,16 @@ variable {H : Bytes → Id Digest} {F : KeccakState → Id KeccakState}
 
 /-- **Running a refining program is running the program**, where it does not fail. -/
 theorem run_refines {α : Type} {P' P : Prog α} (h : Refines P' P) :
-    ∀ (s : ProgState) (r : α × ProgState), Id.run (Compile.run H F P' s) = some r →
-      Id.run (Compile.run H F P s) = some r := by
+    ∀ (s : ProgState) (r : α × ProgState), Id.run (Compile.runWithHash H F P' s) = some r →
+      Id.run (Compile.runWithHash H F P s) = some r := by
   induction h with
   | fail P =>
     intro s r hr
-    simp [Compile.run] at hr
+    simp [Compile.runWithHash] at hr
   | ret a => intro s r hr; exact hr
   | read _ ih =>
     intro s r hr
-    unfold Compile.run at hr ⊢
+    unfold Compile.runWithHash at hr ⊢
     cases hs : s.stream with
     | nil => simp [hs] at hr
     | cons x xs =>
@@ -97,11 +99,11 @@ theorem run_refines {α : Type} {P' P : Prog α} (h : Refines P' P) :
       exact ih _ _ _ hr
   | sample _ ih =>
     intro s r hr
-    unfold Compile.run at hr ⊢
+    unfold Compile.runWithHash at hr ⊢
     exact ih _ _ _ hr
   | grind _ ih =>
     intro s r hr
-    unfold Compile.run at hr ⊢
+    unfold Compile.runWithHash at hr ⊢
     cases hs : s.stream with
     | nil => simp [hs] at hr
     | cons x xs =>
@@ -113,7 +115,7 @@ theorem run_refines {α : Type} {P' P : Prog α} (h : Refines P' P) :
       · simp at hr
   | commit _ ih =>
     intro s r hr
-    unfold Compile.run at hr ⊢
+    unfold Compile.runWithHash at hr ⊢
     rcases hs : s.stream with _ | ⟨x0, _ | ⟨x1, xs⟩⟩
     · simp [hs] at hr
     · simp [hs] at hr
@@ -125,13 +127,13 @@ theorem run_refines {α : Type} {P' P : Prog α} (h : Refines P' P) :
         exact ih _ _ hr
   | @query i ps k k' _ ih =>
     intro s r hr
-    unfold Compile.run at hr ⊢
+    unfold Compile.runWithHash at hr ⊢
     cases hroot : s.roots[i]? with
     | none => simp [hroot] at hr
     | some t =>
       obtain ⟨root, height, width⟩ := t
       simp only [hroot, Id.run_bind] at hr ⊢
-      cases ho : Id.run (openAll H root height width ps s.openings) with
+      cases ho : Id.run (openAllWithHash H root height width ps s.openings) with
       | none => simp [ho] at hr
       | some q =>
         obtain ⟨rows, rest⟩ := q
@@ -140,10 +142,10 @@ theorem run_refines {α : Type} {P' P : Prog α} (h : Refines P' P) :
 
 /-- **A refining program accepts only what the program accepts.** -/
 theorem runProof_refines {P' P : Prog Bool} (h : Refines P' P) (seed : KeccakState) (π : Proof)
-    (hacc : Id.run (runProof H F P' seed π) = true) : Id.run (runProof H F P seed π) = true := by
-  unfold runProof at hacc ⊢
+    (hacc : Id.run (runProofWithHash H F P' seed π) = true) : Id.run (runProofWithHash H F P seed π) = true := by
+  unfold runProofWithHash at hacc ⊢
   simp only [Id.run_bind] at hacc ⊢
-  cases hr : Id.run (Compile.run H F P' ⟨⟨seed, []⟩, π.stream, π.openings, []⟩) with
+  cases hr : Id.run (Compile.runWithHash H F P' ⟨⟨seed, []⟩, π.stream, π.openings, []⟩) with
   | none => rw [hr] at hacc; exact absurd hacc (by simp)
   | some r =>
     rw [run_refines (H := H) (F := F) h _ _ hr]
@@ -238,7 +240,8 @@ theorem verifyDeferred_of_nz {bytecode : List K} {iv publicInput : Digest} {c : 
     {π : Proof} (h : verifyDeferredNZ bytecode iv publicInput c π = true) :
     verifyDeferred bytecode iv publicInput c π = true := by
   unfold verifyDeferredNZ at h
-  unfold verifyDeferred verifyDeferredWith
+  rw [verifyDeferred_eq_withHash]
+  unfold verifyDeferredWithHash
   exact runProof_refines (deferredProgramNZ_refines c bytecode publicInput) _ π h
 
 end

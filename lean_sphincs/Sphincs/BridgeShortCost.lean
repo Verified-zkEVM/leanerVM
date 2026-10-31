@@ -1,4 +1,5 @@
 import Sphincs.BridgeLazy
+import Common.WithHash
 
 /-! The graph-view cost program of an internalized adversary queries only short ordinary
 inputs, and so do its capped, traced and erased forms. -/

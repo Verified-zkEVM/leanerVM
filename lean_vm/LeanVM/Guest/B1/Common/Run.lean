@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Sponge
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Runs on the carried sponge
@@ -84,13 +85,13 @@ theorem run_bind {α β : Type} (p : Prog α) (f : α → Prog β) (st : ProgSta
   | ret a => rfl
   | fail => rfl
   | read k ih =>
-    simp only [runId, Prog.bind, Compile.run]
+    simp only [runId, Prog.bind, Compile.runWithHash]
     split
     · rfl
     · exact ih _ _
   | sample k ih => exact ih _ _
   | grind b k ih =>
-    simp only [runId, Prog.bind, Compile.run]
+    simp only [runId, Prog.bind, Compile.runWithHash]
     split
     · rfl
     · simp only [bind, pure]
@@ -98,7 +99,7 @@ theorem run_bind {α β : Type} (p : Prog α) (f : α → Prog β) (st : ProgSta
       · exact ih _
       · rfl
   | commit h w k ih =>
-    simp only [runId, Prog.bind, Compile.run]
+    simp only [runId, Prog.bind, Compile.runWithHash]
     split
     · simp only [bind]
       split
@@ -106,7 +107,7 @@ theorem run_bind {α β : Type} (p : Prog α) (f : α → Prog β) (st : ProgSta
       · rfl
     · rfl
   | query i ps k ih =>
-    simp only [runId, Prog.bind, Compile.run]
+    simp only [runId, Prog.bind, Compile.runWithHash]
     split
     · rfl
     · simp only [bind]
@@ -144,7 +145,7 @@ theorem runsTo_sampleE (s : Fs) : RunsTo Prog.sampleChallenge s [] s.squeeze.1 s
   intro sp hs rest os roots
   obtain ⟨e1, e2⟩ := carries_squeeze hs
   refine ⟨_, e2, ?_⟩
-  simp only [runId, Prog.sampleChallenge, Compile.run, List.nil_append]
+  simp only [runId, Prog.sampleChallenge, Compile.runWithHash, List.nil_append]
   rw [← e1]
   rfl
 

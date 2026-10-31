@@ -1,4 +1,5 @@
 import Sphincs.BridgeForsAssembly
+import Common.WithHash
 
 /-! Exposing chain values at the start. The stopped experiment may start from any knowledge that
 agrees with the coordinate table, in particular one that also exposes the chain values at and

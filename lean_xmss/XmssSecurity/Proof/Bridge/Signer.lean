@@ -1,4 +1,5 @@
 import XmssSecurity.Proof.Bridge.Real
+import Common.WithHash
 
 /-!
 # The real signer
@@ -28,7 +29,7 @@ variable {seed : MasterSeed} {d : Derivations}
 theorem realTopSignFrom (h : Prepared seed d result cache) (key : TopIndex) (base : Randomness)
     (attempts trial : Nat) (res : Option (Randomness × Encoding))
     (hmodel : Resolves cache (Concrete.topSignFrom d.parameter key (h.root key) base attempts trial) res) :
-    Resolves cache (LeanXmss.Seeded.otsSignFrom d.parameter LeanXmss.topLayer (topKey key) seed
+    Resolves cache (LeanXmss.Seeded.otsSignFromWithHash d.parameter LeanXmss.topLayer (topKey key) seed
         (LeanXmss.bytesLE 16 (h.root key)) base attempts trial :
           OracleComp LeanXmss.HashSpec (Option (LeanXmss.Randomness × (LeanXmss.ChainIndex → LeanXmss.Digest))))
       (res.map fun p => (p.1, fun chain => (modelSecretKey d result).topChainValue key chain (p.2 chain))) := by
@@ -38,7 +39,7 @@ theorem realTopSignFrom (h : Prepared seed d result cache) (key : TopIndex) (bas
       exact .pure _
   | succ attempts ih =>
       rw [Concrete.topSignFrom] at hmodel
-      rw [LeanXmss.Seeded.otsSignFrom]
+      rw [LeanXmss.Seeded.otsSignFromWithHash]
       rw [messageDigest_top]
       obtain ⟨digest, hdigest, hrest⟩ := hmodel.of_bind
       refine hdigest.bind ?_
@@ -57,10 +58,10 @@ theorem realTopSignFrom (h : Prepared seed d result cache) (key : TopIndex) (bas
           exact h.topChain key chain (encoding chain)
 
 theorem realTopPath (h : Prepared seed d result cache) (key : TopIndex) :
-    Resolves cache (LeanXmss.Seeded.treePath d.parameter LeanXmss.topLayer seed (topKey key) :
+    Resolves cache (LeanXmss.Seeded.treePathWithHash d.parameter LeanXmss.topLayer seed (topKey key) :
         OracleComp LeanXmss.HashSpec (Fin LeanXmss.layerHeight → LeanXmss.Digest))
       (fun level => (modelSecretKey d result).topTreeValue level.castSucc (Concrete.topPathNode key level)) := by
-  unfold LeanXmss.Seeded.treePath
+  unfold LeanXmss.Seeded.treePathWithHash
   rw [sequenceFin_eq]
   refine Resolves.sequenceFin fun level => ?_
   have hlevel : level.val < 16 := level.isLt
@@ -70,10 +71,10 @@ theorem realTopPath (h : Prepared seed d result cache) (key : TopIndex) :
   exact h.realTopNode level.val (by omega) _ (xor_one_lt hb (by omega))
 
 theorem realBottomPath (h : Prepared seed d result cache) (index : LeafIndex) :
-    Resolves cache (LeanXmss.Seeded.treePath d.parameter LeanXmss.bottomLayer seed index :
+    Resolves cache (LeanXmss.Seeded.treePathWithHash d.parameter LeanXmss.bottomLayer seed index :
         OracleComp LeanXmss.HashSpec (Fin LeanXmss.layerHeight → LeanXmss.Digest))
       (fun level => (modelSecretKey d result).treeValue level.castSucc (Concrete.authenticationPathNode index level)) := by
-  unfold LeanXmss.Seeded.treePath
+  unfold LeanXmss.Seeded.treePathWithHash
   rw [sequenceFin_eq]
   refine Resolves.sequenceFin fun level => ?_
   have hlevel : level.val < 16 := level.isLt
@@ -84,11 +85,11 @@ theorem realBottomPath (h : Prepared seed d result cache) (index : LeafIndex) :
 
 /-- The real top signature of bottom tree `b`, as the key stores it. -/
 theorem realTopLayer (h : Prepared seed d result cache) (key : TopIndex) :
-    Resolves cache (LeanXmss.Seeded.signLayer ⟨seed, d.parameter⟩ LeanXmss.topLayer (topKey key)
+    Resolves cache (LeanXmss.Seeded.signLayerWithHash ⟨seed, d.parameter⟩ LeanXmss.topLayer (topKey key)
         (LeanXmss.bytesLE 16 (h.root key)) :
           OracleComp LeanXmss.HashSpec (Option LeanXmss.LayerSignature))
       (((modelSecretKey d result).topSigned key).map fun _ => layerToReal (Concrete.topPart (modelSecretKey d result) key)) := by
-  unfold LeanXmss.Seeded.signLayer LeanXmss.Seeded.otsSign LeanXmss.Concrete.th
+  unfold LeanXmss.Seeded.signLayerWithHash LeanXmss.Seeded.otsSignWithHash LeanXmss.Concrete.thWithHash
   simp only [bind_assoc, pure_bind]
   have hbase : cache (topRndInput d.parameter seed (key, h.root key)) = some (d.topRnd (key, h.root key)) :=
     h.prog_le (progCache_topRnd seed d (key, h.root key))
@@ -122,18 +123,18 @@ theorem erases_otsSignFrom_bottom (h : Prepared seed d result cache) (index : Le
           some (Concrete.precomputedSignWithEncoding (modelSecretKey d result) index randomness encoding)
           else none)))
     (attempts trial : Nat) :
-    Erases cache ((LeanXmss.Seeded.otsSignFrom d.parameter LeanXmss.bottomLayer index seed
+    Erases cache ((LeanXmss.Seeded.otsSignFromWithHash d.parameter LeanXmss.bottomLayer index seed
         (LeanXmss.bytesLE 32 message) base attempts trial : OracleComp LeanXmss.HashSpec _) >>= K)
       (Option.map (toRealSig index) <$> ((tableSignFrom base (modelSecretKey d result) index message
         attempts trial : OracleComp HashSpec (Option Signature)) >>= fun r =>
           pure (if Concrete.topSignedAt (modelSecretKey d result) index then r else none))) := by
   induction attempts generalizing trial with
   | zero =>
-      simp only [LeanXmss.Seeded.otsSignFrom, tableSignFrom, pure_bind, hnone, ite_self, map_pure,
+      simp only [LeanXmss.Seeded.otsSignFromWithHash, tableSignFrom, pure_bind, hnone, ite_self, map_pure,
         Option.map_none]
       exact .pure _
   | succ attempts ih =>
-      rw [LeanXmss.Seeded.otsSignFrom, tableSignFrom]
+      rw [LeanXmss.Seeded.otsSignFromWithHash, tableSignFrom]
       simp only [Concrete.precomputedSignAttempt, bind_assoc, map_bind]
       rw [messageDigest_bottom]
       refine (Erases.refl cache _).bind _ _ fun digest => ?_
@@ -158,17 +159,17 @@ theorem bottomKey_lt (index : LeafIndex) : (topKeyOf index).val < 2 ^ (32 - 16) 
 
 theorem signLayer_bottom (secretKey : LeanXmss.Seeded.SecretKey) (key : LeanXmss.KeyIndex)
     (message : HashInput) :
-    (LeanXmss.Seeded.signLayer secretKey LeanXmss.bottomLayer key message :
+    (LeanXmss.Seeded.signLayerWithHash secretKey LeanXmss.bottomLayer key message :
         OracleComp LeanXmss.HashSpec (Option LeanXmss.LayerSignature)) = (do
       let base ← LeanXmss.deriveRandomizer secretKey.parameter LeanXmss.bottomLayer key secretKey.seed message
-      let result ← LeanXmss.Seeded.otsSignFrom secretKey.parameter LeanXmss.bottomLayer key secretKey.seed
+      let result ← LeanXmss.Seeded.otsSignFromWithHash secretKey.parameter LeanXmss.bottomLayer key secretKey.seed
         message base LeanXmss.randomizerAttemptLimit 0
       match result with
       | some (randomness, values) => do
-          let path ← LeanXmss.Seeded.treePath secretKey.parameter LeanXmss.bottomLayer secretKey.seed key
+          let path ← LeanXmss.Seeded.treePathWithHash secretKey.parameter LeanXmss.bottomLayer secretKey.seed key
           return some ⟨randomness, values, path⟩
       | none => return none) := by
-  rw [LeanXmss.Seeded.signLayer, LeanXmss.Seeded.otsSign, bind_assoc]
+  rw [LeanXmss.Seeded.signLayerWithHash, LeanXmss.Seeded.otsSignWithHash, bind_assoc]
   apply bind_congr
   intro base
   apply bind_congr
@@ -176,7 +177,7 @@ theorem signLayer_bottom (secretKey : LeanXmss.Seeded.SecretKey) (key : LeanXmss
   rcases result with _ | ⟨randomness, values⟩ <;> rfl
 
 theorem root_resolves (h : Prepared seed d result cache) (index : LeafIndex) :
-    Resolves cache (LeanXmss.Seeded.treeNode d.parameter LeanXmss.bottomLayer seed LeanXmss.layerHeight
+    Resolves cache (LeanXmss.Seeded.treeNodeWithHash d.parameter LeanXmss.bottomLayer seed LeanXmss.layerHeight
         (topKey (topKeyOf index)).val : OracleComp LeanXmss.HashSpec LeanXmss.Digest)
       (h.root (topKeyOf index)) := by
   have hroot := h.realBottomNode 16 le_rfl (topKeyOf index).val (bottomKey_lt index)
@@ -186,12 +187,12 @@ theorem root_resolves (h : Prepared seed d result cache) (index : LeafIndex) :
 
 /-- The real signer erases to the table signer, its signatures translated. -/
 theorem erases_sign (h : Prepared seed d result cache) (index : LeafIndex) (message : Message) :
-    Erases cache (LeanXmss.Seeded.sign ⟨seed, d.parameter⟩ index message :
+    Erases cache (LeanXmss.Seeded.signWithHash ⟨seed, d.parameter⟩ index message :
         OracleComp LeanXmss.HashSpec (Option LeanXmss.Signature))
       (Option.map (toRealSig index) <$> (tableSign d.rnd (modelSecretKey d result) index message :
         OracleComp HashSpec (Option Signature))) := by
-  rw [LeanXmss.Seeded.sign]
-  simp only [keyAt_bottom, keyAt_top, signLayer_bottom, LeanXmss.deriveRandomizer, LeanXmss.Concrete.th, bind_assoc,
+  rw [LeanXmss.Seeded.signWithHash]
+  simp only [keyAt_bottom, keyAt_top, signLayer_bottom, LeanXmss.deriveRandomizer, LeanXmss.Concrete.thWithHash, bind_assoc,
     pure_bind]
   unfold tableSign
   have hR0 : cache (rndInput d.parameter seed ⟨index, message⟩) = some (d.rnd ⟨index, message⟩) :=

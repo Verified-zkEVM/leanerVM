@@ -3,6 +3,7 @@ module
 public import LeanVM.Protocol.Extraction.Defs
 public import Mathlib.Data.List.Basic
 public import Mathlib.Tactic.IntervalCases
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The computed committed word is the statement's (proofs)
@@ -311,12 +312,12 @@ theorem preimage_of_answer {answers : Bytes → Option Digest} {keys : List Byte
 /-- A climb's last step. -/
 theorem climb_append (H : Bytes → Option Digest) (node : Digest) (q : ℕ) (ss : List Digest)
     (s : Digest) :
-    climb H node q (ss ++ [s]) =
-      (climb H node q ss).bind fun c ↦ climb H c (q / 2 ^ ss.length) [s] := by
+    climbWithHash H node q (ss ++ [s]) =
+      (climbWithHash H node q ss).bind fun c ↦ climbWithHash H c (q / 2 ^ ss.length) [s] := by
   induction ss generalizing node q with
-  | nil => simp [climb]
+  | nil => simp [climbWithHash]
   | cons t ss ih =>
-    simp only [List.cons_append, climb, List.length_cons, Option.bind_eq_bind] at ih ⊢
+    simp only [List.cons_append, climbWithHash, List.length_cons, Option.bind_eq_bind] at ih ⊢
     split <;>
     · rw [Option.bind_assoc]
       congr 1
@@ -327,9 +328,9 @@ theorem climb_append (H : Bytes → Option Digest) (node : Digest) (q : ℕ) (ss
       simp only [pow_succ', Nat.div_div_eq_div_mul]
 
 theorem climb_single (H : Bytes → Option Digest) (c : Digest) (q : ℕ) (s : Digest) :
-    climb H c q [s] =
+    climbWithHash H c q [s] =
       if q % 2 = 0 then H (digestBytes c ++ digestBytes s) else H (digestBytes s ++ digestBytes c) := by
-  simp only [climb]
+  simp only [climbWithHash]
   split <;> cases H _ <;> rfl
 
 theorem div_two_pow_mod_two (q h : ℕ) : q / 2 ^ h % 2 = 0 ↔ q.testBit h = false := by
@@ -339,10 +340,10 @@ theorem div_two_pow_mod_two (q h : ℕ) : q / 2 ^ h % 2 = 0 ↔ q.testBit h = fa
 
 /-- When an opening is accepted. -/
 theorem openOne_eq_some_true (H : Bytes → Option Digest) (root : Digest) (h w q : ℕ)
-    (o : Opening) : openOne H root h w q o = some true ↔
+    (o : Opening) : openOneWithHash H root h w q o = some true ↔
       o.leaf.length = w ∧ o.path.length = h ∧
-        ∃ ld, H (o.leaf.flatMap kBytes) = some ld ∧ climb H ld q o.path = some root := by
-  unfold openOne
+        ∃ ld, H (o.leaf.flatMap kBytes) = some ld ∧ climbWithHash H ld q o.path = some root := by
+  unfold openOneWithHash
   split
   · rename_i hlen
     rw [and_iff_right hlen.1, and_iff_right hlen.2]
@@ -428,13 +429,13 @@ theorem subtreeLeaves_getD (pairs : List (Bytes × Digest)) (w h : ℕ) (d : Dig
 /-- **An accepted opening's leaf is what the descent finds** (no collision, keys covering). -/
 theorem descend_of_openOne {answers : Bytes → Option Digest} {keys : List Bytes}
     (hinj : AnswersInj answers) (hc : KeysCover answers keys) (w v : ℕ) {h : ℕ} {d : Digest}
-    {o : Opening} (ho : openOne answers d h w v o = some true) :
+    {o : Opening} (ho : openOneWithHash answers d h w v o = some true) :
     descend (answerPairs answers keys) w h d v = some o.leaf := by
   induction h generalizing d o with
   | zero =>
     obtain ⟨hw, hpath, ld, hld, hclimb⟩ := (openOne_eq_some_true ..).mp ho
     rw [List.length_eq_zero_iff.mp hpath] at hclimb
-    obtain rfl : ld = d := by simpa [climb] using hclimb
+    obtain rfl : ld = d := by simpa [climbWithHash] using hclimb
     rw [descend, ← hw, show 8 * o.leaf.length = (o.leaf.flatMap kBytes).length by
       rw [length_flatMap_kBytes], preimage_of_answer hinj hc hld, Option.map_some,
       bytesWords_flatMap_kBytes]
@@ -447,7 +448,7 @@ theorem descend_of_openOne {answers : Bytes → Option Digest} {keys : List Byte
     have hss : ss.length = h := by simp [ss, hpath]
     rw [← hsplit, climb_append, hss] at hclimb
     obtain ⟨c, hc1, hc2⟩ := Option.bind_eq_some_iff.mp hclimb
-    have hsub : openOne answers c h w v ⟨o.leaf, ss⟩ = some true :=
+    have hsub : openOneWithHash answers c h w v ⟨o.leaf, ss⟩ = some true :=
       (openOne_eq_some_true ..).mpr ⟨hw, hss, ld, hld, hc1⟩
     have ihc := ih hsub
     rw [climb_single] at hc2
@@ -468,7 +469,7 @@ theorem descend_of_openOne {answers : Bytes → Option Digest} {keys : List Byte
 theorem openOne_of_descend {answers : Bytes → Option Digest} {keys : List Bytes}
     (hc : KeysCover answers keys) (w v : ℕ) {h : ℕ} {d : Digest} {l : List K}
     (hl : descend (answerPairs answers keys) w h d v = some l) :
-    ∃ o : Opening, openOne answers d h w v o = some true ∧ o.leaf = l := by
+    ∃ o : Opening, openOneWithHash answers d h w v o = some true ∧ o.leaf = l := by
   induction h generalizing d l with
   | zero =>
     obtain ⟨x, hx, rfl⟩ := Option.map_eq_some_iff.mp hl

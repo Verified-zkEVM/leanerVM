@@ -33,15 +33,19 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    Keccak-256 over any permutation of the state in any monad (`KeccakHash.keccak256With`), the
    deployed one over Keccak-f[1600] (`keccak256`); the random-permutation model (`permutationOracleSpec`: `π`
    and `π⁻¹`; `lazyRandomPermutation`, the lazily sampled uniform permutation); a cost bounded on every path
-   (`QueryCostAtMost`); the oracles of the model (`RandomPermutationOracles`: coins, `π` and `π⁻¹` on `KeccakState`,
-   nothing else), Keccak-256 in the model, the sponge over `π` (`keccak256OverPermutation`), a game's cost in
-   calls of `π` and `π⁻¹` (`permutationCallCost`) and its run against the lazy permutation (`runWithRandomPermutation`); the SUF-CMA game of a hash-based
-   signature scheme in the random-permutation model (`SufCma.forgeryGame`, `forgeryExperiment`) and its
-   security notion (`SufCma.StronglyUnforgeable`).
+   (`QueryCostAtMost`); the oracles of the model (`RandomPermutationOracles`: coins, `π` and `π⁻¹`
+   on `KeccakState`, nothing else; `queryPermutation`, a call of `π`), a game's cost in calls of
+   `π` and `π⁻¹` (`permutationCallCost`), its run against the lazy permutation
+   (`runWithRandomPermutation`) and a computation's queries recorded (`loggedOracles`, its
+   transcript `OracleQueryLog`); the SUF-CMA game of a hash-based signature scheme over `π`
+   (`SufCma.forgeryGame`, `forgeryExperiment`) and its security notion
+   (`SufCma.StronglyUnforgeable`). No hash is an oracle or a parameter of its own: every party
+   hashes with Keccak-256 over the permutation it is given (`keccak256With`), `π` in the model.
 2. [`LeanXmss.lean`](LeanXmss.lean): what leanXMSS and leanSPHINCS share (the tweakable hash's
    types, bytes and address, `crates/signatures/src/tweak.rs`; a hash chain, a Merkle path's fold
    and a Merkle tree's node, `walkChain`, `foldPath`, `buildTree`, which every chain, fold and tree
-   of both schemes instantiates), the leanXMSS scheme and
+   of both schemes instantiates), the leanXMSS scheme over a permutation `π` (its hash
+   `keccakHash π`, Keccak-256 over `π`) and
    `LeanXmss.Rpm.LeanXmssStronglyUnforgeable` (`StronglyUnforgeable` at 127 bits).
 3. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part, exported
    into `Sphincs`; one tree, its signature the randomizer, the forest opening, the WOTS+C counter
@@ -56,7 +60,7 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    commitment and the challenges' duplex over a permutation, LeanDA's games in the
    random-permutation model, where the adversary, the argument (`OracleArgument`, its extractor reading
    the adversary's transcript) and the verifier query the same oracles (`RandomPermutationOracles`, hashing with
-   `keccak256OverPermutation`; position
+   Keccak-256 over `π`, `keccakDigestBytes queryPermutation`; position
    binding, code binding, the argument's knowledge soundness `knowledgeSoundnessGame`, completeness for every
    permutation `π`), and `LeanDa.PerfectlyCompleteRpm`,
    `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`. Code binding is conditional: if the
@@ -72,7 +76,7 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    its inverse, `PublicInput.ofDigest`), and a
    program assembled from compiled functions (`CompiledFn`, `assemble`).
 7. [`LeanVmVerifier.lean`](LeanVmVerifier.lean): the verifier, `python-verifier/verifier.py`
-   transcribed section by section, for any hash function and permutation in any monad
+   transcribed section by section, over any permutation in any monad, Keccak-256 the sponge over it
    (`verifyWith`), with the WHIR constants it reads, the Keccak GKR reduction, the Fiat-Shamir
    duplex over Keccak-f[1600], the deferring verifier an aggregate runs on its children, and the
    sizes a stream announces (`announced`). Where the transcription's form differs from the pin's
@@ -86,13 +90,13 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    decoder over `GF(2^64)` and pruning across the lanes), and the halting run of a candidate's
    memory image within the announced tables' rows that is a valid execution, if there is one.
 9. [`LeanVm.lean`](LeanVm.lean): a statement (a program and a public input), the verifier on it
-   (`verifier H F`), its calls as oracle queries (`KeccakCalls`), the honest prover's type and **the
-   honest prover**, `prover` (`LeanVM.Prover.prove` of [`Prover/`](Prover/) with the oracle calls),
-   the committed size; the random-permutation experiment (`runAdversaryThen`: an adversary with private
-   coins, `RandomPermutationAdversary`, its queries to `π` and `π⁻¹` counted by `permutationCallCost`, its `PermutationTranscript`,
-   then any computation over the verifier's calls; `soundnessExperiment`, the verifier's), the extractor on the
-   transcript (`transcriptExtractor`, on the Keccak-256 evaluations the transcript holds,
-   `keccakEvaluationsOfTranscript`), **`LeanVM.KnowledgeSoundness`, `LeanVM.Completeness`**.
+   over a permutation (`verifier F`), the honest prover's type and **the honest prover**, `prover`
+   (`LeanVM.Prover.prove` of [`Prover/`](Prover/)), the committed size; the random-permutation
+   experiment (`soundnessExperiment`, one game: an adversary with private coins,
+   `RandomPermutationAdversary`, its queries to `π` and `π⁻¹` counted by `permutationCallCost` and
+   recorded, then the verifier over `π`), the extractor on the transcript (`transcriptExtractor`, on
+   the Keccak-256 evaluations its permutation queries hold, `keccakEvaluationsOfTranscript`),
+   **`LeanVM.KnowledgeSoundness`, `LeanVM.Completeness`**.
 10. [`LeanVmGuest.lean`](LeanVmGuest.lean): the leanISA guest program's specification (aggregation):
     DA claims and their digest, a node's statement, its digest (Keccak-256 of a preimage), witness
     and relation (`NodeRelation`: leanXMSS and leanSPHINCS claims, a DA digest, children verified by the deferring
@@ -106,7 +110,7 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
     a child (`verifierRefusingZero`, `honestProofWithDeployedKeccak`,
     **`GuestChildComplete`**); and the recursion step: the batching of the children's claims as a
     verifier program (`boundedBatchingProgram`, run from the batching's seed by `runBatching`), an adversary's
-    proof run through it in the random-permutation model (`LeanVM.Rpm.runAdversaryThen`, `LeanVm.lean`), the
+    proof run through it over `π` in the random-permutation model (one game), the
     event that it accepts children with a false claim (`SomeChildClaimFalse`), the program's query bound
     (`batchingQueryBound`), and **`LeanVM.Guest.Batch.BatchingSound`**: the batching run outside the
     circuit with Keccak-f[1600] = `π`, which does not compose with the guest program's in-circuit
@@ -127,16 +131,18 @@ runs it). It needs no review beyond that check.
 [`Fast/`](Fast/) makes the compiled definitions fast and changes nothing they mean: `@[csimp]`
 lemmas, each proved, that compile `GF(2^64)` products on machine words (`FieldWords`), the
 degree-three extension's product unrolled (`CubicExt`), Keccak-f[1600] with its lanes written
-out and Keccak-256 without the monad, its blocks read from arrays (`Keccak`), and the signature
-schemes' verifiers with a constant-depth lookup (`Schemes`). A `@[csimp]` lemma acts where a definition is compiled, so they are here, imported by
-`Field.lean`, `LeanDa.lean` and `LeanVmGuest.lean`, for the statement's own compiled definitions
-(the verifier, the guest program's specification, LeanDA) and every module after them. They need no
+out, Keccak-256 over any permutation with its blocks read from arrays and a digest's bytes read as
+a number by a fold (`Keccak`), and the signature schemes' verifiers with a constant-depth lookup
+(`Schemes`). A `@[csimp]` lemma acts where a definition is compiled, so they are here, imported
+by `Field.lean`, `LeanXmss.lean`, `LeanDa.lean` and `LeanVmGuest.lean`, for the statement's own
+compiled definitions (the verifier, the prover, the signature schemes, the guest program's
+specification, LeanDA) and every module after them. They need no
 review: a `@[csimp]` lemma is an equation the kernel checks.
 
-[`Prover/`](Prover/) is leanVM's honest prover as an executable program, `LeanVM.Prover.prove H F
-prog input t ρ fuel` (`Prove.lean`), for a hash `H` and a permutation `F` in any monad: with the
-oracle calls it is the prover `LeanVM.prover` that `Completeness` and `GuestChildComplete` name,
-and with Keccak-256 and Keccak-f[1600] in `Id` it is `lake exe leanvm-prove`, whose proofs the
+[`Prover/`](Prover/) is leanVM's honest prover as an executable program, `LeanVM.Prover.prove F
+prog input t ρ fuel` (`Prove.lean`), over a permutation `F` in any monad, Keccak-256 the sponge
+over `F`: over the model's `π` it is the prover `LeanVM.prover` that `Completeness` and
+`GuestChildComplete` name, and over Keccak-f[1600] in `Id` it is `lake exe leanvm-prove`, whose proofs the
 Rust and Lean verifiers accept (`lean_vm/README.md`). It is definitions only: the witness from the
 trace (`Witness.lean`, `Columns.lean`: one run of the program; the empty proof unless the trace is
 a valid execution within `2^28` committed cells), a script of the prover's moves (`Script.lean`)
@@ -144,11 +150,11 @@ for each phase of the verifier (`Ntt.lean`, `Bus.lean`, `Gkr.lean`, `Table.lean`
 `Keccak*.lean`, `Ring.lean`, `Whir.lean`; `Mle.lean`, `Sumcheck.lean`, `Code.lean` their helpers),
 and its run against the verifier's own program (`Run.lean`: the challenges squeezed from the
 sponge, each Merkle tree built once, the proof-of-work nonce searched among the first `fuel`).
-Its correctness is proved (`lean_vm/LeanVM/Prover/`: the prover's proof is, at every hash and
+Its correctness is proved (`lean_vm/LeanVM/Prover/`: the prover's proof is, at every
 permutation, the proof of the honest strategy the completeness proof follows, at the execution's
 own witness), so a reviewer need not read it line by line; a reviewer checks only that it is a
 genuine prover: it computes its proof from the execution, its only search is the nonce search
-bounded by `fuel`, and it branches on no hash or permutation answer other than through the
+bounded by `fuel`, and it branches on no permutation answer other than through the
 challenges the verifier's program samples (`Run.lean` gives the script nothing else).
 
 [`Decode/`](Decode/) holds the two facts about `GF(2^64)` that the extractor's root finder takes as

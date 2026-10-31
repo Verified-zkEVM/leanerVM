@@ -1,5 +1,6 @@
 import Sphincs.Correctness
 import Sphincs.Randomized
+import Common.WithHash
 
 /-! The signature assembled from any landed randomizer verifies; no randomizer-derivation
 assumption occurs. This is the deterministic assembly part of randomized-signing correctness. -/

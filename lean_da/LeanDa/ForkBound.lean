@@ -1,4 +1,5 @@
 import LeanDa.AdvX
+import LeanDa.WithHash
 
 /-!
 # The collision term of Wagner's forking reduction, bounded
@@ -62,7 +63,7 @@ theorem wrappedAdv_eq (h : HTab) :
 /-- The win of a run of the fork (`winOn`) with `H` as queries. -/
 noncomputable def winX (out : Common.DigestBytes × (Fin (r * 128) → Cell) × Challenges) :
     OracleComp (wrappedSpec Challenges + XS) Bool := do
-  let root ← commitCellsM hS out.2.1
+  let root ← commitCellsMWithHash hS out.2.1
   pure (decide (out.2.1 ∉ (code r).code) && (checker r).check out.2.2 out.2.1 && decide (root = out.1))
 
 theorem winX_eval (h : HTab) (out : Common.DigestBytes × (Fin (r * 128) → Cell) × Challenges) :
@@ -140,7 +141,7 @@ def colPair (r : ℕ) [NeZero r] (H : List UInt8 → Common.DigestBytes)
   if hv : vv.1 = vv.2 then ([], [])
   else
     let i := Fin.find (fun j ↦ vv.1 j ≠ vv.2 j) (Function.ne_iff.mp hv)
-    openingsCollision H r i (vv.1 i) (openCell H vv.1 i) (vv.2 i) (openCell H vv.2 i)
+    openingsCollision H r i (vv.1 i) (openCellWithHash H vv.1 i) (vv.2 i) (openCellWithHash H vv.2 i)
 
 /-- The same with `H` as queries. -/
 def colPairX (r : ℕ) [NeZero r] (vv : (Fin (r * 128) → Cell) × (Fin (r * 128) → Cell)) :
@@ -218,10 +219,10 @@ theorem colPairX_eval (r : ℕ) [NeZero r] (h : HTab)
       pure_bind]
     congr 1
     have e1 : ∀ (c : Fin (r * 128) → Cell) (i : Fin (r * 128)),
-        (openCell (Hh h) c i).path.take (7 + logPad r) = (openCell (Hh h) c i).path := fun c i ↦
-      List.take_of_length_le (by simp [openCell, length_merklePath])
+        (openCellWithHash (Hh h) c i).path.take (7 + logPad r) = (openCellWithHash (Hh h) c i).path := fun c i ↦
+      List.take_of_length_le (by simp [openCellWithHash, length_merklePath])
     simp only [openingsCollision, e1]
-    rw [List.take_of_length_le (by rw [length_hashInputs]; simp [openCell, length_merklePath]; omega)]
+    rw [List.take_of_length_le (by rw [length_hashInputs]; simp [openCellWithHash, length_merklePath]; omega)]
 
 section Fork2
 
@@ -291,7 +292,7 @@ abbrev commitCalls (r : ℕ) : ℕ := 322 * nPad r + 1
 
 set_option maxRecDepth 4000 in
 theorem isWeightBound_commitCellsM_hS {ι : Type} {Ψ : OracleSpec ι} (c : Fin (r * 128) → Cell) :
-    QueryCostAtMost (commitCellsM (hS (Ψ := Ψ)) c) xCalls (commitCalls r) := by
+    QueryCostAtMost (commitCellsMWithHash (hS (Ψ := Ψ)) c) xCalls (commitCalls r) := by
   have := isWeightBound_commitCellsM (hS (Ψ := Ψ)) xCalls 1 1 1
     (fun a b ↦ isWeightBound_hS (Ψ := Ψ) (pairBytes a b))
     (fun x ↦ isWeightBound_hS (Ψ := Ψ) (cellBytes x))

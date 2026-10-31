@@ -1,4 +1,5 @@
 import Sphincs.SecurityPrefixMaterialView
+import Common.WithHash
 
 /-! A signing attempt evaluates identically under publicly agreeing answer functions, and the
 signer simulated from erased prepared material and the selected chain frontier

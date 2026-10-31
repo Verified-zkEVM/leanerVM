@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The sponge the guest carries
@@ -108,7 +109,7 @@ end Fs
 
 /-- The deployed reading of a Spec program: `Compile.run` at Keccak-256 and Keccak-f. -/
 abbrev runId {α : Type} (p : Prog α) (st : ProgState) : Option (α × ProgState) :=
-  Compile.run (m := Id) keccak256 keccakF1600 p st
+  Compile.runWithHash (m := Id) keccak256 keccakF1600 p st
 
 /-- From any Spec sponge the guest carries as `s`, the program `p` reads exactly the stream words
 `xs` and returns `a`, leaving a sponge the guest carries as `s'`, on any rest of the stream, any

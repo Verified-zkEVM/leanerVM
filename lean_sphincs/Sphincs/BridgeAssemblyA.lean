@@ -1,4 +1,5 @@
 import Sphincs.BridgeImplicationA
+import Common.WithHash
 
 /-! The refined classification keeps the finished, valid outcome of a winning run, as the bounds
 on FORS contacts require. -/

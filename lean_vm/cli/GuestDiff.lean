@@ -211,9 +211,9 @@ def bytecode : List K := List.replicate (2 ^ (Data.logSize + busBits)) 0
 def daOpens (root vd : Digest) (w : LeanVM.Da.MatrixWitness) : Bool :=
   1 ≤ w.rows.length && w.rows.length ≤ LeanDa.maxRows &&
     w.rows.all (·.length == 2 ^ LeanDa.logM) &&
-    (LeanDa.commitCodewords LeanVM.Da.keccak256Bytes w.rows).toList == (LeanVM.Protocol.Digest.toBytes root).toList &&
+    (LeanDa.commitCodewords keccakF1600 w.rows).toList == (LeanVM.Protocol.Digest.toBytes root).toList &&
     w.vector.length == 2 ^ LeanDa.logM &&
-    (LeanDa.vectorDigest LeanVM.Da.keccak256Bytes w.vector).toList == (LeanVM.Protocol.Digest.toBytes vd).toList &&
+    (LeanDa.vectorDigest keccakF1600 w.vector).toList == (LeanVM.Protocol.Digest.toBytes vd).toList &&
     w.rows.all fun row => (w.vector.zip row).foldl (fun acc (v, x) => acc + v * ofK x) 0 == 0
 
 /-- Every claim of a kind is held, each by name. -/

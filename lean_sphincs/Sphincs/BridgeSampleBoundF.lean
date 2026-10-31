@@ -1,4 +1,5 @@
 import Sphincs.BridgeSampleF
+import Common.WithHash
 
 /-! **One sample of the small-budget route of the forest.** The stopped experiment with the
 above-word values exposed is at most the linear potential `ρ q / 2^128`, the one-coin cover

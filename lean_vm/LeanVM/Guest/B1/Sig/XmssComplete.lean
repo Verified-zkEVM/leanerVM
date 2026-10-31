@@ -9,6 +9,8 @@
 module
 
 public import LeanVM.Guest.B1.Sig.XmssLayersComplete
+public import Common.WithHash
+public import LeanVM.Guest.WithHash
 
 /-!
 # `verify_lean_xmss`, complete
@@ -47,12 +49,12 @@ theorem cellPairVal_cellOf128 (m : LeanXmss.Message) :
 /-- **A layer's root exists only when its message digest decodes.** -/
 theorem layerRoot_decode {P : LeanXmss.PublicParameter} {lay : LeanXmss.Layer} {key : LeanXmss.KeyIndex}
     {M : LeanXmss.HashInput} {part : LeanXmss.LayerSignature} {r : LeanXmss.Digest}
-    (h : @LeanXmss.Concrete.layerRoot Id _ ⟨Node.keccakBits⟩ P lay key M part = some r) :
+    (h : @LeanXmss.Concrete.layerRootWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part = some r) :
     ∃ enc, LeanXmss.Codeword.decode
-      (@LeanXmss.Concrete.messageDigest Id _ ⟨Node.keccakBits⟩ P lay key M part.randomness) = some enc := by
+      (@LeanXmss.Concrete.messageDigestWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part.randomness) = some enc := by
   rw [layerRoot_id, otsLeaf_id] at h
   cases hd : LeanXmss.Codeword.decode
-      (@LeanXmss.Concrete.messageDigest Id _ ⟨Node.keccakBits⟩ P lay key M part.randomness) with
+      (@LeanXmss.Concrete.messageDigestWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part.randomness) with
   | none => rw [hd] at h; simp at h
   | some enc => exact ⟨enc, rfl⟩
 

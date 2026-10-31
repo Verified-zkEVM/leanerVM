@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.Child.Range
+public import LeanVM.Protocol.WithHashBridge
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The honest proof's query steps
@@ -152,8 +154,9 @@ theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
       have hopen := openAll_openingAt keccak256 hw (height := ht) ps (t.2 ++ restO)
       have hgi : ((commits h).map (·.1)).getD i 0 = ht := by
         simp [List.getD_eq_getElem?_getD, hc]
-      simp only [Limits.queryStepsOf, hroot, List.append_assoc] at hb
-      rw [show Id.run (openAll (m := Id) keccak256 (treeRoot keccak256 ht word) ht w ps
+      simp only [Limits.queryStepsOf, hroot, List.append_assoc, openAll_eq_withHash,
+        keccak256With_keccakF1600] at hb
+      rw [show Id.run (openAllWithHash (m := Id) keccak256 (treeRoot keccak256 ht word) ht w ps
         (ps.map (openingAt keccak256 ht word) ++ (t.2 ++ restO))) =
           some (ps.map fun q ↦ word (q % 2 ^ ht), t.2 ++ restO) from hopen] at hb
       simp only at hb

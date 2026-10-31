@@ -3,6 +3,7 @@ import LeanDa.HashOracle
 import LeanDa.MerkleM
 import PqDas.Target.Scheme
 import LeanDa.Defs
+import LeanDa.WithHash
 
 /-!
 # Completeness in the random-permutation model
@@ -45,11 +46,11 @@ theorem leanDa_perfectlyComplete_rpmH : PerfectlyCompleteRpmH := by
   obtain ⟨crs, hcrs, ok, hok, rfl⟩ := hb
   set c := (code r).encode msg
   have hcode : c ∈ (code r).code := ⟨msg, rfl⟩
-  have hcomm : commitCellsM (m := Id) (fun a ↦ pure (keccak256WithPermutation π a)) c =
-      pure (commitCells (keccak256WithPermutation π) c) :=
+  have hcomm : commitCellsMWithHash (m := Id) (fun a ↦ pure (keccak256WithPermutation π a)) c =
+      pure (commitCellsWithHash (keccak256WithPermutation π) c) :=
     commitCellsM_eval (fun x ↦ x) (fun _ ↦ rfl) (fun _ _ ↦ rfl) _ _ (fun _ ↦ rfl) c
-  have hrel : relationForPermutation r π (commitCells (keccak256WithPermutation π) c) c = true := by
-    unfold relationForPermutation relationM
+  have hrel : relationForPermutationWithHash r π (commitCellsWithHash (keccak256WithPermutation π) c) c = true := by
+    unfold relationForPermutationWithHash relationMWithHash
     rw [hcomm]
     simp only [Id.run_bind, Id.run_pure, decide_true, Bool.true_and]
     exact checker_complete r c hcode _

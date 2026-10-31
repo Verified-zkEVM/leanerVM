@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Sig.SphincsStagesComplete
 public import LeanVM.Guest.B1.Sig.SphincsSound
+public import Sphincs.WithHash
+public import LeanVM.Guest.WithHash
 
 /-!
 # The forest key and the root
@@ -36,7 +38,7 @@ theorem sKey_eq {σ : Val} (hpre : SPre rd σ)
     (hcf : ∀ c < 8, CoordFacts σ c (cSt c).1 (cSt c).2.1 (cSt c).2.2) (sig : Sphincs.Signature)
     {N17 N18 : Nat} (hN17 : N17 < 2 ^ 128) (hidx : sIdx σ = N18 % 2 ^ 26) (E1 E2 : Nat → E)
     (hpost : ∀ k < 8, CoordPost (E1 k) (E2 k) k (cSt k).1 (cSt k).2.1 (cSt k).2.2 (sH sig N17 N18 k) σ) :
-    @forestRecover Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
+    @forestRecoverWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
       (digestIndex (BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18)))
       (digestMarks (BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18))) sig.forest =
       fun c => (sv (sT σ (2 * c.val)), sv (sT σ (2 * c.val + 1))) := by

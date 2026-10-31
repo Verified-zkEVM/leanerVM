@@ -9,6 +9,7 @@
 module
 
 public import Statement.Extractor
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Reference definitions for the extractor
@@ -79,7 +80,7 @@ hash being `answers` (its climb reaches the root through answered queries), if t
 classical choice), and `width` zeros otherwise. -/
 noncomputable def committedWord (answers : Bytes → Option Digest) (root : Digest)
     (height width : ℕ) : ℕ → List K := fun v ↦
-  if h : ∃ o : Opening, openOne answers root height width v o = some true then h.choose.leaf
+  if h : ∃ o : Opening, openOneWithHash answers root height width v o = some true then h.choose.leaf
   else List.replicate width 0
 
 /-- **The committed word, computed**, as a function of the position: leaf `v mod 2^height` of

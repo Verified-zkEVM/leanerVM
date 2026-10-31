@@ -1,5 +1,6 @@
 import Sphincs.SecurityChainWitness
 import Sphincs.SecurityEncoding
+import Common.WithHash
 
 set_option backward.isDefEq.respectTransparency false
 

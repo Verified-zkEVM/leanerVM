@@ -1,6 +1,7 @@
 import LeanXmss.Statement
 import XmssSecurity.Proof.Bridge.Security
 import XmssSecurity.Rpm
+import Common.WithHash
 
 /-! # The end theorem of leanXMSS
 

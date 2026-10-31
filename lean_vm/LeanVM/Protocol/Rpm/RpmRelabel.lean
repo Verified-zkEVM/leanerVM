@@ -7,6 +7,7 @@
 
 import LeanVM.Protocol.Rpm.Game
 import Common.Keccak
+import LeanVM.Protocol.WithHash
 
 /-!
 # The experiment on lanes is the real world on bytes
@@ -142,7 +143,7 @@ theorem detExperiment_evalDistEq (A : DetAdversary) :
   refine EvalDistEq.trans (EvalDistEq.bind_left hadv _) ?_
   rw [bind_map_left]
   refine EvalDistEq.bind_right _ fun p ↦ ?_
-  have h := (post_relabel' (verifier callKeccak256 callKeccakF1600 p.1.1.1.1 p.1.1.1.2 p.1.1.2) p.2).symm.map
+  have h := (post_relabel' (verifierWithHash callKeccak256 callKeccakF1600 p.1.1.1.1 p.1.1.1.2 p.1.1.2) p.2).symm.map
     fun v ↦ ((p.1.1, v), p.1.2)
   simp only [StateT.run'_eq, Functor.map_map, QueryImpl.simulateQ_compose, projLog, logMap] at h
   simp only [StateT.run'_eq, bind_pure_comp, Functor.map_map]

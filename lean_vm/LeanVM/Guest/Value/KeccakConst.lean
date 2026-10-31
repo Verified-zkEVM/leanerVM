@@ -18,6 +18,8 @@ public import Statement.Fast.CubicExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Guest.Batch.Def
+public import LeanDa.WithHash
+public import LeanVM.Guest.WithHash
 
 /-!
 # Baked Keccak constants
@@ -127,8 +129,8 @@ def daPadCellDigest : Digest :=
   #v[15569472805043175342, 18354418831448413762, 11782766640862828499, 15718207409690975807]
 
 /-- **LeanDA's padding cell digest.** -/
-theorem paddingCell_eq : LeanDa.paddingCell Da.keccak256Bytes = LeanVM.Protocol.Digest.toBytes daPadCellDigest := by
-  rw [LeanDa.paddingCell, Da.keccak256Bytes]
+theorem paddingCell_eq : LeanDa.paddingCellWithHash Da.keccak256Bytes = LeanVM.Protocol.Digest.toBytes daPadCellDigest := by
+  rw [LeanDa.paddingCellWithHash, Da.keccak256Bytes]
   refine congrArg LeanVM.Protocol.Digest.toBytes ?_
   rw [keccak256_eq_iff]; decide +kernel
 
@@ -145,8 +147,8 @@ def daPadRowDigest : Digest :=
   #v[4665334884586258498, 1553031596697948144, 7487832681283088925, 14683883899259534590]
 
 /-- **LeanDA's padding row digest.** -/
-theorem paddingRow_eq : LeanDa.paddingRow Da.keccak256Bytes = LeanVM.Protocol.Digest.toBytes daPadRowDigest := by
-  rw [LeanDa.paddingRow, paddingCell_eq, Da.keccak256Bytes]
+theorem paddingRow_eq : LeanDa.paddingRowWithHash Da.keccak256Bytes = LeanVM.Protocol.Digest.toBytes daPadRowDigest := by
+  rw [LeanDa.paddingRowWithHash, paddingCell_eq, Da.keccak256Bytes]
   refine congrArg LeanVM.Protocol.Digest.toBytes ?_
   rw [keccak256_eq_iff]; decide +kernel
 

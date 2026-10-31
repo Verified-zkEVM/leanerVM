@@ -22,6 +22,10 @@ public import Statement.Fast.CubicExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Facts.DaWith
+public import Common.WithHash
+public import Sphincs.WithHash
+public import LeanVM.Guest.WithHashBridge
+public import LeanVM.Guest.WithHash
 
 namespace LeanVM.Node
 
@@ -40,13 +44,13 @@ variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState
 def xmssVerifyWith (pk : LeanXmss.PublicKey) (message : LeanXmss.Message)
     (σ : LeanXmss.Signature) : m Bool :=
   letI : HasQuery LeanXmss.HashSpec m := ⟨fun x ↦ digestBits <$> H x⟩
-  LeanXmss.Concrete.verify pk message σ
+  LeanXmss.Concrete.verifyWithHash pk message σ
 
 /-- leanSPHINCS verification with the hash `H`. -/
 def sphincsVerifyWith (pk : Sphincs.PublicKey) (message : Sphincs.Message)
     (σ : Sphincs.Signature) : m Bool :=
   letI : HasQuery Sphincs.HashSpec m := ⟨fun x ↦ digestBits <$> H x⟩
-  Sphincs.Concrete.verify pk message σ
+  Sphincs.Concrete.verifyWithHash pk message σ
 
 /-! ### The statement's digest -/
 
@@ -121,13 +125,15 @@ end With
 /-- leanXMSS verification with Keccak-256 is `xmssVerify`. -/
 theorem xmssVerifyWith_id (pk : LeanXmss.PublicKey) (message : LeanXmss.Message)
     (σ : LeanXmss.Signature) :
-    Id.run (xmssVerifyWith (m := Id) keccak256 pk message σ) = xmssVerify pk message σ :=
+    Id.run (xmssVerifyWith (m := Id) keccak256 pk message σ) = xmssVerify pk message σ := by
+  rw [xmssVerify_eq_withHash]
   rfl
 
 /-- leanSPHINCS verification with Keccak-256 is `sphincsVerify`. -/
 theorem sphincsVerifyWith_id (pk : Sphincs.PublicKey) (message : Sphincs.Message)
     (σ : Sphincs.Signature) :
-    Id.run (sphincsVerifyWith (m := Id) keccak256 pk message σ) = sphincsVerify pk message σ :=
+    Id.run (sphincsVerifyWith (m := Id) keccak256 pk message σ) = sphincsVerify pk message σ := by
+  rw [sphincsVerify_eq_withHash]
   rfl
 
 /-- The statement's digest with Keccak-256 is `statementDigest`. -/

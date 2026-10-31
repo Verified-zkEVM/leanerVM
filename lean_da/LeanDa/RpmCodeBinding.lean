@@ -1,5 +1,6 @@
 import LeanDa.RpmDuplex
 import LeanDa.RpmSecurity
+import LeanDa.WithHash
 
 /-!
 # Code binding in the random-permutation model, through the duplex lemma
@@ -41,7 +42,7 @@ noncomputable def cbWin (out : (Common.DigestBytes × Proof) × List (Fin (r * 1
 /-- **The verification of the openings with the challenges `l`**, hashing with `H`. -/
 noncomputable def postV (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening))
     (l : Challenges) : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool := do
-  let vs ← out.2.mapM fun o ↦ verifyCellM hH r out.1.1 o.1 o.2.1 o.2.2
+  let vs ← out.2.mapM fun o ↦ verifyCellMWithHash hH r out.1.1 o.1 o.2.1 o.2.2
   pure (cbWin r out vs (ps.verify crs ((), out.1.1, l) out.1.2))
 
 theorem simulateQ_embH_hH (a : List UInt8) :
@@ -53,7 +54,7 @@ theorem simulateQ_embH_postV (crs : Crs)
     (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) (l : Challenges) :
     simulateQ (embH (Msg := List UInt8) (Dg := DigestBytes) (St := KState)) (postV r ps crs out l) =
       (do
-        let vs ← out.2.mapM fun o ↦ verifyCellM hR r out.1.1 o.1 o.2.1 o.2.2
+        let vs ← out.2.mapM fun o ↦ verifyCellMWithHash hR r out.1.1 o.1 o.2.1 o.2.2
         pure (cbWin r out vs (ps.verify crs ((), out.1.1, l) out.1.2))) := by
   have hp : ∀ {α} (a : α), simulateQ (embH (Msg := List UInt8) (Dg := DigestBytes) (St := KState))
       (pure a) = pure a := fun a ↦ simulateQ_pure _ a
@@ -81,7 +82,7 @@ theorem run_mapM_rerun (crs : Crs) (out : (Common.DigestBytes × Proof) × List 
         (l.mapM fun o ↦ verifyRpm hR pR r ps crs out.1 o.1 o.2.1 o.2.2)).run c =ᵈ
       (fun z ↦ (z.1.map (ps.verify crs ((), out.1.1, toChallenges w.1) out.1.2 && ·), z.2)) <$>
         (simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
-          (l.mapM fun o ↦ verifyCellM hR r out.1.1 o.1 o.2.1 o.2.2)).run c := by
+          (l.mapM fun o ↦ verifyCellMWithHash hR r out.1.1 o.1 o.2.1 o.2.2)).run c := by
   induction l generalizing c with
   | nil => simp only [List.mapM_nil, simulateQ_pure, StateT.run_pure, map_pure, List.map_nil]; exact EvalDistEq.rfl
   | cons o l ih =>

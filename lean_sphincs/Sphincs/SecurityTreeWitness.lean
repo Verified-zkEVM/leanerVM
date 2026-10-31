@@ -1,6 +1,7 @@
 import Sphincs.Pruning
 import Sphincs.Landing
 import Sphincs.Bytes
+import Common.WithHash
 
 set_option backward.isDefEq.respectTransparency false
 

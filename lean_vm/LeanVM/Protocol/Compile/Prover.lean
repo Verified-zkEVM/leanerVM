@@ -18,6 +18,7 @@ public import LeanVM.Protocol.Compile.Prog
 public import LeanVM.Protocol.KeccakHash
 public import LeanVM.Parameters.Field
 public import LeanVM.Protocol.ToArkLib.Merkle
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The honest prover and the completeness of the compilation
@@ -376,10 +377,10 @@ variable (H : Bytes → Digest)
 /-- The compiled verifier's climb is the generic one at the node hash. -/
 theorem climb_eq_merkleClimb :
     ∀ (node : Digest) (q : ℕ) (path : List Digest),
-      climb (m := Id) H node q path = MerkleTree.climb (nodeHash H) node q path
+      climbWithHash (m := Id) H node q path = MerkleTree.climb (nodeHash H) node q path
   | _, _, [] => rfl
   | node, q, s :: ss => by
-    simp only [climb, MerkleTree.climb]
+    simp only [climbWithHash, MerkleTree.climb]
     by_cases hq : q % 2 = 0 <;> simp only [hq, ↓reduceIte] <;> exact climb_eq_merkleClimb _ _ _
 
 /-- A climb reads the position only modulo two to the length of the path. -/
@@ -399,13 +400,13 @@ theorem climb_mod {D : Type} (hp : D → D → D) :
 /-- The honest opening at any position is accepted under the root of a well-shaped word. -/
 theorem openOne_openingAt {height width : ℕ} {word : Word} (hw : WellShaped width word)
     (q : ℕ) :
-    openOne (m := Id) H (treeRoot H height word) height width q (openingAt H height word q) =
+    openOneWithHash (m := Id) H (treeRoot H height word) height width q (openingAt H height word q) =
       true := by
   have hlen : (openingAt H height word q).path.length = height :=
     MerkleTree.length_path _ _ _ _
   have hleaf : (openingAt H height word q).leaf.length = width := hw _
-  simp only [openOne, hleaf, hlen, and_self, ↓reduceIte]
-  show decide ((climb (m := Id) H (leafHash H (word (q % 2 ^ height))) q
+  simp only [openOneWithHash, hleaf, hlen, and_self, ↓reduceIte]
+  show decide ((climbWithHash (m := Id) H (leafHash H (word (q % 2 ^ height))) q
     (openingAt H height word q).path).toList = (treeRoot H height word).toList) = true
   rw [climb_eq_merkleClimb, climb_mod, hlen]
   have hroot := MerkleTree.rootOfPath_path (leafHash H) (nodeHash H) (leavesOf height word)
@@ -418,14 +419,14 @@ theorem openOne_openingAt {height width : ℕ} {word : Word} (hw : WellShaped wi
 of the openings. -/
 theorem openAll_openingAt {height width : ℕ} {word : Word} (hw : WellShaped width word) :
     ∀ (ps : List ℕ) (rest : List Opening),
-      openAll (m := Id) H (treeRoot H height word) height width ps
+      openAllWithHash (m := Id) H (treeRoot H height word) height width ps
           (ps.map (openingAt H height word) ++ rest) =
         some (ps.map fun q ↦ word (q % 2 ^ height), rest)
   | [], _ => rfl
   | q :: qs, rest => by
     have ih := openAll_openingAt (height := height) hw qs rest
     have ho := openOne_openingAt H hw (height := height) q
-    simp only [List.map_cons, List.cons_append, openAll]
+    simp only [List.map_cons, List.cons_append, openAllWithHash]
     simp only [bind, pure] at ih ho ⊢
     simp only [ho, ↓reduceIte, ih]
     rfl
@@ -464,7 +465,7 @@ theorem run_proveFrom (S : Strategy) (fuel : ℕ) :
       (restS : List E) (restO : List Opening),
       S.AcceptsFrom p h → (∀ c ∈ commits h, WellShaped c.2.1 c.2.2) →
       proveFrom H F S fuel p sp h = some (xs, os) →
-      ∃ s', run (m := Id) H F p ⟨sp, xs ++ restS, os ++ restO, rootsOf H (commits h)⟩ =
+      ∃ s', runWithHash (m := Id) H F p ⟨sp, xs ++ restS, os ++ restO, rootsOf H (commits h)⟩ =
           some (true, s') ∧ s'.stream = restS ∧ s'.openings = restO := by
   intro p
   induction p with
@@ -488,7 +489,7 @@ theorem run_proveFrom (S : Strategy) (fuel : ℕ) :
     obtain ⟨s', hrun, hs1, hs2⟩ := ih _ _ _ t.1 t.2 restS restO hacc hws' ht
     refine ⟨s', ?_, hs1, hs2⟩
     rw [← hrun]
-    simp [run, commits_append, commits]
+    simp [runWithHash, commits_append, commits]
     rfl
   | sample k ih =>
     intro h sp xs os restS restO hacc hws hp
@@ -498,7 +499,7 @@ theorem run_proveFrom (S : Strategy) (fuel : ℕ) :
     obtain ⟨s', hrun, hs1, hs2⟩ := ih _ _ _ xs os restS restO (hacc _) hws' hp
     refine ⟨s', ?_, hs1, hs2⟩
     rw [← hrun]
-    simp [run, commits_append, commits]
+    simp [runWithHash, commits_append, commits]
     rfl
   | grind b k ih =>
     intro h sp xs os restS restO hacc hws hp
@@ -516,7 +517,7 @@ theorem run_proveFrom (S : Strategy) (fuel : ℕ) :
       have hpow := powOk_of_findNonce F hn
       rw [← hrun]
       simp only [commits_append, commits, List.append_nil] at *
-      simp only [run, List.cons_append]
+      simp only [runWithHash, List.cons_append]
       show (if powOk b n (powStep F sp n).1 = true then _ else pure none) = _
       simp only [hpow, ↓reduceIte]
       rfl
@@ -541,7 +542,7 @@ theorem run_proveFrom (S : Strategy) (fuel : ℕ) :
     have hroots : rootsOf H (commits (h ++ [Ev.commit ht w (S.word h)])) =
         rootsOf H (commits h) ++ [(treeRoot H ht (S.word h), ht, w)] := by
       simp [rootsOf, commits_append, commits]
-    simp only [run, List.cons_append]
+    simp only [runWithHash, List.cons_append]
     rw [hdec, hroots]
     rfl
   | query i ps k ih =>
@@ -569,7 +570,7 @@ theorem run_proveFrom (S : Strategy) (fuel : ℕ) :
       have hroot : (rootsOf H (commits h))[i]? = some (treeRoot H ht word, ht, w) := by
         simp [rootsOf, hc]
       have hopen := openAll_openingAt H hw (height := ht) ps (t.2 ++ restO)
-      simp only [run, hroot, List.append_assoc]
+      simp only [runWithHash, hroot, List.append_assoc]
       simp only [bind] at hopen ⊢
       rw [hopen]
       simp [commits_append, commits]
@@ -586,15 +587,15 @@ theorem runProof_prove (H : Bytes → Digest) (F : KeccakState → KeccakState) 
     (seed : KeccakState) (fuel : ℕ) {π : Proof} (hc : ∀ chal, runI P S chal = some true)
     (hs : ∀ chal, shapedI P S chal)
     (hπ : prove H F P S seed fuel = some π) :
-    runProof (m := Id) H F P seed π = true := by
+    runProofWithHash (m := Id) H F P seed π = true := by
   have hacc : S.AcceptsFrom P [] :=
     Strategy.acceptsFrom_of_runFrom P [] hc hs
   obtain ⟨t, ht, rfl⟩ := Option.map_eq_some_iff.mp hπ
   obtain ⟨s', hrun, hs1, hs2⟩ :=
     run_proveFrom H F S fuel P [] ⟨seed, []⟩ t.1 t.2 [] [] hacc (by simp [commits]) ht
   simp only [List.append_nil] at hrun
-  simp only [runProof, bind]
-  show (match run (m := Id) H F P ⟨⟨seed, []⟩, t.1, t.2, rootsOf H (commits [])⟩ with
+  simp only [runProofWithHash, bind]
+  show (match runWithHash (m := Id) H F P ⟨⟨seed, []⟩, t.1, t.2, rootsOf H (commits [])⟩ with
     | some (true, s) => _ | _ => _) = true
   rw [hrun]
   simp [hs1, hs2]
@@ -668,7 +669,7 @@ theorem exists_prove_runProof (H : Bytes → Digest) (F : KeccakState → Keccak
     (S : Strategy) (seed : KeccakState) (fuel : ℕ) (hc : ∀ chal, runI P S chal = some true)
     (hs : ∀ chal, shapedI P S chal)
     (hg : ∀ h bits k sp, P.after h = some (.grind bits k) → findNonce F bits sp fuel ≠ none) :
-    ∃ π, prove H F P S seed fuel = some π ∧ runProof (m := Id) H F P seed π = true := by
+    ∃ π, prove H F P S seed fuel = some π ∧ runProofWithHash (m := Id) H F P seed π = true := by
   obtain ⟨π, hπ⟩ := Option.ne_none_iff_exists'.mp (prove_ne_none H F P S seed fuel hg)
   exact ⟨π, hπ, runProof_prove H F P S seed fuel hc hs hπ⟩
 

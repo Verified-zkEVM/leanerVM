@@ -3,6 +3,7 @@ import Sphincs.SecurityTargetAssignment
 import Sphincs.Statement
 import Sphincs.RandomizedSupport
 import Sphincs.SecurityTreeWitness
+import Common.WithHash
 
 /-! Canonical structural graph preparation. The retained positions can be any subset;
 positions omitted by pruning retain their initial labels (in particular surrogate values).

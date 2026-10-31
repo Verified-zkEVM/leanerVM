@@ -1,5 +1,6 @@
 import LeanDa.StraightTree
 import Common.Duplex.Vec
+import LeanDa.WithHash
 
 /-!
 # The straight-line world and its bad events
@@ -143,7 +144,7 @@ challenges `v`, every matrix whose commitment's inputs are cached, which commits
 the membership test on `v`, a codeword. -/
 def Good (r : ℕ) (c : VCache) : Prop :=
   Set.InjOn (fOf c) (domH c) ∧ ∀ (d : Common.DigestBytes) (v : Challenges), c (.inr d) = some v →
-    ∀ w : Fin (r * 128) → Cell, commitIn (fOf c) w ⊆ domH c → commitCells (fOf c) w = d →
+    ∀ w : Fin (r * 128) → Cell, commitIn (fOf c) w ⊆ domH c → commitCellsWithHash (fOf c) w = d →
       membershipCheck v w = true → w ∈ (code r).code
 
 theorem good_empty (r : ℕ) : Good r ∅ :=
@@ -261,7 +262,7 @@ theorem good_insertH {r : ℕ} {c : VCache} (hc : Good r c) {a : List UInt8} (ha
 /-- **Fresh challenges keep a cache good** when every matrix whose commitment's inputs are cached
 and which commits to the root passes the test on them only if it is a codeword. -/
 theorem good_insertG {r : ℕ} {c : VCache} (hc : Good r c) {d : Common.DigestBytes} {v : Challenges}
-    (hv : ∀ w : Fin (r * 128) → Cell, commitIn (fOf c) w ⊆ domH c → commitCells (fOf c) w = d →
+    (hv : ∀ w : Fin (r * 128) → Cell, commitIn (fOf c) w ⊆ domH c → commitCellsWithHash (fOf c) w = d →
       membershipCheck v w = true → w ∈ (code r).code) :
     Good r (c.cacheQuery (.inr d) v) := by
   rw [Good, fOf_insertG, domH_insertG]
@@ -364,7 +365,7 @@ theorem prob_insertG_le {r : ℕ} {c : VCache} (hc : Good r c) (d : Common.Diges
       14 / 2 ^ 192 := by
   classical
   by_cases hS : ∃ w : Fin (r * 128) → Cell, commitIn (fOf c) w ⊆ domH c ∧
-      commitCells (fOf c) w = d ∧ w ∉ (code r).code
+      commitCellsWithHash (fOf c) w = d ∧ w ∉ (code r).code
   · obtain ⟨w₀, hw₀, hd₀, hn₀⟩ := hS
     calc Pr{let v ← ($ᵗ Challenges : ProbComp Challenges)}[¬ Good r (c.cacheQuery (.inr d) v)]
         ≤ Pr{let v ← ($ᵗ Challenges : ProbComp Challenges)}[(checker r).check v w₀ = true] := by

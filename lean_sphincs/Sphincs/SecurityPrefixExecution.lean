@@ -1,6 +1,7 @@
 import Sphincs.SecurityPrefixSampling
 import SphincsBase.Proof.Chains.AdaptiveChainCapTwoEdge
 import SphincsBase.Proof.Chains.AdaptiveChainErasure
+import Common.WithHash
 
 /-!
 The oracle world for one hidden WOTS prefix (outside queries plus prefix queries), the predicates

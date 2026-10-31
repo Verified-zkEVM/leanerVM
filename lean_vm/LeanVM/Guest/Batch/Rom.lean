@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.Batch.RomSpec
 public import LeanVM.Protocol.EndToEnd.Sound.Statements
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The batching in the random-oracle model

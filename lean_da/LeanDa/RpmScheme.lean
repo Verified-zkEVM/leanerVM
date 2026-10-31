@@ -2,6 +2,7 @@ import LeanDa.Merkle
 import Common.Keccak
 import Common.Lemmas
 import LeanDa.Defs
+import LeanDa.WithHash
 
 /-!
 # LeanDA's hashing and challenges over a permutation oracle
@@ -66,22 +67,22 @@ variable (H : List UInt8 → Common.DigestBytes) (P : Lanes → Lanes)
 
 /-- **Over pure functions, the challenges are the crate's.** -/
 theorem membershipChallengesM_id (root : Common.DigestBytes) :
-    membershipChallengesM (m := Id) (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root =
+    membershipChallengesMWithHash (m := Id) (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root =
       membershipChallenges H P root := rfl
 
 theorem walkM_id (idx : ℕ) (node : Common.DigestBytes) (path : List Common.DigestBytes) :
-    walkM (m := Id) (fun a ↦ pure (H a)) idx node path = walk H idx node path := by
+    walkMWithHash (m := Id) (fun a ↦ pure (H a)) idx node path = walk H idx node path := by
   induction path generalizing idx node with
   | nil => rfl
   | cons s rest ih =>
-    simp only [walkM, walk, apply_ite H]
+    simp only [walkMWithHash, walk, apply_ite H]
     exact ih _ _
 
 /-- **Over a pure function, the verification is `verifyCell`.** -/
 theorem verifyCellM_id (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
-    verifyCellM (m := Id) (fun a ↦ pure (H a)) r com p x τ = verifyCell H r com p x τ := by
-  simp only [verifyCellM, verifyCell]
-  change (decide _ && decide (H (pairBytes τ.rowRoot (walkM (m := Id) _ _ _ _)) = com)) = _
+    verifyCellMWithHash (m := Id) (fun a ↦ pure (H a)) r com p x τ = verifyCell H r com p x τ := by
+  simp only [verifyCellMWithHash, verifyCell]
+  change (decide _ && decide (H (pairBytes τ.rowRoot (walkMWithHash (m := Id) _ _ _ _)) = com)) = _
   rw [walkM_id]
   rfl
 
@@ -241,8 +242,8 @@ theorem duplexP_samplesM (n : ℕ) {hist : List KState} {s : Sponge} (hs : Spong
 
 /-- **The challenges' sponge follows the duplex discipline.** -/
 theorem duplexP_membershipChallengesR (root : Common.DigestBytes) (hist : List KState) :
-    DuplexP (fun _ hist' ↦ hist ⊆ hist') (membershipChallengesM hR pR root) hist := by
-  unfold membershipChallengesM Sponge.fromLabelM
+    DuplexP (fun _ hist' ↦ hist ⊆ hist') (membershipChallengesMWithHash hR pR root) hist := by
+  unfold membershipChallengesMWithHash Sponge.fromLabelMWithHash
   rw [bind_assoc]
   refine duplexP_hR_bind _ _ hist fun iv ↦ ?_
   refine duplexP_bind (duplexP_newM hist iv _) fun s₁ h₁ hs₁ ↦ ?_

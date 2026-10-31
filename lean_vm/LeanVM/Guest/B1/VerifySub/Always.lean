@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.Split
 public import LeanVM.Guest.B1.Common.Run
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Every result of a program
@@ -73,13 +74,13 @@ theorem Always.run {α : Type} {P : α → Prop} (p : Prog α) :
   induction p with
   | ret b =>
     intro st st' a h hr
-    simp only [runId, Compile.run, pure, Option.some.injEq, Prod.mk.injEq] at hr
+    simp only [runId, Compile.runWithHash, pure, Option.some.injEq, Prod.mk.injEq] at hr
     obtain ⟨rfl, -⟩ := hr
     exact h
   | fail => intro st st' a _ hr; cases hr
   | read k ih =>
     intro st st' a h hr
-    simp only [runId, Compile.run] at hr
+    simp only [runId, Compile.runWithHash] at hr
     split at hr
     · cases hr
     · exact ih _ (h _) hr
@@ -88,13 +89,13 @@ theorem Always.run {α : Type} {P : α → Prop} (p : Prog α) :
     exact ih _ (h _) hr
   | grind b k ih =>
     intro st st' a h hr
-    simp only [runId, Compile.run] at hr
+    simp only [runId, Compile.runWithHash] at hr
     split at hr
     · cases hr
     · rename_i x xs _
       change (if powOk b x (Compile.squeeze (m := Id) keccakF1600
           (Compile.absorb (m := Id) keccakF1600 st.sponge x dsPowNonce)).1 = true then
-        Compile.run (m := Id) keccak256 keccakF1600 k (ProgState.mk (Compile.squeeze (m := Id) keccakF1600
+        Compile.runWithHash (m := Id) keccak256 keccakF1600 k (ProgState.mk (Compile.squeeze (m := Id) keccakF1600
           (Compile.absorb (m := Id) keccakF1600 st.sponge x dsPowNonce)).2 xs st.openings st.roots)
         else none) = some (a, st') at hr
       split at hr
@@ -102,7 +103,7 @@ theorem Always.run {α : Type} {P : α → Prop} (p : Prog α) :
       · cases hr
   | commit hh ww k ih =>
     intro st st' a h hr
-    simp only [runId, Compile.run] at hr
+    simp only [runId, Compile.runWithHash] at hr
     split at hr
     · revert hr
       split
@@ -111,12 +112,12 @@ theorem Always.run {α : Type} {P : α → Prop} (p : Prog α) :
     · cases hr
   | query i ps k ih =>
     intro st st' a h hr
-    simp only [runId, Compile.run] at hr
+    simp only [runId, Compile.runWithHash] at hr
     split at hr
     · cases hr
     · rename_i _ root height width _
-      change (match Compile.openAll (m := Id) keccak256 root height width ps st.openings with
-        | some (rows, rest) => Compile.run (m := Id) keccak256 keccakF1600 (k rows)
+      change (match Compile.openAllWithHash (m := Id) keccak256 root height width ps st.openings with
+        | some (rows, rest) => Compile.runWithHash (m := Id) keccak256 keccakF1600 (k rows)
             (ProgState.mk st.sponge st.stream rest st.roots)
         | none => none) = some (a, st') at hr
       split at hr

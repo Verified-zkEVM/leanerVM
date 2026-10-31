@@ -1,4 +1,5 @@
 import Sphincs.BridgeSigner
+import Common.WithHash
 
 /-! The grinding signer's view of message-digest blocks, and its fair share. Its encoding search
 and its reveals never query a message-digest input, so after the digest call of the final assembly
@@ -33,8 +34,8 @@ theorem NoMsg.bind {α β : Type} {oa : OracleComp HashSpec α} {next : α → O
   simpa [NoMsg] using this
 
 theorem NoMsg.query {input : HashInput} (h : ¬IsMsgInput input) :
-    NoMsg (oracleHash input : OracleComp HashSpec HashOutput) := by
-  simp only [NoMsg, oracleHash, HasQuery.query]
+    NoMsg (oracleHashWithHash input : OracleComp HashSpec HashOutput) := by
+  simp only [NoMsg, oracleHashWithHash, HasQuery.query]
   rw [isQueryBoundP_query_iff]
   exact fun hm => absurd hm h
 

@@ -15,6 +15,7 @@ public import Statement.Fast.FieldWords
 public import Statement.Fast.Keccak
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Statement.LeanVmVerifier
+public import LeanVM.Protocol.WithHash
 
 namespace LeanVM.Protocol.Verifier
 
@@ -51,12 +52,12 @@ theorem pack_eq : pack = 2 ^ packBits := rfl
 
 /-- The deployed seed, with Keccak. -/
 def seed (bytecode : List K) (publicInput : Digest) : KeccakState :=
-  Id.run (seedWith (m := Id) keccak256 keccakF1600 bytecode publicInput)
+  Id.run (seedWithHash (m := Id) keccak256 keccakF1600 bytecode publicInput)
 
 /-- **The deployed leanVM verifier**: the program's compiled reading with Keccak-256 and
 Keccak-f[1600], from the deployed seed. -/
 def verify (bytecode : List K) (publicInput : Digest) (π : Proof) : Bool :=
-  Id.run (runProof (m := Id) keccak256 keccakF1600 (leanVmProgram bytecode publicInput)
+  Id.run (runProofWithHash (m := Id) keccak256 keccakF1600 (leanVmProgram bytecode publicInput)
     (seed bytecode publicInput) π)
 
 end

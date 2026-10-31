@@ -2,6 +2,7 @@ import Sphincs.Search
 import Sphincs.Decay
 import Sphincs.Bytes
 import Sphincs.Landing
+import Common.WithHash
 
 /-!
 Randomizer grinding for the candidate: the digest input of a trial, the share of fresh answers the

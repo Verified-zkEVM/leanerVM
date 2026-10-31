@@ -1,4 +1,5 @@
 import Sphincs.SecurityPrefixPublic
+import Common.WithHash
 
 /-! The first successful encoding of a counter search (`firstEncoding`), which is what the honest
 one-time signer computes, and the disclosed chain values reconstructed from a selected chain

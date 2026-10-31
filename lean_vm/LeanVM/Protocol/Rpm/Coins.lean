@@ -9,6 +9,7 @@
 import LeanVM.Protocol.LeanVMSound
 import Statement.LeanVm
 import Common.Prob
+import LeanVM.Protocol.WithHash
 
 /-!
 # Adversaries with coins
@@ -137,7 +138,7 @@ noncomputable def experimentCoins (B : OracleComp (unifSpec + KeccakCalls) (Prog
     ProbComp Outcome := do
   let (z, adversaryCache) ← (simulateQ KeccakCalls.romImpl B).run ∅
   let (verdict, cache) ←
-    (simulateQ KeccakCalls.randomOracle (verifier callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2)).run adversaryCache
+    (simulateQ KeccakCalls.randomOracle (verifierWithHash callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2)).run adversaryCache
   return ((z, verdict), cache, adversaryCache)
 
 /-- **Knowledge soundness against adversaries with coins**: private coins do not help, so the
@@ -148,7 +149,7 @@ theorem knowledgeSoundness_coins {B : OracleComp (unifSpec + KeccakCalls) (Progr
     Pr{let z ← experimentCoins B}[Breaks extractor z] ≤ soundnessError Q := by
   obtain ⟨A, hA, hle⟩ := exists_det (fun p ↦ do
       let (verdict, cache) ←
-        (simulateQ KeccakCalls.randomOracle (verifier callKeccak256 callKeccakF1600 p.1.1.1 p.1.1.2 p.1.2)).run p.2
+        (simulateQ KeccakCalls.randomOracle (verifierWithHash callKeccak256 callKeccakF1600 p.1.1.1 p.1.1.2 p.1.2)).run p.2
       return ((p.1, verdict), cache, p.2)) (Breaks extractor) B Q hB ∅
   exact hle.trans (knowledgeSoundnessRom_holds A Q hA)
 
@@ -164,9 +165,9 @@ no coins. -/
 abbrev DetAdversary : Type := OracleComp (Common.permutationOracleSpec KeccakState) (ProgramAndInput × Proof)
 
 /-- `rpmExperiment` (`Statement/LeanVm.lean`) for a deterministic adversary. -/
-noncomputable def detExperiment (A : DetAdversary) : ProbComp ExperimentOutcome := do
+noncomputable def detExperiment (A : DetAdversary) : ProbComp ExperimentOutcomeWithHash := do
   let (z, perms, transcript) ← (simulateQ loggedPermDet A).run ([], [])
-  let verdict ← (simulateQ keccakCallsOverRandomPermutation (verifier callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2)).run' perms
+  let verdict ← (simulateQ keccakCallsOverRandomPermutation (verifierWithHash callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2)).run' perms
   return ((z, verdict), transcript)
 
 /-- `runAdversaryThen` (`Statement/LeanVm.lean`) for a deterministic adversary, without the transcript. -/
@@ -234,9 +235,9 @@ theorem exists_det_rpm {α γ : Type} (g : α × (Common.PermutationEdges Keccak
 /-- **The experiment against an adversary with coins is bounded by a deterministic one's**:
 for every event, some deterministic adversary of as many queries to `π` and `π⁻¹`. -/
 theorem rpmExperiment_le_det {B : RandomPermutationAdversary} {Q : ℕ}
-    (hB : Common.QueryCostAtMost B Common.permutationCallCost Q) (E : ExperimentOutcome → Prop) :
+    (hB : Common.QueryCostAtMost B Common.permutationCallCost Q) (E : ExperimentOutcomeWithHash → Prop) :
     ∃ A : DetAdversary, A.IsTotalQueryBound Q ∧
-      Pr{let z ← soundnessExperiment B}[E z] ≤ Pr{let z ← detExperiment A}[E z] :=
+      Pr{let z ← soundnessExperimentWithHash B}[E z] ≤ Pr{let z ← detExperiment A}[E z] :=
   exists_det_rpm _ E hB
 
 /-- **`runAdversaryThen` against an adversary with coins is bounded by a deterministic one's**: for every

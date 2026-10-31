@@ -1,4 +1,5 @@
 import Sphincs.SecurityPrefixMaterialSampling
+import Common.WithHash
 
 /-! Public agreement of two answer functions: they agree on every tweakable hash input and on the
 forest secret derivations. Then every reconstructed public computation (chains, encodings, forest

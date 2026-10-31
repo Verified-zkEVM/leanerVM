@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Complete.Theorem
+public import LeanVM.Protocol.WithHash
 
 /-!
 # End-to-end completeness
@@ -58,9 +59,9 @@ theorem leanVm_complete (H : Bytes → Digest) (F : KeccakState → KeccakState)
       (leanVmProgram (bytecodeWords prog) (Complete.publicDigest input)).after hist =
           some (.grind bits k) → findNonce F bits sp fuel ≠ none) :
     ∃ S π, prove H F (leanVmProgram (bytecodeWords prog) (Complete.publicDigest input)) S
-        (Id.run (seedWith (m := Id) H F (bytecodeWords prog) (Complete.publicDigest input)))
+        (Id.run (seedWithHash (m := Id) H F (bytecodeWords prog) (Complete.publicDigest input)))
           fuel = some π ∧
-      Id.run (verifyWith (m := Id) H F (bytecodeWords prog) (Complete.publicDigest input) π) =
+      Id.run (verifyWithHash (m := Id) H F (bytecodeWords prog) (Complete.publicDigest input) π) =
         true :=
   Complete.exists_prove_verifyWith H F h hsz hs hρ fuel hg
 

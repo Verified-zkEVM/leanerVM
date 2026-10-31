@@ -3,6 +3,7 @@ module
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 public import Sphincs.Layered
+public import Common.WithHash
 
 /-!
 # leanSPHINCS with a two-level WOTS forest

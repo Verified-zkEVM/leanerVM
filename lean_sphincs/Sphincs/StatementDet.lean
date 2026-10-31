@@ -1,6 +1,7 @@
 module
 
 public import Sphincs.Statement
+public import Common.WithHash
 
 /-!
 The SUF-CMA target for the signer of the Rust implementation, `Seeded.sign`: the key is generated

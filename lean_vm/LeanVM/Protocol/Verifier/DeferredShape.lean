@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Verifier.Deferred
+public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.WithHashBridge
 
 /-!
 # The shapes of the accepted claims
@@ -39,24 +41,24 @@ variable {α : Type}
 
 /-- A program's successful run returns what the program may return. -/
 theorem returns_of_run (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) {p : Prog α} :
-    ∀ {s : ProgState} {a : α} {s' : ProgState}, run H F p s = some (a, s') → Returns p a := by
+    ∀ {s : ProgState} {a : α} {s' : ProgState}, runWithHash H F p s = some (a, s') → Returns p a := by
   induction p with
   | ret b =>
     intro s a s' h
-    simp only [run] at h
+    simp only [runWithHash] at h
     cases h
     exact .ret b
-  | fail => intro s a s' h; simp [run] at h
+  | fail => intro s a s' h; simp [runWithHash] at h
   | read k ih =>
     intro s a s' h
-    simp only [run] at h
+    simp only [runWithHash] at h
     split at h
     · simp at h
     · next x xs hs => exact .read x (ih x h)
-  | sample k ih => intro s a s' h; simp only [run] at h; exact .sample _ (ih _ h)
+  | sample k ih => intro s a s' h; simp only [runWithHash] at h; exact .sample _ (ih _ h)
   | grind bits k ih =>
     intro s a s' h
-    simp only [run] at h
+    simp only [runWithHash] at h
     split at h
     · simp at h
     · next n xs hs =>
@@ -66,7 +68,7 @@ theorem returns_of_run (H : Bytes → Id Digest) (F : KeccakState → Id KeccakS
       · simp at h
   | commit height width k ih =>
     intro s a s' h
-    simp only [run] at h
+    simp only [runWithHash] at h
     split at h
     · next x0 x1 xs hs =>
       change (match digestOfScalars (x0, x1) with | some root => _ | none => _) = _ at h
@@ -76,11 +78,11 @@ theorem returns_of_run (H : Bytes → Id Digest) (F : KeccakState → Id KeccakS
     · simp at h
   | query i ps k ih =>
     intro s a s' h
-    simp only [run] at h
+    simp only [runWithHash] at h
     split at h
     · simp at h
     · next root height width hr =>
-      change (match openAll H root height width ps s.openings with
+      change (match openAllWithHash H root height width ps s.openings with
         | some (rows, rest) => _ | none => _) = _ at h
       split at h
       · next rows rest ho => exact .query i ps rows (ih rows h)
@@ -88,10 +90,10 @@ theorem returns_of_run (H : Bytes → Id Digest) (F : KeccakState → Id KeccakS
 
 /-- An accepted proof's program may return `true`. -/
 theorem returns_of_runProof (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) {P : Prog Bool}
-    {seed : KeccakState} {π : Proof} (h : runProof H F P seed π = true) : Returns P true := by
-  unfold runProof at h
+    {seed : KeccakState} {π : Proof} (h : runProofWithHash H F P seed π = true) : Returns P true := by
+  unfold runProofWithHash at h
   revert h
-  match hr : run H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
+  match hr : runWithHash H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
   | some (true, s) => exact fun _ ↦ returns_of_run H F hr
   | some (false, _) => intro h; simp at h
   | none => intro h; simp at h
@@ -307,6 +309,7 @@ accepts claims the bytecode at a point of the bytecode's log-length. -/
 theorem verifyDeferred_shaped {bytecode : List K} {iv publicInput : Digest} {c : BytecodeClaim}
     {π : Proof} (h : verifyDeferred bytecode iv publicInput c π = true) :
     c.bytecodePoint.length = Nat.log2 bytecode.length := by
+  rw [verifyDeferred_eq_withHash] at h
   have hP := Prog.returns_of_runProof keccak256 keccakF1600 h
   rw [deferredProgram_eq] at hP
   obtain ⟨_, hu, -⟩ := Prog.returns_bind hP

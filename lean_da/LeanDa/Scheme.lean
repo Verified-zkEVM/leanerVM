@@ -3,6 +3,7 @@ module
 public import LeanDa.Field
 public import Mathlib.LinearAlgebra.Lagrange
 public import Statement.LeanDa
+public import LeanDa.WithHash
 
 /-!
 # LeanDA
@@ -111,7 +112,7 @@ variable (P : LeanVM.Semantics.KeccakState → LeanVM.Semantics.KeccakState)
 
 /-- The challenges of a root with a pure hash and permutation. -/
 def membershipChallenges (root : Common.DigestBytes) : List E :=
-  Id.run (membershipChallengesM (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root)
+  Id.run (membershipChallengesMWithHash (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root)
 
 /-- Row `i` of the subspace evaluations before scaling: `s_i` at the basis elements `x^j`,
 `j ≥ i`. -/

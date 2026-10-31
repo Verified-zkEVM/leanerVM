@@ -1,4 +1,5 @@
 import Sphincs.SecuritySeedCoupling
+import Common.WithHash
 
 /-!
 Privileged compilation of honest seeded computations into material reads and ordinary hash calls.
@@ -48,9 +49,9 @@ theorem simulate_sequenceFin {I : Type} {spec : OracleSpec I} {m : Type → Type
   | succ n ih => simp only [sequenceFin, simulateQ_bind, simulateQ_pure, ih]
 
 theorem compile_oracleHash (seed : MasterSeed) (material : Material) (input : HashInput) :
-    simulateQ (compileHash seed material) (oracleHash input : OracleComp HashSpec HashOutput) =
+    simulateQ (compileHash seed material) (oracleHashWithHash input : OracleComp HashSpec HashOutput) =
       compileHash seed material input := by
-  simp only [oracleHash, HasQuery.query]
+  simp only [oracleHashWithHash, HasQuery.query]
   exact simulateQ_spec_query _ _
 
 theorem compile_parameter (seed : MasterSeed) (material : Material) :

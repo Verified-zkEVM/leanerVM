@@ -1,5 +1,6 @@
 import Sphincs.BridgeForsGame
 import Sphincs.BridgeReplay
+import Common.WithHash
 
 /-! Shared pieces of the routes that run saturation and the FORS potential on the same lazy run:
 the start state, from the stopped experiment to the interpreted run, failing indices of the
@@ -268,7 +269,7 @@ theorem noQ_search {bad : HashInput → Prop} [DecidablePred bad]
       refine noQ_bind ?_ fun found => ?_
       · unfold Concrete.encode Concrete.tweakableHash
         refine noQ_bind (noQ_bind ?_ fun _ => trivial) fun _ => trivial
-        simp only [oracleHash, HasQuery.query]
+        simp only [oracleHashWithHash, HasQuery.query]
         rw [isQueryBoundP_query_iff]
         exact fun hm => absurd hm (hbad _)
       · cases found with
@@ -468,7 +469,7 @@ theorem search_eq_searchLoop (parameter : PublicParameter) (lay : Layer) (tree :
   | succ n ih =>
       intro t
       rw [ReferenceChoice.search, searchLoop]
-      simp only [encode, tweakableHash, oracleHash, bind_assoc, pure_bind, map_eq_bind_pure_comp,
+      simp only [encode, tweakableHash, oracleHashWithHash, bind_assoc, pure_bind, map_eq_bind_pure_comp,
         Function.comp_def, ih]
       refine bind_congr fun answer => ?_
       cases TargetSum.decodeDigest (truncateHash answer) <;> rfl

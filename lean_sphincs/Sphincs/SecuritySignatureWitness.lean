@@ -2,6 +2,7 @@ import Sphincs.SecurityVerifier
 import Sphincs.SecurityWotsWitness
 import Sphincs.SecurityForestWitness
 import Sphincs.RandomizedCorrectness
+import Common.WithHash
 
 /-!
 The interface of deterministic extraction from an accepted candidate signature: its index and

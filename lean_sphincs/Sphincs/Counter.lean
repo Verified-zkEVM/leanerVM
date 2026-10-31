@@ -1,4 +1,5 @@
 import Sphincs.Search
+import Common.WithHash
 
 /-!
 # The counter search

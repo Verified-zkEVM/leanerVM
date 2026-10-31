@@ -1,5 +1,6 @@
 import Sphincs.SecurityGraph
 import Sphincs.SecuritySeedCoupling
+import Common.WithHash
 
 /-! The structural reference table of a canonical graph: active positions exempt their canonical
 input, and omitted positions carry their surrogate targets. Programmed seed material leaves every

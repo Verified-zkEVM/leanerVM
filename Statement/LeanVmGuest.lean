@@ -59,8 +59,8 @@ open scoped ENNReal
 /-! ## The DA claim
 
 LeanDA's deployed algorithms (`LeanDa.commitCodewords`, `LeanDa.vectorDigest`) are `LeanDa.lean`'s
-(`crates/lean_da`, `crates/verifier/src/da.rs`), generic in the hash; here the hash is Keccak-256
-(`keccak256Bytes`), its digest read as LeanDA's 32 bytes (`Digest.toBytes`).
+(`crates/lean_da`, `crates/verifier/src/da.rs`), over a permutation; here it is Keccak-f[1600], the
+hash Keccak-256, its digest read as LeanDA's 32 bytes (`LeanDa.keccakDigestBytes`).
 
 A DA claim (`DaClaim`) is held by a matrix committed to its root whose rows are orthogonal to a
 vector of its vector digest; a statement carries the claim's digest (`daClaimDigest`), or zeros
@@ -77,9 +77,6 @@ namespace LeanVM.Da
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
-/-- Keccak-256 as LeanDA's hash: the digest's 32 bytes (`Digest.toBytes`). -/
-def keccak256Bytes (input : List UInt8) : Common.DigestBytes := (keccak256 input).toBytes
-
 /-- What holds a DA claim: a matrix of codewords and the vector its rows are orthogonal to. -/
 structure MatrixWitness where
   rows : List (List K)
@@ -91,9 +88,9 @@ structure MatrixWitness where
 def MatrixWitness.Opens (root vd : Digest) (w : MatrixWitness) : Prop :=
   1 ≤ w.rows.length ∧ w.rows.length ≤ LeanDa.maxRows ∧
     (∀ row ∈ w.rows, row.length = 2 ^ LeanDa.logM) ∧
-    LeanDa.commitCodewords keccak256Bytes w.rows = root.toBytes ∧
+    LeanDa.commitCodewords keccakF1600 w.rows = root.toBytes ∧
       w.vector.length = 2 ^ LeanDa.logM ∧
-    LeanDa.vectorDigest keccak256Bytes w.vector = vd.toBytes ∧
+    LeanDa.vectorDigest keccakF1600 w.vector = vd.toBytes ∧
     ∀ row ∈ w.rows, LeanDa.dot (fun b ↦ w.vector.getD b 0) (fun b ↦ row.getD b 0) = 0
 
 end LeanVM.Da
@@ -103,26 +100,18 @@ namespace LeanVM.Node
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
-/-! ## The signature schemes on Keccak-256 -/
+/-! ## The signature schemes over Keccak-f[1600] -/
 
-/-- A digest as the schemes' 256-bit hash output: its 32 bytes as a little-endian number. -/
-def digestBits (d : Digest) : BitVec 256 :=
-  BitVec.ofNat 256 ((digestBytes d).foldr (fun b acc ↦ b.toNat + 256 * acc) 0)
-
-/-- Keccak-256 as the schemes' hash. -/
-def keccakBits (input : List UInt8) : BitVec 256 := digestBits (keccak256 input)
-
-/-- leanXMSS verification with Keccak-256. The leaf index is the signature's. -/
+/-- leanXMSS verification over Keccak-f[1600], the hash Keccak-256. The leaf index is the
+signature's. -/
 def xmssVerify (pk : LeanXmss.PublicKey) (message : LeanXmss.Message) (σ : LeanXmss.Signature) :
     Bool :=
-  letI : HasQuery LeanXmss.HashSpec Id := ⟨keccakBits⟩
-  Id.run (LeanXmss.Concrete.verify pk message σ)
+  Id.run (LeanXmss.Concrete.verify (m := Id) keccakF1600 pk message σ)
 
-/-- leanSPHINCS verification with Keccak-256. -/
+/-- leanSPHINCS verification over Keccak-f[1600], the hash Keccak-256. -/
 def sphincsVerify (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sphincs.Signature) :
     Bool :=
-  letI : HasQuery Sphincs.HashSpec Id := ⟨keccakBits⟩
-  Id.run (Sphincs.Concrete.verify pk message σ)
+  Id.run (Sphincs.Concrete.verify (m := Id) keccakF1600 pk message σ)
 
 /-! ## The statement -/
 
@@ -418,13 +407,13 @@ noncomputable def boundedBatchingProgram (M : ℕ) (bytecode : List K) : Prog Bo
   let n ← readChildCount M
   batchingProgram (DeferredClaim.Holds bytecode) bytecode n
 
-/-- **The batching transcript run**, for a hash function `H` and a permutation `F` in any monad:
-from the seed `F(H(label) ‖ 0)` (`FiatShamirState::from_label`; the guest program bakes its
-capacity, `AGG_SEED_*`, `aggregation.rs:2511-2514`), the program on the proof. -/
-noncomputable def runBatching {m : Type → Type} [Monad m] (H : Bytes → m Digest)
-    (F : KeccakState → m KeccakState) (prog : Prog Bool) (proof : Proof) : m Bool := do
-  let seed ← F (seedInput (← H batchingLabel) (Vector.replicate 4 0))
-  runProof H F prog seed proof
+/-- **The batching transcript run**, over a permutation `F` in any monad: from the seed
+`F(H(label) ‖ 0)`, `H` Keccak-256 over `F` (`FiatShamirState::from_label`; the guest program bakes
+its capacity, `AGG_SEED_*`, `aggregation.rs:2511-2514`), the program on the proof. -/
+noncomputable def runBatching {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
+    (prog : Prog Bool) (proof : Proof) : m Bool := do
+  let seed ← F (seedInput (← keccak256With F batchingLabel) (Vector.replicate 4 0))
+  runProof F prog seed proof
 
 /-- The stream of a node's batching: the count's and the children's cells, the sumcheck's
 messages `(g(1), g(∞))`, the final value. -/
@@ -496,7 +485,7 @@ def NodeRelation (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : No
     | some (c, m) => s.claims.da = daClaimDigest c ∧ m.Opens c.daRoot c.membershipVectorDigest
     | none => s.claims.da = zeroDigest ∨ ∃ c ∈ w.children, c.statement.claims.da = s.claims.da) ∧
   if w.children = [] then s.deferredClaim.HasZeroPoint bytecode
-  else Guest.Batch.runBatching (m := Id) keccak256 keccakF1600
+  else Guest.Batch.runBatching (m := Id) keccakF1600
     (Guest.Batch.nodeBatchingProgram (· = s.deferredClaim) bytecode w.children.length)
     ⟨Guest.Batch.batchingStream (w.children.map fun c ↦
       ⟨statementDigest seed c.statement, c.freshClaim, c.statement.deferredClaim⟩) w.batchingHints,
@@ -660,7 +649,7 @@ namespace Limits
 `verifyDeferred` with every sampled challenge `0` a failure. -/
 def verifyDeferredRefusingZero (bytecode : List K) (iv publicInput : Digest) (c : BytecodeClaim)
     (π : Proof) : Bool :=
-  Id.run (runProof (m := Id) keccak256 keccakF1600
+  Id.run (runProof (m := Id) keccakF1600
     (deferredProgram c bytecode publicInput).refusingZeroChallenge
     (keccakF1600 (seedInput iv publicInput)) π)
 
@@ -698,7 +687,7 @@ def queryStepsOf {α : Type} : Prog α → ProgState → List (ℕ × List (ℕ 
   | .query i ps k, s => match s.roots[i]? with
     | none => []
     | some (root, height, width) =>
-      match Id.run (openAll (m := Id) keccak256 root height width ps s.openings) with
+      match Id.run (openAll (m := Id) keccakF1600 root height width ps s.openings) with
       | some (rows, rest) =>
         (height, ps.zip s.openings) :: queryStepsOf (k rows) { s with openings := rest }
       | none => []
@@ -712,7 +701,7 @@ def siblingHeapIndex (depth q l : ℕ) : ℕ := 2 * heapIndex depth q (l + 1) + 
 
 /-- The digest an opening's climb reaches from `node` at position `q` over `path`. -/
 def climbTo (node : Digest) (q : ℕ) (path : List Digest) : Digest :=
-  Id.run (climb (m := Id) keccak256 node q path)
+  Id.run (climb (m := Id) keccakF1600 node q path)
 
 /-- **The opening `o` at `q` gives the heap node `v` the digest `d`**: `v` is on its climb, with
 the climb's digest there, or is the sibling it carries at a level. -/
@@ -843,29 +832,22 @@ child with the deployed Keccak, so the honest proof is made with it
 fuel, a zero challenge where the guest program divides) is bounded in the random-permutation model
 for the same prover and check (`verifierRefusingZero`). -/
 
-/-- **The leanVM verifier refusing a zero challenge** (`Prog.refusingZeroChallenge`): `verifier H F`
+/-- **The leanVM verifier refusing a zero challenge** (`Prog.refusingZeroChallenge`): `verifier F`
 with every sampled challenge `0` a failure. -/
-def verifierRefusingZero {m : Type → Type} [Monad m] (H : Bytes → m Digest)
-    (F : KeccakState → m KeccakState)
+def verifierRefusingZero {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
     (prog : Program) (input : PublicInput) (proof : Proof) : m Bool := do
-  let seed ← seedWith H F (bytecodeWords prog) (publicDigest input)
-  runProof H F
+  let seed ← seedWith F (bytecodeWords prog) (publicDigest input)
+  runProof F
     (leanVmProgram (bytecodeWords prog) (publicDigest input)).refusingZeroChallenge seed proof
 
-/-- Keccak-256 and Keccak-f[1600] answering the calls `KeccakCalls`. -/
-def deployedKeccakCalls : QueryImpl KeccakCalls Id
-  | .inl x => keccak256 x
-  | .inr s => keccakF1600 s
-
-open OracleComp in
-/-- **An honest prover's proof with the deployed Keccak-256 and Keccak-f[1600].** -/
+/-- **An honest prover's proof over the deployed Keccak-f[1600]**, the hash Keccak-256. -/
 def honestProofWithDeployedKeccak (prover : HonestProver) (prog : Program) (input : PublicInput)
     (t : Execution prog) (ρ fuel : ℕ) : Proof :=
-  Id.run (simulateQ deployedKeccakCalls (prover prog input t ρ fuel))
+  prover (m := Id) keccakF1600 prog input t ρ fuel
 
 open OracleComp OracleSpec in
 /-- **The honest proof of an execution of the guest program is a child the guest program accepts**:
-for the honest prover `LeanVM.prover` (`LeanVm.lean`, `LeanVM.Prover.prove` with the oracle calls),
+for the honest prover `LeanVM.prover` (`LeanVm.lean`, `LeanVM.Prover.prove`),
 1. in the random-permutation model, at `2^25` nonces per proof of work, `verifierRefusingZero`
    rejects its proof of a valid execution of committed size at most `2^28`, at an inverse rate
    `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`;
@@ -880,23 +862,24 @@ Proved by `LeanVM.Guest.Budget.guest_child_complete`. -/
 def GuestChildComplete : Prop :=
   (∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
     ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
-    Pr{let v ← (simulateQ LeanVM.keccakCallsOverRandomPermutation (do
-        let proof ← LeanVM.prover prog input t ρ (2 ^ 25)
-        verifierRefusingZero callKeccak256 callKeccakF1600 prog input proof)).run' []}[v = false] ≤
+    Pr{let v ← Common.runWithRandomPermutation (do
+        let proof ← LeanVM.prover Common.queryPermutation prog input t ρ (2 ^ 25)
+        verifierRefusingZero Common.queryPermutation prog input proof)}[v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
   ∀ (s : NodeStatement) (t : Execution guest) (ρ : ℕ), 2 ^ 22 ≤ t.committedSize →
     s.deferredClaim.HasBytecodeShape (bytecodeWords guest) →
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guest) s)
     let proof := honestProofWithDeployedKeccak LeanVM.prover guest input t ρ (2 ^ 25)
-    verifierRefusingZero (m := Id) keccak256 keccakF1600 guest input proof = true →
+    verifierRefusingZero (m := Id) keccakF1600 guest input proof = true →
     ∃ fresh, AcceptableChild (bytecodeWords guest) (deployedSeed guest) ⟨s, fresh, proof⟩
 
 end Budget
 
 /-! ## The recursion step: the batching in the random-permutation model
 
-The experiment is `runAdversaryThen` (`LeanVm.lean`), the adversary's output with the unit statement
-(the batching has no statement of its own). -/
+The experiment is one game run against the lazily sampled permutation: the adversary outputs a
+proof with the unit statement (the batching has no statement of its own), and the batching's
+verifier runs on it over `π`. -/
 
 namespace Batch
 
@@ -915,11 +898,11 @@ def batchingQueryBound (bytecode : List K) (M : ℕ) : ℕ :=
     zerosToWholeRate (childWordCount (Nat.log2 bytecode.length))) + 4 + 6 * Nat.log2
       bytecode.length + 1)) / 4
 
-open LeanVM.Rpm OracleComp OracleSpec in
+open OracleComp OracleSpec in
 /-- **The batching in the random-permutation model.** For a bytecode of power-of-two length and
 a bound `M ≤ 2^64 - 1` on the children's count: an adversary of `QA` queries to `π` and `π⁻¹`
-outputs a proof; the probability that the batching's verifier, Keccak-256 the sponge over `π` and
-Keccak-f[1600] `π`, accepts it while its stream begins with fewer than `M` children of the
+outputs a proof; the probability that the batching's verifier over `π` (Keccak-256 the sponge over
+`π`) accepts it while its stream begins with fewer than `M` children of the
 bytecode's shapes one of whose claims is false is at most
 `(QA + QV + 1) · M · 2^-191 + 5 (QA + QV)² · 2^-256`, for `QA ≤ 2^128` and the program's query
 bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the adversary's private coins are free. The
@@ -935,9 +918,11 @@ def BatchingSound : Prop :=
     M ≤ 2 ^ 64 - 1 → ∀ (A : OracleComp Common.RandomPermutationOracles (Unit × Proof)) (QA : ℕ),
     Common.QueryCostAtMost A Common.permutationCallCost QA → QA ≤ 2 ^ 128 →
     batchingQueryBound bytecode M ≤ 2 ^ 96 →
-    Pr{let z ← runAdversaryThen A fun z ↦
-         runBatching callKeccak256 callKeccakF1600 (boundedBatchingProgram M bytecode) z.2}[
-      z.1.2 = true ∧ SomeChildClaimFalse bytecode M z.1.1.2] ≤
+    Pr{let z ← Common.runWithRandomPermutation (do
+         let z ← A
+         let accepted ← runBatching Common.queryPermutation (boundedBatchingProgram M bytecode) z.2
+         return (z, accepted))}[
+      z.2 = true ∧ SomeChildClaimFalse bytecode M z.1.2] ≤
       (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * M * (2 : ℝ≥0∞)⁻¹ ^ 191 +
         5 * ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 

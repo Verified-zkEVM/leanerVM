@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.WithHashBridge
 public import LeanVM.Guest.Child.Queries
 
 /-!
@@ -109,8 +110,7 @@ theorem climbTo_openingAt {ht : ℕ} {word : Word} {q : ℕ} (hq : q < 2 ^ ht) {
   have := climb_pathOfLevel_take (nodeHash keccak256) (nodeAt word) (nodeAt_succ word) ht
     ((leavesOf ht word).map (leafHash keccak256)) 0 ⟨q, hq⟩ (leaves_nodeAt ht word) l hl
   simp only [Nat.zero_add] at this
-  unfold Limits.climbTo
-  rw [climb_eq_merkleClimb]
+  rw [Limits.climbTo_eq_withHash, climb_eq_merkleClimb]
   simp only [openingAt, hmod]
   exact this
 

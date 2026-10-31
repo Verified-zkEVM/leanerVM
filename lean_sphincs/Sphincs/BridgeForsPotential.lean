@@ -1,6 +1,7 @@
 import Sphincs.BridgeSignerPost
 import Sphincs.BridgeVirtualMono
 import Sphincs.BridgeImplication
+import Common.WithHash
 
 /-! Ingredients of the forest potential of the lazy run. Every cached landed message-randomizer
 pair is an item; the unsigned ones are candidates. This file defines the pairs, their views, the

@@ -5,9 +5,10 @@ public import Statement.Prover.Script
 /-!
 # Running a prover's script against the verifier's program
 
-`runFrom H F fuel P S sp cs` runs the script `S` against the verifier program `P`
-(`LeanVmVerifier.lean`) through the Fiat-Shamir sponge `sp`, with the hash `H` and the permutation
-`F` in any monad, and returns the proof's scalar stream and Merkle openings from there on:
+`runFrom F fuel P S sp cs` runs the script `S` against the verifier program `P`
+(`LeanVmVerifier.lean`) through the Fiat-Shamir sponge `sp`, over the permutation `F` in any monad
+(Keccak-256 the sponge over `F`, `keccak256With F`),
+  and returns the proof's scalar stream and Merkle openings from there on:
 
 * at a `read` of `P` the script's scalar is sent and absorbed with tag `1` (`DS_OBSERVE`);
 * at a `sample` the challenge is squeezed from the sponge and given to the script;
@@ -25,7 +26,7 @@ Where the script's move does not match the program's (a scalar where the program
 the run sends `0`, commits the empty matrix, and gives the script nothing more: a script that
 follows the program never meets this case.
 
-The prover calls `H` and `F` only to build Merkle trees, absorb, squeeze and search for nonces;
+The prover calls `F` only to build Merkle trees, absorb, squeeze and search for nonces;
 nothing branches on an answer except the nonce search, and the script sees the challenges only.
 -/
 
@@ -59,30 +60,31 @@ def Tree.opening (t : Tree) (q : ℕ) : Opening :=
 
 section Monadic
 
-variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
+variable {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
 
 /-- The leaf digests of the `2^height` rows of a matrix (`hash_words`). -/
 def leafDigestsM (height : ℕ) (word : Word) : m (Array Digest) :=
-  (Array.range (2 ^ height)).mapM fun i ↦ H ((word i).flatMap kBytes)
+  (Array.range (2 ^ height)).mapM fun i ↦ keccak256With F ((word i).flatMap kBytes)
 
 /-- The first `n` parents of a level: parent `j` hashes nodes `2j` and `2j + 1`
 (`hash_pair`). -/
 def parentsM (level : Array Digest) (n : ℕ) : m (Array Digest) :=
   (Array.range n).mapM fun j ↦
-    H (digestBytes (level.getD (2 * j) default) ++ digestBytes (level.getD (2 * j + 1) default))
+    keccak256With F
+      (digestBytes (level.getD (2 * j) default) ++ digestBytes (level.getD (2 * j + 1) default))
 
 /-- The levels of a tree from a level of `2^k` nodes up to the root. -/
 def levelsM : ℕ → Array Digest → m (List (Array Digest))
   | 0, level => pure [level]
   | k + 1, level => do
-    let up ← parentsM H level (2 ^ k)
+    let up ← parentsM F level (2 ^ k)
     let rest ← levelsM k up
     pure (level :: rest)
 
 /-- The Merkle tree of the `2^height` rows of a matrix. -/
 def buildTreeM (height : ℕ) (word : Word) : m Tree := do
-  let leaves ← leafDigestsM H height word
-  let levels ← levelsM H height leaves
+  let leaves ← leafDigestsM F height word
+  let levels ← levelsM F height leaves
   pure ⟨height, word, levels.toArray⟩
 
 /-! ## Proofs of work -/
@@ -156,7 +158,7 @@ end Script
 
 section Run
 
-variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
+variable {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
 
 /-- **The script `S` against the program `P`**, from the sponge `sp` and the trees `cs` committed
 so far: the scalars and the openings the proof holds from there on, or `none` if a proof-of-work
@@ -181,7 +183,7 @@ def runFrom (fuel : ℕ) {α β : Type} :
       let t ← runFrom fuel k (Script.afterGrind S) r.2 cs
       pure (t.map fun t ↦ (n :: t.1, t.2))
   | .commit ht _ k, S, sp, cs => do
-    let tree ← buildTreeM H ht (Script.wordOf S)
+    let tree ← buildTreeM F ht (Script.wordOf S)
     let sp0 ← absorb F sp (digestScalars tree.root).1 dsObserve
     let sp1 ← absorb F sp0 (digestScalars tree.root).2 dsObserve
     let r ← runFrom fuel k (Script.afterCommit S) sp1 (cs ++ [tree])
@@ -196,7 +198,7 @@ def runFrom (fuel : ℕ) {α β : Type} :
 /-- **A proof from a script**: the script run against the program from the seed, or the empty
 proof if a proof-of-work search finds no nonce below `fuel`. -/
 def runScript (P : Prog Bool) {β : Type} (S : Script β) (seed : KeccakState) (fuel : ℕ) : m Proof := do
-  let r ← runFrom H F fuel P (some S) ⟨seed, []⟩ []
+  let r ← runFrom F fuel P (some S) ⟨seed, []⟩ []
   pure ((r.map fun t ↦ (⟨t.1, t.2⟩ : Proof)).getD ⟨[], []⟩)
 
 end Run

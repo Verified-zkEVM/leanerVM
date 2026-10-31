@@ -1,6 +1,7 @@
 module
 
 public import Statement.RandomPermutation
+public import Statement.Fast.Keccak
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 public import VCVio.OracleComp.QueryTracking.WriterCost
@@ -8,7 +9,8 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 /-!
 # leanXMSS
 
-The leanXMSS scheme (key generation, signing, verification over a hash oracle `H`), the SUF-CMA
+The leanXMSS scheme (key generation, signing, verification, hashing with Keccak-256 over a
+permutation `π`), the SUF-CMA
 game of `Statement/RandomPermutation.lean` instantiated with it, and the end statement
 `LeanXmss.Rpm.LeanXmssStronglyUnforgeable`, proved by `XmssSecurity.leanXmss_rpm_security`
 (`lean_xmss`). Its budget `Q` counts the honest signer's permutation calls too, at their worst
@@ -32,8 +34,8 @@ WOTS+C one-time keys. Key `b` of the top tree signs the root of bottom tree `b`;
   `lo (4 bytes) || hi (3 bytes) || (type + 32 step) || 0^8`, then the payload. The top layer sets
   bit 23 of `hi`. A chain step's address carries the step but not the chain, whose index follows the
   value in the payload.
-* `H` is the leanVM hash, Keccak-256 on the bytes of its input, a query (`HashSpec`) the model
-  answers: in the end statement (the last section) Keccak-256 over the random permutation.
+* `H` is the leanVM hash, Keccak-256 on the bytes of its input, over a permutation `π` of the Keccak
+  state (`keccakHash`): in the end statement (the last section) the random permutation.
 * The secret key is a 32-byte seed `S_0`. Every secret derives from `S = H("leanXMSS" || S_0)`, all
   32 bytes, and the signer keeps `S`.
 * Signing a message `M` with key `e` of layer `l`: `R0 = Th(P, A_rnd(l, e), S || M)`, then the least
@@ -221,13 +223,12 @@ end Codeword
 /-! ### The algorithms
 
 `Concrete` contains the hash and verification routines; `Seeded` contains key generation and
-signing. Hashing routines work in any monad with access to `HashSpec`. -/
-
-/-- A hash query takes an arbitrary byte string and returns 32 bytes (the SUF-CMA game's
-`Common.SufCma.SchemeHashSpec`). -/
-abbrev HashSpec := HashInput →ₒ HashOutput
+signing. Hashing routines work over a permutation `π` of the Keccak state in any monad, the hash
+`H` being Keccak-256 over `π` (`keccakHash`). -/
 
 namespace Concrete
+
+open LeanVM.Semantics (KeccakState)
 
 /-- Run the `n` computations in index order and collect their results. -/
 def sequenceFin {m : Type → Type} [Monad m] {α : Type} {n : Nat}
@@ -274,29 +275,31 @@ def buildTree {m : Type → Type} [Monad m] (leaf : Nat → m Digest)
       let right ← buildTree leaf node l (2 * index + 1)
       node l index (nodePayload left right)
 
-variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
-/-- One query to the hash `H` (`HashSpec`), which the model answers. -/
-def oracleHash (input : HashInput) : m HashOutput :=
-  HasQuery.query (spec := HashSpec) (m := m) input
+/-- **The hash `H`**: Keccak-256 over the permutation `π` (`keccak256With`), its digest's 32 bytes
+read as a little-endian number (`Common.SufCma.digestBitVec`). -/
+def keccakHash (input : HashInput) : m HashOutput :=
+  (fun d ↦ Common.SufCma.digestBitVec d.toBytes) <$>
+    LeanVM.Protocol.KeccakHash.keccak256With π input
 
 /-- `Th(P, A, M) = Truncate_n(H(P || A || M))` (`th`, `tweak.rs`). -/
 def th (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) : m Digest := do
-  return truncateHash (← oracleHash (thInput parameter fields payload))
+  return truncateHash (← keccakHash π (thInput parameter fields payload))
 
 /-- `H(P || A || M)`, untruncated: two secrets for one hash (`th_pair`). -/
 def thPair (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) :
     m HashOutput :=
-  oracleHash (thInput parameter fields payload)
+  keccakHash π (thInput parameter fields payload)
 
 /-- `H(tag || S_0)`, all 32 bytes (`tagged_seed`): the seed `S` a scheme derives from. -/
 def taggedSeed (tag : HashInput) (seed : MasterSeed) : m MasterSeed :=
-  oracleHash (tag ++ bytesLE 32 seed)
+  keccakHash π (tag ++ bytesLE 32 seed)
 
 /-- The tweakable hash at a hash domain's address. -/
 abbrev tweakableHash (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :
     m Digest :=
-  th parameter (hashDomainFields domain) payload
+  th π parameter (hashDomainFields domain) payload
 
 /-! #### The one-time signature -/
 
@@ -307,12 +310,13 @@ def chainPayload (chainIdx : ChainIndex) (value : Digest) : HashInput :=
 /-- Chain `i` of a one-time key; the step leaving position `s` carries step `s`. -/
 def chainWalk (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
     (chainIdx : ChainIndex) : Nat → Nat → Digest → m Digest :=
-  walkChain fun step value ↦ tweakableHash parameter (.chain lay key step) (chainPayload chainIdx value)
+  walkChain fun step value ↦
+    tweakableHash π parameter (.chain lay key step) (chainPayload chainIdx value)
 
 /-- The verifier's half of a chain: walk the remaining `3 - x_i` steps. -/
 def recoverChain (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
     (chainIdx : ChainIndex) (digit : Digit) (value : Digest) : m Digest :=
-  chainWalk parameter lay key chainIdx digit.val (chainLength - 1 - digit.val) value
+  chainWalk π parameter lay key chainIdx digit.val (chainLength - 1 - digit.val) value
 
 /-- `pk_0 || ... || pk_{v-1}`. -/
 def leafPayload (endpoints : ChainIndex → Digest) : HashInput :=
@@ -321,22 +325,22 @@ def leafPayload (endpoints : ChainIndex → Digest) : HashInput :=
 /-- The one-time leaf: the hash of the `v` chain ends (`wots_leaf_hash`). -/
 def leafHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
     (endpoints : ChainIndex → Digest) : m Digest :=
-  tweakableHash parameter (.leaf lay key) (leafPayload endpoints)
+  tweakableHash π parameter (.leaf lay key) (leafPayload endpoints)
 
 /-- `D = Th(P, A_msg(l, e), M || rho)` (`message_digest`). -/
 def messageDigest (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
     (message : HashInput) (randomness : Randomness) : m Digest :=
-  tweakableHash parameter (.message lay key) (message ++ bytesLE 16 randomness)
+  tweakableHash π parameter (.message lay key) (message ++ bytesLE 16 randomness)
 
 /-- `Ots.leaf` (`wots_leaf`): the leaf a claimed one-time signature recovers, or nothing if its
 digest is not a codeword. -/
 def otsLeaf (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (message : HashInput)
     (randomness : Randomness) (values : ChainIndex → Digest) : m (Option Digest) := do
-  let digest ← messageDigest parameter lay key message randomness
+  let digest ← messageDigest π parameter lay key message randomness
   let some encoding := Codeword.decode digest | return none
   let endpoints ← sequenceFin fun chainIdx =>
-    recoverChain parameter lay key chainIdx (encoding chainIdx) (values chainIdx)
-  let value ← leafHash parameter lay key endpoints
+    recoverChain π parameter lay key chainIdx (encoding chainIdx) (values chainIdx)
+  let value ← leafHash π parameter lay key endpoints
   return some value
 
 /-! #### The trees -/
@@ -344,14 +348,14 @@ def otsLeaf (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (messag
 /-- `Tree.fold`: fold a key's leaf and path into its tree's root. -/
 def treeFold (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
     (path : Fin layerHeight → Digest) : Nat → Digest → m Digest :=
-  foldPath (fun level nodeIdx ↦ tweakableHash parameter (.node lay (level + 1) nodeIdx)) key.val
+  foldPath (fun level nodeIdx ↦ tweakableHash π parameter (.node lay (level + 1) nodeIdx)) key.val
     fun level ↦ if h : level < layerHeight then path ⟨level, h⟩ else 0
 
 /-- The root a layer's signature by key `e` reaches from `message`, or nothing (`layer_root`). -/
 def layerRoot (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (message : HashInput)
     (part : LayerSignature) : m (Option Digest) := do
-  let some leaf ← otsLeaf parameter lay key message part.randomness part.chainValues | return none
-  let root ← treeFold parameter lay key part.path layerHeight leaf
+  let some leaf ← otsLeaf π parameter lay key message part.randomness part.chainValues | return none
+  let root ← treeFold π parameter lay key part.path layerHeight leaf
   return some root
 
 /-! #### Verification -/
@@ -360,9 +364,9 @@ def layerRoot (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (mess
 root, and compare it with the public key. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
   let index := signature.leafIndex
-  let some bottomRoot ← layerRoot publicKey.parameter bottomLayer (keyAt index bottomLayer)
+  let some bottomRoot ← layerRoot π publicKey.parameter bottomLayer (keyAt index bottomLayer)
       (bytesLE 32 message) (signature.layers bottomLayer) | return false
-  let some root ← layerRoot publicKey.parameter topLayer (keyAt index topLayer)
+  let some root ← layerRoot π publicKey.parameter topLayer (keyAt index topLayer)
       (bytesLE 16 bottomRoot) (signature.layers topLayer) | return false
   return decide (root = publicKey.root)
 
@@ -376,27 +380,29 @@ noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
 namespace Seeded
 
 open Concrete
+open LeanVM.Semantics (KeccakState)
 
 /-- The signer's key: the scheme's seed `S` and the parameter. -/
 structure SecretKey where
   seed : MasterSeed
   parameter : PublicParameter
 
-variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-- `wots_secrets`: the starts of the `v` chains of a one-time key, from 29 seed derivations.
 Chains `2t` and `2t + 1` start at the two halves of derivation `t`. -/
 def otsSecrets (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (seed : MasterSeed) :
     m (ChainIndex → Digest) := do
   let outputs ← sequenceFin fun pair : ChainPair =>
-    thPair parameter (keygenDomainFields (.ots lay key pair)) (bytesLE 32 seed)
+    thPair π parameter (keygenDomainFields (.ots lay key pair)) (bytesLE 32 seed)
   return fun chainIdx => hashHalf chainIdx.val (outputs (chainPair chainIdx))
 
 /-- The chain ends of a one-time key. -/
 def oneTimePublicKey (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
     (seed : MasterSeed) : m (ChainIndex → Digest) := do
-  let secrets ← otsSecrets parameter lay key seed
-  sequenceFin fun chainIdx => chainWalk parameter lay key chainIdx 0 (chainLength - 1) (secrets chainIdx)
+  let secrets ← otsSecrets π parameter lay key seed
+  sequenceFin fun chainIdx =>
+    chainWalk π parameter lay key chainIdx 0 (chainLength - 1) (secrets chainIdx)
 
 /-- The randomizer trials `R0 + c, R0 + c + 1, ...`, stopping at the first codeword. -/
 def otsSignFrom (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (seed : MasterSeed)
@@ -405,12 +411,12 @@ def otsSignFrom (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (se
   | 0, _ => pure none
   | attempts + 1, trial => do
       let randomness := base + BitVec.ofNat digestBits trial
-      let digest ← messageDigest parameter lay key message randomness
+      let digest ← messageDigest π parameter lay key message randomness
       match Codeword.decode digest with
       | some encoding => do
-          let secrets ← otsSecrets parameter lay key seed
+          let secrets ← otsSecrets π parameter lay key seed
           let values ← sequenceFin fun chainIdx =>
-            chainWalk parameter lay key chainIdx 0 (encoding chainIdx).val (secrets chainIdx)
+            chainWalk π parameter lay key chainIdx 0 (encoding chainIdx).val (secrets chainIdx)
           return some (randomness, values)
       | none => otsSignFrom parameter lay key seed message base attempts (trial + 1)
 
@@ -418,36 +424,37 @@ def otsSignFrom (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (se
 def otsSign (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (seed : MasterSeed)
     (message : HashInput) : m (Option (Randomness × (ChainIndex → Digest))) := do
   -- `R0`, the randomizer base (`TWEAK_RANDOMIZER = 7`)
-  let base ← th parameter (tweakFields 7 0 (layerHi lay 0) key) (bytesLE 32 seed ++ message)
-  otsSignFrom parameter lay key seed message base randomizerAttemptLimit 0
+  let base ← th π parameter (tweakFields 7 0 (layerHi lay 0) key) (bytesLE 32 seed ++ message)
+  otsSignFrom π parameter lay key seed message base randomizerAttemptLimit 0
 
 /-- Node `nodeIdx` at tree level `level` of layer `l`, from the one-time keys below it. On the bottom
 layer node indices are global: node `j` at level `level` is in bottom tree `j / 2^(16 - level)`. -/
 def treeNode (parameter : PublicParameter) (lay : Layer) (seed : MasterSeed) : Nat → Nat → m Digest :=
   buildTree (fun nodeIdx ↦ do
       let key : KeyIndex := ⟨nodeIdx % lifetime, Nat.mod_lt _ (by decide)⟩
-      leafHash parameter lay key (← oneTimePublicKey parameter lay key seed))
-    fun level nodeIdx ↦ tweakableHash parameter (.node lay (level + 1) nodeIdx)
+      leafHash π parameter lay key (← oneTimePublicKey π parameter lay key seed))
+    fun level nodeIdx ↦ tweakableHash π parameter (.node lay (level + 1) nodeIdx)
 
 /-- The authentication path of key `e`: at level `level`, the sibling of `e / 2^level`. -/
 def treePath (parameter : PublicParameter) (lay : Layer) (seed : MasterSeed) (key : KeyIndex) :
     m (Fin layerHeight → Digest) :=
-  sequenceFin fun level => treeNode parameter lay seed level.val (Nat.xor (key.val / 2 ^ level.val) 1)
+  sequenceFin fun level =>
+    treeNode π parameter lay seed level.val (Nat.xor (key.val / 2 ^ level.val) 1)
 
 /-- `Gen` (`key_gen`): hash the key's seed `S_0` into `S`, derive the public parameter and build the
 top tree. -/
-def keygenFromSeed (keySeed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
-  let seed ← taggedSeed seedTag keySeed
-  let parameter ← th 0 (keygenDomainFields .parameter) (bytesLE 32 seed)
-  let root ← treeNode parameter topLayer seed layerHeight 0
+def keygenFromSeed (keySeed : MasterSeed) : m (PublicKey × SecretKey) := do
+  let seed ← taggedSeed π seedTag keySeed
+  let parameter ← th π 0 (keygenDomainFields .parameter) (bytesLE 32 seed)
+  let root ← treeNode π parameter topLayer seed layerHeight 0
   return (⟨root, parameter⟩, ⟨seed, parameter⟩)
 
 /-- One layer's signature by key `e` of `message`: the one-time signature and the path. -/
 def signLayer (secretKey : SecretKey) (lay : Layer) (key : KeyIndex) (message : HashInput) :
     m (Option LayerSignature) := do
-  let some (randomness, values) ← otsSign secretKey.parameter lay key secretKey.seed message
+  let some (randomness, values) ← otsSign π secretKey.parameter lay key secretKey.seed message
     | return none
-  let path ← treePath secretKey.parameter lay secretKey.seed key
+  let path ← treePath π secretKey.parameter lay secretKey.seed key
   return some ⟨randomness, values, path⟩
 
 /-- `Sign` at leaf index `idx`: the bottom key `idx` signs `m`, and the top key `idx / 2^16` signs the
@@ -455,9 +462,9 @@ root of bottom tree `idx / 2^16`. -/
 def sign (secretKey : SecretKey) (index : LeafIndex) (message : Message) : m (Option Signature) := do
   let bottomKey := keyAt index bottomLayer
   let topKey := keyAt index topLayer
-  let some bottom ← signLayer secretKey bottomLayer bottomKey (bytesLE 32 message) | return none
-  let bottomRoot ← treeNode secretKey.parameter bottomLayer secretKey.seed layerHeight topKey.val
-  let some top ← signLayer secretKey topLayer topKey (bytesLE 16 bottomRoot) | return none
+  let some bottom ← signLayer π secretKey bottomLayer bottomKey (bytesLE 32 message) | return none
+  let bottomRoot ← treeNode π secretKey.parameter bottomLayer secretKey.seed layerHeight topKey.val
+  let some top ← signLayer π secretKey topLayer topKey (bytesLE 16 bottomRoot) | return none
   return some ⟨index, fun lay => if lay = bottomLayer then bottom else top⟩
 
 end Seeded
@@ -493,15 +500,16 @@ namespace Rpm
 
 open Common Common.SufCma
 
-/-- leanXMSS in the generic SUF-CMA game: the seed, key generation, the signer of a request, the
-verifier, and the winning condition: a valid transcript without the forgery (`SignerReturned`). -/
+/-- leanXMSS in the generic SUF-CMA game, over `π` (`queryPermutation`): the seed, key generation,
+the signer of a request, the verifier,
+  and the winning condition: a valid transcript without the forgery (`SignerReturned`). -/
 noncomputable def scheme :
     Scheme MasterSeed PublicKey Seeded.SecretKey SignRequest (Option Signature)
       Forgery where
   sample := sampleMasterSeed
-  keygen := Seeded.keygenFromSeed
-  sign sk request := Seeded.sign (m := OracleComp HashSpec) sk request.leafIndex request.message
-  verify pk forgery := Concrete.verify (m := OracleComp HashSpec) pk forgery.message forgery.signature
+  keygen := Seeded.keygenFromSeed queryPermutation
+  sign sk request := Seeded.sign queryPermutation sk request.leafIndex request.message
+  verify pk forgery := Concrete.verify queryPermutation pk forgery.message forgery.signature
   win log forgery :=
     decide (SigningTranscript.Valid log ∧
       ¬SignerReturned SignRequest.message log forgery.message forgery.signature)

@@ -7,6 +7,7 @@
 -/
 
 import LeanVM.Protocol.LeanVMRpm
+import LeanVM.Protocol.WithHash
 
 /-!
 # The transfer, for any verifier

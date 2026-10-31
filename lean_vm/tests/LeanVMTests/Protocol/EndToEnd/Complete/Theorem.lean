@@ -1,5 +1,6 @@
 import LeanVM.Protocol.Verifier.Claims
 import LeanVM.Protocol.EndToEnd.Complete.Theorem
+import LeanVM.Protocol.WithHash
 
 /-!
 # Perfect completeness of the leanVM verifier: statement locks
@@ -92,9 +93,9 @@ example : ∀ (H : Bytes → Digest) (F : LeanVM.Semantics.KeccakState → LeanV
       (leanVmProgram (bytecodeWords prog) (publicDigest input)).after hist = some (.grind bits k) →
         findNonce F bits sp fuel ≠ none) →
     ∃ S π, prove H F (leanVmProgram (bytecodeWords prog) (publicDigest input)) S
-        (Id.run (seedWith (m := Id) H F (bytecodeWords prog) (publicDigest input))) fuel =
+        (Id.run (seedWithHash (m := Id) H F (bytecodeWords prog) (publicDigest input))) fuel =
           some π ∧
-      Id.run (verifyWith (m := Id) H F (bytecodeWords prog) (publicDigest input) π) = true :=
+      Id.run (verifyWithHash (m := Id) H F (bytecodeWords prog) (publicDigest input) π) = true :=
   exists_prove_verifyWith
 
 example : ∀ {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}

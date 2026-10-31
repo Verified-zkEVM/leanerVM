@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.Child.Fresh
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Refusing a zero challenge changes nothing where none is zero
@@ -172,37 +173,37 @@ theorem nz_program (ev : (List K → List E → Prog E)) (bytecode : List K) (pu
 /-- **With a permutation that never outputs a zero challenge, the runs agree.** -/
 theorem run_nz (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
     (hF : ∀ s, challengeOf (Id.run (F s)) ≠ 0) {α : Type} {p' p : Prog α} (h : NZ p' p) :
-    ∀ st : ProgState, Compile.run H F p' st = Compile.run H F p st := by
+    ∀ st : ProgState, Compile.runWithHash H F p' st = Compile.runWithHash H F p st := by
   induction h with
   | ret a => intro st; rfl
   | fail => intro st; rfl
   | read _ ih =>
     intro st
-    unfold Compile.run
+    unfold Compile.runWithHash
     cases st.stream with
     | nil => rfl
     | cons x xs => exact ih x _
   | sample _ ih =>
     intro st
-    unfold Compile.run
+    unfold Compile.runWithHash
     exact ih _ (hF _) _
   | grind _ ih =>
     intro st
-    unfold Compile.run
+    unfold Compile.runWithHash
     simp only [ih]
   | commit _ ih =>
     intro st
-    unfold Compile.run
+    unfold Compile.runWithHash
     simp only [ih]
   | query _ ih =>
     intro st
-    unfold Compile.run
+    unfold Compile.runWithHash
     simp only [ih]
 
 theorem runProof_nz (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
     (hF : ∀ s, challengeOf (Id.run (F s)) ≠ 0) {p' p : Prog Bool} (h : NZ p' p) (seed : KeccakState)
-    (π : Proof) : runProof H F p' seed π = runProof H F p seed π := by
-  unfold runProof
+    (π : Proof) : runProofWithHash H F p' seed π = runProofWithHash H F p seed π := by
+  unfold runProofWithHash
   rw [run_nz H F hF h]
 
 end

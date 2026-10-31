@@ -1,5 +1,7 @@
 import LeanDa.RpmArg
 import Common.PiOnly
+import Common.WithHash
+import LeanDa.WithHashBridge
 
 /-!
 # LeanDA's end theorems in the statement's model: `π` and `π⁻¹`, nothing else
@@ -98,14 +100,14 @@ theorem expand_pK (x : LeanVM.Semantics.KeccakState) : simulateQ expand (pK x) =
   simp [pK, expand, queryPermutation]
 
 theorem expand_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell)
-    (τ : Opening) : simulateQ expand (verifyCellM hK r com p x τ) = verifyCellM keccak256OverPermutation r com p x τ := by
+    (τ : Opening) : simulateQ expand (verifyCellMWithHash hK r com p x τ) = verifyCellMWithHash keccak256OverPermutation r com p x τ := by
   rw [verifyCellM_map (fun x ↦ simulateQ expand x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [expand_hK]
 
 theorem expand_relationM {r : ℕ} (root : Common.DigestBytes) (c : Fin (r * 128) → Cell) :
-    simulateQ expand (relationM hK pK root c) = relationM keccak256OverPermutation queryPermutation root c := by
-  simp only [relationM, simulateQ_bind, simulateQ_pure]
+    simulateQ expand (relationMWithHash hK pK root c) = relationMWithHash keccak256OverPermutation queryPermutation root c := by
+  simp only [relationMWithHash, simulateQ_bind, simulateQ_pure]
   rw [membershipChallengesM_map (fun x ↦ simulateQ expand x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _), commitCellsM_map (fun x ↦ simulateQ expand x)
     (fun _ ↦ simulateQ_pure _ _) (fun _ _ ↦ simulateQ_bind _ _ _)]
@@ -152,14 +154,14 @@ theorem expand_liftM_setup {β : Type} (p : ProbComp β) :
 
 /-- **The position-binding game is the game with the hash oracle, expanded.** -/
 theorem posBindingGame_eq_expand (A : PositionBindingAdversary r Crs Proof) :
-    positionBindingGame r ps A = simulateQ expand (posBindingGameH r (liftArg ps) (liftAdv A)) := by
-  simp only [positionBindingGame, posBindingGameH, simulateQ_bind, simulateQ_pure, expand_liftM_setup,
+    positionBindingGameWithHash r ps A = simulateQ expand (posBindingGameH r (liftArg ps) (liftAdv A)) := by
+  simp only [positionBindingGameWithHash, posBindingGameH, simulateQ_bind, simulateQ_pure, expand_liftM_setup,
     liftAdv, simulateQ_expand_embed, liftArg, expand_verifyCellM]
 
 /-- **The code-binding game is the game with the hash oracle, expanded.** -/
 theorem codeBindingGame_eq_expand (A : CodeBindingAdversary r Crs Proof) :
-    codeBindingGame r ps A = simulateQ expand (codeBindingGameH r (liftArg ps) (liftAdv A)) := by
-  simp only [codeBindingGame, codeBindingGameH, simulateQ_bind, simulateQ_pure, expand_liftM_setup,
+    codeBindingGameWithHash r ps A = simulateQ expand (codeBindingGameH r (liftArg ps) (liftAdv A)) := by
+  simp only [codeBindingGameWithHash, codeBindingGameH, simulateQ_bind, simulateQ_pure, expand_liftM_setup,
     liftAdv, simulateQ_expand_embed, liftArg]
   congr 1; funext crs; congr 1; funext out; congr 1; funext ok
   rw [mapM_map (fun x ↦ simulateQ expand x) (fun _ ↦ simulateQ_pure _ _)
@@ -169,8 +171,8 @@ theorem codeBindingGame_eq_expand (A : CodeBindingAdversary r Crs Proof) :
 /-- **The knowledge-soundness game is the game with the hash oracle, expanded**, against the
 adversary embedded, the extractor reading the transcript in the statement's model. -/
 theorem ksGame_eq_expand (B : KnowledgeSoundnessAdversary Crs Proof) :
-    knowledgeSoundnessGame r ps ext B = simulateQ expand (ksGameH r (liftArg ps) (liftExt ext) (liftAdv B)) := by
-  simp only [knowledgeSoundnessGame, ksGameH, simulateQ_bind, simulateQ_pure, expand_liftM_setup, liftAdv]
+    knowledgeSoundnessGameWithHash r ps ext B = simulateQ expand (ksGameH r (liftArg ps) (liftExt ext) (liftAdv B)) := by
+  simp only [knowledgeSoundnessGameWithHash, ksGameH, simulateQ_bind, simulateQ_pure, expand_liftM_setup, liftAdv]
   congr 1; funext crs
   have h := expand_loggedKH (B crs) []
   simp only [embedLog, List.map_nil] at h
@@ -186,12 +188,12 @@ end Games
 /-- **LeanDA is perfectly complete in the random-permutation model, for every permutation**
 (`PerfectlyCompleteRpm`): the argument with the hash oracle that never queries it
 (`liftArg`) is perfectly complete there, and has the same completeness experiment. -/
-theorem leanDa_perfectlyComplete_rpm : PerfectlyCompleteRpm := by
+theorem leanDa_perfectlyComplete_rpmWithHash : PerfectlyCompleteRpmWithHash := by
   intro r π Crs Proof ps hps msg p
   have h := leanDa_perfectlyComplete_rpmH r π (liftArg ps) (fun π crs hcrs stmt wit hrel ↦ by
     rw [simulateQ_permImplH_liftArg]
     exact hps π crs hcrs stmt wit hrel) msg p
-  have e : completenessExpRpmH r π (liftArg ps) msg p = completenessExperiment r π ps msg p := by
+  have e : completenessExpRpmH r π (liftArg ps) msg p = completenessExperimentWithHash r π ps msg p := by
     simp only [completenessExpRpmH, simulateQ_permImplH_liftArg]
     rfl
   rwa [e] at h
@@ -199,7 +201,7 @@ theorem leanDa_perfectlyComplete_rpm : PerfectlyCompleteRpm := by
 /-- **LeanDA is position binding in the random-permutation model** (`PositionBindingRpm`): the
 game is the game with the hash oracle, expanded, with the same distribution and the same
 permutation calls. -/
-theorem leanDa_positionBinding_rpm : PositionBindingRpm := by
+theorem leanDa_positionBinding_rpmWithHash : PositionBindingRpmWithHash := by
   intro r Crs Proof ps A Q hQ
   rw [posBindingGame_eq_expand, isWeightBound_expand_iff] at hQ
   rw [posBindingGame_eq_expand, runK_expand]
@@ -209,7 +211,7 @@ theorem leanDa_positionBinding_rpm : PositionBindingRpm := by
 it** (`CodeBindingRpm`): the game is the game with the hash oracle, expanded, and the knowledge
 soundness the proof uses, of the code-binding adversary's own game (`ksB`), is the statement's
 knowledge soundness of the same adversary (`ksGame_eq_expand`). -/
-theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm := by
+theorem leanDa_codeBinding_rpm_boundWithHash : CodeBindingRpmWithHash := by
   intro r Crs Proof ps ext c k hks _ hrM A Q hQ
   rw [codeBindingGame_eq_expand, isWeightBound_expand_iff] at hQ
   rw [codeBindingGame_eq_expand, runK_expand]
@@ -221,5 +223,22 @@ theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm := by
   rw [e, ← isWeightBound_expand_iff, ← ksGame_eq_expand] at hq
   rw [e, ← runK_expand, ← ksGame_eq_expand]
   exact hks _ q hq hq128
+
+/-! The statement's algorithms and games hash with Keccak-256 over the permutation, the forms with
+a hash so instantiated (`LeanDa.WithHashBridge`). -/
+
+/-- **LeanDA is perfectly complete in the random-permutation model, for every permutation**
+(`PerfectlyCompleteRpm`). -/
+theorem leanDa_perfectlyComplete_rpm : PerfectlyCompleteRpm :=
+  perfectlyCompleteRpm_of_withHash leanDa_perfectlyComplete_rpmWithHash
+
+/-- **LeanDA is position binding in the random-permutation model** (`PositionBindingRpm`). -/
+theorem leanDa_positionBinding_rpm : PositionBindingRpm :=
+  positionBindingRpm_of_withHash leanDa_positionBinding_rpmWithHash
+
+/-- **LeanDA is code binding in the random-permutation model, for an argument knowledge sound in
+it** (`CodeBindingRpm`). -/
+theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm :=
+  codeBindingRpm_of_withHash leanDa_codeBinding_rpm_boundWithHash
 
 end LeanDa

@@ -1,4 +1,5 @@
 import Sphincs.BridgeGroups
+import Common.WithHash
 
 /-! The forest potential of the scan signer `R = R0 + i`, for adversaries that never request a
 signature on the same message twice. A term with base function `f` is forecast by

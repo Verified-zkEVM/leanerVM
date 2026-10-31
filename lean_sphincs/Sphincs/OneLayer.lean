@@ -1,5 +1,7 @@
 import Sphincs.Layered
 import Statement.LeanSphincs
+import Common.WithHash
+import Sphincs.WithHash
 
 /-!
 # The statement's leanSPHINCS is the layered presentation
@@ -52,14 +54,14 @@ def mapAnswers (φ : Resp₁ → Resp₂) :
   | .inr r => φ <$> liftM ((RandomPermutationOracles + (Req →ₒ Resp₁)).query (.inr r))
 
 /-- The game's oracles: the permutation's queries lifted, the signing oracle logging. -/
-abbrev gameImpl {Resp F : Type} (S : Scheme Seed PK SK Req Resp F) (sk : SK) :=
+abbrev gameImpl {Resp F : Type} (S : SchemeWithHash Seed PK SK Req Resp F) (sk : SK) :=
   QueryImpl.ofLift RandomPermutationOracles (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp RandomPermutationOracles)) +
-    loggedSigningOracle S sk
+    loggedSigningOracleWithHash S sk
 
 /-- **The adversary's run, through the map**: run against the second scheme's oracles, an
 adversary's run is its run against the first's with the signing answers read through `φ`, the
 log read through `φ`. -/
-theorem run_gameImpl (S₁ : Scheme Seed PK SK Req Resp₁ F₁) (S₂ : Scheme Seed PK SK Req Resp₂ F₂)
+theorem run_gameImpl (S₁ : SchemeWithHash Seed PK SK Req Resp₁ F₁) (S₂ : SchemeWithHash Seed PK SK Req Resp₂ F₂)
     (φ : Resp₁ → Resp₂) (hsign : ∀ sk r, S₂.sign sk r = φ <$> S₁.sign sk r) (sk : SK) {α : Type}
     (oa : OracleComp (RandomPermutationOracles + (Req →ₒ Resp₂)) α) :
     (simulateQ (gameImpl S₂ sk) oa).run =
@@ -82,12 +84,12 @@ theorem run_gameImpl (S₁ : Scheme Seed PK SK Req Resp₁ F₁) (S₂ : Scheme 
       congr 1
     · have h₂ : (gameImpl S₂ sk (.inr r)).run = (fun u ↦ (u, [⟨r, u⟩])) <$>
           simulateQ (schemeHashOverPermutation) (S₂.sign sk r) := by
-        simp [gameImpl, loggedSigningOracle]
+        simp [gameImpl, loggedSigningOracleWithHash]
       have h₁ : (simulateQ (gameImpl S₁ sk) (mapAnswers φ (.inr r))).run =
           (fun u ↦ (φ u, [⟨r, u⟩])) <$> simulateQ (schemeHashOverPermutation) (S₁.sign sk r) := by
         have hs : (gameImpl S₁ sk (.inr r)).run =
             (fun u ↦ (u, [⟨r, u⟩])) <$> simulateQ (schemeHashOverPermutation) (S₁.sign sk r) := by
-          simp [gameImpl, loggedSigningOracle]
+          simp [gameImpl, loggedSigningOracleWithHash]
         simp only [mapAnswers, simulateQ_map, simulateQ_spec_query, WriterT.run_map']
         rw [hs, Functor.map_map]
         rfl
@@ -107,14 +109,14 @@ def mapAdversary (φ : Resp₁ → Resp₂) (ψ : F₂ → F₁) (main : PK → 
 first through `φ`, verifies a forgery as the first verifies it through `ψ`, and wins on a log read
 through `φ` as the first wins on the log with the forgery through `ψ`, the second scheme's game
 against `main` is the first's against `mapAdversary φ ψ main`. -/
-theorem rpmGame_eq (S₁ : Scheme Seed PK SK Req Resp₁ F₁) (S₂ : Scheme Seed PK SK Req Resp₂ F₂)
+theorem rpmGame_eq (S₁ : SchemeWithHash Seed PK SK Req Resp₁ F₁) (S₂ : SchemeWithHash Seed PK SK Req Resp₂ F₂)
     (φ : Resp₁ → Resp₂) (ψ : F₂ → F₁) (hsample : S₂.sample = S₁.sample)
     (hkeygen : S₂.keygen = S₁.keygen) (hsign : ∀ sk r, S₂.sign sk r = φ <$> S₁.sign sk r)
     (hverify : ∀ pk f, S₂.verify pk f = S₁.verify pk (ψ f))
     (hwin : ∀ log f, S₂.win (mapLog φ log) f = S₁.win log (ψ f))
     (main : PK → OracleComp (RandomPermutationOracles + (Req →ₒ Resp₂)) F₂) :
-    forgeryGame S₂ main = forgeryGame S₁ (mapAdversary φ ψ main) := by
-  unfold forgeryGame mapAdversary
+    forgeryGameWithHash S₂ main = forgeryGameWithHash S₁ (mapAdversary φ ψ main) := by
+  unfold forgeryGameWithHash mapAdversary
   rw [hsample, hkeygen]
   refine bind_congr fun seed ↦ bind_congr fun keys ↦ ?_
   rcases keys with ⟨pk, sk⟩
@@ -127,17 +129,17 @@ theorem rpmGame_eq (S₁ : Scheme Seed PK SK Req Resp₁ F₁) (S₂ : Scheme Se
 
 /-- **`StronglyUnforgeable` through the maps**: under the hypotheses of `rpmGame_eq`, the second scheme has
 the first's bits of security. -/
-theorem rpmSecure_of_map (S₁ : Scheme Seed PK SK Req Resp₁ F₁)
-    (S₂ : Scheme Seed PK SK Req Resp₂ F₂) (φ : Resp₁ → Resp₂) (ψ : F₂ → F₁)
+theorem rpmSecure_of_map (S₁ : SchemeWithHash Seed PK SK Req Resp₁ F₁)
+    (S₂ : SchemeWithHash Seed PK SK Req Resp₂ F₂) (φ : Resp₁ → Resp₂) (ψ : F₂ → F₁)
     (hsample : S₂.sample = S₁.sample) (hkeygen : S₂.keygen = S₁.keygen)
     (hsign : ∀ sk r, S₂.sign sk r = φ <$> S₁.sign sk r)
     (hverify : ∀ pk f, S₂.verify pk f = S₁.verify pk (ψ f))
     (hwin : ∀ log f, S₂.win (mapLog φ log) f = S₁.win log (ψ f)) {bits : ℕ}
-    (h : StronglyUnforgeable S₁ bits) : StronglyUnforgeable S₂ bits := by
+    (h : StronglyUnforgeableWithHash S₁ bits) : StronglyUnforgeableWithHash S₂ bits := by
   intro Q hQ main hbound
   have hgame := rpmGame_eq S₁ S₂ φ ψ hsample hkeygen hsign hverify hwin main
   rw [hgame] at hbound
-  unfold forgeryExperiment
+  unfold forgeryExperimentWithHash
   rw [hgame]
   exact h Q hQ _ hbound
 
@@ -151,13 +153,13 @@ theorem mapLog_id (log : QueryLog (Req →ₒ Resp₁)) : mapLog id log = log :=
 
 /-- **`StronglyUnforgeable` through bijections, both ways**: under the hypotheses of `rpmGame_eq` with `φ`
 and `ψ` bijections, the two schemes have the same bits of security. -/
-theorem rpmSecure_iff_of_equiv (S₁ : Scheme Seed PK SK Req Resp₁ F₁)
-    (S₂ : Scheme Seed PK SK Req Resp₂ F₂) (φ : Resp₁ ≃ Resp₂) (ψ : F₂ ≃ F₁)
+theorem rpmSecure_iff_of_equiv (S₁ : SchemeWithHash Seed PK SK Req Resp₁ F₁)
+    (S₂ : SchemeWithHash Seed PK SK Req Resp₂ F₂) (φ : Resp₁ ≃ Resp₂) (ψ : F₂ ≃ F₁)
     (hsample : S₂.sample = S₁.sample) (hkeygen : S₂.keygen = S₁.keygen)
     (hsign : ∀ sk r, S₂.sign sk r = φ <$> S₁.sign sk r)
     (hverify : ∀ pk f, S₂.verify pk f = S₁.verify pk (ψ f))
     (hwin : ∀ log f, S₂.win (mapLog φ log) f = S₁.win log (ψ f)) (bits : ℕ) :
-    StronglyUnforgeable S₂ bits ↔ StronglyUnforgeable S₁ bits := by
+    StronglyUnforgeableWithHash S₂ bits ↔ StronglyUnforgeableWithHash S₁ bits := by
   refine ⟨rpmSecure_of_map S₂ S₁ φ.symm ψ.symm hsample.symm hkeygen.symm ?_ ?_ ?_,
     rpmSecure_of_map S₁ S₂ φ ψ hsample hkeygen hsign hverify hwin⟩
   · intro sk r
@@ -264,7 +266,7 @@ theorem bind_map_congr {α β γ : Type} (g : α → β) (x : m α) (y : m β) (
 /-- The opening of a coordinate, through the bijection. -/
 theorem coordOpen_eq (parameter : PublicParameter) (index : Index) (c : Coord)
     (digest : MessageDigest) (seed : MasterSeed) :
-    Seeded.coordOpen (m := m) parameter index c (Concrete.digestMarks digest c) seed =
+    Seeded.coordOpenWithHash (m := m) parameter index c (Concrete.digestMarks digest c) seed =
       coordOpeningEquiv <$> SphincsLayered.Seeded.coordOpen parameter index c
         (SphincsLayered.Concrete.digestMarks digest c) seed := by
   refine Eq.trans ?_ (map_bind _ _ _).symm
@@ -277,7 +279,7 @@ theorem coordOpen_eq (parameter : PublicParameter) (index : Index) (c : Coord)
 /-- The forest opening, through the bijection. -/
 theorem forestOpen_eq (parameter : PublicParameter) (index : Index) (digest : MessageDigest)
     (seed : MasterSeed) :
-    Seeded.forestOpen (m := m) parameter index (Concrete.digestMarks digest) seed =
+    Seeded.forestOpenWithHash (m := m) parameter index (Concrete.digestMarks digest) seed =
       (fun opening ↦ coordOpeningEquiv ∘ opening) <$> SphincsLayered.Seeded.forestOpen parameter
         index (SphincsLayered.Concrete.digestMarks digest) seed :=
   (congrArg Concrete.sequenceFin
@@ -309,13 +311,13 @@ theorem otsSignFrom_eq (parameter : PublicParameter) (lay : SphincsLayered.Layer
     ∀ attempts counter,
       SphincsLayered.Seeded.otsSignFrom (m := m) parameter lay tree leaf seed message attempts
           counter =
-        Seeded.otsSignFrom parameter (ofLeaf leaf) seed (ofKey message) attempts counter := by
+        Seeded.otsSignFromWithHash parameter (ofLeaf leaf) seed (ofKey message) attempts counter := by
   intro attempts
   induction attempts with
   | zero => intro counter; rfl
   | succ attempts ih =>
     intro counter
-    rw [SphincsLayered.Seeded.otsSignFrom.eq_2, Seeded.otsSignFrom.eq_2]
+    rw [SphincsLayered.Seeded.otsSignFrom.eq_2, Seeded.otsSignFromWithHash.eq_2]
     refine bind_congr fun encoding ↦ ?_
     rcases encoding with _ | encoding
     · exact ih (counter + 1)
@@ -326,10 +328,10 @@ omit [LawfulMonad m] in
 theorem spineNode_eq [Params] (parameter : PublicParameter) (lay : SphincsLayered.Layer)
     (tree : SphincsLayered.TreeIndex) (seed : MasterSeed) :
     ∀ steps, SphincsLayered.Seeded.spineNode (m := m) parameter lay tree seed steps =
-      Seeded.spineNode parameter seed steps
+      Seeded.spineNodeWithHash parameter seed steps
   | 0 => rfl
   | steps + 1 => by
-    rw [SphincsLayered.Seeded.spineNode, Seeded.spineNode, spineNode_eq parameter lay tree seed steps]
+    rw [SphincsLayered.Seeded.spineNode, Seeded.spineNodeWithHash, spineNode_eq parameter lay tree seed steps]
     rfl
 
 omit [LawfulMonad m] in
@@ -372,9 +374,9 @@ theorem verify_layered (publicKey : PublicKey) (message : Message)
 
 /-- **The verifier, through the bijection.** -/
 theorem verify_eq (publicKey : PublicKey) (message : Message) (signature : Signature) :
-    Concrete.verify (m := m) publicKey message signature =
+    Concrete.verifyWithHash (m := m) publicKey message signature =
       SphincsLayered.Concrete.verify publicKey message (signatureEquiv.symm signature) := by
-  rw [verify_layered, Concrete.verify.eq_def]
+  rw [verify_layered, Concrete.verifyWithHash.eq_def]
   rfl
 
 variable [Params]
@@ -390,9 +392,9 @@ omit [LawfulMonad m] in
 /-- One grinding attempt, the same hash. -/
 theorem signAttempt_eq (secretKey : LeanXmss.Seeded.SecretKey) (message : Message)
     (randomness : Randomness) :
-    Seeded.signAttempt (m := m) secretKey message randomness =
+    Seeded.signAttemptWithHash (m := m) secretKey message randomness =
       SphincsLayered.Seeded.signAttempt secretKey message randomness := by
-  unfold Seeded.signAttempt SphincsLayered.Seeded.signAttempt
+  unfold Seeded.signAttemptWithHash SphincsLayered.Seeded.signAttempt
   refine congrArg₂ (· >>= ·) rfl (funext fun first ↦ ?_)
   rw [digestIndex_truncate]
   rfl
@@ -401,11 +403,11 @@ omit [LawfulMonad m] in
 /-- The grinding loop, the same hashes. -/
 theorem signDigestLoop_eq (secretKey : LeanXmss.Seeded.SecretKey) (message : Message) :
     ∀ attempts randomness,
-      Seeded.signDigestLoop (m := m) secretKey message attempts randomness =
+      Seeded.signDigestLoopWithHash (m := m) secretKey message attempts randomness =
         SphincsLayered.Seeded.signDigestLoop secretKey message attempts randomness
   | 0, _ => rfl
   | attempts + 1, randomness => by
-    rw [Seeded.signDigestLoop, SphincsLayered.Seeded.signDigestLoop, signAttempt_eq]
+    rw [Seeded.signDigestLoopWithHash, SphincsLayered.Seeded.signDigestLoop, signAttempt_eq]
     refine bind_congr fun found ↦ ?_
     rcases found with _ | index
     · exact signDigestLoop_eq secretKey message attempts (randomness + 1)
@@ -424,7 +426,7 @@ theorem sign_layered (secretKey : LeanXmss.Seeded.SecretKey) (message : Message)
       let opening ← SphincsLayered.Seeded.forestOpen secretKey.parameter index
         (SphincsLayered.Concrete.digestMarks digest) secretKey.seed
       let key ← SphincsLayered.Seeded.forestKey secretKey.parameter index secretKey.seed
-      let some (counter, values) ← Seeded.otsSignFrom secretKey.parameter (ofLeaf (toLeaf index))
+      let some (counter, values) ← Seeded.otsSignFromWithHash secretKey.parameter (ofLeaf (toLeaf index))
           secretKey.seed (ofKey key) SphincsLayered.encodingAttemptLimit 0 | return none
       let path ← SphincsLayered.Seeded.treePath secretKey.parameter SphincsLayered.topLayer 0
         secretKey.seed (toLeaf index)
@@ -447,10 +449,10 @@ theorem sign_layered (secretKey : LeanXmss.Seeded.SecretKey) (message : Message)
 
 /-- **The signer, through the bijection.** -/
 theorem sign_eq (secretKey : LeanXmss.Seeded.SecretKey) (message : Message) :
-    Seeded.sign (m := m) secretKey message =
+    Seeded.signWithHash (m := m) secretKey message =
       Option.map signatureEquiv <$> SphincsLayered.Seeded.sign secretKey message := by
-  rw [sign_layered, Seeded.sign]
-  simp only [signDigestLoop_eq, Seeded.otsSign, map_bind]
+  rw [sign_layered, Seeded.signWithHash]
+  simp only [signDigestLoop_eq, Seeded.otsSignWithHash, map_bind]
   refine bind_congr fun base ↦ bind_congr fun found ↦ ?_
   rcases found with _ | ⟨randomness, _⟩
   · simp
@@ -467,9 +469,9 @@ theorem sign_eq (secretKey : LeanXmss.Seeded.SecretKey) (message : Message) :
 
 /-- **Key generation, the same computation.** -/
 theorem keygenFromSeed_eq (seed : MasterSeed) :
-    Seeded.keygenFromSeed seed = SphincsLayered.Seeded.keygenFromSeed seed := by
-  simp only [Seeded.keygenFromSeed, SphincsLayered.Seeded.keygenFromSeed,
-    Seeded.keygenFromMaster, SphincsLayered.Seeded.keygenFromMaster, Seeded.treeRoot,
+    Seeded.keygenFromSeedWithHash seed = SphincsLayered.Seeded.keygenFromSeed seed := by
+  simp only [Seeded.keygenFromSeedWithHash, SphincsLayered.Seeded.keygenFromSeed,
+    Seeded.keygenFromMasterWithHash, SphincsLayered.Seeded.keygenFromMaster, Seeded.treeRootWithHash,
     SphincsLayered.Seeded.treeRoot]
   refine bind_congr fun master ↦ bind_congr fun parameter ↦ ?_
   have h := spineNode_eq (m := OracleComp HashSpec) parameter SphincsLayered.topLayer
@@ -480,9 +482,9 @@ theorem keygenFromSeed_eq (seed : MasterSeed) :
 
 /-- The winning condition, through the bijection. -/
 theorem win_eq (log : QueryLog SphincsLayered.SigningSpec) (forgery : Forgery) :
-    Rpm.scheme.win (mapLog (Option.map signatureEquiv) log) forgery =
+    Rpm.schemeWithHash.win (mapLog (Option.map signatureEquiv) log) forgery =
       SphincsLayered.Rpm.scheme.win log (forgeryEquiv.symm forgery) := by
-  simp only [Rpm.scheme, SphincsLayered.Rpm.scheme, decide_eq_decide]
+  simp only [Rpm.schemeWithHash, SphincsLayered.Rpm.scheme, decide_eq_decide]
   refine and_congr ?_ (not_congr ?_)
   · exact Iff.of_eq (congrArg (· ≤ signatureLimit)
       (by simp [mapLog] : (mapLog (Option.map signatureEquiv) log).length = log.length))
@@ -505,9 +507,9 @@ theorem win_eq (log : QueryLog SphincsLayered.SigningSpec) (forgery : Forgery) :
 /-- **The same game**: the statement's scheme has the layered scheme's bits of security, and
 conversely, through the bijection. -/
 theorem rpmSecure_iff (bits : ℕ) :
-    StronglyUnforgeable Rpm.scheme bits ↔
-      StronglyUnforgeable SphincsLayered.Rpm.scheme bits :=
-  rpmSecure_iff_of_equiv SphincsLayered.Rpm.scheme Rpm.scheme
+    StronglyUnforgeableWithHash Rpm.schemeWithHash bits ↔
+      StronglyUnforgeableWithHash SphincsLayered.Rpm.scheme bits :=
+  rpmSecure_iff_of_equiv SphincsLayered.Rpm.scheme Rpm.schemeWithHash
     (Equiv.optionCongr signatureEquiv) forgeryEquiv.symm rfl
     (funext keygenFromSeed_eq) (fun sk message ↦ sign_eq sk message)
     (fun pk forgery ↦ verify_eq pk forgery.message forgery.signature) win_eq bits
@@ -517,8 +519,8 @@ end Algorithms
 /-- **The end statement is the layered one**: at every lifetime, the statement's leanSPHINCS has
 `StronglyUnforgeable` at 127 bits exactly when the layered presentation has. -/
 theorem requestedSecurityRpm_iff :
-    Lifetimes.LeanSphincsStronglyUnforgeable ↔ SphincsLayered.Lifetimes.RequestedSecurityRpm := by
-  simp only [Lifetimes.LeanSphincsStronglyUnforgeable, List.mem_cons, List.not_mem_nil, or_false,
+    Lifetimes.LeanSphincsStronglyUnforgeableWithHash ↔ SphincsLayered.Lifetimes.RequestedSecurityRpm := by
+  simp only [Lifetimes.LeanSphincsStronglyUnforgeableWithHash, List.mem_cons, List.not_mem_nil, or_false,
     forall_eq_or_imp, forall_eq]
   exact and_congr (@rpmSecure_iff Lifetimes.full 127) <| and_congr (@rpmSecure_iff Lifetimes.pruned20 127) <|
     and_congr (@rpmSecure_iff Lifetimes.pruned14 127) <|

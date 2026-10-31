@@ -5,6 +5,7 @@ import Sphincs.SecuritySignatureWitness
 import Sphincs.SecurityDomains
 import Sphincs.Uniform
 import SphincsBase.Proof.Chains.PartialChainEndpoint
+import Common.WithHash
 
 /-!
 An exact candidate-byte oracle split for one hidden WOTS prefix. Adapted from leanVM's

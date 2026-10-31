@@ -1,4 +1,5 @@
 import Sphincs.BridgeDetInternalize
+import Common.WithHash
 
 /-! The graph-view cost program of the deterministic-randomizer game. The randomizer base
 `R0` of a message is read from a table `rnd` of full hash outputs indexed by message; its one

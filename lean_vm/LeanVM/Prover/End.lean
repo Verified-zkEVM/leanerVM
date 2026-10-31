@@ -6,6 +6,9 @@
 -/
 
 import LeanVM.Prover.Assemble
+import LeanVM.Protocol.WithHash
+import LeanVM.Guest.WithHash
+import LeanVM.Guest.ExperimentBridge
 
 /-!
 # The completeness end theorems
@@ -24,14 +27,22 @@ namespace LeanVM
 
 open LeanVM.Prover
 
+/-- Completeness in the experiment with the two calls, for the honest prover with them. -/
+theorem completenessWithHash_holds : CompletenessWithHash :=
+  completeness_of_spec LeanVM.proverWithHash specOnValid_prove_honest
+
 /-- **Completeness holds** (in the random-permutation model), for the honest prover
-`LeanVM.prover`. -/
+`LeanVM.prover`: its experiment is the one with the two calls (`completeness_of_withHash`). -/
 theorem completeness_holds : Completeness :=
-  completeness_of_spec LeanVM.prover specOnValid_prove_honest
+  completeness_of_withHash completenessWithHash_holds
+
+/-- Both parts of `GuestChildCompleteWithHash`, for the honest prover with the two calls. -/
+theorem Guest.Budget.guestChildCompleteWithHash_holds : Guest.Budget.GuestChildCompleteWithHash :=
+  guestChildComplete_of_spec LeanVM.proverWithHash specOnValid_prove childSpec_prove
 
 /-- **The honest prover's proofs of guest executions are children the guest accepts**: both parts
 of `GuestChildComplete` for `LeanVM.prover`. -/
 theorem Guest.Budget.guest_child_complete : Guest.Budget.GuestChildComplete :=
-  guestChildComplete_of_spec LeanVM.prover specOnValid_prove childSpec_prove
+  Guest.Budget.guestChildComplete_of_withHash Guest.Budget.guestChildCompleteWithHash_holds
 
 end LeanVM

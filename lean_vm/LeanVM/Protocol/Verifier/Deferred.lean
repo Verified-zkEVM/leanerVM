@@ -10,6 +10,8 @@ module
 
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Compile.Prog
+public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.WithHashBridge
 
 /-!
 # The deferring verifier, its claims true
@@ -130,20 +132,20 @@ variable (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
 
 /-- A refining program's successful run is the refined program's. -/
 theorem run_of_le {α : Type} {p q : Prog α} (hpq : Prog.Le p q) :
-    ∀ {s : ProgState} {r : α × ProgState}, run H F p s = some r → run H F q s = some r := by
+    ∀ {s : ProgState} {r : α × ProgState}, runWithHash H F p s = some r → runWithHash H F q s = some r := by
   induction hpq with
-  | fail q => intro s r h; simp [run] at h
+  | fail q => intro s r h; simp [runWithHash] at h
   | ret a => intro s r h; exact h
   | read _ ih =>
     intro s r h
-    simp only [run] at h ⊢
+    simp only [runWithHash] at h ⊢
     split at h
     · simp at h
     · next x xs hs => exact ih x h
-  | sample _ ih => intro s r h; simp only [run] at h ⊢; exact ih _ h
+  | sample _ ih => intro s r h; simp only [runWithHash] at h ⊢; exact ih _ h
   | grind bits _ ih =>
     intro s r h
-    simp only [run] at h ⊢
+    simp only [runWithHash] at h ⊢
     split at h
     · simp at h
     · next n xs hs =>
@@ -154,7 +156,7 @@ theorem run_of_le {α : Type} {p q : Prog α} (hpq : Prog.Le p q) :
       · simp at h
   | commit height width _ ih =>
     intro s r h
-    simp only [run] at h ⊢
+    simp only [runWithHash] at h ⊢
     split at h
     · next x0 x1 xs hs =>
       change (match digestOfScalars (x0, x1) with | some root => _ | none => _) = _ at h
@@ -165,13 +167,13 @@ theorem run_of_le {α : Type} {p q : Prog α} (hpq : Prog.Le p q) :
     · simp at h
   | query i ps _ ih =>
     intro s r h
-    simp only [run] at h ⊢
+    simp only [runWithHash] at h ⊢
     split at h
     · simp at h
     · next root height width hr =>
-      change (match openAll H root height width ps s.openings with
+      change (match openAllWithHash H root height width ps s.openings with
         | some (rows, rest) => _ | none => _) = _ at h
-      change (match openAll H root height width ps s.openings with
+      change (match openAllWithHash H root height width ps s.openings with
         | some (rows, rest) => _ | none => _) = _
       split at h
       · next rows rest ho => exact ih rows h
@@ -179,10 +181,10 @@ theorem run_of_le {α : Type} {p q : Prog α} (hpq : Prog.Le p q) :
 
 /-- A refining program's accepted proof is the refined program's. -/
 theorem runProof_of_le {P Q : Prog Bool} (hPQ : Prog.Le P Q) {seed : KeccakState} {π : Proof}
-    (h : runProof H F P seed π = true) : runProof H F Q seed π = true := by
-  unfold runProof at h ⊢
+    (h : runProofWithHash H F P seed π = true) : runProofWithHash H F Q seed π = true := by
+  unfold runProofWithHash at h ⊢
   revert h
-  match hr : run H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
+  match hr : runWithHash H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
   | some (true, s) => rw [run_of_le H F hPQ hr]; exact id
   | some (false, _) => intro h; simp at h
   | none => intro h; simp at h
@@ -263,6 +265,7 @@ theorem verify_of_verifyDeferred {bytecode : List K} {publicInput : Digest} {c :
   have hle : Prog.Le (deferredProgram c bytecode publicInput) (leanVmProgram bytecode publicInput) := by
     rw [deferredProgram_eq, leanVmProgram_eq]
     exact .bind (verifyExecution_le (claimed_le_computed hc) publicInput) fun _ ↦ .refl _
+  rw [verifyDeferred_eq_withHash] at h
   exact runProof_of_le keccak256 keccakF1600 hle h
 
 end

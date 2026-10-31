@@ -1,6 +1,7 @@
 import Sphincs.BridgeShort
 import Sphincs.SecuritySeedCoupling
 import Sphincs.SecurityPreparedScheme
+import Common.WithHash
 
 /-! Long adversarial hash inputs are simulated privately by the adversary. No honest party or
 verifier queries an input longer than 1056 bytes, so the adversary can answer its long inputs from

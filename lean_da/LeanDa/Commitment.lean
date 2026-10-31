@@ -1,4 +1,5 @@
 import LeanDa.Merkle
+import LeanDa.WithHash
 
 /-!
 # The deployed commitment is the model's
@@ -20,27 +21,27 @@ variable (H : List UInt8 → Common.DigestBytes)
 /-! ## Trees built level by level -/
 
 theorem treeLevel_map_range (d : ℕ) (f : ℕ → Common.DigestBytes) :
-    treeLevel H ((List.range (2 ^ (d + 1))).map f) = (List.range (2 ^ d)).map (up H f) := by
+    treeLevelWithHash H ((List.range (2 ^ (d + 1))).map f) = (List.range (2 ^ d)).map (upWithHash H f) := by
   have hlen : 2 ^ (d + 1) / 2 = 2 ^ d := by rw [pow_succ, Nat.mul_div_cancel _ (by norm_num)]
-  rw [treeLevel, List.length_map, List.length_range, hlen]
+  rw [treeLevelWithHash, List.length_map, List.length_range, hlen]
   refine List.map_congr_left fun i hi ↦ ?_
   rw [List.mem_range] at hi
   have h1 : 2 * i < 2 ^ (d + 1) := by rw [pow_succ]; omega
   have h2 : 2 * i + 1 < 2 ^ (d + 1) := by rw [pow_succ]; omega
-  simp only [up, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range h1,
+  simp only [upWithHash, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range h1,
     List.getElem?_range h2, Option.map_some, Option.getD_some]
 
 /-- **A tree built level by level has the model's root.** -/
 theorem treeRoot_map_range (d : ℕ) (f : ℕ → Common.DigestBytes) :
-    treeRoot H ((List.range (2 ^ d)).map f) = merkleRoot H d f := by
+    treeRootWithHash H ((List.range (2 ^ d)).map f) = merkleRootWithHash H d f := by
   induction d generalizing f with
-  | zero => rw [treeRoot]; simp [merkleRoot]
+  | zero => rw [treeRootWithHash]; simp [merkleRootWithHash]
   | succ d ih =>
     have hlen : ¬((List.range (2 ^ (d + 1))).map f).length ≤ 1 := by
       rw [List.length_map, List.length_range, pow_succ]
       have := Nat.one_le_two_pow (n := d)
       omega
-    rw [treeRoot]
+    rw [treeRootWithHash]
     simp only [hlen, ↓reduceIte]
     rw [treeLevel_map_range, ih]
     rfl
@@ -82,12 +83,12 @@ theorem listCell_eq {row : List K} (hrow : row.length = 2 ^ logM) {j : ℕ} (hj 
 
 /-- The digest of a cell of a codeword is the model's. -/
 theorem listCellDigest_eq {row : List K} (hrow : row.length = 2 ^ logM) {j : ℕ} (hj : j < 128) :
-    listCellDigest H row j = cellDigest H fun s : Fin 256 ↦ row.getD (256 * j + s) 0 := by
-  rw [listCellDigest, listCell_eq hrow hj]
+    listCellDigestWithHash H row j = cellDigestWithHash H fun s : Fin 256 ↦ row.getD (256 * j + s) 0 := by
+  rw [listCellDigestWithHash, listCell_eq hrow hj]
   rfl
 
-theorem paddingCell_eq : paddingCell H = cellDigest H 0 := by
-  rw [paddingCell, cellDigest, cellBytes, show (0 : Cell) = fun _ ↦ 0 from rfl, List.ofFn_const]
+theorem paddingCell_eq : paddingCellWithHash H = cellDigestWithHash H 0 := by
+  rw [paddingCellWithHash, cellDigestWithHash, cellBytes, show (0 : Cell) = fun _ ↦ 0 from rfl, List.ofFn_const]
   rfl
 
 theorem paddedCell_cellsOfRows (rows : List (List K)) {i j : ℕ} (hi : i < rows.length)
@@ -103,9 +104,9 @@ theorem paddedCell_cellsOfRows_of_le (rows : List (List K)) {i : ℕ} (hi : rows
   simp only [paddedCell, show ¬(i < rows.length ∧ j < 128) from fun h ↦ by omega, ↓reduceDIte]
 
 theorem rowDigest_eq {rows : List (List K)} (hrows : ∀ row ∈ rows, row.length = 2 ^ logM)
-    {i : ℕ} (hi : i < rows.length) : rowDigest H rows[i] = rowLeaves H (cellsOfRows rows) i := by
-  rw [rowDigest, rowLeaves, ofFn_eq_map_range (n := 64)
-    (fun j ↦ cellDigest H (paddedCell (cellsOfRows rows) i j)), List.flatMap_map, payloadCells]
+    {i : ℕ} (hi : i < rows.length) : rowDigestWithHash H rows[i] = rowLeavesWithHash H (cellsOfRows rows) i := by
+  rw [rowDigestWithHash, rowLeavesWithHash, ofFn_eq_map_range (n := 64)
+    (fun j ↦ cellDigestWithHash H (paddedCell (cellsOfRows rows) i j)), List.flatMap_map, payloadCells]
   congr 1
   rw [List.flatMap_def, List.flatMap_def]
   congr 1
@@ -115,13 +116,13 @@ theorem rowDigest_eq {rows : List (List K)} (hrows : ∀ row ∈ rows, row.lengt
     paddedCell_cellsOfRows rows hi (by omega)]
 
 theorem paddingRow_eq {rows : List (List K)} {i : ℕ} (hi : rows.length ≤ i) :
-    paddingRow H = rowLeaves H (cellsOfRows rows) i := by
-  simp only [paddingRow, rowLeaves, paddedCell_cellsOfRows_of_le rows hi, paddingCell_eq,
+    paddingRowWithHash H = rowLeavesWithHash H (cellsOfRows rows) i := by
+  simp only [paddingRowWithHash, rowLeavesWithHash, paddedCell_cellsOfRows_of_le rows hi, paddingCell_eq,
     List.ofFn_const, payloadCells]
 
 theorem rowLeaves_eq (rows : List (List K)) (hrows : ∀ row ∈ rows, row.length = 2 ^ logM) :
-    rows.map (rowDigest H) ++ List.replicate (nPad rows.length - rows.length) (paddingRow H) =
-      (List.range (2 ^ logPad rows.length)).map (rowLeaves H (cellsOfRows rows)) := by
+    rows.map (rowDigestWithHash H) ++ List.replicate (nPad rows.length - rows.length) (paddingRowWithHash H) =
+      (List.range (2 ^ logPad rows.length)).map (rowLeavesWithHash H (cellsOfRows rows)) := by
   have hle := le_nPad rows.length
   change _ = (List.range (nPad rows.length)).map _
   refine List.ext_getElem (by simp only [List.length_append, List.length_map,
@@ -134,15 +135,15 @@ theorem rowLeaves_eq (rows : List (List K)) (hrows : ∀ row ∈ rows, row.lengt
 
 theorem colLeaves_eq (rows : List (List K)) (hrows : ∀ row ∈ rows, row.length = 2 ^ logM) :
     ((List.range cellsPerRow).flatMap fun j ↦ (List.range (nPad rows.length)).map fun i ↦
-        if h : i < rows.length then listCellDigest H rows[i] j else paddingCell H) =
-      (List.range (2 ^ (7 + logPad rows.length))).map (colLeaves H (cellsOfRows rows)) := by
+        if h : i < rows.length then listCellDigestWithHash H rows[i] j else paddingCellWithHash H) =
+      (List.range (2 ^ (7 + logPad rows.length))).map (colLeavesWithHash H (cellsOfRows rows)) := by
   have hpos : 0 < nPad rows.length := by unfold nPad; positivity
   rw [flatMap_range_map_range _ _ hpos, cellsPerRow, show 2 ^ (7 + logPad rows.length) =
     128 * nPad rows.length by rw [pow_add]; rfl]
   refine List.map_congr_left fun l hl ↦ ?_
   rw [List.mem_range] at hl
   have hj : l / nPad rows.length < 128 := (Nat.div_lt_iff_lt_mul hpos).mpr hl
-  rw [colLeaves]
+  rw [colLeavesWithHash]
   split_ifs with hi
   · rw [listCellDigest_eq H (hrows _ (List.getElem_mem hi)) hj, paddedCell_cellsOfRows rows hi hj]
   · rw [paddedCell_cellsOfRows_of_le rows (by omega), paddingCell_eq]
@@ -153,8 +154,8 @@ theorem colLeaves_eq (rows : List (List K)) (hrows : ∀ row ∈ rows, row.lengt
 is `commitCells` of the matrix they form. -/
 theorem commitCodewords_eq_commitCells (rows : List (List K))
     (hrows : ∀ row ∈ rows, row.length = 2 ^ logM) :
-    commitCodewords H rows = commitCells H (cellsOfRows rows) := by
-  rw [commitCodewords, commitCells, rowRoot, colRoot, rowLeaves_eq H rows hrows,
+    commitCodewordsWithHash H rows = commitCellsWithHash H (cellsOfRows rows) := by
+  rw [commitCodewordsWithHash, commitCellsWithHash, rowRootWithHash, colRootWithHash, rowLeaves_eq H rows hrows,
     colLeaves_eq H rows hrows, treeRoot_map_range, treeRoot_map_range]
 
 end LeanDa

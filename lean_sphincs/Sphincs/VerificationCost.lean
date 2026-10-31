@@ -1,6 +1,7 @@
 import Sphincs.Layout
 import Sphincs.Code
 import Sphincs.Correctness
+import Common.WithHash
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -59,7 +60,7 @@ theorem permutations_bind {α β : Type} (f : QueryImpl HashSpec Id)
   simp [permutations, hashTrace_bind]
 
 @[simp] theorem permutations_oracleHash (f : QueryImpl HashSpec Id) (input : HashInput) :
-    permutations f (oracleHash input : OracleComp HashSpec HashOutput) = blocks input.length := rfl
+    permutations f (oracleHashWithHash input : OracleComp HashSpec HashOutput) = blocks input.length := rfl
 
 theorem tweakableHashInput_length (parameter : PublicParameter) (domain : HashDomain)
     (payload : HashInput) :

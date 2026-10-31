@@ -1,5 +1,6 @@
 import Sphincs.SecurityReferenceChoice
 import Sphincs.SecurityGraphCache
+import Common.WithHash
 
 /-! The canonical encoding reference search queries only rejected trials and its one exempt
 successful trial. So no queried input of the search hits its structural target, including under

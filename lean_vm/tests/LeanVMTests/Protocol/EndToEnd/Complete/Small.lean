@@ -1,5 +1,6 @@
 import LeanVM.Protocol.EndToEnd.Complete.Statement
 import LeanVMTests.Arithmetization.Completeness.Fixture
+import LeanVM.Protocol.WithHash
 
 /-!
 # Completeness within the budget, locked
@@ -35,7 +36,7 @@ example {prog : Program} {input : PublicInput} {t : Execution prog}
 example (H : Bytes → Digest) (F : KeccakState → KeccakState) {prog : Program} {input : PublicInput}
     {t : Execution prog} {ρ fuel : ℕ} {proof : Proof}
     (h : honestProofOf H F prog input t ρ fuel = some proof) :
-    verifyWith (m := Id) H F (bytecodeWords prog) (publicDigest input) proof = true :=
+    verifyWithHash (m := Id) H F (bytecodeWords prog) (publicDigest input) proof = true :=
   verify_honestProofOf H F h
 
 example {prog : Program} {input : PublicInput} {t : Execution prog} {ρ : ℕ}

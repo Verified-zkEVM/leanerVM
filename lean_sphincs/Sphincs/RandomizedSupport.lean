@@ -1,5 +1,6 @@
 import Sphincs.RandomizedCorrectness
 import Sphincs.RandomizedDigest
+import Common.WithHash
 
 /-!
 Support-level correctness of the independently randomized signer in the lazy random-oracle model.

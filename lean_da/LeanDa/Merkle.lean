@@ -1,5 +1,6 @@
 import LeanDa.Scheme
 import LeanDa.Defs
+import LeanDa.WithHash
 
 /-!
 # The Merkle commitment to the cells
@@ -68,15 +69,15 @@ theorem cellBytes_injective : Function.Injective cellBytes := by
 /-! ## Completeness -/
 
 theorem walk_merklePath (d : ℕ) (f : ℕ → Common.DigestBytes) (idx : ℕ) (h : idx < 2 ^ d) :
-    walk H idx (f idx) (merklePath H d f idx) = merkleRoot H d f := by
+    walk H idx (f idx) (merklePathWithHash H d f idx) = merkleRootWithHash H d f := by
   induction d generalizing f idx with
   | zero =>
     obtain rfl : idx = 0 := by simpa using h
     rfl
   | succ d ih =>
-    rw [merklePath, walk, merkleRoot, ← ih (up H f) (idx / 2) (by rw [pow_succ] at h; omega)]
+    rw [merklePathWithHash, walk, merkleRootWithHash, ← ih (upWithHash H f) (idx / 2) (by rw [pow_succ] at h; omega)]
     congr 1
-    unfold up sibling
+    unfold upWithHash sibling
     rcases Nat.mod_two_eq_zero_or_one idx with h2 | h2
     · simp only [h2, ↓reduceIte]
       rw [show 2 * (idx / 2) = idx by omega]
@@ -85,15 +86,15 @@ theorem walk_merklePath (d : ℕ) (f : ℕ → Common.DigestBytes) (idx : ℕ) (
       rw [show 2 * (idx / 2) + 1 = idx by omega, show 2 * (idx / 2) = idx - 1 by omega]
 
 theorem length_merklePath (d : ℕ) (f : ℕ → Common.DigestBytes) (idx : ℕ) :
-    (merklePath H d f idx).length = d := by
+    (merklePathWithHash H d f idx).length = d := by
   induction d generalizing f idx with
   | zero => rfl
-  | succ d ih => simp [merklePath, ih]
+  | succ d ih => simp [merklePathWithHash, ih]
 
 theorem le_nPad (r : ℕ) : r ≤ nPad r := Nat.le_pow_clog (by norm_num) r
 
 theorem colLeaves_colIndex {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
-    colLeaves H c (colIndex p) = cellDigest H (c p) := by
+    colLeavesWithHash H c (colIndex p) = cellDigestWithHash H (c p) := by
   have hr := le_nPad r
   have hrow : (posRow p : ℕ) < nPad r := lt_of_lt_of_le (posRow p).isLt hr
   have hmod : colIndex p % nPad r = posRow p := by
@@ -103,7 +104,7 @@ theorem colLeaves_colIndex {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 
       Nat.div_eq_of_lt hrow, Nat.zero_add]
   have h1 : (posRow p : ℕ) < r := (posRow p).isLt
   have h2 : (posCell p : ℕ) < 128 := (posCell p).isLt
-  rw [colLeaves, hmod, hdiv]
+  rw [colLeavesWithHash, hmod, hdiv]
   simp only [paddedCell, h1, h2, and_self, ↓reduceDIte]
   congr 2
   apply Fin.ext
@@ -119,10 +120,10 @@ theorem colIndex_lt {r : ℕ} (p : Fin (r * 128)) : colIndex p < 2 ^ (7 + logPad
 
 /-- **An honest opening verifies.** -/
 theorem verifyCell_openCell {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
-    verifyCell H r (commitCells H c) p (c p) (openCell H c p) = true := by
+    verifyCell H r (commitCellsWithHash H c) p (c p) (openCellWithHash H c p) = true := by
   simp only [verifyCell, Bool.and_eq_true, decide_eq_true_eq]
   refine ⟨length_merklePath H _ _ _, ?_⟩
-  simp only [openCell]
+  simp only [openCellWithHash]
   rw [← colLeaves_colIndex H c p, walk_merklePath H _ _ _ (colIndex_lt p)]
   rfl
 

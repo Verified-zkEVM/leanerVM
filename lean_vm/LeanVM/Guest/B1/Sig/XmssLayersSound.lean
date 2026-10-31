@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Sig.XmssSound
+public import Common.WithHash
+public import LeanVM.Guest.WithHash
 
 /-!
 # The layers, sound
@@ -43,7 +45,7 @@ theorem xLayer_snd (layer b : Nat) (root : V) : (xLayer layer b root).2 = (xMk l
 theorem xmss_sound0 {rest : List Stmt} {next : Prop}
     (h : Stmt.HoldsList C rd σ (xPrologue ++ ((xLayer 0 196 (.n 0)).1 ++ rest)) next kret) :
     Stmt.HoldsList C rd σ rest next kret ∧ XPre σ ∧ PadOK σ xPad ∧
-      @LeanXmss.Concrete.layerRoot Id _ ⟨Node.keccakBits⟩ (xpp (σ (.n 1))) ⟨0, by decide⟩
+      @LeanXmss.Concrete.layerRootWithHash Id _ ⟨Node.keccakBits⟩ (xpp (σ (.n 1))) ⟨0, by decide⟩
         (LeanXmss.keyAt ⟨xLeaf σ, xLeaf_lt σ⟩ ⟨0, by decide⟩)
         (LeanXmss.bytesLE 32 (cellPairVal (σ (.n 199)) (σ (.n 200)))) (xPart 0 196 σ) =
         some (xv (σ (xLayer 0 196 (.n 0)).2.2)) := by
@@ -82,7 +84,7 @@ theorem xmss_sound0 {rest : List Stmt} {next : Prop}
 theorem xmss_sound1 (hpre : XPre σ) (hpad : PadOK σ xPad) {b : Nat} {root : V} {rest : List Stmt}
     {next : Prop} (h : Stmt.HoldsList C rd σ ((xLayer 1 b root).1 ++ rest) next kret) :
     Stmt.HoldsList C rd σ rest next kret ∧
-      @LeanXmss.Concrete.layerRoot Id _ ⟨Node.keccakBits⟩ (xpp (σ (.n 1))) ⟨1, by decide⟩
+      @LeanXmss.Concrete.layerRootWithHash Id _ ⟨Node.keccakBits⟩ (xpp (σ (.n 1))) ⟨1, by decide⟩
         (LeanXmss.keyAt ⟨xLeaf σ, xLeaf_lt σ⟩ ⟨1, by decide⟩) (LeanXmss.bytesLE 16 (xv (σ root)))
         (xPart 1 b σ) = some (xv (σ (xLayer 1 b root).2.2)) := by
   have hL := xLeaf_lt σ

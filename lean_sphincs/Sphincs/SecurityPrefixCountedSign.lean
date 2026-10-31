@@ -1,4 +1,5 @@
 import Sphincs.SecurityPrefixCost
+import Common.WithHash
 
 /-! Counting the hash queries of lifted hash computations: on a fixed answer function, counting
 returns the value together with its `hashCalls`; and the signer with its cost evaluated on the

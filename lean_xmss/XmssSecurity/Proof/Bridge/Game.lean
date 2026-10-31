@@ -1,5 +1,6 @@
 import XmssSecurity.Proof.Bridge.Signer
 import XmssSecurity.Proof.Deterministic.TranscriptReduction
+import Common.WithHash
 
 /-!
 # The real game as the model's
@@ -133,7 +134,7 @@ noncomputable def realRest (adversary : LeanXmss.Security.Adversary) (publicKey 
     (simulateQ (QueryImpl.ofLift LeanXmss.OracleWorld
       (WriterT (QueryLog LeanXmss.SigningSpec) (OracleComp LeanXmss.OracleWorld)) +
         LeanXmss.Security.signingOracle secretKey) (adversary.main publicKey)).run
-  let verified ← liftM (LeanXmss.Concrete.verify publicKey forgery.message forgery.signature :
+  let verified ← liftM (LeanXmss.Concrete.verifyWithHash publicKey forgery.message forgery.signature :
     OracleComp LeanXmss.HashSpec Bool)
   return decide (LeanXmss.SigningTranscript.Valid log ∧ ¬LeanXmss.SigningTranscript.Contains log forgery) &&
     verified
@@ -141,7 +142,7 @@ noncomputable def realRest (adversary : LeanXmss.Security.Adversary) (publicKey 
 theorem gameCore_eq (adversary : LeanXmss.Security.Adversary) :
     LeanXmss.Security.gameCore adversary = (do
       let seed ← liftM LeanXmss.sampleMasterSeed
-      let keys ← liftM (LeanXmss.Seeded.keygenFromSeed seed)
+      let keys ← liftM (LeanXmss.Seeded.keygenFromSeedWithHash seed)
       realRest adversary keys.1 keys.2) := rfl
 
 namespace Prepared
@@ -177,7 +178,7 @@ theorem erases_oracles (h : Prepared seed d result cache) (input : (LeanXmss.Ora
           OracleComp OracleWorld _))
         (fun u => (pure (u, [(⟨request, u⟩ : (r : LeanXmss.SignRequest) × Option LeanXmss.Signature)]) :
           OracleComp OracleWorld _)) fun u => .pure _
-      convert key using 1 <;> try rfl
+      convert key using 1
       simp only [liftM_hash_map, map_bind, bind_map_left, map_pure, Prod.map_apply, id_eq, List.map_cons,
         List.map_nil]
       rfl

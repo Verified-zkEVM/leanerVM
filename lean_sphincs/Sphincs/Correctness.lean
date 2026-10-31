@@ -1,4 +1,5 @@
 import Sphincs.Pruning
+import Common.WithHash
 
 /-! Signer/verifier correctness for the one-layer candidate and every pruned subtree. -/
 

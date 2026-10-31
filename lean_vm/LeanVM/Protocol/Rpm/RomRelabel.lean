@@ -10,6 +10,7 @@
 import LeanVM.Protocol.Rpm.Game
 import Common.Lemmas
 import Common.RomComm
+import LeanVM.Protocol.WithHash
 
 /-!
 # Relabelling the random oracles

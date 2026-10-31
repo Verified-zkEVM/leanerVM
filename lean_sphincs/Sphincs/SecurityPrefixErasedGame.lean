@@ -1,4 +1,5 @@
 import Sphincs.SecurityPrefixErasedKeygen
+import Common.WithHash
 
 /-! The fixed-function cost world (`fixedWorldCost`: private draws are free, hash queries cost one
 each), and how mapping the base monad commutes with query logging and with lifting. -/

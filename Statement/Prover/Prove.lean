@@ -13,10 +13,10 @@ public import Statement.Prover.Whir
 /-!
 # The honest prover
 
-`LeanVM.Prover.prove H F prog input t ρ fuel`: leanVM's honest prover, with the hash `H` and the
-permutation `F` in any monad. With Keccak-256 and Keccak-f[1600] in `Id` it is the executable
-(`lake exe leanvm-prove`); with the oracle calls `callKeccak256`, `callKeccakF1600` it is the prover the
-completeness statements name (`LeanVm.lean`, `LeanVmGuest.lean`).
+`LeanVM.Prover.prove F prog input t ρ fuel`: leanVM's honest prover over the permutation `F` in any
+monad, Keccak-256 the sponge over `F`. With Keccak-f[1600] in `Id` it is the executable
+(`lake exe leanvm-prove`); with the model's permutation (`Common.queryPermutation`) it is the
+prover the completeness statements name (`LeanVm.lean`, `LeanVmGuest.lean`).
 
 From the trace it computes the witness (`witness?`: one run of the program; `none` unless the
 trace is a valid execution on the input within `2^28` committed cells), and, at a valid rate
@@ -25,7 +25,7 @@ announced, the stack committed (its codeword by the additive transform, `stackWo
 the bus (`busFast`), the table sumcheck (`tableFast`), the public input (`pubFast`), the Keccak
 reduction (`keccakPhaseProve`), ring switching (`ringFast`) and the stacked opening
 (`openingFast`). Otherwise the proof is empty. Its only search is the proof-of-work nonce search,
-bounded by `fuel`; nothing branches on a hash or permutation answer except through the
+bounded by `fuel`; nothing branches on a permutation answer except through the
 challenges the verifier's program samples.
 -/
 
@@ -54,8 +54,8 @@ def honestScript (W : Witness) (layout : Layout) (ρ : ℕ) : Script Unit :=
 /-- **leanVM's honest prover.** The proof of the execution `t` of `prog` on `input` at the rate
 `2^-ρ`, trying `fuel` nonces per proof of work; the empty proof for a trace that is no valid
 execution within the cap, an invalid rate, or a proof-of-work search that finds no nonce. -/
-def prove {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
-    (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) : m Proof :=
+def prove {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState) (prog : Program)
+    (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) : m Proof :=
   match witness? prog input t with
   | none => pure ⟨[], []⟩
   | some W =>
@@ -63,8 +63,8 @@ def prove {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakStat
       match buildLayout (bytecodeWords prog) W.logMem W.rows with
       | none => pure ⟨[], []⟩
       | some layout => do
-        let seed ← seedWith H F (bytecodeWords prog) (publicDigest input)
-        runScript H F (leanVmProgram (bytecodeWords prog) (publicDigest input))
+        let seed ← seedWith F (bytecodeWords prog) (publicDigest input)
+        runScript F (leanVmProgram (bytecodeWords prog) (publicDigest input))
           (honestScript W layout ρ) seed fuel
     else pure ⟨[], []⟩
 

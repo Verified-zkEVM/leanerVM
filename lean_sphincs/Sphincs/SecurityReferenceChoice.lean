@@ -1,4 +1,5 @@
 import Sphincs.SecurityPrefixSignLayer
+import Common.WithHash
 
 /-! A valid WOTS reference exists even when the canonical FORS-key encoding search fails.
 The failure branch uses a fixed valid dummy word and has no exempt encoding input. -/

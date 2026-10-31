@@ -2,6 +2,7 @@ import Sphincs.Code
 import Sphincs.Counter
 import Sphincs.Decay
 import Sphincs.Uniform
+import Common.WithHash
 
 /-!
 # What one encoding trial rejects

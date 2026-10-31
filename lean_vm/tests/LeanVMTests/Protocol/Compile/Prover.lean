@@ -1,4 +1,5 @@
 import LeanVM.Protocol.Compile.Prover
+import LeanVM.Protocol.WithHash
 
 /-!
 # Honest prover tests
@@ -61,7 +62,7 @@ def proof? : Option Proof := prove keccak256 keccakF1600 (prog 3) strat seed 100
 
 /-- Accept a possibly missing proof. -/
 def accepts (bits : ℕ) : Option Proof → Bool
-  | some π => runProof (m := Id) keccak256 keccakF1600 (prog bits) seed π
+  | some π => runProofWithHash (m := Id) keccak256 keccakF1600 (prog bits) seed π
   | none => false
 
 #guard proof?.isSome
@@ -71,7 +72,7 @@ def accepts (bits : ℕ) : Option Proof → Bool
 
 /-- Completeness at Keccak: every proof the prover produces is accepted. -/
 theorem proof_accepted {π : Proof} (h : proof? = some π) :
-    runProof (m := Id) keccak256 keccakF1600 (prog 3) seed π = true :=
+    runProofWithHash (m := Id) keccak256 keccakF1600 (prog 3) seed π = true :=
   runProof_prove keccak256 keccakF1600 (prog 3) strat seed 1000 (complete 3) (shaped 3) h
 
 /-! ## The nonce is the smallest that passes -/

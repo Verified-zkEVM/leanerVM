@@ -1,5 +1,6 @@
 import Sphincs.SecurityPrefixSignLayer
 import Sphincs.SecurityPrefixExecution
+import Common.WithHash
 
 /-! Hash-only evaluation inside the private-sampling interpreter is deterministic, and the hash-only
 signature assembly that receives only the selected chain frontier (`publicFinishSign`). -/

@@ -11,6 +11,7 @@ module
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Common.Run
 public import LeanVM.Guest.B1.Whir.Interface
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Runs of the stacked opening (TRIAGE G #42)
@@ -95,8 +96,8 @@ theorem runsWith_commitP (s : Fs) (x0 x1 : E) {d : Digest} (hd : digestOfScalars
 theorem openAll_eq (root : Digest) (height width : ℕ) :
     ∀ (ps : List ℕ) (os : List Opening) (orest : List Opening), os.length = ps.length →
       (∀ k (hk : k < ps.length) (ho : k < os.length),
-        Id.run (Compile.openOne (m := Id) keccak256 root height width ps[k] os[k]) = true) →
-      Id.run (Compile.openAll (m := Id) keccak256 root height width ps (os ++ orest)) =
+        Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width ps[k] os[k]) = true) →
+      Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps (os ++ orest)) =
         some (os.map (·.leaf), orest)
   | [], [], _, _, _ => rfl
   | [], _ :: _, _, h, _ => by simp at h
@@ -106,7 +107,7 @@ theorem openAll_eq (root : Digest) (height width : ℕ) :
     simp only [List.getElem_cons_zero] at h0
     have ih := openAll_eq root height width qs os orest (by simpa using hl)
       (fun k hk ho ↦ hok (k + 1) (by simpa using hk) (by simpa using ho))
-    simp only [List.cons_append, Compile.openAll, Id.run] at h0 ih ⊢
+    simp only [List.cons_append, Compile.openAllWithHash, Id.run] at h0 ih ⊢
     simp only [bind, h0, ↓reduceIte, ih, Option.map_some, List.map_cons]
     rfl
 
@@ -116,13 +117,13 @@ theorem runsWith_queryP (s : Fs) (roots : List (Digest × ℕ × ℕ)) {i : ℕ}
     {height width : ℕ} (hi : roots[i]? = some (root, height, width)) (ps : List ℕ)
     (os : List Opening) (hl : os.length = ps.length)
     (hok : ∀ k (hk : k < ps.length) (ho : k < os.length),
-      Id.run (Compile.openOne (m := Id) keccak256 root height width ps[k] os[k]) = true) :
+      Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width ps[k] os[k]) = true) :
     RunsWith (Prog.queryOpenings i ps) s [] os roots (os.map (·.leaf)) s roots := by
   intro sp hs rest orest
   refine ⟨sp, hs, ?_⟩
   have := openAll_eq root height width ps os orest hl hok
   simp only [Id.run] at this
-  simp only [runId, Prog.queryOpenings, Compile.run, hi, List.nil_append, bind, this]
+  simp only [runId, Prog.queryOpenings, Compile.runWithHash, hi, List.nil_append, bind, this]
   rfl
 
 /-! ## A level of `whirLevelsOpen` -/

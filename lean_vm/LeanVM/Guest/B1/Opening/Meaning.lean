@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Sponge
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The stacked WHIR opening's helpers: meanings (TRIAGE G #35-38)
@@ -147,7 +148,7 @@ def opening_row_weights_Spec : Prop :=
 
 /-- `climb` (V:492) at the deployed hash: the node a path reaches. -/
 def climbD (leaf : Digest) (q : ℕ) (sibs : List Digest) : Digest :=
-  Id.run (Compile.climb (m := Id) keccak256 leaf q sibs)
+  Id.run (Compile.climbWithHash (m := Id) keccak256 leaf q sibs)
 
 /-- The row's `E` word `j`: the `K` word `j` at level 0 (`base = 1`), else the three limbs from
 `3j` (`extRow`, V:1686). -/

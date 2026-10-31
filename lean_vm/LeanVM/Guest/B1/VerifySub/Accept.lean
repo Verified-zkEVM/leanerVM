@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.Split
 public import LeanVM.Guest.B1.Whir.Run
+public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.WithHashBridge
 
 /-!
 # Acceptance from the phases' runs
@@ -102,7 +104,8 @@ theorem deferred_accepts {bytecode : List K} {seed pi : Digest} {c : BytecodeCla
   obtain ⟨sp, -, hsp⟩ := hrun ⟨keccakF1600 (seedInput seed pi), []⟩ hs0 [] []
   simp only [List.append_nil] at hsp
   rw [← deferred_eq] at hsp
-  simp only [verifyDeferred, verifyDeferredWith, Compile.runProof]
+  rw [verifyDeferred_eq_withHash]
+  simp only [verifyDeferredWithHash, Compile.runProofWithHash]
   simp only [runId] at hsp
   exact congrArg (fun o : Option (Bool × ProgState) ↦ match o with
     | some (true, s) => (s.stream.isEmpty && s.openings.isEmpty : Bool)

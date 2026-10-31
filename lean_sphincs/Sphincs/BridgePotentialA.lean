@@ -1,6 +1,7 @@
 import Sphincs.BridgeImplicationA
 import Sphincs.BridgeLinear
 import Sphincs.BridgeTargeting
+import Common.WithHash
 
 /-! A linear potential on the interpreted comparison for small budgets. Guesses and first-order
 hits pay one unit per query. The WOTS second-order events (two edges into the frontier, a

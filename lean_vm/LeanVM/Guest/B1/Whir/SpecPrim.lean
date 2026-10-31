@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.RunF
 public import LeanVM.Guest.B1.Whir.Positions
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Primitive steps, backwards
@@ -77,7 +78,7 @@ theorem runF_queryP_bind {i : ℕ} {ps : List ℕ} {k : List (List K) → Prog �
     (h : runF ((Prog.queryOpenings i ps).bind k) ⟨F, xs, os, R⟩ = some r) :
     ∃ (root : Digest) (height width : ℕ) (rows : List (List K)) (rest : List Opening),
       R[i]? = some (root, height, width) ∧
-      Id.run (Compile.openAll (m := Id) keccak256 root height width ps os) = some (rows, rest) ∧
+      Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps os) = some (rows, rest) ∧
       runF (k rows) ⟨F, xs, rest, R⟩ = some r := by
   simp only [Prog.queryOpenings, Prog.bind, runF] at h
   split at h

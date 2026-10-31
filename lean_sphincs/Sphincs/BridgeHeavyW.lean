@@ -1,5 +1,6 @@
 import Sphincs.BridgeHeavy
 import Sphincs.BridgeSatWFors
+import Common.WithHash
 
 /-! The survival-weighted one-coin forest potential of the scan signer with one heavy message. Every
 term of the potential is a `termH`: the live message that received more than half of the budget, if

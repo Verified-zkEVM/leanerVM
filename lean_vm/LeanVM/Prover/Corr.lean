@@ -9,6 +9,7 @@ module
 
 public import Statement.Prover.Run
 public import LeanVM.Protocol.Whir.Complete.Script
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Scripts that make the same moves
@@ -199,24 +200,24 @@ variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState
 theorem runFrom_ocorr (fuel : ℕ) {γ : Type} :
     ∀ (P : Prog γ) (S₁ : Option (Script α)) (S₂ : Option (Script β)) (sp : Sponge)
       (cs : List Tree), OCorr R S₁ S₂ →
-      runFrom H F fuel P S₁ sp cs = runFrom H F fuel P S₂ sp cs := by
+      runFromWithHash H F fuel P S₁ sp cs = runFromWithHash H F fuel P S₂ sp cs := by
   intro P
   induction P with
   | ret a => intros; rfl
   | fail => intros; rfl
   | read k ih =>
     intro S₁ S₂ sp cs h
-    simp only [runFrom, h.msgOf]
+    simp only [runFromWithHash, h.msgOf]
     congr 1; funext sp'; congr 1
     exact ih _ _ _ _ _ h.after.1
   | sample k ih =>
     intro S₁ S₂ sp cs h
-    simp only [runFrom]
+    simp only [runFromWithHash]
     congr 1; funext r
     exact ih _ _ _ _ _ (h.after.2.1 r.1)
   | grind b k ih =>
     intro S₁ S₂ sp cs h
-    simp only [runFrom]
+    simp only [runFromWithHash]
     congr 1; funext o
     rcases o with _ | n
     · rfl
@@ -225,12 +226,12 @@ theorem runFrom_ocorr (fuel : ℕ) {γ : Type} :
       exact ih _ _ _ _ h.after.2.2.1
   | commit ht w k ih =>
     intro S₁ S₂ sp cs h
-    simp only [runFrom, h.wordOf]
+    simp only [runFromWithHash, h.wordOf]
     congr 1; funext tree; congr 1; funext sp0; congr 1; funext sp1; congr 1
     exact ih _ _ _ _ h.after.2.2.2.1
   | query i ps k ih =>
     intro S₁ S₂ sp cs h
-    simp only [runFrom]
+    simp only [runFromWithHash]
     split
     · rfl
     · congr 1
@@ -239,14 +240,14 @@ theorem runFrom_ocorr (fuel : ℕ) {γ : Type} :
 /-- **Scripts that make the same moves give the same proof.** -/
 theorem runFrom_corr (fuel : ℕ) {γ : Type} (P : Prog γ) {H₁ : Script α} {H₂ : Script β}
     (h : Corr R H₁ H₂) (sp : Sponge) (cs : List Tree) :
-    runFrom H F fuel P (some H₁) sp cs = runFrom H F fuel P (some H₂) sp cs :=
+    runFromWithHash H F fuel P (some H₁) sp cs = runFromWithHash H F fuel P (some H₂) sp cs :=
   runFrom_ocorr H F fuel P _ _ sp cs h
 
 /-- **Scripts that make the same moves give the same proof**, from a seed. -/
 theorem runScript_corr (fuel : ℕ) (P : Prog Bool) {H₁ : Script α} {H₂ : Script β}
     (h : Corr R H₁ H₂) (seed : KeccakState) :
-    runScript H F P H₁ seed fuel = runScript H F P H₂ seed fuel := by
-  simp only [runScript, runFrom_corr H F fuel P h]
+    runScriptWithHash H F P H₁ seed fuel = runScriptWithHash H F P H₂ seed fuel := by
+  simp only [runScriptWithHash, runFrom_corr H F fuel P h]
 
 end Run
 

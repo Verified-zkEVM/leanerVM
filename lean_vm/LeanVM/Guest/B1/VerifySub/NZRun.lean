@@ -11,6 +11,9 @@ module
 public import LeanVM.Guest.B1.Whir.SpecNZ
 public import LeanVM.Guest.B1.Tables.RunF
 public import LeanVM.Guest.Limits
+public import LeanVM.Protocol.WithHashBridge
+public import LeanVM.Guest.WithHashBridge
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Carried runs, for completeness
@@ -90,7 +93,7 @@ theorem runF_eq_runT {α : Type} (p : Prog α) : ∀ st : Whir.FSt,
     | some v =>
       obtain ⟨root, height, width⟩ := v
       simp only
-      cases ho : Id.run (Compile.openAll (m := Id) keccak256 root height width ps os) with
+      cases ho : Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps os) with
       | none =>
         simp only [Option.map_none]
       | some v' =>
@@ -189,8 +192,8 @@ theorem queriesOf_eq_steps {α : Type} (p : Prog α) : ∀ (st : Whir.FSt) (sp :
     | none => rfl
     | some v =>
       obtain ⟨root, height, width⟩ := v
-      simp only
-      cases ho : Id.run (Compile.openAll (m := Id) keccak256 root height width ps os) with
+      simp only [Compile.openAll_eq_withHash, keccak256With_keccakF1600]
+      cases ho : Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps os) with
       | none => rfl
       | some v' =>
         obtain ⟨rows, rest⟩ := v'
@@ -198,7 +201,9 @@ theorem queriesOf_eq_steps {α : Type} (p : Prog α) : ∀ (st : Whir.FSt) (sp :
 
 /-- G7's agreement of a query step's openings is B1-b's. -/
 theorem batchAgrees_of {d : ℕ} {qs : List (ℕ × Opening)} (h : Limits.OpeningsAgree d qs) :
-    Whir.BatchAgrees d qs := h
+    Whir.BatchAgrees d qs := by
+  simp only [Limits.OpeningsAgree, Limits.OpeningGivesNode, Guest.Limits.climbTo_eq_withHash] at h
+  exact h
 
 end
 end LeanVM.Guest.B1.VerifySub

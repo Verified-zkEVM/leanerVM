@@ -1,5 +1,6 @@
 import LeanVM.Protocol.Compile.Rom.Sound
 import LeanVM.Protocol.Compile.Cost
+import LeanVM.Protocol.WithHash
 
 /-!
 # Random-oracle theorem tests
@@ -239,7 +240,7 @@ example : powOk 70 0 (E.ofLimbs 0 0 0) = true := by
 
 /-- Extraction from no answers gives the zero row of the width. -/
 example (r : Digest) (ht w p : ℕ) : extract (lookH []) r ht w p = List.replicate w 0 := by
-  have : ¬ ∃ o : Opening, openOne (m := Option) (lookH []) r ht w p o = some true := by
+  have : ¬ ∃ o : Opening, openOneWithHash (m := Option) (lookH []) r ht w p o = some true := by
     rintro ⟨o, ho⟩
     obtain ⟨-, -, ld, hld, -⟩ := (openOne_eq_some_true_iff _ _ _ _ _ _).mp ho
     simp at hld

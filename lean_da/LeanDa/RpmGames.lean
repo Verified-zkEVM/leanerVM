@@ -1,6 +1,7 @@
 import LeanDa.RpmScheme
 import Common.Rerun
 import LeanDa.HashOracle
+import LeanDa.WithHash
 
 /-!
 # The games of the statement in the two-oracle form
@@ -63,21 +64,21 @@ theorem absorbM_map (s : Sponge) (x : E) (tag : K) :
 
 /-- **The challenges' sponge through a monad morphism.** -/
 theorem membershipChallengesM_map (root : Common.DigestBytes) :
-    φ (membershipChallengesM H P root) =
-      membershipChallengesM (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) root := by
-  simp only [membershipChallengesM, Sponge.fromLabelM, Sponge.newM, Sponge.observeM, hbind,
+    φ (membershipChallengesMWithHash H P root) =
+      membershipChallengesMWithHash (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) root := by
+  simp only [membershipChallengesMWithHash, Sponge.fromLabelMWithHash, Sponge.newM, Sponge.observeM, hbind,
     hpure, absorbM_map φ hpure hbind P, samplesM_map φ hpure hbind P, bind_assoc]
 
 theorem walkM_map (idx : ℕ) (node : Common.DigestBytes) (path : List Common.DigestBytes) :
-    φ (walkM H idx node path) = walkM (fun a ↦ φ (H a)) idx node path := by
+    φ (walkMWithHash H idx node path) = walkMWithHash (fun a ↦ φ (H a)) idx node path := by
   induction path generalizing idx node with
   | nil => exact hpure _
   | cons s rest ih =>
-    simp only [walkM, hbind, ih]
+    simp only [walkMWithHash, hbind, ih]
 
 theorem verifyCellM_map (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
-    φ (verifyCellM H r com p x τ) = verifyCellM (fun a ↦ φ (H a)) r com p x τ := by
-  simp only [verifyCellM, hbind, hpure, walkM_map φ hpure hbind]
+    φ (verifyCellMWithHash H r com p x τ) = verifyCellMWithHash (fun a ↦ φ (H a)) r com p x τ := by
+  simp only [verifyCellMWithHash, hbind, hpure, walkM_map φ hpure hbind]
 
 theorem mapM_map {β γ : Type} (f : β → m γ) (l : List β) :
     φ (l.mapM f) = l.mapM fun b ↦ φ (f b) := by
@@ -86,22 +87,22 @@ theorem mapM_map {β γ : Type} (f : β → m γ) (l : List β) :
   | cons b l ih => simp only [List.mapM_cons, hbind, ih, hpure]
 
 theorem merkleRootM_map (d : ℕ) : ∀ f : ℕ → m Common.DigestBytes,
-    φ (merkleRootM H d f) = merkleRootM (fun a ↦ φ (H a)) d fun i ↦ φ (f i) := by
+    φ (merkleRootMWithHash H d f) = merkleRootMWithHash (fun a ↦ φ (H a)) d fun i ↦ φ (f i) := by
   induction d with
   | zero => intro f; rfl
   | succ d ih =>
     intro f
-    simp only [merkleRootM, ih]
+    simp only [merkleRootMWithHash, ih]
     congr 1
     funext i
-    simp only [upM, hbind]
+    simp only [upMWithHash, hbind]
 
 /-- **The commitment through a monad morphism.** -/
 theorem commitCellsM_map {r : ℕ} (c : Fin (r * 128) → Cell) :
-    φ (commitCellsM H c) = commitCellsM (fun a ↦ φ (H a)) c := by
-  simp only [commitCellsM, rowRootM, colRootM, hbind, merkleRootM_map φ hpure hbind]
+    φ (commitCellsMWithHash H c) = commitCellsMWithHash (fun a ↦ φ (H a)) c := by
+  simp only [commitCellsMWithHash, rowRootMWithHash, colRootMWithHash, hbind, merkleRootM_map φ hpure hbind]
   congr 1
-  congr 1; funext i; simp only [rowLeavesM, hbind, mapM_map φ hpure hbind]
+  congr 1; funext i; simp only [rowLeavesMWithHash, hbind, mapM_map φ hpure hbind]
 
 /-- **The verification through a monad morphism.** -/
 theorem verifyRpm_map (r : ℕ) {Crs Proof : Type}
@@ -140,7 +141,7 @@ theorem toK_verifyRpm (r : ℕ) {Crs Proof : Type}
   simp only [toK_hR, toK_pR]
 
 theorem toK_commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) :
-    simulateQ toK (commitCellsM hR c) = commitCellsM hKB c := by
+    simulateQ toK (commitCellsMWithHash hR c) = commitCellsMWithHash hKB c := by
   rw [commitCellsM_map (fun x ↦ simulateQ toK x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [toK_hR]
@@ -210,19 +211,19 @@ theorem relabel_pK (x : Lanes) : simulateQ relabel (pK x) = pKB x := by
   rfl
 
 theorem relabel_commitCellsM (c : Fin (r * 128) → Cell) :
-    simulateQ relabel (commitCellsM hK c) = commitCellsM hKB c := by
+    simulateQ relabel (commitCellsMWithHash hK c) = commitCellsMWithHash hKB c := by
   rw [commitCellsM_map (fun x ↦ simulateQ relabel x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [relabel_hK]
 
 theorem relabel_verifyCellM (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
-    simulateQ relabel (verifyCellM hK r com p x τ) = verifyCellM hKB r com p x τ := by
+    simulateQ relabel (verifyCellMWithHash hK r com p x τ) = verifyCellMWithHash hKB r com p x τ := by
   rw [verifyCellM_map (fun x ↦ simulateQ relabel x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [relabel_hK]
 
 theorem relabel_membershipChallengesM (root : Common.DigestBytes) :
-    simulateQ relabel (membershipChallengesM hK pK root) = membershipChallengesM hKB pKB root := by
+    simulateQ relabel (membershipChallengesMWithHash hK pK root) = membershipChallengesMWithHash hKB pKB root := by
   rw [membershipChallengesM_map (fun x ↦ simulateQ relabel x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [relabel_hK, relabel_pK]

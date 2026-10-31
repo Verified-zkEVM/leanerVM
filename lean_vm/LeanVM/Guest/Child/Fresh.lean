@@ -11,6 +11,7 @@ module
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.LimitsNZ
 public import LeanVM.Protocol.Verifier.Deferred
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The claims of an accepted run
@@ -36,19 +37,19 @@ open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 /-- A sequence's run is the first part's, then the continuation's. -/
 theorem run_bind' {α β : Type} (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) (p : Prog α)
     (f : α → Prog β) (st : ProgState) :
-    Compile.run H F (p.bind f) st =
-      (Compile.run H F p st).bind (fun r => Compile.run H F (f r.1) r.2) := by
+    Compile.runWithHash H F (p.bind f) st =
+      (Compile.runWithHash H F p st).bind (fun r => Compile.runWithHash H F (f r.1) r.2) := by
   induction p generalizing st with
   | ret a => rfl
   | fail => rfl
   | read k ih =>
-    simp only [Prog.bind, Compile.run]
+    simp only [Prog.bind, Compile.runWithHash]
     split
     · rfl
     · exact ih _ _
   | sample k ih => exact ih _ _
   | grind b k ih =>
-    simp only [Prog.bind, Compile.run]
+    simp only [Prog.bind, Compile.runWithHash]
     split
     · rfl
     · simp only [bind, pure]
@@ -56,7 +57,7 @@ theorem run_bind' {α β : Type} (H : Bytes → Id Digest) (F : KeccakState → 
       · exact ih _
       · rfl
   | commit h w k ih =>
-    simp only [Prog.bind, Compile.run]
+    simp only [Prog.bind, Compile.runWithHash]
     split
     · simp only [bind]
       split
@@ -64,7 +65,7 @@ theorem run_bind' {α β : Type} (H : Bytes → Id Digest) (F : KeccakState → 
       · rfl
     · rfl
   | query i ps k ih =>
-    simp only [Prog.bind, Compile.run]
+    simp only [Prog.bind, Compile.runWithHash]
     split
     · rfl
     · simp only [bind]
@@ -204,12 +205,12 @@ value at the point the run evaluates. -/
 theorem run_claimed_of_computed (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
     (opening : ℕ → ℕ → List StackClaim → Prog Unit) (bytecode : List K) (publicInput : Digest)
     (k : Unit → Prog Bool) {st : ProgState} {r : Bool × ProgState}
-    (h : Compile.run H F ((execWith computedValue opening bytecode publicInput).bind k) st = some r) :
+    (h : Compile.runWithHash H F ((execWith computedValue opening bytecode publicInput).bind k) st = some r) :
     ∃ c : BytecodeClaim, c.Holds bytecode ∧
-      Compile.run H F ((execWith (claimedValue c) opening bytecode publicInput).bind k) st =
+      Compile.runWithHash H F ((execWith (claimedValue c) opening bytecode publicInput).bind k) st =
         some r := by
   rw [execSplit, Prog.bind_assoc, run_bind'] at h
-  rcases hp : Compile.run H F (prefixProg bytecode) st with _ | ⟨y, s1⟩
+  rcases hp : Compile.runWithHash H F (prefixProg bytecode) st with _ | ⟨y, s1⟩
   · rw [hp] at h; simp at h
   rw [hp] at h
   have hy : y.layout.bytecode = bytecode :=

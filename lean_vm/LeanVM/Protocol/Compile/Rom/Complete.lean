@@ -13,6 +13,7 @@ public import LeanVM.Protocol.Compile.Rom.Step
 public import LeanVM.Protocol.Compile.Rom.Final
 public import Mathlib.Analysis.Complex.Exponential
 public import Mathlib.Analysis.Complex.ExponentialBounds
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Completeness in the random-oracle model
@@ -55,7 +56,7 @@ namespace LeanVM.Protocol.Compile.Rom
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol
 open LeanVM.Protocol.Rom OracleComp OracleSpec
-open LeanVM.Prover (Tree buildTreeM powStepM searchM findNonceM)
+open LeanVM.Prover (Tree buildTreeWithHash powStepM searchM findNonceM)
 open scoped ENNReal
 
 @[expose] public section
@@ -558,7 +559,7 @@ theorem proveFromM_eq_some_none {H : Bytes → Option Digest} (S : Strategy) (fu
       · cases hp
   | .commit ht w k, sp, h, cs, ha, hsp, hp => by
     have ha' := after_commit_step ha (S.word h)
-    change (buildTreeM H ht (S.word h)).bind _ = _ at hp
+    change (buildTreeWithHash H ht (S.word h)).bind _ = _ at hp
     obtain ⟨tree, -, hp⟩ := Option.bind_eq_some_iff.mp hp
     change (Compile.absorb F sp _ _).bind _ = _ at hp
     obtain ⟨sp0, h0, hp⟩ := Option.bind_eq_some_iff.mp hp
@@ -649,7 +650,7 @@ theorem one_le_powPot {σ : Seed} {P : Prog Bool} {S : Strategy} {bits fuel : �
     have hv := simulateQ_id_of_look ℓ Ht Ft hH hF (verifierComp σ P π') false hb'
     rw [simulateQ_verify] at hv
     have hacc := runProof_prove Ht Ft P S seed fuel hc hs hπ
-    have hv' : runProof (m := Id) Ht Ft P (σ.run (m := Id) Ht Ft) π' = false := hv
+    have hv' : runProofWithHash (m := Id) Ht Ft P (σ.run (m := Id) Ht Ft) π' = false := hv
     rw [hseed', hacc] at hv'
     cases hv'
   | none =>

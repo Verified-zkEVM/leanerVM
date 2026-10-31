@@ -16,6 +16,7 @@ public import LeanVM.Protocol.EndToEnd.Complete.Table
 public import LeanVM.Protocol.EndToEnd.Complete.Ring
 public import LeanVM.Protocol.LeanIsa.Complete
 public import LeanVM.Arithmetization.Completeness.Theorem
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Perfect completeness of the leanVM verifier
@@ -116,9 +117,9 @@ theorem exists_prove_verifyWith (H : Bytes → Digest) (F : KeccakState → Kecc
       (leanVmProgram (bytecodeWords prog) (publicDigest input)).after hist = some (.grind bits k) →
         findNonce F bits sp fuel ≠ none) :
     ∃ S π, prove H F (leanVmProgram (bytecodeWords prog) (publicDigest input)) S
-        (Id.run (seedWith (m := Id) H F (bytecodeWords prog) (publicDigest input))) fuel =
+        (Id.run (seedWithHash (m := Id) H F (bytecodeWords prog) (publicDigest input))) fuel =
           some π ∧
-      Id.run (verifyWith (m := Id) H F (bytecodeWords prog) (publicDigest input) π) = true := by
+      Id.run (verifyWithHash (m := Id) H F (bytecodeWords prog) (publicDigest input) π) = true := by
   obtain ⟨S, hS⟩ := leanVm_complete h hsz hs hρ
   obtain ⟨π, hπ, hacc⟩ := exists_prove_runProof H F _ S _ fuel (fun chal ↦ (hS chal).1)
     (fun chal ↦ (hS chal).2) hg

@@ -1,5 +1,6 @@
 import Sphincs.SecurityGraphView
 import Sphincs.SecurityPrefixFullSign
+import Common.WithHash
 
 /-! The source oracle of the graph-reveal signer on a fixed answer function and coordinate
 table: private draws are uniform, and hash and reveal queries are answered by the fixed view. -/

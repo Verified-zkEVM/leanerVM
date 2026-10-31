@@ -1,5 +1,6 @@
 import Sphincs.World
 import Sphincs.Digest
+import Common.WithHash
 
 /-! Grinding from a truly uniform start `ρ`, scanning `ρ, ρ + 1, ...`, including cache hits. -/
 
@@ -20,7 +21,7 @@ theorem run_randomizedDigest_succ (sk : Seeded.SecretKey) (message : Message) (n
         if Landed sk.parameter (blockIndex r.1) then pure (some ρ, r.2)
         else (simulateQ randomOracle (Randomized.scanLoop sk message n (ρ + 1))).run r.2 := by
   rw [Randomized.scanLoop]
-  simp only [Seeded.signAttempt, messageDigestCall, oracleHash, HasQuery.query,
+  simp only [Seeded.signAttempt, messageDigestCall, oracleHashWithHash, HasQuery.query,
     simulateQ_bind, simulateQ_spec_query, StateT.run_bind, bind_assoc]
   apply bind_congr
   intro r

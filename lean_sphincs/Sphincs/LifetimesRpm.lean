@@ -2,6 +2,7 @@ import Sphincs.StatementRpm
 import Sphincs.OneLayer
 import Sphincs.Lifetimes
 import Common.Linear
+import Sphincs.WithHashBridge
 
 /-!
 **The forest lifetimes in the random-permutation model.** The ROM theorems of `Lifetimes.lean`
@@ -94,6 +95,9 @@ end SphincsLayered.Lifetimes
 /-- **The end theorem**: the statement's leanSPHINCS, its one tree written without layers, at every
 proved lifetime, an adversary whose game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`,
 forges with probability at most `(Q + 1) · 2^-127`: the layered presentation's theorem above,
-through the bijection of the signatures (`Sphincs.OneLayer.requestedSecurityRpm_iff`). -/
+through the bijection of the signatures (`Sphincs.OneLayer.requestedSecurityRpm_iff`); the
+statement's scheme hashes with Keccak-256 over `π`, the hash-query scheme with each query so answered
+(`Sphincs.Rpm.scheme_eq`). -/
 theorem Sphincs.Lifetimes.requestedSecurityRpm : Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable :=
-  Sphincs.OneLayer.requestedSecurityRpm_iff.mpr SphincsLayered.Lifetimes.requestedSecurityRpm
+  Sphincs.Lifetimes.leanSphincsStronglyUnforgeable_of_withHash
+    (Sphincs.OneLayer.requestedSecurityRpm_iff.mpr SphincsLayered.Lifetimes.requestedSecurityRpm)

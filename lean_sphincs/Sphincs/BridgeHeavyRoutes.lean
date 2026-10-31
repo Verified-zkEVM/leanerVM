@@ -1,5 +1,6 @@
 import Sphincs.BridgeHeavyW
 import Sphincs.BridgeSatWRoutes
+import Common.WithHash
 
 /-! The large-budget route with the weighted baseline and one heavy message. The one-coin FORS
 potential is the one of `BridgeHeavyW`: the coin only pays the rate of a message with at most half of

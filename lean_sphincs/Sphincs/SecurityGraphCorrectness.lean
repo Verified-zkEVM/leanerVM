@@ -1,5 +1,6 @@
 import Sphincs.SecurityPrunedGraph
 import Sphincs.SecurityForestWitness
+import Common.WithHash
 
 /-! Canonical graph labels agree with actual seeded computations. The only graph hypotheses are
 its query-response consistency and untouched surrogate boundary, which `BridgeAssembly` supplies

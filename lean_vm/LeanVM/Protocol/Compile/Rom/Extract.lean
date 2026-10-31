@@ -10,6 +10,7 @@
 module
 
 public import LeanVM.Protocol.Compile.Rom.Log
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Word extraction from the random oracle
@@ -48,9 +49,9 @@ def nodeInput (node s : Digest) (q : ℕ) : Bytes :=
 
 theorem climb_cons (H : Bytes → Option Digest) (node : Digest) (q : ℕ) (s : Digest)
     (ss : List Digest) :
-    climb (m := Option) H node q (s :: ss) =
-      (H (nodeInput node s q)).bind fun p ↦ climb (m := Option) H p (q / 2) ss := by
-  simp only [climb, nodeInput]
+    climbWithHash (m := Option) H node q (s :: ss) =
+      (H (nodeInput node s q)).bind fun p ↦ climbWithHash (m := Option) H p (q / 2) ss := by
+  simp only [climbWithHash, nodeInput]
   split <;> rfl
 
 theorem nodeInput_mod (node s : Digest) (q n : ℕ) (hn : n ≠ 0) :
@@ -60,7 +61,7 @@ theorem nodeInput_mod (node s : Digest) (q n : ℕ) (hn : n ≠ 0) :
 /-- A climb reads the position modulo two to the length of the path. -/
 theorem climb_mod (H : Bytes → Option Digest) :
     ∀ (node : Digest) (q : ℕ) (path : List Digest),
-      climb (m := Option) H node q path = climb (m := Option) H node (q % 2 ^ path.length) path
+      climbWithHash (m := Option) H node q path = climbWithHash (m := Option) H node (q % 2 ^ path.length) path
   | _, _, [] => rfl
   | node, q, s :: ss => by
     rw [climb_cons, climb_cons, List.length_cons, nodeInput_mod _ _ _ _ (Nat.succ_ne_zero _)]
@@ -81,10 +82,10 @@ theorem nodeInput_inj {n n' s s' : Digest} {q : ℕ}
 /-- Two climbs of one length to one root through injective answers start at one node. -/
 theorem climb_inj {H : Bytes → Option Digest} (hH : AnswersInj H) {r : Digest} :
     ∀ (path path' : List Digest) (n n' : Digest) (q : ℕ), path.length = path'.length →
-      climb (m := Option) H n q path = some r → climb (m := Option) H n' q path' = some r →
+      climbWithHash (m := Option) H n q path = some r → climbWithHash (m := Option) H n' q path' = some r →
         n = n'
   | [], [], n, n', _, _, h, h' => by
-    simp only [climb] at h h'
+    simp only [climbWithHash] at h h'
     exact (Option.some.inj h).trans (Option.some.inj h').symm
   | s :: ss, s' :: ss', n, n', q, hl, h, h' => by
     rw [climb_cons, Option.bind_eq_some_iff] at h h'
@@ -98,10 +99,10 @@ theorem climb_inj {H : Bytes → Option Digest} (hH : AnswersInj H) {r : Digest}
 root. -/
 theorem openOne_eq_some_true_iff (H : Bytes → Option Digest) (r : Digest) (ht w q : ℕ)
     (o : Opening) :
-    openOne (m := Option) H r ht w q o = some true ↔
+    openOneWithHash (m := Option) H r ht w q o = some true ↔
       o.leaf.length = w ∧ o.path.length = ht ∧ ∃ ld, H (o.leaf.flatMap kBytes) = some ld ∧
-        climb (m := Option) H ld q o.path = some r := by
-  unfold openOne
+        climbWithHash (m := Option) H ld q o.path = some r := by
+  unfold openOneWithHash
   by_cases hs : o.leaf.length = w ∧ o.path.length = ht
   · simp only [hs, and_self, ↓reduceIte, true_and]
     simp only [bind, pure, Option.bind_eq_some_iff, Option.some.injEq, decide_eq_true_eq,
@@ -125,7 +126,7 @@ noncomputable def pickLeaf (A : Opening → Prop) (w : ℕ) : List K :=
 /-- The word a root commits to under the answers `H`: at position `p`, the leaf of an accepted
 opening at `p`, if any, and the zero row of the width otherwise. -/
 noncomputable def extract (H : Bytes → Option Digest) (r : Digest) (ht w : ℕ) : Word := fun p ↦
-  pickLeaf (fun o ↦ openOne (m := Option) H r ht w p o = some true) w
+  pickLeaf (fun o ↦ openOneWithHash (m := Option) H r ht w p o = some true) w
 
 /-- Extracted words are well shaped. -/
 theorem wellShaped_extract (H : Bytes → Option Digest) (r : Digest) (ht w : ℕ) :
@@ -139,8 +140,8 @@ theorem wellShaped_extract (H : Bytes → Option Digest) (r : Digest) (ht w : �
 
 /-- Two accepted openings at one position through injective answers have one leaf. -/
 theorem leaf_eq_of_openOne {H : Bytes → Option Digest} (hH : AnswersInj H) {r : Digest}
-    {ht w q : ℕ} {o o' : Opening} (h : openOne (m := Option) H r ht w q o = some true)
-    (h' : openOne (m := Option) H r ht w q o' = some true) : o.leaf = o'.leaf := by
+    {ht w q : ℕ} {o o' : Opening} (h : openOneWithHash (m := Option) H r ht w q o = some true)
+    (h' : openOneWithHash (m := Option) H r ht w q o' = some true) : o.leaf = o'.leaf := by
   rw [openOne_eq_some_true_iff] at h h'
   obtain ⟨hw, hl, ld, hld, hc⟩ := h
   obtain ⟨hw', hl', ld', hld', hc'⟩ := h'
@@ -150,8 +151,8 @@ theorem leaf_eq_of_openOne {H : Bytes → Option Digest} (hH : AnswersInj H) {r 
 
 /-- An accepted opening at `q` is accepted at `q mod 2^height`. -/
 theorem openOne_mod {H : Bytes → Option Digest} {r : Digest} {ht w q : ℕ} {o : Opening}
-    (h : openOne (m := Option) H r ht w q o = some true) :
-    openOne (m := Option) H r ht w (q % 2 ^ ht) o = some true := by
+    (h : openOneWithHash (m := Option) H r ht w q o = some true) :
+    openOneWithHash (m := Option) H r ht w (q % 2 ^ ht) o = some true := by
   rw [openOne_eq_some_true_iff] at h ⊢
   obtain ⟨hw, hl, ld, hld, hc⟩ := h
   refine ⟨hw, hl, ld, hld, ?_⟩
@@ -160,7 +161,7 @@ theorem openOne_mod {H : Bytes → Option Digest} {r : Digest} {ht w q : ℕ} {o
 
 /-- **An accepted opening reads the extracted row.** -/
 theorem extract_eq_of_openOne {H : Bytes → Option Digest} (hH : AnswersInj H) {r : Digest}
-    {ht w q : ℕ} {o : Opening} (h : openOne (m := Option) H r ht w q o = some true) :
+    {ht w q : ℕ} {o : Opening} (h : openOneWithHash (m := Option) H r ht w q o = some true) :
     extract H r ht w (q % 2 ^ ht) = o.leaf := by
   have hm := openOne_mod h
   unfold extract pickLeaf
@@ -175,7 +176,7 @@ theorem extract_eq_of_openOne {H : Bytes → Option Digest} (hH : AnswersInj H) 
 /-- More answers keep every climb. -/
 theorem climb_mono {H H' : Bytes → Option Digest} (hH : ∀ x v, H x = some v → H' x = some v) :
     ∀ (n : Digest) (q : ℕ) (path : List Digest) (r : Digest),
-      climb (m := Option) H n q path = some r → climb (m := Option) H' n q path = some r
+      climbWithHash (m := Option) H n q path = some r → climbWithHash (m := Option) H' n q path = some r
   | _, _, [], _, h => h
   | n, q, s :: ss, r, h => by
     rw [climb_cons, Option.bind_eq_some_iff] at h ⊢
@@ -184,8 +185,8 @@ theorem climb_mono {H H' : Bytes → Option Digest} (hH : ∀ x v, H x = some v 
 
 /-- More answers keep every accepted opening. -/
 theorem openOne_mono {H H' : Bytes → Option Digest} (hH : ∀ x v, H x = some v → H' x = some v)
-    {r : Digest} {ht w q : ℕ} {o : Opening} (h : openOne (m := Option) H r ht w q o = some true) :
-    openOne (m := Option) H' r ht w q o = some true := by
+    {r : Digest} {ht w q : ℕ} {o : Opening} (h : openOneWithHash (m := Option) H r ht w q o = some true) :
+    openOneWithHash (m := Option) H' r ht w q o = some true := by
   rw [openOne_eq_some_true_iff] at h ⊢
   obtain ⟨hw, hl, ld, hld, hc⟩ := h
   exact ⟨hw, hl, ld, hH _ _ hld, climb_mono hH _ _ _ _ hc⟩
@@ -211,10 +212,10 @@ climb in the first `j` entries, and so are the entries of its start. -/
 theorem climb_take {X : Type} {σ : Seeds X} {ℓ : Log} (hf : ¬ Fail σ ℓ) {j : ℕ} {r : Digest}
     (hr : HEntriesBefore ℓ r j) :
     ∀ (path : List Digest) (n : Digest) (q : ℕ),
-      climb (m := Option) (lookH ℓ) n q path = some r →
-        climb (m := Option) (lookH (ℓ.take j)) n q path = some r ∧ HEntriesBefore ℓ n j
+      climbWithHash (m := Option) (lookH ℓ) n q path = some r →
+        climbWithHash (m := Option) (lookH (ℓ.take j)) n q path = some r ∧ HEntriesBefore ℓ n j
   | [], n, q, h => by
-    simp only [climb, pure, Option.some.injEq] at h
+    simp only [climbWithHash, pure, Option.some.injEq] at h
     subst h
     exact ⟨rfl, hr⟩
   | s :: ss, n, q, h => by
@@ -237,8 +238,8 @@ theorem climb_take {X : Type} {σ : Seeds X} {ℓ : Log} (hf : ¬ Fail σ ℓ) {
 every entry answering the root comes before the `j`-th. -/
 theorem openOne_take {X : Type} {σ : Seeds X} {ℓ : Log} (hf : ¬ Fail σ ℓ) {j : ℕ} {r : Digest}
     (hr : HEntriesBefore ℓ r j) {ht w q : ℕ} {o : Opening}
-    (h : openOne (m := Option) (lookH ℓ) r ht w q o = some true) :
-    openOne (m := Option) (lookH (ℓ.take j)) r ht w q o = some true := by
+    (h : openOneWithHash (m := Option) (lookH ℓ) r ht w q o = some true) :
+    openOneWithHash (m := Option) (lookH (ℓ.take j)) r ht w q o = some true := by
   rw [openOne_eq_some_true_iff] at h ⊢
   obtain ⟨hw, hl, ld, hld, hc⟩ := h
   obtain ⟨hc', hldj⟩ := climb_take hf hr o.path ld q hc
@@ -253,8 +254,8 @@ theorem extract_take_eq {X : Type} {σ : Seeds X} {ℓ : Log} (hf : ¬ Fail σ �
     extract (lookH (ℓ.take j)) r ht w = extract (lookH ℓ) r ht w := by
   have hpre : ∀ x v, lookH (ℓ.take j) x = some v → lookH ℓ x = some v := fun x v h ↦
     lookH_of_prefix (List.take_prefix j ℓ) h
-  have heq : ∀ p, (fun o ↦ openOne (m := Option) (lookH (ℓ.take j)) r ht w p o = some true) =
-      (fun o ↦ openOne (m := Option) (lookH ℓ) r ht w p o = some true) := fun p ↦
+  have heq : ∀ p, (fun o ↦ openOneWithHash (m := Option) (lookH (ℓ.take j)) r ht w p o = some true) =
+      (fun o ↦ openOneWithHash (m := Option) (lookH ℓ) r ht w p o = some true) := fun p ↦
     funext fun o ↦ propext ⟨openOne_mono hpre, openOne_take hf hr⟩
   funext p
   show pickLeaf _ w = pickLeaf _ w

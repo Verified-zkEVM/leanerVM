@@ -7,6 +7,7 @@
 
 import Common.Lanes
 import Statement.LeanVm
+import LeanVM.Protocol.WithHash
 
 /-!
 # The transcript's paths on lanes and on bytes

@@ -3,6 +3,7 @@ import LeanDa.RpmGames
 import LeanDa.Security
 import LeanDa.Defs
 import Common.Linear
+import LeanDa.WithHash
 
 /-!
 # LeanDA in the random-permutation model
@@ -83,17 +84,17 @@ are those of the cache's hash function, its inputs cached. -/
 theorem run_walkM (idx : ℕ) (node : Common.DigestBytes) (path : List Common.DigestBytes) (c : Cache2)
     {z : Common.DigestBytes × Cache2}
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
-      (walkM hR idx node path)).run c)) :
+      (walkMWithHash hR idx node path)).run c)) :
     c ≤ z.2 ∧ ∀ c', z.2 ≤ c' → z.1 = walk (hOf c') idx node path ∧
       ∀ a ∈ walkInputs (hOf c') idx node path, c' (.inl a) ≠ none := by
   induction path generalizing idx node c with
   | nil =>
-    simp only [walkM, simulateQ_pure, StateT.run_pure, support_pure,
+    simp only [walkMWithHash, simulateQ_pure, StateT.run_pure, support_pure,
       Set.mem_singleton_iff] at hz
     subst hz
     exact ⟨le_rfl, fun c' _ ↦ ⟨rfl, by simp [walkInputs]⟩⟩
   | cons s rest ih =>
-    simp only [walkM, simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hz
+    simp only [walkMWithHash, simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hz
     obtain ⟨w, hw, hz⟩ := hz
     obtain ⟨hcw, hwa⟩ := mem_support_run_hR _ c hw
     obtain ⟨hwz, hrest⟩ := ih (idx / 2) w.1 w.2 hz
@@ -113,11 +114,11 @@ theorem run_walkM (idx : ℕ) (node : Common.DigestBytes) (path : List Common.Di
 theorem run_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening)
     (c : Cache2) {z : Bool × Cache2}
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
-      (verifyCellM hR r com p x τ)).run c)) :
+      (verifyCellMWithHash hR r com p x τ)).run c)) :
     c ≤ z.2 ∧ ∀ c', z.2 ≤ c' → z.1 = verifyCell (hOf c') r com p x τ ∧
       ∀ a ∈ hashInputs (hOf c') (colIndex p) (cellBytes x) τ.path τ.rowRoot,
         c' (.inl a) ≠ none := by
-  simp only [verifyCellM, simulateQ_bind, StateT.run_bind, mem_support_bind_iff,
+  simp only [verifyCellMWithHash, simulateQ_bind, StateT.run_bind, mem_support_bind_iff,
     simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
   obtain ⟨w₁, hw₁, w₂, hw₂, w₃, hw₃, rfl⟩ := hz
   obtain ⟨hc1, hd⟩ := mem_support_run_hR _ c hw₁
@@ -128,7 +129,7 @@ theorem run_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128))
   have hval1 := hOf_of_le (hc2.trans (hc3.trans hc')) hd
   have hval3 := hOf_of_le hc' hroot
   refine ⟨?_, ?_⟩
-  · simp only [verifyCell, cellDigest, hval1, ← hw, hval3]
+  · simp only [verifyCell, cellDigestWithHash, hval1, ← hw, hval3]
   · intro a ha
     rw [hashInputs_eq, hval1] at ha
     rcases List.mem_cons.mp ha with rfl | ha
@@ -225,13 +226,13 @@ theorem posBindingPost_win (crs : Crs)
 /-! ### The duplex discipline of the verifier -/
 
 theorem duplexP_walkM (idx : ℕ) (node : Common.DigestBytes) (path : List Common.DigestBytes) (hist : List KState) :
-    DuplexP (fun _ _ ↦ True) (walkM hR idx node path) hist := by
+    DuplexP (fun _ _ ↦ True) (walkMWithHash hR idx node path) hist := by
   induction path generalizing idx node with
   | nil => exact duplexP_pure trivial
   | cons s rest ih => exact duplexP_hR_bind _ _ hist fun d ↦ ih _ _
 
 theorem duplexP_verifyCellM (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening)
-    (hist : List KState) : DuplexP (fun _ _ ↦ True) (verifyCellM hR r com p x τ) hist :=
+    (hist : List KState) : DuplexP (fun _ _ ↦ True) (verifyCellMWithHash hR r com p x τ) hist :=
   duplexP_hR_bind _ _ hist fun _ ↦ duplexP_bind (duplexP_walkM _ _ _ hist) fun _ hist' _ ↦
     duplexP_hR_bind _ _ hist' fun _ ↦ duplexP_pure trivial
 

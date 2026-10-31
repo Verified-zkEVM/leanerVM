@@ -1,4 +1,5 @@
 import Statement.RandomPermutation
+import Common.WithHash
 
 /-!
 # The model with a Keccak-256 oracle, a proof device
@@ -51,12 +52,12 @@ def hashKH : QueryImpl SchemeHashSpec (OracleComp KSpecH) :=
   fun m ↦ digestBitVec <$> (liftM (KSpecH.query (.inr (.inl m))) : OracleComp KSpecH DigestBytes)
 
 /-- The signing oracle with the hash oracle. -/
-def signingOracleKH (S : Scheme Seed PK SK Req Resp F) (sk : SK) :
+def signingOracleKH (S : SchemeWithHash Seed PK SK Req Resp F) (sk : SK) :
     QueryImpl (Req →ₒ Resp) (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecH)) :=
   QueryImpl.withLogging fun r ↦ simulateQ hashKH (S.sign sk r)
 
 /-- The RPM game with the hash oracle: an adversary that also queries Keccak-256. -/
-noncomputable def rpmGameH (S : Scheme Seed PK SK Req Resp F)
+noncomputable def rpmGameH (S : SchemeWithHash Seed PK SK Req Resp F)
     (main : PK → OracleComp (KSpecH + (Req →ₒ Resp)) F) : OracleComp KSpecH Bool := do
   let seed ← liftM S.sample
   let (pk, sk) ← simulateQ hashKH (S.keygen seed)
@@ -67,12 +68,12 @@ noncomputable def rpmGameH (S : Scheme Seed PK SK Req Resp F)
   return S.win log forgery && verified
 
 /-- The RPM experiment with the hash oracle. -/
-noncomputable def rpmExperimentH (S : Scheme Seed PK SK Req Resp F)
+noncomputable def rpmExperimentH (S : SchemeWithHash Seed PK SK Req Resp F)
     (main : PK → OracleComp (KSpecH + (Req →ₒ Resp)) F) : ProbComp Bool :=
   runKH (rpmGameH S main)
 
 /-- `bits` bits of SUF-CMA security against adversaries that also query Keccak-256. -/
-def RpmSecureH (S : Scheme Seed PK SK Req Resp F) (bits : ℕ) : Prop :=
+def RpmSecureH (S : SchemeWithHash Seed PK SK Req Resp F) (bits : ℕ) : Prop :=
   ∀ Q, 1 ≤ Q → ∀ main : PK → OracleComp (KSpecH + (Req →ₒ Resp)) F,
     QueryCostAtMost (rpmGameH S main) permCallsH Q →
       Pr{let b ← rpmExperimentH S main}[b = true] ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits

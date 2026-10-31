@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Tables.VtC.ZBase
 public import LeanVM.Guest.B1.Tables.Vt.SpecPhase
 public import LeanVM.Guest.B1.Tables.Vt.SpecBus
 public import LeanVM.Guest.B1.Tables.RunF
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The honest run
@@ -71,7 +72,7 @@ theorem runsTo_require_inv {c : Prop} [Decidable c] {s t : Fs} {xs : List E} {u 
   obtain ⟨sp, hsp⟩ := hc
   obtain ⟨sp1, -, e⟩ := h sp hsp [] [] []
   simp only [Prog.require, hn, ↓reduceIte] at e
-  exact absurd e (by simp [runId, Compile.run])
+  exact absurd e (by simp [runId, Compile.runWithHash])
 
 /-- A run of a return returns its word, reading nothing. -/
 theorem runsTo_ret_inv {α : Type} {x a : α} {s t : Fs} {xs : List E}

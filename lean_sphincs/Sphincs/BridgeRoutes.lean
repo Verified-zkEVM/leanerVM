@@ -1,4 +1,5 @@
 import Sphincs.BridgeExpose
+import Common.WithHash
 
 /-! The two routes of the final bound start from the seed-free win of an internalized adversary
 (the deterministic signer reduces to it): the stopped prepared experiment, with or without the

@@ -35,12 +35,12 @@ grouped by stream as `Hints::push` does, `aggregation.rs:1389-1395`): the node's
 `aggregation.rs:916-1033`) and LeanDA's.
 
 Where the Rust reads a child's proof (`verifier::replay_unchecked`), this replays the Spec's
-deferring verifier (`verifyDeferredWith`, Keccak-256 and Keccak-f[1600], from
+deferring verifier (`verifyDeferredWith` over Keccak-f[1600], from
 `keccakF (seedInput seed publicInput)`): the layout is `readSizes`'s (`Verifier.announced`), and
 the query positions are those of the compiled run itself, recorded by `recordQueries`, which
 rewrites a program to return its queries and changes nothing else. The bytecode enters only through its
-length, as in `verifyDeferred`. A signature's hints are its scheme's own definitions, on
-Keccak-256 (`keccakBits`, as `xmssVerify` and `sphincsVerify` take it).
+length, as in `verifyDeferred`. A signature's hints are its scheme's own definitions, over
+Keccak-f[1600] (as `xmssVerify` and `sphincsVerify` take them).
 
 Choices the witness does not fix, made as the Rust makes them:
 
@@ -142,11 +142,12 @@ codeword's digits and the chain values; and the root the layer reaches. -/
 def xmssLayer (parameter : LeanXmss.PublicParameter) (lay : LeanXmss.Layer)
     (key : LeanXmss.KeyIndex) (message : List UInt8) (part : LeanXmss.LayerSignature) :
     List (String × Entry) × LeanXmss.Digest :=
-  letI : HasQuery LeanXmss.HashSpec Id := ⟨keccakBits⟩
-  let digest := Id.run (LeanXmss.Concrete.messageDigest parameter lay key message part.randomness)
-  let leaf := (Id.run (LeanXmss.Concrete.otsLeaf parameter lay key message part.randomness
-    part.chainValues)).getD 0
-  let fold := fun levels ↦ Id.run (LeanXmss.Concrete.treeFold parameter lay key part.path levels leaf)
+  let digest := Id.run (LeanXmss.Concrete.messageDigest (m := Id) keccakF1600 parameter lay key
+    message part.randomness)
+  let leaf := (Id.run (LeanXmss.Concrete.otsLeaf (m := Id) keccakF1600 parameter lay key message
+    part.randomness part.chainValues)).getD 0
+  let fold := fun levels ↦ Id.run (LeanXmss.Concrete.treeFold (m := Id) keccakF1600 parameter lay
+    key part.path levels leaf)
   let siblings := (List.finRange LeanXmss.layerHeight).map fun l ↦
     ("siblings", ordered (key.val.testBit l.val) (fold l.val) (part.path l))
   let digits := (List.finRange LeanXmss.numChains).map fun i ↦
@@ -189,9 +190,9 @@ nodes in signature order, the counter, the codeword's digits, the chain values, 
 children of every node on the tree's path. -/
 def sphincsHints (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sphincs.Signature) :
     List (String × Entry) :=
-  letI : HasQuery Sphincs.HashSpec Id := ⟨keccakBits⟩
   let parameter := pk.parameter
-  let call := Id.run (Sphincs.Concrete.messageDigestCall parameter message σ.randomness)
+  let call := Id.run (Sphincs.Concrete.messageDigestCall (m := Id) keccakF1600 parameter message
+    σ.randomness)
   let digest := Sphincs.truncateMessageDigest call
   let index := Sphincs.Concrete.digestIndex digest
   let marks := Sphincs.Concrete.digestMarks digest
@@ -210,18 +211,21 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sphi
           (List.finRange Sphincs.subHeight).map fun l ↦
             ("sp_forest_nodes", [cell128 (((σ.forest c).sub j).path l)])) ++
       (List.finRange Sphincs.topHeight).map fun l ↦ ("sp_forest_nodes", [cell128 ((σ.forest c).top l)])
-  let forestKey := Id.run (Sphincs.Concrete.forestRecover parameter index marks σ.forest)
+  let forestKey := Id.run (Sphincs.Concrete.forestRecover (m := Id) keccakF1600 parameter index
+    marks σ.forest)
   let leaf := index
-  let encoding := Id.run (Sphincs.Concrete.encode parameter leaf forestKey σ.counter)
+  let encoding := Id.run (Sphincs.Concrete.encode (m := Id) keccakF1600 parameter leaf forestKey
+    σ.counter)
   let digits := (List.finRange Sphincs.numChains).map fun i ↦ (encoding.map (· i |>.val)).getD 0
   let starts := (List.finRange Sphincs.numChains).map fun i ↦
     ("chain_starts", [cell128 (σ.chainValues i)])
-  let wotsLeaf := (Id.run (Sphincs.Concrete.otsLeaf parameter leaf forestKey σ.counter
-    σ.chainValues)).getD 0
+  let wotsLeaf := (Id.run (Sphincs.Concrete.otsLeaf (m := Id) keccakF1600 parameter leaf forestKey
+    σ.counter σ.chainValues)).getD 0
   let path := fun l ↦ if h : l < Sphincs.totalHeight then σ.path ⟨l, h⟩ else 0
   let siblings := (List.range Sphincs.totalHeight).map fun l ↦
     ("siblings", ordered (leaf.val.testBit l)
-      (Id.run (Sphincs.Concrete.treeFold parameter leaf path l wotsLeaf)) (path l))
+      (Id.run (Sphincs.Concrete.treeFold (m := Id) keccakF1600 parameter leaf path l wotsLeaf))
+      (path l))
   [("sp_rand", [cell128 σ.randomness])] ++ values ++
     [("sp_unused", exponentBytes unused (128 - sphincsUsedBits))] ++ words ++ trees ++
     [("sp_counter", exponentBytes σ.counter.toNat 32)] ++ digitGroups digits ++ starts ++
@@ -255,7 +259,7 @@ def recordQueries {α : Type} : Prog α → Prog (α × List (ℕ × List ℕ))
 /-- The queries the deferring verifier makes on a child's proof (`verifyDeferredWith`), each with
 the height of the commitment it opens. -/
 def childQueries (bytecode : List K) (seed : Digest) (c : Child) : List (ℕ × List ℕ) :=
-  match Id.run (Compile.run keccak256 keccakF1600
+  match Id.run (Compile.run (m := Id) keccakF1600
       (recordQueries (deferredProgram c.freshClaim bytecode (statementDigest seed c.statement)))
       (childVerifierStart seed c)) with
   | some ((_, queries), st) => queries.map fun (i, ps) ↦ ((st.roots[i]?.map (·.2.1)).getD 0, ps)

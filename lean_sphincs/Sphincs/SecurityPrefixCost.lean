@@ -1,4 +1,5 @@
 import Sphincs.SecurityPrefixFullSign
+import Common.WithHash
 
 /-! Exact hash-call counts (`hashCalls`) of the honest seeded computations on a fixed answer
 function: wrappers, chains, one-time keys, tree and forest nodes, encodings, message digests and
@@ -29,7 +30,7 @@ theorem hashCalls_bind {α β : Type} (f : QueryImpl HashSpec Id)
   simp only [hashCalls, queriedInputs_bind, List.length_append]
 
 @[simp] theorem hashCalls_oracleHash (f : QueryImpl HashSpec Id) (input : HashInput) :
-    hashCalls f (oracleHash input : OracleComp HashSpec HashOutput) = 1 := rfl
+    hashCalls f (oracleHashWithHash input : OracleComp HashSpec HashOutput) = 1 := rfl
 
 @[simp] theorem hashCalls_tweakableHash (f : QueryImpl HashSpec Id)
     (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :

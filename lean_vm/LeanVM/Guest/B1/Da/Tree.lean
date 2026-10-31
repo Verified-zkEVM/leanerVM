@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Da.LevelsSound
+public import LeanDa.WithHash
+public import LeanVM.Guest.WithHash
 
 /-!
 # The guest's trees as LeanDA's
@@ -70,10 +72,10 @@ def mRoot : ℕ → (ℕ → Digest) → Digest
   | d + 1, g => mRoot d (upD g)
 
 theorem toBytes_mRoot : ∀ (d : ℕ) (g : ℕ → Digest),
-    LeanVM.Protocol.Digest.toBytes (mRoot d g) = LeanDa.merkleRoot LeanVM.Da.keccak256Bytes d (LeanVM.Protocol.Digest.toBytes ∘ g)
+    LeanVM.Protocol.Digest.toBytes (mRoot d g) = LeanDa.merkleRootWithHash LeanVM.Da.keccak256Bytes d (LeanVM.Protocol.Digest.toBytes ∘ g)
   | 0, _ => rfl
   | d + 1, g => by
-    rw [mRoot, toBytes_mRoot d, LeanDa.merkleRoot]
+    rw [mRoot, toBytes_mRoot d, LeanDa.merkleRootWithHash]
     congr 1
 
 theorem nodeCells_scalars (a b : Digest) :
@@ -104,43 +106,43 @@ theorem cellRoot_mRoot : ∀ (d : ℕ) (g : ℕ → Digest),
 /-- **A root over blocks**: the root over `2^(a + b)` leaves is the root over the roots of the
 `2^a` blocks of `2^b` leaves. -/
 theorem merkleRoot_add (H : List UInt8 → Common.DigestBytes) (a : ℕ) :
-    ∀ (b : ℕ) (f : ℕ → Common.DigestBytes), LeanDa.merkleRoot H (a + b) f =
-      LeanDa.merkleRoot H a fun j => LeanDa.merkleRoot H b fun i => f (j * 2 ^ b + i)
-  | 0, f => by simp [LeanDa.merkleRoot]
+    ∀ (b : ℕ) (f : ℕ → Common.DigestBytes), LeanDa.merkleRootWithHash H (a + b) f =
+      LeanDa.merkleRootWithHash H a fun j => LeanDa.merkleRootWithHash H b fun i => f (j * 2 ^ b + i)
+  | 0, f => by simp [LeanDa.merkleRootWithHash]
   | b + 1, f => by
-    rw [show a + (b + 1) = (a + b) + 1 from rfl, LeanDa.merkleRoot, merkleRoot_add H a b]
+    rw [show a + (b + 1) = (a + b) + 1 from rfl, LeanDa.merkleRootWithHash, merkleRoot_add H a b]
     congr 1
     funext j
-    rw [LeanDa.merkleRoot]
+    rw [LeanDa.merkleRootWithHash]
     congr 1
     funext i
-    simp only [LeanDa.up]
+    simp only [LeanDa.upWithHash]
     rw [show 2 * (j * 2 ^ b + i) = j * 2 ^ (b + 1) + 2 * i by ring, add_assoc]
 
 /-! ## Trees built level by level -/
 
 theorem treeLevel_range (H : List UInt8 → Common.DigestBytes) (d : ℕ) (f : ℕ → Common.DigestBytes) :
-    LeanDa.treeLevel H ((List.range (2 ^ (d + 1))).map f) = (List.range (2 ^ d)).map (LeanDa.up H f) := by
+    LeanDa.treeLevelWithHash H ((List.range (2 ^ (d + 1))).map f) = (List.range (2 ^ d)).map (LeanDa.upWithHash H f) := by
   have hlen : 2 ^ (d + 1) / 2 = 2 ^ d := by rw [pow_succ, Nat.mul_div_cancel _ (by norm_num)]
-  rw [LeanDa.treeLevel, List.length_map, List.length_range, hlen]
+  rw [LeanDa.treeLevelWithHash, List.length_map, List.length_range, hlen]
   refine List.map_congr_left fun i hi ↦ ?_
   rw [List.mem_range] at hi
   have h1 : 2 * i < 2 ^ (d + 1) := by rw [pow_succ]; omega
   have h2 : 2 * i + 1 < 2 ^ (d + 1) := by rw [pow_succ]; omega
-  simp only [LeanDa.up, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range h1,
+  simp only [LeanDa.upWithHash, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range h1,
     List.getElem?_range h2, Option.map_some, Option.getD_some]
 
 /-- **A tree built level by level has LeanDA's root.** -/
 theorem treeRoot_range (H : List UInt8 → Common.DigestBytes) (d : ℕ) (f : ℕ → Common.DigestBytes) :
-    LeanDa.treeRoot H ((List.range (2 ^ d)).map f) = LeanDa.merkleRoot H d f := by
+    LeanDa.treeRootWithHash H ((List.range (2 ^ d)).map f) = LeanDa.merkleRootWithHash H d f := by
   induction d generalizing f with
-  | zero => rw [LeanDa.treeRoot]; simp [LeanDa.merkleRoot]
+  | zero => rw [LeanDa.treeRootWithHash]; simp [LeanDa.merkleRootWithHash]
   | succ d ih =>
     have hlen : ¬((List.range (2 ^ (d + 1))).map f).length ≤ 1 := by
       rw [List.length_map, List.length_range, pow_succ]
       have := Nat.one_le_two_pow (n := d)
       omega
-    rw [LeanDa.treeRoot]
+    rw [LeanDa.treeRootWithHash]
     simp only [hlen, ↓reduceIte]
     rw [treeLevel_range, ih]
     rfl

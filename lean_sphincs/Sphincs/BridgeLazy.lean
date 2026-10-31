@@ -3,6 +3,7 @@ import Sphincs.SecurityHiddenOutside
 import Sphincs.SecurityHiddenCost
 import Sphincs.SecuritySeedGuess
 import Sphincs.SecurityHiddenGraph
+import Common.WithHash
 
 /-! Inside the stopped hidden-row execution, a uniformly sampled outside table over the short
 inputs is exactly the lazy outside random oracle started from the structural cache. -/

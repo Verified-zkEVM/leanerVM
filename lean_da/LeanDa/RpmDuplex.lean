@@ -2,6 +2,7 @@ import LeanDa.RpmScheme
 import Common.Duplex.Vec
 import Common.Rerun
 import LeanDa.Defs
+import LeanDa.WithHash
 
 /-!
 # LeanDA's challenges as a duplex
@@ -136,8 +137,8 @@ theorem samplesM_eq_chainP (k : ℕ) (y : KState) :
 
 /-- **Over `F`, LeanDA's challenges are the duplex's.** -/
 theorem membershipChallengesM_eq_chalP (root : Common.DigestBytes) :
-    membershipChallengesM hR pR root = chalP daDuplex root := by
-  simp only [membershipChallengesM, Sponge.fromLabelM, Sponge.newM, Sponge.observeM,
+    membershipChallengesMWithHash hR pR root = chalP daDuplex root := by
+  simp only [membershipChallengesMWithHash, Sponge.fromLabelMWithHash, Sponge.newM, Sponge.observeM,
     Sponge.absorbM, pR, lanePerm, chalP, map_eq_bind_pure_comp, bind_assoc, pure_bind,
     Function.comp_apply]
   refine bind_congr fun iv ↦ bind_congr fun y₀ ↦ ?_

@@ -1,6 +1,7 @@
 import Sphincs.BridgeEventsA
 import Sphincs.BridgeLogGood
 import Sphincs.BridgeClassifyA
+import Common.WithHash
 
 /-! Deterministic core of the refined classification: a winning non-stopped run of the rich
 program, started from knowledge that also exposes the chain values at and above the prepared

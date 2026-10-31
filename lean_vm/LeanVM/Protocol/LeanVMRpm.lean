@@ -14,6 +14,8 @@ import LeanVM.Protocol.Rpm.Extract
 import LeanVM.Protocol.Extraction.Extract
 import LeanVM.Protocol.Rpm.RomRelabel
 import LeanVM.Protocol.Rpm.RpmRelabel
+import LeanVM.Protocol.WithHash
+import LeanVM.Protocol.ExperimentBridge
 
 /-!
 # leanVM in the random-permutation model
@@ -196,7 +198,7 @@ and the oracles' cache. -/
 noncomputable def verifierPhase (z : ProgramAndInput × Proof) (cA : KeccakCalls.QueryCache) :
     ProbComp Outcome :=
   (fun r ↦ ((z, r.1), r.2, cA)) <$>
-    (simulateQ KeccakCalls.randomOracle (verifier callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2)).run cA
+    (simulateQ KeccakCalls.randomOracle (verifierWithHash callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2)).run cA
 
 theorem experimentCoins_eq (B : OracleComp CSpec (ProgramAndInput × Proof)) :
     experimentCoins B = (simulateQ KeccakCalls.romImpl B).run ∅ >>= fun p ↦ verifierPhase p.1 p.2 := by
@@ -214,7 +216,7 @@ on the answers only, not on which byte strings covering them it is given as keys
 theorem romGame_le (A : DetAdversary) :
     Pr{let a ← Common.romRun2 (simulateQ Common.hInF (pure ()) >>= fun x ↦
         Common.advS2 Common.keccakPadding Common.KState.zero ((fun _ ↦ advR A) x) >>= fun a ↦
-          (fun _ z ↦ postR z) x a)}[BreaksKnowledgeSoundness a] ≤
+          (fun _ z ↦ postR z) x a)}[BreaksKnowledgeSoundnessWithHash a] ≤
       Pr{let z ← experimentCoins (romAdv A)}[Breaks extractor z] := by
   set X := Common.advS2 Common.keccakPadding Common.KState.zero (advR A)
   set J := (simulateQ HFS.romImpl X).run ∅ with hJ
@@ -238,15 +240,15 @@ theorem romGame_le (A : DetAdversary) :
   have ht := transcriptHashes_eq_of_mem_support A hp
   rw [postR, simulateQ_map, StateT.run'_eq, StateT.run_map, prEvent_map, prEvent_map,
     verifierPhase, prEvent_map]
-  have h := (run'_toRHF (verifier callKeccak256 callKeccakF1600 p.1.1.1.1 p.1.1.1.2 p.1.1.2) p.2).prEvent_eq
-    (fun v ↦ BreaksKnowledgeSoundness ((p.1.1, v), p.1.2))
+  have h := (run'_toRHF (verifierWithHash callKeccak256 callKeccakF1600 p.1.1.1.1 p.1.1.1.2 p.1.1.2) p.2).prEvent_eq
+    (fun v ↦ BreaksKnowledgeSoundnessWithHash ((p.1.1, v), p.1.2))
   rw [StateT.run'_eq, StateT.run'_eq, prEvent_map, prEvent_map] at h
   refine h.trans ?_
   congr 2
   funext r
   have e := fun prog input proof ↦
     Extraction.ExtractProofs.extractorRpm_eq_extract prog input p.1.2 proof ht
-  simp only [BreaksKnowledgeSoundness, Breaks, extractor, e]
+  simp only [BreaksKnowledgeSoundnessWithHash, Breaks, extractor, e]
   rfl
 
 /-- **Knowledge soundness in the random-permutation model**, for a deterministic adversary. An
@@ -254,12 +256,12 @@ adversary of at most `Q` queries to `π` and `π⁻¹` breaks soundness, for the
 `transcriptExtractor`, with probability at most the random-oracle error at `Q` queries plus
 `(Q + verifierPermCalls)² / 2^508`. -/
 theorem knowledgeSoundnessRpm {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
-    Pr{let z ← detExperiment A}[BreaksKnowledgeSoundness z] ≤
+    Pr{let z ← detExperiment A}[BreaksKnowledgeSoundnessWithHash z] ≤
       soundnessError Q + rpmError (Q + verifierPermCalls) := by
   rw [(detExperiment_evalDistEq A).prEvent_eq, game]
   obtain ⟨h1, -⟩ := Common.keccak256_transfer2 (pure ()) (fun _ ↦ advR A) (fun _ z ↦ postR z)
     (fun _ z ↦ duplex_postR z) (Q + verifierPermCalls) (isWeightBound_game hA)
-    (BreaksKnowledgeSoundness)
+    (BreaksKnowledgeSoundnessWithHash)
   refine h1.trans (add_le_add ((romGame_le A).trans ?_) le_rfl)
   exact knowledgeSoundness_coins (isWeightBound_romAdv hA)
 
@@ -268,9 +270,9 @@ most `Q` queries to `π` and `π⁻¹`: some deterministic adversary of at most 
 well (`rpmExperiment_le_det`). -/
 theorem knowledgeSoundnessRpm_coins {B : RandomPermutationAdversary} {Q : ℕ}
     (hB : Common.QueryCostAtMost B Common.permutationCallCost Q) :
-    Pr{let z ← soundnessExperiment B}[BreaksKnowledgeSoundness z] ≤
+    Pr{let z ← soundnessExperimentWithHash B}[BreaksKnowledgeSoundnessWithHash z] ≤
       soundnessError Q + rpmError (Q + verifierPermCalls) := by
-  obtain ⟨A, hA, hle⟩ := rpmExperiment_le_det hB (BreaksKnowledgeSoundness)
+  obtain ⟨A, hA, hle⟩ := rpmExperiment_le_det hB (BreaksKnowledgeSoundnessWithHash)
   exact hle.trans (knowledgeSoundnessRpm hA)
 
 /-! ## Completeness -/
@@ -319,11 +321,11 @@ theorem completenessRpm_at {prog : Program} {input : PublicInput} {t : Execution
         (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
           (leanVmProgram (bytecodeWords prog) (publicDigest input))
           (EndToEnd.Complete.leanVmProver prog s ρ (LeanIsa.stackOf prog s w)) fuel >>= fun proof ↦
-            verifier callKeccak256 callKeccakF1600 prog input proof)).run' []}[v = false] ≤
+            verifierWithHash callKeccak256 callKeccakF1600 prog input proof)).run' []}[v = false] ≤
       completenessError fuel + rpmError (completenessPermCalls fuel) := by
   refine rpm_le_of_rom _ _ ((duplexVm_romHonestComp prog input _ fuel).bind fun proof ↦
     duplexVm_verifier prog input proof) (isWeightBound_romHonest hw fuel) ?_
-  have hV : verifier callKeccak256 callKeccakF1600 prog input =
+  have hV : verifierWithHash callKeccak256 callKeccakF1600 prog input =
       LeanVM.Protocol.Compile.Rom.verifierComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
         (leanVmProgram (bytecodeWords prog) (publicDigest input)) :=
     funext fun π ↦ (verifierComp_leanVm _ _ π).symm
@@ -335,17 +337,17 @@ theorem completenessRpm_at {prog : Program} {input : PublicInput} {t : Execution
 theorem completenessRpm {prog : Program} {input : PublicInput} {t : Execution prog}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
-    Pr{let v ← verifierCompletenessExperiment
+    Pr{let v ← verifierCompletenessExperimentWithHash
         (fun prog input t ρ fuel ↦ EndToEnd.Complete.honestComp prog input t ρ fuel)
         prog input t ρ fuel}[v = false] ≤
       completenessError fuel + rpmError (completenessPermCalls fuel) := by
   obtain ⟨w, s, hw, hrep, hs, hadm⟩ := EndToEnd.Complete.exists_admissible_witness hv hbudget
   have hex : ∃ w s, EndToEnd.Complete.HonestFor prog input t ρ w s := ⟨w, s, hρ, hw, hs, hadm, hrep⟩
-  have e0 : verifierCompletenessExperiment
+  have e0 : verifierCompletenessExperimentWithHash
       (fun prog input t ρ fuel ↦ EndToEnd.Complete.honestComp prog input t ρ fuel)
       prog input t ρ fuel = (simulateQ keccakCallsOverRandomPermutation
         (EndToEnd.Complete.honestComp prog input t ρ fuel >>= fun proof ↦
-          verifier callKeccak256 callKeccakF1600 prog input proof)).run' [] := rfl
+          verifierWithHash callKeccak256 callKeccakF1600 prog input proof)).run' [] := rfl
   rw [e0]
   unfold EndToEnd.Complete.honestComp
   simp only [hex, ↓reduceDIte]
@@ -501,10 +503,16 @@ namespace LeanVM
 
 /-! ## The statements of `Statement/LeanVm.lean` -/
 
-/-- **Knowledge soundness holds** (in the random-permutation model), for the extractor
-`transcriptExtractor`. -/
-theorem knowledgeSoundness_holds : KnowledgeSoundness :=
+/-- Knowledge soundness in the experiment with the two calls, for the extractor
+`transcriptExtractorWithHash`. -/
+theorem knowledgeSoundnessWithHash_holds : KnowledgeSoundnessWithHash :=
   fun _ _ hA hQ ↦ (Rpm.knowledgeSoundnessRpm_coins hA).trans (Rpm.soundnessRpm_le_128 hQ)
+
+/-- **Knowledge soundness holds** (in the random-permutation model), for the extractor
+`transcriptExtractor`: the statement's experiment, its transcript's coins left out, is the one
+with the two calls (`map_soundnessExperiment`). -/
+theorem knowledgeSoundness_holds : KnowledgeSoundness :=
+  knowledgeSoundness_of_withHash knowledgeSoundnessWithHash_holds
 
 -- `LeanVM.completeness_holds`, for the statement's prover `LeanVM.prover`, is proved in
 -- `LeanVM/Prover/End.lean` from `completeness_of_spec` (`LeanVM/Prover/Complete.lean`).

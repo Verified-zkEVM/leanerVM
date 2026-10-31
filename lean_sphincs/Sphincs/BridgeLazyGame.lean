@@ -1,4 +1,5 @@
 import Sphincs.BridgeShortCost
+import Common.WithHash
 
 /-! For a computation that queries only short inputs, the stopped hidden-row experiment over a
 uniformly sampled outside table on the short inputs has the law of the stopped experiment with an

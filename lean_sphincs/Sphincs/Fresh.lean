@@ -1,6 +1,7 @@
 import Sphincs.Encoding
 import Sphincs.World
 import Sphincs.Bytes
+import Common.WithHash
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -36,9 +37,9 @@ theorem bind {α β : Type} {target : HashInput} {oa : OracleComp HashSpec α}
   exact hright mid.1 mid.2 r hr (hleft cache mid hmid hfresh)
 
 theorem query {target input : HashInput} (hne : input ≠ target) :
-    PreservesFresh target (oracleHash input : OracleComp HashSpec HashOutput) := by
+    PreservesFresh target (oracleHashWithHash input : OracleComp HashSpec HashOutput) := by
   intro cache r hr hfresh
-  simp only [oracleHash, HasQuery.query, simulateQ_spec_query] at hr
+  simp only [oracleHashWithHash, HasQuery.query, simulateQ_spec_query] at hr
   change r ∈ support ((randomOracle (spec := HashSpec) input).run cache) at hr
   cases hc : cache input with
   | some answer =>

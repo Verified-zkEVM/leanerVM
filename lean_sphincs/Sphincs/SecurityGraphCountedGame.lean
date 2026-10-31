@@ -1,4 +1,5 @@
 import Sphincs.SecurityGraphCountedSigner
+import Common.WithHash
 
 /-! The counted graph signer composed through an arbitrary adaptive adversary and the actual
 verifier: explicit-reveal cost programs for the interaction, the rest of the game and the whole

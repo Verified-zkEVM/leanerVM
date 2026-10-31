@@ -1,5 +1,6 @@
 import Sphincs.BridgeSatWSigner
 import Sphincs.BridgeForsGameOnce
+import Common.WithHash
 
 /-! The one-coin forest potential of the scan signer weighted by the survival weight. The final value
 of a run counts a forest cover with weight `w_end`; a new message/randomizer pair costs the baseline

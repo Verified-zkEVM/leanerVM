@@ -11,6 +11,8 @@ public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.NZBridge
 public import LeanVM.Guest.B1.VerifySub.CompleteSpec
 public import LeanVM.Guest.B1.VerifySub.Sizes
+public import LeanVM.Protocol.WithHashBridge
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The segments of an honest child's run
@@ -319,8 +321,8 @@ theorem readOnly_readSizes (bytecode : List K) : ReadOnly (readSizes bytecode) :
 theorem ReadOnlyA.run_eq {α : Type} (p : Prog α) : ReadOnlyA p →
     ∀ (H H' : Bytes → Id Digest) (F F' : KeccakState → Id KeccakState) (sp sp' : Sponge) (T : List E)
       (O O' : List Opening) (R R' : List (Digest × ℕ × ℕ)),
-      (Id.run (Compile.run (m := Id) H F p ⟨sp, T, O, R⟩)).map (·.1) =
-        (Id.run (Compile.run (m := Id) H' F' p ⟨sp', T, O', R'⟩)).map (·.1) := by
+      (Id.run (Compile.runWithHash (m := Id) H F p ⟨sp, T, O, R⟩)).map (·.1) =
+        (Id.run (Compile.runWithHash (m := Id) H' F' p ⟨sp', T, O', R'⟩)).map (·.1) := by
   induction p with
   | ret a => intros; rfl
   | fail => intros; rfl
@@ -342,8 +344,8 @@ theorem announced_eq {bytecode : List K} {s : Fs} {T : List E} {O : List Opening
   obtain ⟨sp', -, hr⟩ := runId_of_runF h hs
   have e := ReadOnlyA.run_eq _ ((readOnly_iff _).1 (readOnly_readSizes bytecode))
     (fun _ ↦ default) keccak256 (fun _ ↦ default) keccakF1600 ⟨default, []⟩ sp T [] O [] R
-  unfold Verifier.announced Compile.runPure
-  rw [e]
+  unfold Verifier.announced
+  rw [Compile.runPure_eq_withHash, e]
   change (runId (readSizes bytecode) ⟨sp, T, O, R⟩).map (·.1) = _
   rw [hr]
   rfl

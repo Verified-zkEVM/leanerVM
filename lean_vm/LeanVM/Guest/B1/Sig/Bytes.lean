@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Sig.Interface
 public import LeanVM.Guest.Value.Keccak
+public import LeanVM.Guest.WithHash
 
 /-!
 # Cells as the schemes' values

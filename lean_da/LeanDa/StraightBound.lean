@@ -1,4 +1,5 @@
 import LeanDa.Straight
+import LeanDa.WithHash
 
 /-!
 # The straight-line code-binding bound
@@ -181,7 +182,7 @@ theorem isWeightBound_zero {ι : Type} {spec : OracleSpec.{0, 0} ι} {α : Type}
 theorem isWeightBound_walkM {ι : Type} {spec : OracleSpec.{0, 0} ι}
     (H : List UInt8 → OracleComp spec Common.DigestBytes) (w : ι → ℕ) (hH : ∀ a, QueryCostAtMost (H a) w 1)
     (path : List Common.DigestBytes) : ∀ (idx : ℕ) (node : Common.DigestBytes),
-      QueryCostAtMost (walkM H idx node path) w path.length := by
+      QueryCostAtMost (walkMWithHash H idx node path) w path.length := by
   induction path with
   | nil => intro idx node; exact isWeightBound_pure _ _ _
   | cons s rest ih =>
@@ -191,7 +192,7 @@ theorem isWeightBound_walkM {ι : Type} {spec : OracleSpec.{0, 0} ι}
 theorem isWeightBound_verifyCellM {ι : Type} {spec : OracleSpec.{0, 0} ι}
     (H : List UInt8 → OracleComp spec Common.DigestBytes) (w : ι → ℕ) (hH : ∀ a, QueryCostAtMost (H a) w 1)
     (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
-    QueryCostAtMost (verifyCellM H r com p x τ) w (τ.path.length + 2) :=
+    QueryCostAtMost (verifyCellMWithHash H r com p x τ) w (τ.path.length + 2) :=
   ((hH _).bind fun _ ↦ (isWeightBound_walkM H w hH _ _ _).bind fun _ ↦
     (hH _).bind fun _ ↦ isWeightBound_pure _ _ 0).mono (by omega)
 
@@ -203,7 +204,7 @@ theorem isWeightBound_tailH (crs : Crs) (out : CbOut r Proof) (l : Challenges) :
     isWeightBound_query (spec := unifSpec + roSpec (List UInt8) DigestBytes) tCount (.inr a)
   have hc := isWeightBound_commitCellsM LeanDa.hH tCount 1 1 1 (fun a b ↦ h1 _) (fun x ↦ h1 _)
     (fun _ _ ↦ h1 _) (ext crs ((), out.1.1, l) out.1.2)
-  have hc' : QueryCostAtMost (commitCellsM LeanDa.hH (ext crs ((), out.1.1, l) out.1.2)) tCount
+  have hc' : QueryCostAtMost (commitCellsMWithHash LeanDa.hH (ext crs ((), out.1.1, l) out.1.2)) tCount
       (commitCalls r) := hc.mono (le_of_eq (by ring))
   unfold tailH
   refine hc'.bind fun root ↦ ?_

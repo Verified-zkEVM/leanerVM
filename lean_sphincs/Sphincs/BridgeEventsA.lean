@@ -1,4 +1,5 @@
 import Sphincs.BridgeExpose
+import Common.WithHash
 
 /-! Events of the refined classification for small budgets. A cached answer that hits its target
 is a first-order event unless its input is a root-tree chain step that is not at or above the

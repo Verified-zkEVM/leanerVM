@@ -3,6 +3,7 @@ import Sphincs.World
 import Sphincs.Statement
 import SphincsBase.Proof.Base.QueryCap
 import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
+import Common.WithHash
 
 /-! Finite fresh-table preparation and the candidate's parameter-dependent derivation table.
 The generic finite-table proof is adapted from leanVM b7a107256. Preparation explicitly performs

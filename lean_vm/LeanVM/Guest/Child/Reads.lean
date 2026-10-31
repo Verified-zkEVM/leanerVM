@@ -12,6 +12,8 @@ public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Verifier.Cost
 public import Statement.LeanVmGuest
+public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.WithHashBridge
 
 /-!
 # The stream an accepted proof carries
@@ -145,18 +147,18 @@ end Reads
 /-- **A run of a program of `n` reads consumes at most `n` scalars of the stream.** -/
 theorem run_reads (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) :
     ∀ {p : Prog α} {n : ℕ} {Q : α → Prop}, Reads p n Q → ∀ {s : ProgState} {r : α × ProgState},
-      Compile.run H F p s = some r → ∃ xs, s.stream = xs ++ r.2.stream ∧ xs.length ≤ n := by
+      Compile.runWithHash H F p s = some r → ∃ xs, s.stream = xs ++ r.2.stream ∧ xs.length ≤ n := by
   intro p
   induction p with
   | ret a =>
     intro n Q _ s r h
-    simp only [Compile.run] at h
+    simp only [Compile.runWithHash] at h
     cases h
     exact ⟨[], rfl, Nat.zero_le _⟩
-  | fail => intro n Q _ s r h; simp [Compile.run] at h
+  | fail => intro n Q _ s r h; simp [Compile.runWithHash] at h
   | read k ih =>
     intro n Q hp s r h
-    simp only [Compile.run] at h
+    simp only [Compile.runWithHash] at h
     split at h
     · simp at h
     · next x xs hs =>
@@ -166,13 +168,13 @@ theorem run_reads (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
       · simp only [List.length_cons]; have := hp.1; omega
   | sample k ih =>
     intro n Q hp s r h
-    simp only [Compile.run] at h
+    simp only [Compile.runWithHash] at h
     obtain ⟨ys, hys, hl⟩ := ih (Id.run (squeeze F s.sponge)).1 (hp _)
       (s := { s with sponge := (Id.run (squeeze F s.sponge)).2 }) h
     exact ⟨ys, hys, hl⟩
   | grind b k ih =>
     intro n Q hp s r h
-    simp only [Compile.run] at h
+    simp only [Compile.runWithHash] at h
     split at h
     · simp at h
     · next x xs hs =>
@@ -185,7 +187,7 @@ theorem run_reads (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
       · simp at h
   | commit ht w k ih =>
     intro n Q hp s r h
-    simp only [Compile.run] at h
+    simp only [Compile.runWithHash] at h
     split at h
     · next x0 x1 xs hs =>
       change (match digestOfScalars (x0, x1) with | some root => _ | none => _) = _ at h
@@ -198,11 +200,11 @@ theorem run_reads (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
     · simp at h
   | query i ps k ih =>
     intro n Q hp s r h
-    simp only [Compile.run] at h
+    simp only [Compile.runWithHash] at h
     split at h
     · simp at h
     · next root height width hr =>
-      change (match openAll H root height width ps s.openings with
+      change (match openAllWithHash H root height width ps s.openings with
         | some (rows, rest) => _ | none => _) = _ at h
       split at h
       · next rows rest ho =>
@@ -213,10 +215,10 @@ theorem run_reads (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
 /-- **An accepted proof's stream has at most the program's reads.** -/
 theorem stream_le_of_runProof (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) {P : Prog Bool}
     {n : ℕ} {Q : Bool → Prop} (hP : Reads P n Q) {seed : KeccakState} {π : Proof}
-    (h : runProof H F P seed π = true) : π.stream.length ≤ n := by
-  unfold runProof at h
+    (h : runProofWithHash H F P seed π = true) : π.stream.length ≤ n := by
+  unfold runProofWithHash at h
   revert h
-  match hr : Compile.run H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
+  match hr : Compile.runWithHash H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
   | some (true, s) =>
     intro h
     obtain ⟨xs, hxs, hl⟩ := run_reads H F hP hr
@@ -716,6 +718,7 @@ theorem stream_le_of_verifyDeferred {bytecode : List K} {iv publicInput : Digest
     rw [deferredProgram_eq]
     exact Reads.seq (reads_verifyExecution (readsNothing_claimed c) bytecode publicInput)
       (fun _ _ ↦ trivial) le_rfl
+  rw [verifyDeferred_eq_withHash] at h
   exact (stream_le_of_runProof keccak256 keccakF1600 hP h).trans childReads_le
 
 end

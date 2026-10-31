@@ -3,6 +3,7 @@ import Common.Signature
 import Common.PiOnly
 import Common.Linear
 import Sphincs.Layered
+import Common.WithHash
 
 /-!
 # leanSPHINCS security statement in the random-permutation model
@@ -58,7 +59,7 @@ attribute [local irreducible] QueryCostAtMost in
 `Q = 2^128` for `bits ≤ 128`: first against adversaries that also query Keccak-256, then against
 the statement's, which query `π` and `π⁻¹` alone (`Common.SufCma.rpmSecure_of_rpmSecureH`). -/
 theorem rpmSecure_of_bits {bits : Nat} (h : HasRpmSecurityBits bits) (hb : bits ≤ 128) :
-    StronglyUnforgeable scheme bits := by
+    StronglyUnforgeableWithHash scheme bits := by
   refine rpmSecure_of_rpmSecureH ?_
   intro Q hQ main hbound
   rcases le_or_gt Q (2 ^ 128) with hcap | hcap

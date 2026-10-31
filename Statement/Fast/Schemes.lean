@@ -75,17 +75,18 @@ theorem sequenceFin_xmss {m : Type → Type} [Monad m] {α : Type} :
 namespace Xmss
 
 open LeanXmss LeanXmss.Concrete
+open LeanVM.Semantics (KeccakState)
 
-variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-- `LeanXmss.Concrete.otsLeaf`. -/
 def otsLeaf (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (message : HashInput)
     (randomness : Randomness) (values : ChainIndex → Digest) : m (Option Digest) := do
-  let digest ← messageDigest parameter lay key message randomness
+  let digest ← messageDigest π parameter lay key message randomness
   let some encoding := Codeword.decode digest | return none
   let endpoints ← LeanXmss.Concrete.sequenceFin fun chainIdx =>
-    recoverChain parameter lay key chainIdx (encoding chainIdx) (values chainIdx)
-  let value ← leafHash parameter lay key endpoints
+    recoverChain π parameter lay key chainIdx (encoding chainIdx) (values chainIdx)
+  let value ← leafHash π parameter lay key endpoints
   return some value
 
 /-- `LeanXmss.Concrete.otsLeaf` compiles as its restatement. -/
@@ -94,9 +95,9 @@ def otsLeaf (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (messag
 /-- `LeanXmss.Concrete.layerRoot`, with `otsLeaf`. -/
 def layerRoot (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (message : HashInput)
     (part : LayerSignature) : m (Option Digest) := do
-  let some leaf ← LeanXmss.Concrete.otsLeaf parameter lay key message part.randomness
+  let some leaf ← LeanXmss.Concrete.otsLeaf π parameter lay key message part.randomness
     part.chainValues | return none
-  let root ← treeFold parameter lay key part.path layerHeight leaf
+  let root ← treeFold π parameter lay key part.path layerHeight leaf
   return some root
 
 /-- `LeanXmss.Concrete.layerRoot` compiles as its restatement. -/
@@ -105,9 +106,9 @@ def layerRoot (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (mess
 /-- `LeanXmss.Concrete.verify`, with `layerRoot`. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
   let index := signature.leafIndex
-  let some bottomRoot ← LeanXmss.Concrete.layerRoot publicKey.parameter bottomLayer
+  let some bottomRoot ← LeanXmss.Concrete.layerRoot π publicKey.parameter bottomLayer
       (keyAt index bottomLayer) (bytesLE 32 message) (signature.layers bottomLayer) | return false
-  let some root ← LeanXmss.Concrete.layerRoot publicKey.parameter topLayer (keyAt index topLayer)
+  let some root ← LeanXmss.Concrete.layerRoot π publicKey.parameter topLayer (keyAt index topLayer)
       (bytesLE 16 bottomRoot) (signature.layers topLayer) | return false
   return decide (root = publicKey.root)
 
@@ -123,16 +124,17 @@ end Xmss
 namespace Sphincs
 
 open _root_.Sphincs _root_.Sphincs.Concrete
+open LeanVM.Semantics (KeccakState)
 
-variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-- `Sphincs.Concrete.otsLeaf`. -/
 def otsLeaf (parameter : PublicParameter) (leaf : Index) (message : ForestKey) (counter : Counter)
     (values : ChainIndex → Digest) : m (Option Digest) := do
-  let some encoding ← encode parameter leaf message counter | return none
+  let some encoding ← encode π parameter leaf message counter | return none
   let endpoints ← LeanXmss.Concrete.sequenceFin fun chainIdx =>
-    recoverChain parameter leaf chainIdx (encoding chainIdx) (values chainIdx)
-  let value ← leafHash parameter leaf endpoints
+    recoverChain π parameter leaf chainIdx (encoding chainIdx) (values chainIdx)
+  let value ← leafHash π parameter leaf endpoints
   return some value
 
 /-- `Sphincs.Concrete.otsLeaf` compiles as its restatement. -/
@@ -140,12 +142,12 @@ def otsLeaf (parameter : PublicParameter) (leaf : Index) (message : ForestKey) (
 
 /-- `Sphincs.Concrete.verify`, with `otsLeaf`. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
-  let digest ← messageDigest publicKey.parameter message signature.randomness
+  let digest ← messageDigest π publicKey.parameter message signature.randomness
   let index := digestIndex digest
-  let forestKey ← forestRecover publicKey.parameter index (digestMarks digest) signature.forest
-  let some leaf ← _root_.Sphincs.Concrete.otsLeaf publicKey.parameter index forestKey
+  let forestKey ← forestRecover π publicKey.parameter index (digestMarks digest) signature.forest
+  let some leaf ← _root_.Sphincs.Concrete.otsLeaf π publicKey.parameter index forestKey
     signature.counter signature.chainValues | return false
-  let root ← treeFold publicKey.parameter index
+  let root ← treeFold π publicKey.parameter index
     (fun level ↦ if h : level < totalHeight then signature.path ⟨level, h⟩ else 0) totalHeight leaf
   return decide (root = publicKey.root)
 

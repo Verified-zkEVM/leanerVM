@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.CompleteIface
 public import LeanVM.Guest.B1.Merkle.Climb
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The honest cap
@@ -39,9 +40,9 @@ open LeanVM.Guest.Value.Keccak
 /-- **An opening that passes `openOne`** has its shape and climbs from its leaf's digest to the
 root. -/
 theorem openOne_facts {root : Digest} {height width q : ℕ} {o : Opening}
-    (h : Id.run (Compile.openOne (m := Id) keccak256 root height width q o) = true) :
+    (h : Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width q o) = true) :
     o.leaf.length = width ∧ o.path.length = height ∧ climbD (hashWords o.leaf) q o.path = root := by
-  unfold Compile.openOne at h
+  unfold Compile.openOneWithHash at h
   split at h
   · rename_i hs
     refine ⟨hs.1, hs.2, ?_⟩

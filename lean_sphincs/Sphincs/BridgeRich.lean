@@ -1,4 +1,5 @@
 import Sphincs.BridgeLazyGame
+import Common.WithHash
 
 /-! A richer graph-view program returning the forgery, the signing log, the verifier's
 answer and every revealed coordinate. The original win event is a function of its result. -/

@@ -10,6 +10,8 @@ module
 
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.Child.Honest
+public import LeanVM.Protocol.WithHashBridge
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The announced stack log of an honest proof
@@ -125,7 +127,7 @@ theorem run_of_follows_sendList {β : Type} {R : Commits → Unit → β → Pro
     (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) :
     ∀ (l : List E) (p : Prog β) (cs : Commits), Follows R (Script.sendList l) p cs →
       ∀ (sp : Sponge) (rest : List E) (os : List Opening) (roots : List (Digest × ℕ × ℕ)),
-        ∃ b sp', Compile.run H F p ⟨sp, l ++ rest, os, roots⟩ = some (b, ⟨sp', rest, os, roots⟩) ∧
+        ∃ b sp', Compile.runWithHash H F p ⟨sp, l ++ rest, os, roots⟩ = some (b, ⟨sp', rest, os, roots⟩) ∧
           R cs () b
   | [], p, cs, hf, sp, rest, os, roots => by
     cases p with
@@ -147,8 +149,8 @@ theorem announced_honest {prog : Program} {s : Sizes} (hs : s.Admissible prog) {
   obtain ⟨b, sp', e, -, hb⟩ := run_of_follows_sendList (fun _ ↦ default)
     (fun _ ↦ default) (announce s ρ) _ [] (follows_readSizes prog hs hρ []) ⟨default, []⟩
     rest [] []
-  unfold announced runPure
-  rw [e, hb]
+  unfold announced
+  rw [Compile.runPure_eq_withHash, e, hb]
   rfl
 
 /-- **A child's honest proof announces a stack log of at least `22`** when the execution's

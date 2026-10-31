@@ -1,5 +1,6 @@
 import Sphincs.SecurityGraphCost
 import Sphincs.SecurityPrefixErasedGame
+import Common.WithHash
 
 /-! The counted graph-reveal signer. Its final assembly preserves the joint law of the actual
 signature and its original hash cost on a fixed answer function. Internal graph work is charged

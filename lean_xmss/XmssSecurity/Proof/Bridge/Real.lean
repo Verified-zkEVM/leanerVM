@@ -1,4 +1,5 @@
 import XmssSecurity.Proof.Bridge.Resolution
+import Common.WithHash
 
 /-!
 # The real scheme's honest computations
@@ -25,11 +26,11 @@ theorem keygenQueries_eq : keygenQueries = 13434881 := by decide
 def realKeygen (seed : MasterSeed) : OracleComp HashSpec (LeanXmss.PublicKey × LeanXmss.Seeded.SecretKey) :=
   (do
     let parameter ← LeanXmss.deriveKey 0 .parameter seed
-    let root ← LeanXmss.Seeded.treeNode parameter LeanXmss.topLayer seed LeanXmss.layerHeight 0
+    let root ← LeanXmss.Seeded.treeNodeWithHash parameter LeanXmss.topLayer seed LeanXmss.layerHeight 0
     return (⟨root, parameter⟩, ⟨seed, parameter⟩) : OracleComp LeanXmss.HashSpec _)
 
 theorem keygenFromSeed_eq (keySeed : MasterSeed) :
-    LeanXmss.Seeded.keygenFromSeed keySeed =
+    LeanXmss.Seeded.keygenFromSeedWithHash keySeed =
       (LeanXmss.schemeSeed keySeed : OracleComp LeanXmss.HashSpec MasterSeed) >>= realKeygen := rfl
 
 /-! ## Counts -/
@@ -42,9 +43,9 @@ theorem queryCount_oracleHash (x : HashInput) :
 
 theorem queryCount_realHash (parameter : PublicParameter) (domain : LeanXmss.HashDomain)
     (payload : HashInput) :
-    QueryCount (LeanXmss.Concrete.tweakableHash parameter domain payload :
+    QueryCount (LeanXmss.Concrete.tweakableHashWithHash parameter domain payload :
       OracleComp LeanXmss.HashSpec LeanXmss.Digest) 1 := by
-  unfold LeanXmss.Concrete.tweakableHash LeanXmss.Concrete.th
+  unfold LeanXmss.Concrete.tweakableHashWithHash LeanXmss.Concrete.thWithHash
   have h := (queryCount_oracleHash (LeanXmss.tweakableHashInput parameter domain payload)).bind
     (f := fun output => (pure (LeanXmss.truncateHash output) : OracleComp HashSpec LeanXmss.Digest))
     fun _ => QueryCount.pure _
@@ -53,12 +54,12 @@ theorem queryCount_realHash (parameter : PublicParameter) (domain : LeanXmss.Has
 theorem queryCount_realChainWalk (parameter : PublicParameter) (lay : LeanXmss.Layer)
     (key : LeanXmss.KeyIndex) (chain : ChainIndex) (start steps : Nat)
     (hsteps : start + steps ≤ chainLength - 1) (value : Digest) :
-    QueryCount (LeanXmss.Concrete.chainWalk parameter lay key chain start steps value :
+    QueryCount (LeanXmss.Concrete.chainWalkWithHash parameter lay key chain start steps value :
       OracleComp LeanXmss.HashSpec LeanXmss.Digest) steps := by
   induction steps with
   | zero => exact .pure _
   | succ steps ih =>
-      rw [LeanXmss.Concrete.chainWalk]
+      rw [LeanXmss.Concrete.chainWalkWithHash]
       refine (ih (by omega)).bind fun previous => ?_
       rw [dite_eq_left (show start + steps < LeanXmss.chainLength - 1 by
         simp only [chainLength, winternitzBits, LeanXmss.chainLength, LeanXmss.winternitzBits] at hsteps ⊢
@@ -67,9 +68,9 @@ theorem queryCount_realChainWalk (parameter : PublicParameter) (lay : LeanXmss.L
 
 theorem queryCount_otsSecrets (parameter : PublicParameter) (lay : LeanXmss.Layer)
     (key : LeanXmss.KeyIndex) (seed : MasterSeed) :
-    QueryCount (LeanXmss.Seeded.otsSecrets parameter lay key seed :
+    QueryCount (LeanXmss.Seeded.otsSecretsWithHash parameter lay key seed :
       OracleComp LeanXmss.HashSpec (LeanXmss.ChainIndex → LeanXmss.Digest)) 29 := by
-  unfold LeanXmss.Seeded.otsSecrets
+  unfold LeanXmss.Seeded.otsSecretsWithHash
   rw [sequenceFin_eq]
   have h := (QueryCount.sequenceFin (n := 1) fun pair : ChainPair =>
     queryCount_oracleHash (LeanXmss.keygenHashInput parameter (.ots lay key pair) seed)).bind
@@ -83,12 +84,12 @@ def nodeQueries (level : Nat) : Nat := 2 ^ level * (29 + 174 + 1) + 2 ^ level - 
 
 theorem queryCount_realTreeNode (parameter : PublicParameter) (lay : LeanXmss.Layer) (seed : MasterSeed)
     (level node : Nat) :
-    QueryCount (LeanXmss.Seeded.treeNode parameter lay seed level node :
+    QueryCount (LeanXmss.Seeded.treeNodeWithHash parameter lay seed level node :
       OracleComp LeanXmss.HashSpec LeanXmss.Digest) (nodeQueries level) := by
   induction level generalizing node with
   | zero =>
-      rw [LeanXmss.Seeded.treeNode]
-      unfold LeanXmss.Seeded.oneTimePublicKey LeanXmss.Concrete.leafHash
+      rw [LeanXmss.Seeded.treeNodeWithHash]
+      unfold LeanXmss.Seeded.oneTimePublicKeyWithHash LeanXmss.Concrete.leafHashWithHash
       simp only [sequenceFin_eq, bind_assoc]
       rw [show nodeQueries 0 = 29 + (numChains * 3 + 1) by decide]
       refine (queryCount_otsSecrets parameter lay _ seed).bind fun secrets => ?_
@@ -96,7 +97,7 @@ theorem queryCount_realTreeNode (parameter : PublicParameter) (lay : LeanXmss.La
         (LeanXmss.chainLength - 1) (by decide) (secrets chain)).bind fun endpoints => ?_
       exact queryCount_realHash _ _ _
   | succ level ih =>
-      rw [LeanXmss.Seeded.treeNode]
+      rw [LeanXmss.Seeded.treeNodeWithHash]
       have hcount : nodeQueries (level + 1) = nodeQueries level + (nodeQueries level + 1) := by
         simp only [nodeQueries, pow_succ]
         have : 1 ≤ 2 ^ level := Nat.one_le_two_pow
@@ -106,7 +107,7 @@ theorem queryCount_realTreeNode (parameter : PublicParameter) (lay : LeanXmss.La
 
 theorem queryCount_realKeygen (seed : MasterSeed) :
     QueryCount (realKeygen seed) (keygenQueries - 1) := by
-  unfold realKeygen LeanXmss.deriveKey LeanXmss.Concrete.th
+  unfold realKeygen LeanXmss.deriveKey LeanXmss.Concrete.thWithHash
   rw [bind_assoc, show keygenQueries - 1 = 1 + (0 + (nodeQueries LeanXmss.layerHeight + 0)) by decide]
   refine (queryCount_oracleHash _).bind fun output => (QueryCount.pure _).bind fun parameter => ?_
   exact (queryCount_realTreeNode _ _ _ _ _).bind fun _ => .pure _
@@ -114,9 +115,9 @@ theorem queryCount_realKeygen (seed : MasterSeed) :
 /-! ## Erasing the derivations -/
 
 theorem otsSecrets_bottom (seed : MasterSeed) (d : Derivations) (index : LeafIndex) :
-    Resolves (progCache seed d) (LeanXmss.Seeded.otsSecrets d.parameter LeanXmss.bottomLayer index seed :
+    Resolves (progCache seed d) (LeanXmss.Seeded.otsSecretsWithHash d.parameter LeanXmss.bottomLayer index seed :
       OracleComp LeanXmss.HashSpec (LeanXmss.ChainIndex → LeanXmss.Digest)) (d.secret index) := by
-  unfold LeanXmss.Seeded.otsSecrets
+  unfold LeanXmss.Seeded.otsSecretsWithHash
   rw [sequenceFin_eq]
   refine (Resolves.sequenceFin (v := fun pair => d.bottom (index, pair)) fun pair => ?_).bind (.pure _)
   have h := progCache_bottom seed d (index, pair)
@@ -126,9 +127,9 @@ theorem otsSecrets_bottom (seed : MasterSeed) (d : Derivations) (index : LeafInd
   exact .query _ _ h _ _ (.pure _)
 
 theorem otsSecrets_top (seed : MasterSeed) (d : Derivations) (key : TopIndex) :
-    Resolves (progCache seed d) (LeanXmss.Seeded.otsSecrets d.parameter LeanXmss.topLayer (topKey key) seed :
+    Resolves (progCache seed d) (LeanXmss.Seeded.otsSecretsWithHash d.parameter LeanXmss.topLayer (topKey key) seed :
       OracleComp LeanXmss.HashSpec (LeanXmss.ChainIndex → LeanXmss.Digest)) (d.topSecret key) := by
-  unfold LeanXmss.Seeded.otsSecrets
+  unfold LeanXmss.Seeded.otsSecretsWithHash
   rw [sequenceFin_eq]
   refine (Resolves.sequenceFin (v := fun pair => d.top (key, pair)) fun pair => ?_).bind (.pure _)
   have h := progCache_top seed d (key, pair)
@@ -154,13 +155,13 @@ theorem leafKey_top (j : Nat) (hj : j < 2 ^ 16) :
 /-- A real bottom node is the model's with its derivations erased. -/
 theorem erases_treeNode_bottom (seed : MasterSeed) (d : Derivations) (level : Nat) (hlevel : level ≤ 16)
     (j : Nat) (hj : j < 2 ^ (32 - level)) :
-    Erases (progCache seed d) (LeanXmss.Seeded.treeNode d.parameter LeanXmss.bottomLayer seed level j :
+    Erases (progCache seed d) (LeanXmss.Seeded.treeNodeWithHash d.parameter LeanXmss.bottomLayer seed level j :
         OracleComp LeanXmss.HashSpec LeanXmss.Digest)
       (Concrete.treeNode d.parameter d.secret level (Concrete.merkleNodeOfNat j)) := by
   induction level generalizing j with
   | zero =>
       rw [LeanXmss.Seeded.treeNode_eq_zero, Concrete.treeNode_zero_eq, leafKey_bottom j]
-      unfold LeanXmss.Seeded.oneTimePublicKey Concrete.leafAt Concrete.oneTimePublicKey
+      unfold LeanXmss.Seeded.oneTimePublicKeyWithHash Concrete.leafAt Concrete.oneTimePublicKey
       rw [bind_assoc]
       apply (erases_pure_of_resolves (otsSecrets_bottom seed d _)).bind_known
       simp only [sequenceFin_eq, chainWalk_bottom, leafHash_bottom]
@@ -195,13 +196,13 @@ theorem erases_treeNode_bottom (seed : MasterSeed) (d : Derivations) (level : Na
 /-- A real top node is the model's with its derivations erased. -/
 theorem erases_treeNode_top (seed : MasterSeed) (d : Derivations) (level : Nat) (hlevel : level ≤ 16)
     (j : Nat) (hj : j < 2 ^ (16 - level)) :
-    Erases (progCache seed d) (LeanXmss.Seeded.treeNode d.parameter LeanXmss.topLayer seed level j :
+    Erases (progCache seed d) (LeanXmss.Seeded.treeNodeWithHash d.parameter LeanXmss.topLayer seed level j :
         OracleComp LeanXmss.HashSpec LeanXmss.Digest)
       (Concrete.topTreeNode d.parameter d.topSecret level (Concrete.topNodeOfNat j)) := by
   induction level generalizing j with
   | zero =>
       rw [LeanXmss.Seeded.treeNode_eq_zero, Concrete.topTreeNode, leafKey_top j (by simpa using hj)]
-      unfold LeanXmss.Seeded.oneTimePublicKey Concrete.topLeafAt Concrete.topOneTimePublicKey
+      unfold LeanXmss.Seeded.oneTimePublicKeyWithHash Concrete.topLeafAt Concrete.topOneTimePublicKey
       rw [bind_assoc]
       apply (erases_pure_of_resolves (otsSecrets_top seed d _)).bind_known
       simp only [sequenceFin_eq, chainWalk_top, leafHash_top]
@@ -243,14 +244,14 @@ variable {seed : MasterSeed} {d : Derivations}
 
 theorem realBottomNode (h : Prepared seed d result cache) (level : Nat) (hlevel : level ≤ 16) (j : Nat)
     (hj : j < 2 ^ (32 - level)) :
-    Resolves cache (LeanXmss.Seeded.treeNode d.parameter LeanXmss.bottomLayer seed level j :
+    Resolves cache (LeanXmss.Seeded.treeNodeWithHash d.parameter LeanXmss.bottomLayer seed level j :
         OracleComp LeanXmss.HashSpec LeanXmss.Digest)
       ((modelSecretKey d result).treeValue ⟨level, by simp [treeHeight]; omega⟩ (Concrete.merkleNodeOfNat j)) :=
   (erases_treeNode_bottom seed d level hlevel j hj).resolves h.prog_le (h.tree level hlevel j hj)
 
 theorem realTopNode (h : Prepared seed d result cache) (level : Nat) (hlevel : level ≤ 16) (j : Nat)
     (hj : j < 2 ^ (16 - level)) :
-    Resolves cache (LeanXmss.Seeded.treeNode d.parameter LeanXmss.topLayer seed level j :
+    Resolves cache (LeanXmss.Seeded.treeNodeWithHash d.parameter LeanXmss.topLayer seed level j :
         OracleComp LeanXmss.HashSpec LeanXmss.Digest)
       ((modelSecretKey d result).topTreeValue ⟨level, by simp [treeHeight]; omega⟩ (Concrete.topNodeOfNat j)) :=
   (erases_treeNode_top seed d level hlevel j hj).resolves h.prog_le (h.topTree level hlevel j hj)
@@ -259,7 +260,7 @@ theorem realTopNode (h : Prepared seed d result cache) (level : Nat) (hlevel : l
 theorem realKeygen (h : Prepared seed d result cache) :
     Resolves cache (Bridge.realKeygen seed)
       ((⟨result.1.1, d.parameter⟩ : LeanXmss.PublicKey), (⟨seed, d.parameter⟩ : LeanXmss.Seeded.SecretKey)) := by
-  unfold Bridge.realKeygen LeanXmss.deriveKey LeanXmss.Concrete.th
+  unfold Bridge.realKeygen LeanXmss.deriveKey LeanXmss.Concrete.thWithHash
   rw [bind_assoc]
   have hparam : cache (paramInput seed) = some d.param := h.prog_le (progCache_param seed d)
   change Resolves cache (liftM (HashSpec.query (paramInput seed)) >>= _) _

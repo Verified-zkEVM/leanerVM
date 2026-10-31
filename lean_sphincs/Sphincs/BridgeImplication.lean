@@ -1,5 +1,6 @@
 import Sphincs.BridgeClassify
 import Sphincs.BridgeSupport
+import Common.WithHash
 
 /-! Deterministic core: a winning non-stopped run of the rich program yields a cached hit of
 a fixed target or a covered FORS digest. -/
@@ -462,7 +463,7 @@ theorem digestInputs_mem (f : QueryImpl HashSpec Id) (pk : PublicKey) (message :
   rw [Concrete.verify]
   apply queriedInputs_mono_bind_left
   unfold messageDigest messageDigestCall
-  simp only [oracleHash, HasQuery.query]
+  simp only [oracleHashWithHash, HasQuery.query]
   rw [queriedInputs_query_bind]
   exact List.mem_cons_self
 
@@ -822,7 +823,7 @@ theorem cachedDigest_eq (parameterOutput : HashOutput) (highs : CoordinateHighs)
     rfl
   unfold cachedDigest verificationDigest
   rw [hread]
-  simp only [messageDigest, messageDigestCall, oracleHash, HasQuery.query, evalWithAnswerFn_bind,
+  simp only [messageDigest, messageDigestCall, oracleHashWithHash, HasQuery.query, evalWithAnswerFn_bind,
     evalWithAnswerFn_pure]
   rfl
 

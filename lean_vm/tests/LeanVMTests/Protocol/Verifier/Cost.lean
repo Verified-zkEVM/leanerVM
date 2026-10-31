@@ -1,4 +1,5 @@
 import LeanVM.Protocol.Verifier.Cost
+import LeanVM.Protocol.WithHash
 
 /-!
 # The query cost of verifier programs
@@ -111,7 +112,7 @@ def countingPerm (s : KeccakState) : StateM ℕ KeccakState := do
 
 /-- The verdict and the number of queries of the compiled verifier on a stream. -/
 def countedRun (n : ℕ) : Bool × ℕ :=
-  (verifyWith countingHash countingPerm sampleBytecode samplePublicInput ⟨stream n, []⟩).run 0
+  (verifyWithHash countingHash countingPerm sampleBytecode samplePublicInput ⟨stream n, []⟩).run 0
 
 -- Rejected at the first GKR layer (the depth is odd, so one level), after the IV's hash and the
 -- seed's permutation, then the sponge's permutations: the fifth of the `8` sizes, the

@@ -10,6 +10,9 @@
 module
 
 public import LeanVM.Guest.Child.NZRun
+public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.WithHashBridge
+public import LeanVM.Guest.WithHash
 
 /-!
 # Refusing a zero challenge anywhere
@@ -123,7 +126,7 @@ theorem refines_refuseZero_of_nz {Q P : Prog α} (h : NZ Q P) : Limits.Refines P
 theorem verifyDeferredNZ_of_rz {bytecode : List K} {iv publicInput : Digest} {c : BytecodeClaim}
     {π : Proof} (h : Limits.verifyDeferredRefusingZero bytecode iv publicInput c π = true) :
     Limits.verifyDeferredNZ bytecode iv publicInput c π = true := by
-  unfold Limits.verifyDeferredRefusingZero at h
+  rw [Limits.verifyDeferredRefusingZero_eq_withHash] at h
   unfold Limits.verifyDeferredNZ
   refine Limits.runProof_refines (refines_refuseZero_of_nz ?_) _ π h
   rw [deferredProgramNZ_eq, deferredProgram_eq]
@@ -139,9 +142,9 @@ theorem _root_.LeanVM.Guest.Limits.verifyDeferredNZ_of_childOk {bytecode : List 
 
 /-- **The statement's refusing verifier accepts only what the guest's accepts.** -/
 theorem verifierNZ_of_rz {prog : Program} {input : PublicInput} {π : Proof}
-    (h : Budget.verifierRefusingZero (m := Id) keccak256 keccakF1600 prog input π = true) :
+    (h : Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 prog input π = true) :
     Budget.verifierNZ (m := Id) keccak256 keccakF1600 prog input π = true := by
-  unfold Budget.verifierRefusingZero at h
+  unfold Budget.verifierRefusingZeroWithHash at h
   unfold Budget.verifierNZ
   refine Limits.runProof_refines (refines_refuseZero_of_nz ?_) _ π h
   rw [leanVmProgram_eq]
@@ -154,13 +157,13 @@ claim**, refusing zero challenges: the claim of the value at the point the run e
 theorem run_claimed_of_computed_rz (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
     (opening : ℕ → ℕ → List StackClaim → Prog Unit) (bytecode : List K) (publicInput : Digest)
     (k : Unit → Prog Bool) {st : ProgState} {r : Bool × ProgState}
-    (h : Compile.run H F ((execWith computedValue opening bytecode publicInput).bind k).refusingZeroChallenge st =
+    (h : Compile.runWithHash H F ((execWith computedValue opening bytecode publicInput).bind k).refusingZeroChallenge st =
       some r) :
     ∃ c : BytecodeClaim, c.Holds bytecode ∧
-      Compile.run H F ((execWith (claimedValue c) opening bytecode publicInput).bind k).refusingZeroChallenge st =
+      Compile.runWithHash H F ((execWith (claimedValue c) opening bytecode publicInput).bind k).refusingZeroChallenge st =
         some r := by
   rw [execSplit, Prog.bind_assoc, refuseZero_bind, run_bind'] at h
-  rcases hp : Compile.run H F (prefixProg bytecode).refusingZeroChallenge st with _ | ⟨y, s1⟩
+  rcases hp : Compile.runWithHash H F (prefixProg bytecode).refusingZeroChallenge st with _ | ⟨y, s1⟩
   · rw [hp] at h; simp at h
   rw [hp] at h
   have hy : y.layout.bytecode = bytecode :=
@@ -178,14 +181,14 @@ claim**, refusing zero challenges. -/
 theorem runProof_claimed_of_computed_rz (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
     (opening : ℕ → ℕ → List StackClaim → Prog Unit) (bytecode : List K) (publicInput : Digest)
     {sd : KeccakState} {π : Proof}
-    (h : Id.run (runProof H F ((execWith computedValue opening bytecode publicInput).bind
+    (h : Id.run (runProofWithHash H F ((execWith computedValue opening bytecode publicInput).bind
       fun _ ↦ Prog.ret true).refusingZeroChallenge sd π) = true) :
     ∃ c : BytecodeClaim, c.Holds bytecode ∧
-      Id.run (runProof H F ((execWith (claimedValue c) opening bytecode publicInput).bind
+      Id.run (runProofWithHash H F ((execWith (claimedValue c) opening bytecode publicInput).bind
         fun _ ↦ Prog.ret true).refusingZeroChallenge sd π) = true := by
-  unfold runProof at h ⊢
+  unfold runProofWithHash at h ⊢
   revert h
-  match hr : Compile.run H F ((execWith computedValue opening bytecode publicInput).bind
+  match hr : Compile.runWithHash H F ((execWith computedValue opening bytecode publicInput).bind
       fun _ ↦ Prog.ret true).refusingZeroChallenge ⟨⟨sd, []⟩, π.stream, π.openings, []⟩ with
   | some (true, s) =>
     intro h

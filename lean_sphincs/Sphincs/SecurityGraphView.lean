@@ -1,6 +1,7 @@
 import Sphincs.SecurityEncodingPreparation
 import Sphincs.SecurityHiddenGraphRows
 import Sphincs.SecurityGraphCorrectness
+import Common.WithHash
 
 /-! Signature assembly from public structural labels and explicit coordinate disclosures.
 This file establishes the exact output view; preservation of the original internal hash cost

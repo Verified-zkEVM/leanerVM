@@ -4,6 +4,7 @@ public import Statement.LeanXmss
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 public import VCVio.OracleComp.QueryTracking.WriterCost
+public import Common.WithHash
 
 /-!
 # leanSPHINCS, layered (proof side)
@@ -337,14 +338,14 @@ signing. Hashing routines work in any monad with access to `HashSpec`. -/
 
 namespace Concrete
 
-export LeanXmss.Concrete (sequenceFin oracleHash walkChain nodePayload foldPath buildTree)
+export LeanXmss.Concrete (sequenceFin oracleHashWithHash walkChain nodePayload foldPath buildTree)
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
 /-- `Th(P, tw, M) = Truncate_n(H(P || tw || M))`. -/
 def tweakableHash (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :
     m Digest := do
-  let output ← oracleHash (tweakableHashInput parameter domain payload)
+  let output ← oracleHashWithHash (tweakableHashInput parameter domain payload)
   return truncateHash output
 
 /-! #### The index -/
@@ -523,7 +524,7 @@ def messageDigestPayload (message : Message) (randomness : Randomness) : HashInp
 /-- The single untruncated digest call (`digest_block`). -/
 def messageDigestCall (parameter : PublicParameter) (message : Message)
     (randomness : Randomness) : m HashOutput :=
-  oracleHash (tweakableHashInput parameter .message (messageDigestPayload message randomness))
+  oracleHashWithHash (tweakableHashInput parameter .message (messageDigestPayload message randomness))
 
 /-- Bit offset of the index: the low 26 bits of the last 16 bytes of the digest. -/
 def indexOffset : Nat := 128
@@ -629,21 +630,21 @@ end Pruning
 /-- One seed derivation, first 16 bytes: the parameter and the surrogates. -/
 def deriveKey {m : Type → Type} [Monad m] [HasQuery HashSpec m]
     (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
-  return truncateHash (← Concrete.oracleHash (keygenHashInput parameter domain seed))
+  return truncateHash (← Concrete.oracleHashWithHash (keygenHashInput parameter domain seed))
 
 /-- One seed derivation, all 32 bytes (`th_pair`): the starts of two chains are its two halves. -/
 def deriveOutput {m : Type → Type} [Monad m] [HasQuery HashSpec m]
     (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m HashOutput :=
-  Concrete.oracleHash (keygenHashInput parameter domain seed)
+  Concrete.oracleHashWithHash (keygenHashInput parameter domain seed)
 
 def deriveRandomizer {m : Type → Type} [Monad m] [HasQuery HashSpec m]
     (parameter : PublicParameter) (seed : MasterSeed)
     (message : Message) : m Randomness := do
-  return truncateHash (← Concrete.oracleHash (randomizerHashInput parameter seed message))
+  return truncateHash (← Concrete.oracleHashWithHash (randomizerHashInput parameter seed message))
 
 /-- `scheme_seed`: the scheme seed `S`, the whole hash of `leanSPHINCS || S0`. -/
 def schemeSeed {m : Type → Type} [Monad m] [HasQuery HashSpec m] (seed : MasterSeed) : m MasterSeed :=
-  Concrete.oracleHash (schemeSeedInput seed)
+  Concrete.oracleHashWithHash (schemeSeedInput seed)
 
 namespace Seeded
 
@@ -892,7 +893,7 @@ variable [Params]
 /-- leanSPHINCS in the generic SUF-CMA game: the seed, key generation, the deterministic signer,
 the verifier, and the winning condition (`SigningTranscript`, above). -/
 noncomputable def scheme :
-    Scheme MasterSeed PublicKey Seeded.SecretKey Message (Option Signature)
+    SchemeWithHash MasterSeed PublicKey Seeded.SecretKey Message (Option Signature)
       Forgery where
   sample := sampleMasterSeed
   keygen := Seeded.keygenFromSeed
@@ -929,13 +930,13 @@ call, `2^32` encoding counters of three, and `treePath` rebuilding the kept subt
 `2^33.9`), so at the largest lifetime, `N ≈ 2^30.4` signatures, `Q ≥ 2^65` and the bound is about
 `2^-62`. Proved by `SphincsLayered.Lifetimes.requestedSecurityRpm`. -/
 abbrev RequestedSecurityRpm : Prop :=
-  StronglyUnforgeable (@Rpm.scheme full) 127 ∧
-  StronglyUnforgeable (@Rpm.scheme pruned20) 127 ∧
-  StronglyUnforgeable (@Rpm.scheme pruned14) 127 ∧
-  StronglyUnforgeable (@Rpm.scheme pruned13) 127 ∧
-  StronglyUnforgeable (@Rpm.scheme pruned12) 127 ∧
-  StronglyUnforgeable (@Rpm.scheme pruned10) 127 ∧
-  StronglyUnforgeable (@Rpm.scheme pruned8) 127
+  StronglyUnforgeableWithHash (@Rpm.scheme full) 127 ∧
+  StronglyUnforgeableWithHash (@Rpm.scheme pruned20) 127 ∧
+  StronglyUnforgeableWithHash (@Rpm.scheme pruned14) 127 ∧
+  StronglyUnforgeableWithHash (@Rpm.scheme pruned13) 127 ∧
+  StronglyUnforgeableWithHash (@Rpm.scheme pruned12) 127 ∧
+  StronglyUnforgeableWithHash (@Rpm.scheme pruned10) 127 ∧
+  StronglyUnforgeableWithHash (@Rpm.scheme pruned8) 127
 
 end Lifetimes
 

@@ -12,6 +12,7 @@ module
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Whir.Complete.Script
 public import LeanVM.Protocol.Whir.Complete.Encoding
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Completeness of the WHIR opening
@@ -956,7 +957,7 @@ theorem exists_prove_runProof_openingProgram (H : Bytes → Digest) (F : KeccakS
     (hg : ∀ h bits k sp, (openingProgram μ R claims).after h = some (.grind bits k) →
       findNonce F bits sp fuel ≠ none) :
     ∃ π, prove H F (openingProgram μ R claims) (openingProver μ R q claims) seed fuel = some π ∧
-      runProof (m := Id) H F (openingProgram μ R claims) seed π = true :=
+      runProofWithHash (m := Id) H F (openingProgram μ R claims) seed π = true :=
   exists_prove_runProof H F _ _ seed fuel
     (fun chal ↦ (runI_openingProgram hadm q claims hholds hml chal).1)
     (fun chal ↦ (runI_openingProgram hadm q claims hholds hml chal).2) hg

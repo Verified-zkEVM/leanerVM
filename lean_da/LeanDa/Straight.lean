@@ -1,6 +1,7 @@
 import LeanDa.StraightBad
 import LeanDa.KsRpm
 import LeanDa.AdvX
+import LeanDa.WithHash
 
 /-!
 # Code binding by a straight-line argument
@@ -61,13 +62,13 @@ verifies and the matrix satisfies the relation, whether it is not a codeword, or
 first opening that disagrees with it verifies (with a path of the tree's height). -/
 noncomputable def tailH (crs : Crs) (out : CbOut r Proof) (l : Challenges) :
     OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool := do
-  let root ← commitCellsM hH (ext crs ((), out.1.1, l) out.1.2)
+  let root ← commitCellsMWithHash hH (ext crs ((), out.1.1, l) out.1.2)
   if ps.verify crs ((), out.1.1, l) out.1.2 = true ∧ root = out.1.1 ∧
       membershipCheck l (ext crs ((), out.1.1, l) out.1.2) = true then
     if ext crs ((), out.1.1, l) out.1.2 ∈ (code r).code then
       match firstBad r (ext crs ((), out.1.1, l) out.1.2) out.2 with
       | some o =>
-        if o.2.2.path.length = 7 + logPad r then verifyCellM hH r out.1.1 o.1 o.2.1 o.2.2
+        if o.2.2.path.length = 7 + logPad r then verifyCellMWithHash hH r out.1.1 o.1 o.2.1 o.2.2
         else pure false
       | none => pure false
     else pure true
@@ -77,7 +78,7 @@ open Classical in
 /-- The straight-line verdict with the hash of the table `h`. -/
 noncomputable def tailP (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Challenges) : Bool :=
   if ps.verify crs ((), out.1.1, l) out.1.2 = true ∧
-      commitCells (Hh h) (ext crs ((), out.1.1, l) out.1.2) = out.1.1 ∧
+      commitCellsWithHash (Hh h) (ext crs ((), out.1.1, l) out.1.2) = out.1.1 ∧
       membershipCheck l (ext crs ((), out.1.1, l) out.1.2) = true then
     if ext crs ((), out.1.1, l) out.1.2 ∈ (code r).code then
       match firstBad r (ext crs ((), out.1.1, l) out.1.2) out.2 with
@@ -116,7 +117,7 @@ theorem run_tailH_phiG (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Challen
       (fun _ ↦ rfl), pure_bind]
   unfold tailP
   set w := ext crs ((), out.1.1, l) out.1.2
-  by_cases hc : ps.verify crs ((), out.1.1, l) out.1.2 = true ∧ commitCells (Hh h) w = out.1.1 ∧
+  by_cases hc : ps.verify crs ((), out.1.1, l) out.1.2 = true ∧ commitCellsWithHash (Hh h) w = out.1.1 ∧
       membershipCheck l w = true
   · rw [ite_eq_left hc, ite_eq_left hc]
     by_cases hw : w ∈ (code r).code
@@ -188,26 +189,26 @@ include hHc
 
 theorem noCoins_merkleRootM (d : ℕ) :
     ∀ L : ℕ → OracleComp (unifSpec + hs) Common.DigestBytes, (∀ i, NoCoins (L i)) →
-      NoCoins (merkleRootM H d L) := by
+      NoCoins (merkleRootMWithHash H d L) := by
   induction d with
   | zero => intro L hL; exact hL 0
   | succ d ih =>
     intro L hL
     exact ih _ fun i ↦ noCoins_bind (hL _) fun _ ↦ noCoins_bind (hL _) fun _ ↦ hHc _
 
-theorem noCoins_commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) : NoCoins (commitCellsM H c) :=
+theorem noCoins_commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) : NoCoins (commitCellsMWithHash H c) :=
   noCoins_bind (noCoins_merkleRootM H hHc _ _ fun _ ↦
       noCoins_bind (noCoins_mapM _ (fun _ ↦ hHc _) _) fun _ ↦ hHc _) fun _ ↦
     noCoins_bind (noCoins_merkleRootM H hHc _ _ fun _ ↦ hHc _) fun _ ↦ hHc _
 
 theorem noCoins_walkM (path : List Common.DigestBytes) :
-    ∀ (idx : ℕ) (node : Common.DigestBytes), NoCoins (walkM H idx node path) := by
+    ∀ (idx : ℕ) (node : Common.DigestBytes), NoCoins (walkMWithHash H idx node path) := by
   induction path with
   | nil => intro idx node; exact noCoins_pure _
   | cons s rest ih => intro idx node; exact noCoins_bind (hHc _) fun _ ↦ ih _ _
 
 theorem noCoins_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
-    NoCoins (verifyCellM H r com p x τ) :=
+    NoCoins (verifyCellMWithHash H r com p x τ) :=
   noCoins_bind (hHc _) fun _ ↦ noCoins_bind (noCoins_walkM H hHc _ _ _) fun _ ↦
     noCoins_bind (hHc _) fun _ ↦ noCoins_pure _
 
@@ -354,7 +355,7 @@ theorem not_good_of_tail (crs : Crs) (out : CbOut r Proof) (c : VCache) {z : Boo
     fun x f ↦ simulateQ_bind _ x f
   rw [tailH, hbO, commitCellsM_map (fun x ↦ simulateQ (lookupH z.2) x) hpO hbO] at hrep
   simp only [hHg] at hrep
-  change (commitCellsM g (ext crs ((), out.1.1, l) out.1.2) >>= fun root ↦ _) = some true at hrep
+  change (commitCellsMWithHash g (ext crs ((), out.1.1, l) out.1.2) >>= fun root ↦ _) = some true at hrep
   simp only [Option.bind_eq_bind', Option.bind_eq_some_iff] at hrep
   obtain ⟨root, hroot, hrep⟩ := hrep
   set w := ext crs ((), out.1.1, l) out.1.2 with hwd

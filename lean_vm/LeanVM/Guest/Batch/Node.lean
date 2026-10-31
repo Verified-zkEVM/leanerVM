@@ -9,6 +9,9 @@ module
 
 public import LeanVM.Guest.Batch.Prog
 public import LeanVM.Protocol.Verifier.DeferredShape
+public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.WithHashBridge
+public import LeanVM.Guest.WithHash
 
 /-!
 # A node's batching
@@ -43,8 +46,8 @@ theorem runD_roundsProg_bind {β : Type} (f : List E × E → Prog β) :
   | 0, claim, sp, zs, os, roots, r, h => ⟨by omega, _, _, h⟩
   | k + 1, claim, sp, zs, os, roots, r, h => by
     rcases zs with _ | ⟨g1, _ | ⟨gInf, zs⟩⟩
-    · exact absurd h (by simp [sumcheckRoundsProgram, Prog.readScalar, Prog.bind_eq, Prog.bind, runD, Compile.run])
-    · exact absurd h (by simp [sumcheckRoundsProgram, Prog.readScalar, Prog.bind_eq, Prog.bind, runD, Compile.run])
+    · exact absurd h (by simp [sumcheckRoundsProgram, Prog.readScalar, Prog.bind_eq, Prog.bind, runD, Compile.runWithHash])
+    · exact absurd h (by simp [sumcheckRoundsProgram, Prog.readScalar, Prog.bind_eq, Prog.bind, runD, Compile.runWithHash])
     · simp only [sumcheckRoundsProgram, Prog.readScalar, Prog.sampleChallenge, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc,
         Prog.ret_bind] at h
       obtain ⟨hlen, x, sp', hx⟩ := runD_roundsProg_bind _ k _ _ zs os roots h
@@ -85,7 +88,7 @@ theorem runD_tail_accepts {c : E → Prop} {dc : DecidablePred c} {sp : Sponge} 
       (pure true : Prog Bool)) ⟨sp, zs, [], []⟩ = some (true, s)) (hs : s.stream = []) :
     zs.length = 1 := by
   rcases zs with _ | ⟨v, ws⟩
-  · exact absurd h (by simp [Prog.readScalar, Prog.bind_eq, Prog.bind, runD, Compile.run])
+  · exact absurd h (by simp [Prog.readScalar, Prog.bind_eq, Prog.bind, runD, Compile.runWithHash])
   · have e := runD_bind_of_runsTo (f := fun bv ↦ @Prog.require (c bv) (dc bv) >>= fun _ ↦
       (pure true : Prog Bool)) (runsTo_readE sp v) ws [] []
     simp only [List.singleton_append] at e
@@ -100,7 +103,7 @@ theorem runD_tail_accepts {c : E → Prop} {dc : DecidablePred c} {sp : Sponge} 
 `log₂ |bytecode|` rounds. -/
 theorem rounds_length_of_accepts {check : DeferredClaim → Prop} {bytecode : List K}
     {cs : List ChildClaims} {h : BatchingHints} (hs : ∀ c ∈ cs, ChildHasBytecodeShape bytecode c)
-    (hacc : Id.run (runBatching (m := Id) keccak256 keccakF1600 (nodeBatchingProgram check bytecode cs.length)
+    (hacc : Id.run (runBatchingWithHash (m := Id) keccak256 keccakF1600 (nodeBatchingProgram check bytecode cs.length)
       ⟨batchingStream cs h, []⟩) = true) :
     h.sumcheckMessages.length = Nat.log2 bytecode.length := by
   change (match runD (nodeBatchingProgram check bytecode cs.length)
@@ -124,10 +127,10 @@ theorem rounds_length_of_accepts {check : DeferredClaim → Prop} {bytecode : Li
 claim of its shape, the program accepts the stream exactly where `batch` defers that claim. -/
 theorem batchRun_batchOf_iff {bytecode : List K} {cs : List ChildClaims} {h : BatchingHints}
     {d : DeferredClaim} (hs : ∀ c ∈ cs, ChildHasBytecodeShape bytecode c) (hd : d.HasBytecodeShape bytecode) :
-    Id.run (runBatching (m := Id) keccak256 keccakF1600 (nodeBatchingProgram (· = d) bytecode cs.length)
+    Id.run (runBatchingWithHash (m := Id) keccak256 keccakF1600 (nodeBatchingProgram (· = d) bytecode cs.length)
       ⟨batchingStream cs h, []⟩) = true ↔ batch cs h = some d := by
   have key : h.sumcheckMessages.length = Nat.log2 bytecode.length →
-      (Id.run (runBatching (m := Id) keccak256 keccakF1600 (nodeBatchingProgram (· = d) bytecode cs.length)
+      (Id.run (runBatchingWithHash (m := Id) keccak256 keccakF1600 (nodeBatchingProgram (· = d) bytecode cs.length)
         ⟨batchingStream cs h, []⟩) = true ↔ batch cs h = some d) := by
     intro hr
     change (match runD (nodeBatchingProgram (· = d) bytecode cs.length)
@@ -191,6 +194,7 @@ theorem _root_.LeanVM.Node.nodeRel_iff {bytecode : List K} {seed : Digest} {s : 
       exact ⟨verifyDeferred_shaped (h2 c' hc').2, (h2 c' hc').1⟩
     have e := batchRun_batchOf_iff (h := w.batchingHints) hs h1
     rw [List.length_map] at e
+    rw [LeanVM.Guest.Batch.runBatching_deployed]
     exact e
 
 end

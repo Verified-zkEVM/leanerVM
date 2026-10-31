@@ -1,4 +1,5 @@
 import Sphincs.Randomized
+import Common.WithHash
 
 /-! The uncounted shared random-oracle interpreter used for honest completeness. -/
 

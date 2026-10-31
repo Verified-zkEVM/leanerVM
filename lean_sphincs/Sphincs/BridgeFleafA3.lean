@@ -1,5 +1,6 @@
 import Sphincs.BridgePotentialA8
 import Sphincs.BridgeFleafLinear
+import Common.WithHash
 
 /-! The linear potential of the small-budget route pays, besides the digest baseline, a fixed
 amount at every forest step query. A fresh forest step costs the potential at most

@@ -1,4 +1,5 @@
 import LeanVM.Protocol.EndToEnd.Sound.Statements
+import LeanVM.Protocol.WithHash
 
 /-!
 # The end-to-end knowledge soundness's tests

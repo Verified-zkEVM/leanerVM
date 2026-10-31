@@ -1,5 +1,6 @@
 import Sphincs.SecurityReferenceSignature
 import Sphincs.ForestCoverage
+import Common.WithHash
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -11,6 +11,7 @@ module
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.NoCommit
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The opening's hypotheses from the child's
@@ -276,12 +277,12 @@ theorem specPre_runF {c : BytecodeClaim} {bytecode : List K} {pi : Digest} {st :
 /-! ## From the child's acceptance to the opening -/
 
 theorem runProof_accepts {P : Prog Bool} {seed : KeccakState} {π : Proof}
-    (h : Id.run (runProof (m := Id) keccak256 keccakF1600 P seed π) = true) :
+    (h : Id.run (runProofWithHash (m := Id) keccak256 keccakF1600 P seed π) = true) :
     ∃ t : ProgState, runId P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ = some (true, t) ∧
       t.stream = [] ∧ t.openings = [] := by
-  unfold runProof at h
+  unfold runProofWithHash at h
   revert h
-  match hr : Compile.run (m := Id) keccak256 keccakF1600 P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
+  match hr : Compile.runWithHash (m := Id) keccak256 keccakF1600 P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
   | some (true, s) =>
     intro h
     change (s.stream.isEmpty && s.openings.isEmpty) = true at h

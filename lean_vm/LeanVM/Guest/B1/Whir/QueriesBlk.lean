@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.QueriesOpenW
 public import LeanVM.Guest.B1.Whir.Squeezes
+public import LeanVM.Protocol.WithHash
 
 /-!
 # A level's queries block (G:1447-1469)
@@ -123,7 +124,7 @@ theorem osQueries_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) 
       lv.queries / (1 + if lvl = 0 then 1 else 0) < u128Bound) :
     ∃ (ic0 ic2 : E), (lvOpenings rd σ lv W (osQueriesCall lvl lv lam lamN s)).length = lv.queries ∧
       (∀ k (hk : k < qs.length) (ho : k < (lvOpenings rd σ lv W (osQueriesCall lvl lv lam lamN s)).length),
-        Id.run (Compile.openOne (m := Id) keccak256 root lv.depth
+        Id.run (Compile.openOneWithHash (m := Id) keccak256 root lv.depth
           (if lvl = 0 then lv.interleave else 3 * lv.interleave) qs[k]
             (lvOpenings rd σ lv W (osQueriesCall lvl lv lam lamN s))[k]) = true) ∧
       σ (.n (osQueries c lvl lv lam lamN s).2.2.1) =

@@ -1,6 +1,8 @@
 module
 
 public import Statement.LeanSphincs
+public import Common.WithHash
+public import Sphincs.WithHash
 
 /-!
 # The hash inputs by name
@@ -46,21 +48,21 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 /-- One seed derivation, first 16 bytes. -/
 abbrev deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
     m Digest :=
-  Concrete.th parameter (keygenDomainFields domain) (bytesLE 32 seed)
+  Concrete.thWithHash parameter (keygenDomainFields domain) (bytesLE 32 seed)
 
 /-- One seed derivation, all 32 bytes. -/
 abbrev deriveOutput (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
     m HashOutput :=
-  Concrete.thPair parameter (keygenDomainFields domain) (bytesLE 32 seed)
+  Concrete.thPairWithHash parameter (keygenDomainFields domain) (bytesLE 32 seed)
 
 /-- The randomizer base of a message, first 16 bytes. -/
 abbrev deriveRandomizer (parameter : PublicParameter) (seed : MasterSeed) (message : Message) :
     m Randomness :=
-  Concrete.th parameter (tweakFields 7 0 0 0) (bytesLE 32 seed ++ bytesLE 32 message)
+  Concrete.thWithHash parameter (tweakFields 7 0 0 0) (bytesLE 32 seed ++ bytesLE 32 message)
 
 /-- `scheme_seed`: the scheme seed `S`, the whole hash of `leanSPHINCS || S0`. -/
 abbrev schemeSeed (seed : MasterSeed) : m MasterSeed :=
-  Concrete.taggedSeed seedTag seed
+  Concrete.taggedSeedWithHash seedTag seed
 
 theorem thInput_hashDomainFields (parameter : PublicParameter) (domain : HashDomain)
     (payload : HashInput) :

@@ -10,6 +10,8 @@ module
 
 public import LeanVM.Guest.B1.Sig.SphincsParts
 public import LeanVM.Guest.B1.Sig.SphincsData
+public import Sphincs.WithHash
+public import LeanVM.Guest.WithHash
 
 /-!
 # `verify_sig_lean_sphincs`, sound
@@ -69,14 +71,14 @@ theorem bound_cell {σ : Val} (hS : ∀ c < 8, cS σ c < 16) (hA : ∀ w < 16, w
 /-- **What leanSPHINCS's verification checks**: the tree reaching `root`. -/
 def SRoot (pp : PublicParameter) (m : Sphincs.Message) (sig : Sphincs.Signature)
     (root : Sphincs.Digest) : Prop :=
-  ∃ leaf, @otsLeaf Id _ ⟨Node.keccakBits⟩ pp
-      (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp m sig.randomness))
-      (@forestRecover Id _ ⟨Node.keccakBits⟩ pp
-        (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp m sig.randomness))
-        (digestMarks (@messageDigest Id _ ⟨Node.keccakBits⟩ pp m sig.randomness)) sig.forest)
+  ∃ leaf, @otsLeafWithHash Id _ ⟨Node.keccakBits⟩ pp
+      (digestIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pp m sig.randomness))
+      (@forestRecoverWithHash Id _ ⟨Node.keccakBits⟩ pp
+        (digestIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pp m sig.randomness))
+        (digestMarks (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pp m sig.randomness)) sig.forest)
       sig.counter sig.chainValues = some leaf ∧
-    @treeFold Id _ ⟨Node.keccakBits⟩ pp
-      (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp m sig.randomness))
+    @treeFoldWithHash Id _ ⟨Node.keccakBits⟩ pp
+      (digestIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pp m sig.randomness))
       (signaturePath sig) totalHeight leaf = root
 
 theorem sphincsVerify_SRoot (pk : PublicKey) (m : Sphincs.Message) (sig : Sphincs.Signature) :
@@ -130,7 +132,7 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
   set Vb := sIdx σ + marksNat σ + 2 ^ 106 * Nu with hVbdef
   have c17 : cellNat (σ (.n 17)) = encNat σ := by rw [h17, cellNat_eOfNat192 hEnc]
   have c18 : cellNat (σ (.n 18)) = Vb := by rw [acc2, cellNat_eOfNat192 hVb]
-  have hmd : @messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
+  have hmd : @messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
       (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3))) =
       BitVec.ofNat messageDigestBits (encNat σ + 2 ^ 128 * Vb) := by
     rw [sMessageDigest_cells sq_keccak (a := σ (.n 4)) (m := smsg (σ (.n 5)) (σ (.n 6)))
@@ -140,16 +142,16 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
     simp only
     rw [c17, c18]
   unfold SRoot
-  show ∃ leaf, @otsLeaf Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-      (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
-      (@forestRecover Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-        (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
-        (digestMarks (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
+  show ∃ leaf, @otsLeafWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
+      (digestIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
+      (@forestRecoverWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
+        (digestIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
+        (digestMarks (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
         (sphincsSigOf σ).forest)
       (sphincsSigOf σ).counter (sphincsSigOf σ).chainValues =
         some leaf ∧
-      @treeFold Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-        (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
+      @treeFoldWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
+        (digestIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
         (signaturePath (sphincsSigOf σ)) totalHeight leaf = sv (σ sMk.2.2)
   rw [hmd]
   set D := BitVec.ofNat messageDigestBits (encNat σ + 2 ^ 128 * Vb) with hD
@@ -170,7 +172,7 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
       simp only [wT, show (2 * c.val + j.val) / 2 = c.val by omega,
         show (2 * c.val + j.val) % 2 = j.val by omega]
   -- the forest key
-  have hK : @forestRecover Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (digestIndex D) (digestMarks D)
+  have hK : @forestRecoverWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (digestIndex D) (digestMarks D)
       (sphincsSigOf σ).forest = fun c => (sv (sT σ (2 * c.val)), sv (sT σ (2 * c.val + 1))) := by
     rw [forestRecover_id]
     funext c
@@ -204,7 +206,7 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
     simp only [Finset.sum_const, Finset.card_range, smul_eq_mul] at hle
     show ∑ i ∈ Finset.range (3 * 21 + 1), dig i = 123
     exact Value.gen_pow_inj (by omega) (by norm_num) (hsum.trans sTarget_eq)
-  have henc : @encode Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
+  have henc : @encodeWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
       (digestIndex D)
       (fun c => (sv (sT σ (2 * c.val)), sv (sT σ (2 * c.val + 1))))
       (sphincsSigOf σ).counter = some fun i => ⟨dig i.val, hdig4 _⟩ := by
@@ -214,12 +216,12 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
   rw [hK, sOtsLeaf_id, henc, Option.map_some]
   refine ⟨_, rfl, ?_⟩
   -- the chains and the leaf
-  have hrc : (fun i : ChainIndex => @recoverChain Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
+  have hrc : (fun i : ChainIndex => @recoverChainWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
       (digestIndex D) i ⟨dig i.val, hdig4 _⟩
       ((sphincsSigOf σ).chainValues i)) =
       fun i => sv (σ (cwTip sW (sEnc.2.1 + 10) i.val)) := by
     funext i
-    show @recoverChain Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
+    show @recoverChainWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
       (digestIndex D) i ⟨dig i.val, hdig4 _⟩
       (sv (σ (cwStart sW 21 (sEnc.2.1 + 10) σ i.val))) = _
     rw [sRecoverChain_cells sq_keccak (pp := σ sPP)

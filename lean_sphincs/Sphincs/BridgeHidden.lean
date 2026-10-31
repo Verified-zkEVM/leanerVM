@@ -1,5 +1,6 @@
 import Sphincs.BridgeHiddenStop
 import Sphincs.SecurityHiddenGraphSampling
+import Common.WithHash
 
 /-! The seed-free graph oracle is the candidate hidden-row oracle: canonical WOTS and forest
 chain rows read the coordinate table, every other input reads a structural cache over an

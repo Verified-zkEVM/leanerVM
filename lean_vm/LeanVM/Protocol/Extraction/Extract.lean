@@ -12,6 +12,7 @@ public import LeanVM.Protocol.Extraction.Merkle
 public import LeanVM.Protocol.Extraction.Prune
 public import LeanVM.Protocol.Extraction.Run
 public import Statement.LeanVm
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The extractor, proved
@@ -174,12 +175,12 @@ theorem keysCover_hashesOf (P : List (Bytes × Digest)) :
 evaluations**, with the keys of their support: it depends on the evaluations only. -/
 theorem extractorRpm_eq_extract (prog : Program) (input : PublicInput) (T : LeanVM.PermutationTranscript)
     (proof : Proof) {answers : Bytes → Option Digest} (h : LeanVM.lookupEvaluation (LeanVM.keccakEvaluationsOfTranscript T) = answers) :
-    LeanVM.transcriptExtractor prog input T proof =
+    LeanVM.transcriptExtractorWithHash prog input T proof =
       extract prog input (bytecodeWords prog) answers (supportKeys answers) proof := by
   have hc : KeysCover answers ((LeanVM.keccakEvaluationsOfTranscript T).map (·.1)) := by
     rw [← h]
     exact keysCover_hashesOf _
-  have e : LeanVM.transcriptExtractor prog input T proof =
+  have e : LeanVM.transcriptExtractorWithHash prog input T proof =
       extract prog input (bytecodeWords prog) answers ((LeanVM.keccakEvaluationsOfTranscript T).map (·.1)) proof := by
     rw [← h]
     rfl

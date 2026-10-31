@@ -20,6 +20,7 @@ import Statement.Fast.Keccak
 import Statement.Fast.CubicExt
 import Statement.Fast.FieldWords
 import LeanVM.Facts.Verifier
+import LeanVM.Protocol.WithHash
 
 /-!
 # The guest in the random-permutation model
@@ -129,7 +130,7 @@ theorem aggregate_complete_of {budget : NodeStatement → NodeWitness → ℕ}
     (hok : ChildrenOk bytecode seed w) (hbudget : budget s w ≤ 2 ^ 28) :
     ∃ t : Execution guest, ValidExecution guest (publicInputOf (statementDigest seed s)) t ∧
       ∀ ρ fuel, 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
-        Pr{let v ← verifierCompletenessExperiment
+        Pr{let v ← verifierCompletenessExperimentWithHash
             (fun prog input t ρ fuel ↦
               LeanVM.Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel)
             guest (publicInputOf (statementDigest seed s)) t ρ fuel}[v = false] ≤

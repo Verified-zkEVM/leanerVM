@@ -12,6 +12,7 @@ module
 public import LeanVM.Protocol.Compile.Rom.Step
 public import LeanVM.Protocol.Compile.Rom.Final
 public import LeanVM.Protocol.Compile.Rom.Bridge
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The random-oracle theorem of the compiled verifier

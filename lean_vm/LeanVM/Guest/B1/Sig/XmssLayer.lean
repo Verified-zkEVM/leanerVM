@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Sig.Codeword
 public import LeanVM.Guest.B1.Sig.Shifts
 public import LeanVM.Guest.B1.Sig.Digest80
 public import LeanVM.Guest.B1.Sig.XmssT
+public import Common.WithHash
+public import LeanVM.Guest.WithHash
 
 /-!
 # A layer of `verify_lean_xmss`
@@ -304,7 +306,7 @@ theorem xLayerCore_sound (hpre : XPre σ) (hpad : PadOK σ xPad) {layer b : Nat}
       ([cst (xCw layer b).2.1 (word (tw 2) 0 0), addS (.n ((xCw layer b).2.1 + 1)) (xIdx layer b)
         (.n (xCw layer b).2.1)] ++ ((xLeafK layer b).1 ++ ((xMk layer b).1 ++ rest))))) next kret) :
     Stmt.HoldsList C rd σ rest next kret ∧
-      @LeanXmss.Concrete.layerRoot Id _ ⟨Node.keccakBits⟩ (xpp (σ (.n 1))) ⟨layer, hl⟩
+      @LeanXmss.Concrete.layerRootWithHash Id _ ⟨Node.keccakBits⟩ (xpp (σ (.n 1))) ⟨layer, hl⟩
         (LeanXmss.keyAt ⟨xLeaf σ, xLeaf_lt σ⟩ ⟨layer, hl⟩) M (xPart layer b σ) =
         some (xv (σ (xMk layer b).2.2)) := by
   have s1 := holdsList_split_atoms (xs := xStepAddrs (xIdx layer b) (xA layer b))
@@ -398,13 +400,13 @@ theorem xLayerCore_sound (hpre : XPre σ) (hpad : PadOK σ xPad) {layer b : Nat}
       exact hb
   -- the Spec
   rw [layerRoot_id, otsLeaf_id]
-  have hmd : @LeanXmss.Concrete.messageDigest Id _ ⟨Node.keccakBits⟩ (xpp (σ (.n 1))) ⟨layer, hl⟩ key M
+  have hmd : @LeanXmss.Concrete.messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (xpp (σ (.n 1))) ⟨layer, hl⟩ key M
       (xPart layer b σ).randomness = xv (lit (∑ j ∈ Finset.range 58, dig j * 4 ^ j)) := by
     rw [show (xPart layer b σ).randomness = xv (σ (xRho layer b)) from rfl,
       messageDigest_cells xq_keccak haMsg hM, ← hd0, hd]
   rw [hmd, show (58 : Nat) = LeanXmss.numChains from rfl, decode_lit hdig4 hsum', Option.map_some]
   refine congrArg some ?_
-  have hrc : ∀ i : LeanXmss.ChainIndex, @LeanXmss.Concrete.recoverChain Id _ ⟨Node.keccakBits⟩
+  have hrc : ∀ i : LeanXmss.ChainIndex, @LeanXmss.Concrete.recoverChainWithHash Id _ ⟨Node.keccakBits⟩
       (xpp (σ (.n 1))) ⟨layer, hl⟩ key i ⟨dig i.val, hdig4 _⟩ ((xPart layer b σ).chainValues i) =
       xv (σ (cwTip W K i.val)) := by
     intro i
@@ -412,7 +414,7 @@ theorem xLayerCore_sound (hpre : XPre σ) (hpad : PadOK σ xPad) {layer b : Nat}
       recoverChain_cells xq_keccak (pp := σ (.n 1)) (adr := fun s => σ (.n (xA layer b + 2 * s + 1))) hadr]
     have hi : i.val < 3 * 19 + 1 := i.isLt
     rw [(hcw i.val hi).2, chainT_eq_xChain' (fun s y => by rw [hpre.tags i.val i.isLt])]
-  rw [show (fun i : LeanXmss.ChainIndex => @LeanXmss.Concrete.recoverChain Id _ ⟨Node.keccakBits⟩
+  rw [show (fun i : LeanXmss.ChainIndex => @LeanXmss.Concrete.recoverChainWithHash Id _ ⟨Node.keccakBits⟩
       (xpp (σ (.n 1))) ⟨layer, hl⟩ key i ⟨dig i.val, hdig4 _⟩ ((xPart layer b σ).chainValues i)) =
       fun i => xv (σ (cwTip W K i.val)) from funext hrc]
   have hlo' : σ (.n (xLeafK layer b).2.2) = (hcell (σ (.n 1) :: σ (.n ((xCw layer b).2.1 + 1)) ::

@@ -1,5 +1,6 @@
 import Sphincs.SecurityHiddenGraph
 import Sphincs.SecurityGraphSampling
+import Common.WithHash
 
 /-! Exact connection between the graph preparation table and the candidate hidden-row
 oracle. Secret coordinates come from the material tables; all other coordinates and the

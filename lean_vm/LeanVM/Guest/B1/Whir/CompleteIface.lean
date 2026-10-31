@@ -10,6 +10,7 @@ module
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.Interface
 public import LeanVM.Guest.B1.Opening.Meaning
+public import LeanVM.Protocol.WithHash
 
 /-!
 # `open_stacked`'s completeness: the interface
@@ -165,7 +166,7 @@ def queryStepsOf {α : Type} : Prog α → FSt → List (ℕ × List (ℕ × Ope
   | .query i ps k, s => match s.roots[i]? with
     | none => []
     | some (root, height, width) =>
-      match Id.run (Compile.openAll (m := Id) keccak256 root height width ps s.openings) with
+      match Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps s.openings) with
       | some (rows, rest) =>
         (height, ps.zip s.openings) :: queryStepsOf (k rows) { s with openings := rest }
       | none => []

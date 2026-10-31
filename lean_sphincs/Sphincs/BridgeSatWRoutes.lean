@@ -4,6 +4,7 @@ import Sphincs.BridgeForsAssemblyOnce
 import Sphincs.BridgeDet
 import Sphincs.H0Fair
 import Sphincs.BridgeTargeting
+import Common.WithHash
 
 /-! The large-budget route with the weighted baseline. The saturation pays each digest query the
 baseline times the current survival weight, and the one-coin FORS potential is weighted by the

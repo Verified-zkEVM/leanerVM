@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Whir.QueryBits
 public import LeanVM.Guest.B1.Merkle.Climb
 public import LeanVM.Guest.B1.Opening.QueriesRun
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The queries' openings and sum (TRIAGE G #39, #40)
@@ -72,7 +73,7 @@ theorem queries_open {odd base I depth cd q N0 : ℕ} {cap flags lam lamN qptrs 
         rowDot base I row w = dot (specRow row) (eqKernel fd)) :
     ∃ os : List Opening, os.length = q ∧
       (∀ k (hk : k < qs.length) (ho : k < os.length),
-        Id.run (Compile.openOne (m := Id) keccak256 root depth width qs[k] os[k]) = true) ∧
+        Id.run (Compile.openOneWithHash (m := Id) keccak256 root depth width qs[k] os[k]) = true) ∧
       sum = enforcedSum ((os.map (·.leaf)).map specRow) fd (powers lam q) := by
   obtain ⟨N, hN, hnG', hlam, bps, qs', rows, ds, hall, ch, -, hret⟩ := hm
   have hNN : N = N0 := gen_pow_inj hN hN0 (hnG'.symm.trans hnG)
@@ -88,7 +89,7 @@ theorem queries_open {odd base I depth cd q N0 : ℕ} {cap flags lam lamN qptrs 
     exact hbits' l hl _ (hb' l hl)
   -- the openings
   have hop : ∀ k < q, ∃ o : Opening,
-      Id.run (Compile.openOne (m := Id) keccak256 root depth width (qs.getD k 0) o) = true ∧
+      Id.run (Compile.openOneWithHash (m := Id) keccak256 root depth width (qs.getD k 0) o) = true ∧
         o.leaf = rows k := by
     intro k hk
     obtain ⟨-, hlt, -, hrow, sibs, w, pp, hsl, -, -, -, -, h0, h1, hfl, -⟩ := hall k (by rw [hQ]; exact hk)

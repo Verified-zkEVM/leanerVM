@@ -12,6 +12,8 @@ import Sphincs.LifetimesRpm
 import LeanDa
 import Statement.Theorems
 import Statement.Corollaries
+import LeanVM.Protocol.WithHash
+import LeanVM.Guest.WithHash
 
 /-! # The end theorems of leanVM
 

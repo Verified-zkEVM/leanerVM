@@ -14,6 +14,8 @@ public import Statement.LeanVmGuest
 public import LeanVM.Protocol.Whir.Complete.Script
 public import LeanVM.Protocol.Compile.Rom.Complete
 public import LeanVM.Protocol.Verifier.Cost
+public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.WithHash
 
 /-!
 # The runner is the specification's prover
@@ -108,7 +110,7 @@ script's replay, in every monad, for every hash and permutation. -/
 theorem runFrom_eq_proveFromM (fuel : ℕ) {α β : Type} (Hs : Script β) :
     ∀ (P : Prog α) (S : Option (Script β)) (sp : Sponge) (h : List Ev) (cs : List Tree),
       Hs.walk h = S →
-      runFrom H F fuel P S sp cs = proveFromM H F (Strategy.ofScript Hs 0) fuel P sp h cs := by
+      runFromWithHash H F fuel P S sp cs = proveFromM H F (Strategy.ofScript Hs 0) fuel P sp h cs := by
   intro P
   induction P with
   | ret a => intros; rfl
@@ -117,18 +119,18 @@ theorem runFrom_eq_proveFromM (fuel : ℕ) {α β : Type} (Hs : Script β) :
     intro S sp h cs hw
     have hm := ofScript_msg Hs h
     rw [hw] at hm
-    simp only [runFrom, proveFromM]
+    simp only [runFromWithHash, proveFromM]
     rw [hm]
     congr 1; funext sp'; congr 1
     exact ih _ _ _ _ _ (by rw [Script.walk_append, hw, Script.afterSend_eq])
   | sample k ih =>
     intro S sp h cs hw
-    simp only [runFrom, proveFromM]
+    simp only [runFromWithHash, proveFromM]
     congr 1; funext r
     exact ih _ _ _ _ _ (by rw [Script.walk_append, hw, Script.afterSample_eq])
   | grind bits k ih =>
     intro S sp h cs hw
-    simp only [runFrom, proveFromM]
+    simp only [runFromWithHash, proveFromM]
     congr 1; funext o
     rcases o with _ | n
     · rfl
@@ -139,13 +141,13 @@ theorem runFrom_eq_proveFromM (fuel : ℕ) {α β : Type} (Hs : Script β) :
     intro S sp h cs hw
     have hm := ofScript_word Hs h
     rw [hw] at hm
-    simp only [runFrom, proveFromM]
+    simp only [runFromWithHash, proveFromM]
     rw [hm]
     congr 1; funext tree; congr 1; funext sp0; congr 1; funext sp1; congr 1
     exact ih _ _ _ _ (by rw [Script.walk_append, hw, Script.afterCommit_eq _ ht w])
   | query i ps k ih =>
     intro S sp h cs hw
-    simp only [runFrom, proveFromM]
+    simp only [runFromWithHash, proveFromM]
     split
     · rename_i _ hc
       rw [hc]
@@ -161,9 +163,9 @@ variable [LawfulMonad m]
 proof where a proof of work fails. -/
 theorem runScript_eq_proveM (P : Prog Bool) {β : Type} (Hs : Script β) (seed : KeccakState)
     (fuel : ℕ) :
-    runScript H F P Hs seed fuel =
+    runScriptWithHash H F P Hs seed fuel =
       (fun r ↦ r.getD ⟨[], []⟩) <$> proveM H F P (Strategy.ofScript Hs 0) seed fuel := by
-  unfold runScript proveM
+  unfold runScriptWithHash proveM
   rw [runFrom_eq_proveFromM H F fuel Hs P (some Hs) ⟨seed, []⟩ [] [] rfl, map_bind]
   simp only [map_pure]
 
@@ -174,7 +176,7 @@ and permutation a query: the seed, then the script run against the program. -/
 theorem honestComp_ofScript (σ : Seed) (P : Prog Bool) {β : Type} (Hs : Script β) (fuel : ℕ) :
     Rom.honestComp σ P (Strategy.ofScript Hs 0) fuel = (do
       let seed ← σ.run callKeccak256 callKeccakF1600
-      runScript callKeccak256 callKeccakF1600 P Hs seed fuel) := by
+      runScriptWithHash callKeccak256 callKeccakF1600 P Hs seed fuel) := by
   unfold Rom.honestComp
   congr 1; funext seed
   rw [runScript_eq_proveM, map_eq_bind_pure_comp]
@@ -185,8 +187,8 @@ theorem honestComp_ofScript_leanVm (bytecode : List K) (publicInput : Digest) {�
     (Hs : Script β) (fuel : ℕ) :
     Rom.honestComp (leanVmSeed bytecode publicInput) (leanVmProgram bytecode publicInput)
         (Strategy.ofScript Hs 0) fuel = (do
-      let seed ← seedWith callKeccak256 callKeccakF1600 bytecode publicInput
-      runScript callKeccak256 callKeccakF1600 (leanVmProgram bytecode publicInput) Hs seed fuel) := by
+      let seed ← seedWithHash callKeccak256 callKeccakF1600 bytecode publicInput
+      runScriptWithHash callKeccak256 callKeccakF1600 (leanVmProgram bytecode publicInput) Hs seed fuel) := by
   rw [honestComp_ofScript, seedRun_leanVmSeed]
 
 /-! ## Simulation -/
@@ -198,24 +200,24 @@ variable {r : Type → Type} [Monad r] [LawfulMonad r] (impl : QueryImpl KeccakC
 /-- **The runner commutes with simulation.** -/
 theorem simulateQ_runScript (P : Prog Bool) {β : Type} (Hs : Script β) (seed : KeccakState)
     (fuel : ℕ) :
-    simulateQ impl (runScript callKeccak256 callKeccakF1600 P Hs seed fuel) =
-      runScript (implH impl) (implF impl) P Hs seed fuel := by
+    simulateQ impl (runScriptWithHash callKeccak256 callKeccakF1600 P Hs seed fuel) =
+      runScriptWithHash (implH impl) (implF impl) P Hs seed fuel := by
   rw [runScript_eq_proveM, runScript_eq_proveM, simulateQ_map, simulateQ_proveM]
 
 /-- The seed commutes with simulation. -/
 theorem simulateQ_seedWith (bytecode : List K) (publicInput : Digest) :
-    simulateQ impl (seedWith callKeccak256 callKeccakF1600 bytecode publicInput) =
-      seedWith (implH impl) (implF impl) bytecode publicInput := by
+    simulateQ impl (seedWithHash callKeccak256 callKeccakF1600 bytecode publicInput) =
+      seedWithHash (implH impl) (implF impl) bytecode publicInput := by
   rw [← seedRun_leanVmSeed, ← seedRun_leanVmSeed, simulateQ_seedRun]
 
 /-- **The seed, then the runner, commute with simulation.** -/
 theorem simulateQ_seedRunScript (bytecode : List K) (publicInput : Digest) (P : Prog Bool)
     {β : Type} (Hs : Script β) (fuel : ℕ) :
     simulateQ impl (do
-        let seed ← seedWith callKeccak256 callKeccakF1600 bytecode publicInput
-        runScript callKeccak256 callKeccakF1600 P Hs seed fuel) = (do
-      let seed ← seedWith (implH impl) (implF impl) bytecode publicInput
-      runScript (implH impl) (implF impl) P Hs seed fuel) := by
+        let seed ← seedWithHash callKeccak256 callKeccakF1600 bytecode publicInput
+        runScriptWithHash callKeccak256 callKeccakF1600 P Hs seed fuel) = (do
+      let seed ← seedWithHash (implH impl) (implF impl) bytecode publicInput
+      runScriptWithHash (implH impl) (implF impl) P Hs seed fuel) := by
   rw [simulateQ_bind, simulateQ_seedWith]
   congr 1; funext seed
   exact simulateQ_runScript impl P Hs seed fuel
@@ -226,29 +228,29 @@ end Commute
 Keccak-f[1600] (`Guest.Budget.deployedKeccakCalls`) is running it in `Id` with them. -/
 theorem simulateQ_keccak_runScript (P : Prog Bool) {β : Type} (Hs : Script β) (seed : KeccakState)
     (fuel : ℕ) :
-    simulateQ Guest.Budget.deployedKeccakCalls (runScript callKeccak256 callKeccakF1600 P Hs seed fuel) =
-      runScript (m := Id) keccak256 keccakF1600 P Hs seed fuel :=
+    simulateQ Guest.Budget.deployedKeccakCalls (runScriptWithHash callKeccak256 callKeccakF1600 P Hs seed fuel) =
+      runScriptWithHash (m := Id) keccak256 keccakF1600 P Hs seed fuel :=
   simulateQ_runScript Guest.Budget.deployedKeccakCalls P Hs seed fuel
 
 /-- The seed with Keccak. -/
 theorem simulateQ_keccak_seedWith (bytecode : List K) (publicInput : Digest) :
-    simulateQ Guest.Budget.deployedKeccakCalls (seedWith callKeccak256 callKeccakF1600 bytecode publicInput) =
-      seedWith (m := Id) keccak256 keccakF1600 bytecode publicInput :=
+    simulateQ Guest.Budget.deployedKeccakCalls (seedWithHash callKeccak256 callKeccakF1600 bytecode publicInput) =
+      seedWithHash (m := Id) keccak256 keccakF1600 bytecode publicInput :=
   simulateQ_seedWith Guest.Budget.deployedKeccakCalls bytecode publicInput
 
 /-- **An honest prover that seeds and runs a script, with the deployed Keccak** (`honestProofWithDeployedKeccak`), is
 the runner in `Id` with Keccak-256 and Keccak-f[1600]. -/
-theorem atKeccak_seedRunScript (A : HonestProver) {prog : Program} {input : PublicInput}
+theorem atKeccak_seedRunScript (A : HonestProverWithHash) {prog : Program} {input : PublicInput}
     {t : Execution prog} {ρ fuel : ℕ} {β : Type} (Hs : Script β)
     (hA : A prog input t ρ fuel = (do
-      let seed ← seedWith callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicDigest input)
-      runScript callKeccak256 callKeccakF1600 (leanVmProgram (bytecodeWords prog) (publicDigest input)) Hs seed
+      let seed ← seedWithHash callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicDigest input)
+      runScriptWithHash callKeccak256 callKeccakF1600 (leanVmProgram (bytecodeWords prog) (publicDigest input)) Hs seed
         fuel)) :
-    Guest.Budget.honestProofWithDeployedKeccak A prog input t ρ fuel =
-      runScript (m := Id) keccak256 keccakF1600
+    Guest.Budget.honestProofWithDeployedKeccakWithHash A prog input t ρ fuel =
+      runScriptWithHash (m := Id) keccak256 keccakF1600
         (leanVmProgram (bytecodeWords prog) (publicDigest input)) Hs
-        (seedWith (m := Id) keccak256 keccakF1600 (bytecodeWords prog) (publicDigest input)) fuel := by
-  unfold Guest.Budget.honestProofWithDeployedKeccak
+        (seedWithHash (m := Id) keccak256 keccakF1600 (bytecodeWords prog) (publicDigest input)) fuel := by
+  unfold Guest.Budget.honestProofWithDeployedKeccakWithHash
   rw [hA, simulateQ_seedRunScript]
   rfl
 

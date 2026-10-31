@@ -7,6 +7,7 @@
 
 import LeanVM.Protocol.Rpm.Game
 import Common.Keccak
+import LeanVM.Protocol.WithHash
 
 /-!
 # The transcript's hashes are the adversary's cache

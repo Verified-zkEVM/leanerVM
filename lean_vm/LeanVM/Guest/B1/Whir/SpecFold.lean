@@ -9,6 +9,7 @@ module
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.SpecNZ
 public import LeanVM.Guest.B1.Whir.CFold
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Rounds and openings, backwards
@@ -35,21 +36,21 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 leaves, the rest left. -/
 theorem openAll_inv (root : Digest) (height width : ℕ) :
     ∀ (ps : List ℕ) (os : List Opening) (rows : List (List K)) (rest : List Opening),
-      Id.run (Compile.openAll (m := Id) keccak256 root height width ps os) = some (rows, rest) →
+      Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps os) = some (rows, rest) →
       ∃ osL : List Opening, os = osL ++ rest ∧ osL.length = ps.length ∧
         (∀ k (hk : k < ps.length) (ho : k < osL.length),
-          Id.run (Compile.openOne (m := Id) keccak256 root height width ps[k] osL[k]) = true) ∧
+          Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width ps[k] osL[k]) = true) ∧
         rows = osL.map (·.leaf)
   | [], os, rows, rest, h => by
-    simp only [Compile.openAll, Id.run, pure, Option.some.injEq, Prod.mk.injEq] at h
+    simp only [Compile.openAllWithHash, Id.run, pure, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     exact ⟨[], rfl, rfl, fun k hk ↦ absurd hk (by simp), rfl⟩
-  | _ :: _, [], rows, rest, h => by simp [Compile.openAll, Id.run, pure] at h
+  | _ :: _, [], rows, rest, h => by simp [Compile.openAllWithHash, Id.run, pure] at h
   | q :: qs, o :: os, rows, rest, h => by
-    simp only [Compile.openAll, Id.run, bind] at h
+    simp only [Compile.openAllWithHash, Id.run, bind] at h
     split at h
     · rename_i hq
-      cases ho : Id.run (Compile.openAll (m := Id) keccak256 root height width qs os) with
+      cases ho : Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width qs os) with
       | none =>
         simp only [Id.run] at ho
         simp [ho, pure] at h

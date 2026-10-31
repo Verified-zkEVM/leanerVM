@@ -9,6 +9,8 @@
 import LeanVM.Protocol.LeanVMRpm
 import LeanVM.Guest.Child.NZRpm
 import LeanVM.Guest.Child.Deployed
+import LeanVM.Protocol.WithHash
+import LeanVM.Guest.WithHash
 
 /-!
 # Completeness for a prover that is the specification at a witness
@@ -42,7 +44,7 @@ open scoped ENNReal
 
 /-- **The prover is the specification at an honest witness** on every valid execution within the
 verifier's cap, at a valid rate. -/
-def SpecOnValid (A : HonestProver)
+def SpecOnValid (A : HonestProverWithHash)
     (W : (prog : Program) → PublicInput → Execution prog → ℕ →
       EnsembleWitness (leanIsaEnsemble prog) → Sizes → Prop) : Prop :=
   ∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
@@ -54,19 +56,19 @@ def SpecOnValid (A : HonestProver)
 
 /-- **Completeness for a prover that is the specification at an honest witness**: the body of
 `LeanVM.Completeness` for `A`. -/
-theorem completeness_of_spec (A : HonestProver) (hA : SpecOnValid A HonestFor) :
+theorem completeness_of_spec (A : HonestProverWithHash) (hA : SpecOnValid A HonestFor) :
     ∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
       ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
-      Pr{let v ← verifierCompletenessExperiment A prog input t ρ (2 ^ 25)}[v = false] ≤
+      Pr{let v ← verifierCompletenessExperimentWithHash A prog input t ρ (2 ^ 25)}[v = false] ≤
         (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   intro prog input t ρ hv hbudget hρ
   obtain ⟨w, s, hw, hAw⟩ := hA prog input t ρ (2 ^ 25) hv hbudget hρ
-  have e : verifierCompletenessExperiment A prog input t ρ (2 ^ 25) = (simulateQ keccakCallsOverRandomPermutation
+  have e : verifierCompletenessExperimentWithHash A prog input t ρ (2 ^ 25) = (simulateQ keccakCallsOverRandomPermutation
       (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
         (leanVmProgram (bytecodeWords prog) (publicDigest input))
         (leanVmProver prog s ρ (stackOf prog s w)) (2 ^ 25) >>= fun proof ↦
-          verifier callKeccak256 callKeccakF1600 prog input proof)).run' [] := by
-    unfold verifierCompletenessExperiment
+          verifierWithHash callKeccak256 callKeccakF1600 prog input proof)).run' [] := by
+    unfold verifierCompletenessExperimentWithHash
     rw [hAw]
   rw [e]
   exact (Rpm.completenessRpm_at hw (by norm_num)).trans Rpm.completenessRpm_le
@@ -74,20 +76,20 @@ theorem completeness_of_spec (A : HonestProver) (hA : SpecOnValid A HonestFor) :
 /-- **Both parts of `GuestChildComplete`, for a prover that is the specification at a child's
 witness**: on valid executions within the cap at a valid rate (`SpecOnValid A ChildFor`), and
 everywhere the specification at a child's witness or the empty proof (`ChildSpec`). -/
-theorem guestChildComplete_of_spec (A : HonestProver) (hA : SpecOnValid A ChildFor)
+theorem guestChildComplete_of_spec (A : HonestProverWithHash) (hA : SpecOnValid A ChildFor)
     (hA' : ∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
       ChildSpec A prog input t ρ fuel) :
     (∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
       ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
       Pr{let v ← (simulateQ LeanVM.keccakCallsOverRandomPermutation (do
           let proof ← A prog input t ρ (2 ^ 25)
-          Guest.Budget.verifierRefusingZero callKeccak256 callKeccakF1600 prog input proof)).run' []}[v = false] ≤
+          Guest.Budget.verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input proof)).run' []}[v = false] ≤
         (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
     ∀ (s : NodeStatement) (t : Execution Guest.guest) (ρ : ℕ), 2 ^ 22 ≤ t.committedSize →
       s.deferredClaim.HasBytecodeShape (bytecodeWords Guest.guest) →
       let input := PublicInput.ofDigest (statementDigest (deployedSeed Guest.guest) s)
-      let proof := Guest.Budget.honestProofWithDeployedKeccak A Guest.guest input t ρ (2 ^ 25)
-      Guest.Budget.verifierRefusingZero (m := Id) keccak256 keccakF1600 Guest.guest input proof = true →
+      let proof := Guest.Budget.honestProofWithDeployedKeccakWithHash A Guest.guest input t ρ (2 ^ 25)
+      Guest.Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 Guest.guest input proof = true →
       ∃ fresh, LeanVM.Guest.AcceptableChild (bytecodeWords Guest.guest) (deployedSeed Guest.guest)
         ⟨s, fresh, proof⟩ := by
   refine ⟨fun prog input t ρ hv hbudget hρ ↦ ?_, fun s t ρ h22 hsh hacc ↦

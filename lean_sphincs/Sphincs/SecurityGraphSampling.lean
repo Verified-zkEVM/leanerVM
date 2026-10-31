@@ -1,5 +1,6 @@
 import Sphincs.SecurityGraphCache
 import SphincsBase.Proof.Hypertree.FiniteGraphReplay
+import Common.WithHash
 
 /-! Actual lazy-oracle graph preparation equals independent full-output labels followed by
 canonical cache programming. Pruned positions keep their initial boundary labels. -/

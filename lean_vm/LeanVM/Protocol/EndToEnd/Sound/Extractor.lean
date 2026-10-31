@@ -14,6 +14,8 @@ public import LeanVM.Protocol.EndToEnd.Front.LayoutBridgeB
 public import LeanVM.Protocol.LeanIsa.Read
 public import LeanVM.Protocol.Rom.Statement
 public import LeanVM.Protocol.Extraction.Params
+public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.WithHashBridge
 
 /-!
 # The specification's extractor
@@ -129,7 +131,7 @@ extracted run whose events are reads and commitments is a run with any hash `H'`
 theorem run_id_of_xrun (H' : Bytes → Digest) (F' : KeccakState → KeccakState) {α : Type} :
     ∀ (p : Prog α) (s : ProgState) (h l : List Ev) {a : α} {s' : ProgState},
       xrun H F p s h = some (a, s', h ++ l) → ReadsCommits l → ∀ sp : Sponge,
-        ∃ sp', Id.run (Compile.run H' F' p { s with sponge := sp }) =
+        ∃ sp', Id.run (Compile.runWithHash H' F' p { s with sponge := sp }) =
           some (a, { s' with sponge := sp' })
   | .ret a, s, h, l, _, _, hr, _, sp => by
     simp only [xrun, Option.some.injEq, Prod.mk.injEq] at hr
@@ -151,7 +153,7 @@ theorem run_id_of_xrun (H' : Bytes → Digest) (F' : KeccakState → KeccakState
         (fun e he ↦ hrc e (List.mem_cons_of_mem _ he))
         (Compile.absorb (m := Id) F' sp x dsObserve)
       refine ⟨sp', ?_⟩
-      simp only [Compile.run, hs]
+      simp only [Compile.runWithHash, hs]
       exact hrun
   | .sample k, s, h, l, _, _, hr, hrc, _ => by
     simp only [xrun, Option.bind_eq_some_iff] at hr
@@ -190,7 +192,7 @@ theorem run_id_of_xrun (H' : Bytes → Digest) (F' : KeccakState → KeccakState
           (Compile.absorb (m := Id) F' (Compile.absorb (m := Id) F' sp x0 dsObserve) x1
             dsObserve)
         refine ⟨sp', ?_⟩
-        simp only [Compile.run, hs, hroot]
+        simp only [Compile.runWithHash, hs, hroot]
         exact hrun
       · simp at hr
     · simp at hr
@@ -376,8 +378,9 @@ theorem commitment_eq {c : KeccakCalls.QueryCache} {π : Proof}
       exact Or.inr ⟨_, _, _, he⟩
   obtain ⟨sp', hrun⟩ := run_id_of_xrun H F (fun _ ↦ default) (fun _ ↦ default) _ _ _ _ hxa hrc
     ⟨default, []⟩
-  have haf : Extraction.afterRoot (bytecodeWords prog) π = some (a, { s2 with sponge := sp' }) :=
-    hrun
+  have haf : Extraction.afterRoot (bytecodeWords prog) π = some (a, { s2 with sponge := sp' }) := by
+    rw [Extraction.afterRoot, Compile.runPure_eq_withHash]
+    exact hrun
   refine ⟨⟨r.1, r.2.1, r.2.2, ?_, hW', { s2 with sponge := sp' }, ?_, ?_⟩,
     by rw [← hgood.1]; exact hgood, by rw [← hgood.1]; exact ⟨level, rest, hcfg⟩⟩
   · simp [announcedRoot, haf, hr2]

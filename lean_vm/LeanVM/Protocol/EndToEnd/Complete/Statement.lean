@@ -11,6 +11,7 @@ module
 
 public import LeanVM.Protocol.EndToEnd.Complete.Rom
 public import LeanVM.Protocol.Rom.Statement
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Completeness in the random-oracle model, as `LeanVM/Protocol/Rom/Statement.lean` states it
@@ -41,7 +42,7 @@ open scoped ENNReal
 
 /-- The statement's verifier, on a statement and a proof. -/
 abbrev stmtVerifier : LeanVM.ProgramAndInput × LeanVM.Protocol.Compile.Proof → OracleComp LeanVM.KeccakCalls Bool :=
-  fun z ↦ LeanVM.verifier LeanVM.callKeccak256 LeanVM.callKeccakF1600 z.1.1 z.1.2 z.2
+  fun z ↦ LeanVM.verifierWithHash LeanVM.callKeccak256 LeanVM.callKeccakF1600 z.1.1 z.1.2 z.2
 
 /-- **The statement's experiment, without the adversary's cache, is the random-oracle theorem's
 experiment.** -/
@@ -76,7 +77,7 @@ theorem completeness_le {prog : Program} {input : PublicInput} {t : Execution pr
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← LeanVM.experiment (honestProverRom prog input t ρ fuel)}[z.rejected] ≤
       LeanVM.completenessError fuel := by
-  have hV : (fun π ↦ LeanVM.verifier LeanVM.callKeccak256 LeanVM.callKeccakF1600 prog input π) =
+  have hV : (fun π ↦ LeanVM.verifierWithHash LeanVM.callKeccak256 LeanVM.callKeccakF1600 prog input π) =
       verifierComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
         (leanVmProgram (bytecodeWords prog) (publicDigest input)) :=
     funext fun π ↦ (verifierComp_leanVm _ _ π).symm

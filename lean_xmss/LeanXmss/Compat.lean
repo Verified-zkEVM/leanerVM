@@ -1,6 +1,7 @@
 module
 
 public import Statement.LeanXmss
+public import Common.WithHash
 
 /-!
 # The hash inputs by name
@@ -42,22 +43,22 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
 /-- `S = H("leanXMSS" || S_0)` (`taggedSeed`). -/
 abbrev schemeSeed (keySeed : MasterSeed) : m MasterSeed :=
-  Concrete.taggedSeed seedTag keySeed
+  Concrete.taggedSeedWithHash seedTag keySeed
 
 /-- One seed derivation, first 16 bytes. -/
 abbrev deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
     m Digest :=
-  Concrete.th parameter (keygenDomainFields domain) (bytesLE 32 seed)
+  Concrete.thWithHash parameter (keygenDomainFields domain) (bytesLE 32 seed)
 
 /-- One seed derivation, all 32 bytes. -/
 abbrev deriveOutput (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
     m HashOutput :=
-  Concrete.thPair parameter (keygenDomainFields domain) (bytesLE 32 seed)
+  Concrete.thPairWithHash parameter (keygenDomainFields domain) (bytesLE 32 seed)
 
 /-- `R0`, the randomizer base of a message, first 16 bytes. -/
 abbrev deriveRandomizer (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
     (seed : MasterSeed) (message : HashInput) : m Randomness :=
-  Concrete.th parameter (tweakFields 7 0 (layerHi lay 0) key) (bytesLE 32 seed ++ message)
+  Concrete.thWithHash parameter (tweakFields 7 0 (layerHi lay 0) key) (bytesLE 32 seed ++ message)
 
 theorem thInput_hashDomainFields (parameter : PublicParameter) (domain : HashDomain)
     (payload : HashInput) :

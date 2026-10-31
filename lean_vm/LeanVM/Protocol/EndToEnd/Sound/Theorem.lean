@@ -13,6 +13,7 @@ public import LeanVM.Protocol.EndToEnd.Sound.Assemble
 public import LeanVM.Protocol.EndToEnd.Sound.Runs
 public import LeanVM.Protocol.EndToEnd.Execution
 public import LeanVM.Protocol.Verifier.Cost
+public import LeanVM.Protocol.WithHash
 
 /-!
 # Knowledge soundness of the leanVM verifier in the random-oracle model

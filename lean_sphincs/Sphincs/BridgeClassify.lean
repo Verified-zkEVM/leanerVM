@@ -1,6 +1,7 @@
 import Sphincs.BridgeFixedRun
 import Sphincs.SecurityReferenceSignature
 import Sphincs.SecurityHiddenWitness
+import Common.WithHash
 
 set_option backward.isDefEq.respectTransparency false
 

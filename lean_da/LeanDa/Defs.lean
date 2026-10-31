@@ -1,6 +1,7 @@
 import PqDas.Defs
 import Common.SimDefs
 import Common.Lanes
+import LeanDa.WithHash
 
 /-!
 # LeanDA in Benedikt Wagner's framework: the definitions of the proofs
@@ -33,7 +34,7 @@ open PqDas
 the challenges the statement carries. -/
 noncomputable def Relation (r : ℕ) (H : List UInt8 → Common.DigestBytes) (stmt : Unit × Common.DigestBytes × Challenges)
     (c : Fin (r * 128) → Cell) : Bool :=
-  decide (commitCells H c = stmt.2.1) && membershipCheck stmt.2.2 c
+  decide (commitCellsWithHash H c = stmt.2.1) && membershipCheck stmt.2.2 c
 
 /-- An argument of knowledge for `Relation r H`. -/
 abbrev Argument (r : ℕ) (H : List UInt8 → Common.DigestBytes) (Crs Proof : Type) :=
@@ -47,8 +48,8 @@ def verifyRpm {m : Type → Type} [Monad m] (H : List UInt8 → m Common.DigestB
     (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
     (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
     (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : Opening) : m Bool := do
-  let zs ← membershipChallengesM H P com.1
-  let v ← verifyCellM H r com.1 p x τ
+  let zs ← membershipChallengesMWithHash H P com.1
+  let v ← verifyCellMWithHash H r com.1 p x τ
   pure (ps.verify crs ((), com.1, toChallenges zs) com.2 && v)
 
 end LeanDa
@@ -80,7 +81,7 @@ column tree's height that climbs from the cell's digest to a column root, which 
 row root gives the commitment. -/
 def verifyCell (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) : Bool :=
   decide (τ.path.length = 7 + logPad r) &&
-    decide (H (pairBytes τ.rowRoot (walk H (colIndex p) (cellDigest H x) τ.path)) = com)
+    decide (H (pairBytes τ.rowRoot (walk H (colIndex p) (cellDigestWithHash H x) τ.path)) = com)
 
 /-- The hash inputs from a cell's bytes `a` at index `idx` up to the root, the last one
 `rowRoot ‖ colRoot`. -/
@@ -118,8 +119,8 @@ by their column-tree paths. It needs no key. -/
 def merkleVC (r : ℕ) (H : List UInt8 → Common.DigestBytes) :
     VectorCommitment Cell (r * 128) Unit Common.DigestBytes Opening where
   setup := pure ()
-  commit _ c := commitCells H c
-  openAt _ c p := openCell H c p
+  commit _ c := commitCellsWithHash H c
+  openAt _ c p := openCellWithHash H c p
   verify _ com p x τ := verifyCell H r com p x τ
 
 /-- The collision experiment for a hash function: a finder wins if it outputs two different
@@ -261,7 +262,7 @@ noncomputable def codeBindingExpRpm (A : CodeBindingAdvB r Crs Proof) : ProbComp
 cells do not satisfy the relation (`Relation`), their root hashed with Keccak-256. -/
 noncomputable def ksPost (crs : Crs) (out : (Unit × Common.DigestBytes × Challenges) × Proof) :
     OracleComp Rom2 Bool := do
-  let root ← commitCellsM hR (ext crs out.1 out.2)
+  let root ← commitCellsMWithHash hR (ext crs out.1 out.2)
   pure (ps.verify crs out.1 out.2 &&
     !(decide (root = out.1.2.1) && membershipCheck out.1.2.2 (ext crs out.1 out.2)))
 

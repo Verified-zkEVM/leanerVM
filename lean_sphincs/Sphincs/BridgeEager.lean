@@ -1,5 +1,6 @@
 import Sphincs.BridgeInternalize
 import Mathlib.Data.Set.Finite.List
+import Common.WithHash
 
 /-! A computation whose hash queries are all short sees the lazy random oracle exactly as a
 uniformly sampled table on the finite set of short inputs. Private draws stay private draws. -/

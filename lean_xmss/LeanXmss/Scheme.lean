@@ -4,6 +4,7 @@ public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 public import Statement.LeanXmss
 public import LeanXmss.Compat
+public import Common.WithHash
 
 /-!
 # leanXMSS
@@ -59,29 +60,29 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m] (parameter : Public
   (lay : Layer) (key : KeyIndex)
 
 theorem chainWalk_eq_zero (chainIdx : ChainIndex) (start : Nat) (value : Digest) :
-    chainWalk (m := m) parameter lay key chainIdx start 0 value = pure value := rfl
+    chainWalkWithHash (m := m) parameter lay key chainIdx start 0 value = pure value := rfl
 
 theorem chainWalk_eq_succ (chainIdx : ChainIndex) (start steps : Nat) (value : Digest) :
-    chainWalk (m := m) parameter lay key chainIdx start (steps + 1) value = (do
-      let previous ← chainWalk parameter lay key chainIdx start steps value
+    chainWalkWithHash (m := m) parameter lay key chainIdx start (steps + 1) value = (do
+      let previous ← chainWalkWithHash parameter lay key chainIdx start steps value
       if hstep : start + steps < chainLength - 1 then
-        tweakableHash parameter (.chain lay key ⟨start + steps, hstep⟩)
+        tweakableHashWithHash parameter (.chain lay key ⟨start + steps, hstep⟩)
           (chainPayload chainIdx previous)
       else
         pure 0) := rfl
 
 theorem treeFold_eq_zero (path : Fin layerHeight → Digest) (value : Digest) :
-    treeFold (m := m) parameter lay key path 0 value = pure value := rfl
+    treeFoldWithHash (m := m) parameter lay key path 0 value = pure value := rfl
 
 theorem treeFold_eq_succ (path : Fin layerHeight → Digest) (levels : Nat) (value : Digest) :
-    treeFold (m := m) parameter lay key path (levels + 1) value = (do
-      let current ← treeFold parameter lay key path levels value
+    treeFoldWithHash (m := m) parameter lay key path (levels + 1) value = (do
+      let current ← treeFoldWithHash parameter lay key path levels value
       let sibling := if hlevel : levels < layerHeight then path ⟨levels, hlevel⟩ else 0
       let nodeIdx := key.val / 2 ^ (levels + 1)
       if key.val.testBit levels then
-        tweakableHash parameter (.node lay (levels + 1) nodeIdx) (nodePayload sibling current)
+        tweakableHashWithHash parameter (.node lay (levels + 1) nodeIdx) (nodePayload sibling current)
       else
-        tweakableHash parameter (.node lay (levels + 1) nodeIdx) (nodePayload current sibling)) := by
+        tweakableHashWithHash parameter (.node lay (levels + 1) nodeIdx) (nodePayload current sibling)) := by
   show _ >>= _ = _ >>= _
   congr 1
   funext current
@@ -95,16 +96,16 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m] (parameter : Public
   (lay : Layer) (seed : MasterSeed)
 
 theorem treeNode_eq_zero (nodeIdx : Nat) :
-    treeNode (m := m) parameter lay seed 0 nodeIdx = (do
+    treeNodeWithHash (m := m) parameter lay seed 0 nodeIdx = (do
       let key : KeyIndex := ⟨nodeIdx % lifetime, Nat.mod_lt _ (by decide)⟩
-      let endpoints ← oneTimePublicKey parameter lay key seed
-      Concrete.leafHash parameter lay key endpoints) := rfl
+      let endpoints ← oneTimePublicKeyWithHash parameter lay key seed
+      Concrete.leafHashWithHash parameter lay key endpoints) := rfl
 
 theorem treeNode_eq_succ (level nodeIdx : Nat) :
-    treeNode (m := m) parameter lay seed (level + 1) nodeIdx = (do
-      let left ← treeNode parameter lay seed level (2 * nodeIdx)
-      let right ← treeNode parameter lay seed level (2 * nodeIdx + 1)
-      Concrete.tweakableHash parameter (.node lay (level + 1) nodeIdx)
+    treeNodeWithHash (m := m) parameter lay seed (level + 1) nodeIdx = (do
+      let left ← treeNodeWithHash parameter lay seed level (2 * nodeIdx)
+      let right ← treeNodeWithHash parameter lay seed level (2 * nodeIdx + 1)
+      Concrete.tweakableHashWithHash parameter (.node lay (level + 1) nodeIdx)
         (Concrete.nodePayload left right)) := rfl
 
 end Seeded

@@ -10,6 +10,8 @@
 module
 
 public import LeanVM.Guest.B1.Sig.SphincsGlueComplete
+public import Sphincs.WithHash
+public import LeanVM.Guest.WithHash
 
 /-!
 # `verify_sig_lean_sphincs`, complete
@@ -152,7 +154,7 @@ theorem sStages (hm : MemOK rd 256) {p bb : E} (hbb : ByteBits rd bb) (pk : Sphi
   set ctr := sig.counter.toNat with hctr
   have cPc : IsCanonical128 Pc := isCanonical128_cellOf128 _
   -- the digest
-  have hmd : @messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter m sig.randomness =
+  have hmd : @messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter m sig.randomness =
       BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18) := by
     have := sMessageDigest_cells sq_keccak (pp := Pc) (a := word (tw 12) 0 0) (m0 := m0) (m1 := m1)
       (rho := rho) (m := m) msgAdr_bytes (sphincs_msg_bytes m)

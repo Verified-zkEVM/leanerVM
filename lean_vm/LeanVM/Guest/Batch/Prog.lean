@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Batch.Sound
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The batching as a verifier program
@@ -108,7 +109,7 @@ theorem headCells_eq (n : ℕ) : childCountCells n = [Verifier.gpow n, 0, 0, 0] 
 
 /-- The deployed compiled run: Keccak-256 and Keccak-f[1600]. -/
 abbrev runD {α : Type} (p : Prog α) (s : ProgState) : Option (α × ProgState) :=
-  Id.run (run keccak256 keccakF1600 p s)
+  Id.run (runWithHash keccak256 keccakF1600 p s)
 
 /-- The compiled run of a sequence: the first program's, then the continuation's. -/
 theorem runD_bind {α β : Type} (f : α → Prog β) :
@@ -141,10 +142,10 @@ theorem runD_bind {α β : Type} (f : α → Prog β) :
     · rfl
   | .query i ps k, s => by
     rcases h : s.roots[i]? with _ | ⟨root, height, width⟩
-    · simp only [runD, Prog.bind, Compile.run, h]
+    · simp only [runD, Prog.bind, Compile.runWithHash, h]
       rfl
-    · simp only [runD, Prog.bind, Compile.run, h]
-      rcases ho : Id.run (openAll keccak256 root height width ps s.openings) with _ | ⟨rows, rest⟩
+    · simp only [runD, Prog.bind, Compile.runWithHash, h]
+      rcases ho : Id.run (openAllWithHash keccak256 root height width ps s.openings) with _ | ⟨rows, rest⟩
       · simp only [Id.run] at ho
         simp only [id_bind, ho]
         rfl
@@ -295,7 +296,7 @@ theorem runProof_batchAny {M : ℕ} (hM : M ≤ 2 ^ 64 - 1) {bytecode : List K}
     {cs : List ChildClaims} {h : BatchingHints} (hn : cs.length < M)
     (hs : ∀ c ∈ cs, ChildHasBytecodeShape bytecode c)
     (hr : h.sumcheckMessages.length = Nat.log2 bytecode.length) :
-    Id.run (runProof keccak256 keccakF1600 (boundedBatchingProgram M bytecode) batchSeed
+    Id.run (runProofWithHash keccak256 keccakF1600 (boundedBatchingProgram M bytecode) batchSeed
         ⟨batchingStream cs h, []⟩) = true ↔
       ∃ d, batch cs h = some d ∧ d.Holds bytecode := by
   have hstream : batchingStream cs h = childCountCells cs.length ++ (cs.flatMap childCells ++

@@ -10,6 +10,8 @@ import LeanDa.StraightBound
 import LeanDa.RpmArg
 import LeanDa.PiOnly
 import PqDas
+import LeanDa.WithHash
+import LeanDa.WithHashBridge
 
 /-!
 # LeanDA's security
@@ -275,19 +277,19 @@ before the straight-line proof. -/
 abbrev CodeBindingRpmFork : Prop :=
   ∀ (r : ℕ) {Crs Proof : Type} (ps : LeanDaArgument r Crs Proof)
     (ext : StraightLineExtractor Common.DigestBytes (Fin (r * 128) → Cell) Crs Proof) (c k : ℕ),
-    (∀ (B : KnowledgeSoundnessAdversary Crs Proof) (q : ℕ), QueryCostAtMost (knowledgeSoundnessGame r ps ext B) permutationCallCost q →
-      q ≤ 2 ^ 128 → Pr{let b ← runWithRandomPermutation (knowledgeSoundnessGame r ps ext B)}[b = true] ≤
+    (∀ (B : KnowledgeSoundnessAdversary Crs Proof) (q : ℕ), QueryCostAtMost (knowledgeSoundnessGameWithHash r ps ext B) permutationCallCost q →
+      q ≤ 2 ^ 128 → Pr{let b ← runWithRandomPermutation (knowledgeSoundnessGameWithHash r ps ext B)}[b = true] ≤
         ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k) →
     1 ≤ r → r ≤ maxRows →
     ∀ (A : CodeBindingAdversary r Crs Proof) (Q : ℕ),
-      QueryCostAtMost (codeBindingGame r ps A) permutationCallCost Q → Q ≤ 2 ^ 127 →
-        Pr{let b ← runWithRandomPermutation (codeBindingGame r ps A)}[b = true] ≤
+      QueryCostAtMost (codeBindingGameWithHash r ps A) permutationCallCost Q → Q ≤ 2 ^ 127 →
+        Pr{let b ← runWithRandomPermutation (codeBindingGameWithHash r ps A)}[b = true] ≤
           ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 20) * (2 : ℝ≥0∞)⁻¹ ^ 93 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 158
 
 /-- **The forking route's bound follows from the straight-line one**, which is below it for every
 `Q` (`straight_le_fork`). -/
-theorem codeBindingRpmFork_of_codeBindingRpm (h : CodeBindingRpm) : CodeBindingRpmFork := by
+theorem codeBindingRpmFork_of_codeBindingRpm (h : CodeBindingRpmWithHash) : CodeBindingRpmFork := by
   intro r Crs Proof ps ext c k hks hr1 hrM A Q hQ _
   exact (h r ps ext c k hks hr1 hrM A Q hQ).trans (straight_le_fork Q c k)
 

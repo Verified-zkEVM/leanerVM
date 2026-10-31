@@ -11,6 +11,7 @@ module
 public import LeanVM.Protocol.Compile.Prover
 public import LeanVM.Protocol.Compile.Cost
 public import Statement.Prover.Run
+public import LeanVM.Protocol.WithHash
 
 /-!
 # The honest prover against the random oracles
@@ -43,7 +44,7 @@ namespace LeanVM.Protocol.Compile
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol
 open LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Rom
-open LeanVM.Prover (Tree buildTreeM leafDigestsM parentsM levelsM powStepM searchM findNonceM)
+open LeanVM.Prover (Tree buildTreeWithHash leafDigestsWithHash parentsWithHash levelsWithHash powStepM searchM findNonceM)
 open OracleComp OracleSpec
 
 @[expose] public section
@@ -75,7 +76,7 @@ def proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
       let t ← proveFromM S fuel k r.2 (h ++ [Ev.grind bits]) cs
       pure (t.map fun t ↦ (n :: t.1, t.2))
   | .commit ht w k, sp, h, cs => do
-    let tree ← buildTreeM H ht (S.word h)
+    let tree ← buildTreeWithHash H ht (S.word h)
     let sp0 ← Compile.absorb F sp (digestScalars tree.root).1 dsObserve
     let sp1 ← Compile.absorb F sp0 (digestScalars tree.root).2 dsObserve
     let r ← proveFromM S fuel k sp1 (h ++ [Ev.commit ht w (S.word h)]) (cs ++ [tree])
@@ -99,7 +100,7 @@ theorem prover_nonceOf (n : ℕ) : LeanVM.Prover.nonceOf n = nonceOf n := rfl
 
 /-- The trees of a list of commitments, as `buildTreeM` builds them in `Id`. -/
 def treesOf (H : Bytes → Digest) (cs : List (ℕ × ℕ × Word)) : List Tree :=
-  cs.map fun c ↦ buildTreeM (m := Id) H c.1 c.2.2
+  cs.map fun c ↦ buildTreeWithHash (m := Id) H c.1 c.2.2
 
 /-! ## The `Id` instance is the pure prover -/
 
@@ -111,14 +112,14 @@ theorem toArray_getD {α : Type} (l : List α) (i : ℕ) (d : α) : l.toArray.ge
   simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
 
 theorem parentsM_id (level : Array Digest) (n : ℕ) :
-    parentsM (m := Id) H level n = (Array.range n).map fun j ↦
+    parentsWithHash (m := Id) H level n = (Array.range n).map fun j ↦
       H (digestBytes (level.getD (2 * j) default) ++
         digestBytes (level.getD (2 * j + 1) default)) :=
   Array.idRun_mapM
 
 /-- The parents of a level, as arrays. -/
 theorem parentsM_id_toArray {k : ℕ} (level : Vector Digest (2 ^ (k + 1))) :
-    parentsM (m := Id) H level.toArray (2 ^ k) =
+    parentsWithHash (m := Id) H level.toArray (2 ^ k) =
       (MerkleTree.parents (nodeHash H) level).toArray := by
   rw [parentsM_id]
   refine Array.ext (by simp) fun j h1 h2 ↦ ?_
@@ -132,12 +133,12 @@ theorem parentsM_id_toArray {k : ℕ} (level : Vector Digest (2 ^ (k + 1))) :
   simp
 
 theorem levelsM_id_succ (k : ℕ) (level : Array Digest) :
-    levelsM (m := Id) H (k + 1) level =
-      level :: levelsM (m := Id) H k (parentsM (m := Id) H level (2 ^ k)) := rfl
+    levelsWithHash (m := Id) H (k + 1) level =
+      level :: levelsWithHash (m := Id) H k (parentsWithHash (m := Id) H level (2 ^ k)) := rfl
 
 /-- The last level is the root. -/
 theorem levelsM_id_root : ∀ (k : ℕ) (level : Vector Digest (2 ^ k)),
-    ((levelsM (m := Id) H k level.toArray).getD k #[]).getD 0 default =
+    ((levelsWithHash (m := Id) H k level.toArray).getD k #[]).getD 0 default =
       MerkleTree.rootOfLevel (nodeHash H) k level
   | 0, level => by
     show level.toArray.getD 0 default = level[0]
@@ -149,7 +150,7 @@ theorem levelsM_id_root : ∀ (k : ℕ) (level : Vector Digest (2 ^ k)),
 
 /-- The siblings read off the levels are the authentication path. -/
 theorem levelsM_id_path : ∀ (k : ℕ) (level : Vector Digest (2 ^ k)) (i : Fin (2 ^ k)),
-    (List.range k).map (fun l ↦ ((levelsM (m := Id) H k level.toArray).getD l #[]).getD
+    (List.range k).map (fun l ↦ ((levelsWithHash (m := Id) H k level.toArray).getD l #[]).getD
       (LeanVM.Prover.sibling (i.val / 2 ^ l)) default) =
       MerkleTree.pathOfLevel (nodeHash H) k level i
   | 0, _, _ => rfl
@@ -167,21 +168,21 @@ theorem levelsM_id_path : ∀ (k : ℕ) (level : Vector Digest (2 ^ k)) (i : Fin
         rw [Nat.div_div_eq_div_mul, ← pow_succ']]
 
 theorem leafDigestsM_id (height : ℕ) (word : Word) :
-    leafDigestsM (m := Id) H height word = ((leavesOf height word).map (leafHash H)).toArray := by
+    leafDigestsWithHash (m := Id) H height word = ((leavesOf height word).map (leafHash H)).toArray := by
   refine (Array.idRun_mapM).trans (Array.ext (by simp) fun j h1 h2 ↦ ?_)
   simp [leavesOf, leafHash]
   rfl
 
 /-- The tree `buildTreeM` builds in `Id`. -/
 theorem buildTreeM_id (height : ℕ) (word : Word) :
-    buildTreeM (m := Id) H height word =
-      ⟨height, word, (levelsM (m := Id) H height (leafDigestsM (m := Id) H height word)).toArray⟩ :=
+    buildTreeWithHash (m := Id) H height word =
+      ⟨height, word, (levelsWithHash (m := Id) H height (leafDigestsWithHash (m := Id) H height word)).toArray⟩ :=
   rfl
 
 /-- **The root of the tree built once** is `treeRoot`. -/
 theorem root_buildTreeM_id (height : ℕ) (word : Word) :
-    (buildTreeM (m := Id) H height word).root = treeRoot H height word := by
-  show ((levelsM (m := Id) H height (leafDigestsM (m := Id) H height word)).toArray.getD height
+    (buildTreeWithHash (m := Id) H height word).root = treeRoot H height word := by
+  show ((levelsWithHash (m := Id) H height (leafDigestsWithHash (m := Id) H height word)).toArray.getD height
     #[]).getD 0 default = _
   simp only [toArray_getD, leafDigestsM_id]
   rw [levelsM_id_root]
@@ -189,11 +190,11 @@ theorem root_buildTreeM_id (height : ℕ) (word : Word) :
 
 /-- **An opening read off the tree built once** is `openingAt`. -/
 theorem opening_buildTreeM_id (height : ℕ) (word : Word) (q : ℕ) :
-    (buildTreeM (m := Id) H height word).opening q = openingAt H height word q := by
+    (buildTreeWithHash (m := Id) H height word).opening q = openingAt H height word q := by
   have e := levelsM_id_path H height ((leavesOf height word).map (leafHash H))
     ⟨q % 2 ^ height, Nat.mod_lt _ (Nat.two_pow_pos height)⟩
   show (⟨word (q % 2 ^ height), (List.range height).map fun l ↦
-    ((levelsM (m := Id) H height (leafDigestsM (m := Id) H height word)).toArray.getD l #[]).getD
+    ((levelsWithHash (m := Id) H height (leafDigestsWithHash (m := Id) H height word)).toArray.getD l #[]).getD
       (LeanVM.Prover.sibling (q % 2 ^ height / 2 ^ l)) default⟩ : Opening) =
     ⟨word (q % 2 ^ height), _⟩
   simp only [toArray_getD, leafDigestsM_id]
@@ -222,7 +223,7 @@ theorem findNonceM_id (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
 
 theorem treesOf_append (h : List Ev) (ht w : ℕ) (W : Word) :
     treesOf H (commits (h ++ [Ev.commit ht w W])) = treesOf H (commits h) ++
-      ([buildTreeM (m := Id) H ht W] : List Tree) := by
+      ([buildTreeWithHash (m := Id) H ht W] : List Tree) := by
   simp [treesOf, commits_append, commits]
 
 theorem treesOf_append_nil (h : List Ev) (e : Ev) (he : commits [e] = []) :
@@ -262,16 +263,16 @@ theorem proveFromM_id (S : Strategy) (fuel : ℕ) {α : Type} :
   | .query i ps k, sp, h => by
     simp only [proveFromM, proveFrom]
     have hc : (treesOf H (commits h))[i]? =
-        ((commits h)[i]?).map fun c ↦ buildTreeM (m := Id) H c.1 c.2.2 := by
+        ((commits h)[i]?).map fun c ↦ buildTreeWithHash (m := Id) H c.1 c.2.2 := by
       simp [treesOf]
     rw [hc]
     rcases (commits h)[i]? with _ | ⟨ht, w, word⟩
     · rfl
-    · have ho : (buildTreeM (m := Id) H ht word).opening = openingAt H ht word :=
+    · have ho : (buildTreeWithHash (m := Id) H ht word).opening = openingAt H ht word :=
         funext (opening_buildTreeM_id H ht word)
       show (proveFromM (m := Id) H F S fuel (k (ps.map fun q ↦ word (q % 2 ^ ht))) sp
           (h ++ [Ev.query (ps.map fun q ↦ word (q % 2 ^ ht))]) (treesOf H (commits h))).map
-          (fun t ↦ (t.1, ps.map (buildTreeM (m := Id) H ht word).opening ++ t.2)) = _
+          (fun t ↦ (t.1, ps.map (buildTreeWithHash (m := Id) H ht word).opening ++ t.2)) = _
       rw [ho, ← treesOf_append_nil H h (Ev.query (ps.map fun q ↦ word (q % 2 ^ ht))) rfl,
         proveFromM_id S fuel]
 
@@ -302,24 +303,24 @@ theorem simulateQ_arrayMapM {α β : Type} (f : α → OracleComp KeccakCalls β
   rw [Array.mapM_eq_mapM_toList, Array.mapM_eq_mapM_toList, simulateQ_map, simulateQ_mapM]
 
 theorem simulateQ_parentsM (level : Array Digest) (n : ℕ) :
-    simulateQ impl (parentsM callKeccak256 level n) = parentsM (implH impl) level n := by
-  simp only [parentsM, simulateQ_arrayMapM, simulateQ_queryH]
+    simulateQ impl (parentsWithHash callKeccak256 level n) = parentsWithHash (implH impl) level n := by
+  simp only [parentsWithHash, simulateQ_arrayMapM, simulateQ_queryH]
 
 theorem simulateQ_levelsM :
     ∀ (k : ℕ) (level : Array Digest),
-      simulateQ impl (levelsM callKeccak256 k level) = levelsM (implH impl) k level
-  | 0, _ => by simp [levelsM]
+      simulateQ impl (levelsWithHash callKeccak256 k level) = levelsWithHash (implH impl) k level
+  | 0, _ => by simp [levelsWithHash]
   | k + 1, level => by
-    simp only [levelsM, simulateQ_bind, simulateQ_parentsM, simulateQ_pure]
+    simp only [levelsWithHash, simulateQ_bind, simulateQ_parentsM, simulateQ_pure]
     congr 1; funext up; rw [simulateQ_levelsM k up]
 
 theorem simulateQ_leafDigestsM (height : ℕ) (word : Word) :
-    simulateQ impl (leafDigestsM callKeccak256 height word) = leafDigestsM (implH impl) height word := by
-  simp only [leafDigestsM, simulateQ_arrayMapM, simulateQ_queryH]
+    simulateQ impl (leafDigestsWithHash callKeccak256 height word) = leafDigestsWithHash (implH impl) height word := by
+  simp only [leafDigestsWithHash, simulateQ_arrayMapM, simulateQ_queryH]
 
 theorem simulateQ_buildTreeM (height : ℕ) (word : Word) :
-    simulateQ impl (buildTreeM callKeccak256 height word) = buildTreeM (implH impl) height word := by
-  simp only [buildTreeM, simulateQ_bind, simulateQ_leafDigestsM, simulateQ_levelsM,
+    simulateQ impl (buildTreeWithHash callKeccak256 height word) = buildTreeWithHash (implH impl) height word := by
+  simp only [buildTreeWithHash, simulateQ_bind, simulateQ_leafDigestsM, simulateQ_levelsM,
     simulateQ_pure]
 
 theorem simulateQ_powStepM (sp : Sponge) (n : E) :
@@ -446,33 +447,33 @@ theorem isTotalQueryBound_arrayMapM {α β : Type} (f : α → OracleComp Keccak
     isTotalQueryBound_pure' _ 0
 
 theorem isTotalQueryBound_parentsM (level : Array Digest) (n : ℕ) :
-    IsTotalQueryBound (parentsM callKeccak256 level n) n := by
+    IsTotalQueryBound (parentsWithHash callKeccak256 level n) n := by
   have := isTotalQueryBound_arrayMapM (β := Digest) (fun j : ℕ ↦ callKeccak256 (digestBytes
     (level.getD (2 * j) default) ++ digestBytes (level.getD (2 * j + 1) default))) 1
     (fun _ ↦ isTotalQueryBound_queryH_bind (f := pure) _ fun _ ↦ isTotalQueryBound_pure' _ 0
       |>.mono (by simp)) (Array.range n)
-  simpa [parentsM, callKeccak256] using this
+  simpa [parentsWithHash, callKeccak256] using this
 
 theorem isTotalQueryBound_levelsM :
-    ∀ (k : ℕ) (level : Array Digest), IsTotalQueryBound (levelsM callKeccak256 k level) (2 ^ k)
+    ∀ (k : ℕ) (level : Array Digest), IsTotalQueryBound (levelsWithHash callKeccak256 k level) (2 ^ k)
   | 0, _ => trivial
   | k + 1, level => by
-    simp only [levelsM]
+    simp only [levelsWithHash]
     rw [show 2 ^ (k + 1) = 2 ^ k + (2 ^ k + 0) by ring]
     exact isTotalQueryBound_bind (isTotalQueryBound_parentsM level _) fun up ↦
       isTotalQueryBound_bind (isTotalQueryBound_levelsM k up) fun _ ↦ isTotalQueryBound_pure' _ 0
 
 theorem isTotalQueryBound_leafDigestsM (height : ℕ) (word : Word) :
-    IsTotalQueryBound (leafDigestsM callKeccak256 height word) (2 ^ height) := by
+    IsTotalQueryBound (leafDigestsWithHash callKeccak256 height word) (2 ^ height) := by
   have := isTotalQueryBound_arrayMapM (β := Digest) (fun i : ℕ ↦ callKeccak256 ((word i).flatMap kBytes))
     1 (fun _ ↦ isTotalQueryBound_queryH_bind (f := pure) _ fun _ ↦ isTotalQueryBound_pure' _ 0
       |>.mono (by simp)) (Array.range (2 ^ height))
-  simpa [leafDigestsM, callKeccak256] using this
+  simpa [leafDigestsWithHash, callKeccak256] using this
 
 /-- **A commitment's tree is built with at most `2^(height + 1)` queries.** -/
 theorem isTotalQueryBound_buildTreeM (height : ℕ) (word : Word) :
-    IsTotalQueryBound (buildTreeM callKeccak256 height word) (2 ^ (height + 1)) := by
-  unfold buildTreeM
+    IsTotalQueryBound (buildTreeWithHash callKeccak256 height word) (2 ^ (height + 1)) := by
+  unfold buildTreeWithHash
   rw [show 2 ^ (height + 1) = 2 ^ height + (2 ^ height + 0) by ring]
   exact isTotalQueryBound_bind (isTotalQueryBound_leafDigestsM height word) fun l ↦
     isTotalQueryBound_bind (isTotalQueryBound_levelsM height l) fun _ ↦

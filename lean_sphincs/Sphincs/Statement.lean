@@ -3,6 +3,7 @@ module
 public import Sphincs.Randomized
 public import VCVio.OracleComp.QueryTracking.WriterCost
 public import Sphincs.Layered
+public import Common.WithHash
 
 /-!
 The SUF-CMA experiment, adapted from leanVM b7a107256 to pruning: forgeries, signing transcripts and

@@ -9,9 +9,9 @@ public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 Transcribed from `python-verifier/verifier.py` at the pin (`../leanvm-rev`); every citation
 `verifier.py:N` is a line of that file, and the sections follow the Python's: the WHIR constants
 (Part 1), the transcript (Part 2: a program `Prog` of a small language, which `runProof` reads on a
-proof with a hash function `H : Bytes → m Digest` and a permutation
-`F : KeccakState → m KeccakState` in any monad `m`), and the verifier (Part 3), ending with
-`verifyWith H F bytecode publicInput proof`.
+proof over a permutation `F : KeccakState → m KeccakState` in any monad `m`, Keccak-256 the sponge
+over `F`, `keccak256With F`), and the verifier (Part 3), ending with
+`verifyWith F bytecode publicInput proof`.
 
 The verifier takes the value of the polynomial the statement fixes (the bytecode's multilinear
 extension) from a parameter `ev : List K → List E → Prog E`. The deployed verifier computes it. The deferring
@@ -333,7 +333,7 @@ structure ProgState where
 
 section Run
 
-variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
+variable {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
 
 /-- A permutation: the waiting scalars over the rate, the capacity kept, then Keccak-f; the queue
 empties (`_duplex`, `verifier.py:386-389`). -/
@@ -358,16 +358,16 @@ whether `node` is the left child (`verifier.py:439-442`). -/
 def climb : Digest → ℕ → List Digest → m Digest
   | node, _, [] => pure node
   | node, q, s :: ss => do
-    let parent ← if q % 2 = 0 then H (digestBytes node ++ digestBytes s)
-      else H (digestBytes s ++ digestBytes node)
+    let parent ← if q % 2 = 0 then keccak256With F (digestBytes node ++ digestBytes s)
+      else keccak256With F (digestBytes s ++ digestBytes node)
     climb parent (q / 2) ss
 
 /-- Check one opening against a root of the given shape at position `q`
 (`verifier.py:436-443`). -/
 def openOne (root : Digest) (height width q : ℕ) (o : Opening) : m Bool :=
   if o.leaf.length = width ∧ o.path.length = height then do
-    let leafDigest ← H (o.leaf.flatMap kBytes)
-    let top ← climb H leafDigest q o.path
+    let leafDigest ← keccak256With F (o.leaf.flatMap kBytes)
+    let top ← climb F leafDigest q o.path
     pure (decide (top.toList = root.toList))
   else pure false
 
@@ -378,7 +378,7 @@ def openAll (root : Digest) (height width : ℕ) :
   | [], os => pure (some ([], os))
   | _ :: _, [] => pure none
   | q :: qs, o :: os => do
-    if ← openOne H root height width q o then
+    if ← openOne F root height width q o then
       let rest ← openAll root height width qs os
       pure (rest.map fun r ↦ (o.leaf :: r.1, r.2))
     else pure none
@@ -414,23 +414,23 @@ def run {α : Type} : Prog α → ProgState → m (Option (α × ProgState))
   | .query i ps k, s => match s.roots[i]? with
     | none => pure none
     | some (root, height, width) => do
-      match ← openAll H root height width ps s.openings with
+      match ← openAll F root height width ps s.openings with
       | some (rows, rest) => run (k rows) { s with openings := rest }
       | none => pure none
 
 /-- Run a program on a proof from a seed state, and accept when it returns `true` with the
 stream and the openings fully consumed (`verifier.py:456-458`, `finish`). -/
 def runProof (P : Prog Bool) (seed : KeccakState) (π : Proof) : m Bool := do
-  match ← run H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
+  match ← run F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
   | some (true, s) => pure (s.stream.isEmpty && s.openings.isEmpty)
   | _ => pure false
 
 end Run
 
-/-- A run with every hash and permutation answered by `default`, for the steps that only read
-scalars: what they read does not depend on the sponge. -/
+/-- A run with every permutation answered by `default`, for the steps that only read scalars: what
+they read does not depend on the sponge. -/
 def runPure {α : Type} (P : Prog α) (s : ProgState) : Option (α × ProgState) :=
-  Id.run (run (m := Id) (fun _ ↦ default) (fun _ ↦ default) P s)
+  Id.run (run (m := Id) (fun _ ↦ default) P s)
 
 end LeanVM.Protocol.Compile
 
@@ -2028,43 +2028,42 @@ def versionTag : Bytes := "leanvm-v1".toUTF8.toList
 
 section Hash
 
-variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
+variable {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
 
-/-- The IV with the hash `H`: the hash of the tag, then the bytecode as its little-endian words
-(`verifier.py:1464`). -/
+/-- The IV over the permutation `F`: Keccak-256 over `F` of the tag, then the bytecode as its
+little-endian words (`verifier.py:1464`). -/
 def fiatShamirIvWith (bytecode : List K) : m Digest :=
-  H (versionTag ++ bytecode.flatMap kBytes)
+  keccak256With F (versionTag ++ bytecode.flatMap kBytes)
 
-/-- The sponge's initial state with the hash `H` and the permutation `F`: `F` of the IV's and the
-public input's words, the other lanes zero (`verifier.py:1464-1465`, `Transcript.__init__`). -/
+/-- The sponge's initial state over the permutation `F`: `F` of the IV's and the public input's
+words, the other lanes zero (`verifier.py:1464-1465`, `Transcript.__init__`). -/
 def seedWith (bytecode : List K) (publicInput : Digest) : m KeccakState := do
-  let fiatShamirIv ← fiatShamirIvWith H bytecode
+  let fiatShamirIv ← fiatShamirIvWith F bytecode
   F (seedInput fiatShamirIv publicInput)
 
-/-- The compiled verifier with the hash `H` and the permutation `F`: the program run on the proof
-from the seed. -/
+/-- The compiled verifier over the permutation `F`: the program run on the proof from the seed. -/
 def verifyWith (bytecode : List K) (publicInput : Digest) (π : Proof) : m Bool := do
-  let seed ← seedWith H F bytecode publicInput
-  runProof H F (leanVmProgram bytecode publicInput) seed π
+  let seed ← seedWith F bytecode publicInput
+  runProof F (leanVmProgram bytecode publicInput) seed π
 
-/-- **The deferring verifier** with the hash `H` and the permutation `F`, as an aggregate runs it
-on a child's proof (`verify_sub`): the IV is given rather than hashed from the bytecode, and the
-fixed polynomial's value is the one claimed by `c`. Only the bytecode's length is read. -/
+/-- **The deferring verifier** over the permutation `F`, as an aggregate runs it on a child's proof
+(`verify_sub`): the IV is given rather than hashed from the bytecode, and the fixed polynomial's
+value is the one claimed by `c`. Only the bytecode's length is read. -/
 def verifyDeferredWith (bytecode : List K) (iv publicInput : Digest) (c : BytecodeClaim)
     (π : Proof) : m Bool := do
   let seed ← F (seedInput iv publicInput)
-  runProof H F (deferredProgram c bytecode publicInput) seed π
+  runProof F (deferredProgram c bytecode publicInput) seed π
 
 end Hash
 
-/-- The deployed IV, with Keccak-256. -/
+/-- The deployed IV, over Keccak-f[1600]. -/
 def fiatShamirIv (bytecode : List K) : Digest :=
-  Id.run (fiatShamirIvWith (m := Id) keccak256 bytecode)
+  Id.run (fiatShamirIvWith (m := Id) keccakF1600 bytecode)
 
-/-- The deployed deferring verifier, with Keccak. -/
+/-- The deployed deferring verifier, over Keccak-f[1600]. -/
 def verifyDeferred (bytecode : List K) (iv publicInput : Digest) (c : BytecodeClaim) (π : Proof) :
     Bool :=
-  Id.run (verifyDeferredWith (m := Id) keccak256 keccakF1600 bytecode iv publicInput c π)
+  Id.run (verifyDeferredWith (m := Id) keccakF1600 bytecode iv publicInput c π)
 
 /-- The announced layout and rate exponent of a stream, read by the program's own `readSizes`
 (reads only absorb: no hash or permutation is consulted for a value). -/

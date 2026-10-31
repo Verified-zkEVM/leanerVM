@@ -1,6 +1,7 @@
 import LeanXmss.Statement
 import Common.Signature
 import Statement.LeanXmss
+import Common.WithHash
 
 /-!
 # leanXMSS security statement in the random-permutation model
@@ -31,11 +32,11 @@ structure Adversary where
 /-- The game: the master seed, key generation, the adversary with the signing oracle, the final
 verification, all hashing with Keccak-256 over the permutation. -/
 noncomputable def game (adversary : Adversary) : OracleComp KSpecH Bool :=
-  rpmGameH scheme adversary.main
+  rpmGameH schemeWithHash adversary.main
 
 /-- The probability of a successful forgery against the lazily sampled random permutation. -/
 noncomputable def forgeAdvantage (adversary : Adversary) : ℝ≥0∞ :=
-  Pr{let b ← rpmExperimentH scheme adversary.main}[b = true]
+  Pr{let b ← rpmExperimentH schemeWithHash adversary.main}[b = true]
 
 /-- Every path of the game makes at most `Q` permutation calls, the sponge's included. -/
 def HasPermutationBound (adversary : Adversary) (Q : Nat) : Prop :=

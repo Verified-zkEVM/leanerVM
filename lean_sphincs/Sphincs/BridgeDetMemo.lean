@@ -1,4 +1,5 @@
 import Sphincs.BridgeNoRepeat
+import Common.WithHash
 
 /-! The memoizing adversary: it answers a repeated signing request from its own record of earlier
 answers and forwards everything else unchanged. It never repeats a request, and memoizing
