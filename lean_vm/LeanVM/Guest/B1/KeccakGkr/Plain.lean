@@ -290,6 +290,7 @@ theorem plain60_sound (rd : Reader) (args rets : List E)
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
     simp only [plainIns0, capV, List.map_cons, List.map_nil, List.cons_append, List.nil_append,
       List.mem_cons, Nat.reduceAdd, e10, e11, e12, e13, e14]
+    clear * - hc
     tauto
   · intro k hk
     simp only [List.flatMap_cons, List.flatMap_nil, List.cons_append, List.nil_append,
@@ -358,6 +359,7 @@ theorem plain41_sound (rd : Reader) (args rets : List E)
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
     simp only [capV, List.map_cons, List.map_nil, List.cons_append, List.nil_append,
       List.mem_cons, Nat.reduceAdd, e10, e11, e12, e13, e14]
+    clear * - hc
     tauto
   · intro k hk
     simp only [List.flatMap_cons, List.flatMap_nil, List.cons_append, List.nil_append,

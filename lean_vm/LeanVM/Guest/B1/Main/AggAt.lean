@@ -259,7 +259,6 @@ theorem agg_sizes {rd : Reader} {σ : Val} {m : ℕ} (hat : ∀ a ∈ atomsIn ag
 /-! ## `aggregate_claims` -/
 
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 8000000 in
 /-- **`aggregate_claims` is complete, placed**: on `m ≤ 16` children whose words the caller's
 words `Lin` hold, the hints of an accepting batching, writing the batching's claim, which `Lin`
 holds at `g^ds`. -/
@@ -423,6 +422,7 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
       apply hmK
       simp only [B1.Kid.lins, ks, List.flatMap_cons, List.flatMap_nil, List.append_nil,
         List.mem_append] at hq ⊢
+      clear * - hq
       tauto
     · simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
       have hkL : k.Lin = Own ++ Lin := by rcases hk with rfl | rfl | rfl | rfl <;> rfl

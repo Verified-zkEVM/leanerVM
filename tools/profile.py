@@ -100,7 +100,9 @@ def main():
                        preexec_fn=lambda: resource.setrlimit(resource.RLIMIT_AS, (cap, cap)))
     use = resource.getrusage(resource.RUSAGE_CHILDREN)
     errors = [l for l in (r.stdout + r.stderr).splitlines() if ": error" in l]
-    cmds = [n for n in parse(r.stdout) if n.cls == "Elab.command"]
+    # a `set_option … in` or `variable … in` wrapper is reported beside what it wraps: skip it
+    cmds = [n for n in parse(r.stdout) if n.cls == "Elab.command" and
+            (n.kids or not n.text.startswith(("set_option", "variable")))]
     print(f"{path}: {use.ru_utime + use.ru_stime:.1f} CPU-s, peak {use.ru_maxrss // 1024} MB, "
           f"{len(cmds)} commands over 50 ms")
     for e in errors[:5]:
