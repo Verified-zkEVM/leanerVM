@@ -13,6 +13,8 @@ two hash calls of different kinds, or of the same kind at different places, neve
 
 namespace LeanXmss
 
+open HashSig
+
 theorem bytesLE_injective {n : Nat} {x y : BitVec (8 * n)} (h : bytesLE n x = bytesLE n y) :
     x = y := by
   have hfun := List.ofFn_inj.mp h

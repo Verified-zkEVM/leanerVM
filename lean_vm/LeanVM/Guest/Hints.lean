@@ -139,9 +139,9 @@ def ordered (right : Bool) (node sibling : BitVec 128) : Entry :=
 
 /-- One layer's hints: the ordered children of every node on the path, the randomizer, the
 codeword's digits and the chain values; and the root the layer reaches. -/
-def xmssLayer (parameter : LeanXmss.PublicParameter) (lay : LeanXmss.Layer)
+def xmssLayer (parameter : HashSig.PublicParameter) (lay : LeanXmss.Layer)
     (key : LeanXmss.KeyIndex) (message : List UInt8) (part : LeanXmss.LayerSignature) :
-    List (String × Entry) × LeanXmss.Digest :=
+    List (String × Entry) × HashSig.Digest :=
   let digest := Id.run (LeanXmss.Concrete.messageDigest (m := Id) keccakF1600 parameter lay key
     message part.randomness)
   let leaf := (Id.run (LeanXmss.Concrete.otsLeaf (m := Id) keccakF1600 parameter lay key message
@@ -158,16 +158,16 @@ def xmssLayer (parameter : LeanXmss.PublicParameter) (lay : LeanXmss.Layer)
     fold LeanXmss.layerHeight)
 
 /-- A leanXMSS signature's hints: its leaf index's bits, then each layer's, bottom first. -/
-def xmssHints (pk : LeanXmss.PublicKey) (message : LeanXmss.Message) (σ : LeanXmss.Signature) :
+def xmssHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : LeanXmss.Signature) :
     List (String × Entry) :=
   let index := σ.leafIndex
   let bits := (List.range (LeanXmss.numLayers * LeanXmss.layerHeight)).map fun b ↦
     bit (index.val.testBit b)
   let (bottom, root) := xmssLayer pk.parameter LeanXmss.bottomLayer
-    (LeanXmss.keyAt index LeanXmss.bottomLayer) (LeanXmss.bytesLE 32 message)
+    (LeanXmss.keyAt index LeanXmss.bottomLayer) (HashSig.bytesLE 32 message)
     (σ.layers LeanXmss.bottomLayer)
   let (top, _) := xmssLayer pk.parameter LeanXmss.topLayer (LeanXmss.keyAt index LeanXmss.topLayer)
-    (LeanXmss.bytesLE 16 root) (σ.layers LeanXmss.topLayer)
+    (HashSig.bytesLE 16 root) (σ.layers LeanXmss.topLayer)
   ("leaf_index_bits", bits) :: bottom ++ top
 
 /-! ## A leanSPHINCS signature (`push_lean_sphincs_hints`) -/

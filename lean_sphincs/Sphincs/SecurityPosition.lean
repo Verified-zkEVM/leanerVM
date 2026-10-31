@@ -36,7 +36,7 @@ one value. -/
 theorem hashFields_injective {left right : HashDomain} (hl : HashDomain.InRange left)
     (hr : HashDomain.InRange right) (heq : hashDomainFields left = hashDomainFields right) : left = right := by
   cases left <;> cases right <;>
-    simp only [hashDomainFields, tweakFields, LeanXmss.TweakFields.mk.injEq] at heq
+    simp only [hashDomainFields, tweakFields, HashSig.TweakFields.mk.injEq] at heq
   all_goals try { simp at heq; done }
   · rename_i lay tree leaf chain step lay' tree' leaf' chain' step'
     obtain ⟨_, hstep, hchain, hleaf⟩ := heq

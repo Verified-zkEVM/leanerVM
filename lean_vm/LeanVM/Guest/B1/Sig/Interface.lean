@@ -138,7 +138,7 @@ def verify_sig_lean_sphincs_sound_Spec (sigOf : Val → Sphincs.Signature) : Pro
 signature that verifies it, on a memory of at least `64` words, the body holds of some valuation
 whose argument is `p`, under any call relation. -/
 def verify_lean_xmss_complete_Spec : Prop :=
-  ∀ (C : CallRel) (rd : Reader) (p : E) (pk : LeanXmss.PublicKey) (m : LeanXmss.Message)
+  ∀ (C : CallRel) (rd : Reader) (p : E) (pk : HashSig.PublicKey) (m : HashSig.Message)
     (sig : LeanXmss.Signature), MemOK rd 64 →
     ClaimAt rd p (cellOf128 pk.root) (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))
       (cellOf128 (m.extractLsb' 128 128)) →
@@ -206,7 +206,7 @@ theorem verify_sig_lean_sphincs_signed {sigOf : Val → Sphincs.Signature}
 /-- **`verify_lean_xmss` holds of every signed claim** in its canonical cells, on a memory of at
 least `64` words. -/
 theorem verify_lean_xmss_rel (hc : verify_lean_xmss_complete_Spec) {p : E}
-    {pk : LeanXmss.PublicKey} {m : LeanXmss.Message} {sig : LeanXmss.Signature} (hrd : MemOK rd 64)
+    {pk : HashSig.PublicKey} {m : HashSig.Message} {sig : LeanXmss.Signature} (hrd : MemOK rd 64)
     (hat : ClaimAt rd p (cellOf128 pk.root) (cellOf128 pk.parameter)
       (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)))
     (hv : Node.xmssVerify pk m sig = true) :

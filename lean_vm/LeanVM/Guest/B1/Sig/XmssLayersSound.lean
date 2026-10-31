@@ -47,7 +47,7 @@ theorem xmss_sound0 {rest : List Stmt} {next : Prop}
     Stmt.HoldsList C rd σ rest next kret ∧ XPre σ ∧ PadOK σ xPad ∧
       @LeanXmss.Concrete.layerRootWithHash Id _ ⟨Node.keccakBits⟩ (xpp (σ (.n 1))) ⟨0, by decide⟩
         (LeanXmss.keyAt ⟨xLeaf σ, xLeaf_lt σ⟩ ⟨0, by decide⟩)
-        (LeanXmss.bytesLE 32 (cellPairVal (σ (.n 199)) (σ (.n 200)))) (xPart 0 196 σ) =
+        (HashSig.bytesLE 32 (cellPairVal (σ (.n 199)) (σ (.n 200)))) (xPart 0 196 σ) =
         some (xv (σ (xLayer 0 196 (.n 0)).2.2)) := by
   have s0 := holdsList_split_atoms (xs := xPrologue) xPrologue_atoms h
   obtain ⟨-, hpre⟩ := xPrologue_sound (atomsHold_of_holdsList xPrologue_atoms s0.1)
@@ -61,7 +61,7 @@ theorem xmss_sound0 {rest : List Stmt} {next : Prop}
     simp only [xIdx, ↓reduceIte, xIdxNat_zero]
     rw [hpre.nodes 0 (by norm_num)]
     rfl
-  have hM0 : LeanXmss.bytesLE 32 (cellPairVal (σ (.n 199)) (σ (.n 200))) =
+  have hM0 : HashSig.bytesLE 32 (cellPairVal (σ (.n 199)) (σ (.n 200))) =
       [σ (.n 199), σ (.n 200)].flatMap cellBytes := by
     rw [bytesLE_cellPairVal]; simp
   have haMsg0 : cellBytes (σ (.n 198)) = LeanXmss.tweakBytes
@@ -85,7 +85,7 @@ theorem xmss_sound1 (hpre : XPre σ) (hpad : PadOK σ xPad) {b : Nat} {root : V}
     {next : Prop} (h : Stmt.HoldsList C rd σ ((xLayer 1 b root).1 ++ rest) next kret) :
     Stmt.HoldsList C rd σ rest next kret ∧
       @LeanXmss.Concrete.layerRootWithHash Id _ ⟨Node.keccakBits⟩ (xpp (σ (.n 1))) ⟨1, by decide⟩
-        (LeanXmss.keyAt ⟨xLeaf σ, xLeaf_lt σ⟩ ⟨1, by decide⟩) (LeanXmss.bytesLE 16 (xv (σ root)))
+        (LeanXmss.keyAt ⟨xLeaf σ, xLeaf_lt σ⟩ ⟨1, by decide⟩) (HashSig.bytesLE 16 (xv (σ root)))
         (xPart 1 b σ) = some (xv (σ (xLayer 1 b root).2.2)) := by
   have hL := xLeaf_lt σ
   rw [xLayer_split] at h
@@ -95,7 +95,7 @@ theorem xmss_sound1 (hpre : XPre σ) (hpad : PadOK σ xPad) {b : Nat} {root : V}
   have hidx1 : σ (xIdx 1 b) = eOfNat (xIdxNat 1 (xLeaf σ)) := by
     simp only [xIdx, one_ne_zero, ↓reduceIte]
     rw [h1, hpre.nodes 16 (by norm_num), xIdxNat_one hL]
-  have hM1 : LeanXmss.bytesLE 16 (xv (σ root)) = [σ root].flatMap cellBytes := by
+  have hM1 : HashSig.bytesLE 16 (xv (σ root)) = [σ root].flatMap cellBytes := by
     rw [bytesLE_xv]; simp
   have haMsg1 : cellBytes (σ (.n (b + 4))) = LeanXmss.tweakBytes
       (.message ⟨1, by decide⟩ (LeanXmss.keyAt ⟨xLeaf σ, hL⟩ ⟨1, by decide⟩)) := by

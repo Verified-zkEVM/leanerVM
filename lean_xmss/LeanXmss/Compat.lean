@@ -16,6 +16,8 @@ scheme seed's; and the derivations themselves.
 
 namespace LeanXmss
 
+open HashSig
+
 /-- The exact 16 address bytes of a hash domain. -/
 def tweakBytes (domain : HashDomain) : HashInput :=
   fieldBytes (hashDomainFields domain)

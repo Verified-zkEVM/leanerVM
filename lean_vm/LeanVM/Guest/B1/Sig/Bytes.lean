@@ -15,7 +15,7 @@ public import LeanVM.Guest.WithHash
 /-!
 # Cells as the schemes' values
 
-The schemes hash byte strings `P || A || payload` of 16-byte fields (`LeanXmss.bytesLE`,
+The schemes hash byte strings `P || A || payload` of 16-byte fields (`HashSig.bytesLE`,
 `Sphincs.bytesLE`), the guest hashes cells (`Value.Keccak.cellBytes`). A field `v : BitVec 128` is
 the cell `cellOf128 v`, and a cell `x` reads back as `cellVal x`, whose bytes are `x`'s for any `x`
 (`bytesLE_cellVal`): the bytes ignore the top limb, which `KECCAK` pins to zero.
@@ -79,11 +79,11 @@ theorem leBytes_add_mul (lo hi a b : Nat) (hlo : lo < 256 ^ a) :
   rw [← leBytes_append, ← leBytes_mod (lo + 256 ^ a * hi) a, Nat.add_mul_mod_self_left,
     Nat.mod_eq_of_lt hlo, Nat.add_mul_div_left _ _ (by positivity), Nat.div_eq_of_lt hlo, zero_add]
 
-/-- The bytes of a bit vector, as `LeanXmss.bytesLE` writes them. -/
-theorem bytesLE_eq (k : Nat) (v : BitVec (8 * k)) : LeanXmss.bytesLE k v = leBytes v.toNat k := by
-  apply List.ext_getElem (by simp [LeanXmss.bytesLE])
+/-- The bytes of a bit vector, as `HashSig.bytesLE` writes them. -/
+theorem bytesLE_eq (k : Nat) (v : BitVec (8 * k)) : HashSig.bytesLE k v = leBytes v.toNat k := by
+  apply List.ext_getElem (by simp [HashSig.bytesLE])
   intro i h1 h2
-  simp only [LeanXmss.bytesLE, List.getElem_ofFn, getElem_leBytes]
+  simp only [HashSig.bytesLE, List.getElem_ofFn, getElem_leBytes]
   apply UInt8.toNat_inj.mp
   simp only [UInt8.toNat_ofBitVec, BitVec.extractLsb'_toNat, toNat_uint8_ofNat, Nat.shiftRight_eq_div_pow,
     pow_mul]
@@ -134,7 +134,7 @@ theorem toNat_cellVal (x : E) : (cellVal x).toNat = cellNat x := by
   omega
 
 /-- **A cell's bytes are its value's**, whatever its top limb. -/
-theorem bytesLE_cellVal (x : E) : LeanXmss.bytesLE 16 (cellVal x) = cellBytes x := by
+theorem bytesLE_cellVal (x : E) : HashSig.bytesLE 16 (cellVal x) = cellBytes x := by
   rw [bytesLE_eq, toNat_cellVal, cellBytes_eq_leBytes]
 
 theorem sphincs_bytesLE_cellVal (x : E) : Sphincs.bytesLE 16 (cellVal x) = cellBytes x :=
@@ -244,9 +244,9 @@ theorem keccakBits_toNat (I : List UInt8) :
 
 /-- **A hash's truncation is its first output cell.** -/
 theorem truncateHash_keccakBits (I : List UInt8) :
-    LeanXmss.truncateHash (Node.keccakBits I) = cellVal (digestScalars (keccak256 I)).1 := by
+    HashSig.truncateHash (Node.keccakBits I) = cellVal (digestScalars (keccak256 I)).1 := by
   apply BitVec.eq_of_toNat_eq
-  have h : (LeanXmss.truncateHash (Node.keccakBits I)).toNat = (Node.keccakBits I).toNat % 2 ^ 128 := by
+  have h : (HashSig.truncateHash (Node.keccakBits I)).toNat = (Node.keccakBits I).toNat % 2 ^ 128 := by
     show ((Node.keccakBits I).toNat >>> 0) % 2 ^ 128 = _
     rw [Nat.shiftRight_zero]
   have h0 := cellNat_lt (digestScalars (keccak256 I)).1
@@ -273,7 +273,7 @@ theorem addrNat_lt (tag step hi lo : Nat) : addrNat tag step hi lo < 2 ^ 64 := b
 
 /-- **An address is the cell of its packed fields.** -/
 theorem fieldBytes_tweakFields (tag step hi lo : Nat) :
-    LeanXmss.fieldBytes (LeanXmss.tweakFields tag step hi lo) =
+    HashSig.fieldBytes (HashSig.tweakFields tag step hi lo) =
       cellBytes (eOfNat (addrNat tag step hi lo)) := by
   have hS : (BitVec.ofNat 3 step ++ BitVec.ofNat 5 tag).toNat = tag % 32 + 32 * (step % 8) := by
     rw [BitVec.toNat_append, BitVec.toNat_ofNat, BitVec.toNat_ofNat, Nat.shiftLeft_eq, mul_comm,
@@ -284,7 +284,7 @@ theorem fieldBytes_tweakFields (tag step hi lo : Nat) :
   have hhi := Nat.mod_lt hi (show 2 ^ 24 > 0 by norm_num)
   have htag := Nat.mod_lt tag (show 32 > 0 by norm_num)
   have hst := Nat.mod_lt step (show 8 > 0 by norm_num)
-  rw [cellBytes_eOfNat (addrNat_lt _ _ _ _), LeanXmss.fieldBytes, LeanXmss.tweakFields,
+  rw [cellBytes_eOfNat (addrNat_lt _ _ _ _), HashSig.fieldBytes, HashSig.tweakFields,
     bytesLE_eq, bytesLE_eq, bytesLE_eq, bytesLE_eq, hS]
   simp only [BitVec.toNat_ofNat, BitVec.ofNat_eq_ofNat, Nat.zero_mod]
   rw [show addrNat tag step hi lo = lo % 2 ^ 32 + 256 ^ 4 * (hi % 2 ^ 24 + 256 ^ 3 *

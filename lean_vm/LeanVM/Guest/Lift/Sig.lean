@@ -66,7 +66,7 @@ theorem loads_claim {σ : Val} {es : List Ev} (h : ∀ e ∈ es, EvLeafOk claimL
 set_option maxRecDepth 100000 in
 /-- **`verify_lean_xmss` loads only the claim**, from B1's completeness. -/
 theorem verify_lean_xmss_relIn (hc : B1.Sig.verify_lean_xmss_complete_Spec) {rd : Reader}
-    {R : ℕ → Prop} {p : E} {pk : LeanXmss.PublicKey} {m : LeanXmss.Message}
+    {R : ℕ → Prop} {p : E} {pk : HashSig.PublicKey} {m : HashSig.Message}
     {sig : LeanXmss.Signature} (hrd : B1.Sig.MemOK rd 64)
     (hat : B1.Sig.ClaimAt rd p (B1.Sig.cellOf128 pk.root) (B1.Sig.cellOf128 pk.parameter)
       (B1.Sig.cellOf128 (m.extractLsb' 0 128)) (B1.Sig.cellOf128 (m.extractLsb' 128 128)))

@@ -104,7 +104,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 /-- leanXMSS verification over Keccak-f[1600], the hash Keccak-256. The leaf index is the
 signature's. -/
-def xmssVerify (pk : LeanXmss.PublicKey) (message : LeanXmss.Message) (σ : LeanXmss.Signature) :
+def xmssVerify (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : LeanXmss.Signature) :
     Bool :=
   Id.run (LeanXmss.Concrete.verify (m := Id) keccakF1600 pk message σ)
 
@@ -117,7 +117,7 @@ def sphincsVerify (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sph
 
 /-- A leanXMSS key and a message it signed, at a leaf index the claim does not record
 (`LeanXmssClaim`, `aggregation.rs:63`). -/
-abbrev XmssClaim : Type := LeanXmss.PublicKey × LeanXmss.Message
+abbrev XmssClaim : Type := HashSig.PublicKey × HashSig.Message
 
 /-- A leanSPHINCS key and a message it signed (`LeanSphincsClaim`, `aggregation.rs:66`). -/
 abbrev SphincsClaim : Type := Sphincs.PublicKey × Sphincs.Message
@@ -185,12 +185,12 @@ Each digest is Keccak-256 of its preimage; the preimages are also the inputs of 
 collisions (`collisionCandidates`). -/
 
 /-- The 16 bytes of a 128-bit value, least significant byte first: a cell's two limbs. -/
-def bytes16 (value : BitVec 128) : List UInt8 := LeanXmss.bytesLE 16 value
+def bytes16 (value : BitVec 128) : List UInt8 := HashSig.bytesLE 16 value
 
 /-- A claim as the `64` bytes its list hashes: the key's root and parameter, then the message
 (`claim_cells`, `aggregation.rs:217-224`). -/
 def claimBytes (root parameter : BitVec 128) (message : BitVec 256) : List UInt8 :=
-  bytes16 root ++ bytes16 parameter ++ LeanXmss.bytesLE 32 message
+  bytes16 root ++ bytes16 parameter ++ HashSig.bytesLE 32 message
 
 /-- The bytes `claimListDigest claims` hashes. Both schemes' keys are a root and a parameter
 (`XmssClaim` and `SphincsClaim` are one type). -/

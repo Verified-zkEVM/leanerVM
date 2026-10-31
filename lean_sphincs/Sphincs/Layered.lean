@@ -28,10 +28,11 @@ namespace SphincsLayered
 
 /-! ### The instance: parameters, types, and hash-input layout -/
 
-export LeanXmss (digestBits winternitzBits
-  chainLength MasterSeed Digest HashOutput Message PublicParameter Randomness Digit ChainStep
-  HashInput truncateHash upperHash hashHalf PublicKey bytesLE TweakFields fieldBytes tweakFields
-  HashSpec sampleMasterSeed)
+export HashSig (digestBits winternitzBits chainLength MasterSeed Digest HashOutput Message
+  PublicParameter Randomness Digit ChainStep HashInput truncateHash upperHash hashHalf PublicKey
+  bytesLE TweakFields fieldBytes tweakFields sampleMasterSeed)
+
+export LeanXmss (HashSpec)
 
 def counterBits : Nat := 32
 def numChains : Nat := 64
@@ -276,7 +277,9 @@ signing. Hashing routines work in any monad with access to `HashSpec`. -/
 
 namespace Concrete
 
-export LeanXmss.Concrete (sequenceFin oracleHashWithHash walkChain nodePayload foldPath buildTree)
+export HashSig.Concrete (sequenceFin walkChain nodePayload foldPath buildTree)
+
+export LeanXmss.Concrete (oracleHashWithHash)
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 

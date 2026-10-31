@@ -132,7 +132,7 @@ theorem contains_map (log : QueryLog SigningSpec) (forgery : LeanXmss.Forgery) :
 /-! ## The real game -/
 
 /-- The real game after key generation. -/
-noncomputable def realRest (adversary : LeanXmss.Security.Adversary) (publicKey : LeanXmss.PublicKey)
+noncomputable def realRest (adversary : LeanXmss.Security.Adversary) (publicKey : HashSig.PublicKey)
     (secretKey : LeanXmss.Seeded.SecretKey) : OracleComp LeanXmss.OracleWorld Bool := do
   let ((forgery, log) : LeanXmss.Forgery × QueryLog LeanXmss.SigningSpec) ←
     (simulateQ (QueryImpl.ofLift LeanXmss.OracleWorld
@@ -145,7 +145,7 @@ noncomputable def realRest (adversary : LeanXmss.Security.Adversary) (publicKey 
 
 theorem gameCore_eq (adversary : LeanXmss.Security.Adversary) :
     LeanXmss.Security.gameCore adversary = (do
-      let seed ← liftM LeanXmss.sampleMasterSeed
+      let seed ← liftM HashSig.sampleMasterSeed
       let keys ← liftM (LeanXmss.Seeded.keygenFromSeedWithHash seed)
       realRest adversary keys.1 keys.2) := rfl
 

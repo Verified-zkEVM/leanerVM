@@ -33,7 +33,7 @@ namespace LeanVM.Guest.B1.Sig
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier LeanVM.Guest LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
-open LeanXmss LeanXmss.Concrete
+open LeanXmss HashSig LeanXmss.Concrete HashSig.Concrete
 
 @[expose] public section
 
@@ -129,7 +129,7 @@ theorem layerRoot_id (P : PublicParameter) (lay : Layer) (key : KeyIndex) (msg :
     | some leaf => exact absurd h' (h leaf)
 
 theorem otsLeaf_id (P : PublicParameter) (lay : Layer) (key : KeyIndex) (msg : HashInput)
-    (R : Randomness) (vals : ChainIndex → LeanXmss.Digest) :
+    (R : Randomness) (vals : ChainIndex → HashSig.Digest) :
     @otsLeafWithHash Id _ inst P lay key msg R vals =
       (Codeword.decode (@messageDigestWithHash Id _ inst P lay key msg R)).map fun enc =>
         @leafHashWithHash Id _ inst P lay key fun i => @recoverChainWithHash Id _ inst P lay key i (enc i) (vals i) := by
@@ -146,7 +146,7 @@ theorem dite_of {c : Prop} [Decidable c] (h : c) {α : Sort*} (t : c → α) (e 
     dite c t e = t h := by simp [h]
 
 theorem chainWalk_succ (P : PublicParameter) (lay : Layer) (key : KeyIndex) (i : ChainIndex)
-    (start n : Nat) (v : LeanXmss.Digest) :
+    (start n : Nat) (v : HashSig.Digest) :
     @chainWalkWithHash Id _ inst P lay key i start (n + 1) v =
       if hstep : start + n < chainLength - 1 then
         @tweakableHashWithHash Id _ inst P (.chain lay key ⟨start + n, hstep⟩)
@@ -158,7 +158,7 @@ theorem chainWalk_succ (P : PublicParameter) (lay : Layer) (key : KeyIndex) (i :
 
 /-- The first step of a walk taken first. -/
 theorem chainWalk_shift (P : PublicParameter) (lay : Layer) (key : KeyIndex) (i : ChainIndex) :
-    ∀ (n start : Nat) (v : LeanXmss.Digest) (hs : start < chainLength - 1),
+    ∀ (n start : Nat) (v : HashSig.Digest) (hs : start < chainLength - 1),
       start + n + 1 ≤ chainLength - 1 →
       @chainWalkWithHash Id _ inst P lay key i start (n + 1) v =
         @chainWalkWithHash Id _ inst P lay key i (start + 1) n
@@ -175,7 +175,7 @@ theorem chainWalk_shift (P : PublicParameter) (lay : Layer) (key : KeyIndex) (i 
       rw [this]
 
 theorem treeFold_succ (P : PublicParameter) (lay : Layer) (key : KeyIndex)
-    (path : Fin layerHeight → LeanXmss.Digest) (m : Nat) (v : LeanXmss.Digest) :
+    (path : Fin layerHeight → HashSig.Digest) (m : Nat) (v : HashSig.Digest) :
     @treeFoldWithHash Id _ inst P lay key path (m + 1) v =
       let current := @treeFoldWithHash Id _ inst P lay key path m v
       let sibling := if hlevel : m < layerHeight then path ⟨m, hlevel⟩ else 0
@@ -189,7 +189,7 @@ theorem treeFold_succ (P : PublicParameter) (lay : Layer) (key : KeyIndex)
 /-! ## Hashes of cells -/
 
 /-- A cell as a leanXMSS digest. -/
-def xv (x : E) : LeanXmss.Digest := cellVal x
+def xv (x : E) : HashSig.Digest := cellVal x
 
 /-- A cell as a leanXMSS public parameter. -/
 def xpp (x : E) : PublicParameter := cellVal x
@@ -357,7 +357,7 @@ theorem digit_ofNat (N i : Nat) :
   rw [BitVec.extractLsb'_toNat, BitVec.toNat_ofNat, Nat.shiftRight_eq_div_pow, pow_mul]
   norm_num
 
-theorem digit_val (d : LeanXmss.Digest) (i : Nat) : (Codeword.digit d i).val = d.toNat / 4 ^ i % 4 := by
+theorem digit_val (d : HashSig.Digest) (i : Nat) : (Codeword.digit d i).val = d.toNat / 4 ^ i % 4 := by
   show (BitVec.extractLsb' (2 * i) 2 d).toNat = _
   rw [BitVec.extractLsb'_toNat, Nat.shiftRight_eq_div_pow, pow_mul]
   norm_num
@@ -408,7 +408,7 @@ theorem base4_expand : ∀ n N, N < 4 ^ n → ∑ j ∈ Finset.range n, N / 4 ^ 
 
 /-- **A codeword's digits, read back**: a digest that decodes holds the literal of its base-4
 digits, which sum to 106. -/
-theorem decode_some {d : LeanXmss.Digest} {enc : Encoding} (h : Codeword.decode d = some enc) :
+theorem decode_some {d : HashSig.Digest} {enc : Encoding} (h : Codeword.decode d = some enc) :
     (∀ i : ChainIndex, (enc i).val = d.toNat / 4 ^ i.val % 4) ∧
       ∑ i ∈ Finset.range numChains, d.toNat / 4 ^ i % 4 = targetSum ∧
       d.toNat = ∑ j ∈ Finset.range numChains, d.toNat / 4 ^ j % 4 * 4 ^ j := by

@@ -87,11 +87,11 @@ theorem eBytes_inj {x y : E} (h : extensionElementBytes x = extensionElementByte
   | 2, _ => exact kBytes_inj h3
   | n + 3, hi => exact absurd hi (by simp)
 
-theorem length_bytesLE (n : ℕ) (v : BitVec (8 * n)) : (LeanXmss.bytesLE n v).length = n :=
+theorem length_bytesLE (n : ℕ) (v : BitVec (8 * n)) : (HashSig.bytesLE n v).length = n :=
   List.length_ofFn
 
 theorem bytesLE_inj {n : ℕ} {v v' : BitVec (8 * n)}
-    (h : LeanXmss.bytesLE n v = LeanXmss.bytesLE n v') : v = v' := by
+    (h : HashSig.bytesLE n v = HashSig.bytesLE n v') : v = v' := by
   have hf := List.ofFn_injective h
   apply BitVec.eq_of_getLsbD_eq
   intro j hj

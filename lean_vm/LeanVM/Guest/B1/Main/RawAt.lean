@@ -44,8 +44,8 @@ open LeanVM.Guest.B1.Da (SlOk slEvs_holds limb0_gen_pow_mul)
 /-- **The raw leanXMSS signatures' honest data.** -/
 structure RawXData (nrx X cv tb : ℕ) (Lin : Layout) where
   slot : ℕ → ℕ
-  pk : ℕ → LeanXmss.PublicKey
-  msg : ℕ → LeanXmss.Message
+  pk : ℕ → HashSig.PublicKey
+  msg : ℕ → HashSig.Message
   sig : ℕ → LeanXmss.Signature
   slot_lt : ∀ i < nrx, slot i < X
   verify : ∀ i < nrx, Node.xmssVerify (pk i) (msg i) (sig i) = true

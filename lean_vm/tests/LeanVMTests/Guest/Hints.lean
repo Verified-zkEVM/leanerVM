@@ -17,9 +17,9 @@ namespace LeanVMTests.Guest.Hints
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Node LeanVM.Guest
 open LeanVM.Guest.Hints
 
-def key : LeanXmss.PublicKey := ⟨BitVec.ofNat 128 0x1234, BitVec.ofNat 128 0x5678⟩
+def key : HashSig.PublicKey := ⟨BitVec.ofNat 128 0x1234, BitVec.ofNat 128 0x5678⟩
 
-def message : LeanXmss.Message := BitVec.ofNat 256 0x9abc
+def message : HashSig.Message := BitVec.ofNat 256 0x9abc
 
 def signature : LeanXmss.Signature :=
   ⟨⟨0x10002, by decide⟩, fun l ↦ ⟨BitVec.ofNat 128 (l.val + 7), fun i ↦ BitVec.ofNat 128 i.val,

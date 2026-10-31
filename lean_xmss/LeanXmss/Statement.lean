@@ -17,6 +17,8 @@ open OracleComp OracleSpec ENNReal
 
 namespace LeanXmss
 
+open HashSig
+
 @[expose] public section
 
 namespace Security

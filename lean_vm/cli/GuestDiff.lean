@@ -104,7 +104,7 @@ def deferR : R DeferredClaim := do
 
 def statementR : R NodeStatement := do
   expect "xmss"
-  let xmss ← many do let ((r, p), m) ← claimR; return ((⟨r, p⟩ : LeanXmss.PublicKey), m)
+  let xmss ← many do let ((r, p), m) ← claimR; return ((⟨r, p⟩ : HashSig.PublicKey), m)
   expect "sphincs"
   let sphincs ← many do let ((r, p), m) ← claimR; return ((⟨r, p⟩ : Sphincs.PublicKey), m)
   expect "da"

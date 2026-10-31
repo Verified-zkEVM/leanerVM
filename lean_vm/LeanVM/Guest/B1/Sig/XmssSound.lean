@@ -43,7 +43,7 @@ theorem xBody_split : xBody = xPrologue ++ ((xLayer 0 196 (.n 0)).1 ++
   simp only [xBody, List.append_assoc]
 
 /-- A message's bytes are its two cells', the first low. -/
-theorem bytesLE_cellPairVal (c d : E) : LeanXmss.bytesLE 32 (cellPairVal c d) = cellBytes c ++ cellBytes d := by
+theorem bytesLE_cellPairVal (c d : E) : HashSig.bytesLE 32 (cellPairVal c d) = cellBytes c ++ cellBytes d := by
   have h0 := cellNat_lt c
   have h1 := cellNat_lt d
   have ht : (cellPairVal c d).toNat = cellNat c + 2 ^ 128 * cellNat d := by
@@ -143,7 +143,7 @@ theorem verify_lean_xmss_sound_holds : verify_lean_xmss_sound_Spec xmssSigOf := 
     simp only [xIdx, ↓reduceIte, xIdxNat_zero]
     rw [hpre.nodes 0 (by norm_num)]
     rfl
-  have hM0 : LeanXmss.bytesLE 32 (cellPairVal (σ (.n 199)) (σ (.n 200))) =
+  have hM0 : HashSig.bytesLE 32 (cellPairVal (σ (.n 199)) (σ (.n 200))) =
       [σ (.n 199), σ (.n 200)].flatMap cellBytes := by
     rw [bytesLE_cellPairVal]; simp
   have haMsg0 : cellBytes (σ (.n 198)) = LeanXmss.tweakBytes
@@ -177,7 +177,7 @@ theorem verify_lean_xmss_sound_holds : verify_lean_xmss_sound_Spec xmssSigOf := 
   have hidx1 : σ (xIdx 1 (xLayer 0 196 (.n 0)).2.1) = eOfNat (xIdxNat 1 (xLeaf σ)) := by
     simp only [xIdx, one_ne_zero, ↓reduceIte]
     rw [h1, hpre.nodes 16 (by norm_num), xIdxNat_one hL]
-  have hM1 : LeanXmss.bytesLE 16 (xv (σ (xLayer 0 196 (.n 0)).2.2)) = [σ (xLayer 0 196 (.n 0)).2.2].flatMap cellBytes := by
+  have hM1 : HashSig.bytesLE 16 (xv (σ (xLayer 0 196 (.n 0)).2.2)) = [σ (xLayer 0 196 (.n 0)).2.2].flatMap cellBytes := by
     rw [bytesLE_xv]; simp
   have haMsg1 : cellBytes (σ (.n ((xLayer 0 196 (.n 0)).2.1 + 4))) = LeanXmss.tweakBytes
       (.message ⟨1, by decide⟩ (LeanXmss.keyAt ⟨xLeaf σ, hL⟩ ⟨1, by decide⟩)) := by

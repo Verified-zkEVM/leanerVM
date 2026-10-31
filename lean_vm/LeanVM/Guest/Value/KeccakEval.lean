@@ -8,6 +8,7 @@
 module
 
 public import Statement.Fast.Keccak
+public import Mathlib.Data.List.Basic
 public import LeanVM.Protocol.KeccakAbsorb
 
 /-!

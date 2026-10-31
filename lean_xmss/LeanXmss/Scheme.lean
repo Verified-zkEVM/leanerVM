@@ -31,6 +31,8 @@ open OracleComp OracleSpec ENNReal
 
 namespace LeanXmss
 
+open HashSig
+
 @[expose] public section
 
 /-! ## The instance: parameters, types, and hash-input layout -/
@@ -55,6 +57,8 @@ abbrev OracleWorld := unifSpec + HashSpec
 step by step. -/
 
 namespace Concrete
+
+open HashSig.Concrete
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m] (parameter : PublicParameter)
   (lay : Layer) (key : KeyIndex)

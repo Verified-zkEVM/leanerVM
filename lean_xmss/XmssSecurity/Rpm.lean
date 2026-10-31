@@ -28,7 +28,7 @@ attribute [local irreducible] QueryCostAtMost
 
 /-- The leanXMSS ROM experiment is the generic one. -/
 theorem experiment_eq_romExperiment
-    (main : LeanXmss.PublicKey →
+    (main : HashSig.PublicKey →
       OracleComp (LeanXmss.OracleWorld + LeanXmss.SigningSpec) LeanXmss.Forgery) :
     LeanXmss.Security.experiment ⟨main⟩ = romExperiment LeanXmss.Rpm.schemeWithHash main := by
   have h : LeanXmss.Security.countedOracle = countedImpl := by
@@ -40,7 +40,7 @@ theorem experiment_eq_romExperiment
 
 /-- The ROM theorem in the form of `Common.SufCma.rpm_bound`. -/
 theorem romBound : ∀ q, 1 ≤ q →
-    ∀ main : LeanXmss.PublicKey →
+    ∀ main : HashSig.PublicKey →
       OracleComp (LeanXmss.OracleWorld + LeanXmss.SigningSpec) LeanXmss.Forgery,
       (∀ r ∈ support (romExperiment LeanXmss.Rpm.schemeWithHash main), r.2 ≤ q) →
         Pr{let r ← romExperiment LeanXmss.Rpm.schemeWithHash main}[r.1 = true] ≤

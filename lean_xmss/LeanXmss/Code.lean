@@ -21,6 +21,8 @@ set_option maxRecDepth 100000
 
 namespace LeanXmss.Codeword
 
+open HashSig
+
 /-- A base above every coefficient, so the coefficients are the digits. -/
 def base : Nat := 2 ^ 117
 

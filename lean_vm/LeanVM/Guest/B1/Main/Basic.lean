@@ -54,11 +54,11 @@ theorem length_cellBytes' (c : E) : (cellBytes c).length = 16 := by
 
 /-- The bytes of a cell are its 128-bit value's (`Sig.cellVal`). -/
 theorem bytes16_cellVal (a : E) : bytes16 (Sig.cellVal a) = cellBytes a := by
-  apply List.ext_getElem (by simp [bytes16, LeanXmss.bytesLE])
+  apply List.ext_getElem (by simp [bytes16, HashSig.bytesLE])
   intro i h1 h2
-  have hi : i < 16 := by simpa [bytes16, LeanXmss.bytesLE] using h1
+  have hi : i < 16 := by simpa [bytes16, HashSig.bytesLE] using h1
   apply UInt8.toNat_inj.mp
-  simp only [bytes16, LeanXmss.bytesLE, List.getElem_ofFn]
+  simp only [bytes16, HashSig.bytesLE, List.getElem_ofFn]
   rw [toNat_byteOfBitVec]
   have hv : (Sig.cellVal a).toNat = kToNat (a.limb 1) * 2 ^ 64 + kToNat (a.limb 0) := by
     simp only [Sig.cellVal, BitVec.toNat_append]
@@ -77,12 +77,12 @@ theorem bytes16_cellVal (a : E) : bytes16 (Sig.cellVal a) = cellBytes a := by
     interval_cases i <;> omega
 
 theorem bytes32_cellPairVal (c d : E) :
-    LeanXmss.bytesLE 32 (Sig.cellPairVal c d) = cellBytes c ++ cellBytes d := by
-  apply List.ext_getElem (by simp [LeanXmss.bytesLE])
+    HashSig.bytesLE 32 (Sig.cellPairVal c d) = cellBytes c ++ cellBytes d := by
+  apply List.ext_getElem (by simp [HashSig.bytesLE])
   intro i h1 h2
-  have hi : i < 32 := by simpa [LeanXmss.bytesLE] using h1
+  have hi : i < 32 := by simpa [HashSig.bytesLE] using h1
   apply UInt8.toNat_inj.mp
-  simp only [LeanXmss.bytesLE, List.getElem_ofFn]
+  simp only [HashSig.bytesLE, List.getElem_ofFn]
   rw [toNat_byteOfBitVec]
   have hv : (Sig.cellPairVal c d).toNat =
       (kToNat (d.limb 1) * 2 ^ 64 + kToNat (d.limb 0)) * 2 ^ 128 +

@@ -103,11 +103,15 @@ end Common
 
 namespace LeanXmss
 
+open HashSig
+
 /-- A hash query takes an arbitrary byte string and returns 32 bytes (the SUF-CMA game's
 `Common.SufCma.SchemeHashSpec`). -/
 abbrev HashSpec := HashInput →ₒ HashOutput
 
 namespace Concrete
+
+open HashSig.Concrete
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
@@ -200,7 +204,7 @@ end Concrete
 
 namespace Seeded
 
-open Concrete
+open Concrete HashSig.Concrete
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 

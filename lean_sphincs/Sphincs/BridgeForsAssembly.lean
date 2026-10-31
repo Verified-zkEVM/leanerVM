@@ -287,7 +287,7 @@ theorem not_row_encoding (parameterOutput : HashOutput) (highs : CoordinateHighs
   | some query =>
       obtain ⟨heq, _⟩ := (HiddenGraph.parse_some_iff _ _ _ query).1 h
       have hfields := (tweakableInput_injective heq).1
-      have htag := congrArg LeanXmss.TweakFields.tag hfields
+      have htag := congrArg HashSig.TweakFields.tag hfields
       rcases query with ⟨address, value⟩
       cases address <;> simp [Address.position, Position.domain, hashDomainFields, tweakFields] at htag
 
@@ -424,7 +424,7 @@ theorem msg_not_graph (parameter : PublicParameter) (position : Position) (paylo
     (hx : IsMsgInput x) : x ≠ tweakableHashInput parameter position.domain payload := by
   obtain ⟨p', payload', rfl⟩ := hx
   intro heq
-  have htag := congrArg LeanXmss.TweakFields.tag (tweakableInput_injective heq).1
+  have htag := congrArg HashSig.TweakFields.tag (tweakableInput_injective heq).1
   cases position <;> simp [Position.domain, hashDomainFields, tweakFields] at htag
 
 /-- **The prepared cache holds no message-digest input.** -/
@@ -493,7 +493,7 @@ theorem encoding_not_graph (parameter parameter' : PublicParameter) (position : 
     tweakableHashInput parameter' (.encoding lay tree leaf) payload' ≠
       tweakableHashInput parameter position.domain payload := by
   intro heq
-  have htag := congrArg LeanXmss.TweakFields.tag (tweakableInput_injective heq).1
+  have htag := congrArg HashSig.TweakFields.tag (tweakableInput_injective heq).1
   cases position <;> simp [Position.domain, hashDomainFields, tweakFields] at htag
 
 /-- **One prepared search fails rarely.** -/

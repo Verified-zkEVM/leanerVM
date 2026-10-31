@@ -57,16 +57,16 @@ def sequenceFin {m : Type → Type} [Monad m] {α : Type} :
 /-- The schemes' `sequenceFin` (leanSPHINCS's is leanXMSS's) is `sequenceFin`. -/
 theorem sequenceFin_xmss {m : Type → Type} [Monad m] {α : Type} :
     ∀ {n : Nat} (computation : Fin n → m α),
-      LeanXmss.Concrete.sequenceFin computation = sequenceFin computation
+      HashSig.Concrete.sequenceFin computation = sequenceFin computation
   | 0, _ => rfl
   | n + 1, computation => by
-    simp only [LeanXmss.Concrete.sequenceFin, sequenceFin, cases_eq_cons]
+    simp only [HashSig.Concrete.sequenceFin, sequenceFin, cases_eq_cons]
     congr 1
     funext head
     rw [sequenceFin_xmss]
 
 /-- The schemes' `sequenceFin` compiles as `sequenceFin`. -/
-@[csimp] theorem xmss_sequenceFin_eq : @LeanXmss.Concrete.sequenceFin = @sequenceFin := by
+@[csimp] theorem xmss_sequenceFin_eq : @HashSig.Concrete.sequenceFin = @sequenceFin := by
   funext m _ α n computation
   exact sequenceFin_xmss computation
 
@@ -74,7 +74,7 @@ theorem sequenceFin_xmss {m : Type → Type} [Monad m] {α : Type} :
 
 namespace Xmss
 
-open LeanXmss LeanXmss.Concrete
+open LeanXmss HashSig LeanXmss.Concrete HashSig.Concrete
 open LeanVM.Semantics (KeccakState)
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
@@ -84,7 +84,7 @@ def otsLeaf (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (messag
     (randomness : Randomness) (values : ChainIndex → Digest) : m (Option Digest) := do
   let digest ← messageDigest π parameter lay key message randomness
   let some encoding := Codeword.decode digest | return none
-  let endpoints ← LeanXmss.Concrete.sequenceFin fun chainIdx =>
+  let endpoints ← HashSig.Concrete.sequenceFin fun chainIdx =>
     recoverChain π parameter lay key chainIdx (encoding chainIdx) (values chainIdx)
   let value ← leafHash π parameter lay key endpoints
   return some value
@@ -132,7 +132,7 @@ variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 def otsLeaf (parameter : PublicParameter) (leaf : Index) (message : ForestKey) (counter : Counter)
     (values : ChainIndex → Digest) : m (Option Digest) := do
   let some encoding ← encode π parameter leaf message counter | return none
-  let endpoints ← LeanXmss.Concrete.sequenceFin fun chainIdx =>
+  let endpoints ← HashSig.Concrete.sequenceFin fun chainIdx =>
     recoverChain π parameter leaf chainIdx (encoding chainIdx) (values chainIdx)
   let value ← leafHash π parameter leaf endpoints
   return some value

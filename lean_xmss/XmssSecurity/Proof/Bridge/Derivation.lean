@@ -52,11 +52,11 @@ def topInput (parameter : PublicParameter) (seed : MasterSeed) (pos : TopOtsPos)
 
 def rndInput (parameter : PublicParameter) (seed : MasterSeed) (request : SignRequest) : HashInput :=
   LeanXmss.randomizerHashInput parameter LeanXmss.bottomLayer request.leafIndex seed
-    (LeanXmss.bytesLE 32 request.message)
+    (HashSig.bytesLE 32 request.message)
 
 def topRndInput (parameter : PublicParameter) (seed : MasterSeed) (pos : TopRndPos) : HashInput :=
   LeanXmss.randomizerHashInput parameter LeanXmss.topLayer (topKey pos.1) seed
-    (LeanXmss.bytesLE 16 pos.2)
+    (HashSig.bytesLE 16 pos.2)
 
 /-! ## Input layout -/
 

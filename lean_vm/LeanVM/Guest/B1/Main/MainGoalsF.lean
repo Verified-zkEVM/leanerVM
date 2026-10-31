@@ -133,7 +133,7 @@ theorem mf_canon_flatMap {α : Type} (f : α → List E) (hf : ∀ a, AllCanonic
 /-! ### The signature claims -/
 
 theorem mf_claimBytes_length (r p : BitVec 128) (m : BitVec 256) : (claimBytes r p m).length = 64 := by
-  simp [claimBytes, bytes16, LeanXmss.bytesLE]
+  simp [claimBytes, bytes16, HashSig.bytesLE]
 
 theorem mf_claimCells_length (r p : BitVec 128) (m : BitVec 256) : (claimCells r p m).length = 4 := by
   simp [claimCells, cellsOfBytes, mf_claimBytes_length]

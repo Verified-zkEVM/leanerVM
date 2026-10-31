@@ -36,7 +36,7 @@ variable {C : CallRel} {rd : Reader}
 
 /-! ## The scheme's side -/
 
-theorem cellPairVal_cellOf128 (m : LeanXmss.Message) :
+theorem cellPairVal_cellOf128 (m : HashSig.Message) :
     cellPairVal (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)) = m := by
   apply BitVec.eq_of_toNat_eq
   have hm : m.toNat < 2 ^ 256 := m.isLt
@@ -47,8 +47,8 @@ theorem cellPairVal_cellOf128 (m : LeanXmss.Message) :
   exact Nat.div_add_mod _ _
 
 /-- **A layer's root exists only when its message digest decodes.** -/
-theorem layerRoot_decode {P : LeanXmss.PublicParameter} {lay : LeanXmss.Layer} {key : LeanXmss.KeyIndex}
-    {M : LeanXmss.HashInput} {part : LeanXmss.LayerSignature} {r : LeanXmss.Digest}
+theorem layerRoot_decode {P : HashSig.PublicParameter} {lay : LeanXmss.Layer} {key : LeanXmss.KeyIndex}
+    {M : HashSig.HashInput} {part : LeanXmss.LayerSignature} {r : HashSig.Digest}
     (h : @LeanXmss.Concrete.layerRootWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part = some r) :
     ∃ enc, LeanXmss.Codeword.decode
       (@LeanXmss.Concrete.messageDigestWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part.randomness) = some enc := by
@@ -187,9 +187,9 @@ theorem verify_lean_xmss_complete_holds : verify_lean_xmss_complete_Spec := by
       rw [hpre.nodes 0 (by norm_num), hleaf1]; rfl
     -- the digest decodes
     obtain ⟨enc, hdec⟩ := layerRoot_decode h0
-    have hM : LeanXmss.bytesLE 32 m = [cellOf128 (m.extractLsb' 0 128), cellOf128 (m.extractLsb' 128 128)].flatMap
+    have hM : HashSig.bytesLE 32 m = [cellOf128 (m.extractLsb' 0 128), cellOf128 (m.extractLsb' 128 128)].flatMap
         cellBytes := by
-      calc LeanXmss.bytesLE 32 m = LeanXmss.bytesLE 32 (cellPairVal (cellOf128 (m.extractLsb' 0 128))
+      calc HashSig.bytesLE 32 m = HashSig.bytesLE 32 (cellPairVal (cellOf128 (m.extractLsb' 0 128))
             (cellOf128 (m.extractLsb' 128 128))) := by rw [cellPairVal_cellOf128]
         _ = _ := by rw [bytesLE_cellPairVal]; simp
     have ha : cellBytes (σ1 (xNode 0) + word (tw 12) 0 0) = LeanXmss.tweakBytes
@@ -252,7 +252,7 @@ theorem verify_lean_xmss_complete_holds : verify_lean_xmss_complete_Spec := by
     obtain ⟨enc, hdec⟩ := layerRoot_decode h1
     have hn16 : σ2 (xNode 16) = eOfNat (sig.leafIndex.val >>> 16) := by
       rw [hpre2.nodes 16 (by norm_num), hleaf2]
-    have hM : LeanXmss.bytesLE 16 r0 = [σ2 R0].flatMap cellBytes := by
+    have hM : HashSig.bytesLE 16 r0 = [σ2 R0].flatMap cellBytes := by
       rw [← hr0, bytesLE_xv]; simp
     have ha : cellBytes (σ2 (xNode 16) + word lxTop 0 0 + word (tw 12) 0 0) = LeanXmss.tweakBytes
         (.message LeanXmss.topLayer (LeanXmss.keyAt sig.leafIndex LeanXmss.topLayer)) := by

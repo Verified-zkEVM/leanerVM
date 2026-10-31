@@ -41,7 +41,7 @@ variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState
 /-! ### The signature schemes -/
 
 /-- leanXMSS verification with the hash `H`. -/
-def xmssVerifyWith (pk : LeanXmss.PublicKey) (message : LeanXmss.Message)
+def xmssVerifyWith (pk : HashSig.PublicKey) (message : HashSig.Message)
     (σ : LeanXmss.Signature) : m Bool :=
   letI : HasQuery LeanXmss.HashSpec m := ⟨fun x ↦ digestBits <$> H x⟩
   LeanXmss.Concrete.verifyWithHash pk message σ
@@ -123,7 +123,7 @@ theorem keccakBits_eq (input : List UInt8) : keccakBits input = digestBits (kecc
 end With
 
 /-- leanXMSS verification with Keccak-256 is `xmssVerify`. -/
-theorem xmssVerifyWith_id (pk : LeanXmss.PublicKey) (message : LeanXmss.Message)
+theorem xmssVerifyWith_id (pk : HashSig.PublicKey) (message : HashSig.Message)
     (σ : LeanXmss.Signature) :
     Id.run (xmssVerifyWith (m := Id) keccak256 pk message σ) = xmssVerify pk message σ := by
   rw [xmssVerify_eq_withHash]

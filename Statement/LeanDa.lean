@@ -1,6 +1,7 @@
 module
 
 public import Statement.Field
+public import Statement.RandomPermutation
 public import CompPoly.Fields.Binary.BF64
 public import CompPoly.Fields.Binary.AdditiveNTT.NovelPolynomialBasis
 public import VCVio.OracleComp.Constructions.SampleableType

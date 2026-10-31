@@ -30,7 +30,7 @@ parameter and `A` the 16-byte address. Key generation hashes the seed `S0` into
 `S = H(leanSPHINCS ‖ S0)`, from which every secret derives. The message digest hashes `m ‖ ρ` (the
 root is not: `P` binds the key), the randomizer base `S ‖ m`.
 
-Then the SUF-CMA game of `Statement/RandomPermutation.lean` with the deterministic signer, the
+Then the SUF-CMA game of `Statement/SufCma.lean` with the deterministic signer, the
 proved lifetimes (`Lifetimes.full`, `pruned20`, …, `pruned8`), and the end statement
 `Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable`, proved by
 `Sphincs.Lifetimes.requestedSecurityRpm` (`lean_sphincs`). Its budget `Q` counts the honest signer's
@@ -46,7 +46,7 @@ namespace Sphincs
 
 /-! ### The instance: parameters, types, and hash-input layout -/
 
-export LeanXmss (digestBits winternitzBits chainLength MasterSeed Digest HashOutput Message
+export HashSig (digestBits winternitzBits chainLength MasterSeed Digest HashOutput Message
   PublicParameter Randomness Digit ChainStep HashInput truncateHash upperHash hashHalf PublicKey
   bytesLE TweakFields fieldBytes tweakFields thInput sampleMasterSeed)
 
@@ -313,7 +313,7 @@ namespace Concrete
 
 open LeanVM.Semantics (KeccakState)
 
-export LeanXmss.Concrete (sequenceFin keccakHash walkChain nodePayload foldPath buildTree th thPair
+export HashSig.Concrete (sequenceFin keccakHash walkChain nodePayload foldPath buildTree th thPair
   taggedSeed)
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)

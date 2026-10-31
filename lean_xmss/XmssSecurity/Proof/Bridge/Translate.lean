@@ -48,7 +48,7 @@ theorem hash_eq {parameter : PublicParameter} {domain : LeanXmss.HashDomain} {do
     (h : LeanXmss.tweakableHashInput parameter domain payload =
       tweakableHashInput parameter domain' payload') :
     (LeanXmss.Concrete.tweakableHashWithHash parameter domain payload :
-        OracleComp LeanXmss.HashSpec LeanXmss.Digest) =
+        OracleComp LeanXmss.HashSpec HashSig.Digest) =
       (Concrete.tweakableHash parameter domain' payload' : OracleComp HashSpec Digest) := by
   unfold Concrete.tweakableHash LeanXmss.Concrete.tweakableHashWithHash LeanXmss.Concrete.thWithHash
   rw [LeanXmss.thInput_hashDomainFields, h]
@@ -111,7 +111,7 @@ theorem topNode_input (parameter : PublicParameter) (level : MerkleLevel) (node 
 theorem message_input (parameter : PublicParameter) (key : LeafIndex) (message : Message)
     (randomness : Randomness) :
     LeanXmss.tweakableHashInput parameter (.message LeanXmss.bottomLayer key)
-        (LeanXmss.bytesLE 32 message ++ LeanXmss.bytesLE 16 randomness) =
+        (HashSig.bytesLE 32 message ++ HashSig.bytesLE 16 randomness) =
       tweakableHashInput parameter (.encoding key) (Concrete.encodingPayload message randomness) := by
   simp only [LeanXmss.tweakableHashInput, tweakableHashInput, LeanXmss.tweakBytes, tweakBytes,
     LeanXmss.hashDomainFields, hashDomainFields, domainSuffix, List.append_nil,
@@ -121,7 +121,7 @@ theorem message_input (parameter : PublicParameter) (key : LeafIndex) (message :
 theorem topMessage_input (parameter : PublicParameter) (key : TopIndex) (root : Digest)
     (randomness : Randomness) :
     LeanXmss.tweakableHashInput parameter (.message LeanXmss.topLayer (topKey key))
-        (LeanXmss.bytesLE 16 root ++ LeanXmss.bytesLE 16 randomness) =
+        (HashSig.bytesLE 16 root ++ HashSig.bytesLE 16 randomness) =
       tweakableHashInput parameter (.topEncoding key) (Concrete.topEncodingPayload root randomness) := by
   simp only [LeanXmss.tweakableHashInput, tweakableHashInput, LeanXmss.tweakBytes, tweakBytes,
     LeanXmss.hashDomainFields, hashDomainFields, domainSuffix, List.append_nil,
@@ -134,7 +134,7 @@ theorem topMessage_input (parameter : PublicParameter) (key : TopIndex) (root : 
 theorem chainWalk_bottom (parameter : PublicParameter) (key : LeafIndex) (chain : ChainIndex)
     (start steps : Nat) (value : Digest) :
     (LeanXmss.Concrete.chainWalkWithHash parameter LeanXmss.bottomLayer key chain start steps value :
-        OracleComp LeanXmss.HashSpec LeanXmss.Digest) =
+        OracleComp LeanXmss.HashSpec HashSig.Digest) =
       (Concrete.chainWalk parameter key chain start steps value : OracleComp HashSpec Digest) := by
   induction steps with
   | zero => rfl
@@ -143,16 +143,16 @@ theorem chainWalk_bottom (parameter : PublicParameter) (key : LeafIndex) (chain 
       apply bind_congr
       intro previous
       by_cases h : start + steps < chainLength - 1
-      · conv_lhs => rw [dite_eq_left (show start + steps < LeanXmss.chainLength - 1 from h)]
+      · conv_lhs => rw [dite_eq_left (show start + steps < HashSig.chainLength - 1 from h)]
         conv_rhs => rw [dite_eq_left h]
         exact hash_eq (chain_input parameter key chain ⟨start + steps, h⟩ previous)
-      · conv_lhs => rw [dite_eq_right (show ¬start + steps < LeanXmss.chainLength - 1 from h)]
+      · conv_lhs => rw [dite_eq_right (show ¬start + steps < HashSig.chainLength - 1 from h)]
         conv_rhs => rw [dite_eq_right h]
 
 theorem chainWalk_top (parameter : PublicParameter) (key : TopIndex) (chain : ChainIndex)
     (start steps : Nat) (value : Digest) :
     (LeanXmss.Concrete.chainWalkWithHash parameter LeanXmss.topLayer (topKey key) chain start steps value :
-        OracleComp LeanXmss.HashSpec LeanXmss.Digest) =
+        OracleComp LeanXmss.HashSpec HashSig.Digest) =
       (Concrete.topChainWalk parameter key chain start steps value : OracleComp HashSpec Digest) := by
   induction steps with
   | zero => rfl
@@ -161,51 +161,51 @@ theorem chainWalk_top (parameter : PublicParameter) (key : TopIndex) (chain : Ch
       apply bind_congr
       intro previous
       by_cases h : start + steps < chainLength - 1
-      · conv_lhs => rw [dite_eq_left (show start + steps < LeanXmss.chainLength - 1 from h)]
+      · conv_lhs => rw [dite_eq_left (show start + steps < HashSig.chainLength - 1 from h)]
         conv_rhs => rw [dite_eq_left h]
         exact hash_eq (topChain_input parameter key chain ⟨start + steps, h⟩ previous)
-      · conv_lhs => rw [dite_eq_right (show ¬start + steps < LeanXmss.chainLength - 1 from h)]
+      · conv_lhs => rw [dite_eq_right (show ¬start + steps < HashSig.chainLength - 1 from h)]
         conv_rhs => rw [dite_eq_right h]
 
 theorem leafHash_bottom (parameter : PublicParameter) (key : LeafIndex)
     (endpoints : ChainIndex → Digest) :
     (LeanXmss.Concrete.leafHashWithHash parameter LeanXmss.bottomLayer key endpoints :
-        OracleComp LeanXmss.HashSpec LeanXmss.Digest) =
+        OracleComp LeanXmss.HashSpec HashSig.Digest) =
       (Concrete.leafHash parameter key endpoints : OracleComp HashSpec Digest) :=
   hash_eq (leaf_input parameter key _)
 
 theorem leafHash_top (parameter : PublicParameter) (key : TopIndex)
     (endpoints : ChainIndex → Digest) :
     (LeanXmss.Concrete.leafHashWithHash parameter LeanXmss.topLayer (topKey key) endpoints :
-        OracleComp LeanXmss.HashSpec LeanXmss.Digest) =
+        OracleComp LeanXmss.HashSpec HashSig.Digest) =
       (Concrete.topLeafHash parameter key endpoints : OracleComp HashSpec Digest) :=
   hash_eq (topLeaf_input parameter key _)
 
 theorem messageDigest_bottom (parameter : PublicParameter) (key : LeafIndex) (message : Message)
     (randomness : Randomness) :
-    (LeanXmss.Concrete.messageDigestWithHash parameter LeanXmss.bottomLayer key (LeanXmss.bytesLE 32 message)
-        randomness : OracleComp LeanXmss.HashSpec LeanXmss.Digest) =
+    (LeanXmss.Concrete.messageDigestWithHash parameter LeanXmss.bottomLayer key (HashSig.bytesLE 32 message)
+        randomness : OracleComp LeanXmss.HashSpec HashSig.Digest) =
       (Concrete.encodingHash parameter key message randomness : OracleComp HashSpec Digest) :=
   hash_eq (message_input parameter key message randomness)
 
 theorem messageDigest_top (parameter : PublicParameter) (key : TopIndex) (root : Digest)
     (randomness : Randomness) :
-    (LeanXmss.Concrete.messageDigestWithHash parameter LeanXmss.topLayer (topKey key) (LeanXmss.bytesLE 16 root)
-        randomness : OracleComp LeanXmss.HashSpec LeanXmss.Digest) =
+    (LeanXmss.Concrete.messageDigestWithHash parameter LeanXmss.topLayer (topKey key) (HashSig.bytesLE 16 root)
+        randomness : OracleComp LeanXmss.HashSpec HashSig.Digest) =
       (Concrete.topEncodingHash parameter key root randomness : OracleComp HashSpec Digest) :=
   hash_eq (topMessage_input parameter key root randomness)
 
 theorem nodeHash_bottom (parameter : PublicParameter) (level : MerkleLevel) (node : MerkleNode)
     (left right : Digest) :
     (LeanXmss.Concrete.tweakableHashWithHash parameter (.node LeanXmss.bottomLayer (level.val + 1) node.val)
-        (LeanXmss.Concrete.nodePayload left right) : OracleComp LeanXmss.HashSpec LeanXmss.Digest) =
+        (HashSig.Concrete.nodePayload left right) : OracleComp LeanXmss.HashSpec HashSig.Digest) =
       (Concrete.nodeHash parameter level node left right : OracleComp HashSpec Digest) :=
   hash_eq (node_input parameter level node _)
 
 theorem nodeHash_top (parameter : PublicParameter) (level : MerkleLevel) (node : TopNode)
     (left right : Digest) :
     (LeanXmss.Concrete.tweakableHashWithHash parameter (.node LeanXmss.topLayer (level.val + 1) node.val)
-        (LeanXmss.Concrete.nodePayload left right) : OracleComp LeanXmss.HashSpec LeanXmss.Digest) =
+        (HashSig.Concrete.nodePayload left right) : OracleComp LeanXmss.HashSpec HashSig.Digest) =
       (Concrete.topNodeHash parameter level node left right : OracleComp HashSpec Digest) :=
   hash_eq (topNode_input parameter level node _)
 
@@ -216,12 +216,12 @@ theorem encoding_eq (digest : Digest) :
 
 theorem digestTop_eq_zero_iff (digest : Digest) :
     TargetSum.digestTop digest = 0 ↔
-      digest.toNat / 2 ^ (LeanXmss.winternitzBits * LeanXmss.numChains) = 0 := by
+      digest.toNat / 2 ^ (HashSig.winternitzBits * LeanXmss.numChains) = 0 := by
   have hlt : digest.toNat < 2 ^ 128 := digest.isLt
   rw [← BitVec.toNat_inj]
   simp only [TargetSum.digestTop, BitVec.extractLsb'_toNat, Nat.shiftRight_eq_div_pow,
     TargetSum.zeroBits, digestBits, winternitzBits, numChains,
-    LeanXmss.winternitzBits, LeanXmss.numChains]
+    HashSig.winternitzBits, LeanXmss.numChains]
   rw [Nat.mod_eq_of_lt (by omega)]
   exact Iff.rfl
 
@@ -233,7 +233,7 @@ theorem decode_eq (digest : Digest) :
   · have h' := (digestTop_eq_zero_iff digest).1 h
     simp only [h, h', true_and]
     rfl
-  · have h' : ¬digest.toNat / 2 ^ (LeanXmss.winternitzBits * LeanXmss.numChains) = 0 :=
+  · have h' : ¬digest.toNat / 2 ^ (HashSig.winternitzBits * LeanXmss.numChains) = 0 :=
       fun h'' => h ((digestTop_eq_zero_iff digest).2 h'')
     simp only [h, h', false_and, ite_false]
 
@@ -241,16 +241,16 @@ theorem decode_eq (digest : Digest) :
 /-! ## Verification -/
 
 theorem sequenceFin_eq {m : Type → Type} [Monad m] {α : Type} {n : Nat} (c : Fin n → m α) :
-    LeanXmss.Concrete.sequenceFin c = Concrete.sequenceFin c := by
+    HashSig.Concrete.sequenceFin c = Concrete.sequenceFin c := by
   induction n with
   | zero => rfl
   | succ n ih =>
-      simp only [LeanXmss.Concrete.sequenceFin, Concrete.sequenceFin, ih]
+      simp only [HashSig.Concrete.sequenceFin, Concrete.sequenceFin, ih]
 
 theorem treeFold_bottom (parameter : PublicParameter) (key : LeafIndex) (signature : Signature)
     (leaf : Digest) (levels : Nat) (hlevels : levels ≤ treeHeight) :
     (LeanXmss.Concrete.treeFoldWithHash parameter LeanXmss.bottomLayer key signature.authPath levels leaf :
-        OracleComp LeanXmss.HashSpec LeanXmss.Digest) =
+        OracleComp LeanXmss.HashSpec HashSig.Digest) =
       (Concrete.authenticationRoot parameter key signature levels leaf : OracleComp HashSpec Digest) := by
   induction levels with
   | zero => rfl
@@ -270,7 +270,7 @@ theorem treeFold_bottom (parameter : PublicParameter) (key : LeafIndex) (signatu
 theorem treeFold_top (parameter : PublicParameter) (key : TopIndex) (path : Fin treeHeight → Digest)
     (leaf : Digest) (levels : Nat) (hlevels : levels ≤ treeHeight) :
     (LeanXmss.Concrete.treeFoldWithHash parameter LeanXmss.topLayer (topKey key) path levels leaf :
-        OracleComp LeanXmss.HashSpec LeanXmss.Digest) =
+        OracleComp LeanXmss.HashSpec HashSig.Digest) =
       (Concrete.topAuthenticationRoot parameter key path levels leaf : OracleComp HashSpec Digest) := by
   induction levels with
   | zero => rfl
@@ -306,9 +306,9 @@ def toModelSig (signature : LeanXmss.Signature) : Signature where
   authPath := (signature.layers LeanXmss.bottomLayer).path
   top := layerToModel (signature.layers LeanXmss.topLayer)
 
-def toRealPk (publicKey : PublicKey) : LeanXmss.PublicKey := ⟨publicKey.root, publicKey.parameter⟩
+def toRealPk (publicKey : PublicKey) : HashSig.PublicKey := ⟨publicKey.root, publicKey.parameter⟩
 
-def toModelPk (publicKey : LeanXmss.PublicKey) : PublicKey := ⟨publicKey.root, publicKey.parameter⟩
+def toModelPk (publicKey : HashSig.PublicKey) : PublicKey := ⟨publicKey.root, publicKey.parameter⟩
 
 theorem layer_cases (lay : LeanXmss.Layer) : lay = LeanXmss.bottomLayer ∨ lay = LeanXmss.topLayer := by
   rcases lay with ⟨v, hv⟩
@@ -338,16 +338,16 @@ theorem topLayer_ne_bottom : LeanXmss.topLayer ≠ LeanXmss.bottomLayer := by de
 theorem recoverChain_bottom (parameter : PublicParameter) (key : LeafIndex) (chain : ChainIndex)
     (digit : Digit) (value : Digest) :
     (LeanXmss.Concrete.recoverChainWithHash parameter LeanXmss.bottomLayer key chain digit value :
-        OracleComp LeanXmss.HashSpec LeanXmss.Digest) =
+        OracleComp LeanXmss.HashSpec HashSig.Digest) =
       (Concrete.recoverChain parameter key chain digit value : OracleComp HashSpec Digest) :=
   chainWalk_bottom parameter key chain _ _ value
 
 /-- The bottom layer's root in the model's terms. -/
 theorem layerRoot_bottom (parameter : PublicParameter) (key : LeafIndex) (message : Message)
     (signature : Signature) :
-    (LeanXmss.Concrete.layerRootWithHash parameter LeanXmss.bottomLayer key (LeanXmss.bytesLE 32 message)
+    (LeanXmss.Concrete.layerRootWithHash parameter LeanXmss.bottomLayer key (HashSig.bytesLE 32 message)
         ⟨signature.randomness, signature.chainValue, signature.authPath⟩ :
-        OracleComp LeanXmss.HashSpec (Option LeanXmss.Digest)) =
+        OracleComp LeanXmss.HashSpec (Option HashSig.Digest)) =
       ((do
         let digest ← Concrete.encodingHash parameter key message signature.randomness
         match TargetSum.decodeDigest digest with
@@ -379,8 +379,8 @@ theorem layerRoot_bottom (parameter : PublicParameter) (key : LeafIndex) (messag
 /-- The top layer's root in the model's terms. -/
 theorem layerRoot_top (parameter : PublicParameter) (key : TopIndex) (root : Digest)
     (part : LayerSignature) :
-    (LeanXmss.Concrete.layerRootWithHash parameter LeanXmss.topLayer (topKey key) (LeanXmss.bytesLE 16 root)
-        (layerToReal part) : OracleComp LeanXmss.HashSpec (Option LeanXmss.Digest)) =
+    (LeanXmss.Concrete.layerRootWithHash parameter LeanXmss.topLayer (topKey key) (HashSig.bytesLE 16 root)
+        (layerToReal part) : OracleComp LeanXmss.HashSpec (Option HashSig.Digest)) =
       ((do
         let digest ← Concrete.topEncodingHash parameter key root part.randomness
         match TargetSum.decodeDigest digest with
@@ -447,7 +447,7 @@ theorem verify_eq' (publicKey : PublicKey) (message : Message) (signature : Lean
   conv_lhs => rw [← toRealSig_toModelSig signature]
   exact verify_eq publicKey signature.leafIndex message (toModelSig signature)
 
-theorem verify_real (publicKey : LeanXmss.PublicKey) (message : Message) (signature : LeanXmss.Signature) :
+theorem verify_real (publicKey : HashSig.PublicKey) (message : Message) (signature : LeanXmss.Signature) :
     (LeanXmss.Concrete.verifyWithHash publicKey message signature : OracleComp LeanXmss.HashSpec Bool) =
       (Concrete.verify (toModelPk publicKey) signature.leafIndex message (toModelSig signature) :
         OracleComp HashSpec Bool) :=

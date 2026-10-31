@@ -1572,7 +1572,7 @@ def verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) 
 ## Keccak, by GKR over its rounds (`verifier.py:1206-1406`)
 
 The protocol is `doc/leanvm/body/c-keccak-gkr.tex`; `KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI` are
-`keccakRC`, `keccakRho`, `keccakPi` of `RandomPermutation.lean`. A claim is a weighted sum of the
+`keccakRC`, `keccakRho`, `keccakPi` of `Keccak.lean`. A claim is a weighted sum of the
 bits of one state per segment, the weight of bit `j` of instance `i` of pack `y` (sixteen
 consecutive steps) in segment `m` being `eq(point, (y, m)) · weights[j] · mu[i]`; each layer turns
 a claim on the states after a round into one on the states before it.

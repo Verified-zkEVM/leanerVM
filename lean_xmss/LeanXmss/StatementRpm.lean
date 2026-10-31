@@ -28,6 +28,8 @@ open OracleComp OracleSpec ENNReal Common Common.SufCma
 
 namespace LeanXmss.Rpm
 
+open HashSig
+
 /-- An adversary in the random-permutation model: private coins, Keccak-256 (32 bytes), `π`,
 `π⁻¹` and the signing oracle. -/
 structure Adversary where

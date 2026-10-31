@@ -8,7 +8,7 @@ public import Common.WithHash
 # The statement's SUF-CMA game and leanXMSS are the hash-query forms, the hash over `π`
 
 The statement's signature schemes hash with Keccak-256 over the permutation they are given
-(`LeanXmss.Concrete.keccakHash`); the proofs' forms query a hash (`Common.WithHash`). With the
+(`HashSig.Concrete.keccakHash`); the proofs' forms query a hash (`Common.WithHash`). With the
 model's permutation `π`, the statement's algorithms are the hash-query ones with each query
 answered by Keccak-256 over `π` (`SufCma.schemeHashOverPermutation`):
 
@@ -48,6 +48,8 @@ end Common.SufCma
 
 namespace LeanXmss
 
+open HashSig
+
 open Common Common.SufCma
 
 /-! ## The combinators commute with a simulation -/
@@ -57,7 +59,7 @@ section Combinators
 variable {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
   (impl : QueryImpl spec (OracleComp spec'))
 
-open Concrete
+open Concrete HashSig.Concrete
 
 theorem simulateQ_sequenceFin {α : Type} :
     ∀ {n : ℕ} (c : Fin n → OracleComp spec α),
@@ -102,6 +104,8 @@ end Combinators
 local notation "σ" => schemeHashOverPermutation
 
 namespace Concrete
+
+open HashSig.Concrete
 
 theorem simulateQ_oracleHashWithHash (input : HashInput) :
     simulateQ σ (oracleHashWithHash (m := OracleComp HashSpec) input) =
@@ -199,7 +203,7 @@ end Concrete
 
 namespace Seeded
 
-open Concrete
+open Concrete HashSig.Concrete
 
 theorem simulateQ_otsSecretsWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
     (seed : MasterSeed) :
