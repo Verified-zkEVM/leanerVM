@@ -29,15 +29,16 @@ open LeanVM.Guest.B1.Fwd LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protoco
 section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}
 
-theorem vtB_memAt (n : ℕ) (s : Stmt) (heq : tbStmtsEqb [s] ((vtPre.drop n).take 1) = true) :
+theorem vtB_memAt (n : ℕ) (s : Stmt) (heq : tbStmtsEqb [s] ((vtAt n).take 1) = true) :
     s ∈ vtPre :=
-  vt_mem_slice (blk := [_]) heq List.mem_cons_self
+  vt_mem_slice (blk := [_]) (vtPre_drop n ▸ heq) List.mem_cons_self
 
 /-- **A slice holds** when its statements beyond evaluation do. -/
 theorem vtB_blockR (hl : args.length = 22) (a len : ℕ) (rest : List Stmt)
-    (hrest : tbStmtsEqb (((vtPre.drop a).take len).filter (fun s ↦ !autoB s)) rest = true)
+    (hrest : tbStmtsEqb (((vtAt a).take len).filter (fun s ↦ !autoB s)) rest = true)
     (h : ∀ s ∈ rest, s ∈ vtPre → VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s) :
     ∀ s ∈ (vtPre.drop a).take len, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s := by
+  rw [← vtPre_drop] at hrest
   intro s hs
   have hm : s ∈ vtPre := List.mem_of_mem_drop (List.mem_of_mem_take hs)
   cases ha : autoB s

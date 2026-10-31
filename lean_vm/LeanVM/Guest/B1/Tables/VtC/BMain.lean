@@ -250,9 +250,9 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
   rw [k55] at rd4430
   rw [k56] at rd4475
   have hz8 : TbReadsAt rd (vtσ rd wo args (.n 8)) D.point := by rw [p 8 (by norm_num)]; exact hz
-  obtain ⟨I1, i1⟩ := vtB_indexArm hl (vtB_memAt 2455 _ vtB_index_stmts.1) rd2884.1 (by omega) hlmμ hz8
+  obtain ⟨I1, i1⟩ := vtB_indexArm hl (vtB_memAt 2455 _ (vtAt_eqb vtB_index_stmts.1)) rd2884.1 (by omega) hlmμ hz8
     hwI.1
-  obtain ⟨I2, i2⟩ := vtB_indexArm hl (vtB_memAt 2531 _ vtB_index_stmts.2) rd2959.1 (by norm_num) h19
+  obtain ⟨I2, i2⟩ := vtB_indexArm hl (vtB_memAt 2531 _ (vtAt_eqb vtB_index_stmts.2)) rd2959.1 (by norm_num) h19
     hz8 hwI.2
   -- the buffers
   have e2851 : vtσ rd wo args (.n 2851) = wo 2851 := vt_alloc hl 2404 (sz := 153) (by decide +kernel)
