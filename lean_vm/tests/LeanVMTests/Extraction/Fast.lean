@@ -1,4 +1,4 @@
-import LeanVM.Protocol.Extraction.Fast.Extract
+import LeanVM.Protocol.Extraction.Fast.Transcript
 import LeanVMTests.Extraction.Toy
 
 /-!
@@ -6,7 +6,10 @@ import LeanVMTests.Extraction.Toy
 
 * Roth–Ruckenstein's substitution `Y := a + X·Y`: `substituteFast` (proved equal to CompPoly's
   `substituteYRootPlusXY`) agrees with it on pseudo-random polynomials over `K`;
-* `decodeStacksAtFast` (proved equal to `decodeStacksAt`) decodes a toy word of `Toy.lean`.
+* `decodeStacksAtFast` (proved equal to `decodeStacksAt`) decodes a toy word of `Toy.lean`;
+* the indexed replay (`keccakEvaluationsFast`, proved equal to the statement's evaluations of at
+  most `L` bytes) on a transcript holding the sponge paths of three messages, and inverse queries;
+* the axiom footprint of `transcriptExtractorFast_eq`.
 -/
 
 namespace LeanVMTests.Extraction
@@ -33,5 +36,43 @@ def decodesFast {μ : ℕ} (R A : ℕ) (q : Vector K (2 ^ μ)) (w : Array (List 
   (l.any fun d ↦ d.toList == q.toList, l.length)
 
 #guard decodesFast 1 3 (randomStack 1 7) (corrupt 1 [2] (wordOf 1 (randomStack 1 7))) = (true, 1)
+
+/-! ## The replay -/
+
+open LeanVM LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash Common in
+/-- The forward queries of the sponge path of `m`, from the zero state. -/
+def spongeQueries (m : List UInt8) : List (PermutationQuery KeccakState × KeccakState) :=
+  let bs := keccakPadded m
+  ((List.range (bs.length / rate)).foldl (fun (acc : _ × _) j ↦
+    let blk := (bs.drop (rate * j)).take rate
+    let x : KeccakState := Vector.ofFn fun i ↦
+      if i.val < 17 then Keccak.lane acc.1 i ^^^ leLane blk i else Keccak.lane acc.1 i
+    let y := keccakF1600 x
+    (y, acc.2 ++ [(.forward x, y)])) (Vector.replicate 25 0, [])).2
+
+/-- Messages of `64`, `512` and `1000` bytes. -/
+def message (n seed : ℕ) : List UInt8 := (randoms seed n).toList.map (·.toUInt8)
+
+open LeanVM.Semantics LeanVM.Protocol Common in
+/-- Their paths, interleaved with inverse queries and repeated queries. -/
+def toyTranscript : List (PermutationQuery KeccakState × KeccakState) :=
+  let junk : KeccakState := Vector.ofFn fun i ↦ (i.val * 77).toUInt64
+  spongeQueries (message 64 1) ++ [(.inverse junk, keccakF1600 junk)] ++
+    spongeQueries (message 512 2) ++ spongeQueries (message 64 1) ++ spongeQueries (message 1000 3)
+
+-- The statement's replay finds the three evaluations, with the right digests.
+#guard (LeanVM.keccakEvaluationsOfTranscript toyTranscript).map (·.1.length) = [1000, 512, 64]
+#guard (LeanVM.keccakEvaluationsOfTranscript toyTranscript).all fun e ↦
+  e.2 == LeanVM.Protocol.KeccakHash.keccak256 e.1
+
+-- The indexed replay keeps those of at most `L` bytes.
+#guard keccakEvaluationsFast toyTranscript 600 ==
+  (LeanVM.keccakEvaluationsOfTranscript toyTranscript).filter (·.1.length ≤ 600)
+#guard (keccakEvaluationsFast toyTranscript 600).map (·.1.length) = [512, 64]
+#guard (keccakEvaluationsFast toyTranscript 64).map (·.1.length) = [64]
+
+/-- info: 'LeanVM.Extraction.Fast.transcriptExtractorFast_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms transcriptExtractorFast_eq
 
 end LeanVMTests.Extraction
