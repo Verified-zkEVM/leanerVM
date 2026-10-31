@@ -1,6 +1,6 @@
 module
 
-public import Statement.RandomPermutation
+public import Statement.Keccak
 public import CompPoly.Fields.Binary.BF64
 public import CompPoly.Fields.Extension
 public import Statement.Fast.FieldWords

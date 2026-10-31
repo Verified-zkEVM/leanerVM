@@ -1,6 +1,6 @@
 module
 
-public import Statement.RandomPermutation
+public import Statement.SufCma
 public import Statement.Fast.Keccak
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation

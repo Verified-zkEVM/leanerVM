@@ -11,7 +11,7 @@
 
 module
 
-public import Statement.RandomPermutation
+public import Statement.SufCma
 
 /-!
 # The compiled Keccak

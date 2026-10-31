@@ -15,7 +15,9 @@ The definitions the end statements need (the permutation oracle `permutationOrac
 permutation `lazyRandomPermutation`, `QueryCostAtMost`, the oracles of the model `RandomPermutationOracles` and a game's run `runWithRandomPermutation`,
 Keccak-256 the sponge `keccak256With` over the permutation of the lane state `KeccakState`, the SUF-CMA
 game in the random-permutation model) are in
-[`Statement/RandomPermutation.lean`](../Statement/RandomPermutation.lean), namespace `Common`;
+[`Statement/Keccak.lean`](../Statement/Keccak.lean) (the sponge),
+[`Statement/RandomPermutation.lean`](../Statement/RandomPermutation.lean) (the model, namespace
+`Common`) and [`Statement/SufCma.lean`](../Statement/SufCma.lean) (the game, `Common.SufCma`);
 the files below keep their proofs and the definitions only the proofs use.
 
 - `Common/Defs.lean`: the sponge the proofs are written in, over a state `(Dg × E) × C` (digest

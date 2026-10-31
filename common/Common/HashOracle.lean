@@ -1,6 +1,6 @@
 module
 
-public import Statement.RandomPermutation
+public import Statement.SufCma
 public import Common.WithHash
 
 @[expose] public section
