@@ -182,4 +182,55 @@ theorem add_eq_addFast (x y : Ext P) : x + y = addFast x y := by
 
 end
 
+/-! ## The ring and the field, compiled with the unrolled operations
+
+CompPoly's `Ext.instAddCommGroup`, `Ext.instCommRing` and `Ext.instField` were compiled before
+the lemmas above existed: code generic in a ring or a field (a sum, a power through `Monoid.npow`,
+an inverse through `Field`) multiplies through them by the table-driven `Ext.mulTbl`. Each is
+restated here, its sum, product, power and inverse the restated ones, and the lemma equating
+them, by `rfl`, compiles the CompPoly one as the restatement. -/
+
+section Instances
+
+variable {F : Type*} [Field F] {P : ExtensionParams F}
+
+@[expose] public section
+
+/-- `Ext.instAddCommGroup`, restated: its sum is `Ext.instAdd`. -/
+@[instance_reducible] def instAddCommGroupFast : AddCommGroup (Ext P) :=
+  { instAddCommGroup with toAdd := instAdd }
+
+/-- `Ext.instAddCommGroup` compiles as its restatement. -/
+@[csimp] theorem instAddCommGroup_eq_instAddCommGroupFast :
+    @instAddCommGroup = @instAddCommGroupFast := rfl
+
+/-- `Ext.instCommRing`, restated: its sum, product and power are `Ext.instAdd`, `Ext.instMul`
+and `Ext.instPowNat`. -/
+@[instance_reducible] def instCommRingFast : CommRing (Ext P) :=
+  { instCommRing with toAdd := instAdd, toMul := instMul, npow := fun n x ↦ x ^ n }
+
+/-- `Ext.instCommRing` compiles as its restatement. -/
+@[csimp] theorem instCommRing_eq_instCommRingFast : @instCommRing = @instCommRingFast := rfl
+
+section Irreducible
+
+variable [Finite F] [Fact (Nat.card F = P.q)] [Fact (Irreducible P.poly)]
+
+/-- `Ext.instField`, restated: its ring is `Ext.instCommRing` and its inverse and quotient
+`Ext.instInv`'s and `Ext.instDiv`'s. -/
+@[instance_reducible] def instFieldFast : Field (Ext P) :=
+  { instField with
+    toCommRing := instCommRing
+    inv := fun x ↦ x⁻¹
+    div := fun x y ↦ x / y }
+
+/-- `Ext.instField` compiles as its restatement. -/
+@[csimp] theorem instField_eq_instFieldFast : @instField = @instFieldFast := rfl
+
+end Irreducible
+
+end
+
+end Instances
+
 end CompPoly.Extension.Ext
