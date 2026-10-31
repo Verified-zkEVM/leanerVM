@@ -56,7 +56,7 @@ def vtAirT (t : ℕ) : List Stmt :=
 theorem vtAirT_check : ∀ t < 6,
     tbStmtsEqb [vtDimT t] ((vtPre.drop (vtAirD.getD t (0, 0, 0, 0)).1).take 1) = true ∧
       tbStmtsEqb (vtAirT t) ((vtPre.drop (vtAirD.getD t (0, 0, 0, 0)).2.2.1).take 5) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 /-- Evaluation `k`'s table. -/
 def vtEvTab (k : ℕ) : ℕ :=
@@ -112,7 +112,7 @@ def vtFTags : List (ℕ × ℕ) := [
 
 theorem vtF_cover : tbStmtsEqb (((vtPre.drop vtFLo).take (vtFHi - vtFLo)).filter
     (fun s ↦ !(autoB s || rd14 s))) (vtFTags.flatMap vtFTagT) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 theorem vtFTags_spec : ∀ q ∈ vtFTags, (q.1 = 0 ∧ q.2 < 157) ∨ (q.1 = 1 ∧ q.2 < 39) ∨
     ((q.1 = 2 ∨ q.1 = 3) ∧ q.2 < 6) := by

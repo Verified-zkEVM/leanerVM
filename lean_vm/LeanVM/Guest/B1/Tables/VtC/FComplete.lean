@@ -31,7 +31,7 @@ open LeanVM.Protocol.EndToEnd.Complete (blockSel termsPure)
 theorem vtF_split : tbStmtsEqb ((vtPre.drop vtFLo).take (10209 - vtFLo))
     ((vtPre.drop vtFLo).take (vtFHi - vtFLo) ++ [.atom (.assertEq (.n 11197) (.n 5933))]) =
       true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}

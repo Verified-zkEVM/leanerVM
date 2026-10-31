@@ -98,6 +98,27 @@ noncomputable def vtPre : List Stmt := ((List.range 24).map vtChunk).flatten
 theorem vtPre_noRet : Stmt.noRetList vtPre = true :=
   tb_noRetList_flatten_range 24 vtChunk vtChunk_noRet
 
+/-- The lengths of `verify_tables`' chunks. -/
+def vtLens : List ℕ :=
+  [586, 486, 472, 468, 392, 301, 234, 234, 234, 452, 482, 230, 234, 234, 456, 572, 560, 576, 544,
+    530, 574, 570, 561, 269]
+
+theorem vtLens_eq : ((List.range 24).map vtChunk).map List.length = vtLens := by decide +kernel
+
+/-- `vtPre` from position `n` (`vtPre_drop`), as the kernel reads it fast: the chunks before `n`
+passed by their lengths, not walked statement by statement. Every kernel check of a statement of
+`verify_tables` at a position reads it so. -/
+noncomputable def vtAt (n : ℕ) : List Stmt := dropFlatL vtLens ((List.range 24).map vtChunk) n
+
+theorem vtPre_drop (n : ℕ) : vtPre.drop n = vtAt n := by
+  rw [vtAt, ← vtLens_eq, dropFlatL_eq]
+  rfl
+
+/-- A comparison with `vtPre` at a position, read through `vtAt`. -/
+theorem vtAt_eqb {l : List Stmt} {n m : ℕ} (h : tbStmtsEqb l ((vtPre.drop n).take m) = true) :
+    tbStmtsEqb l ((vtAt n).take m) = true :=
+  vtPre_drop n ▸ h
+
 /-- The valuation `σ` satisfies every statement of `verify_tables` before its `ret`. -/
 def VtH (rd : Reader) (σ : Val) : Prop :=
   ∃ kret : List E → Prop, Stmt.HoldsList (coreProgram.Rel rd) rd σ vtPre True kret
@@ -148,6 +169,24 @@ theorem VtH.dispatch (h : VtH rd σ) (n : ℕ) (x : V) (fs : List String)
       coreProgram.Rel rd fs[j] (args.map σ) (rets.map σ) := by
   obtain ⟨k, h⟩ := h
   exact tb_holds_dispatch vtPre_noRet h n x fs args rets heq
+
+/-! The same at `vtAt`: what a kernel check of a statement at a position evaluates fast. -/
+
+theorem VtH.atomAt (h : VtH rd σ) (n : ℕ) (a : Atom)
+    (heq : tbStmtsEqb [.atom a] ((vtAt n).take 1) = true) : a.Holds rd σ :=
+  h.atom n a (vtPre_drop n ▸ heq)
+
+theorem VtH.sliceAt (h : VtH rd σ) (n : ℕ) (blk : List Stmt)
+    (heq : tbStmtsEqb blk ((vtAt n).take blk.length) = true) :
+    ∃ kret : List E → Prop, Stmt.HoldsList (coreProgram.Rel rd) rd σ blk True kret :=
+  h.slice n blk (vtPre_drop n ▸ heq)
+
+theorem VtH.dispatchAt (h : VtH rd σ) (n : ℕ) (x : V) (fs : List String)
+    (args rets : List V)
+    (heq : tbStmtsEqb [.dispatch x fs args rets] ((vtAt n).take 1) = true) :
+    ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (Parameters.gpow j) ∧
+      coreProgram.Rel rd fs[j] (args.map σ) (rets.map σ) :=
+  h.dispatch n x fs args rets (vtPre_drop n ▸ heq)
 
 end Read
 

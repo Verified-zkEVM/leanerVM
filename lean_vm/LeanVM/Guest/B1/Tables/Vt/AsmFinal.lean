@@ -65,11 +65,11 @@ theorem vt_weight_guest {rd : Reader} {σ : Val} {point pts : List E} {n : ℕ}
 theorem vt_xi_pow {rd : Reader} {σ : Val} (h : VtH rd σ) :
     σ (.n 5896) = 1 ∧ σ (.n 5897) = σ (.n 5895) ∧ σ (.n 5898) = σ (.n 5895) ^ 2 ∧
       σ (.n 5899) = σ (.n 5895) ^ 3 ∧ σ (.n 5900) = σ (.n 5895) ^ 4 := by
-  have a0 := h.atom 5207 (.const (.n 5896) (word 1 0 0)) (by decide +kernel)
-  have a1 := h.atom 5208 (.mul (.n 5897) (.n 5896) (.n 5895)) (by decide +kernel)
-  have a2 := h.atom 5209 (.mul (.n 5898) (.n 5897) (.n 5895)) (by decide +kernel)
-  have a3 := h.atom 5210 (.mul (.n 5899) (.n 5898) (.n 5895)) (by decide +kernel)
-  have a4 := h.atom 5211 (.mul (.n 5900) (.n 5899) (.n 5895)) (by decide +kernel)
+  have a0 := h.atomAt 5207 (.const (.n 5896) (word 1 0 0)) (by decide +kernel)
+  have a1 := h.atomAt 5208 (.mul (.n 5897) (.n 5896) (.n 5895)) (by decide +kernel)
+  have a2 := h.atomAt 5209 (.mul (.n 5898) (.n 5897) (.n 5895)) (by decide +kernel)
+  have a3 := h.atomAt 5210 (.mul (.n 5899) (.n 5898) (.n 5895)) (by decide +kernel)
+  have a4 := h.atomAt 5211 (.mul (.n 5900) (.n 5899) (.n 5895)) (by decide +kernel)
   simp only [Atom.Holds, tb_word_one] at a0 a1 a2 a3 a4
   refine ⟨a0, by rw [a1, a0, one_mul], by rw [a2, a1, a0]; ring, by rw [a3, a2, a1, a0]; ring,
     by rw [a4, a3, a2, a1, a0]; ring⟩

@@ -52,6 +52,19 @@ theorem VtF.atom (h : VtF rd σ) (n : ℕ) (a : Atom)
   obtain ⟨_, hs⟩ := h.slice n [.atom a] heq hr
   exact hs.1
 
+/-- `VtF.slice` at `vtAt`, what a kernel check evaluates fast. -/
+theorem VtF.sliceAt (h : VtF rd σ) (n : ℕ) (blk : List Stmt)
+    (heq : tbStmtsEqb blk ((vtAt n).take blk.length) = true)
+    (hr : vtFLo ≤ n ∧ n + blk.length ≤ vtFHi := by decide) :
+    ∃ kret : List E → Prop, Stmt.HoldsList (coreProgram.Rel rd) rd σ blk True kret :=
+  h.slice n blk (vtPre_drop n ▸ heq) hr
+
+/-- `VtF.atom` at `vtAt`, what a kernel check evaluates fast. -/
+theorem VtF.atomAt (h : VtF rd σ) (n : ℕ) (a : Atom)
+    (heq : tbStmtsEqb [.atom a] ((vtAt n).take 1) = true)
+    (hr : vtFLo ≤ n ∧ n + 1 ≤ vtFHi := by decide) : a.Holds rd σ :=
+  h.atom n a (vtPre_drop n ▸ heq) hr
+
 theorem mem_take_drop_mono {α : Type} {l : List α} {a b n m : ℕ} (h1 : a ≤ n)
     (h2 : n + m ≤ a + b) {x : α} (hx : x ∈ (l.drop n).take m) : x ∈ (l.drop a).take b := by
   have e : l.drop n = (l.drop a).drop (n - a) := by rw [List.drop_drop]; congr 1; omega

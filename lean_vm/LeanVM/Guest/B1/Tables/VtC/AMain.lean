@@ -291,7 +291,7 @@ def vtBitsPos : List ℕ := [2411, 2438, 2514, 2590, 2604, 2618, 2632, 2646, 266
 set_option maxRecDepth 100000 in
 theorem vt_bits_const : ∀ k < 99, tbStmtsEqb [.atom (.const (.n (vtAllocVars.getD (8 + k) 0 - 1))
     (word 17179869184 0 0))] ((vtPre.drop (vtBitsPos.getD k 0 - 1)).take 1) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem vt_allocSz : (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (fun x ↦ x.2) =

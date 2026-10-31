@@ -191,10 +191,11 @@ noncomputable def zTail : List Stmt := [
     .atom (.copy (.n 11244) (.n 2639)),
     .atom (.copy (.n 11245) (.n 11217))]
 
-theorem zBlk_at : tbStmtsEqb zBlk ((vtPre.drop 5152).take zBlk.length) = true := by decide +kernel
+theorem zBlk_at : tbStmtsEqb zBlk ((vtPre.drop 5152).take zBlk.length) = true := by
+  simp only [vtPre_drop]; decide +kernel
 
 theorem zTail_at : tbStmtsEqb zTail ((vtPre.drop 10209).take zTail.length) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 /-! ## The honest rounds -/
 

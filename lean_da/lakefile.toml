@@ -3,6 +3,7 @@ version = "0.1.0"
 defaultTargets = ["LeanDa"]
 
 [leanOptions]
+warningAsError = true
 autoImplicit = false
 relaxedAutoImplicit = false
 

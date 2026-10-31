@@ -51,13 +51,16 @@ def vtFwSelT (w b : ℕ) (prev : Option ℕ) : List Stmt :=
   vtFwTail w prev
 
 theorem vtFw0_check : tbStmtsEqb (vtFwSelT 2854 0 none)
-    ((vtPre.drop 2407).take (vtFwSelT 2854 0 none).length) = true := by decide +kernel
+    ((vtPre.drop 2407).take (vtFwSelT 2854 0 none).length) = true := by
+      simp only [vtPre_drop]; decide +kernel
 
 theorem vtFw1_check : tbStmtsEqb (vtFwSelT 2884 1 (some 2870))
-    ((vtPre.drop 2434).take (vtFwSelT 2884 1 (some 2870)).length) = true := by decide +kernel
+    ((vtPre.drop 2434).take (vtFwSelT 2884 1 (some 2870)).length) = true := by
+      simp only [vtPre_drop]; decide +kernel
 
 theorem vtFw2_check : tbStmtsEqb (vtFwSelT 2959 2 (some 2903))
-    ((vtPre.drop 2510).take (vtFwSelT 2959 2 (some 2903)).length) = true := by decide +kernel
+    ((vtPre.drop 2510).take (vtFwSelT 2959 2 (some 2903)).length) = true := by
+      simp only [vtPre_drop]; decide +kernel
 
 theorem vt_eq_plusOne {bs : List Bool} {zs : List E} :
     ((List.zip bs (zs.map (1 + ·))).map fun p ↦ bitE p.1 + p.2).prod = bitsEq bs zs (zs.map (1 + ·)) := by

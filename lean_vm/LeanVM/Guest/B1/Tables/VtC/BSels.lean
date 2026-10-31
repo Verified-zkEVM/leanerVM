@@ -37,7 +37,8 @@ def vtFwPos : List ℕ := [2407, 2434, 2510]
 
 theorem vtFw_check : ∀ b < 3, tbStmtsEqb (vtFwSelT (vtFwV.getD b 0) b (vtFwPrev.getD b none))
     ((vtPre.drop (vtFwPos.getD b 0)).take
-      (vtFwSelT (vtFwV.getD b 0) b (vtFwPrev.getD b none)).length) = true := by decide +kernel
+      (vtFwSelT (vtFwV.getD b 0) b (vtFwPrev.getD b none)).length) = true := by
+        simp only [vtPre_drop]; decide +kernel
 
 theorem vtFw_reads : ∀ b < 3, Atom.load (.n (vtFwV.getD b 0)) (.n 12) b ∉ vtSL ∧
     Atom.load (.n (vtFwV.getD b 0 + 7)) (.n 185) b ∉ vtSL ∧

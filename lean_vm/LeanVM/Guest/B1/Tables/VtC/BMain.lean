@@ -27,19 +27,20 @@ open LeanVM.Protocol.EndToEnd.Complete (blockSel)
 theorem vtB_flatP : tbStmtsEqb ((List.range 51).flatMap fun i ↦ vtSelT
     (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).1
     (vtPushSel.getD i default).2.2.2.1 (vtPushSel.getD i default).2.2.2.2)
-    ((vtPre.drop 2586).take 898) = true := by decide +kernel
+    ((vtPre.drop 2586).take 898) = true := by simp only [vtPre_drop]; decide +kernel
 
 theorem vtB_flatC : tbStmtsEqb ((List.range 45).flatMap fun i ↦ vtSelT
     (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).1
     (vtCountSel.getD i default).2.2.2.1 (vtCountSel.getD i default).2.2.2.2)
-    ((vtPre.drop 4305).take 793) = true := by decide +kernel
+    ((vtPre.drop 4305).take 793) = true := by simp only [vtPre_drop]; decide +kernel
 
 theorem vtB_fs_checks :
     tbStmtsEqb (fsNextT (.n 5) 0 2914) ((vtPre.drop 2462).take 9) = true ∧
     tbStmtsEqb (fsNextT (.n 5) 1 2927) ((vtPre.drop 2476).take 9) = true ∧
     tbStmtsEqb (fsNextT (.n 5) 2 2940) ((vtPre.drop 2490).take 9) = true ∧
     tbStmtsEqb (fsNextT (.n 5) 3 4444) ((vtPre.drop 3938).take 9) = true ∧
-    tbStmtsEqb (fsNextT (.n 5) 4 4502) ((vtPre.drop 3983).take 9) = true := by decide +kernel
+    tbStmtsEqb (fsNextT (.n 5) 4 4502) ((vtPre.drop 3983).take 9) = true := by
+      simp only [vtPre_drop]; decide +kernel
 
 theorem vtB_fs_reads : Atom.load (.n 2914) (.n 5) 0 ∉ vtSL ∧ Atom.load (.n 2927) (.n 5) 1 ∉ vtSL ∧
     Atom.load (.n 2940) (.n 5) 2 ∉ vtSL ∧ Atom.load (.n 4444) (.n 5) 3 ∉ vtSL ∧
@@ -48,7 +49,7 @@ theorem vtB_fs_reads : Atom.load (.n 2914) (.n 5) 0 ∉ vtSL ∧ Atom.load (.n 2
 theorem vtB_index_stmts :
     tbStmtsEqb [.dispatch (.n 2884) vtImNames [.n 8] [.n 2908]] ((vtPre.drop 2455).take 1) = true ∧
     tbStmtsEqb [.dispatch (.n 2959) vtImNames [.n 8] [.n 2983]] ((vtPre.drop 2531).take 1) = true :=
-  by decide +kernel
+  by simp only [vtPre_drop]; decide +kernel
 
 theorem vtB_list5 (l : List E) (h : l.length = 5) :
     [l.getD 0 0, l.getD 1 0, l.getD 2 0, l.getD 3 0, l.getD 4 0] = l := by

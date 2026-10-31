@@ -295,7 +295,8 @@ theorem vt_evalFs_good (hl : args.length = 22)
     rcases hc with rfl | rfl | rfl | rfl | rfl <;> exact canon_cellsOfState _ _ _
 
 theorem vt_evLoad_at : ∀ k < 157, tbStmtsEqb [.atom (.load (.n (vtEvB k)) (.n 5932) k)]
-    ((vtPre.drop (vtEvalData.getD k (0, 0, 0)).1).take 1) = true := by decide +kernel
+    ((vtPre.drop (vtEvalData.getD k (0, 0, 0)).1).take 1) = true := by
+      simp only [vtPre_drop]; decide +kernel
 
 theorem vt_evLoad_read : ∀ k < 157, Atom.load (.n (vtEvB k)) (.n 5932) k ∉ vtSL := by
   decide +kernel

@@ -51,32 +51,32 @@ theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
         ([2914, 2927, 2940, 4444, 4502].getD k 0 + 1) dsObserve) ∧
       σ (.n 5895) = (vtFreshFs σ).squeeze.1 ∧
       ((List.range 5).map fun k ↦ σ (.n (5884 + k))) = (vtFreshFs σ).squeeze.2.cap := by
-  obtain ⟨_, f0⟩ := h.slice 2462 (fsNextT (.n 5) 0 2914) (by decide +kernel)
-  obtain ⟨_, f1⟩ := h.slice 2476 (fsNextT (.n 5) 1 2927) (by decide +kernel)
-  obtain ⟨_, f2⟩ := h.slice 2490 (fsNextT (.n 5) 2 2940) (by decide +kernel)
-  obtain ⟨_, f3⟩ := h.slice 3938 (fsNextT (.n 5) 3 4444) (by decide +kernel)
-  obtain ⟨_, f4⟩ := h.slice 3983 (fsNextT (.n 5) 4 4502) (by decide +kernel)
+  obtain ⟨_, f0⟩ := h.sliceAt 2462 (fsNextT (.n 5) 0 2914) (by decide +kernel)
+  obtain ⟨_, f1⟩ := h.sliceAt 2476 (fsNextT (.n 5) 1 2927) (by decide +kernel)
+  obtain ⟨_, f2⟩ := h.sliceAt 2490 (fsNextT (.n 5) 2 2940) (by decide +kernel)
+  obtain ⟨_, f3⟩ := h.sliceAt 3938 (fsNextT (.n 5) 3 4444) (by decide +kernel)
+  obtain ⟨_, f4⟩ := h.sliceAt 3983 (fsNextT (.n 5) 4 4502) (by decide +kernel)
   rw [holds_fsNextT] at f0 f1 f2 f3 f4
   obtain ⟨⟨l0, p0⟩, -⟩ := f0
   obtain ⟨⟨l1, p1⟩, -⟩ := f1
   obtain ⟨⟨l2, p2⟩, -⟩ := f2
   obtain ⟨⟨l3, p3⟩, -⟩ := f3
   obtain ⟨⟨l4, p4⟩, -⟩ := f4
-  have c22 := h.atom 0 (.copy (.n 22) (.n 0)) (by decide +kernel)
-  have c23 := h.atom 1 (.copy (.n 23) (.n 1)) (by decide +kernel)
-  have c24 := h.atom 2 (.copy (.n 24) (.n 2)) (by decide +kernel)
-  have c25 := h.atom 3 (.copy (.n 25) (.n 3)) (by decide +kernel)
-  have c26 := h.atom 4 (.copy (.n 26) (.n 4)) (by decide +kernel)
+  have c22 := h.atomAt 0 (.copy (.n 22) (.n 0)) (by decide +kernel)
+  have c23 := h.atomAt 1 (.copy (.n 23) (.n 1)) (by decide +kernel)
+  have c24 := h.atomAt 2 (.copy (.n 24) (.n 2)) (by decide +kernel)
+  have c25 := h.atomAt 3 (.copy (.n 25) (.n 3)) (by decide +kernel)
+  have c26 := h.atomAt 4 (.copy (.n 26) (.n 4)) (by decide +kernel)
   have k1 := h.atom 3982 (.keccak [.n 2921, .n 2923, .n 2934, .n 2936, .n 2947, .n 2949, .n 4451,
     .n 4453, .n 22, .n 23, .n 24, .n 25, .n 26] (lyOuts 4489) false false) (by decide +kernel)
-  have z2 := h.atom 5194 (.const (.n 5872) (word 0 0 0)) (by decide +kernel)
-  have z3 := h.atom 5195 (.const (.n 5873) (word 0 0 0)) (by decide +kernel)
-  have z4 := h.atom 5196 (.const (.n 5874) (word 0 0 0)) (by decide +kernel)
-  have z5 := h.atom 5197 (.const (.n 5875) (word 0 0 0)) (by decide +kernel)
+  have z2 := h.atomAt 5194 (.const (.n 5872) (word 0 0 0)) (by decide +kernel)
+  have z3 := h.atomAt 5195 (.const (.n 5873) (word 0 0 0)) (by decide +kernel)
+  have z4 := h.atomAt 5196 (.const (.n 5874) (word 0 0 0)) (by decide +kernel)
+  have z5 := h.atomAt 5197 (.const (.n 5875) (word 0 0 0)) (by decide +kernel)
   have k2 := h.atom 5198 (.keccak [.n 4509, .n 4511, .n 5872, .n 5872, .n 5872, .n 5873, .n 5874,
     .n 5875, .n 4497, .n 4498, .n 4499, .n 4500, .n 4501] (lyOuts 5876) false false)
     (by decide +kernel)
-  obtain ⟨_, hch⟩ := h.slice 5199 (challengeT (.n 5876) (.n 5877) 5889) (by decide +kernel)
+  obtain ⟨_, hch⟩ := h.sliceAt 5199 (challengeT (.n 5876) (.n 5877) 5889) (by decide +kernel)
   rw [holds_challengeT] at hch
   simp only [Atom.Holds, tb_word_zero] at c22 c23 c24 c25 c26 z2 z3 z4 z5
   obtain ⟨hcan1, hP1, hC1⟩ := ly_keccak k1

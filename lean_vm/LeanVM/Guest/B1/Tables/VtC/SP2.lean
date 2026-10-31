@@ -51,7 +51,7 @@ theorem vtS_p2_checks :
       .dispatch (.n 9) plusOneRunNames [.n 2767, .n 8] [.n 2768],
       .atom (.hint (.alloc (.n 2769) 1728)), .atom (.hint (.alloc (.n 2770) 864))]
       ((vtPre.drop 2326).take 4) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 theorem vtPad_reads : ∀ t < 5, ∀ a ∈ [Atom.load (.n (2640 + 14 * t)) (.n 10) (t + 1),
     .load (.n (2640 + 14 * t + 5)) (.n 11) t], a ∉ vtSL := by decide +kernel

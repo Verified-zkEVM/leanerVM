@@ -108,7 +108,7 @@ theorem rank_loads {v R s pk pc gin e κ : ℕ} (hv : 186 ≤ v)
 theorem vtS_loads_checks :
     loadsDirect [(31, 153)] ((vtPre.drop 0).take 318) = true ∧
     loadsDirect [(10, 7), (11, 6), (2732, 34)] ((vtPre.drop 2189).take 215) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 section
 variable {args : List E}

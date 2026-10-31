@@ -70,11 +70,11 @@ def vtSideBlk (v0 R0 s n : ℕ) : List Stmt :=
 
 theorem vtPushBlk_check :
     tbStmtsEqb (vtSideBlk 186 0 0 54) ((vtPre.drop 318).take (vtSideBlk 186 0 0 54).length) =
-      true := by decide +kernel
+      true := by simp only [vtPre_drop]; decide +kernel
 
 theorem vtCountBlk_check :
     tbStmtsEqb (vtSideBlk 1525 108 2 45) ((vtPre.drop 1339).take (vtSideBlk 1525 108 2 45).length) =
-      true := by decide +kernel
+      true := by simp only [vtPre_drop]; decide +kernel
 
 theorem vtPushBlk_length : (vtSideBlk 186 0 0 54).length = 1021 := by decide +kernel
 
@@ -96,10 +96,11 @@ theorem vtSort_prelude_check : tbStmtsEqb [.atom (.copy (.n 22) (.n 0)), .atom (
     .atom (.copy (.n 24) (.n 2)), .atom (.copy (.n 25) (.n 3)), .atom (.copy (.n 26) (.n 4)),
     .atom (.copy (.n 27) (.n 19)), .atom (.copy (.n 28) (.n 20)), .atom (.copy (.n 29) (.n 21)),
     .atom (.hint (.alloc (.n 30) 153)), .atom (.hint (.witness "sort_order" (.heap (.n 30) 0 153))),
-    .atom (.hint (.alloc (.n 31) 153))] ((vtPre.drop 0).take 11) = true := by decide +kernel
+    .atom (.hint (.alloc (.n 31) 153))] ((vtPre.drop 0).take 11) = true := by
+      simp only [vtPre_drop]; decide +kernel
 
 theorem vtSort_alloc185 : tbStmtsEqb [.atom (.hint (.alloc (.n 185) 153))]
-    ((vtPre.drop 317).take 1) = true := by decide +kernel
+    ((vtPre.drop 317).take 1) = true := by simp only [vtPre_drop]; decide +kernel
 
 theorem vtSideT_length : vtSideT.length = 306 := by decide +kernel
 

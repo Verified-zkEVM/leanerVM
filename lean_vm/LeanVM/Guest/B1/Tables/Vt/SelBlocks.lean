@@ -119,7 +119,7 @@ theorem vtPushSel_check : ∀ i < vtPushSel.length,
       ((vtPre.drop (vtPushSel.getD i default).2.1).take
         (vtSelT (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).1
           (vtPushSel.getD i default).2.2.2.1 (vtPushSel.getD i default).2.2.2.2).length) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 theorem vtCountSel_check : ∀ i < vtCountSel.length,
     tbStmtsEqb (vtSelT (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).1
@@ -127,7 +127,7 @@ theorem vtCountSel_check : ∀ i < vtCountSel.length,
       ((vtPre.drop (vtCountSel.getD i default).2.1).take
         (vtSelT (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).1
           (vtCountSel.getD i default).2.2.2.1 (vtCountSel.getD i default).2.2.2.2).length) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 end
 end LeanVM.Guest.B1.Tables

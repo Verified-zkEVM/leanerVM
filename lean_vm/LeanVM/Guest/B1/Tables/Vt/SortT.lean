@@ -80,26 +80,26 @@ def vtRankAt (v0 R0 s r : ℕ) : List Stmt :=
 def vtRp (p0 r : ℕ) : ℕ := if r = 0 then p0 else p0 + 14 + 19 * (r - 1)
 
 theorem vtSideT_check : tbStmtsEqb vtSideT ((vtPre.drop 11).take vtSideT.length) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 theorem vtPush0_check :
     tbStmtsEqb (vtRank0T 186 0 0) ((vtPre.drop 318).take (vtRank0T 186 0 0).length) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 theorem vtCount0_check :
     tbStmtsEqb (vtRank0T 1525 108 2) ((vtPre.drop 1339).take (vtRank0T 1525 108 2).length) =
       true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 theorem vtPush_check : ∀ r < 54, 1 ≤ r →
     tbStmtsEqb (vtRankAt 186 0 0 r) ((vtPre.drop (vtRp 318 r)).take (vtRankAt 186 0 0 r).length) =
       true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 theorem vtCount_check : ∀ r < 45, 1 ≤ r →
     tbStmtsEqb (vtRankAt 1525 108 2 r)
       ((vtPre.drop (vtRp 1339 r)).take (vtRankAt 1525 108 2 r).length) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 end
 end LeanVM.Guest.B1.Tables

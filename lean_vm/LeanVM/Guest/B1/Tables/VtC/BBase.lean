@@ -51,6 +51,12 @@ theorem VtP.atom {rd : Reader} {σ : Val} (h : VtP rd σ) (n : ℕ) (a : Atom)
     a.Holds rd σ :=
   h n a heq hok
 
+/-- `VtP.atom` at `vtAt`, what a kernel check evaluates fast. -/
+theorem VtP.atomAt {rd : Reader} {σ : Val} (h : VtP rd σ) (n : ℕ) (a : Atom)
+    (heq : tbStmtsEqb [.atom a] ((vtAt n).take 1) = true) (hok : okP a = true := by decide) :
+    a.Holds rd σ :=
+  h n a (vtPre_drop n ▸ heq) hok
+
 /-- No store goes through `fp_w`. -/
 theorem vtSL_no14 : vtSL.all (fun a ↦ match a with
     | .load _ p _ => !decide (p = .n 14)

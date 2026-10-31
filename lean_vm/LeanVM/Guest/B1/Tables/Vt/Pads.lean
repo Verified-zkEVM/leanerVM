@@ -63,11 +63,11 @@ def vtPad5T (v : ℕ) : List Stmt :=
 theorem vtPad_check : ∀ t < 5,
     tbStmtsEqb (vtPadT (2640 + 14 * t) t)
       ((vtPre.drop (2190 + 11 * t)).take (vtPadT (2640 + 14 * t) t).length) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 theorem vtPad5_check :
     tbStmtsEqb (vtPad5T 2710) ((vtPre.drop 2245).take (vtPad5T 2710).length) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 theorem vtW28_eq : vtW28 = ofK (Parameters.gpow 28) := by
   rw [vtW28, tb_word_eOfNat]

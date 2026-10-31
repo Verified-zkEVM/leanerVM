@@ -35,11 +35,11 @@ def vtIdxcT : List Stmt :=
     (word (tbGSquaresBits.getD t 0 ^^^ 1) 0 0)), .atom (.load (.n (2733 + t)) (.n 2732) t)]).flatten
 
 theorem vtIdxc_check : tbStmtsEqb vtIdxcT ((vtPre.drop 2258).take vtIdxcT.length) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 theorem vtZeta1_check : tbStmtsEqb [.dispatch (.n 9) plusOneRunNames [.n 2767, .n 8] [.n 2768]]
     ((vtPre.drop 2327).take 1) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 /-- `g^(288 t)`'s and `g^(144 t)`'s words, `t ≤ 5`. -/
 def vtShC1 : List ℕ := [1, 299140177199104, 116417108763, 12802355687494521950, 91479367452269810,
@@ -75,12 +75,12 @@ def vtSh0T : List Stmt :=
     .call "shared_selector_tables" [.n 2769, .n 2770, .n 2778, .n 2779, .n 2780, .n 2773] []]
 
 theorem vtSh0_check : tbStmtsEqb vtSh0T ((vtPre.drop 2330).take vtSh0T.length) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 theorem vtSh_check : ∀ t < 6, 1 ≤ t →
     tbStmtsEqb (vtShT (2781 + 14 * (t - 1)) t)
       ((vtPre.drop (2339 + 13 * (t - 1))).take (vtShT (2781 + 14 * (t - 1)) t).length) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 /-- Table `t`'s `shared_len` value. -/
 def vtShLen (t : ℕ) : ℕ := if t = 0 then 2773 else 2781 + 14 * (t - 1) + 2

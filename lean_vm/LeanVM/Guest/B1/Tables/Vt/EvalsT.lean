@@ -101,11 +101,11 @@ theorem vtEval_check : ∀ k < 157,
       ((vtPre.drop (vtEvalData.getD k (0, 0, 0)).1).take
         (vtEvalT (vtEvalData.getD k (0, 0, 0)).2.1 k (vtEvalData.getD k (0, 0, 0)).2.2).length) =
       true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 theorem vtPerm_check : ∀ j < 39,
     tbStmtsEqb [vtPermT j] ((vtPre.drop (vtPermData.getD j (0, 0)).1).take 1) = true := by
-  decide +kernel
+  simp only [vtPre_drop]; decide +kernel
 
 end
 end LeanVM.Guest.B1.Tables

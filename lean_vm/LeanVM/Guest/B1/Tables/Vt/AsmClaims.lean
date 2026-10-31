@@ -211,12 +211,12 @@ theorem vt_asm_claims {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
   have e56 : σ (.n 4475) = gen ^ 19 := tb_loadHolds_unique k56 (hkw 56 (by norm_num))
   rw [e55] at c3
   rw [e56] at c4
-  have a0 := h.atom 5259 (.load (.n 5938) (.n 10) 1) (by decide +kernel)
-  have a1 := h.atom 5690 (.load (.n 6390) (.n 10) 2) (by decide +kernel)
-  have a2 := h.atom 6163 (.load (.n 6896) (.n 10) 3) (by decide +kernel)
-  have a3 := h.atom 6410 (.load (.n 7159) (.n 10) 4) (by decide +kernel)
-  have a4 := h.atom 6877 (.load (.n 7659) (.n 10) 5) (by decide +kernel)
-  have a5 := h.atom 7326 (.load (.n 8130) (.n 10) 6) (by decide +kernel)
+  have a0 := h.atomAt 5259 (.load (.n 5938) (.n 10) 1) (by decide +kernel)
+  have a1 := h.atomAt 5690 (.load (.n 6390) (.n 10) 2) (by decide +kernel)
+  have a2 := h.atomAt 6163 (.load (.n 6896) (.n 10) 3) (by decide +kernel)
+  have a3 := h.atomAt 6410 (.load (.n 7159) (.n 10) 4) (by decide +kernel)
+  have a4 := h.atomAt 6877 (.load (.n 7659) (.n 10) 5) (by decide +kernel)
+  have a5 := h.atomAt 7326 (.load (.n 8130) (.n 10) 6) (by decide +kernel)
   simp only [Atom.Holds] at a0 a1 a2 a3 a4 a5
   have ta : ∀ t < 6, σ (.n ([5938, 6390, 6896, 7159, 7659, 8130].getD t 0)) = gen ^ vtHt rows t := by
     intro t ht

@@ -137,7 +137,7 @@ structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Pr
 
 theorem vtB_loads_check : ((vtPre.drop 2404).take 2748).all (fun s ↦ match s with
     | .atom (.load _ p off) => vtBufsBIdx.any fun q ↦ decide (p = .n q.1) && decide (off < q.2)
-    | _ => true) = true := by decide +kernel
+    | _ => true) = true := by simp only [vtPre_drop]; decide +kernel
 
 /-- **Every load of the bus sides reads inside `vtBufsB`.** -/
 theorem vtB_loadsInBuf (σ : Val) : LoadsInBuf σ (vtBufsB σ) ((vtPre.drop 2404).take 2748) := by

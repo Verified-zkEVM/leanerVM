@@ -2,6 +2,9 @@ name = "lean-xmss-security"
 version = "0.1.0"
 defaultTargets = ["LeanXmss", "XmssSecurity", "XmssSecurity.Tests.QueryBudget"]
 
+[leanOptions]
+warningAsError = true
+
 # The statement: definitions and end statements only (`Statement/`).
 [[require]]
 name = "statement"

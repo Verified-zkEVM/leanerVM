@@ -33,7 +33,7 @@ open LeanVM.Guest.B1.Fwd
 theorem vtS_copies_check : tbStmtsEqb [.atom (.copy (.n 22) (.n 0)), .atom (.copy (.n 23) (.n 1)),
     .atom (.copy (.n 24) (.n 2)), .atom (.copy (.n 25) (.n 3)), .atom (.copy (.n 26) (.n 4)),
     .atom (.copy (.n 27) (.n 19)), .atom (.copy (.n 28) (.n 20)), .atom (.copy (.n 29) (.n 21))]
-    ((vtPre.drop 0).take 8) = true := by decide +kernel
+    ((vtPre.drop 0).take 8) = true := by simp only [vtPre_drop]; decide +kernel
 
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}

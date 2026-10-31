@@ -88,11 +88,11 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
   have v52 : σ (.n 52) = gen ^ (4 * (m.nlx + m.nxd)) := by
     rw [gM 52 51 51 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
       gM 51 40 40 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v40, ← pow_add, ← pow_add]
-    congr 1; ring
+    exact congrArg (HPow.hPow gen) (by ring)
   have v55 : σ (.n 55) = gen ^ (4 * (m.nls + m.nsd)) := by
     rw [gM 55 54 54 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
       gM 54 41 41 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v41, ← pow_add, ← pow_add]
-    congr 1; ring
+    exact congrArg (HPow.hPow gen) (by ring)
   have vDa : σ (.n 334) = m.aDa := by rw [hO (by decide)]; simp [mOrc]
   have v409 : σ (.n 380) = m.a409 := by rw [hO (by decide)]; simp [mOrc]
   have vpick : σ (.n 387) = gen ^ m.pick := by rw [hO (by decide)]; simp [mOrc]
@@ -100,7 +100,7 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
     rw [gM 333 332 332 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
       gM 332 6 331 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6,
       two 331 (by simp [mDefAtoms]), ← pow_succ, ← pow_add]
-    congr 1; ring
+    exact congrArg (HPow.hPow gen) (by ring)
   have v336 : σ (.n 336) = m.aDa * gen ^ (2 * m.nc) := by
     rw [gM 336 334 335 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
       gM 335 6 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), vDa, v6, ← pow_add, two_mul]
@@ -115,7 +115,7 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       gM 367 366 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
       gM 366 6 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6, ← pow_add, ← pow_add,
       ← pow_add, ← pow_add, ← pow_add]
-    congr 1; ring
+    exact congrArg (HPow.hPow gen) (by ring)
   have v376 : σ (.n 376) = gen ^ (24 * m.nc) := by
     rw [gM 376 375 375 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
       gM 375 374 374 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
@@ -123,7 +123,7 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       gM 373 372 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
       gM 372 6 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6, ← pow_add, ← pow_add,
       ← pow_add, ← pow_add, ← pow_add]
-    congr 1; ring
+    exact congrArg (HPow.hPow gen) (by ring)
   have v379 : σ (.n 379) = gen ^ (m.nc + 1) := by
     rw [gM 379 6 378 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6,
       two 378 (by simp [mDefAtoms]), pow_succ]
@@ -261,7 +261,9 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
   have hzc : ∀ d, Atom.const (.n d) (word 0 0 0) ∈ atomsIn mDaZ → σ (.n d) = 0 := by
     intro d h
     have h' := atom_mem_of_atomsIn' h
-    have := hgA _ (mem_atomsIn' (by simp only [mFlat, List.mem_append]; tauto))
+    have hs : Stmt.atom (.const (.n d) (word 0 0 0)) ∈ mFlat := by
+      clear * - h'; simp only [mFlat, List.mem_append]; tauto
+    have := hgA _ (mem_atomsIn' hs)
     exact (show σ (.n d) = word 0 0 0 from this).trans word_zero
   -- the blocks
   have hsubF : ∀ {P : List Stmt}, (∀ s ∈ P, s ∈ mFlat) → ∀ a ∈ atomsIn P, a ∈ atomsIn mFlat :=
@@ -277,7 +279,8 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       (fun a ha hnS hns => hS a (hsub a ha) hnS hns) hst
   have hB1 : ∀ a ∈ atomsIn (mPre ++ mMid ++ mPost), a.Holds rd σ := by
     refine blk (A := []) (fun s hs => by
-      simp only [List.mem_append] at hs; simp only [mFlat, List.mem_append]; tauto) hcan1
+      clear * - hs; simp only [List.mem_append] at hs; simp only [mFlat, List.mem_append]; tauto)
+      hcan1
       (by simp) (fun _ a ha haS => ?_)
     have := mem_storesIn sB ha haS
     simp only [List.mem_append, List.mem_map, List.mem_range, List.mem_singleton] at this
@@ -301,7 +304,8 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       rw [hR 339 (by simp), hR 340 (by simp), hR 341 (by simp), hR 342 (by simp)]
       match hd : m.daR, hl4 with
       | [a, b, c, d], _ => rfl
-    refine blk (fun s hs => by simp only [mFlat, List.mem_append]; tauto) hcan2 (fun i hi => ?_)
+    refine blk (fun s hs => by clear * - hs; simp only [mFlat, List.mem_append]; tauto) hcan2
+      (fun i hi => ?_)
       (fun h1' a ha haS => ?_)
     · rw [hR i hi]
       apply hcanR
@@ -332,7 +336,8 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
         rw [v336, e]; exact hown 1 (by simp [digestCells])
   have hDaZ : m.nd ≠ 1 → ∀ a ∈ atomsIn mDaZ, a.Holds rd σ := by
     intro h1
-    refine blk (A := []) (fun s hs => by simp only [mFlat, List.mem_append]; tauto) hcan3
+    refine blk (A := []) (fun s hs => by clear * - hs; simp only [mFlat, List.mem_append]; tauto)
+      hcan3
       (by simp) (fun _ a ha haS => ?_)
     have hown := hm.own
     simp only [MainIn.ownDa, h1, ↓reduceIte] at hown
@@ -350,7 +355,8 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       rw [v336, z1]; exact hown 1 (by simp)
   have hLeaf : m.nc = 0 → ∀ a ∈ atomsIn mLeaf, a.Holds rd σ := by
     intro h0
-    refine blk (A := []) (fun s hs => by simp only [mFlat, List.mem_append]; tauto) hcan4
+    refine blk (A := []) (fun s hs => by clear * - hs; simp only [mFlat, List.mem_append]; tauto)
+      hcan4
       (by simp) (fun _ a ha haS => ?_)
     have := mem_storesIn sLf ha haS
     simp only [List.mem_append, List.mem_map, List.mem_range, List.mem_singleton] at this
@@ -364,9 +370,9 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       rw [hO (by decide), hO (by decide)]
       have := hm.leaf h0 23 (by simp)
       simpa [mOrc] using this
-  exact ⟨mB1 (by intro s hs; simp only [List.mem_append]; tauto),
-    mB1 (by intro s hs; simp only [List.mem_append]; tauto),
-    mB1 (by intro s hs; simp only [List.mem_append]; tauto),
+  exact ⟨mB1 (by intro s hs; clear * - hs; simp only [List.mem_append]; tauto),
+    mB1 (by intro s hs; clear * - hs; simp only [List.mem_append]; tauto),
+    mB1 (by intro s hs; clear * - hs; simp only [List.mem_append]; tauto),
     hDa, hDaZ, hLeaf, horc, v40, v41, v42, v52, v55,
     gd 62 61 1 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v1, one 63 (by simp [mDefAtoms]),
     gd 65 64 4 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v4, one 66 (by simp [mDefAtoms]),

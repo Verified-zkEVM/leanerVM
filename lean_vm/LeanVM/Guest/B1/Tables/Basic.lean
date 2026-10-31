@@ -195,12 +195,30 @@ def tbStmtsEqb : List Stmt → List Stmt → Bool
   | s :: ss, s' :: ss' => tbStmtEqb s s' && tbStmtsEqb ss ss'
   | _, _ => false
 
+
 /-- Arms compared structurally. -/
 def tbArmsEqb : List (List Stmt) → List (List Stmt) → Bool
   | [], [] => true
   | a :: as, a' :: as' => tbStmtsEqb a a' && tbArmsEqb as as'
   | _, _ => false
 end
+
+/-- `ls.flatten.drop n` with the lists' lengths `lens` given (`dropFlatL_eq`): the kernel passes a
+list by comparing `n` with its length, a number, instead of dropping its elements one by one. -/
+def dropFlatL {α : Type} : List ℕ → List (List α) → ℕ → List α
+  | len :: lens, l :: ls, n =>
+    bif Nat.blt n len then l.drop n ++ ls.flatten else dropFlatL lens ls (n - len)
+  | _, _, _ => []
+
+theorem dropFlatL_eq {α : Type} :
+    ∀ (ls : List (List α)) (n : ℕ), dropFlatL (ls.map List.length) ls n = ls.flatten.drop n
+  | [], _ => by simp [dropFlatL]
+  | l :: ls, n => by
+    simp only [List.map_cons, dropFlatL, List.flatten_cons, List.drop_append]
+    by_cases h : n < l.length
+    · simp [Nat.blt_eq.mpr h, Nat.sub_eq_zero_of_le h.le]
+    · rw [Nat.not_lt] at h
+      simp [Nat.blt_eq, Nat.not_lt.mpr h, dropFlatL_eq ls, List.drop_eq_nil_of_le h]
 
 mutual
 theorem tbStmtEqb_sound : ∀ {s t : Stmt}, tbStmtEqb s t = true → s = t

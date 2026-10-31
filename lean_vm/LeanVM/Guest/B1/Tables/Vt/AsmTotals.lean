@@ -53,18 +53,18 @@ theorem vtWFinalPc_eq : vtWFinalPc = Verifier.gpow (2 ^ 19 - 1) := by
     show K.ofBits 12261764870545049476 = Parameters.gpow (2 ^ 19 - 1) by decide +kernel]
 
 theorem vt_beta1 {rd : Reader} {σ : Val} (h : VtH rd σ) : σ (.n 2853) = σ (.n 15) + 1 := by
-  have a1 := h.atom 2405 (.const (.n 2852) (word 1 0 0)) (by decide +kernel)
-  have a2 := h.atom 2406 (.add (.n 2853) (.n 15) (.n 2852)) (by decide +kernel)
+  have a1 := h.atomAt 2405 (.const (.n 2852) (word 1 0 0)) (by decide +kernel)
+  have a2 := h.atomAt 2406 (.add (.n 2853) (.n 15) (.n 2852)) (by decide +kernel)
   simp only [Atom.Holds] at a1 a2
   rw [a2, a1, tb_word_one]
 
 theorem vt_pushPad_var {rd : Reader} {σ : Val} (h : VtH rd σ) :
     σ (.n 4411) = σ (.n 3036) + σ (.n 4406) + (1 + σ (.n 3984)) + σ (.n 27) := by
-  have a1 := h.atom 3905 (.add (.n 4407) (.n 3036) (.n 4406)) (by decide +kernel)
-  have a2 := h.atom 3906 (.const (.n 4408) (word 1 0 0)) (by decide +kernel)
-  have a3 := h.atom 3907 (.add (.n 4409) (.n 4408) (.n 3984)) (by decide +kernel)
-  have a4 := h.atom 3908 (.add (.n 4410) (.n 4407) (.n 4409)) (by decide +kernel)
-  have a5 := h.atom 3909 (.add (.n 4411) (.n 4410) (.n 27)) (by decide +kernel)
+  have a1 := h.atomAt 3905 (.add (.n 4407) (.n 3036) (.n 4406)) (by decide +kernel)
+  have a2 := h.atomAt 3906 (.const (.n 4408) (word 1 0 0)) (by decide +kernel)
+  have a3 := h.atomAt 3907 (.add (.n 4409) (.n 4408) (.n 3984)) (by decide +kernel)
+  have a4 := h.atomAt 3908 (.add (.n 4410) (.n 4407) (.n 4409)) (by decide +kernel)
+  have a5 := h.atomAt 3909 (.add (.n 4411) (.n 4410) (.n 27)) (by decide +kernel)
   simp only [Atom.Holds] at a1 a2 a3 a4 a5
   rw [a5, a4, a3, a2, a1, tb_word_one]
 

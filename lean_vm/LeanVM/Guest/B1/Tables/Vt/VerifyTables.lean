@@ -94,9 +94,9 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
   obtain ⟨T0, T1, T2⟩ := vt_asm_totals hμ Lm h hbc hz hmu hml hsq hlm hr hτ hdim hbk hal hW hpw
   obtain ⟨hfr, -, hxi, hcap⟩ := vt_fresh h
   obtain ⟨hrm, hcap', h11242, h11243, h11244, h11245, -, -, -, -, -⟩ := vt_pi h
-  have c5 := h.atom 5 (.copy (.n 27) (.n 19)) (by decide +kernel)
-  have c6 := h.atom 6 (.copy (.n 28) (.n 20)) (by decide +kernel)
-  have c7 := h.atom 7 (.copy (.n 29) (.n 21)) (by decide +kernel)
+  have c5 := h.atomAt 5 (.copy (.n 27) (.n 19)) (by decide +kernel)
+  have c6 := h.atomAt 6 (.copy (.n 28) (.n 20)) (by decide +kernel)
+  have c7 := h.atomAt 7 (.copy (.n 29) (.n 21)) (by decide +kernel)
   simp only [Atom.Holds] at c5 c6 c7
   -- the forms
   have hforms : (vtBus (layoutOf bc lm rows) alphas (σ (.n 15)) point values
