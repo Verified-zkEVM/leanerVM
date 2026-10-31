@@ -210,6 +210,15 @@ theorem laneCoeffs_mem_laneListAt {μ R A : ℕ} (hμ : 7 ≤ μ) (hn : μ - ini
   rw [laneListAt, List.mem_dedup, List.mem_map]
   exact ⟨cp, hcp, toNovel_of_toPoly (by omega) cp _ hcpq⟩
 
+/-- **At the deployed shapes**: lane `u` of every candidate at the Johnson threshold is in the
+lane's list. -/
+theorem laneCoeffs_mem_laneList {μ R : ℕ} (hμ : 15 ≤ μ ∧ μ ≤ 28) (hR : 1 ≤ R ∧ R ≤ 4)
+    (W : ℕ → List K) {q : Vector K (2 ^ μ)} (hq : q ∈ Candidates μ R (johnsonThreshold μ R) W)
+    {u : ℕ} (hu : u < 2 ^ initialFold) :
+    laneCoeffs q u ∈ laneListAt (μ - initialFold) R (johnsonThreshold μ R) W u := by
+  obtain ⟨hA, hcap⟩ := johnsonThreshold_bounds hμ hR
+  exact laneCoeffs_mem_laneListAt (by omega) (by simp only [initialFold]; omega) hA hcap W hq hu
+
 /-! ## The lane lists are sound (for the running time) -/
 
 /-- **The lane decoder is sound**: everything it returns has degree `< 2^κ` and agrees with lane
@@ -258,6 +267,21 @@ theorem novelFwd_toNovel {κ R : ℕ} (hκ : κ + R ≤ 64) {cp : CPolynomial K}
     · rw [Finset.card_range]; exact degree_novelSum_lt hκ' _
     · rw [Finset.card_range]; exact hdeg
   rw [← hevalP v hv, hPeq]
+
+/-- **The lane lists are sound**: every element has size `2^κ` and its encoding agrees with lane
+`u` on at least `A` columns. -/
+theorem laneListAt_sound {κ R A : ℕ} (hκ : 1 ≤ κ) (hn : κ + R ≤ 64) (hA : A ≤ 2 ^ (κ + R))
+    (hcap : (2 ^ κ - 1) * 2 ^ (κ + R) < A * A) (W : ℕ → List K) (u : ℕ) {c : Array K}
+    (hc : c ∈ laneListAt κ R A W u) :
+    c.size = 2 ^ κ ∧ A ≤ ((Finset.range (2 ^ (κ + R))).filter fun v ↦
+      (novelFwd κ R c).getD v 0 = laneSymbol W u v).card := by
+  rw [laneListAt, List.mem_dedup, List.mem_map] at hc
+  obtain ⟨cp, hcp, rfl⟩ := hc
+  obtain ⟨hdeg, hagree⟩ := gsLaneAt_sound hκ hn hA hcap W u hcp
+  refine ⟨size_novelInv _ Array.size_ofFn, hagree.trans_eq ?_⟩
+  congr 1
+  refine Finset.filter_congr fun v hv ↦ ?_
+  rw [novelFwd_toNovel hn hdeg (Finset.mem_range.mp hv)]
 
 end
 end LeanVM.Extraction.LaneProofs

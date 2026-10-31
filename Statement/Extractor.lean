@@ -61,23 +61,30 @@ linear in the bytecode; it is infeasible at deployed sizes except on a word with
    stack represents halts within the cap, proved). The first listed stack's run that halts with
    the public input at its boundary, a valid execution; `none` if there is none.
 
-**Cost**, in operations of `K` and byte comparisons; `N` the number of evaluations given, `n =
-2^(κ+R)` the columns (`κ = μ − 6 ≤ 22`, `R ≤ 4`), `L` the list size (at most `2^18` candidates,
-`LeanVM.candidates_ncard_le`; the Johnson bound caps the prefixes kept likewise), `m ≤ 4096` the
-decoder's multiplicity and `ℓ ≤ 12291` its `Y`-degree (`gsMultiplicityAt`), `M = 2^logMemory`,
-`B = 2^logBytecode`:
+**Cost**, in operations of `K`, 64-bit words and byte comparisons; `N` the number of evaluations
+given, `n = 2^(κ+R)` the columns (`κ = μ − 6 ≤ 22`, `R ≤ 4`), `k = 2^κ`, `L` the list size (at most
+`2^18` candidates, `LeanVM.candidates_ncard_le`, and at most `2^18` prefixes kept after any number
+of lanes, `pruneUpTo_length_le`), `m ≤ 4096` the decoder's multiplicity, `ℓ ≤ 12291` its
+`Y`-degree, `w = m·A − 1` its weighted degree and `|Q| ≈ n·m(m+1)/2` its coefficients
+(`gsMultiplicityAt`), `M = 2^logMemory`, `B = 2^logBytecode`. The figures are at the worst shape
+over all 64 lanes, from `lean_vm/scripts/extractor-cost` (a model of the code, not a proof):
 
-| Step | Cost |
-| --- | --- |
-| sizes and root (`afterRoot`) | the stream's first `10` scalars; the bytecode's length |
-| Merkle inversion (`committedLeaves`) | `N` evaluations, then `2^(height+1)` scans of `N` pairs |
-| one lane's list (`gsLaneAt`): interpolation, roots | Lee–O'Sullivan on `n·m(m+1)/2` conditions; Roth–Ruckenstein, `ℓ·2^κ` root findings of degree at most `ℓ`, each `64` squarings and `64` trace splittings |
-| novel coefficients (`toNovel`, `novelInv`, `novelFwd`) | `2^κ` evaluations, `κ·2^(κ+R)` butterflies |
-| pruning (`pruneUpTo`), 64 lanes | `64·L²·n` comparisons |
-| a candidate's execution | `M + B` to index the addresses, at most `stepCap ≤ 2^μ` steps of a fetch and at most 26 reads |
+| Step | Cost | At worst |
+| --- | --- | --- |
+| sizes and root (`afterRoot`) | the stream's first `10` scalars; the bytecode's length | |
+| the evaluations (`keccakEvaluationsOfTranscript`, `lookupEvaluation`) | linear lookups on byte strings: a chain of `N` padded blocks makes `136·N³/6` byte comparisons | in `N` |
+| Merkle inversion (`committedLeaves`) | `N` evaluations, then `2^(height+1)` scans of `N` pairs | `2^27·N` |
+| interpolation (`gsLaneAt`: Lee–O'Sullivan, Mulders–Storjohann) | `(ℓ+1)³·(m·n)²` per lane | `2^107.5` |
+| roots (Roth–Ruckenstein, `substituteYRootPlusXY`) | per substitution, `|Q|·ℓ/2` monomials added one by one to a dense accumulator (`|Q|²·ℓ/2`) and as many bignum binomials; `k` substitutions per path, `1` to `ℓ` paths | `2^122.5` to `2^133.2` |
+| final root check (`isRootYDegreeLtBool`) | `ℓ·(w + ℓ·k)²` per candidate (quadratic `mulRaw`), at most `ℓ` per lane | `2^94.8` |
+| distance filter, novel coefficients (`toNovel`, `novelInv`, `novelFwd`) | `n·k` per candidate; `κ·2^(κ+R)` butterflies | `2^64.7` |
+| pruning (`pruneUpTo`), 64 lanes | `64·L²·n` comparisons | `2^68` |
+| a candidate's execution | `M + B` to index the addresses, at most `stepCap ≤ 2^μ` steps of a fetch and at most 26 reads | `2^58` for all |
 
-The whole is dominated by the interpolation. The Annexes are cited at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
+The whole is dominated by Roth–Ruckenstein's substitution as implemented, then the interpolation,
+and, in `N`, by the lookups, cubic. Polynomial, but not a meaningful concrete bound: an extractor
+of `2^133` operations, or `N³` for an adversary of `N` queries, makes a reduction no better than
+generic search. The Annexes are cited at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
 
 **Credits.** The list decoder over `K` is CompPoly's (github.com/Verified-zkEVM/CompPoly at
 `572f997390aa4fc131ef30b1186fa1dcf292ca10`, Apache-2.0, "Copyright (c) 2026 CompPoly

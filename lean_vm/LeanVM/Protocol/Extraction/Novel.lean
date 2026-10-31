@@ -338,6 +338,12 @@ theorem novelFwd_getD {κ R : ℕ} (hκ : κ ≤ 64) (c : Array K) {v : ℕ} (hv
   rw [novelFwd, List.range_eq_range', h, lvl, Nat.pow_zero, Nat.mod_one, Nat.div_one, Nat.mul_one,
     lvlSum_zero]
 
+theorem size_novelFwd {κ R : ℕ} (c : Array K) : (novelFwd κ R c).size = 2 ^ (κ + R) := by
+  unfold novelFwd
+  cases κ with
+  | zero => simp
+  | succ κ => rw [List.range_succ_eq_map, List.foldr_cons, size_novelFwdStage]
+
 /-- The inverse transform after the stages `0, …, d − 1` is at level `d`. -/
 theorem novelInv_levels {κ : ℕ} (hκ : κ ≤ 64) (c : ℕ → K) (y : Array K)
     (hy : ∀ v < 2 ^ κ, y.getD v 0 = ∑ j ∈ Finset.range (2 ^ κ), c j * novelBasis j (K.ofBits v))
@@ -381,6 +387,16 @@ theorem novelInv_eval {κ : ℕ} (hκ : κ ≤ 64) (c : ℕ → K) (y : Array K)
   intro p hp
   rw [size_novelInv y hsize] at hp
   rw [novelInv_getD hκ c y hy hp, getD_ofFn _ hp]
+
+/-- **Round trip**: coefficients → evaluations → coefficients. -/
+theorem novelInv_novelFwd {κ : ℕ} (hκ : κ ≤ 64) (c : Array K) (hc : c.size = 2 ^ κ) :
+    novelInv κ (novelFwd κ 0 c) = c := by
+  rw [novelInv_eval hκ (fun j ↦ c.getD j 0) _ (by rw [size_novelFwd, Nat.add_zero])
+    fun v hv ↦ novelFwd_getD hκ c (by rwa [Nat.add_zero])]
+  apply array_ext_getD (by rw [Array.size_ofFn, hc])
+  intro p hp
+  rw [Array.size_ofFn] at hp
+  rw [getD_ofFn _ hp]
 
 /-! ## The stages invert each other (characteristic-two algebra) -/
 
