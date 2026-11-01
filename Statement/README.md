@@ -145,9 +145,13 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
     public input, `ExplainsInput`; no parse); `Statement.Theorems` takes `D` with its size at most
     `guestDecoderSizeBound`, its literals (the guest program's per-function tables) counted. `D`
     computes the witness from the execution, which the proofs' decoder reads off the memory, as
-    the extractor program computes an execution. **The decoder's size bound and price
-    (`guestDecoderSizeBound`, `guestDecoderPrice`) are placeholders**, to be set from the compiled
-    decoder (the price a proved closed form, as `extractorPrice` is). The two programs have the
+    the extractor program computes an execution. The decoder's size bound
+    (`guestDecoderSizeBound`, `2^20`) is the compiled decoder's measured size rounded up; its price
+    (`guestDecoderPrice`) is a proved closed form, as `extractorPrice` is: a price per step of the
+    run (the replay and the filing of the state in the table of function entries, about `2^26.43`
+    at `κ = ℓ = 32`) and a constant of about `2^85.80`, the witness read off the worst memory (the
+    counts the decoder reads are each up to `2^34`, and every child may claim every slot). The two
+    programs have the
     same type, so every use of `Statement.Theorems` names them (`(decoderProgram := D)
     (extractorProgram := P)`).
 15. [`Corollaries.lean`](Corollaries.lean), optional for review: statements that follow from

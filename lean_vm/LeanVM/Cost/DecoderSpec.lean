@@ -42,7 +42,7 @@ theorem decoderProgram_size_le : decoderProgram.size ≤ guestDecoderSizeBound :
 
 /-- **The program's price** on an execution: the top's on the program, `κ` and the memory vector,
 and the entry's `8`. -/
-noncomputable def decoderProgramPrice (prog : Program) (t : Execution prog) : ℕ :=
+@[expose] noncomputable def decoderProgramPrice (prog : Program) (t : Execution prog) : ℕ :=
   machineCost decoderProgram decTopC.costIdx
     [encodeValue prog, encodeValue t.logMemorySize, encodeValue (memoryVector t.memory)] + 8
 
@@ -68,7 +68,7 @@ theorem outputWithin_decoderProgram (t : Execution LeanVM.Guest.guest) {b : ℕ}
 /-- **The decoder program's price is within its budget** on every valid execution of the guest
 (`guestDecoderBudget`, `Statement/Theorems.lean`): the one fact the decoder's specification still
 takes (open: the decoder's cost bounds compose `decoderProgramPrice`). -/
-def DecoderPriceWithinBudget : Prop :=
+@[expose] def DecoderPriceWithinBudget : Prop :=
   ∀ input (t : Execution LeanVM.Guest.guest), ValidExecution LeanVM.Guest.guest input t →
     decoderProgramPrice LeanVM.Guest.guest t ≤ guestDecoderBudget t
 

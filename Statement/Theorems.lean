@@ -51,11 +51,12 @@ budget, not only one that reads it off the memory as the proofs' decoder does: t
 analog of the extractor program, of which the statement asks only that it compute an execution
 within its budget, whichever algorithm it runs. What excludes a decoder that chooses: `D` is a
 program (no classical choice), the machine's only runtime data is its input, its size bound limits
-the table of witnesses it could carry, and its budget is linear in the execution's size. One that
+the table of witnesses it could carry, and its budget is linear in the execution's steps. One that
 output another statement of the same digest would exhibit a Keccak-256 collision; what excludes
 it is that none is known. The size bound is the compiled decoder's measured size rounded up
-(`guestDecoderSizeBound`); **the price is a placeholder** until its closed form is proved
-(`guestDecoderPrice`). -/
+(`guestDecoderSizeBound`); the price is the compiled decoder's, proved (`guestDecoderPrice`:
+about `2^85.80 + 2^26.43` per step at `κ = ℓ = 32`, the constant the witness's reading on the worst
+memory). -/
 
 namespace LeanVM.Cost
 
@@ -146,17 +147,70 @@ bug of the guest program on finitely many statements) to the slack between the c
 decoder's size and the bound. -/
 def guestDecoderSizeBound : ℕ := 2 ^ 20
 
-/-- **The guest decoder's price. PLACEHOLDER**: `2^30` operations per word of the program's
-`2^ℓ`, of the memory's `2^κ` and per step, to be replaced by a closed form `lean_vm` proves of the
-compiled decoder, as `extractorPrice` is the extractor's. It is linear in the steps, with no cap:
-`κ` and `ℓ` are capped (`32` each: `HoldsPublicInput`, `Program`) but a valid execution's steps
-are not (`ValidExecution`): only the run's distinct
-states `(pc, fp)` bound (a run on a fixed memory that repeats a state never halts): `2^ℓ`
-instructions, each reading a cell at `fp` times an offset of its own and so stepping from at most
-`2^κ` frames, at most `2^(ℓ + κ)` states, `2^64` at `ℓ = κ = 32`, where this placeholder is about
-`2^94`. On an execution of committed size at most `2^28`, as an honest proof's (`κ ≤ 26`,
-`ℓ ≤ 28`, fewer than `2^28` steps), it is below `2^60`. -/
-def guestDecoderPrice (ℓ κ steps : ℕ) : ℕ := 2 ^ 30 * (2 ^ ℓ + 2 ^ κ + steps + 1)
+/-! ### The guest decoder's price
+
+A closed form `lean_vm` proves of the compiled decoder (`Cost/Bounds/Guest/Budget.lean`), as
+`extractorPrice` is the extractor's: a price per step of the run and a constant. Per step, the
+decoder replays the step (`runnerStepPrice`) and files the state in its table of function entries
+(`guestDecoderStateFilingPrice`: the precondition test of each function entered there, at most two,
+and an insertion in a sorted map of at most `2·(steps + 1)` keys). The constant is the witness's
+reading on the worst memory: the decoder reads its counts (children, claims, slots, rows) off the
+memory, each up to `2^34`, and on an arbitrary memory every child may claim every slot, so it is
+priced at `2^34` children of `2^35` claims each (`guestDecoderWorstConstant ≈ 2^85.80`); a frame
+lookup (`guestDecoderFramePrice`, logarithmic in the steps) is paid about `2^52.42` times
+(`guestDecoderFrameFactor`). At `κ = ℓ = 32` the price is about `2^85.80 + 2^26.43·steps`: `2^85.80`
+up to `2^59` steps, `2^87.32` at `2^60`. -/
+
+/-- The entry table's key exponent: `2·(steps + 1) < 2^exponent` bounds the table's keys. -/
+def guestDecoderTableExponent (steps : ℕ) : ℕ := Nat.log2 (2 * (steps + 1)) + 1
+
+/-- The limbs of the entry table's positions and weights (below `2^(exponent + 1)`). -/
+def guestDecoderTableLimbs (exponent : ℕ) : ℕ := (exponent + 1) / 64 + 1
+
+/-- A lookup in the entry table (keys of at most `22` words). -/
+def guestDecoderTableLookupPrice (exponent : ℕ) : ℕ :=
+  exponent * (17 + (134 * 22 + 89 + 9 * guestDecoderTableLimbs exponent) * (exponent + 2)) + 9
+
+/-- An insertion in the entry table, amortized. -/
+def guestDecoderTableInsertPrice (exponent : ℕ) : ℕ :=
+  guestDecoderTableLookupPrice exponent + (134 * 22 + 71) * exponent +
+    (2 * guestDecoderTableLimbs exponent + 40) * (exponent + 1) + 30
+
+/-- A function's precondition test at a state: `269` memory reads (`1472` each), `99` discrete
+logarithms (`402684` each, with the bound's check) and `1057586`. -/
+def guestDecoderPreconditionPrice : ℕ := 269 * 1472 + 99 * (402662 + 22) + 1057579 + 7
+
+/-- Filing one state of the run in the entry table: a lookup of its pc (`8339`), and for each of
+the at most two functions entered there the precondition test, the call's key (`32` reads) and the
+insertion. -/
+def guestDecoderStateFilingPrice (exponent : ℕ) : ℕ :=
+  8339 + (guestDecoderPreconditionPrice + 32 * 1472 + guestDecoderTableInsertPrice exponent + 113699 +
+    15) * 2 + 25 + 15
+
+/-- A lookup of a call's frame in the entry table (at most `16` words of arguments and returns)
+and a word of the frame. -/
+def guestDecoderFramePrice (exponent : ℕ) : ℕ :=
+  exponent * (17 + (67 * 16 + 89 + 9 * guestDecoderTableLimbs exponent) * (exponent + 2)) +
+    28 * 16 + 1472 + 11070
+
+/-- The witness's and the decoding's price on the worst memory, the frame lookups apart: `2^34`
+children of `2^35` claims each, the declared claims' holders, the DA matrix of `2^34` rows, the
+children's proofs, the tables built once (the discrete logarithm's, the readers', the address
+tables of `2^32` words). About `2^85.80`. -/
+def guestDecoderWorstConstant : ℕ := 67457761284896106610246464
+
+/-- How many frame lookups the worst constant pays for: about `2^52.42`. -/
+def guestDecoderFrameFactor : ℕ := 6010738011310512
+
+/-- **The guest decoder's price** on a program of `2^ℓ` words, a memory of `2^κ` words and a run of
+`steps` steps: per step the replay and the filing of the state, then the tables of the
+preconditions (`12895`) and of the entries (`17047343`), the worst constant and its frame
+lookups. -/
+def guestDecoderPrice (ℓ κ steps : ℕ) : ℕ :=
+  (LeanVM.Cost.runnerStepPrice κ ℓ + 48 + guestDecoderStateFilingPrice (guestDecoderTableExponent steps)) *
+      (steps + 1) +
+    12895 + 17047343 + guestDecoderWorstConstant +
+    guestDecoderFrameFactor * guestDecoderFramePrice (guestDecoderTableExponent steps) + 23
 
 /-- **The guest decoder's budget** on an execution of `prog`: `guestDecoderPrice` at the
 program's log-size, the memory's and the number of steps. -/
@@ -185,7 +239,7 @@ namespace Statement
 
 /-- **The end theorems.** -/
 structure Theorems (decoderProgram extractorProgram : LeanVM.Cost.MachineProgram) : Prop where
-  /-- The guest decoder program has at most `guestDecoderSizeBound` terms (a placeholder), its
+  /-- The guest decoder program has at most `guestDecoderSizeBound` terms, its
   literals counted in full: it can carry a table of witnesses no larger than the bound's slack
   (above). -/
   decoderSize : decoderProgram.size ≤ LeanVM.Node.guestDecoderSizeBound
