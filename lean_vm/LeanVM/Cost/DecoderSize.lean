@@ -1,0 +1,53 @@
+module
+
+public import LeanVM.Cost.DecoderProgram
+
+/-!
+# The guest decoder's program: its indices and its size, by evaluation
+
+A firewall (`AGENTS.md`), as `Cost/ExtractorSize.lean` is the extractor's: the kernel
+evaluations over the decoder program's bodies, in a module of their own that imports only the
+program's definition, so that no edit of a proof rebuilds them. For the program
+`decoderProgramOf j deps` (`Cost/DecoderProgram.lean`) of a compiled top `j` with its bodies
+`deps`, two evaluations by `decide +kernel`:
+
+* the indices increase from the entry's `0` (`increasingFrom 0 (deps.map (·.1))`): the program
+  holds its bodies and its entry (`decoderProgramOf_includes`, `decoderProgramOf_entry`);
+* the bound `size_ofList_le` gives, the bodies' sizes and two per index, at most a measured
+  number: the program's size (`decoderProgramOf_size_le`), then `guestDecoderSizeBound`.
+
+**Skeleton.** The decoder's top is not compiled yet: the evaluations below measure the program
+of the compiled replay (`replayStatesOfC`, `Decoder/Replay.lean`, the largest piece so far) in its
+place: at most `3206`, the bodies' sizes (`1764`) plus two per index (`721` of them); its exact
+size is `3060`. Once the top `decTopC` is compiled, its program replaces the replay's
+(`decTopC.costIdx`, `decTopC.costDeps`), the measured number with it, and `guestDecoderSizeBound` is set to twice
+the size rounded up to a power of two, as `extractorSizeBound` was.
+-/
+
+namespace LeanVM.Cost
+
+open LeanVM.Cost.Decoder
+
+public section
+
+/-- The bodies' indices increase from the entry's `0`. -/
+theorem replayProgram_indices_increasing :
+    increasingFrom 0 (replayStatesOfC.costDeps.map (·.1)) = true := by
+  decide +kernel
+
+/-- The bound of `size_ofList_le` on the program's size, evaluated. -/
+theorem replayProgramBodies_size_bound :
+    ((decoderProgramBodiesOf replayStatesOfC.costIdx replayStatesOfC.costDeps).map
+        fun p ↦ p.2.size).sum +
+      2 * (((decoderProgramBodiesOf replayStatesOfC.costIdx replayStatesOfC.costDeps).map
+        (·.1)).foldr max 0 + 1) ≤ 3206 := by
+  decide +kernel
+
+/-- **The program's size**, evaluated. -/
+theorem replayProgram_size_le_measured :
+    (decoderProgramOf replayStatesOfC.costIdx replayStatesOfC.costDeps).size ≤ 3206 :=
+  decoderProgramOf_size_le replayProgramBodies_size_bound
+
+end
+
+end LeanVM.Cost
