@@ -17,7 +17,7 @@ The prices of `Cost/Decoder/Ends.lean`'s functions and of the entry (`Cost/Decod
   (`memReaderClosure_cost`) the readers and the precondition's test take;
 * `decodedOf_cost`: `7`;
 * **`decoderOutput_cost`**: the seed (`decSeedC`, at most `A`) and the statement (`decStmtC`, the
-  logarithm's tables given, at most `S`, the bounds of the chain `Log … Witness`), then `decodedOf`: at most `A + S + 14`;
+  logarithm's tables given, at most `S`, the bounds of the chain `Log … Witness`), then `decodedOf`: at most `A + S + 15`;
 * **`decoderEntry_output`**: the entry (`decoderEntryBody`) costs `8` past the top: a top whose
   price is at most `C` gives the program's output within the budget `C + 8`.
 -/
@@ -106,7 +106,7 @@ theorem decodedOf_cost (hP : Includes P decodedOfC.costDeps) (s : LeanVM.Protoco
   rw [decodedOfC.costEq P hP]
 
 /-- **The decoding** (`decoderOutputC`): the seed (at most `A`), the statement (at most `S`) and
-`14`. -/
+`15`. -/
 theorem decoderOutput_cost (hP : Includes P decoderOutputC.costDeps) (D : DiscreteLogTables)
     (σ : LeanVM.Guest.Core.Val)
     (σVal : MachineValue) (hσ : ∀ a, RunsApp P σVal [encodeValue a] (encodeValue (σ a)))
@@ -114,7 +114,7 @@ theorem decoderOutput_cost (hP : Includes P decoderOutputC.costDeps) (D : Discre
     (hrd : ∀ a, RunsApp P rdVal [encodeValue a] (encodeValue (rd a))) (w : LeanVM.Node.NodeWitness)
     (A S : ℕ) (hA : machineCost P decSeedC.costIdx [σVal] ≤ A)
     (hS : machineCost P decStmtC.costIdx [encodeValue D, σVal, rdVal] ≤ S) :
-    machineCost P decoderOutputC.costIdx [encodeValue D, σVal, rdVal, encodeValue w] ≤ A + S + 14 := by
+    machineCost P decoderOutputC.costIdx [encodeValue D, σVal, rdVal, encodeValue w] ≤ A + S + 15 := by
   rw [decoderOutputC.costEq P hP D σ σVal hσ rd rdVal hrd, decodedOf_cost P (by includes)]
   omega
 

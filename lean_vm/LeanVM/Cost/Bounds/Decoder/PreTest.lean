@@ -253,12 +253,12 @@ theorem memOne_cost (hP : Includes P memOneC.costDeps) (fp : K) (m : ℕ × ℕ 
   nlinarith
 
 include hR in
-/-- A frame cell's word (`wordWith.c709`): a power, a read and `271`. -/
-theorem wordWith_cost (hP : Includes P Auto.LeanVM.Guest.Located.wordWith.c709.costDeps) (fp : K)
+/-- A frame cell's word (`wordWithC`): a power, a read and `271`. -/
+theorem wordWith_cost (hP : Includes P wordWithC.costDeps) (fp : K)
     (o : ℕ) (ho : o < 2 ^ W) :
-    machineCost P Auto.LeanVM.Guest.Located.wordWith.c709.costIdx
+    machineCost P wordWithC.costIdx
       [rdVal, encodeValue fp, encodeValue o] ≤ psAt W + R + 271 := by
-  rw [Auto.LeanVM.Guest.Located.wordWith.c709.costEq P hP rd rdVal hrd]
+  rw [wordWithC.costEq P hP rd rdVal hrd]
   have := powSqW_cost P (by includes) hW hW64 ho
   have := hR (fp * gpow o)
   generalize rd (fp * gpow o) = r
