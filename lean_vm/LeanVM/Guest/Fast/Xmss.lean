@@ -17,6 +17,10 @@ off the literal tables of `Fast/XmssTables.lean` and searches the exponents thro
 * `bitsN σ base n`: the integer of the `n` bits from cell `base` (`bitsOf`);
 * `xPartN rho bitBase sel path σ`: a layer's signature, from its randomizer cell, its first bit,
   its codeword groups' selector cells and its path bases (`xPart`).
+
+**Off arrays** (`Fast/Common.lean`): `xmssSigOfA T σ` reads the same cells off the tables `T`
+(`XmssTabs`: the lanes of `g^k`, the chain starts' tables, the selectors and path bases), built
+once by the caller (`xmssTabs`); `xmssSigOfA_tabs`: at `xmssTabs` it is `xmssSigOfN`.
 -/
 
 namespace LeanVM.Guest.Fast
@@ -91,6 +95,47 @@ theorem xmssSigOfN_eq (σ : Val) : xmssSigOfN σ = xmssSigOf σ := by
     rw [ite_eq_left h, ite_eq_left this]
   · have : lay ≠ LeanXmss.bottomLayer := fun e ↦ h (by rw [e]; rfl)
     rw [ite_eq_right h, ite_eq_right this]
+
+/-! ## Off arrays -/
+
+/-- leanXMSS's tables, as arrays: the lanes of `g^k` (`gLanes`), the chain starts' tables
+(`xFirst`, `xRest`, `xLast`), the two layers' selector cells and path bases. -/
+structure XmssTabs where
+  lanes : List ℕ
+  first : Array (Array ℕ)
+  rest : Array (Array ℕ)
+  last : Array (Array ℕ)
+  sel0 : Array ℕ
+  sel1 : Array ℕ
+  path0 : Array ℕ
+  path1 : Array ℕ
+
+/-- **leanXMSS's tables**, built from the literals. -/
+def xmssTabs : XmssTabs :=
+  ⟨gLanes, tabA xFirst, tabA xRest, tabA xLast, xSel0.toArray, xSel1.toArray, xPath0.toArray,
+    xPath1.toArray⟩
+
+/-- **A layer's signature, off the tables `T`** (`xPartN`). -/
+def xPartA (T : XmssTabs) (rho bitBase : ℕ) (sel path : Array ℕ) (σ : Val) :
+    LeanXmss.LayerSignature :=
+  ⟨xv (σ (.n rho)), fun i ↦ xv (σ (.n (cwCellA T.lanes 19 sel T.first T.rest T.last σ i.val))),
+    fun l ↦ xv (sibN σ (bitBase + l.val) (path.getD l.val 0))⟩
+
+/-- **The leanXMSS signature `verify_lean_xmss` checks, off the tables `T`** (`xmssSigOfN`). -/
+def xmssSigOfA (T : XmssTabs) (σ : Val) : LeanXmss.Signature :=
+  ⟨⟨bitsN σ 2 32, bitsN_lt σ⟩, fun lay ↦
+    if lay.val = 0 then xPartA T 196 2 T.sel0 T.path0 σ else xPartA T 12604 18 T.sel1 T.path1 σ⟩
+
+theorem xPartA_tabs (rho bitBase : ℕ) (sel path : List ℕ) (σ : Val) :
+    xPartA xmssTabs rho bitBase sel.toArray path.toArray σ = xPartN rho bitBase sel path σ := by
+  simp only [xPartA, xPartN, xmssTabs, cwCellA_eq, getD_toArray]
+
+/-- **Off the tables built, the reader is `xmssSigOfN`.** -/
+theorem xmssSigOfA_tabs (σ : Val) : xmssSigOfA xmssTabs σ = xmssSigOfN σ := by
+  unfold xmssSigOfA xmssSigOfN
+  simp only [show xmssTabs.sel0 = xSel0.toArray from rfl, show xmssTabs.sel1 = xSel1.toArray from rfl,
+    show xmssTabs.path0 = xPath0.toArray from rfl, show xmssTabs.path1 = xPath1.toArray from rfl,
+    xPartA_tabs]
 
 end
 end LeanVM.Guest.Fast
