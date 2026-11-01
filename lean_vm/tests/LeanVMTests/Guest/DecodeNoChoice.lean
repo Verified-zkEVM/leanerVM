@@ -21,9 +21,11 @@ the schemes it imports (`LeanVM`, `LeanXmss`, `Sphincs`, `LeanDa`).
 * **No hash, no verifier.** No definition `decode` unfolds to mentions Keccak-256, Keccak-f[1600],
   a signature scheme's verifier, the deferring verifier, the DA opening or the batching. This
   traversal stops at the guest's own semantics (`Core.Stmt.HoldsList`, `Core.Program.RelL`,
-  `Core.Program.locN`), which `frameOf`'s test evaluates and which includes the guest's
-  in-circuit checks (a `KECCAK` atom's `KeccakCellsRelation`): those checks are the guest's, the decoder
-  computes no hash and runs no verifier of its own.
+  `Core.Program.locN`) and at the frames a located call runs at (`Check.EnteredAt`: frames the
+  ISA's run from `(g^0, 1)` entered the callee at), which `frameOf`'s test evaluates and which
+  include the guest's in-circuit checks (a `KECCAK` atom's or instruction's
+  `KeccakCellsRelation`): those checks are the guest's, the decoder computes no hash and runs no
+  verifier of its own.
 -/
 
 open Lean Meta Elab Command
@@ -94,7 +96,7 @@ run_meta do
 #guard_msgs in
 run_meta do
   let stop := ["Core.Stmt.HoldsList", "Core.Stmt.Holds", "Core.Stmt.HoldsArms",
-    "Core.Program.RelL", "Core.Program.locN", "Semantics.addressIndex?"]
+    "Core.Program.RelL", "Core.Program.locN", "Check.EnteredAt", "Semantics.addressIndex?"]
   let forbidden := ["keccak256", "keccakF1600", "Keccak.round", "absorbBlock", "absorbBlockWith", "xmssVerify",
     "sphincsVerify", "LeanXmss.verify", "Sphincs.verify", "verifyDeferred", "verifyDeferredWith",
     "Verifier.verify", "verifyWith", "MatrixWitness.Opens", "Node.batch"]

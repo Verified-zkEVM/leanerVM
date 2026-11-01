@@ -87,7 +87,7 @@ variable (prog : Program)
 environment and extra facts hold, and the run goes on from its registers. -/
 def Exit.Reached (entry k₀ : ℕ) (x : Exit) (k : ℕ) : Prop :=
   k < k₀ ∧ EnvHolds L fp x.env ∧ x.kind.Extra L fp ∧
-    ∃ r, x.kind.Regs L fp entry r ∧ Safe prog L k r
+    ∃ r, x.kind.Regs L fp entry r ∧ SafeReached prog L k r
 
 /-- **Soundness along a path**: from `k` steps left, every atom of `its` holds on the path the run
 takes, each executed instruction a step, and the run leaves by a branch's exit, or reaches the
@@ -596,7 +596,7 @@ variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program}
 offset with one step fewer, or out by an exit. -/
 def Res.Sound (L : MemoryImage κ) (fp : K) (prog : Program) (entry k₀ i k : ℕ) : Res → Prop
   | .go its st => RunK L fp prog entry k₀
-      (fun k' ↦ k' + 1 = k ∧ St.Holds L fp st ∧ Safe prog L k' ⟨gpow (entry + i + 1), fp⟩) its k
+      (fun k' ↦ k' + 1 = k ∧ St.Holds L fp st ∧ SafeReached prog L k' ⟨gpow (entry + i + 1), fp⟩) its k
   | .stop its x => RunK L fp prog entry k₀ (x.Reached L fp prog entry k₀) its k
 
 /-- What an instruction's result gives a run to `r`: from its atoms, the run reaches `r` by an
@@ -640,7 +640,7 @@ theorem jump_atom {oc od of : ℕ} {c d f : E} (hc : L.read (fp * gpow oc) = som
 theorem stepI_sound (hctx : Ctx F κ fp) {entry len i k k₀ : ℕ} {st : St} {ins : OInstr}
     (hf : prog.fetch (gpow (entry + i)) = some ins.toInstr)
     (hpc : entry + i < 2 ^ prog.logSize - 1) (hst : St.Holds L fp st) (hk : k ≤ k₀)
-    (h : Safe prog L k ⟨gpow (entry + i), fp⟩) :
+    (h : SafeReached prog L k ⟨gpow (entry + i), fp⟩) :
     (stepI F entry len i st ins).Sound L fp prog entry k₀ i k := by
   cases hj : ins.isJump with
   | false =>
@@ -796,7 +796,7 @@ variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program} {
 /-- **A good segment**: from its start, with its environment, it is sound (`RunK`) and complete
 (`Follows`), and `exits` lists its exits. -/
 def SegGood (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (s : Seg) : Prop :=
-  (∀ k₀, EnvHolds L fp s.env → Safe prog L k₀ ⟨gpow (entry + s.start), fp⟩ →
+  (∀ k₀, EnvHolds L fp s.env → SafeReached prog L k₀ ⟨gpow (entry + s.start), fp⟩ →
     RunK L fp prog entry k₀ (s.exit.Reached L fp prog entry k₀) s.items k₀) ∧
   (EnvHolds L fp s.env → ∀ r, Follows L fp entry r (s.exit.kind.Regs L fp entry r) s.items →
     Reach prog L ⟨gpow (entry + s.start), fp⟩ r) ∧
@@ -805,9 +805,9 @@ def SegGood (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (s : Se
 /-- A good segment being walked, at offset `i`. -/
 def CurGood (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (c : Cur) (i : ℕ) : Prop :=
   c.start ≤ i ∧ branchExits c.acc = c.xs ∧
-  (∀ k₀, EnvHolds L fp c.env → Safe prog L k₀ ⟨gpow (entry + c.start), fp⟩ →
+  (∀ k₀, EnvHolds L fp c.env → SafeReached prog L k₀ ⟨gpow (entry + c.start), fp⟩ →
     RunK L fp prog entry k₀ (fun k ↦ k + i = k₀ + c.start ∧ St.Holds L fp c.st ∧
-      Safe prog L k ⟨gpow (entry + i), fp⟩) c.acc.reverse k₀) ∧
+      SafeReached prog L k ⟨gpow (entry + i), fp⟩) c.acc.reverse k₀) ∧
   (EnvHolds L fp c.env → ∀ r Q, Follows L fp entry r Q c.acc.reverse →
     Reach prog L ⟨gpow (entry + c.start), fp⟩ r ∨
       (Q ∧ St.Holds L fp c.st ∧ Reach prog L ⟨gpow (entry + c.start), fp⟩ ⟨gpow (entry + i), fp⟩))
@@ -1002,7 +1002,7 @@ leaves by that path's exit (`Exit.Reached`: with fewer steps left, its environme
 at the registers its kind names). -/
 theorem exec_sound (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {s : Seg}
     (hs : s ∈ (exec F f).segs) {k : ℕ} (he : EnvHolds L fp s.env)
-    (h : Safe prog L k ⟨gpow (f.entry + s.start), fp⟩) :
+    (h : SafeReached prog L k ⟨gpow (f.entry + s.start), fp⟩) :
     RunK L fp prog f.entry k (s.exit.Reached L fp prog f.entry k) s.items k :=
   (exec_good hctx hf s hs).1 k he h
 

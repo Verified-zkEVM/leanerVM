@@ -14,7 +14,7 @@ public import LeanVM.Guest.CoreLemmas
 
 `Program.Rel` relates a callee's argument and return words when *some* valuation of its values
 satisfies its body. The located relation `Program.RelL rd vf A` asks instead for the valuation
-`vf f fp` of a frame `fp` with `A fp`. That is what the walk of the guest's run gives
+`vf f fp` of a frame `fp` with `A f fp args rets`. That is what the walk of the guest's run gives
 (`Check.frameVal`: each value is the word of its certificate cell), so whatever a proof reads off
 a callee's valuation is a function of the memory and of the callee's frame.
 
@@ -31,20 +31,20 @@ open LeanVM.Parameters LeanVM.Semantics
 
 variable {rd : Reader} {σ : Val}
 
-/-- The located call relation of depth `n`: calls nested at most `n` deep, each callee `f` at a
-frame `fp` with `A fp` under the valuation `vf f fp`. -/
-def Program.locN (P : Program) (rd : Reader) (vf : String → K → Val) (A : K → Prop) :
+/-- The located call relation of depth `n`: calls nested at most `n` deep, each callee `f` on the
+words `args`, `rets` at a frame `fp` with `A f fp args rets` under the valuation `vf f fp`. -/
+def Program.locN (P : Program) (rd : Reader) (vf : String → K → Val) (A : String → K → List E → List E → Prop) :
     Nat → CallRel
   | 0 => fun _ _ _ => False
-  | n + 1 => fun f args rets => ∃ fn fp, P.find? f = some fn ∧ A fp ∧
+  | n + 1 => fun f args rets => ∃ fn fp, P.find? f = some fn ∧ A f fp args rets ∧
       fn.params.map (vf f fp) = args ∧
       Stmt.HoldsList (P.locN rd vf A n) rd (vf f fp) fn.body False (fun rs => rs = rets)
 
 /-- **The located call relation**: every finite depth. -/
-def Program.RelL (P : Program) (rd : Reader) (vf : String → K → Val) (A : K → Prop) : CallRel :=
+def Program.RelL (P : Program) (rd : Reader) (vf : String → K → Val) (A : String → K → List E → List E → Prop) : CallRel :=
   fun f args rets => ∃ n, P.locN rd vf A n f args rets
 
-variable {vf : String → K → Val} {A : K → Prop}
+variable {vf : String → K → Val} {A : String → K → List E → List E → Prop}
 
 theorem locN_succ (P : Program) : ∀ n, CallRel.Le (P.locN rd vf A n) (P.locN rd vf A (n + 1))
   | 0 => fun _ _ _ h => h.elim
@@ -73,7 +73,7 @@ theorem relL_le_rel (P : Program) : CallRel.Le (P.RelL rd vf A) (P.Rel rd) :=
 
 /-- A family of continuations, monotone in the call relation and reached at a finite depth of
 the located relation. -/
-structure FinitaryL (P : Program) (rd : Reader) (vf : String → K → Val) (A : K → Prop)
+structure FinitaryL (P : Program) (rd : Reader) (vf : String → K → Val) (A : String → K → List E → List E → Prop)
     (F : CallRel → Prop) : Prop where
   mono : ∀ C C', CallRel.Le C C' → F C → F C'
   finite : F (P.RelL rd vf A) → ∃ n, F (P.locN rd vf A n)
@@ -132,9 +132,9 @@ theorem holdsArms_finiteL (P : Program) (x : V) :
 end
 
 /-- **`Program.RelL` is a fixed point**: a call holds exactly when the callee's body does at some
-frame `fp` with `A fp`, under that frame's valuation, its own calls located. -/
+frame `fp` with `A f fp args rets`, under that frame's valuation, its own calls located. -/
 theorem relL_iff (P : Program) (f : String) (args rets : List E) :
-    P.RelL rd vf A f args rets ↔ ∃ fn fp, P.find? f = some fn ∧ A fp ∧
+    P.RelL rd vf A f args rets ↔ ∃ fn fp, P.find? f = some fn ∧ A f fp args rets ∧
       fn.params.map (vf f fp) = args ∧
       Stmt.HoldsList (P.RelL rd vf A) rd (vf f fp) fn.body False (fun rs => rs = rets) := by
   constructor

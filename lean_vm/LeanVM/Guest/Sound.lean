@@ -13,7 +13,9 @@ public import LeanVM.Guest.SoundFacts
 # B2 soundness
 
 The contracts are checker K's over `glob`: function `j`'s entry, `Check.Pre glob L j` and
-`Check.Post coreProgram glob L certByName j`.
+`Check.Post coreProgram glob L certByName (Check.EnteredAt glob L) j`, on the run from `(g^0, 1)`
+(`FunSpecLtReached`): each callee's body holds at its frame, its calls located at frames entered
+on that run (`Check.EnteredAt`).
 
 * `b2_step`: a function's contract for runs shorter than `n + 1`, given every contract for runs
   shorter than `n` (`checkWins_run` on its checked windows, `Checked.all_ok`). Each window after
@@ -107,18 +109,19 @@ theorem known_main (hexp : ExpTablesSound) {κ : ℕ} {L : MemoryImage κ} {fp :
 shorter than `n`. -/
 theorem b2_step (hvs : VsKnown) :
     ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ n,
-      (∀ j, FunSpecLt guest L n (glob.sig j).entry (Check.Pre glob L j)
-        (Check.Post coreProgram glob L certByName j)) →
-      ∀ i, FunSpecLt guest L (n + 1) (glob.sig i).entry (Check.Pre glob L i)
-        (Check.Post coreProgram glob L certByName i) := by
+      (∀ j, FunSpecLtReached guest L n (glob.sig j).entry (Check.Pre glob L j)
+        (Check.Post coreProgram glob L certByName (EnteredAt glob L) j)) →
+      ∀ i, FunSpecLtReached guest L (n + 1) (glob.sig i).entry (Check.Pre glob L i)
+        (Check.Post coreProgram glob L certByName (EnteredAt glob L) i) := by
   intro κ L h16 h32 n hlt j fp k hk hpre hsafe
+  have hpre' := hpre
   obtain ⟨hgood, hjt, henv, hbnd, hmem, hsem⟩ := hpre
   have hj : 2 ≤ j ∧ j < nFns := by simpa [glob, good] using hgood
   have hc := winOk_of (j := j) (by omega) hj.2
   have h1 : (j == 1) = false := by simp; omega
   rw [h1] at hc
   have hfp := checkWin_fpOne (hc 0 (Nat.zero_le _))
-  obtain ⟨hrel, hpost, hret, -⟩ := checkWins_run (Prog := coreProgram) hc (fnOf_mem hj.2)
+  obtain ⟨hbody, hpost, hret, hin, -⟩ := checkWins_run (Prog := coreProgram) hc (fnOf_mem hj.2)
     (coreOf_find (by omega) hj.2) (certOf_pows_ok j) h32 (fun h ↦ by rw [← hfp] at h; cases h)
     (certByName_coreOf (by omega) hj.2)
     (fun i ↦ (hlt i).mono (by omega)) hjt henv hbnd hmem hsem
@@ -130,17 +133,17 @@ theorem b2_step (hvs : VsKnown) :
       · exact known_plain (by omega) hj.2 (by omega) h19 hi h0)
     hsafe
   obtain ⟨k', hk', r, hr, hs⟩ := hret rfl
-  exact ⟨k', hk', r, hr, ⟨hrel, hpost⟩, hs⟩
+  exact ⟨k', hk', r, hr, ⟨hbody, ⟨hin, j, rfl, hpre', hsafe.2, rfl, rfl⟩, hpost⟩, hs⟩
 
 /-- **B2 at `main`, located**: a halting run from `main`'s entry at `fp = 1`, the jump table
 written and every contract holding for runs shorter than it, gives `main`'s body under its frame's
 valuation, its calls located. -/
 theorem b2_mainL (hexp : ExpTablesSound) :
     ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → JumpTables L → ∀ k,
-      (∀ j, FunSpecLt guest L k (glob.sig j).entry (Check.Pre glob L j)
-        (Check.Post coreProgram glob L certByName j)) →
-      Safe guest L k ⟨gpow mainEntry, 1⟩ →
-        Stmt.HoldsList (RL coreProgram L certByName) L.read (valG L 1 (certOf 1)) (coreOf 1).body
+      (∀ j, FunSpecLtReached guest L k (glob.sig j).entry (Check.Pre glob L j)
+        (Check.Post coreProgram glob L certByName (EnteredAt glob L) j)) →
+      SafeReached guest L k ⟨gpow mainEntry, 1⟩ →
+        Stmt.HoldsList (RL coreProgram L certByName (EnteredAt glob L)) L.read (valG L 1 (certOf 1)) (coreOf 1).body
           False (fun rs ↦ rs = []) := by
   intro κ L _ h32 hjtab k hlt hsafe
   have hc := winOk_of (j := 1) le_rfl (by decide)
