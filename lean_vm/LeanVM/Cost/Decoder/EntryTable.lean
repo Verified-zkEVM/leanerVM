@@ -15,13 +15,18 @@ staged:
 
 * `pcTableT`: the functions entered at each pc, from `guestEntries` (computed once by the caller
   and passed: a closed constant compiled in place would be recomputed at each use);
-* `entryKeyT`, `fileOne`, `fileStateT`, `entryTableT`: a state filed under the key of each
-  function entered at its pc, by partial application, the argument and return counts from
-  `guestArgCounts`, `guestRetCounts`;
-* `frameAt table rd j args rets v`: the frame map, its last argument the value `v` (the frame map
-  is the closure `frameAt table rd`), the cells from `guestLocs`.
+* `entryKeyT`: a state's key under a function entered at its pc, the argument and return counts
+  from `guestArgCounts`, `guestRetCounts`;
+* **the compiled table, one sorted array** (`entryArrayT`): every pair the states file, sorted by
+  key stably, each key's first kept; `frameAtA table rd j args rets v`, the frame map, one binary
+  search of the call's key, its last argument the value `v` (the frame map is the closure
+  `frameAtA table rd`), the cells from `guestLocs`;
+* the same table by insertions (`fileOne`, `fileStateT`, `entryTableT`, a sorted map with a
+  presence lookup per filing) and its frame map (`frameAt`): definitions only, not compiled, the
+  specification the sorted array is proved equal to.
 
-`EntryTableEq.lean` proves them the definitions at the guest's tables.
+`EntryTableEq.lean` proves them the definitions at the guest's tables (`frameAt_eq`), and the
+sorted array's frame map the specification's (`frameAtA_entryArrayT`, `frameAtA_eq`).
 -/
 
 namespace LeanVM.Cost.Decoder
@@ -74,9 +79,9 @@ def frameAt (table : SortedMap CallKey K) (rd : Reader) (j : ℕ) (args rets : L
 
 /-! ### The library functions the tables use, under names of their own
 
-The sorted maps' operations at the two key types (the pc table's `ℕ`, the entry table's
-`CallKey`), the call key's codes and the frame cells' words: compiled here before their callers,
-so that the bounds name them, not an index (`Bounds/Decoder/EntryTable.lean`). -/
+The pc table's sorted map operations (`ℕ` keys), the binary search on call keys, the call key's
+codes and the frame cells' words: compiled here before their callers, so that the bounds name
+them, not an index (`Bounds/Decoder/EntryTable.lean`, `EntryArray.lean`). -/
 
 cost_compile searchInPcC measure fun _ _ lo hi ↦ hi - lo := @searchIn ℕ (List ℕ) _
 cost_compile mergeNewerPcC measure fun a b ↦ a.length + b.length := @mergeNewer ℕ (List ℕ) _
@@ -87,12 +92,6 @@ cost_compile getPcC := @SortedMap.get? ℕ (List ℕ) _
 cost_compile addAtC := addAt
 
 cost_compile searchInKeyC measure fun _ _ lo hi ↦ hi - lo := @searchIn CallKey K _
-cost_compile mergeNewerKeyC measure fun a b ↦ a.length + b.length := @mergeNewer CallKey K _
-cost_compile levelMergeKeyC := @Level.merge CallKey K _ _ _
-cost_compile carryKeyC measure fun _ ls ↦ ls.length := @carry CallKey K _ _ _
-cost_compile insertKeyC := @SortedMap.insert CallKey K _ _ _
-cost_compile getKeyC := @SortedMap.get? CallKey K _
-cost_compile insertIfNewKeyC := @insertIfNew CallKey K _ _ _
 
 cost_compile wordCodeC := wordCode
 cost_compile callKeyC := callKey
@@ -106,15 +105,73 @@ cost_compile pcTableTC := pcTableT
 set_option maxRecDepth 100000 in
 cost_compile entryKeyTC := entryKeyT
 set_option maxRecDepth 100000 in
-cost_compile fileOneC := fileOne
-set_option maxRecDepth 100000 in
-cost_compile fileStateTC := fileStateT
-set_option maxRecDepth 100000 in
-cost_compile entryTableTC := entryTableT
-set_option maxRecDepth 100000 in
 cost_compile frameWordAtC := frameWordAt
+
+/-! ## The entry table as one sorted array
+
+The same table without a presence lookup per filing: every pair a state files (`statePairs`: the
+key of each function entered at its pc whose precondition holds, and the frame), in filing order
+(`entryPairs`), sorted by key by a stable merge sort (`List.mergeSort`, the extractor's compiled
+`mergeSortList`), each key's first pair kept (`dedupFirst`): the first pair filed for each key
+(`EntryTableEq.lean`: `searchIn_entryArrayT`, its binary search is `entryTableT`'s `get?`). A
+frame lookup is one binary search (`frameAtA`, `searchInKeyC`). -/
+
+/-- Two call keys compared (`compare` at `lexOrd`), a function of its own. -/
+def keyCmp (a b : CallKey) : Ordering := compare a b
+
+/-- The pair state `s` files for function `j`: its key and the frame, if `pre` holds. -/
+def pairOf (pre : ℕ → K → Bool) (rd : Reader) (s : Registers K) (j : ℕ) : Option (CallKey × K) :=
+  if pre j s.fp then some (entryKeyT rd s j, s.fp) else none
+
+/-- The pairs state `s` files: one per function entered at its pc whose precondition holds. -/
+def statePairs (pcT : SortedMap ℕ (List ℕ)) (pre : ℕ → K → Bool) (rd : Reader)
+    (s : Registers K) : List (CallKey × K) :=
+  (pcT.getD (laneCode s.pc) []).filterMap (pairOf pre rd s)
+
+/-- **The pairs the states file**, in filing order. -/
+def entryPairs (pcT : SortedMap ℕ (List ℕ)) (pre : ℕ → K → Bool) (rd : Reader) :
+    List (Registers K) → List (CallKey × K)
+  | [] => []
+  | s :: ss => statePairs pcT pre rd s ++ entryPairs pcT pre rd ss
+
+/-- The pairs' order: by key. -/
+def keyLe (a b : CallKey × K) : Bool :=
+  match keyCmp a.1 b.1 with
+  | .gt => false
+  | _ => true
+
+/-- Of each run of pairs of one key, the first. -/
+def dedupFirst : List (CallKey × K) → List (CallKey × K)
+  | a :: b :: l =>
+    match keyCmp a.1 b.1 with
+    | .eq => dedupFirst (a :: l)
+    | _ => a :: dedupFirst (b :: l)
+  | l => l
+
+/-- **The entry table, a sorted array**: the pairs sorted by key, stably, each key's first kept. -/
+def entryArrayT (pcT : SortedMap ℕ (List ℕ)) (pre : ℕ → K → Bool) (states : List (Registers K))
+    (rd : Reader) : Array (CallKey × K) :=
+  (dedupFirst ((entryPairs pcT pre rd states).mergeSort keyLe)).toArray
+
+/-- **The frame map on the sorted array**: one binary search of the call's key. -/
+def frameAtA (table : Array (CallKey × K)) (rd : Reader) (j : ℕ) (args rets : List E) (v : V) :
+    E :=
+  match searchIn table (callKey (canonIndex j) args rets) 0 table.size with
+  | some fp => frameWordAt rd fp j v
+  | none => 0
+
+cost_compile keyCmpC := keyCmp
+cost_compile pairOfC := pairOf
 set_option maxRecDepth 100000 in
-cost_compile frameAtC := frameAt
+cost_compile statePairsC := statePairs
+set_option maxRecDepth 100000 in
+cost_compile entryPairsC measure fun _ _ _ l ↦ l.length := entryPairs
+cost_compile keyLeC := keyLe
+cost_compile dedupFirstC measure fun l ↦ l.length := dedupFirst
+set_option maxRecDepth 100000 in
+cost_compile entryArrayTC := entryArrayT
+set_option maxRecDepth 100000 in
+cost_compile frameAtAC := frameAtA
 
 end
 

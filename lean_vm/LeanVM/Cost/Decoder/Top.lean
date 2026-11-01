@@ -14,9 +14,9 @@ once and passed down:
   (`Guest.Fast.readerTabs`), the table of entries (`pcTableT`), the address tables
   (`decoderTables`);
 * `decTopTables`: the reader (`memReader memT mem`) and the replay (`replayStatesOf`);
-* `decTopStates`: `main`'s valuation (`mainVal rd`) and the entry table (`entryTableT`,
-  the precondition `preTestAt D T Pw rd`);
-* `decTopFrames`: the witness (`decWitNStaged`, the frame map `frameAt table rd`, the cursor's
+* `decTopStates`: `main`'s valuation (`mainVal rd`) and the entry table, one sorted array
+  (`entryArrayT`, the precondition `preTestAt D T Pw rd`);
+* `decTopFrames`: the witness (`decWitNStaged`, the frame map `frameAtA table rd`, the cursor's
   length `cursorLength D`) and the decoding (`decoderOutput D`: the seed, the statement
   `decStmtD D`, `decodedOf`).
 
@@ -34,14 +34,14 @@ attribute [local instance] lexOrd
 
 /-- The decoding off `main`'s valuation and the entry table. -/
 noncomputable def decTopFrames (D : DiscreteLogTables) (R : ReaderTabs) (rd : Reader) (σ : Val)
-    (table : SortedMap CallKey K) : Decoded :=
-  decoderOutput D σ rd (decWitNStaged D R σ rd (frameAt table rd) (cursorLength D))
+    (table : Array (CallKey × K)) : Decoded :=
+  decoderOutput D σ rd (decWitNStaged D R σ rd (frameAtA table rd) (cursorLength D))
 
 /-- The decoding off the reader and the replayed states. -/
 noncomputable def decTopStates (D : DiscreteLogTables) (T : Array (Option FnPre)) (Pw : Array E)
     (R : ReaderTabs) (pcT : SortedMap ℕ (List ℕ)) (rd : Reader) (states : List (Registers K)) :
     Decoded :=
-  decTopFrames D R rd (mainVal rd) (entryTableT pcT (preTestAt D T Pw rd) states rd)
+  decTopFrames D R rd (mainVal rd) (entryArrayT pcT (preTestAt D T Pw rd) states rd)
 
 /-- The decoding off the address tables and the memory. -/
 noncomputable def decTopTables (D : DiscreteLogTables) (T : Array (Option FnPre)) (Pw : Array E)

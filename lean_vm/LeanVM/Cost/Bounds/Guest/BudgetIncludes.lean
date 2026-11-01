@@ -37,7 +37,7 @@ theorem includes_budget_preTestAt : Includes decoderProgram preTestAtC.costDeps 
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_entryTableT : Includes decoderProgram entryTableTC.costDeps := by
+theorem includes_budget_entryArrayT : Includes decoderProgram entryArrayTC.costDeps := by
   have := decoderProgram_includes
   includes
 
@@ -45,7 +45,7 @@ theorem includes_budget_getPc : Includes decoderProgram getPcC.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_frameAt : Includes decoderProgram Decoder.frameAtC.costDeps := by
+theorem includes_budget_frameAtA : Includes decoderProgram Decoder.frameAtAC.costDeps := by
   have := decoderProgram_includes
   includes
 
