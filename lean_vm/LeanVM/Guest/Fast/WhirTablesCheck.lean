@@ -7,9 +7,10 @@ public import LeanVM.Guest.B1.Whir.InterfaceW
 /-!
 # `open_stacked`'s tables, checked
 
-* `recOf c`: an `opening_queries` call of the template (`osQCalls`) in numbers, its callee and its
-  loop numbered as `decoderFunctionNames` (`Fast/FunctionNames.lean`); `callOK c`: its arguments
-  and returns are cells, its callee and its loop are the functions of those numbers;
+* `callMatch r c`: the `OsCall` `r` is the `opening_queries` call `c` of the template
+  (`osQCalls`) in numbers: its shape, its odd query and iterations, its depth, its arguments' and
+  returns' cells (cells all), its callee and its loop the functions of `r`'s indices
+  (`decoderFunctionName`, `Fast/FunctionNames.lean`);
 * `osWordsTab_eq`, `callsOK`: the literal tables of `Fast/WhirTables.lean` are the template's,
   by kernel evaluation, a candidate at a time (`callsOK_m`).
 -/
@@ -26,23 +27,14 @@ def vIdx (v : V) : ℕ := v.idx
 /-- Whether a value is the cell of its number. -/
 def isN (v : V) : Bool := v == .n v.idx
 
-/-- The index of an `opening_queries` specialization in `openingQueriesLoops`. -/
-def oqIdx (name : String) : ℕ := (openingQueriesLoops.map (·.1)).idxOf name
-
-/-- An `opening_queries` call of the template, in numbers. -/
-def recOf : ℕ × OsLv × String × List V × List V → OsCall
+/-- **The table's call `r` is the template's call `c`.** -/
+noncomputable def callMatch (r : OsCall) : ℕ × OsLv × String × List V × List V → Bool
   | (lvl, lv, name, args, rets) =>
-    ⟨(lvOq lvl lv).base, (lvOq lvl lv).I, (lvOq lvl lv).pd, (lvOq lvl lv).cd,
-      lv.queries % 2 * (if lvl = 0 then 1 else 0), lv.queries / (1 + if lvl = 0 then 1 else 0),
-      openingQueriesBase + oqIdx name, openingQueriesLoopBase + oqIdx name, lv.depth,
-      args.map vIdx, rets.map vIdx⟩
-
-/-- The call's arguments and returns are cells, its callee and its loop the frames `recOf`
-numbers. -/
-def callOK : ℕ × OsLv × String × List V × List V → Bool
-  | (_, _, name, args, rets) =>
-    args.all isN && rets.all isN && decoderFunctionName (openingQueriesBase + oqIdx name) == name &&
-      decoderFunctionName (openingQueriesLoopBase + oqIdx name) == oqLoopOf name
+    r.base == (lvOq lvl lv).base && r.I == (lvOq lvl lv).I && r.pd == (lvOq lvl lv).pd &&
+      r.cd == (lvOq lvl lv).cd && r.odd == lv.queries % 2 * (if lvl = 0 then 1 else 0) &&
+      r.N == lv.queries / (1 + if lvl = 0 then 1 else 0) && r.depth == lv.depth &&
+      r.args == args.map vIdx && r.rets == rets.map vIdx && args.all isN && rets.all isN &&
+      decoderFunctionName r.fn == name && decoderFunctionName r.loop == oqLoopOf name
 
 /-- Candidate `m`'s `opening_queries` calls. -/
 def osCallsOf (m : ℕ) : List (ℕ × OsLv × String × List V × List V) :=
@@ -51,9 +43,10 @@ def osCallsOf (m : ℕ) : List (ℕ × OsLv × String × List V × List V) :=
 theorem osWordsTab_eq : osWordsTab = (List.range 28).map fun m ↦ osWordsLen (osCfg m) := by
   decide +kernel
 
-/-- Candidate `m`'s calls are the table's, each `callOK`. -/
+/-- Candidate `m`'s calls are the table's. -/
 def CallsOK (m : ℕ) : Prop :=
-  osCallsTab.getD m [] = (osCallsOf m).map recOf ∧ (osCallsOf m).all callOK = true
+  (osCallsTab.getD m []).length = (osCallsOf m).length ∧
+    ((osCallsTab.getD m []).zip (osCallsOf m)).all (fun p ↦ callMatch p.1 p.2) = true
 
 theorem callsOK_0 : CallsOK 0 := by unfold CallsOK; decide +kernel
 
