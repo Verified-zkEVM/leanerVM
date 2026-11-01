@@ -7,6 +7,7 @@ public import LeanVM.Protocol.Extraction.Fast.Karatsuba
 public import LeanVM.Protocol.Extraction.Fast.Truncate
 public import LeanVM.Protocol.Extraction.Fast.Address
 public import LeanVM.Protocol.Extraction.Fast.Order
+public import LeanVM.Protocol.Extraction.Fast.DecoderFast
 public import CompPoly.Bivariate.GuruswamiSudan.Interpolation.ApproximantBasis.Correctness
 public import CompPoly.LinearAlgebra.PolynomialMatrix.Approximant
 
@@ -18,6 +19,10 @@ with a faster lane decoder, `gsLaneAtFast`:
 
 * Roth–Ruckenstein's substitution a Taylor shift (`Fast/RothRuckenstein.lean`): `gsContextFast` is
   `gsContext` with `rothRuckensteinRootContextFast`;
+* CompPoly's steps whose code costs more than their algorithm, restated and proved equal
+  (`Fast/DecoderFast.lean`): Lee–O'Sullivan's normalization and the vanishing polynomial
+  (`interpContext` is `interpContextFast`), the root finder's remainder-only reductions
+  (`fieldRootCtxFast`);
 * without the final root check where the parameters make it redundant (`gsRunNoCheck`,
   `checkRedundant`: at most `2^64` columns and `W < m·(n − radius)`, as at every shape the
   statement decodes, `W = m·A − 1`, `radius = n − A`);
@@ -41,18 +46,26 @@ open CompPoly CompPoly.GuruswamiSudan
 
 public section
 
-/-- The list decoder's interpolation (`gsContext`'s): Lee–O'Sullivan, Mulders–Storjohann. -/
+/-- The list decoder's interpolation (`gsContext`'s): Lee–O'Sullivan, Mulders–Storjohann, with
+the fast normalization and vanishing polynomial (`interpContextFast`, `Fast/DecoderFast.lean`). -/
 @[expose] def interpContext : GSInterpContext K :=
-  LeeOSullivan.leeOSullivanInterpContext CPolynomial.VanishingPolynomialContext.direct
-    (CPolynomial.BatchEvalContext.horner K)
-    (PolynomialMatrix.muldersStorjohannFastReducerContext K)
+  interpContextFast
 
-/-- The list decoder's context with Roth–Ruckenstein's fast substitution. -/
+theorem interpContext_eq : interpContext =
+    LeeOSullivan.leeOSullivanInterpContext CPolynomial.VanishingPolynomialContext.direct
+      (CPolynomial.BatchEvalContext.horner K)
+      (PolynomialMatrix.muldersStorjohannFastReducerContext K) :=
+  interpContextFast_eq
+
+/-- The list decoder's context with Roth–Ruckenstein's fast substitution, and the root finder's
+remainder-only reductions (`fieldRootCtxFast`). -/
 @[expose] def gsContextFast : GSFilteredCoreContext K :=
-  filteredCoreContextOfInterpRootContexts interpContext (rothRuckensteinRootContextFast fieldRootCtx)
+  filteredCoreContextOfInterpRootContexts interpContext
+    (rothRuckensteinRootContextFast fieldRootCtxFast)
 
 theorem gsContextFast_eq : gsContextFast = gsContext := by
-  rw [gsContextFast, rothRuckensteinRootContextFast_eq, gsContext, interpContext]
+  rw [gsContextFast, fieldRootCtxFast_eq, rothRuckensteinRootContextFast_eq, gsContext,
+    interpContext_eq]
 
 /-! ## The final root check, dropped
 
@@ -72,7 +85,7 @@ filter. -/
   match I.interpolate points params with
   | none => #[]
   | some Q =>
-    (prefixesTruncD fieldRootCtx params.messageDegree
+    (prefixesTruncD fieldRootCtxFast params.messageDegree
         (CBivariate.truncateX Q params.messageDegree) params.messageDegree Q [] 0
         default).filter fun p ↦
       degreeLtBool p params.messageDegree && passesCandidateDistance points radius p
@@ -102,7 +115,7 @@ theorem gsRunNoCheck_eq (I : GSInterpContext K) (points : Array (K × K))
     (hW : params.weightedDegreeBound < params.multiplicity * (points.size - radius)) :
     gsRunNoCheck I points params radius =
       gsFilteredCore points I (rothRuckensteinRootContext K fieldRootCtx) params radius := by
-  rw [gsRunNoCheck, gsFilteredCore, gsCore]
+  rw [gsRunNoCheck, fieldRootCtxFast_eq, gsFilteredCore, gsCore]
   cases hQ : I.interpolate points params with
   | none => rfl
   | some Q =>
@@ -236,8 +249,13 @@ theorem mem_gsLaneAtFast (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) (p : CPol
         (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp.multiplicity *
           ((lanePoints (2 ^ (κ + R)) W u).size - (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).radius) := by
       simpa [lanePoints] using h.2
-    rw [decodeWithParams, gsContextFast_eq,
-      show gsContext.run _ _ _ = gsRunNoCheck interpContext _ _ _ from
+    have hctx : gsContext = filteredCoreContextOfInterpRootContexts interpContext
+        (rothRuckensteinRootContext K fieldRootCtx) := by
+      rw [gsContext, interpContext_eq]
+    rw [decodeWithParams, gsContextFast_eq, hctx,
+      show (filteredCoreContextOfInterpRootContexts interpContext
+          (rothRuckensteinRootContext K fieldRootCtx)).run _ _ _ =
+        gsRunNoCheck interpContext _ _ _ from
         (gsRunNoCheck_eq _ _ _ _ hd hW).symm,
       mem_gsRunNoCheck _ _ _ _ hd hW]
   · rfl
