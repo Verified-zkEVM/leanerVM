@@ -1,0 +1,40 @@
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk0
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk1
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk2
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk3
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk4
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk5
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk6
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk7
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk8
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk9
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk10
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk11
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk12
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk13
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk14
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk15
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk16
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Windows21_0
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Windows21_1
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Windows21_2
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Windows21_3
+
+/-! **The guest tables' chunk evaluations read the tables alone.** Each chunk of the frame cells'
+bound (`Bounds/Decoder/GuestLocs/*.lean`) is a kernel evaluation of some functions' certificates
+(each below `2 GB`; the whole table at once peaks over `12 GB`), and a module is rebuilt whenever
+anything it imports changes. So they import only the tables (`Cost/Decoder/GuestTables.lean`),
+none of the cost compiler, the compiled decoder or the bounds' proofs: an edit there rebuilds no
+chunk. This module, which imports the chunks alone, fails to build if their imports reach any
+other `LeanVM.Cost` module. -/
+
+open Lean Elab Command in
+#eval show CommandElabM Unit from do
+  let chunks := ["Chunk0", "Chunk1", "Chunk2", "Chunk3", "Chunk4", "Chunk5", "Chunk6", "Chunk7", "Chunk8", "Chunk9", "Chunk10", "Chunk11", "Chunk12", "Chunk13", "Chunk14", "Chunk15", "Chunk16", "Windows21_0", "Windows21_1", "Windows21_2", "Windows21_3"]
+  let allowed := [`LeanVM.Cost.Decoder.GuestTables] ++
+    chunks.map fun c ↦ (`LeanVM.Cost.Bounds.Decoder.GuestLocs).str c
+  let reached := (← getEnv).header.moduleNames.filter fun m ↦
+    (`LeanVM.Cost).isPrefixOf m && !allowed.contains m
+  unless reached.isEmpty do
+    throwError m!"the guest tables' chunk evaluations import {reached.toList}: keep them on the \
+      tables alone (see `Bounds/Decoder/GuestTablesFirewall.lean`)"

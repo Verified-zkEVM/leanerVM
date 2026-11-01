@@ -28,12 +28,12 @@ run against the lazily sampled permutation from no edge (`Common.runWithRandomPe
 
 **Knowledge soundness** is stated for a straight-line extractor (`StraightLineExtractor`), which
 reads the statement, the proof and the adversary's transcript, and nothing else (it neither
-queries `π` nor rewinds the adversary): `KnowledgeSoundness extractor`. `Statement.Theorems` states
-it for the extractor a cost-machine program of bounded size computes within a budget per shape
-(`LeanVM.extractorOf`, `CostMachine.lean`); which program is `lean_vm`'s (the extractor it proves
-sound, compiled), and a reader need not know it: its size bound leaves no room for a useful table of witnesses,
-its budget is about `N·log³N + 2^117.67` for `N` permutation queries (`CostMachine.lean`), and a
-run out of budget extracts nothing, a break.
+queries `π` nor rewinds the adversary): `KnowledgeSoundness extractor`. `Statement.Theorems`
+states it for the extractor that a cost-machine program of bounded size computes within a budget
+per shape (`LeanVM.extractorOf`, `CostMachine.lean`). The statement does not name the program
+(`lean_vm` supplies its extractor, compiled), and a reader need not know it: the size bound leaves
+no room for a useful table of witnesses, the budget is about `2^117.67 + 2^14.7·N·log²N` for `N`
+permutation queries, and a run out of budget extracts nothing, which counts as a break.
 
 **Completeness** is stated for one honest prover, `prover`: `LeanVM.Prover.prove`
 (`Statement/Prover/Prove.lean`), an executable program (over Keccak-f[1600] it is
@@ -173,10 +173,15 @@ def BreaksKnowledgeSoundness (extractor : StraightLineExtractor) (z : Experiment
 
 /-- **Knowledge soundness in the random-permutation model**, for the extractor `extractor`: an
 adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free) breaks soundness with
-probability at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, the `2^14` covering the
-verifier's own `12006` oracle calls and two terms of `2^-128` (a guessed stack root, the transfer
-from two random oracles to one permutation). `Statement.Theorems` states it for the extractor a
-cost-machine program computes within its budget (`LeanVM.extractorOf`, `CostMachine.lean`). -/
+probability at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`. The `2^14` covers the
+verifier's own oracle calls, at most `12006` (in the `Q + 12006` of `lean_vm`'s `soundnessError`),
+its `12006 · 2^-256` for a fresh hash answer equal to a stack root the adversary announced without
+computing it, and the transfer from two random oracles to one permutation. `Statement.Theorems`
+states it for the extractor a cost-machine program computes within its budget
+(`LeanVM.extractorOf`, `CostMachine.lean`). The extractor must output some valid execution of the
+program on the input; nothing requires it to be the execution the proof commits to (its
+committed word). For a program with several valid executions on one input, the one extracted may
+differ, and `GuestKnowledge` then decodes that one. -/
 def KnowledgeSoundness (extractor : StraightLineExtractor) : Prop :=
   ∀ (A : RandomPermutationAdversary) (Q : ℕ),
     Common.QueryCostAtMost A Common.permutationCallCost Q → Q ≤ 2 ^ 128 →

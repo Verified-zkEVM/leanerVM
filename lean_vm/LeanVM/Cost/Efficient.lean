@@ -7,7 +7,7 @@ public import LeanVM.Cost.Bounds.Top
 # The extractor the compiled program computes
 
 `LeanVM.extractorOf P` (`Statement/CostMachine.lean`), the extractor of the end statement, runs
-the program's function `0` on one value, `encode prog input T proof = .ctor 0 [encodeValue prog, encodeValue input, encodeValue qs, encodeValue proof]` with
+the program's function `0` on one value, `encodeExtractorInput prog input T proof = .ctor 0 [encodeValue prog, encodeValue input, encodeValue qs, encodeValue proof]` with
 `qs = permutationQueries T`, and decodes its output with `decodeExecution prog`, which parses an
 execution's encoding. The compiled extractor (`extractorC`, `Cost/Extractor/Top.lean`, computing
 `extractorTop`, `Fast/Compiled.lean`) is a function of four encoded arguments whose output encodes
@@ -113,7 +113,7 @@ theorem extractorTop_output (P : MachineProgram) (j : ℕ) (hentry : P[0]? = som
       cost prog input (permutationQueries T) π + 9 ≤
         extractorBudgetAt prog layout logInverseRate (permutationQueries T).length)
     (prog : Semantics.Program) (input : PublicInput) (T : OracleQueryLog) (proof : Proof) :
-    (outputWithin P (encode prog input T proof) (extractorBudget prog T proof)).bind
+    (outputWithin P (encodeExtractorInput prog input T proof) (extractorBudget prog T proof)).bind
         (decodeExecution prog) =
       transcriptExtractor prog input T proof := by
   have hentryRun := runsBody_entry hentry (hrun prog input (permutationQueries T) proof)
@@ -121,7 +121,7 @@ theorem extractorTop_output (P : MachineProgram) (j : ℕ) (hentry : P[0]? = som
   cases ht : extractorTop prog input (permutationQueries T) proof with
   | none =>
     rw [ht] at hentryRun
-    cases ho : outputWithin P (encode prog input T proof) (extractorBudget prog T proof) with
+    cases ho : outputWithin P (encodeExtractorInput prog input T proof) (extractorBudget prog T proof) with
     | none => rfl
     | some v =>
       obtain ⟨c, hv⟩ := runsBody_of_outputWithin ho
@@ -140,7 +140,7 @@ theorem extractorTop_output (P : MachineProgram) (j : ℕ) (hentry : P[0]? = som
           extractorBudgetAt prog layout R (permutationQueries T).length := by
         simp only [extractorBudget, announced_of_afterRoot ha]
       have hc := hcost prog input T proof layout R st t ha ht
-      have hx : encode prog input T proof =
+      have hx : encodeExtractorInput prog input T proof =
           .ctor 0 [encodeValue prog, encodeValue input, encodeValue (permutationQueries T), encodeValue proof] := rfl
       rw [hx, outputWithin_of_runs (b := extractorBudget prog T proof) hentryRun
         (by rw [hb]; exact hc)]

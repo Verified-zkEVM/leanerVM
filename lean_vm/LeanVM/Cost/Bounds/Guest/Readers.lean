@@ -29,11 +29,6 @@ variable (P : MachineProgram)
 
 /-! ## Counts and limbs -/
 
-/-- **Every count the decoder reads is below `2^34`.** -/
-theorem gLog_lt (x : E) : gLog x < 2 ^ 34 := by
-  unfold gLog
-  cases indexSearch 34 (x.limb 0) <;> simp
-
 /-- `List.range n` and a `List.map` over it (`range.loop.c20`, `map.c12`), the closure's price at
 most `B` on `k < n`, `n ≤ M`: at most `(B + 28)·M + 9`. -/
 theorem rangeMap_le {β : Type} [MachineEncoding β]

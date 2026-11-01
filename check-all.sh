@@ -56,6 +56,10 @@ axioms() {
 # Its generated guest data is heavy, so its modules are admitted by memory.
 statement() {
   no_escapes Statement
+  step "lakefiles: no option that skips the kernel"
+  if grep -nE 'skipKernelTC|debug\.' $(ls lakefile.lean */lakefile.toml */lakefile.lean 2>/dev/null); then
+    fail "a lakefile sets an option that skips the kernel"
+  fi
   step "Statement: imports only Mathlib, VCVio, CompPoly and itself"
   if grep -rnE '^(public )?(meta )?import ' --include='*.lean' --exclude-dir=.lake Statement \
       | grep -vE ':[0-9]+:(public )?(meta )?import (Mathlib|VCVio|CompPoly|Statement)\.'; then
