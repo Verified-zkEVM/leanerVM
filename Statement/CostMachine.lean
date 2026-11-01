@@ -571,7 +571,8 @@ open Common
 extractor's size (`10489`: its `511` compiled bodies and the entry, at `524` indices, `12` of
 them holes, a literal `0` each) and a slack of `511`, room for one leanXMSS signature's encoding
 (`309`: two layers of `153`, each a randomizer, `58` chain values and a path of `16`, digests of
-two limbs) but not two, so no useful table of witnesses fits. -/
+two limbs) but not two, so the compiled extractor could carry no useful table of witnesses beside
+its code. -/
 def extractorSizeBound : ℕ := 11000
 
 /-- **The extractor's budget at a shape**: `extractorPrice` at the layout's stack and memory

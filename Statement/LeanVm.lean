@@ -31,9 +31,10 @@ reads the statement, the proof and the adversary's transcript, and nothing else 
 queries `π` nor rewinds the adversary): `KnowledgeSoundness extractor`. `Statement.Theorems`
 states it for the extractor that a cost-machine program of bounded size computes within a budget
 per shape (`LeanVM.extractorOf`, `CostMachine.lean`). The statement does not name the program
-(`lean_vm` supplies its extractor, compiled), and a reader need not know it: the size bound leaves
-no room for a useful table of witnesses, the budget is about `2^117.67 + 2^14.7·N·log²N` for `N`
-permutation queries, and a run out of budget extracts nothing, which counts as a break.
+(`lean_vm` supplies its extractor, compiled); it constrains it only by its size bound, which leaves
+no room for a useful table of witnesses beside the compiled extractor's code, and its budget,
+about `2^117.67 + 2^14.7·N·log²N` for `N` permutation queries. A run out of budget extracts
+nothing, which counts as a break.
 
 **Completeness** is stated for one honest prover, `prover`: `LeanVM.Prover.prove`
 (`Statement/Prover/Prove.lean`), an executable program (over Keccak-f[1600] it is

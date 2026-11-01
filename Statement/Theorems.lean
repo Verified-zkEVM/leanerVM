@@ -28,8 +28,9 @@ stated for (`LeanVM.extractorOf`, run within a budget per shape, of size at most
 (`GuestKnowledge`, below; `LeanVmGuest.lean` says why its content is in that decoder). A program's
 size is `MachineProgram.size`: one per term node, a literal by its size. `lean_vm` names both
 programs (`LeanVM.Cost.extractorProgram` and `LeanVM.Cost.decoderProgram`, its extractor and decoder
-compiled). The statement constrains them only by their size bounds and budgets, whose limits
-`guestDecoderSizeBound` states. Every statement with an adversary is in the random-permutation
+compiled). The statement constrains them only by their size bounds and budgets;
+`extractorSizeBound`, `guestDecoderSizeBound` and the guest decoder's price below say what those
+exclude and what they do not. Every statement with an adversary is in the random-permutation
 model (`Statement/README.md`).
 -/
 
@@ -134,17 +135,17 @@ open LeanVM.Parameters LeanVM.Semantics
 @[expose] public section
 
 /-- **The bound on the guest decoder program's size** (`MachineProgram.size`): `785500`, the
-compiled decoder's size (`785092`, proved exactly in `lean_vm`'s `Cost/DecoderSize.lean`) and a
-slack of `408`. That size counts in full the guest program's per-function tables, which the
-decoder's replay of the run reads and which are literals of the decoder program
-(`CostMachine.lean`: a literal counts by its size; the frame cells of the guest's functions are
-`749835` of it). The slack bounds a table of witnesses the compiled decoder could carry beside its
-code (hard-coded signatures, matrices or proofs that would mask a bug of the guest program on
-finitely many statements): it is room for one leanXMSS signature's encoding (`309`) but not two,
-so no useful table fits (as the extractor's `11000` against its `10489`). It does not bound what a
-program written differently could hold: the guest's frame-cell table (`749835` of the size, cells
-below `2^20`) packs to about a third, three cells to a limb, freeing room for about `1600`
-signatures' encodings. -/
+compiled decoder's size (`785092`: `lean_vm`'s `Cost/DecoderSize.lean` proves the size at most that,
+and its test `LeanVMTests/Cost/DecoderSize.lean` measures it exactly) and a slack of `408`. That
+size counts in full the guest program's per-function tables, which the decoder's replay of the run
+reads and which are literals of the decoder program (`CostMachine.lean`: a literal counts by its
+size; the frame cells of the guest's functions are `749835` of it). The slack bounds a table of
+witnesses the compiled decoder could carry beside its code (hard-coded signatures, matrices or
+proofs that would mask a bug of the guest program on finitely many statements): it is room for one
+leanXMSS signature's encoding (`309`) but not two, so no useful table fits (as the extractor's
+`11000` against its `10489`). It does not bound what a program written differently could hold: the
+guest's frame-cell table (`749835` of the size, cells below `2^20`) packs to about a third, three
+cells to a limb, freeing room for about `1600` signatures' encodings. -/
 def guestDecoderSizeBound : ℕ := 785500
 
 /-! ### The guest decoder's price
@@ -157,30 +158,34 @@ function entered there, at most two, and its share of one stable sort of at most
 pairs, whose price grows as `log(steps)`). The constant is the price of reading the witness at the
 counts a valid execution bounds: the decoder reads its counts off the memory, and the guest
 program's own asserts bound them on every valid execution (`lean_vm`'s `valid_counts`: at most `16`
-children, `65535` declared claims of each scheme and `65535` slots of both regions), while
-`da_verify`'s rows are clamped at `1024` (`LeanDa.maxRows`, which `da_verify` asserts) on every
-input. It is dominated by the children's cursor lengths, each priced at its `2^32` maximum
-(`16·2^32` steps of the cursor), and the memory's address tables (`2614·2^33`):
-`guestDecoderWorstMemoryWitnessPrice ≈ 2^47.04`. A frame lookup (`guestDecoderFramePrice`, one
+children, `65535` declared claims of each scheme and `65535` coverage slots in the two regions
+together), while the decoder clamps `da_verify`'s row count at `1024` (`LeanDa.maxRows`;
+`da_verify` asserts it, so the clamp changes nothing on a valid execution) on every input. It is
+dominated by the children's cursor lengths, each priced at its `2^32` maximum (`16·2^32` cursor
+words at `1767` each, about `2^46.79`), and the address tables of the memory and the program, each
+priced at `2^32` entries (`2614·2^33` together):
+`guestDecoderWitnessPriceAtValidCounts ≈ 2^47.04`. A frame lookup (`guestDecoderFramePrice`, one
 binary search, growing as `log(steps)`) is paid about `2^26.57` times
-(`guestDecoderWorstFrameLookupCount`).
+(`guestDecoderFrameLookupCountAtValidCounts`).
 
-So the bound is `O(steps·log steps)`, not linear: per step about `2^21.9` to `2^22.0`, and it has no
-term in the memory's or the program's size (`κ` and `ℓ` enter only the step's price,
-`runnerStepPrice`). At `κ = 32` and the guest's `ℓ = 19` it is `2^47.07` at `2^10` steps, `2^47.12`
-at `2^20`, `2^52.00` at `2^30`, `2^73.00` at `2^51` and `2^82.02` at `2^60`: the constant and the
-frame lookups (`2^47.06` to `2^47.12`) dominate up to about `2^25` steps, the per-step price beyond;
-the steps enter through the entry table's key exponent, `Nat.log2 (2·(steps + 1)) + 1`. A valid
+So the bound is `O(steps·log steps)` below `2^62` steps (`O(steps·log² steps)` as `steps` grows,
+through the positions' limbs), not linear: per step about `2^21.9` to `2^22.0`, and it has no term
+in the memory's or the program's size (`κ` and `ℓ` enter only the step's price, `runnerStepPrice`).
+At `κ = 32` and the guest's `ℓ = 19` it is `2^47.07` at `2^10` steps, `2^47.12` at `2^20`, `2^52.00`
+at `2^30`, `2^73.00` at `2^51` and `2^82.02` at `2^60`: the constant and the frame lookups
+(`2^47.05` to `2^47.12`) dominate up to about `2^25` steps, the per-step price beyond; the log
+factor enters through the entry table's key exponent, `Nat.log2 (2·(steps + 1)) + 1`. A valid
 execution of the guest program has fewer than `2^51` steps: the memory is fixed and every
 instruction reads a cell at `fp·o` for an offset `o` fixed by `pc`, so at each `pc` at most `2^κ`
 values of `fp` let a step succeed; the run is determined by `(pc, fp)`, and a repeated state would
 loop without halting (`2^ℓ·2^κ` states, `ℓ = 19`, `κ ≤ 32`; argued, not a Lean theorem). The
 per-step price and the frame lookup are the compiled decoder's own (`lean_vm` proves them equal to
 its bounds); the constant prices the children's cursors at `2^32` words each (no assert of the guest
-bounds the prefix of a child's stream it consumes: its `8192` words are only the hint's capacity)
-and the address tables at `2^32` words, not at the run's, so on an honest execution of fewer than
-about `2^25` steps the budget is far above what the compiled decoder spends; that looseness is an
-accepted trade-off.
+bounds the prefix of a child's stream it consumes: `8192` (`STREAM_CAP`) is only the hint buffer's
+capacity, which `AcceptableChild` assumes for completeness but no assert enforces) and the address
+tables at `2^32` entries, not at the run's, so on an honest execution of fewer than about `2^25`
+steps the budget is far above what the compiled decoder spends; that looseness is an accepted
+trade-off.
 
 The literals (`8339`, `113729`, `12895`, `17047343`, `3060`, `3103`, `11056`, the `+ 32`, `+ 34`,
 and the other constants below) are the bounds `lean_vm` proves of the compiled decoder's parts
@@ -222,11 +227,11 @@ def guestDecoderFramePrice (exponent : ℕ) : ℕ :=
 lookups apart: `16` children (their cursors each up to `2^32`) of up to `65535` claims of each
 scheme, the declared claims' holders (up to `65535` of each scheme), the DA matrix of up to `1024`
 rows, the children's proofs, the tables built once (the discrete logarithm's, the readers', the
-address tables of `2^32` words). About `2^47.04`. -/
-def guestDecoderWorstMemoryWitnessPrice : ℕ := 144294535527556
+address tables of the memory and the program, each at `2^32` entries). About `2^47.04`. -/
+def guestDecoderWitnessPriceAtValidCounts : ℕ := 144294535527556
 
 /-- How many frame lookups the constant pays for: about `2^26.57`. -/
-def guestDecoderWorstFrameLookupCount : ℕ := 99702868
+def guestDecoderFrameLookupCountAtValidCounts : ℕ := 99702868
 
 /-- **An upper bound on the guest decoder's price** on a memory of `2^κ` words, the deployed guest
 program (`2^ℓ` instructions, `ℓ = 19`) and a run of `steps` steps: per step the replay and the
@@ -235,8 +240,8 @@ filing of the state, then the guest's tables of preconditions (`12895`) and of e
 def guestDecoderPrice (κ ℓ steps : ℕ) : ℕ :=
   (LeanVM.Cost.runnerStepPrice κ ℓ + 48 +
       guestDecoderStateFilingPrice (guestDecoderEntryTableKeyExponent steps)) * (steps + 1) +
-    12895 + 17047343 + guestDecoderWorstMemoryWitnessPrice +
-    guestDecoderWorstFrameLookupCount *
+    12895 + 17047343 + guestDecoderWitnessPriceAtValidCounts +
+    guestDecoderFrameLookupCountAtValidCounts *
       guestDecoderFramePrice (guestDecoderEntryTableKeyExponent steps) + 32
 
 /-- **The guest decoder's budget** on an execution of `prog`: `guestDecoderPrice` at the
@@ -275,8 +280,8 @@ structure Theorems (extractorProgram decoderProgram : LeanVM.Cost.MachineProgram
   extractorSize : extractorProgram.size ≤ LeanVM.extractorSizeBound
   /-- leanVM is knowledge sound for the straight-line extractor the program computes within its
   budget, `extractorOf extractorProgram` (a run out of budget extracts nothing, which counts as
-  breaking knowledge soundness; the
-  machine's prices are trusted to be honest, `CostMachine.lean`): at most
+  breaking knowledge soundness; the machine's prices are trusted to be honest,
+  `CostMachine.lean`): at most
   `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). The
   budget is about `2^117.67 + 2^14.7·N·log²N` for `N` permutation queries at the worst shape
   (`O(N·log³N)` as `N` grows). -/
@@ -297,8 +302,8 @@ structure Theorems (extractorProgram decoderProgram : LeanVM.Cost.MachineProgram
   whose digest under that seed is the input's digest, and a witness for it: each signature claim
   of the statement is held, by a signature or a child whose proof the deferring verifier accepts,
   the bytecode's value at the child's point taken from the witness and checked only at the root,
-  and its DA digest is that of the blob matrix it checks, zeros or a child's (`NodeRelation`,
-  `LeanVmGuest.lean`). -/
+  and its DA digest is that of the blob matrix it checks, zeros or a child's, and its deferred
+  claim is the batching of its children's (`NodeRelation`, `LeanVmGuest.lean`). -/
   guestKnowledge : LeanVM.Node.GuestKnowledge LeanVM.Guest.guest decoderProgram
   /-- A statement's digest binds the seed and the statement, up to a Keccak-256 collision among
   the candidates (`LeanVmGuest.lean`). With the two fields above it gives what an accepted proof

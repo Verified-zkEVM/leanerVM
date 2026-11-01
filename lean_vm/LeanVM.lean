@@ -22,11 +22,11 @@ import LeanVM.Cost.GuestDecoding
 
 /-! # The end theorems of leanVM
 
-`LeanVM.theorems_hold` (at the end) proves `Statement.Theorems` (`Statement/Theorems.lean`): every end
-statement of the repository, leanXMSS's, leanSPHINCS's and LeanDA's included, in one theorem.
+`LeanVM.theorems_hold` (at the end) proves `Statement.Theorems` (`Statement/Theorems.lean`): every
+end statement of the repository, leanXMSS's, leanSPHINCS's and LeanDA's included, in one theorem.
 `LeanVM.corollaries_of_theorems` proves `Statement.Corollaries` (`Statement/Corollaries.lean`) from
-the fields of `Statement.Theorems` alone, and `LeanVM.corollaries_hold` for the compiled decoder
-and extractor programs (`LeanVM.Cost.decoderProgram`, `LeanVM.Cost.extractorProgram`).
+the fields of `Statement.Theorems` alone, and `LeanVM.corollaries_hold` for the compiled extractor
+and decoder programs (`LeanVM.Cost.extractorProgram`, `LeanVM.Cost.decoderProgram`).
 
 **The guest decoder.** `Statement.Theorems` takes the guest program's decoder as a cost-machine
 program too (`GuestKnowledge`, `Statement/Theorems.lean`): `LeanVM.Cost.decoderProgram`, the
@@ -344,7 +344,7 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
 #guard_msgs in
 #print axioms LeanVM.corollaries_of_theorems
 
-/-- **Every corollary**, `Statement/Corollaries.lean`, for the compiled decoder and extractor
+/-- **Every corollary**, `Statement/Corollaries.lean`, for the compiled extractor and decoder
 programs. -/
 theorem LeanVM.corollaries_hold :
     Statement.Corollaries (extractorProgram := LeanVM.Cost.extractorProgram)

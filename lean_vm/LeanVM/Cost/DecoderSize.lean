@@ -35,9 +35,10 @@ before it in the chain gains a function): `785092` at index `845` with `404` bod
 entry, the program's exact size (`LeanVMTests/Cost/DecoderSize.lean`), of which the guest's frame
 cells (`guestLocs`, a literal held once, `guestLocsTable`) are `749835`. `guestDecoderSizeBound`
 (`Statement/Theorems.lean`) is `785500`: this exact size and a slack of `408`, room for one
-leanXMSS signature's encoding (`309`) but not two. The bound limits any program of that size,
-not only this one: the frame cells (below `2^20` each), packed three to a limb, would take
-about a third of their `749835`, freeing room for about `1600` signatures' encodings.
+leanXMSS signature's encoding (`309`) but not two. The bound applies to every program, but its
+slack is small only for programs written like this one: the frame cells (below `2^20` each),
+packed three to a limb, would take about a third of their `749835`, freeing room for about
+`1600` signatures' encodings.
 -/
 
 namespace LeanVM.Cost

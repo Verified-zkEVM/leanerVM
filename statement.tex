@@ -29,7 +29,7 @@ proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classic
 leanVM at commit \texttt{c445e3d5} of its \texttt{main} branch.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: fifteen files
-of definitions and end statements ($7500$ lines with their documentation), which import Mathlib,
+of definitions and end statements ($7507$ lines with their documentation), which import Mathlib,
 VCVio and CompPoly and nothing of the proofs. Beside them sit the honest prover the completeness
 statements name (\lean{Statement/Prover/}, $2524$ lines; it is proved to make the specification's
 honest moves, so a reviewer only needs to see that it is a genuine prover), the guest program's
@@ -140,12 +140,14 @@ polylogarithmic per query: $2^{117.67}$ for $N \le 2^{80}$, the list decoder dom
 $2^{156.69}$ at $N = 2^{128}$, the transcript's index dominating, where the soundness bound is
 already trivial), its output
 parsed as an execution; a run out of budget outputs nothing, which counts as a break. The
-statement takes $P$ as a parameter (\texttt{extractorProgram := P}); which program it is
-a reader need not know: $P$ is a program (no classical choice), the size bound leaves no room for
-a useful table of witnesses, the budget is the one above, and the machine's only runtime data is
-its input. The machine's prices (each step at least $1$, and at least the words it writes but for
+statement takes $P$ as a parameter (\texttt{extractorProgram := P}) and constrains it only by
+its size and budget: $P$ is a program (no classical choice), the size bound leaves the compiled
+extractor no room for a useful table of witnesses, the budget is the one above, and the machine's
+only runtime data is its input. The machine's prices (each step at least $1$, and at least the words it writes but for
 a \texttt{case}'s fields and a closure's captured values, $O(1)$ in a frame-pointer environment;
-$\mathbb{F}_{2^{64}}$ products and operations on large numbers priced by their algorithms) are
+$\mathbb{F}_{2^{64}}$ products at $256$, on the basis of a hardware carry-less multiply
+(PCLMULQDQ, PMULL; a software loop would cost about $800$), and operations on large numbers
+priced by their schoolbook algorithms) are
 trusted to be honest. In a program's size, a constructor's tag and a function index count one:
 the machine reads them only by bounded lookups.
 
@@ -417,7 +419,7 @@ message (Keccak-256 as the schemes' hash, at any leaf index); a child holder $i$
 occurs in the corresponding list of $s_i$.
 \item The DA digest is accounted for: with a direct matrix, $\mathit{da} = H(\rho \,\|\, \delta)$ of the claim
 it opens; without one, $\mathit{da}$ is zero or some child's DA digest (the guest program's
-\texttt{da\_pick}, \texttt{lean\_ethereum.py:4207-4211}).
+\texttt{da\_pick}, \texttt{lean\_ethereum.py:4202-4206}).
 \item The deferred claim batches the children's. With no children, its point is all-zero (its
 value is left to the outer verifier); otherwise $\mathrm{batch}\big((\mathrm{dig}_\sigma(s_i),
 f_i, c_i)_i, \text{hints}\big) = c$ (\lean{batch}), with $c_i$ the deferred claim of $s_i$. The
@@ -513,12 +515,14 @@ is known.
 bound \lean{lean_vm} proves on the compiled decoder's price, as \lean{extractorPrice} is on the
 extractor's: per step $2^{21.9}$ to $2^{22.0}$ (the replay and the filing of the state in a
 sorted array, its share of one sort, growing as $\log$ of the steps), so
-$O(\mathit{steps}\cdot\log\mathit{steps})$, with no term in the memory's or the program's size,
+$O(\mathit{steps}\cdot\log\mathit{steps})$ below $2^{62}$ steps
+($O(\mathit{steps}\cdot\log^2\mathit{steps})$ as they grow), with no term in the memory's or the
+program's size,
 and a constant of about $2^{47.04}$ with about $2^{26.57}$ frame lookups, the witness read at the
 counts a valid execution bounds ($G$'s own asserts: at most $16$ children, $65535$ claims and
 $65535$ slots; the DA matrix's rows clamped at $1024$), dominated by the children's cursor
-lengths ($16\cdot 2^{32}$: no assert of $G$ bounds them) and the memory's address tables
-($2614\cdot 2^{33}$). At $\kappa = 32$ and $\ell = 19$ the budget is $2^{47.07}$ at $2^{10}$
+lengths ($16\cdot 2^{32}$: no assert of $G$ bounds them) and the address tables of the memory
+and the program ($2614\cdot 2^{33}$, each at $2^{32}$ entries). At $\kappa = 32$ and $\ell = 19$ the budget is $2^{47.07}$ at $2^{10}$
 steps, $2^{47.12}$ at $2^{20}$, $2^{52.00}$ at $2^{30}$, $2^{73.00}$ at $2^{51}$ and $2^{82.02}$
 at $2^{60}$; the constant dominates up to about $2^{25}$ steps, so below that the budget is far
 above the compiled decoder's price. There is no cap on the steps in the budget. A valid execution
@@ -529,7 +533,8 @@ determined by $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop with
 ($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 32$; argued, not a Lean theorem).
 
 \paragraph{The decoder's size bound.} The bound (\lean{guestDecoderSizeBound}, $785500$)
-limits any program; it is the compiled decoder's size, $785092$ (proved exactly), and a slack of
+limits any program; it is the compiled decoder's size, $785092$ (proved at most that, measured
+exactly), and a slack of
 $408$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no
 useful table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many
 statements) fits there. It does not bound what a program written differently could hold: the
@@ -709,7 +714,8 @@ one finds a Keccak-256 collision.
 \item Soundness across recursion levels (Section~\ref{sec:notgive}); completeness across levels
 holds only through \lean{GuestChildComplete}.
 \item That the cost machine's prices are honest (Section~\ref{sec:zkvm}): trusted, as the
-statement's model of computation.
+statement's model of computation, a $\mathbb{F}_{2^{64}}$ product priced at $256$ on the basis of
+a hardware carry-less multiply.
 \item Security against quantum adversaries (a quantum random-permutation model), for the
 signature schemes and for leanVM's Fiat--Shamir: every statement is about classical adversaries.
 \item LeanDA's code binding for an argument without access to $\pi$, and the link from the guest
@@ -728,7 +734,13 @@ bounds and budgets; the end theorem holds at \lean{lean_vm}'s compiled
 asks only for some valid execution of $\mathit{prog}$ on $x$, and \lean{AggregateSound} decodes that one.
 \item That a valid execution of $G$ has fewer than $2^{51}$ steps (Section~\ref{sec:guest}):
 argued, not a Lean theorem; the decoder's budget has no cap on the steps, and its constant, about
-$2^{47.04}$, prices the children's cursors and the memory's address tables at their maxima.
+$2^{47.04}$, prices the children's cursors and the address tables of the memory and the program
+at their maxima.
+\item The size bounds limit programs written like the compiled ones: literals count toward size,
+and a decoder written differently could pack the guest's frame-cell table about three times
+tighter, freeing room for about $1600$ signatures' encodings. $D$ computes the witness from the
+execution by any algorithm within its budget. The extractor's budget is about
+$2^{117.67} + 2^{14.7} N\log^2 N$.
 \item The Rust verifier, prover and guests. They are tested against the Lean specification: the
 verifier differential fuzz; the prover differential (the Lean prover's proofs byte-identical to the
 Rust prover's, accepted by both verifiers, every mutation rejected by both), which does not yet

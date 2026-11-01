@@ -34,8 +34,8 @@ the decoder program's price is within `guestDecoderBudget` (`Statement/Theorems.
   at most `2^32`), the witness (`frameWit_cost`);
 * the tables: preconditions `12895` (`preTable_cost`), entries `17047343` (`pcTableT_cost`); the
   constant `topConstPrice` at most `144294535527556 + 99702868·F` (`2^47.04 + 2^26.57·F`,
-  `topConst_valid_le`), the statement's `guestDecoderWorstMemoryWitnessPrice +
-  guestDecoderWorstFrameLookupCount·F` (`topConst_le`).
+  `topConst_valid_le`), the statement's `guestDecoderWitnessPriceAtValidCounts +
+  guestDecoderFrameLookupCountAtValidCounts·F` (`topConst_le`).
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -65,8 +65,8 @@ theorem topConst_valid_le (F : ℕ) :
 theorem topConst_le (F : ℕ) :
     topConstPrice 65535 (decWitNPrice gLogPrice 1472 (1472 + 10993) (F + 7) (425014 + 4)
       (2 ^ 32) (dvFramePrice gLogPrice (F + 7)) 16 65535 65535) ≤
-      guestDecoderWorstMemoryWitnessPrice + guestDecoderWorstFrameLookupCount * F := by
-  unfold guestDecoderWorstMemoryWitnessPrice guestDecoderWorstFrameLookupCount
+      guestDecoderWitnessPriceAtValidCounts + guestDecoderFrameLookupCountAtValidCounts * F := by
+  unfold guestDecoderWitnessPriceAtValidCounts guestDecoderFrameLookupCountAtValidCounts
   exact topConst_valid_le F
 
 /-- **Filing a state**: the sorted entry array's price per state (`entryArrayStatePrice`) at the
