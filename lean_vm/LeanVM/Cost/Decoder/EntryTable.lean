@@ -72,6 +72,33 @@ def frameAt (table : SortedMap CallKey K) (rd : Reader) (j : ℕ) (args rets : L
   | some fp => frameWordAt rd fp j v
   | none => 0
 
+/-! ### The library functions the tables use, under names of their own
+
+The sorted maps' operations at the two key types (the pc table's `ℕ`, the entry table's
+`CallKey`), the call key's codes and the frame cells' words: compiled here before their callers,
+so that the bounds name them, not an index (`Bounds/Decoder/EntryTable.lean`). -/
+
+cost_compile searchInPcC measure fun _ _ lo hi ↦ hi - lo := @searchIn ℕ (List ℕ) _
+cost_compile mergeNewerPcC measure fun a b ↦ a.length + b.length := @mergeNewer ℕ (List ℕ) _
+cost_compile levelMergePcC := @Level.merge ℕ (List ℕ) _ _ _
+cost_compile carryPcC measure fun _ ls ↦ ls.length := @carry ℕ (List ℕ) _ _ _
+cost_compile insertPcC := @SortedMap.insert ℕ (List ℕ) _ _ _
+cost_compile getPcC := @SortedMap.get? ℕ (List ℕ) _
+cost_compile addAtC := addAt
+
+cost_compile searchInKeyC measure fun _ _ lo hi ↦ hi - lo := @searchIn CallKey K _
+cost_compile mergeNewerKeyC measure fun a b ↦ a.length + b.length := @mergeNewer CallKey K _
+cost_compile levelMergeKeyC := @Level.merge CallKey K _ _ _
+cost_compile carryKeyC measure fun _ ls ↦ ls.length := @carry CallKey K _ _ _
+cost_compile insertKeyC := @SortedMap.insert CallKey K _ _ _
+cost_compile getKeyC := @SortedMap.get? CallKey K _
+cost_compile insertIfNewKeyC := @insertIfNew CallKey K _ _ _
+
+cost_compile wordCodeC := wordCode
+cost_compile callKeyC := callKey
+cost_compile wordsWithC := wordsWith
+cost_compile isFunctionIndexC := isFunctionIndex
+
 set_option maxRecDepth 100000 in
 cost_compile addEntryC := addEntry
 set_option maxRecDepth 100000 in
