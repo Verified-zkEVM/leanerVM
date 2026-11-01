@@ -54,7 +54,7 @@ variable {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof}
 
 /-- **Soundness of the deployed guest, its witness named**, from `verify_sub`'s statement. -/
 theorem guest_knowledge_sub (hv : B1.Main.SubSoundW bytecode piOf) :
-    GuestKnowledge guest (decodeV piOf) :=
+    MemoryGuestKnowledge guest (decodeV piOf) :=
   guest_knowledge_V b2SoundL hv
 
 /-- **What a consumer learns**, from `verify_sub`'s statement. -/

@@ -362,6 +362,10 @@ instance {α : Type} [MachineEncoding α] : MachineEncoding (List α) :=
 instance {α β : Type} [MachineEncoding α] [MachineEncoding β] : MachineEncoding (α × β) :=
   ⟨fun p ↦ .ctor 0 [encodeValue p.1, encodeValue p.2]⟩
 
+/-- An option: `none` the constructor of tag `0`, `some a` of tag `1`. -/
+instance {α : Type} [MachineEncoding α] : MachineEncoding (Option α) where
+  encodeValue | none => .ctor 0 [] | some a => .ctor 1 [encodeValue a]
+
 instance {α : Type} [MachineEncoding α] {n : ℕ} : MachineEncoding (Vector α n) :=
   ⟨fun v ↦ .arr (v.toArray.map encodeValue)⟩
 

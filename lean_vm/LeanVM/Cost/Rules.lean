@@ -713,6 +713,49 @@ theorem kMul {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (encodeValue a
     (hb : Runs P env u (encodeValue b) d) : Runs P env (.op .binaryFieldMultiply [t, u]) (encodeValue (a * b)) (c + d + 256) :=
   op₂ h hb rfl
 
+theorem natOr {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
+    (hb : Runs P env u (encodeValue b) d) :
+    Runs P env (.op .naturalOr [t, u]) (encodeValue (a ||| b)) (c + d + (max (limbCount a) (limbCount b) + 1)) :=
+  op₂ h hb rfl
+
+/-- `Nat.lor`, as `|||` unfolds (a bit vector's `++`). -/
+theorem natLor {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
+    (hb : Runs P env u (encodeValue b) d) :
+    Runs P env (.op .naturalOr [t, u]) (encodeValue (Nat.lor a b)) (c + d + (max (limbCount a) (limbCount b) + 1)) :=
+  op₂ h hb rfl
+
+/-! ### Bit vectors, encoded as their number
+
+The statement's encoding of `BitVec w` (`Statement/Theorems.lean`) is `.nat v.toNat`; it is not
+imported here, so each rule takes the encoding as an instance with its defining equation, which
+the compiler proves by `rfl`. -/
+
+/-- `BitVec.ofFin`: the same number. -/
+theorem bvOfFin {w : ℕ} [MachineEncoding (BitVec w)] (henc : ∀ v : BitVec w, encodeValue v = .nat v.toNat)
+    {t : Term} {i : Fin (2 ^ w)} {c : ℕ} (h : Runs P env t (encodeValue i) c) :
+    Runs P env t (encodeValue (BitVec.ofFin i)) c := by
+  rw [henc]; exact h
+
+/-- `BitVec.toNat`: the same number. -/
+theorem bvToNat {w : ℕ} [MachineEncoding (BitVec w)] (henc : ∀ v : BitVec w, encodeValue v = .nat v.toNat)
+    {t : Term} {v : BitVec w} {c : ℕ} (h : Runs P env t (encodeValue v) c) :
+    Runs P env t (encodeValue v.toNat) c := by
+  rw [henc] at h; exact h
+
+/-- `BitVec.toFin`: the same number. -/
+theorem bvToFin {w : ℕ} [MachineEncoding (BitVec w)] (henc : ∀ v : BitVec w, encodeValue v = .nat v.toNat)
+    {t : Term} {v : BitVec w} {c : ℕ} (h : Runs P env t (encodeValue v) c) :
+    Runs P env t (encodeValue v.toFin) c := by
+  rw [henc] at h; exact h
+
+/-- `BitVec.ofNat w n`: `n` modulo `2^w`. -/
+theorem bvOfNat {w : ℕ} [MachineEncoding (BitVec w)] (henc : ∀ v : BitVec w, encodeValue v = .nat v.toNat)
+    {t : Term} {n : ℕ} {c : ℕ} (h : Runs P env t (encodeValue n) c) :
+    Runs P env (.op .naturalModulo [t, .val (.nat (2 ^ w))]) (encodeValue (BitVec.ofNat w n))
+      (c + 1 + (limbCount n * limbCount (2 ^ w) + 1)) := by
+  rw [henc, BitVec.toNat_ofNat]
+  exact op₂ (b := 2 ^ w) h (natLit (2 ^ w)) rfl
+
 end Rule
 
 /-! ## Rewrites: library functions compiled through equal forms -/
@@ -767,6 +810,14 @@ theorem eZero : (0 : E) = E.ofLimbs 0 0 0 := by
   apply E.ext; intro i; fin_cases i <;> simp [limb_zero]
 
 theorem eOfK (a : K) : ofK a = E.ofLimbs a 0 0 := ofK_eq_ofLimbs a
+
+/-- `1` of `E`: the limbs `1, 0, 0` (as `E`'s encoding reads it; the generic constructor path does
+not). -/
+theorem eOne : (1 : E) = E.ofLimbs 1 0 0 := by
+  apply E.ext; intro i
+  rw [limb_ofLimbs]
+  have h := CompPoly.Extension.Ext.coeff_one (P := BF64.ext3Params) i
+  fin_cases i <;> exact h
 
 /-- Equality in `E`: of the limbs. -/
 theorem decideEqE (x y : E) {inst : Decidable (x = y)} :

@@ -130,7 +130,13 @@ def rules : List (Name × Name) := [
   (``Array.extract, ``Rule.arrExtract),
   (``Fin.val, ``Rule.finVal),
   (``Fin.mk, ``Rule.finMk),
-  (``HSub.hSub, ``Rule.kSub)
+  (``HSub.hSub, ``Rule.kSub),
+  (``HOr.hOr, ``Rule.natOr),
+  (``Nat.lor, ``Rule.natLor),
+  (``BitVec.ofFin, ``Rule.bvOfFin),
+  (``BitVec.toNat, ``Rule.bvToNat),
+  (``BitVec.toFin, ``Rule.bvToFin),
+  (``BitVec.ofNat, ``Rule.bvOfNat)
 ]
 
 /-- Rewrites: a library function compiled through an equal form (`lhs = rhs`). -/
@@ -154,6 +160,7 @@ def rewrites : List (Name × Name) := [
   (``HAdd.hAdd, ``Rewrite.eAdd),
   (``HMul.hMul, ``Rewrite.eMul),
   (``OfNat.ofNat, ``Rewrite.eZero),
+  (``OfNat.ofNat, ``Rewrite.eOne),
   (``LeanVM.Parameters.ofK, ``Rewrite.eOfK),
   (``Array.ofFn, ``Rewrite.arrOfFn),
   (``List.finRange, ``Rewrite.listFinRange),

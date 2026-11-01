@@ -12,9 +12,9 @@ public import Statement.Fast.Schemes
 
 The specification of a node of the aggregation (its statement, witness and relation `NodeRelation`:
 leanXMSS and leanSPHINCS claims, a DA digest, children verified by the leanVM verifier with deferred
-claims), what a proof of the leanISA guest program establishes with its witness named
-(`GuestKnowledge`) and the binding of a statement's digest (`DigestBinds`), the deployed leanISA
-guest program (`LeanVM.Guest.guest`, assembled from the generated `Statement/Data/`), its
+claims), what a decoding explains (`Decoded`, `ExplainsInput`, of which `GuestKnowledge`,
+`Theorems.lean`, is the end statement) and the binding of a statement's digest (`DigestBinds`),
+the deployed leanISA guest program (`LeanVM.Guest.guest`, assembled from the generated `Statement/Data/`), its
 completeness on the covered nodes (`GuestCompleteCovered`, with the deployed limits it assumes) and on its own honest proofs as children (`GuestChildComplete`), and the recursion
 step, the batching of the children's deferred claims, sound in the random-permutation model
 (`BatchingSound`).
@@ -43,12 +43,12 @@ into its own deferred claim (`Batch.nodeBatchingProgram`).
 What a valid execution of the leanISA guest program establishes is `NodeRelation` of the witness its
 memory holds, on Keccak as the guest program computes it: the witness is the knowledge content,
 since "some signature verifies" says little (some signature verifies for almost every key and
-message). The soundness statements take the decoder that reads the witness as a parameter: the end
-theorems name `LeanVM.Guest.End.decode` (`lean_vm`), which reads every component off the memory and
-chooses nothing; they hold of any decoder that outputs valid witnesses, and their content is in the
-decoder they name: one that chose another statement of the same digest would satisfy
-`AggregateSound` (`Corollaries.lean`) through a Keccak-256 collision. That the root's statement makes every claim held at the leaves is not proved:
-it would need Keccak, computed inside the guest program, to behave as Keccak-256 and Keccak-f[1600]
+message). The soundness statements take the decoder that reads the witness as a parameter, a
+program of the cost machine run within a budget (`GuestKnowledge`, `Theorems.lean`): a program
+that chose another statement of the same digest would satisfy `AggregateSound`
+(`Corollaries.lean`) through a Keccak-256 collision; its budget, far below a search for one, and
+its size bound, which excludes a table of collisions, exclude that. That the root's statement
+makes every claim held at the leaves is not proved: it would need Keccak, computed inside the guest program, to behave as Keccak-256 and Keccak-f[1600]
 built from the random permutation of `LeanVM.KnowledgeSoundness`.
 -/
 
@@ -522,30 +522,21 @@ def DigestBinds : Prop :=
       statementDigest seed s = statementDigest seed' s' →
       (seed = seed' ∧ s = s') ∨ HasCollision (collisionCandidates seed s seed' s')
 
-/-- What a decoder reads off a memory: a seed, a statement and a witness. -/
+/-- What a decoder reads off an execution: a seed, a statement and a witness. -/
 structure Decoded where
   seed : Digest
   statement : NodeStatement
   witness : NodeWitness
 
-/-- A decoder: from a memory, a seed, a statement and a witness. -/
-abbrev Decoder : Type := ∀ {κ : ℕ}, MemoryImage κ → Decoded
-
 /-- **The decoding `d` explains the public input `input`**: its seed and node statement have the
 input's digest (the statement is the one the input commits to), and its witness proves that
 statement (`NodeRelation`: each of its claims is held, by a signature, a blob or a child whose
 proof the deferring verifier accepts, and its deferred claim is the batching of its children's).
-`GuestKnowledge` says this of what the decoder reads off every valid execution. -/
+`GuestKnowledge` (`Theorems.lean`) says this of what the decoder program outputs on every valid
+execution. -/
 def ExplainsInput (guest : Program) (input : PublicInput) (d : Decoded) : Prop :=
   statementDigest d.seed d.statement = publicDigest input ∧
     NodeRelation (bytecodeWords guest) d.seed d.statement d.witness
-
-/-- **Knowledge soundness of the leanISA guest program, its witness named**: from the memory of
-every valid execution of `guest` on a public input, `decode` reads a seed, the node statement the
-input commits to under that seed, and a witness proving it (`ExplainsInput`). -/
-def GuestKnowledge (guest : Program) (decode : Decoder) : Prop :=
-  ∀ input (t : Execution guest), ValidExecution guest input t →
-    ExplainsInput guest input (decode t.memory)
 
 end LeanVM.Node
 

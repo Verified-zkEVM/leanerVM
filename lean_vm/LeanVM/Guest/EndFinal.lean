@@ -2,9 +2,9 @@
   LeanVM.Guest.EndFinal
 
   The aggregation guest's soundness for the deployed bytecode, with nothing assumed: the decoder
-  `decode`, which replays the run, and the statement `GuestKnowledge` of
-  `Statement/LeanVmGuest.lean` (`AggregateSound`, in the random-permutation model, is composed in
-  `LeanVM/Guest/EndRpm.lean`).
+  `decode`, which replays the run, and `MemoryGuestKnowledge` (`GuestKnowledge` of
+  `Statement/Theorems.lean` for a decoder of memories; `MemoryAggregateSound`, in the
+  random-permutation model, is composed in `LeanVM/Guest/EndRpm.lean`).
 -/
 
 module
@@ -32,14 +32,14 @@ makes is decided by evaluation: it decides no proposition classically and picks 
 (`tests/LeanVMTests/Guest/DecodeNoChoice.lean`). It runs the machine (whose `KECCAK` instruction
 checks Keccak-f[1600]) and no verifier.
 
-* `guest_knowledge : GuestKnowledge guest decode`: every valid execution of the guest on a public
-  input decodes to a statement of that input's digest under the decoded seed, and a witness
+* `guest_knowledge : MemoryGuestKnowledge guest decode`: every valid execution of the guest on a
+  public input decodes to a statement of that input's digest under the decoded seed, and a witness
   holding it (`NodeRelation`). B2 locates every call of `main` at a frame the run entered
   (`Check.EnteredAt`), so the located relation unfolds along the replayed frame map
   (`Located.unfoldsV_replay`), and B1 applies to it.
 * `decode_eq`: on a memory of fewer than `2^64` words, `decode` is `decodeV`'s reading with the
   replayed frame map in place of `Located.frameV`.
-* `aggregate_sound_outer : AggregateSound guest decode` (`EndRpm.lean`): in the
+* `aggregate_sound_outer : MemoryAggregateSound guest decode` (`EndRpm.lean`): in the
   random-permutation experiment, the verifier accepts a proof of the guest on the digest of a
   statement `s` under the deployed seed, `s` of the guest's shape, while no
   execution is extracted from the proof and the adversary's transcript, or the extracted one does
@@ -70,7 +70,7 @@ noncomputable def mainValWith (rd : Reader) : Val :=
 (`Extraction.Fast.powTable`, the extractor's), the seed and the statement off `main`'s frame, the
 witness off `main`'s valuation, the memory and the replayed frame map (the frames the run entered
 the functions that checked it at, indexed once, `Located.frameVFast`). -/
-noncomputable def decode : Decoder := fun {κ} L ↦
+noncomputable def decode : MemoryDecoder := fun {κ} L ↦
   let memT := Extraction.Fast.powTable κ
   let rd := Located.readTable memT L
   let states := Located.statesTable memT (Extraction.Fast.powTable guest.logSize) guest L
@@ -99,7 +99,7 @@ theorem subSoundW : B1.Main.SubSoundW bytecode VerifySub.vsPiOf :=
 /-- **Soundness of the deployed guest, its witness named**: every valid execution of the guest on
 a public input decodes, from its memory, to a statement of the input's digest under the decoded
 seed and a witness holding it. -/
-theorem guest_knowledge : GuestKnowledge guest decode := by
+theorem guest_knowledge : MemoryGuestKnowledge guest decode := by
   intro input t hv
   have hκ : t.logMemorySize < 64 := by
     have := hv.1.2.1

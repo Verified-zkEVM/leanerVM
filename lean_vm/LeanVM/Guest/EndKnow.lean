@@ -2,9 +2,9 @@
   LeanVM.Guest.EndKnow
 
   The aggregation guest's soundness, its witness named: the decoder that reads a statement and
-  its witness off a valid execution's memory, and the statement `GuestKnowledge` of
-  `Statement/LeanVmGuest.lean` for the deployed bytecode, from B2 and B1's statements
-  (`AggregateSound`, in the random-permutation model, is composed in `LeanVM/Guest/EndRpm.lean`).
+  its witness off a valid execution's memory, and `MemoryGuestKnowledge` (`GuestKnowledge`
+  of `Statement/Theorems.lean`, for a decoder of memories) for the deployed bytecode, from B2 and B1's statements
+  (`MemoryAggregateSound`, in the random-permutation model, is composed in `LeanVM/Guest/EndRpm.lean`).
 -/
 
 module
@@ -41,7 +41,7 @@ call relation that unfolds along a frame map (`Located.MainSoundV`).
   shape) has, under the
   seed `iv`, the public input's digest learns that the decoded seed and statement are `iv` and
   `s₀`, or holds an explicit Keccak-256 collision (`collisionCandidates`).
-* `aggregate_knowledge_of`, `aggregate_sound_outer_of : AggregateSound guest (decodeWith W)`:
+* `aggregate_knowledge_of`, `aggregate_sound_outer_of : MemoryAggregateSound guest (decodeWith W)`:
   composed with knowledge soundness in the random-permutation model, in `LeanVM/Guest/EndRpm.lean`.
 
 **With B1's witnesses** (`decodeV piOf`): `W σ rd V = B1.Main.decWitV σ rd V piOf`, `main`'s
@@ -51,6 +51,28 @@ named (`B1.Main.SubSoundW bytecode piOf`), and the theorems rest on `B2SoundL` a
 `SubSoundW bytecode piOf` alone (`soundHyps_of_sub`, `guest_knowledge_V`, `decode_binds_V`; and
 `aggregate_sound_outer_V` in `EndRpm.lean`).
 -/
+
+namespace LeanVM.Node
+
+open LeanVM.Parameters LeanVM.Semantics
+
+@[expose] public section
+
+/-- **A decoder of memories**: from a memory, a seed, a statement and a witness. The statement's
+decoder is a cost-machine program (`GuestKnowledge`, `Statement/Theorems.lean`); this is the
+proofs' form, which `LeanVM/Guest/DecoderProgram.lean` relates to it. -/
+abbrev MemoryDecoder : Type := ∀ {κ : ℕ}, MemoryImage κ → Decoded
+
+/-- **Knowledge soundness of the guest program, for a decoder of memories**: from the memory of
+every valid execution of `guest` on a public input, `decode` reads a seed, the node statement the
+input commits to under that seed, and a witness proving it (`ExplainsInput`). -/
+def MemoryGuestKnowledge (guest : Program) (decode : MemoryDecoder) : Prop :=
+  ∀ input (t : Execution guest), ValidExecution guest input t →
+    ExplainsInput guest input (decode t.memory)
+
+end
+
+end LeanVM.Node
 
 namespace LeanVM.Guest.End
 
@@ -64,7 +86,8 @@ open scoped ENNReal
 /-- **The guest's decoder, for `main`'s witness function `W`**: the seed and the statement
 `main`'s frame holds, and the witness `W` reads off `main`'s valuation, the memory and the
 memory's frame map. -/
-noncomputable def decodeWith (W : Val → Reader → FrameMap → NodeWitness) : Decoder := fun {_} L ↦
+noncomputable def decodeWith (W : Val → Reader → FrameMap → NodeWitness) : MemoryDecoder :=
+  fun {_} L ↦
   let σ := valG L 1 (certOf 1)
   ⟨B1.Main.decSeed σ, B1.Main.decStmt σ L.read, W σ L.read (Located.frameV L)⟩
 
@@ -82,7 +105,7 @@ variable {W : Val → Reader → FrameMap → NodeWitness}
 /-- **Soundness of the deployed guest, its witness named**: every valid execution of the guest on
 a public input decodes, from its memory, to a statement of the input's digest under the decoded
 seed and a witness holding it. -/
-theorem guest_knowledge_of (h : SoundHyps W) : GuestKnowledge guest (decodeWith W) := by
+theorem guest_knowledge_of (h : SoundHyps W) : MemoryGuestKnowledge guest (decodeWith W) := by
   intro input t hv
   obtain ⟨hb, h0, h1⟩ := mainBodyL_of h.b2 hv
   have hm : MemOk t.memory.read := ⟨t.logMemorySize, hv.1.1, hv.1.2.1, t.memory, rfl⟩
@@ -117,7 +140,8 @@ theorem guest_sound_of (h : SoundHyps W) (input : PublicInput) (t : Execution gu
 /-- **The guest's decoder, for the child proof `piOf`**: the seed and the statement off `main`'s
 frame, the witness `B1.Main.decWitV` off `main`'s valuation, the memory and the memory's frame
 map. -/
-noncomputable def decodeV (piOf : Reader → Val → FrameMap → Protocol.Compile.Proof) : Decoder :=
+noncomputable def decodeV (piOf : Reader → Val → FrameMap → Protocol.Compile.Proof) :
+    MemoryDecoder :=
   decodeWith fun σ rd V ↦ B1.Main.decWitV σ rd V piOf
 
 /-- **What the theorems rest on, with B1's witnesses**: B2, and `verify_sub`'s statement with its
@@ -129,7 +153,7 @@ theorem soundHyps_of_sub {piOf : Reader → Val → FrameMap → Protocol.Compil
 
 /-- **Soundness of the deployed guest, its witness named**, from B2 and `verify_sub`'s statement. -/
 theorem guest_knowledge_V {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof} (hb2 : B2SoundL)
-    (hv : B1.Main.SubSoundW bytecode piOf) : GuestKnowledge guest (decodeV piOf) :=
+    (hv : B1.Main.SubSoundW bytecode piOf) : MemoryGuestKnowledge guest (decodeV piOf) :=
   guest_knowledge_of (soundHyps_of_sub hb2 hv)
 
 /-- **What a consumer learns**, from B2 and `verify_sub`'s statement. -/

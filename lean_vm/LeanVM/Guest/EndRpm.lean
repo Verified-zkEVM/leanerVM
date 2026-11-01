@@ -2,7 +2,8 @@
   LeanVM.Guest.EndRpm
 
   The aggregation guest's theorems that involve an adversary, in the random-permutation model:
-  `AggregateSound` of `Statement/Corollaries.lean` for the deployed bytecode and the decoder
+  `MemoryAggregateSound` (`AggregateSound` of `Statement/Corollaries.lean` for a decoder of
+  memories) for the deployed bytecode and the decoder
   `decode`, and the guest's completeness composed with the protocol's.
 -/
 
@@ -35,7 +36,7 @@ composed with the protocol's theorems in the random-permutation model (`Statemen
   the extracted one does not decode (`ExplainsInput`), with probability at most
   `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128`: `KnowledgeSoundness`
   (`knowledgeSoundness_holds`) and `guest_knowledge`.
-* `aggregate_sound_outer : AggregateSound guest decode`: with `decode_binds`, an accepted
+* `aggregate_sound_outer : MemoryAggregateSound guest decode`: with `decode_binds`, an accepted
   aggregate's statement `s`, under the deployed seed and of the guest's shape, is the one the extracted execution decodes, with a witness holding it, or that
   execution's decoding and `s` give an explicit Keccak-256 collision, except with the same
   probability.
@@ -43,6 +44,31 @@ composed with the protocol's theorems in the random-permutation model (`Statemen
   proof the verifier rejects, in the random-permutation model, with probability at most
   `completenessError fuel + rpmError (completenessPermCalls fuel)` (`Rpm.completenessRpm`).
 -/
+
+namespace LeanVM.Node
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
+open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+open scoped ENNReal
+
+open OracleComp OracleSpec in
+/-- **The outer verifier's acceptance explained, for a decoder of memories**: `AggregateSound`
+(`Statement/Corollaries.lean`) with the decoding of the extracted execution read off its memory by
+`decode` instead of output by a decoder program; `LeanVM/Guest/DecoderProgram.lean` relates the
+two. -/
+def MemoryAggregateSound (guest : Program) (decode : MemoryDecoder)
+    (extractor : StraightLineExtractor) : Prop :=
+  ∀ (A : RandomPermutationAdversary) (Q : ℕ),
+    Common.QueryCostAtMost A Common.permutationCallCost Q → Q ≤ 2 ^ 128 →
+    Pr{let z ← soundnessExperiment A}[∃ s : NodeStatement, z.accepted ∧ z.program = guest ∧
+      publicDigest z.input = statementDigest (deployedSeed guest) s ∧
+      s.deferredClaim.HasBytecodeShape (bytecodeWords guest) ∧
+      ¬ ∃ t, extractor z.program z.input z.transcript z.proof = some t ∧
+        ExplainsStatement guest s (decode t.memory)] ≤
+      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
+        5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
+
+end LeanVM.Node
 
 namespace LeanVM.Guest.End
 
@@ -54,10 +80,10 @@ open scoped ENNReal
 variable {W : Val → Reader → FrameMap → NodeWitness}
 
 /-- **The aggregate's soundness, its witness named**, for any decoder `dec` of which
-`GuestKnowledge` holds: in the random-permutation experiment, the verifier accepts a proof of the
-guest from which no execution is extracted, or the extracted one does not decode by `dec`
+`MemoryGuestKnowledge` holds: in the random-permutation experiment, the verifier accepts a proof of
+the guest from which no execution is extracted, or the extracted one does not decode by `dec`
 (`ExplainsInput`), with probability at most the bound of `KnowledgeSoundness`. -/
-theorem aggregate_knowledge_dec {dec : Decoder} (h : GuestKnowledge guest dec)
+theorem aggregate_knowledge_dec {dec : MemoryDecoder} (h : MemoryGuestKnowledge guest dec)
     (A : RandomPermutationAdversary) (Q : ℕ)
     (hA : Common.QueryCostAtMost A Common.permutationCallCost Q) (hQ : Q ≤ 2 ^ 128) :
     Pr{let z ← soundnessExperiment A}[z.accepted ∧ z.program = guest ∧
@@ -83,14 +109,14 @@ theorem aggregate_knowledge_of (h : SoundHyps W) (A : RandomPermutationAdversary
         5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 :=
   aggregate_knowledge_dec (guest_knowledge_of h) A Q hA hQ
 
-/-- **What the outer verifier's acceptance establishes** (`AggregateSound`), in the
-random-permutation model, for any decoder `dec` of which `GuestKnowledge` holds: except with
+/-- **What the outer verifier's acceptance establishes** (`MemoryAggregateSound`), in the
+random-permutation model, for any decoder `dec` of which `MemoryGuestKnowledge` holds: except with
 probability the bound of `KnowledgeSoundness`, an accepted aggregate's statement `s`, under the
 deployed seed and of the guest's shape, is the one the execution the extractor reads off the proof
 and the transcript decodes, with a witness holding it, or that execution's decoding and `s` give an
 explicit Keccak-256 collision. -/
-theorem aggregate_sound_outer_dec {dec : Decoder} (h : GuestKnowledge guest dec) :
-    AggregateSound guest dec transcriptExtractor := by
+theorem aggregate_sound_outer_dec {dec : MemoryDecoder} (h : MemoryGuestKnowledge guest dec) :
+    MemoryAggregateSound guest dec transcriptExtractor := by
   intro A Q hA hQ
   refine le_trans (prEvent_mono _ _ _ ?_) (aggregate_knowledge_dec h A Q hA hQ)
   rintro z ⟨s, hb, hprog, hpub, hs, hno⟩
@@ -101,21 +127,23 @@ theorem aggregate_sound_outer_dec {dec : Decoder} (h : GuestKnowledge guest dec)
   · exact Or.inl ⟨h1, h2, h1 ▸ h2 ▸ hrel⟩
   · exact Or.inr hc
 
-/-- **What the outer verifier's acceptance establishes** (`AggregateSound`), for `main`'s witness
-function `W`. -/
+/-- **What the outer verifier's acceptance establishes** (`MemoryAggregateSound`), for `main`'s
+witness function `W`. -/
 theorem aggregate_sound_outer_of (h : SoundHyps W) :
-    AggregateSound guest (decodeWith W) transcriptExtractor :=
+    MemoryAggregateSound guest (decodeWith W) transcriptExtractor :=
   aggregate_sound_outer_dec (guest_knowledge_of h)
 
 /-- **What the outer verifier's acceptance establishes**, from B2 and `verify_sub`'s
 statement. -/
 theorem aggregate_sound_outer_V {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof} (hb2 : B2SoundL)
-    (hv : B1.Main.SubSoundW bytecode piOf) : AggregateSound guest (decodeV piOf) transcriptExtractor :=
+    (hv : B1.Main.SubSoundW bytecode piOf) :
+    MemoryAggregateSound guest (decodeV piOf) transcriptExtractor :=
   aggregate_sound_outer_of (soundHyps_of_sub hb2 hv)
 
 /-- **What the outer verifier's acceptance establishes**, from `verify_sub`'s statement. -/
 theorem aggregate_sound_outer_sub {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof}
-    (hv : B1.Main.SubSoundW bytecode piOf) : AggregateSound guest (decodeV piOf) transcriptExtractor :=
+    (hv : B1.Main.SubSoundW bytecode piOf) :
+    MemoryAggregateSound guest (decodeV piOf) transcriptExtractor :=
   aggregate_sound_outer_V b2SoundL hv
 
 /-- **The aggregate's soundness, its witness named**, for the deployed guest and its decoder: in
@@ -131,13 +159,13 @@ theorem aggregate_knowledge (A : RandomPermutationAdversary) (Q : ℕ)
         5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 :=
   aggregate_knowledge_dec guest_knowledge A Q hA hQ
 
-/-- **What the outer verifier's acceptance establishes** (`AggregateSound`), for the deployed
+/-- **What the outer verifier's acceptance establishes** (`MemoryAggregateSound`), for the deployed
 guest and its decoder, in the random-permutation model: except with probability
 `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` (for `Q ≤ 2^128`), an accepted aggregate's statement `s`, under
 the deployed seed and of the guest's shape, is the one the execution the
 extractor reads off the proof and the adversary's transcript (one is extracted) decodes, with a
 witness holding it, or that execution's decoding and `s` give an explicit Keccak-256 collision. -/
-theorem aggregate_sound_outer : AggregateSound guest decode transcriptExtractor :=
+theorem aggregate_sound_outer : MemoryAggregateSound guest decode transcriptExtractor :=
   aggregate_sound_outer_dec guest_knowledge
 
 /-- **The guest's completeness in the random-permutation model**: under the hypotheses, there is

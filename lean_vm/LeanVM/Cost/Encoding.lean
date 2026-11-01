@@ -11,8 +11,8 @@ public import CompPoly.Univariate.Basic
 `MachineEncoding α` encodes an `α` as a machine value. The encoding the end statement reads (`MachineEncoding`, its
 instances for the extractor's input and output, `encode`, `decodeExecution`) is the statement's,
 `Statement/CostMachine.lean`; here, the instances only the compiler needs (`UInt8`, `Unit`,
-`Ordering`, `Option`, `Array`, CompPoly's polynomials, `Id`, subtypes) and the proof that decoding
-inverts encoding (`decodeExecution_enc`).
+`Char`, `String`, `Ordering`, `Array`, CompPoly's polynomials, `Id`, subtypes) and the
+proof that decoding inverts encoding (`decodeExecution_enc`).
 -/
 
 namespace LeanVM.Cost
@@ -24,11 +24,14 @@ open LeanVM LeanVM.Parameters LeanVM.Semantics Common LeanVM.Protocol.Compile
 instance : MachineEncoding UInt8 := ⟨fun x ↦ .word x.toUInt64⟩
 instance : MachineEncoding Unit := ⟨fun _ ↦ .ctor 0 []⟩
 
+/-- A character: its code point. -/
+instance : MachineEncoding Char := ⟨fun c ↦ .nat c.toNat⟩
+
+/-- A string: the list of its characters. -/
+instance : MachineEncoding String := ⟨fun s ↦ encodeValue s.toList⟩
+
 instance : MachineEncoding Ordering where
   encodeValue | .lt => .ctor 0 [] | .eq => .ctor 1 [] | .gt => .ctor 2 []
-
-instance {α : Type} [MachineEncoding α] : MachineEncoding (Option α) where
-  encodeValue | none => .ctor 0 [] | some a => .ctor 1 [encodeValue a]
 
 instance {α : Type} [MachineEncoding α] : MachineEncoding (Array α) := ⟨fun a ↦ .arr (a.map encodeValue)⟩
 
