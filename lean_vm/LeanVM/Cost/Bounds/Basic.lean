@@ -1,0 +1,299 @@
+module
+
+public import LeanVM.Cost.Library
+import all LeanVM.Cost.Library
+public meta import Lean.Elab.Tactic
+
+/-!
+# Bounds on prices: the method and its library
+
+The compiler gives every compiled function `g` (function `i` of the program) a spec at the
+machine's price, `machineCost P i (args x)`, and that price's recurrence, `g.costEq`: an equation
+`machineCost P i (args x) = C[x]`, `C` a sum of constants, `limbs` of the numbers the body
+compares or adds, sizes of the arrays it builds, the prices of its callees
+(`machineCost P j …`), of the closures it applies (`appCost P v …`), and `casesOn`/`if` on the
+values it inspects. A closed-form bound on `g`'s price is proved by:
+
+1. **strong induction on the measure** of the compilation (the same as the spec's), or none for a
+   function that is not recursive;
+2. `rw [g.costEq P (by includes) …]`: the price as its recurrence;
+3. **case analysis** on what the body inspects (`cases l`, `cases n`, `split`, `generalize … ;
+   cases`), until no `casesOn` is left; `simp only [cost_simps]` folds the constants, the lengths
+   of literal lists and `limbs` of word-sized numbers;
+4. `cost_facts [bound₁, bound₂, …]`: every price in the goal that a bound of a callee (or the
+   induction hypothesis) covers gets that bound as a hypothesis (instantiated by unification, its
+   side conditions closed by `omega`, an `Includes` premise from the context);
+5. `omega` (or `nlinarith` for products of sizes).
+
+Steps 2–5 never look at the machine's code: the compiler already proved the recurrence. A bound
+of a callee composes because it is a theorem about `machineCost P j …` for every program `P`
+holding `j`'s bodies (`Includes P j.costDeps`), as the spec is; `includes` derives that premise
+from the caller's.
+
+Here: the tactics `includes`, `cost_facts`; `limbs` of word-sized numbers; the recurrence
+solvers (`le_of_halving`, `le_of_doubling`); the bounds of the library's polymorphic functions
+(`listZipWith_le`, `listFoldl_le`), proved once for every element type and closure.
+-/
+
+namespace LeanVM.Cost.Bounds
+
+open LeanVM.Cost LeanVM.Cost.Library
+
+public section
+
+/-! ## The program's bodies: `Includes` of a callee from the caller's -/
+
+section Meta
+
+open Lean Meta Elab Tactic
+
+/-- A proof of `x ∈ l`, `l` a list literal holding `x` syntactically. -/
+meta partial def memProof (x l : Expr) : MetaM Expr := do
+  unless l.isAppOfArity ``List.cons 3 do throwError "includes: {x} not among the bodies"
+  let hd := l.appFn!.appArg!
+  let tl := l.appArg!
+  let ty ← mkAppM ``Membership.mem #[l, x]
+  if hd == x then
+    mkExpectedTypeHint (← mkAppOptM ``List.Mem.head #[none, x, tl]) ty
+  else
+    mkExpectedTypeHint (← mkAppOptM ``List.Mem.tail #[none, x, hd, tl, ← memProof x tl]) ty
+
+/-- A proof of `List.Forall (· ∈ l) l'`, every entry of the literal `l'` in the literal `l`. -/
+meta partial def forallMemProof (l l' : Expr) : MetaM Expr := do
+  if l'.isAppOfArity ``List.cons 3 then
+    let a ← memProof l'.appFn!.appArg! l
+    if l'.appArg!.isAppOfArity ``List.cons 3 then
+      mkAppM ``And.intro #[a, ← forallMemProof l l'.appArg!]
+    else return a
+  else if l'.isAppOf ``List.nil then return mkConst ``True.intro
+  else throwError "includes: {l'} is not a list of bodies"
+
+/-- A list of bodies as a literal: `f.costDeps` unfolded. -/
+meta def depsLiteral (e : Expr) : MetaM Expr := do
+  let e ← instantiateMVars e
+  if e.isAppOf ``List.cons || e.isAppOf ``List.nil then return e
+  match ← unfoldDefinition? e with
+  | some e' => return e'
+  | none => return e
+
+/-- `Includes P l'` from `hP : Includes P l`, when `l` holds every body of `l'`. -/
+meta def includesFrom (hP goalTy : Expr) : MetaM Expr := do
+  let hTy ← whnfR (← instantiateMVars (← inferType hP))
+  let gTy ← whnfR (← instantiateMVars goalTy)
+  unless hTy.isAppOfArity ``Includes 2 && gTy.isAppOfArity ``Includes 2 do
+    throwError "includes: not an `Includes`"
+  unless ← isDefEq hTy.appFn!.appArg! gTy.appFn!.appArg! do throwError "includes: other program"
+  let l ← depsLiteral hTy.appArg!
+  let l' ← depsLiteral gTy.appArg!
+  let fa ← forallMemProof l l'
+  return mkAppN (mkConst ``Includes.ofForall) #[hTy.appFn!.appArg!, l, l', hP, fa]
+
+/-- Close `Includes P l'` from an `Includes P l` of the context. -/
+meta def includesAuto (g : MVarId) : MetaM Bool := g.withContext do
+  let goalTy ← g.getType
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    if (← instantiateMVars d.type).isAppOf ``Includes then
+      try
+        let pf ← includesFrom d.toExpr goalTy
+        g.assign pf
+        return true
+      catch _ => pure ()
+  return false
+
+/-- `includes`: close `Includes P l'` from a hypothesis `Includes P l` whose bodies hold `l'`'s
+(a callee's `costDeps` from its caller's). -/
+elab "includes" : tactic => do
+  let g ← getMainGoal
+  unless ← includesAuto g do throwError "includes: no hypothesis holds these bodies"
+  replaceMainGoal []
+
+/-- Close a side condition of a bound: an `Includes` from the context, else by a tactic. -/
+meta def discharge (g : MVarId) : TacticM Bool := do
+  if ← includesAuto g then return true
+  try
+    let tac ← `(tactic| first | assumption | omega | (simp_all; done) | decide)
+    let rest ← Tactic.run g (Tactic.evalTactic tac)
+    return rest.isEmpty
+  catch _ => return false
+
+/-- The prices `machineCost P i vs` and `appCost P v vs` in `e` (no loose bound variables). -/
+meta partial def pricesIn (e : Expr) (acc : Array Expr := #[]) : Array Expr :=
+  let acc := if (e.isAppOfArity ``machineCost 3 || e.isAppOfArity ``appCost 3) &&
+      !e.hasLooseBVars && !acc.contains e then acc.push e else acc
+  match e with
+  | .app f a => pricesIn a (pricesIn f acc)
+  | .lam _ t b _ | .forallE _ t b _ => pricesIn b (pricesIn t acc)
+  | .letE _ t v b _ => pricesIn b (pricesIn v (pricesIn t acc))
+  | .mdata _ b | .proj _ _ b => pricesIn b acc
+  | _ => acc
+
+/-- Instantiate `pf`'s statement `∀ …, lhs ≤ rhs` (or `=`, `<`) at the price `s`: the proof, its
+side conditions discharged, if `lhs` unifies with `s`. -/
+meta def instantiateAt (pf s : Expr) : TacticM (Option Expr) := do
+  let saved ← saveState
+  let (xs, _, concl) ← forallMetaTelescopeReducing (← inferType pf)
+  let concl ← whnfR concl
+  let some lhs := (if concl.isAppOfArity ``LE.le 4 || concl.isAppOfArity ``LT.lt 4 then
+      some concl.appFn!.appArg!
+    else if concl.isAppOfArity ``Eq 3 then some concl.appFn!.appArg! else none)
+    | return none
+  unless ← isDefEq lhs s do
+    saved.restore
+    return none
+  for x in xs do
+    let x ← instantiateMVars x
+    if x.isMVar then
+      let g := x.mvarId!
+      if (← isProp (← g.getType)) then
+        unless ← discharge g do
+          saved.restore
+          return none
+      else
+        saved.restore
+        return none
+  return some (← instantiateMVars (mkAppN pf xs))
+
+/-- `cost_facts [h₁, …, hₙ]`: for every price in the goal (`machineCost P i vs`, `appCost P v vs`,
+outside binders) and every `hₖ : ∀ …, lhs ≤ rhs` (or `=`) whose `lhs` unifies with it, add the
+instance as a hypothesis; its side conditions are closed from the context (an `Includes` by
+`includes`, the rest by `assumption`, `omega`, `simp_all` or `decide`), or the instance is
+skipped. Then `omega` (or `nlinarith`) closes a goal that is linear in the prices. -/
+elab "cost_facts" " [" hs:term,* "]" : tactic => withMainContext do
+  let pfs ← hs.getElems.mapM fun h ↦ elabTerm h none
+  let goal ← getMainGoal
+  let prices := pricesIn (← instantiateMVars (← goal.getType))
+  let mut g := goal
+  for s in prices do
+    for pf in pfs do
+      let r ← g.withContext (instantiateAt pf s)
+      if let some p := r then
+        let (_, g') ← (← g.assert `hcost (← inferType p) p).intro1P
+        g := g'
+        break
+  replaceMainGoal [g]
+
+end Meta
+
+/-! ## `limbs` of word-sized numbers -/
+
+theorem limbs_of_lt {n : ℕ} (h : n < 2 ^ 64) : limbs n = 1 := by
+  unfold limbs
+  rcases Nat.eq_zero_or_pos n with rfl | hn
+  · rfl
+  · have := (Nat.log2_lt (Nat.pos_iff_ne_zero.1 hn)).2 h
+    omega
+
+theorem limbs_le_add_one (n : ℕ) : limbs n ≤ n + 1 := by
+  have := Nat.log2_le_self n
+  unfold limbs
+  omega
+
+theorem one_le_limbs (n : ℕ) : 1 ≤ limbs n := by unfold limbs; omega
+
+/-- The constants and `limbs` of literals in a recurrence. -/
+theorem limbs_ofNat (n : ℕ) [n.AtLeastTwo] (h : (OfNat.ofNat n : ℕ) < 2 ^ 64 := by decide) :
+    limbs (OfNat.ofNat n) = 1 := limbs_of_lt h
+
+@[simp] theorem limbs_zero : limbs 0 = 1 := rfl
+
+@[simp] theorem limbs_one : limbs 1 = 1 := rfl
+
+theorem appCost_fn (P : Program) (j : ℕ) (us vs : List Val) :
+    appCost P (.fn j us) vs = machineCost P j (us ++ vs) := rfl
+
+/-! ## Recurrence solvers -/
+
+theorem log2_half {n : ℕ} (h : 2 ≤ n) : Nat.log2 (n / 2) + 1 = Nat.log2 n := by
+  rw [Nat.log2_def n]; simp [h]
+
+theorem log2_mono {m n : ℕ} (h : m ≤ n) : Nat.log2 m ≤ Nat.log2 n := by
+  rcases Nat.eq_zero_or_pos m with rfl | hm
+  · simp
+  · exact (Nat.le_log2 (by omega)).2 (le_trans (Nat.log2_self_le (by omega)) h)
+
+/-- **Halving** (a binary search): a price that either stops at `b` (always so at measure `0`), or
+pays `a` and recurs on a measure at most half as large, is at most `b + a·(log₂ m + 1)`. -/
+theorem le_of_halving {α : Type} (m T : α → ℕ) (a b : ℕ) (hz : ∀ x, m x = 0 → T x ≤ b)
+    (h : ∀ x, T x ≤ b ∨ ∃ y, m y ≤ m x / 2 ∧ 0 < m x ∧ T x ≤ a + T y) :
+    ∀ x, T x ≤ b + a * (Nat.log2 (m x) + 1) := by
+  intro x
+  induction hx : m x using Nat.strong_induction_on generalizing x with
+  | _ n ih =>
+    rcases h x with h1 | ⟨y, hy, hpos, h2⟩
+    · nlinarith
+    · have ihy := ih (m y) (by omega) y rfl
+      subst hx
+      rcases Nat.lt_or_ge (m y) 1 with h0 | h1
+      · have := hz y (by omega)
+        nlinarith
+      · have h2x : 2 ≤ m x := by omega
+        have := log2_mono hy
+        have := log2_half h2x
+        have : a * (Nat.log2 (m y) + 1) + a ≤ a * (Nat.log2 (m x) + 1) := by nlinarith
+        omega
+
+/-- **Doubling** (a full binary tree of height `k`): `T 0 ≤ b` and
+`T (k + 1) ≤ a + c·2^(k+1) + 2·T k` give `T k + a ≤ 2^k·(a + b + c·k)`. -/
+theorem le_of_doubling (T : ℕ → ℕ) (a b c : ℕ) (h0 : T 0 ≤ b)
+    (hs : ∀ k, T (k + 1) ≤ a + c * 2 ^ (k + 1) + 2 * T k) :
+    ∀ k, T k + a ≤ 2 ^ k * (a + b + c * k) := by
+  intro k
+  induction k with
+  | zero => simp; omega
+  | succ k ih =>
+    have := hs k
+    have h2 : 2 ^ (k + 1) = 2 * 2 ^ k := by ring
+    have h1 : 1 ≤ 2 ^ k := Nat.one_le_two_pow
+    rw [h2] at this ⊢
+    nlinarith
+
+/-! ## The library's polymorphic functions -/
+
+section Library
+
+variable (P : Program) {α β γ : Type} [Enc α] [Enc β] [Enc γ]
+
+/-- **`List.zipWith`** (`listZipWith`): `15` per pair and the closure's price, `5` at the end. -/
+theorem listZipWith_le (hP : Includes P listZipWith.costDeps) (f : α → β → γ) (fVal : Val)
+    (hf : ∀ a b, RunsApp P fVal [enc a, enc b] (enc (f a b))) (B : ℕ) :
+    ∀ (xs : List α) (ys : List β), (∀ a ∈ xs, ∀ b ∈ ys, appCost P fVal [enc a, enc b] ≤ B) →
+      machineCost P 1 [fVal, enc xs, enc ys] ≤ (B + 15) * min xs.length ys.length + 5 := by
+  intro xs
+  induction xs with
+  | nil => intro ys _; rw [listZipWith.costEq P hP f fVal hf]; simp
+  | cons a xs ih =>
+    intro ys hB
+    rw [listZipWith.costEq P hP f fVal hf]
+    cases ys with
+    | nil => simp
+    | cons b ys =>
+      have h1 := ih ys (fun a' ha b' hb ↦ hB a' (by simp [ha]) b' (by simp [hb]))
+      have h2 := hB a (by simp) b (by simp)
+      simp only [List.length_cons]
+      rw [Nat.min_def] at h1 ⊢
+      split_ifs at h1 ⊢ <;> nlinarith
+
+/-- **`List.foldl`** (`listFoldl`): `9` per element and the closure's price, `3` at the end; the
+closure's price bounded on the accumulators an invariant `I` holds. -/
+theorem listFoldl_le (hP : Includes P listFoldl.costDeps) (f : α → β → α) (fVal : Val)
+    (hf : ∀ a b, RunsApp P fVal [enc a, enc b] (enc (f a b))) (B : ℕ) (I : α → Prop) :
+    ∀ (l : List β) (init : α), I init →
+      (∀ acc, I acc → ∀ b ∈ l, I (f acc b) ∧ appCost P fVal [enc acc, enc b] ≤ B) →
+      machineCost P 2 [fVal, enc init, enc l] ≤ (B + 9) * l.length + 3 := by
+  intro l
+  induction l with
+  | nil => intro init _ _; rw [listFoldl.costEq P hP f fVal hf]; simp
+  | cons b l ih =>
+    intro init hI hB
+    rw [listFoldl.costEq P hP f fVal hf]
+    obtain ⟨hI', h2⟩ := hB init hI b (by simp)
+    have h1 := ih (f init b) hI' (fun acc hacc b' hb ↦ hB acc hacc b' (by simp [hb]))
+    simp only [List.length_cons]
+    nlinarith
+
+end Library
+
+end
+
+end LeanVM.Cost.Bounds
