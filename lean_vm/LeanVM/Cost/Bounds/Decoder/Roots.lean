@@ -48,8 +48,6 @@ variable (P : MachineProgram)
 
 theorem size_zero_raw : (0 : CPolynomial.Raw K).size = 0 := rfl
 
-theorem toList_zero_raw : (0 : CPolynomial.Raw K).toList = [] := rfl
-
 theorem size_one_raw : (1 : CPolynomial.Raw K).size = 1 := by
   change (#[] |>.push (1 : K)).size = 1
   simp

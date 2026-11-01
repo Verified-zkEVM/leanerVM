@@ -459,30 +459,6 @@ theorem InnerLe.mulRaw {p q : CPolynomial.Raw (CPolynomial K)} {A : ℕ} (hp : I
     exact ih _ (h.addRaw ((hq.smul x.1 (hp _ (hl x (by simp)))).mulPowX x.2))
       (fun y hy ↦ hl y (by simp [hy]))
 
-/-- **The product over `K[X]`** (`mul`: `mulRaw` thrice, the trim). -/
-theorem mulB_cost (hP : Includes P mul.c43.costDeps) (p q : CPolynomial.Raw (CPolynomial K))
-    (A : ℕ) (hA : A < 2 ^ 58) (hp : InnerLe p A) (hq : InnerLe q A) (hps : p.size < 2 ^ 58)
-    (hqs : q.size < 2 ^ 58) :
-    machineCost P mul.c43.costIdx [encodeValue p, encodeValue q] ≤
-      4380 * ((((A + 1) * (A + 1)) * q.size) * p.size) + 660 * ((A * (p.size + q.size)) * p.size) +
-        585 * ((p.size + q.size) * p.size) + 336 * p.size +
-        6 * (A * (p.size + q.size)) + 41 * (p.size + q.size) + 80 := by
-  rw [mul.c43.costEq P hP]
-  have := mulRawB_cost P (by includes) p q A hA hp hq hps hqs
-  have hs := size_mulRaw_le p q
-  have := trimLenB_cost P (by includes) (p.mulRaw q) (2 * A) (hp.mulRaw hq) (p.mulRaw q).size
-    (by omega)
-  have h1 : (Array.extract (p.mulRaw q) 0
-      (CompPolyLib.trimLen (p.mulRaw q) (p.mulRaw q).size)).size ≤ (p.mulRaw q).size := by simp
-  have : (3 * (2 * A) + 40) * (p.mulRaw q).size ≤
-      6 * (A * (p.size + q.size)) + 40 * (p.size + q.size) := by
-    have := Nat.mul_le_mul_left (3 * (2 * A) + 40) hs
-    have e : (3 * (2 * A) + 40) * (p.size + q.size) =
-        6 * (A * (p.size + q.size)) + 40 * (p.size + q.size) := by
-      ring
-    omega
-  omega
-
 end
 
 end LeanVM.Cost.Bounds.Decoder

@@ -36,8 +36,6 @@ public section
 
 /-! ## The limbs of large naturals -/
 
-theorem one_le_wl (E : ℕ) : 1 ≤ limbsBelowTwoPow E := by unfold limbsBelowTwoPow; omega
-
 /-- **A natural at most `2^E` has at most `E/64 + 1` limbs.** -/
 theorem limbs_le_wl {t E : ℕ} (h : t ≤ 2 ^ E) : limbCount t ≤ limbsBelowTwoPow E := by
   unfold limbCount limbsBelowTwoPow

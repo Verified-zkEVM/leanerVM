@@ -287,18 +287,6 @@ open LeanVM.Extraction LeanVM.Parameters in
       degreeLtBool p params.messageDegree && passesCandidateDistance points radius p
 
 open LeanVM.Extraction LeanVM.Parameters in
-/-- **`gsRunNF` is `gsRunNoCheck`.** -/
-theorem gsRunNF_eq (I : GSInterpContext K) (points : Array (K × K))
-    (params : GSInterpParams) (radius : ℕ) :
-    gsRunNF I points params radius = gsRunNoCheck I points params radius := by
-  rw [gsRunNF, gsRunNoCheck]
-  cases hQ : I.interpolate points params with
-  | none => rfl
-  | some Q =>
-    dsimp only
-    rw [prefixesNF_eq_truncD (I.sound points params Q hQ)]
-
-open LeanVM.Extraction LeanVM.Parameters in
 /-- **The lane runner without the fallback**: `gsRunDistinct` with Roth–Ruckenstein truncated at
 precision `W + 1` (`prefixesNF`, no fallback code). -/
 @[expose] def gsRunDistinctNF (points : Array (K × K)) (params : GSInterpParams) (radius : ℕ) :

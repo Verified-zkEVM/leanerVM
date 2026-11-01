@@ -253,30 +253,6 @@ theorem splitStage_facInv {P : Polynomial K} (betas : List K) :
     rw [List.foldl_cons]
     exact ih _ (refineFactorsFast_facInv b st.1 st.2 h)
 
-/-- **The cache over the stages**: at most one entry per factor processed, so at most
-`|betas|·deg P` more (the factors at every stage are at most `deg P`). -/
-theorem splitStage_cache_le {P : Polynomial K} (hP : P ≠ 0) (betas : List K) :
-    ∀ st : ShoupTracePowerCache K × Array (CPolynomial K), FacInv P st.2.toList →
-      (betas.foldl (fun state beta ↦
-        let (cache, factors) := state
-        refineFactorsFast beta cache factors) st).1.length ≤
-        st.1.length + betas.length * P.natDegree := by
-  induction betas with
-  | nil => intro st _; simp
-  | cons b betas ih =>
-    intro st h
-    rw [List.foldl_cons]
-    have h1 := (refineFactorsFast_bounds b st.1 st.2 P.natDegree
-      (fun u hu ↦ ?_)).2.2
-    · have h2 := ih _ (refineFactorsFast_facInv b st.1 st.2 h)
-      have h3 : st.2.size ≤ P.natDegree := by
-        rw [← Array.length_toList]; exact facInv_length_le hP h
-      simp only [List.length_cons, Nat.succ_mul] at h2 ⊢
-      omega
-    · have hd := (h.2 u (by simpa using hu)).1
-      have := Polynomial.natDegree_le_of_dvd hd hP
-      rwa [← CPolynomial.natDegree_toPoly] at this
-
 /-- **The splitter returns at most `deg p` factors** (`p ≠ 0`). -/
 theorem splitCandidatesFast_size_le {p : CPolynomial K} (hp : p ≠ 0) :
     (splitCandidatesFast p).size ≤ p.natDegree := by

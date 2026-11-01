@@ -57,16 +57,6 @@ theorem prefixesNF_size_le_nodes (fr : GuruswamiSudan.FieldRootContext K) (fuel 
         exact (list_sum_map_le fun a _ ↦ ih _ _ _ _).trans (Nat.le_add_left _ _)
       · simp
 
-theorem prefixesNodes_pos (fr : GuruswamiSudan.FieldRootContext K) (fuel : ℕ) (q : CBivariate K)
-    (M : ℕ) : 1 ≤ rrNodesNF fr fuel q M := by
-  cases fuel with
-  | zero => simp [rrNodesNF]
-  | succ fuel =>
-    rw [rrNodesNF]
-    cases CBivariate.xAdicOrder? q with
-    | none => simp
-    | some s => dsimp only; split <;> omega
-
 /-- The roots at a node: at most the initial coefficient polynomial's length. -/
 theorem prefixesRoots_size_le (p : CPolynomial K) :
     (GuruswamiSudan.rootsInFieldForNonzeroEquation fieldRootCtxFast p).size ≤ p.val.size - 1 := by

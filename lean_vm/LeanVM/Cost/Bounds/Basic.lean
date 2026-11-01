@@ -185,10 +185,6 @@ theorem limbs_le_add_one (n : ℕ) : limbCount n ≤ n + 1 := by
   unfold limbCount
   omega
 
-/-- The constants and `limbCount` of literals in a recurrence. -/
-theorem limbs_ofNat (n : ℕ) [n.AtLeastTwo] (h : (OfNat.ofNat n : ℕ) < 2 ^ 64 := by decide) :
-    limbCount (OfNat.ofNat n) = 1 := limbs_of_lt h
-
 @[simp] theorem limbs_zero : limbCount 0 = 1 := rfl
 
 @[simp] theorem limbs_one : limbCount 1 = 1 := rfl

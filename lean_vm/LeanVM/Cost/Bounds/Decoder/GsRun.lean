@@ -470,25 +470,6 @@ theorem mismatchCountFast_le (points : Array (K × K)) (p : CPolynomial K) :
     · simp only [h, ↓reduceIte]; have := ih c; omega
     · simp only [h, Bool.false_eq_true, ↓reduceIte]; have := ih (c + 1); omega
 
-/-- **The candidate filter** (`gsRunDistinctNF`'s test: degree below `k`, then at most `radius`
-mismatches): at most `(272·|p| + 34)·n + 30`. -/
-theorem gsRunFilterC_cost (hP : Includes P gsRunDistinctNFC.lam0.costDeps)
-    (points : Array (K × K)) (params : GuruswamiSudan.GSInterpParams) (radius : ℕ)
-    (p : CPolynomial K) (hn : points.size < 2 ^ 63) (hp : p.val.size < 2 ^ 64)
-    (hk : params.messageDegree < 2 ^ 64) (hr : radius < 2 ^ 64) :
-    machineCost P gsRunDistinctNFC.lam0.costIdx [encodeValue points, encodeValue params, encodeValue radius, encodeValue p] ≤
-      (272 * p.val.size + 34) * points.size + 30 := by
-  rw [gsRunDistinctNFC.lam0.costEq P hP,
-    Auto.CompPoly.GuruswamiSudan.degreeLtBool.c208.costEq P (by includes)]
-  cost_simp
-  split_ifs
-  · rw [passesDistanceFast.c209.costEq P (by includes)]
-    have := mismatchCountC_cost P (by includes) points p hn
-    have := mismatchCountFast_le points p
-    cost_simp
-    omega
-  · omega
-
 
 /-! ## Roth–Ruckenstein's prefixes: sizes -/
 

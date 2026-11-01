@@ -59,10 +59,6 @@ theorem layoutLite_stackLog (layout : Verifier.Layout) :
 @[expose] def LayoutLite.placement (layout : LayoutLite) (column : ℕ) : Placement :=
   (layout.placements.getD column none).getD default
 
-theorem placement_layoutLite (layout : Verifier.Layout) (column : ℕ) :
-    (layoutLite layout).placement column = layout.placement column :=
-  rfl
-
 /-- `memoryImage` on the lighter layout. -/
 @[expose] def memoryImageLite (layout : LayoutLite) {μ : ℕ} (q : Vector K (2 ^ μ)) :
     MemoryImage layout.logMemory :=
@@ -147,12 +143,6 @@ words `0` and `1`, not the number of steps. -/
       decide (memoryImageLite layout q ⟨1, Nat.one_lt_two_pow (by unfold minLogMem at h; omega)⟩ =
         input.word1)
   else false
-
-theorem boundaryOK_mk {prog : Program} (input : PublicInput) (layout : Verifier.Layout) {μ : ℕ}
-    (q : Vector K (2 ^ μ)) (n : ℕ) :
-    boundaryOK input (⟨layout.logMemory, memoryImage layout q, n⟩ : Execution prog) =
-      boundaryOfStack input (layoutLite layout) q :=
-  rfl
 
 /-- **The boundary filter, checked first**: filtering the runs by `boundaryOK` is checking the
 boundary of the stack, then running. -/

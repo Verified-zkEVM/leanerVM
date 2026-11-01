@@ -422,8 +422,6 @@ end Loop
 @[expose] def runnerBudget : ℕ :=
   (5228 * 2 ^ 32 + 17950) + (2 ^ 18 + 1) * (448030 * 2 ^ 35 + 44 * 2 ^ 32 + 1796)
 
-theorem runnerBudget_lt : runnerBudget < 2 ^ 72 := by unfold runnerBudget; norm_num
-
 /-- **The runner** at the worst shape: its tables once, and at most `1 + 2^18` candidate stacks
 (at most one from the fast path, at most `2^18` from the decoder): at most `runnerBudget`
 (`≈ 2^71.77`). -/

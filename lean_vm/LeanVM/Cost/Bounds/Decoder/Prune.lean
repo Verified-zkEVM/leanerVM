@@ -50,10 +50,6 @@ theorem listFoldl_range'_le (hP : Includes P listFoldl.costDeps) {α : Type} [Ma
     have e : (B + 9) * (n + 1) = (B + 9) * n + B + 9 := by ring
     omega
 
-theorem laneTable_getD (n : ℕ) (W : ℕ → List K) (u v : ℕ) (hv : v < n) :
-    tableSymbol (laneTable n W) u v = laneSymbol W u v := by
-  simp [tableSymbol, laneTable, laneSymbol, Array.getD_eq_getD_getElem?, hv]
-
 /-- **The lanes pruned** (`pruneUpToDistinct κ R A W U`): at most `pruneBound …`, the lanes'
 candidates of price at most `G` and at most `Lc` each, the survivors at most `Smax` after every
 lane. -/
