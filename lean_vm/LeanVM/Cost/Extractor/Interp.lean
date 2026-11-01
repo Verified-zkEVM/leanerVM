@@ -35,7 +35,6 @@ open LeanVM.Cost LeanVM.Parameters LeanVM.Extraction.Fast
 
 public section
 
-set_option maxHeartbeats 4000000 in
 cost_compile interpolateDistinctC := interpolateDistinct
 
 end

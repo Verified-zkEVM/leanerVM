@@ -630,7 +630,6 @@ theorem fastLane_cost (hP : Includes P fastStacksFastC.lam1.costDeps) (μ R κ :
   simp only [Nat.sub_zero, List.length_singleton] at hof hpr
   nlinarith
 
-set_option maxRecDepth 8192 in
 /-- **The fast path** (`fastStacksFast μ R W`, compiled as `fastStacksFastC`): the word's
 `N = 2^(κ+R)` columns reversed into a table (`B_W` per column read, `W_d` words each), then `64`
 lanes (`fastLane_cost`), then at most one stack (`stackOf_cost`): at most

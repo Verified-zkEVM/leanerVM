@@ -309,9 +309,6 @@ below `2^D`. -/
   (23 * 25 + 31) * potential D τ.fwd.levels + (23 * 25 + 31) * potential D τ.inv.levels +
     (23 * 8 + 31) * potential D τ.caps.levels
 
-theorem toList_length25 (x : KeccakState) : x.toList.length = 25 := by simp
-
-set_option maxRecDepth 20000 in
 /-- **One replay step, amortized** (`replayStepC`). -/
 theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ)
     (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W)

@@ -113,7 +113,6 @@ cost_rewrite keccakRound_shared
     guard ((∀ c, IsCanonical128 (input c)) ∧ ∀ c, output c = cellsOfState s outOdd c)
     pure r.next
 
-set_option maxRecDepth 20000 in
 theorem executeWith_shared (read : K → Option E) (r : Registers K) (i : Instr) :
     executeWith read r i = executeWithShared read r i := by
   cases i <;> rfl
@@ -123,8 +122,10 @@ cost_rewrite executeWith_shared
 -- the runner's tables (`runnerTables`), built once per layout
 cost_compile runnerTablesC := runnerTables
 
--- a stack's execution from the tables (`runWithTables`): the per-stack work only
-set_option maxHeartbeats 20000000 in
+-- a stack's execution from the tables (`runWithTables`): the per-stack work only. Its compilation
+-- takes about 520000 heartbeats (`#count_heartbeats in`), over the default `200000`: the budget is
+-- that, doubled.
+set_option maxHeartbeats 1000000 in
 cost_compile runWithTablesC := runWithTables
 
 end
