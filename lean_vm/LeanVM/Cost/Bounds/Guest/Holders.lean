@@ -10,11 +10,13 @@ Off the tables `decWitAt` builds (`Cost/Decoder/Staged.lean`, `Holders.lean`), i
 of a logarithm, `R` of a read of the memory, `S` of `main`'s valuation and the prices `W`, `WX`,
 `WS` of the witness closures `wV`, `wX`, `wS`; every count below `2^34`:
 
-* **`kidsT_cost`** (`kidsTPrice G R S W`): the children, at most `2^34` (`decKid_cost`, `Kids.lean`);
+* **`kidsT_cost`** (`kidsTPrice G R S W N K`): the children, at most `K ≤ 2^34`, the regions'
+  tables of at most `N ≤ 2^34` marks (`decKid_cost`, `Kids.lean`);
 * the holder of a declared claim at its mark (`xmssHolderM_cost`, `sphincsHolderM_cost`: a raw
   signature at its slot's address, or the child the mark falls in, one search in the running
   maxima), the holder (`xmssHolder_cost`, `sphincsHolder_cost`: the mark one logarithm and one
-  read), **`xmssHoldersT_cost`**, **`sphincsHoldersT_cost`**: at most `2^34` holders.
+  read), **`xmssHoldersT_cost`**, **`sphincsHoldersT_cost`** (`xmssHoldersTPrice G R WX X`, …): at
+  most `X ≤ 2^34` holders.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -108,23 +110,23 @@ theorem xmssHolder_cost (D : DiscreteLogTables) (hP : Includes P xmssHolderC.cos
     (gLogD_lt D _) hn
   omega
 
-/-- The leanXMSS holders' price, at most `2^34` of them. -/
-@[expose] def xmssHoldersTPrice (G R WX : ℕ) : ℕ := (G + R + WX + 41850) * 2 ^ 34 + 30
+/-- The leanXMSS holders' price, at most `X` of them. -/
+@[expose] def xmssHoldersTPrice (G R WX X : ℕ) : ℕ := (G + R + WX + 41850) * X + 30
 
-/-- **The holders of the declared leanXMSS claims** (`xmssHoldersTC`), `n ≤ 2^34`, the maxima
-good, the raw count `nr < 2^64`: at most `xmssHoldersTPrice G R WX`. -/
+/-- **The holders of the declared leanXMSS claims** (`xmssHoldersTC`), `n ≤ X ≤ 2^34`, the
+maxima good, the raw count `nr < 2^64`: at most `xmssHoldersTPrice G R WX X`. -/
 theorem xmssHoldersT_cost (D : DiscreteLogTables) (hP : Includes P xmssHoldersTC.costDeps)
     (hG : GLogBound P D G) (cover p53 : E) (M : Array ℕ) (hM : KidMaxGood M) (nr n : ℕ)
-    (hnr : nr < 2 ^ 64) (hn : n ≤ 2 ^ 34) :
+    (hnr : nr < 2 ^ 64) (X : ℕ) (hX : X ≤ 2 ^ 34) (hn : n ≤ X) :
     machineCost P xmssHoldersTC.costIdx [encodeValue D, rdV, encodeValue cover, encodeValue p53,
-      wXV, encodeValue M, encodeValue nr, encodeValue n] ≤ xmssHoldersTPrice G R WX := by
+      wXV, encodeValue M, encodeValue nr, encodeValue n] ≤ xmssHoldersTPrice G R WX X := by
   rw [xmssHoldersTC.costEq P hP D rd rdV hrd cover p53 wX wXV hwX]
   have h1 := rangeMap_le P (by includes) (by includes) (xmssHolderT D rd cover p53 wX M nr)
     (.closure xmssHoldersTC.lam0.costIdx [encodeValue D, rdV, encodeValue cover, encodeValue p53,
       wXV, encodeValue M, encodeValue nr])
     (fun k ↦ RunsApp.of_spec (xmssHoldersTC.lam0.costSpec P (by includes) D rd rdV hrd cover p53 wX
       wXV hwX M nr k))
-    (G + R + WX + 41822) n (2 ^ 34) hn (by norm_num) (fun k hk ↦ by
+    (G + R + WX + 41822) n X hn (by omega) (fun k hk ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
         List.cons_append, List.cons_append, List.cons_append, List.nil_append,
         xmssHoldersTC.lam0.costEq P (by includes) D rd rdV hrd cover p53 wX wXV hwX]
@@ -132,6 +134,7 @@ theorem xmssHoldersT_cost (D : DiscreteLogTables) (hP : Includes P xmssHoldersTC
         (by omega)
       omega)
   unfold xmssHoldersTPrice
+  have : (G + R + WX + 41822 + 28) * X = (G + R + WX + 41850) * X := by ring
   omega
 
 end Xmss
@@ -159,24 +162,24 @@ theorem sphincsHolder_cost (D : DiscreteLogTables) (hP : Includes P sphincsHolde
   limbs_one
   omega
 
-/-- The leanSPHINCS holders' price, at most `2^34` of them. -/
-@[expose] def sphincsHoldersTPrice (G R WS : ℕ) : ℕ := (G + R + WS + 41850) * 2 ^ 34 + 30
+/-- The leanSPHINCS holders' price, at most `X` of them. -/
+@[expose] def sphincsHoldersTPrice (G R WS X : ℕ) : ℕ := (G + R + WS + 41850) * X + 30
 
 /-- **The holders of the declared leanSPHINCS claims** (`sphincsHoldersTC`), `n ≤ 2^34`, `lx <
-2^34`, the maxima good, the raw count `nr < 2^64`: at most `sphincsHoldersTPrice G R WS`. -/
+2^34`, the maxima good, the raw count `nr < 2^64`: at most `sphincsHoldersTPrice G R WS X`. -/
 theorem sphincsHoldersT_cost (D : DiscreteLogTables) (hP : Includes P sphincsHoldersTC.costDeps)
     (hG : GLogBound P D G) (cover p56 : E) (M : Array ℕ) (hM : KidMaxGood M) (lx nr n : ℕ)
-    (hlx : lx < 2 ^ 34) (hnr : nr < 2 ^ 64) (hn : n ≤ 2 ^ 34) :
+    (hlx : lx < 2 ^ 34) (hnr : nr < 2 ^ 64) (X : ℕ) (hX : X ≤ 2 ^ 34) (hn : n ≤ X) :
     machineCost P sphincsHoldersTC.costIdx [encodeValue D, rdV, encodeValue cover, encodeValue p56,
       wSV, encodeValue M, encodeValue lx, encodeValue nr, encodeValue n] ≤
-      sphincsHoldersTPrice G R WS := by
+      sphincsHoldersTPrice G R WS X := by
   rw [sphincsHoldersTC.costEq P hP D rd rdV hrd cover p56 wS wSV hwS]
   have h1 := rangeMap_le P (by includes) (by includes) (sphincsHolderT D rd cover p56 wS M lx nr)
     (.closure sphincsHoldersTC.lam0.costIdx [encodeValue D, rdV, encodeValue cover, encodeValue p56,
       wSV, encodeValue M, encodeValue lx, encodeValue nr])
     (fun k ↦ RunsApp.of_spec (sphincsHoldersTC.lam0.costSpec P (by includes) D rd rdV hrd cover p56
       wS wSV hwS M lx nr k))
-    (G + R + WS + 41822) n (2 ^ 34) hn (by norm_num) (fun k hk ↦ by
+    (G + R + WS + 41822) n X hn (by omega) (fun k hk ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
         List.cons_append, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
         sphincsHoldersTC.lam0.costEq P (by includes) D rd rdV hrd cover p56 wS wSV hwS]
@@ -184,6 +187,7 @@ theorem sphincsHoldersT_cost (D : DiscreteLogTables) (hP : Includes P sphincsHol
         (by omega)
       omega)
   unfold sphincsHoldersTPrice
+  have : (G + R + WS + 41822 + 28) * X = (G + R + WS + 41850) * X := by ring
   omega
 
 end Sphincs
@@ -204,30 +208,32 @@ variable {wV : List E → LeanVM.Protocol.Compile.Proof} {wVV : MachineValue}
   {W : ℕ} (hW : ∀ a : List E, a.length ≤ 16 → appCost P wVV [encodeValue a] ≤ W)
 include hwV hW
 
-/-- The children's price, at most `2^34` of them. -/
-@[expose] def kidsTPrice (G R S W : ℕ) : ℕ := (decKidPrice G R S W + 39) * 2 ^ 34 + 32
+/-- The children's price, at most `K` of them, the tables of at most `N` marks. -/
+@[expose] def kidsTPrice (G R S W N K : ℕ) : ℕ := (decKidPrice G R S W N + 39) * K + 32
 
-/-- **The children** (`kidsTC`), off good tables, `n ≤ 2^34`: at most `kidsTPrice G R S W ≈
-2^34·decKidPrice ≈ 2^71·R + 2^34·(2G + W + 11·S) + 2^85.7`. -/
+/-- **The children** (`kidsTC`), off good tables of at most `N ≤ 2^34` marks, `n ≤ K ≤ 2^34`: at
+most `kidsTPrice G R S W N K = K·(decKidPrice G R S W N + 39) + 32`. -/
 theorem kidsT_cost (D : DiscreteLogTables) (hP : Includes P kidsTC.costDeps)
     (hG : GLogBound P D G) (w380 p53 p56 : E) (tx ts : Array ℕ × Array ℕ) (htx : TableGood tx)
-    (hts : TableGood ts) (n : ℕ) (hn : n ≤ 2 ^ 34) :
+    (hts : TableGood ts) (N : ℕ) (hN : N ≤ 2 ^ 34) (htxN : tx.1.size ≤ N) (htsN : ts.1.size ≤ N)
+    (K : ℕ) (hK : K ≤ 2 ^ 34) (n : ℕ) (hn : n ≤ K) :
     machineCost P kidsTC.costIdx [encodeValue D, rdV, σV, wVV, encodeValue w380, encodeValue p53,
-      encodeValue p56, encodeValue tx, encodeValue ts, encodeValue n] ≤ kidsTPrice G R S W := by
+      encodeValue p56, encodeValue tx, encodeValue ts, encodeValue n] ≤ kidsTPrice G R S W N K := by
   rw [kidsTC.costEq P hP D rd rdV hrd σ σV hσ wV wVV hwV]
   have h1 := rangeMap_le P (by includes) (by includes) (decKidT D rd σ wV w380 p53 p56 tx ts)
     (.closure kidsTC.lam0.costIdx [encodeValue D, rdV, σV, wVV, encodeValue w380, encodeValue p53,
       encodeValue p56, encodeValue tx, encodeValue ts])
     (fun c ↦ RunsApp.of_spec (kidsTC.lam0.costSpec P (by includes) D rd rdV hrd σ σV hσ wV wVV hwV
       w380 p53 p56 tx ts c))
-    (decKidPrice G R S W + 11) n (2 ^ 34) hn (by norm_num) (fun c hc ↦ by
+    (decKidPrice G R S W N + 11) n K hn (by omega) (fun c hc ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
         List.cons_append, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
         List.nil_append, kidsTC.lam0.costEq P (by includes) D rd rdV hrd σ σV hσ wV wVV hwV]
-      have := decKid_cost P hrd hR hσ hS hwV hW D (by includes) hG w380 p53 p56 tx ts htx hts c
-        (by omega)
+      have := decKid_cost P hrd hR hσ hS hwV hW D (by includes) hG w380 p53 p56 tx ts htx hts N hN
+        htxN htsN c (by omega)
       omega)
   unfold kidsTPrice
+  have : (decKidPrice G R S W N + 11 + 28) * K = (decKidPrice G R S W N + 39) * K := by ring
   omega
 
 end Proof

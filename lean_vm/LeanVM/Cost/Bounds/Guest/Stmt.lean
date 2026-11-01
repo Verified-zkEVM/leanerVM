@@ -14,9 +14,9 @@ application of `main`'s valuation `σ`, the declared claims at most `2^34` of ea
   `sphincsAtK_cost`: `4·R + 87169`), `n` consecutive slots (`xmssRun_cost`, `sphincsRun_cost`:
   `(4·R + 87447)·n + 6`), a DA digest (`daDigestAtP_cost`);
 * **`decStmtAt_cost`**: the statement, its counts given, linear in them (`decStmtAtPrice R n0 n3`);
-  **`decStmt_cost`** (the logarithm's tables `D` given, `GLogBound P D G`): the counts at their
-  bound `2^34`, `decStmtPrice G R S = 7·S + 3·G + decStmtAtPrice R 2^34 2^34 + 71`
-  `≈ 2^37·R + 2^50.4`;
+  **`decStmt_cost`** (the logarithm's tables `D` given, `GLogBound P D G`): the two counts at
+  most `X` (`2^34` always, `65535` on a valid run), `decStmtPrice G R S X = 7·S + 3·G +
+  decStmtAtPrice R X X + 71`;
 * `aggRounds_cost`, **`aggHints_cost`**: `47·S + 46·R + 998693`.
 -/
 
@@ -159,14 +159,16 @@ variable {rd : Reader} {rdV : MachineValue}
   {R : ℕ} (hR : ∀ a : K, appCost P rdV [encodeValue a] ≤ R)
 include hrd hR
 
-/-- The statement's price: `7·S + 3·G` and the counts at their bound `2^34`. -/
-@[expose] def decStmtPrice (G R S : ℕ) : ℕ := 7 * S + 3 * G + decStmtAtPrice R (2 ^ 34) (2 ^ 34) + 71
+/-- The statement's price: `7·S + 3·G` and the two counts at their bound `X`. -/
+@[expose] def decStmtPrice (G R S X : ℕ) : ℕ := 7 * S + 3 * G + decStmtAtPrice R X X + 71
 
 /-- **The statement** (`decStmtC`), the logarithm's tables `D` given: the counts (three
-logarithms) and `decStmtAtC`: at most `decStmtPrice G R S ≈ 2^37·R + 2^50.4 + 3·G + 7·S`. -/
+logarithms, the leanXMSS and leanSPHINCS counts at most `X`) and `decStmtAtC`: at most
+`decStmtPrice G R S X = 8·R·X + 174894·X + 3·G + 7·S + …`. -/
 theorem decStmt_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
-    (hP : Includes P Decoder.decStmtC.costDeps) (hG : GLogBound P D G) :
-    machineCost P Decoder.decStmtC.costIdx [encodeValue D, σV, rdV] ≤ decStmtPrice G R S := by
+    (hP : Includes P Decoder.decStmtC.costDeps) (hG : GLogBound P D G) (X : ℕ)
+    (hX0 : Decoder.gLogD D (σ (.n 0)) ≤ X) (hX3 : Decoder.gLogD D (σ (.n 3)) ≤ X) :
+    machineCost P Decoder.decStmtC.costIdx [encodeValue D, σV, rdV] ≤ decStmtPrice G R S X := by
   rw [Decoder.decStmtC.costEq P hP D σ σV hσ rd rdV hrd]
   have := hG (σ (.n 0)); have := hG (σ (.n 3)); have := hG (σ (.n 387))
   have n0 := gLogD_lt D (σ (.n 0))
@@ -176,10 +178,10 @@ theorem decStmt_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
     (Decoder.gLogD D (σ (.n 0))) (Decoder.gLogD D (σ (.n 3))) (Decoder.gLogD D (σ (.n 387)))
     (by omega) (by omega) (by omega)
   have : decStmtAtPrice R (Decoder.gLogD D (σ (.n 0))) (Decoder.gLogD D (σ (.n 3))) ≤
-      decStmtAtPrice R (2 ^ 34) (2 ^ 34) := by
+      decStmtAtPrice R X X := by
     unfold decStmtAtPrice
-    have := Nat.mul_le_mul_left (4 * R + 87447) n0.le
-    have := Nat.mul_le_mul_left (4 * R + 87447) n3.le
+    have := Nat.mul_le_mul_left (4 * R + 87447) hX0
+    have := Nat.mul_le_mul_left (4 * R + 87447) hX3
     omega
   cost_facts [hS]
   unfold decStmtPrice

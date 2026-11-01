@@ -16,9 +16,11 @@ valuation `S`, of the frame map `F`, of a logarithm `G` (`GLogBound`), of the cu
 (its value at most `L ≤ 2^32`), and of `da_verify`'s witness at its frame `DW` (`Bounds/Guest/Da.lean`):
 
 * `nDirect_cost`, `dvClaim_cost`, `daWitness_cost`, `aggArgs_cost`, `nodeWitnessOf_cost`;
+* `CountsWithin D σ K N X`: the counts read off `main`'s valuation bounded (at most `K` children,
+  `N` slots a region, `X` declared claims a scheme);
 * `decWitTab_cost` (`decWitTabPrice`), `decWitAt_cost` (`decWitAtPrice`), **`decWitC_cost`**
-  (`decWitPrice G R S WX WS WD WV WA`, the callees' witness functions' prices given);
-* **`decWitN_cost`**: `decWitNC` at most `decWitNPrice G R S F C L DW`;
+  (`decWitPrice G R S WX WS WD WV WA K N X`, the callees' witness functions' prices given);
+* **`decWitN_cost`**: `decWitNC` at most `decWitNPrice G R S F C L DW K N X`;
 * `mainVal_cost`: `main`'s valuation, at most `R + 10990`, for every value.
 -/
 
@@ -120,6 +122,20 @@ theorem nodeWitnessOf_cost (hP : Includes P Decoder.nodeWitnessOfC.costDeps) (c 
 
 /-! ## The witness, the callees' witness functions given -/
 
+/-- **The counts the witness reads off `main`'s valuation `σ` bounded** (`K`, `N`, `X` at most
+`2^34`): at most `K` children, each region at most `N` slots, at most `X` declared claims of each
+scheme. Every `σ` meets it at `2^34` (`gLogD_lt`); a valid run at `16`, `65535`, `65535`
+(`Bounds/Guest/Valid.lean`). -/
+structure CountsWithin (D : DiscreteLogTables) (σ : Val) (K N X : ℕ) : Prop where
+  kidsBound : K ≤ 2 ^ 34
+  slotsBound : N ≤ 2 ^ 34
+  claimsBound : X ≤ 2 ^ 34
+  kids : Decoder.nKidsD D σ ≤ K
+  xmssSlots : Decoder.lxSlotsD D σ ≤ N
+  sphincsSlots : Decoder.lsSlotsD D σ ≤ N
+  xmssClaims : Decoder.gLogD D (σ (.n 0)) ≤ X
+  sphincsClaims : Decoder.gLogD D (σ (.n 3)) ≤ X
+
 section Witness
 
 variable {rd : Reader} {rdV : MachineValue}
@@ -146,29 +162,34 @@ variable {rd : Reader} {rdV : MachineValue}
   {WA : ℕ} (hWA : ∀ a : List E, a.length ≤ 16 → appCost P wAV [encodeValue a] ≤ WA)
 include hrd hR hσ hS hwX hWX hwS hWS hwD hWD hwV hWV hwA hWA
 
-/-- The witness's price off the tables. -/
-@[expose] def decWitTabPrice (G R S WX WS WD WV WA : ℕ) : ℕ :=
-  kidsTPrice G R S WV + xmssHoldersTPrice G R WX + 1 + sphincsHoldersTPrice G R WS +
+/-- The witness's price off the tables: at most `K` children, tables of at most `N` marks, at
+most `X` declared claims of each scheme. -/
+@[expose] def decWitTabPrice (G R S WX WS WD WV WA K N X : ℕ) : ℕ :=
+  kidsTPrice G R S WV N K + xmssHoldersTPrice G R WX X + 1 + sphincsHoldersTPrice G R WS X +
     (10 * S + G + WD + 183) + (5 * S + 61) + WA + 11 + 41
 
-/-- **The witness off the tables** (`decWitTabC`), the tables good, the counts below `2^34`:
-at most `decWitTabPrice G R S WX WS WD WV WA`. -/
+/-- **The witness off the tables** (`decWitTabC`), the tables good and of at most `N` marks, `nk ≤
+K`, `nx, ns ≤ X` (`K, N, X ≤ 2^34`), the others below `2^34`: at most
+`decWitTabPrice G R S WX WS WD WV WA K N X`. -/
 theorem decWitTab_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitTabC.costDeps)
-    (hG : GLogBound P D G) (nk nx ns lx nrx nrs : ℕ) (hnk : nk ≤ 2 ^ 34) (hnx : nx ≤ 2 ^ 34)
-    (hns : ns ≤ 2 ^ 34) (hlx : lx < 2 ^ 34) (hnrx : nrx < 2 ^ 34) (hnrs : nrs < 2 ^ 34)
+    (hG : GLogBound P D G) (K N X : ℕ) (hK : K ≤ 2 ^ 34) (hN : N ≤ 2 ^ 34) (hX : X ≤ 2 ^ 34)
+    (nk nx ns lx nrx nrs : ℕ) (hnk : nk ≤ K) (hnx : nx ≤ X)
+    (hns : ns ≤ X) (hlx : lx < 2 ^ 34) (hnrx : nrx < 2 ^ 34) (hnrs : nrs < 2 ^ 34)
     (cover w380 p53 p56 : E) (tx ts : Array ℕ × Array ℕ) (htx : TableGood tx) (hts : TableGood ts)
-    (M : Array ℕ) (hM : KidMaxGood M) :
+    (htxN : tx.1.size ≤ N) (htsN : ts.1.size ≤ N) (M : Array ℕ) (hM : KidMaxGood M) :
     machineCost P Decoder.decWitTabC.costIdx [encodeValue D, σV, rdV, wXV, wSV, wDV, wVV, wAV,
       encodeValue nk, encodeValue nx, encodeValue ns, encodeValue lx, encodeValue nrx,
       encodeValue nrs, encodeValue cover, encodeValue w380, encodeValue p53, encodeValue p56,
-      encodeValue tx, encodeValue ts, encodeValue M] ≤ decWitTabPrice G R S WX WS WD WV WA := by
+      encodeValue tx, encodeValue ts, encodeValue M] ≤
+      decWitTabPrice G R S WX WS WD WV WA K N X := by
   rw [Decoder.decWitTabC.costEq P hP D σ σV hσ rd rdV hrd wX wXV hwX wS wSV hwS wD wDV hwD wV wVV
     hwV wA wAV hwA]
-  have := kidsT_cost P hrd hR hσ hS hwV hWV D (by includes) hG w380 p53 p56 tx ts htx hts nk hnk
-  have := xmssHoldersT_cost P hrd hR hwX hWX D (by includes) hG cover p53 M hM nrx nx (by omega)
-    hnx
+  have := kidsT_cost P hrd hR hσ hS hwV hWV D (by includes) hG w380 p53 p56 tx ts htx hts N hN htxN
+    htsN K hK nk hnk
+  have := xmssHoldersT_cost P hrd hR hwX hWX D (by includes) hG cover p53 M hM nrx nx (by omega) X
+    hX hnx
   have := sphincsHoldersT_cost P hrd hR hwS hWS D (by includes) hG cover p56 M hM lx (nrx + nrs) ns
-    hlx (by omega) hns
+    hlx (by omega) X hX hns
   have := daWitness_cost P hσ hS D (by includes) hG hwD hWD
   have := aggArgs_cost P hσ hS (by includes)
   have := hWA (Decoder.aggArgs σ) (by simp [Decoder.aggArgs])
@@ -178,50 +199,54 @@ theorem decWitTab_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitTa
   omega
 
 /-- The witness's price, the tables built. -/
-@[expose] def decWitAtPrice (G R S WX WS WD WV WA : ℕ) : ℕ :=
-  7 * S + 2 * regionTablePrice G R (2 ^ 34) + kidMaxPrice G R (2 ^ 34) +
-    decWitTabPrice G R S WX WS WD WV WA + 92
+@[expose] def decWitAtPrice (G R S WX WS WD WV WA K N X : ℕ) : ℕ :=
+  7 * S + 2 * regionTablePrice G R N + kidMaxPrice G R K +
+    decWitTabPrice G R S WX WS WD WV WA K N X + 92
 
 /-- **The witness, the counts given** (`decWitAtC`): the two regions' tables and the running maxima
-built once, then `decWitTabC`: at most `decWitAtPrice G R S WX WS WD WV WA`. -/
+built once, then `decWitTabC`: `nk ≤ K`, `lx, ls ≤ N`, `nx, ns ≤ X`, at most
+`decWitAtPrice G R S WX WS WD WV WA K N X`. -/
 theorem decWitAt_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitAtC.costDeps)
-    (hG : GLogBound P D G) (nk nx ns lx ls nrx nrs : ℕ) (hnk : nk ≤ 2 ^ 34) (hnx : nx ≤ 2 ^ 34)
-    (hns : ns ≤ 2 ^ 34) (hlx : lx < 2 ^ 34) (hls : ls ≤ 2 ^ 34) (hnrx : nrx < 2 ^ 34)
-    (hnrs : nrs < 2 ^ 34) :
+    (hG : GLogBound P D G) (K N X : ℕ) (hK : K ≤ 2 ^ 34) (hN : N ≤ 2 ^ 34) (hX : X ≤ 2 ^ 34)
+    (nk nx ns lx ls nrx nrs : ℕ) (hnk : nk ≤ K) (hnx : nx ≤ X)
+    (hns : ns ≤ X) (hlx : lx < 2 ^ 34) (hls : ls ≤ 2 ^ 34) (hlxN : lx ≤ N) (hlsN : ls ≤ N)
+    (hnrx : nrx < 2 ^ 34) (hnrs : nrs < 2 ^ 34) :
     machineCost P Decoder.decWitAtC.costIdx [encodeValue D, σV, rdV, wXV, wSV, wDV, wVV, wAV,
       encodeValue nk, encodeValue nx, encodeValue ns, encodeValue lx, encodeValue ls,
-      encodeValue nrx, encodeValue nrs] ≤ decWitAtPrice G R S WX WS WD WV WA := by
+      encodeValue nrx, encodeValue nrs] ≤ decWitAtPrice G R S WX WS WD WV WA K N X := by
   rw [Decoder.decWitAtC.costEq P hP D σ σV hσ rd rdV hrd wX wXV hwX wS wSV hwS wD wDV hwD wV wVV
     hwV wA wAV hwA]
   have h1 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 67)) 0 lx (by norm_num) hlx.le
   have h2 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 67)) lx ls hlx.le hls
-  have h3 := kidMax_cost P hrd hR D (by includes) hG (σ (.n 380)) nk hnk
+  have h3 := kidMax_cost P hrd hR D (by includes) hG (σ (.n 380)) nk (by omega)
   have := decWitTab_cost P hrd hR hσ hS hwX hWX hwS hWS hwD hWD hwV hWV hwA hWA D (by includes) hG
-    nk nx ns lx nrx nrs hnk hnx hns hlx hnrx hnrs (σ (.n 67)) (σ (.n 380)) (σ (.n 53)) (σ (.n 56))
-    _ _ (regionTable_good (rd := rd) D (σ (.n 67)) 0 lx hlx.le)
-    (regionTable_good (rd := rd) D (σ (.n 67)) lx ls hls) _
-    (kidMax_good (rd := rd) D (σ (.n 380)) nk hnk)
-  have e1 : regionTablePrice G R lx ≤ regionTablePrice G R (2 ^ 34) := by
-    unfold regionTablePrice; exact Nat.add_le_add_right (Nat.mul_le_mul_left _ hlx.le) _
-  have e2 : regionTablePrice G R ls ≤ regionTablePrice G R (2 ^ 34) := by
-    unfold regionTablePrice; exact Nat.add_le_add_right (Nat.mul_le_mul_left _ hls) _
-  have e3 : kidMaxPrice G R nk ≤ kidMaxPrice G R (2 ^ 34) := by
+    K N X hK hN hX nk nx ns lx nrx nrs hnk hnx hns hlx hnrx hnrs (σ (.n 67)) (σ (.n 380))
+    (σ (.n 53)) (σ (.n 56)) _ _ (regionTable_good (rd := rd) D (σ (.n 67)) 0 lx hlx.le)
+    (regionTable_good (rd := rd) D (σ (.n 67)) lx ls hls)
+    ((regionTable_size_le (rd := rd) D (σ (.n 67)) 0 lx).trans hlxN)
+    ((regionTable_size_le (rd := rd) D (σ (.n 67)) lx ls).trans hlsN) _
+    (kidMax_good (rd := rd) D (σ (.n 380)) nk (by omega))
+  have e1 : regionTablePrice G R lx ≤ regionTablePrice G R N := by
+    unfold regionTablePrice; exact Nat.add_le_add_right (Nat.mul_le_mul_left _ hlxN) _
+  have e2 : regionTablePrice G R ls ≤ regionTablePrice G R N := by
+    unfold regionTablePrice; exact Nat.add_le_add_right (Nat.mul_le_mul_left _ hlsN) _
+  have e3 : kidMaxPrice G R nk ≤ kidMaxPrice G R K := by
     unfold kidMaxPrice; exact Nat.add_le_add_right (Nat.mul_le_mul_left _ hnk) _
   cost_facts [hS]
   unfold decWitAtPrice
   omega
 
 /-- The witness's price. -/
-@[expose] def decWitPrice (G R S WX WS WD WV WA : ℕ) : ℕ :=
-  7 * (S + G + 11) + decWitAtPrice G R S WX WS WD WV WA + 46
+@[expose] def decWitPrice (G R S WX WS WD WV WA K N X : ℕ) : ℕ :=
+  7 * (S + G + 11) + decWitAtPrice G R S WX WS WD WV WA K N X + 46
 
 /-- **The witness** (`decWitC`), the logarithm's tables `D` given, the callees' witness functions'
-prices given: the counts (seven logarithms), then `decWitAtC`: at most
-`decWitPrice G R S WX WS WD WV WA`. -/
+prices given, the counts within `K N X` (`CountsWithin`): the counts (seven logarithms), then
+`decWitAtC`: at most `decWitPrice G R S WX WS WD WV WA K N X`. -/
 theorem decWitC_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitC.costDeps)
-    (hG : GLogBound P D G) :
+    (hG : GLogBound P D G) {K N X : ℕ} (hc : CountsWithin D σ K N X) :
     machineCost P Decoder.decWitC.costIdx [encodeValue D, σV, rdV, wXV, wSV, wDV, wVV, wAV] ≤
-      decWitPrice G R S WX WS WD WV WA := by
+      decWitPrice G R S WX WS WD WV WA K N X := by
   rw [Decoder.decWitC.costEq P hP D σ σV hσ rd rdV hrd wX wXV hwX wS wSV hwS wD wDV hwD wV wVV
     hwV wA wAV hwA]
   have := nKids_cost P hσ hS D (by includes) hG
@@ -231,10 +256,11 @@ theorem decWitC_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitC.co
   have := nRawS_cost P hσ hS D (by includes) hG
   have := hG (σ (.n 0)); have := hG (σ (.n 3))
   have := decWitAt_cost P hrd hR hσ hS hwX hWX hwS hWS hwD hWD hwV hWV hwA hWA D (by includes) hG
+    K N X hc.kidsBound hc.slotsBound hc.claimsBound
     (Decoder.nKidsD D σ) (Decoder.gLogD D (σ (.n 0))) (Decoder.gLogD D (σ (.n 3)))
     (Decoder.lxSlotsD D σ) (Decoder.lsSlotsD D σ) (Decoder.nRawXD D σ) (Decoder.nRawSD D σ)
-    (gLogD_lt D _).le (gLogD_lt D _).le (gLogD_lt D _).le (gLogD_lt D _) (gLogD_lt D _).le
-    (gLogD_lt D _) (gLogD_lt D _)
+    hc.kids hc.xmssClaims hc.sphincsClaims (gLogD_lt D _) (gLogD_lt D _).le hc.xmssSlots
+    hc.sphincsSlots (gLogD_lt D _) (gLogD_lt D _)
   cost_facts [hS]
   unfold decWitPrice
   omega
@@ -265,20 +291,20 @@ include hrd hR hσ hS hVn hF hcl hC hL hL32
 
 /-- **The guest decoder's witness's price**: `decWitC` at the five callees' witness functions'
 prices. -/
-@[expose] def decWitNPrice (G R S F C L DW : ℕ) : ℕ :=
+@[expose] def decWitNPrice (G R S F C L DW K N X : ℕ) : ℕ :=
   decWitPrice G R S (458 * F + 214110) (S + 450 * F + 244110) (DW + 15)
-    (vsPiPrice R (F + 6) F C L + 30) (47 * F + 46 * R + 998988) + 35
+    (vsPiPrice R (F + 6) F C L + 30) (47 * F + 46 * R + 998988) K N X + 35
 
 /-- **The guest decoder's witness** (`decWitNC`), the logarithm's tables `D` and the readers'
-tables `Tb` given, `da_verify`'s witness at its frame at most `DW` (`dvWitN_cost` at `S = F + 6`):
-at most `decWitNPrice G R S F C L DW`. -/
+tables `Tb` given, `da_verify`'s witness at its frame at most `DW` (`dvWitN_cost` at `S = F + 6`),
+the counts within `K N X`: at most `decWitNPrice G R S F C L DW K N X`. -/
 theorem decWitN_cost (D : DiscreteLogTables) (Tb : ReaderTabs) (hTb : ReaderTabsOK Tb)
     (hP : Includes P Decoder.decWitNC.costDeps) (hG : GLogBound P D G) (DW : ℕ)
     (hDW : ∀ args rets : List E, args.length + rets.length ≤ 16 → machineCost P Decoder.dvWitNC.costIdx
       [encodeValue D, .closure Decoder.daAtFrameC.lam0.costIdx [VnV, encodeValue args, encodeValue rets],
-        VnV] ≤ DW) :
+        VnV] ≤ DW) {K N X : ℕ} (hc : CountsWithin D σ K N X) :
     machineCost P Decoder.decWitNC.costIdx [encodeValue D, encodeValue Tb, σV, rdV, VnV, clV] ≤
-      decWitNPrice G R S F C L DW := by
+      decWitNPrice G R S F C L DW K N X := by
   rw [Decoder.decWitNC.costEq P hP D Tb σ σV hσ rd rdV hrd Vn VnV hVn cl clV hcl]
   have h := decWitC_cost P hrd hR hσ hS
     (fun p ↦ RunsApp.of_spec (Decoder.decWitNC.lam0.costSpec P (by includes) Tb Vn VnV hVn p))
@@ -292,7 +318,7 @@ theorem decWitN_cost (D : DiscreteLogTables) (Tb : ReaderTabs) (hTb : ReaderTabs
       hVn cl clV hcl a))
     (wV_cost P hVn hF hrd hR hcl hC hL hL32 (by includes) Tb hTb)
     (fun a ↦ RunsApp.of_spec (Decoder.decWitNC.lam4.costSpec P (by includes) rd rdV hrd Vn VnV hVn a))
-    (wA_cost P hVn hF hrd hR (by includes)) D (by includes) hG
+    (wA_cost P hVn hF hrd hR (by includes)) D (by includes) hG hc
   unfold decWitNPrice
   omega
 
