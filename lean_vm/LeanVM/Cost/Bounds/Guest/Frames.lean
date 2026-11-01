@@ -13,7 +13,7 @@ the frame map whose application costs at most `F + 6` (`F` the frame map's price
 
 * `xmssAtFrame_cost` (`458·F + 717182`), `sphincsAtFrame_cost` (`S + 450·F + 1663653`),
   `daAtFrame_cost`, `proofAtFrame_cost`, `hintsAtFrame_cost`;
-* `wX_cost` … `wA_cost`: the five closures' prices, `xmssW F`, …, the bounds `decWitC`'s takes.
+* `wX_cost` … `wA_cost`: the five closures `decWitNC` passes to `decWitC`, their prices.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -136,6 +136,80 @@ theorem hintsAtFrame_cost (hP : Includes P Decoder.hintsAtFrameC.costDeps) {rd :
   omega
 
 end Frames
+
+/-! ## The callees' witness functions `decWitNC` passes -/
+
+section Closures
+
+variable {Vn : NFrames} {VnV : MachineValue}
+  (hVn : ∀ (k : ℕ) (a r : List E) (v : V),
+    RunsApp P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v]
+      (encodeValue (Vn k a r v)))
+  {F : ℕ} (hF : ∀ (k : ℕ) (a r : List E) (v : V),
+    appCost P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F)
+  {σ : Val} {σV : MachineValue}
+  (hσ : ∀ v : V, RunsApp P σV [encodeValue v] (encodeValue (σ v)))
+  {S : ℕ} (hS : ∀ v : V, appCost P σV [encodeValue v] ≤ S)
+  {rd : Reader} {rdV : MachineValue}
+  (hrd : ∀ a : K, RunsApp P rdV [encodeValue a] (encodeValue (rd a)))
+  {R : ℕ} (hR : ∀ a : K, appCost P rdV [encodeValue a] ≤ R)
+  {cl : E → E → ℕ} {clV : MachineValue}
+  (hcl : ∀ a b : E, RunsApp P clV [encodeValue a, encodeValue b] (encodeValue (cl a b)))
+  {C : ℕ} (hC : ∀ a b : E, appCost P clV [encodeValue a, encodeValue b] ≤ C)
+  {L : ℕ} (hL : ∀ a b : E, cl a b ≤ L) (hL32 : L ≤ 2 ^ 32)
+
+include hVn hF in
+/-- The leanXMSS witness function (`decWitNC.lam0`): `458·F + 717185`. -/
+theorem wX_cost (hP : Includes P Decoder.decWitNC.lam0.costDeps) (p : E) :
+    appCost P (.closure Decoder.decWitNC.lam0.costIdx [VnV]) [encodeValue p] ≤
+      458 * F + 717185 := by
+  rw [appCost_fn, List.cons_append, List.nil_append, Decoder.decWitNC.lam0.costEq P hP Vn VnV hVn]
+  have := xmssAtFrame_cost P hVn hF (by includes) p
+  omega
+
+include hVn hF hσ hS in
+/-- The leanSPHINCS witness function (`decWitNC.lam1`): `S + 450·F + 1663657`. -/
+theorem wS_cost (hP : Includes P Decoder.decWitNC.lam1.costDeps) (p : E) :
+    appCost P (.closure Decoder.decWitNC.lam1.costIdx [σV, VnV]) [encodeValue p] ≤
+      S + 450 * F + 1663657 := by
+  rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
+    Decoder.decWitNC.lam1.costEq P hP σ σV hσ Vn VnV hVn]
+  have := sphincsAtFrame_cost P hVn hF (by includes) hσ hS p
+  omega
+
+include hVn hF in
+/-- The DA witness function (`decWitNC.lam2`), the logarithm's tables `D` given:
+`F + G + dvWitNAtPrice F (F + 6) + 35`. -/
+theorem wD_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
+    (hP : Includes P Decoder.decWitNC.lam2.costDeps) (hG : GLogBound P D G) (args rets : List E) :
+    appCost P (.closure Decoder.decWitNC.lam2.costIdx [encodeValue D, VnV])
+      [encodeValue args, encodeValue rets] ≤ F + G + dvWitNAtPrice F (F + 6) + 35 := by
+  rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
+    Decoder.decWitNC.lam2.costEq P hP D Vn VnV hVn]
+  have := daAtFrame_cost P hVn hF D (by includes) hG args rets
+  omega
+
+include hVn hF hrd hR hcl hC hL hL32 in
+/-- The child proofs' witness function (`decWitNC.lam3`): `vsPiPrice R (F + 6) F C L + 16`. -/
+theorem wV_cost (hP : Includes P Decoder.decWitNC.lam3.costDeps) (args : List E) :
+    appCost P (.closure Decoder.decWitNC.lam3.costIdx [rdV, VnV, clV]) [encodeValue args] ≤
+      vsPiPrice R (F + 6) F C L + 16 := by
+  rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
+    Decoder.decWitNC.lam3.costEq P hP rd rdV hrd Vn VnV hVn cl clV hcl]
+  have := proofAtFrame_cost P hVn hF (by includes) hrd hR hcl hC hL hL32 args
+  omega
+
+include hVn hF hrd hR in
+/-- The batching hints' witness function (`decWitNC.lam4`): `47·F + 46·R + 998988`. -/
+theorem wA_cost (hP : Includes P Decoder.decWitNC.lam4.costDeps) (args : List E) :
+    appCost P (.closure Decoder.decWitNC.lam4.costIdx [rdV, VnV]) [encodeValue args] ≤
+      47 * F + 46 * R + 998988 := by
+  rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
+    Decoder.decWitNC.lam4.costEq P hP rd rdV hrd Vn VnV hVn]
+  have := hintsAtFrame_cost P hVn hF (by includes) hrd hR args
+  omega
+
+end Closures
 
 end
 
