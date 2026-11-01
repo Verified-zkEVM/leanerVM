@@ -17,7 +17,7 @@ the steps it takes), or `none` when the run misuses a value (a primitive on the 
 value, a variable or a field that does not exist, a call of a function `P` lacks) or nests more
 than `fuel` calls. A misuse is a failure, never undefined behavior. `outputWithin P x b` is the
 value if the price is at most `b`; each call costs at least `1`, so `fuel = b` is never the
-bound that fails a run of price at most `b`.
+bound that fails a run of price at most `b` (`outputWithin_of_runs`, `Cost/Spec.lean`).
 
 **Prices.** Each step costs at least `1` and at least the words it writes:
 * a variable, a literal, a field, a `case`'s selection, a `let`: `1`;
@@ -238,8 +238,8 @@ termination_by n _ _ => (n, 0, 0)
 
 end
 
-/-- **A run**: function `0` on the input `x`, with `fuel` nested calls at most. -/
-def run (P : Program) (fuel : ℕ) (x : Val) : Option (Val × ℕ) := evalBody P fuel 0 [x]
+/-- **A run**: function `0` on the input `x`, with `fuel` nested calls at most below it. -/
+def run (P : Program) (fuel : ℕ) (x : Val) : Option (Val × ℕ) := evalBody P (fuel + 1) 0 [x]
 
 /-- **The output within a budget**: `P`'s value on `x` if its run costs at most `b`. -/
 def outputWithin (P : Program) (x : Val) (b : ℕ) : Option Val :=

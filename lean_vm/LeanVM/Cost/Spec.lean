@@ -271,6 +271,118 @@ def Program.ofList (l : List (ℕ × Term)) : Program :=
 theorem RunsBody.cost_eq {P : Program} {f : ℕ} {vs : List Val} {v : Val} {c c' : ℕ}
     (h : RunsBody P f vs v c) (hc : c = c') : RunsBody P f vs v c' := hc ▸ h
 
+/-! ## The price bounds the fuel -/
+
+/-- A run of price `c` needs at most `c` nested calls. -/
+theorem eval_fuel (P : Program) :
+    (∀ n env t v c, eval P n env t = some (v, c) → eval P c env t = some (v, c)) ∧
+    (∀ n env ts vs c, evalList P n env ts = some (vs, c) → evalList P c env ts = some (vs, c)) ∧
+    (∀ n env fs k as v c, evalAlt P n env fs k as = some (v, c) →
+      evalAlt P c env fs k as = some (v, c)) ∧
+    (∀ n f vs v c, evalBody P n f vs = some (v, c) → evalBody P (c + 1) f vs = some (v, c)) := by
+  have h := eval.mutual_induct P
+    (fun n env t ↦ ∀ v c, eval P n env t = some (v, c) → eval P c env t = some (v, c))
+    (fun n f vs ↦ ∀ v c, evalBody P n f vs = some (v, c) → evalBody P (c + 1) f vs = some (v, c))
+    (fun n env fs k as ↦ ∀ v c, evalAlt P n env fs k as = some (v, c) →
+      evalAlt P c env fs k as = some (v, c))
+    (fun n env ts ↦ ∀ vs c, evalList P n env ts = some (vs, c) → evalList P c env ts = some (vs, c))
+    (fun _ _ _ v c h ↦ by simpa [eval] using h)
+    (fun _ _ _ v c h ↦ by simpa [eval] using h)
+    (fun n env o ts ih v c h ↦ by
+      simp only [eval, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists,
+        Option.pure_def, Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨vs, c₁, hl, w, d, ho, rfl, rfl⟩ := h
+      simp [eval, evalList_le (m := c₁ + d) (by omega) (ih _ _ hl), ho])
+    (fun n env k ts ih v c h ↦ by
+      simp only [eval, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists,
+        Option.pure_def, Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨vs, c₁, hl, rfl, rfl⟩ := h
+      simp [eval, evalList_le (m := c₁ + vs.length + 1) (by omega) (ih _ _ hl)])
+    (fun n env i t ih v c h ↦ by
+      simp only [eval, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists] at h
+      obtain ⟨w, c₁, hl, h⟩ := h
+      cases w with
+      | ctor k fs =>
+        simp only [Option.map_eq_some_iff, Prod.mk.injEq] at h
+        obtain ⟨x, hx, rfl, rfl⟩ := h
+        simp [eval, eval_le (m := c₁ + 1) (by omega) (ih _ _ hl), hx]
+      | _ => simp at h)
+    (fun n env t alts ih iha v c h ↦ by
+      simp only [eval, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists] at h
+      obtain ⟨w, c₁, hl, h⟩ := h
+      cases w with
+      | ctor k fs =>
+        simp only [Option.bind_eq_some_iff, Prod.exists, Option.pure_def, Option.some.injEq,
+          Prod.mk.injEq] at h
+        obtain ⟨w', d, ha, rfl, rfl⟩ := h
+        have ha' := iha k fs _ _ ha
+        have ha'' : evalAlt P (c₁ + d + 1) env fs k alts = some (w', d) := by
+          clear * - ha'
+          induction alts generalizing k with
+          | nil => simp [evalAlt] at ha'
+          | cons a as ih =>
+            cases k with
+            | zero => simp only [evalAlt] at ha' ⊢; exact eval_le (by omega) ha'
+            | succ k => simp only [evalAlt] at ha' ⊢; exact ih k ha'
+        simp [eval, eval_le (m := c₁ + d + 1) (by omega) (ih _ _ hl), ha'']
+      | _ => simp at h)
+    (fun n env t b ih ihb v c h ↦ by
+      simp only [eval, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists,
+        Option.pure_def, Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨w, c₁, hl, w', d, hb, rfl, rfl⟩ := h
+      simp [eval, eval_le (m := c₁ + d + 1) (by omega) (ih _ _ hl),
+        eval_le (m := c₁ + d + 1) (by omega) (ihb _ _ _ hb)])
+    (fun n env f ts ih ihb v c h ↦ by
+      simp only [eval, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists,
+        Option.pure_def, Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨vs, c₁, hl, w, d, hb, rfl, rfl⟩ := h
+      simp [eval, evalList_le (m := c₁ + d + 1) (by omega) (ih _ _ hl),
+        evalBody_le (m := c₁ + d + 1) (by omega) (ihb _ _ _ hb)])
+    (fun n env f ts ih v c h ↦ by
+      simp only [eval, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists,
+        Option.pure_def, Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨vs, c₁, hl, rfl, rfl⟩ := h
+      simp [eval, evalList_le (m := c₁ + vs.length + 1) (by omega) (ih _ _ hl)])
+    (fun n env t ts ih ihl ihb v c h ↦ by
+      simp only [eval, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists] at h
+      obtain ⟨g, c₁, hg, vs, d, hl, h⟩ := h
+      cases g with
+      | fn f us =>
+        simp only [Option.bind_eq_some_iff, Prod.exists, Option.pure_def, Option.some.injEq,
+          Prod.mk.injEq] at h
+        obtain ⟨w, e, hb, rfl, rfl⟩ := h
+        simp [eval, eval_le (m := c₁ + d + e + 1) (by omega) (ih _ _ hg),
+          evalList_le (m := c₁ + d + e + 1) (by omega) (ihl _ _ hl),
+          evalBody_le (m := c₁ + d + e + 1) (by omega) (ihb vs f us _ _ hb)]
+      | _ => simp at h)
+    (fun _ _ _ _ h ↦ by simp [evalBody] at h)
+    (fun n f vs b hb ih v c h ↦ by
+      simp only [evalBody, hb] at h ⊢
+      exact ih _ _ h)
+    (fun n f vs hb v c h ↦ by simp [evalBody, hb] at h)
+    (fun _ _ _ _ v c h ↦ by simp [evalAlt] at h)
+    (fun n env fs a tail ih v c h ↦ by
+      simp only [evalAlt] at h ⊢
+      exact ih _ _ h)
+    (fun n env fs k head as ih v c h ↦ by
+      simp only [evalAlt] at h ⊢
+      exact ih _ _ h)
+    (fun _ _ vs c h ↦ by simpa [evalList] using h)
+    (fun n env t ts ih ihl vs c h ↦ by
+      simp only [evalList, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists,
+        Option.pure_def, Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨v, c₁, hv, vs', d, hl, rfl, rfl⟩ := h
+      simp [evalList, eval_le (m := c₁ + d) (by omega) (ih _ _ hv),
+        evalList_le (m := c₁ + d) (by omega) (ihl _ _ hl)])
+  exact ⟨h.1, h.2.2.2, h.2.2.1, h.2.1⟩
+
+/-- **A run within the budget outputs its value.** -/
+theorem outputWithin_of_runs {P : Program} {x v : Val} {c b : ℕ} (h : RunsBody P 0 [x] v c)
+    (hc : c ≤ b) : outputWithin P x b = some v := by
+  obtain ⟨n, h⟩ := h
+  have := evalBody_le (show c + 1 ≤ b + 1 by omega) ((eval_fuel P).2.2.2 _ _ _ _ _ h)
+  simp [outputWithin, run, this, hc]
+
 end
 
 end LeanVM.Cost
