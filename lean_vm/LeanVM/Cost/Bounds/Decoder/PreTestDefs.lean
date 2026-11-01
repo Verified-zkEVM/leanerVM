@@ -46,14 +46,14 @@ def FnPreWithin (W : ℕ) (t : FnPre) : Prop :=
 /-- **The price of an entry's test** (`fnPreTestC`), its exponents within `W` bits, a memory read
 at most `R`, a logarithm's bound at most `B`: per entry-environment check `2·psAt W + R + 570`,
 per bound `psAt W + R + B + 288`, per memory cell `2·psAt W + 2R + B + 586` and per memory bound
-`43`, per semantic pair `2·psAt W + 70R + 5711859` (the exponent tables' `34` entries, each two
-reads and a power `gen^(2^j)` by squaring in `E`), and `53`; `3` for an entry without a
+`43`, per semantic pair `2·psAt W + 70R + 241176` (the exponent tables' `34` entries, each two
+reads, the powers `gen^(2^j)` read off their table), and `55`; `3` for an entry without a
 precondition. -/
 def fnPrePrice (W R B : ℕ) : Option FnPre → ℕ
   | none => 3
   | some t => (2 * psAt W + R + 570) * t.env.length + (psAt W + R + B + 288) * t.pre.length +
       (2 * psAt W + 2 * R + B + 586) * memCells t + 43 * t.mem.length +
-      (2 * psAt W + 70 * R + 5711859) * t.sem.length + 53
+      (2 * psAt W + 70 * R + 241176) * t.sem.length + 55
 
 /-- **The deployed table's shape**, decided: at most one check of each kind, at most `99` bounds
 and memory cells, exponents below `2^7`, logarithms' bounds word-sized. -/

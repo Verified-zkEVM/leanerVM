@@ -34,17 +34,21 @@ def D : DiscreteLogTables := discreteLogTables
 
 def check (j : ℕ) (fp : K) : Bool :=
   runOn (preTestAtC.costDeps ++ smallReaderC.costDeps) preTestAtC.costIdx
-    [encodeValue D, encodeValue smallTable, .closure smallReaderC.costIdx [], encodeValue j,
-      encodeValue fp] == some (encodeValue (preTestAt D smallTable smallReader j fp))
+    [encodeValue D, encodeValue smallTable, encodeValue genPows, .closure smallReaderC.costIdx [],
+      encodeValue j, encodeValue fp] ==
+    some (encodeValue (preTestAt D smallTable genPows smallReader j fp))
 
-#guard preTestAt D smallTable smallReader 2 1 && check 2 1
-#guard !preTestAt D smallTable smallReader 3 1 && check 3 1
-#guard !preTestAt D smallTable smallReader 4 1 && check 4 1
-#guard preTestAt D smallTable smallReader 5 1 && check 5 1
-#guard !preTestAt D smallTable smallReader 6 1 && check 6 1
-#guard preTestAt D smallTable smallReader 7 1 && check 7 1
-#guard !preTestAt D smallTable smallReader 1 1 && check 1 1
-#guard preTestAt D smallTable smallReader 2 (gpow 0) && check 2 (gpow 0)
-#guard !preTestAt D smallTable smallReader 2 (gpow 1) && check 2 (gpow 1)
+#guard preTestAt D smallTable genPows smallReader 2 1 && check 2 1
+#guard !preTestAt D smallTable genPows smallReader 3 1 && check 3 1
+#guard !preTestAt D smallTable genPows smallReader 4 1 && check 4 1
+#guard preTestAt D smallTable genPows smallReader 5 1 && check 5 1
+#guard !preTestAt D smallTable genPows smallReader 6 1 && check 6 1
+#guard preTestAt D smallTable genPows smallReader 7 1 && check 7 1
+#guard !preTestAt D smallTable genPows smallReader 1 1 && check 1 1
+#guard preTestAt D smallTable genPows smallReader 2 (gpow 0) && check 2 (gpow 0)
+#guard !preTestAt D smallTable genPows smallReader 2 (gpow 1) && check 2 (gpow 1)
+
+-- The powers table, compiled: `gen^(2^j)`, `j < 34`, by squarings.
+#guard runOn genPowsC.costDeps genPowsC.costIdx [] == some (encodeValue genPows)
 
 end LeanVMTests.Cost.DecoderPreTest

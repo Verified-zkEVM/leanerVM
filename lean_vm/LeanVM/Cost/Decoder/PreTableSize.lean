@@ -15,7 +15,9 @@ functions:
   literal a term `Term.val`) has size `6864`, what it adds to the decoder's program (and `2` for
   its index);
 * `preTestBodies_size`: the bodies the compiled test adds past the decoder's witness (`preTestAtC`'s
-  dependencies from `powBelowAtC` on, `21` of them, `Sym.val` among them) have size `355`.
+  dependencies from `powBelowAtC` on, `21` of them, `Sym.val` among them) have size `358`;
+* `genPowsBodies_size`: the powers table's bodies (`genPowsC`, `squaresFromC`), built once and
+  passed to the test, have size `84`.
 -/
 
 namespace LeanVM.Cost.Decoder
@@ -34,11 +36,16 @@ theorem preTable_size : (encodeValue preTable).size = 5129 := by
 /-- The size of the body that builds the table: `6864`. -/
 theorem preTableC_body_size : preTableC.costBody.size = 6864 := by decide +kernel
 
-/-- The sizes of the test's bodies: `355`, `21` bodies. -/
+/-- The sizes of the test's bodies: `358`, `21` bodies. -/
 theorem preTestBodies_size :
     ((preTestAtC.costDeps.filter fun p ↦ decide (powBelowAtC.costIdx ≤ p.1)).map
-      fun p ↦ p.2.size).sum = 355 ∧
+      fun p ↦ p.2.size).sum = 358 ∧
     (preTestAtC.costDeps.filter fun p ↦ decide (powBelowAtC.costIdx ≤ p.1)).length = 21 := by
+  decide +kernel
+
+/-- The sizes of the powers table's bodies: `84`, `2` bodies. -/
+theorem genPowsBodies_size :
+    (genPowsC.costDeps.map fun p ↦ p.2.size).sum = 84 ∧ genPowsC.costDeps.length = 2 := by
   decide +kernel
 
 end
