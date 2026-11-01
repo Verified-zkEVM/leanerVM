@@ -63,6 +63,21 @@ theorem RunsBody.induction {P : Program} {i : ℕ} {α : Type} (args : α → Li
     obtain ⟨c, hc⟩ := step x fun y hy ↦ ih (m y) (h ▸ hy) y rfl
     exact hc.withMachineCost
 
+/-! ## Closures -/
+
+/-- The price of applying the closure `v` to `vs`: its function's price on its values and `vs`. -/
+noncomputable def appCost (P : Program) : Val → List Val → ℕ
+  | .fn j us, vs => machineCost P j (us ++ vs)
+  | _, _ => 0
+
+/-- The closure `v` applied to `vs` returns `w`. -/
+def RunsApp (P : Program) (v : Val) (vs : List Val) (w : Val) : Prop :=
+  ∃ j us, v = .fn j us ∧ RunsBody P j (us ++ vs) w (machineCost P j (us ++ vs))
+
+theorem RunsApp.of_spec {P : Program} {j : ℕ} {us vs : List Val} {w : Val}
+    (h : RunsBody P j (us ++ vs) w (machineCost P j (us ++ vs))) : RunsApp P (.fn j us) vs w :=
+  ⟨j, us, rfl, h⟩
+
 /-! ## Encodings -/
 
 section Enc
@@ -209,6 +224,20 @@ theorem caseNat {t a b : Term} {n : ℕ} {e₀ : α} {e₁ : ℕ → α} {c c₀
         (c + 1 + (max (limbs (k + 1)) (limbs 1) + 1)) :=
       Runs.op (RunsList.cons h (RunsList.cons (Runs.val _) RunsList.nil)) (by simp [Op.apply, natOp])
     exact Runs.case (k := 0) (fs := []) (by simpa using hz) rfl (Runs.letE hs (h₁ k rfl))
+
+/-- A closure of function `j` with the values of `ts`. -/
+theorem closure {j : ℕ} {ts : List Term} {vs : List Val} {c : ℕ} (h : RunsList P env ts vs c) :
+    Runs P env (.fn j ts) (.fn j vs) (c + vs.length + 1) := Runs.fn h
+
+/-- A closure applied to the values of `ts`. -/
+theorem app {t : Term} {ts : List Term} {f : Val} {vs : List Val} {w : Val} {c d : ℕ}
+    (h : Runs P env t f c) (hl : RunsList P env ts vs d) (ha : RunsApp P f vs w) :
+    Runs P env (.app t ts) w (c + d + appCost P f vs + 1) := by
+  obtain ⟨j, us, rfl, hb⟩ := ha
+  exact Runs.app h hl hb
+
+/-- A raw value of the environment. -/
+theorem rawVar {i : ℕ} {v : Val} (h : env[i]? = .some v) : Runs P env (.var i) v 1 := Runs.var h
 
 /-- A call of a function on the encodings of its arguments. -/
 theorem call {f : ℕ} {ts : List Term} {vs : List Val} {w : Val} {c d : ℕ}
