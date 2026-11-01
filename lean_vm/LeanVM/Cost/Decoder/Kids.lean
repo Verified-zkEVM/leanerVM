@@ -141,12 +141,10 @@ section Tables
 
 attribute [local instance] lexOrd
 
-cost_measure lowerBound := fun _ _ lo hi ↦ hi - lo
-
-cost_compile lowerBoundC := lowerBound
-cost_compile mergeNewerCoverC := @mergeNewer (ℕ × ℕ) ℕ _
+cost_compile lowerBoundC measure fun _ _ lo hi ↦ hi - lo := lowerBound
+cost_compile mergeNewerCoverC measure fun a b ↦ a.length + b.length := @mergeNewer (ℕ × ℕ) ℕ _
 cost_compile levelMergeCoverC := @Level.merge (ℕ × ℕ) ℕ _ _ _
-cost_compile carryCoverC := @carry (ℕ × ℕ) ℕ _ _ _
+cost_compile carryCoverC measure fun _ ls ↦ ls.length := @carry (ℕ × ℕ) ℕ _ _ _
 cost_compile insertCoverC := @SortedMap.insert (ℕ × ℕ) ℕ _ _ _
 cost_compile coverInsertC := coverInsert
 cost_compile mergeLevelC := mergeLevel
@@ -155,7 +153,7 @@ cost_compile coverKeysC := coverKeys
 cost_compile coverTableC := coverTable
 cost_compile slotInC := slotIn
 cost_compile countInC := countIn
-cost_compile prefixMaxC := prefixMax
+cost_compile prefixMaxC measure fun _ xs ↦ xs.length := prefixMax
 cost_compile kidInC := kidIn
 
 end Tables
