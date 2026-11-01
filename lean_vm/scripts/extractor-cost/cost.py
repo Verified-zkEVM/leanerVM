@@ -70,6 +70,10 @@ def costs(r):
     # each t <= ell, the sum over y >= t of the Q_y, each of X-degree at most W: ell^2 W / 2 per
     # substitution, k per path, between 1 and ell paths.
     t["rrTaylor"] = LANES + lg(k) + lg(ell * ell * w / 2) + lg(ell)
+    # ... and truncated (E1 as built, `prefixesTrunc`): Q modulo X^M, M = k - depth at simple
+    # roots, so ell^2 (k - d) / 2 at depth d: ell^2 k^2 / 4 per path (falling back to the exact
+    # recursion where a repeated root strips more than one power of X: not counted).
+    t["rrTrunc"] = LANES + 2 * lg(ell) + 2 * lg(k) - 2 + lg(ell)
     # Roth-Ruckenstein, textbook (tier 1): O(ell log^2 ell k (n + ell log q)).
     t["rr1"] = LANES + lg(ell) + 2 * lg(lg(ell)) + lg(k) + lg(n + 64 * ell)
     # The final root check (`isRootYDegreeLtBool`, `composeYHorner`): ell Horner steps, each a
@@ -94,7 +98,7 @@ def main():
     rows = list(csv.DictReader(open(sys.argv[1])))
     table = [(int(r["mu"]), int(r["R"]), costs(r)) for r in rows]
     if "--worst" in sys.argv:
-        keys = ["interp0", "interp2", "interpKara", "rr0", "binom0", "rrTaylor", "rr1", "final0", "filter",
+        keys = ["interp0", "interp2", "interpKara", "rr0", "binom0", "rrTaylor", "rrTrunc", "rr1", "final0", "filter",
                 "prune", "runs"]
         for key in keys:
             mu, R, t = max(table, key=lambda x: x[2][key])
@@ -102,9 +106,9 @@ def main():
         tier = {
             0: lambda t: max(t["interp0"], t["rr0"] + t["rr0paths"], t["final0"], t["prune"],
                              t["runs"]),
-            "1 as built (E1)": lambda t: max(t["interp0"], t["rrTaylor"], t["filter"], t["prune"],
+            "1 as built (E1)": lambda t: max(t["interp0"], t["rrTrunc"], t["filter"], t["prune"],
                                              t["runs"]),
-            "2 as built (E2)": lambda t: max(t["interpKara"], t["rrTaylor"], t["filter"],
+            "2 as built (E2)": lambda t: max(t["interpKara"], t["rrTrunc"], t["filter"],
                                              t["prune"], t["runs"]),
             1: lambda t: max(t["interp0"], t["rr1"], t["prune"], t["runs"]),
             2: lambda t: max(t["interp2"] + t["interp2log"], t["rr1"], t["prune"], t["runs"]),

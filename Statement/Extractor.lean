@@ -92,10 +92,11 @@ interpolates on large shapes with CompPoly's approximant-basis interpolation (Ch
 Jeannerod, Neiger, Schost, Villard: *Faster algorithms for multivariate interpolation with
 multiplicities and simultaneous polynomial approximations*, IEEE Trans. Inf. Theory 61, 2015) on
 Karatsuba's products (`2^84.8`, a heuristic model), substitutes in Roth–Ruckenstein by a Taylor
-shift with binomials by parity (`ℓ²·w/2` per substitution, `2^91.8` in all), skips the final root
-check where the Guruswami–Sudan lemma makes it redundant, and keeps the replay, the first answers
-and the preimages in hash maps (`O(N·L)` expected in `N`, keeping evaluations of at most
-`L = max(64, 8·width)` bytes): about `2^91.8` at the worst shape, Roth–Ruckenstein dominating.
+shift with binomials by parity, modulo `X^(k−depth)` with an exact fallback at repeated roots
+(`ℓ²·k/2` per substitution, `2^80.1` in all), skips the final root check where the
+Guruswami–Sudan lemma makes it redundant, and keeps the replay, the first answers and the
+preimages in hash maps (`O(N·L)` expected in `N`, keeping evaluations of at most
+`L = max(64, 8·width)` bytes): about `2^84.8` at the worst shape, the interpolation dominating.
 Each lane's list is sorted (`laneListAt`, `coeffsLE`), so it depends only on the set the decoder
 returns, whichever interpolation computes it.
 

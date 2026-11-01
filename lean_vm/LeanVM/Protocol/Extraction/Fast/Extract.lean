@@ -4,6 +4,7 @@ public import Statement.Extractor
 public import LeanVM.Protocol.Extraction.Fast.RothRuckenstein
 public import LeanVM.Protocol.Extraction.Lane
 public import LeanVM.Protocol.Extraction.Fast.Karatsuba
+public import LeanVM.Protocol.Extraction.Fast.Truncate
 public import LeanVM.Protocol.Extraction.Fast.Order
 public import CompPoly.Bivariate.GuruswamiSudan.Interpolation.ApproximantBasis.Correctness
 public import CompPoly.LinearAlgebra.PolynomialMatrix.Approximant
@@ -62,12 +63,16 @@ distance filter matches on at least `n − radius` points, so `Q(X, p(X)) = 0` a
 the root check is redundant, and `gsRunNoCheck` keeps the degree check and the distance filter. -/
 
 /-- **The list decoder without the final root check**: the fast Roth–Ruckenstein prefixes of
-the interpolated `Q` of degree `< k` that pass the distance filter. -/
+the interpolated `Q` (truncated, `prefixesTrunc`) of degree `< k` that pass the distance
+filter. -/
 @[expose] def gsRunNoCheck (I : GSInterpContext K) (points : Array (K × K))
     (params : GSInterpParams) (radius : ℕ) : Array (CPolynomial K) :=
   match I.interpolate points params with
   | none => #[]
-  | some Q => (prefixesWithFuelFast fieldRootCtx params.messageDegree Q 0 default).filter fun p ↦
+  | some Q =>
+    (prefixesTrunc fieldRootCtx params.messageDegree
+        (CBivariate.truncateX Q params.messageDegree) params.messageDegree (fun _ ↦ Q) 0
+        default).filter fun p ↦
       degreeLtBool p params.messageDegree && passesCandidateDistance points radius p
 
 theorem candidateMismatchCount_add_matchingPointCount (points : Array (K × K))
@@ -100,6 +105,9 @@ theorem gsRunNoCheck_eq (I : GSInterpContext K) (points : Array (K × K))
   | none => rfl
   | some Q =>
     have hvalid := I.sound points params Q hQ
+    dsimp only
+    rw [prefixesTrunc_eq fieldRootCtx params.messageDegree Q params.messageDegree (fun _ ↦ Q) 0
+      default rfl]
     simp only [rothRuckensteinRootContext, rothRuckensteinRootsYDegreeLt,
       transformedRothRuckensteinRootsYDegreeLt, transformedRothRuckensteinRootPrefixes,
       prefixesWithFuelFast_eq, Array.filter_filter]
