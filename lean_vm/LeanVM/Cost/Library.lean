@@ -13,8 +13,8 @@ namespace LeanVM.Cost.Library
 
 open LeanVM.Cost
 
-cost_compile listZipWith measure fun _ _ _ as _ ↦ as.length := @List.zipWith.{0, 0, 0}
+cost_compile listZipWith measure fun _ _ _ _ as _ ↦ as.length := @List.zipWith.{0, 0, 0}
 
-cost_compile listFoldl measure fun _ _ _ l ↦ l.length := @List.foldl.{0, 0}
+cost_compile listFoldl measure fun _ _ _ _ l ↦ l.length := @List.foldl.{0, 0}
 
 end LeanVM.Cost.Library

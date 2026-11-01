@@ -120,6 +120,12 @@ def rewrites : List (Name × Name) := [
   (``Decidable.decide, ``Rewrite.decideEqList)
 ]
 
+/-- Measures registered by `cost_measure`, by function: over all its parameters. -/
+initialize measureExt : SimplePersistentEnvExtension (Name × Expr) (NameMap Expr) ←
+  registerSimplePersistentEnvExtension {
+    addEntryFn := fun m e ↦ m.insert e.1 e.2
+    addImportedFn := fun as ↦ as.foldl (fun m a ↦ a.foldl (fun m e ↦ m.insert e.1 e.2) m) {} }
+
 /-- Rewrites registered by `cost_rewrite`, by the head constant of their left side. -/
 initialize rewriteExt : SimplePersistentEnvExtension (Name × Name) (List (Name × Name)) ←
   registerSimplePersistentEnvExtension {
@@ -299,6 +305,32 @@ def cleanTuples (e : Expr) : MetaM Expr := do
     else if s.isAppOfArity ``Prod.snd 3 && s.appArg!.isAppOfArity ``Prod.mk 4 then
       some s.appArg!.appArg!
     else none
+
+/-- The occurrences of the loose bound variable `i` in `e`. -/
+partial def bvarCount (e : Expr) (i : Nat) : Nat :=
+  match e with
+  | .bvar j => if j == i then 1 else 0
+  | .app f a => bvarCount f i + bvarCount a i
+  | .lam _ t b _ | .forallE _ t b _ => bvarCount t i + bvarCount b (i + 1)
+  | .letE _ t v b _ => bvarCount t i + bvarCount v i + bvarCount b (i + 1)
+  | .mdata _ b | .proj _ _ b => bvarCount b i
+  | _ => 0
+
+/-- `f` applied to `args`, β-reduced, a compound data argument used more than once bound by a
+`let` (definitionally equal: it is evaluated once). -/
+partial def betaWithLets (f : Expr) (args : List Expr) (all : List Expr := args) :
+    MetaM Expr := do
+  match f, args with
+  | .lam n t b bi, a :: as =>
+    -- an argument another argument mentions (an instance or a proof about it) is substituted
+    let mentioned := all.any fun o ↦ o != a && (o.find? (· == a)).isSome
+    let simple := a.isFVar || a.isConst || a.isLit || a.isLambda || bvarCount b 0 ≤ 1 ||
+      mentioned || (← isProp t) || (← isType a) || (← whnfR t).isForall || (← isClass? t).isSome
+    if simple then betaWithLets (b.instantiate1 a) as all
+    else
+      let _ := bi
+      return .letE n t a (← betaWithLets b as all) false
+  | f, as => return mkAppN f as.toArray
 
 /-- Every `match` in `e` replaced by its `casesOn` (definitionally equal). -/
 def unfoldMatchers (e : Expr) : MetaM Expr := do
@@ -481,13 +513,21 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
       if let some (cf', args) ← findCompiled? e then
         let _ := cf
         return ← translateCall ctx cf' args e
-    -- a definition: unfolded (the run stated at `e`, definitionally equal)
-    if let some e' ← unfoldDefinition? e then
+    -- a definition: unfolded (the run stated at `e`, definitionally equal), its compound
+    -- arguments used more than once bound by `let`s
+    let unfolded? ← match (← getEnv).find? f with
+      | some (.defnInfo info) =>
+        if e.getAppNumArgs > 0 && info.value.isLambda then
+          let v := info.value.instantiateLevelParams info.levelParams fn.constLevels!
+          pure (some (← betaWithLets v e.getAppArgs.toList))
+        else unfoldDefinition? e
+      | _ => unfoldDefinition? e
+    if let some e' := unfolded? then
       ctx.inlined.modify fun a ↦ if a.contains f then a else a.push f
       let (t, c, p) ← try translate ctx (← unfoldMatchers e'.headBeta)
         catch ex => throwError "{ex.toMessageData}\n  in the unfolding of {f}"
       return (t, c, ← mkExpectedTypeHint p (runsAt ctx t (← mkAppM ``Enc.enc #[e]) c))
-  throwError "translate: no rule for {e}"
+  throwError "translate: no rule for {e} (head {e.getAppFn})"
 
 /-- Unify a rule's value `enc pat` with `enc e`: argument by argument when `pat` and `e` have the
 same head constant (so that a `casesOn` is not unfolded first, structure eta turning it into
@@ -789,12 +829,16 @@ partial def compileOnDemand (ctx : Ctx) (f : Name) (e : Expr) : MetaM (Option Co
           else if xty.isAppOf ``List then mkAppM ``List.length #[x]
           else if xty.isAppOf ``Array then mkAppM ``Array.size #[x]
           else mkAppM ``SizeOf.sizeOf #[x]
-        let mXs ← xs.filterM fun y ↦ do
-          let k ← paramKind (← inferType y)
-          pure (k == .enc || k == .type)
-        out := out.push (← mkLambdaFVars mXs m)
+        out := out.push (← mkLambdaFVars xs m)
         let _ := j
     return out
+  -- a registered measure first
+  let measures ← match (measureExt.getState (← getEnv)).find? f with
+    | some mReg => do
+      let m ← forallTelescopeReducing ty fun xs _ ↦ do
+        mkLambdaFVars xs (← Core.betaReduce (mkAppN mReg (static ++ xs)))
+      pure (#[m] ++ measures)
+    | none => pure measures
   let name := (`LeanVM.Cost.Auto ++ f).str s!"c{← nextIndex ctx.reserved}"
   unless recursive do
     let idx ← nextIndex ctx.reserved
@@ -1107,7 +1151,16 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
         mkAppN (mkConst ``machineCost) #[P, mkNatLit idx, args]]
     let x ← mkTuple encXs
     let mf? ← measure?.mapM fun m ↦ withLocalDeclD `y tupleTy fun y ↦ do
-      mkLambdaFVars #[y] (m.beta (typeXs ++ (← tupleComponents y encXs.size)))
+      -- the measure takes every parameter; the encoded ones from the tuple
+      let comps ← tupleComponents y encXs.size
+      let mut j := 0
+      let mut args := #[]
+      for (x, k) in xs.zip kinds do
+        if k == .enc then
+          args := args.push comps[j]!
+          j := j + 1
+        else args := args.push x
+      mkLambdaFVars #[y] (← Core.betaReduce (m.beta args))
     let finish (ih? : Option Expr) : MetaM CompiledFn := do
       let ctx := match ih?, mf? with
         | some ih, some mf =>
@@ -1239,10 +1292,7 @@ syntax (name := costCompile) "cost_compile " ident (" at " num)? (&" measure " t
       let ty ← inferType term
       -- the measure takes the encoded parameters
       let mty ← forallTelescopeReducing ty fun xs _ ↦ do
-        let mXs ← xs.filterM fun x ↦ do
-          let k ← paramKind (← inferType x)
-          pure (k == .enc || k == .type)
-        let t ← mkForallFVars mXs (mkConst ``Nat)
+        let t ← mkForallFVars xs (mkConst ``Nat)
         -- every binder explicit: the measure names all its parameters
         let rec explicit : Expr → Expr
           | .forallE n d b _ => .forallE n d (explicit b) .default
@@ -1252,6 +1302,26 @@ syntax (name := costCompile) "cost_compile " ident (" at " num)? (&" measure " t
       Term.synthesizeSyntheticMVarsNoPostponing
       pure (some (← instantiateMVars m))
     discard <| compileFn name term idx measure?
+
+/-- `cost_measure f := m`: the measure (of all `f`'s parameters) that `f`'s recursive calls
+decrease, used when `f` is compiled on demand. -/
+syntax (name := costMeasure) "cost_measure " ident " := " term : command
+
+@[command_elab costMeasure] def elabCostMeasure : Command.CommandElab := fun stx ↦
+  Command.liftTermElabM do
+    let f ← realizeGlobalConstNoOverloadWithInfo (⟨stx[1]⟩ : Ident)
+    let info ← getConstInfo f
+    let mty ← forallTelescopeReducing info.type fun xs _ ↦ do
+      let t ← mkForallFVars xs (mkConst ``Nat)
+      let rec explicit : Expr → Expr
+        | .forallE n d b _ => .forallE n d (explicit b) .default
+        | e => e
+      pure (explicit t)
+    let mty := mty.instantiateLevelParams info.levelParams (info.levelParams.map fun _ ↦ Level.zero)
+    let m ← Term.elabTerm stx[3] (some mty)
+    Term.synthesizeSyntheticMVarsNoPostponing
+    let m ← instantiateMVars m
+    modifyEnv (measureExt.addEntry · (f, m))
 
 /-- `cost_rewrite thm`: compile the left side of the equation `thm` through its right side. -/
 elab "cost_rewrite " id:ident : command => Command.liftTermElabM do

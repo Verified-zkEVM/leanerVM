@@ -29,7 +29,7 @@ def len : List ℕ → ℕ
 cost_compile len at 4 measure fun l ↦ l.length := len
 
 -- A library function with a function parameter, monomorphized at `ℕ`.
-cost_compile foldlNat at 5 measure fun _ l ↦ l.length := @List.foldl ℕ ℕ
+cost_compile foldlNat at 5 measure fun _ _ l ↦ l.length := @List.foldl ℕ ℕ
 
 /-- A lambda capturing a variable, passed to `foldl`: lifted to a function of its own. -/
 def sumScaled (d : ℕ) (l : List ℕ) : ℕ := l.foldl (fun acc x ↦ acc + x * d) 0
