@@ -26,9 +26,9 @@ tables of at most `2^32` rows (the layout's checks in `buildLayoutLite`), and th
   `FastInv`; the decoder's at most `2^18`, `decodeStacksDistinct_length_le_johnson`): at most
   `runnerBudget ≈ 2^71.77`.
 
-Hypotheses: placements' offsets word-sized (`(layout.placement c).index < 2^64`). Not proved here:
-that `buildLayoutLite`'s layouts meet it (their offsets are sums of at most `163` blocks of at most
-`2^34` words); the `findSome?` around the stacks (the top module's body).
+Hypotheses: placements' offsets word-sized (`(layout.placement c).index < 2^64`) and the layout's
+sizes above; `afterRootLite`'s layouts meet them (`afterRootLite_facts`, offsets below `2^48`) and
+`runner_cost_afterRootLite` discharges them (`Bounds/Layout.lean`).
 -/
 
 namespace LeanVM.Cost.Bounds
