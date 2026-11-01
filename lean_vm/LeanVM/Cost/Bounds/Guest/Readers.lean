@@ -155,12 +155,12 @@ theorem cellAt_cost (hP : Includes P Decoder.cellAtC.costDeps) (p : E) (k : ℕ)
   have := hR (p.limb 0 * gpow k)
   cases rd (p.limb 0 * gpow k) <;> dsimp only <;> omega
 
-/-- A cell (`memAt.c552`), as `cellAt`. -/
-theorem memAt_cost (hP : Includes P Auto.LeanVM.Guest.B1.Digest.memAt.c552.costDeps) (p : E)
+/-- A cell (`memAt.c560`), as `cellAt`. -/
+theorem memAt_cost (hP : Includes P Auto.LeanVM.Guest.B1.Digest.memAt.c560.costDeps) (p : E)
     (k : ℕ) (hk : k < 2 ^ 40) :
-    machineCost P Auto.LeanVM.Guest.B1.Digest.memAt.c552.costIdx
+    machineCost P Auto.LeanVM.Guest.B1.Digest.memAt.c560.costIdx
       [rdV, encodeValue p, encodeValue k] ≤ R + 21678 := by
-  rw [Auto.LeanVM.Guest.B1.Digest.memAt.c552.costEq P hP rd rdV hrd]
+  rw [Auto.LeanVM.Guest.B1.Digest.memAt.c560.costEq P hP rd rdV hrd]
   have := powSqK_cost_lt P (by includes) g k 40 (by norm_num) (by norm_num) hk
   have := hR (p.limb 0 * gpow k)
   cases rd (p.limb 0 * gpow k) <;> dsimp only <;> omega
