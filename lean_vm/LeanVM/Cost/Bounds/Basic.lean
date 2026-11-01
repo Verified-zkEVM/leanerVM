@@ -1,7 +1,6 @@
 module
 
 public import LeanVM.Cost.Library
-import all LeanVM.Cost.Library
 public meta import Lean.Elab.Tactic
 
 /-!
@@ -16,7 +15,9 @@ values it inspects. A closed-form bound on `g`'s price is proved by:
 
 1. **strong induction on the measure** of the compilation (the same as the spec's), or none for a
    function that is not recursive;
-2. `rw [g.costEq P (by includes) …]`: the price as its recurrence;
+2. `rw [g.costEq P (by includes) …]`: the price as its recurrence (`g.costEq_nil`,
+   `g.costEq_cons`, `g.costEq_zero`, `g.costEq_succ`, … at a constructor of the parameter the body
+   cases on: the case already reduced); the prices are stated with `g.costIdx`;
 3. **case analysis** on what the body inspects (`cases l`, `cases n`, `split`, `generalize … ;
    cases`), until no `casesOn` is left; `simp only [cost_simps]` folds the constants, the lengths
    of literal lists and `limbs` of word-sized numbers;
@@ -180,19 +181,10 @@ end Meta
 
 /-! ## `limbs` of word-sized numbers -/
 
-theorem limbs_of_lt {n : ℕ} (h : n < 2 ^ 64) : limbs n = 1 := by
-  unfold limbs
-  rcases Nat.eq_zero_or_pos n with rfl | hn
-  · rfl
-  · have := (Nat.log2_lt (Nat.pos_iff_ne_zero.1 hn)).2 h
-    omega
-
 theorem limbs_le_add_one (n : ℕ) : limbs n ≤ n + 1 := by
   have := Nat.log2_le_self n
   unfold limbs
   omega
-
-theorem one_le_limbs (n : ℕ) : 1 ≤ limbs n := by unfold limbs; omega
 
 /-- The constants and `limbs` of literals in a recurrence. -/
 theorem limbs_ofNat (n : ℕ) [n.AtLeastTwo] (h : (OfNat.ofNat n : ℕ) < 2 ^ 64 := by decide) :
@@ -206,16 +198,26 @@ theorem appCost_fn (P : Program) (j : ℕ) (us vs : List Val) :
     appCost P (.fn j us) vs = machineCost P j (us ++ vs) := rfl
 
 /-- `cost_simp`: fold a recurrence's constants: `limbs` of numbers `omega` shows word-sized, the
-lengths of literal lists, a known closure's price as its function's. -/
-macro "cost_simp" : tactic => `(tactic| simp (disch := omega) only [limbs_of_lt, List.length_nil,
-  List.length_cons, appCost_fn, List.nil_append, List.cons_append, Nat.add_zero, Nat.zero_add,
-  Nat.rec_zero, Nat.rec_add_one, max_self])
+lengths of literal lists, a known closure's price as its function's. It may do nothing (the
+compiler's equations come folded already; a case split may leave nothing to fold). -/
+syntax (name := costSimp) "cost_simp" : tactic
+
+macro_rules
+  | `(tactic| cost_simp) => `(tactic| simp (config := { failIfUnchanged := false })
+    (disch := omega) only [limbs_of_lt, List.length_nil, List.length_cons, appCost_fn,
+    List.nil_append, List.cons_append, Nat.add_zero, Nat.zero_add, Nat.rec_zero, Nat.rec_add_one,
+    max_self, max_limbs_one, max_one_limbs])
 
 /-- `cost_simp at h ⊢`. -/
-macro "cost_simp" " at " loc:Lean.Parser.Tactic.locationHyp : tactic => `(tactic|
-  simp (disch := omega) only [limbs_of_lt, List.length_nil, List.length_cons, appCost_fn,
+syntax (name := costSimpAt) "cost_simp" " at " Lean.Parser.Tactic.locationHyp : tactic
+
+macro_rules
+  | `(tactic| cost_simp at $loc) => `(tactic| simp (config := { failIfUnchanged := false })
+    (disch := omega) only [limbs_of_lt, List.length_nil, List.length_cons, appCost_fn,
     List.nil_append, List.cons_append, Nat.add_zero, Nat.zero_add, Nat.rec_zero, Nat.rec_add_one,
-    max_self] at $loc)
+    max_self, max_limbs_one, max_one_limbs] at $loc)
+
+#allow_unused_tactic! LeanVM.Cost.Bounds.costSimp LeanVM.Cost.Bounds.costSimpAt
 
 /-- A price affine in `D`, paid `n ≤ C` times, with `D·C` an atom: `omega` reads the result (the
 bounds state products of sizes as such atoms, so a sum of bounds stays linear). -/
@@ -291,13 +293,14 @@ variable (P : Program) {α β γ : Type} [Enc α] [Enc β] [Enc γ]
 theorem listZipWith_le (hP : Includes P listZipWith.costDeps) (f : α → β → γ) (fVal : Val)
     (hf : ∀ a b, RunsApp P fVal [enc a, enc b] (enc (f a b))) (B : ℕ) :
     ∀ (xs : List α) (ys : List β), (∀ a ∈ xs, ∀ b ∈ ys, appCost P fVal [enc a, enc b] ≤ B) →
-      machineCost P 1 [fVal, enc xs, enc ys] ≤ (B + 15) * min xs.length ys.length + 5 := by
+      machineCost P listZipWith.costIdx [fVal, enc xs, enc ys] ≤
+        (B + 15) * min xs.length ys.length + 5 := by
   intro xs
   induction xs with
-  | nil => intro ys _; rw [listZipWith.costEq P hP f fVal hf]; simp
+  | nil => intro ys _; rw [listZipWith.costEq_nil P hP f fVal hf]; omega
   | cons a xs ih =>
     intro ys hB
-    rw [listZipWith.costEq P hP f fVal hf]
+    rw [listZipWith.costEq_cons P hP f fVal hf]
     cases ys with
     | nil => simp
     | cons b ys =>
@@ -313,34 +316,33 @@ theorem listFoldl_le (hP : Includes P listFoldl.costDeps) (f : α → β → α)
     (hf : ∀ a b, RunsApp P fVal [enc a, enc b] (enc (f a b))) (B : ℕ) (I : α → Prop) :
     ∀ (l : List β) (init : α), I init →
       (∀ acc, I acc → ∀ b ∈ l, I (f acc b) ∧ appCost P fVal [enc acc, enc b] ≤ B) →
-      machineCost P 2 [fVal, enc init, enc l] ≤ (B + 9) * l.length + 3 := by
+      machineCost P listFoldl.costIdx [fVal, enc init, enc l] ≤ (B + 9) * l.length + 3 := by
   intro l
   induction l with
-  | nil => intro init _ _; rw [listFoldl.costEq P hP f fVal hf]; simp
+  | nil => intro init _ _; rw [listFoldl.costEq_nil P hP f fVal hf]; omega
   | cons b l ih =>
     intro init hI hB
-    rw [listFoldl.costEq P hP f fVal hf]
+    rw [listFoldl.costEq_cons P hP f fVal hf]
     obtain ⟨hI', h2⟩ := hB init hI b (by simp)
     have h1 := ih (f init b) hI' (fun acc hacc b' hb ↦ hB acc hacc b' (by simp [hb]))
     simp only [List.length_cons]
     nlinarith
 
-/-- **`List.map`, by its recurrence**: an on-demand instance of `List.map` (compiled per element
-type, at its own index `i`) has this recurrence, its `costEq`; then `12` per element and the
-closure's price, `3` at the end. -/
+/-- **`List.map`, by its recurrence**: an on-demand `List.map` (compiled once per program, at its
+own index `i`) has these two equations (its `costEq_nil` and `costEq_cons`); then `11` per
+element and the closure's price, `3` at the end. -/
 theorem listMap_le (i : ℕ) {α : Type} [Enc α] (fVal : Val)
-    (heq : ∀ l : List α, machineCost P i [fVal, enc l] =
-      (1 + List.casesOn (motive := fun _ ↦ ℕ) l (0 + 0 + 1) fun head tail ↦
-        1 + (1 + 0) + appCost P fVal [enc head] + 1 +
-          (1 + (1 + 0) + machineCost P i [fVal, enc tail] + 1 + 0) + 2 + 1) + 1)
+    (h0 : machineCost P i [fVal, enc ([] : List α)] = 3)
+    (hs : ∀ (x : α) (l : List α), machineCost P i [fVal, enc (x :: l)] =
+      appCost P fVal [enc x] + machineCost P i [fVal, enc l] + 11)
     (B : ℕ) : ∀ l : List α, (∀ a ∈ l, appCost P fVal [enc a] ≤ B) →
-      machineCost P i [fVal, enc l] ≤ (B + 12) * l.length + 3 := by
+      machineCost P i [fVal, enc l] ≤ (B + 11) * l.length + 3 := by
   intro l
   induction l with
-  | nil => intro _; rw [heq]; simp
+  | nil => intro _; rw [h0]; simp
   | cons x l ih =>
     intro hB
-    rw [heq]
+    rw [hs]
     have h1 := ih fun a ha ↦ hB a (by simp [ha])
     have h2 := hB x (by simp)
     simp only [List.length_cons]
