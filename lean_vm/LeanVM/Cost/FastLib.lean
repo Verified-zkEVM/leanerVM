@@ -20,19 +20,19 @@ open LeanVM.Cost LeanVM.Extraction.Fast LeanVM.Parameters
 
 @[expose] public section
 
-instance : Enc Hits where
-  enc | .none => .ctor 0 [] | .one x => .ctor 1 [enc x] | .many => .ctor 2 []
+instance : MachineEncoding Hits where
+  encodeValue | .none => .ctor 0 [] | .one x => .ctor 1 [encodeValue x] | .many => .ctor 2 []
 
-instance {α β : Type} [Ord α] [Enc α] [Enc β] : Enc (Level α β) :=
-  ⟨fun l ↦ .ctor 0 [enc l.weight, enc l.entries]⟩
+instance {α β : Type} [Ord α] [MachineEncoding α] [MachineEncoding β] : MachineEncoding (Level α β) :=
+  ⟨fun l ↦ .ctor 0 [encodeValue l.weight, encodeValue l.entries]⟩
 
-instance {α β : Type} [Ord α] [Enc α] [Enc β] : Enc (SortedMap α β) :=
-  ⟨fun m ↦ .ctor 0 [enc m.levels]⟩
+instance {α β : Type} [Ord α] [MachineEncoding α] [MachineEncoding β] : MachineEncoding (SortedMap α β) :=
+  ⟨fun m ↦ .ctor 0 [encodeValue m.levels]⟩
 
-instance : Enc ReplayFast := ⟨fun τ ↦ .ctor 0 [enc τ.fwd, enc τ.inv, enc τ.caps, enc τ.paths]⟩
+instance : MachineEncoding ReplayFast := ⟨fun τ ↦ .ctor 0 [encodeValue τ.fwd, encodeValue τ.inv, encodeValue τ.caps, encodeValue τ.paths]⟩
 
-instance {R : Type} [Zero R] [Enc R] : Enc (CompPoly.CBivariate R) :=
-  inferInstanceAs (Enc (CompPoly.CPolynomial (CompPoly.CPolynomial R)))
+instance {R : Type} [Zero R] [MachineEncoding R] : MachineEncoding (CompPoly.CBivariate R) :=
+  inferInstanceAs (MachineEncoding (CompPoly.CPolynomial (CompPoly.CPolynomial R)))
 
 cost_enc CompPoly.GuruswamiSudan.GSInterpParams
 cost_enc CompPoly.GuruswamiSudan.GSExecParams

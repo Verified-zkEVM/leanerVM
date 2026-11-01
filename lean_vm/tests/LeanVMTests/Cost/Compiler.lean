@@ -36,16 +36,16 @@ def sumScaled (d : ℕ) (l : List ℕ) : ℕ := l.foldl (fun acc x ↦ acc + x *
 cost_compile sumScaled at 6 := sumScaled
 
 /-- The program: the bodies at their indices. -/
-def toyProgram : Program :=
+def toyProgram : MachineProgram :=
   #[.val (.nat 0), double.costBody, quad.costBody, sumTo.costBody, len.costBody,
     foldlNat.costBody, sumScaled.costBody, sumScaled.lam0.costBody]
 
-#guard (evalBody toyProgram 10 2 [Enc.enc (5 : ℕ)]).map (·.1) == some (Enc.enc (quad 5))
-#guard (evalBody toyProgram 20 3 [Enc.enc (10 : ℕ)]).map (·.1) == some (Enc.enc (sumTo 10))
-#guard (evalBody toyProgram 20 4 [Enc.enc [1, 2, 3]]).map (·.1) == some (Enc.enc (3 : ℕ))
+#guard (evaluateFunctionBody toyProgram 10 2 [MachineEncoding.encodeValue (5 : ℕ)]).map (·.1) == some (MachineEncoding.encodeValue (quad 5))
+#guard (evaluateFunctionBody toyProgram 20 3 [MachineEncoding.encodeValue (10 : ℕ)]).map (·.1) == some (MachineEncoding.encodeValue (sumTo 10))
+#guard (evaluateFunctionBody toyProgram 20 4 [MachineEncoding.encodeValue [1, 2, 3]]).map (·.1) == some (MachineEncoding.encodeValue (3 : ℕ))
 
-#guard (evalBody toyProgram 20 6 [Enc.enc (3 : ℕ), Enc.enc [1, 2, 3]]).map (·.1) ==
-  some (Enc.enc (18 : ℕ))
+#guard (evaluateFunctionBody toyProgram 20 6 [MachineEncoding.encodeValue (3 : ℕ), MachineEncoding.encodeValue [1, 2, 3]]).map (·.1) ==
+  some (MachineEncoding.encodeValue (18 : ℕ))
 #check @sumScaled.costEq
 
 -- The program holds the bodies the specs need.

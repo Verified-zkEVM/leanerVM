@@ -8,26 +8,32 @@ public import LeanVM.Protocol.Extraction.Fast.DecodeAdmissible
 /-!
 # The extractor the cost machine runs
 
-`extractorTop prog input qs π`: the statement's `transcriptExtractor` on the transcript's
-permutation queries `qs` (the machine's input carries them, `Cost/Encoding.lean`), assembled from
-the proved-equal fast pieces: the root without the verifier's free monad and with the layout cut to
-the fields the extractor reads (`afterRootLite`: no bus blocks, no bytecode copy), the
-replay and the preimages in sorted maps (`transcriptIndex`), the committed leaves through the
-index (`subtreeLeavesWith`), the candidate run on a memory vector with its tables built once
-(`candidateRunner`), and the fast decoder and fast path (`fastStacksFast`: the word's columns
-reversed once, `laneTable`).
+`extractorTop prog input qs π`: `transcriptExtractor` (`Protocol/Extraction/Extractor.lean`) on
+the transcript's permutation queries `qs` (the machine's input carries them,
+`Cost/Encoding.lean`), point-free: each step a function of its own, passed by partial
+application, so that the cost compiler compiles each separately (`Cost/Extractor/Top.lean`):
+
+* `afterRootLite`: the replay of the verifier's first two steps without its free monad, the layout
+  cut to the fields the extractor reads (`Fast/AfterRoot.lean`); then `afterRootStage`: the first
+  root, then `stageT` at it;
+* `stageT`: the committed leaves (`leavesOf`: the transcript's index of sorted maps,
+  `transcriptIndex`, then the subtree under the root, `subtreeLeavesWith`), then `runFromLeaves`;
+* `runFromLeaves`: the fast path's stacks (`fastOf`: `fastStacksFast` on the word the leaves
+  give) and the decoder's (`decOf`), passed to `runBoth`;
+* `runBoth`: the runner's tables built once (`runnerTables`), a run per fast stack, then, only if
+  none gives an execution, a run per decoded stack (`runWithTables`).
 
 The decoder is `decodeStacksDistinct` (`Fast/DecodeAdmissible.lean`): the lanes by
 `gsRunDistinctNF` only (`gsRunDistinct` with Roth–Ruckenstein's fallback removed,
-`Fast/TruncNoFallback.lean`), with no branch to the full decoder. The replay returns only admissible layouts
-(`admissible_of_afterRootDirect`), and at admissible shapes it is `decodeStacksFast`
-(`decodeStacksDistinct_eq`): `extractorTop_eq_full`, `extractorTop` is `extractorTopFull`, the same
-with `decodeStacksFast`.
+`Fast/TruncNoFallback.lean`), with no branch to the full decoder. The replay returns only
+admissible layouts (`admissible_of_afterRootDirect`), and at admissible shapes it is
+`decodeStacksFast` (`decodeStacksDistinct_eq`): `extractorTop_eq_full`, `extractorTop` is
+`extractorTopFull`, the same written in one `do` block on the full layout, with
+`decodeStacksFast` and `candidateRunner`.
 
 * **`extractorTop_eq`**: `extractorTop prog input (permutationQueries T) π =
   transcriptExtractor prog input T π`.
 -/
-
 namespace LeanVM.Extraction.Fast
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
@@ -116,7 +122,7 @@ theorem extractorTop_eq_full (prog : Program) (input : PublicInput)
   simp only [Function.comp_apply, liteResult]
   simp only [layoutLite_stackLog, decodeStacksDistinct_eq hadm, runWithTables_runnerTables]
 
-/-- **The extractor the cost machine runs is the statement's.** -/
+/-- **The extractor the cost machine runs is `transcriptExtractor`.** -/
 theorem extractorTop_eq (prog : Program) (input : PublicInput) (T : OracleQueryLog) (π : Proof) :
     extractorTop prog input (permutationQueries T) π = transcriptExtractor prog input T π := by
   rw [extractorTop_eq_full, ← transcriptExtractorFast_eq, transcriptExtractorFast, extractorTopFull,

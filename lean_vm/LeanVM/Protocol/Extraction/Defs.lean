@@ -2,7 +2,7 @@
   LeanVM.Protocol.Extraction.Defs
 
   The extractor's reference definitions, proof side: what the computable extractor of
-  `Statement/Extractor.lean` is proved against (the committed word as a classical choice over
+  `LeanVM/Protocol/Extraction/Extractor.lean` is proved against (the committed word as a classical choice over
   openings, the halting run as a least number of steps) and the per-call forms of its pieces.
 -/
 
@@ -14,7 +14,7 @@ public import LeanVM.Protocol.WithHash
 /-!
 # Reference definitions for the extractor
 
-The statement's extractor (`LeanVM.Extraction.extract`, `Statement/Extractor.lean`) is computable.
+The knowledge extractor (`LeanVM.Extraction.extract`, `Extraction/Extractor.lean`) is computable.
 Its proofs compare it with these definitions, which are not computable or not efficient, and are
 not part of the statement:
 

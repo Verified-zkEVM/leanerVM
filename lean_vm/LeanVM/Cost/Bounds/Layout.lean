@@ -216,14 +216,14 @@ theorem afterRootLite_facts {bytecode : List K} {π : LeanVM.Protocol.Compile.Pr
 
 /-- **The runner on `afterRootLite`'s layouts**: `runner_cost`, its hypotheses on the layout
 discharged (`afterRootLite_facts`): at most `runnerBudget` (`≈ 2^71.77`). -/
-theorem runner_cost_afterRootLite (P : LeanVM.Cost.Program) (hT : Includes P runnerTablesC.costDeps)
+theorem runner_cost_afterRootLite (P : LeanVM.Cost.MachineProgram) (hT : Includes P runnerTablesC.costDeps)
     (hW : Includes P runWithTablesC.costDeps) (prog : Semantics.Program) (input : PublicInput)
     {bytecode : List K} {π : LeanVM.Protocol.Compile.Proof} {L : LayoutLite} {R : ℕ}
     {st : LeanVM.Protocol.Compile.ProgState} (h : afterRootLite bytecode π = some ((L, R), st))
     (qs : List (Vector K (2 ^ L.stackLog))) (hqs : qs.length ≤ 2 ^ 18 + 1) :
-    machineCost P runnerTablesC.costIdx [enc prog, enc L] +
+    machineCost P runnerTablesC.costIdx [encodeValue prog, encodeValue L] +
         (qs.map fun q ↦ machineCost P runWithTablesC.costIdx
-          [enc (runnerTables prog L), enc prog, enc input, enc L, enc q]).sum ≤
+          [encodeValue (runnerTables prog L), encodeValue prog, encodeValue input, encodeValue L, encodeValue q]).sum ≤
       runnerBudget := by
   obtain ⟨hf, -⟩ := afterRootLite_facts h
   exact runner_cost P hT hW prog input L hf.logMemory_le hf.logBytecode_le hf.heights_le

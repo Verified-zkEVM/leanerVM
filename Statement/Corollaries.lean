@@ -108,7 +108,7 @@ namespace Statement
 
 /-- **The corollaries**, each following from `Theorems`, for the same decoder and extractor
 program. -/
-structure Corollaries (decode : LeanVM.Node.Decoder) (extractorProgram : LeanVM.Cost.Program) :
+structure Corollaries (decode : LeanVM.Node.Decoder) (extractorProgram : LeanVM.Cost.MachineProgram) :
     Prop where
   /-- An accepted proof of the leanISA guest program on the digest of `s` under the deployed seed
   is explained by the execution the extractor program extracts (it decodes to that seed, `s`

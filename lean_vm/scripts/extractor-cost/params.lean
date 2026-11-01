@@ -1,7 +1,7 @@
 /-
   The list decoder's parameters at every shape `(μ, R)`, `15 ≤ μ ≤ 28`, `1 ≤ R ≤ 4`, as the
-  statement computes them (`Statement/Extractor.lean`): the input of `cost.py`.
-  `cd Statement && lake env lean ../lean_vm/scripts/extractor-cost/params.lean > params.csv`
+  extractor computes them (`LeanVM/Protocol/Extraction/Extractor.lean`): the input of `cost.py`.
+  `cd lean_vm && lake env lean scripts/extractor-cost/params.lean > params.csv`
 -/
 import LeanVM.Protocol.Extraction.Extractor
 open LeanVM.Extraction LeanVM.Parameters.Whir

@@ -15,11 +15,11 @@ namespace LeanVMTests.Cost
 open LeanVM.Cost LeanVM.Cost.Library LeanVM.Cost.Samples LeanVM.Parameters
 
 /-- The price of function `i`'s run on `args` in the program of `deps`. -/
-def price (deps : List (ℕ × Term)) (i : ℕ) (args : List Val) : Option ℕ :=
-  (evalBody (Program.ofList deps) 100000 i args).map (·.2)
+def price (deps : List (ℕ × Term)) (i : ℕ) (args : List MachineValue) : Option ℕ :=
+  (evaluateFunctionBody (MachineProgram.ofList deps) 100000 i args).map (·.2)
 
 /-! `addRaw` of sizes `3` and `2`: `124`, the bound `44 + 28·3 = 128`. -/
-#guard price addRawK.costDeps addRawK.costIdx [Enc.enc polyA, Enc.enc polyB] == some 124
+#guard price addRawK.costDeps addRawK.costIdx [MachineEncoding.encodeValue polyA, MachineEncoding.encodeValue polyB] == some 124
 #guard 124 ≤ 44 + 28 * max polyA.size polyB.size
 
 section
@@ -29,7 +29,7 @@ attribute [local instance] lexOrd
 /-! The committed leaves at `w = h = 1` over an index of `2` levels of at most `2` entries:
 `10151`, the bound `2·(2·1228 + 617 + 12060 + 8) + 7 = 30289`. -/
 #guard price committedLeavesC.costDeps committedLeavesC.costIdx
-    [Enc.enc toyIndex, Enc.enc (1 : ℕ), Enc.enc (1 : ℕ), Enc.enc rootD] == some 10151
+    [MachineEncoding.encodeValue toyIndex, MachineEncoding.encodeValue (1 : ℕ), MachineEncoding.encodeValue (1 : ℕ), MachineEncoding.encodeValue rootD] == some 10151
 #guard toyIndex.levels.length == 2 && toyIndex.levels.all (·.entries.size ≤ 2)
 #guard 10151 ≤ 2 ^ 1 * (2 * LeanVM.Cost.Bounds.Samples.lookupBound toyIndex 2 + 617 * 1 + 12060 +
   8 * 1) + 7
@@ -40,10 +40,10 @@ end
 `23028`, the bound `2 + 740·6 + 970·2 + 30·3 + 21100 = 27572`; its field inverse alone `19674`
 (the bound `19700`). -/
 #guard price msStepK.costDeps msStepK.costIdx
-    [Enc.enc msMatrix, Enc.enc #[(0 : ℕ), 0], Enc.enc (0 : ℕ), Enc.enc (1 : ℕ)] == some 23028
+    [MachineEncoding.encodeValue msMatrix, MachineEncoding.encodeValue #[(0 : ℕ), 0], MachineEncoding.encodeValue (0 : ℕ), MachineEncoding.encodeValue (1 : ℕ)] == some 23028
 #guard msMatrix.all fun row ↦ row.size ≤ 2 && row.all (·.val.size ≤ 3)
 #guard 23028 ≤ msMatrix.size + 740 * (3 * 2) + 970 * 2 + 30 * 3 + 21100
-#guard price msStepK.costDeps Auto.BF64.invItohTsujii.c33.costIdx [Enc.enc (K.ofBits 7)] ==
+#guard price msStepK.costDeps Auto.BF64.invItohTsujii.c33.costIdx [MachineEncoding.encodeValue (K.ofBits 7)] ==
   some 19674
 
 end LeanVMTests.Cost

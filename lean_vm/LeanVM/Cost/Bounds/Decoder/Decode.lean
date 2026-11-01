@@ -40,7 +40,7 @@ open CompPoly.GuruswamiSudan
 
 public section
 
-variable (P : Program)
+variable (P : MachineProgram)
 
 /-! ## The parameter search -/
 
@@ -51,7 +51,7 @@ theorem decoderMul_lt {a b i j : ℕ} (ha : a < 2 ^ i) (hb : b < 2 ^ j) : a * b 
 /-- `gsParamsAt k n A m`: at most `20`, the sizes word-sized. -/
 theorem decoderParamsAtC_cost (hP : Includes P gsParamsAt.c250.costDeps) {k n A m : ℕ}
     (hn : n < 2 ^ 32) (hA : A ≤ n) (hm : m < 2 ^ 20) :
-    machineCost P gsParamsAt.c250.costIdx [enc k, enc n, enc A, enc m] ≤ 20 := by
+    machineCost P gsParamsAt.c250.costIdx [encodeValue k, encodeValue n, encodeValue A, encodeValue m] ≤ 20 := by
   rw [gsParamsAt.c250.costEq P hP]
   have hmA : m * A < 2 ^ 52 := decoderMul_lt (i := 20) (j := 32) hm (by omega)
   rw [limbs_of_lt (show m < 2 ^ 64 by omega), limbs_of_lt (show A < 2 ^ 64 by omega),
@@ -62,7 +62,7 @@ theorem decoderParamsAtC_cost (hP : Includes P gsParamsAt.c250.costDeps) {k n A 
 word-sized. -/
 theorem decoderPassC_cost (hP : Includes P gsPass.c253.costDeps) {k n A m : ℕ}
     (hk : k < 2 ^ 32) (hn : n < 2 ^ 32) (hA : A ≤ n) (hm : m < 2 ^ 20) :
-    machineCost P gsPass.c253.costIdx [enc k, enc n, enc (n - A), enc (gsParamsAt k n A m)] ≤
+    machineCost P gsPass.c253.costIdx [encodeValue k, encodeValue n, encodeValue (n - A), encodeValue (gsParamsAt k n A m)] ≤
       120 := by
   rw [gsPass.c253.costEq P (by includes), gsNumConstraints.c254.costEq P (by includes),
     gsNumVars.c255.costEq P (by includes)]
@@ -91,7 +91,7 @@ theorem decoderPassC_cost (hP : Includes P gsPass.c253.costDeps) {k n A m : ℕ}
 /-- `gsMultiplicityBoundAt k n A`: at most `30`, the sizes word-sized. -/
 theorem decoderMultBoundC_cost (hP : Includes P gsMultiplicityBoundAt.c256.costDeps) {k n A : ℕ}
     (hk : k < 2 ^ 31) (hn : n < 2 ^ 32) (hA : A ≤ n) :
-    machineCost P gsMultiplicityBoundAt.c256.costIdx [enc k, enc n, enc A] ≤ 30 := by
+    machineCost P gsMultiplicityBoundAt.c256.costIdx [encodeValue k, encodeValue n, encodeValue A] ≤ 30 := by
   rw [gsMultiplicityBoundAt.c256.costEq P hP]
   have h1 : (k - 1) * n < 2 ^ 63 := decoderMul_lt (i := 31) (j := 32) (by omega) hn
   have h2 : A * A < 2 ^ 64 := decoderMul_lt (i := 32) (j := 32) (by omega) (by omega)
@@ -115,15 +115,15 @@ theorem decoderMultiplicity_le (k n A : ℕ) :
 `b = gsMultiplicityBoundAt k n A`): at most `190·b + 100`, the sizes word-sized, `b < 2^20`. -/
 theorem decoderSearchC_cost (hP : Includes P gsMultiplicityAt.c251.costDeps) {k n A : ℕ}
     (hk : k < 2 ^ 31) (hn : n < 2 ^ 32) (hA : A ≤ n) (hb : gsMultiplicityBoundAt k n A < 2 ^ 20) :
-    machineCost P gsMultiplicityAt.c251.costIdx [enc k, enc n, enc A] ≤
+    machineCost P gsMultiplicityAt.c251.costIdx [encodeValue k, encodeValue n, encodeValue A] ≤
       190 * gsMultiplicityBoundAt k n A + 100 := by
   rw [gsMultiplicityAt.c251.costEq P hP]
   have h1 := decoderMultBoundC_cost P (by includes) hk hn hA
   have h2 := rangeC_cost P (by includes) (gsMultiplicityBoundAt k n A) 1 (by omega)
-  have hf := fun m ↦ RunsApp.of_spec (us := [enc k, enc n, enc A]) (vs := [enc m])
+  have hf := fun m ↦ RunsApp.of_spec (us := [encodeValue k, encodeValue n, encodeValue A]) (vs := [encodeValue m])
     (gsMultiplicityAt.c251.lam0.costSpec P (by includes) k n A m)
   have h3 := Samples.findNat_cost P (by includes) _
-    (.fn gsMultiplicityAt.c251.lam0.costIdx [enc k, enc n, enc A]) hf 152
+    (.closure gsMultiplicityAt.c251.lam0.costIdx [encodeValue k, encodeValue n, encodeValue A]) hf 152
     (List.range' 1 (gsMultiplicityBoundAt k n A)) (fun m hm ↦ by
       have hm' := List.mem_range'.1 hm
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -160,10 +160,10 @@ instance (κ R A : ℕ) : Decidable (DecoderLaneSizes κ R A) := by
 /-- **A lane's Guruswami–Sudan run** (`gsLaneDistinct κ R A S u`): at most
 `decoderLaneRunBound κ R A BS`, `BS` the price of a symbol `S u v`. -/
 theorem gsLaneDistinctC_cost (hP : Includes P gsLaneDistinct.c249.costDeps) (κ R A : ℕ)
-    (S : ℕ → ℕ → K) (SVal : Val) (hS : ∀ a b, RunsApp P SVal [enc a, enc b] (enc (S a b)))
-    {BS : ℕ} (hBS : ∀ a b : ℕ, appCost P SVal [enc a, enc b] ≤ BS) (u : ℕ)
+    (S : ℕ → ℕ → K) (SVal : MachineValue) (hS : ∀ a b, RunsApp P SVal [encodeValue a, encodeValue b] (encodeValue (S a b)))
+    {BS : ℕ} (hBS : ∀ a b : ℕ, appCost P SVal [encodeValue a, encodeValue b] ≤ BS) (u : ℕ)
     (h : DecoderLaneSizes κ R A) :
-    machineCost P gsLaneDistinct.c249.costIdx [enc κ, enc R, enc A, SVal, enc u] ≤
+    machineCost P gsLaneDistinct.c249.costIdx [encodeValue κ, encodeValue R, encodeValue A, SVal, encodeValue u] ≤
       decoderLaneRunBound κ R A BS := by
   obtain ⟨hκR, hA, hb, hs, hk1, hX, hY⟩ := h
   rw [gsLaneDistinct.c249.costEq P hP κ R A S SVal hS]
@@ -178,10 +178,10 @@ theorem gsLaneDistinctC_cost (hP : Includes P gsLaneDistinct.c249.costDeps) (κ 
     ((decoderMultiplicity_le _ _ _).trans_lt hb)
   -- the points
   rw [lanePointsS.c257.costEq P (by includes) _ S SVal hS]
-  have hf := fun v ↦ RunsApp.of_spec (us := [enc (2 ^ (κ + R)), SVal, enc u]) (vs := [enc v])
+  have hf := fun v ↦ RunsApp.of_spec (us := [encodeValue (2 ^ (κ + R)), SVal, encodeValue u]) (vs := [encodeValue v])
     (lanePointsS.c257.lam0.costSpec P (by includes) (2 ^ (κ + R)) S SVal hS u v)
   have h3 := ofFnFromC_cost P (by includes) (n := 2 ^ (κ + R)) (by omega) _
-    (.fn lanePointsS.c257.lam0.costIdx [enc (2 ^ (κ + R)), SVal, enc u]) hf (BS + 9)
+    (.closure lanePointsS.c257.lam0.costIdx [encodeValue (2 ^ (κ + R)), SVal, encodeValue u]) hf (BS + 9)
     (fun v ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [lanePointsS.c257.lam0.costEq P (by includes) _ S SVal hS]
@@ -211,10 +211,10 @@ theorem gsLaneDistinctC_cost (hP : Includes P gsLaneDistinct.c249.costDeps) (κ 
 /-- **A lane's candidates** (`laneEncodedDistinct κ R A S u`): at most
 `decoderLaneBound κ R A BS`. -/
 theorem decoderLaneC_cost (hP : Includes P laneEncodedDistinctC.costDeps) (κ R A : ℕ)
-    (S : ℕ → ℕ → K) (SVal : Val) (hS : ∀ a b, RunsApp P SVal [enc a, enc b] (enc (S a b)))
-    {BS : ℕ} (hBS : ∀ a b : ℕ, appCost P SVal [enc a, enc b] ≤ BS) (u : ℕ)
+    (S : ℕ → ℕ → K) (SVal : MachineValue) (hS : ∀ a b, RunsApp P SVal [encodeValue a, encodeValue b] (encodeValue (S a b)))
+    {BS : ℕ} (hBS : ∀ a b : ℕ, appCost P SVal [encodeValue a, encodeValue b] ≤ BS) (u : ℕ)
     (h : DecoderLaneSizes κ R A) :
-    machineCost P laneEncodedDistinctC.costIdx [enc κ, enc R, enc A, SVal, enc u] ≤
+    machineCost P laneEncodedDistinctC.costIdx [encodeValue κ, encodeValue R, encodeValue A, SVal, encodeValue u] ≤
       decoderLaneBound κ R A BS := by
   have hrun := gsLaneDistinctC_cost P (by includes) κ R A S SVal hS hBS u h
   obtain ⟨hκR, -, -, hs, hk1, -, hY⟩ := h
@@ -247,9 +247,9 @@ most `2^18` survivors), a stack per survivor. -/
 theorem decodeStacksDistinctC_cost (hP : Includes P decodeStacksDistinctC.costDeps) (μ R : ℕ)
     (hadm : Whir.Admissible μ R)
     (hsz : DecoderLaneSizes (μ - Whir.initialFold) R (johnsonThreshold μ R))
-    (W : ℕ → List K) (WVal : Val) (hW : ∀ a, RunsApp P WVal [enc a] (enc (W a))) {BW Lw : ℕ}
-    (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [enc v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
-    machineCost P decodeStacksDistinctC.costIdx [enc μ, enc R, WVal] ≤ decoderBound μ R BW Lw := by
+    (W : ℕ → List K) (WVal : MachineValue) (hW : ∀ a, RunsApp P WVal [encodeValue a] (encodeValue (W a))) {BW Lw : ℕ}
+    (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [encodeValue v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
+    machineCost P decodeStacksDistinctC.costIdx [encodeValue μ, encodeValue R, WVal] ≤ decoderBound μ R BW Lw := by
   have hadm' := hadm
   obtain ⟨h1, h2, h3, h4⟩ := hadm'
   unfold Whir.minLogStack at h1
@@ -267,10 +267,10 @@ theorem decodeStacksDistinctC_cost (hP : Includes P decodeStacksDistinctC.costDe
   -- the threshold
   have hj := johnsonThreshold_cost P (by includes) μ R (by omega) (by omega)
   rw [limbs_of_lt (show μ < 2 ^ 64 by omega)]
-  simp only [show limbs Whir.initialFold = 1 from rfl,
-    show limbs (1 <<< Whir.initialFold) = 1 from rfl, Nat.max_self]
+  simp only [show limbCount Whir.initialFold = 1 from rfl,
+    show limbCount (1 <<< Whir.initialFold) = 1 from rfl, Nat.max_self]
   -- the lanes
-  have hSV := fun a b ↦ RunsApp.of_spec (us := [enc T]) (vs := [enc a, enc b])
+  have hSV := fun a b ↦ RunsApp.of_spec (us := [encodeValue T]) (vs := [encodeValue a, encodeValue b])
     (pruneUpToDistinctC.lam1.lam0.costSpec P (by includes) T a b)
   have hLc : ∀ u, (laneEncodedDistinct κ R A (tableSymbol T) u).length ≤
       max 1 (interpolationYCap (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp) := fun u ↦ by
@@ -279,7 +279,7 @@ theorem decodeStacksDistinctC_cost (hP : Includes P decodeStacksDistinctC.costDe
     (by rw [hf]; norm_num) (by omega) W WVal hW hBW hLw
     (G := decoderLaneBound κ R A 12)
     (fun u _ ↦ decoderLaneC_cost P (by includes) κ R A (tableSymbol T)
-      (.fn pruneUpToDistinctC.lam1.lam0.costIdx [enc T]) hSV
+      (.closure pruneUpToDistinctC.lam1.lam0.costIdx [encodeValue T]) hSV
       (fun a b ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append]
         rw [pruneUpToDistinctC.lam1.lam0.costEq P (by includes),
@@ -292,10 +292,10 @@ theorem decodeStacksDistinctC_cost (hP : Includes P decodeStacksDistinctC.costDe
   have hsurv := pruneUpToDistinct_length_le_johnson hadm W (U := 2 ^ Whir.initialFold)
     (by rw [hf]; norm_num)
   have hmem := (pruneUpToDistinct_bounds W hLc (2 ^ Whir.initialFold)).2
-  have hfm := fun s ↦ RunsApp.of_spec (us := [enc μ]) (vs := [enc s])
+  have hfm := fun s ↦ RunsApp.of_spec (us := [encodeValue μ]) (vs := [encodeValue s])
     (decodeStacksDistinctC.lam0.costSpec P (by includes) μ s)
   have hm := listMap_le P Auto.List.map.c12.costIdx
-    (.fn decodeStacksDistinctC.lam0.costIdx [enc μ])
+    (.closure decodeStacksDistinctC.lam0.costIdx [encodeValue μ])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hfm)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hfm)
     ((15 * 2 ^ Whir.initialFold + 56) * 2 ^ μ + 23)
@@ -343,9 +343,9 @@ theorem decoderJohnson_28_4 : johnsonThreshold 28 4 = 16792398 := by decide +ker
 `(BW + 10·Lw)·2^26 + 263761295154139905848615297830647322`, `≈ 2^117.67` beyond the word's
 prices, the `64` interpolations (`≈ 2^111.67` each) dominating. -/
 theorem decodeStacksDistinctC_cost_28_4 (hP : Includes P decodeStacksDistinctC.costDeps)
-    (W : ℕ → List K) (WVal : Val) (hW : ∀ a, RunsApp P WVal [enc a] (enc (W a))) {BW Lw : ℕ}
-    (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [enc v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
-    machineCost P decodeStacksDistinctC.costIdx [enc 28, enc 4, WVal] ≤
+    (W : ℕ → List K) (WVal : MachineValue) (hW : ∀ a, RunsApp P WVal [encodeValue a] (encodeValue (W a))) {BW Lw : ℕ}
+    (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [encodeValue v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
+    machineCost P decodeStacksDistinctC.costIdx [encodeValue 28, encodeValue 4, WVal] ≤
       (BW + 10 * Lw) * 2 ^ 26 + 263761295154139905848615297830647322 := by
   have h := decodeStacksDistinctC_cost P hP 28 4 (by decide) (by decide +kernel) W WVal hW hBW hLw
   rw [decoderBound_eq] at h
