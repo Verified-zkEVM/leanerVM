@@ -12,6 +12,7 @@ public import CompPoly.Univariate.Context
 public import CompPoly.Univariate.Raw.Context
 public import CompPoly.Univariate.BatchEval.Context
 public import CompPoly.LinearAlgebra.PolynomialMatrix.MuldersStorjohannCorrectness.Fast
+public import LeanVM.Protocol.Extraction.Fast.LeeRows
 import all CompPoly.Univariate.Raw.Context
 import all CompPoly.Univariate.Raw.Division
 import all CompPoly.Univariate.Basic
@@ -51,7 +52,10 @@ CompPoly's, so its callers can be restated in turn.
   step costs `|acc|²` and the fold `n³/3`. `vanishingFast` multiplies `(X − x) * acc`: `2·|acc|` per
   step, `n²` in all. Its context: `vanishingContextFast` (`vanishingContextFast_eq`).
 
-The decoder's interpolation with both: `interpContextFast` (**`interpContextFast_eq`**: it is
+* **The basis rows** (`leeRowsFast`, `Fast/LeeRows.lean`, **`leeRowsFast_eq`**): the powers of
+  `Y − R` and of `G` computed once, not per row.
+
+The decoder's interpolation with these: `interpContextFast` (**`interpContextFast_eq`**: it is
 `interpContext`'s body).
 
 * **Distinct points** (`interpolateDistinct`, **`interpolateDistinct_eq`**): the interpolation
@@ -406,15 +410,15 @@ theorem normalizeLeeFast_eq_fun {F : Type*} [Field F] [BEq F] [LawfulBEq F] [Dec
 
 /-! ## Lee–O'Sullivan's interpolation with the fast normalization -/
 
-/-- CompPoly's `leeOSullivanPositiveInterpolate` after its distinctness check, with
-`normalizeLeeFast`. -/
+/-- CompPoly's `leeOSullivanPositiveInterpolate` after its distinctness check, with the basis rows
+`leeRowsFast` (`Fast/LeeRows.lean`) and `normalizeLeeFast`. -/
 @[expose] def leeOSullivanPositiveCoreFast {F : Type*} [Field F] [BEq F] [LawfulBEq F]
     [DecidableEq F] (V : CPolynomial.VanishingPolynomialContext F)
     (E : CPolynomial.BatchEvalContext F) (reducer : PolynomialMatrix.ShiftedRowReducerContext F)
     (points : Array (F × F)) (params : GSInterpParams) : Option (CBivariate F) :=
   let G := V.vanishingPolynomial (points.map fun point ↦ point.1)
   let R := CPolynomial.interpolateCoefficientFormWithVanishing E G points
-  let basis := leeOSullivanBasisRowsWithRG R G params
+  let basis := leeRowsFast R G params
   let shift := leeOSullivanShifts params
   let reduced := reducer.reduce basis shift
   match LeeOSullivan.leastShiftedDegreeRow? reduced shift with
@@ -456,6 +460,7 @@ theorem leeOSullivanInterpolateFast_eq {F : Type*} [Field F] [BEq F] [LawfulBEq 
   funext points params
   unfold leeOSullivanInterpolateFast leeOSullivanPositiveInterpolateFast
     leeOSullivanPositiveCoreFast
+  simp only [leeRowsFast_eq]
   rewrite [normalizeLeeFast_eq_fun]
   rfl
 
