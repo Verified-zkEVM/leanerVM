@@ -110,6 +110,8 @@ structure CompiledFn where
   body : Name
   spec : Name
   deps : Array (Nat × Name)
+  /-- The definitions unfolded into the body. -/
+  inlined : Array Name := #[]
   deriving Inhabited
 
 /-- The compiled functions, by head constant. -/
@@ -160,6 +162,8 @@ structure Ctx where
   binders of matches and `let`s. -/
   baseLCtx : LocalContext := {}
   baseInsts : LocalInstances := #[]
+  /-- The definitions unfolded so far. -/
+  inlined : IO.Ref (Array Name)
 
 /-- The context with `x`'s encoding in front. -/
 def Ctx.push (ctx : Ctx) (x : Expr) : MetaM Ctx := do
@@ -419,7 +423,9 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
     -- a rewrite
     for (key, rw) in ← allRewrites do
       if key == f then
-        if let some r ← tryRewrite ctx rw e then return r
+        if let some r ← tryRewrite ctx rw e then
+          ctx.inlined.modify fun a ↦ if a.contains f then a else a.push f
+          return r
     -- a recursive definition: compiled on demand, then called
     if let some cf ← compileOnDemand ctx f e then
       if let some (cf', args) ← findCompiled? e then
@@ -427,6 +433,7 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
         return ← translateCall ctx cf' args e
     -- a definition: unfolded (the run stated at `e`, definitionally equal)
     if let some e' ← unfoldDefinition? e then
+      ctx.inlined.modify fun a ↦ if a.contains f then a else a.push f
       let (t, c, p) ← translate ctx (← unfoldMatchers e'.headBeta)
       return (t, c, ← mkExpectedTypeHint p (runsAt ctx t (← mkAppM ``Enc.enc #[e]) c))
   throwError "translate: no rule for {e}"
@@ -947,8 +954,9 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
           let r' ← unfoldMatchers r.headBeta
           pure (r', ← mkExpectedTypeHint (← mkEqRefl lhs) (← mkEq lhs r'))
     let env0 ← mkAppOptM ``List.nil #[mkConst ``Val]
+    let inlined ← IO.mkRef #[]
     let mut ctx : Ctx := { P := P, env := env0, vals := #[], pending := pending, base := name,
-                           lams := lams, reserved := reserved.push idx, types := typeXs,
+                           lams := lams, reserved := reserved.push idx, types := typeXs, inlined,
                            baseLCtx := ← getLCtx, baseInsts := ← getLocalInstances }
     for (x, k) in (xs.zip kinds).reverse do
       match k with
@@ -1062,7 +1070,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
         let headC := if term.isLambda then name else term.getAppFn.constName!
         let entry : CompiledFn :=
           { head := headC, static := term.getAppArgs, params := kinds, index := idx,
-            body := bodyName, spec := specName, deps := deps }
+            body := bodyName, spec := specName, deps := deps, inlined := ← inlined.get }
         modifyEnv (compiledExt.addEntry · entry)
         logInfo m!"{name}: function {idx}, code {t}"
         return entry
@@ -1141,6 +1149,43 @@ elab "cost_rewrite " id:ident : command => Command.liftTermElabM do
     pure k
   modifyEnv (rewriteExt.addEntry · (key, thm))
 
+/-- `#cost_stats f`: the functions `f`'s spec needs, each with the lines of its code (printed at
+width 100) and of its Lean source (lifted lambdas: part of their parent's source), and the totals:
+the measure of the gate G2. -/
+elab "#cost_stats " id:ident : command => Command.liftTermElabM do
+  let depsName ← realizeGlobalConstNoOverloadWithInfo (mkIdent (id.getId.str "costDeps"))
+  let mut l := (← getConstInfo depsName).value!
+  let reg := compiledExt.getState (← getEnv)
+  let mut rows : Array MessageData := #[]
+  let mut codeTotal := 0
+  let mut srcTotal := 0
+  let mut inlinedAll : Array Name := #[]
+  while l.isAppOfArity ``List.cons 3 do
+    let pair := l.appFn!.appArg!
+    let some body := pair.appArg!.constName? | throwError "not a body constant: {pair}"
+    let code := (← getConstInfo body).value!
+    let codeLines := ((← ppExpr code).pretty 100).splitOn "\n" |>.length
+    let entry := reg.foldl (fun acc _ fs ↦ acc <|> fs.find? (·.body == body)) none
+    let head := (entry.map (·.head)).getD body
+    for n in (entry.map (·.inlined)).getD #[] do
+      unless inlinedAll.contains n do inlinedAll := inlinedAll.push n
+    let srcLines ← match ← findDeclarationRanges? head with
+      | some r => pure (r.range.endPos.line - r.range.pos.line + 1)
+      | none => pure 0
+    codeTotal := codeTotal + codeLines
+    srcTotal := srcTotal + srcLines
+    rows := rows.push m!"{head}: code {codeLines}, source {srcLines}"
+    l := l.appArg!
+  let mut inl : Array MessageData := #[]
+  let mut inlTotal := 0
+  for n in inlinedAll do
+    if let some r ← findDeclarationRanges? n then
+      let k := r.range.endPos.line - r.range.pos.line + 1
+      inlTotal := inlTotal + k
+      inl := inl.push m!"{n} {k}"
+  logInfo m!"{MessageData.joinSep rows.toList "\n"}\ninlined: {MessageData.joinSep inl.toList ", "}\n\
+    total: code {codeTotal}, source {srcTotal} compiled + {inlTotal} inlined"
+
 /-- `#translate fun xs ↦ e`: the code and price of `e` with `xs` in the environment. -/
 elab "#translate " t:term : command => Command.liftTermElabM do
   let e ← Term.elabTerm t none
@@ -1151,8 +1196,9 @@ elab "#translate " t:term : command => Command.liftTermElabM do
       let pending ← IO.mkRef #[]
       let lams ← IO.mkRef 0
       let env0 ← mkAppOptM ``List.nil #[mkConst ``Val]
+      let inlined ← IO.mkRef #[]
       let mut ctx : Ctx := { P := P, env := env0, vals := #[], pending := pending,
-                             base := `translate, lams := lams }
+                             base := `translate, lams := lams, inlined }
       for x in xs.reverse do
         ctx ← ctx.push x
       let (t, c, pf) ← translate ctx body
