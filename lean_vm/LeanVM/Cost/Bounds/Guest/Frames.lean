@@ -146,7 +146,7 @@ theorem proofAtFrame_cost (hP : Includes P Decoder.proofAtFrameC.costDeps) (Tb :
     rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
       Decoder.proofAtFrameC.lam0.costEq P (by includes) Vn VnV hVn]
     have := hF 19 args [] v; omega
-  have := vsPiOfN_cost P hrd hR hσ hS hVn hF hcl hC hL hL32 (by includes) Tb.whir hTb.whir
+  have := vsPiOfN_cost P hrd hR hσ hS hVn (fun k a r v _ _ ↦ hF k a r v) hcl hC hL hL32 (by includes) Tb.whir hTb.whir
   omega
 
 /-- **The batching's hints off `aggregate_claims`' frame** (`hintsAtFrameC`):
