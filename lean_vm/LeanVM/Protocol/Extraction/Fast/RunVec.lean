@@ -272,6 +272,31 @@ theorem candidateRunner_eq (prog : Program) (input : PublicInput) (layout : Veri
     exact (candidateExecutionIn_eq_none (powIndex layout.logMemory) (powIndex prog.logSize) prog
       input layout hl q).symm
 
+
+/-- The runner's tables: the address tables, the final registers and the step cap, built once per
+layout (`none` above `2^63` words, where no stack has an execution). -/
+@[expose] def runnerTables (prog : Program) (layout : LayoutLite) :
+    Option (Array (ℕ × ℕ) × Array (ℕ × ℕ) × Registers K × ℕ) :=
+  if layout.logMemory < 64 then
+    some (powTable layout.logMemory, powTable prog.logSize, Registers.final prog, stepCapLite layout)
+  else none
+
+/-- A stack's execution from the runner's tables. -/
+@[expose] def runWithTables (tabs : Option (Array (ℕ × ℕ) × Array (ℕ × ℕ) × Registers K × ℕ))
+    (prog : Program) (input : PublicInput) (layout : LayoutLite) (q : Vector K (2 ^ layout.stackLog)) :
+    Option (Execution prog) :=
+  match tabs with
+  | some (memT, codeT, fin, cap) => candidateExecutionVec memT codeT prog input layout fin cap q
+  | none => none
+
+/-- **The runner, its tables built once**: the closure `runWithTables (runnerTables prog layout)`
+is `candidateRunner`. -/
+theorem runWithTables_runnerTables (prog : Program) (input : PublicInput) (layout : LayoutLite) :
+    runWithTables (runnerTables prog layout) prog input layout = candidateRunner prog input layout := by
+  funext q
+  unfold runWithTables runnerTables candidateRunner
+  split_ifs <;> rfl
+
 end
 
 end LeanVM.Extraction.Fast

@@ -44,7 +44,8 @@ public section
   let idx := transcriptIndex qs (max 64 (8 * width))
   let leaves := subtreeLeavesWith (preimageIn idx) width height root
   let word := leafAt leaves height width
-  let execution := candidateRunner prog input layout
+  let tabs := runnerTables prog layout
+  let execution := runWithTables tabs prog input layout
   (fastStacksFast layout.stackLog logInverseRate word).findSome? execution <|>
     (decodeStacksDistinct layout.stackLog logInverseRate word).findSome? execution
 
@@ -75,7 +76,7 @@ theorem extractorTop_eq_full (prog : Program) (input : PublicInput)
   obtain ⟨⟨layout, R⟩, st⟩ := r
   have hadm : Whir.Admissible layout.stackLog R := admissible_of_afterRootDirect h
   simp only [Function.comp_apply, liteResult]
-  simp only [layoutLite_stackLog, decodeStacksDistinct_eq hadm]
+  simp only [layoutLite_stackLog, decodeStacksDistinct_eq hadm, runWithTables_runnerTables]
 
 /-- **The extractor the cost machine runs is the statement's.** -/
 theorem extractorTop_eq (prog : Program) (input : PublicInput) (T : OracleQueryLog) (π : Proof) :
