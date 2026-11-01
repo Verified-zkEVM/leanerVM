@@ -50,13 +50,6 @@ theorem listFoldl_range'_le (hP : Includes P listFoldl.costDeps) {α : Type} [En
     have e : (B + 9) * (n + 1) = (B + 9) * n + B + 9 := by ring
     omega
 
-/-- The bound of the pruning over `U` lanes of `n = 2^(κ+R)` columns: the word's table (a column
-price `BW`, columns of at most `Lw` symbols), per lane its candidates (`G`) and the pruning step
-(`Smax` survivors, `Lc` candidates). -/
-@[expose] def pruneBound (κ R U BW Lw G Lc Smax : ℕ) : ℕ :=
-  (BW + 10 * Lw + 28) * 2 ^ (κ + R) + 17 * 2 ^ (κ + R) +
-    (G + Smax * (Lc * (41 * 2 ^ (κ + R) + 9 * U + 62) + 32) + 60) * U + 17 * U + 80
-
 theorem laneTable_getD (n : ℕ) (W : ℕ → List K) (u v : ℕ) (hv : v < n) :
     tableSymbol (laneTable n W) u v = laneSymbol W u v := by
   simp [tableSymbol, laneTable, laneSymbol, Array.getD_eq_getD_getElem?, hv]

@@ -265,10 +265,6 @@ theorem leeScaledC_cost (hP : Includes P leeScaled.c115.costDeps) (params : GSIn
     ring
   omega
 
-/-- The bound of the normalization on `rows` rows. -/
-@[expose] def normBound (W rows : ℕ) : ℕ :=
-  (20057 * (W + 1) + 265) * rows + 121
-
 /-- **The normalization** (`normalizeLeeFast`: the pivot, then the grid divided by it): at most
 `normBound W rows`, `Q` of at most `rows` rows. -/
 theorem normalizeLeeFastC_cost (hP : Includes P normalizeLeeFast.c113.costDeps)
@@ -460,25 +456,6 @@ theorem leeShifts_le (params : GSInterpParams) (j : ℕ) :
   · rw [weightedDegreeShift_getD _ _ _ hj]
     exact Nat.mul_le_mul_right _ (by omega)
   · simp [CBivariate.weightedDegreeShift, Array.getD_eq_getD_getElem?, Nat.not_lt.1 hj]
-
-/-- The bound of the interpolation on `n` points, multiplicity `m`, `w = ℓ + 1` columns, the
-basis's degree bound `D`, the weighted degree `W`. -/
-@[expose] def interpCoreBound (n m w D W : ℕ) : ℕ :=
-  3720 * (n * n) + 1700 * ((n + 1) * n) + 30000 * n + 1000 + leeRowsBound m w n + 40 * w +
-    ((w * ((D + 1) * (w + 1)) + 1) * msIterBound w w D + 90 * (w * w) + 77 * w + 66) +
-    ((90 * w + 140) * w + 40) + (90 * w + 30) + ((3 * (D + 1) + 41) * w + 17) + normBound W w + 80
-
-/-- The sizes the interpolation's bound needs, all word-sized. -/
-@[expose] def InterpSizes (n : ℕ) (params : GSInterpParams) : Prop :=
-  n < 2 ^ 55 ∧ params.weightedDegreeBound + 1 < 2 ^ 60 ∧ params.messageDegree < 2 ^ 64 ∧
-    yWeight params * (params.weightedDegreeBound + 1) < 2 ^ 64 ∧
-    interpolationYCap params + 1 < 2 ^ 55 ∧ params.multiplicity < 2 ^ 55 ∧
-    (params.multiplicity + 1) * n + 2 < 2 ^ 55 ∧
-    2 * (params.multiplicity * n + interpolationYCap params * yWeight params + 1) +
-      interpolationYCap params * yWeight params < 2 ^ 62 ∧
-    (interpolationYCap params + 2) * (interpolationYCap params + 2) *
-      (params.multiplicity * n + interpolationYCap params * yWeight params +
-        interpolationYCap params * yWeight params + 2) < 2 ^ 64
 
 /-- **Lee–O'Sullivan's interpolation, compiled** (`leeOSullivanPositiveCoreFast`, the decoder's
 contexts): on `n` points, at most `interpCoreBound n m (ℓ + 1) D W`, `D = m·n + ℓ·(k − 1)`. -/

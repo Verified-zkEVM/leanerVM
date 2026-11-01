@@ -169,12 +169,6 @@ theorem mulRawB_cost_ab (hP : Includes P mulRaw.c44.costDeps)
   simp only [Array.length_toList, Array.size_zipIdx, List.length_zipIdx] at hz hf hle ⊢
   omega
 
-/-- The bound of a product over `K[X]`: `≤ rp` rows of entries of `≤ a` coefficients by `≤ rq`
-rows, the two factors' entry sizes summing to at most `s`. -/
-@[expose] def mulBBound (rp rq a s : ℕ) : ℕ :=
-  3 * ((930 * (((a + 1) * (s + 1)) * rq) + 110 * (s * (rp + rq)) + 200 * (rp + rq) + 112) * rp) +
-    (3 * s + 41) * (rp + rq) + 100
-
 theorem mulBBound_mono {rp rq a s rp' rq' a' s' : ℕ} (h1 : rp ≤ rp') (h2 : rq ≤ rq') (h3 : a ≤ a')
     (h4 : s ≤ s') : mulBBound rp rq a s ≤ mulBBound rp' rq' a' s' := by
   unfold mulBBound
@@ -460,14 +454,6 @@ theorem toCoeffRowC_cost (hP : Includes P Auto.CompPoly.CBivariate.toCoeffRow.c9
 
 /-! ## The rows -/
 
-/-- A row `i ≤ m`: the product `G^(m−i)·(Y − R)^i` and its coefficient row. -/
-@[expose] def rowProdBound (m w N : ℕ) : ℕ :=
-  mulBBound 1 (m + 1) (m * N + 1) (m * N + 2) + 34 * w + 50
-
-/-- A row `i > m`: the shift `Y^(i−m)·(Y − R)^m` and its coefficient row. -/
-@[expose] def rowShiftBound (m w N : ℕ) : ℕ :=
-  (3 * (m * N + 1) + 41) * (w + m + 1) + 2 * w + m + 34 * w + 60
-
 theorem natDeg_le_size_pred {f : CPolynomial K} {N : ℕ} (h : f.natDegree ≤ N) :
     f.val.size ≤ N + 1 :=
   (cpoly_size_le_natDegree f).trans (by omega)
@@ -545,13 +531,6 @@ theorem countP_range_le (w m : ℕ) : (List.range w).countP (fun i ↦ decide (i
       simp only [List.mem_range]
       omega
   simpa using hsub.length_le
-
-/-- The bound of `leeRowsFast`: `Y − R` and `G`, the `m + 1` powers of each, `m + 1` products
-`G^(m−i)·(Y − R)^i` and `w` shifts, `w` coefficient rows. -/
-@[expose] def leeRowsBound (m w N : ℕ) : ℕ :=
-  703 * (N + 1) + 2460 + (mulBBound 2 (m + 1) (N + 1) ((m + 1) * N + 2) + 3 + 20) * (m + 1) +
-    (mulBBound 1 1 (N + 1) ((m + 1) * N + 2) + 3 + 20) * (m + 1) + 2 * (m + 1) + 18 * w +
-    (rowProdBound m w N + 11) * (m + 1) + (rowShiftBound m w N + 11) * w + 120
 
 /-- **Lee–O'Sullivan's basis rows, compiled** (`leeRowsFast R G params`, `R` and `G` of degree at
 most `N`): at most `leeRowsBound m w N`, `m` the multiplicity, `w = ℓ + 1` the width. -/

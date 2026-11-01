@@ -247,9 +247,6 @@ theorem cpoly_smul_size_le (r : K) (p : CPolynomial K) : (r • p).val.size ≤ 
   show (CPolynomial.Raw.smul r p.val).trim.size ≤ _
   exact (raw_trim_size_le _).trans (by rw [size_smul])
 
-/-- The bound of one Taylor coefficient, `Y` rows of at most `X` coefficients, `L = log₂ Y + 1`. -/
-@[expose] def taylorBound (X Y L : ℕ) : ℕ := (1700 * L + 960 * X + 329) * Y + 21 * Y + 30
-
 theorem taylorCoeff_size_le {Q : CBivariate K} {X : ℕ} (hQ : InnerLe Q.val X) (a : K) (t : ℕ) :
     (taylorCoeff Q a t).val.size ≤ X := by
   unfold taylorCoeff
@@ -328,10 +325,6 @@ theorem shiftXC_cost (hP : Includes P shiftX.c194.costDeps) (t : ℕ) (p : CPoly
   have := ofArray_cost P (by includes) (Array.replicate t 0 ++ p.val) (by simp; omega)
   simp only [Array.size_append, Array.size_replicate] at this ⊢
   omega
-
-/-- The bound of the substitution on `Y` rows of at most `X` coefficients. -/
-@[expose] def substBound (X Y : ℕ) : ℕ :=
-  (taylorBound X Y (Nat.log2 Y + 1) + 28 * (X + Y) + 100) * Y + 40
 
 /-- **The substitution `Y := a + X·Y`** (`substituteFast`: per row its Taylor coefficient, shifted
 by `X^t`): at most `substBound X Y`, its rows of at most `X + Y` coefficients. -/

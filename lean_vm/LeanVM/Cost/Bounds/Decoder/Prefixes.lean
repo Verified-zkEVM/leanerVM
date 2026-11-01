@@ -125,16 +125,6 @@ theorem prefixesSum_map_add_mul {α : Type} (l : List α) (c G : ℕ) (f : α �
 
 /-! ## The recursion -/
 
-/-- The price of a node of `Y` rows of at most `X` coefficients, beyond its children: the
-`X`-adic order, the division by `X^s`, the initial coefficient polynomial, its roots. -/
-@[expose] def rrNodePrice (X Y : ℕ) : ℕ :=
-  (65 * X + 220) * Y + rootsBound Y + 200
-
-/-- The price of a child in its parent's fold, `k` the depth bound: the substitution, the
-truncation, the prefix extended. -/
-@[expose] def rrChildPrice (X Y k : ℕ) : ℕ :=
-  substBound X Y + (27 * (X + Y) + 80) * Y + 222 * k + 400
-
 /-- `rrChildPrice` but the fold's `9` per element. -/
 @[expose] def rrChildCore (X Y k : ℕ) : ℕ :=
   substBound X Y + (27 * (X + Y) + 80) * Y + 222 * k + 391
@@ -273,11 +263,6 @@ theorem prefixesNFC_cost_nodes (hP : Includes P prefixesNF.c188.costDeps) {X Y k
 
 /-! ## On the interpolated polynomial -/
 
-/-- The bound of Roth–Ruckenstein's search on `1 + k·ℓ` nodes of `Y` rows of at most `X`
-coefficients, `k` levels. -/
-@[expose] def rrBound (X Y k ℓ : ℕ) : ℕ :=
-  (rrNodePrice X Y + rrChildPrice X Y k + Y * k) * (1 + k * ℓ)
-
 open CompPoly.GuruswamiSudan in
 /-- **Roth–Ruckenstein's search on the interpolated polynomial** (`prefixesNF.c188`, the call
 `gsRunDistinctNF` makes): at most `rrBound (W + 1) (ℓ + 2) k ℓ`, at most `1 + k·ℓ` nodes
@@ -304,18 +289,6 @@ theorem prefixesNFC_cost (hP : Includes P prefixesNF.c188.costDeps) {points : Ar
     (interpolationYCap params + 2) * params.messageDegree) (gsRunNF_nodes_le hQ hk1)
   unfold rrBound
   omega
-
-open CompPoly.GuruswamiSudan in
-/-- The bound of one lane's Guruswami–Sudan run on `n` points: the interpolation, the truncation,
-Roth–Ruckenstein's search (`rrBound`), the filter. -/
-@[expose] def gsRunBound (n : ℕ) (params : GSInterpParams) : ℕ :=
-  interpCoreBound n params.multiplicity (interpolationYCap params + 1)
-      (params.multiplicity * n + interpolationYCap params * yWeight params)
-      params.weightedDegreeBound + 10 +
-    ((27 * (params.weightedDegreeBound + 1) + 80) * (interpolationYCap params + 1) + 40) +
-    rrBound (params.weightedDegreeBound + 1) (interpolationYCap params + 2) params.messageDegree
-      (interpolationYCap params) +
-    ((272 * params.messageDegree + 34) * n + 50) * max 1 (interpolationYCap params) + 40
 
 open CompPoly.GuruswamiSudan in
 /-- **One lane's Guruswami–Sudan run** (`gsRunDistinctNF`: the interpolation, Roth–Ruckenstein's

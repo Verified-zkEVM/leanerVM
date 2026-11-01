@@ -1,7 +1,7 @@
 module
 
 public import LeanVM.Cost.Bounds.Assembly
-public import LeanVM.Cost.Bounds.DecoderShapes
+public import LeanVM.Cost.Bounds.Decoder.Decode
 public import LeanVM.Cost.Extractor.Top
 import all Statement.LeanIsa
 import all LeanVM.Protocol.Extraction.Extractor

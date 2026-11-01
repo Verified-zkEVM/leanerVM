@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Bounds.Decoder.Decode
+public import LeanVM.Cost.Bounds.Decoder.ShapeDefs
 
 /-!
 # Bounds: the decoder at every admissible shape
@@ -12,24 +12,22 @@ memory): the lanes are word-sized and the decoder's bound beyond the word's pric
 one at `(28, 4)` (`decoderWorstPrice ≈ 2^117.67`):
 
 * **`decoderShape_ok`**: `DecoderLaneSizes` and `decoderBound μ R 0 0 ≤ decoderWorstPrice` at every
-  admissible `(μ, R)`;
-* **`decodeStacksDistinctC_cost_worst`**: at every admissible shape, at most
-  `(BW + 10·Lw)·2^26 + decoderWorstPrice`.
+  admissible `(μ, R)`, which `decodeStacksDistinctC_cost_worst` (`Bounds/Decoder/Decode.lean`)
+  reads;
+* at `(28, 4)`: a lane `decoderLaneBound_28_4` (`≈ 2^111.67`), Roth–Ruckenstein's search
+  `rrBound_28_4` (`≈ 2^96.77`).
+
+The checks evaluate only the extractor's parameter search and the bounds' definitions
+(`Bounds/Decoder/ShapeDefs.lean`), none of their proofs: an edit of a proof rebuilds none of them
+(`Bounds/DecoderShapesFirewall.lean`).
 -/
 
 namespace LeanVM.Cost.Bounds.Decoder
 
-open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Extractor LeanVM.Parameters LeanVM.Extraction
+open LeanVM.Parameters CompPoly CompPoly.GuruswamiSudan LeanVM.Extraction
 
 public section
 
-/-- What the decoder's bound needs at a shape, and its value at most the worst. -/
-@[expose] def DecoderShapeOk (μ R : ℕ) : Prop :=
-  DecoderLaneSizes (μ - Whir.initialFold) R (johnsonThreshold μ R) ∧
-    decoderBound μ R 0 0 ≤ decoderWorstPrice
-
-instance (μ R : ℕ) : Decidable (DecoderShapeOk μ R) := by
-  unfold DecoderShapeOk; infer_instance
 theorem decoderShapeOk_15_1 : DecoderShapeOk 15 1 := by decide +kernel
 theorem decoderShapeOk_15_2 : DecoderShapeOk 15 2 := by decide +kernel
 theorem decoderShapeOk_15_3 : DecoderShapeOk 15 3 := by decide +kernel
@@ -152,23 +150,21 @@ theorem decoderShape_ok {μ R : ℕ} (h : Whir.Admissible μ R) : DecoderShapeOk
   · exact decoderShapeOk_28_3
   · exact decoderShapeOk_28_4
 
-/-- **The decoder at every admissible shape**: at most `(BW + 10·Lw)·2^26 + decoderWorstPrice`. -/
-theorem decodeStacksDistinctC_cost_worst (P : Program) (hP : Includes P decodeStacksDistinctC.costDeps)
-    {μ R : ℕ} (hadm : Whir.Admissible μ R)
-    (W : ℕ → List K) (WVal : Val) (hW : ∀ a, RunsApp P WVal [enc a] (enc (W a))) {BW Lw : ℕ}
-    (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [enc v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
-    machineCost P decodeStacksDistinctC.costIdx [enc μ, enc R, WVal] ≤
-      (BW + 10 * Lw) * 2 ^ 26 + decoderWorstPrice := by
-  obtain ⟨hsz, hle⟩ := decoderShape_ok hadm
-  have h := decodeStacksDistinctC_cost P hP μ R hadm hsz W WVal hW hBW hLw
-  rw [decoderBound_eq] at h
-  have hadm' := hadm
-  obtain ⟨-, h2, -, h4⟩ := hadm'
-  simp only [Whir.maxLogStack, Whir.maxLogInvRate] at h2 h4
-  have hp : 2 ^ (μ - Whir.initialFold + R) ≤ 2 ^ 26 :=
-    Nat.pow_le_pow_right (by norm_num) (by simp only [Whir.initialFold]; omega)
-  have := Nat.mul_le_mul_left (BW + 10 * Lw) hp
-  omega
+/-- **Roth–Ruckenstein's search at `(28, 4)`** (`k = 2^22`, `W = 6968845169`, `ℓ = 1661`): at most
+`135042381325517127212342746980 ≈ 2^96.77` per lane (`prefixesNFC_cost`: `1 + k·ℓ ≈ 2^32.7` nodes,
+the substitution `≈ 2^64` per node). -/
+theorem rrBound_28_4 :
+    rrBound ((gsParamsFor (2 ^ 22) (2 ^ (22 + 4)) 16792398).interp.weightedDegreeBound + 1)
+        (interpolationYCap (gsParamsFor (2 ^ 22) (2 ^ (22 + 4)) 16792398).interp + 2) (2 ^ 22)
+        (interpolationYCap (gsParamsFor (2 ^ 22) (2 ^ (22 + 4)) 16792398).interp) =
+      135042381325517127212342746980 := by
+  decide +kernel
+
+/-- **A lane at `(28, 4)`**: at most `4121270236783434829721770549579915 ≈ 2^111.67`, the
+interpolation (`laneInterp_cost_28_4`) all but `≈ 2^96.77` of it (Roth–Ruckenstein's search). -/
+theorem decoderLaneBound_28_4 :
+    decoderLaneBound 22 4 16792398 12 = 4121270236783434829721770549579915 := by
+  decide +kernel
 
 end
 

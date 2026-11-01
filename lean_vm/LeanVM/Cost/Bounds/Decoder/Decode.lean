@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Cost.Bounds.Decoder.Prune
 public import LeanVM.Cost.Bounds.Decoder.Prefixes
+public import LeanVM.Cost.Bounds.DecoderShapes
 
 /-!
 # Bound: the decoder, compiled
@@ -20,13 +21,11 @@ The price of `decodeStacksDistinct μ R W` (`Fast/DecodeAdmissible.lean`, compil
   stack per survivor
   (`stackOf_cost`): **`decodeStacksDistinctC_cost`** `≤ decoderBound μ R BW Lw`, `BW` the word's
   price per column and `Lw` its symbols per column;
-* at `(28, 4)`: **`decodeStacksDistinctC_cost_28_4`** (`≈ 2^117.67` beyond the word's prices), a
-  lane `decoderLaneBound_28_4` (`≈ 2^111.67`), Roth–Ruckenstein's search `rrBound_28_4`
-  (`≈ 2^96.77`).
+* at every admissible shape: **`decodeStacksDistinctC_cost_worst`**, at most
+  `(BW + 10·Lw)·2^26 + decoderWorstPrice`.
 
-`DecoderLaneSizes` (the lanes' parameters word-sized) is a hypothesis, decided per shape (at
-`(28, 4)` here); deciding it at all `56` admissible shapes at once (`decide +kernel` over the
-parameter searches) grew past `6 GB` within half a minute, so it is not done.
+`DecoderLaneSizes` (the lanes' parameters word-sized) is a hypothesis, decided per shape
+(`Bounds/DecoderShapes.lean`, with the bounds at the worst shape `(28, 4)`).
 -/
 
 namespace LeanVM.Cost.Bounds.Decoder
@@ -139,24 +138,6 @@ theorem decoderSearchC_cost (hP : Includes P gsMultiplicityAt.c251.costDeps) {k 
 
 /-! ## A lane -/
 
-/-- The bound of a lane's Guruswami–Sudan run (`gsLaneDistinct κ R A`): the parameter search, the
-lane's `n = 2^(κ+R)` points (`BS` per symbol), the run (`gsRunBound`). -/
-@[expose] def decoderLaneRunBound (κ R A BS : ℕ) : ℕ :=
-  190 * gsMultiplicityBoundAt (2 ^ κ) (2 ^ (κ + R)) A + (BS + 28) * 2 ^ (κ + R) +
-    gsRunBound (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp + 200
-
-/-- The sizes at which a lane is bounded: word-sized parameters (`InterpSizes`, …), `k > 1`, at
-most `2^20` multiplicities tried. -/
-@[expose] def DecoderLaneSizes (κ R A : ℕ) : Prop :=
-  κ + R ≤ 30 ∧ A ≤ 2 ^ (κ + R) ∧ gsMultiplicityBoundAt (2 ^ κ) (2 ^ (κ + R)) A < 2 ^ 20 ∧
-    InterpSizes (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp ∧
-    1 < (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp.messageDegree ∧
-    (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp.weightedDegreeBound + 1 < 2 ^ 56 ∧
-    interpolationYCap (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp + 2 < 2 ^ 28
-
-instance (κ R A : ℕ) : Decidable (DecoderLaneSizes κ R A) := by
-  unfold DecoderLaneSizes InterpSizes; infer_instance
-
 /-- **A lane's Guruswami–Sudan run** (`gsLaneDistinct κ R A S u`): at most
 `decoderLaneRunBound κ R A BS`, `BS` the price of a symbol `S u v`. -/
 theorem gsLaneDistinctC_cost (hP : Includes P gsLaneDistinct.c249.costDeps) (κ R A : ℕ)
@@ -201,13 +182,6 @@ theorem gsLaneDistinctC_cost (hP : Includes P gsLaneDistinct.c249.costDeps) (κ 
   have e : (BS + 28) * 2 ^ (κ + R) = (BS + 9 + 18) * 2 ^ (κ + R) + 2 ^ (κ + R) := by ring
   omega
 
-/-- The bound of a lane's candidates (`laneEncodedDistinct κ R A`): the run, then at most
-`max 1 ℓ` candidates of at most `2^κ` coefficients (`laneExtraBound`). -/
-@[expose] def decoderLaneBound (κ R A BS : ℕ) : ℕ :=
-  decoderLaneRunBound κ R A BS +
-    laneExtraBound κ R (max 1 (interpolationYCap (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp))
-      (2 ^ κ)
-
 /-- **A lane's candidates** (`laneEncodedDistinct κ R A S u`): at most
 `decoderLaneBound κ R A BS`. -/
 theorem decoderLaneC_cost (hP : Includes P laneEncodedDistinctC.costDeps) (κ R A : ℕ)
@@ -228,18 +202,6 @@ theorem decoderLaneC_cost (hP : Includes P laneEncodedDistinctC.costDeps) (κ R 
   unfold decoderLaneBound
   omega
 /-! ## The decoder -/
-
-/-- The bound of the decoder at the shape `(μ, R)` (`κ = μ − 6`, `n = 2^(κ+R)`, the Johnson
-threshold `A`): the threshold, the `2^6` lanes pruned (`pruneBound`: the word's table, `BW` per
-column and `Lw` symbols per column; a lane `decoderLaneBound`, at most `max 1 ℓ` candidates, at
-most `2^18` survivors), a stack per survivor. -/
-@[expose] def decoderBound (μ R BW Lw : ℕ) : ℕ :=
-  pruneBound (μ - Whir.initialFold) R (2 ^ Whir.initialFold) BW Lw
-      (decoderLaneBound (μ - Whir.initialFold) R (johnsonThreshold μ R) 12)
-      (max 1 (interpolationYCap (gsParamsFor (2 ^ (μ - Whir.initialFold))
-        (2 ^ (μ - Whir.initialFold + R)) (johnsonThreshold μ R)).interp))
-      (2 ^ 18) +
-    ((15 * 2 ^ Whir.initialFold + 56) * 2 ^ μ + 34) * 2 ^ 18 + 16330
 
 /-- **The decoder** (`decodeStacksDistinct μ R W`, the extractor's): at most
 `decoderBound μ R BW Lw` at an admissible shape whose lanes are word-sized
@@ -319,39 +281,26 @@ theorem decoderBound_eq (μ R BW Lw : ℕ) :
   unfold decoderBound pruneBound
   ring
 
-/-! ## At `(28, 4)` -/
+/-! ## At every admissible shape -/
 
-/-- **Roth–Ruckenstein's search at `(28, 4)`** (`k = 2^22`, `W = 6968845169`, `ℓ = 1661`): at most
-`135042381325517127212342746980 ≈ 2^96.77` per lane (`prefixesNFC_cost`: `1 + k·ℓ ≈ 2^32.7` nodes,
-the substitution `≈ 2^64` per node). -/
-theorem rrBound_28_4 :
-    rrBound ((gsParamsFor (2 ^ 22) (2 ^ (22 + 4)) 16792398).interp.weightedDegreeBound + 1)
-        (interpolationYCap (gsParamsFor (2 ^ 22) (2 ^ (22 + 4)) 16792398).interp + 2) (2 ^ 22)
-        (interpolationYCap (gsParamsFor (2 ^ 22) (2 ^ (22 + 4)) 16792398).interp) =
-      135042381325517127212342746980 := by
-  decide +kernel
-
-/-- **A lane at `(28, 4)`**: at most `4121270236783434829721770549579915 ≈ 2^111.67`, the
-interpolation (`laneInterp_cost_28_4`) all but `≈ 2^96.77` of it (Roth–Ruckenstein's search). -/
-theorem decoderLaneBound_28_4 :
-    decoderLaneBound 22 4 16792398 12 = 4121270236783434829721770549579915 := by
-  decide +kernel
-
-theorem decoderJohnson_28_4 : johnsonThreshold 28 4 = 16792398 := by decide +kernel
-
-/-- **The decoder at the worst shape `(28, 4)`** (`64` lanes of `n = 2^26` columns): at most
-`(BW + 10·Lw)·2^26 + 263761295154139905848615297830647322`, `≈ 2^117.67` beyond the word's
-prices, the `64` interpolations (`≈ 2^111.67` each) dominating. -/
-theorem decodeStacksDistinctC_cost_28_4 (hP : Includes P decodeStacksDistinctC.costDeps)
+/-- **The decoder at every admissible shape**: at most `(BW + 10·Lw)·2^26 + decoderWorstPrice`
+(`decoderShape_ok`, `Bounds/DecoderShapes.lean`). -/
+theorem decodeStacksDistinctC_cost_worst (hP : Includes P decodeStacksDistinctC.costDeps)
+    {μ R : ℕ} (hadm : Whir.Admissible μ R)
     (W : ℕ → List K) (WVal : Val) (hW : ∀ a, RunsApp P WVal [enc a] (enc (W a))) {BW Lw : ℕ}
     (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [enc v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
-    machineCost P decodeStacksDistinctC.costIdx [enc 28, enc 4, WVal] ≤
-      (BW + 10 * Lw) * 2 ^ 26 + 263761295154139905848615297830647322 := by
-  have h := decodeStacksDistinctC_cost P hP 28 4 (by decide) (by decide +kernel) W WVal hW hBW hLw
+    machineCost P decodeStacksDistinctC.costIdx [enc μ, enc R, WVal] ≤
+      (BW + 10 * Lw) * 2 ^ 26 + decoderWorstPrice := by
+  obtain ⟨hsz, hle⟩ := decoderShape_ok hadm
+  have h := decodeStacksDistinctC_cost P hP μ R hadm hsz W WVal hW hBW hLw
   rw [decoderBound_eq] at h
-  have hv : decoderBound 28 4 0 0 = 263761295154139905848615297830647322 := by decide +kernel
-  rw [hv] at h
-  exact h
+  have hadm' := hadm
+  obtain ⟨-, h2, -, h4⟩ := hadm'
+  simp only [Whir.maxLogStack, Whir.maxLogInvRate] at h2 h4
+  have hp : 2 ^ (μ - Whir.initialFold + R) ≤ 2 ^ 26 :=
+    Nat.pow_le_pow_right (by norm_num) (by simp only [Whir.initialFold]; omega)
+  have := Nat.mul_le_mul_left (BW + 10 * Lw) hp
+  omega
 
 end
 

@@ -155,9 +155,6 @@ theorem naive_mul_size_le (p q : CPolynomial.Raw K) :
     (CPolynomial.Raw.MulContext.naive.mul p q).size ≤ p.size + q.size :=
   (raw_trim_size_le _).trans (size_mulRaw_le p q)
 
-/-- The bound of a product modulo `u`, operands and `u` of at most `B` coefficients. -/
-@[expose] def mulModBound (B : ℕ) : ℕ := 2500 * (B * B) + 1000 * B + 20000
-
 /-- **A product modulo `u`** (`mulModWith`: the schoolbook product, then the remainder by
 `monicNormalize u`): at most `mulModBound B`. -/
 theorem mulModWithC_cost (hP : Includes P mulModWith.c156.costDeps) {B : ℕ} (hB : B < 2 ^ 28)
@@ -342,9 +339,6 @@ theorem xPowSubXModC_cost (hP : Includes P xPowSubXModWith.c151.costDeps) {B : �
     (CPolynomial.Raw.xModWith CPolynomial.Raw.ModContext.remainderOnly u) (by omega) (by omega)
   omega
 
-/-- The bound of a remainder, operands of at most `B` coefficients. -/
-@[expose] def rawModBound (B : ℕ) : ℕ := 400 * (B * B) + 2100 * B + 41000
-
 theorem raw_C_smul_size_le (c : K) (p : CPolynomial.Raw K) :
     (CPolynomial.Raw.C c • p).size ≤ p.size := raw_C_mul_size_le c p
 
@@ -375,9 +369,6 @@ theorem rawModFastC_cost (hP : Includes P rawModFast.c147.costDeps) {B : ℕ} (h
   rw [hC] at h1 h2
   unfold rawModBound
   omega
-
-/-- The bound of a monic gcd's step, operands of at most `B` coefficients. -/
-@[expose] def gcdStepBound (B : ℕ) : ℕ := rawModBound B + 61 * B + 60
 
 /-- **The Euclidean chain** (`rawGcdMonicWithFuelFast`, `fuel` steps): at most
 `gcdStepBound B·fuel + 400·B + 20000`. -/
@@ -411,9 +402,6 @@ theorem rawGcdWithFuelC_cost (hP : Includes P rawGcdMonicWithFuelFast.c146.costD
     have e : gcdStepBound B * (n + 1) = gcdStepBound B * n + gcdStepBound B := by ring
     unfold gcdStepBound at *
     split_ifs <;> omega
-
-/-- The bound of a monic gcd, operands of at most `B` coefficients. -/
-@[expose] def gcdBound (B : ℕ) : ℕ := gcdStepBound B * (2 * B + 1) + 430 * B + 20100
 
 /-- **The monic gcd** (raw, `|p| + |q| + 1` steps of fuel): at most `gcdBound B − 30·B − 70`. -/
 theorem rawGcdMonicFastC_cost (hP : Includes P rawGcdMonicFast.c145.costDeps) {B : ℕ}
@@ -457,10 +445,6 @@ theorem monic_trim_ne_zero (u : CPolynomial.Raw K) (hu : u.trim ≠ 0) :
   intro h
   rw [h, size_zero_raw] at hs
   omega
-
-/-- The bound of the root product, `p` of at most `B` coefficients. -/
-@[expose] def rootProductBound (B : ℕ) : ℕ :=
-  gcdBound B + 1500 * B + 65000 + (2 * mulModBound B + 50) * 65
 
 /-- **The root product** (`rootProductFast`: `gcd(p, X^(2^64) − X mod p)`): at most
 `rootProductBound B`. -/
@@ -539,9 +523,6 @@ theorem squaringsFromC_cost (hP : Includes P squaringsFrom.c171.costDeps) {B : �
       ring
     omega
 
-/-- The bound of `k` Frobenius powers modulo `u`, `u` of at most `B` coefficients. -/
-@[expose] def frobBound (B k : ℕ) : ℕ := (2 * mulModBound B + 23 * B + 70) * k + 450 * B + 21000
-
 /-- **The Frobenius powers** (`frobeniusPowersFast u k`: `k` squarings, each then reduced
 `mod u`): at most `frobBound B k`. -/
 theorem frobeniusPowersFastC_cost (hP : Includes P frobeniusPowersFast.c169.costDeps) {B : ℕ}
@@ -601,9 +582,6 @@ theorem frobeniusPowersFastC_cost (hP : Includes P frobeniusPowersFast.c169.cost
     rw [this]; exact Nat.mul_le_mul_right _ (by omega)
   unfold frobBound
   omega
-
-/-- The bound of the trace polynomial over `64` powers of at most `B` coefficients. -/
-@[expose] def traceBound (B : ℕ) : ℕ := (1040 * B + 1200) * 64 + 1200
 
 /-- **The trace polynomial** (`traceCoordFast`: `Σ_{i<64} β^(2^i)·powers[i]`): at most
 `traceBound B`, its value of at most `B + 1` coefficients. -/
@@ -764,9 +742,6 @@ theorem cpoly_sub_C_size_le (T : CPolynomial K) (c : K) {B : ℕ} (hT : T.val.si
   have := size_C_le' c
   omega
 
-/-- The bound of one base constant's child. -/
-@[expose] def refineLamBound (B : ℕ) : ℕ := gcdBound B + 520 * B + 20300
-
 /-- **One child** (`gcd(u, T − c)`, normalized, pushed): at most `refineLamBound B`. -/
 theorem refineLamC_cost (hP : Includes P refineFactorFast.c166.lam0.costDeps) {B : ℕ}
     (hB : B < 2 ^ 28) (hB1 : 1 ≤ B) (u T : CPolynomial K) (hu : u.val.size ≤ B)
@@ -834,11 +809,6 @@ theorem refineFactorFast_cacheInv {B : ℕ} (beta : K) (cache : ShoupTracePowerC
 
 theorem natDegree_le_of_size_le {p : CPolynomial K} {B : ℕ} (h : p.val.size ≤ B) :
     p.natDegree ≤ B - 1 := (natDegree_le_size_sub_one p).trans (by omega)
-
-/-- The bound of one factor's refinement, the cache of at most `L` entries. -/
-@[expose] def refineFactorBound (B L : ℕ) : ℕ :=
-  450 * B + 20000 + (18 * B + 20) * L + frobBound B 64 + traceBound B +
-    2 * (refineLamBound B + 9) + 300
 
 /-- **One factor refined by one trace coordinate** (`refineFactorFast`: normalized; unless
 trivial or linear, its Frobenius powers from the cache, its trace polynomial, a gcd per base
@@ -974,11 +944,6 @@ theorem refineFactorsFastC_cost (hP : Includes P refineFactorsFast.c164.costDeps
       (refineFactorBound B L + 2 * F + 30) * F := Nat.mul_le_mul_left _ hF
   omega
 
-
-/-- The bound of the splitter on a polynomial of at most `B` coefficients: `64` trace
-coordinates, each over at most `B` factors. -/
-@[expose] def splitBound (B : ℕ) : ℕ :=
-  64 * ((refineFactorBound B (64 * B) + 2 * B + 30) * B + 3 * B + 40) + 450 * B + 23000
 
 theorem facInv_size_le {P : Polynomial K} (hP : P ≠ 0) {F : List (CPolynomial K)}
     (h : FacInv P F) : ∀ f ∈ F, f.val.size ≤ P.natDegree + 1 := by
@@ -1175,10 +1140,6 @@ theorem linearRootC_cost (hP : Includes P Auto.CompPoly.CPolynomial.linearRootOf
   cost_simp
   split_ifs <;> omega
 
-/-- **The roots of `F` linear factors**, validated against `p` (of at most `B` coefficients),
-deduplicated: at most `rootsFromBound B F`. -/
-@[expose] def rootsFromBound (B F : ℕ) : ℕ := (272 * B + 20100) * F + (16 * F + 30) * F + 40
-
 theorem rootsFromLinearFactorsC_cost
     (hP : Includes P Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c130.costDeps)
     (p : CPolynomial K) (factors : Array (CPolynomial K)) {B F : ℕ} (hp : p.val.size ≤ B)
@@ -1287,11 +1248,6 @@ theorem splitCandidatesFast_zero : splitCandidatesFast 0 = #[] := by
     CPolynomial.toPoly_inj.1 (by rw [toPoly_monicNormalize, CPolynomial.toPoly_zero, normalize_zero])
   unfold splitCandidatesFast
   simp [hm]
-
-/-- The bound of the roots in `K` of a polynomial of at most `B` coefficients. -/
-@[expose] def rootsBound (B : ℕ) : ℕ :=
-  20 * B + 60 + rootsFromBound B 1 + rootProductBound B + splitBound B + (B + 30) * B + 3 * B +
-    10 + rootsFromBound B B
 
 /-- **The roots in `K`** (`rootsInFieldFast`: the root product, split by Shoup's trace, the
 roots read off the linear factors), `p` of at most `B` coefficients: at most `rootsBound B`. -/

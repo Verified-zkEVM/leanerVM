@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Cost.Bounds.Samples.MsStep
 public import LeanVM.Cost.Bounds.MuldersStorjohann
+public import LeanVM.Cost.Bounds.Decoder.ShapeDefs
 
 /-!
 # Bound: Mulders–Storjohann's reduction, compiled
@@ -237,11 +238,6 @@ theorem wordPositions_rowLeadingPositions {C D : ℕ} (hC : C < 2 ^ 62) (M : Pol
     omega
 
 /-! ## The loop -/
-
-/-- The price of one iteration on `r` rows of width `w`, shifted degrees at most `D`: the
-leading positions, the conflict search, one step. -/
-@[expose] def msIterBound (r w D : ℕ) : ℕ :=
-  190 * (w * r) + 64 * (r * r) + 740 * ((D + 1) * w) + 184 * r + 970 * w + 30 * D + 21200
 
 /-- **The loop** (`muldersStorjohannReduceWithFuelFast`): at most
 `(r·(D + 1)·(w + 1) + 1)·msIterBound r w D`, whatever the fuel (below `2^64`). -/

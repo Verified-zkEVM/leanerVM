@@ -365,13 +365,6 @@ theorem toNovelFastC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.toNovelFa
 
 /-! ## The lane's candidates -/
 
-/-- The price of one lane beyond its Guruswami–Sudan run: at most `L` candidates of at most `k`
-coefficients, `N = 2^κ`, `M = 2^(κ+R)`. -/
-@[expose] def laneExtraBound (κ R L k : ℕ) : ℕ :=
-  ((272 * k + 33) * 2 ^ κ + κ * (760 * 2 ^ κ + 19790) + 57) * L +
-    ((17 * 2 ^ κ + 22) * L + 30) * L + (50 * 2 ^ κ + 124) * (L * L) +
-    (κ * (760 * 2 ^ (κ + R) + 19793) + 30 * 2 ^ (κ + R) + 61) * L + 60
-
 theorem mem_dedup_toNovel_size {κ : ℕ} {l : List (CPolynomial K)} {c : Array K}
     (h : c ∈ (l.map (toNovelFast κ)).dedup) : c.size = 2 ^ κ := by
   rw [List.mem_dedup, List.mem_map] at h
