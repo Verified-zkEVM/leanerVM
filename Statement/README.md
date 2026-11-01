@@ -122,7 +122,8 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
     does not follow from it.
 13. [`CostMachine.lean`](CostMachine.lean): the cost machine (a first-order functional language
     on words, natural numbers and arrays, each step priced by the words it writes and its
-    operations by their algorithms: `eval`, `run`, `outputWithin`, a program's `size`), the
+    operations by their algorithms: `MachineValue`, `PrimitiveOperation`, `Term`,
+    `MachineProgram`, `evaluateTerm`, `run`, `outputWithin`, a program's `size`), the
     encoding of the extractor's input and output (`encode`, `decodeExecution`, a linear parse), the
     budget (`extractorBudget`, read off the shape a proof announces: `announced`,
     `LeanVmVerifier.lean`) and **`LeanVM.extractorOf P`**: the extractor a program `P` computes, run

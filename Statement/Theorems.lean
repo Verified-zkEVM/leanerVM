@@ -35,7 +35,7 @@ adversary is in the random-permutation model (`Statement/README.md`).
 namespace Statement
 
 /-- **The end theorems.** -/
-structure Theorems (decode : LeanVM.Node.Decoder) (extractorProgram : LeanVM.Cost.Program) :
+structure Theorems (decode : LeanVM.Node.Decoder) (extractorProgram : LeanVM.Cost.MachineProgram) :
     Prop where
   /-- The extractor program has at most `extractorSizeBound` terms (`2^15`): it cannot carry a
   table of witnesses (`CostMachine.lean`). -/

@@ -153,11 +153,11 @@ theorem decoderShape_ok {μ R : ℕ} (h : Whir.Admissible μ R) : DecoderShapeOk
   · exact decoderShapeOk_28_4
 
 /-- **The decoder at every admissible shape**: at most `(BW + 10·Lw)·2^26 + decoderWorstPrice`. -/
-theorem decodeStacksDistinctC_cost_worst (P : Program) (hP : Includes P decodeStacksDistinctC.costDeps)
+theorem decodeStacksDistinctC_cost_worst (P : MachineProgram) (hP : Includes P decodeStacksDistinctC.costDeps)
     {μ R : ℕ} (hadm : Whir.Admissible μ R)
-    (W : ℕ → List K) (WVal : Val) (hW : ∀ a, RunsApp P WVal [enc a] (enc (W a))) {BW Lw : ℕ}
-    (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [enc v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
-    machineCost P decodeStacksDistinctC.costIdx [enc μ, enc R, WVal] ≤
+    (W : ℕ → List K) (WVal : MachineValue) (hW : ∀ a, RunsApp P WVal [encodeValue a] (encodeValue (W a))) {BW Lw : ℕ}
+    (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [encodeValue v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
+    machineCost P decodeStacksDistinctC.costIdx [encodeValue μ, encodeValue R, WVal] ≤
       (BW + 10 * Lw) * 2 ^ 26 + decoderWorstPrice := by
   obtain ⟨hsz, hle⟩ := decoderShape_ok hadm
   have h := decodeStacksDistinctC_cost P hP μ R hadm hsz W WVal hW hBW hLw

@@ -17,22 +17,22 @@ open LeanVM.Cost LeanVM.Cost.Extractor LeanVM.Extraction.Fast LeanVM.Protocol.Co
 open LeanVMTests.Protocol.Verifier.Compiled
 
 /-- The compiled `afterRootLite`'s value on the bytecode and a stream. -/
-def afterRootRun (s : List LeanVM.Parameters.E) : Option (Val × ℕ) :=
-  evalBody (Program.ofList afterRootLiteC.costDeps) 1000 afterRootLiteC.costIdx
-    [Enc.enc sampleBytecode, Enc.enc (⟨s, []⟩ : Proof)]
+def afterRootRun (s : List LeanVM.Parameters.E) : Option (MachineValue × ℕ) :=
+  evaluateFunctionBody (MachineProgram.ofList afterRootLiteC.costDeps) 1000 afterRootLiteC.costIdx
+    [MachineEncoding.encodeValue sampleBytecode, MachineEncoding.encodeValue (⟨s, []⟩ : Proof)]
 
 #guard (afterRootRun (stream 4 0)).map (·.1) ==
-  some (Enc.enc (afterRootLite sampleBytecode ⟨stream 4 0, []⟩))
+  some (MachineEncoding.encodeValue (afterRootLite sampleBytecode ⟨stream 4 0, []⟩))
 #guard (afterRootLite sampleBytecode ⟨stream 4 0, []⟩).isSome
 #guard ((afterRootLite sampleBytecode ⟨stream 4 0, []⟩).map fun r ↦ r.1.1.stackLog) == some 19
 #guard (afterRootRun (stream 4 3)).map (·.1) ==
-  some (Enc.enc (afterRootLite sampleBytecode ⟨stream 4 3, []⟩))
+  some (MachineEncoding.encodeValue (afterRootLite sampleBytecode ⟨stream 4 3, []⟩))
 #guard (afterRootRun (stream 5 0)).map (·.1) ==
-  some (Enc.enc (afterRootLite sampleBytecode ⟨stream 5 0, []⟩))
+  some (MachineEncoding.encodeValue (afterRootLite sampleBytecode ⟨stream 5 0, []⟩))
 #guard (afterRootLite sampleBytecode ⟨stream 5 0, []⟩).isNone
 #guard (afterRootRun (stream 4 0 1)).map (·.1) ==
-  some (Enc.enc (afterRootLite sampleBytecode ⟨stream 4 0 1, []⟩))
-#guard (afterRootRun []).map (·.1) == some (Enc.enc (afterRootLite sampleBytecode ⟨[], []⟩))
+  some (MachineEncoding.encodeValue (afterRootLite sampleBytecode ⟨stream 4 0 1, []⟩))
+#guard (afterRootRun []).map (·.1) == some (MachineEncoding.encodeValue (afterRootLite sampleBytecode ⟨[], []⟩))
 
 /-- info: some 3525661 -/
 #guard_msgs in

@@ -33,14 +33,14 @@ cost_compile eAddC := fun (x y : E) ↦ x + y
 
 cost_compile eMulC := fun (x y : E) ↦ x * y
 
-variable (P : Program)
+variable (P : MachineProgram)
 
 theorem kMulC_cost (hP : Includes P kMulC.costDeps) (x y : K) :
-    machineCost P kMulC.costIdx [enc x, enc y] = 258 := by
+    machineCost P kMulC.costIdx [encodeValue x, encodeValue y] = 258 := by
   rw [kMulC.costEq P hP]
 
 theorem powTwoPow_cost (hP : Includes P Auto.BF64.powTwoPow.c6.costDeps) :
-    ∀ (k : ℕ) (a : BF64), k < 2 ^ 64 → machineCost P Auto.BF64.powTwoPow.c6.costIdx [enc a, enc k] =
+    ∀ (k : ℕ) (a : BF64), k < 2 ^ 64 → machineCost P Auto.BF64.powTwoPow.c6.costIdx [encodeValue a, encodeValue k] =
       6 + 270 * k := by
   intro k
   induction k with
@@ -52,18 +52,18 @@ theorem powTwoPow_cost (hP : Includes P Auto.BF64.powTwoPow.c6.costDeps) :
     omega
 
 theorem kInvC_cost (hP : Includes P kInvC.costDeps) (a : K) :
-    machineCost P kInvC.costIdx [enc a] ≤ 19676 := by
+    machineCost P kInvC.costIdx [encodeValue a] ≤ 19676 := by
   have h6 : Includes P Auto.BF64.powTwoPow.c6.costDeps := by includes
   rw [kInvC.costEq P hP, Auto.BF64.invItohTsujii.c5.costEq P (by includes)]
   simp (disch := omega) only [powTwoPow_cost P h6]
   split_ifs <;> omega
 
 theorem eAddC_cost (hP : Includes P eAddC.costDeps) (x y : E) :
-    machineCost P eAddC.costIdx [enc x, enc y] = 19 := by
+    machineCost P eAddC.costIdx [encodeValue x, encodeValue y] = 19 := by
   rw [eAddC.costEq P hP]
 
 theorem eMulC_cost (hP : Includes P eMulC.costDeps) (x y : E) :
-    machineCost P eMulC.costIdx [enc x, enc y] = 2358 := by
+    machineCost P eMulC.costIdx [encodeValue x, encodeValue y] = 2358 := by
   rw [eMulC.costEq P hP]
 
 end

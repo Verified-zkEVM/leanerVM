@@ -25,7 +25,7 @@ at most `D` coefficients (`RowWithin`) and shifts at most `S`, word-sized (`2·D
   `rowSubScaledShift_cost`);
 * the cancellation and the step.
 
-The values the step computes enter its price through `limbs` (degrees, positions) and through
+The values the step computes enter its price through `limbCount` (degrees, positions) and through
 the lengths it iterates over: `shiftedEntryDegree?_le`, `rowShiftedDegree?_le` and
 `rowShiftedLeadingTerm?_spec` bound them (the degrees by `D + S`, the position by the row's size,
 the leading degree by `D`). Products of sizes are stated with `D·C` as one atom
@@ -78,18 +78,18 @@ theorem shiftedEntryDegree?_le {C D S : ℕ} {row : PolynomialRow K} (h : RowWit
     have := hS j
     omega
 
-variable (P : Program)
+variable (P : MachineProgram)
 
 /-! ## The shifted degree of a row -/
 
 theorem rowGet_cost (hP : Includes P rowGet.c17.costDeps)
     (row : PolynomialRow K) (j : ℕ) :
-    machineCost P rowGet.c17.costIdx [enc row, enc j] = 5 := by
+    machineCost P rowGet.c17.costIdx [encodeValue row, encodeValue j] = 5 := by
   rw [rowGet.c17.costEq P hP]
 
 /-- `List.beq` on coefficients: at most `12` per coefficient and `7`. -/
 theorem listBeqK_cost (hP : Includes P Auto.List.beq.c27.costDeps) :
-    ∀ a b : List K, machineCost P Auto.List.beq.c27.costIdx [enc a, enc b] ≤ 12 * a.length + 7 := by
+    ∀ a b : List K, machineCost P Auto.List.beq.c27.costIdx [encodeValue a, encodeValue b] ≤ 12 * a.length + 7 := by
   intro a
   induction a with
   | nil => intro b; rw [Auto.List.beq.c27.costEq P hP]; cases b <;> simp
@@ -105,7 +105,7 @@ theorem listBeqK_cost (hP : Includes P Auto.List.beq.c27.costDeps) :
 
 theorem natDegree_cost (hP : Includes P Auto.CompPoly.CPolynomial.natDegree.c18.costDeps)
     (p : CPolynomial K) (hp : p.val.size < 2 ^ 64) :
-      machineCost P Auto.CompPoly.CPolynomial.natDegree.c18.costIdx [enc p] ≤ 13 := by
+      machineCost P Auto.CompPoly.CPolynomial.natDegree.c18.costIdx [encodeValue p] ≤ 13 := by
   rw [Auto.CompPoly.CPolynomial.natDegree.c18.costEq P hP]
   have hp' := hp
   cases h : p.val.size with
@@ -114,7 +114,7 @@ theorem natDegree_cost (hP : Includes P Auto.CompPoly.CPolynomial.natDegree.c18.
 
 theorem maxOption_cost (hP : Includes P maxOption.c19.costDeps)
     (a : Option ℕ) (n : ℕ) (ha : ∀ v, a = some v → v < 2 ^ 64) (hn : n < 2 ^ 64) :
-    machineCost P maxOption.c19.costIdx [enc a, enc n] ≤ 10 := by
+    machineCost P maxOption.c19.costIdx [encodeValue a, encodeValue n] ≤ 10 := by
   rw [maxOption.c19.costEq P hP]
   cases a with
   | none => simp
@@ -123,7 +123,7 @@ theorem maxOption_cost (hP : Includes P maxOption.c19.costDeps)
 /-- `List.range`'s loop: at most `17·n + 6`. -/
 theorem rangeLoop_cost (hP : Includes P Auto.List.range.loop.c20.costDeps) :
     ∀ (n : ℕ) (acc : List ℕ), n < 2 ^ 64 →
-      machineCost P Auto.List.range.loop.c20.costIdx [enc n, enc acc] ≤ 17 * n + 6 := by
+      machineCost P Auto.List.range.loop.c20.costIdx [encodeValue n, encodeValue acc] ≤ 17 * n + 6 := by
   intro n
   induction n with
   | zero => intro acc _; rw [Auto.List.range.loop.c20.costEq P hP]; cost_simp; omega
@@ -172,12 +172,12 @@ theorem rowShiftedDegree_cost
     (hP : Includes P rowShiftedDegree?.c15.costDeps)
     {C D S : ℕ} (hC : C < 2 ^ 62) (hDS : D + S < 2 ^ 62) (row : PolynomialRow K)
     (hrow : RowWithin C D row) (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S) :
-    machineCost P rowShiftedDegree?.c15.costIdx [enc row, enc shift] ≤ 90 * C + 30 := by
+    machineCost P rowShiftedDegree?.c15.costIdx [encodeValue row, encodeValue shift] ≤ 90 * C + 30 := by
   rw [rowShiftedDegree?.c15.costEq P hP]
   have hsz := hrow.1
   have := rangeLoop_cost P (by includes) row.size [] (by omega)
   have hfold :=
-    listFoldl_le P (by includes) _ (.fn rowShiftedDegree?.c15.lam0.costIdx [enc row, enc shift])
+    listFoldl_le P (by includes) _ (.closure rowShiftedDegree?.c15.lam0.costIdx [encodeValue row, encodeValue shift])
     (fun acc j ↦ RunsApp.of_spec
       (rowShiftedDegree?.c15.lam0.costSpec P (by includes)
         row shift acc j))
@@ -221,10 +221,10 @@ theorem rowShiftedDegree_cost
 /-! ## The shifted leading term of a row -/
 
 /-- `List.find?` on indices: `9` per index and the predicate's price, `3` at the end. -/
-theorem findNat_cost (hP : Includes P Auto.List.find?.c21.costDeps) (p : ℕ → Bool) (pVal : Val)
-    (hp : ∀ a, RunsApp P pVal [enc a] (enc (p a))) (B : ℕ) :
-    ∀ l : List ℕ, (∀ a ∈ l, appCost P pVal [enc a] ≤ B) →
-      machineCost P Auto.List.find?.c21.costIdx [pVal, enc l] ≤ (B + 9) * l.length + 3 := by
+theorem findNat_cost (hP : Includes P Auto.List.find?.c21.costDeps) (p : ℕ → Bool) (pVal : MachineValue)
+    (hp : ∀ a, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : ℕ) :
+    ∀ l : List ℕ, (∀ a ∈ l, appCost P pVal [encodeValue a] ≤ B) →
+      machineCost P Auto.List.find?.c21.costIdx [pVal, encodeValue l] ≤ (B + 9) * l.length + 3 := by
   intro l
   induction l with
   | nil => intro _; rw [Auto.List.find?.c21.costEq P hP p pVal hp]; simp
@@ -239,7 +239,7 @@ theorem findNat_cost (hP : Includes P Auto.List.find?.c21.costDeps) (p : ℕ →
 
 /-- `List.reverseAux` on indices: `10` per index, `3` at the end. -/
 theorem reverseAuxNat_cost (hP : Includes P Auto.List.reverseAux.c23.costDeps) :
-    ∀ l acc : List ℕ, machineCost P Auto.List.reverseAux.c23.costIdx [enc l, enc acc] ≤
+    ∀ l acc : List ℕ, machineCost P Auto.List.reverseAux.c23.costIdx [encodeValue l, encodeValue acc] ≤
       10 * l.length + 3 := by
   intro l
   induction l with
@@ -256,7 +256,7 @@ theorem leadingPositionTest_cost
     (hP : Includes P rowShiftedLeadingPosition?.c14.lam0.costDeps)
     {C D S : ℕ} (hDS : D + S < 2 ^ 62) (val : ℕ) (hval : val ≤ D + S) (row : PolynomialRow K)
     (hrow : RowWithin C D row) (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S) (j : ℕ) :
-    machineCost P rowShiftedLeadingPosition?.c14.lam0.costIdx [enc val, enc row, enc shift, enc j] ≤
+    machineCost P rowShiftedLeadingPosition?.c14.lam0.costIdx [encodeValue val, encodeValue row, encodeValue shift, encodeValue j] ≤
       60 := by
   rw [rowShiftedLeadingPosition?.c14.lam0.costEq P hP]
   have := rowGet_cost P (by includes) row j
@@ -278,7 +278,7 @@ theorem rowShiftedLeadingPosition_cost
     (hP : Includes P rowShiftedLeadingPosition?.c14.costDeps)
     {C D S : ℕ} (hC : C < 2 ^ 62) (hDS : D + S < 2 ^ 62) (row : PolynomialRow K)
     (hrow : RowWithin C D row) (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S) :
-    machineCost P rowShiftedLeadingPosition?.c14.costIdx [enc row, enc shift] ≤
+    machineCost P rowShiftedLeadingPosition?.c14.costIdx [encodeValue row, encodeValue shift] ≤
       190 * C + 100 := by
   rw [rowShiftedLeadingPosition?.c14.costEq P hP]
   have hsz := hrow.1
@@ -292,7 +292,7 @@ theorem rowShiftedLeadingPosition_cost
     have := reverseAuxNat_cost P (by includes) (List.range row.size) []
     have hf :=
       findNat_cost P (by includes) _
-        (.fn rowShiftedLeadingPosition?.c14.lam0.costIdx [enc val, enc row, enc shift])
+        (.closure rowShiftedLeadingPosition?.c14.lam0.costIdx [encodeValue val, encodeValue row, encodeValue shift])
       (fun a ↦ RunsApp.of_spec
         (rowShiftedLeadingPosition?.c14.lam0.costSpec P
           (by includes) val row shift a)) 60 (List.range row.size).reverse
@@ -334,7 +334,7 @@ theorem rowShiftedLeadingTerm_cost
     (hP : Includes P rowShiftedLeadingTerm?.c26.costDeps)
     {C D S : ℕ} (hC : C < 2 ^ 62) (hDS : D + S < 2 ^ 62) (row : PolynomialRow K)
     (hrow : RowWithin C D row) (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S) :
-    machineCost P rowShiftedLeadingTerm?.c26.costIdx [enc row, enc shift] ≤
+    machineCost P rowShiftedLeadingTerm?.c26.costIdx [encodeValue row, encodeValue shift] ≤
       280 * C + 15 * D + 250 := by
   rw [rowShiftedLeadingTerm?.c26.costEq P hP]
   have := rowShiftedDegree_cost P (by includes) hC hDS row hrow shift hS
@@ -362,7 +362,7 @@ theorem rowShiftedLeadingTerm_cost
 price `256`). -/
 theorem powTwoPow_cost (hP : Includes P Auto.BF64.powTwoPow.c34.costDeps) :
     ∀ (k : ℕ) (a : BF64), k < 2 ^ 64 →
-      machineCost P Auto.BF64.powTwoPow.c34.costIdx [enc a, enc k] =
+      machineCost P Auto.BF64.powTwoPow.c34.costIdx [encodeValue a, encodeValue k] =
       6 + 270 * k := by
   intro k
   induction k with
@@ -376,7 +376,7 @@ theorem powTwoPow_cost (hP : Includes P Auto.BF64.powTwoPow.c34.costDeps) :
 
 /-- **A field inverse** (`BF64.invItohTsujii`): at most `19700`. -/
 theorem invK_cost (hP : Includes P Auto.BF64.invItohTsujii.c33.costDeps) (a : BF64) :
-    machineCost P Auto.BF64.invItohTsujii.c33.costIdx [enc a] ≤ 19700 := by
+    machineCost P Auto.BF64.invItohTsujii.c33.costIdx [encodeValue a] ≤ 19700 := by
   have h26 : Includes P Auto.BF64.powTwoPow.c34.costDeps := by includes
   rw [Auto.BF64.invItohTsujii.c33.costEq P hP]
   simp (disch := omega) only [powTwoPow_cost P h26]
@@ -389,7 +389,7 @@ theorem subCoeff_cost
     (hP : Includes P rowSubScaledShift.c28.lam0.lam0.costDeps)
     (a : PolynomialRow K) (c : K) (d : ℕ) (b : PolynomialRow K) (j j' : ℕ) (hd : d < 2 ^ 64)
     (hj' : j' < 2 ^ 64) :
-      machineCost P rowSubScaledShift.c28.lam0.lam0.costIdx [enc a, enc c, enc d, enc b, enc j, enc j']
+      machineCost P rowSubScaledShift.c28.lam0.lam0.costIdx [encodeValue a, encodeValue c, encodeValue d, encodeValue b, encodeValue j, encodeValue j']
         ≤ 300 := by
   rw [rowSubScaledShift.c28.lam0.lam0.costEq P hP,
     rowGet_cost P (by includes), rowGet_cost P (by includes)]
@@ -399,7 +399,7 @@ theorem subCoeff_cost
 /-- `trimLen p n`: at most `22·n + 6`. -/
 theorem trimLen_cost (hP : Includes P Auto.LeanVM.Cost.CompPolyLib.trimLen.c31.costDeps)
     (p : Array K) : ∀ n : ℕ, n < 2 ^ 64 →
-      machineCost P Auto.LeanVM.Cost.CompPolyLib.trimLen.c31.costIdx [enc p, enc n] ≤
+      machineCost P Auto.LeanVM.Cost.CompPolyLib.trimLen.c31.costIdx [encodeValue p, encodeValue n] ≤
         22 * n + 6 := by
   intro n
   induction n with
@@ -414,7 +414,7 @@ theorem trimLen_cost (hP : Includes P Auto.LeanVM.Cost.CompPolyLib.trimLen.c31.c
 /-- `CPolynomial.ofArray`, trimming: at most `23·|coeffs| + 16`. -/
 theorem ofArray_cost (hP : Includes P Auto.CompPoly.CPolynomial.ofArray.c30.costDeps)
     (coeffs : Array K) (hs : coeffs.size < 2 ^ 64) :
-    machineCost P Auto.CompPoly.CPolynomial.ofArray.c30.costIdx [enc coeffs] ≤
+    machineCost P Auto.CompPoly.CPolynomial.ofArray.c30.costIdx [encodeValue coeffs] ≤
       23 * coeffs.size + 16 := by
   rw [Auto.CompPoly.CPolynomial.ofArray.c30.costEq P hP]
   have := trimLen_cost P (by includes) coeffs coeffs.size hs
@@ -429,7 +429,7 @@ theorem subMulMonomialEntry_cost
     (hP : Includes P rowSubScaledShift.c28.lam0.costDeps)
     {C D : ℕ} (a : PolynomialRow K) (ha : RowWithin C D a) (c : K) (d : ℕ) (hd : D + d < 2 ^ 62)
     (b : PolynomialRow K) (hb : RowWithin C D b) (j : ℕ) :
-    machineCost P rowSubScaledShift.c28.lam0.costIdx [enc a, enc c, enc d, enc b, enc j] ≤
+    machineCost P rowSubScaledShift.c28.lam0.costIdx [encodeValue a, encodeValue c, encodeValue d, encodeValue b, encodeValue j] ≤
       370 * (D + d) + 200 := by
   rw [rowSubScaledShift.c28.lam0.costEq P hP]
   have := rowGet_cost P (by includes) a j
@@ -441,12 +441,12 @@ theorem subMulMonomialEntry_cost
   have hm : max (rowGet a j).val.size (d + (rowGet b j).val.size) ≤ D + d := by omega
   have := rangeLoop_cost P (by includes) (max (rowGet a j).val.size (d + (rowGet b j).val.size))
     [] (by omega)
-  have hf := fun j' ↦ RunsApp.of_spec (us := [enc a, enc c, enc d, enc b, enc j]) (vs := [enc j'])
+  have hf := fun j' ↦ RunsApp.of_spec (us := [encodeValue a, encodeValue c, encodeValue d, encodeValue b, encodeValue j]) (vs := [encodeValue j'])
     (rowSubScaledShift.c28.lam0.lam0.costSpec P (by includes)
       a c d b j j')
   have := listMap_le P Auto.List.map.c12.costIdx
-    (.fn rowSubScaledShift.c28.lam0.lam0.costIdx
-      [enc a, enc c, enc d, enc b, enc j])
+    (.closure rowSubScaledShift.c28.lam0.lam0.costIdx
+      [encodeValue a, encodeValue c, encodeValue d, encodeValue b, encodeValue j])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf) 300
     (List.range (max (rowGet a j).val.size (d + (rowGet b j).val.size)))
@@ -469,15 +469,15 @@ theorem rowSubScaledShift_cost
     (hP : Includes P rowSubScaledShift.c28.costDeps)
     {C D : ℕ} (hC : C < 2 ^ 62) (a : PolynomialRow K) (ha : RowWithin C D a) (c : K) (d : ℕ)
     (hd : D + d < 2 ^ 62) (b : PolynomialRow K) (hb : RowWithin C D b) :
-    machineCost P rowSubScaledShift.c28.costIdx [enc a, enc c, enc d, enc b] ≤
+    machineCost P rowSubScaledShift.c28.costIdx [encodeValue a, encodeValue c, encodeValue d, encodeValue b] ≤
       370 * ((D + d) * C) + 230 * C + 40 := by
   rw [rowSubScaledShift.c28.costEq P hP]
   have hm : max a.size b.size ≤ C := by have := ha.1; have := hb.1; omega
   have := rangeLoop_cost P (by includes) (max a.size b.size) [] (by omega)
-  have hf := fun j ↦ RunsApp.of_spec (us := [enc a, enc c, enc d, enc b]) (vs := [enc j])
+  have hf := fun j ↦ RunsApp.of_spec (us := [encodeValue a, encodeValue c, encodeValue d, encodeValue b]) (vs := [encodeValue j])
     (rowSubScaledShift.c28.lam0.costSpec P (by includes) a c d b j)
   have hmap := listMap_le P Auto.List.map.c12.costIdx
-    (.fn rowSubScaledShift.c28.lam0.costIdx [enc a, enc c, enc d, enc b])
+    (.closure rowSubScaledShift.c28.lam0.costIdx [encodeValue a, encodeValue c, encodeValue d, encodeValue b])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf) (370 * (D + d) + 200) (List.range
       (max a.size b.size))
@@ -498,7 +498,7 @@ theorem cancelShiftedLeadingTerm_cost
     {C D S : ℕ} (hC : C < 2 ^ 62) (hDS : 2 * D + S < 2 ^ 62) (target reducer : PolynomialRow K)
     (ht : RowWithin C D target) (hr : RowWithin C D reducer) (shift : Array ℕ)
     (hS : ∀ j, shift.getD j 0 ≤ S) :
-    machineCost P cancelShiftedLeadingTermFast.c25.costIdx [enc target, enc reducer, enc shift] ≤
+    machineCost P cancelShiftedLeadingTermFast.c25.costIdx [encodeValue target, encodeValue reducer, encodeValue shift] ≤
       740 * (D * C) + 790 * C + 30 * D + 21000 := by
   rw [cancelShiftedLeadingTermFast.c25.costEq P hP]
   have := rowShiftedLeadingTerm_cost P (by includes) hC (by omega) target ht shift hS
@@ -531,7 +531,7 @@ as `msStepK`): at most `|M| + 740·D·C + 970·C + 30·D + 21100`, for a matrix 
 theorem msStep_cost (hP : Includes P msStepK.costDeps) {C D S : ℕ} (hC : C < 2 ^ 62)
     (hDS : 2 * D + S < 2 ^ 62) (M : PolynomialMatrix K) (hM : ∀ row ∈ M, RowWithin C D row)
     (hMs : M.size < 2 ^ 64) (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S) (i j : ℕ) :
-    machineCost P msStepK.costIdx [enc M, enc shift, enc i, enc j] ≤
+    machineCost P msStepK.costIdx [encodeValue M, encodeValue shift, encodeValue i, encodeValue j] ≤
       M.size + 740 * (D * C) + 970 * C + 30 * D + 21100 := by
   have hrow : ∀ k, RowWithin C D (M.getD k #[]) := by
     intro k

@@ -240,7 +240,7 @@ execution decodes, by `guestKnowledge`, to a statement of the accepted digest, w
 identifies with the accepted statement or turns into a collision), the completeness on recursion
 nodes and leaves from `guestCompleteCovered` (the first two families of `Covered`). -/
 theorem LeanVM.corollaries_of_theorems {decode : LeanVM.Node.Decoder}
-    {extractorProgram : LeanVM.Cost.Program} (h : Statement.Theorems decode extractorProgram) :
+    {extractorProgram : LeanVM.Cost.MachineProgram} (h : Statement.Theorems decode extractorProgram) :
     Statement.Corollaries decode extractorProgram where
   aggregateSound := by
     intro A Q hA hQ

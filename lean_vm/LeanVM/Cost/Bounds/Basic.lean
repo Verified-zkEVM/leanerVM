@@ -8,7 +8,7 @@ public meta import Lean.Elab.Tactic
 
 The compiler gives every compiled function `g` (function `i` of the program) a spec at the
 machine's price, `machineCost P i (args x)`, and that price's recurrence, `g.costEq`: an equation
-`machineCost P i (args x) = C[x]`, `C` a sum of constants, `limbs` of the numbers the body
+`machineCost P i (args x) = C[x]`, `C` a sum of constants, `limbCount` of the numbers the body
 compares or adds, sizes of the arrays it builds, the prices of its callees
 (`machineCost P j …`), of the closures it applies (`appCost P v …`), and `casesOn`/`if` on the
 values it inspects. A closed-form bound on `g`'s price is proved by:
@@ -20,7 +20,7 @@ values it inspects. A closed-form bound on `g`'s price is proved by:
    cases on: the case already reduced); the prices are stated with `g.costIdx`;
 3. **case analysis** on what the body inspects (`cases l`, `cases n`, `split`, `generalize … ;
    cases`), until no `casesOn` is left; `simp only [cost_simps]` folds the constants, the lengths
-   of literal lists and `limbs` of word-sized numbers;
+   of literal lists and `limbCount` of word-sized numbers;
 4. `cost_facts [bound₁, bound₂, …]`: every price in the goal that a bound of a callee (or the
    induction hypothesis) covers gets that bound as a hypothesis (instantiated by unification, its
    side conditions closed by `omega`, an `Includes` premise from the context);
@@ -31,7 +31,7 @@ of a callee composes because it is a theorem about `machineCost P j …` for eve
 holding `j`'s bodies (`Includes P j.costDeps`), as the spec is; `includes` derives that premise
 from the caller's.
 
-Here: the tactics `includes`, `cost_facts`, `cost_simp`; `limbs` of word-sized numbers; products
+Here: the tactics `includes`, `cost_facts`, `cost_simp`; `limbCount` of word-sized numbers; products
 of sizes as atoms (`affine_mul_le`); the recurrence solvers (`le_of_halving` for a binary search,
 `le_of_doubling` for a binary tree); the bounds of the library's polymorphic functions
 (`listZipWith_le`, `listFoldl_le`), proved once for every element type and closure, and of an
@@ -179,25 +179,25 @@ elab "cost_facts" " [" hs:term,* "]" : tactic => withMainContext do
 
 end Meta
 
-/-! ## `limbs` of word-sized numbers -/
+/-! ## `limbCount` of word-sized numbers -/
 
-theorem limbs_le_add_one (n : ℕ) : limbs n ≤ n + 1 := by
+theorem limbs_le_add_one (n : ℕ) : limbCount n ≤ n + 1 := by
   have := Nat.log2_le_self n
-  unfold limbs
+  unfold limbCount
   omega
 
-/-- The constants and `limbs` of literals in a recurrence. -/
+/-- The constants and `limbCount` of literals in a recurrence. -/
 theorem limbs_ofNat (n : ℕ) [n.AtLeastTwo] (h : (OfNat.ofNat n : ℕ) < 2 ^ 64 := by decide) :
-    limbs (OfNat.ofNat n) = 1 := limbs_of_lt h
+    limbCount (OfNat.ofNat n) = 1 := limbs_of_lt h
 
-@[simp] theorem limbs_zero : limbs 0 = 1 := rfl
+@[simp] theorem limbs_zero : limbCount 0 = 1 := rfl
 
-@[simp] theorem limbs_one : limbs 1 = 1 := rfl
+@[simp] theorem limbs_one : limbCount 1 = 1 := rfl
 
-theorem appCost_fn (P : Program) (j : ℕ) (us vs : List Val) :
-    appCost P (.fn j us) vs = machineCost P j (us ++ vs) := rfl
+theorem appCost_fn (P : MachineProgram) (j : ℕ) (us vs : List MachineValue) :
+    appCost P (.closure j us) vs = machineCost P j (us ++ vs) := rfl
 
-/-- `cost_simp`: fold a recurrence's constants: `limbs` of numbers `omega` shows word-sized, the
+/-- `cost_simp`: fold a recurrence's constants: `limbCount` of numbers `omega` shows word-sized, the
 lengths of literal lists, a known closure's price as its function's. It may do nothing (the
 compiler's equations come folded already; a case split may leave nothing to fold). -/
 syntax (name := costSimp) "cost_simp" : tactic
@@ -287,13 +287,13 @@ theorem le_of_doubling {α : Type} (T : ℕ → α → ℕ) (a b c : ℕ) (h0 : 
 
 section Library
 
-variable (P : Program) {α β γ : Type} [Enc α] [Enc β] [Enc γ]
+variable (P : MachineProgram) {α β γ : Type} [MachineEncoding α] [MachineEncoding β] [MachineEncoding γ]
 
 /-- **`List.zipWith`** (`listZipWith`): `15` per pair and the closure's price, `5` at the end. -/
-theorem listZipWith_le (hP : Includes P listZipWith.costDeps) (f : α → β → γ) (fVal : Val)
-    (hf : ∀ a b, RunsApp P fVal [enc a, enc b] (enc (f a b))) (B : ℕ) :
-    ∀ (xs : List α) (ys : List β), (∀ a ∈ xs, ∀ b ∈ ys, appCost P fVal [enc a, enc b] ≤ B) →
-      machineCost P listZipWith.costIdx [fVal, enc xs, enc ys] ≤
+theorem listZipWith_le (hP : Includes P listZipWith.costDeps) (f : α → β → γ) (fVal : MachineValue)
+    (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b))) (B : ℕ) :
+    ∀ (xs : List α) (ys : List β), (∀ a ∈ xs, ∀ b ∈ ys, appCost P fVal [encodeValue a, encodeValue b] ≤ B) →
+      machineCost P listZipWith.costIdx [fVal, encodeValue xs, encodeValue ys] ≤
         (B + 15) * min xs.length ys.length + 5 := by
   intro xs
   induction xs with
@@ -312,11 +312,11 @@ theorem listZipWith_le (hP : Includes P listZipWith.costDeps) (f : α → β →
 
 /-- **`List.foldl`** (`listFoldl`): `9` per element and the closure's price, `3` at the end; the
 closure's price bounded on the accumulators an invariant `I` holds. -/
-theorem listFoldl_le (hP : Includes P listFoldl.costDeps) (f : α → β → α) (fVal : Val)
-    (hf : ∀ a b, RunsApp P fVal [enc a, enc b] (enc (f a b))) (B : ℕ) (I : α → Prop) :
+theorem listFoldl_le (hP : Includes P listFoldl.costDeps) (f : α → β → α) (fVal : MachineValue)
+    (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b))) (B : ℕ) (I : α → Prop) :
     ∀ (l : List β) (init : α), I init →
-      (∀ acc, I acc → ∀ b ∈ l, I (f acc b) ∧ appCost P fVal [enc acc, enc b] ≤ B) →
-      machineCost P listFoldl.costIdx [fVal, enc init, enc l] ≤ (B + 9) * l.length + 3 := by
+      (∀ acc, I acc → ∀ b ∈ l, I (f acc b) ∧ appCost P fVal [encodeValue acc, encodeValue b] ≤ B) →
+      machineCost P listFoldl.costIdx [fVal, encodeValue init, encodeValue l] ≤ (B + 9) * l.length + 3 := by
   intro l
   induction l with
   | nil => intro init _ _; rw [listFoldl.costEq_nil P hP f fVal hf]; omega
@@ -331,12 +331,12 @@ theorem listFoldl_le (hP : Includes P listFoldl.costDeps) (f : α → β → α)
 /-- **`List.map`, by its recurrence**: an on-demand `List.map` (compiled once per program, at its
 own index `i`) has these two equations (its `costEq_nil` and `costEq_cons`); then `11` per
 element and the closure's price, `3` at the end. -/
-theorem listMap_le (i : ℕ) {α : Type} [Enc α] (fVal : Val)
-    (h0 : machineCost P i [fVal, enc ([] : List α)] = 3)
-    (hs : ∀ (x : α) (l : List α), machineCost P i [fVal, enc (x :: l)] =
-      appCost P fVal [enc x] + machineCost P i [fVal, enc l] + 11)
-    (B : ℕ) : ∀ l : List α, (∀ a ∈ l, appCost P fVal [enc a] ≤ B) →
-      machineCost P i [fVal, enc l] ≤ (B + 11) * l.length + 3 := by
+theorem listMap_le (i : ℕ) {α : Type} [MachineEncoding α] (fVal : MachineValue)
+    (h0 : machineCost P i [fVal, encodeValue ([] : List α)] = 3)
+    (hs : ∀ (x : α) (l : List α), machineCost P i [fVal, encodeValue (x :: l)] =
+      appCost P fVal [encodeValue x] + machineCost P i [fVal, encodeValue l] + 11)
+    (B : ℕ) : ∀ l : List α, (∀ a ∈ l, appCost P fVal [encodeValue a] ≤ B) →
+      machineCost P i [fVal, encodeValue l] ≤ (B + 11) * l.length + 3 := by
   intro l
   induction l with
   | nil => intro _; rw [h0]; simp
@@ -350,12 +350,12 @@ theorem listMap_le (i : ℕ) {α : Type} [Enc α] (fVal : Val)
 
 /-- **`List.foldl`, an invariant indexed by the elements left** (an accumulator growing along
 the fold): `I k acc` with `k` elements left. -/
-theorem listFoldl_le_idx (hP : Includes P listFoldl.costDeps) (f : α → β → α) (fVal : Val)
-    (hf : ∀ a b, RunsApp P fVal [enc a, enc b] (enc (f a b))) (B : ℕ) (I : ℕ → α → Prop)
+theorem listFoldl_le_idx (hP : Includes P listFoldl.costDeps) (f : α → β → α) (fVal : MachineValue)
+    (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b))) (B : ℕ) (I : ℕ → α → Prop)
     (L : List β)
-    (hI : ∀ k acc, I (k + 1) acc → ∀ b ∈ L, I k (f acc b) ∧ appCost P fVal [enc acc, enc b] ≤ B) :
+    (hI : ∀ k acc, I (k + 1) acc → ∀ b ∈ L, I k (f acc b) ∧ appCost P fVal [encodeValue acc, encodeValue b] ≤ B) :
     ∀ (l : List β) (init : α), (∀ b ∈ l, b ∈ L) → I l.length init →
-      machineCost P listFoldl.costIdx [fVal, enc init, enc l] ≤ (B + 9) * l.length + 3 := by
+      machineCost P listFoldl.costIdx [fVal, encodeValue init, encodeValue l] ≤ (B + 9) * l.length + 3 := by
   intro l
   induction l with
   | nil => intro init _ _; rw [listFoldl.costEq_nil P hP f fVal hf]; omega

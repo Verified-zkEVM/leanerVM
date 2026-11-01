@@ -20,17 +20,17 @@ def tinyProg : LeanVM.Semantics.Program := ⟨1, by decide, fun _ ↦ .jump 0 0 
 def tinyInput : PublicInput := ⟨fun _ ↦ 0⟩
 
 /-- The compiled extractor's value on a stream. -/
-def extractorRun (s : List E) : Option (Val × ℕ) :=
-  evalBody (Program.ofList extractorC.costDeps) 10000 extractorC.costIdx
-    [Enc.enc tinyProg, Enc.enc tinyInput,
-      Enc.enc ([] : List (Common.PermutationQuery KeccakState × KeccakState)),
-      Enc.enc (⟨s, []⟩ : Proof)]
+def extractorRun (s : List E) : Option (MachineValue × ℕ) :=
+  evaluateFunctionBody (MachineProgram.ofList extractorC.costDeps) 10000 extractorC.costIdx
+    [MachineEncoding.encodeValue tinyProg, MachineEncoding.encodeValue tinyInput,
+      MachineEncoding.encodeValue ([] : List (Common.PermutationQuery KeccakState × KeccakState)),
+      MachineEncoding.encodeValue (⟨s, []⟩ : Proof)]
 
 #guard (extractorRun []).map (·.1) ==
-  some (Enc.enc (extractorTop tinyProg tinyInput [] ⟨[], []⟩))
+  some (MachineEncoding.encodeValue (extractorTop tinyProg tinyInput [] ⟨[], []⟩))
 #guard (extractorTop tinyProg tinyInput [] ⟨[], []⟩).isNone
 #guard (extractorRun (stream 5 0)).map (·.1) ==
-  some (Enc.enc (extractorTop tinyProg tinyInput [] ⟨stream 5 0, []⟩))
+  some (MachineEncoding.encodeValue (extractorTop tinyProg tinyInput [] ⟨stream 5 0, []⟩))
 
 /-- info: 511 -/
 #guard_msgs in

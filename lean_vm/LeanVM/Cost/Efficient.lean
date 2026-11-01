@@ -7,7 +7,7 @@ public import LeanVM.Cost.Bounds.Top
 # The extractor the compiled program computes
 
 `LeanVM.extractorOf P` (`Statement/CostMachine.lean`), the extractor of the end statement, runs
-the program's function `0` on one value, `encode prog input T proof = .ctor 0 [enc prog, enc input, enc qs, enc proof]` with
+the program's function `0` on one value, `encode prog input T proof = .ctor 0 [encodeValue prog, encodeValue input, encodeValue qs, encodeValue proof]` with
 `qs = permutationQueries T`, and decodes its output with `decodeExecution prog`, which parses an
 execution's encoding. The compiled extractor (`extractorC`, `Cost/Extractor/Top.lean`, computing
 `extractorTop`, `Fast/Compiled.lean`) is a function of four encoded arguments whose output encodes
@@ -40,13 +40,13 @@ public section
 /-! ## The entry -/
 
 /-- The value the entry returns for an optional output. -/
-@[expose] def unwrapOption {α : Type} [Enc α] : Option α → Val
+@[expose] def unwrapOption {α : Type} [MachineEncoding α] : Option α → MachineValue
   | none => .ctor 0 []
-  | some a => enc a
+  | some a => encodeValue a
 
-theorem runsBody_entry {P : Program} {j : ℕ} (hentry : P[0]? = some (entryBody j))
-    {α : Type} [Enc α] {a b c d : Val} {o : Option α} {e : ℕ}
-    (h : RunsBody P j [a, b, c, d] (enc o) e) :
+theorem runsBody_entry {P : MachineProgram} {j : ℕ} (hentry : P[0]? = some (entryBody j))
+    {α : Type} [MachineEncoding α] {a b c d : MachineValue} {o : Option α} {e : ℕ}
+    (h : RunsBody P j [a, b, c, d] (encodeValue o) e) :
     RunsBody P 0 [.ctor 0 [a, b, c, d]] (unwrapOption o) (e + 9) := by
   have hargs : RunsList P [a, b, c, d, .ctor 0 [a, b, c, d]] [.var 0, .var 1, .var 2, .var 3]
       [a, b, c, d] 4 :=
@@ -64,8 +64,8 @@ theorem runsBody_entry {P : Program} {j : ℕ} (hentry : P[0]? = some (entryBody
     exact (Runs.case (Runs.var rfl) rfl hinner).cost_eq (by omega)
   | some t =>
     have hcall' : Runs P [a, b, c, d, .ctor 0 [a, b, c, d]]
-        (.call j [.var 0, .var 1, .var 2, .var 3]) (.ctor 1 [enc t]) (4 + e + 1) := hcall
-    have halt : Runs P ([enc t] ++ [a, b, c, d, .ctor 0 [a, b, c, d]]) (.var 0) (enc t) 1 :=
+        (.call j [.var 0, .var 1, .var 2, .var 3]) (.ctor 1 [encodeValue t]) (4 + e + 1) := hcall
+    have halt : Runs P ([encodeValue t] ++ [a, b, c, d, .ctor 0 [a, b, c, d]]) (.var 0) (encodeValue t) 1 :=
       Runs.var rfl
     have hinner := Runs.case (alts := [.ctor 0 [], .var 0]) hcall' rfl halt
     exact (Runs.case (Runs.var rfl) rfl hinner).cost_eq (by omega)
@@ -77,7 +77,7 @@ theorem decodeExecution_unwrap (prog : Semantics.Program) (o : Option (Execution
   | some t => exact decodeExecution_enc prog t
 
 /-- An output within a budget is the value of a run. -/
-theorem runsBody_of_outputWithin {P : Program} {x v : Val} {b : ℕ}
+theorem runsBody_of_outputWithin {P : MachineProgram} {x v : MachineValue} {b : ℕ}
     (h : outputWithin P x b = some v) : ∃ c, RunsBody P 0 [x] v c := by
   unfold outputWithin run at h
   split at h
@@ -102,11 +102,11 @@ theorem transcriptExtractor_eq_none {prog : Semantics.Program} {π : Proof}
 `extractorTop` at the price `cost`, within the budget at the announced shape (less the entry's
 `9`) wherever the extraction succeeds, the output within `extractorBudget`, decoded, is
 `transcriptExtractor`'s. -/
-theorem extractorTop_output (P : Program) (j : ℕ) (hentry : P[0]? = some (entryBody j))
+theorem extractorTop_output (P : MachineProgram) (j : ℕ) (hentry : P[0]? = some (entryBody j))
     (cost : Semantics.Program → PublicInput →
       List (PermutationQuery KeccakState × KeccakState) → Proof → ℕ)
-    (hrun : ∀ prog input qs π, RunsBody P j [enc prog, enc input, enc qs, enc π]
-      (enc (extractorTop prog input qs π)) (cost prog input qs π))
+    (hrun : ∀ prog input qs π, RunsBody P j [encodeValue prog, encodeValue input, encodeValue qs, encodeValue π]
+      (encodeValue (extractorTop prog input qs π)) (cost prog input qs π))
     (hcost : ∀ prog input T π layout logInverseRate st t,
       afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st) →
       extractorTop prog input (permutationQueries T) π = some t →
@@ -141,18 +141,18 @@ theorem extractorTop_output (P : Program) (j : ℕ) (hentry : P[0]? = some (entr
         simp only [extractorBudget, announced_of_afterRoot ha]
       have hc := hcost prog input T proof layout R st t ha ht
       have hx : encode prog input T proof =
-          .ctor 0 [enc prog, enc input, enc (permutationQueries T), enc proof] := rfl
+          .ctor 0 [encodeValue prog, encodeValue input, encodeValue (permutationQueries T), encodeValue proof] := rfl
       rw [hx, outputWithin_of_runs (b := extractorBudget prog T proof) hentryRun
         (by rw [hb]; exact hc)]
       exact decodeExecution_unwrap prog (some t)
 
 /-- **The extractor a program computes is `transcriptExtractor`**, from the compiled extractor's
 spec at function `j` and its price within the budget. -/
-theorem extractorOf_eq_of_spec (P : Program) (j : ℕ) (hentry : P[0]? = some (entryBody j))
+theorem extractorOf_eq_of_spec (P : MachineProgram) (j : ℕ) (hentry : P[0]? = some (entryBody j))
     (cost : Semantics.Program → PublicInput →
       List (PermutationQuery KeccakState × KeccakState) → Proof → ℕ)
-    (hrun : ∀ prog input qs π, RunsBody P j [enc prog, enc input, enc qs, enc π]
-      (enc (extractorTop prog input qs π)) (cost prog input qs π))
+    (hrun : ∀ prog input qs π, RunsBody P j [encodeValue prog, encodeValue input, encodeValue qs, encodeValue π]
+      (encodeValue (extractorTop prog input qs π)) (cost prog input qs π))
     (hcost : ∀ prog input T π layout logInverseRate st t,
       afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st) →
       extractorTop prog input (permutationQueries T) π = some t →
@@ -193,7 +193,7 @@ theorem extractorPrice_within_budget : ∀ prog input T π layout logInverseRate
     afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st) →
     extractorTop prog input (permutationQueries T) π = some t →
     machineCost extractorProgram extractorC.costIdx
-        [enc prog, enc input, enc (permutationQueries T), enc π] + 9 ≤
+        [encodeValue prog, encodeValue input, encodeValue (permutationQueries T), encodeValue π] + 9 ≤
       extractorBudgetAt prog layout logInverseRate (permutationQueries T).length :=
   fun prog input T π layout logInverseRate st _ ha _ ↦
     Bounds.extractorC_within extractorProgram extractorProgram_includes prog input T π layout
@@ -204,7 +204,7 @@ within the budget. -/
 theorem extractorOf_extractorProgram : LeanVM.extractorOf extractorProgram = transcriptExtractor :=
   extractorOf_eq_of_spec extractorProgram extractorC.costIdx extractorProgram_entry
     (fun prog input qs π ↦ machineCost extractorProgram extractorC.costIdx
-      [enc prog, enc input, enc qs, enc π])
+      [encodeValue prog, encodeValue input, encodeValue qs, encodeValue π])
     (fun prog input qs π ↦ extractorC.costSpec extractorProgram extractorProgram_includes
       prog input qs π)
     extractorPrice_within_budget
