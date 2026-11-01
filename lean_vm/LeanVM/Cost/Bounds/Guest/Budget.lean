@@ -19,14 +19,14 @@ the decoder program's price is within `guestDecoderBudget` (`Statement/Theorems.
 
 * the reader at `1472` (`readerClosure_cost`), the replay of at most `steps + 1` states
   (`replayStatesOf_length`);
-* the entry table (`entryTableT_cost`) at the key exponent `guestDecoderTableExponent steps`, the
+* the entry table (`entryTableT_cost`) at the key exponent `guestDecoderEntryTableKeyExponent steps`, the
   precondition test (`preTestAt_cost_deployed`, its logarithms by `powBelow_cost` at
   `discreteLogWith_cost`), the pc table (`pcTableT_get_cost`, `pcTableT_getD_length`): per state
   `guestDecoderStateFilingPrice`;
 * the frame map (`frameAt_cost`, calls of at most `16` words): `guestDecoderFramePrice`; the cursor's
   length (`cursorLength_cost`, value at most `2^32`), the witness (`frameWit_cost`);
 * the tables: preconditions `12895` (`preTable_cost`), entries `17047343` (`pcTableT_cost`); the
-  constant `topConstPrice` at most `guestDecoderWorstConstant + guestDecoderFrameFactor·F`
+  constant `topConstPrice` at most `guestDecoderWorstMemoryWitnessPrice + guestDecoderWorstFrameLookupCount·F`
   (`topConst_le`).
 -/
 
@@ -43,13 +43,13 @@ attribute [local instance] lexOrd
 /-- The constant's linear form in the frame map's price. -/
 theorem topConst_le (F : ℕ) :
     topConstPrice (decWitNPrice gLogPrice 1472 (1472 + 10993) (F + 7) (425014 + 4) (2 ^ 32)
-      (dvFramePrice gLogPrice (F + 7))) ≤ guestDecoderWorstConstant + guestDecoderFrameFactor * F := by
+      (dvFramePrice gLogPrice (F + 7))) ≤ guestDecoderWorstMemoryWitnessPrice + guestDecoderWorstFrameLookupCount * F := by
   unfold topConstPrice framesPrice decStmtPrice decStmtAtPrice decWitNPrice decWitPrice
     decWitAtPrice decWitTabPrice kidsTPrice decKidPrice kidStmtPrice kidStmtAtPrice
     xmssHoldersTPrice sphincsHoldersTPrice regionTablePrice kidMaxPrice vsPiPrice vsMPrice
     vsAtPrice levelPrice levelAtPrice oqsPrice stepPrice iterPrice queryPrice posPrice
     queryAtPrice openingPrice dvFramePrice dvWitNAtPrice dvWitNRowsPrice gLogPrice
-    guestDecoderWorstConstant guestDecoderFrameFactor
+    guestDecoderWorstMemoryWitnessPrice guestDecoderWorstFrameLookupCount
   omega
 
 /-- The filing's price is the statement's. -/
@@ -57,22 +57,22 @@ theorem fileStatePrice_eq (e : ℕ) :
     fileStatePrice 8339 2 guestDecoderPreconditionPrice 1472 e + 15 =
       guestDecoderStateFilingPrice e := by
   unfold fileStatePrice fileOnePrice insertKeyPrice getKeyPrice wl limbsBelowTwoPow
-    guestDecoderStateFilingPrice guestDecoderTableInsertPrice guestDecoderTableLookupPrice
-    guestDecoderTableLimbs
+    guestDecoderStateFilingPrice guestDecoderEntryTableInsertPrice guestDecoderEntryTableLookupPrice
+    guestDecoderEntryTablePositionLimbs
   ring
 
 /-- A frame lookup of at most `16` words, at most the statement's. -/
 theorem frameAtPrice_le (e n : ℕ) (hn : n ≤ 16) :
     e * (17 + (67 * n + 89 + 9 * wl e) * (e + 2)) + 28 * n + 1472 + 11070 ≤
       guestDecoderFramePrice e := by
-  unfold guestDecoderFramePrice guestDecoderTableLimbs wl limbsBelowTwoPow
+  unfold guestDecoderFramePrice guestDecoderEntryTablePositionLimbs wl limbsBelowTwoPow
   have h1 : 67 * n + 89 + 9 * ((e + 1) / 64 + 1) ≤ 67 * 16 + 89 + 9 * ((e + 1) / 64 + 1) := by omega
   have h2 := Nat.mul_le_mul_right (e + 2) h1
   have h3 := Nat.mul_le_mul_left e (Nat.add_le_add_left h2 17)
   omega
 
-theorem tableExponent_spec (steps : ℕ) : 2 * (steps + 1) < 2 ^ guestDecoderTableExponent steps := by
-  unfold guestDecoderTableExponent
+theorem tableExponent_spec (steps : ℕ) : 2 * (steps + 1) < 2 ^ guestDecoderEntryTableKeyExponent steps := by
+  unfold guestDecoderEntryTableKeyExponent
   exact Nat.lt_log2_self
 
 variable (P : MachineProgram)
@@ -87,7 +87,7 @@ theorem decoderPriceWithinBudget : DecoderPriceWithinBudget := by
   have hlen := replayStatesOf_length hv
   set states := Decoder.replayStatesOf (powTable t.logMemorySize) (powTable LeanVM.Guest.guest.logSize)
     LeanVM.Guest.guest (Decoder.memoryVector t.memory) with hstates
-  set e := guestDecoderTableExponent t.steps
+  set e := guestDecoderEntryTableKeyExponent t.steps
   have hn : 2 * states.length < 2 ^ e :=
     lt_of_le_of_lt (by omega) (tableExponent_spec t.steps)
   have hrd := readerClosure_runs decoderProgram includes_budget_readerClosure (Decoder.memoryVector t.memory)

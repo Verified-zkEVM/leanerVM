@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Forbid proof escapes
         run: |
-          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
+          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by|skipKernelTC|addDeclCore|addDeclWithoutChecking|doCheck|ofReduceBool|trustCompiler)\b|#exit' \
               --include='*.lean' --exclude-dir=.lake Statement | grep -vE ':[0-9]+: *(--|/-)'
       # The statement imports Mathlib, VCVio, CompPoly and itself, nothing of the proofs.
       - name: Keep the statement apart from the proofs
@@ -66,7 +66,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Forbid proof escapes
         run: |
-          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
+          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by|skipKernelTC|addDeclCore|addDeclWithoutChecking|doCheck|ofReduceBool|trustCompiler)\b|#exit' \
               --include='*.lean' --exclude-dir=.lake common | grep -vE ':[0-9]+: *(--|/-)'
       - uses: leanprover/lean-action@v1
         with:
@@ -95,7 +95,7 @@ jobs:
       # anywhere in the project.
       - name: Forbid proof escapes
         run: |
-          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
+          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by|skipKernelTC|addDeclCore|addDeclWithoutChecking|doCheck|ofReduceBool|trustCompiler)\b|#exit' \
               --include='*.lean' --exclude-dir=.lake lean_xmss | grep -vE ':[0-9]+: *(--|/-)'
       # Installs the toolchain from `lean_xmss/lean-toolchain`, fetches the
       # mathlib cache, and runs `lake build` on the default targets, which
@@ -135,7 +135,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Forbid proof escapes
         run: |
-          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
+          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by|skipKernelTC|addDeclCore|addDeclWithoutChecking|doCheck|ofReduceBool|trustCompiler)\b|#exit' \
               --include='*.lean' --exclude-dir=.lake lean_sphincs | grep -vE ':[0-9]+: *(--|/-)'
       # Without Mathlib's build, which `lake exe cache get` fetches, an entry takes
       # a small share of the repository's cache. Only `main` saves one; every
@@ -208,7 +208,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Forbid proof escapes
         run: |
-          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
+          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by|skipKernelTC|addDeclCore|addDeclWithoutChecking|doCheck|ofReduceBool|trustCompiler)\b|#exit' \
               --include='*.lean' --exclude-dir=.lake lean_da | grep -vE ':[0-9]+: *(--|/-)'
       # As for sphincs: VCVio and CompPoly build from source, so `main` saves the Lake build,
       # without Mathlib's, which `lake exe cache get` fetches.
@@ -299,7 +299,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Forbid proof escapes
         run: |
-          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
+          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by|skipKernelTC|addDeclCore|addDeclWithoutChecking|doCheck|ofReduceBool|trustCompiler)\b|#exit' \
               --include='*.lean' --exclude-dir=.lake . | grep -vE ':[0-9]+: *(--|/-)'
       # As for sphincs: only `main` saves, without Mathlib's build, which `lake exe cache get` fetches.
       - name: Restore the Lake build
@@ -342,6 +342,15 @@ jobs:
       # statement package (`Statement/`, its guest data as heavy) and the other dependencies included.
       - name: Build
         run: python3 -I ../lake-build.py . LeanVM LeanVMTests
+      # The end theorems' axioms asked from outside the build, as for the other projects.
+      - name: Check the axiom footprint
+        run: |
+          theorems="LeanVM.theorems_hold LeanVM.corollaries_hold"
+          { echo 'import LeanVM'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
+          lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
+          for t in $theorems; do
+            grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
+          done
       - name: Test
         run: lake test
       # What is slow in the interpreter: the guest's Fiat-Shamir IV against the Rust's, the DA

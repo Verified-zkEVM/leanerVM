@@ -27,10 +27,11 @@ there (decided, `Located.preTest`) and its argument and return cells holding the
 So each leanXMSS and leanSPHINCS signature is read off the frame of its check, the DA matrix off
 `da_verify`'s and its callees' frames, each child's proof off its `verify_sub` frame and the
 memory (`VerifySub.vsPiOf`: the stream words `verify_sub` reads, the openings `open_stacked`'s
-queries hash), the batching's hints off `aggregate_claims`' frame and the memory. Every test it
-makes is decided by evaluation: it decides no proposition classically and picks no witness
-(`tests/LeanVMTests/Guest/DecodeNoChoice.lean`). It runs the machine (whose `KECCAK` instruction
-checks Keccak-f[1600]) and no verifier.
+queries hash), the batching's hints off `aggregate_claims`' frame and the memory. It chooses
+nothing: it is computed by the compiled decoder program, a cost-machine program with no classical
+choice (`Cost/Decoder/TopEq.lean`, `decTop_eq`). That it runs no verifier, only the machine
+(whose `KECCAK` instruction checks Keccak-f[1600]), is checked by a test alone,
+`tests/LeanVMTests/Guest/DecodeNoChoice.lean`, which follows every definition it unfolds to.
 
 * `guest_knowledge : MemoryGuestKnowledge guest decode`: every valid execution of the guest on a
   public input decodes to a statement of that input's digest under the decoded seed, and a witness

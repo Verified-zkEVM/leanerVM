@@ -7,11 +7,10 @@ import LeanVM.Cost.Efficient
   unwraps the optional output, at `9` steps more than the call, here with a stand-in callee;
 * a program built from a compiled function's bodies (`muldersStorjohannStepFast.c24`, one
   Mulders–Storjohann step, the extractor's) and the entry: its bodies held (`includes_ofList`, the indices' distinctness decided) and its size
-  bounded by evaluating its bodies' sizes (`size_ofList_le`, decided by the kernel), as the
-  extractor's program's is (`Cost/ExtractorSize.lean`);
+  bounded by evaluating its bodies' sizes (`size_ofList_le`, decided by the kernel);
 * the extractor's program (`extractorProgram`): `512` bodies, the entry's and the compiled
-  extractor's, the largest index `523`, its size `10489` (the bound `size_ofList_le` gives,
-  at most `11515`, is what `Cost/ExtractorSize.lean` proves; `extractorSizeBound` is `2^15`);
+  extractor's, the largest index `523`, its size `10489` (`Cost/ExtractorSize.lean` proves at
+  most `11000`, `extractorSizeBound`, by evaluating the program itself);
 * the axioms of `extractorOf_extractorProgram`, `extractorOf extractorProgram =
   transcriptExtractor`.
 -/

@@ -22,8 +22,12 @@ depth `b` never fails a run of price at most `b`.
 
 **Prices** (trusted: that they are honest, each a constant-time CPU primitive or priced by the
 algorithm that computes it, is an assumption of `KnowledgeSoundness (extractorOf P)` and of
-`GuestKnowledge`, `Theorems.lean`, whose budgets they price). Each step costs at least `1` and at
-least the words it writes:
+`GuestKnowledge`, `Theorems.lean`, whose budgets they price). Each step costs at least `1`, and
+every step but two at least the words it writes. The two: a `case` puts the constructor's fields
+in front of the environment, and a closure's application puts its captured values in front of the
+arguments, each at `1`, which is honest for an environment kept as a frame pointer into the
+constructor or the closure (its fields read in place, not copied), where each is `O(1)`. The
+prices:
 * a variable, a literal, a field, a `case`'s selection, a `let`: `1`;
 * a constructor or a closure of `n` values: `n + 1` (a tag and `n` words);
 * a call or a closure's application: `1`;
@@ -105,7 +109,8 @@ def limbCount (n : ℕ) : ℕ := n.log2 / 64 + 1
 def binaryFieldMultiplyWords (a b : UInt64) : UInt64 :=
   UInt64.ofBitVec (BF64.mul ⟨a.toBitVec⟩ ⟨b.toBitVec⟩).toBitVec
 
-/-- The primitive operations. -/
+/-- The primitive operations. None reads a constructor's tag or a closure's function index as a
+number (see `MachineValue.size`): their operands are words, natural numbers, arrays and lists. -/
 inductive PrimitiveOperation where
   /-- On words modulo `2^64`: `+`, `−`, `·`, `and`, `or`, `xor`, `not`, the shifts, `=`, `<`,
   `≤`. -/
@@ -297,12 +302,20 @@ def outputWithin (P : MachineProgram) (x : MachineValue) (b : ℕ) : Option Mach
   | some (v, c) => if c ≤ b then some v else none
   | none => none
 
-/-! ## Size -/
+/-! ## Size
+
+A constructor's tag and a closure's function index count one with their node, whatever their
+number, and so do a term's positions and function indices (`var`, `field`, `call`, `closure`).
+That is sound because the machine reads them only by bounded lookups, never as data: a tag selects
+one of a `case`'s alternatives, which the program lists, or is compared with a constant (a list's
+`nil` and `cons` in `arrayOfList`, `MachineValue.toList?`); a function index is looked up in the
+program (`P[f]?`); no primitive operation (`PrimitiveOperation.apply`) takes a tag or an index as
+a number. -/
 
 mutual
 
 /-- A value's size: one per word, constructor, array and closure, and a natural number's limbs
-(a literal counts in full). -/
+(a literal counts in full; a tag or a function index counts with its node). -/
 def MachineValue.size : MachineValue → ℕ
   | .word _ => 1
   | .nat n => limbCount n
@@ -319,7 +332,8 @@ end
 
 mutual
 
-/-- A term's size: one per node, literals by their size. -/
+/-- A term's size: one per node, literals by their size (a position, a tag or a function index
+counts with its node). -/
 def Term.size : Term → ℕ
   | .var _ => 1
   | .val v => v.size + 1
@@ -542,10 +556,11 @@ open Common
 
 @[expose] public section
 
-/-- **The bound on the extractor program's size**: `2^15` terms, twice the compiled extractor's
-size (`10489`: its `512` bodies and the entry) rounded up to a power of two. It excludes a program
-that carries a table of witnesses for many statements. -/
-def extractorSizeBound : ℕ := 2 ^ 15
+/-- **The bound on the extractor program's size**: `11000` terms, the compiled extractor's size
+(`10489`: its `511` compiled bodies and the entry, at `524` indices, `12` of them holes, a literal
+`0` each) and a slack of `511`, room for about one leanXMSS signature's encoding (each `400` to
+`500` units), so no useful table of witnesses fits. -/
+def extractorSizeBound : ℕ := 11000
 
 /-- **The extractor's budget at a shape**: `extractorPrice` at the layout's stack and memory
 log-sizes, the rate exponent, the program's log-size and the number of the transcript's

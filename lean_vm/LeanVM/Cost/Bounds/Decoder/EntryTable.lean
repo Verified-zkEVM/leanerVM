@@ -27,7 +27,7 @@ weights of at most `wl D = (D + 1)/64 + 1` limbs, `EntryMaps.lean`).
   table below `2^D` insertions: at most
   `D·(17 + (67·(a + r) + 89 + 9·wl D)·(D + 2)) + 28·(a + r) + R + 11070`: one lookup (`D` levels, a binary
   search each), two frame reads;
-* **`pcTableT_cost`**: the pc table, built once: at most `17036451`; a lookup in it at most `8339`
+* **`pcTableT_cost`**: the pc table, built once: at most `17047343` (`PcTable.lean`); a lookup in it at most `8339`
   (`pcTableT_get_cost`), at most two functions per pc (`pcTableT_getD_length`);
 * **`cursorLength_cost`**: the cursor's length (`cursorLengthC`), the logarithm at most `Lg`: at
   most `Lg + 2·invK + …` (see the statement), its value at most `2^32` (`cursorLenWith_le`).

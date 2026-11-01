@@ -51,18 +51,22 @@ explaining the input (`DecoderExplains`, `LeanVM/Guest/DecoderProgram.lean`; for
 (`Cost/Bounds/Top.lean`).
 
 Each proves a proposition of `Statement/` (`Statement/README.md`), in the random-permutation model
-where an adversary is involved:
+where an adversary is involved, except the memory-decoder forms `MemoryGuestKnowledge` and
+`MemoryAggregateSound`, which are `lean_vm`'s own definitions (`Guest/EndKnow.lean`,
+`Guest/EndRpm.lean`), steps to `Statement`'s `GuestKnowledge` and `AggregateSound`; the final
+`example`, after `theorems_hold`, checks the end theorem against `Statement.Theorems` itself:
 
 * `LeanVM.knowledgeSoundness_holds : KnowledgeSoundness transcriptExtractor` and
   `LeanVM.completeness_holds : Completeness` (`Statement/LeanVm.lean`): the verifier, knowledge
   sound for the straight-line extractor `transcriptExtractor`, and complete;
-* `LeanVM.Guest.End.guest_knowledge : MemoryGuestKnowledge guest decode` and
-  `LeanVM.Guest.Binding.digest_binds : DigestBinds` (`Statement/LeanVmGuest.lean`; with
-  `knowledgeSoundness_holds` they compose to `LeanVM.Guest.End.aggregate_sound_outer :
+* `LeanVM.Guest.End.guest_knowledge : MemoryGuestKnowledge guest decode` (`lean_vm`'s
+  definition) and `LeanVM.Guest.Binding.digest_binds : DigestBinds` (`Statement/LeanVmGuest.lean`;
+  with `knowledgeSoundness_holds` they compose to `LeanVM.Guest.End.aggregate_sound_outer :
   MemoryAggregateSound guest decode transcriptExtractor`): the leanISA guest program, its
   witness named by the decoder of memories `LeanVM.Guest.End.decode`
   (`LeanVM/Guest/EndFinal.lean`); `GuestKnowledge guest D` of `Statement/Theorems.lean` follows
-  for a decoder program `D` that computes it (`LeanVM.Guest.End.guestKnowledge_of_decode`);
+  for a decoder program `D` that computes it (`LeanVM.Guest.End.guestKnowledge_of_decode`), the
+  compiled `LeanVM.Cost.decoderProgram`;
 * `LeanVM.Guest.Budget.guest_complete_covered : GuestCompleteCovered` (`Statement/LeanVmGuest.lean`;
   `guest_complete_recursion : GuestCompleteRecursion` and `guest_complete_leaf : GuestCompleteLeaf`,
   `Statement/Corollaries.lean`, are its first two families): the guest program's completeness on

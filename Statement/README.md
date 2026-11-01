@@ -130,8 +130,8 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
     within the budget, its output parsed; `Statement.Theorems` takes `P` with its size at most
     `extractorSizeBound`, and which program it is a reader need not know (`lean_vm` names its
     knowledge extractor, compiled). That the machine's prices are honest is trusted. The size
-    bound is `2^15`, twice the compiled extractor's `10489` rounded up to a power of two; the
-    budget (`extractorBudgetAt`,
+    bound is `11000`, the compiled extractor's `10489` and a slack of about one leanXMSS
+    signature's encoding, so no useful table of witnesses fits; the budget (`extractorBudgetAt`,
     `extractorPrice`) is a closed formula in the announced shape and the number `N` of queries,
     about `N·log³N + 2^117.67` at the worst shape: `2^117.67` for `N ≤ 2^40` (the list decoder)
     and `2^156.69` at `N = 2^128` (the transcript's index), where the soundness bound is already
@@ -139,20 +139,23 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 14. [`Theorems.lean`](Theorems.lean): every end theorem, as the fields of `Statement.Theorems`;
     first, the guest decoder as a cost-machine program `D`: the encodings of a decoding (a seed, a
     statement and a witness, `encodeValue`), `D`'s input (`encodeDecoderInput`: the guest program
-    and the execution), its budget (`guestDecoderBudget`, linear in the execution's size and
-    steps, with no cap on the steps) and **`LeanVM.Node.GuestKnowledge guest D`** (on every valid
+    and the execution), its budget (`guestDecoderBudget`, `O(steps·log² steps)`, with no cap on
+    the steps) and **`LeanVM.Node.GuestKnowledge guest D`** (on every valid
     execution, `D`, run within its budget, outputs the encoding of a decoding that explains the
     public input, `ExplainsInput`; no parse); `Statement.Theorems` takes `D` with its size at most
     `guestDecoderSizeBound`, its literals (the guest program's per-function tables) counted. `D`
     computes the witness from the execution, which the proofs' decoder reads off the memory, as
     the extractor program computes an execution. The decoder's size bound
-    (`guestDecoderSizeBound`, `2^20`) is the compiled decoder's measured size rounded up; its price
+    (`guestDecoderSizeBound`, `786000`) is the compiled decoder's measured `785083` and a slack of
+    one or two leanXMSS signatures' encodings, so no useful table of witnesses fits; its price
     (`guestDecoderPrice`) is a proved closed form, as `extractorPrice` is: a price per step of the
-    run (the replay and the filing of the state in the table of function entries, about `2^26.43`
-    at `κ = ℓ = 32`) and a constant of about `2^85.80`, the witness read off the worst memory (the
-    counts the decoder reads are each up to `2^34`, and every child may claim every slot). The two
-    programs have the
-    same type, so every use of `Statement.Theorems` names them (`(decoderProgram := D)
+    run (the replay and the filing of the state in the table of function entries, `2^26.3` to
+    `2^26.7`, growing as `log²(steps)`; no term in the memory's or the program's size) and a
+    constant of about `2^85.80`, the witness read off the worst memory (the counts the decoder
+    reads are each up to `2^34`, and every child may claim every slot): `≈ 2^85.80` up to about
+    `2^54` steps, `2^86.74` at `2^59`, `2^87.31` at `2^60`. On every realistic run the budget is in
+    effect that constant, the children's worst case on an arbitrary memory. The two programs have
+    the same type, so every use of `Statement.Theorems` names them (`(decoderProgram := D)
     (extractorProgram := P)`).
 15. [`Corollaries.lean`](Corollaries.lean), optional for review: statements that follow from
     `Theorems` alone, in their composed form (`lean_vm` proves `Theorems D P → Corollaries
@@ -195,8 +198,9 @@ bounded by `fuel`, and it branches on no permutation answer other than through t
 challenges the verifier's program samples (`Run.lean` gives the script nothing else).
 
 The knowledge extractor is not part of the statement: `Statement.Theorems` takes it as a
-cost-machine program (`CostMachine.lean`): a program excludes classical choice, its size bound a
-table of witnesses, and its budget is about `N·log³N + 2^117.67` for `N` permutation queries
+cost-machine program (`CostMachine.lean`): a program excludes classical choice, its size bound
+(`11000`, the compiled `10489` and a slack of about one leanXMSS signature) a useful table of
+witnesses, and its budget is about `N·log³N + 2^117.67` for `N` permutation queries
 (polylogarithmic per query: `2^117.67` for `N ≤ 2^40`, `2^156.69` at `N = 2^128`, where the
 soundness bound is already trivial). `lean_vm` names the program
 (`LeanVM.Cost.extractorProgram`, its extractor `transcriptExtractor` compiled,
@@ -252,8 +256,9 @@ theorem proves its statement and pins its axioms to Lean's three (`propext`, `Cl
 cost-machine program within a size bound and a budget (`Theorems.lean`). Their content is in
 that decoder: one that output another statement of the same digest would satisfy
 `AggregateSound` (`Corollaries.lean`) through a Keccak-256 collision, which it would exhibit; what
-excludes it is that none is known. The size bound limits a table of witnesses the decoder could
-carry (hard-coded signatures masking a bug of the guest program on finitely many statements). The
+excludes it is that none is known. The size bound leaves the decoder room for one or two
+leanXMSS signatures' encodings beyond its own code, no useful table of witnesses (hard-coded
+signatures masking a bug of the guest program on finitely many statements). The
 proofs' decoder, `LeanVM.Guest.End.decode` ([`EndFinal.lean`](../lean_vm/LeanVM/Guest/EndFinal.lean)),
 replays the run and reads the witness off the frames it entered; the statement asks only that the
 program compute the witness from the execution within its budget. The program is that decoder

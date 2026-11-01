@@ -29,7 +29,7 @@ proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classic
 leanVM at commit \texttt{c445e3d5} of its \texttt{main} branch.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: fifteen files
-of definitions and end statements ($7374$ lines with their documentation), which import Mathlib,
+of definitions and end statements ($7462$ lines with their documentation), which import Mathlib,
 VCVio and CompPoly and nothing of the proofs. Beside them sit the honest prover the completeness
 statements name (\lean{Statement/Prover/}, $2524$ lines; it is proved to make the specification's
 honest moves, so a reviewer only needs to see that it is a genuine prover), the guest program's
@@ -130,7 +130,8 @@ verifier's state bus checks for, so knowledge soundness needs no condition on th
 
 \paragraph{The extractor.} Knowledge soundness is stated for the extractor a program of a cost
 machine computes (\lean{LeanVM.extractorOf}~$P$, \lean{Statement/CostMachine.lean}): the program
-$P$, at most $2^{15}$ terms (\lean{extractorSizeBound}), run on the encoded statement, transcript
+$P$, at most $11000$ terms (\lean{extractorSizeBound}: the compiled extractor's $10489$ and a
+slack of about one leanXMSS signature's encoding), run on the encoded statement, transcript
 and proof within a budget read off the announced shape (\lean{extractorPrice}, a closed formula:
 about $N \log^3 N + 2^{117.67}$ operations at the worst shape for $N$ permutation queries,
 polylogarithmic per query: $2^{117.67}$ for $N \le 2^{40}$, the list decoder dominating, and
@@ -138,9 +139,11 @@ $2^{156.69}$ at $N = 2^{128}$, the transcript's index dominating, where the soun
 already trivial), its output
 parsed as an execution; a run out of budget outputs nothing, which counts as a break. The
 statement takes $P$ as a parameter (\texttt{Statement.Theorems D P}); which program it is
-a reader need not know: $P$ is a program (no classical choice), the size bound excludes a table of
-witnesses, the budget is the one above, and the machine's only runtime data is its input. The
-machine's prices (each step at least the words it writes, $\mathbb{F}_{2^{64}}$ products and
+a reader need not know: $P$ is a program (no classical choice), the size bound leaves no room for
+a useful table of witnesses, the budget is the one above, and the machine's only runtime data is
+its input. The machine's prices (each step at least $1$, and at least the words it writes but for
+a \texttt{case}'s fields and a closure's captured values, $O(1)$ in a frame-pointer environment;
+a constructor's tag and a function index count one, read only by bounded lookups; $\mathbb{F}_{2^{64}}$ products and
 operations on large numbers priced by their algorithms) are trusted to be honest.
 
 \texttt{lean\_vm} proves it for \lean{LeanVM.Cost.extractorProgram}, the compiled form of
@@ -497,16 +500,21 @@ decoding that explains the input; there is no parse, and the encoding is injecti
 (\lean{encodeValue_decoded_injective}, \lean{lean_vm}). A program chooses nothing. The statement
 accepts any program that computes the witness from the execution within the budget, not only one
 that reads it off the memory: the decoder's analog of the extractor, of which the statement asks
-only that a program compute an execution within its budget. The budget is linear in the
-execution's size and its steps, with no cap on the steps: $\kappa$ and $\ell$ are at most $32$,
-but a valid execution's steps (\lean{ValidExecution}) are bounded only by the run's distinct
-states $(pc, fp)$, at most $2^{\ell+\kappa}$. The size bound limits a table of witnesses the
-program could carry (hard-coded signatures that would mask a bug of $G$ on finitely many statements) to the bound's slack over
-the compiled decoder's size. A program that output another statement of the same digest would
-exhibit a Keccak-256 collision; what excludes it is that none is known. The size bound is the
-compiled decoder's measured size rounded up to a power of two ($2^{20}$), and the price
-(\lean{guestDecoderPrice}) a closed form \lean{lean_vm} proves of the compiled decoder, as
-\lean{extractorPrice} is the extractor's.
+only that a program compute an execution within its budget. The price (\lean{guestDecoderPrice})
+is a closed form \lean{lean_vm} proves of the compiled decoder, as \lean{extractorPrice} is the
+extractor's: per step $2^{26.3}$ to $2^{26.7}$ (the replay and the filing of the state in a
+sorted table, growing as $\log^2$ of the steps), so $O(\mathit{steps}\cdot\log^2\mathit{steps})$,
+with no term in the memory's or the program's size, and a constant of about $2^{85.80}$, the
+witness read off the worst memory (each count up to $2^{34}$, every child claiming every slot):
+$\approx 2^{85.80}$ up to about $2^{54}$ steps, $2^{86.74}$ at $2^{59}$, $2^{87.31}$ at $2^{60}$.
+There is no cap on the steps: $\kappa$ and $\ell$ are at most $32$, but a valid execution's steps
+(\lean{ValidExecution}) are bounded only by the run's distinct states $(pc, fp)$, at most
+$2^{\ell+\kappa}$. On every realistic run the budget is in effect the constant $2^{85.8}$, the
+children's worst case on an arbitrary memory. The size bound, $786000$, is the compiled
+decoder's measured $785083$ and a slack of one or two leanXMSS signatures' encodings: no useful
+table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many
+statements) fits. A program that output another statement of the same digest would exhibit a
+Keccak-256 collision; what excludes it is that none is known.
 
 The proofs' decoder is \lean{LeanVM.Guest.End.decode}, defined in \lean{lean_vm}; a program
 computing it gives \lean{GuestKnowledge} (\lean{guestKnowledge_of_decode}). It replays the run:

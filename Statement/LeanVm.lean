@@ -31,7 +31,7 @@ reads the statement, the proof and the adversary's transcript, and nothing else 
 queries `π` nor rewinds the adversary): `KnowledgeSoundness extractor`. `Statement.Theorems` states
 it for the extractor a cost-machine program of bounded size computes within a budget per shape
 (`LeanVM.extractorOf`, `CostMachine.lean`); which program is `lean_vm`'s (the extractor it proves
-sound, compiled), and a reader need not know it: its size bound excludes a table of witnesses,
+sound, compiled), and a reader need not know it: its size bound leaves no room for a useful table of witnesses,
 its budget is about `N·log³N + 2^117.67` for `N` permutation queries (`CostMachine.lean`), and a
 run out of budget extracts nothing, a break.
 
