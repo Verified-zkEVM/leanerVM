@@ -79,14 +79,16 @@ open scoped ENNReal
 
 variable {W : Val → Reader → FrameMap → NodeWitness}
 
-/-- **The aggregate's soundness, its witness named**: in the random-permutation experiment, the
-verifier accepts a proof of the guest from which no execution is extracted, or the extracted one
-does not decode (`ExplainsInput`), with probability at most the bound of `KnowledgeSoundness`. -/
-theorem aggregate_knowledge_of (h : SoundHyps W) (A : RandomPermutationAdversary) (Q : ℕ)
+/-- **The aggregate's soundness, its witness named**, for any decoder `dec` of which
+`MemoryGuestKnowledge` holds: in the random-permutation experiment, the verifier accepts a proof of
+the guest from which no execution is extracted, or the extracted one does not decode by `dec`
+(`ExplainsInput`), with probability at most the bound of `KnowledgeSoundness`. -/
+theorem aggregate_knowledge_dec {dec : MemoryDecoder} (h : MemoryGuestKnowledge guest dec)
+    (A : RandomPermutationAdversary) (Q : ℕ)
     (hA : Common.QueryCostAtMost A Common.permutationCallCost Q) (hQ : Q ≤ 2 ^ 128) :
     Pr{let z ← soundnessExperiment A}[z.accepted ∧ z.program = guest ∧
       ¬ ∃ t, transcriptExtractor z.program z.input z.transcript z.proof = some t ∧
-        ExplainsInput guest z.input (decodeWith W t.memory)] ≤
+        ExplainsInput guest z.input (dec t.memory)] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
         5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   refine le_trans (prEvent_mono _ _ _ ?_) (knowledgeSoundness_holds A Q hA hQ)
@@ -95,18 +97,28 @@ theorem aggregate_knowledge_of (h : SoundHyps W) (A : RandomPermutationAdversary
   subst hprog
   refine ⟨hb, ?_⟩
   rintro ⟨t, hx, hv⟩
-  exact hno ⟨t, hx, guest_knowledge_of h input t hv⟩
+  exact hno ⟨t, hx, h input t hv⟩
+
+/-- **The aggregate's soundness, its witness named**, for `main`'s witness function `W`. -/
+theorem aggregate_knowledge_of (h : SoundHyps W) (A : RandomPermutationAdversary) (Q : ℕ)
+    (hA : Common.QueryCostAtMost A Common.permutationCallCost Q) (hQ : Q ≤ 2 ^ 128) :
+    Pr{let z ← soundnessExperiment A}[z.accepted ∧ z.program = guest ∧
+      ¬ ∃ t, transcriptExtractor z.program z.input z.transcript z.proof = some t ∧
+        ExplainsInput guest z.input (decodeWith W t.memory)] ≤
+      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
+        5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 :=
+  aggregate_knowledge_dec (guest_knowledge_of h) A Q hA hQ
 
 /-- **What the outer verifier's acceptance establishes** (`MemoryAggregateSound`), in the
-random-permutation model: except with probability the bound of `KnowledgeSoundness`, an accepted
-aggregate's statement `s`, under the deployed seed and of the guest's shape,
-is the one the execution the extractor reads off the proof and the transcript decodes, with a
-witness holding it, or that execution's decoding and `s` give an explicit Keccak-256
-collision. -/
-theorem aggregate_sound_outer_of (h : SoundHyps W) :
-    MemoryAggregateSound guest (decodeWith W) transcriptExtractor := by
+random-permutation model, for any decoder `dec` of which `MemoryGuestKnowledge` holds: except with
+probability the bound of `KnowledgeSoundness`, an accepted aggregate's statement `s`, under the
+deployed seed and of the guest's shape, is the one the execution the extractor reads off the proof
+and the transcript decodes, with a witness holding it, or that execution's decoding and `s` give an
+explicit Keccak-256 collision. -/
+theorem aggregate_sound_outer_dec {dec : MemoryDecoder} (h : MemoryGuestKnowledge guest dec) :
+    MemoryAggregateSound guest dec transcriptExtractor := by
   intro A Q hA hQ
-  refine le_trans (prEvent_mono _ _ _ ?_) (aggregate_knowledge_of h A Q hA hQ)
+  refine le_trans (prEvent_mono _ _ _ ?_) (aggregate_knowledge_dec h A Q hA hQ)
   rintro z ⟨s, hb, hprog, hpub, hs, hno⟩
   refine ⟨hb, hprog, ?_⟩
   rintro ⟨t, hx, hd, hrel⟩
@@ -114,6 +126,12 @@ theorem aggregate_sound_outer_of (h : SoundHyps W) :
   rcases decoded_binds_of_nodeRel hs hrel hpub hd with ⟨h1, h2⟩ | hc
   · exact Or.inl ⟨h1, h2, h1 ▸ h2 ▸ hrel⟩
   · exact Or.inr hc
+
+/-- **What the outer verifier's acceptance establishes** (`MemoryAggregateSound`), for `main`'s
+witness function `W`. -/
+theorem aggregate_sound_outer_of (h : SoundHyps W) :
+    MemoryAggregateSound guest (decodeWith W) transcriptExtractor :=
+  aggregate_sound_outer_dec (guest_knowledge_of h)
 
 /-- **What the outer verifier's acceptance establishes**, from B2 and `verify_sub`'s
 statement. -/
@@ -139,7 +157,7 @@ theorem aggregate_knowledge (A : RandomPermutationAdversary) (Q : ℕ)
         ExplainsInput guest z.input (decode t.memory)] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
         5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 :=
-  aggregate_knowledge_of (soundHyps_of_sub b2SoundL subSoundW) A Q hA hQ
+  aggregate_knowledge_dec guest_knowledge A Q hA hQ
 
 /-- **What the outer verifier's acceptance establishes** (`MemoryAggregateSound`), for the deployed
 guest and its decoder, in the random-permutation model: except with probability
@@ -148,7 +166,7 @@ the deployed seed and of the guest's shape, is the one the execution the
 extractor reads off the proof and the adversary's transcript (one is extracted) decodes, with a
 witness holding it, or that execution's decoding and `s` give an explicit Keccak-256 collision. -/
 theorem aggregate_sound_outer : MemoryAggregateSound guest decode transcriptExtractor :=
-  aggregate_sound_outer_sub subSoundW
+  aggregate_sound_outer_dec guest_knowledge
 
 /-- **The guest's completeness in the random-permutation model**: under the hypotheses, there is
 an execution of the guest on the statement's digest whose honest proof, at an inverse rate `2^ρ`,

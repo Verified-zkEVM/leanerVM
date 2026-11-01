@@ -434,5 +434,101 @@ theorem validExecution_of_reach {input : PublicInput}
 
 end
 
+/-! ## Soundness on the run from the initial state
+
+`SafeReached prog L k r`: the run from the initial state `(g^0, 1)` reaches `r`, and from `r`
+halts after `k` steps. The contracts over it (`FunSpecLtReached`, `FunSpecReached`) assume of a
+function's entry that the run from `(g^0, 1)` reached it, and give it of the return, so a
+postcondition may say that the frame was entered on that run. The rules are `Safe`'s, each step
+extending the reach (`SafeReached.fallThrough`, `SafeReached.jump`). -/
+
+section
+
+variable {κ : ℕ} (prog : Program) (L : MemoryImage κ)
+
+/-- **The run from `(g^0, 1)` reaches `r`, and from `r` halts after `k` steps.** -/
+def SafeReached (k : ℕ) (r : Registers K) : Prop :=
+  Safe prog L k r ∧ Reach prog L ⟨gpow 0, 1⟩ r
+
+/-- **A function's contract on the run from `(g^0, 1)`, for runs shorter than `n`**: from
+`(g^entry, fp)` reached from `(g^0, 1)`, with `P fp`, a run halting after `k < n` steps returns
+first, after fewer steps, to `retRegs L fp`, and `Q fp` holds. -/
+def FunSpecLtReached (n entry : ℕ) (P Q : K → Prop) : Prop :=
+  ∀ fp k, k < n → P fp → SafeReached prog L k ⟨gpow entry, fp⟩ →
+    ∃ k' < k, ∃ r, retRegs L fp = some r ∧ Q fp ∧ SafeReached prog L k' r
+
+/-- **A function's contract on the run from `(g^0, 1)`**. -/
+def FunSpecReached (entry : ℕ) (P Q : K → Prop) : Prop :=
+  ∀ fp k, P fp → SafeReached prog L k ⟨gpow entry, fp⟩ →
+    ∃ k' < k, ∃ r, retRegs L fp = some r ∧ Q fp ∧ SafeReached prog L k' r
+
+end
+
+section
+
+variable {κ : ℕ} {prog : Program} {L : MemoryImage κ} {entry : ℕ} {P Q : K → Prop}
+
+/-- Through a non-`JUMP`: it `Holds`, and the run goes on at the next pc. -/
+theorem SafeReached.fallThrough {pc k : ℕ} {fp : K} {ins : OInstr}
+    (hf : prog.fetch (gpow pc) = some ins.toInstr) (hpc : pc < 2 ^ prog.logSize - 1)
+    (hj : ins.isJump = false) (h : SafeReached prog L k ⟨gpow pc, fp⟩) :
+    ∃ k', k = k' + 1 ∧ Holds L pc fp ins ∧ SafeReached prog L k' ⟨gpow (pc + 1), fp⟩ := by
+  obtain ⟨k', rfl, hh, hs⟩ := h.1.fallThrough hf hpc hj
+  exact ⟨k', rfl, hh, hs, h.2.trans (reach_fallThrough hf hpc hj hh)⟩
+
+/-- Through a `JUMP`: the run goes on where it `JumpsTo`. -/
+theorem SafeReached.jump {pc k : ℕ} {fp : K} {oc od of : ℕ}
+    (hf : prog.fetch (gpow pc) = some (OInstr.jump oc od of).toInstr)
+    (hpc : pc < 2 ^ prog.logSize - 1) (h : SafeReached prog L k ⟨gpow pc, fp⟩) :
+    ∃ k' r, k = k' + 1 ∧ JumpsTo L pc fp oc od of r ∧ SafeReached prog L k' r := by
+  obtain ⟨k', r, rfl, hj, hs⟩ := h.1.jump hf hpc
+  exact ⟨k', r, rfl, hj, hs, h.2.trans (reach_jump hf hpc hj)⟩
+
+theorem FunSpecReached.lt (h : FunSpecReached prog L entry P Q) (n : ℕ) :
+    FunSpecLtReached prog L n entry P Q :=
+  fun fp k _ hP hs ↦ h fp k hP hs
+
+theorem FunSpecReached.of_lt (h : ∀ n, FunSpecLtReached prog L n entry P Q) :
+    FunSpecReached prog L entry P Q :=
+  fun fp k hP hs ↦ h (k + 1) fp k (Nat.lt_succ_self k) hP hs
+
+theorem FunSpecLtReached.mono {m n : ℕ} (hmn : m ≤ n) (h : FunSpecLtReached prog L n entry P Q) :
+    FunSpecLtReached prog L m entry P Q :=
+  fun fp k hk hP hs ↦ h fp k (Nat.lt_of_lt_of_le hk hmn) hP hs
+
+/-- **Strong induction on the steps left**, for a family of contracts on the run from
+`(g^0, 1)` proved together. -/
+theorem funSpecReached_induction {ι : Type} {entry : ι → ℕ} {P Q : ι → K → Prop}
+    (h : ∀ n, (∀ j, FunSpecLtReached prog L n (entry j) (P j) (Q j)) →
+      ∀ i, FunSpecLtReached prog L (n + 1) (entry i) (P i) (Q i))
+    (i : ι) : FunSpecReached prog L (entry i) (P i) (Q i) := by
+  have hall : ∀ n j, FunSpecLtReached prog L n (entry j) (P j) (Q j) := by
+    intro n
+    induction n with
+    | zero => exact fun _ _ _ hk ↦ absurd hk (Nat.not_lt_zero _)
+    | succ n ih => exact h n ih
+  exact FunSpecReached.of_lt (fun n ↦ hall n i)
+
+/-- **A call**: a halting run entering a function at frame `fp'` after the caller stored the
+return registers `r` in `fp'[0]`, `fp'[1]` comes back to `r`, in fewer steps, with `Q fp'`. -/
+theorem FunSpecLtReached.call {n k : ℕ} {fp' : K} {r : Registers K}
+    (hS : FunSpecLtReached prog L n entry P Q) (hk : k < n) (hP : P fp')
+    (hret : retRegs L fp' = some r) (h : SafeReached prog L k ⟨gpow entry, fp'⟩) :
+    ∃ k' < k, Q fp' ∧ SafeReached prog L k' r := by
+  obtain ⟨k', hk', r', hr', hQ, hs⟩ := hS fp' k hk hP h
+  obtain rfl : r' = r := Option.some.inj (hr'.symm.trans hret)
+  exact ⟨k', hk', hQ, hs⟩
+
+/-- **A tail call**: a loop iteration at frame `fp` jumping to the loop's entry at the next
+frame `fp'`, which returns where `fp` does, returns where `fp` does. -/
+theorem FunSpecLtReached.tail {n k : ℕ} {fp fp' : K} (hS : FunSpecLtReached prog L n entry P Q)
+    (hk : k < n) (hP : P fp') (hret : retRegs L fp' = retRegs L fp)
+    (h : SafeReached prog L k ⟨gpow entry, fp'⟩) :
+    ∃ k' < k, ∃ r, retRegs L fp = some r ∧ Q fp' ∧ SafeReached prog L k' r := by
+  obtain ⟨k', hk', r, hr, hQ, hs⟩ := hS fp' k hk hP h
+  exact ⟨k', hk', r, hret ▸ hr, hQ, hs⟩
+
+end
+
 end
 end LeanVM.Guest

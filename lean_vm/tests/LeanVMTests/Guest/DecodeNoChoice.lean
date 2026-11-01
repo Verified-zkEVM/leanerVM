@@ -1,29 +1,27 @@
 import LeanVM.Guest.EndFinal
 
 /-!
-# Tests: the decoder chooses nothing, computes no hash and runs no verifier
+# Tests: the decoder chooses nothing and runs no verifier
 
-`LeanVM.Guest.End.decode` reads its witness off the memory. The traversal below follows every
-definition `decode` unfolds to (its value, not the proofs it carries) through this repository and
-the schemes it imports (`LeanVM`, `LeanXmss`, `Sphincs`, `LeanDa`).
+`LeanVM.Guest.End.decode` reads its witness off the memory, through the index of its addresses,
+and off the frames the replayed run entered. The traversal below follows every definition
+`decode` unfolds to (its value, not the proofs it carries) through this repository and the
+schemes it imports (`LeanVM`, `LeanXmss`, `Sphincs`, `LeanDa`).
 
-* **Classical constructs.** The definitions that mention `Classical.choose`, `Classical.epsilon`,
-  `Exists.choose`, `Classical.indefiniteDescription`, `Classical.propDecidable`,
-  `Classical.choice` or `Nat.find` are exactly the reviewed two:
-  `LeanVM.Guest.Located.frameOf` (`Classical.propDecidable`: it decides, for each of the memory's
-  `2^κ` frames in order, whether the guest's own code for the callee holds there on the call's
-  words, and takes the first) and `LeanVM.Semantics.addressIndex?` (`Classical.choose`: the index `i`
-  with `a = g^i`, unique by the generator's order, the specification's definition of an address).
-  Neither picks a witness.
-* **Positive controls.** The traversal reaches `Located.frameOf` and B1-d's child proof
+* **Classical constructs.** No definition `decode` unfolds to mentions `Classical.choose`,
+  `Classical.epsilon`, `Exists.choose`, `Classical.indefiniteDescription`,
+  `Classical.propDecidable`, `Classical.choice` or `Nat.find`. In particular it reaches neither
+  `Semantics.addressIndex?` (the address index by `Classical.choose`, the specification's), nor
+  `MemoryImage.read` or `Program.fetch`, which use it: the memory and the bytecode are read
+  through the indices of their addresses (`Located.readIn`, `Extraction.gLogIn`), and B1's
+  exponent of a power of `g` by a search (`B1.Main.indexSearch`).
+* **Positive controls.** The traversal reaches the replay (`Located.statesIn`, the machine's step
+  `Semantics.executeWith`, the decided precondition `Located.preTest`) and B1-d's child proof
   `VerifySub.piOfW`, and it flags a definition that does choose (`VerifySub.valOf`, the word at
   an address by `Exists.choose`, which `decode` does not use).
-* **No hash, no verifier.** No definition `decode` unfolds to mentions Keccak-256, Keccak-f[1600],
-  a signature scheme's verifier, the deferring verifier, the DA opening or the batching. This
-  traversal stops at the guest's own semantics (`Core.Stmt.HoldsList`, `Core.Program.RelL`,
-  `Core.Program.locN`), which `frameOf`'s test evaluates and which includes the guest's
-  in-circuit checks (a `KECCAK` atom's `KeccakCellsRelation`): those checks are the guest's, the decoder
-  computes no hash and runs no verifier of its own.
+* **No verifier.** No definition `decode` unfolds to mentions a signature scheme's verifier, the
+  deferring verifier, the DA opening or the batching. (It runs the machine, whose `KECCAK`
+  instruction checks Keccak-f[1600], the guest's own in-circuit check.)
 -/
 
 open Lean Meta Elab Command
@@ -35,11 +33,10 @@ def followed : List Name := [`LeanVM, `LeanXmss, `Sphincs, `LeanDa]
 def endsWithAny (n : Name) (suffixes : List String) : Bool :=
   suffixes.any fun s ↦ n.toString.endsWith s
 
-/-- The definitions reachable from `root` through values, following `followed` and stopping at
-the names ending with a `stop` suffix, and the pairs (definition, constant) for every constant a
-visited definition's value mentions that `bad` flags. -/
-def traverse (root : Name) (stop : List String) (bad : Name → Bool) :
-    MetaM (NameSet × Array (Name × Name)) := do
+/-- The definitions reachable from `root` through values, following `followed`, and the pairs
+(definition, constant) for every constant a visited definition's value mentions that `bad`
+flags. -/
+def traverse (root : Name) (bad : Name → Bool) : MetaM (NameSet × Array (Name × Name)) := do
   let env ← getEnv
   let mut seen : NameSet := {}
   let mut todo : Array Name := #[root]
@@ -47,7 +44,7 @@ def traverse (root : Name) (stop : List String) (bad : Name → Bool) :
   while h : todo.size > 0 do
     let n := todo.back
     todo := todo.pop
-    if seen.contains n || endsWithAny n stop then continue
+    if seen.contains n then continue
     seen := seen.insert n
     let some ci := env.find? n | continue
     -- follow definitions (and instances), not theorems: a proof is not part of the decoder
@@ -68,35 +65,41 @@ def classical : NameSet :=
 def showHits (hits : Array (Name × Name)) : String :=
   toString ((hits.map fun p ↦ s!"{p.1} uses {p.2}").qsort (· < ·)).toList
 
-/-- info: [LeanVM.Guest.Located.frameOf uses Classical.propDecidable, LeanVM.Semantics.addressIndex? uses Classical.choose] -/
+/-- info: [] -/
 #guard_msgs in
 run_meta do
-  let (_, hits) ← traverse ``LeanVM.Guest.End.decode [] classical.contains
+  let (_, hits) ← traverse ``LeanVM.Guest.End.decode classical.contains
   logInfo (showHits hits)
-
-/-! ## Positive controls -/
-
-/-- info: frameOf: true, piOfW: true -/
-#guard_msgs in
-run_meta do
-  let (seen, _) ← traverse ``LeanVM.Guest.End.decode [] classical.contains
-  logInfo s!"frameOf: {seen.contains ``LeanVM.Guest.Located.frameOf}, piOfW: {seen.contains ``LeanVM.Guest.B1.VerifySub.piOfW}"
-
-/-- info: [LeanVM.Guest.B1.VerifySub.valOf uses Classical.propDecidable, LeanVM.Guest.B1.VerifySub.valOf uses Exists.choose] -/
-#guard_msgs in
-run_meta do
-  let (_, hits) ← traverse ``LeanVM.Guest.B1.VerifySub.valOf [] classical.contains
-  logInfo (showHits hits)
-
-/-! ## No hash, no verifier -/
 
 /-- info: [] -/
 #guard_msgs in
 run_meta do
-  let stop := ["Core.Stmt.HoldsList", "Core.Stmt.Holds", "Core.Stmt.HoldsArms",
-    "Core.Program.RelL", "Core.Program.locN", "Semantics.addressIndex?"]
-  let forbidden := ["keccak256", "keccakF1600", "Keccak.round", "absorbBlock", "absorbBlockWith", "xmssVerify",
-    "sphincsVerify", "LeanXmss.verify", "Sphincs.verify", "verifyDeferred", "verifyDeferredWith",
-    "Verifier.verify", "verifyWith", "MatrixWitness.Opens", "Node.batch"]
-  let (_, hits) ← traverse ``LeanVM.Guest.End.decode stop (endsWithAny · forbidden)
+  let reads : List Name := [``LeanVM.Semantics.addressIndex?, ``LeanVM.Semantics.MemoryImage.read,
+    ``LeanVM.Semantics.Program.fetch, ``LeanVM.Guest.Located.frameOf]
+  let (_, hits) ← traverse ``LeanVM.Guest.End.decode (reads.contains ·)
+  logInfo (showHits hits)
+
+/-! ## Positive controls -/
+
+/-- info: statesIn: true, executeWith: true, preTest: true, piOfW: true -/
+#guard_msgs in
+run_meta do
+  let (seen, _) ← traverse ``LeanVM.Guest.End.decode classical.contains
+  logInfo s!"statesIn: {seen.contains ``LeanVM.Guest.Located.statesIn}, executeWith: {seen.contains ``LeanVM.Semantics.executeWith}, preTest: {seen.contains ``LeanVM.Guest.Located.preTest}, piOfW: {seen.contains ``LeanVM.Guest.B1.VerifySub.piOfW}"
+
+/-- info: [LeanVM.Guest.B1.VerifySub.valOf uses Classical.propDecidable, LeanVM.Guest.B1.VerifySub.valOf uses Exists.choose] -/
+#guard_msgs in
+run_meta do
+  let (_, hits) ← traverse ``LeanVM.Guest.B1.VerifySub.valOf classical.contains
+  logInfo (showHits hits)
+
+/-! ## No verifier -/
+
+/-- info: [] -/
+#guard_msgs in
+run_meta do
+  let forbidden := ["xmssVerify", "sphincsVerify", "LeanXmss.verify", "Sphincs.verify",
+    "verifyDeferred", "verifyDeferredWith", "Verifier.verify", "verifyWith",
+    "MatrixWitness.Opens", "Node.batch"]
+  let (_, hits) ← traverse ``LeanVM.Guest.End.decode (endsWithAny · forbidden)
   logInfo (showHits hits)

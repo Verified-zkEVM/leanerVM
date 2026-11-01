@@ -12,8 +12,8 @@ public import LeanVM.Guest.CertName
 /-!
 # Frames
 
-A located call (`Check.RL coreProgram L certByName`, `RLg L` here) runs at a frame `g^a` of the
-memory, `a < 2^κ` (`Check.InMem`), under its certificate's valuation there (`valAt`). A witness is
+A located call (`Check.RL coreProgram L certByName (Check.EnteredAt glob L)`, `RLg L` here) runs at
+a frame `g^a` of the memory, `a < 2^κ` (`Check.InMem`), entered on the run from `(g^0, 1)`, under its certificate's valuation there (`valAt`). A witness is
 read off the first frame passing a Boolean test (`firstFrame`). The frame of a call (`frameOf`) is
 the first at which the callee's code holds on the call's words (`BodyAt`), a classical test of the
 guest's own semantics (the callee's core IR body under the located relation, its in-circuit
@@ -38,7 +38,8 @@ open LeanVM.Protocol.Verifier
 @[expose] public section
 
 /-- **The guest's located call relation** on the memory `L`. -/
-noncomputable abbrev RLg {κ : ℕ} (L : MemoryImage κ) : CallRel := RL coreProgram L certByName
+noncomputable abbrev RLg {κ : ℕ} (L : MemoryImage κ) : CallRel :=
+  RL coreProgram L certByName (EnteredAt glob L)
 
 /-- The valuation of the guest function `f` with the memory's word `a` as its frame. -/
 noncomputable def valAt {κ : ℕ} (L : MemoryImage κ) (f : String) (a : ℕ) : Val :=
@@ -83,7 +84,7 @@ noncomputable def frameOf {κ : ℕ} (L : MemoryImage κ) (f : String) (args ret
 theorem bodyAt_frameOf {κ : ℕ} {L : MemoryImage κ} {f : String} {args rets : List E}
     (h : RLg L f args rets) : BodyAt L f args rets (frameOf L f args rets) := by
   classical
-  obtain ⟨fn, fp, hf, ⟨a, ha, rfl⟩, hp, hb⟩ := (relL_iff coreProgram f args rets).mp h
+  obtain ⟨fn, fp, hf, ⟨⟨a, ha, rfl⟩, -⟩, hp, hb⟩ := (relL_iff coreProgram f args rets).mp h
   obtain ⟨b, hb', ht⟩ := firstFrame_some (t := fun a ↦ decide (BodyAt L f args rets a)) ha
     (decide_eq_true ⟨fn, hf, hp, hb⟩)
   unfold frameOf
