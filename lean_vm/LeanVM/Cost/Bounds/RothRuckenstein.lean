@@ -5,6 +5,7 @@ public import Mathlib.Algebra.Polynomial.Taylor
 public import Mathlib.Algebra.Polynomial.Roots
 public import CompPoly.Bivariate.GuruswamiSudan.Interpolation.Basic
 public import LeanVM.Protocol.Extraction.Fast.Extract
+public import LeanVM.Protocol.Extraction.Fast.TruncNoFallback
 import all CompPoly.Univariate.Basic
 import all CompPoly.Univariate.Raw.Core
 import all CompPoly.Data.Array.Lemmas
@@ -43,10 +44,11 @@ sizes above (`gsRun_tInv`); CompPoly's root finder lists each root once (`fieldR
 polynomial is zero (`truncD_fallback_iff`: the `s ≥ M` branch is dead), i.e. where `X^k` divides
 `Q(X, p_d + X^d·Y)`; repeated roots reach it (Lee–O'Sullivan's `(Y − f)^m` on an uncorrupted lane
 falls back at depth `≈ k/m`). Kept, its nodes have `ℓ + 1` rows of at most `W + ℓ + 1`
-coefficients (`gsRun_fallback_lenLe`). Removed: at precision `W + 1` the truncated recursion never
-falls back (`prefixesTruncD_eq_NF`), and `gsRunNF`, with no fallback code, is `gsRunNoCheck`
-(`gsRunNF_eq`), with at most `1 + k·ℓ` nodes (`gsRunNF_nodes_le`) of `ℓ + 1` rows of at most
-`W + 1` coefficients (`rrCostNF_le_nodes`).
+coefficients (`gsRun_fallback_lenLe`). Removed (`Fast/TruncNoFallback.lean`, what the extractor
+runs): at precision `W + 1` the truncated recursion never falls back (`prefixesTruncD_eq_NF`), and
+the lane runner `gsRunDistinctNF`, with no fallback code, is `gsRunDistinct`, with at most
+`1 + k·ℓ` nodes (`gsRunNF_nodes_le`) of `ℓ + 1` rows of at most `W + 1` coefficients
+(`rrCostNF_le_nodes`).
 
 Reference: R. M. Roth and G. Ruckenstein, *Efficient decoding of Reed–Solomon codes beyond half
 the minimum distance*, IEEE Trans. Inform. Theory 46 (2000), §IV (the tree of the recursion, the
@@ -85,35 +87,12 @@ theorem rootsInFieldForNonzeroEquation_of_eq_zero (fr : FieldRootContext F) :
     rootsInFieldForNonzeroEquation fr 0 = #[] := by
   simp [rootsInFieldForNonzeroEquation]
 
-omit [BEq F] [LawfulBEq F] [DecidableEq F] in
-/-- **Distinct roots, counted with multiplicity, are at most the degree.** -/
-theorem sum_rootMultiplicity_le (P : Polynomial F) (L : Finset F) :
-    ∑ a ∈ L, P.rootMultiplicity a ≤ P.natDegree := by
-  classical
-  calc ∑ a ∈ L, P.rootMultiplicity a = ∑ a ∈ L, P.roots.count a := by
-        simp [Polynomial.count_roots]
-    _ ≤ ∑ a ∈ L ∪ P.roots.toFinset, P.roots.count a :=
-        Finset.sum_le_sum_of_subset Finset.subset_union_left
-    _ = ∑ a ∈ P.roots.toFinset, P.roots.count a := by
-        refine (Finset.sum_subset Finset.subset_union_right fun a _ ha ↦ ?_).symm
-        exact Multiset.count_eq_zero.2 fun h ↦ ha (Multiset.mem_toFinset.2 h)
-    _ = Multiset.card P.roots := Multiset.toFinset_sum_count_eq _
-    _ ≤ P.natDegree := Polynomial.card_roots' P
-
 /-! ## The degree potential -/
 
 /-- **The degree at a node**: the degree of `Qn(0, Y)`, `Qn` the node's polynomial stripped of its
 `X`-adic factor; the number of roots, and the sum of their multiplicities, are at most it. -/
 @[expose] def rrDeg (Q : CBivariate F) : ℕ :=
   (initialCoefficientPolynomial (CBivariate.stripXAdicFactor Q)).natDegree
-
-omit [BEq F] [LawfulBEq F] [DecidableEq F] in
-theorem cbivariate_coeff_eq (Q : CBivariate F) (i j : ℕ) :
-    CBivariate.coeff Q i j = (Q.val.coeff j).coeff i := rfl
-
-theorem toPoly_initialCoefficientPolynomial_coeff (Q : CBivariate F) (j : ℕ) :
-    (initialCoefficientPolynomial Q).toPoly.coeff j = CBivariate.coeff Q 0 j := by
-  rw [← CPolynomial.coeff_toPoly, coeff_initialCoefficientPolynomial]
 
 omit [DecidableEq F] in
 theorem natDegree_le_of_coeff_zero (p : CPolynomial F) (d : ℕ)
@@ -122,72 +101,6 @@ theorem natDegree_le_of_coeff_zero (p : CPolynomial F) (d : ℕ)
   intro j hj
   rw [← CPolynomial.coeff_toPoly]
   exact h j hj
-
-/-- The coefficient of `X^μ·Y^μ` in `Q(X, a + X·Y)` is the `μ`-th Taylor coefficient at `a` of
-`P = Q(0, Y)`. -/
-theorem substCoeff_diag_eq_taylor (Q : CBivariate F) (a : F) (μ : ℕ)
-    (hμ : μ < Q.val.size) :
-    substCoeff Q a μ μ = ((initialCoefficientPolynomial Q).toPoly.taylor a).coeff μ := by
-  set P := (initialCoefficientPolynomial Q).toPoly
-  rw [Polynomial.taylor_coeff]
-  have hN : (Polynomial.hasseDeriv μ P).natDegree < Q.val.size - μ := by
-    have : (Polynomial.hasseDeriv μ P).natDegree ≤ Q.val.size - μ - 1 := by
-      rw [Polynomial.natDegree_le_iff_coeff_eq_zero]
-      intro n hn
-      rw [Polynomial.hasseDeriv_coeff, toPoly_initialCoefficientPolynomial_coeff,
-        cbivar_coeff_eq_zero_of_y_size_le Q (by omega), mul_zero]
-    omega
-  rw [Polynomial.eval_eq_sum_range' hN, substCoeff]
-  rw [← Finset.sum_range_add_sum_Ico _ hμ.le]
-  rw [Finset.sum_eq_zero (s := Finset.range μ) fun y hy ↦ by
-    have := Finset.mem_range.1 hy
-    simp [show ¬ μ ≤ y by omega], zero_add, Finset.sum_Ico_eq_sum_range]
-  refine Finset.sum_congr rfl fun i _ ↦ ?_
-  rw [Polynomial.hasseDeriv_coeff, toPoly_initialCoefficientPolynomial_coeff,
-    cbivariate_coeff_eq]
-  simp only [Nat.le_add_right, le_refl, and_self, ↓reduceIte, Nat.sub_self, Nat.add_sub_cancel_left]
-  rw [Nat.add_comm i μ]
-  ring
-
-omit [DecidableEq F] in
-/-- A nonzero coefficient `X^i` bounds the `X`-adic order. -/
-theorem xAdicOrder?_le_of_coeff_ne_zero {S : CBivariate F} {i j : ℕ}
-    (h : CBivariate.coeff S i j ≠ 0) : ∃ s, CBivariate.xAdicOrder? S = some s ∧ s ≤ i := by
-  cases hS : CBivariate.xAdicOrder? S with
-  | none =>
-    exact absurd (by rw [cbivar_xAdicOrder?_none_eq_zero hS, CBivariate.coeff_zero]) h
-  | some s =>
-    refine ⟨s, rfl, ?_⟩
-    by_contra hlt
-    exact h (cbivar_xAdicOrder?_some_coeff_eq_zero_of_lt hS (by omega))
-
-/-- **The coefficient of `X^μ·Y^μ` in `Qn(X, a + X·Y)` is nonzero**, `μ` the multiplicity of `a`
-in `P = Qn(0, Y) ≠ 0` (the `μ`-th Taylor coefficient of `P` at `a`). -/
-theorem coeff_substituteFast_diag_ne_zero [CharP F 2] (Qn : CBivariate F) (a : F)
-    (hP : initialCoefficientPolynomial Qn ≠ 0) :
-    CBivariate.coeff (substituteFast Qn a)
-      ((initialCoefficientPolynomial Qn).toPoly.rootMultiplicity a)
-      ((initialCoefficientPolynomial Qn).toPoly.rootMultiplicity a) ≠ 0 := by
-  set P := (initialCoefficientPolynomial Qn).toPoly
-  set μ := P.rootMultiplicity a
-  have hP' : P ≠ 0 := by
-    intro h; apply hP; rw [← CPolynomial.toPoly_inj, CPolynomial.toPoly_zero]; exact h
-  -- `deg P < |Qn|` and `μ ≤ deg P`
-  have hdeg : P.natDegree < Qn.val.size := by
-    by_contra hge
-    have hlead : P.leadingCoeff = 0 := by
-      rw [Polynomial.leadingCoeff, toPoly_initialCoefficientPolynomial_coeff,
-        cbivar_coeff_eq_zero_of_y_size_le Qn (by omega)]
-    exact hP' (Polynomial.leadingCoeff_eq_zero.1 hlead)
-  have hμ : μ ≤ P.natDegree := by
-    have := sum_rootMultiplicity_le P {a}
-    simpa [μ] using this
-  rw [coeff_substituteFast, substCoeff_diag_eq_taylor Qn a μ (by omega)]
-  have ht : P.taylor a ≠ 0 := by rwa [Ne, Polynomial.taylor_eq_zero]
-  have hμt : μ = (P.taylor a).natTrailingDegree := by
-    rw [Polynomial.taylor_apply]; exact Polynomial.rootMultiplicity_eq_natTrailingDegree
-  rw [hμt]
-  exact mt Polynomial.trailingCoeff_eq_zero.1 ht
 
 /-- **A child's degree is at most its root's multiplicity**: for `P = Qn(0, Y) ≠ 0`, the node
 of root `a` (`residualFast Qn a`, `Qn(X, a + X·Y)` stripped) has degree at most the
@@ -738,180 +651,15 @@ theorem gsRun_nodes_le_of_interpolate (I : GSInterpContext K) {points : Array (K
       1 + params.messageDegree * interpolationYCap params :=
   gsRun_nodes_le (I.sound points params Q h) hk
 
-/-! ## The fallback
+/-! ## The fallback, removed
 
-**When it fires.** `prefixesTruncD`'s `s ≥ M` branch is dead: an order seen modulo `X^M` is below
-`M` (`xAdicOrder?_of_truncateX`). The fallback fires exactly when the truncated polynomial is
-zero, `S ≡ 0 mod X^M`: along a path of roots `p_d = a_0 + … + a_{d−1}X^{d−1}`, when `X^k` divides
-`Q(X, p_d + X^d·Y)` (the precision `k` minus the orders stripped so far is used up). A simple
-root strips one power of `X` per level, so a path of simple roots from an `X`-free `Q` never
-falls back; a root of multiplicity `μ` can strip `μ`: `Q = (Y − f)^m`, which is what
-Lee–O'Sullivan returns on an uncorrupted lane (its least row), strips `m` per level and falls
-back at depth `≈ k/m`. So the fallback is reachable at the decoder's parameters.
-
-**Removing it** (`prefixesNF`, `gsRunNF`): with precision `W + 1` instead of `k` the truncated
-recursion never falls back, on a polynomial of weighted degree `≤ W` (`prefixesTruncD_eq_NF`):
-the invariant `i + j·(f − 1) < M` (row `j`, remaining fuel `f`, precision `M`) holds at the root
-(`i + j·(k − 1) ≤ W`) and is kept by a step (the substitution moves `X^i·Y^y` to `X^(i+t)·Y^t`,
-`t ≤ y`, and the fuel drops by one), so every nonzero node has a coefficient below its precision.
-`gsRunNF` (precision `W + 1`, no fallback code) is `gsRunNoCheck` (`gsRunNF_eq`); its nodes are at
-most `1 + k·ℓ` (`gsRunNF_nodes_le`), of `ℓ + 1` rows of at most `W + 1` coefficients. -/
-
-omit [DecidableEq F] in
-/-- The `s ≥ M` branch of `prefixesTruncD` is dead: the fallback fires iff the truncated
-polynomial is zero. -/
-theorem truncD_fallback_iff (S : CBivariate F) (M : ℕ) :
-    CBivariate.xAdicOrder? (CBivariate.truncateX S M) = none ↔ CBivariate.truncateX S M = 0 ∧
-      ∀ s, CBivariate.xAdicOrder? (CBivariate.truncateX S M) = some s → s < M := by
-  constructor
-  · intro h
-    exact ⟨cbivar_xAdicOrder?_none_eq_zero h, fun s hs ↦ by rw [h] at hs; cases hs⟩
-  · rintro ⟨h0, -⟩
-    cases h : CBivariate.xAdicOrder? (CBivariate.truncateX S M) with
-    | none => rfl
-    | some s =>
-      obtain ⟨y, -, hy⟩ := cbivar_xAdicOrder?_some_exists h
-      rw [h0, CBivariate.coeff_zero] at hy
-      exact absurd rfl hy
-
-/-- **Roth–Ruckenstein's prefixes, truncated, without the fallback** (it returns nothing where
-`prefixesTruncD` would fall back; it never does at precision `W + 1`, `prefixesTruncD_eq_NF`). -/
-@[expose] def prefixesNF (fieldRoots : FieldRootContext F) :
-    ℕ → CBivariate F → ℕ → ℕ → CPolynomial F → Array (CPolynomial F)
-  | 0, _q, _M, _depth, pref => #[pref]
-  | fuel + 1, q, M, depth, pref =>
-    match CBivariate.xAdicOrder? q with
-    | some s =>
-      if s < M then
-        let Qn := divXPowerFast q s
-        (rootsInFieldForNonzeroEquation fieldRoots (initialCoeffFast Qn)).foldl
-          (fun out a ↦
-            out ++ prefixesNF fieldRoots fuel
-              (CBivariate.truncateX (substituteFast Qn a) (M - s)) (M - s) (depth + 1)
-              (extendPrefix pref depth a))
-          #[]
-      else #[]
-    | none => #[]
-
-omit [DecidableEq F] in
-theorem exists_coeff_ne_zero {S : CBivariate F} (h : S ≠ 0) :
-    ∃ i j, CBivariate.coeff S i j ≠ 0 := by
-  by_contra hall
-  push Not at hall
-  exact h (CBivariate.eq_iff_coeff.2 fun i j ↦ by rw [hall i j, CBivariate.coeff_zero])
-
-/-- The invariant of the truncated recursion at precision `M`, remaining fuel `fuel`: every
-nonzero coefficient `X^i·Y^j` has `i + j·(fuel − 1) < M`. -/
-def NFInv (fuel M : ℕ) (S : CBivariate F) : Prop :=
-  ∀ i j, CBivariate.coeff S i j ≠ 0 → i + j * (fuel - 1) < M
-
-omit [DecidableEq F] in
-/-- A nonzero polynomial under the invariant has its order seen below the precision. -/
-theorem xAdicOrder?_truncateX_of_nfInv {fuel M : ℕ} {S : CBivariate F} (hS : S ≠ 0)
-    (hI : NFInv fuel M S) :
-    ∃ s, CBivariate.xAdicOrder? (CBivariate.truncateX S M) = some s ∧ s < M ∧
-      CBivariate.xAdicOrder? S = some s := by
-  obtain ⟨i, j, hij⟩ := exists_coeff_ne_zero hS
-  have hiM : i < M := by have := hI i j hij; omega
-  have ht : CBivariate.coeff (CBivariate.truncateX S M) i j ≠ 0 := by
-    rw [cbivar_coeff_truncateX]; simpa [hiM] using hij
-  obtain ⟨s, hs, -⟩ := xAdicOrder?_le_of_coeff_ne_zero ht
-  obtain ⟨hsM, hS'⟩ := xAdicOrder?_of_truncateX hs
-  exact ⟨s, hs, hsM, hS'⟩
-
-/-- **The child keeps the invariant, and is nonzero.** -/
-theorem nfInv_child [CharP F 2] {fuel M s : ℕ} {S : CBivariate F}
-    (hI : NFInv (fuel + 2) M S) (hs : CBivariate.xAdicOrder? S = some s) (a : F) :
-    substituteFast (CBivariate.divXPower S s) a ≠ 0 ∧
-      NFInv (fuel + 1) (M - s) (substituteFast (CBivariate.divXPower S s) a) := by
-  refine ⟨?_, ?_⟩
-  · -- `P = Qn(0, Y)` is row `X^s` of `S`, nonzero, so the diagonal coefficient is nonzero
-    have hP : initialCoefficientPolynomial (CBivariate.divXPower S s) ≠ 0 := by
-      obtain ⟨y, -, hy⟩ := cbivar_xAdicOrder?_some_exists hs
-      intro h0
-      apply hy
-      have := congrArg (fun p ↦ CPolynomial.coeff p y) h0
-      simp only [coeff_initialCoefficientPolynomial, cbivar_coeff_divXPower, Nat.zero_add,
-        CPolynomial.coeff_zero] at this
-      exact this
-    intro h0
-    apply coeff_substituteFast_diag_ne_zero _ a hP
-    rw [h0, CBivariate.coeff_zero]
-  · intro i j hij
-    rw [coeff_substituteFast, substCoeff] at hij
-    obtain ⟨y, -, hy⟩ := Finset.exists_ne_zero_of_sum_ne_zero hij
-    split at hy
-    · rename_i hc
-      have hne : CBivariate.coeff S (i - j + s) y ≠ 0 := by
-        intro h0
-        apply hy
-        rw [← cbivariate_coeff_eq, cbivar_coeff_divXPower, h0]; ring
-      have h1 := hI _ _ hne
-      have h2 : j * fuel ≤ y * fuel := Nat.mul_le_mul_right fuel hc.1
-      have h3 : y * (fuel + 2 - 1) = y * fuel + y := by
-        rw [show fuel + 2 - 1 = fuel + 1 by omega]; ring
-      rw [h3] at h1
-      rw [show fuel + 1 - 1 = fuel by omega]
-      omega
-    · exact absurd rfl hy
-
-/-- **Without the fallback, the same prefixes**: on a nonzero polynomial under the invariant,
-`prefixesTruncD` never falls back and is `prefixesNF`. -/
-theorem prefixesTruncD_eq_NF [CharP F 2] (fieldRoots : FieldRootContext F) (fuel : ℕ) :
-    ∀ (S : CBivariate F) (M : ℕ) (Q₀ : CBivariate F) (path : List F) (depth : ℕ)
-      (pref : CPolynomial F), S ≠ 0 → NFInv fuel M S →
-      prefixesTruncD fieldRoots fuel (CBivariate.truncateX S M) M Q₀ path depth pref =
-        prefixesNF fieldRoots fuel (CBivariate.truncateX S M) M depth pref := by
-  induction fuel with
-  | zero => intro S M Q₀ path depth pref _ _; rfl
-  | succ fuel ih =>
-    intro S M Q₀ path depth pref hS hI
-    obtain ⟨s, hq, hsM, hS'⟩ := xAdicOrder?_truncateX_of_nfInv hS hI
-    rw [prefixesTruncD, prefixesNF, hq]
-    simp only [hsM, ↓reduceIte]
-    rw [divXPowerFast_eq, divXPower_truncateX]
-    refine congrArg (fun f ↦ Array.foldl f #[] _) (funext fun out ↦ funext fun a ↦ ?_)
-    rw [truncateX_substituteFast]
-    congr 1
-    cases fuel with
-    | zero => rfl
-    | succ fuel =>
-      obtain ⟨hne, hI'⟩ := nfInv_child hI hS' a
-      exact ih _ _ _ _ _ _ hne hI'
-
-open LeanVM.Extraction LeanVM.Parameters in
-/-- **`gsRunNoCheck` without the fallback**: Roth–Ruckenstein truncated at precision `W + 1`. -/
-@[expose] def gsRunNF (I : GSInterpContext K) (points : Array (K × K))
-    (params : GSInterpParams) (radius : ℕ) : Array (CPolynomial K) :=
-  match I.interpolate points params with
-  | none => #[]
-  | some Q =>
-    (prefixesNF fieldRootCtxFast params.messageDegree
-        (CBivariate.truncateX Q (params.weightedDegreeBound + 1)) (params.weightedDegreeBound + 1)
-        0 default).filter fun p ↦
-      degreeLtBool p params.messageDegree && passesCandidateDistance points radius p
-
-open LeanVM.Extraction LeanVM.Parameters in
-/-- **`gsRunNF` is `gsRunNoCheck`.** -/
-theorem gsRunNF_eq (I : GSInterpContext K) (points : Array (K × K))
-    (params : GSInterpParams) (radius : ℕ) :
-    gsRunNF I points params radius = gsRunNoCheck I points params radius := by
-  rw [gsRunNF, gsRunNoCheck]
-  cases hQ : I.interpolate points params with
-  | none => rfl
-  | some Q =>
-    have hv := I.sound points params Q hQ
-    dsimp only
-    have hw := (CBivariate.natWeightedDegree_le_iff_coeff Q 1 (yWeight params) _).1 hv.2.1
-    have hI : NFInv params.messageDegree (params.weightedDegreeBound + 1) Q := by
-      intro i j hij
-      have := hw i j hij
-      simp only [yWeight] at this
-      have e : j * (params.messageDegree - 1) = (params.messageDegree - 1) * j := Nat.mul_comm _ _
-      omega
-    rw [← prefixesTruncD_eq_NF fieldRootCtxFast _ Q _ Q [] 0 default hv.1 hI,
-      prefixesTruncD_eq, prefixesTrunc_eq fieldRootCtxFast _ Q _ (fun _ ↦ replayPath Q []) 0 default rfl,
-      prefixesTruncD_eq, prefixesTrunc_eq fieldRootCtxFast _ Q _ (fun _ ↦ replayPath Q []) 0 default rfl]
+`Fast/TruncNoFallback.lean` (proof-side, what the extractor runs): the fallback fires exactly where
+the truncated polynomial is zero (`truncD_fallback_iff`), reachable on repeated roots
+(Lee–O'Sullivan's `(Y − f)^m` on an uncorrupted lane falls back at depth `≈ k/m`); at precision
+`W + 1` it never does (`prefixesTruncD_eq_NF`), and the extractor's lanes run `gsRunDistinctNF`
+(`prefixesNF`, no fallback code; `gsRunDistinctNF_eq`). Here: its nodes are at most `1 + k·ℓ`
+(`gsRunNF_nodes_le`, the call `gsRunDistinctNF` and `gsRunNF` make), of `ℓ + 1` rows of at most
+`W + 1` coefficients (`rrCostNF_le_nodes`). -/
 
 /-! ### Nodes and sizes without the fallback -/
 

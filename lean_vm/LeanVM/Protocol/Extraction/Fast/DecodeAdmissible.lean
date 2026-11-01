@@ -1,6 +1,7 @@
 module
 
 public import LeanVM.Protocol.Extraction.Fast.Extract
+public import LeanVM.Protocol.Extraction.Fast.TruncNoFallback
 public import LeanVM.Protocol.Extraction.Fast.AfterRoot
 public import LeanVM.Protocol.Extraction.Params
 
@@ -21,7 +22,8 @@ redundant:
 
 No evaluation: the window enters only through the bounds on `μ` and `R`.
 
-The lane chain is restated without the branch (`gsLaneDistinct`, …, `decodeStacksDistinct`) and
+The lane chain is restated without the branch, and with Roth–Ruckenstein's fallback removed
+(`gsRunDistinctNF`, `Fast/TruncNoFallback.lean`) (`gsLaneDistinct`, …, `decodeStacksDistinct`) and
 proved equal to the fast chain at admissible shapes (**`decodeStacksDistinct_eq`**); the extractor
 the cost machine runs calls it (`Fast/Compiled.lean`).
 -/
@@ -84,10 +86,11 @@ theorem checkRedundant_johnson {μ R : ℕ} (h : Whir.Admissible μ R) :
 
 /-! ## The lane chain without the full decoder -/
 
-/-- `gsLaneAtFast` without its branch: `gsRunDistinct` only. -/
+/-- `gsLaneAtFast` without its branch, and Roth–Ruckenstein without its fallback:
+`gsRunDistinctNF` only (`Fast/TruncNoFallback.lean`). -/
 @[expose] def gsLaneDistinct (κ R A : ℕ) (S : ℕ → ℕ → K) (u : ℕ) : Array (CPolynomial K) :=
   let params := gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A
-  gsRunDistinct (lanePointsS (2 ^ (κ + R)) S u) params.interp params.radius
+  gsRunDistinctNF (lanePointsS (2 ^ (κ + R)) S u) params.interp params.radius
 
 /-- `laneListAtFast` with `gsLaneDistinct`. -/
 @[expose] def laneListDistinct (κ R A : ℕ) (S : ℕ → ℕ → K) (u : ℕ) : List (Array K) :=
@@ -109,15 +112,20 @@ theorem checkRedundant_johnson {μ R : ℕ} (h : Whir.Admissible μ R) :
     [([], List.range (2 ^ (κ + R)))]
 
 /-- **The decoded stacks without the full decoder** (`decodeStacksFast`, the lanes by
-`gsRunDistinct` only). -/
+`gsRunDistinctNF` only). -/
 @[expose] def decodeStacksDistinct (μ R : ℕ) (W : ℕ → List K) : List (Vector K (2 ^ μ)) :=
   (pruneUpToDistinct (μ - initialFold) R (johnsonThreshold μ R) W (2 ^ initialFold)).map
     fun s ↦ stackOf μ s.1
 
 theorem gsLaneDistinct_eq {κ R A : ℕ} (h : checkRedundant κ R (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A))
     (S : ℕ → ℕ → K) (u : ℕ) : gsLaneDistinct κ R A S u = gsLaneAtFast κ R A S u := by
+  have h64 : κ + R ≤ 64 := by
+    rw [checkRedundant, Bool.and_eq_true] at h
+    exact of_decide_eq_true h.1
   rw [gsLaneDistinct, gsLaneAtFast]
   simp only [h, ↓reduceIte]
+  exact gsRunDistinctNF_eq
+    (distinct_lanePointsS _ (Nat.pow_le_pow_right (by norm_num) h64) S u) _ _
 
 theorem pruneUpToDistinct_eq {κ R A : ℕ}
     (h : checkRedundant κ R (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A)) (W : ℕ → List K) (U : ℕ) :

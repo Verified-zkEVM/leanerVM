@@ -16,8 +16,9 @@ index (`subtreeLeavesWith`), the candidate run on a memory vector with its table
 (`candidateRunner`), and the fast decoder and fast path (`fastStacksFast`: the word's columns
 reversed once, `laneTable`).
 
-The decoder is `decodeStacksDistinct` (`Fast/DecodeAdmissible.lean`): the lanes by `gsRunDistinct`
-only, with no branch to the full decoder. The replay returns only admissible layouts
+The decoder is `decodeStacksDistinct` (`Fast/DecodeAdmissible.lean`): the lanes by
+`gsRunDistinctNF` only (`gsRunDistinct` with Roth–Ruckenstein's fallback removed,
+`Fast/TruncNoFallback.lean`), with no branch to the full decoder. The replay returns only admissible layouts
 (`admissible_of_afterRootDirect`), and at admissible shapes it is `decodeStacksFast`
 (`decodeStacksDistinct_eq`): `extractorTop_eq_full`, `extractorTop` is `extractorTopFull`, the same
 with `decodeStacksFast`.
