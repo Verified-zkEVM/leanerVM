@@ -297,6 +297,19 @@ theorem natEq {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (enc a) c)
     Runs P env (.op .neq [t, u]) (enc (decide (a = b))) (c + d + (max (limbs a) (limbs b) + 1)) :=
   op₂ h hb (by simp [Op.apply, enc_bool, Val.ofBool])
 
+theorem wordLt {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .wlt [t, u]) (enc (decide (a < b))) (c + d + 1) := op₂ h hb rfl
+
+theorem wordLe {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .wle [t, u]) (enc (decide (a ≤ b))) (c + d + 1) := op₂ h hb rfl
+
+theorem wordEq {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .weq [t, u]) (enc (decide (a = b))) (c + d + 1) :=
+  op₂ h hb (by simp [Op.apply, wordOp, enc_bool, Val.ofBool])
+
 /-! ### Arrays -/
 
 theorem arrSize {t : Term} {a : Array α} {c : ℕ} (h : Runs P env t (enc a) c) :

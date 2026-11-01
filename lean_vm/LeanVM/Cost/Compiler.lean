@@ -4,6 +4,7 @@ public import LeanVM.Cost.Rules
 public meta import Lean.Elab.Command
 public meta import Lean.Meta.Basic
 public meta import Lean.Meta.Match.MatcherApp.Basic
+public meta import Lean.Meta.Constructions.SparseCasesOn
 public meta import LeanVM.Cost.Rules
 
 /-!
@@ -56,6 +57,9 @@ def rules : List (Name × Name) := [
   (``Decidable.decide, ``Rule.natLt),
   (``Decidable.decide, ``Rule.natLe),
   (``Decidable.decide, ``Rule.natEq),
+  (``Decidable.decide, ``Rule.wordLt),
+  (``Decidable.decide, ``Rule.wordLe),
+  (``Decidable.decide, ``Rule.wordEq),
   (``Array.size, ``Rule.arrSize),
   (``HAppend.hAppend, ``Rule.arrAppend),
   (``Array.replicate, ``Rule.arrReplicate),
@@ -350,6 +354,32 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
         return ← translateSelfCall ctx self e
   if let some (cf, args) ← findCompiled? e then
     return ← translateCall ctx cf args e
+  -- a constructor, a `casesOn`, a projection of a type encoded as constructors
+  if let .const f _ := e.getAppFn then
+    let env ← getEnv
+    if let some (.ctorInfo ci) := env.find? f then
+      if e.getAppNumArgs == ci.numParams + ci.numFields then
+        if let some r ← translateCtor ctx ci e then return r
+    if isCasesOnRecursor env f then
+      if let some r ← translateCases ctx f e then return r
+    if isSparseCasesOn env f then
+      if let some r ← translateSparse ctx f e then return r
+    if let some pinfo ← getProjectionFnInfo? f then
+      if e.getAppNumArgs == pinfo.numParams + 1 then
+        if let some r ← translateProj ctx pinfo.ctorName pinfo.i (e.getArg! pinfo.numParams) e then
+          return r
+  -- a method of an instance: the instance's field
+  if let .proj _ i s := e.getAppFn then
+    let s' ← whnf s
+    if let .const c _ := s'.getAppFn then
+      if let some (.ctorInfo ci) := (← getEnv).find? c then
+        let field := s'.getArg! (ci.numParams + i)
+        return ← translate ctx (mkAppN field e.getAppArgs).headBeta
+  if let .proj sName i s := e then
+    let env ← getEnv
+    if (getStructureInfo? env sName).isSome then
+      let ctorName := (getStructureCtor env sName).name
+      if let some r ← translateProj ctx ctorName i s e then return r
   -- a `match`: its `casesOn`
   if let .const f _ := e.getAppFn then
     if (← Meta.isMatcher f) then
@@ -366,6 +396,11 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
     for (key, rw) in rewrites do
       if key == f then
         if let some r ← tryRewrite ctx rw e then return r
+    -- a recursive definition: compiled on demand, then called
+    if let some cf ← compileOnDemand ctx f e then
+      if let some (cf', args) ← findCompiled? e then
+        let _ := cf
+        return ← translateCall ctx cf' args e
     -- a definition: unfolded
     if let some e' ← unfoldDefinition? e then
       return ← translate ctx (← unfoldMatchers e'.headBeta)
@@ -383,9 +418,9 @@ partial def matchValue (v target : Expr) : MetaM Bool := do
   if pat.getAppFn.isConst && pat.getAppFn.constName? == e.getAppFn.constName? &&
       pat.getAppNumArgs == e.getAppNumArgs then
     for (a, b) in pat.getAppArgs.zip e.getAppArgs do
-      unless ← isDefEq a b do return false
+      unless ← withTransparency .instances (isDefEq a b) do return false
     return true
-  isDefEq pat e
+  withTransparency .instances (isDefEq pat e)
 
 /-- `e` translated through the equation `rw : lhs = rhs` whose `lhs` unifies with `e`. -/
 partial def tryRewrite (ctx : Ctx) (rw : Name) (e : Expr) : MetaM (Option (Expr × Expr × Expr)) := do
@@ -403,6 +438,244 @@ partial def tryRewrite (ctx : Ctx) (rw : Name) (e : Expr) : MetaM (Option (Expr 
   let motive ← withLocalDeclD `z (← inferType e) fun z ↦ do
     mkLambdaFVars #[z] (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t, ← mkAppM ``Enc.enc #[z], c])
   return some (t, c, ← mkEqMPR (← mkCongrArg motive eqPf) pf)
+
+/-- Whether `enc x` is a constructor of tag `j` (the type's encoding is the constructors'). -/
+partial def encodesAsCtor (x : Expr) (j : Nat) : MetaM Bool := do
+  try
+    let v ← whnfD (← mkAppM ``Enc.enc #[x])
+    unless v.isAppOfArity ``Val.ctor 2 do return false
+    return (← instantiateMVars v.appFn!.appArg!).nat? == some j
+  catch _ => return false
+
+/-- Which of the fields `fs` hold data (not proofs). -/
+partial def dataMask (fs : Array Expr) : MetaM (Array Bool) :=
+  fs.mapM fun f ↦ do return !(← isProp (← inferType f))
+
+/-- The list `[enc x₀, …]` of the data fields. -/
+partial def encList (xs : Array Expr) : MetaM Expr := do
+  xs.foldrM (fun x l ↦ do mkAppM ``List.cons #[← mkAppM ``Enc.enc #[x], l])
+    (← mkAppOptM ``List.nil #[mkConst ``Val])
+
+/-- A constructor application: `.ctor j` of its data fields. -/
+partial def translateCtor (ctx : Ctx) (ci : ConstructorVal) (e : Expr) :
+    MetaM (Option (Expr × Expr × Expr)) := do
+  unless ← encodesAsCtor e ci.cidx do return none
+  let fields := e.getAppArgs.extract ci.numParams e.getAppNumArgs
+  let mask ← dataMask fields
+  let dataFs := (fields.zip mask).filterMap fun (f, m) ↦ if m then some f else none
+  let (ts, vs, c, pl) ← translateList ctx (dataFs.toList.map .inl)
+  let pf := mkAppN (mkConst ``Runs.ctor) #[ctx.P, ctx.env, mkNatLit ci.cidx, ts, vs, c, pl]
+  let code := mkApp2 (mkConst ``Term.ctor) (mkNatLit ci.cidx) ts
+  let cost ← mkAppM ``HAdd.hAdd #[← mkAppM ``HAdd.hAdd #[c, mkNatLit dataFs.size], mkNatLit 1]
+  let ty := mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, code, ← mkAppM ``Enc.enc #[e], cost]
+  return some (code, cost, ← mkExpectedTypeHint pf ty)
+
+/-- A projection: `.proj k` of the structure's code, `k` the field's position among the data
+fields. -/
+partial def translateProj (ctx : Ctx) (ctorName : Name) (i : Nat) (s e : Expr) :
+    MetaM (Option (Expr × Expr × Expr)) := do
+  let sTy ← whnfR (← inferType s)
+  let .const _ lvls := sTy.getAppFn | return none
+  let ci ← getConstInfoCtor ctorName
+  let params := sTy.getAppArgs
+  let ctorTy ← instantiateForall (← instantiateTypeLevelParams ci.toConstantVal lvls) params
+  let fieldsOf ← forallTelescopeReducing ctorTy fun fs _ ↦ dataMask fs
+  unless fieldsOf[i]?.getD false do return none
+  -- the data fields of `s`, as projections
+  let structName := sTy.getAppFn.constName!
+  let mut projs := #[]
+  let mut k := 0
+  for j in [0:fieldsOf.size] do
+    if fieldsOf[j]! then
+      if j == i then k := projs.size
+      projs := projs.push (Expr.proj structName j s)
+  unless ← encodesAsCtor (mkAppN (mkAppN (mkConst ctorName lvls) params)
+      (← (List.range fieldsOf.size).toArray.mapM fun j ↦ pure (Expr.proj structName j s))) 0 do
+    return none
+  let (t, c, p) ← translate ctx s
+  let fs ← encList projs
+  let hCtor ← mkExpectedTypeHint p
+    (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t, mkApp2 (mkConst ``Val.ctor) (mkNatLit 0) fs, c])
+  let v ← mkAppM ``Enc.enc #[e]
+  let hi ← mkEqRefl (← mkAppM ``Option.some #[v])
+  let pf := mkAppN (mkConst ``Runs.proj) #[ctx.P, ctx.env, mkNatLit k, mkNatLit 0, t, fs, v, c,
+    hCtor, hi]
+  return some (mkApp2 (mkConst ``Term.proj) (mkNatLit k) t, ← mkAppM ``HAdd.hAdd #[c, mkNatLit 1], pf)
+
+/-- A case split on `major` (of an inductive type encoded as constructors, without indices),
+its result of type `β` not depending on the value: `.case` of the branches, each run with the
+constructor's data fields in front. `bodyOf j fields` is branch `j`'s Lean expression, `valOf x`
+the split's value at `x` (reducing to `bodyOf j fields` at `x = C_j fields`). -/
+partial def translateCasesCore (ctx : Ctx) (major : Expr) (bodyOf : Nat → Array Expr → MetaM Expr)
+    (valOf : Expr → MetaM Expr) (e : Expr) : MetaM (Option (Expr × Expr × Expr)) := do
+  let majTy ← whnf (← inferType major)
+  let .const indName lvls := majTy.getAppFn | return none
+  let indVal ← getConstInfoInduct indName
+  unless indVal.numIndices == 0 do return none
+  let params := majTy.getAppArgs
+  let nc := indVal.ctors.length
+  let casesOn := mkCasesOnName indName
+  let (t0, c0, p0) ← translate ctx major
+  -- the branches: code, price and proof, abstracted over the fields and `major = C fields`
+  let mut alts : Array Expr := #[]
+  let mut costLams : Array Expr := #[]
+  let mut pfLams : Array Expr := #[]
+  for ctorName in indVal.ctors, j in [0:nc] do
+    let ctorTy ← instantiateForall (← inferType (mkConst ctorName lvls)) params
+    let r ← forallTelescopeReducing ctorTy fun fields _ ↦ do
+      let ctorApp := mkAppN (mkAppN (mkConst ctorName lvls) params) fields
+      unless ← encodesAsCtor ctorApp j do return none
+      let mask ← dataMask fields
+      let dataFs := (fields.zip mask).filterMap fun (f, m) ↦ if m then some f else none
+      withLocalDeclD `hx (← mkEq major ctorApp) fun hx ↦ do
+        let mut ctx' := ctx
+        for f in dataFs.reverse do ctx' ← ctx'.push f
+        let body ← Core.betaReduce (← bodyOf j fields)
+        let (tj, cj, pj) ← translate ctx' body
+        if tj.hasFVar then throwError "translate: code depends on a field: {tj}"
+        if cj.containsFVar hx.fvarId! then throwError "translate: a price depends on a match"
+        return some (tj, ← mkLambdaFVars fields cj, ← mkLambdaFVars (fields.push hx) pj)
+    let some (tj, cj, pj) := r | return none
+    alts := alts.push tj
+    costLams := costLams.push cj
+    pfLams := pfLams.push pj
+  let altsE ← alts.foldrM (fun a l ↦ mkAppM ``List.cons #[a, l]) (← mkAppOptM ``List.nil #[mkConst ``Term])
+  let code := mkApp2 (mkConst ``Term.case) t0 altsE
+  let costCases (x : Expr) : MetaM Expr := do
+    let m ← withLocalDeclD `x (← inferType major) fun y ↦ mkLambdaFVars #[y] (mkConst ``Nat)
+    return mkAppN (mkConst casesOn (Level.one :: lvls)) (params ++ #[m, x] ++ costLams)
+  let costOf (x : Expr) : MetaM Expr := do
+    mkAppM ``HAdd.hAdd #[← mkAppM ``HAdd.hAdd #[c0, ← costCases x], mkNatLit 1]
+  let encOf (x : Expr) : MetaM Expr := do mkAppM ``Enc.enc #[← valOf x]
+  -- the proof, by cases on the value
+  let pmotive ← withLocalDeclD `x (← inferType major) fun x ↦ do
+    mkLambdaFVars #[x] (← mkArrow (← mkEq major x)
+      (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, code, ← encOf x, ← costOf x]))
+  let mut minorPfs : Array Expr := #[]
+  for ctorName in indVal.ctors, j in [0:nc] do
+    let ctorTy ← instantiateForall (← inferType (mkConst ctorName lvls)) params
+    let mp ← forallTelescopeReducing ctorTy fun fields _ ↦ do
+      let ctorApp := mkAppN (mkAppN (mkConst ctorName lvls) params) fields
+      let mask ← dataMask fields
+      let dataFs := (fields.zip mask).filterMap fun (f, m) ↦ if m then some f else none
+      withLocalDeclD `hx (← mkEq major ctorApp) fun hx ↦ do
+        let fs ← encList dataFs
+        let rmotive ← withLocalDeclD `z (← inferType major) fun z ↦ do
+          mkLambdaFVars #[z] (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t0, ← mkAppM ``Enc.enc #[z], c0])
+        let h0 ← mkEqNDRec rmotive p0 hx
+        let h0 ← mkExpectedTypeHint h0
+          (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t0, mkApp2 (mkConst ``Val.ctor) (mkNatLit j) fs, c0])
+        let ha ← mkEqRefl (← mkAppM ``Option.some #[alts[j]!])
+        let pj := pfLams[j]!.beta (fields.push hx)
+        let pjTy ← inferType pj
+        let some (_, _, _, w, d) := runsParts? pjTy | throwError "alternative: not a run"
+        let env' ← mkAppM ``HAppend.hAppend #[fs, ctx.env]
+        let pj ← mkExpectedTypeHint pj (mkAppN (mkConst ``Runs) #[ctx.P, env', alts[j]!, w, d])
+        let pf := mkAppN (mkConst ``Runs.case) #[ctx.P, ctx.env, t0, altsE, mkNatLit j, fs, alts[j]!,
+          w, c0, d, h0, ha, pj]
+        mkLambdaFVars (fields.push hx) pf
+    minorPfs := minorPfs.push mp
+  let pf := mkApp (mkAppN (mkConst casesOn (Level.zero :: lvls)) (params ++ #[pmotive, major] ++ minorPfs))
+    (← mkEqRefl major)
+  let cost ← costOf major
+  let ty := mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, code, ← mkAppM ``Enc.enc #[e], cost]
+  return some (code, cost, ← mkExpectedTypeHint pf ty)
+
+/-- A `casesOn` with a constant motive. -/
+partial def translateCases (ctx : Ctx) (casesOn : Name) (e : Expr) :
+    MetaM (Option (Expr × Expr × Expr)) := do
+  let indVal ← getConstInfoInduct casesOn.getPrefix
+  let np := indVal.numParams
+  let nc := indVal.ctors.length
+  let args := e.getAppArgs
+  unless indVal.numIndices == 0 && args.size == np + 2 + nc do return none
+  let motive ← Core.betaReduce args[np]!
+  let constMotive ← lambdaTelescope motive fun xs b ↦ pure !(b.hasAnyFVar (xs.contains <| .fvar ·))
+  unless constMotive do return none
+  let major := args[np + 1]!
+  let minors := args.extract (np + 2) (np + 2 + nc)
+  translateCasesCore ctx major (fun j fields ↦ pure (mkAppN minors[j]! fields))
+    (fun x ↦ pure (mkAppN e.getAppFn (args.set! (np + 1) x))) e
+
+/-- A sparse `casesOn` (arms for some constructors, a catch-all with a proof that the value is
+none of them), as a full case split: the catch-all at each other constructor, its proof by
+`decide`. -/
+partial def translateSparse (ctx : Ctx) (f : Name) (e : Expr) :
+    MetaM (Option (Expr × Expr × Expr)) := do
+  let some info ← getSparseCasesOnInfo f | return none
+  let args := e.getAppArgs
+  unless args.size == info.arity do return none
+  let major := args[info.majorPos]!
+  let indVal ← getConstInfoInduct info.indName
+  let np := indVal.numParams
+  let motive ← Core.betaReduce args[np]!
+  let constMotive ← lambdaTelescope motive fun xs b ↦ pure !(b.hasAnyFVar (xs.contains <| .fvar ·))
+  unless constMotive do return none
+  let nArms := info.insterestingCtors.size
+  -- the catch-all's hypothesis names the value: every occurrence of `major` is replaced, in the
+  -- value at `x` and in each branch (where `major` is that constructor)
+  let at_ (x : Expr) : Array Expr := args.map fun a ↦ a.replace fun s ↦ if s == major then some x else none
+  let bodyOf (j : Nat) (fields : Array Expr) : MetaM Expr := do
+    let ctorName := indVal.ctors[j]!
+    let majTy ← whnf (← inferType major)
+    let ctorApp := mkAppN (mkAppN (mkConst ctorName majTy.getAppFn.constLevels!) majTy.getAppArgs) fields
+    let argsC := at_ ctorApp
+    let arms := argsC.extract (info.majorPos + 1) (info.majorPos + 1 + nArms)
+    let catchAll := argsC[info.majorPos + 1 + nArms]!
+    match info.insterestingCtors.idxOf? ctorName with
+    | some k => pure (mkAppN arms[k]! fields)
+    | none =>
+      let hTy ← whnfR (← inferType catchAll)
+      let .forallE _ hyp _ _ := hTy | throwError "sparse casesOn: unexpected catch-all {hTy}"
+      -- `Nat.hasNotBit mask (C fields).ctorIdx`, unfolded to a decidable equation
+      let hyp' ← deltaExpand hyp (· == ``Nat.hasNotBit)
+      let pf ← mkExpectedTypeHint (← mkDecideProof hyp') hyp
+      pure (mkApp catchAll pf)
+  translateCasesCore ctx major bodyOf (fun x ↦ pure (mkAppN e.getAppFn (at_ x))) e
+
+/-- Whether `f`'s unfolding mentions `f`. -/
+partial def isRecursive (f : Name) : MetaM Bool := do
+  let some eqn ← getUnfoldEqnFor? f | return false
+  let ty := (← getConstInfo eqn).type
+  return (ty.getForallBody.eq?.map fun (_, _, r) ↦ r.containsConst (· == f)).getD false
+
+/-- Compile the recursive `f` of the call `e`: at its types and instances fixed up to its last
+instance argument (its types otherwise parameters), with the first measure among the sizes of
+its encoded parameters (a natural number itself) that its recursive calls decrease. -/
+partial def compileOnDemand (ctx : Ctx) (f : Name) (e : Expr) : MetaM (Option CompiledFn) := do
+  unless ← isRecursive f do return none
+  let info ← getConstInfo f
+  let args := e.getAppArgs
+  -- the static prefix: up to the last instance argument
+  let bis ← forallTelescopeReducing info.type fun xs _ ↦ xs.mapM fun x ↦ x.fvarId!.getBinderInfo
+  let lastInst := (bis.toList.zipIdx.filter (·.1.isInstImplicit)).getLast?.map (·.2 + 1) |>.getD 0
+  let static := args.extract 0 lastInst
+  if static.any (·.hasFVar) then throwError "compile {f}: its types or instances are not closed"
+  let term := mkAppN e.getAppFn static
+  let ty ← inferType term
+  let measures ← forallTelescopeReducing ty fun xs _ ↦ do
+    let mut out := #[]
+    for (x, j) in xs.zipIdx do
+      let k ← paramKind (← inferType x)
+      if k == .enc then
+        let m ← if ← isDefEq (← inferType x) (mkConst ``Nat) then pure x
+          else mkAppM ``SizeOf.sizeOf #[x]
+        let mXs ← xs.filterM fun y ↦ do
+          let k ← paramKind (← inferType y)
+          pure (k == .enc || k == .type)
+        out := out.push (← mkLambdaFVars mXs m)
+        let _ := j
+    return out
+  let name := (`LeanVM.Cost.Auto ++ f).str s!"c{← nextIndex ctx.reserved}"
+  let mut errs : Array MessageData := #[]
+  for m in measures do
+    let st ← saveState
+    try
+      return some (← compileFn name term (← nextIndex ctx.reserved) (some m) ctx.reserved)
+    catch ex =>
+      st.restore
+      errs := errs.push ex.toMessageData
+  throwError "compile {f}: no measure its recursive calls decrease: {errs}"
 
 /-- The code and price a run's proof states. -/
 partial def parts (pf : Expr) : MetaM (Expr × Expr × Expr) := do
@@ -601,8 +874,9 @@ partial def solvePremise (ctx : Ctx) (g : MVarId) (ty : Expr) : MetaM Bool := do
       g.assign (← mkLambdaFVars xs p')
       return true
     | none =>
+      let some (_, a, _) := body.eq? | return false
       try
-        g.assign (← mkLambdaFVars xs (← mkEqRefl (body.appFn!.appArg!)))
+        g.assign (← mkLambdaFVars xs (← mkEqRefl a))
         return true
       catch _ => return false
 

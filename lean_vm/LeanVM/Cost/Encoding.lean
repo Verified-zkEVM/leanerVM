@@ -40,6 +40,9 @@ instance : Enc Unit := ⟨fun _ ↦ .ctor 0 []⟩
 instance : Enc K := ⟨fun a ↦ .word a.lane⟩
 instance : Enc E := ⟨fun x ↦ .ctor 0 [enc (x.limb 0), enc (x.limb 1), enc (x.limb 2)]⟩
 
+instance : Enc Ordering where
+  enc | .lt => .ctor 0 [] | .eq => .ctor 1 [] | .gt => .ctor 2 []
+
 instance {α : Type} [Enc α] : Enc (Option α) where
   enc | none => .ctor 0 [] | some a => .ctor 1 [enc a]
 
