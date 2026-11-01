@@ -32,6 +32,9 @@ theorem cursorLength_tables :
       cursorLenWith LeanVM.Extraction.Fast.discreteLog := rfl
 
 cost_compile limbQuotC := limbQuot
+-- the cursor's length by a logarithm, under a name of its own (the bounds name it, not an index)
+cost_compile optionFilterNatC := @Option.filter ℕ
+cost_compile cursorLenWithC := cursorLenWith
 cost_compile cursorLengthC := cursorLength
 
 end
