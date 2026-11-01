@@ -22,10 +22,7 @@ most `Y` rows of at most `X` coefficients:
 * the lane filter's pieces: Horner's evaluation, the mismatch count (`mismatchCountC_cost`),
   `degreeLtBool`.
 
-**Not yet here: the recursion.** `gsRunDistinctNFC` calls `prefixesNF.c188`, whose fold closure
-(function 202) has no `costSpec`/`costEq` (the compiler emits none for an on-demand recursive
-function's lambdas), so the node count `rrNodesNF` (`Bounds/RothRuckenstein.lean`) cannot yet
-be composed with these per-node prices.
+The recursion itself, and the run, are bounded in `Bounds/Decoder/Prefixes.lean`.
 
 **Honest-cost note.** `taylorCoeff`'s step names `a^(y−t) • Q_y` three times through
 `CPolynomial`'s sum (the `trim_eq` rewrite), so the power and the scaling are computed thrice.
@@ -527,7 +524,7 @@ theorem gsRunFilterC_cost (hP : Includes P gsRunDistinctNFC.lam0.costDeps)
   · omega
 
 
-/-! ## The run, the recursion's price kept as a term -/
+/-! ## Roth–Ruckenstein's prefixes: sizes -/
 
 theorem mem_foldl_append {α β : Type} (g : α → Array β) :
     ∀ (l : List α) (init : Array β) (x : β), x ∈ l.foldl (fun out a ↦ out ++ g a) init →
@@ -588,101 +585,6 @@ theorem prefixesNF_size_le {points : Array (K × K)} (h : DistinctXCoordinates p
   have hd := rrDeg_le (lenLe_of_validInterpolation hv hk).1
   simp only [replayPath, List.foldl_nil, Nat.add_sub_cancel] at hd ⊢
   omega
-
-open CompPoly.GuruswamiSudan in
-/-- The price of Roth–Ruckenstein's search on the interpolated polynomial (`prefixesNF.c188`), `0`
-when the interpolation fails: the term this file's bound of the run keeps. -/
-@[expose] noncomputable def rrPrice (points : Array (K × K)) (params : GSInterpParams) : ℕ :=
-  match interpolateDistinct points params with
-  | none => 0
-  | some Q => machineCost P prefixesNF.c188.costIdx
-      [enc params.messageDegree, enc (CBivariate.truncateX Q (params.weightedDegreeBound + 1)),
-        enc (params.weightedDegreeBound + 1), enc 0, enc (default : CPolynomial K)]
-
-open CompPoly.GuruswamiSudan in
-/-- **One lane's Guruswami–Sudan run** (`gsRunDistinctNF`: the interpolation, Roth–Ruckenstein's
-search, the candidates filtered): at most the interpolation's bound, the truncation, the
-search's price `rrPrice` and `max 1 ℓ` filter tests of `(272·k + 34)·n + 30` each. -/
-theorem gsRunDistinctNFC_cost (hP : Includes P gsRunDistinctNFC.costDeps)
-    (points : Array (K × K)) (params : GSInterpParams) (radius : ℕ)
-    (hs : InterpSizes points.size params) (hk1 : 1 < params.messageDegree)
-    (hd : DistinctXCoordinates points) (hr : radius < 2 ^ 64) :
-    machineCost P gsRunDistinctNFC.costIdx [enc points, enc params, enc radius] ≤
-      interpCoreBound points.size params.multiplicity (interpolationYCap params + 1)
-          (params.multiplicity * points.size + interpolationYCap params * yWeight params)
-          params.weightedDegreeBound + 10 +
-        ((27 * (params.weightedDegreeBound + 1) + 80) * (interpolationYCap params + 1) + 40) +
-        rrPrice P points params +
-        ((272 * params.messageDegree + 34) * points.size + 50) * max 1 (interpolationYCap params) +
-        40 := by
-  have ⟨hn, hW, hk, hyW, hw, _⟩ := hs
-  rw [gsRunDistinctNFC.costEq P hP]
-  have hi := interpolateDistinctC_cost P (by includes) points params hs hk1
-  unfold rrPrice
-  generalize hQ : interpolateDistinct points params = oQ at hi
-  cases oQ with
-  | none => dsimp only; omega
-  | some Q =>
-    dsimp only
-    have hsz := interpolateDistinct_sizes hd hQ hk1
-    have hQi : InnerLe Q.val (params.weightedDegreeBound + 1) := fun c hc ↦ by
-      obtain ⟨y, hy, rfl⟩ := Array.getElem_of_mem hc
-      have := hsz.2 y
-      have hc' : Q.val.coeff y = Q.val[y] := by
-        rw [CPolynomial.Raw.coeff, Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem hy]
-        rfl
-      rw [hc'] at this
-      exact this.trans (Nat.sub_le _ _)
-    have := truncateXC_cost P (by includes) Q (params.weightedDegreeBound + 1) (by omega) hQi
-      (by omega)
-    have h1 : (27 * (params.weightedDegreeBound + 1) + 80) * Q.val.size ≤
-        (27 * (params.weightedDegreeBound + 1) + 80) * (interpolationYCap params + 1) :=
-      Nat.mul_le_mul_left _ hsz.1
-    have hres := prefixesNF_size_le hd hQ hk1
-    have hmem : ∀ p ∈ prefixesNF fieldRootCtxFast params.messageDegree
-        (CBivariate.truncateX Q (params.weightedDegreeBound + 1)) (params.weightedDegreeBound + 1) 0
-        default, p.val.size ≤ params.messageDegree := by
-      have hv := interpolateDistinct_valid hd hQ
-      rw [prefixesNF_eq_truncD hv, prefixesTruncD_eq,
-        prefixesTrunc_eq fieldRootCtxFast _ Q _ (fun _ ↦ replayPath Q []) 0 default rfl]
-      intro p hp
-      have := prefixesWithFuelFast_mem_size_le fieldRootCtxFast _ _ 0 default
-        (by show (default : CPolynomial K).val.size ≤ 0; rfl) p hp
-      omega
-    have hfv := fun p ↦ RunsApp.of_spec (us := [enc points, enc params, enc radius]) (vs := [enc p])
-      (gsRunDistinctNFC.lam0.costSpec P (by includes) points params radius p)
-    generalize hR : prefixesNF fieldRootCtxFast params.messageDegree
-      (CBivariate.truncateX Q (params.weightedDegreeBound + 1)) (params.weightedDegreeBound + 1) 0
-      default = res at hres hmem
-    have hfil := filterC_cost P (by includes) _
-      (.fn gsRunDistinctNFC.lam0.costIdx [enc points, enc params, enc radius]) hfv
-      ((272 * params.messageDegree + 34) * points.size + 30) res.toList (fun p hp ↦ by
-        have hps := hmem p (by simpa using hp)
-        simp only [appCost_fn, List.cons_append, List.nil_append]
-        rw [gsRunDistinctNFC.lam0.costEq P (by includes),
-          Auto.CompPoly.GuruswamiSudan.degreeLtBool.c208.costEq P (by includes)]
-        cost_simp
-        split_ifs with hdeg
-        · simp only [degreeLtBool, decide_eq_true_eq] at hdeg
-          rw [passesDistanceFast.c209.costEq P (by includes)]
-          have := mismatchCountC_cost P (by includes) points p (by omega)
-          have := mismatchCountFast_le points p
-          have := Nat.mul_le_mul_right points.size (show 272 * p.val.size + 34 ≤
-            272 * params.messageDegree + 34 by omega)
-          cost_simp
-          omega
-        · omega)
-    have hfl := List.length_filter_le (fun p ↦ degreeLtBool p params.messageDegree &&
-      passesDistanceFast points radius p) res.toList
-    simp only [Array.length_toList] at hfil hfl
-    have h2 : ((272 * params.messageDegree + 34) * points.size + 50) * res.size ≤
-        ((272 * params.messageDegree + 34) * points.size + 50) * max 1 (interpolationYCap params) :=
-      Nat.mul_le_mul_left _ hres
-    have e2 : ((272 * params.messageDegree + 34) * points.size + 50) * res.size =
-        ((272 * params.messageDegree + 34) * points.size + 30 + 13) * res.size + 7 * res.size := by
-      ring
-    cost_simp
-    omega
 
 end
 
