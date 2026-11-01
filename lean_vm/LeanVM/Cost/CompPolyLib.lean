@@ -25,7 +25,7 @@ namespace LeanVM.Cost.CompPolyLib
 
 open LeanVM.Cost CompPoly
 
-public section
+@[expose] public section
 
 instance {F : Type} [Enc F] : Enc (PolynomialMatrix.ShiftedLeadingTerm F) :=
   ⟨fun t ↦ .ctor 0 [enc t.position, enc t.degree, enc t.shiftedDegree, enc t.coeff]⟩
@@ -39,7 +39,7 @@ theorem beqZero {R : Type} [Zero R] [BEq R] (p : CPolynomial R) :
 cost_rewrite beqZero
 
 /-- The length of `p`'s prefix up to its last nonzero coefficient among the first `i`. -/
-@[expose] def trimLen {R : Type} [Zero R] [BEq R] (p : Array R) : ℕ → ℕ
+def trimLen {R : Type} [Zero R] [BEq R] (p : Array R) : ℕ → ℕ
   | 0 => 0
   | i + 1 => if p.getD i 0 != 0 then i + 1 else trimLen p i
 
