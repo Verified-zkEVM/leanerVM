@@ -163,6 +163,16 @@ theorem admissible_of_afterRootDirect {bytecode : List K} {π : Proof} {layout :
   obtain ⟨⟨rfl, rfl⟩, -⟩ := hl
   exact ⟨h3.1, h3.2, h2.1, h2.2⟩
 
+/-- **The lighter layouts `afterRootLite` returns are admissible.** -/
+theorem admissible_of_afterRootLite {bytecode : List K} {π : Proof} {layout : LayoutLite} {R : ℕ}
+    {st : ProgState} (h : afterRootLite bytecode π = some ((layout, R), st)) :
+    Whir.Admissible layout.stackLog R := by
+  rw [afterRootLite_eq, ← afterRootDirect_eq] at h
+  obtain ⟨⟨⟨full, R'⟩, st'⟩, hr, hl⟩ := Option.map_eq_some_iff.1 h
+  simp only [liteResult, Prod.mk.injEq] at hl
+  obtain ⟨⟨rfl, rfl⟩, -⟩ := hl
+  exact admissible_of_afterRootDirect hr
+
 end
 
 end LeanVM.Extraction.Fast
