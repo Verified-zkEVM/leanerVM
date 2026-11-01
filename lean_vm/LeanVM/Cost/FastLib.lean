@@ -38,6 +38,7 @@ cost_enc CompPoly.GuruswamiSudan.GSExecParams
 cost_enc CompPoly.GuruswamiSudan.GSReceivedWord
 cost_enc CompPoly.PolynomialMatrix.RowChoice
 cost_enc CompPoly.GuruswamiSudan.LeeOSullivan.RowChoice
+cost_enc CompPoly.CBivariate.Monomial
 
 cost_measure searchIn := fun _ _ _ _ _ lo hi ↦ hi - lo
 

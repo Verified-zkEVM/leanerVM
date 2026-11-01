@@ -65,15 +65,15 @@ distance filter matches on at least `n − radius` points, so `Q(X, p(X)) = 0` a
 the root check is redundant, and `gsRunNoCheck` keeps the degree check and the distance filter. -/
 
 /-- **The list decoder without the final root check**: the fast Roth–Ruckenstein prefixes of
-the interpolated `Q` (truncated, `prefixesTrunc`) of degree `< k` that pass the distance
+the interpolated `Q` (truncated, `prefixesTruncD`) of degree `< k` that pass the distance
 filter. -/
 @[expose] def gsRunNoCheck (I : GSInterpContext K) (points : Array (K × K))
     (params : GSInterpParams) (radius : ℕ) : Array (CPolynomial K) :=
   match I.interpolate points params with
   | none => #[]
   | some Q =>
-    (prefixesTrunc fieldRootCtx params.messageDegree
-        (CBivariate.truncateX Q params.messageDegree) params.messageDegree (fun _ ↦ Q) 0
+    (prefixesTruncD fieldRootCtx params.messageDegree
+        (CBivariate.truncateX Q params.messageDegree) params.messageDegree Q [] 0
         default).filter fun p ↦
       degreeLtBool p params.messageDegree && passesCandidateDistance points radius p
 
@@ -108,8 +108,9 @@ theorem gsRunNoCheck_eq (I : GSInterpContext K) (points : Array (K × K))
   | some Q =>
     have hvalid := I.sound points params Q hQ
     dsimp only
-    rw [prefixesTrunc_eq fieldRootCtx params.messageDegree Q params.messageDegree (fun _ ↦ Q) 0
-      default rfl]
+    rw [prefixesTruncD_eq, prefixesTrunc_eq fieldRootCtx params.messageDegree Q params.messageDegree
+      (fun _ ↦ replayPath Q []) 0 default rfl]
+    simp only [replayPath, List.foldl_nil]
     simp only [rothRuckensteinRootContext, rothRuckensteinRootsYDegreeLt,
       transformedRothRuckensteinRootsYDegreeLt, transformedRothRuckensteinRootPrefixes,
       prefixesWithFuelFast_eq, Array.filter_filter]

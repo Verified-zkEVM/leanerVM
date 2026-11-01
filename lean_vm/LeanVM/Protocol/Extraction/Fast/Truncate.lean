@@ -217,6 +217,56 @@ theorem prefixesTrunc_eq [CharP F 2] (fieldRoots : FieldRootContext F) (fuel : �
       refine ih _ _ _ _ _ ?_
       simp only [residualFast, stripXAdicFactor_stripXAdicFactor]
 
+/-! ## The exact polynomial as data -/
+
+/-- The exact polynomial after the roots `path` from `Q₀`: each step strips the `X`-adic factor and
+takes the residual at the root (what `prefixesTrunc`'s fallback `E` computes, as data). -/
+@[expose] def replayPath (Q₀ : CBivariate F) (path : List F) : CBivariate F :=
+  path.foldl (fun q a ↦ residualFast (CBivariate.stripXAdicFactor q) a) Q₀
+
+/-- **`prefixesTrunc` with its fallback as data**: the exact polynomial `replayPath Q₀ path`,
+computed only where the truncation does not determine a step. No function argument changes from
+call to call. -/
+@[expose] def prefixesTruncD (fieldRoots : FieldRootContext F) :
+    ℕ → CBivariate F → ℕ → CBivariate F → List F → ℕ → CPolynomial F → Array (CPolynomial F)
+  | 0, _q, _M, _Q₀, _path, _depth, pref => #[pref]
+  | fuel + 1, q, M, Q₀, path, depth, pref =>
+    match CBivariate.xAdicOrder? q with
+    | some s =>
+      if s < M then
+        let Qn := CBivariate.divXPower q s
+        (rootsInFieldForNonzeroEquation fieldRoots (initialCoefficientPolynomial Qn)).foldl
+          (fun out a ↦
+            out ++ prefixesTruncD fieldRoots fuel
+              (CBivariate.truncateX (substituteFast Qn a) (M - s)) (M - s) Q₀ (path ++ [a])
+              (depth + 1) (extendPrefix pref depth a))
+          #[]
+      else prefixesWithFuelFast fieldRoots (fuel + 1) (replayPath Q₀ path) depth pref
+    | none => prefixesWithFuelFast fieldRoots (fuel + 1) (replayPath Q₀ path) depth pref
+
+theorem prefixesTruncD_eq (fieldRoots : FieldRootContext F) (fuel : ℕ) :
+    ∀ (q : CBivariate F) (M : ℕ) (Q₀ : CBivariate F) (path : List F) (depth : ℕ)
+      (pref : CPolynomial F),
+      prefixesTruncD fieldRoots fuel q M Q₀ path depth pref =
+        prefixesTrunc fieldRoots fuel q M (fun _ ↦ replayPath Q₀ path) depth pref := by
+  induction fuel with
+  | zero => intro q M Q₀ path depth pref; rfl
+  | succ fuel ih =>
+    intro q M Q₀ path depth pref
+    rw [prefixesTruncD, prefixesTrunc]
+    cases CBivariate.xAdicOrder? q with
+    | none => rfl
+    | some s =>
+      dsimp only
+      split
+      · congr 1
+        funext out a
+        rw [ih]
+        congr 2
+        funext _
+        simp [replayPath, List.foldl_append]
+      · rfl
+
 end
 
 end LeanVM.Extraction.Fast

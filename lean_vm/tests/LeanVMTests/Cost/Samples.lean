@@ -13,15 +13,11 @@ namespace LeanVMTests.Cost
 
 open LeanVM.Cost LeanVM.Cost.Library LeanVM.Cost.Samples LeanVM.Parameters
 
-/-- The bodies, at the indices the compiler gave them. -/
-def samplesProgram : Program :=
-  #[.val (.nat 0), listZipWith.costBody, listFoldl.costBody, addRawK.costBody,
-    addRawK.lam0.costBody]
-
 def polyA : CompPoly.CPolynomial.Raw K := #[K.ofBits 3, K.ofBits 5, K.ofBits 7]
 def polyB : CompPoly.CPolynomial.Raw K := #[K.ofBits 1, K.ofBits 6]
 
-#guard (evalBody samplesProgram 100 3 [Enc.enc polyA, Enc.enc polyB]).map (·.1) ==
+#guard (evalBody (Program.ofList addRawK.costDeps) 100 addRawK.costDeps.head!.1
+    [Enc.enc polyA, Enc.enc polyB]).map (·.1) ==
   some (Enc.enc (CompPoly.CPolynomial.Raw.addRaw polyA polyB))
 
 /-! ## The committed leaves -/

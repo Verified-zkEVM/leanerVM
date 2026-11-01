@@ -56,6 +56,9 @@ instance {α : Type} [Enc α] {n : ℕ} : Enc (Vector α n) := ⟨fun v ↦ .arr
 
 instance {α : Type} [Enc α] : Enc (CompPoly.CPolynomial.Raw α) := inferInstanceAs (Enc (Array α))
 
+/-- The identity monad: the value. -/
+instance {α : Type} [Enc α] : Enc (Id α) := inferInstanceAs (Enc α)
+
 /-- A subtype: its value. -/
 instance {α : Type} [Enc α] {p : α → Prop} : Enc (Subtype p) := ⟨fun x ↦ enc x.val⟩
 

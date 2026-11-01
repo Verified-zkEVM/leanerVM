@@ -17,6 +17,8 @@ cost_compile listZipWith measure fun _ _ _ _ as _ ↦ as.length := @List.zipWith
 
 cost_measure Rewrite.ofFnFrom := fun _ n _ i ↦ n - i
 
+cost_measure Rewrite.powSq := fun _ _ _ n ↦ n
+
 cost_compile listFoldl measure fun _ _ _ _ l ↦ l.length := @List.foldl.{0, 0}
 
 end LeanVM.Cost.Library

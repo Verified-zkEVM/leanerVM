@@ -650,6 +650,14 @@ theorem vecToList {t : Term} {n : ℕ} {v : Vector α n} {c : ℕ} (h : Runs P e
 theorem vecMk {t : Term} {n : ℕ} {a : Array α} {ha : a.size = n} {c : ℕ}
     (h : Runs P env t (enc a) c) : Runs P env t (enc (Vector.mk a ha)) c := h
 
+theorem arrPush {t u : Term} {a : Array α} {x : α} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hx : Runs P env u (enc x) d) :
+    Runs P env (.op .apush [t, u]) (enc (a.push x)) (c + d + (a.size + 2)) :=
+  op₂ h hx (by simp [Op.apply])
+
+theorem arrayMk {t : Term} {l : List α} {c : ℕ} (h : Runs P env t (enc l) c) :
+    Runs P env (.op .aofList [t]) (enc (Array.mk l)) (c + (l.length + 1)) := listToArray h
+
 theorem arrSetIfInBounds {t u w : Term} {a : Array α} {i : ℕ} {x : α} {c d e : ℕ}
     (h : Runs P env t (enc a) c) (hi : Runs P env u (enc i) d) (hx : Runs P env w (enc x) e) :
     Runs P env (.op .aset [t, u, w]) (enc (a.setIfInBounds i x)) (c + d + e + (a.size + 1)) :=
@@ -775,6 +783,20 @@ theorem arrFoldl {α β : Type} (f : β → α → β) (b : β) (a : Array α) :
 theorem arrFoldr {α β : Type} (f : α → β → β) (b : β) (a : Array α) :
     a.foldr f b = a.toList.foldr f b := by simp [Array.foldr_toList]
 
+theorem arrFilter {α : Type} (p : α → Bool) (a : Array α) :
+    a.filter p = (a.toList.filter p).toArray := by
+  apply Array.ext'; simp
+
+theorem arrIsEqv {α : Type} [BEq α] (a b : Array α) (r : α → α → Bool) :
+    a.isEqv b r = a.toList.isEqv b.toList r := (Array.isEqv_toList a b).symm
+
+theorem arrBEq {α : Type} [BEq α] (a b : Array α) : (a == b) = (a.toList == b.toList) :=
+  (Array.beq_toList a b).symm
+
+theorem arrAny {α : Type} (p : α → Bool) (a : Array α) : a.any p = a.toList.any p := by simp
+
+theorem arrAll {α : Type} (p : α → Bool) (a : Array α) : a.all p = a.toList.all p := by simp
+
 theorem arrZipIdx {α : Type} (a : Array α) (k : ℕ) : a.zipIdx k = (a.toList.zipIdx k).toArray := by
   apply Array.ext'; simp
 
@@ -784,6 +806,35 @@ theorem arrMapIdx {α β : Type} (f : ℕ → α → β) (a : Array α) :
 
 theorem listMapIdx {α β : Type} (f : ℕ → α → β) (l : List α) :
     l.mapIdx f = (l.zipIdx).map fun p ↦ f p.2 p.1 := List.mapIdx_eq_zipIdx_map
+
+/-- `a ^ n` by squaring. -/
+def powSq {M : Type} [Monoid M] (a : M) (n : ℕ) : M :=
+  if n = 0 then 1 else
+    let r := powSq (a * a) (n / 2)
+    if n % 2 = 1 then a * r else r
+termination_by n
+decreasing_by omega
+
+theorem powSq_eq {M : Type} [Monoid M] : ∀ (n : ℕ) (a : M), powSq a n = a ^ n := by
+  intro n
+  induction n using Nat.strong_induction_on with
+  | _ n ih =>
+    intro a
+    rw [powSq]
+    by_cases h : n = 0
+    · simp [h]
+    · simp only [h, ↓reduceIte]
+      rw [ih (n / 2) (by omega), ← pow_two, ← pow_mul]
+      conv_rhs => rw [← Nat.mod_add_div n 2]
+      rcases Nat.mod_two_eq_zero_or_one n with h2 | h2 <;> simp [h2, pow_succ', pow_add]
+
+theorem pow_eq_powSq {M : Type} [Monoid M] (a : M) (n : ℕ) : a ^ n = powSq a n :=
+  (powSq_eq n a).symm
+
+/-- Equality of a subtype's elements: of their values. -/
+theorem decideEqSubtype {α : Type} {p : α → Prop} [DecidableEq α] (a b : Subtype p)
+    {inst : Decidable (a = b)} : @decide (a = b) inst = decide (a.val = b.val) := by
+  simp only [Subtype.ext_iff]
 
 /-- Equality of arrays, decided by their lists. -/
 theorem decideEqArray {α : Type} [DecidableEq α] (a b : Array α) {inst : Decidable (a = b)} :

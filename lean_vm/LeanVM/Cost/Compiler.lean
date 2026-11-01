@@ -115,6 +115,8 @@ def rules : List (Name × Name) := [
   (``Subtype.val, ``Rule.subtypeVal),
   (``Subtype.mk, ``Rule.subtypeMk),
   (``Array.setIfInBounds, ``Rule.arrSetIfInBounds),
+  (``Array.push, ``Rule.arrPush),
+  (``Array.mk, ``Rule.arrayMk),
   (``Array.extract, ``Rule.arrExtract),
   (``Fin.val, ``Rule.finVal),
   (``Fin.mk, ``Rule.finMk),
@@ -125,9 +127,11 @@ def rules : List (Name × Name) := [
 def rewrites : List (Name × Name) := [
   (``Array.zipWith, ``Rewrite.arrayZipWith),
   (``HPow.hPow, ``Rewrite.natTwoPow),
+  (``HPow.hPow, ``Rewrite.pow_eq_powSq),
   (``Decidable.decide, ``Rewrite.decideEqList),
   (``Decidable.decide, ``Rewrite.decideEqArray),
   (``Decidable.decide, ``Rewrite.decideEqE),
+  (``Decidable.decide, ``Rewrite.decideEqSubtype),
   (``LeanVM.Parameters.K.ofBits, ``Rewrite.kOfBits),
   (``HAdd.hAdd, ``Rewrite.eAdd),
   (``HMul.hMul, ``Rewrite.eMul),
@@ -139,6 +143,11 @@ def rewrites : List (Name × Name) := [
   (``Array.foldl, ``Rewrite.arrFoldl),
   (``Array.foldr, ``Rewrite.arrFoldr),
   (``Array.zipIdx, ``Rewrite.arrZipIdx),
+  (``Array.filter, ``Rewrite.arrFilter),
+  (``Array.any, ``Rewrite.arrAny),
+  (``Array.isEqv, ``Rewrite.arrIsEqv),
+  (``BEq.beq, ``Rewrite.arrBEq),
+  (``Array.all, ``Rewrite.arrAll),
   (``Array.mapIdx, ``Rewrite.arrMapIdx),
   (``List.mapIdx, ``Rewrite.listMapIdx)
 ]
@@ -167,6 +176,8 @@ inductive ParamKind where
   | type
   /-- A proof: no data, not in the machine's environment. -/
   | proof
+  /-- An encoded value another parameter's type depends on: fixed across recursive calls. -/
+  | fixed
   deriving Inhabited, BEq
 
 /-- A compiled function: the term compiled (a head constant applied to fixed arguments), its data
@@ -437,6 +448,11 @@ partial def forallMemProof (l l' : Expr) : MetaM Expr := do
     else return a
   else return mkConst ``True.intro
 
+/-- A line of the compiler's trace, to the file `COST_TRACE` names (when set). -/
+def costTrace (msg : String) : IO Unit := do
+  if let some path ← IO.getEnv "COST_TRACE" then
+    IO.FS.withFile path .append fun h ↦ h.putStrLn msg
+
 /-- The callees' spec premises, from `hP : Includes P deps`. -/
 def solvePending (pending : Array (MVarId × Array (Nat × Name))) (hP deps : Expr) :
     MetaM Unit := do
@@ -598,6 +614,7 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
         else unfoldDefinition? e
       | _ => unfoldDefinition? e
     if let some e' := unfolded? then
+      costTrace s!"unfold {f} depth {e'.approxDepth}"
       ctx.inlined.modify fun a ↦ if a.contains f then a else a.push f
       let (t, c, p) ← try translate ctx (← unfoldMatchers e'.headBeta)
         catch ex => throwError "{ex.toMessageData}\n  in the unfolding of {f}"
@@ -865,7 +882,7 @@ partial def shouldOutline (f : Name) (e : Expr) : MetaM Bool := do
   unless e.getAppNumArgs == arity do return false
   return info.value.approxDepth.toNat > 0 && exprSize info.value > outlineSize
 where
-  outlineSize : Nat := 120
+  outlineSize : Nat := 40
   exprSize (e : Expr) : Nat := Id.run do
     let mut n := 0
     let mut stack := [e]
@@ -915,7 +932,10 @@ partial def compileOnDemand (ctx : Ctx) (f : Name) (e : Expr) : MetaM (Option Co
         catch _ => pure true
     if isInst || noEnc then lastStatic := j + 1
   let static := args.extract 0 lastStatic
-  if static.any (·.hasFVar) then throwError "compile {f}: its types or instances are not closed"
+  if static.any (·.hasFVar) then
+    -- an outlined definition whose instances mention its arguments: unfolded instead
+    unless recursive do return none
+    throwError "compile {f}: its types or instances are not closed"
   let term := mkAppN e.getAppFn static
   let ty ← inferType term
   let measures ← forallTelescopeReducing ty fun xs _ ↦ do
@@ -979,6 +999,62 @@ partial def translateList (ctx : Ctx) (es : List (Expr ⊕ (Expr × Expr × Expr
     return (← mkAppM ``List.cons #[t, ts], ← mkAppM ``List.cons #[v, vs],
       ← mkAppM ``HAdd.hAdd #[c, cs], pf)
 
+/-- A lambda calling the function being compiled, compiled to function `j` in its context: its
+code from its captures and parameters, its proof using the induction hypothesis, its body a
+dependency of the function being compiled. Returns what `closureOf` returns. -/
+partial def localClosure (ctx : Ctx) (f fty : Expr) (arity : Nat) (caps : Array Entry)
+    (ps : Array Expr) (body : Expr) : MetaM (Expr × Expr × Expr × Expr × Expr) := do
+  let _ := arity
+  -- the body's environment: the captures, then the parameters (`var 0` the first capture)
+  let env0 ← mkAppOptM ``List.nil #[mkConst ``Val]
+  let mut ctx' : Ctx := { ctx with env := env0, vals := #[] }
+  for p in ps.reverse do ctx' ← ctx'.push p
+  for en in caps.reverse do
+    match en with
+    | .enc x => ctx' ← ctx'.push x
+    | .fn g v hf a => ctx' ← ctx'.pushFn g v hf a
+  let (tj, cj, pj) ← translate ctx' body
+  let tj ← instantiateMVars tj
+  if tj.hasFVar || tj.hasMVar then throwError "local closure: the code is not closed: {tj}"
+  let k ← ctx.lams.modifyGet fun n ↦ (n, n + 1)
+  let name := ctx.base.str s!"lam{k}"
+  let j ← nextIndex ctx.reserved
+  let bodyName := name.str "costBody"
+  addAndCompile <| .defnDecl (mkDefinitionValEx bodyName [] (mkConst ``LeanVM.Cost.Term) tj .abbrev .safe [])
+  let entry : CompiledFn :=
+    { head := name, static := #[], params := #[], index := j, body := bodyName, spec := bodyName,
+      deps := #[(j, bodyName)] }
+  modifyEnv (compiledExt.addEntry · entry)
+  -- `P[j]? = some body`, from the function's premise
+  let hInc ← ctx.premise #[(j, bodyName)]
+  let depsJ ← depsExpr #[(j, bodyName)]
+  let mem ← memProof (← mkAppM ``Prod.mk #[mkNatLit j, mkConst bodyName]) depsJ
+  let hb ← mkAppM ``Includes.get #[hInc, mem]
+  -- the closure: function `j` with the captures' values
+  let mut capArgs : Array (Expr ⊕ (Expr × Expr × Expr × Expr)) := #[]
+  for en in caps do
+    match en with
+    | .enc x => capArgs := capArgs.push (.inl x)
+    | .fn g _ _ a =>
+      let (t, v, c, p, _) ← closureOf ctx g a
+      capArgs := capArgs.push (.inr (t, v, c, p))
+  let (ts, us, c, pl) ← translateList ctx capArgs.toList
+  let pf ← mkAppOptM ``Rule.closure #[ctx.P, ctx.env, mkNatLit j, ts, us, c, pl]
+  let (t, cost, _) ← parts pf
+  let v ← mkAppM ``Val.fn #[mkNatLit j, us]
+  -- the hypothesis: for all parameters, the closure computes `f`
+  let vs ← encList ps
+  let args ← mkAppM ``HAppend.hAppend #[us, vs]
+  let pj ← mkExpectedTypeHint pj (mkAppN (mkConst ``Runs) #[ctx.P, args, tj,
+    ← mkAppM ``Enc.enc #[body], cj])
+  let rb ← mkAppM ``RunsBody.intro #[hb, pj]
+  let rb ← mkAppM ``RunsBody.withMachineCost #[rb]
+  let w ← mkAppM ``Enc.enc #[body]
+  let hfBody ← mkAppOptM ``RunsApp.of_spec #[ctx.P, mkNatLit j, us, vs, w, rb]
+  let hf ← mkLambdaFVars ps hfBody
+  let hfTy ← runsAppType ctx.P f v fty
+  return (t, v, cost, pf, ← mkExpectedTypeHint hf hfTy)
+
 /-- A function argument as a closure: a closure of the environment passed on, or a lambda (its
 free variables captured) compiled to a function of its own. Returns the code, the value, the price,
 the run's proof, and the hypothesis `∀ a…, RunsApp P v [enc a…] (enc (f a…))`. -/
@@ -1005,6 +1081,11 @@ partial def closureOf (ctx : Ctx) (f : Expr) (arity : Nat) :
     for x in fvs do
       unless capFvs.contains (.fvar x) || ctx.types.contains (.fvar x) do
         throwError "closure: free variable {Expr.fvar x} of {f} is not in the environment"
+    -- a lambda calling the function being compiled: compiled here, its proof under the
+    -- induction hypothesis (the recursive calls in it decrease whatever its arguments)
+    if let some self := ctx.self then
+      if (body.find? fun s ↦ s.getAppFn == self.term.getAppFn).isSome then
+        return ← localClosure ctx f fty arity caps ps body
     let lam ← instantiateMVars (← mkLambdaFVars (ctx.types ++ capFvs ++ ps) body)
     -- the same lambda compiled before: reused
     let reg := compiledExt.getState (← getEnv)
@@ -1065,6 +1146,9 @@ partial def translateCall (ctx : Ctx) (cf : CompiledFn) (args : Array Expr) (e :
     | .type =>
       specArgs := specArgs ++ #[a, ← synthInstance (← mkAppM ``Enc #[a])]
     | .proof => specArgs := specArgs.push a
+    | .fixed =>
+      items := items.push (.inl a)
+      specArgs := specArgs.push a
   let (_, _, _, pl) ← translateList ctx items.toList
   let hInc ← ctx.premise cf.deps
   let spec := mkAppN (mkConst cf.spec) (#[ctx.P, hInc] ++ specArgs)
@@ -1090,11 +1174,14 @@ partial def translateSelfCall (ctx : Ctx) (self : SelfInfo) (e : Expr) :
     | .type =>
       unless a == x do throwError "a recursive call changes the type argument {x}"
     | .proof => throwError "a recursive function with a proof parameter {x}: not supported"
+    | .fixed =>
+      unless a == x do throwError "a recursive call changes the fixed argument {x}"
+      items := items.push (.inl a)
   let (_, _, _, pl) ← translateList ctx items.toList
   let encSelf := (self.args.zip self.kinds).filterMap fun (x, k) ↦ if k == .enc then some x else none
   let y ← mkTuple encArgs
   let x ← mkTuple encSelf
-  let dec ← Core.betaReduce (← mkAppM ``LT.lt #[self.measure.beta #[y], self.measure.beta #[x]])
+  let dec ← cleanTuples (← mkAppM ``LT.lt #[self.measure.beta #[y], self.measure.beta #[x]])
   let decPf ← proveByTactic dec
   parts (← mkAppM ``Rule.call #[pl, mkAppN self.ih #[y, decPf]])
 
@@ -1174,7 +1261,14 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
   let ty ← inferType term
   forallTelescopeReducing ty fun xs _ ↦ do
   withLocalDeclD `P (mkConst ``Program) fun P ↦ do
-    let kinds ← xs.mapM fun x ↦ do paramKind (← inferType x)
+    let kinds0 ← xs.mapM fun x ↦ do paramKind (← inferType x)
+    -- an encoded parameter a later parameter's type mentions stays fixed in recursive calls
+    let kinds ← (xs.zip kinds0).mapIdxM fun i (x, k) ↦ do
+      if k != .enc then return k
+      let later := xs.extract (i + 1) xs.size
+      if ← later.anyM fun y ↦ do return (← inferType y).containsFVar x.fvarId! then
+        return ParamKind.fixed
+      return k
     -- the closures' hypotheses
     let fnInfo := (xs.zip kinds).filterMap fun (x, k) ↦ match k with
       | .fn _ => some x
@@ -1211,7 +1305,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
                            baseLCtx := ← getLCtx, baseInsts := ← getLocalInstances }
     for (x, k) in (xs.zip kinds).reverse do
       match k with
-      | .enc => ctx ← ctx.push x
+      | .enc | .fixed => ctx ← ctx.push x
       | .fn arity =>
         let some (_, v, hf) := fnHyps.find? (·.1 == x) | throwError "no closure for {x}"
         ctx ← ctx.pushFn x v hf arity
@@ -1228,6 +1322,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
         | .enc =>
           j := j - 1
           l ← mkAppM ``List.cons #[← mkAppM ``Enc.enc #[comps[j]!], l]
+        | .fixed => l ← mkAppM ``List.cons #[← mkAppM ``Enc.enc #[x], l]
         | .fn _ =>
           let some (_, v, _) := fnHyps.find? (·.1 == x) | throwError "no closure for {x}"
           l ← mkAppM ``List.cons #[v, l]
@@ -1266,7 +1361,9 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
           let si : SelfInfo := { term := term, ih := ih, measure := mf, args := xs, kinds := kinds }
           { ctx with self := some si }
         | _, _ => ctx
+      costTrace s!"compile {name} start"
       let (t, c, pf) ← translate ctx rhs
+      costTrace s!"compile {name} translated"
       let t ← instantiateMVars t
       if t.hasFVar || t.hasMVar then throwError "the code is not closed: {t}"
       let bodyName := name.str "costBody"
@@ -1290,7 +1387,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
         let mut binders := #[P, hP]
         for (x, k) in xs.zip kinds do
           match k with
-          | .enc => binders := binders.push x
+          | .enc | .fixed => binders := binders.push x
           | .fn _ =>
             let some (_, v, hf) := fnHyps.find? (·.1 == x) | throwError "no closure for {x}"
             binders := binders ++ #[x, v, hf]
@@ -1326,6 +1423,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
         let specVal ← instantiateMVars specVal
         addDecl <| .thmDecl
           { name := specName, levelParams := [], type := specTy, value := specVal }
+        costTrace s!"compile {name} spec added"
         let costTy ← mkForallFVars binders (← cleanTuples (← inferType costPf))
         let costTy ← instantiateMVars costTy
         let costVal ← instantiateMVars (← mkLambdaFVars binders costPf)
