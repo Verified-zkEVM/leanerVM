@@ -75,7 +75,7 @@ theorem pruneUpToDistinctC_cost (hP : Includes P pruneUpToDistinctC.costDeps) (�
   -- the table
   have hf0 := fun v ↦ RunsApp.of_spec (us := [enc κ, enc R, WVal]) (vs := [enc v])
     (pruneUpToDistinctC.lam0.costSpec P (by includes) κ R W WVal hW v)
-  have hof := ofFnFromC_cost P (by includes) (n := 2 ^ (κ + R)) (by omega) _
+  have hof := ofFnFrom_cost P (by includes) (n := 2 ^ (κ + R)) (by omega) _
     (.fn pruneUpToDistinctC.lam0.costIdx [enc κ, enc R, WVal]) hf0 (BW + 10 * Lw + 9)
     (fun v ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -84,7 +84,7 @@ theorem pruneUpToDistinctC_cost (hP : Includes P pruneUpToDistinctC.costDeps) (�
       have := reverseAux_cost P (by includes) (W v) []
       have := hLw v
       simp only [List.length_reverse]
-      omega) (2 ^ (κ + R)) 0 (by simp) (Nat.zero_le _)
+      omega) 0 (Nat.zero_le _)
   have := rangeLoop_cost P (by includes) (2 ^ (κ + R)) [] (by omega)
   have := rangeLoop_cost P (by includes) U [] (by omega)
   -- the lanes

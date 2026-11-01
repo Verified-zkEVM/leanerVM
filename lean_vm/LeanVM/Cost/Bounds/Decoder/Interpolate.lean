@@ -50,61 +50,6 @@ variable (P : Program)
 
 /-! ## Library functions -/
 
-/-- `List.findSome?` (`findSome?.c125`): `9` per element and the closure's price, `3`. -/
-theorem findSomeC_cost (hP : Includes P Auto.List.findSome?.c125.costDeps) {α β : Type} [Enc α]
-    [Enc β] (f : α → Option β) (fVal : Val) (hf : ∀ a, RunsApp P fVal [enc a] (enc (f a)))
-    (B : ℕ) : ∀ ls : List α, (∀ l ∈ ls, appCost P fVal [enc l] ≤ B) →
-      machineCost P Auto.List.findSome?.c125.costIdx [fVal, enc ls] ≤ (B + 9) * ls.length + 3 := by
-  intro ls
-  induction ls with
-  | nil => intro _; rw [Auto.List.findSome?.c125.costEq_nil P hP f fVal hf]; omega
-  | cons l ls ih =>
-    intro hB
-    rw [Auto.List.findSome?.c125.costEq_cons P hP f fVal hf]
-    have h1 := ih fun l' hl ↦ hB l' (by simp [hl])
-    have h2 := hB l (by simp)
-    simp only [List.length_cons]
-    generalize f l = o
-    cases o <;> dsimp only <;> nlinarith
-
-/-- `Option.map` (`map.c106`): at most the closure's price `+ 7`. -/
-theorem optionMapC_cost (hP : Includes P Auto.Option.map.c106.costDeps) {α β : Type} [Enc α]
-    [Enc β] (f : α → β) (fVal : Val) (hf : ∀ a, RunsApp P fVal [enc a] (enc (f a))) (B : ℕ)
-    (o : Option α) (hB : ∀ a, o = some a → appCost P fVal [enc a] ≤ B) :
-    machineCost P Auto.Option.map.c106.costIdx [fVal, enc o] ≤ B + 7 := by
-  cases o with
-  | none => rw [Auto.Option.map.c106.costEq_none P hP f fVal hf]; omega
-  | some a => rw [Auto.Option.map.c106.costEq_some P hP f fVal hf]; have := hB a rfl; omega
-
-/-- `ofFnFrom n f i` (`Array.ofFn`'s list, `ofFnFrom.c117`): `18` per index and the closure's
-price, `6`. -/
-theorem ofFnFromC_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c117.costDeps)
-    {α : Type} [Enc α] {n : ℕ} (hn : n < 2 ^ 63) (f : Fin n → α) (fVal : Val)
-    (hf : ∀ a, RunsApp P fVal [enc a] (enc (f a))) (B : ℕ)
-    (hB : ∀ a : Fin n, appCost P fVal [enc a] ≤ B) :
-    ∀ k i, n - i = k → i ≤ n →
-      machineCost P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c117.costIdx [enc n, fVal, enc i] ≤
-        (B + 18) * k + 6 := by
-  intro k
-  induction k with
-  | zero =>
-    intro i hk hi
-    rw [Auto.LeanVM.Cost.Rewrite.ofFnFrom.c117.costEq P hP f fVal hf]
-    have hn' : ¬ i < n := by omega
-    simp only [hn', ↓reduceDIte]
-    cost_simp
-    omega
-  | succ k ih =>
-    intro i hk hi
-    rw [Auto.LeanVM.Cost.Rewrite.ofFnFrom.c117.costEq P hP f fVal hf]
-    have hin : i < n := by omega
-    simp only [hin, ↓reduceDIte]
-    have := ih (i + 1) (by omega) (by omega)
-    have := hB ⟨i, hin⟩
-    cost_simp
-    have e : (B + 18) * (k + 1) = (B + 18) * k + B + 18 := by ring
-    omega
-
 theorem length_ofFnFrom {α : Type} {n : ℕ} (f : Fin n → α) (i : ℕ) :
     (Rewrite.ofFnFrom f i).length = n - i := by
   rw [Rewrite.ofFnFrom_eq f (n - i) i rfl]
@@ -165,7 +110,7 @@ theorem leePivotC_cost (hP : Includes P leePivot?.c124.costDeps) (params : GSInt
   have := rangeLoop_cost P (by includes) (leeRows params Q) [] (by omega)
   have hf := fun y ↦ RunsApp.of_spec (us := [enc params, enc Q]) (vs := [enc y])
     (leePivot?.c124.lam0.costSpec P (by includes) params Q y)
-  have hfs := findSomeC_cost P (by includes) _ (.fn leePivot?.c124.lam0.costIdx [enc params, enc Q])
+  have hfs := findSome_cost P (by includes) _ (.fn leePivot?.c124.lam0.costIdx [enc params, enc Q])
     hf (42 * (params.weightedDegreeBound + 1) + 87) (List.range (leeRows params Q)) (fun y hy ↦ by
       rw [List.mem_range] at hy
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -187,7 +132,7 @@ theorem leePivotC_cost (hP : Includes P leePivot?.c124.costDeps) (params : GSInt
             Auto.CompPoly.CBivariate.coeff.c121.costEq P (by includes)])
       have hm := fun x ↦ RunsApp.of_spec (us := [enc y]) (vs := [enc x])
         (leePivot?.c124.lam0.lam0.costSpec P (by includes) y x)
-      have := optionMapC_cost P (by includes)
+      have := optionMap_cost P (by includes)
         (fun x ↦ ({ xDegree := x, yDegree := y } : CBivariate.Monomial))
         (.fn leePivot?.c124.lam0.lam0.costIdx [enc y]) hm
         5 ((List.range (leeCols params Q y)).find? fun x ↦ !Q.coeff x y == 0) (fun x _ ↦ by
@@ -219,7 +164,7 @@ theorem leeScaledC_cost (hP : Includes P leeScaled.c115.costDeps) (params : GSIn
     (leeScaled.c115.lam0.costSpec P (by includes) params Q c y)
   rw [Auto.CompPoly.CPolynomial.ofFn.c116.costEq P (by includes) _
     (.fn leeScaled.c115.lam0.costIdx [enc params, enc Q, enc c]) hf]
-  have hfr := ofFnFromC_cost P (by includes) (n := leeRows params Q) (by omega) _
+  have hfr := ofFnFrom_cost P (by includes) (n := leeRows params Q) (by omega) _
     (.fn leeScaled.c115.lam0.costIdx [enc params, enc Q, enc c]) hf
     (20012 * (params.weightedDegreeBound + 1) + 92) (fun y ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -236,20 +181,20 @@ theorem leeScaledC_cost (hP : Includes P leeScaled.c115.costDeps) (params : GSIn
         (leeScaled.c115.lam0.lam0.costSpec P (by includes) params Q c y x)
       rw [Auto.CompPoly.CPolynomial.ofFn.c119.costEq P (by includes) _
         (.fn leeScaled.c115.lam0.lam0.costIdx [enc params, enc Q, enc c, enc y]) hg]
-      have := ofFnFromC_cost P (by includes) (n := leeCols params Q y) (by omega) _
+      have := ofFnFrom_cost P (by includes) (n := leeCols params Q y) (by omega) _
         (.fn leeScaled.c115.lam0.lam0.costIdx [enc params, enc Q, enc c, enc y]) hg 19970
         (fun x ↦ by
           simp only [appCost_fn, List.cons_append, List.nil_append]
           rw [leeScaled.c115.lam0.lam0.costEq P (by includes),
             Auto.CompPoly.CBivariate.coeff.c121.costEq P (by includes)]
           have := invK_cost P (by includes) c
-          omega) (leeCols params Q y) 0 (by omega) (by omega)
+          omega) 0 (by omega)
       have := ofArray_cost P (by includes)
         (Array.ofFn fun x : Fin (leeCols params Q y) ↦ Q.coeff ↑x ↑y / c) (by simp; omega)
       have h2 : (19970 + 18) * leeCols params Q y ≤ 19988 * (params.weightedDegreeBound + 1) :=
         Nat.mul_le_mul_left _ hc
       simp only [length_ofFnFrom, Array.size_ofFn, Nat.sub_zero] at *
-      omega) (leeRows params Q) 0 (by omega) (by omega)
+      omega) 0 (by omega)
   have := ofArrayB_cost P (by includes)
     (Array.ofFn fun y : Fin (leeRows params Q) ↦
       CPolynomial.ofFn fun x : Fin (leeCols params Q y) ↦ Q.coeff ↑x ↑y / c)
@@ -276,7 +221,7 @@ theorem normalizeLeeFastC_cost (hP : Includes P normalizeLeeFast.c113.costDeps)
   have hp := leePivotC_cost P (by includes) params Q hs hQ (by omega)
   have hf := fun m ↦ RunsApp.of_spec (us := [enc params, enc Q]) (vs := [enc m])
     (normalizeLeeFast.c113.lam0.costSpec P (by includes) params Q m)
-  have := optionMapC_cost P (by includes) _ (.fn normalizeLeeFast.c113.lam0.costIdx [enc params, enc Q])
+  have := optionMap_cost P (by includes) _ (.fn normalizeLeeFast.c113.lam0.costIdx [enc params, enc Q])
     hf ((20015 * (params.weightedDegreeBound + 1) + 152) * leeRows params Q + 53 + 17)
     (leePivot? params Q) (fun m _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -420,7 +365,7 @@ theorem leastShiftedDegreeRowC_cost (hP : Includes P leastShiftedDegreeRow?.c105
       omega)
   have hm := fun c ↦ RunsApp.of_spec (us := []) (vs := [enc c])
     (leastShiftedDegreeRow?.c105.lam0.costSpec P (by includes) c)
-  have := optionMapC_cost P (by includes) _ (.fn leastShiftedDegreeRow?.c105.lam0.costIdx []) hm 2
+  have := optionMap_cost P (by includes) _ (.fn leastShiftedDegreeRow?.c105.lam0.costIdx []) hm 2
     (LeeOSullivan.leastShiftedDegreeChoice? M shift) (fun c _ ↦ by
       simp only [appCost_fn, List.nil_append]
       rw [leastShiftedDegreeRow?.c105.lam0.costEq P (by includes)])

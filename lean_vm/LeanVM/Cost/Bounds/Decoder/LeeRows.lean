@@ -126,7 +126,7 @@ theorem mulRawB_cost_ab (hP : Includes P mulRaw.c44.costDeps)
       (930 * (((a + 1) * (a + b + 1)) * rq) + 110 * ((a + b) * (rp + rq)) + 200 * (rp + rq) +
         112) * rp + 20 := by
   rw [mulRaw.c44.costEq P hP]
-  have hz := zipIdxC_cost P (by includes) p.toList 0 (by simp; omega)
+  have hz := zipIdx_cost P (by includes) p.toList 0 (by simp; omega)
   have hf := listFoldl_le P (by includes) _ (.fn mulRaw.c44.lam0.costIdx [enc q])
     (fun acc x ↦ RunsApp.of_spec (us := [enc q]) (vs := [enc acc, enc x])
       (mulRaw.c44.lam0.costSpec P (by includes) q acc x))

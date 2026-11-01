@@ -1,6 +1,7 @@
 module
 
-public import LeanVM.Cost.Bounds.Basic
+public import LeanVM.Cost.Bounds.ListLib
+public import LeanVM.Cost.Bounds.FieldLib
 public import LeanVM.Cost.Samples.MsStep
 import all CompPoly.LinearAlgebra.PolynomialMatrix.MuldersStorjohann
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Shifted
@@ -87,22 +88,6 @@ theorem rowGet_cost (hP : Includes P rowGet.c17.costDeps)
     machineCost P rowGet.c17.costIdx [enc row, enc j] = 5 := by
   rw [rowGet.c17.costEq P hP]
 
-/-- `List.beq` on coefficients: at most `12` per coefficient and `7`. -/
-theorem listBeqK_cost (hP : Includes P Auto.List.beq.c27.costDeps) :
-    ∀ a b : List K, machineCost P Auto.List.beq.c27.costIdx [enc a, enc b] ≤ 12 * a.length + 7 := by
-  intro a
-  induction a with
-  | nil => intro b; rw [Auto.List.beq.c27.costEq P hP]; cases b <;> simp
-  | cons x a ih =>
-    intro b
-    rw [Auto.List.beq.c27.costEq P hP]
-    cases b with
-    | nil => simp
-    | cons y b =>
-      have := ih b
-      simp only [List.length_cons]
-      split_ifs <;> omega
-
 theorem natDegree_cost (hP : Includes P Auto.CompPoly.CPolynomial.natDegree.c18.costDeps)
     (p : CPolynomial K) (hp : p.val.size < 2 ^ 64) :
       machineCost P Auto.CompPoly.CPolynomial.natDegree.c18.costIdx [enc p] ≤ 13 := by
@@ -119,20 +104,6 @@ theorem maxOption_cost (hP : Includes P maxOption.c19.costDeps)
   cases a with
   | none => simp
   | some v => have := ha v rfl; cost_simp; split_ifs <;> omega
-
-/-- `List.range`'s loop: at most `17·n + 6`. -/
-theorem rangeLoop_cost (hP : Includes P Auto.List.range.loop.c20.costDeps) :
-    ∀ (n : ℕ) (acc : List ℕ), n < 2 ^ 64 →
-      machineCost P Auto.List.range.loop.c20.costIdx [enc n, enc acc] ≤ 17 * n + 6 := by
-  intro n
-  induction n with
-  | zero => intro acc _; rw [Auto.List.range.loop.c20.costEq P hP]; cost_simp; omega
-  | succ k ih =>
-    intro acc hk
-    rw [Auto.List.range.loop.c20.costEq P hP]
-    have := ih (k :: acc) (by omega)
-    cost_simp
-    omega
 
 /-- The fold's step of the shifted degree: an invariant of word-sized maxima. -/
 theorem foldl_shiftedDegree_le {C D S : ℕ} {row : PolynomialRow K} (h : RowWithin C D row)
@@ -237,20 +208,6 @@ theorem findNat_cost (hP : Includes P Auto.List.find?.c21.costDeps) (p : ℕ →
     generalize p x = b
     cases b <;> dsimp only <;> nlinarith
 
-/-- `List.reverseAux` on indices: `10` per index, `3` at the end. -/
-theorem reverseAuxNat_cost (hP : Includes P Auto.List.reverseAux.c23.costDeps) :
-    ∀ l acc : List ℕ, machineCost P Auto.List.reverseAux.c23.costIdx [enc l, enc acc] ≤
-      10 * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => intro acc; rw [Auto.List.reverseAux.c23.costEq P hP]; simp
-  | cons x l ih =>
-    intro acc
-    rw [Auto.List.reverseAux.c23.costEq P hP]
-    have := ih (x :: acc)
-    simp only [List.length_cons]
-    omega
-
 /-- The leading position's test at one index: at most `60`. -/
 theorem leadingPositionTest_cost
     (hP : Includes P rowShiftedLeadingPosition?.c14.lam0.costDeps)
@@ -289,7 +246,7 @@ theorem rowShiftedLeadingPosition_cost
   | some val =>
     have hval := rowShiftedDegree?_le hrow hS he
     have := rangeLoop_cost P (by includes) row.size [] (by omega)
-    have := reverseAuxNat_cost P (by includes) (List.range row.size) []
+    have := reverseAux_cost P (by includes) (List.range row.size) []
     have hf :=
       findNat_cost P (by includes) _
         (.fn rowShiftedLeadingPosition?.c14.lam0.costIdx [enc val, enc row, enc shift])
@@ -357,30 +314,6 @@ theorem rowShiftedLeadingTerm_cost
       split_ifs <;> omega
 
 /-! ## A field inverse: Itoh–Tsujii, `10` squaring chains and `11` products -/
-
-/-- `2^k`-th power by `k` squarings: `6 + 270·k` exactly (a square is a `GF(2^64)` product of
-price `256`). -/
-theorem powTwoPow_cost (hP : Includes P Auto.BF64.powTwoPow.c34.costDeps) :
-    ∀ (k : ℕ) (a : BF64), k < 2 ^ 64 →
-      machineCost P Auto.BF64.powTwoPow.c34.costIdx [enc a, enc k] =
-      6 + 270 * k := by
-  intro k
-  induction k with
-  | zero => intro a _; rw [Auto.BF64.powTwoPow.c34.costEq P hP]; cost_simp
-  | succ k ih =>
-    intro a hk
-    rw [Auto.BF64.powTwoPow.c34.costEq P hP]
-    cost_simp
-    rw [ih (a * a) (by omega)]
-    omega
-
-/-- **A field inverse** (`BF64.invItohTsujii`): at most `19700`. -/
-theorem invK_cost (hP : Includes P Auto.BF64.invItohTsujii.c33.costDeps) (a : BF64) :
-    machineCost P Auto.BF64.invItohTsujii.c33.costIdx [enc a] ≤ 19700 := by
-  have h26 : Includes P Auto.BF64.powTwoPow.c34.costDeps := by includes
-  rw [Auto.BF64.invItohTsujii.c33.costEq P hP]
-  simp (disch := omega) only [powTwoPow_cost P h26]
-  split_ifs <;> omega
 
 /-! ## Subtracting a scaled, shifted row -/
 

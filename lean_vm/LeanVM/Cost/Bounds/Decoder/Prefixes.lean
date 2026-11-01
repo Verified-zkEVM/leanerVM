@@ -341,7 +341,7 @@ theorem gsRunDistinctNFC_cost (hP : Includes P gsRunDistinctNFC.costDeps)
     generalize hR : prefixesNF fieldRootCtxFast params.messageDegree
       (CBivariate.truncateX Q (params.weightedDegreeBound + 1)) (params.weightedDegreeBound + 1) 0
       default = res at hres hmem
-    have hfil := filterC_cost P (by includes) _
+    have hfil := filter_cost P (by includes) _
       (.fn gsRunDistinctNFC.lam0.costIdx [enc points, enc params, enc radius]) hfv
       ((272 * params.messageDegree + 34) * points.size + 30) res.toList (fun p hp ↦ by
         have hps := hmem p (by simpa using hp)

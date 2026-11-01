@@ -20,8 +20,8 @@ search in the memory table (`gLogTable.c445`, `findLane.c446`), and Keccak-f for
 * **`stepVec_cost`**: one step at most `411697 + 42·log₂|codeT| + 1092·log₂|memT|`; at
   `|memT| = |codeT| = 2^32`, `447985 ≈ 2^18.77`.
 
-Library: `listFoldl_le_sum` (a closure's price depending on the element), `getD_cost_idx`,
-`bind_cost`, `optionMap_cost`, `listAll_cost`, `finRangeFrom_cost`, `powSq_cost` (`535` per bit).
+Library: `listFoldl_le_sum` (a closure's price depending on the element), `bind_cost`,
+`finRangeFrom_cost` (the others: `Bounds/ListLib.lean`, `Bounds/FieldLib.lean`).
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -49,32 +49,6 @@ theorem listFoldl_le_sum {α β : Type} [Enc α] [Enc β] (hP : Includes P listF
     have h2 := hB init b (by simp)
     simp only [List.map_cons, List.sum_cons]
     omega
-
-/-- `List.get?` at index `k`: `15·k + 10` at most. -/
-theorem getInternal_cost_idx (hP : Includes P Auto.List.«get?Internal».c275.costDeps) {α : Type} [Enc α] :
-    ∀ (l : List α) (k : ℕ), k < 2 ^ 64 →
-      machineCost P Auto.List.«get?Internal».c275.costIdx [enc l, enc k] ≤ 15 * k + 10 := by
-  intro l
-  induction l with
-  | nil => intro k _; rw [Auto.List.«get?Internal».c275.costEq_nil P hP]; omega
-  | cons x l ih =>
-    intro k hk
-    rw [Auto.List.«get?Internal».c275.costEq_cons P hP, limbs_of_lt hk]
-    cases k with
-    | zero => simp only [Nat.rec_zero]; omega
-    | succ k =>
-      have := ih k (by omega)
-      simp only
-      omega
-
-/-- `List.getD` at index `k`: `15·k + 15` at most. -/
-theorem getD_cost_idx (hP : Includes P Auto.List.getD.c274.costDeps) {α : Type} [Enc α]
-    (l : List α) (k : ℕ) (hk : k < 2 ^ 64) (d : α) :
-    machineCost P Auto.List.getD.c274.costIdx [enc l, enc k, enc d] ≤ 15 * k + 15 := by
-  rw [Auto.List.getD.c274.costEq P hP]
-  have := getInternal_cost_idx P (by includes) l k hk
-  generalize l[k]? = o
-  cases o <;> dsimp only <;> omega
 
 /-- `rot` (`rot.c416`): `17` at most on a word-sized rotation. -/
 theorem rot_cost (hP : Includes P Auto.LeanVM.Semantics.Keccak.rot.c416.costDeps) (x : UInt64) (n : ℕ)
@@ -146,7 +120,7 @@ theorem roundRhoPi_cost (hP : Includes P keccakRoundShared.c413.costDeps) (t : K
       rw [keccakRoundShared.c413.lam2.costEq P (by includes), keccakPi_cost P (by includes) i hi,
         setIfInBounds_cost P (by includes),
         Auto.LeanVM.Parameters.keccakRho.c420.costEq P (by includes)]
-      have := getD_cost_idx P (by includes) keccakRho i (by omega) 0
+      have := getD_cost_idx P (by includes) keccakRho i 0 (by omega)
       have := rot_cost P (by includes) (Keccak.lane t i) (keccakRho.getD i 0)
         (by have := keccakRho_getD_le i; omega)
       omega)
@@ -240,27 +214,6 @@ theorem bind_cost (hP : Includes P Auto.Option.bind.c323.costDeps) (f : α → O
   | none => rw [Auto.Option.bind.c323.costEq_none P hP f fVal hf]; omega
   | some a => rw [Auto.Option.bind.c323.costEq_some P hP a f fVal hf]; have := hB a; omega
 
-/-- `Option.map` (`map.c106`): the closure's price and `7` at most. -/
-theorem optionMap_cost (hP : Includes P Auto.Option.map.c106.costDeps) (f : α → β) (fVal : Val)
-    (hf : ∀ a : α, RunsApp P fVal [enc a] (enc (f a))) (B : ℕ) (hB : ∀ a : α, appCost P fVal [enc a] ≤ B)
-    (o : Option α) : machineCost P Auto.Option.map.c106.costIdx [fVal, enc o] ≤ B + 7 := by
-  cases o with
-  | none => rw [Auto.Option.map.c106.costEq_none P hP f fVal hf]; omega
-  | some a => rw [Auto.Option.map.c106.costEq_some P hP f fVal hf a]; have := hB a; omega
-
-/-- `List.all` (`all.c240`): `9` per element and the predicate's price, `3` at the end. -/
-theorem listAll_cost (hP : Includes P Auto.List.all.c240.costDeps) (p : α → Bool) (pVal : Val)
-    (hp : ∀ a : α, RunsApp P pVal [enc a] (enc (p a))) (B : ℕ) (hB : ∀ a : α, appCost P pVal [enc a] ≤ B) :
-    ∀ l : List α, machineCost P Auto.List.all.c240.costIdx [enc l, pVal] ≤ (B + 9) * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => rw [Auto.List.all.c240.costEq_nil P hP p pVal hp]; omega
-  | cons x l ih =>
-    rw [Auto.List.all.c240.costEq_cons P hP x l p pVal hp]
-    have := hB x
-    simp only [List.length_cons]
-    split_ifs <;> nlinarith
-
 /-- `List.finRange` from `i` (`finRangeFrom.c425`): `15` per element, `6` at the end. -/
 theorem finRangeFrom_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.finRangeFrom.c425.costDeps)
     (n : ℕ) (hn : n < 2 ^ 64) : ∀ i, i ≤ n →
@@ -281,45 +234,6 @@ theorem finRangeFrom_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.finRangeFrom
     omega
 
 end Generic
-
-theorem log2_lt_of {n k : ℕ} (hk : 0 < k) (h : n < 2 ^ k) : Nat.log2 n < k := by
-  rcases Nat.eq_zero_or_pos n with rfl | hn
-  · simp [Nat.log2_zero]; omega
-  · exact (Nat.log2_lt (by omega)).2 h
-
-/-- `a^n` by squaring (`powSq.c198`): `535` per bit, `6` at the end. -/
-theorem powSq_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c198.costDeps) (a : K) (n : ℕ)
-    (hn : n < 2 ^ 64) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c198.costIdx [enc a, enc n] ≤
-      6 + 535 * (Nat.log2 n + 1) := by
-  have := le_of_halving (fun x : K × ℕ ↦ x.2 < 2 ^ 64) (fun x ↦ x.2)
-    (fun x ↦ machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c198.costIdx [enc x.1, enc x.2]) 535 6
-    (fun x hx h0 ↦ by
-      try dsimp only at hx h0 ⊢
-      rw [Auto.LeanVM.Cost.Rewrite.powSq.c198.costEq P hP, h0]
-      simp)
-    (fun x hx hpos ↦ by
-      try dsimp only at hx hpos ⊢
-      right
-      refine ⟨(x.1 * x.1, x.2 / 2), by dsimp only; omega, le_refl _, ?_⟩
-      rw [Auto.LeanVM.Cost.Rewrite.powSq.c198.costEq P hP, limbs_of_lt hx,
-        limbs_of_lt (by omega : x.2 % 2 < 2 ^ 64)]
-      simp only [show x.2 ≠ 0 by omega, ↓reduceIte]
-      split_ifs <;> omega)
-    (a, n) hn
-  simpa using this
-
-theorem powSq_cost_le (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c198.costDeps) (a : K) (n : ℕ)
-    (hn : n ≤ 3) : machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c198.costIdx [enc a, enc n] ≤ 1076 := by
-  refine (powSq_cost P hP a n (by omega)).trans ?_
-  have := log2_lt_of (k := 2) (by norm_num) (by omega : n < 2 ^ 2)
-  omega
-
-theorem powSq_cost_le' (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c198.costDeps) (a : K) (n : ℕ)
-    (hn : n ≤ 15) : machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c198.costIdx [enc a, enc n] ≤ 2146 := by
-  refine (powSq_cost P hP a n (by omega)).trans ?_
-  have := log2_lt_of (k := 4) (by norm_num) (by omega : n < 2 ^ 4)
-  omega
 
 /-! ## Reading thirteen cells -/
 
@@ -698,24 +612,22 @@ theorem keccakCheck_cost (hP : Includes P executeWithShared.c392.costDeps) (inOd
       simp only [appCost_fn, List.nil_append]
       rw [executeWithShared.c392.lam5.lam0.lam3.costEq P (by includes)]) 0 (by omega)
   have hlen : (Array.ofFn (id : Fin 13 → Fin 13)).toList.length = 13 := by simp
-  have ha1 := listAll_cost P (by includes) _
+  have ha1 := all_cost P (by includes) _
     (.fn executeWithShared.c392.lam5.lam0.lam2.costIdx [enc input])
     (fun a ↦ RunsApp.of_spec (executeWithShared.c392.lam5.lam0.lam2.costSpec P (by includes) input a)) 7
-    (fun a ↦ by
+    (Array.ofFn (id : Fin 13 → Fin 13)).toList (fun a _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [executeWithShared.c392.lam5.lam0.lam2.costEq P (by includes)])
-    (Array.ofFn (id : Fin 13 → Fin 13)).toList
-  have ha2 := listAll_cost P (by includes) _
+  have ha2 := all_cost P (by includes) _
     (.fn executeWithShared.c392.lam5.lam0.lam4.costIdx
       [enc outOdd, enc output, enc (keccakF1600 (stateOfCells input inOdd))])
     (fun a ↦ RunsApp.of_spec (executeWithShared.c392.lam5.lam0.lam4.costSpec P (by includes) outOdd
-      output _ a)) 326
-    (fun a ↦ by
+      output _ a)) 326 (Array.ofFn (id : Fin 13 → Fin 13)).toList
+    (fun a _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [executeWithShared.c392.lam5.lam0.lam4.costEq P (by includes)]
       have := cellsOfState_cost P (by includes) (keccakF1600 (stateOfCells input inOdd)) outOdd a
       split_ifs <;> omega)
-    (Array.ofFn (id : Fin 13 → Fin 13)).toList
   rw [hlen] at ha1 ha2
   rw [ofFnFrom_length, Array.size_ofFn]
   cost_facts [guardNext_cost P hP r]
@@ -838,11 +750,10 @@ theorem memRead_cost (hP : Includes P stepVec.c390.lam0.lam0.costDeps) (memT : A
   have := gLogTable_cost P (by includes) memT ht κ hκ a
   have := optionMap_cost P (by includes) _ (.fn stepVec.c390.lam0.lam0.lam0.costIdx [enc κ, enc mem])
     (fun i ↦ RunsApp.of_spec (stepVec.c390.lam0.lam0.lam0.costSpec P (by includes) mem i)) 12
-    (fun i ↦ by
+    (gLogTable memT κ a) (fun i _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [stepVec.c390.lam0.lam0.lam0.costEq P (by includes), limbs_shift hκ,
         limbs_of_lt (by omega : κ < 2 ^ 64), Auto.Vector.get.c444.costEq P (by includes)])
-    (gLogTable memT κ a)
   omega
 
 /-- **One step** (`stepVec.c390`): the code table's lookup, the instruction, its reads (each a
@@ -857,10 +768,9 @@ theorem stepVec_cost (hP : Includes P stepVec.c390.costDeps) (memT codeT : Array
   have h1 := gLogTable_cost P (by includes) codeT hc prog.logSize hls r.pc
   have h2 := optionMap_cost P (by includes) _ (.fn stepVec.c390.lam1.costIdx [enc prog])
     (fun i ↦ RunsApp.of_spec (stepVec.c390.lam1.costSpec P (by includes) prog i)) 5
-    (fun i ↦ by
+    (gLogTable codeT prog.logSize r.pc) (fun i _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [stepVec.c390.lam1.costEq P (by includes)])
-    (gLogTable codeT prog.logSize r.pc)
   have h3 := bind_cost P (by includes) _ (.fn stepVec.c390.lam0.costIdx [enc memT, enc κ, enc mem, enc r])
     (fun i ↦ RunsApp.of_spec (stepVec.c390.lam0.costSpec P (by includes) memT mem r i))
     (26 * (123 + 42 * Nat.log2 memT.size) + 408368)

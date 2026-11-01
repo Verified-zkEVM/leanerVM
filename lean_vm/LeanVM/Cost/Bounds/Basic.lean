@@ -194,6 +194,20 @@ theorem limbs_ofNat (n : ℕ) [n.AtLeastTwo] (h : (OfNat.ofNat n : ℕ) < 2 ^ 64
 
 @[simp] theorem limbs_one : limbs 1 = 1 := rfl
 
+theorem limbs_two_pow {k : ℕ} (hk : k < 64) : limbs (2 ^ k) = 1 :=
+  limbs_of_lt (Nat.pow_lt_pow_right (by norm_num) hk)
+
+theorem limbs_shift {k : ℕ} (hk : k < 64) : limbs (1 <<< k) = 1 := by
+  rw [Nat.one_shiftLeft]; exact limbs_two_pow hk
+
+/-- Numbers below `2^128` have at most two limbs. -/
+theorem limbs_le_two {x : ℕ} (h : x < 2 ^ 128) : limbs x ≤ 2 := by
+  unfold limbs
+  rcases Nat.eq_zero_or_pos x with rfl | hx
+  · simp
+  · have := (Nat.log2_lt (by omega)).2 h
+    omega
+
 theorem appCost_fn (P : Program) (j : ℕ) (us vs : List Val) :
     appCost P (.fn j us) vs = machineCost P j (us ++ vs) := rfl
 
@@ -234,6 +248,11 @@ theorem affine_mul_le' (a b c D n C : ℕ) (h : n ≤ C) :
 
 theorem log2_half {n : ℕ} (h : 2 ≤ n) : Nat.log2 (n / 2) + 1 = Nat.log2 n := by
   rw [Nat.log2_def n]; simp [h]
+
+theorem log2_lt_of {n k : ℕ} (hk : 0 < k) (h : n < 2 ^ k) : Nat.log2 n < k := by
+  rcases Nat.eq_zero_or_pos n with rfl | hn
+  · simp [Nat.log2_zero]; omega
+  · exact (Nat.log2_lt (by omega)).2 h
 
 theorem log2_mono {m n : ℕ} (h : m ≤ n) : Nat.log2 m ≤ Nat.log2 n := by
   rcases Nat.eq_zero_or_pos m with rfl | hm

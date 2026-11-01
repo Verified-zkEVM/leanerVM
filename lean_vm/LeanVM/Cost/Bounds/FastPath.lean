@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Bounds.Basic
+public import LeanVM.Cost.Bounds.FieldLib
 public import LeanVM.Cost.Bounds.SortedMap
 public import LeanVM.Cost.Bounds.Transcript
 public import LeanVM.Cost.Extractor.Runner
@@ -9,13 +9,11 @@ public import LeanVM.Cost.Extractor.Runner
 # Bounds: the novel-basis transforms, the pruning and the stacks
 
 The functions the fast path (`fastStacksFast`) and the decoder's pruning (`pruneUpToDistinct`,
-`decodeStacksDistinct`) share, compiled in the decoder's chain (`Cost/Extractor/Decode.lean`), and
-the list functions they call. With `N = 2^m` the buffer:
+`decodeStacksDistinct`) share, compiled in the decoder's chain (`Cost/Extractor/Decode.lean`)
+(the list functions they call: `Bounds/ListLib.lean`; the field's: `Bounds/FieldLib.lean`). With
+`N = 2^m` the buffer:
 
-* `ofFnFrom_cost`: `Array.ofFn` of `n` entries, `B + 18` per entry; `rangeLoop_cost`,
-  `reverseAux_cost`, `filter_cost`, `filterMap_cost`, `map_cost`, `foldr_cost`, `flatten_cost`;
-* `subspacePoly_cost` (`276·2^j + 15`), `invK_cost` (`19676`), `novelTwiddles_cost`
-  (`430·N + 19730`);
+* `subspacePoly_cost` (`276·2^j + 15`), `novelTwiddles_cost` (`430·N + 19730`);
 * **`novelInvStage_cost`**, **`novelFwdStage_cost`** (`750·N + 19760` per butterfly stage),
   **`novelInv_cost`** (`κ` stages over `2^κ`), **`novelFwd_cost`** (`κ` stages over `2^(κ+R)`);
 * **`pruneStep_cost`**: `|st|·(|L|·((B + 29)·n + 9·U + 62) + 32) + 16` for `|st|` survivors of at
@@ -33,208 +31,7 @@ public section
 
 variable (P : Program)
 
-theorem limbs_two_pow {k : ℕ} (hk : k < 64) : limbs (2 ^ k) = 1 :=
-  limbs_of_lt (Nat.pow_lt_pow_right (by norm_num) hk)
-
-/-- Numbers below `2^128` have at most two limbs. -/
-theorem limbs_le_two {x : ℕ} (h : x < 2 ^ 128) : limbs x ≤ 2 := by
-  unfold limbs
-  rcases Nat.eq_zero_or_pos x with rfl | hx
-  · simp
-  · have := (Nat.log2_lt (by omega)).2 h
-    omega
-
-theorem limbs_shift {k : ℕ} (hk : k < 64) : limbs (1 <<< k) = 1 := by
-  rw [Nat.one_shiftLeft]; exact limbs_two_pow hk
-
-theorem ofFnFrom_length {α : Type} {n : ℕ} (f : Fin n → α) : (Rewrite.ofFnFrom f 0).length = n := by
-  rw [Rewrite.ofFnFrom_eq f (n - 0) 0 rfl]; simp
-
 /-! ## List functions -/
-
-/-- `Array.ofFn` through `ofFnFrom` (`ofFnFrom.c117`): `B + 18` per entry, `6` at the end. -/
-theorem ofFnFrom_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c117.costDeps)
-    {α : Type} [Enc α] {n : ℕ} (hn : n < 2 ^ 64) (f : Fin n → α) (fVal : Val)
-    (hf : ∀ a : Fin n, RunsApp P fVal [enc a] (enc (f a))) (B : ℕ)
-    (hB : ∀ a : Fin n, appCost P fVal [enc a] ≤ B) :
-    ∀ i, i ≤ n → machineCost P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c117.costIdx [enc n, fVal, enc i] ≤
-      (B + 18) * (n - i) + 6 := by
-  intro i hi
-  induction hk : n - i generalizing i with
-  | zero =>
-    rw [Auto.LeanVM.Cost.Rewrite.ofFnFrom.c117.costEq P hP f fVal hf i,
-      limbs_of_lt (by omega : i < 2 ^ 64), limbs_of_lt hn]
-    simp only [show ¬i < n by omega, ↓reduceDIte]
-    omega
-  | succ k ih =>
-    rw [Auto.LeanVM.Cost.Rewrite.ofFnFrom.c117.costEq P hP f fVal hf i]
-    simp only [show i < n by omega, ↓reduceDIte]
-    have h1 := ih (i + 1) (by omega) (by omega)
-    have h2 := hB ⟨i, by omega⟩
-    rw [limbs_of_lt (by omega : i < 2 ^ 64), limbs_of_lt hn]
-    simp only [max_self]
-    nlinarith
-
-/-- `List.range` (`range.loop.c20`): `17` per element, `6` at the end. -/
-theorem rangeLoop_cost (hP : Includes P Auto.List.range.loop.c20.costDeps) :
-    ∀ (n : ℕ) (l : List ℕ), n < 2 ^ 64 →
-      machineCost P Auto.List.range.loop.c20.costIdx [enc n, enc l] ≤ 17 * n + 6 := by
-  intro n
-  induction n with
-  | zero => intro l _; rw [Auto.List.range.loop.c20.costEq_zero P hP]
-  | succ n ih =>
-    intro l hn
-    rw [Auto.List.range.loop.c20.costEq_succ P hP, limbs_of_lt hn]
-    have := ih (n :: l) (by omega)
-    omega
-
-/-- `List.reverseAux` (`reverseAux.c23`): `9` per element, `3` at the end. -/
-theorem reverseAux_cost (hP : Includes P Auto.List.reverseAux.c23.costDeps) {α : Type} [Enc α] :
-    ∀ (l acc : List α), machineCost P Auto.List.reverseAux.c23.costIdx [enc l, enc acc] ≤
-      9 * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => intro acc; rw [Auto.List.reverseAux.c23.costEq_nil P hP]; omega
-  | cons x l ih =>
-    intro acc
-    rw [Auto.List.reverseAux.c23.costEq_cons P hP]
-    have := ih (x :: acc)
-    simp only [List.length_cons]
-    omega
-
-/-- `List.length` (`length.c229`): `7` per element, `3` at the end, for word-sized lists. -/
-theorem listLength_cost (hP : Includes P Auto.List.length.c229.costDeps) {α : Type} [Enc α] :
-    ∀ l : List α, l.length < 2 ^ 64 →
-      machineCost P Auto.List.length.c229.costIdx [enc l] ≤ 7 * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => intro _; rw [Auto.List.length.c229.costEq_nil P hP]; omega
-  | cons x l ih =>
-    intro hl
-    simp only [List.length_cons] at hl
-    rw [Auto.List.length.c229.costEq_cons P hP, limbs_of_lt (by omega : l.length < 2 ^ 64)]
-    have := ih (by omega)
-    simp only [List.length_cons]
-    omega
-
-/-- `List.append` (`append.c264`): `9` per element of the first, `3` at the end. -/
-theorem append_cost (hP : Includes P Auto.List.append.c264.costDeps) {α : Type} [Enc α] :
-    ∀ (a b : List α), machineCost P Auto.List.append.c264.costIdx [enc a, enc b] ≤
-      9 * a.length + 3 := by
-  intro a
-  induction a with
-  | nil => intro b; rw [Auto.List.append.c264.costEq_nil P hP]; omega
-  | cons x a ih =>
-    intro b
-    rw [Auto.List.append.c264.costEq_cons P hP]
-    have := ih b
-    simp only [List.length_cons]
-    omega
-
-/-- `List.filter` (`filter.c140`): `13` per element and the predicate's price, `3` at the end. -/
-theorem filter_cost (hP : Includes P Auto.List.filter.c140.costDeps) {α : Type} [Enc α]
-    (p : α → Bool) (pVal : Val) (hp : ∀ a : α, RunsApp P pVal [enc a] (enc (p a))) (B : ℕ)
-    (hB : ∀ a : α, appCost P pVal [enc a] ≤ B) :
-    ∀ l : List α, machineCost P Auto.List.filter.c140.costIdx [pVal, enc l] ≤ (B + 13) * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => rw [Auto.List.filter.c140.costEq_nil P hP p pVal hp]; omega
-  | cons x l ih =>
-    rw [Auto.List.filter.c140.costEq_cons P hP p pVal hp]
-    have := hB x
-    simp only [List.length_cons]
-    cases p x <;> dsimp only <;> nlinarith
-
-/-- `List.filterMap` (`filterMap.c131`): `13` per element and the closure's price, `3` at the end. -/
-theorem filterMap_cost (hP : Includes P Auto.List.filterMap.c131.costDeps) {α β : Type} [Enc α]
-    [Enc β] (f : α → Option β) (fVal : Val) (hf : ∀ a : α, RunsApp P fVal [enc a] (enc (f a))) (B : ℕ) :
-    ∀ l : List α, (∀ a ∈ l, appCost P fVal [enc a] ≤ B) →
-      machineCost P Auto.List.filterMap.c131.costIdx [fVal, enc l] ≤ (B + 13) * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => intro _; rw [Auto.List.filterMap.c131.costEq_nil P hP f fVal hf]; omega
-  | cons x l ih =>
-    intro hB
-    rw [Auto.List.filterMap.c131.costEq_cons P hP f fVal hf]
-    have h1 := ih fun a ha ↦ hB a (by simp [ha])
-    have h2 := hB x (by simp)
-    simp only [List.length_cons]
-    cases f x <;> dsimp only <;> nlinarith
-
-/-- `List.map` (`map.c12`): `11` per element and the closure's price, `3` at the end. -/
-theorem map_cost (hP : Includes P Auto.List.map.c12.costDeps) {α β : Type} [Enc α] [Enc β]
-    (f : α → β) (fVal : Val) (hf : ∀ a : α, RunsApp P fVal [enc a] (enc (f a))) (B : ℕ) :
-    ∀ l : List α, (∀ a ∈ l, appCost P fVal [enc a] ≤ B) →
-      machineCost P Auto.List.map.c12.costIdx [fVal, enc l] ≤ (B + 11) * l.length + 3 :=
-  listMap_le P _ fVal (Auto.List.map.c12.costEq_nil P hP f fVal hf)
-    (fun x l ↦ Auto.List.map.c12.costEq_cons P hP f fVal hf x l) B
-
-/-- `List.foldr` (`foldr.c86`): `9` per element and the closure's price, `3` at the end. -/
-theorem foldr_cost (hP : Includes P Auto.List.foldr.c86.costDeps) {α β : Type} [Enc α] [Enc β]
-    (f : α → β → β) (fVal : Val) (hf : ∀ (a : α) (b : β), RunsApp P fVal [enc a, enc b] (enc (f a b))) (B : ℕ)
-    (init : β) : ∀ l : List α, (∀ a ∈ l, ∀ b : β, appCost P fVal [enc a, enc b] ≤ B) →
-      machineCost P Auto.List.foldr.c86.costIdx [fVal, enc init, enc l] ≤ (B + 9) * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => intro _; rw [Auto.List.foldr.c86.costEq_nil P hP f fVal hf]; omega
-  | cons x l ih =>
-    intro hB
-    rw [Auto.List.foldr.c86.costEq_cons P hP f fVal hf]
-    have h1 := ih fun a ha ↦ hB a (by simp [ha])
-    have h2 := hB x (by simp) (l.foldr f init)
-    simp only [List.length_cons]
-    nlinarith
-
-/-- `List.flatten` (`flatten.c263`): `9` per element of the pieces and `9` per piece, `3`. -/
-theorem flatten_cost (hP : Includes P Auto.List.flatten.c263.costDeps) {α : Type} [Enc α]
-    (M : ℕ) : ∀ ls : List (List α), (∀ l ∈ ls, l.length ≤ M) →
-      machineCost P Auto.List.flatten.c263.costIdx [enc ls] ≤ (9 * M + 9) * ls.length + 3 := by
-  intro ls
-  induction ls with
-  | nil => intro _; rw [Auto.List.flatten.c263.costEq_nil P hP]; omega
-  | cons l ls ih =>
-    intro hM
-    rw [Auto.List.flatten.c263.costEq_cons P hP]
-    have h1 := ih fun a ha ↦ hM a (by simp [ha])
-    have h2 := append_cost P (by includes) l ls.flatten
-    have h3 := hM l (by simp)
-    simp only [List.length_cons]
-    nlinarith
-
-/-- `List.flatten` of a `List.map`: `9` per element of the pieces and `9` per piece, `3`. -/
-theorem flatten_map_cost (hP : Includes P Auto.List.flatten.c263.costDeps) {α σ : Type} [Enc α]
-    (M : ℕ) (f : σ → List α) (st : List σ) (hM : ∀ s ∈ st, (f s).length ≤ M) :
-    machineCost P Auto.List.flatten.c263.costIdx [enc (st.map f)] ≤ (9 * M + 9) * st.length + 3 := by
-  have := flatten_cost P hP M (st.map f) (fun l hl ↦ by
-    obtain ⟨s, hs, rfl⟩ := List.mem_map.1 hl
-    exact hM s hs)
-  simpa using this
-
-/-- `List.get?` (`get?Internal.c275`): `15` per element, `3` at the end, for word-sized indices. -/
-theorem getInternal_cost (hP : Includes P Auto.List.get?Internal.c275.costDeps) {α : Type} [Enc α] :
-    ∀ (l : List α) (k : ℕ), k < 2 ^ 64 →
-      machineCost P Auto.List.get?Internal.c275.costIdx [enc l, enc k] ≤ 15 * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => intro k _; rw [Auto.List.get?Internal.c275.costEq_nil P hP]; omega
-  | cons x l ih =>
-    intro k hk
-    rw [Auto.List.get?Internal.c275.costEq_cons P hP, limbs_of_lt hk]
-    cases k with
-    | zero => simp only [List.length_cons, Nat.rec_zero]; omega
-    | succ k =>
-      have := ih k (by omega)
-      simp only [List.length_cons]
-      omega
-
-/-- `List.getD` (`getD.c274`): `15` per element, `8` at the end. -/
-theorem getD_cost (hP : Includes P Auto.List.getD.c274.costDeps) {α : Type} [Enc α]
-    (l : List α) (k : ℕ) (hk : k < 2 ^ 64) (d : α) :
-    machineCost P Auto.List.getD.c274.costIdx [enc l, enc k, enc d] ≤ 15 * l.length + 8 := by
-  rw [Auto.List.getD.c274.costEq P hP]
-  have := getInternal_cost P (by includes) l k hk
-  generalize l[k]? = o
-  cases o <;> dsimp only <;> omega
 
 /-! ## Field arithmetic: the subspace polynomial and the inverse -/
 
@@ -272,26 +69,6 @@ theorem subspacePoly_cost (hP : Includes P Auto.LeanVM.Extraction.subspacePoly.c
         Auto.LeanVM.Extraction.subspacePoly.c220.lam0.costEq P (by includes)])
     (2 ^ j) (Nat.pow_lt_pow_right (by norm_num) hj)
   omega
-
-theorem powTwoPow34_cost (hP : Includes P Auto.BF64.powTwoPow.c34.costDeps) :
-    ∀ (k : ℕ) (a : BF64), k < 2 ^ 64 →
-      machineCost P Auto.BF64.powTwoPow.c34.costIdx [enc a, enc k] = 6 + 270 * k := by
-  intro k
-  induction k with
-  | zero => intro a _; rw [Auto.BF64.powTwoPow.c34.costEq_zero P hP]
-  | succ k ih =>
-    intro a hk
-    rw [Auto.BF64.powTwoPow.c34.costEq_succ P hP, ih (a * a) (by omega)]
-    cost_simp
-    omega
-
-/-- **The inverse in `K`** (Itoh–Tsujii, `invItohTsujii.c33`): at most `19676`. -/
-theorem invK_cost (hP : Includes P Auto.BF64.invItohTsujii.c33.costDeps) (a : BF64) :
-    machineCost P Auto.BF64.invItohTsujii.c33.costIdx [enc a] ≤ 19676 := by
-  have h6 : Includes P Auto.BF64.powTwoPow.c34.costDeps := by includes
-  rw [Auto.BF64.invItohTsujii.c33.costEq P hP]
-  simp (disch := omega) only [powTwoPow34_cost P h6]
-  split_ifs <;> omega
 
 /-- `Nat.testBit` (`testBit.c225`): `13` on words. -/
 theorem testBit_cost (hP : Includes P Auto.Nat.testBit.c225.costDeps) (a b : ℕ) (ha : a < 2 ^ 64)
@@ -474,14 +251,14 @@ theorem pruneStep_cost (hP : Includes P Auto.LeanVM.Extraction.pruneStep.c262.co
       (.fn Auto.LeanVM.Extraction.pruneStep.c262.lam0.lam0.lam0.costIdx [symVal, enc ce])
       (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.pruneStep.c262.lam0.lam0.lam0.costSpec P
         (by includes) sym symVal hsym ce a)) (B + 9)
-      (fun v ↦ by
+      s.2 (fun v _ ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append]
         rw [Auto.LeanVM.Extraction.pruneStep.c262.lam0.lam0.lam0.costEq P (by includes) sym symVal
           hsym]
         have := hB v
-        omega) s.2
+        omega)
     have hlf := List.length_filter_le (fun v ↦ decide (ce.2.getD v 0 = sym v)) s.2
-    have hl := listLength_cost P (by includes)
+    have hl := length_cost P (by includes)
       (List.filter (fun v ↦ decide (ce.2.getD v 0 = sym v)) s.2) (by omega)
     have ha := append_cost P (by includes) s.1 [ce.1]
     have hlA := limbs_le_two hA
@@ -532,8 +309,8 @@ theorem stackOf_cost (hP : Includes P Auto.LeanVM.Extraction.stackOf.c272.costDe
         limbs_shift (by omega : μ - Whir.initialFold < 64),
         limbs_of_lt (by omega : μ - Whir.initialFold < 2 ^ 64), limbs_of_lt ha,
         limbs_two_pow (by omega : μ - Whir.initialFold < 64)]
-      have := getD_cost P (by includes) cs (a / 2 ^ (μ - Whir.initialFold))
-        (lt_of_le_of_lt (Nat.div_le_self _ _) ha) #[]
+      have := getD_cost P (by includes) cs (a / 2 ^ (μ - Whir.initialFold)) #[]
+        (lt_of_le_of_lt (Nat.div_le_self _ _) ha)
       simp only [max_self]
       omega) 0 (Nat.zero_le _)
   rw [ofFnFrom_length, limbs_shift (by omega : μ < 64), limbs_of_lt (by omega : μ < 2 ^ 64)]
@@ -541,38 +318,6 @@ theorem stackOf_cost (hP : Includes P Auto.LeanVM.Extraction.stackOf.c272.costDe
   nlinarith
 
 /-! ## The Johnson threshold: square roots on two-limb numbers -/
-
-/-- `Nat.log2` by halving (`log2Rec.c280`): at most `7 + 15·(log₂ n + 1)` below `2^128`. -/
-theorem log2Rec_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costDeps) (n : ℕ)
-    (hn : n < 2 ^ 128) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costIdx [enc n] ≤
-      7 + 15 * (Nat.log2 n + 1) := by
-  have := le_of_halving (α := ℕ) (fun x ↦ x < 2 ^ 128) id
-    (fun x ↦ machineCost P Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costIdx [enc x]) 15 7 ?hz ?h n hn
-  · simpa using this
-  · intro x hx h0
-    simp only [id] at h0
-    rw [Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costEq P hP, limbs_of_lt (by omega : x < 2 ^ 64)]
-    split_ifs <;> omega
-  · intro x hx hpos
-    simp only [id] at hpos
-    rw [Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costEq P hP]
-    have h1 := limbs_le_two hx
-    by_cases h2 : 2 ≤ x
-    · right
-      refine ⟨x / 2, show x / 2 < 2 ^ 128 by omega, by simp, ?_⟩
-      simp only [h2, ↓reduceIte]
-      have : Rewrite.log2Rec (x / 2) < 2 ^ 64 := by
-        rw [← Rewrite.natLog2]
-        have := Nat.log2_le_self (x / 2)
-        have := (Nat.log2_lt (n := x) (k := 128) (by omega)).2 hx
-        have := log2_mono (Nat.div_le_self x 2)
-        omega
-      rw [limbs_of_lt this]
-      omega
-    · left
-      simp only [h2, ↓reduceIte]
-      omega
 
 /-- Newton's step from above, on naturals: never below `√n`. -/
 theorem newton_ge (n g : ℕ) (hg : 0 < g) : Nat.sqrt n ≤ (g + n / g) / 2 := by
@@ -715,9 +460,9 @@ theorem johnsonSlackOf_cost (hP : Includes P Auto.LeanVM.Extraction.johnsonSlack
   rw [Auto.LeanVM.Extraction.johnsonSlackOf.c281.costEq P hP,
     Auto.LeanVM.Extraction.johnsonSlack.c282.costEq P (by includes), limbs_of_lt hR,
     limbs_of_lt hμ, limbs_of_lt (by unfold Whir.minLogStack; omega : Whir.minLogStack < 2 ^ 64)]
-  have h1 := getD_cost P (by includes) johnsonSlack (R - 1) (by omega) []
-  have h2 := getD_cost P (by includes) (johnsonSlack.getD (R - 1) []) (μ - Whir.minLogStack)
-    (by omega) 0
+  have h1 := getD_cost P (by includes) johnsonSlack (R - 1) [] (by omega)
+  have h2 := getD_cost P (by includes) (johnsonSlack.getD (R - 1) []) (μ - Whir.minLogStack) 0
+    (by omega)
   have h3 := johnsonSlack_row_length (R - 1)
   have h4 : johnsonSlack.length = 4 := rfl
   simp only [max_self]

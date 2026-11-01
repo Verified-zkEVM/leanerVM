@@ -95,21 +95,6 @@ theorem rightpadC_cost {α : Type} [Enc α] (hP : Includes P Auto.Array.rightpad
   simp only [limbs_of_lt hn, limbs_of_lt hs, Array.size_replicate]
   omega
 
-/-- `zipIdx` of a list (polymorphic): `16` per element, `3`. -/
-theorem zipIdxC_cost {α : Type} [Enc α] (hP : Includes P Auto.List.zipIdx.c61.costDeps) :
-    ∀ (l : List α) (n : ℕ), n + l.length < 2 ^ 64 →
-      machineCost P Auto.List.zipIdx.c61.costIdx [enc l, enc n] ≤ 16 * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => intro n _; rw [Auto.List.zipIdx.c61.costEq_nil P hP n]; simp
-  | cons x l ih =>
-    intro n h
-    rw [Auto.List.zipIdx.c61.costEq_cons P hP x l n]
-    have := ih (n + 1) (by simp at h; omega)
-    simp only [List.length_cons] at h ⊢
-    cost_simp
-    omega
-
 /-- **`addRaw` over `K`**: at most `44 + 28·max(|p|, |q|)`. -/
 theorem addRawK_cost (hP : Includes P addRaw.c50.costDeps) (p q : CPolynomial.Raw K)
     (hp : p.size < 2 ^ 64) (hq : q.size < 2 ^ 64) :
@@ -172,7 +157,7 @@ theorem mulRawK_cost (hP : Includes P mulRaw.c56.costDeps) (p q : CPolynomial.Ra
     machineCost P mulRaw.c56.costIdx [enc p, enc q] ≤
       302 * (q.size * p.size) + 30 * (p.size * p.size) + 102 * p.size + 20 := by
   rw [mulRaw.c56.costEq P hP]
-  have hz := zipIdxC_cost P (by includes) p.toList 0 (by simp; omega)
+  have hz := zipIdx_cost P (by includes) p.toList 0 (by simp; omega)
   have hf := listFoldl_le P (by includes) _ (.fn mulRaw.c56.lam0.costIdx [enc q])
     (fun acc x ↦ RunsApp.of_spec (us := [enc q]) (vs := [enc acc, enc x])
       (mulRaw.c56.lam0.costSpec P (by includes) q acc x))
@@ -411,7 +396,7 @@ theorem mulRawB_cost (hP : Includes P mulRaw.c44.costDeps) (p q : CPolynomial.Ra
       1460 * ((((A + 1) * (A + 1)) * q.size) * p.size) + 220 * ((A * (p.size + q.size)) * p.size) +
         195 * ((p.size + q.size) * p.size) + 112 * p.size + 20 := by
   rw [mulRaw.c44.costEq P hP]
-  have hz := zipIdxC_cost P (by includes) p.toList 0 (by simp; omega)
+  have hz := zipIdx_cost P (by includes) p.toList 0 (by simp; omega)
   have hf := listFoldl_le P (by includes) _ (.fn mulRaw.c44.lam0.costIdx [enc q])
     (fun acc x ↦ RunsApp.of_spec (us := [enc q]) (vs := [enc acc, enc x])
       (mulRaw.c44.lam0.costSpec P (by includes) q acc x))

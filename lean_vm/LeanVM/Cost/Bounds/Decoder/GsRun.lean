@@ -16,7 +16,7 @@ most `Y` rows of at most `X` coefficients:
   initial coefficient polynomial (`initialCoeffFastC_cost`), its roots
   (`rootsNonzeroC_cost`, the root finder of `Bounds/Decoder/Roots.lean`);
 * the substitution `Y := a + X·Y` (`substituteFastC_cost`: per row the Taylor coefficient
-  `taylorCoeffC_cost`, with a binomial parity `chooseOddC_cost` and a power `powSqC_cost` per
+  `taylorCoeffC_cost`, with a binomial parity `chooseOddC_cost` and a power `powSq_cost` per
   term, then the shift `shiftXC_cost`), the truncation (`truncateXC_cost`), the prefix extended
   (`extendPrefixC_cost`);
 * the lane filter's pieces: Horner's evaluation, the mismatch count (`mismatchCountC_cost`),
@@ -217,32 +217,6 @@ theorem chooseOddC_cost (hP : Includes P chooseOdd.c197.costDeps) (n a : ℕ) (h
         omega)
   exact key (n, a) ⟨hn, ha⟩
 
-/-- `a^n` over `K` by squaring (`powSq`): at most `6 + 540·(log₂ n + 1)`. -/
-theorem powSqC_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c198.costDeps) (a : K) (n : ℕ)
-    (hn : n < 2 ^ 64) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c198.costIdx [enc a, enc n] ≤
-      6 + 540 * (Nat.log2 n + 1) := by
-  have key := le_of_halving (fun x : K × ℕ ↦ x.2 < 2 ^ 64) (fun x ↦ x.2)
-    (fun x ↦ machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c198.costIdx [enc x.1, enc x.2]) 540 6
-    (fun x hI h0 ↦ by
-      obtain ⟨a, n⟩ := x
-      dsimp only at h0 hI ⊢
-      subst h0
-      rw [Auto.LeanVM.Cost.Rewrite.powSq.c198.costEq P hP]
-      simp)
-    (fun x hI hpos ↦ by
-      obtain ⟨a, n⟩ := x
-      dsimp only at hpos hI ⊢
-      right
-      refine ⟨(a * a, n / 2), by dsimp only; omega, le_rfl, ?_⟩
-      rw [Auto.LeanVM.Cost.Rewrite.powSq.c198.costEq P hP]
-      dsimp only
-      cost_simp
-      have hn0 : ¬ n = 0 := by omega
-      simp only [hn0, ↓reduceIte]
-      split_ifs <;> omega)
-  exact key (a, n) hn
-
 theorem cpoly_smul_size_le (r : K) (p : CPolynomial K) : (r • p).val.size ≤ p.val.size := by
   show (CPolynomial.Raw.smul r p.val).trim.size ≤ _
   exact (raw_trim_size_le _).trans (by rw [size_smul])
@@ -294,7 +268,7 @@ theorem taylorCoeffC_cost (hP : Includes P taylorCoeff.c195.costDeps) (Q : CBiva
         rw [taylorCoeff.c195.lam0.costEq P (by includes)]
         have hlog : Nat.log2 y ≤ Nat.log2 Y := log2_mono (by omega)
         have := chooseOddC_cost P (by includes) y t (by omega) (by omega)
-        have := powSqC_cost P (by includes) a (y - t) (by omega)
+        have := powSq_cost P (by includes) a (y - t) (by omega)
         have hlog' : Nat.log2 (y - t) ≤ Nat.log2 Y := log2_mono (by omega)
         have := smulK_cost P (by includes) (a ^ (y - t)) (Q.val.coeff y).val
         have hss : (CPolynomial.Raw.smul (a ^ (y - t)) (Q.val.coeff y).val).size ≤ X := by
@@ -335,7 +309,7 @@ theorem substituteFastC_cost (hP : Includes P substituteFast.c192.costDeps) (Q :
   rw [substituteFast.c192.costEq P hP]
   have hf := fun t ↦ RunsApp.of_spec (us := [enc Q, enc a]) (vs := [enc t])
     (substituteFast.c192.lam0.costSpec P (by includes) Q a t)
-  have := ofFnFromC_cost P (by includes) (n := Q.val.size) (by omega) _
+  have := ofFnFrom_cost P (by includes) (n := Q.val.size) (by omega) _
     (.fn substituteFast.c192.lam0.costIdx [enc Q, enc a]) hf
     (taylorBound X Y (Nat.log2 Y + 1) + 25 * (X + Y) + 28) (fun t ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -345,7 +319,7 @@ theorem substituteFastC_cost (hP : Includes P substituteFast.c192.costDeps) (Q :
       have hts := taylorCoeff_size_le hQ a t
       have := shiftXC_cost P (by includes) t (taylorCoeff Q a t) (by omega)
       have : 25 * (↑t + (taylorCoeff Q a ↑t).val.size) ≤ 25 * (X + Y) := by omega
-      omega) Q.val.size 0 (by omega) (by omega)
+      omega) 0 (by omega)
   have := ofArrayB_cost P (by includes)
     (Array.ofFn fun t : Fin Q.val.size ↦ shiftX t.val (taylorCoeff Q a t.val)) (X + Y)
     (fun x hx ↦ by
@@ -446,12 +420,11 @@ theorem extendPrefixC_cost (hP : Includes P Auto.CompPoly.GuruswamiSudan.extendP
 theorem hornerEvalC_cost (hP : Includes P hornerEval.c212.costDeps) (x : K) (p : CPolynomial K) :
     machineCost P hornerEval.c212.costIdx [enc x, enc p] ≤ 272 * p.val.size + 10 := by
   rw [hornerEval.c212.costEq P hP]
-  have := foldrC_cost P (by includes) _ (.fn hornerEval.c212.lam0.costIdx [enc x])
+  have := foldr_cost P (by includes) _ (.fn hornerEval.c212.lam0.costIdx [enc x])
     (fun a acc ↦ RunsApp.of_spec (us := [enc x]) (vs := [enc a, enc acc])
-      (hornerEval.c212.lam0.costSpec P (by includes) x a acc)) 260
-    (fun a acc ↦ by
+      (hornerEval.c212.lam0.costSpec P (by includes) x a acc)) 260 (0 : K) p.val.toList
+    (fun a _ acc ↦ by
       rw [appCost_fn, List.singleton_append, hornerEval.c212.lam0.costEq P (by includes)])
-    (0 : K) p.val.toList
   simp only [Array.length_toList] at this
   omega
 

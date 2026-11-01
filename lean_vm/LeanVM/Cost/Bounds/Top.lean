@@ -19,7 +19,7 @@ first root, then `stageTC`: the committed leaves (`leavesOfC`), then `runFromLea
 path's stacks (`fastOfC`), and `runBothC`: the runner's tables, a run per fast stack, else the
 decoder's stacks (`decOfC`) and a run per decoded stack. Bounded from their price equations:
 
-* the committed leaves on the chain: `takeN_cost`, `dropN_cost`, `bytesWordC_cost` (`310`),
+* the committed leaves on the chain: `bytesWordC_cost` (`310`),
   `bytesLanesC_cost` (`460` per word), `leafOfWithC_cost`, `bytesDigestC_cost` (`7800`: its four
   words each through `bytesLanes 4`), `subtreeLeavesWithC_cost` (by doubling), a lookup in the
   transcript's index `preimageLookup_cost` (`D·(17 + 192·(D + 2)) + 40`, its keys `PreKey`:
@@ -58,52 +58,6 @@ variable (P : LeanVM.Cost.Program)
 
 /-! ## Lists on bytes -/
 
-/-- `List.take n` (`take.c231`): at most `19·n + 6`, whatever the list. -/
-theorem takeN_cost (hP : Includes P Auto.List.take.c231.costDeps) {α : Type} [Enc α] :
-    ∀ (n : ℕ) (xs : List α), n < 2 ^ 64 →
-      machineCost P Auto.List.take.c231.costIdx [enc n, enc xs] ≤ 19 * n + 6 := by
-  intro n
-  induction n with
-  | zero => intro xs _; rw [Auto.List.take.c231.costEq P hP]; simp [limbs_of_lt]
-  | succ k ih =>
-    intro xs hk
-    rw [Auto.List.take.c231.costEq P hP, limbs_of_lt hk]
-    cases xs with
-    | nil => dsimp only; omega
-    | cons x xs => have := ih xs (by omega); dsimp only; omega
-
-/-- `List.drop n` (`drop.c232`): at most `15·n + 6`, whatever the list. -/
-theorem dropN_cost (hP : Includes P Auto.List.drop.c232.costDeps) {α : Type} [Enc α] :
-    ∀ (n : ℕ) (xs : List α), n < 2 ^ 64 →
-      machineCost P Auto.List.drop.c232.costIdx [enc n, enc xs] ≤ 15 * n + 6 := by
-  intro n
-  induction n with
-  | zero => intro xs _; rw [Auto.List.drop.c232.costEq P hP]; simp [limbs_of_lt]
-  | succ k ih =>
-    intro xs hk
-    rw [Auto.List.drop.c232.costEq P hP, limbs_of_lt hk]
-    cases xs with
-    | nil => dsimp only; omega
-    | cons x xs => have := ih xs (by omega); dsimp only; omega
-
-/-- `List.foldr` (`foldr.c86`), the closure's price bounded on the suffixes: `9` per element and
-the closure's price, `3` at the end. -/
-theorem foldrSuffix_cost (hP : Includes P Auto.List.foldr.c86.costDeps) {α β : Type} [Enc α]
-    [Enc β] (f : α → β → β) (fVal : Val)
-    (hf : ∀ a b, RunsApp P fVal [enc a, enc b] (enc (f a b))) (B : ℕ) (init : β) :
-    ∀ l : List α, (∀ x tl, x :: tl <:+ l → appCost P fVal [enc x, enc (tl.foldr f init)] ≤ B) →
-      machineCost P Auto.List.foldr.c86.costIdx [fVal, enc init, enc l] ≤ (B + 9) * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => intro _; rw [Auto.List.foldr.c86.costEq_nil P hP f fVal hf]; omega
-  | cons x l ih =>
-    intro hB
-    rw [Auto.List.foldr.c86.costEq_cons P hP f fVal hf]
-    have h1 := ih fun y tl h ↦ hB y tl (h.trans (List.suffix_cons x l))
-    have h2 := hB x l List.suffix_rfl
-    simp only [List.length_cons]
-    nlinarith
-
 theorem foldr_bytes_lt' (l : List UInt8) :
     l.foldr (fun x acc ↦ x.toNat + 256 * acc) 0 < 256 ^ l.length := by
   induction l with
@@ -118,7 +72,7 @@ theorem bytesWordC_cost (hP : Includes P Auto.LeanVM.Extraction.bytesWord.c512.c
     (b : List UInt8) :
     machineCost P Auto.LeanVM.Extraction.bytesWord.c512.costIdx [enc b] ≤ 310 := by
   rw [Auto.LeanVM.Extraction.bytesWord.c512.costEq P hP]
-  have ht := takeN_cost P (by includes) 8 b (by norm_num)
+  have ht := take_cost P (by includes) 8 b (by norm_num)
   have hl : (b.take 8).length ≤ 8 := List.length_take_le _ _
   have hf := foldrSuffix_cost P (by includes) _
     (.fn Auto.LeanVM.Extraction.bytesWord.c512.lam0.costIdx [])
@@ -147,7 +101,7 @@ theorem bytesLanesC_cost (hP : Includes P Auto.LeanVM.Extraction.bytesLanes.c511
     rw [Auto.LeanVM.Extraction.bytesLanes.c511.costEq P hP, limbs_of_lt hk]
     have := ih (b.drop 8) (by omega)
     have := bytesWordC_cost P (by includes) b
-    have := dropN_cost P (by includes) 8 b (by norm_num)
+    have := drop_cost P (by includes) 8 b (by norm_num)
     dsimp only
     omega
 
@@ -194,7 +148,7 @@ theorem bytesDigestC_cost (hP : Includes P Auto.LeanVM.Extraction.bytesDigest.c5
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [Auto.LeanVM.Extraction.bytesDigest.c514.lam0.costEq P (by includes)]
       have := bytesLanesC_cost P (by includes) 4 b (by norm_num)
-      have := getD_cost P (by includes) (LeanVM.Extraction.bytesLanes 4 b) i (by omega) 0
+      have := getD_cost P (by includes) (LeanVM.Extraction.bytesLanes 4 b) i 0 (by omega)
       rw [bytesLanes_length] at this
       omega) 0 (by norm_num)
   rw [ofFnFrom_length]
@@ -216,7 +170,7 @@ theorem subtreeLeavesWithC_cost
   have hleaf := leafOfWithC_cost P (by includes) pre preVal hpre L hL w hw
   have hrep := replicate_cost P (by includes) (0 : K) w (by omega)
   have hdig := fun (b : List UInt8) ↦ bytesDigestC_cost P (by includes) b
-  have hd32 := fun (b : List UInt8) ↦ dropN_cost P (by includes) 32 b (by norm_num)
+  have hd32 := fun (b : List UInt8) ↦ drop_cost P (by includes) 32 b (by norm_num)
   apply le_of_doubling (fun (h : ℕ) (d : LeanVM.Protocol.Digest) ↦
     machineCost P Auto.LeanVM.Extraction.Fast.subtreeLeavesWith.c508.costIdx
       [preVal, enc w, enc h, enc d])

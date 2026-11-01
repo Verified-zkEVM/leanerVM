@@ -79,10 +79,10 @@ theorem decoderPassC_cost (hP : Includes P gsPass.c253.costDeps) {k n A m : ℕ}
   have hm1 : m * (n - (n - A)) < 2 ^ 52 := by rw [show n - (n - A) = A by omega]; exact hmA
   have hl := fun x (h : x < 2 ^ 64) ↦ limbs_of_lt h
   simp (disch := omega) only [hl]
-  have h1 := Decoder.limbs_le_two (n := gsNumConstraints n m) (by unfold gsNumConstraints; omega)
-  have h2 := Decoder.limbs_le_two (n := gsNumVars k (m * A - 1)) (by omega)
-  have h3 := Decoder.limbs_le_two
-    (n := ((m * A - 1) / (k - 1) + 1) * (2 * (m * A - 1) + 2 - (k - 1) * ((m * A - 1) / (k - 1))))
+  have h1 := limbs_le_two (x := gsNumConstraints n m) (by unfold gsNumConstraints; omega)
+  have h2 := limbs_le_two (x := gsNumVars k (m * A - 1)) (by omega)
+  have h3 := limbs_le_two
+    (x := ((m * A - 1) / (k - 1) + 1) * (2 * (m * A - 1) + 2 - (k - 1) * ((m * A - 1) / (k - 1))))
     (by omega)
   simp only [Nat.max_self, Nat.mul_one]
   split_ifs <;> omega
@@ -161,13 +161,13 @@ theorem gsLaneDistinctC_cost (hP : Includes P gsLaneDistinct.c249.costDeps) (κ 
   rw [lanePointsS.c257.costEq P (by includes) _ S SVal hS]
   have hf := fun v ↦ RunsApp.of_spec (us := [enc (2 ^ (κ + R)), SVal, enc u]) (vs := [enc v])
     (lanePointsS.c257.lam0.costSpec P (by includes) (2 ^ (κ + R)) S SVal hS u v)
-  have h3 := ofFnFromC_cost P (by includes) (n := 2 ^ (κ + R)) (by omega) _
+  have h3 := ofFnFrom_cost P (by includes) (n := 2 ^ (κ + R)) (by omega) _
     (.fn lanePointsS.c257.lam0.costIdx [enc (2 ^ (κ + R)), SVal, enc u]) hf (BS + 9)
     (fun v ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [lanePointsS.c257.lam0.costEq P (by includes) _ S SVal hS]
       have := hBS u v
-      omega) (2 ^ (κ + R)) 0 (by simp) (Nat.zero_le _)
+      omega) 0 (Nat.zero_le _)
   -- the run
   have hd := lanePointsS_distinct (by omega : κ + R ≤ 64) S u
   have h4 := gsRunDistinctNFC_cost P (by includes) (lanePointsS (2 ^ (κ + R)) S u)

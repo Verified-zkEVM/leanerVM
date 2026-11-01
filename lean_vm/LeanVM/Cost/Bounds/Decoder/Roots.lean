@@ -46,13 +46,6 @@ public section
 
 variable (P : Program)
 
-theorem limbs_le_two {n : ℕ} (h : n < 2 ^ 128) : limbs n ≤ 2 := by
-  unfold limbs
-  rcases Nat.eq_zero_or_pos n with rfl | hn
-  · simp
-  · have := (Nat.log2_lt (by omega)).2 h
-    omega
-
 theorem size_zero_raw : (0 : CPolynomial.Raw K).size = 0 := rfl
 
 theorem toList_zero_raw : (0 : CPolynomial.Raw K).toList = [] := rfl
@@ -112,12 +105,12 @@ theorem subScaledShiftC_cost (hP : Includes P subScaledShift.c149.costDeps)
   rw [subScaledShift.c149.costEq P hP]
   have hf := fun j ↦ RunsApp.of_spec (us := [enc p, enc q, enc scale, enc shift]) (vs := [enc j])
     (subScaledShift.c149.lam0.costSpec P (by includes) p q scale shift j)
-  have := ofFnFromC_cost P (by includes) (n := p.size) (by omega) _
+  have := ofFnFrom_cost P (by includes) (n := p.size) (by omega) _
     (.fn subScaledShift.c149.lam0.costIdx [enc p, enc q, enc scale, enc shift]) hf 284
     (fun j ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       exact subScaledShiftLamC_cost P (by includes) p q scale shift j (by omega) hq hs)
-    p.size 0 (by omega) (by omega)
+    0 (by omega)
   generalize hA : (CPolynomial.Raw.mk (Array.ofFn fun j : Fin p.size ↦
     p.coeff ↑j - (if shift ≤ ↑j ∧ ↑j - shift < q.size then scale * q.coeff (↑j - shift) else 0)))
       = A at *
@@ -237,9 +230,9 @@ theorem powModBinaryAuxC_cost (hP : Includes P powModBinaryAuxWith.c155.costDeps
         rw [powModBinaryAuxWith.c155.costEq_succ P hP]
         have := mulModWithC_cost P (by includes) hB u acc c huB hacc hc
         have := mulModWithC_cost P (by includes) hB u c c huB hc hc
-        have := limbs_le_two (n := k + 1) (by omega)
-        have := limbs_le_two (n := k) (by omega)
-        have := limbs_le_two (n := (k + 1) % 2) (by omega)
+        have := limbs_le_two (x := k + 1) (by omega)
+        have := limbs_le_two (x := k) (by omega)
+        have := limbs_le_two (x := (k + 1) % 2) (by omega)
         split_ifs <;> omega)
   exact key (n, acc, c) ⟨hacc, hc, hn⟩
 
@@ -460,7 +453,7 @@ theorem rootProductFastC_cost (hP : Includes P rootProductFast.c142.costDeps) {B
   have hq : LeanVM.Extraction.traceCtx.q = 2 ^ 64 := rfl
   have h64 : (1 <<< 64 : ℕ) = 2 ^ 64 := rfl
   rw [hq, h64]
-  have := limbs_le_two (n := 2 ^ 64) (by norm_num)
+  have := limbs_le_two (x := 2 ^ 64) (by norm_num)
   simp only [Array.length_toList, size_zero_raw] at *
   generalize hR : (if (p.val.trim == 0) = true then (0 : CPolynomial.Raw K) else
     rawGcdMonicFast p.val.monicNormalize (CPolynomial.Raw.xPowSubXModWith
@@ -977,7 +970,7 @@ theorem splitCandidatesFastC_cost (hP : Includes P splitCandidatesFast.c161.cost
     -- the basis
     have hl1 := fun i ↦ RunsApp.of_spec (us := []) (vs := [enc i])
       (splitCandidatesFast.c161.lam1.costSpec P (by includes) i)
-    have hob := ofFnFromC_cost P (by includes) (n := 64) (by norm_num) _
+    have hob := ofFnFrom_cost P (by includes) (n := 64) (by norm_num) _
       (.fn splitCandidatesFast.c161.lam1.costIdx []) hl1 6 (fun i ↦ by
         simp only [appCost_fn, List.nil_append]
         rw [splitCandidatesFast.c161.lam1.costEq P (by includes)]
@@ -985,7 +978,7 @@ theorem splitCandidatesFastC_cost (hP : Includes P splitCandidatesFast.c161.cost
         have : (1 <<< (i : ℕ) : ℕ) < 2 ^ 64 := by
           rw [Nat.one_shiftLeft]; exact Nat.pow_lt_pow_right (by norm_num) hi
         cost_simp
-        omega) 64 0 (by norm_num) (by norm_num)
+        omega) 0 (by norm_num)
     -- the stages
     set m := CPolynomial.monicNormalize p with hm
     have hP0 : m.toPoly ≠ 0 := toPoly_ne_zero hm0
@@ -1043,40 +1036,6 @@ theorem splitCandidatesFastC_cost (hP : Includes P splitCandidatesFast.c161.cost
 
 
 /-! ## The roots read off the linear factors -/
-
-/-- `List.filterMap` (`filterMap.c131`): `13` per element and the closure's price, `3`. -/
-theorem filterMapC_cost (hP : Includes P Auto.List.filterMap.c131.costDeps) {α β : Type} [Enc α]
-    [Enc β] (f : α → Option β) (fVal : Val) (hf : ∀ a, RunsApp P fVal [enc a] (enc (f a)))
-    (B : ℕ) : ∀ l : List α, (∀ a ∈ l, appCost P fVal [enc a] ≤ B) →
-      machineCost P Auto.List.filterMap.c131.costIdx [fVal, enc l] ≤ (B + 13) * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => intro _; rw [Auto.List.filterMap.c131.costEq_nil P hP f fVal hf]; omega
-  | cons a l ih =>
-    intro hB
-    rw [Auto.List.filterMap.c131.costEq_cons P hP f fVal hf]
-    have h1 := ih fun a' ha ↦ hB a' (by simp [ha])
-    have h2 := hB a (by simp)
-    simp only [List.length_cons]
-    generalize f a = o
-    cases o <;> dsimp only <;> nlinarith
-
-/-- `List.filter` (`filter.c140`): `13` per element and the predicate's price, `3`. -/
-theorem filterC_cost (hP : Includes P Auto.List.filter.c140.costDeps) {α : Type} [Enc α]
-    (p : α → Bool) (pVal : Val) (hp : ∀ a, RunsApp P pVal [enc a] (enc (p a))) (B : ℕ) :
-    ∀ l : List α, (∀ a ∈ l, appCost P pVal [enc a] ≤ B) →
-      machineCost P Auto.List.filter.c140.costIdx [pVal, enc l] ≤ (B + 13) * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => intro _; rw [Auto.List.filter.c140.costEq_nil P hP p pVal hp]; omega
-  | cons a l ih =>
-    intro hB
-    rw [Auto.List.filter.c140.costEq_cons P hP p pVal hp]
-    have h1 := ih fun a' ha ↦ hB a' (by simp [ha])
-    have h2 := hB a (by simp)
-    simp only [List.length_cons]
-    generalize p a = b
-    cases b <;> dsimp only <;> nlinarith
 
 /-- `List.any` (`any.c137`): `9` per element and the predicate's price, `3`. -/
 theorem anyC_cost (hP : Includes P Auto.List.any.c137.costDeps) {α : Type} [Enc α]
@@ -1149,7 +1108,7 @@ theorem rootsFromLinearFactorsC_cost
   rw [Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c130.costEq P hP]
   have hf := fun f ↦ RunsApp.of_spec (us := []) (vs := [enc f])
     (Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c130.lam0.costSpec P (by includes) f)
-  have h1 := filterMapC_cost P (by includes) _
+  have h1 := filterMap_cost P (by includes) _
     (.fn Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c130.lam0.costIdx []) hf 19992
     factors.toList (fun f hfm ↦ by
       simp only [appCost_fn, List.nil_append]
@@ -1162,7 +1121,7 @@ theorem rootsFromLinearFactorsC_cost
   rw [Auto.CompPoly.CPolynomial.validateRootCandidates.c139.costEq P (by includes)]
   have hv := fun a ↦ RunsApp.of_spec (us := [enc p]) (vs := [enc a])
     (Auto.CompPoly.CPolynomial.validateRootCandidates.c139.lam0.costSpec P (by includes) p a)
-  have h2 := filterC_cost P (by includes) _
+  have h2 := filter_cost P (by includes) _
     (.fn Auto.CompPoly.CPolynomial.validateRootCandidates.c139.lam0.costIdx [enc p]) hv
     (272 * B + 21) cands.toArray.toList (fun a _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]

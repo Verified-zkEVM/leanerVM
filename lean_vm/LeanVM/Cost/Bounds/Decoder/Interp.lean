@@ -110,32 +110,16 @@ theorem natCastC_cost (hP : Includes P Auto.BF64.natCast.c90.costDeps) (n : ℕ)
   cost_simp
   split_ifs <;> omega
 
-/-- `List.foldr` (polymorphic): `9` per element and the closure's price, `3`. -/
-theorem foldrC_cost {α β : Type} [Enc α] [Enc β] (hP : Includes P Auto.List.foldr.c86.costDeps)
-    (f : α → β → β) (fVal : Val) (hf : ∀ a b, RunsApp P fVal [enc a, enc b] (enc (f a b)))
-    (B : ℕ) (hB : ∀ (a : α) (b : β), appCost P fVal [enc a, enc b] ≤ B) (init : β) :
-    ∀ l : List α, machineCost P Auto.List.foldr.c86.costIdx [fVal, enc init, enc l] ≤
-      (B + 9) * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => rw [Auto.List.foldr.c86.costEq_nil P hP f fVal hf]; omega
-  | cons a l ih =>
-    rw [Auto.List.foldr.c86.costEq_cons P hP f fVal hf]
-    have := hB a (List.foldr f init l)
-    simp only [List.length_cons]
-    nlinarith
-
 /-- **Horner's evaluation** (`evalHorner`): at most `272·|p| + 16`. -/
 theorem evalHornerC_cost (hP : Includes P evalHorner.c83.costDeps) (x : K) (p : CPolynomial K) :
     machineCost P evalHorner.c83.costIdx [enc x, enc p] ≤ 272 * p.val.size + 16 := by
   rw [evalHorner.c83.costEq P hP, eval₂Horner.c84.costEq P (by includes),
     Raw.eval₂Horner.c85.costEq P (by includes)]
-  have := foldrC_cost P (by includes) _ (.fn Raw.eval₂Horner.c85.lam0.costIdx [enc x])
+  have := foldr_cost P (by includes) _ (.fn Raw.eval₂Horner.c85.lam0.costIdx [enc x])
     (fun a acc ↦ RunsApp.of_spec (us := [enc x]) (vs := [enc a, enc acc])
-      (Raw.eval₂Horner.c85.lam0.costSpec P (by includes) x a acc)) 260
-    (fun a acc ↦ by
+      (Raw.eval₂Horner.c85.lam0.costSpec P (by includes) x a acc)) 260 (0 : K) p.val.toList
+    (fun a _ acc ↦ by
       rw [appCost_fn, List.singleton_append, Raw.eval₂Horner.c85.lam0.costEq P (by includes)])
-    (0 : K) p.val.toList
   simp only [Array.length_toList] at this
   omega
 
@@ -165,7 +149,7 @@ theorem derivativeC_cost (hP : Includes P derivative.c88.costDeps) (p : CPolynom
     machineCost P derivative.c88.costIdx [enc p] ≤ 330 * p.val.size + 35 := by
   rw [derivative.c88.costEq P hP]
   have hsz : (Array.extract p.val 1).size ≤ p.val.size := by simp
-  have := zipIdxC_cost P (by includes) (Array.extract p.val 1).toList 0 (by simp; omega)
+  have := zipIdx_cost P (by includes) (Array.extract p.val 1).toList 0 (by simp; omega)
   have hf := fun q ↦ RunsApp.of_spec (us := []) (vs := [enc q])
     (derivative.c88.lam0.costSpec P (by includes) q)
   have hm := listMap_le P Auto.List.map.c12.costIdx (.fn derivative.c88.lam0.costIdx [])
@@ -202,7 +186,7 @@ theorem divByLinearFactorC_cost (hP : Includes P divByLinearFactor.c93.costDeps)
     machineCost P divByLinearFactor.c93.costIdx [enc p, enc x] ≤ 341 * p.val.size + 60 := by
   rw [divByLinearFactor.c93.costEq P hP]
   have := rangeLoop_cost P (by includes) (p.val.size - 1) [] (by omega)
-  have := reverseAuxNat_cost P (by includes) (List.range (p.val.size - 1)) []
+  have := reverseAux_cost P (by includes) (List.range (p.val.size - 1)) []
   have hf := listFoldl_le P (by includes) _ (.fn divByLinearFactor.c93.lam0.costIdx [enc p, enc x])
     (fun st j ↦ RunsApp.of_spec (us := [enc p, enc x]) (vs := [enc st, enc j])
       (divByLinearFactor.c93.lam0.costSpec P (by includes) p x st j))
