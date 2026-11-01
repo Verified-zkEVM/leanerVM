@@ -17,6 +17,8 @@ cost_compile listZipWith measure fun _ _ _ _ as _ ↦ as.length := @List.zipWith
 
 cost_measure Rewrite.ofFnFrom := fun _ n _ i ↦ n - i
 
+cost_measure Rewrite.finRangeFrom := fun n i ↦ n - i
+
 cost_measure Rewrite.powSq := fun _ _ _ n ↦ n
 
 cost_measure List.merge := fun _ xs ys _ ↦ xs.length + ys.length

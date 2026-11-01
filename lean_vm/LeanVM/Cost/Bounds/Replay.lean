@@ -1,0 +1,1385 @@
+module
+
+public import LeanVM.Cost.Bounds.Basic
+public import LeanVM.Cost.Extractor.Replay
+import all Statement.LeanVmVerifier
+import all Statement.Field
+import all LeanVM.Protocol.Extraction.Fast.AfterRoot
+
+/-!
+# Bounds: the verifier's replay up to the stack's root
+
+`afterRootLite bytecode π` (`Cost/Extractor/Replay.lean`) reads eight scalars, builds the
+layout's fields the extractor reads (`163` columns: their log-sizes, their placements on the
+stack, sorted by size) and reads the stack's root at the ladder's first level. Its price depends on
+the proof only through those ten scalars, and on the bytecode only through its length:
+
+* **`afterRootLite_cost`**: at most `9·|bytecode| + 1004514000` (`≈ 2^29.9` plus `9` per bytecode
+  word), for a bytecode of fewer than `2^63` words;
+* `readSizesLite_cost`: `9·|bytecode| + 1004510000`; `buildLayoutLite_cost`:
+  `9·|bytecode| + 1004500000`; `placementsOf_cost`: `1004000000` for at most `200` columns of
+  log-size at most `40` (`stackOffsets_cost`: `10^9`, its quadratic merge sort of the blocks
+  dominating, each comparison reading the sizes by `getD`); `commitStackPure_cost`:
+  `9·|roots| + 3903` (`ladder_cost`: `3500`; `commitPure_cost`: `9·|roots| + 380`);
+  `readPure_cost`: `192` per scalar; `absorbPure_cost`: `140`; `keccakSlot_cost`: `3000`;
+  `log2Strict_cost`: `870`; `bitLength_cost`: `840`.
+* The list functions, on word-sized lengths (`W = 2^64`): `Replay.length_cost`,
+  `Replay.rangeLoop_cost`, `Replay.getD_cost`, `Replay.filter_cost`, `Replay.map_cost`, `elem_cost`,
+  `take_cost`, `drop_cost`, `set_cost`, `zipIdx_cost`, `findIdxGo_cost`, `findIdxOptGo_cost`,
+  `replicate_cost'`, `Replay.append_cost`, `Replay.flatten_cost`, `all_cost`,
+  `Replay.reverseAux_cost`, `mergeList_cost`, `mergeSortList_cost`
+  (quadratic, `(B + 147)·n² + 5`); `listFoldl_le'` (a fold with an invariant of the accumulator
+  and the elements left). The `Replay.` prefix marks a function `Bounds/Transcript.lean` or
+  `Bounds/FastPath.lean` also bounds, in another form, so that the files import together.
+
+The functions compiled on demand are named by the program's indices (`Auto.List.length.c229`,
+…): when the chain of compiled modules before `Cost/Extractor/Replay.lean` changes, those names
+change, and this file's references with them (a renaming, the proofs unchanged).
+-/
+
+namespace LeanVM.Cost.Bounds
+
+open LeanVM.Cost LeanVM.Cost.Extractor LeanVM.Cost.Library LeanVM.Parameters
+open LeanVM.Extraction LeanVM.Extraction.Fast
+
+public section
+
+variable (P : Program)
+
+/-! ## Lists -/
+
+section Lists
+
+variable {α : Type} [Enc α]
+
+theorem Replay.length_cost (hP : Includes P Auto.List.length.c229.costDeps) :
+    ∀ l : List α, l.length < 2 ^ 64 →
+      machineCost P Auto.List.length.c229.costIdx [enc l] ≤ 9 * l.length + 3
+  | [], _ => by rw [Auto.List.length.c229.costEq_nil P hP]; omega
+  | x :: l, h => by
+    rw [Auto.List.length.c229.costEq_cons P hP, limbs_of_lt (by simp at h; omega)]
+    have := Replay.length_cost hP l (by simp at h; omega)
+    simp only [List.length_cons]
+    omega
+
+theorem Replay.rangeLoop_cost (hP : Includes P Auto.List.range.loop.c20.costDeps) :
+    ∀ (n : ℕ) (acc : List ℕ), n < 2 ^ 64 →
+      machineCost P Auto.List.range.loop.c20.costIdx [enc n, enc acc] ≤ 17 * n + 6
+  | 0, acc, _ => by rw [Auto.List.range.loop.c20.costEq_zero P hP]
+  | n + 1, acc, h => by
+    rw [Auto.List.range.loop.c20.costEq_succ P hP, limbs_of_lt h]
+    have := Replay.rangeLoop_cost hP n (n :: acc) (by omega)
+    omega
+
+theorem Replay.getInternal_cost (hP : Includes P Auto.List.get?Internal.c275.costDeps) :
+    ∀ (l : List α) (i : ℕ), i < 2 ^ 64 →
+      machineCost P Auto.List.get?Internal.c275.costIdx [enc l, enc i] ≤ 15 * l.length + 10
+  | [], i, _ => by rw [Auto.List.get?Internal.c275.costEq_nil P hP]; omega
+  | x :: l, 0, _ => by rw [Auto.List.get?Internal.c275.costEq_cons P hP]; simp
+  | x :: l, i + 1, h => by
+    rw [Auto.List.get?Internal.c275.costEq_cons P hP, limbs_of_lt h]
+    have := Replay.getInternal_cost hP l i (by omega)
+    simp only [List.length_cons]
+    omega
+
+theorem Replay.getD_cost (hP : Includes P Auto.List.getD.c274.costDeps) (l : List α) (i : ℕ) (d : α)
+    (hi : i < 2 ^ 64) :
+    machineCost P Auto.List.getD.c274.costIdx [enc l, enc i, enc d] ≤ 15 * l.length + 15 := by
+  rw [Auto.List.getD.c274.costEq P hP]
+  have := Replay.getInternal_cost P (by includes) l i hi
+  cases l[i]? <;> simp <;> omega
+
+theorem Replay.filter_cost (hP : Includes P Auto.List.filter.c140.costDeps) (p : α → Bool) (pVal : Val)
+    (hp : ∀ a, RunsApp P pVal [enc a] (enc (p a))) (B : ℕ) :
+    ∀ l : List α, (∀ a ∈ l, appCost P pVal [enc a] ≤ B) →
+      machineCost P Auto.List.filter.c140.costIdx [pVal, enc l] ≤ (B + 13) * l.length + 3
+  | [], _ => by rw [Auto.List.filter.c140.costEq_nil P hP p pVal hp]; omega
+  | x :: l, hB => by
+    rw [Auto.List.filter.c140.costEq_cons P hP p pVal hp]
+    have h1 := Replay.filter_cost hP p pVal hp B l fun a ha ↦ hB a (by simp [ha])
+    have h2 := hB x (by simp)
+    simp only [List.length_cons]
+    cases p x <;> simp <;> nlinarith
+
+theorem elem_cost (hP : Includes P Auto.List.elem.c468.costDeps) (a : ℕ) (ha : a < 2 ^ 64) :
+    ∀ l : List ℕ, (∀ b ∈ l, b < 2 ^ 64) →
+      machineCost P Auto.List.elem.c468.costIdx [enc a, enc l] ≤ 10 * l.length + 3
+  | [], _ => by rw [Auto.List.elem.c468.costEq_nil P hP]; omega
+  | b :: l, hb => by
+    rw [Auto.List.elem.c468.costEq_cons P hP, limbs_of_lt ha, limbs_of_lt (hb b (by simp))]
+    have := elem_cost hP a ha l fun c hc ↦ hb c (by simp [hc])
+    simp only [List.length_cons]
+    cases a == b <;> dsimp only <;> omega
+
+theorem take_cost (hP : Includes P Auto.List.take.c231.costDeps) :
+    ∀ (n : ℕ) (l : List α), n < 2 ^ 64 →
+      machineCost P Auto.List.take.c231.costIdx [enc n, enc l] ≤ 19 * l.length + 13
+  | 0, l, _ => by rw [Auto.List.take.c231.costEq_zero P hP]; omega
+  | n + 1, [], h => by rw [Auto.List.take.c231.costEq_succ P hP, limbs_of_lt h]; simp
+  | n + 1, x :: l, h => by
+    rw [Auto.List.take.c231.costEq_succ P hP, limbs_of_lt h]
+    have := take_cost hP n l (by omega)
+    simp only [List.length_cons]
+    omega
+
+theorem drop_cost (hP : Includes P Auto.List.drop.c232.costDeps) :
+    ∀ (n : ℕ) (l : List α), n < 2 ^ 64 →
+      machineCost P Auto.List.drop.c232.costIdx [enc n, enc l] ≤ 15 * l.length + 13
+  | 0, l, _ => by rw [Auto.List.drop.c232.costEq_zero P hP]; omega
+  | n + 1, [], h => by rw [Auto.List.drop.c232.costEq_succ P hP, limbs_of_lt h]; simp
+  | n + 1, x :: l, h => by
+    rw [Auto.List.drop.c232.costEq_succ P hP, limbs_of_lt h]
+    have := drop_cost hP n l (by omega)
+    simp only [List.length_cons]
+    omega
+
+theorem set_cost (hP : Includes P Auto.List.set.c465.costDeps) (a : α) :
+    ∀ (l : List α) (n : ℕ), n < 2 ^ 64 →
+      machineCost P Auto.List.set.c465.costIdx [enc l, enc n, enc a] ≤ 20 * l.length + 3
+  | [], n, _ => by rw [Auto.List.set.c465.costEq_nil P hP]; omega
+  | x :: l, 0, _ => by
+    rw [Auto.List.set.c465.costEq_cons P hP]
+    simp only [limbs_zero, List.length_cons, Nat.rec_zero]
+    omega
+  | x :: l, n + 1, h => by
+    rw [Auto.List.set.c465.costEq_cons P hP, limbs_of_lt h]
+    have := set_cost hP a l n (by omega)
+    simp only [List.length_cons]
+    omega
+
+theorem zipIdx_cost (hP : Includes P Auto.List.zipIdx.c61.costDeps) :
+    ∀ (l : List α) (n : ℕ), n + l.length < 2 ^ 64 →
+      machineCost P Auto.List.zipIdx.c61.costIdx [enc l, enc n] ≤ 16 * l.length + 3
+  | [], n, _ => by rw [Auto.List.zipIdx.c61.costEq_nil P hP n]; omega
+  | x :: l, n, h => by
+    rw [Auto.List.zipIdx.c61.costEq_cons P hP x l n, limbs_of_lt (by simp at h; omega)]
+    have := zipIdx_cost hP l (n + 1) (by simp at h; omega)
+    simp only [List.length_cons]
+    omega
+
+theorem findIdxGo_cost (hP : Includes P Auto.List.findIdx.go.c472.costDeps) (p : α → Bool)
+    (pVal : Val) (hp : ∀ a, RunsApp P pVal [enc a] (enc (p a))) (B : ℕ) :
+    ∀ (l : List α) (n : ℕ), n + l.length < 2 ^ 64 → (∀ a ∈ l, appCost P pVal [enc a] ≤ B) →
+      machineCost P Auto.List.findIdx.go.c472.costIdx [pVal, enc l, enc n] ≤
+        (B + 13) * l.length + 3
+  | [], n, _, _ => by rw [Auto.List.findIdx.go.c472.costEq_nil P hP p pVal hp]; omega
+  | x :: l, n, h, hB => by
+    rw [Auto.List.findIdx.go.c472.costEq_cons P hP p pVal hp, limbs_of_lt (by simp at h; omega)]
+    have h1 := findIdxGo_cost hP p pVal hp B l (n + 1) (by simp at h; omega)
+      fun a ha ↦ hB a (by simp [ha])
+    have h2 := hB x (by simp)
+    simp only [List.length_cons]
+    split <;> nlinarith
+
+theorem findIdxOptGo_cost (hP : Includes P Auto.List.findIdx?.go.c460.costDeps) (p : α → Bool)
+    (pVal : Val) (hp : ∀ a, RunsApp P pVal [enc a] (enc (p a))) (B : ℕ) :
+    ∀ (l : List α) (n : ℕ), n + l.length < 2 ^ 64 → (∀ a ∈ l, appCost P pVal [enc a] ≤ B) →
+      machineCost P Auto.List.findIdx?.go.c460.costIdx [pVal, enc l, enc n] ≤
+        (B + 13) * l.length + 3
+  | [], n, _, _ => by rw [Auto.List.findIdx?.go.c460.costEq_nil P hP p pVal hp]; omega
+  | x :: l, n, h, hB => by
+    rw [Auto.List.findIdx?.go.c460.costEq_cons P hP p pVal hp, limbs_of_lt (by simp at h; omega)]
+    have h1 := findIdxOptGo_cost hP p pVal hp B l (n + 1) (by simp at h; omega)
+      fun a ha ↦ hB a (by simp [ha])
+    have h2 := hB x (by simp)
+    simp only [List.length_cons]
+    split <;> nlinarith
+
+theorem replicate_cost' (hP : Includes P Auto.List.replicate.c346.costDeps) (a : α) :
+    ∀ n, n < 2 ^ 64 → machineCost P Auto.List.replicate.c346.costIdx [enc n, enc a] ≤ 17 * n + 6
+  | 0, _ => by rw [Auto.List.replicate.c346.costEq_zero P hP]
+  | n + 1, h => by
+    rw [Auto.List.replicate.c346.costEq_succ P hP, limbs_of_lt h]
+    have := replicate_cost' hP a n (by omega)
+    omega
+
+theorem Replay.append_cost (hP : Includes P Auto.List.append.c264.costDeps) (ys : List α) :
+    ∀ xs : List α, machineCost P Auto.List.append.c264.costIdx [enc xs, enc ys] ≤ 9 * xs.length + 3
+  | [] => by rw [Auto.List.append.c264.costEq_nil P hP]; omega
+  | x :: xs => by
+    rw [Auto.List.append.c264.costEq_cons P hP]
+    have := Replay.append_cost hP ys xs
+    simp only [List.length_cons]
+    omega
+
+theorem Replay.flatten_cost (hP : Includes P Auto.List.flatten.c263.costDeps) :
+    ∀ xss : List (List α),
+      machineCost P Auto.List.flatten.c263.costIdx [enc xss] ≤ 9 * xss.flatten.length + 18 * xss.length + 3
+  | [] => by rw [Auto.List.flatten.c263.costEq_nil P hP]; omega
+  | xs :: xss => by
+    rw [Auto.List.flatten.c263.costEq_cons P hP]
+    have h1 := Replay.flatten_cost hP xss
+    have h2 := Replay.append_cost P (by includes) xss.flatten xs
+    simp only [List.flatten_cons, List.length_append, List.length_cons]
+    omega
+
+theorem all_cost (hP : Includes P Auto.List.all.c240.costDeps) (p : α → Bool) (pVal : Val)
+    (hp : ∀ a, RunsApp P pVal [enc a] (enc (p a))) (B : ℕ) :
+    ∀ l : List α, (∀ a ∈ l, appCost P pVal [enc a] ≤ B) →
+      machineCost P Auto.List.all.c240.costIdx [enc l, pVal] ≤ (B + 9) * l.length + 3
+  | [], _ => by rw [Auto.List.all.c240.costEq_nil P hP p pVal hp]; omega
+  | x :: l, hB => by
+    rw [Auto.List.all.c240.costEq_cons P hP x l p pVal hp]
+    have h1 := all_cost hP p pVal hp B l fun a ha ↦ hB a (by simp [ha])
+    have h2 := hB x (by simp)
+    simp only [List.length_cons]
+    split <;> nlinarith
+
+theorem Replay.reverseAux_cost (hP : Includes P Auto.List.reverseAux.c23.costDeps) :
+    ∀ (xs acc : List α), machineCost P Auto.List.reverseAux.c23.costIdx [enc xs, enc acc] ≤
+      9 * xs.length + 3
+  | [], acc => by rw [Auto.List.reverseAux.c23.costEq_nil P hP]; omega
+  | x :: xs, acc => by
+    rw [Auto.List.reverseAux.c23.costEq_cons P hP]
+    have := Replay.reverseAux_cost hP xs (x :: acc)
+    simp only [List.length_cons]
+    omega
+
+/-! ## Merge sort -/
+
+theorem mergeList_cost (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeList.c230.costDeps)
+    (le : α → α → Bool) (leVal : Val) (hle : ∀ a b, RunsApp P leVal [enc a, enc b] (enc (le a b)))
+    (B : ℕ) (S : List α) (hB : ∀ a ∈ S, ∀ b ∈ S, appCost P leVal [enc a, enc b] ≤ B) :
+    ∀ (n : ℕ) (xs ys : List α), xs.length + ys.length ≤ n → (∀ a ∈ xs, a ∈ S) →
+      (∀ b ∈ ys, b ∈ S) →
+      machineCost P Auto.LeanVM.Cost.InitLib.mergeList.c230.costIdx [enc xs, enc ys, leVal] ≤
+        (B + 21) * (xs.length + ys.length) + 5 := by
+  intro n
+  induction n with
+  | zero =>
+    intro xs ys hn _ _
+    cases xs with
+    | nil => rw [Auto.LeanVM.Cost.InitLib.mergeList.c230.costEq_nil P hP _ le leVal hle]; omega
+    | cons => simp at hn
+  | succ n ih =>
+    intro xs ys hn hxs hys
+    cases xs with
+    | nil => rw [Auto.LeanVM.Cost.InitLib.mergeList.c230.costEq_nil P hP _ le leVal hle]; omega
+    | cons x xs =>
+      rw [Auto.LeanVM.Cost.InitLib.mergeList.c230.costEq_cons P hP x xs ys le leVal hle]
+      cases ys with
+      | nil =>
+        dsimp only
+        simp only [List.length_cons, List.length_nil]
+        nlinarith
+      | cons y ys =>
+        have hxy := hB x (hxs x (by simp)) y (hys y (by simp))
+        simp only [List.length_cons] at hn ⊢
+        split
+        · have := ih xs (y :: ys) (by simp; omega) (fun a ha ↦ hxs a (by simp [ha])) hys
+          simp only [List.length_cons] at this
+          nlinarith
+        · have := ih (x :: xs) ys (by simp; omega) hxs (fun b hb ↦ hys b (by simp [hb]))
+          simp only [List.length_cons] at this
+          nlinarith
+
+omit [Enc α] in
+theorem length_mergeSortList (l : List α) (le : α → α → Bool) :
+    (InitLib.mergeSortList l le).length = l.length := by
+  rw [← InitLib.mergeSort_eq_mergeSortList, List.length_mergeSort]
+
+omit [Enc α] in
+theorem mem_mergeSortList {l : List α} {le : α → α → Bool} {a : α}
+    (h : a ∈ InitLib.mergeSortList l le) : a ∈ l := by
+  rw [← InitLib.mergeSort_eq_mergeSortList] at h
+  exact List.mem_mergeSort.1 h
+
+/-- The merge sort's recurrence closed: two halves `a + b = m` of quadratic price, and linear work. -/
+theorem quadratic_halves (B a b T1 T2 M X : ℕ) (ha : 1 ≤ a) (hb : 1 ≤ b)
+    (h1 : T1 ≤ (B + 147) * a ^ 2 + 5) (h2 : T2 ≤ (B + 147) * b ^ 2 + 5)
+    (hM : M ≤ (B + 21) * (a + b) + 5) (hX : X ≤ 43 * (a + b) + 75) :
+    T1 + T2 + M + X ≤ (B + 147) * (a + b) ^ 2 + 5 := by
+  have hab : a + b ≤ 2 * (a * b) := by nlinarith
+  have hsq : (B + 147) * (a + b) ^ 2 =
+      (B + 147) * a ^ 2 + (B + 147) * b ^ 2 + 2 * ((B + 147) * (a * b)) := by ring
+  have hK : (B + 147) * (a + b) ≤ 2 * ((B + 147) * (a * b)) := by
+    have := Nat.mul_le_mul_left (B + 147) hab
+    linarith
+  have hBm : (B + 21) * (a + b) + 43 * (a + b) + 85 ≤ (B + 147) * (a + b) := by nlinarith
+  omega
+
+/-- **Merge sort** (`mergeSortList`), quadratic: `(B + 147)·n² + 5`, `B` the comparison's price. -/
+theorem mergeSortList_cost
+    (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costDeps)
+    (le : α → α → Bool) (leVal : Val) (hle : ∀ a b, RunsApp P leVal [enc a, enc b] (enc (le a b)))
+    (B : ℕ) (S : List α) (hB : ∀ a ∈ S, ∀ b ∈ S, appCost P leVal [enc a, enc b] ≤ B) :
+    ∀ (n : ℕ) (l : List α), l.length ≤ n → l.length < 2 ^ 63 → (∀ a ∈ l, a ∈ S) →
+      machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costIdx [enc l, leVal] ≤
+        (B + 147) * l.length ^ 2 + 5 := by
+  intro n
+  induction n using Nat.strong_induction_on with
+  | _ n ih =>
+  intro l hn hw hS
+  rcases l with _ | ⟨x, _ | ⟨y, t⟩⟩
+  · rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costEq_nil P hP le leVal hle]; omega
+  · rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costEq_cons P hP x [] le leVal hle]
+    simp only [List.length_cons, List.length_nil]
+    nlinarith
+  · rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costEq_cons P hP x (y :: t) le leVal hle]
+    dsimp only
+    simp only [List.length_cons] at hn hw ⊢
+    have hw' : t.length + 2 + 1 < 2 ^ 64 := by omega
+    set h1 := (t.length + 2 + 1) / 2 with hh1
+    rw [limbs_of_lt (by omega : t.length < 2 ^ 64), limbs_of_lt (by omega : t.length + 2 < 2 ^ 64),
+      limbs_of_lt hw']
+    have hlen := Replay.length_cost P (by includes) t (by omega)
+    have htake := take_cost P (by includes) h1 (x :: y :: t) (by omega)
+    have hdrop := drop_cost P (by includes) h1 (x :: y :: t) (by omega)
+    have hlt : (List.take h1 (x :: y :: t)).length = h1 := by simp; omega
+    have hld : (List.drop h1 (x :: y :: t)).length = t.length + 2 - h1 := by simp
+    have hmemT : ∀ a ∈ List.take h1 (x :: y :: t), a ∈ S :=
+      fun a ha ↦ hS a (List.mem_of_mem_take ha)
+    have hmemD : ∀ a ∈ List.drop h1 (x :: y :: t), a ∈ S :=
+      fun a ha ↦ hS a (List.mem_of_mem_drop ha)
+    have ih1 := ih h1 (by omega) (List.take h1 (x :: y :: t)) (by omega) (by omega) hmemT
+    have ih2 := ih (t.length + 2 - h1) (by omega) (List.drop h1 (x :: y :: t)) (by omega)
+      (by omega) hmemD
+    have hmerge := mergeList_cost P (by includes) le leVal hle B S hB (h1 + (t.length + 2 - h1))
+      (InitLib.mergeSortList (List.take h1 (x :: y :: t)) le)
+      (InitLib.mergeSortList (List.drop h1 (x :: y :: t)) le)
+      (by simp only [length_mergeSortList]; omega)
+      (fun a ha ↦ hmemT a (mem_mergeSortList ha)) (fun a ha ↦ hmemD a (mem_mergeSortList ha))
+    simp only [length_mergeSortList, hlt, hld, List.length_cons] at ih1 ih2 hmerge htake hdrop
+    have hsum : h1 + (t.length + 2 - h1) = t.length + 2 := by omega
+    have := quadratic_halves B h1 (t.length + 2 - h1) _ _ _
+      (machineCost P Auto.List.length.c229.costIdx [enc t] + 3 +
+        machineCost P Auto.List.take.c231.costIdx [enc h1, enc (x :: y :: t)] +
+        machineCost P Auto.List.drop.c232.costIdx [enc h1, enc (x :: y :: t)] + 41)
+      (by omega) (by omega) ih1 ih2 (hmerge.trans (le_of_eq (by rw [hsum]))) (by rw [hsum]; omega)
+    rw [hsum] at this
+    rw [show t.length + 1 + 1 = t.length + 2 by omega]
+    omega
+
+end Lists
+
+/-! ## The sponge, the reads and the root -/
+
+open LeanVM.Protocol.Compile in
+theorem absorbPure_pending_le (sp : Sponge) (x : E) (tag : ℕ) (h : sp.pending.length ≤ 4) :
+    (absorbPure sp x tag).pending.length ≤ 4 := by
+  unfold absorbPure
+  dsimp only
+  split
+  · simp
+  · simp only [List.length_append, List.length_cons, List.length_nil]
+    simp only [rateScalars] at *
+    omega
+
+open LeanVM.Protocol.Compile in
+/-- Absorbing a scalar into a queue of at most four: at most `140`. -/
+theorem absorbPure_cost (hP : Includes P absorbPureC.costDeps) (sp : Sponge) (x : E) (tag : ℕ)
+    (h : sp.pending.length ≤ 4) :
+    machineCost P absorbPureC.costIdx [enc sp, enc x, enc tag] ≤ 140 := by
+  rw [absorbPureC.costEq P hP]
+  have h1 := Replay.length_cost P (by includes) sp.pending (by omega)
+  have hlen : (if sp.pending.length = rateScalars then ({ state := default, pending := [] } : Sponge)
+      else sp).pending.length ≤ 4 := by split <;> simp_all
+  have h2 := Replay.append_cost P (by includes) [(x, tag)]
+    (if sp.pending.length = rateScalars then ({ state := default, pending := [] } : Sponge)
+      else sp).pending
+  rw [limbs_of_lt (by omega : sp.pending.length < 2 ^ 64)]
+  simp only [rateScalars, limbs_of_lt (by norm_num : (4 : ℕ) < 2 ^ 64), max_self] at h2 hlen ⊢
+  by_cases hc : sp.pending.length = 4
+  · simp only [hc, ↓reduceIte, List.length_nil] at h2 hlen ⊢
+    omega
+  · simp only [hc, ↓reduceIte] at h2 hlen ⊢
+    omega
+
+open LeanVM.Protocol.Compile in
+/-- Reading `n` scalars: at most `192` per scalar. -/
+theorem readPure_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.readPure.c451.costDeps) :
+    ∀ (n : ℕ) (s : ProgState), n < 2 ^ 64 → s.sponge.pending.length ≤ 4 →
+      machineCost P Auto.LeanVM.Extraction.Fast.readPure.c451.costIdx [enc n, enc s] ≤ 192 * n + 14
+  | 0, s, _, _ => by rw [Auto.LeanVM.Extraction.Fast.readPure.c451.costEq_zero P hP]; omega
+  | n + 1, s, hn, hs => by
+    rw [Auto.LeanVM.Extraction.Fast.readPure.c451.costEq_succ P hP, limbs_of_lt hn]
+    obtain ⟨sp, stream, os, roots⟩ := s
+    cases stream with
+    | nil => simp only; omega
+    | cons x xs =>
+      simp only at hs ⊢
+      have ha := absorbPure_cost P (by includes) sp x dsObserve hs
+      have hr := readPure_cost hP n ⟨absorbPure sp x dsObserve, xs, os, roots⟩ (by omega)
+        (absorbPure_pending_le sp x dsObserve hs)
+      have hm : machineCost P Auto.Option.map.c106.costIdx [Val.fn readPureC.lam0.costIdx [enc x],
+          enc (readPure n ⟨absorbPure sp x dsObserve, xs, os, roots⟩)] ≤ 18 := by
+        rw [Auto.Option.map.c106.costEq P (by includes) _ _
+          (fun r ↦ RunsApp.of_spec (readPureC.lam0.costSpec P (by includes) x r))]
+        cases readPure n ⟨absorbPure sp x dsObserve, xs, os, roots⟩ with
+        | none => simp
+        | some r => simp only [appCost_fn, List.cons_append, List.nil_append,
+            readPureC.lam0.costEq P (by includes)]; omega
+      omega
+
+theorem digestOfScalars_cost (hP : Includes P digestOfScalarsC.costDeps) (s : E × E) :
+    machineCost P digestOfScalarsC.costIdx [enc s] ≤ 44 := by
+  rw [digestOfScalarsC.costEq P hP]
+  split_ifs <;> omega
+
+open LeanVM.Protocol.Compile in
+/-- Reading the root: at most `9·|roots| + 380`. -/
+theorem commitPure_cost (hP : Includes P commitPureC.costDeps) (height width : ℕ) (s : ProgState)
+    (hs : s.sponge.pending.length ≤ 4) :
+    machineCost P commitPureC.costIdx [enc height, enc width, enc s] ≤ 9 * s.roots.length + 380 := by
+  rw [commitPureC.costEq P hP]
+  obtain ⟨sp, stream, os, roots⟩ := s
+  simp only at hs ⊢
+  rcases stream with _ | ⟨x0, _ | ⟨x1, xs⟩⟩
+  · simp
+  · simp
+  · simp only
+    have hd := digestOfScalars_cost P (by includes) (x0, x1)
+    cases LeanVM.Protocol.KeccakHash.digestOfScalars (x0, x1) with
+    | none => simp only; omega
+    | some root =>
+      simp only
+      have h1 := absorbPure_cost P (by includes) sp x0 dsObserve hs
+      have h2 := absorbPure_cost P (by includes) (absorbPure sp x0 dsObserve) x1 dsObserve
+        (absorbPure_pending_le sp x0 dsObserve hs)
+      have h3 := Replay.append_cost P (by includes) [(root, height, width)] roots
+      omega
+
+/-! ## The ladder -/
+
+open LeanVM.Parameters.Whir in
+theorem length_levelsFrom : ∀ (fuel rem pf pr red : ℕ), (levelsFrom fuel rem pf pr red).length ≤ fuel
+  | 0, _, _, _, _ => by simp [levelsFrom]
+  | fuel + 1, rem, pf, pr, red => by
+    rw [levelsFrom]
+    split
+    · simp
+    · have := length_levelsFrom fuel (rem - min subsequentFold rem) (min subsequentFold rem)
+        (pr + pf - red) subsequentReduction
+      simp only [List.length_cons]
+      omega
+
+open LeanVM.Parameters.Whir in
+/-- The ladder's levels after the first: at most `48` per level. -/
+theorem levelsFrom_cost (hP : Includes P Auto.LeanVM.Parameters.Whir.levelsFrom.c477.costDeps) :
+    ∀ (fuel rem pf pr red : ℕ), fuel < 2 ^ 64 → rem < 2 ^ 64 → pr + pf + 4 * fuel < 2 ^ 63 →
+      red < 2 ^ 64 →
+      machineCost P Auto.LeanVM.Parameters.Whir.levelsFrom.c477.costIdx [enc fuel, enc rem, enc pf, enc pr, enc red] ≤
+        48 * fuel + 16
+  | 0, rem, pf, pr, red, _, _, _, _ => by rw [Auto.LeanVM.Parameters.Whir.levelsFrom.c477.costEq_zero P hP]; omega
+  | fuel + 1, rem, pf, pr, red, hf, hr, hpp, hred => by
+    rw [Auto.LeanVM.Parameters.Whir.levelsFrom.c477.costEq_succ P hP]
+    have hrec := levelsFrom_cost hP fuel (rem - min subsequentFold rem) (min subsequentFold rem)
+      (pr + pf - red) subsequentReduction (by omega) (by omega)
+      (by simp only [subsequentFold]; omega) (by simp [subsequentReduction])
+    simp only [residualMaxLog, subsequentFold, subsequentReduction] at hrec ⊢
+    rw [limbs_of_lt hf, limbs_of_lt hr, limbs_of_lt (by omega : pr < 2 ^ 64),
+      limbs_of_lt (by omega : pf < 2 ^ 64), limbs_of_lt (by omega : pr + pf < 2 ^ 64),
+      limbs_of_lt hred, limbs_of_lt (by omega : min 4 rem < 2 ^ 64),
+      limbs_of_lt (by norm_num : (5 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (4 : ℕ) < 2 ^ 64)]
+    simp only [max_self]
+    by_cases h5 : rem ≤ 5
+    · simp only [h5, ↓reduceIte]; omega
+    · simp only [h5, ↓reduceIte, show 4 ≤ rem by omega]
+      omega
+
+open LeanVM.Parameters.Whir in
+theorem shape_cost (hP : Includes P shapeC.costDeps) (μ R : ℕ) (hμ : μ ≤ 64) (hR : R ≤ 2 ^ 32) :
+    machineCost P shapeC.costIdx [enc μ, enc R] ≤ 48 * μ + 33 := by
+  rw [shapeC.costEq P hP]
+  have := levelsFrom_cost P (by includes) μ (μ - initialFold) initialFold R initialReduction
+    (by omega) (by omega) (by simp only [initialFold]; omega) (by simp [initialReduction])
+  rw [limbs_of_lt (by omega : μ < 2 ^ 64), limbs_of_lt (by simp [initialFold])]
+  omega
+
+open LeanVM.Parameters.Whir in
+theorem queryTable_rows : ∀ r ∈ queryTable, r.length = 14 ∧ ∀ q ∈ r, q.length ≤ 6 := by
+  decide +kernel
+
+theorem getD_mem_or {β : Type} (l : List β) (i : ℕ) (d : β) : l.getD i d ∈ l ∨ l.getD i d = d := by
+  rw [List.getD_eq_getElem?_getD]
+  cases h : l[i]? with
+  | none => exact Or.inr rfl
+  | some r => exact Or.inl (List.mem_of_getElem? h)
+
+open LeanVM.Parameters.Whir in
+theorem queryTable_row_length (i : ℕ) : (queryTable.getD i []).length ≤ 14 := by
+  rcases getD_mem_or queryTable i [] with h | h
+  · exact le_of_eq (queryTable_rows _ h).1
+  · rw [h]; simp
+
+open LeanVM.Parameters.Whir in
+theorem queryTable_queries_length (i j : ℕ) : ((queryTable.getD i []).getD j []).length ≤ 6 := by
+  rcases getD_mem_or (queryTable.getD i []) j [] with h | h
+  · rcases getD_mem_or queryTable i [] with h' | h'
+    · exact (queryTable_rows _ h').2 _ h
+    · rw [h'] at h; simp at h
+  · rw [h]; simp
+
+open LeanVM.Parameters.Whir in
+/-- The ladder of a shape: at most `3500`. -/
+theorem ladder_cost (hP : Includes P ladderC.costDeps) (μ R : ℕ) (hμ : μ < 2 ^ 64)
+    (hR : R < 2 ^ 64) : machineCost P ladderC.costIdx [enc μ, enc R] ≤ 3500 := by
+  rw [ladderC.costEq P hP]
+  simp only [minLogStack, maxLogStack, minLogInvRate, maxLogInvRate, Admissible,
+    limbs_of_lt hμ, limbs_of_lt hR, limbs_of_lt (by norm_num : (15 : ℕ) < 2 ^ 64),
+    limbs_of_lt (by norm_num : (28 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (1 : ℕ) < 2 ^ 64),
+    limbs_of_lt (by norm_num : (4 : ℕ) < 2 ^ 64), max_self]
+  by_cases hadm : 15 ≤ μ ∧ μ ≤ 28 ∧ 1 ≤ R ∧ R ≤ 4
+  · obtain ⟨h1, h2, h3, h4⟩ := hadm
+    have hs := shape_cost P (by includes) μ R (by omega) (by omega)
+    have hq : machineCost P queryTableC.costIdx [] = 1137 := queryTableC.costEq P (by includes)
+    have hg1 := Replay.getD_cost P (by includes) queryTable (R - 1) [] (by omega)
+    have hg2 := Replay.getD_cost P (by includes) (queryTable.getD (R - 1) []) (μ - 15) [] (by omega)
+    have hl1 := Replay.length_cost P (by includes) (shape μ R) (by
+      have := length_levelsFrom μ (μ - initialFold) initialFold R initialReduction
+      simp only [shape, List.length_cons]; omega)
+    have hl2 := Replay.length_cost P (by includes) ((queryTable.getD (R - 1) []).getD (μ - 15) []) (by
+      have := queryTable_queries_length (R - 1) (μ - 15); omega)
+    have hqt : queryTable.length = 4 := by decide +kernel
+    have hrow := queryTable_row_length (R - 1)
+    have hqq := queryTable_queries_length (R - 1) (μ - 15)
+    have hsl : (shape μ R).length ≤ 29 := by
+      have := length_levelsFrom μ (μ - initialFold) initialFold R initialReduction
+      simp only [shape, List.length_cons]; omega
+    have hz := listZipWith_le P (by includes) (fun (g : ℕ × ℕ) (q : ℕ) ↦ (⟨g.1, g.2, q⟩ : Level))
+      (.fn ladderC.lam0.costIdx []) (fun g q ↦ RunsApp.of_spec (ladderC.lam0.costSpec P (by includes) g q))
+      9 (shape μ R) ((queryTable.getD (R - 1) []).getD (μ - 15) [])
+      (fun g _ q _ ↦ by rw [appCost_fn, List.nil_append, ladderC.lam0.costEq P (by includes)])
+    have hmin : min (shape μ R).length ((queryTable.getD (R - 1) []).getD (μ - 15) []).length ≤ 6 :=
+      le_trans (min_le_right _ _) hqq
+    rw [limbs_of_lt (by omega : (shape μ R).length < 2 ^ 64),
+      limbs_of_lt (by omega : ((queryTable.getD (R - 1) []).getD (μ - 15) []).length < 2 ^ 64)]
+    simp only [h1, h2, h3, h4, and_self, ↓reduceIte, max_self]
+    rw [hqt] at hg1
+    by_cases he : (shape μ R).length = ((queryTable.getD (R - 1) []).getD (μ - 15) []).length
+    · simp only [he, ↓reduceIte] at hz ⊢; omega
+    · simp only [he, ↓reduceIte]; omega
+  · split_ifs <;> simp_all
+
+open LeanVM.Parameters.Whir in
+theorem ladder_head {μ R : ℕ} {lv : Level} {rest : List Level}
+    (h : ladder μ R = some (lv :: rest)) : lv.fold = initialFold ∧ lv.logInvRate = R := by
+  unfold ladder at h
+  dsimp only at h
+  split_ifs at h
+  obtain h := Option.some.inj h
+  rw [shape] at h
+  generalize (queryTable.getD (R - minLogInvRate) []).getD (μ - minLogStack) [] = qs at h
+  cases qs with
+  | nil => simp at h
+  | cons q qs =>
+    simp only [List.zipWith_cons_cons, List.cons.injEq] at h
+    rw [← h.1]
+    exact ⟨rfl, rfl⟩
+
+open LeanVM.Protocol.Compile in
+/-- **Reading the stack's root**: the ladder, then the root at its first level: at most
+`3903 + 9·|roots|`. -/
+theorem commitStackPure_cost (hP : Includes P commitStackPureC.costDeps) (logN R : ℕ) (s : ProgState)
+    (hN : logN < 2 ^ 64) (hR : R < 2 ^ 60) (hs : s.sponge.pending.length ≤ 4) :
+    machineCost P commitStackPureC.costIdx [enc logN, enc R, enc s] ≤ 9 * s.roots.length + 3903 := by
+  rw [commitStackPureC.costEq P hP]
+  have hl := ladder_cost P (by includes) logN R hN (by omega)
+  cases hla : LeanVM.Parameters.Whir.ladder logN R with
+  | none => simp only; omega
+  | some levels =>
+    cases levels with
+    | nil => simp only; omega
+    | cons lv rest =>
+      obtain ⟨hf, hr⟩ := ladder_head hla
+      simp only [hf, hr, LeanVM.Parameters.Whir.initialFold]
+      have hc := commitPure_cost P (by includes) (logN - 6 + R) (2 ^ 6) s hs
+      rw [limbs_of_lt hN, limbs_of_lt (by norm_num : (6 : ℕ) < 2 ^ 64),
+        limbs_of_lt (by omega : logN - 6 < 2 ^ 64), limbs_of_lt (by omega : R < 2 ^ 64),
+        limbs_of_lt (by norm_num : 1 <<< 6 < 2 ^ 64)]
+      omega
+
+/-! ## Logarithms -/
+
+theorem Replay.log2Rec_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costDeps) :
+    ∀ n : ℕ, n < 2 ^ 64 →
+      machineCost P Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costIdx [enc n] ≤ 13 * Nat.log2 n + 6 := by
+  intro n
+  induction n using Nat.strong_induction_on with
+  | _ n ih =>
+  intro hn
+  rw [Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costEq P hP, limbs_of_lt hn]
+  by_cases h2 : 2 ≤ n
+  · simp only [h2, ↓reduceIte]
+    have := ih (n / 2) (by omega) (by omega)
+    have hl := log2_half h2
+    have hr : Rewrite.log2Rec (n / 2) < 2 ^ 64 := by
+      rw [← Rewrite.natLog2]; have := Nat.log2_le_self (n / 2); omega
+    rw [limbs_of_lt hr]
+    omega
+  · simp only [h2, ↓reduceIte]; omega
+
+theorem log2_lt_64 {n : ℕ} (hn : n < 2 ^ 64) : Nat.log2 n < 64 := by
+  rcases Nat.eq_zero_or_pos n with rfl | h
+  · simp
+  · exact (Nat.log2_lt (by omega)).2 hn
+
+theorem bitLength_cost (hP : Includes P bitLengthC.costDeps) (n : ℕ) (hn : n < 2 ^ 64) :
+    machineCost P bitLengthC.costIdx [enc n] ≤ 840 := by
+  rw [bitLengthC.costEq P hP, limbs_of_lt hn]
+  have h64 := log2_lt_64 hn
+  split_ifs
+  · omega
+  · have := Replay.log2Rec_cost P (by includes) n hn
+    rw [limbs_of_lt (by omega : Nat.log2 n < 2 ^ 64)]
+    omega
+
+theorem bitLength_lt {n : ℕ} (hn : n < 2 ^ 64) : LeanVM.Protocol.Verifier.bitLength n ≤ 64 := by
+  unfold LeanVM.Protocol.Verifier.bitLength
+  have := log2_lt_64 hn
+  split <;> omega
+
+theorem log2Strict_cost (hP : Includes P log2StrictC.costDeps) (v : ℕ) (hv : v < 2 ^ 64) :
+    machineCost P log2StrictC.costIdx [enc v] ≤ 870 := by
+  rw [log2StrictC.costEq P hP, limbs_of_lt hv, limbs_of_lt (by omega : v - 1 < 2 ^ 64),
+    limbs_of_lt (lt_of_le_of_lt Nat.and_le_left hv)]
+  have := bitLength_cost P (by includes) v hv
+  rw [limbs_of_lt (by have := bitLength_lt hv; omega : LeanVM.Protocol.Verifier.bitLength v < 2 ^ 64)]
+  simp only [max_self]
+  split_ifs <;> omega
+
+/-! ## The `KECCAK` slots -/
+
+open LeanVM.Protocol.Verifier in
+theorem globalColumnBases_length : globalColumnBases.length = 6 := by
+  rw [FastLib.globalColumnBasesLit]; rfl
+
+open LeanVM.Protocol.Verifier in
+theorem keccakBase : globalColumnBases.getD opKeccak 0 = 73 := by
+  rw [FastLib.globalColumnBasesLit]; rfl
+
+open LeanVM.Protocol.Verifier in
+/-- A column's `KECCAK` slot: at most `3000`. -/
+theorem keccakSlot_cost (hP : Includes P keccakSlotC.costDeps) (c : ℕ) (hc : c < 2 ^ 64) :
+    machineCost P keccakSlotC.costIdx [enc c] ≤ 3000 := by
+  rw [keccakSlotC.costEq P hP]
+  have hg := Replay.getD_cost P (by includes) globalColumnBases opKeccak 0 (by simp [opKeccak])
+  rw [globalColumnBases_length] at hg
+  have hf := findIdxOptGo_cost P (by includes) (fun x ↦ x == c - globalColumnBases.getD opKeccak 0)
+    (.fn keccakSlotC.lam1.costIdx [enc c])
+    (fun x ↦ RunsApp.of_spec (keccakSlotC.lam1.costSpec P (by includes) c x)) 139
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 63] 0 (by simp)
+    (fun x hx ↦ by
+      rw [appCost_fn, List.cons_append, List.nil_append, keccakSlotC.lam1.costEq P (by includes),
+        keccakBase, limbs_of_lt hc, limbs_of_lt (by norm_num : (73 : ℕ) < 2 ^ 64),
+        limbs_of_lt (by simp at hx; omega : x < 2 ^ 64), limbs_of_lt (by omega : c - 73 < 2 ^ 64)]
+      simp only [max_self]
+      omega)
+  have hm : ∀ o : Option ℕ, o.all (· < 2 ^ 64) → machineCost P Auto.Option.map.c106.costIdx
+      [Val.fn keccakSlotC.lam0.costIdx [], enc o] ≤ 11 := by
+    intro o ho
+    rw [Auto.Option.map.c106.costEq P (by includes) _ _
+      (fun x ↦ RunsApp.of_spec (keccakSlotC.lam0.costSpec P (by includes) x))]
+    cases o with
+    | none => simp
+    | some x =>
+      simp only [Option.all_some, decide_eq_true_eq] at ho
+      simp only [appCost_fn, List.nil_append, keccakSlotC.lam0.costEq P (by includes),
+        limbs_of_lt ho]
+      omega
+  have hidx := hm (List.idxOf? (c - globalColumnBases.getD opKeccak 0)
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 63]) (by
+      cases h : List.idxOf? (c - globalColumnBases.getD opKeccak 0)
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 63] with
+      | none => rfl
+      | some k =>
+        obtain ⟨hk, -⟩ := List.idxOf?_eq_some_iff.1 h
+        simp only [Option.all_some, decide_eq_true_eq]
+        simp at hk; omega)
+  rw [keccakBase] at hidx ⊢
+  rw [limbs_of_lt hc, limbs_of_lt (by norm_num : (73 : ℕ) < 2 ^ 64),
+    limbs_of_lt (by omega : c - 73 < 2 ^ 64), limbs_of_lt (by norm_num : (13 + 25 : ℕ) < 2 ^ 64)]
+  simp only [max_self, List.length_cons, List.length_nil] at hf ⊢
+  split_ifs <;> omega
+
+/-! ## Folds with an invariant on the rest of the list -/
+
+/-- **`List.foldl` with an invariant `J acc rest`** of the accumulator and the elements left. -/
+theorem listFoldl_le' {α β : Type} [Enc α] [Enc β] (hP : Includes P listFoldl.costDeps)
+    (f : α → β → α) (fVal : Val) (hf : ∀ a b, RunsApp P fVal [enc a, enc b] (enc (f a b))) (B : ℕ)
+    (J : α → List β → Prop)
+    (hJ : ∀ acc b l, J acc (b :: l) → J (f acc b) l ∧ appCost P fVal [enc acc, enc b] ≤ B) :
+    ∀ (l : List β) (init : α), J init l →
+      machineCost P listFoldl.costIdx [fVal, enc init, enc l] ≤ (B + 9) * l.length + 3 := by
+  intro l
+  induction l with
+  | nil => intro init _; rw [listFoldl.costEq_nil P hP f fVal hf]; omega
+  | cons b l ih =>
+    intro init hI
+    rw [listFoldl.costEq_cons P hP f fVal hf]
+    obtain ⟨hI', h2⟩ := hJ init b l hI
+    have h1 := ih (f init b) hI'
+    simp only [List.length_cons]
+    nlinarith
+
+theorem foldl_inv {α β : Type} (f : α → β → α) (J : α → List β → Prop)
+    (hJ : ∀ acc b l, J acc (b :: l) → J (f acc b) l) :
+    ∀ (l : List β) (init : α), J init l → J (l.foldl f init) [] := by
+  intro l
+  induction l with
+  | nil => intro init h; exact h
+  | cons b l ih => intro init h; exact ih (f init b) (hJ init b l h)
+
+/-! ## The stack's offsets -/
+
+/-- The invariant of `stackOffsets`'s fold: the offsets' length, every offset at most the running
+total, and room for `2^40` per element left. -/
+def OffsetsInv (n : ℕ) (acc : List ℕ × ℕ) (rest : List ℕ) : Prop :=
+  acc.1.length = n ∧ (∀ x ∈ acc.1, x ≤ acc.2) ∧ acc.2 + 2 ^ 40 * rest.length < 2 ^ 64
+
+theorem offsetsInv_step (sizes : List ℕ) (hs : ∀ x ∈ sizes, x ≤ 40) (acc : List ℕ × ℕ) (i : ℕ)
+    (rest : List ℕ) (h : OffsetsInv sizes.length acc (i :: rest)) :
+    OffsetsInv sizes.length (acc.1.set i acc.2, acc.2 + 2 ^ sizes.getD i 0) rest := by
+  obtain ⟨h1, h2, h3⟩ := h
+  have hsz : sizes.getD i 0 ≤ 40 := by
+    rcases getD_mem_or sizes i 0 with hm | hm
+    · exact hs _ hm
+    · rw [hm]; omega
+  have hp : 2 ^ sizes.getD i 0 ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) hsz
+  have hp0 : 0 < 2 ^ sizes.getD i 0 := Nat.two_pow_pos _
+  simp only [List.length_cons] at h3
+  refine ⟨by simp [h1], fun x hx ↦ ?_, ?_⟩
+  · rcases List.mem_or_eq_of_mem_set hx with hx | rfl
+    · have := h2 x hx; dsimp only; omega
+    · dsimp only; omega
+  · dsimp only; omega
+
+open LeanVM.Protocol.Verifier in
+theorem stackOffsets_bounds (sizes : List ℕ) (hn : sizes.length ≤ 200)
+    (hs : ∀ x ∈ sizes, x ≤ 40) :
+    (∀ x ∈ (stackOffsets sizes).1, x < 2 ^ 63) ∧ (stackOffsets sizes).2 ≤ 64 := by
+  unfold stackOffsets
+  dsimp only
+  set order := (List.range sizes.length).mergeSort fun i j ↦
+    decide (sizes.getD j 0 < sizes.getD i 0) ||
+      (decide (sizes.getD i 0 = sizes.getD j 0) && decide (i ≤ j))
+  have hlen : order.length = sizes.length := by simp [order]
+  have hf := foldl_inv (fun (acc : List ℕ × ℕ) i ↦ (acc.1.set i acc.2, acc.2 + 2 ^ sizes.getD i 0))
+    (fun acc rest ↦ OffsetsInv sizes.length acc rest ∧ acc.2 + 2 ^ 40 * rest.length < 2 ^ 63)
+    (fun acc i rest h ↦ ⟨offsetsInv_step sizes hs acc i rest h.1, by
+      have := offsetsInv_step sizes hs acc i rest h.1
+      have hsz : sizes.getD i 0 ≤ 40 := by
+        rcases getD_mem_or sizes i 0 with hm | hm
+        · exact hs _ hm
+        · rw [hm]; omega
+      have hp : 2 ^ sizes.getD i 0 ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) hsz
+      have := h.2; simp only [List.length_cons] at this; dsimp only; omega⟩)
+    order (List.replicate sizes.length 0, 0)
+    ⟨⟨by simp, fun x hx ↦ by simp [List.eq_of_mem_replicate hx], by rw [hlen]; omega⟩,
+      by rw [hlen]; simp only; omega⟩
+  have hT := hf.2
+  simp only [List.length_nil, Nat.mul_zero, Nat.add_zero] at hT
+  refine ⟨fun x hx ↦ ?_, ?_⟩
+  · have := hf.1.2.1 x hx
+    omega
+  · exact bitLength_lt (by omega)
+
+open LeanVM.Protocol.Verifier in
+/-- **The stack's offsets** of at most `200` blocks of at most `2^40` cells: at most `10^9`. -/
+theorem stackOffsets_cost (hP : Includes P stackOffsetsC.costDeps) (sizes : List ℕ)
+    (hn : sizes.length ≤ 200) (hs : ∀ x ∈ sizes, x ≤ 40) :
+    machineCost P stackOffsetsC.costIdx [enc sizes] ≤ 1000000000 := by
+  rw [stackOffsetsC.costEq P hP]
+  set n := sizes.length with hnd
+  have hsz : ∀ i, sizes.getD i 0 ≤ 40 := fun i ↦ by
+    rcases getD_mem_or sizes i 0 with hm | hm
+    · exact hs _ hm
+    · rw [hm]; omega
+  have hlen := Replay.length_cost P (by includes) sizes (by omega)
+  have hrange := Replay.rangeLoop_cost P (by includes) n [] (by omega)
+  have hrep := replicate_cost' P (by includes) (0 : ℕ) n (by omega)
+  -- the comparison
+  have hcmp : ∀ i ∈ List.range n, ∀ j ∈ List.range n,
+      appCost P (.fn stackOffsetsC.lam0.costIdx [enc sizes]) [enc i, enc j] ≤ 12086 := by
+    intro i hi j hj
+    simp only [List.mem_range] at hi hj
+    rw [appCost_fn, List.cons_append, List.nil_append, stackOffsetsC.lam0.costEq P (by includes)]
+    have g1 := Replay.getD_cost P (by includes) sizes i 0 (by omega)
+    have g2 := Replay.getD_cost P (by includes) sizes j 0 (by omega)
+    rw [limbs_of_lt (by have := hsz i; omega : sizes.getD i 0 < 2 ^ 64),
+      limbs_of_lt (by have := hsz j; omega : sizes.getD j 0 < 2 ^ 64),
+      limbs_of_lt (by omega : i < 2 ^ 64), limbs_of_lt (by omega : j < 2 ^ 64)]
+    simp only [max_self]
+    split_ifs <;> omega
+  have hsort := mergeSortList_cost P (by includes) _ (.fn stackOffsetsC.lam0.costIdx [enc sizes])
+    (fun i j ↦ RunsApp.of_spec (stackOffsetsC.lam0.costSpec P (by includes) sizes i j)) 12086
+    (List.range n) hcmp n (List.range n) (by simp) (by simp; omega) (fun a ha ↦ ha)
+  simp only [List.length_range] at hsort
+  -- the fold
+  set order := (List.range n).mergeSort fun i j ↦
+    decide (sizes.getD j 0 < sizes.getD i 0) ||
+      (decide (sizes.getD i 0 = sizes.getD j 0) && decide (i ≤ j))
+  have hord : order.length = n := by simp [order]
+  have hfold := listFoldl_le' P (by includes)
+    (fun (acc : List ℕ × ℕ) i ↦ (acc.1.set i acc.2, acc.2 + 2 ^ sizes.getD i 0))
+    (.fn stackOffsetsC.lam1.costIdx [enc sizes])
+    (fun acc i ↦ RunsApp.of_spec (stackOffsetsC.lam1.costSpec P (by includes) sizes acc i)) 7039
+    (fun acc rest ↦ OffsetsInv n acc rest ∧ ∀ i ∈ rest, i < n)
+    (fun acc i rest h ↦ ⟨⟨offsetsInv_step sizes hs acc i rest h.1,
+        fun k hk ↦ h.2 k (by simp [hk])⟩, by
+      obtain ⟨⟨h1, h2, h3⟩, h4⟩ := h
+      have hi := h4 i (by simp)
+      rw [appCost_fn, List.cons_append, List.nil_append, stackOffsetsC.lam1.costEq P (by includes)]
+      have s1 := set_cost P (by includes) acc.2 acc.1 i (by omega)
+      have g1 := Replay.getD_cost P (by includes) sizes i 0 (by omega)
+      have hp : 2 ^ sizes.getD i 0 ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) (hsz i)
+      have hsh : 1 <<< sizes.getD i 0 < 2 ^ 64 := by
+        rw [Nat.one_shiftLeft]; have : (2 : ℕ) ^ 40 < 2 ^ 64 := by norm_num
+        omega
+      simp only [List.length_cons] at h3
+      rw [limbs_of_lt hsh, limbs_of_lt (by have := hsz i; omega : sizes.getD i 0 < 2 ^ 64),
+        limbs_of_lt (by omega : acc.2 < 2 ^ 64),
+        limbs_of_lt (by have h40 : (2 : ℕ) ^ 40 < 2 ^ 64 := (by norm_num); omega :
+          2 ^ sizes.getD i 0 < 2 ^ 64)]
+      rw [h1] at s1
+      simp only [max_self]
+      omega⟩)
+    order (List.replicate n 0, 0)
+    ⟨⟨by simp, fun x hx ↦ by simp [List.eq_of_mem_replicate hx], by rw [hord]; omega⟩,
+      fun i hi ↦ by simpa [order] using hi⟩
+  rw [hord] at hfold
+  -- the total
+  have hfin := foldl_inv (fun (acc : List ℕ × ℕ) i ↦ (acc.1.set i acc.2, acc.2 + 2 ^ sizes.getD i 0))
+    (OffsetsInv n) (fun acc i rest h ↦ offsetsInv_step sizes hs acc i rest h) order
+    (List.replicate n 0, 0) ⟨by simp, fun x hx ↦ by simp [List.eq_of_mem_replicate hx],
+      by rw [hord]; omega⟩
+  obtain ⟨-, -, hT⟩ := hfin
+  simp only [List.length_nil, Nat.mul_zero, Nat.add_zero] at hT
+  have hb := bitLength_cost P (by includes)
+    ((List.foldl (fun (acc : List ℕ × ℕ) i ↦ (acc.1.set i acc.2, acc.2 + 2 ^ sizes.getD i 0))
+      (List.replicate n 0, 0) order).2 - 1) (by omega)
+  rw [limbs_of_lt hT]
+  have hsq : n ^ 2 ≤ 40000 := by nlinarith
+  omega
+
+/-! ## The placements -/
+
+theorem Replay.map_cost (hP : Includes P Auto.List.map.c12.costDeps) {α β : Type} [Enc α] [Enc β]
+    (f : α → β) (fVal : Val) (hf : ∀ a, RunsApp P fVal [enc a] (enc (f a))) (B : ℕ) :
+    ∀ l : List α, (∀ a ∈ l, appCost P fVal [enc a] ≤ B) →
+      machineCost P Auto.List.map.c12.costIdx [fVal, enc l] ≤ (B + 11) * l.length + 3 :=
+  listMap_le P _ fVal (Auto.List.map.c12.costEq_nil P hP f fVal hf)
+    (fun x l ↦ Auto.List.map.c12.costEq_cons P hP f fVal hf x l) B
+
+open LeanVM.Protocol.Verifier in
+theorem keccakOutputColumns_facts :
+    keccakOutputColumns.length = 25 ∧ ∀ x ∈ keccakOutputColumns, x < 2 ^ 64 := by
+  rw [FastLib.keccakOutputColumnsLit]
+  refine ⟨by simp, fun x hx ↦ ?_⟩
+  simp only [List.mem_map, List.mem_range] at hx
+  omega
+
+open LeanVM.Protocol.Verifier in
+theorem keccakSlot_lt {c v : ℕ} (h : keccakSlot c = some v) : v < 64 := by
+  unfold keccakSlot at h
+  split_ifs at h
+  rw [FastLib.keccakSlotOfLit] at h
+  split_ifs at h with h1
+  · obtain rfl := Option.some.inj h; omega
+  · obtain ⟨k, hk, rfl⟩ := Option.map_eq_some_iff.1 h
+    obtain ⟨hk', -⟩ := List.idxOf?_eq_some_iff.1 hk
+    simp at hk'; omega
+
+open LeanVM.Protocol.Verifier in
+/-- The test whether a column is placed in a block of its own: at most `4076`. -/
+theorem placementsLam0_cost (hP : Includes P placementsOfC.lam0.costDeps) (c : ℕ) (hc : c < 2 ^ 64) :
+    machineCost P placementsOfC.lam0.costIdx [enc c] ≤ 4076 := by
+  rw [placementsOfC.lam0.costEq P hP]
+  have hk := keccakSlot_cost P (by includes) c hc
+  have hr := Replay.rangeLoop_cost P (by includes) 25 [] (by norm_num)
+  have hm := Replay.map_cost P (by includes) (fun x : ℕ ↦ 111 + x) (.fn placementsOfC.lam0.lam0.costIdx [])
+    (fun x ↦ RunsApp.of_spec (placementsOfC.lam0.lam0.costSpec P (by includes) x)) 4 (List.range 25)
+    (fun x hx ↦ by
+      simp only [List.mem_range] at hx
+      rw [appCost_fn, List.nil_append, placementsOfC.lam0.lam0.costEq P (by includes),
+        limbs_of_lt (by omega : x < 2 ^ 64)])
+  obtain ⟨ho1, ho2⟩ := keccakOutputColumns_facts
+  have he := elem_cost P (by includes) c hc keccakOutputColumns ho2
+  simp only [List.length_range, ho1] at hm he
+  cases keccakSlot c <;> simp only [Option.isNone_none, Option.isNone_some, ↓reduceIte,
+    Bool.false_eq_true] <;> omega
+
+open LeanVM.Protocol.Verifier in
+/-- **The placements** of at most `200` columns of log-sizes at most `40`: at most `1.004·10^9`. -/
+theorem placementsOf_cost (hP : Includes P placementsOfC.costDeps) (kappas : List ℕ)
+    (hn : kappas.length ≤ 200) (hk : ∀ x ∈ kappas, x ≤ 40) :
+    machineCost P placementsOfC.costIdx [enc kappas] ≤ 1004000000 := by
+  rw [placementsOfC.costEq P hP]
+  set N := kappas.length with hN
+  have hkD : ∀ i, kappas.getD i 0 ≤ 40 := fun i ↦ by
+    rcases getD_mem_or kappas i 0 with hm | hm
+    · exact hk _ hm
+    · rw [hm]; omega
+  set cap0 := List.filter (fun c ↦ decide ((keccakSlot c).isNone = true ∧ c ∉ keccakOutputColumns))
+    (List.range N) with hcap
+  have hcapl : cap0.length ≤ N := (List.length_filter_le _ _).trans (by simp)
+  have hcapm : ∀ x ∈ cap0, x < N := fun x hx ↦ by
+    have := (List.mem_filter.1 hx).1; simpa using this
+  have hlen := Replay.length_cost P (by includes) kappas (by omega)
+  have hrange := Replay.rangeLoop_cost P (by includes) N [] (by omega)
+  have hfilt := Replay.filter_cost P (by includes) _ (.fn placementsOfC.lam0.costIdx [])
+    (fun c ↦ RunsApp.of_spec (placementsOfC.lam0.costSpec P (by includes) c)) 4076 (List.range N)
+    (fun c hc ↦ by
+      simp only [List.mem_range] at hc
+      rw [appCost_fn, List.nil_append]
+      exact placementsLam0_cost P (by includes) c (by omega))
+  simp only [List.length_range] at hfilt
+  have hmap1 := Replay.map_cost P (by includes) (fun x ↦ kappas.getD x 0) (.fn placementsOfC.lam1.costIdx [enc kappas])
+    (fun x ↦ RunsApp.of_spec (placementsOfC.lam1.costSpec P (by includes) kappas x)) 3019 cap0
+    (fun x hx ↦ by
+      have := hcapm x hx
+      rw [appCost_fn, List.cons_append, List.nil_append, placementsOfC.lam1.costEq P (by includes)]
+      have := Replay.getD_cost P (by includes) kappas x 0 (by omega)
+      omega)
+  set sizes := List.map (fun x ↦ kappas.getD x 0) cap0 with hsizes
+  have hso := stackOffsets_cost P (by includes) sizes (by simp [sizes]; omega)
+    (fun x hx ↦ by
+      obtain ⟨i, -, rfl⟩ := List.mem_map.1 hx
+      exact hkD i)
+  obtain ⟨hfst, hsnd⟩ := stackOffsets_bounds sizes (by simp [sizes]; omega)
+    (fun x hx ↦ by
+      obtain ⟨i, -, rfl⟩ := List.mem_map.1 hx
+      exact hkD i)
+  have hfstl : (stackOffsets sizes).1.length = sizes.length := by
+    unfold stackOffsets
+    dsimp only
+    apply foldl_inv (J := fun (acc : List ℕ × ℕ) (_ : List ℕ) ↦ acc.1.length = sizes.length)
+    · intro acc i rest h; simp [h]
+    · simp
+  have hsl : sizes.length ≤ 200 := by simp [sizes]; omega
+  -- the map over the columns
+  have hzip := zipIdx_cost P (by includes) kappas 0 (by omega)
+  have hlam2 : ∀ x ∈ kappas.zipIdx, appCost P (.fn placementsOfC.lam2.costIdx
+      [enc (stackOffsets sizes).1, enc cap0]) [enc x] ≤ 10600 := by
+    intro x hx
+    obtain ⟨kappa, col⟩ := x
+    have hcol : col < N := by
+      have := List.snd_lt_of_mem_zipIdx hx
+      simp only at this; omega
+    have hkap : kappa ≤ 40 := hk _ (List.fst_mem_of_mem_zipIdx hx)
+    rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
+      placementsOfC.lam2.costEq_mk P (by includes)]
+    have hks := keccakSlot_cost P (by includes) col (by omega)
+    have hr := Replay.rangeLoop_cost P (by includes) 25 [] (by norm_num)
+    have hm := Replay.map_cost P (by includes) (fun x : ℕ ↦ 111 + x) (.fn placementsOfC.lam0.lam0.costIdx [])
+      (fun x ↦ RunsApp.of_spec (placementsOfC.lam0.lam0.costSpec P (by includes) x)) 4
+      (List.range 25)
+      (fun x hx ↦ by
+        simp only [List.mem_range] at hx
+        rw [appCost_fn, List.nil_append, placementsOfC.lam0.lam0.costEq P (by includes),
+          limbs_of_lt (by omega : x < 2 ^ 64)])
+    obtain ⟨ho1, ho2⟩ := keccakOutputColumns_facts
+    have he := elem_cost P (by includes) col (by omega) keccakOutputColumns ho2
+    have hf0 := findIdxGo_cost P (by includes) (fun x ↦ x == col)
+      (.fn placementsOfC.lam2.lam0.costIdx [enc col])
+      (fun x ↦ RunsApp.of_spec (placementsOfC.lam2.lam0.costSpec P (by includes) col x)) 4 cap0 0
+      (by omega) (fun x hx ↦ by
+        have := hcapm x hx
+        rw [appCost_fn, List.cons_append, List.nil_append,
+          placementsOfC.lam2.lam0.costEq P (by includes), limbs_of_lt (by omega : x < 2 ^ 64),
+          limbs_of_lt (by omega : col < 2 ^ 64)]
+        simp)
+    have hf1 := findIdxGo_cost P (by includes) (fun x ↦ x == qkeccak)
+      (.fn placementsOfC.lam2.lam1.costIdx [])
+      (fun x ↦ RunsApp.of_spec (placementsOfC.lam2.lam1.costSpec P (by includes) x)) 4 cap0 0
+      (by omega) (fun x hx ↦ by
+        have := hcapm x hx
+        rw [appCost_fn, List.nil_append, placementsOfC.lam2.lam1.costEq P (by includes),
+          limbs_of_lt (by omega : x < 2 ^ 64), limbs_of_lt (by simp [qkeccak])]
+        simp)
+    have hg0 := Replay.getD_cost P (by includes) (stackOffsets sizes).1 (List.idxOf col cap0) 0 (by
+      have := List.idxOf_le_length (a := col) (l := cap0); omega)
+    have hg1 := Replay.getD_cost P (by includes) (stackOffsets sizes).1 (List.idxOf qkeccak cap0) 0 (by
+      have := List.idxOf_le_length (a := qkeccak) (l := cap0); omega)
+    simp only [List.length_range, ho1, hfstl] at hm he hg0 hg1
+    have hp : 2 ^ kappa ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) hkap
+    have h40 : (2 : ℕ) ^ 40 < 2 ^ 58 := by norm_num
+    cases hsl' : keccakSlot col with
+    | none =>
+      simp only
+      split <;> omega
+    | some v =>
+      simp only
+      have hv := keccakSlot_lt hsl'
+      have hoff : (stackOffsets sizes).1.getD (List.idxOf qkeccak cap0) 0 < 2 ^ 64 := by
+        rcases getD_mem_or (stackOffsets sizes).1 (List.idxOf qkeccak cap0) 0 with hm' | hm'
+        · have := hfst _ hm'; omega
+        · rw [hm']; norm_num
+      have hvk : v * 2 ^ kappa < 2 ^ 64 := by
+        calc v * 2 ^ kappa ≤ 64 * 2 ^ 40 := Nat.mul_le_mul (by omega) hp
+          _ < 2 ^ 64 := by norm_num
+      rw [limbs_of_lt (by rw [Nat.one_shiftLeft]; omega : 1 <<< kappa < 2 ^ 64),
+        limbs_of_lt (by omega : kappa < 2 ^ 64), limbs_of_lt (by omega : v < 2 ^ 64),
+        limbs_of_lt (by omega : 2 ^ kappa < 2 ^ 64), limbs_of_lt hoff, limbs_of_lt hvk]
+      simp only [max_self]
+      omega
+  have hmap2 := Replay.map_cost P (by includes) _ (.fn placementsOfC.lam2.costIdx
+      [enc (stackOffsets sizes).1, enc cap0])
+    (fun x ↦ RunsApp.of_spec (placementsOfC.lam2.costSpec P (by includes) _ cap0 x)) 10600
+    kappas.zipIdx hlam2
+  simp only [List.length_zipIdx] at hmap2
+  generalize hst : stackOffsets sizes = st at hmap2 hsnd hso
+  obtain ⟨fst, snd⟩ := st
+  simp only at hmap2 hsnd ⊢
+  rw [limbs_of_lt (by omega : snd < 2 ^ 64), limbs_of_lt (by simp [Whir.minLogStack])]
+  simp only [max_self, ite_self]
+  omega
+
+/-! ## The layout -/
+
+open LeanVM.Protocol.Verifier in
+theorem log2Ceil_le {r : ℕ} (h : r ≤ 2 ^ 32) : log2Ceil r ≤ 32 := by
+  unfold log2Ceil bitLength
+  split
+  · omega
+  · have : Nat.log2 (r - 1) < 32 := (Nat.log2_lt (by omega)).2 (by omega)
+    omega
+
+open LeanVM.Protocol.Verifier in
+theorem log2Ceil_lt {r : ℕ} (h : r < 2 ^ 64) : log2Ceil r ≤ 64 := by
+  unfold log2Ceil; exact bitLength_lt (by omega)
+
+open LeanVM.Protocol.Verifier in
+theorem log2Strict_le {v k : ℕ} (hv : v < 2 ^ 64) (h : log2Strict v = some k) : k ≤ 64 := by
+  unfold log2Strict at h
+  split_ifs at h
+  obtain rfl := Option.some.inj h
+  have := bitLength_lt hv
+  omega
+
+open LeanVM.Protocol.Verifier in
+theorem tableLogFloors_eq : tableLogFloors = [0, 0, 0, 0, 0, 9] := rfl
+
+open LeanVM.Protocol.Verifier in
+theorem qkeccakSlotBits_eq : qkeccakSlotBits = 6 := by decide +kernel
+
+open LeanVM.Protocol.Verifier in
+/-- The tables' log-heights from their row counts. -/
+theorem heights_facts (rows : List ℕ) (hr : ∀ r ∈ rows, r ≤ 2 ^ 32) :
+    (List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) rows tableLogFloors).length ≤ 6 ∧
+    ∀ h ∈ List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) rows tableLogFloors, h ≤ 32 := by
+  have key : ∀ (rows floors : List ℕ), (∀ r ∈ rows, r ≤ 2 ^ 32) → (∀ f ∈ floors, f ≤ 32) →
+      ∀ h ∈ List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) rows floors, h ≤ 32 := by
+    intro rows
+    induction rows with
+    | nil => intro floors _ _ h hh; simp at hh
+    | cons r rows ih =>
+      intro floors hr hf h hh
+      cases floors with
+      | nil => simp at hh
+      | cons f floors =>
+        simp only [List.zipWith_cons_cons, List.mem_cons] at hh
+        rcases hh with rfl | hh
+        · have := log2Ceil_le (hr r (by simp)); have := hf f (by simp); omega
+        · exact ih floors (fun x hx ↦ hr x (by simp [hx])) (fun x hx ↦ hf x (by simp [hx])) h hh
+  refine ⟨by simp [tableLogFloors_eq], key rows tableLogFloors hr (by
+    rw [tableLogFloors_eq]; intro f hf; simp at hf; omega)⟩
+
+open LeanVM.Protocol.Verifier in
+theorem columnKappas_facts (logMemory logBytecode : ℕ) (heights : List ℕ) (hm : logMemory ≤ 32)
+    (hb : logBytecode ≤ 32) (hh : ∀ i, heights.getD i 0 ≤ 32) :
+    (columnKappas logMemory logBytecode heights).length = 163 ∧
+      ∀ x ∈ columnKappas logMemory logBytecode heights, x ≤ 40 := by
+  rw [FastLib.columnKappasLit, qkeccakSlotBits_eq]
+  refine ⟨by simp only [List.length_append, List.length_cons, List.length_nil, List.flatMap_cons,
+    List.flatMap_nil, List.length_replicate, List.append_nil], fun x hx ↦ ?_⟩
+  simp only [List.mem_append, List.mem_cons, List.mem_flatMap, List.mem_replicate,
+    List.not_mem_nil, or_false] at hx
+  rcases hx with (rfl | rfl | rfl | rfl | rfl | rfl) | ⟨p, -, -, rfl⟩
+  all_goals first | omega | (have := hh opKeccak; omega) | (have := hh p.2; omega)
+
+open LeanVM.Protocol.Verifier in
+/-- **The layout's fields**: `9` per bytecode word, then at most `1.0045·10^9`. -/
+theorem buildLayoutLite_cost (hP : Includes P buildLayoutLiteC.costDeps) (bytecode : List K)
+    (logMemory : ℕ) (tableRows : List ℕ) (hb : bytecode.length < 2 ^ 63) (hm : logMemory < 2 ^ 64)
+    (hr : ∀ r ∈ tableRows, r < 2 ^ 64) (hrl : tableRows.length ≤ 6) :
+    machineCost P buildLayoutLiteC.costIdx [enc bytecode, enc logMemory, enc tableRows] ≤
+      9 * bytecode.length + 1004500000 := by
+  rw [buildLayoutLiteC.costEq P hP]
+  have hbl := Replay.length_cost P (by includes) bytecode (by omega)
+  have hls := log2Strict_cost P (by includes) bytecode.length (by omega)
+  cases hlog : log2Strict bytecode.length with
+  | none => simp only; omega
+  | some val =>
+    simp only
+    have hval := log2Strict_le (by omega) hlog
+    have hall := all_cost P (by includes) (fun x : ℕ ↦ decide (x ≤ 2 ^ 32))
+      (.fn buildLayoutLiteC.lam0.costIdx [])
+      (fun x ↦ RunsApp.of_spec (buildLayoutLiteC.lam0.costSpec P (by includes) x)) 8 tableRows
+      (fun x hx ↦ by
+        rw [appCost_fn, List.nil_append, buildLayoutLiteC.lam0.costEq P (by includes),
+          limbs_of_lt (hr x hx), limbs_of_lt (by norm_num : 1 <<< 32 < 2 ^ 64),
+          limbs_of_lt (by norm_num : (2 : ℕ) ^ 32 < 2 ^ 64)]
+        simp)
+    have hlr := Replay.length_cost P (by includes) tableRows (by omega)
+    simp only [busBits, FastLib.tablesLength, limbs_of_lt hm, limbs_of_lt (by omega : val < 2 ^ 64),
+      limbs_of_lt (by omega : val - 4 < 2 ^ 64), limbs_of_lt (by omega : tableRows.length < 2 ^ 64),
+      limbs_of_lt (by norm_num : (4 : ℕ) < 2 ^ 64), max_self]
+    have h6 : limbs 6 = 1 := limbs_of_lt (by norm_num)
+    by_cases hc : 4 ≤ val ∧ 16 ≤ logMemory ∧ logMemory ≤ 32 ∧
+        (tableRows.all fun x ↦ decide (x ≤ 2 ^ 32)) = true ∧ val - 4 ≤ 32 ∧ tableRows.length = 6
+    · obtain ⟨c1, c2, c3, c4, c5, c6⟩ := hc
+      have hr32 : ∀ r ∈ tableRows, r ≤ 2 ^ 32 := fun r hr' ↦ by
+        have := List.all_eq_true.1 c4 r hr'; simpa using this
+      set heights := List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) tableRows
+        tableLogFloors with hheights
+      obtain ⟨hhl, hhm⟩ := heights_facts tableRows hr32
+      have hhl' : heights.length ≤ 6 := hhl
+      have hhD : ∀ i, heights.getD i 0 ≤ 32 := fun i ↦ by
+        rcases getD_mem_or heights i 0 with h' | h'
+        · exact hhm _ h'
+        · rw [h']; omega
+      have htf : machineCost P tableLogFloorsC.costIdx [] = 25 := tableLogFloorsC.costEq P (by includes)
+      have hzip := listZipWith_le P (by includes) (fun rows floor ↦ max (log2Ceil rows) floor)
+        (.fn buildLayoutLiteC.lam1.costIdx [])
+        (fun r f ↦ RunsApp.of_spec (buildLayoutLiteC.lam1.costSpec P (by includes) r f)) 1694
+        tableRows tableLogFloors (fun r hr' f hf ↦ by
+          rw [tableLogFloors_eq] at hf
+          simp only [List.mem_cons, List.not_mem_nil, or_false] at hf
+          have hf9 : f ≤ 9 := by rcases hf with rfl | rfl | rfl | rfl | rfl | rfl <;> omega
+          rw [appCost_fn, List.nil_append, buildLayoutLiteC.lam1.costEq P (by includes)]
+          have hb1 := bitLength_cost P (by includes) (r - 1) (by have := hr r hr'; omega)
+          have hl := log2Ceil_lt (hr r hr')
+          rw [limbs_of_lt (hr r hr'), limbs_of_lt (by omega : log2Ceil r < 2 ^ 64),
+            limbs_of_lt (by omega : f < 2 ^ 64)]
+          simp only [max_self]
+          split_ifs <;> omega)
+      have hgk := Replay.getD_cost P (by includes) heights opKeccak 0 (by simp [opKeccak])
+      have hb49 := bitLength_cost P (by includes) (25 * keccakSegments - 1)
+        (by simp [keccakSegments, keccakDepth])
+      have hmap := Replay.map_cost P (by includes)
+        (fun p : ℕ × ℕ ↦ List.replicate p.1 (heights.getD p.2 0))
+        (.fn buildLayoutLiteC.lam2.costIdx [enc heights])
+        (fun p ↦ RunsApp.of_spec (buildLayoutLiteC.lam2.costSpec P (by includes) heights p)) 1649
+        [(15, 0), (15, 1), (8, 2), (15, 3), (14, 4), (90, 5)] (fun p hp ↦ by
+          have hp1 : p.1 ≤ 90 := by
+            simp only [List.mem_cons, List.not_mem_nil, or_false] at hp
+            rcases hp with rfl | rfl | rfl | rfl | rfl | rfl <;> simp
+          rw [appCost_fn, List.cons_append, List.nil_append,
+            buildLayoutLiteC.lam2.costEq P (by includes)]
+          have g := Replay.getD_cost P (by includes) heights p.2 0 (by
+            simp only [List.mem_cons, List.not_mem_nil, or_false] at hp
+            rcases hp with rfl | rfl | rfl | rfl | rfl | rfl <;> simp)
+          have rp := replicate_cost' P (by includes) (heights.getD p.2 0) p.1 (by omega)
+          omega)
+      have hflat := (Replay.flatten_cost P (by includes)
+        ((List.map (fun p : ℕ × ℕ ↦ List.replicate p.1 (heights.getD p.2 0))
+          [(15, 0), (15, 1), (8, 2), (15, 3), (14, 4), (90, 5)]))).trans (le_of_eq (show _ = 1524 by
+            simp only [List.map_cons, List.map_nil, List.flatten_cons, List.flatten_nil,
+              List.length_append, List.length_replicate, List.length_cons, List.length_nil]))
+      have happ := (Replay.append_cost P (by includes)
+        (List.flatMap (fun p : ℕ × ℕ ↦ List.replicate p.1 (heights.getD p.2 0))
+          [(15, 0), (15, 1), (8, 2), (15, 3), (14, 4), (90, 5)])
+        [logMemory, logMemory, logMemory, logMemory, val - 4,
+          heights.getD opKeccak 0 + qkeccakSlotBits]).trans (le_of_eq (show _ = 57 by rfl))
+      have htl : tableLogFloors.length = 6 := by rw [tableLogFloors_eq]; rfl
+      obtain ⟨hkl, hkm⟩ := columnKappas_facts logMemory (val - 4) heights c3 c5 hhD
+      have hpl := placementsOf_cost P (by includes) (columnKappas logMemory (val - 4) heights)
+        (by omega) hkm
+      have hq := qkeccakSlotBits_eq
+      have hgk' := hhD opKeccak
+      simp only [List.length_cons, List.length_nil] at hmap
+      rw [hhl.antisymm (by simp [tableLogFloors_eq]; omega)] at hgk
+      rw [ite_eq_left (show 4 ≤ val ∧ 16 ≤ logMemory ∧ logMemory ≤ 32 ∧
+        (tableRows.all fun x ↦ decide (x ≤ 2 ^ 32)) = true ∧ val - 4 ≤ 32 ∧ tableRows.length = 6
+        from ⟨c1, c2, c3, c4, c5, c6⟩)]
+      simp only [c1, c2, c3, c4, c5, ↓reduceIte, keccakDepth, keccakSegments,
+        limbs_of_lt (by norm_num : (12 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (2 : ℕ) < 2 ^ 64),
+        limbs_of_lt (by norm_num : (50 : ℕ) < 2 ^ 64),
+        limbs_of_lt (by omega : heights.getD opKeccak 0 < 2 ^ 64),
+        limbs_of_lt (by omega : qkeccakSlotBits < 2 ^ 64)] at hb49 ⊢
+      simp only [Nat.reduceDiv, Nat.reduceMul] at hb49 ⊢
+      have hmin : min tableRows.length tableLogFloors.length ≤ 6 := by omega
+      simp only [max_self] at ⊢
+      omega
+    · rw [ite_eq_right hc]
+      split_ifs <;> omega
+
+/-! ## The sizes and the root -/
+
+open LeanVM.Protocol.Compile in
+theorem readPure_some : ∀ (n : ℕ) (s : ProgState) (xs : List E) (s' : ProgState),
+    readPure n s = some (xs, s') → xs.length = n ∧ s'.roots = s.roots ∧
+      (s.sponge.pending.length ≤ 4 → s'.sponge.pending.length ≤ 4)
+  | 0, s, xs, s', h => by
+    simp only [readPure, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    exact ⟨rfl, rfl, id⟩
+  | n + 1, ⟨sp, stream, os, roots⟩, xs, s', h => by
+    cases stream with
+    | nil => simp [readPure] at h
+    | cons x rest =>
+      simp only [readPure] at h
+      obtain ⟨r, hr, hr'⟩ := Option.map_eq_some_iff.1 h
+      simp only [Prod.mk.injEq] at hr'
+      obtain ⟨rfl, rfl⟩ := hr'
+      obtain ⟨h1, h2, h3⟩ := readPure_some n _ r.1 r.2 hr
+      exact ⟨by simp [h1], h2, fun hp ↦ h3 (absorbPure_pending_le sp x dsObserve hp)⟩
+
+theorem kToNat_lt (a : K) : LeanVM.Protocol.Verifier.kToNat a < 2 ^ 64 := by
+  rw [FastLib.kToNatLane]; exact UInt64.toNat_lt _
+
+open LeanVM.Protocol.Verifier in
+theorem buildLayoutLite_stackLog {bytecode : List K} {logMemory : ℕ} {tableRows : List ℕ}
+    {L : LayoutLite} (h : buildLayoutLite bytecode logMemory tableRows = some L) :
+    L.stackLog ≤ 64 := by
+  unfold buildLayoutLite at h
+  split at h
+  · simp at h
+  · rename_i val _
+    split_ifs at h with hc
+    obtain rfl := Option.some.inj h
+    obtain ⟨c1, c2, c3, c4, c5, c6⟩ := hc
+    have hr32 : ∀ r ∈ tableRows, r ≤ 2 ^ 32 := fun r hr' ↦ by
+      have := List.all_eq_true.1 c4 r hr'; simpa using this
+    obtain ⟨-, hhm⟩ := heights_facts tableRows hr32
+    set heights := List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) tableRows
+      tableLogFloors
+    have hhD : ∀ i, heights.getD i 0 ≤ 32 := fun i ↦ by
+      rcases getD_mem_or heights i 0 with h' | h'
+      · exact hhm _ h'
+      · rw [h']; omega
+    obtain ⟨hkl, hkm⟩ := columnKappas_facts logMemory (val - busBits) heights c3
+      (by simp only [busBits] at c5 ⊢; omega) hhD
+    show (placementsOf (columnKappas logMemory (val - busBits) heights)).2 ≤ 64
+    unfold placementsOf
+    dsimp only
+    set kappas := columnKappas logMemory (val - busBits) heights
+    set cols := List.filter (fun c ↦ decide ((keccakSlot c).isNone = true ∧ c ∉ keccakOutputColumns))
+      (List.range kappas.length)
+    have hcl : cols.length ≤ 163 := (List.length_filter_le _ _).trans (by simp [hkl])
+    obtain ⟨-, hsnd⟩ := stackOffsets_bounds (cols.map (kappas.getD · 0)) (by simp; omega)
+      (fun x hx ↦ by
+        obtain ⟨i, -, rfl⟩ := List.mem_map.1 hx
+        rcases getD_mem_or kappas i 0 with h' | h'
+        · exact hkm _ h'
+        · rw [h']; omega)
+    simp only [Whir.minLogStack]
+    omega
+
+open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier in
+/-- **The announced sizes**: eight scalars read, the layout built: `9` per bytecode word and at
+most `1.00451·10^9`. -/
+theorem readSizesLite_cost (hP : Includes P readSizesLiteC.costDeps) (bytecode : List K)
+    (s : ProgState) (hb : bytecode.length < 2 ^ 63) (hs : s.sponge.pending.length ≤ 4) :
+    machineCost P readSizesLiteC.costIdx [enc bytecode, enc s] ≤
+      9 * bytecode.length + 1004510000 := by
+  rw [readSizesLiteC.costEq P hP, FastLib.tablesLength, limbs_of_lt (by norm_num : (6 : ℕ) < 2 ^ 64)]
+  have hr := readPure_cost P (by includes) 8 s (by norm_num) hs
+  rw [show (2 + 6 : ℕ) = 8 from rfl, Auto.Option.bind.c323.costEq P (by includes) _ _ _
+    (fun r ↦ RunsApp.of_spec (readSizesLiteC.lam0.costSpec P (by includes) bytecode r))]
+  cases hrp : readPure 8 s with
+  | none => simp only; omega
+  | some r =>
+    obtain ⟨xs, s'⟩ := r
+    obtain ⟨hxl, -, -⟩ := readPure_some 8 s xs s' hrp
+    simp only [appCost_fn, List.cons_append, List.nil_append]
+    rw [readSizesLiteC.lam0.costEq P (by includes)]
+    simp only [FastLib.tablesLength]
+    have hall := all_cost P (by includes) (fun value : E ↦ decide (value.limb 1 = 0 ∧ value.limb 2 = 0))
+      (.fn readSizesLiteC.lam0.lam0.costIdx [])
+      (fun v ↦ RunsApp.of_spec (readSizesLiteC.lam0.lam0.costSpec P (by includes) v)) 9 xs
+      (fun v _ ↦ by
+        rw [appCost_fn, List.nil_append, readSizesLiteC.lam0.lam0.costEq P (by includes)]
+        split <;> omega)
+    have hd := drop_cost P (by includes) 1 xs (by norm_num)
+    have ht := take_cost P (by includes) 6 (List.drop 1 xs) (by norm_num)
+    have hm := Replay.map_cost P (by includes) (fun value : E ↦ kToNat (value.limb 0))
+      (.fn readSizesLiteC.lam0.lam1.costIdx [])
+      (fun v ↦ RunsApp.of_spec (readSizesLiteC.lam0.lam1.costSpec P (by includes) v)) 3
+      (List.take 6 (List.drop 1 xs))
+      (fun v _ ↦ by rw [appCost_fn, List.nil_append, readSizesLiteC.lam0.lam1.costEq P (by includes)])
+    have hrv := Replay.reverseAux_cost P (by includes) xs []
+    have hbl := buildLayoutLite_cost P (by includes) bytecode (kToNat ((xs.headD 0).limb 0))
+      (List.map (fun value ↦ kToNat (value.limb 0)) (List.take 6 (List.drop 1 xs))) hb
+      (kToNat_lt _) (fun r hr' ↦ by
+        obtain ⟨v, -, rfl⟩ := List.mem_map.1 hr'
+        exact kToNat_lt _) (by simp)
+    have hbind : ∀ o : Option LayoutLite, (∀ L, o = some L → L.stackLog ≤ 64) →
+        machineCost P Auto.Option.bind.c323.costIdx [enc o, Val.fn readSizesLiteC.lam0.lam2.costIdx
+          [enc (xs, s'), enc (kToNat ((xs.getLastD 0).limb 0))]] ≤ 40 := by
+      intro o ho
+      rw [Auto.Option.bind.c323.costEq P (by includes) _ _ _
+        (fun L ↦ RunsApp.of_spec (readSizesLiteC.lam0.lam2.costSpec P (by includes) (xs, s') _ L))]
+      cases o with
+      | none => simp
+      | some L =>
+        have hL := ho L rfl
+        simp only [appCost_fn, List.cons_append, List.nil_append]
+        rw [readSizesLiteC.lam0.lam2.costEq P (by includes),
+          limbs_of_lt (by omega : L.stackLog < 2 ^ 64), limbs_of_lt (by simp [Whir.minLogStack]),
+          limbs_of_lt (by simp [Whir.maxLogStack])]
+        simp only [max_self]
+        split_ifs <;> omega
+    have hbd := hbind (buildLayoutLite bytecode (kToNat ((xs.headD 0).limb 0))
+      (List.map (fun value ↦ kToNat (value.limb 0)) (List.take 6 (List.drop 1 xs))))
+      (fun L hL ↦ buildLayoutLite_stackLog hL)
+    have hdl : (List.drop 1 xs).length = 7 := by simp [hxl]
+    have htl : (List.take 6 (List.drop 1 xs)).length = 6 := by rw [List.length_take, hdl]; rfl
+    rw [hxl] at hall hd hrv
+    rw [hdl] at ht
+    rw [htl] at hm
+    have hk := kToNat_lt ((xs.getLastD 0).limb 0)
+    rw [limbs_of_lt hk]
+    obtain ⟨x0, t, rfl⟩ : ∃ x0 t, xs = x0 :: t := List.exists_cons_of_ne_nil (by
+      intro h; rw [h] at hxl; simp at hxl)
+    obtain ⟨y0, u, hy⟩ : ∃ y0 u, (x0 :: t).reverse = y0 :: u :=
+      List.exists_cons_of_ne_nil (by simp)
+    rw [hy]
+    simp only
+    split_ifs <;> omega
+
+open LeanVM.Protocol.Compile in
+theorem readSizesLite_some {bytecode : List K} {s s' : ProgState} {L : LayoutLite} {R : ℕ}
+    (h : readSizesLite bytecode s = some ((L, R), s')) :
+    R ≤ 4 ∧ L.stackLog ≤ 28 ∧ s'.roots = s.roots ∧
+      (s.sponge.pending.length ≤ 4 → s'.sponge.pending.length ≤ 4) := by
+  unfold readSizesLite at h
+  obtain ⟨r, hr, h⟩ := Option.bind_eq_some_iff.1 h
+  obtain ⟨-, hroots, hpend⟩ := readPure_some _ s r.1 r.2 hr
+  split_ifs at h
+  dsimp only at h
+  split_ifs at h with h2
+  obtain ⟨L', -, hl⟩ := Option.bind_eq_some_iff.1 h
+  split_ifs at hl with h3
+  simp only [Option.some.injEq, Prod.mk.injEq] at hl
+  obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hl
+  simp only [LeanVM.Parameters.Whir.maxLogStack] at h3
+  exact ⟨h2.2, h3.2, hroots, hpend⟩
+
+/-- **The replay up to the stack's root** (`afterRootLite bytecode π`): at most
+`9·|bytecode| + 1004514000`, whatever the proof (it reads ten scalars of it). -/
+theorem afterRootLite_cost (hP : Includes P afterRootLiteC.costDeps) (bytecode : List K)
+    (π : LeanVM.Protocol.Compile.Proof) (hb : bytecode.length < 2 ^ 63) :
+    machineCost P afterRootLiteC.costIdx [enc bytecode, enc π] ≤
+      9 * bytecode.length + 1004514000 := by
+  rw [afterRootLiteC.costEq P hP, initialStateC.costEq P (by includes)]
+  have hrs := readSizesLite_cost P (by includes) bytecode (initialState π) hb (by simp [initialState])
+  rw [Auto.Option.bind.c323.costEq P (by includes) _ _ _
+    (fun r ↦ RunsApp.of_spec (afterRootLiteC.lam0.costSpec P (by includes) r))]
+  cases hr : readSizesLite bytecode (initialState π) with
+  | none => simp only; omega
+  | some r =>
+    obtain ⟨⟨L, R⟩, s'⟩ := r
+    obtain ⟨hR, hL, hroots, hpend⟩ := readSizesLite_some hr
+    simp only [appCost_fn, List.nil_append]
+    rw [afterRootLiteC.lam0.costEq P (by includes)]
+    dsimp only
+    have hc := commitStackPure_cost P (by includes) L.stackLog R s' (by omega) (by omega)
+      (hpend (by simp [initialState]))
+    rw [hroots] at hc
+    simp only [initialState, List.length_nil] at hc
+    have hm : machineCost P Auto.Option.map.c106.costIdx [Val.fn afterRootLiteC.lam0.lam0.costIdx
+        [enc ((L, R), s')], enc (commitStackPure L.stackLog R s')] ≤ 14 := by
+      rw [Auto.Option.map.c106.costEq P (by includes) _ _
+        (fun t ↦ RunsApp.of_spec (afterRootLiteC.lam0.lam0.costSpec P (by includes) ((L, R), s') t))]
+      cases commitStackPure L.stackLog R s' with
+      | none => simp
+      | some t =>
+        simp only [appCost_fn, List.cons_append, List.nil_append]
+        rw [afterRootLiteC.lam0.lam0.costEq P (by includes)]
+    omega
+
+end
+
+end LeanVM.Cost.Bounds

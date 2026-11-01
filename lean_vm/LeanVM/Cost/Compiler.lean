@@ -142,12 +142,14 @@ def rewrites : List (Name × Name) := [
   (``Decidable.decide, ``Rewrite.decideForallFin),
   (``Decidable.decide, ``Rewrite.decideEqFin),
   (``Decidable.decide, ``Rewrite.decideBAll),
+  (``Decidable.decide, ``Rewrite.decideMemList),
   (``LeanVM.Parameters.K.ofBits, ``Rewrite.kOfBits),
   (``HAdd.hAdd, ``Rewrite.eAdd),
   (``HMul.hMul, ``Rewrite.eMul),
   (``OfNat.ofNat, ``Rewrite.eZero),
   (``LeanVM.Parameters.ofK, ``Rewrite.eOfK),
   (``Array.ofFn, ``Rewrite.arrOfFn),
+  (``List.finRange, ``Rewrite.listFinRange),
   (``List.ofFn, ``Rewrite.listOfFn),
   (``Finset.prod, ``Rewrite.finsetProdRange),
   (``Nat.log2, ``Rewrite.natLog2),
@@ -264,6 +266,9 @@ structure Ctx where
   baseInsts : LocalInstances := #[]
   /-- The definitions unfolded so far. -/
   inlined : IO.Ref (Array Name)
+  /-- The lambdas compiled under the induction hypothesis (`localClosure`): name, closed term,
+  index, body, encoded positions; compiled again once the function's spec exists. -/
+  postLams : IO.Ref (Array (Name × Expr × Nat × Name × Array Nat))
 
 /-- The context with `x`'s encoding in front. -/
 def Ctx.push (ctx : Ctx) (x : Expr) : MetaM Ctx := do
@@ -435,13 +440,36 @@ def findCompiled? (e : Expr) : MetaM (Option (CompiledFn × Array Expr)) := do
         unless ← isDefEq args[i]! cf.static[i]! do
           ok := false
           break
-      if ok then return some (cf, args.extract cf.static.size args.size)
+      -- a type parameter needs its encoding: without one, the call is translated otherwise
+      if ok then
+        let rest := args.extract cf.static.size args.size
+        for (a, k) in rest.zip cf.params do
+          if k == .type then
+            let enc? ← try synthInstance? (← mkAppM ``Enc #[a]) catch _ => pure none
+            if enc?.isNone then
+              ok := false
+              break
+        if ok then return some (cf, rest)
   return none
 
 /-- The bodies a spec needs: its own, then its callees', each once. -/
 def mergeDeps (own : Nat × Name) (callees : Array (Array (Nat × Name))) : Array (Nat × Name) :=
-  callees.foldl (fun acc ds ↦ ds.foldl (fun acc d ↦
-    if acc.any (·.1 == d.1) then acc else acc.push d) acc) #[own]
+  -- sorted by index: a callee's list is then a sublist of its caller's (`Includes.ofSublist`)
+  (callees.foldl (fun acc ds ↦ ds.foldl (fun acc d ↦
+    if acc.any (·.1 == d.1) then acc else acc.push d) acc) #[own]).qsort (·.1 < ·.1)
+
+/-- A proof of `List.Sublist l' l` for literal lists, `l'`'s entries occurring in `l` in the same
+order: one constructor per entry of `l`. -/
+partial def sublistProof (ty l' l : Expr) : MetaM Expr := do
+  unless l.isAppOfArity ``List.cons 3 do
+    unless l'.isAppOfArity ``List.nil 1 do throwError "sublistProof: not a sublist"
+    return mkApp (mkConst ``List.Sublist.slnil [0]) ty
+  let a := l.appFn!.appArg!
+  let t := l.appArg!
+  if l'.isAppOfArity ``List.cons 3 && l'.appFn!.appArg! == a then
+    let xs := l'.appArg!
+    return mkAppN (mkConst ``List.Sublist.cons_cons [0]) #[ty, xs, t, a, ← sublistProof ty xs t]
+  return mkAppN (mkConst ``List.Sublist.cons [0]) #[ty, l', t, a, ← sublistProof ty l' t]
 
 /-- A proof of `x ∈ l`, `l` a list literal holding `x` (syntactically), by its position. -/
 partial def memProof (x l : Expr) : MetaM Expr := do
@@ -466,6 +494,36 @@ partial def forallMemProof (l l' : Expr) : MetaM Expr := do
     else return a
   else return mkConst ``True.intro
 
+/-- A proof of `List.Forall (fun p ↦ l.lookup p.1 = some p.2) l'` for literal lists of pairs
+`(j, b)`: each conjunct `rfl` (the kernel evaluates the lookup), built without elaboration-time
+checks, so its size is linear in `l'` (`Includes.ofLookup`). -/
+partial def forallLookupProof (l l' : Expr) : MetaM Expr := do
+  let pairTy ← mkAppM ``Prod #[mkConst ``Nat, mkConst ``Term]
+  let optTerm := mkApp (mkConst ``Option [0]) (mkConst ``Term)
+  let inst ← synthInstance (mkApp (mkConst ``BEq [0]) (mkConst ``Nat))
+  let pred ← withLocalDeclD `p pairTy fun p ↦ do
+    let lk := mkAppN (mkConst ``List.lookup [0, 0]) #[mkConst ``Nat, mkConst ``Term, inst,
+      mkProj ``Prod 0 p, l]
+    let sm := mkApp2 (mkConst ``Option.some [0]) (mkConst ``Term) (mkProj ``Prod 1 p)
+    mkLambdaFVars #[p] (mkApp3 (mkConst ``Eq [1]) optTerm lk sm)
+  let rec go (l' : Expr) : MetaM Expr := do
+    unless l'.isAppOfArity ``List.cons 3 do return mkConst ``True.intro
+    let x := l'.appFn!.appArg!
+    let tl := l'.appArg!
+    let j := x.appFn!.appArg!
+    let b := x.appArg!
+    let lk := mkAppN (mkConst ``List.lookup [0, 0]) #[mkConst ``Nat, mkConst ``Term, inst, j, l]
+    let sm := mkApp2 (mkConst ``Option.some [0]) (mkConst ``Term) b
+    let a := mkApp3 (mkConst ``Eq [1]) optTerm lk sm
+    let pa := mkExpectedTypeHint' (mkApp2 (mkConst ``Eq.refl [1]) optTerm sm) a
+    -- `List.Forall p [x]` is `p x`, without a conjunction
+    unless tl.isAppOfArity ``List.cons 3 do return pa
+    let rest := mkApp3 (mkConst ``List.Forall [0]) pairTy pred tl
+    return mkApp4 (mkConst ``And.intro) a rest pa (← go tl)
+  go l'
+where
+  mkExpectedTypeHint' (e ty : Expr) : Expr := mkApp2 (mkConst ``id [0]) ty e
+
 /-- A line of the compiler's trace, to the file `COST_TRACE` names (when set). -/
 def costTrace (msg : String) : IO Unit := do
   if let some path ← IO.getEnv "COST_TRACE" then
@@ -476,10 +534,10 @@ def solvePending (pending : Array (MVarId × Array (Nat × Name))) (hP deps : Ex
     MetaM Unit := do
   for (m, depsH) in pending do
     let l' ← depsExpr depsH
-    let fa ← forallMemProof deps l'
-    let ty := mkAppN (mkConst ``Includes) #[(← instantiateMVars (← inferType hP)).appFn!.appArg!, l']
-    m.assign (← mkExpectedTypeHint (mkAppN (mkConst ``Includes.ofForall)
-      #[(← instantiateMVars (← inferType hP)).appFn!.appArg!, deps, l', hP, fa]) ty)
+    let pairTy ← mkAppM ``Prod #[mkConst ``Nat, mkConst ``Term]
+    let hs ← sublistProof pairTy l' deps
+    let P := (← instantiateMVars (← inferType hP)).appFn!.appArg!
+    m.assign (mkAppN (mkConst ``Includes.ofSublist) #[P, deps, l', hP, hs])
 
 /-- Add a definition with its body exposed (visible to importing modules without `import all`)
 and compile it. -/
@@ -1155,7 +1213,8 @@ partial def translateList (ctx : Ctx) (es : List (Expr ⊕ (Expr × Expr × Expr
 code from its captures and parameters, its proof using the induction hypothesis, its body a
 dependency of the function being compiled. Returns what `closureOf` returns. -/
 partial def localClosure (ctx : Ctx) (f fty : Expr) (arity : Nat) (caps : Array Entry)
-    (ps : Array Expr) (body : Expr) : MetaM (Expr × Expr × Expr × Expr × Expr) := do
+    (ps : Array Expr) (body lam : Expr) (encAt : Array Nat) :
+    MetaM (Expr × Expr × Expr × Expr × Expr) := do
   let _ := arity
   -- the body's environment: the captures, then the parameters (`var 0` the first capture)
   let env0 ← mkAppOptM ``List.nil #[mkConst ``Val]
@@ -1173,6 +1232,8 @@ partial def localClosure (ctx : Ctx) (f fty : Expr) (arity : Nat) (caps : Array 
   let j ← nextIndex ctx.reserved
   let bodyName := name.str "costBody"
   addAndCompile <| .defnDecl (mkDefinitionValEx bodyName [] (mkConst ``LeanVM.Cost.Term) tj .abbrev .safe [])
+  -- compiled again, with a spec of its own, once the function's spec exists
+  ctx.postLams.modify (·.push (name, lam, j, bodyName, encAt))
   let entry : CompiledFn :=
     { head := name, static := #[], params := #[], index := j, body := bodyName, spec := bodyName,
       deps := #[(j, bodyName)] }
@@ -1223,22 +1284,59 @@ partial def closureOf (ctx : Ctx) (f : Expr) (arity : Nat) :
   let fty ← inferType f
   forallBoundedTelescope fty arity fun ps _ ↦ do
     let body ← Core.betaReduce (mkAppN f ps)
-    let fvs := (← body.collectFVars.run {}).2.fvarIds.filter fun x ↦ !ps.contains (.fvar x)
-    let caps := ctx.vals.filter fun en ↦ match en with
+    -- values bound by `let` (in the environment by value) that the lambda uses: captured, so
+    -- that the lambda reads them instead of recomputing them; abstracted as parameters (the
+    -- larger first, a value inside another replaced with it)
+    let mut cands : Array Expr := #[]
+    for en in ctx.vals do
+      if let .enc x := en then
+        if !x.isFVar && !x.hasLooseBVars && (← natLit? x).isNone && !cands.contains x &&
+            (body.find? (· == x)).isSome then
+          cands := cands.push x
+    -- a partial application's data arguments are evaluated once, when the closure is made
+    unless f.isLambda do
+      for a in f.getAppArgs do
+        if a.isFVar || a.hasLooseBVars || cands.contains a || (← natLit? a).isSome then continue
+        let aty ← inferType a
+        if (← isProp aty) || (← isType a) || (← whnf aty).isForall || (← isClass? aty).isSome then
+          continue
+        let some _ ← (try synthInstance? (← mkAppM ``Enc #[aty]) catch _ => pure none) | continue
+        cands := cands.push a
+    -- kept when abstracting it leaves the lambda well typed (a value may occur in types)
+    let mut used : Array Expr := #[]
+    for x in cands.qsort fun a b ↦ a.approxDepth > b.approxDepth do
+      let ok ← withLocalDeclD `c (← inferType x) fun y ↦ do
+        let b := body.replace fun s ↦ if s == x then some y else none
+        isTypeCorrect (← mkLambdaFVars (#[y] ++ ps) b)
+      if ok then used := used.push x
+    let letVals := used
+    let letDecls ← letVals.mapIdxM fun i x ↦ do
+      pure (Name.mkSimple s!"cap{i}", ← inferType x)
+    withLocalDeclsDND letDecls fun ys ↦ do
+    let body' := (letVals.zip ys).foldl (fun b (x, y) ↦
+      b.replace fun s ↦ if s == x then some y else none) body
+    let fvs := (← body'.collectFVars.run {}).2.fvarIds.filter fun x ↦
+      !ps.contains (.fvar x) && !ys.contains (.fvar x)
+    let caps := (ctx.vals.filter fun en ↦ match en with
       | .enc x => x.isFVar && fvs.contains x.fvarId!
-      | .fn g _ _ _ => g.isFVar && fvs.contains g.fvarId!
-    let capFvs : Array Expr := caps.map fun en ↦ match en with
+      | .fn g _ _ _ => g.isFVar && fvs.contains g.fvarId!) ++ letVals.map Entry.enc
+    let capFvs : Array Expr := (caps.extract 0 (caps.size - letVals.size)).map (fun en ↦
+      match en with
       | .enc x => x
-      | .fn g _ _ _ => g
+      | .fn g _ _ _ => g) ++ ys
     for x in fvs do
       unless capFvs.contains (.fvar x) || ctx.types.contains (.fvar x) do
         throwError "closure: free variable {Expr.fvar x} of {f} is not in the environment"
     -- a lambda calling the function being compiled: compiled here, its proof under the
     -- induction hypothesis (the recursive calls in it decrease whatever its arguments)
+    let lam ← instantiateMVars (← mkLambdaFVars (ctx.types ++ capFvs ++ ps) body')
+    let nt := ctx.types.size
+    let encAt := (caps.zipIdx.filterMap fun (en, j) ↦ match en with
+        | .enc _ => some (nt + j)
+        | .fn .. => none) ++ (Array.range ps.size).map (nt + caps.size + ·)
     if let some self := ctx.self then
       if (body.find? fun s ↦ s.getAppFn == self.term.getAppFn).isSome then
-        return ← localClosure ctx f fty arity caps ps body
-    let lam ← instantiateMVars (← mkLambdaFVars (ctx.types ++ capFvs ++ ps) body)
+        return ← localClosure ctx f fty arity caps ps body lam encAt
     -- the same lambda compiled before: reused
     let reg := compiledExt.getState (← getEnv)
     let prior := reg.foldl (fun acc _ fs ↦ acc <|> fs.find? (·.lam? == some lam)) none
@@ -1248,10 +1346,6 @@ partial def closureOf (ctx : Ctx) (f : Expr) (arity : Nat) :
         let k ← ctx.lams.modifyGet fun n ↦ (n, n + 1)
         let name := ctx.base.str s!"lam{k}"
         let idx ← nextIndex ctx.reserved
-        let nt := ctx.types.size
-        let encAt := (caps.zipIdx.filterMap fun (en, j) ↦ match en with
-            | .enc _ => some (nt + j)
-            | .fn .. => none) ++ (Array.range ps.size).map (nt + caps.size + ·)
         withLCtx {} {} (compileFn name lam idx none ctx.reserved encAt)
     -- the closure: function `cf.index` with the captures' values
     let mut capArgs : Array (Expr ⊕ (Expr × Expr × Expr × Expr)) := #[]
@@ -1422,7 +1516,8 @@ its encoded parameters (as a tuple) that its recursive calls decrease. The param
 `encAt` (a lifted lambda's encoded captures and its own parameters, passed as values) are encoded,
 functions included. -/
 partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option Expr)
-    (reserved : Array Nat := #[]) (encAt : Array Nat := #[]) : MetaM CompiledFn := do
+    (reserved : Array Nat := #[]) (encAt : Array Nat := #[]) (reuseBody? : Option Name := none) :
+    MetaM CompiledFn := do
   let term ← instantiateMVars term
   let ty ← inferType term
   forallTelescopeReducing ty fun xs _ ↦ do
@@ -1448,6 +1543,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
     withFnHyps P fnInfo #[] fun fnHyps ↦ do
     let pending ← IO.mkRef #[]
     let lams ← IO.mkRef 0
+    let postLams ← IO.mkRef #[]
     let lhs ← Core.betaReduce (mkAppN term xs)
     let (rhs, eqPf) ← if term.isLambda then
         -- a lifted lambda: its body as it is
@@ -1472,7 +1568,8 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
     let inlined ← IO.mkRef #[]
     let mut ctx : Ctx := { P := P, env := env0, vals := #[], pending := pending, base := name,
                            lams := lams, reserved := reserved.push idx, types := typeXs, inlined,
-                           baseLCtx := ← getLCtx, baseInsts := ← getLocalInstances }
+                           baseLCtx := ← getLCtx, baseInsts := ← getLocalInstances,
+                           postLams }
     for (x, k) in (xs.zip kinds).reverse do
       match k with
       | .enc | .fixed => ctx ← ctx.push x
@@ -1536,17 +1633,27 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
       costTrace s!"compile {name} translated"
       let t ← instantiateMVars t
       if t.hasFVar || t.hasMVar then throwError "the code is not closed: {t}"
-      let bodyName := name.str "costBody"
       let bodyTy := mkConst ``LeanVM.Cost.Term
-      addExposedDef bodyName bodyTy t
+      let bodyName ← match reuseBody? with
+        | some b => do
+          -- the same code as the body compiled before
+          let some (.defnInfo info) := (← getEnv).find? b | throwError "no body {b}"
+          unless info.value == t do throwError "compile {name}: the code differs from {b}"
+          pure b
+        | none => do
+          let b := name.str "costBody"
+          addExposedDef b bodyTy t
+          pure b
       addExposedDef (name.str "costIdx") (mkConst ``Nat) (mkNatLit idx)
       let pendingNow ← pending.get
       let deps := mergeDeps (idx, bodyName) (pendingNow.map (·.2))
       let depsE ← depsExpr deps
       let depsTy ← mkAppM ``List #[← mkAppM ``Prod #[mkConst ``Nat, mkConst ``Term]]
       addExposedDef (name.str "costDeps") depsTy depsE
+      costTrace s!"compile {name} deps added ({deps.size})"
       withLocalDeclD `hP (mkAppN (mkConst ``Includes) #[P, depsE]) fun hP ↦ do
         solvePending pendingNow hP depsE
+        costTrace s!"compile {name} premises solved"
         let mem ← memProof (← mkAppM ``Prod.mk #[mkNatLit idx, mkConst bodyName]) depsE
         let hb ← mkAppM ``Includes.get #[hP, mem]
         let motive ← withLocalDeclD `z (← inferType lhs) fun z ↦ do
@@ -1554,6 +1661,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
             ← mkAppM ``Enc.enc #[z], c])
         let pf' ← mkEqMPR (← mkCongrArg motive eqPf) pf
         let runBody ← mkAppM ``RunsBody.intro #[hb, pf']
+        costTrace s!"compile {name} run proved"
         -- the spec's binders: `P`, `hP`, each parameter (a function with its closure and hypothesis)
         let mut binders := #[P, hP]
         for (x, k) in xs.zip kinds do
@@ -1600,28 +1708,47 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
         let some (_, lhs0, rhs0) := rawEq.eq? | throwError "costEq: not an equation"
         let lhs1 ← withCostIdx deps lhs0
         let rhs1 ← withCostIdx deps rhs0
+        costTrace s!"compile {name} costEq indexed"
         let pf1 ← mkExpectedTypeHint costPf (← mkEq lhs1 rhs1)
         let r ← LeanVM.Cost.Fold.foldPrice rhs1
         let (rhs2, pf2) ← match r.proof? with
           | some q => pure (r.expr, ← mkEqTrans pf1 q)
           | none => pure (rhs1, pf1)
+        costTrace s!"compile {name} costEq folded"
         let costTy ← instantiateMVars (← mkForallFVars binders (← mkEq lhs1 rhs2))
         let costVal ← instantiateMVars (← mkLambdaFVars binders pf2)
         addDecl <| .thmDecl
           { name := name.str "costEq", levelParams := [], type := costTy, value := costVal }
+        costTrace s!"compile {name} costEq added"
+        -- the branch equations are a convenience: on a budget of their own (heartbeats count
+        -- allocations, so the budget also caps memory), none when it runs out
         let st ← saveState
-        try branchEqs name binders encXs lhs1 rhs1 pf1
-        catch ex =>
-          st.restore
-          costTrace s!"compile {name}: no branch equations: {← ex.toMessageData.toString}"
+        tryCatchRuntimeEx
+          (withCurrHeartbeats <| withTheReader Core.Context
+            (fun c ↦ { c with maxHeartbeats := 300000 * 1000 }) <|
+            branchEqs name binders encXs lhs1 rhs1 pf1)
+          fun ex ↦ do
+            st.restore
+            costTrace s!"compile {name}: no branch equations: {← ex.toMessageData.toString}"
 
+        costTrace s!"compile {name} branch equations done"
         let headC := if term.isLambda then name else term.getAppFn.constName!
         let entry : CompiledFn :=
           { head := headC, static := term.getAppArgs, params := kinds, index := idx,
             body := bodyName, spec := specName, deps := deps, inlined := ← inlined.get,
             lam? := if term.isLambda then some term else none }
         modifyEnv (compiledExt.addEntry · entry)
+        costTrace s!"compile {name} registered"
+        -- the lambdas compiled under the induction hypothesis: now with specs of their own
+        for (ln, lam, j, lb, lenc) in ← postLams.get do
+          let st ← saveState
+          try
+            discard <| withLCtx {} {} (compileFn ln lam j none (reserved.push idx) lenc (some lb))
+          catch ex =>
+            st.restore
+            costTrace s!"compile {ln}: no spec: {← ex.toMessageData.toString}"
         logInfo m!"{name}: function {idx}, code {t}"
+        costTrace s!"compile {name} logged"
         return entry
     match mf? with
     | some mf =>
@@ -1749,8 +1876,11 @@ elab "cost_enc " id:ident : command => Command.liftTermElabM do
       let ty ← mkForallFVars (params ++ insts) (← mkAppM ``Enc #[Tapp])
       let val ← mkLambdaFVars (params ++ insts) inst
       let name := (`LeanVM.Cost.EncOf ++ T)
-      addAndCompile <| .defnDecl (mkDefinitionValEx name [] (← instantiateMVars ty) (← instantiateMVars val)
-        (.regular 0) .safe [])
+      -- exposed: a module importing this one unfolds the encoding (`encodesAsCtor`)
+      let decl := Declaration.defnDecl (mkDefinitionValEx name [] (← instantiateMVars ty)
+        (← instantiateMVars val) (.regular 0) .safe [])
+      addDecl decl (forceExpose := true)
+      compileDecl decl
       setReducibilityStatus name .instanceReducible
       addInstance name .global 1000
 
@@ -1813,7 +1943,8 @@ elab "#translate " t:term : command => Command.liftTermElabM do
       let env0 ← mkAppOptM ``List.nil #[mkConst ``Val]
       let inlined ← IO.mkRef #[]
       let mut ctx : Ctx := { P := P, env := env0, vals := #[], pending := pending,
-                             base := `translate, lams := lams, inlined }
+                             base := `translate, lams := lams, inlined,
+                             postLams := ← IO.mkRef #[] }
       for x in xs.reverse do
         ctx ← ctx.push x
       let (t, c, pf) ← translate ctx body

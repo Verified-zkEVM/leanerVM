@@ -800,6 +800,25 @@ theorem ofFnFrom_eq {α : Type} {n : ℕ} (f : Fin n → α) :
     rw [List.drop_eq_getElem_cons hl]
     simp
 
+/-- The indices `i, …, n - 1` of `Fin n` (`List.finRange`'s, without a type parameter: its
+element type depends on `n`). -/
+def finRangeFrom (n i : ℕ) : List (Fin n) :=
+  if h : i < n then ⟨i, h⟩ :: finRangeFrom n (i + 1) else []
+termination_by n - i
+
+theorem finRangeFrom_eq (n : ℕ) : ∀ i, finRangeFrom n i = ofFnFrom (fun j : Fin n ↦ j) i := by
+  intro i
+  induction h : n - i generalizing i with
+  | zero =>
+    rw [finRangeFrom, ofFnFrom]
+    simp [show ¬ i < n by omega]
+  | succ k ih =>
+    rw [finRangeFrom, ofFnFrom]
+    simp only [show i < n by omega, ↓reduceDIte, ih (i + 1) (by omega)]
+
+theorem listFinRange (n : ℕ) : List.finRange n = finRangeFrom n 0 := by
+  rw [finRangeFrom_eq, ofFnFrom_eq _ n 0 (by omega), List.drop_zero, List.finRange]
+
 /-- `Array.ofFn` through a list. -/
 theorem arrOfFn {α : Type} {n : ℕ} (f : Fin n → α) : Array.ofFn f = (ofFnFrom f 0).toArray := by
   apply Array.ext'
@@ -928,6 +947,11 @@ theorem decideEqFin {n : ℕ} (a b : Fin n) {inst : Decidable (a = b)} :
 theorem decideBAll {α : Type} (l : List α) (p : α → Prop) [DecidablePred p]
     {inst : Decidable (∀ x ∈ l, p x)} : @decide (∀ x ∈ l, p x) inst = l.all fun x ↦ decide (p x) := by
   rw [Bool.eq_iff_iff]; simp [List.all_eq_true]
+
+/-- Membership in a list, decided by `List.elem`. -/
+theorem decideMemList {α : Type} [BEq α] [LawfulBEq α] (a : α) (l : List α)
+    {inst : Decidable (a ∈ l)} : @decide (a ∈ l) inst = l.elem a := by
+  rw [Bool.eq_iff_iff]; simp
 
 /-- Equality of arrays, decided by their lists. -/
 theorem decideEqArray {α : Type} [DecidableEq α] (a b : Array α) {inst : Decidable (a = b)} :

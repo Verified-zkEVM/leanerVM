@@ -348,6 +348,25 @@ theorem listMap_le (i : ℕ) {α : Type} [Enc α] (fVal : Val)
     simp only [List.length_cons]
     nlinarith
 
+/-- **`List.foldl`, an invariant indexed by the elements left** (an accumulator growing along
+the fold): `I k acc` with `k` elements left. -/
+theorem listFoldl_le_idx (hP : Includes P listFoldl.costDeps) (f : α → β → α) (fVal : Val)
+    (hf : ∀ a b, RunsApp P fVal [enc a, enc b] (enc (f a b))) (B : ℕ) (I : ℕ → α → Prop)
+    (L : List β)
+    (hI : ∀ k acc, I (k + 1) acc → ∀ b ∈ L, I k (f acc b) ∧ appCost P fVal [enc acc, enc b] ≤ B) :
+    ∀ (l : List β) (init : α), (∀ b ∈ l, b ∈ L) → I l.length init →
+      machineCost P listFoldl.costIdx [fVal, enc init, enc l] ≤ (B + 9) * l.length + 3 := by
+  intro l
+  induction l with
+  | nil => intro init _ _; rw [listFoldl.costEq_nil P hP f fVal hf]; omega
+  | cons b l ih =>
+    intro init hL hi
+    rw [listFoldl.costEq_cons P hP f fVal hf]
+    obtain ⟨hI', h2⟩ := hI l.length init hi b (hL b (by simp))
+    have h1 := ih (f init b) (fun c hc ↦ hL c (by simp [hc])) hI'
+    simp only [List.length_cons]
+    nlinarith
+
 end Library
 
 end
