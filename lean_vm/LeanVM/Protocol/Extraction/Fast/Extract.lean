@@ -8,7 +8,7 @@ public import LeanVM.Protocol.Extraction.Fast.Karatsuba
 public import LeanVM.Protocol.Extraction.Fast.Truncate
 public import LeanVM.Protocol.Extraction.Fast.Address
 public import LeanVM.Protocol.Extraction.Fast.Order
-public import LeanVM.Protocol.Extraction.Fast.DecoderFast
+public import LeanVM.Protocol.Extraction.Fast.RootFinder
 public import CompPoly.Bivariate.GuruswamiSudan.Interpolation.ApproximantBasis.Correctness
 public import CompPoly.LinearAlgebra.PolynomialMatrix.Approximant
 
@@ -22,8 +22,8 @@ with a faster lane decoder, `gsLaneAtFast`:
   `gsContext` with `rothRuckensteinRootContextFast`;
 * CompPoly's steps whose code costs more than their algorithm, restated and proved equal
   (`Fast/DecoderFast.lean`): Lee–O'Sullivan's normalization and the vanishing polynomial
-  (`interpContext` is `interpContextFast`), the root finder's remainder-only reductions
-  (`fieldRootCtxFast`);
+  (`interpContext` is `interpContextFast`), the root finder (`fieldRootCtxFast`,
+  `Fast/RootFinder.lean`);
 * the lane decoder's points distinct, so the interpolation skips its distinctness check, and the
   distance filter evaluating by Horner's rule (`gsRunDistinct`);
 * the word's columns reversed once (`laneTable`), the lanes' symbols read from the table
@@ -62,8 +62,8 @@ theorem interpContext_eq : interpContext =
       (PolynomialMatrix.muldersStorjohannFastReducerContext K) :=
   interpContextFast_eq
 
-/-- The list decoder's context with Roth–Ruckenstein's fast substitution, and the root finder's
-remainder-only reductions (`fieldRootCtxFast`). -/
+/-- The list decoder's context with Roth–Ruckenstein's fast substitution, and the restated root
+finder (`fieldRootCtxFast`). -/
 @[expose] def gsContextFast : GSFilteredCoreContext K :=
   filteredCoreContextOfInterpRootContexts interpContext
     (rothRuckensteinRootContextFast fieldRootCtxFast)

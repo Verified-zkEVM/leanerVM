@@ -42,10 +42,10 @@ CompPoly's, so its callers can be restated in turn.
   `CPolynomial.Raw.ModContext.naive`, `modByMonic = (divModByMonicAux p q).2`: long division
   computing the quotient too, each step a general product `C(c)·(q·X^k)`. CompPoly's
   `ModContext.remainderOnly` (`modByMonicRemainderOnly`: one scaled subtraction per step) is equal
-  as a context (`modByMonicRemainderOnly_eq_modByMonic` holds for every input), so
-  `fieldRootCtxFast`, the statement's `fieldRootCtx` with it, is `fieldRootCtx`
-  (**`fieldRootCtxFast_eq`**). The Euclidean gcd's hard-wired `p % q` (`CPolynomial.Raw.mod`) with
-  the remainder-only division: `rawModFast`, `rawGcdMonicFast`, `gcdMonicFast` (**`gcdMonicFast_eq`**).
+  as a context (`modByMonicRemainderOnly_eq_modByMonic` holds for every input). The Euclidean
+  gcd's hard-wired `p % q` (`CPolynomial.Raw.mod`) with the remainder-only division: `rawModFast`,
+  `rawGcdMonicFast`, `gcdMonicFast` (**`gcdMonicFast_eq`**). The root finder with these:
+  `Fast/RootFinder.lean`.
 * **The vanishing polynomial** (`vanishingFast`, **`vanishingFast_eq`**). CompPoly's
   `vanishingPolynomialArray` multiplies `acc * (X − x)`; the schoolbook product folds over its first
   operand, adding a shifted copy of the second to an accumulator as long as the result, so each
@@ -532,29 +532,6 @@ theorem fieldRootContext_ext {F : Type*} [Field F] [BEq F] [LawfulBEq F]
   obtain ⟨g, _, _⟩ := B
   obtain rfl : f = g := h
   rfl
-
-/-- **The statement's root finder with remainder-only reductions**: `fieldRootCtx`
-(`Statement/Extractor.lean`) with `ModContext.remainderOnly` in the root product
-(`X^q − X mod p`) and in Shoup's splitter. -/
-@[expose] def fieldRootCtxFast : FieldRootContext K :=
-  finiteFieldRootContextWith K CPolynomial.Raw.MulContext.naive
-    CPolynomial.Raw.ModContext.remainderOnly traceCtx.toFiniteFieldContext
-    (shoupLinearFactorProductSplitterWith CPolynomial.Raw.MulContext.naive
-      CPolynomial.Raw.ModContext.remainderOnly traceCtx)
-    (fun hp ↦ finiteFieldRootProductWith_shoupSplitterInput CPolynomial.Raw.MulContext.naive
-      CPolynomial.Raw.ModContext.remainderOnly traceCtx hp)
-
-theorem fieldRootCtxFast_eq : fieldRootCtxFast = fieldRootCtx := by
-  apply fieldRootContext_ext
-  show rootsInFiniteFieldWith CPolynomial.Raw.MulContext.naive
-      CPolynomial.Raw.ModContext.remainderOnly traceCtx.toFiniteFieldContext
-      (shoupLinearFactorProductSplitterWith CPolynomial.Raw.MulContext.naive
-        CPolynomial.Raw.ModContext.remainderOnly traceCtx) =
-    rootsInFiniteFieldWith CPolynomial.Raw.MulContext.naive CPolynomial.Raw.ModContext.naive
-      traceCtx.toFiniteFieldContext
-      (shoupLinearFactorProductSplitterWith CPolynomial.Raw.MulContext.naive
-        CPolynomial.Raw.ModContext.naive traceCtx)
-  rw [rawModContext_remainderOnly_eq_naive]
 
 /-! ## The Euclidean gcd with remainder-only division
 
