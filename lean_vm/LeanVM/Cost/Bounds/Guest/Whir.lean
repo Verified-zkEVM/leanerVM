@@ -73,60 +73,60 @@ section Shape
 variable {s : Oq} (hs : OqOK s)
 include hs
 
-theorem Oq_R_cost (hP : Includes P Auto.LeanVM.Guest.B1.Oq.R.c681.costDeps) :
-    machineCost P Auto.LeanVM.Guest.B1.Oq.R.c681.costIdx [encodeValue s] ≤ 11 := by
+theorem Oq_R_cost (hP : Includes P Auto.LeanVM.Guest.B1.Oq.R.c677.costDeps) :
+    machineCost P Auto.LeanVM.Guest.B1.Oq.R.c677.costIdx [encodeValue s] ≤ 11 := by
   obtain ⟨h1, h2, -⟩ := hs
-  rw [Auto.LeanVM.Guest.B1.Oq.R.c681.costEq P hP]
+  rw [Auto.LeanVM.Guest.B1.Oq.R.c677.costEq P hP]
   limbs_one; split_ifs <;> omega
 
-theorem Oq_tsz_cost (hP : Includes P Auto.LeanVM.Guest.B1.Oq.tsz.c689.costDeps) :
-    machineCost P Auto.LeanVM.Guest.B1.Oq.tsz.c689.costIdx [encodeValue s] ≤ 7 := by
+theorem Oq_tsz_cost (hP : Includes P Auto.LeanVM.Guest.B1.Oq.tsz.c685.costDeps) :
+    machineCost P Auto.LeanVM.Guest.B1.Oq.tsz.c685.costIdx [encodeValue s] ≤ 7 := by
   obtain ⟨h1, -⟩ := hs
-  rw [Auto.LeanVM.Guest.B1.Oq.tsz.c689.costEq P hP]
+  rw [Auto.LeanVM.Guest.B1.Oq.tsz.c685.costEq P hP]
   limbs_one; split_ifs <;> omega
 
-theorem rowLo_cost (hP : Includes P Auto.LeanVM.Guest.B1.rowLo.c690.costDeps) :
-    machineCost P Auto.LeanVM.Guest.B1.rowLo.c690.costIdx [encodeValue s.I] ≤ 9 := by
+theorem rowLo_cost (hP : Includes P Auto.LeanVM.Guest.B1.rowLo.c686.costDeps) :
+    machineCost P Auto.LeanVM.Guest.B1.rowLo.c686.costIdx [encodeValue s.I] ≤ 9 := by
   obtain ⟨-, h2, -⟩ := hs
-  rw [Auto.LeanVM.Guest.B1.rowLo.c690.costEq P hP]
+  rw [Auto.LeanVM.Guest.B1.rowLo.c686.costEq P hP]
   limbs_one; split_ifs <;> omega
 
-theorem Oq_G_cost (hP : Includes P Auto.LeanVM.Guest.B1.Oq.G.c688.costDeps) :
-    machineCost P Auto.LeanVM.Guest.B1.Oq.G.c688.costIdx [encodeValue s] ≤ 46 := by
+theorem Oq_G_cost (hP : Includes P Auto.LeanVM.Guest.B1.Oq.G.c684.costDeps) :
+    machineCost P Auto.LeanVM.Guest.B1.Oq.G.c684.costIdx [encodeValue s] ≤ 46 := by
   have ht := Oq_tsz_cost P hs (by includes)
   have hl := rowLo_cost P hs (by includes)
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, -⟩ := hs
-  rw [Auto.LeanVM.Guest.B1.Oq.G.c688.costEq P hP]
+  rw [Auto.LeanVM.Guest.B1.Oq.G.c684.costEq P hP]
   limbs_one; omega
 
-theorem Oq_D_cost (hP : Includes P Auto.LeanVM.Guest.B1.Oq.D.c687.costDeps) :
-    machineCost P Auto.LeanVM.Guest.B1.Oq.D.c687.costIdx [encodeValue s] ≤ 122 := by
+theorem Oq_D_cost (hP : Includes P Auto.LeanVM.Guest.B1.Oq.D.c683.costDeps) :
+    machineCost P Auto.LeanVM.Guest.B1.Oq.D.c683.costIdx [encodeValue s] ≤ 122 := by
   have hg := Oq_G_cost P hs (by includes)
   have hl := rowLo_cost P hs (by includes)
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, -⟩ := hs
-  rw [Auto.LeanVM.Guest.B1.Oq.D.c687.costEq P hP]
+  rw [Auto.LeanVM.Guest.B1.Oq.D.c683.costEq P hP]
   limbs_one; omega
 
-theorem Oq_B_cost (hP : Includes P Auto.LeanVM.Guest.B1.Oq.B.c692.costDeps) :
-    machineCost P Auto.LeanVM.Guest.B1.Oq.B.c692.costIdx [encodeValue s] ≤ 25 := by
+theorem Oq_B_cost (hP : Includes P Auto.LeanVM.Guest.B1.Oq.B.c688.costDeps) :
+    machineCost P Auto.LeanVM.Guest.B1.Oq.B.c688.costIdx [encodeValue s] ≤ 25 := by
   have hr := Oq_R_cost P hs (by includes)
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, -⟩ := hs
-  rw [Auto.LeanVM.Guest.B1.Oq.B.c692.costEq P hP]
+  rw [Auto.LeanVM.Guest.B1.Oq.B.c688.costEq P hP]
   have : LeanVM.Protocol.KeccakHash.rate < 2 ^ 64 := by decide
   limbs_one; omega
 
-theorem Oq_chainLen_cost (hP : Includes P Auto.LeanVM.Guest.B1.Oq.chainLen.c691.costDeps) :
-    machineCost P Auto.LeanVM.Guest.B1.Oq.chainLen.c691.costIdx [encodeValue s] ≤ 39 := by
+theorem Oq_chainLen_cost (hP : Includes P Auto.LeanVM.Guest.B1.Oq.chainLen.c687.costDeps) :
+    machineCost P Auto.LeanVM.Guest.B1.Oq.chainLen.c687.costIdx [encodeValue s] ≤ 39 := by
   have hb := Oq_B_cost P hs (by includes)
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, -⟩ := hs
-  rw [Auto.LeanVM.Guest.B1.Oq.chainLen.c691.costEq P hP]
+  rw [Auto.LeanVM.Guest.B1.Oq.chainLen.c687.costEq P hP]
   limbs_one; omega
 
-theorem oqK1_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqK1.c686.costDeps) (b : ℕ)
+theorem oqK1_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqK1.c682.costDeps) (b : ℕ)
     (hb : b < 2 ^ 21) :
-    machineCost P Auto.LeanVM.Guest.B1.oqK1.c686.costIdx [encodeValue b, encodeValue s.R] ≤ 13 := by
+    machineCost P Auto.LeanVM.Guest.B1.oqK1.c682.costIdx [encodeValue b, encodeValue s.R] ≤ 13 := by
   obtain ⟨h1, h2, h3, h4, h5, -⟩ := hs
-  rw [Auto.LeanVM.Guest.B1.oqK1.c686.costEq P hP]
+  rw [Auto.LeanVM.Guest.B1.oqK1.c682.costEq P hP]
   limbs_one; omega
 
 theorem oqKL_lt (b : ℕ) (hb : b < 2 ^ 21) (emit : Bool) : oqKL s b emit < 2 ^ 23 := by
@@ -138,30 +138,30 @@ theorem oqCh_lt (b : ℕ) (hb : b < 2 ^ 21) (emit : Bool) : oqCh s b emit < 2 ^ 
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, -⟩ := hs
   unfold oqCh; omega
 
-theorem oqKL_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqKL.c685.costDeps) (b : ℕ)
+theorem oqKL_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqKL.c681.costDeps) (b : ℕ)
     (hb : b < 2 ^ 21) (emit : Bool) :
-    machineCost P Auto.LeanVM.Guest.B1.oqKL.c685.costIdx
+    machineCost P Auto.LeanVM.Guest.B1.oqKL.c681.costIdx
       [encodeValue s, encodeValue b, encodeValue emit] ≤ 159 := by
   have hr := Oq_R_cost P hs (by includes)
   have hk := oqK1_cost P hs (by includes) b hb
   have hd := Oq_D_cost P hs (by includes)
   have hkl := oqKL_lt hs b hb emit
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, -⟩ := hs
-  rw [Auto.LeanVM.Guest.B1.oqKL.c685.costEq P hP]
+  rw [Auto.LeanVM.Guest.B1.oqKL.c681.costEq P hP]
   have : oqK1 b s.R < 2 ^ 22 := by unfold oqK1; omega
   limbs_one; split_ifs <;> limbs_one <;> omega
 
-theorem oqCq_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqCq.c696.costDeps) (ch : ℕ)
+theorem oqCq_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqCq.c692.costDeps) (ch : ℕ)
     (hch : ch < 2 ^ 24) :
-    machineCost P Auto.LeanVM.Guest.B1.oqCq.c696.costIdx [encodeValue s, encodeValue ch] ≤ 11 := by
+    machineCost P Auto.LeanVM.Guest.B1.oqCq.c692.costIdx [encodeValue s, encodeValue ch] ≤ 11 := by
   obtain ⟨h1, h2, h3, -⟩ := hs
-  rw [Auto.LeanVM.Guest.B1.oqCq.c696.costEq P hP]
+  rw [Auto.LeanVM.Guest.B1.oqCq.c692.costEq P hP]
   have : oqL0 ch < 2 ^ 25 := by unfold oqL0; omega
   limbs_one; omega
 
-theorem oqEnd_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqEnd.c695.costDeps) (b : ℕ)
+theorem oqEnd_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqEnd.c691.costDeps) (b : ℕ)
     (hb : b < 2 ^ 21) (emit : Bool) :
-    machineCost P Auto.LeanVM.Guest.B1.oqEnd.c695.costIdx
+    machineCost P Auto.LeanVM.Guest.B1.oqEnd.c691.costIdx
       [encodeValue s, encodeValue b, encodeValue emit] ≤ 232 := by
   have hkl := oqKL_cost P hs (by includes) b hb emit
   have hc := Oq_chainLen_cost P hs (by includes)
@@ -169,7 +169,7 @@ theorem oqEnd_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqEnd.c695.costDeps) (b
   have hq := oqCq_cost P hs (by includes) (oqCh s b emit) hch
   have hkl' := oqKL_lt hs b hb emit
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, -⟩ := hs
-  rw [Auto.LeanVM.Guest.B1.oqEnd.c695.costEq P hP]
+  rw [Auto.LeanVM.Guest.B1.oqEnd.c691.costEq P hP]
   have : oqCq s (oqCh s b emit) < 2 ^ 25 := by unfold oqCq oqL0; omega
   limbs_one; omega
 
@@ -185,25 +185,25 @@ variable {rd : Reader} {rdV : MachineValue}
 include hrd hR
 
 /-- A cell (`memRead.c678`), as `cellAt`. -/
-theorem memRead_cost (hP : Includes P Auto.LeanVM.Guest.B1.memRead.c678.costDeps) (p : E)
+theorem memRead_cost (hP : Includes P Auto.LeanVM.Guest.B1.memRead.c674.costDeps) (p : E)
     (k : ℕ) (hk : k < 2 ^ 40) :
-    machineCost P Auto.LeanVM.Guest.B1.memRead.c678.costIdx
+    machineCost P Auto.LeanVM.Guest.B1.memRead.c674.costIdx
       [rdV, encodeValue p, encodeValue k] ≤ R + 21678 := by
-  rw [Auto.LeanVM.Guest.B1.memRead.c678.costEq P hP rd rdV hrd]
+  rw [Auto.LeanVM.Guest.B1.memRead.c674.costEq P hP rd rdV hrd]
   have := powSqK_cost_lt P (by includes) g k 40 (by norm_num) (by norm_num) hk
   have := hR (p.limb 0 * gpow k)
   cases rd (p.limb 0 * gpow k) <;> dsimp only <;> omega
 
 omit hrd hR in
 /-- The integer of `D ≤ 62` bits read by a closure (`bitsVal.c676`): `(B + 27)·D + 6`. -/
-theorem bitsVal_cost (hP : Includes P Auto.LeanVM.Guest.Value.bitsVal.c676.costDeps)
+theorem bitsVal_cost (hP : Includes P Auto.LeanVM.Guest.Value.bitsVal.c672.costDeps)
     (f : ℕ → Bool) (fV : MachineValue) (hf : ∀ a, RunsApp P fV [encodeValue a] (encodeValue (f a)))
     (B : ℕ) (hB : ∀ a, a < 62 → appCost P fV [encodeValue a] ≤ B) : ∀ D, D ≤ 62 →
-      machineCost P Auto.LeanVM.Guest.Value.bitsVal.c676.costIdx [fV, encodeValue D] ≤
+      machineCost P Auto.LeanVM.Guest.Value.bitsVal.c672.costIdx [fV, encodeValue D] ≤
         (B + 27) * D + 6
-  | 0, _ => by rw [Auto.LeanVM.Guest.Value.bitsVal.c676.costEq_zero P hP f fV hf]; omega
+  | 0, _ => by rw [Auto.LeanVM.Guest.Value.bitsVal.c672.costEq_zero P hP f fV hf]; omega
   | n + 1, hn => by
-    rw [Auto.LeanVM.Guest.Value.bitsVal.c676.costEq_succ P hP f fV hf]
+    rw [Auto.LeanVM.Guest.Value.bitsVal.c672.costEq_succ P hP f fV hf]
     have := bitsVal_cost hP f fV hf B hB n (by omega)
     have := hB n (by omega)
     have hb := LeanVM.Guest.Value.bitsVal_lt f n
@@ -217,28 +217,28 @@ theorem bitsVal_cost (hP : Includes P Auto.LeanVM.Guest.Value.bitsVal.c676.costD
     nlinarith
 
 /-- A query's position (`posOf.c675`), `D ≤ 28` bits: `(3·R + 65105)·D + 13`. -/
-theorem posOf_cost (hP : Includes P Auto.LeanVM.Guest.B1.posOf.c675.costDeps) (bp : E) (D : ℕ)
+theorem posOf_cost (hP : Includes P Auto.LeanVM.Guest.B1.posOf.c671.costDeps) (bp : E) (D : ℕ)
     (hD : D ≤ 28) :
-    machineCost P Auto.LeanVM.Guest.B1.posOf.c675.costIdx [rdV, encodeValue bp, encodeValue D] ≤
+    machineCost P Auto.LeanVM.Guest.B1.posOf.c671.costIdx [rdV, encodeValue bp, encodeValue D] ≤
       (3 * R + 65078 + 27) * D + 13 := by
-  rw [Auto.LeanVM.Guest.B1.posOf.c675.costEq P hP rd rdV hrd]
-  have hf : ∀ l, RunsApp P (.closure Auto.LeanVM.Guest.B1.posOf.c675.lam0.costIdx [rdV, encodeValue bp])
+  rw [Auto.LeanVM.Guest.B1.posOf.c671.costEq P hP rd rdV hrd]
+  have hf : ∀ l, RunsApp P (.closure Auto.LeanVM.Guest.B1.posOf.c671.lam0.costIdx [rdV, encodeValue bp])
       [encodeValue l] (encodeValue (decide (memRead rd bp l = 1))) := fun l ↦
-    RunsApp.of_spec (Auto.LeanVM.Guest.B1.posOf.c675.lam0.costSpec P (by includes) rd rdV hrd bp l)
+    RunsApp.of_spec (Auto.LeanVM.Guest.B1.posOf.c671.lam0.costSpec P (by includes) rd rdV hrd bp l)
   have := bitsVal_cost P (by includes) _ _ hf (3 * R + 65078) (fun l hl ↦ by
     rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-      Auto.LeanVM.Guest.B1.posOf.c675.lam0.costEq P (by includes) rd rdV hrd]
+      Auto.LeanVM.Guest.B1.posOf.c671.lam0.costEq P (by includes) rd rdV hrd]
     have := memRead_cost P hrd hR (by includes) bp l (by omega)
     split_ifs <;> omega) D (by omega)
   omega
 
 omit hrd hR in
 /-- The digest of two cells (`digestOfCells.c684`): at most `58`. -/
-theorem digestOfCells640_cost (hP : Includes P Auto.LeanVM.Guest.B1.digestOfCells.c684.costDeps)
+theorem digestOfCells640_cost (hP : Includes P Auto.LeanVM.Guest.B1.digestOfCells.c680.costDeps)
     (a b : E) :
-    machineCost P Auto.LeanVM.Guest.B1.digestOfCells.c684.costIdx [encodeValue a, encodeValue b] ≤
+    machineCost P Auto.LeanVM.Guest.B1.digestOfCells.c680.costIdx [encodeValue a, encodeValue b] ≤
       58 := by
-  rw [Auto.LeanVM.Guest.B1.digestOfCells.c684.costEq P hP,
+  rw [Auto.LeanVM.Guest.B1.digestOfCells.c680.costEq P hP,
     Extractor.digestOfScalarsC.costEq P (by includes)]
   cases LeanVM.Protocol.KeccakHash.digestOfScalars (a, b) <;> dsimp only <;> split_ifs <;> omega
 
@@ -262,18 +262,18 @@ include hσ hS
 
 omit hrd hR in
 /-- A query's row (`oqRow.c679`), `R ≤ 192` words: `(S + 41)·192 + 18`. -/
-theorem oqRow_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqRow.c679.costDeps) (b Rw : ℕ)
+theorem oqRow_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqRow.c675.costDeps) (b Rw : ℕ)
     (hb : b < 2 ^ 21) (hRw : Rw ≤ 192) :
-    machineCost P Auto.LeanVM.Guest.B1.oqRow.c679.costIdx [encodeValue b, encodeValue Rw, σV] ≤
+    machineCost P Auto.LeanVM.Guest.B1.oqRow.c675.costIdx [encodeValue b, encodeValue Rw, σV] ≤
       (S + 13 + 28) * 192 + 18 := by
-  rw [Auto.LeanVM.Guest.B1.oqRow.c679.costEq P hP b Rw σ σV hσ]
+  rw [Auto.LeanVM.Guest.B1.oqRow.c675.costEq P hP b Rw σ σV hσ]
   have := rangeMap_le P (by includes) (by includes) _
-    (.closure Auto.LeanVM.Guest.B1.oqRow.c679.lam0.costIdx [encodeValue b, σV])
-    (fun i ↦ RunsApp.of_spec (Auto.LeanVM.Guest.B1.oqRow.c679.lam0.costSpec P (by includes) b σ σV
+    (.closure Auto.LeanVM.Guest.B1.oqRow.c675.lam0.costIdx [encodeValue b, σV])
+    (fun i ↦ RunsApp.of_spec (Auto.LeanVM.Guest.B1.oqRow.c675.lam0.costSpec P (by includes) b σ σV
       hσ i))
     (S + 13) Rw 192 hRw (by norm_num) (fun i hi ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-        Auto.LeanVM.Guest.B1.oqRow.c679.lam0.costEq P (by includes) b σ σV hσ]
+        Auto.LeanVM.Guest.B1.oqRow.c675.lam0.costEq P (by includes) b σ σV hσ]
       have := hS (.n (b + i))
       limbs_one
       omega)
@@ -281,18 +281,18 @@ theorem oqRow_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqRow.c679.costDeps) (b
 
 omit hrd hR in
 /-- A query's siblings (`oqSibsOf.c682`), `pd ≤ 20` levels: `(2·S + 140 + 28)·20 + 20`. -/
-theorem oqSibsOf_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqSibsOf.c682.costDeps) (pd ch q : ℕ)
+theorem oqSibsOf_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqSibsOf.c678.costDeps) (pd ch q : ℕ)
     (hpd : pd ≤ 20) (hch : ch < 2 ^ 24) (hq : q < 2 ^ 64) :
-    machineCost P Auto.LeanVM.Guest.B1.oqSibsOf.c682.costIdx
+    machineCost P Auto.LeanVM.Guest.B1.oqSibsOf.c678.costIdx
       [encodeValue pd, encodeValue ch, encodeValue q, σV] ≤ (2 * S + 140 + 28) * 20 + 20 := by
-  rw [Auto.LeanVM.Guest.B1.oqSibsOf.c682.costEq P hP pd ch q σ σV hσ]
+  rw [Auto.LeanVM.Guest.B1.oqSibsOf.c678.costEq P hP pd ch q σ σV hσ]
   have := rangeMap_le P (by includes) (by includes) _
-    (.closure Auto.LeanVM.Guest.B1.oqSibsOf.c682.lam0.costIdx [encodeValue ch, encodeValue q, σV])
-    (fun l ↦ RunsApp.of_spec (Auto.LeanVM.Guest.B1.oqSibsOf.c682.lam0.costSpec P (by includes) ch q
+    (.closure Auto.LeanVM.Guest.B1.oqSibsOf.c678.lam0.costIdx [encodeValue ch, encodeValue q, σV])
+    (fun l ↦ RunsApp.of_spec (Auto.LeanVM.Guest.B1.oqSibsOf.c678.lam0.costSpec P (by includes) ch q
       σ σV hσ l))
     (2 * S + 140) pd 20 hpd (by norm_num) (fun l hl ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
-        Auto.LeanVM.Guest.B1.oqSibsOf.c682.lam0.costEq P (by includes) ch q σ σV hσ]
+        Auto.LeanVM.Guest.B1.oqSibsOf.c678.lam0.costEq P (by includes) ch q σ σV hσ]
       have := testBit_cost P (by includes) q l hq (by omega)
       split_ifs <;> limbs_one <;> cost_facts [digestOfCells640_cost P, hS] <;> omega)
   omega
@@ -304,12 +304,12 @@ theorem oqSibsOf_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqSibsOf.c682.costDe
 
 /-- **A query** (`oqQueryW.c674`), of a level's shape, from a value below `2^21`: at most
 `queryPrice R S`. -/
-theorem oqQueryW_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqQueryW.c674.costDeps) (s : Oq)
+theorem oqQueryW_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqQueryW.c670.costDeps) (s : Oq)
     (hs : OqOK s) (bp : E) (b : ℕ) (hb : b < 2 ^ 21) (emit : Bool) :
-    machineCost P Auto.LeanVM.Guest.B1.oqQueryW.c674.costIdx
+    machineCost P Auto.LeanVM.Guest.B1.oqQueryW.c670.costIdx
       [encodeValue s, rdV, encodeValue bp, encodeValue b, encodeValue emit, σV] ≤
         queryPrice R S := by
-  rw [Auto.LeanVM.Guest.B1.oqQueryW.c674.costEq P hP s rd rdV hrd bp b emit σ σV hσ]
+  rw [Auto.LeanVM.Guest.B1.oqQueryW.c670.costEq P hP s rd rdV hrd bp b emit σ σV hσ]
   have hR' := Oq_R_cost P hs (by includes)
   have hkl := oqKL_cost P hs (by includes) b hb emit
   have hc := Oq_chainLen_cost P hs (by includes)
@@ -331,11 +331,11 @@ theorem oqQueryW_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqQueryW.c674.costDe
 @[expose] def iterPrice (R S : ℕ) : ℕ := 2 * queryPrice R S + 2 * S + 516
 
 /-- **A loop iteration's queries** (`oqIterOf.c694`): at most `iterPrice R S`. -/
-theorem oqIterOf_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqIterOf.c694.costDeps) (s : Oq)
+theorem oqIterOf_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqIterOf.c690.costDeps) (s : Oq)
     (hs : OqOK s) :
-    machineCost P Auto.LeanVM.Guest.B1.oqIterOf.c694.costIdx [encodeValue s, rdV, σV] ≤
+    machineCost P Auto.LeanVM.Guest.B1.oqIterOf.c690.costIdx [encodeValue s, rdV, σV] ≤
       iterPrice R S := by
-  rw [Auto.LeanVM.Guest.B1.oqIterOf.c694.costEq P hP s rd rdV hrd σ σV hσ]
+  rw [Auto.LeanVM.Guest.B1.oqIterOf.c690.costEq P hP s rd rdV hrd σ σV hσ]
   have hE := hs.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
   have q1 := oqQueryW_cost P hrd hR hσ hS (by includes) s hs (σ (.n 10)) 11 (by norm_num) true
   have q2 := oqQueryW_cost P hrd hR hσ hS (by includes) s hs (σ (.n (oqE1 s))) (oqE1 s + 1)
@@ -350,9 +350,9 @@ theorem oqIterOf_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqIterOf.c694.costDe
 
 omit hrd hR in
 /-- The loop's arguments (`oqLoopArgs.c698`): `7·S + 85`. -/
-theorem oqLoopArgs_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqLoopArgs.c698.costDeps) :
-    machineCost P Auto.LeanVM.Guest.B1.oqLoopArgs.c698.costIdx [σV] ≤ 7 * S + 85 := by
-  rw [Auto.LeanVM.Guest.B1.oqLoopArgs.c698.costEq P hP σ σV hσ]
+theorem oqLoopArgs_cost (hP : Includes P Auto.LeanVM.Guest.B1.oqLoopArgs.c694.costDeps) :
+    machineCost P Auto.LeanVM.Guest.B1.oqLoopArgs.c694.costIdx [σV] ≤ 7 * S + 85 := by
+  rw [Auto.LeanVM.Guest.B1.oqLoopArgs.c694.costEq P hP σ σV hσ]
   have := hS (.n 6); have := hS (.n 4); have := hS (.n 0); have := hS (.n 1); have := hS (.n 5)
   have := hS (.n 11); have := hS (.n 8)
   omega
@@ -489,11 +489,11 @@ theorem capSib_le (D p j : ℕ) (hD : D ≤ 8) : Whir.capSib D p j ≤ 2 ^ 8 + p
 
 omit hrd hR in
 /-- A cap sibling's index (`capSib.c705`), `D ≤ 8`, `p < 2^28`: at most `37`. -/
-theorem capSib_cost (hP : Includes P Auto.LeanVM.Guest.B1.Whir.capSib.c705.costDeps) (D p j : ℕ)
+theorem capSib_cost (hP : Includes P Auto.LeanVM.Guest.B1.Whir.capSib.c701.costDeps) (D p j : ℕ)
     (hD : D ≤ 8) (hj : j < 8) (hp : p < 2 ^ 28) :
-    machineCost P Auto.LeanVM.Guest.B1.Whir.capSib.c705.costIdx
+    machineCost P Auto.LeanVM.Guest.B1.Whir.capSib.c701.costIdx
       [encodeValue D, encodeValue p, encodeValue j] ≤ 37 := by
-  rw [Auto.LeanVM.Guest.B1.Whir.capSib.c705.costEq P hP]
+  rw [Auto.LeanVM.Guest.B1.Whir.capSib.c701.costEq P hP]
   simp only [Nat.one_shiftLeft]
   have : 2 ^ (D - j) ≤ 2 ^ 8 := Nat.pow_le_pow_right (by norm_num) (by omega)
   have : 2 ^ j ≤ 2 ^ 8 := Nat.pow_le_pow_right (by norm_num) (by omega)
@@ -502,20 +502,20 @@ theorem capSib_cost (hP : Includes P Auto.LeanVM.Guest.B1.Whir.capSib.c705.costD
   split_ifs <;> omega
 
 /-- The cap's siblings (`capSibsOf.c703`), `D ≤ 8` levels, `p < 2^28`: `(2·R + 43540)·8 + 22`. -/
-theorem capSibsOf_cost (hP : Includes P Auto.LeanVM.Guest.B1.Whir.capSibsOf.c703.costDeps) (cap : E)
+theorem capSibsOf_cost (hP : Includes P Auto.LeanVM.Guest.B1.Whir.capSibsOf.c699.costDeps) (cap : E)
     (D p : ℕ) (hD : D ≤ 8) (hp : p < 2 ^ 28) :
-    machineCost P Auto.LeanVM.Guest.B1.Whir.capSibsOf.c703.costIdx
+    machineCost P Auto.LeanVM.Guest.B1.Whir.capSibsOf.c699.costIdx
       [rdV, encodeValue cap, encodeValue D, encodeValue p] ≤ (2 * R + 43512 + 28) * 8 + 22 := by
-  rw [Auto.LeanVM.Guest.B1.Whir.capSibsOf.c703.costEq P hP rd rdV hrd]
+  rw [Auto.LeanVM.Guest.B1.Whir.capSibsOf.c699.costEq P hP rd rdV hrd]
   have := rangeMap_le P (by includes) (by includes) _
-    (.closure Auto.LeanVM.Guest.B1.Whir.capSibsOf.c703.lam0.costIdx
+    (.closure Auto.LeanVM.Guest.B1.Whir.capSibsOf.c699.lam0.costIdx
       [rdV, encodeValue cap, encodeValue D, encodeValue p])
-    (fun j ↦ RunsApp.of_spec (Auto.LeanVM.Guest.B1.Whir.capSibsOf.c703.lam0.costSpec P
+    (fun j ↦ RunsApp.of_spec (Auto.LeanVM.Guest.B1.Whir.capSibsOf.c699.lam0.costSpec P
       (by includes) rd rdV hrd cap D p j))
     (2 * R + 43512) D 8 hD (by norm_num) (fun j hj ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
         List.nil_append,
-        Auto.LeanVM.Guest.B1.Whir.capSibsOf.c703.lam0.costEq P (by includes) rd rdV hrd]
+        Auto.LeanVM.Guest.B1.Whir.capSibsOf.c699.lam0.costEq P (by includes) rd rdV hrd]
       have := capSib_cost P (by includes) D p j hD (by omega) hp
       have := capSib_le D p j hD
       have := memRead_cost P hrd hR (by includes) cap (2 * Whir.capSib D p j) (by omega)
@@ -531,12 +531,12 @@ theorem capSibsOf_cost (hP : Includes P Auto.LeanVM.Guest.B1.Whir.capSibsOf.c703
 
 /-- **A query's opening** (`toOpening.c702`), of a level of depth at most `26`, cap depth at most
 `8`, the query's position below `2^28` and its siblings at most `20`: `openingPrice R`. -/
-theorem toOpening_cost (hP : Includes P Auto.LeanVM.Guest.B1.Whir.toOpening.c702.costDeps) (cap : E)
+theorem toOpening_cost (hP : Includes P Auto.LeanVM.Guest.B1.Whir.toOpening.c698.costDeps) (cap : E)
     (cd depth : ℕ) (w : QW) (hcd : cd ≤ 8) (hdepth : depth ≤ 26) (hw : w.1 < 2 ^ 28)
     (hw2 : w.2.2.length ≤ 20) :
-    machineCost P Auto.LeanVM.Guest.B1.Whir.toOpening.c702.costIdx
+    machineCost P Auto.LeanVM.Guest.B1.Whir.toOpening.c698.costIdx
       [rdV, encodeValue cap, encodeValue cd, encodeValue depth, encodeValue w] ≤ openingPrice R := by
-  rw [Auto.LeanVM.Guest.B1.Whir.toOpening.c702.costEq P hP rd rdV hrd]
+  rw [Auto.LeanVM.Guest.B1.Whir.toOpening.c698.costEq P hP rd rdV hrd]
   simp only [Nat.one_shiftLeft]
   have : 2 ^ (depth - cd) ≤ 2 ^ 26 := Nat.pow_le_pow_right (by norm_num) (by omega)
   have hd : w.1 / 2 ^ (depth - cd) ≤ w.1 := Nat.div_le_self _ _
@@ -631,18 +631,18 @@ theorem length_levelOsN (σ : Val) (Vn : NFrames) (c : OsCall) (hc : CallOK c) :
   omega
 
 /-- A stream's `n ≤ L` words (`wordsAt.c708`), `L ≤ 2^32`: `(R + 17398 + 28)·L + 18`. -/
-theorem wordsAt_cost (hP : Includes P Auto.LeanVM.Guest.B1.VerifySub.wordsAt.c708.costDeps) (p : E)
+theorem wordsAt_cost (hP : Includes P Auto.LeanVM.Guest.B1.VerifySub.wordsAt.c704.costDeps) (p : E)
     (n L : ℕ) (hn : n ≤ L) (hL : L ≤ 2 ^ 32) :
-    machineCost P Auto.LeanVM.Guest.B1.VerifySub.wordsAt.c708.costIdx
+    machineCost P Auto.LeanVM.Guest.B1.VerifySub.wordsAt.c704.costIdx
       [rdV, encodeValue p, encodeValue n] ≤ (R + 17398 + 28) * L + 18 := by
-  rw [Auto.LeanVM.Guest.B1.VerifySub.wordsAt.c708.costEq P hP rd rdV hrd]
+  rw [Auto.LeanVM.Guest.B1.VerifySub.wordsAt.c704.costEq P hP rd rdV hrd]
   have := rangeMap_le P (by includes) (by includes) _
-    (.closure Auto.LeanVM.Guest.B1.VerifySub.wordsAt.c708.lam0.costIdx [rdV, encodeValue p])
-    (fun k ↦ RunsApp.of_spec (Auto.LeanVM.Guest.B1.VerifySub.wordsAt.c708.lam0.costSpec P
+    (.closure Auto.LeanVM.Guest.B1.VerifySub.wordsAt.c704.lam0.costIdx [rdV, encodeValue p])
+    (fun k ↦ RunsApp.of_spec (Auto.LeanVM.Guest.B1.VerifySub.wordsAt.c704.lam0.costSpec P
       (by includes) rd rdV hrd p k))
     (R + 17398) n L hn (by omega) (fun k hk ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-        Auto.LeanVM.Guest.B1.VerifySub.wordsAt.c708.lam0.costEq P (by includes) rd rdV hrd]
+        Auto.LeanVM.Guest.B1.VerifySub.wordsAt.c704.lam0.costEq P (by includes) rd rdV hrd]
       have := powSqK_cost_lt P (by includes) g k 32 (by norm_num) (by norm_num) (by omega)
       have := hR (p.limb 0 * gpow k)
       cases rd (p.limb 0 * gpow k) <;> dsimp only <;> omega)
@@ -666,16 +666,16 @@ variable {σ : Val} {σV : MachineValue}
 include hσ hS hVn hF hcl hC hL hL32
 
 omit hrd hR hVn hF hcl hC hL hL32 in
-theorem vsOsArgs_cost (hP : Includes P Auto.LeanVM.Guest.B1.VerifySub.vsOsArgs.c711.costDeps) :
-    machineCost P Auto.LeanVM.Guest.B1.VerifySub.vsOsArgs.c711.costIdx [σV] ≤ 9 * S + 109 := by
-  rw [Auto.LeanVM.Guest.B1.VerifySub.vsOsArgs.c711.costEq P hP σ σV hσ]
+theorem vsOsArgs_cost (hP : Includes P Auto.LeanVM.Guest.B1.VerifySub.vsOsArgs.c707.costDeps) :
+    machineCost P Auto.LeanVM.Guest.B1.VerifySub.vsOsArgs.c707.costIdx [σV] ≤ 9 * S + 109 := by
+  rw [Auto.LeanVM.Guest.B1.VerifySub.vsOsArgs.c707.costEq P hP σ σV hσ]
   cost_facts [hS]
   omega
 
 omit hrd hR hVn hF hcl hC hL hL32 in
-theorem vsOsRets_cost (hP : Includes P Auto.LeanVM.Guest.B1.VerifySub.vsOsRets.c712.costDeps) :
-    machineCost P Auto.LeanVM.Guest.B1.VerifySub.vsOsRets.c712.costIdx [σV] ≤ 5 * S + 61 := by
-  rw [Auto.LeanVM.Guest.B1.VerifySub.vsOsRets.c712.costEq P hP σ σV hσ]
+theorem vsOsRets_cost (hP : Includes P Auto.LeanVM.Guest.B1.VerifySub.vsOsRets.c708.costDeps) :
+    machineCost P Auto.LeanVM.Guest.B1.VerifySub.vsOsRets.c708.costIdx [σV] ≤ 5 * S + 61 := by
+  rw [Auto.LeanVM.Guest.B1.VerifySub.vsOsRets.c708.costEq P hP σ σV hσ]
   cost_facts [hS]
   omega
 
@@ -702,8 +702,8 @@ theorem vsPiOfN_cost (hP : Includes P Decoder.vsPiOfNC.costDeps) :
   have := vsOsRets_cost P hσ hS (by includes)
   have := hF (openStackedIdx (logGT (σ (.n 1901)) 28)) (VerifySub.vsOsArgs σ)
     (VerifySub.vsOsRets σ) (.n 8)
-  rw [Auto.LeanVM.Guest.Fast.osWordsTab.c713.costEq P (by includes),
-    Auto.LeanVM.Guest.Fast.osCallsTab.c716.costEq P (by includes)]
+  rw [Auto.LeanVM.Guest.Fast.osWordsTab.c709.costEq P (by includes),
+    Auto.LeanVM.Guest.Fast.osCallsTab.c712.costEq P (by includes)]
   obtain ⟨hwl, hwt⟩ := osWordsTab_ok
   obtain ⟨hcl', -, -⟩ := callOK_osCallsTab
   have := getD_cost P (by includes) osWordsTab (logGT (σ (.n 1901)) 28) 0 (by omega)
