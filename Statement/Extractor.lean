@@ -88,15 +88,17 @@ generic search.
 
 **The same function, faster** (proof side, `lean_vm/LeanVM/Protocol/Extraction/Fast/`):
 `transcriptExtractorFast`, proved equal to `transcriptExtractor` (`transcriptExtractorFast_eq`),
-interpolates on large shapes with CompPoly's approximant-basis interpolation (Chowdhury,
-Jeannerod, Neiger, Schost, Villard: *Faster algorithms for multivariate interpolation with
-multiplicities and simultaneous polynomial approximations*, IEEE Trans. Inf. Theory 61, 2015) on
-Karatsuba's products (`2^84.8`, a heuristic model), substitutes in Roth–Ruckenstein by a Taylor
-shift with binomials by parity, modulo `X^(k−depth)` with an exact fallback at repeated roots
-(`ℓ²·k/2` per substitution, `2^80.1` in all), skips the final root check where the
+interpolates by Lee and O'Sullivan's algorithm with Mulders and Storjohann's reduction at every
+shape (about `2^107.5` at the worst shape, a model; CompPoly's approximant-basis interpolation is
+proved but not used, its code admitting no lower bound), substitutes in Roth–Ruckenstein by a
+Taylor shift with binomials by parity, modulo `X^(k−depth)` with an exact fallback at repeated
+roots (`ℓ²·k/2` per substitution, `2^80.1` in all), skips the final root check where the
 Guruswami–Sudan lemma makes it redundant, looks up addresses by binary search in sorted tables,
-and keeps the replay, the first answers and the preimages in hash maps (`O(N·L)` expected in `N`, keeping evaluations of at most
-`L = max(64, 8·width)` bytes): about `2^84.8` at the worst shape, the interpolation dominating.
+and keeps the replay, the first answers and the preimages in sorted maps (`O(log² N)` comparisons
+per lookup, worst-case, keeping evaluations of at most `L = max(64, 8·width)` bytes): about
+`2^107.5` at the worst shape, the interpolation dominating. `LeanVM.ExtractorEfficient`
+(`CostMachine.lean`) is the proved form: a cost-machine program computes `transcriptExtractor`
+within a budget per shape.
 Each lane's list is sorted (`laneListAt`, `coeffsLE`), so it depends only on the set the decoder
 returns, whichever interpolation computes it.
 
