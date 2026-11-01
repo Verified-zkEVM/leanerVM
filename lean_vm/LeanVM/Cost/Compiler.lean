@@ -47,9 +47,9 @@ def rules : List (Name × Name) := [
   (``ite, ``Rule.ite),
   (``dite, ``Rule.dite),
   (``cond, ``Rule.cond),
-  (``or, ``Rule.boolOr),
-  (``and, ``Rule.boolAnd),
-  (``not, ``Rule.boolNot),
+  (``Bool.or, ``Rule.boolOr),
+  (``Bool.and, ``Rule.boolAnd),
+  (``Bool.not, ``Rule.boolNot),
   (``HAdd.hAdd, ``Rule.natAdd),
   (``HAdd.hAdd, ``Rule.kAdd),
   (``HSub.hSub, ``Rule.natSub),
@@ -65,6 +65,28 @@ def rules : List (Name × Name) := [
   (``Decidable.decide, ``Rule.wordEq),
   (``Decidable.decide, ``Rule.kEq),
   (``Decidable.decide, ``Rule.decideEqTrue),
+  (``Decidable.decide, ``Rule.uint8Eq),
+  (``Decidable.decide, ``Rule.decideAnd),
+  (``Decidable.decide, ``Rule.decideNot),
+  (``HXor.hXor, ``Rule.wXor),
+  (``HXor.hXor, ``Rule.u8Xor),
+  (``HAnd.hAnd, ``Rule.wAnd),
+  (``HAnd.hAnd, ``Rule.u8And),
+  (``HAnd.hAnd, ``Rule.natAnd),
+  (``HOr.hOr, ``Rule.wOr),
+  (``HOr.hOr, ``Rule.u8Or),
+  (``Complement.complement, ``Rule.wNot),
+  (``HShiftLeft.hShiftLeft, ``Rule.wShl),
+  (``HShiftRight.hShiftRight, ``Rule.wShr),
+  (``HShiftRight.hShiftRight, ``Rule.natShiftRight),
+  (``HAdd.hAdd, ``Rule.wAdd),
+  (``HSub.hSub, ``Rule.wSub),
+  (``HMul.hMul, ``Rule.wMul),
+  (``UInt64.toNat, ``Rule.wToNat),
+  (``Nat.toUInt64, ``Rule.natToUInt64),
+  (``LeanVM.Parameters.K.lane, ``Rule.kLane),
+  (``UInt8.toUInt64, ``Rule.u8ToUInt64),
+  (``UInt64.toUInt8, ``Rule.u64ToUInt8),
   (``BEq.beq, ``Rule.natBEq),
   (``BEq.beq, ``Rule.wordBEq),
   (``BEq.beq, ``Rule.kBEq),
@@ -94,7 +116,8 @@ def rules : List (Name × Name) := [
 /-- Rewrites: a library function compiled through an equal form (`lhs = rhs`). -/
 def rewrites : List (Name × Name) := [
   (``Array.zipWith, ``Rewrite.arrayZipWith),
-  (``HPow.hPow, ``Rewrite.natTwoPow)
+  (``HPow.hPow, ``Rewrite.natTwoPow),
+  (``Decidable.decide, ``Rewrite.decideEqList)
 ]
 
 /-- Rewrites registered by `cost_rewrite`, by the head constant of their left side. -/
@@ -492,7 +515,16 @@ partial def tryRewrite (ctx : Ctx) (rw : Name) (e : Expr) : MetaM (Option (Expr 
   unless ← isDefEq lhs e do
     s.restore
     return none
+  -- instance arguments not fixed by unification
+  for a in args do
+    unless (← a.mvarId!.isAssigned) do
+      let aty ← instantiateMVars (← inferType a)
+      if (← isClass? aty).isSome then
+        a.mvarId!.assign (← synthInstance aty)
   let eqPf ← instantiateMVars (mkAppN (mkConst rw lvls) args)
+  if eqPf.hasMVar then
+    s.restore
+    return none
   let rhs ← instantiateMVars rhs
   let (t, c, pf) ← translate ctx rhs
   let motive ← withLocalDeclD `z (← inferType e) fun z ↦ do
@@ -752,7 +784,10 @@ partial def compileOnDemand (ctx : Ctx) (f : Name) (e : Expr) : MetaM (Option Co
     for (x, j) in xs.zipIdx do
       let k ← paramKind (← inferType x)
       if k == .enc then
-        let m ← if ← isDefEq (← inferType x) (mkConst ``Nat) then pure x
+        let xty ← whnfR (← inferType x)
+        let m ← if ← isDefEq xty (mkConst ``Nat) then pure x
+          else if xty.isAppOf ``List then mkAppM ``List.length #[x]
+          else if xty.isAppOf ``Array then mkAppM ``Array.size #[x]
           else mkAppM ``SizeOf.sizeOf #[x]
         let mXs ← xs.filterM fun y ↦ do
           let k ← paramKind (← inferType y)

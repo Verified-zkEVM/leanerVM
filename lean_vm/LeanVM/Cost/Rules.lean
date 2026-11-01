@@ -337,6 +337,18 @@ theorem decideEqTrue {t : Term} {b : Bool} {c : ℕ} (h : Runs P env t (enc b) c
     Runs P env t (enc (decide (b = true))) c := by
   cases b <;> exact h
 
+theorem uint8Eq {t u : Term} {a b : UInt8} {inst : Decidable (a = b)} {c d : ℕ}
+    (h : Runs P env t (enc a) c) (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .weq [t, u]) (enc (@decide (a = b) inst)) (c + d + 1) :=
+  op₂ h hb (by
+    have : (a.toUInt64 == b.toUInt64) = @decide (a = b) inst := by
+      by_cases hab : a = b
+      · simp [hab]
+      · have : a.toUInt64 ≠ b.toUInt64 := fun e ↦ hab (UInt8.toUInt64_inj.1 e)
+        simp [hab, this]
+    show Op.apply .weq [.word a.toUInt64, .word b.toUInt64] = _
+    simp [Op.apply, wordOp, enc_bool, this])
+
 theorem natBEq {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (enc a) c)
     (hb : Runs P env u (enc b) d) :
     Runs P env (.op .neq [t, u]) (enc (a == b)) (c + d + (max (limbs a) (limbs b) + 1)) :=
@@ -372,6 +384,105 @@ theorem kBEq {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (enc a) c)
           simp [hxy]
         simp [K.lane, h1, h2]
     simp [Op.apply, wordOp, enc_bool, this])
+
+/-! ### Words -/
+
+theorem wXor {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.op .wxor [t, u]) (enc (a ^^^ b)) (c + d + 1) :=
+  op₂ h hb rfl
+theorem wAnd {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.op .wand [t, u]) (enc (a &&& b)) (c + d + 1) :=
+  op₂ h hb rfl
+theorem wOr {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.op .wor [t, u]) (enc (a ||| b)) (c + d + 1) :=
+  op₂ h hb rfl
+theorem wNot {t : Term} {a : UInt64} {c : ℕ} (h : Runs P env t (enc a) c) :
+    Runs P env (.op .wnot [t]) (enc (~~~a)) (c + 1) := op₁ h rfl
+theorem wShl {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.op .wshl [t, u]) (enc (a <<< b)) (c + d + 1) :=
+  op₂ h hb rfl
+theorem wShr {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.op .wshr [t, u]) (enc (a >>> b)) (c + d + 1) :=
+  op₂ h hb rfl
+theorem wAdd {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.op .wadd [t, u]) (enc (a + b)) (c + d + 1) :=
+  op₂ h hb rfl
+theorem wSub {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.op .wsub [t, u]) (enc (a - b)) (c + d + 1) :=
+  op₂ h hb rfl
+theorem wMul {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.op .wmul [t, u]) (enc (a * b)) (c + d + 1) :=
+  op₂ h hb rfl
+theorem wToNat {t : Term} {a : UInt64} {c : ℕ} (h : Runs P env t (enc a) c) :
+    Runs P env (.op .wtoNat [t]) (enc a.toNat) (c + 1) := op₁ h rfl
+theorem natToUInt64 {t : Term} {n : ℕ} {c : ℕ} (h : Runs P env t (enc n) c) :
+    Runs P env (.op .wofNat [t]) (enc n.toUInt64) (c + 1) := op₁ h (by simp [Op.apply])
+
+/-- `K.lane`: the same word. -/
+theorem kLane {t : Term} {a : K} {c : ℕ} (h : Runs P env t (enc a) c) :
+    Runs P env t (enc a.lane) c := h
+
+theorem u8Xor {t u : Term} {a b : UInt8} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.op .wxor [t, u]) (enc (a ^^^ b)) (c + d + 1) :=
+  op₂ h hb (by
+    show Op.apply .wxor [.word a.toUInt64, .word b.toUInt64] = _
+    simp [Op.apply, wordOp]; rfl)
+theorem u8And {t u : Term} {a b : UInt8} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.op .wand [t, u]) (enc (a &&& b)) (c + d + 1) :=
+  op₂ h hb (by
+    show Op.apply .wand [.word a.toUInt64, .word b.toUInt64] = _
+    simp [Op.apply, wordOp]; rfl)
+theorem u8Or {t u : Term} {a b : UInt8} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.op .wor [t, u]) (enc (a ||| b)) (c + d + 1) :=
+  op₂ h hb (by
+    show Op.apply .wor [.word a.toUInt64, .word b.toUInt64] = _
+    simp [Op.apply, wordOp]; rfl)
+/-- A byte as a word: the same word. -/
+theorem u8ToUInt64 {t : Term} {a : UInt8} {c : ℕ} (h : Runs P env t (enc a) c) :
+    Runs P env t (enc a.toUInt64) c := h
+theorem u64ToUInt8 {t : Term} {a : UInt64} {c : ℕ} (h : Runs P env t (enc a) c) :
+    Runs P env (.op .wand [t, .val (.word 255)]) (enc a.toUInt8) (c + 1 + 1) :=
+  (Runs.op (RunsList.cons h (RunsList.cons (Runs.val _) RunsList.nil)) (v := enc a.toUInt8) (d := 1)
+    (by
+      show Op.apply .wand [.word a, .word 255] = .some (.word a.toUInt8.toUInt64, 1)
+      simp only [Op.apply, wordOp, Option.some.injEq, Prod.mk.injEq, Val.word.injEq, and_true]
+      apply UInt64.toNat_inj.1
+      rw [UInt64.toNat_and, UInt8.toNat_toUInt64, UInt64.toNat_toUInt8,
+        show (255 : UInt64).toNat = 2 ^ 8 - 1 from rfl, Nat.and_two_pow_sub_one_eq_mod])).cost_eq
+        (by omega)
+
+theorem natAnd {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .nand [t, u]) (enc (a &&& b)) (c + d + (max (limbs a) (limbs b) + 1)) :=
+  op₂ h hb rfl
+theorem natShiftRight {t u : Term} {a k : ℕ} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc k) d) :
+    Runs P env (.op .nshr [t, u]) (enc (a >>> k)) (c + d + (limbs a + limbs k + 1)) :=
+  op₂ h hb rfl
+
+/-- `decide (p ∧ q)`, short-circuit. -/
+theorem decideAnd {t u : Term} {p q : Prop} [Decidable p] [Decidable q] {inst : Decidable (p ∧ q)}
+    {c d : ℕ} (h : Runs P env t (enc (decide p)) c) (hq : p → Runs P env u (enc (decide q)) d) :
+    Runs P env (.case t [.ctor 0 [], u]) (enc (@decide (p ∧ q) inst))
+      (c + (if p then d else 1) + 1) := by
+  by_cases hp : p
+  · have := Runs.case (k := 1) (fs := []) (alts := [.ctor 0 [], u]) (by simpa [hp] using h) rfl (hq hp)
+    simpa [hp] using this
+  · have := Runs.case (k := 0) (fs := []) (alts := [.ctor 0 [], u]) (by simpa [hp] using h) rfl
+      (Runs.ctor (k := 0) (P := P) (env := env) RunsList.nil)
+    simpa [hp, enc_bool, Val.ofBool] using this
+
+/-- `decide ¬p`. -/
+theorem decideNot {t : Term} {p : Prop} [Decidable p] {inst : Decidable ¬p} {c : ℕ}
+    (h : Runs P env t (enc (decide p)) c) :
+    Runs P env (.case t [.ctor 1 [], .ctor 0 []]) (enc (@decide (¬p) inst)) (c + 1 + 1) := by
+  by_cases hp : p
+  · have := Runs.case (k := 1) (fs := []) (alts := [.ctor 1 [], .ctor 0 []]) (by simpa [hp] using h) rfl
+      (Runs.ctor (k := 0) (P := P) (env := env) RunsList.nil)
+    simpa [hp, enc_bool, Val.ofBool] using this
+  · have := Runs.case (k := 0) (fs := []) (alts := [.ctor 1 [], .ctor 0 []]) (by simpa [hp] using h) rfl
+      (Runs.ctor (k := 1) (P := P) (env := env) RunsList.nil)
+    simpa [hp, enc_bool, Val.ofBool] using this
 
 /-! ### Arrays -/
 
@@ -516,6 +627,12 @@ theorem arrayZipWith {α β γ : Type} (f : α → β → γ) (a : Array α) (b 
   simp [Array.toList_zipWith]
 
 theorem natTwoPow (k : ℕ) : 2 ^ k = 1 <<< k := by simp [Nat.shiftLeft_eq]
+
+/-- Equality of lists, decided by their elements' equality. -/
+theorem decideEqList {α : Type} [DecidableEq α] (l₁ l₂ : List α) {inst : Decidable (l₁ = l₂)} :
+    @decide (l₁ = l₂) inst = @List.beq α instBEqOfDecidableEq l₁ l₂ := by
+  rw [show @List.beq α instBEqOfDecidableEq l₁ l₂ = (l₁ == l₂) from rfl]
+  by_cases h : l₁ = l₂ <;> simp [h]
 
 end Rewrite
 
