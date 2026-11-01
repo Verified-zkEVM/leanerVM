@@ -84,11 +84,13 @@ meta partial def limbArgs (e : Expr) (acc : Array Expr := #[]) : Array Expr :=
   | .mdata _ b | .proj _ _ b => limbArgs b acc
   | _ => acc
 
-/-- `limbs_one`: the hypothesis `limbCount t = 1` for every `limbCount t` of the goal that
-`omega` shows word-sized. -/
+/-- `limbs_one`: for every `limbCount t` of the goal that `omega` shows word-sized, the hypothesis
+`limbCount t = 1`, and the goal rewritten with them (products of limb counts folded). -/
 elab "limbs_one" : tactic => withMainContext do
   let tgt ← instantiateMVars (← getMainTarget)
   let mut g ← getMainGoal
+  let mut names : Array Ident := #[]
+  let mut k := 0
   for t in limbArgs tgt do
     let ts ← Term.exprToSyntax t
     let ty ← elabTerm (← `($ts < 2 ^ 64)) (some (mkSort Level.zero))
@@ -98,8 +100,20 @@ elab "limbs_one" : tactic => withMainContext do
         pure gs.isEmpty
       catch _ => pure false
     if ok then
-      (_, g) ← g.note `hlimbs (← mkAppM ``limbs_of_lt #[← instantiateMVars m])
+      let n := Name.mkSimple s!"hlimbs_{k}"
+      k := k + 1
+      (_, g) ← g.note n (← mkAppM ``limbs_of_lt #[← instantiateMVars m])
+      names := names.push (mkIdent n)
   replaceMainGoal [g]
+  if !names.isEmpty then
+    let mut ls : Array (TSyntax ``Lean.Parser.Tactic.simpLemma) := #[]
+    for n in names do
+      ls := ls.push (← `(Lean.Parser.Tactic.simpLemma| $n:ident))
+    ls := ls.push (← `(Lean.Parser.Tactic.simpLemma| Nat.one_mul))
+    ls := ls.push (← `(Lean.Parser.Tactic.simpLemma| Nat.mul_one))
+    ls := ls.push (← `(Lean.Parser.Tactic.simpLemma| max_self))
+    withMainContext do
+      evalTactic (← `(tactic| simp (config := { failIfUnchanged := false }) only [$ls,*]))
 
 end Meta
 
