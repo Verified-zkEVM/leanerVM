@@ -51,6 +51,9 @@ cost_compile fastStacksFastC := fastStacksFast
 
 cost_compile fastStacksOfLeavesC := fastStacksOfLeaves
 
+set_option maxHeartbeats 20000000 in
+cost_compile candidateRunnerC := candidateRunner
+
 end
 
 end LeanVM.Cost.Extractor
