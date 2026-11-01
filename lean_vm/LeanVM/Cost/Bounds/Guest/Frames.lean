@@ -1,7 +1,7 @@
 module
 
 public import LeanVM.Cost.Bounds.Guest.Whir
-public import LeanVM.Cost.Bounds.Guest.Da
+public import LeanVM.Cost.Bounds.Guest.Stmt
 public import LeanVM.Cost.Decoder.Witness
 
 /-!
@@ -12,7 +12,8 @@ the frame map whose application costs at most `F + 6` (`F` the frame map's price
 `decWitNC` hands to `decWitC` (`decWitNC.lam0 … lam4`), the callees' witness functions:
 
 * `xmssAtFrame_cost` (`458·F + 717182`), `sphincsAtFrame_cost` (`S + 450·F + 1663653`),
-  `daAtFrame_cost`, `proofAtFrame_cost`, `hintsAtFrame_cost`;
+  `daAtFrame_cost` (`dvWitNC`'s price `DW` at the frame a parameter, `daFrame_runs`, `daFrame_cost`:
+  the frame's spec and price for `Da.lean`'s bound), `proofAtFrame_cost`, `hintsAtFrame_cost`;
 * `wX_cost` … `wA_cost`: the five closures `decWitNC` passes to `decWitC`, their prices.
 -/
 
@@ -73,24 +74,34 @@ theorem sphincsAtFrame_cost (hP : Includes P Decoder.sphincsAtFrameC.costDeps) {
   have := hS (.n 68)
   omega
 
-/-- **The DA matrix off `da_verify`'s frame** (`daAtFrameC`), the logarithm's tables `D` given:
-`F + 6 + G + dvWitNAtPrice F (F + 6) + 24`. -/
+omit hF in
+/-- **The DA matrix off `da_verify`'s frame** (`daAtFrameC`), the logarithm's tables `D` given,
+`da_verify`'s witness (`dvWitNC`) at that frame at most `DW` (`Bounds/Guest/Da.lean`): `DW + 10`. -/
 theorem daAtFrame_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
-    (hP : Includes P Decoder.daAtFrameC.costDeps) (hG : GLogBound P D G) (args rets : List E) :
+    (hP : Includes P Decoder.daAtFrameC.costDeps) (DW : ℕ)
+    (hDW : ∀ args rets : List E, machineCost P Decoder.dvWitNC.costIdx
+      [encodeValue D, .closure Decoder.daAtFrameC.lam0.costIdx [VnV, encodeValue args, encodeValue rets],
+        VnV] ≤ DW) (args rets : List E) :
     machineCost P Decoder.daAtFrameC.costIdx [encodeValue D, VnV, encodeValue args, encodeValue rets] ≤
-      F + 6 + G + dvWitNAtPrice F (F + 6) + 24 := by
+      DW + 10 := by
   rw [Decoder.daAtFrameC.costEq P hP D Vn VnV hVn]
-  have hσ : ∀ v : V, RunsApp P (.closure Decoder.daAtFrameC.lam0.costIdx
-      [VnV, encodeValue args, encodeValue rets]) [encodeValue v]
-      (encodeValue (Vn 26 args rets v)) :=
-    fun v ↦ RunsApp.of_spec (Decoder.daAtFrameC.lam0.costSpec P (by includes) Vn VnV hVn _ _ v)
-  have hS : ∀ v : V, appCost P (.closure Decoder.daAtFrameC.lam0.costIdx
-      [VnV, encodeValue args, encodeValue rets]) [encodeValue v] ≤ F + 6 := fun v ↦ by
-    rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
-      Decoder.daAtFrameC.lam0.costEq P (by includes) Vn VnV hVn]
-    have := hF 26 args rets v; omega
-  have := dvWitN_cost P hVn hF hσ hS D (by includes) hG
+  have := hDW args rets
   omega
+
+omit hF in
+/-- `da_verify`'s frame (`daAtFrameC.lam0`), the valuation `dvWitNC` takes: its spec. -/
+theorem daFrame_runs (hP : Includes P Decoder.daAtFrameC.lam0.costDeps) (args rets : List E) (v : V) :
+    RunsApp P (.closure Decoder.daAtFrameC.lam0.costIdx [VnV, encodeValue args, encodeValue rets])
+      [encodeValue v] (encodeValue (Vn 26 args rets v)) :=
+  RunsApp.of_spec (Decoder.daAtFrameC.lam0.costSpec P hP Vn VnV hVn _ _ v)
+
+/-- `da_verify`'s frame (`daAtFrameC.lam0`): its price `F + 6`. -/
+theorem daFrame_cost (hP : Includes P Decoder.daAtFrameC.lam0.costDeps) (args rets : List E) (v : V) :
+    appCost P (.closure Decoder.daAtFrameC.lam0.costIdx [VnV, encodeValue args, encodeValue rets])
+      [encodeValue v] ≤ F + 6 := by
+  rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
+    Decoder.daAtFrameC.lam0.costEq P hP Vn VnV hVn]
+  have := hF 26 args rets v; omega
 
 /-- **A child's proof off its `verify_sub` frame** (`proofAtFrameC`): `vsPiPrice R (F + 6) F C L
 + 11`. -/
@@ -177,16 +188,19 @@ theorem wS_cost (hP : Includes P Decoder.decWitNC.lam1.costDeps) (p : E) :
   have := sphincsAtFrame_cost P hVn hF (by includes) hσ hS p
   omega
 
-include hVn hF in
-/-- The DA witness function (`decWitNC.lam2`), the logarithm's tables `D` given:
-`F + G + dvWitNAtPrice F (F + 6) + 35`. -/
+include hVn in
+/-- The DA witness function (`decWitNC.lam2`), the logarithm's tables `D` given, `dvWitNC` at
+`da_verify`'s frame at most `DW`: `DW + 15`. -/
 theorem wD_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
-    (hP : Includes P Decoder.decWitNC.lam2.costDeps) (hG : GLogBound P D G) (args rets : List E) :
+    (hP : Includes P Decoder.decWitNC.lam2.costDeps) (DW : ℕ)
+    (hDW : ∀ args rets : List E, machineCost P Decoder.dvWitNC.costIdx
+      [encodeValue D, .closure Decoder.daAtFrameC.lam0.costIdx [VnV, encodeValue args, encodeValue rets],
+        VnV] ≤ DW) (args rets : List E) :
     appCost P (.closure Decoder.decWitNC.lam2.costIdx [encodeValue D, VnV])
-      [encodeValue args, encodeValue rets] ≤ F + G + dvWitNAtPrice F (F + 6) + 35 := by
+      [encodeValue args, encodeValue rets] ≤ DW + 15 := by
   rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
     Decoder.decWitNC.lam2.costEq P hP D Vn VnV hVn]
-  have := daAtFrame_cost P hVn hF D (by includes) hG args rets
+  have := daAtFrame_cost P hVn D (by includes) DW hDW args rets
   omega
 
 include hVn hF hrd hR hcl hC hL hL32 in
