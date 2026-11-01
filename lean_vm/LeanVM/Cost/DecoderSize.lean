@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Cost.DecoderProgram
 public import LeanVM.Cost.Decoder.Top
+public import LeanVM.Cost.DecoderSize.Locs
 
 /-!
 # The guest decoder's program: its indices and its size, by evaluation
@@ -39,12 +40,44 @@ theorem decoderProgram_indices_increasing :
     increasingFrom 0 (decTopC.costDeps.map (·.1)) = true := by
   decide +kernel
 
-/-- The bound of `size_ofList_le` on the program's size, evaluated. -/
+/-- **The guest's frame cells' literal**: its size, its rows' (`guestLocsList_rowSize`, the
+chunks of `DecoderSize/Locs.lean`), the array's and `Term.val`'s. -/
+theorem guestLocsTable_size : guestLocsTableC.costBody.size = 749836 := by
+  have h : guestLocsTableC.costBody = Term.val (MachineValue.arr
+      (guestLocsList.map fun r ↦ MachineValue.arr (r.map encodeValue).toArray).toArray) := rfl
+  rw [h, literal_size, guestLocsList_rowSize]
+
+/-- The sum of a function over a list: over the entries `p` keeps and over the others. -/
+theorem sum_map_filter_add {α : Type} (f : α → ℕ) (p : α → Bool) (l : List α) :
+    (l.map f).sum = ((l.filter p).map f).sum + ((l.filter fun x ↦ !p x).map f).sum := by
+  induction l with
+  | nil => rfl
+  | cons x l ih => cases h : p x <;> simp [h, ih] <;> omega
+
+set_option maxRecDepth 100000 in
+/-- The literal's body is the bodies' one at its index (by unfolding: no body is evaluated). -/
+theorem decoderProgramBodies_filter_locs :
+    (decoderProgramBodiesOf decTopC.costIdx decTopC.costDeps).filter
+        (fun p ↦ p.1 == guestLocsTableC.costIdx) =
+      [(guestLocsTableC.costIdx, guestLocsTableC.costBody)] := by
+  rfl
+
+/-- The bound of `size_ofList_le` on the program's size, evaluated: the frame cells' literal
+(`guestLocsTable_size`) and the other bodies (`decide`, which reads the literal's index alone). -/
 theorem decoderProgramBodies_size_bound :
     ((decoderProgramBodiesOf decTopC.costIdx decTopC.costDeps).map fun p ↦ p.2.size).sum +
       2 * (((decoderProgramBodiesOf decTopC.costIdx decTopC.costDeps).map (·.1)).foldr max 0 + 1) ≤
       784199 + 2 * (decTopC.costIdx + 1) := by
-  decide +kernel
+  have hrest : (((decoderProgramBodiesOf decTopC.costIdx decTopC.costDeps).filter
+      fun p ↦ !(p.1 == guestLocsTableC.costIdx)).map fun p ↦ p.2.size).sum ≤ 784199 - 749836 := by
+    decide +kernel
+  have hmax : ((decoderProgramBodiesOf decTopC.costIdx decTopC.costDeps).map (·.1)).foldr max 0 =
+      decTopC.costIdx := by
+    decide +kernel
+  rw [sum_map_filter_add _ (fun p ↦ p.1 == guestLocsTableC.costIdx),
+    decoderProgramBodies_filter_locs, hmax]
+  simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, guestLocsTable_size]
+  omega
 
 /-- **The program's size**, evaluated. -/
 theorem decoderProgram_size_le_measured :
