@@ -147,4 +147,67 @@ def twoStates : List (LeanVM.Semantics.Registers K) :=
 
 end Frames
 
+/-! ## The coverage searches, by sorting and binary search -/
+
+open LeanVM.Guest.Fast in
+/-- A region's pairs `(mark, slot)`, marks repeated and out of order. -/
+def pairs7 : List (ℕ × ℕ) := [(5, 0), (3, 1), (5, 2), (1, 3), (3, 4), (9, 5), (3, 6)]
+
+open LeanVM.Guest.Fast in
+#guard coverTable pairs7 == (#[1, 3, 3, 3, 5, 5, 9], #[3, 1, 4, 6, 0, 2, 5])
+open LeanVM.Guest.Fast in
+#guard runOn coverTableC.costDeps coverTableC.costIdx [encodeValue pairs7] ==
+  some (encodeValue (coverTable pairs7))
+-- The first slot of each mark, and the count of each segment, are the scans'.
+open LeanVM.Guest.Fast in
+#guard (List.range 11).all fun e ↦
+  slotIn (coverTable pairs7).1 (coverTable pairs7).2 e ==
+    (((List.range 7).find? fun s ↦ (pairs7.getD s (0, 0)).1 == e).getD 0)
+open LeanVM.Guest.Fast in
+#guard (List.range 11).all fun a ↦ (List.range 11).all fun b ↦
+  countIn (coverTable pairs7).1 a b ==
+    ((List.range 7).filter fun s ↦ a ≤ (pairs7.getD s (0, 0)).1 && (pairs7.getD s (0, 0)).1 < b).length
+open LeanVM.Guest.Fast in
+#guard runOn slotInC.costDeps slotInC.costIdx [encodeValue (coverTable pairs7).1,
+  encodeValue (coverTable pairs7).2, encodeValue (3 : ℕ)] == some (encodeValue (1 : ℕ))
+open LeanVM.Guest.Fast in
+#guard runOn countInC.costDeps countInC.costIdx [encodeValue (coverTable pairs7).1,
+  encodeValue (3 : ℕ), encodeValue (6 : ℕ)] == some (encodeValue (5 : ℕ))
+
+-- The first child whose running count passes a mark, by the running maxima.
+open LeanVM.Guest.Fast in
+#guard (List.range 10).all fun e ↦
+  kidIn (prefixMax 0 [2, 1, 5, 4, 7]).toArray e ==
+    (((List.range 5).find? fun c ↦ e < [2, 1, 5, 4, 7].getD c 0).getD 0)
+open LeanVM.Guest.Fast in
+#guard runOn (kidInC.costDeps ++ prefixMaxC.costDeps) kidInC.costIdx
+  [encodeValue (prefixMax 0 [2, 1, 5, 4, 7]).toArray, encodeValue (4 : ℕ)] ==
+  some (encodeValue (2 : ℕ))
+
+-- A region's table off the memory: the mark of slot `s` at `cover = 1` is `gLog (g^(s+1))`.
+#guard runOn (regionTableC.costDeps ++ smallReaderC.costDeps) regionTableC.costIdx
+  [dlTables, rdVal, encodeValue (1 : E), encodeValue (2 : ℕ), encodeValue (3 : ℕ)] ==
+  some (encodeValue (LeanVM.Guest.Fast.coverTable [(3, 0), (4, 1), (5, 2)]))
+
+-- Consecutive slots' claims, the address advanced by `g^4`.
+#guard runOn (xmssRunC.costDeps ++ smallReaderC.costDeps) xmssRunC.costIdx
+  [rdVal, encodeValue (LeanVM.Parameters.g ^ 4), encodeValue (1 : K), encodeValue (3 : ℕ)] ==
+  some (encodeValue ((List.range 3).map fun s ↦
+    Sig.xmssClaimOf (gen ^ (4 * s + 1)) (gen ^ (4 * s + 2)) (gen ^ (4 * s + 3)) (gen ^ (4 * s + 4))))
+
+-- Child `0`'s statement off the tables: its segment `[gLog g, gLog g^2) = [1, 2)` holds the slot
+-- of mark `1` in the leanXMSS region (marks `1, 2, 3`), none of the leanSPHINCS region's.
+#guard runOn (kidStmtC.costDeps ++ oneSigmaC.costDeps ++ smallReaderC.costDeps) kidStmtC.costIdx
+  [dlTables, rdVal, sigmaVal, encodeValue (1 : E), encodeValue (1 : E), encodeValue (1 : E),
+    encodeValue (LeanVM.Guest.Fast.coverTable [(1, 0), (2, 1), (3, 2)]),
+    encodeValue (LeanVM.Guest.Fast.coverTable [(4, 0), (5, 1)]), encodeValue (0 : ℕ)] ==
+  some (encodeValue (⟨⟨[Sig.xmssClaimOf (gen ^ 1) (gen ^ 2) (gen ^ 3) (gen ^ 4)], [],
+    Main.digestOfCells (gen ^ 1) (gen ^ 2)⟩,
+    deferOfCells ((List.range 24).map fun i ↦ (gen ^ (i + 1) : E))⟩ : LeanVM.Node.NodeStatement))
+
+-- `main`'s valuation off the locations' array, built once.
+#guard (runOn mainLocsC.costDeps mainLocsC.costIdx []).bind (fun locs ↦
+  runOn (mainValAtC.costDeps ++ smallReaderC.costDeps) mainValAtC.costIdx
+    [rdVal, locs, encodeValue (V.n 47)]) == some (encodeValue (mainVal smallReader (V.n 47)))
+
 end LeanVMTests.Cost.DecoderChain
