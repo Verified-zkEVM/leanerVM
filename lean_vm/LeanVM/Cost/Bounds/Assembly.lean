@@ -17,9 +17,7 @@ from its parts' bounds (proved in the other modules of `Cost/Bounds/`):
 * `bytecodeWords_length`: the bytecode has `16·2^ℓ` words;
 * `commitPure_roots`, **`afterRootLite_roots`**: the replay's one root, at the ladder's first level
   (height `μ − 6 + R`, width `64`);
-* **`fastStacksFast_length_le`**: at most one fast stack;
-* `transcriptBound_mono`: `transcriptIndexPrice` is monotone in the levels, the queries and the
-  limbs.
+* **`fastStacksFast_length_le`**: at most one fast stack.
 -/
 namespace LeanVM.Cost.Bounds
 
@@ -86,11 +84,6 @@ theorem fastStacksFast_length_le (μ R : ℕ) (W : ℕ → List K) : (fastStacks
   exact key _ (fun st u ↦ pruneStep_single.1) _ _ (by simp)
 
 /-! ## The budget -/
-
-theorem transcriptBound_mono {D D' L N N' W W' : ℕ} (hD : D ≤ D') (hN : N ≤ N') (hW : W ≤ W') :
-    transcriptIndexPrice D L N W ≤ transcriptIndexPrice D' L N' W' := by
-  unfold transcriptIndexPrice replayStepPrice firstAnswersStepPrice preimageStepPrice
-  gcongr
 
 end
 

@@ -16,7 +16,7 @@ most `Y` rows of at most `X` coefficients:
   initial coefficient polynomial (`initialCoeffFastC_cost`), its roots
   (`rootsNonzeroC_cost`, the root finder of `Bounds/Decoder/Roots.lean`);
 * the substitution `Y := a + X·Y` (`substituteFastC_cost`: per row the Taylor coefficient
-  `taylorCoeffC_cost`, with a binomial parity `chooseOddC_cost` and a power `powSqC_cost` per
+  `taylorCoeffC_cost`, with a binomial parity `chooseOddC_cost` and a power `powSq_cost` per
   term, then the shift `shiftXC_cost`), the truncation (`truncateXC_cost`), the prefix extended
   (`extendPrefixC_cost`);
 * the lane filter's pieces: Horner's evaluation, the mismatch count (`mismatchCountC_cost`),
@@ -30,7 +30,7 @@ The recursion itself, and the run, are bounded in `Bounds/Decoder/Prefixes.lean`
 
 namespace LeanVM.Cost.Bounds.Decoder
 
-open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Bounds.Samples LeanVM.Cost.Library
+open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Library
 open LeanVM.Cost.Extractor LeanVM.Parameters CompPoly LeanVM.Extraction.Fast
 
 /-! The functions compiled on demand, by their short names. -/
@@ -217,38 +217,9 @@ theorem chooseOddC_cost (hP : Includes P chooseOdd.c197.costDeps) (n a : ℕ) (h
         omega)
   exact key (n, a) ⟨hn, ha⟩
 
-/-- `a^n` over `K` by squaring (`powSq`): at most `6 + 540·(log₂ n + 1)`. -/
-theorem powSqC_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c198.costDeps) (a : K) (n : ℕ)
-    (hn : n < 2 ^ 64) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c198.costIdx [encodeValue a, encodeValue n] ≤
-      6 + 540 * (Nat.log2 n + 1) := by
-  have key := le_of_halving (fun x : K × ℕ ↦ x.2 < 2 ^ 64) (fun x ↦ x.2)
-    (fun x ↦ machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c198.costIdx [encodeValue x.1, encodeValue x.2]) 540 6
-    (fun x hI h0 ↦ by
-      obtain ⟨a, n⟩ := x
-      dsimp only at h0 hI ⊢
-      subst h0
-      rw [Auto.LeanVM.Cost.Rewrite.powSq.c198.costEq P hP]
-      simp)
-    (fun x hI hpos ↦ by
-      obtain ⟨a, n⟩ := x
-      dsimp only at hpos hI ⊢
-      right
-      refine ⟨(a * a, n / 2), by dsimp only; omega, le_rfl, ?_⟩
-      rw [Auto.LeanVM.Cost.Rewrite.powSq.c198.costEq P hP]
-      dsimp only
-      cost_simp
-      have hn0 : ¬ n = 0 := by omega
-      simp only [hn0, ↓reduceIte]
-      split_ifs <;> omega)
-  exact key (a, n) hn
-
 theorem cpoly_smul_size_le (r : K) (p : CPolynomial K) : (r • p).val.size ≤ p.val.size := by
   show (CPolynomial.Raw.smul r p.val).trim.size ≤ _
   exact (raw_trim_size_le _).trans (by rw [size_smul])
-
-/-- The bound of one Taylor coefficient, `Y` rows of at most `X` coefficients, `L = log₂ Y + 1`. -/
-@[expose] def taylorBound (X Y L : ℕ) : ℕ := (1700 * L + 960 * X + 329) * Y + 21 * Y + 30
 
 theorem taylorCoeff_size_le {Q : CBivariate K} {X : ℕ} (hQ : InnerLe Q.val X) (a : K) (t : ℕ) :
     (taylorCoeff Q a t).val.size ≤ X := by
@@ -297,7 +268,7 @@ theorem taylorCoeffC_cost (hP : Includes P taylorCoeff.c195.costDeps) (Q : CBiva
         rw [taylorCoeff.c195.lam0.costEq P (by includes)]
         have hlog : Nat.log2 y ≤ Nat.log2 Y := log2_mono (by omega)
         have := chooseOddC_cost P (by includes) y t (by omega) (by omega)
-        have := powSqC_cost P (by includes) a (y - t) (by omega)
+        have := powSq_cost P (by includes) a (y - t) (by omega)
         have hlog' : Nat.log2 (y - t) ≤ Nat.log2 Y := log2_mono (by omega)
         have := smulK_cost P (by includes) (a ^ (y - t)) (Q.val.coeff y).val
         have hss : (CPolynomial.Raw.smul (a ^ (y - t)) (Q.val.coeff y).val).size ≤ X := by
@@ -329,10 +300,6 @@ theorem shiftXC_cost (hP : Includes P shiftX.c194.costDeps) (t : ℕ) (p : CPoly
   simp only [Array.size_append, Array.size_replicate] at this ⊢
   omega
 
-/-- The bound of the substitution on `Y` rows of at most `X` coefficients. -/
-@[expose] def substBound (X Y : ℕ) : ℕ :=
-  (taylorBound X Y (Nat.log2 Y + 1) + 28 * (X + Y) + 100) * Y + 40
-
 /-- **The substitution `Y := a + X·Y`** (`substituteFast`: per row its Taylor coefficient, shifted
 by `X^t`): at most `substBound X Y`, its rows of at most `X + Y` coefficients. -/
 theorem substituteFastC_cost (hP : Includes P substituteFast.c192.costDeps) (Q : CBivariate K)
@@ -342,7 +309,7 @@ theorem substituteFastC_cost (hP : Includes P substituteFast.c192.costDeps) (Q :
   rw [substituteFast.c192.costEq P hP]
   have hf := fun t ↦ RunsApp.of_spec (us := [encodeValue Q, encodeValue a]) (vs := [encodeValue t])
     (substituteFast.c192.lam0.costSpec P (by includes) Q a t)
-  have := ofFnFromC_cost P (by includes) (n := Q.val.size) (by omega) _
+  have := ofFnFrom_cost P (by includes) (n := Q.val.size) (by omega) _
     (.closure substituteFast.c192.lam0.costIdx [encodeValue Q, encodeValue a]) hf
     (taylorBound X Y (Nat.log2 Y + 1) + 25 * (X + Y) + 28) (fun t ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -352,7 +319,7 @@ theorem substituteFastC_cost (hP : Includes P substituteFast.c192.costDeps) (Q :
       have hts := taylorCoeff_size_le hQ a t
       have := shiftXC_cost P (by includes) t (taylorCoeff Q a t) (by omega)
       have : 25 * (↑t + (taylorCoeff Q a ↑t).val.size) ≤ 25 * (X + Y) := by omega
-      omega) Q.val.size 0 (by omega) (by omega)
+      omega) 0 (by omega)
   have := ofArrayB_cost P (by includes)
     (Array.ofFn fun t : Fin Q.val.size ↦ shiftX t.val (taylorCoeff Q a t.val)) (X + Y)
     (fun x hx ↦ by
@@ -453,12 +420,11 @@ theorem extendPrefixC_cost (hP : Includes P Auto.CompPoly.GuruswamiSudan.extendP
 theorem hornerEvalC_cost (hP : Includes P hornerEval.c212.costDeps) (x : K) (p : CPolynomial K) :
     machineCost P hornerEval.c212.costIdx [encodeValue x, encodeValue p] ≤ 272 * p.val.size + 10 := by
   rw [hornerEval.c212.costEq P hP]
-  have := foldrC_cost P (by includes) _ (.closure hornerEval.c212.lam0.costIdx [encodeValue x])
+  have := foldr_cost P (by includes) _ (.closure hornerEval.c212.lam0.costIdx [encodeValue x])
     (fun a acc ↦ RunsApp.of_spec (us := [encodeValue x]) (vs := [encodeValue a, encodeValue acc])
-      (hornerEval.c212.lam0.costSpec P (by includes) x a acc)) 260
-    (fun a acc ↦ by
+      (hornerEval.c212.lam0.costSpec P (by includes) x a acc)) 260 (0 : K) p.val.toList
+    (fun a _ acc ↦ by
       rw [appCost_fn, List.singleton_append, hornerEval.c212.lam0.costEq P (by includes)])
-    (0 : K) p.val.toList
   simp only [Array.length_toList] at this
   omega
 
@@ -503,25 +469,6 @@ theorem mismatchCountFast_le (points : Array (K × K)) (p : CPolynomial K) :
     by_cases h : (hornerEval x.1 p == x.2) = true
     · simp only [h, ↓reduceIte]; have := ih c; omega
     · simp only [h, Bool.false_eq_true, ↓reduceIte]; have := ih (c + 1); omega
-
-/-- **The candidate filter** (`gsRunDistinctNF`'s test: degree below `k`, then at most `radius`
-mismatches): at most `(272·|p| + 34)·n + 30`. -/
-theorem gsRunFilterC_cost (hP : Includes P gsRunDistinctNFC.lam0.costDeps)
-    (points : Array (K × K)) (params : GuruswamiSudan.GSInterpParams) (radius : ℕ)
-    (p : CPolynomial K) (hn : points.size < 2 ^ 63) (hp : p.val.size < 2 ^ 64)
-    (hk : params.messageDegree < 2 ^ 64) (hr : radius < 2 ^ 64) :
-    machineCost P gsRunDistinctNFC.lam0.costIdx [encodeValue points, encodeValue params, encodeValue radius, encodeValue p] ≤
-      (272 * p.val.size + 34) * points.size + 30 := by
-  rw [gsRunDistinctNFC.lam0.costEq P hP,
-    Auto.CompPoly.GuruswamiSudan.degreeLtBool.c208.costEq P (by includes)]
-  cost_simp
-  split_ifs
-  · rw [passesDistanceFast.c209.costEq P (by includes)]
-    have := mismatchCountC_cost P (by includes) points p hn
-    have := mismatchCountFast_le points p
-    cost_simp
-    omega
-  · omega
 
 
 /-! ## Roth–Ruckenstein's prefixes: sizes -/

@@ -24,7 +24,7 @@ unshared. A factor 3 on every sum and product, not an order.
 
 namespace LeanVM.Cost.Bounds.Decoder
 
-open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Bounds.Samples LeanVM.Cost.Library
+open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Library
 open LeanVM.Cost.Extractor LeanVM.Parameters CompPoly
 
 /-! The functions compiled on demand, by their short names. -/
@@ -95,21 +95,6 @@ theorem rightpadC_cost {α : Type} [MachineEncoding α] (hP : Includes P Auto.Ar
   simp only [limbs_of_lt hn, limbs_of_lt hs, Array.size_replicate]
   omega
 
-/-- `zipIdx` of a list (polymorphic): `16` per element, `3`. -/
-theorem zipIdxC_cost {α : Type} [MachineEncoding α] (hP : Includes P Auto.List.zipIdx.c61.costDeps) :
-    ∀ (l : List α) (n : ℕ), n + l.length < 2 ^ 64 →
-      machineCost P Auto.List.zipIdx.c61.costIdx [encodeValue l, encodeValue n] ≤ 16 * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => intro n _; rw [Auto.List.zipIdx.c61.costEq_nil P hP n]; simp
-  | cons x l ih =>
-    intro n h
-    rw [Auto.List.zipIdx.c61.costEq_cons P hP x l n]
-    have := ih (n + 1) (by simp at h; omega)
-    simp only [List.length_cons] at h ⊢
-    cost_simp
-    omega
-
 /-- **`addRaw` over `K`**: at most `44 + 28·max(|p|, |q|)`. -/
 theorem addRawK_cost (hP : Includes P addRaw.c50.costDeps) (p q : CPolynomial.Raw K)
     (hp : p.size < 2 ^ 64) (hq : q.size < 2 ^ 64) :
@@ -172,7 +157,7 @@ theorem mulRawK_cost (hP : Includes P mulRaw.c56.costDeps) (p q : CPolynomial.Ra
     machineCost P mulRaw.c56.costIdx [encodeValue p, encodeValue q] ≤
       302 * (q.size * p.size) + 30 * (p.size * p.size) + 102 * p.size + 20 := by
   rw [mulRaw.c56.costEq P hP]
-  have hz := zipIdxC_cost P (by includes) p.toList 0 (by simp; omega)
+  have hz := zipIdx_cost P (by includes) p.toList 0 (by simp; omega)
   have hf := listFoldl_le P (by includes) _ (.closure mulRaw.c56.lam0.costIdx [encodeValue q])
     (fun acc x ↦ RunsApp.of_spec (us := [encodeValue q]) (vs := [encodeValue acc, encodeValue x])
       (mulRaw.c56.lam0.costSpec P (by includes) q acc x))
@@ -411,7 +396,7 @@ theorem mulRawB_cost (hP : Includes P mulRaw.c44.costDeps) (p q : CPolynomial.Ra
       1460 * ((((A + 1) * (A + 1)) * q.size) * p.size) + 220 * ((A * (p.size + q.size)) * p.size) +
         195 * ((p.size + q.size) * p.size) + 112 * p.size + 20 := by
   rw [mulRaw.c44.costEq P hP]
-  have hz := zipIdxC_cost P (by includes) p.toList 0 (by simp; omega)
+  have hz := zipIdx_cost P (by includes) p.toList 0 (by simp; omega)
   have hf := listFoldl_le P (by includes) _ (.closure mulRaw.c44.lam0.costIdx [encodeValue q])
     (fun acc x ↦ RunsApp.of_spec (us := [encodeValue q]) (vs := [encodeValue acc, encodeValue x])
       (mulRaw.c44.lam0.costSpec P (by includes) q acc x))
@@ -473,30 +458,6 @@ theorem InnerLe.mulRaw {p q : CPolynomial.Raw (CPolynomial K)} {A : ℕ} (hp : I
     intro acc h hl
     exact ih _ (h.addRaw ((hq.smul x.1 (hp _ (hl x (by simp)))).mulPowX x.2))
       (fun y hy ↦ hl y (by simp [hy]))
-
-/-- **The product over `K[X]`** (`mul`: `mulRaw` thrice, the trim). -/
-theorem mulB_cost (hP : Includes P mul.c43.costDeps) (p q : CPolynomial.Raw (CPolynomial K))
-    (A : ℕ) (hA : A < 2 ^ 58) (hp : InnerLe p A) (hq : InnerLe q A) (hps : p.size < 2 ^ 58)
-    (hqs : q.size < 2 ^ 58) :
-    machineCost P mul.c43.costIdx [encodeValue p, encodeValue q] ≤
-      4380 * ((((A + 1) * (A + 1)) * q.size) * p.size) + 660 * ((A * (p.size + q.size)) * p.size) +
-        585 * ((p.size + q.size) * p.size) + 336 * p.size +
-        6 * (A * (p.size + q.size)) + 41 * (p.size + q.size) + 80 := by
-  rw [mul.c43.costEq P hP]
-  have := mulRawB_cost P (by includes) p q A hA hp hq hps hqs
-  have hs := size_mulRaw_le p q
-  have := trimLenB_cost P (by includes) (p.mulRaw q) (2 * A) (hp.mulRaw hq) (p.mulRaw q).size
-    (by omega)
-  have h1 : (Array.extract (p.mulRaw q) 0
-      (CompPolyLib.trimLen (p.mulRaw q) (p.mulRaw q).size)).size ≤ (p.mulRaw q).size := by simp
-  have : (3 * (2 * A) + 40) * (p.mulRaw q).size ≤
-      6 * (A * (p.size + q.size)) + 40 * (p.size + q.size) := by
-    have := Nat.mul_le_mul_left (3 * (2 * A) + 40) hs
-    have e : (3 * (2 * A) + 40) * (p.size + q.size) =
-        6 * (A * (p.size + q.size)) + 40 * (p.size + q.size) := by
-      ring
-    omega
-  omega
 
 end
 

@@ -96,12 +96,6 @@ theorem rowShiftedDegree_le_of_entries {row : PolynomialRow F} {shift : Array Na
     (h : rowShiftedDegree? row shift = some d) : d ≤ D :=
   rowShiftedDegree?_le_of_entry_bound (fun k _ hk ↦ hb k hk) h
 
-omit [DecidableEq F] in
-theorem rowShiftedDegree_le {M : PolynomialMatrix F} {shift : Array Nat} {D : ℕ}
-    (h : ShiftedDegreeLe M shift D) {i d : ℕ} (hi : i < M.size)
-    (hd : rowShiftedDegree? (M.getD i #[]) shift = some d) : d ≤ D :=
-  rowShiftedDegree_le_of_entries (h i hi) hd
-
 omit [BEq F] [LawfulBEq F] [DecidableEq F] in
 theorem rowGet_eq_zero_of_size_le {row : PolynomialRow F} {j : ℕ} (hj : row.size ≤ j) :
     rowGet row j = 0 := by
@@ -252,15 +246,6 @@ theorem cancel_shift_add_size_le {target reducer : PolynomialRow F} {shift : Arr
   rw [hpos] at ht5
   omega
 
-omit [DecidableEq F] in
-/-- The degree of the target's leading entry is at most its shifted degree, so the shift `d` of
-a cancellation is at most the bound. -/
-theorem cancel_shift_le {target : PolynomialRow F} {shift : Array Nat}
-    {t : ShiftedLeadingTerm F} (ht : rowShiftedLeadingTerm? target shift = some t) :
-    t.degree ≤ t.shiftedDegree := by
-  obtain ⟨-, -, -, -, ht5, -⟩ := rowShiftedLeadingTerm?_some_data ht
-  omega
-
 /-! ## The number of steps -/
 
 /-- **The number of steps** the fast loop makes (`muldersStorjohannReduceWithFuelFast`'s
@@ -375,10 +360,6 @@ open Polynomial CompPoly.GuruswamiSudan
 
 /-- Every `Y`-coefficient of a polynomial in `F[X][Y]` has `X`-degree at most `d`. -/
 @[expose] def XDegLe (P : Polynomial (Polynomial F)) (d : ℕ) : Prop := ∀ j, (P.coeff j).natDegree ≤ d
-
-omit [BEq F] [LawfulBEq F] [DecidableEq F] in
-theorem XDegLe.mono {P : Polynomial (Polynomial F)} {a b : ℕ} (h : XDegLe P a) (hab : a ≤ b) :
-    XDegLe P b := fun j ↦ (h j).trans hab
 
 omit [BEq F] [LawfulBEq F] [DecidableEq F] in
 theorem XDegLe.mul {P Q : Polynomial (Polynomial F)} {a b : ℕ} (hP : XDegLe P a)

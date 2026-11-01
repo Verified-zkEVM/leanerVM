@@ -48,10 +48,8 @@ open LeanVM.Cost LeanVM.Parameters LeanVM.Extraction.Fast
 
 public section
 
-set_option maxHeartbeats 4000000 in
 cost_compile pruneUpToDistinctC := pruneUpToDistinct
 
-set_option maxHeartbeats 4000000 in
 cost_compile decodeStacksDistinctC := decodeStacksDistinct
 
 end

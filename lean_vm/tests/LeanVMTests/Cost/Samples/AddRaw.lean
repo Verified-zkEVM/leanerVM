@@ -7,7 +7,7 @@ import all CompPoly.Data.Array.Lemmas
 import all Init.Data.Array.Basic
 
 /-!
-# Sample: CompPoly's `addRaw` over `K`, compiled
+# Tests: a sample, CompPoly's `addRaw` over `K`, compiled
 
 CompPoly's `addRaw` (github.com/Verified-zkEVM/CompPoly, Apache-2.0, "Copyright (c) 2026 CompPoly
 Contributors"; nothing of it is copied): pad both coefficient arrays to the longer one
@@ -16,10 +16,10 @@ Contributors"; nothing of it is copied): pad both coefficient arrays to the long
 (`addRawK.costEq`) are the compiler's.
 -/
 
-namespace LeanVM.Cost.Samples
+namespace LeanVMTests.Cost.Samples
 
 open LeanVM.Cost LeanVM.Parameters
 
 cost_compile addRawK := @CompPoly.CPolynomial.Raw.addRaw K _ _
 
-end LeanVM.Cost.Samples
+end LeanVMTests.Cost.Samples

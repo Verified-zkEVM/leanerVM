@@ -24,34 +24,6 @@ variable (P : MachineProgram)
 
 /-! ## Byte-string helpers -/
 
-/-- `List.drop` (`drop.c232`): `15` per position, `13` at the end. -/
-theorem drop232_cost (hP : Includes P Auto.List.drop.c232.costDeps) {α : Type} [MachineEncoding α] :
-    ∀ (n : ℕ) (xs : List α), n < 2 ^ 64 →
-      machineCost P Auto.List.drop.c232.costIdx [encodeValue n, encodeValue xs] ≤ 15 * n + 13 := by
-  intro n
-  induction n with
-  | zero => intro xs _; rw [Auto.List.drop.c232.costEq P hP]; simp
-  | succ n ih =>
-    intro xs hn
-    rw [Auto.List.drop.c232.costEq P hP, limbs_of_lt hn]
-    cases xs with
-    | nil => dsimp only; omega
-    | cons x xs => have := ih xs (by omega); dsimp only; omega
-
-/-- `List.take` (`take.c231`): `19` per position, `13` at the end. -/
-theorem take231_cost (hP : Includes P Auto.List.take.c231.costDeps) {α : Type} [MachineEncoding α] :
-    ∀ (n : ℕ) (xs : List α), n < 2 ^ 64 →
-      machineCost P Auto.List.take.c231.costIdx [encodeValue n, encodeValue xs] ≤ 19 * n + 13 := by
-  intro n
-  induction n with
-  | zero => intro xs _; rw [Auto.List.take.c231.costEq P hP]; simp
-  | succ n ih =>
-    intro xs hn
-    rw [Auto.List.take.c231.costEq P hP, limbs_of_lt hn]
-    cases xs with
-    | nil => dsimp only; omega
-    | cons x xs => have := ih xs (by omega); dsimp only; omega
-
 /-- `List.dropWhile` (`dropWhile.c336`): `B + 9` per element, `B + 11` at the end. -/
 theorem dropWhile336_cost (hP : Includes P Auto.List.dropWhile.c336.costDeps) {α : Type} [MachineEncoding α]
     (p : α → Bool) (pVal : MachineValue) (hp : ∀ a : α, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : ℕ)
@@ -108,7 +80,7 @@ theorem padBlock_cost (hP : Includes P Auto.LeanVM.Protocol.KeccakHash.padBlock.
     (rest : List UInt8) (hr : rest.length ≤ 136) :
     machineCost P Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.costIdx [encodeValue rest] ≤ 12000 := by
   rw [Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.costEq P hP]
-  have hl := listLength_cost P (by includes) rest (by omega)
+  have hl := length_cost P (by includes) rest (by omega)
   have hrep := replicate_cost P (by includes) (0 : UInt8) (rate - rest.length) (by rw [rate_eq]; omega)
   have hap := append_cost P (by includes) rest (List.replicate (rate - rest.length) 0)
   have hmh : ∀ (g : UInt8 → UInt8) (gVal : MachineValue), (∀ a, RunsApp P gVal [encodeValue a] (encodeValue (g a))) →
@@ -155,10 +127,10 @@ theorem keccakPadded_cost (hP : Includes P Auto.LeanVM.keccakPadded.c338.costDep
     (m : List UInt8) (hm : m.length < 2 ^ 62) :
     machineCost P Auto.LeanVM.keccakPadded.c338.costIdx [encodeValue m] ≤ 65 * m.length + 12100 := by
   rw [Auto.LeanVM.keccakPadded.c338.costEq P hP]
-  have hl := listLength_cost P (by includes) m (by omega)
+  have hl := length_cost P (by includes) m (by omega)
   have hk : rate * (m.length / rate) ≤ m.length := by rw [rate_eq]; exact Nat.mul_div_le _ _
-  have ht := take231_cost P (by includes) (rate * (m.length / rate)) m (by omega)
-  have hd := drop232_cost P (by includes) (rate * (m.length / rate)) m (by omega)
+  have ht := take_cost P (by includes) (rate * (m.length / rate)) m (by omega)
+  have hd := drop_cost P (by includes) (rate * (m.length / rate)) m (by omega)
   have hpb := padBlock_cost P (by includes) (m.drop (rate * (m.length / rate))) (by
     rw [List.length_drop, rate_eq]
     have := Nat.mod_lt m.length (show 136 > 0 by norm_num)
@@ -204,7 +176,7 @@ theorem stripPad_cost (hP : Includes P Auto.Common.stripPad.c335.costDeps) (bs :
       (fun a ↦ RunsApp.of_spec (Auto.Common.stripPad.c335.lam0.costSpec P (by includes) a)) 3
       (fun a ↦ by rw [appCost_fn, List.nil_append, Auto.Common.stripPad.c335.lam0.costEq P
         (by includes)]) tail
-    have h3 := drop232_cost P (by includes) 1 (tail.dropWhile fun x ↦ decide (x = 0)) (by norm_num)
+    have h3 := drop_cost P (by includes) 1 (tail.dropWhile fun x ↦ decide (x = 0)) (by norm_num)
     have hdl := (List.dropWhile_suffix (fun x ↦ decide (x = 0)) (l := tail)).length_le
     have h4 := reverseAux_cost P (by includes) ((tail.dropWhile fun x ↦ decide (x = 0)).drop 1) []
     have : ((tail.dropWhile fun x ↦ decide (x = 0)).drop 1).length ≤ tail.length := by
@@ -269,7 +241,7 @@ theorem blockBytes_length (s x : Semantics.KeccakState) : (blockBytes s x).lengt
 theorem cut_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.cut.c325.costDeps) (B : ℕ) (hB : B < 2 ^ 64) (bs : List UInt8)
     (hb : bs.length < 2 ^ 64) : machineCost P Auto.LeanVM.Extraction.Fast.cut.c325.costIdx [encodeValue B, encodeValue bs] ≤ 7 * bs.length + 13 := by
   rw [Auto.LeanVM.Extraction.Fast.cut.c325.costEq P hP, limbs_of_lt hb, limbs_of_lt hB]
-  have := listLength_cost P (by includes) bs hb
+  have := length_cost P (by includes) bs hb
   simp only [max_self]
   split_ifs <;> omega
 
@@ -337,9 +309,6 @@ below `2^D`. -/
   (23 * 25 + 31) * potential D τ.fwd.levels + (23 * 25 + 31) * potential D τ.inv.levels +
     (23 * 8 + 31) * potential D τ.caps.levels
 
-theorem toList_length25 (x : KeccakState) : x.toList.length = 25 := by simp
-
-set_option maxRecDepth 20000 in
 /-- **One replay step, amortized** (`replayStepC`). -/
 theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ)
     (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W)
@@ -400,7 +369,7 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ
     rw [hins]
     omega
   have hd : ∀ z : KeccakState, machineCost P Auto.List.drop.c232.costIdx [encodeValue 17, encodeValue z.toList] ≤ 268 :=
-    fun z ↦ drop232_cost P (by includes) 17 z.toList (by norm_num)
+    fun z ↦ (drop_cost P (by includes) 17 z.toList (by norm_num)).trans (by norm_num)
   have hk25 : ∀ z : KeccakState, WordsKey 25 z.toList := fun z ↦ by simp [WordsKey]
   have hk8 : ∀ z : KeccakState, WordsKey 8 (z.toList.drop 17) := fun z ↦ by simp [WordsKey]
   have hl25 : ∀ z : KeccakState, z.toList.length = 25 := fun z ↦ by simp
@@ -510,7 +479,7 @@ theorem replayInit_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.ReplayFast.
     machineCost P Auto.LeanVM.Extraction.Fast.ReplayFast.init.c352.costIdx [] ≤ 431 := by
   rw [Auto.LeanVM.Extraction.Fast.ReplayFast.init.c352.costEq P hP,
     Auto.LeanVM.Extraction.Fast.SortedMap.insert.c330.costEq P (by includes)]
-  have h1 := drop232_cost P (by includes) 17 (Vector.replicate 25 (0 : UInt64)).toList (by norm_num)
+  have h1 := drop_cost P (by includes) 17 (Vector.replicate 25 (0 : UInt64)).toList (by norm_num)
   simp only [SortedMap.empty, Vector.size_toArray]
   rw [Auto.LeanVM.Extraction.Fast.carry.c331.costEq_nil P (by includes)]
   omega
@@ -612,7 +581,7 @@ theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D 
           simp only [appCost_fn, List.cons_append, List.nil_append]
           rw [keccakEvaluationsC.lam0.lam0.lam0.costEq P (by includes),
             limbs_of_lt (by omega : m.length < 2 ^ 64), limbs_of_lt (by omega : L < 2 ^ 64)]
-          have := listLength_cost P (by includes) m (by omega)
+          have := length_cost P (by includes) m (by omega)
           simp only [max_self]
           split_ifs <;> omega)
   rw [limbs_of_lt (by omega : L < 2 ^ 64), limbs_of_lt (by rw [hrate]; norm_num : rate < 2 ^ 64),
