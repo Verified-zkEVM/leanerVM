@@ -136,7 +136,7 @@ open LeanVM.Parameters LeanVM.Semantics
 @[expose] public section
 
 /-- **The bound on the guest decoder program's size**: `2^20` terms, the compiled decoder's
-measured size (`786328`, `lean_vm`'s `Cost/DecoderSize.lean`) rounded up to a power of two. That
+measured size (`786226`, `lean_vm`'s `Cost/DecoderSize.lean`) rounded up to a power of two. That
 size counts in full the guest program's per-function tables, which the decoder's replay of the
 run reads and which are literals of the decoder program (`CostMachine.lean`: a literal counts by
 its size; the frame cells of the guest's functions are `749835` of it). The bound limits a table
