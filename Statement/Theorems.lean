@@ -44,7 +44,7 @@ structure Theorems (decode : LeanVM.Node.Decoder) (extractorProgram : LeanVM.Cos
   budget, `extractorOf extractorProgram` (a run out of budget extracts nothing, a break; the
   machine's prices are trusted to be honest, `CostMachine.lean`): at most
   `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). The
-  budget is about `2^117.67` at the worst shape for at most `2^40` queries. -/
+  budget is about `N·log³N + 2^117.67` for `N` permutation queries at the worst shape. -/
   knowledgeSoundness : LeanVM.KnowledgeSoundness (LeanVM.extractorOf extractorProgram)
   /-- leanVM is complete: the honest prover's (`LeanVM.prover`, the executable
   `LeanVM.Prover.prove` of `Prover/Prove.lean`) proof of a valid execution of committed size at

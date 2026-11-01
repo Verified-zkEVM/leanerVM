@@ -4,7 +4,7 @@ import LeanVM.Protocol.Extraction.Extract
 /-!
 # Tests: the extractor's trace facts are theorems only; the extractor's axioms
 
-The section of `Statement/Extractor.lean` a reviewer may skip, the facts the root finder needs
+The section of `LeanVM/Protocol/Extraction/Extractor.lean` a reader may skip, the facts the root finder needs
 (`traceCtx`'s proof fields, namespaces `LeanVM.Extraction.Words` and `LeanVM.Extraction.Bf64Trace`):
 by proof irrelevance nothing in it can change what the extractor computes or what a statement says,
 as long as every constant it declares is a proof. `#propsOnly` checks that: it fails if a constant

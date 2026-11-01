@@ -122,7 +122,7 @@ theorem size_ofList_le (l : List (ℕ × Term)) :
   have hrep : ∀ n, Program.size (Array.replicate n (Term.val (.nat 0))) = 2 * n := by
     intro n
     simp only [Program.size, Array.toList_replicate, List.map_replicate, List.sum_replicate,
-      Term.size, Val.size, smul_eq_mul]
+      Term.size, Val.size, limbs, Nat.log2_zero, smul_eq_mul]
     omega
   have := key l (Array.replicate ((l.map (·.1)).foldr max 0 + 1) (.val (.nat 0)))
   rw [hrep] at this

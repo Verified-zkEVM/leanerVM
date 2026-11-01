@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.EndToEnd.Sound.Extractor
 
-  The extractor of the specification (`Statement/Extractor.lean`) against the proof's:
+  The knowledge extractor (`LeanVM/Protocol/Extraction/Extractor.lean`) against the proof's:
   the commitment it reads is the extracted history's, its candidates contain the proof's, and its
   memory image is the witness's. (That it then returns a valid execution whenever the proof's
   extractor finds a stack satisfying the relation is `LeanVM.Protocol.Extraction.Sound`.)
@@ -18,9 +18,9 @@ public import LeanVM.Protocol.WithHash
 public import LeanVM.Protocol.WithHashBridge
 
 /-!
-# The specification's extractor
+# The knowledge extractor against the proof's
 
-`LeanVM.extractor` (`Statement/Extractor.lean`) reads the commitment off a run of the
+`LeanVM.extractor` (`LeanVM/Protocol/Extraction/Extractor.lean`) reads the commitment off a run of the
 verifier's first two steps and searches the candidates for one whose memory image runs validly.
 The proof's extractor `extractStack` reads it off the extracted history of the whole run and picks
 a candidate satisfying the leanISA relation. The bridges:

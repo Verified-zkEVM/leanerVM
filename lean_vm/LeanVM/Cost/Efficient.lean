@@ -89,7 +89,7 @@ theorem runsBody_of_outputWithin {P : Program} {x v : Val} {b : ℕ}
 
 /-! ## The extractor's output -/
 
-/-- Where the proof announces no shape, the statement's extractor returns nothing. -/
+/-- Where the proof announces no shape, `transcriptExtractor` returns nothing. -/
 theorem transcriptExtractor_eq_none {prog : Semantics.Program} {π : Proof}
     (h : afterRoot (bytecodeWords prog) π = none) (input : PublicInput) (T : OracleQueryLog) :
     transcriptExtractor prog input T π = none := by

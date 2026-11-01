@@ -130,9 +130,10 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
     `extractorSizeBound`, and which program it is a reader need not know (`lean_vm` names its
     knowledge extractor, compiled). That the machine's prices are honest is trusted. The size bound is `2^15`, twice
     the compiled extractor's `10491` rounded up to a power of two; the budget (`extractorBudgetAt`,
-    `extractorPrice`) is a closed formula in the announced shape and the number of queries, about
-    `2^117.67` at the worst shape for at most `2^40` queries (the list decoder) and `2^156.69` for
-    `2^128` (the transcript's index).
+    `extractorPrice`) is a closed formula in the announced shape and the number `N` of queries,
+    about `N·log³N + 2^117.67` at the worst shape: `2^117.67` for `N ≤ 2^40` (the list decoder)
+    and `2^156.69` at `N = 2^128` (the transcript's index), where the soundness bound is already
+    trivial.
 14. [`Theorems.lean`](Theorems.lean): every end theorem, as the fields of `Statement.Theorems`.
 15. [`Corollaries.lean`](Corollaries.lean), optional for review: statements that follow from
     `Theorems` alone, in their composed form (`lean_vm` proves `Theorems decode P → Corollaries
@@ -175,8 +176,10 @@ bounded by `fuel`, and it branches on no permutation answer other than through t
 challenges the verifier's program samples (`Run.lean` gives the script nothing else).
 
 The knowledge extractor is not part of the statement: `Statement.Theorems` takes it as a
-cost-machine program (`CostMachine.lean`), whose size bound and budget exclude a search for
-witnesses, a table of them, and classical choice. `lean_vm` names the program
+cost-machine program (`CostMachine.lean`): a program excludes classical choice, its size bound a
+table of witnesses, and its budget is about `N·log³N + 2^117.67` for `N` permutation queries
+(polylogarithmic per query: `2^117.67` for `N ≤ 2^40`, `2^156.69` at `N = 2^128`, where the
+soundness bound is already trivial). `lean_vm` names the program
 (`LeanVM.Cost.extractorProgram`, its extractor `transcriptExtractor` compiled,
 `lean_vm/LeanVM/Protocol/Extraction/Extractor.lean`). The address indices and the public boundary
 it shares with the honest prover (`powIndex`, `gLogIn`, `stepIn`, `boundaryOK`) are in

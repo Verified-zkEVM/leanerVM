@@ -6,7 +6,7 @@ public import LeanVM.Protocol.Extraction.Fast.Replay
 /-!
 # The extractor of the random-permutation model, fast
 
-`transcriptExtractorFast` is the statement's `transcriptExtractor` (`Statement/LeanVm.lean`) with
+`transcriptExtractorFast` is `transcriptExtractor` (`Extraction/Extractor.lean`) with
 every piece fast: the transcript replayed through sorted maps (`SortedMap`), keeping the evaluations of at most
 `L = max 64 (8·width)` bytes (`keccakEvaluationsFast`), their first answers and preimages indexed
 (`firstAnswers`, `preimageIndex`), and the decoder's Roth–Ruckenstein step a Taylor shift

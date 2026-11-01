@@ -53,13 +53,14 @@ stack's root), its output parsed as an execution. A run that fails or exceeds it
 nothing, which counts as a break in `KnowledgeSoundness`. `Statement.Theorems` takes the program
 as a parameter, with its size at most `extractorSizeBound`; `lean_vm` proves it for its knowledge
 extractor compiled. What excludes a vacuous statement: `P` is a program (no classical choice),
-the budget is far below a search for witnesses or forgeries, the size bound excludes a table of
-witnesses, and the machine's only runtime data is its input. `decode` (`LeanVmGuest.lean`) is not
-costed.
+the size bound excludes a table of witnesses, the machine's only runtime data is its input, and
+the budget is the one below. `decode` (`LeanVmGuest.lean`) is not costed.
 
 **The budget** (`extractorBudgetAt`) is a closed formula in the shape the proof announces and the
-number of queries, `extractorPrice`: about `2^117.67` at the worst shape for at most `2^40`
-queries, `2^156.69` for `2^128` queries.
+number `N` of the adversary's permutation queries, `extractorPrice`: about `N·log³N + 2^117.67`
+at the worst shape, polylogarithmic per query, so about `2^117.67` for `N ≤ 2^40` and `2^156.69`
+at `N = 2^128`. Near `Q = 2^128` queries the soundness bound (`KnowledgeSoundness`) is already
+trivial.
 -/
 
 namespace LeanVM.Cost
@@ -278,9 +279,11 @@ def outputWithin (P : Program) (x : Val) (b : ℕ) : Option Val :=
 
 mutual
 
-/-- A value's size: one per word, number, constructor, array and closure. -/
+/-- A value's size: one per word, constructor, array and closure, and a natural number's limbs
+(a literal counts in full). -/
 def Val.size : Val → ℕ
-  | .word _ | .nat _ => 1
+  | .word _ => 1
+  | .nat n => limbs n
   | .ctor _ fs => Val.sizeList fs + 1
   | .arr xs => Val.sizeList xs.toList + 1
   | .fn _ us => Val.sizeList us + 1
@@ -401,10 +404,10 @@ end LeanVM.Cost
 
 Natural-number formulas only: the budget `extractorBudgetAt` is `extractorPrice` at the announced
 shape. Each is a bound `lean_vm` proves on the compiled extractor's part it names
-(`lean_vm/LeanVM/Cost/Bounds/`); a reader checks only that the budget is far below a search for
-witnesses: at the worst shape `(μ, R) = (28, 4)` with `κ = ℓ = 32`, about `2^117.67` for at most
-`2^40` queries (the list decoder dominating) and `2^156.69` for `2^128` queries (the transcript's
-index dominating). -/
+(`lean_vm/LeanVM/Cost/Bounds/`); a reader checks only the budget's size: about
+`N·log³N + 2^117.67` for `N` permutation queries at the worst shape `(μ, R) = (28, 4)` with
+`κ = ℓ = 32`, so about `2^117.67` for at most `2^40` queries (the list decoder dominating) and
+`2^156.69` for `2^128` queries (the transcript's index dominating). -/
 
 namespace LeanVM.Cost
 

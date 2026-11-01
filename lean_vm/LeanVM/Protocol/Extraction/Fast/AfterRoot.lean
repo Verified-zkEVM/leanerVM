@@ -5,7 +5,7 @@ public import LeanVM.Protocol.Extraction.Extractor
 /-!
 # The stack's root, without the verifier's free monad
 
-The extractor starts from `afterRoot` (`Statement/Extractor.lean`): the verifier's steps 1 and 2,
+The extractor starts from `afterRoot` (`Statement/CostMachine.lean`): the verifier's steps 1 and 2,
 `announceSizesAndRoot`, a `Prog` run by `runPure` (every permutation answered by `default`).
 `Prog`'s constructors hold continuations (`read : (E → Prog α) → Prog α`, …), which the cost
 compiler does not take. Here the same steps are plain state-passing functions in `Option`:

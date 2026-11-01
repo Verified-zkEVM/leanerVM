@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.Extraction.Extract
 
-  The statement's extractor (`LeanVM.Extraction.extract`, `Statement/Extractor.lean`): what it
+  The knowledge extractor (`LeanVM.Extraction.extract`, `LeanVM/Protocol/Extraction/Extractor.lean`): what it
   returns is a valid execution; it returns one whenever a candidate of the committed word has
   one; and it does not depend on which keys it is given, as long as they cover the answers.
 -/
