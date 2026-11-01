@@ -37,13 +37,13 @@ attribute [local instance] lexOrd
 end
 
 /-! One Mulders–Storjohann step on a `2 × 2` matrix of entries of at most `3` coefficients:
-`23192`, the bound `2 + 860·6 + 1110·2 + 30·3 + 21100 = 28572`; its field inverse alone `19674`
+`23028`, the bound `2 + 740·6 + 970·2 + 30·3 + 21100 = 27572`; its field inverse alone `19674`
 (the bound `19700`). -/
 #guard price msStepK.costDeps msStepK.costIdx
-    [Enc.enc msMatrix, Enc.enc #[(0 : ℕ), 0], Enc.enc (0 : ℕ), Enc.enc (1 : ℕ)] == some 23192
+    [Enc.enc msMatrix, Enc.enc #[(0 : ℕ), 0], Enc.enc (0 : ℕ), Enc.enc (1 : ℕ)] == some 23028
 #guard msMatrix.all fun row ↦ row.size ≤ 2 && row.all (·.val.size ≤ 3)
-#guard 23192 ≤ msMatrix.size + 860 * (3 * 2) + 1110 * 2 + 30 * 3 + 21100
-#guard price msStepK.costDeps Auto.BF64.invItohTsujii.c24.costIdx [Enc.enc (K.ofBits 7)] ==
+#guard 23028 ≤ msMatrix.size + 740 * (3 * 2) + 970 * 2 + 30 * 3 + 21100
+#guard price msStepK.costDeps Auto.BF64.invItohTsujii.c33.costIdx [Enc.enc (K.ofBits 7)] ==
   some 19674
 
 end LeanVMTests.Cost
