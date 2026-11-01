@@ -99,10 +99,10 @@ theorem vsPiOfN_eq (rd : Reader) (σ : Val) (Fm : FrameMap) :
   rw [logG_eq_logGT _ (by norm_num)] at hm
   have hname : decoderFunctionName (openStackedIdx (logGT (σ (.n 1901)) 28)) =
       openNames.getD (logGT (σ (.n 1901)) 28) "" := by
-    rw [openNames_eq, getD_map_range' _ hm]
+    rw [openNames_eq, getD_map_range hm]
   obtain ⟨hlen, hok⟩ := callsOK _ hm
   unfold vsPiOfN vsPiOf piOfW vsOsW open_stacked_osW
-  simp only [dispatchIdx_eq_logGT, hname, osWordsTab_eq, getD_map_range' _ hm]
+  simp only [dispatchIdx_eq_logGT, hname, osWordsTab_eq, getD_map_range hm]
   rw [Proof.mk.injEq]
   refine ⟨rfl, ?_⟩
   exact flatMap_zip hlen fun p hp ↦ levelOsN_eq rd _ Fm (List.all_eq_true.mp hok p hp)
