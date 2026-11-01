@@ -61,6 +61,10 @@ def rdVal : MachineValue := .closure smallReaderC.costIdx []
 
 #guard runOn (mainValC.costDeps ++ smallReaderC.costDeps) mainValC.costIdx
   [rdVal, encodeValue (V.n 47)] == some (encodeValue (mainVal smallReader (V.n 47)))
+-- read off the literal table, the certificate's cells
+#guard (List.range 430).all fun i ↦ mainVal smallReader (V.n i) ==
+  LeanVM.Guest.Located.wordWith smallReader 1
+    ((LeanVM.Guest.Data.cert1_w0_0 ++ LeanVM.Guest.Data.cert1_w1_0).getD (V.n i).idx 0)
 
 /-- A valuation of `main`: every value `1`. -/
 def oneSigma (_ : V) : E := 1
@@ -205,9 +209,5 @@ open LeanVM.Guest.Fast in
     Main.digestOfCells (gen ^ 1) (gen ^ 2)⟩,
     deferOfCells ((List.range 24).map fun i ↦ (gen ^ (i + 1) : E))⟩ : LeanVM.Node.NodeStatement))
 
--- `main`'s valuation off the locations' array, built once.
-#guard (runOn mainLocsC.costDeps mainLocsC.costIdx []).bind (fun locs ↦
-  runOn (mainValAtC.costDeps ++ smallReaderC.costDeps) mainValAtC.costIdx
-    [rdVal, locs, encodeValue (V.n 47)]) == some (encodeValue (mainVal smallReader (V.n 47)))
 
 end LeanVMTests.Cost.DecoderChain
