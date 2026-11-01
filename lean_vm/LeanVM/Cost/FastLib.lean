@@ -30,6 +30,15 @@ instance {α β : Type} [Ord α] [Enc α] [Enc β] : Enc (SortedMap α β) :=
 
 instance : Enc ReplayFast := ⟨fun τ ↦ .ctor 0 [enc τ.fwd, enc τ.inv, enc τ.caps, enc τ.paths]⟩
 
+instance {R : Type} [Zero R] [Enc R] : Enc (CompPoly.CBivariate R) :=
+  inferInstanceAs (Enc (CompPoly.CPolynomial (CompPoly.CPolynomial R)))
+
+cost_enc CompPoly.GuruswamiSudan.GSInterpParams
+cost_enc CompPoly.GuruswamiSudan.GSExecParams
+cost_enc CompPoly.GuruswamiSudan.GSReceivedWord
+cost_enc CompPoly.PolynomialMatrix.RowChoice
+cost_enc CompPoly.GuruswamiSudan.LeeOSullivan.RowChoice
+
 cost_measure searchIn := fun _ _ _ _ _ lo hi ↦ hi - lo
 
 cost_measure mergeNewer := fun _ _ _ a b ↦ a.length + b.length

@@ -122,6 +122,11 @@ theorem letE {t b : Term} {v : α} {f : α → β} {c : ℕ} {d : α → ℕ} (h
     Runs P env (.letE t b) (enc (f v)) (c + d v + 1) :=
   Runs.letE h (hb v rfl)
 
+/-- `let`, the body run with the value itself in front of the environment. -/
+theorem letV {t b : Term} {v : α} {w : β} {c d : ℕ} (h : Runs P env t (enc v) c)
+    (hb : Runs P (enc v :: env) b (enc w) d) : Runs P env (.letE t b) (enc w) (c + d + 1) :=
+  Runs.letE h hb
+
 /-! ### Constructors and fields -/
 
 theorem none : Runs P env (.ctor 0 []) (enc (none : Option α)) 1 :=
@@ -769,6 +774,16 @@ theorem arrFoldl {α β : Type} (f : β → α → β) (b : β) (a : Array α) :
 
 theorem arrFoldr {α β : Type} (f : α → β → β) (b : β) (a : Array α) :
     a.foldr f b = a.toList.foldr f b := by simp [Array.foldr_toList]
+
+theorem arrZipIdx {α : Type} (a : Array α) (k : ℕ) : a.zipIdx k = (a.toList.zipIdx k).toArray := by
+  apply Array.ext'; simp
+
+theorem arrMapIdx {α β : Type} (f : ℕ → α → β) (a : Array α) :
+    a.mapIdx f = ((a.toList.zipIdx).map fun p ↦ f p.2 p.1).toArray := by
+  apply Array.ext'; simp [List.mapIdx_eq_zipIdx_map]
+
+theorem listMapIdx {α β : Type} (f : ℕ → α → β) (l : List α) :
+    l.mapIdx f = (l.zipIdx).map fun p ↦ f p.2 p.1 := List.mapIdx_eq_zipIdx_map
 
 /-- Equality of arrays, decided by their lists. -/
 theorem decideEqArray {α : Type} [DecidableEq α] (a b : Array α) {inst : Decidable (a = b)} :

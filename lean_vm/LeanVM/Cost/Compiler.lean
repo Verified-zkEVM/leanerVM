@@ -137,7 +137,10 @@ def rewrites : List (Name × Name) := [
   (``Vector.ofFn, ``Rewrite.vecOfFn),
   (``Array.map, ``Rewrite.arrMap),
   (``Array.foldl, ``Rewrite.arrFoldl),
-  (``Array.foldr, ``Rewrite.arrFoldr)
+  (``Array.foldr, ``Rewrite.arrFoldr),
+  (``Array.zipIdx, ``Rewrite.arrZipIdx),
+  (``Array.mapIdx, ``Rewrite.arrMapIdx),
+  (``List.mapIdx, ``Rewrite.listMapIdx)
 ]
 
 /-- Measures registered by `cost_measure`, by function: over all its parameters. -/
@@ -354,6 +357,7 @@ partial def betaWithLets (f : Expr) (args : List Expr) (all : List Expr := args)
     -- an argument another argument mentions (an instance or a proof about it) is substituted
     let mentioned := all.any fun o ↦ o != a && (o.find? (· == a)).isSome
     let simple := a.isFVar || a.isConst || a.isLit || a.isLambda || bvarCount b 0 ≤ 1 ||
+      !a.hasFVar ||
       a.isAppOf ``OfNat.ofNat || bvarInTypes b 0 ||
       mentioned || (← isProp t) || (← isType a) || (← whnfR t).isForall || (← isClass? t).isSome
     if simple then betaWithLets (b.instantiate1 a) as all
@@ -475,27 +479,33 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
     if ← isDefEq ty (mkConst ``UInt8) then
       let pf ← mkAppOptM ``Rule.u8Lit #[ctx.P, ctx.env, e]
       return ← parts pf
-  -- `let`
-  if let .letE n ty v b _ := e then
+  -- `let`: the body with the value itself, read from the environment where it occurs
+  if let .letE _ ty v b _ := e then
+    -- a function, a type, a proof, an instance: substituted
+    if (← whnf ty).isForall || (← isProp ty) || (← isType v) || (← isClass? ty).isSome then
+      return ← translate ctx (b.instantiate1 v)
     let (tv, cv, pv) ← translate ctx v
-    return ← withLocalDeclD n ty fun x ↦ do
-      let ctx' ← ctx.push x
-      let (tb, cb, pb) ← translate ctx' (b.instantiate1 x)
-      if tb.hasFVar then throwError "translate: the code of a `let` body depends on its variable"
-      withLocalDeclD `hx (← mkEq x v) fun hx ↦ do
-        let f ← mkLambdaFVars #[x] (b.instantiate1 x)
-        let d ← mkLambdaFVars #[x] cb
-        let hb ← mkLambdaFVars #[x, hx] pb
-        let pf ← mkAppOptM ``Rule.letE #[ctx.P, ctx.env, none, none, none, none, tv, tb, v, f, cv,
-          d, pv, hb]
-        let c ← mkAppM ``HAdd.hAdd #[← mkAppM ``HAdd.hAdd #[cv, d.beta #[v]], mkNatLit 1]
-        return (← mkAppM ``Term.letE #[tv, tb], c, pf)
+    let ctx' ← ctx.push v
+    let (tb, cb, pb) ← translate ctx' (b.instantiate1 v)
+    if tb.hasFVar then throwError "translate: the code of a `let` body depends on its variable"
+    let pf ← mkAppOptM ``Rule.letV #[ctx.P, ctx.env, none, none, none, none, tv, tb, v, e, cv, cb,
+      pv, ← mkExpectedTypeHint pb (runsAt ctx' tb (← mkAppM ``Enc.enc #[e]) cb)]
+    let c ← mkAppM ``HAdd.hAdd #[← mkAppM ``HAdd.hAdd #[cv, cb], mkNatLit 1]
+    return (← mkAppM ``Term.letE #[tv, tb], c, pf)
   -- a function of a finite domain held as data (not a closure of the environment), at an index
   if let .app g i := e then
     let isClosure := ctx.vals.any fun en ↦ match en with
       | .fn f _ _ _ => f == g.getAppFn
       | _ => false
-    if !g.isLambda && !isClosure then
+    let gf := g.getAppFn
+    let projApplied ← match gf with
+      | .const c _ => do
+        match ← getProjectionFnInfo? c with
+        | some info => pure (g.getAppNumArgs == info.numParams + 1)
+        | none => pure false
+      | _ => pure false
+    let isData := gf.isFVar || g.isProj || projApplied
+    if !g.isLambda && !isClosure && isData then
       let gty ← whnf (← inferType g)
       if let .forallE _ dom _ _ := gty then
         if (← whnf dom).isAppOf ``Fin && !gty.bindingBody!.hasLooseBVars then
@@ -606,7 +616,18 @@ partial def matchValue (v target : Expr) : MetaM Bool := do
   if pat.getAppFn.isConst && pat.getAppFn.constName? == e.getAppFn.constName? &&
       pat.getAppNumArgs == e.getAppNumArgs then
     for (a, b) in pat.getAppArgs.zip e.getAppArgs do
-      unless ← withTransparency .instances (isDefEq a b) do return false
+      -- a pattern variable: assigned (its type checked as Lean does)
+      if (← instantiateMVars a).isMVar then
+        unless ← isDefEq a b do return false
+        continue
+      unless ← withTransparency .instances (isDefEq a b) do
+        -- a type, a predicate, a proof or an instance: equal after unfolding
+        let bty ← inferType b
+        -- a proposition decides the computation: data
+        let isPropB ← isProp b
+        let data := isPropB || (!(← isType b) && !(← isProp bty) && (← isClass? bty).isNone &&
+          !(← isTypeFormerType bty))
+        unless !data && (← isDefEq a b) do return false
     return true
   withTransparency .instances (isDefEq pat e)
 
@@ -877,10 +898,23 @@ partial def compileOnDemand (ctx : Ctx) (f : Name) (e : Expr) : MetaM (Option Co
   unless recursive || (← shouldOutline f e) do return none
   let info ← getConstInfo f
   let args := e.getAppArgs
-  -- the static prefix: up to the last instance argument
+  -- the static prefix: up to the last instance argument, or closed argument of a type without
+  -- an encoding (a context of functions, fixed at compile time)
   let bis ← forallTelescopeReducing info.type fun xs _ ↦ xs.mapM fun x ↦ x.fvarId!.getBinderInfo
-  let lastInst := (bis.toList.zipIdx.filter (·.1.isInstImplicit)).getLast?.map (·.2 + 1) |>.getD 0
-  let static := args.extract 0 lastInst
+  let mut lastStatic := 0
+  for h : j in [0:args.size] do
+    let a := args[j]
+    let isInst := (bis[j]?.map (·.isInstImplicit)).getD false
+    let typeFormer ← isTypeFormerType (← inferType a)
+    if typeFormer && !a.hasFVar then lastStatic := j + 1
+    let noEnc ← if a.hasFVar || typeFormer || (← isProp (← inferType a)) then pure false else do
+      let ty ← inferType a
+      if (← whnf ty).isForall then pure false
+      else
+        try pure (← synthInstance? (← mkAppM ``Enc #[ty])).isNone
+        catch _ => pure true
+    if isInst || noEnc then lastStatic := j + 1
+  let static := args.extract 0 lastStatic
   if static.any (·.hasFVar) then throwError "compile {f}: its types or instances are not closed"
   let term := mkAppN e.getAppFn static
   let ty ← inferType term
@@ -1386,6 +1420,45 @@ syntax (name := costMeasure) "cost_measure " ident " := " term : command
     Term.synthesizeSyntheticMVarsNoPostponing
     let m ← instantiateMVars m
     modifyEnv (measureExt.addEntry · (f, m))
+
+/-- `cost_enc T`: the encoding of the inductive type `T` by its constructors: constructor `j` of
+data fields `x…` (proofs dropped, types and instances as parameters) is `.ctor j [enc x…]`. A
+type parameter needs an encoding. -/
+elab "cost_enc " id:ident : command => Command.liftTermElabM do
+  let T ← realizeGlobalConstNoOverloadWithInfo id
+  let ind ← getConstInfoInduct T
+  let lvls := ind.levelParams.map fun _ ↦ Level.zero
+  forallTelescopeReducing (ind.type.instantiateLevelParams ind.levelParams lvls) fun params _ ↦ do
+    -- an `Enc` instance for each type parameter
+    let typeParams ← params.filterM fun p ↦ do return (← whnf (← inferType p)).isSort
+    let rec withEncs (i : Nat) (acc : Array Expr) (k : Array Expr → MetaM Unit) : MetaM Unit := do
+      if h : i < typeParams.size then
+        withLocalDecl `inst .instImplicit (← mkAppM ``Enc #[typeParams[i]]) fun e ↦
+          withEncs (i + 1) (acc.push e) k
+      else k acc
+    withEncs 0 #[] fun insts ↦ do
+      let Tapp := mkAppN (mkConst T lvls) params
+      let encOf ← withLocalDeclD `x Tapp fun x ↦ do
+        let motive ← mkLambdaFVars #[x] (mkConst ``Val)
+        let mut minors := #[]
+        for c in ind.ctors, j in [0:ind.ctors.length] do
+          let cty ← instantiateForall (← inferType (mkConst c lvls)) params
+          let minor ← forallTelescopeReducing cty fun fields _ ↦ do
+            let dataFs ← fields.filterM fun f ↦ do return !(← isProp (← inferType f))
+            let vs ← dataFs.foldrM (fun f l ↦ do mkAppM ``List.cons #[← mkAppM ``Enc.enc #[f], l])
+              (← mkAppOptM ``List.nil #[mkConst ``Val])
+            mkLambdaFVars fields (mkApp2 (mkConst ``Val.ctor) (mkNatLit j) vs)
+          minors := minors.push minor
+        let body := mkAppN (mkConst (mkCasesOnName T) (Level.one :: lvls)) (params ++ #[motive, x] ++ minors)
+        mkLambdaFVars #[x] body
+      let inst ← mkAppOptM ``Enc.mk #[Tapp, encOf]
+      let ty ← mkForallFVars (params ++ insts) (← mkAppM ``Enc #[Tapp])
+      let val ← mkLambdaFVars (params ++ insts) inst
+      let name := (`LeanVM.Cost.EncOf ++ T)
+      addAndCompile <| .defnDecl (mkDefinitionValEx name [] (← instantiateMVars ty) (← instantiateMVars val)
+        (.regular 0) .safe [])
+      setReducibilityStatus name .instanceReducible
+      addInstance name .global 1000
 
 /-- `cost_rewrite thm`: compile the left side of the equation `thm` through its right side. -/
 elab "cost_rewrite " id:ident : command => Command.liftTermElabM do
