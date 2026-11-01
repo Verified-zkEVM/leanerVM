@@ -3,6 +3,8 @@ module
 public import LeanVM.Guest.EndFinal
 public import LeanVM.Guest.B1.Main.Facts
 public import LeanVM.Cost.Decoder.Equations
+public import LeanVM.Cost.Decoder.TopEq
+public import LeanVM.Guest.Child.Reads
 
 /-!
 # The guest decoder's counts on a valid execution
@@ -16,7 +18,12 @@ signatures of each scheme, and at most `65535` slots of both regions together.
 * `mainVal_valid`: the decoder's valuation is `main`'s at its frame (`valG t.memory 1 (certOf 1)`);
 * `mainFacts_valid`: `main`'s facts (`MainFacts`) at that valuation;
 * **`valid_counts`**: `ValidCounts discreteLogTables σ`, the counts read by `gLogD` in the tables
-  built.
+  built;
+* **`valid_cursor`**: each child's cursor length, the words of its proof's stream before the
+  opening (`cursorLength`, at `verify_sub`'s frame of the child's arguments, `subArgsK`), is at
+  most `8192`: the decoded witness explains the input (`guest_knowledge`, `decTop_eq`), so the
+  deferring verifier accepts the child's proof, whose stream has at most `childStreamCap = 8192`
+  scalars (`Child.stream_le_of_verifyDeferred`) and begins with those words.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -95,6 +102,58 @@ theorem valid_counts {input : PublicInput} {t : Execution guest}
     ValidCounts discreteLogTables
       (mainVal (memReader (powTable t.logMemorySize) (memoryVector t.memory))) :=
   validCounts_of (mainFacts_valid hv)
+
+
+/-- A child proof's stream begins with its cursor's words. -/
+theorem cursor_le_stream (T : Fast.WhirTabs) (rd : Reader) (σ : Val) (Vn : Fast.NFrames)
+    (cl : E → E → ℕ) :
+    cl (σ (.n 27)) (σ (.n 868)) ≤ (Fast.vsPiOfA T rd σ Vn cl).stream.length := by
+  have hw : ∀ (a : K) (n : ℕ), (Fast.wordsFrom rd a n).length = n := by
+    intro a n
+    induction n generalizing a with
+    | zero => rfl
+    | succ n ih => rw [Fast.wordsFrom, List.length_cons, ih]
+  simp only [Fast.vsPiOfA, Fast.vsPiOfM, Fast.vsPiOfAt, List.length_append, hw]
+  omega
+
+/-- **On a valid execution of the guest, each child's cursor length is at most `8192`**: at the
+decoder's reader, valuation and table of entries (`decTop`'s), for every child `c` below the
+count it reads. -/
+theorem valid_cursor {input : PublicInput} {t : Execution guest}
+    (hv : ValidExecution guest input t) (c : ℕ)
+    (hc : c < nKidsD discreteLogTables
+      (mainVal (memReader (powTable t.logMemorySize) (memoryVector t.memory)))) :
+    let rd := memReader (powTable t.logMemorySize) (memoryVector t.memory)
+    let σ := mainVal rd
+    let fr := frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
+      (replayStatesOf (powTable t.logMemorySize) (powTable guest.logSize) guest
+        (memoryVector t.memory)) rd) rd 19 (subArgsK rd σ c) []
+    cursorLength discreteLogTables (fr (.n 27)) (fr (.n 868)) ≤ 8192 := by
+  intro rd σ fr
+  have hk : Node.ExplainsInput guest input (End.decode t.memory) := End.guest_knowledge input t hv
+  rw [← decTop_eq] at hk
+  have hrel := hk.2.2.1
+  let w := decWitNStaged discreteLogTables Fast.readerTabs σ rd
+    (frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
+      (replayStatesOf (powTable t.logMemorySize) (powTable guest.logSize) guest
+        (memoryVector t.memory)) rd) rd) (cursorLength discreteLogTables)
+  have hw : (decTop guest t.logMemorySize (memoryVector t.memory)).witness = w := rfl
+  rw [hw] at hrel
+  have hmem : decKidT discreteLogTables rd σ (proofAtFrame Fast.readerTabs rd
+      (frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
+        (replayStatesOf (powTable t.logMemorySize) (powTable guest.logSize) guest
+          (memoryVector t.memory)) rd) rd) (cursorLength discreteLogTables))
+      (σ (.n 380)) (σ (.n 53)) (σ (.n 56)) (lxTable discreteLogTables rd σ)
+      (lsTable discreteLogTables rd σ) c ∈ w.children := by
+    simp only [w, decWitNStaged, decWitStaged, decWitAt, decWitTab, nodeWitnessOf, kidsT]
+    exact List.mem_map.2 ⟨c, List.mem_range.2 hc, rfl⟩
+  have hacc := (hrel _ hmem).2
+  have hs := LeanVM.Guest.Child.stream_le_of_verifyDeferred hacc
+  have hl := cursor_le_stream Fast.readerTabs.whir rd fr
+    (frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
+      (replayStatesOf (powTable t.logMemorySize) (powTable guest.logSize) guest
+        (memoryVector t.memory)) rd) rd) (cursorLength discreteLogTables)
+  exact hl.trans hs
 
 end
 

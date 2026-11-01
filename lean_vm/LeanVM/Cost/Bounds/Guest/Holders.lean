@@ -205,18 +205,19 @@ section Proof
 
 variable {wV : List E → LeanVM.Protocol.Compile.Proof} {wVV : MachineValue}
   (hwV : ∀ a : List E, RunsApp P wVV [encodeValue a] (encodeValue (wV a)))
-  {W : ℕ} (hW : ∀ a : List E, a.length ≤ 16 → appCost P wVV [encodeValue a] ≤ W)
-include hwV hW
+include hwV
 
 /-- The children's price, at most `K` of them, the tables of at most `N` marks. -/
 @[expose] def kidsTPrice (G R S W N K : ℕ) : ℕ := (decKidPrice G R S W N + 39) * K + 32
 
-/-- **The children** (`kidsTC`), off good tables of at most `N ≤ 2^34` marks, `n ≤ K ≤ 2^34`: at
-most `kidsTPrice G R S W N K = K·(decKidPrice G R S W N + 39) + 32`. -/
+/-- **The children** (`kidsTC`), off good tables of at most `N ≤ 2^34` marks, `n ≤ K ≤ 2^34`, each
+child's proof at most `W` (`wV` at its arguments, `subArgsK`): at most
+`kidsTPrice G R S W N K = K·(decKidPrice G R S W N + 39) + 32`. -/
 theorem kidsT_cost (D : DiscreteLogTables) (hP : Includes P kidsTC.costDeps)
     (hG : GLogBound P D G) (w380 p53 p56 : E) (tx ts : Array ℕ × Array ℕ) (htx : TableGood tx)
     (hts : TableGood ts) (N : ℕ) (hN : N ≤ 2 ^ 34) (htxN : tx.1.size ≤ N) (htsN : ts.1.size ≤ N)
-    (K : ℕ) (hK : K ≤ 2 ^ 34) (n : ℕ) (hn : n ≤ K) :
+    (K : ℕ) (hK : K ≤ 2 ^ 34) (n : ℕ) (hn : n ≤ K) {W : ℕ}
+    (hW : ∀ c < n, appCost P wVV [encodeValue (subArgsK rd σ c)] ≤ W) :
     machineCost P kidsTC.costIdx [encodeValue D, rdV, σV, wVV, encodeValue w380, encodeValue p53,
       encodeValue p56, encodeValue tx, encodeValue ts, encodeValue n] ≤ kidsTPrice G R S W N K := by
   rw [kidsTC.costEq P hP D rd rdV hrd σ σV hσ wV wVV hwV]
@@ -229,8 +230,8 @@ theorem kidsT_cost (D : DiscreteLogTables) (hP : Includes P kidsTC.costDeps)
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
         List.cons_append, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
         List.nil_append, kidsTC.lam0.costEq P (by includes) D rd rdV hrd σ σV hσ wV wVV hwV]
-      have := decKid_cost P hrd hR hσ hS hwV hW D (by includes) hG w380 p53 p56 tx ts htx hts N hN
-        htxN htsN c (by omega)
+      have := decKid_cost P hrd hR hσ hS hwV D (by includes) hG w380 p53 p56 tx ts htx hts N hN
+        htxN htsN c (by omega) (hW c hc)
       omega)
   unfold kidsTPrice
   have : (decKidPrice G R S W N + 11 + 28) * K = (decKidPrice G R S W N + 39) * K := by ring
