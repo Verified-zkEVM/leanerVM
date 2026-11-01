@@ -136,7 +136,12 @@ def rules : List (Name × Name) := [
   (``BitVec.ofFin, ``Rule.bvOfFin),
   (``BitVec.toNat, ``Rule.bvToNat),
   (``BitVec.toFin, ``Rule.bvToFin),
-  (``BitVec.ofNat, ``Rule.bvOfNat)
+  (``BitVec.ofNat, ``Rule.bvOfNat),
+  -- the guest decoder's tables (`Cost/Decoder/GuestTables.lean`), as literals
+  (`LeanVM.Cost.Decoder.guestEntries, ``Rule.literal),
+  (`LeanVM.Cost.Decoder.guestArgCounts, ``Rule.literal),
+  (`LeanVM.Cost.Decoder.guestRetCounts, ``Rule.literal),
+  (`LeanVM.Cost.Decoder.guestLocs, ``Rule.literal)
 ]
 
 /-- Rewrites: a library function compiled through an equal form (`lhs = rhs`). -/
