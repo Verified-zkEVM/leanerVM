@@ -32,6 +32,8 @@ open LeanVM.Cost LeanVM.Parameters LeanVM.Guest.B1 LeanVM.Guest.B1.Main
 
 /-! ## Cells -/
 
+-- a power in `E` by squaring, under a name of its own (the bounds name it, not an index)
+cost_compile powSqEC := (LeanVM.Cost.Rewrite.powSq (M := E))
 cost_compile digestOfCellsC := Main.digestOfCells
 cost_compile deferOfCellsC := deferOfCells
 cost_compile fixedOfCellsC := fixedOfCells

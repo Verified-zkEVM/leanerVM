@@ -58,23 +58,23 @@ theorem powSqW_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c198.costDep
   unfold psAt
   omega
 
-/-- A power in `E` by squaring (`powSq.c534`): at most `12 + 4732·(log₂ n + 1)`. -/
-theorem powSqE_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c534.costDeps) (a : E) (n : ℕ)
+/-- A power in `E` by squaring (`powSqEC`): at most `12 + 4732·(log₂ n + 1)`. -/
+theorem powSqE_cost (hP : Includes P powSqEC.costDeps) (a : E) (n : ℕ)
     (hn : n < 2 ^ 64) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c534.costIdx [encodeValue a, encodeValue n] ≤
+    machineCost P powSqEC.costIdx [encodeValue a, encodeValue n] ≤
       12 + 4732 * (Nat.log2 n + 1) := by
   have := le_of_halving (fun x : E × ℕ ↦ x.2 < 2 ^ 64) (fun x ↦ x.2)
-    (fun x ↦ machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c534.costIdx
+    (fun x ↦ machineCost P powSqEC.costIdx
       [encodeValue x.1, encodeValue x.2]) 4732 12
     (fun x hx h0 ↦ by
       try dsimp only at hx h0 ⊢
-      rw [Auto.LeanVM.Cost.Rewrite.powSq.c534.costEq P hP, h0]
+      rw [powSqEC.costEq P hP, h0]
       simp)
     (fun x hx hpos ↦ by
       try dsimp only at hx hpos ⊢
       right
       refine ⟨(x.1 * x.1, x.2 / 2), by dsimp only; omega, le_refl _, ?_⟩
-      rw [Auto.LeanVM.Cost.Rewrite.powSq.c534.costEq P hP, limbs_of_lt hx,
+      rw [powSqEC.costEq P hP, limbs_of_lt hx,
         limbs_of_lt (by omega : x.2 % 2 < 2 ^ 64)]
       simp only [show x.2 ≠ 0 by omega, ↓reduceIte]
       split_ifs <;> omega)
@@ -97,7 +97,7 @@ theorem powBelowAt_cost (hP : Includes P powBelowAtC.costDeps) (o : Option ℕ) 
 /-- **A logarithm's bound** (`powBelowC`): the discrete logarithm (at most `Lg`, its logarithms
 word-sized) and `22`. -/
 theorem powBelow_cost (hP : Includes P powBelowC.costDeps) (D : DiscreteLogTables) (Lg : ℕ)
-    (hLg : ∀ x : K, machineCost P Auto.LeanVM.Extraction.Fast.discreteLogWith.c543.costIdx
+    (hLg : ∀ x : K, machineCost P discreteLogWithC.costIdx
       [encodeValue D, encodeValue x] ≤ Lg)
     (hD : ∀ x m, discreteLogWith D x = some m → m < 2 ^ 64) (w : E) (n : ℕ) (hn : n < 2 ^ 64) :
     machineCost P powBelowC.costIdx [encodeValue D, encodeValue w, encodeValue n] ≤ Lg + 22 := by

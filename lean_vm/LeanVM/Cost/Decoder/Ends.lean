@@ -21,8 +21,10 @@ Its two ends, compiled:
   - `mainVal rd` (`Witness.lean`): `main`'s valuation `σ`, a closure by partial application;
   - the replay `replayStatesOf memT codeT prog mem` (`Replay.lean`).
 * **the output side.** `decodedOf s st w`: a decoding of its three fields, as values (no field is
-  matched against its encoding: `Staged.lean`'s `nodeWitnessOf`); `decoderOutput σ rd w`: the
-  seed `decSeed σ` and the statement `decStmt σ rd` computed, then `decodedOf`.
+  matched against its encoding: `Staged.lean`'s `nodeWitnessOf`); `decoderOutput D σ rd w`: the
+  seed `decSeed σ` and the statement `decStmtD D σ rd` (`Readers.lean`: `decStmt` with the
+  logarithm's tables `D` given, as every logarithm-taking function of the chain) computed, then
+  `decodedOf`.
 
 `Equations.lean`: `memReader_memoryVector`, `mainVal_eq` and **`decode_eq_ends`**, the deployed
 decoder through these functions.
@@ -69,11 +71,11 @@ def decodedOf (s : LeanVM.Protocol.Digest) (st : NodeStatement) (w : NodeWitness
     Decoded :=
   ⟨s, st, w⟩
 
-/-- **The decoding**: the seed and the statement off `main`'s valuation `σ` and the reader `rd`,
-the witness `w` given. -/
-noncomputable def decoderOutput (σ : LeanVM.Guest.Core.Val) (rd : LeanVM.Guest.Core.Reader)
-    (w : NodeWitness) : Decoded :=
-  decodedOf (Main.decSeed σ) (Main.decStmt σ rd) w
+/-- **The decoding**: the seed and the statement off `main`'s valuation `σ` and the reader `rd`
+(the statement's counts by the logarithm's tables `D`), the witness `w` given. -/
+noncomputable def decoderOutput (D : DiscreteLogTables) (σ : LeanVM.Guest.Core.Val)
+    (rd : LeanVM.Guest.Core.Reader) (w : NodeWitness) : Decoded :=
+  decodedOf (Main.decSeed σ) (decStmtD D σ rd) w
 
 cost_compile decoderTablesC := decoderTables
 cost_compile memReaderC := memReader
