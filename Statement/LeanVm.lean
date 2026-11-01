@@ -39,9 +39,9 @@ nothing, which counts as a break.
 **Completeness** is stated for one honest prover, `prover`: `LeanVM.Prover.prove`
 (`Statement/Prover/Prove.lean`), an executable program (over Keccak-f[1600] it is
 `lake exe leanvm-prove`; `Statement/README.md` says what a reviewer checks of it). Given a valid
-execution whose committed size is at most `2^28`, the most the verifier admits,
-at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying `2^25` nonces per proof of work, its proof is
-rejected with probability at most `2^-256`.
+execution whose committed size is at most `2^28`, the most the verifier admits, at an inverse rate
+`2^ρ` with `1 ≤ ρ ≤ 4`, trying `2^25` nonces per proof of work, its proof is rejected with
+probability at most `2^-256`.
 
 **Scope and trust.**
 

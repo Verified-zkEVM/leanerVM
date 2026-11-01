@@ -47,11 +47,11 @@ def childClaimsOf (seed : Digest) (w : NodeWitness) : List ChildClaims :=
 every child's proof is accepted by the deployed verifier and its deferred claim holds, or a
 challenge of the node's batching is bad. -/
 theorem children_sound {bytecode : List K} {s : NodeStatement} {w : NodeWitness}
-    (hN : NodeRelation bytecode (fiatShamirIv bytecode) s w) (hs : s.deferredClaim.Holds bytecode) :
+    (hN : NodeRelation bytecode (fiatShamirIv bytecode) s w) (hs : s.deferredClaim.HoldsShaped bytecode) :
     (∀ c ∈ w.children,
         Verifier.verify bytecode (statementDigest (fiatShamirIv bytecode) c.statement) c.proof =
           true ∧
-          c.statement.deferredClaim.Holds bytecode) ∨
+          c.statement.deferredClaim.HoldsShaped bytecode) ∨
       BatchBad bytecode (childClaimsOf (fiatShamirIv bytecode) w) w.batchingHints := by
   obtain ⟨-, hch, -, -, -, hbat⟩ := nodeRel_iff.mp hN
   by_cases hw : w.children = []

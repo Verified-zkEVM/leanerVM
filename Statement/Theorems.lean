@@ -37,23 +37,22 @@ model (`Statement/README.md`).
 /-! ## The guest decoder a program computes
 
 `GuestKnowledge` (`LeanVmGuest.lean`'s guest program, its witness named) takes the decoder that
-names the witness as a program `D` of the cost machine, as `KnowledgeSoundness` takes the
-extractor: `D` is run on the encoded program and execution (`encodeDecoderInput`) within
-`guestDecoderBudget`, and its output is the encoding (`encodeValue`, the encodings below: a
-constructor of tag `0` for each structure, its fields in order) of a seed, a statement and a
-witness that explain the public input. There is no parse: the statement names the decoding whose
-encoding `D` outputs, and the encoding is injective (`lean_vm`'s
-`LeanVM.Cost.encodeValue_decoded_injective`), so the output determines it.
+names the witness as a program `D` of the cost machine, as `KnowledgeSoundness` takes the extractor:
+`D` is run on the encoded program and execution (`encodeDecoderInput`) within `guestDecoderBudget`,
+and its output is the encoding (`encodeValue`, the encodings below: a constructor of tag `0` for
+each structure, its fields in order) of a seed, a statement and a witness that explain the public
+input. There is no parse: the statement names the decoding whose encoding `D` outputs, and the
+encoding is injective (`lean_vm`'s `LeanVM.Cost.encodeValue_decoded_injective`), so the output
+determines it.
 
-The statement accepts any program that computes the witness from the execution within the budget;
-it need not read the witness off the memory as the proofs' decoder does. The extractor program is
-treated the same way: the statement asks only that it compute an execution within its budget,
+The statement accepts any program that computes the witness from the execution within the budget; it
+need not read the witness off the memory as the proofs' decoder does. The extractor program is
+treated the same way: the statement asks only that it compute a valid execution within its budget,
 whatever algorithm it runs. What excludes a decoder that chooses: `D` is a program (no classical
-choice), the machine's only runtime data is its input, its size is bounded
-(`guestDecoderSizeBound`, which says what the bound excludes and what it does not), and its budget
-(`guestDecoderBudget`) is a proved upper bound on the compiled decoder's price. One that output
-another statement of the same digest would exhibit a Keccak-256 collision; what excludes it is
-that none is known. -/
+choice), the machine's only runtime data is its input, its size is bounded (`guestDecoderSizeBound`,
+which says what the bound excludes and what it does not), and its budget (`guestDecoderBudget`) is a
+proved upper bound on the compiled decoder's price. One that output another statement of the same
+digest would exhibit a Keccak-256 collision; what excludes it is that none is known. -/
 
 namespace LeanVM.Cost
 
@@ -178,15 +177,19 @@ factor enters through the entry table's key exponent, `Nat.log2 (2·(steps + 1))
 execution of the guest program has fewer than `2^51` steps: the memory is fixed and every
 instruction reads a cell at `fp·o` for an offset `o` fixed by `pc`, so at each `pc` at most `2^κ`
 values of `fp` let a step succeed; the run is determined by `(pc, fp)`, and a repeated state would
-loop without halting (`2^ℓ·2^κ` states, `ℓ = 19`, `κ ≤ 32`; argued, not a Lean theorem). The
-per-step price and the frame lookup's are `lean_vm`'s bounds on the compiled decoder's own steps,
-stated exactly (`entryArrayStatePrice_eq`; `frameAtAPrice_le`, equal at `16` words), not priced at
-maxima; the constant prices the children's cursors at `2^32` words each (no assert of the guest
-bounds the prefix of a child's stream it consumes: `8192` (`STREAM_CAP`) is only the hint buffer's
-capacity, which `AcceptableChild` assumes for completeness but no assert enforces) and the address
-tables at `2^32` entries, not at the run's, so on an honest execution of fewer than about `2^25`
-steps the budget is far above what the compiled decoder spends; that looseness is an accepted
-trade-off.
+loop without halting (`2^ℓ·2^κ` states, `ℓ = 19`, `κ ≤ 32`; argued, not a Lean theorem; `lean_vm`
+proves fewer than `2^128`, `steps_lt_replayFuel`). The per-step price and the frame lookup's are
+`lean_vm`'s bounds on the compiled decoder's own work, stated exactly (`entryArrayStatePrice_eq`;
+`frameAtAPrice_le`, equal at `16` words), at small maxima only (a memory read at `κ = 32`, `1472`;
+two functions entered at a pc; `16` words a frame); the constant prices the children's cursors at
+`2^32` words each, the cap of the decoder's cursor length (`cursorLenWith_le`): the price proof
+bounds counts only by the guest's asserts (`valid_counts`), and no assert bounds the prefix of a
+child's stream the guest consumes (`8192`, `STREAM_CAP`, is the hint buffer's capacity, which
+`AcceptableChild` assumes for completeness). On a valid execution the prefix is at most `8192`
+words, a proof the deferring verifier accepts (`stream_le_of_verifyDeferred`), but the price proof
+does not use that bound; and the address tables at `2^32` entries, not at the run's, so on an honest
+execution of fewer than about `2^25` steps the budget is far above what the compiled decoder spends;
+that looseness is an accepted trade-off.
 
 The literals (`8339`, `113729`, `12895`, `17047343`, `3060`, `3103`, `11056`, the `+ 32`, `+ 34`,
 and the other constants below) are the bounds `lean_vm` proves of the compiled decoder's parts

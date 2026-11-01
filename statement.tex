@@ -29,7 +29,7 @@ proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classic
 leanVM at commit \texttt{c445e3d5} of its \texttt{main} branch.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: fifteen files
-of definitions and end statements ($7506$ lines with their documentation), which import Mathlib,
+of definitions and end statements ($7508$ lines with their documentation), which import Mathlib,
 VCVio and CompPoly and nothing of the proofs. Beside them sit the honest prover the completeness
 statements name (\lean{Statement/Prover/}, $2524$ lines; it is proved to make the specification's
 honest moves, so a reviewer only needs to see that it is a genuine prover), the guest program's
@@ -240,7 +240,8 @@ and the final verification at their worst case: a signature grinds through up to
 randomizers in each of its two layers, so one request alone may cost over $2^{33}$ calls.
 
 \paragraph{leanSPHINCS} has the same game and the same bound, $(Q+1)\cdot 2^{-127}$ for every
-$Q \ge 1$ (\lean{Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable}, \lean{Statement/LeanSphincs.lean}), with the deterministic signer and at most the lifetime's number of signing
+$Q \ge 1$ (\lean{Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable}, \lean{Statement/LeanSphincs.lean}),
+with the deterministic signer and at most the lifetime's number of signing
 requests, at each of the seven proved lifetimes (subtree heights $26, 20, 14, 13, 12, 10, 8$;
 \lean{Sphincs.Lifetimes.requestedSecurityRpm}). A signature costs about $2^{35}$ calls in the worst
 case, so with every request of the largest lifetime used the bound is about $2^{-62}$. Both
@@ -373,7 +374,7 @@ $\delta$ from $\rho$'s membership vector (Section~\ref{sec:schemes}), which make
 except with probability $14/2^{192}$, and checks $\mathit{da} = H(\rho \,\|\, \delta)$;
 \item a \emph{deferred claim} $c = (z, v)$, $z \in \mathbb{E}^{23}$, $v \in \mathbb{E}$, meaning
 that the multilinear extension $\widehat{B}$ of the bytecode, as a function on $\{0,1\}^{23}$,
-satisfies $\widehat{B}(z) = v$ (\lean{DeferredClaim.Holds}).
+satisfies $\widehat{B}(z) = v$ (\lean{DeferredClaim.HoldsShaped}).
 \end{itemize}
 
 \paragraph{The statement's digest} under a seed $\sigma$ (\lean{statementDigest},
@@ -422,7 +423,8 @@ it opens; without one, $\mathit{da}$ is zero or some child's DA digest (the gues
 \texttt{da\_pick}, \texttt{lean\_ethereum.py:4202-4206}).
 \item The deferred claim batches the children's. With no children, its point is all-zero (its
 value is left to the outer verifier); otherwise $\mathrm{batch}\big((\mathrm{dig}_\sigma(s_i),
-f_i, c_i)_i, \text{hints}\big) = c$ (\lean{nodeBatchingProgram} run by \lean{runBatching}; \lean{batch} in \lean{lean_vm}), with $c_i$ the deferred claim of $s_i$. The
+f_i, c_i)_i, \text{hints}\big) = c$ (\lean{nodeBatchingProgram} run by \lean{runBatching};
+\lean{batch} in \lean{lean_vm}), with $c_i$ the deferred claim of $s_i$. The
 batching is a Fiat--Shamir transcript on Keccak-f[1600], seeded from the hash of the label
 \texttt{leanvm/recursion-aggregation/v1}: it absorbs the number of children, then each child's
 digest and two claims; squeezes one challenge $\lambda \in \mathbb{E}$, whose powers batch the
@@ -471,12 +473,13 @@ is, so it needs no pair of its own.
 Steps 2 and 3 are facts about $G$'s code and the digest: no oracle, no probability, and Keccak is
 the deployed function $G$ computes.
 
-\paragraph{Chained.} Steps 1 and 2 give \lean{aggregate_knowledge} (\lean{lean_vm}, for
-\lean{lean_vm}'s \lean{transcriptExtractor} and \lean{decode}): except with
-probability $\varepsilon(Q)$, an accepted proof of $G$ on any $x$ yields an execution whose
-decoding $(\sigma', s', w')$ has $\mathrm{dig}_{\sigma'}(s') = x$ and
-$\mathrm{NodeRel}(B, \sigma', s', w')$. Step 3 with $(\sigma_0, s_0) = (iv_G, s)$ then gives
-\lean{AggregateSound}: except with probability $\varepsilon(Q)$, if the verifier accepts a proof
+\paragraph{Chained.} Steps 1 and 2 compose: except with probability $\varepsilon(Q)$, an accepted
+proof of $G$ on any $x$ yields an extracted execution on which $D$ outputs, within its budget, a
+decoding $(\sigma', s', w')$ with $\mathrm{dig}_{\sigma'}(s') = x$ and
+$\mathrm{NodeRel}(B, \sigma', s', w')$ (for \lean{lean_vm}'s \lean{transcriptExtractor} and
+\lean{decode}, \lean{aggregate_knowledge}, \lean{lean_vm}). Step 3 with
+$(\sigma_0, s_0) = (iv_G, s)$ then gives \lean{AggregateSound} (from the fields alone,
+\lean{LeanVM.corollaries_of_theorems}): except with probability $\varepsilon(Q)$, if the verifier accepts a proof
 of $G$ on $\mathrm{dig}_{iv_G}(s)$, for any $s$ whose deferred claim has the bytecode's shape, the
 extracted execution $t$ \emph{explains} $s$ (\lean{ExplainsStatement}):
 \begin{itemize}
@@ -521,16 +524,19 @@ program's size,
 and a constant of about $2^{47.04}$ with about $2^{26.57}$ frame lookups, the witness read at the
 counts a valid execution bounds ($G$'s own asserts: at most $16$ children, $65535$ claims of
 each scheme and $65535$ coverage slots; the decoder clamps the DA matrix's row count at $1024$),
-dominated by the children's cursor lengths ($16\cdot 2^{32}$: no assert of $G$ bounds them) and
-the address tables of the memory and the program ($2614\cdot 2^{33}$, each at $2^{32}$ entries).
-At $\kappa = 32$ and $\ell = 19$ the budget is $2^{47.07}$ at $2^{10}$ steps, $2^{47.12}$ at $2^{20}$, $2^{52.00}$ at $2^{30}$, $2^{73.00}$ at $2^{51}$ and $2^{82.02}$
+dominated by the children's cursor lengths ($16\cdot 2^{32}$: no assert of $G$ bounds them, and
+the price proof does not use the $8192$ they are at most on a valid execution) and the address
+tables of the memory and the program ($2614\cdot 2^{33}$, each at $2^{32}$ entries). At
+$\kappa = 32$ and $\ell = 19$ the budget is $2^{47.07}$ at $2^{10}$ steps, $2^{47.12}$ at
+$2^{20}$, $2^{52.00}$ at $2^{30}$, $2^{73.00}$ at $2^{51}$ and $2^{82.02}$
 at $2^{60}$; the constant dominates up to about $2^{25}$ steps, so below that the budget is far
 above the compiled decoder's price. There is no cap on the steps in the budget. A valid execution
 of $G$ (\lean{ValidExecution}) has fewer than $2^{51}$ steps: the memory is fixed and every
 instruction reads a cell at $\mathit{fp}\cdot o$ for an offset $o$ fixed by $\mathit{pc}$, so at
 each $\mathit{pc}$ at most $2^\kappa$ values of $\mathit{fp}$ let a step succeed; the run is
 determined by $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
-($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 32$; argued, not a Lean theorem).
+($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 32$; argued, not a Lean theorem;
+\lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
 \paragraph{The decoder's size bound.} The bound (\lean{guestDecoderSizeBound}, $785500$)
 limits any program; it is the compiled decoder's size, $785092$ (proved at most that, measured
@@ -542,7 +548,8 @@ guest's frame-cell table ($749835$ of the size, cells below $2^{20}$) packs to a
 three cells to a limb, freeing room for about $1600$ signatures' encodings.
 
 The proofs' decoder is \lean{LeanVM.Guest.End.decode}, defined in \lean{lean_vm}; a program
-computing it gives \lean{GuestKnowledge} (\lean{guestKnowledge_of_decode}, \lean{lean_vm}). It replays the run:
+computing it within its size bound and budget gives \lean{GuestKnowledge}
+(\lean{guestKnowledge_of_decode}, \lean{lean_vm}). It replays the run:
 \begin{itemize}
 \item the seed and the statement from \texttt{main}'s frame, read through the sorted table of the
 memory's $2^\kappa$ addresses;
@@ -684,10 +691,12 @@ probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.
 The hypotheses above concern the children. For the same named prover \lean{LeanVM.prover}:
 \begin{enumerate}
 \item in the RPM, with $2^{25}$ nonces per proof of work, the verifier that also refuses every zero
-challenge (\lean{verifierRefusingZero}, through \lean{Prog.refusingZeroChallenge}) rejects its proof of any valid
+challenge (\lean{verifierRefusingZero}, through \lean{Prog.refusingZeroChallenge})
+rejects its proof of any valid
 execution of committed size at most $2^{28}$, at $1 \le \rho \le 4$, with probability at most
 $2^{-126}$;
-\item with the deployed Keccak (\lean{honestProofWithDeployedKeccak}), wherever \lean{verifierRefusingZero} accepts its proof of an
+\item with the deployed Keccak (\lean{honestProofWithDeployedKeccak}),
+wherever \lean{verifierRefusingZero} accepts its proof of an
 execution of $G$ of committed size at least $2^{22}$ on $\mathrm{dig}_{iv_G}(s)$, for $s$ of the
 bytecode's shape, that proof is a child meeting \lean{AcceptableChild} for some fresh claim that is true of the
 bytecode (\lean{BytecodeClaim.Holds}): the value the deferring verifier takes from the witness is
@@ -752,8 +761,8 @@ vectors.
 \item Witness generation: the Lean prover takes the execution (memory and hints) as input, checks
 it, and computes the committed columns from it, but nothing in Lean runs a program on its private
 inputs; in the prover differential the executions come from leanVM's Rust interpreter.
-\item The Lean prover's speed: compiled, it takes about $18$ times as long as the multithreaded
-Rust prover on the test corpus, and no complexity bound is proved.
+\item The Lean prover's speed: compiled, it takes about $24$ times as long as the multithreaded
+Rust prover on the test corpus ($2876$ s against $119$ s), and no complexity bound is proved.
 \end{itemize}
 
 \end{document}

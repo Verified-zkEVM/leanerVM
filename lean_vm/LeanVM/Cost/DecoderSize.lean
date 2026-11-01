@@ -7,39 +7,38 @@ public import LeanVM.Cost.DecoderSize.Locs
 /-!
 # The guest decoder's program: its indices and its size, by evaluation
 
-A firewall (`AGENTS.md`), as `Cost/ExtractorSize.lean` is the extractor's: the kernel
-evaluations over the decoder program's bodies, in a module of their own that no proof imports, so
-that no edit of a proof rebuilds them. It imports the program's definition and the compiled top,
-and through them what the compiled chain imports (`Guest/Located/Replay.lean`,
-`Guest/B1/Main/Interface.lean`, the extractor's `Cost/Extractor/Top.lean`), not the proofs that
-use them. For the program `decoderProgramOf j deps` (`Cost/DecoderProgram.lean`) of a compiled
-top `j` with its bodies `deps`:
+A firewall (`AGENTS.md`), as `Cost/ExtractorSize.lean` is the extractor's: the kernel evaluations
+over the decoder program's bodies, in a module of their own that imports no proof (only the
+program's definition, the compiled top and the row chunks), so that no edit of a proof rebuilds
+them. Through the program's definition and the compiled top it imports what the compiled chain
+imports (`Guest/Located/Replay.lean`, `Guest/B1/Main/Interface.lean`, the extractor's
+`Cost/Extractor/Top.lean`), not the proofs that use them. For the program `decoderProgramOf j deps`
+(`Cost/DecoderProgram.lean`) of a compiled top `j` with its bodies `deps`:
 
 * the indices increase from the entry's `0` (`increasingFrom 0 (deps.map (·.1))`, by
   `decide +kernel`): the program holds its bodies and its entry (`decoderProgramOf_includes`,
   `decoderProgramOf_entry`);
 * its size is exactly the bodies' sizes and two per index without a body (a literal `0`), the
-  indices being distinct (`size_ofList_add_length`, `decoderProgramOf_size_le_of_increasing`):
-  at most a measured number, then `guestDecoderSizeBound`. The
-  guest's frame cells' literal (`guestLocsTableC`, `749836`: the table's `749835` and one for its `Term.val` node) is measured by chunks of rows, each
-  evaluation in a module of its own (`DecoderSize/Rows*.lean`, `Names*.lean`, summed in
-  `DecoderSize/Locs.lean`: one evaluation of the whole table takes over `18` GB), its body
+  indices being distinct (`size_ofList_add_length`, `decoderProgramOf_size_le_of_increasing`): at
+  most a measured number, then `guestDecoderSizeBound`. The guest's frame cells' literal
+  (`guestLocsTableC`, `749836`: the table's `749835` and one for its `Term.val` node) is measured by
+  chunks of rows, each evaluation in a module of its own (`DecoderSize/Rows*.lean`, `Names*.lean`,
+  summed in `DecoderSize/Locs.lean`: one evaluation of the whole table takes over `18` GB), its body
   picked out by its index (`decoderProgramBodies_filter_locs`, by unfolding); the other bodies'
   sizes by `decide +kernel`, which reads the literal's index alone.
 
-For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (`784210`, the
-entry, the frame cells' `749836` and the others' `34374`, each exact) plus two per index without
-a body, the indices up to the top's, `decTopC`'s own (the last index allocated), less the
-bodies (`costIdx - costDeps.length`; so the bound names no index, which moves when a module
-before it in the chain gains a function): `785092` at index `845` with `404` bodies besides the
-entry, the program's exact size (`LeanVMTests/Cost/DecoderSize.lean`), of which the guest's frame
-cells (`guestLocs`, a literal held once, `guestLocsTable`) are `749835`. `guestDecoderSizeBound`
-(`Statement/Theorems.lean`) is `785500`: this exact size and a slack of `408`, room for one
-leanXMSS signature's encoding (`309`) but not two. The bound applies to every program, but its
-slack is small only for programs written like this one: the frame cells (below `2^20` each),
-packed three to a limb, would take about a third of their `749835`, freeing room for about
-`1600` signatures' encodings.
--/
+For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (`784210`: the frame
+cells' `749836` and the others', the entry's among them, `34374`, each exact) plus two per index
+without a body, the indices up to the top's, `decTopC`'s own (the last index allocated), less the
+bodies (`costIdx - costDeps.length`; so the bound names no index, which moves when a module before
+it in the chain gains a function): `785092` at index `845` with `404` bodies besides the entry, the
+program's exact size (`LeanVMTests/Cost/DecoderSize.lean`), of which the guest's frame cells
+(`guestLocs`, a literal held once, `guestLocsTable`) are `749835`. `guestDecoderSizeBound`
+(`Statement/Theorems.lean`) is `785500`: this exact size and a slack of `408`, room for one leanXMSS
+signature's encoding (`309`) but not two. The bound applies to every program, but its slack is small
+only for programs written like this one: the frame cells (below `2^20` each), packed three to a
+limb, would take about a third of their `749835`, freeing room for about `1600` signatures'
+encodings. -/
 
 namespace LeanVM.Cost
 

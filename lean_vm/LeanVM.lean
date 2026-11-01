@@ -66,8 +66,8 @@ random-permutation model where an adversary is involved, except the memory-decod
   MemoryAggregateSound guest decode transcriptExtractor`): the leanISA guest program, its
   witness named by the decoder of memories `LeanVM.Guest.End.decode`
   (`LeanVM/Guest/EndFinal.lean`); `GuestKnowledge guest D` of `Statement/Theorems.lean` follows
-  for a decoder program `D` that computes it (`LeanVM.Guest.End.guestKnowledge_of_decode`), the
-  compiled `LeanVM.Cost.decoderProgram`;
+  for a decoder program `D` that computes it within its size bound and budget
+  (`LeanVM.Guest.End.guestKnowledge_of_decode`), the compiled `LeanVM.Cost.decoderProgram`;
 * `LeanVM.Guest.Budget.guest_complete_covered : GuestCompleteCovered` (`Statement/LeanVmGuest.lean`;
   `guest_complete_recursion : GuestCompleteRecursion` and `guest_complete_leaf : GuestCompleteLeaf`,
   `Statement/Corollaries.lean`, are its first two families): the guest program's completeness on
@@ -231,11 +231,12 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 #guard_msgs in
 #print axioms LeanVM.Guest.Budget.guest_child_complete
 
-/-- **Every end theorem**, `Statement/Theorems.lean`, the extractor
-`LeanVM.Cost.extractorProgram`, the guest's witness named by a decoder program
-`decoderProgram` that computes, within its size bound and budget, a decoder of executions
-`decoder` on every valid execution (`DecoderProgramSpec`), whose decodings explain the public
-input (`DecoderExplains`), `LeanVM/Guest/DecoderProgram.lean`. -/
+/-- **Every end theorem**, `Statement/Theorems.lean`, at the extractor
+`LeanVM.Cost.extractorProgram` and any decoder program `decoderProgram` meeting its specification
+(`LeanVM/Guest/DecoderProgram.lean`). That specification has two parts. First, the program
+computes a decoder of executions `decoder` on every valid execution, within its size bound and
+budget (`DecoderProgramSpec`). Second, that decoder's decodings explain the public input
+(`DecoderExplains`). -/
 theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProgram}
     {decoder : LeanVM.Semantics.Execution LeanVM.Guest.guest → LeanVM.Node.Decoded}
     (hspec : LeanVM.Guest.End.DecoderProgramSpec decoderProgram decoder)

@@ -39,13 +39,13 @@ not name the extractor or decoder program (only their sizes and budgets); the de
 witness from the execution; the extracted execution need not be the committed one; the decoder's
 budget has no cap on steps, grows as `steps·log steps` below `2^61` steps (`steps·log² steps` as
 they grow), and its constant (about `2^47.04`) prices the children's cursor lengths (`2^32` words
-each: no assert of the guest bounds them) and the address tables of the memory and the program at
-their maxima, not at the run's, so below about `2^25` steps the budget is far above the compiled
-decoder's price; that a valid execution of the guest program has fewer than `2^51` steps is argued
-in prose, not proved in Lean; literal tables count toward size; the size bounds limit programs
-written like the compiled ones (a decoder written differently could pack the guest's tables tighter,
-about `1600` signatures' room); the extractor's budget is about `2^117.67 + 2^14.7·N·log²N` for `N`
-queries.
+each: no assert of the guest bounds them, and the price proof does not use the `8192` they are at
+most on a valid execution) and the address tables of the memory and the program at their maxima, not
+at the run's, so below about `2^25` steps the budget is far above the compiled decoder's price; that
+a valid execution of the guest program has fewer than `2^51` steps is argued in prose, not proved in
+Lean; literal tables count toward size; the size bounds limit programs written like the compiled
+ones (a decoder written differently could pack the guest's tables tighter, about `1600` signatures'
+room); the extractor's budget is about `2^117.67 + 2^14.7·N·log²N` for `N` queries.
 
 ## Reading order
 
@@ -111,32 +111,32 @@ theorems, then read the files in this order.
    sizes a stream announces (`announced`). Where the transcription's form differs from the pin's
    without changing what it computes, its docstring gives the pin's lines and why the two agree.
 11. [`LeanVm.lean`](LeanVm.lean): a statement (a program and a public input), the verifier on it
-   over a permutation (`verifier F`), the honest prover's type and **the honest prover**, `prover`
-   (`LeanVM.Prover.prove` of [`Prover/`](Prover/)), the committed size; the random-permutation
-   experiment (`soundnessExperiment`, one game: an adversary with private coins,
-   `RandomPermutationAdversary`, its queries to `π` and `π⁻¹` counted by `permutationCallCost` and
-   recorded, then the verifier over `π`), a straight-line extractor's type
-   (`StraightLineExtractor`: from the statement, the transcript and the proof, an execution or
-   none), the transcript's permutation queries (`permutationQueries`),
-   **`LeanVM.KnowledgeSoundness extractor`** (for a given extractor; it asks for some valid
-   execution, not necessarily the one the proof commits to), **`LeanVM.Completeness`**.
-12. [`CostMachine.lean`](CostMachine.lean): the cost machine (a first-order functional language on
-    words, natural numbers and arrays, each step priced at least `1` and, but for a `case`'s fields
-    and a closure's captured values, at least the words it writes; its operations priced by their
-    algorithms: `MachineValue`, `PrimitiveOperation`, `Term`, `MachineProgram`, `evaluateTerm`,
-    `run`, `outputWithin`, a program's `size`), the encoding of the extractor's input and output
-    (`encodeExtractorInput`, `decodeExecution`, a linear parse), the budget (`extractorBudget`, read
-    off the shape a proof announces: `announced`, `LeanVmVerifier.lean`) and **`LeanVM.extractorOf
-    P`**: the extractor a program `P` computes, run within the budget, its output parsed;
-    `Statement.Theorems` takes `P` with its size at most `extractorSizeBound` and does not name it
-    (`lean_vm` names its knowledge extractor, compiled). That the machine's prices are honest is
-    trusted. The size bound is `11000`: the compiled extractor's `10489` and a slack of about one
-    leanXMSS signature's encoding, so the compiled extractor could carry no useful table of
-    witnesses beside its code; the budget (`extractorBudgetAt`, `extractorPrice`) is a closed
-    formula in the announced shape and the number `N` of queries, about `2^117.67 + 2^14.7·N·log²N`
-    (`O(N·log³N)` as `N` grows) at the worst shape: `2^117.67` for `N ≤ 2^80` (the list decoder) and
-    `2^156.69` at `N = 2^128` (the transcript's index), where the soundness bound is already
-    trivial.
+    over a permutation (`verifier F`), the honest prover's type and **the honest prover**, `prover`
+    (`LeanVM.Prover.prove` of [`Prover/`](Prover/)), the committed size; the random-permutation
+    experiment (`soundnessExperiment`, one game: an adversary with private coins,
+    `RandomPermutationAdversary`, its queries to `π` and `π⁻¹` counted by `permutationCallCost` and
+    recorded, then the verifier over `π`), a straight-line extractor's type
+    (`StraightLineExtractor`: from the statement, the transcript and the proof, an execution or
+    none), the transcript's permutation queries (`permutationQueries`), **`LeanVM.KnowledgeSoundness
+    extractor`** (for a given extractor; it asks for some valid execution, not necessarily the one
+    the proof commits to), **`LeanVM.Completeness`**.
+12. [`CostMachine.lean`](CostMachine.lean): the cost machine (`MachineValue`, `PrimitiveOperation`,
+    `Term`, `MachineProgram`, `evaluateTerm`, `run`, `outputWithin`, a program's `size`: a
+    first-order functional language on words, natural numbers and arrays, each step priced at least
+    `1` and, but for a `case`'s fields and a closure's captured values, at least the words it
+    writes, its operations priced by their algorithms), the encoding of the extractor's input and
+    output (`encodeExtractorInput`, `decodeExecution`, a linear parse), the budget
+    (`extractorBudget`, read off the shape a proof announces: `announced`, `LeanVmVerifier.lean`)
+    and **`LeanVM.extractorOf P`**: the extractor a program `P` computes, run within the budget, its
+    output parsed; `Statement.Theorems` takes `P` with its size at most `extractorSizeBound` and
+    does not name it (`lean_vm` names its knowledge extractor, compiled). That the machine's prices
+    are honest is trusted. The size bound is `11000`: the compiled extractor's `10489` and a slack
+    of about one leanXMSS signature's encoding, so the compiled extractor could carry no useful
+    table of witnesses beside its code; the budget (`extractorBudgetAt`, `extractorPrice`) is a
+    closed formula in the announced shape and the number `N` of queries, about `2^117.67 +
+    2^14.7·N·log²N` (`O(N·log³N)` as `N` grows) at the worst shape: `2^117.67` for `N ≤ 2^80` (the
+    list decoder) and `2^156.69` at `N = 2^128` (the transcript's index), where the soundness bound
+    is already trivial.
 13. [`LeanVmGuest.lean`](LeanVmGuest.lean): the leanISA guest program's specification (aggregation):
     DA claims and their digest, a node's statement, its digest (Keccak-256 of a preimage), witness
     and relation (`NodeRelation`: leanXMSS and leanSPHINCS claims, a DA digest, children verified by
@@ -177,18 +177,16 @@ theorems, then read the files in this order.
 
 [`Data/`](Data/) is the guest program's compiled bytecode, generated from leanVM's sources by
 `lean_vm/scripts/guest-export` (do not edit; `guest-export --check` fails when it is stale, as CI
-runs it). It needs no review beyond that check.
-
-[`Fast/`](Fast/) makes the compiled definitions fast and changes nothing they mean: `@[csimp]`
-lemmas, each proved, that compile `GF(2^64)` products on machine words (`FieldWords`), the
-degree-three extension's product unrolled (`CubicExt`), Keccak-f[1600] with its lanes written
-out, Keccak-256 over any permutation with its blocks read from arrays and a digest's bytes read as
-a number by a fold (`Keccak`), and the signature schemes' verifiers with a constant-depth lookup
-(`Schemes`). A `@[csimp]` lemma acts where a definition is compiled, so they are here, imported
-by `Field.lean`, `LeanXmss.lean`, `LeanDa.lean` and `LeanVmGuest.lean`, for the statement's own
-compiled definitions (the verifier, the prover, the signature schemes, the guest program's
-specification, LeanDA) and every module after them. They need no
-review: a `@[csimp]` lemma is an equation the kernel checks.
+runs it). It needs no review beyond that check.  [`Fast/`](Fast/) makes the compiled definitions
+fast and changes nothing they mean: `@[csimp]` lemmas, each proved, that compile `GF(2^64)` products
+on machine words (`FieldWords`), the degree-three extension's product unrolled (`CubicExt`),
+Keccak-f[1600] with its lanes written out and Keccak-256 over any permutation with its blocks read
+from arrays (`Keccak`), a digest's bytes read as a number by a fold (`SufCma`), and the signature
+schemes' verifiers with a constant-depth lookup (`Schemes`). A `@[csimp]` lemma acts where a
+definition is compiled, so they are here, imported by `Field.lean`, `HashSignatures.lean`,
+`LeanDa.lean` and `LeanVmGuest.lean`, for the statement's own compiled definitions (the verifier,
+the prover, the signature schemes, the guest program's specification, LeanDA) and every module after
+them. They need no review: a `@[csimp]` lemma is an equation the kernel checks.
 
 [`Prover/`](Prover/) is leanVM's honest prover as an executable program, `LeanVM.Prover.prove F prog
 input t ρ fuel` (`Prove.lean`), over a permutation `F` in any monad, Keccak-256 the sponge over `F`:
@@ -300,7 +298,7 @@ dominates up to about `2^25` steps. A valid execution of the guest program has f
 steps: the memory is fixed and every instruction reads a cell at `fp·o` for an offset `o` fixed by
 `pc`, so at each `pc` at most `2^κ` values of `fp` let a step succeed; the run is determined by
 `(pc, fp)`, and a repeated state would loop without halting (`2^ℓ·2^κ` states, `ℓ = 19`, `κ ≤ 32`;
-argued, not a Lean theorem).
+argued, not a Lean theorem; `lean_vm` proves fewer than `2^128`, `steps_lt_replayFuel`).
 
 ## Building
 

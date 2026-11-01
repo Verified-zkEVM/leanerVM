@@ -298,7 +298,7 @@ theorem runProof_batchAny {M : ℕ} (hM : M ≤ 2 ^ 64 - 1) {bytecode : List K}
     (hr : h.sumcheckMessages.length = Nat.log2 bytecode.length) :
     Id.run (runProofWithHash keccak256 keccakF1600 (boundedBatchingProgram M bytecode) batchSeed
         ⟨batchingStream cs h, []⟩) = true ↔
-      ∃ d, batch cs h = some d ∧ d.Holds bytecode := by
+      ∃ d, batch cs h = some d ∧ d.HoldsShaped bytecode := by
   have hstream : batchingStream cs h = childCountCells cs.length ++ (cs.flatMap childCells ++
       (h.sumcheckMessages.flatMap (fun g ↦ [g.1, g.2]) ++ [h.finalBytecodeValue])) := by
     simp only [batchingStream, cellsBeforeChallenge, List.append_assoc]

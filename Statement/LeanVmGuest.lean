@@ -28,18 +28,17 @@ schemes are those whose security `lean_xmss` and `lean_sphincs` prove (`LeanXmss
 `LeanSphincs.lean`), with Keccak-256 as their hash; LeanDA is `LeanDa.lean`'s, whose security
 `lean_da` proves.
 
-A node's statement is a list of signature claims, a DA digest, and a claim on the polynomial
-that the protocol fixes, the guest program's stacked bytecode, which the node defers rather than
+A node's statement is a list of signature claims, a DA digest, and a claim on the polynomial that
+the protocol fixes, the guest program's stacked bytecode, which the node defers rather than
 evaluates (`NodeStatement`). Its public input is the statement's digest under a seed, the guest
-program's Fiat-Shamir IV (`statementDigest`). A node holds every signature claim either directly,
-by a leanXMSS or leanSPHINCS signature, or through a child that makes the same claim; its DA digest
-is that of the blob matrix it checks, zeros, or a child's.
-A child is a statement under the same seed and a proof that the deferring verifier accepts for it
-(`LeanVM.Protocol.Verifier.verifyDeferred`, the guest program's `verify_sub`), which reads only the
-bytecode's length: the bytecode's value at the child's point is taken from the witness
-(`freshClaim`) and checked only at the root, in the batched claim. The node batches the
-claims that its children's proofs make of the bytecode, with those its children's statements defer,
-into its own deferred claim (`Batch.nodeBatchingProgram`).
+program's Fiat-Shamir IV (`statementDigest`). A node holds every signature claim either directly, by
+a leanXMSS or leanSPHINCS signature, or through a child that makes the same claim; its DA digest is
+that of the blob matrix it checks, zeros, or a child's. A child is a statement under the same seed
+and a proof that the deferring verifier accepts for it (`LeanVM.Protocol.Verifier.verifyDeferred`,
+the guest program's `verify_sub`), which reads only the bytecode's length: the bytecode's value at
+the child's point is taken from the witness (`freshClaim`) and checked only at the root, in the
+batched claim. The node batches the claims that its children's proofs make of the bytecode, with
+those its children's statements defer, into its own deferred claim (`Batch.nodeBatchingProgram`).
 
 What a valid execution of the leanISA guest program establishes is `NodeRelation` of the witness its
 memory holds, on Keccak as the guest program computes it: the witness is the knowledge content,
@@ -164,7 +163,7 @@ the bytecode's multilinear extension at the point (`DeferredClaim::recompute_sca
 `aggregation.rs:263-295`). The length being `2 ^ len` is part of it: `HasBytecodeShape` reads
 `Nat.log2` of the length, which a bytecode of other length shares, and the extension is of `2 ^ len`
 values. -/
-def DeferredClaim.Holds (bytecode : List K) (c : DeferredClaim) : Prop :=
+def DeferredClaim.HoldsShaped (bytecode : List K) (c : DeferredClaim) : Prop :=
   c.HasBytecodeShape bytecode ∧ 2 ^ c.bytecodePoint.length = bytecode.length ∧
     multilinearEval (bytecode.map ofK) c.bytecodePoint = c.bytecodeValue
 
@@ -407,7 +406,7 @@ noncomputable def nodeBatchingProgram (check : DeferredClaim → Prop) (bytecode
 batching of that many, its deferred claim true of `bytecode`. -/
 noncomputable def boundedBatchingProgram (M : ℕ) (bytecode : List K) : Prog Bool := do
   let n ← readChildCount M
-  batchingProgram (DeferredClaim.Holds bytecode) bytecode n
+  batchingProgram (DeferredClaim.HoldsShaped bytecode) bytecode n
 
 /-- **The batching transcript run**, over a permutation `F` in any monad: from the seed
 `F(H(label) ‖ 0)`, `H` Keccak-256 over `F` (`FiatShamirState::from_label`; the guest program bakes
@@ -621,7 +620,7 @@ end Hints
 /-! ## The deployed limits
 
 The guest program divides by some of the verifier's challenges (the WHIR fold and tail challenges
-and each level's batching challenge `λ`, G:1246, 1555, 1560), so a zero one makes it reject a child
+and each level's batching challenge `λ`, G:1246, 1553, 1558), so a zero one makes it reject a child
 the verifier accepts; its hypothesis refuses a zero challenge anywhere
 (`Prog.refusingZeroChallenge`), a slightly stronger one, each challenge being zero with probability
 `2^-192`. -/
@@ -889,7 +888,7 @@ bytecode's shapes, one of whose claims is false. -/
 def SomeChildClaimFalse (bytecode : List K) (M : ℕ) (π : Proof) : Prop :=
   ∃ cs : List ChildClaims, cs.length < M ∧ (∀ c ∈ cs, ChildHasBytecodeShape bytecode c) ∧
     cellsBeforeChallenge cs <+: π.stream ∧
-    ¬ ∀ c ∈ cs, c.freshClaim.Holds bytecode ∧ c.carriedClaim.Holds bytecode
+    ¬ ∀ c ∈ cs, c.freshClaim.Holds bytecode ∧ c.carriedClaim.HoldsShaped bytecode
 
 /-- **The batching program's query bound** on child counts below `M`: the seed's two queries,
 then a quarter of the program's cost (the count, the children's cells, the challenge, the
