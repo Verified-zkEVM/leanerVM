@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Guest.Fast.WhirTablesCheck
 public import LeanVM.Guest.Fast.LogG
+public import LeanVM.Guest.Fast.Common
 public import LeanVM.Guest.B1.VerifySub.Proof
 
 /-!
@@ -46,14 +47,11 @@ length (`cursorLen`). -/
 def vsPiOfN (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) : Proof :=
   let m := logGT (σ (.n 1901)) 28
   let fr := Vn m (vsOsArgs σ) (vsOsRets σ)
-  ⟨wordsAt rd (σ (.n 27)) (cl (σ (.n 27)) (σ (.n 868))) ++ readN rd (fr (.n 8)) (osWordsTab.getD m 0),
+  ⟨wordsAt rd (σ (.n 27)) (cl (σ (.n 27)) (σ (.n 868))) ++
+      readN rd (fr (.n 8)) (osWordsTab.getD m 0),
     (osCallsTab.getD m []).flatMap (levelOsN rd fr Vn)⟩
 
 /-! ## Equal to the original -/
-
-theorem getD_map_range' {α : Type} {f : ℕ → α} {n l : ℕ} (d : α) (hl : l < n) :
-    ((List.range n).map f).getD l d = f l := by
-  simp [List.getD_eq_getElem?_getD, hl]
 
 theorem dispatchIdx_eq_logGT (x : E) : dispatchIdx x = logGT x 28 := by
   rw [← logG_eq_logGT _ (by norm_num)]
@@ -67,8 +65,9 @@ theorem map_vIdx {σ : Val} : ∀ {l : List V}, l.all isN = true →
       simp only [List.all_cons, Bool.and_eq_true, isN, beq_iff_eq] at h
       simp only [List.map_cons, vIdx, map_vIdx h.2, ← h.1]
 
-theorem levelOsN_eq (rd : Reader) (σ : Val) (Fm : FrameMap) {c : ℕ × OsLv × String × List V × List V}
-    (h : callOK c = true) : levelOsN rd σ (fun k ↦ Fm (vsName k)) (recOf c) = osLevelOs rd σ Fm c := by
+theorem levelOsN_eq (rd : Reader) (σ : Val) (Fm : FrameMap)
+    {c : ℕ × OsLv × String × List V × List V} (h : callOK c = true) :
+    levelOsN rd σ (fun k ↦ Fm (vsName k)) (recOf c) = osLevelOs rd σ Fm c := by
   obtain ⟨lvl, lv, name, args, rets⟩ := c
   simp only [callOK, Bool.and_eq_true, beq_iff_eq] at h
   obtain ⟨⟨⟨ha, hr⟩, hn⟩, hl⟩ := h
@@ -82,9 +81,9 @@ theorem vsPiOfN_eq (rd : Reader) (σ : Val) (Fm : FrameMap) :
   rw [logG_eq_logGT _ (by norm_num)] at hm
   have hname : vsName (logGT (σ (.n 1901)) 28) = openNames.getD (logGT (σ (.n 1901)) 28) "" := by
     simp [vsName, hm]
-  have hok := List.all_eq_true.mp osCalls_ok _ (List.mem_range.mpr hm)
+  obtain ⟨htab, hok⟩ := callsOK _ hm
   unfold vsPiOfN vsPiOf piOfW vsOsW open_stacked_osW
-  simp only [dispatchIdx_eq_logGT, hname, osWordsTab_eq, osCallsTab_eq, getD_map_range' _ hm]
+  simp only [dispatchIdx_eq_logGT, hname, osWordsTab_eq, htab, getD_map_range' _ hm]
   rw [Proof.mk.injEq]
   refine ⟨rfl, ?_⟩
   rw [List.flatMap_map]

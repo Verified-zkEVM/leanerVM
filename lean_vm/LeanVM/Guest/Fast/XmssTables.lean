@@ -7,7 +7,7 @@ The cells `verify_lean_xmss` reads its signature off, precomputed from the templ
 (`B1/Sig/XmssT.lean`, `codewordT`, `kMsg`, `merkleT`) and checked equal to them by kernel evaluation
 (`Fast/XmssTablesCheck.lean`): each layer's codeword groups' selector cells and path bases; the
 chains' starts from a selector (a step of size `1`: the first group's, the other groups', the last
-chain's), `Fast/Wots.lean`'s `offTab 1`.
+chain's), `Fast/Numbers.lean`'s `offTab 1`.
 -/
 
 namespace LeanVM.Guest.Fast

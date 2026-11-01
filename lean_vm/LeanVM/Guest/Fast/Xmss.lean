@@ -1,6 +1,8 @@
 module
 
 public import LeanVM.Guest.Fast.XmssTablesCheck
+public import LeanVM.Guest.Fast.Wots
+public import LeanVM.Guest.Fast.Common
 public import LeanVM.Guest.B1.Sig.XmssSound
 
 /-!
@@ -13,7 +15,6 @@ off the literal tables of `Fast/XmssTables.lean` and searches the exponents thro
 `xmssSigOfN_eq`: they are equal.
 
 * `bitsN σ base n`: the integer of the `n` bits from cell `base` (`bitsOf`);
-* `sibN σ bit b`: a path level's sibling, the hinted child the node is not (`mSib`);
 * `xPartN rho bitBase sel path σ`: a layer's signature, from its randomizer cell, its first bit,
   its codeword groups' selector cells and its path bases (`xPart`).
 -/
@@ -35,9 +36,6 @@ theorem bitsOf_eq (σ : Val) (base : ℕ) : ∀ n, bitsOf σ base n = bitsN σ b
       rw [bitsN, ← bitsOf_eq σ base n]
       rfl
 
-/-- A path level's sibling: the hinted child at `b`, `b + 1` the node is not (`mSib`). -/
-def sibN (σ : Val) (bit b : ℕ) : E := if σ (.n bit) = 1 then σ (.n b) else σ (.n (b + 1))
-
 /-- **A layer's signature**, from its randomizer cell, its first bit, its codeword groups'
 selector cells and its path bases (`xPart`). -/
 def xPartN (rho bitBase : ℕ) (sel path : List ℕ) (σ : Val) : LeanXmss.LayerSignature :=
@@ -53,10 +51,6 @@ def xmssSigOfN (σ : Val) : LeanXmss.Signature :=
     if lay.val = 0 then xPartN 196 2 xSel0 xPath0 σ else xPartN 12604 18 xSel1 xPath1 σ⟩
 
 /-! ## Equal to the original -/
-
-theorem getD_map_range {f : ℕ → ℕ} {n l : ℕ} (hl : l < n) :
-    ((List.range n).map f).getD l 0 = f l := by
-  simp [List.getD_eq_getElem?_getD, hl]
 
 theorem xPart0_eq (σ : Val) : xPart 0 196 σ = xPartN 196 2 xSel0 xPath0 σ := by
   have hc (i : LeanXmss.ChainIndex) : cwStart (xW 0 196) 19 (xA 0 196 + 6) σ i.val =
