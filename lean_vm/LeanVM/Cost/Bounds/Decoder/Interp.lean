@@ -9,7 +9,18 @@ import all CompPoly.Univariate.Basic
 # Bound: the decoder's interpolation, compiled
 
 The prices of the pieces of `interpolateDistinct` (`Cost/Extractor/Interp.lean`), on `n` points:
-the vanishing polynomial (`vanishingC_cost`: `n` products by a linear factor, `O(n²)`), …
+
+* the vanishing polynomial (`vanishingC_cost`: `n` products by a linear factor,
+  `3720·n² + 4050·n + 20`);
+* Horner's evaluations (`evalHornerC_cost`, `evalBatchC_cost`), the derivative
+  (`derivativeC_cost`), synthetic division by `X − x` (`divByLinearFactorC_cost`), one term
+  (`interpTermC_cost`: an inverse, a division, a scaling), and the interpolating polynomial
+  (`interpolateC_cost`: `1700·|G|·n + 22600·n + 400·|G| + 100`).
+
+Still to bound here: Lee–O'Sullivan's rows (`leeRowsFast`: the powers of `Y − R` and of `G`,
+the products, `toCoeffRow`), the least row and its normalization (`leastShiftedDegreeRow?`,
+`normalizeLeeFast`), and the assembly (`leeOSullivanPositiveCoreFast`, `interpolateDistinct`)
+with the reduction of `Bounds/Decoder/MsReduce.lean`.
 -/
 
 namespace LeanVM.Cost.Bounds.Decoder
@@ -267,12 +278,15 @@ theorem interpolateC_cost (hP : Includes P interpolateCoefficientFormWithVanishi
     exact (raw_trim_size_le _).trans (by simp)
   have hf := fun pt ↦ RunsApp.of_spec (us := []) (vs := [enc pt])
     (leeOSullivanPositiveCoreFast.c73.lam0.costSpec P (by includes) pt)
-  have hm := listMap_le P Auto.List.map.c12.costIdx (.fn leeOSullivanPositiveCoreFast.c73.lam0.costIdx [])
+  have hm := listMap_le P Auto.List.map.c12.costIdx
+    (.fn leeOSullivanPositiveCoreFast.c73.lam0.costIdx [])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf) 2 points.toList
     (fun pt _ ↦ by
-      rw [appCost_fn, List.nil_append, leeOSullivanPositiveCoreFast.c73.lam0.costEq P (by includes)])
-  have he := evalBatchC_cost P (by includes) G.derivative (Array.map (fun point : K × K ↦ point.1) points)
+      rw [appCost_fn, List.nil_append,
+        leeOSullivanPositiveCoreFast.c73.lam0.costEq P (by includes)])
+  have he := evalBatchC_cost P (by includes) G.derivative
+    (Array.map (fun point : K × K ↦ point.1) points)
   have := rangeLoop_cost P (by includes) points.size [] (by omega)
   have hfo := listFoldl_le P (by includes) _
     (.fn interpolateCoefficientFormWithVanishing.c80.lam0.costIdx
@@ -307,7 +321,8 @@ theorem interpolateC_cost (hP : Includes P interpolateCoefficientFormWithVanishi
   have : G.derivative.val.size * (Array.map (fun point : K × K ↦ point.1) points).size ≤
       G.val.size * points.size := by simp only [Array.size_map]; exact Nat.mul_le_mul_right _ hdG
   have e : (1381 * G.val.size + 22400 + 9) * (List.range points.size).length =
-      1381 * (G.val.size * points.size) + 22409 * points.size := by simp only [List.length_range]; ring
+      1381 * (G.val.size * points.size) + 22409 * points.size := by
+    simp only [List.length_range]; ring
   simp only [Array.length_toList, List.length_map, Array.size_map] at *
   omega
 

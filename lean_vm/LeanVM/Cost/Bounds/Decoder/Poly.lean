@@ -334,7 +334,8 @@ theorem addB_cost (hP : Includes P add.c66.costDeps) (p q : CPolynomial.Raw (CPo
   have h1 : (Array.extract (p.addRaw q) 0
       (CompPolyLib.trimLen (p.addRaw q) (p.addRaw q).size)).size ≤ (p.addRaw q).size := by simp
   rw [size_addRaw] at *
-  have e : (3 * A + 40) * max p.size q.size = 3 * (A * max p.size q.size) + 40 * max p.size q.size := by
+  have e : (3 * A + 40) * max p.size q.size =
+      3 * (A * max p.size q.size) + 40 * max p.size q.size := by
     ring
   omega
 
@@ -488,9 +489,11 @@ theorem mulB_cost (hP : Includes P mul.c43.costDeps) (p q : CPolynomial.Raw (CPo
     (by omega)
   have h1 : (Array.extract (p.mulRaw q) 0
       (CompPolyLib.trimLen (p.mulRaw q) (p.mulRaw q).size)).size ≤ (p.mulRaw q).size := by simp
-  have : (3 * (2 * A) + 40) * (p.mulRaw q).size ≤ 6 * (A * (p.size + q.size)) + 40 * (p.size + q.size) := by
+  have : (3 * (2 * A) + 40) * (p.mulRaw q).size ≤
+      6 * (A * (p.size + q.size)) + 40 * (p.size + q.size) := by
     have := Nat.mul_le_mul_left (3 * (2 * A) + 40) hs
-    have e : (3 * (2 * A) + 40) * (p.size + q.size) = 6 * (A * (p.size + q.size)) + 40 * (p.size + q.size) := by
+    have e : (3 * (2 * A) + 40) * (p.size + q.size) =
+        6 * (A * (p.size + q.size)) + 40 * (p.size + q.size) := by
       ring
     omega
   omega
