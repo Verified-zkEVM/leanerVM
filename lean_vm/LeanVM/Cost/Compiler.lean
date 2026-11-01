@@ -142,6 +142,7 @@ def rewrites : List (Name × Name) := [
   (``Decidable.decide, ``Rewrite.decideForallFin),
   (``Decidable.decide, ``Rewrite.decideEqFin),
   (``Decidable.decide, ``Rewrite.decideBAll),
+  (``Decidable.decide, ``Rewrite.decideMemList),
   (``LeanVM.Parameters.K.ofBits, ``Rewrite.kOfBits),
   (``HAdd.hAdd, ``Rewrite.eAdd),
   (``HMul.hMul, ``Rewrite.eMul),
@@ -1232,13 +1233,46 @@ partial def closureOf (ctx : Ctx) (f : Expr) (arity : Nat) :
   let fty ← inferType f
   forallBoundedTelescope fty arity fun ps _ ↦ do
     let body ← Core.betaReduce (mkAppN f ps)
-    let fvs := (← body.collectFVars.run {}).2.fvarIds.filter fun x ↦ !ps.contains (.fvar x)
-    let caps := ctx.vals.filter fun en ↦ match en with
+    -- values bound by `let` (in the environment by value) that the lambda uses: captured, so
+    -- that the lambda reads them instead of recomputing them; abstracted as parameters (the
+    -- larger first, a value inside another replaced with it)
+    let mut cands : Array Expr := #[]
+    for en in ctx.vals do
+      if let .enc x := en then
+        if !x.isFVar && !x.hasLooseBVars && (← natLit? x).isNone && !cands.contains x &&
+            (body.find? (· == x)).isSome then
+          cands := cands.push x
+    -- a partial application's data arguments are evaluated once, when the closure is made
+    unless f.isLambda do
+      for a in f.getAppArgs do
+        if a.isFVar || a.hasLooseBVars || cands.contains a || (← natLit? a).isSome then continue
+        let aty ← inferType a
+        if (← isProp aty) || (← isType a) || (← whnf aty).isForall || (← isClass? aty).isSome then
+          continue
+        let some _ ← (try synthInstance? (← mkAppM ``Enc #[aty]) catch _ => pure none) | continue
+        cands := cands.push a
+    -- kept when abstracting it leaves the lambda well typed (a value may occur in types)
+    let mut used : Array Expr := #[]
+    for x in cands.qsort fun a b ↦ a.approxDepth > b.approxDepth do
+      let ok ← withLocalDeclD `c (← inferType x) fun y ↦ do
+        let b := body.replace fun s ↦ if s == x then some y else none
+        isTypeCorrect (← mkLambdaFVars (#[y] ++ ps) b)
+      if ok then used := used.push x
+    let letVals := used
+    let letDecls ← letVals.mapIdxM fun i x ↦ do
+      pure (Name.mkSimple s!"cap{i}", ← inferType x)
+    withLocalDeclsDND letDecls fun ys ↦ do
+    let body' := (letVals.zip ys).foldl (fun b (x, y) ↦
+      b.replace fun s ↦ if s == x then some y else none) body
+    let fvs := (← body'.collectFVars.run {}).2.fvarIds.filter fun x ↦
+      !ps.contains (.fvar x) && !ys.contains (.fvar x)
+    let caps := (ctx.vals.filter fun en ↦ match en with
       | .enc x => x.isFVar && fvs.contains x.fvarId!
-      | .fn g _ _ _ => g.isFVar && fvs.contains g.fvarId!
-    let capFvs : Array Expr := caps.map fun en ↦ match en with
+      | .fn g _ _ _ => g.isFVar && fvs.contains g.fvarId!) ++ letVals.map Entry.enc
+    let capFvs : Array Expr := (caps.extract 0 (caps.size - letVals.size)).map (fun en ↦
+      match en with
       | .enc x => x
-      | .fn g _ _ _ => g
+      | .fn g _ _ _ => g) ++ ys
     for x in fvs do
       unless capFvs.contains (.fvar x) || ctx.types.contains (.fvar x) do
         throwError "closure: free variable {Expr.fvar x} of {f} is not in the environment"
@@ -1247,7 +1281,7 @@ partial def closureOf (ctx : Ctx) (f : Expr) (arity : Nat) :
     if let some self := ctx.self then
       if (body.find? fun s ↦ s.getAppFn == self.term.getAppFn).isSome then
         return ← localClosure ctx f fty arity caps ps body
-    let lam ← instantiateMVars (← mkLambdaFVars (ctx.types ++ capFvs ++ ps) body)
+    let lam ← instantiateMVars (← mkLambdaFVars (ctx.types ++ capFvs ++ ps) body')
     -- the same lambda compiled before: reused
     let reg := compiledExt.getState (← getEnv)
     let prior := reg.foldl (fun acc _ fs ↦ acc <|> fs.find? (·.lam? == some lam)) none

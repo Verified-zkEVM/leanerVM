@@ -125,6 +125,15 @@ theorem keccakSlotOfLit (l : ℕ) : keccakSlotOf l =
 
 cost_rewrite keccakSlotOfLit
 
+open LeanVM.Semantics in
+/-- The opcodes' bus codes `g^0, …, g^5` as words. -/
+theorem opcodeCodeLit (o : Opcode) : Opcode.code o = K.ofLane (match o with
+    | .xor => 1 | .mulNative => 2 | .setConstant => 4 | .deref => 8 | .jump => 16
+    | .keccak => 32) := by
+  cases o <;> decide +kernel
+
+cost_rewrite opcodeCodeLit
+
 cost_measure searchIn := fun _ _ _ _ _ lo hi ↦ hi - lo
 
 cost_measure mergeNewer := fun _ _ _ a b ↦ a.length + b.length
