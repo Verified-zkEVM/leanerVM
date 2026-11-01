@@ -24,7 +24,40 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Semantics LeanVM.Co
 
 public section
 
+/-! The functions the bounds name (`Bounds/Replay.lean`), compiled under names of their own, so
+that their names do not depend on the program's indices. -/
+
+cost_compile absorbPureC := absorbPure
+
 cost_compile readPureC := readPure
+
+cost_compile initialStateC := initialState
+
+cost_compile digestOfScalarsC := LeanVM.Protocol.KeccakHash.digestOfScalars
+
+cost_compile commitPureC := commitPure
+
+cost_compile bitLengthC := bitLength
+
+cost_compile log2StrictC := log2Strict
+
+cost_compile tableLogFloorsC := tableLogFloors
+
+cost_compile keccakSlotC := keccakSlot
+
+cost_compile stackOffsetsC := stackOffsets
+
+cost_compile placementsOfC := placementsOf
+
+cost_compile queryTableC := LeanVM.Parameters.Whir.queryTable
+
+cost_compile levelsFromC := LeanVM.Parameters.Whir.levelsFrom
+
+cost_compile shapeC := LeanVM.Parameters.Whir.shape
+
+cost_compile ladderC := LeanVM.Parameters.Whir.ladder
+
+/-! The replay. -/
 
 cost_compile buildLayoutLiteC := buildLayoutLite
 
