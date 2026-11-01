@@ -4,6 +4,7 @@ public import CompPoly.Bivariate.GuruswamiSudan.Root.RothRuckenstein.Correctness
 import all CompPoly.Bivariate.GuruswamiSudan.Root.RothRuckenstein.Correctness
 public import Mathlib.Data.Nat.Choose.Lucas
 public import Mathlib.Algebra.CharP.Two
+public import LeanVM.Protocol.Extraction.Fast.RootSteps
 
 /-!
 # Roth–Ruckenstein's substitution, fast
@@ -217,18 +218,18 @@ CompPoly's chain from the substitution to the root context, copied with `substit
 
 /-- `transformedRothRuckensteinResidual`, fast. -/
 @[expose] def residualFast (Q : CBivariate F) (a : F) : CBivariate F :=
-  CBivariate.stripXAdicFactor (substituteFast Q a)
+  stripFast (substituteFast Q a)
 
 /-- `transformedRothRuckensteinRootPrefixesWithFuel`, fast. -/
 @[expose] def prefixesWithFuelFast (fieldRoots : FieldRootContext F) :
     ℕ → CBivariate F → ℕ → CPolynomial F → Array (CPolynomial F)
   | 0, _Q, _depth, pref => #[pref]
   | fuel + 1, Q, depth, pref =>
-      let Qnorm := CBivariate.stripXAdicFactor Q
+      let Qnorm := stripFast Q
       if Qnorm == (0 : CBivariate F) then
         #[]
       else
-        (rootsInFieldForNonzeroEquation fieldRoots (initialCoefficientPolynomial Qnorm)).foldl
+        (rootsInFieldForNonzeroEquation fieldRoots (initialCoeffFast Qnorm)).foldl
           (fun out coeff ↦
             out ++ prefixesWithFuelFast fieldRoots fuel (residualFast Qnorm coeff) (depth + 1)
               (extendPrefix pref depth coeff))
@@ -245,7 +246,7 @@ variable [CharP F 2]
 
 theorem residualFast_eq (Q : CBivariate F) (a : F) :
     residualFast Q a = transformedRothRuckensteinResidual Q a := by
-  rw [residualFast, substituteFast_eq, transformedRothRuckensteinResidual]
+  rw [residualFast, stripFast_eq, substituteFast_eq, transformedRothRuckensteinResidual]
 
 theorem prefixesWithFuelFast_eq (fieldRoots : FieldRootContext F) (fuel : ℕ) (Q : CBivariate F)
     (depth : ℕ) (pref : CPolynomial F) :
@@ -255,7 +256,7 @@ theorem prefixesWithFuelFast_eq (fieldRoots : FieldRootContext F) (fuel : ℕ) (
   | zero => rw [prefixesWithFuelFast, transformedRothRuckensteinRootPrefixesWithFuel]
   | succ fuel ih =>
     rw [prefixesWithFuelFast, transformedRothRuckensteinRootPrefixesWithFuel]
-    simp only [ih, residualFast_eq]
+    simp only [ih, residualFast_eq, stripFast_eq, initialCoeffFast_eq]
 
 theorem rootsYDegreeLtFast_eq (fieldRoots : FieldRootContext F) :
     rootsYDegreeLtFast fieldRoots = rothRuckensteinRootsYDegreeLt fieldRoots := by

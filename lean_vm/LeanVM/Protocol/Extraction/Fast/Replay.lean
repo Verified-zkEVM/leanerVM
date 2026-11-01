@@ -2,6 +2,7 @@ module
 
 public import Statement.LeanVm
 public import LeanVM.Protocol.Extraction.Fast.SortedMap
+public import LeanVM.Protocol.Extraction.Fast.Unpad
 
 /-!
 # The transcript's replay, indexed and bounded
@@ -17,6 +18,7 @@ strings of length at most `L` (`64` and `8·width`, `Fast/Lookup.lean`), and a p
 * `ReplayFast.Sim`: the fast state simulates the statement's (the same edges' inputs and outputs,
   the same paths with their bytes `cut`, the same newest path per capacity), preserved by a step
   (`Sim.step`);
+* the paths unpadded in one pass (`keccakUnpaddedFast`, `Fast/Unpad.lean`);
 * **`keccakEvaluationsFast_eq`**: `keccakEvaluationsFast T L` is the statement's
   `keccakEvaluationsOfTranscript T` without the evaluations of more than `L` bytes.
 -/
@@ -72,7 +74,7 @@ structure ReplayFast where
 @[expose] def keccakEvaluationsFast (T : List (PermutationQuery KeccakState × KeccakState))
     (L : ℕ) : List (Bytes × Digest) :=
   (T.foldl (ReplayFast.step (L + rate)) ReplayFast.init).paths.filterMap fun p ↦
-    p.2.bind fun bs ↦ (keccakUnpadded bs).bind fun m ↦
+    p.2.bind fun bs ↦ (keccakUnpaddedFast bs).bind fun m ↦
       if m.length ≤ L then some (m, #v[p.1[0], p.1[1], p.1[2], p.1[3]]) else none
 
 /-! ## The simulation -/
@@ -185,7 +187,7 @@ theorem keccakEvaluationsFast_eq (T : List (PermutationQuery KeccakState × Kecc
     keccakEvaluationsFast T L =
       (keccakEvaluationsOfTranscript T).filter fun e ↦ decide (e.1.length ≤ L) := by
   have hs := (ReplayFast.Sim.init (L + rate)).foldl T
-  rw [keccakEvaluationsFast, hs.paths, keccakEvaluationsOfTranscript, List.filter_filterMap,
+  rw [keccakEvaluationsFast, keccakUnpaddedFast_eq_fun, hs.paths, keccakEvaluationsOfTranscript, List.filter_filterMap,
     List.filterMap_map]
   refine List.filterMap_congr fun p _ ↦ ?_
   obtain ⟨s, bs⟩ := p
