@@ -1,6 +1,7 @@
 module
 
 public import LeanVM.Cost.CompPolyLib
+public import LeanVM.Cost.InitLib
 public import LeanVM.Protocol.Extraction.Fast.Transcript
 import all LeanVM.Protocol.Extraction.Fast.SortedMap
 import all LeanVM.Protocol.Extraction.Fast.Lookup
