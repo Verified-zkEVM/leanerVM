@@ -713,6 +713,11 @@ theorem kMul {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (encodeValue a
     (hb : Runs P env u (encodeValue b) d) : Runs P env (.op .binaryFieldMultiply [t, u]) (encodeValue (a * b)) (c + d + 256) :=
   op₂ h hb rfl
 
+/-- A closed constant as a literal of the program: its encoding (`Term.val`), evaluated where the
+program is built. The compiler applies it to the constants the rules table lists (the guest
+decoder's tables), whose encodings are far smaller than their code. -/
+theorem literal (x : α) : Runs P env (.val (encodeValue x)) (encodeValue x) 1 := Runs.val _
+
 theorem natOr {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
     Runs P env (.op .naturalOr [t, u]) (encodeValue (a ||| b)) (c + d + (max (limbCount a) (limbCount b) + 1)) :=

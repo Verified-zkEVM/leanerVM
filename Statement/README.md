@@ -137,13 +137,19 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
     and `2^156.69` at `N = 2^128` (the transcript's index), where the soundness bound is already
     trivial.
 14. [`Theorems.lean`](Theorems.lean): every end theorem, as the fields of `Statement.Theorems`;
-    first, the guest decoder a cost-machine program `D` computes (`LeanVM.Node.decodeOf D`: `D`
-    run on the encoded guest program and execution within `guestDecoderBudget`, its output parsed
-    by `decodeDecoded`, a linear parse, `MachineDecoding`) and
-    **`LeanVM.Node.GuestKnowledge guest D`** (on every valid execution, `D` outputs a decoding that
-    explains the public input, `ExplainsInput`); `Statement.Theorems` takes `D` with its size at most
-    `guestDecoderSizeBound`. **The decoder's size bound and price (`guestDecoderSizeBound`,
-    `guestDecoderPrice`) are placeholders**, to be set from the compiled decoder.
+    first, the guest decoder as a cost-machine program `D`: the encodings of a decoding (a seed, a
+    statement and a witness, `encodeValue`), `D`'s input (`encodeDecoderInput`: the guest program
+    and the execution), its budget (`guestDecoderBudget`, linear in the execution's size and
+    steps, with no cap on the steps) and **`LeanVM.Node.GuestKnowledge guest D`** (on every valid
+    execution, `D`, run within its budget, outputs the encoding of a decoding that explains the
+    public input, `ExplainsInput`; no parse); `Statement.Theorems` takes `D` with its size at most
+    `guestDecoderSizeBound`, its literals (the guest program's per-function tables) counted. `D`
+    computes the witness from the execution, which the proofs' decoder reads off the memory, as
+    the extractor program computes an execution. **The decoder's size bound and price
+    (`guestDecoderSizeBound`, `guestDecoderPrice`) are placeholders**, to be set from the compiled
+    decoder (the price a proved closed form, as `extractorPrice` is). The two programs have the
+    same type, so every use of `Statement.Theorems` names them (`(decoderProgram := D)
+    (extractorProgram := P)`).
 15. [`Corollaries.lean`](Corollaries.lean), optional for review: statements that follow from
     `Theorems` alone, in their composed form (`lean_vm` proves `Theorems D P → Corollaries
     D P`): what an accepted proof of the leanISA guest program establishes
@@ -204,7 +210,9 @@ instances.
 theorem, `LeanVM.theorems_hold`, whose axioms the build pins to Lean's three. Start there. For now
 `theorems_hold` takes the guest decoder program's specification as hypotheses (`DecoderProgramSpec`,
 `DecoderExplains`, [`lean_vm/LeanVM/Guest/DecoderProgram.lean`](../lean_vm/LeanVM/Guest/DecoderProgram.lean)):
-the decoder is not compiled yet.
+the decoder is not compiled yet. Once `LeanVM.Cost.decoderProgram` and its specification exist,
+`theorems_hold` is `Statement.Theorems (decoderProgram := LeanVM.Cost.decoderProgram)
+(extractorProgram := LeanVM.Cost.extractorProgram)`, without hypotheses.
 
 | Statement | Proved by | In |
 | --- | --- | --- |
@@ -229,7 +237,7 @@ The corollaries, [`Corollaries.lean`](Corollaries.lean), the fields of `Statemen
 
 | Statement | Follows from | Also proved directly by |
 | --- | --- | --- |
-| `LeanVM.Node.AggregateSound guest decoderProgram (extractorOf extractorProgram)` | `KnowledgeSoundness`, `GuestKnowledge`, `DigestBinds` | `LeanVM.Guest.End.aggregate_sound_outer`, for the decoder of memories `decode` ([`EndRpm.lean`](../lean_vm/LeanVM/Guest/EndRpm.lean)) |
+| `LeanVM.Node.AggregateSound guest decoderProgram (extractorOf extractorProgram)` | `KnowledgeSoundness`, `GuestKnowledge`, `DigestBinds` | its form for a decoder of memories, `MemoryAggregateSound guest decode transcriptExtractor`, by `LeanVM.Guest.End.aggregate_sound_outer` ([`EndRpm.lean`](../lean_vm/LeanVM/Guest/EndRpm.lean)), not `AggregateSound` of a program |
 | `LeanVM.Guest.Budget.GuestCompleteRecursion` | `GuestCompleteCovered` | `LeanVM.Guest.Budget.guest_complete_recursion` ([`Budget/Covered.lean`](../lean_vm/LeanVM/Guest/Budget/Covered.lean)) |
 | `LeanVM.Guest.Budget.GuestCompleteLeaf` | `GuestCompleteCovered` | `LeanVM.Guest.Budget.guest_complete_leaf` (same) |
 
@@ -238,11 +246,14 @@ Each project's root module (`lean_vm/LeanVM.lean`, `lean_xmss/XmssSecurity.lean`
 theorem proves its statement and pins its axioms to Lean's three (`propext`, `Classical.choice`,
 `Quot.sound`). The guest program's two soundness statements take the decoder as a parameter, a
 cost-machine program within a size bound and a budget (`Theorems.lean`). Their content is in
-that decoder: one that chose another statement of the same digest would satisfy `AggregateSound`
-(`Corollaries.lean`) through a Keccak-256 collision, which a program of its size and budget cannot
-search for. The proofs' decoder, `LeanVM.Guest.End.decode`
-([`EndFinal.lean`](../lean_vm/LeanVM/Guest/EndFinal.lean)), reads the witness off the execution's
-memory; a program computing it is not written yet.
+that decoder: one that output another statement of the same digest would satisfy
+`AggregateSound` (`Corollaries.lean`) through a Keccak-256 collision, which it would exhibit; what
+excludes it is that none is known. The size bound limits a table of witnesses the decoder could
+carry (hard-coded signatures masking a bug of the guest program on finitely many statements). The
+proofs' decoder, `LeanVM.Guest.End.decode` ([`EndFinal.lean`](../lean_vm/LeanVM/Guest/EndFinal.lean)),
+replays the run and reads the witness off the frames it entered; the statement asks only that the
+program compute the witness from the execution within its budget. The program, that decoder
+compiled (`LeanVM.Cost.decoderProgram`), is not finished yet.
 
 ## Building
 

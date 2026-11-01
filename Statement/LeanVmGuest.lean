@@ -43,11 +43,12 @@ into its own deferred claim (`Batch.nodeBatchingProgram`).
 What a valid execution of the leanISA guest program establishes is `NodeRelation` of the witness its
 memory holds, on Keccak as the guest program computes it: the witness is the knowledge content,
 since "some signature verifies" says little (some signature verifies for almost every key and
-message). The soundness statements take the decoder that reads the witness as a parameter, a
-program of the cost machine run within a budget (`GuestKnowledge`, `Theorems.lean`): a program
-that chose another statement of the same digest would satisfy `AggregateSound`
-(`Corollaries.lean`) through a Keccak-256 collision; its budget, far below a search for one, and
-its size bound, which excludes a table of collisions, exclude that. That the root's statement
+message). The soundness statements take the decoder that names the witness as a parameter, a
+program of the cost machine run within a budget (`GuestKnowledge`, `Theorems.lean`), which
+computes the witness from the execution (the proofs' decoder reads it off the memory). A program
+that output another statement of the same digest would satisfy `AggregateSound`
+(`Corollaries.lean`) through a Keccak-256 collision, which it would exhibit: what excludes such a
+program is that no collision is known. That the root's statement
 makes every claim held at the leaves is not proved: it would need Keccak, computed inside the guest program, to behave as Keccak-256 and Keccak-f[1600]
 built from the random permutation of `LeanVM.KnowledgeSoundness`.
 -/
@@ -522,7 +523,7 @@ def DigestBinds : Prop :=
       statementDigest seed s = statementDigest seed' s' →
       (seed = seed' ∧ s = s') ∨ HasCollision (collisionCandidates seed s seed' s')
 
-/-- What a decoder reads off an execution: a seed, a statement and a witness. -/
+/-- What a decoder names on an execution: a seed, a statement and a witness. -/
 structure Decoded where
   seed : Digest
   statement : NodeStatement

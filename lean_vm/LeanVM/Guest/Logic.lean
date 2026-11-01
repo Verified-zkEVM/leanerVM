@@ -279,16 +279,6 @@ theorem Safe.jumpTo {pc k oc od of : ℕ} {fp a b : K} {c : E}
   rw [ite_eq_right hc0] at hs
   exact ⟨k', rfl, by simpa using hs⟩
 
-/-- Through a `JUMP` not taken, `fp[oc] = 0`: the run goes on at the next pc. -/
-theorem Safe.jumpNot {pc k oc od of : ℕ} {fp : K}
-    (hf : prog.fetch (gpow pc) = some (OInstr.jump oc od of).toInstr)
-    (hpc : pc < 2 ^ prog.logSize - 1) (hc : L.read (fp * gpow oc) = some 0)
-    (h : Safe prog L k ⟨gpow pc, fp⟩) : ∃ k', k = k' + 1 ∧ Safe prog L k' ⟨gpow (pc + 1), fp⟩ := by
-  obtain ⟨k', r, rfl, ⟨c', d, f, hc', -, -, -, -, -, rfl⟩, hs⟩ := h.jump hf hpc
-  obtain rfl : c' = 0 := Option.some.inj (hc'.symm.trans hc)
-  rw [ite_eq_left rfl] at hs
-  exact ⟨k', rfl, hs⟩
-
 /-- Through a return, `JUMP fp[oc], fp[0], fp[1]` with `fp[oc] ≠ 0`: the run goes on at
 `retRegs L fp`. -/
 theorem Safe.ret {pc k oc : ℕ} {fp : K} {c : E}
@@ -321,10 +311,6 @@ theorem FunSpec.lt (h : FunSpec prog L entry P Q) (n : ℕ) : FunSpecLt prog L n
 
 theorem FunSpec.of_lt (h : ∀ n, FunSpecLt prog L n entry P Q) : FunSpec prog L entry P Q :=
   fun fp k hP hs ↦ h (k + 1) fp k (Nat.lt_succ_self k) hP hs
-
-theorem FunSpecLt.mono {m n : ℕ} (hmn : m ≤ n) (h : FunSpecLt prog L n entry P Q) :
-    FunSpecLt prog L m entry P Q :=
-  fun fp k hk hP hs ↦ h fp k (Nat.lt_of_lt_of_le hk hmn) hP hs
 
 /-- **Strong induction on the steps left**, for a family of contracts proved together: assuming
 every contract for runs shorter than `n`, prove each for runs shorter than `n + 1`. -/
