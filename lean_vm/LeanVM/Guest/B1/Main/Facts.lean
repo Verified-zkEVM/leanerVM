@@ -34,9 +34,19 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 /-! ## Exponents -/
 
+/-- On at most `2^63` words, the search is `addressIndex?`. -/
+theorem indexSearch_eq {κ : ℕ} (hκ : κ < 64) (a : K) : indexSearch κ a = addressIndex? κ a := by
+  rcases h : indexSearch κ a with _ | i
+  · unfold indexSearch at h
+    exact (gLog?_eq_none_iff.mpr fun i hi ↦ by
+      simpa [hi] using List.find?_eq_none.mp h i (List.mem_finRange i)).symm
+  · unfold indexSearch at h
+    have hi := List.find?_some h
+    exact ((gLog?_spec hκ).mpr (of_decide_eq_true hi)).symm
+
 theorem gLog_gen_pow {e : ℕ} (he : e < 2 ^ 34) : gLog (gen ^ e) = e := by
   unfold gLog
-  rw [gen_pow_eq_ofK, limb_ofK]
+  rw [indexSearch_eq (by norm_num), gen_pow_eq_ofK, limb_ofK]
   simp only [Fin.isValue, Fin.val_zero, ↓reduceIte]
   rw [(gLog?_spec (κ := 34) (by norm_num) (i := ⟨e, he⟩)).mpr rfl]
   rfl

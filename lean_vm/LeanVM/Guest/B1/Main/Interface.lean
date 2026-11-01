@@ -61,8 +61,13 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 /-! ## Reading the memory -/
 
+/-- The index of `a` among the powers `g^i`, `i < 2^κ`, by a search: the first `i` with `a = g^i`
+(`addressIndex?` on at most `2^63` words, `indexSearch_eq`), decided by evaluation. -/
+def indexSearch (κ : ℕ) (a : K) : Option (Fin (2 ^ κ)) :=
+  (List.finRange (2 ^ κ)).find? fun i ↦ decide (a = Parameters.gpow i)
+
 /-- The exponent of a power of `g` below `2^34` (`0` for other words). -/
-@[irreducible] noncomputable def gLog (x : E) : ℕ := ((addressIndex? 34 (x.limb 0)).map Fin.val).getD 0
+@[irreducible] noncomputable def gLog (x : E) : ℕ := ((indexSearch 34 (x.limb 0)).map Fin.val).getD 0
 
 /-- The digest of two cells, their low limbs its four words (`digestOfScalars`, unchecked). -/
 def digestOfCells (a b : E) : Digest :=
