@@ -28,6 +28,14 @@ Hence **`msStepCount_le`**: the loop makes at most `r·(D + 1)·(w + 1)` steps, 
 **`msLoop_cost_le`**: any cost function of the loop that pays at most `c` per iteration on
 matrices of `r` rows, width `w` and degrees `≤ D` is at most `(r·(D + 1)·(w + 1) + 1)·c`.
 
+**Lee–O'Sullivan's initial basis** (`leeOSullivanBasisRows_msInv`): `ℓ + 1` rows of width
+`ℓ + 1`, `ℓ = ⌊W/(k − 1)⌋`, every shifted degree at most `D = m·n + ℓ·(k − 1)` (row `i` is
+`Y^(i−t)·(Y − R)^t·G^(m−t)` with `deg G ≤ n` the vanishing polynomial, `deg R ≤ deg G`). At the
+decoder's parameters (`laneBasis_msInv`, `laneStepCount_le`, `laneDegBound_le`): at most
+`(ℓ + 1)·(D + 1)·(ℓ + 2)` steps, `D ≤ m·n + W`; at the worst shape `(28, 4)` (`k = 2^22`,
+`n = 2^26`, `A = 16792398`, `m = 415`, `ℓ = 1661`): `D = 34816915843 ≈ 2^35.02` and at most
+`≈ 2^56.42` steps.
+
 Credits: the loop, its termination measure and the leading-term lemmas used here are CompPoly's
 (github.com/Verified-zkEVM/CompPoly, Apache-2.0, "Copyright (c) 2026 CompPoly Contributors";
 `LinearAlgebra/PolynomialMatrix/MuldersStorjohann.lean` and `MuldersStorjohannCorrectness/`,
