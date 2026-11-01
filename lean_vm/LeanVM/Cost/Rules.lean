@@ -732,6 +732,19 @@ theorem decideEqList {α : Type} [DecidableEq α] (l₁ l₂ : List α) {inst : 
   rw [show @List.beq α instBEqOfDecidableEq l₁ l₂ = (l₁ == l₂) from rfl]
   by_cases h : l₁ = l₂ <;> simp [h]
 
+/-- A cast along an equation with a constant motive (a literal pattern's `h ▸`): the value. -/
+theorem eqNdrecConst {α β : Sort _} {a b : α} (x : β) (h : a = b) :
+    @Eq.ndrec α a (fun _ ↦ β) x b h = x := by
+  subst h; rfl
+
+/-- The last element: the head of the reversal (`List.getLast` carries a proof). -/
+theorem listGetLastD {α : Type} (l : List α) (d : α) : l.getLastD d = l.reverse.headD d := by
+  rw [List.getLastD_eq_getLast?, List.getLast?_eq_head?_reverse, List.headD_eq_head?_getD]
+
+theorem uint64Default : (default : UInt64) = 0 := rfl
+
+theorem uint8Default : (default : UInt8) = 0 := rfl
+
 /-- `K.ofBits`: the word of the number modulo `2^64`. -/
 theorem kOfBits (n : ℕ) : K.ofBits n = K.ofLane n.toUInt64 := rfl
 
