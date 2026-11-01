@@ -214,6 +214,17 @@ macro "cost_simp" " at " loc:Lean.Parser.Tactic.locationHyp : tactic => `(tactic
     List.nil_append, List.cons_append, Nat.add_zero, Nat.zero_add, Nat.rec_zero, Nat.rec_add_one,
     max_self] at $loc)
 
+/-- A price affine in `D`, paid `n ≤ C` times, with `D·C` an atom: `omega` reads the result (the
+bounds state products of sizes as such atoms, so a sum of bounds stays linear). -/
+theorem affine_mul_le (a b D n C : ℕ) (h : n ≤ C) : (a * D + b) * n ≤ a * (D * C) + b * C := by
+  have := Nat.mul_le_mul_left (a * D + b) h
+  nlinarith
+
+theorem affine_mul_le' (a b c D n C : ℕ) (h : n ≤ C) :
+    (a * D + b + c) * n ≤ a * (D * C) + (b + c) * C := by
+  have := affine_mul_le a (b + c) D n C h
+  rwa [Nat.add_assoc]
+
 /-! ## Recurrence solvers -/
 
 theorem log2_half {n : ℕ} (h : 2 ≤ n) : Nat.log2 (n / 2) + 1 = Nat.log2 n := by
@@ -308,6 +319,27 @@ theorem listFoldl_le (hP : Includes P listFoldl.costDeps) (f : α → β → α)
     rw [listFoldl.costEq P hP f fVal hf]
     obtain ⟨hI', h2⟩ := hB init hI b (by simp)
     have h1 := ih (f init b) hI' (fun acc hacc b' hb ↦ hB acc hacc b' (by simp [hb]))
+    simp only [List.length_cons]
+    nlinarith
+
+/-- **`List.map`, by its recurrence**: an on-demand instance of `List.map` (compiled per element
+type, at its own index `i`) has this recurrence, its `costEq`; then `12` per element and the
+closure's price, `3` at the end. -/
+theorem listMap_le (i : ℕ) {α : Type} [Enc α] (fVal : Val)
+    (heq : ∀ l : List α, machineCost P i [fVal, enc l] =
+      (1 + List.casesOn (motive := fun _ ↦ ℕ) l (0 + 0 + 1) fun head tail ↦
+        1 + (1 + 0) + appCost P fVal [enc head] + 1 +
+          (1 + (1 + 0) + machineCost P i [fVal, enc tail] + 1 + 0) + 2 + 1) + 1)
+    (B : ℕ) : ∀ l : List α, (∀ a ∈ l, appCost P fVal [enc a] ≤ B) →
+      machineCost P i [fVal, enc l] ≤ (B + 12) * l.length + 3 := by
+  intro l
+  induction l with
+  | nil => intro _; rw [heq]; simp
+  | cons x l ih =>
+    intro hB
+    rw [heq]
+    have h1 := ih fun a ha ↦ hB a (by simp [ha])
+    have h2 := hB x (by simp)
     simp only [List.length_cons]
     nlinarith
 
