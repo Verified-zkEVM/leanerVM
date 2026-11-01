@@ -1,4 +1,4 @@
-import LeanVM.Cost.Decoder.Memory
+import LeanVM.Cost.Decoder.EntryTable
 
 /-!
 # Tests: the guest decoder's compiled chain on small inputs
@@ -16,6 +16,9 @@ open LeanVM.Guest.B1.Main LeanVM.Protocol.Verifier
 /-- A compiled function's value on `vs`, in the program of the bodies `deps`. -/
 def runOn (deps : List (ℕ × Term)) (i : ℕ) (vs : List MachineValue) : Option MachineValue :=
   (evaluateFunctionBody (MachineProgram.ofList deps) 100000 i vs).map (·.1)
+
+/-- The discrete logarithm's baby-step tables, built in Lean and passed in as a value. -/
+def dlTables : MachineValue := encodeValue LeanVM.Extraction.Fast.discreteLogTables
 
 def cA : E := E.ofLimbs (K.ofLane 0x0123456789abcdef) (K.ofLane 0xfedcba9876543210) 0
 def cB : E := E.ofLimbs (K.ofLane 7) (K.ofLane 0xffffffffffffffff) (K.ofLane 3)
@@ -77,16 +80,16 @@ def sigmaVal : MachineValue := .closure oneSigmaC.costIdx []
 -- of `da_digests = 1`, the deferred claim at `defer_stmt = 1`. (`decStmt` is `noncomputable` in
 -- Lean: its value is written out.)
 #guard runOn (decStmtC.costDeps ++ oneSigmaC.costDeps ++ smallReaderC.costDeps) decStmtC.costIdx
-  [sigmaVal, rdVal] == some (encodeValue (⟨⟨[], [], Main.digestOfCells (gen ^ 1) (gen ^ 2)⟩,
+  [dlTables, sigmaVal, rdVal] == some (encodeValue (⟨⟨[], [], Main.digestOfCells (gen ^ 1) (gen ^ 2)⟩,
     deferOfCells ((List.range 24).map fun i ↦ (gen ^ (i + 1) : E))⟩ : LeanVM.Node.NodeStatement))
 
 /-- A valuation of `main` whose every value is `g^7`. -/
 def sevenSigma (_ : V) : E := LeanVM.Parameters.ofK (LeanVM.Parameters.gpow 7)
 cost_compile sevenSigmaC := sevenSigma
 
--- The number of children, `gLog (g^7)`, by the compiled discrete logarithm.
+-- The number of children, `gLog (g^7)`, by the compiled discrete logarithm, its tables given.
 #guard runOn (nKidsC.costDeps ++ sevenSigmaC.costDeps) nKidsC.costIdx
-  [.closure sevenSigmaC.costIdx []] == some (encodeValue (7 : ℕ))
+  [dlTables, .closure sevenSigmaC.costIdx []] == some (encodeValue (7 : ℕ))
 
 /-- A memory of `2^3` words, word `i` at address `g^i` being `g^i` (as `E`). -/
 def mem8 : LeanVM.Semantics.MemoryImage 3 := fun i ↦ LeanVM.Parameters.ofK (LeanVM.Parameters.gpow i.val)
@@ -104,7 +107,44 @@ cost_compile mem8C := mem8
 
 -- The cursor's length: `q = p · g^9` limb by limb.
 #guard runOn cursorLengthC.costDeps cursorLengthC.costIdx
-  [encodeValue (1 : E), encodeValue (LeanVM.Parameters.ofK (LeanVM.Parameters.gpow 9))] ==
+  [dlTables, encodeValue (1 : E), encodeValue (LeanVM.Parameters.ofK (LeanVM.Parameters.gpow 9))] ==
   some (encodeValue (9 : ℕ))
+
+/-! ## The replayed frame map -/
+
+section Frames
+
+open LeanVM.Guest.Located LeanVM.Extraction.Fast
+
+attribute [local instance] lexOrd
+
+/-- A precondition that always holds. -/
+def anyPre (_ : ℕ) (_ : K) : Bool := true
+cost_compile anyPreC := anyPre
+
+/-- Two states: at function `2`'s entry and at function `3`'s, frame pointer `g^4`. -/
+def twoStates : List (LeanVM.Semantics.Registers K) :=
+  [⟨LeanVM.Parameters.gpow (guestEntries.getD 2 0), LeanVM.Parameters.gpow 4⟩,
+    ⟨LeanVM.Parameters.gpow (guestEntries.getD 3 0), LeanVM.Parameters.gpow 4⟩]
+
+-- The entry table of the two states (the table of entries built in the program).
+#guard runOn (entryTableTC.costDeps ++ pcTableTC.costDeps ++ anyPreC.costDeps ++
+    smallReaderC.costDeps) entryTableTC.costIdx
+  [runOn pcTableTC.costDeps pcTableTC.costIdx [] |>.getD (.nat 0), .closure anyPreC.costIdx [],
+    encodeValue twoStates, rdVal] ==
+  some (encodeValue (entryTableT pcTableT anyPre twoStates smallReader))
+
+-- A frame's word: function `2`'s call on its words, value `.n 0` (its first cell).
+#guard runOn (frameAtC.costDeps ++ smallReaderC.costDeps) frameAtC.costIdx
+  [encodeValue (entryTableT pcTableT anyPre twoStates smallReader), rdVal, encodeValue (2 : ℕ),
+    encodeValue (wordsWith smallReader (LeanVM.Parameters.gpow 4) 2 (guestArgCounts.getD 2 0)),
+    encodeValue (wordsWith smallReader (LeanVM.Parameters.gpow 4) (2 + guestArgCounts.getD 2 0)
+      (guestRetCounts.getD 2 0)), encodeValue (V.n 0)] ==
+  some (encodeValue (frameAt (entryTableT pcTableT anyPre twoStates smallReader) smallReader 2
+    (wordsWith smallReader (LeanVM.Parameters.gpow 4) 2 (guestArgCounts.getD 2 0))
+    (wordsWith smallReader (LeanVM.Parameters.gpow 4) (2 + guestArgCounts.getD 2 0)
+      (guestRetCounts.getD 2 0)) (V.n 0)))
+
+end Frames
 
 end LeanVMTests.Cost.DecoderChain

@@ -20,8 +20,8 @@ program's definition, so that no edit of a proof rebuilds them. For the program
 of the compiled replay (`replayStatesOfC`, `Decoder/Replay.lean`, the largest piece so far) in its
 place: at most `3206`, the bodies' sizes (`1764`) plus two per index (`721` of them); its exact
 size is `3060`. Once the top `decTopC` is compiled, its program replaces the replay's
-(`decTopC.costIdx`, `decTopC.costDeps`), the measured number with it, and `guestDecoderSizeBound` is set to twice
-the size rounded up to a power of two, as `extractorSizeBound` was.
+(`decTopC.costIdx`, `decTopC.costDeps`), the measured number with it, and `guestDecoderSizeBound` is set to
+the size rounded up to a power of two (`Statement/Theorems.lean`).
 -/
 
 namespace LeanVM.Cost
