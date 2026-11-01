@@ -55,12 +55,12 @@ variable {F : Type*} [Field F] [BEq F] [LawfulBEq F] [DecidableEq F]
 /-! ## The degree invariant -/
 
 /-- **Every nonzero entry has shifted degree at most `D`**: `deg M[i][j] + shift[j] ≤ D`. -/
-def ShiftedDegreeLe (M : PolynomialMatrix F) (shift : Array Nat) (D : ℕ) : Prop :=
+@[expose] def ShiftedDegreeLe (M : PolynomialMatrix F) (shift : Array Nat) (D : ℕ) : Prop :=
   ∀ i, i < M.size → ∀ j, rowGet (M.getD i #[]) j ≠ 0 →
     (rowGet (M.getD i #[]) j).natDegree + shift.getD j 0 ≤ D
 
 /-- The invariant of the loop: `r` rows of width `w`, rectangular, degrees at most `D`. -/
-def MsInv (r w D : ℕ) (M : PolynomialMatrix F) (shift : Array Nat) : Prop :=
+@[expose] def MsInv (r w D : ℕ) (M : PolynomialMatrix F) (shift : Array Nat) : Prop :=
   M.size = r ∧ MatrixWidth M = w ∧ WellFormed M ∧ ShiftedDegreeLe M shift D
 
 omit [BEq F] [LawfulBEq F] [DecidableEq F] in
@@ -374,7 +374,7 @@ the shift of column `j` is `j·(k−1)`, so every shifted degree is at most `m·
 open Polynomial CompPoly.GuruswamiSudan
 
 /-- Every `Y`-coefficient of a polynomial in `F[X][Y]` has `X`-degree at most `d`. -/
-def XDegLe (P : Polynomial (Polynomial F)) (d : ℕ) : Prop := ∀ j, (P.coeff j).natDegree ≤ d
+@[expose] def XDegLe (P : Polynomial (Polynomial F)) (d : ℕ) : Prop := ∀ j, (P.coeff j).natDegree ≤ d
 
 omit [BEq F] [LawfulBEq F] [DecidableEq F] in
 theorem XDegLe.mono {P : Polynomial (Polynomial F)} {a b : ℕ} (h : XDegLe P a) (hab : a ≤ b) :

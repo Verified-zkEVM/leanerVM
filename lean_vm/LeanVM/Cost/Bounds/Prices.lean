@@ -1,7 +1,6 @@
 module
 
 public import LeanVM.Cost.Bounds.Basic
-import all LeanVM.Cost.Library
 
 /-!
 # Prices of the field operations
@@ -37,34 +36,34 @@ cost_compile eMulC := fun (x y : E) ↦ x * y
 variable (P : Program)
 
 theorem kMulC_cost (hP : Includes P kMulC.costDeps) (x y : K) :
-    machineCost P 3 [enc x, enc y] = 258 := by
+    machineCost P kMulC.costIdx [enc x, enc y] = 258 := by
   rw [kMulC.costEq P hP]
 
 theorem powTwoPow_cost (hP : Includes P Auto.BF64.powTwoPow.c6.costDeps) :
-    ∀ (k : ℕ) (a : BF64), k < 2 ^ 64 → machineCost P 6 [enc a, enc k] = 6 + 270 * k := by
+    ∀ (k : ℕ) (a : BF64), k < 2 ^ 64 → machineCost P Auto.BF64.powTwoPow.c6.costIdx [enc a, enc k] =
+      6 + 270 * k := by
   intro k
   induction k with
-  | zero => intro a _; rw [Auto.BF64.powTwoPow.c6.costEq P hP]; cost_simp
+  | zero => intro a _; rw [Auto.BF64.powTwoPow.c6.costEq_zero P hP]
   | succ k ih =>
     intro a hk
-    rw [Auto.BF64.powTwoPow.c6.costEq P hP]
+    rw [Auto.BF64.powTwoPow.c6.costEq_succ P hP, ih (a * a) (by omega)]
     cost_simp
-    rw [ih (a * a) (by omega)]
     omega
 
 theorem kInvC_cost (hP : Includes P kInvC.costDeps) (a : K) :
-    machineCost P 4 [enc a] ≤ 19676 := by
+    machineCost P kInvC.costIdx [enc a] ≤ 19676 := by
   have h6 : Includes P Auto.BF64.powTwoPow.c6.costDeps := by includes
   rw [kInvC.costEq P hP, Auto.BF64.invItohTsujii.c5.costEq P (by includes)]
   simp (disch := omega) only [powTwoPow_cost P h6]
   split_ifs <;> omega
 
 theorem eAddC_cost (hP : Includes P eAddC.costDeps) (x y : E) :
-    machineCost P 7 [enc x, enc y] = 19 := by
+    machineCost P eAddC.costIdx [enc x, enc y] = 19 := by
   rw [eAddC.costEq P hP]
 
 theorem eMulC_cost (hP : Includes P eMulC.costDeps) (x y : E) :
-    machineCost P 8 [enc x, enc y] = 2358 := by
+    machineCost P eMulC.costIdx [enc x, enc y] = 2358 := by
   rw [eMulC.costEq P hP]
 
 end

@@ -80,6 +80,44 @@ theorem decideKeccakCells (input : Fin 13 → E) (inOdd : Bool) (output : Fin 13
 
 cost_rewrite decideKeccakCells
 
+/-- `kToNat`: the word's number. -/
+theorem kToNatLane (a : K) : LeanVM.Protocol.Verifier.kToNat a = (K.lane a).toNat := rfl
+
+cost_rewrite kToNatLane
+
+/-- The number of tables (their descriptors hold functions: not data). -/
+theorem tablesLength : LeanVM.Protocol.Verifier.tables.length = 6 := rfl
+
+cost_rewrite tablesLength
+
+/-! The constants the layout derives from the tables' descriptors (which hold functions), as
+literals. -/
+
+open LeanVM.Protocol.Verifier in
+theorem tableWidthsLit : tableWidths = [15, 15, 8, 15, 14, 90] := rfl
+
+cost_rewrite tableWidthsLit
+
+open LeanVM.Protocol.Verifier in
+theorem globalColumnBasesLit : globalColumnBases = [6, 21, 36, 44, 59, 73] := rfl
+
+cost_rewrite globalColumnBasesLit
+
+open LeanVM.Protocol.Verifier in
+theorem keccakOutputColumnsLit : keccakOutputColumns = (List.range 25).map (111 + ·) := rfl
+
+cost_rewrite keccakOutputColumnsLit
+
+open LeanVM.Protocol.Verifier in
+theorem columnKappasLit (logMemory logBytecode : ℕ) (tableLogHeights : List ℕ) :
+    columnKappas logMemory logBytecode tableLogHeights =
+      [logMemory, logMemory, logMemory, logMemory, logBytecode,
+          tableLogHeights.getD opKeccak 0 + qkeccakSlotBits] ++
+        [(15, 0), (15, 1), (8, 2), (15, 3), (14, 4), (90, 5)].flatMap fun p ↦
+          List.replicate p.1 (tableLogHeights.getD p.2 0) := rfl
+
+cost_rewrite columnKappasLit
+
 cost_measure searchIn := fun _ _ _ _ _ lo hi ↦ hi - lo
 
 cost_measure mergeNewer := fun _ _ _ a b ↦ a.length + b.length

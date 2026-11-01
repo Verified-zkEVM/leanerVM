@@ -176,7 +176,7 @@ theorem exists_coeff_ne_zero {S : CBivariate F} (h : S ≠ 0) :
 
 /-- The invariant of the truncated recursion at precision `M`, remaining fuel `fuel`: every
 nonzero coefficient `X^i·Y^j` has `i + j·(fuel − 1) < M`. -/
-def NFInv (fuel M : ℕ) (S : CBivariate F) : Prop :=
+@[expose] def NFInv (fuel M : ℕ) (S : CBivariate F) : Prop :=
   ∀ i j, CBivariate.coeff S i j ≠ 0 → i + j * (fuel - 1) < M
 
 omit [DecidableEq F] in
