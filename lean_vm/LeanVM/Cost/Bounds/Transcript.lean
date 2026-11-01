@@ -544,6 +544,79 @@ theorem getBytes_cost (hP : Includes P getBytesC.costDeps)
   rw [getBytesC.costEq P hP]
   nlinarith
 
+/-- The first answers' invariant after some insertions, `r` left: a good map of keys of at most
+`L` bytes, `r` more insertions keeping it below `2^D`. -/
+@[expose] def BytesInv (L D : ℕ) (m : SortedMap (List UInt8) Protocol.Digest) (r : ℕ) : Prop :=
+  smGood m ∧ KeysIn (BytesKey L) m.levels ∧ smWeightSum m + r ≤ 2 ^ D
+
+/-- The first answers' amortized price per pair, factored: a lookup (`D` binary searches of
+`D + 2` probes of `60 + 23·L`), an insertion (`(23·L + 31)·D` merged and `40` per level), `85`. -/
+@[expose] def firstAnswersStep (L D : ℕ) : ℕ :=
+  D * (17 + (60 + 23 * L) * (D + 2)) + (23 * L + 31) * D + 40 * D + 85
+
+theorem firstAnswersStep_eq (L D : ℕ) :
+    firstAnswersStep L D = 23 * L * (D * D) + 60 * (D * D) + 69 * (L * D) + 208 * D + 85 := by
+  unfold firstAnswersStep; ring
+
+/-- **One step of the first answers, amortized**: a pair whose key has at most `L` bytes. -/
+theorem firstAnswersStep_amortized (hP : Includes P firstAnswersC.lam0.costDeps) (L D : ℕ)
+    (hD : D ≤ 61) (m : SortedMap (List UInt8) Protocol.Digest) (r : ℕ) (hm : BytesInv L D m (r + 1))
+    (p : List UInt8 × Protocol.Digest) (hp : p.1.length ≤ L) :
+    BytesInv L D (insertIfNew m p.1 p.2) r ∧
+      machineCost P firstAnswersC.lam0.costIdx [enc m, enc p] +
+          (23 * L + 31) * potential D (insertIfNew m p.1 p.2).levels ≤
+        (23 * L + 31) * potential D m.levels + firstAnswersStep L D := by
+  obtain ⟨hg, hQ, hw⟩ := hm
+  have hN : smWeightSum m < 2 ^ D := by omega
+  obtain ⟨hlev, hsz⟩ := smGood_levels_le hg hN
+  have h62 : 2 ^ D < 2 ^ 62 := Nat.pow_lt_pow_right (by norm_num) (by omega)
+  have hget := getBytes_cost P (by includes) m (2 ^ D) h62
+    (fun l hl ↦ (hsz l hl).1.trans (hsz l hl).2) p.1
+  rw [Nat.log2_two_pow] at hget
+  have hg1 : m.levels.length * (17 + (60 + 23 * p.1.length) * (D + 2)) ≤
+      D * (17 + (60 + 23 * L) * (D + 2)) :=
+    Nat.mul_le_mul hlev (by have := Nat.mul_le_mul_right (D + 2) (show 60 + 23 * p.1.length ≤ 60 + 23 * L by omega); omega)
+  rw [firstAnswersC.lam0.costEq P hP, insertIfNewC.costEq P (by includes)]
+  unfold firstAnswersStep
+  by_cases hc : m.contains p.1 = true
+  · simp only [insertIfNew, hc, ↓reduceIte]
+    refine ⟨⟨hg, hQ, by omega⟩, ?_⟩
+    generalize m.get? p.1 = o
+    cases o <;> dsimp only <;> nlinarith
+  · simp only [insertIfNew, hc, Bool.false_eq_true, ↓reduceIte]
+    obtain ⟨h1, h2⟩ := smGood_insert hg p.1 p.2
+    refine ⟨⟨h1, keysIn_insert hQ hp p.2, by omega⟩, ?_⟩
+    rw [insertBytesC.costEq P (by includes)]
+    have hcarry := carryBytes_amortized P (by includes) L D (by omega) m hg hQ hN
+      ⟨1, #[(p.1, p.2)], by simp [Ascending]⟩ rfl rfl (fun e he ↦ by simp at he; rw [he]; exact hp)
+    have hins : (m.insert p.1 p.2).levels = carry ⟨1, #[(p.1, p.2)], by simp [Ascending]⟩ m.levels :=
+      rfl
+    rw [hins]
+    have : 40 * (m.levels.length + 1) ≤ 40 * D + 40 := by omega
+    generalize m.get? p.1 = o
+    cases o <;> dsimp only <;> nlinarith
+
+/-- **The first answers** (`firstAnswers P`, compiled as `firstAnswersC`): at most
+`n·(23·L·D² + 60·D² + 69·L·D + 208·D + 94) + 9` for `n ≤ 2^D` pairs whose byte strings have at
+most `L` bytes, `D ≤ 61`. -/
+theorem firstAnswers_cost (hP : Includes P firstAnswersC.costDeps) (L D : ℕ) (hD : D ≤ 61)
+    (pairs : List (List UInt8 × Protocol.Digest)) (hn : pairs.length ≤ 2 ^ D)
+    (hp : ∀ p ∈ pairs, p.1.length ≤ L) :
+    machineCost P firstAnswersC.costIdx [enc pairs] ≤
+      pairs.length * (23 * L * (D * D) + 60 * (D * D) + 69 * (L * D) + 208 * D + 94) + 9 := by
+  rw [firstAnswersC.costEq P hP]
+  have := listFoldl_amortized P (by includes) _ (.fn firstAnswersC.lam0.costIdx [])
+    (fun a b ↦ RunsApp.of_spec (firstAnswersC.lam0.costSpec P (by includes) a b))
+    (firstAnswersStep L D) (fun m ↦ (23 * L + 31) * potential D m.levels) (BytesInv L D)
+    pairs SortedMap.empty ⟨smGood_empty, fun _ h ↦ by simp [SortedMap.empty] at h,
+      by simp [smWeightSum_empty]; omega⟩
+    (fun acc r hacc p hpm ↦ by
+      rw [appCost_fn, List.nil_append]
+      exact firstAnswersStep_amortized P (by includes) L D hD acc r hacc p (hp p hpm))
+  have h0 : potential D (SortedMap.empty : SortedMap (List UInt8) Protocol.Digest).levels = 0 := rfl
+  simp only [h0, Nat.mul_zero, Nat.zero_add, firstAnswersStep_eq] at this
+  nlinarith
+
 end
 
 end LeanVM.Cost.Bounds

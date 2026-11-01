@@ -11,9 +11,10 @@ import all Statement.Extractor
 /-!
 # The candidate runner and the fast path, compiled
 
-`candidateRunner prog input layout` (`Fast/RunVec.lean`: the address tables, the final registers
-and the step cap built once, then per stack the boundary check `boundaryOfStack`, the memory
-vector `memoryVec` and the halting loop `haltLoopVec`, Keccak-f inside the instructions) and
+`runnerTables prog layout` and `runWithTables tabs prog input layout` (`Fast/RunVec.lean`: the
+address tables, the final registers and the step cap built once, then per stack the boundary check
+`boundaryOfStack`, the memory vector `memoryVec` and the halting loop `haltLoopVec`, Keccak-f
+inside the instructions) and
 `fastStacksFast` (the fast path: each lane's word read as a codeword, `Fast/Extract.lean`).
 
 The extractor's compiled modules form one import chain: this module follows the transcript's.
@@ -50,8 +51,12 @@ cost_compile fastStacksFastC := fastStacksFast
 
 cost_compile fastStacksOfLeavesC := fastStacksOfLeaves
 
+-- the runner's tables (`runnerTables`), built once per layout
+cost_compile runnerTablesC := runnerTables
+
+-- a stack's execution from the tables (`runWithTables`): the per-stack work only
 set_option maxHeartbeats 20000000 in
-cost_compile candidateRunnerC := candidateRunner
+cost_compile runWithTablesC := runWithTables
 
 end
 
