@@ -17,10 +17,9 @@ The prices of the pieces of `interpolateDistinct` (`Cost/Extractor/Interp.lean`)
   (`interpTermC_cost`: an inverse, a division, a scaling), and the interpolating polynomial
   (`interpolateC_cost`: `1700·|G|·n + 22600·n + 400·|G| + 100`).
 
-Still to bound here: Lee–O'Sullivan's rows (`leeRowsFast`: the powers of `Y − R` and of `G`,
-the products, `toCoeffRow`), the least row and its normalization (`leastShiftedDegreeRow?`,
-`normalizeLeeFast`), and the assembly (`leeOSullivanPositiveCoreFast`, `interpolateDistinct`)
-with the reduction of `Bounds/Decoder/MsReduce.lean`.
+Lee–O'Sullivan's rows are bounded in `Bounds/Decoder/LeeRows.lean`, the least row, its
+normalization and the assembly with the reduction of `Bounds/Decoder/MsReduce.lean` in
+`Bounds/Decoder/Interpolate.lean`.
 -/
 
 namespace LeanVM.Cost.Bounds.Decoder
