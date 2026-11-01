@@ -12,8 +12,8 @@ The staged forms the chain compiles are the deployed decoder's functions, proved
 compiled modules (their kernel checks stay small):
 
 * `decWitStaged_eq : decWitStaged discreteLogTables = B1.Main.decWit`;
-* `decWitNStaged_eq : decWitNStaged discreteLogTables = Guest.Fast.decWitN`, the deployed
-  decoder's witness at the frame map keyed by index (`Guest.Fast.decode_eq_numbered`);
+* `decWitNStaged_eq : decWitNStaged discreteLogTables readerTabs = Guest.Fast.decWitN`, the
+  deployed decoder's witness at the frame map keyed by index (`Guest.Fast.decode_eq_numbered`);
 * `replayStatesOf_eq : replayStatesOf memT codeT prog mem = Located.statesTable memT codeT prog
   mem.get replayFuel ⟨gpow 0, 1⟩`, the replay `decode_eq_numbered` reads, on the memory vector
   (`statesVec_eq`: each step `stepVec`, which is `stepTable` at `mem.get`);
@@ -23,7 +23,8 @@ compiled modules (their kernel checks stay small):
   `mainVal` and `decoderOutput`, the witness `decWitN` at the frame map keyed by index.
 
 The other restated functions' equations at the tables built (`…D_tables`, `kidOfStaged_tables`,
-`dvWitND_tables`, `cursorLength_tables`, `gLogD_tables`) are next to them.
+`dvWitND_tables`, `cursorLength_tables`, `gLogD_tables`; the readers' off arrays,
+`xmssSigOfA_tabs`, `sphincsSigOfA_tabs`, `vsPiOfA_tabs`, in `Guest/Fast/`) are next to them.
 -/
 
 namespace LeanVM.Cost.Decoder
@@ -42,10 +43,13 @@ theorem decWitStaged_eq : decWitStaged discreteLogTables = decWit := by
   simp only [nKidsD_tables, decKidD_tables, markOfD_tables, nRawXD_tables, nRawSD_tables,
     lxSlotsD_tables, kidOfStaged_tables, nDirectD_tables, gLogD_tables]
 
+open LeanVM.Guest.Fast in
 /-- **The staged witness is `decWitN`**, at the tables built. -/
-theorem decWitNStaged_eq : decWitNStaged discreteLogTables = LeanVM.Guest.Fast.decWitN := by
+theorem decWitNStaged_eq : decWitNStaged discreteLogTables readerTabs = decWitN := by
   funext σ rd Vn cl
-  unfold decWitNStaged LeanVM.Guest.Fast.decWitN daAtFrame
+  unfold decWitNStaged decWitN daAtFrame xmssAtFrame sphincsAtFrame proofAtFrame
+  simp only [show readerTabs.xmss = xmssTabs from rfl, show readerTabs.sphincs = sphincsTabs from rfl,
+    show readerTabs.whir = whirTabs from rfl, xmssSigOfA_tabs, sphincsSigOfA_tabs, vsPiOfA_tabs]
   rw [decWitStaged_eq, dvWitND_tables]
   rfl
 

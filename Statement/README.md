@@ -207,20 +207,21 @@ instances.
 
 [`Theorems.lean`](Theorems.lean) lists them all, as the fields of one structure,
 `Statement.Theorems`, each with one line on what it says; `lean_vm/LeanVM.lean` proves it in one
-theorem, `LeanVM.theorems_hold`, whose axioms the build pins to Lean's three. Start there. For now
-`theorems_hold` takes the guest decoder program's specification as hypotheses (`DecoderProgramSpec`,
-`DecoderExplains`, [`lean_vm/LeanVM/Guest/DecoderProgram.lean`](../lean_vm/LeanVM/Guest/DecoderProgram.lean)):
-the decoder is not compiled yet. Once `LeanVM.Cost.decoderProgram` and its specification exist,
+theorem, `LeanVM.theorems_hold`, whose axioms the build pins to Lean's three. Start there.
 `theorems_hold` is `Statement.Theorems (decoderProgram := LeanVM.Cost.decoderProgram)
-(extractorProgram := LeanVM.Cost.extractorProgram)`, without hypotheses.
+(extractorProgram := LeanVM.Cost.extractorProgram)`, the decoder the deployed one compiled
+([`lean_vm/LeanVM/Cost/Decoder/`](../lean_vm/LeanVM/Cost/Decoder/)), for now under one hypothesis:
+the decoder program's price within its budget (`LeanVM.Cost.DecoderPriceWithinBudget`,
+[`lean_vm/LeanVM/Cost/DecoderSpec.lean`](../lean_vm/LeanVM/Cost/DecoderSpec.lean)), which the
+decoder's cost bounds will discharge.
 
 | Statement | Proved by | In |
 | --- | --- | --- |
-| `decoderProgram.size ≤ LeanVM.Node.guestDecoderSizeBound` | hypothesis `DecoderProgramSpec.size` (open) | [`lean_vm/LeanVM/Guest/DecoderProgram.lean`](../lean_vm/LeanVM/Guest/DecoderProgram.lean) |
+| `decoderProgram.size ≤ LeanVM.Node.guestDecoderSizeBound` | `LeanVM.Cost.decoderProgram_size_le` | [`lean_vm/LeanVM/Cost/DecoderSpec.lean`](../lean_vm/LeanVM/Cost/DecoderSpec.lean), [`lean_vm/LeanVM/Cost/DecoderSize.lean`](../lean_vm/LeanVM/Cost/DecoderSize.lean) |
 | `extractorProgram.size ≤ LeanVM.extractorSizeBound` | `LeanVM.Cost.extractorProgram_size_le` | [`lean_vm/LeanVM/Cost/Efficient.lean`](../lean_vm/LeanVM/Cost/Efficient.lean) |
 | `LeanVM.KnowledgeSoundness (LeanVM.extractorOf extractorProgram)` | `LeanVM.knowledgeSoundness_holds` (for `transcriptExtractor`) and `LeanVM.Cost.extractorOf_extractorProgram` | [`lean_vm/LeanVM/Protocol/LeanVMRpm.lean`](../lean_vm/LeanVM/Protocol/LeanVMRpm.lean), [`lean_vm/LeanVM/Cost/Efficient.lean`](../lean_vm/LeanVM/Cost/Efficient.lean) |
 | `LeanVM.Completeness` | `LeanVM.completeness_holds` | [`lean_vm/LeanVM/Prover/End.lean`](../lean_vm/LeanVM/Prover/End.lean) |
-| `LeanVM.Node.GuestKnowledge guest decoderProgram` | `LeanVM.Guest.End.guestKnowledge_of_spec` (from the open hypotheses; for a program computing `decode`, `guest_knowledge`) | [`lean_vm/LeanVM/Guest/DecoderProgram.lean`](../lean_vm/LeanVM/Guest/DecoderProgram.lean), [`lean_vm/LeanVM/Guest/EndFinal.lean`](../lean_vm/LeanVM/Guest/EndFinal.lean) |
+| `LeanVM.Node.GuestKnowledge guest decoderProgram` | `LeanVM.Guest.End.guestKnowledge_of_spec` with `LeanVM.Cost.decoderProgram_spec` (its price within the budget open) and `guest_knowledge` | [`lean_vm/LeanVM/Cost/DecoderSpec.lean`](../lean_vm/LeanVM/Cost/DecoderSpec.lean), [`lean_vm/LeanVM/Guest/EndFinal.lean`](../lean_vm/LeanVM/Guest/EndFinal.lean) |
 | `LeanVM.Node.DigestBinds` | `LeanVM.Guest.Binding.digest_binds` | [`lean_vm/LeanVM/Guest/Binding.lean`](../lean_vm/LeanVM/Guest/Binding.lean) |
 | `LeanVM.Guest.Budget.GuestCompleteCovered` | `LeanVM.Guest.Budget.guest_complete_covered` | [`lean_vm/LeanVM/Guest/Child/Covered.lean`](../lean_vm/LeanVM/Guest/Child/Covered.lean) |
 | `LeanVM.Guest.Budget.GuestChildComplete` | `LeanVM.Guest.Budget.guest_child_complete` | [`lean_vm/LeanVM/Prover/End.lean`](../lean_vm/LeanVM/Prover/End.lean) |
