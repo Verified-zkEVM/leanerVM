@@ -112,10 +112,11 @@ theorem decode_eq_ends {dl : K → Option ℕ} (hdl : DiscreteLogSpec dl) {κ : 
       let rd := memReader tabs.1 mem
       let states := replayStatesOf tabs.1 tabs.2 LeanVM.Guest.guest mem
       let σ := mainVal rd
-      decoderOutput σ rd (decWitN σ rd (frameVFastN (preTest rd) states rd) (cursorLenWith dl)) := by
+      decoderOutput discreteLogTables σ rd
+        (decWitN σ rd (frameVFastN (preTest rd) states rd) (cursorLenWith dl)) := by
   rw [decode_eq_numbered hdl L]
   simp only [decoderTables, memReader_memoryVector, replayStatesOf_eq, memoryVector_get, mainVal_eq,
-    decoderOutput, decodedOf]
+    decoderOutput, decStmtD_tables, decodedOf]
 
 end
 

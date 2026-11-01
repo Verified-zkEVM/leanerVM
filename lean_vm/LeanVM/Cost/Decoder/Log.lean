@@ -57,6 +57,9 @@ theorem gLogD_tables : gLogD discreteLogTables = gLog := by
   rfl
 
 cost_compile gLogAtC := gLogAt
+-- the logarithm at the tables, under a name of its own (the bounds name it, not an index)
+open LeanVM.Extraction.Fast in
+cost_compile discreteLogWithC := discreteLogWith
 cost_compile gLogDC := gLogD
 
 
