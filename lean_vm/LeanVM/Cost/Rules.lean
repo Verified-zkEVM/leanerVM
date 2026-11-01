@@ -713,10 +713,31 @@ theorem kMul {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (encodeValue a
     (hb : Runs P env u (encodeValue b) d) : Runs P env (.op .binaryFieldMultiply [t, u]) (encodeValue (a * b)) (c + d + 256) :=
   op₂ h hb rfl
 
-/-- A closed constant as a literal of the program: its encoding (`Term.val`), evaluated where the
-program is built. The compiler applies it to the constants the rules table lists (the guest
-decoder's tables), whose encodings are far smaller than their code. -/
-theorem literal (x : α) : Runs P env (.val (encodeValue x)) (encodeValue x) 1 := Runs.val _
+/-- An array of numbers given by a list, as a literal of the program: its encoding (`Term.val`),
+written through the list (`List.map`, which the kernel evaluates structurally where it measures
+the program, unlike `Array.map`). The compiler applies it to the constants the rules table lists
+(the guest decoder's tables), whose encodings are far smaller than their code. -/
+theorem literalNats (l : List ℕ) :
+    Runs P env (.val (.arr (l.map encodeValue).toArray)) (encodeValue l.toArray) 1 := by
+  have h : encodeValue l.toArray = MachineValue.arr (l.map encodeValue).toArray := by
+    show MachineValue.arr (l.toArray.map encodeValue) = _
+    simp
+  rw [h]; exact Runs.val _
+
+/-- An array of arrays of numbers given by a list of lists, as a literal of the program. -/
+theorem literalNatArrays (l : List (List ℕ)) :
+    Runs P env (.val (.arr (l.map fun r ↦ MachineValue.arr (r.map encodeValue).toArray).toArray))
+      (encodeValue (l.map List.toArray).toArray) 1 := by
+  have h : encodeValue (l.map List.toArray).toArray =
+      MachineValue.arr (l.map fun r ↦ MachineValue.arr (r.map encodeValue).toArray).toArray := by
+    show MachineValue.arr ((l.map List.toArray).toArray.map encodeValue) = _
+    simp only [List.map_toArray, List.map_map]
+    congr 2
+    apply List.map_congr_left
+    intro r _
+    show MachineValue.arr (r.toArray.map encodeValue) = _
+    simp
+  rw [h]; exact Runs.val _
 
 theorem natOr {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
