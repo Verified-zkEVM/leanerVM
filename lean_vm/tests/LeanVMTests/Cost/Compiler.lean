@@ -13,27 +13,27 @@ namespace LeanVMTests.Cost
 open LeanVM.Cost
 
 def double (n : ℕ) : ℕ := n + n
-cost_compile double := double at 1
+cost_compile double at 1 := double
 
 def quad (n : ℕ) : ℕ := double (double n)
-cost_compile quad := quad at 2
+cost_compile quad at 2 := quad
 
 def sumTo : ℕ → ℕ
   | 0 => 0
   | n + 1 => (n + 1) + sumTo n
-cost_compile sumTo := sumTo at 3 measure fun n ↦ n
+cost_compile sumTo at 3 measure fun n ↦ n := sumTo
 
 def len : List ℕ → ℕ
   | [] => 0
   | _ :: xs => len xs + 1
-cost_compile len := len at 4 measure fun l ↦ l.length
+cost_compile len at 4 measure fun l ↦ l.length := len
 
 -- A library function with a function parameter, monomorphized at `ℕ`.
-cost_compile foldlNat := @List.foldl ℕ ℕ at 5 measure fun _ l ↦ l.length
+cost_compile foldlNat at 5 measure fun _ l ↦ l.length := @List.foldl ℕ ℕ
 
 /-- A lambda capturing a variable, passed to `foldl`: lifted to a function of its own. -/
 def sumScaled (d : ℕ) (l : List ℕ) : ℕ := l.foldl (fun acc x ↦ acc + x * d) 0
-cost_compile sumScaled := sumScaled at 6
+cost_compile sumScaled at 6 := sumScaled
 
 /-- The program: the bodies at their indices. -/
 def toyProgram : Program :=

@@ -297,6 +297,44 @@ theorem natEq {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (enc a) c)
     Runs P env (.op .neq [t, u]) (enc (decide (a = b))) (c + d + (max (limbs a) (limbs b) + 1)) :=
   op₂ h hb (by simp [Op.apply, enc_bool, Val.ofBool])
 
+/-! ### Arrays -/
+
+theorem arrSize {t : Term} {a : Array α} {c : ℕ} (h : Runs P env t (enc a) c) :
+    Runs P env (.op .asize [t]) (enc a.size) (c + 1) := op₁ h (by simp [Op.apply])
+
+theorem arrAppend {t u : Term} {a b : Array α} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .aappend [t, u]) (enc (a ++ b)) (c + d + (a.size + b.size + 1)) :=
+  op₂ h hb (by simp [Op.apply])
+
+theorem arrReplicate {t u : Term} {n : ℕ} {x : α} {c d : ℕ} (h : Runs P env t (enc n) c)
+    (hb : Runs P env u (enc x) d) :
+    Runs P env (.op .areplicate [t, u]) (enc (Array.replicate n x)) (c + d + (n + 1)) :=
+  op₂ h hb (by simp [Op.apply])
+
+theorem arrToList {t : Term} {a : Array α} {c : ℕ} (h : Runs P env t (enc a) c) :
+    Runs P env (.op .atoList [t]) (enc a.toList) (c + (3 * a.size + 1)) :=
+  op₁ h (by simp [Op.apply]; rfl)
+
+theorem valToList_ofList (l : List Val) : Val.toList? (.ofList l) = .some l := by
+  induction l with
+  | nil => rfl
+  | cons x l ih => simp [Val.ofList, Val.toList?, ih]
+
+theorem listToArray {t : Term} {l : List α} {c : ℕ} (h : Runs P env t (enc l) c) :
+    Runs P env (.op .aofList [t]) (enc l.toArray) (c + (l.length + 1)) :=
+  op₁ h (by
+    show Op.apply .aofList [.ofList (l.map enc)] = _
+    simp [Op.apply, valToList_ofList])
+
+theorem arrGetD {t u w : Term} {a : Array α} {i : ℕ} {x : α} {c d e : ℕ}
+    (h : Runs P env t (enc a) c) (hi : Runs P env u (enc i) d) (hx : Runs P env w (enc x) e) :
+    Runs P env (.op .aget [t, u, w]) (enc (a.getD i x)) (c + d + e + 1) :=
+  (Runs.op (RunsList.cons h (RunsList.cons hi (RunsList.cons hx RunsList.nil)))
+    (v := enc (a.getD i x)) (d := 1) (by
+      simp only [enc_array, enc_nat, Op.apply, Option.some.injEq, Prod.mk.injEq, and_true]
+      simp [Array.getD_eq_getD_getElem?])).cost_eq (by omega)
+
 theorem kAdd {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (enc a) c)
     (hb : Runs P env u (enc b) d) : Runs P env (.op .wxor [t, u]) (enc (a + b)) (c + d + 1) :=
   op₂ h hb rfl
@@ -306,6 +344,17 @@ theorem kMul {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (enc a) c)
   op₂ h hb rfl
 
 end Rule
+
+/-! ## Rewrites: library functions compiled through equal forms -/
+
+namespace Rewrite
+
+theorem arrayZipWith {α β γ : Type} (f : α → β → γ) (a : Array α) (b : Array β) :
+    Array.zipWith f a b = (List.zipWith f a.toList b.toList).toArray := by
+  apply Array.ext'
+  simp [Array.toList_zipWith]
+
+end Rewrite
 
 end
 

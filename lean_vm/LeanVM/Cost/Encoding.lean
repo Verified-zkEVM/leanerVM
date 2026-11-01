@@ -51,6 +51,8 @@ instance {α : Type} [Enc α] : Enc (Array α) := ⟨fun a ↦ .arr (a.map enc)�
 
 instance {α : Type} [Enc α] {n : ℕ} : Enc (Vector α n) := ⟨fun v ↦ .arr (v.toArray.map enc)⟩
 
+instance {α : Type} [Enc α] : Enc (CompPoly.CPolynomial.Raw α) := inferInstanceAs (Enc (Array α))
+
 /-- A function of a finite domain, as the array of its values. -/
 def encFun {α : Type} [Enc α] {n : ℕ} (f : Fin n → α) : Val := .arr (Array.ofFn fun i ↦ enc (f i))
 
