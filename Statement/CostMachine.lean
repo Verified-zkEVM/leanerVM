@@ -537,7 +537,7 @@ open Common
 @[expose] public section
 
 /-- **The bound on the extractor program's size**: `2^15` terms, twice the compiled extractor's
-size (`10491`: its `512` bodies and the entry) rounded up to a power of two. It excludes a program
+size (`10489`: its `512` bodies and the entry) rounded up to a power of two. It excludes a program
 that carries a table of witnesses for many statements. -/
 def extractorSizeBound : ℕ := 2 ^ 15
 
