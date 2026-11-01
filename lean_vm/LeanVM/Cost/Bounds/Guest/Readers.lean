@@ -63,10 +63,10 @@ theorem kToNat_lt (a : K) : LeanVM.Protocol.Verifier.kToNat a < 2 ^ 64 := by
 
 /-! ## Cells' digests and claims -/
 
-/-- A cell's number (`cellNat.c528`): at most `18`. -/
-theorem cellNat_cost (hP : Includes P Auto.LeanVM.Guest.B1.Sig.cellNat.c528.costDeps) (x : E) :
-    machineCost P Auto.LeanVM.Guest.B1.Sig.cellNat.c528.costIdx [encodeValue x] ≤ 18 := by
-  rw [Auto.LeanVM.Guest.B1.Sig.cellNat.c528.costEq P hP]
+/-- A cell's number (`cellNat.c536`): at most `18`. -/
+theorem cellNat_cost (hP : Includes P Auto.LeanVM.Guest.B1.Sig.cellNat.c536.costDeps) (x : E) :
+    machineCost P Auto.LeanVM.Guest.B1.Sig.cellNat.c536.costIdx [encodeValue x] ≤ 18 := by
+  rw [Auto.LeanVM.Guest.B1.Sig.cellNat.c536.costEq P hP]
   have h0 := kToNat_lt (x.limb 0)
   have h1 := kToNat_lt (x.limb 1)
   have : (1 : ℕ) <<< 64 = 2 ^ 64 := by norm_num
@@ -155,12 +155,12 @@ theorem cellAt_cost (hP : Includes P Decoder.cellAtC.costDeps) (p : E) (k : ℕ)
   have := hR (p.limb 0 * gpow k)
   cases rd (p.limb 0 * gpow k) <;> dsimp only <;> omega
 
-/-- A cell (`memAt.c555`), as `cellAt`. -/
-theorem memAt_cost (hP : Includes P Auto.LeanVM.Guest.B1.Digest.memAt.c555.costDeps) (p : E)
+/-- A cell (`memAt.c552`), as `cellAt`. -/
+theorem memAt_cost (hP : Includes P Auto.LeanVM.Guest.B1.Digest.memAt.c552.costDeps) (p : E)
     (k : ℕ) (hk : k < 2 ^ 40) :
-    machineCost P Auto.LeanVM.Guest.B1.Digest.memAt.c555.costIdx
+    machineCost P Auto.LeanVM.Guest.B1.Digest.memAt.c552.costIdx
       [rdV, encodeValue p, encodeValue k] ≤ R + 21678 := by
-  rw [Auto.LeanVM.Guest.B1.Digest.memAt.c555.costEq P hP rd rdV hrd]
+  rw [Auto.LeanVM.Guest.B1.Digest.memAt.c552.costEq P hP rd rdV hrd]
   have := powSqK_cost_lt P (by includes) g k 40 (by norm_num) (by norm_num) hk
   have := hR (p.limb 0 * gpow k)
   cases rd (p.limb 0 * gpow k) <;> dsimp only <;> omega

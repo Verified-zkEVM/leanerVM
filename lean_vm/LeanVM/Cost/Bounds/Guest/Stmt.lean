@@ -7,10 +7,10 @@ public import LeanVM.Cost.Bounds.Guest.Readers
 
 In the price `R` of an application of the memory's reader `rd` and the price `S` of an
 application of `main`'s valuation `σ`, the declared claims at most `2^34` of each kind
-(`gLog_lt`):
+(`gLogD_lt`):
 
 * **`decSeed_cost`**: `2·S + 45`;
-* **`decStmt_cost`**: at most `decStmtPrice G R S = 8·S + (2^37 + 26)·R + 3·G +
+* **`decStmt_cost`** (the logarithm's tables `D` given, `GLogBound P D G`): at most `decStmtPrice G R S = 8·S + (2^37 + 26)·R + 3·G +
   2^35·657464 + 565399 ≈ 2^37·R + 2^54.33`: the declared claims, each a slot's four cells and
   their exponentiation `gen^(4s)` in `E` (three times, the compiler not sharing it);
 * `aggRounds_cost`, **`aggHints_cost`**: `47·S + 46·R + 998693`.
@@ -52,32 +52,33 @@ include hrd hR
   8 * S + (2 ^ 37 + 26) * R + 3 * G + 2 ^ 35 * 657464 + 565399
 
 /-- **The statement** (`decStmtC`): at most `decStmtPrice G R S`. -/
-theorem decStmt_cost (hP : Includes P Decoder.decStmtC.costDeps) (hG : GLogBound P G) :
-    machineCost P Decoder.decStmtC.costIdx [σV, rdV] ≤ decStmtPrice G R S := by
-  rw [Decoder.decStmtC.costEq P hP σ σV hσ rd rdV hrd]
+theorem decStmt_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
+    (hP : Includes P Decoder.decStmtC.costDeps) (hG : GLogBound P D G) :
+    machineCost P Decoder.decStmtC.costIdx [encodeValue D, σV, rdV] ≤ decStmtPrice G R S := by
+  rw [Decoder.decStmtC.costEq P hP D σ σV hσ rd rdV hrd]
   have g0 := hG (σ (.n 0))
   have g3 := hG (σ (.n 3))
   have g387 := hG (σ (.n 387))
-  have n0 := gLog_lt (σ (.n 0))
-  have n3 := gLog_lt (σ (.n 3))
-  have n387 := gLog_lt (σ (.n 387))
+  have n0 := gLogD_lt D (σ (.n 0))
+  have n3 := gLogD_lt D (σ (.n 3))
+  have n387 := gLogD_lt D (σ (.n 387))
   have m0 := rangeMap_le P (by includes) (by includes) (xmssAt rd (σ (.n 53)))
     (.closure Decoder.decStmtC.lam0.costIdx [rdV, encodeValue (σ (.n 53))])
     (fun s ↦ RunsApp.of_spec (Decoder.decStmtC.lam0.costSpec P (by includes) rd rdV hrd _ s))
-    (4 * R + 657436) (gLog (σ (.n 0))) (2 ^ 34) n0.le (by norm_num) (fun k hk ↦ by
+    (4 * R + 657436) (Decoder.gLogD D (σ (.n 0))) (2 ^ 34) n0.le (by norm_num) (fun k hk ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
         Decoder.decStmtC.lam0.costEq P (by includes) rd rdV hrd]
       have := xmssAt_cost P hrd hR (by includes) (σ (.n 53)) k (by omega)
       omega)
   have m3 := rangeMap_le P (by includes) (by includes) (sphincsAt rd (σ (.n 56)))
-    (.closure Decoder.decStmtC.lam2.costIdx [rdV, encodeValue (σ (.n 56))])
-    (fun s ↦ RunsApp.of_spec (Decoder.decStmtC.lam2.costSpec P (by includes) rd rdV hrd _ s))
-    (4 * R + 657436) (gLog (σ (.n 3))) (2 ^ 34) n3.le (by norm_num) (fun k hk ↦ by
+    (.closure Decoder.decStmtC.lam1.costIdx [rdV, encodeValue (σ (.n 56))])
+    (fun s ↦ RunsApp.of_spec (Decoder.decStmtC.lam1.costSpec P (by includes) rd rdV hrd _ s))
+    (4 * R + 657436) (Decoder.gLogD D (σ (.n 3))) (2 ^ 34) n3.le (by norm_num) (fun k hk ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-        Decoder.decStmtC.lam2.costEq P (by includes) rd rdV hrd]
+        Decoder.decStmtC.lam1.costEq P (by includes) rd rdV hrd]
       have := sphincsAt_cost P hrd hR (by includes) (σ (.n 56)) k (by omega)
       omega)
-  have hd := daDigestAt_cost P hrd hR hσ hS (by includes) (gLog (σ (.n 387))) (by omega)
+  have hd := daDigestAt_cost P hrd hR hσ hS (by includes) (Decoder.gLogD D (σ (.n 387))) (by omega)
   have hc := readCells_cost P hrd hR (by includes) (σ (.n 402)) 24 (by norm_num)
   have hf := deferOfCells_cost P (by includes) (readCells rd (σ (.n 402)) 24)
   have := hS (.n 0)

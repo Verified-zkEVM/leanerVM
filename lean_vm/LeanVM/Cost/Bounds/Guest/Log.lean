@@ -9,20 +9,19 @@ public import LeanVM.Cost.Decoder.Readers
 /-!
 # Bounds on the guest decoder's prices: the exponent of a power of `g`
 
-The decoder reads counts and positions as exponents (`B1.Main.gLog`), compiled as
-`Located.gLogWith` over the discrete logarithm (`Cost/Decoder/Log.lean`): the closure
-`decStmtC.lam1` is `discreteLogWith discreteLogTables`, and **builds the seven baby-step tables
-on every call** (the compiler does not hoist the closed term `discreteLogTables`), so a logarithm
-costs the tables' price and a search:
+The decoder reads counts and positions as exponents (`B1.Main.gLog`), compiled as `gLogD D`
+(`Cost/Decoder/Log.lean`): the discrete logarithm `discreteLogWith D` in baby-step tables `D` the
+decoder's top level builds once, then `gLogAt` (below `2^34`, else `0`):
 
-* `powPairsBy_cost` (`284` per pair), `babyTable_cost` (`70·s·⌈log₂ s⌉ + 374·s + 17`, as the
-  runner's address table), **`discreteLogTables_cost`**: at most `103846725 ≈ 2^26.63`;
 * `giantSteps_cost` (`(t + 1)·(FL + 285) + 6`, `FL` the binary search's price),
   `phResidue_cost`, `crtCombine_cost`, `phCandidate_cost`, `logCheck_cost`,
-  **`discreteLogWith_cost`**: at most `402775` on the tables;
-* **`gLog_cost`**: `gLogWith` at the closure `decStmtC.lam1`, at most
-  `gLogPrice = 104249405 ≈ 2^26.64`, the tables all but `402800` of it;
-* `powSqE_cost`: `a^n` in `E` by squaring (`powSq.c534`), `4732` per bit and `12`.
+  **`discreteLogWith_cost`**: at most `402662` in the tables `discreteLogTables`;
+* **`GLogBound P D G`**: a logarithm (`gLogDC`) in the tables `D` costs at most `G`, the
+  hypothesis every bound of the decoder takes; **`gLog_bound`**: `GLogBound P discreteLogTables
+  gLogPrice`, `gLogPrice = 402680 ≈ 2^18.62` (measured at most `≈ 208607`: the exponents' bits
+  are priced at `64`);
+* `gLogD_lt`: every count the decoder reads is below `2^34`;
+* `powSqE_cost`: `a^n` in `E` by squaring (`powSq.c542`), `4732` per bit and `12`; `powSqK_cost_lt`.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -36,23 +35,23 @@ variable (P : MachineProgram)
 
 /-! ## `a^n` in `E` -/
 
-/-- `a^n` in `E` by squaring (`powSq.c534`): `4732` per bit, `12` at the end. -/
-theorem powSqE_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c534.costDeps) (a : E) (n : ℕ)
+/-- `a^n` in `E` by squaring (`powSq.c542`): `4732` per bit, `12` at the end. -/
+theorem powSqE_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c542.costDeps) (a : E) (n : ℕ)
     (hn : n < 2 ^ 64) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c534.costIdx [encodeValue a, encodeValue n] ≤
+    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c542.costIdx [encodeValue a, encodeValue n] ≤
       12 + 4732 * (Nat.log2 n + 1) := by
   have := le_of_halving (fun x : E × ℕ ↦ x.2 < 2 ^ 64) (fun x ↦ x.2)
-    (fun x ↦ machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c534.costIdx
+    (fun x ↦ machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c542.costIdx
       [encodeValue x.1, encodeValue x.2]) 4732 12
     (fun x hx h0 ↦ by
       try dsimp only at hx h0 ⊢
-      rw [Auto.LeanVM.Cost.Rewrite.powSq.c534.costEq P hP, h0]
+      rw [Auto.LeanVM.Cost.Rewrite.powSq.c542.costEq P hP, h0]
       simp)
     (fun x hx hpos ↦ by
       try dsimp only at hx hpos ⊢
       right
       refine ⟨(x.1 * x.1, x.2 / 2), by dsimp only; omega, le_refl _, ?_⟩
-      rw [Auto.LeanVM.Cost.Rewrite.powSq.c534.costEq P hP, limbs_of_lt hx,
+      rw [Auto.LeanVM.Cost.Rewrite.powSq.c542.costEq P hP, limbs_of_lt hx,
         limbs_of_lt (by omega : x.2 % 2 < 2 ^ 64)]
       simp only [show x.2 ≠ 0 by omega, ↓reduceIte]
       split_ifs <;> omega)
@@ -60,9 +59,9 @@ theorem powSqE_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c534.costDep
   simpa using this
 
 /-- `a^n` in `E`, `n < 2^k`, `k ≤ 64`: at most `12 + 4732·k`. -/
-theorem powSqE_cost_lt (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c534.costDeps) (a : E)
+theorem powSqE_cost_lt (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c542.costDeps) (a : E)
     (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ 64) (hn : n < 2 ^ k) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c534.costIdx [encodeValue a, encodeValue n] ≤
+    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c542.costIdx [encodeValue a, encodeValue n] ≤
       12 + 4732 * k := by
   have h64 : n < 2 ^ 64 := lt_of_lt_of_le hn (Nat.pow_le_pow_right (by norm_num) hk)
   refine (powSqE_cost P hP a n h64).trans ?_
@@ -95,18 +94,6 @@ theorem mem_powPairsBy_lt (b : K) : ∀ (n j : ℕ) (y : K) (e : ℕ × ℕ), e 
     · have := mem_powPairsBy_lt b n (j + 1) (y * b) e h
       omega
 
-/-- The pairs `(lane of b^j, j)` (`powPairsBy.c551`): `284` per pair, `6` at the end. -/
-theorem powPairsBy_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.powPairsBy.c551.costDeps)
-    (b : K) : ∀ (n j : ℕ) (y : K), n + j < 2 ^ 64 →
-      machineCost P Auto.LeanVM.Extraction.Fast.powPairsBy.c551.costIdx
-        [encodeValue b, encodeValue n, encodeValue j, encodeValue y] ≤ 284 * n + 6
-  | 0, j, y, _ => by rw [Auto.LeanVM.Extraction.Fast.powPairsBy.c551.costEq_zero P hP]
-  | n + 1, j, y, h => by
-    rw [Auto.LeanVM.Extraction.Fast.powPairsBy.c551.costEq_succ P hP,
-      limbs_of_lt (by omega : n + 1 < 2 ^ 64), limbs_of_lt (by omega : j < 2 ^ 64)]
-    have := powPairsBy_cost hP b n (j + 1) (y * b) (by omega)
-    omega
-
 theorem babyTable_size (b : K) (s : ℕ) : (babyTable b s).size = s := by
   rw [babyTable, List.size_toArray, List.length_mergeSort, length_powPairsBy]
 
@@ -115,53 +102,6 @@ theorem wordTable_babyTable (b : K) (s : ℕ) (hs : s < 2 ^ 63) : WordTable (bab
   rintro ⟨k, v⟩ he
   obtain ⟨hv, rfl⟩ := (mem_babyTable b s k v).1 he
   exact ⟨UInt64.toNat_lt _, by omega⟩
-
-open Auto.LeanVM.Extraction.Fast in
-/-- **A baby-step table** (`babyTable.c550`) of `s` steps: the powers and their merge sort, as the
-runner's address table: at most `70·s·⌈log₂ s⌉ + 374·s + 17`. -/
-theorem babyTable_cost (hP : Includes P babyTable.c550.costDeps) (b : K) (s : ℕ)
-    (hs : s < 2 ^ 62) :
-    machineCost P babyTable.c550.costIdx [encodeValue b, encodeValue s] ≤
-      70 * (s * Nat.clog 2 s) + 374 * s + 17 := by
-  rw [babyTable.c550.costEq P hP, List.length_mergeSort, length_powPairsBy]
-  have h1 := powPairsBy_cost P (by includes) b s 0 1 (by omega)
-  have h2 := mergeSortList_cost P (by includes) _ (.closure powTable.c369.lam0.costIdx [])
-    (fun a b ↦ RunsApp.of_spec (powTable.c369.lam0.costSpec P (by includes) a b)) 6
-    (fun e ↦ e.1 < 2 ^ 64)
-    (fun a b ha hb ↦ by
-      simp only [appCost_fn, List.nil_append]
-      rw [powTable.c369.lam0.costEq P (by includes), limbs_of_lt ha, limbs_of_lt hb]
-      omega)
-    (powPairsBy b s 0 1) (by rw [length_powPairsBy]; omega)
-    (fun e he ↦ (mem_powPairsBy_lt b s 0 1 e he).1)
-  rw [length_powPairsBy] at h2
-  omega
-
-/-- `s·⌈log₂ s⌉ ≤ s·k` for `s ≤ 2^k`. -/
-theorem mul_clog_le {s k : ℕ} (h : s ≤ 2 ^ k) : s * Nat.clog 2 s ≤ s * k :=
-  Nat.mul_le_mul_left s (Nat.clog_le_of_le_pow h)
-
-open Auto.LeanVM.Extraction.Fast in
-/-- **The seven baby-step tables** (`discreteLogTables.c549`): at most `103846725 ≈ 2^26.63`
-(`2^16` steps for `6700417` all but `2^23.3` of it). -/
-theorem discreteLogTables_cost (hP : Includes P discreteLogTables.c549.costDeps) :
-    machineCost P discreteLogTables.c549.costIdx [] ≤ 103846725 := by
-  rw [discreteLogTables.c549.costEq P hP]
-  have h3 := babyTable_cost P (by includes) phBase3 3 (by norm_num)
-  have h5 := babyTable_cost P (by includes) phBase5 5 (by norm_num)
-  have h17 := babyTable_cost P (by includes) phBase17 17 (by norm_num)
-  have h257 := babyTable_cost P (by includes) phBase257 257 (by norm_num)
-  have h641 := babyTable_cost P (by includes) phBase641 641 (by norm_num)
-  have h4096 := babyTable_cost P (by includes) phBase65537 4096 (by norm_num)
-  have h65536 := babyTable_cost P (by includes) phBase6700417 65536 (by norm_num)
-  have c3 := mul_clog_le (s := 3) (k := 2) (by norm_num)
-  have c5 := mul_clog_le (s := 5) (k := 3) (by norm_num)
-  have c17 := mul_clog_le (s := 17) (k := 5) (by norm_num)
-  have c257 := mul_clog_le (s := 257) (k := 9) (by norm_num)
-  have c641 := mul_clog_le (s := 641) (k := 10) (by norm_num)
-  have c4096 := mul_clog_le (s := 4096) (k := 12) (by norm_num)
-  have c65536 := mul_clog_le (s := 65536) (k := 16) (by norm_num)
-  omega
 
 /-! ## The search -/
 
@@ -191,16 +131,16 @@ theorem giantSteps_some_lt (T : Array (ℕ × ℕ)) (hT : WordTable T) (c : K) (
       omega
 
 open Auto.LeanVM.Extraction.Fast in
-/-- **The giant steps** (`giantSteps.c548`), `t` of them: at most `(t + 1)·(FL + 285) + 6`, `FL`
+/-- **The giant steps** (`giantSteps.c531`), `t` of them: at most `(t + 1)·(FL + 285) + 6`, `FL`
 the binary search's price. -/
-theorem giantSteps_cost (hP : Includes P giantSteps.c548.costDeps) (T : Array (ℕ × ℕ))
+theorem giantSteps_cost (hP : Includes P giantSteps.c531.costDeps) (T : Array (ℕ × ℕ))
     (hT : WordTable T) (c : K) (s : ℕ) (hs : s < 2 ^ 32) :
     ∀ (t k : ℕ) (y : K), t + k < 2 ^ 32 →
-      machineCost P giantSteps.c548.costIdx [encodeValue T, encodeValue c, encodeValue s,
+      machineCost P giantSteps.c531.costIdx [encodeValue T, encodeValue c, encodeValue s,
         encodeValue t, encodeValue k, encodeValue y] ≤ (t + 1) * (findLanePrice T.size + 285) + 6
-  | 0, k, y, _ => by rw [giantSteps.c548.costEq_zero P hP]; omega
+  | 0, k, y, _ => by rw [giantSteps.c531.costEq_zero P hP]; omega
   | t + 1, k, y, h => by
-    rw [giantSteps.c548.costEq_succ P hP, limbs_of_lt (by omega : t + 1 < 2 ^ 64)]
+    rw [giantSteps.c531.costEq_succ P hP, limbs_of_lt (by omega : t + 1 < 2 ^ 64)]
     have hf := findLane_cost P (by includes) T hT y.lane.toNat (UInt64.toNat_lt _) 0 T.size
       (by omega) le_rfl
     simp only [Nat.sub_zero] at hf
@@ -222,14 +162,14 @@ theorem giantSteps_cost (hP : Includes P giantSteps.c548.costDeps) (T : Array (�
       nlinarith
 
 open Auto.LeanVM.Extraction.Fast in
-/-- **A residue** (`phResidue.c547`): `x^q` and the giant steps. -/
-theorem phResidue_cost (hP : Includes P phResidue.c547.costDeps) (q p s t : ℕ)
+/-- **A residue** (`phResidue.c530`): `x^q` and the giant steps. -/
+theorem phResidue_cost (hP : Includes P phResidue.c530.costDeps) (q p s t : ℕ)
     (T : Array (ℕ × ℕ)) (hT : WordTable T) (c x : K) (hq : q < 2 ^ 64) (hp : p < 2 ^ 64)
     (hs : s < 2 ^ 32) (ht : t < 2 ^ 31) :
-    machineCost P phResidue.c547.costIdx [encodeValue q, encodeValue p, encodeValue s,
+    machineCost P phResidue.c530.costIdx [encodeValue q, encodeValue p, encodeValue s,
       encodeValue t, encodeValue T, encodeValue c, encodeValue x] ≤
       34265 + ((t + 1) * (findLanePrice T.size + 285) + 6) := by
-  rw [phResidue.c547.costEq P hP]
+  rw [phResidue.c530.costEq P hP]
   split_ifs with hx
   · omega
   · have h1 := powSqK_cost_lt P (by includes) x q 64 (by norm_num) le_rfl hq
@@ -250,14 +190,14 @@ theorem phResidue_cost (hP : Includes P phResidue.c547.costDeps) (q p s t : ℕ)
     cases o <;> dsimp only at hl ⊢ <;> omega
 
 open Auto.LeanVM.Extraction.Fast in
-/-- The Chinese remainder theorem (`crtCombine.c546`), on residues below `2^32`: at most `50`. -/
-theorem crtCombine_cost (hP : Includes P crtCombine.c546.costDeps)
+/-- The Chinese remainder theorem (`crtCombine.c529`), on residues below `2^32`: at most `50`. -/
+theorem crtCombine_cost (hP : Includes P crtCombine.c529.costDeps)
     (r3 r5 r17 r257 r641 r65537 r6700417 : ℕ) (h3 : r3 < 2 ^ 32) (h5 : r5 < 2 ^ 32)
     (h17 : r17 < 2 ^ 32) (h257 : r257 < 2 ^ 32) (h641 : r641 < 2 ^ 32) (h65537 : r65537 < 2 ^ 32)
     (h6700417 : r6700417 < 2 ^ 32) :
-    machineCost P crtCombine.c546.costIdx [encodeValue r3, encodeValue r5, encodeValue r17,
+    machineCost P crtCombine.c529.costIdx [encodeValue r3, encodeValue r5, encodeValue r17,
       encodeValue r257, encodeValue r641, encodeValue r65537, encodeValue r6700417] ≤ 50 := by
-  rw [crtCombine.c546.costEq P hP]
+  rw [crtCombine.c529.costEq P hP]
   simp only [limbs_of_lt (by omega : r3 < 2 ^ 64), limbs_of_lt (by omega : r5 < 2 ^ 64),
     limbs_of_lt (by omega : r17 < 2 ^ 64), limbs_of_lt (by omega : r257 < 2 ^ 64),
     limbs_of_lt (by omega : r641 < 2 ^ 64), limbs_of_lt (by omega : r65537 < 2 ^ 64),
@@ -299,12 +239,12 @@ theorem findLanePrice_le {n k : ℕ} (hk : 0 < k) (h : n < 2 ^ k) :
   omega
 
 open Auto.LeanVM.Extraction.Fast in
-/-- **The candidate exponent** (`phCandidate.c545`) in the tables `discreteLogTables`: at most
+/-- **The candidate exponent** (`phCandidate.c528`) in the tables `discreteLogTables`: at most
 `368397`. -/
-theorem phCandidate_cost (hP : Includes P phCandidate.c545.costDeps) (x : K) :
-    machineCost P phCandidate.c545.costIdx [encodeValue discreteLogTables, encodeValue x] ≤
+theorem phCandidate_cost (hP : Includes P phCandidate.c528.costDeps) (x : K) :
+    machineCost P phCandidate.c528.costIdx [encodeValue discreteLogTables, encodeValue x] ≤
       368397 := by
-  rw [phCandidate.c545.costEq P hP]
+  rw [phCandidate.c528.costEq P hP]
   have hT : ∀ (b : K) (s : ℕ), s < 2 ^ 63 → WordTable (babyTable b s) :=
     fun b s hs ↦ wordTable_babyTable b s hs
   have e1 : (discreteLogTables).1 = babyTable phBase3 3 := rfl
@@ -357,20 +297,20 @@ theorem phCandidate_cost (hP : Includes P phCandidate.c545.costDeps) (x : K) :
   omega
 
 open Auto.LeanVM.Extraction.Fast in
-/-- The check `g^n = x` (`logCheck.c544`), `n < 2^64`: at most `34256`. -/
-theorem logCheck_cost (hP : Includes P logCheck.c544.costDeps) (x : K) (n : ℕ) (hn : n < 2 ^ 64) :
-    machineCost P logCheck.c544.costIdx [encodeValue x, encodeValue n] ≤ 34256 := by
-  rw [logCheck.c544.costEq P hP]
+/-- The check `g^n = x` (`logCheck.c527`), `n < 2^64`: at most `34256`. -/
+theorem logCheck_cost (hP : Includes P logCheck.c527.costDeps) (x : K) (n : ℕ) (hn : n < 2 ^ 64) :
+    machineCost P logCheck.c527.costIdx [encodeValue x, encodeValue n] ≤ 34256 := by
+  rw [logCheck.c527.costEq P hP]
   have := powSqK_cost_lt P (by includes) g n 64 (by norm_num) le_rfl hn
   split_ifs <;> omega
 
 open Auto.LeanVM.Extraction.Fast in
-/-- **The discrete logarithm** (`discreteLogWith.c543`) in the tables `discreteLogTables`: at most
+/-- **The discrete logarithm** (`discreteLogWith.c526`) in the tables `discreteLogTables`: at most
 `402662`. -/
-theorem discreteLogWith_cost (hP : Includes P discreteLogWith.c543.costDeps) (x : K) :
-    machineCost P discreteLogWith.c543.costIdx [encodeValue discreteLogTables, encodeValue x] ≤
+theorem discreteLogWith_cost (hP : Includes P discreteLogWith.c526.costDeps) (x : K) :
+    machineCost P discreteLogWith.c526.costIdx [encodeValue discreteLogTables, encodeValue x] ≤
       402662 := by
-  rw [discreteLogWith.c543.costEq P hP]
+  rw [discreteLogWith.c526.costEq P hP]
   split_ifs
   · omega
   · have h1 := phCandidate_cost P (by includes) x
@@ -378,51 +318,50 @@ theorem discreteLogWith_cost (hP : Includes P discreteLogWith.c543.costDeps) (x 
       (by unfold phCandidate crtCombine; omega)
     omega
 
-/-- **The price of a logarithm** (`gLogWith` at `decStmtC.lam1`): the tables, the search. -/
-@[expose] def gLogPrice : ℕ := 104249405
-
-/-- The closure `decStmtC.lam1` is the discrete logarithm. -/
-theorem lam1_runs (hP : Includes P Decoder.decStmtC.lam1.costDeps) (a : K) :
-    RunsApp P (.closure Decoder.decStmtC.lam1.costIdx []) [encodeValue a]
-      (encodeValue (discreteLogWith discreteLogTables a)) :=
-  RunsApp.of_spec (Decoder.decStmtC.lam1.costSpec P hP a)
-
-/-- **A logarithm** (`gLogWith.c541` at the closure `decStmtC.lam1`): at most `gLogPrice`. -/
-theorem gLog_cost (hP : Includes P Auto.LeanVM.Guest.Located.gLogWith.c541.costDeps)
-    (hL : Includes P Decoder.decStmtC.lam1.costDeps) (x : E) :
-    machineCost P Auto.LeanVM.Guest.Located.gLogWith.c541.costIdx
-      [.closure Decoder.decStmtC.lam1.costIdx [], encodeValue x] ≤ gLogPrice := by
-  rw [Auto.LeanVM.Guest.Located.gLogWith.c541.costEq P hP _ _ (lam1_runs P hL), appCost_fn,
-    List.nil_append, Decoder.decStmtC.lam1.costEq P hL]
-  have h1 := discreteLogTables_cost P (by includes)
-  have h2 := discreteLogWith_cost P (by includes) (x.limb 0)
-  have h3 : ∀ v, discreteLogWith discreteLogTables (x.limb 0) = some v → v < 2 ^ 64 := by
-    intro v hv
-    unfold discreteLogWith logCheck at hv
-    split_ifs at hv with h1 h2
-    obtain rfl := Option.some.inj hv
-    unfold phCandidate crtCombine
-    omega
-  unfold gLogPrice
-  generalize discreteLogWith discreteLogTables (x.limb 0) = o at h2 h3
+/-- `gLogAt` (`gLogAtC`): at most `13`. -/
+theorem gLogAt_cost (hP : Includes P Decoder.gLogAtC.costDeps) (o : Option ℕ)
+    (ho : ∀ v, o = some v → v < 2 ^ 64) :
+    machineCost P Decoder.gLogAtC.costIdx [encodeValue o] ≤ 13 := by
+  rw [Decoder.gLogAtC.costEq P hP]
   cases o with
   | none => dsimp only; omega
   | some v =>
     dsimp only
-    rw [limbs_shift (by norm_num), limbs_two_pow (by norm_num), limbs_of_lt (h3 v rfl)]
+    rw [limbs_shift (by norm_num), limbs_two_pow (by norm_num), limbs_of_lt (ho v rfl)]
     split_ifs <;> omega
 
-/-- **A logarithm's price is at most `G`**: the hypothesis the decoder's bounds take, so that
-they are parametric in how the logarithm is computed (today `gLogWith` at the closure
-`decStmtC.lam1`, which rebuilds the tables per call: `gLog_bound`, at `gLogPrice`). -/
-abbrev GLogBound (G : ℕ) : Prop :=
-  ∀ x : E, machineCost P Auto.LeanVM.Guest.Located.gLogWith.c541.costIdx
-    [.closure Decoder.decStmtC.lam1.costIdx [], encodeValue x] ≤ G
+theorem discreteLogWith_lt (x : K) (v : ℕ) (h : discreteLogWith discreteLogTables x = some v) :
+    v < 2 ^ 64 := by
+  unfold discreteLogWith logCheck at h
+  split_ifs at h
+  obtain rfl := Option.some.inj h
+  unfold phCandidate crtCombine
+  omega
 
-/-- Today's logarithm: `GLogBound P gLogPrice`. -/
-theorem gLog_bound (hP : Includes P Auto.LeanVM.Guest.Located.gLogWith.c541.costDeps)
-    (hL : Includes P Decoder.decStmtC.lam1.costDeps) : GLogBound P gLogPrice :=
-  gLog_cost P hP hL
+/-- **The price of a logarithm** in the tables built (`gLogDC`): the search and the check. -/
+@[expose] def gLogPrice : ℕ := 402680
+
+theorem gLogD_lt (D : DiscreteLogTables) (x : E) : Decoder.gLogD D x < 2 ^ 34 := by
+  unfold Decoder.gLogD Decoder.gLogAt
+  split
+  · split_ifs <;> omega
+  · norm_num
+
+/-- **A logarithm's price is at most `G`** (`gLogDC` in the tables `D`): the hypothesis the
+decoder's bounds take, so that they are parametric in it. -/
+abbrev GLogBound (D : DiscreteLogTables) (G : ℕ) : Prop :=
+  ∀ x : E, machineCost P Decoder.gLogDC.costIdx [encodeValue D, encodeValue x] ≤ G
+
+/-- **A logarithm in the tables built** (`gLogDC` at `discreteLogTables`): at most
+`gLogPrice = 402680 ≈ 2^18.62`. -/
+theorem gLog_bound (hP : Includes P Decoder.gLogDC.costDeps) :
+    GLogBound P discreteLogTables gLogPrice := by
+  intro x
+  rw [Decoder.gLogDC.costEq P hP]
+  have h1 := discreteLogWith_cost P (by includes) (x.limb 0)
+  have h2 := gLogAt_cost P (by includes) _ (discreteLogWith_lt (x.limb 0))
+  unfold gLogPrice
+  omega
 
 end
 
