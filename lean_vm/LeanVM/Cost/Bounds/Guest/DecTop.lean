@@ -112,14 +112,15 @@ theorem frameClosure_runs (hP : Includes P Decoder.decTopFramesC.lam0.costDeps)
 /-- The frame map the frames stage passes: `frameAtC`'s price and `7`. -/
 theorem frameClosure_cost (hP : Includes P Decoder.decTopFramesC.lam0.costDeps)
     (table : SortedMap CallKey K) (F : ℕ)
-    (hF : ∀ (k : ℕ) (a r : List E) (v : V), machineCost P Decoder.frameAtC.costIdx
+    (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 16 →
+      machineCost P Decoder.frameAtC.costIdx
       [encodeValue table, rdV, encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F)
-    (k : ℕ) (a r : List E) (v : V) :
+    (k : ℕ) (a r : List E) (v : V) (hk : k < 2 ^ 64) (hlen : a.length + r.length ≤ 16) :
     appCost P (.closure Decoder.decTopFramesC.lam0.costIdx [rdV, encodeValue table])
       [encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F + 7 := by
   rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
     Decoder.decTopFramesC.lam0.costEq P hP rd rdV hrd]
-  have := hF k a r v; omega
+  have := hF k a r v hk hlen; omega
 
 end Closures
 
@@ -157,7 +158,8 @@ theorem frameWit_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitNC.
     (hσ : ∀ v : V, RunsApp P σV [encodeValue v] (encodeValue (σ v)))
     {S : ℕ} (hS : ∀ v : V, appCost P σV [encodeValue v] ≤ S)
     (table : SortedMap CallKey K) (F : ℕ)
-    (hF : ∀ (k : ℕ) (a r : List E) (v : V), machineCost P Decoder.frameAtC.costIdx
+    (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 16 →
+      machineCost P Decoder.frameAtC.costIdx
       [encodeValue table, rdV, encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F)
     (C : ℕ) (hC : ∀ p q : E, machineCost P Decoder.cursorLengthC.costIdx
       [encodeValue D, encodeValue p, encodeValue q] ≤ C)
@@ -171,9 +173,9 @@ theorem frameWit_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitNC.
   have hcl := cursorClosure_runs P hL1 D
   have hC' := cursorClosure_cost P hL1 D C hC
   exact decWitN_cost P hrd hR hσ hS hVn hF' hcl hC' hLv le_rfl D Tb hTb hP hG
-    (dvFramePrice G (F + 7)) (fun args rets ↦ by
+    (dvFramePrice G (F + 7)) (fun args rets hlen ↦ by
       have := dvWitN_cost P hVn hF' (daFrame_runs P hVn (by includes) args rets)
-        (daFrame_cost P hVn hF' (by includes) args rets) D (by includes) hG
+        (daFrame_cost P hVn hF' (by includes) args rets hlen) D (by includes) hG
       unfold dvFramePrice; omega)
 
 /-! ## The stages -/

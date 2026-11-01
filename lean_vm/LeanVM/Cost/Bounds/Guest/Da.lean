@@ -103,7 +103,7 @@ variable {Vn : NFrames} {VnV : MachineValue}
   (hVn : ∀ (k : ℕ) (a r : List E) (v : V),
     RunsApp P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v]
       (encodeValue (Vn k a r v)))
-  {F : ℕ} (hF : ∀ (k : ℕ) (a r : List E) (v : V),
+  {F : ℕ} (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 16 →
     appCost P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F)
 include hVn hF
 
@@ -131,7 +131,7 @@ theorem cellSymsAt_cost (hP : Includes P Decoder.cellSymsAtC.costDeps) (c11 : E)
         limbs_of_lt (by omega : j < 2 ^ 64), appCost_fn, List.cons_append, List.cons_append,
         List.cons_append, List.nil_append,
         Decoder.cellSymsAtC.lam0.costEq P (by includes) Vn VnV hVn]
-      have := hF 28 [c11] a (.n (j + 1))
+      have := hF 28 [c11] a (.n (j + 1)) (by norm_num) (by simp [a])
       omega)
   have := hRw (.n 7); have := hRw (.n 8); have := hRw (.n 9)
   omega
@@ -139,7 +139,8 @@ theorem cellSymsAt_cost (hP : Includes P Decoder.cellSymsAtC.costDeps) (c11 : E)
 /-- A column's `256` weights (`vecWsOfC`) at the valuation `dvWsColsC.lam0`:
 `256·F + 11792`. -/
 theorem vecWsOf_cost (hP : Includes P Decoder.vecWsOfC.costDeps)
-    (hL : Includes P Decoder.dvWsColsC.lam0.costDeps) (a r : List E) :
+    (hL : Includes P Decoder.dvWsColsC.lam0.costDeps) (a r : List E)
+    (hlen : r.length + a.length ≤ 16) :
     machineCost P Decoder.vecWsOfC.costIdx
       [.closure Decoder.dvWsColsC.lam0.costIdx [VnV, encodeValue a, encodeValue r]] ≤
         256 * F + 11792 := by
@@ -157,7 +158,7 @@ theorem vecWsOf_cost (hP : Includes P Decoder.vecWsOfC.costDeps)
         Decoder.vecWsOfC.lam0.costEq P (by includes) _ _ hσ,
         limbs_of_lt (by omega : j < 2 ^ 64), appCost_fn, List.cons_append, List.cons_append,
         List.cons_append, List.nil_append, Decoder.dvWsColsC.lam0.costEq P hL Vn VnV hVn]
-      have := hF 29 r a (.n (j + 1))
+      have := hF 29 r a (.n (j + 1)) (by norm_num) hlen
       omega)
   omega
 
@@ -188,7 +189,8 @@ theorem dvColVN_cost (hP : Includes P Decoder.dvColVNC.costDeps) (j : ℕ) (hj :
   rw [Decoder.dvColVNC.costEq P hP σ σV hσ Vn VnV hVn]
   have := colNum_cost P (by includes) j (by omega)
   have := dvColArgs_cost P hσ hS (by includes) j hj
-  have := hF (colNum j) (Da.dvColArgs σ j) [] a
+  have := hF (colNum j) (Da.dvColArgs σ j) [] a (by unfold colNum; split <;> norm_num)
+    (by simp [Da.dvColArgs])
   omega
 
 /-- **Column `j`'s two words** (`dvColWordsC`), its frame looked up once per word, `j < 128`:
@@ -239,7 +241,7 @@ theorem dvRowVW_cost (hP : Includes P Decoder.dvRowVWC.costDeps) (cw : E × E) (
   have := powSqK_cost_lt P (by includes) Parameters.g j 7 (by norm_num) (by norm_num) (by omega)
   have := hS (.n 1); have := hS (.n 27); have := hS (.n 13)
   have := hF (rowNum j) [ofK (Parameters.g ^ i), σ (.n 1), cw.1, σ (.n 27), ofK (Parameters.g ^ j),
-    cw.2, σ (.n 13)] [] a
+    cw.2, σ (.n 13)] [] a (by unfold rowNum; split <;> norm_num) (by simp)
   omega
 
 /-- **Cell `(i, j)`'s symbols** (`dvSymsCellC`), the column's words given, its row's frame looked
@@ -299,7 +301,7 @@ theorem dvWsCols_cost (hP : Includes P Decoder.dvWsColsC.costDeps) (cols : Array
   · have := powSqK_cost_lt P (by includes) Parameters.g (2 * j) 8 (by norm_num) (by norm_num)
       (by omega)
     have := vecWsOf_cost P hVn hF (by includes) (by includes) [(cols.getD j (0, 0)).1]
-      [Decoder.mulK (σ (.n 17)) (Parameters.g ^ (2 * j))]
+      [Decoder.mulK (σ (.n 17)) (Parameters.g ^ (2 * j))] (by simp)
     have := hS (.n 17)
     omega
   · omega

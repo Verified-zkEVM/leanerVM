@@ -313,7 +313,7 @@ section Proof
 
 variable {wV : List E → LeanVM.Protocol.Compile.Proof} {wVV : MachineValue}
   (hwV : ∀ a : List E, RunsApp P wVV [encodeValue a] (encodeValue (wV a)))
-  {W : ℕ} (hW : ∀ a : List E, appCost P wVV [encodeValue a] ≤ W)
+  {W : ℕ} (hW : ∀ a : List E, a.length ≤ 16 → appCost P wVV [encodeValue a] ≤ W)
 include hwV hW
 
 /-- A child's price. -/
@@ -335,7 +335,7 @@ theorem decKid_cost (D : DiscreteLogTables) (hP : Includes P decKidC.costDeps)
     (readCellsK rd ((σ (.n 371)).limb 0 * Parameters.g ^ (24 * c)) 24)
   have h5 := subArgs_cost P hrd hR hσ hS (by includes) c hc
   have := hS (.n 371)
-  have := hW (subArgsK rd σ c)
+  have := hW (subArgsK rd σ c) (by simp [subArgsK])
   limbs_one
   unfold decKidPrice
   omega

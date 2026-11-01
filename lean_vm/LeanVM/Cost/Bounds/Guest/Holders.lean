@@ -201,7 +201,7 @@ section Proof
 
 variable {wV : List E → LeanVM.Protocol.Compile.Proof} {wVV : MachineValue}
   (hwV : ∀ a : List E, RunsApp P wVV [encodeValue a] (encodeValue (wV a)))
-  {W : ℕ} (hW : ∀ a : List E, appCost P wVV [encodeValue a] ≤ W)
+  {W : ℕ} (hW : ∀ a : List E, a.length ≤ 16 → appCost P wVV [encodeValue a] ≤ W)
 include hwV hW
 
 /-- The children's price, at most `2^34` of them. -/

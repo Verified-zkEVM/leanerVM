@@ -95,12 +95,13 @@ theorem aggArgs_cost (hP : Includes P Decoder.aggArgsC.costDeps) :
 theorem daWitness_cost (D : DiscreteLogTables) (hP : Includes P Decoder.daWitnessC.costDeps)
     (hG : GLogBound P D G) {wD : List E → List E → LeanVM.Da.MatrixWitness} {wDV : MachineValue}
     (hwD : ∀ a b : List E, RunsApp P wDV [encodeValue a, encodeValue b] (encodeValue (wD a b)))
-    {WD : ℕ} (hWD : ∀ a b : List E, appCost P wDV [encodeValue a, encodeValue b] ≤ WD) :
+    {WD : ℕ} (hWD : ∀ a b : List E, a.length + b.length ≤ 16 →
+      appCost P wDV [encodeValue a, encodeValue b] ≤ WD) :
     machineCost P Decoder.daWitnessC.costIdx [encodeValue D, σV, wDV] ≤ 10 * S + G + WD + 183 := by
   rw [Decoder.daWitnessC.costEq P hP D σ σV hσ wD wDV hwD]
   have := nDirect_cost P hσ hS D (by includes) hG
   have := dvClaim_cost P hσ hS (by includes)
-  have := hWD [σ (.n 50)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)]
+  have := hWD [σ (.n 50)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)] (by simp)
   have : Decoder.nDirectD D σ < 2 ^ 34 := gLogD_lt D _
   cost_facts [hS]
   limbs_one
@@ -135,13 +136,14 @@ variable {rd : Reader} {rdV : MachineValue}
   {WS : ℕ} (hWS : ∀ a : E, appCost P wSV [encodeValue a] ≤ WS)
   {wD : List E → List E → LeanVM.Da.MatrixWitness} {wDV : MachineValue}
   (hwD : ∀ a b : List E, RunsApp P wDV [encodeValue a, encodeValue b] (encodeValue (wD a b)))
-  {WD : ℕ} (hWD : ∀ a b : List E, appCost P wDV [encodeValue a, encodeValue b] ≤ WD)
+  {WD : ℕ} (hWD : ∀ a b : List E, a.length + b.length ≤ 16 →
+      appCost P wDV [encodeValue a, encodeValue b] ≤ WD)
   {wV : List E → LeanVM.Protocol.Compile.Proof} {wVV : MachineValue}
   (hwV : ∀ a : List E, RunsApp P wVV [encodeValue a] (encodeValue (wV a)))
-  {WV : ℕ} (hWV : ∀ a : List E, appCost P wVV [encodeValue a] ≤ WV)
+  {WV : ℕ} (hWV : ∀ a : List E, a.length ≤ 16 → appCost P wVV [encodeValue a] ≤ WV)
   {wA : List E → LeanVM.Node.BatchingHints} {wAV : MachineValue}
   (hwA : ∀ a : List E, RunsApp P wAV [encodeValue a] (encodeValue (wA a)))
-  {WA : ℕ} (hWA : ∀ a : List E, appCost P wAV [encodeValue a] ≤ WA)
+  {WA : ℕ} (hWA : ∀ a : List E, a.length ≤ 16 → appCost P wAV [encodeValue a] ≤ WA)
 include hrd hR hσ hS hwX hWX hwS hWS hwD hWD hwV hWV hwA hWA
 
 /-- The witness's price off the tables. -/
@@ -169,7 +171,7 @@ theorem decWitTab_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitTa
     hlx (by omega) hns
   have := daWitness_cost P hσ hS D (by includes) hG hwD hWD
   have := aggArgs_cost P hσ hS (by includes)
-  have := hWA (Decoder.aggArgs σ)
+  have := hWA (Decoder.aggArgs σ) (by simp [Decoder.aggArgs])
   rw [nodeWitnessOf_cost P (by includes)]
   unfold decWitTabPrice
   limbs_one
@@ -253,7 +255,7 @@ variable {rd : Reader} {rdV : MachineValue}
   (hVn : ∀ (k : ℕ) (a r : List E) (v : V),
     RunsApp P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v]
       (encodeValue (Vn k a r v)))
-  {F : ℕ} (hF : ∀ (k : ℕ) (a r : List E) (v : V),
+  {F : ℕ} (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 16 →
     appCost P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F)
   {cl : E → E → ℕ} {clV : MachineValue}
   (hcl : ∀ a b : E, RunsApp P clV [encodeValue a, encodeValue b] (encodeValue (cl a b)))
@@ -272,7 +274,7 @@ tables `Tb` given, `da_verify`'s witness at its frame at most `DW` (`dvWitN_cost
 at most `decWitNPrice G R S F C L DW`. -/
 theorem decWitN_cost (D : DiscreteLogTables) (Tb : ReaderTabs) (hTb : ReaderTabsOK Tb)
     (hP : Includes P Decoder.decWitNC.costDeps) (hG : GLogBound P D G) (DW : ℕ)
-    (hDW : ∀ args rets : List E, machineCost P Decoder.dvWitNC.costIdx
+    (hDW : ∀ args rets : List E, args.length + rets.length ≤ 16 → machineCost P Decoder.dvWitNC.costIdx
       [encodeValue D, .closure Decoder.daAtFrameC.lam0.costIdx [VnV, encodeValue args, encodeValue rets],
         VnV] ≤ DW) :
     machineCost P Decoder.decWitNC.costIdx [encodeValue D, encodeValue Tb, σV, rdV, VnV, clV] ≤
