@@ -1,44 +1,49 @@
 module
 
-public import LeanVM.Cost.Rules
-public import LeanVM.Protocol.Extraction.Fast.Compiled
+public import LeanVM.Cost.ExtractorSize
 
 /-!
-# The extractor's efficiency from the compiled extractor's spec
+# The extractor's efficiency
 
 `LeanVM.ExtractorEfficient` (`Statement/CostMachine.lean`) runs a program's function `0` on one
 value, `encode prog input T proof = .ctor 0 [enc prog, enc input, enc qs, enc proof]` with
 `qs = permutationQueries T`, and decodes its output with `decodeExecution prog`, which parses an
-execution's encoding. The compiled extractor (`extractorTop`, `Fast/Compiled.lean`) is a function
-of four encoded arguments whose output encodes an `Option (Execution prog)`. The glue is the entry
-body `entryBody j`: it destructures the input, calls function `j` on its four fields and unwraps
-the option (`none` to `.ctor 0 []`, which no execution decodes from; `some t` to `t`'s encoding),
-at `9` steps more than the call (`runsBody_entry`).
+execution's encoding. The compiled extractor (`extractorC`, `Cost/Extractor/Top.lean`, computing
+`extractorTop`, `Fast/Compiled.lean`) is a function of four encoded arguments whose output encodes
+an `Option (Execution prog)`. The glue is the entry body `entryBody j` (`Cost/ExtractorProgram.lean`):
+it destructures the input, calls function `j` on its four fields and unwraps the option (`none` to
+`.ctor 0 []`, which no execution decodes from; `some t` to `t`'s encoding), at `9` steps more than
+the call (`runsBody_entry`).
 
 * **`extractorTop_output`**: in a program whose function `0` is `entryBody j`, if function `j`
-  computes `extractorTop` at a price `cost` that is within `extractorBudgetAt` at the announced
-  shape whenever the extraction succeeds, the decoded output within `extractorBudget` is
+  computes `extractorTop` at a price `cost` that is within the budget at the announced shape
+  (`shapeBudget`) whenever the extraction succeeds, the decoded output within `extractorBudget` is
   `transcriptExtractor`'s, on every input;
 * **`extractorEfficient_of_spec`**: with the program's size within `extractorSizeBound`,
   `ExtractorEfficient`;
-* `includes_ofList`: a program built by `Program.ofList` holds its bodies if their indices are
-  distinct; `size_ofList_le`: its size is at most its bodies' sizes plus two per index, a sum to
-  evaluate (`decide`), not an array to build.
+* **`extractorEfficient_of_cost`**: for `extractorProgram` (its entry at `0`, its bodies held,
+  its size within `extractorSizeBound`: `Cost/ExtractorSize.lean`) and the compiled extractor's
+  spec (`extractorC.costSpec`), `ExtractorEfficient` from one hypothesis left: the compiled
+  extractor's price (`machineCost`) within the budget at the announced shape, less `9`, wherever
+  the extraction succeeds. DRAFT: `extractorBudgetAt` is a placeholder until the bounds of
+  `Cost/Bounds/` are assembled into it.
 -/
 
 namespace LeanVM.Cost
 
 open LeanVM LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
-open LeanVM.Protocol.Verifier LeanVM.Extraction LeanVM.Extraction.Fast Common
+open LeanVM.Protocol.Verifier LeanVM.Extraction LeanVM.Extraction.Fast LeanVM.Cost.Extractor Common
 
 public section
 
-/-! ## The entry -/
+/-- The budget at an announced shape, as `extractorBudget` reads it off `afterRoot`'s layout and
+rate. -/
+@[expose] def shapeBudget (prog : Semantics.Program) (layout : Layout) (logInverseRate queries : ℕ) :
+    ℕ :=
+  extractorBudgetAt layout.stackLog logInverseRate layout.logMemory layout.logBytecode
+    (bytecodeWords prog).length queries
 
-/-- **The entry body**: the input's four fields passed to function `j`, its optional output
-unwrapped. -/
-@[expose] def entryBody (j : ℕ) : Term :=
-  .case (.var 0) [.case (.call j [.var 0, .var 1, .var 2, .var 3]) [.ctor 0 [], .var 0]]
+/-! ## The entry -/
 
 /-- The value the entry returns for an optional output. -/
 @[expose] def unwrapOption {α : Type} [Enc α] : Option α → Val
@@ -100,8 +105,8 @@ theorem transcriptExtractor_eq_none {prog : Semantics.Program} {π : Proof}
   rfl
 
 /-- **The glue**: in a program whose function `0` is `entryBody j`, if function `j` computes
-`extractorTop` at the price `cost`, within `extractorBudgetAt` at the announced shape (less the
-entry's `9`) wherever the extraction succeeds, the output within `extractorBudget`, decoded, is
+`extractorTop` at the price `cost`, within the budget at the announced shape (`shapeBudget`, less
+the entry's `9`) wherever the extraction succeeds, the output within `extractorBudget`, decoded, is
 `transcriptExtractor`'s. -/
 theorem extractorTop_output (P : Program) (j : ℕ) (hentry : P[0]? = some (entryBody j))
     (cost : Semantics.Program → PublicInput →
@@ -112,7 +117,7 @@ theorem extractorTop_output (P : Program) (j : ℕ) (hentry : P[0]? = some (entr
       afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st) →
       extractorTop prog input (permutationQueries T) π = some t →
       cost prog input (permutationQueries T) π + 9 ≤
-        extractorBudgetAt prog layout logInverseRate (permutationQueries T).length)
+        shapeBudget prog layout logInverseRate (permutationQueries T).length)
     (prog : Semantics.Program) (input : PublicInput) (T : OracleQueryLog) (proof : Proof) :
     (outputWithin P (encode prog input T proof) (extractorBudget prog T proof)).bind
         (decodeExecution prog) =
@@ -138,8 +143,8 @@ theorem extractorTop_output (P : Program) (j : ℕ) (hentry : P[0]? = some (entr
     | some r =>
       obtain ⟨⟨layout, R⟩, st⟩ := r
       have hb : extractorBudget prog T proof =
-          extractorBudgetAt prog layout R (permutationQueries T).length := by
-        simp only [extractorBudget, ha]
+          shapeBudget prog layout R (permutationQueries T).length := by
+        simp only [extractorBudget, shapeBudget, ha]
       have hc := hcost prog input T proof layout R st t ha ht
       have hx : encode prog input T proof =
           .ctor 0 [enc prog, enc input, enc (permutationQueries T), enc proof] := rfl
@@ -158,96 +163,57 @@ theorem extractorEfficient_of_spec (P : Program) (hsize : P.size ≤ extractorSi
       afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st) →
       extractorTop prog input (permutationQueries T) π = some t →
       cost prog input (permutationQueries T) π + 9 ≤
-        extractorBudgetAt prog layout logInverseRate (permutationQueries T).length) :
+        shapeBudget prog layout logInverseRate (permutationQueries T).length) :
     LeanVM.ExtractorEfficient :=
   ⟨P, hsize, extractorTop_output P j hentry cost hrun hcost⟩
 
-/-! ## Programs from lists of bodies -/
+/-! ## The extractor's program -/
 
-theorem getElem?_foldl_set_of_not_mem (l : List (ℕ × Term)) (A : Program) {i : ℕ}
-    (hi : i ∉ l.map (·.1)) :
-    (l.foldl (fun P p ↦ P.setIfInBounds p.1 p.2) A)[i]? = A[i]? := by
-  induction l generalizing A with
-  | nil => rfl
-  | cons q l ih =>
-    simp only [List.map_cons, List.mem_cons, not_or] at hi
-    rw [List.foldl_cons, ih _ hi.2, Array.getElem?_setIfInBounds_ne (Ne.symm hi.1)]
+/-- The extractor's program holds its bodies: their indices are distinct
+(`Cost/ExtractorSize.lean`). -/
+theorem extractorProgram_includes_all : Includes extractorProgram extractorProgramBodies := by
+  have h := nodup_of_increasing extractorProgram_indices_increasing
+  refine includes_ofList _ ?_
+  rw [extractorProgramBodies_eq, List.map_cons]
+  exact h
 
-theorem getElem?_foldl_set (l : List (ℕ × Term)) (hl : (l.map (·.1)).Nodup) :
-    ∀ (A : Program), (∀ p ∈ l, p.1 < Array.size A) → ∀ p ∈ l,
-      (l.foldl (fun P p ↦ P.setIfInBounds p.1 p.2) A)[p.1]? = some p.2 := by
-  induction l with
-  | nil => intro A _ p hp; simp at hp
-  | cons q l ih =>
-    intro A hA p hp
-    simp only [List.map_cons, List.nodup_cons] at hl
-    rw [List.foldl_cons]
-    rcases List.mem_cons.1 hp with rfl | hp
-    · rw [getElem?_foldl_set_of_not_mem l _ hl.1,
-        Array.getElem?_setIfInBounds_self_of_lt (hA _ List.mem_cons_self)]
-    · exact ih hl.2 _ (fun r hr ↦ by
-        rw [Array.size_setIfInBounds]; exact hA r (List.mem_cons_of_mem _ hr)) p hp
+/-- **The program's size is within `extractorSizeBound`** (`2^15`): at most `11515`
+(`Cost/ExtractorSize.lean`). -/
+theorem extractorProgram_size_le : extractorProgram.size ≤ extractorSizeBound :=
+  extractorProgram_size_le_measured.trans (by decide)
 
-theorem lt_foldr_max_succ {l : List ℕ} {i : ℕ} (h : i ∈ l) : i < l.foldr max 0 + 1 := by
-  induction l with
-  | nil => simp at h
-  | cons a l ih =>
-    rcases List.mem_cons.1 h with rfl | h
-    · simp only [List.foldr_cons]; omega
-    · have := ih h; simp only [List.foldr_cons]; omega
+/-- The extractor's program holds the compiled extractor's bodies. -/
+theorem extractorProgram_includes : Includes extractorProgram extractorC.costDeps :=
+  extractorProgram_includes_all.mono fun _ hp ↦ by
+    rw [extractorProgramBodies_eq]; exact List.mem_cons_of_mem _ hp
 
-/-- **A program built from distinct indices holds its bodies.** -/
-theorem includes_ofList (l : List (ℕ × Term)) (hl : (l.map (·.1)).Nodup) :
-    Includes (Program.ofList l) l := by
-  intro p hp
-  refine getElem?_foldl_set l hl _ (fun r hr ↦ ?_) p hp
-  rw [Array.size_replicate]
-  exact lt_foldr_max_succ (List.mem_map_of_mem hr)
+/-- Its function `0` is the entry calling the compiled extractor. -/
+theorem extractorProgram_entry : extractorProgram[0]? = some (entryBody extractorC.costIdx) :=
+  extractorProgram_includes_all.get (by rw [extractorProgramBodies_eq]; exact List.mem_cons_self)
 
-theorem sum_map_set_le (f : Term → ℕ) :
-    ∀ (l : List Term) (i : ℕ) (t : Term), ((l.set i t).map f).sum ≤ (l.map f).sum + f t
-  | [], _, _ => by simp
-  | _ :: _, 0, _ => by simp; omega
-  | a :: l, i + 1, t => by
-    have := sum_map_set_le f l i t
-    simp only [List.set_cons_succ, List.map_cons, List.sum_cons]
-    omega
+/-- **The one hypothesis left** (DRAFT: until the bounds of `Cost/Bounds/` are assembled into
+`extractorBudgetAt`, a placeholder): the compiled extractor's price in `extractorProgram`, on every
+input whose extraction succeeds, within the budget at the shape the proof announces, less the
+entry's `9`. -/
+def ExtractorPriceWithinBudget : Prop :=
+  ∀ prog input T π layout logInverseRate st t,
+    afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st) →
+    extractorTop prog input (permutationQueries T) π = some t →
+    machineCost extractorProgram extractorC.costIdx
+        [enc prog, enc input, enc (permutationQueries T), enc π] + 9 ≤
+      shapeBudget prog layout logInverseRate (permutationQueries T).length
 
-theorem size_setIfInBounds_le (A : Program) (i : ℕ) (t : Term) :
-    Program.size (A.setIfInBounds i t) ≤ Program.size A + t.size := by
-  unfold Program.size
-  rw [Array.setIfInBounds_def]
-  split
-  · rw [Array.toList_set]; exact sum_map_set_le _ _ _ _
-  · omega
-
-/-- **A program's size from its bodies**: at most their sizes plus two per index (the literal
-`0` of an index without a body). -/
-theorem size_ofList_le (l : List (ℕ × Term)) :
-    (Program.ofList l).size ≤
-      (l.map fun p ↦ p.2.size).sum + 2 * ((l.map (·.1)).foldr max 0 + 1) := by
-  have key : ∀ (l : List (ℕ × Term)) (A : Program),
-      Program.size (l.foldl (fun P p ↦ P.setIfInBounds p.1 p.2) A) ≤
-        Program.size A + (l.map fun p ↦ p.2.size).sum := by
-    intro l
-    induction l with
-    | nil => intro A; simp
-    | cons q l ih =>
-      intro A
-      have := ih (A.setIfInBounds q.1 q.2)
-      have := size_setIfInBounds_le A q.1 q.2
-      simp only [List.foldl_cons, List.map_cons, List.sum_cons]
-      omega
-  have hrep : ∀ n, Program.size (Array.replicate n (Term.val (.nat 0))) = 2 * n := by
-    intro n
-    simp only [Program.size, Array.toList_replicate, List.map_replicate, List.sum_replicate,
-      Term.size, Val.size, smul_eq_mul]
-    omega
-  have := key l (Array.replicate ((l.map (·.1)).foldr max 0 + 1) (.val (.nat 0)))
-  rw [hrep] at this
-  unfold Program.ofList
-  dsimp only
-  omega
+/-- **`ExtractorEfficient` from the compiled extractor's price**: within the budget at the
+announced shape, less the entry's `9`, wherever the extraction succeeds. -/
+theorem extractorEfficient_of_cost (hcost : ExtractorPriceWithinBudget) :
+    LeanVM.ExtractorEfficient :=
+  extractorEfficient_of_spec extractorProgram extractorProgram_size_le extractorC.costIdx
+    extractorProgram_entry
+    (fun prog input qs π ↦ machineCost extractorProgram extractorC.costIdx
+      [enc prog, enc input, enc qs, enc π])
+    (fun prog input qs π ↦ extractorC.costSpec extractorProgram extractorProgram_includes
+      prog input qs π)
+    hcost
 
 end
 

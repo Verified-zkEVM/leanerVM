@@ -50,8 +50,8 @@ parse of an execution, the inverse of its encoding: no search, no check, no run.
 proof announces (`afterRoot`). A run that exceeds its budget outputs `none`, which counts as a
 break in `KnowledgeSoundness`. `decode` (`LeanVmGuest.lean`) is not costed.
 
-**DRAFT.** `extractorSizeBound` and `extractorBudgetAt` are placeholders, `0`, until the bound on
-the compiled extractor is proved: with them `ExtractorEfficient` is false.
+**DRAFT.** `extractorBudgetAt` is a placeholder, `0`, until the bound on the compiled extractor's
+price is assembled: with it `ExtractorEfficient` is false.
 -/
 
 namespace LeanVM.Cost
@@ -398,15 +398,18 @@ open LeanVM.Extraction Common
 
 @[expose] public section
 
-/-- **DRAFT: a placeholder, `0`, until the compiled extractor's size is measured** (twice the
-measured size, rounded up to a power of two). The bound on the extractor program's size. -/
-def extractorSizeBound : ℕ := 0
+/-- **The bound on the extractor program's size**: `2^15` terms, twice the compiled extractor's
+size (`10491`: its `512` bodies and the entry) rounded up to a power of two. It excludes a program
+that carries a table of witnesses for many statements. -/
+def extractorSizeBound : ℕ := 2 ^ 15
 
 /-- **DRAFT: a placeholder, `0`, until the compiled extractor's cost is bounded.** The extractor's
-budget at a shape: the program, the layout and rate exponent the proof announces, and the number
-of the transcript's permutation queries. -/
-def extractorBudgetAt (_prog : Semantics.Program) (_layout : Layout) (_logInverseRate _queries : ℕ) :
-    ℕ :=
+budget at the shape the proof announces: the stack's log-size `μ` (`Layout.stackLog`), the rate's
+log `R`, the memory's log-size `κ` (`Layout.logMemory`), the bytecode's log-size `ℓ`
+(`Layout.logBytecode`), the bytecode's length in words and the number of the transcript's
+permutation queries. -/
+def extractorBudgetAt (_stackLog _logInverseRate _logMemory _logBytecode _bytecodeLength
+    _queries : ℕ) : ℕ :=
   0
 
 /-- **The extractor's budget**, read off the shape the proof announces (`afterRoot`); `0` when
@@ -415,7 +418,8 @@ too). -/
 def extractorBudget (prog : Semantics.Program) (T : OracleQueryLog) (proof : Proof) : ℕ :=
   match afterRoot (bytecodeWords prog) proof with
   | some ((layout, logInverseRate), _) =>
-    extractorBudgetAt prog layout logInverseRate (permutationQueries T).length
+    extractorBudgetAt layout.stackLog logInverseRate layout.logMemory layout.logBytecode
+      (bytecodeWords prog).length (permutationQueries T).length
   | none => 0
 
 /-- **The extractor is efficient**: a cost-machine program of at most `extractorSizeBound` terms,

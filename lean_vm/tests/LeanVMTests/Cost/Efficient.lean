@@ -9,12 +9,16 @@ import LeanVM.Cost.Samples.MsStep
 * a program built from a compiled function's bodies (`msStepK`, one Mulders–Storjohann step) and
   the entry: its bodies held (`includes_ofList`, the indices' distinctness decided) and its size
   bounded by evaluating its bodies' sizes (`size_ofList_le`, decided by the kernel), as the
-  extractor's program's will be.
+  extractor's program's is (`Cost/ExtractorSize.lean`);
+* the extractor's program (`extractorProgram`): `512` bodies, the entry's and the compiled
+  extractor's, the largest index `524`, its size `10491` (the bound `size_ofList_le` gives,
+  `11515`, is what `Cost/ExtractorSize.lean` proves; `extractorSizeBound` is `2^15`);
+* the axioms of `extractorEfficient_of_cost`, `ExtractorEfficient` from the one hypothesis left.
 -/
 
 namespace LeanVMTests.Cost
 
-open LeanVM.Cost LeanVM.Cost.Samples
+open LeanVM.Cost LeanVM.Cost.Samples LeanVM.Cost.Extractor
 
 /-- A stand-in callee: `some` of its first argument. -/
 def standIn : Term := .ctor 1 [.var 0]
@@ -40,5 +44,16 @@ theorem msProgram_size : (Program.ofList msProgramBodies).size ≤ 2 ^ 10 :=
 /-- info: 'LeanVMTests.Cost.msProgram_size' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms msProgram_size
+
+/-! ## The extractor's program -/
+
+#guard extractorProgramBodies.length == 512
+#guard (extractorProgramBodies.map (·.1)).foldr max 0 == 524
+#guard extractorProgram.size == 10491
+#guard (extractorProgramBodies.map fun p ↦ p.2.size).sum == 10465
+
+/-- info: 'LeanVM.Cost.extractorEfficient_of_cost' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms extractorEfficient_of_cost
 
 end LeanVMTests.Cost
