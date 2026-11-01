@@ -99,14 +99,14 @@ theorem logGT_le (x : E) (b : ℕ) : logGT x b ≤ b := by
   · have := idxBelow_le (x.limb 0).lane.toNat gLanes 0 b; omega
   · omega
 
-/-- The search among the lanes (`idxBelow.c637`), `m` entries: at most `25·m + 8`. -/
-theorem idxBelow_cost (hP : Includes P Auto.LeanVM.Guest.Fast.idxBelow.c633.costDeps) (w : ℕ)
+/-- The search among the lanes (`idxBelowC`), `m` entries: at most `25·m + 8`. -/
+theorem idxBelow_cost (hP : Includes P Decoder.idxBelowC.costDeps) (w : ℕ)
     (hw : w < 2 ^ 64) : ∀ (l : List ℕ) (i m : ℕ), (∀ x ∈ l, x < 2 ^ 64) → i + m < 2 ^ 64 →
-      machineCost P Auto.LeanVM.Guest.Fast.idxBelow.c633.costIdx
+      machineCost P Decoder.idxBelowC.costIdx
         [encodeValue w, encodeValue l, encodeValue i, encodeValue m] ≤ 25 * m + 8
-  | [], i, m, _, _ => by rw [Auto.LeanVM.Guest.Fast.idxBelow.c633.costEq_nil P hP]; omega
+  | [], i, m, _, _ => by rw [Decoder.idxBelowC.costEq_nil P hP]; omega
   | t :: ts, i, m, hl, him => by
-    rw [Auto.LeanVM.Guest.Fast.idxBelow.c633.costEq_cons P hP, limbs_of_lt (by omega : m < 2 ^ 64)]
+    rw [Decoder.idxBelowC.costEq_cons P hP, limbs_of_lt (by omega : m < 2 ^ 64)]
     cases m with
     | zero => simp
     | succ k =>
@@ -122,7 +122,7 @@ theorem logGT_cost (hP : Includes P Decoder.logGTC.costDeps) (x : E) (b : ℕ) (
   rw [Decoder.logGTC.costEq P hP]
   have := idxBelow_cost P (by includes) (x.limb 0).lane.toNat (UInt64.toNat_lt _) gLanes 0 b
     gLanes_ok.2 (by omega)
-  rw [Auto.LeanVM.Guest.Fast.gLanes.c634.costEq P (by includes)]
+  rw [Decoder.gLanesC.costEq P (by includes)]
   split_ifs <;> omega
 
 section Val
@@ -132,12 +132,12 @@ variable {σ : Val} {σV : MachineValue}
   {S : ℕ} (hS : ∀ v : V, appCost P σV [encodeValue v] ≤ S)
 include hσ hS
 
-/-- A path level's sibling (`sibN.c646`): at most `4·S + 73`. -/
-theorem sibN_cost (hP : Includes P Auto.LeanVM.Guest.Fast.sibN.c642.costDeps) (bit b : ℕ)
+/-- A path level's sibling (`sibNC`): at most `4·S + 73`. -/
+theorem sibN_cost (hP : Includes P Decoder.sibNC.costDeps) (bit b : ℕ)
     (hb : b < 2 ^ 64) :
-    machineCost P Auto.LeanVM.Guest.Fast.sibN.c642.costIdx [σV, encodeValue bit, encodeValue b] ≤
+    machineCost P Decoder.sibNC.costIdx [σV, encodeValue bit, encodeValue b] ≤
       4 * S + 73 := by
-  rw [Auto.LeanVM.Guest.Fast.sibN.c642.costEq P hP σ σV hσ, limbs_of_lt hb]
+  rw [Decoder.sibNC.costEq P hP σ σV hσ, limbs_of_lt hb]
   have := hS (.n bit); have := hS (.n b); have := hS (.n (b + 1))
   split_ifs <;> omega
 
@@ -151,14 +151,14 @@ theorem bitsN_lt (base : ℕ) : ∀ n, bitsN σ base n < 2 ^ n
     have := Nat.mul_le_mul_left (2 ^ n) this
     omega
 
-/-- The integer of `n ≤ 32` bits (`bitsN.c648`): at most `(3·S + 93)·n + 6`. -/
-theorem bitsN_cost (hP : Includes P Auto.LeanVM.Guest.Fast.bitsN.c644.costDeps) (base : ℕ)
+/-- The integer of `n ≤ 32` bits (`bitsNC`): at most `(3·S + 93)·n + 6`. -/
+theorem bitsN_cost (hP : Includes P Decoder.bitsNC.costDeps) (base : ℕ)
     (hbase : base < 2 ^ 32) : ∀ n, n ≤ 32 →
-      machineCost P Auto.LeanVM.Guest.Fast.bitsN.c644.costIdx [σV, encodeValue base, encodeValue n] ≤
+      machineCost P Decoder.bitsNC.costIdx [σV, encodeValue base, encodeValue n] ≤
         (3 * S + 93) * n + 6
-  | 0, _ => by rw [Auto.LeanVM.Guest.Fast.bitsN.c644.costEq_zero P hP σ σV hσ]; omega
+  | 0, _ => by rw [Decoder.bitsNC.costEq_zero P hP σ σV hσ]; omega
   | n + 1, hn => by
-    rw [Auto.LeanVM.Guest.Fast.bitsN.c644.costEq_succ P hP σ σV hσ]
+    rw [Decoder.bitsNC.costEq_succ P hP σ σV hσ]
     have := bitsN_cost hP base hbase n (by omega)
     have hb := bitsN_lt (σ := σ) base n
     have h2 : 2 ^ n ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) (by omega)
@@ -240,9 +240,9 @@ theorem xPartN_cost (hP : Includes P Decoder.xPartNC.costDeps) (rho bitBase : �
     (2 * S + 6008) (fun i ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
         Decoder.xPartNC.lam0.costEq P (by includes) sel σ σV hσ,
-        Auto.LeanVM.Guest.Fast.xFirst.c638.costEq P (by includes),
-        Auto.LeanVM.Guest.Fast.xRest.c639.costEq P (by includes),
-        Auto.LeanVM.Guest.Fast.xLast.c640.costEq P (by includes)]
+        Decoder.xFirstC.costEq P (by includes),
+        Decoder.xRestC.costEq P (by includes),
+        Decoder.xLastC.costEq P (by includes)]
       have := cwCell_cost P hσ hS (by includes) 19 sel xFirst xRest xLast hsel h1 h2 h3 h4 h5 h6
         (by norm_num) i.val (by have := i.isLt; simp only [LeanXmss.numChains] at this; omega)
       have := cellNat_cost P (by includes) (σ (.n (cwCell 19 sel xFirst xRest xLast σ i.val)))
@@ -281,10 +281,10 @@ theorem xmssSigOfN_cost (hP : Includes P Decoder.xmssSigOfNC.costDeps) :
       have hl := l.isLt
       simp only [LeanXmss.numLayers] at hl
       rw [limbs_of_lt (by omega : l.val < 2 ^ 64),
-        Auto.LeanVM.Guest.Fast.xSel0.c646.costEq P (by includes),
-        Auto.LeanVM.Guest.Fast.xPath0.c647.costEq P (by includes),
-        Auto.LeanVM.Guest.Fast.xSel1.c648.costEq P (by includes),
-        Auto.LeanVM.Guest.Fast.xPath1.c649.costEq P (by includes)]
+        Decoder.xSel0C.costEq P (by includes),
+        Decoder.xPath0C.costEq P (by includes),
+        Decoder.xSel1C.costEq P (by includes),
+        Decoder.xPath1C.costEq P (by includes)]
       have := xPartN_cost P hσ hS (by includes) 196 2 xSel0 xPath0 s0 p0 (by norm_num)
       have := xPartN_cost P hσ hS (by includes) 12604 18 xSel1 xPath1 s1 p1 (by norm_num)
       split_ifs <;> omega) 0 (Nat.zero_le _)
@@ -294,12 +294,12 @@ theorem xmssSigOfN_cost (hP : Includes P Decoder.xmssSigOfNC.costDeps) :
 /-! ## leanSPHINCS -/
 
 omit hσ hS in
-theorem foldPos_cost (hP : Includes P Auto.LeanVM.Guest.Fast.foldPos.c654.costDeps)
+theorem foldPos_cost (hP : Includes P Decoder.foldPosC.costDeps)
     (first rest b a : ℕ) (hf : first < 2 ^ 20) (hr : rest < 2 ^ 20) (hb : b < 2 ^ 20)
     (ha : a < 2 ^ 20) :
-    machineCost P Auto.LeanVM.Guest.Fast.foldPos.c654.costIdx
+    machineCost P Decoder.foldPosC.costIdx
       [encodeValue first, encodeValue rest, encodeValue b, encodeValue a] ≤ 18 := by
-  rw [Auto.LeanVM.Guest.Fast.foldPos.c654.costEq P hP]
+  rw [Decoder.foldPosC.costEq P hP]
   have : rest * (a - 1) < 2 ^ 40 := by
     calc rest * (a - 1) < 2 ^ 20 * 2 ^ 20 := Nat.mul_lt_mul_of_lt_of_le hr (by omega) (by norm_num)
       _ = 2 ^ 40 := by norm_num
@@ -338,7 +338,7 @@ theorem subOpeningN_cost (hP : Includes P Decoder.subOpeningNC.costDeps) (b fold
     (S + 11281) (fun i ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
         Decoder.subOpeningNC.lam0.costEq P (by includes) σ σV hσ,
-        Auto.LeanVM.Guest.Fast.fkOff.c652.costEq P (by includes)]
+        Decoder.fkOffC.costEq P (by includes)]
       have hi := i.isLt
       simp only [Sphincs.childChains] at hi
       have := logGT_le (σ (.n (b + 6))) 256
@@ -444,8 +444,8 @@ theorem sphincsSigOfN_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) :
     (27 * S + 156628) (fun c ↦ by
       rw [appCost_fn, List.cons_append, List.nil_append,
         Decoder.sphincsSigOfNC.lam0.costEq P (by includes) σ σV hσ,
-        Auto.LeanVM.Guest.Fast.sCoordTab.c660.costEq P (by includes),
-        Auto.LeanVM.Guest.Fast.sCoord0.c661.costEq P (by includes)]
+        Decoder.sCoordTabC.costEq P (by includes),
+        Decoder.sCoord0C.costEq P (by includes)]
       have hc' := c.isLt
       simp only [Sphincs.forestCoords] at hc'
       have := getD_cost P (by includes) sCoordTab c.val sCoord0 (by omega)
@@ -457,10 +457,10 @@ theorem sphincsSigOfN_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) :
     (2 * S + 6097) (fun i ↦ by
       rw [appCost_fn, List.cons_append, List.nil_append,
         Decoder.sphincsSigOfNC.lam1.costEq P (by includes) σ σV hσ,
-        Auto.LeanVM.Guest.Fast.sSel.c663.costEq P (by includes),
-        Auto.LeanVM.Guest.Fast.sFirst.c664.costEq P (by includes),
-        Auto.LeanVM.Guest.Fast.sRest.c665.costEq P (by includes),
-        Auto.LeanVM.Guest.Fast.sLast.c666.costEq P (by includes)]
+        Decoder.sSelC.costEq P (by includes),
+        Decoder.sFirstC.costEq P (by includes),
+        Decoder.sRestC.costEq P (by includes),
+        Decoder.sLastC.costEq P (by includes)]
       have := cwCell_cost P hσ hS (by includes) 21 sSel sFirst sRest sLast hsel h1 h2 h3 h4 h5 h6
         (by norm_num) i.val (by have := i.isLt; simp only [Sphincs.numChains] at this; omega)
       have := cellNat_cost P (by includes) (σ (.n (cwCell 21 sSel sFirst sRest sLast σ i.val)))
@@ -472,7 +472,7 @@ theorem sphincsSigOfN_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) :
     (4 * S + 605) (fun l ↦ by
       rw [appCost_fn, List.cons_append, List.nil_append,
         Decoder.sphincsSigOfNC.lam2.costEq P (by includes) σ σV hσ,
-        Auto.LeanVM.Guest.Fast.sPath.c668.costEq P (by includes)]
+        Decoder.sPathC.costEq P (by includes)]
       have hl := l.isLt
       simp only [Sphincs.totalHeight] at hl
       have := getD_cost P (by includes) sPath l.val 0 (by omega)

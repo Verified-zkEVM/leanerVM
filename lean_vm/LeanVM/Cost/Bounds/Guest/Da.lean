@@ -64,31 +64,31 @@ theorem length_dvWsCols (σ : Val) (Vn : NFrames) (cols : Array (E × E)) (j : �
   · rw [List.length_map, List.length_range]
   · rw [List.length_replicate]
 
-/-- **The rows** (`daRows.c584`), any symbols: `r ≤ M` rows of `128` cells, each cell's price at
+/-- **The rows** (`daRowsC`), any symbols: `r ≤ M` rows of `128` cells, each cell's price at
 most `D` and its symbols at most `256`: at most `((D + 32)·128 + 296114)·M + 16`. -/
-theorem daRows_cost (hP : Includes P Auto.LeanVM.Guest.B1.Da.daRows.c584.costDeps)
+theorem daRows_cost (hP : Includes P Decoder.daRowsC.costDeps)
     (syms : ℕ → ℕ → List K) (symsV : MachineValue)
     (hsyms : ∀ a b, RunsApp P symsV [encodeValue a, encodeValue b] (encodeValue (syms a b)))
     (D r M : ℕ) (hr : r ≤ M) (hM : M < 2 ^ 64)
     (hD : ∀ i < r, ∀ j < 128, appCost P symsV [encodeValue i, encodeValue j] ≤ D)
     (hlen : ∀ i j, (syms i j).length ≤ 256) :
-    machineCost P Auto.LeanVM.Guest.B1.Da.daRows.c584.costIdx [encodeValue r, symsV] ≤
+    machineCost P Decoder.daRowsC.costIdx [encodeValue r, symsV] ≤
       ((D + 32) * 128 + 296114) * M + 16 := by
-  rw [Auto.LeanVM.Guest.B1.Da.daRows.c584.costEq P hP r syms symsV hsyms]
+  rw [Decoder.daRowsC.costEq P hP r syms symsV hsyms]
   have m := rangeMap_le P (by includes) (by includes) _
-    (.closure Auto.LeanVM.Guest.B1.Da.daRows.c584.lam0.costIdx [symsV])
-    (fun i ↦ RunsApp.of_spec (Auto.LeanVM.Guest.B1.Da.daRows.c584.lam0.costSpec P (by includes)
+    (.closure Decoder.daRowsC.lam0.costIdx [symsV])
+    (fun i ↦ RunsApp.of_spec (Decoder.daRowsC.lam0.costSpec P (by includes)
       syms symsV hsyms i))
     ((D + 32) * 128 + 296086) r M hr hM (fun i hi ↦ by
       rw [appCost_fn, List.cons_append, List.nil_append,
-        Auto.LeanVM.Guest.B1.Da.daRows.c584.lam0.costEq P (by includes) syms symsV hsyms]
+        Decoder.daRowsC.lam0.costEq P (by includes) syms symsV hsyms]
       have m' := rangeMap_le P (by includes) (by includes) _
-        (.closure Auto.LeanVM.Guest.B1.Da.daRows.c584.lam0.lam0.costIdx [symsV, encodeValue i])
-        (fun j ↦ RunsApp.of_spec (Auto.LeanVM.Guest.B1.Da.daRows.c584.lam0.lam0.costSpec P
+        (.closure Decoder.daRowsC.lam0.lam0.costIdx [symsV, encodeValue i])
+        (fun j ↦ RunsApp.of_spec (Decoder.daRowsC.lam0.lam0.costSpec P
           (by includes) syms symsV hsyms i j))
         (D + 4) 128 128 le_rfl (by norm_num) (fun j hj ↦ by
           rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-            Auto.LeanVM.Guest.B1.Da.daRows.c584.lam0.lam0.costEq P (by includes) syms symsV hsyms]
+            Decoder.daRowsC.lam0.lam0.costEq P (by includes) syms symsV hsyms]
           have := hD i hi j hj
           omega)
       have hf := flatten_map_cost P (by includes) 256 (syms i) (List.range 128)
@@ -119,15 +119,15 @@ theorem cellSymsAt_cost (hP : Includes P Decoder.cellSymsAtC.costDeps) (c11 : E)
   have hσ : ∀ v : V, RunsApp P (.closure Decoder.cellSymsAtC.lam0.costIdx
       [VnV, encodeValue a, encodeValue [c11]]) [encodeValue v] (encodeValue (Vn 28 [c11] a v)) :=
     fun v ↦ RunsApp.of_spec (Decoder.cellSymsAtC.lam0.costSpec P (by includes) Vn VnV hVn a [c11] v)
-  rw [Auto.LeanVM.Guest.B1.Da.cellSymsOf.c573.costEq P (by includes) _ _ hσ]
+  rw [Decoder.cellSymsOfC.costEq P (by includes) _ _ hσ]
   have m := rangeMap_le P (by includes) (by includes) _
-    (.closure Auto.LeanVM.Guest.B1.Da.cellSymsOf.c573.lam0.costIdx
+    (.closure Decoder.cellSymsOfC.lam0.costIdx
       [.closure Decoder.cellSymsAtC.lam0.costIdx [VnV, encodeValue a, encodeValue [c11]]])
-    (fun j ↦ RunsApp.of_spec (Auto.LeanVM.Guest.B1.Da.cellSymsOf.c573.lam0.costSpec P
+    (fun j ↦ RunsApp.of_spec (Decoder.cellSymsOfC.lam0.costSpec P
       (by includes) _ _ hσ j))
     (F + 19) 256 256 le_rfl (by norm_num) (fun j hj ↦ by
       rw [appCost_fn, List.cons_append, List.nil_append,
-        Auto.LeanVM.Guest.B1.Da.cellSymsOf.c573.lam0.costEq P (by includes) _ _ hσ,
+        Decoder.cellSymsOfC.lam0.costEq P (by includes) _ _ hσ,
         limbs_of_lt (by omega : j < 2 ^ 64), appCost_fn, List.cons_append, List.cons_append,
         List.cons_append, List.nil_append,
         Decoder.cellSymsAtC.lam0.costEq P (by includes) Vn VnV hVn]
@@ -136,25 +136,25 @@ theorem cellSymsAt_cost (hP : Includes P Decoder.cellSymsAtC.costDeps) (c11 : E)
   have := hRw (.n 7); have := hRw (.n 8); have := hRw (.n 9)
   omega
 
-/-- A column's `256` weights (`vecWsOf.c580`) at the valuation `dvWsColsC.lam0`:
+/-- A column's `256` weights (`vecWsOfC`) at the valuation `dvWsColsC.lam0`:
 `256·F + 11792`. -/
-theorem vecWsOf_cost (hP : Includes P Auto.LeanVM.Guest.B1.Da.vecWsOf.c580.costDeps)
+theorem vecWsOf_cost (hP : Includes P Decoder.vecWsOfC.costDeps)
     (hL : Includes P Decoder.dvWsColsC.lam0.costDeps) (a r : List E) :
-    machineCost P Auto.LeanVM.Guest.B1.Da.vecWsOf.c580.costIdx
+    machineCost P Decoder.vecWsOfC.costIdx
       [.closure Decoder.dvWsColsC.lam0.costIdx [VnV, encodeValue a, encodeValue r]] ≤
         256 * F + 11792 := by
   have hσ : ∀ v : V, RunsApp P (.closure Decoder.dvWsColsC.lam0.costIdx
       [VnV, encodeValue a, encodeValue r]) [encodeValue v] (encodeValue (Vn 29 r a v)) :=
     fun v ↦ RunsApp.of_spec (Decoder.dvWsColsC.lam0.costSpec P hL Vn VnV hVn a r v)
-  rw [Auto.LeanVM.Guest.B1.Da.vecWsOf.c580.costEq P hP _ _ hσ]
+  rw [Decoder.vecWsOfC.costEq P hP _ _ hσ]
   have m := rangeMap_le P (by includes) (by includes) _
-    (.closure Auto.LeanVM.Guest.B1.Da.vecWsOf.c580.lam0.costIdx
+    (.closure Decoder.vecWsOfC.lam0.costIdx
       [.closure Decoder.dvWsColsC.lam0.costIdx [VnV, encodeValue a, encodeValue r]])
-    (fun j ↦ RunsApp.of_spec (Auto.LeanVM.Guest.B1.Da.vecWsOf.c580.lam0.costSpec P
+    (fun j ↦ RunsApp.of_spec (Decoder.vecWsOfC.lam0.costSpec P
       (by includes) _ _ hσ j))
     (F + 18) 256 256 le_rfl (by norm_num) (fun j hj ↦ by
       rw [appCost_fn, List.cons_append, List.nil_append,
-        Auto.LeanVM.Guest.B1.Da.vecWsOf.c580.lam0.costEq P (by includes) _ _ hσ,
+        Decoder.vecWsOfC.lam0.costEq P (by includes) _ _ hσ,
         limbs_of_lt (by omega : j < 2 ^ 64), appCost_fn, List.cons_append, List.cons_append,
         List.cons_append, List.nil_append, Decoder.dvWsColsC.lam0.costEq P hL Vn VnV hVn]
       have := hF 29 r a (.n (j + 1))
@@ -169,12 +169,12 @@ variable {σ : Val} {σV : MachineValue}
 include hσ hS
 
 omit hVn hF in
-/-- Column `j`'s arguments (`dvColArgs.c565`), `j < 128`: `8·S + 33246`. -/
-theorem dvColArgs_cost (hP : Includes P Auto.LeanVM.Guest.B1.Da.dvColArgs.c565.costDeps) (j : ℕ)
+/-- Column `j`'s arguments (`dvColArgsC`), `j < 128`: `8·S + 33246`. -/
+theorem dvColArgs_cost (hP : Includes P Decoder.dvColArgsC.costDeps) (j : ℕ)
     (hj : j < 128) :
-    machineCost P Auto.LeanVM.Guest.B1.Da.dvColArgs.c565.costIdx [σV, encodeValue j] ≤
+    machineCost P Decoder.dvColArgsC.costIdx [σV, encodeValue j] ≤
       8 * S + 33246 := by
-  rw [Auto.LeanVM.Guest.B1.Da.dvColArgs.c565.costEq P hP σ σV hσ]
+  rw [Decoder.dvColArgsC.costEq P hP σ σV hσ]
   have := powSqE_cost_lt P (by includes) LeanVM.Protocol.Verifier.gen j 7 (by norm_num)
     (by norm_num) (by omega)
   have := hS (.n 1); have := hS (.n 3); have := hS (.n 4); have := hS (.n 2)
