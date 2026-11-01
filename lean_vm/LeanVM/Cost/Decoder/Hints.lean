@@ -18,6 +18,7 @@ open LeanVM.Protocol.Verifier LeanVM.Node
 
 @[expose] public section
 
+cost_compile digestMemAtC := LeanVM.Guest.B1.Digest.memAt
 cost_compile aggRoundsC := aggRounds
 cost_compile aggHintsC := aggHints
 

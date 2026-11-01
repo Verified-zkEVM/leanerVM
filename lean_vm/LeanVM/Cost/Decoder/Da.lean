@@ -121,6 +121,10 @@ theorem dvWitND_tables : dvWitND discreteLogTables = dvWitN := by
   unfold dvWitN dvSymsPNAt dvSymsPN
   rw [gLogD_tables]
 
+cost_compile dvColArgsC := LeanVM.Guest.B1.Da.dvColArgs
+cost_compile cellSymsOfC := LeanVM.Guest.B1.Da.cellSymsOf
+cost_compile vecWsOfC := LeanVM.Guest.B1.Da.vecWsOf
+cost_compile daRowsC := LeanVM.Guest.B1.Da.daRows
 cost_compile colNumC := colNum
 cost_compile rowNumC := rowNum
 cost_compile dvColVNC := dvColVN
