@@ -30,6 +30,35 @@ theorem gLog_discreteLog (x : E) :
 
 cost_rewrite gLog_discreteLog
 
+/-! ## The logarithm, its tables given
+
+`discreteLog x` builds its baby-step tables (`discreteLogTables`, about `7.8·10^7` on the cost
+machine) at every call. The chain's functions take them built, `D`, from the decoder's top level,
+and read an exponent by `gLogD D` (`gLogD_tables`: at `D = discreteLogTables` it is `gLog`), the
+logarithm passed as a value to `gLogAt`. (`cost_rewrite gLog_discreteLog` stays for a `gLog` not
+yet given its tables: it prices the tables at every call.) -/
+
+open LeanVM.Extraction.Fast in
+/-- The exponent below `2^34` of a logarithm `o`, `0` if none (`Located.gLogWith`). -/
+def gLogAt (o : Option ℕ) : ℕ :=
+  match o with
+  | some n => if n < 2 ^ 34 then n else 0
+  | none => 0
+
+open LeanVM.Extraction.Fast in
+/-- **`gLog`, the logarithm's tables `D` given.** -/
+def gLogD (D : DiscreteLogTables) (x : E) : ℕ := gLogAt (discreteLogWith D (x.limb 0))
+
+open LeanVM.Extraction.Fast in
+/-- At the tables built, `gLogD` is `gLog`. -/
+theorem gLogD_tables : gLogD discreteLogTables = gLog := by
+  funext x
+  rw [gLog_discreteLog]
+  rfl
+
+cost_compile gLogAtC := gLogAt
+cost_compile gLogDC := gLogD
+
 
 end
 

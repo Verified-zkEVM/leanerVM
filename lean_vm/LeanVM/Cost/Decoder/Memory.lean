@@ -10,7 +10,8 @@ public import LeanVM.Guest.Fast.DiscreteLog
   of the memory's `2^κ` addresses (the extractor's `gLogTable`), the memory an array
   (`MemoryImage κ` as data);
 * **the cursor's length** (`cursorLenWith discreteLog`, `Guest/Fast/DiscreteLog.lean`): a
-  child's proof's stream length off two cells, by the discrete logarithm.
+  child's proof's stream length off two cells, by the discrete logarithm, its tables `D` given
+  (`cursorLength D`, `cursorLength_tables`).
 -/
 
 namespace LeanVM.Cost.Decoder
@@ -21,8 +22,14 @@ open LeanVM.Cost LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Located LeanVM.
 
 cost_compile readTableC := readTable
 
-/-- The cursor's length by the discrete logarithm. -/
-def cursorLength (p q : E) : ℕ := cursorLenWith LeanVM.Extraction.Fast.discreteLog p q
+/-- The cursor's length by the discrete logarithm, its tables `D` given. -/
+def cursorLength (D : LeanVM.Extraction.Fast.DiscreteLogTables) (p q : E) : ℕ :=
+  cursorLenWith (LeanVM.Extraction.Fast.discreteLogWith D) p q
+
+/-- At the tables built, `cursorLength` is `cursorLenWith discreteLog`. -/
+theorem cursorLength_tables :
+    cursorLength LeanVM.Extraction.Fast.discreteLogTables =
+      cursorLenWith LeanVM.Extraction.Fast.discreteLog := rfl
 
 cost_compile limbQuotC := limbQuot
 cost_compile cursorLengthC := cursorLength

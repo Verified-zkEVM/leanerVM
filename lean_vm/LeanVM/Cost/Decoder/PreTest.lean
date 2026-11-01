@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Decoder.Witness
+public import LeanVM.Cost.Decoder.Memory
 public import LeanVM.Guest.Fast.PreTest
 
 /-!
