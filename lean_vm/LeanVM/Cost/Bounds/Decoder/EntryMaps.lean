@@ -55,8 +55,6 @@ variable (P : MachineProgram)
 /-- The limbs of the positions and weights of a map below `2^D` insertions. -/
 @[expose] def wl (D : ℕ) : ℕ := limbsBelowTwoPow (D + 1)
 
-theorem wl_pos (D : ℕ) : 1 ≤ wl D := by unfold wl limbsBelowTwoPow; omega
-
 theorem limbs_le_wl' {D x : ℕ} (h : x ≤ 2 * 2 ^ D) : limbCount x ≤ wl D := limbs_le_wl_two x h
 
 /-- The price of comparing a key with the key `k` searched: `67` per code of `k`, `38`. -/

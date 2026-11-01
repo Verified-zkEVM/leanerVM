@@ -8,7 +8,7 @@ public import LeanVM.Cost.Extractor.Top
 `extractorProgram`, the cost-machine program `LeanVM.theorems_hold` names as the end statement's
 extractor (`Statement.Theorems decode extractorProgram`, `LeanVM.extractorOf`,
 `Statement/CostMachine.lean`): function `0` is the entry `entryBody j`, which
-destructures the input `encode prog input T proof` (a constructor of four fields), calls function
+destructures the input `encodeExtractorInput prog input T proof` (a constructor of four fields), calls function
 `j = extractorC.costIdx` (the compiled `extractorTop`, `Cost/Extractor/Top.lean`) on them and
 unwraps its optional output; the other functions are the bodies the compiled extractor's spec
 needs (`extractorC.costDeps`, sorted by index, all past `0`: the compiler allocates indices from

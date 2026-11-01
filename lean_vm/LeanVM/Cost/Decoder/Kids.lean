@@ -294,7 +294,6 @@ theorem decKidT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
 
 cost_compile xmssKidClaimC := xmssKidClaim
 cost_compile sphincsKidClaimC := sphincsKidClaim
-set_option maxHeartbeats 4000000 in
 cost_compile kidStmtAtC := kidStmtAt
 cost_compile kidStmtSegC := kidStmtSeg
 cost_compile kidStmtC := kidStmtT

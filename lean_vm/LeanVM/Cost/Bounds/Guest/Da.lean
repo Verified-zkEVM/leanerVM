@@ -27,8 +27,7 @@ matrix's rows `r ≤ 2^k`, `k ≤ 34` (`r < 2^34`, `gLogD_lt`):
   (`daRowCount`, `daRowCount_cost`: `6`), the rows: at most `S + G + dvWitNRowsPrice 10 F S + 21`
   on every input; `dvWitN_cost`: below `S + G + dvWitNAtPrice F S + 14`, `dvWitNAtPrice F S =
   dvWitNRowsPrice 34 F S`; `dvWitN_cost_of_le`: at a clamped count `≤ 2^k`,
-  `S + G + dvWitNRowsPrice k F S + 21`; at `r ≤ 32` (`k = 5`, the deployed DA),
-  `1093888·F + 39041·S + G + 150541989` (`2^20.06·F + 2^15.25·S + G + 2^27.17`).
+  `S + G + dvWitNRowsPrice k F S + 21`.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -49,9 +48,6 @@ theorem colNum_cost (hP : Includes P Decoder.colNumC.costDeps) (j : ℕ) (hj : j
 theorem daRowCount_cost (hP : Includes P Decoder.daRowCountC.costDeps) (r : ℕ) (hr : r < 2 ^ 64) :
     machineCost P Decoder.daRowCountC.costIdx [encodeValue r] ≤ 6 := by
   rw [Decoder.daRowCountC.costEq P hP, limbs_of_lt hr]; split_ifs <;> omega
-
-theorem daRowCount_le_self (r : ℕ) : Decoder.daRowCount r ≤ r := by
-  unfold Decoder.daRowCount; split <;> omega
 
 /-- Column `j`'s row loop (`rowNumC`): `6`. -/
 theorem rowNum_cost (hP : Includes P Decoder.rowNumC.costDeps) (j : ℕ) (hj : j < 2 ^ 64) :
@@ -411,18 +407,6 @@ theorem dvWitN_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
     unfold dvWitNAtPrice dvWitNRowsPrice
     norm_num
     nlinarith
-  omega
-
-/-- At `r ≤ 32` rows (`k = 5`): `1093888·F + 39041·S + G + 150541989`. -/
-theorem dvWitN_cost_32 (D : LeanVM.Extraction.Fast.DiscreteLogTables)
-    (hP : Includes P Decoder.dvWitNC.costDeps) (hG : GLogBound P D G)
-    (hr : Decoder.gLogD D (σ (.n 1)) ≤ 32) :
-    machineCost P Decoder.dvWitNC.costIdx [encodeValue D, σV, VnV] ≤
-      1093888 * F + 39041 * S + G + 150541989 := by
-  have := dvWitN_cost_of_le P hVn hF hσ hS D hP hG 5 (by norm_num) (by norm_num)
-    ((daRowCount_le_self _).trans (by norm_num; exact hr))
-  have e : dvWitNRowsPrice 5 F S = 1093888 * F + 39040 * S + 150541968 := by
-    unfold dvWitNRowsPrice; ring
   omega
 
 end Val

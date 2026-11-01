@@ -23,6 +23,10 @@ jobs:
         run: |
           ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by|skipKernelTC|addDeclCore|addDeclWithoutChecking|doCheck|ofReduceBool|trustCompiler)\b|#exit' \
               --include='*.lean' --exclude-dir=.lake Statement | grep -vE ':[0-9]+: *(--|/-)'
+      # No lakefile sets an option that skips the kernel (`debug.skipKernelTC`, any `debug.` option).
+      - name: Forbid kernel-skipping options in the lakefiles
+        run: |
+          ! grep -nE 'skipKernelTC|debug\.' $(ls lakefile.lean */lakefile.toml */lakefile.lean 2>/dev/null)
       # The statement imports Mathlib, VCVio, CompPoly and itself, nothing of the proofs.
       - name: Keep the statement apart from the proofs
         run: |
