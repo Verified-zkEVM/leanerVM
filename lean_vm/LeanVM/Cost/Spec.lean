@@ -262,6 +262,10 @@ theorem Includes.get {P : Program} {l : List (ℕ × Term)} (h : Includes P l) {
 theorem Includes.mono {P : Program} {l l' : List (ℕ × Term)} (h : Includes P l)
     (hl : ∀ p ∈ l', p ∈ l) : Includes P l' := fun p hp ↦ h p (hl p hp)
 
+theorem Includes.ofForall {P : Program} {l l' : List (ℕ × Term)} (h : Includes P l)
+    (hl : List.Forall (· ∈ l) l') : Includes P l' :=
+  h.mono fun _ hp ↦ List.forall_iff_forall_mem.1 hl _ hp
+
 /-- The program holding the bodies `l` at their indices (the last body given an index wins), the
 other entries a literal `0`. -/
 def Program.ofList (l : List (ℕ × Term)) : Program :=

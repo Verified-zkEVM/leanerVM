@@ -65,6 +65,9 @@ instance {α : Type} [Zero α] [Enc α] : Enc (CompPoly.CPolynomial α) :=
 /-- A function of a finite domain, as the array of its values. -/
 def encFun {α : Type} [Enc α] {n : ℕ} (f : Fin n → α) : Val := .arr (Array.ofFn fun i ↦ enc (f i))
 
+/-- A function of a finite domain: the array of its values. -/
+instance {α : Type} [Enc α] {n : ℕ} : Enc (Fin n → α) := ⟨encFun⟩
+
 instance {S : Type} [Enc S] : Enc (PermutationQuery S) where
   enc | .forward x => .ctor 0 [enc x] | .inverse y => .ctor 1 [enc y]
 

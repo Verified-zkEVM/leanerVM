@@ -98,6 +98,14 @@ def rules : List (Name × Name) := [
   (``Array.getD, ``Rule.arrGetD),
   (``GetElem?.getElem?, ``Rule.arrGetElem?),
   (``GetElem.getElem, ``Rule.arrGetElem),
+  (``GetElem.getElem, ``Rule.vecGetElem),
+  (``Vector.get, ``Rule.vecGet),
+  (``Vector.toArray, ``Rule.vecToArray),
+  (``CompPoly.Extension.Ext.coeff, ``Rule.eLimb0),
+  (``CompPoly.Extension.Ext.coeff, ``Rule.eLimb1),
+  (``CompPoly.Extension.Ext.coeff, ``Rule.eLimb2),
+  (``LeanVM.Parameters.E.ofLimbs, ``Rule.eOfLimbs),
+  (``Decidable.decide, ``Rule.u8Lt),
   (``LeanVM.Parameters.K.ofLane, ``Rule.kOfLane),
   (``UInt8.toNat, ``Rule.uint8ToNat),
   (``UInt64.ofNat, ``Rule.uint64OfNat),
@@ -117,7 +125,19 @@ def rules : List (Name × Name) := [
 def rewrites : List (Name × Name) := [
   (``Array.zipWith, ``Rewrite.arrayZipWith),
   (``HPow.hPow, ``Rewrite.natTwoPow),
-  (``Decidable.decide, ``Rewrite.decideEqList)
+  (``Decidable.decide, ``Rewrite.decideEqList),
+  (``Decidable.decide, ``Rewrite.decideEqArray),
+  (``Decidable.decide, ``Rewrite.decideEqE),
+  (``LeanVM.Parameters.K.ofBits, ``Rewrite.kOfBits),
+  (``HAdd.hAdd, ``Rewrite.eAdd),
+  (``HMul.hMul, ``Rewrite.eMul),
+  (``OfNat.ofNat, ``Rewrite.eZero),
+  (``LeanVM.Parameters.ofK, ``Rewrite.eOfK),
+  (``Array.ofFn, ``Rewrite.arrOfFn),
+  (``Vector.ofFn, ``Rewrite.vecOfFn),
+  (``Array.map, ``Rewrite.arrMap),
+  (``Array.foldl, ``Rewrite.arrFoldl),
+  (``Array.foldr, ``Rewrite.arrFoldr)
 ]
 
 /-- Measures registered by `cost_measure`, by function: over all its parameters. -/
@@ -316,6 +336,15 @@ partial def bvarCount (e : Expr) (i : Nat) : Nat :=
   | .mdata _ b | .proj _ _ b => bvarCount b i
   | _ => 0
 
+/-- Whether the loose bound variable `i` occurs in a binder's type in `e` (a dependent use). -/
+partial def bvarInTypes (e : Expr) (i : Nat) : Bool :=
+  match e with
+  | .lam _ t b _ | .forallE _ t b _ => t.hasLooseBVar i || bvarInTypes b (i + 1)
+  | .letE _ t v b _ => t.hasLooseBVar i || bvarInTypes v i || bvarInTypes b (i + 1)
+  | .app f a => bvarInTypes f i || bvarInTypes a i
+  | .mdata _ b | .proj _ _ b => bvarInTypes b i
+  | _ => false
+
 /-- `f` applied to `args`, β-reduced, a compound data argument used more than once bound by a
 `let` (definitionally equal: it is evaluated once). -/
 partial def betaWithLets (f : Expr) (args : List Expr) (all : List Expr := args) :
@@ -325,6 +354,7 @@ partial def betaWithLets (f : Expr) (args : List Expr) (all : List Expr := args)
     -- an argument another argument mentions (an instance or a proof about it) is substituted
     let mentioned := all.any fun o ↦ o != a && (o.find? (· == a)).isSome
     let simple := a.isFVar || a.isConst || a.isLit || a.isLambda || bvarCount b 0 ≤ 1 ||
+      a.isAppOf ``OfNat.ofNat || bvarInTypes b 0 ||
       mentioned || (← isProp t) || (← isType a) || (← whnfR t).isForall || (← isClass? t).isSome
     if simple then betaWithLets (b.instantiate1 a) as all
     else
@@ -380,18 +410,38 @@ def mergeDeps (own : Nat × Name) (callees : Array (Array (Nat × Name))) : Arra
   callees.foldl (fun acc ds ↦ ds.foldl (fun acc d ↦
     if acc.any (·.1 == d.1) then acc else acc.push d) acc) #[own]
 
+/-- A proof of `x ∈ l`, `l` a list literal holding `x` (syntactically), by its position. -/
+partial def memProof (x l : Expr) : MetaM Expr := do
+  unless l.isAppOfArity ``List.cons 3 do throwError "memProof: {x} not in the list"
+  let hd := l.appFn!.appArg!
+  let tl := l.appArg!
+  if hd == x then
+    let pf ← mkAppOptM ``List.Mem.head #[none, x, tl]
+    mkExpectedTypeHint pf (← mkAppM ``Membership.mem #[l, x])
+  else
+    let pt ← memProof x tl
+    let pf ← mkAppOptM ``List.Mem.tail #[none, x, hd, tl, pt]
+    mkExpectedTypeHint pf (← mkAppM ``Membership.mem #[l, x])
+
+/-- A proof of `List.Forall (· ∈ l) l'`, every entry of the literal `l'` in the literal `l`. -/
+partial def forallMemProof (l l' : Expr) : MetaM Expr := do
+  if l'.isAppOfArity ``List.cons 3 then
+    let a ← memProof l'.appFn!.appArg! l
+    -- `List.Forall p [x]` is `p x`, without a conjunction
+    if l'.appArg!.isAppOfArity ``List.cons 3 then
+      mkAppM ``And.intro #[a, ← forallMemProof l l'.appArg!]
+    else return a
+  else return mkConst ``True.intro
+
 /-- The callees' spec premises, from `hP : Includes P deps`. -/
 def solvePending (pending : Array (MVarId × Array (Nat × Name))) (hP deps : Expr) :
     MetaM Unit := do
   for (m, depsH) in pending do
-    let sub ← proveByTactic (← mkSubset (← depsExpr depsH) deps)
-    m.assign (← mkAppM ``Includes.mono #[hP, sub])
-where
-  mkSubset (l l' : Expr) : MetaM Expr := do
-    let ty ← inferType l
-    withLocalDeclD `p (ty.appArg!) fun p ↦ do
-      withLocalDeclD `hp (← mkAppM ``Membership.mem #[l, p]) fun hp ↦ do
-        mkForallFVars #[p, hp] (← mkAppM ``Membership.mem #[l', p])
+    let l' ← depsExpr depsH
+    let fa ← forallMemProof deps l'
+    let ty := mkAppN (mkConst ``Includes) #[(← instantiateMVars (← inferType hP)).appFn!.appArg!, l']
+    m.assign (← mkExpectedTypeHint (mkAppN (mkConst ``Includes.ofForall)
+      #[(← instantiateMVars (← inferType hP)).appFn!.appArg!, deps, l', hP, fa]) ty)
 
 mutual
 
@@ -422,6 +472,9 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
     if ← isDefEq ty (mkConst ``UInt64) then
       let pf ← mkAppOptM ``Rule.wordLit #[ctx.P, ctx.env, e]
       return ← parts pf
+    if ← isDefEq ty (mkConst ``UInt8) then
+      let pf ← mkAppOptM ``Rule.u8Lit #[ctx.P, ctx.env, e]
+      return ← parts pf
   -- `let`
   if let .letE n ty v b _ := e then
     let (tv, cv, pv) ← translate ctx v
@@ -437,6 +490,18 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
           d, pv, hb]
         let c ← mkAppM ``HAdd.hAdd #[← mkAppM ``HAdd.hAdd #[cv, d.beta #[v]], mkNatLit 1]
         return (← mkAppM ``Term.letE #[tv, tb], c, pf)
+  -- a function of a finite domain held as data (not a closure of the environment), at an index
+  if let .app g i := e then
+    let isClosure := ctx.vals.any fun en ↦ match en with
+      | .fn f _ _ _ => f == g.getAppFn
+      | _ => false
+    if !g.isLambda && !isClosure then
+      let gty ← whnf (← inferType g)
+      if let .forallE _ dom _ _ := gty then
+        if (← whnf dom).isAppOf ``Fin && !gty.bindingBody!.hasLooseBVars then
+          let (_, _, pg) ← translate ctx g
+          let (_, _, pi) ← translate ctx i
+          return ← parts (← mkAppM ``Rule.finFunApp #[pg, pi])
   -- an application of a closure of the environment
   if let .fvar _ := e.getAppFn then
     for h : i in [0:ctx.vals.size] do
@@ -1180,8 +1245,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
       addAndCompile <| .defnDecl (mkDefinitionValEx (name.str "costDeps") [] depsTy depsE .abbrev .safe [])
       withLocalDeclD `hP (mkAppN (mkConst ``Includes) #[P, depsE]) fun hP ↦ do
         solvePending pendingNow hP depsE
-        let mem ← proveByTactic (← mkAppM ``Membership.mem
-          #[depsE, ← mkAppM ``Prod.mk #[mkNatLit idx, mkConst bodyName]])
+        let mem ← memProof (← mkAppM ``Prod.mk #[mkNatLit idx, mkConst bodyName]) depsE
         let hb ← mkAppM ``Includes.get #[hP, mem]
         let motive ← withLocalDeclD `z (← inferType lhs) fun z ↦ do
           mkLambdaFVars #[z] (mkAppN (mkConst ``Runs) #[P, ctx.env, mkConst bodyName,

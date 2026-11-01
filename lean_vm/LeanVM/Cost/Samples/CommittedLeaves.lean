@@ -1,7 +1,6 @@
 module
 
-public import LeanVM.Cost.Library
-public import LeanVM.Protocol.Extraction.Fast.Lookup
+public import LeanVM.Cost.FastLib
 import all LeanVM.Protocol.Extraction.Fast.Lookup
 import all LeanVM.Protocol.Extraction.Fast.SortedMap
 import all Statement.Extractor
@@ -20,20 +19,11 @@ rewrite (`bytesDigest` through an array); the rest the compiler finds.
 namespace LeanVM.Cost.Samples
 
 open LeanVM.Cost LeanVM.Parameters LeanVM.Extraction LeanVM.Extraction.Fast
-open LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash LeanVM.Semantics
+open LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash LeanVM.Semantics LeanVM.Cost.FastLib
 
 public section
 
 attribute [local instance] lexOrd
-
-instance : Enc Hits where
-  enc | .none => .ctor 0 [] | .one x => .ctor 1 [enc x] | .many => .ctor 2 []
-
-instance {α β : Type} [Ord α] [Enc α] [Enc β] : Enc (Level α β) :=
-  ⟨fun l ↦ .ctor 0 [enc l.weight, enc l.entries]⟩
-
-instance {α β : Type} [Ord α] [Enc α] [Enc β] : Enc (SortedMap α β) :=
-  ⟨fun m ↦ .ctor 0 [enc m.levels]⟩
 
 theorem length_bytesLanes : ∀ (L : ℕ) (b : Bytes), (bytesLanes L b).length = L
   | 0, _ => rfl

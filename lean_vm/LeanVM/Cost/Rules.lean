@@ -554,6 +554,71 @@ theorem arrGetElem {t u : Term} {a : Array α} {i : ℕ} {h : i < a.size} {c d :
   (Runs.op (RunsList.cons ha (RunsList.cons hi (RunsList.cons (Runs.val _) RunsList.nil)))
     (v := enc (a[i]'h)) (d := 1) (by simp [Op.apply, h])).cost_eq (by omega)
 
+/-- A function of a finite domain at `i`: entry `i` of its array. -/
+theorem finFunApp {t u : Term} {n : ℕ} {f : Fin n → α} {i : Fin n} {c d : ℕ}
+    (h : Runs P env t (enc f) c) (hi : Runs P env u (enc i) d) :
+    Runs P env (.op .aget [t, u, .val (.ctor 0 [])]) (enc (f i)) (c + d + 1 + 1) :=
+  (Runs.op (RunsList.cons h (RunsList.cons hi (RunsList.cons (Runs.val _) RunsList.nil)))
+    (v := enc (f i)) (d := 1) (by
+      show Op.apply .aget [.arr (Array.ofFn fun j ↦ enc (f j)), .nat i.val, _] = _
+      simp [Op.apply])).cost_eq (by omega)
+
+/-- A vector's `get`: its array. -/
+theorem vecGet {t : Term} {n : ℕ} {v : Vector α n} {c : ℕ} (h : Runs P env t (enc v) c) :
+    Runs P env t (enc v.get) c := by
+  have : enc v.get = enc v := by
+    show Val.arr (Array.ofFn fun i ↦ enc (v.get i)) = Val.arr (v.toArray.map enc)
+    congr 1
+    apply Array.ext
+    · simp
+    · intro i h1 h2; simp [Vector.get]
+  rw [this]; exact h
+
+/-- A vector's array: the same value. -/
+theorem vecToArray {t : Term} {n : ℕ} {v : Vector α n} {c : ℕ} (h : Runs P env t (enc v) c) :
+    Runs P env t (enc v.toArray) c := h
+
+/-- `v[i]'h` of a vector: an entry in bounds. -/
+theorem vecGetElem {t u : Term} {n : ℕ} {v : Vector α n} {i : ℕ} {h : i < n} {c d : ℕ}
+    (hv : Runs P env t (enc v) c) (hi : Runs P env u (enc i) d) :
+    Runs P env (.op .aget [t, u, .val (.ctor 0 [])]) (enc (v[i]'h)) (c + d + 1 + 1) :=
+  (Runs.op (RunsList.cons hv (RunsList.cons hi (RunsList.cons (Runs.val _) RunsList.nil)))
+    (v := enc (v[i]'h)) (d := 1) (by
+      show Op.apply .aget [.arr (v.toArray.map enc), .nat i, _] = _
+      simp [Op.apply, h])).cost_eq (by omega)
+
+theorem u8Lit (x : UInt8) : Runs P env (.val (.word x.toUInt64)) (enc x) 1 := Runs.val _
+
+theorem u8Lt {t u : Term} {a b : UInt8} {inst : Decidable (a < b)} {c d : ℕ}
+    (h : Runs P env t (enc a) c) (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .wlt [t, u]) (enc (@decide (a < b) inst)) (c + d + 1) :=
+  op₂ h hb (by
+    have : decide (a.toUInt64 < b.toUInt64) = @decide (a < b) inst := by
+      by_cases hab : a < b
+      · simp [hab, UInt8.toUInt64_lt.2 hab]
+      · simp [hab, show ¬ a.toUInt64 < b.toUInt64 from fun e ↦ hab (UInt8.toUInt64_lt.1 e)]
+    show Op.apply .wlt [.word a.toUInt64, .word b.toUInt64] = _
+    simp only [Op.apply, wordOp, enc_bool]
+    rw [this])
+
+/-- Limb `i` of a word of `E`: field `i`. -/
+theorem eLimb0 {t : Term} {x : E} {c : ℕ} (h : Runs P env t (enc x) c) :
+    Runs P env (.proj 0 t) (enc (x.limb 0)) (c + 1) :=
+  Runs.proj (k := 0) (fs := [enc (x.limb 0), enc (x.limb 1), enc (x.limb 2)]) h rfl
+theorem eLimb1 {t : Term} {x : E} {c : ℕ} (h : Runs P env t (enc x) c) :
+    Runs P env (.proj 1 t) (enc (x.limb 1)) (c + 1) :=
+  Runs.proj (k := 0) (fs := [enc (x.limb 0), enc (x.limb 1), enc (x.limb 2)]) h rfl
+theorem eLimb2 {t : Term} {x : E} {c : ℕ} (h : Runs P env t (enc x) c) :
+    Runs P env (.proj 2 t) (enc (x.limb 2)) (c + 1) :=
+  Runs.proj (k := 0) (fs := [enc (x.limb 0), enc (x.limb 1), enc (x.limb 2)]) h rfl
+
+/-- A word of `E` from its limbs. -/
+theorem eOfLimbs {ta tb tc : Term} {a b c : K} {ca cb cc : ℕ} (ha : Runs P env ta (enc a) ca)
+    (hb : Runs P env tb (enc b) cb) (hc : Runs P env tc (enc c) cc) :
+    Runs P env (.ctor 0 [ta, tb, tc]) (enc (E.ofLimbs a b c)) (ca + cb + cc + 4) :=
+  (Runs.ctor (k := 0) (RunsList.cons ha (RunsList.cons hb (RunsList.cons hc RunsList.nil)))).cost_eq
+    (by simp; omega)
+
 /-- `K.ofLane`: the same word. -/
 theorem kOfLane {t : Term} {w : UInt64} {c : ℕ} (h : Runs P env t (enc w) c) :
     Runs P env t (enc (K.ofLane w)) c := h
@@ -633,6 +698,85 @@ theorem decideEqList {α : Type} [DecidableEq α] (l₁ l₂ : List α) {inst : 
     @decide (l₁ = l₂) inst = @List.beq α instBEqOfDecidableEq l₁ l₂ := by
   rw [show @List.beq α instBEqOfDecidableEq l₁ l₂ = (l₁ == l₂) from rfl]
   by_cases h : l₁ = l₂ <;> simp [h]
+
+/-- `K.ofBits`: the word of the number modulo `2^64`. -/
+theorem kOfBits (n : ℕ) : K.ofBits n = K.ofLane n.toUInt64 := rfl
+
+/-- Addition in `E`, limb by limb. -/
+theorem eAdd (x y : E) : x + y =
+    E.ofLimbs (x.limb 0 + y.limb 0) (x.limb 1 + y.limb 1) (x.limb 2 + y.limb 2) := by
+  rw [← ofLimbs_limb x, ← ofLimbs_limb y, add_limbs]; simp
+
+/-- Multiplication in `E`: nine products of limbs, `y^3 = y + 1`. -/
+theorem eMul (x y : E) : x * y =
+    let x0 := x.limb 0; let x1 := x.limb 1; let x2 := x.limb 2
+    let y0 := y.limb 0; let y1 := y.limb 1; let y2 := y.limb 2
+    let c3 := x1 * y2 + x2 * y1; let c4 := x2 * y2
+    E.ofLimbs (x0 * y0 + c3) (x0 * y1 + x1 * y0 + c3 + c4) (x0 * y2 + x1 * y1 + x2 * y0 + c4) := by
+  conv_lhs => rw [← ofLimbs_limb x, ← ofLimbs_limb y, mul_limbs]
+  simp only []
+  congr 1 <;> ring
+
+theorem eZero : (0 : E) = E.ofLimbs 0 0 0 := by
+  apply E.ext; intro i; fin_cases i <;> simp [limb_zero]
+
+theorem eOfK (a : K) : ofK a = E.ofLimbs a 0 0 := ofK_eq_ofLimbs a
+
+/-- Equality in `E`: of the limbs. -/
+theorem decideEqE (x y : E) {inst : Decidable (x = y)} :
+    @decide (x = y) inst = decide (x.limb 0 = y.limb 0 ∧ x.limb 1 = y.limb 1 ∧ x.limb 2 = y.limb 2) := by
+  have : x = y ↔ (x.limb 0 = y.limb 0 ∧ x.limb 1 = y.limb 1 ∧ x.limb 2 = y.limb 2) := by
+    constructor
+    · rintro rfl; simp
+    · rintro ⟨h0, h1, h2⟩; apply E.ext; intro i; fin_cases i <;> assumption
+  simp only [this]
+
+/-- The values `f i, …, f (n - 1)`. -/
+def ofFnFrom {α : Type} {n : ℕ} (f : Fin n → α) (i : ℕ) : List α :=
+  if h : i < n then f ⟨i, h⟩ :: ofFnFrom f (i + 1) else []
+termination_by n - i
+
+theorem ofFnFrom_eq {α : Type} {n : ℕ} (f : Fin n → α) :
+    ∀ k i, n - i = k → ofFnFrom f i = (List.ofFn f).drop i := by
+  intro k
+  induction k with
+  | zero =>
+    intro i hi
+    rw [ofFnFrom, dite_eq_right_iff.2 (fun h ↦ absurd h (by omega))]
+    simp [show n ≤ i by omega]
+  | succ k ih =>
+    intro i hi
+    have hin : i < n := by omega
+    rw [ofFnFrom]
+    simp only [hin, ↓reduceDIte]
+    rw [ih (i + 1) (by omega)]
+    have hl : i < (List.ofFn f).length := by simp; omega
+    rw [List.drop_eq_getElem_cons hl]
+    simp
+
+/-- `Array.ofFn` through a list. -/
+theorem arrOfFn {α : Type} {n : ℕ} (f : Fin n → α) : Array.ofFn f = (ofFnFrom f 0).toArray := by
+  apply Array.ext'
+  rw [Array.toList_ofFn, List.toList_toArray, ofFnFrom_eq f n 0 (by omega), List.drop_zero]
+
+theorem vecOfFn {α : Type} {n : ℕ} (f : Fin n → α) : Vector.ofFn f = ⟨Array.ofFn f, by simp⟩ := rfl
+
+theorem arrMap {α β : Type} (f : α → β) (a : Array α) : a.map f = (a.toList.map f).toArray := by
+  apply Array.ext'; simp
+
+theorem arrFoldl {α β : Type} (f : β → α → β) (b : β) (a : Array α) :
+    a.foldl f b = a.toList.foldl f b := by simp [Array.foldl_toList]
+
+theorem arrFoldr {α β : Type} (f : α → β → β) (b : β) (a : Array α) :
+    a.foldr f b = a.toList.foldr f b := by simp [Array.foldr_toList]
+
+/-- Equality of arrays, decided by their lists. -/
+theorem decideEqArray {α : Type} [DecidableEq α] (a b : Array α) {inst : Decidable (a = b)} :
+    @decide (a = b) inst = @List.beq α instBEqOfDecidableEq a.toList b.toList := by
+  rw [show @List.beq α instBEqOfDecidableEq a.toList b.toList = (a.toList == b.toList) from rfl]
+  by_cases h : a = b
+  · subst h; simp
+  · simp [h]
 
 end Rewrite
 
