@@ -1,6 +1,7 @@
 module
 
 public import LeanVM.Protocol.Extraction.Fast.Address
+public import LeanVM.Protocol.Extraction.Fast.AfterRoot
 
 /-!
 # The halting search on a memory vector
@@ -18,6 +19,9 @@ registers with `Registers.final prog` at every step. Here the same search for a 
   (`candidateExecutionVec_eq`, through `filter_boundaryOK_map`);
 * `candidateExecutionIn_eq_none`: above `2^32` words a stack has no execution (`boundaryOK`
   fails), so above `2^63` words the fast search returns `none` with no hash map;
+* all on the lighter layout (`LayoutLite`, `Fast/AfterRoot.lean`: the fields the extractor reads),
+  with `LayoutLite.placement`, `memoryImageLite`, `stepCapLite`, each the statement's at
+  `layoutLite layout` by `rfl`;
 * `candidateExecutionFastVec` (per stack) and `candidateRunner` (the tables built once, then a
   closure over the stacks), both equal to `candidateExecutionFast`
   (`candidateExecutionFastVec_eq`, `candidateRunner_eq`).
@@ -43,21 +47,56 @@ theorem vector_get_ofFn {α : Type _} {n : ℕ} (f : Fin n → α) (i : Fin n) :
     (Vector.ofFn f).get i = f i := by
   exact Vector.getElem_ofFn i.isLt
 
-/-- **The memory image of a stack, as a vector**: `memoryImage`, the offsets of the placements of
-`MEMORY_0`, `MEMORY_1`, `MEMORY_2` computed once. -/
-@[expose] def memoryVec (layout : Verifier.Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) :
+theorem layoutLite_logMemory (layout : Verifier.Layout) :
+    (layoutLite layout).logMemory = layout.logMemory :=
+  rfl
+
+theorem layoutLite_stackLog (layout : Verifier.Layout) :
+    (layoutLite layout).stackLog = layout.stackLog :=
+  rfl
+
+/-- `Layout.placement` on the lighter layout. -/
+@[expose] def LayoutLite.placement (layout : LayoutLite) (column : ℕ) : Placement :=
+  (layout.placements.getD column none).getD default
+
+theorem placement_layoutLite (layout : Verifier.Layout) (column : ℕ) :
+    (layoutLite layout).placement column = layout.placement column :=
+  rfl
+
+/-- `memoryImage` on the lighter layout. -/
+@[expose] def memoryImageLite (layout : LayoutLite) {μ : ℕ} (q : Vector K (2 ^ μ)) :
+    MemoryImage layout.logMemory :=
+  fun i ↦
+    let limb (column : ℕ) : K := q.getD ((layout.placement column).index + i) 0
+    E.ofLimbs (limb memory0) (limb memory1) (limb memory2)
+
+theorem memoryImageLite_layoutLite (layout : Verifier.Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) :
+    memoryImageLite (layoutLite layout) q = memoryImage layout q :=
+  rfl
+
+/-- `stepCap` on the lighter layout. -/
+@[expose] def stepCapLite (layout : LayoutLite) : ℕ :=
+  (layout.tableLogHeights.map (2 ^ ·)).sum + 2 ^ layout.logMemory + 2 ^ layout.logBytecode
+
+theorem stepCapLite_layoutLite (layout : Verifier.Layout) :
+    stepCapLite (layoutLite layout) = stepCap layout :=
+  rfl
+
+/-- **The memory image of a stack, as a vector**: `memoryImageLite`, the offsets of the placements
+of `MEMORY_0`, `MEMORY_1`, `MEMORY_2` computed once. -/
+@[expose] def memoryVec (layout : LayoutLite) {μ : ℕ} (q : Vector K (2 ^ μ)) :
     Vector E (2 ^ layout.logMemory) :=
   let o₀ := (layout.placement memory0).index
   let o₁ := (layout.placement memory1).index
   let o₂ := (layout.placement memory2).index
   Vector.ofFn fun i ↦ E.ofLimbs (q.getD (o₀ + i) 0) (q.getD (o₁ + i) 0) (q.getD (o₂ + i) 0)
 
-theorem memoryVec_get (layout : Verifier.Layout) {μ : ℕ} (q : Vector K (2 ^ μ))
-    (i : Fin (2 ^ layout.logMemory)) : (memoryVec layout q).get i = memoryImage layout q i := by
-  exact vector_get_ofFn (memoryImage layout q) i
+theorem memoryVec_get (layout : LayoutLite) {μ : ℕ} (q : Vector K (2 ^ μ))
+    (i : Fin (2 ^ layout.logMemory)) : (memoryVec layout q).get i = memoryImageLite layout q i := by
+  exact vector_get_ofFn (memoryImageLite layout q) i
 
-theorem memoryVec_get_eq (layout : Verifier.Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) :
-    (memoryVec layout q).get = memoryImage layout q :=
+theorem memoryVec_get_eq (layout : LayoutLite) {μ : ℕ} (q : Vector K (2 ^ μ)) :
+    (memoryVec layout q).get = memoryImageLite layout q :=
   funext (memoryVec_get layout q)
 
 /-! ## The halting search on the vector -/
@@ -101,18 +140,18 @@ theorem haltLoopVec_eq (memT codeT : Array (ℕ × ℕ)) (prog : Program) {κ : 
 
 /-- `boundaryOK` of a stack's execution, read off the stack: it reads only the memory's size and
 words `0` and `1`, not the number of steps. -/
-@[expose] def boundaryOfStack (input : PublicInput) (layout : Verifier.Layout) {μ : ℕ}
+@[expose] def boundaryOfStack (input : PublicInput) (layout : LayoutLite) {μ : ℕ}
     (q : Vector K (2 ^ μ)) : Bool :=
   if h : minLogMem ≤ layout.logMemory ∧ layout.logMemory ≤ maxLogMem then
-    decide (memoryImage layout q ⟨0, Nat.two_pow_pos layout.logMemory⟩ = input.word0) &&
-      decide (memoryImage layout q ⟨1, Nat.one_lt_two_pow (by unfold minLogMem at h; omega)⟩ =
+    decide (memoryImageLite layout q ⟨0, Nat.two_pow_pos layout.logMemory⟩ = input.word0) &&
+      decide (memoryImageLite layout q ⟨1, Nat.one_lt_two_pow (by unfold minLogMem at h; omega)⟩ =
         input.word1)
   else false
 
 theorem boundaryOK_mk {prog : Program} (input : PublicInput) (layout : Verifier.Layout) {μ : ℕ}
     (q : Vector K (2 ^ μ)) (n : ℕ) :
     boundaryOK input (⟨layout.logMemory, memoryImage layout q, n⟩ : Execution prog) =
-      boundaryOfStack input layout q :=
+      boundaryOfStack input (layoutLite layout) q :=
   rfl
 
 /-- **The boundary filter, checked first**: filtering the runs by `boundaryOK` is checking the
@@ -121,7 +160,7 @@ theorem filter_boundaryOK_map {prog : Program} (input : PublicInput) (layout : V
     {μ : ℕ} (q : Vector K (2 ^ μ)) (o : Option ℕ) :
     (o.map fun n ↦ (⟨layout.logMemory, memoryImage layout q, n⟩ : Execution prog)).filter
         (boundaryOK input) =
-      if boundaryOfStack input layout q then
+      if boundaryOfStack input (layoutLite layout) q then
         o.map fun n ↦ (⟨layout.logMemory, memoryImage layout q, n⟩ : Execution prog)
       else none := by
   cases o with
@@ -130,7 +169,7 @@ theorem filter_boundaryOK_map {prog : Program} (input : PublicInput) (layout : V
   | some n =>
     rfl
 
-theorem boundaryOfStack_of_lt (input : PublicInput) (layout : Verifier.Layout) {μ : ℕ}
+theorem boundaryOfStack_of_lt (input : PublicInput) (layout : LayoutLite) {μ : ℕ}
     (q : Vector K (2 ^ μ)) (h : maxLogMem < layout.logMemory) :
     boundaryOfStack input layout q = false := by
   unfold boundaryOfStack
@@ -144,7 +183,7 @@ theorem candidateExecutionIn_eq_none (memIdx codeIdx : Std.HashMap UInt64 ℕ) (
     (input : PublicInput) (layout : Verifier.Layout) (h : maxLogMem < layout.logMemory) {μ : ℕ}
     (q : Vector K (2 ^ μ)) : candidateExecutionIn memIdx codeIdx prog input layout q = none := by
   rewrite [candidateExecutionIn, haltingRunIn, filter_boundaryOK_map,
-    boundaryOfStack_of_lt input layout q h]
+    boundaryOfStack_of_lt input (layoutLite layout) q h]
   rfl
 
 /-! ## A stack's execution -/
@@ -152,7 +191,7 @@ theorem candidateExecutionIn_eq_none (memIdx codeIdx : Std.HashMap UInt64 ℕ) (
 /-- `candidateExecutionTable` on the memory vector: the boundary checked first, then the memory
 vector built and the halting loop run, from the final registers `fin` and the step cap `cap`. -/
 @[expose] def candidateExecutionVec (memT codeT : Array (ℕ × ℕ)) (prog : Program)
-    (input : PublicInput) (layout : Verifier.Layout) (fin : Registers K) (cap : ℕ) {μ : ℕ}
+    (input : PublicInput) (layout : LayoutLite) (fin : Registers K) (cap : ℕ) {μ : ℕ}
     (q : Vector K (2 ^ μ)) : Option (Execution prog) :=
   if boundaryOfStack input layout q then
     let mem := memoryVec layout q
@@ -162,66 +201,72 @@ vector built and the halting loop run, from the final registers `fin` and the st
 
 theorem candidateExecutionVec_eq (memT codeT : Array (ℕ × ℕ)) (prog : Program)
     (input : PublicInput) (layout : Verifier.Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) :
-    candidateExecutionVec memT codeT prog input layout (Registers.final prog) (stepCap layout) q =
+    candidateExecutionVec memT codeT prog input (layoutLite layout) (Registers.final prog)
+        (stepCap layout) q =
       candidateExecutionTable memT codeT prog input layout q := by
   rewrite [candidateExecutionTable, filter_boundaryOK_map, candidateExecutionVec]
-  simp only [haltLoopVec_eq, memoryVec_get_eq]
+  simp only [haltLoopVec_eq, memoryVec_get_eq, memoryImageLite_layoutLite]
+  rfl
 
 /-- **A stack's execution on the memory vector**: the address tables, the final registers and the
 step cap computed once per stack; `none` above `2^63` words, where no stack has an execution
 (`candidateExecutionIn_eq_none`). -/
 @[expose] def candidateExecutionFastVec (prog : Program) (input : PublicInput)
-    (layout : Verifier.Layout) (q : Vector K (2 ^ layout.stackLog)) : Option (Execution prog) :=
+    (layout : LayoutLite) (q : Vector K (2 ^ layout.stackLog)) : Option (Execution prog) :=
   if layout.logMemory < 64 then
     let memT := powTable layout.logMemory
     let codeT := powTable prog.logSize
     let fin := Registers.final prog
-    let cap := stepCap layout
+    let cap := stepCapLite layout
     candidateExecutionVec memT codeT prog input layout fin cap q
   else none
 
 theorem candidateExecutionFastVec_apply (prog : Program) (input : PublicInput)
     (layout : Verifier.Layout) (q : Vector K (2 ^ layout.stackLog)) :
-    candidateExecutionFastVec prog input layout q = candidateExecutionFast prog input layout q := by
+    candidateExecutionFastVec prog input (layoutLite layout) q =
+      candidateExecutionFast prog input layout q := by
   rw [candidateExecutionFast_eq]
   unfold candidateExecutionFastVec
   by_cases h : layout.logMemory < 64
-  · simp only [h, ↓reduceIte]
+  · simp only [layoutLite_logMemory, stepCapLite_layoutLite, h, ↓reduceIte]
     exact (candidateExecutionVec_eq (powTable layout.logMemory) (powTable prog.logSize) prog input
       layout q).trans (candidateExecutionTable_eq h q)
-  · simp only [h, ↓reduceIte]
+  · simp only [layoutLite_logMemory, h, ↓reduceIte]
     have hl : maxLogMem < layout.logMemory := by unfold maxLogMem; omega
     exact (candidateExecutionIn_eq_none (powIndex layout.logMemory) (powIndex prog.logSize) prog
       input layout hl q).symm
 
 /-- **The fast search on the memory vector is `candidateExecutionFast`.** -/
-theorem candidateExecutionFastVec_eq : candidateExecutionFastVec = candidateExecutionFast := by
-  funext prog input layout q
+theorem candidateExecutionFastVec_eq (prog : Program) (input : PublicInput)
+    (layout : Verifier.Layout) :
+    candidateExecutionFastVec prog input (layoutLite layout) =
+      candidateExecutionFast prog input layout := by
+  funext q
   exact candidateExecutionFastVec_apply prog input layout q
 
 /-- **The search over the stacks**: the address tables, the final registers and the step cap
 built once, then a closure over the stacks. `extractFast` should bind
 `let execution := candidateRunner prog input layout` for `findSome?` (`candidateRunner_eq`). -/
-@[expose] def candidateRunner (prog : Program) (input : PublicInput) (layout : Verifier.Layout) :
+@[expose] def candidateRunner (prog : Program) (input : PublicInput) (layout : LayoutLite) :
     Vector K (2 ^ layout.stackLog) → Option (Execution prog) :=
   if layout.logMemory < 64 then
     let memT := powTable layout.logMemory
     let codeT := powTable prog.logSize
     let fin := Registers.final prog
-    let cap := stepCap layout
+    let cap := stepCapLite layout
     fun q ↦ candidateExecutionVec memT codeT prog input layout fin cap q
   else fun _ ↦ none
 
 theorem candidateRunner_eq (prog : Program) (input : PublicInput) (layout : Verifier.Layout) :
-    candidateRunner prog input layout = candidateExecutionFast prog input layout := by
+    candidateRunner prog input (layoutLite layout) = candidateExecutionFast prog input layout := by
   rw [candidateExecutionFast_eq]
   unfold candidateRunner
   by_cases h : layout.logMemory < 64
-  · simp only [h, ↓reduceIte]
+  · simp only [layoutLite_logMemory, stepCapLite_layoutLite, h, ↓reduceIte]
     funext q
     exact (candidateExecutionVec_eq (powTable layout.logMemory) (powTable prog.logSize) prog input
       layout q).trans (candidateExecutionTable_eq h q)
-  · simp only [h, ↓reduceIte]
+  · simp only [layoutLite_logMemory, h, ↓reduceIte]
     funext q
     have hl : maxLogMem < layout.logMemory := by unfold maxLogMem; omega
     exact (candidateExecutionIn_eq_none (powIndex layout.logMemory) (powIndex prog.logSize) prog
