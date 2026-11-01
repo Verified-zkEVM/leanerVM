@@ -48,6 +48,7 @@ cost_enc LeanVM.Protocol.Verifier.BusBlock
 cost_enc LeanVM.Protocol.Verifier.Layout
 cost_enc LeanVM.Parameters.Whir.Level
 cost_enc LeanVM.Semantics.Registers
+cost_enc LeanVM.Parameters.Opcode
 
 /-- Equality of registers: of both fields. -/
 theorem decideEqRegisters {F : Type} [DecidableEq F] (x y : LeanVM.Semantics.Registers F)
