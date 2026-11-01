@@ -23,7 +23,9 @@ level, a merge per entry, an insertion amortized by the potential (`Bounds/Sorte
 * the same for the pc table's `ℕ` keys (`getPc_cost`, `insertPc_amortized`), `b = 32`.
 
 Keys are word-sized (`KeyOK L`, `NatKey`): the comparisons' limbs are `1`. Positions and weights
-stay below `2^63` (`D ≤ 62`), one limb each.
+up to `2·2^D`, for any `D`, have at most `wl D = (D + 1)/64 + 1` limbs each (`limbs_le_wl_two`):
+the prices gain `9·wl D` per binary-search step and `2·wl D` per carry step (`wl D = 1` for
+`D ≤ 62`, the prices then as on words).
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -49,6 +51,13 @@ variable (P : MachineProgram)
 
 /-- A word-sized key of the pc table. -/
 @[expose] def NatKey (k : ℕ) : Prop := k < 2 ^ 64
+
+/-- The limbs of the positions and weights of a map below `2^D` insertions. -/
+@[expose] def wl (D : ℕ) : ℕ := limbsBelowTwoPow (D + 1)
+
+theorem wl_pos (D : ℕ) : 1 ≤ wl D := by unfold wl limbsBelowTwoPow; omega
+
+theorem limbs_le_wl' {D x : ℕ} (h : x ≤ 2 * 2 ^ D) : limbCount x ≤ wl D := limbs_le_wl_two x h
 
 /-- The price of comparing a key with the key `k` searched: `67` per code of `k`, `38`. -/
 @[expose] def keyCmpPrice (k : CallKey) : ℕ := 67 * (k.2.1.length + k.2.2.length) + 38
@@ -100,39 +109,42 @@ theorem compareCodes_cost (hP : Includes P Auto.List.compareLex.c284.costDeps)
 
 /-! ## The entry table's map: `CallKey` keys -/
 
-/-- **The binary search of a key `k`** (`searchInKeyC`), the entries' keys of at most `L` codes:
-at most `(keyCmpPrice k + 60)·(log₂(hi − lo) + 2)`. -/
+-- the comparison's 27 outcomes, each an `omega` over the positions' limbs: twice the default
+set_option maxHeartbeats 400000 in
+/-- **The binary search of a key `k`** (`searchInKeyC`), the entries' keys of at most `L` codes,
+positions up to `2H` of at most `W` limbs: at most `(keyCmpPrice k + 51 + 9W)·(log₂(hi − lo) + 2)`. -/
 theorem searchInKey_cost (hP : Includes P searchInKeyC.costDeps) (L : ℕ)
     (t : Array (CallKey × K)) (ht : ∀ e ∈ t, KeyOK L e.1) (k : CallKey) {L' : ℕ} (hk : KeyOK L' k)
-    (H : ℕ) (hH : H ≤ 2 ^ 62) (hts : t.size ≤ H) :
+    (H W : ℕ) (hW : ∀ x, x ≤ 2 * H → limbCount x ≤ W) (hts : t.size ≤ H) :
     ∀ lo hi, lo ≤ H → hi ≤ H →
       machineCost P searchInKeyC.costIdx [encodeValue t, encodeValue k, encodeValue lo,
-        encodeValue hi] ≤ (keyCmpPrice k + 60) * (Nat.log2 (hi - lo) + 2) := by
+        encodeValue hi] ≤ (keyCmpPrice k + 51 + 9 * W) * (Nat.log2 (hi - lo) + 2) := by
   intro lo hi hlo hhi
   have hcmp := compareCodes_cost P (by includes) (by includes)
   obtain ⟨hk1, -, -, hka, hkr⟩ := hk
   have := le_of_halving (α := ℕ × ℕ) (fun x ↦ x.1 ≤ H ∧ x.2 ≤ H) (fun x ↦ x.2 - x.1)
     (fun x ↦ machineCost P searchInKeyC.costIdx [encodeValue t, encodeValue k, encodeValue x.1,
       encodeValue x.2])
-    (keyCmpPrice k + 60) (keyCmpPrice k + 60) ?hz ?h (lo, hi) ⟨hlo, hhi⟩
+    (keyCmpPrice k + 51 + 9 * W) (keyCmpPrice k + 51 + 9 * W) ?hz ?h (lo, hi) ⟨hlo, hhi⟩
   · dsimp only at this
     nlinarith
   · rintro ⟨lo, hi⟩ ⟨hlo, hhi⟩ h0
     dsimp only at *
     rw [searchInKeyC.costEq P hP]
     simp only [show ¬lo < hi by omega, ↓reduceIte]
-    rw [limbs_of_lt (by omega : lo < 2 ^ 64), limbs_of_lt (by omega : hi < 2 ^ 64)]
+    have := hW lo (by omega)
+    have := hW hi (by omega)
     unfold keyCmpPrice
-    simp only [max_self]
     omega
   · rintro ⟨lo, hi⟩ ⟨hlo, hhi⟩ hpos
     dsimp only at *
     rw [searchInKeyC.costEq P hP]
     simp only [show lo < hi by omega, ↓reduceIte]
-    rw [limbs_of_lt (by omega : lo < 2 ^ 64), limbs_of_lt (by omega : hi < 2 ^ 64),
-      limbs_of_lt (by omega : lo + hi < 2 ^ 64), limbs_of_lt (by omega : (lo + hi) / 2 < 2 ^ 64),
-      limbs_of_lt (by omega : t.size < 2 ^ 64)]
-    simp only [max_self]
+    have := hW lo (by omega)
+    have := hW hi (by omega)
+    have := hW (lo + hi) (by omega)
+    have := hW ((lo + hi) / 2) (by omega)
+    have := hW t.size (by omega)
     generalize hv : t[(lo + hi) / 2]? = ov
     cases ov with
     | none =>
@@ -214,71 +226,73 @@ theorem mergeNewerKey_cost (hP : Includes P mergeNewerKeyC.costDeps) (L : ℕ) :
       generalize compare x.1 y.1 = o2
       cases o1 <;> cases o3 <;> dsimp only <;> cases o2 <;> dsimp only <;> split_ifs <;> omega
 
-/-- Two levels merged (`levelMergeKeyC`): at most `134·L + 71` per entry and `26`, the weights
-word-sized. -/
+/-- Two levels merged (`levelMergeKeyC`): at most `134·L + 71` per entry and `25 + W`, the
+weights of at most `W` limbs. -/
 theorem levelMergeKey_cost (hP : Includes P levelMergeKeyC.costDeps) (L : ℕ)
-    (l l' : Level CallKey K) (hQ : KeysIn (KeyOK L) [l, l']) (hw : l.weight < 2 ^ 64)
-    (hw' : l'.weight < 2 ^ 64) :
+    (l l' : Level CallKey K) (hQ : KeysIn (KeyOK L) [l, l']) (W : ℕ) (hw : limbCount l.weight ≤ W)
+    (hw' : limbCount l'.weight ≤ W) :
     machineCost P levelMergeKeyC.costIdx [encodeValue l, encodeValue l'] ≤
-      26 + (134 * L + 71) * (l.entries.size + l'.entries.size) := by
-  rw [levelMergeKeyC.costEq P hP, limbs_of_lt hw, limbs_of_lt hw']
+      25 + W + (134 * L + 71) * (l.entries.size + l'.entries.size) := by
+  rw [levelMergeKeyC.costEq P hP]
+  have hmx : max (limbCount l.weight) (limbCount l'.weight) ≤ W := max_le hw hw'
   have hm := mergeNewerKey_cost P (by includes) L _ l.entries.toList l'.entries.toList rfl
     (fun e he ↦ hQ l (by simp) e (by simpa using he))
     (fun e he ↦ hQ l' (by simp) e (by simpa using he))
   have hlen := length_mergeNewer_le l.entries.toList l'.entries.toList
-  simp only [Array.length_toList, max_self] at hm hlen ⊢
+  simp only [Array.length_toList] at hm hlen ⊢
   nlinarith
 
-/-- **An insertion into the entry table's map, amortized** (`carryKeyC`), below `2^D ≤ 2^62`
-insertions. -/
-theorem carryKey_amortized (hP : Includes P carryKeyC.costDeps) (L D : ℕ) (hD : D ≤ 62)
+/-- **An insertion into the entry table's map, amortized** (`carryKeyC`), below `2^D`
+insertions, the weights of at most `wl D` limbs. -/
+theorem carryKey_amortized (hP : Includes P carryKeyC.costDeps) (L D : ℕ)
     (m : SortedMap CallKey K) (hm : smGood m) (hQ : KeysIn (KeyOK L) m.levels)
     (hN : smWeightSum m < 2 ^ D) (l : Level CallKey K) (hw : l.weight = 1)
     (hs : l.entries.size = 1) (hk : ∀ e ∈ l.entries, KeyOK L e.1) :
     machineCost P carryKeyC.costIdx [encodeValue l, encodeValue m.levels] +
         (134 * L + 71) * potential D (carry l m.levels) ≤
-      (134 * L + 71) * potential D m.levels + (134 * L + 71) * D + 42 * (m.levels.length + 1) := by
-  have h64 : 2 ^ D < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) (by omega)
+      (134 * L + 71) * potential D m.levels + (134 * L + 71) * D +
+        (2 * wl D + 40) * (m.levels.length + 1) := by
   refine insert_amortized (KeyOK L)
     (fun l ls ↦ machineCost P carryKeyC.costIdx [encodeValue l, encodeValue ls])
-    42 (134 * L + 71) D ?_ ?_ ?_ m hm hQ hN l hw hs hk
+    (2 * wl D + 40) (134 * L + 71) D ?_ ?_ ?_ m hm hQ hN l hw hs hk
   · intro l _; rw [carryKeyC.costEq_nil P hP]; omega
   · intro l l' ls h1 h2 hne
-    rw [carryKeyC.costEq_cons P hP, limbs_of_lt (by omega : l.weight < 2 ^ 64),
-      limbs_of_lt (by omega : l'.weight < 2 ^ 64)]
-    simp only [hne, ↓reduceIte, max_self]
+    rw [carryKeyC.costEq_cons P hP]
+    have := limbs_le_wl' (D := D) (x := l.weight) (by omega)
+    have := limbs_le_wl' (D := D) (x := l'.weight) (by omega)
+    simp only [hne, ↓reduceIte]
     omega
   · intro l l' ls h1 heq hQ2
-    have := levelMergeKey_cost P (by includes) L l l' hQ2 (by omega) (by omega)
-    rw [carryKeyC.costEq_cons P hP, limbs_of_lt (by omega : l.weight < 2 ^ 64),
-      limbs_of_lt (by omega : l'.weight < 2 ^ 64)]
-    simp only [heq, ↓reduceIte, max_self]
+    have h3 := limbs_le_wl' (D := D) (x := l.weight) (by omega)
+    have h4 := limbs_le_wl' (D := D) (x := l'.weight) (by omega)
+    have := levelMergeKey_cost P (by includes) L l l' hQ2 (wl D) h3 h4
+    rw [carryKeyC.costEq_cons P hP]
+    simp only [heq, ↓reduceIte]
     omega
 
 /-- **A lookup of `k`** (`getKeyC`) in a map of at most `D` levels of at most `2^D` entries: a
-binary search per level, at most `D·(17 + (keyCmpPrice k + 60)·(D + 2)) + 9`. -/
-theorem getKey_cost (hP : Includes P getKeyC.costDeps) (L D : ℕ) (hD : D ≤ 62)
+binary search per level, at most `D·(17 + (keyCmpPrice k + 51 + 9·wl D)·(D + 2)) + 9`. -/
+theorem getKey_cost (hP : Includes P getKeyC.costDeps) (L D : ℕ)
     (m : SortedMap CallKey K) (hQ : KeysIn (KeyOK L) m.levels) (hlev : m.levels.length ≤ D)
     (hsz : ∀ l ∈ m.levels, l.entries.size ≤ 2 ^ D) (k : CallKey) {L' : ℕ} (hk : KeyOK L' k) :
     machineCost P getKeyC.costIdx [encodeValue m, encodeValue k] ≤
-      D * (17 + (keyCmpPrice k + 60) * (D + 2)) + 9 := by
-  have hH : 2 ^ D ≤ 2 ^ 62 := Nat.pow_le_pow_right (by norm_num) hD
+      D * (17 + (keyCmpPrice k + 51 + 9 * wl D) * (D + 2)) + 9 := by
   have hlam : ∀ l ∈ m.levels, appCost P (.closure getKeyC.lam0.costIdx [encodeValue k])
-      [encodeValue l] ≤ 8 + (keyCmpPrice k + 60) * (D + 2) := by
+      [encodeValue l] ≤ 8 + (keyCmpPrice k + 51 + 9 * wl D) * (D + 2) := by
     intro l hl
     rw [appCost_fn, List.singleton_append, getKeyC.lam0.costEq P (by includes)]
-    have := searchInKey_cost P (by includes) L l.entries (fun e he ↦ hQ l hl e he) k hk (2 ^ D) hH
-      (hsz l hl) 0 l.entries.size (Nat.zero_le _) (hsz l hl)
+    have := searchInKey_cost P (by includes) L l.entries (fun e he ↦ hQ l hl e he) k hk (2 ^ D)
+      (wl D) (fun x hx ↦ limbs_le_wl' hx) (hsz l hl) 0 l.entries.size (Nat.zero_le _) (hsz l hl)
     have h2 : Nat.log2 (l.entries.size - 0) ≤ D := by
       have := log2_mono (show l.entries.size - 0 ≤ 2 ^ D by have := hsz l hl; omega)
       rwa [Nat.log2_two_pow] at this
-    have : (keyCmpPrice k + 60) * (Nat.log2 (l.entries.size - 0) + 2) ≤
-        (keyCmpPrice k + 60) * (D + 2) := Nat.mul_le_mul_left _ (by omega)
+    have : (keyCmpPrice k + 51 + 9 * wl D) * (Nat.log2 (l.entries.size - 0) + 2) ≤
+        (keyCmpPrice k + 51 + 9 * wl D) * (D + 2) := Nat.mul_le_mul_left _ (by omega)
     omega
   have hfs := findSome_cost P (by includes) _ (.closure getKeyC.lam0.costIdx [encodeValue k])
     (fun a ↦ RunsApp.of_spec (getKeyC.lam0.costSpec P (by includes) _ a)) _ m.levels hlam
   rw [getKeyC.costEq P hP]
-  generalize (keyCmpPrice k + 60) * (D + 2) = X at hfs ⊢
+  generalize (keyCmpPrice k + 51 + 9 * wl D) * (D + 2) = X at hfs ⊢
   have h1 := Nat.mul_le_mul_left (8 + X + 9) hlev
   have h2 : (8 + X + 9) * D = D * (17 + X) := by ring
   omega
@@ -289,36 +303,38 @@ theorem getKey_cost (hP : Includes P getKeyC.costDeps) (L D : ℕ) (hD : D ≤ 6
   smGood m ∧ KeysIn (KeyOK L) m.levels ∧ smWeightSum m + r ≤ 2 ^ D
 
 /-- The price of a lookup of a key of at most `L` codes per list, below `2^D` insertions. -/
-@[expose] def getKeyPrice (L D : ℕ) : ℕ := D * (17 + (134 * L + 98) * (D + 2)) + 9
+@[expose] def getKeyPrice (L D : ℕ) : ℕ := D * (17 + (134 * L + 89 + 9 * wl D) * (D + 2)) + 9
 
 /-- The amortized price of an insertion if new of a key of at most `L` codes per list. -/
-@[expose] def insertKeyPrice (L D : ℕ) : ℕ := getKeyPrice L D + (134 * L + 71) * D + 42 * D + 72
+@[expose] def insertKeyPrice (L D : ℕ) : ℕ :=
+  getKeyPrice L D + (134 * L + 71) * D + (2 * wl D + 40) * (D + 1) + 30
 
 /-- A lookup of a key of at most `L` codes per list: at most `getKeyPrice L D`. -/
-theorem getKey_cost_le (hP : Includes P getKeyC.costDeps) (L D : ℕ) (hD : D ≤ 62)
+theorem getKey_cost_le (hP : Includes P getKeyC.costDeps) (L D : ℕ)
     (m : SortedMap CallKey K) (r : ℕ) (hm : KeyInv L D m (r + 1)) (k : CallKey) (hk : KeyOK L k) :
     machineCost P getKeyC.costIdx [encodeValue m, encodeValue k] ≤ getKeyPrice L D := by
   obtain ⟨hg, hQ, hw⟩ := hm
   obtain ⟨hlev, hsz⟩ := smGood_levels_le hg (D := D) (by omega)
-  have := getKey_cost P hP L D hD m hQ hlev (fun l hl ↦ (hsz l hl).1.trans (hsz l hl).2) k hk
+  have := getKey_cost P hP L D m hQ hlev (fun l hl ↦ (hsz l hl).1.trans (hsz l hl).2) k hk
   have hkc : keyCmpPrice k ≤ 134 * L + 38 := by
     unfold keyCmpPrice; have := hk.2.1; have := hk.2.2.1; omega
-  have h1 : (keyCmpPrice k + 60) * (D + 2) ≤ (134 * L + 98) * (D + 2) :=
+  have h1 : (keyCmpPrice k + 51 + 9 * wl D) * (D + 2) ≤ (134 * L + 89 + 9 * wl D) * (D + 2) :=
     Nat.mul_le_mul_right _ (by omega)
-  have : D * (17 + (keyCmpPrice k + 60) * (D + 2)) ≤ D * (17 + (134 * L + 98) * (D + 2)) :=
+  have : D * (17 + (keyCmpPrice k + 51 + 9 * wl D) * (D + 2)) ≤
+      D * (17 + (134 * L + 89 + 9 * wl D) * (D + 2)) :=
     Nat.mul_le_mul_left _ (by omega)
   unfold getKeyPrice
   omega
 
 /-- **An insertion if new, amortized** (`insertIfNewKeyC`): a key of at most `L` codes per list. -/
-theorem insertIfNewKey_amortized (hP : Includes P insertIfNewKeyC.costDeps) (L D : ℕ) (hD : D ≤ 62)
+theorem insertIfNewKey_amortized (hP : Includes P insertIfNewKeyC.costDeps) (L D : ℕ)
     (m : SortedMap CallKey K) (r : ℕ) (hm : KeyInv L D m (r + 1)) (k : CallKey) (hk : KeyOK L k)
     (v : K) :
     KeyInv L D (insertIfNew m k v) r ∧
       machineCost P insertIfNewKeyC.costIdx [encodeValue m, encodeValue k, encodeValue v] +
           (134 * L + 71) * potential D (insertIfNew m k v).levels ≤
         (134 * L + 71) * potential D m.levels + insertKeyPrice L D := by
-  have hget := getKey_cost_le P (by includes) L D hD m r hm k hk
+  have hget := getKey_cost_le P (by includes) L D m r hm k hk
   obtain ⟨hg, hQ, hw⟩ := hm
   have hN : smWeightSum m < 2 ^ D := by omega
   obtain ⟨hlev, -⟩ := smGood_levels_le hg hN
@@ -333,43 +349,46 @@ theorem insertIfNewKey_amortized (hP : Includes P insertIfNewKeyC.costDeps) (L D
     obtain ⟨h1, h2⟩ := smGood_insert hg k v
     refine ⟨⟨h1, keysIn_insert hQ hk v, by omega⟩, ?_⟩
     rw [insertKeyC.costEq P (by includes)]
-    have hcarry := carryKey_amortized P (by includes) L D hD m hg hQ hN
+    have hcarry := carryKey_amortized P (by includes) L D m hg hQ hN
       ⟨1, #[(k, v)], by simp [Ascending]⟩ rfl rfl (fun e he ↦ by simp at he; rw [he]; exact hk)
     have hins : (m.insert k v).levels = carry ⟨1, #[(k, v)], by simp [Ascending]⟩ m.levels := rfl
     rw [hins]
+    have hc1 := Nat.mul_le_mul_left (2 * wl D + 40) (show m.levels.length + 1 ≤ D + 1 by omega)
     generalize m.get? k = o
     cases o <;> dsimp only <;> nlinarith
 
 /-! ## The pc table's map: `ℕ` keys -/
 
-/-- **The binary search of a pc** (`searchInPcC`): at most `68·(log₂(hi − lo) + 2)`. -/
+/-- **The binary search of a pc** (`searchInPcC`), positions up to `2H` of at most `W` limbs: at
+most `(59 + 9W)·(log₂(hi − lo) + 2)`. -/
 theorem searchInPc_cost (hP : Includes P searchInPcC.costDeps)
     (t : Array (ℕ × List ℕ)) (ht : ∀ e ∈ t, NatKey e.1) (k : ℕ) (hk : NatKey k)
-    (H : ℕ) (hH : H ≤ 2 ^ 62) (hts : t.size ≤ H) :
+    (H W : ℕ) (hW : ∀ x, x ≤ 2 * H → limbCount x ≤ W) (hts : t.size ≤ H) :
     ∀ lo hi, lo ≤ H → hi ≤ H →
       machineCost P searchInPcC.costIdx [encodeValue t, encodeValue k, encodeValue lo,
-        encodeValue hi] ≤ 68 * (Nat.log2 (hi - lo) + 2) := by
+        encodeValue hi] ≤ (59 + 9 * W) * (Nat.log2 (hi - lo) + 2) := by
   intro lo hi hlo hhi
   have := le_of_halving (α := ℕ × ℕ) (fun x ↦ x.1 ≤ H ∧ x.2 ≤ H) (fun x ↦ x.2 - x.1)
     (fun x ↦ machineCost P searchInPcC.costIdx [encodeValue t, encodeValue k, encodeValue x.1,
-      encodeValue x.2]) 68 68 ?hz ?h (lo, hi) ⟨hlo, hhi⟩
+      encodeValue x.2]) (59 + 9 * W) (59 + 9 * W) ?hz ?h (lo, hi) ⟨hlo, hhi⟩
   · dsimp only at this
     nlinarith
   · rintro ⟨lo, hi⟩ ⟨hlo, hhi⟩ h0
     dsimp only at *
     rw [searchInPcC.costEq P hP]
     simp only [show ¬lo < hi by omega, ↓reduceIte]
-    rw [limbs_of_lt (by omega : lo < 2 ^ 64), limbs_of_lt (by omega : hi < 2 ^ 64)]
-    simp only [max_self]
+    have := hW lo (by omega)
+    have := hW hi (by omega)
     omega
   · rintro ⟨lo, hi⟩ ⟨hlo, hhi⟩ hpos
     dsimp only at *
     rw [searchInPcC.costEq P hP]
     simp only [show lo < hi by omega, ↓reduceIte]
-    rw [limbs_of_lt (by omega : lo < 2 ^ 64), limbs_of_lt (by omega : hi < 2 ^ 64),
-      limbs_of_lt (by omega : lo + hi < 2 ^ 64), limbs_of_lt (by omega : (lo + hi) / 2 < 2 ^ 64),
-      limbs_of_lt (by omega : t.size < 2 ^ 64)]
-    simp only [max_self]
+    have := hW lo (by omega)
+    have := hW hi (by omega)
+    have := hW (lo + hi) (by omega)
+    have := hW ((lo + hi) / 2) (by omega)
+    have := hW t.size (by omega)
     generalize hv : t[(lo + hi) / 2]? = ov
     cases ov with
     | none =>
@@ -428,66 +447,71 @@ theorem mergeNewerPc_cost (hP : Includes P mergeNewerPcC.costDeps) :
       subst hn
       cases o2 <;> dsimp only <;> split_ifs <;> omega
 
-/-- Two levels merged (`levelMergePcC`): at most `35` per entry and `26`. -/
+/-- Two levels merged (`levelMergePcC`): at most `35` per entry and `25 + W`, the weights of at
+most `W` limbs. -/
 theorem levelMergePc_cost (hP : Includes P levelMergePcC.costDeps)
-    (l l' : Level ℕ (List ℕ)) (hQ : KeysIn NatKey [l, l']) (hw : l.weight < 2 ^ 64)
-    (hw' : l'.weight < 2 ^ 64) :
+    (l l' : Level ℕ (List ℕ)) (hQ : KeysIn NatKey [l, l']) (W : ℕ) (hw : limbCount l.weight ≤ W)
+    (hw' : limbCount l'.weight ≤ W) :
     machineCost P levelMergePcC.costIdx [encodeValue l, encodeValue l'] ≤
-      26 + 35 * (l.entries.size + l'.entries.size) := by
-  rw [levelMergePcC.costEq P hP, limbs_of_lt hw, limbs_of_lt hw']
+      25 + W + 35 * (l.entries.size + l'.entries.size) := by
+  rw [levelMergePcC.costEq P hP]
+  have hmx : max (limbCount l.weight) (limbCount l'.weight) ≤ W := max_le hw hw'
   have hm := mergeNewerPc_cost P (by includes) _ l.entries.toList l'.entries.toList rfl
     (fun e he ↦ hQ l (by simp) e (by simpa using he))
     (fun e he ↦ hQ l' (by simp) e (by simpa using he))
   have hlen := length_mergeNewer_le l.entries.toList l'.entries.toList
-  simp only [Array.length_toList, max_self] at hm hlen ⊢
+  simp only [Array.length_toList] at hm hlen ⊢
   omega
 
-/-- **An insertion into the pc table's map, amortized** (`carryPcC`). -/
-theorem carryPc_amortized (hP : Includes P carryPcC.costDeps) (D : ℕ) (hD : D ≤ 62)
+/-- **An insertion into the pc table's map, amortized** (`carryPcC`), below `2^D` insertions. -/
+theorem carryPc_amortized (hP : Includes P carryPcC.costDeps) (D : ℕ)
     (m : SortedMap ℕ (List ℕ)) (hm : smGood m) (hQ : KeysIn NatKey m.levels)
     (hN : smWeightSum m < 2 ^ D) (l : Level ℕ (List ℕ)) (hw : l.weight = 1)
     (hs : l.entries.size = 1) (hk : ∀ e ∈ l.entries, NatKey e.1) :
     machineCost P carryPcC.costIdx [encodeValue l, encodeValue m.levels] +
         35 * potential D (carry l m.levels) ≤
-      35 * potential D m.levels + 35 * D + 42 * (m.levels.length + 1) := by
-  have h64 : 2 ^ D < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) (by omega)
+      35 * potential D m.levels + 35 * D + (2 * wl D + 40) * (m.levels.length + 1) := by
   refine insert_amortized NatKey
     (fun l ls ↦ machineCost P carryPcC.costIdx [encodeValue l, encodeValue ls])
-    42 35 D ?_ ?_ ?_ m hm hQ hN l hw hs hk
+    (2 * wl D + 40) 35 D ?_ ?_ ?_ m hm hQ hN l hw hs hk
   · intro l _; rw [carryPcC.costEq_nil P hP]; omega
   · intro l l' ls h1 h2 hne
-    rw [carryPcC.costEq_cons P hP, limbs_of_lt (by omega : l.weight < 2 ^ 64),
-      limbs_of_lt (by omega : l'.weight < 2 ^ 64)]
-    simp only [hne, ↓reduceIte, max_self]
+    rw [carryPcC.costEq_cons P hP]
+    have := limbs_le_wl' (D := D) (x := l.weight) (by omega)
+    have := limbs_le_wl' (D := D) (x := l'.weight) (by omega)
+    simp only [hne, ↓reduceIte]
     omega
   · intro l l' ls h1 heq hQ2
-    have := levelMergePc_cost P (by includes) l l' hQ2 (by omega) (by omega)
-    rw [carryPcC.costEq_cons P hP, limbs_of_lt (by omega : l.weight < 2 ^ 64),
-      limbs_of_lt (by omega : l'.weight < 2 ^ 64)]
-    simp only [heq, ↓reduceIte, max_self]
+    have h3 := limbs_le_wl' (D := D) (x := l.weight) (by omega)
+    have h4 := limbs_le_wl' (D := D) (x := l'.weight) (by omega)
+    have := levelMergePc_cost P (by includes) l l' hQ2 (wl D) h3 h4
+    rw [carryPcC.costEq_cons P hP]
+    simp only [heq, ↓reduceIte]
     omega
 
 /-- **A lookup of a pc** (`getPcC`) in a map of at most `D` levels of at most `2^D` entries: at
-most `D·(17 + 68·(D + 2)) + 9`. -/
-theorem getPc_cost (hP : Includes P getPcC.costDeps) (D : ℕ) (hD : D ≤ 62)
+most `D·(17 + (59 + 9·wl D)·(D + 2)) + 9`. -/
+theorem getPc_cost (hP : Includes P getPcC.costDeps) (D : ℕ)
     (m : SortedMap ℕ (List ℕ)) (hQ : KeysIn NatKey m.levels) (hlev : m.levels.length ≤ D)
     (hsz : ∀ l ∈ m.levels, l.entries.size ≤ 2 ^ D) (k : ℕ) (hk : NatKey k) :
-    machineCost P getPcC.costIdx [encodeValue m, encodeValue k] ≤ D * (17 + 68 * (D + 2)) + 9 := by
-  have hH : 2 ^ D ≤ 2 ^ 62 := Nat.pow_le_pow_right (by norm_num) hD
+    machineCost P getPcC.costIdx [encodeValue m, encodeValue k] ≤
+      D * (17 + (59 + 9 * wl D) * (D + 2)) + 9 := by
   have hlam : ∀ l ∈ m.levels, appCost P (.closure getPcC.lam0.costIdx [encodeValue k])
-      [encodeValue l] ≤ 8 + 68 * (D + 2) := by
+      [encodeValue l] ≤ 8 + (59 + 9 * wl D) * (D + 2) := by
     intro l hl
     rw [appCost_fn, List.singleton_append, getPcC.lam0.costEq P (by includes)]
-    have := searchInPc_cost P (by includes) l.entries (fun e he ↦ hQ l hl e he) k hk (2 ^ D) hH
-      (hsz l hl) 0 l.entries.size (Nat.zero_le _) (hsz l hl)
+    have := searchInPc_cost P (by includes) l.entries (fun e he ↦ hQ l hl e he) k hk (2 ^ D)
+      (wl D) (fun x hx ↦ limbs_le_wl' hx) (hsz l hl) 0 l.entries.size (Nat.zero_le _) (hsz l hl)
     have h2 : Nat.log2 (l.entries.size - 0) ≤ D := by
       have := log2_mono (show l.entries.size - 0 ≤ 2 ^ D by have := hsz l hl; omega)
       rwa [Nat.log2_two_pow] at this
+    have : (59 + 9 * wl D) * (Nat.log2 (l.entries.size - 0) + 2) ≤
+        (59 + 9 * wl D) * (D + 2) := Nat.mul_le_mul_left _ (by omega)
     omega
   have hfs := findSome_cost P (by includes) _ (.closure getPcC.lam0.costIdx [encodeValue k])
     (fun a ↦ RunsApp.of_spec (getPcC.lam0.costSpec P (by includes) _ a)) _ m.levels hlam
   rw [getPcC.costEq P hP]
-  generalize 68 * (D + 2) = X at hfs ⊢
+  generalize (59 + 9 * wl D) * (D + 2) = X at hfs ⊢
   have h1 := Nat.mul_le_mul_left (8 + X + 9) hlev
   have h2 : (8 + X + 9) * D = D * (17 + X) := by ring
   omega

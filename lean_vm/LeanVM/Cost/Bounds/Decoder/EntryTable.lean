@@ -11,7 +11,8 @@ The prices of `Cost/Decoder/EntryTable.lean`'s functions, the entry table's map 
 (`Bounds/Decoder/EntryMaps.lean`). Parameters: `R` a memory read (the reader closure), `Pr` the
 precondition's test (`preTestAt D T Pw rd`, `preTestAt_cost_deployed`), `Gpc` a lookup in the pc
 table and `M` the functions entered at one pc (for `pcTableT`: `pcTableT_get_cost`, `8339`, and
-`pcTableT_getD_length`, `2`), the entry table below `2^D ≤ 2^62` insertions.
+`pcTableT_getD_length`, `2`), the entry table below `2^D` insertions, any `D` (the positions and
+weights of at most `wl D = (D + 1)/64 + 1` limbs, `EntryMaps.lean`).
 
 * `wordsWith_cost`, `callKey_cost`, **`entryKeyT_cost`**: a state's key, its `22 + 10` words read
   (`guestArgCounts`, `guestRetCounts`, `GuestTablesBounds.lean`), at most `32R + 113685`;
@@ -24,7 +25,7 @@ table and `M` the functions entered at one pc (for `pcTableT`: `pcTableT_get_cos
   codes, below `2^D` insertions (`EntryGood`);
 * **`frameAt_cost`**: the frame map's closure on a call of `a` argument and `r` return words, the
   table below `2^D` insertions: at most
-  `D·(17 + (67·(a + r) + 98)·(D + 2)) + 28·(a + r) + R + 11070`: one lookup (`D` levels, a binary
+  `D·(17 + (67·(a + r) + 89 + 9·wl D)·(D + 2)) + 28·(a + r) + R + 11070`: one lookup (`D` levels, a binary
   search each), two frame reads;
 * **`pcTableT_cost`**: the pc table, built once: at most `17036451`; a lookup in it at most `8339`
   (`pcTableT_get_cost`), at most two functions per pc (`pcTableT_getD_length`);
@@ -228,9 +229,9 @@ section File
 variable (pre : ℕ → K → Bool) (preVal : MachineValue)
   (hpre : ∀ (a : ℕ) (b : K), RunsApp P preVal [encodeValue a, encodeValue b] (encodeValue (pre a b)))
   (Pr : ℕ) (hPr : ∀ (j : ℕ) (fp : K), j < 2 ^ 64 → appCost P preVal [encodeValue j, encodeValue fp] ≤ Pr)
-  (D : ℕ) (hD : D ≤ 62)
+  (D : ℕ)
 
-include hrd hR hpre hPr hD in
+include hrd hR hpre hPr in
 /-- **One function filed, amortized** (`fileOneC`): the precondition's test, the state's key and
 an insertion if new. -/
 theorem fileOne_amortized (hP : Includes P fileOneC.costDeps) (s : Registers K)
@@ -245,7 +246,7 @@ theorem fileOne_amortized (hP : Includes P fileOneC.costDeps) (s : Registers K)
   by_cases hp : pre j s.fp = true
   · simp only [hp, ↓reduceIte, fileOne]
     have h2 := entryKeyT_cost P rd rdVal hrd R hR (by includes) s j
-    obtain ⟨hI, h3⟩ := insertIfNewKey_amortized P (by includes) 22 D hD m r hm (entryKeyT rd s j)
+    obtain ⟨hI, h3⟩ := insertIfNewKey_amortized P (by includes) 22 D m r hm (entryKeyT rd s j)
       (entryKeyT_ok rd s hj) s.fp
     refine ⟨hI, ?_⟩
     omega
@@ -254,7 +255,7 @@ theorem fileOne_amortized (hP : Includes P fileOneC.costDeps) (s : Registers K)
     refine ⟨⟨hg, hQ, by omega⟩, ?_⟩
     omega
 
-include hrd hR hpre hPr hD in
+include hrd hR hpre hPr in
 /-- **A state filed, amortized** (`fileStateTC`): the pc table's lookup (at most `Gpc`), then the
 functions entered there (at most `M`), each filed: `fileStatePrice Gpc M Pr R D`. -/
 theorem fileStateT_amortized (hP : Includes P fileStateTC.costDeps) (pcT : SortedMap ℕ (List ℕ))
@@ -277,7 +278,7 @@ theorem fileStateT_amortized (hP : Includes P fileStateTC.costDeps) (pcT : Sorte
     (fun acc r' ↦ KeyInv 22 D acc (r' + (M * r + c))) (pcT.getD (laneCode s.pc) []) m
     (by obtain ⟨h1, h2, h3⟩ := hm; exact ⟨h1, h2, by nlinarith⟩)
     (fun acc r' hacc j hj ↦ by
-      obtain ⟨h1, h2⟩ := fileOne_amortized P rd rdVal hrd R hR pre preVal hpre Pr hPr D hD
+      obtain ⟨h1, h2⟩ := fileOne_amortized P rd rdVal hrd R hR pre preVal hpre Pr hPr D
         (by includes) s acc (r' + (M * r + c)) (by simpa [Nat.add_right_comm] using hacc) j
         (hpc _ j hj)
       refine ⟨h1, ?_⟩
@@ -296,7 +297,7 @@ insertions. -/
 @[expose] def EntryGood (D : ℕ) (m : SortedMap CallKey K) : Prop :=
   smGood m ∧ KeysIn (KeyOK 22) m.levels ∧ smWeightSum m < 2 ^ D
 
-include hrd hR hpre hPr hD in
+include hrd hR hpre hPr in
 /-- **The entry table of the states** (`entryTableTC`), `M·|states| < 2^D`: at most
 `(fileStatePrice Gpc M Pr R D + 15)·|states| + 15`, and the table good. -/
 theorem entryTableT_cost (hP : Includes P entryTableTC.costDeps) (pcT : SortedMap ℕ (List ℕ))
@@ -315,7 +316,7 @@ theorem entryTableT_cost (hP : Includes P entryTableTC.costDeps) (pcT : SortedMa
     (fun acc r ↦ KeyInv 22 D acc (M * r + 1)) states SortedMap.empty
     ⟨smGood_empty, fun _ h ↦ by simp [SortedMap.empty] at h, by simp [smWeightSum_empty]; omega⟩
     (fun acc r hacc s _ ↦ by
-      obtain ⟨h1, h2⟩ := fileStateT_amortized P rd rdVal hrd R hR pre preVal hpre Pr hPr D hD
+      obtain ⟨h1, h2⟩ := fileStateT_amortized P rd rdVal hrd R hR pre preVal hpre Pr hPr D
         (by includes) pcT M Gpc hpc hM hG 1 acc r hacc s
       refine ⟨h1, ?_⟩
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
@@ -361,14 +362,14 @@ theorem canonIndex_lt64 (j : ℕ) : canonIndex j < 2 ^ 64 := by
 
 include hrd hR in
 /-- **The frame map's closure** (`frameAtC`, `frameAt table rd`): a call of `|args| + |rets|`
-words, the table good below `2^D ≤ 2^62` insertions: one lookup, two reads, at most
-`D·(17 + (67·(|args| + |rets|) + 98)·(D + 2)) + 28·(|args| + |rets|) + R + 11070`. -/
-theorem frameAt_cost (hP : Includes P frameAtC.costDeps) (D : ℕ) (hD : D ≤ 62)
+words, the table good below `2^D` insertions: one lookup, two reads, at most
+`D·(17 + (67·(|args| + |rets|) + 89 + 9·wl D)·(D + 2)) + 28·(|args| + |rets|) + R + 11070`. -/
+theorem frameAt_cost (hP : Includes P frameAtC.costDeps) (D : ℕ)
     (table : SortedMap CallKey K) (ht : EntryGood D table) (j : ℕ) (hj : j < 2 ^ 64)
     (args rets : List E) (v : V) :
     machineCost P frameAtC.costIdx [encodeValue table, rdVal, encodeValue j, encodeValue args,
         encodeValue rets, encodeValue v] ≤
-      D * (17 + (67 * (args.length + rets.length) + 98) * (D + 2)) +
+      D * (17 + (67 * (args.length + rets.length) + 89 + 9 * wl D) * (D + 2)) +
         28 * (args.length + rets.length) + R + 11070 := by
   obtain ⟨hg, hQ, hw⟩ := ht
   obtain ⟨hlev, hsz⟩ := smGood_levels_le hg hw
@@ -377,14 +378,14 @@ theorem frameAt_cost (hP : Includes P frameAtC.costDeps) (D : ℕ) (hD : D ≤ 6
   have h2 := callKey_cost P (by includes) (canonIndex j) args rets
   have hk : KeyOK (args.length + rets.length) (callKey (canonIndex j) args rets) :=
     callKey_ok (canonIndex_lt64 j) (by omega) (by omega)
-  have h3 := getKey_cost P (by includes) 22 D hD table hQ hlev
+  have h3 := getKey_cost P (by includes) 22 D table hQ hlev
     (fun l hl ↦ (hsz l hl).1.trans (hsz l hl).2) _ hk
   have hkc : keyCmpPrice (callKey (canonIndex j) args rets) =
       67 * (args.length + rets.length) + 38 := by
     simp [keyCmpPrice, callKey]
-  rw [hkc, show 67 * (args.length + rets.length) + 38 + 60 =
-    67 * (args.length + rets.length) + 98 by omega] at h3
-  generalize D * (17 + (67 * (args.length + rets.length) + 98) * (D + 2)) = X at h3 ⊢
+  rw [hkc, show 67 * (args.length + rets.length) + 38 + 51 + 9 * wl D =
+    67 * (args.length + rets.length) + 89 + 9 * wl D by omega] at h3
+  generalize D * (17 + (67 * (args.length + rets.length) + 89 + 9 * wl D) * (D + 2)) = X at h3 ⊢
   generalize table.get? (callKey (canonIndex j) args rets) = o
   cases o with
   | none => dsimp only; split_ifs <;> omega
