@@ -64,9 +64,9 @@ theorem kToNat_lt (a : K) : LeanVM.Protocol.Verifier.kToNat a < 2 ^ 64 := by
 /-! ## Cells' digests and claims -/
 
 /-- A cell's number (`cellNat.c536`): at most `18`. -/
-theorem cellNat_cost (hP : Includes P Auto.LeanVM.Guest.B1.Sig.cellNat.c536.costDeps) (x : E) :
-    machineCost P Auto.LeanVM.Guest.B1.Sig.cellNat.c536.costIdx [encodeValue x] ≤ 18 := by
-  rw [Auto.LeanVM.Guest.B1.Sig.cellNat.c536.costEq P hP]
+theorem cellNat_cost (hP : Includes P Auto.LeanVM.Guest.B1.Sig.cellNat.c537.costDeps) (x : E) :
+    machineCost P Auto.LeanVM.Guest.B1.Sig.cellNat.c537.costIdx [encodeValue x] ≤ 18 := by
+  rw [Auto.LeanVM.Guest.B1.Sig.cellNat.c537.costEq P hP]
   have h0 := kToNat_lt (x.limb 0)
   have h1 := kToNat_lt (x.limb 1)
   have : (1 : ℕ) <<< 64 = 2 ^ 64 := by norm_num
