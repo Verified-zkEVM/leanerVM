@@ -121,15 +121,12 @@ def xsig : LeanXmss.Signature := ⟨⟨12345, by decide⟩, fun _ ↦ layer⟩
 
 def da : Option (DaClaim × LeanVM.Da.MatrixWitness) := mkDa digest digest [[K.ofLane 1]] [x]
 #guard runOn mkDa.costDeps mkDa.costIdx [encodeValue digest, encodeValue digest, encodeValue [[K.ofLane 1]], encodeValue [x]] ==
-  some (encodeOption da)
-
-/-- The statement's option encoding is the compiler's (`Cost/Encoding.lean`), definitionally. -/
-example {α : Type} [MachineEncoding α] (o : Option α) : encodeOption o = encodeValue o := by cases o <;> rfl
+  some (encodeValue da)
 
 def witness : NodeWitness := mkWitness [child] (holders 3 xsig) [] da [(x, x)] x
 #guard runOn mkWitness.costDeps mkWitness.costIdx
   [encodeValue [child], encodeValue (holders 3 xsig), encodeValue ([] : List (ClaimHolder Sphincs.Signature)),
-  encodeOption da, encodeValue [(x, x)], encodeValue x] == some (encodeValue witness)
+  encodeValue da, encodeValue [(x, x)], encodeValue x] == some (encodeValue witness)
 
 def decoded : Decoded := mkDecoded digest stmt witness
 #guard runOn mkDecoded.costDeps mkDecoded.costIdx

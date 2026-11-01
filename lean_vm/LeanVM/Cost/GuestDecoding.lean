@@ -62,12 +62,12 @@ instance {α β : Type} [MachineEncoding α] [MachineDecoding α] [LawfulMachine
     show (do pure ((← decodeValue (encodeValue a)), (← decodeValue (encodeValue b))) : Option (α × β)) = _
     simp⟩
 
-@[simp] theorem decodeOption_encodeOption {α : Type} [MachineEncoding α] [MachineDecoding α] [LawfulMachineDecoding α]
-    (o : Option α) :
-    decodeOption (encodeOption o) = some o := by
-  cases o with
-  | none => rfl
-  | some a => show (decodeValue (encodeValue a)).map some = _; simp
+instance {α : Type} [MachineEncoding α] [MachineDecoding α] [LawfulMachineDecoding α] :
+    LawfulMachineDecoding (Option α) :=
+  ⟨fun o ↦ by
+    cases o with
+    | none => rfl
+    | some a => show (decodeValue (encodeValue a)).map some = _; simp⟩
 
 theorem mapM_decodeValue_toList_map {α : Type} [MachineEncoding α] [MachineDecoding α] [LawfulMachineDecoding α] (xs : Array α) :
     (xs.map encodeValue).toList.mapM (decodeValue (α := α)) = some xs.toList := by
@@ -153,7 +153,7 @@ instance : LawfulMachineDecoding BatchingHints := ⟨fun ⟨m, v⟩ ↦ by
 
 instance : LawfulMachineDecoding NodeWitness := ⟨fun ⟨c, x, s, d, h⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue c), ← decodeValue (encodeValue x), ← decodeValue (encodeValue s),
-    ← decodeOption (encodeOption d), ← decodeValue (encodeValue h)⟩ : Option NodeWitness) = _
+    ← decodeValue (encodeValue d), ← decodeValue (encodeValue h)⟩ : Option NodeWitness) = _
   simp⟩
 
 instance : LawfulMachineDecoding Decoded := ⟨fun ⟨s, t, w⟩ ↦ by

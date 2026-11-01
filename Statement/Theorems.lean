@@ -57,11 +57,6 @@ open LeanVM.Node
 /-- A bit vector: its number. -/
 instance {w : ℕ} : MachineEncoding (BitVec w) := ⟨fun v ↦ .nat v.toNat⟩
 
-/-- An option: `none` the constructor of tag `0`, `some a` of tag `1` with `a`'s encoding. -/
-def encodeOption {α : Type} [MachineEncoding α] : Option α → MachineValue
-  | none => .ctor 0 []
-  | some a => .ctor 1 [encodeValue a]
-
 /-! `MachineDecoding α` parses a value as an `α`, the inverse of `MachineEncoding α`: a linear
 parse, no search, no check beyond the shape (a constructor's tag and arity, an array's length for
 a `Vector` or a function of a finite domain, a natural number's bound for `Fin n`); a bit vector
@@ -101,11 +96,11 @@ instance {α : Type} [MachineDecoding α] : MachineDecoding (List α) :=
 instance {α β : Type} [MachineDecoding α] [MachineDecoding β] : MachineDecoding (α × β) where
   decodeValue | .ctor 0 [a, b] => do pure (← decodeValue a, ← decodeValue b) | _ => none
 
-/-- An option from its encoding (`encodeOption`). -/
-def decodeOption {α : Type} [MachineDecoding α] : MachineValue → Option (Option α)
-  | .ctor 0 [] => some none
-  | .ctor 1 [a] => (decodeValue a).map some
-  | _ => none
+instance {α : Type} [MachineDecoding α] : MachineDecoding (Option α) where
+  decodeValue
+    | .ctor 0 [] => some none
+    | .ctor 1 [a] => (decodeValue a).map some
+    | _ => none
 
 instance {α : Type} [MachineDecoding α] {n : ℕ} : MachineDecoding (Vector α n) where
   decodeValue
@@ -239,12 +234,12 @@ instance : MachineDecoding BatchingHints where
 
 instance : MachineEncoding NodeWitness :=
   ⟨fun w ↦ .ctor 0 [encodeValue w.children, encodeValue w.xmss, encodeValue w.sphincs,
-    encodeOption w.daMatrix, encodeValue w.batchingHints]⟩
+    encodeValue w.daMatrix, encodeValue w.batchingHints]⟩
 
 instance : MachineDecoding NodeWitness where
   decodeValue
     | .ctor 0 [c, x, s, d, h] =>
-      do pure ⟨← decodeValue c, ← decodeValue x, ← decodeValue s, ← decodeOption d, ← decodeValue h⟩
+      do pure ⟨← decodeValue c, ← decodeValue x, ← decodeValue s, ← decodeValue d, ← decodeValue h⟩
     | _ => none
 
 instance : MachineEncoding Decoded :=

@@ -11,7 +11,7 @@ public import CompPoly.Univariate.Basic
 `MachineEncoding α` encodes an `α` as a machine value. The encoding the end statement reads (`MachineEncoding`, its
 instances for the extractor's input and output, `encode`, `decodeExecution`) is the statement's,
 `Statement/CostMachine.lean`; here, the instances only the compiler needs (`UInt8`, `Unit`,
-`Char`, `String`, `Ordering`, `Option`, `Array`, CompPoly's polynomials, `Id`, subtypes) and the
+`Char`, `String`, `Ordering`, `Array`, CompPoly's polynomials, `Id`, subtypes) and the
 proof that decoding inverts encoding (`decodeExecution_enc`).
 -/
 
@@ -32,9 +32,6 @@ instance : MachineEncoding String := ⟨fun s ↦ encodeValue s.toList⟩
 
 instance : MachineEncoding Ordering where
   encodeValue | .lt => .ctor 0 [] | .eq => .ctor 1 [] | .gt => .ctor 2 []
-
-instance {α : Type} [MachineEncoding α] : MachineEncoding (Option α) where
-  encodeValue | none => .ctor 0 [] | some a => .ctor 1 [encodeValue a]
 
 instance {α : Type} [MachineEncoding α] : MachineEncoding (Array α) := ⟨fun a ↦ .arr (a.map encodeValue)⟩
 
