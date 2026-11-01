@@ -266,6 +266,32 @@ theorem Includes.ofForall {P : Program} {l l' : List (ℕ × Term)} (h : Include
     (hl : List.Forall (· ∈ l) l') : Includes P l' :=
   h.mono fun _ hp ↦ List.forall_iff_forall_mem.1 hl _ hp
 
+theorem mem_of_lookup_eq_some {l : List (ℕ × Term)} {j : ℕ} {b : Term}
+    (h : l.lookup j = some b) : (j, b) ∈ l := by
+  induction l with
+  | nil => simp [List.lookup] at h
+  | cons hd tl ih =>
+    obtain ⟨a, c⟩ := hd
+    by_cases hj : j = a
+    · subst hj
+      simp only [List.lookup, beq_self_eq_true, Option.some.injEq] at h
+      subst h; exact List.mem_cons_self
+    · have : (j == a) = false := by simpa using hj
+      simp only [List.lookup, this] at h
+      exact List.mem_cons_of_mem _ (ih h)
+
+/-- `Includes` of a sublist (the dependency lists are sorted by index: a callee's is a sublist of
+its caller's, proved by constructors alone). -/
+theorem Includes.ofSublist {P : Program} {l l' : List (ℕ × Term)} (h : Includes P l)
+    (hs : List.Sublist l' l) : Includes P l' :=
+  h.mono fun _ hp ↦ hs.subset hp
+
+/-- `Includes` by lookups: each entry `(j, b)` of `l'` is what `l` holds at `j` (checked by
+evaluating `List.lookup`, a proof of constant size per entry). -/
+theorem Includes.ofLookup {P : Program} {l l' : List (ℕ × Term)} (h : Includes P l)
+    (hl : List.Forall (fun p ↦ l.lookup p.1 = some p.2) l') : Includes P l' :=
+  h.mono fun p hp ↦ mem_of_lookup_eq_some (List.forall_iff_forall_mem.1 hl p hp)
+
 /-- The program holding the bodies `l` at their indices (the last body given an index wins), the
 other entries a literal `0`. -/
 def Program.ofList (l : List (ℕ × Term)) : Program :=
