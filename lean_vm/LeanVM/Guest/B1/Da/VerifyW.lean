@@ -60,18 +60,22 @@ def dvSyms (σ : Val) (Vm : FrameMap) (i j : ℕ) : List K :=
   cellSymsOf (Vm "da_verify_cell" [dvColV σ Vm j (.n 11)]
     [dvRowV σ Vm i j (.n 7), dvRowV σ Vm i j (.n 8), dvRowV σ Vm i j (.n 9)])
 
+/-- The number of rows: the shape's count, at most `LeanDa.maxRows = 1024` (`da_verify` asserts
+it, so on its runs the clamp is the count; it bounds the witness on every memory). -/
+noncomputable def dvRows (σ : Val) : ℕ := min (gLog (σ (.n 1))) 1024
+
 /-- The symbols, padded outside the matrix. -/
 noncomputable def dvSymsP (σ : Val) (Vm : FrameMap) (i j : ℕ) : List K :=
-  if i < gLog (σ (.n 1)) ∧ j < 128 then dvSyms σ Vm i j else List.replicate 256 0
+  if i < dvRows σ ∧ j < 128 then dvSyms σ Vm i j else List.replicate 256 0
 
 /-- The weights, padded outside the vector. -/
 def dvWsP (σ : Val) (Vm : FrameMap) (j : ℕ) : List E :=
   if j < 128 then dvWs σ Vm j else List.replicate 256 0
 
-/-- **`da_verify`'s witness**: the rows of the cells' symbols, as many as the shape's count, and
-the vector of the columns' weights. -/
+/-- **`da_verify`'s witness**: the rows of the cells' symbols, as many as the shape's count (at
+most `1024`, `dvRows`), and the vector of the columns' weights. -/
 noncomputable def dvWit (σ : Val) (Vm : FrameMap) : LeanVM.Da.MatrixWitness :=
-  ⟨daRows (gLog (σ (.n 1))) (dvSymsP σ Vm), daVector (dvWsP σ Vm)⟩
+  ⟨daRows (dvRows σ) (dvSymsP σ Vm), daVector (dvWsP σ Vm)⟩
 
 /-! ## The calls, at the frame map -/
 
@@ -447,7 +451,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
     · obtain ⟨k0, k1⟩ := hst (by simp [h64])
       rw [← e0', ← e1']; exact ⟨k0, k1⟩
   -- the witness's data, padded outside the run's ranges
-  have hgr : gLog (σ (.n 1)) = r := by rw [h1, gLog_gen_pow (by omega)]
+  have hgr : dvRows σ = r := by rw [dvRows, h1, gLog_gen_pow (by omega), min_eq_left hr]
   let symsP : ℕ → ℕ → List K := dvSymsP σ Vm
   let wsP : ℕ → List E := dvWsP σ Vm
   have hsP : ∀ i j, i < r → j < 128 → symsP i j = syms i j := fun i j hi hj => by
@@ -650,7 +654,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
     simp only [Prod.ext_iff] at hd
     rw [← hd.1, ← hd.2]
   refine ⟨daRoot r L symsP, daVd wsP, ?_, ?_⟩
-  · show (⟨daRows (gLog (σ (.n 1))) symsP, daVector wsP⟩ : LeanVM.Da.MatrixWitness).Opens _ _
+  · show (⟨daRows (dvRows σ) symsP, daVector wsP⟩ : LeanVM.Da.MatrixWitness).Opens _ _
     rw [hgr]
     exact opens_of hr1 (by unfold LeanDa.maxRows; exact hr) hnp.symm hrL hsL hwL hdot
   · rw [← hret, ← hrootd, ← hvd]
