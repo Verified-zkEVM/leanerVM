@@ -38,7 +38,7 @@ theorem decoderProgram_entry : decoderProgram[0]? = some (decoderEntryBody decTo
 
 /-- **The program's size** is within `guestDecoderSizeBound`. -/
 theorem decoderProgram_size_le : decoderProgram.size ≤ guestDecoderSizeBound :=
-  decoderProgram_size_le_measured.trans (by unfold guestDecoderSizeBound; decide)
+  decoderProgram_size_le_measured.trans (by unfold guestDecoderSizeBound; decide +kernel)
 
 /-- **The program's price** on an execution: the top's on the program, `κ` and the memory vector,
 and the entry's `8`. -/

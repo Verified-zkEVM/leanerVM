@@ -19,8 +19,9 @@ memory vector `memoryVector t.memory`, whose encoding is the memory's
 * `decoderProgramOf j deps`: the entry at `0`, then the compiled top's bodies `deps`
   (`j`'s `costDeps`); `decoderProgramOf_includes`, `decoderProgramOf_entry`: given its indices
   increasing (`increasingFrom 0`, a linear check by evaluation), it holds its bodies and its
-  entry; `decoderProgramOf_size_le`: its size from its bodies' (`size_ofList_le`), the sum
-  evaluated in `Cost/DecoderSize.lean`, a module of its own.
+  entry; `decoderProgramOf_size_le_of_increasing`: its size, exactly its bodies' and two per
+  index without a body (`size_ofList_add_length`), the sum evaluated in `Cost/DecoderSize.lean`,
+  a module of its own.
 -/
 
 namespace LeanVM.Cost
@@ -101,13 +102,82 @@ theorem decoderProgramOf_entry {j : ℕ} {deps : List (ℕ × Term)}
     (decoderProgramOf j deps)[0]? = some (decoderEntryBody j) :=
   (decoderProgramOf_includes_all h).get List.mem_cons_self
 
-/-- **The program's size from its bodies**: at most a bound on the sum `size_ofList_le` gives
-(evaluated in `Cost/DecoderSize.lean`). -/
-theorem decoderProgramOf_size_le {j : ℕ} {deps : List (ℕ × Term)} {N : ℕ}
+theorem sum_map_set_add (f : Term → ℕ) :
+    ∀ (l : List Term) (i : ℕ) (t : Term) (h : i < l.length),
+      ((l.set i t).map f).sum + f l[i] = (l.map f).sum + f t
+  | [], _, _, h => absurd h (Nat.not_lt_zero _)
+  | _ :: _, 0, _, _ => by simp only [List.set_cons_zero, List.map_cons, List.sum_cons,
+      List.getElem_cons_zero]; omega
+  | a :: l, i + 1, t, h => by
+    have := sum_map_set_add f l i t (by simpa using h)
+    simp only [List.set_cons_succ, List.map_cons, List.sum_cons, List.getElem_cons_succ]
+    omega
+
+/-- Setting an index that holds the literal `0` (size `2`): the size gains the body's, less `2`. -/
+theorem size_setIfInBounds_zero (A : MachineProgram) (i : ℕ) (t : Term)
+    (h : A[i]? = some (.val (.nat 0))) :
+    MachineProgram.size (A.setIfInBounds i t) + 2 = MachineProgram.size A + t.size := by
+  obtain ⟨hi, hA⟩ := Array.getElem?_eq_some_iff.1 h
+  have h2 : (Term.val (.nat 0)).size = 2 := rfl
+  unfold MachineProgram.size
+  rw [Array.setIfInBounds_def]
+  simp only [hi, ↓reduceDIte, Array.toList_set]
+  have := sum_map_set_add Term.size A.toList i t (by simpa using hi)
+  rw [Array.getElem_toList, hA, h2] at this
+  exact this
+
+/-- **A program's size from its bodies, exactly**: with distinct indices, the bodies' sizes and
+two per index without a body (the literal `0`), `size_ofList_le` less two per body. -/
+theorem size_ofList_add_length (l : List (ℕ × Term)) (hl : (l.map (·.1)).Nodup) :
+    (MachineProgram.ofList l).size + 2 * l.length =
+      (l.map fun p ↦ p.2.size).sum + 2 * ((l.map (·.1)).foldr max 0 + 1) := by
+  have key : ∀ (l : List (ℕ × Term)) (A : MachineProgram), (l.map (·.1)).Nodup →
+      (∀ p ∈ l, A[p.1]? = some (.val (.nat 0))) →
+      MachineProgram.size (l.foldl (fun P p ↦ P.setIfInBounds p.1 p.2) A) + 2 * l.length =
+        MachineProgram.size A + (l.map fun p ↦ p.2.size).sum := by
+    intro l
+    induction l with
+    | nil => intro A _ _; simp
+    | cons q l ih =>
+      intro A hn hA
+      simp only [List.map_cons, List.nodup_cons, List.mem_map] at hn
+      have hrest : ∀ p ∈ l, (A.setIfInBounds q.1 q.2)[p.1]? = some (.val (.nat 0)) := by
+        intro p hp
+        have hne : q.1 ≠ p.1 := fun he ↦ hn.1 ⟨p, hp, he.symm⟩
+        rw [Array.getElem?_setIfInBounds_ne hne]
+        exact hA p (List.mem_cons_of_mem _ hp)
+      have := ih (A.setIfInBounds q.1 q.2) hn.2 hrest
+      have := size_setIfInBounds_zero A q.1 q.2 (hA q List.mem_cons_self)
+      simp only [List.foldl_cons, List.map_cons, List.sum_cons, List.length_cons]
+      omega
+  have hrep : ∀ n, MachineProgram.size (Array.replicate n (Term.val (.nat 0))) = 2 * n := by
+    intro n
+    simp only [MachineProgram.size, Array.toList_replicate, List.map_replicate, List.sum_replicate,
+      Term.size, MachineValue.size, limbCount, Nat.log2_zero, smul_eq_mul]
+    omega
+  have := key l (Array.replicate ((l.map (·.1)).foldr max 0 + 1) (.val (.nat 0))) hl
+    (fun p hp ↦ by
+      rw [Array.getElem?_replicate]
+      simp only [lt_foldr_max_succ (List.mem_map_of_mem hp), ↓reduceIte])
+  rw [hrep] at this
+  unfold MachineProgram.ofList
+  dsimp only
+  omega
+
+/-- **The program's size from its bodies, exactly** (`size_ofList_add_length`): with increasing
+indices, a bound on the bodies' sizes and two per index, less two per body. -/
+theorem decoderProgramOf_size_le_of_increasing {j : ℕ} {deps : List (ℕ × Term)} {N : ℕ}
+    (hi : increasingFrom 0 (deps.map (·.1)) = true)
     (h : ((decoderProgramBodiesOf j deps).map fun p ↦ p.2.size).sum +
-      2 * (((decoderProgramBodiesOf j deps).map (·.1)).foldr max 0 + 1) ≤ N) :
-    (decoderProgramOf j deps).size ≤ N :=
-  (size_ofList_le _).trans h
+      2 * (((decoderProgramBodiesOf j deps).map (·.1)).foldr max 0 + 1) ≤
+        N + 2 * (deps.length + 1)) :
+    (decoderProgramOf j deps).size ≤ N := by
+  have := size_ofList_add_length (decoderProgramBodiesOf j deps) (by
+    rw [decoderProgramBodiesOf, List.map_cons]
+    exact nodup_of_increasing hi)
+  rw [show (decoderProgramBodiesOf j deps).length = deps.length + 1 from rfl] at this
+  unfold decoderProgramOf
+  omega
 
 end
 
