@@ -17,10 +17,10 @@ program's definition, so that no edit of a proof rebuilds them. For the program
 * the bound `size_ofList_le` gives, the bodies' sizes and two per index, at most a measured
   number: the program's size (`decoderProgramOf_size_le`), then `guestDecoderSizeBound`.
 
-For the compiled top `decTopC` (`Decoder/Top.lean`, `391` functions): at most the bodies' sizes
-(`785237`) plus two per index up to the top's, `decTopC`'s own (the last index allocated; so the
-bound names no index, which moves when a module before it in the chain gains a function): `786919`
-at index `840`. Its exact size is `786135`, of which the guest's frame cells (`guestLocs`, a
+For the compiled top `decTopC` (`Decoder/Top.lean`, `393` functions): at most the bodies' sizes
+(`785328`) plus two per index up to the top's, `decTopC`'s own (the last index allocated; so the
+bound names no index, which moves when a module before it in the chain gains a function): `787014`
+at index `842`. Its exact size is `786226`, of which the guest's frame cells (`guestLocs`, a
 literal) are `749835`. `guestDecoderSizeBound` is `2^20`, the size
 rounded up to a power of two (`Statement/Theorems.lean`).
 -/
@@ -40,12 +40,12 @@ theorem decoderProgram_indices_increasing :
 theorem decoderProgramBodies_size_bound :
     ((decoderProgramBodiesOf decTopC.costIdx decTopC.costDeps).map fun p ↦ p.2.size).sum +
       2 * (((decoderProgramBodiesOf decTopC.costIdx decTopC.costDeps).map (·.1)).foldr max 0 + 1) ≤
-      785237 + 2 * (decTopC.costIdx + 1) := by
+      785328 + 2 * (decTopC.costIdx + 1) := by
   decide +kernel
 
 /-- **The program's size**, evaluated. -/
 theorem decoderProgram_size_le_measured :
-    (decoderProgramOf decTopC.costIdx decTopC.costDeps).size ≤ 785237 + 2 * (decTopC.costIdx + 1) :=
+    (decoderProgramOf decTopC.costIdx decTopC.costDeps).size ≤ 785328 + 2 * (decTopC.costIdx + 1) :=
   decoderProgramOf_size_le decoderProgramBodies_size_bound
 
 end
