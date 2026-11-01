@@ -9,6 +9,8 @@ import LeanVMTests.Extraction.Toy
 * `decodeStacksAtFast` (proved equal to `decodeStacksAt`) decodes a toy word of `Toy.lean`;
 * the indexed replay (`keccakEvaluationsFast`, proved equal to the statement's evaluations of at
   most `L` bytes) on a transcript holding the sponge paths of three messages, and inverse queries;
+* the address table (`powTable`, `gLogTable`): the index of `g^i` by binary search, `none` off
+  the addresses;
 * the axiom footprint of `transcriptExtractorFast_eq`.
 -/
 
@@ -70,6 +72,13 @@ def toyTranscript : List (PermutationQuery KeccakState × KeccakState) :=
   (LeanVM.keccakEvaluationsOfTranscript toyTranscript).filter (·.1.length ≤ 600)
 #guard (keccakEvaluationsFast toyTranscript 600).map (·.1.length) = [512, 64]
 #guard (keccakEvaluationsFast toyTranscript 64).map (·.1.length) = [64]
+
+/-! ## The address table -/
+
+#guard (List.range 1024).all fun i ↦
+  (gLogTable (powTable 10) 10 (gpow i)).map (·.val) == some i
+#guard gLogTable (powTable 10) 10 (gpow 1024) == none
+#guard gLogTable (powTable 10) 10 0 == none
 
 /-- info: 'LeanVM.Extraction.Fast.transcriptExtractorFast_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

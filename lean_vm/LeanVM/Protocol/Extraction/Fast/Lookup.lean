@@ -215,9 +215,7 @@ theorem subtreeLeavesWith_congr {pre pre' : Digest → ℕ → Option Bytes} {w 
   let idx := mk width
   let leaves := subtreeLeavesWith (lookup idx) width height root
   let word := leafAt leaves height width
-  let memIdx := powIndex layout.logMemory
-  let codeIdx := powIndex prog.logSize
-  let execution := candidateExecutionIn memIdx codeIdx prog input layout
+  let execution := candidateExecutionFast prog input layout
   (fastStacks layout.stackLog logInverseRate word).findSome? execution <|>
     (decodeStacksFast layout.stackLog logInverseRate word).findSome? execution
 

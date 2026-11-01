@@ -5,6 +5,7 @@ public import LeanVM.Protocol.Extraction.Fast.RothRuckenstein
 public import LeanVM.Protocol.Extraction.Lane
 public import LeanVM.Protocol.Extraction.Fast.Karatsuba
 public import LeanVM.Protocol.Extraction.Fast.Truncate
+public import LeanVM.Protocol.Extraction.Fast.Address
 public import LeanVM.Protocol.Extraction.Fast.Order
 public import CompPoly.Bivariate.GuruswamiSudan.Interpolation.ApproximantBasis.Correctness
 public import CompPoly.LinearAlgebra.PolynomialMatrix.Approximant
@@ -223,9 +224,7 @@ interpolation on large shapes, and the fast substitution. -/
   let (root, height, width) ← state.roots.head?
   let leaves := committedLeaves answers keys root height width
   let word := leafAt leaves height width
-  let memIdx := powIndex layout.logMemory
-  let codeIdx := powIndex prog.logSize
-  let execution := candidateExecutionIn memIdx codeIdx prog input layout
+  let execution := candidateExecutionFast prog input layout
   (fastStacks layout.stackLog logInverseRate word).findSome? execution <|>
     (decodeStacksFast layout.stackLog logInverseRate word).findSome? execution
 
@@ -265,7 +264,7 @@ theorem decodeStacksFast_eq : decodeStacksFast = decodeStacks := by
 /-- **The fast extractor is the statement's.** -/
 theorem extractFast_eq : extractFast = extract := by
   funext prog input bytecode answers keys π
-  simp only [extractFast, decodeStacksFast_eq, extract]
+  simp only [extractFast, decodeStacksFast_eq, candidateExecutionFast_eq, extract]
 
 end
 
