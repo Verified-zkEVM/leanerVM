@@ -773,7 +773,7 @@ variable {σ : Val} {σV : MachineValue}
   {cl : E → E → ℕ} {clV : MachineValue}
   (hcl : ∀ a b : E, RunsApp P clV [encodeValue a, encodeValue b] (encodeValue (cl a b)))
   {C : ℕ} (hC : ∀ a b : E, appCost P clV [encodeValue a, encodeValue b] ≤ C)
-  {L : ℕ} (hL : ∀ a b : E, cl a b ≤ L) (hL32 : L ≤ 2 ^ 32)
+  {L : ℕ} (hL : cl (σ (.n 27)) (σ (.n 868)) ≤ L) (hL32 : L ≤ 2 ^ 32)
 include hσ hS hVn hF hcl hC hL hL32
 
 omit hrd hR hVn hF hcl hC hL hL32 in
@@ -806,7 +806,7 @@ theorem vsPiOfAt_cost (hP : Includes P Decoder.vsPiOfAtC.costDeps) (T : WhirTabs
   rw [Decoder.vsPiOfAtC.costEq P hP T rd rdV hrd σ σV hσ Vn VnV hVn cl clV hcl m fr frV hfr]
   have := hS (.n 27); have := hS (.n 868); have := hfrS (.n 8)
   have := hC (σ (.n 27)) (σ (.n 868))
-  have hl := hL (σ (.n 27)) (σ (.n 868))
+  have hl := hL
   have hw1 := wordsFrom_cost P hrd hR (by includes) (cl (σ (.n 27)) (σ (.n 868)))
     ((σ (.n 27)).limb 0) (by omega)
   have := Nat.mul_le_mul_left (R + 286) hl

@@ -148,8 +148,9 @@ theorem cursorClosure_cost (hP : Includes P Decoder.decTopFramesC.lam1.costDeps)
 @[expose] def dvFramePrice (G F : ℕ) : ℕ := (F + 6) + G + dvWitNRowsPrice 10 F (F + 6) + 21
 
 /-- **The witness at the frames stage's closures** (`decWitNC`): the frame map's price at most
-`F` (`frameAtAC` on `table`), the cursor's length's at most `C`, its value at most `2^32`: at most
-`decWitNPrice G R S (F + 7) (C + 4) 2^32 (dvFramePrice G (F + 7))`. -/
+`F` (`frameAtAC` on `table`), the cursor's length's at most `C`, its value at most `L ≤ 2^32` at
+each child's `verify_sub` frame: at most `decWitNPrice G R S (F + 7) (C + 4) L (dvFramePrice G
+(F + 7))`. -/
 theorem frameWit_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitNC.costDeps)
     (hL0 : Includes P Decoder.decTopFramesC.lam0.costDeps)
     (hL1 : Includes P Decoder.decTopFramesC.lam1.costDeps) (hG : GLogBound P D G) (Tb : ReaderTabs)
@@ -164,21 +165,23 @@ theorem frameWit_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitNC.
       [encodeValue table, rdV, encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F)
     (C : ℕ) (hC : ∀ p q : E, machineCost P Decoder.cursorLengthC.costIdx
       [encodeValue D, encodeValue p, encodeValue q] ≤ C)
-    (hLv : ∀ p q : E, Decoder.cursorLength D p q ≤ 2 ^ 32) {Kc N X : ℕ}
-    (hc : CountsWithin D σ Kc N X) :
+    {Kc N X : ℕ} (hc : CountsWithin D σ Kc N X) (L : ℕ) (hL32 : L ≤ 2 ^ 32)
+    (hLk : ∀ c < Decoder.nKidsD D σ,
+      Decoder.cursorLength D (Decoder.frameAtA table rd 19 (Decoder.subArgsK rd σ c) [] (.n 27))
+        (Decoder.frameAtA table rd 19 (Decoder.subArgsK rd σ c) [] (.n 868)) ≤ L) :
     machineCost P Decoder.decWitNC.costIdx [encodeValue D, encodeValue Tb, σV, rdV,
       .closure Decoder.decTopFramesC.lam0.costIdx [rdV, encodeValue table],
       .closure Decoder.decTopFramesC.lam1.costIdx [encodeValue D]] ≤
-        decWitNPrice G R S (F + 7) (C + 4) (2 ^ 32) (dvFramePrice G (F + 7)) Kc N X := by
+        decWitNPrice G R S (F + 7) (C + 4) L (dvFramePrice G (F + 7)) Kc N X := by
   have hVn := frameClosure_runs P hrd hL0 table
   have hF' := frameClosure_cost P hrd hL0 table F hF
   have hcl := cursorClosure_runs P hL1 D
   have hC' := cursorClosure_cost P hL1 D C hC
-  exact decWitN_cost P hrd hR hσ hS hVn hF' hcl hC' hLv le_rfl D Tb hTb hP hG
+  exact decWitN_cost P hrd hR hσ hS hVn hF' hcl hC' hL32 D Tb hTb hP hG
     (dvFramePrice G (F + 7)) (fun args rets hlen ↦ by
       have := dvWitN_cost_1024 P hVn hF' (daFrame_runs P hVn (by includes) args rets)
         (daFrame_cost P hVn hF' (by includes) args rets hlen) D (by includes) hG
-      unfold dvFramePrice; omega) hc
+      unfold dvFramePrice; omega) hc hLk
 
 /-! ## The stages -/
 

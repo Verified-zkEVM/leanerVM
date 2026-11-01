@@ -127,15 +127,15 @@ theorem daFrame_cost (hP : Includes P Decoder.daAtFrameC.lam0.costDeps) (args re
   have := hF 26 args rets v (by norm_num) hlen; omega
 
 /-- **A child's proof off its `verify_sub` frame** (`proofAtFrameC`), the readers' tables `Tb`
-given: `vsPiPrice R (F + 6) F C L + 20`. -/
+given, the cursor's length at the frame at most `L`: `vsPiPrice R (F + 6) F C L + 20`. -/
 theorem proofAtFrame_cost (hP : Includes P Decoder.proofAtFrameC.costDeps) (Tb : ReaderTabs)
     (hTb : ReaderTabsOK Tb) {rd : Reader}
     {rdV : MachineValue} (hrd : ∀ a : K, RunsApp P rdV [encodeValue a] (encodeValue (rd a)))
     {R : ℕ} (hR : ∀ a : K, appCost P rdV [encodeValue a] ≤ R) {cl : E → E → ℕ} {clV : MachineValue}
     (hcl : ∀ a b : E, RunsApp P clV [encodeValue a, encodeValue b] (encodeValue (cl a b)))
     {C : ℕ} (hC : ∀ a b : E, appCost P clV [encodeValue a, encodeValue b] ≤ C)
-    {L : ℕ} (hL : ∀ a b : E, cl a b ≤ L) (hL32 : L ≤ 2 ^ 32) (args : List E)
-    (hlen : args.length ≤ 16) :
+    {L : ℕ} (hL32 : L ≤ 2 ^ 32) (args : List E) (hlen : args.length ≤ 16)
+    (hL : cl (Vn 19 args [] (.n 27)) (Vn 19 args [] (.n 868)) ≤ L) :
     machineCost P Decoder.proofAtFrameC.costIdx [encodeValue Tb, rdV, VnV, clV, encodeValue args] ≤
       vsPiPrice R (F + 6) F C L + 20 := by
   rw [Decoder.proofAtFrameC.costEq P hP Tb rd rdV hrd Vn VnV hVn cl clV hcl]
@@ -193,7 +193,7 @@ variable {Vn : NFrames} {VnV : MachineValue}
   {cl : E → E → ℕ} {clV : MachineValue}
   (hcl : ∀ a b : E, RunsApp P clV [encodeValue a, encodeValue b] (encodeValue (cl a b)))
   {C : ℕ} (hC : ∀ a b : E, appCost P clV [encodeValue a, encodeValue b] ≤ C)
-  {L : ℕ} (hL : ∀ a b : E, cl a b ≤ L) (hL32 : L ≤ 2 ^ 32)
+  {L : ℕ} (hL32 : L ≤ 2 ^ 32)
 
 include hVn hF in
 /-- The leanXMSS witness function (`decWitNC.lam0`), the readers' tables `Tb` given:
@@ -234,16 +234,17 @@ theorem wD_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
   have := daAtFrame_cost P hVn D (by includes) DW hDW args rets hlen
   omega
 
-include hVn hF hrd hR hcl hC hL hL32 in
-/-- The child proofs' witness function (`decWitNC.lam3`), the readers' tables `Tb` given:
-`vsPiPrice R (F + 6) F C L + 30`. -/
+include hVn hF hrd hR hcl hC hL32 in
+/-- The child proofs' witness function (`decWitNC.lam3`), the readers' tables `Tb` given, the
+cursor's length at `verify_sub`'s frame at most `L`: `vsPiPrice R (F + 6) F C L + 30`. -/
 theorem wV_cost (hP : Includes P Decoder.decWitNC.lam3.costDeps) (Tb : ReaderTabs)
-    (hTb : ReaderTabsOK Tb) (args : List E) (hlen : args.length ≤ 16) :
+    (hTb : ReaderTabsOK Tb) (args : List E) (hlen : args.length ≤ 16)
+    (hL : cl (Vn 19 args [] (.n 27)) (Vn 19 args [] (.n 868)) ≤ L) :
     appCost P (.closure Decoder.decWitNC.lam3.costIdx [encodeValue Tb, rdV, VnV, clV])
       [encodeValue args] ≤ vsPiPrice R (F + 6) F C L + 30 := by
   rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
     List.nil_append, Decoder.decWitNC.lam3.costEq P hP Tb rd rdV hrd Vn VnV hVn cl clV hcl]
-  have := proofAtFrame_cost P hVn hF (by includes) Tb hTb hrd hR hcl hC hL hL32 args hlen
+  have := proofAtFrame_cost P hVn hF (by includes) Tb hTb hrd hR hcl hC hL32 args hlen hL
   omega
 
 include hVn hF hrd hR in

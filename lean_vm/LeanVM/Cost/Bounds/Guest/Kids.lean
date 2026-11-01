@@ -327,19 +327,18 @@ section Proof
 
 variable {wV : List E → LeanVM.Protocol.Compile.Proof} {wVV : MachineValue}
   (hwV : ∀ a : List E, RunsApp P wVV [encodeValue a] (encodeValue (wV a)))
-  {W : ℕ} (hW : ∀ a : List E, a.length ≤ 16 → appCost P wVV [encodeValue a] ≤ W)
-include hwV hW
+include hwV
 
 /-- A child's price. -/
 @[expose] def decKidPrice (G R S W N : ℕ) : ℕ := kidStmtPrice G R S N + W + 8 * S + 26 * R + 608200
 
 /-- **Child `c`** (`decKidC`), off good tables of at most `N` marks, `c < 2^34`: its statement, its
-proof's claim (24 reads), its proof (`wV` at its `verify_sub` words): at most
+proof's claim (24 reads), its proof (`wV` at its `verify_sub` words, at most `W` there): at most
 `decKidPrice G R S W N`. -/
 theorem decKid_cost (D : DiscreteLogTables) (hP : Includes P decKidC.costDeps)
     (hG : GLogBound P D G) (w380 p53 p56 : E) (tx ts : Array ℕ × Array ℕ) (htx : TableGood tx)
     (hts : TableGood ts) (N : ℕ) (hN : N ≤ 2 ^ 34) (htxN : tx.1.size ≤ N) (htsN : ts.1.size ≤ N)
-    (c : ℕ) (hc : c < 2 ^ 34) :
+    (c : ℕ) (hc : c < 2 ^ 34) {W : ℕ} (hW : appCost P wVV [encodeValue (subArgsK rd σ c)] ≤ W) :
     machineCost P decKidC.costIdx [encodeValue D, rdV, σV, wVV, encodeValue w380, encodeValue p53,
       encodeValue p56, encodeValue tx, encodeValue ts, encodeValue c] ≤ decKidPrice G R S W N := by
   rw [decKidC.costEq P hP D rd rdV hrd σ σV hσ wV wVV hwV]
@@ -352,7 +351,6 @@ theorem decKid_cost (D : DiscreteLogTables) (hP : Includes P decKidC.costDeps)
     (readCellsK rd ((σ (.n 371)).limb 0 * Parameters.g ^ (24 * c)) 24)
   have h5 := subArgs_cost P hrd hR hσ hS (by includes) c hc
   have := hS (.n 371)
-  have := hW (subArgsK rd σ c) (by simp [subArgsK])
   limbs_one
   unfold decKidPrice
   omega
