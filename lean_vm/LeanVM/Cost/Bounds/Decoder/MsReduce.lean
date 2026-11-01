@@ -9,7 +9,9 @@ public import LeanVM.Cost.Bounds.MuldersStorjohann
 The price of the compiled reduction (`Cost/Extractor/MsReduce.lean`, `msReduceK`, CompPoly's
 `muldersStorjohannReduceFast` over `K`) on a matrix of the loop's invariant (`MsInv r w D`:
 `r` rows of width `w`, shifted degrees at most `D`), from the per-iteration price and the
-number of iterations (`msLoop_cost_le`, `Bounds/MuldersStorjohann.lean`). One iteration:
+number of iterations (`msLoop_cost_le`, `Bounds/MuldersStorjohann.lean`): `msReduceC_cost`, and on a
+lane (`laneMsReduce_cost`; at `(28, 4)`, `laneMsReduce_cost_28_4`: `≈ 2^111.67` per lane, the
+step's row subtraction over `w` entries of `D` coefficients dominating). One iteration:
 
 * the rows' shifted leading positions (`rowLeadingPositionsC_cost`: `190·w·r + 118·r + 10`);
 * the first pair of rows with the same position (`cachedLeadingConflictC_cost`, all pairs:
@@ -21,7 +23,7 @@ number of iterations (`msLoop_cost_le`, `Bounds/MuldersStorjohann.lean`). One it
 namespace LeanVM.Cost.Bounds.Decoder
 
 open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Bounds.Samples LeanVM.Cost.Library
-open LeanVM.Cost.Extractor LeanVM.Parameters CompPoly CompPoly.PolynomialMatrix
+open LeanVM.Cost.Extractor LeanVM.Parameters CompPoly CompPoly.PolynomialMatrix LeanVM.Extraction
 
 /-! The functions compiled on demand, by their short names. -/
 open LeanVM.Cost.Auto.CompPoly.PolynomialMatrix
@@ -418,6 +420,56 @@ theorem msReduceC_cost (hP : Includes P msReduceK.costDeps) {r w D S : ℕ} (hr 
         (r + 1) * (w + 1) * (D + S + 2) := Nat.mul_le_mul_left _ (by omega)
     omega
   have := msLoopC_cost P (by includes) hr hw hDS shift hS _ M hf hM
+  omega
+
+/-! ## On a lane -/
+
+/-- The lane's shifts: `shift[j] = j·(k − 1)` for the `ℓ + 1` columns, at most `ℓ·(k − 1)`. -/
+theorem laneShifts_le (κ R A j : ℕ) :
+    (GuruswamiSudan.leeOSullivanShifts (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp).getD j 0 ≤
+      laneYCap κ R A * (2 ^ κ - 1) := by
+  unfold GuruswamiSudan.leeOSullivanShifts GuruswamiSudan.leeOSullivanWidth
+  by_cases hj :
+    j < GuruswamiSudan.interpolationYCap (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp + 1
+  · rw [weightedDegreeShift_getD _ _ _ hj]
+    simp only [laneYCap, GuruswamiSudan.yWeight, gsParamsFor, gsParamsAt] at hj ⊢
+    exact Nat.mul_le_mul_right _ (by omega)
+  · simp [CBivariate.weightedDegreeShift, Array.getD_eq_getD_getElem?, Nat.not_lt.1 hj]
+
+/-- The bound of a lane's reduction: `r = ℓ + 1` rows and columns, degrees `D = m·n + ℓ·(k − 1)`. -/
+@[expose] def laneMsBound (κ R A : ℕ) : ℕ :=
+  (laneYCap κ R A + 1) * ((laneDegBound κ R A + 1) * (laneYCap κ R A + 2)) *
+      msIterBound (laneYCap κ R A + 1) (laneYCap κ R A + 1) (laneDegBound κ R A) +
+    msIterBound (laneYCap κ R A + 1) (laneYCap κ R A + 1) (laneDegBound κ R A) +
+    90 * ((laneYCap κ R A + 1) * (laneYCap κ R A + 1)) + 77 * (laneYCap κ R A + 1) + 66
+
+/-- **A lane's Mulders–Storjohann reduction** (Lee–O'Sullivan's basis of the lane, its shifts):
+at most `laneMsBound κ R A`, when the sizes are word-sized. -/
+theorem laneMsReduce_cost (hP : Includes P msReduceK.costDeps) (κ R A : ℕ) (W : ℕ → List K)
+    (u : ℕ) (hr : laneYCap κ R A + 1 < 2 ^ 62)
+    (hDS : 2 * (laneDegBound κ R A + 1) + laneYCap κ R A * (2 ^ κ - 1) < 2 ^ 62)
+    (hfuel : (laneYCap κ R A + 2) * (laneYCap κ R A + 2) *
+      (laneDegBound κ R A + laneYCap κ R A * (2 ^ κ - 1) + 2) < 2 ^ 64) :
+    machineCost P msReduceK.costIdx [enc (laneBasis κ R A W u),
+        enc (GuruswamiSudan.leeOSullivanShifts (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp)] ≤
+      laneMsBound κ R A := by
+  have := msReduceC_cost P hP hr hr hDS hfuel (laneBasis κ R A W u) _ (laneShifts_le κ R A)
+    (laneBasis_msInv κ R A W u)
+  unfold laneMsBound
+  rw [Nat.add_mul, Nat.one_mul] at this
+  exact this
+
+/-- **At the worst shape `(28, 4)`** (`k = 2^22`, `n = 2^26`, `A = 16792398`: `ℓ = 1661`,
+`m = 415`, `D = 34816915843`): a lane's reduction costs at most
+`4120758887382473769018615478698110 ≈ 2^111.67` (`≈ 2^117.67` over the 64 lanes). -/
+theorem laneMsReduce_cost_28_4 (hP : Includes P msReduceK.costDeps) (W : ℕ → List K) (u : ℕ) :
+    machineCost P msReduceK.costIdx [enc (laneBasis 22 4 16792398 W u),
+        enc (GuruswamiSudan.leeOSullivanShifts
+          (gsParamsFor (2 ^ 22) (2 ^ (22 + 4)) 16792398).interp)] ≤
+      4120758887382473769018615478698110 := by
+  have := laneMsReduce_cost P hP 22 4 16792398 W u (by decide +kernel) (by decide +kernel)
+    (by decide +kernel)
+  have h : laneMsBound 22 4 16792398 = 4120758887382473769018615478698110 := by decide +kernel
   omega
 
 end
