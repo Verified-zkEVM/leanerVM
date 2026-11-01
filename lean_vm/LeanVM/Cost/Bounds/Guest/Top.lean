@@ -19,7 +19,7 @@ valuation `S`, of the frame map `F`, of a logarithm `G` (`GLogBound`), of the cu
 * `decWitTab_cost` (`decWitTabPrice`), `decWitAt_cost` (`decWitAtPrice`), **`decWitC_cost`**
   (`decWitPrice G R S WX WS WD WV WA`, the callees' witness functions' prices given);
 * **`decWitN_cost`**: `decWitNC` at most `decWitNPrice G R S F C L DW`;
-* `mainVal_cost`: `main`'s valuation, at most `R + 10989`, for every value.
+* `mainVal_cost`: `main`'s valuation, at most `R + 10990`, for every value.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -264,30 +264,31 @@ include hrd hR hσ hS hVn hF hcl hC hL hL32
 /-- **The guest decoder's witness's price**: `decWitC` at the five callees' witness functions'
 prices. -/
 @[expose] def decWitNPrice (G R S F C L DW : ℕ) : ℕ :=
-  decWitPrice G R S (458 * F + 717185) (S + 450 * F + 1663657) (DW + 15)
-    (vsPiPrice R (F + 6) F C L + 16) (47 * F + 46 * R + 998988) + 29
+  decWitPrice G R S (458 * F + 214110) (S + 450 * F + 244110) (DW + 15)
+    (vsPiPrice R (F + 6) F C L + 30) (47 * F + 46 * R + 998988) + 35
 
-/-- **The guest decoder's witness** (`decWitNC`), the logarithm's tables `D` given, `da_verify`'s
-witness at its frame at most `DW` (`dvWitN_cost` at `S = F + 6`): at most
-`decWitNPrice G R S F C L DW`. -/
-theorem decWitN_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitNC.costDeps)
-    (hG : GLogBound P D G) (DW : ℕ)
+/-- **The guest decoder's witness** (`decWitNC`), the logarithm's tables `D` and the readers'
+tables `Tb` given, `da_verify`'s witness at its frame at most `DW` (`dvWitN_cost` at `S = F + 6`):
+at most `decWitNPrice G R S F C L DW`. -/
+theorem decWitN_cost (D : DiscreteLogTables) (Tb : ReaderTabs) (hTb : ReaderTabsOK Tb)
+    (hP : Includes P Decoder.decWitNC.costDeps) (hG : GLogBound P D G) (DW : ℕ)
     (hDW : ∀ args rets : List E, machineCost P Decoder.dvWitNC.costIdx
       [encodeValue D, .closure Decoder.daAtFrameC.lam0.costIdx [VnV, encodeValue args, encodeValue rets],
         VnV] ≤ DW) :
-    machineCost P Decoder.decWitNC.costIdx [encodeValue D, σV, rdV, VnV, clV] ≤
+    machineCost P Decoder.decWitNC.costIdx [encodeValue D, encodeValue Tb, σV, rdV, VnV, clV] ≤
       decWitNPrice G R S F C L DW := by
-  rw [Decoder.decWitNC.costEq P hP D σ σV hσ rd rdV hrd Vn VnV hVn cl clV hcl]
+  rw [Decoder.decWitNC.costEq P hP D Tb σ σV hσ rd rdV hrd Vn VnV hVn cl clV hcl]
   have h := decWitC_cost P hrd hR hσ hS
-    (fun p ↦ RunsApp.of_spec (Decoder.decWitNC.lam0.costSpec P (by includes) Vn VnV hVn p))
-    (wX_cost P hVn hF (by includes))
-    (fun p ↦ RunsApp.of_spec (Decoder.decWitNC.lam1.costSpec P (by includes) σ σV hσ Vn VnV hVn p))
-    (wS_cost P hVn hF hσ hS (by includes))
+    (fun p ↦ RunsApp.of_spec (Decoder.decWitNC.lam0.costSpec P (by includes) Tb Vn VnV hVn p))
+    (wX_cost P hVn hF (by includes) Tb hTb)
+    (fun p ↦ RunsApp.of_spec (Decoder.decWitNC.lam1.costSpec P (by includes) Tb σ σV hσ Vn VnV hVn
+      p))
+    (wS_cost P hVn hF hσ hS (by includes) Tb hTb)
     (fun a b ↦ RunsApp.of_spec (Decoder.decWitNC.lam2.costSpec P (by includes) D Vn VnV hVn a b))
     (wD_cost P hVn D (by includes) DW hDW)
-    (fun a ↦ RunsApp.of_spec (Decoder.decWitNC.lam3.costSpec P (by includes) rd rdV hrd Vn VnV hVn
-      cl clV hcl a))
-    (wV_cost P hVn hF hrd hR hcl hC hL hL32 (by includes))
+    (fun a ↦ RunsApp.of_spec (Decoder.decWitNC.lam3.costSpec P (by includes) Tb rd rdV hrd Vn VnV
+      hVn cl clV hcl a))
+    (wV_cost P hVn hF hrd hR hcl hC hL hL32 (by includes) Tb hTb)
     (fun a ↦ RunsApp.of_spec (Decoder.decWitNC.lam4.costSpec P (by includes) rd rdV hrd Vn VnV hVn a))
     (wA_cost P hVn hF hrd hR (by includes)) D (by includes) hG
   unfold decWitNPrice
@@ -309,16 +310,17 @@ theorem mainLoc_lt (i : ℕ) : (Decoder.guestLocs.getD 1 #[]).getD i 0 < 2 ^ 20 
     exact mainLocs_lt x (Array.mem_toList_iff.2 (Array.mem_of_getElem? h))
 
 /-- **`main`'s valuation** (`mainValC`, the cells' locations a literal of the program): a word of
-`main`'s frame, for every value, at most `R + 10989`. -/
+`main`'s frame, for every value, at most `R + 10990`. -/
 theorem mainVal_cost (hP : Includes P Decoder.mainValC.costDeps) {rd : Reader} {rdV : MachineValue}
     (hrd : ∀ a : K, RunsApp P rdV [encodeValue a] (encodeValue (rd a)))
     {R : ℕ} (hR : ∀ a : K, appCost P rdV [encodeValue a] ≤ R) (v : V) :
-    machineCost P Decoder.mainValC.costIdx [rdV, encodeValue v] ≤ R + 10989 := by
+    machineCost P Decoder.mainValC.costIdx [rdV, encodeValue v] ≤ R + 10990 := by
   rw [Decoder.mainValC.costEq P hP rd rdV hrd]
   have := wordWith_cost (P := P) (rd := rd) (rdVal := rdV) (hrd := hrd) (R := R) (hR := hR)
     (hW := (by norm_num : 0 < 20)) (hW64 := (by norm_num : 20 < 64)) (by includes) 1
     ((Decoder.guestLocs.getD 1 #[]).getD v.idx 0) (mainLoc_lt _)
   unfold psAt at this
+  have hT := Decoder.guestLocsTableC.costEq P (by includes)
   omega
 
 end

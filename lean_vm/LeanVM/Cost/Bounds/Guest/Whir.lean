@@ -5,17 +5,23 @@ public import LeanVM.Cost.Bounds.Guest.Signatures
 /-!
 # Bounds on the guest decoder's prices: a child's proof
 
-`verify_sub`'s witness, the child proof (`Cost/Decoder/Signatures.lean`, `Guest/Fast/Whir.lean`):
-its stream words and, per level of the opening's candidate (`osCallsTab`), the queries of
-`opening_queries` and their openings, in the price `R` of a memory read, `S` of the valuation, `F`
-of the frame map, the cursor's length at most `L` and its price at most `C`:
+`verify_sub`'s witness, the child proof, off `open_stacked`'s tables as arrays
+(`Cost/Decoder/Signatures.lean`: `vsPiOfNC` is `vsPiOfA`, `Guest/Fast/Whir.lean`): its stream words
+and, per level of the opening's candidate (`WhirTabs.calls`), the queries of `opening_queries` and
+their openings, in the price `R` of a memory read, `S` of the valuation, `F` of the frame map, the
+cursor's length at most `L` and its price at most `C`:
 
 * the levels' shapes (`OqOK`, `callOK_osCallsTab`: the table's every call, by kernel evaluation),
-  the shape's numbers (`Oq.R`, `Oq.D`, …: constants);
-* a query's position (`posOf_cost`), row (`oqRow_cost`) and siblings (`oqSibsOf_cost`), a query
-  (`oqQueryW_cost`), an iteration (`oqIterOf_cost`), the queries (`oqsOfN_cost`), a query's
-  opening (`toOpening_cost`, `capSibsOf_cost`), a level (`levelOsN_cost`);
-* **`vsPiOfN_cost`**: a child's proof.
+  the tables as arrays (`WhirTabsOK`, `whirTabs_ok`), the shape's numbers (`Oq.R`, `Oq.D`, …:
+  constants);
+* consecutive words, the address stepped by `g` (`wordsFrom_cost`: `R + 286` a word, against
+  `R + 17398` by `g^k` before), a query's position (`bitsW_cost`, `posOfW_cost`), row
+  (`oqRow_cost`) and siblings (`oqSibsOf_cost`), a query, its position read once
+  (`oqQueryAt_cost`, `oqQueryA_cost`), an iteration (`oqIterA_cost`), the loop, its frames at the
+  next power of `g` (`oqItersFrom_cost`), the queries (`oqsOfA_cost`), a query's opening
+  (`toOpening_cost`, `capSibsOf_cost`), a level (`levelOsAt_cost`, `levelOsA_cost`);
+* **`vsPiOfN_cost`**: a child's proof (`vsPiOfAt_cost`, `vsPiOfM_cost`), at most
+  `vsPiPrice R S F C L`.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -57,6 +63,13 @@ theorem callOK_osCallsTab : osCallsTab.length = 28 ∧ (∀ cs ∈ osCallsTab, c
 
 theorem osWordsTab_ok : osWordsTab.length = 28 ∧ ∀ x ∈ osWordsTab, x ≤ 121 := by decide +kernel
 
+/-- `open_stacked`'s tables as arrays: the lanes below `2^64`, each candidate's words at most
+`121`, its calls at most `6`, each of the table's shapes (`whirTabs_ok`). -/
+structure WhirTabsOK (T : WhirTabs) : Prop where
+  lanes : ∀ x ∈ T.lanes, x < 2 ^ 64
+  words : ∀ m, T.words.getD m 0 ≤ 121
+  calls : ∀ m, (T.calls.getD m []).length ≤ 6 ∧ ∀ c ∈ T.calls.getD m [], CallOK c
+
 theorem callOK_getD (m : ℕ) :
     (osCallsTab.getD m []).length ≤ 6 ∧ ∀ c ∈ osCallsTab.getD m [], CallOK c := by
   rw [List.getD_eq_getElem?_getD]
@@ -65,6 +78,24 @@ theorem callOK_getD (m : ℕ) :
   | some cs =>
     have := List.mem_of_getElem? hk
     exact ⟨callOK_osCallsTab.2.1 cs this, callOK_osCallsTab.2.2 cs this⟩
+
+theorem whirTabs_ok : WhirTabsOK whirTabs := by
+  refine ⟨gLanes_ok.2, fun m ↦ ?_, fun m ↦ ?_⟩
+  · show osWordsTab.toArray.getD m 0 ≤ 121
+    rw [getD_toArray, List.getD_eq_getElem?_getD]
+    cases hk : osWordsTab[m]? with
+    | none => simp
+    | some x => exact osWordsTab_ok.2 x (List.mem_of_getElem? hk)
+  · show (osCallsTab.toArray.getD m []).length ≤ 6 ∧ ∀ c ∈ osCallsTab.toArray.getD m [], CallOK c
+    rw [getD_toArray]
+    exact callOK_getD m
+
+/-- **`open_stacked`'s tables, built** (`whirTabsC`): at most `9330`. -/
+theorem whirTabs_cost (hP : Includes P Decoder.whirTabsC.costDeps) :
+    machineCost P Decoder.whirTabsC.costIdx [] ≤ 9330 := by
+  rw [Decoder.whirTabsC.costEq P hP, Decoder.gLanesC.costEq P (by includes),
+    Decoder.osWordsTabC.costEq P (by includes), Decoder.osCallsTabC.costEq P (by includes),
+    osWordsTab_ok.1, callOK_osCallsTab.1]
 
 /-! ## The shape's numbers -/
 
@@ -151,6 +182,17 @@ theorem oqKL_cost (hP : Includes P Decoder.oqKLC.costDeps) (b : ℕ)
   have : oqK1 b s.R < 2 ^ 22 := by unfold oqK1; omega
   limbs_one; split_ifs <;> limbs_one <;> omega
 
+theorem oqCh_cost (hP : Includes P Decoder.oqChC.costDeps) (b : ℕ)
+    (hb : b < 2 ^ 21) (emit : Bool) :
+    machineCost P Decoder.oqChC.costIdx
+      [encodeValue s, encodeValue b, encodeValue emit] ≤ 220 := by
+  have hkl := oqKL_cost P hs (by includes) b hb emit
+  have hc := Oq_chainLen_cost P hs (by includes)
+  have hkl' := oqKL_lt hs b hb emit
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, -⟩ := hs
+  rw [Decoder.oqChC.costEq P hP]
+  limbs_one; omega
+
 theorem oqCq_cost (hP : Includes P Decoder.oqCqC.costDeps) (ch : ℕ)
     (hch : ch < 2 ^ 24) :
     machineCost P Decoder.oqCqC.costIdx [encodeValue s, encodeValue ch] ≤ 11 := by
@@ -162,9 +204,8 @@ theorem oqCq_cost (hP : Includes P Decoder.oqCqC.costDeps) (ch : ℕ)
 theorem oqEnd_cost (hP : Includes P Decoder.oqEndC.costDeps) (b : ℕ)
     (hb : b < 2 ^ 21) (emit : Bool) :
     machineCost P Decoder.oqEndC.costIdx
-      [encodeValue s, encodeValue b, encodeValue emit] ≤ 232 := by
-  have hkl := oqKL_cost P hs (by includes) b hb emit
-  have hc := Oq_chainLen_cost P hs (by includes)
+      [encodeValue s, encodeValue b, encodeValue emit] ≤ 260 := by
+  have hkl := oqCh_cost P hs (by includes) b hb emit
   have hch := oqCh_lt hs b hb emit
   have hq := oqCq_cost P hs (by includes) (oqCh s b emit) hch
   have hkl' := oqKL_lt hs b hb emit
@@ -173,9 +214,17 @@ theorem oqEnd_cost (hP : Includes P Decoder.oqEndC.costDeps) (b : ℕ)
   have : oqCq s (oqCh s b emit) < 2 ^ 25 := by unfold oqCq oqL0; omega
   limbs_one; omega
 
+theorem oqE1_lt : oqE1 s < 2 ^ 20 := hs.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+
+theorem oqE1_cost (hP : Includes P Decoder.oqE1C.costDeps) :
+    machineCost P Decoder.oqE1C.costIdx [encodeValue s] ≤ 270 := by
+  have := oqEnd_cost P hs (by includes) 11 (by norm_num) true
+  rw [Decoder.oqE1C.costEq P hP]
+  omega
+
 end Shape
 
-/-! ## A query -/
+/-! ## Consecutive words -/
 
 section Reader
 
@@ -194,43 +243,68 @@ theorem memRead_cost (hP : Includes P Decoder.memReadC.costDeps) (p : E)
   have := hR (p.limb 0 * gpow k)
   cases rd (p.limb 0 * gpow k) <;> dsimp only <;> omega
 
-omit hrd hR in
-/-- The integer of `D ≤ 62` bits read by a closure (`bitsValC`): `(B + 27)·D + 6`. -/
-theorem bitsVal_cost (hP : Includes P Decoder.bitsValC.costDeps)
-    (f : ℕ → Bool) (fV : MachineValue) (hf : ∀ a, RunsApp P fV [encodeValue a] (encodeValue (f a)))
-    (B : ℕ) (hB : ∀ a, a < 62 → appCost P fV [encodeValue a] ≤ B) : ∀ D, D ≤ 62 →
-      machineCost P Decoder.bitsValC.costIdx [fV, encodeValue D] ≤
-        (B + 27) * D + 6
-  | 0, _ => by rw [Decoder.bitsValC.costEq_zero P hP f fV hf]; omega
-  | n + 1, hn => by
-    rw [Decoder.bitsValC.costEq_succ P hP f fV hf]
-    have := bitsVal_cost hP f fV hf B hB n (by omega)
-    have := hB n (by omega)
-    have hb := LeanVM.Guest.Value.bitsVal_lt f n
-    have h2 : 2 ^ n ≤ 2 ^ 62 := Nat.pow_le_pow_right (by norm_num) (by omega)
-    have h4 : (f n).toNat ≤ 1 := Bool.toNat_le _
-    have h3 : 2 ^ n * (f n).toNat ≤ 2 ^ 62 := by
-      have := Nat.mul_le_mul_left (2 ^ n) h4; omega
-    rw [Nat.one_shiftLeft]
-    simp only [Bool.cond_self]
-    limbs_one
-    nlinarith
+/-- **`n` consecutive words** (`wordsFromC`), the address stepped by `g`: `(R + 286)·n + 6`. -/
+theorem wordsFrom_cost (hP : Includes P Decoder.wordsFromC.costDeps) :
+    ∀ (n : ℕ) (a : K), n < 2 ^ 64 →
+      machineCost P Decoder.wordsFromC.costIdx [rdV, encodeValue a, encodeValue n] ≤
+        (R + 286) * n + 6
+  | 0, a, _ => by rw [Decoder.wordsFromC.costEq_zero P hP rd rdV hrd]; omega
+  | n + 1, a, hn => by
+    rw [Decoder.wordsFromC.costEq_succ P hP rd rdV hrd, limbs_of_lt hn]
+    have := wordsFrom_cost hP n (a * Parameters.g) (by omega)
+    have := hR a
+    have : (Option.casesOn (motive := fun _ ↦ ℕ) (rd a) 7 fun _ ↦ 1) ≤ 7 := by
+      cases rd a <;> simp
+    rw [Nat.mul_succ]
+    omega
 
-/-- A query's position (`posOfC`), `D ≤ 28` bits: `(3·R + 65105)·D + 13`. -/
-theorem posOf_cost (hP : Includes P Decoder.posOfC.costDeps) (bp : E) (D : ℕ)
-    (hD : D ≤ 28) :
-    machineCost P Decoder.posOfC.costIdx [rdV, encodeValue bp, encodeValue D] ≤
-      (3 * R + 65078 + 27) * D + 13 := by
-  rw [Decoder.posOfC.costEq P hP rd rdV hrd]
-  have hf : ∀ l, RunsApp P (.closure Decoder.posOfC.lam0.costIdx [rdV, encodeValue bp])
-      [encodeValue l] (encodeValue (decide (memRead rd bp l = 1))) := fun l ↦
-    RunsApp.of_spec (Decoder.posOfC.lam0.costSpec P (by includes) rd rdV hrd bp l)
-  have := bitsVal_cost P (by includes) _ _ hf (3 * R + 65078) (fun l hl ↦ by
-    rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-      Decoder.posOfC.lam0.costEq P (by includes) rd rdV hrd]
-    have := memRead_cost P hrd hR (by includes) bp l (by omega)
-    split_ifs <;> omega) D (by omega)
+omit hrd hR in
+theorem length_wordsFrom (a : K) : ∀ n, (wordsFrom rd a n).length = n
+  | 0 => rfl
+  | n + 1 => by rw [wordsFrom, List.length_cons, length_wordsFrom (a * Parameters.g) n]
+
+omit hrd hR in
+theorem bitsW_lt : ∀ l : List E, bitsW l < 2 ^ l.length
+  | [] => by simp [bitsW]
+  | w :: l => by
+    have := bitsW_lt l
+    rw [bitsW, List.length_cons, pow_succ]
+    split_ifs <;> omega
+
+omit hrd hR in
+/-- The number of `n ≤ 62` bit words (`bitsWC`): `46·n + 3`. -/
+theorem bitsW_cost (hP : Includes P Decoder.bitsWC.costDeps) :
+    ∀ l : List E, l.length ≤ 62 →
+      machineCost P Decoder.bitsWC.costIdx [encodeValue l] ≤ 46 * l.length + 3
+  | [], _ => by rw [Decoder.bitsWC.costEq_nil P hP]; simp
+  | w :: l, hl => by
+    rw [Decoder.bitsWC.costEq_cons P hP]
+    have := bitsW_cost hP l (by simp at hl; omega)
+    have hb := bitsW_lt l
+    have h62 : 2 ^ l.length ≤ 2 ^ 62 := Nat.pow_le_pow_right (by norm_num) (by simp at hl; omega)
+    rw [limbs_of_lt (by omega : bitsW l < 2 ^ 64), limbs_of_lt (by omega : 2 * bitsW l < 2 ^ 64),
+      List.length_cons]
+    split_ifs <;> limbs_one <;> omega
+
+/-- The position price: `D ≤ 28` words read in a row and their bits. -/
+@[expose] def posPrice (R : ℕ) : ℕ := (R + 286) * 28 + 46 * 28 + 15
+
+/-- **A query's position** (`posOfWC`), `D ≤ 28` bits read in a row: at most `posPrice R`. -/
+theorem posOfW_cost (hP : Includes P Decoder.posOfWC.costDeps) (bp : E) (D : ℕ) (hD : D ≤ 28) :
+    machineCost P Decoder.posOfWC.costIdx [rdV, encodeValue bp, encodeValue D] ≤ posPrice R := by
+  rw [Decoder.posOfWC.costEq P hP rd rdV hrd]
+  have := wordsFrom_cost P hrd hR (by includes) D (bp.limb 0) (by omega)
+  have := bitsW_cost P (by includes) (wordsFrom rd (bp.limb 0) D)
+    (by rw [length_wordsFrom]; omega)
+  rw [length_wordsFrom] at this
+  have := Nat.mul_le_mul_left (R + 286) hD
+  unfold posPrice
   omega
+
+omit hrd hR in
+theorem posOfW_lt (bp : E) (D : ℕ) : posOfW rd bp D < 2 ^ D := by
+  have := bitsW_lt (wordsFrom rd (bp.limb 0) D)
+  rwa [length_wordsFrom] at this
 
 omit hrd hR in
 /-- The digest of two cells (`digestOfCellsC`): at most `58`. -/
@@ -252,6 +326,8 @@ theorem testBit_cost (hP : Includes P Auto.Nat.testBit.c225.costDeps) (q l : ℕ
   have h2 : 1 &&& q >>> l ≤ 1 := Nat.and_le_left
   limbs_one
   omega
+
+/-! ## A query -/
 
 section Val
 
@@ -297,51 +373,61 @@ theorem oqSibsOf_cost (hP : Includes P Decoder.oqSibsOfC.costDeps) (pd ch q : �
       split_ifs <;> limbs_one <;> cost_facts [digestOfCells640_cost P, hS] <;> omega)
   omega
 
-/-- A query's price. -/
-@[expose] def queryPrice (R S : ℕ) : ℕ :=
-  2 * ((3 * R + 65078 + 27) * 28 + 13) + ((S + 13 + 28) * 192 + 18) +
-    ((2 * S + 140 + 28) * 20 + 20) + 251
+/-- A query's price, its position given. -/
+@[expose] def queryAtPrice (S : ℕ) : ℕ :=
+  11 + ((S + 13 + 28) * 192 + 18) + 220 + ((2 * S + 140 + 28) * 20 + 20) + 21
 
-/-- **A query** (`oqQueryWC`), of a level's shape, from a value below `2^21`: at most
-`queryPrice R S`. -/
-theorem oqQueryW_cost (hP : Includes P Decoder.oqQueryWC.costDeps) (s : Oq)
-    (hs : OqOK s) (bp : E) (b : ℕ) (hb : b < 2 ^ 21) (emit : Bool) :
-    machineCost P Decoder.oqQueryWC.costIdx
+omit hrd hR in
+/-- **A query, its position `pos < 2^28` given** (`oqQueryAtC`), of a level's shape, from a value
+below `2^21`: at most `queryAtPrice S`. -/
+theorem oqQueryAt_cost (hP : Includes P Decoder.oqQueryAtC.costDeps) (s : Oq) (hs : OqOK s)
+    (b : ℕ) (hb : b < 2 ^ 21) (emit : Bool) (pos : ℕ) (hpos : pos < 2 ^ 28) :
+    machineCost P Decoder.oqQueryAtC.costIdx
+      [encodeValue s, σV, encodeValue b, encodeValue emit, encodeValue pos] ≤ queryAtPrice S := by
+  rw [Decoder.oqQueryAtC.costEq P hP s σ σV hσ]
+  have hR' := Oq_R_cost P hs (by includes)
+  have hch := oqCh_cost P hs (by includes) b hb emit
+  have hch' := oqCh_lt hs b hb emit
+  have hrow := oqRow_cost P hσ hS (by includes) b s.R hb hs.2.2.2.2.1
+  have hsib := oqSibsOf_cost P hσ hS (by includes) s.pd (oqCh s b emit) pos hs.2.2.1 hch'
+    (by omega)
+  unfold queryAtPrice
+  omega
+
+/-- A query's price. -/
+@[expose] def queryPrice (R S : ℕ) : ℕ := posPrice R + queryAtPrice S + 14
+
+/-- **A query** (`oqQueryAC`), its position read once: at most `queryPrice R S`. -/
+theorem oqQueryA_cost (hP : Includes P Decoder.oqQueryAC.costDeps) (s : Oq) (hs : OqOK s)
+    (bp : E) (b : ℕ) (hb : b < 2 ^ 21) (emit : Bool) :
+    machineCost P Decoder.oqQueryAC.costIdx
       [encodeValue s, rdV, encodeValue bp, encodeValue b, encodeValue emit, σV] ≤
         queryPrice R S := by
-  rw [Decoder.oqQueryWC.costEq P hP s rd rdV hrd bp b emit σ σV hσ]
-  have hR' := Oq_R_cost P hs (by includes)
-  have hkl := oqKL_cost P hs (by includes) b hb emit
-  have hc := Oq_chainLen_cost P hs (by includes)
-  have hch := oqCh_lt hs b hb emit
-  have hkl' := oqKL_lt hs b hb emit
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, -⟩ := hs
-  have hp := posOf_cost P hrd hR (by includes) bp (s.pd + s.cd) (by omega)
-  have := Nat.mul_le_mul_left (3 * R + 65078 + 27) (by omega : s.pd + s.cd ≤ 28)
-  have hq := LeanVM.Guest.Value.bitsVal_lt (fun l ↦ decide (memRead rd bp l = 1)) (s.pd + s.cd)
-  have hq' : 2 ^ (s.pd + s.cd) ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) (by omega)
-  have hrow := oqRow_cost P hσ hS (by includes) b s.R hb h5
-  have hsib := oqSibsOf_cost P hσ hS (by includes) s.pd (oqCh s b emit)
-    (posOf rd bp (s.pd + s.cd)) h3 hch (by unfold posOf; omega)
+  rw [Decoder.oqQueryAC.costEq P hP s rd rdV hrd bp b emit σ σV hσ]
+  have h3 : s.pd ≤ 20 := hs.2.2.1
+  have h4 : s.cd ≤ 8 := hs.2.2.2.1
+  have hp := posOfW_cost P hrd hR (by includes) bp (s.pd + s.cd) (by omega)
+  have hlt := posOfW_lt (rd := rd) bp (s.pd + s.cd)
+  have : 2 ^ (s.pd + s.cd) ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) (by omega)
+  have hq := oqQueryAt_cost P hσ hS (by includes) s hs b hb emit (posOfW rd bp (s.pd + s.cd))
+    (by omega)
+  rw [limbs_of_lt (by omega : s.pd < 2 ^ 64), limbs_of_lt (by omega : s.cd < 2 ^ 64)]
   unfold queryPrice
-  limbs_one
   omega
 
 /-- An iteration's price. -/
-@[expose] def iterPrice (R S : ℕ) : ℕ := 2 * queryPrice R S + 2 * S + 516
+@[expose] def iterPrice (R S : ℕ) : ℕ := 2 * queryPrice R S + 2 * S + 590
 
-/-- **A loop iteration's queries** (`oqIterOfC`): at most `iterPrice R S`. -/
-theorem oqIterOf_cost (hP : Includes P Decoder.oqIterOfC.costDeps) (s : Oq)
-    (hs : OqOK s) :
-    machineCost P Decoder.oqIterOfC.costIdx [encodeValue s, rdV, σV] ≤
-      iterPrice R S := by
-  rw [Decoder.oqIterOfC.costEq P hP s rd rdV hrd σ σV hσ]
-  have hE := hs.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
-  have q1 := oqQueryW_cost P hrd hR hσ hS (by includes) s hs (σ (.n 10)) 11 (by norm_num) true
-  have q2 := oqQueryW_cost P hrd hR hσ hS (by includes) s hs (σ (.n (oqE1 s))) (oqE1 s + 1)
+/-- **A loop iteration's queries** (`oqIterAC`): at most `iterPrice R S`. -/
+theorem oqIterA_cost (hP : Includes P Decoder.oqIterAC.costDeps) (s : Oq) (hs : OqOK s) :
+    machineCost P Decoder.oqIterAC.costIdx [encodeValue s, rdV, σV] ≤ iterPrice R S := by
+  rw [Decoder.oqIterAC.costEq P hP s rd rdV hrd σ σV hσ]
+  have hE := oqE1_lt hs
+  have q1 := oqQueryA_cost P hrd hR hσ hS (by includes) s hs (σ (.n 10)) 11 (by norm_num) true
+  have q2 := oqQueryA_cost P hrd hR hσ hS (by includes) s hs (σ (.n (oqE1 s))) (oqE1 s + 1)
     (by omega) false
-  have q3 := oqQueryW_cost P hrd hR hσ hS (by includes) s hs (σ (.n 9)) 10 (by norm_num) true
-  have e1 := oqEnd_cost P hs (by includes) 11 (by norm_num) true
+  have q3 := oqQueryA_cost P hrd hR hσ hS (by includes) s hs (σ (.n 9)) 10 (by norm_num) true
+  have e1 := oqE1_cost P hs (by includes)
   have := hS (.n 10); have := hS (.n 9); have := hS (.n (oqE1 s))
   have hb := hs.1
   unfold iterPrice
@@ -357,9 +443,15 @@ theorem oqLoopArgs_cost (hP : Includes P Decoder.oqLoopArgsC.costDeps) :
   have := hS (.n 11); have := hS (.n 8)
   omega
 
-omit hrd hR hσ hS in
+end Val
+
+omit hrd hR in
 theorem length_oqIterOf (s : Oq) (rd : Reader) (σ : Val) : (oqIterOf s rd σ).length ≤ 2 := by
   unfold oqIterOf; split_ifs <;> simp
+
+omit hrd hR in
+theorem length_oqIterA (s : Oq) (rd : Reader) (σ : Val) : (oqIterA s rd σ).length ≤ 2 := by
+  unfold oqIterA; split_ifs <;> simp
 
 section Frames
 
@@ -371,68 +463,79 @@ variable {Vn : NFrames} {VnV : MachineValue}
     appCost P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F)
 include hVn hF
 
+/-- An iteration of the loop, its frame stepped: its price. -/
+@[expose] def stepPrice (R F : ℕ) : ℕ := iterPrice R (F + 6) + 2434
+
+/-- **The loop's `N` iterations from the frame at `x`** (`oqItersFromC`), each the next at
+`x·g`: at most `stepPrice R F · N + 6`. -/
+theorem oqItersFrom_cost (hP : Includes P Decoder.oqItersFromC.costDeps) (s : Oq) (hs : OqOK s)
+    (loop : ℕ) (la : List E) :
+    ∀ (N : ℕ) (x : E), N < 2 ^ 64 →
+      machineCost P Decoder.oqItersFromC.costIdx [encodeValue s, encodeValue loop, rdV, VnV,
+        encodeValue la, encodeValue N, encodeValue x] ≤ stepPrice R F * N + 6
+  | 0, x, _ => by rw [Decoder.oqItersFromC.costEq_zero P hP s loop rd rdV hrd Vn VnV hVn]; omega
+  | N + 1, x, hN => by
+    rw [Decoder.oqItersFromC.costEq_succ P hP s loop rd rdV hrd Vn VnV hVn, limbs_of_lt hN]
+    have hσ' : ∀ v : V, RunsApp P (.closure Decoder.oqItersFromC.lam0.costIdx
+        [encodeValue loop, VnV, encodeValue (x :: la), encodeValue ([] : List E)]) [encodeValue v]
+        (encodeValue (Vn loop (x :: la) [] v)) :=
+      fun v ↦ RunsApp.of_spec (Decoder.oqItersFromC.lam0.costSpec P (by includes) loop Vn VnV hVn
+        _ _ v)
+    have hS' : ∀ v : V, appCost P (.closure Decoder.oqItersFromC.lam0.costIdx
+        [encodeValue loop, VnV, encodeValue (x :: la), encodeValue ([] : List E)]) [encodeValue v] ≤
+          F + 6 := fun v ↦ by
+      rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
+        List.nil_append, Decoder.oqItersFromC.lam0.costEq P (by includes) loop Vn VnV hVn]
+      have := hF loop (x :: la) [] v
+      omega
+    have hi := oqIterA_cost P hrd hR hσ' hS' (by includes) s hs
+    have := oqItersFrom_cost hP s hs loop la N (x * LeanVM.Protocol.Verifier.gen) (by omega)
+    have ha := append_cost P (by includes) (oqIterA s rd (Vn loop (x :: la) []))
+      (oqItersFrom s loop rd Vn la N (x * LeanVM.Protocol.Verifier.gen))
+    have := length_oqIterA s rd (Vn loop (x :: la) [])
+    unfold stepPrice at *
+    rw [Nat.mul_succ]
+    omega
+
+section Val
+
+variable {σ : Val} {σV : MachineValue}
+  (hσ : ∀ v : V, RunsApp P σV [encodeValue v] (encodeValue (σ v)))
+  {S : ℕ} (hS : ∀ v : V, appCost P σV [encodeValue v] ≤ S)
+include hσ hS
+
 /-- The queries' price. -/
 @[expose] def oqsPrice (R S F : ℕ) : ℕ :=
-  S + queryPrice R S + 20 +
-    ((33136 + (7 * S + 85) + iterPrice R (F + 6) + 26 + 28) * 112 + 9) + (27 * 112 + 3) + 12 + 21
+  1 + (S + queryPrice R S + 19) + (7 * S + 85) + (stepPrice R F * 112 + 6) + 12 + 20
 
-/-- **The queries of `opening_queries`** (`oqsOfNC`), its odd query and `N ≤ 112` iterations:
-at most `oqsPrice R S F`. -/
-theorem oqsOfN_cost (hP : Includes P Decoder.oqsOfNC.costDeps) (s : Oq) (hs : OqOK s)
+/-- **The queries of `opening_queries`** (`oqsOfNC`, `oqsOfA`), its odd query and `N ≤ 112`
+iterations: at most `oqsPrice R S F`. -/
+theorem oqsOfA_cost (hP : Includes P Decoder.oqsOfNC.costDeps) (s : Oq) (hs : OqOK s)
     (odd loop N : ℕ) (hodd : odd ≤ 1) (hN : N ≤ 112) :
     machineCost P Decoder.oqsOfNC.costIdx [encodeValue s, encodeValue odd, encodeValue loop,
       encodeValue N, rdV, σV, VnV] ≤ oqsPrice R S F := by
   rw [Decoder.oqsOfNC.costEq P hP s odd loop N rd rdV hrd σ σV hσ Vn VnV hVn]
-  have q := oqQueryW_cost P hrd hR hσ hS (by includes) s hs (σ (.n 12)) 13 (by norm_num) true
+  have q := oqQueryA_cost P hrd hR hσ hS (by includes) s hs (σ (.n 12)) 13 (by norm_num) true
   have := hS (.n 12)
-  have m := rangeMap_le P (by includes) (by includes) _
-    (.closure Decoder.oqsOfNC.lam0.costIdx [encodeValue s, encodeValue loop, rdV, σV, VnV])
-    (fun j ↦ RunsApp.of_spec (Decoder.oqsOfNC.lam0.costSpec P (by includes) s loop rd rdV hrd σ σV hσ
-      Vn VnV hVn j))
-    (33136 + (7 * S + 85) + iterPrice R (F + 6) + 26) N 112 hN (by norm_num) (fun j hj ↦ by
-      rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
-        List.cons_append, List.nil_append,
-        Decoder.oqsOfNC.lam0.costEq P (by includes) s loop rd rdV hrd σ σV hσ Vn VnV hVn]
-      have := powSqE_cost_lt P (by includes) LeanVM.Protocol.Verifier.gen j 7 (by norm_num)
-        (by norm_num) (by omega)
-      have := oqLoopArgs_cost P hσ hS (by includes)
-      have hσ' : ∀ v : V, RunsApp P (.closure Decoder.oqsOfNC.lam0.lam0.costIdx
-          [encodeValue loop, VnV, encodeValue (LeanVM.Protocol.Verifier.gen ^ j :: oqLoopArgs σ),
-            encodeValue ([] : List E)]) [encodeValue v]
-          (encodeValue (Vn loop (LeanVM.Protocol.Verifier.gen ^ j :: oqLoopArgs σ) [] v)) :=
-        fun v ↦ RunsApp.of_spec (Decoder.oqsOfNC.lam0.lam0.costSpec P (by includes) loop Vn VnV hVn
-          _ _ v)
-      have hS' : ∀ v : V, appCost P (.closure Decoder.oqsOfNC.lam0.lam0.costIdx
-          [encodeValue loop, VnV, encodeValue (LeanVM.Protocol.Verifier.gen ^ j :: oqLoopArgs σ),
-            encodeValue ([] : List E)]) [encodeValue v] ≤ F + 6 := fun v ↦ by
-        rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
-          List.nil_append, Decoder.oqsOfNC.lam0.lam0.costEq P (by includes) loop Vn VnV hVn]
-        have := hF loop (LeanVM.Protocol.Verifier.gen ^ j :: oqLoopArgs σ) [] v
-        omega
-      have := oqIterOf_cost P hrd hR hσ' hS' (by includes) s hs
-      omega)
-  have hf := flatten_map_cost P (by includes) 2
-    (fun j ↦ oqIterOf s rd (Vn loop (LeanVM.Protocol.Verifier.gen ^ j :: oqLoopArgs σ) []))
-    (List.range N) (fun j _ ↦ length_oqIterOf _ _ _)
-  simp only [List.length_range] at hf
-  have := Nat.mul_le_mul_left (9 * 2 + 9) hN
+  have := oqLoopArgs_cost P hσ hS (by includes)
+  have hi := oqItersFrom_cost P hrd hR hVn hF (by includes) s hs loop (oqLoopArgs σ) N 1
+    (by omega)
+  have := Nat.mul_le_mul_left (stepPrice R F) hN
   unfold oqsPrice
   rw [limbs_of_lt (by omega : odd < 2 ^ 64)]
   split_ifs
-  · have ha := append_cost P (by includes) [oqQueryW s rd (σ (.n 12)) 13 true σ]
-      ((List.range N).flatMap fun j ↦
-        oqIterOf s rd (Vn loop (LeanVM.Protocol.Verifier.gen ^ j :: oqLoopArgs σ) []))
+  · have ha := append_cost P (by includes) [oqQueryA s rd (σ (.n 12)) 13 true σ]
+      (oqItersFrom s loop rd Vn (oqLoopArgs σ) N 1)
     simp only [List.length_cons, List.length_nil] at ha
     omega
   · have ha := append_cost P (by includes) ([] : List QW)
-      ((List.range N).flatMap fun j ↦
-        oqIterOf s rd (Vn loop (LeanVM.Protocol.Verifier.gen ^ j :: oqLoopArgs σ) []))
+      (oqItersFrom s loop rd Vn (oqLoopArgs σ) N 1)
     simp only [List.length_nil] at ha
     omega
 
-end Frames
-
 end Val
+
+end Frames
 
 /-! ## The queries' values -/
 
@@ -559,93 +662,97 @@ variable {σ : Val} {σV : MachineValue}
     appCost P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F)
 include hσ hS hVn hF
 
-/-- A level's price. -/
-@[expose] def levelPrice (R S F : ℕ) : ℕ :=
-  ((S + 9 + 11) * 7 + 3) + 7 + ((S + 9 + 11) * 1 + 3) + oqsPrice R (F + 6) F +
-    ((openingPrice R + 6 + 11) * 225 + 3) + 59
+/-- A level's price, its call's argument words given. -/
+@[expose] def levelAtPrice (R S F : ℕ) : ℕ :=
+  7 + ((S + 9 + 11) * 1 + 3) + oqsPrice R (F + 6) F + ((openingPrice R + 6 + 11) * 225 + 3) + 50
 
-/-- **A level's openings** (`levelOsNC`), from a call of the table: at most `levelPrice R S F`. -/
-theorem levelOsN_cost (hP : Includes P Decoder.levelOsNC.costDeps) (c : OsCall) (hc : CallOK c) :
-    machineCost P Decoder.levelOsNC.costIdx [rdV, σV, VnV, encodeValue c] ≤ levelPrice R S F := by
+/-- **A level's openings, its call's words `a` given** (`levelOsAtC`), from a call of the table:
+at most `levelAtPrice R S F`. -/
+theorem levelOsAt_cost (hP : Includes P Decoder.levelOsAtC.costDeps) (c : OsCall) (hc : CallOK c)
+    (a : List E) :
+    machineCost P Decoder.levelOsAtC.costIdx [rdV, σV, VnV, encodeValue c, encodeValue a] ≤
+      levelAtPrice R S F := by
   obtain ⟨hs, hodd, hN, hfn, hloop, hdepth, hargs, hrets⟩ := hc
-  rw [Decoder.levelOsNC.costEq P hP rd rdV hrd σ σV hσ Vn VnV hVn]
-  have hl0 : ∀ k : ℕ, appCost P (.closure Decoder.levelOsNC.lam0.costIdx [σV]) [encodeValue k] ≤
+  rw [Decoder.levelOsAtC.costEq P hP rd rdV hrd σ σV hσ Vn VnV hVn]
+  have hl2 : ∀ k : ℕ, appCost P (.closure Decoder.levelOsAtC.lam2.costIdx [σV]) [encodeValue k] ≤
       S + 9 := fun k ↦ by
     rw [appCost_fn, List.cons_append, List.nil_append,
-      Decoder.levelOsNC.lam0.costEq P (by includes) σ σV hσ]
+      Decoder.levelOsAtC.lam2.costEq P (by includes) σ σV hσ]
     have := hS (.n k); omega
-  have hr0 : ∀ k : ℕ, RunsApp P (.closure Decoder.levelOsNC.lam0.costIdx [σV]) [encodeValue k]
+  have hr2 : ∀ k : ℕ, RunsApp P (.closure Decoder.levelOsAtC.lam2.costIdx [σV]) [encodeValue k]
       (encodeValue (σ (.n k))) :=
-    fun k ↦ RunsApp.of_spec (Decoder.levelOsNC.lam0.costSpec P (by includes) σ σV hσ k)
-  have m1 := map_cost P (by includes) _ _ hr0 (S + 9) c.args (fun k _ ↦ hl0 k)
-  have m2 := map_cost P (by includes) _ _ hr0 (S + 9) c.rets (fun k _ ↦ hl0 k)
-  have := Nat.mul_le_mul_left (S + 9 + 11) hargs
+    fun k ↦ RunsApp.of_spec (Decoder.levelOsAtC.lam2.costSpec P (by includes) σ σV hσ k)
+  have m2 := map_cost P (by includes) _ _ hr2 (S + 9) c.rets (fun k _ ↦ hl2 k)
   have := Nat.mul_le_mul_left (S + 9 + 11) hrets
-  have hσ'' : ∀ v : V, RunsApp P (.closure Decoder.levelOsNC.lam2.costIdx
-      [VnV, encodeValue (c.rets.map fun k ↦ σ (.n k)), encodeValue (c.args.map fun k ↦ σ (.n k)),
-        encodeValue c.fn]) [encodeValue v]
-      (encodeValue (Vn c.fn (c.args.map fun k ↦ σ (.n k)) (c.rets.map fun k ↦ σ (.n k)) v)) :=
-    fun v ↦ RunsApp.of_spec (Decoder.levelOsNC.lam2.costSpec P (by includes) Vn VnV hVn _ _ _ v)
-  have hS'' : ∀ v : V, appCost P (.closure Decoder.levelOsNC.lam2.costIdx
-      [VnV, encodeValue (c.rets.map fun k ↦ σ (.n k)), encodeValue (c.args.map fun k ↦ σ (.n k)),
-        encodeValue c.fn]) [encodeValue v] ≤ F + 6 := fun v ↦ by
+  have hσ'' : ∀ v : V, RunsApp P (.closure Decoder.levelOsAtC.lam1.costIdx
+      [VnV, encodeValue a, encodeValue (c.rets.map fun k ↦ σ (.n k)), encodeValue c.fn])
+      [encodeValue v] (encodeValue (Vn c.fn a (c.rets.map fun k ↦ σ (.n k)) v)) :=
+    fun v ↦ RunsApp.of_spec (Decoder.levelOsAtC.lam1.costSpec P (by includes) Vn VnV hVn _ _ _ v)
+  have hS'' : ∀ v : V, appCost P (.closure Decoder.levelOsAtC.lam1.costIdx
+      [VnV, encodeValue a, encodeValue (c.rets.map fun k ↦ σ (.n k)), encodeValue c.fn])
+      [encodeValue v] ≤ F + 6 := fun v ↦ by
     rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
-      List.nil_append, Decoder.levelOsNC.lam2.costEq P (by includes) Vn VnV hVn]
-    have := hF c.fn (c.args.map fun k ↦ σ (.n k)) (c.rets.map fun k ↦ σ (.n k)) v
+      List.nil_append, Decoder.levelOsAtC.lam1.costEq P (by includes) Vn VnV hVn]
+    have := hF c.fn a (c.rets.map fun k ↦ σ (.n k)) v
     omega
-  have ho := oqsOfN_cost P hrd hR hσ'' hS'' hVn hF (by includes) _ hs c.odd c.loop c.N hodd hN
+  have ho := oqsOfA_cost P hrd hR hVn hF hσ'' hS'' (by includes) _ hs c.odd c.loop c.N hodd hN
   have hlen := length_oqsOfN (rd := rd) ⟨c.base, c.I, c.pd, c.cd⟩ c.odd c.loop c.N
-    (Vn c.fn (c.args.map fun k ↦ σ (.n k)) (c.rets.map fun k ↦ σ (.n k))) Vn
+    (Vn c.fn a (c.rets.map fun k ↦ σ (.n k))) Vn
+  rw [← oqsOfA_eq] at hlen
   have m3 := map_cost P (by includes) _
-    (.closure Decoder.levelOsNC.lam1.costIdx [rdV,
-      encodeValue ((c.args.map fun k ↦ σ (.n k)).headD 0),
-      encodeValue (c.args.map fun k ↦ σ (.n k)), encodeValue c.depth, encodeValue c.cd])
-    (fun w ↦ RunsApp.of_spec (Decoder.levelOsNC.lam1.costSpec P (by includes) rd rdV hrd _ _ _ _ w))
-    (openingPrice R + 6) (oqsOfN ⟨c.base, c.I, c.pd, c.cd⟩ c.odd c.loop c.N rd
-      (Vn c.fn (c.args.map fun k ↦ σ (.n k)) (c.rets.map fun k ↦ σ (.n k))) Vn) (fun w hw ↦ by
+    (.closure Decoder.levelOsAtC.lam0.costIdx [rdV, encodeValue (a.headD 0), encodeValue c.depth,
+      encodeValue c.cd])
+    (fun w ↦ RunsApp.of_spec (Decoder.levelOsAtC.lam0.costSpec P (by includes) rd rdV hrd _ _ _ w))
+    (openingPrice R + 6) (oqsOfA ⟨c.base, c.I, c.pd, c.cd⟩ c.odd c.loop c.N rd
+      (Vn c.fn a (c.rets.map fun k ↦ σ (.n k))) Vn) (fun w hw ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
-        List.cons_append, List.nil_append,
-        Decoder.levelOsNC.lam1.costEq P (by includes) rd rdV hrd]
+        List.nil_append, Decoder.levelOsAtC.lam0.costEq P (by includes) rd rdV hrd]
+      rw [oqsOfA_eq] at hw
       obtain ⟨hw1, hw2⟩ := mem_oqsOfN hw
       have h4 : c.cd ≤ 8 := hs.2.2.2.1
       have h3 : c.pd ≤ 20 := hs.2.2.1
       have : 2 ^ (c.pd + c.cd) ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) (by omega)
-      have := toOpening_cost P hrd hR (by includes) ((c.args.map fun k ↦ σ (.n k)).headD 0) c.cd
-        c.depth w h4 hdepth (lt_of_lt_of_le hw1 this) (by rw [hw2]; exact h3)
+      have := toOpening_cost P hrd hR (by includes) (a.headD 0) c.cd c.depth w h4 hdepth
+        (lt_of_lt_of_le hw1 this) (by rw [hw2]; exact h3)
       omega)
   have := Nat.mul_le_mul_left (openingPrice R + 6 + 11) (hlen.trans (by omega : 1 + 2 * c.N ≤ 225))
+  unfold levelAtPrice
+  have := listCasesOn_le a 7 (fun _ _ ↦ 1) (by intros; omega)
+  omega
+
+/-- A level's price. -/
+@[expose] def levelPrice (R S F : ℕ) : ℕ := ((S + 9 + 11) * 7 + 3) + levelAtPrice R S F + 11
+
+/-- **A level's openings** (`levelOsNC`, `levelOsA`), its call's words read once: at most
+`levelPrice R S F`. -/
+theorem levelOsA_cost (hP : Includes P Decoder.levelOsNC.costDeps) (c : OsCall) (hc : CallOK c) :
+    machineCost P Decoder.levelOsNC.costIdx [rdV, σV, VnV, encodeValue c] ≤ levelPrice R S F := by
+  rw [Decoder.levelOsNC.costEq P hP rd rdV hrd σ σV hσ Vn VnV hVn]
+  have hl2 : ∀ k : ℕ, appCost P (.closure Decoder.levelOsAtC.lam2.costIdx [σV]) [encodeValue k] ≤
+      S + 9 := fun k ↦ by
+    rw [appCost_fn, List.cons_append, List.nil_append,
+      Decoder.levelOsAtC.lam2.costEq P (by includes) σ σV hσ]
+    have := hS (.n k); omega
+  have hr2 : ∀ k : ℕ, RunsApp P (.closure Decoder.levelOsAtC.lam2.costIdx [σV]) [encodeValue k]
+      (encodeValue (σ (.n k))) :=
+    fun k ↦ RunsApp.of_spec (Decoder.levelOsAtC.lam2.costSpec P (by includes) σ σV hσ k)
+  have m1 := map_cost P (by includes) _ _ hr2 (S + 9) c.args (fun k _ ↦ hl2 k)
+  have := Nat.mul_le_mul_left (S + 9 + 11) hc.2.2.2.2.2.2.1
+  have := levelOsAt_cost P hrd hR hσ hS hVn hF (by includes) c hc (c.args.map fun k ↦ σ (.n k))
   unfold levelPrice
-  have := listCasesOn_le (c.args.map fun k ↦ σ (.n k)) 7 (fun _ _ ↦ 1) (by intros; omega)
   omega
 
 end Val2
 
 omit hrd hR in
-theorem length_levelOsN (σ : Val) (Vn : NFrames) (c : OsCall) (hc : CallOK c) :
-    (levelOsN rd σ Vn c).length ≤ 225 := by
+theorem length_levelOsA (σ : Val) (Vn : NFrames) (c : OsCall) (hc : CallOK c) :
+    (levelOsA rd σ Vn c).length ≤ 225 := by
+  rw [levelOsA_eq]
   unfold levelOsN
   rw [List.length_map]
   have := length_oqsOfN (rd := rd) ⟨c.base, c.I, c.pd, c.cd⟩ c.odd c.loop c.N
     (Vn c.fn (c.args.map fun k ↦ σ (.n k)) (c.rets.map fun k ↦ σ (.n k))) Vn
   have := hc.2.2.1
-  omega
-
-/-- A stream's `n ≤ L` words (`wordsAtC`), `L ≤ 2^32`: `(R + 17398 + 28)·L + 18`. -/
-theorem wordsAt_cost (hP : Includes P Decoder.wordsAtC.costDeps) (p : E)
-    (n L : ℕ) (hn : n ≤ L) (hL : L ≤ 2 ^ 32) :
-    machineCost P Decoder.wordsAtC.costIdx
-      [rdV, encodeValue p, encodeValue n] ≤ (R + 17398 + 28) * L + 18 := by
-  rw [Decoder.wordsAtC.costEq P hP rd rdV hrd]
-  have := rangeMap_le P (by includes) (by includes) _
-    (.closure Decoder.wordsAtC.lam0.costIdx [rdV, encodeValue p])
-    (fun k ↦ RunsApp.of_spec (Decoder.wordsAtC.lam0.costSpec P
-      (by includes) rd rdV hrd p k))
-    (R + 17398) n L hn (by omega) (fun k hk ↦ by
-      rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-        Decoder.wordsAtC.lam0.costEq P (by includes) rd rdV hrd]
-      have := powSqK_cost_lt P (by includes) g k 32 (by norm_num) (by norm_num) (by omega)
-      have := hR (p.limb 0 * gpow k)
-      cases rd (p.limb 0 * gpow k) <;> dsimp only <;> omega)
   omega
 
 section Proof
@@ -679,102 +786,96 @@ theorem vsOsRets_cost (hP : Includes P Decoder.vsOsRetsC.costDeps) :
   cost_facts [hS]
   omega
 
-/-- A child proof's price. -/
-@[expose] def vsPiPrice (R S F C L : ℕ) : ℕ :=
-  4 * S + 1900 + C + ((R + 17398 + 28) * L + 18) + 1 + (9 * S + 109) + (5 * S + 61) + F + 113 +
-    428 + ((R + 21682 + 28) * 121 + 9) + (9 * L + 3) + 8001 + 428 +
-    (((5 * S + 61) + 1 + (9 * S + 109) + levelPrice R (F + 6) F + 17 + 11) * 6 + 3) +
-    ((9 * 225 + 9) * 6 + 3) + 91
+/-- A child proof's price, its candidate and `open_stacked`'s frame given. -/
+@[expose] def vsAtPrice (R S F C L : ℕ) : ℕ :=
+  3 * S + C + ((R + 286) * L + 6) + (F + 6) + ((R + 286) * 121 + 6) + (9 * L + 3) +
+    ((levelPrice R (F + 6) F + 30 + 11) * 6 + 3) + ((9 * 225 + 9) * 6 + 3) + 67
 
-/-- **A child's proof** (`vsPiOfNC`) at `verify_sub`'s valuation: its stream (the cursor's length
-at most `L`), the opening's words, the candidate's levels' openings: at most
-`vsPiPrice R S F C L`. -/
-theorem vsPiOfN_cost (hP : Includes P Decoder.vsPiOfNC.costDeps) :
-    machineCost P Decoder.vsPiOfNC.costIdx [rdV, σV, VnV, clV] ≤ vsPiPrice R S F C L := by
-  rw [Decoder.vsPiOfNC.costEq P hP rd rdV hrd σ σV hσ Vn VnV hVn cl clV hcl]
-  have hm := logGT_le (σ (.n 1901)) 28
-  have := logGT_cost P (by includes) (σ (.n 1901)) 28 (by norm_num)
-  have := hS (.n 1901); have := hS (.n 27); have := hS (.n 868)
+/-- **A child's proof, its candidate `m` and the frame `fr` of its `open_stacked` call given**
+(`vsPiOfAtC`), the frame of price at most `F + 6`: at most `vsAtPrice R S F C L`. -/
+theorem vsPiOfAt_cost (hP : Includes P Decoder.vsPiOfAtC.costDeps) (T : WhirTabs)
+    (hT : WhirTabsOK T) (m : ℕ) {fr : Val} {frV : MachineValue}
+    (hfr : ∀ v : V, RunsApp P frV [encodeValue v] (encodeValue (fr v)))
+    (hfrS : ∀ v : V, appCost P frV [encodeValue v] ≤ F + 6) :
+    machineCost P Decoder.vsPiOfAtC.costIdx
+      [encodeValue T, rdV, σV, VnV, clV, encodeValue m, frV] ≤ vsAtPrice R S F C L := by
+  rw [Decoder.vsPiOfAtC.costEq P hP T rd rdV hrd σ σV hσ Vn VnV hVn cl clV hcl m fr frV hfr]
+  have := hS (.n 27); have := hS (.n 868); have := hfrS (.n 8)
   have := hC (σ (.n 27)) (σ (.n 868))
-  have hw := wordsAt_cost P hrd hR (by includes) (σ (.n 27)) (cl (σ (.n 27)) (σ (.n 868))) L
-    (hL _ _) hL32
+  have hl := hL (σ (.n 27)) (σ (.n 868))
+  have hw1 := wordsFrom_cost P hrd hR (by includes) (cl (σ (.n 27)) (σ (.n 868)))
+    ((σ (.n 27)).limb 0) (by omega)
+  have := Nat.mul_le_mul_left (R + 286) hl
+  have hwd := hT.words m
+  have hw2 := wordsFrom_cost P hrd hR (by includes) (T.words.getD m 0) ((fr (.n 8)).limb 0)
+    (by omega)
+  have := Nat.mul_le_mul_left (R + 286) hwd
+  have ha := append_cost P (by includes)
+    (wordsFrom rd ((σ (.n 27)).limb 0) (cl (σ (.n 27)) (σ (.n 868))))
+    (wordsFrom rd ((fr (.n 8)).limb 0) (T.words.getD m 0))
+  rw [length_wordsFrom] at ha
+  obtain ⟨hcl6, hcok⟩ := hT.calls m
+  have hm := map_cost P (by includes) _ (.closure Decoder.vsPiOfAtC.lam0.costIdx [rdV, VnV, frV])
+    (fun c ↦ RunsApp.of_spec (Decoder.vsPiOfAtC.lam0.costSpec P (by includes) rd rdV hrd Vn VnV hVn
+      fr frV hfr c))
+    (levelPrice R (F + 6) F + 30) (T.calls.getD m []) (fun c hc ↦ by
+      rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
+        Decoder.vsPiOfAtC.lam0.costEq P (by includes) rd rdV hrd Vn VnV hVn fr frV hfr]
+      have := levelOsA_cost P hrd hR hfr hfrS hVn hF (by includes) c (hcok c hc)
+      omega)
+  have := Nat.mul_le_mul_left (levelPrice R (F + 6) F + 30 + 11) hcl6
+  have hf := flatten_map_cost P (by includes) 225 (levelOsA rd fr Vn) (T.calls.getD m [])
+    (fun c hc ↦ length_levelOsA _ _ c (hcok c hc))
+  have := Nat.mul_le_mul_left (9 * 225 + 9) hcl6
+  unfold vsAtPrice
+  omega
+
+/-- A child proof's price, its candidate given. -/
+@[expose] def vsMPrice (R S F C L : ℕ) : ℕ :=
+  (5 * S + 61) + 1 + (9 * S + 109) + vsAtPrice R S F C L + 20
+
+/-- **A child's proof, its candidate `m` given** (`vsPiOfMC`): the frame of
+`open_stacked__L{m}`'s call read once: at most `vsMPrice R S F C L`. -/
+theorem vsPiOfM_cost (hP : Includes P Decoder.vsPiOfMC.costDeps) (T : WhirTabs)
+    (hT : WhirTabsOK T) (m : ℕ) (hm : m < 2 ^ 64) :
+    machineCost P Decoder.vsPiOfMC.costIdx [encodeValue T, rdV, σV, VnV, clV, encodeValue m] ≤
+      vsMPrice R S F C L := by
+  rw [Decoder.vsPiOfMC.costEq P hP T rd rdV hrd σ σV hσ Vn VnV hVn cl clV hcl m, limbs_of_lt hm]
+  have hfr : ∀ v : V, RunsApp P (.closure Decoder.vsPiOfMC.lam0.costIdx
+      [VnV, encodeValue (VerifySub.vsOsRets σ), encodeValue (openStackedIdx m),
+        encodeValue (VerifySub.vsOsArgs σ)]) [encodeValue v]
+      (encodeValue (Vn (openStackedIdx m) (VerifySub.vsOsArgs σ) (VerifySub.vsOsRets σ) v)) :=
+    fun v ↦ RunsApp.of_spec (Decoder.vsPiOfMC.lam0.costSpec P (by includes) Vn VnV hVn _ _ _ v)
+  have hfrS : ∀ v : V, appCost P (.closure Decoder.vsPiOfMC.lam0.costIdx
+      [VnV, encodeValue (VerifySub.vsOsRets σ), encodeValue (openStackedIdx m),
+        encodeValue (VerifySub.vsOsArgs σ)]) [encodeValue v] ≤ F + 6 := fun v ↦ by
+    rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
+      List.nil_append, Decoder.vsPiOfMC.lam0.costEq P (by includes) Vn VnV hVn]
+    have := hF (openStackedIdx m) (VerifySub.vsOsArgs σ) (VerifySub.vsOsRets σ) v
+    omega
+  have := vsPiOfAt_cost P hrd hR hσ hS hVn hF hcl hC hL hL32 (by includes) T hT m hfr hfrS
   have := vsOsArgs_cost P hσ hS (by includes)
   have := vsOsRets_cost P hσ hS (by includes)
-  have := hF (openStackedIdx (logGT (σ (.n 1901)) 28)) (VerifySub.vsOsArgs σ)
-    (VerifySub.vsOsRets σ) (.n 8)
-  rw [Decoder.osWordsTabC.costEq P (by includes),
-    Decoder.osCallsTabC.costEq P (by includes)]
-  obtain ⟨hwl, hwt⟩ := osWordsTab_ok
-  obtain ⟨hcl', -, -⟩ := callOK_osCallsTab
-  have := getD_cost P (by includes) osWordsTab (logGT (σ (.n 1901)) 28) 0 (by omega)
-  have := getD_cost P (by includes) osCallsTab (logGT (σ (.n 1901)) 28) [] (by omega)
-  have hn : osWordsTab.getD (logGT (σ (.n 1901)) 28) 0 ≤ 121 := by
-    rw [List.getD_eq_getElem?_getD]
-    cases hk : osWordsTab[logGT (σ (.n 1901)) 28]? with
-    | none => simp
-    | some x => exact hwt x (List.mem_of_getElem? hk)
-  have hr := rangeMap_le P (by includes) (by includes) _
-    (.closure Decoder.vsPiOfNC.lam0.costIdx [rdV,
-      encodeValue (Vn (openStackedIdx (logGT (σ (.n 1901)) 28)) (VerifySub.vsOsArgs σ)
-        (VerifySub.vsOsRets σ) (.n 8)), encodeValue (logGT (σ (.n 1901)) 28)])
-    (fun off ↦ RunsApp.of_spec (Decoder.vsPiOfNC.lam0.costSpec P (by includes) rd rdV hrd _ _ off))
-    (R + 21682) _ 121 hn (by norm_num) (fun off hoff ↦ by
-      rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
-        Decoder.vsPiOfNC.lam0.costEq P (by includes) rd rdV hrd]
-      have := memRead_cost P hrd hR (by includes)
-        (Vn (openStackedIdx (logGT (σ (.n 1901)) 28)) (VerifySub.vsOsArgs σ)
-          (VerifySub.vsOsRets σ) (.n 8)) off (by omega)
-      omega)
-  have hlw : (VerifySub.wordsAt rd (σ (.n 27)) (cl (σ (.n 27)) (σ (.n 868)))).length ≤ L := by
-    unfold VerifySub.wordsAt; rw [List.length_map, List.length_range]; exact hL _ _
-  have ha := append_cost P (by includes)
-    (VerifySub.wordsAt rd (σ (.n 27)) (cl (σ (.n 27)) (σ (.n 868))))
-    (readN rd (Vn (openStackedIdx (logGT (σ (.n 1901)) 28)) (VerifySub.vsOsArgs σ)
-      (VerifySub.vsOsRets σ) (.n 8)) (osWordsTab.getD (logGT (σ (.n 1901)) 28) 0))
-  obtain ⟨hcl6, hcok⟩ := callOK_getD (logGT (σ (.n 1901)) 28)
-  have hm1 := map_cost P (by includes) _
-    (.closure Decoder.vsPiOfNC.lam1.costIdx [rdV, σV, VnV, encodeValue (logGT (σ (.n 1901)) 28)])
-    (fun c ↦ RunsApp.of_spec (Decoder.vsPiOfNC.lam1.costSpec P (by includes) rd rdV hrd σ σV hσ Vn
-      VnV hVn _ c))
-    ((5 * S + 61) + 1 + (9 * S + 109) + levelPrice R (F + 6) F + 17)
-    (osCallsTab.getD (logGT (σ (.n 1901)) 28) []) (fun c hc ↦ by
-      rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
-        List.nil_append, Decoder.vsPiOfNC.lam1.costEq P (by includes) rd rdV hrd σ σV hσ Vn VnV hVn]
-      have := vsOsArgs_cost P hσ hS (by includes)
-      have := vsOsRets_cost P hσ hS (by includes)
-      have hσ' : ∀ v : V, RunsApp P (.closure Decoder.vsPiOfNC.lam1.lam0.costIdx
-          [VnV, encodeValue (VerifySub.vsOsRets σ),
-            encodeValue (openStackedIdx (logGT (σ (.n 1901)) 28)),
-            encodeValue (VerifySub.vsOsArgs σ)]) [encodeValue v]
-          (encodeValue (Vn (openStackedIdx (logGT (σ (.n 1901)) 28)) (VerifySub.vsOsArgs σ)
-            (VerifySub.vsOsRets σ) v)) :=
-        fun v ↦ RunsApp.of_spec (Decoder.vsPiOfNC.lam1.lam0.costSpec P (by includes) Vn VnV hVn
-          _ _ _ v)
-      have hS' : ∀ v : V, appCost P (.closure Decoder.vsPiOfNC.lam1.lam0.costIdx
-          [VnV, encodeValue (VerifySub.vsOsRets σ),
-            encodeValue (openStackedIdx (logGT (σ (.n 1901)) 28)),
-            encodeValue (VerifySub.vsOsArgs σ)]) [encodeValue v] ≤ F + 6 := fun v ↦ by
-        rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
-          List.nil_append, Decoder.vsPiOfNC.lam1.lam0.costEq P (by includes) Vn VnV hVn]
-        have := hF (openStackedIdx (logGT (σ (.n 1901)) 28)) (VerifySub.vsOsArgs σ)
-          (VerifySub.vsOsRets σ) v
-        omega
-      have := levelOsN_cost P hrd hR hσ' hS' hVn hF (by includes) c (hcok c hc)
-      rw [limbs_of_lt (by omega : logGT (σ (.n 1901)) 28 < 2 ^ 64)]
-      omega)
-  have := Nat.mul_le_mul_left ((5 * S + 61) + 1 + (9 * S + 109) + levelPrice R (F + 6) F + 17 + 11)
-    hcl6
-  have hf := flatten_map_cost P (by includes) 225
-    (levelOsN rd (Vn (openStackedIdx (logGT (σ (.n 1901)) 28)) (VerifySub.vsOsArgs σ)
-      (VerifySub.vsOsRets σ)) Vn) (osCallsTab.getD (logGT (σ (.n 1901)) 28) [])
-    (fun c hc ↦ length_levelOsN _ _ c (hcok c hc))
-  have := Nat.mul_le_mul_left (9 * 225 + 9) hcl6
-  have := Nat.mul_le_mul_left 9 hlw
-  have hcl28 : osCallsTab.length = 28 := hcl'
-  rw [hwl] at *
-  rw [hcl28] at *
+  unfold vsMPrice
+  omega
+
+/-- A child proof's price. -/
+@[expose] def vsPiPrice (R S F C L : ℕ) : ℕ := S + 725 + vsMPrice R S F C L + 19
+
+/-- **A child's proof** (`vsPiOfNC`, `vsPiOfA`) at `verify_sub`'s valuation, off `open_stacked`'s
+tables `T`: its stream (the cursor's length at most `L`), the opening's words, the candidate's
+levels' openings: at most `vsPiPrice R S F C L`. -/
+theorem vsPiOfN_cost (hP : Includes P Decoder.vsPiOfNC.costDeps) (T : WhirTabs)
+    (hT : WhirTabsOK T) :
+    machineCost P Decoder.vsPiOfNC.costIdx [encodeValue T, rdV, σV, VnV, clV] ≤
+      vsPiPrice R S F C L := by
+  rw [Decoder.vsPiOfNC.costEq P hP T rd rdV hrd σ σV hσ Vn VnV hVn cl clV hcl]
+  have := hS (.n 1901)
+  have := logGTWith_cost P (by includes) T.lanes hT.lanes (σ (.n 1901)) 28 (by norm_num)
+  have := logGTWith_le T.lanes (σ (.n 1901)) 28
+  have := vsPiOfM_cost P hrd hR hσ hS hVn hF hcl hC hL hL32 (by includes) T hT
+    (logGTWith T.lanes (σ (.n 1901)) 28) (by omega)
   unfold vsPiPrice
-  rw [limbs_of_lt (by omega : logGT (σ (.n 1901)) 28 < 2 ^ 64)]
   omega
 
 end Proof
