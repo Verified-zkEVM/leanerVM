@@ -129,7 +129,8 @@ theorem cellSymsAt_cost (hP : Includes P Decoder.cellSymsAtC.costDeps) (c11 : E)
       rw [appCost_fn, List.cons_append, List.nil_append,
         Auto.LeanVM.Guest.B1.Da.cellSymsOf.c573.lam0.costEq P (by includes) _ _ hσ,
         limbs_of_lt (by omega : j < 2 ^ 64), appCost_fn, List.cons_append, List.cons_append,
-        List.cons_append, List.nil_append, Decoder.cellSymsAtC.lam0.costEq P (by includes) Vn VnV hVn]
+        List.cons_append, List.nil_append,
+        Decoder.cellSymsAtC.lam0.costEq P (by includes) Vn VnV hVn]
       have := hF 28 [c11] a (.n (j + 1))
       omega)
   have := hRw (.n 7); have := hRw (.n 8); have := hRw (.n 9)
