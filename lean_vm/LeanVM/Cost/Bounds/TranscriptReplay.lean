@@ -497,6 +497,135 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D : ℕ) 
       generalize τ.inv.get? y'.toList = o
       cases o <;> dsimp only <;> omega
 
+/-! ## The evaluations and the index -/
+
+theorem keccakUnpaddedFast_length {bs m : List UInt8} (h : keccakUnpaddedFast bs = some m) :
+    m.length ≤ bs.length := by
+  rw [keccakUnpaddedFast] at h
+  split at h
+  · cases h; exact stripPad_length_le bs
+  · cases h
+
+/-- The replay's start (`ReplayFast.init.c352`): at most `431`. -/
+theorem replayInit_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.ReplayFast.init.c352.costDeps) :
+    machineCost P Auto.LeanVM.Extraction.Fast.ReplayFast.init.c352.costIdx [] ≤ 431 := by
+  rw [Auto.LeanVM.Extraction.Fast.ReplayFast.init.c352.costEq P hP,
+    Auto.LeanVM.Extraction.Fast.SortedMap.insert.c330.costEq P (by includes)]
+  have h1 := drop232_cost P (by includes) 17 (Vector.replicate 25 (0 : UInt64)).toList (by norm_num)
+  simp only [SortedMap.empty, Vector.size_toArray]
+  rw [Auto.LeanVM.Extraction.Fast.carry.c331.costEq_nil P (by includes)]
+  omega
+
+theorem replayInv_init (B D N : ℕ) (hN : N + 1 ≤ 2 ^ D) : ReplayInv B D ReplayFast.init N := by
+  refine ⟨smGood_empty, smGood_empty, (smGood_insert smGood_empty _ _).1, fun _ h ↦ by
+    simp [ReplayFast.init, SortedMap.empty] at h, fun _ h ↦ by
+    simp [ReplayFast.init, SortedMap.empty] at h, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · exact keysIn_insert (fun _ h ↦ by simp [SortedMap.empty] at h) (by simp [WordsKey]) _
+  · exact valsIn_insert (fun _ h ↦ by simp [SortedMap.empty] at h) _ (by simp [PathOk])
+  · intro p hp; simp [ReplayFast.init] at hp; subst hp; simp [PathOk]
+  · simp [ReplayFast.init, smWeightSum_empty]; omega
+  · simp [ReplayFast.init, smWeightSum_empty]; omega
+  · rw [show ReplayFast.init.caps = (SortedMap.empty : SortedMap (List UInt64)
+      (KeccakState × Option (List UInt8))).insert _ _ from rfl, (smGood_insert smGood_empty _ _).2,
+      smWeightSum_empty]
+    omega
+
+theorem replayPot_init (D : ℕ) : replayPot D ReplayFast.init = (23 * 8 + 31) * D := by
+  have h1 : Nat.log2 1 = 0 := Nat.log2_two_pow (n := 0)
+  simp [replayPot, ReplayFast.init, SortedMap.insert, SortedMap.empty, carry, potential, h1]
+
+theorem replayInv_foldl (P : Program) (hP : Includes P replayStepC.costDeps) (B D : ℕ) (hD : D ≤ 61)
+    (hB : B < 2 ^ 62) : ∀ (T : List (PermutationQuery KeccakState × KeccakState)) (τ : ReplayFast),
+      ReplayInv B D τ T.length → ReplayInv B D (T.foldl (ReplayFast.step B) τ) 0 := by
+  intro T
+  induction T with
+  | nil => intro τ h; simpa using h
+  | cons q T ih =>
+    intro τ h
+    exact ih _ (replayStep_amortized P hP B D hD hB τ T.length h q).1
+
+/-- **The evaluations a transcript holds** (`keccakEvaluationsFast T L`, compiled as
+`keccakEvaluationsC`): the replay over the `N` queries (`replayStepBound` each, amortized) and a
+padding check per path (`N + 1` paths of at most `B = L + 136` bytes). -/
+theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D L : ℕ) (hD : D ≤ 61)
+    (hL : L < 2 ^ 61) (T : List (PermutationQuery KeccakState × KeccakState))
+    (hN : T.length + 1 ≤ 2 ^ D) :
+    machineCost P keccakEvaluationsC.costIdx [enc T, enc L] ≤
+      (23 * 8 + 31) * D + (replayStepBound (L + 136) D + 13) * T.length +
+        (114 * (L + 136) + 12313) * (T.length + 1) + 470 := by
+  rw [keccakEvaluationsC.costEq P hP]
+  have hrate : rate = 136 := rfl
+  have hinit := replayInit_cost P (by includes)
+  have hfold := listFoldl_amortized P (by includes) _
+    (.fn keccakEvaluationsC.lam1.costIdx [enc (L + rate)])
+    (fun a b ↦ RunsApp.of_spec (keccakEvaluationsC.lam1.costSpec P (by includes) (L + rate) a b))
+    (replayStepBound (L + 136) D + 4) (replayPot D) (ReplayInv (L + 136) D) T ReplayFast.init
+    (replayInv_init _ D _ hN)
+    (fun τ r hτ q _ ↦ by
+      have h := replayStep_amortized P (by includes) (L + 136) D hD (by omega) τ r hτ q
+      refine ⟨h.1, ?_⟩
+      simp only [appCost_fn, List.cons_append, List.nil_append]
+      rw [keccakEvaluationsC.lam1.costEq P (by includes), hrate]
+      omega)
+  rw [replayPot_init] at hfold
+  have hinv := replayInv_foldl P (by includes) (L + 136) D hD (by omega) T ReplayFast.init
+    (replayInv_init _ D _ hN)
+  have hlen := replay_paths_length_le (L + rate) T ReplayFast.init
+  have hfm := filterMap_cost P (by includes) _ (.fn keccakEvaluationsC.lam0.costIdx [enc L])
+    (fun a ↦ RunsApp.of_spec (keccakEvaluationsC.lam0.costSpec P (by includes) L a))
+    (114 * (L + 136) + 12300) _ (fun p hp ↦ by
+      have hp' : PathOk (L + 136) p := hinv.2.2.2.2.2.2.2.1 p (by rw [← hrate]; exact hp)
+      simp only [appCost_fn, List.cons_append, List.nil_append]
+      rw [keccakEvaluationsC.lam0.costEq P (by includes)]
+      obtain ⟨st, obs⟩ := p
+      cases obs with
+      | none =>
+        rw [Auto.Option.bind.c323.costEq_none P (by includes) _
+          (.fn keccakEvaluationsC.lam0.lam0.costIdx [enc L, enc (st, (none : Option (List UInt8)))])
+          (fun bs ↦ RunsApp.of_spec (keccakEvaluationsC.lam0.lam0.costSpec P (by includes) L _ bs))]
+        omega
+      | some bs =>
+        have hbs : bs.length ≤ L + 136 := hp' bs rfl
+        rw [Auto.Option.bind.c323.costEq_some P (by includes) bs _
+          (.fn keccakEvaluationsC.lam0.lam0.costIdx [enc L, enc (st, some bs)])
+          (fun bs ↦ RunsApp.of_spec (keccakEvaluationsC.lam0.lam0.costSpec P (by includes) L _ bs))]
+        simp only [appCost_fn, List.cons_append, List.nil_append]
+        rw [keccakEvaluationsC.lam0.lam0.costEq P (by includes)]
+        have hku := keccakUnpadded_cost P (by includes) bs (by omega)
+        have hmb : ∀ m, keccakUnpaddedFast bs = some m → m.length ≤ bs.length :=
+          fun m h ↦ keccakUnpaddedFast_length h
+        generalize hk : keccakUnpaddedFast bs = om at hmb
+        cases om with
+        | none =>
+          rw [Auto.Option.bind.c323.costEq_none P (by includes) _
+            (.fn keccakEvaluationsC.lam0.lam0.lam0.costIdx [enc L, enc (st, some bs)])
+            (fun m ↦ RunsApp.of_spec (keccakEvaluationsC.lam0.lam0.lam0.costSpec P (by includes)
+              L _ m))]
+          omega
+        | some m =>
+          have hm := hmb m rfl
+          rw [Auto.Option.bind.c323.costEq_some P (by includes) m _
+            (.fn keccakEvaluationsC.lam0.lam0.lam0.costIdx [enc L, enc (st, some bs)])
+            (fun m ↦ RunsApp.of_spec (keccakEvaluationsC.lam0.lam0.lam0.costSpec P (by includes)
+              L _ m))]
+          simp only [appCost_fn, List.cons_append, List.nil_append]
+          rw [keccakEvaluationsC.lam0.lam0.lam0.costEq P (by includes),
+            limbs_of_lt (by omega : m.length < 2 ^ 64), limbs_of_lt (by omega : L < 2 ^ 64)]
+          have := listLength_cost P (by includes) m (by omega)
+          simp only [max_self]
+          split_ifs <;> omega)
+  rw [limbs_of_lt (by omega : L < 2 ^ 64), limbs_of_lt (by rw [hrate]; norm_num : rate < 2 ^ 64),
+    max_self]
+  rw [hrate] at hfm hfold hlen
+  have : (114 * (L + 136) + 12300 + 13) * (List.foldl (ReplayFast.step (L + 136)) ReplayFast.init T).paths.length ≤
+      (114 * (L + 136) + 12313) * (T.length + 1) := Nat.mul_le_mul_left _ (by
+        have : ReplayFast.init.paths.length = 1 := rfl
+        omega)
+  have e1 : (replayStepBound (L + 136) D + 4 + 9) * T.length =
+      (replayStepBound (L + 136) D + 13) * T.length := by ring
+  rw [hrate]
+  omega
+
 end
 
 end LeanVM.Cost.Bounds
