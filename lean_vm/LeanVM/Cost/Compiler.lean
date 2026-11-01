@@ -47,6 +47,9 @@ def rules : List (Name × Name) := [
   (``ite, ``Rule.ite),
   (``dite, ``Rule.dite),
   (``cond, ``Rule.cond),
+  (``or, ``Rule.boolOr),
+  (``and, ``Rule.boolAnd),
+  (``not, ``Rule.boolNot),
   (``HAdd.hAdd, ``Rule.natAdd),
   (``HAdd.hAdd, ``Rule.kAdd),
   (``HSub.hSub, ``Rule.natSub),
@@ -60,6 +63,11 @@ def rules : List (Name × Name) := [
   (``Decidable.decide, ``Rule.wordLt),
   (``Decidable.decide, ``Rule.wordLe),
   (``Decidable.decide, ``Rule.wordEq),
+  (``Decidable.decide, ``Rule.kEq),
+  (``Decidable.decide, ``Rule.decideEqTrue),
+  (``BEq.beq, ``Rule.natBEq),
+  (``BEq.beq, ``Rule.wordBEq),
+  (``BEq.beq, ``Rule.kBEq),
   (``Array.size, ``Rule.arrSize),
   (``HAppend.hAppend, ``Rule.arrAppend),
   (``Array.replicate, ``Rule.arrReplicate),
@@ -72,7 +80,14 @@ def rules : List (Name × Name) := [
   (``UInt64.ofNat, ``Rule.uint64OfNat),
   (``HShiftLeft.hShiftLeft, ``Rule.natShiftLeft),
   (``Vector.toList, ``Rule.vecToList),
-  (``Vector.mk, ``Rule.vecMk)
+  (``Vector.mk, ``Rule.vecMk),
+  (``Subtype.val, ``Rule.subtypeVal),
+  (``Subtype.mk, ``Rule.subtypeMk),
+  (``Array.setIfInBounds, ``Rule.arrSetIfInBounds),
+  (``Array.extract, ``Rule.arrExtract),
+  (``Fin.val, ``Rule.finVal),
+  (``Fin.mk, ``Rule.finMk),
+  (``HSub.hSub, ``Rule.kSub)
 ]
 
 /-- Rewrites: a library function compiled through an equal form (`lhs = rhs`). -/
@@ -112,6 +127,8 @@ structure CompiledFn where
   deps : Array (Nat × Name)
   /-- The definitions unfolded into the body. -/
   inlined : Array Name := #[]
+  /-- A lifted lambda: the closed term compiled. -/
+  lam? : Option Expr := none
   deriving Inhabited
 
 /-- The compiled functions, by head constant. -/
@@ -401,6 +418,12 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
       if let some (.ctorInfo ci) := (← getEnv).find? c then
         let field := s'.getArg! (ci.numParams + i)
         return ← translate ctx (mkAppN field e.getAppArgs).headBeta
+  if let .proj _ i s := e then
+    let s' ← whnfCore s
+    if let .const c _ := s'.getAppFn then
+      if let some (.ctorInfo ci) := (← getEnv).find? c then
+        if s'.getAppNumArgs == ci.numParams + ci.numFields then
+          return ← translate ctx (s'.getArg! (ci.numParams + i))
   if let .proj sName i s := e then
     let env ← getEnv
     if (getStructureInfo? env sName).isSome then
@@ -434,7 +457,8 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
     -- a definition: unfolded (the run stated at `e`, definitionally equal)
     if let some e' ← unfoldDefinition? e then
       ctx.inlined.modify fun a ↦ if a.contains f then a else a.push f
-      let (t, c, p) ← translate ctx (← unfoldMatchers e'.headBeta)
+      let (t, c, p) ← try translate ctx (← unfoldMatchers e'.headBeta)
+        catch ex => throwError "{ex.toMessageData}\n  in the unfolding of {f}"
       return (t, c, ← mkExpectedTypeHint p (runsAt ctx t (← mkAppM ``Enc.enc #[e]) c))
   throwError "translate: no rule for {e}"
 
@@ -476,7 +500,8 @@ partial def encodesAsCtor (x : Expr) (j : Nat) : MetaM Bool := do
   try
     let v ← whnfD (← mkAppM ``Enc.enc #[x])
     unless v.isAppOfArity ``Val.ctor 2 do return false
-    return (← instantiateMVars v.appFn!.appArg!).nat? == some j
+    let tag ← whnfD (← instantiateMVars v.appFn!.appArg!)
+    return tag.nat? == some j || tag.rawNatLit? == some j
   catch _ => return false
 
 /-- Which of the fields `fs` hold data (not proofs). -/
@@ -506,9 +531,10 @@ partial def translateCtor (ctx : Ctx) (ci : ConstructorVal) (e : Expr) :
 fields. -/
 partial def translateProj (ctx : Ctx) (ctorName : Name) (i : Nat) (s e : Expr) :
     MetaM (Option (Expr × Expr × Expr)) := do
-  let sTy ← whnfR (← inferType s)
-  let .const _ lvls := sTy.getAppFn | return none
+  let sTy ← whnf (← inferType s)
+  let .const sTyName lvls := sTy.getAppFn | return none
   let ci ← getConstInfoCtor ctorName
+  unless sTyName == ci.induct do return none
   let params := sTy.getAppArgs
   let ctorTy ← instantiateForall (← instantiateTypeLevelParams ci.toConstantVal lvls) params
   let fieldsOf ← forallTelescopeReducing ctorTy fun fs _ ↦ dataMask fs
@@ -665,6 +691,37 @@ partial def translateSparse (ctx : Ctx) (f : Name) (e : Expr) :
       pure (mkApp catchAll pf)
   translateCasesCore ctx major bodyOf (fun x ↦ pure (mkAppN e.getAppFn (at_ x))) e
 
+/-- Whether the non-recursive definition `f` (applied in `e` to all its parameters) is compiled to
+a function of its own rather than unfolded: a large body (more than `outlineSize` nodes), not an
+instance, a projection, a matcher or a reducible definition. -/
+partial def shouldOutline (f : Name) (e : Expr) : MetaM Bool := do
+  let env ← getEnv
+  let some (.defnInfo info) := env.find? f | return false
+  if (← isInstance f) || (← getProjectionFnInfo? f).isSome || (← Meta.isMatcher f) then return false
+  if (← getReducibilityStatus f) == .reducible then return false
+  let arity ← forallTelescopeReducing info.type fun xs _ ↦ pure xs.size
+  unless e.getAppNumArgs == arity do return false
+  return info.value.approxDepth.toNat > 0 && exprSize info.value > outlineSize
+where
+  outlineSize : Nat := 120
+  exprSize (e : Expr) : Nat := Id.run do
+    let mut n := 0
+    let mut stack := [e]
+    while !stack.isEmpty && n ≤ outlineSize do
+      match stack with
+      | [] => break
+      | x :: rest =>
+        stack := rest
+        n := n + 1
+        match x with
+        | .app f a => stack := f :: a :: stack
+        | .lam _ t b _ | .forallE _ t b _ => stack := t :: b :: stack
+        | .letE _ t v b _ => stack := t :: v :: b :: stack
+        | .mdata _ b => stack := b :: stack
+        | .proj _ _ b => stack := b :: stack
+        | _ => pure ()
+    return n
+
 /-- Whether `f`'s unfolding mentions `f`. -/
 partial def isRecursive (f : Name) : MetaM Bool := do
   let some eqn ← getUnfoldEqnFor? f | return false
@@ -675,7 +732,8 @@ partial def isRecursive (f : Name) : MetaM Bool := do
 instance argument (its types otherwise parameters), with the first measure among the sizes of
 its encoded parameters (a natural number itself) that its recursive calls decrease. -/
 partial def compileOnDemand (ctx : Ctx) (f : Name) (e : Expr) : MetaM (Option CompiledFn) := do
-  unless ← isRecursive f do return none
+  let recursive ← isRecursive f
+  unless recursive || (← shouldOutline f e) do return none
   let info ← getConstInfo f
   let args := e.getAppArgs
   -- the static prefix: up to the last instance argument
@@ -699,6 +757,9 @@ partial def compileOnDemand (ctx : Ctx) (f : Name) (e : Expr) : MetaM (Option Co
         let _ := j
     return out
   let name := (`LeanVM.Cost.Auto ++ f).str s!"c{← nextIndex ctx.reserved}"
+  unless recursive do
+    let idx ← nextIndex ctx.reserved
+    return some (← withLCtx {} {} (compileFn name term idx none ctx.reserved))
   let mut errs : Array MessageData := #[]
   for m in measures do
     let st ← saveState
@@ -762,11 +823,17 @@ partial def closureOf (ctx : Ctx) (f : Expr) (arity : Nat) :
     for x in fvs do
       unless capFvs.contains (.fvar x) || ctx.types.contains (.fvar x) do
         throwError "closure: free variable {Expr.fvar x} of {f} is not in the environment"
-    let lam ← mkLambdaFVars (ctx.types ++ capFvs ++ ps) body
-    let k ← ctx.lams.modifyGet fun n ↦ (n, n + 1)
-    let name := ctx.base.str s!"lam{k}"
-    let idx ← nextIndex ctx.reserved
-    let cf ← withLCtx {} {} (compileFn name lam idx none ctx.reserved)
+    let lam ← instantiateMVars (← mkLambdaFVars (ctx.types ++ capFvs ++ ps) body)
+    -- the same lambda compiled before: reused
+    let reg := compiledExt.getState (← getEnv)
+    let prior := reg.foldl (fun acc _ fs ↦ acc <|> fs.find? (·.lam? == some lam)) none
+    let cf ← match prior with
+      | some cf => pure cf
+      | none => do
+        let k ← ctx.lams.modifyGet fun n ↦ (n, n + 1)
+        let name := ctx.base.str s!"lam{k}"
+        let idx ← nextIndex ctx.reserved
+        withLCtx {} {} (compileFn name lam idx none ctx.reserved)
     -- the closure: function `cf.index` with the captures' values
     let mut capArgs : Array (Expr ⊕ (Expr × Expr × Expr × Expr)) := #[]
     for en in caps do
@@ -1070,7 +1137,8 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
         let headC := if term.isLambda then name else term.getAppFn.constName!
         let entry : CompiledFn :=
           { head := headC, static := term.getAppArgs, params := kinds, index := idx,
-            body := bodyName, spec := specName, deps := deps, inlined := ← inlined.get }
+            body := bodyName, spec := specName, deps := deps, inlined := ← inlined.get,
+            lam? := if term.isLambda then some term else none }
         modifyEnv (compiledExt.addEntry · entry)
         logInfo m!"{name}: function {idx}, code {t}"
         return entry

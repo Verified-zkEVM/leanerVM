@@ -56,6 +56,12 @@ instance {α : Type} [Enc α] {n : ℕ} : Enc (Vector α n) := ⟨fun v ↦ .arr
 
 instance {α : Type} [Enc α] : Enc (CompPoly.CPolynomial.Raw α) := inferInstanceAs (Enc (Array α))
 
+/-- A subtype: its value. -/
+instance {α : Type} [Enc α] {p : α → Prop} : Enc (Subtype p) := ⟨fun x ↦ enc x.val⟩
+
+instance {α : Type} [Zero α] [Enc α] : Enc (CompPoly.CPolynomial α) :=
+  inferInstanceAs (Enc { p : CompPoly.CPolynomial.Raw α // CompPoly.CPolynomial.Raw.IsCanonical p })
+
 /-- A function of a finite domain, as the array of its values. -/
 def encFun {α : Type} [Enc α] {n : ℕ} (f : Fin n → α) : Val := .arr (Array.ofFn fun i ↦ enc (f i))
 

@@ -244,6 +244,28 @@ theorem call {f : ℕ} {ts : List Term} {vs : List Val} {w : Val} {c d : ℕ}
     (h : RunsList P env ts vs c) (hb : RunsBody P f vs w d) :
     Runs P env (.call f ts) w (c + d + 1) := Runs.call h hb
 
+/-- `a || b`, short-circuit. -/
+theorem boolOr {t u : Term} {a b : Bool} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : a = false → Runs P env u (enc b) d) :
+    Runs P env (.case t [u, .ctor 1 []]) (enc (a || b)) (c + (if a then 1 else d) + 1) := by
+  cases a
+  · exact Runs.case (k := 0) (fs := []) h rfl (by simpa using hb rfl)
+  · exact Runs.case (k := 1) (fs := []) h rfl (by simpa using (Runs.ctor (k := 1) (P := P) (env := env) RunsList.nil))
+
+/-- `a && b`, short-circuit. -/
+theorem boolAnd {t u : Term} {a b : Bool} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : a = true → Runs P env u (enc b) d) :
+    Runs P env (.case t [.ctor 0 [], u]) (enc (a && b)) (c + (if a then d else 1) + 1) := by
+  cases a
+  · exact Runs.case (k := 0) (fs := []) h rfl (by simpa using (Runs.ctor (k := 0) (P := P) (env := env) RunsList.nil))
+  · exact Runs.case (k := 1) (fs := []) h rfl (by simpa using hb rfl)
+
+theorem boolNot {t : Term} {a : Bool} {c : ℕ} (h : Runs P env t (enc a) c) :
+    Runs P env (.case t [.ctor 1 [], .ctor 0 []]) (enc (!a)) (c + 1 + 1) := by
+  cases a
+  · exact Runs.case (k := 0) (fs := []) h rfl (by simpa using (Runs.ctor (k := 1) (P := P) (env := env) RunsList.nil))
+  · exact Runs.case (k := 1) (fs := []) h rfl (by simpa using (Runs.ctor (k := 0) (P := P) (env := env) RunsList.nil))
+
 /-! ### Primitives -/
 
 /-- A primitive of two arguments, from the runs of its arguments. -/
@@ -310,6 +332,47 @@ theorem wordEq {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (enc a)
     Runs P env (.op .weq [t, u]) (enc (decide (a = b))) (c + d + 1) :=
   op₂ h hb (by simp [Op.apply, wordOp, enc_bool, Val.ofBool])
 
+/-- `decide (b = true)` is `b`. -/
+theorem decideEqTrue {t : Term} {b : Bool} {c : ℕ} (h : Runs P env t (enc b) c) :
+    Runs P env t (enc (decide (b = true))) c := by
+  cases b <;> exact h
+
+theorem natBEq {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .neq [t, u]) (enc (a == b)) (c + d + (max (limbs a) (limbs b) + 1)) :=
+  op₂ h hb (by simp [Op.apply, enc_bool, Val.ofBool])
+
+theorem wordBEq {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.op .weq [t, u]) (enc (a == b)) (c + d + 1) :=
+  op₂ h hb (by simp [Op.apply, wordOp, enc_bool])
+
+theorem kEq {t u : Term} {a b : K} {inst : Decidable (a = b)} {c d : ℕ}
+    (h : Runs P env t (enc a) c) (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .weq [t, u]) (enc (@decide (a = b) inst)) (c + d + 1) :=
+  op₂ h hb (by
+    have : (a.lane == b.lane) = @decide (a = b) inst := by
+      by_cases hab : a = b
+      · simp [hab]
+      · have : a.lane ≠ b.lane := fun e ↦ hab (by
+          rw [← show K.ofLane a.lane = a from rfl, ← show K.ofLane b.lane = b from rfl, e])
+        simp [hab, this]
+    simp [Op.apply, wordOp, enc_bool, this])
+
+theorem kBEq {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.op .weq [t, u]) (enc (a == b)) (c + d + 1) :=
+  op₂ h hb (by
+    have : (a.lane == b.lane) = (a == b) := by
+      obtain ⟨x⟩ := a
+      obtain ⟨y⟩ := b
+      by_cases hxy : x = y
+      · subst hxy; simp [K.lane]
+      · have h1 : (⟨x⟩ : UInt64) ≠ ⟨y⟩ := fun e ↦ hxy (by cases e; rfl)
+        have h2 : ((⟨x⟩ : K) == ⟨y⟩) = false := by
+          show (x == y) = false
+          simp [hxy]
+        simp [K.lane, h1, h2]
+    simp [Op.apply, wordOp, enc_bool, this])
+
 /-! ### Arrays -/
 
 theorem arrSize {t : Term} {a : Array α} {c : ℕ} (h : Runs P env t (enc a) c) :
@@ -365,6 +428,14 @@ theorem arrGetElem? {t u : Term} {a : Array α} {i : ℕ} {c d : ℕ} (h : Runs 
       (by simpa [hia] using hlt) rfl (none (P := P) (env := env) (α := α))
     simpa [hia, Array.getElem?_eq_none (Nat.le_of_not_lt hia)] using this
 
+/-- A subtype's value: the same value. -/
+theorem subtypeVal {t : Term} {p : α → Prop} {x : Subtype p} {c : ℕ} (h : Runs P env t (enc x) c) :
+    Runs P env t (enc x.val) c := h
+
+/-- A subtype's element: the same value. -/
+theorem subtypeMk {t : Term} {p : α → Prop} {x : α} {hx : p x} {c : ℕ} (h : Runs P env t (enc x) c) :
+    Runs P env t (enc (⟨x, hx⟩ : Subtype p)) c := h
+
 /-- `K.ofLane`: the same word. -/
 theorem kOfLane {t : Term} {w : UInt64} {c : ℕ} (h : Runs P env t (enc w) c) :
     Runs P env t (enc (K.ofLane w)) c := h
@@ -390,6 +461,33 @@ theorem vecToList {t : Term} {n : ℕ} {v : Vector α n} {c : ℕ} (h : Runs P e
 /-- A vector of an array: the same value. -/
 theorem vecMk {t : Term} {n : ℕ} {a : Array α} {ha : a.size = n} {c : ℕ}
     (h : Runs P env t (enc a) c) : Runs P env t (enc (Vector.mk a ha)) c := h
+
+theorem arrSetIfInBounds {t u w : Term} {a : Array α} {i : ℕ} {x : α} {c d e : ℕ}
+    (h : Runs P env t (enc a) c) (hi : Runs P env u (enc i) d) (hx : Runs P env w (enc x) e) :
+    Runs P env (.op .aset [t, u, w]) (enc (a.setIfInBounds i x)) (c + d + e + (a.size + 1)) :=
+  (Runs.op (RunsList.cons h (RunsList.cons hi (RunsList.cons hx RunsList.nil)))
+    (v := enc (a.setIfInBounds i x)) (d := a.size + 1) (by
+      simp [Op.apply, Array.map_setIfInBounds])).cost_eq (by omega)
+
+theorem arrExtract {t u w : Term} {a : Array α} {i j : ℕ} {c d e : ℕ}
+    (h : Runs P env t (enc a) c) (hi : Runs P env u (enc i) d) (hj : Runs P env w (enc j) e) :
+    Runs P env (.op .aextract [t, u, w]) (enc (a.extract i j))
+      (c + d + e + ((a.extract i j).size + 1)) :=
+  (Runs.op (RunsList.cons h (RunsList.cons hi (RunsList.cons hj RunsList.nil)))
+    (v := enc (a.extract i j)) (d := (a.extract i j).size + 1) (by
+      simp [Op.apply])).cost_eq (by omega)
+
+/-- `Fin.val`: the same number. -/
+theorem finVal {t : Term} {n : ℕ} {i : Fin n} {c : ℕ} (h : Runs P env t (enc i) c) :
+    Runs P env t (enc i.val) c := h
+
+/-- `Fin.mk`: the same number. -/
+theorem finMk {t : Term} {n i : ℕ} {hi : i < n} {c : ℕ} (h : Runs P env t (enc i) c) :
+    Runs P env t (enc (⟨i, hi⟩ : Fin n)) c := h
+
+theorem kSub {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.op .wxor [t, u]) (enc (a - b)) (c + d + 1) :=
+  op₂ h hb rfl
 
 theorem kAdd {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (enc a) c)
     (hb : Runs P env u (enc b) d) : Runs P env (.op .wxor [t, u]) (enc (a + b)) (c + d + 1) :=
