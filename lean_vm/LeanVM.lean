@@ -23,6 +23,10 @@ statement of the repository, leanXMSS's, leanSPHINCS's and LeanDA's included, in
 the fields of `Statement.Theorems` alone, and `LeanVM.corollaries_hold` for the decoder
 `LeanVM.Guest.End.decode`.
 
+DRAFT (Phase 4a): `Statement.Theorems` has the field `extractorEfficient`
+(`Statement/CostMachine.lean`); until the compiled extractor's bound is proved, `theorems_hold`
+and `corollaries_hold` take it as a hypothesis.
+
 Each proves a proposition of `Statement/` (`Statement/README.md`), in the random-permutation model
 where an adversary is involved:
 
@@ -185,9 +189,12 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 #print axioms LeanVM.Guest.Budget.guest_child_complete
 
 /-- **Every end theorem**, `Statement/Theorems.lean`, the guest's witness named by
-`LeanVM.Guest.End.decode`. -/
-theorem LeanVM.theorems_hold : Statement.Theorems LeanVM.Guest.End.decode where
+`LeanVM.Guest.End.decode`. DRAFT: `extractorEfficient` is a hypothesis until the compiled
+extractor's bound is proved. -/
+theorem LeanVM.theorems_hold (efficient : LeanVM.ExtractorEfficient) :
+    Statement.Theorems LeanVM.Guest.End.decode where
   knowledgeSoundness := LeanVM.knowledgeSoundness_holds
+  extractorEfficient := efficient
   completeness := LeanVM.completeness_holds
   guestKnowledge := LeanVM.Guest.End.guest_knowledge
   digestBinds := LeanVM.Guest.Binding.digest_binds
@@ -241,9 +248,10 @@ theorem LeanVM.corollaries_of_theorems {decode : LeanVM.Node.Decoder}
 #print axioms LeanVM.corollaries_of_theorems
 
 /-- **Every corollary**, `Statement/Corollaries.lean`, the guest program's witness named by
-`LeanVM.Guest.End.decode`. -/
-theorem LeanVM.corollaries_hold : Statement.Corollaries LeanVM.Guest.End.decode :=
-  LeanVM.corollaries_of_theorems LeanVM.theorems_hold
+`LeanVM.Guest.End.decode`. DRAFT: under `theorems_hold`'s hypothesis. -/
+theorem LeanVM.corollaries_hold (efficient : LeanVM.ExtractorEfficient) :
+    Statement.Corollaries LeanVM.Guest.End.decode :=
+  LeanVM.corollaries_of_theorems (LeanVM.theorems_hold efficient)
 
 /-- info: 'LeanVM.corollaries_hold' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

@@ -5,6 +5,7 @@ public import Statement.LeanVmGuest
 public import Statement.LeanXmss
 public import Statement.LeanSphincs
 public import Statement.LeanDa
+public import Statement.CostMachine
 
 /-!
 # The theorems
@@ -32,6 +33,11 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   /-- leanVM is knowledge sound for the straight-line extractor `transcriptExtractor`: at most
   `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). -/
   knowledgeSoundness : LeanVM.KnowledgeSoundness
+  /-- The extractor `transcriptExtractor` is efficient: a cost-machine program of at most
+  `extractorSizeBound` terms computes it on every input within `extractorBudget`, read off the
+  shape the proof announces; the machine's prices are trusted to be honest
+  (`CostMachine.lean`). DRAFT: the bound and the budget are placeholders. -/
+  extractorEfficient : LeanVM.ExtractorEfficient
   /-- leanVM is complete: the honest prover's (`LeanVM.prover`, the executable
   `LeanVM.Prover.prove` of `Prover/Prove.lean`) proof of a valid execution of committed size at
   most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^25` nonces per proof of work, is
