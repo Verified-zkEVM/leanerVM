@@ -39,6 +39,15 @@ adds at most that number to the `X`-length (`XLenLe.substituteFast`); truncation
 polynomial of weighted degree `≤ W`): at most `1 + k·ℓ` nodes (**`gsRun_nodes_le`**), with the
 sizes above (`gsRun_tInv`); CompPoly's root finder lists each root once (`fieldRootCtx_nodup`).
 
+**The fallback** (section `The fallback`): `prefixesTruncD` falls back exactly where the truncated
+polynomial is zero (`truncD_fallback_iff`: the `s ≥ M` branch is dead), i.e. where `X^k` divides
+`Q(X, p_d + X^d·Y)`; repeated roots reach it (Lee–O'Sullivan's `(Y − f)^m` on an uncorrupted lane
+falls back at depth `≈ k/m`). Kept, its nodes have `ℓ + 1` rows of at most `W + ℓ + 1`
+coefficients (`gsRun_fallback_lenLe`). Removed: at precision `W + 1` the truncated recursion never
+falls back (`prefixesTruncD_eq_NF`), and `gsRunNF`, with no fallback code, is `gsRunNoCheck`
+(`gsRunNF_eq`), with at most `1 + k·ℓ` nodes (`gsRunNF_nodes_le`) of `ℓ + 1` rows of at most
+`W + 1` coefficients (`rrCostNF_le_nodes`).
+
 Reference: R. M. Roth and G. Ruckenstein, *Efficient decoding of Reed–Solomon codes beyond half
 the minimum distance*, IEEE Trans. Inform. Theory 46 (2000), §IV (the tree of the recursion, the
 count of its nodes by the multiplicities of the roots).
@@ -152,12 +161,13 @@ theorem xAdicOrder?_le_of_coeff_ne_zero {S : CBivariate F} {i j : ℕ}
     by_contra hlt
     exact h (cbivar_xAdicOrder?_some_coeff_eq_zero_of_lt hS (by omega))
 
-/-- **A child's degree is at most its root's multiplicity**: for `P = Qn(0, Y) ≠ 0`, the node
-of root `a` (`residualFast Qn a`, `Qn(X, a + X·Y)` stripped) has degree at most the
-multiplicity of `a` in `P`. -/
-theorem rrDeg_residualFast_le [CharP F 2] (Qn : CBivariate F) (a : F)
+/-- **The coefficient of `X^μ·Y^μ` in `Qn(X, a + X·Y)` is nonzero**, `μ` the multiplicity of `a`
+in `P = Qn(0, Y) ≠ 0` (the `μ`-th Taylor coefficient of `P` at `a`). -/
+theorem coeff_substituteFast_diag_ne_zero [CharP F 2] (Qn : CBivariate F) (a : F)
     (hP : initialCoefficientPolynomial Qn ≠ 0) :
-    rrDeg (residualFast Qn a) ≤ (initialCoefficientPolynomial Qn).toPoly.rootMultiplicity a := by
+    CBivariate.coeff (substituteFast Qn a)
+      ((initialCoefficientPolynomial Qn).toPoly.rootMultiplicity a)
+      ((initialCoefficientPolynomial Qn).toPoly.rootMultiplicity a) ≠ 0 := by
   set P := (initialCoefficientPolynomial Qn).toPoly
   set μ := P.rootMultiplicity a
   have hP' : P ≠ 0 := by
@@ -172,18 +182,23 @@ theorem rrDeg_residualFast_le [CharP F 2] (Qn : CBivariate F) (a : F)
   have hμ : μ ≤ P.natDegree := by
     have := sum_rootMultiplicity_le P {a}
     simpa [μ] using this
-  -- the coefficient of `X^μ·Y^μ` is nonzero
-  set S := substituteFast Qn a
-  have hdiag : CBivariate.coeff S μ μ ≠ 0 := by
-    rw [coeff_substituteFast, substCoeff_diag_eq_taylor Qn a μ (by omega)]
-    have ht : P.taylor a ≠ 0 := by rwa [Ne, Polynomial.taylor_eq_zero]
-    have hμt : μ = (P.taylor a).natTrailingDegree := by
-      rw [Polynomial.taylor_apply]; exact Polynomial.rootMultiplicity_eq_natTrailingDegree
-    rw [hμt]
-    exact mt Polynomial.trailingCoeff_eq_zero.1 ht
-  obtain ⟨s, hs, hsμ⟩ := xAdicOrder?_le_of_coeff_ne_zero hdiag
+  rw [coeff_substituteFast, substCoeff_diag_eq_taylor Qn a μ (by omega)]
+  have ht : P.taylor a ≠ 0 := by rwa [Ne, Polynomial.taylor_eq_zero]
+  have hμt : μ = (P.taylor a).natTrailingDegree := by
+    rw [Polynomial.taylor_apply]; exact Polynomial.rootMultiplicity_eq_natTrailingDegree
+  rw [hμt]
+  exact mt Polynomial.trailingCoeff_eq_zero.1 ht
+
+/-- **A child's degree is at most its root's multiplicity**: for `P = Qn(0, Y) ≠ 0`, the node
+of root `a` (`residualFast Qn a`, `Qn(X, a + X·Y)` stripped) has degree at most the
+multiplicity of `a` in `P`. -/
+theorem rrDeg_residualFast_le [CharP F 2] (Qn : CBivariate F) (a : F)
+    (hP : initialCoefficientPolynomial Qn ≠ 0) :
+    rrDeg (residualFast Qn a) ≤ (initialCoefficientPolynomial Qn).toPoly.rootMultiplicity a := by
+  obtain ⟨s, hs, hsμ⟩ := xAdicOrder?_le_of_coeff_ne_zero (coeff_substituteFast_diag_ne_zero Qn a hP)
   -- the child's equation is row `X^s`, of `Y`-degree at most `s`
-  rw [rrDeg, residualFast, stripXAdicFactor_stripXAdicFactor, stripXAdicFactor_of_order hs]
+  rw [rrDeg, residualFast, stripFast_eq, stripXAdicFactor_stripXAdicFactor,
+    stripXAdicFactor_of_order hs]
   refine (natDegree_le_of_coeff_zero _ s fun j hj ↦ ?_).trans hsμ
   rw [coeff_initialCoefficientPolynomial, cbivar_coeff_divXPower, Nat.zero_add,
     coeff_substituteFast, substCoeff]
@@ -202,7 +217,7 @@ theorem list_sum_map_le {α : Type*} {l : List α} {f g : α → ℕ} (h : ∀ a
 
 /-- The roots at a node: those of `Qn(0, Y)`, `Qn` the node's polynomial stripped. -/
 @[expose] def rrRoots (fr : FieldRootContext F) (Q : CBivariate F) : Array F :=
-  rootsInFieldForNonzeroEquation fr (initialCoefficientPolynomial (CBivariate.stripXAdicFactor Q))
+  rootsInFieldForNonzeroEquation fr (initialCoeffFast (stripFast Q))
 
 theorem initialCoefficientPolynomial_zero :
     initialCoefficientPolynomial (0 : CBivariate F) = 0 := by
@@ -213,24 +228,31 @@ theorem initialCoefficientPolynomial_zero :
 `Qnorm == 0` branch). -/
 theorem rrRoots_of_strip_eq_zero (fr : FieldRootContext F) {Q : CBivariate F}
     (h : CBivariate.stripXAdicFactor Q = 0) : rrRoots fr Q = #[] := by
-  rw [rrRoots, h, initialCoefficientPolynomial_zero, rootsInFieldForNonzeroEquation_of_eq_zero]
+  rw [rrRoots, stripFast_eq, h, initialCoeffFast_eq, initialCoefficientPolynomial_zero,
+    rootsInFieldForNonzeroEquation_of_eq_zero]
+
+/-- `rrRoots` with CompPoly's definitions. -/
+theorem rrRoots_eq (fr : FieldRootContext F) (Q : CBivariate F) :
+    rrRoots fr Q = rootsInFieldForNonzeroEquation fr
+      (initialCoefficientPolynomial (CBivariate.stripXAdicFactor Q)) := by
+  rw [rrRoots, stripFast_eq, initialCoeffFast_eq]
 
 /-- **One level**: the children of a node, weighted by `1 + fuel·(their degree)`, sum to at most
 `(fuel + 1)·(the node's degree)`. -/
 theorem rr_children_le [CharP F 2] {fr : FieldRootContext F} (hfr : RootsNodup fr)
     (Q : CBivariate F) (fuel : ℕ) :
-    ((rrRoots fr Q).toList.map fun a ↦
-        1 + fuel * rrDeg (residualFast (CBivariate.stripXAdicFactor Q) a)).sum ≤
+    ((rootsInFieldForNonzeroEquation fr
+        (initialCoefficientPolynomial (CBivariate.stripXAdicFactor Q))).toList.map fun a ↦
+        1 + fuel * rrDeg (residualFast (stripFast Q) a)).sum ≤
       (fuel + 1) * rrDeg Q := by
+  rw [stripFast_eq]
   set Qn := CBivariate.stripXAdicFactor Q
   set P := initialCoefficientPolynomial Qn
   by_cases hP : P = 0
-  · rw [rrRoots, show initialCoefficientPolynomial Qn = 0 from hP,
-      rootsInFieldForNonzeroEquation_of_eq_zero]
+  · rw [hP, rootsInFieldForNonzeroEquation_of_eq_zero]
     simp
-  have hroots : rrRoots fr Q = fr.rootsInField P := by
-    rw [rrRoots]
-    simp [rootsInFieldForNonzeroEquation, P, Qn, hP]
+  have hroots : rootsInFieldForNonzeroEquation fr P = fr.rootsInField P := by
+    simp [rootsInFieldForNonzeroEquation, hP]
   rw [hroots]
   set L := (fr.rootsInField P).toList
   have hL : L.Nodup := hfr P
@@ -260,7 +282,7 @@ theorem rr_children_le [CharP F 2] {fr : FieldRootContext F} (hfr : RootsNodup f
   | 0, _Q => 1
   | fuel + 1, Q =>
     1 + ((rrRoots fr Q).toList.map fun a ↦
-      rrNodes fr fuel (residualFast (CBivariate.stripXAdicFactor Q) a)).sum
+      rrNodes fr fuel (residualFast (stripFast Q) a)).sum
 
 /-- **Roth–Ruckenstein's tree has at most `1 + fuel·rrDeg Q` nodes.** -/
 theorem rrNodes_le [CharP F 2] {fr : FieldRootContext F} (hfr : RootsNodup fr) (fuel : ℕ) :
@@ -269,8 +291,8 @@ theorem rrNodes_le [CharP F 2] {fr : FieldRootContext F} (hfr : RootsNodup fr) (
   | zero => intro Q; simp [rrNodes]
   | succ fuel ih =>
     intro Q
-    rw [rrNodes]
-    have := (list_sum_map_le fun a _ ↦ ih (residualFast (CBivariate.stripXAdicFactor Q) a)).trans
+    rw [rrNodes, rrRoots_eq]
+    have := (list_sum_map_le fun a _ ↦ ih (residualFast (stripFast Q) a)).trans
       (rr_children_le hfr Q fuel)
     omega
 
@@ -284,8 +306,8 @@ the fallback's (`prefixesWithFuelFast` on the exact polynomial) included. -/
     | some s =>
       if s < M then
         1 + ((rootsInFieldForNonzeroEquation fr
-            (initialCoefficientPolynomial (CBivariate.divXPower q s))).toList.map fun a ↦
-          rrNodesTrunc fr fuel (CBivariate.truncateX (substituteFast (CBivariate.divXPower q s) a)
+            (initialCoeffFast (divXPowerFast q s))).toList.map fun a ↦
+          rrNodesTrunc fr fuel (CBivariate.truncateX (substituteFast (divXPowerFast q s) a)
             (M - s)) (M - s) Q₀ (path ++ [a])).sum
       else rrNodes fr (fuel + 1) (replayPath Q₀ path)
     | none => rrNodes fr (fuel + 1) (replayPath Q₀ path)
@@ -307,7 +329,7 @@ theorem rrNodesTrunc_le [CharP F 2] {fr : FieldRootContext F} (hfr : RootsNodup 
     | none => exact rrNodes_le hfr _ _
     | some s =>
       obtain ⟨hsM, hS⟩ := xAdicOrder?_of_truncateX hq
-      simp only [hsM, ↓reduceIte]
+      simp only [hsM, ↓reduceIte, divXPowerFast_eq, initialCoeffFast_eq]
       set E := replayPath Q₀ path
       have hstrip : CBivariate.stripXAdicFactor E = CBivariate.divXPower S s := by
         rw [← hSE, stripXAdicFactor_of_order hS]
@@ -326,15 +348,16 @@ theorem rrNodesTrunc_le [CharP F 2] {fr : FieldRootContext F} (hfr : RootsNodup 
           rrNodesTrunc fr fuel
               (CBivariate.truncateX (substituteFast (CBivariate.divXPower
                 (CBivariate.truncateX S M) s) a) (M - s)) (M - s) Q₀ (path ++ [a]) ≤
-            1 + fuel * rrDeg (residualFast (CBivariate.stripXAdicFactor E) a) := by
+            1 + fuel * rrDeg (residualFast (stripFast E) a) := by
         intro a _
         rw [hQn, truncateX_substituteFast]
         have hpath : replayPath Q₀ (path ++ [a]) =
-            residualFast (CBivariate.stripXAdicFactor E) a := by
+            residualFast (stripFast E) a := by
           simp [replayPath, List.foldl_append, E]
         rw [← hpath]
         refine ih _ _ _ _ ?_
-        rw [hpath, residualFast, stripXAdicFactor_stripXAdicFactor, hstrip]
+        rw [hpath, residualFast]
+        simp only [stripFast_eq, stripXAdicFactor_stripXAdicFactor, hstrip]
       have := (list_sum_map_le hchild).trans (rr_children_le hfr E fuel)
       omega
 
@@ -473,14 +496,29 @@ theorem XLenLe.strip {Q : CBivariate F} {X : ℕ} (h : XLenLe Q X) :
   · rw [h0]; exact XLenLe.zero X
   · rw [hs]; exact h.divXPower s
 
+omit [DecidableEq F] in
+theorem YLenLe.stripFast {Q : CBivariate F} {Y : ℕ} (h : YLenLe Q Y) :
+    YLenLe (LeanVM.Extraction.Fast.stripFast Q) Y := by
+  rw [stripFast_eq]; exact h.strip
+
+omit [DecidableEq F] in
+theorem XLenLe.stripFast {Q : CBivariate F} {X : ℕ} (h : XLenLe Q X) :
+    XLenLe (LeanVM.Extraction.Fast.stripFast Q) X := by
+  rw [stripFast_eq]; exact h.strip
+
+omit [DecidableEq F] in
+theorem YLenLe.divXPowerFast {Q : CBivariate F} {Y : ℕ} (h : YLenLe Q Y) (s : ℕ) :
+    YLenLe (LeanVM.Extraction.Fast.divXPowerFast Q s) Y := by
+  rw [divXPowerFast_eq]; exact h.divXPower s
+
 theorem YLenLe.residualFast [CharP F 2] {Q : CBivariate F} {Y : ℕ} (h : YLenLe Q Y) (a : F) :
-    YLenLe (residualFast Q a) Y :=
-  (h.substituteFast a).strip
+    YLenLe (residualFast Q a) Y := by
+  rw [LeanVM.Extraction.Fast.residualFast, stripFast_eq]; exact (h.substituteFast a).strip
 
 /-- **A step of the exact recursion adds at most `Y` to the `X`-length.** -/
 theorem XLenLe.residualFast [CharP F 2] {Q : CBivariate F} {X Y : ℕ} (hX : XLenLe Q X)
-    (hY : YLenLe Q Y) (a : F) : XLenLe (residualFast Q a) (X + Y) :=
-  (hX.substituteFast hY a).strip
+    (hY : YLenLe Q Y) (a : F) : XLenLe (residualFast Q a) (X + Y) := by
+  rw [LeanVM.Extraction.Fast.residualFast, stripFast_eq]; exact (hX.substituteFast hY a).strip
 
 /-- **The exact polynomial after `d` roots** (`replayPath`, the fallback's input): at most `Y`
 rows, of at most `X + d·Y` coefficients. -/
@@ -491,10 +529,10 @@ theorem replayPath_lenLe [CharP F 2] {Q₀ : CBivariate F} {X Y : ℕ} (hX : XLe
   | nil => exact ⟨hY, by simpa [replayPath] using hX⟩
   | append_singleton path a ih =>
     have e : replayPath Q₀ (path ++ [a]) =
-        residualFast (CBivariate.stripXAdicFactor (replayPath Q₀ path)) a := by
+        residualFast (stripFast (replayPath Q₀ path)) a := by
       simp [replayPath, List.foldl_append]
     rw [e, List.length_append, List.length_singleton, Nat.add_mul, Nat.one_mul, ← Nat.add_assoc]
-    exact ⟨ih.1.strip.residualFast a, ih.2.strip.residualFast ih.1.strip a⟩
+    exact ⟨ih.1.stripFast.residualFast a, ih.2.stripFast.residualFast ih.1.stripFast a⟩
 
 /-- **The degree at a node is below the number of rows.** -/
 theorem rrDeg_le {Q : CBivariate F} {Y : ℕ} (h : YLenLe Q Y) : rrDeg Q ≤ Y - 1 := by
@@ -536,9 +574,9 @@ def WInv (Y Xmax fuel : ℕ) (Q : CBivariate F) : Prop :=
 
 theorem WInv.residualFast [CharP F 2] {Y Xmax fuel : ℕ} {Q : CBivariate F}
     (h : WInv Y Xmax (fuel + 1) Q) (a : F) :
-    WInv Y Xmax fuel (LeanVM.Extraction.Fast.residualFast (CBivariate.stripXAdicFactor Q) a) := by
+    WInv Y Xmax fuel (LeanVM.Extraction.Fast.residualFast (stripFast Q) a) := by
   obtain ⟨hY, hX, hle⟩ := h
-  refine ⟨hY.strip.residualFast a, (hX.strip.residualFast hY.strip a).mono ?_, ?_⟩
+  refine ⟨hY.stripFast.residualFast a, (hX.stripFast.residualFast hY.stripFast a).mono ?_, ?_⟩
   · rw [Nat.succ_mul] at hle ⊢; omega
   · rw [Nat.succ_mul] at hle; omega
 
@@ -547,7 +585,7 @@ theorem rrCost_le_nodes [CharP F 2] (fr : FieldRootContext F) (Y Xmax : ℕ)
     (T : ℕ → CBivariate F → ℕ) (c : ℕ)
     (h0 : ∀ Q, WInv Y Xmax 0 Q → T 0 Q ≤ c)
     (hs : ∀ fuel Q, WInv Y Xmax (fuel + 1) Q → T (fuel + 1) Q ≤ c + ((rrRoots fr Q).toList.map
-      fun a ↦ T fuel (residualFast (CBivariate.stripXAdicFactor Q) a)).sum) (fuel : ℕ) :
+      fun a ↦ T fuel (residualFast (stripFast Q) a)).sum) (fuel : ℕ) :
     ∀ Q, WInv Y Xmax fuel Q → T fuel Q ≤ c * rrNodes fr fuel Q := by
   induction fuel with
   | zero => intro Q hQ; simpa [rrNodes] using h0 Q hQ
@@ -575,8 +613,8 @@ theorem rrCostTrunc_le_nodes [CharP F 2] (fr : FieldRootContext F) (Y M₀ Xmax 
       | some s =>
         if s < M then
           c + ((rootsInFieldForNonzeroEquation fr
-              (initialCoefficientPolynomial (CBivariate.divXPower q s))).toList.map fun a ↦
-            T fuel (CBivariate.truncateX (substituteFast (CBivariate.divXPower q s) a) (M - s))
+              (initialCoeffFast (divXPowerFast q s))).toList.map fun a ↦
+            T fuel (CBivariate.truncateX (substituteFast (divXPowerFast q s) a) (M - s))
               (M - s) (path ++ [a])).sum
         else TW (fuel + 1) (replayPath Q₀ path)
       | none => TW (fuel + 1) (replayPath Q₀ path)) (fuel : ℕ) :
@@ -601,9 +639,9 @@ theorem rrCostTrunc_le_nodes [CharP F 2] (fr : FieldRootContext F) (Y M₀ Xmax 
         rw [Nat.mul_add, Nat.mul_one, ← List.sum_map_mul_left]
         refine h.trans (Nat.add_le_add_left (list_sum_map_le fun a _ ↦ ih _ _ _ ?_) c)
         have hpath : replayPath Q₀ (path ++ [a]) =
-            residualFast (CBivariate.stripXAdicFactor (replayPath Q₀ path)) a := by
+            residualFast (stripFast (replayPath Q₀ path)) a := by
           simp [replayPath, List.foldl_append]
-        refine ⟨((hY.divXPower s).substituteFast a).truncateX _, XLenLe.truncateX _ _,
+        refine ⟨((hY.divXPowerFast s).substituteFast a).truncateX _, XLenLe.truncateX _ _,
           by omega, ?_⟩
         rw [hpath]
         exact hE.residualFast a
@@ -651,19 +689,24 @@ theorem fieldRootCtx_nodup : RootsNodup fieldRootCtx := by
       · exact eraseDups_nodup _
       · exact eraseDups_nodup _
 
+open LeanVM.Extraction in
+/-- The extractor's root finder, restated (`fieldRootCtxFast`), lists each root once. -/
+theorem fieldRootCtxFast_nodup : RootsNodup fieldRootCtxFast := by
+  rw [fieldRootCtxFast_eq]; exact fieldRootCtx_nodup
+
 /-! ## At the extractor's parameters -/
 
 open LeanVM.Extraction LeanVM.Parameters in
 /-- **The extractor's root finding visits at most `1 + k·ℓ` nodes**: on an interpolation
 polynomial `Q` (weighted degree `≤ W`, `ℓ = ⌊W/(k − 1)⌋`), `gsRunNoCheck`'s call
-`prefixesTruncD fieldRootCtx k (Q mod X^k) k Q [] …` makes at most `1 + k·ℓ` calls, its
+`prefixesTruncD fieldRootCtxFast k (Q mod X^k) k Q [] …` makes at most `1 + k·ℓ` calls, its
 fallback's included. -/
 theorem gsRun_nodes_le {points : Array (K × K)} {params : GSInterpParams} {Q : CBivariate K}
     (hQ : ValidInterpolationWitness points params Q) (hk : 1 < params.messageDegree) :
-    rrNodesTrunc fieldRootCtx params.messageDegree
+    rrNodesTrunc fieldRootCtxFast params.messageDegree
         (CBivariate.truncateX Q params.messageDegree) params.messageDegree Q [] ≤
       1 + params.messageDegree * interpolationYCap params := by
-  have h := rrNodesTrunc_le fieldRootCtx_nodup params.messageDegree Q params.messageDegree Q []
+  have h := rrNodesTrunc_le fieldRootCtxFast_nodup params.messageDegree Q params.messageDegree Q []
     (by simp [replayPath])
   have hd := rrDeg_le (lenLe_of_validInterpolation hQ hk).1
   simp only [replayPath, List.foldl_nil, Nat.add_sub_cancel] at h hd
@@ -690,10 +733,373 @@ open LeanVM.Extraction LeanVM.Parameters in
 theorem gsRun_nodes_le_of_interpolate (I : GSInterpContext K) {points : Array (K × K)}
     {params : GSInterpParams} {Q : CBivariate K} (h : I.interpolate points params = some Q)
     (hk : 1 < params.messageDegree) :
-    rrNodesTrunc fieldRootCtx params.messageDegree
+    rrNodesTrunc fieldRootCtxFast params.messageDegree
         (CBivariate.truncateX Q params.messageDegree) params.messageDegree Q [] ≤
       1 + params.messageDegree * interpolationYCap params :=
   gsRun_nodes_le (I.sound points params Q h) hk
+
+/-! ## The fallback
+
+**When it fires.** `prefixesTruncD`'s `s ≥ M` branch is dead: an order seen modulo `X^M` is below
+`M` (`xAdicOrder?_of_truncateX`). The fallback fires exactly when the truncated polynomial is
+zero, `S ≡ 0 mod X^M`: along a path of roots `p_d = a_0 + … + a_{d−1}X^{d−1}`, when `X^k` divides
+`Q(X, p_d + X^d·Y)` (the precision `k` minus the orders stripped so far is used up). A simple
+root strips one power of `X` per level, so a path of simple roots from an `X`-free `Q` never
+falls back; a root of multiplicity `μ` can strip `μ`: `Q = (Y − f)^m`, which is what
+Lee–O'Sullivan returns on an uncorrupted lane (its least row), strips `m` per level and falls
+back at depth `≈ k/m`. So the fallback is reachable at the decoder's parameters.
+
+**Removing it** (`prefixesNF`, `gsRunNF`): with precision `W + 1` instead of `k` the truncated
+recursion never falls back, on a polynomial of weighted degree `≤ W` (`prefixesTruncD_eq_NF`):
+the invariant `i + j·(f − 1) < M` (row `j`, remaining fuel `f`, precision `M`) holds at the root
+(`i + j·(k − 1) ≤ W`) and is kept by a step (the substitution moves `X^i·Y^y` to `X^(i+t)·Y^t`,
+`t ≤ y`, and the fuel drops by one), so every nonzero node has a coefficient below its precision.
+`gsRunNF` (precision `W + 1`, no fallback code) is `gsRunNoCheck` (`gsRunNF_eq`); its nodes are at
+most `1 + k·ℓ` (`gsRunNF_nodes_le`), of `ℓ + 1` rows of at most `W + 1` coefficients. -/
+
+omit [DecidableEq F] in
+/-- The `s ≥ M` branch of `prefixesTruncD` is dead: the fallback fires iff the truncated
+polynomial is zero. -/
+theorem truncD_fallback_iff (S : CBivariate F) (M : ℕ) :
+    CBivariate.xAdicOrder? (CBivariate.truncateX S M) = none ↔ CBivariate.truncateX S M = 0 ∧
+      ∀ s, CBivariate.xAdicOrder? (CBivariate.truncateX S M) = some s → s < M := by
+  constructor
+  · intro h
+    exact ⟨cbivar_xAdicOrder?_none_eq_zero h, fun s hs ↦ by rw [h] at hs; cases hs⟩
+  · rintro ⟨h0, -⟩
+    cases h : CBivariate.xAdicOrder? (CBivariate.truncateX S M) with
+    | none => rfl
+    | some s =>
+      obtain ⟨y, -, hy⟩ := cbivar_xAdicOrder?_some_exists h
+      rw [h0, CBivariate.coeff_zero] at hy
+      exact absurd rfl hy
+
+/-- **Roth–Ruckenstein's prefixes, truncated, without the fallback** (it returns nothing where
+`prefixesTruncD` would fall back; it never does at precision `W + 1`, `prefixesTruncD_eq_NF`). -/
+@[expose] def prefixesNF (fieldRoots : FieldRootContext F) :
+    ℕ → CBivariate F → ℕ → ℕ → CPolynomial F → Array (CPolynomial F)
+  | 0, _q, _M, _depth, pref => #[pref]
+  | fuel + 1, q, M, depth, pref =>
+    match CBivariate.xAdicOrder? q with
+    | some s =>
+      if s < M then
+        let Qn := divXPowerFast q s
+        (rootsInFieldForNonzeroEquation fieldRoots (initialCoeffFast Qn)).foldl
+          (fun out a ↦
+            out ++ prefixesNF fieldRoots fuel
+              (CBivariate.truncateX (substituteFast Qn a) (M - s)) (M - s) (depth + 1)
+              (extendPrefix pref depth a))
+          #[]
+      else #[]
+    | none => #[]
+
+omit [DecidableEq F] in
+theorem exists_coeff_ne_zero {S : CBivariate F} (h : S ≠ 0) :
+    ∃ i j, CBivariate.coeff S i j ≠ 0 := by
+  by_contra hall
+  push Not at hall
+  exact h (CBivariate.eq_iff_coeff.2 fun i j ↦ by rw [hall i j, CBivariate.coeff_zero])
+
+/-- The invariant of the truncated recursion at precision `M`, remaining fuel `fuel`: every
+nonzero coefficient `X^i·Y^j` has `i + j·(fuel − 1) < M`. -/
+def NFInv (fuel M : ℕ) (S : CBivariate F) : Prop :=
+  ∀ i j, CBivariate.coeff S i j ≠ 0 → i + j * (fuel - 1) < M
+
+omit [DecidableEq F] in
+/-- A nonzero polynomial under the invariant has its order seen below the precision. -/
+theorem xAdicOrder?_truncateX_of_nfInv {fuel M : ℕ} {S : CBivariate F} (hS : S ≠ 0)
+    (hI : NFInv fuel M S) :
+    ∃ s, CBivariate.xAdicOrder? (CBivariate.truncateX S M) = some s ∧ s < M ∧
+      CBivariate.xAdicOrder? S = some s := by
+  obtain ⟨i, j, hij⟩ := exists_coeff_ne_zero hS
+  have hiM : i < M := by have := hI i j hij; omega
+  have ht : CBivariate.coeff (CBivariate.truncateX S M) i j ≠ 0 := by
+    rw [cbivar_coeff_truncateX]; simpa [hiM] using hij
+  obtain ⟨s, hs, -⟩ := xAdicOrder?_le_of_coeff_ne_zero ht
+  obtain ⟨hsM, hS'⟩ := xAdicOrder?_of_truncateX hs
+  exact ⟨s, hs, hsM, hS'⟩
+
+/-- **The child keeps the invariant, and is nonzero.** -/
+theorem nfInv_child [CharP F 2] {fuel M s : ℕ} {S : CBivariate F}
+    (hI : NFInv (fuel + 2) M S) (hs : CBivariate.xAdicOrder? S = some s) (a : F) :
+    substituteFast (CBivariate.divXPower S s) a ≠ 0 ∧
+      NFInv (fuel + 1) (M - s) (substituteFast (CBivariate.divXPower S s) a) := by
+  refine ⟨?_, ?_⟩
+  · -- `P = Qn(0, Y)` is row `X^s` of `S`, nonzero, so the diagonal coefficient is nonzero
+    have hP : initialCoefficientPolynomial (CBivariate.divXPower S s) ≠ 0 := by
+      obtain ⟨y, -, hy⟩ := cbivar_xAdicOrder?_some_exists hs
+      intro h0
+      apply hy
+      have := congrArg (fun p ↦ CPolynomial.coeff p y) h0
+      simp only [coeff_initialCoefficientPolynomial, cbivar_coeff_divXPower, Nat.zero_add,
+        CPolynomial.coeff_zero] at this
+      exact this
+    intro h0
+    apply coeff_substituteFast_diag_ne_zero _ a hP
+    rw [h0, CBivariate.coeff_zero]
+  · intro i j hij
+    rw [coeff_substituteFast, substCoeff] at hij
+    obtain ⟨y, -, hy⟩ := Finset.exists_ne_zero_of_sum_ne_zero hij
+    split at hy
+    · rename_i hc
+      have hne : CBivariate.coeff S (i - j + s) y ≠ 0 := by
+        intro h0
+        apply hy
+        rw [← cbivariate_coeff_eq, cbivar_coeff_divXPower, h0]; ring
+      have h1 := hI _ _ hne
+      have h2 : j * fuel ≤ y * fuel := Nat.mul_le_mul_right fuel hc.1
+      have h3 : y * (fuel + 2 - 1) = y * fuel + y := by
+        rw [show fuel + 2 - 1 = fuel + 1 by omega]; ring
+      rw [h3] at h1
+      rw [show fuel + 1 - 1 = fuel by omega]
+      omega
+    · exact absurd rfl hy
+
+/-- **Without the fallback, the same prefixes**: on a nonzero polynomial under the invariant,
+`prefixesTruncD` never falls back and is `prefixesNF`. -/
+theorem prefixesTruncD_eq_NF [CharP F 2] (fieldRoots : FieldRootContext F) (fuel : ℕ) :
+    ∀ (S : CBivariate F) (M : ℕ) (Q₀ : CBivariate F) (path : List F) (depth : ℕ)
+      (pref : CPolynomial F), S ≠ 0 → NFInv fuel M S →
+      prefixesTruncD fieldRoots fuel (CBivariate.truncateX S M) M Q₀ path depth pref =
+        prefixesNF fieldRoots fuel (CBivariate.truncateX S M) M depth pref := by
+  induction fuel with
+  | zero => intro S M Q₀ path depth pref _ _; rfl
+  | succ fuel ih =>
+    intro S M Q₀ path depth pref hS hI
+    obtain ⟨s, hq, hsM, hS'⟩ := xAdicOrder?_truncateX_of_nfInv hS hI
+    rw [prefixesTruncD, prefixesNF, hq]
+    simp only [hsM, ↓reduceIte]
+    rw [divXPowerFast_eq, divXPower_truncateX]
+    refine congrArg (fun f ↦ Array.foldl f #[] _) (funext fun out ↦ funext fun a ↦ ?_)
+    rw [truncateX_substituteFast]
+    congr 1
+    cases fuel with
+    | zero => rfl
+    | succ fuel =>
+      obtain ⟨hne, hI'⟩ := nfInv_child hI hS' a
+      exact ih _ _ _ _ _ _ hne hI'
+
+open LeanVM.Extraction LeanVM.Parameters in
+/-- **`gsRunNoCheck` without the fallback**: Roth–Ruckenstein truncated at precision `W + 1`. -/
+@[expose] def gsRunNF (I : GSInterpContext K) (points : Array (K × K))
+    (params : GSInterpParams) (radius : ℕ) : Array (CPolynomial K) :=
+  match I.interpolate points params with
+  | none => #[]
+  | some Q =>
+    (prefixesNF fieldRootCtxFast params.messageDegree
+        (CBivariate.truncateX Q (params.weightedDegreeBound + 1)) (params.weightedDegreeBound + 1)
+        0 default).filter fun p ↦
+      degreeLtBool p params.messageDegree && passesCandidateDistance points radius p
+
+open LeanVM.Extraction LeanVM.Parameters in
+/-- **`gsRunNF` is `gsRunNoCheck`.** -/
+theorem gsRunNF_eq (I : GSInterpContext K) (points : Array (K × K))
+    (params : GSInterpParams) (radius : ℕ) :
+    gsRunNF I points params radius = gsRunNoCheck I points params radius := by
+  rw [gsRunNF, gsRunNoCheck]
+  cases hQ : I.interpolate points params with
+  | none => rfl
+  | some Q =>
+    have hv := I.sound points params Q hQ
+    dsimp only
+    have hw := (CBivariate.natWeightedDegree_le_iff_coeff Q 1 (yWeight params) _).1 hv.2.1
+    have hI : NFInv params.messageDegree (params.weightedDegreeBound + 1) Q := by
+      intro i j hij
+      have := hw i j hij
+      simp only [yWeight] at this
+      have e : j * (params.messageDegree - 1) = (params.messageDegree - 1) * j := Nat.mul_comm _ _
+      omega
+    rw [← prefixesTruncD_eq_NF fieldRootCtxFast _ Q _ Q [] 0 default hv.1 hI,
+      prefixesTruncD_eq, prefixesTrunc_eq fieldRootCtxFast _ Q _ (fun _ ↦ replayPath Q []) 0 default rfl,
+      prefixesTruncD_eq, prefixesTrunc_eq fieldRootCtxFast _ Q _ (fun _ ↦ replayPath Q []) 0 default rfl]
+
+/-! ### Nodes and sizes without the fallback -/
+
+/-- **The nodes of `prefixesNF`**: one per call. -/
+@[expose] def rrNodesNF (fr : FieldRootContext F) : ℕ → CBivariate F → ℕ → ℕ
+  | 0, _q, _M => 1
+  | fuel + 1, q, M =>
+    match CBivariate.xAdicOrder? q with
+    | some s =>
+      if s < M then
+        1 + ((rootsInFieldForNonzeroEquation fr
+            (initialCoeffFast (divXPowerFast q s))).toList.map fun a ↦
+          rrNodesNF fr fuel (CBivariate.truncateX (substituteFast (divXPowerFast q s) a)
+            (M - s)) (M - s)).sum
+      else 1
+    | none => 1
+
+omit [DecidableEq F] in
+theorem one_le_rrNodes (fr : FieldRootContext F) (fuel : ℕ) (Q : CBivariate F) :
+    1 ≤ rrNodes fr fuel Q := by
+  cases fuel <;> simp [rrNodes]
+
+omit [DecidableEq F] in
+/-- Fewer nodes than the truncated recursion with its fallback. -/
+theorem rrNodesNF_le_rrNodesTrunc (fr : FieldRootContext F) (fuel : ℕ) :
+    ∀ q M Q₀ path, rrNodesNF fr fuel q M ≤ rrNodesTrunc fr fuel q M Q₀ path := by
+  induction fuel with
+  | zero => intro q M Q₀ path; simp [rrNodesNF, rrNodesTrunc]
+  | succ fuel ih =>
+    intro q M Q₀ path
+    rw [rrNodesNF, rrNodesTrunc]
+    cases CBivariate.xAdicOrder? q with
+    | none => exact one_le_rrNodes _ _ _
+    | some s =>
+      dsimp only
+      split
+      · exact Nat.add_le_add_left (list_sum_map_le fun a _ ↦ ih _ _ _ _) 1
+      · exact one_le_rrNodes _ _ _
+
+open LeanVM.Extraction LeanVM.Parameters in
+/-- **`gsRunNF`'s root finding visits at most `1 + k·ℓ` nodes.** -/
+theorem gsRunNF_nodes_le {points : Array (K × K)} {params : GSInterpParams} {Q : CBivariate K}
+    (hQ : ValidInterpolationWitness points params Q) (hk : 1 < params.messageDegree) :
+    rrNodesNF fieldRootCtxFast params.messageDegree
+        (CBivariate.truncateX Q (params.weightedDegreeBound + 1))
+        (params.weightedDegreeBound + 1) ≤
+      1 + params.messageDegree * interpolationYCap params := by
+  refine (rrNodesNF_le_rrNodesTrunc _ _ _ _ Q []).trans ?_
+  have h := rrNodesTrunc_le fieldRootCtxFast_nodup params.messageDegree Q
+    (params.weightedDegreeBound + 1) Q [] (by simp [replayPath])
+  have hd := rrDeg_le (lenLe_of_validInterpolation hQ hk).1
+  simp only [replayPath, List.foldl_nil, Nat.add_sub_cancel] at h hd
+  have := Nat.mul_le_mul_left params.messageDegree hd
+  omega
+
+/-- **A cost of `prefixesNF` paying at most `c` per call, on nodes of `Y` rows of at most
+`M ≤ M₀` coefficients, is at most `c` per node.** -/
+theorem rrCostNF_le_nodes [CharP F 2] (fr : FieldRootContext F) (Y M₀ : ℕ)
+    (T : ℕ → CBivariate F → ℕ → ℕ) (c : ℕ)
+    (h0 : ∀ q M, YLenLe q Y → XLenLe q M → M ≤ M₀ → T 0 q M ≤ c)
+    (hs : ∀ fuel q M, YLenLe q Y → XLenLe q M → M ≤ M₀ → T (fuel + 1) q M ≤
+      match CBivariate.xAdicOrder? q with
+      | some s =>
+        if s < M then
+          c + ((rootsInFieldForNonzeroEquation fr
+              (initialCoeffFast (divXPowerFast q s))).toList.map fun a ↦
+            T fuel (CBivariate.truncateX (substituteFast (divXPowerFast q s) a) (M - s))
+              (M - s)).sum
+        else c
+      | none => c) (fuel : ℕ) :
+    ∀ q M, YLenLe q Y → XLenLe q M → M ≤ M₀ → T fuel q M ≤ c * rrNodesNF fr fuel q M := by
+  induction fuel with
+  | zero => intro q M hY hX hM; simpa [rrNodesNF] using h0 q M hY hX hM
+  | succ fuel ih =>
+    intro q M hY hX hM
+    have h := hs fuel q M hY hX hM
+    rw [rrNodesNF]
+    cases heq : CBivariate.xAdicOrder? q with
+    | none => simp only [heq] at h; simpa using h
+    | some s =>
+      simp only [heq] at h
+      dsimp only
+      by_cases hlt : s < M
+      · simp only [hlt, ↓reduceIte] at h ⊢
+        rw [Nat.mul_add, Nat.mul_one, ← List.sum_map_mul_left]
+        exact h.trans (Nat.add_le_add_left (list_sum_map_le fun a _ ↦
+          ih _ _ (((hY.divXPowerFast s).substituteFast a).truncateX _) (XLenLe.truncateX _ _)
+            (by omega)) c)
+      · simp only [hlt, ↓reduceIte] at h ⊢
+        simpa using h
+
+/-! ### The fallback's sizes, with the fallback kept
+
+Where `prefixesTruncD` falls back, the exact polynomial after `d` roots is
+`Q(X, p_d + X^d·Y)/X^σ`; its coefficients `X^i·Y^j` have `i + j·(k − 1 − d) ≤ W`
+(`WtLe`, kept by a step as the fuel drops), so at most `W + ℓ + 1` coefficients per row at every
+depth `≤ k`, not `W + 1 + d·(ℓ + 1)` (`replayPath_lenLe`). -/
+
+/-- Weighted degree at remaining fuel `f`: `i + j·(f − 1) ≤ W`, written without subtraction. -/
+def WtLe (W f : ℕ) (E : CBivariate F) : Prop :=
+  ∀ i j, CBivariate.coeff E i j ≠ 0 → i + j * f ≤ W + j
+
+omit [DecidableEq F] in
+theorem WtLe.strip {W f : ℕ} {E : CBivariate F} (h : WtLe W f E) :
+    WtLe W f (CBivariate.stripXAdicFactor E) := by
+  rcases stripXAdicFactor_cases E with h0 | ⟨s, hs⟩
+  · rw [h0]; intro i j hij; rw [CBivariate.coeff_zero] at hij; exact absurd rfl hij
+  · rw [hs]
+    intro i j hij
+    rw [cbivar_coeff_divXPower] at hij
+    have := h _ _ hij
+    omega
+
+omit [DecidableEq F] in
+theorem WtLe.stripFast {W f : ℕ} {E : CBivariate F} (h : WtLe W f E) :
+    WtLe W f (LeanVM.Extraction.Fast.stripFast E) := by
+  rw [stripFast_eq]; exact h.strip
+
+theorem WtLe.residualFast [CharP F 2] {W f : ℕ} {E : CBivariate F} (h : WtLe W (f + 1) E)
+    (a : F) : WtLe W f (LeanVM.Extraction.Fast.residualFast E a) := by
+  rw [LeanVM.Extraction.Fast.residualFast, stripFast_eq]
+  refine WtLe.strip ?_
+  intro i j hij
+  rw [coeff_substituteFast, substCoeff] at hij
+  obtain ⟨y, -, hy⟩ := Finset.exists_ne_zero_of_sum_ne_zero hij
+  split at hy
+  · rename_i hc
+    have hne : CBivariate.coeff E (i - j) y ≠ 0 := by
+      intro h0; apply hy; rw [← cbivariate_coeff_eq, h0]; ring
+    have h1 := h _ _ hne
+    have h2 : j * f ≤ y * f := Nat.mul_le_mul_right f hc.1
+    have h3 : y * (f + 1) = y * f + y := by ring
+    rw [h3] at h1
+    omega
+  · exact absurd rfl hy
+
+/-- **The exact polynomial after `d ≤ k` roots keeps the weighted degree.** -/
+theorem replayPath_wtLe [CharP F 2] {W k : ℕ} {Q₀ : CBivariate F} (h : WtLe W k Q₀)
+    (path : List F) (hp : path.length ≤ k) :
+    WtLe W (k - path.length) (replayPath Q₀ path) := by
+  induction path using List.reverseRecOn with
+  | nil => simpa [replayPath] using h
+  | append_singleton path a ih =>
+    have e : replayPath Q₀ (path ++ [a]) =
+        residualFast (stripFast (replayPath Q₀ path)) a := by
+      simp [replayPath, List.foldl_append]
+    rw [List.length_append, List.length_singleton] at hp ⊢
+    have h' := ih (by omega)
+    rw [show k - path.length = (k - (path.length + 1)) + 1 by omega] at h'
+    rw [e]
+    exact h'.stripFast.residualFast a
+
+omit [BEq F] [LawfulBEq F] [DecidableEq F] in
+theorem WtLe.xLenLe {W f Y : ℕ} {E : CBivariate F} (h : WtLe W f E) (hY : YLenLe E Y) :
+    XLenLe E (W + Y) := by
+  intro i j hi
+  by_contra hne
+  have h1 := h i j hne
+  have h2 : j < Y := by
+    by_contra hj; exact hne (hY i j (by omega))
+  have : j * f ≥ 0 := Nat.zero_le _
+  omega
+
+open LeanVM.Extraction LeanVM.Parameters in
+/-- **The fallback's sizes at the extractor**: the exact polynomial after any `d ≤ k` roots
+(where `prefixesTruncD` falls back, and every node of the fallback's own recursion) has `ℓ + 1`
+rows of at most `W + ℓ + 1` coefficients. -/
+theorem gsRun_fallback_lenLe {points : Array (K × K)} {params : GSInterpParams}
+    {Q : CBivariate K} (hQ : ValidInterpolationWitness points params Q)
+    (hk : 1 < params.messageDegree) (path : List K)
+    (hp : path.length ≤ params.messageDegree) :
+    YLenLe (replayPath Q path) (interpolationYCap params + 1) ∧
+      XLenLe (replayPath Q path) (params.weightedDegreeBound + interpolationYCap params + 1) := by
+  obtain ⟨hY, hX⟩ := lenLe_of_validInterpolation hQ hk
+  have hW : WtLe params.weightedDegreeBound params.messageDegree Q := by
+    have hw := (CBivariate.natWeightedDegree_le_iff_coeff Q 1 (yWeight params) _).1 hQ.2.1
+    intro i j hij
+    have := hw i j hij
+    simp only [yWeight] at this
+    have e : j * params.messageDegree = (params.messageDegree - 1) * j + j := by
+      rw [Nat.mul_comm, Nat.sub_mul, Nat.one_mul]
+      have : j ≤ params.messageDegree * j := Nat.le_mul_of_pos_left j (by omega)
+      omega
+    omega
+  have hYp := (replayPath_lenLe (hX := hX) hY path).1
+  refine ⟨hYp, ?_⟩
+  have := (replayPath_wtLe hW path hp).xLenLe hYp
+  simpa [Nat.add_assoc] using this
 
 end
 
