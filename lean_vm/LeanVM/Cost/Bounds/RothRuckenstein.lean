@@ -684,6 +684,17 @@ theorem gsRun_tInv {points : Array (K × K)} {params : GSInterpParams} {Q : CBiv
   refine ⟨hY.truncateX _, XLenLe.truncateX _ _, le_refl _, hY, ?_, by omega⟩
   simpa [replayPath] using hX
 
+open LeanVM.Extraction LeanVM.Parameters in
+/-- `gsRun_nodes_le` for the polynomial an interpolation context returns (`gsRunNoCheck`'s `Q`;
+`interpContext`'s is Lee–O'Sullivan's). -/
+theorem gsRun_nodes_le_of_interpolate (I : GSInterpContext K) {points : Array (K × K)}
+    {params : GSInterpParams} {Q : CBivariate K} (h : I.interpolate points params = some Q)
+    (hk : 1 < params.messageDegree) :
+    rrNodesTrunc fieldRootCtx params.messageDegree
+        (CBivariate.truncateX Q params.messageDegree) params.messageDegree Q [] ≤
+      1 + params.messageDegree * interpolationYCap params :=
+  gsRun_nodes_le (I.sound points params Q h) hk
+
 end
 
 end LeanVM.Cost.Bounds
