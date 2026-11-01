@@ -69,13 +69,17 @@ theorem pcTableT_good :
   rw [smWeightSum_empty, List.length_range] at this
   exact this
 
+/-- The pc table's positions and weights are words. -/
+theorem wl_ten : wl 10 = 1 := rfl
+
 /-- **A lookup in the pc table** (`getPcC`): at most `8339`. -/
 theorem pcTableT_get_cost (hP : Includes P getPcC.costDeps) (k : ℕ) (hk : NatKey k) :
     machineCost P getPcC.costIdx [encodeValue pcTableT, encodeValue k] ≤ 8339 := by
   obtain ⟨hg, hQ, hw⟩ := pcTableT_good
   obtain ⟨hlev, hsz⟩ := smGood_levels_le hg (D := 10) (by rw [hw]; norm_num)
-  have := getPc_cost P hP 10 (by norm_num) pcTableT hQ hlev
+  have := getPc_cost P hP 10 pcTableT hQ hlev
     (fun l hl ↦ (hsz l hl).1.trans (hsz l hl).2) k hk
+  rw [wl_ten] at this
   omega
 
 /-! ## The functions at one pc -/
@@ -176,15 +180,16 @@ theorem addEntry_amortized (hP : Includes P addEntryC.costDeps) (m : SortedMap �
   refine ⟨by rw [addEntry_eq]; exact ⟨h1, keysIn_insert hQ (pcCode_key j) _, by omega⟩, ?_⟩
   rw [addEntryC.costEq P hP, addAtC.costEq P (by includes), insertPcC.costEq P (by includes)]
   have hp := powSqW_cost P (by includes) (W := 19) (by norm_num) (by norm_num) (entry_lt j)
-  have hget := getPc_cost P (by includes) 10 (by norm_num) m hQ hlev
+  have hget := getPc_cost P (by includes) 10 m hQ hlev
     (fun l hl ↦ (hsz l hl).1.trans (hsz l hl).2) _ (pcCode_key j)
-  have hcarry := carryPc_amortized P (by includes) 10 (by norm_num) m hg hQ hN
+  have hcarry := carryPc_amortized P (by includes) 10 m hg hQ hN
     ⟨1, #[(pcCode j, j :: m.getD (pcCode j) [])], by simp [Ascending]⟩ rfl rfl
     (fun e he ↦ by simp at he; rw [he]; exact pcCode_key j)
   have hins : (addEntry m j).levels =
       carry ⟨1, #[(pcCode j, j :: m.getD (pcCode j) [])], by simp [Ascending]⟩ m.levels := rfl
   rw [hins]
   unfold psAt at hp
+  rw [wl_ten] at hget hcarry
   change machineCost P getPcC.costIdx [encodeValue m, encodeValue (pcCode j)] ≤ _ at hget
   generalize m.get? (laneCode (gpow (guestEntries.getD j 0))) = o
   cases o <;> dsimp only <;> unfold pcCode at hget hcarry ⊢ <;> omega
