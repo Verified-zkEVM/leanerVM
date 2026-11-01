@@ -22,8 +22,7 @@ depth `b` never fails a run of price at most `b`.
 
 **Prices** (trusted: that they are honest, each a constant-time CPU primitive or priced by the
 algorithm that computes it, is an assumption of `KnowledgeSoundness (extractorOf P)`). Each step
-costs at least `1`
-and at least the words it writes:
+costs at least `1` and at least the words it writes:
 * a variable, a literal, a field, a `case`'s selection, a `let`: `1`;
 * a constructor or a closure of `n` values: `n + 1` (a tag and `n` words);
 * a call or a closure's application: `1`;
@@ -496,8 +495,11 @@ binary searches. -/
 def committedLeavesPrice (D h W : ℕ) : ℕ :=
   2 ^ h * (2 * (D * (17 + (192 + 11 * W) * (D + 2)) + 40) + 64853 + 8 * h)
 
-/-- The list decoder over the `64` lanes and the pruning, at the worst admissible shape `(28, 4)`
-(about `2^117.67`), beyond the word's reads. -/
+/-- The list decoder over the `64` lanes and the pruning, beyond the word's reads, at the worst
+admissible shape `(28, 4)`: about `2^117.67`. It is `lean_vm`'s `decoderBound 28 4 0 0`
+(`Cost/Bounds/Decoder/Decode.lean`, the decoder's price beyond the word's reads), evaluated, and
+bounds `decoderBound μ R 0 0` at every admissible shape `(μ, R)` (`decoderShape_ok`,
+`Cost/Bounds/DecoderShapes.lean`). -/
 def decoderWorstPrice : ℕ := 263761295154139905848615297830647322
 
 /-- The decoder's part, at every admissible shape: its word's reads and `decoderWorstPrice`. -/
@@ -539,9 +541,9 @@ size (`10491`: its `512` bodies and the entry) rounded up to a power of two. It 
 that carries a table of witnesses for many statements. -/
 def extractorSizeBound : ℕ := 2 ^ 15
 
-/-- **The extractor's budget at a shape**: `extractorPrice` at the stack's log-size and the memory's
-the layout announces, the rate exponent, the program's log-size and the number of the
-transcript's permutation queries, and `9` for the entry. -/
+/-- **The extractor's budget at a shape**: `extractorPrice` at the layout's stack and memory
+log-sizes, the rate exponent, the program's log-size and the number of the transcript's
+permutation queries, and `9` for the entry. -/
 def extractorBudgetAt (prog : Semantics.Program) (layout : Layout) (logInverseRate queries : ℕ) :
     ℕ :=
   Cost.extractorPrice layout.stackLog logInverseRate layout.logMemory prog.logSize queries + 9

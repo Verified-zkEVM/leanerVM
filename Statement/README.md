@@ -129,8 +129,9 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
     `LeanVmVerifier.lean`) and **`LeanVM.extractorOf P`**: the extractor a program `P` computes, run
     within the budget, its output parsed; `Statement.Theorems` takes `P` with its size at most
     `extractorSizeBound`, and which program it is a reader need not know (`lean_vm` names its
-    knowledge extractor, compiled). That the machine's prices are honest is trusted. The size bound is `2^15`, twice
-    the compiled extractor's `10491` rounded up to a power of two; the budget (`extractorBudgetAt`,
+    knowledge extractor, compiled). That the machine's prices are honest is trusted. The size
+    bound is `2^15`, twice the compiled extractor's `10491` rounded up to a power of two; the
+    budget (`extractorBudgetAt`,
     `extractorPrice`) is a closed formula in the announced shape and the number `N` of queries,
     about `N·log³N + 2^117.67` at the worst shape: `2^117.67` for `N ≤ 2^40` (the list decoder)
     and `2^156.69` at `N = 2^128` (the transcript's index), where the soundness bound is already

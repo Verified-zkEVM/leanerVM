@@ -13,8 +13,8 @@ public import Statement.CostMachine
 Everything this repository proves, in one place: each field of `Theorems` is one end statement,
 defined in the file of `Statement/` named next to it. `lean_vm/LeanVM.lean` proves
 `Statement.Theorems LeanVM.Guest.End.decode LeanVM.Cost.extractorProgram`
-(`LeanVM.theorems_hold`), and the build fails if its
-axioms are ever more than Lean's three (`propext`, `Classical.choice`, `Quot.sound`).
+(`LeanVM.theorems_hold`), and the build fails if its axioms are ever more than Lean's three
+(`propext`, `Classical.choice`, `Quot.sound`).
 
 Statements that follow from these, in their composed form (what an accepted proof of the leanISA
 guest program establishes; the guest program's completeness on recursion nodes and leaves), are in
@@ -26,8 +26,8 @@ soundness takes the extractor as a parameter of the same kind, `extractorProgram
 the cost machine (`CostMachine.lean`) of at most `extractorSizeBound` terms, its extractor the
 program run within a budget per shape (`LeanVM.extractorOf`). `lean_vm` names it
 (`LeanVM.Cost.extractorProgram`, its knowledge extractor compiled); a reader need not know which
-program it is. Every statement with an
-adversary is in the random-permutation model (`Statement/README.md`).
+program it is. Every statement with an adversary is in the random-permutation model
+(`Statement/README.md`).
 -/
 
 @[expose] public section
@@ -51,7 +51,7 @@ structure Theorems (decode : LeanVM.Node.Decoder) (extractorProgram : LeanVM.Cos
   most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^25` nonces per proof of work, is
   rejected with probability at most `2^-256` (`LeanVm.lean`). -/
   completeness : LeanVM.Completeness
-  
+
   /-- Every valid execution of the leanISA guest program proves the node statement its public
   input commits to: `decode` reads off its memory a seed, a statement whose digest under that seed
   is the input's digest, and a witness for it: each signature claim of the statement is held, by a
