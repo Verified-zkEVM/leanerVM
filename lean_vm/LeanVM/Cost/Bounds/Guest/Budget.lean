@@ -33,8 +33,10 @@ the decoder program's price is within `guestDecoderBudget` (`Statement/Theorems.
   `guestDecoderFramePrice` (`frameAtAPrice_le`); the cursor's length (`cursorLength_cost`, value
   at most `8192` at each child's frame on a valid run, `valid_cursor`), the witness (`frameWit_cost`);
 * the tables: preconditions `12895` (`preTable_cost`), entries `17047343` (`pcTableT_cost`); the
-  constant `topConstPrice` at most `22867451739268 + 99702868·F` (`2^44.38 + 2^26.57·F`,
-  `topConst_valid_le`, each child's cursor at most `8192` words by `valid_cursor`), the statement's `guestDecoderWitnessPriceAtValidCounts +
+  address tables `addressTablesPrice κ ℓ = (70κ + 374)·2^κ + (70ℓ + 374)·2^ℓ + 48`
+  (`decoderTables_cost`) and the rest of the constant, `topConstPrice`, at most
+  `413362715732 + 99702868·F` (`2^38.59 + 2^26.57·F`, `topConst_valid_le`, each child's cursor at
+  most `8192` words by `valid_cursor`), the statement's `guestDecoderWitnessPriceAtValidCounts +
   guestDecoderFrameLookupCountAtValidCounts·F` (`topConst_le`).
 -/
 
@@ -48,13 +50,13 @@ public section
 
 attribute [local instance] lexOrd
 
-/-- The constant's linear form in the frame map's price, at a valid run's counts (`16` children,
-`65535` slots a region, `65535` declared claims a scheme, each child's cursor at most `8192`
-words): `22867451739268 + 99702868·F`. -/
+/-- The constant's linear form in the frame map's price, the address tables apart, at a valid
+run's counts (`16` children, `65535` slots a region, `65535` declared claims a scheme, each child's
+cursor at most `8192` words): `413362715732 + 99702868·F`. -/
 theorem topConst_valid_le (F : ℕ) :
     topConstPrice 65535 (decWitNPrice gLogPrice 1472 (1472 + 10993) (F + 7) (425014 + 4)
       8192 (dvFramePrice gLogPrice (F + 7)) 16 65535 65535) ≤
-      22867451739268 + 99702868 * F := by
+      413362715732 + 99702868 * F := by
   unfold topConstPrice framesPrice decStmtPrice decStmtAtPrice decWitNPrice decWitPrice
     decWitAtPrice decWitTabPrice kidsTPrice decKidPrice kidStmtPrice kidStmtAtPrice
     xmssHoldersTPrice sphincsHoldersTPrice regionTablePrice kidMaxPrice vsPiPrice vsMPrice
@@ -62,13 +64,17 @@ theorem topConst_valid_le (F : ℕ) :
     queryAtPrice openingPrice dvFramePrice dvWitNRowsPrice gLogPrice
   omega
 
-/-- The constant is the statement's linear form. -/
-theorem topConst_le (F : ℕ) :
-    topConstPrice 65535 (decWitNPrice gLogPrice 1472 (1472 + 10993) (F + 7) (425014 + 4)
-      8192 (dvFramePrice gLogPrice (F + 7)) 16 65535 65535) ≤
+/-- The constant, the address tables at `κ, ℓ ≤ 32` included, within the statement's linear form. -/
+theorem topConst_le (F κ ℓ : ℕ) (hκ : κ ≤ 32) (hℓ : ℓ ≤ 32) :
+    addressTablesPrice κ ℓ +
+      topConstPrice 65535 (decWitNPrice gLogPrice 1472 (1472 + 10993) (F + 7) (425014 + 4)
+        8192 (dvFramePrice gLogPrice (F + 7)) 16 65535 65535) ≤
       guestDecoderWitnessPriceAtValidCounts + guestDecoderFrameLookupCountAtValidCounts * F := by
   have := topConst_valid_le F
+  have h1 := powTablePrice_le hκ
+  have h2 := powTablePrice_le hℓ
   unfold guestDecoderWitnessPriceAtValidCounts guestDecoderFrameLookupCountAtValidCounts
+    addressTablesPrice
   omega
 
 /-- **Filing a state**: the sorted entry array's price per state (`entryArrayStatePrice`) at the
@@ -191,7 +197,8 @@ theorem decoderPriceWithinBudget : DecoderPriceWithinBudget := by
   have hT := decTop_cost decoderProgram hP LeanVM.Guest.guest hκ (Decoder.memoryVector t.memory) 12895 17047343 _ _
     (preTable_cost decoderProgram includes_budget_preTable).le (pcTableT_cost decoderProgram includes_budget_pcTableT)
     hE hW hc
-  have hk := topConst_le (guestDecoderFramePrice e)
+  have hk := topConst_le (guestDecoderFramePrice e) t.logMemorySize LeanVM.Guest.guest.logSize hκ
+    LeanVM.Guest.guest.logSize_le
   rw [entryArrayStatePrice_eq] at hT
   rw [← hstates] at hT
   have h1 := Nat.mul_le_mul_left (runnerStepPrice t.logMemorySize LeanVM.Guest.guest.logSize + 48) hlen
