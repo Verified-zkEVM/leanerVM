@@ -477,6 +477,18 @@ theorem decideAnd {t u : Term} {p q : Prop} [Decidable p] [Decidable q] {inst : 
       (Runs.ctor (k := 0) (P := P) (env := env) RunsList.nil)
     simpa [hp, enc_bool, Val.ofBool] using this
 
+/-- `decide (p ∨ q)`, short-circuit. -/
+theorem decideOr {t u : Term} {p q : Prop} [Decidable p] [Decidable q] {inst : Decidable (p ∨ q)}
+    {c d : ℕ} (h : Runs P env t (enc (decide p)) c) (hq : ¬p → Runs P env u (enc (decide q)) d) :
+    Runs P env (.case t [u, .ctor 1 []]) (enc (@decide (p ∨ q) inst))
+      (c + (if p then 1 else d) + 1) := by
+  by_cases hp : p
+  · have := Runs.case (k := 1) (fs := []) (alts := [u, .ctor 1 []]) (by simpa [hp] using h) rfl
+      (Runs.ctor (k := 1) (P := P) (env := env) RunsList.nil)
+    simpa [hp, enc_bool, Val.ofBool] using this
+  · have := Runs.case (k := 0) (fs := []) (alts := [u, .ctor 1 []]) (by simpa [hp] using h) rfl (hq hp)
+    simpa [hp] using this
+
 /-- `decide ¬p`. -/
 theorem decideNot {t : Term} {p : Prop} [Decidable p] {inst : Decidable ¬p} {c : ℕ}
     (h : Runs P env t (enc (decide p)) c) :
@@ -567,6 +579,14 @@ theorem finFunApp {t u : Term} {n : ℕ} {f : Fin n → α} {i : Fin n} {c d : �
     (v := enc (f i)) (d := 1) (by
       show Op.apply .aget [.arr (Array.ofFn fun j ↦ enc (f j)), .nat i.val, _] = _
       simp [Op.apply])).cost_eq (by omega)
+
+/-- A function of a finite domain as data: the array of its values. -/
+theorem finFunOfArray {t : Term} {n : ℕ} {f : Fin n → α} {c : ℕ}
+    (h : Runs P env t (enc (Array.ofFn f)) c) : Runs P env t (enc f) c := by
+  have : enc (Array.ofFn f) = enc f := by
+    show Val.arr ((Array.ofFn f).map enc) = Val.arr (Array.ofFn fun i ↦ enc (f i))
+    rw [Array.map_ofFn]; rfl
+  exact this ▸ h
 
 /-- A vector's `get`: its array. -/
 theorem vecGet {t : Term} {n : ℕ} {v : Vector α n} {c : ℕ} (h : Runs P env t (enc v) c) :
@@ -772,6 +792,34 @@ theorem arrOfFn {α : Type} {n : ℕ} (f : Fin n → α) : Array.ofFn f = (ofFnF
   apply Array.ext'
   rw [Array.toList_ofFn, List.toList_toArray, ofFnFrom_eq f n 0 (by omega), List.drop_zero]
 
+/-- `Nat.log2` by halving. -/
+def log2Rec (n : ℕ) : ℕ := if 2 ≤ n then log2Rec (n / 2) + 1 else 0
+termination_by n
+decreasing_by omega
+
+theorem natLog2 (n : ℕ) : Nat.log2 n = log2Rec n := by
+  induction n using Nat.strongRecOn with
+  | ind n ih =>
+    rw [Nat.log2_def, log2Rec]
+    split
+    · rw [ih (n / 2) (by omega)]
+    · rfl
+
+/-- The product `f 0 * … * f (n - 1)`, from the left. -/
+def prodRange {M : Type} [CommMonoid M] (f : ℕ → M) : ℕ → M
+  | 0 => 1
+  | n + 1 => prodRange f n * f n
+
+/-- A product over `range n`: `prodRange`. -/
+theorem finsetProdRange {M : Type} [CommMonoid M] (n : ℕ) (f : ℕ → M) :
+    ∏ v ∈ Finset.range n, f v = prodRange f n := by
+  induction n with
+  | zero => rfl
+  | succ n ih => rw [Finset.prod_range_succ, ih, prodRange]
+
+theorem listOfFn {α : Type} {n : ℕ} (f : Fin n → α) : List.ofFn f = ofFnFrom f 0 := by
+  rw [ofFnFrom_eq f n 0 (by omega), List.drop_zero]
+
 theorem vecOfFn {α : Type} {n : ℕ} (f : Fin n → α) : Vector.ofFn f = ⟨Array.ofFn f, by simp⟩ := rfl
 
 theorem arrMap {α β : Type} (f : α → β) (a : Array α) : a.map f = (a.toList.map f).toArray := by
@@ -831,10 +879,42 @@ theorem powSq_eq {M : Type} [Monoid M] : ∀ (n : ℕ) (a : M), powSq a n = a ^ 
 theorem pow_eq_powSq {M : Type} [Monoid M] (a : M) (n : ℕ) : a ^ n = powSq a n :=
   (powSq_eq n a).symm
 
+theorem natSucc (n : ℕ) : Nat.succ n = n + 1 := rfl
+
+/-- A limb of `E` at a variable index: from the list of the three. -/
+theorem eLimbVar (x : E) (i : Fin 3) : x.limb i = [x.limb 0, x.limb 1, x.limb 2].getD i.val 0 := by
+  fin_cases i <;> rfl
+
+/-- An `if` of functions, applied: each branch applied. -/
+theorem iteApp {α β : Type} (c : Prop) [Decidable c] (f g : α → β) (x : α) :
+    (if c then f else g) x = if c then f x else g x := by
+  split <;> rfl
+
+theorem diteApp {α β : Type} (c : Prop) [Decidable c] (f : c → α → β) (g : ¬c → α → β) (x : α) :
+    (if h : c then f h else g h) x = if h : c then f h x else g h x := by
+  split <;> rfl
+
 /-- Equality of a subtype's elements: of their values. -/
 theorem decideEqSubtype {α : Type} {p : α → Prop} [DecidableEq α] (a b : Subtype p)
     {inst : Decidable (a = b)} : @decide (a = b) inst = decide (a.val = b.val) := by
   simp only [Subtype.ext_iff]
+
+/-- A statement for every `i : Fin n`, decided by `Array.all` over the indices. -/
+theorem decideForallFin {n : ℕ} (p : Fin n → Prop) [DecidablePred p] {inst : Decidable (∀ i, p i)} :
+    @decide (∀ i, p i) inst = (Array.ofFn (n := n) id).all fun i ↦ decide (p i) := by
+  rw [Bool.eq_iff_iff, Array.all_iff_forall]
+  simp only [Array.size_ofFn, Array.getElem_ofFn, id, decide_eq_true_eq]
+  exact ⟨fun h i hi _ ↦ h _, fun h i ↦ h i.val i.isLt ⟨Nat.zero_le _, i.isLt⟩⟩
+
+/-- Equality in `Fin n`: of the values. -/
+theorem decideEqFin {n : ℕ} (a b : Fin n) {inst : Decidable (a = b)} :
+    @decide (a = b) inst = decide (a.val = b.val) :=
+  decide_eq_decide.2 Fin.val_inj.symm
+
+/-- A statement for every member of a list, decided by `List.all`. -/
+theorem decideBAll {α : Type} (l : List α) (p : α → Prop) [DecidablePred p]
+    {inst : Decidable (∀ x ∈ l, p x)} : @decide (∀ x ∈ l, p x) inst = l.all fun x ↦ decide (p x) := by
+  rw [Bool.eq_iff_iff]; simp [List.all_eq_true]
 
 /-- Equality of arrays, decided by their lists. -/
 theorem decideEqArray {α : Type} [DecidableEq α] (a b : Array α) {inst : Decidable (a = b)} :

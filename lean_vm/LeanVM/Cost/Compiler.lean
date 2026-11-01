@@ -67,6 +67,7 @@ def rules : List (Name × Name) := [
   (``Decidable.decide, ``Rule.decideEqTrue),
   (``Decidable.decide, ``Rule.uint8Eq),
   (``Decidable.decide, ``Rule.decideAnd),
+  (``Decidable.decide, ``Rule.decideOr),
   (``Decidable.decide, ``Rule.decideNot),
   (``HXor.hXor, ``Rule.wXor),
   (``HXor.hXor, ``Rule.u8Xor),
@@ -129,15 +130,25 @@ def rewrites : List (Name × Name) := [
   (``HPow.hPow, ``Rewrite.natTwoPow),
   (``HPow.hPow, ``Rewrite.pow_eq_powSq),
   (``Decidable.decide, ``Rewrite.decideEqList),
+  (``ite, ``Rewrite.iteApp),
+  (``Nat.succ, ``Rewrite.natSucc),
+  (``CompPoly.Extension.Ext.coeff, ``Rewrite.eLimbVar),
+  (``dite, ``Rewrite.diteApp),
   (``Decidable.decide, ``Rewrite.decideEqArray),
   (``Decidable.decide, ``Rewrite.decideEqE),
   (``Decidable.decide, ``Rewrite.decideEqSubtype),
+  (``Decidable.decide, ``Rewrite.decideForallFin),
+  (``Decidable.decide, ``Rewrite.decideEqFin),
+  (``Decidable.decide, ``Rewrite.decideBAll),
   (``LeanVM.Parameters.K.ofBits, ``Rewrite.kOfBits),
   (``HAdd.hAdd, ``Rewrite.eAdd),
   (``HMul.hMul, ``Rewrite.eMul),
   (``OfNat.ofNat, ``Rewrite.eZero),
   (``LeanVM.Parameters.ofK, ``Rewrite.eOfK),
   (``Array.ofFn, ``Rewrite.arrOfFn),
+  (``List.ofFn, ``Rewrite.listOfFn),
+  (``Finset.prod, ``Rewrite.finsetProdRange),
+  (``Nat.log2, ``Rewrite.natLog2),
   (``Vector.ofFn, ``Rewrite.vecOfFn),
   (``Array.map, ``Rewrite.arrMap),
   (``Array.foldl, ``Rewrite.arrFoldl),
@@ -276,6 +287,7 @@ def encArg? (v : Expr) : Option Expr :=
 def natLit? (e : Expr) : MetaM (Option Nat) := do
   let e ← instantiateMVars e
   if let some n := e.rawNatLit? then return some n
+  if e.isConstOf ``Nat.zero then return some 0
   if e.isAppOfArity ``OfNat.ofNat 3 then
     if (← isDefEq (← inferType e) (mkConst ``Nat)) then
       return e.appFn!.appArg!.rawNatLit?
@@ -470,6 +482,12 @@ mutual
 partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := do
   let e ← instantiateMVars e
   let e := e.consumeMData.headBeta
+  -- a `let` applied: the application inside its body (definitionally equal)
+  if let .letE n ty v b nd := e.getAppFn then
+    if e.getAppNumArgs > 0 then
+      let e' := Expr.letE n ty v (mkAppN b (e.getAppArgs.map (·.liftLooseBVars 0 1))) nd
+      let (t, c, p) ← translate ctx e'
+      return (t, c, ← mkExpectedTypeHint p (runsAt ctx t (← mkAppM ``Enc.enc #[e]) c))
   -- a variable of the environment
   for h : i in [0:ctx.vals.size] do
     if let .enc x := ctx.vals[i] then
@@ -599,6 +617,9 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
         if let some r ← tryRewrite ctx rw e then
           ctx.inlined.modify fun a ↦ if a.contains f then a else a.push f
           return r
+    -- `decide p`, `p` a definition: decided as its unfolding
+    if f == ``Decidable.decide && e.getAppNumArgs == 2 then
+      if let some r ← decideUnfolded ctx e then return r
     -- a recursive definition: compiled on demand, then called
     if let some cf ← compileOnDemand ctx f e then
       if let some (cf', args) ← findCompiled? e then
@@ -619,6 +640,12 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
       let (t, c, p) ← try translate ctx (← unfoldMatchers e'.headBeta)
         catch ex => throwError "{ex.toMessageData}\n  in the unfolding of {f}"
       return (t, c, ← mkExpectedTypeHint p (runsAt ctx t (← mkAppM ``Enc.enc #[e]) c))
+  -- a function of a finite domain as data: the array of its values
+  if e.isLambda then
+    if let .forallE _ dom _ _ ← whnfR (← inferType e) then
+      if (← whnfR dom).isAppOfArity ``Fin 1 then
+        let (_, _, p) ← translate ctx (← mkAppM ``Array.ofFn #[e])
+        return ← parts (← mkAppM ``Rule.finFunOfArray #[p])
   throwError "translate: no rule for {e} (head {e.getAppFn})"
 
 /-- Unify a rule's value `enc pat` with `enc e`: argument by argument when `pat` and `e` have the
@@ -670,6 +697,25 @@ partial def tryRewrite (ctx : Ctx) (rw : Name) (e : Expr) : MetaM (Option (Expr 
     return none
   let rhs ← instantiateMVars rhs
   let (t, c, pf) ← translate ctx rhs
+  let motive ← withLocalDeclD `z (← inferType e) fun z ↦ do
+    mkLambdaFVars #[z] (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t, ← mkAppM ``Enc.enc #[z], c])
+  return some (t, c, ← mkEqMPR (← mkCongrArg motive eqPf) pf)
+
+/-- `decide p` for `p` a definition (not a projection): `decide` of its unfolding, at the
+instance found for it, equal by `decide_eq_decide`. -/
+partial def decideUnfolded (ctx : Ctx) (e : Expr) : MetaM (Option (Expr × Expr × Expr)) := do
+  let p := e.appFn!.appArg!
+  let .const pn _ := p.getAppFn | return none
+  let some (.defnInfo _) := (← getEnv).find? pn | return none
+  if (← isProjectionFn pn) || (← isInstance pn) then return none
+  let some p' ← unfoldDefinition? p | return none
+  let p' := p'.headBeta
+  let some inst' ← synthInstance? (mkApp (mkConst ``Decidable) p') | return none
+  let e' := mkApp2 (mkConst ``Decidable.decide) p' inst'
+  let iff ← mkExpectedTypeHint (← mkAppM ``Iff.refl #[p]) (← mkAppM ``Iff #[p, p'])
+  let eqPf ← mkAppM ``Iff.mpr
+    #[← mkAppOptM ``decide_eq_decide #[p, p', e.appArg!, inst'], iff]
+  let (t, c, pf) ← translate ctx e'
   let motive ← withLocalDeclD `z (← inferType e) fun z ↦ do
     mkLambdaFVars #[z] (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t, ← mkAppM ``Enc.enc #[z], c])
   return some (t, c, ← mkEqMPR (← mkCongrArg motive eqPf) pf)
@@ -1096,7 +1142,11 @@ partial def closureOf (ctx : Ctx) (f : Expr) (arity : Nat) :
         let k ← ctx.lams.modifyGet fun n ↦ (n, n + 1)
         let name := ctx.base.str s!"lam{k}"
         let idx ← nextIndex ctx.reserved
-        withLCtx {} {} (compileFn name lam idx none ctx.reserved)
+        let nt := ctx.types.size
+        let encAt := (caps.zipIdx.filterMap fun (en, j) ↦ match en with
+            | .enc _ => some (nt + j)
+            | .fn .. => none) ++ (Array.range ps.size).map (nt + caps.size + ·)
+        withLCtx {} {} (compileFn name lam idx none ctx.reserved encAt)
     -- the closure: function `cf.index` with the captures' values
     let mut capArgs : Array (Expr ⊕ (Expr × Expr × Expr × Expr)) := #[]
     for en in caps do
@@ -1198,6 +1248,12 @@ partial def tryRule (ctx : Ctx) (rule : Name) (e : Expr) : MetaM (Option (Expr �
   unless (← isDefEq P ctx.P) && (← isDefEq env ctx.env) && (← matchValue v target) do
     s.restore
     return none
+  -- instances whose class is known now, before the premises read them
+  for a in args do
+    unless (← a.mvarId!.isAssigned) do
+      let aty ← instantiateMVars (← inferType a)
+      if !aty.hasMVar && (← isClass? aty).isSome then
+        a.mvarId!.assign (← synthInstance aty)
   for a in args do
     if (← a.mvarId!.isAssigned) then continue
     let aty ← instantiateMVars (← inferType a)
@@ -1254,14 +1310,20 @@ partial def solvePremise (ctx : Ctx) (g : MVarId) (ty : Expr) : MetaM Bool := do
 
 /-- **Compile** the function `term` (closed) to the body of function `idx`: add `name.costBody`,
 `name.costSpec`, `name.costEq`, and register it. A recursive term needs `measure?`, a function of
-its encoded parameters (as a tuple) that its recursive calls decrease. -/
+its encoded parameters (as a tuple) that its recursive calls decrease. The parameters at
+`encAt` (a lifted lambda's encoded captures and its own parameters, passed as values) are encoded,
+functions included. -/
 partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option Expr)
-    (reserved : Array Nat := #[]) : MetaM CompiledFn := do
+    (reserved : Array Nat := #[]) (encAt : Array Nat := #[]) : MetaM CompiledFn := do
   let term ← instantiateMVars term
   let ty ← inferType term
   forallTelescopeReducing ty fun xs _ ↦ do
   withLocalDeclD `P (mkConst ``Program) fun P ↦ do
-    let kinds0 ← xs.mapM fun x ↦ do paramKind (← inferType x)
+    let kinds0 ← xs.mapIdxM fun i x ↦ do
+      let k ← paramKind (← inferType x)
+      if encAt.contains i then
+        if let .fn _ := k then return ParamKind.enc
+      return k
     -- an encoded parameter a later parameter's type mentions stays fixed in recursive calls
     let kinds ← (xs.zip kinds0).mapIdxM fun i (x, k) ↦ do
       if k != .enc then return k

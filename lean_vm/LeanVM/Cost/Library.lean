@@ -19,6 +19,10 @@ cost_measure Rewrite.ofFnFrom := fun _ n _ i ↦ n - i
 
 cost_measure Rewrite.powSq := fun _ _ _ n ↦ n
 
+cost_measure List.merge := fun _ xs ys _ ↦ xs.length + ys.length
+
+cost_measure List.mergeSort := fun _ xs _ ↦ xs.length
+
 cost_compile listFoldl measure fun _ _ _ _ l ↦ l.length := @List.foldl.{0, 0}
 
 end LeanVM.Cost.Library

@@ -21,9 +21,9 @@ with a faster lane decoder, `gsLaneAtFast`:
 * without the final root check where the parameters make it redundant (`gsRunNoCheck`,
   `checkRedundant`: at most `2^64` columns and `W < m·(n − radius)`, as at every shape the
   statement decodes, `W = m·A − 1`, `radius = n − A`);
-* the interpolation chosen per shape (`interpAt`: Lee–O'Sullivan's at every shape; CompPoly's
+* the interpolation: Lee–O'Sullivan's (`interpContext`) at every shape; CompPoly's
   approximant-basis interpolation on Karatsuba's products, `approxInterpContext`, is kept, proved,
-  not used). Another interpolation may return another polynomial, so another list in another
+  not used. Another interpolation may return another polynomial, so another list in another
   order: what the list holds does not depend on it (`mem_gsRunNoCheck`: the polynomials of
   degree `< k` within the radius), and the statement sorts each lane's list (`laneListAt`), so the
   sorted lists are equal (`laneListAtFast_eq`).
@@ -176,20 +176,16 @@ equations), proved sound and complete, on Karatsuba's products and remainders. -
       karatsubaModContext
       (PolynomialMatrix.Approximant.kernelLeafPMBasisContext karatsubaMulContext 8))
 
-/-- The interpolation at `2^(κ+R)` columns: Lee–O'Sullivan's (Mulders–Storjohann) at every
-shape. `approxInterpContext` is measured slower at every runnable size, and its code admits no
-cost bound below Mulders–Storjohann's (the extractor plan's gate G3: the kernel leaf can raise
-degrees, the low products recompute each product per coefficient); the cost proof is for
-Mulders–Storjohann. A choice of speed only: what the lane lists hold does not depend on it
+/-- `gsLaneAt`, fast: without the final root check where it is redundant, and with the fast
+substitution. The interpolation is Lee–O'Sullivan's (Mulders–Storjohann) at every shape:
+`approxInterpContext` is measured slower at every runnable size, and its code admits no cost bound
+below Mulders–Storjohann's (the kernel leaf can raise degrees, the low products recompute each
+product per coefficient). A choice of speed only: what the lane lists hold does not depend on it
 (`mem_gsRunNoCheck`). -/
-@[expose] def interpAt (_κ _R : ℕ) : GSInterpContext K := interpContext
-
-/-- `gsLaneAt`, fast: without the final root check where it is redundant, with the fast
-interpolation on large shapes, and the fast substitution. -/
 @[expose] def gsLaneAtFast (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) : Array (CPolynomial K) :=
   let params := gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A
   let points := lanePoints (2 ^ (κ + R)) W u
-  if checkRedundant κ R params then gsRunNoCheck (interpAt κ R) points params.interp params.radius
+  if checkRedundant κ R params then gsRunNoCheck interpContext points params.interp params.radius
   else GuruswamiSudan.decodeWithParams gsContextFast params ⟨points⟩
 
 /-- `laneListAt`, fast. -/
@@ -243,7 +239,7 @@ theorem mem_gsLaneAtFast (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) (p : CPol
     rw [decodeWithParams, gsContextFast_eq,
       show gsContext.run _ _ _ = gsRunNoCheck interpContext _ _ _ from
         (gsRunNoCheck_eq _ _ _ _ hd hW).symm,
-      mem_gsRunNoCheck _ _ _ _ hd hW, mem_gsRunNoCheck _ _ _ _ hd hW]
+      mem_gsRunNoCheck _ _ _ _ hd hW]
   · rfl
 
 theorem laneListAtFast_eq : laneListAtFast = laneListAt := by
