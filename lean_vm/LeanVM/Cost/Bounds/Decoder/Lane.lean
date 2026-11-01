@@ -10,8 +10,8 @@ import all LeanVM.Cost.InitLib
 # Bound: one lane's candidates, compiled
 
 The price of `laneEncodedDistinct κ R A S u` (`Fast/DecodeAdmissible.lean`, compiled in
-`Cost/Extractor/Lane.lean`) beyond its Guruswami–Sudan run (`gsLaneDistinct`, whose
-Roth–Ruckenstein recursion is not composed yet, `Bounds/Decoder/GsRun.lean`):
+`Cost/Extractor/Lane.lean`) beyond its Guruswami–Sudan run (`gsLaneDistinct`, bounded in
+`Bounds/Decoder/Decode.lean`, `gsLaneDistinctC_cost`):
 
 * the candidates in the novel basis (`toNovelFastC_cost`: `2^κ` Horner evaluations, then the
   inverse transform `novelInv_cost` of `Bounds/FastPath.lean`);
