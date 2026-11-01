@@ -12,8 +12,8 @@ rebuilds them.
 * `extractorProgram_indices_increasing`: the bodies' indices are distinct (they increase from the
   entry's `0`: the compiler allocates indices from `1`, and sorts each dependency list);
 * **`extractorProgram_size_le_measured`**: the program's size is at most `11515`, the bodies' sizes
-  (`10465`, each natural literal counted by its limbs, all of them one) plus two per index (`525`
-  of them, `size_ofList_le`). Its exact size is `10491` (`13` indices without a body, a literal
+  (`10465`, each natural literal counted by its limbs, all of them one) plus two per index (`524`
+  of them, `size_ofList_le`). Its exact size is `10489` (`12` indices without a body, a literal
   `0` each; `LeanVMTests/Cost/Efficient.lean`).
   `LeanVM.extractorSizeBound` (`Statement/CostMachine.lean`) is `2^15`, twice the exact size
   rounded up to a power of two.
@@ -31,7 +31,7 @@ theorem extractorProgram_indices_increasing :
   decide +kernel
 
 /-- The bound of `size_ofList_le` on the program's size, evaluated: the bodies' sizes (`10465`)
-plus two per index (`525`). -/
+plus two per index (`524`). -/
 theorem extractorProgramBodies_size_bound :
     (extractorProgramBodies.map fun p ↦ p.2.size).sum +
       2 * ((extractorProgramBodies.map (·.1)).foldr max 0 + 1) ≤ 11515 := by

@@ -40,7 +40,6 @@ cost_compile stageTC := stageT
 cost_compile afterRootStageC := afterRootStage
 
 -- The extractor, compiled.
-set_option maxHeartbeats 20000000 in
 cost_compile extractorC := extractorTop
 
 end

@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Bounds.Basic
+public import LeanVM.Cost.Bounds.ListLib
 public import LeanVM.Cost.Bounds.SortedMap
 public import LeanVM.Cost.Extractor.Transcript
 import all LeanVM.Protocol.Extraction.Fast.SortedMap
@@ -12,10 +12,8 @@ import all LeanVM.Protocol.Extraction.Fast.SortedMap
 * **`leafAt_cost`**: reading a position of the committed word (`leafAt leaves h w v`, the leaf
   `v mod 2^h`, or `w` zeros) costs at most `17·w + 19`, for `h < 64` and word-sized `v`, `w`.
 
-The committed leaves themselves are bounded by the sample's `committedLeaves_cost`
-(`Bounds/Samples/CommittedLeaves.lean`): at most `2^h·(2·L + 617·w + 12060 + 8·h) + 7`, `L` the
-preimage lookup's price (`preimageLookup_cost`: `40 + |levels|·(18 + 192·(log₂ N + 2))`, at most
-`log₂(N + 1)` levels after `N` insertions by `sm_two_pow_levels_le`).
+The committed leaves themselves are bounded in `Bounds/Top.lean` (`leavesOfC_cost`, a lookup in
+the transcript's index `preimageLookup_cost`).
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -29,19 +27,6 @@ attribute [local instance] lexOrd
 
 variable (P : MachineProgram)
 
-/-- `List.replicate n a`: at most `17·n + 6`. -/
-theorem replicate_cost (hP : Includes P Auto.List.replicate.c346.costDeps) {α : Type} [MachineEncoding α]
-    (a : α) : ∀ n, n < 2 ^ 64 →
-      machineCost P Auto.List.replicate.c346.costIdx [encodeValue n, encodeValue a] ≤ 17 * n + 6 := by
-  intro n
-  induction n with
-  | zero => intro _; rw [Auto.List.replicate.c346.costEq_zero P hP]
-  | succ n ih =>
-    intro hn
-    rw [Auto.List.replicate.c346.costEq_succ P hP, limbs_of_lt hn]
-    have := ih (by omega)
-    omega
-
 /-- **A position of the committed word**: at most `17·w + 19`. -/
 theorem leafAt_cost (hP : Includes P leafAtC.costDeps) (leaves : Array (List K)) (h w v : ℕ)
     (hh : h < 64) (hv : v < 2 ^ 64) (hw : w < 2 ^ 64) :
@@ -53,21 +38,6 @@ theorem leafAt_cost (hP : Includes P leafAtC.costDeps) (leaves : Array (List K))
   omega
 
 /-! ## Generic list functions -/
-
-/-- `List.length` (`length.c229`): `7` per element, `3` at the end, for word-sized lists. -/
-theorem length_cost (hP : Includes P Auto.List.length.c229.costDeps) {α : Type} [MachineEncoding α] :
-    ∀ l : List α, l.length < 2 ^ 64 →
-      machineCost P Auto.List.length.c229.costIdx [encodeValue l] ≤ 7 * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => intro _; rw [Auto.List.length.c229.costEq_nil P hP]; omega
-  | cons x l ih =>
-    intro hl
-    simp only [List.length_cons] at hl
-    rw [Auto.List.length.c229.costEq_cons P hP, limbs_of_lt (by omega : l.length < 2 ^ 64)]
-    have := ih (by omega)
-    simp only [List.length_cons]
-    omega
 
 /-- `List.compareLex` (`compareLex.c284`), any element type: `14` per position of the second list
 and the comparison's price, `5` at the end. -/
@@ -91,24 +61,6 @@ theorem compareLex_cost (hP : Includes P Auto.List.compareLex.c284.costDeps) {α
       simp only [List.length_cons]
       generalize cmp x y = o
       cases o <;> dsimp only <;> nlinarith
-
-/-- `List.findSome?` (`findSome?.c125`), any element type: `9` per element and the closure's
-price, `3` at the end. -/
-theorem findSome_cost (hP : Includes P Auto.List.findSome?.c125.costDeps) {α β : Type} [MachineEncoding α]
-    [MachineEncoding β] (f : α → Option β) (fVal : MachineValue) (hf : ∀ a, RunsApp P fVal [encodeValue a] (encodeValue (f a)))
-    (B : ℕ) : ∀ ls : List α, (∀ l ∈ ls, appCost P fVal [encodeValue l] ≤ B) →
-      machineCost P Auto.List.findSome?.c125.costIdx [fVal, encodeValue ls] ≤ (B + 9) * ls.length + 3 := by
-  intro ls
-  induction ls with
-  | nil => intro _; rw [Auto.List.findSome?.c125.costEq_nil P hP f fVal hf]; omega
-  | cons l ls ih =>
-    intro hB
-    rw [Auto.List.findSome?.c125.costEq_cons P hP f fVal hf]
-    have h1 := ih fun l' hl ↦ hB l' (by simp [hl])
-    have h2 := hB l (by simp)
-    simp only [List.length_cons]
-    generalize f l = o
-    cases o <;> dsimp only <;> nlinarith
 
 /-- Byte strings compared (`List.beq`, `beq.c54`): `11` per byte of the second, `9` at the end. -/
 theorem bytesBeq_cost (hP : Includes P Auto.List.beq.c286.costDeps) :

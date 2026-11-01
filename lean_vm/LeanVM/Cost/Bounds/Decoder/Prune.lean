@@ -50,17 +50,6 @@ theorem listFoldl_range'_le (hP : Includes P listFoldl.costDeps) {α : Type} [Ma
     have e : (B + 9) * (n + 1) = (B + 9) * n + B + 9 := by ring
     omega
 
-/-- The bound of the pruning over `U` lanes of `n = 2^(κ+R)` columns: the word's table (a column
-price `BW`, columns of at most `Lw` symbols), per lane its candidates (`G`) and the pruning step
-(`Smax` survivors, `Lc` candidates). -/
-@[expose] def pruneBound (κ R U BW Lw G Lc Smax : ℕ) : ℕ :=
-  (BW + 10 * Lw + 28) * 2 ^ (κ + R) + 17 * 2 ^ (κ + R) +
-    (G + Smax * (Lc * (41 * 2 ^ (κ + R) + 9 * U + 62) + 32) + 60) * U + 17 * U + 80
-
-theorem laneTable_getD (n : ℕ) (W : ℕ → List K) (u v : ℕ) (hv : v < n) :
-    tableSymbol (laneTable n W) u v = laneSymbol W u v := by
-  simp [tableSymbol, laneTable, laneSymbol, Array.getD_eq_getD_getElem?, hv]
-
 /-- **The lanes pruned** (`pruneUpToDistinct κ R A W U`): at most `pruneBound …`, the lanes'
 candidates of price at most `G` and at most `Lc` each, the survivors at most `Smax` after every
 lane. -/
@@ -82,7 +71,7 @@ theorem pruneUpToDistinctC_cost (hP : Includes P pruneUpToDistinctC.costDeps) (�
   -- the table
   have hf0 := fun v ↦ RunsApp.of_spec (us := [encodeValue κ, encodeValue R, WVal]) (vs := [encodeValue v])
     (pruneUpToDistinctC.lam0.costSpec P (by includes) κ R W WVal hW v)
-  have hof := ofFnFromC_cost P (by includes) (n := 2 ^ (κ + R)) (by omega) _
+  have hof := ofFnFrom_cost P (by includes) (n := 2 ^ (κ + R)) (by omega) _
     (.closure pruneUpToDistinctC.lam0.costIdx [encodeValue κ, encodeValue R, WVal]) hf0 (BW + 10 * Lw + 9)
     (fun v ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -91,7 +80,7 @@ theorem pruneUpToDistinctC_cost (hP : Includes P pruneUpToDistinctC.costDeps) (�
       have := reverseAux_cost P (by includes) (W v) []
       have := hLw v
       simp only [List.length_reverse]
-      omega) (2 ^ (κ + R)) 0 (by simp) (Nat.zero_le _)
+      omega) 0 (Nat.zero_le _)
   have := rangeLoop_cost P (by includes) (2 ^ (κ + R)) [] (by omega)
   have := rangeLoop_cost P (by includes) U [] (by omega)
   -- the lanes

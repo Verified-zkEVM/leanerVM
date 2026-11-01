@@ -90,12 +90,6 @@ theorem runPure_bind_of_some {α β : Type} {p : Prog α} {f : α → Prog β} {
   rw [h] at this
   exact this
 
-theorem runPure_bind_of_none {α β : Type} {p : Prog α} {f : α → Prog β} {s : ProgState}
-    (h : runPure p s = none) : runPure (p >>= f) s = none := by
-  have := runPure_bind p f s
-  rw [h] at this
-  exact this
-
 theorem runPure_pure {α : Type} (a : α) (s : ProgState) :
     runPure (pure a : Prog α) s = some (a, s) := rfl
 

@@ -75,14 +75,6 @@ variable {F : Type*} [Field F] [BEq F] [LawfulBEq F] [DecidableEq F]
   ∀ p, (fr.rootsInField p).toList.Nodup
 
 omit [DecidableEq F] in
-theorem rootsInFieldForNonzeroEquation_nodup {fr : FieldRootContext F} (hfr : RootsNodup fr)
-    (p : CPolynomial F) : (rootsInFieldForNonzeroEquation fr p).toList.Nodup := by
-  unfold rootsInFieldForNonzeroEquation
-  split
-  · simp
-  · exact hfr p
-
-omit [DecidableEq F] in
 theorem rootsInFieldForNonzeroEquation_of_eq_zero (fr : FieldRootContext F) :
     rootsInFieldForNonzeroEquation fr 0 = #[] := by
   simp [rootsInFieldForNonzeroEquation]
@@ -136,13 +128,6 @@ theorem initialCoefficientPolynomial_zero :
     initialCoefficientPolynomial (0 : CBivariate F) = 0 := by
   refine CPolynomial.eq_iff_coeff.2 fun j ↦ ?_
   rw [coeff_initialCoefficientPolynomial, CBivariate.coeff_zero, CPolynomial.coeff_zero]
-
-/-- A node whose stripped polynomial is zero has no children (`prefixesWithFuelFast`'s
-`Qnorm == 0` branch). -/
-theorem rrRoots_of_strip_eq_zero (fr : FieldRootContext F) {Q : CBivariate F}
-    (h : CBivariate.stripXAdicFactor Q = 0) : rrRoots fr Q = #[] := by
-  rw [rrRoots, stripFast_eq, h, initialCoeffFast_eq, initialCoefficientPolynomial_zero,
-    rootsInFieldForNonzeroEquation_of_eq_zero]
 
 /-- `rrRoots` with CompPoly's definitions. -/
 theorem rrRoots_eq (fr : FieldRootContext F) (Q : CBivariate F) :
@@ -639,17 +624,6 @@ theorem gsRun_tInv {points : Array (K × K)} {params : GSInterpParams} {Q : CBiv
   obtain ⟨hY, hX⟩ := lenLe_of_validInterpolation hQ hk
   refine ⟨hY.truncateX _, XLenLe.truncateX _ _, le_refl _, hY, ?_, by omega⟩
   simpa [replayPath] using hX
-
-open LeanVM.Extraction LeanVM.Parameters in
-/-- `gsRun_nodes_le` for the polynomial an interpolation context returns (`gsRunNoCheck`'s `Q`;
-`interpContext`'s is Lee–O'Sullivan's). -/
-theorem gsRun_nodes_le_of_interpolate (I : GSInterpContext K) {points : Array (K × K)}
-    {params : GSInterpParams} {Q : CBivariate K} (h : I.interpolate points params = some Q)
-    (hk : 1 < params.messageDegree) :
-    rrNodesTrunc fieldRootCtxFast params.messageDegree
-        (CBivariate.truncateX Q params.messageDegree) params.messageDegree Q [] ≤
-      1 + params.messageDegree * interpolationYCap params :=
-  gsRun_nodes_le (I.sound points params Q h) hk
 
 /-! ## The fallback, removed
 

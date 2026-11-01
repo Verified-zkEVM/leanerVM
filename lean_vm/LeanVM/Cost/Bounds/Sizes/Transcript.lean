@@ -188,21 +188,6 @@ theorem sm_two_pow_levels_le {m : SortedMap α β} (h : smGood m) :
   have : 1 ≤ 2 ^ m.levels.length := Nat.one_le_two_pow
   omega
 
-/-- A good map after `n` more insertions. -/
-theorem smGood_foldl_insert {γ : Type} (f : γ → α) (g : γ → β) (l : List γ) :
-    ∀ m : SortedMap α β, smGood m →
-      smGood (l.foldl (fun m x ↦ m.insert (f x) (g x)) m) ∧
-        smWeightSum (l.foldl (fun m x ↦ m.insert (f x) (g x)) m) = smWeightSum m + l.length := by
-  induction l with
-  | nil => intro m h; exact ⟨h, by simp⟩
-  | cons x l ih =>
-    intro m h
-    obtain ⟨h1, h2⟩ := smGood_insert h (f x) (g x)
-    obtain ⟨h3, h4⟩ := ih _ h1
-    refine ⟨h3, ?_⟩
-    rw [List.foldl_cons, h4, h2, List.length_cons]
-    omega
-
 omit [Std.TransOrd α] [Std.LawfulEqOrd α] in
 theorem smWeightSum_empty : smWeightSum (SortedMap.empty : SortedMap α β) = 0 := rfl
 

@@ -37,7 +37,7 @@ the reduction.
 
 namespace LeanVM.Cost.Bounds.Decoder
 
-open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Bounds.Samples LeanVM.Cost.Library
+open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Library
 open LeanVM.Cost.Extractor LeanVM.Parameters CompPoly LeanVM.Extraction.Fast
 open CompPoly.GuruswamiSudan CompPoly.PolynomialMatrix
 
@@ -49,61 +49,6 @@ public section
 variable (P : MachineProgram)
 
 /-! ## Library functions -/
-
-/-- `List.findSome?` (`findSome?.c125`): `9` per element and the closure's price, `3`. -/
-theorem findSomeC_cost (hP : Includes P Auto.List.findSome?.c125.costDeps) {α β : Type} [MachineEncoding α]
-    [MachineEncoding β] (f : α → Option β) (fVal : MachineValue) (hf : ∀ a, RunsApp P fVal [encodeValue a] (encodeValue (f a)))
-    (B : ℕ) : ∀ ls : List α, (∀ l ∈ ls, appCost P fVal [encodeValue l] ≤ B) →
-      machineCost P Auto.List.findSome?.c125.costIdx [fVal, encodeValue ls] ≤ (B + 9) * ls.length + 3 := by
-  intro ls
-  induction ls with
-  | nil => intro _; rw [Auto.List.findSome?.c125.costEq_nil P hP f fVal hf]; omega
-  | cons l ls ih =>
-    intro hB
-    rw [Auto.List.findSome?.c125.costEq_cons P hP f fVal hf]
-    have h1 := ih fun l' hl ↦ hB l' (by simp [hl])
-    have h2 := hB l (by simp)
-    simp only [List.length_cons]
-    generalize f l = o
-    cases o <;> dsimp only <;> nlinarith
-
-/-- `Option.map` (`map.c106`): at most the closure's price `+ 7`. -/
-theorem optionMapC_cost (hP : Includes P Auto.Option.map.c106.costDeps) {α β : Type} [MachineEncoding α]
-    [MachineEncoding β] (f : α → β) (fVal : MachineValue) (hf : ∀ a, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ)
-    (o : Option α) (hB : ∀ a, o = some a → appCost P fVal [encodeValue a] ≤ B) :
-    machineCost P Auto.Option.map.c106.costIdx [fVal, encodeValue o] ≤ B + 7 := by
-  cases o with
-  | none => rw [Auto.Option.map.c106.costEq_none P hP f fVal hf]; omega
-  | some a => rw [Auto.Option.map.c106.costEq_some P hP f fVal hf]; have := hB a rfl; omega
-
-/-- `ofFnFrom n f i` (`Array.ofFn`'s list, `ofFnFrom.c117`): `18` per index and the closure's
-price, `6`. -/
-theorem ofFnFromC_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c117.costDeps)
-    {α : Type} [MachineEncoding α] {n : ℕ} (hn : n < 2 ^ 63) (f : Fin n → α) (fVal : MachineValue)
-    (hf : ∀ a, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ)
-    (hB : ∀ a : Fin n, appCost P fVal [encodeValue a] ≤ B) :
-    ∀ k i, n - i = k → i ≤ n →
-      machineCost P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c117.costIdx [encodeValue n, fVal, encodeValue i] ≤
-        (B + 18) * k + 6 := by
-  intro k
-  induction k with
-  | zero =>
-    intro i hk hi
-    rw [Auto.LeanVM.Cost.Rewrite.ofFnFrom.c117.costEq P hP f fVal hf]
-    have hn' : ¬ i < n := by omega
-    simp only [hn', ↓reduceDIte]
-    cost_simp
-    omega
-  | succ k ih =>
-    intro i hk hi
-    rw [Auto.LeanVM.Cost.Rewrite.ofFnFrom.c117.costEq P hP f fVal hf]
-    have hin : i < n := by omega
-    simp only [hin, ↓reduceDIte]
-    have := ih (i + 1) (by omega) (by omega)
-    have := hB ⟨i, hin⟩
-    cost_simp
-    have e : (B + 18) * (k + 1) = (B + 18) * k + B + 18 := by ring
-    omega
 
 theorem length_ofFnFrom {α : Type} {n : ℕ} (f : Fin n → α) (i : ℕ) :
     (Rewrite.ofFnFrom f i).length = n - i := by
@@ -165,7 +110,7 @@ theorem leePivotC_cost (hP : Includes P leePivot?.c124.costDeps) (params : GSInt
   have := rangeLoop_cost P (by includes) (leeRows params Q) [] (by omega)
   have hf := fun y ↦ RunsApp.of_spec (us := [encodeValue params, encodeValue Q]) (vs := [encodeValue y])
     (leePivot?.c124.lam0.costSpec P (by includes) params Q y)
-  have hfs := findSomeC_cost P (by includes) _ (.closure leePivot?.c124.lam0.costIdx [encodeValue params, encodeValue Q])
+  have hfs := findSome_cost P (by includes) _ (.closure leePivot?.c124.lam0.costIdx [encodeValue params, encodeValue Q])
     hf (42 * (params.weightedDegreeBound + 1) + 87) (List.range (leeRows params Q)) (fun y hy ↦ by
       rw [List.mem_range] at hy
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -187,7 +132,7 @@ theorem leePivotC_cost (hP : Includes P leePivot?.c124.costDeps) (params : GSInt
             Auto.CompPoly.CBivariate.coeff.c121.costEq P (by includes)])
       have hm := fun x ↦ RunsApp.of_spec (us := [encodeValue y]) (vs := [encodeValue x])
         (leePivot?.c124.lam0.lam0.costSpec P (by includes) y x)
-      have := optionMapC_cost P (by includes)
+      have := optionMap_cost P (by includes)
         (fun x ↦ ({ xDegree := x, yDegree := y } : CBivariate.Monomial))
         (.closure leePivot?.c124.lam0.lam0.costIdx [encodeValue y]) hm
         5 ((List.range (leeCols params Q y)).find? fun x ↦ !Q.coeff x y == 0) (fun x _ ↦ by
@@ -219,7 +164,7 @@ theorem leeScaledC_cost (hP : Includes P leeScaled.c115.costDeps) (params : GSIn
     (leeScaled.c115.lam0.costSpec P (by includes) params Q c y)
   rw [Auto.CompPoly.CPolynomial.ofFn.c116.costEq P (by includes) _
     (.closure leeScaled.c115.lam0.costIdx [encodeValue params, encodeValue Q, encodeValue c]) hf]
-  have hfr := ofFnFromC_cost P (by includes) (n := leeRows params Q) (by omega) _
+  have hfr := ofFnFrom_cost P (by includes) (n := leeRows params Q) (by omega) _
     (.closure leeScaled.c115.lam0.costIdx [encodeValue params, encodeValue Q, encodeValue c]) hf
     (20012 * (params.weightedDegreeBound + 1) + 92) (fun y ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -236,20 +181,20 @@ theorem leeScaledC_cost (hP : Includes P leeScaled.c115.costDeps) (params : GSIn
         (leeScaled.c115.lam0.lam0.costSpec P (by includes) params Q c y x)
       rw [Auto.CompPoly.CPolynomial.ofFn.c119.costEq P (by includes) _
         (.closure leeScaled.c115.lam0.lam0.costIdx [encodeValue params, encodeValue Q, encodeValue c, encodeValue y]) hg]
-      have := ofFnFromC_cost P (by includes) (n := leeCols params Q y) (by omega) _
+      have := ofFnFrom_cost P (by includes) (n := leeCols params Q y) (by omega) _
         (.closure leeScaled.c115.lam0.lam0.costIdx [encodeValue params, encodeValue Q, encodeValue c, encodeValue y]) hg 19970
         (fun x ↦ by
           simp only [appCost_fn, List.cons_append, List.nil_append]
           rw [leeScaled.c115.lam0.lam0.costEq P (by includes),
             Auto.CompPoly.CBivariate.coeff.c121.costEq P (by includes)]
           have := invK_cost P (by includes) c
-          omega) (leeCols params Q y) 0 (by omega) (by omega)
+          omega) 0 (by omega)
       have := ofArray_cost P (by includes)
         (Array.ofFn fun x : Fin (leeCols params Q y) ↦ Q.coeff ↑x ↑y / c) (by simp; omega)
       have h2 : (19970 + 18) * leeCols params Q y ≤ 19988 * (params.weightedDegreeBound + 1) :=
         Nat.mul_le_mul_left _ hc
       simp only [length_ofFnFrom, Array.size_ofFn, Nat.sub_zero] at *
-      omega) (leeRows params Q) 0 (by omega) (by omega)
+      omega) 0 (by omega)
   have := ofArrayB_cost P (by includes)
     (Array.ofFn fun y : Fin (leeRows params Q) ↦
       CPolynomial.ofFn fun x : Fin (leeCols params Q y) ↦ Q.coeff ↑x ↑y / c)
@@ -265,10 +210,6 @@ theorem leeScaledC_cost (hP : Includes P leeScaled.c115.costDeps) (params : GSIn
     ring
   omega
 
-/-- The bound of the normalization on `rows` rows. -/
-@[expose] def normBound (W rows : ℕ) : ℕ :=
-  (20057 * (W + 1) + 265) * rows + 121
-
 /-- **The normalization** (`normalizeLeeFast`: the pivot, then the grid divided by it): at most
 `normBound W rows`, `Q` of at most `rows` rows. -/
 theorem normalizeLeeFastC_cost (hP : Includes P normalizeLeeFast.c113.costDeps)
@@ -280,7 +221,7 @@ theorem normalizeLeeFastC_cost (hP : Includes P normalizeLeeFast.c113.costDeps)
   have hp := leePivotC_cost P (by includes) params Q hs hQ (by omega)
   have hf := fun m ↦ RunsApp.of_spec (us := [encodeValue params, encodeValue Q]) (vs := [encodeValue m])
     (normalizeLeeFast.c113.lam0.costSpec P (by includes) params Q m)
-  have := optionMapC_cost P (by includes) _ (.closure normalizeLeeFast.c113.lam0.costIdx [encodeValue params, encodeValue Q])
+  have := optionMap_cost P (by includes) _ (.closure normalizeLeeFast.c113.lam0.costIdx [encodeValue params, encodeValue Q])
     hf ((20015 * (params.weightedDegreeBound + 1) + 152) * leeRows params Q + 53 + 17)
     (leePivot? params Q) (fun m _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -424,7 +365,7 @@ theorem leastShiftedDegreeRowC_cost (hP : Includes P leastShiftedDegreeRow?.c105
       omega)
   have hm := fun c ↦ RunsApp.of_spec (us := []) (vs := [encodeValue c])
     (leastShiftedDegreeRow?.c105.lam0.costSpec P (by includes) c)
-  have := optionMapC_cost P (by includes) _ (.closure leastShiftedDegreeRow?.c105.lam0.costIdx []) hm 2
+  have := optionMap_cost P (by includes) _ (.closure leastShiftedDegreeRow?.c105.lam0.costIdx []) hm 2
     (LeeOSullivan.leastShiftedDegreeChoice? M shift) (fun c _ ↦ by
       simp only [appCost_fn, List.nil_append]
       rw [leastShiftedDegreeRow?.c105.lam0.costEq P (by includes)])
@@ -460,25 +401,6 @@ theorem leeShifts_le (params : GSInterpParams) (j : ℕ) :
   · rw [weightedDegreeShift_getD _ _ _ hj]
     exact Nat.mul_le_mul_right _ (by omega)
   · simp [CBivariate.weightedDegreeShift, Array.getD_eq_getD_getElem?, Nat.not_lt.1 hj]
-
-/-- The bound of the interpolation on `n` points, multiplicity `m`, `w = ℓ + 1` columns, the
-basis's degree bound `D`, the weighted degree `W`. -/
-@[expose] def interpCoreBound (n m w D W : ℕ) : ℕ :=
-  3720 * (n * n) + 1700 * ((n + 1) * n) + 30000 * n + 1000 + leeRowsBound m w n + 40 * w +
-    ((w * ((D + 1) * (w + 1)) + 1) * msIterBound w w D + 90 * (w * w) + 77 * w + 66) +
-    ((90 * w + 140) * w + 40) + (90 * w + 30) + ((3 * (D + 1) + 41) * w + 17) + normBound W w + 80
-
-/-- The sizes the interpolation's bound needs, all word-sized. -/
-@[expose] def InterpSizes (n : ℕ) (params : GSInterpParams) : Prop :=
-  n < 2 ^ 55 ∧ params.weightedDegreeBound + 1 < 2 ^ 60 ∧ params.messageDegree < 2 ^ 64 ∧
-    yWeight params * (params.weightedDegreeBound + 1) < 2 ^ 64 ∧
-    interpolationYCap params + 1 < 2 ^ 55 ∧ params.multiplicity < 2 ^ 55 ∧
-    (params.multiplicity + 1) * n + 2 < 2 ^ 55 ∧
-    2 * (params.multiplicity * n + interpolationYCap params * yWeight params + 1) +
-      interpolationYCap params * yWeight params < 2 ^ 62 ∧
-    (interpolationYCap params + 2) * (interpolationYCap params + 2) *
-      (params.multiplicity * n + interpolationYCap params * yWeight params +
-        interpolationYCap params * yWeight params + 2) < 2 ^ 64
 
 /-- **Lee–O'Sullivan's interpolation, compiled** (`leeOSullivanPositiveCoreFast`, the decoder's
 contexts): on `n` points, at most `interpCoreBound n m (ℓ + 1) D W`, `D = m·n + ℓ·(k − 1)`. -/
