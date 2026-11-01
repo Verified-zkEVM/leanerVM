@@ -24,7 +24,7 @@ table and `M` the functions entered at one pc (for `pcTableT`: `pcTableT_get_cos
   codes, below `2^D` insertions (`EntryGood`);
 * **`frameAt_cost`**: the frame map's closure on a call of `a` argument and `r` return words, the
   table below `2^D` insertions: at most
-  `D·(17 + (67·(a + r) + 98)·(D + 2)) + 28·(a + r) + R + 11061`: one lookup (`D` levels, a binary
+  `D·(17 + (67·(a + r) + 98)·(D + 2)) + 28·(a + r) + R + 11070`: one lookup (`D` levels, a binary
   search each), two frame reads;
 * **`pcTableT_cost`**: the pc table, built once: at most `17036451`; a lookup in it at most `8339`
   (`pcTableT_get_cost`), at most two functions per pc (`pcTableT_getD_length`);
@@ -92,26 +92,32 @@ theorem argCount_le (j : ℕ) : guestArgCounts.getD j 0 ≤ 22 :=
 theorem retCount_le (j : ℕ) : guestRetCounts.getD j 0 ≤ 10 :=
   toArray_getD_le_of_all guestRetCountsList_le j
 
+theorem getD_getD_lt (A : Array (Array ℕ)) (B : ℕ) (hB : 0 < B)
+    (h : ∀ a ∈ A, ∀ x ∈ a, x < B) (j i : ℕ) : (A.getD j #[]).getD i 0 < B := by
+  by_cases h1 : j < A.size
+  · have e : A.getD j #[] = A[j] := by simp [Array.getD, h1]
+    rw [e]
+    by_cases h2 : i < A[j].size
+    · have e2 : A[j].getD i 0 = A[j][i] := by simp [Array.getD, h2]
+      rw [e2]
+      exact h _ (Array.getElem_mem h1) _ (Array.getElem_mem h2)
+    · have e2 : A[j].getD i 0 = 0 := by simp [Array.getD, h2]
+      rw [e2]
+      exact hB
+  · have e : A.getD j #[] = #[] := by simp [Array.getD, h1]
+    rw [e]
+    simpa using hB
+
 theorem loc_lt (j i : ℕ) : (guestLocs.getD j #[]).getD i 0 < 2 ^ 20 := by
+  refine getD_getD_lt _ _ (by norm_num) (fun a ha x hx ↦ ?_) j i
   have h := guestLocsList_lt
   rw [List.all_eq_true] at h
-  rw [Array.getD_eq_getD_getElem?, Array.getD_eq_getD_getElem?]
-  cases hj : guestLocs[j]? with
-  | none => simp
-  | some a =>
-    simp only [Option.getD_some]
-    have ha : a ∈ guestLocsList.map List.toArray := by
-      have := Array.mem_of_getElem? hj
-      simpa using this
-    obtain ⟨l, hl, rfl⟩ := List.mem_map.1 ha
-    have hl' := h l hl
-    rw [List.all_eq_true] at hl'
-    cases hi : l.toArray[i]? with
-    | none => simp
-    | some x =>
-      simp only [Option.getD_some]
-      have : x ∈ l := by rw [List.getElem?_toArray] at hi; exact List.mem_of_getElem? hi
-      exact of_decide_eq_true (hl' x this)
+  rw [show guestLocs = (guestLocsList.map List.toArray).toArray from rfl, List.mem_toArray,
+    List.mem_map] at ha
+  obtain ⟨l, hl, rfl⟩ := ha
+  have hl' := h l hl
+  rw [List.all_eq_true] at hl'
+  exact of_decide_eq_true (hl' x (by simpa using hx))
 
 /-! ## A state's key -/
 
@@ -333,12 +339,14 @@ theorem isFunctionIndex_cost (hP : Includes P isFunctionIndexC.costDeps) (j : �
   split_ifs <;> omega
 
 include hrd hR in
-/-- A frame's word (`frameWordAtC`): at most `R + 11001`. -/
+/-- A frame's word (`frameWordAtC`): the table of frame cells (`guestLocsTableC`, a literal), a
+read, at most `R + 11010`. -/
 theorem frameWordAt_cost (hP : Includes P frameWordAtC.costDeps) (fp : K) (j : ℕ)
     (hj : j < 2 ^ 64) (v : V) :
     machineCost P frameWordAtC.costIdx [rdVal, encodeValue fp, encodeValue j, encodeValue v] ≤
-      R + 11001 := by
+      R + 11010 := by
   rw [frameWordAtC.costEq P hP rd rdVal hrd]
+  have h0 := guestLocsTableC.costEq P (by includes)
   have h1 := isFunctionIndex_cost P (by includes) j hj
   have h2 := wordWith_cost P rd rdVal hrd R hR (W := 20) (by norm_num) (by norm_num) (by includes)
     fp _ (loc_lt (canonIndex j) v.idx)
@@ -354,14 +362,14 @@ theorem canonIndex_lt64 (j : ℕ) : canonIndex j < 2 ^ 64 := by
 include hrd hR in
 /-- **The frame map's closure** (`frameAtC`, `frameAt table rd`): a call of `|args| + |rets|`
 words, the table good below `2^D ≤ 2^62` insertions: one lookup, two reads, at most
-`D·(17 + (67·(|args| + |rets|) + 98)·(D + 2)) + 28·(|args| + |rets|) + R + 11061`. -/
+`D·(17 + (67·(|args| + |rets|) + 98)·(D + 2)) + 28·(|args| + |rets|) + R + 11070`. -/
 theorem frameAt_cost (hP : Includes P frameAtC.costDeps) (D : ℕ) (hD : D ≤ 62)
     (table : SortedMap CallKey K) (ht : EntryGood D table) (j : ℕ) (hj : j < 2 ^ 64)
     (args rets : List E) (v : V) :
     machineCost P frameAtC.costIdx [encodeValue table, rdVal, encodeValue j, encodeValue args,
         encodeValue rets, encodeValue v] ≤
       D * (17 + (67 * (args.length + rets.length) + 98) * (D + 2)) +
-        28 * (args.length + rets.length) + R + 11061 := by
+        28 * (args.length + rets.length) + R + 11070 := by
   obtain ⟨hg, hQ, hw⟩ := ht
   obtain ⟨hlev, hsz⟩ := smGood_levels_le hg hw
   rw [frameAtC.costEq P hP table rd rdVal hrd]
