@@ -14,7 +14,8 @@ callees' witnesses, each read off the frame the frame map `V` gives the call by 
 `decWitN σ rd Vn cl` assembles it from the restated readers (`xmssSigOfN`, `sphincsSigOfN`,
 `dvWitN`, `vsPiOfN`, `aggHints`), every frame by its function's index, `cl` the
 cursor's length; `decWitN_eq`: at `Vn k = V (decoderFunctionName k)` and `cl = cursorLen` it is
-`decWitV σ rd V vsPiOf`, the deployed decoder's witness.
+`decWitV σ rd V vsPiOf`, the deployed decoder's witness. `ReaderTabs`, `readerTabs`: the tables
+of the readers off arrays, built once.
 -/
 
 namespace LeanVM.Guest.Fast
@@ -38,6 +39,16 @@ theorem decWitN_eq (σ : Val) (rd : Reader) (V : FrameMap) :
   simp only [decWitN, decWitV, xmssSigOfN_eq, sphincsSigOfN_eq, dvWitN_eq, vsPiOfN_eq,
     name_verify_lean_xmss, name_verify_sig_lean_sphincs, name_da_verify, name_verify_sub,
     name_aggregate_claims]
+
+/-- **The readers' tables, as arrays**, built once per decoding and passed to the readers off
+arrays (`xmssSigOfA`, `sphincsSigOfA`, `vsPiOfA`). -/
+structure ReaderTabs where
+  xmss : XmssTabs
+  sphincs : SphincsTabs
+  whir : WhirTabs
+
+/-- **The readers' tables**, built from the literals. -/
+def readerTabs : ReaderTabs := ⟨xmssTabs, sphincsTabs, whirTabs⟩
 
 end
 end LeanVM.Guest.Fast

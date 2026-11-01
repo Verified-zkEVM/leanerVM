@@ -19,6 +19,12 @@ equal.
 * `subOpeningN σ b fold p0 p1`: a sub-tree's opening (`subOpening`), its base, its fold's base and
   its two top cells;
 * `coordOpeningN σ r`: a coordinate's opening (`coordOpening`) at its positions `r`.
+
+**Off arrays** (`Fast/Common.lean`): `sphincsSigOfA T σ` reads the same cells off the tables `T`
+(`SphincsTabs`: the lanes of `g^k`, the forest keys' chain cells, the coordinates' positions, the
+codeword's selectors and tables, the path bases), built once by the caller (`sphincsTabs`); the
+exponents each opening's closures read are computed once and passed (`subOpeningAt`,
+`coordOpeningAt`); `sphincsSigOfA_tabs`: at `sphincsTabs` it is `sphincsSigOfN`.
 -/
 
 namespace LeanVM.Guest.Fast
@@ -120,6 +126,76 @@ theorem sphincsSigOfN_eq (σ : Val) : sphincsSigOfN σ = sphincsSigOf σ := by
     rw [hleaf, sPath_eq, getD_map_range hl]
     rfl
   simp only [sphincsSigOfN, sphincsSigOf, hc, hw, hp, hfb]
+
+/-! ## Off arrays -/
+
+/-- leanSPHINCS's tables, as arrays: the lanes of `g^k` (`gLanes`), the forest keys' chain cells
+(`fkOff`), the coordinates' positions (`sCoordTab`), the codeword's selector cells (`sSel`) and
+chain starts' tables (`sFirst`, `sRest`, `sLast`), the path bases (`sPath`). -/
+structure SphincsTabs where
+  lanes : List ℕ
+  fkOff : Array (Array ℕ)
+  coords : Array SCoord
+  sel : Array ℕ
+  first : Array (Array ℕ)
+  rest : Array (Array ℕ)
+  last : Array (Array ℕ)
+  path : Array ℕ
+
+/-- **leanSPHINCS's tables**, built from the literals. -/
+def sphincsTabs : SphincsTabs :=
+  ⟨gLanes, tabA fkOff, sCoordTab.toArray, sSel.toArray, tabA sFirst, tabA sRest, tabA sLast,
+    sPath.toArray⟩
+
+/-- A sub-tree's opening, the forest key `t` its dispatch takes and its fold's arm `a` given
+(`subOpeningN`). -/
+def subOpeningAt (fk : Array (Array ℕ)) (σ : Val) (b fold p0 p1 t a : ℕ) : Sphincs.SubOpening :=
+  ⟨fun i ↦ sv (σ (.n (b + 12 + offAtA fk t i.val))),
+    fun l ↦ sv (if l.val < 2 then σ (.n (foldPos 35 32 fold a + 16 * l.val))
+      else σ (.n (if a / 4 = 0 then p0 else p1)))⟩
+
+/-- **A sub-tree's opening, off the tables** (`subOpeningN`): its key and arm read once. -/
+def subOpeningA (lanes : List ℕ) (fk : Array (Array ℕ)) (σ : Val) (b fold p0 p1 : ℕ) :
+    Sphincs.SubOpening :=
+  subOpeningAt fk σ b fold p0 p1 (logGTWith lanes (σ (.n (b + 6))) 256)
+    (logGTWith lanes (σ (.n b)) 8)
+
+/-- A coordinate's opening at its positions `r`, its top fold's arm `s` given
+(`coordOpeningN`). -/
+def coordOpeningAt (lanes : List ℕ) (fk : Array (Array ℕ)) (σ : Val) (r : SCoord) (s : ℕ) :
+    Sphincs.CoordOpening :=
+  ⟨fun j ↦ if j.val = 0 then subOpeningA lanes fk σ (r.b + 10) r.f0 r.p00 r.p01
+      else subOpeningA lanes fk σ r.s1 r.f1 r.p10 r.p11,
+    fun l ↦ sv (if l.val < 3 then σ (.n (foldPos 54 51 r.top s + 17 * l.val))
+      else σ (.n (if s / 8 = 0 then r.q0 else r.q1)))⟩
+
+/-- **A coordinate's opening, off the tables** (`coordOpeningN`): its arm read once. -/
+def coordOpeningA (lanes : List ℕ) (fk : Array (Array ℕ)) (σ : Val) (r : SCoord) :
+    Sphincs.CoordOpening :=
+  coordOpeningAt lanes fk σ r (logGTWith lanes (σ (.n r.b)) 16)
+
+/-- **The leanSPHINCS signature `verify_sig_lean_sphincs` checks, off the tables `T`**
+(`sphincsSigOfN`). -/
+def sphincsSigOfA (T : SphincsTabs) (σ : Val) : Sphincs.Signature :=
+  ⟨sv (σ (.n 3)), fun c ↦ coordOpeningA T.lanes T.fkOff σ (T.coords.getD c.val sCoord0),
+    BitVec.ofNat 32 (cellNat (σ (.n 412448))),
+    fun i ↦ sv (σ (.n (cwCellA T.lanes 21 T.sel T.first T.rest T.last σ i.val))),
+    fun l ↦ sv (sibN σ (30 + l.val) (T.path.getD l.val 0))⟩
+
+theorem subOpeningA_tabs (σ : Val) (b fold p0 p1 : ℕ) :
+    subOpeningA gLanes (tabA fkOff) σ b fold p0 p1 = subOpeningN σ b fold p0 p1 := by
+  simp only [subOpeningA, subOpeningAt, subOpeningN, logGTWith_gLanes, offAtA_tabA]
+  rfl
+
+theorem coordOpeningA_tabs (σ : Val) (r : SCoord) :
+    coordOpeningA gLanes (tabA fkOff) σ r = coordOpeningN σ r := by
+  simp only [coordOpeningA, coordOpeningAt, coordOpeningN, logGTWith_gLanes, subOpeningA_tabs]
+  rfl
+
+/-- **Off the tables built, the reader is `sphincsSigOfN`.** -/
+theorem sphincsSigOfA_tabs (σ : Val) : sphincsSigOfA sphincsTabs σ = sphincsSigOfN σ := by
+  simp only [sphincsSigOfA, sphincsSigOfN, sphincsTabs, coordOpeningA_tabs, cwCellA_eq,
+    getD_toArray]
 
 end
 end LeanVM.Guest.Fast

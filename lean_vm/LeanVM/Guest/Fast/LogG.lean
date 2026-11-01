@@ -28,6 +28,12 @@ def idxBelow (w : ℕ) : List ℕ → ℕ → ℕ → ℕ
 def logGT (x : E) (bound : ℕ) : ℕ :=
   if x.limb 1 = 0 ∧ x.limb 2 = 0 then idxBelow (x.limb 0).lane.toNat gLanes 0 bound else 0
 
+/-- **`logGT` off lanes given**: `gLanes`, built once by the caller (`logGTWith_gLanes`). -/
+def logGTWith (lanes : List ℕ) (x : E) (bound : ℕ) : ℕ :=
+  if x.limb 1 = 0 ∧ x.limb 2 = 0 then idxBelow (x.limb 0).lane.toNat lanes 0 bound else 0
+
+theorem logGTWith_gLanes : logGTWith gLanes = logGT := rfl
+
 theorem lane_toNat_inj {a b : K} : a.lane.toNat = b.lane.toNat ↔ a = b := by
   constructor
   · intro h

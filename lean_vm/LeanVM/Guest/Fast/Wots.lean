@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Guest.Fast.LogG
 public import LeanVM.Guest.Fast.Numbers
+public import LeanVM.Guest.Fast.Common
 public import LeanVM.Guest.B1.Sig.CodewordComplete
 
 /-!
@@ -143,5 +144,22 @@ theorem cwStart_eq_cwCell {W : WotsT} {G b : ℕ} {sel : List ℕ} {first rest l
         intro h; rw [h] at hiG; subst hiG; omega
       simpa using this
     rw [hf, ht.last, hr, offAt_offTab (r := 0) (n := 1) (by omega) (by norm_num; exact hk)]
+
+/-- **Chain `i`'s start cell, off arrays** (`cwCell`): the selectors `sel`, the tables `first`,
+`rest`, `last` (`tabA`) and the lanes of `g^k` (`gLanes`), built once by the caller. -/
+def cwCellA (lanes : List ℕ) (G : ℕ) (sel : Array ℕ) (first rest last : Array (Array ℕ))
+    (σ : Val) (i : ℕ) : ℕ :=
+  let s := sel.getD (i / 3) 0
+  if i / 3 < G then
+    s + offAtA (if i / 3 = 0 then first else rest) (i % 3) (logGTWith lanes (σ (.n s)) 64)
+  else s + offAtA last (i % 3) (logGTWith lanes (σ (.n s)) 4)
+
+theorem cwCellA_eq (G : ℕ) (sel : List ℕ) (first rest last : List (List ℕ)) (σ : Val) (i : ℕ) :
+    cwCellA gLanes G sel.toArray (tabA first) (tabA rest) (tabA last) σ i =
+      cwCell G sel first rest last σ i := by
+  unfold cwCellA cwCell
+  simp only [getD_toArray, logGTWith_gLanes]
+  split_ifs <;> simp only [offAtA_tabA]
+
 end
 end LeanVM.Guest.Fast
