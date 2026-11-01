@@ -24,12 +24,9 @@ statement of the repository, leanXMSS's, leanSPHINCS's and LeanDA's included, in
 the fields of `Statement.Theorems` alone, and `LeanVM.corollaries_hold` for the decoder
 `LeanVM.Guest.End.decode`.
 
-DRAFT (Phase 4a): `Statement.Theorems` has the field `extractorEfficient`
-(`Statement/CostMachine.lean`), proved by `LeanVM.Cost.extractorEfficient_of_cost`
-(`Cost/Efficient.lean`: the compiled extractor's program, its size within `extractorSizeBound`) from
-one hypothesis, `LeanVM.Cost.ExtractorPriceWithinBudget`: the compiled extractor's price within
-`extractorBudgetAt`, a placeholder until the bounds of `Cost/Bounds/` are assembled into it.
-`theorems_hold` and `corollaries_hold` take that hypothesis.
+`Statement.Theorems`' field `extractorEfficient` (`Statement/CostMachine.lean`) is
+`LeanVM.Cost.extractorEfficient_holds` (`Cost/Efficient.lean`): the compiled extractor's program,
+its size within `extractorSizeBound`, its price within `extractorBudgetAt` (`Cost/Bounds/Top.lean`).
 
 Each proves a proposition of `Statement/` (`Statement/README.md`), in the random-permutation model
 where an adversary is involved:
@@ -193,12 +190,11 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 #print axioms LeanVM.Guest.Budget.guest_child_complete
 
 /-- **Every end theorem**, `Statement/Theorems.lean`, the guest's witness named by
-`LeanVM.Guest.End.decode`. DRAFT: the compiled extractor's price within the budget is a
-hypothesis until the budget is assembled. -/
-theorem LeanVM.theorems_hold (price : LeanVM.Cost.ExtractorPriceWithinBudget) :
+`LeanVM.Guest.End.decode`. -/
+theorem LeanVM.theorems_hold :
     Statement.Theorems LeanVM.Guest.End.decode where
   knowledgeSoundness := LeanVM.knowledgeSoundness_holds
-  extractorEfficient := LeanVM.Cost.extractorEfficient_of_cost price
+  extractorEfficient := LeanVM.Cost.extractorEfficient_holds
   completeness := LeanVM.completeness_holds
   guestKnowledge := LeanVM.Guest.End.guest_knowledge
   digestBinds := LeanVM.Guest.Binding.digest_binds
@@ -252,10 +248,9 @@ theorem LeanVM.corollaries_of_theorems {decode : LeanVM.Node.Decoder}
 #print axioms LeanVM.corollaries_of_theorems
 
 /-- **Every corollary**, `Statement/Corollaries.lean`, the guest program's witness named by
-`LeanVM.Guest.End.decode`. DRAFT: under `theorems_hold`'s hypothesis. -/
-theorem LeanVM.corollaries_hold (price : LeanVM.Cost.ExtractorPriceWithinBudget) :
-    Statement.Corollaries LeanVM.Guest.End.decode :=
-  LeanVM.corollaries_of_theorems (LeanVM.theorems_hold price)
+`LeanVM.Guest.End.decode`. -/
+theorem LeanVM.corollaries_hold : Statement.Corollaries LeanVM.Guest.End.decode :=
+  LeanVM.corollaries_of_theorems LeanVM.theorems_hold
 
 /-- info: 'LeanVM.corollaries_hold' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

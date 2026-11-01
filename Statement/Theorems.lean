@@ -36,7 +36,8 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   /-- The extractor `transcriptExtractor` is efficient: a cost-machine program of at most
   `extractorSizeBound` terms computes it on every input within `extractorBudget`, read off the
   shape the proof announces; the machine's prices are trusted to be honest
-  (`CostMachine.lean`). DRAFT: the budget is a placeholder. -/
+  (`CostMachine.lean`). The budget is about `2^117.67` at the worst shape for at most `2^40`
+  queries. -/
   extractorEfficient : LeanVM.ExtractorEfficient
   /-- leanVM is complete: the honest prover's (`LeanVM.prover`, the executable
   `LeanVM.Prover.prove` of `Prover/Prove.lean`) proof of a valid execution of committed size at

@@ -9,12 +9,12 @@ public import LeanVM.Cost.Bounds.Decoder.Decode
 word-sized (`DecoderLaneSizes`). Here, at each of the `56` admissible shapes (`15 ≤ μ ≤ 28`,
 `1 ≤ R ≤ 4`), one `decide +kernel` each (a single `decide` over all shapes at once outgrows the
 memory): the lanes are word-sized and the decoder's bound beyond the word's prices is at most the
-one at `(28, 4)` (`decoderWorst ≈ 2^117.67`):
+one at `(28, 4)` (`decoderWorstPrice ≈ 2^117.67`):
 
-* **`decoderShape_ok`**: `DecoderLaneSizes` and `decoderBound μ R 0 0 ≤ decoderWorst` at every
+* **`decoderShape_ok`**: `DecoderLaneSizes` and `decoderBound μ R 0 0 ≤ decoderWorstPrice` at every
   admissible `(μ, R)`;
 * **`decodeStacksDistinctC_cost_worst`**: at every admissible shape, at most
-  `(BW + 10·Lw)·2^26 + decoderWorst`.
+  `(BW + 10·Lw)·2^26 + decoderWorstPrice`.
 -/
 
 namespace LeanVM.Cost.Bounds.Decoder
@@ -23,13 +23,10 @@ open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Extractor LeanVM.Parameters Lean
 
 public section
 
-/-- The decoder's bound at `(28, 4)` beyond the word's prices (`decodeStacksDistinctC_cost_28_4`). -/
-@[expose] def decoderWorst : ℕ := 263761295154139905848615297830647322
-
 /-- What the decoder's bound needs at a shape, and its value at most the worst. -/
 @[expose] def DecoderShapeOk (μ R : ℕ) : Prop :=
   DecoderLaneSizes (μ - Whir.initialFold) R (johnsonThreshold μ R) ∧
-    decoderBound μ R 0 0 ≤ decoderWorst
+    decoderBound μ R 0 0 ≤ decoderWorstPrice
 
 instance (μ R : ℕ) : Decidable (DecoderShapeOk μ R) := by
   unfold DecoderShapeOk; infer_instance
@@ -155,13 +152,13 @@ theorem decoderShape_ok {μ R : ℕ} (h : Whir.Admissible μ R) : DecoderShapeOk
   · exact decoderShapeOk_28_3
   · exact decoderShapeOk_28_4
 
-/-- **The decoder at every admissible shape**: at most `(BW + 10·Lw)·2^26 + decoderWorst`. -/
+/-- **The decoder at every admissible shape**: at most `(BW + 10·Lw)·2^26 + decoderWorstPrice`. -/
 theorem decodeStacksDistinctC_cost_worst (P : Program) (hP : Includes P decodeStacksDistinctC.costDeps)
     {μ R : ℕ} (hadm : Whir.Admissible μ R)
     (W : ℕ → List K) (WVal : Val) (hW : ∀ a, RunsApp P WVal [enc a] (enc (W a))) {BW Lw : ℕ}
     (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [enc v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
     machineCost P decodeStacksDistinctC.costIdx [enc μ, enc R, WVal] ≤
-      (BW + 10 * Lw) * 2 ^ 26 + decoderWorst := by
+      (BW + 10 * Lw) * 2 ^ 26 + decoderWorstPrice := by
   obtain ⟨hsz, hle⟩ := decoderShape_ok hadm
   have h := decodeStacksDistinctC_cost P hP μ R hadm hsz W WVal hW hBW hLw
   rw [decoderBound_eq] at h

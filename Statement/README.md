@@ -139,8 +139,10 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
     **`LeanVM.ExtractorEfficient`**: a program of at most `extractorSizeBound` terms computes
     `transcriptExtractor` on every input within `extractorBudget`, read off the shape the proof
     announces. That the machine's prices are honest is trusted. The size bound is `2^15`, twice
-    the compiled extractor's `10491` rounded up to a power of two. DRAFT: the budget
-    (`extractorBudgetAt`) is a placeholder.
+    the compiled extractor's `10491` rounded up to a power of two; the budget (`extractorBudgetAt`,
+    `extractorPrice`) is a closed formula in the announced shape and the number of queries, about
+    `2^117.67` at the worst shape for at most `2^40` queries (the list decoder) and `2^156.69` for
+    `2^128` (the transcript's index).
 15. [`Theorems.lean`](Theorems.lean): every end theorem, as the fields of `Statement.Theorems`.
 16. [`Corollaries.lean`](Corollaries.lean), optional for review: statements that follow from
     `Theorems` alone, in their composed form (`lean_vm` proves `Theorems decode → Corollaries
@@ -202,7 +204,7 @@ theorem, `LeanVM.theorems_hold`, whose axioms the build pins to Lean's three. St
 | Statement | Proved by | In |
 | --- | --- | --- |
 | `LeanVM.KnowledgeSoundness` | `LeanVM.knowledgeSoundness_holds` | [`lean_vm/LeanVM/Protocol/LeanVMRpm.lean`](../lean_vm/LeanVM/Protocol/LeanVMRpm.lean) |
-| `LeanVM.ExtractorEfficient` | `LeanVM.Cost.extractorEfficient_of_cost`, DRAFT: from `ExtractorPriceWithinBudget`, a hypothesis of `LeanVM.theorems_hold` until the budget is assembled | [`lean_vm/LeanVM/Cost/Efficient.lean`](../lean_vm/LeanVM/Cost/Efficient.lean) |
+| `LeanVM.ExtractorEfficient` | `LeanVM.Cost.extractorEfficient_holds` | [`lean_vm/LeanVM/Cost/Efficient.lean`](../lean_vm/LeanVM/Cost/Efficient.lean) |
 | `LeanVM.Completeness` | `LeanVM.completeness_holds` | [`lean_vm/LeanVM/Prover/End.lean`](../lean_vm/LeanVM/Prover/End.lean) |
 | `LeanVM.Node.GuestKnowledge guest decode` | `LeanVM.Guest.End.guest_knowledge` | [`lean_vm/LeanVM/Guest/EndFinal.lean`](../lean_vm/LeanVM/Guest/EndFinal.lean) |
 | `LeanVM.Node.DigestBinds` | `LeanVM.Guest.Binding.digest_binds` | [`lean_vm/LeanVM/Guest/Binding.lean`](../lean_vm/LeanVM/Guest/Binding.lean) |

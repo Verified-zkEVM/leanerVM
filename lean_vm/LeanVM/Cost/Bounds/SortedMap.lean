@@ -18,7 +18,7 @@ all. The prices are bounded by a potential (Bentley–Saxe, Tarjan's banker's me
   `price + b·Φ(after) ≤ b·Φ(before) + b·w·(D − log₂ w) + a·(levels + 1)`, `w` the new level's
   weight: an insertion (`w = 1`) pays `b·D + a·(levels + 1)` amortized;
 * the naturals a map compares and adds (positions, weights) up to `2^(D+1)` for `N < 2^D`
-  insertions: their `limbs` at most `wl (D + 1) = (D + 1)/64 + 1` (`limbs_le_wl`), the tactic
+  insertions: their `limbs` at most `limbsBelowTwoPow (D + 1) = (D + 1)/64 + 1` (`limbs_le_wl`), the tactic
   `limbs_bound hW` adding a bound for every `limbs t` of the goal;
 * **`listFoldl_amortized`**: a fold whose step pays at most `A` amortized (its price plus the
   potential after, at most the potential before plus `A`) pays `(A + 9)·n + 3` from a start of
@@ -36,14 +36,11 @@ public section
 
 /-! ## The limbs of large naturals -/
 
-/-- The limbs of a natural below `2^E`, at most. -/
-@[expose] def wl (E : ℕ) : ℕ := E / 64 + 1
-
-theorem one_le_wl (E : ℕ) : 1 ≤ wl E := by unfold wl; omega
+theorem one_le_wl (E : ℕ) : 1 ≤ limbsBelowTwoPow E := by unfold limbsBelowTwoPow; omega
 
 /-- **A natural at most `2^E` has at most `E/64 + 1` limbs.** -/
-theorem limbs_le_wl {t E : ℕ} (h : t ≤ 2 ^ E) : limbs t ≤ wl E := by
-  unfold limbs wl
+theorem limbs_le_wl {t E : ℕ} (h : t ≤ 2 ^ E) : limbs t ≤ limbsBelowTwoPow E := by
+  unfold limbs limbsBelowTwoPow
   rcases Nat.eq_zero_or_pos t with rfl | ht
   · simp
   · have hlt : t < 2 ^ (E + 1) := by rw [pow_succ]; omega
@@ -51,8 +48,8 @@ theorem limbs_le_wl {t E : ℕ} (h : t ≤ 2 ^ E) : limbs t ≤ wl E := by
     have : Nat.log2 t / 64 ≤ E / 64 := Nat.div_le_div_right (by omega)
     omega
 
-/-- The bound `wl (D + 1)` for the naturals up to twice `2^D`. -/
-theorem limbs_le_wl_two {D : ℕ} : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ wl (D + 1) :=
+/-- The bound `limbsBelowTwoPow (D + 1)` for the naturals up to twice `2^D`. -/
+theorem limbs_le_wl_two {D : ℕ} : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ limbsBelowTwoPow (D + 1) :=
   fun _ h ↦ limbs_le_wl (by rw [pow_succ]; omega)
 
 section Meta

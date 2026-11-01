@@ -327,12 +327,6 @@ theorem hitKey_cost (hP : Includes P hitKeyC.costDeps) (p : List UInt8 × Protoc
 theorem preKey_hitKey (p : List UInt8 × Protocol.Digest) (hp : p.1.length < 2 ^ 64) :
     PreKey (hitKey p) := ⟨by simp [hitKey], hp⟩
 
-/-- A preimage-index step's amortized price: a key, a lookup (`D` binary searches of `D + 2`
-probes, `11·W` of each the limbs of positions), an insertion (`154·D` merged, `40 + 2·W` per
-level). -/
-@[expose] def preStepBound (L D W : ℕ) : ℕ :=
-  25 * L + 192 * (D * D) + 595 * D + 152 + W * (11 * (D * (D + 2)) + 2 * (D + 1))
-
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- **One step of the preimage index, amortized**: a pair of at most `L` bytes into a map below
 `2^D` insertions costs at most `25·L + 192·D² + 595·D + 152` plus the drop of `154` times the
@@ -343,7 +337,7 @@ theorem preimageStep_amortized (hP : Includes P preimageIndexC.lam0.costDeps) (D
     PreInv D (m.insert (hitKey p) ((m.getD (hitKey p) .none).merge (.one p.1))) r ∧
       machineCost P preimageIndexC.lam0.costIdx [enc m, enc p] +
           154 * potential D (m.insert (hitKey p) ((m.getD (hitKey p) .none).merge (.one p.1))).levels ≤
-        154 * potential D m.levels + preStepBound L D W := by
+        154 * potential D m.levels + preimageStepPrice L D W := by
   obtain ⟨hg, hQ, hw⟩ := hm
   have hk := preKey_hitKey p (by omega)
   have hN : smWeightSum m < 2 ^ D := by omega
@@ -371,12 +365,12 @@ theorem preimageStep_amortized (hP : Includes P preimageIndexC.lam0.costDeps) (D
     have e2 : (40 + 2 * W) * (D + 1) = 40 * D + 40 + W * (2 * (D + 1)) := by ring
     have e3 : W * (11 * (D * (D + 2)) + 2 * (D + 1)) =
         W * (11 * (D * (D + 2))) + W * (2 * (D + 1)) := by ring
-    unfold preStepBound
+    unfold preimageStepPrice
     generalize m.get? (hitKey p) = o
     cases o <;> dsimp only <;> omega
 
 /-- **The preimage index** (`preimageIndex pairs`, compiled as `preimageIndexC`): at most
-`n·(preStepBound L D W + 9) + 9` for `n ≤ 2^D` pairs of at most `L` bytes, `W` a bound of the limbs
+`n·(preimageStepPrice L D W + 9) + 9` for `n ≤ 2^D` pairs of at most `L` bytes, `W` a bound of the limbs
 of the positions and weights (up to `2·2^D`): per
 pair a key, a lookup (`D` binary searches of `≤ D + 2` probes), and an amortized insertion
 (`154·D` merged entries). -/
@@ -384,11 +378,11 @@ theorem preimageIndex_cost (hP : Includes P preimageIndexC.costDeps) (D L W : �
     (hW : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ W) (hL : L < 2 ^ 64) (pairs : List (List UInt8 × Protocol.Digest)) (hn : pairs.length ≤ 2 ^ D)
     (hp : ∀ p ∈ pairs, p.1.length ≤ L) :
     machineCost P preimageIndexC.costIdx [enc pairs] ≤
-      pairs.length * (preStepBound L D W + 9) + 9 := by
+      pairs.length * (preimageStepPrice L D W + 9) + 9 := by
   rw [preimageIndexC.costEq P hP]
   have := listFoldl_amortized P (by includes) _ (.fn preimageIndexC.lam0.costIdx [])
     (fun a b ↦ RunsApp.of_spec (preimageIndexC.lam0.costSpec P (by includes) a b))
-    (preStepBound L D W) (fun m ↦ 154 * potential D m.levels) (PreInv D)
+    (preimageStepPrice L D W) (fun m ↦ 154 * potential D m.levels) (PreInv D)
     pairs SortedMap.empty ⟨smGood_empty, fun _ h ↦ by simp [SortedMap.empty] at h,
       by simp [smWeightSum_empty]; omega⟩
     (fun acc r hacc p hpm ↦ by
@@ -571,12 +565,6 @@ theorem getBytes_cost (hP : Includes P getBytesC.costDeps)
 @[expose] def BytesInv (L D : ℕ) (m : SortedMap (List UInt8) Protocol.Digest) (r : ℕ) : Prop :=
   smGood m ∧ KeysIn (BytesKey L) m.levels ∧ smWeightSum m + r ≤ 2 ^ D
 
-/-- The first answers' amortized price per pair, factored: a lookup (`D` binary searches of
-`D + 2` probes of `60 + 23·L + 11·W`), an insertion (`(23·L + 31)·D` merged and `40 + 2·W` per
-level), `85`. -/
-@[expose] def firstAnswersStep (L D W : ℕ) : ℕ :=
-  D * (17 + (60 + 23 * L + 11 * W) * (D + 2)) + (23 * L + 31) * D + (40 + 2 * W) * D + 85 + 2 * W
-
 /-- **One step of the first answers, amortized**: a pair whose key has at most `L` bytes. -/
 theorem firstAnswersStep_amortized (hP : Includes P firstAnswersC.lam0.costDeps) (L D W : ℕ)
     (hW : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ W) (m : SortedMap (List UInt8) Protocol.Digest) (r : ℕ) (hm : BytesInv L D m (r + 1))
@@ -584,7 +572,7 @@ theorem firstAnswersStep_amortized (hP : Includes P firstAnswersC.lam0.costDeps)
     BytesInv L D (insertIfNew m p.1 p.2) r ∧
       machineCost P firstAnswersC.lam0.costIdx [enc m, enc p] +
           (23 * L + 31) * potential D (insertIfNew m p.1 p.2).levels ≤
-        (23 * L + 31) * potential D m.levels + firstAnswersStep L D W := by
+        (23 * L + 31) * potential D m.levels + firstAnswersStepPrice L D W := by
   obtain ⟨hg, hQ, hw⟩ := hm
   have hN : smWeightSum m < 2 ^ D := by omega
   obtain ⟨hlev, hsz⟩ := smGood_levels_le hg hN
@@ -598,7 +586,7 @@ theorem firstAnswersStep_amortized (hP : Includes P firstAnswersC.lam0.costDeps)
         (show 60 + 23 * p.1.length + 11 * W ≤ 60 + 23 * L + 11 * W by omega)
       omega)
   rw [firstAnswersC.lam0.costEq P hP, insertIfNewC.costEq P (by includes)]
-  unfold firstAnswersStep
+  unfold firstAnswersStepPrice
   by_cases hc : m.contains p.1 = true
   · simp only [insertIfNew, hc, ↓reduceIte]
     refine ⟨⟨hg, hQ, by omega⟩, ?_⟩
@@ -626,11 +614,11 @@ theorem firstAnswers_cost (hP : Includes P firstAnswersC.costDeps) (L D W : ℕ)
     (pairs : List (List UInt8 × Protocol.Digest)) (hn : pairs.length ≤ 2 ^ D)
     (hp : ∀ p ∈ pairs, p.1.length ≤ L) :
     machineCost P firstAnswersC.costIdx [enc pairs] ≤
-      pairs.length * (firstAnswersStep L D W + 9) + 9 := by
+      pairs.length * (firstAnswersStepPrice L D W + 9) + 9 := by
   rw [firstAnswersC.costEq P hP]
   have := listFoldl_amortized P (by includes) _ (.fn firstAnswersC.lam0.costIdx [])
     (fun a b ↦ RunsApp.of_spec (firstAnswersC.lam0.costSpec P (by includes) a b))
-    (firstAnswersStep L D W) (fun m ↦ (23 * L + 31) * potential D m.levels) (BytesInv L D)
+    (firstAnswersStepPrice L D W) (fun m ↦ (23 * L + 31) * potential D m.levels) (BytesInv L D)
     pairs SortedMap.empty ⟨smGood_empty, fun _ h ↦ by simp [SortedMap.empty] at h,
       by simp [smWeightSum_empty]; omega⟩
     (fun acc r hacc p hpm ↦ by

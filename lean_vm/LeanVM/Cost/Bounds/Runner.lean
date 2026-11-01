@@ -19,8 +19,8 @@ tables of at most `2^32` rows (the layout's checks in `buildLayoutLite`), and th
   `5228·2^32 + 17950 ≈ 2^44.35`;
 * `boundaryOfStack_cost` (`1500`), `memoryVec_cost` (`44·2^κ + 208`), **`haltLoopVec_cost`**
   (`(S + 45)·n + 20` for fuel `n`, `S` a step's price);
-* **`runWithTables_cost`**: one stack, `(stepPrice κ ℓ + 45)·stepCapLite + 44·2^κ + 1796`, with
-  `stepPrice κ ℓ = 411697 + 42ℓ + 1092κ` (`stepVec_cost`, `Bounds/Step.lean`); at the worst shape
+* **`runWithTables_cost`**: one stack, `(runnerStepPrice κ ℓ + 45)·stepCapLite + 44·2^κ + 1796`, with
+  `runnerStepPrice κ ℓ = 411697 + 42ℓ + 1092κ` (`stepVec_cost`, `Bounds/Step.lean`); at the worst shape
   **`runWithTables_cost_worst`**: `448030·2^35 + 44·2^32 + 1796 ≈ 2^53.77`;
 * **`runner_cost`**: the tables and at most `1 + 2^18` stacks (the fast path's at most one,
   `FastInv`; the decoder's at most `2^18`, `decodeStacksDistinct_length_le_johnson`): at most
@@ -535,11 +535,8 @@ theorem candidateExecutionVec_cost (hP : Includes P candidateExecutionVec.c380.c
     (haltLoopVec memT codeT prog (memoryVec layout q) fin cap 0 Registers.initial)
   split_ifs <;> omega
 
-/-- A step's price on the runner's tables (`stepVec_cost` at `|memT| = 2^κ`, `|codeT| = 2^ℓ`). -/
-@[expose] def stepPrice (κ ℓ : ℕ) : ℕ := 411697 + 42 * ℓ + 1092 * κ
-
 /-- **One stack, from the runner's tables** (`runWithTablesC`): at most
-`(stepPrice κ ℓ + 45)·stepCapLite + 44·2^κ + 1796`. -/
+`(runnerStepPrice κ ℓ + 45)·stepCapLite + 44·2^κ + 1796`. -/
 theorem runWithTables_cost (hP : Includes P runWithTablesC.costDeps) (prog : Semantics.Program)
     (input : PublicInput) (layout : LayoutLite) (hm : layout.logMemory ≤ 32)
     (hb : layout.logBytecode ≤ 32) (hh : ∀ h ∈ layout.tableLogHeights, h ≤ 32)
@@ -547,7 +544,7 @@ theorem runWithTables_cost (hP : Includes P runWithTablesC.costDeps) (prog : Sem
     (q : Vector K (2 ^ layout.stackLog)) :
     machineCost P runWithTablesC.costIdx
         [enc (runnerTables prog layout), enc prog, enc input, enc layout, enc q] ≤
-      (stepPrice layout.logMemory prog.logSize + 45) * stepCapLite layout +
+      (runnerStepPrice layout.logMemory prog.logSize + 45) * stepCapLite layout +
         44 * 2 ^ layout.logMemory + 1796 := by
   have hls : prog.logSize ≤ 32 := prog.logSize_le
   have hcap := stepCapLite_le layout hm hb hh hl
@@ -557,13 +554,13 @@ theorem runWithTables_cost (hP : Includes P runWithTablesC.costDeps) (prog : Sem
   dsimp only
   have := candidateExecutionVec_cost P (by includes) (powTable layout.logMemory) (powTable prog.logSize)
     prog input layout (by omega) hidx (Registers.final prog) (stepCapLite layout)
-    (lt_of_le_of_lt hcap (by norm_num)) q (stepPrice layout.logMemory prog.logSize)
+    (lt_of_le_of_lt hcap (by norm_num)) q (runnerStepPrice layout.logMemory prog.logSize)
     (fun r ↦ by
       have := stepVec_cost P (by includes) (powTable layout.logMemory) (powTable prog.logSize)
         (wordTable_powTable (by omega)) (wordTable_powTable (by omega)) prog (by omega)
         (memoryVec layout q) r
       rw [powTable_size, powTable_size, Nat.log2_two_pow, Nat.log2_two_pow] at this
-      unfold stepPrice
+      unfold runnerStepPrice
       omega)
   omega
 
@@ -580,7 +577,7 @@ theorem runWithTables_cost_worst (hP : Includes P runWithTablesC.costDeps) (prog
   have hls : prog.logSize ≤ 32 := prog.logSize_le
   have h := runWithTables_cost P hP prog input layout hm hb hh hl hidx q
   have hcap := stepCapLite_le layout hm hb hh hl
-  have hS : stepPrice layout.logMemory prog.logSize + 45 ≤ 448030 := by unfold stepPrice; omega
+  have hS : runnerStepPrice layout.logMemory prog.logSize + 45 ≤ 448030 := by unfold runnerStepPrice; omega
   have h2 : 2 ^ layout.logMemory ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hm
   have := Nat.mul_le_mul hS hcap
   omega
