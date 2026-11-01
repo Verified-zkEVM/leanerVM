@@ -124,8 +124,8 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
     on words, natural numbers and arrays, each step priced by the words it writes and its
     operations by their algorithms: `eval`, `run`, `outputWithin`, a program's `size`), the
     encoding of the extractor's input and output (`encode`, `decodeExecution`, a linear parse), the
-    shape a proof announces (`afterRoot`: the verifier's first two steps), the budget
-    (`extractorBudget`) and **`LeanVM.extractorOf P`**: the extractor a program `P` computes, run
+    budget (`extractorBudget`, read off the shape a proof announces: `announced`,
+    `LeanVmVerifier.lean`) and **`LeanVM.extractorOf P`**: the extractor a program `P` computes, run
     within the budget, its output parsed; `Statement.Theorems` takes `P` with its size at most
     `extractorSizeBound`, and which program it is a reader need not know (`lean_vm` names its
     knowledge extractor, compiled). That the machine's prices are honest is trusted. The size bound is `2^15`, twice

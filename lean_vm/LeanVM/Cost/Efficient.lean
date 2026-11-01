@@ -17,8 +17,9 @@ it destructures the input, calls function `j` on its four fields and unwraps the
 the call (`runsBody_entry`).
 
 * **`extractorTop_output`**: in a program whose function `0` is `entryBody j`, if function `j`
-  computes `extractorTop` at a price `cost` that is within `extractorBudgetAt` at the announced
-  shape whenever the extraction succeeds, the decoded output within `extractorBudget` is
+  computes `extractorTop` at a price `cost` that is within `extractorBudgetAt` at the shape
+  `afterRoot` reads whenever the extraction succeeds, the decoded output within `extractorBudget`
+  (at the shape the stream announces, the same: `announced_of_afterRoot`) is
   `transcriptExtractor`'s, on every input; **`extractorOf_eq_of_spec`**: `extractorOf P =
   transcriptExtractor`;
 * `extractorProgram_size_le`: `extractorProgram`'s size is within `extractorSizeBound`
@@ -137,7 +138,7 @@ theorem extractorTop_output (P : Program) (j : ℕ) (hentry : P[0]? = some (entr
       obtain ⟨⟨layout, R⟩, st⟩ := r
       have hb : extractorBudget prog T proof =
           extractorBudgetAt prog layout R (permutationQueries T).length := by
-        simp only [extractorBudget, ha]
+        simp only [extractorBudget, announced_of_afterRoot ha]
       have hc := hcost prog input T proof layout R st t ha ht
       have hx : encode prog input T proof =
           .ctor 0 [enc prog, enc input, enc (permutationQueries T), enc proof] := rfl

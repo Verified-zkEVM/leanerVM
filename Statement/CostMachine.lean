@@ -48,8 +48,8 @@ parse of an execution, the inverse of its encoding: no search, no check, no run.
 
 **The extractor a program computes** (`LeanVM.extractorOf P`): the program `P` run on the encoded
 statement, transcript and proof within `extractorBudget`, the budget read off the shape the proof
-announces (`afterRoot`: the verifier's first two steps, which read the announced sizes and the
-stack's root), its output parsed as an execution. A run that fails or exceeds its budget extracts
+announces (`announced`: the layout and the rate exponent the verifier's first step reads), its
+output parsed as an execution. A run that fails or exceeds its budget extracts
 nothing, which counts as a break in `KnowledgeSoundness`. `Statement.Theorems` takes the program
 as a parameter, with its size at most `extractorSizeBound`; `lean_vm` proves it for its knowledge
 extractor compiled. What excludes a vacuous statement: `P` is a program (no classical choice),
@@ -492,36 +492,12 @@ end
 
 end LeanVM.Cost
 
-namespace LeanVM.Extraction
-
-open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-
-@[expose] public section
-
-/-! ## The announced shape -/
-
-/-- `verify_execution`'s steps 1 and 2 (`verifier.py:1467-1478`): read the announced sizes, then
-the stack's root; the layout and the WHIR rate exponent. -/
-def announceSizesAndRoot (bytecode : List K) : Prog (Layout × ℕ) := do
-  let (layout, logInverseRate) ← readSizes bytecode
-  commitStack layout.stackLog logInverseRate
-  return (layout, logInverseRate)
-
-/-- The verifier's state after its steps 1 and 2 on the proof `π`: the announced layout and rate
-exponent, and the state, whose first root is the stack's; `none` if the steps reject. -/
-def afterRoot (bytecode : List K) (π : Proof) : Option ((Layout × ℕ) × ProgState) :=
-  runPure (announceSizesAndRoot bytecode) ⟨⟨default, []⟩, π.stream, π.openings, []⟩
-
-end
-
-end LeanVM.Extraction
-
 /-! ## The extractor a program computes -/
 
 namespace LeanVM
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Extraction Common
+open Common
 
 @[expose] public section
 
@@ -537,11 +513,12 @@ def extractorBudgetAt (prog : Semantics.Program) (layout : Layout) (logInverseRa
     ℕ :=
   Cost.extractorPrice layout.stackLog logInverseRate layout.logMemory prog.logSize queries + 9
 
-/-- **The extractor's budget**, read off the shape the proof announces (`afterRoot`); `0` when
-it announces none (the run is then out of budget: nothing is extracted). -/
+/-- **The extractor's budget**, read off the shape the proof's stream announces (`announced`,
+`LeanVmVerifier.lean`: the layout and the rate exponent); `0` when it announces none (the run is
+then out of budget: nothing is extracted). -/
 def extractorBudget (prog : Semantics.Program) (T : OracleQueryLog) (proof : Proof) : ℕ :=
-  match afterRoot (bytecodeWords prog) proof with
-  | some ((layout, logInverseRate), _) =>
+  match announced (bytecodeWords prog) proof.stream with
+  | some (layout, logInverseRate) =>
     extractorBudgetAt prog layout logInverseRate (permutationQueries T).length
   | none => 0
 

@@ -5,7 +5,7 @@ public import LeanVM.Protocol.Extraction.Extractor
 /-!
 # The stack's root, without the verifier's free monad
 
-The extractor starts from `afterRoot` (`Statement/CostMachine.lean`): the verifier's steps 1 and 2,
+The extractor starts from `afterRoot` (`Extraction/Extractor.lean`): the verifier's steps 1 and 2,
 `announceSizesAndRoot`, a `Prog` run by `runPure` (every permutation answered by `default`).
 `Prog`'s constructors hold continuations (`read : (E → Prog α) → Prog α`, …), which the cost
 compiler does not take. Here the same steps are plain state-passing functions in `Option`:
@@ -14,7 +14,10 @@ compiler does not take. Here the same steps are plain state-passing functions in
   absorb `n` scalars (`runPure_readScalars`); `commitPure`: read a root (`runPure_readCommitment`);
 * `readSizesPure`, `commitStackPure`: `readSizes` and `commitStack` (`runPure_readSizes`,
   `runPure_commitStack`);
-* **`afterRootDirect_eq`**: `afterRootDirect` is `afterRoot`.
+* **`afterRootDirect_eq`**: `afterRootDirect` is `afterRoot`;
+* **`announced_of_afterRoot`**: the layout and the rate `afterRoot` returns are the ones the stream
+  announces (`announced`, which the statement's budget reads): `readSizes` reads only the sponge
+  and the stream (`readPure_carry`, `readSizesPure_carry`).
 
 The lighter layout: the extractor reads of the layout only `logMemory`, `logBytecode`,
 `placements`, `stackLog` and `tableLogHeights`. `buildLayoutLite` computes only these (no bus
@@ -243,6 +246,62 @@ theorem afterRootDirect_eq (bytecode : List K) (π : Proof) :
 theorem afterRootDirect_eq_afterRoot : afterRootDirect = afterRoot := by
   funext bytecode π
   exact afterRootDirect_eq bytecode π
+
+/-! ## The announced shape -/
+
+/-- `readPure` reads only the sponge and the stream: the openings and the roots are carried. -/
+theorem readPure_carry (n : ℕ) (sp : Compile.Sponge) (st : List E) (os os' : List Opening)
+    (rs rs' : List (Digest × ℕ × ℕ)) :
+    readPure n ⟨sp, st, os', rs'⟩ =
+      (readPure n ⟨sp, st, os, rs⟩).map fun r ↦ (r.1, ⟨r.2.sponge, r.2.stream, os', rs'⟩) := by
+  induction n generalizing sp st with
+  | zero => rfl
+  | succ n ih =>
+    cases st with
+    | nil => rfl
+    | cons x xs =>
+      show (readPure n ⟨absorbPure sp x dsObserve, xs, os', rs'⟩).map _ =
+        ((readPure n ⟨absorbPure sp x dsObserve, xs, os, rs⟩).map _).map _
+      rw [ih]
+      cases readPure n ⟨absorbPure sp x dsObserve, xs, os, rs⟩ <;> rfl
+
+/-- `readSizesPure` reads only the sponge and the stream. -/
+theorem readSizesPure_carry (bytecode : List K) (sp : Compile.Sponge) (st : List E)
+    (os os' : List Opening) (rs rs' : List (Digest × ℕ × ℕ)) :
+    readSizesPure bytecode ⟨sp, st, os', rs'⟩ =
+      (readSizesPure bytecode ⟨sp, st, os, rs⟩).map
+        fun r ↦ (r.1, ⟨r.2.sponge, r.2.stream, os', rs'⟩) := by
+  unfold readSizesPure
+  rw [readPure_carry _ sp st os os' rs rs']
+  cases readPure (2 + tables.length) ⟨sp, st, os, rs⟩ with
+  | none => rfl
+  | some r =>
+    dsimp only [Option.map_some, Option.bind_some]
+    split_ifs
+    · cases buildLayout bytecode (kToNat ((r.1.headD 0).limb 0))
+          (((r.1.drop 1).take tables.length).map fun value ↦ kToNat (value.limb 0)) with
+      | none => rfl
+      | some layout =>
+        dsimp only [Option.bind_some]
+        split_ifs <;> rfl
+    all_goals rfl
+
+/-- **The shape `afterRoot` reads is the one the stream announces** (`announced`, which the
+statement's budget reads). -/
+theorem announced_of_afterRoot {bytecode : List K} {π : Proof} {layout : Layout} {R : ℕ}
+    {st : ProgState} (h : afterRoot bytecode π = some ((layout, R), st)) :
+    announced bytecode π.stream = some (layout, R) := by
+  rw [← afterRootDirect_eq] at h
+  unfold afterRootDirect at h
+  obtain ⟨r, hr, hc⟩ := Option.bind_eq_some_iff.1 h
+  obtain ⟨t, -, ht⟩ := Option.map_eq_some_iff.1 hc
+  have h1 : r.1 = (layout, R) := congrArg Prod.fst ht
+  unfold initialState at hr
+  rw [readSizesPure_carry bytecode ⟨default, []⟩ π.stream [] π.openings [] []] at hr
+  obtain ⟨r', hr', rfl⟩ := Option.map_eq_some_iff.1 hr
+  unfold announced
+  rw [runPure_readSizes, hr']
+  exact congrArg some h1
 
 /-! ## The lighter layout -/
 

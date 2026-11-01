@@ -1,6 +1,6 @@
 module
 
-public import Statement.CostMachine
+public import Statement.LeanVm
 public import CompPoly.Univariate.Roots.Shoup.Basic
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Mathlib.Algebra.CharP.Lemmas
@@ -32,8 +32,7 @@ polynomial in the announced committed size `2^μ` and the number `N` of evaluati
 linear in the bytecode; it is infeasible at deployed sizes except on a word without errors
 (`fastStacks`). The cost table below is read off its loops, not proved.
 
-1. **The announced sizes and the stack's root** (`afterRoot`, `Statement/CostMachine.lean`, which
-   the budget reads too): read off the proof as the
+1. **The announced sizes and the stack's root** (`afterRoot`): read off the proof as the
    verifier's steps 1 and 2 read them (`verifier.py:1467-1478`), with every hash and permutation
    answered by a constant (`runPure`): what they read does not depend on the sponge.
 2. **The committed word** (`committedLeaves`, `leafAt`): the Merkle tree under the root inverted
@@ -108,10 +107,10 @@ returns, whichever interpolation computes it.
 **Where it was.** This file and the transcript's extractor were the trusted statement's
 (`Statement/Extractor.lean`, `Statement/LeanVm.lean`) until the end statement took the extractor
 as a cost-machine program within a size bound and a budget (`LeanVM.extractorOf`,
-`Statement/CostMachine.lean`): moved here verbatim, but for the announced sizes and root
-(`afterRoot`, `Statement/CostMachine.lean`) and the address indices and the public boundary
-(`powIndex`, `gLogIn`, `stepIn`, `boundaryOK`, `Statement/Prover/Witness.lean`), which the
-statement keeps for the budget and the honest prover.
+`Statement/CostMachine.lean`): moved here verbatim, but for the address indices and the public
+boundary (`powIndex`, `gLogIn`, `stepIn`, `boundaryOK`, `Statement/Prover/Witness.lean`), which
+the statement keeps for the honest prover. The budget reads the announced shape off the stream
+(`announced`, `Statement/LeanVmVerifier.lean`), the shape `afterRoot` returns.
 
 The Annexes are cited at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
 
@@ -147,6 +146,22 @@ namespace LeanVM.Extraction
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier LeanVM.Parameters.Whir LeanVM.Protocol.KeccakHash
 open CompPoly CompPoly.GuruswamiSudan CompPoly.CPolynomial.Roots.FiniteField
+
+/-! ### 1. The announced sizes and the stack's root -/
+
+/-- `verify_execution`'s steps 1 and 2 (`verifier.py:1467-1478`): read the announced sizes, then
+the stack's root; the layout and the WHIR rate exponent. -/
+def announceSizesAndRoot (bytecode : List K) : Prog (Layout × ℕ) := do
+  let (layout, logInverseRate) ← readSizes bytecode
+  commitStack layout.stackLog logInverseRate
+  return (layout, logInverseRate)
+
+/-- The verifier's state after its steps 1 and 2 on the proof `π`: the announced layout and rate
+exponent, and the state, whose first root is the stack's; `none` if the steps reject. The layout
+and the rate are the ones the stream announces (`announced`, which the statement's budget reads):
+`LeanVM.Extraction.Fast.announced_of_afterRoot`. -/
+def afterRoot (bytecode : List K) (π : Proof) : Option ((Layout × ℕ) × ProgState) :=
+  runPure (announceSizesAndRoot bytecode) ⟨⟨default, []⟩, π.stream, π.openings, []⟩
 
 /-! ### 2. The committed word -/
 
