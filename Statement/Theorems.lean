@@ -182,7 +182,7 @@ step, `2^21.14` at `κ = 32` and `2^60` steps; `κ` and `ℓ` enter the step's p
 `runnerStepPrice`). At the guest's `ℓ = 19` it is `2^42.60` at `κ = 20` and `2^20` steps, `2^45.18`
 at `κ = 24` and `2^24`, `2^49.02` at `κ = 28` and `2^28`, `2^51.03` at `κ = 32` and `2^30`,
 `2^72.10` at `κ = 32` and `2^51`, and `2^81.14` at `κ = 32` and `2^60`: the terms besides the steps'
-(the address tables included) (`2^42.04` at `κ = 20` and `2^20` steps to `2^44.21` at `κ = 32` and
+(the address tables included: `2^42.04` at `κ = 20` and `2^20` steps to `2^44.21` at `κ = 32` and
 `2^60`) dominate up to about `2^21` steps at `κ ≤ 28` and `2^23` at `κ = 32`, the per-step price
 beyond; the log factor enters through the entry table's key exponent,
 `Nat.log2 (2·(steps + 1)) + 1`. A valid execution of the guest program has fewer than `2^51`
