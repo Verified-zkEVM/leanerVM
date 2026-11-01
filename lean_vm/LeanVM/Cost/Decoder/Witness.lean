@@ -34,7 +34,6 @@ noncomputable def decWitNStaged (D : LeanVM.Extraction.Fast.DiscreteLogTables) (
   decWitStaged D σ rd (xmssAtFrame R Vn) (sphincsAtFrame R σ Vn) (daAtFrame D Vn)
     (proofAtFrame R rd Vn cl) (hintsAtFrame rd Vn)
 
-set_option maxHeartbeats 4000000 in
 -- a frame cell's word, under a name of its own (the bounds name it, not an index)
 cost_compile wordWithC := LeanVM.Guest.Located.wordWith
 cost_compile decWitNC := decWitNStaged

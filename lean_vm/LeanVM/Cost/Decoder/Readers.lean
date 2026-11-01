@@ -207,7 +207,6 @@ theorem decStmtD_tables : decStmtD discreteLogTables = decStmt := by
 
 cost_compile decStmtAtC := decStmtAt
 
-set_option maxHeartbeats 4000000 in
 cost_compile decStmtC := decStmtD
 
 end

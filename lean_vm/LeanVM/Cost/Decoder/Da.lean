@@ -136,7 +136,6 @@ cost_compile cellSymsAtC := cellSymsAt
 cost_compile dvSymsCellC := dvSymsCell
 cost_compile dvSymsColsC := dvSymsCols
 cost_compile dvWsColsC := dvWsCols
-set_option maxHeartbeats 4000000 in
 cost_compile dvWitNColsC := dvWitNCols
 cost_compile dvWitNAtC := dvWitNAt
 cost_compile dvWitNC := dvWitND

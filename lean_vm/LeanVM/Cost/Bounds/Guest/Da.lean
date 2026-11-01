@@ -387,17 +387,6 @@ theorem dvWitN_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
       S + G + dvWitNAtPrice F S + 14 :=
   dvWitN_cost_of_le P hVn hF hσ hS D hP hG 34 (by norm_num) le_rfl (gLogD_lt D _).le
 
-/-- At `r ≤ 32` rows (`k = 5`): `1093888·F + 39041·S + G + 150541982`. -/
-theorem dvWitN_cost_32 (D : LeanVM.Extraction.Fast.DiscreteLogTables)
-    (hP : Includes P Decoder.dvWitNC.costDeps) (hG : GLogBound P D G)
-    (hr : Decoder.gLogD D (σ (.n 1)) ≤ 32) :
-    machineCost P Decoder.dvWitNC.costIdx [encodeValue D, σV, VnV] ≤
-      1093888 * F + 39041 * S + G + 150541982 := by
-  have := dvWitN_cost_of_le P hVn hF hσ hS D hP hG 5 (by norm_num) (by norm_num) hr
-  have e : dvWitNRowsPrice 5 F S = 1093888 * F + 39040 * S + 150541968 := by
-    unfold dvWitNRowsPrice; ring
-  omega
-
 end Val
 
 end Frames

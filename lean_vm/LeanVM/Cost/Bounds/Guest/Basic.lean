@@ -117,20 +117,6 @@ elab "limbs_one" : tactic => withMainContext do
 
 end Meta
 
-/-! ## Products of counts and affine prices -/
-
-/-- `n` prices, each at most `a + b·X`, for `n ≤ N`. -/
-theorem mul_affine_le {n N a b X : ℕ} (hn : n ≤ N) (x : ℕ) (hx : x ≤ a + b * X) :
-    n * x ≤ N * a + (N * b) * X := by
-  calc n * x ≤ N * (a + b * X) := Nat.mul_le_mul hn hx
-    _ = N * a + (N * b) * X := by ring
-
-/-- `n` prices, each at most `a + b·X + c·Y`, for `n ≤ N`. -/
-theorem mul_affine2_le {n N a b c X Y : ℕ} (hn : n ≤ N) (x : ℕ) (hx : x ≤ a + b * X + c * Y) :
-    n * x ≤ N * a + (N * b) * X + (N * c) * Y := by
-  calc n * x ≤ N * (a + b * X + c * Y) := Nat.mul_le_mul hn hx
-    _ = N * a + (N * b) * X + (N * c) * Y := by ring
-
 end
 
 end LeanVM.Cost.Bounds.Guest
