@@ -21,11 +21,12 @@ with a faster lane decoder, `gsLaneAtFast`:
 * without the final root check where the parameters make it redundant (`gsRunNoCheck`,
   `checkRedundant`: at most `2^64` columns and `W < m·(n − radius)`, as at every shape the
   statement decodes, `W = m·A − 1`, `radius = n − A`);
-* from `2^approxFrom` columns on, CompPoly's approximant-basis interpolation on Karatsuba's
-  products (`approxInterpContext`) for Lee–O'Sullivan's. It may return another interpolation
-  polynomial, so another list in another order: what the list holds does not depend on it
-  (`mem_gsRunNoCheck`: the polynomials of degree `< k` within the radius), and the statement
-  sorts each lane's list (`laneListAt`), so the sorted lists are equal (`laneListAtFast_eq`).
+* the interpolation chosen per shape (`interpAt`: Lee–O'Sullivan's at every shape; CompPoly's
+  approximant-basis interpolation on Karatsuba's products, `approxInterpContext`, is kept, proved,
+  not used). Another interpolation may return another polynomial, so another list in another
+  order: what the list holds does not depend on it (`mem_gsRunNoCheck`: the polynomials of
+  degree `< k` within the radius), and the statement sorts each lane's list (`laneListAt`), so the
+  sorted lists are equal (`laneListAtFast_eq`).
 
 The definitions from the lane decoder up to the extractor are copied with it (a `@[csimp]` lemma
 acts where code is compiled, and the statement's definitions are compiled in `Statement/`), each
@@ -174,15 +175,13 @@ equations), proved sound and complete, on Karatsuba's products and remainders. -
       karatsubaModContext
       (PolynomialMatrix.Approximant.kernelLeafPMBasisContext karatsubaMulContext 8))
 
-/-- From `2^approxFrom` columns on, the lane decoder interpolates with `approxInterpContext`:
-measured slower than Lee–O'Sullivan's below (up to `2^5` columns, compiled), modelled faster at the
-deployed shapes (`lean_vm/scripts/extractor-cost`). A choice of speed only: what the lane lists
-hold does not depend on it (`mem_gsRunNoCheck`). -/
-@[expose] def approxFrom : ℕ := 16
-
-/-- The interpolation at `2^(κ+R)` columns. -/
-@[expose] def interpAt (κ R : ℕ) : GSInterpContext K :=
-  if approxFrom ≤ κ + R then approxInterpContext else interpContext
+/-- The interpolation at `2^(κ+R)` columns: Lee–O'Sullivan's (Mulders–Storjohann) at every
+shape. `approxInterpContext` is measured slower at every runnable size, and its code admits no
+cost bound below Mulders–Storjohann's (the extractor plan's gate G3: the kernel leaf can raise
+degrees, the low products recompute each product per coefficient); the cost proof is for
+Mulders–Storjohann. A choice of speed only: what the lane lists hold does not depend on it
+(`mem_gsRunNoCheck`). -/
+@[expose] def interpAt (_κ _R : ℕ) : GSInterpContext K := interpContext
 
 /-- `gsLaneAt`, fast: without the final root check where it is redundant, with the fast
 interpolation on large shapes, and the fast substitution. -/

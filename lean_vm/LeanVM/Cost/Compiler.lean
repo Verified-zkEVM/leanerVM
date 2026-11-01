@@ -75,6 +75,7 @@ def rules : List (Name × Name) := [
   (``List.toArray, ``Rule.listToArray),
   (``Array.getD, ``Rule.arrGetD),
   (``GetElem?.getElem?, ``Rule.arrGetElem?),
+  (``GetElem.getElem, ``Rule.arrGetElem),
   (``LeanVM.Parameters.K.ofLane, ``Rule.kOfLane),
   (``UInt8.toNat, ``Rule.uint8ToNat),
   (``UInt64.ofNat, ``Rule.uint64OfNat),
@@ -112,6 +113,8 @@ inductive ParamKind where
   | enc
   | fn (arity : Nat)
   | type
+  /-- A proof: no data, not in the machine's environment. -/
+  | proof
   deriving Inhabited, BEq
 
 /-- A compiled function: the term compiled (a head constant applied to fixed arguments), its data
@@ -294,6 +297,7 @@ def runsAppType (P f v ty : Expr) : MetaM Expr :=
 
 /-- The kind of a parameter of type `ty`: a function (not a proof, not a type), or a value. -/
 def paramKind (ty : Expr) : MetaM ParamKind := do
+  if ← isProp ty then return .proof
   let ty ← whnfR ty
   if ty.isSort then return .type
   if ty.isForall then
@@ -882,6 +886,7 @@ partial def translateCall (ctx : Ctx) (cf : CompiledFn) (args : Array Expr) (e :
       specArgs := specArgs ++ #[a, v, hf]
     | .type =>
       specArgs := specArgs ++ #[a, ← synthInstance (← mkAppM ``Enc #[a])]
+    | .proof => specArgs := specArgs.push a
   let (_, _, _, pl) ← translateList ctx items.toList
   let hInc ← ctx.premise cf.deps
   let spec := mkAppN (mkConst cf.spec) (#[ctx.P, hInc] ++ specArgs)
@@ -906,6 +911,7 @@ partial def translateSelfCall (ctx : Ctx) (self : SelfInfo) (e : Expr) :
       items := items.push (.inr (t, v, c, p))
     | .type =>
       unless a == x do throwError "a recursive call changes the type argument {x}"
+    | .proof => throwError "a recursive function with a proof parameter {x}: not supported"
   let (_, _, _, pl) ← translateList ctx items.toList
   let encSelf := (self.args.zip self.kinds).filterMap fun (x, k) ↦ if k == .enc then some x else none
   let y ← mkTuple encArgs
@@ -1031,7 +1037,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
       | .fn arity =>
         let some (_, v, hf) := fnHyps.find? (·.1 == x) | throwError "no closure for {x}"
         ctx ← ctx.pushFn x v hf arity
-      | .type => pure ()
+      | .type | .proof => pure ()
     let encXs := (xs.zip kinds).filterMap fun (x, k) ↦ if k == .enc then some x else none
     let tupleTy ← mkTupleType (← encXs.mapM fun x ↦ inferType x)
     -- the environment as a function of the tuple of the encoded parameters
@@ -1047,7 +1053,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
         | .fn _ =>
           let some (_, v, _) := fnHyps.find? (·.1 == x) | throwError "no closure for {x}"
           l ← mkAppM ``List.cons #[v, l]
-        | .type => pure ()
+        | .type | .proof => pure ()
       mkLambdaFVars #[y] l
     let valF ← withLocalDeclD `y tupleTy fun y ↦ do
       let comps ← tupleComponents y encXs.size
@@ -1105,6 +1111,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
           | .type =>
             let some (_, inst) := insts.find? (·.1 == x) | throwError "no instance for {x}"
             binders := binders ++ #[x, inst]
+          | .proof => binders := binders.push x
         let (specVal, costPf) ← match ih?, mf? with
           | some ih, some mf =>
             let ex ← mkAppM ``Exists.intro #[c, runBody]
@@ -1124,7 +1131,11 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
           | _, _ =>
             pure (← mkLambdaFVars binders (← mkAppM ``RunsBody.withMachineCost #[runBody]),
               ← mkAppM ``machineCost_eq #[runBody])
-        let specTy ← instantiateMVars (← mkForallFVars binders (← cleanTuples (← runsBodyAt x)))
+        let specBody ← if ih?.isSome then cleanTuples (← runsBodyAt x) else
+          -- stated at the parameters themselves (a proof parameter may depend on them)
+          pure (mkAppN (mkConst ``RunsBody) #[P, mkNatLit idx, ctx.env, ← mkAppM ``Enc.enc #[lhs],
+            mkAppN (mkConst ``machineCost) #[P, mkNatLit idx, ctx.env]])
+        let specTy ← instantiateMVars (← mkForallFVars binders specBody)
         let specName := name.str "costSpec"
         let specVal ← instantiateMVars specVal
         addDecl <| .thmDecl

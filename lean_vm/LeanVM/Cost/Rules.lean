@@ -436,6 +436,13 @@ theorem subtypeVal {t : Term} {p : α → Prop} {x : Subtype p} {c : ℕ} (h : R
 theorem subtypeMk {t : Term} {p : α → Prop} {x : α} {hx : p x} {c : ℕ} (h : Runs P env t (enc x) c) :
     Runs P env t (enc (⟨x, hx⟩ : Subtype p)) c := h
 
+/-- `a[i]'h`: an entry in bounds. -/
+theorem arrGetElem {t u : Term} {a : Array α} {i : ℕ} {h : i < a.size} {c d : ℕ}
+    (ha : Runs P env t (enc a) c) (hi : Runs P env u (enc i) d) :
+    Runs P env (.op .aget [t, u, .val (.ctor 0 [])]) (enc (a[i]'h)) (c + d + 1 + 1) :=
+  (Runs.op (RunsList.cons ha (RunsList.cons hi (RunsList.cons (Runs.val _) RunsList.nil)))
+    (v := enc (a[i]'h)) (d := 1) (by simp [Op.apply, h])).cost_eq (by omega)
+
 /-- `K.ofLane`: the same word. -/
 theorem kOfLane {t : Term} {w : UInt64} {c : ℕ} (h : Runs P env t (enc w) c) :
     Runs P env t (enc (K.ofLane w)) c := h
