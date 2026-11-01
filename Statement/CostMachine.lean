@@ -21,8 +21,9 @@ value if the price is at most `b`, `none` otherwise; each call costs at least `1
 depth `b` never fails a run of price at most `b`.
 
 **Prices** (trusted: that they are honest, each a constant-time CPU primitive or priced by the
-algorithm that computes it, is an assumption of `KnowledgeSoundness (extractorOf P)`). Each step
-costs at least `1` and at least the words it writes:
+algorithm that computes it, is an assumption of `KnowledgeSoundness (extractorOf P)` and of
+`GuestKnowledge`, `Theorems.lean`, whose budgets they price). Each step costs at least `1` and at
+least the words it writes:
 * a variable, a literal, a field, a `case`'s selection, a `let`: `1`;
 * a constructor or a closure of `n` values: `n + 1` (a tag and `n` words);
 * a call or a closure's application: `1`;
@@ -55,7 +56,8 @@ nothing, which counts as a break in `KnowledgeSoundness`. `Statement.Theorems` t
 as a parameter, with its size at most `extractorSizeBound`; `lean_vm` proves it for its knowledge
 extractor compiled. What excludes a vacuous statement: `P` is a program (no classical choice),
 the size bound excludes a table of witnesses, the machine's only runtime data is its input, and
-the budget is the one below. `decode` (`LeanVmGuest.lean`) is not costed.
+the budget is the one below. The guest decoder is a program of the same machine, with a size
+bound and a budget of its own (`GuestKnowledge`, `Theorems.lean`).
 
 **The budget** (`extractorBudgetAt`) is a closed formula in the shape the proof announces and the
 number `N` of the adversary's permutation queries, `extractorPrice`: about `N·log³N + 2^117.67`
