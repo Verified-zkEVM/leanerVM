@@ -1,6 +1,7 @@
 module
 
 public import LeanVM.Cost.Bounds.Assembly
+public import LeanVM.Cost.Bounds.TopIncludes
 public import LeanVM.Cost.Bounds.Decoder.Decode
 public import LeanVM.Cost.Extractor.Top
 import all Statement.LeanIsa
@@ -41,7 +42,7 @@ decoder's stacks (`decOfC`) and a run per decoded stack. Bounded from their pric
   dominating.
 
 The `includes` between the top functions' lists of about `500` bodies takes seconds each: those
-are lemmas of their own (`includes_stageTC`, …), each with a raised heartbeat budget.
+are lemmas of their own (`includes_stageTC`, …, `Bounds/TopIncludes.lean`).
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -533,43 +534,6 @@ theorem stageTC_cost (hP : Includes P stageTC.costDeps) (prog : Semantics.Progra
     (fun l hl ↦ (subtreeLeavesWith_mem_length _ _ _ _ l hl).le)
   unfold stagePrice
   omega
-
-/-! The programs' inclusions between the top functions: `includes` on their lists of about `500`
-bodies (a membership proof per body) takes seconds each, so each is a lemma of its own. -/
-
-set_option maxHeartbeats 1000000 in
-theorem includes_stageTC (hP : Includes P afterRootStageC.costDeps) : Includes P stageTC.costDeps := by
-  includes
-
-set_option maxHeartbeats 1000000 in
-theorem includes_afterRootStageLam (hP : Includes P afterRootStageC.costDeps) :
-    Includes P afterRootStageC.lam0.costDeps := by
-  includes
-
-set_option maxHeartbeats 1000000 in
-theorem includes_afterRootStageC (hP : Includes P extractorC.costDeps) :
-    Includes P afterRootStageC.costDeps := by
-  includes
-
-set_option maxHeartbeats 1000000 in
-theorem includes_extractorLam (hP : Includes P extractorC.costDeps) :
-    Includes P extractorC.lam0.costDeps := by
-  includes
-
-set_option maxHeartbeats 1000000 in
-theorem includes_afterRootLiteC (hP : Includes P extractorC.costDeps) :
-    Includes P afterRootLiteC.costDeps := by
-  includes
-
-set_option maxHeartbeats 1000000 in
-theorem includes_bytecodeWordsC (hP : Includes P extractorC.costDeps) :
-    Includes P bytecodeWordsC.costDeps := by
-  includes
-
-set_option maxHeartbeats 1000000 in
-theorem includes_bindC (hP : Includes P extractorC.costDeps) :
-    Includes P Auto.Option.bind.c323.costDeps := by
-  includes
 
 /-- **After the replay** (`afterRootStageC`): the root, then the stage. -/
 theorem afterRootStageC_cost (hP : Includes P afterRootStageC.costDeps) (prog : Semantics.Program)
