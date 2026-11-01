@@ -17,7 +17,7 @@ namespace LeanVM.Cost.FastLib
 
 open LeanVM.Cost LeanVM.Extraction.Fast LeanVM.Parameters
 
-public section
+@[expose] public section
 
 instance : Enc Hits where
   enc | .none => .ctor 0 [] | .one x => .ctor 1 [enc x] | .many => .ctor 2 []
@@ -117,6 +117,13 @@ theorem columnKappasLit (logMemory logBytecode : ℕ) (tableLogHeights : List �
           List.replicate p.1 (tableLogHeights.getD p.2 0) := rfl
 
 cost_rewrite columnKappasLit
+
+open LeanVM.Protocol.Verifier in
+theorem keccakSlotOfLit (l : ℕ) : keccakSlotOf l =
+    if 13 ≤ l ∧ l < 13 + 25 then some (l - 13)
+    else ([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 63].idxOf? l).map (50 + ·) := rfl
+
+cost_rewrite keccakSlotOfLit
 
 cost_measure searchIn := fun _ _ _ _ _ lo hi ↦ hi - lo
 

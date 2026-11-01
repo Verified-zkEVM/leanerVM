@@ -435,7 +435,16 @@ def findCompiled? (e : Expr) : MetaM (Option (CompiledFn × Array Expr)) := do
         unless ← isDefEq args[i]! cf.static[i]! do
           ok := false
           break
-      if ok then return some (cf, args.extract cf.static.size args.size)
+      -- a type parameter needs its encoding: without one, the call is translated otherwise
+      if ok then
+        let rest := args.extract cf.static.size args.size
+        for (a, k) in rest.zip cf.params do
+          if k == .type then
+            let enc? ← try synthInstance? (← mkAppM ``Enc #[a]) catch _ => pure none
+            if enc?.isNone then
+              ok := false
+              break
+        if ok then return some (cf, rest)
   return none
 
 /-- The bodies a spec needs: its own, then its callees', each once. -/
@@ -1749,8 +1758,11 @@ elab "cost_enc " id:ident : command => Command.liftTermElabM do
       let ty ← mkForallFVars (params ++ insts) (← mkAppM ``Enc #[Tapp])
       let val ← mkLambdaFVars (params ++ insts) inst
       let name := (`LeanVM.Cost.EncOf ++ T)
-      addAndCompile <| .defnDecl (mkDefinitionValEx name [] (← instantiateMVars ty) (← instantiateMVars val)
-        (.regular 0) .safe [])
+      -- exposed: rules unfold the encoding in importing modules
+      let decl := Declaration.defnDecl (mkDefinitionValEx name [] (← instantiateMVars ty)
+        (← instantiateMVars val) (.regular 0) .safe [])
+      addDecl decl (forceExpose := true)
+      compileDecl decl
       setReducibilityStatus name .instanceReducible
       addInstance name .global 1000
 
