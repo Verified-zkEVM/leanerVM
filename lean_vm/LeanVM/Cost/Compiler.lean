@@ -25,6 +25,11 @@ proof of `Runs P env t (enc e) c`, built from the rules of `Cost/Rules.lean`:
 * a definition without a rule: unfolded, then translated.
 
 Nothing here is trusted: the kernel checks every proof the compiler builds.
+
+`set_option trace.cost.compile true` traces the compilation: each function's steps, the
+definitions unfolded, and each body's index and code. A function whose branch equations (a
+convenience) or whose lambdas' specs under the induction hypothesis cannot be built is compiled
+without them, with a message saying so.
 -/
 
 public meta section
@@ -32,6 +37,8 @@ public meta section
 namespace LeanVM.Cost.Compiler
 
 open Lean Meta Elab
+
+initialize registerTraceClass `cost.compile
 
 /-- The rules, by the head constant of the Lean expressions they translate. -/
 def rules : List (Name × Name) := [
@@ -524,11 +531,6 @@ partial def forallLookupProof (l l' : Expr) : MetaM Expr := do
 where
   mkExpectedTypeHint' (e ty : Expr) : Expr := mkApp2 (mkConst ``id [0]) ty e
 
-/-- A line of the compiler's trace, to the file `COST_TRACE` names (when set). -/
-def costTrace (msg : String) : IO Unit := do
-  if let some path ← IO.getEnv "COST_TRACE" then
-    IO.FS.withFile path .append fun h ↦ h.putStrLn msg
-
 /-- The callees' spec premises, from `hP : Includes P deps`. -/
 def solvePending (pending : Array (MVarId × Array (Nat × Name))) (hP deps : Expr) :
     MetaM Unit := do
@@ -796,7 +798,7 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
         else unfoldDefinition? e
       | _ => unfoldDefinition? e
     if let some e' := unfolded? then
-      costTrace s!"unfold {f} depth {e'.approxDepth}"
+      trace[cost.compile] "unfold {f} depth {e'.approxDepth}"
       ctx.inlined.modify fun a ↦ if a.contains f then a else a.push f
       let (t, c, p) ← try translate ctx (← unfoldMatchers e'.headBeta)
         catch ex => throwError "{ex.toMessageData}\n  in the unfolding of {f}"
@@ -1628,9 +1630,9 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
           let si : SelfInfo := { term := term, ih := ih, measure := mf, args := xs, kinds := kinds }
           { ctx with self := some si }
         | _, _ => ctx
-      costTrace s!"compile {name} start"
+      trace[cost.compile] "compile {name} start"
       let (t, c, pf) ← translate ctx rhs
-      costTrace s!"compile {name} translated"
+      trace[cost.compile] "compile {name} translated"
       let t ← instantiateMVars t
       if t.hasFVar || t.hasMVar then throwError "the code is not closed: {t}"
       let bodyTy := mkConst ``LeanVM.Cost.Term
@@ -1650,10 +1652,10 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
       let depsE ← depsExpr deps
       let depsTy ← mkAppM ``List #[← mkAppM ``Prod #[mkConst ``Nat, mkConst ``Term]]
       addExposedDef (name.str "costDeps") depsTy depsE
-      costTrace s!"compile {name} deps added ({deps.size})"
+      trace[cost.compile] "compile {name} deps added ({deps.size})"
       withLocalDeclD `hP (mkAppN (mkConst ``Includes) #[P, depsE]) fun hP ↦ do
         solvePending pendingNow hP depsE
-        costTrace s!"compile {name} premises solved"
+        trace[cost.compile] "compile {name} premises solved"
         let mem ← memProof (← mkAppM ``Prod.mk #[mkNatLit idx, mkConst bodyName]) depsE
         let hb ← mkAppM ``Includes.get #[hP, mem]
         let motive ← withLocalDeclD `z (← inferType lhs) fun z ↦ do
@@ -1661,7 +1663,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
             ← mkAppM ``Enc.enc #[z], c])
         let pf' ← mkEqMPR (← mkCongrArg motive eqPf) pf
         let runBody ← mkAppM ``RunsBody.intro #[hb, pf']
-        costTrace s!"compile {name} run proved"
+        trace[cost.compile] "compile {name} run proved"
         -- the spec's binders: `P`, `hP`, each parameter (a function with its closure and hypothesis)
         let mut binders := #[P, hP]
         for (x, k) in xs.zip kinds do
@@ -1702,24 +1704,24 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
         let specVal ← instantiateMVars specVal
         addDecl <| .thmDecl
           { name := specName, levelParams := [], type := specTy, value := specVal }
-        costTrace s!"compile {name} spec added"
+        trace[cost.compile] "compile {name} spec added"
         -- the recurrence: the indices as `costIdx` constants, the constants folded
         let rawEq ← cleanTuples (← inferType costPf)
         let some (_, lhs0, rhs0) := rawEq.eq? | throwError "costEq: not an equation"
         let lhs1 ← withCostIdx deps lhs0
         let rhs1 ← withCostIdx deps rhs0
-        costTrace s!"compile {name} costEq indexed"
+        trace[cost.compile] "compile {name} costEq indexed"
         let pf1 ← mkExpectedTypeHint costPf (← mkEq lhs1 rhs1)
         let r ← LeanVM.Cost.Fold.foldPrice rhs1
         let (rhs2, pf2) ← match r.proof? with
           | some q => pure (r.expr, ← mkEqTrans pf1 q)
           | none => pure (rhs1, pf1)
-        costTrace s!"compile {name} costEq folded"
+        trace[cost.compile] "compile {name} costEq folded"
         let costTy ← instantiateMVars (← mkForallFVars binders (← mkEq lhs1 rhs2))
         let costVal ← instantiateMVars (← mkLambdaFVars binders pf2)
         addDecl <| .thmDecl
           { name := name.str "costEq", levelParams := [], type := costTy, value := costVal }
-        costTrace s!"compile {name} costEq added"
+        trace[cost.compile] "compile {name} costEq added"
         -- the branch equations are a convenience: on a budget of their own (heartbeats count
         -- allocations, so the budget also caps memory), none when it runs out
         let st ← saveState
@@ -1729,16 +1731,16 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
             branchEqs name binders encXs lhs1 rhs1 pf1)
           fun ex ↦ do
             st.restore
-            costTrace s!"compile {name}: no branch equations: {← ex.toMessageData.toString}"
+            logInfo m!"compile {name}: no branch equations: {ex.toMessageData}"
 
-        costTrace s!"compile {name} branch equations done"
+        trace[cost.compile] "compile {name} branch equations done"
         let headC := if term.isLambda then name else term.getAppFn.constName!
         let entry : CompiledFn :=
           { head := headC, static := term.getAppArgs, params := kinds, index := idx,
             body := bodyName, spec := specName, deps := deps, inlined := ← inlined.get,
             lam? := if term.isLambda then some term else none }
         modifyEnv (compiledExt.addEntry · entry)
-        costTrace s!"compile {name} registered"
+        trace[cost.compile] "compile {name} registered"
         -- the lambdas compiled under the induction hypothesis: now with specs of their own
         for (ln, lam, j, lb, lenc) in ← postLams.get do
           let st ← saveState
@@ -1746,9 +1748,8 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
             discard <| withLCtx {} {} (compileFn ln lam j none (reserved.push idx) lenc (some lb))
           catch ex =>
             st.restore
-            costTrace s!"compile {ln}: no spec: {← ex.toMessageData.toString}"
-        logInfo m!"{name}: function {idx}, code {t}"
-        costTrace s!"compile {name} logged"
+            logInfo m!"compile {ln}: no spec: {ex.toMessageData}"
+        trace[cost.compile] m!"{name}: function {idx}, code {t}"
         return entry
     match mf? with
     | some mf =>
@@ -1893,62 +1894,5 @@ elab "cost_rewrite " id:ident : command => Command.liftTermElabM do
     let some k := l.getAppFn.constName? | throwError "{thm}: the left side has no head constant"
     pure k
   modifyEnv (rewriteExt.addEntry · (key, thm))
-
-/-- `#cost_stats f`: the functions `f`'s spec needs, each with the lines of its code (printed at
-width 100) and of its Lean source (lifted lambdas: part of their parent's source), and the totals:
-the measure of the gate G2. -/
-elab "#cost_stats " id:ident : command => Command.liftTermElabM do
-  let depsName ← realizeGlobalConstNoOverloadWithInfo (mkIdent (id.getId.str "costDeps"))
-  let mut l := (← getConstInfo depsName).value!
-  let reg := compiledExt.getState (← getEnv)
-  let mut rows : Array MessageData := #[]
-  let mut codeTotal := 0
-  let mut srcTotal := 0
-  let mut inlinedAll : Array Name := #[]
-  while l.isAppOfArity ``List.cons 3 do
-    let pair := l.appFn!.appArg!
-    let some body := pair.appArg!.constName? | throwError "not a body constant: {pair}"
-    let code := (← getConstInfo body).value!
-    let codeLines := ((← ppExpr code).pretty 100).splitOn "\n" |>.length
-    let entry := reg.foldl (fun acc _ fs ↦ acc <|> fs.find? (·.body == body)) none
-    let head := (entry.map (·.head)).getD body
-    for n in (entry.map (·.inlined)).getD #[] do
-      unless inlinedAll.contains n do inlinedAll := inlinedAll.push n
-    let srcLines ← match ← findDeclarationRanges? head with
-      | some r => pure (r.range.endPos.line - r.range.pos.line + 1)
-      | none => pure 0
-    codeTotal := codeTotal + codeLines
-    srcTotal := srcTotal + srcLines
-    rows := rows.push m!"{head}: code {codeLines}, source {srcLines}"
-    l := l.appArg!
-  let mut inl : Array MessageData := #[]
-  let mut inlTotal := 0
-  for n in inlinedAll do
-    if let some r ← findDeclarationRanges? n then
-      let k := r.range.endPos.line - r.range.pos.line + 1
-      inlTotal := inlTotal + k
-      inl := inl.push m!"{n} {k}"
-  logInfo m!"{MessageData.joinSep rows.toList "\n"}\ninlined: {MessageData.joinSep inl.toList ", "}\n\
-    total: code {codeTotal}, source {srcTotal} compiled + {inlTotal} inlined"
-
-/-- `#translate fun xs ↦ e`: the code and price of `e` with `xs` in the environment. -/
-elab "#translate " t:term : command => Command.liftTermElabM do
-  let e ← Term.elabTerm t none
-  Term.synthesizeSyntheticMVarsNoPostponing
-  let e ← instantiateMVars e
-  lambdaTelescope e fun xs body ↦ do
-    withLocalDeclD `P (mkConst ``Program) fun P ↦ do
-      let pending ← IO.mkRef #[]
-      let lams ← IO.mkRef 0
-      let env0 ← mkAppOptM ``List.nil #[mkConst ``Val]
-      let inlined ← IO.mkRef #[]
-      let mut ctx : Ctx := { P := P, env := env0, vals := #[], pending := pending,
-                             base := `translate, lams := lams, inlined,
-                             postLams := ← IO.mkRef #[] }
-      for x in xs.reverse do
-        ctx ← ctx.push x
-      let (t, c, pf) ← translate ctx body
-      check pf
-      logInfo m!"code: {t}\nprice: {c}"
 
 end LeanVM.Cost.Compiler
