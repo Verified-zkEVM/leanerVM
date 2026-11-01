@@ -23,7 +23,7 @@ up to `2·2^E` of at most `W = wl E` limbs.
   `(entryArrayStatePrice Gpc M Pr R E + 2)·|states| + 30`, per state the pairs and, per pair, the
   sort's `(3070 + 5·wl E)·E + 7·wl E + 89` and the dedup's `3013`;
 * **`frameAtA_cost`**: one binary search of the call's key (`w = |args| + |rets|` words), at most
-  `(67w + 89 + 9·wl E)·(E + 2) + 28w + R + 11056`, against `frameAt_cost`'s `D` searches.
+  `(67w + 89 + 9·wl E)·(E + 2) + 28w + R + 11056`.
 -/
 
 namespace LeanVM.Cost.Bounds

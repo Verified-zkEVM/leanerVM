@@ -13,10 +13,10 @@ their entry pc, built once by the decoder's top. Its shape and prices:
 * **`pcTableT_cost`**: built at most `17047343` (each insertion amortized: a power `g^e`, `e < 2^19`,
   a lookup and the carry);
 * **`pcTableT_get_cost`**: a lookup at most `8339` (`10` levels, a binary search each), the `Gpc` of
-  `entryTableT_cost`;
+  `entryArrayT_cost` (`EntryArray.lean`);
 * **`pcTableT_getD_length`**: at most two functions at one pc (the entry pcs repeat at most twice,
   `GuestTablesBounds.lean`; `gpow` is injective below the order of `g`), the `M` of
-  `entryTableT_cost`; **`pcTableT_getD_lt`**: every function filed is below `879`.
+  `entryArrayT_cost`; **`pcTableT_getD_lt`**: every function filed is below `879`.
 -/
 
 namespace LeanVM.Cost.Bounds

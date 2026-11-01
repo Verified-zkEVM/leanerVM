@@ -15,13 +15,18 @@ staged:
 
 * `pcTableT`: the functions entered at each pc, from `guestEntries` (computed once by the caller
   and passed: a closed constant compiled in place would be recomputed at each use);
-* `entryKeyT`, `fileOne`, `fileStateT`, `entryTableT`: a state filed under the key of each
-  function entered at its pc, by partial application, the argument and return counts from
-  `guestArgCounts`, `guestRetCounts`;
-* `frameAt table rd j args rets v`: the frame map, its last argument the value `v` (the frame map
-  is the closure `frameAt table rd`), the cells from `guestLocs`.
+* `entryKeyT`: a state's key under a function entered at its pc, the argument and return counts
+  from `guestArgCounts`, `guestRetCounts`;
+* **the compiled table, one sorted array** (`entryArrayT`): every pair the states file, sorted by
+  key stably, each key's first kept; `frameAtA table rd j args rets v`, the frame map, one binary
+  search of the call's key, its last argument the value `v` (the frame map is the closure
+  `frameAtA table rd`), the cells from `guestLocs`;
+* the same table by insertions (`fileOne`, `fileStateT`, `entryTableT`, a sorted map with a
+  presence lookup per filing) and its frame map (`frameAt`): definitions only, not compiled, the
+  specification the sorted array is proved equal to.
 
-`EntryTableEq.lean` proves them the definitions at the guest's tables.
+`EntryTableEq.lean` proves them the definitions at the guest's tables (`frameAt_eq`), and the
+sorted array's frame map the specification's (`frameAtA_entryArrayT`, `frameAtA_eq`).
 -/
 
 namespace LeanVM.Cost.Decoder
@@ -74,9 +79,9 @@ def frameAt (table : SortedMap CallKey K) (rd : Reader) (j : ℕ) (args rets : L
 
 /-! ### The library functions the tables use, under names of their own
 
-The sorted maps' operations at the two key types (the pc table's `ℕ`, the entry table's
-`CallKey`), the call key's codes and the frame cells' words: compiled here before their callers,
-so that the bounds name them, not an index (`Bounds/Decoder/EntryTable.lean`). -/
+The pc table's sorted map operations (`ℕ` keys), the binary search on call keys, the call key's
+codes and the frame cells' words: compiled here before their callers, so that the bounds name
+them, not an index (`Bounds/Decoder/EntryTable.lean`, `EntryArray.lean`). -/
 
 cost_compile searchInPcC measure fun _ _ lo hi ↦ hi - lo := @searchIn ℕ (List ℕ) _
 cost_compile mergeNewerPcC measure fun a b ↦ a.length + b.length := @mergeNewer ℕ (List ℕ) _
@@ -87,12 +92,6 @@ cost_compile getPcC := @SortedMap.get? ℕ (List ℕ) _
 cost_compile addAtC := addAt
 
 cost_compile searchInKeyC measure fun _ _ lo hi ↦ hi - lo := @searchIn CallKey K _
-cost_compile mergeNewerKeyC measure fun a b ↦ a.length + b.length := @mergeNewer CallKey K _
-cost_compile levelMergeKeyC := @Level.merge CallKey K _ _ _
-cost_compile carryKeyC measure fun _ ls ↦ ls.length := @carry CallKey K _ _ _
-cost_compile insertKeyC := @SortedMap.insert CallKey K _ _ _
-cost_compile getKeyC := @SortedMap.get? CallKey K _
-cost_compile insertIfNewKeyC := @insertIfNew CallKey K _ _ _
 
 cost_compile wordCodeC := wordCode
 cost_compile callKeyC := callKey
@@ -106,15 +105,7 @@ cost_compile pcTableTC := pcTableT
 set_option maxRecDepth 100000 in
 cost_compile entryKeyTC := entryKeyT
 set_option maxRecDepth 100000 in
-cost_compile fileOneC := fileOne
-set_option maxRecDepth 100000 in
-cost_compile fileStateTC := fileStateT
-set_option maxRecDepth 100000 in
-cost_compile entryTableTC := entryTableT
-set_option maxRecDepth 100000 in
 cost_compile frameWordAtC := frameWordAt
-set_option maxRecDepth 100000 in
-cost_compile frameAtC := frameAt
 
 /-! ## The entry table as one sorted array
 

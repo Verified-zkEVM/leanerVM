@@ -131,20 +131,21 @@ def twoStates : List (LeanVM.Semantics.Registers K) :=
   [⟨LeanVM.Parameters.gpow (guestEntries.getD 2 0), LeanVM.Parameters.gpow 4⟩,
     ⟨LeanVM.Parameters.gpow (guestEntries.getD 3 0), LeanVM.Parameters.gpow 4⟩]
 
--- The entry table of the two states (the table of entries built in the program).
-#guard runOn (entryTableTC.costDeps ++ pcTableTC.costDeps ++ anyPreC.costDeps ++
-    smallReaderC.costDeps) entryTableTC.costIdx
+-- The entry table of the two states, one sorted array (the table of entries built in the
+-- program).
+#guard runOn (entryArrayTC.costDeps ++ pcTableTC.costDeps ++ anyPreC.costDeps ++
+    smallReaderC.costDeps) entryArrayTC.costIdx
   [runOn pcTableTC.costDeps pcTableTC.costIdx [] |>.getD (.nat 0), .closure anyPreC.costIdx [],
     encodeValue twoStates, rdVal] ==
-  some (encodeValue (entryTableT pcTableT anyPre twoStates smallReader))
+  some (encodeValue (entryArrayT pcTableT anyPre twoStates smallReader))
 
 -- A frame's word: function `2`'s call on its words, value `.n 0` (its first cell).
-#guard runOn (frameAtC.costDeps ++ smallReaderC.costDeps) frameAtC.costIdx
-  [encodeValue (entryTableT pcTableT anyPre twoStates smallReader), rdVal, encodeValue (2 : ℕ),
+#guard runOn (frameAtAC.costDeps ++ smallReaderC.costDeps) frameAtAC.costIdx
+  [encodeValue (entryArrayT pcTableT anyPre twoStates smallReader), rdVal, encodeValue (2 : ℕ),
     encodeValue (wordsWith smallReader (LeanVM.Parameters.gpow 4) 2 (guestArgCounts.getD 2 0)),
     encodeValue (wordsWith smallReader (LeanVM.Parameters.gpow 4) (2 + guestArgCounts.getD 2 0)
       (guestRetCounts.getD 2 0)), encodeValue (V.n 0)] ==
-  some (encodeValue (frameAt (entryTableT pcTableT anyPre twoStates smallReader) smallReader 2
+  some (encodeValue (frameAtA (entryArrayT pcTableT anyPre twoStates smallReader) smallReader 2
     (wordsWith smallReader (LeanVM.Parameters.gpow 4) 2 (guestArgCounts.getD 2 0))
     (wordsWith smallReader (LeanVM.Parameters.gpow 4) (2 + guestArgCounts.getD 2 0)
       (guestRetCounts.getD 2 0)) (V.n 0)))
