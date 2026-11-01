@@ -1187,9 +1187,13 @@ def guestLocsList : List (List ℕ) := [
     [Data.cert877_w0_0].flatten,
     [Data.cert878_w0_0].flatten]
 
-/-- Each function's frame cells, as arrays (the decoder's literal; reducible: the compiler's
+/-- Each function's frame cells, as arrays: the decoder's literal (reducible: the compiler's
 literal rule reads its list). -/
-abbrev guestLocs : Array (Array ℕ) := (guestLocsList.map List.toArray).toArray
+abbrev guestLocsLit : Array (Array ℕ) := (guestLocsList.map List.toArray).toArray
+
+/-- Each function's frame cells, as arrays (`Cost/Decoder/Witness.lean` compiles its uses as calls
+of one function holding the literal). -/
+def guestLocs : Array (Array ℕ) := guestLocsLit
 
 end
 
