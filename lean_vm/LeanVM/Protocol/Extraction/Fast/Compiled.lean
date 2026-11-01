@@ -12,7 +12,8 @@ permutation queries `qs` (the machine's input carries them, `Cost/Encoding.lean`
 the proved-equal fast pieces: the root without the verifier's free monad (`afterRootDirect`), the
 replay and the preimages in sorted maps (`transcriptIndex`), the committed leaves through the
 index (`subtreeLeavesWith`), the candidate run on a memory vector with its tables built once
-(`candidateRunner`), and the fast decoder.
+(`candidateRunner`), and the fast decoder and fast path (`fastStacksFast`: the word's columns
+reversed once, `laneTable`).
 
 * **`extractorTop_eq`**: `extractorTop prog input (permutationQueries T) π =
   transcriptExtractor prog input T π`.
@@ -35,7 +36,7 @@ public section
   let leaves := subtreeLeavesWith (preimageIn idx) width height root
   let word := leafAt leaves height width
   let execution := candidateRunner prog input layout
-  (fastStacks layout.stackLog logInverseRate word).findSome? execution <|>
+  (fastStacksFast layout.stackLog logInverseRate word).findSome? execution <|>
     (decodeStacksFast layout.stackLog logInverseRate word).findSome? execution
 
 /-- **The extractor the cost machine runs is the statement's.** -/
@@ -43,7 +44,7 @@ theorem extractorTop_eq (prog : Program) (input : PublicInput) (T : OracleQueryL
     extractorTop prog input (permutationQueries T) π = transcriptExtractor prog input T π := by
   rw [← transcriptExtractorFast_eq, transcriptExtractorFast, extractorTop, extractWith,
     afterRootDirect_eq_afterRoot]
-  simp only [candidateRunner_eq]
+  simp only [candidateRunner_eq, fastStacksFast_eq]
 
 end
 

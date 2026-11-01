@@ -54,6 +54,13 @@ CompPoly's, so its callers can be restated in turn.
 The decoder's interpolation with both: `interpContextFast` (**`interpContextFast_eq`**: it is
 `interpContext`'s body).
 
+* **Distinct points** (`interpolateDistinct`, **`interpolateDistinct_eq`**): the interpolation
+  without its distinctness check (`distinctXCoordinatesBool`, `n²/2` comparisons), equal on
+  distinct points, as the lane decoder's are.
+* **Horner's rule** (`hornerEval`, **`hornerEval_eq`**): CompPoly's `CPolynomial.eval` computes each
+  power `x^i` anew; the distance filter (`passesDistanceFast`, **`passesDistanceFast_eq`**) and
+  the conversion to the novel basis (`toNovelFast`, **`toNovelFast_eq`**) evaluate by Horner.
+
 Credits: copied from CompPoly (github.com/Verified-zkEVM/CompPoly at
 `572f997390aa4fc131ef30b1186fa1dcf292ca10`, Apache-2.0, "Copyright (c) 2026 CompPoly Contributors"
 and "Copyright (c) 2025 CompPoly"), and edited (the function called): the texts of
@@ -399,32 +406,38 @@ theorem normalizeLeeFast_eq_fun {F : Type*} [Field F] [BEq F] [LawfulBEq F] [Dec
 
 /-! ## Lee–O'Sullivan's interpolation with the fast normalization -/
 
+/-- CompPoly's `leeOSullivanPositiveInterpolate` after its distinctness check, with
+`normalizeLeeFast`. -/
+@[expose] def leeOSullivanPositiveCoreFast {F : Type*} [Field F] [BEq F] [LawfulBEq F]
+    [DecidableEq F] (V : CPolynomial.VanishingPolynomialContext F)
+    (E : CPolynomial.BatchEvalContext F) (reducer : PolynomialMatrix.ShiftedRowReducerContext F)
+    (points : Array (F × F)) (params : GSInterpParams) : Option (CBivariate F) :=
+  let G := V.vanishingPolynomial (points.map fun point ↦ point.1)
+  let R := CPolynomial.interpolateCoefficientFormWithVanishing E G points
+  let basis := leeOSullivanBasisRowsWithRG R G params
+  let shift := leeOSullivanShifts params
+  let reduced := reducer.reduce basis shift
+  match LeeOSullivan.leastShiftedDegreeRow? reduced shift with
+  | none => none
+  | some row =>
+      match PolynomialMatrix.rowShiftedDegree? row shift with
+      | none => none
+      | some degree =>
+          if degree ≤ params.weightedDegreeBound then
+            let rawQ := CBivariate.ofCoeffRow row
+            match normalizeLeeFast params rawQ with
+            | none => none
+            | some Q => some Q
+          else
+            none
+
 /-- CompPoly's `leeOSullivanPositiveInterpolate`, with `normalizeLeeFast`. -/
 @[expose] def leeOSullivanPositiveInterpolateFast {F : Type*} [Field F] [BEq F] [LawfulBEq F]
     [DecidableEq F] (V : CPolynomial.VanishingPolynomialContext F)
     (E : CPolynomial.BatchEvalContext F) (reducer : PolynomialMatrix.ShiftedRowReducerContext F)
     (points : Array (F × F)) (params : GSInterpParams) : Option (CBivariate F) :=
-  if distinctXCoordinatesBool points then
-    let G := V.vanishingPolynomial (points.map fun point ↦ point.1)
-    let R := CPolynomial.interpolateCoefficientFormWithVanishing E G points
-    let basis := leeOSullivanBasisRowsWithRG R G params
-    let shift := leeOSullivanShifts params
-    let reduced := reducer.reduce basis shift
-    match LeeOSullivan.leastShiftedDegreeRow? reduced shift with
-    | none => none
-    | some row =>
-        match PolynomialMatrix.rowShiftedDegree? row shift with
-        | none => none
-        | some degree =>
-            if degree ≤ params.weightedDegreeBound then
-              let rawQ := CBivariate.ofCoeffRow row
-              match normalizeLeeFast params rawQ with
-              | none => none
-              | some Q => some Q
-            else
-              none
-  else
-    none
+  if distinctXCoordinatesBool points then leeOSullivanPositiveCoreFast V E reducer points params
+  else none
 
 /-- CompPoly's `leeOSullivanInterpolate`, with `normalizeLeeFast`. -/
 @[expose] def leeOSullivanInterpolateFast {F : Type*} [Field F] [BEq F] [LawfulBEq F]
@@ -442,6 +455,7 @@ theorem leeOSullivanInterpolateFast_eq {F : Type*} [Field F] [BEq F] [LawfulBEq 
     leeOSullivanInterpolateFast V E reducer = LeeOSullivan.leeOSullivanInterpolate V E reducer := by
   funext points params
   unfold leeOSullivanInterpolateFast leeOSullivanPositiveInterpolateFast
+    leeOSullivanPositiveCoreFast
   rewrite [normalizeLeeFast_eq_fun]
   rfl
 
@@ -641,6 +655,74 @@ theorem interpContextFast_eq : interpContextFast =
       (CPolynomial.BatchEvalContext.horner K)
       (PolynomialMatrix.muldersStorjohannFastReducerContext K) := by
   rw [interpContextFast, leeOSullivanInterpContextFast_eq, vanishingContextFast_eq]
+
+/-! ## The interpolation of distinct points
+
+The lane decoder's points are distinct (`distinct_lanePoints`, `Fast/Extract.lean`), so the
+distinctness check (`distinctXCoordinatesBool`: each point compared with every later one, `n²/2`
+comparisons) is skipped there. -/
+
+/-- `interpContextFast`'s interpolation without the distinctness check. -/
+@[expose] def interpolateDistinct (points : Array (K × K)) (params : GSInterpParams) :
+    Option (CBivariate K) :=
+  if params.messageDegree ≤ 1 then
+    some (lowMessageDegreeInterpolation points params.multiplicity)
+  else
+    leeOSullivanPositiveCoreFast vanishingContextFast (CPolynomial.BatchEvalContext.horner K)
+      (PolynomialMatrix.muldersStorjohannFastReducerContext K) points params
+
+/-- On distinct points, `interpolateDistinct` is `interpContextFast`'s interpolation. -/
+theorem interpolateDistinct_eq {points : Array (K × K)} (h : DistinctXCoordinates points)
+    (params : GSInterpParams) :
+    interpolateDistinct points params = interpContextFast.interpolate points params := by
+  show _ = leeOSullivanInterpolateFast _ _ _ points params
+  rw [interpolateDistinct, leeOSullivanInterpolateFast, leeOSullivanPositiveInterpolateFast,
+    LeeOSullivan.distinctXCoordinatesBool_iff.2 h]
+  rfl
+
+/-! ## Evaluation by Horner's rule
+
+CompPoly's `CPolynomial.eval x p` sums `a_i·x^i`, each power computed anew (`log i` products
+by squaring); Horner's rule takes one product and one sum per coefficient. -/
+
+/-- `p(x)` by Horner's rule. -/
+@[expose] def hornerEval {F : Type*} [Semiring F] (x : F) (p : CPolynomial F) : F :=
+  p.val.foldr (fun a acc ↦ acc * x + a) 0
+
+theorem hornerEval_eq {F : Type*} [Semiring F] (x : F) (p : CPolynomial F) :
+    hornerEval x p = CPolynomial.eval x p :=
+  CPolynomial.eval_horner_eq_eval x p
+
+theorem hornerEval_eq_fun {F : Type*} [Semiring F] :
+    (hornerEval : F → CPolynomial F → F) = CPolynomial.eval := by
+  funext x p
+  exact hornerEval_eq x p
+
+/-- CompPoly's `candidateMismatchCount` with `hornerEval`. -/
+@[expose] def mismatchCountFast {F : Type*} [Semiring F] [BEq F] (points : Array (F × F))
+    (p : CPolynomial F) : ℕ :=
+  points.foldl (fun count point ↦ if hornerEval point.1 p == point.2 then count else count + 1) 0
+
+/-- CompPoly's `passesCandidateDistance` with `hornerEval`. -/
+@[expose] def passesDistanceFast {F : Type*} [Semiring F] [BEq F] (points : Array (F × F))
+    (radius : ℕ) (p : CPolynomial F) : Bool :=
+  decide (mismatchCountFast points p ≤ radius)
+
+theorem passesDistanceFast_eq {F : Type*} [Semiring F] [BEq F] :
+    (passesDistanceFast : Array (F × F) → ℕ → CPolynomial F → Bool) =
+      passesCandidateDistance := by
+  funext points radius p
+  rw [passesDistanceFast, mismatchCountFast, hornerEval_eq_fun]
+  rfl
+
+/-- The statement's `toNovel` with `hornerEval`. -/
+@[expose] def toNovelFast (κ : ℕ) (p : CPolynomial K) : Array K :=
+  LeanVM.Extraction.novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦ hornerEval (K.ofBits v.val) p)
+
+theorem toNovelFast_eq : toNovelFast = LeanVM.Extraction.toNovel := by
+  funext κ p
+  rw [toNovelFast, hornerEval_eq_fun]
+  rfl
 
 end
 
