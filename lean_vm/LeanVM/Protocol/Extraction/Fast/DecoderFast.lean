@@ -1,6 +1,6 @@
 module
 
-public import Statement.Extractor
+public import LeanVM.Protocol.Extraction.Extractor
 public import Mathlib.Data.List.Find
 public import CompPoly.Bivariate.GuruswamiSudan.PolynomialCorrectness
 public import CompPoly.Bivariate.GuruswamiSudan.Interpolation.LeeOSullivan.Correctness.Completeness

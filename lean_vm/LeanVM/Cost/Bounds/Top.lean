@@ -4,7 +4,7 @@ public import LeanVM.Cost.Bounds.Assembly
 public import LeanVM.Cost.Bounds.DecoderShapes
 public import LeanVM.Cost.Extractor.Top
 import all Statement.LeanIsa
-import all Statement.Extractor
+import all LeanVM.Protocol.Extraction.Extractor
 import all LeanVM.Protocol.Extraction.Fast.Compiled
 import all LeanVM.Protocol.Extraction.Fast.Lookup
 import all LeanVM.Protocol.Extraction.Fast.SortedMap

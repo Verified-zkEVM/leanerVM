@@ -1,6 +1,6 @@
 module
 
-public import Statement.Extractor
+public import LeanVM.Protocol.Extraction.Extractor
 
 /-!
 # The stack's root, without the verifier's free monad

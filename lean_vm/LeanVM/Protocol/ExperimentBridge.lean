@@ -161,7 +161,8 @@ theorem map_soundnessExperiment (A : RandomPermutationAdversary) :
     StateT.run_pure, map_bind, map_pure, hA, bind_map_left, hV]
 
 /-- **Knowledge soundness, from the two-call experiment.** -/
-theorem knowledgeSoundness_of_withHash (h : KnowledgeSoundnessWithHash) : KnowledgeSoundness := by
+theorem knowledgeSoundness_of_withHash (h : KnowledgeSoundnessWithHash) :
+    KnowledgeSoundness transcriptExtractor := by
   intro A Q hQ hcap
   have := h A Q hQ hcap
   rw [← map_soundnessExperiment, prEvent_map] at this

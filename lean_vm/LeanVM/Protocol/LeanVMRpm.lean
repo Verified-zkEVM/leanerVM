@@ -512,7 +512,7 @@ theorem knowledgeSoundnessWithHash_holds : KnowledgeSoundnessWithHash :=
 /-- **Knowledge soundness holds** (in the random-permutation model), for the extractor
 `transcriptExtractor`: the statement's experiment, its transcript's coins left out, is the one
 with the two calls (`map_soundnessExperiment`). -/
-theorem knowledgeSoundness_holds : KnowledgeSoundness :=
+theorem knowledgeSoundness_holds : KnowledgeSoundness transcriptExtractor :=
   knowledgeSoundness_of_withHash knowledgeSoundnessWithHash_holds
 
 -- `LeanVM.completeness_holds`, for the statement's prover `LeanVM.prover`, is proved in

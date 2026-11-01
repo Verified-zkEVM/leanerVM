@@ -6,7 +6,7 @@ import all LeanVM.Protocol.Extraction.Fast.Transcript
 import all LeanVM.Protocol.Extraction.Fast.Replay
 import all LeanVM.Protocol.Extraction.Fast.Lookup
 import all LeanVM.Protocol.Extraction.Fast.SortedMap
-import all Statement.Extractor
+import all LeanVM.Protocol.Extraction.Extractor
 
 /-!
 # The transcript's index and the committed word, compiled

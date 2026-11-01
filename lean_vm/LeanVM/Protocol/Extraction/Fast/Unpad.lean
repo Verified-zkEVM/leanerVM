@@ -1,6 +1,6 @@
 module
 
-public import Statement.LeanVm
+public import LeanVM.Protocol.Extraction.Extractor
 public import Common.Lanes
 public import Common.Sponge
 

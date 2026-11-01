@@ -3,7 +3,7 @@ module
 public import LeanVM.Cost.Extractor.Replay
 public import LeanVM.Protocol.Extraction.Fast.Compiled
 import all LeanVM.Protocol.Extraction.Fast.Compiled
-import all Statement.Extractor
+import all LeanVM.Protocol.Extraction.Extractor
 import all Statement.LeanIsa
 
 /-!

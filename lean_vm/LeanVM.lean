@@ -22,22 +22,27 @@ import LeanVM.Cost.Efficient
 statement of the repository, leanXMSS's, leanSPHINCS's and LeanDA's included, in one theorem.
 `LeanVM.corollaries_of_theorems` proves `Statement.Corollaries` (`Statement/Corollaries.lean`) from
 the fields of `Statement.Theorems` alone, and `LeanVM.corollaries_hold` for the decoder
-`LeanVM.Guest.End.decode`.
+`LeanVM.Guest.End.decode` and the extractor program `LeanVM.Cost.extractorProgram`.
 
-`Statement.Theorems`' field `extractorEfficient` (`Statement/CostMachine.lean`) is
-`LeanVM.Cost.extractorEfficient_holds` (`Cost/Efficient.lean`): the compiled extractor's program,
-its size within `extractorSizeBound`, its price within `extractorBudgetAt` (`Cost/Bounds/Top.lean`).
+**The extractor.** `Statement.Theorems` takes the extractor as a cost-machine program
+(`Statement/CostMachine.lean`): `extractorProgram`, the knowledge extractor `transcriptExtractor`
+(`LeanVM/Protocol/Extraction/Extractor.lean`) compiled (`Cost/Extractor/Top.lean`) behind an entry
+(`Cost/ExtractorProgram.lean`). Its size is within `extractorSizeBound`
+(`Cost/ExtractorSize.lean`), and the extractor it computes within its budget is
+`transcriptExtractor` (`LeanVM.Cost.extractorOf_extractorProgram`), for which
+`knowledgeSoundness_holds` is proved; its price is within `extractorBudgetAt`
+(`Cost/Bounds/Top.lean`).
 
 Each proves a proposition of `Statement/` (`Statement/README.md`), in the random-permutation model
 where an adversary is involved:
 
-* `LeanVM.knowledgeSoundness_holds : KnowledgeSoundness` and `LeanVM.completeness_holds :
-  Completeness` (`Statement/LeanVm.lean`): the verifier, knowledge sound for the fixed straight-line extractor
-  and complete;
+* `LeanVM.knowledgeSoundness_holds : KnowledgeSoundness transcriptExtractor` and
+  `LeanVM.completeness_holds : Completeness` (`Statement/LeanVm.lean`): the verifier, knowledge
+  sound for the straight-line extractor `transcriptExtractor`, and complete;
 * `LeanVM.Guest.End.guest_knowledge : GuestKnowledge guest decode` and
   `LeanVM.Guest.Binding.digest_binds : DigestBinds` (`Statement/LeanVmGuest.lean`; with
   `knowledgeSoundness_holds` they compose to `LeanVM.Guest.End.aggregate_sound_outer :
-  AggregateSound guest decode`, `Statement/Corollaries.lean`): the leanISA guest program, its
+  AggregateSound guest decode transcriptExtractor`, `Statement/Corollaries.lean`): the leanISA guest program, its
   witness named by the decoder
   `LeanVM.Guest.End.decode` (`LeanVM/Guest/EndFinal.lean`; the propositions hold of any decoder
   that outputs valid witnesses, their content is in the decoder the theorems name);
@@ -64,12 +69,13 @@ The two-oracle random-oracle model the proofs pass through (`LeanVM/Protocol/Rom
 (`tests/LeanVMTests/Protocol/` and `tests/LeanVMTests/Guest/Batch.lean` check their footprints).
 The build fails if their axiom footprint ever grows beyond Lean's three standard axioms. -/
 
-example : LeanVM.KnowledgeSoundness := LeanVM.knowledgeSoundness_holds
+example : LeanVM.KnowledgeSoundness LeanVM.transcriptExtractor := LeanVM.knowledgeSoundness_holds
 example : LeanVM.Completeness := LeanVM.completeness_holds
 example : LeanVM.Node.GuestKnowledge LeanVM.Guest.guest LeanVM.Guest.End.decode :=
   LeanVM.Guest.End.guest_knowledge
 example : LeanVM.Node.DigestBinds := LeanVM.Guest.Binding.digest_binds
-example : LeanVM.Node.AggregateSound LeanVM.Guest.guest LeanVM.Guest.End.decode :=
+example : LeanVM.Node.AggregateSound LeanVM.Guest.guest LeanVM.Guest.End.decode
+    LeanVM.transcriptExtractor :=
   LeanVM.Guest.End.aggregate_sound_outer
 example : LeanVM.Guest.Budget.GuestCompleteRecursion := LeanVM.Guest.Budget.guest_complete_recursion
 example : LeanVM.Guest.Budget.GuestCompleteLeaf := LeanVM.Guest.Budget.guest_complete_leaf
@@ -190,11 +196,13 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 #print axioms LeanVM.Guest.Budget.guest_child_complete
 
 /-- **Every end theorem**, `Statement/Theorems.lean`, the guest's witness named by
-`LeanVM.Guest.End.decode`. -/
+`LeanVM.Guest.End.decode`, the extractor `LeanVM.Cost.extractorProgram`. -/
 theorem LeanVM.theorems_hold :
-    Statement.Theorems LeanVM.Guest.End.decode where
-  knowledgeSoundness := LeanVM.knowledgeSoundness_holds
-  extractorEfficient := LeanVM.Cost.extractorEfficient_holds
+    Statement.Theorems LeanVM.Guest.End.decode LeanVM.Cost.extractorProgram where
+  extractorSize := LeanVM.Cost.extractorProgram_size_le
+  knowledgeSoundness := by
+    rw [LeanVM.Cost.extractorOf_extractorProgram]
+    exact LeanVM.knowledgeSoundness_holds
   completeness := LeanVM.completeness_holds
   guestKnowledge := LeanVM.Guest.End.guest_knowledge
   digestBinds := LeanVM.Guest.Binding.digest_binds
@@ -218,7 +226,8 @@ execution decodes, by `guestKnowledge`, to a statement of the accepted digest, w
 identifies with the accepted statement or turns into a collision), the completeness on recursion
 nodes and leaves from `guestCompleteCovered` (the first two families of `Covered`). -/
 theorem LeanVM.corollaries_of_theorems {decode : LeanVM.Node.Decoder}
-    (h : Statement.Theorems decode) : Statement.Corollaries decode where
+    {extractorProgram : LeanVM.Cost.Program} (h : Statement.Theorems decode extractorProgram) :
+    Statement.Corollaries decode extractorProgram where
   aggregateSound := by
     intro A Q hA hQ
     refine le_trans (prEvent_mono _ _ _ ?_) (h.knowledgeSoundness A Q hA hQ)
@@ -248,8 +257,9 @@ theorem LeanVM.corollaries_of_theorems {decode : LeanVM.Node.Decoder}
 #print axioms LeanVM.corollaries_of_theorems
 
 /-- **Every corollary**, `Statement/Corollaries.lean`, the guest program's witness named by
-`LeanVM.Guest.End.decode`. -/
-theorem LeanVM.corollaries_hold : Statement.Corollaries LeanVM.Guest.End.decode :=
+`LeanVM.Guest.End.decode`, the extractor `LeanVM.Cost.extractorProgram`. -/
+theorem LeanVM.corollaries_hold :
+    Statement.Corollaries LeanVM.Guest.End.decode LeanVM.Cost.extractorProgram :=
   LeanVM.corollaries_of_theorems LeanVM.theorems_hold
 
 /-- info: 'LeanVM.corollaries_hold' depends on axioms: [propext, Classical.choice, Quot.sound] -/

@@ -7,7 +7,7 @@
 `params.csv` is `params.lean`'s output: the list decoder's parameters at every shape `(μ, R)` as
 the statement computes them. Every cost is a count of operations of `K = GF(2^64)` or of 64-bit
 words, constants dropped, as `log2`; where the work is per lane it is counted for all `2^6` lanes.
-Each formula is read off the code it names (leanVM's `Statement/Extractor.lean`, CompPoly at the
+Each formula is read off the code it names (`lean_vm/LeanVM/Protocol/Extraction/Extractor.lean`, CompPoly at the
 lakefile's pin), and its derivation is in the comments.
 
 Three tiers:

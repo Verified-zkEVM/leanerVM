@@ -4,7 +4,7 @@ public import LeanVM.Protocol.Extraction.Fast.DecoderFast
 public import CompPoly.Univariate.Roots.Shoup.Correctness
 public import CompPoly.Bivariate.GuruswamiSudan.Root.FieldRoots.FiniteField
 import all CompPoly.Univariate.Raw.Modular
-import all Statement.Extractor
+import all LeanVM.Protocol.Extraction.Extractor
 
 /-!
 # The statement's root finder, restated

@@ -3,6 +3,7 @@ module
 public import LeanVM.Cost.Machine
 public import Statement.LeanVm
 public import LeanVM.Parameters.Field
+public import CompPoly.Univariate.Basic
 
 /-!
 # Values of the cost machine for the extractor's data

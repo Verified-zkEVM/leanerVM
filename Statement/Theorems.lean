@@ -12,7 +12,8 @@ public import Statement.CostMachine
 
 Everything this repository proves, in one place: each field of `Theorems` is one end statement,
 defined in the file of `Statement/` named next to it. `lean_vm/LeanVM.lean` proves
-`Statement.Theorems LeanVM.Guest.End.decode` (`LeanVM.theorems_hold`), and the build fails if its
+`Statement.Theorems LeanVM.Guest.End.decode LeanVM.Cost.extractorProgram`
+(`LeanVM.theorems_hold`), and the build fails if its
 axioms are ever more than Lean's three (`propext`, `Classical.choice`, `Quot.sound`).
 
 Statements that follow from these, in their composed form (what an accepted proof of the leanISA
@@ -20,7 +21,12 @@ guest program establishes; the guest program's completeness on recursion nodes a
 `Corollaries.lean`, proved from the fields of `Theorems` alone; a reviewer may skip it.
 
 The guest program's knowledge statement takes the decoder that names the witness as a parameter,
-`decode` (`LeanVmGuest.lean` says why its content is in that decoder). Every statement with an
+`decode` (`LeanVmGuest.lean` says why its content is in that decoder). leanVM's knowledge
+soundness takes the extractor as a parameter of the same kind, `extractorProgram`: a program of
+the cost machine (`CostMachine.lean`) of at most `extractorSizeBound` terms, its extractor the
+program run within a budget per shape (`LeanVM.extractorOf`). `lean_vm` names it
+(`LeanVM.Cost.extractorProgram`, its knowledge extractor compiled); a reader need not know which
+program it is. Every statement with an
 adversary is in the random-permutation model (`Statement/README.md`).
 -/
 
@@ -29,16 +35,17 @@ adversary is in the random-permutation model (`Statement/README.md`).
 namespace Statement
 
 /-- **The end theorems.** -/
-structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
-  /-- leanVM is knowledge sound for the straight-line extractor `transcriptExtractor`: at most
-  `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). -/
-  knowledgeSoundness : LeanVM.KnowledgeSoundness
-  /-- The extractor `transcriptExtractor` is efficient: a cost-machine program of at most
-  `extractorSizeBound` terms computes it on every input within `extractorBudget`, read off the
-  shape the proof announces; the machine's prices are trusted to be honest
-  (`CostMachine.lean`). The budget is about `2^117.67` at the worst shape for at most `2^40`
-  queries. -/
-  extractorEfficient : LeanVM.ExtractorEfficient
+structure Theorems (decode : LeanVM.Node.Decoder) (extractorProgram : LeanVM.Cost.Program) :
+    Prop where
+  /-- The extractor program has at most `extractorSizeBound` terms (`2^15`): it cannot carry a
+  table of witnesses (`CostMachine.lean`). -/
+  extractorSize : extractorProgram.size ≤ LeanVM.extractorSizeBound
+  /-- leanVM is knowledge sound for the straight-line extractor the program computes within its
+  budget, `extractorOf extractorProgram` (a run out of budget extracts nothing, a break; the
+  machine's prices are trusted to be honest, `CostMachine.lean`): at most
+  `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). The
+  budget is about `2^117.67` at the worst shape for at most `2^40` queries. -/
+  knowledgeSoundness : LeanVM.KnowledgeSoundness (LeanVM.extractorOf extractorProgram)
   /-- leanVM is complete: the honest prover's (`LeanVM.prover`, the executable
   `LeanVM.Prover.prove` of `Prover/Prove.lean`) proof of a valid execution of committed size at
   most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^25` nonces per proof of work, is

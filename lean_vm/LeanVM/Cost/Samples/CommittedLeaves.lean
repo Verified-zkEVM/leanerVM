@@ -3,7 +3,7 @@ module
 public import LeanVM.Cost.FastLib
 import all LeanVM.Protocol.Extraction.Fast.Lookup
 import all LeanVM.Protocol.Extraction.Fast.SortedMap
-import all Statement.Extractor
+import all LeanVM.Protocol.Extraction.Extractor
 
 /-!
 # Sample: the committed leaves, compiled

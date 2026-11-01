@@ -1,12 +1,12 @@
 module
 
-public import Statement.Extractor
+public import Statement.LeanVmVerifier
 
 /-!
 # The witness of an execution, executable
 
 The executable honest prover's first piece: from a trace, one forward run through the address
-indices (`powIndex`, `gLogIn` of `Extractor.lean`), then the six opcode tables' rows with their
+indices (`powIndex`, `gLogIn`, below), then the six opcode tables' rows with their
 read counts, the memory's and the bytecode's finalize counts kept as arrays by index.
 
 * `stepsFrom`, `runSteps`: the run, `step` computed through the two indices (`stepIn`), recording
@@ -20,11 +20,55 @@ read counts, the memory's and the bytecode's finalize counts kept as arrays by i
   bytecode slot's count likewise: the raw rows of `rowOf` (lean_vm,
   `Arithmetization/Completeness/Rows.lean`), written out as arrays (`rowIn`).
 
+The address indices and the public boundary (`powIndex`, `gLogIn`, `stepIn`, `boundaryOK`, in
+`LeanVM.Extraction`) are the knowledge extractor's too (`lean_vm`,
+`LeanVM/Protocol/Extraction/Extractor.lean`).
+
 The columns, the sizes and the stack of these rows are in `Statement/Prover/Columns.lean`. What
 each definition computes is proved in `lean_vm/LeanVM/Prover/Witness*.lean`.
 -/
 
 @[expose] public section
+
+namespace LeanVM.Extraction
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Verifier
+
+/-! ## The address indices and the public boundary -/
+
+/-- Insert `g^i ↦ i` into `m`, keyed by the lane of `g^i`, for the `n` indices `i` from `i₀`,
+where `x = g^i₀`: one multiplication and one insertion per index. -/
+def powIndexFrom : ℕ → ℕ → K → Std.HashMap UInt64 ℕ → Std.HashMap UInt64 ℕ
+  | 0, _, _, m => m
+  | n + 1, i, x, m => powIndexFrom n (i + 1) (x * g) (m.insert x.lane i)
+
+/-- **The index of the address space of `2^κ` words**: the lane of `g^i` ↦ `i`, for `i < 2^κ`. -/
+def powIndex (κ : ℕ) : Std.HashMap UInt64 ℕ := powIndexFrom (2 ^ κ) 0 1 ∅
+
+/-- The index of address `a` among `2^κ` words, looked up in `idx`: `some i` when `idx` maps the
+lane of `a` to `i < 2^κ` (`addressIndex?`, computed). -/
+def gLogIn (idx : Std.HashMap UInt64 ℕ) (κ : ℕ) (a : K) : Option (Fin (2 ^ κ)) :=
+  match idx[a.lane]? with
+  | some i => if h : i < 2 ^ κ then some ⟨i, h⟩ else none
+  | none => none
+
+/-- One step (`step`, computed) with the memory index `memIdx` and the bytecode index `codeIdx`:
+fetch the instruction at `pc`, then execute it (`executeWith`), reading the memory through
+`memIdx`. -/
+def stepIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) {κ : ℕ} (L : MemoryImage κ)
+    (r : Registers K) : Option (Registers K) :=
+  (gLogIn codeIdx prog.logSize r.pc).map prog.code >>=
+    executeWith (fun a ↦ (gLogIn memIdx κ a).map L) r
+
+/-- **The public boundary** (`HoldsPublicInput`), decided: the memory has between `2^16` and
+`2^32` words, and words `0` and `1` (at the addresses `g^0`, `g^1`) hold the public input. -/
+def boundaryOK {prog : Program} (input : PublicInput) (t : Execution prog) : Bool :=
+  if h : minLogMem ≤ t.logMemorySize ∧ t.logMemorySize ≤ maxLogMem then
+    decide (t.memory ⟨0, Nat.two_pow_pos t.logMemorySize⟩ = input.word0) &&
+      decide (t.memory ⟨1, Nat.one_lt_two_pow (by unfold minLogMem at h; omega)⟩ = input.word1)
+  else false
+
+end LeanVM.Extraction
 
 namespace LeanVM.Prover
 

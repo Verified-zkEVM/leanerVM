@@ -18,7 +18,7 @@ open Lean Elab Command in
 #eval show CommandElabM Unit from do
   let forbidden := [`LeanVM.Guest.B1, `LeanVM.Protocol, `LeanVM.Facts.Verifier, `LeanVM.Guest.Logic,
     `LeanVM.Guest.Bytecode, `LeanXmss, `Sphincs, `LeanDa, `Common, `Statement.LeanVm,
-    `Statement.LeanVmGuest, `Statement.Prover, `Statement.Extractor, `Statement.LeanXmss,
+    `Statement.LeanVmGuest, `Statement.Prover, `Statement.LeanXmss,
     `Statement.LeanSphincs, `Statement.LeanDa, `Statement.Fast.Schemes, `Statement.CostMachine,
     `Statement.Theorems, `Statement.Corollaries]
   let reached := (← getEnv).header.moduleNames.filter fun m ↦ forbidden.any (·.isPrefixOf m)

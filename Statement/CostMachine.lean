@@ -4,7 +4,7 @@ public import Statement.LeanVm
 public import Mathlib.Data.Nat.Notation
 
 /-!
-# The cost machine and the extractor's efficiency
+# The cost machine and the extractor a program computes
 
 **The machine.** A first-order functional language with prices. A program is an array of
 function bodies; a body reads its arguments and the values it binds by position, calls functions
@@ -21,7 +21,8 @@ value if the price is at most `b`, `none` otherwise; each call costs at least `1
 depth `b` never fails a run of price at most `b`.
 
 **Prices** (trusted: that they are honest, each a constant-time CPU primitive or priced by the
-algorithm that computes it, is an assumption of `ExtractorEfficient`). Each step costs at least `1`
+algorithm that computes it, is an assumption of `KnowledgeSoundness (extractorOf P)`). Each step
+costs at least `1`
 and at least the words it writes:
 * a variable, a literal, a field, a `case`'s selection, a `let`: `1`;
 * a constructor or a closure of `n` values: `n + 1` (a tag and `n` words);
@@ -42,13 +43,19 @@ constructor for each inductive type (its constructor's index as the tag, its fie
 arrays for `Vector` and for the functions of a finite domain (`Program.code`, `PublicInput.lanes`,
 an execution's memory). `encode prog input T proof` is the extractor's input: the program, the
 public input, the transcript's permutation queries (`permutationQueries`: the coins are dropped,
-`transcriptExtractor` reads only the queries) and the proof. `decodeExecution prog` is a linear
+they are the adversary's private randomness, answered by unbounded naturals) and the proof. `decodeExecution prog` is a linear
 parse of an execution, the inverse of its encoding: no search, no check, no run.
 
-**`LeanVM.ExtractorEfficient`**: a program of at most `extractorSizeBound` terms computes
-`transcriptExtractor` on every input within `extractorBudget`, the budget read off the shape the
-proof announces (`afterRoot`). A run that exceeds its budget outputs `none`, which counts as a
-break in `KnowledgeSoundness`. `decode` (`LeanVmGuest.lean`) is not costed.
+**The extractor a program computes** (`LeanVM.extractorOf P`): the program `P` run on the encoded
+statement, transcript and proof within `extractorBudget`, the budget read off the shape the proof
+announces (`afterRoot`: the verifier's first two steps, which read the announced sizes and the
+stack's root), its output parsed as an execution. A run that fails or exceeds its budget extracts
+nothing, which counts as a break in `KnowledgeSoundness`. `Statement.Theorems` takes the program
+as a parameter, with its size at most `extractorSizeBound`; `lean_vm` proves it for its knowledge
+extractor compiled. What excludes a vacuous statement: `P` is a program (no classical choice),
+the budget is far below a search for witnesses or forgeries, the size bound excludes a table of
+witnesses, and the machine's only runtime data is its input. `decode` (`LeanVmGuest.lean`) is not
+costed.
 
 **The budget** (`extractorBudgetAt`) is a closed formula in the shape the proof announces and the
 number of queries, `extractorPrice`: about `2^117.67` at the worst shape for at most `2^40`
@@ -482,7 +489,31 @@ end
 
 end LeanVM.Cost
 
-/-! ## The extractor's efficiency -/
+namespace LeanVM.Extraction
+
+open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+
+@[expose] public section
+
+/-! ## The announced shape -/
+
+/-- `verify_execution`'s steps 1 and 2 (`verifier.py:1467-1478`): read the announced sizes, then
+the stack's root; the layout and the WHIR rate exponent. -/
+def announceSizesAndRoot (bytecode : List K) : Prog (Layout × ℕ) := do
+  let (layout, logInverseRate) ← readSizes bytecode
+  commitStack layout.stackLog logInverseRate
+  return (layout, logInverseRate)
+
+/-- The verifier's state after its steps 1 and 2 on the proof `π`: the announced layout and rate
+exponent, and the state, whose first root is the stack's; `none` if the steps reject. -/
+def afterRoot (bytecode : List K) (π : Proof) : Option ((Layout × ℕ) × ProgState) :=
+  runPure (announceSizesAndRoot bytecode) ⟨⟨default, []⟩, π.stream, π.openings, []⟩
+
+end
+
+end LeanVM.Extraction
+
+/-! ## The extractor a program computes -/
 
 namespace LeanVM
 
@@ -504,23 +535,21 @@ def extractorBudgetAt (prog : Semantics.Program) (layout : Layout) (logInverseRa
   Cost.extractorPrice layout.stackLog logInverseRate layout.logMemory prog.logSize queries + 9
 
 /-- **The extractor's budget**, read off the shape the proof announces (`afterRoot`); `0` when
-it announces none, where `transcriptExtractor` returns `none` (a run out of budget outputs `none`
-too). -/
+it announces none (the run is then out of budget: nothing is extracted). -/
 def extractorBudget (prog : Semantics.Program) (T : OracleQueryLog) (proof : Proof) : ℕ :=
   match afterRoot (bytecodeWords prog) proof with
   | some ((layout, logInverseRate), _) =>
     extractorBudgetAt prog layout logInverseRate (permutationQueries T).length
   | none => 0
 
-/-- **The extractor is efficient**: a cost-machine program of at most `extractorSizeBound` terms,
-run within `extractorBudget` on the encoded statement, transcript and proof, outputs the
-encoding of `transcriptExtractor`'s execution, and nothing (`none`) where it returns none. -/
-def ExtractorEfficient : Prop :=
-  ∃ P : Cost.Program, P.size ≤ extractorSizeBound ∧
-    ∀ (prog : Semantics.Program) (input : PublicInput) (T : OracleQueryLog) (proof : Proof),
-      (Cost.outputWithin P (Cost.encode prog input T proof)
-          (extractorBudget prog T proof)).bind (Cost.decodeExecution prog) =
-        transcriptExtractor prog input T proof
+/-- **The extractor a program computes**: the program run within the budget on the encoded
+statement, transcript and proof (`encode`, `extractorBudget`), its output parsed as an execution
+(`decodeExecution`); `none` if the run fails, exceeds its budget, or outputs no execution's
+encoding. -/
+def extractorOf (P : Cost.Program) : StraightLineExtractor :=
+  fun prog input T proof ↦
+    (Cost.outputWithin P (Cost.encode prog input T proof) (extractorBudget prog T proof)).bind
+      (Cost.decodeExecution prog)
 
 end
 

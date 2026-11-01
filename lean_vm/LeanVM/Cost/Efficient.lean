@@ -4,10 +4,10 @@ public import LeanVM.Cost.ExtractorSize
 public import LeanVM.Cost.Bounds.Top
 
 /-!
-# The extractor's efficiency
+# The extractor the compiled program computes
 
-`LeanVM.ExtractorEfficient` (`Statement/CostMachine.lean`) runs a program's function `0` on one
-value, `encode prog input T proof = .ctor 0 [enc prog, enc input, enc qs, enc proof]` with
+`LeanVM.extractorOf P` (`Statement/CostMachine.lean`), the extractor of the end statement, runs
+the program's function `0` on one value, `encode prog input T proof = .ctor 0 [enc prog, enc input, enc qs, enc proof]` with
 `qs = permutationQueries T`, and decodes its output with `decodeExecution prog`, which parses an
 execution's encoding. The compiled extractor (`extractorC`, `Cost/Extractor/Top.lean`, computing
 `extractorTop`, `Fast/Compiled.lean`) is a function of four encoded arguments whose output encodes
@@ -19,13 +19,14 @@ the call (`runsBody_entry`).
 * **`extractorTop_output`**: in a program whose function `0` is `entryBody j`, if function `j`
   computes `extractorTop` at a price `cost` that is within `extractorBudgetAt` at the announced
   shape whenever the extraction succeeds, the decoded output within `extractorBudget` is
-  `transcriptExtractor`'s, on every input;
-* **`extractorEfficient_of_spec`**: with the program's size within `extractorSizeBound`,
-  `ExtractorEfficient`;
-* **`extractorEfficient_holds`**: for `extractorProgram` (its entry at `0`, its bodies held, its
-  size within `extractorSizeBound`: `Cost/ExtractorSize.lean`), the compiled extractor's spec
-  (`extractorC.costSpec`) and its price within the budget (`extractorC_within`,
-  `Cost/Bounds/Top.lean`), `ExtractorEfficient`.
+  `transcriptExtractor`'s, on every input; **`extractorOf_eq_of_spec`**: `extractorOf P =
+  transcriptExtractor`;
+* `extractorProgram_size_le`: `extractorProgram`'s size is within `extractorSizeBound`
+  (`Cost/ExtractorSize.lean`);
+* **`extractorOf_extractorProgram`**: for `extractorProgram` (its entry at `0`, its bodies held),
+  the compiled extractor's spec (`extractorC.costSpec`) and its price within the budget
+  (`extractorC_within`, `Cost/Bounds/Top.lean`), `extractorOf extractorProgram =
+  transcriptExtractor`.
 -/
 
 namespace LeanVM.Cost
@@ -144,9 +145,9 @@ theorem extractorTop_output (P : Program) (j : ℕ) (hentry : P[0]? = some (entr
         (by rw [hb]; exact hc)]
       exact decodeExecution_unwrap prog (some t)
 
-/-- **`ExtractorEfficient` from the compiled extractor's spec** and the program's size. -/
-theorem extractorEfficient_of_spec (P : Program) (hsize : P.size ≤ extractorSizeBound) (j : ℕ)
-    (hentry : P[0]? = some (entryBody j))
+/-- **The extractor a program computes is `transcriptExtractor`**, from the compiled extractor's
+spec at function `j` and its price within the budget. -/
+theorem extractorOf_eq_of_spec (P : Program) (j : ℕ) (hentry : P[0]? = some (entryBody j))
     (cost : Semantics.Program → PublicInput →
       List (PermutationQuery KeccakState × KeccakState) → Proof → ℕ)
     (hrun : ∀ prog input qs π, RunsBody P j [enc prog, enc input, enc qs, enc π]
@@ -156,8 +157,9 @@ theorem extractorEfficient_of_spec (P : Program) (hsize : P.size ≤ extractorSi
       extractorTop prog input (permutationQueries T) π = some t →
       cost prog input (permutationQueries T) π + 9 ≤
         extractorBudgetAt prog layout logInverseRate (permutationQueries T).length) :
-    LeanVM.ExtractorEfficient :=
-  ⟨P, hsize, extractorTop_output P j hentry cost hrun hcost⟩
+    LeanVM.extractorOf P = transcriptExtractor := by
+  funext prog input T proof
+  exact extractorTop_output P j hentry cost hrun hcost prog input T proof
 
 /-! ## The extractor's program -/
 
@@ -196,11 +198,10 @@ theorem extractorPrice_within_budget : ∀ prog input T π layout logInverseRate
     Bounds.extractorC_within extractorProgram extractorProgram_includes prog input T π layout
       logInverseRate st ha
 
-/-- **The extractor is efficient** (`LeanVM.ExtractorEfficient`): `extractorProgram`, of at most
-`extractorSizeBound` terms, computes `transcriptExtractor` within its budget on every input. -/
-theorem extractorEfficient_holds : LeanVM.ExtractorEfficient :=
-  extractorEfficient_of_spec extractorProgram extractorProgram_size_le extractorC.costIdx
-    extractorProgram_entry
+/-- **The extractor `extractorProgram` computes is `transcriptExtractor`**: its spec and its price
+within the budget. -/
+theorem extractorOf_extractorProgram : LeanVM.extractorOf extractorProgram = transcriptExtractor :=
+  extractorOf_eq_of_spec extractorProgram extractorC.costIdx extractorProgram_entry
     (fun prog input qs π ↦ machineCost extractorProgram extractorC.costIdx
       [enc prog, enc input, enc qs, enc π])
     (fun prog input qs π ↦ extractorC.costSpec extractorProgram extractorProgram_includes

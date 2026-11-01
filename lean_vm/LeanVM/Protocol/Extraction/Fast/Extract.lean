@@ -1,6 +1,6 @@
 module
 
-public import Statement.Extractor
+public import LeanVM.Protocol.Extraction.Extractor
 public import LeanVM.Protocol.Extraction.Fast.RothRuckenstein
 public import LeanVM.Protocol.Extraction.Lane
 public import LeanVM.Protocol.Extraction.Prune

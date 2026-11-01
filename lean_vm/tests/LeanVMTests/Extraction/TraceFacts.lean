@@ -1,4 +1,4 @@
-import Statement.Extractor
+import LeanVM.Protocol.Extraction.Extractor
 import LeanVM.Protocol.Extraction.Extract
 
 /-!

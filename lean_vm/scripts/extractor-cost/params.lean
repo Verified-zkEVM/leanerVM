@@ -3,7 +3,7 @@
   statement computes them (`Statement/Extractor.lean`): the input of `cost.py`.
   `cd Statement && lake env lean ../lean_vm/scripts/extractor-cost/params.lean > params.csv`
 -/
-import Statement.Extractor
+import LeanVM.Protocol.Extraction.Extractor
 open LeanVM.Extraction LeanVM.Parameters.Whir
 def row (μ R : ℕ) : String :=
   let κ := μ - initialFold

@@ -31,7 +31,7 @@ import all LeanVM.Cost.FastLib
 import all CompPoly.Bivariate.GuruswamiSudan.Root.RothRuckenstein.Algorithm
 import all CompPoly.Bivariate.GuruswamiSudan.PolynomialCorrectness
 
-import all Statement.Extractor
+import all LeanVM.Protocol.Extraction.Extractor
 import all Init.Data.List.Sort.Basic
 
 /-!

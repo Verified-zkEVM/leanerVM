@@ -4,7 +4,7 @@ public import LeanVM.Cost.FastLib
 public import LeanVM.Cost.Extractor.Runner
 public import LeanVM.Protocol.Extraction.Fast.AfterRoot
 import all LeanVM.Protocol.Extraction.Fast.AfterRoot
-import all Statement.Extractor
+import all LeanVM.Protocol.Extraction.Extractor
 import all Statement.LeanVmVerifier
 
 /-!

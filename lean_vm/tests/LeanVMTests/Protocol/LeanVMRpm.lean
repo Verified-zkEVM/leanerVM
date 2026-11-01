@@ -24,7 +24,7 @@ example (q : ℕ) : rpmError q = (q ^ 2 : ENNReal) / 2 ^ 508 := rfl
 
 example : verifierPermCalls = 12006 * 2 ^ 32 := rfl
 
-example : KnowledgeSoundness := knowledgeSoundness_holds
+example : KnowledgeSoundness transcriptExtractor := knowledgeSoundness_holds
 
 example : Completeness := completeness_holds
 

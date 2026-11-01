@@ -6,7 +6,7 @@ public import LeanVM.Protocol.Extraction.Fast.Extract
 import all LeanVM.Protocol.Extraction.Fast.RunVec
 import all LeanVM.Protocol.Extraction.Fast.AfterRoot
 import all LeanVM.Protocol.Extraction.Fast.Extract
-import all Statement.Extractor
+import all LeanVM.Protocol.Extraction.Extractor
 
 /-!
 # The candidate runner and the fast path, compiled

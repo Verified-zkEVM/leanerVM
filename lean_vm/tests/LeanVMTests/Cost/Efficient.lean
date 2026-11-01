@@ -13,7 +13,8 @@ import LeanVM.Cost.Samples.MsStep
 * the extractor's program (`extractorProgram`): `512` bodies, the entry's and the compiled
   extractor's, the largest index `524`, its size `10491` (the bound `size_ofList_le` gives,
   `11515`, is what `Cost/ExtractorSize.lean` proves; `extractorSizeBound` is `2^15`);
-* the axioms of `extractorEfficient_holds`, `ExtractorEfficient`, proved outright.
+* the axioms of `extractorOf_extractorProgram`, `extractorOf extractorProgram =
+  transcriptExtractor`.
 -/
 
 namespace LeanVMTests.Cost
@@ -52,8 +53,8 @@ theorem msProgram_size : (Program.ofList msProgramBodies).size ≤ 2 ^ 10 :=
 #guard extractorProgram.size == 10491
 #guard (extractorProgramBodies.map fun p ↦ p.2.size).sum == 10465
 
-/-- info: 'LeanVM.Cost.extractorEfficient_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Cost.extractorOf_extractorProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms extractorEfficient_holds
+#print axioms extractorOf_extractorProgram
 
 end LeanVMTests.Cost

@@ -9,7 +9,7 @@
 
 module
 
-public import Statement.LeanVm
+public import LeanVM.Protocol.Extraction.Extractor
 
 /-!
 # The verifier, the prover and the experiments with a hash of their own

@@ -1,6 +1,5 @@
 module
 
-public import Statement.Extractor
 public import Statement.Prover.Prove
 public import Statement.RandomPermutation
 public import VCVio.OracleComp.OracleComp
@@ -27,14 +26,13 @@ evaluation is a sequence of forward queries, which it makes itself. The experime
 (`soundnessExperiment`) is one game: the adversary, then the verifier on its statement and proof,
 run against the lazily sampled permutation from no edge (`Common.runWithRandomPermutation`).
 
-**Knowledge soundness** is stated for one extractor, `transcriptExtractor`, which is straight-line:
-it reads the statement, the proof and the adversary's transcript, and nothing else (it neither
-queries `π` nor rewinds the adversary). It is `Extractor.lean`'s `extract` on the Keccak-256
-evaluations the transcript's permutation queries hold (`keccakEvaluationsOfTranscript`; the coins
-left out, `permutationQueries`). An accepted proof thus commits,
-except with the bound's probability, to a stack whose memory columns hold a valid execution, among
-the at most `2^18` stacks the word the adversary hashed is close to (proved for every admissible
-shape and word: `LeanVM.candidates_ncard_le`).
+**Knowledge soundness** is stated for a straight-line extractor (`StraightLineExtractor`), which
+reads the statement, the proof and the adversary's transcript, and nothing else (it neither
+queries `π` nor rewinds the adversary): `KnowledgeSoundness extractor`. `Statement.Theorems` states
+it for the extractor a cost-machine program of bounded size computes within a budget per shape
+(`LeanVM.extractorOf`, `CostMachine.lean`); which program is `lean_vm`'s (the extractor it proves
+sound, compiled), and a reader need not know it: its size bound and its budget exclude a search
+for witnesses, and a run out of budget extracts nothing, a break.
 
 **Completeness** is stated for one honest prover, `prover`: `LeanVM.Prover.prove`
 (`Statement/Prover/Prove.lean`), an executable program (over Keccak-f[1600] it is
@@ -151,93 +149,37 @@ noncomputable def soundnessExperiment (A : RandomPermutationAdversary) :
 
 /-! ### The extractor -/
 
-/-- The bytes Keccak-256 absorbs for the message `m`: its whole blocks of `136` bytes, then the
-padded last block (`padBlock`, as `keccak256With` absorbs them). -/
-def keccakPadded (m : Bytes) : Bytes :=
-  m.take (rate * (m.length / rate)) ++ padBlock (m.drop (rate * (m.length / rate)))
-
-/-- The message whose padding is `bs`, if any: the prefix of `bs` short of `1` to `136` bytes
-that pads to `bs` (there is at most one). -/
-def keccakUnpadded (bs : Bytes) : Option Bytes :=
-  ((List.range rate).map fun k ↦ bs.take (bs.length - 1 - k)).find? (keccakPadded · = bs)
-
-/-- The extractor's bookkeeping of a transcript: the edges `(x, π x)` fixed so far, newest first,
-and the states that a chain of forward queries reaches from the zero state, each with the bytes
-its path absorbed, newest first. -/
-structure TranscriptReplay where
-  /-- The edges `(x, π x)` fixed so far, newest first. -/
-  edges : PermutationEdges KeccakState
-  /-- The states reached from the zero state, with the bytes their paths absorbed. -/
-  spongePaths : List (KeccakState × Bytes)
-
-/-- One query and its answer. A forward query `π x` that fixes a new edge extends the chain of a
-state `s` with the capacity of `x` (lanes `17 … 24`), if there is one, by the block that takes
-`s` to `x`: the bytes of their rates' XOR, lanes `0 … 16`. An inverse query extends no chain. -/
-def TranscriptReplay.step (σ : TranscriptReplay) :
-    PermutationQuery KeccakState × KeccakState → TranscriptReplay
-  | (.forward x, y) =>
-    match Common.forwardLookup σ.edges x with
-    | some _ => σ
-    | none =>
-      match σ.spongePaths.find? (fun p ↦ p.1.toList.drop 17 = x.toList.drop 17) with
-      | some (s, bs) =>
-        ⟨(x, y) :: σ.edges, (y, bs ++ (List.range 17).flatMap fun i ↦
-          wordBytes (Keccak.lane s i ^^^ Keccak.lane x i)) :: σ.spongePaths⟩
-      | none => ⟨(x, y) :: σ.edges, σ.spongePaths⟩
-  | (.inverse y, x) =>
-    match Common.inverseLookup σ.edges y with
-    | some _ => σ
-    | none => ⟨(x, y) :: σ.edges, σ.spongePaths⟩
-
-/-- **The Keccak-256 evaluations a transcript holds**: the byte strings whose whole padded sponge
-path the transcript (oldest first) holds as a chain of forward queries from the zero state, each
-query absorbing the next block into the answer of the one before and each the query that first
-fixed its edge (an edge first fixed by an inverse query extends no path), with the first four lanes
-of the path's last answer. -/
-def keccakEvaluationsOfTranscript (T : List (PermutationQuery KeccakState × KeccakState)) :
-    List (Bytes × Digest) :=
-  (T.foldl TranscriptReplay.step ⟨[], [(Vector.replicate 25 0, [])]⟩).spongePaths.filterMap fun p ↦
-    (keccakUnpadded p.2).map fun m ↦ (m, #v[p.1[0], p.1[1], p.1[2], p.1[3]])
-
 /-- The permutation queries of a transcript and their answers, oldest first: its coins left out. -/
 def permutationQueries (T : OracleQueryLog) : List (PermutationQuery KeccakState × KeccakState) :=
   T.filterMap fun
     | ⟨.inl _, _⟩ => none
     | ⟨.inr q, y⟩ => some (q, y)
 
-/-- The Keccak-256 evaluation of `x` among the paths `P`, if `P` holds one. -/
-def lookupEvaluation (P : List (Bytes × Digest)) (x : Bytes) : Option Digest :=
-  (P.find? (·.1 = x)).map (·.2)
-
-/-- **The extractor in the random-permutation model**: from the statement, the adversary's
-transcript and the proof, an execution of the program: the extractor of `Extractor.lean`
-(`LeanVM.Extraction.extract`) on the Keccak-256 evaluations of the transcript's permutation queries
-(`lookupEvaluation (keccakEvaluationsOfTranscript (permutationQueries T))`), the byte strings they
-answer being those of the transcript's paths. The paths are computed once. -/
-def transcriptExtractor (prog : Program) (input : PublicInput) (T : OracleQueryLog)
-    (proof : Proof) : Option (Execution prog) :=
-  let paths := keccakEvaluationsOfTranscript (permutationQueries T)
-  Extraction.extract prog input (bytecodeWords prog) (lookupEvaluation paths)
-    (paths.map (·.1)) proof
+/-- **A straight-line extractor**: from the statement (a program and a public input), the
+adversary's transcript and the proof, an execution of the program, or none. It reads nothing
+else: it neither queries `π` nor runs the adversary again. -/
+abbrev StraightLineExtractor : Type :=
+  (prog : Program) → PublicInput → OracleQueryLog → Proof → Option (Execution prog)
 
 /-! ### Knowledge soundness -/
 
-/-- **The adversary breaks soundness**: the verifier accepts its statement and proof, and the
-execution `transcriptExtractor` extracts from the transcript and the proof is not a valid execution
-of the program on the public input. -/
-def BreaksKnowledgeSoundness (z : ExperimentOutcome) : Prop :=
-  z.accepted ∧ ¬ ∃ t, transcriptExtractor z.program z.input z.transcript z.proof = some t ∧
+/-- **The adversary breaks soundness** for the extractor `extractor`: the verifier accepts its
+statement and proof, and the execution `extractor` extracts from the transcript and the proof is
+not a valid execution of the program on the public input (no execution, `none`, is a break). -/
+def BreaksKnowledgeSoundness (extractor : StraightLineExtractor) (z : ExperimentOutcome) : Prop :=
+  z.accepted ∧ ¬ ∃ t, extractor z.program z.input z.transcript z.proof = some t ∧
     ValidExecution z.program z.input t
 
-/-- **Knowledge soundness in the random-permutation model**, for the extractor
-`transcriptExtractor`: an adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free)
-breaks soundness with probability at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, the `2^14`
-covering the verifier's own `12006` oracle calls and two terms of `2^-128` (a guessed stack root,
-the transfer from two random oracles to one permutation). -/
-def KnowledgeSoundness : Prop :=
+/-- **Knowledge soundness in the random-permutation model**, for the extractor `extractor`: an
+adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free) breaks soundness with
+probability at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, the `2^14` covering the
+verifier's own `12006` oracle calls and two terms of `2^-128` (a guessed stack root, the transfer
+from two random oracles to one permutation). `Statement.Theorems` states it for the extractor a
+cost-machine program computes within its budget (`LeanVM.extractorOf`, `CostMachine.lean`). -/
+def KnowledgeSoundness (extractor : StraightLineExtractor) : Prop :=
   ∀ (A : RandomPermutationAdversary) (Q : ℕ),
     Common.QueryCostAtMost A Common.permutationCallCost Q → Q ≤ 2 ^ 128 →
-    Pr{let z ← soundnessExperiment A}[BreaksKnowledgeSoundness z] ≤
+    Pr{let z ← soundnessExperiment A}[BreaksKnowledgeSoundness extractor z] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
         5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 

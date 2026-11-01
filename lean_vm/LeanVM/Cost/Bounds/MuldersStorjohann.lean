@@ -3,7 +3,7 @@ module
 public import CompPoly.LinearAlgebra.PolynomialMatrix.MuldersStorjohannCorrectness
 public import CompPoly.Bivariate.GuruswamiSudan.Interpolation.LeeOSullivan.Correctness
 public import CompPoly.Bivariate.ToPoly
-public import Statement.Extractor
+public import LeanVM.Protocol.Extraction.Extractor
 import all CompPoly.Univariate.Basic
 
 /-!

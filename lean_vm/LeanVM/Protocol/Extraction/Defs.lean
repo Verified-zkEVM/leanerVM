@@ -8,7 +8,7 @@
 
 module
 
-public import Statement.Extractor
+public import LeanVM.Protocol.Extraction.Extractor
 public import LeanVM.Protocol.WithHash
 
 /-!

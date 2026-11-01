@@ -5,7 +5,7 @@
   `cd lean_vm && lake env lean --run scripts/extractor-cost/Closure.lean`
 -/
 import Lean
-import Statement.LeanVm
+import LeanVM.Protocol.Extraction.Extractor
 
 open Lean
 
@@ -55,7 +55,7 @@ def topOf (m : String) : String :=
 
 def main (args : List String) : IO Unit := do
   initSearchPath (← findSysroot)
-  let env ← importModules #[{ module := `Statement.LeanVm }] {} 0 (loadExts := false)
+  let env ← importModules #[{ module := `LeanVM.Protocol.Extraction.Extractor }] {} 0 (loadExts := false)
   let root : Name := match args with
     | r :: _ => r.toName
     | [] => `LeanVM.transcriptExtractor

@@ -77,7 +77,8 @@ aggregate's statement `s`, under the deployed seed and of the guest's shape,
 is the one the execution the extractor reads off the proof and the transcript decodes, with a
 witness holding it, or that execution's decoding and `s` give an explicit Keccak-256
 collision. -/
-theorem aggregate_sound_outer_of (h : SoundHyps W) : AggregateSound guest (decodeWith W) := by
+theorem aggregate_sound_outer_of (h : SoundHyps W) :
+    AggregateSound guest (decodeWith W) transcriptExtractor := by
   intro A Q hA hQ
   refine le_trans (prEvent_mono _ _ _ ?_) (aggregate_knowledge_of h A Q hA hQ)
   rintro z ⟨s, hb, hprog, hpub, hs, hno⟩
@@ -91,12 +92,12 @@ theorem aggregate_sound_outer_of (h : SoundHyps W) : AggregateSound guest (decod
 /-- **What the outer verifier's acceptance establishes**, from B2 and `verify_sub`'s
 statement. -/
 theorem aggregate_sound_outer_V {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof} (hb2 : B2SoundL)
-    (hv : B1.Main.SubSoundW bytecode piOf) : AggregateSound guest (decodeV piOf) :=
+    (hv : B1.Main.SubSoundW bytecode piOf) : AggregateSound guest (decodeV piOf) transcriptExtractor :=
   aggregate_sound_outer_of (soundHyps_of_sub hb2 hv)
 
 /-- **What the outer verifier's acceptance establishes**, from `verify_sub`'s statement. -/
 theorem aggregate_sound_outer_sub {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof}
-    (hv : B1.Main.SubSoundW bytecode piOf) : AggregateSound guest (decodeV piOf) :=
+    (hv : B1.Main.SubSoundW bytecode piOf) : AggregateSound guest (decodeV piOf) transcriptExtractor :=
   aggregate_sound_outer_V b2SoundL hv
 
 /-- **The aggregate's soundness, its witness named**, for the deployed guest and its decoder: in
@@ -118,7 +119,8 @@ guest and its decoder, in the random-permutation model: except with probability
 the deployed seed and of the guest's shape, is the one the execution the
 extractor reads off the proof and the adversary's transcript (one is extracted) decodes, with a
 witness holding it, or that execution's decoding and `s` give an explicit Keccak-256 collision. -/
-theorem aggregate_sound_outer : AggregateSound guest decode := aggregate_sound_outer_sub subSoundW
+theorem aggregate_sound_outer : AggregateSound guest decode transcriptExtractor :=
+  aggregate_sound_outer_sub subSoundW
 
 /-- **The guest's completeness in the random-permutation model**: under the hypotheses, there is
 an execution of the guest on the statement's digest whose honest proof, at an inverse rate `2^ρ`,

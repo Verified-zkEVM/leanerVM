@@ -1,7 +1,6 @@
 module
 
-public import Statement.LeanIsa
-public import Statement.LeanVmVerifier
+public import Statement.CostMachine
 public import CompPoly.Univariate.Roots.Shoup.Basic
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Mathlib.Algebra.CharP.Lemmas
@@ -19,9 +18,9 @@ public import CompPoly.LinearAlgebra.PolynomialMatrix.MuldersStorjohannCorrectne
 /-!
 # The knowledge extractor
 
-The fixed straight-line extractor of `KnowledgeSoundness` (`Statement/LeanVm.lean`), `extract`,
-which `LeanVM.transcriptExtractor` applies to the program's bytecode and to the Keccak-256
-evaluations of the adversary's transcript of queries to the random permutation (the byte strings
+The straight-line extractor `lean_vm` proves knowledge soundness for, `extract`, which
+`LeanVM.transcriptExtractor` (at the end of this file) applies to the program's bytecode and to
+the Keccak-256 evaluations of the adversary's transcript of queries to the random permutation (the byte strings
 whose whole sponge path the adversary queried, with their digests, and the list of those byte
 strings, `keys`). It reads the statement (the program, its bytecode and the public input), the proof
 and those evaluations, and nothing else: it neither queries the permutation, nor sees the verifier's
@@ -33,7 +32,8 @@ polynomial in the announced committed size `2^μ` and the number `N` of evaluati
 linear in the bytecode; it is infeasible at deployed sizes except on a word without errors
 (`fastStacks`). The cost table below is read off its loops, not proved.
 
-1. **The announced sizes and the stack's root** (`afterRoot`): read off the proof as the
+1. **The announced sizes and the stack's root** (`afterRoot`, `Statement/CostMachine.lean`, which
+   the budget reads too): read off the proof as the
    verifier's steps 1 and 2 read them (`verifier.py:1467-1478`), with every hash and permutation
    answered by a constant (`runPure`): what they read does not depend on the sponge.
 2. **The committed word** (`committedLeaves`, `leafAt`): the Merkle tree under the root inverted
@@ -96,11 +96,20 @@ roots (`ℓ²·k/2` per substitution, `2^80.1` in all), skips the final root che
 Guruswami–Sudan lemma makes it redundant, looks up addresses by binary search in sorted tables,
 and keeps the replay, the first answers and the preimages in sorted maps (`O(log² N)` comparisons
 per lookup, worst-case, keeping evaluations of at most `L = max(64, 8·width)` bytes): about
-`2^107.5` at the worst shape, the interpolation dominating. `LeanVM.ExtractorEfficient`
-(`CostMachine.lean`) is the proved form: a cost-machine program computes `transcriptExtractor`
-within a budget per shape.
+`2^107.5` at the worst shape, the interpolation dominating. Compiled to the cost machine of
+`Statement/CostMachine.lean` (`Cost/Extractor/Top.lean`), it is the program `extractorProgram`
+(`Cost/ExtractorProgram.lean`) of the end statement: `extractorOf extractorProgram =
+transcriptExtractor` (`Cost/Efficient.lean`).
 Each lane's list is sorted (`laneListAt`, `coeffsLE`), so it depends only on the set the decoder
 returns, whichever interpolation computes it.
+
+**Where it was.** This file and the transcript's extractor were the trusted statement's
+(`Statement/Extractor.lean`, `Statement/LeanVm.lean`) until the end statement took the extractor
+as a cost-machine program within a size bound and a budget (`LeanVM.extractorOf`,
+`Statement/CostMachine.lean`): moved here verbatim, but for the announced sizes and root
+(`afterRoot`, `Statement/CostMachine.lean`) and the address indices and the public boundary
+(`powIndex`, `gLogIn`, `stepIn`, `boundaryOK`, `Statement/Prover/Witness.lean`), which the
+statement keeps for the budget and the honest prover.
 
 The Annexes are cited at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
 
@@ -136,20 +145,6 @@ namespace LeanVM.Extraction
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier LeanVM.Parameters.Whir LeanVM.Protocol.KeccakHash
 open CompPoly CompPoly.GuruswamiSudan CompPoly.CPolynomial.Roots.FiniteField
-
-/-! ### 1. The announced sizes and the stack's root -/
-
-/-- `verify_execution`'s steps 1 and 2 (`verifier.py:1467-1478`): read the announced sizes, then
-the stack's root; the layout and the WHIR rate exponent. -/
-def announceSizesAndRoot (bytecode : List K) : Prog (Layout × ℕ) := do
-  let (layout, logInverseRate) ← readSizes bytecode
-  commitStack layout.stackLog logInverseRate
-  return (layout, logInverseRate)
-
-/-- The verifier's state after its steps 1 and 2 on the proof `π`: the announced layout and rate
-exponent, and the state, whose first root is the stack's; `none` if the steps reject. -/
-def afterRoot (bytecode : List K) (π : Proof) : Option ((Layout × ℕ) × ProgState) :=
-  runPure (announceSizesAndRoot bytecode) ⟨⟨default, []⟩, π.stream, π.openings, []⟩
 
 /-! ### 2. The committed word -/
 
@@ -696,30 +691,6 @@ def memoryImage (layout : Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) : MemoryIma
     let limb (column : ℕ) : K := q.getD ((layout.placement column).index + i) 0
     E.ofLimbs (limb memory0) (limb memory1) (limb memory2)
 
-/-- Insert `g^i ↦ i` into `m`, keyed by the lane of `g^i`, for the `n` indices `i` from `i₀`,
-where `x = g^i₀`: one multiplication and one insertion per index. -/
-def powIndexFrom : ℕ → ℕ → K → Std.HashMap UInt64 ℕ → Std.HashMap UInt64 ℕ
-  | 0, _, _, m => m
-  | n + 1, i, x, m => powIndexFrom n (i + 1) (x * g) (m.insert x.lane i)
-
-/-- **The index of the address space of `2^κ` words**: the lane of `g^i` ↦ `i`, for `i < 2^κ`. -/
-def powIndex (κ : ℕ) : Std.HashMap UInt64 ℕ := powIndexFrom (2 ^ κ) 0 1 ∅
-
-/-- The index of address `a` among `2^κ` words, looked up in `idx`: `some i` when `idx` maps the
-lane of `a` to `i < 2^κ` (`addressIndex?`, computed). -/
-def gLogIn (idx : Std.HashMap UInt64 ℕ) (κ : ℕ) (a : K) : Option (Fin (2 ^ κ)) :=
-  match idx[a.lane]? with
-  | some i => if h : i < 2 ^ κ then some ⟨i, h⟩ else none
-  | none => none
-
-/-- One step (`step`, computed) with the memory index `memIdx` and the bytecode index `codeIdx`:
-fetch the instruction at `pc`, then execute it (`executeWith`), reading the memory through
-`memIdx`. -/
-def stepIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) {κ : ℕ} (L : MemoryImage κ)
-    (r : Registers K) : Option (Registers K) :=
-  (gLogIn codeIdx prog.logSize r.pc).map prog.code >>=
-    executeWith (fun a ↦ (gLogIn memIdx κ a).map L) r
-
 /-- The halting search from `r`, reached after `n` steps, with at most `fuel` more steps: `some m`
 when the run is in the final state after `m` steps in all; `none` if a step fails or the fuel runs
 out first. -/
@@ -744,14 +715,6 @@ log-height `τ_j`, the `2^logMemory` words of the memory and the `2^logBytecode`
 bytecode. -/
 def stepCap (layout : Layout) : ℕ :=
   (layout.tableLogHeights.map (2 ^ ·)).sum + 2 ^ layout.logMemory + 2 ^ layout.logBytecode
-
-/-- **The public boundary** (`HoldsPublicInput`), decided: the memory has between `2^16` and
-`2^32` words, and words `0` and `1` (at the addresses `g^0`, `g^1`) hold the public input. -/
-def boundaryOK {prog : Program} (input : PublicInput) (t : Execution prog) : Bool :=
-  if h : minLogMem ≤ t.logMemorySize ∧ t.logMemorySize ≤ maxLogMem then
-    decide (t.memory ⟨0, Nat.two_pow_pos t.logMemorySize⟩ = input.word0) &&
-      decide (t.memory ⟨1, Nat.one_lt_two_pow (by unfold minLogMem at h; omega)⟩ = input.word1)
-  else false
 
 /-- **The execution of a stack**: the halting run of its memory image within the layout's step
 cap, if it has the public boundary of `input`; `memIdx` and `codeIdx` index the memory's and the
@@ -784,5 +747,78 @@ def extract (prog : Program) (input : PublicInput) (bytecode : List K)
     (decodeStacks layout.stackLog logInverseRate word).findSome? execution
 
 end LeanVM.Extraction
+
+namespace LeanVM
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol
+open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
+open Common
+
+/-! ## The transcript's extractor -/
+
+/-- The bytes Keccak-256 absorbs for the message `m`: its whole blocks of `136` bytes, then the
+padded last block (`padBlock`, as `keccak256With` absorbs them). -/
+def keccakPadded (m : Bytes) : Bytes :=
+  m.take (rate * (m.length / rate)) ++ padBlock (m.drop (rate * (m.length / rate)))
+
+/-- The message whose padding is `bs`, if any: the prefix of `bs` short of `1` to `136` bytes
+that pads to `bs` (there is at most one). -/
+def keccakUnpadded (bs : Bytes) : Option Bytes :=
+  ((List.range rate).map fun k ↦ bs.take (bs.length - 1 - k)).find? (keccakPadded · = bs)
+
+/-- The extractor's bookkeeping of a transcript: the edges `(x, π x)` fixed so far, newest first,
+and the states that a chain of forward queries reaches from the zero state, each with the bytes
+its path absorbed, newest first. -/
+structure TranscriptReplay where
+  /-- The edges `(x, π x)` fixed so far, newest first. -/
+  edges : PermutationEdges KeccakState
+  /-- The states reached from the zero state, with the bytes their paths absorbed. -/
+  spongePaths : List (KeccakState × Bytes)
+
+/-- One query and its answer. A forward query `π x` that fixes a new edge extends the chain of a
+state `s` with the capacity of `x` (lanes `17 … 24`), if there is one, by the block that takes
+`s` to `x`: the bytes of their rates' XOR, lanes `0 … 16`. An inverse query extends no chain. -/
+def TranscriptReplay.step (σ : TranscriptReplay) :
+    PermutationQuery KeccakState × KeccakState → TranscriptReplay
+  | (.forward x, y) =>
+    match Common.forwardLookup σ.edges x with
+    | some _ => σ
+    | none =>
+      match σ.spongePaths.find? (fun p ↦ p.1.toList.drop 17 = x.toList.drop 17) with
+      | some (s, bs) =>
+        ⟨(x, y) :: σ.edges, (y, bs ++ (List.range 17).flatMap fun i ↦
+          wordBytes (Keccak.lane s i ^^^ Keccak.lane x i)) :: σ.spongePaths⟩
+      | none => ⟨(x, y) :: σ.edges, σ.spongePaths⟩
+  | (.inverse y, x) =>
+    match Common.inverseLookup σ.edges y with
+    | some _ => σ
+    | none => ⟨(x, y) :: σ.edges, σ.spongePaths⟩
+
+/-- **The Keccak-256 evaluations a transcript holds**: the byte strings whose whole padded sponge
+path the transcript (oldest first) holds as a chain of forward queries from the zero state, each
+query absorbing the next block into the answer of the one before and each the query that first
+fixed its edge (an edge first fixed by an inverse query extends no path), with the first four lanes
+of the path's last answer. -/
+def keccakEvaluationsOfTranscript (T : List (PermutationQuery KeccakState × KeccakState)) :
+    List (Bytes × Digest) :=
+  (T.foldl TranscriptReplay.step ⟨[], [(Vector.replicate 25 0, [])]⟩).spongePaths.filterMap fun p ↦
+    (keccakUnpadded p.2).map fun m ↦ (m, #v[p.1[0], p.1[1], p.1[2], p.1[3]])
+
+/-- The Keccak-256 evaluation of `x` among the paths `P`, if `P` holds one. -/
+def lookupEvaluation (P : List (Bytes × Digest)) (x : Bytes) : Option Digest :=
+  (P.find? (·.1 = x)).map (·.2)
+
+/-- **The extractor in the random-permutation model**: from the statement, the adversary's
+transcript and the proof, an execution of the program: the extractor of `Extractor.lean`
+(`LeanVM.Extraction.extract`) on the Keccak-256 evaluations of the transcript's permutation queries
+(`lookupEvaluation (keccakEvaluationsOfTranscript (permutationQueries T))`), the byte strings they
+answer being those of the transcript's paths. The paths are computed once. -/
+def transcriptExtractor (prog : Program) (input : PublicInput) (T : OracleQueryLog)
+    (proof : Proof) : Option (Execution prog) :=
+  let paths := keccakEvaluationsOfTranscript (permutationQueries T)
+  Extraction.extract prog input (bytecodeWords prog) (lookupEvaluation paths)
+    (paths.map (·.1)) proof
+
+end LeanVM
 
 end
