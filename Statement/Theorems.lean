@@ -14,9 +14,8 @@ Everything this repository proves, in one place: each field of `Theorems` is one
 defined in the file of `Statement/` named next to it, or, for the guest decoder program
 (`GuestKnowledge`, its encodings, size bound and budget), in this file's first section.
 `lean_vm/LeanVM.lean` proves `Statement.Theorems (decoderProgram := D) (extractorProgram :=
-LeanVM.Cost.extractorProgram)` (`LeanVM.theorems_hold`, `D` the compiled decoder, for now under
-the hypothesis that its price is within its budget), and the build fails if its axioms are ever
-more than Lean's three (`propext`, `Classical.choice`, `Quot.sound`).
+LeanVM.Cost.extractorProgram)` (`LeanVM.theorems_hold`, `D` the compiled decoder
+`LeanVM.Cost.decoderProgram`), and the build fails if its axioms are ever more than Lean's three (`propext`, `Classical.choice`, `Quot.sound`).
 
 Statements that follow from these, in their composed form (what an accepted proof of the leanISA
 guest program establishes; the guest program's completeness on recursion nodes and leaves), are in

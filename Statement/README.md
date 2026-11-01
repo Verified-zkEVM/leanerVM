@@ -214,10 +214,9 @@ instances.
 theorem, `LeanVM.theorems_hold`, whose axioms the build pins to Lean's three. Start there.
 `theorems_hold` is `Statement.Theorems (decoderProgram := LeanVM.Cost.decoderProgram)
 (extractorProgram := LeanVM.Cost.extractorProgram)`, the decoder the deployed one compiled
-([`lean_vm/LeanVM/Cost/Decoder/`](../lean_vm/LeanVM/Cost/Decoder/)), for now under one hypothesis:
-the decoder program's price within its budget (`LeanVM.Cost.DecoderPriceWithinBudget`,
-[`lean_vm/LeanVM/Cost/DecoderSpec.lean`](../lean_vm/LeanVM/Cost/DecoderSpec.lean)), which the
-decoder's cost bounds will discharge.
+([`lean_vm/LeanVM/Cost/Decoder/`](../lean_vm/LeanVM/Cost/Decoder/)), its price within its budget
+proved (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`,
+[`lean_vm/LeanVM/Cost/Bounds/Guest/Budget.lean`](../lean_vm/LeanVM/Cost/Bounds/Guest/Budget.lean)).
 
 | Statement | Proved by | In |
 | --- | --- | --- |
@@ -225,7 +224,7 @@ decoder's cost bounds will discharge.
 | `extractorProgram.size ≤ LeanVM.extractorSizeBound` | `LeanVM.Cost.extractorProgram_size_le` | [`lean_vm/LeanVM/Cost/Efficient.lean`](../lean_vm/LeanVM/Cost/Efficient.lean) |
 | `LeanVM.KnowledgeSoundness (LeanVM.extractorOf extractorProgram)` | `LeanVM.knowledgeSoundness_holds` (for `transcriptExtractor`) and `LeanVM.Cost.extractorOf_extractorProgram` | [`lean_vm/LeanVM/Protocol/LeanVMRpm.lean`](../lean_vm/LeanVM/Protocol/LeanVMRpm.lean), [`lean_vm/LeanVM/Cost/Efficient.lean`](../lean_vm/LeanVM/Cost/Efficient.lean) |
 | `LeanVM.Completeness` | `LeanVM.completeness_holds` | [`lean_vm/LeanVM/Prover/End.lean`](../lean_vm/LeanVM/Prover/End.lean) |
-| `LeanVM.Node.GuestKnowledge guest decoderProgram` | `LeanVM.Guest.End.guestKnowledge_of_spec` with `LeanVM.Cost.decoderProgram_spec` (its price within the budget open) and `guest_knowledge` | [`lean_vm/LeanVM/Cost/DecoderSpec.lean`](../lean_vm/LeanVM/Cost/DecoderSpec.lean), [`lean_vm/LeanVM/Guest/EndFinal.lean`](../lean_vm/LeanVM/Guest/EndFinal.lean) |
+| `LeanVM.Node.GuestKnowledge guest decoderProgram` | `LeanVM.Guest.End.guestKnowledge_of_spec` with `LeanVM.Cost.decoderProgram_spec` (its price within the budget, `decoderPriceWithinBudget`) and `guest_knowledge` | [`lean_vm/LeanVM/Cost/DecoderSpec.lean`](../lean_vm/LeanVM/Cost/DecoderSpec.lean), [`lean_vm/LeanVM/Guest/EndFinal.lean`](../lean_vm/LeanVM/Guest/EndFinal.lean) |
 | `LeanVM.Node.DigestBinds` | `LeanVM.Guest.Binding.digest_binds` | [`lean_vm/LeanVM/Guest/Binding.lean`](../lean_vm/LeanVM/Guest/Binding.lean) |
 | `LeanVM.Guest.Budget.GuestCompleteCovered` | `LeanVM.Guest.Budget.guest_complete_covered` | [`lean_vm/LeanVM/Guest/Child/Covered.lean`](../lean_vm/LeanVM/Guest/Child/Covered.lean) |
 | `LeanVM.Guest.Budget.GuestChildComplete` | `LeanVM.Guest.Budget.guest_child_complete` | [`lean_vm/LeanVM/Prover/End.lean`](../lean_vm/LeanVM/Prover/End.lean) |
@@ -257,8 +256,8 @@ excludes it is that none is known. The size bound limits a table of witnesses th
 carry (hard-coded signatures masking a bug of the guest program on finitely many statements). The
 proofs' decoder, `LeanVM.Guest.End.decode` ([`EndFinal.lean`](../lean_vm/LeanVM/Guest/EndFinal.lean)),
 replays the run and reads the witness off the frames it entered; the statement asks only that the
-program compute the witness from the execution within its budget. The program, that decoder
-compiled (`LeanVM.Cost.decoderProgram`), is not finished yet.
+program compute the witness from the execution within its budget. The program is that decoder
+compiled (`LeanVM.Cost.decoderProgram`).
 
 ## Building
 

@@ -14,9 +14,9 @@ the top on the program, `κ` and the memory vector (`outputWithin_decoderEntry`)
 gives its value (`decTopC.costSpec`), which is `End.decode` (`decTop_eq`). Its size is within
 `guestDecoderSizeBound` (`Cost/DecoderSize.lean`).
 
-**Open**: its price within the budget (`DecoderPriceWithinBudget`; `guestDecoderBudget`, a
-placeholder of the statement): `decoderProgram_spec` takes it as a hypothesis until the decoder's
-cost bounds are proved.
+Its price within the budget (`DecoderPriceWithinBudget`, `guestDecoderBudget`) is a hypothesis
+here, so that this module does not import the cost bounds; `Cost/Bounds/Guest/Budget.lean` proves
+it (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`), and `LeanVM.lean` composes the two.
 -/
 
 namespace LeanVM.Cost
@@ -66,8 +66,8 @@ theorem outputWithin_decoderProgram (t : Execution LeanVM.Guest.guest) {b : ℕ}
       (memoryVector t.memory)) hb
 
 /-- **The decoder program's price is within its budget** on every valid execution of the guest
-(`guestDecoderBudget`, `Statement/Theorems.lean`): the one fact the decoder's specification still
-takes (open: the decoder's cost bounds compose `decoderProgramPrice`). -/
+(`guestDecoderBudget`, `Statement/Theorems.lean`): the fact the decoder's specification takes,
+proved by `LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget` (`Cost/Bounds/Guest/Budget.lean`). -/
 @[expose] def DecoderPriceWithinBudget : Prop :=
   ∀ input (t : Execution LeanVM.Guest.guest), ValidExecution LeanVM.Guest.guest input t →
     decoderProgramPrice LeanVM.Guest.guest t ≤ guestDecoderBudget t
@@ -78,7 +78,7 @@ theorem decoderProgram_spec_memoryDecoder (hprice : DecoderPriceWithinBudget) :
   ⟨decoderProgram_size_le, fun input t hv ↦ outputWithin_decoderProgram t (hprice input t hv)⟩
 
 /-- **The decoder program's specification**, its price within the budget given
-(`DecoderPriceWithinBudget`, open). -/
+(`DecoderPriceWithinBudget`, proved in `Cost/Bounds/Guest/Budget.lean`). -/
 theorem decoderProgram_spec (hprice : DecoderPriceWithinBudget) :
     LeanVM.Guest.End.DecoderProgramSpec decoderProgram fun t ↦ LeanVM.Guest.End.decode t.memory :=
   (show memoryDecoder = fun t ↦ LeanVM.Guest.End.decode t.memory from rfl) ▸
