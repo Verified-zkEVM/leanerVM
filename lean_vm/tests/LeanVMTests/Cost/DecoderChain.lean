@@ -1,4 +1,4 @@
-import LeanVM.Cost.Decoder.Witness
+import LeanVM.Cost.Decoder.Memory
 
 /-!
 # Tests: the guest decoder's compiled chain on small inputs
@@ -87,5 +87,24 @@ cost_compile sevenSigmaC := sevenSigma
 -- The number of children, `gLog (g^7)`, by the compiled discrete logarithm.
 #guard runOn (nKidsC.costDeps ++ sevenSigmaC.costDeps) nKidsC.costIdx
   [.closure sevenSigmaC.costIdx []] == some (encodeValue (7 : ℕ))
+
+/-- A memory of `2^3` words, word `i` at address `g^i` being `g^i` (as `E`). -/
+def mem8 : LeanVM.Semantics.MemoryImage 3 := fun i ↦ LeanVM.Parameters.ofK (LeanVM.Parameters.gpow i.val)
+cost_compile mem8C := mem8
+
+-- The reader through the extractor's address table: the table, `κ`, the memory (a closure), the
+-- address.
+#guard runOn (readTableC.costDeps ++ mem8C.costDeps) readTableC.costIdx
+  [encodeValue (LeanVM.Extraction.Fast.powTable 3), encodeValue (3 : ℕ), .closure mem8C.costIdx [],
+    encodeValue (LeanVM.Parameters.gpow 5)] ==
+  some (encodeValue (some (LeanVM.Parameters.ofK (LeanVM.Parameters.gpow 5))))
+#guard runOn (readTableC.costDeps ++ mem8C.costDeps) readTableC.costIdx
+  [encodeValue (LeanVM.Extraction.Fast.powTable 3), encodeValue (3 : ℕ), .closure mem8C.costIdx [],
+    encodeValue (LeanVM.Parameters.gpow 9)] == some (encodeValue (none : Option E))
+
+-- The cursor's length: `q = p · g^9` limb by limb.
+#guard runOn cursorLengthC.costDeps cursorLengthC.costIdx
+  [encodeValue (1 : E), encodeValue (LeanVM.Parameters.ofK (LeanVM.Parameters.gpow 9))] ==
+  some (encodeValue (9 : ℕ))
 
 end LeanVMTests.Cost.DecoderChain
