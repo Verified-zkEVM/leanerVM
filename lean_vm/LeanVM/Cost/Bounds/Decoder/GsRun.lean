@@ -30,7 +30,7 @@ The recursion itself, and the run, are bounded in `Bounds/Decoder/Prefixes.lean`
 
 namespace LeanVM.Cost.Bounds.Decoder
 
-open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Bounds.Samples LeanVM.Cost.Library
+open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Library
 open LeanVM.Cost.Extractor LeanVM.Parameters CompPoly LeanVM.Extraction.Fast
 
 /-! The functions compiled on demand, by their short names. -/

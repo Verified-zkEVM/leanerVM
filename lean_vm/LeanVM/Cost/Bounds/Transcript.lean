@@ -12,10 +12,8 @@ import all LeanVM.Protocol.Extraction.Fast.SortedMap
 * **`leafAt_cost`**: reading a position of the committed word (`leafAt leaves h w v`, the leaf
   `v mod 2^h`, or `w` zeros) costs at most `17·w + 19`, for `h < 64` and word-sized `v`, `w`.
 
-The committed leaves themselves are bounded by the sample's `committedLeaves_cost`
-(`Bounds/Samples/CommittedLeaves.lean`): at most `2^h·(2·L + 617·w + 12060 + 8·h) + 7`, `L` the
-preimage lookup's price (`preimageLookup_cost`: `40 + |levels|·(18 + 192·(log₂ N + 2))`, at most
-`log₂(N + 1)` levels after `N` insertions by `sm_two_pow_levels_le`).
+The committed leaves themselves are bounded in `Bounds/Top.lean` (`leavesOfC_cost`, a lookup in
+the transcript's index `preimageLookup_cost`).
 -/
 
 namespace LeanVM.Cost.Bounds

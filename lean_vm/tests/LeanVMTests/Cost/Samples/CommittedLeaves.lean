@@ -6,7 +6,7 @@ import all LeanVM.Protocol.Extraction.Fast.SortedMap
 import all LeanVM.Protocol.Extraction.Extractor
 
 /-!
-# Sample: the committed leaves, compiled
+# Tests: a sample, the committed leaves, compiled
 
 The leaves of the committed tree under a root, read through the preimage index
 (`subtreeLeavesWith (preimageIn idx)`, `Fast/Lookup.lean`, the fast extractor's form of the
@@ -16,7 +16,7 @@ map (`SortedMap.get?`, the binary search `searchIn`), and the byte strings read 
 rewrite (`bytesDigest` through an array); the rest the compiler finds.
 -/
 
-namespace LeanVM.Cost.Samples
+namespace LeanVMTests.Cost.Samples
 
 open LeanVM.Cost LeanVM.Parameters LeanVM.Extraction LeanVM.Extraction.Fast
 open LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash LeanVM.Semantics LeanVM.Cost.FastLib
@@ -49,4 +49,4 @@ cost_compile committedLeavesC := committedLeavesFast
 
 end
 
-end LeanVM.Cost.Samples
+end LeanVMTests.Cost.Samples

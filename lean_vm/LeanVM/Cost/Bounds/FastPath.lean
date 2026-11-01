@@ -744,29 +744,6 @@ theorem leafAt_length_le (leaves : Array (List K)) (h w v : ℕ) (hl : ∀ l ∈
   | none => simp
   | some l => exact hl l (Array.mem_of_getElem? hx)
 
-/-- **The fast path on the committed word** (`fastStacksOfLeavesC`): `fastStacksFast_cost` with a
-column read by `leafAt` (`17·w + 24`) of `w` words: at most
-`64·(κ·(1520·N + 39583) + 102·N + 17509) + (27·w + 70)·N + 1016·2^μ + 1310`. -/
-theorem fastStacksOfLeaves_cost (hP : Includes P fastStacksOfLeavesC.costDeps) (μ R : ℕ)
-    (hμ : μ ≤ 40) (hR : R ≤ 8) (leaves : Array (List K)) (h w : ℕ) (hh : h < 64) (hw : w < 2 ^ 64)
-    (hl : ∀ l ∈ leaves, l.length ≤ w) :
-    machineCost P fastStacksOfLeavesC.costIdx [enc μ, enc R, enc leaves, enc h, enc w] ≤
-      64 * ((μ - Whir.initialFold) * (1520 * 2 ^ (μ - Whir.initialFold + R) + 39583) +
-          102 * 2 ^ (μ - Whir.initialFold + R) + 17509) +
-        (27 * w + 70) * 2 ^ (μ - Whir.initialFold + R) + 1016 * 2 ^ μ + 1310 := by
-  rw [fastStacksOfLeavesC.costEq P hP]
-  have := fastStacksFast_cost P (by includes) μ R hμ hR _
-    (.fn fastStacksOfLeavesC.lam0.costIdx [enc leaves, enc h, enc w])
-    (fun a ↦ RunsApp.of_spec (fastStacksOfLeavesC.lam0.costSpec P (by includes) leaves h w a))
-    (17 * w + 24) w
-    (fun v hv ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [fastStacksOfLeavesC.lam0.costEq P (by includes)]
-      have := leafAt_cost P (by includes) leaves h w v hh hv hw
-      omega)
-    (fun v ↦ leafAt_length_le leaves h w v hl)
-  nlinarith
-
 end
 
 end LeanVM.Cost.Bounds

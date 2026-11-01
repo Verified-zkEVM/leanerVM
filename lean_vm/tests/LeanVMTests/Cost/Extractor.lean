@@ -1,5 +1,5 @@
 import LeanVM.Cost.Extractor.Transcript
-import LeanVM.Cost.Extractor.Runner
+import LeanVM.Cost.Extractor.Top
 
 /-!
 # Tests: the compiled transcript index, leaf reader and fast path run
@@ -34,9 +34,8 @@ def leaves : Array (List K) := #[[K.ofBits 1, K.ofBits 2], [K.ofBits 3, K.ofBits
 def leaves7 : Array (List K) :=
   Array.ofFn fun v : Fin 128 ↦ (List.range 2).map fun u ↦ K.ofBits (u + v.val)
 
-#guard (evalBody (Program.ofList fastStacksOfLeavesC.costDeps) 100000000
-    fastStacksOfLeavesC.costIdx
+#guard (evalBody (Program.ofList fastOfC.costDeps) 100000000 fastOfC.costIdx
     [Enc.enc (7 : ℕ), Enc.enc (0 : ℕ), Enc.enc leaves7, Enc.enc (7 : ℕ), Enc.enc (64 : ℕ)]).map
-    (·.1) == some (Enc.enc (fastStacksOfLeaves 7 0 leaves7 7 64))
+    (·.1) == some (Enc.enc (fastOf 7 0 leaves7 7 64))
 
 end LeanVMTests.Cost.Extractor

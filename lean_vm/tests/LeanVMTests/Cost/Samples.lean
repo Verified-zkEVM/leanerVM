@@ -1,6 +1,6 @@
-import LeanVM.Cost.Samples.AddRaw
-import LeanVM.Cost.Samples.CommittedLeaves
-import LeanVM.Cost.Samples.MsStep
+import LeanVMTests.Cost.Samples.AddRaw
+import LeanVMTests.Cost.Samples.CommittedLeaves
+import LeanVM.Cost.Extractor.MsReduce
 
 /-!
 # Tests: the compiled samples run
@@ -11,7 +11,7 @@ values.
 
 namespace LeanVMTests.Cost
 
-open LeanVM.Cost LeanVM.Cost.Library LeanVM.Cost.Samples LeanVM.Parameters
+open LeanVM.Cost LeanVM.Cost.Library LeanVMTests.Cost.Samples LeanVM.Parameters
 
 def polyA : CompPoly.CPolynomial.Raw K := #[K.ofBits 3, K.ofBits 5, K.ofBits 7]
 def polyB : CompPoly.CPolynomial.Raw K := #[K.ofBits 1, K.ofBits 6]
@@ -44,10 +44,17 @@ def toyIndex : SortedMap (List UInt64 × ℕ) Hits :=
 
 end
 
-/-! ## One Mulders–Storjohann step -/
+/-! ## One Mulders–Storjohann step
+
+The extractor's own copy (`Cost/Extractor/MsReduce.lean`). -/
 
 section
 open CompPoly CompPoly.PolynomialMatrix
+
+/-- The step as the extractor compiles it: its bodies and its index. -/
+def msStepDeps : List (ℕ × Term) :=
+  LeanVM.Cost.Auto.CompPoly.PolynomialMatrix.muldersStorjohannStepFast.c24.costDeps
+def msStepIdx : ℕ := LeanVM.Cost.Auto.CompPoly.PolynomialMatrix.muldersStorjohannStepFast.c24.costIdx
 
 def cpoly (l : List ℕ) : CPolynomial K := CPolynomial.ofArray (l.map K.ofBits).toArray
 
@@ -56,7 +63,7 @@ def msMatrix : PolynomialMatrix K := #[#[cpoly [1, 2, 3], cpoly [5]], #[cpoly [7
 
 #guard (muldersStorjohannStepFast msMatrix #[0, 0] 0 1).map (·.map (·.val)) !=
   msMatrix.map (·.map (·.val))
-#guard (evalBody (Program.ofList msStepK.costDeps) 100000 (msStepK.costIdx)
+#guard (evalBody (Program.ofList msStepDeps) 100000 msStepIdx
     [Enc.enc msMatrix, Enc.enc #[(0 : ℕ), 0], Enc.enc (0 : ℕ), Enc.enc (1 : ℕ)]).map (·.1) ==
   some (Enc.enc (muldersStorjohannStepFast msMatrix #[0, 0] 0 1))
 

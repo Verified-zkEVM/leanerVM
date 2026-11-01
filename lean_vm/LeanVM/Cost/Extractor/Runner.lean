@@ -44,13 +44,6 @@ cost_rewrite placement_index_eq
 
 cost_compile fastStacksFastC := fastStacksFast
 
-/-- The fast path on the committed word as the extractor reads it (`leafAt`). -/
-@[expose] def fastStacksOfLeaves (μ R : ℕ) (leaves : Array (List K)) (h w : ℕ) :
-    List (Vector K (2 ^ μ)) :=
-  fastStacksFast μ R (leafAt leaves h w)
-
-cost_compile fastStacksOfLeavesC := fastStacksOfLeaves
-
 /-! ### Sharing in Keccak-f and the `KECCAK` instruction
 
 Two restatements, each equal to the statement's text, so that the compiled code computes each

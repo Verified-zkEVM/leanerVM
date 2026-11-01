@@ -24,7 +24,7 @@ normalization and the assembly with the reduction of `Bounds/Decoder/MsReduce.le
 
 namespace LeanVM.Cost.Bounds.Decoder
 
-open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Bounds.Samples LeanVM.Cost.Library
+open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Library
 open LeanVM.Cost.Extractor LeanVM.Parameters CompPoly LeanVM.Extraction.Fast
 
 /-! The functions compiled on demand, by their short names. -/

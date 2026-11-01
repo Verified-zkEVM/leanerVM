@@ -2,7 +2,6 @@ module
 
 public import LeanVM.Cost.Bounds.ListLib
 public import LeanVM.Cost.Bounds.FieldLib
-public import LeanVM.Cost.Samples.MsStep
 import all CompPoly.LinearAlgebra.PolynomialMatrix.MuldersStorjohann
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Shifted
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Basic
@@ -11,20 +10,20 @@ import all CompPoly.Univariate.Basic
 /-!
 # Bound: one Mulders–Storjohann step over `K`
 
-The price of the compiled step (`Cost/Samples/MsStep.lean`, `muldersStorjohannStepFast`; its
-callees are the extractor's, `Cost/Extractor/MsReduce.lean`, so these bounds serve both):
-`msStep_cost`, at most `|M| + 740·D·C + 970·C + 30·D + 21100` for rows of at most `C` entries of
-at most `D` coefficients (`RowWithin`) and shifts at most `S`, word-sized (`2·D + S < 2^62`,
+The prices of the callees of the compiled step (`muldersStorjohannStepFast`, compiled in
+`Cost/Extractor/MsReduce.lean`), from which `stepFastC_cost` (`Bounds/Decoder/MsReduce.lean`)
+bounds the step by `|M| + 740·D·C + 970·C + 30·D + 21100` for rows of at most `C` entries of at
+most `D` coefficients (`RowWithin`) and shifts at most `S`, word-sized (`2·D + S < 2^62`,
 `C < 2^62`). Bottom up:
 
 * an entry's shifted degree (a constant: its zero test reads its size, `shiftedEntryDegree?_eq`,
   `Cost/Extractor/Rewrites.lean`), a row's (`rowShiftedDegree_cost`, a fold over the row:
   `90·C + 30`), its leading position (a `find?` over the reversed indices: `190·C + 100`) and
   leading term (`280·C + 15·D + 250`);
-* a field inverse (`invK_cost`: `19700`; `powTwoPow_cost` exact, `6 + 270·k`);
+* a field inverse (`invK_cost`, `Bounds/FieldLib.lean`);
 * the subtraction `a − c·X^d·b` (`subMulMonomialEntry_cost`, per entry `370·(D + d) + 200`;
   `rowSubScaledShift_cost`);
-* the cancellation and the step.
+* the cancellation.
 
 The values the step computes enter its price through `limbs` (degrees, positions) and through
 the lengths it iterates over: `shiftedEntryDegree?_le`, `rowShiftedDegree?_le` and
@@ -33,9 +32,9 @@ the leading degree by `D`). Products of sizes are stated with `D·C` as one atom
 (`affine_mul_le`), so that sums of bounds stay linear for `omega`.
 -/
 
-namespace LeanVM.Cost.Bounds.Samples
+namespace LeanVM.Cost.Bounds.Decoder
 
-open LeanVM.Cost LeanVM.Cost.Samples LeanVM.Cost.Library LeanVM.Cost.Bounds LeanVM.Parameters
+open LeanVM.Cost LeanVM.Cost.Library LeanVM.Cost.Bounds LeanVM.Parameters
 open CompPoly CompPoly.PolynomialMatrix
 
 /-! The functions compiled on demand, by their short names (`rowGet.c17`: `Auto.…rowGet.c17`). -/
@@ -458,41 +457,6 @@ theorem cancelShiftedLeadingTerm_cost
       cost_simp
       split_ifs <;> omega
 
-/-- **One Mulders–Storjohann step over `K`** (`muldersStorjohannStepFast M shift i j`, compiled
-as `msStepK`): at most `|M| + 740·D·C + 970·C + 30·D + 21100`, for a matrix of rows of at most
-`C` entries of at most `D` coefficients and shifts at most `S` (all word-sized). -/
-theorem msStep_cost (hP : Includes P msStepK.costDeps) {C D S : ℕ} (hC : C < 2 ^ 62)
-    (hDS : 2 * D + S < 2 ^ 62) (M : PolynomialMatrix K) (hM : ∀ row ∈ M, RowWithin C D row)
-    (hMs : M.size < 2 ^ 64) (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S) (i j : ℕ) :
-    machineCost P msStepK.costIdx [enc M, enc shift, enc i, enc j] ≤
-      M.size + 740 * (D * C) + 970 * C + 30 * D + 21100 := by
-  have hrow : ∀ k, RowWithin C D (M.getD k #[]) := by
-    intro k
-    rw [Array.getD_eq_getD_getElem?]
-    cases hk : M[k]? with
-    | none => exact RowWithin.empty C D
-    | some row => exact hM row (Array.mem_of_getElem? hk)
-  rw [msStepK.costEq P hP]
-  have := rowShiftedDegree_cost P (by includes) hC (by omega) (M.getD i #[]) (hrow i) shift hS
-  have := rowShiftedDegree_cost P (by includes) hC (by omega) (M.getD j #[]) (hrow j) shift hS
-  have := cancelShiftedLeadingTerm_cost P (by includes) hC hDS (M.getD j #[]) (M.getD i #[])
-    (hrow j) (hrow i) shift hS
-  have := cancelShiftedLeadingTerm_cost P (by includes) hC hDS (M.getD i #[]) (M.getD j #[])
-    (hrow i) (hrow j) shift hS
-  generalize hi : rowShiftedDegree? (M.getD i #[]) shift = o
-  cases o with
-  | none => dsimp only; cost_simp; omega
-  | some degI =>
-    generalize hj : rowShiftedDegree? (M.getD j #[]) shift = o'
-    cases o' with
-    | none => dsimp only; cost_simp; omega
-    | some degJ =>
-      have := rowShiftedDegree?_le (hrow i) hS hi
-      have := rowShiftedDegree?_le (hrow j) hS hj
-      dsimp only
-      cost_simp
-      split_ifs <;> omega
-
 end
 
-end LeanVM.Cost.Bounds.Samples
+end LeanVM.Cost.Bounds.Decoder

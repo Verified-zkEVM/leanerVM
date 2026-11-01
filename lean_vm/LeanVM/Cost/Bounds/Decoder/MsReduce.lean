@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Bounds.Samples.MsStep
+public import LeanVM.Cost.Bounds.Decoder.MsStep
 public import LeanVM.Cost.Bounds.MuldersStorjohann
 public import LeanVM.Cost.Bounds.Decoder.ShapeDefs
 
@@ -17,13 +17,12 @@ step's row subtraction over `w` entries of `D` coefficients dominating). One ite
 * the rows' shifted leading positions (`rowLeadingPositionsC_cost`: `190·w·r + 118·r + 10`);
 * the first pair of rows with the same position (`cachedLeadingConflictC_cost`, all pairs:
   `64·r² + 64·r + 19`);
-* one step (`stepFastC_cost`, the bound of `Bounds/Samples/MsStep.lean` for the extractor's own
-  copy of the step).
+* one step (`stepFastC_cost`, from its callees' bounds, `Bounds/Decoder/MsStep.lean`).
 -/
 
 namespace LeanVM.Cost.Bounds.Decoder
 
-open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Bounds.Samples LeanVM.Cost.Library
+open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Library
 open LeanVM.Cost.Extractor LeanVM.Parameters CompPoly CompPoly.PolynomialMatrix LeanVM.Extraction
 
 /-! The functions compiled on demand, by their short names. -/
@@ -165,8 +164,8 @@ theorem cachedLeadingConflictC_cost (hP : Includes P cachedLeadingConflict?.c5.c
 
 /-! ## One iteration -/
 
-/-- **One step**, the extractor's copy (`muldersStorjohannStepFast.c24`, the same code as the
-sample's `msStepK`): at most `|M| + 740·D·C + 970·C + 30·D + 21100`. -/
+/-- **One step** (`muldersStorjohannStepFast.c24`): at most
+`|M| + 740·D·C + 970·C + 30·D + 21100`. -/
 theorem stepFastC_cost (hP : Includes P muldersStorjohannStepFast.c24.costDeps) {C D S : ℕ}
     (hC : C < 2 ^ 62) (hDS : 2 * D + S < 2 ^ 62) (M : PolynomialMatrix K)
     (hM : ∀ row ∈ M, RowWithin C D row) (hMs : M.size < 2 ^ 64) (shift : Array ℕ)
@@ -233,7 +232,7 @@ theorem wordPositions_rowLeadingPositions {C D : ℕ} (hC : C < 2 ^ 62) (M : Pol
   | none => simp [hk] at hv
   | some row =>
     simp only [hk, Option.map_some, Option.getD_some] at hv
-    have := Samples.rowShiftedLeadingPosition?_lt hv
+    have := rowShiftedLeadingPosition?_lt hv
     have := (hM row (Array.mem_of_getElem? hk)).1
     omega
 

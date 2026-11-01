@@ -121,7 +121,7 @@ theorem decoderSearchC_cost (hP : Includes P gsMultiplicityAt.c251.costDeps) {k 
   have h2 := rangeC_cost P (by includes) (gsMultiplicityBoundAt k n A) 1 (by omega)
   have hf := fun m ↦ RunsApp.of_spec (us := [enc k, enc n, enc A]) (vs := [enc m])
     (gsMultiplicityAt.c251.lam0.costSpec P (by includes) k n A m)
-  have h3 := Samples.findNat_cost P (by includes) _
+  have h3 := findNat_cost P (by includes) _
     (.fn gsMultiplicityAt.c251.lam0.costIdx [enc k, enc n, enc A]) hf 152
     (List.range' 1 (gsMultiplicityBoundAt k n A)) (fun m hm ↦ by
       have hm' := List.mem_range'.1 hm

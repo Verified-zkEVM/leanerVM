@@ -69,31 +69,31 @@ theorem wordTable_powTable {κ : ℕ} (hκ : κ ≤ 62) : WordTable (powTable κ
   have : 2 ^ κ < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) (by omega)
   omega
 
-/-- The pairs `(lane of g^i, i)` (`powPairs.c373`): `284` per pair, `6` at the end. -/
-theorem powPairs_cost (hP : Includes P powPairs.c373.costDeps) :
+/-- The pairs `(lane of g^i, i)` (`powPairs.c371`): `284` per pair, `6` at the end. -/
+theorem powPairs_cost (hP : Includes P powPairs.c371.costDeps) :
     ∀ (n i : ℕ) (x : K), n + i < 2 ^ 64 →
-      machineCost P powPairs.c373.costIdx [enc n, enc i, enc x] ≤ 284 * n + 6
-  | 0, i, x, _ => by rw [powPairs.c373.costEq_zero P hP]
+      machineCost P powPairs.c371.costIdx [enc n, enc i, enc x] ≤ 284 * n + 6
+  | 0, i, x, _ => by rw [powPairs.c371.costEq_zero P hP]
   | n + 1, i, x, h => by
-    rw [powPairs.c373.costEq_succ P hP, limbs_of_lt (by omega : n + 1 < 2 ^ 64),
+    rw [powPairs.c371.costEq_succ P hP, limbs_of_lt (by omega : n + 1 < 2 ^ 64),
       limbs_of_lt (by omega : i < 2 ^ 64)]
     have := powPairs_cost hP n (i + 1) (x * LeanVM.Parameters.g) (by omega)
     omega
 
-/-- **The address table** (`powTable.c371`) of `2^κ` words: `2^κ` powers and their merge sort, at
+/-- **The address table** (`powTable.c369`) of `2^κ` words: `2^κ` powers and their merge sort, at
 most `(70κ + 374)·2^κ + 20`. -/
-theorem powTable_cost (hP : Includes P powTable.c371.costDeps) (κ : ℕ) (hκ : κ ≤ 62) :
-    machineCost P powTable.c371.costIdx [enc κ] ≤ (70 * κ + 374) * 2 ^ κ + 20 := by
-  rw [powTable.c371.costEq P hP, limbs_shift (by omega), limbs_of_lt (by omega : κ < 2 ^ 64),
+theorem powTable_cost (hP : Includes P powTable.c369.costDeps) (κ : ℕ) (hκ : κ ≤ 62) :
+    machineCost P powTable.c369.costIdx [enc κ] ≤ (70 * κ + 374) * 2 ^ κ + 20 := by
+  rw [powTable.c369.costEq P hP, limbs_shift (by omega), limbs_of_lt (by omega : κ < 2 ^ 64),
     List.length_mergeSort, length_powPairs]
   have hN : 2 ^ κ < 2 ^ 63 := Nat.pow_lt_pow_right (by norm_num) (by omega)
   have h1 := powPairs_cost P (by includes) (2 ^ κ) 0 1 (by omega)
-  have h2 := mergeSortList_cost P (by includes) _ (.fn powTable.c371.lam0.costIdx [])
-    (fun a b ↦ RunsApp.of_spec (powTable.c371.lam0.costSpec P (by includes) a b)) 6
+  have h2 := mergeSortList_cost P (by includes) _ (.fn powTable.c369.lam0.costIdx [])
+    (fun a b ↦ RunsApp.of_spec (powTable.c369.lam0.costSpec P (by includes) a b)) 6
     (fun e ↦ e.1 < 2 ^ 64)
     (fun a b ha hb ↦ by
       simp only [appCost_fn, List.nil_append]
-      rw [powTable.c371.lam0.costEq P (by includes), limbs_of_lt ha, limbs_of_lt hb]
+      rw [powTable.c369.lam0.costEq P (by includes), limbs_of_lt ha, limbs_of_lt hb]
       omega)
     (powPairs (2 ^ κ) 0 1) (by rw [length_powPairs]; exact hN)
     (fun e he ↦ (mem_powPairs _ _ _ e he).1)
@@ -101,13 +101,13 @@ theorem powTable_cost (hP : Includes P powTable.c371.costDeps) (κ : ℕ) (hκ :
   have : (70 * κ + 374) * 2 ^ κ = 70 * (2 ^ κ * κ) + 374 * 2 ^ κ := by ring
   omega
 
-/-- The final `pc` (`pcFinal.c374`): `g^(2^ℓ − 1)` by squaring, at most `553 + 535·ℓ`. -/
-theorem pcFinal_cost (hP : Includes P Auto.LeanVM.Semantics.Program.pcFinal.c374.costDeps)
+/-- The final `pc` (`pcFinal.c372`): `g^(2^ℓ − 1)` by squaring, at most `553 + 535·ℓ`. -/
+theorem pcFinal_cost (hP : Includes P Auto.LeanVM.Semantics.Program.pcFinal.c372.costDeps)
     (prog : Semantics.Program) :
-    machineCost P Auto.LeanVM.Semantics.Program.pcFinal.c374.costIdx [enc prog] ≤
+    machineCost P Auto.LeanVM.Semantics.Program.pcFinal.c372.costIdx [enc prog] ≤
       553 + 535 * prog.logSize := by
   have hls : prog.logSize ≤ 32 := prog.logSize_le
-  rw [Auto.LeanVM.Semantics.Program.pcFinal.c374.costEq P hP, limbs_shift (by omega),
+  rw [Auto.LeanVM.Semantics.Program.pcFinal.c372.costEq P hP, limbs_shift (by omega),
     limbs_of_lt (by omega : prog.logSize < 2 ^ 64), limbs_two_pow (by omega)]
   have h2 : 2 ^ prog.logSize ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hls
   have := powSq_cost P (by includes) LeanVM.Parameters.g (2 ^ prog.logSize - 1) (by omega)
@@ -135,15 +135,15 @@ theorem foldr_add_eq (l : List ℕ) : List.foldr (fun x1 x2 ↦ x1 + x2) 0 l = l
   | nil => rfl
   | cons x l ih => simp [List.foldr_cons, ih, List.sum_cons]
 
-/-- `List.sum` (`sum.c376`) of word-sized partial sums: `13` per element, `7` at the end. -/
-theorem listSum_cost (hP : Includes P Auto.List.sum.c376.costDeps) (l : List ℕ)
-    (hl : l.sum < 2 ^ 64) : machineCost P Auto.List.sum.c376.costIdx [enc l] ≤ 13 * l.length + 7 := by
-  rw [Auto.List.sum.c376.costEq P hP]
+/-- `List.sum` (`sum.c374`) of word-sized partial sums: `13` per element, `7` at the end. -/
+theorem listSum_cost (hP : Includes P Auto.List.sum.c374.costDeps) (l : List ℕ)
+    (hl : l.sum < 2 ^ 64) : machineCost P Auto.List.sum.c374.costIdx [enc l] ≤ 13 * l.length + 7 := by
+  rw [Auto.List.sum.c374.costEq P hP]
   have hF : Includes P Auto.List.foldr.c86.costDeps := by includes
-  have hf : ∀ a b : ℕ, RunsApp P (.fn Auto.List.sum.c376.lam0.costIdx []) [enc a, enc b] (enc (a + b)) :=
-    fun a b ↦ RunsApp.of_spec (Auto.List.sum.c376.lam0.costSpec P (by includes) a b)
+  have hf : ∀ a b : ℕ, RunsApp P (.fn Auto.List.sum.c374.lam0.costIdx []) [enc a, enc b] (enc (a + b)) :=
+    fun a b ↦ RunsApp.of_spec (Auto.List.sum.c374.lam0.costSpec P (by includes) a b)
   suffices ∀ l : List ℕ, l.sum < 2 ^ 64 → machineCost P Auto.List.foldr.c86.costIdx
-      [.fn Auto.List.sum.c376.lam0.costIdx [], enc 0, enc l] ≤ 13 * l.length + 3 by
+      [.fn Auto.List.sum.c374.lam0.costIdx [], enc 0, enc l] ≤ 13 * l.length + 3 by
     have := this l hl; omega
   intro l
   induction l with
@@ -153,28 +153,28 @@ theorem listSum_cost (hP : Includes P Auto.List.sum.c376.costDeps) (l : List ℕ
     rw [Auto.List.foldr.c86.costEq_cons P hF _ _ hf, foldr_add_eq]
     simp only [List.sum_cons] at hs
     simp only [appCost_fn, List.nil_append]
-    rw [Auto.List.sum.c376.lam0.costEq P (by includes), limbs_of_lt (by omega : x < 2 ^ 64),
+    rw [Auto.List.sum.c374.lam0.costEq P (by includes), limbs_of_lt (by omega : x < 2 ^ 64),
       limbs_of_lt (by omega : l.sum < 2 ^ 64)]
     have := ih (by omega)
     simp only [List.length_cons, max_self]
     omega
 
-/-- The step cap (`stepCapLite.c375`) of a layout of at most six tables of at most `2^32` rows, at
+/-- The step cap (`stepCapLite.c373`) of a layout of at most six tables of at most `2^32` rows, at
 most `2^32` memory and bytecode words: at most `206`; the cap itself at most `2^35`. -/
-theorem stepCapLite_cost (hP : Includes P stepCapLite.c375.costDeps) (layout : LayoutLite)
+theorem stepCapLite_cost (hP : Includes P stepCapLite.c373.costDeps) (layout : LayoutLite)
     (hm : layout.logMemory ≤ 32) (hb : layout.logBytecode ≤ 32)
     (hh : ∀ h ∈ layout.tableLogHeights, h ≤ 32) (hl : layout.tableLogHeights.length ≤ 6) :
-    machineCost P stepCapLite.c375.costIdx [enc layout] ≤ 206 := by
-  rw [stepCapLite.c375.costEq P hP]
+    machineCost P stepCapLite.c373.costIdx [enc layout] ≤ 206 := by
+  rw [stepCapLite.c373.costEq P hP]
   have hs := sum_pow_le _ hh
   have hm2 : 2 ^ layout.logMemory ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hm
   have hb2 : 2 ^ layout.logBytecode ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hb
-  have h1 := map_cost P (by includes) _ (.fn stepCapLite.c375.lam0.costIdx [])
-    (fun x ↦ RunsApp.of_spec (stepCapLite.c375.lam0.costSpec P (by includes) x)) 5
+  have h1 := map_cost P (by includes) _ (.fn stepCapLite.c373.lam0.costIdx [])
+    (fun x ↦ RunsApp.of_spec (stepCapLite.c373.lam0.costSpec P (by includes) x)) 5
     layout.tableLogHeights (fun x hx ↦ by
       simp only [appCost_fn, List.nil_append]
       have := hh x hx
-      rw [stepCapLite.c375.lam0.costEq P (by includes), limbs_shift (by omega),
+      rw [stepCapLite.c373.lam0.costEq P (by includes), limbs_shift (by omega),
         limbs_of_lt (by omega : x < 2 ^ 64)])
   have h2 := listSum_cost P (by includes) (layout.tableLogHeights.map (2 ^ ·)) (by nlinarith)
   rw [List.length_map] at h2
@@ -226,13 +226,13 @@ theorem placementGetD_cost (hP : Includes P Auto.List.getD.c274.costDeps) (layou
   have := getD_cost_idx P hP layout.placements c none (by omega)
   omega
 
-/-- A word of the memory image (`memoryImageLite.c382`): three placements and three stack reads,
+/-- A word of the memory image (`memoryImageLite.c380`): three placements and three stack reads,
 at most `199`. -/
-theorem memoryImageLite_cost (hP : Includes P memoryImageLite.c382.costDeps) (layout : LayoutLite)
+theorem memoryImageLite_cost (hP : Includes P memoryImageLite.c380.costDeps) (layout : LayoutLite)
     (hm : layout.logMemory < 64) (hidx : ∀ c, (layout.placement c).index < 2 ^ 64) {μ : ℕ}
     (q : Vector K (2 ^ μ)) (a : Fin (2 ^ layout.logMemory)) :
-    machineCost P memoryImageLite.c382.costIdx [enc layout, enc μ, enc q, enc a] ≤ 199 := by
-  rw [memoryImageLite.c382.costEq P hP]
+    machineCost P memoryImageLite.c380.costIdx [enc layout, enc μ, enc q, enc a] ≤ 199 := by
+  rw [memoryImageLite.c380.costEq P hP]
   have hD : Includes P Auto.List.getD.c274.costDeps := by includes
   have h0 := placementGetD_cost P hD layout LeanVM.Protocol.Verifier.memory0 (by decide)
   have h1 := placementGetD_cost P hD layout LeanVM.Protocol.Verifier.memory1 (by decide)
@@ -245,23 +245,23 @@ theorem memoryImageLite_cost (hP : Includes P memoryImageLite.c382.costDeps) (la
   generalize layout.placements.getD LeanVM.Protocol.Verifier.memory2 none = o2
   cases o0 <;> cases o1 <;> cases o2 <;> dsimp only <;> omega
 
-theorem word01_cost (hP : Includes P Auto.LeanVM.Semantics.PublicInput.word0.c383.costDeps)
-    (hP' : Includes P Auto.LeanVM.Semantics.PublicInput.word1.c385.costDeps) (input : PublicInput) :
-    machineCost P Auto.LeanVM.Semantics.PublicInput.word0.c383.costIdx [enc input] = 25 ∧
-      machineCost P Auto.LeanVM.Semantics.PublicInput.word1.c385.costIdx [enc input] = 25 := by
-  have hF : Includes P Auto.Fin.ofNat.c384.costDeps := by includes
-  rw [Auto.LeanVM.Semantics.PublicInput.word0.c383.costEq P hP,
-    Auto.LeanVM.Semantics.PublicInput.word1.c385.costEq P hP']
-  simp only [Auto.Fin.ofNat.c384.costEq P hF]
+theorem word01_cost (hP : Includes P Auto.LeanVM.Semantics.PublicInput.word0.c381.costDeps)
+    (hP' : Includes P Auto.LeanVM.Semantics.PublicInput.word1.c383.costDeps) (input : PublicInput) :
+    machineCost P Auto.LeanVM.Semantics.PublicInput.word0.c381.costIdx [enc input] = 25 ∧
+      machineCost P Auto.LeanVM.Semantics.PublicInput.word1.c383.costIdx [enc input] = 25 := by
+  have hF : Includes P Auto.Fin.ofNat.c382.costDeps := by includes
+  rw [Auto.LeanVM.Semantics.PublicInput.word0.c381.costEq P hP,
+    Auto.LeanVM.Semantics.PublicInput.word1.c383.costEq P hP']
+  simp only [Auto.Fin.ofNat.c382.costEq P hF]
   constructor <;> cost_simp
 
-/-- **The public boundary** (`boundaryOfStack.c381`): the memory's words `0` and `1` against the
+/-- **The public boundary** (`boundaryOfStack.c379`): the memory's words `0` and `1` against the
 public input, at most `1500`. -/
-theorem boundaryOfStack_cost (hP : Includes P boundaryOfStack.c381.costDeps) (input : PublicInput)
+theorem boundaryOfStack_cost (hP : Includes P boundaryOfStack.c379.costDeps) (input : PublicInput)
     (layout : LayoutLite) (hm : layout.logMemory < 64) (hidx : ∀ c, (layout.placement c).index < 2 ^ 64)
     {μ : ℕ} (q : Vector K (2 ^ μ)) :
-    machineCost P boundaryOfStack.c381.costIdx [enc input, enc layout, enc μ, enc q] ≤ 1500 := by
-  rw [boundaryOfStack.c381.costEq P hP]
+    machineCost P boundaryOfStack.c379.costIdx [enc input, enc layout, enc μ, enc q] ≤ 1500 := by
+  rw [boundaryOfStack.c379.costEq P hP]
   obtain ⟨hw0, hw1⟩ := word01_cost P (by includes) (by includes) input
   rw [hw0, hw1, limbs_of_lt (by omega : layout.logMemory < 2 ^ 64),
     limbs_of_lt (show minLogMem < 2 ^ 64 by unfold minLogMem; norm_num),
@@ -273,27 +273,27 @@ theorem boundaryOfStack_cost (hP : Includes P boundaryOfStack.c381.costDeps) (in
     split_ifs <;> omega
   · split_ifs <;> omega
 
-/-- **The memory vector** (`memoryVec.c386`): three placements, then `2^κ` words of three limbs:
+/-- **The memory vector** (`memoryVec.c384`): three placements, then `2^κ` words of three limbs:
 at most `44·2^κ + 208`. -/
-theorem memoryVec_cost (hP : Includes P memoryVec.c386.costDeps) (layout : LayoutLite)
+theorem memoryVec_cost (hP : Includes P memoryVec.c384.costDeps) (layout : LayoutLite)
     (hm : layout.logMemory < 64) (hidx : ∀ c, (layout.placement c).index < 2 ^ 64) {μ : ℕ}
     (q : Vector K (2 ^ μ)) :
-    machineCost P memoryVec.c386.costIdx [enc layout, enc μ, enc q] ≤ 44 * 2 ^ layout.logMemory + 208 := by
-  rw [memoryVec.c386.costEq P hP, ofFnFrom_length]
+    machineCost P memoryVec.c384.costIdx [enc layout, enc μ, enc q] ≤ 44 * 2 ^ layout.logMemory + 208 := by
+  rw [memoryVec.c384.costEq P hP, ofFnFrom_length]
   have hD : Includes P Auto.List.getD.c274.costDeps := by includes
   have h0 := placementGetD_cost P hD layout LeanVM.Protocol.Verifier.memory0 (by decide)
   have h1 := placementGetD_cost P hD layout LeanVM.Protocol.Verifier.memory1 (by decide)
   have h2 := placementGetD_cost P hD layout LeanVM.Protocol.Verifier.memory2 (by decide)
   have hN : 2 ^ layout.logMemory < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) hm
   have hof := ofFnFrom_cost P (by includes) hN _
-    (.fn memoryVec.c386.lam0.costIdx [enc layout, enc μ, enc q,
+    (.fn memoryVec.c384.lam0.costIdx [enc layout, enc μ, enc q,
       enc (layout.placement LeanVM.Protocol.Verifier.memory0).index,
       enc (layout.placement LeanVM.Protocol.Verifier.memory2).index,
       enc (layout.placement LeanVM.Protocol.Verifier.memory1).index])
-    (fun i ↦ RunsApp.of_spec (memoryVec.c386.lam0.costSpec P (by includes) layout q _ _ _ i)) 25
+    (fun i ↦ RunsApp.of_spec (memoryVec.c384.lam0.costSpec P (by includes) layout q _ _ _ i)) 25
     (fun i ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [memoryVec.c386.lam0.costEq P (by includes), limbs_of_lt (lt_trans i.isLt hN),
+      rw [memoryVec.c384.lam0.costEq P (by includes), limbs_of_lt (lt_trans i.isLt hN),
         limbs_of_lt (hidx _), limbs_of_lt (hidx _), limbs_of_lt (hidx _)]
       simp only [max_self]
       omega) 0 (Nat.zero_le _)
@@ -312,26 +312,26 @@ end Stack
 section Loop
 open Auto.LeanVM.Extraction.Fast
 
-/-- **The halting loop** (`haltLoopVec.c389`): `n` steps at most, each one step's price (at most
+/-- **The halting loop** (`haltLoopVec.c387`): `n` steps at most, each one step's price (at most
 `S`) and `45`; `20` at the end. The step counter `a` stays a word. -/
-theorem haltLoopVec_cost (hP : Includes P haltLoopVec.c389.costDeps)
+theorem haltLoopVec_cost (hP : Includes P haltLoopVec.c387.costDeps)
     (memT codeT : Array (ℕ × ℕ)) (prog : LeanVM.Semantics.Program) {κ : ℕ} (mem : Vector E (2 ^ κ))
     (fin : Registers K) (S : ℕ)
-    (hS : ∀ r : Registers K, machineCost P Auto.LeanVM.Extraction.Fast.stepVec.c390.costIdx
+    (hS : ∀ r : Registers K, machineCost P Auto.LeanVM.Extraction.Fast.stepVec.c388.costIdx
       [enc memT, enc codeT, enc prog, enc κ, enc mem, enc r] ≤ S) :
     ∀ (n a : ℕ) (r : Registers K), n + a < 2 ^ 64 →
-      machineCost P Auto.LeanVM.Extraction.Fast.haltLoopVec.c389.costIdx
+      machineCost P Auto.LeanVM.Extraction.Fast.haltLoopVec.c387.costIdx
         [enc memT, enc codeT, enc prog, enc κ, enc mem, enc fin, enc n, enc a, enc r] ≤
         (S + 45) * n + 20 := by
   intro n
   induction n with
   | zero =>
     intro a r _
-    rw [Auto.LeanVM.Extraction.Fast.haltLoopVec.c389.costEq_zero P hP]
+    rw [Auto.LeanVM.Extraction.Fast.haltLoopVec.c387.costEq_zero P hP]
     split_ifs <;> omega
   | succ n ih =>
     intro a r hna
-    rw [Auto.LeanVM.Extraction.Fast.haltLoopVec.c389.costEq_succ P hP,
+    rw [Auto.LeanVM.Extraction.Fast.haltLoopVec.c387.costEq_succ P hP,
       limbs_of_lt (by omega : n + 1 < 2 ^ 64)]
     have hs := hS r
     generalize hst : stepVec memT codeT prog mem r = o
@@ -343,28 +343,28 @@ theorem haltLoopVec_cost (hP : Includes P haltLoopVec.c389.costDeps)
       split_ifs <;> (try dsimp only) <;> nlinarith
 
 
-/-- **A stack's execution** (`candidateExecutionVec.c380`): the boundary, then the memory vector
+/-- **A stack's execution** (`candidateExecutionVec.c378`): the boundary, then the memory vector
 and the halting loop of fuel `cap`: at most `(S + 45)·cap + 44·2^κ + 1777`. -/
-theorem candidateExecutionVec_cost (hP : Includes P candidateExecutionVec.c380.costDeps)
+theorem candidateExecutionVec_cost (hP : Includes P candidateExecutionVec.c378.costDeps)
     (memT codeT : Array (ℕ × ℕ)) (prog : Semantics.Program) (input : PublicInput) (layout : LayoutLite)
     (hm : layout.logMemory < 64) (hidx : ∀ c, (layout.placement c).index < 2 ^ 64)
     (fin : Registers K) (cap : ℕ) (hcap : cap < 2 ^ 64) {μ : ℕ} (q : Vector K (2 ^ μ)) (S : ℕ)
-    (hS : ∀ r : Registers K, machineCost P stepVec.c390.costIdx
+    (hS : ∀ r : Registers K, machineCost P stepVec.c388.costIdx
       [enc memT, enc codeT, enc prog, enc layout.logMemory, enc (memoryVec layout q), enc r] ≤ S) :
-    machineCost P candidateExecutionVec.c380.costIdx
+    machineCost P candidateExecutionVec.c378.costIdx
         [enc memT, enc codeT, enc prog, enc input, enc layout, enc fin, enc cap, enc μ, enc q] ≤
       (S + 45) * cap + 44 * 2 ^ layout.logMemory + 1777 := by
-  rw [candidateExecutionVec.c380.costEq P hP]
+  rw [candidateExecutionVec.c378.costEq P hP]
   have h1 := boundaryOfStack_cost P (by includes) input layout hm hidx q
   have h2 := memoryVec_cost P (by includes) layout hm hidx q
   have h3 := haltLoopVec_cost P (by includes) memT codeT prog (memoryVec layout q) fin S hS cap 0
     Registers.initial (by omega)
   have h4 := optionMap_cost P (by includes) _
-    (.fn candidateExecutionVec.c380.lam0.costIdx [enc prog, enc layout, enc (memoryVec layout q)])
-    (fun n ↦ RunsApp.of_spec (candidateExecutionVec.c380.lam0.costSpec P (by includes) prog layout _ n)) 8
+    (.fn candidateExecutionVec.c378.lam0.costIdx [enc prog, enc layout, enc (memoryVec layout q)])
+    (fun n ↦ RunsApp.of_spec (candidateExecutionVec.c378.lam0.costSpec P (by includes) prog layout _ n)) 8
     (haltLoopVec memT codeT prog (memoryVec layout q) fin cap 0 Registers.initial) (fun n _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [candidateExecutionVec.c380.lam0.costEq P (by includes)])
+      rw [candidateExecutionVec.c378.lam0.costEq P (by includes)])
   split_ifs <;> omega
 
 /-- **One stack, from the runner's tables** (`runWithTablesC`): at most

@@ -1,25 +1,24 @@
 import LeanVM.Cost.Efficient
-import LeanVM.Cost.Samples.MsStep
 
 /-!
 # Tests: the entry of the extractor's program, and a program's size by evaluation
 
 * the entry body (`entryBody`) destructures its input, calls its function on the four fields and
   unwraps the optional output, at `9` steps more than the call, here with a stand-in callee;
-* a program built from a compiled function's bodies (`msStepK`, one Mulders–Storjohann step) and
-  the entry: its bodies held (`includes_ofList`, the indices' distinctness decided) and its size
+* a program built from a compiled function's bodies (`muldersStorjohannStepFast.c24`, one
+  Mulders–Storjohann step, the extractor's) and the entry: its bodies held (`includes_ofList`, the indices' distinctness decided) and its size
   bounded by evaluating its bodies' sizes (`size_ofList_le`, decided by the kernel), as the
   extractor's program's is (`Cost/ExtractorSize.lean`);
 * the extractor's program (`extractorProgram`): `512` bodies, the entry's and the compiled
-  extractor's, the largest index `524`, its size `10491` (the bound `size_ofList_le` gives,
-  `11515`, is what `Cost/ExtractorSize.lean` proves; `extractorSizeBound` is `2^15`);
+  extractor's, the largest index `523`, its size `10489` (the bound `size_ofList_le` gives,
+  at most `11515`, is what `Cost/ExtractorSize.lean` proves; `extractorSizeBound` is `2^15`);
 * the axioms of `extractorOf_extractorProgram`, `extractorOf extractorProgram =
   transcriptExtractor`.
 -/
 
 namespace LeanVMTests.Cost
 
-open LeanVM.Cost LeanVM.Cost.Samples LeanVM.Cost.Extractor
+open LeanVM.Cost LeanVM.Cost.Extractor
 
 /-- A stand-in callee: `some` of its first argument. -/
 def standIn : Term := .ctor 1 [.var 0]
@@ -34,9 +33,11 @@ def entryProgram : Program := Program.ofList [(0, entryBody 1), (1, standIn)]
 #guard outputWithin entryProgram (.ctor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) 11 == none
 
 /-- The bodies of one Mulders–Storjohann step, and the entry calling it. -/
-def msProgramBodies : List (ℕ × Term) := (0, entryBody 1) :: msStepK.costDeps
+def msProgramBodies : List (ℕ × Term) :=
+  (0, entryBody 1) :: LeanVM.Cost.Auto.CompPoly.PolynomialMatrix.muldersStorjohannStepFast.c24.costDeps
 
-theorem msProgram_includes : Includes (Program.ofList msProgramBodies) msStepK.costDeps :=
+theorem msProgram_includes : Includes (Program.ofList msProgramBodies)
+    LeanVM.Cost.Auto.CompPoly.PolynomialMatrix.muldersStorjohannStepFast.c24.costDeps :=
   (includes_ofList msProgramBodies (by decide +kernel)).mono fun _ hp ↦ List.mem_cons_of_mem _ hp
 
 theorem msProgram_size : (Program.ofList msProgramBodies).size ≤ 2 ^ 10 :=
@@ -49,8 +50,8 @@ theorem msProgram_size : (Program.ofList msProgramBodies).size ≤ 2 ^ 10 :=
 /-! ## The extractor's program -/
 
 #guard extractorProgramBodies.length == 512
-#guard (extractorProgramBodies.map (·.1)).foldr max 0 == 524
-#guard extractorProgram.size == 10491
+#guard (extractorProgramBodies.map (·.1)).foldr max 0 == 523
+#guard extractorProgram.size == 10489
 #guard (extractorProgramBodies.map fun p ↦ p.2.size).sum == 10465
 
 /-- info: 'LeanVM.Cost.extractorOf_extractorProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
