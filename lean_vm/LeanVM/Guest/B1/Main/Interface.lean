@@ -66,7 +66,8 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 def indexSearch (κ : ℕ) (a : K) : Option (Fin (2 ^ κ)) :=
   (List.finRange (2 ^ κ)).find? fun i ↦ decide (a = Parameters.gpow i)
 
-/-- The exponent of a power of `g` below `2^34` (`0` for other words). -/
+/-- The exponent `i < 2^34` with `g^i` the word's low limb, `0` if there is none. Only the low limb
+is read: a word whose `y`, `y²` limbs are nonzero gets the exponent of its low limb. -/
 @[irreducible] noncomputable def gLog (x : E) : ℕ := ((indexSearch 34 (x.limb 0)).map Fin.val).getD 0
 
 /-- The digest of two cells, their low limbs its four words (`digestOfScalars`, unchecked). -/

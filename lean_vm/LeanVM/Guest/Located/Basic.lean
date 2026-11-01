@@ -15,18 +15,11 @@ public import LeanVM.Guest.CertName
 A located call (`Check.RL coreProgram L certByName (Check.EnteredAt glob L)`, `RLg L` here) runs
 at a frame `g^a` of the memory, `a < 2^κ` (`Check.InMem`), entered on the run from `(g^0, 1)`,
 under its certificate's valuation there (`valAt`). A witness is read off the first frame passing
-a Boolean test (`firstFrame`). The frame of a call (`frameOf`) is
-the first at which the callee's code holds on the call's words (`BodyAt`), a classical test of the
-guest's own semantics (the callee's core IR body under the located relation, its in-circuit
-checks such as `KECCAK`'s `KeccakCellsRelation` included). The decoder computes no hash and runs no
-verifier of its own.
+a Boolean test (`firstFrame`). The frame of a call (`frameOf`) is the first at which the callee's
+code holds on the call's words (`BodyAt`), a classical test of the guest's own semantics (the
+callee's core IR body under the located relation, its in-circuit checks such as `KECCAK`'s
+`KeccakCellsRelation` included). The decoder computes no hash and runs no verifier of its own.
 
-* `frameDec L f wit args rets`: the witness `wit` reads off the valuation of the call's frame;
-  `frameDec_spec`: whatever the callee's body gives at any of its frames, the decoded witness has.
-* `loopDec L f Wf wit args rets`: a `mul_range` loop helper's witnesses, iteration `j` read off
-  the frame of the iteration's call `x·g^j :: ps`, for the `loopCount x (Wf ps)` iterations up to
-  the loop's end; `loopDec_spec`: a located loop call holds each iteration's outcome at the
-  decoded witnesses (`LoopW`).
 * `rlg_le_rel`: the located relation lies below `coreProgram.Rel`; it unfolds along the memory's
   frame map (`Located.unfoldsV_RL`, `Located/Interface.lean`).
 -/
@@ -91,46 +84,6 @@ theorem bodyAt_frameOf {κ : ℕ} {L : MemoryImage κ} {f : String} {args rets :
   unfold frameOf
   rw [hb']
   exact of_decide_eq_true ht
-
-/-- At the call's frame, the callee's body holds, the callee being `fn`. -/
-theorem body_frameOf {κ : ℕ} {L : MemoryImage κ} {f : String} {fn : Fn}
-    (hf : coreProgram.find? f = some fn) {args rets : List E} (h : RLg L f args rets) :
-    fn.params.map (valAt L f (frameOf L f args rets)) = args ∧
-      Stmt.HoldsList (RLg L) L.read (valAt L f (frameOf L f args rets)) fn.body False
-        (fun rs ↦ rs = rets) := by
-  obtain ⟨fn', hf', hp, hb⟩ := bodyAt_frameOf h
-  rw [hf] at hf'
-  cases hf'
-  exact ⟨hp, hb⟩
-
-/-! ## Decoding a frame -/
-
-/-- **The witness `wit` reads off the frame of a call** (`frameOf`). -/
-noncomputable def frameDec {κ : ℕ} {α : Type} (L : MemoryImage κ) (f : String) (wit : Val → α)
-    (args rets : List E) : α :=
-  wit (valAt L f (frameOf L f args rets))
-
-/-! ## Decoding a loop -/
-
-/-- **The iterations of a `mul_range` loop from `x` to `W`**: the first `m ≥ 1` with `x·g^m = W`
-(`0` if none), by a definite search. -/
-noncomputable def loopCount (x W : E) : ℕ :=
-  open Classical in if h : ∃ m, 0 < m ∧ x * gen ^ m = W then Nat.find h else 0
-
-/-- **A loop's outcome at its iterations' witnesses** `ws`: `m = ws.length ≥ 1` iterations from
-`x` to its end `W = x·g^m`, the first such, iteration `j` with the outcome `B (x·g^j) ws[j]`. -/
-def LoopW {α : Type} (x W : E) (B : E → α → Prop) (ws : List α) : Prop :=
-  0 < ws.length ∧ W = x * gen ^ ws.length ∧ (∀ j, 0 < j → j < ws.length → x * gen ^ j ≠ W) ∧
-    ∀ j (hj : j < ws.length), B (x * gen ^ j) ws[j]
-
-/-- **A loop's witnesses, iteration by iteration**: for a call `x :: ps`, iteration
-`j < loopCount` at `x·g^j` is the witness of the frame of the iteration's call `x·g^j :: ps`;
-`W = Wf ps` is the loop's end. -/
-noncomputable def loopDec {κ : ℕ} {α : Type} (L : MemoryImage κ) (f : String)
-    (Wf : List E → E) (wit : Val → α) (args _rets : List E) : List α :=
-  match args with
-  | [] => []
-  | x :: ps => (List.range (loopCount x (Wf ps))).map fun j => frameDec L f wit (x * gen ^ j :: ps) []
 
 end
 end LeanVM.Guest.Located
