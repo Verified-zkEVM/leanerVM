@@ -29,7 +29,7 @@ proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classic
 leanVM at commit \texttt{c445e3d5} of its \texttt{main} branch.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: fifteen files
-of definitions and end statements ($7221$ lines with their documentation), which import Mathlib,
+of definitions and end statements ($7374$ lines with their documentation), which import Mathlib,
 VCVio and CompPoly and nothing of the proofs. Beside them sit the honest prover the completeness
 statements name (\lean{Statement/Prover/}, $2524$ lines; it is proved to make the specification's
 honest moves, so a reviewer only needs to see that it is a genuine prover), the guest program's
@@ -138,7 +138,7 @@ polylogarithmic per query: $2^{117.67}$ for $N \le 2^{40}$, the list decoder dom
 $2^{156.69}$ at $N = 2^{128}$, the transcript's index dominating, where the soundness bound is
 already trivial), its output
 parsed as an execution; a run out of budget outputs nothing, which counts as a break. The
-statement takes $P$ as a parameter (\texttt{Statement.Theorems decode P}); which program it is
+statement takes $P$ as a parameter (\texttt{Statement.Theorems D P}); which program it is
 a reader need not know: $P$ is a program (no classical choice), the size bound excludes a table of
 witnesses, the budget is the one above, and the machine's only runtime data is its input. The
 machine's prices (each step at least the words it writes, $\mathbb{F}_{2^{64}}$ products and
@@ -486,28 +486,42 @@ the deployed Keccak-256 collides.
 
 \paragraph{Why a decoder.} \lean{GuestKnowledge} could have said only that some
 $(\sigma', s', w')$ exists (\lean{guest_sound} proves that too). It says more: the witness is
-\emph{in} the execution, and $D$ reads it. That is what makes the extracted execution
-knowledge of a witness. But a decoder may use classical logic, and one that simply chose some
-triple satisfying the conclusion would make \lean{GuestKnowledge} no stronger than the
+computed \emph{from} the execution, by a program within a budget. That is what makes the extracted
+execution knowledge of a witness. But a decoder may use classical logic, and one that simply chose
+some triple satisfying the conclusion would make \lean{GuestKnowledge} no stronger than the
 existential. The statement is only as strong as its decoder, so the decoder is a parameter of the
 same kind as the extractor: a cost-machine program $D$ (\lean{Statement/Theorems.lean}), at
-most \lean{guestDecoderSizeBound} terms, run within \lean{guestDecoderBudget} on the encoded
-execution, its output parsed by \lean{decodeDecoded} (\lean{decodeOf}). A program chooses
-nothing, and its budget is far below a search for a Keccak-256 collision. \textbf{The size bound and
-the price are placeholders} until the decoder program is compiled and measured.
+most \lean{guestDecoderSizeBound} terms (its literals, the guest program's per-function tables,
+counted in full), run within \lean{guestDecoderBudget} on the encoded program and execution
+(\lean{encodeDecoderInput}), whose output must be the encoding (\lean{encodeValue}) of a
+decoding that explains the input; there is no parse, and the encoding is injective
+(\lean{encodeValue_decoded_injective}, \lean{lean_vm}). A program chooses nothing. The statement
+accepts any program that computes the witness from the execution within the budget, not only one
+that reads it off the memory: the decoder's analog of the extractor, of which the statement asks
+only that a program compute an execution within its budget. The budget is linear in the
+execution's size and its steps, with no cap on the steps: $\kappa$ and $\ell$ are at most $32$,
+but a valid execution's steps (\lean{ValidExecution}) are bounded only by the run's distinct
+states $(pc, fp)$, at most $2^{\ell+\kappa}$. The size bound limits a table of witnesses the program could carry (hard-coded
+signatures that would mask a bug of $G$ on finitely many statements) to the bound's slack over
+the compiled decoder's size. A program that output another statement of the same digest would
+exhibit a Keccak-256 collision; what excludes it is that none is known. \textbf{The size bound and
+the price are placeholders} until the decoder program is compiled and measured; the price will be
+a proved closed form, as \lean{extractorPrice} is.
 
 The proofs' decoder is \lean{LeanVM.Guest.End.decode}, defined in \lean{lean_vm}; a program
-computing it gives \lean{GuestKnowledge} (\lean{guestKnowledge_of_decode}). It reads
-everything from the execution's memory:
+computing it gives \lean{GuestKnowledge} (\lean{guestKnowledge_of_decode}). It replays the run:
 \begin{itemize}
-\item the seed and the statement from \texttt{main}'s frame;
+\item the seed and the statement from \texttt{main}'s frame, read through the sorted table of the
+memory's $2^\kappa$ addresses;
 \item each signature, matrix, child proof and batching hint from the frame of the function that
-checked it: the first of the memory's $2^\kappa$ frames on which $G$'s own code for that function
-holds for the call's arguments and results.
+checked it: the run is stepped from its initial state through the program's and the memory's
+tables, and each call is given the frame at which the run first entered its callee, its
+precondition decided there.
 \end{itemize}
-That frame test is $G$'s semantics, and it is the decoder's only search: it computes no hash and
-runs no verifier. The test \lean{LeanVMTests.Guest.DecodeNoChoice} checks this by following every
-definition the decoder unfolds to.
+It runs the machine (whose \texttt{KECCAK} instruction checks Keccak-f[1600]) and no verifier,
+decides no proposition classically and picks no witness. The test
+\lean{LeanVMTests.Guest.DecodeNoChoice} checks this by following every definition the decoder
+unfolds to.
 
 \paragraph{The batching on its own} (\lean{BatchingSound}). The batching of \lean{NodeRelation}'s last
 condition is also proved sound as a verifier in its own right, in the RPM: Keccak-256 is the sponge
@@ -678,8 +692,9 @@ that batching true claims gives a true deferred claim, and that the deployed out
 (\texttt{EthereumProof::verify}) accepts an honest root.
 \item \lean{AcceptableChild}'s agreement of openings and absence of a zero challenge for children that are
 not honest proofs.
-\item The decoder \lean{LeanVM.Guest.End.decode}: a parameter of the statement, defined and read in
-\lean{lean_vm}.
+\item The guest decoder program $D$: a parameter of the statement (within its size bound and its
+budget), to be \lean{LeanVM.Cost.decoderProgram}, the proofs' decoder \lean{LeanVM.Guest.End.decode}
+compiled; not finished yet, so \lean{theorems_hold} takes its specification as hypotheses.
 \item The extractor program \lean{LeanVM.Cost.extractorProgram}: a parameter of the statement
 (within its size bound and its budget), defined in \lean{lean_vm} as the compiled
 \lean{transcriptExtractor}.

@@ -131,7 +131,6 @@ def witness : NodeWitness := mkWitness [child] (holders 3 xsig) [] da [(x, x)] x
 def decoded : Decoded := mkDecoded digest stmt witness
 #guard runOn mkDecoded.costDeps mkDecoded.costIdx
   [encodeValue digest, encodeValue stmt, encodeValue witness] == some (encodeValue decoded)
-#guard decodeDecoded (encodeValue decoded) |>.isSome
 
 #guard runOn layerSwap.costDeps layerSwap.costIdx
   [encodeValue p, encodeValue layer] == some (encodeValue (layerSwap p layer))
