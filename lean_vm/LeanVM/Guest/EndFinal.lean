@@ -18,10 +18,10 @@ public import LeanVM.Guest.Located.ReplayFast
 
 `decode` reads, off a memory `L`, through the sorted table of its `2^κ` addresses
 (`Located.readTable`, `Extraction.Fast.powTable`, the extractor's binary search), the seed and
-the statement from `main`'s frame (`fp = 1`, the words of `main`'s certificate's cells, `mainValWith`) and the witness
-`B1.Main.decWitV` off `main`'s valuation, the memory and the **replayed** frame map
-(`Located.replayFrameV`): the run from `(g^0, 1)` stepped through the tables (`Located.statesTable`,
-the extractor's `stepTable`), each call given the valuation of the first frame at which the run
+the statement from `main`'s frame (`fp = 1`, the words of `main`'s certificate's cells,
+`mainValWith`) and the witness `B1.Main.decWitV` off `main`'s valuation, the memory and the
+**replayed** frame map (`Located.replayFrameV`): the run from `(g^0, 1)` stepped through the
+tables (`Located.statesTable`, the extractor's `stepTable`), each call given the valuation of the first frame at which the run
 entered its callee (the entries indexed once, `Located.frameVFast`), its precondition holding
 there (decided, `Located.preTest`) and its argument and return cells holding the call's words.
 So each leanXMSS and leanSPHINCS signature is read off the frame of its check, the DA matrix off
@@ -88,8 +88,7 @@ theorem decode_eq {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
   have hV : Located.frameVFast (Located.preTest L.read)
       (Located.statesIn (Extraction.powIndex κ) (Extraction.powIndex guest.logSize) guest L
         Located.replayFuel ⟨gpow 0, 1⟩) L.read = Located.replayFrameV L := by
-    rw [Located.replayFrameV, Located.readIn_powIndex hκ]
-    exact congrFun (congrFun Located.frameVWith_eq_fast _) _ |>.symm
+    rw [Located.replayFrameV, Located.readIn_powIndex hκ, Located.frameVWith_eq_frameVFast]
   simp only [decode, Located.readTable_powTable hκ, Located.statesTable_eq hκ, hV]
   rfl
 

@@ -25,7 +25,6 @@ def walkBaseN (stride k : ℕ) : ℕ → ℕ → ℕ → ℕ
   | _, 0, b => b
   | r, j + 1, b => walkBaseN stride k (r + 1) j (b + walkSize stride (k / 4 ^ r % 4))
 
-
 /-- The base after arm `k` from `a`, of a step of size `sz` (`armNext`). -/
 def armNextN (sz n : ℕ) (fold : Bool) (k a : ℕ) : ℕ :=
   if k = 0 then walkBaseN (sz + 13) k 0 n (if fold then a + 1 else a) + 2

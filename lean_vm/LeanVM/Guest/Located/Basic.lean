@@ -12,9 +12,10 @@ public import LeanVM.Guest.CertName
 /-!
 # Frames
 
-A located call (`Check.RL coreProgram L certByName (Check.EnteredAt glob L)`, `RLg L` here) runs at
-a frame `g^a` of the memory, `a < 2^κ` (`Check.InMem`), entered on the run from `(g^0, 1)`, under its certificate's valuation there (`valAt`). A witness is
-read off the first frame passing a Boolean test (`firstFrame`). The frame of a call (`frameOf`) is
+A located call (`Check.RL coreProgram L certByName (Check.EnteredAt glob L)`, `RLg L` here) runs
+at a frame `g^a` of the memory, `a < 2^κ` (`Check.InMem`), entered on the run from `(g^0, 1)`,
+under its certificate's valuation there (`valAt`). A witness is read off the first frame passing
+a Boolean test (`firstFrame`). The frame of a call (`frameOf`) is
 the first at which the callee's code holds on the call's words (`BodyAt`), a classical test of the
 guest's own semantics (the callee's core IR body under the located relation, its in-circuit
 checks such as `KECCAK`'s `KeccakCellsRelation` included). The decoder computes no hash and runs no
