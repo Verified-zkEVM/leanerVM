@@ -41,15 +41,18 @@ example : GuestKnowledge guest decode := guest_knowledge
 
 example : AggregateSound guest decode transcriptExtractor := aggregate_sound_outer
 
-/-- The decoder reads the seed and the statement off `main`'s frame. -/
-example {κ : ℕ} (L : MemoryImage κ) :
-    (decode L).seed = B1.Main.decSeed (Check.valG L 1 (certOf 1)) := rfl
+/-- The decoder reads the seed and the statement off `main`'s frame, through the index of the
+memory's addresses (on fewer than `2^64` words, the memory's own reads). -/
+example {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
+    (decode L).seed = B1.Main.decSeed (Check.valG L 1 (certOf 1)) := by rw [decode_eq hκ]
 
-example {κ : ℕ} (L : MemoryImage κ) :
-    (decode L).statement = B1.Main.decStmt (Check.valG L 1 (certOf 1)) L.read := rfl
+example {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
+    (decode L).statement = B1.Main.decStmt (Check.valG L 1 (certOf 1)) L.read := by
+  rw [decode_eq hκ]
 
-/-- The decoder's witness: `main`'s, each callee's read off its frame, each child's proof by
-`VerifySub.vsPiOf`. -/
-example {κ : ℕ} (L : MemoryImage κ) :
-    (decode L).witness = B1.Main.decWitV (Check.valG L 1 (certOf 1)) L.read (Located.frameV L)
-      B1.VerifySub.vsPiOf := rfl
+/-- The decoder's witness: `main`'s, each callee's read off the frame the replayed run entered it
+at, each child's proof by `VerifySub.vsPiOf`. -/
+example {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
+    (decode L).witness = B1.Main.decWitV (Check.valG L 1 (certOf 1)) L.read (Located.replayFrameV L)
+      B1.VerifySub.vsPiOf := by
+  rw [decode_eq hκ]
