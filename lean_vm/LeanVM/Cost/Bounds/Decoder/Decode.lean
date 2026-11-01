@@ -248,7 +248,7 @@ theorem decodeStacksDistinctC_cost (hP : Includes P decodeStacksDistinctC.costDe
     (hadm : Whir.Admissible μ R)
     (hsz : DecoderLaneSizes (μ - Whir.initialFold) R (johnsonThreshold μ R))
     (W : ℕ → List K) (WVal : Val) (hW : ∀ a, RunsApp P WVal [enc a] (enc (W a))) {BW Lw : ℕ}
-    (hBW : ∀ v : ℕ, appCost P WVal [enc v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
+    (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [enc v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
     machineCost P decodeStacksDistinctC.costIdx [enc μ, enc R, WVal] ≤ decoderBound μ R BW Lw := by
   have hadm' := hadm
   obtain ⟨h1, h2, h3, h4⟩ := hadm'
@@ -344,7 +344,7 @@ theorem decoderJohnson_28_4 : johnsonThreshold 28 4 = 16792398 := by decide +ker
 prices, the `64` interpolations (`≈ 2^111.67` each) dominating. -/
 theorem decodeStacksDistinctC_cost_28_4 (hP : Includes P decodeStacksDistinctC.costDeps)
     (W : ℕ → List K) (WVal : Val) (hW : ∀ a, RunsApp P WVal [enc a] (enc (W a))) {BW Lw : ℕ}
-    (hBW : ∀ v : ℕ, appCost P WVal [enc v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
+    (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [enc v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
     machineCost P decodeStacksDistinctC.costIdx [enc 28, enc 4, WVal] ≤
       (BW + 10 * Lw) * 2 ^ 26 + 263761295154139905848615297830647322 := by
   have h := decodeStacksDistinctC_cost P hP 28 4 (by decide) (by decide +kernel) W WVal hW hBW hLw

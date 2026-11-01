@@ -67,7 +67,7 @@ lane. -/
 theorem pruneUpToDistinctC_cost (hP : Includes P pruneUpToDistinctC.costDeps) (κ R A U : ℕ)
     (hκR : κ + R ≤ 60) (hU : U < 2 ^ 62) (hA : A < 2 ^ 128) (W : ℕ → List K) (WVal : Val)
     (hW : ∀ a, RunsApp P WVal [enc a] (enc (W a))) {BW Lw G Lc Smax : ℕ}
-    (hBW : ∀ v : ℕ, appCost P WVal [enc v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw)
+    (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [enc v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw)
     (hG : ∀ u < U, machineCost P laneEncodedDistinctC.costIdx
       [enc κ, enc R, enc A, .fn pruneUpToDistinctC.lam1.lam0.costIdx
         [enc (laneTable (2 ^ (κ + R)) W)], enc u] ≤ G)
@@ -87,7 +87,7 @@ theorem pruneUpToDistinctC_cost (hP : Includes P pruneUpToDistinctC.costDeps) (�
     (fun v ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [pruneUpToDistinctC.lam0.costEq P (by includes) κ R W WVal hW]
-      have := hBW v
+      have := hBW v (by have := v.isLt; omega)
       have := reverseAux_cost P (by includes) (W v) []
       have := hLw v
       simp only [List.length_reverse]
