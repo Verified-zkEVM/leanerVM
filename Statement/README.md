@@ -118,8 +118,8 @@ theorems, then read the files in this order.
     on words, natural numbers and arrays, each step priced by the words it writes and its
     operations by their algorithms: `MachineValue`, `PrimitiveOperation`, `Term`,
     `MachineProgram`, `evaluateTerm`, `run`, `outputWithin`, a program's `size`), the
-    encoding of the extractor's input and output (`encode`, `decodeExecution`, a linear parse), the
-    budget (`extractorBudget`, read off the shape a proof announces: `announced`,
+    encoding of the extractor's input and output (`encodeExtractorInput`, `decodeExecution`, a
+    linear parse), the budget (`extractorBudget`, read off the shape a proof announces: `announced`,
     `LeanVmVerifier.lean`) and **`LeanVM.extractorOf P`**: the extractor a program `P` computes, run
     within the budget, its output parsed; `Statement.Theorems` takes `P` with its size at most
     `extractorSizeBound`, and which program it is a reader need not know (`lean_vm` names its
