@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.FastLib
+public import LeanVM.Cost.Extractor.Transcript
 public import LeanVM.Protocol.Extraction.Fast.RunVec
 public import LeanVM.Protocol.Extraction.Fast.Extract
 import all LeanVM.Protocol.Extraction.Fast.RunVec
@@ -16,8 +16,7 @@ and the step cap built once, then per stack the boundary check `boundaryOfStack`
 vector `memoryVec` and the halting loop `haltLoopVec`, Keccak-f inside the instructions) and
 `fastStacksFast` (the fast path: each lane's word read as a codeword, `Fast/Extract.lean`).
 
-The runner does not compile yet: the projection `Placement.index` (in `memoryVec`,
-`memoryImageLite`) has no translation rule; reported to the compiler's owner.
+The extractor's compiled modules form one import chain: this module follows the transcript's.
 -/
 
 namespace LeanVM.Cost.Extractor
@@ -50,6 +49,9 @@ cost_compile fastStacksFastC := fastStacksFast
   fastStacksFast μ R (leafAt leaves h w)
 
 cost_compile fastStacksOfLeavesC := fastStacksOfLeaves
+
+set_option maxHeartbeats 20000000 in
+cost_compile candidateRunnerC := candidateRunner
 
 end
 
