@@ -19,8 +19,8 @@ open Lean Elab Command in
   let forbidden := [`LeanVM.Guest.B1, `LeanVM.Protocol, `LeanVM.Facts.Verifier, `LeanVM.Guest.Logic,
     `LeanVM.Guest.Bytecode, `LeanXmss, `Sphincs, `LeanDa, `Common, `Statement.LeanVm,
     `Statement.LeanVmGuest, `Statement.Prover, `Statement.Extractor, `Statement.LeanXmss,
-    `Statement.LeanSphincs, `Statement.LeanDa, `Statement.Fast.Schemes, `Statement.Theorems,
-    `Statement.Corollaries]
+    `Statement.LeanSphincs, `Statement.LeanDa, `Statement.Fast.Schemes, `Statement.CostMachine,
+    `Statement.Theorems, `Statement.Corollaries]
   let reached := (← getEnv).header.moduleNames.filter fun m ↦ forbidden.any (·.isPrefixOf m)
   unless reached.isEmpty do
     throwError m!"the guest's certificates import {reached.toList}: keep the functions they \
