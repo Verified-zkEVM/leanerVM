@@ -2,7 +2,8 @@
   LeanVM.Guest.EndFinal
 
   The aggregation guest's soundness for the deployed bytecode, with nothing assumed: the decoder
-  `decode` and the statement `GuestKnowledge` of `Statement/LeanVmGuest.lean` (`AggregateSound`, in
+  `decode` and `MemoryGuestKnowledge` (`GuestKnowledge` of `Statement/Theorems.lean` for a
+  decoder of memories; `MemoryAggregateSound`, in
   the random-permutation model, is composed in `LeanVM/Guest/EndRpm.lean`).
 -/
 
@@ -27,10 +28,10 @@ memory's `2^κ` frames at which the guest's own code for the callee holds on the
 classical test of the guest's semantics, which includes its in-circuit checks), and reads the
 witness there.
 
-* `guest_knowledge : GuestKnowledge guest decode`: every valid execution of the guest on a public
+* `guest_knowledge : MemoryGuestKnowledge guest decode`: every valid execution of the guest on a public
   input decodes to a statement of that input's digest under the decoded seed, and a witness
   holding it (`NodeRelation`).
-* `aggregate_sound_outer : AggregateSound guest decode` (`EndRpm.lean`): in the
+* `aggregate_sound_outer : MemoryAggregateSound guest decode` (`EndRpm.lean`): in the
   random-permutation experiment, the verifier accepts a proof of the guest on the digest of a
   statement `s` under the deployed seed, `s` of the guest's shape, while no
   execution is extracted from the proof and the adversary's transcript, or the extracted one does
@@ -55,7 +56,7 @@ open scoped ENNReal
 
 /-- **The guest's decoder**: the seed and the statement off `main`'s frame, the witness off the
 frames of the functions that checked it. -/
-noncomputable def decode : Decoder := decodeV VerifySub.vsPiOf
+noncomputable def decode : MemoryDecoder := decodeV VerifySub.vsPiOf
 
 /-- `verify_sub`'s statement, its proof `VerifySub.vsPiOf`, for the guest's bytecode. -/
 theorem subSoundW : B1.Main.SubSoundW bytecode VerifySub.vsPiOf :=
@@ -64,7 +65,7 @@ theorem subSoundW : B1.Main.SubSoundW bytecode VerifySub.vsPiOf :=
 /-- **Soundness of the deployed guest, its witness named**: every valid execution of the guest on
 a public input decodes, from its memory, to a statement of the input's digest under the decoded
 seed and a witness holding it. -/
-theorem guest_knowledge : GuestKnowledge guest decode := guest_knowledge_sub subSoundW
+theorem guest_knowledge : MemoryGuestKnowledge guest decode := guest_knowledge_sub subSoundW
 
 /-- **What a consumer learns**: a valid execution of the guest on the digest of its statement
 `s₀` under the seed `iv` (`s₀`'s deferred claim of the bytecode's shape: `bytecode`'s `23`

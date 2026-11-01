@@ -8,9 +8,9 @@ public import Statement.Theorems
 End statements that follow from `Statement.Theorems`, stated in their composed form: what an
 accepted proof of the leanISA guest program establishes (`AggregateSound`), and the guest program's
 completeness on the two simplest families of covered nodes (`GuestCompleteRecursion`,
-`GuestCompleteLeaf`). `lean_vm` proves `LeanVM.corollaries_of_theorems : Statement.Theorems decode
-extractorProgram → Statement.Corollaries decode extractorProgram` from the fields of `Theorems`
-alone, and `LeanVM.corollaries_hold`.
+`GuestCompleteLeaf`). `lean_vm` proves `LeanVM.corollaries_of_theorems : Statement.Theorems decoderProgram
+extractorProgram → Statement.Corollaries decoderProgram extractorProgram` from the fields of
+`Theorems` alone, and `LeanVM.corollaries_hold`.
 A reviewer who trusts `Theorems` need not read this file.
 -/
 
@@ -36,22 +36,23 @@ open OracleComp OracleSpec in
 `LeanVm.lean`, the adversary, querying `π` and `π⁻¹`, outputs a proof. The event: the verifier
 accepts it as a proof of `guest` on the digest, under the deployed seed, of a statement `s` whose
 deferred claim has the guest program's shape, and yet the execution the knowledge extractor
-`extractor` reads off the adversary's transcript and the proof does not explain `s`
-(`ExplainsStatement`: decode to the deployed seed, `s` and a witness holding it, or give a
-Keccak-256 collision among `collisionCandidates`). It composes `KnowledgeSoundness`,
+`extractor` reads off the adversary's transcript and the proof does not explain `s`: no execution
+is extracted, the decoder program `decoderProgram` outputs no decoding of it within its budget
+(`decodeOf`), or that decoding does not explain `s` (`ExplainsStatement`: the deployed seed, `s`
+and a witness holding it, or a Keccak-256 collision among `collisionCandidates`). It composes `KnowledgeSoundness`,
 `GuestKnowledge` and `DigestBinds`; its probability is at most the bound of `KnowledgeSoundness`,
 `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, for at most `Q ≤ 2^128` queries to `π`, `π⁻¹`.
 Keccak-256 and Keccak-f[1600] outside the executed program are built from `π`; the statement's
 digest and the collisions are of the deployed Keccak-256, which the guest program computes. -/
-def AggregateSound (guest : Program) (decode : Decoder) (extractor : StraightLineExtractor) :
-    Prop :=
+def AggregateSound (guest : Program) (decoderProgram : LeanVM.Cost.Program)
+    (extractor : StraightLineExtractor) : Prop :=
   ∀ (A : RandomPermutationAdversary) (Q : ℕ),
     Common.QueryCostAtMost A Common.permutationCallCost Q → Q ≤ 2 ^ 128 →
     Pr{let z ← soundnessExperiment A}[∃ s : NodeStatement, z.accepted ∧ z.program = guest ∧
       publicDigest z.input = statementDigest (deployedSeed guest) s ∧
       s.deferredClaim.HasBytecodeShape (bytecodeWords guest) ∧
-      ¬ ∃ t, extractor z.program z.input z.transcript z.proof = some t ∧
-        ExplainsStatement guest s (decode t.memory)] ≤
+      ¬ ∃ t d, extractor z.program z.input z.transcript z.proof = some t ∧
+        decodeOf decoderProgram t = some d ∧ ExplainsStatement guest s d] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
         5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
@@ -107,14 +108,13 @@ end LeanVM.Guest.Budget
 namespace Statement
 
 /-- **The corollaries**, each following from `Theorems`, for the same decoder and extractor
-program. -/
-structure Corollaries (decode : LeanVM.Node.Decoder) (extractorProgram : LeanVM.Cost.Program) :
-    Prop where
+programs. -/
+structure Corollaries (decoderProgram extractorProgram : LeanVM.Cost.Program) : Prop where
   /-- An accepted proof of the leanISA guest program on the digest of `s` under the deployed seed
-  is explained by the execution the extractor program extracts (it decodes to that seed, `s`
-  and a witness holding `s`) or by a Keccak-256 collision, except with the bound of
+  is explained by the execution the extractor program extracts (the decoder program decodes it
+  to that seed, `s` and a witness holding `s`) or by a Keccak-256 collision, except with the bound of
   `knowledgeSoundness`: from `knowledgeSoundness`, `guestKnowledge` and `digestBinds`. -/
-  aggregateSound : LeanVM.Node.AggregateSound LeanVM.Guest.guest decode
+  aggregateSound : LeanVM.Node.AggregateSound LeanVM.Guest.guest decoderProgram
     (LeanVM.extractorOf extractorProgram)
   /-- The leanISA guest program is complete on every recursion node of at most `2048` claims
   holding no raw signature and no blob itself: from `guestCompleteCovered`. -/
