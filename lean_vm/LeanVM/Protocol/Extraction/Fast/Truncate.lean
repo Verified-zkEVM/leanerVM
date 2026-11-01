@@ -41,15 +41,6 @@ variable {F : Type*} [Field F] [BEq F] [LawfulBEq F] [DecidableEq F]
 
 /-! ## Truncation, order and stripping -/
 
-theorem coeff_initialCoefficientPolynomial (Q : CBivariate F) (j : ℕ) :
-    (initialCoefficientPolynomial Q).coeff j = CBivariate.coeff Q 0 j := by
-  by_cases hj : j < Q.val.size
-  · exact initialCoefficientPolynomial_coeff_of_lt Q hj
-  · unfold initialCoefficientPolynomial
-    rw [initialCoefficientPolynomial_coeff_fold Q j (List.range Q.val.size) 0 List.nodup_range,
-      CPolynomial.coeff_zero, cbivar_coeff_eq_zero_of_y_size_le Q (by omega)]
-    simp
-
 omit [DecidableEq F] in
 /-- An order `s` seen modulo `X^M` is the order. -/
 theorem xAdicOrder?_of_truncateX {S : CBivariate F} {M s : ℕ}
@@ -208,21 +199,21 @@ theorem prefixesTrunc_eq [CharP F 2] (fieldRoots : FieldRootContext F) (fuel : �
         rw [coeff_initialCoefficientPolynomial, coeff_initialCoefficientPolynomial, hQn,
           cbivar_coeff_truncateX]
         simp only [show 0 < M - s by omega, ↓reduceIte]
-      rw [prefixesWithFuelFast, hstrip]
+      rw [prefixesWithFuelFast, stripFast_eq, hstrip, initialCoeffFast_eq]
       simp only [beq_iff_eq, hne, ↓reduceIte, hinit]
       congr 1
       funext out a
       congr 1
       rw [hQn, truncateX_substituteFast]
       refine ih _ _ _ _ _ ?_
-      simp only [residualFast, stripXAdicFactor_stripXAdicFactor]
+      simp only [residualFast, stripFast_eq, stripXAdicFactor_stripXAdicFactor]
 
 /-! ## The exact polynomial as data -/
 
 /-- The exact polynomial after the roots `path` from `Q₀`: each step strips the `X`-adic factor and
 takes the residual at the root (what `prefixesTrunc`'s fallback `E` computes, as data). -/
 @[expose] def replayPath (Q₀ : CBivariate F) (path : List F) : CBivariate F :=
-  path.foldl (fun q a ↦ residualFast (CBivariate.stripXAdicFactor q) a) Q₀
+  path.foldl (fun q a ↦ residualFast (stripFast q) a) Q₀
 
 /-- **`prefixesTrunc` with its fallback as data**: the exact polynomial `replayPath Q₀ path`,
 computed only where the truncation does not determine a step. No function argument changes from
@@ -234,8 +225,8 @@ call to call. -/
     match CBivariate.xAdicOrder? q with
     | some s =>
       if s < M then
-        let Qn := CBivariate.divXPower q s
-        (rootsInFieldForNonzeroEquation fieldRoots (initialCoefficientPolynomial Qn)).foldl
+        let Qn := divXPowerFast q s
+        (rootsInFieldForNonzeroEquation fieldRoots (initialCoeffFast Qn)).foldl
           (fun out a ↦
             out ++ prefixesTruncD fieldRoots fuel
               (CBivariate.truncateX (substituteFast Qn a) (M - s)) (M - s) Q₀ (path ++ [a])
@@ -254,6 +245,7 @@ theorem prefixesTruncD_eq (fieldRoots : FieldRootContext F) (fuel : ℕ) :
   | succ fuel ih =>
     intro q M Q₀ path depth pref
     rw [prefixesTruncD, prefixesTrunc]
+    simp only [divXPowerFast_eq, initialCoeffFast_eq]
     cases CBivariate.xAdicOrder? q with
     | none => rfl
     | some s =>
@@ -264,7 +256,7 @@ theorem prefixesTruncD_eq (fieldRoots : FieldRootContext F) (fuel : ℕ) :
         rw [ih]
         congr 2
         funext _
-        simp [replayPath, List.foldl_append]
+        simp [replayPath, List.foldl_append, stripFast_eq]
       · rfl
 
 end

@@ -13,6 +13,9 @@ import LeanVMTests.Extraction.Toy
   the addresses;
 * the sorted map (`SortedMap`, the replay's and the lookups' index): after 300 insertions with
   repeated keys, every key reads its newest value, as a scan of the insertions does;
+* the restated lane-decoder steps (`Fast/RootFinder.lean`, `Fast/RootSteps.lean`,
+  `Fast/LeeRows.lean`, `Fast/DecoderFast.lean`), each proved equal to the statement's or
+  CompPoly's, run against them on small inputs;
 * the axiom footprint of `transcriptExtractorFast_eq`.
 -/
 
@@ -40,6 +43,30 @@ def decodesFast {μ : ℕ} (R A : ℕ) (q : Vector K (2 ^ μ)) (w : Array (List 
   (l.any fun d ↦ d.toList == q.toList, l.length)
 
 #guard decodesFast 1 3 (randomStack 1 7) (corrupt 1 [2] (wordOf 1 (randomStack 1 7))) = (true, 1)
+
+/-! ## The restated decoder steps, run -/
+
+/-- `(X − 3)(X − 5)(X − 7)(X² + X + 1)`: five roots in `K` (`X² + X + 1` splits: `GF(4) ⊆ K`). -/
+def rootPoly : CPolynomial K :=
+  CPolynomial.linearFactor (K.ofBits 3) * CPolynomial.linearFactor (K.ofBits 5) *
+    CPolynomial.linearFactor (K.ofBits 7) *
+    (CPolynomial.X * CPolynomial.X + CPolynomial.X + CPolynomial.C 1)
+
+#guard (rootsInFieldFast rootPoly).size = 5
+#guard rootsInFieldFast rootPoly == fieldRootCtx.rootsInField rootPoly
+#guard (List.range 4).all fun s ↦
+  let Q := randomBivariate (s + 11) 6 5
+  initialCoeffFast Q == initialCoefficientPolynomial Q &&
+    divXPowerFast Q 2 == CBivariate.divXPower Q 2
+#guard (List.range 3).all fun s ↦
+  let Q := randomBivariate (s + 21) 7 4
+  let params : GSInterpParams := ⟨3, 2, 9⟩
+  normalizeLeeFast params Q == LeeOSullivan.normalizeLeeCandidate? params Q
+#guard
+  let R := (randomBivariate 31 5 1).val.getD 0 0
+  let G := (randomBivariate 32 6 1).val.getD 0 0
+  let params : GSInterpParams := ⟨3, 2, 9⟩
+  leeRowsFast R G params == leeOSullivanBasisRowsWithRG R G params
 
 /-! ## The replay -/
 

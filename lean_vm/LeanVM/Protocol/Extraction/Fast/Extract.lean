@@ -3,10 +3,12 @@ module
 public import Statement.Extractor
 public import LeanVM.Protocol.Extraction.Fast.RothRuckenstein
 public import LeanVM.Protocol.Extraction.Lane
+public import LeanVM.Protocol.Extraction.Prune
 public import LeanVM.Protocol.Extraction.Fast.Karatsuba
 public import LeanVM.Protocol.Extraction.Fast.Truncate
 public import LeanVM.Protocol.Extraction.Fast.Address
 public import LeanVM.Protocol.Extraction.Fast.Order
+public import LeanVM.Protocol.Extraction.Fast.RootFinder
 public import CompPoly.Bivariate.GuruswamiSudan.Interpolation.ApproximantBasis.Correctness
 public import CompPoly.LinearAlgebra.PolynomialMatrix.Approximant
 
@@ -18,6 +20,14 @@ with a faster lane decoder, `gsLaneAtFast`:
 
 * Roth–Ruckenstein's substitution a Taylor shift (`Fast/RothRuckenstein.lean`): `gsContextFast` is
   `gsContext` with `rothRuckensteinRootContextFast`;
+* CompPoly's steps whose code costs more than their algorithm, restated and proved equal
+  (`Fast/DecoderFast.lean`): Lee–O'Sullivan's normalization and the vanishing polynomial
+  (`interpContext` is `interpContextFast`), the root finder (`fieldRootCtxFast`,
+  `Fast/RootFinder.lean`);
+* the lane decoder's points distinct, so the interpolation skips its distinctness check, and the
+  distance filter evaluating by Horner's rule (`gsRunDistinct`);
+* the word's columns reversed once (`laneTable`), the lanes' symbols read from the table
+  (`tableSymbol`, `pruneUpToFast`, `fastStacksFast`);
 * without the final root check where the parameters make it redundant (`gsRunNoCheck`,
   `checkRedundant`: at most `2^64` columns and `W < m·(n − radius)`, as at every shape the
   statement decodes, `W = m·A − 1`, `radius = n − A`);
@@ -41,18 +51,26 @@ open CompPoly CompPoly.GuruswamiSudan
 
 public section
 
-/-- The list decoder's interpolation (`gsContext`'s): Lee–O'Sullivan, Mulders–Storjohann. -/
+/-- The list decoder's interpolation (`gsContext`'s): Lee–O'Sullivan, Mulders–Storjohann, with
+the fast normalization and vanishing polynomial (`interpContextFast`, `Fast/DecoderFast.lean`). -/
 @[expose] def interpContext : GSInterpContext K :=
-  LeeOSullivan.leeOSullivanInterpContext CPolynomial.VanishingPolynomialContext.direct
-    (CPolynomial.BatchEvalContext.horner K)
-    (PolynomialMatrix.muldersStorjohannFastReducerContext K)
+  interpContextFast
 
-/-- The list decoder's context with Roth–Ruckenstein's fast substitution. -/
+theorem interpContext_eq : interpContext =
+    LeeOSullivan.leeOSullivanInterpContext CPolynomial.VanishingPolynomialContext.direct
+      (CPolynomial.BatchEvalContext.horner K)
+      (PolynomialMatrix.muldersStorjohannFastReducerContext K) :=
+  interpContextFast_eq
+
+/-- The list decoder's context with Roth–Ruckenstein's fast substitution, and the restated root
+finder (`fieldRootCtxFast`). -/
 @[expose] def gsContextFast : GSFilteredCoreContext K :=
-  filteredCoreContextOfInterpRootContexts interpContext (rothRuckensteinRootContextFast fieldRootCtx)
+  filteredCoreContextOfInterpRootContexts interpContext
+    (rothRuckensteinRootContextFast fieldRootCtxFast)
 
 theorem gsContextFast_eq : gsContextFast = gsContext := by
-  rw [gsContextFast, rothRuckensteinRootContextFast_eq, gsContext, interpContext]
+  rw [gsContextFast, fieldRootCtxFast_eq, rothRuckensteinRootContextFast_eq, gsContext,
+    interpContext_eq]
 
 /-! ## The final root check, dropped
 
@@ -72,7 +90,7 @@ filter. -/
   match I.interpolate points params with
   | none => #[]
   | some Q =>
-    (prefixesTruncD fieldRootCtx params.messageDegree
+    (prefixesTruncD fieldRootCtxFast params.messageDegree
         (CBivariate.truncateX Q params.messageDegree) params.messageDegree Q [] 0
         default).filter fun p ↦
       degreeLtBool p params.messageDegree && passesCandidateDistance points radius p
@@ -102,7 +120,7 @@ theorem gsRunNoCheck_eq (I : GSInterpContext K) (points : Array (K × K))
     (hW : params.weightedDegreeBound < params.multiplicity * (points.size - radius)) :
     gsRunNoCheck I points params radius =
       gsFilteredCore points I (rothRuckensteinRootContext K fieldRootCtx) params radius := by
-  rw [gsRunNoCheck, gsFilteredCore, gsCore]
+  rw [gsRunNoCheck, fieldRootCtxFast_eq, gsFilteredCore, gsCore]
   cases hQ : I.interpolate points params with
   | none => rfl
   | some Q =>
@@ -153,6 +171,25 @@ theorem mem_gsRunNoCheck (I : GSInterpContext K) (points : Array (K × K))
     exact C.complete hex hdist hd (lt_of_lt_of_le hW (Nat.mul_le_mul_left _ (by omega)))
       (by simpa [passesCandidateDistance] using hm)
 
+/-- **`gsRunNoCheck interpContext` on distinct points**: without the interpolation's distinctness
+check (`interpolateDistinct`), the distance filter evaluating by Horner's rule
+(`passesDistanceFast`). -/
+@[expose] def gsRunDistinct (points : Array (K × K)) (params : GSInterpParams) (radius : ℕ) :
+    Array (CPolynomial K) :=
+  match interpolateDistinct points params with
+  | none => #[]
+  | some Q =>
+    (prefixesTruncD fieldRootCtxFast params.messageDegree
+        (CBivariate.truncateX Q params.messageDegree) params.messageDegree Q [] 0
+        default).filter fun p ↦
+      degreeLtBool p params.messageDegree && passesDistanceFast points radius p
+
+theorem gsRunDistinct_eq {points : Array (K × K)} (h : DistinctXCoordinates points)
+    (params : GSInterpParams) (radius : ℕ) :
+    gsRunDistinct points params radius = gsRunNoCheck interpContext points params radius := by
+  rw [gsRunDistinct, gsRunNoCheck, interpolateDistinct_eq h, passesDistanceFast_eq]
+  rfl
+
 /-- The lane decoder's points are distinct below `2^64` columns. -/
 theorem distinct_lanePoints (n : ℕ) (hn : n ≤ 2 ^ 64) (W : ℕ → List K) (u : ℕ) :
     DistinctXCoordinates (lanePoints n W u) := by
@@ -176,32 +213,95 @@ equations), proved sound and complete, on Karatsuba's products and remainders. -
       karatsubaModContext
       (PolynomialMatrix.Approximant.kernelLeafPMBasisContext karatsubaMulContext 8))
 
-/-- `gsLaneAt`, fast: without the final root check where it is redundant, and with the fast
-substitution. The interpolation is Lee–O'Sullivan's (Mulders–Storjohann) at every shape:
-`approxInterpContext` is measured slower at every runnable size, and its code admits no cost bound
-below Mulders–Storjohann's (the kernel leaf can raise degrees, the low products recompute each
-product per coefficient). A choice of speed only: what the lane lists hold does not depend on it
+/-! ## The word's symbols, read once
+
+The statement reads lane `u`'s symbol at column `v` as `(W v).reverse.getD u 0` (`laneSymbol`): a
+reversal of the column's `64` entries per read, and the pruning reads a symbol per survivor, list
+entry and column. The fast decoder reverses each column once (`laneTable`, the columns `v < n`)
+and reads entries (`tableSymbol`); the pruning reads only columns `v < n` (`colsLt_pruneStep`), so
+the two agree where they are read (`pruneStep_congr`). -/
+
+/-- The word's columns `v < n`, each reversed, as arrays. -/
+@[expose] def laneTable (n : ℕ) (W : ℕ → List K) : Array (Array K) :=
+  Array.ofFn fun v : Fin n ↦ (W v.val).reverse.toArray
+
+/-- Lane `u`'s symbol at column `v`, read from the table. -/
+@[expose] def tableSymbol (T : Array (Array K)) (u v : ℕ) : K := (T.getD v #[]).getD u 0
+
+theorem tableSymbol_laneTable {n v : ℕ} (hv : v < n) (W : ℕ → List K) (u : ℕ) :
+    tableSymbol (laneTable n W) u v = laneSymbol W u v := by
+  simp [tableSymbol, laneTable, laneSymbol, Array.getD_eq_getD_getElem?, hv,
+    List.getD_eq_getElem?_getD]
+
+/-- `lanePoints`, the symbols read from `S` (`S u v`: lane `u` at column `v`). -/
+@[expose] def lanePointsS (n : ℕ) (S : ℕ → ℕ → K) (u : ℕ) : Array (K × K) :=
+  Array.ofFn fun v : Fin n ↦ (K.ofBits v.val, S u v.val)
+
+theorem lanePointsS_eq {n u : ℕ} {S : ℕ → ℕ → K} {W : ℕ → List K}
+    (hS : ∀ v < n, S u v = laneSymbol W u v) : lanePointsS n S u = lanePoints n W u := by
+  rw [lanePointsS, lanePoints]
+  congr 1
+  funext v
+  rw [hS v v.isLt]
+
+/-- A pruning step reads the symbols only at its survivors' columns. -/
+theorem pruneStep_congr {A : ℕ} {sym sym' : ℕ → K} {L : List (Array K × Array K)}
+    {st : List (List (Array K) × List ℕ)} (h : ∀ s ∈ st, ∀ v ∈ s.2, sym v = sym' v) :
+    pruneStep A sym L st = pruneStep A sym' L st := by
+  unfold pruneStep
+  refine List.flatMap_congr fun s hs ↦ List.filterMap_congr fun ce _ ↦ ?_
+  have hf : (s.2.filter fun v ↦ decide (ce.2.getD v 0 = sym v)) =
+      s.2.filter fun v ↦ decide (ce.2.getD v 0 = sym' v) :=
+    List.filter_congr fun v hv ↦ by rw [h s hs v hv]
+  simp only [hf]
+
+/-- A pruning step keeps its survivors' columns below `n`. -/
+theorem colsLt_pruneStep {n A : ℕ} {sym : ℕ → K} {L : List (Array K × Array K)}
+    {st : List (List (Array K) × List ℕ)} (h : ∀ s ∈ st, ∀ v ∈ s.2, v < n) :
+    ∀ s ∈ pruneStep A sym L st, ∀ v ∈ s.2, v < n := by
+  intro x hx v hv
+  obtain ⟨s, hs, ce, -, -, rfl⟩ := PruneProofs.mem_pruneStep.1 hx
+  exact h s hs v (List.mem_filter.1 hv).1
+
+theorem foldl_congr_inv {α β : Type*} (P : β → Prop) {f g : β → α → β} (l : List α) {b : β}
+    (hb : P b) (hfg : ∀ b a, P b → f b a = g b a) (hP : ∀ b a, P b → P (g b a)) :
+    l.foldl f b = l.foldl g b := by
+  induction l generalizing b with
+  | nil => rfl
+  | cons a l ih => rw [List.foldl_cons, List.foldl_cons, hfg b a hb, ih (hP b a hb)]
+
+/-! ## The lanes, fast -/
+
+/-- `gsLaneAt`, fast: without the final root check where it is redundant (and then without the
+interpolation's distinctness check), with the fast substitution, the symbols read from `S`. The
+interpolation is Lee–O'Sullivan's (Mulders–Storjohann) at every shape: `approxInterpContext` is
+measured slower at every runnable size, and its code admits no cost bound below
+Mulders–Storjohann's (the kernel leaf can raise degrees, the low products recompute each product
+per coefficient). A choice of speed only: what the lane lists hold does not depend on it
 (`mem_gsRunNoCheck`). -/
-@[expose] def gsLaneAtFast (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) : Array (CPolynomial K) :=
+@[expose] def gsLaneAtFast (κ R A : ℕ) (S : ℕ → ℕ → K) (u : ℕ) : Array (CPolynomial K) :=
   let params := gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A
-  let points := lanePoints (2 ^ (κ + R)) W u
-  if checkRedundant κ R params then gsRunNoCheck interpContext points params.interp params.radius
+  let points := lanePointsS (2 ^ (κ + R)) S u
+  if checkRedundant κ R params then gsRunDistinct points params.interp params.radius
   else GuruswamiSudan.decodeWithParams gsContextFast params ⟨points⟩
 
 /-- `laneListAt`, fast. -/
-@[expose] def laneListAtFast (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) : List (Array K) :=
-  (((gsLaneAtFast κ R A W u).toList.map (toNovel κ)).dedup).mergeSort coeffsLE
+@[expose] def laneListAtFast (κ R A : ℕ) (S : ℕ → ℕ → K) (u : ℕ) : List (Array K) :=
+  (((gsLaneAtFast κ R A S u).toList.map (toNovelFast κ)).dedup).mergeSort coeffsLE
 
 /-- `laneEncodedAt`, fast. -/
-@[expose] def laneEncodedAtFast (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) : List (Array K × Array K) :=
-  (laneListAtFast κ R A W u).map fun c ↦ (c, novelFwd κ R c)
+@[expose] def laneEncodedAtFast (κ R A : ℕ) (S : ℕ → ℕ → K) (u : ℕ) :
+    List (Array K × Array K) :=
+  (laneListAtFast κ R A S u).map fun c ↦ (c, novelFwd κ R c)
 
-/-- `pruneUpTo`, fast. -/
+/-- `pruneUpTo`, fast: the symbols from the word's table. -/
 @[expose] def pruneUpToFast (κ R A : ℕ) (W : ℕ → List K) (U : ℕ) :
     List (List (Array K) × List ℕ) :=
+  let T := laneTable (2 ^ (κ + R)) W
   (List.range U).foldl
     (fun st u ↦
-      if st.isEmpty then [] else pruneStep A (laneSymbol W u) (laneEncodedAtFast κ R A W u) st)
+      if st.isEmpty then []
+      else pruneStep A (tableSymbol T u) (laneEncodedAtFast κ R A (tableSymbol T) u) st)
     [([], List.range (2 ^ (κ + R)))]
 
 /-- `decodeStacksAt`, fast. -/
@@ -211,6 +311,17 @@ product per coefficient). A choice of speed only: what the lane lists hold does 
 /-- `decodeStacks`, fast. -/
 @[expose] def decodeStacksFast (μ R : ℕ) (W : ℕ → List K) : List (Vector K (2 ^ μ)) :=
   decodeStacksAtFast μ R (johnsonThreshold μ R) W
+
+/-- `fastStacks`, fast: the symbols from the word's table. -/
+@[expose] def fastStacksFast (μ R : ℕ) (W : ℕ → List K) : List (Vector K (2 ^ μ)) :=
+  let κ := μ - initialFold
+  let T := laneTable (2 ^ (κ + R)) W
+  let st := (List.range (2 ^ initialFold)).foldl
+    (fun st u ↦
+      let c := novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦ tableSymbol T u v.val)
+      pruneStep (johnsonThreshold μ R) (tableSymbol T u) [(c, novelFwd κ R c)] st)
+    [([], List.range (2 ^ (κ + R)))]
+  st.map fun s ↦ stackOf μ s.1
 
 /-- **The extractor, fast**: `extract` with `decodeStacksFast`. -/
 @[expose] def extractFast (prog : Program) (input : PublicInput) (bytecode : List K)
@@ -225,9 +336,10 @@ product per coefficient). A choice of speed only: what the lane lists hold does 
     (decodeStacksFast layout.stackLog logInverseRate word).findSome? execution
 
 /-- **The lane decoder lists the same polynomials, fast.** -/
-theorem mem_gsLaneAtFast (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) (p : CPolynomial K) :
-    p ∈ (gsLaneAtFast κ R A W u).toList ↔ p ∈ (gsLaneAt κ R A W u).toList := by
-  rw [gsLaneAtFast, gsLaneAt, ← gsContextFast_eq]
+theorem mem_gsLaneAtFast {κ R A u : ℕ} {S : ℕ → ℕ → K} {W : ℕ → List K}
+    (hS : ∀ v < 2 ^ (κ + R), S u v = laneSymbol W u v) (p : CPolynomial K) :
+    p ∈ (gsLaneAtFast κ R A S u).toList ↔ p ∈ (gsLaneAt κ R A W u).toList := by
+  rw [gsLaneAtFast, gsLaneAt, lanePointsS_eq hS, ← gsContextFast_eq]
   split
   · rename_i h
     simp only [checkRedundant, Bool.and_eq_true, decide_eq_true_eq] at h
@@ -236,26 +348,81 @@ theorem mem_gsLaneAtFast (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) (p : CPol
         (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp.multiplicity *
           ((lanePoints (2 ^ (κ + R)) W u).size - (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).radius) := by
       simpa [lanePoints] using h.2
-    rw [decodeWithParams, gsContextFast_eq,
-      show gsContext.run _ _ _ = gsRunNoCheck interpContext _ _ _ from
+    have hctx : gsContext = filteredCoreContextOfInterpRootContexts interpContext
+        (rothRuckensteinRootContext K fieldRootCtx) := by
+      rw [gsContext, interpContext_eq]
+    rw [gsRunDistinct_eq hd, decodeWithParams, gsContextFast_eq, hctx,
+      show (filteredCoreContextOfInterpRootContexts interpContext
+          (rothRuckensteinRootContext K fieldRootCtx)).run _ _ _ =
+        gsRunNoCheck interpContext _ _ _ from
         (gsRunNoCheck_eq _ _ _ _ hd hW).symm,
       mem_gsRunNoCheck _ _ _ _ hd hW]
   · rfl
 
-theorem laneListAtFast_eq : laneListAtFast = laneListAt := by
-  funext κ R A W u
-  rw [laneListAtFast, laneListAt]
+theorem laneListAtFast_eq {κ R A u : ℕ} {S : ℕ → ℕ → K} {W : ℕ → List K}
+    (hS : ∀ v < 2 ^ (κ + R), S u v = laneSymbol W u v) :
+    laneListAtFast κ R A S u = laneListAt κ R A W u := by
+  rw [laneListAtFast, laneListAt, toNovelFast_eq]
   refine mergeSort_dedup_eq fun x ↦ ?_
-  simp only [List.mem_map, mem_gsLaneAtFast]
+  simp only [List.mem_map, mem_gsLaneAtFast hS]
+
+theorem pruneUpToFast_eq (κ R A : ℕ) (W : ℕ → List K) (U : ℕ) :
+    pruneUpToFast κ R A W U = pruneUpTo κ R A W U := by
+  rw [pruneUpToFast, pruneUpTo]
+  have hT : ∀ u, ∀ v < 2 ^ (κ + R),
+      tableSymbol (laneTable (2 ^ (κ + R)) W) u v = laneSymbol W u v :=
+    fun u _ hv ↦ tableSymbol_laneTable hv W u
+  refine foldl_congr_inv (fun st ↦ ∀ s ∈ st, ∀ v ∈ s.2, v < 2 ^ (κ + R)) _
+    (by simp) (fun st u hst ↦ ?_) (fun st u hst ↦ ?_)
+  · split
+    · rfl
+    · rw [laneEncodedAtFast, laneListAtFast_eq (hT u), ← laneEncodedAt]
+      exact pruneStep_congr fun s hs v hv ↦ hT u v (hst s hs v hv)
+  · split
+    · simp
+    · exact colsLt_pruneStep hst
 
 theorem decodeStacksAtFast_eq : decodeStacksAtFast = decodeStacksAt := by
   funext μ R A W
-  simp only [decodeStacksAtFast, pruneUpToFast, laneEncodedAtFast, laneListAtFast_eq,
-    decodeStacksAt, pruneUpTo, laneEncodedAt]
+  rw [decodeStacksAtFast, pruneUpToFast_eq, decodeStacksAt]
 
 theorem decodeStacksFast_eq : decodeStacksFast = decodeStacks := by
   funext μ R W
   rw [decodeStacksFast, decodeStacksAtFast_eq, decodeStacks]
+
+/-- `fastStacks`'s fold, the symbols from the table. -/
+theorem fastFold_eq (κ R A U : ℕ) (W : ℕ → List K) :
+    (List.range U).foldl
+      (fun st u ↦
+        pruneStep A (tableSymbol (laneTable (2 ^ (κ + R)) W) u)
+          [(novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦
+              tableSymbol (laneTable (2 ^ (κ + R)) W) u v.val),
+            novelFwd κ R (novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦
+              tableSymbol (laneTable (2 ^ (κ + R)) W) u v.val)))] st)
+      [([], List.range (2 ^ (κ + R)))] =
+    (List.range U).foldl
+      (fun st u ↦
+        pruneStep A (laneSymbol W u)
+          [(novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦ laneSymbol W u v.val),
+            novelFwd κ R (novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦ laneSymbol W u v.val)))]
+          st)
+      [([], List.range (2 ^ (κ + R)))] := by
+  have hT : ∀ u, ∀ v < 2 ^ (κ + R),
+      tableSymbol (laneTable (2 ^ (κ + R)) W) u v = laneSymbol W u v :=
+    fun u _ hv ↦ tableSymbol_laneTable hv W u
+  refine foldl_congr_inv (fun st ↦ ∀ s ∈ st, ∀ v ∈ s.2, v < 2 ^ (κ + R)) _
+    (by simp) (fun st u hst ↦ ?_) (fun st u hst ↦ colsLt_pruneStep hst)
+  have hc : (Array.ofFn fun v : Fin (2 ^ κ) ↦ tableSymbol (laneTable (2 ^ (κ + R)) W) u v.val) =
+      Array.ofFn fun v : Fin (2 ^ κ) ↦ laneSymbol W u v.val := by
+    congr 1
+    funext v
+    exact hT u v (lt_of_lt_of_le v.isLt (Nat.pow_le_pow_right (by norm_num) (by omega)))
+  rw [hc]
+  exact pruneStep_congr fun s hs v hv ↦ hT u v (hst s hs v hv)
+
+theorem fastStacksFast_eq : fastStacksFast = fastStacks := by
+  funext μ R W
+  simp only [fastStacksFast, fastStacks, fastFold_eq]
 
 /-- **The fast extractor is the statement's.** -/
 theorem extractFast_eq : extractFast = extract := by
