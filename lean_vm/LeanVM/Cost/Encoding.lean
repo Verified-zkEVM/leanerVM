@@ -11,8 +11,8 @@ public import CompPoly.Univariate.Basic
 `Enc α` encodes an `α` as a machine value. The encoding the end statement reads (`Enc`, its
 instances for the extractor's input and output, `encode`, `decodeExecution`) is the statement's,
 `Statement/CostMachine.lean`; here, the instances only the compiler needs (`UInt8`, `Unit`,
-`Ordering`, `Option`, `Array`, CompPoly's polynomials, `Id`, subtypes) and the proof that decoding
-inverts encoding (`decodeExecution_enc`).
+`Char`, `String`, `Ordering`, `Option`, `Array`, CompPoly's polynomials, `Id`, subtypes) and the
+proof that decoding inverts encoding (`decodeExecution_enc`).
 -/
 
 namespace LeanVM.Cost
@@ -23,6 +23,12 @@ open LeanVM LeanVM.Parameters LeanVM.Semantics Common LeanVM.Protocol.Compile
 
 instance : Enc UInt8 := ⟨fun x ↦ .word x.toUInt64⟩
 instance : Enc Unit := ⟨fun _ ↦ .ctor 0 []⟩
+
+/-- A character: its code point. -/
+instance : Enc Char := ⟨fun c ↦ .nat c.toNat⟩
+
+/-- A string: the list of its characters. -/
+instance : Enc String := ⟨fun s ↦ enc s.toList⟩
 
 instance : Enc Ordering where
   enc | .lt => .ctor 0 [] | .eq => .ctor 1 [] | .gt => .ctor 2 []
