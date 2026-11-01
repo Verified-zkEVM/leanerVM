@@ -109,8 +109,6 @@ theorem compareCodes_cost (hP : Includes P Auto.List.compareLex.c284.costDeps)
 
 /-! ## The entry table's map: `CallKey` keys -/
 
--- the comparison's 27 outcomes, each an `omega` over the positions' limbs: twice the default
-set_option maxHeartbeats 400000 in
 /-- **The binary search of a key `k`** (`searchInKeyC`), the entries' keys of at most `L` codes,
 positions up to `2H` of at most `W` limbs: at most `(keyCmpPrice k + 51 + 9W)·(log₂(hi − lo) + 2)`. -/
 theorem searchInKey_cost (hP : Includes P searchInKeyC.costDeps) (L : ℕ)
@@ -140,11 +138,18 @@ theorem searchInKey_cost (hP : Includes P searchInKeyC.costDeps) (L : ℕ)
     dsimp only at *
     rw [searchInKeyC.costEq P hP]
     simp only [show lo < hi by omega, ↓reduceIte]
-    have := hW lo (by omega)
-    have := hW hi (by omega)
-    have := hW (lo + hi) (by omega)
-    have := hW ((lo + hi) / 2) (by omega)
-    have := hW t.size (by omega)
+    have h1 := hW lo (by omega)
+    have h2 := hW hi (by omega)
+    have h3 := hW (lo + hi) (by omega)
+    have h4 := hW ((lo + hi) / 2) (by omega)
+    have h5 := hW t.size (by omega)
+    -- the positions' limbs as numbers at most `W`: no `max` left for `omega` to split
+    have hm1 : max (limbCount lo) (limbCount hi) ≤ W := max_le h1 h2
+    have hm2 : max (limbCount ((lo + hi) / 2)) (limbCount t.size) ≤ W := max_le h4 h5
+    generalize max (limbCount lo) (limbCount hi) = m1 at hm1 ⊢
+    generalize max (limbCount ((lo + hi) / 2)) (limbCount t.size) = m2 at hm2 ⊢
+    generalize limbCount (lo + hi) = m3 at h3 ⊢
+    generalize limbCount ((lo + hi) / 2) = m4 at h4 ⊢
     generalize hv : t[(lo + hi) / 2]? = ov
     cases ov with
     | none =>
@@ -161,21 +166,36 @@ theorem searchInKey_cost (hP : Includes P searchInKeyC.costDeps) (L : ℕ)
       rw [limbs_of_lt hv1, limbs_of_lt hk1]
       simp only [max_self]
       unfold keyCmpPrice
-      generalize compareOn (fun x ↦ x.1) v.1 k = o1
-      generalize compareOn (fun x ↦ x.1) v.1.2 k.2 = o3
+      generalize machineCost P Auto.List.compareLex.c284.costIdx
+        [.closure searchInKeyC.lam0.costIdx [], encodeValue v.1.2.1, encodeValue k.2.1] = c1 at hc1 ⊢
+      generalize machineCost P Auto.List.compareLex.c284.costIdx
+        [.closure searchInKeyC.lam0.costIdx [], encodeValue v.1.2.2, encodeValue k.2.2] = c2 at hc2 ⊢
+      -- the comparison's price, bounded once over its `9` outcomes
+      have hcmpP : ∀ o1 o3 : Ordering,
+          Ordering.rec (motive := fun _ ↦ ℕ) 1
+            (c1 + Ordering.rec (motive := fun _ ↦ ℕ) 1 (c2 + 6) 1 o3 + 13) 1 o1 ≤ c1 + c2 + 19 := by
+        intro o1 o3; cases o1 <;> cases o3 <;> dsimp only <;> omega
+      have hif : ∀ (p q : Prop) [Decidable p] [Decidable q],
+          (1 + if p then 1 else (1 + if q then 1 else 1) + 6) ≤ 9 := by
+        intro p q _ _; split_ifs <;> omega
+      have := hcmpP (compareOn (fun x ↦ x.1) v.1 k) (compareOn (fun x ↦ x.1) v.1.2 k.2)
+      have := hif (v.1.1 < k.1) (v.1.1 = k.1)
+      generalize compareOn (fun x ↦ x.1) v.1 k = o1 at *
+      generalize compareOn (fun x ↦ x.1) v.1.2 k.2 = o3 at *
+      clear hcmpP hif hv hvt hva hvr hka hkr ht hcmp hv1 hk1
       generalize compare v.1 k = o2
       cases o2
       · right
         refine ⟨((lo + hi) / 2 + 1, hi), ⟨by omega, hhi⟩, by dsimp only; omega, ?_⟩
         dsimp only
-        cases o1 <;> cases o3 <;> dsimp only <;> split_ifs <;> omega
+        split <;> omega
       · left
         dsimp only
-        cases o1 <;> cases o3 <;> dsimp only <;> split_ifs <;> omega
+        split <;> omega
       · right
         refine ⟨(lo, (lo + hi) / 2), ⟨hlo, by omega⟩, by dsimp only; omega, ?_⟩
         dsimp only
-        cases o1 <;> cases o3 <;> dsimp only <;> split_ifs <;> omega
+        split <;> omega
 
 /-- `mergeNewer` on call keys (`mergeNewerKeyC`), both lists' keys of at most `L` codes: at most
 `134·L + 67` per entry and `9`. -/
