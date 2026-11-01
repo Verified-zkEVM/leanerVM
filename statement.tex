@@ -29,7 +29,7 @@ proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classic
 leanVM at commit \texttt{c445e3d5} of its \texttt{main} branch.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: fifteen files
-of definitions and end statements ($7507$ lines with their documentation), which import Mathlib,
+of definitions and end statements ($7506$ lines with their documentation), which import Mathlib,
 VCVio and CompPoly and nothing of the proofs. Beside them sit the honest prover the completeness
 statements name (\lean{Statement/Prover/}, $2524$ lines; it is proved to make the specification's
 honest moves, so a reviewer only needs to see that it is a genuine prover), the guest program's
@@ -422,7 +422,7 @@ it opens; without one, $\mathit{da}$ is zero or some child's DA digest (the gues
 \texttt{da\_pick}, \texttt{lean\_ethereum.py:4202-4206}).
 \item The deferred claim batches the children's. With no children, its point is all-zero (its
 value is left to the outer verifier); otherwise $\mathrm{batch}\big((\mathrm{dig}_\sigma(s_i),
-f_i, c_i)_i, \text{hints}\big) = c$ (\lean{batch}), with $c_i$ the deferred claim of $s_i$. The
+f_i, c_i)_i, \text{hints}\big) = c$ (\lean{nodeBatchingProgram} run by \lean{runBatching}; \lean{batch} in \lean{lean_vm}), with $c_i$ the deferred claim of $s_i$. The
 batching is a Fiat--Shamir transcript on Keccak-f[1600], seeded from the hash of the label
 \texttt{leanvm/recursion-aggregation/v1}: it absorbs the number of children, then each child's
 digest and two claims; squeezes one challenge $\lambda \in \mathbb{E}$, whose powers batch the
@@ -515,15 +515,15 @@ is known.
 bound \lean{lean_vm} proves on the compiled decoder's price, as \lean{extractorPrice} is on the
 extractor's: per step $2^{21.9}$ to $2^{22.0}$ (the replay and the filing of the state in a
 sorted array, its share of one sort, growing as $\log$ of the steps), so
-$O(\mathit{steps}\cdot\log\mathit{steps})$ below $2^{62}$ steps
+$O(\mathit{steps}\cdot\log\mathit{steps})$ below $2^{61}$ steps
 ($O(\mathit{steps}\cdot\log^2\mathit{steps})$ as they grow), with no term in the memory's or the
 program's size,
 and a constant of about $2^{47.04}$ with about $2^{26.57}$ frame lookups, the witness read at the
-counts a valid execution bounds ($G$'s own asserts: at most $16$ children, $65535$ claims and
-$65535$ slots; the DA matrix's rows clamped at $1024$), dominated by the children's cursor
-lengths ($16\cdot 2^{32}$: no assert of $G$ bounds them) and the address tables of the memory
-and the program ($2614\cdot 2^{33}$, each at $2^{32}$ entries). At $\kappa = 32$ and $\ell = 19$ the budget is $2^{47.07}$ at $2^{10}$
-steps, $2^{47.12}$ at $2^{20}$, $2^{52.00}$ at $2^{30}$, $2^{73.00}$ at $2^{51}$ and $2^{82.02}$
+counts a valid execution bounds ($G$'s own asserts: at most $16$ children, $65535$ claims of
+each scheme and $65535$ coverage slots; the decoder clamps the DA matrix's row count at $1024$),
+dominated by the children's cursor lengths ($16\cdot 2^{32}$: no assert of $G$ bounds them) and
+the address tables of the memory and the program ($2614\cdot 2^{33}$, each at $2^{32}$ entries).
+At $\kappa = 32$ and $\ell = 19$ the budget is $2^{47.07}$ at $2^{10}$ steps, $2^{47.12}$ at $2^{20}$, $2^{52.00}$ at $2^{30}$, $2^{73.00}$ at $2^{51}$ and $2^{82.02}$
 at $2^{60}$; the constant dominates up to about $2^{25}$ steps, so below that the budget is far
 above the compiled decoder's price. There is no cap on the steps in the budget. A valid execution
 of $G$ (\lean{ValidExecution}) has fewer than $2^{51}$ steps: the memory is fixed and every
@@ -616,7 +616,7 @@ declared claims plus the duplicates the guest program records) shorter than $2^{
 \paragraph{The budget} (\lean{lean_vm}). The node's \emph{work} (\lean{work}) consists of $\cnt{decl}$
 declared claims (both signature lists), $\cnt{cover}$ coverage slots, $\cnt{xmss}$ and $\cnt{sphincs}$
 signatures held directly, $\cnt{da} \le 1$ DA matrix held directly with $\cnt{rows}$ rows, padded to
-$\cnt{pad}$ rows ($2^{\lceil\log_2 \ell\rceil}$ for a matrix of $\ell$ rows), $\cnt{child}$ children
+$\cnt{pad}$ rows ($2^{\lceil\log_2 m\rceil}$ for a matrix of $m$ rows), $\cnt{child}$ children
 with $\cnt{childclaims}$ claims in all,
 and each child's announced stack log $\mu$ and rate exponent $r$. A run allocates at most
 \begin{multline*}
@@ -636,8 +636,8 @@ $r=4$ & 389193 & 393074 & 408904 & 413004 & 417160 & 423729 & 439992
 \end{center}
 The instructions of each opcode are bounded by linear forms of the same shape
 (\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $25 + \cnt{decl} + 398\cnt{xmss} + 390\cnt{sphincs} + 6047\cnt{da} +
-2064\cnt{rows} + 129\cnt{pad} + 61\cnt{child} + \cnt{childclaims} + \sum \kappa(\mu, r)$ with
-$\kappa$ between $4922$ and $9979$). The
+2064\cnt{rows} + 129\cnt{pad} + 61\cnt{child} + \cnt{childclaims} + \sum \gamma(\mu, r)$ with
+$\gamma$ between $4922$ and $9979$). The
 budget's size is the committed size of Section~\ref{sec:zkvm} at these bounds: memory
 $2^{\max(\lceil\log_2 W\rceil, 20)}$ and each table's height the least power of two at least its
 bound (at least $2^9$ for \texttt{KECCAK}). These are proved bounds on the guest program's runs,
@@ -714,8 +714,8 @@ one finds a Keccak-256 collision.
 \item Soundness across recursion levels (Section~\ref{sec:notgive}); completeness across levels
 holds only through \lean{GuestChildComplete}.
 \item That the cost machine's prices are honest (Section~\ref{sec:zkvm}): trusted, as the
-statement's model of computation, a $\mathbb{F}_{2^{64}}$ product priced at $256$ on the basis of
-a hardware carry-less multiply.
+statement's model of computation (among them a $\mathbb{F}_{2^{64}}$ product priced at $256$, on
+the basis of a hardware carry-less multiply).
 \item Security against quantum adversaries (a quantum random-permutation model), for the
 signature schemes and for leanVM's Fiat--Shamir: every statement is about classical adversaries.
 \item LeanDA's code binding for an argument without access to $\pi$, and the link from the guest
@@ -726,21 +726,24 @@ that batching true claims gives a true deferred claim, and that the deployed out
 (\texttt{EthereumProof::verify}) accepts an honest root.
 \item \lean{AcceptableChild}'s agreement of openings and absence of a zero challenge for children that are
 not honest proofs.
-\item Which programs $D$ and $P$ are: the statement takes them as parameters within their size
-bounds and budgets; the end theorem holds at \lean{lean_vm}'s compiled
-\lean{LeanVM.Guest.End.decode} and \lean{transcriptExtractor} (\lean{LeanVM.Cost.decoderProgram},
-\lean{LeanVM.Cost.extractorProgram}).
+\item Which programs $P$ and $D$ are: the statement takes them as parameters within their size
+bounds and budgets; the end theorem holds at \lean{lean_vm}'s compiled \lean{transcriptExtractor}
+and \lean{LeanVM.Guest.End.decode} (\lean{LeanVM.Cost.extractorProgram},
+\lean{LeanVM.Cost.decoderProgram}).
 \item That the extracted execution is the one the proof commits to: \lean{KnowledgeSoundness}
 asks only for some valid execution of $\mathit{prog}$ on $x$, and \lean{AggregateSound} decodes that one.
 \item That a valid execution of $G$ has fewer than $2^{51}$ steps (Section~\ref{sec:guest}):
 argued, not a Lean theorem; the decoder's budget has no cap on the steps, and its constant, about
 $2^{47.04}$, prices the children's cursors and the address tables of the memory and the program
 at their maxima.
-\item The size bounds limit programs written like the compiled ones: literals count toward size,
-and a decoder written differently could pack the guest's frame-cell table about three times
-tighter, freeing room for about $1600$ signatures' encodings. $D$ computes the witness from the
-execution by any algorithm within its budget. The extractor's budget is about
-$2^{117.67} + 2^{14.7} N\log^2 N$.
+\item That the size bounds exclude a table of witnesses for every program: literals count toward
+size, and the bounds are tight only for programs written like the compiled ones (a decoder
+written differently could pack the guest's frame-cell table about three times tighter, freeing
+room for about $1600$ signatures' encodings).
+\item How $D$ computes the witness: the statement accepts any program that computes it from the
+execution within its budget, not only one that reads it off the memory.
+\item A tight extractor budget: it is about $2^{117.67} + 2^{14.7} N\log^2 N$, priced at the worst
+shape.
 \item The Rust verifier, prover and guests. They are tested against the Lean specification: the
 verifier differential fuzz; the prover differential (the Lean prover's proofs byte-identical to the
 Rust prover's, accepted by both verifiers, every mutation rejected by both), which does not yet

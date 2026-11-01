@@ -242,12 +242,12 @@ theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProg
     (hexplains : LeanVM.Guest.End.DecoderExplains decoder) :
     Statement.Theorems (extractorProgram := LeanVM.Cost.extractorProgram)
       (decoderProgram := decoderProgram) where
-  decoderSize := hspec.size
   extractorSize := LeanVM.Cost.extractorProgram_size_le
   knowledgeSoundness := by
     rw [LeanVM.Cost.extractorOf_extractorProgram]
     exact LeanVM.knowledgeSoundness_holds
   completeness := LeanVM.completeness_holds
+  decoderSize := hspec.size
   guestKnowledge := LeanVM.Guest.End.guestKnowledge_of_spec hspec hexplains
   digestBinds := LeanVM.Guest.Binding.digest_binds
   guestCompleteCovered := LeanVM.Guest.Budget.guest_complete_covered

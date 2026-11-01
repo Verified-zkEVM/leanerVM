@@ -168,7 +168,7 @@ priced at `2^32` entries (`2614·2^33` together):
 binary search, growing as `log(steps)`) is paid about `2^26.57` times
 (`guestDecoderFrameLookupCountAtValidCounts`).
 
-So the bound is `O(steps·log steps)` below `2^62` steps (`O(steps·log² steps)` as `steps` grows,
+So the bound is `O(steps·log steps)` below `2^61` steps (`O(steps·log² steps)` as `steps` grows,
 through the positions' limbs), not linear: per step about `2^21.9` to `2^22.0`, and it has no term
 in the memory's or the program's size (`κ` and `ℓ` enter only the step's price, `runnerStepPrice`).
 At `κ = 32` and the guest's `ℓ = 19` it is `2^47.07` at `2^10` steps, `2^47.12` at `2^20`, `2^52.00`
@@ -179,8 +179,9 @@ execution of the guest program has fewer than `2^51` steps: the memory is fixed 
 instruction reads a cell at `fp·o` for an offset `o` fixed by `pc`, so at each `pc` at most `2^κ`
 values of `fp` let a step succeed; the run is determined by `(pc, fp)`, and a repeated state would
 loop without halting (`2^ℓ·2^κ` states, `ℓ = 19`, `κ ≤ 32`; argued, not a Lean theorem). The
-per-step price and the frame lookup are the compiled decoder's own (`lean_vm` proves them equal to
-its bounds); the constant prices the children's cursors at `2^32` words each (no assert of the guest
+per-step price and the frame lookup's are `lean_vm`'s bounds on the compiled decoder's own steps,
+stated exactly (`entryArrayStatePrice_eq`; `frameAtAPrice_le`, equal at `16` words), not priced at
+maxima; the constant prices the children's cursors at `2^32` words each (no assert of the guest
 bounds the prefix of a child's stream it consumes: `8192` (`STREAM_CAP`) is only the hint buffer's
 capacity, which `AcceptableChild` assumes for completeness but no assert enforces) and the address
 tables at `2^32` entries, not at the run's, so on an honest execution of fewer than about `2^25`
@@ -281,10 +282,9 @@ structure Theorems (extractorProgram decoderProgram : LeanVM.Cost.MachineProgram
   /-- leanVM is knowledge sound for the straight-line extractor the program computes within its
   budget, `extractorOf extractorProgram` (a run out of budget extracts nothing, which counts as
   breaking knowledge soundness; the machine's prices are trusted to be honest,
-  `CostMachine.lean`): at most
-  `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). The
-  budget is about `2^117.67 + 2^14.7·N·log²N` for `N` permutation queries at the worst shape
-  (`O(N·log³N)` as `N` grows). -/
+  `CostMachine.lean`): at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128`
+  queries (`LeanVm.lean`). The budget is about `2^117.67 + 2^14.7·N·log²N` for `N` permutation
+  queries at the worst shape (`O(N·log³N)` as `N` grows). -/
   knowledgeSoundness : LeanVM.KnowledgeSoundness (LeanVM.extractorOf extractorProgram)
   /-- leanVM is complete: the honest prover's (`LeanVM.prover`, the executable
   `LeanVM.Prover.prove` of `Prover/Prove.lean`) proof of a valid execution of committed size at

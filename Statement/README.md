@@ -33,19 +33,19 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 
 **What is trusted.** That the deployed Keccak-f[1600] behaves as a random permutation; that no one
 finds a Keccak-256 collision (the guest program's statements); that the cost machine's prices are
-honest (among them a `GF(2^64)` product at `256`, on the basis of a hardware carry-less
-multiply); and that the leanVM definitions transcribe their sources. Accepted trade-offs: the
-statement does not name the extractor or decoder program (only their sizes and budgets); the
-decoder computes the witness from the execution; the extracted execution need not be the
-committed one; the decoder's budget has no cap on steps, grows as `steps·log steps` below `2^62`
-steps (`steps·log² steps` as they grow), and its constant (about `2^47.04`) prices the children's
-cursor lengths (`2^32` words each: no assert of the guest bounds them) and the address tables of
-the memory and the program at their maxima, not at the run's, so
-below about `2^25` steps it is far above the compiled decoder's price; that a valid execution of
-the guest program has fewer than `2^51` steps is argued in prose, not proved in Lean; literal
-tables count toward size; the size bounds limit programs written like the compiled ones (a
-decoder written differently could pack the guest's tables tighter, about `1600` signatures'
-room); the extractor's budget is about `2^117.67 + 2^14.7·N·log²N` for `N` queries.
+honest (among them a `GF(2^64)` product at `256`, on the basis of a hardware carry-less multiply);
+and that the leanVM definitions transcribe their sources. Accepted trade-offs: the statement does
+not name the extractor or decoder program (only their sizes and budgets); the decoder computes the
+witness from the execution; the extracted execution need not be the committed one; the decoder's
+budget has no cap on steps, grows as `steps·log steps` below `2^61` steps (`steps·log² steps` as
+they grow), and its constant (about `2^47.04`) prices the children's cursor lengths (`2^32` words
+each: no assert of the guest bounds them) and the address tables of the memory and the program at
+their maxima, not at the run's, so below about `2^25` steps the budget is far above the compiled
+decoder's price; that a valid execution of the guest program has fewer than `2^51` steps is argued
+in prose, not proved in Lean; literal tables count toward size; the size bounds limit programs
+written like the compiled ones (a decoder written differently could pack the guest's tables tighter,
+about `1600` signatures' room); the extractor's budget is about `2^117.67 + 2^14.7·N·log²N` for `N`
+queries.
 
 ## Reading order
 
@@ -120,23 +120,23 @@ theorems, then read the files in this order.
    none), the transcript's permutation queries (`permutationQueries`),
    **`LeanVM.KnowledgeSoundness extractor`** (for a given extractor; it asks for some valid
    execution, not necessarily the one the proof commits to), **`LeanVM.Completeness`**.
-12. [`CostMachine.lean`](CostMachine.lean): the cost machine (a first-order functional language
-    on words, natural numbers and arrays, each step priced by the words it writes and its
-    operations by their algorithms: `MachineValue`, `PrimitiveOperation`, `Term`,
-    `MachineProgram`, `evaluateTerm`, `run`, `outputWithin`, a program's `size`), the
-    encoding of the extractor's input and output (`encodeExtractorInput`, `decodeExecution`, a
-    linear parse), the budget (`extractorBudget`, read off the shape a proof announces: `announced`,
-    `LeanVmVerifier.lean`) and **`LeanVM.extractorOf P`**: the extractor a program `P` computes, run
-    within the budget, its output parsed; `Statement.Theorems` takes `P` with its size at most
-    `extractorSizeBound` and does not name it (`lean_vm` names its knowledge extractor,
-    compiled). That the machine's prices are honest is trusted. The size bound is `11000`: the
-    compiled extractor's `10489` and a slack of about one leanXMSS signature's encoding, so the
-    compiled extractor could carry no useful table of witnesses beside its code; the budget
-    (`extractorBudgetAt`,
-    `extractorPrice`) is a closed formula in the announced shape and the number `N` of queries,
-    about `2^117.67 + 2^14.7·N·log²N` (`O(N·log³N)` as `N` grows) at the worst shape: `2^117.67`
-    for `N ≤ 2^80` (the list decoder) and `2^156.69` at `N = 2^128` (the transcript's index),
-    where the soundness bound is already trivial.
+12. [`CostMachine.lean`](CostMachine.lean): the cost machine (a first-order functional language on
+    words, natural numbers and arrays, each step priced at least `1` and, but for a `case`'s fields
+    and a closure's captured values, at least the words it writes; its operations priced by their
+    algorithms: `MachineValue`, `PrimitiveOperation`, `Term`, `MachineProgram`, `evaluateTerm`,
+    `run`, `outputWithin`, a program's `size`), the encoding of the extractor's input and output
+    (`encodeExtractorInput`, `decodeExecution`, a linear parse), the budget (`extractorBudget`, read
+    off the shape a proof announces: `announced`, `LeanVmVerifier.lean`) and **`LeanVM.extractorOf
+    P`**: the extractor a program `P` computes, run within the budget, its output parsed;
+    `Statement.Theorems` takes `P` with its size at most `extractorSizeBound` and does not name it
+    (`lean_vm` names its knowledge extractor, compiled). That the machine's prices are honest is
+    trusted. The size bound is `11000`: the compiled extractor's `10489` and a slack of about one
+    leanXMSS signature's encoding, so the compiled extractor could carry no useful table of
+    witnesses beside its code; the budget (`extractorBudgetAt`, `extractorPrice`) is a closed
+    formula in the announced shape and the number `N` of queries, about `2^117.67 + 2^14.7·N·log²N`
+    (`O(N·log³N)` as `N` grows) at the worst shape: `2^117.67` for `N ≤ 2^80` (the list decoder) and
+    `2^156.69` at `N = 2^128` (the transcript's index), where the soundness bound is already
+    trivial.
 13. [`LeanVmGuest.lean`](LeanVmGuest.lean): the leanISA guest program's specification (aggregation):
     DA claims and their digest, a node's statement, its digest (Keccak-256 of a preimage), witness
     and relation (`NodeRelation`: leanXMSS and leanSPHINCS claims, a DA digest, children verified by
@@ -285,22 +285,22 @@ full. It does not bound what a program written differently could hold: the guest
 (`749835` of the size, cells below `2^20`) packs to about a third, three cells to a limb, freeing
 room for about `1600` signatures' encodings.
 
-**The budget** (`guestDecoderBudget`, the formula `guestDecoderPrice`) is a closed-form upper
-bound on the compiled decoder's price, proved as `extractorPrice` is for the extractor: a price
-per step of the run (the replay and the filing of the state in the table of function entries, its
-share of one sort, `2^21.9` to `2^22.0`, growing as `log(steps)`; no term in the memory's or the
-program's size), so `O(steps·log steps)` below `2^62` steps (`O(steps·log² steps)` as they
-grow), and a constant of about `2^47.04` with about `2^26.57` frame lookups, the witness
-read at the counts a valid execution bounds (the guest's own asserts: at most `16` children,
-`65535` claims and `65535` slots; `da_verify`'s rows clamped at `1024`), dominated by the
-children's cursor lengths (`16·2^32`) and the address tables of the memory and the program
-(`2614·2^33`, each at `2^32` entries). At `κ = 32`
-and `ℓ = 19`: `2^47.07` at `2^10` steps, `2^47.12` at `2^20`, `2^52.00` at `2^30`, `2^73.00` at
-`2^51`, `2^82.02` at `2^60`; the constant dominates up to about `2^25` steps. A valid execution of
-the guest program has fewer than `2^51` steps: the memory is fixed and every instruction reads a
-cell at `fp·o` for an offset `o` fixed by `pc`, so at each `pc` at most `2^κ` values of `fp` let a
-step succeed; the run is determined by `(pc, fp)`, and a repeated state would loop without
-halting (`2^ℓ·2^κ` states, `ℓ = 19`, `κ ≤ 32`; argued, not a Lean theorem).
+**The budget** (`guestDecoderBudget`, the formula `guestDecoderPrice`) is a closed-form upper bound
+on the compiled decoder's price, proved as `extractorPrice` is for the extractor: a price per step
+of the run (the replay and the filing of the state in the table of function entries, its share of
+one sort, `2^21.9` to `2^22.0`, growing as `log(steps)`; no term in the memory's or the program's
+size), so `O(steps·log steps)` below `2^61` steps (`O(steps·log² steps)` as they grow), and a
+constant of about `2^47.04` with about `2^26.57` frame lookups, the witness read at the counts a
+valid execution bounds (the guest's own asserts: at most `16` children, `65535` claims of each
+scheme and `65535` coverage slots; the decoder clamps `da_verify`'s row count at `1024`), dominated
+by the children's cursor lengths (`16·2^32`) and the address tables of the memory and the program
+(`2614·2^33`, each at `2^32` entries). At `κ = 32` and `ℓ = 19`: `2^47.07` at `2^10` steps,
+`2^47.12` at `2^20`, `2^52.00` at `2^30`, `2^73.00` at `2^51`, `2^82.02` at `2^60`; the constant
+dominates up to about `2^25` steps. A valid execution of the guest program has fewer than `2^51`
+steps: the memory is fixed and every instruction reads a cell at `fp·o` for an offset `o` fixed by
+`pc`, so at each `pc` at most `2^κ` values of `fp` let a step succeed; the run is determined by
+`(pc, fp)`, and a repeated state would loop without halting (`2^ℓ·2^κ` states, `ℓ = 19`, `κ ≤ 32`;
+argued, not a Lean theorem).
 
 ## Building
 

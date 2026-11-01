@@ -523,9 +523,8 @@ def committedLeavesPrice (D h W : ℕ) : ℕ :=
 /-- The list decoder's part (the extractor's Guruswami–Sudan decoder over the `64` lanes, and the
 pruning), beyond the word's reads, at the worst admissible shape `(28, 4)`: about `2^117.67`. It
 is `lean_vm`'s `decoderBound 28 4 0 0` (`Cost/Bounds/Decoder/Decode.lean`, the list decoder's
-price beyond the word's reads), evaluated, and
-bounds `decoderBound μ R 0 0` at every admissible shape `(μ, R)` (`decoderShape_ok`,
-`Cost/Bounds/DecoderShapes.lean`). -/
+price beyond the word's reads), evaluated, and bounds `decoderBound μ R 0 0` at every admissible
+shape `(μ, R)` (`decoderShape_ok`, `Cost/Bounds/DecoderShapes.lean`). -/
 def listDecoderWorstPrice : ℕ := 263761295154139905848615297830647322
 
 /-- The list decoder's part, at every admissible shape: its word's reads and
@@ -536,7 +535,7 @@ def listDecoderPrice : ℕ := 1752 * 2 ^ 26 + listDecoderWorstPrice + 17
 def bytecodeWordsPrice (ℓ : ℕ) : ℕ := 4700 * 2 ^ ℓ + 1100
 
 /-- The stage after the stack's root: the transcript's index, the committed leaves of height `h`,
-the fast path, the runner's tables, at most `1 + 2^18` candidate runs and the decoder. -/
+the fast path, the runner's tables, at most `1 + 2^18` candidate runs and the list decoder. -/
 def afterRootStagePrice (μ R κ ℓ D N h W : ℕ) : ℕ :=
   transcriptIndexPrice D 512 N W + committedLeavesPrice D h W + fastPathPrice μ R 64 24 +
     runnerTablesPrice κ ℓ + (stackRunPrice κ ℓ + 15) * (2 ^ 18 + 1) + listDecoderPrice + 133

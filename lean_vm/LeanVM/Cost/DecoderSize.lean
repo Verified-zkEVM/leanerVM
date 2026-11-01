@@ -21,7 +21,7 @@ top `j` with its bodies `deps`:
 * its size is exactly the bodies' sizes and two per index without a body (a literal `0`), the
   indices being distinct (`size_ofList_add_length`, `decoderProgramOf_size_le_of_increasing`):
   at most a measured number, then `guestDecoderSizeBound`. The
-  guest's frame cells' literal (`guestLocsTableC`, `749836`) is measured by chunks of rows, each
+  guest's frame cells' literal (`guestLocsTableC`, `749836`: the table's `749835` and one for its `Term.val` node) is measured by chunks of rows, each
   evaluation in a module of its own (`DecoderSize/Rows*.lean`, `Names*.lean`, summed in
   `DecoderSize/Locs.lean`: one evaluation of the whole table takes over `18` GB), its body
   picked out by its index (`decoderProgramBodies_filter_locs`, by unfolding); the other bodies'
