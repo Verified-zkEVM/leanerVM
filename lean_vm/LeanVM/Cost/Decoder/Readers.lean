@@ -61,6 +61,7 @@ theorem cellPairVal_eq (lo hi : E) : Sig.cellPairVal lo hi =
   simp only [BitVec.toNat_ofFin]; omega
 cost_rewrite cellPairVal_eq
 
+cost_compile cellNatC := Sig.cellNat
 cost_compile xmssClaimOfC := Sig.xmssClaimOf
 cost_compile sphincsClaimOfC := Sig.sphincsClaimOf
 
@@ -177,8 +178,8 @@ cost_compile mulKC := mulK
 cost_compile readCellsKC := readCellsK
 cost_compile xmssAtKC := xmssAtK
 cost_compile sphincsAtKC := sphincsAtK
-cost_compile xmssRunC := xmssRun
-cost_compile sphincsRunC := sphincsRun
+cost_compile xmssRunC measure fun _ _ _ n ↦ n := xmssRun
+cost_compile sphincsRunC measure fun _ _ _ n ↦ n := sphincsRun
 cost_compile daDigestAtPC := daDigestAtP
 
 /-- The statement, its counts given: `n0` declared leanXMSS claims at `p53`, `n3` leanSPHINCS

@@ -4,6 +4,7 @@ public import LeanVM.Cost.Bounds.Guest.Basic
 public import LeanVM.Cost.Bounds.FieldLib
 public import LeanVM.Cost.Bounds.ListLib
 public import LeanVM.Cost.Bounds.Runner
+public import LeanVM.Cost.Bounds.Decoder.PreTest
 public import LeanVM.Cost.Decoder.Readers
 
 /-!
@@ -21,7 +22,8 @@ decoder's top level builds once, then `gLogAt` (below `2^34`, else `0`):
   gLogPrice`, `gLogPrice = 402680 ≈ 2^18.62` (measured at most `≈ 208607`: the exponents' bits
   are priced at `64`);
 * `gLogD_lt`: every count the decoder reads is below `2^34`;
-* `powSqE_cost`: `a^n` in `E` by squaring (`powSq.c542`), `4732` per bit and `12`; `powSqK_cost_lt`.
+* `powSqE_cost_lt`: `a^n` in `E` by squaring (`powSqEC`, `Bounds/Decoder/PreTest.lean`'s
+  `powSqE_cost`), `n < 2^k`: `12 + 4732·k`; `powSqK_cost_lt`.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -35,36 +37,13 @@ variable (P : MachineProgram)
 
 /-! ## `a^n` in `E` -/
 
-/-- `a^n` in `E` by squaring (`powSq.c542`): `4732` per bit, `12` at the end. -/
-theorem powSqE_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c542.costDeps) (a : E) (n : ℕ)
-    (hn : n < 2 ^ 64) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c542.costIdx [encodeValue a, encodeValue n] ≤
-      12 + 4732 * (Nat.log2 n + 1) := by
-  have := le_of_halving (fun x : E × ℕ ↦ x.2 < 2 ^ 64) (fun x ↦ x.2)
-    (fun x ↦ machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c542.costIdx
-      [encodeValue x.1, encodeValue x.2]) 4732 12
-    (fun x hx h0 ↦ by
-      try dsimp only at hx h0 ⊢
-      rw [Auto.LeanVM.Cost.Rewrite.powSq.c542.costEq P hP, h0]
-      simp)
-    (fun x hx hpos ↦ by
-      try dsimp only at hx hpos ⊢
-      right
-      refine ⟨(x.1 * x.1, x.2 / 2), by dsimp only; omega, le_refl _, ?_⟩
-      rw [Auto.LeanVM.Cost.Rewrite.powSq.c542.costEq P hP, limbs_of_lt hx,
-        limbs_of_lt (by omega : x.2 % 2 < 2 ^ 64)]
-      simp only [show x.2 ≠ 0 by omega, ↓reduceIte]
-      split_ifs <;> omega)
-    (a, n) hn
-  simpa using this
-
 /-- `a^n` in `E`, `n < 2^k`, `k ≤ 64`: at most `12 + 4732·k`. -/
-theorem powSqE_cost_lt (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c542.costDeps) (a : E)
+theorem powSqE_cost_lt (hP : Includes P Decoder.powSqEC.costDeps) (a : E)
     (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ 64) (hn : n < 2 ^ k) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c542.costIdx [encodeValue a, encodeValue n] ≤
+    machineCost P Decoder.powSqEC.costIdx [encodeValue a, encodeValue n] ≤
       12 + 4732 * k := by
   have h64 : n < 2 ^ 64 := lt_of_lt_of_le hn (Nat.pow_le_pow_right (by norm_num) hk)
-  refine (powSqE_cost P hP a n h64).trans ?_
+  refine (LeanVM.Cost.Bounds.powSqE_cost P hP a n h64).trans ?_
   have := log2_lt_of hk0 hn
   nlinarith
 
@@ -131,16 +110,16 @@ theorem giantSteps_some_lt (T : Array (ℕ × ℕ)) (hT : WordTable T) (c : K) (
       omega
 
 open Auto.LeanVM.Extraction.Fast in
-/-- **The giant steps** (`giantSteps.c531`), `t` of them: at most `(t + 1)·(FL + 285) + 6`, `FL`
+/-- **The giant steps** (`Decoder.giantStepsC`), `t` of them: at most `(t + 1)·(FL + 285) + 6`, `FL`
 the binary search's price. -/
-theorem giantSteps_cost (hP : Includes P giantSteps.c531.costDeps) (T : Array (ℕ × ℕ))
+theorem giantSteps_cost (hP : Includes P Decoder.giantStepsC.costDeps) (T : Array (ℕ × ℕ))
     (hT : WordTable T) (c : K) (s : ℕ) (hs : s < 2 ^ 32) :
     ∀ (t k : ℕ) (y : K), t + k < 2 ^ 32 →
-      machineCost P giantSteps.c531.costIdx [encodeValue T, encodeValue c, encodeValue s,
+      machineCost P Decoder.giantStepsC.costIdx [encodeValue T, encodeValue c, encodeValue s,
         encodeValue t, encodeValue k, encodeValue y] ≤ (t + 1) * (findLanePrice T.size + 285) + 6
-  | 0, k, y, _ => by rw [giantSteps.c531.costEq_zero P hP]; omega
+  | 0, k, y, _ => by rw [Decoder.giantStepsC.costEq_zero P hP]; omega
   | t + 1, k, y, h => by
-    rw [giantSteps.c531.costEq_succ P hP, limbs_of_lt (by omega : t + 1 < 2 ^ 64)]
+    rw [Decoder.giantStepsC.costEq_succ P hP, limbs_of_lt (by omega : t + 1 < 2 ^ 64)]
     have hf := findLane_cost P (by includes) T hT y.lane.toNat (UInt64.toNat_lt _) 0 T.size
       (by omega) le_rfl
     simp only [Nat.sub_zero] at hf
@@ -162,14 +141,14 @@ theorem giantSteps_cost (hP : Includes P giantSteps.c531.costDeps) (T : Array (�
       nlinarith
 
 open Auto.LeanVM.Extraction.Fast in
-/-- **A residue** (`phResidue.c530`): `x^q` and the giant steps. -/
-theorem phResidue_cost (hP : Includes P phResidue.c530.costDeps) (q p s t : ℕ)
+/-- **A residue** (`Decoder.phResidueC`): `x^q` and the giant steps. -/
+theorem phResidue_cost (hP : Includes P Decoder.phResidueC.costDeps) (q p s t : ℕ)
     (T : Array (ℕ × ℕ)) (hT : WordTable T) (c x : K) (hq : q < 2 ^ 64) (hp : p < 2 ^ 64)
     (hs : s < 2 ^ 32) (ht : t < 2 ^ 31) :
-    machineCost P phResidue.c530.costIdx [encodeValue q, encodeValue p, encodeValue s,
+    machineCost P Decoder.phResidueC.costIdx [encodeValue q, encodeValue p, encodeValue s,
       encodeValue t, encodeValue T, encodeValue c, encodeValue x] ≤
       34265 + ((t + 1) * (findLanePrice T.size + 285) + 6) := by
-  rw [phResidue.c530.costEq P hP]
+  rw [Decoder.phResidueC.costEq P hP]
   split_ifs with hx
   · omega
   · have h1 := powSqK_cost_lt P (by includes) x q 64 (by norm_num) le_rfl hq
@@ -190,14 +169,14 @@ theorem phResidue_cost (hP : Includes P phResidue.c530.costDeps) (q p s t : ℕ)
     cases o <;> dsimp only at hl ⊢ <;> omega
 
 open Auto.LeanVM.Extraction.Fast in
-/-- The Chinese remainder theorem (`crtCombine.c529`), on residues below `2^32`: at most `50`. -/
-theorem crtCombine_cost (hP : Includes P crtCombine.c529.costDeps)
+/-- The Chinese remainder theorem (`Decoder.crtCombineC`), on residues below `2^32`: at most `50`. -/
+theorem crtCombine_cost (hP : Includes P Decoder.crtCombineC.costDeps)
     (r3 r5 r17 r257 r641 r65537 r6700417 : ℕ) (h3 : r3 < 2 ^ 32) (h5 : r5 < 2 ^ 32)
     (h17 : r17 < 2 ^ 32) (h257 : r257 < 2 ^ 32) (h641 : r641 < 2 ^ 32) (h65537 : r65537 < 2 ^ 32)
     (h6700417 : r6700417 < 2 ^ 32) :
-    machineCost P crtCombine.c529.costIdx [encodeValue r3, encodeValue r5, encodeValue r17,
+    machineCost P Decoder.crtCombineC.costIdx [encodeValue r3, encodeValue r5, encodeValue r17,
       encodeValue r257, encodeValue r641, encodeValue r65537, encodeValue r6700417] ≤ 50 := by
-  rw [crtCombine.c529.costEq P hP]
+  rw [Decoder.crtCombineC.costEq P hP]
   simp only [limbs_of_lt (by omega : r3 < 2 ^ 64), limbs_of_lt (by omega : r5 < 2 ^ 64),
     limbs_of_lt (by omega : r17 < 2 ^ 64), limbs_of_lt (by omega : r257 < 2 ^ 64),
     limbs_of_lt (by omega : r641 < 2 ^ 64), limbs_of_lt (by omega : r65537 < 2 ^ 64),
@@ -239,12 +218,12 @@ theorem findLanePrice_le {n k : ℕ} (hk : 0 < k) (h : n < 2 ^ k) :
   omega
 
 open Auto.LeanVM.Extraction.Fast in
-/-- **The candidate exponent** (`phCandidate.c528`) in the tables `discreteLogTables`: at most
+/-- **The candidate exponent** (`Decoder.phCandidateC`) in the tables `discreteLogTables`: at most
 `368397`. -/
-theorem phCandidate_cost (hP : Includes P phCandidate.c528.costDeps) (x : K) :
-    machineCost P phCandidate.c528.costIdx [encodeValue discreteLogTables, encodeValue x] ≤
+theorem phCandidate_cost (hP : Includes P Decoder.phCandidateC.costDeps) (x : K) :
+    machineCost P Decoder.phCandidateC.costIdx [encodeValue discreteLogTables, encodeValue x] ≤
       368397 := by
-  rw [phCandidate.c528.costEq P hP]
+  rw [Decoder.phCandidateC.costEq P hP]
   have hT : ∀ (b : K) (s : ℕ), s < 2 ^ 63 → WordTable (babyTable b s) :=
     fun b s hs ↦ wordTable_babyTable b s hs
   have e1 : (discreteLogTables).1 = babyTable phBase3 3 := rfl
@@ -297,20 +276,20 @@ theorem phCandidate_cost (hP : Includes P phCandidate.c528.costDeps) (x : K) :
   omega
 
 open Auto.LeanVM.Extraction.Fast in
-/-- The check `g^n = x` (`logCheck.c527`), `n < 2^64`: at most `34256`. -/
-theorem logCheck_cost (hP : Includes P logCheck.c527.costDeps) (x : K) (n : ℕ) (hn : n < 2 ^ 64) :
-    machineCost P logCheck.c527.costIdx [encodeValue x, encodeValue n] ≤ 34256 := by
-  rw [logCheck.c527.costEq P hP]
+/-- The check `g^n = x` (`Decoder.logCheckC`), `n < 2^64`: at most `34256`. -/
+theorem logCheck_cost (hP : Includes P Decoder.logCheckC.costDeps) (x : K) (n : ℕ) (hn : n < 2 ^ 64) :
+    machineCost P Decoder.logCheckC.costIdx [encodeValue x, encodeValue n] ≤ 34256 := by
+  rw [Decoder.logCheckC.costEq P hP]
   have := powSqK_cost_lt P (by includes) g n 64 (by norm_num) le_rfl hn
   split_ifs <;> omega
 
 open Auto.LeanVM.Extraction.Fast in
-/-- **The discrete logarithm** (`discreteLogWith.c526`) in the tables `discreteLogTables`: at most
+/-- **The discrete logarithm** (`discreteLogWithC`) in the tables `discreteLogTables`: at most
 `402662`. -/
-theorem discreteLogWith_cost (hP : Includes P discreteLogWith.c526.costDeps) (x : K) :
-    machineCost P discreteLogWith.c526.costIdx [encodeValue discreteLogTables, encodeValue x] ≤
+theorem discreteLogWith_cost (hP : Includes P Decoder.discreteLogWithC.costDeps) (x : K) :
+    machineCost P Decoder.discreteLogWithC.costIdx [encodeValue discreteLogTables, encodeValue x] ≤
       402662 := by
-  rw [discreteLogWith.c526.costEq P hP]
+  rw [Decoder.discreteLogWithC.costEq P hP]
   split_ifs
   · omega
   · have h1 := phCandidate_cost P (by includes) x

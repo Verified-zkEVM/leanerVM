@@ -13,7 +13,7 @@ public import LeanVM.Guest.Data.Cert
 
 For each of the guest's 879 compiled functions `j`: its entry pc, its number of arguments and of
 return words, and its certificate's frame cells. Literals of the decoder program
-(`Rule.literal`); `GuestTablesCheck.lean` proves them equal to `(glob.sig j).entry`,
+(`Rule.literalNats`, `Rule.literalNatArrays`); `GuestTablesCheck.lean` proves them equal to `(glob.sig j).entry`,
 `(glob.sig j).nargs`, `(glob.sig j).nret` and `(certOf j).locs`.
 -/
 
@@ -24,7 +24,7 @@ open LeanVM.Guest
 @[expose] public section
 
 /-- Each function's entry pc (`(fnOf j).entry`). -/
-def guestEntries : Array ℕ := #[
+def guestEntriesList : List ℕ := [
     0, 8456, 9203, 9211, 9344, 9393, 9409, 9795, 9845, 9901,
     10188, 10253, 18718, 18775, 24066, 24083, 24422, 27005, 27688, 30136,
     31769, 53169, 153613, 153908, 153928, 154008, 154094, 154772, 154801, 156109,
@@ -114,8 +114,11 @@ def guestEntries : Array ℕ := #[
     352559, 353434, 353783, 354127, 354460, 355278, 356108, 356950, 357804, 358670,
     359548, 359898, 360550, 361440, 361796, 362135, 362178, 362202, 362239]
 
+/-- Each function's entry pc (`(fnOf j).entry`). An array (reducible: the compiler's literal rule reads its list). -/
+abbrev guestEntries : Array ℕ := guestEntriesList.toArray
+
 /-- Each function's number of arguments (`(coreOf j).params.length`). -/
-def guestArgCounts : Array ℕ := #[
+def guestArgCountsList : List ℕ := [
     0, 0, 1, 0, 1, 5, 4, 3, 11, 8,
     6, 22, 3, 11, 2, 4, 2, 2, 19, 7,
     1, 2, 9, 1, 2, 6, 1, 3, 1, 1,
@@ -205,8 +208,11 @@ def guestArgCounts : Array ℕ := #[
     8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
     8, 3, 8, 8, 8, 7, 4, 7, 4]
 
+/-- Each function's number of arguments (`(coreOf j).params.length`). An array (reducible: the compiler's literal rule reads its list). -/
+abbrev guestArgCounts : Array ℕ := guestArgCountsList.toArray
+
 /-- Each function's number of return words (`(certOf j).nret`). -/
-def guestRetCounts : Array ℕ := #[
+def guestRetCountsList : List ℕ := [
     0, 0, 1, 2, 1, 0, 1, 3, 10, 9,
     0, 9, 0, 8, 1, 1, 3, 2, 0, 0,
     0, 0, 2, 2, 2, 2, 4, 2, 3, 1,
@@ -295,6 +301,9 @@ def guestRetCounts : Array ℕ := #[
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+/-- Each function's number of return words (`(certOf j).nret`). An array (reducible: the compiler's literal rule reads its list). -/
+abbrev guestRetCounts : Array ℕ := guestRetCountsList.toArray
 
 /-- Each function's frame cells (`(certOf j).locs`), as lists. -/
 def guestLocsList : List (List ℕ) := [
@@ -1178,8 +1187,9 @@ def guestLocsList : List (List ℕ) := [
     [Data.cert877_w0_0].flatten,
     [Data.cert878_w0_0].flatten]
 
-/-- Each function's frame cells, as arrays (the decoder's literal). -/
-def guestLocs : Array (Array ℕ) := (guestLocsList.map List.toArray).toArray
+/-- Each function's frame cells, as arrays (the decoder's literal; reducible: the compiler's
+literal rule reads its list). -/
+abbrev guestLocs : Array (Array ℕ) := (guestLocsList.map List.toArray).toArray
 
 end
 

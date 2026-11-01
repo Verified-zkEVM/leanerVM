@@ -58,6 +58,18 @@ theorem gLogD_tables : gLogD discreteLogTables = gLog := by
 
 cost_compile gLogAtC := gLogAt
 -- the logarithm at the tables, under a name of its own (the bounds name it, not an index)
+/-! The discrete logarithm's parts, each under a name of its own (stable across the chain's
+reallocations of on-demand indices). -/
+open LeanVM.Extraction.Fast in
+cost_compile giantStepsC measure fun _ _ _ n _ _ ↦ n := giantSteps
+open LeanVM.Extraction.Fast in
+cost_compile phResidueC := phResidue
+open LeanVM.Extraction.Fast in
+cost_compile crtCombineC := crtCombine
+open LeanVM.Extraction.Fast in
+cost_compile phCandidateC := phCandidate
+open LeanVM.Extraction.Fast in
+cost_compile logCheckC := logCheck
 open LeanVM.Extraction.Fast in
 cost_compile discreteLogWithC := discreteLogWith
 cost_compile gLogDC := gLogD

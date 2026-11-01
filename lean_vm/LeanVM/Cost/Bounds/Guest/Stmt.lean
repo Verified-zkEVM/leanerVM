@@ -77,27 +77,27 @@ theorem sphincsAtK_cost (hP : Includes P Decoder.sphincsAtKC.costDeps) (x : K) :
   cost_facts [sphincsClaimOf_cost P]
   omega
 
-/-- **`n` consecutive leanXMSS claims** (`xmssRun.c552`, the recursion `decStmtAtC` calls):
+/-- **`n` consecutive leanXMSS claims** (`xmssRunC`):
 `(4·R + 87447)·n + 6`. -/
-theorem xmssRun_cost (hP : Includes P Auto.LeanVM.Cost.Decoder.xmssRun.c552.costDeps) (step : K) :
+theorem xmssRun_cost (hP : Includes P Decoder.xmssRunC.costDeps) (step : K) :
     ∀ (n : ℕ) (x : K), n < 2 ^ 64 →
-      machineCost P Auto.LeanVM.Cost.Decoder.xmssRun.c552.costIdx [rdV, encodeValue step, encodeValue x,
+      machineCost P Decoder.xmssRunC.costIdx [rdV, encodeValue step, encodeValue x,
         encodeValue n] ≤ (4 * R + 87447) * n + 6
-  | 0, x, _ => by rw [Auto.LeanVM.Cost.Decoder.xmssRun.c552.costEq_zero P hP rd rdV hrd]; omega
+  | 0, x, _ => by rw [Decoder.xmssRunC.costEq_zero P hP rd rdV hrd]; omega
   | n + 1, x, h => by
-    rw [Auto.LeanVM.Cost.Decoder.xmssRun.c552.costEq_succ P hP rd rdV hrd, limbs_of_lt h]
+    rw [Decoder.xmssRunC.costEq_succ P hP rd rdV hrd, limbs_of_lt h]
     have := xmssRun_cost hP step n (x * step) (by omega)
     have := xmssAtK_cost P hrd hR (by includes) x
     nlinarith
 
-/-- **`n` consecutive leanSPHINCS claims** (`sphincsRun.c554`): `(4·R + 87447)·n + 6`. -/
-theorem sphincsRun_cost (hP : Includes P Auto.LeanVM.Cost.Decoder.sphincsRun.c554.costDeps) (step : K) :
+/-- **`n` consecutive leanSPHINCS claims** (`sphincsRunC`): `(4·R + 87447)·n + 6`. -/
+theorem sphincsRun_cost (hP : Includes P Decoder.sphincsRunC.costDeps) (step : K) :
     ∀ (n : ℕ) (x : K), n < 2 ^ 64 →
-      machineCost P Auto.LeanVM.Cost.Decoder.sphincsRun.c554.costIdx [rdV, encodeValue step, encodeValue x,
+      machineCost P Decoder.sphincsRunC.costIdx [rdV, encodeValue step, encodeValue x,
         encodeValue n] ≤ (4 * R + 87447) * n + 6
-  | 0, x, _ => by rw [Auto.LeanVM.Cost.Decoder.sphincsRun.c554.costEq_zero P hP rd rdV hrd]; omega
+  | 0, x, _ => by rw [Decoder.sphincsRunC.costEq_zero P hP rd rdV hrd]; omega
   | n + 1, x, h => by
-    rw [Auto.LeanVM.Cost.Decoder.sphincsRun.c554.costEq_succ P hP rd rdV hrd, limbs_of_lt h]
+    rw [Decoder.sphincsRunC.costEq_succ P hP rd rdV hrd, limbs_of_lt h]
     have := sphincsRun_cost hP step n (x * step) (by omega)
     have := sphincsAtK_cost P hrd hR (by includes) x
     nlinarith
