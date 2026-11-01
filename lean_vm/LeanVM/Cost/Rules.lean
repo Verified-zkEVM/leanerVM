@@ -929,6 +929,11 @@ theorem decideBAll {α : Type} (l : List α) (p : α → Prop) [DecidablePred p]
     {inst : Decidable (∀ x ∈ l, p x)} : @decide (∀ x ∈ l, p x) inst = l.all fun x ↦ decide (p x) := by
   rw [Bool.eq_iff_iff]; simp [List.all_eq_true]
 
+/-- Membership in a list, decided by `List.elem`. -/
+theorem decideMemList {α : Type} [BEq α] [LawfulBEq α] (a : α) (l : List α)
+    {inst : Decidable (a ∈ l)} : @decide (a ∈ l) inst = l.elem a := by
+  rw [Bool.eq_iff_iff]; simp
+
 /-- Equality of arrays, decided by their lists. -/
 theorem decideEqArray {α : Type} [DecidableEq α] (a b : Array α) {inst : Decidable (a = b)} :
     @decide (a = b) inst = @List.beq α instBEqOfDecidableEq a.toList b.toList := by
