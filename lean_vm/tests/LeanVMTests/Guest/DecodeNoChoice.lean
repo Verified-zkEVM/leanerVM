@@ -3,8 +3,8 @@ import LeanVM.Guest.EndFinal
 /-!
 # Tests: the decoder chooses nothing and runs no verifier
 
-`LeanVM.Guest.End.decode` reads its witness off the memory, through the index of its addresses,
-and off the frames the replayed run entered. The traversal below follows every definition
+`LeanVM.Guest.End.decode` reads its witness off the memory, through the sorted table of its
+addresses, and off the frames the replayed run entered. The traversal below follows every definition
 `decode` unfolds to (its value, not the proofs it carries) through this repository and the
 schemes it imports (`LeanVM`, `LeanXmss`, `Sphincs`, `LeanDa`).
 
@@ -18,9 +18,9 @@ schemes it imports (`LeanVM`, `LeanXmss`, `Sphincs`, `LeanDa`).
 * **Positive controls.** The traversal reaches the replay through the extractor's address tables
   (`Located.statesTable`, `Extraction.Fast.stepTable`, the machine's step `Semantics.executeWith`),
   the entries' table (`Located.entryTable`), the decided precondition `Located.preTest`, and
-  B1-d's child proof
-  `VerifySub.piOfW`, and it flags a definition that does choose (`VerifySub.valOf`, the word at
-  an address by `Exists.choose`, which `decode` does not use).
+  B1-d's child proof `VerifySub.piOfW`, not the replay through the hash-map index
+  (`Located.statesIn`, `Extraction.powIndex`), which the proofs use; and it flags a definition that does choose (`VerifySub.valOf`, the word
+  at an address by `Exists.choose`, which `decode` does not use).
 * **No verifier.** No definition `decode` unfolds to mentions a signature scheme's verifier, the
   deferring verifier, the DA opening or the batching. (It runs the machine, whose `KECCAK`
   instruction checks Keccak-f[1600], the guest's own in-circuit check.)

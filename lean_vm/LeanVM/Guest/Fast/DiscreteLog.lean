@@ -2,7 +2,7 @@
   LeanVM.Guest.Fast.DiscreteLog
 
   The decoder's discrete-logarithm readers through the computable `discreteLog`: the
-  precondition test, B1's `gLog`, the replayed frame map and `verify_sub`'s `cursorLen`.
+  precondition test, B1's `gLog` and `verify_sub`'s `cursorLen`.
 -/
 
 module
@@ -15,19 +15,17 @@ public import LeanVM.Guest.B1.VerifySub.Proof
 # The decoder's logarithms, computable
 
 `discreteLog` (`Protocol/Extraction/Fast/DiscreteLog.lean`) meets the decoder's interface,
-**`discreteLog_discreteLogSpec`**: `DiscreteLogSpec discreteLog` (`Located/ReplayFast.lean`), and
-so does `discreteLogWith discreteLogTables`, the same function with its tables built once. Plugged
-into the readers written over a logarithm:
+**`discreteLog_discreteLogSpec`**: `DiscreteLogSpec discreteLog` (`Located/ReplayFast.lean`).
+Plugged into the readers written over a logarithm:
 
 * `preTest_eq_discreteLog`: `preTest = preTestWith discreteLog`;
 * `gLog_eq_discreteLog`: `B1.Main.gLog = gLogWith discreteLog`;
-* `replayFrameV_eq_discreteLog`: `replayFrameV L = replayFrameVWith discreteLog L`;
 * `cursorLen_eq_discreteLog`: `VerifySub.cursorLen = cursorLenWith discreteLog`. `cursorLen`
   scans `n ≤ 2^32` for `q = p · gen^n`; `cursorLenWith dl` divides `q` by `p` on `p`'s first
   nonzero limb (`limbQuot`), takes `dl` of the quotient and checks `n ≤ 2^32` and `q = p · g^n`
   limb by limb; `cursorLenWith_eq`: given any `DiscreteLogSpec dl`, it is `cursorLen`.
 
-`preTest`, `gLog`, `replayFrameV` and `cursorLen` are not compiled code (noncomputable, or a
+`preTest`, `gLog` and `cursorLen` are not compiled code (noncomputable, or a
 `2^32`-step scan), so these are plain equations, not `@[csimp]` lemmas.
 
 `cursorLenWith` reads `dl`'s result through `Option.filter` and `Option.getD`, not a `match`
@@ -43,22 +41,16 @@ open LeanVM.Guest.Value LeanVM.Guest.B1 LeanVM.Guest.Located
 
 /-! ## The interface -/
 
-theorem discreteLog_discreteLogSpec : DiscreteLogSpec discreteLog := discreteLog_spec
+theorem discreteLog_discreteLogSpec : DiscreteLogSpec discreteLog :=
+  fun _ _ ↦ discreteLog_eq_some_iff
 
-theorem discreteLogWith_tables_discreteLogSpec :
-    DiscreteLogSpec (discreteLogWith discreteLogTables) := discreteLog_spec
-
-/-! ## The precondition, `gLog` and the replayed frame map -/
+/-! ## The precondition and `gLog` -/
 
 theorem preTest_eq_discreteLog : preTest = preTestWith discreteLog :=
   (preTestWith_eq discreteLog_discreteLogSpec).symm
 
 theorem gLog_eq_discreteLog : B1.Main.gLog = gLogWith discreteLog :=
   (gLogWith_eq discreteLog_discreteLogSpec).symm
-
-theorem replayFrameV_eq_discreteLog {κ : ℕ} (L : MemoryImage κ) :
-    replayFrameV L = replayFrameVWith discreteLog L :=
-  (replayFrameVWith_eq discreteLog_discreteLogSpec L).symm
 
 /-! ## `cursorLen` -/
 

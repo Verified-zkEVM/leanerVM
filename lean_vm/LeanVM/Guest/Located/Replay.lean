@@ -58,12 +58,6 @@ def wordWith (rd : Reader) (fp : K) (o : ℕ) : E := (rd (fp * gpow o)).getD 0
 /-- The `n` words of the frame `fp` from cell `o`, read with `rd` (`Check.frameWords`). -/
 def wordsWith (rd : Reader) (fp : K) (o n : ℕ) : List E := (List.range n).map fun i ↦ wordWith rd fp (o + i)
 
-theorem wordWith_read {κ : ℕ} (L : MemoryImage κ) (fp : K) (o : ℕ) :
-    wordWith L.read fp o = wd L fp o := rfl
-
-theorem wordsWith_read {κ : ℕ} (L : MemoryImage κ) (fp : K) (o n : ℕ) :
-    wordsWith L.read fp o n = frameWords L fp o n := rfl
-
 /-! ## The run, replayed -/
 
 section Replay

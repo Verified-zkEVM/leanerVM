@@ -170,6 +170,7 @@ LeanVM.Guest.Data.Core24	70.0	70.0	2200	1200
 LeanVM.Guest.Data.Core25	70.0	70.0	2200	1200
 LeanVM.Guest.Data.Plumb00	60.0	50.0	2100	1100
 LeanVM.Guest.Data.Pows	110.0	90.0	1600	500
+LeanVM.Guest.Fast.PreTable	52.0	52.0	4900	3600
 LeanVM.Guest.JumpTable.Ok0	70.0	60.0	1900	900
 LeanVM.Guest.JumpTable.Ok1	60.0	60.0	1900	900
 LeanVM.Guest.JumpTable.Ok2	60.0	60.0	1900	900

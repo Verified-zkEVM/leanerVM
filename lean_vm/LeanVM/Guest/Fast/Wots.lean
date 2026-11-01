@@ -34,7 +34,6 @@ theorem walkBase_eq (stride k : ℕ) :
   | _, 0, _ => rfl
   | r, j + 1, _ => walkBase_eq stride k (r + 1) j _
 
-
 theorem armBase_eq (W : WotsT) (slots : ℕ → ℕ → ℕ) (first n : ℕ) (fold : Bool)
     (prodIn encIn prodOut encOut : V) : ∀ (k j b : ℕ),
     armBase W slots first n fold prodIn encIn prodOut encOut k j b = armBaseN W.size n fold k j b

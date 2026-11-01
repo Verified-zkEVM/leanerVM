@@ -27,18 +27,16 @@ B1's `gLog` searches the `2^34` powers. Here:
   `statesTable_eq`).
 * **The entries, indexed once.** `pcTable`: each entry pc to the functions entered there.
   `entryTable pre states rd`: from the call key `(j, args, rets)` (the callee by its index,
-  `nameIndex`, the words by their limbs, `callKey`) to the frame of the first state at which a function named `f` was entered on those
-  words with `pre` holding, a sorted map (`Extraction.Fast.SortedMap`, the extractor's) built in
-  one pass over the states. `entryTable_get?`: with `pre = preTest rd` it answers as
-  `firstEntered`. `frameVFast`, and **`frameVWith_eq_fast`** (`@[csimp]`): the frame map reads the
-  table.
+  `nameIndex`, the words by their limbs, `callKey`) to the frame of the first state at which
+  function `j` was entered on those words with `pre` holding, a sorted map
+  (`Extraction.Fast.SortedMap`, the extractor's) built in one pass over the states.
+  `entryTable_get?`: with `pre = preTest rd` it answers as `firstEntered`. `frameVFast`, the frame
+  map reading the table, and **`frameVWith_eq_frameVFast`**: it is `frameVWith`.
 * **A discrete logarithm.** `DiscreteLogSpec dl`: `dl x = some n` exactly when `x = g^n`,
   `n < 2^64 − 1` (the order of `g`). Given one, `∃ e < n, g^e = x` is `dl x < n`
   (`exists_lt_gpow_iff`), so `preTestWith dl` (`preTestWith_eq`) and `gLogWith dl`
-  (`gLogWith_eq`) are `preTest` and `B1.Main.gLog`. A proved `discreteLog` plugs in by these
-  equations, as `@[csimp]` lemmas.
-* `replayFrameVWith dl L`, both together; `replayFrameVWith_eq`: given a discrete logarithm, it
-  is `replayFrameV L`.
+  (`gLogWith_eq`) are `preTest` and `B1.Main.gLog`. The proved `discreteLog` plugs in by these
+  equations (`Guest/Fast/DiscreteLog.lean`).
 -/
 
 namespace LeanVM.Guest.Located
@@ -263,10 +261,6 @@ theorem callKey_eq_iff {j j' : ℕ} {args args' rets rets' : List E} :
     callKey j args rets = callKey j' args' rets' ↔ j = j' ∧ args = args' ∧ rets = rets' := by
   simp only [callKey, Prod.mk.injEq, (List.map_injective_iff.mpr wordCode_injective).eq_iff]
 
-/-- **The index of the function named `f`** (`certByName`'s): one past the first of
-`coreProgram` named `f`. -/
-noncomputable def nameIndex (f : String) : ℕ := coreProgram.findIdx (fun g ↦ g.name == f) + 1
-
 /-- A callee's name is `f` exactly when its index is `f`'s (the names are distinct). -/
 theorem name_eq_iff {j : ℕ} (hj : glob.good j = true) (f : String) :
     (glob.sig j).name = f ↔ j = nameIndex f := by
@@ -453,29 +447,12 @@ noncomputable def frameVFast (pre : ℕ → K → Bool) (states : List (Register
     | some fp => fun v ↦ wordWith rd fp ((certByName f).locs.getD v.idx 0)
     | none => fun _ ↦ 0
 
-/-- The frame map of the states, by the table and the precondition's test. -/
-noncomputable def frameVWithFast (states : List (Registers K)) (rd : Reader) : FrameMap :=
-  frameVFast (preTest rd) states rd
-
-/-- **The frame map reads the table**: compiled, `frameVWith` builds the table once. -/
-@[csimp] theorem frameVWith_eq_fast : @frameVWith = @frameVWithFast := by
-  funext states rd f args rets
-  simp only [frameVWithFast, frameVFast, frameVWith, entryTable_get?]
+/-- **The frame map reads the table**, built once from the states. -/
+theorem frameVWith_eq_frameVFast (states : List (Registers K)) (rd : Reader) :
+    frameVWith states rd = frameVFast (preTest rd) states rd := by
+  funext f args rets
+  simp only [frameVFast, frameVWith, entryTable_get?]
   rfl
-
-/-- **The replayed frame map of the memory `L`, fast**: the entries indexed once
-(`entryTable`), the precondition decided by the discrete logarithm `dl` (`preTestWith`). -/
-noncomputable def replayFrameVWith (dl : K → Option ℕ) {κ : ℕ} (L : MemoryImage κ) : FrameMap :=
-  frameVFast (preTestWith dl (readIn (powIndex κ) L))
-    (statesIn (powIndex κ) (powIndex guest.logSize) guest L replayFuel ⟨gpow 0, 1⟩)
-    (readIn (powIndex κ) L)
-
-/-- **With a discrete logarithm, the fast replayed frame map is `replayFrameV`.** -/
-theorem replayFrameVWith_eq {dl : K → Option ℕ} (hdl : DiscreteLogSpec dl) {κ : ℕ}
-    (L : MemoryImage κ) : replayFrameVWith dl L = replayFrameV L := by
-  unfold replayFrameVWith replayFrameV
-  rw [preTestWith_eq hdl]
-  exact congrFun (congrFun frameVWith_eq_fast _) _ |>.symm
 
 end Index
 
