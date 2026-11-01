@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Decoder.Memory
+public import LeanVM.Cost.Decoder.PreTable
 public import LeanVM.Cost.Decoder.GuestTables
 public import LeanVM.Guest.Fast.Decode
 

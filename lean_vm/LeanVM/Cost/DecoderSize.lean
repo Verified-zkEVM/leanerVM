@@ -18,8 +18,9 @@ program's definition, so that no edit of a proof rebuilds them. For the program
 
 **Skeleton.** The decoder's top is not compiled yet: the evaluations below measure the program
 of the compiled replay (`replayStatesOfC`, `Decoder/Replay.lean`, the largest piece so far) in its
-place: at most `3206`, the bodies' sizes (`1764`) plus two per index (`721` of them); its exact
-size is `3060`. Once the top `decTopC` is compiled, its program replaces the replay's
+place: at most the bodies' sizes (`1764`) plus two per index up to the top's, `replayStatesOfC`'s
+own (the last index allocated; so the bound names no index, which moves when a module before it in
+the chain gains a function); its exact size is `3062` at index `721`. Once the top `decTopC` is compiled, its program replaces the replay's
 (`decTopC.costIdx`, `decTopC.costDeps`), the measured number with it, and `guestDecoderSizeBound` is set to
 the size rounded up to a power of two (`Statement/Theorems.lean`).
 -/
@@ -40,12 +41,13 @@ theorem replayProgramBodies_size_bound :
     ((decoderProgramBodiesOf replayStatesOfC.costIdx replayStatesOfC.costDeps).map
         fun p ↦ p.2.size).sum +
       2 * (((decoderProgramBodiesOf replayStatesOfC.costIdx replayStatesOfC.costDeps).map
-        (·.1)).foldr max 0 + 1) ≤ 3206 := by
+        (·.1)).foldr max 0 + 1) ≤ 1764 + 2 * (replayStatesOfC.costIdx + 1) := by
   decide +kernel
 
 /-- **The program's size**, evaluated. -/
 theorem replayProgram_size_le_measured :
-    (decoderProgramOf replayStatesOfC.costIdx replayStatesOfC.costDeps).size ≤ 3206 :=
+    (decoderProgramOf replayStatesOfC.costIdx replayStatesOfC.costDeps).size ≤
+      1764 + 2 * (replayStatesOfC.costIdx + 1) :=
   decoderProgramOf_size_le replayProgramBodies_size_bound
 
 end
