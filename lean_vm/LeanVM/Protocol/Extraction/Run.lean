@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.Extraction.Run
 
-  The extractor's computable halting search (`Statement/Extractor.lean`, §7) against the
+  The extractor's computable halting search (`LeanVM/Protocol/Extraction/Extractor.lean`, §7) against the
   specification: its addresses, step and run are the specification's, it finds the specification's
   halting run whenever that run fits the cap, and what it returns for any stack is a valid
   execution. A halting run never repeats a state.

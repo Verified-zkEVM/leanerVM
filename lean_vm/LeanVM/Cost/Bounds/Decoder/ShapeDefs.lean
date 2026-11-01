@@ -1,6 +1,7 @@
 module
 
 public import LeanVM.Protocol.Extraction.Extractor
+public import Statement.CostMachine
 
 /-!
 # Bounds: the decoder's bounds, as definitions

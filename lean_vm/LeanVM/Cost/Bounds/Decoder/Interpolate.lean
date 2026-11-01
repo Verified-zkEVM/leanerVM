@@ -46,7 +46,7 @@ open LeanVM.Cost.Auto.LeanVM.Extraction.Fast LeanVM.Cost.Auto.CompPoly.Guruswami
 
 public section
 
-variable (P : Program)
+variable (P : MachineProgram)
 
 /-! ## Library functions -/
 
@@ -60,7 +60,7 @@ theorem length_ofFnFrom {α : Type} {n : ℕ} (f : Fin n → α) (i : ℕ) :
 /-- `leeRows`: at most `15`. -/
 theorem leeRowsC_cost (hP : Includes P leeRows.c123.costDeps) (params : GSInterpParams)
     (Q : CBivariate K) (hW : params.weightedDegreeBound + 1 < 2 ^ 64) (hQ : Q.val.size < 2 ^ 64) :
-    machineCost P leeRows.c123.costIdx [enc params, enc Q] ≤ 15 := by
+    machineCost P leeRows.c123.costIdx [encodeValue params, encodeValue Q] ≤ 15 := by
   rw [leeRows.c123.costEq P hP]
   cost_simp
   split_ifs <;> omega
@@ -70,7 +70,7 @@ theorem leeColsC_cost (hP : Includes P leeCols.c122.costDeps) (params : GSInterp
     (Q : CBivariate K) (y : ℕ) (hW : params.weightedDegreeBound + 1 < 2 ^ 64)
     (hk : params.messageDegree < 2 ^ 64) (hy : y < 2 ^ 64) (hyw : yWeight params * y < 2 ^ 64)
     (hq : (Q.val.coeff y).val.size < 2 ^ 64) :
-    machineCost P leeCols.c122.costIdx [enc params, enc Q, enc y] ≤ 50 := by
+    machineCost P leeCols.c122.costIdx [encodeValue params, encodeValue Q, encodeValue y] ≤ 50 := by
   have hyw' : yWeight params < 2 ^ 64 := by unfold yWeight; omega
   rw [leeCols.c122.costEq P hP]
   cost_simp
@@ -101,16 +101,16 @@ at most `(42·(W + 1) + 113)·rows + 35`, `rows = leeRows params Q`. -/
 theorem leePivotC_cost (hP : Includes P leePivot?.c124.costDeps) (params : GSInterpParams)
     (Q : CBivariate K) {A : ℕ} (hs : NormSizes params A) (hQ : InnerLe Q.val A)
     (hQs : Q.val.size < 2 ^ 64) :
-    machineCost P leePivot?.c124.costIdx [enc params, enc Q] ≤
+    machineCost P leePivot?.c124.costIdx [encodeValue params, encodeValue Q] ≤
       (42 * (params.weightedDegreeBound + 1) + 113) * leeRows params Q + 35 := by
   obtain ⟨hW, hk, hyW, hA⟩ := hs
   have hR := leeRows_le params Q
   rw [leePivot?.c124.costEq P hP]
   have := leeRowsC_cost P (by includes) params Q (by omega) hQs
   have := rangeLoop_cost P (by includes) (leeRows params Q) [] (by omega)
-  have hf := fun y ↦ RunsApp.of_spec (us := [enc params, enc Q]) (vs := [enc y])
+  have hf := fun y ↦ RunsApp.of_spec (us := [encodeValue params, encodeValue Q]) (vs := [encodeValue y])
     (leePivot?.c124.lam0.costSpec P (by includes) params Q y)
-  have hfs := findSome_cost P (by includes) _ (.fn leePivot?.c124.lam0.costIdx [enc params, enc Q])
+  have hfs := findSome_cost P (by includes) _ (.closure leePivot?.c124.lam0.costIdx [encodeValue params, encodeValue Q])
     hf (42 * (params.weightedDegreeBound + 1) + 87) (List.range (leeRows params Q)) (fun y hy ↦ by
       rw [List.mem_range] at hy
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -123,18 +123,18 @@ theorem leePivotC_cost (hP : Includes P leePivot?.c124.costDeps) (params : GSInt
         (by have := coeff_size_le_of_innerLe hQ y; omega)
       have hc := leeCols_le params Q y
       have := rangeLoop_cost P (by includes) (leeCols params Q y) [] (by omega)
-      have hp := fun x ↦ RunsApp.of_spec (us := [enc Q, enc y]) (vs := [enc x])
+      have hp := fun x ↦ RunsApp.of_spec (us := [encodeValue Q, encodeValue y]) (vs := [encodeValue x])
         (leePivot?.c124.lam0.lam1.costSpec P (by includes) Q y x)
-      have := findNat_cost P (by includes) _ (.fn leePivot?.c124.lam0.lam1.costIdx [enc Q, enc y])
+      have := findNat_cost P (by includes) _ (.closure leePivot?.c124.lam0.lam1.costIdx [encodeValue Q, encodeValue y])
         hp 16 (List.range (leeCols params Q y)) (fun x _ ↦ by
           simp only [appCost_fn, List.cons_append, List.nil_append]
           rw [leePivot?.c124.lam0.lam1.costEq P (by includes),
             Auto.CompPoly.CBivariate.coeff.c121.costEq P (by includes)])
-      have hm := fun x ↦ RunsApp.of_spec (us := [enc y]) (vs := [enc x])
+      have hm := fun x ↦ RunsApp.of_spec (us := [encodeValue y]) (vs := [encodeValue x])
         (leePivot?.c124.lam0.lam0.costSpec P (by includes) y x)
       have := optionMap_cost P (by includes)
         (fun x ↦ ({ xDegree := x, yDegree := y } : CBivariate.Monomial))
-        (.fn leePivot?.c124.lam0.lam0.costIdx [enc y]) hm
+        (.closure leePivot?.c124.lam0.lam0.costIdx [encodeValue y]) hm
         5 ((List.range (leeCols params Q y)).find? fun x ↦ !Q.coeff x y == 0) (fun x _ ↦ by
           simp only [appCost_fn, List.cons_append, List.nil_append]
           rw [leePivot?.c124.lam0.lam0.costEq P (by includes)])
@@ -154,18 +154,18 @@ inverted each time): at most `(20015·(W + 1) + 152)·rows + 53`. -/
 theorem leeScaledC_cost (hP : Includes P leeScaled.c115.costDeps) (params : GSInterpParams)
     (Q : CBivariate K) (c : K) {A : ℕ} (hs : NormSizes params A) (hQ : InnerLe Q.val A)
     (hQs : Q.val.size < 2 ^ 64) :
-    machineCost P leeScaled.c115.costIdx [enc params, enc Q, enc c] ≤
+    machineCost P leeScaled.c115.costIdx [encodeValue params, encodeValue Q, encodeValue c] ≤
       (20015 * (params.weightedDegreeBound + 1) + 152) * leeRows params Q + 53 := by
   obtain ⟨hW, hk, hyW, hA⟩ := hs
   have hR := leeRows_le params Q
   rw [leeScaled.c115.costEq P hP]
   have := leeRowsC_cost P (by includes) params Q (by omega) hQs
-  have hf := fun y ↦ RunsApp.of_spec (us := [enc params, enc Q, enc c]) (vs := [enc y])
+  have hf := fun y ↦ RunsApp.of_spec (us := [encodeValue params, encodeValue Q, encodeValue c]) (vs := [encodeValue y])
     (leeScaled.c115.lam0.costSpec P (by includes) params Q c y)
   rw [Auto.CompPoly.CPolynomial.ofFn.c116.costEq P (by includes) _
-    (.fn leeScaled.c115.lam0.costIdx [enc params, enc Q, enc c]) hf]
+    (.closure leeScaled.c115.lam0.costIdx [encodeValue params, encodeValue Q, encodeValue c]) hf]
   have hfr := ofFnFrom_cost P (by includes) (n := leeRows params Q) (by omega) _
-    (.fn leeScaled.c115.lam0.costIdx [enc params, enc Q, enc c]) hf
+    (.closure leeScaled.c115.lam0.costIdx [encodeValue params, encodeValue Q, encodeValue c]) hf
     (20012 * (params.weightedDegreeBound + 1) + 92) (fun y ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [leeScaled.c115.lam0.costEq P (by includes)]
@@ -177,12 +177,12 @@ theorem leeScaledC_cost (hP : Includes P leeScaled.c115.costDeps) (params : GSIn
       have := leeColsC_cost P (by includes) params Q y (by omega) hk (by omega) hyw
         (by have := coeff_size_le_of_innerLe hQ y; omega)
       have hc := leeCols_le params Q y
-      have hg := fun x ↦ RunsApp.of_spec (us := [enc params, enc Q, enc c, enc y]) (vs := [enc x])
+      have hg := fun x ↦ RunsApp.of_spec (us := [encodeValue params, encodeValue Q, encodeValue c, encodeValue y]) (vs := [encodeValue x])
         (leeScaled.c115.lam0.lam0.costSpec P (by includes) params Q c y x)
       rw [Auto.CompPoly.CPolynomial.ofFn.c119.costEq P (by includes) _
-        (.fn leeScaled.c115.lam0.lam0.costIdx [enc params, enc Q, enc c, enc y]) hg]
+        (.closure leeScaled.c115.lam0.lam0.costIdx [encodeValue params, encodeValue Q, encodeValue c, encodeValue y]) hg]
       have := ofFnFrom_cost P (by includes) (n := leeCols params Q y) (by omega) _
-        (.fn leeScaled.c115.lam0.lam0.costIdx [enc params, enc Q, enc c, enc y]) hg 19970
+        (.closure leeScaled.c115.lam0.lam0.costIdx [encodeValue params, encodeValue Q, encodeValue c, encodeValue y]) hg 19970
         (fun x ↦ by
           simp only [appCost_fn, List.cons_append, List.nil_append]
           rw [leeScaled.c115.lam0.lam0.costEq P (by includes),
@@ -215,13 +215,13 @@ theorem leeScaledC_cost (hP : Includes P leeScaled.c115.costDeps) (params : GSIn
 theorem normalizeLeeFastC_cost (hP : Includes P normalizeLeeFast.c113.costDeps)
     (params : GSInterpParams) (Q : CBivariate K) {A rows : ℕ} (hs : NormSizes params A)
     (hQ : InnerLe Q.val A) (hQs : Q.val.size ≤ rows) (hrows : rows < 2 ^ 64) :
-    machineCost P normalizeLeeFast.c113.costIdx [enc params, enc Q] ≤
+    machineCost P normalizeLeeFast.c113.costIdx [encodeValue params, encodeValue Q] ≤
       normBound params.weightedDegreeBound rows := by
   rw [normalizeLeeFast.c113.costEq P hP]
   have hp := leePivotC_cost P (by includes) params Q hs hQ (by omega)
-  have hf := fun m ↦ RunsApp.of_spec (us := [enc params, enc Q]) (vs := [enc m])
+  have hf := fun m ↦ RunsApp.of_spec (us := [encodeValue params, encodeValue Q]) (vs := [encodeValue m])
     (normalizeLeeFast.c113.lam0.costSpec P (by includes) params Q m)
-  have := optionMap_cost P (by includes) _ (.fn normalizeLeeFast.c113.lam0.costIdx [enc params, enc Q])
+  have := optionMap_cost P (by includes) _ (.closure normalizeLeeFast.c113.lam0.costIdx [encodeValue params, encodeValue Q])
     hf ((20015 * (params.weightedDegreeBound + 1) + 152) * leeRows params Q + 53 + 17)
     (leePivot? params Q) (fun m _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -308,7 +308,7 @@ theorem leastShiftedDegreeRow?_rowWithin {r w D S : ℕ} {M : PolynomialMatrix K
 theorem betterRowChoiceC_cost (hP : Includes P betterRowChoice.c111.costDeps)
     (a b : LeeOSullivan.RowChoice K) (ha : a.degree < 2 ^ 64) (hb : b.degree < 2 ^ 64)
     (hia : a.index < 2 ^ 64) (hib : b.index < 2 ^ 64) :
-    machineCost P betterRowChoice.c111.costIdx [enc a, enc b] ≤ 30 := by
+    machineCost P betterRowChoice.c111.costIdx [encodeValue a, encodeValue b] ≤ 30 := by
   rw [betterRowChoice.c111.costEq P hP]
   cost_simp
   split_ifs <;> omega
@@ -319,7 +319,7 @@ theorem rowStepC_cost (hP : Includes P leastShiftedDegreeRowStep?.c110.costDeps)
     (hS : ∀ j, shift.getD j 0 ≤ S) (hM : MsInv r w D M shift)
     (best : Option (LeeOSullivan.RowChoice K)) (hbest : BestInv M (D + 1 + S) best)
     (hMs : M.size < 2 ^ 64) (i : ℕ) (hi : i < 2 ^ 64) :
-    machineCost P leastShiftedDegreeRowStep?.c110.costIdx [enc M, enc shift, enc best, enc i] ≤
+    machineCost P leastShiftedDegreeRowStep?.c110.costIdx [encodeValue M, encodeValue shift, encodeValue best, encodeValue i] ≤
       90 * w + 100 := by
   rw [leastShiftedDegreeRowStep?.c110.costEq P hP]
   have := rowShiftedDegree_cost P (by includes) hw (by omega) (M.getD i #[])
@@ -344,7 +344,7 @@ theorem leastShiftedDegreeRowC_cost (hP : Includes P leastShiftedDegreeRow?.c105
     {r w D S : ℕ} (hr : r < 2 ^ 62) (hw : w < 2 ^ 62) (hDS : D + 1 + S < 2 ^ 62)
     (M : PolynomialMatrix K) (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S)
     (hM : MsInv r w D M shift) :
-    machineCost P leastShiftedDegreeRow?.c105.costIdx [enc M, enc shift] ≤
+    machineCost P leastShiftedDegreeRow?.c105.costIdx [encodeValue M, encodeValue shift] ≤
       (90 * w + 140) * r + 40 := by
   have hMr : M.size = r := hM.1
   have hB : ∀ i d, rowShiftedDegree? (M.getD i #[]) shift = some d → d ≤ D + 1 + S :=
@@ -352,8 +352,8 @@ theorem leastShiftedDegreeRowC_cost (hP : Includes P leastShiftedDegreeRow?.c105
   rw [leastShiftedDegreeRow?.c105.costEq P hP, leastShiftedDegreeChoice?.c108.costEq P (by includes)]
   have := rangeLoop_cost P (by includes) M.size [] (by omega)
   have hf := listFoldl_le P (by includes) _
-    (.fn leastShiftedDegreeChoice?.c108.lam0.costIdx [enc M, enc shift])
-    (fun best i ↦ RunsApp.of_spec (us := [enc M, enc shift]) (vs := [enc best, enc i])
+    (.closure leastShiftedDegreeChoice?.c108.lam0.costIdx [encodeValue M, encodeValue shift])
+    (fun best i ↦ RunsApp.of_spec (us := [encodeValue M, encodeValue shift]) (vs := [encodeValue best, encodeValue i])
       (leastShiftedDegreeChoice?.c108.lam0.costSpec P (by includes) M shift best i))
     (90 * w + 105) (BestInv M (D + 1 + S)) (List.range M.size) none (fun c hc ↦ by cases hc)
     (fun best hbest i hi ↦ by
@@ -363,9 +363,9 @@ theorem leastShiftedDegreeRowC_cost (hP : Includes P leastShiftedDegreeRow?.c105
       rw [leastShiftedDegreeChoice?.c108.lam0.costEq P (by includes)]
       have := rowStepC_cost P (by includes) hw hDS M shift hS hM best hbest (by omega) i (by omega)
       omega)
-  have hm := fun c ↦ RunsApp.of_spec (us := []) (vs := [enc c])
+  have hm := fun c ↦ RunsApp.of_spec (us := []) (vs := [encodeValue c])
     (leastShiftedDegreeRow?.c105.lam0.costSpec P (by includes) c)
-  have := optionMap_cost P (by includes) _ (.fn leastShiftedDegreeRow?.c105.lam0.costIdx []) hm 2
+  have := optionMap_cost P (by includes) _ (.closure leastShiftedDegreeRow?.c105.lam0.costIdx []) hm 2
     (LeeOSullivan.leastShiftedDegreeChoice? M shift) (fun c _ ↦ by
       simp only [appCost_fn, List.nil_append]
       rw [leastShiftedDegreeRow?.c105.lam0.costEq P (by includes)])
@@ -378,7 +378,7 @@ theorem leastShiftedDegreeRowC_cost (hP : Includes P leastShiftedDegreeRow?.c105
 `(3·A + 41)·w + 17`, `w` entries of at most `A` coefficients. -/
 theorem ofCoeffRowC_cost (hP : Includes P Auto.CompPoly.CBivariate.ofCoeffRow.c112.costDeps)
     {w A : ℕ} (row : PolynomialRow K) (h : RowWithin w A row) (hw : w < 2 ^ 63) :
-    machineCost P Auto.CompPoly.CBivariate.ofCoeffRow.c112.costIdx [enc row] ≤
+    machineCost P Auto.CompPoly.CBivariate.ofCoeffRow.c112.costIdx [encodeValue row] ≤
       (3 * A + 41) * w + 17 := by
   rw [Auto.CompPoly.CBivariate.ofCoeffRow.c112.costEq P hP]
   have := ofArrayB_cost P (by includes) row A h.2 (by have := h.1; omega)
@@ -406,7 +406,7 @@ theorem leeShifts_le (params : GSInterpParams) (j : ℕ) :
 contexts): on `n` points, at most `interpCoreBound n m (ℓ + 1) D W`, `D = m·n + ℓ·(k − 1)`. -/
 theorem leeCoreC_cost (hP : Includes P leeOSullivanPositiveCoreFast.c73.costDeps)
     (points : Array (K × K)) (params : GSInterpParams) (hs : InterpSizes points.size params) :
-    machineCost P leeOSullivanPositiveCoreFast.c73.costIdx [enc points, enc params] ≤
+    machineCost P leeOSullivanPositiveCoreFast.c73.costIdx [encodeValue points, encodeValue params] ≤
       interpCoreBound points.size params.multiplicity (interpolationYCap params + 1)
         (params.multiplicity * points.size + interpolationYCap params * yWeight params)
         params.weightedDegreeBound := by
@@ -429,10 +429,10 @@ theorem leeCoreC_cost (hP : Includes P leeOSullivanPositiveCoreFast.c73.costDeps
   have hMred := muldersStorjohannReduceFast_msInv hMinv
   have hS := leeShifts_le params
   -- the prices
-  have hf := fun pt ↦ RunsApp.of_spec (us := []) (vs := [enc pt])
+  have hf := fun pt ↦ RunsApp.of_spec (us := []) (vs := [encodeValue pt])
     (leeOSullivanPositiveCoreFast.c73.lam0.costSpec P (by includes) pt)
   have hm1 := listMap_le P Auto.List.map.c12.costIdx
-    (.fn leeOSullivanPositiveCoreFast.c73.lam0.costIdx [])
+    (.closure leeOSullivanPositiveCoreFast.c73.lam0.costIdx [])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf) 2 points.toList
     (fun pt _ ↦ by
@@ -447,10 +447,10 @@ theorem leeCoreC_cost (hP : Includes P leeOSullivanPositiveCoreFast.c73.costDeps
     (by unfold yWeight; omega) hw hm hmn
   have hrl := rangeLoop_cost P (by includes) (leeOSullivanWidth params) [] (by
     unfold leeOSullivanWidth; omega)
-  have hf1 := fun j ↦ RunsApp.of_spec (us := [enc params]) (vs := [enc j])
+  have hf1 := fun j ↦ RunsApp.of_spec (us := [encodeValue params]) (vs := [encodeValue j])
     (leeOSullivanPositiveCoreFast.c73.lam1.costSpec P (by includes) params j)
   have hm2 := listMap_le P Auto.List.map.c12.costIdx
-    (.fn leeOSullivanPositiveCoreFast.c73.lam1.costIdx [enc params])
+    (.closure leeOSullivanPositiveCoreFast.c73.lam1.costIdx [encodeValue params])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf1)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf1) 8
     (List.range (leeOSullivanWidth params))
@@ -511,7 +511,7 @@ theorem leeCoreC_cost (hP : Includes P leeOSullivanPositiveCoreFast.c73.costDeps
 theorem interpolateDistinctC_cost (hP : Includes P interpolateDistinctC.costDeps)
     (points : Array (K × K)) (params : GSInterpParams) (hs : InterpSizes points.size params)
     (hk1 : 1 < params.messageDegree) :
-    machineCost P interpolateDistinctC.costIdx [enc points, enc params] ≤
+    machineCost P interpolateDistinctC.costIdx [encodeValue points, encodeValue params] ≤
       interpCoreBound points.size params.multiplicity (interpolationYCap params + 1)
         (params.multiplicity * points.size + interpolationYCap params * yWeight params)
         params.weightedDegreeBound + 10 := by
@@ -544,7 +544,7 @@ theorem laneInterp_cost (hP : Includes P interpolateDistinctC.costDeps) (κ R A 
     (hs : InterpSizes (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp)
     (hk1 : 1 < (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp.messageDegree) :
     machineCost P interpolateDistinctC.costIdx
-        [enc (lanePointsS (2 ^ (κ + R)) S u), enc (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp] ≤
+        [encodeValue (lanePointsS (2 ^ (κ + R)) S u), encodeValue (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp] ≤
       laneInterpBound κ R A := by
   have := interpolateDistinctC_cost P hP (lanePointsS (2 ^ (κ + R)) S u) _
     (by rwa [lanePointsS_size]) hk1
@@ -558,8 +558,8 @@ open LeanVM.Extraction in
 theorem laneInterp_cost_28_4 (hP : Includes P interpolateDistinctC.costDeps) (S : ℕ → ℕ → K)
     (u : ℕ) :
     machineCost P interpolateDistinctC.costIdx
-        [enc (lanePointsS (2 ^ (22 + 4)) S u),
-          enc (gsParamsFor (2 ^ 22) (2 ^ (22 + 4)) 16792398).interp] ≤
+        [encodeValue (lanePointsS (2 ^ (22 + 4)) S u),
+          encodeValue (gsParamsFor (2 ^ 22) (2 ^ (22 + 4)) 16792398).interp] ≤
       4121135194401974193367341077651775 := by
   have := laneInterp_cost P hP 22 4 16792398 S u (by unfold InterpSizes; decide +kernel)
     (by decide +kernel)

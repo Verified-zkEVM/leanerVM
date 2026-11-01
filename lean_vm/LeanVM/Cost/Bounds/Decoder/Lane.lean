@@ -29,13 +29,13 @@ open LeanVM.Cost.Extractor LeanVM.Parameters CompPoly LeanVM.Extraction.Fast
 
 public section
 
-variable (P : Program)
+variable (P : MachineProgram)
 
 /-! ## Deduplication -/
 
 /-- Array equality over `K` (`List.beq.c242` on the coefficient lists): at most `11·|a| + 6`. -/
 theorem beqArrC_cost (hP : Includes P Auto.List.beq.c242.costDeps) :
-    ∀ a b : List K, machineCost P Auto.List.beq.c242.costIdx [enc a, enc b] ≤ 11 * a.length + 6 := by
+    ∀ a b : List K, machineCost P Auto.List.beq.c242.costIdx [encodeValue a, encodeValue b] ≤ 11 * a.length + 6 := by
   intro a
   induction a with
   | nil => intro b; rw [Auto.List.beq.c242.costEq_nil P hP]; cases b <;> simp
@@ -61,34 +61,34 @@ theorem foldr_pw_length_le (l : List (Array K)) :
 ones): at most `((17·N + 22)·n + 30)·n + 9`. -/
 theorem dedupC_cost (hP : Includes P Auto.List.dedup.c237.costDeps) (N : ℕ) :
     ∀ l : List (Array K), (∀ a ∈ l, a.size = N) →
-      machineCost P Auto.List.dedup.c237.costIdx [enc l] ≤ ((17 * N + 22) * l.length + 30) * l.length + 9 := by
+      machineCost P Auto.List.dedup.c237.costIdx [encodeValue l] ≤ ((17 * N + 22) * l.length + 30) * l.length + 9 := by
   intro l hl
   rw [Auto.List.dedup.c237.costEq P hP, Auto.List.pwFilter.c238.costEq P (by includes)]
-  have hf := fun x IH ↦ RunsApp.of_spec (us := []) (vs := [enc x, enc IH])
+  have hf := fun x IH ↦ RunsApp.of_spec (us := []) (vs := [encodeValue x, encodeValue IH])
     (Auto.List.pwFilter.c238.lam0.costSpec P (by includes) x IH)
   suffices h : ∀ l' : List (Array K), (∀ a ∈ l', a.size = N) → l'.length ≤ l.length →
-      machineCost P Auto.List.foldr.c86.costIdx [.fn Auto.List.pwFilter.c238.lam0.costIdx [],
-        enc ([] : List (Array K)), enc l'] ≤ ((17 * N + 22) * l.length + 30) * l'.length + 3 by
+      machineCost P Auto.List.foldr.c86.costIdx [.closure Auto.List.pwFilter.c238.lam0.costIdx [],
+        encodeValue ([] : List (Array K)), encodeValue l'] ≤ ((17 * N + 22) * l.length + 30) * l'.length + 3 by
     have := h l hl le_rfl
     omega
   intro l'
   induction l' with
   | nil =>
     intro _ _
-    rw [Auto.List.foldr.c86.costEq_nil P (by includes) _ (.fn Auto.List.pwFilter.c238.lam0.costIdx []) hf]
+    rw [Auto.List.foldr.c86.costEq_nil P (by includes) _ (.closure Auto.List.pwFilter.c238.lam0.costIdx []) hf]
     simp
   | cons x l' ih =>
     intro hl' hlen
     rw [Auto.List.foldr.c86.costEq_cons P (by includes) _
-      (.fn Auto.List.pwFilter.c238.lam0.costIdx []) hf]
+      (.closure Auto.List.pwFilter.c238.lam0.costIdx []) hf]
     simp only [List.length_cons] at hlen ⊢
     have := ih (fun a ha ↦ hl' a (by simp [ha])) (by omega)
     have hIH := foldr_pw_length_le l'
     simp only [appCost_fn, List.nil_append]
     rw [Auto.List.pwFilter.c238.lam0.costEq P (by includes)]
-    have hq := fun y ↦ RunsApp.of_spec (us := [enc x]) (vs := [enc y])
+    have hq := fun y ↦ RunsApp.of_spec (us := [encodeValue x]) (vs := [encodeValue y])
       (Auto.List.pwFilter.c238.lam0.lam0.costSpec P (by includes) x y)
-    have hall := all_cost P (by includes) _ (.fn Auto.List.pwFilter.c238.lam0.lam0.costIdx [enc x])
+    have hall := all_cost P (by includes) _ (.closure Auto.List.pwFilter.c238.lam0.lam0.costIdx [encodeValue x])
       hq (17 * N + 13) (l'.foldr (fun x IH ↦ if ∀ y ∈ IH, x ≠ y then x :: IH else IH) [])
       (fun y hy ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -123,7 +123,7 @@ theorem dedupC_cost (hP : Includes P Auto.List.dedup.c237.costDeps) (N : ℕ) :
 /-- `lexLE` on word lists: at most `17·|a| + 3`. -/
 theorem lexLEC_cost (hP : Includes P Auto.LeanVM.Extraction.lexLE.c235.costDeps) :
     ∀ a b : List ℕ, (∀ x ∈ a, x < 2 ^ 64) → (∀ x ∈ b, x < 2 ^ 64) →
-      machineCost P Auto.LeanVM.Extraction.lexLE.c235.costIdx [enc a, enc b] ≤ 17 * a.length + 3 := by
+      machineCost P Auto.LeanVM.Extraction.lexLE.c235.costIdx [encodeValue a, encodeValue b] ≤ 17 * a.length + 3 := by
   intro a
   induction a with
   | nil => intro b _ _; rw [Auto.LeanVM.Extraction.lexLE.c235.costEq_nil P hP]; simp
@@ -143,12 +143,12 @@ theorem lexLEC_cost (hP : Includes P Auto.LeanVM.Extraction.lexLE.c235.costDeps)
 /-- **The candidates' order** (`coeffsLE` on arrays of `N` entries): at most `50·N + 21`. -/
 theorem coeffsLEC_cost (hP : Includes P Auto.LeanVM.Extraction.coeffsLE.c234.costDeps)
     (a b : Array K) {N : ℕ} (ha : a.size = N) (hb : b.size = N) :
-    machineCost P Auto.LeanVM.Extraction.coeffsLE.c234.costIdx [enc a, enc b] ≤ 50 * N + 21 := by
+    machineCost P Auto.LeanVM.Extraction.coeffsLE.c234.costIdx [encodeValue a, encodeValue b] ≤ 50 * N + 21 := by
   rw [Auto.LeanVM.Extraction.coeffsLE.c234.costEq P hP]
-  have hf := fun x ↦ RunsApp.of_spec (us := []) (vs := [enc x])
+  have hf := fun x ↦ RunsApp.of_spec (us := []) (vs := [encodeValue x])
     (Auto.LeanVM.Extraction.coeffsLE.c234.lam0.costSpec P (by includes) x)
   have hm := fun (c : Array K) ↦ listMap_le P Auto.List.map.c12.costIdx
-    (.fn Auto.LeanVM.Extraction.coeffsLE.c234.lam0.costIdx [])
+    (.closure Auto.LeanVM.Extraction.coeffsLE.c234.lam0.costIdx [])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf) 2 c.toList
     (fun x _ ↦ by
@@ -170,16 +170,16 @@ theorem coeffsLEC_cost (hP : Includes P Auto.LeanVM.Extraction.coeffsLE.c234.cos
 inverse transform): at most `(272·|p| + 33)·2^κ + κ·(760·2^κ + 19790) + 40`. -/
 theorem toNovelFastC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.toNovelFast.c244.costDeps) (κ : ℕ) (hκ : κ ≤ 62)
     (p : CPolynomial K) :
-    machineCost P Auto.LeanVM.Extraction.Fast.toNovelFast.c244.costIdx [enc κ, enc p] ≤
+    machineCost P Auto.LeanVM.Extraction.Fast.toNovelFast.c244.costIdx [encodeValue κ, encodeValue p] ≤
       (272 * p.val.size + 33) * 2 ^ κ + κ * (760 * 2 ^ κ + 19790) + 40 := by
   rw [Auto.LeanVM.Extraction.Fast.toNovelFast.c244.costEq P hP]
   have hN : 2 ^ κ < 2 ^ 63 := Nat.pow_lt_pow_right (by norm_num) (by omega)
   have hs : (1 <<< κ : ℕ) = 2 ^ κ := Nat.one_shiftLeft κ
   rw [hs]
-  have hf := fun v ↦ RunsApp.of_spec (us := [enc κ, enc p]) (vs := [enc v])
+  have hf := fun v ↦ RunsApp.of_spec (us := [encodeValue κ, encodeValue p]) (vs := [encodeValue v])
     (Auto.LeanVM.Extraction.Fast.toNovelFast.c244.lam1.costSpec P (by includes) κ p v)
   have hof := ofFnFrom_cost P (by includes) (n := 2 ^ κ) (by omega) _
-    (.fn Auto.LeanVM.Extraction.Fast.toNovelFast.c244.lam1.costIdx [enc κ, enc p]) hf (272 * p.val.size + 14) (fun v ↦ by
+    (.closure Auto.LeanVM.Extraction.Fast.toNovelFast.c244.lam1.costIdx [encodeValue κ, encodeValue p]) hf (272 * p.val.size + 14) (fun v ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [Auto.LeanVM.Extraction.Fast.toNovelFast.c244.lam1.costEq P (by includes)]
       have := hornerEvalC_cost P (by includes) (K.ofBits v) p
@@ -207,21 +207,21 @@ theorem mem_dedup_toNovel_size {κ : ℕ} {l : List (CPolynomial K)} {c : Array 
 the novel basis, deduplicated, sorted, each re-encoded): at most the run's price plus
 `laneExtraBound κ R L k`, `L` bounding the candidates and `k` their sizes. -/
 theorem laneEncodedDistinctC_cost (hP : Includes P laneEncodedDistinctC.costDeps) (κ R A : ℕ)
-    (hκR : κ + R ≤ 62) (S : ℕ → ℕ → K) (SVal : Val)
-    (hS : ∀ a b, RunsApp P SVal [enc a, enc b] (enc (S a b))) (u : ℕ) {L k : ℕ}
+    (hκR : κ + R ≤ 62) (S : ℕ → ℕ → K) (SVal : MachineValue)
+    (hS : ∀ a b, RunsApp P SVal [encodeValue a, encodeValue b] (encodeValue (S a b))) (u : ℕ) {L k : ℕ}
     (hL : (gsLaneDistinct κ R A S u).size ≤ L) (hL60 : L < 2 ^ 30)
     (hk : ∀ p ∈ gsLaneDistinct κ R A S u, p.val.size ≤ k) :
-    machineCost P laneEncodedDistinctC.costIdx [enc κ, enc R, enc A, SVal, enc u] ≤
+    machineCost P laneEncodedDistinctC.costIdx [encodeValue κ, encodeValue R, encodeValue A, SVal, encodeValue u] ≤
       machineCost P Auto.LeanVM.Extraction.Fast.gsLaneDistinct.c249.costIdx
-        [enc κ, enc R, enc A, SVal, enc u] + laneExtraBound κ R L k := by
+        [encodeValue κ, encodeValue R, encodeValue A, SVal, encodeValue u] + laneExtraBound κ R L k := by
   rw [laneEncodedDistinctC.costEq P hP κ R A S SVal hS,
     Auto.LeanVM.Extraction.Fast.laneListDistinct.c227.costEq P (by includes) κ R A S SVal hS]
   generalize hC : gsLaneDistinct κ R A S u = cands at hL hk
   -- the novel basis
-  have hf1 := fun p ↦ RunsApp.of_spec (us := [enc κ]) (vs := [enc p])
+  have hf1 := fun p ↦ RunsApp.of_spec (us := [encodeValue κ]) (vs := [encodeValue p])
     (Auto.LeanVM.Extraction.Fast.laneListDistinct.c227.lam1.costSpec P (by includes) κ p)
   have hm1 := listMap_le P Auto.List.map.c12.costIdx
-    (.fn Auto.LeanVM.Extraction.Fast.laneListDistinct.c227.lam1.costIdx [enc κ])
+    (.closure Auto.LeanVM.Extraction.Fast.laneListDistinct.c227.lam1.costIdx [encodeValue κ])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf1)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf1)
     ((272 * k + 33) * 2 ^ κ + κ * (760 * 2 ^ κ + 19790) + 43) cands.toList
@@ -244,10 +244,10 @@ theorem laneEncodedDistinctC_cost (hP : Includes P laneEncodedDistinctC.costDeps
   -- the sort
   have hdl : (cands.toList.map (toNovelFast κ)).dedup.length ≤ L :=
     (List.dedup_sublist _).length_le.trans hlen
-  have hl0 := fun a b ↦ RunsApp.of_spec (us := []) (vs := [enc a, enc b])
+  have hl0 := fun a b ↦ RunsApp.of_spec (us := []) (vs := [encodeValue a, encodeValue b])
     (Auto.LeanVM.Extraction.Fast.laneListDistinct.c227.lam0.costSpec P (by includes) a b)
   have hs := mergeSortList_cost_sq P (by includes) _
-    (.fn Auto.LeanVM.Extraction.Fast.laneListDistinct.c227.lam0.costIdx []) hl0
+    (.closure Auto.LeanVM.Extraction.Fast.laneListDistinct.c227.lam0.costIdx []) hl0
     (fun c : Array K ↦ c.size = 2 ^ κ) (50 * 2 ^ κ + 24)
     (fun a b ha hb ↦ by
       simp only [appCost_fn, List.nil_append]
@@ -263,9 +263,9 @@ theorem laneEncodedDistinctC_cost (hP : Includes P laneEncodedDistinctC.costDeps
   -- the re-encoding
   have hlist : (laneListDistinct κ R A S u).length ≤ L := by
     rw [laneListDistinct, List.length_mergeSort, hC]; exact hdl
-  have hf2 := fun c ↦ RunsApp.of_spec (us := [enc κ, enc R]) (vs := [enc c])
+  have hf2 := fun c ↦ RunsApp.of_spec (us := [encodeValue κ, encodeValue R]) (vs := [encodeValue c])
     (laneEncodedDistinctC.lam0.costSpec P (by includes) κ R c)
-  have hm2 := listMap_le P Auto.List.map.c12.costIdx (.fn laneEncodedDistinctC.lam0.costIdx [enc κ, enc R])
+  have hm2 := listMap_le P Auto.List.map.c12.costIdx (.closure laneEncodedDistinctC.lam0.costIdx [encodeValue κ, encodeValue R])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf2)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf2)
     (κ * (760 * 2 ^ (κ + R) + 19793) + 30 * 2 ^ (κ + R) + 50) (laneListDistinct κ R A S u)

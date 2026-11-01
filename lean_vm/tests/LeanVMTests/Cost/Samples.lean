@@ -16,9 +16,9 @@ open LeanVM.Cost LeanVM.Cost.Library LeanVMTests.Cost.Samples LeanVM.Parameters
 def polyA : CompPoly.CPolynomial.Raw K := #[K.ofBits 3, K.ofBits 5, K.ofBits 7]
 def polyB : CompPoly.CPolynomial.Raw K := #[K.ofBits 1, K.ofBits 6]
 
-#guard (evalBody (Program.ofList addRawK.costDeps) 100 addRawK.costIdx
-    [Enc.enc polyA, Enc.enc polyB]).map (·.1) ==
-  some (Enc.enc (CompPoly.CPolynomial.Raw.addRaw polyA polyB))
+#guard (evaluateFunctionBody (MachineProgram.ofList addRawK.costDeps) 100 addRawK.costIdx
+    [MachineEncoding.encodeValue polyA, MachineEncoding.encodeValue polyB]).map (·.1) ==
+  some (MachineEncoding.encodeValue (CompPoly.CPolynomial.Raw.addRaw polyA polyB))
 
 /-! ## The committed leaves -/
 
@@ -38,9 +38,9 @@ def toyIndex : SortedMap (List UInt64 × ℕ) Hits :=
   preimageIndex [(leafL, digL), (leafR, digR), (nodeBytes, rootD)]
 
 #guard committedLeavesFast toyIndex 1 1 rootD == #[bytesWords 1 leafL, bytesWords 1 leafR]
-#guard (evalBody (Program.ofList committedLeavesC.costDeps) 1000 (committedLeavesC.costIdx)
-    [Enc.enc toyIndex, Enc.enc (1 : ℕ), Enc.enc (1 : ℕ), Enc.enc rootD]).map (·.1) ==
-  some (Enc.enc (committedLeavesFast toyIndex 1 1 rootD))
+#guard (evaluateFunctionBody (MachineProgram.ofList committedLeavesC.costDeps) 1000 (committedLeavesC.costIdx)
+    [MachineEncoding.encodeValue toyIndex, MachineEncoding.encodeValue (1 : ℕ), MachineEncoding.encodeValue (1 : ℕ), MachineEncoding.encodeValue rootD]).map (·.1) ==
+  some (MachineEncoding.encodeValue (committedLeavesFast toyIndex 1 1 rootD))
 
 end
 
@@ -63,9 +63,9 @@ def msMatrix : PolynomialMatrix K := #[#[cpoly [1, 2, 3], cpoly [5]], #[cpoly [7
 
 #guard (muldersStorjohannStepFast msMatrix #[0, 0] 0 1).map (·.map (·.val)) !=
   msMatrix.map (·.map (·.val))
-#guard (evalBody (Program.ofList msStepDeps) 100000 msStepIdx
-    [Enc.enc msMatrix, Enc.enc #[(0 : ℕ), 0], Enc.enc (0 : ℕ), Enc.enc (1 : ℕ)]).map (·.1) ==
-  some (Enc.enc (muldersStorjohannStepFast msMatrix #[0, 0] 0 1))
+#guard (evaluateFunctionBody (MachineProgram.ofList msStepDeps) 100000 msStepIdx
+    [MachineEncoding.encodeValue msMatrix, MachineEncoding.encodeValue #[(0 : ℕ), 0], MachineEncoding.encodeValue (0 : ℕ), MachineEncoding.encodeValue (1 : ℕ)]).map (·.1) ==
+  some (MachineEncoding.encodeValue (muldersStorjohannStepFast msMatrix #[0, 0] 0 1))
 
 end
 

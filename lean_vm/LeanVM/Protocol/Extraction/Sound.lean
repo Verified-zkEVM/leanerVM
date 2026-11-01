@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.Extraction.Sound
 
-  When the proof's extractor succeeds on an accepted proof, the statement's extractor, reading the
+  When the proof's extractor succeeds on an accepted proof, the knowledge extractor, reading the
   Keccak-256 answers of a prefix of the log, returns a valid execution.
 -/
 
@@ -11,11 +11,11 @@ public import LeanVM.Protocol.Extraction.Halting
 public import LeanVM.Protocol.Extraction.Extract
 
 /-!
-# The statement's extractor succeeds where the proof's does
+# The knowledge extractor succeeds where the proof's does
 
-`extractor_of_extracted` is the one place the knowledge-soundness proof meets the statement's
-extractor (`knowledgeSoundness_holds`, `LeanVM/Protocol/LeanVMSound.lean`). Its hypotheses are the
-ones it had when the extractor was a classical choice; the proof now runs the algorithm:
+`extractor_of_extracted` is the one place the knowledge-soundness proof
+(`knowledgeSoundness_holds`, `LeanVM/Protocol/LeanVMSound.lean`) meets the knowledge extractor
+(`LeanVM/Protocol/Extraction/Extractor.lean`). Its hypotheses are the ones it had when the extractor was a classical choice; the proof now runs the algorithm:
 
 * the verifier's steps 1 and 2 announce the layout, the rate and a root whose committed word is
   the extracted history's first word (`commitment_eq`), the word the prefix's answers commit to

@@ -1,10 +1,6 @@
 module
 
 public import LeanVM.Cost.ExtractorProgram
--- the body of a closure compiled under an induction hypothesis (`prefixesNF`'s fold closure,
--- function `202`) is not exposed (`localClosure` adds it with `addAndCompile`): without it the
--- kernel's evaluation of the sizes is stuck
-import all LeanVM.Cost.Extractor.GsRun
 
 /-!
 # The extractor's program: its indices and its size, by evaluation
@@ -16,8 +12,9 @@ rebuilds them.
 * `extractorProgram_indices_increasing`: the bodies' indices are distinct (they increase from the
   entry's `0`: the compiler allocates indices from `1`, and sorts each dependency list);
 * **`extractorProgram_size_le_measured`**: the program's size is at most `11515`, the bodies' sizes
-  (`10465`) plus two per index (`525` of them, `size_ofList_le`). Its exact size is `10491`
-  (`13` indices without a body, a literal `0` each; `LeanVMTests/Cost/Efficient.lean`).
+  (`10465`, each natural literal counted by its limbs, all of them one) plus two per index (`525`
+  of them, `size_ofList_le`). Its exact size is `10491` (`13` indices without a body, a literal
+  `0` each; `LeanVMTests/Cost/Efficient.lean`).
   `LeanVM.extractorSizeBound` (`Statement/CostMachine.lean`) is `2^15`, twice the exact size
   rounded up to a power of two.
 -/

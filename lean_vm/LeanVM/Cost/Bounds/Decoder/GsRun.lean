@@ -38,7 +38,7 @@ open LeanVM.Cost.Auto.LeanVM.Extraction.Fast
 
 public section
 
-variable (P : Program)
+variable (P : MachineProgram)
 
 /-! ## Orders and divisions by powers of `X` -/
 
@@ -52,13 +52,13 @@ theorem cpoly_xAdicOrder?_lt {p : CPolynomial K} {v : ℕ} (h : CPolynomial.xAdi
 /-- The `X`-adic order of a polynomial over `K`: at most `38·|p| + 18`. -/
 theorem xAdicOrderC_cost (hP : Includes P Auto.CompPoly.CPolynomial.xAdicOrder?.c182.costDeps)
     (p : CPolynomial K) (hp : p.val.size < 2 ^ 62) :
-    machineCost P Auto.CompPoly.CPolynomial.xAdicOrder?.c182.costIdx [enc p] ≤ 38 * p.val.size + 18 := by
+    machineCost P Auto.CompPoly.CPolynomial.xAdicOrder?.c182.costIdx [encodeValue p] ≤ 38 * p.val.size + 18 := by
   rw [Auto.CompPoly.CPolynomial.xAdicOrder?.c182.costEq P hP]
   have := rangeC_cost P (by includes) p.val.size 0 (by omega)
-  have hf := fun i ↦ RunsApp.of_spec (us := [enc p]) (vs := [enc i])
+  have hf := fun i ↦ RunsApp.of_spec (us := [encodeValue p]) (vs := [encodeValue i])
     (Auto.CompPoly.CPolynomial.xAdicOrder?.c182.lam0.costSpec P (by includes) p i)
-  have := findNat_cost P (by includes) _ (.fn Auto.CompPoly.CPolynomial.xAdicOrder?.c182.lam0.costIdx
-    [enc p]) hf 8 (List.range' 0 p.val.size) (fun i _ ↦ by
+  have := findNat_cost P (by includes) _ (.closure Auto.CompPoly.CPolynomial.xAdicOrder?.c182.lam0.costIdx
+    [encodeValue p]) hf 8 (List.range' 0 p.val.size) (fun i _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [Auto.CompPoly.CPolynomial.xAdicOrder?.c182.lam0.costEq P (by includes)])
   simp only [List.length_range'] at this
@@ -68,13 +68,13 @@ theorem xAdicOrderC_cost (hP : Includes P Auto.CompPoly.CPolynomial.xAdicOrder?.
 at most `(38·X + 72)·|Q| + 22`, rows of at most `X` coefficients. -/
 theorem xAdicOrderBC_cost (hP : Includes P Auto.CompPoly.CBivariate.xAdicOrder?.c180.costDeps)
     (Q : CBivariate K) {X : ℕ} (hX : X < 2 ^ 60) (hQ : InnerLe Q.val X) (hQs : Q.val.size < 2 ^ 60) :
-    machineCost P Auto.CompPoly.CBivariate.xAdicOrder?.c180.costIdx [enc Q] ≤
+    machineCost P Auto.CompPoly.CBivariate.xAdicOrder?.c180.costIdx [encodeValue Q] ≤
       (38 * X + 72) * Q.val.size + 22 := by
   rw [Auto.CompPoly.CBivariate.xAdicOrder?.c180.costEq P hP]
   have := rangeC_cost P (by includes) Q.val.size 0 (by omega)
   have hf := listFoldl_le P (by includes) _
-    (.fn Auto.CompPoly.CBivariate.xAdicOrder?.c180.lam0.costIdx [enc Q])
-    (fun best y ↦ RunsApp.of_spec (us := [enc Q]) (vs := [enc best, enc y])
+    (.closure Auto.CompPoly.CBivariate.xAdicOrder?.c180.lam0.costIdx [encodeValue Q])
+    (fun best y ↦ RunsApp.of_spec (us := [encodeValue Q]) (vs := [encodeValue best, encodeValue y])
       (Auto.CompPoly.CBivariate.xAdicOrder?.c180.lam0.costSpec P (by includes) Q best y))
     (38 * X + 42) (fun best ↦ ∀ v, best = some v → v < 2 ^ 60) (List.range' 0 Q.val.size) none
     (by simp)
@@ -120,7 +120,7 @@ theorem dropXPowerFast_size_le (p : CPolynomial K) (n : ℕ) :
 /-- `p / X^n` (`dropXPowerFast`): at most `24·|p| + 22`. -/
 theorem dropXPowerFastC_cost (hP : Includes P dropXPowerFast.c186.costDeps) (p : CPolynomial K)
     (n : ℕ) (hp : p.val.size < 2 ^ 60) :
-    machineCost P dropXPowerFast.c186.costIdx [enc p, enc n] ≤ 24 * p.val.size + 22 := by
+    machineCost P dropXPowerFast.c186.costIdx [encodeValue p, encodeValue n] ≤ 24 * p.val.size + 22 := by
   rw [dropXPowerFast.c186.costEq P hP]
   have h1 : (Array.extract p.val n).size ≤ p.val.size := by simp
   have := ofArray_cost P (by includes) (Array.extract p.val n) (by omega)
@@ -129,11 +129,11 @@ theorem dropXPowerFastC_cost (hP : Includes P dropXPowerFast.c186.costDeps) (p :
 /-- **`Q / X^n`** (`divXPowerFast`, each row): at most `(27·X + 81)·|Q| + 26`. -/
 theorem divXPowerFastC_cost (hP : Includes P divXPowerFast.c184.costDeps) (Q : CBivariate K)
     (n : ℕ) {X : ℕ} (hX : X < 2 ^ 58) (hQ : InnerLe Q.val X) (hQs : Q.val.size < 2 ^ 58) :
-    machineCost P divXPowerFast.c184.costIdx [enc Q, enc n] ≤ (27 * X + 81) * Q.val.size + 26 := by
+    machineCost P divXPowerFast.c184.costIdx [encodeValue Q, encodeValue n] ≤ (27 * X + 81) * Q.val.size + 26 := by
   rw [divXPowerFast.c184.costEq P hP]
-  have hf := fun c ↦ RunsApp.of_spec (us := [enc n]) (vs := [enc c])
+  have hf := fun c ↦ RunsApp.of_spec (us := [encodeValue n]) (vs := [encodeValue c])
     (divXPowerFast.c184.lam0.costSpec P (by includes) n c)
-  have hm := listMap_le P Auto.List.map.c12.costIdx (.fn divXPowerFast.c184.lam0.costIdx [enc n])
+  have hm := listMap_le P Auto.List.map.c12.costIdx (.closure divXPowerFast.c184.lam0.costIdx [encodeValue n])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf) (24 * X + 25) Q.val.toList
     (fun c hc ↦ by
@@ -155,11 +155,11 @@ theorem divXPowerFastC_cost (hP : Includes P divXPowerFast.c184.costDeps) (Q : C
 at most `42·|Q| + 25`. -/
 theorem initialCoeffFastC_cost (hP : Includes P initialCoeffFast.c204.costDeps) (Q : CBivariate K)
     (hQs : Q.val.size < 2 ^ 60) :
-    machineCost P initialCoeffFast.c204.costIdx [enc Q] ≤ 42 * Q.val.size + 25 := by
+    machineCost P initialCoeffFast.c204.costIdx [encodeValue Q] ≤ 42 * Q.val.size + 25 := by
   rw [initialCoeffFast.c204.costEq P hP]
-  have hf := fun c ↦ RunsApp.of_spec (us := []) (vs := [enc c])
+  have hf := fun c ↦ RunsApp.of_spec (us := []) (vs := [encodeValue c])
     (initialCoeffFast.c204.lam0.costSpec P (by includes) c)
-  have hm := listMap_le P Auto.List.map.c12.costIdx (.fn initialCoeffFast.c204.lam0.costIdx [])
+  have hm := listMap_le P Auto.List.map.c12.costIdx (.closure initialCoeffFast.c204.lam0.costIdx [])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf) 4 Q.val.toList
     (fun c _ ↦ by rw [appCost_fn, List.nil_append, initialCoeffFast.c204.lam0.costEq P (by includes)])
@@ -176,7 +176,7 @@ finder on a nonzero polynomial of at most `B` coefficients): at most `rootsBound
 theorem rootsNonzeroC_cost
     (hP : Includes P Auto.CompPoly.GuruswamiSudan.rootsInFieldForNonzeroEquation.c203.costDeps)
     {B : ℕ} (hB : B < 2 ^ 28) (hB2 : 2 ≤ B) (p : CPolynomial K) (hp : p.val.size ≤ B) :
-    machineCost P Auto.CompPoly.GuruswamiSudan.rootsInFieldForNonzeroEquation.c203.costIdx [enc p] ≤
+    machineCost P Auto.CompPoly.GuruswamiSudan.rootsInFieldForNonzeroEquation.c203.costIdx [encodeValue p] ≤
       rootsBound B + 15 * B + 16 := by
   rw [Auto.CompPoly.GuruswamiSudan.rootsInFieldForNonzeroEquation.c203.costEq P hP]
   have := listBeqK_cost P (by includes) p.val.toList (↑(0 : CPolynomial K) : Array K).toList
@@ -189,9 +189,9 @@ theorem rootsNonzeroC_cost
 /-- `chooseOdd n a` (the parity of `C(n, a)`, bit by bit): at most `40 + 40·(log₂ n + 1)`. -/
 theorem chooseOddC_cost (hP : Includes P chooseOdd.c197.costDeps) (n a : ℕ) (hn : n < 2 ^ 64)
     (ha : a < 2 ^ 64) :
-    machineCost P chooseOdd.c197.costIdx [enc n, enc a] ≤ 40 + 40 * (Nat.log2 n + 1) := by
+    machineCost P chooseOdd.c197.costIdx [encodeValue n, encodeValue a] ≤ 40 + 40 * (Nat.log2 n + 1) := by
   have key := le_of_halving (fun x : ℕ × ℕ ↦ x.1 < 2 ^ 64 ∧ x.2 < 2 ^ 64) (fun x ↦ x.1)
-    (fun x ↦ machineCost P chooseOdd.c197.costIdx [enc x.1, enc x.2]) 40 40
+    (fun x ↦ machineCost P chooseOdd.c197.costIdx [encodeValue x.1, encodeValue x.2]) 40 40
     (fun x hI h0 ↦ by
       obtain ⟨n, a⟩ := x
       dsimp only at h0 hI ⊢
@@ -246,12 +246,12 @@ odd, `a^(y−t)·Q_y` added): at most `taylorBound X Y (log₂ Y + 1)`. -/
 theorem taylorCoeffC_cost (hP : Includes P taylorCoeff.c195.costDeps) (Q : CBivariate K) (a : K)
     (t : ℕ) {X Y : ℕ} (hX : X < 2 ^ 56) (hY : Y < 2 ^ 56) (hQ : InnerLe Q.val X)
     (hQs : Q.val.size ≤ Y) (ht : t < 2 ^ 56) :
-    machineCost P taylorCoeff.c195.costIdx [enc Q, enc a, enc t] ≤
+    machineCost P taylorCoeff.c195.costIdx [encodeValue Q, encodeValue a, encodeValue t] ≤
       taylorBound X Y (Nat.log2 Y + 1) := by
   rw [taylorCoeff.c195.costEq P hP]
   have := rangeC_cost P (by includes) (Q.val.size - t) t (by omega)
-  have hf := listFoldl_le P (by includes) _ (.fn taylorCoeff.c195.lam0.costIdx [enc Q, enc a, enc t])
-    (fun acc y ↦ RunsApp.of_spec (us := [enc Q, enc a, enc t]) (vs := [enc acc, enc y])
+  have hf := listFoldl_le P (by includes) _ (.closure taylorCoeff.c195.lam0.costIdx [encodeValue Q, encodeValue a, encodeValue t])
+    (fun acc y ↦ RunsApp.of_spec (us := [encodeValue Q, encodeValue a, encodeValue t]) (vs := [encodeValue acc, encodeValue y])
       (taylorCoeff.c195.lam0.costSpec P (by includes) Q a t acc y))
     (1700 * (Nat.log2 Y + 1) + 960 * X + 320) (fun acc : CPolynomial K ↦ acc.val.size ≤ X)
     (List.range' t (Q.val.size - t)) 0 (by simp [size_zero_val])
@@ -294,7 +294,7 @@ theorem taylorCoeffC_cost (hP : Includes P taylorCoeff.c195.costDeps) (Q : CBiva
 /-- `X^t·p` (`shiftX`): at most `25·(t + |p|) + 22`. -/
 theorem shiftXC_cost (hP : Includes P shiftX.c194.costDeps) (t : ℕ) (p : CPolynomial K)
     (h : t + p.val.size < 2 ^ 60) :
-    machineCost P shiftX.c194.costIdx [enc t, enc p] ≤ 25 * (t + p.val.size) + 22 := by
+    machineCost P shiftX.c194.costIdx [encodeValue t, encodeValue p] ≤ 25 * (t + p.val.size) + 22 := by
   rw [shiftX.c194.costEq P hP]
   have := ofArray_cost P (by includes) (Array.replicate t 0 ++ p.val) (by simp; omega)
   simp only [Array.size_append, Array.size_replicate] at this ⊢
@@ -305,12 +305,12 @@ by `X^t`): at most `substBound X Y`, its rows of at most `X + Y` coefficients. -
 theorem substituteFastC_cost (hP : Includes P substituteFast.c192.costDeps) (Q : CBivariate K)
     (a : K) {X Y : ℕ} (hX : X < 2 ^ 56) (hY : Y < 2 ^ 56) (hQ : InnerLe Q.val X)
     (hQs : Q.val.size ≤ Y) :
-    machineCost P substituteFast.c192.costIdx [enc Q, enc a] ≤ substBound X Y := by
+    machineCost P substituteFast.c192.costIdx [encodeValue Q, encodeValue a] ≤ substBound X Y := by
   rw [substituteFast.c192.costEq P hP]
-  have hf := fun t ↦ RunsApp.of_spec (us := [enc Q, enc a]) (vs := [enc t])
+  have hf := fun t ↦ RunsApp.of_spec (us := [encodeValue Q, encodeValue a]) (vs := [encodeValue t])
     (substituteFast.c192.lam0.costSpec P (by includes) Q a t)
   have := ofFnFrom_cost P (by includes) (n := Q.val.size) (by omega) _
-    (.fn substituteFast.c192.lam0.costIdx [enc Q, enc a]) hf
+    (.closure substituteFast.c192.lam0.costIdx [encodeValue Q, encodeValue a]) hf
     (taylorBound X Y (Nat.log2 Y + 1) + 25 * (X + Y) + 28) (fun t ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [substituteFast.c192.lam0.costEq P (by includes)]
@@ -355,7 +355,7 @@ theorem substituteFast_sizes {Q : CBivariate K} {X : ℕ} (hQ : InnerLe Q.val X)
 /-- `p mod X^n` (`truncate`): at most `24·|p| + 21`. -/
 theorem truncateC_cost (hP : Includes P Auto.CompPoly.CPolynomial.truncate.c191.costDeps)
     (p : CPolynomial K) (n : ℕ) (hp : p.val.size < 2 ^ 60) :
-    machineCost P Auto.CompPoly.CPolynomial.truncate.c191.costIdx [enc p, enc n] ≤
+    machineCost P Auto.CompPoly.CPolynomial.truncate.c191.costIdx [encodeValue p, encodeValue n] ≤
       24 * p.val.size + 21 := by
   rw [Auto.CompPoly.CPolynomial.truncate.c191.costEq P hP]
   have h1 : (Array.extract p.val 0 n).size ≤ p.val.size := by simp
@@ -366,13 +366,13 @@ theorem truncateC_cost (hP : Includes P Auto.CompPoly.CPolynomial.truncate.c191.
 theorem truncateXC_cost (hP : Includes P Auto.CompPoly.CBivariate.truncateX.c189.costDeps)
     (Q : CBivariate K) (n : ℕ) {X : ℕ} (hX : X < 2 ^ 60) (hQ : InnerLe Q.val X)
     (hQs : Q.val.size < 2 ^ 58) :
-    machineCost P Auto.CompPoly.CBivariate.truncateX.c189.costIdx [enc Q, enc n] ≤
+    machineCost P Auto.CompPoly.CBivariate.truncateX.c189.costIdx [encodeValue Q, encodeValue n] ≤
       (27 * X + 80) * Q.val.size + 26 := by
   rw [Auto.CompPoly.CBivariate.truncateX.c189.costEq P hP]
-  have hf := fun c ↦ RunsApp.of_spec (us := [enc n]) (vs := [enc c])
+  have hf := fun c ↦ RunsApp.of_spec (us := [encodeValue n]) (vs := [encodeValue c])
     (Auto.CompPoly.CBivariate.truncateX.c189.lam0.costSpec P (by includes) n c)
   have hm := listMap_le P Auto.List.map.c12.costIdx
-    (.fn Auto.CompPoly.CBivariate.truncateX.c189.lam0.costIdx [enc n])
+    (.closure Auto.CompPoly.CBivariate.truncateX.c189.lam0.costIdx [encodeValue n])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf) (24 * X + 24) Q.val.toList
     (fun c hc ↦ by
@@ -400,7 +400,7 @@ theorem extendPrefixC_cost (hP : Includes P Auto.CompPoly.GuruswamiSudan.extendP
     (pref : CPolynomial K) (depth : ℕ) (a : K) (hp : pref.val.size < 2 ^ 58)
     (hd : depth < 2 ^ 58) :
     machineCost P Auto.CompPoly.GuruswamiSudan.extendPrefix.c199.costIdx
-      [enc pref, enc depth, enc a] ≤ 110 * (pref.val.size + depth + 1) + 2 * depth + 200 := by
+      [encodeValue pref, encodeValue depth, encodeValue a] ≤ 110 * (pref.val.size + depth + 1) + 2 * depth + 200 := by
   rw [Auto.CompPoly.GuruswamiSudan.extendPrefix.c199.costEq P hP,
     Auto.CompPoly.CPolynomial.monomial.c200.costEq P (by includes),
     Auto.CompPoly.CPolynomial.Raw.monomial.c201.costEq P (by includes)]
@@ -418,10 +418,10 @@ theorem extendPrefixC_cost (hP : Includes P Auto.CompPoly.GuruswamiSudan.extendP
 
 /-- `p(x)` by Horner's rule (`hornerEval`): at most `272·|p| + 10`. -/
 theorem hornerEvalC_cost (hP : Includes P hornerEval.c212.costDeps) (x : K) (p : CPolynomial K) :
-    machineCost P hornerEval.c212.costIdx [enc x, enc p] ≤ 272 * p.val.size + 10 := by
+    machineCost P hornerEval.c212.costIdx [encodeValue x, encodeValue p] ≤ 272 * p.val.size + 10 := by
   rw [hornerEval.c212.costEq P hP]
-  have := foldr_cost P (by includes) _ (.fn hornerEval.c212.lam0.costIdx [enc x])
-    (fun a acc ↦ RunsApp.of_spec (us := [enc x]) (vs := [enc a, enc acc])
+  have := foldr_cost P (by includes) _ (.closure hornerEval.c212.lam0.costIdx [encodeValue x])
+    (fun a acc ↦ RunsApp.of_spec (us := [encodeValue x]) (vs := [encodeValue a, encodeValue acc])
       (hornerEval.c212.lam0.costSpec P (by includes) x a acc)) 260 (0 : K) p.val.toList
     (fun a _ acc ↦ by
       rw [appCost_fn, List.singleton_append, hornerEval.c212.lam0.costEq P (by includes)])
@@ -432,11 +432,11 @@ theorem hornerEvalC_cost (hP : Includes P hornerEval.c212.costDeps) (x : K) (p :
 `(272·|p| + 34)·n + 10`. -/
 theorem mismatchCountC_cost (hP : Includes P mismatchCountFast.c210.costDeps)
     (points : Array (K × K)) (p : CPolynomial K) (hn : points.size < 2 ^ 63) :
-    machineCost P mismatchCountFast.c210.costIdx [enc points, enc p] ≤
+    machineCost P mismatchCountFast.c210.costIdx [encodeValue points, encodeValue p] ≤
       (272 * p.val.size + 34) * points.size + 10 := by
   rw [mismatchCountFast.c210.costEq P hP]
-  have := listFoldl_le_idx P (by includes) _ (.fn mismatchCountFast.c210.lam0.costIdx [enc p])
-    (fun c pt ↦ RunsApp.of_spec (us := [enc p]) (vs := [enc c, enc pt])
+  have := listFoldl_le_idx P (by includes) _ (.closure mismatchCountFast.c210.lam0.costIdx [encodeValue p])
+    (fun c pt ↦ RunsApp.of_spec (us := [encodeValue p]) (vs := [encodeValue c, encodeValue pt])
       (mismatchCountFast.c210.lam0.costSpec P (by includes) p c pt)) (272 * p.val.size + 22)
     (fun k c ↦ c + k ≤ points.size) points.toList
     (fun k c hc pt _ ↦ by
@@ -476,7 +476,7 @@ theorem gsRunFilterC_cost (hP : Includes P gsRunDistinctNFC.lam0.costDeps)
     (points : Array (K × K)) (params : GuruswamiSudan.GSInterpParams) (radius : ℕ)
     (p : CPolynomial K) (hn : points.size < 2 ^ 63) (hp : p.val.size < 2 ^ 64)
     (hk : params.messageDegree < 2 ^ 64) (hr : radius < 2 ^ 64) :
-    machineCost P gsRunDistinctNFC.lam0.costIdx [enc points, enc params, enc radius, enc p] ≤
+    machineCost P gsRunDistinctNFC.lam0.costIdx [encodeValue points, encodeValue params, encodeValue radius, encodeValue p] ≤
       (272 * p.val.size + 34) * points.size + 30 := by
   rw [gsRunDistinctNFC.lam0.costEq P hP,
     Auto.CompPoly.GuruswamiSudan.degreeLtBool.c208.costEq P (by includes)]

@@ -7,9 +7,9 @@ import all CompPoly.Univariate.Raw.Modular
 import all LeanVM.Protocol.Extraction.Extractor
 
 /-!
-# The statement's root finder, restated
+# The extractor's root finder, restated
 
-The statement's `fieldRootCtx` (`Statement/Extractor.lean`) finds the roots in `K` of a polynomial
+The extractor's `fieldRootCtx` (`LeanVM/Protocol/Extraction/Extractor.lean`) finds the roots in `K` of a polynomial
 `p` as its `gcd` with `X^(2^64) − X`, split by Shoup's trace splitter (`p = 2`, `k = 64`). Its
 code, at `fieldRootCtx`'s contexts, costs more than the algorithm needs; `rootsInFieldFast`
 restates it, the root context `fieldRootCtxFast` (**`fieldRootCtxFast_eq`**: it is

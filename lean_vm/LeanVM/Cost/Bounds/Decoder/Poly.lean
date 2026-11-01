@@ -82,14 +82,14 @@ theorem size_mulRaw_le {R : Type} [Semiring R] (p q : CPolynomial.Raw R) :
 
 end Sizes
 
-variable (P : Program)
+variable (P : MachineProgram)
 
 /-! ## Over `K` -/
 
 /-- `Array.rightpad n a xs` (polymorphic): `9 + (n − |xs|) + max n |xs|`, word-sized lengths. -/
-theorem rightpadC_cost {α : Type} [Enc α] (hP : Includes P Auto.Array.rightpad.c47.costDeps)
+theorem rightpadC_cost {α : Type} [MachineEncoding α] (hP : Includes P Auto.Array.rightpad.c47.costDeps)
     (n : ℕ) (a : α) (xs : Array α) (hn : n < 2 ^ 64) (hs : xs.size < 2 ^ 64) :
-    machineCost P Auto.Array.rightpad.c47.costIdx [enc n, enc a, enc xs] ≤
+    machineCost P Auto.Array.rightpad.c47.costIdx [encodeValue n, encodeValue a, encodeValue xs] ≤
       9 + (n - xs.size) + max n xs.size := by
   rw [Auto.Array.rightpad.c47.costEq P hP]
   simp only [limbs_of_lt hn, limbs_of_lt hs, Array.size_replicate]
@@ -98,9 +98,9 @@ theorem rightpadC_cost {α : Type} [Enc α] (hP : Includes P Auto.Array.rightpad
 /-- **`addRaw` over `K`**: at most `44 + 28·max(|p|, |q|)`. -/
 theorem addRawK_cost (hP : Includes P addRaw.c50.costDeps) (p q : CPolynomial.Raw K)
     (hp : p.size < 2 ^ 64) (hq : q.size < 2 ^ 64) :
-    machineCost P addRaw.c50.costIdx [enc p, enc q] ≤ 44 + 28 * max p.size q.size := by
+    machineCost P addRaw.c50.costIdx [encodeValue p, encodeValue q] ≤ 44 + 28 * max p.size q.size := by
   rw [addRaw.c50.costEq P hP]
-  have hz := listZipWith_le P (by includes) (fun x y : K ↦ x + y) (.fn addRaw.c50.lam0.costIdx [])
+  have hz := listZipWith_le P (by includes) (fun x y : K ↦ x + y) (.closure addRaw.c50.lam0.costIdx [])
     (fun a b ↦ RunsApp.of_spec (addRaw.c50.lam0.costSpec P (by includes) a b)) 3
     (p.rightpad q.size 0).toList (q.rightpad p.size 0).toList
     (fun a _ b _ ↦ by rw [appCost_fn, List.nil_append, addRaw.c50.lam0.costEq P (by includes)])
@@ -113,7 +113,7 @@ theorem addRawK_cost (hP : Includes P addRaw.c50.costDeps) (p q : CPolynomial.Ra
 /-- **`add` over `K`** (`addRaw`, three times, and the trim): at most `110·max(|p|, |q|) + 160`. -/
 theorem addK_cost (hP : Includes P add.c49.costDeps) (p q : CPolynomial.Raw K)
     (hp : p.size < 2 ^ 62) (hq : q.size < 2 ^ 62) :
-    machineCost P add.c49.costIdx [enc p, enc q] ≤ 110 * max p.size q.size + 160 := by
+    machineCost P add.c49.costIdx [encodeValue p, encodeValue q] ≤ 110 * max p.size q.size + 160 := by
   rw [add.c49.costEq P hP]
   have := addRawK_cost P (by includes) p q (by omega) (by omega)
   have := trimLen_cost P (by includes) (p.addRaw q) (p.addRaw q).size
@@ -125,11 +125,11 @@ theorem addK_cost (hP : Includes P add.c49.costDeps) (p q : CPolynomial.Raw K)
 
 /-- `smul` over `K`: at most `273·|p| + 10`. -/
 theorem smulK_cost (hP : Includes P smul.c59.costDeps) (r : K) (p : CPolynomial.Raw K) :
-    machineCost P smul.c59.costIdx [enc r, enc p] ≤ 273 * p.size + 10 := by
+    machineCost P smul.c59.costIdx [encodeValue r, encodeValue p] ≤ 273 * p.size + 10 := by
   rw [smul.c59.costEq P hP]
-  have hf := fun a ↦ RunsApp.of_spec (us := [enc r]) (vs := [enc a])
+  have hf := fun a ↦ RunsApp.of_spec (us := [encodeValue r]) (vs := [encodeValue a])
     (smul.c59.lam0.costSpec P (by includes) r a)
-  have := listMap_le P Auto.List.map.c12.costIdx (.fn smul.c59.lam0.costIdx [enc r])
+  have := listMap_le P Auto.List.map.c12.costIdx (.closure smul.c59.lam0.costIdx [encodeValue r])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf) 258 p.toList
     (fun a _ ↦ by rw [appCost_fn, List.singleton_append, smul.c59.lam0.costEq P (by includes)])
@@ -138,7 +138,7 @@ theorem smulK_cost (hP : Includes P smul.c59.costDeps) (r : K) (p : CPolynomial.
 
 /-- `mulPowX` over `K`: `2·i + |p| + 5`. -/
 theorem mulPowXK_cost (hP : Includes P mulPowX.c58.costDeps) (i : ℕ) (p : CPolynomial.Raw K) :
-    machineCost P mulPowX.c58.costIdx [enc i, enc p] = 2 * i + p.size + 5 := by
+    machineCost P mulPowX.c58.costIdx [encodeValue i, encodeValue p] = 2 * i + p.size + 5 := by
   rw [mulPowX.c58.costEq P hP]
   simp only [Array.size_replicate]
   omega
@@ -154,12 +154,12 @@ theorem mem_zipIdx_lt {α : Type} {p : Array α} {x : α × ℕ} (h : x ∈ (Arr
 `302·|q|·|p| + 30·|p|² + 102·|p| + 20`. -/
 theorem mulRawK_cost (hP : Includes P mulRaw.c56.costDeps) (p q : CPolynomial.Raw K)
     (hp : p.size < 2 ^ 62) (hq : q.size < 2 ^ 62) :
-    machineCost P mulRaw.c56.costIdx [enc p, enc q] ≤
+    machineCost P mulRaw.c56.costIdx [encodeValue p, encodeValue q] ≤
       302 * (q.size * p.size) + 30 * (p.size * p.size) + 102 * p.size + 20 := by
   rw [mulRaw.c56.costEq P hP]
   have hz := zipIdx_cost P (by includes) p.toList 0 (by simp; omega)
-  have hf := listFoldl_le P (by includes) _ (.fn mulRaw.c56.lam0.costIdx [enc q])
-    (fun acc x ↦ RunsApp.of_spec (us := [enc q]) (vs := [enc acc, enc x])
+  have hf := listFoldl_le P (by includes) _ (.closure mulRaw.c56.lam0.costIdx [encodeValue q])
+    (fun acc x ↦ RunsApp.of_spec (us := [encodeValue q]) (vs := [encodeValue acc, encodeValue x])
       (mulRaw.c56.lam0.costSpec P (by includes) q acc x))
     (302 * q.size + 30 * p.size + 70) (fun acc ↦ acc.size ≤ p.size + q.size)
     (Array.zipIdx p).toList (CPolynomial.Raw.mk #[]) (by simp)
@@ -188,7 +188,7 @@ theorem mulRawK_cost (hP : Includes P mulRaw.c56.costDeps) (p q : CPolynomial.Ra
 `906·|q|·|p| + 90·|p|² + 330·|p| + 23·|q| + 90`. -/
 theorem mulK_cost (hP : Includes P mul.c55.costDeps) (p q : CPolynomial.Raw K)
     (hp : p.size < 2 ^ 61) (hq : q.size < 2 ^ 61) :
-    machineCost P mul.c55.costIdx [enc p, enc q] ≤
+    machineCost P mul.c55.costIdx [encodeValue p, encodeValue q] ≤
       906 * (q.size * p.size) + 90 * (p.size * p.size) + 330 * p.size + 23 * q.size + 90 := by
   rw [mul.c55.costEq P hP]
   have := mulRawK_cost P (by includes) p q (by omega) (by omega)
@@ -249,7 +249,7 @@ theorem InnerLe.addRaw {p q : CPolynomial.Raw (CPolynomial K)} {A : ℕ} (hp : I
 
 /-- `List.beq` against the empty list: at most `7`. -/
 theorem beqNilK_cost (hP : Includes P Auto.List.beq.c27.costDeps) (a : List K) :
-    machineCost P Auto.List.beq.c27.costIdx [enc a, enc ([] : List K)] ≤ 7 := by
+    machineCost P Auto.List.beq.c27.costIdx [encodeValue a, encodeValue ([] : List K)] ≤ 7 := by
   cases a with
   | nil => rw [Auto.List.beq.c27.costEq_nil P hP]; simp
   | cons x a => rw [Auto.List.beq.c27.costEq_cons P hP]; simp
@@ -258,7 +258,7 @@ theorem beqNilK_cost (hP : Includes P Auto.List.beq.c27.costDeps) (a : List K) :
 theorem trimLenB_cost (hP : Includes P Auto.LeanVM.Cost.CompPolyLib.trimLen.c62.costDeps)
     (p : Array (CPolynomial K)) (A : ℕ) (hA : ∀ x ∈ p, x.val.size ≤ A) :
     ∀ n : ℕ, n < 2 ^ 63 →
-      machineCost P Auto.LeanVM.Cost.CompPolyLib.trimLen.c62.costIdx [enc p, enc n] ≤
+      machineCost P Auto.LeanVM.Cost.CompPolyLib.trimLen.c62.costIdx [encodeValue p, encodeValue n] ≤
         (3 * A + 40) * n + 6 := by
   intro n
   induction n with
@@ -283,11 +283,11 @@ of at most `A` coefficients. -/
 theorem addRawB_cost (hP : Includes P addRaw.c46.costDeps) (p q : CPolynomial.Raw (CPolynomial K))
     (A : ℕ) (hA : A < 2 ^ 60) (hp : InnerLe p A) (hq : InnerLe q A) (hps : p.size < 2 ^ 60)
     (hqs : q.size < 2 ^ 60) :
-    machineCost P addRaw.c46.costIdx [enc p, enc q] ≤
+    machineCost P addRaw.c46.costIdx [encodeValue p, encodeValue q] ≤
       110 * (A * max p.size q.size) + 190 * max p.size q.size + 50 := by
   rw [addRaw.c46.costEq P hP]
   have hz := listZipWith_le P (by includes) (fun x y : CPolynomial K ↦ x + y)
-    (.fn addRaw.c46.lam0.costIdx [])
+    (.closure addRaw.c46.lam0.costIdx [])
     (fun a b ↦ RunsApp.of_spec (addRaw.c46.lam0.costSpec P (by includes) a b)) (110 * A + 163)
     (p.rightpad q.size 0).toList (q.rightpad p.size 0).toList
     (fun a ha b hb ↦ by
@@ -310,7 +310,7 @@ theorem addRawB_cost (hP : Includes P addRaw.c46.costDeps) (p q : CPolynomial.Ra
 theorem addB_cost (hP : Includes P add.c66.costDeps) (p q : CPolynomial.Raw (CPolynomial K))
     (A : ℕ) (hA : A < 2 ^ 60) (hp : InnerLe p A) (hq : InnerLe q A) (hps : p.size < 2 ^ 60)
     (hqs : q.size < 2 ^ 60) :
-    machineCost P add.c66.costIdx [enc p, enc q] ≤
+    machineCost P add.c66.costIdx [encodeValue p, encodeValue q] ≤
       333 * (A * max p.size q.size) + 615 * max p.size q.size + 170 := by
   rw [add.c66.costEq P hP]
   have := addRawB_cost P (by includes) p q A hA hp hq hps hqs
@@ -347,7 +347,7 @@ theorem InnerLe.mulPowX {p : CPolynomial.Raw (CPolynomial K)} {A : ℕ} (h : Inn
 /-- The product of two entries of at most `A` coefficients: at most `1440·(A + 1)²`. -/
 theorem mulK_cost_sq (hP : Includes P mul.c55.costDeps) (p q : CPolynomial.Raw K) (A : ℕ)
     (hA : A < 2 ^ 60) (hp : p.size ≤ A) (hq : q.size ≤ A) :
-    machineCost P mul.c55.costIdx [enc p, enc q] ≤ 1440 * ((A + 1) * (A + 1)) := by
+    machineCost P mul.c55.costIdx [encodeValue p, encodeValue q] ≤ 1440 * ((A + 1) * (A + 1)) := by
   have := mulK_cost P hP p q (by omega) (by omega)
   have h1 : q.size * p.size ≤ (A + 1) * (A + 1) := Nat.mul_le_mul (by omega) (by omega)
   have h2 : p.size * p.size ≤ (A + 1) * (A + 1) := Nat.mul_le_mul (by omega) (by omega)
@@ -359,12 +359,12 @@ coefficients. -/
 theorem smulB_cost (hP : Includes P smul.c53.costDeps) (r : CPolynomial K)
     (p : CPolynomial.Raw (CPolynomial K)) (A : ℕ) (hA : A < 2 ^ 60) (hr : r.val.size ≤ A)
     (hp : InnerLe p A) :
-    machineCost P smul.c53.costIdx [enc r, enc p] ≤
+    machineCost P smul.c53.costIdx [encodeValue r, encodeValue p] ≤
       1460 * (((A + 1) * (A + 1)) * p.size) + 10 := by
   rw [smul.c53.costEq P hP]
-  have hf := fun a ↦ RunsApp.of_spec (us := [enc r]) (vs := [enc a])
+  have hf := fun a ↦ RunsApp.of_spec (us := [encodeValue r]) (vs := [encodeValue a])
     (smul.c53.lam0.costSpec P (by includes) r a)
-  have hm := listMap_le P Auto.List.map.c12.costIdx (.fn smul.c53.lam0.costIdx [enc r])
+  have hm := listMap_le P Auto.List.map.c12.costIdx (.closure smul.c53.lam0.costIdx [encodeValue r])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf) (1440 * ((A + 1) * (A + 1)) + 3)
     p.toList
@@ -382,7 +382,7 @@ theorem smulB_cost (hP : Includes P smul.c53.costDeps) (r : CPolynomial K)
 /-- `mulPowX` over `K[X]`: `2·i + |p| + 6`. -/
 theorem mulPowXB_cost (hP : Includes P mulPowX.c52.costDeps) (i : ℕ)
     (p : CPolynomial.Raw (CPolynomial K)) :
-    machineCost P mulPowX.c52.costIdx [enc i, enc p] = 2 * i + p.size + 6 := by
+    machineCost P mulPowX.c52.costIdx [encodeValue i, encodeValue p] = 2 * i + p.size + 6 := by
   rw [mulPowX.c52.costEq P hP]
   simp only [Array.size_replicate]
   omega
@@ -392,13 +392,13 @@ at most `1460·(A+1)²·|q|·|p| + 220·A·(|p|+|q|)·|p| + 195·(|p|+|q|)·|p| 
 theorem mulRawB_cost (hP : Includes P mulRaw.c44.costDeps) (p q : CPolynomial.Raw (CPolynomial K))
     (A : ℕ) (hA : A < 2 ^ 58) (hp : InnerLe p A) (hq : InnerLe q A) (hps : p.size < 2 ^ 58)
     (hqs : q.size < 2 ^ 58) :
-    machineCost P mulRaw.c44.costIdx [enc p, enc q] ≤
+    machineCost P mulRaw.c44.costIdx [encodeValue p, encodeValue q] ≤
       1460 * ((((A + 1) * (A + 1)) * q.size) * p.size) + 220 * ((A * (p.size + q.size)) * p.size) +
         195 * ((p.size + q.size) * p.size) + 112 * p.size + 20 := by
   rw [mulRaw.c44.costEq P hP]
   have hz := zipIdx_cost P (by includes) p.toList 0 (by simp; omega)
-  have hf := listFoldl_le P (by includes) _ (.fn mulRaw.c44.lam0.costIdx [enc q])
-    (fun acc x ↦ RunsApp.of_spec (us := [enc q]) (vs := [enc acc, enc x])
+  have hf := listFoldl_le P (by includes) _ (.closure mulRaw.c44.lam0.costIdx [encodeValue q])
+    (fun acc x ↦ RunsApp.of_spec (us := [encodeValue q]) (vs := [encodeValue acc, encodeValue x])
       (mulRaw.c44.lam0.costSpec P (by includes) q acc x))
     (1460 * (((A + 1) * (A + 1)) * q.size) + 220 * (A * (p.size + q.size)) +
       195 * (p.size + q.size) + 80)
@@ -463,7 +463,7 @@ theorem InnerLe.mulRaw {p q : CPolynomial.Raw (CPolynomial K)} {A : ℕ} (hp : I
 theorem mulB_cost (hP : Includes P mul.c43.costDeps) (p q : CPolynomial.Raw (CPolynomial K))
     (A : ℕ) (hA : A < 2 ^ 58) (hp : InnerLe p A) (hq : InnerLe q A) (hps : p.size < 2 ^ 58)
     (hqs : q.size < 2 ^ 58) :
-    machineCost P mul.c43.costIdx [enc p, enc q] ≤
+    machineCost P mul.c43.costIdx [encodeValue p, encodeValue q] ≤
       4380 * ((((A + 1) * (A + 1)) * q.size) * p.size) + 660 * ((A * (p.size + q.size)) * p.size) +
         585 * ((p.size + q.size) * p.size) + 336 * p.size +
         6 * (A * (p.size + q.size)) + 41 * (p.size + q.size) + 80 := by

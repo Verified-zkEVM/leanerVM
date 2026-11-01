@@ -29,20 +29,20 @@ open LeanVM.Cost LeanVM.Cost.Extractor LeanVM.Cost.Library LeanVM.Parameters
 
 public section
 
-variable (P : Program)
+variable (P : MachineProgram)
 
 theorem ofFnFrom_length {α : Type} {n : ℕ} (f : Fin n → α) : (Rewrite.ofFnFrom f 0).length = n := by
   rw [Rewrite.ofFnFrom_eq f (n - 0) 0 rfl]; simp
 
 section
-variable {α : Type} [Enc α]
+variable {α : Type} [MachineEncoding α]
 
 /-- `Array.ofFn` through `ofFnFrom` (`ofFnFrom.c117`): `B + 18` per entry, `6` at the end. -/
 theorem ofFnFrom_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c117.costDeps)
-    {α : Type} [Enc α] {n : ℕ} (hn : n < 2 ^ 64) (f : Fin n → α) (fVal : Val)
-    (hf : ∀ a : Fin n, RunsApp P fVal [enc a] (enc (f a))) (B : ℕ)
-    (hB : ∀ a : Fin n, appCost P fVal [enc a] ≤ B) :
-    ∀ i, i ≤ n → machineCost P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c117.costIdx [enc n, fVal, enc i] ≤
+    {α : Type} [MachineEncoding α] {n : ℕ} (hn : n < 2 ^ 64) (f : Fin n → α) (fVal : MachineValue)
+    (hf : ∀ a : Fin n, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ)
+    (hB : ∀ a : Fin n, appCost P fVal [encodeValue a] ≤ B) :
+    ∀ i, i ≤ n → machineCost P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c117.costIdx [encodeValue n, fVal, encodeValue i] ≤
       (B + 18) * (n - i) + 6 := by
   intro i hi
   induction hk : n - i generalizing i with
@@ -63,7 +63,7 @@ theorem ofFnFrom_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c117.co
 /-- `List.range` (`range.loop.c20`): `17` per element, `6` at the end. -/
 theorem rangeLoop_cost (hP : Includes P Auto.List.range.loop.c20.costDeps) :
     ∀ (n : ℕ) (l : List ℕ), n < 2 ^ 64 →
-      machineCost P Auto.List.range.loop.c20.costIdx [enc n, enc l] ≤ 17 * n + 6 := by
+      machineCost P Auto.List.range.loop.c20.costIdx [encodeValue n, encodeValue l] ≤ 17 * n + 6 := by
   intro n
   induction n with
   | zero => intro l _; rw [Auto.List.range.loop.c20.costEq_zero P hP]
@@ -74,8 +74,8 @@ theorem rangeLoop_cost (hP : Includes P Auto.List.range.loop.c20.costDeps) :
     omega
 
 /-- `List.reverseAux` (`reverseAux.c23`): `9` per element, `3` at the end. -/
-theorem reverseAux_cost (hP : Includes P Auto.List.reverseAux.c23.costDeps) {α : Type} [Enc α] :
-    ∀ (l acc : List α), machineCost P Auto.List.reverseAux.c23.costIdx [enc l, enc acc] ≤
+theorem reverseAux_cost (hP : Includes P Auto.List.reverseAux.c23.costDeps) {α : Type} [MachineEncoding α] :
+    ∀ (l acc : List α), machineCost P Auto.List.reverseAux.c23.costIdx [encodeValue l, encodeValue acc] ≤
       9 * l.length + 3 := by
   intro l
   induction l with
@@ -88,9 +88,9 @@ theorem reverseAux_cost (hP : Includes P Auto.List.reverseAux.c23.costDeps) {α 
     omega
 
 /-- `List.length` (`length.c229`): `7` per element, `3` at the end, for word-sized lists. -/
-theorem length_cost (hP : Includes P Auto.List.length.c229.costDeps) {α : Type} [Enc α] :
+theorem length_cost (hP : Includes P Auto.List.length.c229.costDeps) {α : Type} [MachineEncoding α] :
     ∀ l : List α, l.length < 2 ^ 64 →
-      machineCost P Auto.List.length.c229.costIdx [enc l] ≤ 7 * l.length + 3 := by
+      machineCost P Auto.List.length.c229.costIdx [encodeValue l] ≤ 7 * l.length + 3 := by
   intro l
   induction l with
   | nil => intro _; rw [Auto.List.length.c229.costEq_nil P hP]; omega
@@ -103,8 +103,8 @@ theorem length_cost (hP : Includes P Auto.List.length.c229.costDeps) {α : Type}
     omega
 
 /-- `List.append` (`append.c264`): `9` per element of the first, `3` at the end. -/
-theorem append_cost (hP : Includes P Auto.List.append.c264.costDeps) {α : Type} [Enc α] :
-    ∀ (a b : List α), machineCost P Auto.List.append.c264.costIdx [enc a, enc b] ≤
+theorem append_cost (hP : Includes P Auto.List.append.c264.costDeps) {α : Type} [MachineEncoding α] :
+    ∀ (a b : List α), machineCost P Auto.List.append.c264.costIdx [encodeValue a, encodeValue b] ≤
       9 * a.length + 3 := by
   intro a
   induction a with
@@ -117,10 +117,10 @@ theorem append_cost (hP : Includes P Auto.List.append.c264.costDeps) {α : Type}
     omega
 
 /-- `List.filter` (`filter.c140`): `13` per element and the predicate's price, `3`. -/
-theorem filter_cost (hP : Includes P Auto.List.filter.c140.costDeps) {α : Type} [Enc α]
-    (p : α → Bool) (pVal : Val) (hp : ∀ a, RunsApp P pVal [enc a] (enc (p a))) (B : ℕ) :
-    ∀ l : List α, (∀ a ∈ l, appCost P pVal [enc a] ≤ B) →
-      machineCost P Auto.List.filter.c140.costIdx [pVal, enc l] ≤ (B + 13) * l.length + 3 := by
+theorem filter_cost (hP : Includes P Auto.List.filter.c140.costDeps) {α : Type} [MachineEncoding α]
+    (p : α → Bool) (pVal : MachineValue) (hp : ∀ a, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : ℕ) :
+    ∀ l : List α, (∀ a ∈ l, appCost P pVal [encodeValue a] ≤ B) →
+      machineCost P Auto.List.filter.c140.costIdx [pVal, encodeValue l] ≤ (B + 13) * l.length + 3 := by
   intro l
   induction l with
   | nil => intro _; rw [Auto.List.filter.c140.costEq_nil P hP p pVal hp]; omega
@@ -134,10 +134,10 @@ theorem filter_cost (hP : Includes P Auto.List.filter.c140.costDeps) {α : Type}
     cases b <;> dsimp only <;> nlinarith
 
 /-- `List.filterMap` (`filterMap.c131`): `13` per element and the closure's price, `3` at the end. -/
-theorem filterMap_cost (hP : Includes P Auto.List.filterMap.c131.costDeps) {α β : Type} [Enc α]
-    [Enc β] (f : α → Option β) (fVal : Val) (hf : ∀ a : α, RunsApp P fVal [enc a] (enc (f a))) (B : ℕ) :
-    ∀ l : List α, (∀ a ∈ l, appCost P fVal [enc a] ≤ B) →
-      machineCost P Auto.List.filterMap.c131.costIdx [fVal, enc l] ≤ (B + 13) * l.length + 3 := by
+theorem filterMap_cost (hP : Includes P Auto.List.filterMap.c131.costDeps) {α β : Type} [MachineEncoding α]
+    [MachineEncoding β] (f : α → Option β) (fVal : MachineValue) (hf : ∀ a : α, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ) :
+    ∀ l : List α, (∀ a ∈ l, appCost P fVal [encodeValue a] ≤ B) →
+      machineCost P Auto.List.filterMap.c131.costIdx [fVal, encodeValue l] ≤ (B + 13) * l.length + 3 := by
   intro l
   induction l with
   | nil => intro _; rw [Auto.List.filterMap.c131.costEq_nil P hP f fVal hf]; omega
@@ -150,19 +150,19 @@ theorem filterMap_cost (hP : Includes P Auto.List.filterMap.c131.costDeps) {α �
     cases f x <;> dsimp only <;> nlinarith
 
 /-- `List.map` (`map.c12`): `11` per element and the closure's price, `3` at the end. -/
-theorem map_cost (hP : Includes P Auto.List.map.c12.costDeps) {α β : Type} [Enc α] [Enc β]
-    (f : α → β) (fVal : Val) (hf : ∀ a : α, RunsApp P fVal [enc a] (enc (f a))) (B : ℕ) :
-    ∀ l : List α, (∀ a ∈ l, appCost P fVal [enc a] ≤ B) →
-      machineCost P Auto.List.map.c12.costIdx [fVal, enc l] ≤ (B + 11) * l.length + 3 :=
+theorem map_cost (hP : Includes P Auto.List.map.c12.costDeps) {α β : Type} [MachineEncoding α] [MachineEncoding β]
+    (f : α → β) (fVal : MachineValue) (hf : ∀ a : α, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ) :
+    ∀ l : List α, (∀ a ∈ l, appCost P fVal [encodeValue a] ≤ B) →
+      machineCost P Auto.List.map.c12.costIdx [fVal, encodeValue l] ≤ (B + 11) * l.length + 3 :=
   listMap_le P _ fVal (Auto.List.map.c12.costEq_nil P hP f fVal hf)
     (fun x l ↦ Auto.List.map.c12.costEq_cons P hP f fVal hf x l) B
 
 /-- `List.findSome?` (`findSome?.c125`), any element type: `9` per element and the closure's
 price, `3` at the end. -/
-theorem findSome_cost (hP : Includes P Auto.List.findSome?.c125.costDeps) {α β : Type} [Enc α]
-    [Enc β] (f : α → Option β) (fVal : Val) (hf : ∀ a, RunsApp P fVal [enc a] (enc (f a)))
-    (B : ℕ) : ∀ ls : List α, (∀ l ∈ ls, appCost P fVal [enc l] ≤ B) →
-      machineCost P Auto.List.findSome?.c125.costIdx [fVal, enc ls] ≤ (B + 9) * ls.length + 3 := by
+theorem findSome_cost (hP : Includes P Auto.List.findSome?.c125.costDeps) {α β : Type} [MachineEncoding α]
+    [MachineEncoding β] (f : α → Option β) (fVal : MachineValue) (hf : ∀ a, RunsApp P fVal [encodeValue a] (encodeValue (f a)))
+    (B : ℕ) : ∀ ls : List α, (∀ l ∈ ls, appCost P fVal [encodeValue l] ≤ B) →
+      machineCost P Auto.List.findSome?.c125.costIdx [fVal, encodeValue ls] ≤ (B + 9) * ls.length + 3 := by
   intro ls
   induction ls with
   | nil => intro _; rw [Auto.List.findSome?.c125.costEq_nil P hP f fVal hf]; omega
@@ -176,10 +176,10 @@ theorem findSome_cost (hP : Includes P Auto.List.findSome?.c125.costDeps) {α β
     cases o <;> dsimp only <;> nlinarith
 
 /-- `List.all` (`all.c240`): `9` per element and the predicate's price, `3`. -/
-theorem all_cost (hP : Includes P Auto.List.all.c240.costDeps) {β : Type} [Enc β]
-    (p : β → Bool) (pVal : Val) (hp : ∀ a, RunsApp P pVal [enc a] (enc (p a))) (B : ℕ) :
-    ∀ l : List β, (∀ a ∈ l, appCost P pVal [enc a] ≤ B) →
-      machineCost P Auto.List.all.c240.costIdx [enc l, pVal] ≤ (B + 9) * l.length + 3 := by
+theorem all_cost (hP : Includes P Auto.List.all.c240.costDeps) {β : Type} [MachineEncoding β]
+    (p : β → Bool) (pVal : MachineValue) (hp : ∀ a, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : ℕ) :
+    ∀ l : List β, (∀ a ∈ l, appCost P pVal [encodeValue a] ≤ B) →
+      machineCost P Auto.List.all.c240.costIdx [encodeValue l, pVal] ≤ (B + 9) * l.length + 3 := by
   intro l
   induction l with
   | nil => intro _; rw [Auto.List.all.c240.costEq_nil P hP p pVal hp]; omega
@@ -194,7 +194,7 @@ theorem all_cost (hP : Includes P Auto.List.all.c240.costDeps) {β : Type} [Enc 
 /-- `List.zipIdx` (`zipIdx.c61`): `16` per element, `3` at the end, for word-sized indices. -/
 theorem zipIdx_cost (hP : Includes P Auto.List.zipIdx.c61.costDeps) :
     ∀ (l : List α) (n : ℕ), n + l.length < 2 ^ 64 →
-      machineCost P Auto.List.zipIdx.c61.costIdx [enc l, enc n] ≤ 16 * l.length + 3
+      machineCost P Auto.List.zipIdx.c61.costIdx [encodeValue l, encodeValue n] ≤ 16 * l.length + 3
   | [], n, _ => by rw [Auto.List.zipIdx.c61.costEq_nil P hP n]; omega
   | x :: l, n, h => by
     rw [Auto.List.zipIdx.c61.costEq_cons P hP x l n, limbs_of_lt (by simp at h; omega)]
@@ -204,11 +204,11 @@ theorem zipIdx_cost (hP : Includes P Auto.List.zipIdx.c61.costDeps) :
 
 /-- `List.foldr` (`foldr.c86`), the closure's price bounded on the suffixes: `9` per element and
 the closure's price, `3` at the end. -/
-theorem foldrSuffix_cost (hP : Includes P Auto.List.foldr.c86.costDeps) {α β : Type} [Enc α]
-    [Enc β] (f : α → β → β) (fVal : Val)
-    (hf : ∀ a b, RunsApp P fVal [enc a, enc b] (enc (f a b))) (B : ℕ) (init : β) :
-    ∀ l : List α, (∀ x tl, x :: tl <:+ l → appCost P fVal [enc x, enc (tl.foldr f init)] ≤ B) →
-      machineCost P Auto.List.foldr.c86.costIdx [fVal, enc init, enc l] ≤ (B + 9) * l.length + 3 := by
+theorem foldrSuffix_cost (hP : Includes P Auto.List.foldr.c86.costDeps) {α β : Type} [MachineEncoding α]
+    [MachineEncoding β] (f : α → β → β) (fVal : MachineValue)
+    (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b))) (B : ℕ) (init : β) :
+    ∀ l : List α, (∀ x tl, x :: tl <:+ l → appCost P fVal [encodeValue x, encodeValue (tl.foldr f init)] ≤ B) →
+      machineCost P Auto.List.foldr.c86.costIdx [fVal, encodeValue init, encodeValue l] ≤ (B + 9) * l.length + 3 := by
   intro l
   induction l with
   | nil => intro _; rw [Auto.List.foldr.c86.costEq_nil P hP f fVal hf]; omega
@@ -221,16 +221,16 @@ theorem foldrSuffix_cost (hP : Includes P Auto.List.foldr.c86.costDeps) {α β :
     nlinarith
 
 /-- `List.foldr` (`foldr.c86`): `9` per element and the closure's price, `3` at the end. -/
-theorem foldr_cost (hP : Includes P Auto.List.foldr.c86.costDeps) {α β : Type} [Enc α] [Enc β]
-    (f : α → β → β) (fVal : Val) (hf : ∀ (a : α) (b : β), RunsApp P fVal [enc a, enc b] (enc (f a b)))
-    (B : ℕ) (init : β) (l : List α) (hB : ∀ a ∈ l, ∀ b : β, appCost P fVal [enc a, enc b] ≤ B) :
-    machineCost P Auto.List.foldr.c86.costIdx [fVal, enc init, enc l] ≤ (B + 9) * l.length + 3 :=
+theorem foldr_cost (hP : Includes P Auto.List.foldr.c86.costDeps) {α β : Type} [MachineEncoding α] [MachineEncoding β]
+    (f : α → β → β) (fVal : MachineValue) (hf : ∀ (a : α) (b : β), RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b)))
+    (B : ℕ) (init : β) (l : List α) (hB : ∀ a ∈ l, ∀ b : β, appCost P fVal [encodeValue a, encodeValue b] ≤ B) :
+    machineCost P Auto.List.foldr.c86.costIdx [fVal, encodeValue init, encodeValue l] ≤ (B + 9) * l.length + 3 :=
   foldrSuffix_cost P hP f fVal hf B init l fun x tl h ↦ hB x (h.subset (by simp)) _
 
 /-- `List.flatten` (`flatten.c263`): `9` per element of the pieces and `9` per piece, `3`. -/
-theorem flatten_cost (hP : Includes P Auto.List.flatten.c263.costDeps) {α : Type} [Enc α]
+theorem flatten_cost (hP : Includes P Auto.List.flatten.c263.costDeps) {α : Type} [MachineEncoding α]
     (M : ℕ) : ∀ ls : List (List α), (∀ l ∈ ls, l.length ≤ M) →
-      machineCost P Auto.List.flatten.c263.costIdx [enc ls] ≤ (9 * M + 9) * ls.length + 3 := by
+      machineCost P Auto.List.flatten.c263.costIdx [encodeValue ls] ≤ (9 * M + 9) * ls.length + 3 := by
   intro ls
   induction ls with
   | nil => intro _; rw [Auto.List.flatten.c263.costEq_nil P hP]; omega
@@ -244,9 +244,9 @@ theorem flatten_cost (hP : Includes P Auto.List.flatten.c263.costDeps) {α : Typ
     nlinarith
 
 /-- `List.flatten` of a `List.map`: `9` per element of the pieces and `9` per piece, `3`. -/
-theorem flatten_map_cost (hP : Includes P Auto.List.flatten.c263.costDeps) {α σ : Type} [Enc α]
+theorem flatten_map_cost (hP : Includes P Auto.List.flatten.c263.costDeps) {α σ : Type} [MachineEncoding α]
     (M : ℕ) (f : σ → List α) (st : List σ) (hM : ∀ s ∈ st, (f s).length ≤ M) :
-    machineCost P Auto.List.flatten.c263.costIdx [enc (st.map f)] ≤ (9 * M + 9) * st.length + 3 := by
+    machineCost P Auto.List.flatten.c263.costIdx [encodeValue (st.map f)] ≤ (9 * M + 9) * st.length + 3 := by
   have := flatten_cost P hP M (st.map f) (fun l hl ↦ by
     obtain ⟨s, hs, rfl⟩ := List.mem_map.1 hl
     exact hM s hs)
@@ -255,7 +255,7 @@ theorem flatten_map_cost (hP : Includes P Auto.List.flatten.c263.costDeps) {α �
 /-- `List.flatten` (`flatten.c263`), by the total length: `9` per element, `18` per piece, `3`. -/
 theorem flatten_cost_length (hP : Includes P Auto.List.flatten.c263.costDeps) :
     ∀ xss : List (List α),
-      machineCost P Auto.List.flatten.c263.costIdx [enc xss] ≤ 9 * xss.flatten.length + 18 * xss.length + 3
+      machineCost P Auto.List.flatten.c263.costIdx [encodeValue xss] ≤ 9 * xss.flatten.length + 18 * xss.length + 3
   | [] => by rw [Auto.List.flatten.c263.costEq_nil P hP]; omega
   | xs :: xss => by
     rw [Auto.List.flatten.c263.costEq_cons P hP]
@@ -265,9 +265,9 @@ theorem flatten_cost_length (hP : Includes P Auto.List.flatten.c263.costDeps) :
     omega
 
 /-- `List.get?` (`get?Internal.c275`): `15` per element, `3` at the end, for word-sized indices. -/
-theorem getInternal_cost (hP : Includes P Auto.List.get?Internal.c275.costDeps) {α : Type} [Enc α] :
+theorem getInternal_cost (hP : Includes P Auto.List.get?Internal.c275.costDeps) {α : Type} [MachineEncoding α] :
     ∀ (l : List α) (k : ℕ), k < 2 ^ 64 →
-      machineCost P Auto.List.get?Internal.c275.costIdx [enc l, enc k] ≤ 15 * l.length + 3 := by
+      machineCost P Auto.List.get?Internal.c275.costIdx [encodeValue l, encodeValue k] ≤ 15 * l.length + 3 := by
   intro l
   induction l with
   | nil => intro k _; rw [Auto.List.get?Internal.c275.costEq_nil P hP]; omega
@@ -282,9 +282,9 @@ theorem getInternal_cost (hP : Includes P Auto.List.get?Internal.c275.costDeps) 
       omega
 
 /-- `List.get?` at index `k`: `15·k + 10` at most. -/
-theorem getInternal_cost_idx (hP : Includes P Auto.List.«get?Internal».c275.costDeps) {α : Type} [Enc α] :
+theorem getInternal_cost_idx (hP : Includes P Auto.List.«get?Internal».c275.costDeps) {α : Type} [MachineEncoding α] :
     ∀ (l : List α) (k : ℕ), k < 2 ^ 64 →
-      machineCost P Auto.List.«get?Internal».c275.costIdx [enc l, enc k] ≤ 15 * k + 10 := by
+      machineCost P Auto.List.«get?Internal».c275.costIdx [encodeValue l, encodeValue k] ≤ 15 * k + 10 := by
   intro l
   induction l with
   | nil => intro k _; rw [Auto.List.«get?Internal».c275.costEq_nil P hP]; omega
@@ -299,27 +299,27 @@ theorem getInternal_cost_idx (hP : Includes P Auto.List.«get?Internal».c275.co
       omega
 
 /-- `List.getD` (`getD.c274`): `15` per element, `8` at the end. -/
-theorem getD_cost (hP : Includes P Auto.List.getD.c274.costDeps) {α : Type} [Enc α]
+theorem getD_cost (hP : Includes P Auto.List.getD.c274.costDeps) {α : Type} [MachineEncoding α]
     (l : List α) (k : ℕ) (d : α) (hk : k < 2 ^ 64) :
-    machineCost P Auto.List.getD.c274.costIdx [enc l, enc k, enc d] ≤ 15 * l.length + 8 := by
+    machineCost P Auto.List.getD.c274.costIdx [encodeValue l, encodeValue k, encodeValue d] ≤ 15 * l.length + 8 := by
   rw [Auto.List.getD.c274.costEq P hP]
   have := getInternal_cost P (by includes) l k hk
   generalize l[k]? = o
   cases o <;> dsimp only <;> omega
 
 /-- `List.getD` at index `k`: `15·k + 15` at most. -/
-theorem getD_cost_idx (hP : Includes P Auto.List.getD.c274.costDeps) {α : Type} [Enc α]
+theorem getD_cost_idx (hP : Includes P Auto.List.getD.c274.costDeps) {α : Type} [MachineEncoding α]
     (l : List α) (k : ℕ) (d : α) (hk : k < 2 ^ 64) :
-    machineCost P Auto.List.getD.c274.costIdx [enc l, enc k, enc d] ≤ 15 * k + 15 := by
+    machineCost P Auto.List.getD.c274.costIdx [encodeValue l, encodeValue k, encodeValue d] ≤ 15 * k + 15 := by
   rw [Auto.List.getD.c274.costEq P hP]
   have := getInternal_cost_idx P (by includes) l k hk
   generalize l[k]? = o
   cases o <;> dsimp only <;> omega
 
 /-- `List.take n` (`take.c231`): at most `19·n + 6`, whatever the list. -/
-theorem take_cost (hP : Includes P Auto.List.take.c231.costDeps) {α : Type} [Enc α] :
+theorem take_cost (hP : Includes P Auto.List.take.c231.costDeps) {α : Type} [MachineEncoding α] :
     ∀ (n : ℕ) (xs : List α), n < 2 ^ 64 →
-      machineCost P Auto.List.take.c231.costIdx [enc n, enc xs] ≤ 19 * n + 6 := by
+      machineCost P Auto.List.take.c231.costIdx [encodeValue n, encodeValue xs] ≤ 19 * n + 6 := by
   intro n
   induction n with
   | zero => intro xs _; rw [Auto.List.take.c231.costEq P hP]; simp [limbs_of_lt]
@@ -333,7 +333,7 @@ theorem take_cost (hP : Includes P Auto.List.take.c231.costDeps) {α : Type} [En
 /-- `List.take n` (`take.c231`), by the list's length: `19` per element, `13` at the end. -/
 theorem take_cost_length (hP : Includes P Auto.List.take.c231.costDeps) :
     ∀ (n : ℕ) (l : List α), n < 2 ^ 64 →
-      machineCost P Auto.List.take.c231.costIdx [enc n, enc l] ≤ 19 * l.length + 13
+      machineCost P Auto.List.take.c231.costIdx [encodeValue n, encodeValue l] ≤ 19 * l.length + 13
   | 0, l, _ => by rw [Auto.List.take.c231.costEq_zero P hP]; omega
   | n + 1, [], h => by rw [Auto.List.take.c231.costEq_succ P hP, limbs_of_lt h]; simp
   | n + 1, x :: l, h => by
@@ -343,9 +343,9 @@ theorem take_cost_length (hP : Includes P Auto.List.take.c231.costDeps) :
     omega
 
 /-- `List.drop n` (`drop.c232`): at most `15·n + 6`, whatever the list. -/
-theorem drop_cost (hP : Includes P Auto.List.drop.c232.costDeps) {α : Type} [Enc α] :
+theorem drop_cost (hP : Includes P Auto.List.drop.c232.costDeps) {α : Type} [MachineEncoding α] :
     ∀ (n : ℕ) (xs : List α), n < 2 ^ 64 →
-      machineCost P Auto.List.drop.c232.costIdx [enc n, enc xs] ≤ 15 * n + 6 := by
+      machineCost P Auto.List.drop.c232.costIdx [encodeValue n, encodeValue xs] ≤ 15 * n + 6 := by
   intro n
   induction n with
   | zero => intro xs _; rw [Auto.List.drop.c232.costEq P hP]; simp [limbs_of_lt]
@@ -359,7 +359,7 @@ theorem drop_cost (hP : Includes P Auto.List.drop.c232.costDeps) {α : Type} [En
 /-- `List.drop n` (`drop.c232`), by the list's length: `15` per element, `13` at the end. -/
 theorem drop_cost_length (hP : Includes P Auto.List.drop.c232.costDeps) :
     ∀ (n : ℕ) (l : List α), n < 2 ^ 64 →
-      machineCost P Auto.List.drop.c232.costIdx [enc n, enc l] ≤ 15 * l.length + 13
+      machineCost P Auto.List.drop.c232.costIdx [encodeValue n, encodeValue l] ≤ 15 * l.length + 13
   | 0, l, _ => by rw [Auto.List.drop.c232.costEq_zero P hP]; omega
   | n + 1, [], h => by rw [Auto.List.drop.c232.costEq_succ P hP, limbs_of_lt h]; simp
   | n + 1, x :: l, h => by
@@ -369,9 +369,9 @@ theorem drop_cost_length (hP : Includes P Auto.List.drop.c232.costDeps) :
     omega
 
 /-- `List.replicate n a`: at most `17·n + 6`. -/
-theorem replicate_cost (hP : Includes P Auto.List.replicate.c346.costDeps) {α : Type} [Enc α]
+theorem replicate_cost (hP : Includes P Auto.List.replicate.c346.costDeps) {α : Type} [MachineEncoding α]
     (a : α) : ∀ n, n < 2 ^ 64 →
-      machineCost P Auto.List.replicate.c346.costIdx [enc n, enc a] ≤ 17 * n + 6 := by
+      machineCost P Auto.List.replicate.c346.costIdx [encodeValue n, encodeValue a] ≤ 17 * n + 6 := by
   intro n
   induction n with
   | zero => intro _; rw [Auto.List.replicate.c346.costEq_zero P hP]
@@ -382,17 +382,17 @@ theorem replicate_cost (hP : Includes P Auto.List.replicate.c346.costDeps) {α :
     omega
 
 /-- `Option.map` (`map.c106`): at most the closure's price `+ 7`. -/
-theorem optionMap_cost (hP : Includes P Auto.Option.map.c106.costDeps) {α β : Type} [Enc α]
-    [Enc β] (f : α → β) (fVal : Val) (hf : ∀ a, RunsApp P fVal [enc a] (enc (f a))) (B : ℕ)
-    (o : Option α) (hB : ∀ a, o = some a → appCost P fVal [enc a] ≤ B) :
-    machineCost P Auto.Option.map.c106.costIdx [fVal, enc o] ≤ B + 7 := by
+theorem optionMap_cost (hP : Includes P Auto.Option.map.c106.costDeps) {α β : Type} [MachineEncoding α]
+    [MachineEncoding β] (f : α → β) (fVal : MachineValue) (hf : ∀ a, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ)
+    (o : Option α) (hB : ∀ a, o = some a → appCost P fVal [encodeValue a] ≤ B) :
+    machineCost P Auto.Option.map.c106.costIdx [fVal, encodeValue o] ≤ B + 7 := by
   cases o with
   | none => rw [Auto.Option.map.c106.costEq_none P hP f fVal hf]; omega
   | some a => rw [Auto.Option.map.c106.costEq_some P hP f fVal hf]; have := hB a rfl; omega
 
 /-- `List.beq` on coefficients: at most `12` per coefficient and `7`. -/
 theorem listBeqK_cost (hP : Includes P Auto.List.beq.c27.costDeps) :
-    ∀ a b : List K, machineCost P Auto.List.beq.c27.costIdx [enc a, enc b] ≤ 12 * a.length + 7 := by
+    ∀ a b : List K, machineCost P Auto.List.beq.c27.costIdx [encodeValue a, encodeValue b] ≤ 12 * a.length + 7 := by
   intro a
   induction a with
   | nil => intro b; rw [Auto.List.beq.c27.costEq P hP]; cases b <;> simp
@@ -409,10 +409,10 @@ theorem listBeqK_cost (hP : Includes P Auto.List.beq.c27.costDeps) :
 /-- `Nat.log2` by halving (`log2Rec.c280`): at most `7 + 15·(log₂ n + 1)` below `2^128`. -/
 theorem log2Rec_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costDeps) (n : ℕ)
     (hn : n < 2 ^ 128) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costIdx [enc n] ≤
+    machineCost P Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costIdx [encodeValue n] ≤
       7 + 15 * (Nat.log2 n + 1) := by
   have := le_of_halving (α := ℕ) (fun x ↦ x < 2 ^ 128) id
-    (fun x ↦ machineCost P Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costIdx [enc x]) 15 7 ?hz ?h n hn
+    (fun x ↦ machineCost P Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costIdx [encodeValue x]) 15 7 ?hz ?h n hn
   · simpa using this
   · intro x hx h0
     simp only [id] at h0
@@ -441,7 +441,7 @@ theorem log2Rec_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.log2Rec.c280.cost
 /-- `Nat.log2` by halving (`log2Rec.c280`), word-sized: at most `13·log₂ n + 6`. -/
 theorem log2Rec_cost_word (hP : Includes P Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costDeps) :
     ∀ n : ℕ, n < 2 ^ 64 →
-      machineCost P Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costIdx [enc n] ≤ 13 * Nat.log2 n + 6 := by
+      machineCost P Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costIdx [encodeValue n] ≤ 13 * Nat.log2 n + 6 := by
   intro n
   induction n using Nat.strong_induction_on with
   | _ n ih =>
@@ -461,10 +461,10 @@ theorem log2Rec_cost_word (hP : Includes P Auto.LeanVM.Cost.Rewrite.log2Rec.c280
 
 /-- The merge (`mergeList.c230`): `B + 21` per element, the comparisons on elements of `Q`. -/
 theorem mergeList_cost (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeList.c230.costDeps)
-    (le : α → α → Bool) (leVal : Val) (hle : ∀ a b, RunsApp P leVal [enc a, enc b] (enc (le a b)))
-    (B : ℕ) (Q : α → Prop) (hB : ∀ a b, Q a → Q b → appCost P leVal [enc a, enc b] ≤ B) :
+    (le : α → α → Bool) (leVal : MachineValue) (hle : ∀ a b, RunsApp P leVal [encodeValue a, encodeValue b] (encodeValue (le a b)))
+    (B : ℕ) (Q : α → Prop) (hB : ∀ a b, Q a → Q b → appCost P leVal [encodeValue a, encodeValue b] ≤ B) :
     ∀ (n : ℕ) (xs ys : List α), xs.length + ys.length ≤ n → (∀ a ∈ xs, Q a) → (∀ b ∈ ys, Q b) →
-      machineCost P Auto.LeanVM.Cost.InitLib.mergeList.c230.costIdx [enc xs, enc ys, leVal] ≤
+      machineCost P Auto.LeanVM.Cost.InitLib.mergeList.c230.costIdx [encodeValue xs, encodeValue ys, leVal] ≤
         (B + 21) * (xs.length + ys.length) + 5 := by
   intro n
   induction n with
@@ -495,12 +495,12 @@ theorem mergeList_cost (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeList.c230.
           simp only [List.length_cons] at this
           nlinarith
 
-omit [Enc α] in
+omit [MachineEncoding α] in
 theorem length_mergeSortList (l : List α) (le : α → α → Bool) :
     (InitLib.mergeSortList l le).length = l.length := by
   rw [← InitLib.mergeSort_eq_mergeSortList, List.length_mergeSort]
 
-omit [Enc α] in
+omit [MachineEncoding α] in
 theorem mem_mergeSortList {l : List α} {le : α → α → Bool} {a : α}
     (h : a ∈ InitLib.mergeSortList l le) : a ∈ l := by
   rw [← InitLib.mergeSort_eq_mergeSortList] at h
@@ -509,10 +509,10 @@ theorem mem_mergeSortList {l : List α} {le : α → α → Bool} {a : α}
 /-- **The merge sort** (`mergeSortList.c228`), the comparison at most `Bc` on elements of `S`:
 at most `(Bc + 100)·n² + 10` (a quadratic bound). -/
 theorem mergeSortList_cost_sq (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costDeps)
-    (le : α → α → Bool) (leVal : Val) (hle : ∀ a b, RunsApp P leVal [enc a, enc b] (enc (le a b)))
-    (S : α → Prop) (Bc : ℕ) (hB : ∀ a b, S a → S b → appCost P leVal [enc a, enc b] ≤ Bc) :
+    (le : α → α → Bool) (leVal : MachineValue) (hle : ∀ a b, RunsApp P leVal [encodeValue a, encodeValue b] (encodeValue (le a b)))
+    (S : α → Prop) (Bc : ℕ) (hB : ∀ a b, S a → S b → appCost P leVal [encodeValue a, encodeValue b] ≤ Bc) :
     ∀ (n : ℕ) (l : List α), l.length = n → n < 2 ^ 60 → (∀ a ∈ l, S a) →
-      machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costIdx [enc l, leVal] ≤
+      machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costIdx [encodeValue l, leVal] ≤
         (Bc + 100) * (n * n) + 10 := by
   intro n
   induction n using Nat.strong_induction_on with
@@ -537,8 +537,8 @@ theorem mergeSortList_cost_sq (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeSor
       have i1 := ih (min h2 (t.length + 2)) (by omega) _ ha (by omega) hS1
       have i2 := ih (t.length + 2 - h2) (by omega) _ hb (by omega) hS2
       have hm : machineCost P Auto.LeanVM.Cost.InitLib.mergeList.c230.costIdx
-          [enc (InitLib.mergeSortList (List.take h2 (x :: y :: t)) le),
-            enc (InitLib.mergeSortList (List.drop h2 (x :: y :: t)) le), leVal] ≤
+          [encodeValue (InitLib.mergeSortList (List.take h2 (x :: y :: t)) le),
+            encodeValue (InitLib.mergeSortList (List.drop h2 (x :: y :: t)) le), leVal] ≤
           (Bc + 21) * (t.length + 2) + 9 := by
         have := mergeList_cost P (by includes) le leVal hle Bc S hB (t.length + 2)
           (InitLib.mergeSortList (List.take h2 (x :: y :: t)) le)
@@ -590,10 +590,10 @@ theorem nlogn_halves (c a b L T1 T2 W : ℕ) (hab : b ≤ a)
 `(B + 64)·n·⌈log₂ n⌉ + 89·n + 3`, `B` the comparison's price on elements of `Q`. -/
 theorem mergeSortList_cost_nlogn
     (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costDeps)
-    (le : α → α → Bool) (leVal : Val) (hle : ∀ a b, RunsApp P leVal [enc a, enc b] (enc (le a b)))
-    (B : ℕ) (Q : α → Prop) (hB : ∀ a b, Q a → Q b → appCost P leVal [enc a, enc b] ≤ B) :
+    (le : α → α → Bool) (leVal : MachineValue) (hle : ∀ a b, RunsApp P leVal [encodeValue a, encodeValue b] (encodeValue (le a b)))
+    (B : ℕ) (Q : α → Prop) (hB : ∀ a b, Q a → Q b → appCost P leVal [encodeValue a, encodeValue b] ≤ B) :
     ∀ (n : ℕ) (l : List α), l.length ≤ n → l.length < 2 ^ 63 → (∀ a ∈ l, Q a) → l ≠ [] →
-      machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costIdx [enc l, leVal] + 80 ≤
+      machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costIdx [encodeValue l, leVal] + 80 ≤
         (B + 64) * (l.length * Nat.clog 2 l.length) + 89 * l.length := by
   intro n
   induction n using Nat.strong_induction_on with
@@ -634,11 +634,11 @@ theorem mergeSortList_cost_nlogn
     have hL := clog_half (n := t.length + 2) (by omega)
     have := nlogn_halves (B + 64) h1 (t.length + 2 - h1) (Nat.clog 2 (t.length + 2)) _ _
       (machineCost P Auto.LeanVM.Cost.InitLib.mergeList.c230.costIdx
-        [enc (InitLib.mergeSortList (List.take h1 (x :: y :: t)) le),
-          enc (InitLib.mergeSortList (List.drop h1 (x :: y :: t)) le), leVal] +
-        machineCost P Auto.List.length.c229.costIdx [enc t] + 3 +
-        machineCost P Auto.List.take.c231.costIdx [enc h1, enc (x :: y :: t)] +
-        machineCost P Auto.List.drop.c232.costIdx [enc h1, enc (x :: y :: t)] + 41)
+        [encodeValue (InitLib.mergeSortList (List.take h1 (x :: y :: t)) le),
+          encodeValue (InitLib.mergeSortList (List.drop h1 (x :: y :: t)) le), leVal] +
+        machineCost P Auto.List.length.c229.costIdx [encodeValue t] + 3 +
+        machineCost P Auto.List.take.c231.costIdx [encodeValue h1, encodeValue (x :: y :: t)] +
+        machineCost P Auto.List.drop.c232.costIdx [encodeValue h1, encodeValue (x :: y :: t)] + 41)
       (by omega) (by rw [← hL, hh1]) ih1 ih2 (by rw [hsum]; nlinarith)
     rw [hsum] at this
     rw [show t.length + 1 + 1 = t.length + 2 by omega]
@@ -647,10 +647,10 @@ theorem mergeSortList_cost_nlogn
 /-- **Merge sort**, any list: at most `(B + 64)·n·⌈log₂ n⌉ + 89·n + 3`. -/
 theorem mergeSortList_cost
     (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costDeps)
-    (le : α → α → Bool) (leVal : Val) (hle : ∀ a b, RunsApp P leVal [enc a, enc b] (enc (le a b)))
-    (B : ℕ) (Q : α → Prop) (hB : ∀ a b, Q a → Q b → appCost P leVal [enc a, enc b] ≤ B)
+    (le : α → α → Bool) (leVal : MachineValue) (hle : ∀ a b, RunsApp P leVal [encodeValue a, encodeValue b] (encodeValue (le a b)))
+    (B : ℕ) (Q : α → Prop) (hB : ∀ a b, Q a → Q b → appCost P leVal [encodeValue a, encodeValue b] ≤ B)
     (l : List α) (hw : l.length < 2 ^ 63) (hS : ∀ a ∈ l, Q a) :
-    machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costIdx [enc l, leVal] ≤
+    machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costIdx [encodeValue l, leVal] ≤
       (B + 64) * (l.length * Nat.clog 2 l.length) + 89 * l.length + 3 := by
   cases l with
   | nil => rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costEq_nil P hP le leVal hle]; omega

@@ -45,14 +45,14 @@ open LeanVM.Cost.Auto.CompPoly.CPolynomial.Raw
 
 public section
 
-variable (P : Program)
+variable (P : MachineProgram)
 
 /-! ## Products over `K[X]`, entries of different sizes -/
 
 /-- A product over `K` of `≤ a` by `≤ b` coefficients: at most `906·(a + 1)·(a + b + 1)`. -/
 theorem mulK_cost_ab (hP : Includes P mul.c55.costDeps) (p q : CPolynomial.Raw K) (a b : ℕ)
     (ha : a < 2 ^ 60) (hb : b < 2 ^ 60) (hp : p.size ≤ a) (hq : q.size ≤ b) :
-    machineCost P mul.c55.costIdx [enc p, enc q] ≤ 906 * ((a + 1) * (a + b + 1)) := by
+    machineCost P mul.c55.costIdx [encodeValue p, encodeValue q] ≤ 906 * ((a + 1) * (a + b + 1)) := by
   have := mulK_cost P hP p q (by omega) (by omega)
   have h1 : q.size * p.size ≤ b * a := Nat.mul_le_mul hq hp
   have h2 : p.size * p.size ≤ a * a := Nat.mul_le_mul hp hp
@@ -74,12 +74,12 @@ theorem InnerLe.smul_ab {q : CPolynomial.Raw (CPolynomial K)} {b : ℕ} (h : Inn
 theorem smulB_cost_ab (hP : Includes P smul.c53.costDeps) (r : CPolynomial K)
     (q : CPolynomial.Raw (CPolynomial K)) (a b : ℕ) (ha : a < 2 ^ 60) (hb : b < 2 ^ 60)
     (hr : r.val.size ≤ a) (hq : InnerLe q b) :
-    machineCost P smul.c53.costIdx [enc r, enc q] ≤
+    machineCost P smul.c53.costIdx [encodeValue r, encodeValue q] ≤
       930 * (((a + 1) * (a + b + 1)) * q.size) + 10 := by
   rw [smul.c53.costEq P hP]
-  have hf := fun c ↦ RunsApp.of_spec (us := [enc r]) (vs := [enc c])
+  have hf := fun c ↦ RunsApp.of_spec (us := [encodeValue r]) (vs := [encodeValue c])
     (smul.c53.lam0.costSpec P (by includes) r c)
-  have hm := listMap_le P Auto.List.map.c12.costIdx (.fn smul.c53.lam0.costIdx [enc r])
+  have hm := listMap_le P Auto.List.map.c12.costIdx (.closure smul.c53.lam0.costIdx [encodeValue r])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf) (906 * ((a + 1) * (a + b + 1)) + 3)
     q.toList
@@ -122,13 +122,13 @@ theorem mulRawB_cost_ab (hP : Includes P mulRaw.c44.costDeps)
     (p q : CPolynomial.Raw (CPolynomial K)) (a b rp rq : ℕ) (ha : a < 2 ^ 57) (hb : b < 2 ^ 57)
     (hp : InnerLe p a) (hq : InnerLe q b) (hps : p.size ≤ rp) (hqs : q.size ≤ rq)
     (hr : rp + rq < 2 ^ 57) :
-    machineCost P mulRaw.c44.costIdx [enc p, enc q] ≤
+    machineCost P mulRaw.c44.costIdx [encodeValue p, encodeValue q] ≤
       (930 * (((a + 1) * (a + b + 1)) * rq) + 110 * ((a + b) * (rp + rq)) + 200 * (rp + rq) +
         112) * rp + 20 := by
   rw [mulRaw.c44.costEq P hP]
   have hz := zipIdx_cost P (by includes) p.toList 0 (by simp; omega)
-  have hf := listFoldl_le P (by includes) _ (.fn mulRaw.c44.lam0.costIdx [enc q])
-    (fun acc x ↦ RunsApp.of_spec (us := [enc q]) (vs := [enc acc, enc x])
+  have hf := listFoldl_le P (by includes) _ (.closure mulRaw.c44.lam0.costIdx [encodeValue q])
+    (fun acc x ↦ RunsApp.of_spec (us := [encodeValue q]) (vs := [encodeValue acc, encodeValue x])
       (mulRaw.c44.lam0.costSpec P (by includes) q acc x))
     (930 * (((a + 1) * (a + b + 1)) * rq) + 110 * ((a + b) * (rp + rq)) + 200 * (rp + rq) + 80)
     (fun acc ↦ acc.size ≤ p.size + q.size ∧ InnerLe acc (a + b))
@@ -179,7 +179,7 @@ at most `mulBBound rp rq a s`. -/
 theorem mulB_cost_ab (hP : Includes P mul.c43.costDeps) (p q : CPolynomial.Raw (CPolynomial K))
     (a b s rp rq : ℕ) (hs : a + b ≤ s) (hs' : s < 2 ^ 57) (hp : InnerLe p a) (hq : InnerLe q b)
     (hps : p.size ≤ rp) (hqs : q.size ≤ rq) (hr : rp + rq < 2 ^ 57) :
-    machineCost P mul.c43.costIdx [enc p, enc q] ≤ mulBBound rp rq a s := by
+    machineCost P mul.c43.costIdx [encodeValue p, encodeValue q] ≤ mulBBound rp rq a s := by
   rw [mul.c43.costEq P hP]
   have h1 := mulRawB_cost_ab P (by includes) p q a b rp rq (by omega) (by omega) hp hq hps hqs hr
   have hsz := size_mulRaw_le p q
@@ -237,8 +237,8 @@ set_option linter.auxLemma false in
 instance's auxiliary name): `Raw.mul` on the values, `+ 3`. -/
 theorem mulBivC_eq (hP : Includes P
       Auto.CompPoly.CBivariate.instSemiring._aux_3.c42.costDeps) (x y : CBivariate K) :
-    machineCost P Auto.CompPoly.CBivariate.instSemiring._aux_3.c42.costIdx [enc x, enc y] =
-      machineCost P mul.c43.costIdx [enc x.val, enc y.val] + 3 :=
+    machineCost P Auto.CompPoly.CBivariate.instSemiring._aux_3.c42.costIdx [encodeValue x, encodeValue y] =
+      machineCost P mul.c43.costIdx [encodeValue x.val, encodeValue y.val] + 3 :=
   Auto.CompPoly.CBivariate.instSemiring._aux_3.c42.costEq P hP x y
 
 set_option linter.auxLemma false in
@@ -258,10 +258,10 @@ theorem zeroBivC_eq
 most `C`: at most `(C + 20)·n + 6`. -/
 theorem powersFromC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.powersFrom.c96.costDeps)
     (a : CBivariate K) (C N : ℕ)
-    (hC : ∀ t, t < N → machineCost P mul.c43.costIdx [enc a.val, enc (a ^ t).val] + 3 ≤ C) :
+    (hC : ∀ t, t < N → machineCost P mul.c43.costIdx [encodeValue a.val, encodeValue (a ^ t).val] + 3 ≤ C) :
     ∀ n j, j + n ≤ N → n < 2 ^ 63 →
       machineCost P Auto.LeanVM.Extraction.Fast.powersFrom.c96.costIdx
-        [enc a, enc (a ^ j), enc n] ≤ (C + 20) * n + 6 := by
+        [encodeValue a, encodeValue (a ^ j), encodeValue n] ≤ (C + 20) * n + 6 := by
   intro n
   induction n with
   | zero => intro j _ _; rw [Auto.LeanVM.Extraction.Fast.powersFrom.c96.costEq_zero P hP]; omega
@@ -289,9 +289,9 @@ theorem powersFrom_toArray_getD (a : CBivariate K) {n i : ℕ} (hi : i < n) :
 /-- `powersFromC_cost` from `1 = a^0`. -/
 theorem powersFromC_cost_one (hP : Includes P Auto.LeanVM.Extraction.Fast.powersFrom.c96.costDeps)
     (a : CBivariate K) (C n : ℕ) (hn : n < 2 ^ 63)
-    (hC : ∀ t, t < n → machineCost P mul.c43.costIdx [enc a.val, enc (a ^ t).val] + 3 ≤ C) :
+    (hC : ∀ t, t < n → machineCost P mul.c43.costIdx [encodeValue a.val, encodeValue (a ^ t).val] + 3 ≤ C) :
     machineCost P Auto.LeanVM.Extraction.Fast.powersFrom.c96.costIdx
-        [enc a, enc (1 : CBivariate K), enc n] ≤ (C + 20) * n + 6 := by
+        [encodeValue a, encodeValue (1 : CBivariate K), encodeValue n] ≤ (C + 20) * n + 6 := by
   have := powersFromC_cost P hP a C n hC n 0 (by omega) hn
   rw [pow_zero] at this
   exact this
@@ -311,7 +311,7 @@ theorem innerLe_C (f : CPolynomial K) : InnerLe (CPolynomial.C f).val f.val.size
 
 /-- `C f` over `K[X]` (one row `f`, trimmed): at most `3·|f| + 72`. -/
 theorem cB_cost (hP : Includes P Auto.CompPoly.CPolynomial.C.c71.costDeps) (f : CPolynomial K) :
-    machineCost P Auto.CompPoly.CPolynomial.C.c71.costIdx [enc f] ≤ 3 * f.val.size + 72 := by
+    machineCost P Auto.CompPoly.CPolynomial.C.c71.costIdx [encodeValue f] ≤ 3 * f.val.size + 72 := by
   rw [Auto.CompPoly.CPolynomial.C.c71.costEq P hP]
   have hs : (CPolynomial.Raw.C f).size = 1 := rfl
   have := trimLenB_cost P (by includes) (CPolynomial.Raw.C f) f.val.size (innerLe_rawC f)
@@ -351,19 +351,19 @@ theorem innerLe_X : InnerLe (CPolynomial.X : CBivariate K).val 1 := by
 theorem linearYDivisorC_cost
     (hP : Includes P Auto.CompPoly.CBivariate.linearYDivisor.c65.costDeps) (f : CPolynomial K)
     (hf : f.val.size < 2 ^ 56) :
-    machineCost P Auto.CompPoly.CBivariate.linearYDivisor.c65.costIdx [enc f] ≤
+    machineCost P Auto.CompPoly.CBivariate.linearYDivisor.c65.costIdx [encodeValue f] ≤
       700 * f.val.size + 2300 := by
   rw [Auto.CompPoly.CBivariate.linearYDivisor.c65.costEq P hP,
     Auto.CompPoly.CPolynomial.X.c67.costEq P (by includes),
     Auto.CompPoly.CPolynomial.Raw.X.c68.costEq P (by includes)]
   have := cB_cost P (by includes) f
   have hC := size_C_le f
-  have hf0 := fun a ↦ RunsApp.of_spec (us := []) (vs := [enc a])
+  have hf0 := fun a ↦ RunsApp.of_spec (us := []) (vs := [encodeValue a])
     (Auto.CompPoly.CBivariate.linearYDivisor.c65.lam0.lam0.costSpec P (by includes) a)
-  have hf1 := fun a ↦ RunsApp.of_spec (us := []) (vs := [enc a])
+  have hf1 := fun a ↦ RunsApp.of_spec (us := []) (vs := [encodeValue a])
     (Auto.CompPoly.CBivariate.linearYDivisor.c65.lam0.costSpec P (by includes) a)
   have hm := listMap_le P Auto.List.map.c12.costIdx
-    (.fn Auto.CompPoly.CBivariate.linearYDivisor.c65.lam0.costIdx [])
+    (.closure Auto.CompPoly.CBivariate.linearYDivisor.c65.lam0.costIdx [])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf1)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf1) (16 * f.val.size + 8)
     (CPolynomial.C f).val.toList
@@ -372,7 +372,7 @@ theorem linearYDivisorC_cost
       rw [appCost_fn, List.nil_append,
         Auto.CompPoly.CBivariate.linearYDivisor.c65.lam0.costEq P (by includes)]
       have := listMap_le P Auto.List.map.c12.costIdx
-        (.fn Auto.CompPoly.CBivariate.linearYDivisor.c65.lam0.lam0.costIdx [])
+        (.closure Auto.CompPoly.CBivariate.linearYDivisor.c65.lam0.lam0.costIdx [])
         (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf0)
         (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf0) 1 a.val.toList
         (fun b _ ↦ by
@@ -399,7 +399,7 @@ theorem linearYDivisorC_cost
 /-- **`G` as a constant in `Y`** (`ofYConstant`): at most `3·|G| + 74`. -/
 theorem ofYConstantC_cost (hP : Includes P Auto.CompPoly.CBivariate.ofYConstant.c97.costDeps)
     (G : CPolynomial K) :
-    machineCost P Auto.CompPoly.CBivariate.ofYConstant.c97.costIdx [enc G] ≤
+    machineCost P Auto.CompPoly.CBivariate.ofYConstant.c97.costIdx [encodeValue G] ≤
       3 * G.val.size + 74 := by
   rw [Auto.CompPoly.CBivariate.ofYConstant.c97.costEq P hP]
   have := cB_cost P (by includes) G
@@ -409,7 +409,7 @@ theorem ofYConstantC_cost (hP : Includes P Auto.CompPoly.CBivariate.ofYConstant.
 theorem ofArrayB_cost (hP : Includes P Auto.CompPoly.CPolynomial.ofArray.c103.costDeps)
     (coeffs : Array (CPolynomial K)) (A : ℕ) (hA : ∀ x ∈ coeffs, x.val.size ≤ A)
     (hs : coeffs.size < 2 ^ 63) :
-    machineCost P Auto.CompPoly.CPolynomial.ofArray.c103.costIdx [enc coeffs] ≤
+    machineCost P Auto.CompPoly.CPolynomial.ofArray.c103.costIdx [encodeValue coeffs] ≤
       (3 * A + 41) * coeffs.size + 15 := by
   rw [Auto.CompPoly.CPolynomial.ofArray.c103.costEq P hP]
   have := trimLenB_cost P (by includes) coeffs A hA coeffs.size hs
@@ -422,7 +422,7 @@ theorem ofArrayB_cost (hP : Includes P Auto.CompPoly.CPolynomial.ofArray.c103.co
 `Q`'s entries of at most `A` coefficients. -/
 theorem shiftYC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.shiftY.c102.costDeps) (k : ℕ)
     (Q : CBivariate K) (A : ℕ) (hA : InnerLe Q.val A) (hs : k + Q.val.size < 2 ^ 63) :
-    machineCost P Auto.LeanVM.Extraction.Fast.shiftY.c102.costIdx [enc k, enc Q] ≤
+    machineCost P Auto.LeanVM.Extraction.Fast.shiftY.c102.costIdx [encodeValue k, encodeValue Q] ≤
       (3 * A + 41) * (k + Q.val.size) + 2 * k + Q.val.size + 22 := by
   rw [Auto.LeanVM.Extraction.Fast.shiftY.c102.costEq P hP]
   have := ofArrayB_cost P (by includes) (Array.replicate k 0 ++ Q.val) A
@@ -437,13 +437,13 @@ theorem shiftYC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.shiftY.c102.co
 /-- **A coefficient row** (`toCoeffRow w Q`, `w` lookups): at most `34·w + 17`. -/
 theorem toCoeffRowC_cost (hP : Includes P Auto.CompPoly.CBivariate.toCoeffRow.c99.costDeps)
     (w : ℕ) (Q : CBivariate K) (hw : w < 2 ^ 64) :
-    machineCost P Auto.CompPoly.CBivariate.toCoeffRow.c99.costIdx [enc w, enc Q] ≤ 34 * w + 17 := by
+    machineCost P Auto.CompPoly.CBivariate.toCoeffRow.c99.costIdx [encodeValue w, encodeValue Q] ≤ 34 * w + 17 := by
   rw [Auto.CompPoly.CBivariate.toCoeffRow.c99.costEq P hP]
   have := rangeLoop_cost P (by includes) w [] hw
-  have hf := fun j ↦ RunsApp.of_spec (us := [enc Q]) (vs := [enc j])
+  have hf := fun j ↦ RunsApp.of_spec (us := [encodeValue Q]) (vs := [encodeValue j])
     (Auto.CompPoly.CBivariate.toCoeffRow.c99.lam0.costSpec P (by includes) Q j)
   have hm := listMap_le P Auto.List.map.c12.costIdx
-    (.fn Auto.CompPoly.CBivariate.toCoeffRow.c99.lam0.costIdx [enc Q])
+    (.closure Auto.CompPoly.CBivariate.toCoeffRow.c99.lam0.costIdx [encodeValue Q])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf) 5 (List.range w)
     (fun j _ ↦ by
@@ -465,8 +465,8 @@ theorem leeRowsLamC_cost (hP : Includes P
     (R G : CPolynomial K) {N : ℕ} (hR : R.natDegree ≤ N) (hG : G.natDegree ≤ N) (m w i : ℕ)
     (hi : i < w) (hw : w < 2 ^ 55) (hm : m < 2 ^ 55) (hN : (m + 1) * N + 2 < 2 ^ 55) :
     machineCost P Auto.LeanVM.Extraction.Fast.leeRowsFast.c95.lam0.costIdx
-        [enc (powersFrom (CBivariate.linearYDivisor R) 1 (m + 1)).toArray,
-          enc (powersFrom (CBivariate.ofYConstant G) 1 (m + 1)).toArray, enc w, enc m, enc i] ≤
+        [encodeValue (powersFrom (CBivariate.linearYDivisor R) 1 (m + 1)).toArray,
+          encodeValue (powersFrom (CBivariate.ofYConstant G) 1 (m + 1)).toArray, encodeValue w, encodeValue m, encodeValue i] ≤
       if i ≤ m then rowProdBound m w N else rowShiftBound m w N := by
   rw [Auto.LeanVM.Extraction.Fast.leeRowsFast.c95.lam0.costEq P hP]
   have hmN : m * N + 1 < 2 ^ 55 := by
@@ -503,13 +503,13 @@ theorem leeRowsLamC_cost (hP : Includes P
 
 /-- **`List.map` with two prices**: `B₁` on the elements of a predicate, `B₂` on the others; `11`
 per element, `3` at the end. -/
-theorem listMap_le_two (i : ℕ) {α : Type} [Enc α] (fVal : Val)
-    (h0 : machineCost P i [fVal, enc ([] : List α)] = 3)
-    (hs : ∀ (x : α) (l : List α), machineCost P i [fVal, enc (x :: l)] =
-      appCost P fVal [enc x] + machineCost P i [fVal, enc l] + 11)
+theorem listMap_le_two (i : ℕ) {α : Type} [MachineEncoding α] (fVal : MachineValue)
+    (h0 : machineCost P i [fVal, encodeValue ([] : List α)] = 3)
+    (hs : ∀ (x : α) (l : List α), machineCost P i [fVal, encodeValue (x :: l)] =
+      appCost P fVal [encodeValue x] + machineCost P i [fVal, encodeValue l] + 11)
     (p : α → Bool) (B₁ B₂ : ℕ) : ∀ l : List α,
-      (∀ a ∈ l, appCost P fVal [enc a] ≤ if p a then B₁ else B₂) →
-      machineCost P i [fVal, enc l] ≤ (B₁ + 11) * l.countP p + (B₂ + 11) * l.length + 3 := by
+      (∀ a ∈ l, appCost P fVal [encodeValue a] ≤ if p a then B₁ else B₂) →
+      machineCost P i [fVal, encodeValue l] ≤ (B₁ + 11) * l.countP p + (B₂ + 11) * l.length + 3 := by
   intro l
   induction l with
   | nil => intro _; rw [h0]; simp
@@ -540,7 +540,7 @@ theorem leeRowsFastC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.leeRowsFa
     (hW : params.weightedDegreeBound < 2 ^ 64) (hy : GuruswamiSudan.yWeight params < 2 ^ 64)
     (hw : GuruswamiSudan.interpolationYCap params + 1 < 2 ^ 55)
     (hm : params.multiplicity < 2 ^ 55) (hN : (params.multiplicity + 1) * N + 2 < 2 ^ 55) :
-    machineCost P Auto.LeanVM.Extraction.Fast.leeRowsFast.c95.costIdx [enc R, enc G, enc params] ≤
+    machineCost P Auto.LeanVM.Extraction.Fast.leeRowsFast.c95.costIdx [encodeValue R, encodeValue G, encodeValue params] ≤
       leeRowsBound params.multiplicity (GuruswamiSudan.interpolationYCap params + 1) N := by
   rw [Auto.LeanVM.Extraction.Fast.leeRowsFast.c95.costEq P hP, oneBivC_eq P (by includes)]
   have hwid : GuruswamiSudan.leeOSullivanWidth params =
@@ -583,15 +583,15 @@ theorem leeRowsFastC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.leeRowsFa
       omega)
   have hr := rangeLoop_cost P (by includes) w [] (by omega)
   have hf := fun i ↦ RunsApp.of_spec
-    (us := [enc (powersFrom (CBivariate.linearYDivisor R) 1 (m + 1)).toArray,
-      enc (powersFrom (CBivariate.ofYConstant G) 1 (m + 1)).toArray, enc w, enc m]) (vs := [enc i])
+    (us := [encodeValue (powersFrom (CBivariate.linearYDivisor R) 1 (m + 1)).toArray,
+      encodeValue (powersFrom (CBivariate.ofYConstant G) 1 (m + 1)).toArray, encodeValue w, encodeValue m]) (vs := [encodeValue i])
     (Auto.LeanVM.Extraction.Fast.leeRowsFast.c95.lam0.costSpec P (by includes)
       (powersFrom (CBivariate.linearYDivisor R) 1 (m + 1)).toArray
       (powersFrom (CBivariate.ofYConstant G) 1 (m + 1)).toArray w m i)
   have hmap := listMap_le_two P Auto.List.map.c12.costIdx
-    (.fn Auto.LeanVM.Extraction.Fast.leeRowsFast.c95.lam0.costIdx
-      [enc (powersFrom (CBivariate.linearYDivisor R) 1 (m + 1)).toArray,
-        enc (powersFrom (CBivariate.ofYConstant G) 1 (m + 1)).toArray, enc w, enc m])
+    (.closure Auto.LeanVM.Extraction.Fast.leeRowsFast.c95.lam0.costIdx
+      [encodeValue (powersFrom (CBivariate.linearYDivisor R) 1 (m + 1)).toArray,
+        encodeValue (powersFrom (CBivariate.ofYConstant G) 1 (m + 1)).toArray, encodeValue w, encodeValue m])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf) (fun i ↦ decide (i ≤ m))
     (rowProdBound m w N) (rowShiftBound m w N) (List.range w) (fun i hi ↦ by

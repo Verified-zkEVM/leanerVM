@@ -29,7 +29,7 @@ open LeanVM.Cost LeanVM.Cost.Extractor LeanVM.Cost.Library LeanVM.Parameters Lea
 
 public section
 
-variable (P : Program)
+variable (P : MachineProgram)
 
 /-! ## List functions -/
 
@@ -37,10 +37,10 @@ variable (P : Program)
 
 /-- A product over `range n` (`prodRange.c221`): `B + 272` per factor, `6` at the end. -/
 theorem prodRange_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.prodRange.c221.costDeps)
-    (f : ℕ → K) (fVal : Val) (hf : ∀ a : ℕ, RunsApp P fVal [enc a] (enc (f a))) (B : ℕ)
-    (hB : ∀ a : ℕ, appCost P fVal [enc a] ≤ B) :
+    (f : ℕ → K) (fVal : MachineValue) (hf : ∀ a : ℕ, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ)
+    (hB : ∀ a : ℕ, appCost P fVal [encodeValue a] ≤ B) :
     ∀ n, n < 2 ^ 64 →
-      machineCost P Auto.LeanVM.Cost.Rewrite.prodRange.c221.costIdx [fVal, enc n] ≤
+      machineCost P Auto.LeanVM.Cost.Rewrite.prodRange.c221.costIdx [fVal, encodeValue n] ≤
         (B + 272) * n + 6 := by
   intro n
   induction n with
@@ -56,12 +56,12 @@ theorem prodRange_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.prodRange.c221.
 `276·2^j + 15`. -/
 theorem subspacePoly_cost (hP : Includes P Auto.LeanVM.Extraction.subspacePoly.c220.costDeps)
     (j : ℕ) (hj : j < 64) (x : K) :
-    machineCost P Auto.LeanVM.Extraction.subspacePoly.c220.costIdx [enc j, enc x] ≤
+    machineCost P Auto.LeanVM.Extraction.subspacePoly.c220.costIdx [encodeValue j, encodeValue x] ≤
       276 * 2 ^ j + 15 := by
   rw [Auto.LeanVM.Extraction.subspacePoly.c220.costEq P hP, limbs_shift hj,
     limbs_of_lt (by omega : j < 2 ^ 64)]
   have := prodRange_cost P (by includes) _
-    (.fn Auto.LeanVM.Extraction.subspacePoly.c220.lam0.costIdx [enc x])
+    (.closure Auto.LeanVM.Extraction.subspacePoly.c220.lam0.costIdx [encodeValue x])
     (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.subspacePoly.c220.lam0.costSpec P
       (by includes) x a)) 4
     (fun a ↦ by
@@ -72,7 +72,7 @@ theorem subspacePoly_cost (hP : Includes P Auto.LeanVM.Extraction.subspacePoly.c
 
 /-- `Nat.testBit` (`testBit.c225`): `13` on words. -/
 theorem testBit_cost (hP : Includes P Auto.Nat.testBit.c225.costDeps) (a b : ℕ) (ha : a < 2 ^ 64)
-    (hb : b < 2 ^ 64) : machineCost P Auto.Nat.testBit.c225.costIdx [enc a, enc b] ≤ 13 := by
+    (hb : b < 2 ^ 64) : machineCost P Auto.Nat.testBit.c225.costIdx [encodeValue a, encodeValue b] ≤ 13 := by
   rw [Auto.Nat.testBit.c225.costEq P hP, limbs_of_lt ha, limbs_of_lt hb,
     limbs_of_lt (lt_of_le_of_lt (Nat.shiftRight_le a b) ha),
     limbs_of_lt (lt_of_le_of_lt (Nat.and_le_left (n := 1) (m := a >>> b)) (by norm_num))]
@@ -86,15 +86,15 @@ theorem pow_split {i m : ℕ} (h : i < m) : 2 ^ i * 2 ^ (m - (i + 1)) * 2 = 2 ^ 
 of `2^i` factors and one inverse: at most `430·2^m + 19730`. -/
 theorem novelTwiddles_cost (hP : Includes P Auto.LeanVM.Extraction.novelTwiddles.c219.costDeps)
     (m i : ℕ) (hi : i < m) (hm : m ≤ 62) :
-    machineCost P Auto.LeanVM.Extraction.novelTwiddles.c219.costIdx [enc m, enc i] ≤
+    machineCost P Auto.LeanVM.Extraction.novelTwiddles.c219.costIdx [encodeValue m, encodeValue i] ≤
       430 * 2 ^ m + 19730 := by
   rw [Auto.LeanVM.Extraction.novelTwiddles.c219.costEq P hP]
   have hsub := subspacePoly_cost P (by includes) i (by omega) (K.ofBits (2 ^ i))
   have hinv := invK_cost P (by includes) (subspacePoly i (K.ofBits (2 ^ i)))
   have hw : 2 ^ (m - (i + 1)) < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) (by omega)
   have hof := ofFnFrom_cost P (by includes) hw _
-    (.fn Auto.LeanVM.Extraction.novelTwiddles.c219.lam0.costIdx
-      [enc m, enc i, enc (subspacePoly i (K.ofBits (2 ^ i)))⁻¹])
+    (.closure Auto.LeanVM.Extraction.novelTwiddles.c219.lam0.costIdx
+      [encodeValue m, encodeValue i, encodeValue (subspacePoly i (K.ofBits (2 ^ i)))⁻¹])
     (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.novelTwiddles.c219.lam0.costSpec P
       (by includes) m i _ a)) (276 * 2 ^ i + 286)
     (fun a ↦ by
@@ -121,14 +121,14 @@ theorem novelTwiddles_cost (hP : Includes P Auto.LeanVM.Extraction.novelTwiddles
 /-- **An inverse butterfly stage** over `2^m` (`novelInvStage.c246`): at most `750·2^m + 19760`. -/
 theorem novelInvStage_cost (hP : Includes P Auto.LeanVM.Extraction.novelInvStage.c246.costDeps)
     (m i : ℕ) (hi : i < m) (hm : m ≤ 62) (b : Array K) :
-    machineCost P Auto.LeanVM.Extraction.novelInvStage.c246.costIdx [enc m, enc i, enc b] ≤
+    machineCost P Auto.LeanVM.Extraction.novelInvStage.c246.costIdx [encodeValue m, encodeValue i, encodeValue b] ≤
       760 * 2 ^ m + 19760 := by
   rw [Auto.LeanVM.Extraction.novelInvStage.c246.costEq P hP]
   have htw := novelTwiddles_cost P (by includes) m i hi hm
   have hN : 2 ^ m < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) (by omega)
   have hof := ofFnFrom_cost P (by includes) hN _
-    (.fn Auto.LeanVM.Extraction.novelInvStage.c246.lam0.costIdx
-      [enc m, enc i, enc b, enc (novelTwiddles m i)])
+    (.closure Auto.LeanVM.Extraction.novelInvStage.c246.lam0.costIdx
+      [encodeValue m, encodeValue i, encodeValue b, encodeValue (novelTwiddles m i)])
     (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.novelInvStage.c246.lam0.costSpec P
       (by includes) m i b _ a)) 310
     (fun a ↦ by
@@ -147,14 +147,14 @@ theorem novelInvStage_cost (hP : Includes P Auto.LeanVM.Extraction.novelInvStage
 /-- **A forward butterfly stage** over `2^m` (`novelFwdStage.c218`): at most `750·2^m + 19760`. -/
 theorem novelFwdStage_cost (hP : Includes P Auto.LeanVM.Extraction.novelFwdStage.c218.costDeps)
     (m i : ℕ) (hi : i < m) (hm : m ≤ 62) (b : Array K) :
-    machineCost P Auto.LeanVM.Extraction.novelFwdStage.c218.costIdx [enc m, enc i, enc b] ≤
+    machineCost P Auto.LeanVM.Extraction.novelFwdStage.c218.costIdx [encodeValue m, encodeValue i, encodeValue b] ≤
       760 * 2 ^ m + 19760 := by
   rw [Auto.LeanVM.Extraction.novelFwdStage.c218.costEq P hP]
   have htw := novelTwiddles_cost P (by includes) m i hi hm
   have hN : 2 ^ m < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) (by omega)
   have hof := ofFnFrom_cost P (by includes) hN _
-    (.fn Auto.LeanVM.Extraction.novelFwdStage.c218.lam0.costIdx
-      [enc m, enc i, enc b, enc (novelTwiddles m i)])
+    (.closure Auto.LeanVM.Extraction.novelFwdStage.c218.lam0.costIdx
+      [encodeValue m, encodeValue i, encodeValue b, encodeValue (novelTwiddles m i)])
     (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.novelFwdStage.c218.lam0.costSpec P
       (by includes) m i b _ a)) 310
     (fun a ↦ by
@@ -175,9 +175,9 @@ theorem novelFwdStage_cost (hP : Includes P Auto.LeanVM.Extraction.novelFwdStage
 theorem novelInv_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.toNovelFast.c244.lam0.costDeps)
     (hF : Includes P listFoldl.costDeps) (κ : ℕ) (hκ : κ ≤ 62) (y : Array K) :
     machineCost P listFoldl.costIdx
-        [.fn Auto.LeanVM.Extraction.Fast.toNovelFast.c244.lam0.costIdx [enc κ], enc y,
-          enc (List.range κ)] ≤ κ * (760 * 2 ^ κ + 19773) + 3 := by
-  have := listFoldl_le P hF _ (.fn Auto.LeanVM.Extraction.Fast.toNovelFast.c244.lam0.costIdx [enc κ])
+        [.closure Auto.LeanVM.Extraction.Fast.toNovelFast.c244.lam0.costIdx [encodeValue κ], encodeValue y,
+          encodeValue (List.range κ)] ≤ κ * (760 * 2 ^ κ + 19773) + 3 := by
+  have := listFoldl_le P hF _ (.closure Auto.LeanVM.Extraction.Fast.toNovelFast.c244.lam0.costIdx [encodeValue κ])
     (fun a b ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.Fast.toNovelFast.c244.lam0.costSpec P
       (by includes) κ a b)) (760 * 2 ^ κ + 19764) (fun _ ↦ True) (List.range κ) y trivial
     (fun acc _ i hi ↦ ⟨trivial, by
@@ -192,12 +192,12 @@ theorem novelInv_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.toNovelFast.c
 `N = 2^(κ+R)` and `κ` forward stages: at most `κ·(760·N + 19793) + 30·N + 42`. -/
 theorem novelFwd_cost (hP : Includes P Auto.LeanVM.Extraction.novelFwd.c216.costDeps)
     (κ R : ℕ) (hκR : κ + R ≤ 62) (c : Array K) :
-    machineCost P Auto.LeanVM.Extraction.novelFwd.c216.costIdx [enc κ, enc R, enc c] ≤
+    machineCost P Auto.LeanVM.Extraction.novelFwd.c216.costIdx [encodeValue κ, encodeValue R, encodeValue c] ≤
       κ * (760 * 2 ^ (κ + R) + 19793) + 30 * 2 ^ (κ + R) + 42 := by
   rw [Auto.LeanVM.Extraction.novelFwd.c216.costEq P hP]
   have hN : 2 ^ (κ + R) < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) (by omega)
   have hof := ofFnFrom_cost P (by includes) hN _
-    (.fn Auto.LeanVM.Extraction.novelFwd.c216.lam1.costIdx [enc κ, enc R, enc c])
+    (.closure Auto.LeanVM.Extraction.novelFwd.c216.lam1.costIdx [encodeValue κ, encodeValue R, encodeValue c])
     (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.novelFwd.c216.lam1.costSpec P
       (by includes) κ R c a)) 11
     (fun a ↦ by
@@ -208,7 +208,7 @@ theorem novelFwd_cost (hP : Includes P Auto.LeanVM.Extraction.novelFwd.c216.cost
         limbs_two_pow (by omega : κ < 64)]) 0 (Nat.zero_le _)
   have hr := rangeLoop_cost P (by includes) κ [] (by omega)
   have hfr := foldr_cost P (by includes) _
-    (.fn Auto.LeanVM.Extraction.novelFwd.c216.lam0.costIdx [enc κ, enc R])
+    (.closure Auto.LeanVM.Extraction.novelFwd.c216.lam0.costIdx [encodeValue κ, encodeValue R])
     (fun a b ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.novelFwd.c216.lam0.costSpec P
       (by includes) κ R a b)) (760 * 2 ^ (κ + R) + 19767)
     (Array.ofFn fun p : Fin (2 ^ (κ + R)) ↦ c.getD (p % 2 ^ κ) 0) (List.range κ)
@@ -232,23 +232,23 @@ theorem novelFwd_cost (hP : Includes P Auto.LeanVM.Extraction.novelFwd.c216.cost
 lanes each, `|L|` candidates, and the symbol's price at most `B`: at most
 `|st|·(|L|·((B + 29)·n + 9·U + 62) + 32) + 16`. -/
 theorem pruneStep_cost (hP : Includes P Auto.LeanVM.Extraction.pruneStep.c262.costDeps) (A : ℕ)
-    (hA : A < 2 ^ 128) (sym : ℕ → K) (symVal : Val) (hsym : ∀ a : ℕ, RunsApp P symVal [enc a] (enc (sym a)))
-    (B : ℕ) (hB : ∀ v : ℕ, appCost P symVal [enc v] ≤ B) (L : List (Array K × Array K))
+    (hA : A < 2 ^ 128) (sym : ℕ → K) (symVal : MachineValue) (hsym : ∀ a : ℕ, RunsApp P symVal [encodeValue a] (encodeValue (sym a)))
+    (B : ℕ) (hB : ∀ v : ℕ, appCost P symVal [encodeValue v] ≤ B) (L : List (Array K × Array K))
     (st : List (List (Array K) × List ℕ)) (n U : ℕ) (hn : n < 2 ^ 64)
     (hst : ∀ s ∈ st, s.2.length ≤ n ∧ s.1.length ≤ U) :
-    machineCost P Auto.LeanVM.Extraction.pruneStep.c262.costIdx [enc A, symVal, enc L, enc st] ≤
+    machineCost P Auto.LeanVM.Extraction.pruneStep.c262.costIdx [encodeValue A, symVal, encodeValue L, encodeValue st] ≤
       st.length * (L.length * ((B + 29) * n + 9 * U + 62) + 32) + 16 := by
   rw [Auto.LeanVM.Extraction.pruneStep.c262.costEq P hP A sym symVal hsym]
   -- one survivor and one candidate
   have hce : ∀ s ∈ st, ∀ ce : Array K × Array K,
-      appCost P (.fn Auto.LeanVM.Extraction.pruneStep.c262.lam0.lam0.costIdx [enc A, symVal, enc s])
-        [enc ce] ≤ (B + 29) * n + 9 * U + 40 := by
+      appCost P (.closure Auto.LeanVM.Extraction.pruneStep.c262.lam0.lam0.costIdx [encodeValue A, symVal, encodeValue s])
+        [encodeValue ce] ≤ (B + 29) * n + 9 * U + 40 := by
     intro s hs ce
     obtain ⟨h2, h1⟩ := hst s hs
     simp only [appCost_fn, List.cons_append, List.nil_append]
     rw [Auto.LeanVM.Extraction.pruneStep.c262.lam0.lam0.costEq P (by includes) A sym symVal hsym]
     have hf := filter_cost P (by includes) _
-      (.fn Auto.LeanVM.Extraction.pruneStep.c262.lam0.lam0.lam0.costIdx [symVal, enc ce])
+      (.closure Auto.LeanVM.Extraction.pruneStep.c262.lam0.lam0.lam0.costIdx [symVal, encodeValue ce])
       (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.pruneStep.c262.lam0.lam0.lam0.costSpec P
         (by includes) sym symVal hsym ce a)) (B + 9)
       s.2 (fun v _ ↦ by
@@ -268,18 +268,18 @@ theorem pruneStep_cost (hP : Includes P Auto.LeanVM.Extraction.pruneStep.c262.co
     have := max_le hlA (show 1 ≤ 2 by omega)
     split_ifs <;> nlinarith
   have hs : ∀ s ∈ st,
-      appCost P (.fn Auto.LeanVM.Extraction.pruneStep.c262.lam0.costIdx [enc A, symVal, enc L])
-        [enc s] ≤ ((B + 29) * n + 9 * U + 53) * L.length + 12 := by
+      appCost P (.closure Auto.LeanVM.Extraction.pruneStep.c262.lam0.costIdx [encodeValue A, symVal, encodeValue L])
+        [encodeValue s] ≤ ((B + 29) * n + 9 * U + 53) * L.length + 12 := by
     intro s hs
     simp only [appCost_fn, List.cons_append, List.nil_append]
     rw [Auto.LeanVM.Extraction.pruneStep.c262.lam0.costEq P (by includes) A sym symVal hsym]
     have := filterMap_cost P (by includes) _
-      (.fn Auto.LeanVM.Extraction.pruneStep.c262.lam0.lam0.costIdx [enc A, symVal, enc s])
+      (.closure Auto.LeanVM.Extraction.pruneStep.c262.lam0.lam0.costIdx [encodeValue A, symVal, encodeValue s])
       (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.pruneStep.c262.lam0.lam0.costSpec P
         (by includes) A sym symVal hsym s a)) _ L (fun ce _ ↦ hce s hs ce)
     nlinarith
   have hm := map_cost P (by includes) _
-    (.fn Auto.LeanVM.Extraction.pruneStep.c262.lam0.costIdx [enc A, symVal, enc L])
+    (.closure Auto.LeanVM.Extraction.pruneStep.c262.lam0.costIdx [encodeValue A, symVal, encodeValue L])
     (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.pruneStep.c262.lam0.costSpec P
       (by includes) A sym symVal hsym L a)) _ st hs
   refine (Nat.add_le_add_right (Nat.add_le_add hm
@@ -292,12 +292,12 @@ theorem pruneStep_cost (hP : Includes P Auto.LeanVM.Extraction.pruneStep.c262.co
 lanes: at most `(15·|cs| + 56)·2^μ + 19`. -/
 theorem stackOf_cost (hP : Includes P Auto.LeanVM.Extraction.stackOf.c272.costDeps) (μ : ℕ)
     (hμ : μ ≤ 62) (cs : List (Array K)) :
-    machineCost P Auto.LeanVM.Extraction.stackOf.c272.costIdx [enc μ, enc cs] ≤
+    machineCost P Auto.LeanVM.Extraction.stackOf.c272.costIdx [encodeValue μ, encodeValue cs] ≤
       (15 * cs.length + 56) * 2 ^ μ + 19 := by
   rw [Auto.LeanVM.Extraction.stackOf.c272.costEq P hP]
   have hN : 2 ^ μ < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) (by omega)
   have hof := ofFnFrom_cost P (by includes) hN _
-    (.fn Auto.LeanVM.Extraction.stackOf.c272.lam0.costIdx [enc μ, enc cs])
+    (.closure Auto.LeanVM.Extraction.stackOf.c272.lam0.costIdx [encodeValue μ, encodeValue cs])
     (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.stackOf.c272.lam0.costSpec P
       (by includes) μ cs a)) (15 * cs.length + 37)
     (fun a ↦ by
@@ -350,25 +350,25 @@ theorem newton_half (n g : ℕ) (hg : Nat.sqrt n < g) :
 /-- **Newton's iteration** (`Nat.sqrt.iter.c279`) from a guess `g ≥ √n`, `n < 2^127`, `g ≤ 2^126`: at most `23 + 25·(log₂(g − √n) + 1)` (`√n ≤ g`: each step halves the excess, `newton_half`). -/
 theorem sqrtIter_cost (hP : Includes P Auto.Nat.sqrt.iter.c279.costDeps) (n : ℕ) (hn : n < 2 ^ 127) :
     ∀ g, Nat.sqrt n ≤ g → g ≤ 2 ^ 126 →
-      machineCost P Auto.Nat.sqrt.iter.c279.costIdx [enc n, enc g] ≤
+      machineCost P Auto.Nat.sqrt.iter.c279.costIdx [encodeValue n, encodeValue g] ≤
         23 + 25 * (Nat.log2 (g - Nat.sqrt n) + 1) := by
   intro g hg hg1
-  have hl : ∀ x, x < 2 ^ 128 → limbs x ≤ 2 := fun x h ↦ limbs_le_two h
+  have hl : ∀ x, x < 2 ^ 128 → limbCount x ≤ 2 := fun x h ↦ limbs_le_two h
   -- the common price of a step's arithmetic
   have hstep : ∀ g, g ≤ 2 ^ 126 →
-      limbs n * limbs g + max (limbs g) (limbs (n / g)) + limbs (g + n / g) +
-        max (limbs ((g + n / g) / 2)) (limbs g) ≤ 10 := by
+      limbCount n * limbCount g + max (limbCount g) (limbCount (n / g)) + limbCount (g + n / g) +
+        max (limbCount ((g + n / g) / 2)) (limbCount g) ≤ 10 := by
     intro g hg1
     have h1 := hl n (by omega)
     have h2 := hl g (by omega)
     have h3 := hl (n / g) (lt_of_le_of_lt (Nat.div_le_self _ _) (by omega))
     have h4 := hl (g + n / g) (by have := Nat.div_le_self n g; omega)
     have h5 := hl ((g + n / g) / 2) (by have := Nat.div_le_self n g; omega)
-    have : limbs n * limbs g ≤ 4 := by nlinarith
+    have : limbCount n * limbCount g ≤ 4 := by nlinarith
     omega
   have := le_of_halving (α := ℕ) (fun x ↦ Nat.sqrt n ≤ x ∧ x ≤ 2 ^ 126)
     (fun x ↦ x - Nat.sqrt n)
-    (fun x ↦ machineCost P Auto.Nat.sqrt.iter.c279.costIdx [enc n, enc x]) 25 23 ?hz ?h g
+    (fun x ↦ machineCost P Auto.Nat.sqrt.iter.c279.costIdx [encodeValue n, encodeValue x]) 25 23 ?hz ?h g
     ⟨hg, hg1⟩
   · simpa using this
   · rintro x ⟨hx1, hx3⟩ h0
@@ -396,7 +396,7 @@ theorem sqrtIter_cost (hP : Includes P Auto.Nat.sqrt.iter.c279.costDeps) (n : �
 
 /-- **`Nat.sqrt`** (`Nat.sqrt.c278`) below `2^127`: at most `5200`. -/
 theorem sqrt_cost (hP : Includes P Auto.Nat.sqrt.c278.costDeps) (n : ℕ) (hn : n < 2 ^ 127) :
-    machineCost P Auto.Nat.sqrt.c278.costIdx [enc n] ≤ 5200 := by
+    machineCost P Auto.Nat.sqrt.c278.costIdx [encodeValue n] ≤ 5200 := by
   rw [Auto.Nat.sqrt.c278.costEq P hP]
   have h1 := limbs_le_two (x := n) (by omega)
   by_cases h : n ≤ 1
@@ -428,7 +428,7 @@ theorem sqrt_cost (hP : Includes P Auto.Nat.sqrt.c278.costDeps) (n : ℕ) (hn : 
 
 /-- `⌈√x⌉` (`ceilSqrt.c277`) below `2^127`: at most `15620`. -/
 theorem ceilSqrt_cost (hP : Includes P Auto.LeanVM.Extraction.ceilSqrt.c277.costDeps) (x : ℕ)
-    (hx : x < 2 ^ 127) : machineCost P Auto.LeanVM.Extraction.ceilSqrt.c277.costIdx [enc x] ≤ 15620 := by
+    (hx : x < 2 ^ 127) : machineCost P Auto.LeanVM.Extraction.ceilSqrt.c277.costIdx [encodeValue x] ≤ 15620 := by
   rw [Auto.LeanVM.Extraction.ceilSqrt.c277.costEq P hP]
   have hs := sqrt_cost P (by includes) x hx
   have h1 := Nat.sqrt_le x
@@ -436,7 +436,7 @@ theorem ceilSqrt_cost (hP : Includes P Auto.LeanVM.Extraction.ceilSqrt.c277.cost
   have l1 := limbs_le_two (x := Nat.sqrt x) (by omega)
   have l2 := limbs_le_two (x := Nat.sqrt x * Nat.sqrt x) (by omega)
   have l3 := limbs_le_two (x := x) (by omega)
-  have : limbs (Nat.sqrt x) * limbs (Nat.sqrt x) ≤ 4 := by nlinarith
+  have : limbCount (Nat.sqrt x) * limbCount (Nat.sqrt x) ≤ 4 := by nlinarith
   split_ifs <;> omega
 
 theorem johnsonSlack_row_length (i : ℕ) : (johnsonSlack.getD i []).length ≤ 14 := by
@@ -456,7 +456,7 @@ theorem johnsonSlackOf_le (μ R : ℕ) : johnsonSlackOf μ R ≤ 975 := by
 /-- The slack table lookup (`johnsonSlackOf.c281`): at most `540`. -/
 theorem johnsonSlackOf_cost (hP : Includes P Auto.LeanVM.Extraction.johnsonSlackOf.c281.costDeps)
     (μ R : ℕ) (hμ : μ < 2 ^ 64) (hR : R < 2 ^ 64) :
-    machineCost P Auto.LeanVM.Extraction.johnsonSlackOf.c281.costIdx [enc μ, enc R] ≤ 540 := by
+    machineCost P Auto.LeanVM.Extraction.johnsonSlackOf.c281.costIdx [encodeValue μ, encodeValue R] ≤ 540 := by
   rw [Auto.LeanVM.Extraction.johnsonSlackOf.c281.costEq P hP,
     Auto.LeanVM.Extraction.johnsonSlack.c282.costEq P (by includes), limbs_of_lt hR,
     limbs_of_lt hμ, limbs_of_lt (by unfold Whir.minLogStack; omega : Whir.minLogStack < 2 ^ 64)]
@@ -473,11 +473,11 @@ number below `2^126`, the slack table and a few two-limb operations: at most `16
 `2κ + R ≤ 80` (`κ = μ − 6`). -/
 theorem johnsonThreshold_cost (hP : Includes P Auto.LeanVM.Extraction.johnsonThreshold.c276.costDeps)
     (μ R : ℕ) (hμ : μ < 2 ^ 64) (hκR : 2 * (μ - Whir.initialFold) + R ≤ 80) :
-    machineCost P Auto.LeanVM.Extraction.johnsonThreshold.c276.costIdx [enc μ, enc R] ≤ 16300 := by
+    machineCost P Auto.LeanVM.Extraction.johnsonThreshold.c276.costIdx [encodeValue μ, encodeValue R] ≤ 16300 := by
   rw [Auto.LeanVM.Extraction.johnsonThreshold.c276.costEq P hP]
   have hf : Whir.initialFold = 6 := rfl
   set κ := μ - Whir.initialFold with hκ
-  have hL : ∀ x, x < 2 ^ 128 → limbs x ≤ 2 := fun x h ↦ limbs_le_two h
+  have hL : ∀ x, x < 2 ^ 128 → limbCount x ≤ 2 := fun x h ↦ limbs_le_two h
   have hN : 2 ^ (κ + R) ≤ 2 ^ 80 := Nat.pow_le_pow_right (by norm_num) (by omega)
   have hK : 2 ^ κ ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) (by omega)
   have hX : 2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R) < 2 ^ 126 := by
@@ -513,18 +513,18 @@ theorem johnsonThreshold_cost (hP : Includes P Auto.LeanVM.Extraction.johnsonThr
   have l15 := hL (ceilSqrt X + johnsonSlackOf μ R * 2 ^ (κ + R) + 2 ^ 22) (by omega)
   have l16 := hL (ceilSqrt X + johnsonSlackOf μ R * 2 ^ (κ + R) + 2 ^ 22 - 1) (by omega)
   have l17 := hL (Whir.initialFold) (by omega)
-  have p1 : limbs (2 ^ 44) * limbs (2 ^ κ - 1) ≤ 4 := by
+  have p1 : limbCount (2 ^ 44) * limbCount (2 ^ κ - 1) ≤ 4 := by
     rw [limbs_two_pow (by norm_num)]; omega
-  have p2 : limbs (2 ^ 44 * (2 ^ κ - 1)) * limbs (2 ^ (κ + R)) ≤ 4 := by nlinarith
-  have p3 : limbs (johnsonSlackOf μ R) * limbs (2 ^ (κ + R)) ≤ 4 := by nlinarith
-  have p4 : limbs (ceilSqrt X + johnsonSlackOf μ R * 2 ^ (κ + R) + 2 ^ 22 - 1) * limbs (2 ^ 22) ≤ 4 := by
+  have p2 : limbCount (2 ^ 44 * (2 ^ κ - 1)) * limbCount (2 ^ (κ + R)) ≤ 4 := by nlinarith
+  have p3 : limbCount (johnsonSlackOf μ R) * limbCount (2 ^ (κ + R)) ≤ 4 := by nlinarith
+  have p4 : limbCount (ceilSqrt X + johnsonSlackOf μ R * 2 ^ (κ + R) + 2 ^ 22 - 1) * limbCount (2 ^ 22) ≤ 4 := by
     rw [limbs_two_pow (by norm_num)]; omega
   rw [limbs_shift (by norm_num : 44 < 64), limbs_shift (by norm_num : 22 < 64),
     limbs_two_pow (by norm_num : 22 < 64)]
   have m1 := max_le l1 l17
   have m2 := max_le l2 l3
   have m3 := max_le l12 l13
-  have m4 := max_le l14 (show limbs 1 ≤ 2 by simp)
+  have m4 := max_le l14 (show limbCount 1 ≤ 2 by simp)
   omega
 
 theorem le_one_mul (a X : ℕ) (h : a ≤ 1) : a * X ≤ X := by
@@ -593,13 +593,13 @@ theorem fastLane_cost (hP : Includes P fastStacksFastC.lam1.costDeps) (μ R κ :
     (T : Array (Array K)) (st : List (List (Array K) × List ℕ)) (u r : ℕ) (hμ : μ < 2 ^ 64)
     (hJ : 2 * (μ - Whir.initialFold) + R ≤ 80) (hκR : κ + R ≤ 62)
     (hst : FastInv (2 ^ (κ + R)) st (r + 1)) :
-    machineCost P fastStacksFastC.lam1.costIdx [enc μ, enc R, enc T, enc κ, enc st, enc u] ≤
+    machineCost P fastStacksFastC.lam1.costIdx [encodeValue μ, encodeValue R, encodeValue T, encodeValue κ, encodeValue st, encodeValue u] ≤
       κ * (1520 * 2 ^ (κ + R) + 39583) + 102 * 2 ^ (κ + R) + 17500 := by
   rw [fastStacksFastC.lam1.costEq P hP]
   have hK : 2 ^ κ ≤ 2 ^ (κ + R) := Nat.pow_le_pow_right (by norm_num) (by omega)
   have hN : 2 ^ (κ + R) < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) (by omega)
   have hof := ofFnFrom_cost P (by includes) (n := 2 ^ κ) (by omega) _
-    (.fn fastStacksFastC.lam1.lam0.costIdx [enc T, enc κ, enc u])
+    (.closure fastStacksFastC.lam1.lam0.costIdx [encodeValue T, encodeValue κ, encodeValue u])
     (fun a ↦ RunsApp.of_spec (fastStacksFastC.lam1.lam0.costSpec P (by includes) T κ u a)) 12
     (fun a ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -612,7 +612,7 @@ theorem fastLane_cost (hP : Includes P fastStacksFastC.lam1.costDeps) (μ R κ :
   have hfwd := novelFwd_cost P (by includes) κ R hκR
     (novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦ Fast.tableSymbol T u v))
   have hpr := pruneStep_cost P (by includes) (johnsonThreshold μ R) (johnsonThreshold_lt μ R hJ) _
-    (.fn pruneUpToDistinctC.lam1.lam0.costIdx [enc T, enc u])
+    (.closure pruneUpToDistinctC.lam1.lam0.costIdx [encodeValue T, encodeValue u])
     (fun a ↦ RunsApp.of_spec (pruneUpToDistinctC.lam1.lam0.costSpec P (by includes) T u a)) 12
     (fun v ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -637,9 +637,9 @@ lanes (`fastLane_cost`), then at most one stack (`stackOf_cost`): at most
 `64·(κ·(1520·N + 39583) + 102·N + 17509) + (B_W + 10·W_d + 46)·N + 1016·2^μ + 1300`, for
 `μ ≤ 40`, `R ≤ 8`. -/
 theorem fastStacksFast_cost (hP : Includes P fastStacksFastC.costDeps) (μ R : ℕ) (hμ : μ ≤ 40)
-    (hR : R ≤ 8) (W : ℕ → List K) (WVal : Val) (hW : ∀ a : ℕ, RunsApp P WVal [enc a] (enc (W a)))
-    (BW Wd : ℕ) (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [enc v] ≤ BW) (hWd : ∀ v, (W v).length ≤ Wd) :
-    machineCost P fastStacksFastC.costIdx [enc μ, enc R, WVal] ≤
+    (hR : R ≤ 8) (W : ℕ → List K) (WVal : MachineValue) (hW : ∀ a : ℕ, RunsApp P WVal [encodeValue a] (encodeValue (W a)))
+    (BW Wd : ℕ) (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [encodeValue v] ≤ BW) (hWd : ∀ v, (W v).length ≤ Wd) :
+    machineCost P fastStacksFastC.costIdx [encodeValue μ, encodeValue R, WVal] ≤
       64 * ((μ - Whir.initialFold) * (1520 * 2 ^ (μ - Whir.initialFold + R) + 39583) +
           102 * 2 ^ (μ - Whir.initialFold + R) + 17509) +
         (BW + 10 * Wd + 46) * 2 ^ (μ - Whir.initialFold + R) + 1016 * 2 ^ μ + 1300 := by
@@ -650,7 +650,7 @@ theorem fastStacksFast_cost (hP : Includes P fastStacksFastC.costDeps) (μ R : �
   set N := 2 ^ (κ + R) with hNdef
   have hN : N < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) (by omega)
   have hof := ofFnFrom_cost P (by includes) (n := N) hN _
-    (.fn fastStacksFastC.lam0.costIdx [enc μ, enc R, WVal])
+    (.closure fastStacksFastC.lam0.costIdx [encodeValue μ, encodeValue R, WVal])
     (fun a ↦ RunsApp.of_spec (fastStacksFastC.lam0.costSpec P (by includes) μ R W WVal hW a))
     (BW + 10 * Wd + 9)
     (fun a ↦ by
@@ -685,7 +685,7 @@ theorem fastStacksFast_cost (hP : Includes P fastStacksFastC.costDeps) (μ R : �
     subst hs
     simp [hf]
   have hfold := listFoldl_amortized P (by includes) _
-    (.fn fastStacksFastC.lam1.costIdx [enc μ, enc R, enc (Fast.laneTable N W), enc κ])
+    (.closure fastStacksFastC.lam1.costIdx [encodeValue μ, encodeValue R, encodeValue (Fast.laneTable N W), encodeValue κ])
     (fun a b ↦ RunsApp.of_spec (fastStacksFastC.lam1.costSpec P (by includes) μ R _ κ a b))
     (κ * (1520 * N + 39583) + 102 * N + 17500) (fun _ ↦ 0) (FastInv N)
     (List.range (2 ^ Whir.initialFold)) [([], List.range N)] hinit
@@ -710,7 +710,7 @@ theorem fastStacksFast_cost (hP : Includes P fastStacksFastC.costDeps) (μ R : �
       intro st hl h
       exact ih _ (fun x hx ↦ hl x (by simp [hx])) (hstep st l.length h u (hl u (by simp)))
   have hfin := hend _ _ (fun u hu ↦ hu) hinit
-  have hmap := map_cost P (by includes) _ (.fn decodeStacksDistinctC.lam0.costIdx [enc μ])
+  have hmap := map_cost P (by includes) _ (.closure decodeStacksDistinctC.lam0.costIdx [encodeValue μ])
     (fun a ↦ RunsApp.of_spec (decodeStacksDistinctC.lam0.costSpec P (by includes) μ a))
     (1016 * 2 ^ μ + 23) _ (fun s hs ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]

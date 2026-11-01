@@ -35,7 +35,7 @@ open LeanVM.Cost.Auto.LeanVM.Extraction.Fast
 
 public section
 
-variable (P : Program)
+variable (P : MachineProgram)
 
 /-! ## Sizes -/
 
@@ -89,13 +89,13 @@ theorem prefixesInnerLe_of_xLenLe {Q : CBivariate K} {X : ℕ} (h : XLenLe Q X) 
 /-- **`List.foldl`, the closure's price depending on the element, the accumulator's size bounded
 along the fold**: an accumulator of size `sz acc` grows by at most `g b` at `b`, the sizes
 summing to at most `S`. -/
-theorem prefixesFoldl_le {α β : Type} [Enc α] [Enc β] (hP : Includes P listFoldl.costDeps)
-    (f : α → β → α) (fVal : Val) (hf : ∀ a b, RunsApp P fVal [enc a, enc b] (enc (f a b)))
+theorem prefixesFoldl_le {α β : Type} [MachineEncoding α] [MachineEncoding β] (hP : Includes P listFoldl.costDeps)
+    (f : α → β → α) (fVal : MachineValue) (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b)))
     (sz : α → ℕ) (g B : β → ℕ) (S : ℕ)
     (hstep : ∀ acc b, sz acc + g b ≤ S →
-      sz (f acc b) ≤ sz acc + g b ∧ appCost P fVal [enc acc, enc b] ≤ B b) :
+      sz (f acc b) ≤ sz acc + g b ∧ appCost P fVal [encodeValue acc, encodeValue b] ≤ B b) :
     ∀ (l : List β) (init : α), sz init + (l.map g).sum ≤ S →
-      machineCost P listFoldl.costIdx [fVal, enc init, enc l] ≤
+      machineCost P listFoldl.costIdx [fVal, encodeValue init, encodeValue l] ≤
         (l.map fun b ↦ B b + 9).sum + 3 := by
   intro l
   induction l with
@@ -137,7 +137,7 @@ theorem prefixesNFC_cost_nodes (hP : Includes P prefixesNF.c188.costDeps) {X Y k
     (hX : X < 2 ^ 56) (hY : Y < 2 ^ 28) (hY2 : 2 ≤ Y) (hk : k < 2 ^ 56) (fuel : ℕ) :
     ∀ (q : CBivariate K) (M depth : ℕ) (pref : CPolynomial K),
       YLenLe q Y → XLenLe q M → M ≤ X → pref.val.size ≤ depth → depth + fuel ≤ k →
-      machineCost P prefixesNF.c188.costIdx [enc fuel, enc q, enc M, enc depth, enc pref] +
+      machineCost P prefixesNF.c188.costIdx [encodeValue fuel, encodeValue q, encodeValue M, encodeValue depth, encodeValue pref] +
           rrChildPrice X Y k ≤
         (rrNodePrice X Y + rrChildPrice X Y k + Y * fuel) *
           rrNodesNF fieldRootCtxFast fuel q M := by
@@ -190,8 +190,8 @@ theorem prefixesNFC_cost_nodes (hP : Includes P prefixesNF.c188.costDeps) {X Y k
           (CBivariate.truncateX (substituteFast Qn a) (M - s)) (M - s)).sum with hS
         set G := rrNodePrice X Y + rrChildPrice X Y k + Y * fuel with hG
         have hT : ∀ a, machineCost P prefixesNF.c188.costIdx
-            [enc fuel, enc (CBivariate.truncateX (substituteFast Qn a) (M - s)), enc (M - s),
-              enc (depth + 1), enc (GuruswamiSudan.extendPrefix pref depth a)] +
+            [encodeValue fuel, encodeValue (CBivariate.truncateX (substituteFast Qn a) (M - s)), encodeValue (M - s),
+              encodeValue (depth + 1), encodeValue (GuruswamiSudan.extendPrefix pref depth a)] +
               rrChildPrice X Y k ≤
             G * rrNodesNF fieldRootCtxFast fuel
               (CBivariate.truncateX (substituteFast Qn a) (M - s)) (M - s) :=
@@ -199,16 +199,16 @@ theorem prefixesNFC_cost_nodes (hP : Includes P prefixesNF.c188.costDeps) {X Y k
             (XLenLe.truncateX _ _) (by omega)
             (by have := extendPrefix_size_le pref depth a; omega) (by omega)
         have hf := fun out a ↦ RunsApp.of_spec
-          (us := [enc s, enc fuel, enc M, enc depth, enc pref, enc Qn]) (vs := [enc out, enc a])
+          (us := [encodeValue s, encodeValue fuel, encodeValue M, encodeValue depth, encodeValue pref, encodeValue Qn]) (vs := [encodeValue out, encodeValue a])
           (prefixesNF.c188.lam0.costSpec P (by includes) s fuel M depth pref Qn out a)
         have h202 : prefixesNF.c188.lam0.costIdx = 202 := rfl
         have hfold := prefixesFoldl_le P (by includes) _
-          (.fn prefixesNF.c188.lam0.costIdx [enc s, enc fuel, enc M, enc depth, enc pref, enc Qn])
+          (.closure prefixesNF.c188.lam0.costIdx [encodeValue s, encodeValue fuel, encodeValue M, encodeValue depth, encodeValue pref, encodeValue Qn])
           hf Array.size (fun a ↦ rrNodesNF fieldRootCtxFast fuel
             (CBivariate.truncateX (substituteFast Qn a) (M - s)) (M - s))
           (fun a ↦ rrChildCore X Y k + S + machineCost P prefixesNF.c188.costIdx
-            [enc fuel, enc (CBivariate.truncateX (substituteFast Qn a) (M - s)), enc (M - s),
-              enc (depth + 1), enc (GuruswamiSudan.extendPrefix pref depth a)]) S
+            [encodeValue fuel, encodeValue (CBivariate.truncateX (substituteFast Qn a) (M - s)), encodeValue (M - s),
+              encodeValue (depth + 1), encodeValue (GuruswamiSudan.extendPrefix pref depth a)]) S
           (fun out a hout ↦ by
             have hres := prefixesNF_size_le_nodes fieldRootCtxFast fuel
               (CBivariate.truncateX (substituteFast Qn a) (M - s)) (M - s)
@@ -234,14 +234,14 @@ theorem prefixesNFC_cost_nodes (hP : Includes P prefixesNF.c188.costDeps) {X Y k
         -- the sum over the children
         have hsum : (roots.toList.map fun a ↦ rrChildCore X Y k + S +
             machineCost P prefixesNF.c188.costIdx
-              [enc fuel, enc (CBivariate.truncateX (substituteFast Qn a) (M - s)), enc (M - s),
-                enc (depth + 1), enc (GuruswamiSudan.extendPrefix pref depth a)] + 9).sum ≤
+              [encodeValue fuel, encodeValue (CBivariate.truncateX (substituteFast Qn a) (M - s)), encodeValue (M - s),
+                encodeValue (depth + 1), encodeValue (GuruswamiSudan.extendPrefix pref depth a)] + 9).sum ≤
             roots.size * S + G * S := by
           have := list_sum_map_le (l := roots.toList)
             (f := fun a ↦ rrChildCore X Y k + S +
               machineCost P prefixesNF.c188.costIdx
-                [enc fuel, enc (CBivariate.truncateX (substituteFast Qn a) (M - s)), enc (M - s),
-                  enc (depth + 1), enc (GuruswamiSudan.extendPrefix pref depth a)] + 9)
+                [encodeValue fuel, encodeValue (CBivariate.truncateX (substituteFast Qn a) (M - s)), encodeValue (M - s),
+                  encodeValue (depth + 1), encodeValue (GuruswamiSudan.extendPrefix pref depth a)] + 9)
             (g := fun a ↦ S + G * rrNodesNF fieldRootCtxFast fuel
               (CBivariate.truncateX (substituteFast Qn a) (M - s)) (M - s)) fun a _ ↦ by
               have := hT a
@@ -272,8 +272,8 @@ theorem prefixesNFC_cost (hP : Includes P prefixesNF.c188.costDeps) {points : Ar
     (hk1 : 1 < params.messageDegree) (hX : params.weightedDegreeBound + 1 < 2 ^ 56)
     (hY : interpolationYCap params + 2 < 2 ^ 28) (hk : params.messageDegree < 2 ^ 56) :
     machineCost P prefixesNF.c188.costIdx
-        [enc params.messageDegree, enc (CBivariate.truncateX Q (params.weightedDegreeBound + 1)),
-          enc (params.weightedDegreeBound + 1), enc 0, enc (default : CPolynomial K)] ≤
+        [encodeValue params.messageDegree, encodeValue (CBivariate.truncateX Q (params.weightedDegreeBound + 1)),
+          encodeValue (params.weightedDegreeBound + 1), encodeValue 0, encodeValue (default : CPolynomial K)] ≤
       rrBound (params.weightedDegreeBound + 1) (interpolationYCap params + 2)
         params.messageDegree (interpolationYCap params) := by
   have hl := lenLe_of_validInterpolation hQ hk1
@@ -300,7 +300,7 @@ theorem gsRunDistinctNFC_cost (hP : Includes P gsRunDistinctNFC.costDeps)
     (hd : DistinctXCoordinates points) (hr : radius < 2 ^ 64)
     (hX : params.weightedDegreeBound + 1 < 2 ^ 56) (hY : interpolationYCap params + 2 < 2 ^ 28)
     (hk56 : params.messageDegree < 2 ^ 56) :
-    machineCost P gsRunDistinctNFC.costIdx [enc points, enc params, enc radius] ≤
+    machineCost P gsRunDistinctNFC.costIdx [encodeValue points, encodeValue params, encodeValue radius] ≤
       gsRunBound points.size params := by
   have ⟨hn, hW, hk, hyW, hw, _⟩ := hs
   rw [gsRunDistinctNFC.costEq P hP]
@@ -336,13 +336,13 @@ theorem gsRunDistinctNFC_cost (hP : Includes P gsRunDistinctNFC.costDeps)
       have := prefixesWithFuelFast_mem_size_le fieldRootCtxFast _ _ 0 default
         (by show (default : CPolynomial K).val.size ≤ 0; rfl) p hp
       omega
-    have hfv := fun p ↦ RunsApp.of_spec (us := [enc points, enc params, enc radius]) (vs := [enc p])
+    have hfv := fun p ↦ RunsApp.of_spec (us := [encodeValue points, encodeValue params, encodeValue radius]) (vs := [encodeValue p])
       (gsRunDistinctNFC.lam0.costSpec P (by includes) points params radius p)
     generalize hR : prefixesNF fieldRootCtxFast params.messageDegree
       (CBivariate.truncateX Q (params.weightedDegreeBound + 1)) (params.weightedDegreeBound + 1) 0
       default = res at hres hmem
     have hfil := filter_cost P (by includes) _
-      (.fn gsRunDistinctNFC.lam0.costIdx [enc points, enc params, enc radius]) hfv
+      (.closure gsRunDistinctNFC.lam0.costIdx [encodeValue points, encodeValue params, encodeValue radius]) hfv
       ((272 * params.messageDegree + 34) * points.size + 30) res.toList (fun p hp ↦ by
         have hps := hmem p (by simpa using hp)
         simp only [appCost_fn, List.cons_append, List.nil_append]

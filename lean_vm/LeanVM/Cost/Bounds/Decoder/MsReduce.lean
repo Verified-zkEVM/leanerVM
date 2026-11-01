@@ -67,14 +67,14 @@ theorem rowWithin_mem_of_msInv {r w D : ℕ} {M : PolynomialMatrix K} {shift : A
   have := rowWithin_of_msInv h k
   rwa [Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem hk] at this
 
-variable (P : Program)
+variable (P : MachineProgram)
 
 /-! ## The conflict search -/
 
 /-- `List.range' start n`: at most `21·n + 6`. -/
 theorem rangeC_cost (hP : Includes P Auto.List.range'.c10.costDeps) :
     ∀ (n start : ℕ), start + n < 2 ^ 63 →
-      machineCost P Auto.List.range'.c10.costIdx [enc start, enc n, enc 1] ≤ 21 * n + 6 := by
+      machineCost P Auto.List.range'.c10.costIdx [encodeValue start, encodeValue n, encodeValue 1] ≤ 21 * n + 6 := by
   intro n
   induction n with
   | zero => intro start _; rw [Auto.List.range'.c10.costEq_zero P hP]
@@ -94,7 +94,7 @@ theorem conflictStepC_cost (hP : Includes P cachedLeadingConflictInRowStep?.c9.c
     (positions : Array (Option ℕ)) (hp : WordPositions positions) (i : ℕ)
     (found : Option (ℕ × ℕ)) (j : ℕ) :
     machineCost P cachedLeadingConflictInRowStep?.c9.costIdx
-      [enc positions, enc i, enc found, enc j] ≤ 25 := by
+      [encodeValue positions, encodeValue i, encodeValue found, encodeValue j] ≤ 25 := by
   cases found with
   | some v => rw [cachedLeadingConflictInRowStep?.c9.costEq_some P hP]; omega
   | none =>
@@ -117,13 +117,13 @@ theorem conflictStepC_cost (hP : Includes P cachedLeadingConflictInRowStep?.c9.c
 theorem conflictRowC_cost (hP : Includes P cachedLeadingConflictInRow?.c7.costDeps)
     (positions : Array (Option ℕ)) (hp : WordPositions positions) (hr : positions.size < 2 ^ 62)
     (i : ℕ) (hi : i < positions.size) (found : Option (ℕ × ℕ)) :
-    machineCost P cachedLeadingConflictInRow?.c7.costIdx [enc positions, enc i, enc found] ≤
+    machineCost P cachedLeadingConflictInRow?.c7.costIdx [encodeValue positions, encodeValue i, encodeValue found] ≤
       60 * positions.size + 30 := by
   rw [cachedLeadingConflictInRow?.c7.costEq P hP]
   have := rangeC_cost P (by includes) (positions.size - (i + 1)) (i + 1) (by omega)
   have hf := listFoldl_le P (by includes) _
-    (.fn cachedLeadingConflictInRow?.c7.lam0.costIdx [enc positions, enc i])
-    (fun found j ↦ RunsApp.of_spec (us := [enc positions, enc i]) (vs := [enc found, enc j])
+    (.closure cachedLeadingConflictInRow?.c7.lam0.costIdx [encodeValue positions, encodeValue i])
+    (fun found j ↦ RunsApp.of_spec (us := [encodeValue positions, encodeValue i]) (vs := [encodeValue found, encodeValue j])
       (cachedLeadingConflictInRow?.c7.lam0.costSpec P (by includes) positions i found j))
     30 (fun _ ↦ True) (List.range' (i + 1) (positions.size - (i + 1))) found trivial
     (fun acc _ j _ ↦ ⟨trivial, by
@@ -143,13 +143,13 @@ theorem conflictRowC_cost (hP : Includes P cachedLeadingConflictInRow?.c7.costDe
 theorem cachedLeadingConflictC_cost (hP : Includes P cachedLeadingConflict?.c5.costDeps)
     (positions : Array (Option ℕ)) (hp : WordPositions positions)
     (hr : positions.size < 2 ^ 62) :
-    machineCost P cachedLeadingConflict?.c5.costIdx [enc positions] ≤
+    machineCost P cachedLeadingConflict?.c5.costIdx [encodeValue positions] ≤
       64 * (positions.size * positions.size) + 64 * positions.size + 19 := by
   rw [cachedLeadingConflict?.c5.costEq P hP]
   have := rangeC_cost P (by includes) positions.size 0 (by omega)
   have hf := listFoldl_le P (by includes) _
-    (.fn cachedLeadingConflict?.c5.lam0.costIdx [enc positions])
-    (fun found i ↦ RunsApp.of_spec (us := [enc positions]) (vs := [enc found, enc i])
+    (.closure cachedLeadingConflict?.c5.lam0.costIdx [encodeValue positions])
+    (fun found i ↦ RunsApp.of_spec (us := [encodeValue positions]) (vs := [encodeValue found, encodeValue i])
       (cachedLeadingConflict?.c5.lam0.costSpec P (by includes) positions found i))
     (60 * positions.size + 34) (fun _ ↦ True) (List.range' 0 positions.size) none trivial
     (fun acc _ i hi ↦ ⟨trivial, by
@@ -170,7 +170,7 @@ theorem stepFastC_cost (hP : Includes P muldersStorjohannStepFast.c24.costDeps) 
     (hC : C < 2 ^ 62) (hDS : 2 * D + S < 2 ^ 62) (M : PolynomialMatrix K)
     (hM : ∀ row ∈ M, RowWithin C D row) (hMs : M.size < 2 ^ 64) (shift : Array ℕ)
     (hS : ∀ j, shift.getD j 0 ≤ S) (i j : ℕ) :
-    machineCost P muldersStorjohannStepFast.c24.costIdx [enc M, enc shift, enc i, enc j] ≤
+    machineCost P muldersStorjohannStepFast.c24.costIdx [encodeValue M, encodeValue shift, encodeValue i, encodeValue j] ≤
       M.size + 740 * (D * C) + 970 * C + 30 * D + 21100 := by
   have hrow : ∀ k, RowWithin C D (M.getD k #[]) := by
     intro k
@@ -204,13 +204,13 @@ theorem stepFastC_cost (hP : Includes P muldersStorjohannStepFast.c24.costDeps) 
 theorem rowLeadingPositionsC_cost (hP : Includes P rowLeadingPositions.c11.costDeps) {C D S : ℕ}
     (hC : C < 2 ^ 62) (hDS : D + S < 2 ^ 62) (M : PolynomialMatrix K)
     (hM : ∀ row ∈ M, RowWithin C D row) (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S) :
-    machineCost P rowLeadingPositions.c11.costIdx [enc M, enc shift] ≤
+    machineCost P rowLeadingPositions.c11.costIdx [encodeValue M, encodeValue shift] ≤
       190 * (C * M.size) + 118 * M.size + 10 := by
   rw [rowLeadingPositions.c11.costEq P hP]
-  have hf := fun row ↦ RunsApp.of_spec (us := [enc shift]) (vs := [enc row])
+  have hf := fun row ↦ RunsApp.of_spec (us := [encodeValue shift]) (vs := [encodeValue row])
     (rowLeadingPositions.c11.lam0.costSpec P (by includes) shift row)
   have hmap := listMap_le P Auto.List.map.c12.costIdx
-    (.fn rowLeadingPositions.c11.lam0.costIdx [enc shift])
+    (.closure rowLeadingPositions.c11.lam0.costIdx [encodeValue shift])
     (Auto.List.map.c12.costEq_nil P (by includes) _ _ hf)
     (Auto.List.map.c12.costEq_cons P (by includes) _ _ hf) (190 * C + 103) M.toList
     (fun row hrow ↦ by
@@ -244,13 +244,13 @@ theorem msLoopC_cost (hP : Includes P muldersStorjohannReduceWithFuelFast.c4.cos
     {r w D S : ℕ} (hr : r < 2 ^ 62) (hw : w < 2 ^ 62) (hDS : 2 * (D + 1) + S < 2 ^ 62)
     (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S) :
     ∀ (fuel : ℕ) (M : PolynomialMatrix K), fuel < 2 ^ 64 → MsInv r w D M shift →
-      machineCost P muldersStorjohannReduceWithFuelFast.c4.costIdx [enc fuel, enc M, enc shift] ≤
+      machineCost P muldersStorjohannReduceWithFuelFast.c4.costIdx [encodeValue fuel, encodeValue M, encodeValue shift] ≤
         (r * ((D + 1) * (w + 1)) + 1) * msIterBound r w D := by
   intro fuel M hf hM
   have key := msLoop_cost_le (F := K) (r := r) (w := w) (D := D) (shift := shift)
     (c := msIterBound r w D)
     (fun fuel M ↦ if fuel < 2 ^ 64 then
-      machineCost P muldersStorjohannReduceWithFuelFast.c4.costIdx [enc fuel, enc M, enc shift]
+      machineCost P muldersStorjohannReduceWithFuelFast.c4.costIdx [encodeValue fuel, encodeValue M, encodeValue shift]
       else 0)
     (fun M _ ↦ by
       simp only [show (0 : ℕ) < 2 ^ 64 by norm_num, ↓reduceIte]
@@ -326,14 +326,14 @@ theorem matrixShiftedDegreeC_cost (hP : Includes P matrixShiftedDegree?.c36.cost
     {r w D S : ℕ} (hr : r < 2 ^ 62) (hw : w < 2 ^ 62) (hDS : 2 * (D + 1) + S < 2 ^ 62)
     (M : PolynomialMatrix K) (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S)
     (hM : MsInv r w D M shift) :
-    machineCost P matrixShiftedDegree?.c36.costIdx [enc M, enc shift] ≤
+    machineCost P matrixShiftedDegree?.c36.costIdx [encodeValue M, encodeValue shift] ≤
       90 * (w * r) + 77 * r + 20 := by
   have hMr : M.size = r := hM.1
   rw [matrixShiftedDegree?.c36.costEq P hP]
   have hl := rangeLoop_cost P (by includes) M.size [] (by omega)
   have hfold := listFoldl_le P (by includes) _
-    (.fn matrixShiftedDegree?.c36.lam0.costIdx [enc M, enc shift])
-    (fun acc i ↦ RunsApp.of_spec (us := [enc M, enc shift]) (vs := [enc acc, enc i])
+    (.closure matrixShiftedDegree?.c36.lam0.costIdx [encodeValue M, encodeValue shift])
+    (fun acc i ↦ RunsApp.of_spec (us := [encodeValue M, encodeValue shift]) (vs := [encodeValue acc, encodeValue i])
       (matrixShiftedDegree?.c36.lam0.costSpec P (by includes) M shift acc i))
     (90 * w + 51) (fun acc ↦ ∀ v, acc = some v → v ≤ D + 1 + S) (List.range M.size) none
     (by simp)
@@ -371,7 +371,7 @@ theorem matrixShiftedDegreeC_cost (hP : Includes P matrixShiftedDegree?.c36.cost
 
 /-- The matrix's width: at most `15`. -/
 theorem matrixWidthC_cost (hP : Includes P MatrixWidth.c38.costDeps) (M : PolynomialMatrix K)
-    (hMs : M.size < 2 ^ 64) : machineCost P MatrixWidth.c38.costIdx [enc M] ≤ 15 := by
+    (hMs : M.size < 2 ^ 64) : machineCost P MatrixWidth.c38.costIdx [encodeValue M] ≤ 15 := by
   rw [MatrixWidth.c38.costEq P hP]
   cost_simp
   cases M[0]? <;> dsimp only <;> split_ifs <;> omega
@@ -381,7 +381,7 @@ theorem msFuelC_cost (hP : Includes P muldersStorjohannFuel.c35.costDeps)
     {r w D S : ℕ} (hr : r < 2 ^ 62) (hw : w < 2 ^ 62) (hDS : 2 * (D + 1) + S < 2 ^ 62)
     (hrw : (r + 1) * (w + 1) < 2 ^ 64) (M : PolynomialMatrix K) (shift : Array ℕ)
     (hS : ∀ j, shift.getD j 0 ≤ S) (hM : MsInv r w D M shift) :
-    machineCost P muldersStorjohannFuel.c35.costIdx [enc M, enc shift] ≤
+    machineCost P muldersStorjohannFuel.c35.costIdx [encodeValue M, encodeValue shift] ≤
       90 * (w * r) + 77 * r + 60 := by
   have hMr : M.size = r := hM.1
   have hMw : MatrixWidth M = w := hM.2.1
@@ -400,7 +400,7 @@ theorem msReduceC_cost (hP : Includes P msReduceK.costDeps) {r w D S : ℕ} (hr 
     (hw : w < 2 ^ 62) (hDS : 2 * (D + 1) + S < 2 ^ 62)
     (hfuel : (r + 1) * (w + 1) * (D + S + 2) < 2 ^ 64) (M : PolynomialMatrix K)
     (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S) (hM : MsInv r w D M shift) :
-    machineCost P msReduceK.costIdx [enc M, enc shift] ≤
+    machineCost P msReduceK.costIdx [encodeValue M, encodeValue shift] ≤
       (r * ((D + 1) * (w + 1)) + 1) * msIterBound r w D + 90 * (w * r) + 77 * r + 66 := by
   have hrw : (r + 1) * (w + 1) < 2 ^ 64 := by
     have : (r + 1) * (w + 1) * 1 ≤ (r + 1) * (w + 1) * (D + S + 2) :=
@@ -445,8 +445,8 @@ theorem laneMsReduce_cost (hP : Includes P msReduceK.costDeps) (κ R A : ℕ) (W
     (hDS : 2 * (laneDegBound κ R A + 1) + laneYCap κ R A * (2 ^ κ - 1) < 2 ^ 62)
     (hfuel : (laneYCap κ R A + 2) * (laneYCap κ R A + 2) *
       (laneDegBound κ R A + laneYCap κ R A * (2 ^ κ - 1) + 2) < 2 ^ 64) :
-    machineCost P msReduceK.costIdx [enc (laneBasis κ R A W u),
-        enc (GuruswamiSudan.leeOSullivanShifts (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp)] ≤
+    machineCost P msReduceK.costIdx [encodeValue (laneBasis κ R A W u),
+        encodeValue (GuruswamiSudan.leeOSullivanShifts (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp)] ≤
       laneMsBound κ R A := by
   have := msReduceC_cost P hP hr hr hDS hfuel (laneBasis κ R A W u) _ (laneShifts_le κ R A)
     (laneBasis_msInv κ R A W u)
@@ -458,8 +458,8 @@ theorem laneMsReduce_cost (hP : Includes P msReduceK.costDeps) (κ R A : ℕ) (W
 `m = 415`, `D = 34816915843`): a lane's reduction costs at most
 `4120758887382473769018615478698110 ≈ 2^111.67` (`≈ 2^117.67` over the 64 lanes). -/
 theorem laneMsReduce_cost_28_4 (hP : Includes P msReduceK.costDeps) (W : ℕ → List K) (u : ℕ) :
-    machineCost P msReduceK.costIdx [enc (laneBasis 22 4 16792398 W u),
-        enc (GuruswamiSudan.leeOSullivanShifts
+    machineCost P msReduceK.costIdx [encodeValue (laneBasis 22 4 16792398 W u),
+        encodeValue (GuruswamiSudan.leeOSullivanShifts
           (gsParamsFor (2 ^ 22) (2 ^ (22 + 4)) 16792398).interp)] ≤
       4120758887382473769018615478698110 := by
   have := laneMsReduce_cost P hP 22 4 16792398 W u (by decide +kernel) (by decide +kernel)

@@ -18,7 +18,7 @@ open LeanVM.Cost LeanVM.Cost.Extractor LeanVM.Cost.Library
 
 public section
 
-variable (P : LeanVM.Cost.Program)
+variable (P : LeanVM.Cost.MachineProgram)
 
 set_option maxHeartbeats 1000000 in
 theorem includes_stageTC (hP : Includes P afterRootStageC.costDeps) : Includes P stageTC.costDeps := by
