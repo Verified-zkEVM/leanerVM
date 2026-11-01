@@ -202,6 +202,18 @@ theorem limbs_ofNat (n : ℕ) [n.AtLeastTwo] (h : (OfNat.ofNat n : ℕ) < 2 ^ 64
 theorem appCost_fn (P : Program) (j : ℕ) (us vs : List Val) :
     appCost P (.fn j us) vs = machineCost P j (us ++ vs) := rfl
 
+/-- `cost_simp`: fold a recurrence's constants: `limbs` of numbers `omega` shows word-sized, the
+lengths of literal lists, a known closure's price as its function's. -/
+macro "cost_simp" : tactic => `(tactic| simp (disch := omega) only [limbs_of_lt, List.length_nil,
+  List.length_cons, appCost_fn, List.nil_append, List.cons_append, Nat.add_zero, Nat.zero_add,
+  Nat.rec_zero, Nat.rec_add_one, max_self])
+
+/-- `cost_simp at h ⊢`. -/
+macro "cost_simp" " at " loc:Lean.Parser.Tactic.locationHyp : tactic => `(tactic|
+  simp (disch := omega) only [limbs_of_lt, List.length_nil, List.length_cons, appCost_fn,
+    List.nil_append, List.cons_append, Nat.add_zero, Nat.zero_add, Nat.rec_zero, Nat.rec_add_one,
+    max_self] at $loc)
+
 /-! ## Recurrence solvers -/
 
 theorem log2_half {n : ℕ} (h : 2 ≤ n) : Nat.log2 (n / 2) + 1 = Nat.log2 n := by
@@ -212,40 +224,47 @@ theorem log2_mono {m n : ℕ} (h : m ≤ n) : Nat.log2 m ≤ Nat.log2 n := by
   · simp
   · exact (Nat.le_log2 (by omega)).2 (le_trans (Nat.log2_self_le (by omega)) h)
 
-/-- **Halving** (a binary search): a price that either stops at `b` (always so at measure `0`), or
-pays `a` and recurs on a measure at most half as large, is at most `b + a·(log₂ m + 1)`. -/
-theorem le_of_halving {α : Type} (m T : α → ℕ) (a b : ℕ) (hz : ∀ x, m x = 0 → T x ≤ b)
-    (h : ∀ x, T x ≤ b ∨ ∃ y, m y ≤ m x / 2 ∧ 0 < m x ∧ T x ≤ a + T y) :
-    ∀ x, T x ≤ b + a * (Nat.log2 (m x) + 1) := by
-  intro x
-  induction hx : m x using Nat.strong_induction_on generalizing x with
+/-- **Halving** (a binary search): a price that, on arguments of an invariant `I`, either stops at
+`b` (always so at measure `0`), or pays `a` and recurs on arguments of `I` of a measure at most
+half as large, is at most `b + a·(log₂ m + 1)`. -/
+theorem le_of_halving {α : Type} (I : α → Prop) (m T : α → ℕ) (a b : ℕ)
+    (hz : ∀ x, I x → m x = 0 → T x ≤ b)
+    (h : ∀ x, I x → 0 < m x → T x ≤ b ∨ ∃ y, I y ∧ m y ≤ m x / 2 ∧ T x ≤ a + T y) :
+    ∀ x, I x → T x ≤ b + a * (Nat.log2 (m x) + 1) := by
+  intro x hx
+  induction hm : m x using Nat.strong_induction_on generalizing x with
   | _ n ih =>
-    rcases h x with h1 | ⟨y, hy, hpos, h2⟩
+    rcases Nat.eq_zero_or_pos (m x) with h0 | hpos
+    · have := hz x hx h0; nlinarith
+    rcases h x hx hpos with h1 | ⟨y, hy, hmy, h2⟩
     · nlinarith
-    · have ihy := ih (m y) (by omega) y rfl
-      subst hx
+    · have ihy := ih (m y) (by omega) y hy rfl
+      subst hm
       rcases Nat.lt_or_ge (m y) 1 with h0 | h1
-      · have := hz y (by omega)
+      · have := hz y hy (by omega)
         nlinarith
       · have h2x : 2 ≤ m x := by omega
-        have := log2_mono hy
+        have := log2_mono hmy
         have := log2_half h2x
         have : a * (Nat.log2 (m y) + 1) + a ≤ a * (Nat.log2 (m x) + 1) := by nlinarith
         omega
 
-/-- **Doubling** (a full binary tree of height `k`): `T 0 ≤ b` and
-`T (k + 1) ≤ a + c·2^(k+1) + 2·T k` give `T k + a ≤ 2^k·(a + b + c·k)`. -/
-theorem le_of_doubling (T : ℕ → ℕ) (a b c : ℕ) (h0 : T 0 ≤ b)
-    (hs : ∀ k, T (k + 1) ≤ a + c * 2 ^ (k + 1) + 2 * T k) :
-    ∀ k, T k + a ≤ 2 ^ k * (a + b + c * k) := by
+/-- **Doubling** (a binary tree of height `k`): `T 0 x ≤ b`, and `T (k + 1) x` at most
+`a + c·2^(k+1)` and the prices of two subtrees of height `k`, give `T k x + a ≤ 2^k·(a + b + c·k)`:
+`a + b` per leaf, `c` per leaf and level. -/
+theorem le_of_doubling {α : Type} (T : ℕ → α → ℕ) (a b c : ℕ) (h0 : ∀ x, T 0 x ≤ b)
+    (hs : ∀ k x, ∃ y z, T (k + 1) x ≤ a + c * 2 ^ (k + 1) + T k y + T k z) :
+    ∀ k x, T k x + a ≤ 2 ^ k * (a + b + c * k) := by
   intro k
   induction k with
-  | zero => simp; omega
+  | zero => intro x; have := h0 x; simp; omega
   | succ k ih =>
-    have := hs k
+    intro x
+    obtain ⟨y, z, h⟩ := hs k x
+    have hy := ih y
+    have hz := ih z
     have h2 : 2 ^ (k + 1) = 2 * 2 ^ k := by ring
-    have h1 : 1 ≤ 2 ^ k := Nat.one_le_two_pow
-    rw [h2] at this ⊢
+    rw [h2] at h ⊢
     nlinarith
 
 /-! ## The library's polymorphic functions -/
