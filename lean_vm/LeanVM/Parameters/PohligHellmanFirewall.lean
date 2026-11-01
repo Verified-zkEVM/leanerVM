@@ -1,7 +1,7 @@
 import LeanVM.Parameters.PohligHellman
 
 /-! **The kernel-checked Pohlig–Hellman constants read the field alone.** `PohligHellman` checks
-fourteen exponentiations in the kernel; it imports `Statement.Field` and nothing of `lean_vm`, so
+nine exponentiations in the kernel; it imports `Statement.Field` and nothing of `lean_vm`, so
 an edit of the discrete logarithm or its proofs (`Fast/DiscreteLog.lean`) rebuilds no check. This
 module fails to build if its imports reach any other module of `lean_vm`. -/
 
