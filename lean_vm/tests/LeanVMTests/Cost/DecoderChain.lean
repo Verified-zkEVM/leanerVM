@@ -209,5 +209,4 @@ open LeanVM.Guest.Fast in
     Main.digestOfCells (gen ^ 1) (gen ^ 2)⟩,
     deferOfCells ((List.range 24).map fun i ↦ (gen ^ (i + 1) : E))⟩ : LeanVM.Node.NodeStatement))
 
-
 end LeanVMTests.Cost.DecoderChain
