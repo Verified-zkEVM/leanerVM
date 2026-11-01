@@ -1,6 +1,8 @@
 module
 
 public import LeanVM.Cost.Rules
+public import LeanVM.Cost.Fold
+public meta import LeanVM.Cost.Fold
 public meta import Lean.Elab.Command
 public meta import Lean.Meta.Basic
 public meta import Lean.Meta.Match.MatcherApp.Basic
@@ -478,6 +480,103 @@ def solvePending (pending : Array (MVarId × Array (Nat × Name))) (hP deps : Ex
     let ty := mkAppN (mkConst ``Includes) #[(← instantiateMVars (← inferType hP)).appFn!.appArg!, l']
     m.assign (← mkExpectedTypeHint (mkAppN (mkConst ``Includes.ofForall)
       #[(← instantiateMVars (← inferType hP)).appFn!.appArg!, deps, l', hP, fa]) ty)
+
+/-- Add a definition with its body exposed (visible to importing modules without `import all`)
+and compile it. -/
+def addExposedDef (n : Name) (ty val : Expr) : MetaM Unit := do
+  let decl := Declaration.defnDecl (mkDefinitionValEx n [] ty val .abbrev .safe [])
+  addDecl decl (forceExpose := true)
+  compileDecl decl
+
+/-- The function indices in a price, as the compiled functions' `costIdx` constants: in
+`machineCost P j vs` and the closures `Val.fn j us`, for the `j` of `deps` whose function has a
+`costIdx` (definitionally the same price). -/
+partial def withCostIdx (deps : Array (Nat × Name)) (e : Expr) : MetaM Expr := do
+  let env ← getEnv
+  let m := deps.filterMap fun (j, b) ↦
+    let n := b.getPrefix.str "costIdx"
+    if env.contains n then some (j, mkConst n) else none
+  let idxOf (a : Expr) : Option Expr := do
+    let j ← LeanVM.Cost.Fold.litVal? a
+    (m.find? (·.1 == j)).map (·.2)
+  let rec go (e : Expr) : Expr :=
+    e.replace fun s ↦
+      if s.isAppOfArity ``machineCost 3 then
+        match idxOf s.appFn!.appArg! with
+        | some c => some (mkApp3 s.appFn!.appFn!.appFn! (go s.appFn!.appFn!.appArg!) c (go s.appArg!))
+        | none => none
+      else if s.isAppOfArity ``Val.fn 2 then
+        match idxOf s.appFn!.appArg! with
+        | some c => some (mkApp2 s.appFn!.appFn! c (go s.appArg!))
+        | none => none
+      else none
+  -- and the fields of literal pairs read (`(a, b).1` is `a`), bottom up
+  Core.transform (go e) (post := fun s ↦ do
+    let pair? (c : Expr) : Option (Expr × Expr) :=
+      if c.isAppOfArity ``Prod.mk 4 then some (c.appFn!.appArg!, c.appArg!) else none
+    match s with
+    | .proj ``Prod i c => match pair? c with
+      | some (a, b) => return .done (if i == 0 then a else b)
+      | none => return .continue
+    | _ =>
+      if s.isAppOfArity ``Prod.fst 3 then
+        if let some (a, _) := pair? s.appArg! then return .done a
+      if s.isAppOfArity ``Prod.snd 3 then
+        if let some (_, b) := pair? s.appArg! then return .done b
+      return .continue)
+
+/-- **One equation per branch**: when the price `rhs` of `lhs` (under the spec's `binders`, proved
+by `pf`) begins (in any position) with a `casesOn` on an encoded parameter `x` of `encXs`, the
+equation at each constructor of `x`'s type, the `casesOn` reduced and the price folded:
+`name.costEq_nil`, `name.costEq_cons`, `name.costEq_zero`, `name.costEq_succ`, … -/
+def branchEqs (name : Name) (binders encXs : Array Expr) (lhs rhs pf : Expr) : MetaM Unit := do
+  let env ← getEnv
+  -- the first `casesOn` on an encoded parameter
+  let found := rhs.find? fun s ↦ Id.run do
+    let .const c _ := s.getAppFn | return false
+    unless isCasesOnRecursor env c do return false
+    let some (.inductInfo ind) := env.find? c.getPrefix | return false
+    let major := s.getAppArgs[ind.numParams + 1 + ind.numIndices]?
+    return (major.map fun a ↦ a.isFVar && encXs.contains a).getD false
+  let some s := found | return
+  let .const c lvls := s.getAppFn | return
+  let some (.inductInfo ind) := env.find? c.getPrefix | return
+  let x := s.getAppArgs[ind.numParams + 1 + ind.numIndices]!
+  let some xPos := binders.idxOf? x | return
+  -- no later binder depends on `x`
+  if ← (binders.extract (xPos + 1) binders.size).anyM fun b ↦ do
+      return (← inferType b).containsFVar x.fvarId! then return
+  let xTy ← whnf (← inferType x)
+  let params := xTy.getAppArgs.extract 0 ind.numParams
+  let m0 := ind.numParams + 1 + ind.numIndices + 1
+  for ctor in ind.ctors, ci in [0:ind.ctors.length] do
+    let ctorLvls := if ind.levelParams.isEmpty then [] else xTy.getAppFn.constLevels!
+    let _ := lvls
+    let cty ← instantiateForall (← inferType (mkConst ctor ctorLvls)) params
+    forallTelescopeReducing cty fun fields _ ↦ do
+      let v ← if ind.name == ``Nat then
+          if fields.isEmpty then pure (mkNatLit 0) else mkAdd fields[0]! (mkNatLit 1)
+        else pure (mkAppN (mkConst ctor ctorLvls) (params ++ fields))
+      let lhs' := lhs.replaceFVar x v
+      -- the `casesOn`s on `x` reduced to their branch at this constructor (definitionally)
+      let rhs' := rhs.replace fun s ↦
+        if s.isAppOf c && (s.getAppArgs[m0 - 1]? == some x) && s.getAppNumArgs ≥ m0 + ind.numCtors then
+          let args := s.getAppArgs
+          some (mkAppN (args[m0 + ci]!.beta fields) (args.extract (m0 + ind.numCtors) args.size))
+        else none
+      let rhs' ← Core.betaReduce (rhs'.replaceFVar x v)
+      let pf' := pf.replaceFVar x v
+      let r ← LeanVM.Cost.Fold.foldPrice rhs'
+      let eq ← mkEq lhs' r.expr
+      let proof ← match r.proof? with
+        | some q => mkEqTrans (← mkExpectedTypeHint pf' (← mkEq lhs' rhs')) q
+        | none => mkExpectedTypeHint pf' eq
+      let bs := (binders.extract 0 xPos) ++ fields ++ (binders.extract (xPos + 1) binders.size)
+      let ty ← instantiateMVars (← mkForallFVars bs eq)
+      let val ← instantiateMVars (← mkLambdaFVars bs proof)
+      let cname := ctor.lastComponentAsString
+      addDecl <| .thmDecl
+        { name := name.str s!"costEq_{cname}", levelParams := [], type := ty, value := val }
 
 mutual
 
@@ -973,7 +1072,10 @@ partial def compileOnDemand (ctx : Ctx) (f : Name) (e : Expr) : MetaM (Option Co
     let a := args[j]
     let isInst := (bis[j]?.map (·.isInstImplicit)).getD false
     let typeFormer ← isTypeFormerType (← inferType a)
-    if typeFormer && !a.hasFVar then lastStatic := j + 1
+    -- a type (of sort `Type`) is a parameter of the compiled function (its encoding an instance
+    -- hypothesis), so that one function serves every type; other type formers are fixed
+    let isType := (← whnf (← inferType a)).isSort && !(← isProp a)
+    if typeFormer && !isType && !a.hasFVar then lastStatic := j + 1
     let noEnc ← if a.hasFVar || typeFormer || (← isProp (← inferType a)) then pure false else do
       let ty ← inferType a
       if (← whnf ty).isForall then pure false
@@ -1313,7 +1415,9 @@ partial def solvePremise (ctx : Ctx) (g : MVarId) (ty : Expr) : MetaM Bool := do
       catch _ => return false
 
 /-- **Compile** the function `term` (closed) to the body of function `idx`: add `name.costBody`,
-`name.costSpec`, `name.costEq`, and register it. A recursive term needs `measure?`, a function of
+`name.costIdx`, `name.costDeps` (exposed: usable without `import all`), `name.costSpec`,
+`name.costEq` (folded, the indices as `costIdx` constants), the branch equations
+`name.costEq_<constructor>` (`branchEqs`), and register it. A recursive term needs `measure?`, a function of
 its encoded parameters (as a tuple) that its recursive calls decrease. The parameters at
 `encAt` (a lifted lambda's encoded captures and its own parameters, passed as values) are encoded,
 functions included. -/
@@ -1434,12 +1538,13 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
       if t.hasFVar || t.hasMVar then throwError "the code is not closed: {t}"
       let bodyName := name.str "costBody"
       let bodyTy := mkConst ``LeanVM.Cost.Term
-      addAndCompile <| .defnDecl (mkDefinitionValEx bodyName [] bodyTy t .abbrev .safe [])
+      addExposedDef bodyName bodyTy t
+      addExposedDef (name.str "costIdx") (mkConst ``Nat) (mkNatLit idx)
       let pendingNow ← pending.get
       let deps := mergeDeps (idx, bodyName) (pendingNow.map (·.2))
       let depsE ← depsExpr deps
       let depsTy ← mkAppM ``List #[← mkAppM ``Prod #[mkConst ``Nat, mkConst ``Term]]
-      addAndCompile <| .defnDecl (mkDefinitionValEx (name.str "costDeps") [] depsTy depsE .abbrev .safe [])
+      addExposedDef (name.str "costDeps") depsTy depsE
       withLocalDeclD `hP (mkAppN (mkConst ``Includes) #[P, depsE]) fun hP ↦ do
         solvePending pendingNow hP depsE
         let mem ← memProof (← mkAppM ``Prod.mk #[mkNatLit idx, mkConst bodyName]) depsE
@@ -1490,11 +1595,26 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
         addDecl <| .thmDecl
           { name := specName, levelParams := [], type := specTy, value := specVal }
         costTrace s!"compile {name} spec added"
-        let costTy ← mkForallFVars binders (← cleanTuples (← inferType costPf))
-        let costTy ← instantiateMVars costTy
-        let costVal ← instantiateMVars (← mkLambdaFVars binders costPf)
+        -- the recurrence: the indices as `costIdx` constants, the constants folded
+        let rawEq ← cleanTuples (← inferType costPf)
+        let some (_, lhs0, rhs0) := rawEq.eq? | throwError "costEq: not an equation"
+        let lhs1 ← withCostIdx deps lhs0
+        let rhs1 ← withCostIdx deps rhs0
+        let pf1 ← mkExpectedTypeHint costPf (← mkEq lhs1 rhs1)
+        let r ← LeanVM.Cost.Fold.foldPrice rhs1
+        let (rhs2, pf2) ← match r.proof? with
+          | some q => pure (r.expr, ← mkEqTrans pf1 q)
+          | none => pure (rhs1, pf1)
+        let costTy ← instantiateMVars (← mkForallFVars binders (← mkEq lhs1 rhs2))
+        let costVal ← instantiateMVars (← mkLambdaFVars binders pf2)
         addDecl <| .thmDecl
           { name := name.str "costEq", levelParams := [], type := costTy, value := costVal }
+        let st ← saveState
+        try branchEqs name binders encXs lhs1 rhs1 pf1
+        catch ex =>
+          st.restore
+          costTrace s!"compile {name}: no branch equations: {← ex.toMessageData.toString}"
+
         let headC := if term.isLambda then name else term.getAppFn.constName!
         let entry : CompiledFn :=
           { head := headC, static := term.getAppArgs, params := kinds, index := idx,
@@ -1535,9 +1655,19 @@ end
 
 /-- `cost_compile name [at i] [measure m] := term`: compile `term` (a function: a constant applied
 to its fixed arguments, such as types and instances) to the body of function `i` (the next free
-index by default), and add `name.costBody` (the code), `name.costSpec` (the run on every argument,
-at the machine's price, in every program holding the bodies it needs) and `name.costEq` (the
-price's recurrence). A recursive term needs a measure of its encoded parameters that its recursive
+index by default), and add:
+* `name.costBody` (the code), `name.costIdx` (its index `i`), `name.costDeps` (the bodies its spec
+  needs, its own first), all three exposed to importing modules;
+* `name.costSpec`: the run on every argument, at the machine's price `machineCost P i args`, in
+  every program holding the bodies it needs;
+* `name.costEq`: the price's recurrence, `machineCost P name.costIdx args = C`, with `C` folded
+  (`Cost/Fold.lean`: a sum's constants gathered at its end, lengths of literal lists, `limbs` of
+  literals, fields of literal pairs) and the callees' and closures' indices as their `costIdx`;
+* `name.costEq_nil`, `name.costEq_cons`, `name.costEq_zero`, `name.costEq_succ`, … (one per
+  constructor), when `C` cases on an encoded parameter: the recurrence at that constructor, the
+  case reduced.
+
+A recursive term needs a measure of its encoded parameters that its recursive
 calls decrease; its function parameters stay fixed. -/
 syntax (name := costCompile) "cost_compile " ident (" at " num)? (&" measure " term)? " := " term :
   command
