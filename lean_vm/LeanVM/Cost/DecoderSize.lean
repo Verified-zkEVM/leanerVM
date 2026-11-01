@@ -27,14 +27,14 @@ top `j` with its bodies `deps`:
   picked out by its index (`decoderProgramBodies_filter_locs`, by unfolding); the other bodies'
   sizes by `decide +kernel`, which reads the literal's index alone.
 
-For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (`784210`, the
-entry, the frame cells' `749836` and the others' `34374`, each exact) plus two per index without
+For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (`784277`, the
+entry, the frame cells' `749836` and the others' `34441`, each exact) plus two per index without
 a body, the indices up to the top's, `decTopC`'s own (the last index allocated), less the
 bodies (`costIdx - costDeps.length`; so the bound names no index, which moves when a module
-before it in the chain gains a function): `785092` at index `845` with `404` bodies besides the
+before it in the chain gains a function): `785159` at index `848` with `407` bodies besides the
 entry, the program's exact size (`LeanVMTests/Cost/DecoderSize.lean`), of which the guest's frame
 cells (`guestLocs`, a literal held once, `guestLocsTable`) are `749835`. `guestDecoderSizeBound`
-(`Statement/Theorems.lean`) is `785500`: this exact size and a slack of `408`, room for one
+(`Statement/Theorems.lean`) is `785500`: this exact size and a slack of `341`, room for one
 leanXMSS signature's encoding (`309`) but not two. The bound applies to every program, but its
 slack is small only for programs written like this one: the frame cells (below `2^20` each),
 packed three to a limb, would take about a third of their `749835`, freeing room for about
@@ -94,9 +94,9 @@ per index without a body: the indices up to the top's, `decTopC.costIdx + 1`, le
 the entry and `decTopC.costDeps`. -/
 theorem decoderProgram_size_le_measured :
     (decoderProgramOf decTopC.costIdx decTopC.costDeps).size ≤
-      784210 + 2 * (decTopC.costIdx - decTopC.costDeps.length) :=
+      784277 + 2 * (decTopC.costIdx - decTopC.costDeps.length) :=
   decoderProgramOf_size_le_of_increasing decoderProgram_indices_increasing
-    (bodies_size_bound_of_split _ guestLocsTableC.costIdx decTopC.costIdx 749836 34374 784210
+    (bodies_size_bound_of_split _ guestLocsTableC.costIdx decTopC.costIdx 749836 34441 784277
       decTopC.costDeps.length _ decoderProgramBodies_filter_locs guestLocsTable_size
       (by decide +kernel) (by decide +kernel) rfl (by decide +kernel))
 

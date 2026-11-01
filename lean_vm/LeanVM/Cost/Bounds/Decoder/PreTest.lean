@@ -18,24 +18,28 @@ logarithm's baby-step tables `D` given. Parametric in what the test calls:
   table, `preTable_shape`). `powBelow_cost` gives `B = 911`: the word's lane compared with the
   lanes `2^0, …, 2^(n-1)` of `g^0, …, g^(n-1)` (`twoPowScanC`), no logarithm (the logarithm
   serves only bounds above `34`, `powBelowLogC`);
-* the exponents of an entry within `W` bits (`FnPreWithin`): a power `g^o` by squaring at most
-  `psAt W = 6 + 535·W`.
+* the exponents of an entry within `W ≤ 7` bits (`FnPreWithin`): a power `g^o`, `o < 128`, read
+  off the powers table `Pw` (`gpowAt_cost`, `19`; `psAt W = 6 + 535·W` by squaring, `3751` at
+  `W = 7`, before the table held them).
 
-The bounds, bottom-up: `powBelowAt_cost` (`6`), `readIs_cost` (`19`), `symVal_cost`, `envOne_cost`,
-`readPowBelow_cost`, `bndOne_cost`, `memAt_cost`, `memCell_cost`, `memOne_cost`, `wordWith_cost`,
+The bounds, bottom-up: `powBelowAt_cost` (`6`), `readIs_cost` (`19`), `gpowAt_cost` (`19`),
+`symValAt_cost`, `envOne_cost`,
+`readPowBelow_cost`, `bndOne_cost`, `memAt_cost`, `memCell_cost`, `memOne_cost`, `wordAt_cost`
+(`wordWith_cost`, by squaring, for the entry table),
 `powSqE_cost` (a power in `E` by squaring, `12 + 4732·(log₂ n + 1)`), `expOne_cost`,
 `expTablesAt_cost` (the exponent tables' `34` entries, the powers `gen^(2^j)` read off the table
-`Pw` the caller built once: `68R + 240606`), `semOne_cost`, then
+`Pw` the caller built once: `68R + 23142`), `semOne_cost`, then
 
-* **`fnPreTest_cost`**: an entry's test at most `fnPrePrice W R B t` (`PreTestDefs.lean`);
-* **`preTestAt_cost`**: function `j`'s test at most `fnPrePrice W R B (T.getD j none) + 19`;
+* **`fnPreTest_cost`**: an entry's test at most `fnPrePrice R B t` (`PreTestDefs.lean`);
+* **`preTestAt_cost`**: function `j`'s test at most `fnPrePrice R B (T.getD j none) + 19`;
 * **`preTestAt_cost_deployed`**: on the deployed table (`preTable`, its shape evaluated in
   `PreTableShape.lean`: exponents below `2^7`, at most one check of each kind, at most `99`
   bounds and memory cells, their logarithms' bounds at most `34`), at most
-  `269R + 99B + 1057579`. With `B = 911` (`powBelow_cost`) and the deployed reader
-  (`R ≤ 1472`): `1543736 ≈ 2^20.56` per call (it was `99·402684 + 1453547 ≈ 2^25.30` with a
-  discrete logarithm per bound);
-* **`genPows_cost`**: the powers table, built once (`genPowsC`, `34` squarings), at most `80665`.
+  `269R + 99B + 86262`. With `B = 911` (`powBelow_cost`) and the deployed reader
+  (`R ≤ 1472`): `572419 ≈ 2^19.13` per call (`1543736 ≈ 2^20.56` with the powers by squaring,
+  `99·402684 + 1453547 ≈ 2^25.30` with a discrete logarithm per bound);
+* **`genPows_cost`**: the powers table, built once (`genPowsC`: `34` squarings for `gen^(2^j)`,
+  `128` products for `g^o`), at most `117080`.
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -133,15 +137,31 @@ theorem readIs_cost (hP : Includes P readIsC.costDeps) (o : Option E) (x : E) :
   | none => dsimp only; omega
   | some w => dsimp only; split_ifs <;> omega
 
-/-- A known word's value (`symValC`): a power `g^e` and `269`. -/
-theorem symVal_cost (hP : Includes P symValC.costDeps) {W : ℕ} (hW : 0 < W) (hW64 : W < 64)
-    (fp : K) (a : Sym) (ha : symExp a < 2 ^ W) :
-    machineCost P symValC.costIdx [encodeValue fp, encodeValue a] ≤ psAt W + 269 := by
-  rw [symValC.costEq P hP]
+/-- An exponent of `W ≤ 7` bits is below `128`: the powers table holds its power. -/
+theorem lt_smallPowBound {W o : ℕ} (hW7 : W ≤ 7) (ho : o < 2 ^ W) : o < smallPowBound := by
+  have : 2 ^ W ≤ 2 ^ 7 := Nat.pow_le_pow_right (by norm_num) hW7
+  unfold smallPowBound
+  omega
+
+/-- **A power `g^o`, `o < 128`, read off the powers table** (`gpowAtC`): `19`. -/
+theorem gpowAt_cost (hP : Includes P gpowAtC.costDeps) (Pw : Array E) (o : ℕ)
+    (ho : o < smallPowBound) :
+    machineCost P gpowAtC.costIdx [encodeValue Pw, encodeValue o] ≤ 19 := by
+  have h128 : smallPowBound < 2 ^ 64 := by unfold smallPowBound; norm_num
+  rw [gpowAtC.costEq P hP, limbs_of_lt (by omega : o < 2 ^ 64), limbs_of_lt h128,
+    limbs_of_lt (by norm_num [LeanVM.Guest.B1.sizeBits] : LeanVM.Guest.B1.sizeBits < 2 ^ 64)]
+  simp only [ho, ↓reduceIte, max_self]
+  omega
+
+/-- A known word's value (`symValAtC`), its power read off the table: at most `287`. -/
+theorem symValAt_cost (hP : Includes P symValAtC.costDeps) (Pw : Array E) (fp : K) (a : Sym)
+    (ha : symExp a < smallPowBound) :
+    machineCost P symValAtC.costIdx [encodeValue Pw, encodeValue fp, encodeValue a] ≤ 287 := by
+  rw [symValAtC.costEq P hP]
   cases a with
   | zero => dsimp only; omega
-  | gp e => have := powSqW_cost P (by includes) hW hW64 (o := e) ha; dsimp only; omega
-  | fpg e => have := powSqW_cost P (by includes) hW hW64 (o := e) ha; dsimp only; omega
+  | gp e => have := gpowAt_cost P (by includes) Pw e ha; dsimp only; omega
+  | fpg e => have := gpowAt_cost P (by includes) Pw e ha; dsimp only; omega
 
 /-- The sum of an affine price over a list. -/
 theorem sum_map_affine {α : Type} (f : α → ℕ) (a b : ℕ) :
@@ -183,18 +203,35 @@ theorem squaresFrom_cost (hP : Includes P squaresFromC.costDeps) :
     have := ih (x * x) (by omega)
     omega
 
-theorem length_squaresFrom : ∀ (n : ℕ) (x : E), (squaresFrom x n).length = n
-  | 0, _ => rfl
-  | n + 1, x => by rw [squaresFrom, List.length_cons, length_squaresFrom n]
+/-- The products (`powsFromC`): `281` per product, `6`. -/
+theorem powsFrom_cost (hP : Includes P powsFromC.costDeps) :
+    ∀ (n : ℕ) (y : K), n < 2 ^ 64 →
+      machineCost P powsFromC.costIdx [encodeValue y, encodeValue n] ≤ 281 * n + 6 := by
+  intro n
+  induction n with
+  | zero => intro y _; rw [powsFromC.costEq_zero P hP]
+  | succ n ih =>
+    intro y hn
+    rw [powsFromC.costEq_succ P hP, limbs_of_lt hn]
+    have := ih (y * LeanVM.Parameters.g) (by omega)
+    omega
 
-/-- **The powers table** (`genPowsC`, `gen^(2^j)` for `j < 34`), built once: at most `80665`. -/
+/-- **The powers table** (`genPowsC`: `gen^(2^j)` for `j < 34` by squarings, `g^o` for `o < 128`
+by products), built once: at most `117080`. -/
 theorem genPows_cost (hP : Includes P genPowsC.costDeps) :
-    machineCost P genPowsC.costIdx [] ≤ 80665 := by
-  rw [genPowsC.costEq P hP, length_squaresFrom]
+    machineCost P genPowsC.costIdx [] ≤ 117080 := by
+  rw [genPowsC.costEq P hP, List.length_append, length_squaresFrom]
   have hs : LeanVM.Guest.B1.sizeBits = 34 := rfl
-  have := squaresFrom_cost P (by includes) LeanVM.Guest.B1.sizeBits LeanVM.Protocol.Verifier.gen
+  have hp : smallPowBound = 128 := rfl
+  have h1 := squaresFrom_cost P (by includes) LeanVM.Guest.B1.sizeBits LeanVM.Protocol.Verifier.gen
     (by norm_num [hs])
-  rw [hs] at this ⊢
+  have h2 := powsFrom_cost P (by includes) smallPowBound 1 (by norm_num [hp])
+  have h3 := append_cost P (by includes)
+    (squaresFrom LeanVM.Protocol.Verifier.gen LeanVM.Guest.B1.sizeBits) (powsFrom 1 smallPowBound)
+  have h4 : (powsFrom 1 smallPowBound).length = 128 := by
+    rw [hp]; exact length_powsFrom 128 1
+  rw [length_squaresFrom] at h3
+  rw [hs, hp] at *
   omega
 
 /-! ## The checks, one by one -/
@@ -208,22 +245,23 @@ variable (D : DiscreteLogTables) (rd : Reader) (rdVal : MachineValue)
     machineCost P powBelowC.costIdx [encodeValue D, encodeValue w, encodeValue n] ≤ B)
   {W : ℕ} (hW : 0 < W) (hW64 : W < 64)
 
-include hrd hW hW64
+include hrd
 
 include hR in
-/-- An entry-environment check (`envOneC`): two powers, a read and `557`. -/
-theorem envOne_cost (hP : Includes P envOneC.costDeps) (fp : K) (p : ℕ × Sym)
-    (h1 : p.1 < 2 ^ W) (h2 : symExp p.2 < 2 ^ W) :
-    machineCost P envOneC.costIdx [rdVal, encodeValue fp, encodeValue p] ≤
-      2 * psAt W + R + 557 := by
-  rw [envOneC.costEq P hP rd rdVal hrd]
-  have := powSqW_cost P (by includes) hW hW64 h1
-  have := hR (fp * gpow p.1)
-  have := symVal_cost P (by includes) hW hW64 fp p.2 h2
-  have := readIs_cost P (by includes) (rd (fp * gpow p.1)) (p.2.val fp)
+/-- An entry-environment check (`envOneC`): a power off the table, a read, the known word's value
+and `269`: `R + 594`. -/
+theorem envOne_cost (hP : Includes P envOneC.costDeps) (Pw : Array E) (hW7 : W ≤ 7) (fp : K)
+    (p : ℕ × Sym) (h1 : p.1 < 2 ^ W) (h2 : symExp p.2 < 2 ^ W) :
+    machineCost P envOneC.costIdx [encodeValue Pw, rdVal, encodeValue fp, encodeValue p] ≤
+      R + 594 := by
+  rw [envOneC.costEq P hP Pw rd rdVal hrd]
+  have := gpowAt_cost P (by includes) Pw p.1 (lt_smallPowBound hW7 h1)
+  have := hR (fp * gpowAt Pw p.1)
+  have := symValAt_cost P (by includes) Pw fp p.2 (lt_smallPowBound hW7 h2)
+  have := readIs_cost P (by includes) (rd (fp * gpowAt Pw p.1)) (symValAt Pw fp p.2)
   omega
 
-omit hrd hW hW64 in
+omit hrd in
 include hB in
 /-- A read's logarithm's bound (`readPowBelowC`): `B + 6`. -/
 theorem readPowBelow_cost (hP : Includes P readPowBelowC.costDeps) (o : Option E) (n : ℕ)
@@ -235,70 +273,73 @@ theorem readPowBelow_cost (hP : Includes P readPowBelowC.costDeps) (o : Option E
   | some w => have := hB w n hn; dsimp only; omega
 
 include hR hB in
-/-- A bound on a frame cell (`bndOneC`): a power, a read, a logarithm's bound and `274`. -/
-theorem bndOne_cost (hP : Includes P bndOneC.costDeps) (fp : K) (p : ℕ × ℕ)
-    (h1 : p.1 < 2 ^ W) (h2 : p.2 ≤ 34) :
-    machineCost P bndOneC.costIdx [encodeValue D, rdVal, encodeValue fp, encodeValue p] ≤
-      psAt W + R + B + 274 := by
-  rw [bndOneC.costEq P hP D rd rdVal hrd]
-  have := powSqW_cost P (by includes) hW hW64 h1
-  have := hR (fp * gpow p.1)
-  have := readPowBelow_cost P D B hB (by includes) (rd (fp * gpow p.1)) p.2 h2
+/-- A bound on a frame cell (`bndOneC`): a power off the table, a read, a logarithm's bound and
+`273`: `R + B + 292`. -/
+theorem bndOne_cost (hP : Includes P bndOneC.costDeps) (Pw : Array E) (hW7 : W ≤ 7) (fp : K)
+    (p : ℕ × ℕ) (h1 : p.1 < 2 ^ W) (h2 : p.2 ≤ 34) :
+    machineCost P bndOneC.costIdx [encodeValue D, encodeValue Pw, rdVal, encodeValue fp,
+      encodeValue p] ≤ R + B + 292 := by
+  rw [bndOneC.costEq P hP D Pw rd rdVal hrd]
+  have := gpowAt_cost P (by includes) Pw p.1 (lt_smallPowBound hW7 h1)
+  have := hR (fp * gpowAt Pw p.1)
+  have := readPowBelow_cost P D B hB (by includes) (rd (fp * gpowAt Pw p.1)) p.2 h2
   omega
 
 include hR hB in
-/-- A memory bound at one cell (`memAtC`): a power, a read, a logarithm's bound and `283`. -/
-theorem memAt_cost (hP : Includes P memAtC.costDeps) (n c : ℕ) (p : E) (hn : n ≤ 34)
-    (hc : c < 2 ^ W) :
-    machineCost P memAtC.costIdx [encodeValue D, rdVal, encodeValue n, encodeValue c,
-      encodeValue p] ≤ psAt W + R + B + 283 := by
-  rw [memAtC.costEq P hP D rd rdVal hrd]
-  have := powSqW_cost P (by includes) hW hW64 hc
-  have := hR (p.limb 0 * gpow c)
-  have := readPowBelow_cost P D B hB (by includes) (rd (p.limb 0 * gpow c)) n hn
+/-- A memory bound at one cell (`memAtC`): a power off the table, a read, a logarithm's bound and
+`282`: `R + B + 301`. -/
+theorem memAt_cost (hP : Includes P memAtC.costDeps) (Pw : Array E) (hW7 : W ≤ 7) (n c : ℕ)
+    (p : E) (hn : n ≤ 34) (hc : c < 2 ^ W) :
+    machineCost P memAtC.costIdx [encodeValue D, encodeValue Pw, rdVal, encodeValue n,
+      encodeValue c, encodeValue p] ≤ R + B + 301 := by
+  rw [memAtC.costEq P hP D Pw rd rdVal hrd]
+  have := gpowAt_cost P (by includes) Pw c (lt_smallPowBound hW7 hc)
+  have := hR (p.limb 0 * gpowAt Pw c)
+  have := readPowBelow_cost P D B hB (by includes) (rd (p.limb 0 * gpowAt Pw c)) n hn
   split_ifs <;> omega
 
 include hR hB in
-/-- A memory bound at one cell of the address in a frame cell (`memCellC`): two powers, two
-reads, a logarithm's bound and `553`. -/
-theorem memCell_cost (hP : Includes P memCellC.costDeps) (fp : K) (o n c : ℕ) (ho : o < 2 ^ W)
-    (hn : n ≤ 34) (hc : c < 2 ^ W) :
-    machineCost P memCellC.costIdx [encodeValue D, rdVal, encodeValue fp, encodeValue o,
-      encodeValue n, encodeValue c] ≤ 2 * psAt W + 2 * R + B + 553 := by
-  rw [memCellC.costEq P hP D rd rdVal hrd]
-  have := powSqW_cost P (by includes) hW hW64 ho
-  have := hR (fp * gpow o)
-  generalize rd (fp * gpow o) = r
+/-- A memory bound at one cell of the address in a frame cell (`memCellC`): two powers off the
+table, two reads, a logarithm's bound: `2R + B + 590`. -/
+theorem memCell_cost (hP : Includes P memCellC.costDeps) (Pw : Array E) (hW7 : W ≤ 7) (fp : K)
+    (o n c : ℕ) (ho : o < 2 ^ W) (hn : n ≤ 34) (hc : c < 2 ^ W) :
+    machineCost P memCellC.costIdx [encodeValue D, encodeValue Pw, rdVal, encodeValue fp,
+      encodeValue o, encodeValue n, encodeValue c] ≤ 2 * R + B + 590 := by
+  rw [memCellC.costEq P hP D Pw rd rdVal hrd]
+  have := gpowAt_cost P (by includes) Pw o (lt_smallPowBound hW7 ho)
+  have := hR (fp * gpowAt Pw o)
+  generalize rd (fp * gpowAt Pw o) = r
   cases r with
   | none => dsimp only; omega
   | some p =>
-    have := memAt_cost P D rd rdVal hrd R hR B hB hW hW64 (by includes) n c p hn hc
+    have := memAt_cost P D rd rdVal hrd R hR B hB (by includes) Pw hW7 n c p hn hc
     dsimp only; omega
 
 include hR hB in
-/-- A memory bound (`memOneC`): per cell `2·psAt W + 2R + B + 586`, and `29`. -/
-theorem memOne_cost (hP : Includes P memOneC.costDeps) (fp : K) (m : ℕ × ℕ × ℕ)
-    (h1 : m.1 < 2 ^ W) (h2 : m.2.1 ≤ 2 ^ W) (h3 : m.2.2 ≤ 34) :
-    machineCost P memOneC.costIdx [encodeValue D, rdVal, encodeValue fp, encodeValue m] ≤
-      (2 * psAt W + 2 * R + B + 586) * m.2.1 + 29 := by
-  have h64 : 2 ^ W < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) hW64
-  rw [memOneC.costEq P hP D rd rdVal hrd]
+/-- A memory bound (`memOneC`): per cell `2R + B + 624`, and `31`. -/
+theorem memOne_cost (hP : Includes P memOneC.costDeps) (Pw : Array E) (hW7 : W ≤ 7) (fp : K)
+    (m : ℕ × ℕ × ℕ) (h1 : m.1 < 2 ^ W) (h2 : m.2.1 ≤ 2 ^ W) (h3 : m.2.2 ≤ 34) :
+    machineCost P memOneC.costIdx [encodeValue D, encodeValue Pw, rdVal, encodeValue fp,
+      encodeValue m] ≤ (2 * R + B + 624) * m.2.1 + 31 := by
+  have h64 : 2 ^ W ≤ 2 ^ 7 := Nat.pow_le_pow_right (by norm_num) hW7
+  rw [memOneC.costEq P hP D Pw rd rdVal hrd]
   have hr := rangeLoop_cost P (by includes) m.2.1 [] (by omega)
   have ha := all_cost P (by includes) _
-    (.closure memOneC.lam0.costIdx [encodeValue D, rdVal, encodeValue fp, encodeValue m.2.2,
-      encodeValue m.1])
-    (fun c ↦ RunsApp.of_spec (memOneC.lam0.costSpec P (by includes) D rd rdVal hrd fp m.2.2 m.1 c))
-    (2 * psAt W + 2 * R + B + 560) (List.range m.2.1) (fun c hc ↦ by
+    (.closure memOneC.lam0.costIdx [encodeValue D, encodeValue Pw, rdVal, encodeValue fp,
+      encodeValue m.2.2, encodeValue m.1])
+    (fun c ↦ RunsApp.of_spec (memOneC.lam0.costSpec P (by includes) D Pw rd rdVal hrd fp m.2.2
+      m.1 c))
+    (2 * R + B + 598) (List.range m.2.1) (fun c hc ↦ by
       have hc' := List.mem_range.mp hc
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [memOneC.lam0.costEq P (by includes) D rd rdVal hrd]
-      have := memCell_cost P D rd rdVal hrd R hR B hB hW hW64 (by includes) fp m.1 m.2.2 c h1 h3
-        (by omega)
+      rw [memOneC.lam0.costEq P (by includes) D Pw rd rdVal hrd]
+      have := memCell_cost P D rd rdVal hrd R hR B hB (by includes) Pw hW7 fp m.1 m.2.2 c
+        h1 h3 (by omega)
       omega)
   rw [List.length_range] at ha
   nlinarith
 
-include hR in
+include hR hW hW64 in
 /-- A frame cell's word (`wordWithC`): a power, a read and `271`. -/
 theorem wordWith_cost (hP : Includes P wordWithC.costDeps) (fp : K)
     (o : ℕ) (ho : o < 2 ^ W) :
@@ -310,39 +351,47 @@ theorem wordWith_cost (hP : Includes P wordWithC.costDeps) (fp : K)
   generalize rd (fp * gpow o) = r
   cases r <;> dsimp only <;> omega
 
-omit hW hW64 in
 include hR in
-/-- An entry of the exponent tables (`expOneC`), `j < 34`, the powers `gen^(2^j)` read off the
-table `Pw`: two reads, two powers of `g`, at most `2R + 7043`. -/
+/-- A frame cell's word (`wordAtC`), its power read off the table: `R + 289`. -/
+theorem wordAt_cost (hP : Includes P wordAtC.costDeps) (Pw : Array E) (hW7 : W ≤ 7) (fp : K)
+    (o : ℕ) (ho : o < 2 ^ W) :
+    machineCost P wordAtC.costIdx [encodeValue Pw, rdVal, encodeValue fp, encodeValue o] ≤
+      R + 289 := by
+  rw [wordAtC.costEq P hP Pw rd rdVal hrd]
+  have := gpowAt_cost P (by includes) Pw o (lt_smallPowBound hW7 ho)
+  have := hR (fp * gpowAt Pw o)
+  generalize rd (fp * gpowAt Pw o) = r
+  cases r <;> dsimp only <;> omega
+
+include hR in
+/-- An entry of the exponent tables (`expOneC`), `j < 34`, the powers `g^j` and `gen^(2^j)` read
+off the table `Pw`: two reads, at most `2R + 647`. -/
 theorem expOne_cost (hP : Includes P expOneC.costDeps) (Pw : Array E) (p q : E) (j : ℕ)
     (hj : j < 34) :
     machineCost P expOneC.costIdx [encodeValue Pw, rdVal, encodeValue p, encodeValue q,
-      encodeValue j] ≤ 2 * R + 7043 := by
+      encodeValue j] ≤ 2 * R + 647 := by
   rw [expOneC.costEq P hP Pw rd rdVal hrd, limbs_shift (by omega),
     limbs_of_lt (by omega : j < 2 ^ 64)]
-  have hj' : j < 2 ^ 6 := by omega
-  have h1 := powSqW_cost P (by includes) (W := 6) (by norm_num) (by norm_num) hj'
-  have h2 := hR (p.limb 0 * gpow j)
-  have h3 := hR (q.limb 0 * gpow j)
-  have h4 := readIs_cost P (by includes) (rd (p.limb 0 * gpow j))
+  have h1 := gpowAt_cost P (by includes) Pw j (by unfold smallPowBound; omega)
+  have h2 := hR (p.limb 0 * gpowAt Pw j)
+  have h3 := hR (q.limb 0 * gpowAt Pw j)
+  have h4 := readIs_cost P (by includes) (rd (p.limb 0 * gpowAt Pw j))
     (LeanVM.Protocol.Verifier.eOfNat (2 ^ j))
-  have h5 := readIs_cost P (by includes) (rd (q.limb 0 * gpow j)) (Pw.getD j 0)
-  unfold psAt at h1
+  have h5 := readIs_cost P (by includes) (rd (q.limb 0 * gpowAt Pw j)) (Pw.getD j 0)
   split_ifs <;> omega
 
-omit hW hW64 in
 include hR in
-/-- The exponent tables at two words (`expTablesAtC`): `34` entries, at most `68R + 240606`. -/
+/-- The exponent tables at two words (`expTablesAtC`): `34` entries, at most `68R + 23142`. -/
 theorem expTablesAt_cost (hP : Includes P expTablesAtC.costDeps) (Pw : Array E) (p q : E) :
     machineCost P expTablesAtC.costIdx [encodeValue Pw, rdVal, encodeValue p, encodeValue q] ≤
-      68 * R + 240606 := by
+      68 * R + 23142 := by
   rw [expTablesAtC.costEq P hP Pw rd rdVal hrd]
   have hs : LeanVM.Guest.B1.sizeBits = 34 := rfl
   have hr := rangeLoop_cost P (by includes) LeanVM.Guest.B1.sizeBits [] (by rw [hs]; norm_num)
   have ha := all_cost P (by includes) _
     (.closure expTablesAtC.lam0.costIdx [encodeValue Pw, rdVal, encodeValue p, encodeValue q])
     (fun j ↦ RunsApp.of_spec (expTablesAtC.lam0.costSpec P (by includes) Pw rd rdVal hrd p q j))
-    (2 * R + 7050) (List.range LeanVM.Guest.B1.sizeBits) (fun j hj ↦ by
+    (2 * R + 654) (List.range LeanVM.Guest.B1.sizeBits) (fun j hj ↦ by
       have hj' := List.mem_range.mp hj
       rw [hs] at hj'
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -354,27 +403,27 @@ theorem expTablesAt_cost (hP : Includes P expTablesAtC.costDeps) (Pw : Array E) 
 
 include hR in
 /-- A semantic pair (`semOneC`): two frame cells' words and the exponent tables at them: at most
-`2·psAt W + 70R + 241161`. -/
-theorem semOne_cost (hP : Includes P semOneC.costDeps) (Pw : Array E) (fp : K) (p : ℕ × ℕ)
-    (h1 : p.1 < 2 ^ W) (h2 : p.2 < 2 ^ W) :
+`70R + 23735`. -/
+theorem semOne_cost (hP : Includes P semOneC.costDeps) (Pw : Array E) (hW7 : W ≤ 7) (fp : K)
+    (p : ℕ × ℕ) (h1 : p.1 < 2 ^ W) (h2 : p.2 < 2 ^ W) :
     machineCost P semOneC.costIdx [encodeValue Pw, rdVal, encodeValue fp, encodeValue p] ≤
-      2 * psAt W + 70 * R + 241161 := by
+      70 * R + 23735 := by
   rw [semOneC.costEq P hP Pw rd rdVal hrd]
-  have := wordWith_cost P rd rdVal hrd R hR hW hW64 (by includes) fp p.1 h1
-  have := wordWith_cost P rd rdVal hrd R hR hW hW64 (by includes) fp p.2 h2
+  have := wordAt_cost P rd rdVal hrd R hR (by includes) Pw hW7 fp p.1 h1
+  have := wordAt_cost P rd rdVal hrd R hR (by includes) Pw hW7 fp p.2 h2
   have := expTablesAt_cost P rd rdVal hrd R hR (by includes) Pw
-    (LeanVM.Guest.Located.wordWith rd fp p.1) (LeanVM.Guest.Located.wordWith rd fp p.2)
+    (wordAt Pw rd fp p.1) (wordAt Pw rd fp p.2)
   omega
 
 /-! ## An entry, and function `j` -/
 
 include hR hB in
-/-- **An entry's test** (`fnPreTestC`), its exponents within `W` bits: at most
-`fnPrePrice W R B t`. -/
-theorem fnPreTest_cost (hP : Includes P fnPreTestC.costDeps) (Pw : Array E) (fp : K)
+/-- **An entry's test** (`fnPreTestC`), its exponents within `W ≤ 7` bits: at most
+`fnPrePrice R B t`. -/
+theorem fnPreTest_cost (hP : Includes P fnPreTestC.costDeps) (Pw : Array E) (hW7 : W ≤ 7) (fp : K)
     (t : Option FnPre) (ht : ∀ s, t = some s → FnPreWithin W s) :
     machineCost P fnPreTestC.costIdx [encodeValue D, encodeValue Pw, rdVal, encodeValue fp,
-      encodeValue t] ≤ fnPrePrice W R B t := by
+      encodeValue t] ≤ fnPrePrice R B t := by
   rw [fnPreTestC.costEq P hP D Pw rd rdVal hrd]
   cases t with
   | none => dsimp only; simp [fnPrePrice]
@@ -382,43 +431,44 @@ theorem fnPreTest_cost (hP : Includes P fnPreTestC.costDeps) (Pw : Array E) (fp 
     obtain ⟨he, hpre, hm, hsem⟩ := ht s rfl
     dsimp only
     have h1 := all_cost P (by includes) _
-      (.closure fnPreTestC.lam0.costIdx [rdVal, encodeValue fp])
-      (fun p ↦ RunsApp.of_spec (fnPreTestC.lam0.costSpec P (by includes) rd rdVal hrd fp p))
-      (2 * psAt W + R + 561) s.env (fun p hp ↦ by
+      (.closure fnPreTestC.lam0.costIdx [encodeValue Pw, rdVal, encodeValue fp])
+      (fun p ↦ RunsApp.of_spec (fnPreTestC.lam0.costSpec P (by includes) Pw rd rdVal hrd fp p))
+      (R + 599) s.env (fun p hp ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append]
-        rw [fnPreTestC.lam0.costEq P (by includes) rd rdVal hrd]
-        have := envOne_cost P rd rdVal hrd R hR hW hW64 (by includes) fp p (he p hp).1 (he p hp).2
+        rw [fnPreTestC.lam0.costEq P (by includes) Pw rd rdVal hrd]
+        have := envOne_cost P rd rdVal hrd R hR (by includes) Pw hW7 fp p (he p hp).1
+          (he p hp).2
         omega)
     have h2 := all_cost P (by includes) _
-      (.closure fnPreTestC.lam1.costIdx [encodeValue D, rdVal, encodeValue fp])
-      (fun p ↦ RunsApp.of_spec (fnPreTestC.lam1.costSpec P (by includes) D rd rdVal hrd fp p))
-      (psAt W + R + B + 279) s.pre (fun p hp ↦ by
+      (.closure fnPreTestC.lam1.costIdx [encodeValue D, encodeValue Pw, rdVal, encodeValue fp])
+      (fun p ↦ RunsApp.of_spec (fnPreTestC.lam1.costSpec P (by includes) D Pw rd rdVal hrd fp p))
+      (R + B + 298) s.pre (fun p hp ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append]
-        rw [fnPreTestC.lam1.costEq P (by includes) D rd rdVal hrd]
-        have := bndOne_cost P D rd rdVal hrd R hR B hB hW hW64 (by includes) fp p (hpre p hp).1
-          (hpre p hp).2
+        rw [fnPreTestC.lam1.costEq P (by includes) D Pw rd rdVal hrd]
+        have := bndOne_cost P D rd rdVal hrd R hR B hB (by includes) Pw hW7 fp p
+          (hpre p hp).1 (hpre p hp).2
         omega)
     have h3 := all_cost_sum P (by includes) _
-      (.closure fnPreTestC.lam2.costIdx [encodeValue D, rdVal, encodeValue fp])
-      (fun m ↦ RunsApp.of_spec (fnPreTestC.lam2.costSpec P (by includes) D rd rdVal hrd fp m))
-      (fun m ↦ (2 * psAt W + 2 * R + B + 586) * m.2.1 + 34) s.mem (fun m hm' ↦ by
+      (.closure fnPreTestC.lam2.costIdx [encodeValue D, encodeValue Pw, rdVal, encodeValue fp])
+      (fun m ↦ RunsApp.of_spec (fnPreTestC.lam2.costSpec P (by includes) D Pw rd rdVal hrd fp m))
+      (fun m ↦ (2 * R + B + 624) * m.2.1 + 37) s.mem (fun m hm' ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append]
-        rw [fnPreTestC.lam2.costEq P (by includes) D rd rdVal hrd]
-        have := memOne_cost P D rd rdVal hrd R hR B hB hW hW64 (by includes) fp m (hm m hm').1
-          (hm m hm').2.1 (hm m hm').2.2
+        rw [fnPreTestC.lam2.costEq P (by includes) D Pw rd rdVal hrd]
+        have := memOne_cost P D rd rdVal hrd R hR B hB (by includes) Pw hW7 fp m
+          (hm m hm').1 (hm m hm').2.1 (hm m hm').2.2
         omega)
     have h4 := all_cost P (by includes) _
       (.closure fnPreTestC.lam3.costIdx [encodeValue Pw, rdVal, encodeValue fp])
       (fun p ↦ RunsApp.of_spec (fnPreTestC.lam3.costSpec P (by includes) Pw rd rdVal hrd fp p))
-      (2 * psAt W + 70 * R + 241167) s.sem (fun p hp ↦ by
+      (70 * R + 23742) s.sem (fun p hp ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append]
         rw [fnPreTestC.lam3.costEq P (by includes) Pw rd rdVal hrd]
-        have := semOne_cost P rd rdVal hrd R hR hW hW64 (by includes) Pw fp p (hsem p hp).1
+        have := semOne_cost P rd rdVal hrd R hR (by includes) Pw hW7 fp p (hsem p hp).1
           (hsem p hp).2
         omega)
-    have hsum : (s.mem.map fun m ↦ (2 * psAt W + 2 * R + B + 586) * m.2.1 + 34 + 9).sum =
-        (2 * psAt W + 2 * R + B + 586) * memCells s + 43 * s.mem.length := by
-      have := sum_map_affine (fun m : ℕ × ℕ × ℕ ↦ m.2.1) (2 * psAt W + 2 * R + B + 586) 43 s.mem
+    have hsum : (s.mem.map fun m ↦ (2 * R + B + 624) * m.2.1 + 37 + 9).sum =
+        (2 * R + B + 624) * memCells s + 46 * s.mem.length := by
+      have := sum_map_affine (fun m : ℕ × ℕ × ℕ ↦ m.2.1) (2 * R + B + 624) 46 s.mem
       unfold memCells
       rw [← this]
     rw [hsum] at h3
@@ -426,16 +476,17 @@ theorem fnPreTest_cost (hP : Includes P fnPreTestC.costDeps) (Pw : Array E) (fp 
     split_ifs <;> nlinarith
 
 include hR hB in
-/-- **Function `j`'s precondition test** (`preTestAtC`), its entry's exponents within `W` bits:
-at most `fnPrePrice W R B (T.getD j none) + 19`. -/
+/-- **Function `j`'s precondition test** (`preTestAtC`), its entry's exponents within `W ≤ 7`
+bits: at most `fnPrePrice R B (T.getD j none) + 19`. -/
 theorem preTestAt_cost (hP : Includes P preTestAtC.costDeps) (T : Array (Option FnPre))
-    (Pw : Array E) (j : ℕ) (hj : j < 2 ^ 64) (fp : K)
+    (Pw : Array E) (hW7 : W ≤ 7) (j : ℕ) (hj : j < 2 ^ 64) (fp : K)
     (hT : ∀ s, T.getD j none = some s → FnPreWithin W s) :
     machineCost P preTestAtC.costIdx [encodeValue D, encodeValue T, encodeValue Pw, rdVal,
-      encodeValue j, encodeValue fp] ≤ fnPrePrice W R B (T.getD j none) + 19 := by
+      encodeValue j, encodeValue fp] ≤ fnPrePrice R B (T.getD j none) + 19 := by
   rw [preTestAtC.costEq P hP D T Pw rd rdVal hrd, limbs_of_lt hj,
     limbs_of_lt (by unfold LeanVM.Guest.nFns; norm_num : LeanVM.Guest.nFns < 2 ^ 64)]
-  have := fnPreTest_cost P D rd rdVal hrd R hR B hB hW hW64 (by includes) Pw fp (T.getD j none) hT
+  have := fnPreTest_cost P D rd rdVal hrd R hR B hB (by includes) Pw hW7 fp
+    (T.getD j none) hT
   simp only [max_self]
   split_ifs <;> omega
 
@@ -450,25 +501,22 @@ theorem fnPreWithin_of_shape {t : FnPre} (h : fnPreShape t = true) : FnPreWithin
   exact ⟨fun p hp' ↦ he p hp', fun p hp' ↦ hp p hp', fun m hm' ↦ ⟨(hm m hm').1.1, (hm m hm').1.2, (hm m hm').2⟩,
     fun p hp' ↦ hs p hp'⟩
 
-/-- **An entry of the deployed shape**: its test's price at most `269R + 99B + 1057560`. -/
+/-- **An entry of the deployed shape**: its test's price at most `269R + 99B + 86243`. -/
 theorem fnPrePrice_of_shape {t : FnPre} (h : fnPreShape t = true) (R B : ℕ) :
-    fnPrePrice 7 R B (some t) ≤ 269 * R + 99 * B + 1057560 := by
+    fnPrePrice R B (some t) ≤ 269 * R + 99 * B + 86243 := by
   simp only [fnPreShape, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨he, hp⟩, hm⟩, hs⟩, hpc⟩, -⟩, -⟩, -⟩, -⟩ := h
-  simp only [fnPrePrice, psAt]
+  simp only [fnPrePrice]
   generalize t.env.length = e at *
   generalize t.pre.length = p at *
   generalize t.mem.length = m at *
   generalize t.sem.length = s at *
   generalize memCells t = c at *
-  have h1 : (2 * (6 + 535 * 7) + R + 570) * e ≤ (2 * (6 + 535 * 7) + R + 570) * 1 :=
-    Nat.mul_le_mul_left _ he
-  have h2 : (6 + 535 * 7 + R + B + 288) * p + (2 * (6 + 535 * 7) + 2 * R + B + 586) * c ≤
-      (2 * (6 + 535 * 7) + 2 * R + B + 586) * (p + c) := by nlinarith
-  have h3 : (2 * (6 + 535 * 7) + 2 * R + B + 586) * (p + c) ≤
-      (2 * (6 + 535 * 7) + 2 * R + B + 586) * 99 := Nat.mul_le_mul_left _ hpc
-  have h4 : (2 * (6 + 535 * 7) + 70 * R + 241176) * s ≤ (2 * (6 + 535 * 7) + 70 * R + 241176) * 1 :=
-    Nat.mul_le_mul_left _ hs
+  have h1 : (R + 608) * e ≤ (R + 608) * 1 := Nat.mul_le_mul_left _ he
+  have h2 : (R + B + 307) * p + (2 * R + B + 624) * c ≤ (2 * R + B + 624) * (p + c) := by
+    nlinarith
+  have h3 : (2 * R + B + 624) * (p + c) ≤ (2 * R + B + 624) * 99 := Nat.mul_le_mul_left _ hpc
+  have h4 : (70 * R + 23751) * s ≤ (70 * R + 23751) * 1 := Nat.mul_le_mul_left _ hs
   nlinarith
 
 /-- An entry of a table of the deployed shape has that shape. -/
@@ -486,7 +534,7 @@ theorem fnPreShape_of_getD {T : Array (Option FnPre)} (hT : tableShape T = true)
 
 /-- **Function `j`'s precondition test on a table of the deployed shape** (`preTable`:
 `preTable_shape`, `PreTableShape.lean`), the powers `Pw` any table: at most
-`269R + 99B + 1057579`. -/
+`269R + 99B + 86262`. -/
 theorem preTestAt_cost_deployed (hP : Includes P preTestAtC.costDeps) (D : DiscreteLogTables)
     (rd : Reader) (rdVal : MachineValue)
     (hrd : ∀ a : K, RunsApp P rdVal [encodeValue a] (encodeValue (rd a)))
@@ -496,9 +544,9 @@ theorem preTestAt_cost_deployed (hP : Includes P preTestAtC.costDeps) (D : Discr
     (T : Array (Option FnPre)) (hT : tableShape T = true) (Pw : Array E) (j : ℕ)
     (hj : j < 2 ^ 64) (fp : K) :
     machineCost P preTestAtC.costIdx [encodeValue D, encodeValue T, encodeValue Pw, rdVal,
-      encodeValue j, encodeValue fp] ≤ 269 * R + 99 * B + 1057579 := by
-  have := preTestAt_cost P D rd rdVal hrd R hR B hB (W := 7) (by norm_num) (by norm_num) hP T Pw j
-    hj fp (fun s hs ↦ fnPreWithin_of_shape (fnPreShape_of_getD hT hs))
+      encodeValue j, encodeValue fp] ≤ 269 * R + 99 * B + 86262 := by
+  have := preTestAt_cost P D rd rdVal hrd R hR B hB (W := 7) hP T Pw le_rfl j hj fp
+    (fun s hs ↦ fnPreWithin_of_shape (fnPreShape_of_getD hT hs))
   cases hg : T.getD j none with
   | none => rw [hg] at this; simp only [fnPrePrice] at this; omega
   | some s =>

@@ -316,7 +316,7 @@ program's of `2^ℓ` instructions, each sorted. -/
 /-- The top's constant, the address tables apart: the witness (at most `Wn`), the decoding, the
 replay's and the other tables' constants. -/
 @[expose] def topConstPrice (X Wn : ℕ) : ℕ :=
-  framesPrice gLogPrice 1472 (1472 + 10993) X Wn + 42 + 18000 + 103846725 + 80665 +
+  framesPrice gLogPrice 1472 (1472 + 10993) X Wn + 42 + 18000 + 103846725 + 117080 +
     44537 + 20000
 
 /-- **The decoder's top** (`decTopC`) on a program of `ℓ` and a memory of `2^κ` words, `κ ≤ 32`:

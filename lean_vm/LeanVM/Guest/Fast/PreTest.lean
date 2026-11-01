@@ -75,44 +75,74 @@ def readIs (o : Option E) (x : E) : Bool :=
   | some w => decide (w = x)
   | none => false
 
+/-! ## The powers `g^o`, `o < 128`, read off the powers table
+
+The powers table `Pw` (`genPows`, built once by the caller) holds the powers `gen^(2^j)`,
+`j < 34`, then the powers `g^o`, `o < 128` (as words, at `34 + o`): a check reads `g^o` off it
+(`gpowAt`), not by squaring; above `128` (no entry of the deployed table) by squaring. -/
+
+/-- The powers `g^o` the table holds: `o < 128`. -/
+def smallPowBound : ℕ := 128
+
+/-- **`g^o`, read off the powers table `Pw`** at `34 + o` for `o < 128`, else by squaring
+(`gpowAt_genPows`: at `Pw = genPows` it is `gpow o`, on every input). -/
+def gpowAt (Pw : Array E) (o : ℕ) : K :=
+  if o < smallPowBound then (Pw.getD (B1.sizeBits + o) 0).limb 0 else gpow o
+
+/-- A known word's value (`Sym.val`), the powers read off `Pw`. -/
+def symValAt (Pw : Array E) (fp : K) : Sym → E
+  | .zero => 0
+  | .gp e => ofK (gpowAt Pw e)
+  | .fpg e => ofK (fp * gpowAt Pw e)
+
+/-- The word in cell `o` of the frame `fp` (`wordWith`), the power read off `Pw`. -/
+def wordAt (Pw : Array E) (rd : Reader) (fp : K) (o : ℕ) : E := (rd (fp * gpowAt Pw o)).getD 0
+
 /-- The entry environment's check `(o, v)`: cell `o` of the frame holds `v`. -/
-def envOne (rd : Reader) (fp : K) (p : ℕ × Sym) : Bool :=
-  readIs (rd (fp * gpow p.1)) (p.2.val fp)
+def envOne (Pw : Array E) (rd : Reader) (fp : K) (p : ℕ × Sym) : Bool :=
+  readIs (rd (fp * gpowAt Pw p.1)) (symValAt Pw fp p.2)
 
 /-- The bound `(o, n)`: cell `o` of the frame holds `g^e`, `e < n`. -/
-def bndOne (D : DiscreteLogTables) (rd : Reader) (fp : K) (p : ℕ × ℕ) : Bool :=
-  readPowBelow D (rd (fp * gpow p.1)) p.2
+def bndOne (D : DiscreteLogTables) (Pw : Array E) (rd : Reader) (fp : K) (p : ℕ × ℕ) : Bool :=
+  readPowBelow D (rd (fp * gpowAt Pw p.1)) p.2
 
 /-- The memory bound at the address `p`'s cell `c`: it holds `g^e`, `e < n`. -/
-def memAt (D : DiscreteLogTables) (rd : Reader) (n c : ℕ) (p : E) : Bool :=
-  decide (IsInK p) && readPowBelow D (rd (p.limb 0 * gpow c)) n
+def memAt (D : DiscreteLogTables) (Pw : Array E) (rd : Reader) (n c : ℕ) (p : E) : Bool :=
+  decide (IsInK p) && readPowBelow D (rd (p.limb 0 * gpowAt Pw c)) n
 
 /-- The memory bound at cell `c` of the address in the frame's cell `o`. -/
-def memCell (D : DiscreteLogTables) (rd : Reader) (fp : K) (o n c : ℕ) : Bool :=
-  match rd (fp * gpow o) with
-  | some p => memAt D rd n c p
+def memCell (D : DiscreteLogTables) (Pw : Array E) (rd : Reader) (fp : K) (o n c : ℕ) : Bool :=
+  match rd (fp * gpowAt Pw o) with
+  | some p => memAt D Pw rd n c p
   | none => false
 
 /-- The memory bound `(o, len, n)`: for every `c < len`. -/
-def memOne (D : DiscreteLogTables) (rd : Reader) (fp : K) (m : ℕ × ℕ × ℕ) : Bool :=
-  (List.range m.2.1).all (memCell D rd fp m.1 m.2.2)
+def memOne (D : DiscreteLogTables) (Pw : Array E) (rd : Reader) (fp : K) (m : ℕ × ℕ × ℕ) : Bool :=
+  (List.range m.2.1).all (memCell D Pw rd fp m.1 m.2.2)
 
-/-! ## The powers `gen^(2^j)`, a table built once -/
+/-! ## The powers table, built once -/
 
 /-- `x, x^2, x^4, …`: `n` squarings. -/
 def squaresFrom (x : E) : ℕ → List E
   | 0 => []
   | n + 1 => x :: squaresFrom (x * x) n
 
-/-- **The powers `gen^(2^j)`, `j < 34`**, by `34` squarings: the exponent tables' right column,
-built once by the caller and passed down (`Pw`). -/
-def genPows : Array E := (squaresFrom Protocol.Verifier.gen B1.sizeBits).toArray
+/-- `ofK y, ofK (y·g), …`: `n` products by `g`. -/
+def powsFrom (y : K) : ℕ → List E
+  | 0 => []
+  | n + 1 => ofK y :: powsFrom (y * Parameters.g) n
+
+/-- **The powers table**, built once by the caller and passed down (`Pw`): the powers
+`gen^(2^j)`, `j < 34`, by `34` squarings (the exponent tables' right column), then the powers
+`g^o`, `o < 128`, by `128` products (`gpowAt`). -/
+def genPows : Array E :=
+  (squaresFrom Protocol.Verifier.gen B1.sizeBits ++ powsFrom 1 smallPowBound).toArray
 
 /-- Entry `j` of the exponent tables at `p`, `q` (`expTablesTest`), the powers `gen^(2^j)` read
 off the table `Pw` (`genPows`). -/
 def expOne (Pw : Array E) (rd : Reader) (p q : E) (j : ℕ) : Bool :=
-  decide (IsInK p) && readIs (rd (p.limb 0 * gpow j)) (Protocol.Verifier.eOfNat (2 ^ j)) &&
-    decide (IsInK q) && readIs (rd (q.limb 0 * gpow j)) (Pw.getD j 0)
+  decide (IsInK p) && readIs (rd (p.limb 0 * gpowAt Pw j)) (Protocol.Verifier.eOfNat (2 ^ j)) &&
+    decide (IsInK q) && readIs (rd (q.limb 0 * gpowAt Pw j)) (Pw.getD j 0)
 
 /-- The exponent tables at `p`, `q`. -/
 def expTablesAt (Pw : Array E) (rd : Reader) (p q : E) : Bool :=
@@ -120,15 +150,15 @@ def expTablesAt (Pw : Array E) (rd : Reader) (p q : E) : Bool :=
 
 /-- The semantic pair `(o₁, o₂)`: the exponent tables at the two cells' words. -/
 def semOne (Pw : Array E) (rd : Reader) (fp : K) (p : ℕ × ℕ) : Bool :=
-  expTablesAt Pw rd (wordWith rd fp p.1) (wordWith rd fp p.2)
+  expTablesAt Pw rd (wordAt Pw rd fp p.1) (wordAt Pw rd fp p.2)
 
 /-- **A function's precondition at the frame `fp`**, from its entry of the table. -/
 def fnPreTest (D : DiscreteLogTables) (Pw : Array E) (rd : Reader) (fp : K) (t : Option FnPre) :
     Bool :=
   match t with
   | none => true
-  | some t => t.env.all (envOne rd fp) && t.pre.all (bndOne D rd fp) &&
-      t.mem.all (memOne D rd fp) && t.sem.all (semOne Pw rd fp)
+  | some t => t.env.all (envOne Pw rd fp) && t.pre.all (bndOne D Pw rd fp) &&
+      t.mem.all (memOne D Pw rd fp) && t.sem.all (semOne Pw rd fp)
 
 /-- **Function `j`'s precondition at the frame `fp`**, from the table `T` of the functions'
 preconditions, the logarithm's baby-step tables `D` and the powers `Pw` (`genPows`) given (but
@@ -142,12 +172,51 @@ def preTestAt (D : DiscreteLogTables) (T : Array (Option FnPre)) (Pw : Array E) 
 theorem readIs_eq (o : Option E) (x : E) : readIs o x = decide (o = some x) := by
   cases o <;> simp [readIs]
 
+theorem length_squaresFrom : ∀ (n : ℕ) (x : E), (squaresFrom x n).length = n
+  | 0, _ => rfl
+  | n + 1, x => by rw [squaresFrom, List.length_cons, length_squaresFrom n]
+
+theorem length_powsFrom : ∀ (n : ℕ) (y : K), (powsFrom y n).length = n
+  | 0, _ => rfl
+  | n + 1, y => by rw [powsFrom, List.length_cons, length_powsFrom n]
+
+/-- The products are the powers `y·g^o`. -/
+theorem powsFrom_getD : ∀ (n : ℕ) (y : K) (o : ℕ), o < n →
+    (powsFrom y n).getD o 0 = ofK (y * Parameters.g ^ o)
+  | 0, _, _, h => absurd h (Nat.not_lt_zero _)
+  | n + 1, y, 0, _ => by simp [powsFrom]
+  | n + 1, y, o + 1, h => by
+    rw [powsFrom, List.getD_cons_succ, powsFrom_getD n (y * Parameters.g) o (by omega), mul_assoc,
+      ← pow_succ']
+
+/-- **Entry `34 + o`, `o < 128`, of the powers table is `g^o`.** -/
+theorem genPows_getD_small {o : ℕ} (ho : o < smallPowBound) :
+    genPows.getD (B1.sizeBits + o) 0 = ofK (gpow o) := by
+  rw [genPows, Array.getD_eq_getD_getElem?, List.getElem?_toArray, ← List.getD_eq_getElem?_getD,
+    List.getD_append_right _ _ _ _ (by rw [length_squaresFrom]; omega), length_squaresFrom,
+    Nat.add_sub_cancel_left, powsFrom_getD _ _ _ ho, one_mul]
+
+/-- **The power read off the powers table is `g^o`**, on every input. -/
+theorem gpowAt_genPows (o : ℕ) : gpowAt genPows o = gpow o := by
+  unfold gpowAt
+  split_ifs with ho
+  · rw [genPows_getD_small ho]; simp [limb_ofK]
+  · rfl
+
+theorem symValAt_genPows (fp : K) (v : Sym) : symValAt genPows fp v = v.val fp := by
+  cases v <;> simp [symValAt, Sym.val, gpowAt_genPows]
+
+theorem wordAt_genPows : wordAt genPows = wordWith := by
+  funext rd fp o
+  simp [wordAt, wordWith, gpowAt_genPows]
+
 theorem envOne_eq (rd : Reader) (fp : K) (p : ℕ × Sym) :
-    envOne rd fp p = decide (rd (fp * gpow p.1) = some (p.2.val fp)) :=
-  readIs_eq _ _
+    envOne genPows rd fp p = decide (rd (fp * gpow p.1) = some (p.2.val fp)) := by
+  rw [envOne, gpowAt_genPows, symValAt_genPows]
+  exact readIs_eq _ _
 
 theorem envTest_eq (rd : Reader) (fp : K) (env : List (ℕ × Sym)) :
-    envTest rd fp env = (envChecks env).all (envOne rd fp) := by
+    envTest rd fp env = (envChecks env).all (envOne genPows rd fp) := by
   unfold envTest envChecks
   rw [List.all_filterMap]
   congr 1
@@ -209,14 +278,16 @@ theorem powBelow_eq : isPowBelow discreteLog = powBelow discreteLogTables := by
   rw [powBelow_eq_isPowBelow]
 
 theorem bndTestWith_eq_all (rd : Reader) (fp : K) (bnd : List (ℕ × ℕ)) :
-    bndTestWith discreteLog rd fp bnd = bnd.all (bndOne discreteLogTables rd fp) := by
+    bndTestWith discreteLog rd fp bnd = bnd.all (bndOne discreteLogTables genPows rd fp) := by
   unfold bndTestWith bndOne readPowBelow
+  simp only [gpowAt_genPows]
   rw [powBelow_eq]
   rfl
 
 theorem memTestWith_eq_all (rd : Reader) (fp : K) (mem : List (ℕ × ℕ × ℕ)) :
-    memTestWith discreteLog rd fp mem = mem.all (memOne discreteLogTables rd fp) := by
+    memTestWith discreteLog rd fp mem = mem.all (memOne discreteLogTables genPows rd fp) := by
   unfold memTestWith memOne memCell memAt readPowBelow
+  simp only [gpowAt_genPows]
   rw [powBelow_eq]
   rfl
 
@@ -232,7 +303,7 @@ theorem squaresFrom_getD : ∀ (n : ℕ) (x : E) (j : ℕ), j < n → (squaresFr
 theorem genPows_getD {j : ℕ} (hj : j < B1.sizeBits) :
     genPows.getD j 0 = Protocol.Verifier.gen ^ 2 ^ j := by
   rw [genPows, Array.getD_eq_getD_getElem?, List.getElem?_toArray, ← List.getD_eq_getElem?_getD,
-    squaresFrom_getD _ _ _ hj]
+    List.getD_append _ _ _ _ (by rw [length_squaresFrom]; exact hj), squaresFrom_getD _ _ _ hj]
 
 /-- **With the powers table, the exponent tables' test is `expTablesTest`**, on every input. -/
 theorem expTablesAt_genPows (rd : Reader) (p q : E) :
@@ -242,20 +313,19 @@ theorem expTablesAt_genPows (rd : Reader) (p q : E) :
   simp only [List.all_eq_true, List.mem_range]
   refine forall_congr' fun j ↦ forall_congr' fun hj ↦ ?_
   rw [expOne, genPows_getD hj]
-  simp only [readIs_eq]
+  simp only [readIs_eq, gpowAt_genPows]
 
 /-- **With the powers table, the semantic pair's test is the exponent tables at its cells'
 words**, on every input. -/
 theorem semOne_genPows (rd : Reader) (fp : K) (p : ℕ × ℕ) :
-    semOne genPows rd fp p = expTablesTest rd (wordWith rd fp p.1) (wordWith rd fp p.2) :=
-  expTablesAt_genPows rd _ _
+    semOne genPows rd fp p = expTablesTest rd (wordWith rd fp p.1) (wordWith rd fp p.2) := by
+  rw [semOne, wordAt_genPows]
+  exact expTablesAt_genPows rd _ _
 
 theorem semTest_eq_all (rd : Reader) (fp : K) (sems : List (ℕ × ℕ)) :
     semTest rd fp sems = sems.all (semOne genPows rd fp) := by
   unfold semTest
-  congr 1
-  funext p
-  rw [semOne_genPows]
+  exact congrArg sems.all (funext fun p ↦ (semOne_genPows rd fp p).symm)
 
 /-- **The test of an entry `fnPreOf s` is the four tests of `s`.** -/
 theorem fnPreTest_fnPreOf (rd : Reader) (fp : K) (s : Sig) :

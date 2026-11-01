@@ -10,9 +10,9 @@ preconditions' table they hold at, as definitions of their own: the table's eval
 (`Bounds/Decoder/PreTableShape.lean`) imports these and the table alone, none of the compiler or
 the proofs.
 
-Each price is in the bits `W` of the exponents the entry names (the frame's offsets, the known
-words' exponents, the memory bounds' cell counts: a power `g^o` by squaring costs at most
-`6 + 535·W`, `psAt W`), the price `R` of a memory read (the reader closure) and the price `B` of
+Each price holds at exponents within `7` bits (the frame's offsets, the known words' exponents,
+the memory bounds' cell counts: a power `g^o`, `o < 128`, read off the powers table costs `19`;
+`psAt W = 6 + 535·W`, a power by squaring, is the entry table's), the price `R` of a memory read (the reader closure) and the price `B` of
 one logarithm's bound (`powBelowC` at a bound `n ≤ 34`: the word's lane compared with the lanes
 of `g^0, …, g^(n-1)`; `powBelow_cost` gives `B = 911`).
 -/
@@ -43,17 +43,15 @@ def FnPreWithin (W : ℕ) (t : FnPre) : Prop :=
     (∀ m ∈ t.mem, m.1 < 2 ^ W ∧ m.2.1 ≤ 2 ^ W ∧ m.2.2 ≤ 34) ∧
     (∀ p ∈ t.sem, p.1 < 2 ^ W ∧ p.2 < 2 ^ W)
 
-/-- **The price of an entry's test** (`fnPreTestC`), its exponents within `W` bits, a memory read
-at most `R`, a logarithm's bound at most `B`: per entry-environment check `2·psAt W + R + 570`,
-per bound `psAt W + R + B + 288`, per memory cell `2·psAt W + 2R + B + 586` and per memory bound
-`43`, per semantic pair `2·psAt W + 70R + 241176` (the exponent tables' `34` entries, each two
-reads, the powers `gen^(2^j)` read off their table), and `55`; `3` for an entry without a
-precondition. -/
-def fnPrePrice (W R B : ℕ) : Option FnPre → ℕ
+/-- **The price of an entry's test** (`fnPreTestC`), its exponents within `7` bits (their powers
+read off the powers table, `19` each), a memory read at most `R`, a logarithm's bound at most `B`:
+per entry-environment check `R + 608`, per bound `R + B + 307`, per memory cell `2R + B + 624`
+and per memory bound `46`, per semantic pair `70R + 23751` (the exponent tables' `34` entries,
+each two reads), and `61`; `3` for an entry without a precondition. -/
+def fnPrePrice (R B : ℕ) : Option FnPre → ℕ
   | none => 3
-  | some t => (2 * psAt W + R + 570) * t.env.length + (psAt W + R + B + 288) * t.pre.length +
-      (2 * psAt W + 2 * R + B + 586) * memCells t + 43 * t.mem.length +
-      (2 * psAt W + 70 * R + 241176) * t.sem.length + 55
+  | some t => (R + 608) * t.env.length + (R + B + 307) * t.pre.length +
+      (2 * R + B + 624) * memCells t + 46 * t.mem.length + (70 * R + 23751) * t.sem.length + 61
 
 /-- **The deployed table's shape**, decided: at most one check of each kind, at most `99` bounds
 and memory cells, exponents below `2^7`, logarithms' bounds at most `34`. -/
