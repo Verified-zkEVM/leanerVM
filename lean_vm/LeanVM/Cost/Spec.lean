@@ -253,6 +253,15 @@ theorem RunsBody.intro {P : Program} {f : ℕ} {b : Term} {vs : List Val} {v : V
   obtain ⟨n, h⟩ := h
   exact ⟨n + 1, by simp [evalBody, hf, h]⟩
 
+/-- The program holds the bodies `l` at their indices. -/
+def Includes (P : Program) (l : List (ℕ × Term)) : Prop := ∀ p ∈ l, P[p.1]? = some p.2
+
+theorem Includes.get {P : Program} {l : List (ℕ × Term)} (h : Includes P l) {i : ℕ} {b : Term}
+    (hm : (i, b) ∈ l) : P[i]? = some b := h _ hm
+
+theorem Includes.mono {P : Program} {l l' : List (ℕ × Term)} (h : Includes P l)
+    (hl : ∀ p ∈ l', p ∈ l) : Includes P l' := fun p hp ↦ h p (hl p hp)
+
 theorem RunsBody.cost_eq {P : Program} {f : ℕ} {vs : List Val} {v : Val} {c c' : ℕ}
     (h : RunsBody P f vs v c) (hc : c = c') : RunsBody P f vs v c' := hc ▸ h
 

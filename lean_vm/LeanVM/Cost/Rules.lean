@@ -1,0 +1,283 @@
+module
+
+public import LeanVM.Cost.Spec
+public import LeanVM.Cost.Encoding
+
+/-!
+# The compiler's rules
+
+One lemma per Lean construct the compiler translates: from runs of the parts (their code and
+price are whatever the compiler found for them) to a run of the whole, its value the encoding of
+the Lean expression. The compiler (`Cost/Compiler.lean`) applies them by unification on the Lean
+expression, so the code and the price of the whole are what the rule's conclusion names.
+
+* `machineCost`: the price of a function's run, when it has one (`machineCost_eq`: every run has
+  that price), the time function of every compiled definition;
+* the rules for variables, literals, `let`, constructors, fields, `match` on `Option`, `List`,
+  `Bool` and pairs, `if`, and the primitives on `ℕ`, `UInt64`, `K` and `Bool`.
+-/
+
+namespace LeanVM.Cost
+
+open LeanVM.Parameters
+
+@[expose] public section
+
+/-! ## The price of a run -/
+
+/-- The price of function `f`'s run on `vs`, if it has one; `0` otherwise. -/
+noncomputable def machineCost (P : Program) (f : ℕ) (vs : List Val) : ℕ :=
+  open Classical in
+  if h : ∃ r : Val × ℕ, ∃ n, evalBody P n f vs = some r then (Classical.choose h).2 else 0
+
+theorem RunsBody.unique {P : Program} {f : ℕ} {vs : List Val} {v v' : Val} {c c' : ℕ}
+    (h : RunsBody P f vs v c) (h' : RunsBody P f vs v' c') : v = v' ∧ c = c' := by
+  obtain ⟨n, h⟩ := h
+  obtain ⟨n', h'⟩ := h'
+  have e := (evalBody_le (le_max_left n n') h).symm.trans (evalBody_le (le_max_right n n') h')
+  simp only [Option.some.injEq, Prod.mk.injEq] at e
+  exact e
+
+/-- **Every run has the machine's price.** -/
+theorem machineCost_eq {P : Program} {f : ℕ} {vs : List Val} {v : Val} {c : ℕ}
+    (h : RunsBody P f vs v c) : machineCost P f vs = c := by
+  have hex : ∃ r : Val × ℕ, ∃ n, evalBody P n f vs = some r := ⟨(v, c), h⟩
+  simp only [machineCost, hex, ↓reduceDIte]
+  have hs := Classical.choose_spec hex
+  exact (RunsBody.unique (v := (Classical.choose hex).1) (c := (Classical.choose hex).2) hs h).2
+
+theorem RunsBody.withMachineCost {P : Program} {f : ℕ} {vs : List Val} {v : Val} {c : ℕ}
+    (h : RunsBody P f vs v c) : RunsBody P f vs v (machineCost P f vs) := by
+  rw [machineCost_eq h]; exact h
+
+/-- **Specs by strong induction**: if each run's step uses the spec only at arguments of smaller
+measure, the spec holds at every argument, at the machine's price. -/
+theorem RunsBody.induction {P : Program} {i : ℕ} {α : Type} (args : α → List Val) (val : α → Val)
+    (m : α → ℕ)
+    (step : ∀ x, (∀ y, m y < m x → RunsBody P i (args y) (val y) (machineCost P i (args y))) →
+      ∃ c, RunsBody P i (args x) (val x) c) :
+    ∀ x, RunsBody P i (args x) (val x) (machineCost P i (args x)) := by
+  intro x
+  induction h : m x using Nat.strong_induction_on generalizing x with
+  | _ n ih =>
+    obtain ⟨c, hc⟩ := step x fun y hy ↦ ih (m y) (h ▸ hy) y rfl
+    exact hc.withMachineCost
+
+/-! ## Encodings -/
+
+section Enc
+
+variable {α β : Type} [Enc α] [Enc β]
+
+@[simp] theorem enc_none : enc (none : Option α) = .ctor 0 [] := rfl
+@[simp] theorem enc_some (a : α) : enc (some a) = .ctor 1 [enc a] := rfl
+@[simp] theorem enc_nil : enc ([] : List α) = .ctor 0 [] := rfl
+@[simp] theorem enc_cons (a : α) (l : List α) : enc (a :: l) = .ctor 1 [enc a, enc l] := rfl
+@[simp] theorem enc_pair (a : α) (b : β) : enc (a, b) = .ctor 0 [enc a, enc b] := rfl
+@[simp] theorem enc_true : enc true = .ctor 1 [] := rfl
+@[simp] theorem enc_false : enc false = .ctor 0 [] := rfl
+@[simp] theorem enc_nat (n : ℕ) : enc n = .nat n := rfl
+@[simp] theorem enc_word (x : UInt64) : enc x = .word x := rfl
+@[simp] theorem enc_k (x : K) : enc x = .word x.lane := rfl
+@[simp] theorem enc_array (a : Array α) : enc a = .arr (a.map enc) := rfl
+
+theorem enc_bool (b : Bool) : enc b = Val.ofBool b := rfl
+
+end Enc
+
+/-! ## Rules -/
+
+namespace Rule
+
+variable {P : Program} {env : List Val} {α β γ : Type} [Enc α] [Enc β] [Enc γ]
+
+theorem var {i : ℕ} {x : α} (h : env[i]? = some (enc x)) : Runs P env (.var i) (enc x) 1 :=
+  Runs.var h
+
+theorem natLit (n : ℕ) : Runs P env (.val (.nat n)) (enc n) 1 := Runs.val _
+
+theorem wordLit (x : UInt64) : Runs P env (.val (.word x)) (enc x) 1 := Runs.val _
+
+theorem kLit (x : K) : Runs P env (.val (.word x.lane)) (enc x) 1 := Runs.val _
+
+theorem boolLit (b : Bool) : Runs P env (.val (Val.ofBool b)) (enc b) 1 := Runs.val _
+
+theorem letE {t b : Term} {v : α} {f : α → β} {c : ℕ} {d : α → ℕ} (h : Runs P env t (enc v) c)
+    (hb : ∀ x, x = v → Runs P (enc x :: env) b (enc (f x)) (d x)) :
+    Runs P env (.letE t b) (enc (f v)) (c + d v + 1) :=
+  Runs.letE h (hb v rfl)
+
+/-! ### Constructors and fields -/
+
+theorem none : Runs P env (.ctor 0 []) (enc (none : Option α)) 1 :=
+  (Runs.ctor (k := 0) RunsList.nil).cost_eq (by simp)
+
+theorem some {t : Term} {a : α} {c : ℕ} (h : Runs P env t (enc a) c) :
+    Runs P env (.ctor 1 [t]) (enc (some a)) (c + 2) :=
+  (Runs.ctor (k := 1) (RunsList.cons h RunsList.nil)).cost_eq (by simp)
+
+theorem nil : Runs P env (.ctor 0 []) (enc ([] : List α)) 1 :=
+  (Runs.ctor (k := 0) RunsList.nil).cost_eq (by simp)
+
+theorem cons {t u : Term} {a : α} {l : List α} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hl : Runs P env u (enc l) d) : Runs P env (.ctor 1 [t, u]) (enc (a :: l)) (c + d + 3) :=
+  (Runs.ctor (k := 1) (RunsList.cons h (RunsList.cons hl RunsList.nil))).cost_eq (by simp)
+
+theorem pair {t u : Term} {a : α} {b : β} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.ctor 0 [t, u]) (enc (a, b)) (c + d + 3) :=
+  (Runs.ctor (k := 0) (RunsList.cons h (RunsList.cons hb RunsList.nil))).cost_eq (by simp)
+
+theorem fst {t : Term} {p : α × β} {c : ℕ} (h : Runs P env t (enc p) c) :
+    Runs P env (.proj 0 t) (enc p.1) (c + 1) :=
+  Runs.proj (k := 0) (fs := [enc p.1, enc p.2]) h rfl
+
+theorem snd {t : Term} {p : α × β} {c : ℕ} (h : Runs P env t (enc p) c) :
+    Runs P env (.proj 1 t) (enc p.2) (c + 1) :=
+  Runs.proj (k := 0) (fs := [enc p.1, enc p.2]) h rfl
+
+/-! ### Matches -/
+
+theorem caseOption {t a b : Term} {o : Option α} {e₀ : β} {e₁ : α → β} {c c₀ : ℕ} {c₁ : α → ℕ}
+    (h : Runs P env t (enc o) c) (h₀ : o = .none → Runs P env a (enc e₀) c₀)
+    (h₁ : ∀ x, o = .some x → Runs P (enc x :: env) b (enc (e₁ x)) (c₁ x)) :
+    Runs P env (.case t [a, b]) (enc (Option.casesOn (motive := fun _ ↦ β) o e₀ e₁))
+      (c + Option.casesOn (motive := fun _ ↦ ℕ) o c₀ c₁ + 1) := by
+  cases o with
+  | none => exact Runs.case (k := 0) (fs := []) h rfl (h₀ rfl)
+  | some x => exact Runs.case (k := 1) (fs := [enc x]) h rfl (h₁ x rfl)
+
+theorem caseList {t a b : Term} {l : List α} {e₀ : β} {e₁ : α → List α → β} {c c₀ : ℕ}
+    {c₁ : α → List α → ℕ} (h : Runs P env t (enc l) c) (h₀ : l = [] → Runs P env a (enc e₀) c₀)
+    (h₁ : ∀ x xs, l = x :: xs → Runs P (enc x :: enc xs :: env) b (enc (e₁ x xs)) (c₁ x xs)) :
+    Runs P env (.case t [a, b]) (enc (List.casesOn (motive := fun _ ↦ β) l e₀ e₁))
+      (c + List.casesOn (motive := fun _ ↦ ℕ) l c₀ c₁ + 1) := by
+  cases l with
+  | nil => exact Runs.case (k := 0) (fs := []) h rfl (h₀ rfl)
+  | cons x xs => exact Runs.case (k := 1) (fs := [enc x, enc xs]) h rfl (h₁ x xs rfl)
+
+theorem casePair {t b : Term} {p : α × β} {e : α → β → γ} {c : ℕ} {c₁ : α → β → ℕ}
+    (h : Runs P env t (enc p) c)
+    (h₁ : ∀ x y, p = (x, y) → Runs P (enc x :: enc y :: env) b (enc (e x y)) (c₁ x y)) :
+    Runs P env (.case t [b]) (enc (Prod.casesOn (motive := fun _ ↦ γ) p e))
+      (c + Prod.casesOn (motive := fun _ ↦ ℕ) p c₁ + 1) := by
+  obtain ⟨x, y⟩ := p
+  exact Runs.case (k := 0) (fs := [enc x, enc y]) h rfl (h₁ x y rfl)
+
+theorem ite {tc ta tb : Term} {p : Prop} [Decidable p] {a b : α} {c ca cb : ℕ}
+    (h : Runs P env tc (enc (decide p)) c) (ha : p → Runs P env ta (enc a) ca)
+    (hb : ¬p → Runs P env tb (enc b) cb) :
+    Runs P env (.case tc [tb, ta]) (enc (if p then a else b)) (c + (if p then ca else cb) + 1) := by
+  by_cases hp : p
+  · exact Runs.case (k := 1) (fs := []) (by simpa [hp] using h) rfl (by simpa [hp] using ha hp)
+  · exact Runs.case (k := 0) (fs := []) (by simpa [hp] using h) rfl (by simpa [hp] using hb hp)
+
+theorem dite {tc ta tb : Term} {p : Prop} [Decidable p] {a : p → α} {b : ¬p → α} {c : ℕ}
+    {ca : p → ℕ} {cb : ¬p → ℕ}
+    (h : Runs P env tc (enc (decide p)) c) (ha : ∀ hp : p, Runs P env ta (enc (a hp)) (ca hp))
+    (hb : ∀ hp : ¬p, Runs P env tb (enc (b hp)) (cb hp)) :
+    Runs P env (.case tc [tb, ta]) (enc (if hp : p then a hp else b hp))
+      (c + (if hp : p then ca hp else cb hp) + 1) := by
+  by_cases hp : p
+  · exact Runs.case (k := 1) (fs := []) (by simpa [hp] using h) rfl (by simpa [hp] using ha hp)
+  · exact Runs.case (k := 0) (fs := []) (by simpa [hp] using h) rfl (by simpa [hp] using hb hp)
+
+theorem cond {tc ta tb : Term} {b : Bool} {x y : α} {c ca cb : ℕ}
+    (h : Runs P env tc (enc b) c) (ha : b = true → Runs P env ta (enc x) ca)
+    (hb : b = false → Runs P env tb (enc y) cb) :
+    Runs P env (.case tc [tb, ta]) (enc (bif b then x else y))
+      (c + (bif b then ca else cb) + 1) := by
+  cases b
+  · exact Runs.case (k := 0) (fs := []) h rfl (by simpa using hb rfl)
+  · exact Runs.case (k := 1) (fs := []) h rfl (by simpa using ha rfl)
+
+theorem caseNat {t a b : Term} {n : ℕ} {e₀ : α} {e₁ : ℕ → α} {c c₀ : ℕ} {c₁ : ℕ → ℕ}
+    (h : Runs P env t (enc n) c) (h₀ : n = 0 → Runs P env a (enc e₀) c₀)
+    (h₁ : ∀ k, n = k + 1 → Runs P (enc k :: env) b (enc (e₁ k)) (c₁ k)) :
+    Runs P env (.case (.op .neq [t, .val (.nat 0)]) [.letE (.op .nsub [t, .val (.nat 1)]) b, a])
+      (enc (Nat.casesOn (motive := fun _ ↦ α) n e₀ e₁))
+      (c + 1 + (max (limbs n) (limbs 0) + 1) +
+        Nat.casesOn (motive := fun _ ↦ ℕ) n c₀ (fun k ↦ c + 1 + (max (limbs n) (limbs 1) + 1) +
+          c₁ k + 1) + 1) := by
+  have hz : Runs P env (.op .neq [t, .val (.nat 0)]) (enc (decide (n = 0)))
+      (c + 1 + (max (limbs n) (limbs 0) + 1)) :=
+    Runs.op (RunsList.cons h (RunsList.cons (Runs.val _) RunsList.nil))
+      (by simp [Op.apply, enc_bool, Val.ofBool])
+  cases n with
+  | zero => exact Runs.case (k := 1) (fs := []) (by simpa using hz) rfl (h₀ rfl)
+  | succ k =>
+    have hs : Runs P env (.op .nsub [t, .val (.nat 1)]) (enc k)
+        (c + 1 + (max (limbs (k + 1)) (limbs 1) + 1)) :=
+      Runs.op (RunsList.cons h (RunsList.cons (Runs.val _) RunsList.nil)) (by simp [Op.apply, natOp])
+    exact Runs.case (k := 0) (fs := []) (by simpa using hz) rfl (Runs.letE hs (h₁ k rfl))
+
+/-- A call of a function on the encodings of its arguments. -/
+theorem call {f : ℕ} {ts : List Term} {vs : List Val} {w : Val} {c d : ℕ}
+    (h : RunsList P env ts vs c) (hb : RunsBody P f vs w d) :
+    Runs P env (.call f ts) w (c + d + 1) := Runs.call h hb
+
+/-! ### Primitives -/
+
+/-- A primitive of two arguments, from the runs of its arguments. -/
+theorem op₂ {o : Op} {t u : Term} {a : α} {b : β} {v : Val} {c d e : ℕ}
+    (h : Runs P env t (enc a) c) (hb : Runs P env u (enc b) d)
+    (ho : o.apply [enc a, enc b] = .some (v, e)) : Runs P env (.op o [t, u]) v (c + d + e) :=
+  (Runs.op (RunsList.cons h (RunsList.cons hb RunsList.nil)) ho).cost_eq (by omega)
+
+/-- A primitive of one argument. -/
+theorem op₁ {o : Op} {t : Term} {a : α} {v : Val} {c e : ℕ} (h : Runs P env t (enc a) c)
+    (ho : o.apply [enc a] = .some (v, e)) : Runs P env (.op o [t]) v (c + e) :=
+  (Runs.op (RunsList.cons h RunsList.nil) ho).cost_eq (by omega)
+
+theorem natAdd {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .nadd [t, u]) (enc (a + b)) (c + d + (max (limbs a) (limbs b) + 1)) :=
+  op₂ h hb rfl
+
+theorem natSub {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .nsub [t, u]) (enc (a - b)) (c + d + (max (limbs a) (limbs b) + 1)) :=
+  op₂ h hb rfl
+
+theorem natMul {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .nmul [t, u]) (enc (a * b)) (c + d + (limbs a * limbs b + 1)) :=
+  op₂ h hb rfl
+
+theorem natDiv {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .ndiv [t, u]) (enc (a / b)) (c + d + (limbs a * limbs b + 1)) :=
+  op₂ h hb rfl
+
+theorem natMod {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .nmod [t, u]) (enc (a % b)) (c + d + (limbs a * limbs b + 1)) :=
+  op₂ h hb rfl
+
+theorem natLt {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .nlt [t, u]) (enc (decide (a < b))) (c + d + (max (limbs a) (limbs b) + 1)) :=
+  op₂ h hb rfl
+
+theorem natLe {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .nle [t, u]) (enc (decide (a ≤ b))) (c + d + (max (limbs a) (limbs b) + 1)) :=
+  op₂ h hb rfl
+
+theorem natEq {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) :
+    Runs P env (.op .neq [t, u]) (enc (decide (a = b))) (c + d + (max (limbs a) (limbs b) + 1)) :=
+  op₂ h hb (by simp [Op.apply, enc_bool, Val.ofBool])
+
+theorem kAdd {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.op .wxor [t, u]) (enc (a + b)) (c + d + 1) :=
+  op₂ h hb rfl
+
+theorem kMul {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc b) d) : Runs P env (.op .gfmul [t, u]) (enc (a * b)) (c + d + 256) :=
+  op₂ h hb rfl
+
+end Rule
+
+end
+
+end LeanVM.Cost
