@@ -149,6 +149,7 @@ def rewrites : List (Name × Name) := [
   (``OfNat.ofNat, ``Rewrite.eZero),
   (``LeanVM.Parameters.ofK, ``Rewrite.eOfK),
   (``Array.ofFn, ``Rewrite.arrOfFn),
+  (``List.finRange, ``Rewrite.listFinRange),
   (``List.ofFn, ``Rewrite.listOfFn),
   (``Finset.prod, ``Rewrite.finsetProdRange),
   (``Nat.log2, ``Rewrite.natLog2),
