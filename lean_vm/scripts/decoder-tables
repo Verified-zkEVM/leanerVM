@@ -55,17 +55,27 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--entries", required=True)
     ap.add_argument("--check", action="store_true")
+    ap.add_argument("--split-rows", default="21",
+                    help="rows whose cells' lists get a name of their own (checked by chunks)")
     a = ap.parse_args()
     entries = [int(x) for x in re.findall(r"\d+", open(a.entries).read())]
     assert len(entries) == N, len(entries)
     co, ce = cores(), certs()
     args = [co[max(j - 1, 0)] for j in range(N)]
     rets = [ce[j][1] for j in range(N)]
+    split = [int(x) for x in a.split_rows.split(",") if x]
     locs = []
+    rowdefs = ""
     for j in range(N):
         names = ce[j][0]
-        locs.append("[]" if not names else
-                    "[" + ", ".join(f"Data.{n}" for n in names) + "].flatten")
+        if j in split:
+            rowdefs += (f"/-- Function {j}'s certificate's cells, list by list. -/\n"
+                        f"def guestLocsRow{j} : List (List ℕ) := [\n    "
+                        + ",\n    ".join(f"Data.{n}" for n in names) + "]\n\n")
+            locs.append(f"guestLocsRow{j}.flatten")
+        else:
+            locs.append("[]" if not names else
+                        "[" + ", ".join(f"Data.{n}" for n in names) + "].flatten")
     text = f'''/-
   LeanVM.Cost.Decoder.GuestTables
 
@@ -94,7 +104,7 @@ open LeanVM.Guest
 {nat_array("guestEntries", "Each function's entry pc (`(fnOf j).entry`).", entries)}
 {nat_array("guestArgCounts", "Each function's number of arguments (`(coreOf j).params.length`).", args)}
 {nat_array("guestRetCounts", "Each function's number of return words (`(certOf j).nret`).", rets)}
-/-- Each function's frame cells (`(certOf j).locs`), as lists. -/
+{rowdefs}/-- Each function's frame cells (`(certOf j).locs`), as lists. -/
 def guestLocsList : List (List ℕ) := [
     {",\n    ".join(locs)}]
 
