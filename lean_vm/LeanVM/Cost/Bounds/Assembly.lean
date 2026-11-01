@@ -17,8 +17,8 @@ The facts and the parts' bounds `Bounds/Top.lean` assembles into the compiled ex
 * `bytecodeWords_length` (`16·2^ℓ` words); `afterRootLite_roots`: the replay's one root, at the
   ladder's first level (height `μ − 6 + R`, width `64`); `fastStacksFast_length_le`: at most one
   fast stack;
-* the parts' closed bounds: `transcriptBound D L N` (`transcriptIndex_cost`, `N` queries,
-  `N + 2 ≤ 2^D`, strings of at most `L` bytes), `tablesBound κ ℓ` (`runnerTables_cost`),
+* the parts' closed bounds: `transcriptBound D L N W` (`transcriptIndex_cost`, `N` queries,
+  `N + 2 ≤ 2^D`, strings of at most `L` bytes, `W` the limbs of the maps' positions and weights), `tablesBound κ ℓ` (`runnerTables_cost`),
   `runBound κ ℓ` (`runWithTables_cost`, the step cap at most `2^35`), `fastBound μ R w cW`
   (`fastStacksFast_cost`, a column read at `17·w + cW`).
 -/
@@ -90,16 +90,16 @@ theorem fastStacksFast_length_le (μ R : ℕ) (W : ℕ → List K) : (fastStacks
 /-! ## The budget -/
 
 /-- The transcript's index (`transcriptIndex_cost`): `N` queries, `N + 2 ≤ 2^D`, strings of at
-most `L` bytes. -/
-@[expose] def transcriptBound (D L N : ℕ) : ℕ :=
-  (23 * 8 + 31) * D + (replayStepBound (L + 136) D + 13) * N +
+most `L` bytes, the positions' and weights' limbs at most `W`. -/
+@[expose] def transcriptBound (D L N W : ℕ) : ℕ :=
+  (23 * 8 + 31) * D + (replayStepBound (L + 136) D W + 13) * N +
     (114 * (L + 136) + 12313) * (N + 1) + 470 +
-    (N + 1) * ((23 * L * (D * D) + 60 * (D * D) + 69 * (L * D) + 208 * D + 94) +
-      (25 * L + 192 * (D * D) + 595 * D + 161) + D * (17 + (60 + 23 * L) * (D + 2)) + 60) + 50
+    (N + 1) * ((firstAnswersStep L D W + 9) + (preStepBound L D W + 9) +
+      D * (17 + (60 + 23 * L + 11 * W) * (D + 2)) + 60) + 50
 
-theorem transcriptBound_mono {D L N N' : ℕ} (h : N ≤ N') :
-    transcriptBound D L N ≤ transcriptBound D L N' := by
-  unfold transcriptBound
+theorem transcriptBound_mono {D D' L N N' W W' : ℕ} (hD : D ≤ D') (hN : N ≤ N') (hW : W ≤ W') :
+    transcriptBound D L N W ≤ transcriptBound D' L N' W' := by
+  unfold transcriptBound replayStepBound firstAnswersStep preStepBound
   gcongr
 
 /-- The runner's tables (`runnerTables_cost`). -/

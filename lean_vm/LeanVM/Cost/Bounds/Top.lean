@@ -27,14 +27,18 @@ decoder's stacks (`decOfC`) and a run per decoded stack. Bounded from their pric
 * **`fastOfC_cost`** (`fastBound`), **`decOfC_cost`** (`decodeStacksDistinctC_cost_worst`, at every
   admissible shape: `1752·2^26 + decoderWorst`), **`runBothC_cost`**, **`runFromLeavesC_cost`**,
   **`stageTC_cost`** (`stageBound`), **`afterRootStageC_cost`**;
-* **`extractorC_cost`**: on every input of fewer than `2^61 − 2` permutation queries, at most
-  `extractorPrice μ R κ ℓ N` at the shape `afterRootLite` announces (`replayPrice ℓ` if it fails);
+* **`extractorC_cost`**: on every input, at most `extractorPrice μ R κ ℓ N` at the shape
+  `afterRootLite` announces (`replayPrice ℓ` if it fails), `N` the permutation queries, any number:
+  the sorted maps' positions and weights priced by their limbs (`wl (D + 1)`, `D = log₂(N + 2) + 1`),
+  so the price grows like `N·D²·(D/64 + 1)`;
 * **`extractorBudgetAt`** (the Phase 4a draft's form: program, layout, rate, queries) and
   **`extractorC_within`**: the price and the entry's `9` within it wherever `afterRoot` announces a
   shape (`hcost` of `extractorTop_output`);
 * **`extractorPrice_28_4`**: at `(28, 4)`, `κ = ℓ = 32`, at most `2^40` queries:
-  `263761295154143991351709577217781164 ≈ 2^117.67`, the decoder (`decoderWorst ≈ 2^117.67`) all
-  but `≈ 2^71.79` of it (the `1 + 2^18` runs `≈ 2^71.77`, the transcript's index `≈ 2^65.44`).
+  `263761295154143991480110948970664343 ≈ 2^117.67`, the decoder (`decoderWorst ≈ 2^117.67`) all
+  but `≈ 2^71.79` of it (the `1 + 2^18` runs `≈ 2^71.77`, the transcript's index `≈ 2^65.44`);
+  **`extractorPrice_28_4_2_128`**: at most `2^128` queries, `≈ 2^156.69`, the transcript's index
+  dominating.
 
 The `includes` between the top functions' lists of about `500` bodies takes seconds each: those
 are lemmas of their own (`includes_stageTC`, …), each with a raised heartbeat budget.
@@ -271,52 +275,52 @@ theorem transcriptIndex_keys (T : List (Common.PermutationQuery KeccakState × K
 /-- **A preimage lookup** in the transcript's index (`leavesOfC.lam0`, `preimageIn.c517`): a
 binary search per level, at most `D·(17 + 192·(D + 2)) + 40`. -/
 theorem preimageLookup_cost (hP : Includes P leavesOfC.lam0.costDeps)
-    (qs : List (Common.PermutationQuery KeccakState × KeccakState)) (L D : ℕ) (hL : L < 2 ^ 64)
-    (hD : D ≤ 61) (hN : qs.length + 2 ≤ 2 ^ D) (d : LeanVM.Protocol.Digest) (len : ℕ)
-    (hlen : len < 2 ^ 64) :
+    (qs : List (Common.PermutationQuery KeccakState × KeccakState)) (L D W : ℕ) (hL : L < 2 ^ 64)
+    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ W) (hN : qs.length + 2 ≤ 2 ^ D)
+    (d : LeanVM.Protocol.Digest) (len : ℕ) (hlen : len < 2 ^ 64) :
     appCost P (.fn leavesOfC.lam0.costIdx [enc (transcriptIndex qs L)]) [enc d, enc len] ≤
-      D * (17 + 192 * (D + 2)) + 40 := by
+      D * (17 + (192 + 11 * W) * (D + 2)) + 40 := by
   simp only [appCost_fn, List.cons_append, List.nil_append]
   rw [leavesOfC.lam0.costEq P hP,
     Auto.LeanVM.Extraction.Fast.preimageIn.c517.costEq P (by includes)]
   obtain ⟨hg, hw⟩ := transcriptIndex_bounds qs L
   obtain ⟨hlev, hsz⟩ := smGood_levels_le hg (D := D)
     (lt_of_le_of_lt hw (Nat.lt_of_lt_of_le (Nat.lt_succ_self _) hN))
-  have h62 : 2 ^ D < 2 ^ 62 := Nat.pow_lt_pow_right (by norm_num) (by omega)
-  have hget := getPre_cost P (by includes) (transcriptIndex qs L) (2 ^ D) h62
+  have hget := getPre_cost P (by includes) (transcriptIndex qs L) (2 ^ D) W hW
     (fun l hl ↦ (hsz l hl).1.trans (hsz l hl).2) (transcriptIndex_keys qs L hL)
     (d.toList, len) ⟨by simp, hlen⟩
   rw [Nat.log2_two_pow] at hget
-  have hlv : (transcriptIndex qs L).levels.length * (17 + 192 * (D + 2)) ≤
-      D * (17 + 192 * (D + 2)) := Nat.mul_le_mul_right _ hlev
+  have hlv : (transcriptIndex qs L).levels.length * (17 + (192 + 11 * W) * (D + 2)) ≤
+      D * (17 + (192 + 11 * W) * (D + 2)) := Nat.mul_le_mul_right _ hlev
   simp only [Vector.size_toArray]
   generalize (transcriptIndex qs L).get? (d.toList, len) = o1
   generalize (transcriptIndex qs L).getD (d.toList, len) Hits.none = o2
   cases o1 <;> cases o2 <;> dsimp only <;> omega
 
 /-- The committed leaves' bound: a tree of height `h`, leaves of `64` words, a lookup's `D` levels. -/
-@[expose] def leavesBoundC (D h : ℕ) : ℕ :=
-  2 ^ h * (2 * (D * (17 + 192 * (D + 2)) + 40) + 64853 + 8 * h)
+@[expose] def leavesBoundC (D h W : ℕ) : ℕ :=
+  2 ^ h * (2 * (D * (17 + (192 + 11 * W) * (D + 2)) + 40) + 64853 + 8 * h)
 
 /-- **The committed leaves** (`leavesOfC`, width `64`): the transcript's index, then the subtree. -/
 theorem leavesOfC_cost (hP : Includes P leavesOfC.costDeps)
-    (qs : List (Common.PermutationQuery KeccakState × KeccakState)) (D : ℕ) (hD : D ≤ 61)
+    (qs : List (Common.PermutationQuery KeccakState × KeccakState)) (D W : ℕ)
+    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ W)
     (hN : qs.length + 2 ≤ 2 ^ D) (h : ℕ) (root : LeanVM.Protocol.Digest) :
     machineCost P leavesOfC.costIdx [enc qs, enc 64, enc h, enc root] ≤
-      20 + transcriptBound D 512 qs.length + leavesBoundC D h := by
+      20 + transcriptBound D 512 qs.length W + leavesBoundC D h W := by
   rw [leavesOfC.costEq P hP]
   rw [show max 64 (8 * 64) = 512 by norm_num]
-  have hT := transcriptIndex_cost P (by includes) D 512 hD (by norm_num) qs hN
+  have hT := transcriptIndex_cost P (by includes) D 512 W hW (by norm_num) qs hN
   have hS := subtreeLeavesWithC_cost P (by includes) _
     (.fn leavesOfC.lam0.costIdx [enc (transcriptIndex qs 512)])
     (fun d n ↦ RunsApp.of_spec (leavesOfC.lam0.costSpec P (by includes) _ d n))
-    (D * (17 + 192 * (D + 2)) + 40)
-    (fun d n hn ↦ preimageLookup_cost P (by includes) qs 512 D (by norm_num) hD hN d n hn)
+    (D * (17 + (192 + 11 * W) * (D + 2)) + 40)
+    (fun d n hn ↦ preimageLookup_cost P (by includes) qs 512 D W (by norm_num) hW hN d n hn)
     64 (by norm_num) h root
   rw [limbs_of_lt (by norm_num : (64 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : 8 * 64 < 2 ^ 64)]
-  have e : D * (17 + 192 * (D + 2)) + 40 + 17 * 64 + 33000 +
-      (D * (17 + 192 * (D + 2)) + 40 + 480 * 64 + 45) + 8 * h =
-      2 * (D * (17 + 192 * (D + 2)) + 40) + 64853 + 8 * h := by ring
+  have e : D * (17 + (192 + 11 * W) * (D + 2)) + 40 + 17 * 64 + 33000 +
+      (D * (17 + (192 + 11 * W) * (D + 2)) + 40 + 480 * 64 + 45) + 8 * h =
+      2 * (D * (17 + (192 + 11 * W) * (D + 2)) + 40) + 64853 + 8 * h := by ring
   rw [e] at hS
   unfold transcriptBound leavesBoundC
   simp only [show (64 : ℕ) ≤ 8 * 64 from by norm_num, ↓reduceIte]
@@ -520,24 +524,25 @@ theorem runFromLeavesC_cost (hP : Includes P runFromLeavesC.costDeps) (prog : Se
   omega
 
 /-- A stage's bound: the committed leaves of height `h` and the candidate runs. -/
-@[expose] def stageBound (μ R κ ℓ D N h : ℕ) : ℕ :=
-  transcriptBound D 512 N + leavesBoundC D h + fastBound μ R 64 24 + tablesBound κ ℓ +
+@[expose] def stageBound (μ R κ ℓ D N h W : ℕ) : ℕ :=
+  transcriptBound D 512 N W + leavesBoundC D h W + fastBound μ R 64 24 + tablesBound κ ℓ +
     (runBound κ ℓ + 15) * (2 ^ 18 + 1) + decoderPart + 133
 
 /-- **A stage** (`stageTC`) at the root `afterRootLite` returns: the committed leaves, the runs. -/
 theorem stageTC_cost (hP : Includes P stageTC.costDeps) (prog : Semantics.Program)
     (input : PublicInput) (qs : List (Common.PermutationQuery KeccakState × KeccakState))
-    (D : ℕ) (hD : D ≤ 61) (hN : qs.length + 2 ≤ 2 ^ D) {bytecode : List K} {π : Proof}
+    (D W : ℕ) (hW : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ W) (hN : qs.length + 2 ≤ 2 ^ D)
+    {bytecode : List K} {π : Proof}
     {L : LayoutLite} {R : ℕ} {st : ProgState} (har : afterRootLite bytecode π = some ((L, R), st))
     (root : LeanVM.Protocol.Digest) :
     machineCost P stageTC.costIdx [enc prog, enc input, enc L, enc R, enc qs,
         enc (root, L.stackLog - 6 + R, 64)] ≤
-      stageBound L.stackLog R L.logMemory prog.logSize D qs.length (L.stackLog - 6 + R) := by
+      stageBound L.stackLog R L.logMemory prog.logSize D qs.length (L.stackLog - 6 + R) W := by
   obtain ⟨hf, hμ1, hμ2, hR1, hR2, -⟩ := afterRootLite_facts har
   have hadm := admissible_of_afterRootLite har
   rw [stageTC.costEq P hP]
   dsimp only
-  have hL := leavesOfC_cost P (by includes) qs D hD hN (L.stackLog - 6 + R) root
+  have hL := leavesOfC_cost P (by includes) qs D W hW hN (L.stackLog - 6 + R) root
   have hR := runFromLeavesC_cost P (by includes) prog input L R hf hadm
     (leavesOf qs 64 (L.stackLog - 6 + R) root) (L.stackLog - 6 + R) (by omega)
     (fun l hl ↦ (subtreeLeavesWith_mem_length _ _ _ _ l hl).le)
@@ -584,10 +589,11 @@ theorem includes_bindC (hP : Includes P extractorC.costDeps) :
 /-- **After the replay** (`afterRootStageC`): the root, then the stage. -/
 theorem afterRootStageC_cost (hP : Includes P afterRootStageC.costDeps) (prog : Semantics.Program)
     (input : PublicInput) (qs : List (Common.PermutationQuery KeccakState × KeccakState))
-    (D : ℕ) (hD : D ≤ 61) (hN : qs.length + 2 ≤ 2 ^ D) {bytecode : List K} {π : Proof}
+    (D W : ℕ) (hW : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ W) (hN : qs.length + 2 ≤ 2 ^ D)
+    {bytecode : List K} {π : Proof}
     {L : LayoutLite} {R : ℕ} {st : ProgState} (har : afterRootLite bytecode π = some ((L, R), st)) :
     machineCost P afterRootStageC.costIdx [enc prog, enc input, enc qs, enc ((L, R), st)] ≤
-      stageBound L.stackLog R L.logMemory prog.logSize D qs.length (L.stackLog - 6 + R) + 35 := by
+      stageBound L.stackLog R L.logMemory prog.logSize D qs.length (L.stackLog - 6 + R) W + 35 := by
   obtain ⟨root, hroots⟩ := afterRootLite_roots har
   have hI := includes_afterRootStageLam P hP
   have hI2 := includes_stageTC P hP
@@ -600,7 +606,7 @@ theorem afterRootStageC_cost (hP : Includes P afterRootStageC.costDeps) (prog : 
     _ hk
   have hlam := afterRootStageC.lam0.costEq P hI prog input qs R L
     (root, L.stackLog - 6 + R, 64)
-  have hst := stageTC_cost P hI2 prog input qs D hD hN har root
+  have hst := stageTC_cost P hI2 prog input qs D W hW hN har root
   rw [afterRootStageC.costEq P hP]
   simp only [hroots, List.head?_cons] at hb ⊢
   simp only [appCost_fn, List.cons_append, List.nil_append] at hb
@@ -609,22 +615,22 @@ theorem afterRootStageC_cost (hP : Includes P afterRootStageC.costDeps) (prog : 
 /-! ## The extractor -/
 
 /-- **The extractor's price at a shape**: the stack's log-size `μ`, the rate's `R`, the memory's
-`κ`, the program's `ℓ`, `N` permutation queries (`D = log₂(N + 2) + 1`): the bytecode's words, the
+`κ`, the program's `ℓ`, `N` permutation queries (`D = log₂(N + 2) + 1`, `N + 2 ≤ 2^D`; the maps'
+positions and weights of at most `wl (D + 1) = (D + 1)/64 + 1` limbs): the bytecode's words, the
 replay, the root's stage (the transcript's index, the committed leaves of height `μ − 6 + R`, the
 fast path, the runner's tables, at most `1 + 2^18` runs, the decoder) and the glue. -/
 @[expose] def extractorPrice (μ R κ ℓ N : ℕ) : ℕ :=
   wordsBound ℓ + (144 * 2 ^ ℓ + 1004514000) +
-    stageBound μ R κ ℓ (Nat.log2 (N + 2) + 1) N (μ - 6 + R) + 60
+    stageBound μ R κ ℓ (Nat.log2 (N + 2) + 1) N (μ - 6 + R) (wl (Nat.log2 (N + 2) + 1 + 1)) + 60
 
 /-- The price where the replay fails: the bytecode's words and the replay. -/
 @[expose] def replayPrice (ℓ : ℕ) : ℕ := wordsBound ℓ + (144 * 2 ^ ℓ + 1004514000) + 15
 
-/-- **The compiled extractor's price** (`extractorC`), on every input of fewer than `2^61 − 2`
-permutation queries: at most `extractorPrice` at the shape `afterRootLite` announces, or
+/-- **The compiled extractor's price** (`extractorC`), on every input: at most `extractorPrice` at the shape `afterRootLite` announces, or
 `replayPrice` when the replay fails. -/
 theorem extractorC_cost (hP : Includes P extractorC.costDeps) (prog : Semantics.Program)
     (input : PublicInput) (qs : List (Common.PermutationQuery KeccakState × KeccakState))
-    (π : Proof) (hq : qs.length + 2 < 2 ^ 61) :
+    (π : Proof) :
     machineCost P extractorC.costIdx [enc prog, enc input, enc qs, enc π] ≤
       match afterRootLite (bytecodeWords prog) π with
       | none => replayPrice prog.logSize
@@ -654,14 +660,12 @@ theorem extractorC_cost (hP : Includes P extractorC.costDeps) (prog : Semantics.
     obtain ⟨⟨L, R⟩, st⟩ := r
     show _ ≤ wordsBound prog.logSize + (144 * 2 ^ prog.logSize + 1004514000) +
       stageBound L.stackLog R L.logMemory prog.logSize (Nat.log2 (qs.length + 2) + 1) qs.length
-        (L.stackLog - 6 + R) + 60
+        (L.stackLog - 6 + R) (wl (Nat.log2 (qs.length + 2) + 1 + 1)) + 60
     simp only [appCost_fn, List.cons_append, List.nil_append]
     have hl := extractorC.lam0.costEq P hI0 prog input qs ((L, R), st)
-    have hD : Nat.log2 (qs.length + 2) + 1 ≤ 61 := by
-      have := (Nat.log2_lt (n := qs.length + 2) (k := 61) (by omega)).2 hq
-      omega
     have hN : qs.length + 2 ≤ 2 ^ (Nat.log2 (qs.length + 2) + 1) := Nat.le_of_lt Nat.lt_log2_self
-    have hs := afterRootStageC_cost P (includes_afterRootStageC P hP) prog input qs _ hD hN har
+    have hs := afterRootStageC_cost P (includes_afterRootStageC P hP) prog input qs _ _
+      limbs_le_wl_two hN har
     omega
 
 /-! ## The efficiency statement's budget -/
@@ -675,15 +679,14 @@ proof announces, and the entry's `9`. -/
 
 /-- **The price within the budget** (the hypothesis `hcost` of `extractorTop_output`, on
 `wt/phase4a`): wherever `afterRoot` announces a shape, the compiled extractor's price and the
-entry's `9` are within `extractorBudgetAt`, for fewer than `2^61 − 2` permutation queries. -/
+entry's `9` are within `extractorBudgetAt`, on every transcript. -/
 theorem extractorC_within (hP : Includes P extractorC.costDeps) (prog : Semantics.Program)
     (input : PublicInput) (T : Common.OracleQueryLog) (π : Proof) (layout : Layout)
     (logInverseRate : ℕ) (st : ProgState)
-    (ha : afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st))
-    (hq : (permutationQueries T).length + 2 < 2 ^ 61) :
+    (ha : afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st)) :
     machineCost P extractorC.costIdx [enc prog, enc input, enc (permutationQueries T), enc π] + 9 ≤
       extractorBudgetAt prog layout logInverseRate (permutationQueries T).length := by
-  have h := extractorC_cost P hP prog input (permutationQueries T) π hq
+  have h := extractorC_cost P hP prog input (permutationQueries T) π
   have hl : afterRootLite (bytecodeWords prog) π = some ((layoutLite layout, logInverseRate), st) := by
     rw [afterRootLite_eq, ha]; rfl
   rw [hl] at h
@@ -692,23 +695,40 @@ theorem extractorC_within (hP : Includes P extractorC.costDeps) (prog : Semantic
 
 /-! ## At `(28, 4)` -/
 
-theorem stageBound_mono {μ R κ ℓ D D' N N' h : ℕ} (hD : D ≤ D') (hN : N ≤ N') :
-    stageBound μ R κ ℓ D N h ≤ stageBound μ R κ ℓ D' N' h := by
-  unfold stageBound transcriptBound leavesBoundC replayStepBound
+theorem stageBound_mono {μ R κ ℓ D D' N N' h W W' : ℕ} (hD : D ≤ D') (hN : N ≤ N') (hW : W ≤ W') :
+    stageBound μ R κ ℓ D N h W ≤ stageBound μ R κ ℓ D' N' h W' := by
+  unfold stageBound transcriptBound leavesBoundC replayStepBound firstAnswersStep preStepBound
   gcongr
 
 /-- **The extractor's price at `(μ, R) = (28, 4)`**, `κ = ℓ = 32`, at most `2^40` queries: at
-most `263761295154143991351709577217781164 ≈ 2^117.67`, the decoder's `2^117.67` dominating. -/
+most `263761295154143991480110948970664343 ≈ 2^117.67`, the decoder's `2^117.67` dominating. -/
 theorem extractorPrice_28_4 (N : ℕ) (hN : N ≤ 2 ^ 40) :
-    extractorPrice 28 4 32 32 N ≤ 263761295154143991351709577217781164 := by
+    extractorPrice 28 4 32 32 N ≤ 263761295154143991480110948970664343 := by
   have hD : Nat.log2 (N + 2) + 1 ≤ 41 := by
     have := (Nat.log2_lt (n := N + 2) (k := 41) (by omega)).2 (by omega)
     omega
-  have h := stageBound_mono (μ := 28) (R := 4) (κ := 32) (ℓ := 32) (h := 28 - 6 + 4) hD hN
+  have hW : wl (Nat.log2 (N + 2) + 1 + 1) ≤ 1 := by unfold wl; omega
+  have h := stageBound_mono (μ := 28) (R := 4) (κ := 32) (ℓ := 32) (h := 28 - 6 + 4) hD hN hW
   unfold extractorPrice
   refine le_trans (Nat.add_le_add_right (Nat.add_le_add_left h _) _) ?_
-  unfold stageBound transcriptBound leavesBoundC replayStepBound fastBound tablesBound runBound
-    stepPrice decoderPart Decoder.decoderWorst wordsBound
+  unfold stageBound transcriptBound leavesBoundC replayStepBound firstAnswersStep preStepBound
+    fastBound tablesBound runBound stepPrice decoderPart Decoder.decoderWorst wordsBound
+  norm_num
+
+/-- **The extractor's price at `(28, 4)` for up to `2^128` queries** (the soundness statement's
+adversaries), `κ = ℓ = 32`: at most `147716036133091578597140471578787535450535415925 ≈ 2^156.69`,
+the transcript's index dominating (`D = 129` levels of binary searches, positions of `3` limbs). -/
+theorem extractorPrice_28_4_2_128 (N : ℕ) (hN : N ≤ 2 ^ 128) :
+    extractorPrice 28 4 32 32 N ≤ 147716036133091578597140471578787535450535415925 := by
+  have hD : Nat.log2 (N + 2) + 1 ≤ 129 := by
+    have := (Nat.log2_lt (n := N + 2) (k := 129) (by omega)).2 (by omega)
+    omega
+  have hW : wl (Nat.log2 (N + 2) + 1 + 1) ≤ 3 := by unfold wl; omega
+  have h := stageBound_mono (μ := 28) (R := 4) (κ := 32) (ℓ := 32) (h := 28 - 6 + 4) hD hN hW
+  unfold extractorPrice
+  refine le_trans (Nat.add_le_add_right (Nat.add_le_add_left h _) _) ?_
+  unfold stageBound transcriptBound leavesBoundC replayStepBound firstAnswersStep preStepBound
+    fastBound tablesBound runBound stepPrice decoderPart Decoder.decoderWorst wordsBound
   norm_num
 
 end

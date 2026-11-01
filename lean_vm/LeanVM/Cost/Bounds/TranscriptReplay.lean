@@ -339,38 +339,38 @@ below `2^D`. -/
 
 /-- A replay step's amortized price: two lookups among `25`-word keys, one among `8`-word keys,
 three amortized insertions, a block's bytes and the cut. -/
-@[expose] def replayStepBound (B D : ℕ) : ℕ :=
-  2 * (D * (17 + (60 + 23 * 25) * (D + 2))) + D * (17 + (60 + 23 * 8) * (D + 2)) +
-    2 * ((23 * 25 + 31) * D) + (23 * 8 + 31) * D + 120 * D + 16 * B + 10000
+@[expose] def replayStepBound (B D W : ℕ) : ℕ :=
+  2 * (D * (17 + (60 + 23 * 25 + 11 * W) * (D + 2))) + D * (17 + (60 + 23 * 8 + 11 * W) * (D + 2)) +
+    2 * ((23 * 25 + 31) * D) + (23 * 8 + 31) * D + 3 * ((40 + 2 * W) * D) + 6 * W + 16 * B + 10000
 
 theorem toList_length25 (x : KeccakState) : x.toList.length = 25 := by simp
 
 set_option maxRecDepth 20000 in
 /-- **One replay step, amortized** (`replayStepC`). -/
-theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D : ℕ) (hD : D ≤ 61)
+theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ)
+    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ W)
     (hB : B < 2 ^ 62) (τ : ReplayFast) (r : ℕ) (hτ : ReplayInv B D τ (r + 1))
     (q : PermutationQuery KeccakState × KeccakState) :
     ReplayInv B D (ReplayFast.step B τ q) r ∧
       machineCost P replayStepC.costIdx [enc B, enc τ, enc q] + replayPot D (ReplayFast.step B τ q) ≤
-        replayPot D τ + replayStepBound B D := by
+        replayPot D τ + replayStepBound B D W := by
   obtain ⟨g1, g2, g3, k1, k2, k3, vc, vp, w1, w2, w3⟩ := hτ
-  have h62 : 2 ^ D < 2 ^ 62 := Nat.pow_lt_pow_right (by norm_num) (by omega)
   obtain ⟨lv1, sz1⟩ := smGood_levels_le g1 (by omega : smWeightSum τ.fwd < 2 ^ D)
   obtain ⟨lv2, sz2⟩ := smGood_levels_le g2 (by omega : smWeightSum τ.inv < 2 ^ D)
   obtain ⟨lv3, sz3⟩ := smGood_levels_le g3 (by omega : smWeightSum τ.caps < 2 ^ D)
   have hU : ∀ k : List UInt64, k.length = 25 → ∀ m : SortedMap (List UInt64) Unit,
       m.levels.length ≤ D → (∀ l ∈ m.levels, l.entries.size ≤ l.weight ∧ l.weight ≤ 2 ^ D) →
       machineCost P Auto.LeanVM.Extraction.Fast.SortedMap.get?.c313.costIdx [enc m, enc k] ≤
-        D * (17 + (60 + 23 * 25) * (D + 2)) + 9 := by
+        D * (17 + (60 + 23 * 25 + 11 * W) * (D + 2)) + 9 := by
     intro k hk m hl hs
-    have := getU_cost P (by includes) m (2 ^ D) h62 (fun l hl' ↦ (hs l hl').1.trans (hs l hl').2) k
+    have := getU_cost P (by includes) m (2 ^ D) W hW (fun l hl' ↦ (hs l hl').1.trans (hs l hl').2) k
     rw [Nat.log2_two_pow, hk] at this
     exact this.trans (Nat.add_le_add_right (Nat.mul_le_mul_right _ hl) 9)
   have hC : ∀ k : List UInt64, k.length = 8 →
       machineCost P Auto.LeanVM.Extraction.Fast.SortedMap.get?.c316.costIdx [enc τ.caps, enc k] ≤
-        D * (17 + (60 + 23 * 8) * (D + 2)) + 9 := by
+        D * (17 + (60 + 23 * 8 + 11 * W) * (D + 2)) + 9 := by
     intro k hk
-    have := getC_cost P (by includes) τ.caps (2 ^ D) h62
+    have := getC_cost P (by includes) τ.caps (2 ^ D) W hW
       (fun l hl' ↦ (sz3 l hl').1.trans (sz3 l hl').2) k
     rw [Nat.log2_two_pow, hk] at this
     exact this.trans (Nat.add_le_add_right (Nat.mul_le_mul_right _ lv3) 9)
@@ -379,10 +379,12 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D : ℕ) 
       smWeightSum m < 2 ^ D → m.levels.length ≤ D → ∀ k : List UInt64, k.length = 25 →
       machineCost P Auto.LeanVM.Extraction.Fast.SortedMap.insert.c319.costIdx [enc m, enc k, enc ()] +
           (23 * 25 + 31) * potential D (m.insert k ()).levels ≤
-        (23 * 25 + 31) * potential D m.levels + (23 * 25 + 31) * D + 40 * D + 60 := by
+        (23 * 25 + 31) * potential D m.levels + (23 * 25 + 31) * D + (40 + 2 * W) * D + 60 + 2 * W := by
     intro m hm hk hN hl k hkl
     rw [Auto.LeanVM.Extraction.Fast.SortedMap.insert.c319.costEq P (by includes)]
-    have := carryU_amortized P (by includes) 25 D (by omega) m hm hk hN
+    have hc1 := Nat.mul_le_mul_left (40 + 2 * W) (show m.levels.length + 1 ≤ D + 1 by omega)
+    have hc2 : (40 + 2 * W) * (D + 1) = (40 + 2 * W) * D + 40 + 2 * W := by ring
+    have := carryU_amortized P (by includes) 25 D W hW m hm hk hN
       ⟨1, #[(k, ())], by simp [Ascending]⟩ rfl rfl (fun e he ↦ by
         simp at he; rw [he]; show k.length ≤ 25; omega)
     have hins : (m.insert k ()).levels = carry ⟨1, #[(k, ())], by simp [Ascending]⟩ m.levels := rfl
@@ -391,10 +393,12 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D : ℕ) 
   have hInsC : ∀ (k : List UInt64), k.length = 8 → ∀ v : KeccakState × Option (List UInt8),
       machineCost P Auto.LeanVM.Extraction.Fast.SortedMap.insert.c330.costIdx
           [enc τ.caps, enc k, enc v] + (23 * 8 + 31) * potential D (τ.caps.insert k v).levels ≤
-        (23 * 8 + 31) * potential D τ.caps.levels + (23 * 8 + 31) * D + 40 * D + 60 := by
+        (23 * 8 + 31) * potential D τ.caps.levels + (23 * 8 + 31) * D + (40 + 2 * W) * D + 60 + 2 * W := by
     intro k hkl v
     rw [Auto.LeanVM.Extraction.Fast.SortedMap.insert.c330.costEq P (by includes)]
-    have := carryC_amortized P (by includes) 8 D (by omega) τ.caps g3 k3 (by omega)
+    have hc1 := Nat.mul_le_mul_left (40 + 2 * W) (show τ.caps.levels.length + 1 ≤ D + 1 by omega)
+    have hc2 : (40 + 2 * W) * (D + 1) = (40 + 2 * W) * D + 40 + 2 * W := by ring
+    have := carryC_amortized P (by includes) 8 D W hW τ.caps g3 k3 (by omega)
       ⟨1, #[(k, v)], by simp [Ascending]⟩ rfl rfl (fun e he ↦ by
         simp at he; rw [he]; show k.length ≤ 8; omega)
     have hins : (τ.caps.insert k v).levels = carry ⟨1, #[(k, v)], by simp [Ascending]⟩ τ.caps.levels :=
@@ -410,8 +414,9 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D : ℕ) 
   obtain ⟨fst, y⟩ := q
   rw [replayStepC.costEq_mk P hP]
   unfold replayStepBound replayPot
-  generalize hGU : D * (17 + (60 + 23 * 25) * (D + 2)) = GU at hU
-  generalize hGC : D * (17 + (60 + 23 * 8) * (D + 2)) = GC at hC
+  generalize hGU : D * (17 + (60 + 23 * 25 + 11 * W) * (D + 2)) = GU at hU
+  generalize hGC : D * (17 + (60 + 23 * 8 + 11 * W) * (D + 2)) = GC at hC
+  generalize hWD : (40 + 2 * W) * D = WD at hInsU hInsC
   cases fst with
   | forward x =>
     simp only [Vector.size_toArray]
@@ -534,7 +539,8 @@ theorem replayPot_init (D : ℕ) : replayPot D ReplayFast.init = (23 * 8 + 31) *
   have h1 : Nat.log2 1 = 0 := Nat.log2_two_pow (n := 0)
   simp [replayPot, ReplayFast.init, SortedMap.insert, SortedMap.empty, carry, potential, h1]
 
-theorem replayInv_foldl (P : Program) (hP : Includes P replayStepC.costDeps) (B D : ℕ) (hD : D ≤ 61)
+theorem replayInv_foldl (P : Program) (hP : Includes P replayStepC.costDeps) (B D W : ℕ)
+    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ W)
     (hB : B < 2 ^ 62) : ∀ (T : List (PermutationQuery KeccakState × KeccakState)) (τ : ReplayFast),
       ReplayInv B D τ T.length → ReplayInv B D (T.foldl (ReplayFast.step B) τ) 0 := by
   intro T
@@ -542,16 +548,17 @@ theorem replayInv_foldl (P : Program) (hP : Includes P replayStepC.costDeps) (B 
   | nil => intro τ h; simpa using h
   | cons q T ih =>
     intro τ h
-    exact ih _ (replayStep_amortized P hP B D hD hB τ T.length h q).1
+    exact ih _ (replayStep_amortized P hP B D W hW hB τ T.length h q).1
 
 /-- **The evaluations a transcript holds** (`keccakEvaluationsFast T L`, compiled as
 `keccakEvaluationsC`): the replay over the `N` queries (`replayStepBound` each, amortized) and a
 padding check per path (`N + 1` paths of at most `B = L + 136` bytes). -/
-theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D L : ℕ) (hD : D ≤ 61)
+theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D L W : ℕ)
+    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ W)
     (hL : L < 2 ^ 61) (T : List (PermutationQuery KeccakState × KeccakState))
     (hN : T.length + 1 ≤ 2 ^ D) :
     machineCost P keccakEvaluationsC.costIdx [enc T, enc L] ≤
-      (23 * 8 + 31) * D + (replayStepBound (L + 136) D + 13) * T.length +
+      (23 * 8 + 31) * D + (replayStepBound (L + 136) D W + 13) * T.length +
         (114 * (L + 136) + 12313) * (T.length + 1) + 470 := by
   rw [keccakEvaluationsC.costEq P hP]
   have hrate : rate = 136 := rfl
@@ -559,16 +566,16 @@ theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D 
   have hfold := listFoldl_amortized P (by includes) _
     (.fn keccakEvaluationsC.lam1.costIdx [enc (L + rate)])
     (fun a b ↦ RunsApp.of_spec (keccakEvaluationsC.lam1.costSpec P (by includes) (L + rate) a b))
-    (replayStepBound (L + 136) D + 4) (replayPot D) (ReplayInv (L + 136) D) T ReplayFast.init
+    (replayStepBound (L + 136) D W + 4) (replayPot D) (ReplayInv (L + 136) D) T ReplayFast.init
     (replayInv_init _ D _ hN)
     (fun τ r hτ q _ ↦ by
-      have h := replayStep_amortized P (by includes) (L + 136) D hD (by omega) τ r hτ q
+      have h := replayStep_amortized P (by includes) (L + 136) D W hW (by omega) τ r hτ q
       refine ⟨h.1, ?_⟩
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [keccakEvaluationsC.lam1.costEq P (by includes), hrate]
       omega)
   rw [replayPot_init] at hfold
-  have hinv := replayInv_foldl P (by includes) (L + 136) D hD (by omega) T ReplayFast.init
+  have hinv := replayInv_foldl P (by includes) (L + 136) D W hW (by omega) T ReplayFast.init
     (replayInv_init _ D _ hN)
   have hlen := replay_paths_length_le (L + rate) T ReplayFast.init
   have hfm := filterMap_cost P (by includes) _ (.fn keccakEvaluationsC.lam0.costIdx [enc L])
@@ -621,13 +628,13 @@ theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D 
       (114 * (L + 136) + 12313) * (T.length + 1) := Nat.mul_le_mul_left _ (by
         have : ReplayFast.init.paths.length = 1 := rfl
         omega)
-  have e1 : (replayStepBound (L + 136) D + 4 + 9) * T.length =
-      (replayStepBound (L + 136) D + 13) * T.length := by ring
+  have e1 : (replayStepBound (L + 136) D W + 4 + 9) * T.length =
+      (replayStepBound (L + 136) D W + 13) * T.length := by ring
   rw [hrate]
   omega
 
-theorem bytesInv_firstAnswers (P : Program) (hP : Includes P firstAnswersC.lam0.costDeps) (L D : ℕ)
-    (hD : D ≤ 61) (k : ℕ) : ∀ (pairs : List (List UInt8 × Protocol.Digest))
+theorem bytesInv_firstAnswers (P : Program) (hP : Includes P firstAnswersC.lam0.costDeps) (L D W : ℕ)
+    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ W) (k : ℕ) : ∀ (pairs : List (List UInt8 × Protocol.Digest))
       (m : SortedMap (List UInt8) Protocol.Digest),
       (∀ p ∈ pairs, p.1.length ≤ L) → BytesInv L D m (pairs.length + k) →
       BytesInv L D (pairs.foldl (fun m p ↦ insertIfNew m p.1 p.2) m) k := by
@@ -637,7 +644,7 @@ theorem bytesInv_firstAnswers (P : Program) (hP : Includes P firstAnswersC.lam0.
   | cons p pairs ih =>
     intro m hp h
     exact ih _ (fun q hq ↦ hp q (by simp [hq]))
-      (firstAnswersStep_amortized P hP L D hD m (pairs.length + k)
+      (firstAnswersStep_amortized P hP L D W hW m (pairs.length + k)
         (by simpa [Nat.add_right_comm] using h) p (hp p (by simp))).1
 
 theorem answerPairs_length_le (f : List UInt8 → Option Protocol.Digest) (keys : List (List UInt8)) :
@@ -656,38 +663,38 @@ below `2^D`, byte strings of at most `L` bytes: the evaluations (`keccakEvaluati
 evaluation an amortized first-answer insertion (`firstAnswers_cost`), a lookup in the first answers
 (`D` binary searches of `D + 2` probes of `60 + 23·L`) and an amortized preimage-index insertion
 (`preimageIndex_cost`). -/
-theorem transcriptIndex_cost (hP : Includes P transcriptIndexC.costDeps) (D L : ℕ) (hD : D ≤ 61)
+theorem transcriptIndex_cost (hP : Includes P transcriptIndexC.costDeps) (D L W : ℕ)
+    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ W)
     (hL : L < 2 ^ 61) (T : List (PermutationQuery KeccakState × KeccakState))
     (hN : T.length + 2 ≤ 2 ^ D) :
     machineCost P transcriptIndexC.costIdx [enc T, enc L] ≤
-      (23 * 8 + 31) * D + (replayStepBound (L + 136) D + 13) * T.length +
+      (23 * 8 + 31) * D + (replayStepBound (L + 136) D W + 13) * T.length +
         (114 * (L + 136) + 12313) * (T.length + 1) + 470 +
-        (T.length + 1) * ((23 * L * (D * D) + 60 * (D * D) + 69 * (L * D) + 208 * D + 94) +
-          (25 * L + 192 * (D * D) + 595 * D + 161) + D * (17 + (60 + 23 * L) * (D + 2)) + 60) + 50 := by
+        (T.length + 1) * ((firstAnswersStep L D W + 9) + (preStepBound L D W + 9) +
+          D * (17 + (60 + 23 * L + 11 * W) * (D + 2)) + 60) + 50 := by
   rw [transcriptIndexC.costEq P hP]
   set Ev := keccakEvaluationsFast T L with hEv
   have hlen : Ev.length ≤ T.length + 1 := keccakEvaluationsFast_length_le T L
   have hmem : ∀ e ∈ Ev, e.1.length ≤ L := fun e he ↦ keccakEvaluationsFast_mem_length_le he
-  have hKE := keccakEvaluations_cost P (by includes) D L hD hL T (by omega)
-  have hFA := firstAnswers_cost P (by includes) L D hD Ev (by omega) hmem
+  have hKE := keccakEvaluations_cost P (by includes) D L W hW hL T (by omega)
+  have hFA := firstAnswers_cost P (by includes) L D W hW Ev (by omega) hmem
   have hmap := map_cost P (by includes) _ (.fn transcriptIndexC.lam1.costIdx [])
     (fun a ↦ RunsApp.of_spec (transcriptIndexC.lam1.costSpec P (by includes) a)) 2 Ev
     (fun a _ ↦ by rw [appCost_fn, List.nil_append, transcriptIndexC.lam1.costEq P (by includes)])
   -- the first answers' map
-  have hinv : BytesInv L D (firstAnswers Ev) 1 := bytesInv_firstAnswers P (by includes) L D hD 1 Ev
+  have hinv : BytesInv L D (firstAnswers Ev) 1 := bytesInv_firstAnswers P (by includes) L D W hW 1 Ev
     SortedMap.empty hmem
     ⟨smGood_empty, fun _ h ↦ by simp [SortedMap.empty] at h, by simp [smWeightSum_empty]; omega⟩
   obtain ⟨hg, -, hw⟩ := hinv
-  have h62 : 2 ^ D < 2 ^ 62 := Nat.pow_lt_pow_right (by norm_num) (by omega)
   obtain ⟨hlv, hsz⟩ := smGood_levels_le hg (by omega : smWeightSum (firstAnswers Ev) < 2 ^ D)
-  set G := D * (17 + (60 + 23 * L) * (D + 2)) with hG
+  set G := D * (17 + (60 + 23 * L + 11 * W) * (D + 2)) with hG
   have hget : ∀ x : List UInt8, x.length ≤ L →
       machineCost P getBytesC.costIdx [enc (firstAnswers Ev), enc x] ≤ G + 9 := by
     intro x hx
-    have := getBytes_cost P (by includes) (firstAnswers Ev) (2 ^ D) h62
+    have := getBytes_cost P (by includes) (firstAnswers Ev) (2 ^ D) W hW
       (fun l hl ↦ (hsz l hl).1.trans (hsz l hl).2) x
     rw [Nat.log2_two_pow] at this
-    have h1 : (firstAnswers Ev).levels.length * (17 + (60 + 23 * x.length) * (D + 2)) ≤ G :=
+    have h1 : (firstAnswers Ev).levels.length * (17 + (60 + 23 * x.length + 11 * W) * (D + 2)) ≤ G :=
       Nat.mul_le_mul hlv (Nat.add_le_add_left (Nat.mul_le_mul_right _ (by omega)) _)
     omega
   have hAP : machineCost P answerPairsC.costIdx
@@ -723,7 +730,7 @@ theorem transcriptIndex_cost (hP : Includes P transcriptIndexC.costDeps) (D L : 
     rw [List.length_map] at this
     have : (G + 31 + 13) * Ev.length ≤ (G + 44) * (T.length + 1) := Nat.mul_le_mul_left _ hlen
     omega
-  have hPI := preimageIndex_cost P (by includes) D L hD (by omega)
+  have hPI := preimageIndex_cost P (by includes) D L W hW (by omega)
     (answerPairs (firstAnswers Ev).get? (Ev.map (·.1)))
     (by have := answerPairs_length_le (firstAnswers Ev).get? (Ev.map (·.1))
         simp only [List.length_map] at this; omega)
@@ -733,13 +740,15 @@ theorem transcriptIndex_cost (hP : Includes P transcriptIndexC.costDeps) (D L : 
   have hPl : (answerPairs (firstAnswers Ev).get? (Ev.map (·.1))).length ≤ T.length + 1 := by
     have := answerPairs_length_le (firstAnswers Ev).get? (Ev.map (·.1))
     simp only [List.length_map] at this; omega
-  have e1 : (T.length + 1) * ((23 * L * (D * D) + 60 * (D * D) + 69 * (L * D) + 208 * D + 94) + (25 * L + 192 * (D * D) + 595 * D + 161) + G + 60) =
-      (T.length + 1) * (23 * L * (D * D) + 60 * (D * D) + 69 * (L * D) + 208 * D + 94) + (T.length + 1) * (25 * L + 192 * (D * D) + 595 * D + 161) + (T.length + 1) * G + 60 * (T.length + 1) := by
+  have e1 : (T.length + 1) * ((firstAnswersStep L D W + 9) + (preStepBound L D W + 9) + G + 60) =
+      (T.length + 1) * (firstAnswersStep L D W + 9) + (T.length + 1) * (preStepBound L D W + 9) +
+        (T.length + 1) * G + 60 * (T.length + 1) := by
     ring
   have e2 : (G + 44) * (T.length + 1) = (T.length + 1) * G + 44 * (T.length + 1) := by ring
-  have f1 : Ev.length * (23 * L * (D * D) + 60 * (D * D) + 69 * (L * D) + 208 * D + 94) ≤ (T.length + 1) * (23 * L * (D * D) + 60 * (D * D) + 69 * (L * D) + 208 * D + 94) := Nat.mul_le_mul_right _ hlen
-  have f2 : (answerPairs (firstAnswers Ev).get? (Ev.map (·.1))).length * (25 * L + 192 * (D * D) + 595 * D + 161) ≤
-      (T.length + 1) * (25 * L + 192 * (D * D) + 595 * D + 161) := Nat.mul_le_mul_right _ hPl
+  have f1 : Ev.length * (firstAnswersStep L D W + 9) ≤ (T.length + 1) * (firstAnswersStep L D W + 9) :=
+    Nat.mul_le_mul_right _ hlen
+  have f2 : (answerPairs (firstAnswers Ev).get? (Ev.map (·.1))).length * (preStepBound L D W + 9) ≤
+      (T.length + 1) * (preStepBound L D W + 9) := Nat.mul_le_mul_right _ hPl
   omega
 
 end

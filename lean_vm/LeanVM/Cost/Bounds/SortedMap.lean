@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Cost.Bounds.Basic
 public import LeanVM.Cost.Bounds.Sizes.Transcript
+public meta import Lean.Elab.Tactic
 
 /-!
 # Bounds: sorted maps, amortized
@@ -16,6 +17,9 @@ all. The prices are bounded by a potential (Bentley–Saxe, Tarjan's banker's me
   (`hnil`, `hne`, `heq`, read off a compiled `carry`'s recurrence), then
   `price + b·Φ(after) ≤ b·Φ(before) + b·w·(D − log₂ w) + a·(levels + 1)`, `w` the new level's
   weight: an insertion (`w = 1`) pays `b·D + a·(levels + 1)` amortized;
+* the naturals a map compares and adds (positions, weights) up to `2^(D+1)` for `N < 2^D`
+  insertions: their `limbs` at most `wl (D + 1) = (D + 1)/64 + 1` (`limbs_le_wl`), the tactic
+  `limbs_bound hW` adding a bound for every `limbs t` of the goal;
 * **`listFoldl_amortized`**: a fold whose step pays at most `A` amortized (its price plus the
   potential after, at most the potential before plus `A`) pays `(A + 9)·n + 3` from a start of
   potential `0`.
@@ -29,6 +33,71 @@ namespace LeanVM.Cost.Bounds
 open LeanVM.Cost LeanVM.Cost.Library LeanVM.Extraction.Fast
 
 public section
+
+/-! ## The limbs of large naturals -/
+
+/-- The limbs of a natural below `2^E`, at most. -/
+@[expose] def wl (E : ℕ) : ℕ := E / 64 + 1
+
+theorem one_le_wl (E : ℕ) : 1 ≤ wl E := by unfold wl; omega
+
+/-- **A natural at most `2^E` has at most `E/64 + 1` limbs.** -/
+theorem limbs_le_wl {t E : ℕ} (h : t ≤ 2 ^ E) : limbs t ≤ wl E := by
+  unfold limbs wl
+  rcases Nat.eq_zero_or_pos t with rfl | ht
+  · simp
+  · have hlt : t < 2 ^ (E + 1) := by rw [pow_succ]; omega
+    have := (Nat.log2_lt (Nat.pos_iff_ne_zero.1 ht)).2 hlt
+    have : Nat.log2 t / 64 ≤ E / 64 := Nat.div_le_div_right (by omega)
+    omega
+
+/-- The bound `wl (D + 1)` for the naturals up to twice `2^D`. -/
+theorem limbs_le_wl_two {D : ℕ} : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ wl (D + 1) :=
+  fun _ h ↦ limbs_le_wl (by rw [pow_succ]; omega)
+
+section Meta
+
+open Lean Meta Elab Tactic
+
+/-- The arguments of the `limbs` in `e` (no loose bound variables). -/
+meta partial def limbsArgs (e : Expr) (acc : Array Expr := #[]) : Array Expr :=
+  let acc := if e.isAppOfArity ``limbs 1 && !e.hasLooseBVars && !acc.contains e.appArg! then
+    acc.push e.appArg! else acc
+  match e with
+  | .app f a => limbsArgs a (limbsArgs f acc)
+  | .lam _ t b _ | .forallE _ t b _ => limbsArgs b (limbsArgs t acc)
+  | .letE _ t v b _ => limbsArgs b (limbsArgs v (limbsArgs t acc))
+  | .mdata _ b | .proj _ _ b => limbsArgs b acc
+  | _ => acc
+
+/-- A proof of `ty` by `omega`, if it finds one. -/
+meta def omegaProof? (ty : Expr) : TacticM (Option Expr) := do
+  let m ← mkFreshExprMVar ty
+  try
+    let gs ← Tactic.run m.mvarId! (evalTactic (← `(tactic| omega)))
+    if gs.isEmpty then return some (← instantiateMVars m) else return none
+  catch _ => return none
+
+/-- `limbs_bound hW` (`hW : ∀ x, x ≤ B → limbs x ≤ W`): for every `limbs t` of the goal, the
+hypothesis `limbs t = 1` if `omega` shows `t` word-sized, else `limbs t ≤ W` if it shows
+`t ≤ B`. -/
+elab "limbs_bound " h:term : tactic => withMainContext do
+  let hW ← elabTerm h none
+  let tgt ← instantiateMVars (← getMainTarget)
+  let mut g ← getMainGoal
+  for t in limbsArgs tgt do
+    let ts ← Term.exprToSyntax t
+    let ty64 ← elabTerm (← `($ts < 2 ^ 64)) (some (mkSort Level.zero))
+    if let some pf ← omegaProof? ty64 then
+      (_, g) ← g.note `hlimbs (← mkAppM ``limbs_of_lt #[pf])
+    else
+      let hty ← whnf (← inferType (mkApp hW t))
+      if hty.isForall then
+        if let some pf ← omegaProof? hty.bindingDomain! then
+          (_, g) ← g.note `hlimbs (mkApp2 hW t pf)
+  replaceMainGoal [g]
+
+end Meta
 
 section Amortized
 
