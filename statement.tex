@@ -29,7 +29,7 @@ proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classic
 leanVM at commit \texttt{c445e3d5} of its \texttt{main} branch.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: fifteen files
-of definitions and end statements ($7514$ lines with their documentation), which import Mathlib,
+of definitions and end statements ($7530$ lines with their documentation), which import Mathlib,
 VCVio and CompPoly and nothing of the proofs. Beside them sit the honest prover the completeness
 statements name (\lean{Statement/Prover/}, $2524$ lines; it is proved to make the specification's
 honest moves, so a reviewer only needs to see that it is a genuine prover), the guest program's
@@ -535,11 +535,13 @@ proof is, which the deferring verifier accepts on a valid execution (\lean{valid
 At $\ell = 19$ the budget is $2^{42.60}$ at $\kappa = 20$ and $2^{20}$ steps, $2^{45.18}$ at
 $\kappa = 24$ and $2^{24}$, $2^{49.02}$ at $\kappa = 28$ and $2^{28}$, $2^{51.03}$ at
 $\kappa = 32$ and $2^{30}$, $2^{72.10}$ at $\kappa = 32$ and $2^{51}$, and $2^{81.14}$ at
-$\kappa = 32$ and $2^{60}$; the constant, the address tables and the frame lookups included
-($2^{42.04}$ to $2^{44.21}$ at these points), dominate up to about $2^{21}$ steps at
-$\kappa \le 28$ and $2^{23}$ at $\kappa = 32$. They price the witness at the bounds above, not at
-the run's, so with fewer children and claims and below that the budget is far above the compiled
-decoder's price. There is no cap on the steps in the budget. A valid execution
+$\kappa = 32$ and $2^{60}$; the terms besides the steps' ($2^{42.04}$ to $2^{44.21}$ at these
+points: the constant, the address tables and the frame lookups) dominate up to about $2^{21}$ steps
+at $\kappa \le 28$ and $2^{23}$ at $\kappa = 32$. The constant and its frame lookups price the
+witness at the bounds above, not at the run's, so with fewer children and claims, at $\kappa \le 28$
+and well below $2^{21}$ steps, the budget is several times the compiled decoder's price (at
+$\kappa = 32$ the address tables, priced at the run's $\kappa$, are most of it). There is no cap on
+the steps in the budget. A valid execution
 of $G$ (\lean{ValidExecution}) has fewer than $2^{51}$ steps: the memory is fixed and every
 instruction reads a cell at $\mathit{fp}\cdot o$ for an offset $o$ fixed by $\mathit{pc}$, so at
 each $\mathit{pc}$ at most $2^\kappa$ values of $\mathit{fp}$ let a step succeed; the run is

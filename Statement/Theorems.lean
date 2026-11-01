@@ -151,23 +151,24 @@ def guestDecoderSizeBound : ℕ := 785500
 
 A closed-form upper bound that `lean_vm` proves on the compiled decoder's price
 (`Cost/Bounds/Guest/Budget.lean`), as `extractorPrice` is the extractor's: a price per step of the
-run and a constant. Per step, the decoder replays the step (`runnerStepPrice`) and files the state
-in its table of function entries (`guestDecoderStateFilingPrice`: the precondition test of each
-function entered there, at most two, and its share of one stable sort of at most `2·(steps + 1)`
-pairs, whose price grows as `log(steps)`). The constant is the price of reading the witness at the
-counts and the cursors a valid execution bounds: the decoder reads its counts off the memory, and
-the guest program's own asserts bound them on every valid execution (`lean_vm`'s `valid_counts`:
-at most `16` children, `65535` declared claims of each scheme and `65535` coverage slots in the two
-regions together); each child's cursor, the words of the child proof's stream before its opening,
-is at most `8192` on every valid execution (`valid_cursor`: the decoded witness explains the input,
-so the deferring verifier accepts the child's proof, whose stream has at most `8192` scalars,
-`stream_le_of_verifyDeferred`); and the decoder clamps `da_verify`'s row count at `1024`
-(`LeanDa.maxRows`; `da_verify` asserts it, so the clamp changes nothing on a valid execution) on
-every input. `guestDecoderWitnessPriceAtValidCounts ≈ 2^38.59` is mostly the children's claims
-(each of the `16` children's priced at `65535` claims of each scheme, about `2^37.80`), the
-declared claims' holders (about `2^36.34`) and the two regions' tables (about `2^35.72`); the
-children's cursors are `16·8192` words at `1767` each, about `2^27.79`. The address tables of the
-memory and the program are priced at the execution's `κ` and the program's `ℓ`
+run, the address tables at the run's `κ` and `ℓ`, and a constant. Per step, the decoder replays the
+step (`runnerStepPrice`) and files the state in its table of function entries
+(`guestDecoderStateFilingPrice`: the precondition test of each function entered there, at most two,
+and its share of one stable sort of at most `2·(steps + 1)` pairs, whose price grows as
+`log(steps)`). The constant is the price of reading the witness at the counts and the cursors a
+valid execution bounds: the decoder reads its counts off the memory, and the guest program's own
+asserts bound them on every valid execution (`lean_vm`'s `valid_counts`: at most `16` children,
+`65535` declared claims of each scheme and `65535` coverage slots in the two regions together); each
+child's cursor, the words of the child proof's stream before its opening, is at most `8192` on every
+valid execution (`valid_cursor`: the decoded witness explains the input, so the deferring verifier
+accepts the child's proof, whose stream has at most `8192` scalars, `stream_le_of_verifyDeferred`);
+and the decoder clamps `da_verify`'s row count at `1024` (`LeanDa.maxRows`; `da_verify` asserts it,
+so the clamp changes nothing on a valid execution) on every input.
+`guestDecoderWitnessPriceAtValidCounts ≈ 2^38.59` is mostly the children's claims (each of the `16`
+children's priced at `65535` claims of each scheme, about `2^37.80`), the declared claims' holders
+(about `2^36.38`) and the two regions' tables (about `2^35.72`); the children's cursors are
+`16·8192` words at `1767` each, about `2^27.79`. The address tables of the memory and the program
+are priced at the execution's `κ` and the program's `ℓ`
 (`guestDecoderAddressTablesPrice κ ℓ = (70κ + 374)·2^κ + (70ℓ + 374)·2^ℓ + 48`: at the guest's
 `ℓ = 19`, `2^31.36` at `κ = 20`, `2^43.35` at `κ = 32`). A frame lookup (`guestDecoderFramePrice`,
 one binary search, growing as `log(steps)`) is paid about `2^26.57` times
@@ -176,13 +177,14 @@ one binary search, growing as `log(steps)`) is paid about `2^26.57` times
 
 So the bound is `O(steps·log steps)` below `2^61` steps (`O(steps·log² steps)` as `steps` grows,
 through the positions' limbs), plus the address tables, `O(κ·2^κ + ℓ·2^ℓ)` in the memory's size
-`2^κ` and the program's `2^ℓ`: per step about `2^20.9` to `2^21.1` (`2^20.89` at `κ = 32` and one step, `2^21.14`
-at `κ = 32` and `2^60` steps; `κ` and `ℓ` enter the step's price, `runnerStepPrice`). At the
-guest's `ℓ = 19` it is `2^42.60` at `κ = 20` and `2^20` steps, `2^45.18` at `κ = 24` and `2^24`,
-`2^49.02` at `κ = 28` and `2^28`, `2^51.03` at `κ = 32` and `2^30`, `2^72.10` at `κ = 32` and `2^51`,
-and `2^81.14` at `κ = 32` and `2^60`: the constant (`2^42.04` at `κ = 20` and `2^20` steps to
-`2^44.21` at `κ = 32` and `2^60`) dominates up to about `2^21` steps at `κ ≤ 28` and `2^23` at
-`κ = 32`, the per-step price beyond; the log factor enters through the entry table's key exponent,
+`2^κ` and the program's `2^ℓ`: per step about `2^20.9` to `2^21.1` (`2^20.88` at `κ = 16` and no
+step, `2^21.14` at `κ = 32` and `2^60` steps; `κ` and `ℓ` enter the step's price,
+`runnerStepPrice`). At the guest's `ℓ = 19` it is `2^42.60` at `κ = 20` and `2^20` steps, `2^45.18`
+at `κ = 24` and `2^24`, `2^49.02` at `κ = 28` and `2^28`, `2^51.03` at `κ = 32` and `2^30`,
+`2^72.10` at `κ = 32` and `2^51`, and `2^81.14` at `κ = 32` and `2^60`: the terms besides the steps'
+(the address tables included) (`2^42.04` at `κ = 20` and `2^20` steps to `2^44.21` at `κ = 32` and
+`2^60`) dominate up to about `2^21` steps at `κ ≤ 28` and `2^23` at `κ = 32`, the per-step price
+beyond; the log factor enters through the entry table's key exponent,
 `Nat.log2 (2·(steps + 1)) + 1`. A valid execution of the guest program has fewer than `2^51`
 steps: the memory is fixed and every instruction reads a cell at `fp·o` for an offset `o` fixed by
 `pc`, so at each `pc` at most `2^κ` values of `fp` let a step succeed; the run is determined by
@@ -194,9 +196,10 @@ only (a memory read at `1472`, its price at `κ = 32`, whatever `κ`; two functi
 `16` words a frame). The constant prices the witness at the bounds above, not at the run's: `16`
 children, each with `65535` claims of each scheme (the two regions together hold at most `65535`)
 and a cursor of `8192` words, `65535` declared claims of each scheme, `1024` rows of the DA matrix,
-and the frame lookups these take. So on an execution with fewer children and claims and fewer than
-about `2^21` steps the budget is far above what the compiled decoder spends; that looseness is an
-accepted trade-off.
+and the frame lookups these take. So on an execution with fewer children and claims, at `κ ≤ 28` and
+well below `2^21` steps, the budget is several times what the compiled decoder spends (at `κ = 32`
+the address tables, priced at the run's `κ`, are most of it); that looseness is an accepted
+trade-off.
 
 The literals (`8339`, `113729`, `12895`, `17047343`, `3060`, `3103`, `11056`, the `+ 32`, `+ 34`,
 and the other constants below) are the bounds `lean_vm` proves of the compiled decoder's parts
@@ -244,7 +247,7 @@ def guestDecoderAddressTablesPrice (κ ℓ : ℕ) : ℕ :=
 bounds, the frame lookups and the address tables apart: `16` children of up to `65535` claims of
 each scheme, each child's cursor at most `8192` words, the declared claims' holders (up to `65535`
 of each scheme), the DA matrix of up to `1024` rows, the children's proofs, the tables built once
-(the discrete logarithm's, the readers'). About `2^38.59`. -/
+(the discrete logarithm's, the generator's powers', the readers'). About `2^38.59`. -/
 def guestDecoderWitnessPriceAtValidCounts : ℕ := 413362752147
 
 /-- How many frame lookups the constant pays for: about `2^26.57`. -/

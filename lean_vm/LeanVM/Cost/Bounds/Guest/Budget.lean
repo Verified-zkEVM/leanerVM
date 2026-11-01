@@ -26,12 +26,13 @@ the decoder program's price is within `guestDecoderBudget` (`Statement/Theorems.
 * the entry table, one sorted array (`entryArrayT_cost`) at the key exponent
   `guestDecoderEntryTableKeyExponent steps`, the precondition test (`preTestAt_cost_deployed`, its
   logarithms' bounds by the lanes' scan, `powBelow_cost`, its powers read off the powers table:
-  the statement's `guestDecoderPreconditionPrice = 572426 ≈ 2^19.13`), the pc table (`pcTableT_get_cost`,
-  `pcTableT_getD_length`): per state the statement's `guestDecoderStateFilingPrice`
-  (`entryArrayStatePrice_eq`);
+  the statement's `guestDecoderPreconditionPrice = 572426 ≈ 2^19.13`), the pc table
+  (`pcTableT_get_cost`, `pcTableT_getD_length`): per state the statement's
+  `guestDecoderStateFilingPrice` (`entryArrayStatePrice_eq`);
 * the frame map (`frameAtA_cost`, one binary search, calls of at most `16` words): within
   `guestDecoderFramePrice` (`frameAtAPrice_le`); the cursor's length (`cursorLength_cost`, value
-  at most `8192` at each child's frame on a valid run, `valid_cursor`), the witness (`frameWit_cost`);
+  at most `8192` at each child's frame on a valid run, `valid_cursor`), the witness
+  (`frameWit_cost`);
 * the tables: preconditions `12895` (`preTable_cost`), entries `17047343` (`pcTableT_cost`); the
   address tables at the execution's `κ` and the guest's `ℓ`, `addressTablesPrice κ ℓ =
   (70κ + 374)·2^κ + (70ℓ + 374)·2^ℓ + 48` (`decoderTables_cost`), the statement's
