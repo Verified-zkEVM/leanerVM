@@ -1,6 +1,8 @@
 module
 
 public import LeanVM.Cost.Bounds.Basic
+public import LeanVM.Cost.Bounds.SortedMap
+public import LeanVM.Cost.Bounds.Transcript
 public import LeanVM.Cost.Extractor.Runner
 
 /-!
@@ -16,7 +18,7 @@ the list functions they call. With `N = 2^m` the buffer:
   (`430·N + 19730`);
 * **`novelInvStage_cost`**, **`novelFwdStage_cost`** (`750·N + 19760` per butterfly stage),
   **`novelInv_cost`** (`κ` stages over `2^κ`), **`novelFwd_cost`** (`κ` stages over `2^(κ+R)`);
-* **`pruneStep_cost`**: `|st|·(|L|·((B + 29)·n + 9·U + 61) + 32) + 16` for `|st|` survivors of at
+* **`pruneStep_cost`**: `|st|·(|L|·((B + 29)·n + 9·U + 62) + 32) + 16` for `|st|` survivors of at
   most `n` columns and `U` lanes, `|L|` candidates, `B` the symbol's price;
 * **`stackOf_cost`**: `(15·|cs| + 56)·2^μ + 19`.
 
@@ -33,6 +35,14 @@ variable (P : Program)
 
 theorem limbs_two_pow {k : ℕ} (hk : k < 64) : limbs (2 ^ k) = 1 :=
   limbs_of_lt (Nat.pow_lt_pow_right (by norm_num) hk)
+
+/-- Numbers below `2^128` have at most two limbs. -/
+theorem limbs_le_two {x : ℕ} (h : x < 2 ^ 128) : limbs x ≤ 2 := by
+  unfold limbs
+  rcases Nat.eq_zero_or_pos x with rfl | hx
+  · simp
+  · have := (Nat.log2_lt (by omega)).2 h
+    omega
 
 theorem limbs_shift {k : ℕ} (hk : k < 64) : limbs (1 <<< k) = 1 := by
   rw [Nat.one_shiftLeft]; exact limbs_two_pow hk
@@ -443,19 +453,19 @@ theorem novelFwd_cost (hP : Includes P Auto.LeanVM.Extraction.novelFwd.c216.cost
 
 /-- **One pruning step** (`pruneStep.c262`): for `|st|` survivors of at most `n` columns and `U`
 lanes each, `|L|` candidates, and the symbol's price at most `B`: at most
-`|st|·(|L|·((B + 29)·n + 9·U + 61) + 32) + 16`. -/
+`|st|·(|L|·((B + 29)·n + 9·U + 62) + 32) + 16`. -/
 theorem pruneStep_cost (hP : Includes P Auto.LeanVM.Extraction.pruneStep.c262.costDeps) (A : ℕ)
-    (hA : A < 2 ^ 64) (sym : ℕ → K) (symVal : Val) (hsym : ∀ a : ℕ, RunsApp P symVal [enc a] (enc (sym a)))
+    (hA : A < 2 ^ 128) (sym : ℕ → K) (symVal : Val) (hsym : ∀ a : ℕ, RunsApp P symVal [enc a] (enc (sym a)))
     (B : ℕ) (hB : ∀ v : ℕ, appCost P symVal [enc v] ≤ B) (L : List (Array K × Array K))
     (st : List (List (Array K) × List ℕ)) (n U : ℕ) (hn : n < 2 ^ 64)
     (hst : ∀ s ∈ st, s.2.length ≤ n ∧ s.1.length ≤ U) :
     machineCost P Auto.LeanVM.Extraction.pruneStep.c262.costIdx [enc A, symVal, enc L, enc st] ≤
-      st.length * (L.length * ((B + 29) * n + 9 * U + 61) + 32) + 16 := by
+      st.length * (L.length * ((B + 29) * n + 9 * U + 62) + 32) + 16 := by
   rw [Auto.LeanVM.Extraction.pruneStep.c262.costEq P hP A sym symVal hsym]
   -- one survivor and one candidate
   have hce : ∀ s ∈ st, ∀ ce : Array K × Array K,
       appCost P (.fn Auto.LeanVM.Extraction.pruneStep.c262.lam0.lam0.costIdx [enc A, symVal, enc s])
-        [enc ce] ≤ (B + 29) * n + 9 * U + 39 := by
+        [enc ce] ≤ (B + 29) * n + 9 * U + 40 := by
     intro s hs ce
     obtain ⟨h2, h1⟩ := hst s hs
     simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -474,13 +484,15 @@ theorem pruneStep_cost (hP : Includes P Auto.LeanVM.Extraction.pruneStep.c262.co
     have hl := listLength_cost P (by includes)
       (List.filter (fun v ↦ decide (ce.2.getD v 0 = sym v)) s.2) (by omega)
     have ha := append_cost P (by includes) s.1 [ce.1]
-    rw [limbs_of_lt hA, limbs_of_lt (by omega :
+    have hlA := limbs_le_two hA
+    rw [limbs_of_lt (by omega :
       (List.filter (fun v ↦ decide (ce.2.getD v 0 = sym v)) s.2).length < 2 ^ 64)]
     have : (B + 9 + 13) * s.2.length ≤ (B + 22) * n := Nat.mul_le_mul_left _ h2
-    split_ifs <;> simp only [max_self] <;> nlinarith
+    have := max_le hlA (show 1 ≤ 2 by omega)
+    split_ifs <;> nlinarith
   have hs : ∀ s ∈ st,
       appCost P (.fn Auto.LeanVM.Extraction.pruneStep.c262.lam0.costIdx [enc A, symVal, enc L])
-        [enc s] ≤ ((B + 29) * n + 9 * U + 52) * L.length + 12 := by
+        [enc s] ≤ ((B + 29) * n + 9 * U + 53) * L.length + 12 := by
     intro s hs
     simp only [appCost_fn, List.cons_append, List.nil_append]
     rw [Auto.LeanVM.Extraction.pruneStep.c262.lam0.costEq P (by includes) A sym symVal hsym]
@@ -529,13 +541,6 @@ theorem stackOf_cost (hP : Includes P Auto.LeanVM.Extraction.stackOf.c272.costDe
   nlinarith
 
 /-! ## The Johnson threshold: square roots on two-limb numbers -/
-
-theorem limbs_le_two {x : ℕ} (h : x < 2 ^ 128) : limbs x ≤ 2 := by
-  unfold limbs
-  rcases Nat.eq_zero_or_pos x with rfl | hx
-  · simp
-  · have := (Nat.log2_lt (by omega)).2 h
-    omega
 
 /-- `Nat.log2` by halving (`log2Rec.c280`): at most `7 + 15·(log₂ n + 1)` below `2^128`. -/
 theorem log2Rec_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.log2Rec.c280.costDeps) (n : ℕ)
@@ -776,6 +781,246 @@ theorem johnsonThreshold_cost (hP : Includes P Auto.LeanVM.Extraction.johnsonThr
   have m3 := max_le l12 l13
   have m4 := max_le l14 (show limbs 1 ≤ 2 by simp)
   omega
+
+theorem le_one_mul (a X : ℕ) (h : a ≤ 1) : a * X ≤ X := by
+  simpa using Nat.mul_le_mul_right X h
+
+theorem johnsonThreshold_lt (μ R : ℕ) (hκR : 2 * (μ - Whir.initialFold) + R ≤ 80) :
+    johnsonThreshold μ R < 2 ^ 128 := by
+  unfold johnsonThreshold
+  dsimp only
+  set κ := μ - Whir.initialFold
+  have hN : 2 ^ (κ + R) ≤ 2 ^ 80 := Nat.pow_le_pow_right (by norm_num) (by omega)
+  have hK : 2 ^ κ ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) (by omega)
+  have hX : 2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R) < 2 ^ 126 := by
+    have : 2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R) ≤ 2 ^ 44 * 2 ^ κ * 2 ^ (κ + R) :=
+      Nat.mul_le_mul_right _ (Nat.mul_le_mul_left _ (Nat.sub_le _ _))
+    have e : 2 ^ 44 * 2 ^ κ * 2 ^ (κ + R) = 2 ^ (44 + κ + (κ + R)) := by rw [← pow_add, ← pow_add]
+    have : 2 ^ (44 + κ + (κ + R)) < 2 ^ 126 := Nat.pow_lt_pow_right (by norm_num) (by omega)
+    omega
+  have hcs : ceilSqrt (2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R)) ≤
+      2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R) + 1 := by
+    unfold ceilSqrt; have := Nat.sqrt_le_self (2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R)); split_ifs <;> omega
+  have hsl : johnsonSlackOf μ R * 2 ^ (κ + R) ≤ 975 * 2 ^ 80 := Nat.mul_le_mul (johnsonSlackOf_le μ R) hN
+  refine lt_of_le_of_lt (Nat.div_le_self _ _) ?_
+  generalize ceilSqrt (2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R)) = cs at hcs ⊢
+  generalize johnsonSlackOf μ R * 2 ^ (κ + R) = y at hsl ⊢
+  generalize 2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R) = X at hX hcs
+  refine lt_of_le_of_lt (Nat.sub_le _ _) ?_
+  norm_num at hX hsl ⊢
+  omega
+
+theorem pruneStep_single {A : ℕ} {sym : ℕ → K} {c : Array K × Array K}
+    {st : List (List (Array K) × List ℕ)} :
+    (pruneStep A sym [c] st).length ≤ st.length ∧
+      ∀ x ∈ pruneStep A sym [c] st, ∃ s ∈ st, x.2.length ≤ s.2.length ∧ x.1.length = s.1.length + 1 := by
+  refine ⟨?_, fun x hx ↦ ?_⟩
+  · unfold pruneStep
+    rw [List.length_flatMap]
+    have : ∀ s ∈ st, (List.filterMap (fun ce ↦
+        if A ≤ (List.filter (fun v ↦ decide (ce.2.getD v 0 = sym v)) s.2).length then
+          some (s.1 ++ [ce.1], List.filter (fun v ↦ decide (ce.2.getD v 0 = sym v)) s.2) else none)
+        [c]).length ≤ 1 := fun s _ ↦ by
+      have := List.length_filterMap_le (fun ce : Array K × Array K ↦
+        if A ≤ (List.filter (fun v ↦ decide (ce.2.getD v 0 = sym v)) s.2).length then
+          some (s.1 ++ [ce.1], List.filter (fun v ↦ decide (ce.2.getD v 0 = sym v)) s.2) else none) [c]
+      simpa using this
+    have := List.sum_le_length_nsmul (st.map fun s ↦ (List.filterMap (fun ce ↦
+        if A ≤ (List.filter (fun v ↦ decide (ce.2.getD v 0 = sym v)) s.2).length then
+          some (s.1 ++ [ce.1], List.filter (fun v ↦ decide (ce.2.getD v 0 = sym v)) s.2) else none)
+        [c]).length) 1 (by
+      intro x hx
+      obtain ⟨s, hs, rfl⟩ := List.mem_map.1 hx
+      exact this s hs)
+    simpa using this
+  · obtain ⟨s, hs, ce, -, -, rfl⟩ := PruneProofs.mem_pruneStep.1 hx
+    exact ⟨s, hs, List.length_filter_le _ _, by simp⟩
+
+/-- The fast path's survivors after some lanes: at most one, of at most `N` columns, at most
+`64 − r` lanes when `r` are left. -/
+@[expose] def FastInv (N : ℕ) (st : List (List (Array K) × List ℕ)) (r : ℕ) : Prop :=
+  st.length ≤ 1 ∧ ∀ s ∈ st, s.2.length ≤ N ∧ s.1.length + r ≤ 64
+
+/-- **One lane of the fast path** (`fastStacksFastC.lam1`): read the lane's `2^κ` symbols, the
+inverse transform, the threshold, the forward transform over `N = 2^(κ+R)`, one pruning step
+against at most one survivor. -/
+theorem fastLane_cost (hP : Includes P fastStacksFastC.lam1.costDeps) (μ R κ : ℕ)
+    (T : Array (Array K)) (st : List (List (Array K) × List ℕ)) (u r : ℕ) (hμ : μ < 2 ^ 64)
+    (hJ : 2 * (μ - Whir.initialFold) + R ≤ 80) (hκR : κ + R ≤ 62)
+    (hst : FastInv (2 ^ (κ + R)) st (r + 1)) :
+    machineCost P fastStacksFastC.lam1.costIdx [enc μ, enc R, enc T, enc κ, enc st, enc u] ≤
+      κ * (1520 * 2 ^ (κ + R) + 39583) + 102 * 2 ^ (κ + R) + 17500 := by
+  rw [fastStacksFastC.lam1.costEq P hP]
+  have hK : 2 ^ κ ≤ 2 ^ (κ + R) := Nat.pow_le_pow_right (by norm_num) (by omega)
+  have hN : 2 ^ (κ + R) < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) (by omega)
+  have hof := ofFnFrom_cost P (by includes) (n := 2 ^ κ) (by omega) _
+    (.fn fastStacksFastC.lam1.lam0.costIdx [enc T, enc κ, enc u])
+    (fun a ↦ RunsApp.of_spec (fastStacksFastC.lam1.lam0.costSpec P (by includes) T κ u a)) 12
+    (fun a ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append]
+      rw [fastStacksFastC.lam1.lam0.costEq P (by includes),
+        Auto.LeanVM.Extraction.Fast.tableSymbol.c269.costEq P (by includes)]) 0 (Nat.zero_le _)
+  have hr := rangeLoop_cost P (by includes) κ [] (by omega)
+  have hinv := novelInv_cost P (by includes) (by includes) κ (by omega)
+    (Array.ofFn fun v : Fin (2 ^ κ) ↦ Fast.tableSymbol T u v)
+  have hj := johnsonThreshold_cost P (by includes) μ R hμ hJ
+  have hfwd := novelFwd_cost P (by includes) κ R hκR
+    (novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦ Fast.tableSymbol T u v))
+  have hpr := pruneStep_cost P (by includes) (johnsonThreshold μ R) (johnsonThreshold_lt μ R hJ) _
+    (.fn pruneUpToDistinctC.lam1.lam0.costIdx [enc T, enc u])
+    (fun a ↦ RunsApp.of_spec (pruneUpToDistinctC.lam1.lam0.costSpec P (by includes) T u a)) 12
+    (fun v ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append]
+      rw [pruneUpToDistinctC.lam1.lam0.costEq P (by includes),
+        Auto.LeanVM.Extraction.Fast.tableSymbol.c269.costEq P (by includes)])
+    [(novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦ Fast.tableSymbol T u v),
+      novelFwd κ R (novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦ Fast.tableSymbol T u v)))]
+    st (2 ^ (κ + R)) 64 hN (fun s hs ↦ ⟨(hst.2 s hs).1, by have := (hst.2 s hs).2; omega⟩)
+  have hst1 := hst.1
+  have : st.length * (1 * ((12 + 29) * 2 ^ (κ + R) + 9 * 64 + 62) + 32) ≤
+      41 * 2 ^ (κ + R) + 670 := by
+    refine le_trans (le_one_mul _ _ hst1) ?_
+    omega
+  rw [ofFnFrom_length, limbs_shift (by omega : κ < 64), limbs_of_lt (by omega : κ < 2 ^ 64)]
+  simp only [Nat.sub_zero, List.length_singleton] at hof hpr
+  nlinarith
+
+set_option maxRecDepth 8192 in
+/-- **The fast path** (`fastStacksFast μ R W`, compiled as `fastStacksFastC`): the word's
+`N = 2^(κ+R)` columns reversed into a table (`B_W` per column read, `W_d` words each), then `64`
+lanes (`fastLane_cost`), then at most one stack (`stackOf_cost`): at most
+`64·(κ·(1520·N + 39583) + 102·N + 17509) + (B_W + 10·W_d + 46)·N + 1016·2^μ + 1300`, for
+`μ ≤ 40`, `R ≤ 8`. -/
+theorem fastStacksFast_cost (hP : Includes P fastStacksFastC.costDeps) (μ R : ℕ) (hμ : μ ≤ 40)
+    (hR : R ≤ 8) (W : ℕ → List K) (WVal : Val) (hW : ∀ a : ℕ, RunsApp P WVal [enc a] (enc (W a)))
+    (BW Wd : ℕ) (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [enc v] ≤ BW) (hWd : ∀ v, (W v).length ≤ Wd) :
+    machineCost P fastStacksFastC.costIdx [enc μ, enc R, WVal] ≤
+      64 * ((μ - Whir.initialFold) * (1520 * 2 ^ (μ - Whir.initialFold + R) + 39583) +
+          102 * 2 ^ (μ - Whir.initialFold + R) + 17509) +
+        (BW + 10 * Wd + 46) * 2 ^ (μ - Whir.initialFold + R) + 1016 * 2 ^ μ + 1300 := by
+  have hI : Includes P fastStacksFastC.lam1.costDeps := by includes
+  rw [fastStacksFastC.costEq P hP μ R W WVal hW]
+  have hf : Whir.initialFold = 6 := rfl
+  set κ := μ - Whir.initialFold with hκ
+  set N := 2 ^ (κ + R) with hNdef
+  have hN : N < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) (by omega)
+  have hof := ofFnFrom_cost P (by includes) (n := N) hN _
+    (.fn fastStacksFastC.lam0.costIdx [enc μ, enc R, WVal])
+    (fun a ↦ RunsApp.of_spec (fastStacksFastC.lam0.costSpec P (by includes) μ R W WVal hW a))
+    (BW + 10 * Wd + 9)
+    (fun a ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append]
+      rw [fastStacksFastC.lam0.costEq P (by includes) μ R W WVal hW]
+      have := reverseAux_cost P (by includes) (W a) []
+      have := hBW a (by have := a.isLt; omega)
+      have := hWd a
+      rw [List.length_reverse]
+      omega) 0 (Nat.zero_le _)
+  have hr1 := rangeLoop_cost P (by includes) N [] hN
+  have hr2 := rangeLoop_cost P (by includes) (2 ^ Whir.initialFold) [] (by rw [hf]; norm_num)
+  -- a lane keeps the survivors' invariant
+  have hstep : ∀ st r, FastInv N st (r + 1) → ∀ u ∈ List.range (2 ^ Whir.initialFold),
+      FastInv N (pruneStep (johnsonThreshold μ R) (Fast.tableSymbol (Fast.laneTable N W) u)
+        [(novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦ Fast.tableSymbol (Fast.laneTable N W) u v),
+          novelFwd κ R (novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦
+            Fast.tableSymbol (Fast.laneTable N W) u v)))] st) r := by
+    intro st r hst u _hu
+    obtain ⟨h1, h2⟩ := pruneStep_single (A := johnsonThreshold μ R)
+      (sym := Fast.tableSymbol (Fast.laneTable N W) u)
+      (c := (novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦ Fast.tableSymbol (Fast.laneTable N W) u v),
+        novelFwd κ R (novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦
+          Fast.tableSymbol (Fast.laneTable N W) u v)))) (st := st)
+    refine ⟨by have := hst.1; omega, fun x hx ↦ ?_⟩
+    obtain ⟨s, hs, hx2, hx1⟩ := h2 x hx
+    have := hst.2 s hs
+    exact ⟨by omega, by omega⟩
+  have hinit : FastInv N [([], List.range N)] (List.range (2 ^ Whir.initialFold)).length := by
+    refine ⟨by simp, fun s hs ↦ ?_⟩
+    simp only [List.mem_singleton] at hs
+    subst hs
+    simp [hf]
+  have hfold := listFoldl_amortized P (by includes) _
+    (.fn fastStacksFastC.lam1.costIdx [enc μ, enc R, enc (Fast.laneTable N W), enc κ])
+    (fun a b ↦ RunsApp.of_spec (fastStacksFastC.lam1.costSpec P (by includes) μ R _ κ a b))
+    (κ * (1520 * N + 39583) + 102 * N + 17500) (fun _ ↦ 0) (FastInv N)
+    (List.range (2 ^ Whir.initialFold)) [([], List.range N)] hinit
+    (fun st r hst u hu ↦ ⟨hstep st r hst u hu, by
+      simp only [appCost_fn, List.cons_append, List.nil_append, Nat.add_zero, Nat.zero_add]
+      have h1 : μ < 2 ^ 64 := by omega
+      have h2 : 2 * (μ - Whir.initialFold) + R ≤ 80 := by omega
+      have h3 : κ + R ≤ 62 := by omega
+      have hl := fastLane_cost P hI μ R κ (Fast.laneTable N W) st u r h1 h2 h3 hst
+      exact hl⟩)
+  -- the survivors at the end: at most one, of at most `64` lanes
+  have hend : ∀ (l : List ℕ) (st : List (List (Array K) × List ℕ)), (∀ u ∈ l, u ∈
+      List.range (2 ^ Whir.initialFold)) → FastInv N st l.length →
+      FastInv N (l.foldl (fun st u ↦
+        have c := novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦ Fast.tableSymbol (Fast.laneTable N W) u v)
+        pruneStep (johnsonThreshold μ R) (Fast.tableSymbol (Fast.laneTable N W) u)
+          [(c, novelFwd κ R c)] st) st) 0 := by
+    intro l
+    induction l with
+    | nil => intro st _ h; simpa using h
+    | cons u l ih =>
+      intro st hl h
+      exact ih _ (fun x hx ↦ hl x (by simp [hx])) (hstep st l.length h u (hl u (by simp)))
+  have hfin := hend _ _ (fun u hu ↦ hu) hinit
+  have hmap := map_cost P (by includes) _ (.fn decodeStacksDistinctC.lam0.costIdx [enc μ])
+    (fun a ↦ RunsApp.of_spec (decodeStacksDistinctC.lam0.costSpec P (by includes) μ a))
+    (1016 * 2 ^ μ + 23) _ (fun s hs ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append]
+      rw [decodeStacksDistinctC.lam0.costEq P (by includes)]
+      have := stackOf_cost P (by includes) μ (by omega) s.1
+      have := (hfin.2 s hs).2
+      have : (15 * s.1.length + 56) * 2 ^ μ ≤ 1016 * 2 ^ μ := Nat.mul_le_mul_right _ (by omega)
+      omega)
+  have hlen := hfin.1
+  have : (1016 * 2 ^ μ + 23 + 11) *
+      (List.foldl (fun st u ↦
+        have c := novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦ Fast.tableSymbol (Fast.laneTable N W) u v)
+        pruneStep (johnsonThreshold μ R) (Fast.tableSymbol (Fast.laneTable N W) u)
+          [(c, novelFwd κ R c)] st)
+        [([], List.range N)] (List.range (2 ^ Whir.initialFold))).length ≤ 1016 * 2 ^ μ + 34 := by
+    rw [Nat.mul_comm]; exact le_one_mul _ _ hlen
+  rw [List.length_range] at hfold
+  rw [ofFnFrom_length, limbs_of_lt (by omega : μ < 2 ^ 64), limbs_of_lt (by rw [hf]; norm_num :
+    Whir.initialFold < 2 ^ 64), limbs_of_lt (by omega : κ < 2 ^ 64),
+    limbs_of_lt (by omega : R < 2 ^ 64), limbs_shift (by omega : κ + R < 64),
+    limbs_of_lt (by omega : κ + R < 2 ^ 64), limbs_shift (by rw [hf]; norm_num : Whir.initialFold < 64)]
+  simp only [Nat.sub_zero, max_self, hf] at hof hfold hmap this hr2 ⊢
+  nlinarith
+
+theorem leafAt_length_le (leaves : Array (List K)) (h w v : ℕ) (hl : ∀ l ∈ leaves, l.length ≤ w) :
+    (leafAt leaves h w v).length ≤ w := by
+  unfold leafAt
+  rw [Array.getD_eq_getD_getElem?]
+  generalize hx : leaves[v % 2 ^ h]? = o
+  cases o with
+  | none => simp
+  | some l => exact hl l (Array.mem_of_getElem? hx)
+
+/-- **The fast path on the committed word** (`fastStacksOfLeavesC`): `fastStacksFast_cost` with a
+column read by `leafAt` (`17·w + 24`) of `w` words: at most
+`64·(κ·(1520·N + 39583) + 102·N + 17509) + (27·w + 70)·N + 1016·2^μ + 1310`. -/
+theorem fastStacksOfLeaves_cost (hP : Includes P fastStacksOfLeavesC.costDeps) (μ R : ℕ)
+    (hμ : μ ≤ 40) (hR : R ≤ 8) (leaves : Array (List K)) (h w : ℕ) (hh : h < 64) (hw : w < 2 ^ 64)
+    (hl : ∀ l ∈ leaves, l.length ≤ w) :
+    machineCost P fastStacksOfLeavesC.costIdx [enc μ, enc R, enc leaves, enc h, enc w] ≤
+      64 * ((μ - Whir.initialFold) * (1520 * 2 ^ (μ - Whir.initialFold + R) + 39583) +
+          102 * 2 ^ (μ - Whir.initialFold + R) + 17509) +
+        (27 * w + 70) * 2 ^ (μ - Whir.initialFold + R) + 1016 * 2 ^ μ + 1310 := by
+  rw [fastStacksOfLeavesC.costEq P hP]
+  have := fastStacksFast_cost P (by includes) μ R hμ hR _
+    (.fn fastStacksOfLeavesC.lam0.costIdx [enc leaves, enc h, enc w])
+    (fun a ↦ RunsApp.of_spec (fastStacksOfLeavesC.lam0.costSpec P (by includes) leaves h w a))
+    (17 * w + 24) w
+    (fun v hv ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append]
+      rw [fastStacksOfLeavesC.lam0.costEq P (by includes)]
+      have := leafAt_cost P (by includes) leaves h w v hh hv hw
+      omega)
+    (fun v ↦ leafAt_length_le leaves h w v hl)
+  nlinarith
 
 end
 
