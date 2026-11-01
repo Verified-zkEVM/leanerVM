@@ -56,6 +56,9 @@ noncomputable def decTop (prog : LeanVM.Semantics.Program) (κ : ℕ) (mem : Vec
   decTopTables discreteLogTables preTable genPows readerTabs pcTableT (decoderTables prog κ) prog
     mem
 
+/-! The baby-step tables' parts, under names of their own (the bounds name them). -/
+cost_compile powPairsByC measure fun _ n _ _ ↦ n := powPairsBy
+cost_compile babyTableC := babyTable
 set_option maxRecDepth 100000 in
 cost_compile discreteLogTablesC := discreteLogTables
 set_option maxRecDepth 100000 in
