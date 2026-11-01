@@ -14,9 +14,9 @@ Everything this repository proves, in one place: each field of `Theorems` is one
 defined in the file of `Statement/` named next to it, or, for the guest decoder program
 (`GuestKnowledge`, its encodings, size bound and budget), in this file's first section.
 `lean_vm/LeanVM.lean` proves `Statement.Theorems (decoderProgram := D) (extractorProgram :=
-LeanVM.Cost.extractorProgram)` (`LeanVM.theorems_hold`, for now under the hypothesis that a
-decoder program `D` meets its specification), and the build fails if its axioms are ever more
-than Lean's three (`propext`, `Classical.choice`, `Quot.sound`).
+LeanVM.Cost.extractorProgram)` (`LeanVM.theorems_hold`, `D` the compiled decoder, for now under
+the hypothesis that its price is within its budget), and the build fails if its axioms are ever
+more than Lean's three (`propext`, `Classical.choice`, `Quot.sound`).
 
 Statements that follow from these, in their composed form (what an accepted proof of the leanISA
 guest program establishes; the guest program's completeness on recursion nodes and leaves), are in
@@ -53,8 +53,9 @@ within its budget, whichever algorithm it runs. What excludes a decoder that cho
 program (no classical choice), the machine's only runtime data is its input, its size bound limits
 the table of witnesses it could carry, and its budget is linear in the execution's size. One that
 output another statement of the same digest would exhibit a Keccak-256 collision; what excludes
-it is that none is known. **The size bound and the price are placeholders** until the decoder
-program is compiled and measured. -/
+it is that none is known. The size bound is the compiled decoder's measured size rounded up
+(`guestDecoderSizeBound`); **the price is a placeholder** until its closed form is proved
+(`guestDecoderPrice`). -/
 
 namespace LeanVM.Cost
 
@@ -135,14 +136,15 @@ open LeanVM.Parameters LeanVM.Semantics
 
 @[expose] public section
 
-/-- **The bound on the guest decoder program's size. PLACEHOLDER**: `2^16` terms, to be set to the
-compiled decoder's measured size rounded up to a power of two (about `2^20` expected). That size
-counts in full the guest program's per-function tables, which the decoder's replay of the run
-reads and which are literals of the decoder program (`CostMachine.lean`: a literal counts by its
-size). The bound limits a table of witnesses the program could carry (hard-coded signatures,
-matrices or proofs that would mask a bug of the guest program on finitely many statements) to the
-slack between the compiled decoder's size and the bound. -/
-def guestDecoderSizeBound : ℕ := 2 ^ 16
+/-- **The bound on the guest decoder program's size**: `2^20` terms, the compiled decoder's
+measured size (`785135`, `lean_vm`'s `Cost/DecoderSize.lean`) rounded up to a power of two. That
+size counts in full the guest program's per-function tables, which the decoder's replay of the
+run reads and which are literals of the decoder program (`CostMachine.lean`: a literal counts by
+its size; the frame cells of the guest's functions are `749835` of it). The bound limits a table
+of witnesses the program could carry (hard-coded signatures, matrices or proofs that would mask a
+bug of the guest program on finitely many statements) to the slack between the compiled
+decoder's size and the bound. -/
+def guestDecoderSizeBound : ℕ := 2 ^ 20
 
 /-- **The guest decoder's price. PLACEHOLDER**: `2^30` operations per word of the program's
 `2^ℓ`, of the memory's `2^κ` and per step, to be replaced by a closed form `lean_vm` proves of the

@@ -1,6 +1,7 @@
 module
 
 public import LeanVM.Cost.DecoderProgram
+public import LeanVM.Cost.Decoder.Top
 
 /-!
 # The guest decoder's program: its indices and its size, by evaluation
@@ -16,14 +17,12 @@ program's definition, so that no edit of a proof rebuilds them. For the program
 * the bound `size_ofList_le` gives, the bodies' sizes and two per index, at most a measured
   number: the program's size (`decoderProgramOf_size_le`), then `guestDecoderSizeBound`.
 
-**Skeleton.** The decoder's top is not compiled yet: the evaluations below measure the program
-of the compiled replay (`replayStatesOfC`, `Decoder/Replay.lean`, the largest piece so far) in its
-place: at most the bodies' sizes (`1764`) plus two per index up to the top's, `replayStatesOfC`'s
-own (the last index allocated; so the bound names no index, which moves when a module before it in
-the chain gains a function); its exact size is `3208` at index `794`. Once the top `decTopC` is
-compiled, its program replaces the replay's (`decTopC.costIdx`, `decTopC.costDeps`), the measured
-number with it, and `guestDecoderSizeBound` is set to the size rounded up to a power of two
-(`Statement/Theorems.lean`).
+For the compiled top `decTopC` (`Decoder/Top.lean`, `401` functions): at most the bodies' sizes
+(`784199`) plus two per index up to the top's, `decTopC`'s own (the last index allocated; so the
+bound names no index, which moves when a module before it in the chain gains a function): `785939`
+at index `869`. Its exact size is `785135`, of which the guest's frame cells (`guestLocs`, a
+literal held once, `guestLocsTable`) are `749835`. `guestDecoderSizeBound` is `2^20`, the size
+rounded up to a power of two (`Statement/Theorems.lean`).
 -/
 
 namespace LeanVM.Cost
@@ -33,23 +32,21 @@ open LeanVM.Cost.Decoder
 public section
 
 /-- The bodies' indices increase from the entry's `0`. -/
-theorem replayProgram_indices_increasing :
-    increasingFrom 0 (replayStatesOfC.costDeps.map (·.1)) = true := by
+theorem decoderProgram_indices_increasing :
+    increasingFrom 0 (decTopC.costDeps.map (·.1)) = true := by
   decide +kernel
 
 /-- The bound of `size_ofList_le` on the program's size, evaluated. -/
-theorem replayProgramBodies_size_bound :
-    ((decoderProgramBodiesOf replayStatesOfC.costIdx replayStatesOfC.costDeps).map
-        fun p ↦ p.2.size).sum +
-      2 * (((decoderProgramBodiesOf replayStatesOfC.costIdx replayStatesOfC.costDeps).map
-        (·.1)).foldr max 0 + 1) ≤ 1764 + 2 * (replayStatesOfC.costIdx + 1) := by
+theorem decoderProgramBodies_size_bound :
+    ((decoderProgramBodiesOf decTopC.costIdx decTopC.costDeps).map fun p ↦ p.2.size).sum +
+      2 * (((decoderProgramBodiesOf decTopC.costIdx decTopC.costDeps).map (·.1)).foldr max 0 + 1) ≤
+      784199 + 2 * (decTopC.costIdx + 1) := by
   decide +kernel
 
 /-- **The program's size**, evaluated. -/
-theorem replayProgram_size_le_measured :
-    (decoderProgramOf replayStatesOfC.costIdx replayStatesOfC.costDeps).size ≤
-      1764 + 2 * (replayStatesOfC.costIdx + 1) :=
-  decoderProgramOf_size_le replayProgramBodies_size_bound
+theorem decoderProgram_size_le_measured :
+    (decoderProgramOf decTopC.costIdx decTopC.costDeps).size ≤ 784199 + 2 * (decTopC.costIdx + 1) :=
+  decoderProgramOf_size_le decoderProgramBodies_size_bound
 
 end
 

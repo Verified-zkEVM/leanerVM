@@ -39,11 +39,24 @@ set_option maxHeartbeats 4000000 in
 cost_compile wordWithC := LeanVM.Guest.Located.wordWith
 cost_compile decWitNC := decWitNStaged
 
+/-! ## The guest's table of certificates' cells, held once -/
+
+/-- **The guest's frame cells**, a function of no argument whose body is the literal
+(`guestLocsLit`, `Rule.literalNatArrays`): every use of `guestLocs` calls it
+(`guestLocs_eq_table`), so the program holds the table once, however many readers read it. -/
+def guestLocsTable : Array (Array ℕ) := guestLocsLit
+
+theorem guestLocs_eq_table : guestLocs = guestLocsTable := rfl
+
+set_option maxRecDepth 100000 in
+cost_compile guestLocsTableC := guestLocsTable
+cost_rewrite guestLocs_eq_table
+
 /-! ## `main`'s valuation -/
 
 /-- The word of `main`'s value `v` at `fp = 1`, read with `rd`: its cell's location read off
-`main`'s row of the guest's table of certificates' cells (`guestLocs`, a literal of the program,
-`Rule.literal`), in `O(1)` whatever `v` (`Equations.lean`: `mainVal_eq_cert`, the certificate's
+`main`'s row of the guest's table of certificates' cells (`guestLocs`, the literal held once,
+`guestLocsTable`), in `O(1)` whatever `v` (`Equations.lean`: `mainVal_eq_cert`, the certificate's
 cells `cert1_w0_0 ++ cert1_w1_0`, and `mainVal_eq`). -/
 def mainVal (rd : Reader) (v : V) : E :=
   LeanVM.Guest.Located.wordWith rd 1 ((guestLocs.getD 1 #[]).getD v.idx 0)

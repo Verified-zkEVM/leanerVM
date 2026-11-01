@@ -46,7 +46,9 @@ def chunks(xs, n):
 
 def nat_array(name, doc, xs):
     rows = ",\n    ".join(", ".join(str(x) for x in c) for c in chunks(xs, 10))
-    return f"/-- {doc} -/\ndef {name} : Array ℕ := #[\n    {rows}]\n"
+    return (f"/-- {doc} -/\ndef {name}List : List ℕ := [\n    {rows}]\n\n"
+            f"/-- {doc} An array (reducible: the compiler's literal rule reads its list). -/\n"
+            f"abbrev {name} : Array ℕ := {name}List.toArray\n")
 
 
 def main():
@@ -79,7 +81,7 @@ public import LeanVM.Guest.Data.Cert
 
 For each of the guest's {N} compiled functions `j`: its entry pc, its number of arguments and of
 return words, and its certificate's frame cells. Literals of the decoder program
-(`Rule.literal`); `GuestTablesCheck.lean` proves them equal to `(glob.sig j).entry`,
+(`Rule.literalNats`, `Rule.literalNatArrays`); `GuestTablesCheck.lean` proves them equal to `(glob.sig j).entry`,
 `(glob.sig j).nargs`, `(glob.sig j).nret` and `(certOf j).locs`.
 -/
 
@@ -96,8 +98,13 @@ open LeanVM.Guest
 def guestLocsList : List (List ℕ) := [
     {",\n    ".join(locs)}]
 
-/-- Each function's frame cells, as arrays (the decoder's literal). -/
-def guestLocs : Array (Array ℕ) := (guestLocsList.map List.toArray).toArray
+/-- Each function's frame cells, as arrays: the decoder's literal (reducible: the compiler's
+literal rule reads its list). -/
+abbrev guestLocsLit : Array (Array ℕ) := (guestLocsList.map List.toArray).toArray
+
+/-- Each function's frame cells, as arrays (`Cost/Decoder/Witness.lean` compiles its uses as calls
+of one function holding the literal). -/
+def guestLocs : Array (Array ℕ) := guestLocsLit
 
 end
 
