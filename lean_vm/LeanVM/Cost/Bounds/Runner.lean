@@ -38,15 +38,15 @@ open LeanVM.Extraction.Fast
 
 public section
 
-variable (P : LeanVM.Cost.Program)
+variable (P : LeanVM.Cost.MachineProgram)
 
 section MergeSort
-variable {α : Type} [Enc α]
+variable {α : Type} [MachineEncoding α]
 
 /-- `List.take` (`take.c231`): `19` per element, `13` at the end. -/
 theorem takeList_cost (hP : Includes P Auto.List.take.c231.costDeps) :
     ∀ (n : ℕ) (l : List α), n < 2 ^ 64 →
-      machineCost P Auto.List.take.c231.costIdx [enc n, enc l] ≤ 19 * l.length + 13
+      machineCost P Auto.List.take.c231.costIdx [encodeValue n, encodeValue l] ≤ 19 * l.length + 13
   | 0, l, _ => by rw [Auto.List.take.c231.costEq_zero P hP]; omega
   | n + 1, [], h => by rw [Auto.List.take.c231.costEq_succ P hP, limbs_of_lt h]; simp
   | n + 1, x :: l, h => by
@@ -58,7 +58,7 @@ theorem takeList_cost (hP : Includes P Auto.List.take.c231.costDeps) :
 /-- `List.drop` (`drop.c232`): `15` per element, `13` at the end. -/
 theorem dropList_cost (hP : Includes P Auto.List.drop.c232.costDeps) :
     ∀ (n : ℕ) (l : List α), n < 2 ^ 64 →
-      machineCost P Auto.List.drop.c232.costIdx [enc n, enc l] ≤ 15 * l.length + 13
+      machineCost P Auto.List.drop.c232.costIdx [encodeValue n, encodeValue l] ≤ 15 * l.length + 13
   | 0, l, _ => by rw [Auto.List.drop.c232.costEq_zero P hP]; omega
   | n + 1, [], h => by rw [Auto.List.drop.c232.costEq_succ P hP, limbs_of_lt h]; simp
   | n + 1, x :: l, h => by
@@ -69,10 +69,10 @@ theorem dropList_cost (hP : Includes P Auto.List.drop.c232.costDeps) :
 
 /-- The merge (`mergeList.c230`): `B + 21` per element, the comparisons on elements of `Q`. -/
 theorem mergeList_cost_le (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeList.c230.costDeps)
-    (le : α → α → Bool) (leVal : Val) (hle : ∀ a b, RunsApp P leVal [enc a, enc b] (enc (le a b)))
-    (B : ℕ) (Q : α → Prop) (hB : ∀ a b, Q a → Q b → appCost P leVal [enc a, enc b] ≤ B) :
+    (le : α → α → Bool) (leVal : MachineValue) (hle : ∀ a b, RunsApp P leVal [encodeValue a, encodeValue b] (encodeValue (le a b)))
+    (B : ℕ) (Q : α → Prop) (hB : ∀ a b, Q a → Q b → appCost P leVal [encodeValue a, encodeValue b] ≤ B) :
     ∀ (n : ℕ) (xs ys : List α), xs.length + ys.length ≤ n → (∀ a ∈ xs, Q a) → (∀ b ∈ ys, Q b) →
-      machineCost P Auto.LeanVM.Cost.InitLib.mergeList.c230.costIdx [enc xs, enc ys, leVal] ≤
+      machineCost P Auto.LeanVM.Cost.InitLib.mergeList.c230.costIdx [encodeValue xs, encodeValue ys, leVal] ≤
         (B + 21) * (xs.length + ys.length) + 5 := by
   intro n
   induction n with
@@ -103,12 +103,12 @@ theorem mergeList_cost_le (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeList.c2
           simp only [List.length_cons] at this
           nlinarith
 
-omit [Enc α] in
+omit [MachineEncoding α] in
 theorem length_mergeSortList_eq (l : List α) (le : α → α → Bool) :
     (InitLib.mergeSortList l le).length = l.length := by
   rw [← InitLib.mergeSort_eq_mergeSortList, List.length_mergeSort]
 
-omit [Enc α] in
+omit [MachineEncoding α] in
 theorem mem_of_mem_mergeSortList {l : List α} {le : α → α → Bool} {a : α}
     (h : a ∈ InitLib.mergeSortList l le) : a ∈ l := by
   rw [← InitLib.mergeSort_eq_mergeSortList] at h
@@ -135,10 +135,10 @@ theorem nlogn_halves (c a b L T1 T2 W : ℕ) (hab : b ≤ a)
 `(B + 64)·n·⌈log₂ n⌉ + 89·n + 3`, `B` the comparison's price on elements of `Q`. -/
 theorem mergeSortList_cost_nlogn
     (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costDeps)
-    (le : α → α → Bool) (leVal : Val) (hle : ∀ a b, RunsApp P leVal [enc a, enc b] (enc (le a b)))
-    (B : ℕ) (Q : α → Prop) (hB : ∀ a b, Q a → Q b → appCost P leVal [enc a, enc b] ≤ B) :
+    (le : α → α → Bool) (leVal : MachineValue) (hle : ∀ a b, RunsApp P leVal [encodeValue a, encodeValue b] (encodeValue (le a b)))
+    (B : ℕ) (Q : α → Prop) (hB : ∀ a b, Q a → Q b → appCost P leVal [encodeValue a, encodeValue b] ≤ B) :
     ∀ (n : ℕ) (l : List α), l.length ≤ n → l.length < 2 ^ 63 → (∀ a ∈ l, Q a) → l ≠ [] →
-      machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costIdx [enc l, leVal] + 80 ≤
+      machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costIdx [encodeValue l, leVal] + 80 ≤
         (B + 64) * (l.length * Nat.clog 2 l.length) + 89 * l.length := by
   intro n
   induction n using Nat.strong_induction_on with
@@ -179,11 +179,11 @@ theorem mergeSortList_cost_nlogn
     have hL := clog_half (n := t.length + 2) (by omega)
     have := nlogn_halves (B + 64) h1 (t.length + 2 - h1) (Nat.clog 2 (t.length + 2)) _ _
       (machineCost P Auto.LeanVM.Cost.InitLib.mergeList.c230.costIdx
-        [enc (InitLib.mergeSortList (List.take h1 (x :: y :: t)) le),
-          enc (InitLib.mergeSortList (List.drop h1 (x :: y :: t)) le), leVal] +
-        machineCost P Auto.List.length.c229.costIdx [enc t] + 3 +
-        machineCost P Auto.List.take.c231.costIdx [enc h1, enc (x :: y :: t)] +
-        machineCost P Auto.List.drop.c232.costIdx [enc h1, enc (x :: y :: t)] + 41)
+        [encodeValue (InitLib.mergeSortList (List.take h1 (x :: y :: t)) le),
+          encodeValue (InitLib.mergeSortList (List.drop h1 (x :: y :: t)) le), leVal] +
+        machineCost P Auto.List.length.c229.costIdx [encodeValue t] + 3 +
+        machineCost P Auto.List.take.c231.costIdx [encodeValue h1, encodeValue (x :: y :: t)] +
+        machineCost P Auto.List.drop.c232.costIdx [encodeValue h1, encodeValue (x :: y :: t)] + 41)
       (by omega) (by rw [← hL, hh1]) ih1 ih2 (by rw [hsum]; nlinarith)
     rw [hsum] at this
     rw [show t.length + 1 + 1 = t.length + 2 by omega]
@@ -192,10 +192,10 @@ theorem mergeSortList_cost_nlogn
 /-- **Merge sort**, any list: at most `(B + 64)·n·⌈log₂ n⌉ + 89·n + 3`. -/
 theorem mergeSortList_cost_le
     (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costDeps)
-    (le : α → α → Bool) (leVal : Val) (hle : ∀ a b, RunsApp P leVal [enc a, enc b] (enc (le a b)))
-    (B : ℕ) (Q : α → Prop) (hB : ∀ a b, Q a → Q b → appCost P leVal [enc a, enc b] ≤ B)
+    (le : α → α → Bool) (leVal : MachineValue) (hle : ∀ a b, RunsApp P leVal [encodeValue a, encodeValue b] (encodeValue (le a b)))
+    (B : ℕ) (Q : α → Prop) (hB : ∀ a b, Q a → Q b → appCost P leVal [encodeValue a, encodeValue b] ≤ B)
     (l : List α) (hw : l.length < 2 ^ 63) (hS : ∀ a ∈ l, Q a) :
-    machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costIdx [enc l, leVal] ≤
+    machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costIdx [encodeValue l, leVal] ≤
       (B + 64) * (l.length * Nat.clog 2 l.length) + 89 * l.length + 3 := by
   cases l with
   | nil => rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c228.costEq_nil P hP le leVal hle]; omega
@@ -239,7 +239,7 @@ theorem wordTable_powTable {κ : ℕ} (hκ : κ ≤ 62) : WordTable (powTable κ
 /-- The pairs `(lane of g^i, i)` (`powPairs.c373`): `284` per pair, `6` at the end. -/
 theorem powPairs_cost (hP : Includes P powPairs.c373.costDeps) :
     ∀ (n i : ℕ) (x : K), n + i < 2 ^ 64 →
-      machineCost P powPairs.c373.costIdx [enc n, enc i, enc x] ≤ 284 * n + 6
+      machineCost P powPairs.c373.costIdx [encodeValue n, encodeValue i, encodeValue x] ≤ 284 * n + 6
   | 0, i, x, _ => by rw [powPairs.c373.costEq_zero P hP]
   | n + 1, i, x, h => by
     rw [powPairs.c373.costEq_succ P hP, limbs_of_lt (by omega : n + 1 < 2 ^ 64),
@@ -250,12 +250,12 @@ theorem powPairs_cost (hP : Includes P powPairs.c373.costDeps) :
 /-- **The address table** (`powTable.c371`) of `2^κ` words: `2^κ` powers and their merge sort, at
 most `(70κ + 374)·2^κ + 20`. -/
 theorem powTable_cost (hP : Includes P powTable.c371.costDeps) (κ : ℕ) (hκ : κ ≤ 62) :
-    machineCost P powTable.c371.costIdx [enc κ] ≤ (70 * κ + 374) * 2 ^ κ + 20 := by
+    machineCost P powTable.c371.costIdx [encodeValue κ] ≤ (70 * κ + 374) * 2 ^ κ + 20 := by
   rw [powTable.c371.costEq P hP, limbs_shift (by omega), limbs_of_lt (by omega : κ < 2 ^ 64),
     List.length_mergeSort, length_powPairs]
   have hN : 2 ^ κ < 2 ^ 63 := Nat.pow_lt_pow_right (by norm_num) (by omega)
   have h1 := powPairs_cost P (by includes) (2 ^ κ) 0 1 (by omega)
-  have h2 := mergeSortList_cost_le P (by includes) _ (.fn powTable.c371.lam0.costIdx [])
+  have h2 := mergeSortList_cost_le P (by includes) _ (.closure powTable.c371.lam0.costIdx [])
     (fun a b ↦ RunsApp.of_spec (powTable.c371.lam0.costSpec P (by includes) a b)) 6
     (fun e ↦ e.1 < 2 ^ 64)
     (fun a b ha hb ↦ by
@@ -271,7 +271,7 @@ theorem powTable_cost (hP : Includes P powTable.c371.costDeps) (κ : ℕ) (hκ :
 /-- The final `pc` (`pcFinal.c374`): `g^(2^ℓ − 1)` by squaring, at most `553 + 535·ℓ`. -/
 theorem pcFinal_cost (hP : Includes P Auto.LeanVM.Semantics.Program.pcFinal.c374.costDeps)
     (prog : Semantics.Program) :
-    machineCost P Auto.LeanVM.Semantics.Program.pcFinal.c374.costIdx [enc prog] ≤
+    machineCost P Auto.LeanVM.Semantics.Program.pcFinal.c374.costIdx [encodeValue prog] ≤
       553 + 535 * prog.logSize := by
   have hls : prog.logSize ≤ 32 := prog.logSize_le
   rw [Auto.LeanVM.Semantics.Program.pcFinal.c374.costEq P hP, limbs_shift (by omega),
@@ -304,13 +304,13 @@ theorem foldr_add_eq (l : List ℕ) : List.foldr (fun x1 x2 ↦ x1 + x2) 0 l = l
 
 /-- `List.sum` (`sum.c376`) of word-sized partial sums: `13` per element, `7` at the end. -/
 theorem listSum_cost (hP : Includes P Auto.List.sum.c376.costDeps) (l : List ℕ)
-    (hl : l.sum < 2 ^ 64) : machineCost P Auto.List.sum.c376.costIdx [enc l] ≤ 13 * l.length + 7 := by
+    (hl : l.sum < 2 ^ 64) : machineCost P Auto.List.sum.c376.costIdx [encodeValue l] ≤ 13 * l.length + 7 := by
   rw [Auto.List.sum.c376.costEq P hP]
   have hF : Includes P Auto.List.foldr.c86.costDeps := by includes
-  have hf : ∀ a b : ℕ, RunsApp P (.fn Auto.List.sum.c376.lam0.costIdx []) [enc a, enc b] (enc (a + b)) :=
+  have hf : ∀ a b : ℕ, RunsApp P (.closure Auto.List.sum.c376.lam0.costIdx []) [encodeValue a, encodeValue b] (encodeValue (a + b)) :=
     fun a b ↦ RunsApp.of_spec (Auto.List.sum.c376.lam0.costSpec P (by includes) a b)
   suffices ∀ l : List ℕ, l.sum < 2 ^ 64 → machineCost P Auto.List.foldr.c86.costIdx
-      [.fn Auto.List.sum.c376.lam0.costIdx [], enc 0, enc l] ≤ 13 * l.length + 3 by
+      [.closure Auto.List.sum.c376.lam0.costIdx [], encodeValue 0, encodeValue l] ≤ 13 * l.length + 3 by
     have := this l hl; omega
   intro l
   induction l with
@@ -331,12 +331,12 @@ most `2^32` memory and bytecode words: at most `206`; the cap itself at most `2^
 theorem stepCapLite_cost (hP : Includes P stepCapLite.c375.costDeps) (layout : LayoutLite)
     (hm : layout.logMemory ≤ 32) (hb : layout.logBytecode ≤ 32)
     (hh : ∀ h ∈ layout.tableLogHeights, h ≤ 32) (hl : layout.tableLogHeights.length ≤ 6) :
-    machineCost P stepCapLite.c375.costIdx [enc layout] ≤ 206 := by
+    machineCost P stepCapLite.c375.costIdx [encodeValue layout] ≤ 206 := by
   rw [stepCapLite.c375.costEq P hP]
   have hs := sum_pow_le _ hh
   have hm2 : 2 ^ layout.logMemory ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hm
   have hb2 : 2 ^ layout.logBytecode ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hb
-  have h1 := map_cost P (by includes) _ (.fn stepCapLite.c375.lam0.costIdx [])
+  have h1 := map_cost P (by includes) _ (.closure stepCapLite.c375.lam0.costIdx [])
     (fun x ↦ RunsApp.of_spec (stepCapLite.c375.lam0.costSpec P (by includes) x)) 5
     layout.tableLogHeights (fun x hx ↦ by
       simp only [appCost_fn, List.nil_append]
@@ -370,7 +370,7 @@ memory's and `ℓ` the bytecode's log-size. -/
 theorem runnerTables_cost (hP : Includes P runnerTablesC.costDeps) (prog : Semantics.Program)
     (layout : LayoutLite) (hm : layout.logMemory ≤ 32) (hb : layout.logBytecode ≤ 32)
     (hh : ∀ h ∈ layout.tableLogHeights, h ≤ 32) (hl : layout.tableLogHeights.length ≤ 6) :
-    machineCost P runnerTablesC.costIdx [enc prog, enc layout] ≤
+    machineCost P runnerTablesC.costIdx [encodeValue prog, encodeValue layout] ≤
       (70 * layout.logMemory + 374) * 2 ^ layout.logMemory +
         (70 * prog.logSize + 374) * 2 ^ prog.logSize + 535 * prog.logSize + 830 := by
   have hls : prog.logSize ≤ 32 := prog.logSize_le
@@ -389,7 +389,7 @@ open Auto.LeanVM.Extraction.Fast
 theorem placementGetD_cost (hP : Includes P Auto.List.getD.c274.costDeps) (layout : LayoutLite)
     (c : ℕ) (hc : c ≤ 2) :
     machineCost P Auto.List.getD.c274.costIdx
-      [enc layout.placements, enc c, enc (none : Option LeanVM.Protocol.Verifier.Placement)] ≤ 45 := by
+      [encodeValue layout.placements, encodeValue c, encodeValue (none : Option LeanVM.Protocol.Verifier.Placement)] ≤ 45 := by
   have := getD_cost_idx P hP layout.placements c (by omega) none
   omega
 
@@ -398,7 +398,7 @@ at most `199`. -/
 theorem memoryImageLite_cost (hP : Includes P memoryImageLite.c382.costDeps) (layout : LayoutLite)
     (hm : layout.logMemory < 64) (hidx : ∀ c, (layout.placement c).index < 2 ^ 64) {μ : ℕ}
     (q : Vector K (2 ^ μ)) (a : Fin (2 ^ layout.logMemory)) :
-    machineCost P memoryImageLite.c382.costIdx [enc layout, enc μ, enc q, enc a] ≤ 199 := by
+    machineCost P memoryImageLite.c382.costIdx [encodeValue layout, encodeValue μ, encodeValue q, encodeValue a] ≤ 199 := by
   rw [memoryImageLite.c382.costEq P hP]
   have hD : Includes P Auto.List.getD.c274.costDeps := by includes
   have h0 := placementGetD_cost P hD layout LeanVM.Protocol.Verifier.memory0 (by decide)
@@ -414,8 +414,8 @@ theorem memoryImageLite_cost (hP : Includes P memoryImageLite.c382.costDeps) (la
 
 theorem word01_cost (hP : Includes P Auto.LeanVM.Semantics.PublicInput.word0.c383.costDeps)
     (hP' : Includes P Auto.LeanVM.Semantics.PublicInput.word1.c385.costDeps) (input : PublicInput) :
-    machineCost P Auto.LeanVM.Semantics.PublicInput.word0.c383.costIdx [enc input] = 25 ∧
-      machineCost P Auto.LeanVM.Semantics.PublicInput.word1.c385.costIdx [enc input] = 25 := by
+    machineCost P Auto.LeanVM.Semantics.PublicInput.word0.c383.costIdx [encodeValue input] = 25 ∧
+      machineCost P Auto.LeanVM.Semantics.PublicInput.word1.c385.costIdx [encodeValue input] = 25 := by
   have hF : Includes P Auto.Fin.ofNat.c384.costDeps := by includes
   rw [Auto.LeanVM.Semantics.PublicInput.word0.c383.costEq P hP,
     Auto.LeanVM.Semantics.PublicInput.word1.c385.costEq P hP']
@@ -427,7 +427,7 @@ public input, at most `1500`. -/
 theorem boundaryOfStack_cost (hP : Includes P boundaryOfStack.c381.costDeps) (input : PublicInput)
     (layout : LayoutLite) (hm : layout.logMemory < 64) (hidx : ∀ c, (layout.placement c).index < 2 ^ 64)
     {μ : ℕ} (q : Vector K (2 ^ μ)) :
-    machineCost P boundaryOfStack.c381.costIdx [enc input, enc layout, enc μ, enc q] ≤ 1500 := by
+    machineCost P boundaryOfStack.c381.costIdx [encodeValue input, encodeValue layout, encodeValue μ, encodeValue q] ≤ 1500 := by
   rw [boundaryOfStack.c381.costEq P hP]
   obtain ⟨hw0, hw1⟩ := word01_cost P (by includes) (by includes) input
   rw [hw0, hw1, limbs_of_lt (by omega : layout.logMemory < 2 ^ 64),
@@ -445,7 +445,7 @@ at most `44·2^κ + 208`. -/
 theorem memoryVec_cost (hP : Includes P memoryVec.c386.costDeps) (layout : LayoutLite)
     (hm : layout.logMemory < 64) (hidx : ∀ c, (layout.placement c).index < 2 ^ 64) {μ : ℕ}
     (q : Vector K (2 ^ μ)) :
-    machineCost P memoryVec.c386.costIdx [enc layout, enc μ, enc q] ≤ 44 * 2 ^ layout.logMemory + 208 := by
+    machineCost P memoryVec.c386.costIdx [encodeValue layout, encodeValue μ, encodeValue q] ≤ 44 * 2 ^ layout.logMemory + 208 := by
   rw [memoryVec.c386.costEq P hP, ofFnFrom_length]
   have hD : Includes P Auto.List.getD.c274.costDeps := by includes
   have h0 := placementGetD_cost P hD layout LeanVM.Protocol.Verifier.memory0 (by decide)
@@ -453,10 +453,10 @@ theorem memoryVec_cost (hP : Includes P memoryVec.c386.costDeps) (layout : Layou
   have h2 := placementGetD_cost P hD layout LeanVM.Protocol.Verifier.memory2 (by decide)
   have hN : 2 ^ layout.logMemory < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) hm
   have hof := ofFnFrom_cost P (by includes) hN _
-    (.fn memoryVec.c386.lam0.costIdx [enc layout, enc μ, enc q,
-      enc (layout.placement LeanVM.Protocol.Verifier.memory0).index,
-      enc (layout.placement LeanVM.Protocol.Verifier.memory2).index,
-      enc (layout.placement LeanVM.Protocol.Verifier.memory1).index])
+    (.closure memoryVec.c386.lam0.costIdx [encodeValue layout, encodeValue μ, encodeValue q,
+      encodeValue (layout.placement LeanVM.Protocol.Verifier.memory0).index,
+      encodeValue (layout.placement LeanVM.Protocol.Verifier.memory2).index,
+      encodeValue (layout.placement LeanVM.Protocol.Verifier.memory1).index])
     (fun i ↦ RunsApp.of_spec (memoryVec.c386.lam0.costSpec P (by includes) layout q _ _ _ i)) 25
     (fun i ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -485,10 +485,10 @@ theorem haltLoopVec_cost (hP : Includes P haltLoopVec.c389.costDeps)
     (memT codeT : Array (ℕ × ℕ)) (prog : LeanVM.Semantics.Program) {κ : ℕ} (mem : Vector E (2 ^ κ))
     (fin : Registers K) (S : ℕ)
     (hS : ∀ r : Registers K, machineCost P Auto.LeanVM.Extraction.Fast.stepVec.c390.costIdx
-      [enc memT, enc codeT, enc prog, enc κ, enc mem, enc r] ≤ S) :
+      [encodeValue memT, encodeValue codeT, encodeValue prog, encodeValue κ, encodeValue mem, encodeValue r] ≤ S) :
     ∀ (n a : ℕ) (r : Registers K), n + a < 2 ^ 64 →
       machineCost P Auto.LeanVM.Extraction.Fast.haltLoopVec.c389.costIdx
-        [enc memT, enc codeT, enc prog, enc κ, enc mem, enc fin, enc n, enc a, enc r] ≤
+        [encodeValue memT, encodeValue codeT, encodeValue prog, encodeValue κ, encodeValue mem, encodeValue fin, encodeValue n, encodeValue a, encodeValue r] ≤
         (S + 45) * n + 20 := by
   intro n
   induction n with
@@ -517,9 +517,9 @@ theorem candidateExecutionVec_cost (hP : Includes P candidateExecutionVec.c380.c
     (hm : layout.logMemory < 64) (hidx : ∀ c, (layout.placement c).index < 2 ^ 64)
     (fin : Registers K) (cap : ℕ) (hcap : cap < 2 ^ 64) {μ : ℕ} (q : Vector K (2 ^ μ)) (S : ℕ)
     (hS : ∀ r : Registers K, machineCost P stepVec.c390.costIdx
-      [enc memT, enc codeT, enc prog, enc layout.logMemory, enc (memoryVec layout q), enc r] ≤ S) :
+      [encodeValue memT, encodeValue codeT, encodeValue prog, encodeValue layout.logMemory, encodeValue (memoryVec layout q), encodeValue r] ≤ S) :
     machineCost P candidateExecutionVec.c380.costIdx
-        [enc memT, enc codeT, enc prog, enc input, enc layout, enc fin, enc cap, enc μ, enc q] ≤
+        [encodeValue memT, encodeValue codeT, encodeValue prog, encodeValue input, encodeValue layout, encodeValue fin, encodeValue cap, encodeValue μ, encodeValue q] ≤
       (S + 45) * cap + 44 * 2 ^ layout.logMemory + 1777 := by
   rw [candidateExecutionVec.c380.costEq P hP]
   have h1 := boundaryOfStack_cost P (by includes) input layout hm hidx q
@@ -527,7 +527,7 @@ theorem candidateExecutionVec_cost (hP : Includes P candidateExecutionVec.c380.c
   have h3 := haltLoopVec_cost P (by includes) memT codeT prog (memoryVec layout q) fin S hS cap 0
     Registers.initial (by omega)
   have h4 := optionMap_cost P (by includes) _
-    (.fn candidateExecutionVec.c380.lam0.costIdx [enc prog, enc layout, enc (memoryVec layout q)])
+    (.closure candidateExecutionVec.c380.lam0.costIdx [encodeValue prog, encodeValue layout, encodeValue (memoryVec layout q)])
     (fun n ↦ RunsApp.of_spec (candidateExecutionVec.c380.lam0.costSpec P (by includes) prog layout _ n)) 8
     (fun n ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -543,7 +543,7 @@ theorem runWithTables_cost (hP : Includes P runWithTablesC.costDeps) (prog : Sem
     (hl : layout.tableLogHeights.length ≤ 6) (hidx : ∀ c, (layout.placement c).index < 2 ^ 64)
     (q : Vector K (2 ^ layout.stackLog)) :
     machineCost P runWithTablesC.costIdx
-        [enc (runnerTables prog layout), enc prog, enc input, enc layout, enc q] ≤
+        [encodeValue (runnerTables prog layout), encodeValue prog, encodeValue input, encodeValue layout, encodeValue q] ≤
       (runnerStepPrice layout.logMemory prog.logSize + 45) * stepCapLite layout +
         44 * 2 ^ layout.logMemory + 1796 := by
   have hls : prog.logSize ≤ 32 := prog.logSize_le
@@ -572,7 +572,7 @@ theorem runWithTables_cost_worst (hP : Includes P runWithTablesC.costDeps) (prog
     (hl : layout.tableLogHeights.length ≤ 6) (hidx : ∀ c, (layout.placement c).index < 2 ^ 64)
     (q : Vector K (2 ^ layout.stackLog)) :
     machineCost P runWithTablesC.costIdx
-        [enc (runnerTables prog layout), enc prog, enc input, enc layout, enc q] ≤
+        [encodeValue (runnerTables prog layout), encodeValue prog, encodeValue input, encodeValue layout, encodeValue q] ≤
       448030 * 2 ^ 35 + 44 * 2 ^ 32 + 1796 := by
   have hls : prog.logSize ≤ 32 := prog.logSize_le
   have h := runWithTables_cost P hP prog input layout hm hb hh hl hidx q
@@ -601,9 +601,9 @@ theorem runner_cost (hT : Includes P runnerTablesC.costDeps) (hW : Includes P ru
     (hh : ∀ h ∈ layout.tableLogHeights, h ≤ 32) (hl : layout.tableLogHeights.length ≤ 6)
     (hidx : ∀ c, (layout.placement c).index < 2 ^ 64) (qs : List (Vector K (2 ^ layout.stackLog)))
     (hqs : qs.length ≤ 2 ^ 18 + 1) :
-    machineCost P runnerTablesC.costIdx [enc prog, enc layout] +
+    machineCost P runnerTablesC.costIdx [encodeValue prog, encodeValue layout] +
         (qs.map fun q ↦ machineCost P runWithTablesC.costIdx
-          [enc (runnerTables prog layout), enc prog, enc input, enc layout, enc q]).sum ≤
+          [encodeValue (runnerTables prog layout), encodeValue prog, encodeValue input, encodeValue layout, encodeValue q]).sum ≤
       runnerBudget := by
   have hls : prog.logSize ≤ 32 := prog.logSize_le
   have h1 := runnerTables_cost P hT prog layout hm hb hh hl
@@ -612,10 +612,10 @@ theorem runner_cost (hT : Includes P runnerTablesC.costDeps) (hW : Includes P ru
   have hl2 : (70 * prog.logSize + 374) * 2 ^ prog.logSize ≤ (70 * 32 + 374) * 2 ^ 32 :=
     Nat.mul_le_mul (by omega) (Nat.pow_le_pow_right (by norm_num) hls)
   have h2 : (qs.map fun q ↦ machineCost P runWithTablesC.costIdx
-      [enc (runnerTables prog layout), enc prog, enc input, enc layout, enc q]).sum ≤
+      [encodeValue (runnerTables prog layout), encodeValue prog, encodeValue input, encodeValue layout, encodeValue q]).sum ≤
       qs.length * (448030 * 2 ^ 35 + 44 * 2 ^ 32 + 1796) := by
     have := List.sum_le_length_nsmul (qs.map fun q ↦ machineCost P runWithTablesC.costIdx
-      [enc (runnerTables prog layout), enc prog, enc input, enc layout, enc q])
+      [encodeValue (runnerTables prog layout), encodeValue prog, encodeValue input, encodeValue layout, encodeValue q])
       (448030 * 2 ^ 35 + 44 * 2 ^ 32 + 1796) (fun x hx ↦ by
         obtain ⟨q, _, rfl⟩ := List.mem_map.1 hx
         exact runWithTables_cost_worst P hW prog input layout hm hb hh hl hidx q)

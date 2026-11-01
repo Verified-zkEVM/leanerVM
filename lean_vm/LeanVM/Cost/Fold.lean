@@ -9,7 +9,7 @@ public meta import Lean.Meta.LitValues
 
 The compiler (`Cost/Compiler.lean`) states each function's price recurrence (`costEq`) with its
 right side folded by `foldPrice`: a fixed `simp` set (no `0 +`, lengths of literal lists, fields of
-literal pairs, `limbs` of literals, `max` with `limbs 0`, …) and `foldSum`, which gathers a sum's
+literal pairs, `limbCount` of literals, `max` with `limbCount 0`, …) and `foldSum`, which gathers a sum's
 literals at its end (`2 + (a + (b + 1))` becomes `a + b + 3`). The folded equation is proved from
 the raw one by `simp`'s proof, so nothing here is trusted.
 -/
@@ -19,21 +19,21 @@ namespace LeanVM.Cost
 @[expose] public section
 
 /-- A word-sized number is one limb. -/
-theorem limbs_of_lt {n : ℕ} (h : n < 2 ^ 64) : limbs n = 1 := by
-  unfold limbs
+theorem limbs_of_lt {n : ℕ} (h : n < 2 ^ 64) : limbCount n = 1 := by
+  unfold limbCount
   rcases Nat.eq_zero_or_pos n with rfl | hn
   · rfl
   · have := (Nat.log2_lt (Nat.pos_iff_ne_zero.1 hn)).2 h
     omega
 
-theorem one_le_limbs (n : ℕ) : 1 ≤ limbs n := by unfold limbs; omega
+theorem one_le_limbs (n : ℕ) : 1 ≤ limbCount n := by unfold limbCount; omega
 
 /-- Sums nested to the left. -/
 theorem add_left_nest (a b c : ℕ) : a + (b + c) = a + b + c := (Nat.add_assoc a b c).symm
 
-theorem max_limbs_one (n : ℕ) : max (limbs n) 1 = limbs n := Nat.max_eq_left (one_le_limbs n)
+theorem max_limbs_one (n : ℕ) : max (limbCount n) 1 = limbCount n := Nat.max_eq_left (one_le_limbs n)
 
-theorem max_one_limbs (n : ℕ) : max 1 (limbs n) = limbs n := Nat.max_eq_right (one_le_limbs n)
+theorem max_one_limbs (n : ℕ) : max 1 (limbCount n) = limbCount n := Nat.max_eq_right (one_le_limbs n)
 
 end
 
@@ -74,15 +74,15 @@ def foldSum : Simproc := fun e ↦ do
       return .visit { expr := e', proof? := ← mkAppM ``Nat.add_right_comm #[x₁, x₂, y] }
 
 /-- The heads the fold looks into: sums, products, `max`, `if`, the `casesOn`s, lengths of literal
-lists. Everything else (the values `enc x`, `limbs n`, sizes, conditions, a price's callee
+lists. Everything else (the values `encodeValue x`, `limbCount n`, sizes, conditions, a price's callee
 `machineCost P j vs`) is kept as it is: the fold changes prices, never values. -/
 def priceHeads : List Name :=
   [``HAdd.hAdd, ``HMul.hMul, ``Max.max, ``ite, ``dite, ``cond, ``List.length]
 
-/-- A word-sized literal's `limbs`: `1`; any other term outside `priceHeads` (and not a `casesOn`):
+/-- A word-sized literal's `limbCount`: `1`; any other term outside `priceHeads` (and not a `casesOn`):
 not visited. -/
 def guardData : Simproc := fun e ↦ do
-  if e.isAppOfArity ``limbs 1 then
+  if e.isAppOfArity ``limbCount 1 then
     if let some n := litVal? e.appArg! then
       if n < 2 ^ 64 then
         let lt ← mkAppM ``LT.lt #[e.appArg!, ← mkAppM ``HPow.hPow #[mkNatLit 2, mkNatLit 64]]

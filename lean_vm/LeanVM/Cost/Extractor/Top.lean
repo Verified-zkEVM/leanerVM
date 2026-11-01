@@ -9,11 +9,12 @@ import all Statement.LeanIsa
 /-!
 # The extractor, compiled
 
-`extractorTop` (`Fast/Compiled.lean`, equal to the statement's `transcriptExtractor` at the
-permutation queries: `extractorTop_eq`), compiled on top of the chain of its parts (the decoder,
-the transcript side, the candidate runner, the replay; each module reusing the earlier ones'
-functions): only its own body and what no earlier module compiled (the bytecode's words) are
-compiled here.
+`extractorTop` (`Fast/Compiled.lean`, equal to `transcriptExtractor` at the permutation queries:
+`extractorTop_eq`), compiled on top of the chain of its parts (the decoder, the transcript side,
+the candidate runner, the replay; each module reusing the earlier ones' functions). Compiled here:
+the bytecode's words (`bytecodeWordsC`), the point-free split of `Fast/Compiled.lean`, each a
+function of its own (`runBothC`, `fastOfC`, `decOfC`, `leavesOfC`, `runFromLeavesC`, `stageTC`,
+`afterRootStageC`), and the top body (`extractorC`): nine functions.
 -/
 
 namespace LeanVM.Cost.Extractor
