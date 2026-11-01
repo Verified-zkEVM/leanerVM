@@ -1792,7 +1792,7 @@ elab "cost_enc " id:ident : command => Command.liftTermElabM do
       let ty ← mkForallFVars (params ++ insts) (← mkAppM ``Enc #[Tapp])
       let val ← mkLambdaFVars (params ++ insts) inst
       let name := (`LeanVM.Cost.EncOf ++ T)
-      -- exposed: rules unfold the encoding in importing modules
+      -- exposed: a module importing this one unfolds the encoding (`encodesAsCtor`)
       let decl := Declaration.defnDecl (mkDefinitionValEx name [] (← instantiateMVars ty)
         (← instantiateMVars val) (.regular 0) .safe [])
       addDecl decl (forceExpose := true)
