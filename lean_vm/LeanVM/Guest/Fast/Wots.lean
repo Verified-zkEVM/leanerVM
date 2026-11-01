@@ -135,12 +135,6 @@ structure WotsTabs (sz : ℕ) (first rest last : List (List ℕ)) : Prop where
   rest : rest = offTab sz 3 false
   last : last = offTab sz 1 false
 
-theorem logG_lt (x : E) {bound : ℕ} (hb : 0 < bound) : logG x bound < bound := by
-  unfold logG
-  cases h : (List.range bound).find? (fun k ↦ decide (x = ofK (gpow k))) with
-  | none => simpa using hb
-  | some k => simpa using List.mem_range.mp (List.mem_of_find?_eq_some h)
-
 /-- **Chain `i`'s start cell**, off the selector cells `sel` of the `G + 1` groups and the tables. -/
 def cwCell (G : ℕ) (sel : List ℕ) (first rest last : List (List ℕ)) (σ : Val) (i : ℕ) : ℕ :=
   let s := sel.getD (i / 3) 0

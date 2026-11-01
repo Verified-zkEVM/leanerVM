@@ -90,5 +90,11 @@ theorem logG_eq_logGT (x : E) {bound : ℕ} (hb : bound ≤ 256) : logG x bound 
       exact fun h ↦ hx h.1
     rw [this]; rfl
 
+theorem logG_lt (x : E) {bound : ℕ} (hb : 0 < bound) : logG x bound < bound := by
+  unfold logG
+  cases h : (List.range bound).find? (fun k ↦ decide (x = ofK (gpow k))) with
+  | none => simpa using hb
+  | some k => simpa using List.mem_range.mp (List.mem_of_find?_eq_some h)
+
 end
 end LeanVM.Guest.Fast
