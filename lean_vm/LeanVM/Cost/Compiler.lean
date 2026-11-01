@@ -1231,7 +1231,7 @@ partial def localClosure (ctx : Ctx) (f fty : Expr) (arity : Nat) (caps : Array 
   let name := ctx.base.str s!"lam{k}"
   let j ← nextIndex ctx.reserved
   let bodyName := name.str "costBody"
-  addAndCompile <| .defnDecl (mkDefinitionValEx bodyName [] (mkConst ``LeanVM.Cost.Term) tj .abbrev .safe [])
+  addExposedDef bodyName (mkConst ``LeanVM.Cost.Term) tj
   -- compiled again, with a spec of its own, once the function's spec exists
   ctx.postLams.modify (·.push (name, lam, j, bodyName, encAt))
   let entry : CompiledFn :=
