@@ -38,8 +38,9 @@ honest; and that the leanVM definitions transcribe their sources. Accepted trade
 statement does not name the extractor or decoder program (only their sizes and budgets); the
 decoder computes the witness from the execution; the extracted execution need not be the
 committed one; the decoder's budget has no cap on steps, and its constant (about `2^47.04`) prices
-the children's cursor lengths and the memory's address tables at their maxima, not at the run's;
-literal tables count toward size.
+the children's cursor lengths (`2^32` words each: no assert of the guest bounds them) and the
+memory's address tables at their maxima, not at the run's, so below about `2^25` steps it is far
+above the compiled decoder's price; literal tables count toward size.
 
 ## Reading order
 
@@ -153,32 +154,32 @@ theorems, then read the files in this order.
 14. [`Theorems.lean`](Theorems.lean): every end theorem, as the fields of `Statement.Theorems`;
     first, the guest decoder as a cost-machine program `D`: the encodings of a decoding (a seed, a
     statement and a witness, `encodeValue`), `D`'s input (`encodeDecoderInput`: the guest program
-    and the execution), its budget (`guestDecoderBudget`, `O(steps·log² steps)`, with no cap on
+    and the execution), its budget (`guestDecoderBudget`, `O(steps·log steps)`, with no cap on
     the steps) and **`LeanVM.Node.GuestKnowledge guest D`** (on every valid
     execution, `D`, run within its budget, outputs the encoding of a decoding that explains the
     public input, `ExplainsInput`; no parse); `Statement.Theorems` takes `D` with its size at most
     `guestDecoderSizeBound`, its literals (the guest program's per-function tables) counted. `D`
     may compute the witness from the execution by any algorithm (the proofs' decoder reads it off
     the memory), as the extractor program may compute an execution by any algorithm. The
-    decoder's size bound (`guestDecoderSizeBound`, `786000`) limits any program; it is the
-    compiled decoder's measured `785092` and a slack of `908`, measured against that decoder: room
-    for two leanXMSS signatures' encodings (`309` each), so no useful table of witnesses fits
-    beside its code. It does not bound what a program written differently could hold: the
+    decoder's size bound (`guestDecoderSizeBound`, `785500`) limits any program; it is the
+    compiled decoder's size, `785092` (proved exactly), and a slack of `408`, measured against
+    that decoder: room for one leanXMSS signature's encoding (`309`) but not two, so no useful
+    table of witnesses fits beside its code. It does not bound what a program written differently could hold: the
     guest's frame-cell table (`749835` of the size, cells below `2^20`) packs to about a third,
     three cells to a limb, freeing room for about `1600` signatures' encodings. Its price
     (`guestDecoderPrice`) is a closed-form upper bound on the compiled decoder's price, proved as
     `extractorPrice` is for the extractor: a price per step of the run (the replay and the filing
-    of the state in the table of function entries, `2^26.3` to `2^26.7`, growing as
-    `log²(steps)`; no term in the memory's or the program's size) and a constant of about
+    of the state in the table of function entries, its share of one sort, `2^21.9` to `2^22.0`,
+    growing as `log(steps)`; no term in the memory's or the program's size) and a constant of about
     `2^47.04` with about `2^26.57` frame lookups, the witness read at the counts a valid execution
     bounds (the guest's own asserts: at most `16` children, `65535` claims and `65535` slots;
     `da_verify`'s rows clamped at `1024`), dominated by the children's cursor lengths (`16·2^32`)
-    and the memory's address tables (`2614·2^33`). At `κ = 32` and `ℓ = 19`: `2^47.23` at `2^10`
-    steps, `2^48.08` at `2^20`, `2^56.43` at `2^30`, `2^77.60` at `2^51`, `2^86.69` at `2^60`;
-    the constant dominates up to about `2^21` steps. A valid execution of the guest program has
+    and the memory's address tables (`2614·2^33`). At `κ = 32` and `ℓ = 19`: `2^47.07` at `2^10`
+    steps, `2^47.12` at `2^20`, `2^52.00` at `2^30`, `2^73.00` at `2^51`, `2^82.02` at `2^60`;
+    the constant dominates up to about `2^25` steps. A valid execution of the guest program has
     fewer than `2^51` steps by the argument that no state `(pc, fp)` repeats (`2^ℓ·2^κ` states,
-    `ℓ = 19`, `κ ≤ 32`; argued, not a Lean theorem). The two programs have the same type, so every use of `Statement.Theorems`
-    names them (`(extractorProgram := P) (decoderProgram := D)`).
+    `ℓ = 19`, `κ ≤ 32`; argued, not a Lean theorem). The two programs have the same type, so
+    every use of `Statement.Theorems` names them (`(extractorProgram := P) (decoderProgram := D)`).
 15. [`Corollaries.lean`](Corollaries.lean), optional for review: statements that follow from
     `Theorems` alone, in their composed form (`lean_vm` proves `Corollaries` from `Theorems` at
     the same two programs): what an accepted proof of the leanISA guest program establishes
@@ -281,7 +282,7 @@ cost-machine program within a size bound and a budget (`Theorems.lean`). Their c
 that decoder: one that output another statement of the same digest would satisfy
 `AggregateSound` (`Corollaries.lean`) through a Keccak-256 collision, which it would exhibit; what
 excludes it is that none is known. The size bound limits any program; its slack, measured
-against the compiled decoder, leaves that decoder room for two leanXMSS signatures' encodings
+against the compiled decoder, leaves that decoder room for one leanXMSS signature's encoding
 beyond its own code, no useful table of witnesses (hard-coded signatures masking a bug of the
 guest program on finitely many statements). It does not bound what a program written
 differently could hold: the guest's frame-cell table (`749835` of the size, cells below `2^20`)

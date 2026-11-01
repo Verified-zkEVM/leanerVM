@@ -506,25 +506,25 @@ accepts any program that computes the witness from the execution within the budg
 that reads it off the memory: the decoder's analog of the extractor, of which the statement asks
 only that a program compute an execution within its budget. The price (\lean{guestDecoderPrice})
 is a closed-form upper bound \lean{lean_vm} proves on the compiled decoder's price, as
-\lean{extractorPrice} is on the extractor's: per step $2^{26.3}$ to $2^{26.7}$ (the replay and
-the filing of the state in a
-sorted table, growing as $\log^2$ of the steps), so $O(\mathit{steps}\cdot\log^2\mathit{steps})$,
-with no term in the memory's or the program's size, and a constant of about $2^{47.04}$ with
-about $2^{26.57}$ frame lookups, the witness read at the counts a valid execution bounds ($G$'s
-own asserts: at most $16$ children, $65535$ claims and $65535$ slots; the DA matrix's rows clamped
-at $1024$), dominated by the children's cursor lengths ($16\cdot 2^{32}$) and the memory's
-address tables ($2614\cdot 2^{33}$). At $\kappa = 32$ and $\ell = 19$ the budget is $2^{47.23}$
-at $2^{10}$ steps, $2^{48.08}$ at $2^{20}$, $2^{56.43}$ at $2^{30}$, $2^{77.60}$ at $2^{51}$ and
-$2^{86.69}$ at $2^{60}$; the constant dominates up to about $2^{21}$ steps. There is no cap on
-the steps in the budget. A valid execution of $G$ (\lean{ValidExecution}) has fewer than
-$2^{51}$ steps by the argument that no state $(pc, fp)$ repeats ($2^\ell\cdot 2^\kappa$
-states, $\ell = 19$, $\kappa \le 32$; argued, not a Lean theorem). The size bound, $786000$,
-limits any program; it is the compiled decoder's measured $785092$ and a slack of $908$,
-measured against that
-decoder: room for two leanXMSS signatures' encodings ($309$ each), so no useful table of
-witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements) fits
-beside its code. It does not bound what a program written differently could hold: the guest's
-frame-cell table ($749835$ of the size, cells below $2^{20}$) packs to about a third, three cells
+\lean{extractorPrice} is on the extractor's: per step $2^{21.9}$ to $2^{22.0}$ (the replay and
+the filing of the state in a sorted array, its share of one sort, growing as $\log$ of the
+steps), so $O(\mathit{steps}\cdot\log\mathit{steps})$, with no term in the memory's or the
+program's size, and a constant of about $2^{47.04}$ with about $2^{26.57}$ frame lookups, the
+witness read at the counts a valid execution bounds ($G$'s own asserts: at most $16$ children,
+$65535$ claims and $65535$ slots; the DA matrix's rows clamped at $1024$), dominated by the
+children's cursor lengths ($16\cdot 2^{32}$: no assert of $G$ bounds them) and the memory's
+address tables ($2614\cdot 2^{33}$). At $\kappa = 32$ and $\ell = 19$ the budget is $2^{47.07}$
+at $2^{10}$ steps, $2^{47.12}$ at $2^{20}$, $2^{52.00}$ at $2^{30}$, $2^{73.00}$ at $2^{51}$ and
+$2^{82.02}$ at $2^{60}$; the constant dominates up to about $2^{25}$ steps, so below that the
+budget is far above the compiled decoder's price. There is no cap on the steps in the budget. A
+valid execution of $G$ (\lean{ValidExecution}) has fewer than $2^{51}$ steps by the argument
+that no state $(pc, fp)$ repeats ($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 32$;
+argued, not a Lean theorem). The size bound, $785500$, limits any program; it is the compiled
+decoder's size, $785092$ (proved exactly), and a slack of $408$, measured against that decoder:
+room for one leanXMSS signature's encoding ($309$) but not two, so no useful table of witnesses
+(hard-coded signatures that would mask a bug of $G$ on finitely many statements) fits beside its
+code. It does not bound what a program written differently could hold: the guest's frame-cell
+table ($749835$ of the size, cells below $2^{20}$) packs to about a third, three cells
 to a limb, freeing room for about $1600$ signatures' encodings. A program that output another
 statement of the same digest would exhibit a
 Keccak-256 collision; what excludes it is that none is known.

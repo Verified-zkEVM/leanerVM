@@ -7,7 +7,7 @@ The compiled guest decoder's program (`LeanVM.Cost.decoderProgram`, `Cost/Decode
 exact size, `785092`, of which the guest's frame cells are `749835`, and its top's index;
 `Cost/DecoderSize.lean` proves the size at most
 `784210 + 2·(decTopC.costIdx - decTopC.costDeps.length)`, the exact size, within
-`guestDecoderSizeBound` (`786000`), as `LeanVMTests/Cost/Efficient.lean` records the extractor's.
+`guestDecoderSizeBound` (`785500`, slack `408`), as `LeanVMTests/Cost/Efficient.lean` records the extractor's.
 -/
 
 namespace LeanVMTests.Cost.DecoderSize
