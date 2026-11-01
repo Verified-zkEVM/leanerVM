@@ -116,6 +116,72 @@ cost_compile frameWordAtC := frameWordAt
 set_option maxRecDepth 100000 in
 cost_compile frameAtC := frameAt
 
+/-! ## The entry table as one sorted array
+
+The same table without a presence lookup per filing: every pair a state files (`statePairs`: the
+key of each function entered at its pc whose precondition holds, and the frame), in filing order
+(`entryPairs`), sorted by key by a stable merge sort (`List.mergeSort`, the extractor's compiled
+`mergeSortList`), each key's first pair kept (`dedupFirst`): the first pair filed for each key
+(`EntryTableEq.lean`: `searchIn_entryArrayT`, its binary search is `entryTableT`'s `get?`). A
+frame lookup is one binary search (`frameAtA`, `searchInKeyC`). -/
+
+/-- Two call keys compared (`compare` at `lexOrd`), a function of its own. -/
+def keyCmp (a b : CallKey) : Ordering := compare a b
+
+/-- The pair state `s` files for function `j`: its key and the frame, if `pre` holds. -/
+def pairOf (pre : ℕ → K → Bool) (rd : Reader) (s : Registers K) (j : ℕ) : Option (CallKey × K) :=
+  if pre j s.fp then some (entryKeyT rd s j, s.fp) else none
+
+/-- The pairs state `s` files: one per function entered at its pc whose precondition holds. -/
+def statePairs (pcT : SortedMap ℕ (List ℕ)) (pre : ℕ → K → Bool) (rd : Reader)
+    (s : Registers K) : List (CallKey × K) :=
+  (pcT.getD (laneCode s.pc) []).filterMap (pairOf pre rd s)
+
+/-- **The pairs the states file**, in filing order. -/
+def entryPairs (pcT : SortedMap ℕ (List ℕ)) (pre : ℕ → K → Bool) (rd : Reader) :
+    List (Registers K) → List (CallKey × K)
+  | [] => []
+  | s :: ss => statePairs pcT pre rd s ++ entryPairs pcT pre rd ss
+
+/-- The pairs' order: by key. -/
+def keyLe (a b : CallKey × K) : Bool :=
+  match keyCmp a.1 b.1 with
+  | .gt => false
+  | _ => true
+
+/-- Of each run of pairs of one key, the first. -/
+def dedupFirst : List (CallKey × K) → List (CallKey × K)
+  | a :: b :: l =>
+    match keyCmp a.1 b.1 with
+    | .eq => dedupFirst (a :: l)
+    | _ => a :: dedupFirst (b :: l)
+  | l => l
+
+/-- **The entry table, a sorted array**: the pairs sorted by key, stably, each key's first kept. -/
+def entryArrayT (pcT : SortedMap ℕ (List ℕ)) (pre : ℕ → K → Bool) (states : List (Registers K))
+    (rd : Reader) : Array (CallKey × K) :=
+  (dedupFirst ((entryPairs pcT pre rd states).mergeSort keyLe)).toArray
+
+/-- **The frame map on the sorted array**: one binary search of the call's key. -/
+def frameAtA (table : Array (CallKey × K)) (rd : Reader) (j : ℕ) (args rets : List E) (v : V) :
+    E :=
+  match searchIn table (callKey (canonIndex j) args rets) 0 table.size with
+  | some fp => frameWordAt rd fp j v
+  | none => 0
+
+cost_compile keyCmpC := keyCmp
+cost_compile pairOfC := pairOf
+set_option maxRecDepth 100000 in
+cost_compile statePairsC := statePairs
+set_option maxRecDepth 100000 in
+cost_compile entryPairsC measure fun _ _ _ l ↦ l.length := entryPairs
+cost_compile keyLeC := keyLe
+cost_compile dedupFirstC measure fun l ↦ l.length := dedupFirst
+set_option maxRecDepth 100000 in
+cost_compile entryArrayTC := entryArrayT
+set_option maxRecDepth 100000 in
+cost_compile frameAtAC := frameAtA
+
 end
 
 end LeanVM.Cost.Decoder

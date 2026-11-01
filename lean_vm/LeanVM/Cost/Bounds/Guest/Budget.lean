@@ -1,7 +1,7 @@
 module
 
 public import LeanVM.Cost.Bounds.Guest.DecTop
-public import LeanVM.Cost.Bounds.Decoder.EntryTable
+public import LeanVM.Cost.Bounds.Decoder.EntryArray
 public import LeanVM.Cost.Bounds.Decoder.PcTable
 public import LeanVM.Cost.Bounds.Decoder.PreTable
 public import LeanVM.Cost.Bounds.Decoder.PreTableShape
@@ -19,11 +19,13 @@ the decoder program's price is within `guestDecoderBudget` (`Statement/Theorems.
 
 * the reader at `1472` (`readerClosure_cost`), the replay of at most `steps + 1` states
   (`replayStatesOf_length`);
-* the entry table (`entryTableT_cost`) at the key exponent `guestDecoderEntryTableKeyExponent steps`, the
-  precondition test (`preTestAt_cost_deployed`, its logarithms by `powBelow_cost` at
-  `discreteLogWith_cost`), the pc table (`pcTableT_get_cost`, `pcTableT_getD_length`): per state
-  `guestDecoderStateFilingPrice`;
-* the frame map (`frameAt_cost`, calls of at most `16` words): `guestDecoderFramePrice`; the cursor's
+* the entry table, one sorted array (`entryArrayT_cost`) at the key exponent
+  `guestDecoderEntryTableKeyExponent steps`, the precondition test (`preTestAt_cost_deployed`, its
+  logarithms by `powBelow_cost` at `discreteLogWith_cost`), the pc table (`pcTableT_get_cost`,
+  `pcTableT_getD_length`): per state within `guestDecoderStateFilingPrice`
+  (`entryArrayStatePrice_le`);
+* the frame map (`frameAtA_cost`, one binary search, calls of at most `16` words): within
+  `guestDecoderFramePrice` (`frameAtAPrice_le`); the cursor's
   length (`cursorLength_cost`, value at most `2^32`), the witness (`frameWit_cost`);
 * the tables: preconditions `12895` (`preTable_cost`), entries `17047343` (`pcTableT_cost`); the
   constant `topConstPrice` at most `guestDecoderWorstMemoryWitnessPrice + guestDecoderWorstFrameLookupCount·F`
@@ -52,24 +54,46 @@ theorem topConst_le (F : ℕ) :
     guestDecoderWorstMemoryWitnessPrice guestDecoderWorstFrameLookupCount
   omega
 
-/-- The filing's price is the statement's. -/
-theorem fileStatePrice_eq (e : ℕ) :
-    fileStatePrice 8339 2 guestDecoderPreconditionPrice 1472 e + 15 =
+/-- The sorted entry array's price per state, within the statement's filing price. -/
+theorem entryArrayStatePrice_le (e : ℕ) (he : 1 ≤ e) :
+    entryArrayStatePrice 8339 2 guestDecoderPreconditionPrice 1472 e + 9 ≤
       guestDecoderStateFilingPrice e := by
-  unfold fileStatePrice fileOnePrice insertKeyPrice getKeyPrice wl limbsBelowTwoPow
-    guestDecoderStateFilingPrice guestDecoderEntryTableInsertPrice guestDecoderEntryTableLookupPrice
+  unfold entryArrayStatePrice pairsStatePrice guestDecoderStateFilingPrice
+    guestDecoderEntryTableInsertPrice guestDecoderEntryTableLookupPrice
     guestDecoderEntryTablePositionLimbs
-  ring
-
-/-- A frame lookup of at most `16` words, at most the statement's. -/
-theorem frameAtPrice_le (e n : ℕ) (hn : n ≤ 16) :
-    e * (17 + (67 * n + 89 + 9 * wl e) * (e + 2)) + 28 * n + 1472 + 11070 ≤
-      guestDecoderFramePrice e := by
-  unfold guestDecoderFramePrice guestDecoderEntryTablePositionLimbs wl limbsBelowTwoPow
-  have h1 : 67 * n + 89 + 9 * ((e + 1) / 64 + 1) ≤ 67 * 16 + 89 + 9 * ((e + 1) / 64 + 1) := by omega
-  have h2 := Nat.mul_le_mul_right (e + 2) h1
-  have h3 := Nat.mul_le_mul_left e (Nat.add_le_add_left h2 17)
+  have hw : wl e = (e + 1) / 64 + 1 := rfl
+  rw [hw]
+  generalize guestDecoderPreconditionPrice = Pr
+  generalize (e + 1) / 64 + 1 = w
+  have hX : (134 * 22 + 89 + 9 * w) * (e + 2) = 3037 * e + 6074 + 9 * (w * e) + 18 * w := by ring
+  have hY : 17 + (134 * 22 + 89 + 9 * w) * (e + 2) ≤
+      e * (17 + (134 * 22 + 89 + 9 * w) * (e + 2)) := Nat.le_mul_of_pos_left _ he
+  have hZ : (2 * w + 40) * (e + 1) = 2 * (w * e) + 2 * w + 40 * e + 40 := by ring
+  have hV : (3060 + 5 * w) * e = 3060 * e + 5 * (w * e) := by ring
   omega
+
+/-- A frame lookup of at most `16` words on the sorted array, within the statement's. -/
+theorem frameAtAPrice_le (e n : ℕ) (hn : n ≤ 16) (he : 1 ≤ e) :
+    (67 * n + 89 + 9 * wl e) * (e + 2) + 28 * n + 1472 + 11056 ≤ guestDecoderFramePrice e := by
+  unfold guestDecoderFramePrice guestDecoderEntryTablePositionLimbs
+  have hw : wl e = (e + 1) / 64 + 1 := rfl
+  rw [hw]
+  generalize (e + 1) / 64 + 1 = w
+  have h1 : (67 * n + 89 + 9 * w) * (e + 2) ≤ (67 * 16 + 89 + 9 * w) * (e + 2) :=
+    Nat.mul_le_mul_right _ (by omega)
+  have h2 : (67 * 16 + 89 + 9 * w) * (e + 2) ≤ e * (17 + (67 * 16 + 89 + 9 * w) * (e + 2)) :=
+    le_trans (Nat.le_add_left _ 17) (Nat.le_mul_of_pos_left _ he)
+  omega
+
+/-- The replay lists the initial state at least. -/
+theorem replayStatesOf_length_pos (memT codeT : Array (ℕ × ℕ)) (prog : LeanVM.Semantics.Program)
+    {κ : ℕ} (mem : Vector E (2 ^ κ)) : 1 ≤ (Decoder.replayStatesOf memT codeT prog mem).length := by
+  unfold Decoder.replayStatesOf replayFuel
+  rw [show (2 : ℕ) ^ 128 = (2 ^ 128 - 1) + 1 by norm_num, Decoder.statesVec]
+  simp
+
+theorem keyExponent_pos (steps : ℕ) : 1 ≤ guestDecoderEntryTableKeyExponent steps := by
+  unfold guestDecoderEntryTableKeyExponent; omega
 
 theorem tableExponent_spec (steps : ℕ) : 2 * (steps + 1) < 2 ^ guestDecoderEntryTableKeyExponent steps := by
   unfold guestDecoderEntryTableKeyExponent
@@ -114,17 +138,25 @@ theorem decoderPriceWithinBudget : DecoderPriceWithinBudget := by
       (402662 + 22) hB preTable preTable_shape genPows j hj fp
     unfold guestDecoderPreconditionPrice
     omega
-  obtain ⟨hgood, hE⟩ := entryTableT_cost decoderProgram _ _ hrd 1472 hR _ _ hpre _ hPr e
-    includes_budget_entryTableT Decoder.pcTableT 2 8339 pcTableT_getD_lt pcTableT_getD_length
+  have he1 := keyExponent_pos t.steps
+  have hpos := replayStatesOf_length_pos (powTable t.logMemorySize)
+    (powTable LeanVM.Guest.guest.logSize) LeanVM.Guest.guest (Decoder.memoryVector t.memory)
+  rw [← hstates] at hpos
+  have hE := entryArrayT_cost decoderProgram _ _ hrd 1472 hR _ _ hpre _ hPr
+    includes_budget_entryArrayT Decoder.pcTableT 2 8339 e pcTableT_getD_lt pcTableT_getD_length
     (fun k hk ↦ pcTableT_get_cost decoderProgram includes_budget_getPc k hk) states hn
+  obtain ⟨hok, hsz⟩ := entryArrayT_ok (Decoder.memReader (powTable t.logMemorySize)
+    (Decoder.memoryVector t.memory)) (preTestAt discreteLogTables preTable genPows
+    (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)))
+    Decoder.pcTableT 2 pcTableT_getD_lt pcTableT_getD_length states
   have hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 16 →
-      machineCost decoderProgram Decoder.frameAtC.costIdx
-        [encodeValue (Decoder.entryTableT Decoder.pcTableT
+      machineCost decoderProgram Decoder.frameAtAC.costIdx
+        [encodeValue (Decoder.entryArrayT Decoder.pcTableT
           (preTestAt discreteLogTables preTable genPows (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)))
           states (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory))), readerV t.logMemorySize (Decoder.memoryVector t.memory), encodeValue k,
           encodeValue a, encodeValue r, encodeValue v] ≤ guestDecoderFramePrice e :=
-    fun k a r v hk hl ↦ (frameAt_cost decoderProgram _ _ hrd 1472 hR includes_budget_frameAt e _ hgood k hk
-      a r v).trans (frameAtPrice_le e _ hl)
+    fun k a r v hk hl ↦ (frameAtA_cost decoderProgram _ _ hrd 1472 hR includes_budget_frameAtA e _
+      hok (by omega) k hk a r v).trans (frameAtAPrice_le e _ hl he1)
   have hσ : ∀ v : V, RunsApp decoderProgram
       (.closure Decoder.decTopStatesC.lam0.costIdx [readerV t.logMemorySize (Decoder.memoryVector t.memory)]) [encodeValue v]
       (encodeValue (Decoder.mainVal (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)) v)) := fun v ↦
@@ -145,12 +177,15 @@ theorem decoderPriceWithinBudget : DecoderPriceWithinBudget := by
     (preTable_cost decoderProgram includes_budget_preTable).le (pcTableT_cost decoderProgram includes_budget_pcTableT)
     hE hW
   have hc := topConst_le (guestDecoderFramePrice e)
-  have hfs := fileStatePrice_eq e
+  have hfs := entryArrayStatePrice_le e he1
   rw [← hstates] at hT
   have h1 := Nat.mul_le_mul_left (runnerStepPrice t.logMemorySize LeanVM.Guest.guest.logSize + 48) hlen
-  have h2 := Nat.mul_le_mul_left
-    (fileStatePrice 8339 2 guestDecoderPreconditionPrice 1472 e + 15) hlen
-  rw [Nat.add_mul, ← hfs]
+  have h2 := Nat.mul_le_mul_left (guestDecoderStateFilingPrice e) hlen
+  have h3 : entryArrayStatePrice 8339 2 guestDecoderPreconditionPrice 1472 e * states.length + 24 ≤
+      guestDecoderStateFilingPrice e * states.length + 15 := by
+    have := Nat.mul_le_mul_right states.length hfs
+    nlinarith
+  rw [Nat.add_mul]
   omega
 
 end
