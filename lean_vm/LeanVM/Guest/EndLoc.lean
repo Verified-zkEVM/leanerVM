@@ -18,8 +18,10 @@ A run of `guest` starts in `__jump_tables`, which writes the jump table into `ma
 falls through into `main` at `fp = 1` (`safe_jumpTables`). B2 (`b2_step`, `b2_mainL`, checker K's
 contracts over `glob`, proved from the kernel-checked certificates) then gives `main`'s body
 under the valuation of its certificate's cells at `fp = 1` (`Check.valG L 1 (certOf 1)`), each
-call located at a frame of the memory (`Located.RLg`), the contracts of every function holding
-for runs of any length (`funSpec_induction` over `b2_step`).
+call located at a frame the run from `(g^0, 1)` entered the callee at, its precondition holding
+there and its argument and return cells holding the call's words (`Located.RLg`,
+`Check.EnteredAt`; `reach_jumpTables` reaches `main`'s entry), the contracts of every function, on
+that run, holding for runs of any length (`globSpec`: `funSpecReached_induction` over `b2_step`).
 
 `B2SoundL` states B2 as `Sound.lean` proves it (`b2_step`, `b2_mainL`), so that this module and
 the assembly above it do not import the certificates; `EndSound.lean` proves it, from B1's two
@@ -35,22 +37,32 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
 /-- Every contract of `glob`, for runs shorter than `n`. -/
 abbrev GlobLt {κ : ℕ} (L : MemoryImage κ) (n : ℕ) : Prop :=
-  ∀ j, FunSpecLt guest L n (glob.sig j).entry (Check.Pre glob L j)
-    (Check.Post coreProgram glob L certByName j)
+  ∀ j, FunSpecLtReached guest L n (glob.sig j).entry (Check.Pre glob L j)
+    (Check.Post coreProgram glob L certByName (Check.EnteredAt glob L) j)
 
 /-- **B2, as checker K states it** (`b2_step`, `b2_mainL` of `Sound.lean`). -/
 structure B2SoundL : Prop where
   /-- Every function's contract for runs shorter than `n + 1`, given all of them for runs shorter
   than `n`. -/
   step : ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ n, GlobLt L n →
-    ∀ i, FunSpecLt guest L (n + 1) (glob.sig i).entry (Check.Pre glob L i)
-      (Check.Post coreProgram glob L certByName i)
+    ∀ i, FunSpecLtReached guest L (n + 1) (glob.sig i).entry (Check.Pre glob L i)
+      (Check.Post coreProgram glob L certByName (Check.EnteredAt glob L) i)
   /-- From `main`'s entry at `fp = 1`, the jump table written and the contracts holding for runs
   shorter than `k`, a halting run gives `main`'s body at its frame, its calls located. -/
   mainL : ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → JumpTables L → ∀ k,
-    GlobLt L k → Safe guest L k ⟨gpow mainEntry, 1⟩ →
-      Stmt.HoldsList (RL coreProgram L certByName) L.read (valG L 1 (certOf 1)) (coreOf 1).body
+    GlobLt L k → SafeReached guest L k ⟨gpow mainEntry, 1⟩ →
+      Stmt.HoldsList (RL coreProgram L certByName (Check.EnteredAt glob L)) L.read (valG L 1 (certOf 1)) (coreOf 1).body
         False (fun rs ↦ rs = [])
+
+/-- **Every contract of `glob`**, on the run from `(g^0, 1)`, for runs of any length
+(`funSpecReached_induction` over B2's step). -/
+theorem globSpec (hb2 : B2SoundL) {κ : ℕ} {L : MemoryImage κ} (h16 : minLogMem ≤ κ)
+    (h32 : κ ≤ maxLogMem) (j : ℕ) :
+    FunSpecReached guest L (glob.sig j).entry (Check.Pre glob L j)
+      (Check.Post coreProgram glob L certByName (Check.EnteredAt glob L) j) :=
+  funSpecReached_induction (P := fun j ↦ Check.Pre glob L j)
+    (Q := fun j ↦ Check.Post coreProgram glob L certByName (Check.EnteredAt glob L) j)
+    (hb2.step L h16 h32) j
 
 /-- **B2 at `main`, located, for a halting run from `(g^0, 1)`**. -/
 theorem mainBodyL_of_safe (hb2 : B2SoundL) {κ : ℕ} {L : MemoryImage κ}
@@ -58,11 +70,8 @@ theorem mainBodyL_of_safe (hb2 : B2SoundL) {κ : ℕ} {L : MemoryImage κ}
     Stmt.HoldsList (Located.RLg L) L.read (valG L 1 (certOf 1)) Data.core0.body False
       (fun rs ↦ rs = []) := by
   obtain ⟨hjt, k', hk'⟩ := safe_jumpTables hs
-  have hall : ∀ j, FunSpec guest L (glob.sig j).entry (Check.Pre glob L j)
-      (Check.Post coreProgram glob L certByName j) :=
-    funSpec_induction (P := fun j ↦ Check.Pre glob L j)
-      (Q := fun j ↦ Check.Post coreProgram glob L certByName j) (hb2.step L h16 h32)
-  exact hb2.mainL L h16 h32 hjt k' (fun j ↦ (hall j).lt k') hk'
+  exact hb2.mainL L h16 h32 hjt k' (fun j ↦ (globSpec hb2 h16 h32 j).lt k')
+    ⟨hk', reach_jumpTables hjt⟩
 
 /-- **B2 at `main`, located, for a valid execution**: `main`'s body under its frame's valuation,
 its calls located, and the public input's cells at `g^0`, `g^1`. -/

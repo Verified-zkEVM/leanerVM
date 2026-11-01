@@ -2,34 +2,43 @@
   LeanVM.Guest.EndFinal
 
   The aggregation guest's soundness for the deployed bytecode, with nothing assumed: the decoder
-  `decode` and the statement `GuestKnowledge` of `Statement/LeanVmGuest.lean` (`AggregateSound`, in
-  the random-permutation model, is composed in `LeanVM/Guest/EndRpm.lean`).
+  `decode`, which replays the run, and the statement `GuestKnowledge` of
+  `Statement/LeanVmGuest.lean` (`AggregateSound`, in the random-permutation model, is composed in
+  `LeanVM/Guest/EndRpm.lean`).
 -/
 
 module
 
 public import LeanVM.Guest.EndSound
 public import LeanVM.Guest.B1.VerifySub.Sound
+public import LeanVM.Guest.Located.ReplayFast
 
 /-!
 # The guest's soundness
 
-`decode` reads, off a memory `L`, the seed and the statement from `main`'s frame (`fp = 1`) and
-the witness `B1.Main.decWitV` off `main`'s valuation, the memory and the memory's frame map
-(`Located.frameV`: each call's valuation is its frame's, the first frame of the memory at which
-the callee's code holds on the call's words): each leanXMSS and leanSPHINCS signature off the
-frame of its check, the DA matrix off `da_verify`'s and its callees' frames, each child's proof
-off its `verify_sub` frame and the memory (`VerifySub.vsPiOf`: the stream words `verify_sub`
-reads, the openings `open_stacked`'s queries hash), the batching's hints off `aggregate_claims`'
-frame and the memory. It chooses nothing (`tests/LeanVMTests/Guest/DecodeNoChoice.lean`). It
-computes no hash and runs no verifier of its own; it finds each call's frame as the first of the
-memory's `2^κ` frames at which the guest's own code for the callee holds on the call's words (a
-classical test of the guest's semantics, which includes its in-circuit checks), and reads the
-witness there.
+`decode` reads, off a memory `L`, through the sorted table of its `2^κ` addresses
+(`Located.readTable`, `Extraction.Fast.powTable`, the extractor's binary search), the seed and
+the statement from `main`'s frame (`fp = 1`, the words of `main`'s certificate's cells, `mainValWith`) and the witness
+`B1.Main.decWitV` off `main`'s valuation, the memory and the **replayed** frame map
+(`Located.replayFrameV`): the run from `(g^0, 1)` stepped through the tables (`Located.statesTable`,
+the extractor's `stepTable`), each call given the valuation of the first frame at which the run
+entered its callee (the entries indexed once, `Located.frameVFast`), its precondition holding
+there (decided, `Located.preTest`) and its argument and return cells holding the call's words.
+So each leanXMSS and leanSPHINCS signature is read off the frame of its check, the DA matrix off
+`da_verify`'s and its callees' frames, each child's proof off its `verify_sub` frame and the
+memory (`VerifySub.vsPiOf`: the stream words `verify_sub` reads, the openings `open_stacked`'s
+queries hash), the batching's hints off `aggregate_claims`' frame and the memory. Every test it
+makes is decided by evaluation: it decides no proposition classically and picks no witness
+(`tests/LeanVMTests/Guest/DecodeNoChoice.lean`). It runs the machine (whose `KECCAK` instruction
+checks Keccak-f[1600]) and no verifier.
 
 * `guest_knowledge : GuestKnowledge guest decode`: every valid execution of the guest on a public
   input decodes to a statement of that input's digest under the decoded seed, and a witness
-  holding it (`NodeRelation`).
+  holding it (`NodeRelation`). B2 locates every call of `main` at a frame the run entered
+  (`Check.EnteredAt`), so the located relation unfolds along the replayed frame map
+  (`Located.unfoldsV_replay`), and B1 applies to it.
+* `decode_eq`: on a memory of fewer than `2^64` words, `decode` is `decodeV`'s reading with the
+  replayed frame map in place of `Located.frameV`.
 * `aggregate_sound_outer : AggregateSound guest decode` (`EndRpm.lean`): in the
   random-permutation experiment, the verifier accepts a proof of the guest on the digest of a
   statement `s` under the deployed seed, `s` of the guest's shape, while no
@@ -47,15 +56,42 @@ They rest on B2 (`b2SoundL`: the kernel-checked certificates and `VsKnown`) and 
 
 namespace LeanVM.Guest.End
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Node LeanVM.Guest.B1
-open LeanVM.Protocol LeanVM.Protocol.KeccakHash
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Check LeanVM.Node
+open LeanVM.Guest.B1 LeanVM.Guest.B1.Digest LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open scoped ENNReal
 
 @[expose] public section
 
-/-- **The guest's decoder**: the seed and the statement off `main`'s frame, the witness off the
-frames of the functions that checked it. -/
-noncomputable def decode : Decoder := decodeV VerifySub.vsPiOf
+/-- The words of `main`'s certificate's cells at `fp = 1`, read with `rd` (`Check.valG`). -/
+noncomputable def mainValWith (rd : Reader) : Val :=
+  fun v ↦ Located.wordWith rd 1 ((certOf 1).locs.getD v.idx 0)
+
+/-- **The guest's decoder**, by replay: through the sorted table of the memory's addresses
+(`Extraction.Fast.powTable`, the extractor's), the seed and the statement off `main`'s frame, the
+witness off `main`'s valuation, the memory and the replayed frame map (the frames the run entered
+the functions that checked it at, indexed once, `Located.frameVFast`). -/
+noncomputable def decode : Decoder := fun {κ} L ↦
+  let memT := Extraction.Fast.powTable κ
+  let rd := Located.readTable memT L
+  let states := Located.statesTable memT (Extraction.Fast.powTable guest.logSize) guest L
+    Located.replayFuel ⟨gpow 0, 1⟩
+  let σ := mainValWith rd
+  ⟨B1.Main.decSeed σ, B1.Main.decStmt σ rd,
+    B1.Main.decWitV σ rd (Located.frameVFast (Located.preTest rd) states rd) VerifySub.vsPiOf⟩
+
+/-- On a memory of fewer than `2^64` words, the decoder reads `main`'s frame and the memory as
+`decodeV` does, with the replayed frame map. -/
+theorem decode_eq {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
+    decode L = ⟨B1.Main.decSeed (valG L 1 (certOf 1)),
+      B1.Main.decStmt (valG L 1 (certOf 1)) L.read,
+      B1.Main.decWitV (valG L 1 (certOf 1)) L.read (Located.replayFrameV L) VerifySub.vsPiOf⟩ := by
+  have hV : Located.frameVFast (Located.preTest L.read)
+      (Located.statesIn (Extraction.powIndex κ) (Extraction.powIndex guest.logSize) guest L
+        Located.replayFuel ⟨gpow 0, 1⟩) L.read = Located.replayFrameV L := by
+    rw [Located.replayFrameV, Located.readIn_powIndex hκ]
+    exact congrFun (congrFun Located.frameVWith_eq_fast _) _ |>.symm
+  simp only [decode, Located.readTable_powTable hκ, Located.statesTable_eq hκ, hV]
+  rfl
 
 /-- `verify_sub`'s statement, its proof `VerifySub.vsPiOf`, for the guest's bytecode. -/
 theorem subSoundW : B1.Main.SubSoundW bytecode VerifySub.vsPiOf :=
@@ -64,7 +100,18 @@ theorem subSoundW : B1.Main.SubSoundW bytecode VerifySub.vsPiOf :=
 /-- **Soundness of the deployed guest, its witness named**: every valid execution of the guest on
 a public input decodes, from its memory, to a statement of the input's digest under the decoded
 seed and a witness holding it. -/
-theorem guest_knowledge : GuestKnowledge guest decode := guest_knowledge_sub subSoundW
+theorem guest_knowledge : GuestKnowledge guest decode := by
+  intro input t hv
+  have hκ : t.logMemorySize < 64 := by
+    have := hv.1.2.1
+    unfold maxLogMem at this
+    omega
+  show ExplainsInput guest input (decode t.memory)
+  rw [decode_eq hκ]
+  obtain ⟨hb, h0, h1⟩ := mainBodyL_of b2SoundL hv
+  have hm : MemOk t.memory.read := ⟨t.logMemorySize, hv.1.1, hv.1.2.1, t.memory, rfl⟩
+  exact B1.Main.main_sound_V_of_sub subSoundW bytecode_length t.memory.read hm _ _
+    (Located.unfoldsV_replay b2SoundL hv) (Located.rlg_le_rel t.memory) _ _ h0 h1 hb
 
 /-- **What a consumer learns**: a valid execution of the guest on the digest of its statement
 `s₀` under the seed `iv` (`s₀`'s deferred claim of the bytecode's shape: `bytecode`'s `23`
@@ -76,7 +123,9 @@ theorem decode_binds {input : PublicInput} {t : Execution guest} (hv : ValidExec
     (hpub : publicDigest input = statementDigest iv s₀) :
     ((decode t.memory).seed = iv ∧ (decode t.memory).statement = s₀) ∨
       HasCollision (collisionCandidates (decode t.memory).seed (decode t.memory).statement iv s₀) :=
-  decode_binds_sub subSoundW hv hs₀ hpub
+  by
+    obtain ⟨hd, hrel⟩ := guest_knowledge input t hv
+    exact Binding.decoded_binds hs₀ hrel.1 hpub hd
 
 /-- **Soundness, the existential form**: a valid execution of the guest on `input` gives a seed and
 a statement of the input's digest, of the guest's shape, that a witness holds (`NodeRelation`). -/
