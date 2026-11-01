@@ -20,21 +20,22 @@ than `fuel` calls. A misuse is a failure, never undefined behavior. `outputWithi
 value if the price is at most `b`, `none` otherwise; each call costs at least `1`, so nesting
 depth `b` never fails a run of price at most `b`.
 
-**Prices** (trusted: that they are honest, each a constant-time CPU primitive or priced by the
-algorithm that computes it, is an assumption of `KnowledgeSoundness (extractorOf P)` and of
-`GuestKnowledge`, `Theorems.lean`, whose budgets they price). Each step costs at least `1`, and
-every step but two at least the words it writes. The two: a `case` puts the constructor's fields
-in front of the environment, and a closure's application puts its captured values in front of the
-arguments, each at `1`, which is honest for an environment kept as a frame pointer into the
-constructor or the closure (its fields read in place, not copied), where each is `O(1)`. The
-prices:
+**Prices** (trusted, not a hypothesis: that they are honest, each a constant-time CPU primitive or
+priced by the algorithm that computes it, is what makes the budgets of `KnowledgeSoundness
+(extractorOf P)` and of `GuestKnowledge`, `Theorems.lean`, meaningful). Each step costs at least
+`1`, and every step but two at least the words it writes. The two: a `case` puts the constructor's
+fields in front of the environment, and a closure's application puts its captured values in front of
+the arguments, each at `1`, which is honest for an environment kept as a frame pointer into the
+constructor or the closure (its fields read in place, not copied), where each is `O(1)`. The prices:
 * a variable, a literal, a field, a `case`'s selection, a `let`: `1`;
 * a constructor or a closure of `n` values: `n + 1` (a tag and `n` words);
 * a call or a closure's application: `1`;
 * a word operation (`+`, `−`, `·` modulo `2^64`, `and`, `or`, `xor`, `not`, shifts, comparisons):
   `1`, each one CPU instruction;
-* a `GF(2^64)` multiplication: `256`, the carry-less product by 64 shift-and-xor steps of four
-  operations each, and its reduction;
+* a `GF(2^64)` multiplication: `256`: the `64×64` carry-less product (one instruction on current
+  CPUs: PCLMULQDQ, PMULL) and its reduction by the sparse modulus `x^64 + x^4 + x^3 + x + 1`
+  (about `21` word operations, `Statement/Fast/FieldWords.lean`'s `reduceWords`), well within
+  `256`; a software shift-and-xor loop would cost about `800`;
 * an operation on natural numbers of at most `m` and `m'` limbs of 64 bits: `max m m' + 1` for
   `+`, `−`, comparisons and bitwise operations, `m·m' + 1` for `·`, `/` and `%` (schoolbook), and,
   for shifts, the shifted number's limbs (the result's for a left shift, the operand's for a right
@@ -51,8 +52,8 @@ its fields in order), arrays for `Vector` and for the functions of a finite doma
 `encodeExtractorInput prog input T proof` is the extractor's input: the program, the public
 input, the transcript's permutation queries (`permutationQueries`: the transcript without the
 adversary's coin flips, its private randomness) and the proof.
-`decodeExecution prog` is a linear parse of an execution, the inverse of its encoding: no search,
-no check, no run.
+`decodeExecution prog` is a linear parse of an execution, the inverse of its encoding: no search
+and no run, its only check that the memory has `2^κ` words.
 
 **The extractor a program computes** (`LeanVM.extractorOf P`): the program `P` run on the encoded
 statement, transcript and proof within `extractorBudget`, the budget read off the shape the proof
@@ -439,8 +440,8 @@ def decodeExtensionElement : MachineValue → Option E
   | .ctor 0 [.word a, .word b, .word c] => some (E.ofLimbs (K.ofLane a) (K.ofLane b) (K.ofLane c))
   | _ => none
 
-/-- **An execution from its encoding**: the memory's size, its `2^κ` words, the steps; `none` on
-anything else. -/
+/-- **An execution from its encoding**: the memory's log-size `κ`, its `2^κ` words, the steps;
+`none` on anything else. -/
 def decodeExecution (prog : Semantics.Program) : MachineValue → Option (Execution prog)
   | .ctor 0 [.nat κ, .arr mem, .nat steps] =>
     match (mem.toList.mapM decodeExtensionElement) with
@@ -519,15 +520,17 @@ binary searches. -/
 def committedLeavesPrice (D h W : ℕ) : ℕ :=
   2 ^ h * (2 * (D * (17 + (192 + 11 * W) * (D + 2)) + 40) + 64853 + 8 * h)
 
-/-- The list decoder over the `64` lanes and the pruning, beyond the word's reads, at the worst
-admissible shape `(28, 4)`: about `2^117.67`. It is `lean_vm`'s `decoderBound 28 4 0 0`
-(`Cost/Bounds/Decoder/Decode.lean`, the decoder's price beyond the word's reads), evaluated, and
+/-- The list decoder's part (the extractor's Guruswami–Sudan decoder over the `64` lanes, and the
+pruning), beyond the word's reads, at the worst admissible shape `(28, 4)`: about `2^117.67`. It
+is `lean_vm`'s `decoderBound 28 4 0 0` (`Cost/Bounds/Decoder/Decode.lean`, the list decoder's
+price beyond the word's reads), evaluated, and
 bounds `decoderBound μ R 0 0` at every admissible shape `(μ, R)` (`decoderShape_ok`,
 `Cost/Bounds/DecoderShapes.lean`). -/
-def decoderWorstPrice : ℕ := 263761295154139905848615297830647322
+def listDecoderWorstPrice : ℕ := 263761295154139905848615297830647322
 
-/-- The decoder's part, at every admissible shape: its word's reads and `decoderWorstPrice`. -/
-def decoderPrice : ℕ := 1752 * 2 ^ 26 + decoderWorstPrice + 17
+/-- The list decoder's part, at every admissible shape: its word's reads and
+`listDecoderWorstPrice`. -/
+def listDecoderPrice : ℕ := 1752 * 2 ^ 26 + listDecoderWorstPrice + 17
 
 /-- The bytecode's words: `16·2^ℓ` words. -/
 def bytecodeWordsPrice (ℓ : ℕ) : ℕ := 4700 * 2 ^ ℓ + 1100
@@ -536,7 +539,7 @@ def bytecodeWordsPrice (ℓ : ℕ) : ℕ := 4700 * 2 ^ ℓ + 1100
 the fast path, the runner's tables, at most `1 + 2^18` candidate runs and the decoder. -/
 def afterRootStagePrice (μ R κ ℓ D N h W : ℕ) : ℕ :=
   transcriptIndexPrice D 512 N W + committedLeavesPrice D h W + fastPathPrice μ R 64 24 +
-    runnerTablesPrice κ ℓ + (stackRunPrice κ ℓ + 15) * (2 ^ 18 + 1) + decoderPrice + 133
+    runnerTablesPrice κ ℓ + (stackRunPrice κ ℓ + 15) * (2 ^ 18 + 1) + listDecoderPrice + 133
 
 /-- The levels of the extractor's sorted maps for `N` permutation queries: `log₂(N + 2) + 1`. -/
 def extractorSortedMapLevels (N : ℕ) : ℕ := Nat.log2 (N + 2) + 1

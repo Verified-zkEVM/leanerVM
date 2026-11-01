@@ -26,7 +26,7 @@ decoder's stacks (`decOfC`) and a run per decoded stack. Bounded from their pric
   `transcriptIndex_keys`), **`leavesOfC_cost`** (`transcriptIndexPrice` and `committedLeavesPrice`);
 * the bytecode's words: **`bytecodeWordsC_cost`** (`bytecodeWordsPrice ℓ = 4700·2^ℓ + 1100`);
 * **`fastOfC_cost`** (`fastPathPrice`), **`decOfC_cost`** (`decodeStacksDistinctC_cost_worst`, at every
-  admissible shape: `1752·2^26 + decoderWorstPrice`), **`runBothC_cost`**, **`runFromLeavesC_cost`**,
+  admissible shape: `1752·2^26 + listDecoderWorstPrice`), **`runBothC_cost`**, **`runFromLeavesC_cost`**,
   **`stageTC_cost`** (`afterRootStagePrice`), **`afterRootStageC_cost`**;
 * **`extractorC_cost`**: on every input, at most `extractorPrice μ R κ ℓ N` at the shape
   `afterRootLite` announces (`replayPrice ℓ` if it fails), `N` the permutation queries, any number:
@@ -36,7 +36,7 @@ decoder's stacks (`decOfC`) and a run per decoded stack. Bounded from their pric
 * **`extractorC_within`**: the price and the entry's `9` within the statement's
   `extractorBudgetAt` wherever `afterRoot` announces a shape (`hcost` of `extractorTop_output`);
 * **`extractorPrice_28_4`**: at `(28, 4)`, `κ = ℓ = 32`, at most `2^40` queries:
-  `263761295154143991480110948970664343 ≈ 2^117.67`, the decoder (`decoderWorstPrice ≈ 2^117.67`) all
+  `263761295154143991480110948970664343 ≈ 2^117.67`, the decoder (`listDecoderWorstPrice ≈ 2^117.67`) all
   but `≈ 2^71.79` of it (the `1 + 2^18` runs `≈ 2^71.77`, the transcript's index `≈ 2^65.44`);
   **`extractorPrice_28_4_2_128`**: at most `2^128` queries, `≈ 2^156.69`, the transcript's index
   dominating.
@@ -363,7 +363,7 @@ theorem fastOfC_cost (hP : Includes P fastOfC.costDeps) (μ R : ℕ) (hμ : μ �
 theorem decOfC_cost (hP : Includes P decOfC.costDeps) {μ R : ℕ} (hadm : Whir.Admissible μ R)
     (leaves : Array (List K)) (h : ℕ) (hh : h < 64) (hl : ∀ l ∈ leaves, l.length ≤ 64) :
     machineCost P decOfC.costIdx [encodeValue μ, encodeValue R, encodeValue leaves, encodeValue h, encodeValue 64] ≤
-      1752 * 2 ^ 26 + decoderWorstPrice + 10 := by
+      1752 * 2 ^ 26 + listDecoderWorstPrice + 10 := by
   rw [decOfC.costEq P hP]
   have := Decoder.decodeStacksDistinctC_cost_worst P (by includes) hadm _
     (.closure fastOfC.lam0.costIdx [encodeValue leaves, encodeValue h, encodeValue 64])
@@ -446,7 +446,7 @@ theorem runFromLeavesC_cost (hP : Includes P runFromLeavesC.costDeps) (prog : Se
     (hl : ∀ l ∈ leaves, l.length ≤ 64) :
     machineCost P runFromLeavesC.costIdx [encodeValue prog, encodeValue input, encodeValue L, encodeValue R, encodeValue leaves, encodeValue h, encodeValue 64] ≤
       fastPathPrice L.stackLog R 64 24 + runnerTablesPrice L.logMemory prog.logSize +
-        (stackRunPrice L.logMemory prog.logSize + 15) * (2 ^ 18 + 1) + decoderPrice + 92 := by
+        (stackRunPrice L.logMemory prog.logSize + 15) * (2 ^ 18 + 1) + listDecoderPrice + 92 := by
   have hadm' := hadm
   obtain ⟨-, h2, -, h4⟩ := hadm'
   simp only [Whir.maxLogStack, Whir.maxLogInvRate] at h2 h4
@@ -458,14 +458,14 @@ theorem runFromLeavesC_cost (hP : Includes P runFromLeavesC.costDeps) (prog : Se
     RunsApp.of_spec (runFromLeavesC.lam0.costSpec P (by includes) L R leaves h 64 x)
   have hB := runBothC_cost P (by includes) prog input L hf (fastOf L.stackLog R leaves h 64)
     (fastStacksFast_length_le _ _ _) (fun _ ↦ decOf L.stackLog R leaves h 64) _ hslow
-    (1752 * 2 ^ 26 + decoderWorstPrice + 17)
+    (1752 * 2 ^ 26 + listDecoderWorstPrice + 17)
     (by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [runFromLeavesC.lam0.costEq P (by includes)]
       have := decOfC_cost P (by includes) hadm leaves h hh hl
       omega)
     (decodeStacksDistinct_length_le_johnson hadm _)
-  unfold decoderPrice
+  unfold listDecoderPrice
   omega
 
 /-- **A stage** (`stageTC`) at the root `afterRootLite` returns: the committed leaves, the runs. -/
@@ -599,7 +599,7 @@ theorem extractorPrice_28_4 (N : ℕ) (hN : N ≤ 2 ^ 40) :
   unfold extractorPrice
   refine le_trans (Nat.add_le_add_right (Nat.add_le_add_left h _) _) ?_
   unfold afterRootStagePrice transcriptIndexPrice committedLeavesPrice replayStepPrice firstAnswersStepPrice preimageStepPrice
-    fastPathPrice runnerTablesPrice stackRunPrice runnerStepPrice decoderPrice decoderWorstPrice bytecodeWordsPrice
+    fastPathPrice runnerTablesPrice stackRunPrice runnerStepPrice listDecoderPrice listDecoderWorstPrice bytecodeWordsPrice
   norm_num
 
 /-- **The extractor's price at `(28, 4)` for up to `2^128` queries** (the soundness statement's
@@ -615,7 +615,7 @@ theorem extractorPrice_28_4_2_128 (N : ℕ) (hN : N ≤ 2 ^ 128) :
   unfold extractorPrice
   refine le_trans (Nat.add_le_add_right (Nat.add_le_add_left h _) _) ?_
   unfold afterRootStagePrice transcriptIndexPrice committedLeavesPrice replayStepPrice firstAnswersStepPrice preimageStepPrice
-    fastPathPrice runnerTablesPrice stackRunPrice runnerStepPrice decoderPrice decoderWorstPrice bytecodeWordsPrice
+    fastPathPrice runnerTablesPrice stackRunPrice runnerStepPrice listDecoderPrice listDecoderWorstPrice bytecodeWordsPrice
   norm_num
 
 end

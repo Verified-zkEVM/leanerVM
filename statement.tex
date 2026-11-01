@@ -29,7 +29,7 @@ proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classic
 leanVM at commit \texttt{c445e3d5} of its \texttt{main} branch.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: fifteen files
-of definitions and end statements ($7495$ lines with their documentation), which import Mathlib,
+of definitions and end statements ($7500$ lines with their documentation), which import Mathlib,
 VCVio and CompPoly and nothing of the proofs. Beside them sit the honest prover the completeness
 statements name (\lean{Statement/Prover/}, $2524$ lines; it is proved to make the specification's
 honest moves, so a reviewer only needs to see that it is a genuine prover), the guest program's
@@ -45,20 +45,20 @@ compiled decoder \lean{LeanVM.Cost.decoderProgram}.
 \begin{tabular}{lll}
 \toprule
 Field & End statement & Section\\\midrule
-\lean{decoderSize} & \lean{D.size} $\le$ \lean{LeanVM.Node.guestDecoderSizeBound} & \ref{sec:guest}\\
 \lean{extractorSize} & \lean{P.size} $\le$ \lean{LeanVM.extractorSizeBound} & \ref{sec:zkvm}\\
 \lean{knowledgeSoundness} & \lean{LeanVM.KnowledgeSoundness (extractorOf P)} & \ref{sec:zkvm}\\
 \lean{completeness} & \lean{LeanVM.Completeness} & \ref{sec:zkvm}\\
+\lean{decoderSize} & \lean{D.size} $\le$ \lean{LeanVM.Node.guestDecoderSizeBound} & \ref{sec:guest}\\
+\lean{guestKnowledge} & \texttt{LeanVM.Node.GuestKnowledge guest D} & \ref{sec:guest}\\
+\lean{digestBinds} & \lean{LeanVM.Node.DigestBinds} & \ref{sec:guest}\\
+\lean{guestCompleteCovered} & \lean{LeanVM.Guest.Budget.GuestCompleteCovered} & \ref{sec:guest}\\
+\lean{guestChildComplete} & \lean{LeanVM.Guest.Budget.GuestChildComplete} & \ref{sec:guest}\\
+\lean{batchSound} & \lean{LeanVM.Guest.Batch.BatchingSound} & \ref{sec:guest}\\
 \lean{leanXmss} & \lean{LeanXmss.Rpm.LeanXmssStronglyUnforgeable} & \ref{sec:schemes}\\
 \lean{leanSphincs} & \lean{Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable} & \ref{sec:schemes}\\
 \lean{leanDaComplete} & \lean{LeanDa.PerfectlyCompleteRpm} & \ref{sec:schemes}\\
 \lean{leanDaPositionBinding} & \lean{LeanDa.PositionBindingRpm} & \ref{sec:schemes}\\
 \lean{leanDaCodeBinding} & \lean{LeanDa.CodeBindingRpm} & \ref{sec:schemes}\\
-\lean{guestKnowledge} & \texttt{LeanVM.Node.GuestKnowledge guest D} & \ref{sec:guest}\\
-\lean{digestBinds} & \lean{LeanVM.Node.DigestBinds} & \ref{sec:guest}\\
-\lean{batchSound} & \lean{LeanVM.Guest.Batch.BatchingSound} & \ref{sec:guest}\\
-\lean{guestCompleteCovered} & \lean{LeanVM.Guest.Budget.GuestCompleteCovered} & \ref{sec:guest}\\
-\lean{guestChildComplete} & \lean{LeanVM.Guest.Budget.GuestChildComplete} & \ref{sec:guest}\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -120,11 +120,11 @@ costs are included in the bounds below.
 
 \section{The zkVM: knowledge soundness and completeness}\label{sec:zkvm}
 
-\paragraph{What a proof claims.} A proof claims that a program $P$ (leanVM bytecode) runs to
-completion on a public input $x$. A \emph{valid execution} of $P$ on $x$ (\lean{ValidExecution},
+\paragraph{What a proof claims.} A proof claims that a program $\mathit{prog}$ (leanVM bytecode) runs to
+completion on a public input $x$. A \emph{valid execution} of $\mathit{prog}$ on $x$ (\lean{ValidExecution},
 \lean{Statement/LeanIsa.lean}) is a memory of $2^\kappa$ words, $2^{16} \le 2^\kappa \le 2^{32}$,
-holding $x$ in words $0$ and $1$, together with a number of steps that run $P$ on it from
-$(\mathit{pc}, \mathit{fp}) = (1, 1)$ to the final state $(g^{N-1}, 1)$, where $N$ is the
+holding $x$ in words $0$ and $1$, together with a number of steps that run $\mathit{prog}$ on it from
+$(\mathit{pc}, \mathit{fp}) = (1, 1)$ to the final state $(g^{N_{\mathit{prog}}-1}, 1)$, where $N_{\mathit{prog}}$ is the
 bytecode's size: the last bytecode slot, in \texttt{main}'s frame. The machine halts when both
 registers equal the final state's, checked before each step. This is exactly the state the
 verifier's state bus checks for, so knowledge soundness needs no condition on the program.
@@ -136,7 +136,7 @@ slack of about one leanXMSS signature's encoding), run on the encoded statement,
 and proof within a budget read off the announced shape (\lean{extractorPrice}, a closed formula:
 about $2^{117.67} + 2^{14.7} N \log^2 N$ ($O(N\log^3 N)$ as $N$ grows) operations at the worst
 shape for $N$ permutation queries,
-polylogarithmic per query: $2^{117.67}$ for $N \le 2^{40}$, the list decoder dominating, and
+polylogarithmic per query: $2^{117.67}$ for $N \le 2^{80}$, the list decoder dominating, and
 $2^{156.69}$ at $N = 2^{128}$, the transcript's index dominating, where the soundness bound is
 already trivial), its output
 parsed as an execution; a run out of budget outputs nothing, which counts as a break. The
@@ -175,12 +175,12 @@ concrete reduction cost for the collision clauses below.
 
 \paragraph{Knowledge soundness} (\lean{LeanVM.KnowledgeSoundness}). In the experiment
 (\lean{soundnessExperiment}), an adversary $\mathcal{A}$ with oracle access to $\pi$ and $\pi^{-1}$
-outputs a program $P$, a public input $x$ and a proof, and the verifier checks it with Keccak-256
+outputs a program $\mathit{prog}$, a public input $x$ and a proof, and the verifier checks it with Keccak-256
 the sponge over $\pi$ and Keccak-f the permutation $\pi$. For every adversary making at most
 $Q \le 2^{128}$ queries to $\pi$ and $\pi^{-1}$ on every path,
 \[
-\boxed{\ \Pr\left[\begin{array}{l}\text{the verifier accepts } (P,x,\text{proof}) \text{ and the}\\
-\text{extractor outputs no valid execution of } P \text{ on } x\end{array}\right]
+\boxed{\ \Pr\left[\begin{array}{l}\text{the verifier accepts } (\mathit{prog},x,\text{proof}) \text{ and the}\\
+\text{extractor outputs no valid execution of } \mathit{prog} \text{ on } x\end{array}\right]
 \le (Q+2^{14})\cdot 2^{-128} + 5\,(Q+2^{14})^2\cdot 2^{-256}\ }
 \]
 (\lean{LeanVM.knowledgeSoundness_holds}). The constant $2^{14}$ absorbs the verifier's $12006$
@@ -196,7 +196,7 @@ search within its fuel, and it sees hash answers only as the challenges the veri
 the test corpus ($17$ programs at $4$ rates) its proofs are byte-identical to the Rust prover's,
 and both verifiers reject every mutation of them.
 
-For every program $P$, public input $x$ and valid execution of $P$ on $x$ of committed size at
+For every program $\mathit{prog}$, public input $x$ and valid execution of $\mathit{prog}$ on $x$ of committed size at
 most $2^{28}$ cells, at every inverse rate $2^\rho$ with $1 \le \rho \le 4$, trying $2^{25}$ nonces
 per proof of work,
 \[
@@ -469,7 +469,8 @@ is, so it needs no pair of its own.
 Steps 2 and 3 are facts about $G$'s code and the digest: no oracle, no probability, and Keccak is
 the deployed function $G$ computes.
 
-\paragraph{Chained.} Steps 1 and 2 give \lean{aggregate_knowledge} (\lean{lean_vm}): except with
+\paragraph{Chained.} Steps 1 and 2 give \lean{aggregate_knowledge} (\lean{lean_vm}, for
+\lean{lean_vm}'s \lean{transcriptExtractor} and \lean{decode}): except with
 probability $\varepsilon(Q)$, an accepted proof of $G$ on any $x$ yields an execution whose
 decoding $(\sigma', s', w')$ has $\mathrm{dig}_{\sigma'}(s') = x$ and
 $\mathrm{NodeRel}(B, \sigma', s', w')$. Step 3 with $(\sigma_0, s_0) = (iv_G, s)$ then gives
@@ -481,7 +482,8 @@ extracted execution $t$ \emph{explains} $s$ (\lean{ExplainsStatement}):
 \item the decoded seed and statement, with $(iv_G, s)$, give a Keccak-256 collision among the
 three pairs.
 \end{itemize}
-For one execution, step 3 alone is \lean{decode_binds} (\lean{lean_vm}).
+For one execution and \lean{lean_vm}'s decoder \lean{decode}, steps 2 and 3 together are
+\lean{decode_binds} (\lean{lean_vm}).
 
 Two Keccaks meet here. The verifier of step 1 runs on $\pi$: Keccak-256 is the sponge over $\pi$,
 and Keccak-f is $\pi$. The digest, \lean{NodeRelation} (the children's proofs, the signatures, the
@@ -490,44 +492,49 @@ not an event of small probability: it is a concrete pair of inputs, read off $t$
 the deployed Keccak-256 collides.
 
 \paragraph{Why a decoder.} \lean{GuestKnowledge} could have said only that some
-$(\sigma', s', w')$ exists (\lean{guest_sound} in \lean{lean_vm} proves that too). It says more: the witness is
-computed \emph{from} the execution, by a program within a budget. That is what makes the extracted
-execution knowledge of a witness. But a decoder given as a Lean function may use classical
-choice, and one that simply chose
-some triple satisfying the conclusion would make \lean{GuestKnowledge} no stronger than the
-existential. The statement is only as strong as its decoder, so the decoder is a parameter of the
-same kind as the extractor: a cost-machine program $D$ (\lean{Statement/Theorems.lean}) of
-size at most \lean{guestDecoderSizeBound} (its literals, the guest program's per-function tables,
-counted in full), run within \lean{guestDecoderBudget} on the encoded program and execution
-(\lean{encodeDecoderInput}), whose output must be the encoding (\lean{encodeValue}) of a
-decoding that explains the input; there is no parse, and the encoding is injective
-(\lean{encodeValue_decoded_injective}, \lean{lean_vm}). A program chooses nothing. The statement
-accepts any program that computes the witness from the execution within the budget, not only one
-that reads it off the memory: the decoder's analog of the extractor, of which the statement asks
-only that a program compute an execution within its budget. The price (\lean{guestDecoderPrice})
-is a closed-form upper bound \lean{lean_vm} proves on the compiled decoder's price, as
-\lean{extractorPrice} is on the extractor's: per step $2^{21.9}$ to $2^{22.0}$ (the replay and
-the filing of the state in a sorted array, its share of one sort, growing as $\log$ of the
-steps), so $O(\mathit{steps}\cdot\log\mathit{steps})$, with no term in the memory's or the
-program's size, and a constant of about $2^{47.04}$ with about $2^{26.57}$ frame lookups, the
-witness read at the counts a valid execution bounds ($G$'s own asserts: at most $16$ children,
-$65535$ claims and $65535$ slots; the DA matrix's rows clamped at $1024$), dominated by the
-children's cursor lengths ($16\cdot 2^{32}$: no assert of $G$ bounds them) and the memory's
-address tables ($2614\cdot 2^{33}$). At $\kappa = 32$ and $\ell = 19$ the budget is $2^{47.07}$
-at $2^{10}$ steps, $2^{47.12}$ at $2^{20}$, $2^{52.00}$ at $2^{30}$, $2^{73.00}$ at $2^{51}$ and
-$2^{82.02}$ at $2^{60}$; the constant dominates up to about $2^{25}$ steps, so below that the
-budget is far above the compiled decoder's price. There is no cap on the steps in the budget. A
-valid execution of $G$ (\lean{ValidExecution}) has fewer than $2^{51}$ steps by the argument
-that no state $(pc, fp)$ repeats ($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 32$;
-argued, not a Lean theorem). The size bound, $785500$, limits any program; it is the compiled
-decoder's size, $785092$ (proved exactly), and a slack of $408$, measured against that decoder:
-room for one leanXMSS signature's encoding ($309$) but not two, so no useful table of witnesses
-(hard-coded signatures that would mask a bug of $G$ on finitely many statements) fits beside its
-code. It does not bound what a program written differently could hold: the guest's frame-cell
-table ($749835$ of the size, cells below $2^{20}$) packs to about a third, three cells
-to a limb, freeing room for about $1600$ signatures' encodings. A program that output another
-statement of the same digest would exhibit a
-Keccak-256 collision; what excludes it is that none is known.
+$(\sigma', s', w')$ exists (\lean{guest_sound} in \lean{lean_vm} proves that too). It says more:
+the witness is computed \emph{from} the execution, by a program within a budget. That is what
+makes the extracted execution knowledge of a witness. But a decoder given as a Lean function may
+use classical choice, and one that simply chose some triple satisfying the conclusion would make
+\lean{GuestKnowledge} no stronger than the existential. The statement is only as strong as its
+decoder, so the decoder is a parameter of the same kind as the extractor: a cost-machine program
+$D$ (\lean{Statement/Theorems.lean}) of size at most \lean{guestDecoderSizeBound} (its literals,
+the guest program's per-function tables, counted in full), run within \lean{guestDecoderBudget}
+on the encoded program and execution (\lean{encodeDecoderInput}), whose output must be the
+encoding (\lean{encodeValue}) of a decoding that explains the input; there is no parse, and the
+encoding is injective (\lean{encodeValue_decoded_injective}, \lean{lean_vm}). A program chooses
+nothing. The statement accepts any program that computes the witness from the execution within
+the budget, not only one that reads it off the memory, just as it asks of the extractor program
+only that it compute a valid execution within its budget. A program that output another
+statement of the same digest would exhibit a Keccak-256 collision; what excludes it is that none
+is known.
+
+\paragraph{The decoder's budget.} The budget's formula (\lean{guestDecoderPrice}) is a closed-form upper
+bound \lean{lean_vm} proves on the compiled decoder's price, as \lean{extractorPrice} is on the
+extractor's: per step $2^{21.9}$ to $2^{22.0}$ (the replay and the filing of the state in a
+sorted array, its share of one sort, growing as $\log$ of the steps), so
+$O(\mathit{steps}\cdot\log\mathit{steps})$, with no term in the memory's or the program's size,
+and a constant of about $2^{47.04}$ with about $2^{26.57}$ frame lookups, the witness read at the
+counts a valid execution bounds ($G$'s own asserts: at most $16$ children, $65535$ claims and
+$65535$ slots; the DA matrix's rows clamped at $1024$), dominated by the children's cursor
+lengths ($16\cdot 2^{32}$: no assert of $G$ bounds them) and the memory's address tables
+($2614\cdot 2^{33}$). At $\kappa = 32$ and $\ell = 19$ the budget is $2^{47.07}$ at $2^{10}$
+steps, $2^{47.12}$ at $2^{20}$, $2^{52.00}$ at $2^{30}$, $2^{73.00}$ at $2^{51}$ and $2^{82.02}$
+at $2^{60}$; the constant dominates up to about $2^{25}$ steps, so below that the budget is far
+above the compiled decoder's price. There is no cap on the steps in the budget. A valid execution
+of $G$ (\lean{ValidExecution}) has fewer than $2^{51}$ steps: the memory is fixed and every
+instruction reads a cell at $\mathit{fp}\cdot o$ for an offset $o$ fixed by $\mathit{pc}$, so at
+each $\mathit{pc}$ at most $2^\kappa$ values of $\mathit{fp}$ let a step succeed; the run is
+determined by $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
+($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 32$; argued, not a Lean theorem).
+
+\paragraph{The decoder's size bound.} The bound (\lean{guestDecoderSizeBound}, $785500$)
+limits any program; it is the compiled decoder's size, $785092$ (proved exactly), and a slack of
+$408$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no
+useful table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many
+statements) fits there. It does not bound what a program written differently could hold: the
+guest's frame-cell table ($749835$ of the size, cells below $2^{20}$) packs to about a third,
+three cells to a limb, freeing room for about $1600$ signatures' encodings.
 
 The proofs' decoder is \lean{LeanVM.Guest.End.decode}, defined in \lean{lean_vm}; a program
 computing it gives \lean{GuestKnowledge} (\lean{guestKnowledge_of_decode}, \lean{lean_vm}). It replays the run:
@@ -718,7 +725,10 @@ bounds and budgets; the end theorem holds at \lean{lean_vm}'s compiled
 \lean{LeanVM.Guest.End.decode} and \lean{transcriptExtractor} (\lean{LeanVM.Cost.decoderProgram},
 \lean{LeanVM.Cost.extractorProgram}).
 \item That the extracted execution is the one the proof commits to: \lean{KnowledgeSoundness}
-asks only for some valid execution of $P$ on $x$, and \lean{AggregateSound} decodes that one.
+asks only for some valid execution of $\mathit{prog}$ on $x$, and \lean{AggregateSound} decodes that one.
+\item That a valid execution of $G$ has fewer than $2^{51}$ steps (Section~\ref{sec:guest}):
+argued, not a Lean theorem; the decoder's budget has no cap on the steps, and its constant, about
+$2^{47.04}$, prices the children's cursors and the memory's address tables at their maxima.
 \item The Rust verifier, prover and guests. They are tested against the Lean specification: the
 verifier differential fuzz; the prover differential (the Lean prover's proofs byte-identical to the
 Rust prover's, accepted by both verifiers, every mutation rejected by both), which does not yet

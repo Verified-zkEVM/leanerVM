@@ -181,7 +181,7 @@ states it for the extractor a cost-machine program computes within its budget
 (`LeanVM.extractorOf`, `CostMachine.lean`). The extractor must output some valid execution of the
 program on the input; nothing requires it to be the execution the proof commits to (its
 committed word). For a program with several valid executions on one input, the one extracted may
-differ, and `GuestKnowledge` then decodes that one. -/
+differ, and `AggregateSound` (`Corollaries.lean`) then decodes that one. -/
 def KnowledgeSoundness (extractor : StraightLineExtractor) : Prop :=
   ∀ (A : RandomPermutationAdversary) (Q : ℕ),
     Common.QueryCostAtMost A Common.permutationCallCost Q → Q ≤ 2 ^ 128 →

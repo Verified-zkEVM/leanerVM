@@ -9,7 +9,7 @@ End statements that follow from `Statement.Theorems`, stated in their composed f
 accepted proof of the leanISA guest program establishes (`AggregateSound`), and the guest program's
 completeness on the two simplest families of covered nodes (`GuestCompleteRecursion`,
 `GuestCompleteLeaf`). `lean_vm` proves `LeanVM.corollaries_of_theorems`, that
-`Statement.Theorems` implies `Statement.Corollaries` for the same decoder and extractor programs,
+`Statement.Theorems` implies `Statement.Corollaries` for the same extractor and decoder programs,
 from the fields of `Theorems` alone, and `LeanVM.corollaries_hold`. A reviewer who trusts
 `Theorems` need not read this file.
 -/

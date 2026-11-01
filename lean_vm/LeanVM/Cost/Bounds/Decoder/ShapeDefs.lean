@@ -8,7 +8,7 @@ public import Statement.CostMachine
 
 The bounds the decoder's proofs (`Bounds/Decoder/*.lean`) establish, from Roth–Ruckenstein's
 nodes and the roots in `K` up to `decoderBound`, and `DecoderShapeOk` (`DecoderLaneSizes` and the
-decoder's bound at most `decoderWorstPrice`), which `Bounds/DecoderShapes.lean` decides at each
+decoder's bound at most `listDecoderWorstPrice`), which `Bounds/DecoderShapes.lean` decides at each
 admissible shape by kernel evaluation. They are here, apart from their proofs, so that those
 checks import only what they evaluate (the extractor's parameter search and these numbers): an
 edit of a proof rebuilds no check (`Bounds/DecoderShapesFirewall.lean` guards it).
@@ -200,7 +200,7 @@ most `2^18` survivors), a stack per survivor. -/
 /-- What the decoder's bound needs at a shape, and its value at most the worst. -/
 @[expose] def DecoderShapeOk (μ R : ℕ) : Prop :=
   DecoderLaneSizes (μ - Whir.initialFold) R (johnsonThreshold μ R) ∧
-    decoderBound μ R 0 0 ≤ decoderWorstPrice
+    decoderBound μ R 0 0 ≤ listDecoderWorstPrice
 
 instance (μ R : ℕ) : Decidable (DecoderShapeOk μ R) := by
   unfold DecoderShapeOk; infer_instance

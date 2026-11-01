@@ -240,8 +240,8 @@ theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProg
     {decoder : LeanVM.Semantics.Execution LeanVM.Guest.guest → LeanVM.Node.Decoded}
     (hspec : LeanVM.Guest.End.DecoderProgramSpec decoderProgram decoder)
     (hexplains : LeanVM.Guest.End.DecoderExplains decoder) :
-    Statement.Theorems (decoderProgram := decoderProgram)
-      (extractorProgram := LeanVM.Cost.extractorProgram) where
+    Statement.Theorems (extractorProgram := LeanVM.Cost.extractorProgram)
+      (decoderProgram := decoderProgram) where
   decoderSize := hspec.size
   extractorSize := LeanVM.Cost.extractorProgram_size_le
   knowledgeSoundness := by
@@ -269,8 +269,8 @@ the memory) within its size bound and budget on every valid execution: that hypo
 theorem LeanVM.theorems_hold_of_decode {decoderProgram : LeanVM.Cost.MachineProgram}
     (hspec : LeanVM.Guest.End.DecoderProgramSpec decoderProgram
       fun t ↦ LeanVM.Guest.End.decode t.memory) :
-    Statement.Theorems (decoderProgram := decoderProgram)
-      (extractorProgram := LeanVM.Cost.extractorProgram) :=
+    Statement.Theorems (extractorProgram := LeanVM.Cost.extractorProgram)
+      (decoderProgram := decoderProgram) :=
   LeanVM.theorems_of_decoderSpec hspec LeanVM.Guest.End.decoderExplains_decode
 
 /-- info: 'LeanVM.theorems_hold_of_decode' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -282,8 +282,8 @@ decoder `LeanVM.Cost.decoderProgram`, its price within its budget
 (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`), the extractor
 `LeanVM.Cost.extractorProgram`. -/
 theorem LeanVM.theorems_hold :
-    Statement.Theorems (decoderProgram := LeanVM.Cost.decoderProgram)
-      (extractorProgram := LeanVM.Cost.extractorProgram) :=
+    Statement.Theorems (extractorProgram := LeanVM.Cost.extractorProgram)
+      (decoderProgram := LeanVM.Cost.decoderProgram) :=
   LeanVM.theorems_hold_of_decode
     (LeanVM.Cost.decoderProgram_spec LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget)
 
@@ -301,8 +301,8 @@ theorem LeanVM.theorems_hold :
 
 /-- The end theorems' statement, pinned: the programs named, no hypothesis. -/
 example :
-    Statement.Theorems (decoderProgram := LeanVM.Cost.decoderProgram)
-      (extractorProgram := LeanVM.Cost.extractorProgram) :=
+    Statement.Theorems (extractorProgram := LeanVM.Cost.extractorProgram)
+      (decoderProgram := LeanVM.Cost.decoderProgram) :=
   LeanVM.theorems_hold
 
 open OracleComp in
@@ -311,11 +311,11 @@ open OracleComp in
 execution decodes, by `guestKnowledge`, to a statement of the accepted digest, which `digestBinds`
 identifies with the accepted statement or turns into a collision), the completeness on recursion
 nodes and leaves from `guestCompleteCovered` (the first two families of `CoveredNode`). -/
-theorem LeanVM.corollaries_of_theorems {decoderProgram extractorProgram : LeanVM.Cost.MachineProgram}
-    (h : Statement.Theorems (decoderProgram := decoderProgram)
-      (extractorProgram := extractorProgram)) :
-    Statement.Corollaries (decoderProgram := decoderProgram)
-      (extractorProgram := extractorProgram) where
+theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM.Cost.MachineProgram}
+    (h : Statement.Theorems (extractorProgram := extractorProgram)
+      (decoderProgram := decoderProgram)) :
+    Statement.Corollaries (extractorProgram := extractorProgram)
+      (decoderProgram := decoderProgram) where
   aggregateSound := by
     intro A Q hA hQ
     refine le_trans (prEvent_mono _ _ _ ?_) (h.knowledgeSoundness A Q hA hQ)
@@ -347,8 +347,8 @@ theorem LeanVM.corollaries_of_theorems {decoderProgram extractorProgram : LeanVM
 /-- **Every corollary**, `Statement/Corollaries.lean`, for the compiled decoder and extractor
 programs. -/
 theorem LeanVM.corollaries_hold :
-    Statement.Corollaries (decoderProgram := LeanVM.Cost.decoderProgram)
-      (extractorProgram := LeanVM.Cost.extractorProgram) :=
+    Statement.Corollaries (extractorProgram := LeanVM.Cost.extractorProgram)
+      (decoderProgram := LeanVM.Cost.decoderProgram) :=
   LeanVM.corollaries_of_theorems LeanVM.theorems_hold
 
 /-- info: 'LeanVM.corollaries_hold' depends on axioms: [propext, Classical.choice, Quot.sound] -/

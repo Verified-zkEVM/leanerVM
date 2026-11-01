@@ -22,7 +22,7 @@ The price of `decodeStacksDistinct μ R W` (`Fast/DecodeAdmissible.lean`, compil
   (`stackOf_cost`): **`decodeStacksDistinctC_cost`** `≤ decoderBound μ R BW Lw`, `BW` the word's
   price per column and `Lw` its symbols per column;
 * at every admissible shape: **`decodeStacksDistinctC_cost_worst`**, at most
-  `(BW + 10·Lw)·2^26 + decoderWorstPrice`.
+  `(BW + 10·Lw)·2^26 + listDecoderWorstPrice`.
 
 `DecoderLaneSizes` (the lanes' parameters word-sized) is a hypothesis, decided per shape
 (`Bounds/DecoderShapes.lean`, with the bounds at the worst shape `(28, 4)`).
@@ -283,14 +283,14 @@ theorem decoderBound_eq (μ R BW Lw : ℕ) :
 
 /-! ## At every admissible shape -/
 
-/-- **The decoder at every admissible shape**: at most `(BW + 10·Lw)·2^26 + decoderWorstPrice`
+/-- **The decoder at every admissible shape**: at most `(BW + 10·Lw)·2^26 + listDecoderWorstPrice`
 (`decoderShape_ok`, `Bounds/DecoderShapes.lean`). -/
 theorem decodeStacksDistinctC_cost_worst (hP : Includes P decodeStacksDistinctC.costDeps)
     {μ R : ℕ} (hadm : Whir.Admissible μ R)
     (W : ℕ → List K) (WVal : MachineValue) (hW : ∀ a, RunsApp P WVal [encodeValue a] (encodeValue (W a))) {BW Lw : ℕ}
     (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [encodeValue v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
     machineCost P decodeStacksDistinctC.costIdx [encodeValue μ, encodeValue R, WVal] ≤
-      (BW + 10 * Lw) * 2 ^ 26 + decoderWorstPrice := by
+      (BW + 10 * Lw) * 2 ^ 26 + listDecoderWorstPrice := by
   obtain ⟨hsz, hle⟩ := decoderShape_ok hadm
   have h := decodeStacksDistinctC_cost P hP μ R hadm hsz W WVal hW hBW hLw
   rw [decoderBound_eq] at h
