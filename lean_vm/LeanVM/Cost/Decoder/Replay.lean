@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Decoder.Witness
+public import LeanVM.Cost.Decoder.Memory
 public import LeanVM.Guest.Located.ReplayFast
 public import LeanVM.Protocol.Extraction.Fast.RunVec
 import all Statement.LeanIsa
@@ -18,6 +18,8 @@ The decoder finds each callee's frame by replaying the run from `(g^0, 1)` over 
   recursive on the fuel (measure: the fuel);
 * `replayStatesOf memT codeT prog mem`: the replay of the run from `(g^0, 1)` over `replayFuel`,
   the final registers `Registers.final prog` computed once.
+  The fuel `replayFuel` (`2^128`) is compiled under a name of its own (`replayFuelC`), which the
+  bounds name.
 
 `Equations.lean`: `replayStatesOf_eq : replayStatesOf memT codeT prog mem =
 statesTable memT codeT prog mem.get replayFuel ⟨gpow 0, 1⟩`.
@@ -59,6 +61,8 @@ def replayStatesOf (memT codeT : Array (ℕ × ℕ)) (prog : Program) {κ : ℕ}
     (mem : Vector E (2 ^ κ)) : List (Registers K) :=
   statesVec memT codeT prog mem (Registers.final prog) replayFuel ⟨gpow 0, 1⟩
 
+-- the fuel, under a name of its own (its name then does not depend on the program's indices)
+cost_compile replayFuelC := replayFuel
 cost_compile statesVecC measure fun _ _ _ _ _ _ n _ ↦ n := statesVec
 cost_compile replayStatesOfC := replayStatesOf
 
