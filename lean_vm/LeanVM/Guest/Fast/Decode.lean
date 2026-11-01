@@ -9,7 +9,7 @@ public import LeanVM.Guest.EndFinal
 
 `decode` (`Guest/EndFinal.lean`) reads `main`'s witness through the replayed frame map
 `Located.frameVFast`, keyed by the callee's name: it looks the call up in the entry table at the
-name's index (`Located.nameIndex`) and reads the frame through the certificate of that name.
+name's index (`nameIndex`) and reads the frame through the certificate of that name.
 
 * `frameVFastN pre states rd j`: the same lookup keyed by the index `j` (through `canonIndex`),
   no name read; `frameVFastN_eq`: it is `frameVFast` at `decoderFunctionName j`, for every `j`;
@@ -36,22 +36,18 @@ noncomputable def frameVFastN (pre : ℕ → K → Bool) (states : List (Registe
     | some fp => fun v ↦ wordWith rd fp ((certOf (canonIndex j)).locs.getD v.idx 0)
     | none => fun _ ↦ 0
 
-theorem nameIndex_eq : nameIndex = decoderFunctionIndex := rfl
-
 /-- **Keyed by index, the replayed frame map is the one keyed by name.** -/
 theorem frameVFastN_eq (pre : ℕ → K → Bool) (states : List (Registers K)) (rd : Reader) (j : ℕ) :
     frameVFastN pre states rd j = frameVFast pre states rd (decoderFunctionName j) := by
-  have h1 : nameIndex (decoderFunctionName j) = canonIndex j := decoderFunctionIndex_name j
-  have h2 : certByName (decoderFunctionName j) = certOf (canonIndex j) :=
-    congrArg certOf (decoderFunctionIndex_name j)
+  have h1 : nameIndex (decoderFunctionName j) = canonIndex j := nameIndex_decoderFunctionName j
+  have h2 : certByName (decoderFunctionName j) = certOf (canonIndex j) := congrArg certOf h1
   unfold frameVFastN frameVFast
   rw [h1, h2]
   funext args rets
   cases (entryTable pre states rd).get? (callKey (canonIndex j) args rets) <;> rfl
 
 /-- **The deployed decoder reads the frames by index**, through the restated readers, the
-cursor's length by any discrete logarithm `dl` (`discreteLog`, `discreteLogWith discreteLogTables`,
-`Fast/DiscreteLog.lean`). -/
+cursor's length by any discrete logarithm `dl` (`discreteLog`, `Fast/DiscreteLog.lean`). -/
 theorem decode_eq_numbered {dl : K → Option ℕ} (hdl : DiscreteLogSpec dl) {κ : ℕ}
     (L : MemoryImage κ) :
     End.decode L =

@@ -29,9 +29,9 @@ every nonzero `x : K` is `g^n` for exactly one `n < 2^64 - 1`. `discreteLog x` f
 * `discreteLog` returns `n` when `g^n = x` (`logCheck`) and `none` otherwise, so it is sound
   whatever the searches found.
 
-**`discreteLog_spec`** (the decoder's `DiscreteLogSpec`): `discreteLog x = some n ↔ gpow n = x ∧
-n < 2^64 - 1`; so `discreteLog_sound`, `discreteLog_complete`, `discreteLog_gpow`
-(`discreteLog (g^n) = some (n % (2^64-1))`) and `discreteLog_zero`.
+**`discreteLog_eq_some_iff`** (the decoder's `DiscreteLogSpec`, `Guest/Fast/DiscreteLog.lean`):
+`discreteLog x = some n ↔ g^n = x ∧ n < 2^64 - 1` (so `discreteLog (g^n) = some (n % (2^64-1))`,
+and `0`, no power of `g`, has none).
 
 The baby-step tables do not depend on `x`: `discreteLogWith T x` takes them built
 (`discreteLogTables`), and `discreteLog x` is `discreteLogWith discreteLogTables x`. Prices on the
@@ -131,8 +131,6 @@ makes it reduce a `match` on `discreteLog x`. -/
 
 /-- **The discrete logarithm to base `g`**: `discreteLogWith` in the tables `discreteLogTables`. -/
 @[expose] def discreteLog (x : K) : Option ℕ := discreteLogWith discreteLogTables x
-
-theorem discreteLogWith_tables (x : K) : discreteLogWith discreteLogTables x = discreteLog x := rfl
 
 /-! ## The baby steps -/
 
@@ -252,7 +250,7 @@ theorem bsgs_complete {b c : K} {s t d : ℕ} (hc : b ^ s * c = 1) (hd : d < s *
 /-! ## A residue -/
 
 /-- **The residue modulo `p`** of the exponent of `g^m` is `m % p`, for `q·p = 2^64 - 1`,
-`b = g^q`, `b^s·c = 1` and `p ≤ s²`. -/
+`b = g^q`, `b^s·c = 1` and `p ≤ s·t`. -/
 theorem phResidue_gpow {q p s t : ℕ} {b c : K} (hb : b = g ^ q) (hqp : q * p = 2 ^ 64 - 1)
     (hc : b ^ s * c = 1) (hs : p ≤ s * t) (m : ℕ) :
     phResidue q p s t (babyTable b s) c (g ^ m) = m % p := by
@@ -334,7 +332,7 @@ theorem phResidue6700417 (m : ℕ) :
     (by norm_num) m
 
 /-- **`discreteLog` is the exponent below the order**: `discreteLog x = some n` exactly when
-`g^n = x` and `n < 2^64 - 1`. -/
+`g^n = x` and `n < 2^64 - 1` (the decoder's interface, `DiscreteLogSpec`). -/
 theorem discreteLog_eq_some_iff {x : K} {n : ℕ} :
     discreteLog x = some n ↔ g ^ n = x ∧ n < 2 ^ 64 - 1 := by
   constructor
@@ -349,35 +347,8 @@ theorem discreteLog_eq_some_iff {x : K} {n : ℕ} :
     · exact absurd h (by simp)
   · rintro ⟨rfl, hn⟩
     simp only [discreteLog, discreteLogWith, pow_ne_zero n g_ne_zero, phCandidate, phResidue3,
-      phResidue5,
-      phResidue17, phResidue257, phResidue641, phResidue65537, phResidue6700417, crtCombine_mod hn,
-      logCheck, ↓reduceIte]
-
-/-- **The interface the decoder needs** (`DiscreteLogSpec`): for every `x` and `n`,
-`discreteLog x = some n ↔ gpow n = x ∧ n < 2^64 - 1`. -/
-theorem discreteLog_spec :
-    ∀ x n, discreteLog x = some n ↔ gpow n = x ∧ n < 2 ^ 64 - 1 :=
-  fun _ _ ↦ discreteLog_eq_some_iff
-
-/-- **Soundness**: what `discreteLog` returns is an exponent of `x` below the order. -/
-theorem discreteLog_sound {x : K} {n : ℕ} (h : discreteLog x = some n) :
-    g ^ n = x ∧ n < 2 ^ 64 - 1 :=
-  discreteLog_eq_some_iff.1 h
-
-/-- **Completeness**: an exponent of `x` below the order is what `discreteLog` returns. -/
-theorem discreteLog_complete {x : K} {n : ℕ} (hx : g ^ n = x) (hn : n < 2 ^ 64 - 1) :
-    discreteLog x = some n :=
-  discreteLog_eq_some_iff.2 ⟨hx, hn⟩
-
-/-- The logarithm of a power: its exponent modulo the order. -/
-theorem discreteLog_gpow (n : ℕ) : discreteLog (g ^ n) = some (n % (2 ^ 64 - 1)) :=
-  discreteLog_complete (by rw [← orderOf_g, pow_mod_orderOf]) (Nat.mod_lt _ (by norm_num))
-
-/-- `0` has no logarithm. -/
-theorem discreteLog_zero : discreteLog 0 = none := by
-  cases h : discreteLog 0 with
-  | none => rfl
-  | some n => exact absurd (discreteLog_sound h).1 (pow_ne_zero n g_ne_zero)
+      phResidue5, phResidue17, phResidue257, phResidue641, phResidue65537, phResidue6700417,
+      crtCombine_mod hn, logCheck, ↓reduceIte]
 
 end
 
