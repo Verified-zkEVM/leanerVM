@@ -27,7 +27,8 @@ open LeanVM.Protocol.Verifier LeanVM.Node LeanVM.Extraction.Fast
 /-- **The staged witness is `decWit`**, at the tables built. -/
 theorem decWitStaged_eq : decWitStaged discreteLogTables = decWit := by
   funext σ rd wX wS wD wV wA
-  unfold decWitStaged decWitAt nodeWitnessOf kidsAt xmssHoldersAt sphincsHoldersAt xmssHolder
+  rw [decWitStaged_eq_lists]
+  unfold nodeWitnessOf kidsAt xmssHoldersAt sphincsHoldersAt xmssHolder
     xmssHolderAt sphincsHolder sphincsHolderAt daWitness aggArgs decWit
   simp only [nKidsD_tables, decKidD_tables, markOfD_tables, nRawXD_tables, nRawSD_tables,
     lxSlotsD_tables, kidOfStaged_tables, nDirectD_tables, gLogD_tables]
