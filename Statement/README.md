@@ -38,10 +38,12 @@ and that the leanVM definitions transcribe their sources. Accepted trade-offs: t
 not name the extractor or decoder program (only their sizes and budgets); the decoder computes the
 witness from the execution; the extracted execution need not be the committed one; the decoder's
 budget has no cap on steps, grows as `steps·log steps` below `2^61` steps (`steps·log² steps` as
-they grow), and its constant (about `2^47.04`) prices the children's cursor lengths (`2^32` words
-each: no assert of the guest bounds them, and the price proof does not use the `8192` they are at
-most on a valid execution) and the address tables of the memory and the program at their maxima, not
-at the run's, so below about `2^25` steps the budget is far above the compiled decoder's price; that
+they grow), and its constant (`2^42.0` to `2^44.2`, the address tables at the execution's `κ` and
+the program's `ℓ` included) prices the witness at the bounds a valid execution's asserts and its
+children's accepted proofs give (`16` children, each with `65535` claims of each scheme and a cursor
+of `8192` words, `65535` declared claims of each scheme, `1024` rows of the DA matrix), not at the
+run's, so with fewer children and claims and below about `2^21` steps the budget is far above the
+compiled decoder's price; that
 a valid execution of the guest program has fewer than `2^51` steps is argued in prose, not proved in
 Lean; literal tables count toward size; the size bounds limit programs written like the compiled
 ones (a decoder written differently could pack the guest's tables tighter, about `1600` signatures'
@@ -277,7 +279,7 @@ execution within its budget. The program is that decoder compiled (`LeanVM.Cost.
 ## The guest decoder's size bound and budget
 
 **The size bound** (`guestDecoderSizeBound`, `785500`) limits any program; it is the compiled
-decoder's size, `785092` (proved at most that and measured exactly), and a slack of `408`: room for
+decoder's size, `785159` (proved at most that and measured exactly), and a slack of `341`: room for
 one leanXMSS signature's encoding (`309`) beside its code but not two, so no useful table of
 witnesses (hard-coded signatures masking a bug of the guest program on finitely many statements)
 fits there. That size counts the guest program's per-function tables, literals of the program, in
@@ -288,15 +290,19 @@ room for about `1600` signatures' encodings.
 **The budget** (`guestDecoderBudget`, the formula `guestDecoderPrice`) is a closed-form upper bound
 on the compiled decoder's price, proved as `extractorPrice` is for the extractor: a price per step
 of the run (the replay and the filing of the state in the table of function entries, its share of
-one sort, `2^21.9` to `2^22.0`, growing as `log(steps)`; no term in the memory's or the program's
-size), so `O(steps·log steps)` below `2^61` steps (`O(steps·log² steps)` as they grow), and a
-constant of about `2^47.04` with about `2^26.57` frame lookups, the witness read at the counts a
-valid execution bounds (the guest's own asserts: at most `16` children, `65535` claims of each
-scheme and `65535` coverage slots; the decoder clamps `da_verify`'s row count at `1024`), dominated
-by the children's cursor lengths (`16·2^32`) and the address tables of the memory and the program
-(`2614·2^33`, each at `2^32` entries). At `κ = 32` and `ℓ = 19`: `2^47.07` at `2^10` steps,
-`2^47.12` at `2^20`, `2^52.00` at `2^30`, `2^73.00` at `2^51`, `2^82.02` at `2^60`; the constant
-dominates up to about `2^25` steps. A valid execution of the guest program has fewer than `2^51`
+one sort, `2^20.9` to `2^21.1`, growing as `log(steps)`), so `O(steps·log steps)` below `2^61`
+steps (`O(steps·log² steps)` as they grow); the address tables of the memory and the program, at
+the execution's `κ` and the program's `ℓ` (`guestDecoderAddressTablesPrice κ ℓ = (70κ + 374)·2^κ +
+(70ℓ + 374)·2^ℓ + 48`, `2^31.36` at `κ = 20` and `2^43.35` at `κ = 32`, `ℓ = 19`); and the
+witness read at the counts and the cursors a valid execution bounds
+(`guestDecoderWitnessPriceAtValidCounts ≈ 2^38.59`: the guest's own asserts give at most `16`
+children, `65535` claims of each scheme and `65535` coverage slots, `valid_counts`; each child's
+cursor is at most `8192` words, as its proof's stream is, which the deferring verifier accepts on a
+valid execution, `valid_cursor`; the decoder clamps `da_verify`'s row count at `1024`), with about
+`2^26.57` frame lookups (`2^41.90` in all at `2^20` steps). At `ℓ = 19`: `2^42.60` at `κ = 20` and `2^20`
+steps, `2^45.18` at `κ = 24` and `2^24`, `2^49.02` at `κ = 28` and `2^28`, `2^51.03` at `κ = 32`
+and `2^30`, `2^72.10` at `κ = 32` and `2^51`, `2^81.14` at `κ = 32` and `2^60`; the constant
+dominates up to about `2^21` steps at `κ ≤ 28` and `2^23` at `κ = 32`. A valid execution of the guest program has fewer than `2^51`
 steps: the memory is fixed and every instruction reads a cell at `fp·o` for an offset `o` fixed by
 `pc`, so at each `pc` at most `2^κ` values of `fp` let a step succeed; the run is determined by
 `(pc, fp)`, and a repeated state would loop without halting (`2^ℓ·2^κ` states, `ℓ = 19`, `κ ≤ 32`;
