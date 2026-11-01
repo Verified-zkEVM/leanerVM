@@ -10,7 +10,7 @@ import all LeanVM.Protocol.Extraction.Extractor
 
 The leaves of the committed tree under a root, read through the preimage index
 (`subtreeLeavesWith (preimageIn idx)`, `Fast/Lookup.lean`, the fast extractor's form of the
-statement's `committedLeaves`): the recursion over the tree's height, the lookups in the sorted
+extractor's `committedLeaves`): the recursion over the tree's height, the lookups in the sorted
 map (`SortedMap.get?`, the binary search `searchIn`), and the byte strings read as words
 (`bytesWords`, `splitNode`). One `cost_compile` line, a measure for the binary search, and one
 rewrite (`bytesDigest` through an array); the rest the compiler finds.

@@ -9,7 +9,7 @@ public import Mathlib.Algebra.Order.Floor.Ring
 # The natural Johnson threshold and the GS parameter certificate (proofs)
 
 * `ceil_sqrt_eq_ceilSqrt`: `⌈√x⌉₊ = ceilSqrt x`.
-* `johnsonThreshold_eq_real`: the natural `johnsonThreshold` equals the statement's real form
+* `johnsonThreshold_eq_real`: the natural `johnsonThreshold` equals the real form the statement had
   `⌈(√(D/n) + η)·n⌉₊` (`johnsonThresholdReal`, a copy of `Statement/Extractor.lean:157` at `8e8e4d2f`).
 * `gsNumVars_eq`, `gsNumConstraints_eq`, `gsPass_iff`: the closed forms are ArkLib's
   `numVars`, `numConstraints`, and the check is `GSParamCert`.

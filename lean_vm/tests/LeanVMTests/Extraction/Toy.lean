@@ -3,7 +3,7 @@ import LeanVM.Protocol.Extraction.Defs
 /-!
 # Tests: the extractor's decoder and Merkle inversion on toy codes
 
-Executable checks (`#guard`) of the statement's extractor pieces (`Statement/Extractor.lean`) on
+Executable checks (`#guard`) of the knowledge extractor's pieces (`LeanVM/Protocol/Extraction/Extractor.lean`) on
 toy shapes, `κ = μ − 6 ≤ 2` message variables (the deployed shapes, `κ ≥ 9`, are far too large for
 the list decoder, as its cost table says, but not for the fast path). A toy stack of `2^μ` pseudo-random words is encoded on
 the `n = 2^(κ+R)` columns of its `64` lanes, and some whole columns are replaced by random leaves:

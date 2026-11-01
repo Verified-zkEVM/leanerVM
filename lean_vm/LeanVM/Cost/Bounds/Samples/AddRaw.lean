@@ -21,20 +21,20 @@ open LeanVM.Cost LeanVM.Cost.Samples LeanVM.Cost.Library LeanVM.Cost.Bounds Lean
 public section
 
 /-- `Array.rightpad n a xs`: its price, exactly, for word-sized lengths. -/
-theorem rightpadK_cost (P : Program) (hP : Includes P Auto.Array.rightpad.c4.costDeps) (n : ℕ)
+theorem rightpadK_cost (P : MachineProgram) (hP : Includes P Auto.Array.rightpad.c4.costDeps) (n : ℕ)
     (a : K) (xs : Array K) (hn : n < 2 ^ 64) (hs : xs.size < 2 ^ 64) :
-    machineCost P Auto.Array.rightpad.c4.costIdx [enc n, enc a, enc xs] =
+    machineCost P Auto.Array.rightpad.c4.costIdx [encodeValue n, encodeValue a, encodeValue xs] =
       9 + (n - xs.size) + max n xs.size := by
   rw [Auto.Array.rightpad.c4.costEq P hP]
   simp only [limbs_of_lt hn, limbs_of_lt hs, Array.size_replicate]
   omega
 
 /-- **`addRaw` over `K`**: at most `44 + 28·max(|p|, |q|)`. -/
-theorem addRawK_cost_le (P : Program) (hP : Includes P addRawK.costDeps)
+theorem addRawK_cost_le (P : MachineProgram) (hP : Includes P addRawK.costDeps)
     (p q : CompPoly.CPolynomial.Raw K) (hp : p.size < 2 ^ 64) (hq : q.size < 2 ^ 64) :
-    machineCost P addRawK.costIdx [enc p, enc q] ≤ 44 + 28 * max p.size q.size := by
+    machineCost P addRawK.costIdx [encodeValue p, encodeValue q] ≤ 44 + 28 * max p.size q.size := by
   rw [addRawK.costEq P hP]
-  have hz := listZipWith_le P (by includes) (fun x y : K ↦ x + y) (.fn addRawK.lam0.costIdx [])
+  have hz := listZipWith_le P (by includes) (fun x y : K ↦ x + y) (.closure addRawK.lam0.costIdx [])
     (fun a b ↦ RunsApp.of_spec (addRawK.lam0.costSpec P (by includes) a b)) 3
     (p.rightpad q.size 0).toList (q.rightpad p.size 0).toList
     (fun a _ b _ ↦ by rw [appCost_fn, List.nil_append, addRawK.lam0.costEq P (by includes)])

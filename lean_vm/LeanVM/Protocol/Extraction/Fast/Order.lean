@@ -8,7 +8,7 @@ public import LeanVM.Semantics.Lemmas
 # The lane lists' order
 
 `laneListAt` sorts each lane's list by `coeffsLE` (lexicographic on the coefficients' lanes,
-`Statement/Extractor.lean`), so the list depends only on the set the decoder returns:
+`LeanVM/Protocol/Extraction/Extractor.lean`), so the list depends only on the set the decoder returns:
 
 * `lexLE` is total, transitive and antisymmetric; `coeffsLE` too (`K.lane` is injective);
 * **`mergeSort_dedup_eq`**: two lists with the same elements give the same sorted list without

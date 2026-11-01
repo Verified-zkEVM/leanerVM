@@ -23,17 +23,17 @@ open LeanVM.Cost.Extractor LeanVM.Parameters CompPoly LeanVM.Extraction LeanVM.E
 
 public section
 
-variable (P : Program)
+variable (P : MachineProgram)
 
 /-- **`List.foldl` over `List.range' s n`, the closure's price bounded on the states the fold
 reaches**: `9` per element and the closure's price, `3`. -/
-theorem listFoldl_range'_le (hP : Includes P listFoldl.costDeps) {α : Type} [Enc α]
-    (f : α → ℕ → α) (fVal : Val) (hf : ∀ a b, RunsApp P fVal [enc a, enc b] (enc (f a b)))
+theorem listFoldl_range'_le (hP : Includes P listFoldl.costDeps) {α : Type} [MachineEncoding α]
+    (f : α → ℕ → α) (fVal : MachineValue) (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b)))
     (B : ℕ) :
     ∀ (n s : ℕ) (st : α),
       (∀ j, s ≤ j → j < s + n →
-        appCost P fVal [enc ((List.range' s (j - s)).foldl f st), enc j] ≤ B) →
-      machineCost P listFoldl.costIdx [fVal, enc st, enc (List.range' s n)] ≤ (B + 9) * n + 3 := by
+        appCost P fVal [encodeValue ((List.range' s (j - s)).foldl f st), encodeValue j] ≤ B) →
+      machineCost P listFoldl.costIdx [fVal, encodeValue st, encodeValue (List.range' s n)] ≤ (B + 9) * n + 3 := by
   intro n
   induction n with
   | zero => intro s st _; rw [List.range'_zero, listFoldl.costEq_nil P hP f fVal hf]; omega
@@ -65,25 +65,25 @@ theorem laneTable_getD (n : ℕ) (W : ℕ → List K) (u v : ℕ) (hv : v < n) :
 candidates of price at most `G` and at most `Lc` each, the survivors at most `Smax` after every
 lane. -/
 theorem pruneUpToDistinctC_cost (hP : Includes P pruneUpToDistinctC.costDeps) (κ R A U : ℕ)
-    (hκR : κ + R ≤ 60) (hU : U < 2 ^ 62) (hA : A < 2 ^ 128) (W : ℕ → List K) (WVal : Val)
-    (hW : ∀ a, RunsApp P WVal [enc a] (enc (W a))) {BW Lw G Lc Smax : ℕ}
-    (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [enc v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw)
+    (hκR : κ + R ≤ 60) (hU : U < 2 ^ 62) (hA : A < 2 ^ 128) (W : ℕ → List K) (WVal : MachineValue)
+    (hW : ∀ a, RunsApp P WVal [encodeValue a] (encodeValue (W a))) {BW Lw G Lc Smax : ℕ}
+    (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [encodeValue v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw)
     (hG : ∀ u < U, machineCost P laneEncodedDistinctC.costIdx
-      [enc κ, enc R, enc A, .fn pruneUpToDistinctC.lam1.lam0.costIdx
-        [enc (laneTable (2 ^ (κ + R)) W)], enc u] ≤ G)
+      [encodeValue κ, encodeValue R, encodeValue A, .closure pruneUpToDistinctC.lam1.lam0.costIdx
+        [encodeValue (laneTable (2 ^ (κ + R)) W)], encodeValue u] ≤ G)
     (hLc : ∀ u, (laneEncodedDistinct κ R A (tableSymbol (laneTable (2 ^ (κ + R)) W)) u).length ≤ Lc)
     (hS : ∀ u < U, (pruneUpToDistinct κ R A W u).length ≤ Smax) :
-    machineCost P pruneUpToDistinctC.costIdx [enc κ, enc R, enc A, WVal, enc U] ≤
+    machineCost P pruneUpToDistinctC.costIdx [encodeValue κ, encodeValue R, encodeValue A, WVal, encodeValue U] ≤
       pruneBound κ R U BW Lw G Lc Smax := by
   rw [pruneUpToDistinctC.costEq P hP κ R A W WVal hW U]
   have hN : 2 ^ (κ + R) < 2 ^ 62 := Nat.pow_lt_pow_right (by norm_num) (by omega)
   have hs : (1 <<< (κ + R) : ℕ) = 2 ^ (κ + R) := Nat.one_shiftLeft _
   rw [hs]
   -- the table
-  have hf0 := fun v ↦ RunsApp.of_spec (us := [enc κ, enc R, WVal]) (vs := [enc v])
+  have hf0 := fun v ↦ RunsApp.of_spec (us := [encodeValue κ, encodeValue R, WVal]) (vs := [encodeValue v])
     (pruneUpToDistinctC.lam0.costSpec P (by includes) κ R W WVal hW v)
   have hof := ofFnFromC_cost P (by includes) (n := 2 ^ (κ + R)) (by omega) _
-    (.fn pruneUpToDistinctC.lam0.costIdx [enc κ, enc R, WVal]) hf0 (BW + 10 * Lw + 9)
+    (.closure pruneUpToDistinctC.lam0.costIdx [encodeValue κ, encodeValue R, WVal]) hf0 (BW + 10 * Lw + 9)
     (fun v ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [pruneUpToDistinctC.lam0.costEq P (by includes) κ R W WVal hW]
@@ -96,10 +96,10 @@ theorem pruneUpToDistinctC_cost (hP : Includes P pruneUpToDistinctC.costDeps) (�
   have := rangeLoop_cost P (by includes) U [] (by omega)
   -- the lanes
   have hf1 := fun st u ↦ RunsApp.of_spec
-    (us := [enc κ, enc R, enc A, enc (laneTable (2 ^ (κ + R)) W)]) (vs := [enc st, enc u])
+    (us := [encodeValue κ, encodeValue R, encodeValue A, encodeValue (laneTable (2 ^ (κ + R)) W)]) (vs := [encodeValue st, encodeValue u])
     (pruneUpToDistinctC.lam1.costSpec P (by includes) κ R A (laneTable (2 ^ (κ + R)) W) st u)
   have hfold := listFoldl_range'_le P (by includes) _
-    (.fn pruneUpToDistinctC.lam1.costIdx [enc κ, enc R, enc A, enc (laneTable (2 ^ (κ + R)) W)])
+    (.closure pruneUpToDistinctC.lam1.costIdx [encodeValue κ, encodeValue R, encodeValue A, encodeValue (laneTable (2 ^ (κ + R)) W)])
     hf1 (G + Smax * (Lc * (41 * 2 ^ (κ + R) + 9 * U + 62) + 32) + 50) U 0
     [([], List.range (2 ^ (κ + R)))]
     (fun j _ hj ↦ by
@@ -123,10 +123,10 @@ theorem pruneUpToDistinctC_cost (hP : Includes P pruneUpToDistinctC.costDeps) (�
         simp only [List.isEmpty_cons, Bool.false_eq_true, ↓reduceIte]
         have := hG j (by omega)
         have hsym := fun v ↦ RunsApp.of_spec
-          (us := [enc (laneTable (2 ^ (κ + R)) W), enc j]) (vs := [enc v])
+          (us := [encodeValue (laneTable (2 ^ (κ + R)) W), encodeValue j]) (vs := [encodeValue v])
           (pruneUpToDistinctC.lam1.lam0.costSpec P (by includes) (laneTable (2 ^ (κ + R)) W) j v)
         have hp := pruneStep_cost P (by includes) A hA _
-          (.fn pruneUpToDistinctC.lam1.lam0.costIdx [enc (laneTable (2 ^ (κ + R)) W), enc j]) hsym
+          (.closure pruneUpToDistinctC.lam1.lam0.costIdx [encodeValue (laneTable (2 ^ (κ + R)) W), encodeValue j]) hsym
           12 (fun v ↦ by
             simp only [appCost_fn, List.cons_append, List.nil_append]
             rw [pruneUpToDistinctC.lam1.lam0.costEq P (by includes),
