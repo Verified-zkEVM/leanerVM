@@ -348,6 +348,49 @@ theorem arrGetD {t u w : Term} {a : Array α} {i : ℕ} {x : α} {c d e : ℕ}
       simp only [enc_array, enc_nat, Op.apply, Option.some.injEq, Prod.mk.injEq, and_true]
       simp [Array.getD_eq_getD_getElem?])).cost_eq (by omega)
 
+theorem arrGetElem? {t u : Term} {a : Array α} {i : ℕ} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hi : Runs P env u (enc i) d) :
+    Runs P env (.case (.op .nlt [u, .op .asize [t]]) [.ctor 0 [], .ctor 1 [.op .aget [t, u, .val (.ctor 0 [])]]])
+      (enc a[i]?) (d + (c + 1) + (max (limbs i) (limbs a.size) + 1) +
+        (if i < a.size then c + d + 1 + 1 + 2 else 1) + 1) := by
+  have hlt := natLt hi (arrSize h)
+  by_cases hia : i < a.size
+  · have hg : Runs P env (.op .aget [t, u, .val (.ctor 0 [])]) (enc a[i]) (c + d + 1 + 1) :=
+      (Runs.op (RunsList.cons h (RunsList.cons hi (RunsList.cons (Runs.val _) RunsList.nil)))
+        (v := enc a[i]) (d := 1) (by simp [Op.apply, hia])).cost_eq (by omega)
+    have := Runs.case (k := 1) (fs := []) (alts := [.ctor 0 [], .ctor 1 [.op .aget [t, u, .val (.ctor 0 [])]]])
+      (by simpa [hia] using hlt) rfl (some hg)
+    simpa [hia, Array.getElem?_eq_getElem hia] using this
+  · have := Runs.case (k := 0) (fs := []) (alts := [.ctor 0 [], .ctor 1 [.op .aget [t, u, .val (.ctor 0 [])]]])
+      (by simpa [hia] using hlt) rfl (none (P := P) (env := env) (α := α))
+    simpa [hia, Array.getElem?_eq_none (Nat.le_of_not_lt hia)] using this
+
+/-- `K.ofLane`: the same word. -/
+theorem kOfLane {t : Term} {w : UInt64} {c : ℕ} (h : Runs P env t (enc w) c) :
+    Runs P env t (enc (K.ofLane w)) c := h
+
+theorem uint8ToNat {t : Term} {x : UInt8} {c : ℕ} (h : Runs P env t (enc x) c) :
+    Runs P env (.op .wtoNat [t]) (enc x.toNat) (c + 1) := op₁ h (by simp [Op.apply]; rfl)
+
+theorem uint64OfNat {t : Term} {n : ℕ} {c : ℕ} (h : Runs P env t (enc n) c) :
+    Runs P env (.op .wofNat [t]) (enc (UInt64.ofNat n)) (c + 1) := op₁ h (by simp [Op.apply])
+
+theorem natShiftLeft {t u : Term} {a k : ℕ} {c d : ℕ} (h : Runs P env t (enc a) c)
+    (hb : Runs P env u (enc k) d) :
+    Runs P env (.op .nshl [t, u]) (enc (a <<< k)) (c + d + (limbs (a <<< k) + limbs k + 1)) :=
+  op₂ h hb rfl
+
+theorem vecToList {t : Term} {n : ℕ} {v : Vector α n} {c : ℕ} (h : Runs P env t (enc v) c) :
+    Runs P env (.op .atoList [t]) (enc v.toList) (c + (3 * v.toArray.size + 1)) :=
+  op₁ h (by
+    show Op.apply .atoList [.arr (v.toArray.map enc)] = _
+    simp [Op.apply, Vector.toList]
+    rfl)
+
+/-- A vector of an array: the same value. -/
+theorem vecMk {t : Term} {n : ℕ} {a : Array α} {ha : a.size = n} {c : ℕ}
+    (h : Runs P env t (enc a) c) : Runs P env t (enc (Vector.mk a ha)) c := h
+
 theorem kAdd {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (enc a) c)
     (hb : Runs P env u (enc b) d) : Runs P env (.op .wxor [t, u]) (enc (a + b)) (c + d + 1) :=
   op₂ h hb rfl
@@ -366,6 +409,8 @@ theorem arrayZipWith {α β γ : Type} (f : α → β → γ) (a : Array α) (b 
     Array.zipWith f a b = (List.zipWith f a.toList b.toList).toArray := by
   apply Array.ext'
   simp [Array.toList_zipWith]
+
+theorem natTwoPow (k : ℕ) : 2 ^ k = 1 <<< k := by simp [Nat.shiftLeft_eq]
 
 end Rewrite
 

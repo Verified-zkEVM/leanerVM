@@ -262,6 +262,12 @@ theorem Includes.get {P : Program} {l : List (ℕ × Term)} (h : Includes P l) {
 theorem Includes.mono {P : Program} {l l' : List (ℕ × Term)} (h : Includes P l)
     (hl : ∀ p ∈ l', p ∈ l) : Includes P l' := fun p hp ↦ h p (hl p hp)
 
+/-- The program holding the bodies `l` at their indices (the last body given an index wins), the
+other entries a literal `0`. -/
+def Program.ofList (l : List (ℕ × Term)) : Program :=
+  let n := (l.map (·.1)).foldr max 0 + 1
+  l.foldl (fun P p ↦ P.setIfInBounds p.1 p.2) (Array.replicate n (.val (.nat 0)))
+
 theorem RunsBody.cost_eq {P : Program} {f : ℕ} {vs : List Val} {v : Val} {c c' : ℕ}
     (h : RunsBody P f vs v c) (hc : c = c') : RunsBody P f vs v c' := hc ▸ h
 

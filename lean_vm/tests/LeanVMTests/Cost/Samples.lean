@@ -1,4 +1,5 @@
 import LeanVM.Cost.Samples.AddRaw
+import LeanVM.Cost.Samples.CommittedLeaves
 
 /-!
 # Tests: the compiled samples run
@@ -21,5 +22,29 @@ def polyB : CompPoly.CPolynomial.Raw K := #[K.ofBits 1, K.ofBits 6]
 
 #guard (evalBody samplesProgram 100 3 [Enc.enc polyA, Enc.enc polyB]).map (·.1) ==
   some (Enc.enc (CompPoly.CPolynomial.Raw.addRaw polyA polyB))
+
+/-! ## The committed leaves -/
+
+section
+open LeanVM.Extraction LeanVM.Extraction.Fast LeanVM.Protocol LeanVM.Protocol.KeccakHash
+open LeanVM.Protocol.Compile
+attribute [local instance] lexOrd
+
+/-- A tree of height 1 and width 1: a root over two leaves of 8 bytes. -/
+def leafL : Bytes := (List.range 8).map (·.toUInt8)
+def leafR : Bytes := (List.range 8).map (· + 100 |>.toUInt8)
+def digL : Digest := #v[1, 2, 3, 4]
+def digR : Digest := #v[5, 6, 7, 8]
+def rootD : Digest := #v[9, 9, 9, 9]
+def nodeBytes : Bytes := digestBytes digL ++ digestBytes digR
+def toyIndex : SortedMap (List UInt64 × ℕ) Hits :=
+  preimageIndex [(leafL, digL), (leafR, digR), (nodeBytes, rootD)]
+
+#guard committedLeavesFast toyIndex 1 1 rootD == #[bytesWords 1 leafL, bytesWords 1 leafR]
+#guard (evalBody (Program.ofList committedLeavesC.costDeps) 1000 (committedLeavesC.costDeps.head!.1)
+    [Enc.enc toyIndex, Enc.enc (1 : ℕ), Enc.enc (1 : ℕ), Enc.enc rootD]).map (·.1) ==
+  some (Enc.enc (committedLeavesFast toyIndex 1 1 rootD))
+
+end
 
 end LeanVMTests.Cost

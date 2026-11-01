@@ -65,13 +65,31 @@ def rules : List (Name × Name) := [
   (``Array.replicate, ``Rule.arrReplicate),
   (``Array.toList, ``Rule.arrToList),
   (``List.toArray, ``Rule.listToArray),
-  (``Array.getD, ``Rule.arrGetD)
+  (``Array.getD, ``Rule.arrGetD),
+  (``GetElem?.getElem?, ``Rule.arrGetElem?),
+  (``LeanVM.Parameters.K.ofLane, ``Rule.kOfLane),
+  (``UInt8.toNat, ``Rule.uint8ToNat),
+  (``UInt64.ofNat, ``Rule.uint64OfNat),
+  (``HShiftLeft.hShiftLeft, ``Rule.natShiftLeft),
+  (``Vector.toList, ``Rule.vecToList),
+  (``Vector.mk, ``Rule.vecMk)
 ]
 
 /-- Rewrites: a library function compiled through an equal form (`lhs = rhs`). -/
 def rewrites : List (Name × Name) := [
-  (``Array.zipWith, ``Rewrite.arrayZipWith)
+  (``Array.zipWith, ``Rewrite.arrayZipWith),
+  (``HPow.hPow, ``Rewrite.natTwoPow)
 ]
+
+/-- Rewrites registered by `cost_rewrite`, by the head constant of their left side. -/
+initialize rewriteExt : SimplePersistentEnvExtension (Name × Name) (List (Name × Name)) ←
+  registerSimplePersistentEnvExtension {
+    addEntryFn := fun l e ↦ l ++ [e]
+    addImportedFn := fun as ↦ as.foldl (fun l a ↦ l ++ a.toList) [] }
+
+/-- All rewrites. -/
+def allRewrites : MetaM (List (Name × Name)) := do
+  return rewrites ++ rewriteExt.getState (← getEnv)
 
 /-- What a data parameter is: an encoded value, or a function of `arity` arguments (the machine
 holds a closure, the spec assumes the closure computes the function). -/
@@ -153,6 +171,9 @@ def Ctx.pushFn (ctx : Ctx) (f v hf : Expr) (arity : Nat) : MetaM Ctx := do
   let env ← mkAppM ``List.cons #[v, ctx.env]
   return { ctx with env, vals := #[.fn f v hf arity] ++ ctx.vals }
 
+/-- `Runs P env t v c` in the context's program and environment. -/
+def runsAt (ctx : Ctx) (t v c : Expr) : Expr := mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t, v, c]
+
 /-- The parts of `Runs P env t v c`. -/
 def runsParts? (ty : Expr) : Option (Expr × Expr × Expr × Expr × Expr) :=
   if ty.isAppOfArity ``Runs 5 then
@@ -233,13 +254,14 @@ def cleanTuples (e : Expr) : MetaM Expr := do
     else none
 
 /-- Every `match` in `e` replaced by its `casesOn` (definitionally equal). -/
-def unfoldMatchers (e : Expr) : MetaM Expr :=
-  Meta.transform e (post := fun s ↦ do
+def unfoldMatchers (e : Expr) : MetaM Expr := do
+  let e ← Meta.transform e (post := fun s ↦ do
     if let .const f _ := s.getAppFn then
-      if (← Meta.isMatcher f) then
+      if (← Meta.isMatcher f) && s.getAppNumArgs > 0 then
         if let some s' ← delta? s (· == f) then
           return .visit (← Core.betaReduce s')
     return .done s)
+  Core.betaReduce e
 
 /-- `∀ a…, p a…`: `RunsApp P v [enc a…] (enc (f a…))` for a function type `ty`. -/
 def runsAppType (P f v ty : Expr) : MetaM Expr :=
@@ -384,7 +406,9 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
   if let .const f _ := e.getAppFn then
     if (← Meta.isMatcher f) then
       match ← delta? e (· == f) with
-      | some e' => return ← translate ctx (← Core.betaReduce e')
+      | some e' =>
+        let (t, c, p) ← translate ctx (← Core.betaReduce e')
+        return (t, c, ← mkExpectedTypeHint p (runsAt ctx t (← mkAppM ``Enc.enc #[e]) c))
       | none => throwError "translate: cannot unfold the match {e}"
   -- a rule
   let fn := e.getAppFn
@@ -393,7 +417,7 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
       if key == f then
         if let some r ← tryRule ctx rule e then return r
     -- a rewrite
-    for (key, rw) in rewrites do
+    for (key, rw) in ← allRewrites do
       if key == f then
         if let some r ← tryRewrite ctx rw e then return r
     -- a recursive definition: compiled on demand, then called
@@ -401,9 +425,10 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
       if let some (cf', args) ← findCompiled? e then
         let _ := cf
         return ← translateCall ctx cf' args e
-    -- a definition: unfolded
+    -- a definition: unfolded (the run stated at `e`, definitionally equal)
     if let some e' ← unfoldDefinition? e then
-      return ← translate ctx (← unfoldMatchers e'.headBeta)
+      let (t, c, p) ← translate ctx (← unfoldMatchers e'.headBeta)
+      return (t, c, ← mkExpectedTypeHint p (runsAt ctx t (← mkAppM ``Enc.enc #[e]) c))
   throwError "translate: no rule for {e}"
 
 /-- Unify a rule's value `enc pat` with `enc e`: argument by argument when `pat` and `e` have the
@@ -671,7 +696,8 @@ partial def compileOnDemand (ctx : Ctx) (f : Name) (e : Expr) : MetaM (Option Co
   for m in measures do
     let st ← saveState
     try
-      return some (← compileFn name term (← nextIndex ctx.reserved) (some m) ctx.reserved)
+      let idx ← nextIndex ctx.reserved
+      return some (← withLCtx {} {} (compileFn name term idx (some m) ctx.reserved))
     catch ex =>
       st.restore
       errs := errs.push ex.toMessageData
@@ -732,7 +758,8 @@ partial def closureOf (ctx : Ctx) (f : Expr) (arity : Nat) :
     let lam ← mkLambdaFVars (ctx.types ++ capFvs ++ ps) body
     let k ← ctx.lams.modifyGet fun n ↦ (n, n + 1)
     let name := ctx.base.str s!"lam{k}"
-    let cf ← compileFn name lam (← nextIndex ctx.reserved) none ctx.reserved
+    let idx ← nextIndex ctx.reserved
+    let cf ← withLCtx {} {} (compileFn name lam idx none ctx.reserved)
     -- the closure: function `cf.index` with the captures' values
     let mut capArgs : Array (Expr ⊕ (Expr × Expr × Expr × Expr)) := #[]
     for en in caps do
@@ -980,6 +1007,8 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
       let pendingNow ← pending.get
       let deps := mergeDeps (idx, bodyName) (pendingNow.map (·.2))
       let depsE ← depsExpr deps
+      let depsTy ← mkAppM ``List #[← mkAppM ``Prod #[mkConst ``Nat, mkConst ``Term]]
+      addAndCompile <| .defnDecl (mkDefinitionValEx (name.str "costDeps") [] depsTy depsE .abbrev .safe [])
       withLocalDeclD `hP (mkAppN (mkConst ``Includes) #[P, depsE]) fun hP ↦ do
         solvePending pendingNow hP depsE
         let mem ← proveByTactic (← mkAppM ``Membership.mem
@@ -1101,6 +1130,16 @@ syntax (name := costCompile) "cost_compile " ident (" at " num)? (&" measure " t
       Term.synthesizeSyntheticMVarsNoPostponing
       pure (some (← instantiateMVars m))
     discard <| compileFn name term idx measure?
+
+/-- `cost_rewrite thm`: compile the left side of the equation `thm` through its right side. -/
+elab "cost_rewrite " id:ident : command => Command.liftTermElabM do
+  let thm ← realizeGlobalConstNoOverloadWithInfo id
+  let ty := (← getConstInfo thm).type
+  let key ← forallTelescopeReducing ty fun _ b ↦ do
+    let some (_, l, _) := b.eq? | throwError "{thm} is not an equation"
+    let some k := l.getAppFn.constName? | throwError "{thm}: the left side has no head constant"
+    pure k
+  modifyEnv (rewriteExt.addEntry · (key, thm))
 
 /-- `#translate fun xs ↦ e`: the code and price of `e` with `xs` in the environment. -/
 elab "#translate " t:term : command => Command.liftTermElabM do
