@@ -30,9 +30,12 @@ of a callee composes because it is a theorem about `machineCost P j …` for eve
 holding `j`'s bodies (`Includes P j.costDeps`), as the spec is; `includes` derives that premise
 from the caller's.
 
-Here: the tactics `includes`, `cost_facts`; `limbs` of word-sized numbers; the recurrence
-solvers (`le_of_halving`, `le_of_doubling`); the bounds of the library's polymorphic functions
-(`listZipWith_le`, `listFoldl_le`), proved once for every element type and closure.
+Here: the tactics `includes`, `cost_facts`, `cost_simp`; `limbs` of word-sized numbers; products
+of sizes as atoms (`affine_mul_le`); the recurrence solvers (`le_of_halving` for a binary search,
+`le_of_doubling` for a binary tree); the bounds of the library's polymorphic functions
+(`listZipWith_le`, `listFoldl_le`), proved once for every element type and closure, and of an
+on-demand `List.map` by its recurrence (`listMap_le`). The samples' bounds
+(`Bounds/Samples/`) and the field operations' prices (`Bounds/Prices.lean`) use them.
 -/
 
 namespace LeanVM.Cost.Bounds
