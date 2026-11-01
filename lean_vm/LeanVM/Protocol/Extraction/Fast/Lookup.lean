@@ -2,7 +2,7 @@ module
 
 public import Statement.LeanVm
 public import LeanVM.Protocol.Extraction.Fast.Extract
-public import Std.Data.HashMap.Lemmas
+public import LeanVM.Protocol.Extraction.Fast.SortedMap
 
 /-!
 # The extractor's lookups, indexed
@@ -12,10 +12,10 @@ all pairs per node, and the pairs come from `answerPairs answers keys`, one call
 key; in the random-permutation model `answers` is `lookupEvaluation P`, a scan of the paths `P`.
 For `N` paths of up to `L` bytes that is `N²·L` for the pairs and `N` per node. Here:
 
-* `firstAnswers P`: a hash map from each key to its first answer, so
-  `answerPairs (lookupEvaluation P) keys = answerPairs ((firstAnswers P)[·]?) keys`
+* `firstAnswers P`: a sorted map (`SortedMap`) from each key to its first answer, so
+  `answerPairs (lookupEvaluation P) keys = answerPairs ((firstAnswers P).get?) keys`
   (`answerPairs_firstAnswers`);
-* `preimageIndex pairs`: a hash map from `(digest, length)` to what the pairs with that digest and
+* `preimageIndex pairs`: a sorted map from `(digest, length)` to what the pairs with that digest and
   length answer (`Hits`: nothing, one byte string, or several), so
   `preimageIn (preimageIndex pairs) d len = preimage pairs d len` (`preimageIn_preimageIndex`);
 * `extractWith mk lookup`: `extractFast` with the Merkle inversion reading the preimages through
@@ -31,34 +31,47 @@ open LeanVM.Protocol.Verifier LeanVM.Parameters.Whir LeanVM.Protocol.KeccakHash 
 
 public section
 
+attribute [local instance] lexOrd
+
 /-! ## First answers -/
 
-/-- The first answer of each key among the pairs `P`. -/
-@[expose] def firstAnswers (P : List (Bytes × Digest)) : Std.HashMap Bytes Digest :=
-  P.foldl (fun m p ↦ m.insertIfNew p.1 p.2) ∅
+/-- `m` with `v` at `k`, unless `m` has a value at `k`. -/
+@[expose] def insertIfNew {α β : Type} [Ord α] [Std.TransOrd α] [Std.LawfulEqOrd α] (m : SortedMap α β) (k : α) (v : β) :
+    SortedMap α β :=
+  if m.contains k then m else m.insert k v
 
-private theorem foldl_insertIfNew (P : List (Bytes × Digest)) (m : Std.HashMap Bytes Digest)
+/-- The first answer of each key among the pairs `P`. -/
+@[expose] def firstAnswers (P : List (Bytes × Digest)) : SortedMap Bytes Digest :=
+  P.foldl (fun m p ↦ insertIfNew m p.1 p.2) .empty
+
+private theorem foldl_insertIfNew (P : List (Bytes × Digest)) (m : SortedMap Bytes Digest)
     (x : Bytes) :
-    (P.foldl (fun m p ↦ m.insertIfNew p.1 p.2) m)[x]? = m[x]?.or (lookupEvaluation P x) := by
+    (P.foldl (fun m p ↦ insertIfNew m p.1 p.2) m).get? x = (m.get? x).or (lookupEvaluation P x) := by
   induction P generalizing m with
   | nil => simp [lookupEvaluation]
   | cons p P ih =>
-    rw [List.foldl_cons, ih, Std.HashMap.getElem?_insertIfNew]
-    by_cases hx : p.1 = x
-    · subst hx
-      by_cases hm : p.1 ∈ m
-      · obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 (Std.HashMap.isSome_getElem?_iff_mem.2 hm)
-        simp [hm, lookupEvaluation]
-      · simp [hm, lookupEvaluation]
-    · simp [hx, lookupEvaluation]
+    rw [List.foldl_cons, ih, insertIfNew]
+    by_cases hm : m.contains p.1 = true
+    · simp only [hm, ↓reduceIte]
+      by_cases hx : p.1 = x
+      · subst hx
+        obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hm
+        simp [hv]
+      · simp [hx, lookupEvaluation]
+    · simp only [hm, Bool.false_eq_true, ↓reduceIte, SortedMap.get?_insert]
+      by_cases hx : p.1 = x
+      · subst hx
+        have hn : m.get? p.1 = none := by simpa [SortedMap.contains] using hm
+        simp [hn, lookupEvaluation]
+      · simp [hx, lookupEvaluation]
 
-theorem firstAnswers_getElem? (P : List (Bytes × Digest)) (x : Bytes) :
-    (firstAnswers P)[x]? = lookupEvaluation P x := by
-  rw [firstAnswers, foldl_insertIfNew, Std.HashMap.getElem?_empty, Option.none_or]
+theorem firstAnswers_get? (P : List (Bytes × Digest)) (x : Bytes) :
+    (firstAnswers P).get? x = lookupEvaluation P x := by
+  rw [firstAnswers, foldl_insertIfNew, SortedMap.get?_empty, Option.none_or]
 
 theorem answerPairs_firstAnswers (P : List (Bytes × Digest)) (keys : List Bytes) :
-    answerPairs (fun x ↦ (firstAnswers P)[x]?) keys = answerPairs (lookupEvaluation P) keys := by
-  simp only [firstAnswers_getElem?]
+    answerPairs (firstAnswers P).get? keys = answerPairs (lookupEvaluation P) keys := by
+  rw [funext (firstAnswers_get? P)]
 
 /-! ## The preimage index -/
 
@@ -103,26 +116,26 @@ theorem Hits.merge_assoc (a b c : Hits) : (a.merge b).merge c = a.merge (b.merge
 
 /-- **The preimage index** of the pairs: at each key, what the pairs with that key answer. -/
 @[expose] def preimageIndex (pairs : List (Bytes × Digest)) :
-    Std.HashMap (List UInt64 × ℕ) Hits :=
-  pairs.foldl (fun m p ↦ m.insert (hitKey p) ((m.getD (hitKey p) .none).merge (.one p.1))) ∅
+    SortedMap (List UInt64 × ℕ) Hits :=
+  pairs.foldl (fun m p ↦ m.insert (hitKey p) ((m.getD (hitKey p) .none).merge (.one p.1))) .empty
 
 /-- `preimage`, read off an index. -/
-@[expose] def preimageIn (idx : Std.HashMap (List UInt64 × ℕ) Hits) (d : Digest) (len : ℕ) :
+@[expose] def preimageIn (idx : SortedMap (List UInt64 × ℕ) Hits) (d : Digest) (len : ℕ) :
     Option Bytes :=
   (idx.getD (d.toList, len) .none).toOption
 
-private theorem getD_foldl (l : List (Bytes × Digest)) (m : Std.HashMap (List UInt64 × ℕ) Hits)
+private theorem getD_foldl (l : List (Bytes × Digest)) (m : SortedMap (List UInt64 × ℕ) Hits)
     (k : List UInt64 × ℕ) :
     (l.foldl (fun m p ↦ m.insert (hitKey p) ((m.getD (hitKey p) .none).merge (.one p.1))) m).getD
       k .none = (m.getD k .none).merge (hitsOf l k) := by
   induction l generalizing m with
   | nil => simp [hitsOf]
   | cons p l ih =>
-    rw [List.foldl_cons, ih, Std.HashMap.getD_insert, hitsOf]
+    rw [List.foldl_cons, ih, SortedMap.getD_insert, hitsOf]
     by_cases hk : hitKey p = k
     · subst hk
-      simp only [beq_self_eq_true, ↓reduceIte, Hits.merge_assoc]
-    · simp only [beq_iff_eq, hk, ↓reduceIte]
+      simp only [↓reduceIte, Hits.merge_assoc]
+    · simp only [hk, ↓reduceIte]
       rfl
 
 private theorem one_merge_hitsOf (l : List (Bytes × Digest)) (d : Digest) (len : ℕ) (x : Bytes) :
@@ -169,7 +182,7 @@ theorem preimage_eq_hitsOf (pairs : List (Bytes × Digest)) (d : Digest) (len : 
 theorem preimageIn_preimageIndex (pairs : List (Bytes × Digest)) :
     preimageIn (preimageIndex pairs) = preimage pairs := by
   funext d len
-  rw [preimageIn, preimageIndex, getD_foldl, Std.HashMap.getD_empty, preimage_eq_hitsOf]
+  rw [preimageIn, preimageIndex, getD_foldl, SortedMap.getD_empty, preimage_eq_hitsOf]
   rfl
 
 /-! ## The extractor with a preimage lookup -/

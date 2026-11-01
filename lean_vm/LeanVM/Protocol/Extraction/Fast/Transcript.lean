@@ -7,7 +7,7 @@ public import LeanVM.Protocol.Extraction.Fast.Replay
 # The extractor of the random-permutation model, fast
 
 `transcriptExtractorFast` is the statement's `transcriptExtractor` (`Statement/LeanVm.lean`) with
-every piece fast: the transcript replayed through hash maps, keeping the evaluations of at most
+every piece fast: the transcript replayed through sorted maps (`SortedMap`), keeping the evaluations of at most
 `L = max 64 (8·width)` bytes (`keccakEvaluationsFast`), their first answers and preimages indexed
 (`firstAnswers`, `preimageIndex`), and the decoder's Roth–Ruckenstein step a Taylor shift
 (`extractWith`, on `decodeStacksFast`).
@@ -24,6 +24,8 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash LeanVM.Extraction LeanVM Common
 
 public section
+
+attribute [local instance] lexOrd
 
 theorem hitsOf_filter (l : List (Bytes × Digest)) (f : Bytes × Digest → Bool)
     (k : List UInt64 × ℕ) (hf : ∀ p ∈ l, hitKey p = k → f p = true) :
@@ -74,9 +76,9 @@ theorem filter_answerPairs (P : List (Bytes × Digest)) (L : ℕ) :
 
 /-- The preimage index of the evaluations of at most `L` bytes a transcript holds. -/
 @[expose] def transcriptIndex (T : List (PermutationQuery KeccakState × KeccakState)) (L : ℕ) :
-    Std.HashMap (List UInt64 × ℕ) Hits :=
+    SortedMap (List UInt64 × ℕ) Hits :=
   let P := keccakEvaluationsFast T L
-  preimageIndex (answerPairs (fun x ↦ (firstAnswers P)[x]?) (P.map (·.1)))
+  preimageIndex (answerPairs (firstAnswers P).get? (P.map (·.1)))
 
 /-- **The extractor in the random-permutation model, fast.** -/
 @[expose] def transcriptExtractorFast (prog : Program) (input : PublicInput) (T : OracleQueryLog)

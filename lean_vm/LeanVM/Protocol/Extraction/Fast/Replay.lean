@@ -1,8 +1,7 @@
 module
 
 public import Statement.LeanVm
-public import Std.Data.HashMap.Lemmas
-public import Std.Data.HashSet.Lemmas
+public import LeanVM.Protocol.Extraction.Fast.SortedMap
 
 /-!
 # The transcript's replay, indexed and bounded
@@ -10,8 +9,8 @@ public import Std.Data.HashSet.Lemmas
 The statement's replay (`TranscriptReplay.step`, `Statement/LeanVm.lean`) looks up each query's
 edge in the list of edges and the path to extend in the list of paths, and copies a path's bytes
 to extend it: for `N` queries, `N²` state comparisons and up to `N²·136` bytes. `ReplayFast`
-keeps the edges' inputs and outputs in hash sets and the newest path of each capacity in a hash
-map, and stops recording a path's bytes past a bound `B` (`cut`): the extractor reads only byte
+keeps the edges' inputs and outputs and the newest path of each capacity in sorted maps
+(`SortedMap`: `O(log² N)` comparisons per lookup, worst-case), and stops recording a path's bytes past a bound `B` (`cut`): the extractor reads only byte
 strings of length at most `L` (`64` and `8·width`, `Fast/Lookup.lean`), and a path of more than
 `L + 136` bytes unpads to more than `L` bytes, as do its extensions.
 
@@ -40,11 +39,11 @@ public section
 capacity, and the paths, newest first, with their bytes `cut`. -/
 structure ReplayFast where
   /-- The inputs of the edges. -/
-  fwd : Std.HashSet (List UInt64)
+  fwd : SortedMap (List UInt64) Unit
   /-- The outputs of the edges. -/
-  inv : Std.HashSet (List UInt64)
+  inv : SortedMap (List UInt64) Unit
   /-- The newest path of each capacity (lanes `17 … 24`). -/
-  caps : Std.HashMap (List UInt64) (KeccakState × Option Bytes)
+  caps : SortedMap (List UInt64) (KeccakState × Option Bytes)
   /-- The paths, newest first. -/
   paths : List (KeccakState × Option Bytes)
 
@@ -54,20 +53,20 @@ structure ReplayFast where
   | (.forward x, y) =>
     if τ.fwd.contains x.toList then τ
     else
-      match τ.caps[x.toList.drop 17]? with
+      match τ.caps.get? (x.toList.drop 17) with
       | some (s, obs) =>
         let p := (y, obs.bind fun bs ↦ cut B (bs ++ blockBytes s x))
-        ⟨τ.fwd.insert x.toList, τ.inv.insert y.toList, τ.caps.insert (y.toList.drop 17) p,
+        ⟨τ.fwd.insert x.toList (), τ.inv.insert y.toList (), τ.caps.insert (y.toList.drop 17) p,
           p :: τ.paths⟩
-      | none => ⟨τ.fwd.insert x.toList, τ.inv.insert y.toList, τ.caps, τ.paths⟩
+      | none => ⟨τ.fwd.insert x.toList (), τ.inv.insert y.toList (), τ.caps, τ.paths⟩
   | (.inverse y, x) =>
     if τ.inv.contains y.toList then τ
-    else ⟨τ.fwd.insert x.toList, τ.inv.insert y.toList, τ.caps, τ.paths⟩
+    else ⟨τ.fwd.insert x.toList (), τ.inv.insert y.toList (), τ.caps, τ.paths⟩
 
 /-- The replay's start: no edge, the zero state's empty path. -/
 @[expose] def ReplayFast.init : ReplayFast :=
   let p : KeccakState × Option Bytes := (Vector.replicate 25 0, some [])
-  ⟨∅, ∅, (∅ : Std.HashMap _ _).insert (p.1.toList.drop 17) p, [p]⟩
+  ⟨.empty, .empty, SortedMap.empty.insert (p.1.toList.drop 17) p, [p]⟩
 
 /-- **The Keccak-256 evaluations of at most `L` bytes a transcript holds**, indexed. -/
 @[expose] def keccakEvaluationsFast (T : List (PermutationQuery KeccakState × KeccakState))
@@ -83,7 +82,7 @@ structure ReplayFast.Sim (B : ℕ) (σ : TranscriptReplay) (τ : ReplayFast) : P
   fwd : ∀ x : KeccakState, τ.fwd.contains x.toList = (forwardLookup σ.edges x).isSome
   inv : ∀ y : KeccakState, τ.inv.contains y.toList = (inverseLookup σ.edges y).isSome
   paths : τ.paths = σ.spongePaths.map fun p ↦ (p.1, cut B p.2)
-  caps : ∀ c, τ.caps[c]? =
+  caps : ∀ c, τ.caps.get? c =
     (σ.spongePaths.find? fun p ↦ p.1.toList.drop 17 = c).map fun p ↦ (p.1, cut B p.2)
 
 theorem cut_append_bind (B : ℕ) (bs blk : Bytes) :
@@ -94,12 +93,11 @@ theorem cut_append_bind (B : ℕ) (bs blk : Bytes) :
   · simp only [h, ↓reduceIte, Option.bind_none]
     rw [ite_eq_right_iff.2 fun h' ↦ absurd (by simp at h'; omega) h]
 
-private theorem contains_insert_toList (s : Std.HashSet (List UInt64)) (a b : KeccakState) :
-    (s.insert a.toList).contains b.toList = (decide (a = b) || s.contains b.toList) := by
-  rw [Std.HashSet.contains_insert]
+private theorem contains_insert_toList (s : SortedMap (List UInt64) Unit) (a b : KeccakState) :
+    (s.insert a.toList ()).contains b.toList = (decide (a = b) || s.contains b.toList) := by
+  rw [SortedMap.contains_insert]
   congr 1
-  rw [Bool.eq_iff_iff]
-  simp
+  simp [Vector.toList_inj]
 
 theorem ReplayFast.Sim.step {B : ℕ} {σ : TranscriptReplay} {τ : ReplayFast} (h : Sim B σ τ)
     (q : PermutationQuery KeccakState × KeccakState) :
@@ -114,12 +112,12 @@ theorem ReplayFast.Sim.step {B : ℕ} {σ : TranscriptReplay} {τ : ReplayFast} 
       exact h
     · have hσ : forwardLookup σ.edges x = none := by
         rw [← Option.not_isSome_iff_eq_none, ← h.fwd]; exact hx
-      have hfwd : ∀ w : KeccakState, (τ.fwd.insert x.toList).contains w.toList =
+      have hfwd : ∀ w : KeccakState, (τ.fwd.insert x.toList ()).contains w.toList =
           (forwardLookup ((x, z) :: σ.edges) w).isSome := by
         intro w
         rw [contains_insert_toList, h.fwd, forwardLookup]
         by_cases hw : x = w <;> simp [hw]
-      have hinv : ∀ w : KeccakState, (τ.inv.insert z.toList).contains w.toList =
+      have hinv : ∀ w : KeccakState, (τ.inv.insert z.toList ()).contains w.toList =
           (inverseLookup ((x, z) :: σ.edges) w).isSome := by
         intro w
         rw [contains_insert_toList, h.inv, inverseLookup]
@@ -136,7 +134,7 @@ theorem ReplayFast.Sim.step {B : ℕ} {σ : TranscriptReplay} {τ : ReplayFast} 
         rw [hfind, Option.map_some] at hc
         simp only [hc, cut_append_bind]
         refine ⟨hfwd, hinv, by simp [h.paths, blockBytes], fun c ↦ ?_⟩
-        rw [Std.HashMap.getElem?_insert, List.find?_cons]
+        rw [SortedMap.get?_insert, List.find?_cons]
         by_cases hzc : z.toList.drop 17 = c
         · simp [hzc, blockBytes]
         · simp [hzc, h.caps c]
@@ -159,7 +157,7 @@ theorem ReplayFast.Sim.init (B : ℕ) :
     Sim B ⟨[], [(Vector.replicate 25 0, [])]⟩ ReplayFast.init := by
   refine ⟨fun x ↦ by simp [ReplayFast.init, forwardLookup],
     fun y ↦ by simp [ReplayFast.init, inverseLookup], by simp [ReplayFast.init, cut], fun c ↦ ?_⟩
-  simp only [ReplayFast.init, Std.HashMap.getElem?_insert, Std.HashMap.getElem?_empty,
+  simp only [ReplayFast.init, SortedMap.get?_insert, SortedMap.get?_empty,
     List.find?_cons, List.find?_nil]
   by_cases hc : ([0, 0, 0, 0, 0, 0, 0, 0] : List UInt64) = c <;> simp [hc, cut]
 

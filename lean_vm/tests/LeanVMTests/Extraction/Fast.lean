@@ -11,6 +11,8 @@ import LeanVMTests.Extraction.Toy
   most `L` bytes) on a transcript holding the sponge paths of three messages, and inverse queries;
 * the address table (`powTable`, `gLogTable`): the index of `g^i` by binary search, `none` off
   the addresses;
+* the sorted map (`SortedMap`, the replay's and the lookups' index): after 300 insertions with
+  repeated keys, every key reads its newest value, as a scan of the insertions does;
 * the axiom footprint of `transcriptExtractorFast_eq`.
 -/
 
@@ -79,6 +81,19 @@ def toyTranscript : List (PermutationQuery KeccakState × KeccakState) :=
   (gLogTable (powTable 10) 10 (gpow i)).map (·.val) == some i
 #guard gLogTable (powTable 10) 10 (gpow 1024) == none
 #guard gLogTable (powTable 10) 10 0 == none
+
+/-! ## The sorted map -/
+
+/-- 300 insertions, `(lcg-derived key mod 97, index)`: keys repeat. -/
+def sortedMapInserts : List (ℕ × ℕ) :=
+  (List.range 300).map fun i ↦ (lcg (i + 5) % 97, i)
+
+#guard
+  let m := sortedMapInserts.foldl (fun m e ↦ m.insert e.1 e.2) (SortedMap.empty : SortedMap ℕ ℕ)
+  (List.range 100).all fun k ↦ m.get? k == lookup sortedMapInserts.reverse k
+-- 300 insertions leave at most `log₂ 300 + 1` levels.
+#guard (sortedMapInserts.foldl (fun m e ↦ m.insert e.1 e.2)
+  (SortedMap.empty : SortedMap ℕ ℕ)).levels.length ≤ 9
 
 /-- info: 'LeanVM.Extraction.Fast.transcriptExtractorFast_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
