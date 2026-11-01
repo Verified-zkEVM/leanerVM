@@ -162,7 +162,8 @@ def DeferredClaim.HasBytecodeShape (bytecode : List K) (c : DeferredClaim) : Pro
 the bytecode's multilinear extension at the point (`DeferredClaim::recompute_scalar`,
 `aggregation.rs:263-295`). The length being `2 ^ len` is part of it: `HasBytecodeShape` reads
 `Nat.log2` of the length, which a bytecode of other length shares, and the extension is of `2 ^ len`
-values. -/
+values. Stronger than `BytecodeClaim.Holds` (the value only), which a `DeferredClaim`, an
+abbreviation of `BytecodeClaim`, also has. -/
 def DeferredClaim.HoldsShaped (bytecode : List K) (c : DeferredClaim) : Prop :=
   c.HasBytecodeShape bytecode ∧ 2 ^ c.bytecodePoint.length = bytecode.length ∧
     multilinearEval (bytecode.map ofK) c.bytecodePoint = c.bytecodeValue
@@ -299,7 +300,7 @@ is the value times the batched weight and the deferred claim meets a check
 (`batchingAfterChildren`); run from the batching transcript's seed (`runBatching`). A node's
 batching (`NodeRelation`) runs `nodeBatchingProgram`, the check that the claim is the node's; the
 recursion step's end statement (`BatchingSound`) runs `boundedBatchingProgram`, the count read below
-a bound and the check that the claim holds of `bytecode`. -/
+a bound and the check that the claim holds of `bytecode` (`DeferredClaim.HoldsShaped`). -/
 
 namespace LeanVM.Guest.Batch
 
@@ -402,8 +403,9 @@ noncomputable def nodeBatchingProgram (check : DeferredClaim → Prop) (bytecode
   Prog.require (xs = childCountCells n)
   batchingProgram check bytecode n
 
-/-- **The batching as a verifier program**, of fewer than `M` children: the count, then the
-batching of that many, its deferred claim true of `bytecode`. -/
+/-- **The batching as a verifier program**, of fewer than `M` children: the count, then the batching
+of that many, its deferred claim true of `bytecode`, shape and length included
+(`DeferredClaim.HoldsShaped`). -/
 noncomputable def boundedBatchingProgram (M : ℕ) (bytecode : List K) : Prog Bool := do
   let n ← readChildCount M
   batchingProgram (DeferredClaim.HoldsShaped bytecode) bytecode n
@@ -852,8 +854,8 @@ for the honest prover `LeanVM.prover` (`LeanVm.lean`, `LeanVM.Prover.prove`),
 2. its proof with the deployed Keccak (`honestProofWithDeployedKeccak`), if it makes one, of an
    execution of the leanISA guest program of committed size at least `2^22` on a statement's digest
    under the deployed seed, wherever `verifierRefusingZero` with the deployed Keccak accepts it,
-   forms with the statement (its deferred claim shaped) and some true claim `freshClaim` on the
-   bytecode (`fresh.Holds`) a child the guest program accepts (`AcceptableChild`).
+   forms with the statement (its deferred claim shaped) and some claim `fresh` on the bytecode whose
+   value is true (`BytecodeClaim.Holds`) a child the guest program accepts (`AcceptableChild`).
 Reading part 1 for the deployed Keccak, so that part 2 applies to the honest proof, is the heuristic
 that the deployed Keccak-f[1600] behaves as a random permutation, applied to this prover.
 Proved by `LeanVM.Guest.Budget.guest_child_complete`. -/
@@ -883,8 +885,10 @@ verifier runs on it over `π`. -/
 
 namespace Batch
 
-/-- The proof's stream begins with the count's and the cells of fewer than `M` children of the
-bytecode's shapes, one of whose claims is false. -/
+/-- The proof's stream begins with the count's cells and those of fewer than `M` children of the
+bytecode's shapes, one of whose claims is false: its proof's claim's value (`BytecodeClaim.Holds`)
+or its statement's claim (`DeferredClaim.HoldsShaped`; with the shapes given, it adds only that the
+bytecode's length is a power of two, which `BatchingSound` assumes). -/
 def SomeChildClaimFalse (bytecode : List K) (M : ℕ) (π : Proof) : Prop :=
   ∃ cs : List ChildClaims, cs.length < M ∧ (∀ c ∈ cs, ChildHasBytecodeShape bytecode c) ∧
     cellsBeforeChallenge cs <+: π.stream ∧

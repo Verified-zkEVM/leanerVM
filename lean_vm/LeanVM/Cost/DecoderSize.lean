@@ -8,12 +8,13 @@ public import LeanVM.Cost.DecoderSize.Locs
 # The guest decoder's program: its indices and its size, by evaluation
 
 A firewall (`AGENTS.md`), as `Cost/ExtractorSize.lean` is the extractor's: the kernel evaluations
-over the decoder program's bodies, in a module of their own that imports no proof (only the
-program's definition, the compiled top and the row chunks), so that no edit of a proof rebuilds
-them. Through the program's definition and the compiled top it imports what the compiled chain
-imports (`Guest/Located/Replay.lean`, `Guest/B1/Main/Interface.lean`, the extractor's
-`Cost/Extractor/Top.lean`), not the proofs that use them. For the program `decoderProgramOf j deps`
-(`Cost/DecoderProgram.lean`) of a compiled top `j` with its bodies `deps`:
+over the decoder program's bodies, in a module of their own that imports only the program's
+definition with its facts, the compiled top and the row chunks, none of the proofs that use these
+evaluations, so that no edit of those proofs rebuilds them. Through the program's definition and the
+compiled top it imports what the compiled chain imports (`Guest/Located/Replay.lean`,
+`Guest/B1/Main/Interface.lean`, the extractor's `Cost/Extractor/Top.lean`), not the proofs that use
+them. For the program `decoderProgramOf j deps` (`Cost/DecoderProgram.lean`) of a compiled top `j`
+with its bodies `deps`:
 
 * the indices increase from the entry's `0` (`increasingFrom 0 (deps.map (·.1))`, by
   `decide +kernel`): the program holds its bodies and its entry (`decoderProgramOf_includes`,

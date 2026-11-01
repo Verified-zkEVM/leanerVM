@@ -29,7 +29,7 @@ proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classic
 leanVM at commit \texttt{c445e3d5} of its \texttt{main} branch.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: fifteen files
-of definitions and end statements ($7508$ lines with their documentation), which import Mathlib,
+of definitions and end statements ($7514$ lines with their documentation), which import Mathlib,
 VCVio and CompPoly and nothing of the proofs. Beside them sit the honest prover the completeness
 statements name (\lean{Statement/Prover/}, $2524$ lines; it is proved to make the specification's
 honest moves, so a reviewer only needs to see that it is a genuine prover), the guest program's
@@ -240,13 +240,13 @@ and the final verification at their worst case: a signature grinds through up to
 randomizers in each of its two layers, so one request alone may cost over $2^{33}$ calls.
 
 \paragraph{leanSPHINCS} has the same game and the same bound, $(Q+1)\cdot 2^{-127}$ for every
-$Q \ge 1$ (\lean{Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable}, \lean{Statement/LeanSphincs.lean}),
-with the deterministic signer and at most the lifetime's number of signing
-requests, at each of the seven proved lifetimes (subtree heights $26, 20, 14, 13, 12, 10, 8$;
-\lean{Sphincs.Lifetimes.requestedSecurityRpm}). A signature costs about $2^{35}$ calls in the worst
-case, so with every request of the largest lifetime used the bound is about $2^{-62}$. Both
-schemes are stated through one game, \lean{Common.SufCma.StronglyUnforgeable}, and share one tweakable hash
-(\texttt{tweak.rs}), hash chain, path fold and tree.
+$Q \ge 1$ (\lean{Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable},
+\lean{Statement/LeanSphincs.lean}), with the deterministic signer and at most the lifetime's number
+of signing requests, at each of the seven proved lifetimes (subtree heights
+$26, 20, 14, 13, 12, 10, 8$; \lean{Sphincs.Lifetimes.requestedSecurityRpm}). A signature costs about
+$2^{35}$ calls in the worst case, so with every request of the largest lifetime used the bound is
+about $2^{-62}$. Both schemes are stated through one game, \lean{Common.SufCma.StronglyUnforgeable},
+and share one tweakable hash (\texttt{tweak.rs}), hash chain, path fold and tree.
 
 \subsection*{LeanDA}
 
@@ -340,9 +340,11 @@ program's Keccak to $\pi$ (Section~\ref{sec:notgive}, and the first item of the 
 
 \section{The leanISA guest program (aggregation)}\label{sec:guest}
 
-The guest program aggregates: from signatures, DA matrices and child proofs, it proves one
-statement holding all their claims. This section defines what it proves and states what is proved
-about it. Every definition named here is in \lean{Statement/LeanVmGuest.lean} unless marked.
+The guest program aggregates: from signatures, DA matrices and child proofs, it proves one statement
+holding all their claims. This section defines what it proves and states what is proved about it.
+Every definition named here is in \lean{Statement/}: most in \lean{Statement/LeanVmGuest.lean}, the
+decoder program's in \lean{Statement/Theorems.lean}, the composed statements in
+\lean{Statement/Corollaries.lean}; names marked \lean{lean_vm} are the proofs'.
 
 \subsection{The objects}
 
@@ -476,12 +478,13 @@ the deployed function $G$ computes.
 \paragraph{Chained.} Steps 1 and 2 compose: except with probability $\varepsilon(Q)$, an accepted
 proof of $G$ on any $x$ yields an extracted execution on which $D$ outputs, within its budget, a
 decoding $(\sigma', s', w')$ with $\mathrm{dig}_{\sigma'}(s') = x$ and
-$\mathrm{NodeRel}(B, \sigma', s', w')$ (for \lean{lean_vm}'s \lean{transcriptExtractor} and
-\lean{decode}, \lean{aggregate_knowledge}, \lean{lean_vm}). Step 3 with
-$(\sigma_0, s_0) = (iv_G, s)$ then gives \lean{AggregateSound} (from the fields alone,
-\lean{LeanVM.corollaries_of_theorems}): except with probability $\varepsilon(Q)$, if the verifier accepts a proof
-of $G$ on $\mathrm{dig}_{iv_G}(s)$, for any $s$ whose deferred claim has the bytecode's shape, the
-extracted execution $t$ \emph{explains} $s$ (\lean{ExplainsStatement}):
+$\mathrm{NodeRel}(B, \sigma', s', w')$ (\lean{lean_vm} proves this for its
+\lean{transcriptExtractor} and its memory decoder \lean{decode}: \lean{aggregate_knowledge}). Step 3
+with $(\sigma_0, s_0) = (iv_G, s)$ then gives \lean{AggregateSound} (from the fields alone,
+\lean{LeanVM.corollaries_of_theorems}, \lean{lean_vm}): except with probability $\varepsilon(Q)$, if
+the verifier accepts a proof of $G$ on $\mathrm{dig}_{iv_G}(s)$, for any $s$ whose deferred claim
+has the bytecode's shape, the extracted execution $t$ \emph{explains} $s$
+(\lean{ExplainsStatement}):
 \begin{itemize}
 \item $D$ decodes $t$ to $(iv_G, s, w')$ with $\mathrm{NodeRel}(B, iv_G, s, w')$, or
 \item the decoded seed and statement, with $(iv_G, s)$, give a Keccak-256 collision among the
@@ -576,7 +579,7 @@ $M$ children of the bytecode's shape, one of whose claims (fresh or carried) is 
 \quad\text{for } Q_A \le 2^{128},\ Q_V \le 2^{96},
 \]
 where $Q_V$ (\lean{batchingQueryBound}) is the batching's own query bound for $M$ children (about
-$2^{68}$ for $G$'s bytecode at $M = 2^{64}-1$; \lean{batch_sound_holds}). The factor $M$ comes from
+$2^{68}$ for $G$'s bytecode at $M = 2^{64}-1$; \lean{batch_sound_holds}, \lean{lean_vm}). The factor $M$ comes from
 the single challenge $\lambda$. Weighted by the powers of $\lambda$, the gaps of the fewer than $2M$
 claims (claimed minus true value) form a polynomial in $\lambda$ of degree below $2M$, nonzero when
 a claim is false. It vanishes at fewer than $2M$ values of $\lambda$, against at most $2$ values for
@@ -691,16 +694,15 @@ probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.
 The hypotheses above concern the children. For the same named prover \lean{LeanVM.prover}:
 \begin{enumerate}
 \item in the RPM, with $2^{25}$ nonces per proof of work, the verifier that also refuses every zero
-challenge (\lean{verifierRefusingZero}, through \lean{Prog.refusingZeroChallenge})
-rejects its proof of any valid
-execution of committed size at most $2^{28}$, at $1 \le \rho \le 4$, with probability at most
-$2^{-126}$;
-\item with the deployed Keccak (\lean{honestProofWithDeployedKeccak}),
-wherever \lean{verifierRefusingZero} accepts its proof of an
-execution of $G$ of committed size at least $2^{22}$ on $\mathrm{dig}_{iv_G}(s)$, for $s$ of the
-bytecode's shape, that proof is a child meeting \lean{AcceptableChild} for some fresh claim that is true of the
-bytecode (\lean{BytecodeClaim.Holds}): the value the deferring verifier takes from the witness is
-the bytecode's at the child's point.
+challenge (\lean{verifierRefusingZero}, through \lean{Prog.refusingZeroChallenge}) rejects its proof
+of any valid execution of committed size at most $2^{28}$, at $1 \le \rho \le 4$, with probability
+at most $2^{-126}$;
+\item with the deployed Keccak (\lean{honestProofWithDeployedKeccak}), wherever
+\lean{verifierRefusingZero} accepts its proof of an execution of $G$ of committed size at least
+$2^{22}$ on $\mathrm{dig}_{iv_G}(s)$, for $s$ of the bytecode's shape, that proof is a child meeting
+\lean{AcceptableChild} for some fresh claim that is true of the bytecode
+(\lean{BytecodeClaim.Holds}): the value the deferring verifier takes from the witness is the
+bytecode's at the child's point.
 \end{enumerate}
 The guest program checks a child with the deployed Keccak, so the bad events (a proof of work with
 no nonce within its fuel, a zero challenge) are bounded in the RPM for the same prover and check,
@@ -741,10 +743,10 @@ and \lean{LeanVM.Guest.End.decode} (\lean{LeanVM.Cost.extractorProgram},
 \lean{LeanVM.Cost.decoderProgram}).
 \item That the extracted execution is the one the proof commits to: \lean{KnowledgeSoundness}
 asks only for some valid execution of $\mathit{prog}$ on $x$, and \lean{AggregateSound} decodes that one.
-\item That a valid execution of $G$ has fewer than $2^{51}$ steps (Section~\ref{sec:guest}):
-argued, not a Lean theorem; the decoder's budget has no cap on the steps, and its constant, about
-$2^{47.04}$, prices the children's cursors and the address tables of the memory and the program
-at their maxima.
+\item That a valid execution of $G$ has fewer than $2^{51}$ steps (Section~\ref{sec:guest}): argued,
+not a Lean theorem (\lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}); the
+decoder's budget has no cap on the steps, and its constant, about $2^{47.04}$, prices the children's
+cursors and the address tables of the memory and the program at their maxima.
 \item That the size bounds exclude a table of witnesses for every program: literals count toward
 size, and the bounds are tight only for programs written like the compiled ones (a decoder
 written differently could pack the guest's frame-cell table about three times tighter, freeing

@@ -182,12 +182,13 @@ proves fewer than `2^128`, `steps_lt_replayFuel`). The per-step price and the fr
 `lean_vm`'s bounds on the compiled decoder's own work, stated exactly (`entryArrayStatePrice_eq`;
 `frameAtAPrice_le`, equal at `16` words), at small maxima only (a memory read at `κ = 32`, `1472`;
 two functions entered at a pc; `16` words a frame); the constant prices the children's cursors at
-`2^32` words each, the cap of the decoder's cursor length (`cursorLenWith_le`): the price proof
-bounds counts only by the guest's asserts (`valid_counts`), and no assert bounds the prefix of a
-child's stream the guest consumes (`8192`, `STREAM_CAP`, is the hint buffer's capacity, which
-`AcceptableChild` assumes for completeness). On a valid execution the prefix is at most `8192`
-words, a proof the deferring verifier accepts (`stream_le_of_verifyDeferred`), but the price proof
-does not use that bound; and the address tables at `2^32` entries, not at the run's, so on an honest
+`2^32` words each, the cap of the decoder's cursor length (`cursorLenWith_le`), and the address
+tables at `2^32` entries, not at the run's. The price proof bounds the counts only by the guest's
+asserts (`valid_counts`) and the decoder's clamp of `da_verify`'s rows, and no assert bounds the
+prefix of a child's stream the guest consumes (`8192`, `STREAM_CAP`, is the hint buffer's capacity,
+which `AcceptableChild` assumes for completeness). On a valid execution that prefix is at most
+`8192` words, since it is the stream of a child proof the deferring verifier accepts
+(`stream_le_of_verifyDeferred`), but the price proof does not use that bound. So on an honest
 execution of fewer than about `2^25` steps the budget is far above what the compiled decoder spends;
 that looseness is an accepted trade-off.
 

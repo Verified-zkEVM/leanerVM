@@ -20,9 +20,9 @@ the decoder program's price is within `guestDecoderBudget` (`Statement/Theorems.
 
 * the reader at `1472` (`readerClosure_cost`), the replay of at most `steps + 1` states
   (`replayStatesOf_length`);
-* the counts `main`'s range checks bound (`valid_counts`, `Bounds/Guest/Valid.lean`): at most
-  `16` children, `65535` slots a region, `65535` declared claims a scheme (`CountsWithin`), and
-  `da_verify`'s rows at most `1024` (`dvWitN_cost_1024`, on every input);
+* the counts `main`'s range checks bound (`valid_counts`, `Bounds/Guest/Valid.lean`): at most `16`
+  children, `65535` slots in the two regions together, `65535` declared claims a scheme
+  (`CountsWithin`), and `da_verify`'s rows at most `1024` (`dvWitN_cost_1024`, on every input);
 * the entry table, one sorted array (`entryArrayT_cost`) at the key exponent
   `guestDecoderEntryTableKeyExponent steps`, the precondition test (`preTestAt_cost_deployed`, its
   logarithms' bounds by the lanes' scan, `powBelow_cost`: the statement's
@@ -49,7 +49,8 @@ public section
 attribute [local instance] lexOrd
 
 /-- The constant's linear form in the frame map's price, at a valid run's counts (`16` children,
-`65535` slots a region, `65535` declared claims a scheme): `144294535527556 + 99702868·F`. -/
+`65535` slots in the two regions together, `65535` declared claims a scheme):
+`144294535527556 + 99702868·F`. -/
 theorem topConst_valid_le (F : ℕ) :
     topConstPrice 65535 (decWitNPrice gLogPrice 1472 (1472 + 10993) (F + 7) (425014 + 4)
       (2 ^ 32) (dvFramePrice gLogPrice (F + 7)) 16 65535 65535) ≤

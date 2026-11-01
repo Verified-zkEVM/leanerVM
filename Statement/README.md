@@ -94,10 +94,10 @@ theorems, then read the files in this order.
    argument's knowledge soundness `knowledgeSoundnessGame`, completeness for every permutation `π`),
    and `LeanDa.PerfectlyCompleteRpm`, `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`. Code
    binding is conditional: if the argument is knowledge sound in the random-permutation model with
-   error `(q + c) · 2^-k`, LeanDA is code binding with error `(Q + c + 2^22) · 2^-k + (Q + 2^22) ·
-   2^-188 + (Q + 2^22)² · 2^-247` for every `Q` and `r ≤ 1024` rows (a straight-line proof on
-   Wagner's framework); the last term passes 1 at about `Q = 2^123.5`. `CodeBindingRpm`'s docstring
-   says which arguments satisfy the hypothesis.
+   error `(q + c) · 2^-k`, LeanDA is code binding with error
+   `(Q + c + 2^22) · 2^-k + (Q + 2^22) · 2^-188 + (Q + 2^22)² · 2^-247` for every `Q` and `r ≤ 1024`
+   rows (a straight-line proof on Wagner's framework); the last term passes 1 at about
+   `Q = 2^123.5`. `CodeBindingRpm`'s docstring says which arguments satisfy the hypothesis.
 9. [`LeanIsa.lean`](LeanIsa.lean): leanISA (memory, the six instructions, programs, one step, `run`,
    `ValidExecution`: a run from the initial state `(pcInitial, fpInitial)` that halts in the final
    state `(pcFinal, fpFinal)`, the instruction counts `Execution.count`, the bytecode encoding, the
@@ -111,15 +111,15 @@ theorems, then read the files in this order.
    sizes a stream announces (`announced`). Where the transcription's form differs from the pin's
    without changing what it computes, its docstring gives the pin's lines and why the two agree.
 11. [`LeanVm.lean`](LeanVm.lean): a statement (a program and a public input), the verifier on it
-    over a permutation (`verifier F`), the honest prover's type and **the honest prover**, `prover`
-    (`LeanVM.Prover.prove` of [`Prover/`](Prover/)), the committed size; the random-permutation
-    experiment (`soundnessExperiment`, one game: an adversary with private coins,
-    `RandomPermutationAdversary`, its queries to `π` and `π⁻¹` counted by `permutationCallCost` and
-    recorded, then the verifier over `π`), a straight-line extractor's type
-    (`StraightLineExtractor`: from the statement, the transcript and the proof, an execution or
-    none), the transcript's permutation queries (`permutationQueries`), **`LeanVM.KnowledgeSoundness
-    extractor`** (for a given extractor; it asks for some valid execution, not necessarily the one
-    the proof commits to), **`LeanVM.Completeness`**.
+   over a permutation (`verifier F`), the honest prover's type and **the honest prover**, `prover`
+   (`LeanVM.Prover.prove` of [`Prover/`](Prover/)), the committed size; the random-permutation
+   experiment (`soundnessExperiment`, one game: an adversary with private coins,
+   `RandomPermutationAdversary`, its queries to `π` and `π⁻¹` counted by `permutationCallCost` and
+   recorded, then the verifier over `π`), a straight-line extractor's type (`StraightLineExtractor`:
+   from the statement, the transcript and the proof, an execution or none), the transcript's
+   permutation queries (`permutationQueries`), **`LeanVM.KnowledgeSoundness extractor`** (for a
+   given extractor; it asks for some valid execution, not necessarily the one the proof commits to),
+   **`LeanVM.Completeness`**.
 12. [`CostMachine.lean`](CostMachine.lean): the cost machine (`MachineValue`, `PrimitiveOperation`,
     `Term`, `MachineProgram`, `evaluateTerm`, `run`, `outputWithin`, a program's `size`: a
     first-order functional language on words, natural numbers and arrays, each step priced at least
@@ -133,10 +133,10 @@ theorems, then read the files in this order.
     are honest is trusted. The size bound is `11000`: the compiled extractor's `10489` and a slack
     of about one leanXMSS signature's encoding, so the compiled extractor could carry no useful
     table of witnesses beside its code; the budget (`extractorBudgetAt`, `extractorPrice`) is a
-    closed formula in the announced shape and the number `N` of queries, about `2^117.67 +
-    2^14.7·N·log²N` (`O(N·log³N)` as `N` grows) at the worst shape: `2^117.67` for `N ≤ 2^80` (the
-    list decoder) and `2^156.69` at `N = 2^128` (the transcript's index), where the soundness bound
-    is already trivial.
+    closed formula in the announced shape and the number `N` of queries, about
+    `2^117.67 + 2^14.7·N·log²N` (`O(N·log³N)` as `N` grows) at the worst shape: `2^117.67` for
+    `N ≤ 2^80` (the list decoder) and `2^156.69` at `N = 2^128` (the transcript's index), where the
+    soundness bound is already trivial.
 13. [`LeanVmGuest.lean`](LeanVmGuest.lean): the leanISA guest program's specification (aggregation):
     DA claims and their digest, a node's statement, its digest (Keccak-256 of a preimage), witness
     and relation (`NodeRelation`: leanXMSS and leanSPHINCS claims, a DA digest, children verified by
@@ -177,45 +177,47 @@ theorems, then read the files in this order.
 
 [`Data/`](Data/) is the guest program's compiled bytecode, generated from leanVM's sources by
 `lean_vm/scripts/guest-export` (do not edit; `guest-export --check` fails when it is stale, as CI
-runs it). It needs no review beyond that check.  [`Fast/`](Fast/) makes the compiled definitions
-fast and changes nothing they mean: `@[csimp]` lemmas, each proved, that compile `GF(2^64)` products
-on machine words (`FieldWords`), the degree-three extension's product unrolled (`CubicExt`),
-Keccak-f[1600] with its lanes written out and Keccak-256 over any permutation with its blocks read
-from arrays (`Keccak`), a digest's bytes read as a number by a fold (`SufCma`), and the signature
-schemes' verifiers with a constant-depth lookup (`Schemes`). A `@[csimp]` lemma acts where a
-definition is compiled, so they are here, imported by `Field.lean`, `HashSignatures.lean`,
-`LeanDa.lean` and `LeanVmGuest.lean`, for the statement's own compiled definitions (the verifier,
-the prover, the signature schemes, the guest program's specification, LeanDA) and every module after
-them. They need no review: a `@[csimp]` lemma is an equation the kernel checks.
+runs it). It needs no review beyond that check.
 
-[`Prover/`](Prover/) is leanVM's honest prover as an executable program, `LeanVM.Prover.prove F prog
-input t ρ fuel` (`Prove.lean`), over a permutation `F` in any monad, Keccak-256 the sponge over `F`:
-over the model's `π` it is the prover `LeanVM.prover` that `Completeness` and `GuestChildComplete`
-name, and over Keccak-f[1600] in `Id` it is `lake exe leanvm-prove`, whose proofs the Rust and Lean
-verifiers accept (`lean_vm/README.md`). It is definitions only: the witness from the trace
-(`Witness.lean`, `Columns.lean`: one run of the program; no proof, `none`, unless the trace is a
-valid execution within `2^28` committed cells), a script of the prover's moves (`Script.lean`) for
-each phase of the verifier (`Ntt.lean`, `Bus.lean`, `Gkr.lean`, `Table.lean`, `Public.lean`,
-`Keccak*.lean`, `Ring.lean`, `Whir.lean`; `Mle.lean`, `Sumcheck.lean`, `Code.lean` their helpers),
-and its run against the verifier's own program (`Run.lean`: the challenges squeezed from the sponge,
-each Merkle tree built once, the proof-of-work nonce searched among the first `fuel`). Its
-correctness is proved (`lean_vm/LeanVM/Prover/`: the prover's proof is, at every permutation, the
-proof of the honest strategy the completeness proof follows, at the execution's own witness), so a
-reviewer need not read it line by line; a reviewer checks only that it is a genuine prover: it
-computes its proof from the execution, its only search is the nonce search bounded by `fuel`, and it
-branches on no permutation answer other than through the challenges the verifier's program samples
-(`Run.lean` gives the script nothing else).
+[`Fast/`](Fast/) makes the compiled definitions fast and changes nothing they mean: `@[csimp]`
+lemmas, each proved, that compile `GF(2^64)` products on machine words (`FieldWords`), the
+degree-three extension's product unrolled (`CubicExt`), Keccak-f[1600] with its lanes written out
+and Keccak-256 over any permutation with its blocks read from arrays (`Keccak`), a digest's bytes
+read as a number by a fold (`SufCma`), and the signature schemes' verifiers with a constant-depth
+lookup (`Schemes`). A `@[csimp]` lemma acts where a definition is compiled, so they are here,
+imported by `Field.lean`, `HashSignatures.lean`, `LeanDa.lean` and `LeanVmGuest.lean`, for the
+statement's own compiled definitions (the verifier, the prover, the signature schemes, the guest
+program's specification, LeanDA) and every module after them. They need no review: a `@[csimp]`
+lemma is an equation the kernel checks.
+
+[`Prover/`](Prover/) is leanVM's honest prover as an executable program,
+`LeanVM.Prover.prove F prog input t ρ fuel` (`Prove.lean`), over a permutation `F` in any monad,
+Keccak-256 the sponge over `F`: over the model's `π` it is the prover `LeanVM.prover` that
+`Completeness` and `GuestChildComplete` name, and over Keccak-f[1600] in `Id` it is
+`lake exe leanvm-prove`, whose proofs the Rust and Lean verifiers accept (`lean_vm/README.md`). It
+is definitions only: the witness from the trace (`Witness.lean`, `Columns.lean`: one run of the
+program; no proof, `none`, unless the trace is a valid execution within `2^28` committed cells), a
+script of the prover's moves (`Script.lean`) for each phase of the verifier (`Ntt.lean`, `Bus.lean`,
+`Gkr.lean`, `Table.lean`, `Public.lean`, `Keccak*.lean`, `Ring.lean`, `Whir.lean`; `Mle.lean`,
+`Sumcheck.lean`, `Code.lean` their helpers), and its run against the verifier's own program
+(`Run.lean`: the challenges squeezed from the sponge, each Merkle tree built once, the proof-of-work
+nonce searched among the first `fuel`). Its correctness is proved (`lean_vm/LeanVM/Prover/`: the
+prover's proof is, at every permutation, the proof of the honest strategy the completeness proof
+follows, at the execution's own witness), so a reviewer need not read it line by line; a reviewer
+checks only that it is a genuine prover: it computes its proof from the execution, its only search
+is the nonce search bounded by `fuel`, and it branches on no permutation answer other than through
+the challenges the verifier's program samples (`Run.lean` gives the script nothing else).
 
 The knowledge extractor is not part of the statement: `Statement.Theorems` takes it as a
 cost-machine program (`CostMachine.lean`). A program excludes classical choice; its size bound
 (`11000`, the compiled `10489` and a slack of about one leanXMSS signature) leaves the compiled
-extractor no room for a useful table of witnesses; and its budget is about `2^117.67 +
-2^14.7·N·log²N` (`O(N·log³N)` as `N` grows) for `N` permutation queries (polylogarithmic per query:
-`2^117.67` for `N ≤ 2^80`, `2^156.69` at `N = 2^128`, where the soundness bound is already trivial).
-`lean_vm` names the program (`LeanVM.Cost.extractorProgram`, its extractor `transcriptExtractor`
-compiled, `lean_vm/LeanVM/Protocol/Extraction/Extractor.lean`). The address indices and the public
-boundary it shares with the honest prover (`powIndex`, `gLogIn`, `stepIn`, `boundaryOK`) are in
-`Prover/Witness.lean`.
+extractor no room for a useful table of witnesses; and its budget is about
+`2^117.67 + 2^14.7·N·log²N` (`O(N·log³N)` as `N` grows) for `N` permutation queries (polylogarithmic
+per query: `2^117.67` for `N ≤ 2^80`, `2^156.69` at `N = 2^128`, where the soundness bound is
+already trivial). `lean_vm` names the program (`LeanVM.Cost.extractorProgram`, its extractor
+`transcriptExtractor` compiled, `lean_vm/LeanVM/Protocol/Extraction/Extractor.lean`). The address
+indices and the public boundary it shares with the honest prover (`powIndex`, `gLogIn`, `stepIn`,
+`boundaryOK`) are in `Prover/Witness.lean`.
 
 A few definitions carry small proofs, which are here because the definitions need them:
 decidability instances, `Fin` index bounds (`by omega`, `by decide`), and termination arguments
