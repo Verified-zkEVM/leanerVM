@@ -11,17 +11,18 @@ module
 
 public import LeanVM.Guest.EndSound
 public import LeanVM.Guest.B1.VerifySub.Sound
-public import LeanVM.Guest.Located.Replay
+public import LeanVM.Guest.Located.ReplayFast
 
 /-!
 # The guest's soundness
 
-`decode` reads, off a memory `L`, through the index of its `2^κ` addresses
-(`Located.readIn`, `Extraction.powIndex`), the seed and the statement from `main`'s frame
-(`fp = 1`, the words of `main`'s certificate's cells, `mainValWith`) and the witness
+`decode` reads, off a memory `L`, through the sorted table of its `2^κ` addresses
+(`Located.readTable`, `Extraction.Fast.powTable`, the extractor's binary search), the seed and
+the statement from `main`'s frame (`fp = 1`, the words of `main`'s certificate's cells, `mainValWith`) and the witness
 `B1.Main.decWitV` off `main`'s valuation, the memory and the **replayed** frame map
-(`Located.replayFrameV`): the run from `(g^0, 1)` stepped through the indices, each call given
-the valuation of the first frame at which the run entered its callee, its precondition holding
+(`Located.replayFrameV`): the run from `(g^0, 1)` stepped through the tables (`Located.statesTable`,
+the extractor's `stepTable`), each call given the valuation of the first frame at which the run
+entered its callee (the entries indexed once, `Located.frameVFast`), its precondition holding
 there (decided, `Located.preTest`) and its argument and return cells holding the call's words.
 So each leanXMSS and leanSPHINCS signature is read off the frame of its check, the DA matrix off
 `da_verify`'s and its callees' frames, each child's proof off its `verify_sub` frame and the
@@ -65,14 +66,18 @@ open scoped ENNReal
 noncomputable def mainValWith (rd : Reader) : Val :=
   fun v ↦ Located.wordWith rd 1 ((certOf 1).locs.getD v.idx 0)
 
-/-- **The guest's decoder**, by replay: through the index of the memory's addresses, the seed and
-the statement off `main`'s frame, the witness off `main`'s valuation, the memory and the replayed
-frame map (the frames the run entered the functions that checked it at). -/
+/-- **The guest's decoder**, by replay: through the sorted table of the memory's addresses
+(`Extraction.Fast.powTable`, the extractor's), the seed and the statement off `main`'s frame, the
+witness off `main`'s valuation, the memory and the replayed frame map (the frames the run entered
+the functions that checked it at, indexed once, `Located.frameVFast`). -/
 noncomputable def decode : Decoder := fun {κ} L ↦
-  let rd := Located.readIn (Extraction.powIndex κ) L
+  let memT := Extraction.Fast.powTable κ
+  let rd := Located.readTable memT L
+  let states := Located.statesTable memT (Extraction.Fast.powTable guest.logSize) guest L
+    Located.replayFuel ⟨gpow 0, 1⟩
   let σ := mainValWith rd
   ⟨B1.Main.decSeed σ, B1.Main.decStmt σ rd,
-    B1.Main.decWitV σ rd (Located.replayFrameV L) VerifySub.vsPiOf⟩
+    B1.Main.decWitV σ rd (Located.frameVFast (Located.preTest rd) states rd) VerifySub.vsPiOf⟩
 
 /-- On a memory of fewer than `2^64` words, the decoder reads `main`'s frame and the memory as
 `decodeV` does, with the replayed frame map. -/
@@ -80,7 +85,12 @@ theorem decode_eq {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
     decode L = ⟨B1.Main.decSeed (valG L 1 (certOf 1)),
       B1.Main.decStmt (valG L 1 (certOf 1)) L.read,
       B1.Main.decWitV (valG L 1 (certOf 1)) L.read (Located.replayFrameV L) VerifySub.vsPiOf⟩ := by
-  simp only [decode, Located.readIn_powIndex hκ]
+  have hV : Located.frameVFast (Located.preTest L.read)
+      (Located.statesIn (Extraction.powIndex κ) (Extraction.powIndex guest.logSize) guest L
+        Located.replayFuel ⟨gpow 0, 1⟩) L.read = Located.replayFrameV L := by
+    rw [Located.replayFrameV, Located.readIn_powIndex hκ]
+    exact congrFun (congrFun Located.frameVWith_eq_fast _) _ |>.symm
+  simp only [decode, Located.readTable_powTable hκ, Located.statesTable_eq hκ, hV]
   rfl
 
 /-- `verify_sub`'s statement, its proof `VerifySub.vsPiOf`, for the guest's bytecode. -/

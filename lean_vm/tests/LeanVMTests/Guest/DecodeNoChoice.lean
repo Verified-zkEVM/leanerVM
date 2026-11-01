@@ -13,10 +13,12 @@ schemes it imports (`LeanVM`, `LeanXmss`, `Sphincs`, `LeanDa`).
   `Classical.propDecidable`, `Classical.choice` or `Nat.find`. In particular it reaches neither
   `Semantics.addressIndex?` (the address index by `Classical.choose`, the specification's), nor
   `MemoryImage.read` or `Program.fetch`, which use it: the memory and the bytecode are read
-  through the indices of their addresses (`Located.readIn`, `Extraction.gLogIn`), and B1's
-  exponent of a power of `g` by a search (`B1.Main.indexSearch`).
-* **Positive controls.** The traversal reaches the replay (`Located.statesIn`, the machine's step
-  `Semantics.executeWith`, the decided precondition `Located.preTest`) and B1-d's child proof
+  through the sorted tables of their addresses (`Located.readTable`, `Extraction.Fast.gLogTable`),
+  and B1's exponent of a power of `g` by a search (`B1.Main.indexSearch`).
+* **Positive controls.** The traversal reaches the replay through the extractor's address tables
+  (`Located.statesTable`, `Extraction.Fast.stepTable`, the machine's step `Semantics.executeWith`),
+  the entries' table (`Located.entryTable`), the decided precondition `Located.preTest`, and
+  B1-d's child proof
   `VerifySub.piOfW`, and it flags a definition that does choose (`VerifySub.valOf`, the word at
   an address by `Exists.choose`, which `decode` does not use).
 * **No verifier.** No definition `decode` unfolds to mentions a signature scheme's verifier, the
@@ -81,11 +83,11 @@ run_meta do
 
 /-! ## Positive controls -/
 
-/-- info: statesIn: true, executeWith: true, preTest: true, piOfW: true -/
+/-- info: statesTable: true, stepTable: true, executeWith: true, entryTable: true, preTest: true, piOfW: true, powIndex: false, statesIn: false -/
 #guard_msgs in
 run_meta do
   let (seen, _) ← traverse ``LeanVM.Guest.End.decode classical.contains
-  logInfo s!"statesIn: {seen.contains ``LeanVM.Guest.Located.statesIn}, executeWith: {seen.contains ``LeanVM.Semantics.executeWith}, preTest: {seen.contains ``LeanVM.Guest.Located.preTest}, piOfW: {seen.contains ``LeanVM.Guest.B1.VerifySub.piOfW}"
+  logInfo s!"statesTable: {seen.contains ``LeanVM.Guest.Located.statesTable}, stepTable: {seen.contains ``LeanVM.Extraction.Fast.stepTable}, executeWith: {seen.contains ``LeanVM.Semantics.executeWith}, entryTable: {seen.contains ``LeanVM.Guest.Located.entryTable}, preTest: {seen.contains ``LeanVM.Guest.Located.preTest}, piOfW: {seen.contains ``LeanVM.Guest.B1.VerifySub.piOfW}, powIndex: {seen.contains ``LeanVM.Extraction.powIndex}, statesIn: {seen.contains ``LeanVM.Guest.Located.statesIn}"
 
 /-- info: [LeanVM.Guest.B1.VerifySub.valOf uses Classical.propDecidable, LeanVM.Guest.B1.VerifySub.valOf uses Exists.choose] -/
 #guard_msgs in
