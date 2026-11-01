@@ -122,23 +122,26 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
     does not follow from it.
 13. [`CostMachine.lean`](CostMachine.lean): the cost machine (a first-order functional language
     on words, natural numbers and arrays, each step priced by the words it writes and its
-    operations by their algorithms: `eval`, `run`, `outputWithin`, a program's `size`), the
+    operations by their algorithms: `MachineValue`, `PrimitiveOperation`, `Term`,
+    `MachineProgram`, `evaluateTerm`, `run`, `outputWithin`, a program's `size`), the
     encoding of the extractor's input and output (`encode`, `decodeExecution`, a linear parse), the
-    shape a proof announces (`afterRoot`: the verifier's first two steps), the budget
-    (`extractorBudget`) and **`LeanVM.extractorOf P`**: the extractor a program `P` computes, run
+    budget (`extractorBudget`, read off the shape a proof announces: `announced`,
+    `LeanVmVerifier.lean`) and **`LeanVM.extractorOf P`**: the extractor a program `P` computes, run
     within the budget, its output parsed; `Statement.Theorems` takes `P` with its size at most
     `extractorSizeBound`, and which program it is a reader need not know (`lean_vm` names its
-    knowledge extractor, compiled). That the machine's prices are honest is trusted. The size bound is `2^15`, twice
-    the compiled extractor's `10491` rounded up to a power of two; the budget (`extractorBudgetAt`,
-    `extractorPrice`) is a closed formula in the announced shape and the number of queries, about
-    `2^117.67` at the worst shape for at most `2^40` queries (the list decoder) and `2^156.69` for
-    `2^128` (the transcript's index).
+    knowledge extractor, compiled). That the machine's prices are honest is trusted. The size
+    bound is `2^15`, twice the compiled extractor's `10491` rounded up to a power of two; the
+    budget (`extractorBudgetAt`,
+    `extractorPrice`) is a closed formula in the announced shape and the number `N` of queries,
+    about `N·log³N + 2^117.67` at the worst shape: `2^117.67` for `N ≤ 2^40` (the list decoder)
+    and `2^156.69` at `N = 2^128` (the transcript's index), where the soundness bound is already
+    trivial.
 14. [`Theorems.lean`](Theorems.lean): every end theorem, as the fields of `Statement.Theorems`;
     first, the guest decoder a cost-machine program `D` computes (`LeanVM.Node.decodeOf D`: `D`
     run on the encoded guest program and execution within `guestDecoderBudget`, its output parsed
-    by `decodeDecoded`, a linear parse, `Dec`) and **`LeanVM.Node.GuestKnowledge guest D`** (on
-    every valid execution, `D` outputs a decoding that explains the public input,
-    `ExplainsInput`); `Statement.Theorems` takes `D` with its size at most
+    by `decodeDecoded`, a linear parse, `MachineDecoding`) and
+    **`LeanVM.Node.GuestKnowledge guest D`** (on every valid execution, `D` outputs a decoding that
+    explains the public input, `ExplainsInput`); `Statement.Theorems` takes `D` with its size at most
     `guestDecoderSizeBound`. **The decoder's size bound and price (`guestDecoderSizeBound`,
     `guestDecoderPrice`) are placeholders**, to be set from the compiled decoder.
 15. [`Corollaries.lean`](Corollaries.lean), optional for review: statements that follow from
@@ -182,8 +185,10 @@ bounded by `fuel`, and it branches on no permutation answer other than through t
 challenges the verifier's program samples (`Run.lean` gives the script nothing else).
 
 The knowledge extractor is not part of the statement: `Statement.Theorems` takes it as a
-cost-machine program (`CostMachine.lean`), whose size bound and budget exclude a search for
-witnesses, a table of them, and classical choice. `lean_vm` names the program
+cost-machine program (`CostMachine.lean`): a program excludes classical choice, its size bound a
+table of witnesses, and its budget is about `N·log³N + 2^117.67` for `N` permutation queries
+(polylogarithmic per query: `2^117.67` for `N ≤ 2^40`, `2^156.69` at `N = 2^128`, where the
+soundness bound is already trivial). `lean_vm` names the program
 (`LeanVM.Cost.extractorProgram`, its extractor `transcriptExtractor` compiled,
 `lean_vm/LeanVM/Protocol/Extraction/Extractor.lean`). The address indices and the public boundary
 it shares with the honest prover (`powIndex`, `gLogIn`, `stepIn`, `boundaryOK`) are in

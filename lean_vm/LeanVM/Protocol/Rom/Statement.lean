@@ -38,7 +38,7 @@ the adversary's queries, as they stood when the adversary output its proof (`exp
 
 * `KnowledgeSoundnessRom`: for every adversary of at most `Q` queries, the probability that the
   verifier accepts while the extractor (`extractor`: `LeanVM.Extraction.extract` of
-  `Statement/Extractor.lean` on the adversary's cached Keccak-256 answers, the byte strings they
+  `LeanVM/Protocol/Extraction/Extractor.lean` on the adversary's cached Keccak-256 answers, the byte strings they
   answer enumerated classically, `Extraction.supportKeys`) does not return a valid execution of the
   program on the public input is at most `soundnessError Q`. Proved:
   `LeanVM.knowledgeSoundnessRom_holds` (`LeanVM/Protocol/LeanVMSound.lean`).
@@ -105,7 +105,7 @@ abbrev Extractor : Type :=
   (prog : Program) → PublicInput → KeccakCalls.QueryCache → Proof → Option (Execution prog)
 
 /-- **The extractor of the random-oracle model** (`LeanVM.Extraction.extract`,
-`Statement/Extractor.lean`) on the adversary's cached Keccak-256 answers, with the byte strings
+`LeanVM/Protocol/Extraction/Extractor.lean`) on the adversary's cached Keccak-256 answers, with the byte strings
 they answer as its keys (a classical enumeration, `Extraction.supportKeys`, of a support that is
 finite on every reachable cache; the extraction does not depend on which covering keys it is
 given, `ExtractProofs.extract_keys_congr`). -/

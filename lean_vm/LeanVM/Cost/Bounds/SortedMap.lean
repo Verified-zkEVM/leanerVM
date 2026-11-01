@@ -18,8 +18,8 @@ all. The prices are bounded by a potential (Bentley–Saxe, Tarjan's banker's me
   `price + b·Φ(after) ≤ b·Φ(before) + b·w·(D − log₂ w) + a·(levels + 1)`, `w` the new level's
   weight: an insertion (`w = 1`) pays `b·D + a·(levels + 1)` amortized;
 * the naturals a map compares and adds (positions, weights) up to `2^(D+1)` for `N < 2^D`
-  insertions: their `limbs` at most `limbsBelowTwoPow (D + 1) = (D + 1)/64 + 1` (`limbs_le_wl`), the tactic
-  `limbs_bound hW` adding a bound for every `limbs t` of the goal;
+  insertions: their `limbCount` at most `limbsBelowTwoPow (D + 1) = (D + 1)/64 + 1` (`limbs_le_wl`), the tactic
+  `limbs_bound hW` adding a bound for every `limbCount t` of the goal;
 * **`listFoldl_amortized`**: a fold whose step pays at most `A` amortized (its price plus the
   potential after, at most the potential before plus `A`) pays `(A + 9)·n + 3` from a start of
   potential `0`.
@@ -39,8 +39,8 @@ public section
 theorem one_le_wl (E : ℕ) : 1 ≤ limbsBelowTwoPow E := by unfold limbsBelowTwoPow; omega
 
 /-- **A natural at most `2^E` has at most `E/64 + 1` limbs.** -/
-theorem limbs_le_wl {t E : ℕ} (h : t ≤ 2 ^ E) : limbs t ≤ limbsBelowTwoPow E := by
-  unfold limbs limbsBelowTwoPow
+theorem limbs_le_wl {t E : ℕ} (h : t ≤ 2 ^ E) : limbCount t ≤ limbsBelowTwoPow E := by
+  unfold limbCount limbsBelowTwoPow
   rcases Nat.eq_zero_or_pos t with rfl | ht
   · simp
   · have hlt : t < 2 ^ (E + 1) := by rw [pow_succ]; omega
@@ -49,16 +49,16 @@ theorem limbs_le_wl {t E : ℕ} (h : t ≤ 2 ^ E) : limbs t ≤ limbsBelowTwoPow
     omega
 
 /-- The bound `limbsBelowTwoPow (D + 1)` for the naturals up to twice `2^D`. -/
-theorem limbs_le_wl_two {D : ℕ} : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ limbsBelowTwoPow (D + 1) :=
+theorem limbs_le_wl_two {D : ℕ} : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ limbsBelowTwoPow (D + 1) :=
   fun _ h ↦ limbs_le_wl (by rw [pow_succ]; omega)
 
 section Meta
 
 open Lean Meta Elab Tactic
 
-/-- The arguments of the `limbs` in `e` (no loose bound variables). -/
+/-- The arguments of the `limbCount` in `e` (no loose bound variables). -/
 meta partial def limbsArgs (e : Expr) (acc : Array Expr := #[]) : Array Expr :=
-  let acc := if e.isAppOfArity ``limbs 1 && !e.hasLooseBVars && !acc.contains e.appArg! then
+  let acc := if e.isAppOfArity ``limbCount 1 && !e.hasLooseBVars && !acc.contains e.appArg! then
     acc.push e.appArg! else acc
   match e with
   | .app f a => limbsArgs a (limbsArgs f acc)
@@ -75,8 +75,8 @@ meta def omegaProof? (ty : Expr) : TacticM (Option Expr) := do
     if gs.isEmpty then return some (← instantiateMVars m) else return none
   catch _ => return none
 
-/-- `limbs_bound hW` (`hW : ∀ x, x ≤ B → limbs x ≤ W`): for every `limbs t` of the goal, the
-hypothesis `limbs t = 1` if `omega` shows `t` word-sized, else `limbs t ≤ W` if it shows
+/-- `limbs_bound hW` (`hW : ∀ x, x ≤ B → limbCount x ≤ W`): for every `limbCount t` of the goal, the
+hypothesis `limbCount t = 1` if `omega` shows `t` word-sized, else `limbCount t ≤ W` if it shows
 `t ≤ B`. -/
 elab "limbs_bound " h:term : tactic => withMainContext do
   let hW ← elabTerm h none
@@ -276,18 +276,18 @@ end Amortized
 
 section Fold
 
-variable (P : Program) {α β : Type} [Enc α] [Enc β]
+variable (P : MachineProgram) {α β : Type} [MachineEncoding α] [MachineEncoding β]
 
 /-- **`List.foldl`, amortized** (`listFoldl`): a step at an accumulator of invariant `I acc r`
 (`r` the elements left) pays at most `A` plus the drop of a potential `Φ`; then the fold pays at
 most `Φ init + (A + 9)·n + 3`. -/
-theorem listFoldl_amortized (hP : Includes P listFoldl.costDeps) (f : α → β → α) (fVal : Val)
-    (hf : ∀ a b, RunsApp P fVal [enc a, enc b] (enc (f a b))) (A : ℕ) (Φ : α → ℕ)
+theorem listFoldl_amortized (hP : Includes P listFoldl.costDeps) (f : α → β → α) (fVal : MachineValue)
+    (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b))) (A : ℕ) (Φ : α → ℕ)
     (I : α → ℕ → Prop) :
     ∀ (l : List β) (init : α), I init l.length →
       (∀ acc r, I acc (r + 1) → ∀ b ∈ l, I (f acc b) r ∧
-        appCost P fVal [enc acc, enc b] + Φ (f acc b) ≤ Φ acc + A) →
-      machineCost P listFoldl.costIdx [fVal, enc init, enc l] ≤ Φ init + (A + 9) * l.length + 3 := by
+        appCost P fVal [encodeValue acc, encodeValue b] + Φ (f acc b) ≤ Φ acc + A) →
+      machineCost P listFoldl.costIdx [fVal, encodeValue init, encodeValue l] ≤ Φ init + (A + 9) * l.length + 3 := by
   intro l
   induction l with
   | nil => intro init _ _; rw [listFoldl.costEq_nil P hP f fVal hf]; omega

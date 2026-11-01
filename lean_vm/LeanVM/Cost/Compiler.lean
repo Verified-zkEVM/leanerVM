@@ -14,13 +14,13 @@ public meta import LeanVM.Cost.Rules
 
 `translate` takes a Lean expression `e` (its free variables bound in the machine's environment)
 and returns machine code `t`, a price `c` (a Lean expression of `ℕ` in the same variables) and a
-proof of `Runs P env t (enc e) c`, built from the rules of `Cost/Rules.lean`:
+proof of `Runs P env t (encodeValue e) c`, built from the rules of `Cost/Rules.lean`:
 
 * a variable of the environment: `Rule.var`, at its position;
-* `let`: `Rule.letE`, the body translated with the bound value in front of the environment;
+* `let`: `Rule.letIn`, the body translated with the bound value in front of the environment;
 * a `match`: unfolded to its `casesOn`, then the rule of that type's `casesOn`;
 * an application whose head has a rule (`rules`): the rule whose conclusion's value unifies with
-  `enc e`, its premises solved in turn: a run of a part (under the binders and hypotheses the
+  `encodeValue e`, its premises solved in turn: a run of a part (under the binders and hypotheses the
   premise states, as for the alternatives of a `match`) by translating it, an equation by `rfl`;
 * a definition without a rule: unfolded, then translated.
 
@@ -238,7 +238,7 @@ def nextIndex (reserved : Array Nat := #[]) : MetaM Nat := do
   return reserved.foldl (fun acc r ↦ max acc (r + 1)) n
 
 /-- An entry of the environment: the encoding of a Lean expression, or a closure `v` computing
-the Lean function `f` (`hf : ∀ a…, RunsApp P v [enc a…] (enc (f a…))`). -/
+the Lean function `f` (`hf : ∀ a…, RunsApp P v [encodeValue a…] (encodeValue (f a…))`). -/
 inductive Entry where
   | enc (x : Expr)
   | fn (f v hf : Expr) (arity : Nat)
@@ -265,7 +265,7 @@ structure Ctx where
   lams : IO.Ref Nat
   /-- The indices of the functions being compiled, not yet registered. -/
   reserved : Array Nat := #[]
-  /-- The type parameters in scope (each with an `Enc` instance in the local context). -/
+  /-- The type parameters in scope (each with a `MachineEncoding` instance in the local context). -/
   types : Array Expr := #[]
   /-- The function's own local context: the callees' premises are created there, outside the
   binders of matches and `let`s. -/
@@ -279,7 +279,7 @@ structure Ctx where
 
 /-- The context with `x`'s encoding in front. -/
 def Ctx.push (ctx : Ctx) (x : Expr) : MetaM Ctx := do
-  let v ← mkAppM ``Enc.enc #[x]
+  let v ← mkAppM ``MachineEncoding.encodeValue #[x]
   return { ctx with env := ← mkAppM ``List.cons #[v, ctx.env], vals := #[.enc x] ++ ctx.vals }
 
 /-- The context with a closure `v` of `f` in front. -/
@@ -297,9 +297,9 @@ def runsParts? (ty : Expr) : Option (Expr × Expr × Expr × Expr × Expr) :=
     some (a[0]!, a[1]!, a[2]!, a[3]!, a[4]!)
   else none
 
-/-- The Lean expression `x` of `enc x`. -/
+/-- The Lean expression `x` of `encodeValue x`. -/
 def encArg? (v : Expr) : Option Expr :=
-  if v.isAppOfArity ``Enc.enc 3 then some v.appArg! else none
+  if v.isAppOfArity ``MachineEncoding.encodeValue 3 then some v.appArg! else none
 
 /-- The natural number a literal denotes, if `e` is one. -/
 def natLit? (e : Expr) : MetaM (Option Nat) := do
@@ -417,12 +417,12 @@ def unfoldMatchers (e : Expr) : MetaM Expr := do
     return .done s)
   Core.betaReduce e
 
-/-- `∀ a…, p a…`: `RunsApp P v [enc a…] (enc (f a…))` for a function type `ty`. -/
+/-- `∀ a…, p a…`: `RunsApp P v [encodeValue a…] (encodeValue (f a…))` for a function type `ty`. -/
 def runsAppType (P f v ty : Expr) : MetaM Expr :=
   forallTelescopeReducing ty fun as _ ↦ do
-    let vs ← as.foldrM (fun a l ↦ do mkAppM ``List.cons #[← mkAppM ``Enc.enc #[a], l])
-      (← mkAppOptM ``List.nil #[mkConst ``Val])
-    let w ← mkAppM ``Enc.enc #[mkAppN f as]
+    let vs ← as.foldrM (fun a l ↦ do mkAppM ``List.cons #[← mkAppM ``MachineEncoding.encodeValue #[a], l])
+      (← mkAppOptM ``List.nil #[mkConst ``MachineValue])
+    let w ← mkAppM ``MachineEncoding.encodeValue #[mkAppN f as]
     mkForallFVars as (mkAppN (mkConst ``RunsApp) #[P, v, vs, w])
 
 /-- The kind of a parameter of type `ty`: a function (not a proof, not a type), or a value. -/
@@ -452,7 +452,7 @@ def findCompiled? (e : Expr) : MetaM (Option (CompiledFn × Array Expr)) := do
         let rest := args.extract cf.static.size args.size
         for (a, k) in rest.zip cf.params do
           if k == .type then
-            let enc? ← try synthInstance? (← mkAppM ``Enc #[a]) catch _ => pure none
+            let enc? ← try synthInstance? (← mkAppM ``MachineEncoding #[a]) catch _ => pure none
             if enc?.isNone then
               ok := false
               break
@@ -554,7 +554,7 @@ def addExposedDef (n : Name) (ty val : Expr) : MetaM Unit := do
   compileDecl decl
 
 /-- The function indices in a price, as the compiled functions' `costIdx` constants: in
-`machineCost P j vs` and the closures `Val.fn j us`, for the `j` of `deps` whose function has a
+`machineCost P j vs` and the closures `MachineValue.closure j us`, for the `j` of `deps` whose function has a
 `costIdx` (definitionally the same price). -/
 partial def withCostIdx (deps : Array (Nat × Name)) (e : Expr) : MetaM Expr := do
   let env ← getEnv
@@ -570,7 +570,7 @@ partial def withCostIdx (deps : Array (Nat × Name)) (e : Expr) : MetaM Expr := 
         match idxOf s.appFn!.appArg! with
         | some c => some (mkApp3 s.appFn!.appFn!.appFn! (go s.appFn!.appFn!.appArg!) c (go s.appArg!))
         | none => none
-      else if s.isAppOfArity ``Val.fn 2 then
+      else if s.isAppOfArity ``MachineValue.closure 2 then
         match idxOf s.appFn!.appArg! with
         | some c => some (mkApp2 s.appFn!.appFn! c (go s.appArg!))
         | none => none
@@ -646,7 +646,7 @@ def branchEqs (name : Name) (binders encXs : Array Expr) (lhs rhs pf : Expr) : M
 mutual
 
 /-- **The translation** of `e`: its code, its price, and a proof of
-`Runs P env code (enc e) price`. -/
+`Runs P env code (encodeValue e) price`. -/
 partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := do
   let e ← instantiateMVars e
   let e := e.consumeMData.headBeta
@@ -655,19 +655,19 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
     if e.getAppNumArgs > 0 then
       let e' := Expr.letE n ty v (mkAppN b (e.getAppArgs.map (·.liftLooseBVars 0 1))) nd
       let (t, c, p) ← translate ctx e'
-      return (t, c, ← mkExpectedTypeHint p (runsAt ctx t (← mkAppM ``Enc.enc #[e]) c))
+      return (t, c, ← mkExpectedTypeHint p (runsAt ctx t (← mkAppM ``MachineEncoding.encodeValue #[e]) c))
   -- a variable of the environment
   for h : i in [0:ctx.vals.size] do
     if let .enc x := ctx.vals[i] then
       if x == e then
-        let enc ← mkAppM ``Enc.enc #[e]
+        let enc ← mkAppM ``MachineEncoding.encodeValue #[e]
         let hget ← mkEqRefl (← mkAppM ``Option.some #[enc])
         let pf ← mkAppOptM ``Rule.var #[ctx.P, ctx.env, none, none, mkNatLit i, e, hget]
         return (mkApp (mkConst ``Term.var) (mkNatLit i), mkNatLit 1, pf)
   -- a natural number literal
   if let some n ← natLit? e then
     let pf ← mkAppOptM ``Rule.natLit #[ctx.P, ctx.env, mkNatLit n]
-    let code ← mkAppM ``Term.val #[← mkAppM ``Val.nat #[mkNatLit n]]
+    let code ← mkAppM ``Term.val #[← mkAppM ``MachineValue.nat #[mkNatLit n]]
     return (code, mkNatLit 1, pf)
   -- a literal of `K` or `UInt64`
   if e.isAppOfArity ``OfNat.ofNat 3 && !e.hasFVar then
@@ -691,9 +691,9 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
     let (tb, cb, pb) ← translate ctx' (b.instantiate1 v)
     if tb.hasFVar then throwError "translate: the code of a `let` body depends on its variable"
     let pf ← mkAppOptM ``Rule.letV #[ctx.P, ctx.env, none, none, none, none, tv, tb, v, e, cv, cb,
-      pv, ← mkExpectedTypeHint pb (runsAt ctx' tb (← mkAppM ``Enc.enc #[e]) cb)]
+      pv, ← mkExpectedTypeHint pb (runsAt ctx' tb (← mkAppM ``MachineEncoding.encodeValue #[e]) cb)]
     let c ← mkAppM ``HAdd.hAdd #[← mkAppM ``HAdd.hAdd #[cv, cb], mkNatLit 1]
-    return (← mkAppM ``Term.letE #[tv, tb], c, pf)
+    return (← mkAppM ``Term.letIn #[tv, tb], c, pf)
   -- a function of a finite domain held as data (not a closure of the environment), at an index
   if let .app g i := e then
     let isClosure := ctx.vals.any fun en ↦ match en with
@@ -723,7 +723,7 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
           let (_, _, _, pl) ← translateList ctx (args.toList.map .inl)
           let hget ← mkEqRefl (← mkAppM ``Option.some #[v])
           let pv ← mkAppOptM ``Rule.rawVar #[ctx.P, ctx.env, mkNatLit i, v, hget]
-          let pf ← mkAppM ``Rule.app #[pv, pl, mkAppN hf args]
+          let pf ← mkAppM ``Rule.applyClosure #[pv, pl, mkAppN hf args]
           return ← parts pf
   -- a call of the function being compiled, or of a compiled function
   if let some self := ctx.self then
@@ -771,7 +771,7 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
       match ← delta? e (· == f) with
       | some e' =>
         let (t, c, p) ← translate ctx (← Core.betaReduce e')
-        return (t, c, ← mkExpectedTypeHint p (runsAt ctx t (← mkAppM ``Enc.enc #[e]) c))
+        return (t, c, ← mkExpectedTypeHint p (runsAt ctx t (← mkAppM ``MachineEncoding.encodeValue #[e]) c))
       | none => throwError "translate: cannot unfold the match {e}"
   -- a rule
   let fn := e.getAppFn
@@ -807,7 +807,7 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
       ctx.inlined.modify fun a ↦ if a.contains f then a else a.push f
       let (t, c, p) ← try translate ctx (← unfoldMatchers e'.headBeta)
         catch ex => throwError "{ex.toMessageData}\n  in the unfolding of {f}"
-      return (t, c, ← mkExpectedTypeHint p (runsAt ctx t (← mkAppM ``Enc.enc #[e]) c))
+      return (t, c, ← mkExpectedTypeHint p (runsAt ctx t (← mkAppM ``MachineEncoding.encodeValue #[e]) c))
   -- a function of a finite domain as data: the array of its values
   if e.isLambda then
     if let .forallE _ dom _ _ ← whnfR (← inferType e) then
@@ -816,11 +816,11 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
         return ← parts (← mkAppM ``Rule.finFunOfArray #[p])
   throwError "translate: no rule for {e} (head {e.getAppFn})"
 
-/-- Unify a rule's value `enc pat` with `enc e`: argument by argument when `pat` and `e` have the
+/-- Unify a rule's value `encodeValue pat` with `encodeValue e`: argument by argument when `pat` and `e` have the
 same head constant (so that a `casesOn` is not unfolded first, structure eta turning it into
 projections), as a whole otherwise. -/
 partial def matchValue (v target : Expr) : MetaM Bool := do
-  unless v.isAppOfArity ``Enc.enc 3 && target.isAppOfArity ``Enc.enc 3 do return ← isDefEq v target
+  unless v.isAppOfArity ``MachineEncoding.encodeValue 3 && target.isAppOfArity ``MachineEncoding.encodeValue 3 do return ← isDefEq v target
   unless ← isDefEq (v.getArg! 0) (target.getArg! 0) do return false
   unless ← isDefEq (v.getArg! 1) (target.getArg! 1) do return false
   let pat ← instantiateMVars (v.getArg! 2)
@@ -866,7 +866,7 @@ partial def tryRewrite (ctx : Ctx) (rw : Name) (e : Expr) : MetaM (Option (Expr 
   let rhs ← instantiateMVars rhs
   let (t, c, pf) ← translate ctx rhs
   let motive ← withLocalDeclD `z (← inferType e) fun z ↦ do
-    mkLambdaFVars #[z] (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t, ← mkAppM ``Enc.enc #[z], c])
+    mkLambdaFVars #[z] (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t, ← mkAppM ``MachineEncoding.encodeValue #[z], c])
   return some (t, c, ← mkEqMPR (← mkCongrArg motive eqPf) pf)
 
 /-- `decide p` for `p` a definition (not a projection): `decide` of its unfolding, at the
@@ -885,14 +885,14 @@ partial def decideUnfolded (ctx : Ctx) (e : Expr) : MetaM (Option (Expr × Expr 
     #[← mkAppOptM ``decide_eq_decide #[p, p', e.appArg!, inst'], iff]
   let (t, c, pf) ← translate ctx e'
   let motive ← withLocalDeclD `z (← inferType e) fun z ↦ do
-    mkLambdaFVars #[z] (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t, ← mkAppM ``Enc.enc #[z], c])
+    mkLambdaFVars #[z] (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t, ← mkAppM ``MachineEncoding.encodeValue #[z], c])
   return some (t, c, ← mkEqMPR (← mkCongrArg motive eqPf) pf)
 
-/-- Whether `enc x` is a constructor of tag `j` (the type's encoding is the constructors'). -/
+/-- Whether `encodeValue x` is a constructor of tag `j` (the type's encoding is the constructors'). -/
 partial def encodesAsCtor (x : Expr) (j : Nat) : MetaM Bool := do
   try
-    let v ← whnfD (← mkAppM ``Enc.enc #[x])
-    unless v.isAppOfArity ``Val.ctor 2 do return false
+    let v ← whnfD (← mkAppM ``MachineEncoding.encodeValue #[x])
+    unless v.isAppOfArity ``MachineValue.ctor 2 do return false
     let tag ← whnfD (← instantiateMVars v.appFn!.appArg!)
     return tag.nat? == some j || tag.rawNatLit? == some j
   catch _ => return false
@@ -901,10 +901,10 @@ partial def encodesAsCtor (x : Expr) (j : Nat) : MetaM Bool := do
 partial def dataMask (fs : Array Expr) : MetaM (Array Bool) :=
   fs.mapM fun f ↦ do return !(← isProp (← inferType f))
 
-/-- The list `[enc x₀, …]` of the data fields. -/
+/-- The list `[encodeValue x₀, …]` of the data fields. -/
 partial def encList (xs : Array Expr) : MetaM Expr := do
-  xs.foldrM (fun x l ↦ do mkAppM ``List.cons #[← mkAppM ``Enc.enc #[x], l])
-    (← mkAppOptM ``List.nil #[mkConst ``Val])
+  xs.foldrM (fun x l ↦ do mkAppM ``List.cons #[← mkAppM ``MachineEncoding.encodeValue #[x], l])
+    (← mkAppOptM ``List.nil #[mkConst ``MachineValue])
 
 /-- A constructor application: `.ctor j` of its data fields. -/
 partial def translateCtor (ctx : Ctx) (ci : ConstructorVal) (e : Expr) :
@@ -917,10 +917,10 @@ partial def translateCtor (ctx : Ctx) (ci : ConstructorVal) (e : Expr) :
   let pf := mkAppN (mkConst ``Runs.ctor) #[ctx.P, ctx.env, mkNatLit ci.cidx, ts, vs, c, pl]
   let code := mkApp2 (mkConst ``Term.ctor) (mkNatLit ci.cidx) ts
   let cost ← mkAppM ``HAdd.hAdd #[← mkAppM ``HAdd.hAdd #[c, mkNatLit dataFs.size], mkNatLit 1]
-  let ty := mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, code, ← mkAppM ``Enc.enc #[e], cost]
+  let ty := mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, code, ← mkAppM ``MachineEncoding.encodeValue #[e], cost]
   return some (code, cost, ← mkExpectedTypeHint pf ty)
 
-/-- A projection: `.proj k` of the structure's code, `k` the field's position among the data
+/-- A projection: `.field k` of the structure's code, `k` the field's position among the data
 fields. -/
 partial def translateProj (ctx : Ctx) (ctorName : Name) (i : Nat) (s e : Expr) :
     MetaM (Option (Expr × Expr × Expr)) := do
@@ -946,12 +946,12 @@ partial def translateProj (ctx : Ctx) (ctorName : Name) (i : Nat) (s e : Expr) :
   let (t, c, p) ← translate ctx s
   let fs ← encList projs
   let hCtor ← mkExpectedTypeHint p
-    (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t, mkApp2 (mkConst ``Val.ctor) (mkNatLit 0) fs, c])
-  let v ← mkAppM ``Enc.enc #[e]
+    (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t, mkApp2 (mkConst ``MachineValue.ctor) (mkNatLit 0) fs, c])
+  let v ← mkAppM ``MachineEncoding.encodeValue #[e]
   let hi ← mkEqRefl (← mkAppM ``Option.some #[v])
-  let pf := mkAppN (mkConst ``Runs.proj) #[ctx.P, ctx.env, mkNatLit k, mkNatLit 0, t, fs, v, c,
+  let pf := mkAppN (mkConst ``Runs.field) #[ctx.P, ctx.env, mkNatLit k, mkNatLit 0, t, fs, v, c,
     hCtor, hi]
-  return some (mkApp2 (mkConst ``Term.proj) (mkNatLit k) t, ← mkAppM ``HAdd.hAdd #[c, mkNatLit 1], pf)
+  return some (mkApp2 (mkConst ``Term.field) (mkNatLit k) t, ← mkAppM ``HAdd.hAdd #[c, mkNatLit 1], pf)
 
 /-- A case split on `major` (of an inductive type encoded as constructors, without indices),
 its result of type `β` not depending on the value: `.case` of the branches, each run with the
@@ -997,7 +997,7 @@ partial def translateCasesCore (ctx : Ctx) (major : Expr) (bodyOf : Nat → Arra
     return mkAppN (mkConst casesOn (Level.one :: lvls)) (params ++ #[m, x] ++ costLams)
   let costOf (x : Expr) : MetaM Expr := do
     mkAppM ``HAdd.hAdd #[← mkAppM ``HAdd.hAdd #[c0, ← costCases x], mkNatLit 1]
-  let encOf (x : Expr) : MetaM Expr := do mkAppM ``Enc.enc #[← valOf x]
+  let encOf (x : Expr) : MetaM Expr := do mkAppM ``MachineEncoding.encodeValue #[← valOf x]
   -- the proof, by cases on the value
   let pmotive ← withLocalDeclD `x (← inferType major) fun x ↦ do
     mkLambdaFVars #[x] (← mkArrow (← mkEq major x)
@@ -1012,10 +1012,10 @@ partial def translateCasesCore (ctx : Ctx) (major : Expr) (bodyOf : Nat → Arra
       withLocalDeclD `hx (← mkEq major ctorApp) fun hx ↦ do
         let fs ← encList dataFs
         let rmotive ← withLocalDeclD `z (← inferType major) fun z ↦ do
-          mkLambdaFVars #[z] (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t0, ← mkAppM ``Enc.enc #[z], c0])
+          mkLambdaFVars #[z] (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t0, ← mkAppM ``MachineEncoding.encodeValue #[z], c0])
         let h0 ← mkEqNDRec rmotive p0 hx
         let h0 ← mkExpectedTypeHint h0
-          (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t0, mkApp2 (mkConst ``Val.ctor) (mkNatLit j) fs, c0])
+          (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t0, mkApp2 (mkConst ``MachineValue.ctor) (mkNatLit j) fs, c0])
         let ha ← mkEqRefl (← mkAppM ``Option.some #[alts[j]!])
         let pj := pfLams[j]!.beta (fields.push hx)
         let pjTy ← inferType pj
@@ -1029,7 +1029,7 @@ partial def translateCasesCore (ctx : Ctx) (major : Expr) (bodyOf : Nat → Arra
   let pf := mkApp (mkAppN (mkConst casesOn (Level.zero :: lvls)) (params ++ #[pmotive, major] ++ minorPfs))
     (← mkEqRefl major)
   let cost ← costOf major
-  let ty := mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, code, ← mkAppM ``Enc.enc #[e], cost]
+  let ty := mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, code, ← mkAppM ``MachineEncoding.encodeValue #[e], cost]
   return some (code, cost, ← mkExpectedTypeHint pf ty)
 
 /-- A `casesOn` with a constant motive. -/
@@ -1145,7 +1145,7 @@ partial def compileOnDemand (ctx : Ctx) (f : Name) (e : Expr) : MetaM (Option Co
       let ty ← inferType a
       if (← whnf ty).isForall then pure false
       else
-        try pure (← synthInstance? (← mkAppM ``Enc #[ty])).isNone
+        try pure (← synthInstance? (← mkAppM ``MachineEncoding #[ty])).isNone
         catch _ => pure true
     if isInst || noEnc then lastStatic := j + 1
   let static := args.extract 0 lastStatic
@@ -1203,13 +1203,13 @@ partial def translateList (ctx : Ctx) (es : List (Expr ⊕ (Expr × Expr × Expr
   match es with
   | [] =>
     let ts ← mkAppOptM ``List.nil #[mkConst ``Term]
-    let vs ← mkAppOptM ``List.nil #[mkConst ``Val]
+    let vs ← mkAppOptM ``List.nil #[mkConst ``MachineValue]
     return (ts, vs, mkNatLit 0, ← mkAppOptM ``RunsList.nil #[ctx.P, ctx.env])
   | a :: es =>
     let (t, v, c, p) ← match a with
       | .inl e => do
         let (t, c, p) ← translate ctx e
-        pure (t, ← mkAppM ``Enc.enc #[e], c, p)
+        pure (t, ← mkAppM ``MachineEncoding.encodeValue #[e], c, p)
       | .inr r => pure r
     let (ts, vs, cs, ps) ← translateList ctx es
     let pf ← mkAppOptM ``RunsList.cons #[ctx.P, ctx.env, t, ts, v, vs, c, cs, p, ps]
@@ -1224,7 +1224,7 @@ partial def localClosure (ctx : Ctx) (f fty : Expr) (arity : Nat) (caps : Array 
     MetaM (Expr × Expr × Expr × Expr × Expr) := do
   let _ := arity
   -- the body's environment: the captures, then the parameters (`var 0` the first capture)
-  let env0 ← mkAppOptM ``List.nil #[mkConst ``Val]
+  let env0 ← mkAppOptM ``List.nil #[mkConst ``MachineValue]
   let mut ctx' : Ctx := { ctx with env := env0, vals := #[] }
   for p in ps.reverse do ctx' ← ctx'.push p
   for en in caps.reverse do
@@ -1261,15 +1261,15 @@ partial def localClosure (ctx : Ctx) (f fty : Expr) (arity : Nat) (caps : Array 
   let (ts, us, c, pl) ← translateList ctx capArgs.toList
   let pf ← mkAppOptM ``Rule.closure #[ctx.P, ctx.env, mkNatLit j, ts, us, c, pl]
   let (t, cost, _) ← parts pf
-  let v ← mkAppM ``Val.fn #[mkNatLit j, us]
+  let v ← mkAppM ``MachineValue.closure #[mkNatLit j, us]
   -- the hypothesis: for all parameters, the closure computes `f`
   let vs ← encList ps
   let args ← mkAppM ``HAppend.hAppend #[us, vs]
   let pj ← mkExpectedTypeHint pj (mkAppN (mkConst ``Runs) #[ctx.P, args, tj,
-    ← mkAppM ``Enc.enc #[body], cj])
+    ← mkAppM ``MachineEncoding.encodeValue #[body], cj])
   let rb ← mkAppM ``RunsBody.intro #[hb, pj]
   let rb ← mkAppM ``RunsBody.withMachineCost #[rb]
-  let w ← mkAppM ``Enc.enc #[body]
+  let w ← mkAppM ``MachineEncoding.encodeValue #[body]
   let hfBody ← mkAppOptM ``RunsApp.of_spec #[ctx.P, mkNatLit j, us, vs, w, rb]
   let hf ← mkLambdaFVars ps hfBody
   let hfTy ← runsAppType ctx.P f v fty
@@ -1277,7 +1277,7 @@ partial def localClosure (ctx : Ctx) (f fty : Expr) (arity : Nat) (caps : Array 
 
 /-- A function argument as a closure: a closure of the environment passed on, or a lambda (its
 free variables captured) compiled to a function of its own. Returns the code, the value, the price,
-the run's proof, and the hypothesis `∀ a…, RunsApp P v [enc a…] (enc (f a…))`. -/
+the run's proof, and the hypothesis `∀ a…, RunsApp P v [encodeValue a…] (encodeValue (f a…))`. -/
 partial def closureOf (ctx : Ctx) (f : Expr) (arity : Nat) :
     MetaM (Expr × Expr × Expr × Expr × Expr) := do
   -- a closure of the environment
@@ -1307,7 +1307,7 @@ partial def closureOf (ctx : Ctx) (f : Expr) (arity : Nat) :
         let aty ← inferType a
         if (← isProp aty) || (← isType a) || (← whnf aty).isForall || (← isClass? aty).isSome then
           continue
-        let some _ ← (try synthInstance? (← mkAppM ``Enc #[aty]) catch _ => pure none) | continue
+        let some _ ← (try synthInstance? (← mkAppM ``MachineEncoding #[aty]) catch _ => pure none) | continue
         cands := cands.push a
     -- kept when abstracting it leaves the lambda well typed (a value may occur in types)
     let mut used : Array Expr := #[]
@@ -1365,12 +1365,12 @@ partial def closureOf (ctx : Ctx) (f : Expr) (arity : Nat) :
     let (ts, us, c, pl) ← translateList ctx capArgs.toList
     let pf ← mkAppOptM ``Rule.closure #[ctx.P, ctx.env, mkNatLit cf.index, ts, us, c, pl]
     let (t, cost, _) ← parts pf
-    let v ← mkAppM ``Val.fn #[mkNatLit cf.index, us]
+    let v ← mkAppM ``MachineValue.closure #[mkNatLit cf.index, us]
     -- the hypothesis, from the lifted function's spec
     let hInc ← ctx.premise cf.deps
     let mut specArgs := #[ctx.P, hInc]
     for ty in ctx.types do
-      specArgs := specArgs ++ #[ty, ← synthInstance (← mkAppM ``Enc #[ty])]
+      specArgs := specArgs ++ #[ty, ← synthInstance (← mkAppM ``MachineEncoding #[ty])]
     for en in caps do
       match en with
       | .enc x => specArgs := specArgs.push x
@@ -1378,9 +1378,9 @@ partial def closureOf (ctx : Ctx) (f : Expr) (arity : Nat) :
     let hf ← withLocalDeclsD (← ps.mapM fun p ↦ do
         pure ((← p.fvarId!.getUserName), fun _ ↦ inferType p)) fun qs ↦ do
       let spec := mkAppN (mkConst cf.spec) (specArgs ++ qs)
-      let vs ← qs.foldrM (fun q l ↦ do mkAppM ``List.cons #[← mkAppM ``Enc.enc #[q], l])
-        (← mkAppOptM ``List.nil #[mkConst ``Val])
-      let w ← mkAppM ``Enc.enc #[← Core.betaReduce (mkAppN f qs)]
+      let vs ← qs.foldrM (fun q l ↦ do mkAppM ``List.cons #[← mkAppM ``MachineEncoding.encodeValue #[q], l])
+        (← mkAppOptM ``List.nil #[mkConst ``MachineValue])
+      let w ← mkAppM ``MachineEncoding.encodeValue #[← Core.betaReduce (mkAppN f qs)]
       mkLambdaFVars qs (← mkAppOptM ``RunsApp.of_spec #[ctx.P, mkNatLit cf.index, us, vs, w, spec])
     let hfTy ← runsAppType ctx.P f v fty
     return (t, v, cost, pf, ← mkExpectedTypeHint hf hfTy)
@@ -1401,7 +1401,7 @@ partial def translateCall (ctx : Ctx) (cf : CompiledFn) (args : Array Expr) (e :
       items := items.push (.inr (t, v, c, p))
       specArgs := specArgs ++ #[a, v, hf]
     | .type =>
-      specArgs := specArgs ++ #[a, ← synthInstance (← mkAppM ``Enc #[a])]
+      specArgs := specArgs ++ #[a, ← synthInstance (← mkAppM ``MachineEncoding #[a])]
     | .proof => specArgs := specArgs.push a
     | .fixed =>
       items := items.push (.inl a)
@@ -1442,7 +1442,7 @@ partial def translateSelfCall (ctx : Ctx) (self : SelfInfo) (e : Expr) :
   let decPf ← proveByTactic dec
   parts (← mkAppM ``Rule.call #[pl, mkAppN self.ih #[y, decPf]])
 
-/-- The rule `rule` applied to `e`, if its conclusion's value unifies with `enc e` and its
+/-- The rule `rule` applied to `e`, if its conclusion's value unifies with `encodeValue e` and its
 premises are solved. -/
 partial def tryRule (ctx : Ctx) (rule : Name) (e : Expr) : MetaM (Option (Expr × Expr × Expr)) := do
   let s ← saveState
@@ -1451,7 +1451,7 @@ partial def tryRule (ctx : Ctx) (rule : Name) (e : Expr) : MetaM (Option (Expr �
   let ty := info.type.instantiateLevelParams info.levelParams lvls
   let (args, _, concl) ← forallMetaTelescopeReducing ty
   let some (P, env, t, v, c) := runsParts? concl | throwError "rule {rule} does not conclude a run"
-  let target ← mkAppM ``Enc.enc #[e]
+  let target ← mkAppM ``MachineEncoding.encodeValue #[e]
   unless (← isDefEq P ctx.P) && (← isDefEq env ctx.env) && (← matchValue v target) do
     s.restore
     return none
@@ -1528,7 +1528,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
   let term ← instantiateMVars term
   let ty ← inferType term
   forallTelescopeReducing ty fun xs _ ↦ do
-  withLocalDeclD `P (mkConst ``Program) fun P ↦ do
+  withLocalDeclD `P (mkConst ``MachineProgram) fun P ↦ do
     let kinds0 ← xs.mapIdxM fun i x ↦ do
       let k ← paramKind (← inferType x)
       if encAt.contains i then
@@ -1571,7 +1571,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
           let some r ← delta? lhs (· == headName) | throwError "cannot unfold {headName}"
           let r' ← unfoldMatchers r.headBeta
           pure (r', ← mkExpectedTypeHint (← mkEqRefl lhs) (← mkEq lhs r'))
-    let env0 ← mkAppOptM ``List.nil #[mkConst ``Val]
+    let env0 ← mkAppOptM ``List.nil #[mkConst ``MachineValue]
     let inlined ← IO.mkRef #[]
     let mut ctx : Ctx := { P := P, env := env0, vals := #[], pending := pending, base := name,
                            lams := lams, reserved := reserved.push idx, types := typeXs, inlined,
@@ -1589,14 +1589,14 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
     -- the environment as a function of the tuple of the encoded parameters
     let argsF ← withLocalDeclD `y tupleTy fun y ↦ do
       let comps ← tupleComponents y encXs.size
-      let mut l ← mkAppOptM ``List.nil #[mkConst ``Val]
+      let mut l ← mkAppOptM ``List.nil #[mkConst ``MachineValue]
       let mut j := encXs.size
       for (x, k) in (xs.zip kinds).reverse do
         match k with
         | .enc =>
           j := j - 1
-          l ← mkAppM ``List.cons #[← mkAppM ``Enc.enc #[comps[j]!], l]
-        | .fixed => l ← mkAppM ``List.cons #[← mkAppM ``Enc.enc #[x], l]
+          l ← mkAppM ``List.cons #[← mkAppM ``MachineEncoding.encodeValue #[comps[j]!], l]
+        | .fixed => l ← mkAppM ``List.cons #[← mkAppM ``MachineEncoding.encodeValue #[x], l]
         | .fn _ =>
           let some (_, v, _) := fnHyps.find? (·.1 == x) | throwError "no closure for {x}"
           l ← mkAppM ``List.cons #[v, l]
@@ -1612,7 +1612,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
           args := args.push comps[j]!
           j := j + 1
         | _ => args := args.push x
-      mkLambdaFVars #[y] (← mkAppM ``Enc.enc #[← Core.betaReduce (mkAppN term args)])
+      mkLambdaFVars #[y] (← mkAppM ``MachineEncoding.encodeValue #[← Core.betaReduce (mkAppN term args)])
     let runsBodyAt (y : Expr) : MetaM Expr := do
       let args ← Core.betaReduce (argsF.beta #[y])
       return mkAppN (mkConst ``RunsBody) #[P, mkNatLit idx, args, valF.beta #[y],
@@ -1665,7 +1665,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
         let hb ← mkAppM ``Includes.get #[hP, mem]
         let motive ← withLocalDeclD `z (← inferType lhs) fun z ↦ do
           mkLambdaFVars #[z] (mkAppN (mkConst ``Runs) #[P, ctx.env, mkConst bodyName,
-            ← mkAppM ``Enc.enc #[z], c])
+            ← mkAppM ``MachineEncoding.encodeValue #[z], c])
         let pf' ← mkEqMPR (← mkCongrArg motive eqPf) pf
         let runBody ← mkAppM ``RunsBody.intro #[hb, pf']
         costTrace s!"compile {name} run proved"
@@ -1702,7 +1702,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
               ← mkAppM ``machineCost_eq #[runBody])
         let specBody ← if ih?.isSome then cleanTuples (← runsBodyAt x) else
           -- stated at the parameters themselves (a proof parameter may depend on them)
-          pure (mkAppN (mkConst ``RunsBody) #[P, mkNatLit idx, ctx.env, ← mkAppM ``Enc.enc #[lhs],
+          pure (mkAppN (mkConst ``RunsBody) #[P, mkNatLit idx, ctx.env, ← mkAppM ``MachineEncoding.encodeValue #[lhs],
             mkAppN (mkConst ``machineCost) #[P, mkNatLit idx, ctx.env]])
         let specTy ← instantiateMVars (← mkForallFVars binders specBody)
         let specName := name.str "costSpec"
@@ -1765,12 +1765,12 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
       withLocalDeclD `ih ihTy fun ih ↦ finish (some ih)
     | none => finish none
 
-/-- Local `Enc` instances for the type parameters `ts`. -/
+/-- Local `MachineEncoding` instances for the type parameters `ts`. -/
 partial def withEncInsts {α : Type} (ts : Array Expr) (acc : Array (Expr × Expr))
     (k : Array (Expr × Expr) → MetaM α) : MetaM α := do
   if h : acc.size < ts.size then
     let t := ts[acc.size]
-    withLocalDecl `inst .instImplicit (← mkAppM ``Enc #[t]) fun i ↦
+    withLocalDecl `inst .instImplicit (← mkAppM ``MachineEncoding #[t]) fun i ↦
       withEncInsts ts (acc.push (t, i)) k
   else k acc
 
@@ -1779,7 +1779,7 @@ partial def withFnHyps {α : Type} (P : Expr) (fs : Array Expr) (acc : Array (Ex
     (k : Array (Expr × Expr × Expr) → MetaM α) : MetaM α := do
   if h : acc.size < fs.size then
     let f := fs[acc.size]
-    withLocalDeclD ((← f.fvarId!.getUserName).appendAfter "Val") (mkConst ``Val) fun v ↦ do
+    withLocalDeclD ((← f.fvarId!.getUserName).appendAfter "MachineValue") (mkConst ``MachineValue) fun v ↦ do
       let hty ← runsAppType P f v (← inferType f)
       withLocalDeclD ((← f.fvarId!.getUserName).appendAfter "Spec") hty fun hf ↦
         withFnHyps P fs (acc.push (f, v, hf)) k
@@ -1795,7 +1795,7 @@ index by default), and add:
 * `name.costSpec`: the run on every argument, at the machine's price `machineCost P i args`, in
   every program holding the bodies it needs;
 * `name.costEq`: the price's recurrence, `machineCost P name.costIdx args = C`, with `C` folded
-  (`Cost/Fold.lean`: a sum's constants gathered at its end, lengths of literal lists, `limbs` of
+  (`Cost/Fold.lean`: a sum's constants gathered at its end, lengths of literal lists, `limbCount` of
   literals, fields of literal pairs) and the callees' and closures' indices as their `costIdx`;
 * `name.costEq_nil`, `name.costEq_cons`, `name.costEq_zero`, `name.costEq_succ`, … (one per
   constructor), when `C` cases on an encoded parameter: the recurrence at that constructor, the
@@ -1850,37 +1850,37 @@ syntax (name := costMeasure) "cost_measure " ident " := " term : command
     modifyEnv (measureExt.addEntry · (f, m))
 
 /-- `cost_enc T`: the encoding of the inductive type `T` by its constructors: constructor `j` of
-data fields `x…` (proofs dropped, types and instances as parameters) is `.ctor j [enc x…]`. A
+data fields `x…` (proofs dropped, types and instances as parameters) is `.ctor j [encodeValue x…]`. A
 type parameter needs an encoding. -/
 elab "cost_enc " id:ident : command => Command.liftTermElabM do
   let T ← realizeGlobalConstNoOverloadWithInfo id
   let ind ← getConstInfoInduct T
   let lvls := ind.levelParams.map fun _ ↦ Level.zero
   forallTelescopeReducing (ind.type.instantiateLevelParams ind.levelParams lvls) fun params _ ↦ do
-    -- an `Enc` instance for each type parameter
+    -- a `MachineEncoding` instance for each type parameter
     let typeParams ← params.filterM fun p ↦ do return (← whnf (← inferType p)).isSort
     let rec withEncs (i : Nat) (acc : Array Expr) (k : Array Expr → MetaM Unit) : MetaM Unit := do
       if h : i < typeParams.size then
-        withLocalDecl `inst .instImplicit (← mkAppM ``Enc #[typeParams[i]]) fun e ↦
+        withLocalDecl `inst .instImplicit (← mkAppM ``MachineEncoding #[typeParams[i]]) fun e ↦
           withEncs (i + 1) (acc.push e) k
       else k acc
     withEncs 0 #[] fun insts ↦ do
       let Tapp := mkAppN (mkConst T lvls) params
       let encOf ← withLocalDeclD `x Tapp fun x ↦ do
-        let motive ← mkLambdaFVars #[x] (mkConst ``Val)
+        let motive ← mkLambdaFVars #[x] (mkConst ``MachineValue)
         let mut minors := #[]
         for c in ind.ctors, j in [0:ind.ctors.length] do
           let cty ← instantiateForall (← inferType (mkConst c lvls)) params
           let minor ← forallTelescopeReducing cty fun fields _ ↦ do
             let dataFs ← fields.filterM fun f ↦ do return !(← isProp (← inferType f))
-            let vs ← dataFs.foldrM (fun f l ↦ do mkAppM ``List.cons #[← mkAppM ``Enc.enc #[f], l])
-              (← mkAppOptM ``List.nil #[mkConst ``Val])
-            mkLambdaFVars fields (mkApp2 (mkConst ``Val.ctor) (mkNatLit j) vs)
+            let vs ← dataFs.foldrM (fun f l ↦ do mkAppM ``List.cons #[← mkAppM ``MachineEncoding.encodeValue #[f], l])
+              (← mkAppOptM ``List.nil #[mkConst ``MachineValue])
+            mkLambdaFVars fields (mkApp2 (mkConst ``MachineValue.ctor) (mkNatLit j) vs)
           minors := minors.push minor
         let body := mkAppN (mkConst (mkCasesOnName T) (Level.one :: lvls)) (params ++ #[motive, x] ++ minors)
         mkLambdaFVars #[x] body
-      let inst ← mkAppOptM ``Enc.mk #[Tapp, encOf]
-      let ty ← mkForallFVars (params ++ insts) (← mkAppM ``Enc #[Tapp])
+      let inst ← mkAppOptM ``MachineEncoding.mk #[Tapp, encOf]
+      let ty ← mkForallFVars (params ++ insts) (← mkAppM ``MachineEncoding #[Tapp])
       let val ← mkLambdaFVars (params ++ insts) inst
       let name := (`LeanVM.Cost.EncOf ++ T)
       -- exposed: a module importing this one unfolds the encoding (`encodesAsCtor`)
@@ -1944,10 +1944,10 @@ elab "#translate " t:term : command => Command.liftTermElabM do
   Term.synthesizeSyntheticMVarsNoPostponing
   let e ← instantiateMVars e
   lambdaTelescope e fun xs body ↦ do
-    withLocalDeclD `P (mkConst ``Program) fun P ↦ do
+    withLocalDeclD `P (mkConst ``MachineProgram) fun P ↦ do
       let pending ← IO.mkRef #[]
       let lams ← IO.mkRef 0
-      let env0 ← mkAppOptM ``List.nil #[mkConst ``Val]
+      let env0 ← mkAppOptM ``List.nil #[mkConst ``MachineValue]
       let inlined ← IO.mkRef #[]
       let mut ctx : Ctx := { P := P, env := env0, vals := #[], pending := pending,
                              base := `translate, lams := lams, inlined,

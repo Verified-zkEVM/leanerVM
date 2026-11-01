@@ -20,14 +20,14 @@ open LeanVM.Extraction.Fast LeanVM.Protocol.KeccakHash LeanVM.Semantics Common
 
 public section
 
-variable (P : Program)
+variable (P : MachineProgram)
 
 /-! ## Byte-string helpers -/
 
 /-- `List.drop` (`drop.c232`): `15` per position, `13` at the end. -/
-theorem drop232_cost (hP : Includes P Auto.List.drop.c232.costDeps) {α : Type} [Enc α] :
+theorem drop232_cost (hP : Includes P Auto.List.drop.c232.costDeps) {α : Type} [MachineEncoding α] :
     ∀ (n : ℕ) (xs : List α), n < 2 ^ 64 →
-      machineCost P Auto.List.drop.c232.costIdx [enc n, enc xs] ≤ 15 * n + 13 := by
+      machineCost P Auto.List.drop.c232.costIdx [encodeValue n, encodeValue xs] ≤ 15 * n + 13 := by
   intro n
   induction n with
   | zero => intro xs _; rw [Auto.List.drop.c232.costEq P hP]; simp
@@ -39,9 +39,9 @@ theorem drop232_cost (hP : Includes P Auto.List.drop.c232.costDeps) {α : Type} 
     | cons x xs => have := ih xs (by omega); dsimp only; omega
 
 /-- `List.take` (`take.c231`): `19` per position, `13` at the end. -/
-theorem take231_cost (hP : Includes P Auto.List.take.c231.costDeps) {α : Type} [Enc α] :
+theorem take231_cost (hP : Includes P Auto.List.take.c231.costDeps) {α : Type} [MachineEncoding α] :
     ∀ (n : ℕ) (xs : List α), n < 2 ^ 64 →
-      machineCost P Auto.List.take.c231.costIdx [enc n, enc xs] ≤ 19 * n + 13 := by
+      machineCost P Auto.List.take.c231.costIdx [encodeValue n, encodeValue xs] ≤ 19 * n + 13 := by
   intro n
   induction n with
   | zero => intro xs _; rw [Auto.List.take.c231.costEq P hP]; simp
@@ -53,10 +53,10 @@ theorem take231_cost (hP : Includes P Auto.List.take.c231.costDeps) {α : Type} 
     | cons x xs => have := ih xs (by omega); dsimp only; omega
 
 /-- `List.dropWhile` (`dropWhile.c336`): `B + 9` per element, `B + 11` at the end. -/
-theorem dropWhile336_cost (hP : Includes P Auto.List.dropWhile.c336.costDeps) {α : Type} [Enc α]
-    (p : α → Bool) (pVal : Val) (hp : ∀ a : α, RunsApp P pVal [enc a] (enc (p a))) (B : ℕ)
-    (hB : ∀ a : α, appCost P pVal [enc a] ≤ B) :
-    ∀ l : List α, machineCost P Auto.List.dropWhile.c336.costIdx [pVal, enc l] ≤
+theorem dropWhile336_cost (hP : Includes P Auto.List.dropWhile.c336.costDeps) {α : Type} [MachineEncoding α]
+    (p : α → Bool) (pVal : MachineValue) (hp : ∀ a : α, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : ℕ)
+    (hB : ∀ a : α, appCost P pVal [encodeValue a] ≤ B) :
+    ∀ l : List α, machineCost P Auto.List.dropWhile.c336.costIdx [pVal, encodeValue l] ≤
       (B + 9) * l.length + B + 11 := by
   intro l
   induction l with
@@ -68,10 +68,10 @@ theorem dropWhile336_cost (hP : Includes P Auto.List.dropWhile.c336.costDeps) {�
     cases p x <;> dsimp only <;> nlinarith
 
 /-- `List.modifyHead` (`modifyHead.c342`) with a closure of price `B`: at most `B + 9`. -/
-theorem modifyHead342_cost (hP : Includes P Auto.List.modifyHead.c342.costDeps) {α : Type} [Enc α]
-    (f : α → α) (fVal : Val) (hf : ∀ a : α, RunsApp P fVal [enc a] (enc (f a))) (B : ℕ)
-    (hB : ∀ a : α, appCost P fVal [enc a] ≤ B) (l : List α) :
-    machineCost P Auto.List.modifyHead.c342.costIdx [fVal, enc l] ≤ B + 9 := by
+theorem modifyHead342_cost (hP : Includes P Auto.List.modifyHead.c342.costDeps) {α : Type} [MachineEncoding α]
+    (f : α → α) (fVal : MachineValue) (hf : ∀ a : α, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ)
+    (hB : ∀ a : α, appCost P fVal [encodeValue a] ≤ B) (l : List α) :
+    machineCost P Auto.List.modifyHead.c342.costIdx [fVal, encodeValue l] ≤ B + 9 := by
   rw [Auto.List.modifyHead.c342.costEq P hP f fVal hf]
   cases l with
   | nil => dsimp only; omega
@@ -79,11 +79,11 @@ theorem modifyHead342_cost (hP : Includes P Auto.List.modifyHead.c342.costDeps) 
 
 /-- `List.modifyTailIdx.go` (`modifyTailIdx.go.c340`): `20` per position and the closure's price. -/
 theorem modifyTailIdx340_cost (hP : Includes P Auto.List.modifyTailIdx.go.c340.costDeps)
-    {α : Type} [Enc α] (f : List α → List α) (fVal : Val)
-    (hf : ∀ a : List α, RunsApp P fVal [enc a] (enc (f a))) (B : ℕ)
-    (hB : ∀ a : List α, appCost P fVal [enc a] ≤ B) :
+    {α : Type} [MachineEncoding α] (f : List α → List α) (fVal : MachineValue)
+    (hf : ∀ a : List α, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ)
+    (hB : ∀ a : List α, appCost P fVal [encodeValue a] ≤ B) :
     ∀ (n : ℕ) (l : List α), n < 2 ^ 64 →
-      machineCost P Auto.List.modifyTailIdx.go.c340.costIdx [fVal, enc n, enc l] ≤ 20 * n + B + 8 := by
+      machineCost P Auto.List.modifyTailIdx.go.c340.costIdx [fVal, encodeValue n, encodeValue l] ≤ 20 * n + B + 8 := by
   intro n
   induction n with
   | zero =>
@@ -106,23 +106,23 @@ theorem rate_eq : rate = 136 := rfl
 /-- **The padded last block** (`padBlock.c339`) of at most `136` bytes: at most `12000`. -/
 theorem padBlock_cost (hP : Includes P Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.costDeps)
     (rest : List UInt8) (hr : rest.length ≤ 136) :
-    machineCost P Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.costIdx [enc rest] ≤ 12000 := by
+    machineCost P Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.costIdx [encodeValue rest] ≤ 12000 := by
   rw [Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.costEq P hP]
   have hl := listLength_cost P (by includes) rest (by omega)
   have hrep := replicate_cost P (by includes) (0 : UInt8) (rate - rest.length) (by rw [rate_eq]; omega)
   have hap := append_cost P (by includes) rest (List.replicate (rate - rest.length) 0)
-  have hmh : ∀ (g : UInt8 → UInt8) (gVal : Val), (∀ a, RunsApp P gVal [enc a] (enc (g a))) →
-      (∀ a, appCost P gVal [enc a] ≤ 3) → ∀ l : List UInt8,
-      machineCost P Auto.List.modifyHead.c342.costIdx [gVal, enc l] ≤ 12 :=
+  have hmh : ∀ (g : UInt8 → UInt8) (gVal : MachineValue), (∀ a, RunsApp P gVal [encodeValue a] (encodeValue (g a))) →
+      (∀ a, appCost P gVal [encodeValue a] ≤ 3) → ∀ l : List UInt8,
+      machineCost P Auto.List.modifyHead.c342.costIdx [gVal, encodeValue l] ≤ 12 :=
     fun g gVal hg hB l ↦ modifyHead342_cost P (by includes) g gVal hg 3 hB l
   have h1 := modifyTailIdx340_cost P (by includes) _
-    (.fn Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.lam1.costIdx [])
+    (.closure Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.lam1.costIdx [])
     (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.lam1.costSpec P
       (by includes) a)) 15
     (fun a ↦ by
       rw [appCost_fn, List.nil_append,
         Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.lam1.costEq P (by includes)]
-      have := hmh _ (.fn Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.lam1.lam0.costIdx [])
+      have := hmh _ (.closure Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.lam1.lam0.costIdx [])
         (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.lam1.lam0.costSpec P
           (by includes) a))
         (fun a ↦ by
@@ -130,13 +130,13 @@ theorem padBlock_cost (hP : Includes P Auto.LeanVM.Protocol.KeccakHash.padBlock.
             Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.lam1.lam0.costEq P (by includes)]) a
       omega) rest.length (rest ++ List.replicate (rate - rest.length) 0) (by omega)
   have h2 := modifyTailIdx340_cost P (by includes) _
-    (.fn Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.lam0.costIdx [])
+    (.closure Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.lam0.costIdx [])
     (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.lam0.costSpec P
       (by includes) a)) 15
     (fun a ↦ by
       rw [appCost_fn, List.nil_append,
         Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.lam0.costEq P (by includes)]
-      have := hmh _ (.fn Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.lam0.lam0.costIdx [])
+      have := hmh _ (.closure Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.lam0.lam0.costIdx [])
         (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.KeccakHash.padBlock.c339.lam0.lam0.costSpec P
           (by includes) a))
         (fun a ↦ by
@@ -153,7 +153,7 @@ theorem padBlock_cost (hP : Includes P Auto.LeanVM.Protocol.KeccakHash.padBlock.
 /-- **The Keccak padding** (`keccakPadded.c338`) of `m`: at most `65·|m| + 12100`. -/
 theorem keccakPadded_cost (hP : Includes P Auto.LeanVM.keccakPadded.c338.costDeps)
     (m : List UInt8) (hm : m.length < 2 ^ 62) :
-    machineCost P Auto.LeanVM.keccakPadded.c338.costIdx [enc m] ≤ 65 * m.length + 12100 := by
+    machineCost P Auto.LeanVM.keccakPadded.c338.costIdx [encodeValue m] ≤ 65 * m.length + 12100 := by
   rw [Auto.LeanVM.keccakPadded.c338.costEq P hP]
   have hl := listLength_cost P (by includes) m (by omega)
   have hk : rate * (m.length / rate) ≤ m.length := by rw [rate_eq]; exact Nat.mul_div_le _ _
@@ -190,7 +190,7 @@ theorem stripPad_length_le (bs : List UInt8) : (Common.stripPad bs).length ≤ b
 /-- `Common.stripPad` (`stripPad.c335`): at most `31·|bs| + 50`. -/
 theorem stripPad_cost (hP : Includes P Auto.Common.stripPad.c335.costDeps) (bs : List UInt8)
     (hb : bs.length < 2 ^ 62) :
-    machineCost P Auto.Common.stripPad.c335.costIdx [enc bs] ≤ 31 * bs.length + 50 := by
+    machineCost P Auto.Common.stripPad.c335.costIdx [encodeValue bs] ≤ 31 * bs.length + 50 := by
   rw [Auto.Common.stripPad.c335.costEq P hP]
   have h0 := reverseAux_cost P (by includes) bs []
   have hr := List.length_reverse (as := bs)
@@ -200,7 +200,7 @@ theorem stripPad_cost (hP : Includes P Auto.Common.stripPad.c335.costDeps) (bs :
   · simp only [List.length_cons] at hr
     dsimp only
     have h1 := reverseAux_cost P (by includes) tail []
-    have h2 := dropWhile336_cost P (by includes) _ (.fn Auto.Common.stripPad.c335.lam0.costIdx [])
+    have h2 := dropWhile336_cost P (by includes) _ (.closure Auto.Common.stripPad.c335.lam0.costIdx [])
       (fun a ↦ RunsApp.of_spec (Auto.Common.stripPad.c335.lam0.costSpec P (by includes) a)) 3
       (fun a ↦ by rw [appCost_fn, List.nil_append, Auto.Common.stripPad.c335.lam0.costEq P
         (by includes)]) tail
@@ -215,7 +215,7 @@ theorem stripPad_cost (hP : Includes P Auto.Common.stripPad.c335.costDeps) (bs :
 the padding, pad again, compare: at most `107·|bs| + 12200`. -/
 theorem keccakUnpadded_cost (hP : Includes P keccakUnpaddedC.costDeps) (bs : List UInt8)
     (hb : bs.length < 2 ^ 62) :
-    machineCost P keccakUnpaddedC.costIdx [enc bs] ≤ 107 * bs.length + 12200 := by
+    machineCost P keccakUnpaddedC.costIdx [encodeValue bs] ≤ 107 * bs.length + 12200 := by
   rw [keccakUnpaddedC.costEq P hP]
   have h1 := stripPad_cost P (by includes) bs hb
   have hs := stripPad_length_le bs
@@ -231,11 +231,11 @@ theorem wordBytes_length (w : UInt64) : (wordBytes w).length = 8 := by
 /-- A word's bytes (`wordBytes.c328`): at most `312`. -/
 theorem wordBytes_cost (hP : Includes P Auto.LeanVM.Protocol.KeccakHash.wordBytes.c328.costDeps)
     (w : UInt64) :
-    machineCost P Auto.LeanVM.Protocol.KeccakHash.wordBytes.c328.costIdx [enc w] ≤ 312 := by
+    machineCost P Auto.LeanVM.Protocol.KeccakHash.wordBytes.c328.costIdx [encodeValue w] ≤ 312 := by
   rw [Auto.LeanVM.Protocol.KeccakHash.wordBytes.c328.costEq P hP]
   have h1 := rangeLoop_cost P (by includes) 8 [] (by norm_num)
   have h2 := map_cost P (by includes) _
-    (.fn Auto.LeanVM.Protocol.KeccakHash.wordBytes.c328.lam0.costIdx [enc w])
+    (.closure Auto.LeanVM.Protocol.KeccakHash.wordBytes.c328.lam0.costIdx [encodeValue w])
     (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.KeccakHash.wordBytes.c328.lam0.costSpec P
       (by includes) w a)) 9 (List.range 8) (fun k hk ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -246,10 +246,10 @@ theorem wordBytes_cost (hP : Includes P Auto.LeanVM.Protocol.KeccakHash.wordByte
 
 /-- **A block's bytes** (`blockBytes.c326`): `17` words of `8` bytes, at most `7400`. -/
 theorem blockBytes_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.blockBytes.c326.costDeps) (s x : Semantics.KeccakState) :
-    machineCost P Auto.LeanVM.Extraction.Fast.blockBytes.c326.costIdx [enc s, enc x] ≤ 7400 := by
+    machineCost P Auto.LeanVM.Extraction.Fast.blockBytes.c326.costIdx [encodeValue s, encodeValue x] ≤ 7400 := by
   rw [Auto.LeanVM.Extraction.Fast.blockBytes.c326.costEq P hP]
   have h1 := rangeLoop_cost P (by includes) 17 [] (by norm_num)
-  have h2 := map_cost P (by includes) _ (.fn Auto.LeanVM.Extraction.Fast.blockBytes.c326.lam0.costIdx [enc s, enc x])
+  have h2 := map_cost P (by includes) _ (.closure Auto.LeanVM.Extraction.Fast.blockBytes.c326.lam0.costIdx [encodeValue s, encodeValue x])
     (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.Fast.blockBytes.c326.lam0.costSpec P (by includes) s x a)) 322
     (List.range 17) (fun k _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -267,7 +267,7 @@ theorem blockBytes_length (s x : Semantics.KeccakState) : (blockBytes s x).lengt
 
 /-- The cut (`cut.c325`): at most `7·|bs| + 13`. -/
 theorem cut_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.cut.c325.costDeps) (B : ℕ) (hB : B < 2 ^ 64) (bs : List UInt8)
-    (hb : bs.length < 2 ^ 64) : machineCost P Auto.LeanVM.Extraction.Fast.cut.c325.costIdx [enc B, enc bs] ≤ 7 * bs.length + 13 := by
+    (hb : bs.length < 2 ^ 64) : machineCost P Auto.LeanVM.Extraction.Fast.cut.c325.costIdx [encodeValue B, encodeValue bs] ≤ 7 * bs.length + 13 := by
   rw [Auto.LeanVM.Extraction.Fast.cut.c325.costEq P hP, limbs_of_lt hb, limbs_of_lt hB]
   have := listLength_cost P (by includes) bs hb
   simp only [max_self]
@@ -342,11 +342,11 @@ theorem toList_length25 (x : KeccakState) : x.toList.length = 25 := by simp
 set_option maxRecDepth 20000 in
 /-- **One replay step, amortized** (`replayStepC`). -/
 theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ)
-    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ W)
+    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W)
     (hB : B < 2 ^ 62) (τ : ReplayFast) (r : ℕ) (hτ : ReplayInv B D τ (r + 1))
     (q : PermutationQuery KeccakState × KeccakState) :
     ReplayInv B D (ReplayFast.step B τ q) r ∧
-      machineCost P replayStepC.costIdx [enc B, enc τ, enc q] + replayPot D (ReplayFast.step B τ q) ≤
+      machineCost P replayStepC.costIdx [encodeValue B, encodeValue τ, encodeValue q] + replayPot D (ReplayFast.step B τ q) ≤
         replayPot D τ + replayStepPrice B D W := by
   obtain ⟨g1, g2, g3, k1, k2, k3, vc, vp, w1, w2, w3⟩ := hτ
   obtain ⟨lv1, sz1⟩ := smGood_levels_le g1 (by omega : smWeightSum τ.fwd < 2 ^ D)
@@ -354,14 +354,14 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ
   obtain ⟨lv3, sz3⟩ := smGood_levels_le g3 (by omega : smWeightSum τ.caps < 2 ^ D)
   have hU : ∀ k : List UInt64, k.length = 25 → ∀ m : SortedMap (List UInt64) Unit,
       m.levels.length ≤ D → (∀ l ∈ m.levels, l.entries.size ≤ l.weight ∧ l.weight ≤ 2 ^ D) →
-      machineCost P Auto.LeanVM.Extraction.Fast.SortedMap.get?.c313.costIdx [enc m, enc k] ≤
+      machineCost P Auto.LeanVM.Extraction.Fast.SortedMap.get?.c313.costIdx [encodeValue m, encodeValue k] ≤
         D * (17 + (60 + 23 * 25 + 11 * W) * (D + 2)) + 9 := by
     intro k hk m hl hs
     have := getU_cost P (by includes) m (2 ^ D) W hW (fun l hl' ↦ (hs l hl').1.trans (hs l hl').2) k
     rw [Nat.log2_two_pow, hk] at this
     exact this.trans (Nat.add_le_add_right (Nat.mul_le_mul_right _ hl) 9)
   have hC : ∀ k : List UInt64, k.length = 8 →
-      machineCost P Auto.LeanVM.Extraction.Fast.SortedMap.get?.c316.costIdx [enc τ.caps, enc k] ≤
+      machineCost P Auto.LeanVM.Extraction.Fast.SortedMap.get?.c316.costIdx [encodeValue τ.caps, encodeValue k] ≤
         D * (17 + (60 + 23 * 8 + 11 * W) * (D + 2)) + 9 := by
     intro k hk
     have := getC_cost P (by includes) τ.caps (2 ^ D) W hW
@@ -371,7 +371,7 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ
   -- an insertion into an edge map, amortized
   have hInsU : ∀ (m : SortedMap (List UInt64) Unit), smGood m → KeysIn (WordsKey 25) m.levels →
       smWeightSum m < 2 ^ D → m.levels.length ≤ D → ∀ k : List UInt64, k.length = 25 →
-      machineCost P Auto.LeanVM.Extraction.Fast.SortedMap.insert.c319.costIdx [enc m, enc k, enc ()] +
+      machineCost P Auto.LeanVM.Extraction.Fast.SortedMap.insert.c319.costIdx [encodeValue m, encodeValue k, encodeValue ()] +
           (23 * 25 + 31) * potential D (m.insert k ()).levels ≤
         (23 * 25 + 31) * potential D m.levels + (23 * 25 + 31) * D + (40 + 2 * W) * D + 60 + 2 * W := by
     intro m hm hk hN hl k hkl
@@ -386,7 +386,7 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ
     omega
   have hInsC : ∀ (k : List UInt64), k.length = 8 → ∀ v : KeccakState × Option (List UInt8),
       machineCost P Auto.LeanVM.Extraction.Fast.SortedMap.insert.c330.costIdx
-          [enc τ.caps, enc k, enc v] + (23 * 8 + 31) * potential D (τ.caps.insert k v).levels ≤
+          [encodeValue τ.caps, encodeValue k, encodeValue v] + (23 * 8 + 31) * potential D (τ.caps.insert k v).levels ≤
         (23 * 8 + 31) * potential D τ.caps.levels + (23 * 8 + 31) * D + (40 + 2 * W) * D + 60 + 2 * W := by
     intro k hkl v
     rw [Auto.LeanVM.Extraction.Fast.SortedMap.insert.c330.costEq P (by includes)]
@@ -399,7 +399,7 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ
       rfl
     rw [hins]
     omega
-  have hd : ∀ z : KeccakState, machineCost P Auto.List.drop.c232.costIdx [enc 17, enc z.toList] ≤ 268 :=
+  have hd : ∀ z : KeccakState, machineCost P Auto.List.drop.c232.costIdx [encodeValue 17, encodeValue z.toList] ≤ 268 :=
     fun z ↦ drop232_cost P (by includes) 17 z.toList (by norm_num)
   have hk25 : ∀ z : KeccakState, WordsKey 25 z.toList := fun z ↦ by simp [WordsKey]
   have hk8 : ∀ z : KeccakState, WordsKey 8 (z.toList.drop 17) := fun z ↦ by simp [WordsKey]
@@ -457,16 +457,16 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ
           · exact hp
           · exact vp p hp'
         · have hbind : machineCost P Auto.Option.bind.c323.costIdx
-              [enc obs, Val.fn replayStepC.lam0.costIdx [enc s, enc x, enc B]] ≤ 16 * B + 8400 := by
+              [encodeValue obs, MachineValue.closure replayStepC.lam0.costIdx [encodeValue s, encodeValue x, encodeValue B]] ≤ 16 * B + 8400 := by
             cases obs with
             | none =>
               rw [Auto.Option.bind.c323.costEq_none P (by includes)
-                (fun bs ↦ cut B (bs ++ blockBytes s x)) (.fn replayStepC.lam0.costIdx [enc s, enc x, enc B])
+                (fun bs ↦ cut B (bs ++ blockBytes s x)) (.closure replayStepC.lam0.costIdx [encodeValue s, encodeValue x, encodeValue B])
                 (fun bs ↦ RunsApp.of_spec (replayStepC.lam0.costSpec P (by includes) s x B bs))]; omega
             | some bs =>
               have hbs := hobs bs rfl
               rw [Auto.Option.bind.c323.costEq_some P (by includes) bs
-                (fun bs ↦ cut B (bs ++ blockBytes s x)) (.fn replayStepC.lam0.costIdx [enc s, enc x, enc B])
+                (fun bs ↦ cut B (bs ++ blockBytes s x)) (.closure replayStepC.lam0.costIdx [encodeValue s, encodeValue x, encodeValue B])
                 (fun bs ↦ RunsApp.of_spec (replayStepC.lam0.costSpec P (by includes) s x B bs))]
               simp only [appCost_fn, List.cons_append, List.nil_append]
               rw [replayStepC.lam0.costEq P (by includes)]
@@ -533,8 +533,8 @@ theorem replayPot_init (D : ℕ) : replayPot D ReplayFast.init = (23 * 8 + 31) *
   have h1 : Nat.log2 1 = 0 := Nat.log2_two_pow (n := 0)
   simp [replayPot, ReplayFast.init, SortedMap.insert, SortedMap.empty, carry, potential, h1]
 
-theorem replayInv_foldl (P : Program) (hP : Includes P replayStepC.costDeps) (B D W : ℕ)
-    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ W)
+theorem replayInv_foldl (P : MachineProgram) (hP : Includes P replayStepC.costDeps) (B D W : ℕ)
+    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W)
     (hB : B < 2 ^ 62) : ∀ (T : List (PermutationQuery KeccakState × KeccakState)) (τ : ReplayFast),
       ReplayInv B D τ T.length → ReplayInv B D (T.foldl (ReplayFast.step B) τ) 0 := by
   intro T
@@ -548,17 +548,17 @@ theorem replayInv_foldl (P : Program) (hP : Includes P replayStepC.costDeps) (B 
 `keccakEvaluationsC`): the replay over the `N` queries (`replayStepPrice` each, amortized) and a
 padding check per path (`N + 1` paths of at most `B = L + 136` bytes). -/
 theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D L W : ℕ)
-    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ W)
+    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W)
     (hL : L < 2 ^ 61) (T : List (PermutationQuery KeccakState × KeccakState))
     (hN : T.length + 1 ≤ 2 ^ D) :
-    machineCost P keccakEvaluationsC.costIdx [enc T, enc L] ≤
+    machineCost P keccakEvaluationsC.costIdx [encodeValue T, encodeValue L] ≤
       (23 * 8 + 31) * D + (replayStepPrice (L + 136) D W + 13) * T.length +
         (114 * (L + 136) + 12313) * (T.length + 1) + 470 := by
   rw [keccakEvaluationsC.costEq P hP]
   have hrate : rate = 136 := rfl
   have hinit := replayInit_cost P (by includes)
   have hfold := listFoldl_amortized P (by includes) _
-    (.fn keccakEvaluationsC.lam1.costIdx [enc (L + rate)])
+    (.closure keccakEvaluationsC.lam1.costIdx [encodeValue (L + rate)])
     (fun a b ↦ RunsApp.of_spec (keccakEvaluationsC.lam1.costSpec P (by includes) (L + rate) a b))
     (replayStepPrice (L + 136) D W + 4) (replayPot D) (ReplayInv (L + 136) D) T ReplayFast.init
     (replayInv_init _ D _ hN)
@@ -572,7 +572,7 @@ theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D 
   have hinv := replayInv_foldl P (by includes) (L + 136) D W hW (by omega) T ReplayFast.init
     (replayInv_init _ D _ hN)
   have hlen := replay_paths_length_le (L + rate) T ReplayFast.init
-  have hfm := filterMap_cost P (by includes) _ (.fn keccakEvaluationsC.lam0.costIdx [enc L])
+  have hfm := filterMap_cost P (by includes) _ (.closure keccakEvaluationsC.lam0.costIdx [encodeValue L])
     (fun a ↦ RunsApp.of_spec (keccakEvaluationsC.lam0.costSpec P (by includes) L a))
     (114 * (L + 136) + 12300) _ (fun p hp ↦ by
       have hp' : PathOk (L + 136) p := hinv.2.2.2.2.2.2.2.1 p (by rw [← hrate]; exact hp)
@@ -582,13 +582,13 @@ theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D 
       cases obs with
       | none =>
         rw [Auto.Option.bind.c323.costEq_none P (by includes) _
-          (.fn keccakEvaluationsC.lam0.lam0.costIdx [enc L, enc (st, (none : Option (List UInt8)))])
+          (.closure keccakEvaluationsC.lam0.lam0.costIdx [encodeValue L, encodeValue (st, (none : Option (List UInt8)))])
           (fun bs ↦ RunsApp.of_spec (keccakEvaluationsC.lam0.lam0.costSpec P (by includes) L _ bs))]
         omega
       | some bs =>
         have hbs : bs.length ≤ L + 136 := hp' bs rfl
         rw [Auto.Option.bind.c323.costEq_some P (by includes) bs _
-          (.fn keccakEvaluationsC.lam0.lam0.costIdx [enc L, enc (st, some bs)])
+          (.closure keccakEvaluationsC.lam0.lam0.costIdx [encodeValue L, encodeValue (st, some bs)])
           (fun bs ↦ RunsApp.of_spec (keccakEvaluationsC.lam0.lam0.costSpec P (by includes) L _ bs))]
         simp only [appCost_fn, List.cons_append, List.nil_append]
         rw [keccakEvaluationsC.lam0.lam0.costEq P (by includes)]
@@ -599,14 +599,14 @@ theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D 
         cases om with
         | none =>
           rw [Auto.Option.bind.c323.costEq_none P (by includes) _
-            (.fn keccakEvaluationsC.lam0.lam0.lam0.costIdx [enc L, enc (st, some bs)])
+            (.closure keccakEvaluationsC.lam0.lam0.lam0.costIdx [encodeValue L, encodeValue (st, some bs)])
             (fun m ↦ RunsApp.of_spec (keccakEvaluationsC.lam0.lam0.lam0.costSpec P (by includes)
               L _ m))]
           omega
         | some m =>
           have hm := hmb m rfl
           rw [Auto.Option.bind.c323.costEq_some P (by includes) m _
-            (.fn keccakEvaluationsC.lam0.lam0.lam0.costIdx [enc L, enc (st, some bs)])
+            (.closure keccakEvaluationsC.lam0.lam0.lam0.costIdx [encodeValue L, encodeValue (st, some bs)])
             (fun m ↦ RunsApp.of_spec (keccakEvaluationsC.lam0.lam0.lam0.costSpec P (by includes)
               L _ m))]
           simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -627,8 +627,8 @@ theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D 
   rw [hrate]
   omega
 
-theorem bytesInv_firstAnswers (P : Program) (hP : Includes P firstAnswersC.lam0.costDeps) (L D W : ℕ)
-    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ W) (k : ℕ) : ∀ (pairs : List (List UInt8 × Protocol.Digest))
+theorem bytesInv_firstAnswers (P : MachineProgram) (hP : Includes P firstAnswersC.lam0.costDeps) (L D W : ℕ)
+    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W) (k : ℕ) : ∀ (pairs : List (List UInt8 × Protocol.Digest))
       (m : SortedMap (List UInt8) Protocol.Digest),
       (∀ p ∈ pairs, p.1.length ≤ L) → BytesInv L D m (pairs.length + k) →
       BytesInv L D (pairs.foldl (fun m p ↦ insertIfNew m p.1 p.2) m) k := by
@@ -658,10 +658,10 @@ evaluation an amortized first-answer insertion (`firstAnswers_cost`), a lookup i
 (`D` binary searches of `D + 2` probes of `60 + 23·L`) and an amortized preimage-index insertion
 (`preimageIndex_cost`). -/
 theorem transcriptIndex_cost (hP : Includes P transcriptIndexC.costDeps) (D L W : ℕ)
-    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbs x ≤ W)
+    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W)
     (hL : L < 2 ^ 61) (T : List (PermutationQuery KeccakState × KeccakState))
     (hN : T.length + 2 ≤ 2 ^ D) :
-    machineCost P transcriptIndexC.costIdx [enc T, enc L] ≤
+    machineCost P transcriptIndexC.costIdx [encodeValue T, encodeValue L] ≤
       (23 * 8 + 31) * D + (replayStepPrice (L + 136) D W + 13) * T.length +
         (114 * (L + 136) + 12313) * (T.length + 1) + 470 +
         (T.length + 1) * ((firstAnswersStepPrice L D W + 9) + (preimageStepPrice L D W + 9) +
@@ -672,7 +672,7 @@ theorem transcriptIndex_cost (hP : Includes P transcriptIndexC.costDeps) (D L W 
   have hmem : ∀ e ∈ Ev, e.1.length ≤ L := fun e he ↦ keccakEvaluationsFast_mem_length_le he
   have hKE := keccakEvaluations_cost P (by includes) D L W hW hL T (by omega)
   have hFA := firstAnswers_cost P (by includes) L D W hW Ev (by omega) hmem
-  have hmap := map_cost P (by includes) _ (.fn transcriptIndexC.lam1.costIdx [])
+  have hmap := map_cost P (by includes) _ (.closure transcriptIndexC.lam1.costIdx [])
     (fun a ↦ RunsApp.of_spec (transcriptIndexC.lam1.costSpec P (by includes) a)) 2 Ev
     (fun a _ ↦ by rw [appCost_fn, List.nil_append, transcriptIndexC.lam1.costEq P (by includes)])
   -- the first answers' map
@@ -683,7 +683,7 @@ theorem transcriptIndex_cost (hP : Includes P transcriptIndexC.costDeps) (D L W 
   obtain ⟨hlv, hsz⟩ := smGood_levels_le hg (by omega : smWeightSum (firstAnswers Ev) < 2 ^ D)
   set G := D * (17 + (60 + 23 * L + 11 * W) * (D + 2)) with hG
   have hget : ∀ x : List UInt8, x.length ≤ L →
-      machineCost P getBytesC.costIdx [enc (firstAnswers Ev), enc x] ≤ G + 9 := by
+      machineCost P getBytesC.costIdx [encodeValue (firstAnswers Ev), encodeValue x] ≤ G + 9 := by
     intro x hx
     have := getBytes_cost P (by includes) (firstAnswers Ev) (2 ^ D) W hW
       (fun l hl ↦ (hsz l hl).1.trans (hsz l hl).2) x
@@ -692,12 +692,12 @@ theorem transcriptIndex_cost (hP : Includes P transcriptIndexC.costDeps) (D L W 
       Nat.mul_le_mul hlv (Nat.add_le_add_left (Nat.mul_le_mul_right _ (by omega)) _)
     omega
   have hAP : machineCost P answerPairsC.costIdx
-      [.fn transcriptIndexC.lam0.costIdx [enc (firstAnswers Ev), enc Ev], enc (Ev.map (·.1))] ≤
+      [.closure transcriptIndexC.lam0.costIdx [encodeValue (firstAnswers Ev), encodeValue Ev], encodeValue (Ev.map (·.1))] ≤
       (G + 44) * (T.length + 1) + 8 := by
     rw [answerPairsC.costEq P (by includes) (firstAnswers Ev).get? _
       (fun a ↦ RunsApp.of_spec (transcriptIndexC.lam0.costSpec P (by includes) _ _ a))]
     have := filterMap_cost P (by includes) _
-      (.fn answerPairsC.lam0.costIdx [.fn transcriptIndexC.lam0.costIdx [enc (firstAnswers Ev), enc Ev]])
+      (.closure answerPairsC.lam0.costIdx [.closure transcriptIndexC.lam0.costIdx [encodeValue (firstAnswers Ev), encodeValue Ev]])
       (fun a ↦ RunsApp.of_spec (answerPairsC.lam0.costSpec P (by includes) (firstAnswers Ev).get? _
         (fun a ↦ RunsApp.of_spec (transcriptIndexC.lam0.costSpec P (by includes) _ _ a)) a))
       (G + 31) (Ev.map (·.1)) (fun x hx ↦ by
@@ -712,12 +712,12 @@ theorem transcriptIndex_cost (hP : Includes P transcriptIndexC.costDeps) (D L W 
         cases o with
         | none =>
           rw [Auto.Option.map.c106.costEq_none P (by includes) _
-            (.fn answerPairsC.lam0.lam0.costIdx [enc e.1])
+            (.closure answerPairsC.lam0.lam0.costIdx [encodeValue e.1])
             (fun a ↦ RunsApp.of_spec (answerPairsC.lam0.lam0.costSpec P (by includes) e.1 a))]
           omega
         | some d =>
           rw [Auto.Option.map.c106.costEq_some P (by includes) _
-            (.fn answerPairsC.lam0.lam0.costIdx [enc e.1])
+            (.closure answerPairsC.lam0.lam0.costIdx [encodeValue e.1])
             (fun a ↦ RunsApp.of_spec (answerPairsC.lam0.lam0.costSpec P (by includes) e.1 a)),
             appCost_fn, List.cons_append, List.nil_append, answerPairsC.lam0.lam0.costEq P (by includes)]
           omega)

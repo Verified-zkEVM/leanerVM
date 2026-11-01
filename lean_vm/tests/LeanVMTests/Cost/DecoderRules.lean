@@ -7,7 +7,7 @@ import Statement.Theorems
 The rules and rewrites the guest decoder's readers need, each on a small function compiled and
 run: `|||` and `Nat.lor` on `ℕ`, `(1 : E)`, bit vectors (encoded as their number, the statement's
 encoding), and the witness types under the statement's encodings (`Statement/Theorems.lean`:
-constructors and fields, so that a compiled decoder's output is the statement's `enc` of its
+constructors and fields, so that a compiled decoder's output is the statement's `encodeValue` of its
 value), the guest's value names `V` and `Seg`.
 -/
 
@@ -81,72 +81,72 @@ def vIdx (v : LeanVM.Guest.Core.V) : ℕ := v.idx + v.path.length
 cost_compile vIdx := vIdx
 
 /-- A compiled function's value on `vs`, in the program of the bodies its spec needs. -/
-def runOn (deps : List (ℕ × Term)) (i : ℕ) (vs : List Val) : Option Val :=
-  (evalBody (Program.ofList deps) 100 i vs).map (·.1)
+def runOn (deps : List (ℕ × Term)) (i : ℕ) (vs : List MachineValue) : Option MachineValue :=
+  (evaluateFunctionBody (MachineProgram.ofList deps) 100 i vs).map (·.1)
 
-#guard runOn orNat.costDeps orNat.costIdx [enc (12 : ℕ), enc (5 : ℕ)] == some (enc (orNat 12 5))
+#guard runOn orNat.costDeps orNat.costIdx [encodeValue (12 : ℕ), encodeValue (5 : ℕ)] == some (encodeValue (orNat 12 5))
 #guard runOn lorNat.costDeps lorNat.costIdx
-  [enc (2 ^ 70 : ℕ), enc (3 : ℕ)] == some (enc (lorNat (2 ^ 70) 3))
+  [encodeValue (2 ^ 70 : ℕ), encodeValue (3 : ℕ)] == some (encodeValue (lorNat (2 ^ 70) 3))
 
 def x : E := E.ofLimbs (K.ofLane 0x0123456789abcdef) (K.ofLane 7) (K.ofLane 0xffff)
-#guard runOn plusOne.costDeps plusOne.costIdx [enc x] == some (enc (plusOne x))
-#guard runOn genPow.costDeps genPow.costIdx [enc (0 : ℕ)] == some (enc (genPow 0))
-#guard runOn genPow.costDeps genPow.costIdx [enc (5 : ℕ)] == some (enc (genPow 5))
+#guard runOn plusOne.costDeps plusOne.costIdx [encodeValue x] == some (encodeValue (plusOne x))
+#guard runOn genPow.costDeps genPow.costIdx [encodeValue (0 : ℕ)] == some (encodeValue (genPow 0))
+#guard runOn genPow.costDeps genPow.costIdx [encodeValue (5 : ℕ)] == some (encodeValue (genPow 5))
 
-#guard runOn bvOf.costDeps bvOf.costIdx [enc (2 ^ 130 + 9 : ℕ)] == some (enc (bvOf (2 ^ 130 + 9)))
-#guard runOn bvOf.costDeps bvOf.costIdx [enc (2 ^ 130 + 9 : ℕ)] == some (.nat 9)
+#guard runOn bvOf.costDeps bvOf.costIdx [encodeValue (2 ^ 130 + 9 : ℕ)] == some (encodeValue (bvOf (2 ^ 130 + 9)))
+#guard runOn bvOf.costDeps bvOf.costIdx [encodeValue (2 ^ 130 + 9 : ℕ)] == some (.nat 9)
 
 def r : BitVec 128 := BitVec.ofNat 128 (2 ^ 100 + 3)
 def m : BitVec 256 := BitVec.ofNat 256 (2 ^ 200 + 5)
 def p : BitVec 128 := BitVec.ofNat 128 77
-#guard runOn bvNat.costDeps bvNat.costIdx [enc r] == some (enc (bvNat r))
-#guard runOn bvFin.costDeps bvFin.costIdx [enc (2 ^ 100 + 3 : ℕ)] == some (enc r)
-#guard runOn mkKey.costDeps mkKey.costIdx [enc r, enc p] == some (enc (mkKey r p))
-#guard runOn keyRoot.costDeps keyRoot.costIdx [enc (mkKey r p)] == some (enc (2 ^ 100 + 3 : ℕ))
+#guard runOn bvNat.costDeps bvNat.costIdx [encodeValue r] == some (encodeValue (bvNat r))
+#guard runOn bvFin.costDeps bvFin.costIdx [encodeValue (2 ^ 100 + 3 : ℕ)] == some (encodeValue r)
+#guard runOn mkKey.costDeps mkKey.costIdx [encodeValue r, encodeValue p] == some (encodeValue (mkKey r p))
+#guard runOn keyRoot.costDeps keyRoot.costIdx [encodeValue (mkKey r p)] == some (encodeValue (2 ^ 100 + 3 : ℕ))
 
 def digest : LeanVM.Protocol.Digest := #v[1, 2, 3, 4]
 def claim : DeferredClaim := ⟨[x, x], x⟩
 def stmt : NodeStatement := mkStatement [(mkKey r p, m)] [(mkKey p r, m)] digest claim
 #guard runOn mkStatement.costDeps mkStatement.costIdx
-  [enc [(mkKey r p, m)], enc [(mkKey p r, m)], enc digest, enc claim] ==
-  some (enc stmt)
+  [encodeValue [(mkKey r p, m)], encodeValue [(mkKey p r, m)], encodeValue digest, encodeValue claim] ==
+  some (encodeValue stmt)
 
 def proof : LeanVM.Protocol.Compile.Proof := ⟨[x], [⟨[K.ofLane 5], [digest]⟩]⟩
 def child : Child := mkChild stmt claim proof
-#guard runOn mkChild.costDeps mkChild.costIdx [enc stmt, enc claim, enc proof] == some (enc child)
+#guard runOn mkChild.costDeps mkChild.costIdx [encodeValue stmt, encodeValue claim, encodeValue proof] == some (encodeValue child)
 
 def layer : LeanXmss.LayerSignature := ⟨r, fun _ ↦ p, fun i ↦ BitVec.ofNat 128 i.val⟩
 def xsig : LeanXmss.Signature := ⟨⟨12345, by decide⟩, fun _ ↦ layer⟩
-#guard runOn holders.costDeps holders.costIdx [enc (3 : ℕ), enc xsig] == some (enc (holders 3 xsig))
+#guard runOn holders.costDeps holders.costIdx [encodeValue (3 : ℕ), encodeValue xsig] == some (encodeValue (holders 3 xsig))
 
 def da : Option (DaClaim × LeanVM.Da.MatrixWitness) := mkDa digest digest [[K.ofLane 1]] [x]
-#guard runOn mkDa.costDeps mkDa.costIdx [enc digest, enc digest, enc [[K.ofLane 1]], enc [x]] ==
+#guard runOn mkDa.costDeps mkDa.costIdx [encodeValue digest, encodeValue digest, encodeValue [[K.ofLane 1]], encodeValue [x]] ==
   some (encodeOption da)
 
 /-- The statement's option encoding is the compiler's (`Cost/Encoding.lean`), definitionally. -/
-example {α : Type} [Enc α] (o : Option α) : encodeOption o = enc o := by cases o <;> rfl
+example {α : Type} [MachineEncoding α] (o : Option α) : encodeOption o = encodeValue o := by cases o <;> rfl
 
 def witness : NodeWitness := mkWitness [child] (holders 3 xsig) [] da [(x, x)] x
 #guard runOn mkWitness.costDeps mkWitness.costIdx
-  [enc [child], enc (holders 3 xsig), enc ([] : List (ClaimHolder Sphincs.Signature)),
-  encodeOption da, enc [(x, x)], enc x] == some (enc witness)
+  [encodeValue [child], encodeValue (holders 3 xsig), encodeValue ([] : List (ClaimHolder Sphincs.Signature)),
+  encodeOption da, encodeValue [(x, x)], encodeValue x] == some (encodeValue witness)
 
 def decoded : Decoded := mkDecoded digest stmt witness
 #guard runOn mkDecoded.costDeps mkDecoded.costIdx
-  [enc digest, enc stmt, enc witness] == some (enc decoded)
-#guard decodeDecoded (enc decoded) |>.isSome
+  [encodeValue digest, encodeValue stmt, encodeValue witness] == some (encodeValue decoded)
+#guard decodeDecoded (encodeValue decoded) |>.isSome
 
 #guard runOn layerSwap.costDeps layerSwap.costIdx
-  [enc p, enc layer] == some (enc (layerSwap p layer))
-#guard runOn xmssLeaf.costDeps xmssLeaf.costIdx [enc xsig] == some (enc (12345 : ℕ))
+  [encodeValue p, encodeValue layer] == some (encodeValue (layerSwap p layer))
+#guard runOn xmssLeaf.costDeps xmssLeaf.costIdx [encodeValue xsig] == some (encodeValue (12345 : ℕ))
 
 def ssig : Sphincs.Signature :=
   ⟨r, fun _ ↦ ⟨fun _ ↦ ⟨fun _ ↦ p, fun _ ↦ r⟩, fun _ ↦ p⟩, BitVec.ofNat 32 99, fun _ ↦ r,
     fun _ ↦ p⟩
-#guard runOn sphincsCounter.costDeps sphincsCounter.costIdx [enc ssig] == some (enc (99 : ℕ))
+#guard runOn sphincsCounter.costDeps sphincsCounter.costIdx [encodeValue ssig] == some (encodeValue (99 : ℕ))
 
 def v : LeanVM.Guest.Core.V := ⟨[.s 1, .i "main" 2, .t], 0, 7⟩
-#guard runOn vIdx.costDeps vIdx.costIdx [enc v] == some (enc (10 : ℕ))
+#guard runOn vIdx.costDeps vIdx.costIdx [encodeValue v] == some (encodeValue (10 : ℕ))
 
 /-- info: 'LeanVMTests.Cost.DecoderRules.mkWitness.costSpec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

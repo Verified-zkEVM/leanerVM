@@ -9,20 +9,18 @@ import all LeanVM.Protocol.Extraction.Fast.AfterRoot
 import all LeanVM.Protocol.Extraction.Fast.Extract
 
 /-!
-# Bounds: the extractor's parts, for the assembly
+# Bounds: facts of the replay, for the assembly
 
-The facts and the parts' bounds `Bounds/Top.lean` assembles into the compiled extractor's price
-(`extractorC_cost`):
+The facts `Bounds/Top.lean` uses to assemble the compiled extractor's price (`extractorC_cost`)
+from its parts' bounds (proved in the other modules of `Cost/Bounds/`):
 
-* `bytecodeWords_length` (`16·2^ℓ` words); `afterRootLite_roots`: the replay's one root, at the
-  ladder's first level (height `μ − 6 + R`, width `64`); `fastStacksFast_length_le`: at most one
-  fast stack;
-* the parts' closed bounds: `transcriptIndexPrice D L N W` (`transcriptIndex_cost`, `N` queries,
-  `N + 2 ≤ 2^D`, strings of at most `L` bytes, `W` the limbs of the maps' positions and weights), `runnerTablesPrice κ ℓ` (`runnerTables_cost`),
-  `stackRunPrice κ ℓ` (`runWithTables_cost`, the step cap at most `2^35`), `fastPathPrice μ R w cW`
-  (`fastStacksFast_cost`, a column read at `17·w + cW`).
+* `bytecodeWords_length`: the bytecode has `16·2^ℓ` words;
+* `commitPure_roots`, **`afterRootLite_roots`**: the replay's one root, at the ladder's first level
+  (height `μ − 6 + R`, width `64`);
+* **`fastStacksFast_length_le`**: at most one fast stack;
+* `transcriptBound_mono`: `transcriptIndexPrice` is monotone in the levels, the queries and the
+  limbs.
 -/
-
 namespace LeanVM.Cost.Bounds
 
 open LeanVM.Cost LeanVM.Cost.Extractor LeanVM.Cost.Library LeanVM.Parameters LeanVM.Semantics

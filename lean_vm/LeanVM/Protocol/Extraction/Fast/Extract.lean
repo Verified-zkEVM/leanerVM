@@ -15,7 +15,7 @@ public import CompPoly.LinearAlgebra.PolynomialMatrix.Approximant
 /-!
 # The extractor, fast
 
-`extractFast` is the statement's extractor (`LeanVM.Extraction.extract`, `Statement/Extractor.lean`)
+`extractFast` is the knowledge extractor (`LeanVM.Extraction.extract`, `Extraction/Extractor.lean`)
 with a faster lane decoder, `gsLaneAtFast`:
 
 * Roth–Ruckenstein's substitution a Taylor shift (`Fast/RothRuckenstein.lean`): `gsContextFast` is

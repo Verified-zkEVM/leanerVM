@@ -30,7 +30,7 @@ modelled as independent random oracles (`HashSpec = (Bytes →ₒ Digest) + (KSt
 **Knowledge soundness** (`knowledgeSoundnessRom`): an adversary making at most `Q` queries to the
 random oracles outputs a statement (a program and a public input) and a proof, choosing all three
 after querying the oracles. The probability that the verifier accepts while the program's last
-instruction is not a `JUMP` and the extractor (`extractor`, `Statement/Extractor.lean`: from
+instruction is not a `JUMP` and the extractor (`extractor`, `LeanVM/Protocol/Extraction/Extractor.lean`: from
 the proof and the oracle's answers to the adversary's Keccak-256 queries only, the halting run of
 the memory image of a stack in the Johnson list of the word the proof commits to) does not return
 a valid execution of the program on the public input is at most
@@ -59,7 +59,7 @@ probability at most `12006/2^256` (`Sound.prEvent_logged2_root_le`, the second t
   the random-permutation model of the statements (`LeanVM/Protocol/LeanVMRpm.lean`).
 * The extractor is straight-line (it reads the proof and the answers to the adversary's
   queries, never the verifier's, and does not rewind), and a deterministic algorithm
-  (`Statement/Extractor.lean`: it list-decodes the committed word and runs the candidates). Here
+  (`LeanVM/Protocol/Extraction/Extractor.lean`: it list-decodes the committed word and runs the candidates). Here
   the byte strings the cache answers, its keys, are enumerated classically
   (`Extraction.supportKeys`); which covering keys it is given does not change what it returns
   (`Extraction.ExtractProofs.extract_keys_congr`).
@@ -116,7 +116,7 @@ theorem experiment_eq (A : Adversary) :
 /-- **Knowledge soundness in the random-oracle model.** For an adversary making at most `Q`
 queries, which chooses the program, the public input and the proof, the verifier accepts while
 the extractor `extractor`
-(`Statement/Extractor.lean`) does not return a valid execution of the program on the public
+(`LeanVM/Protocol/Extraction/Extractor.lean`) does not return a valid execution of the program on the public
 input with probability at most `soundnessError Q`. -/
 theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
     Pr{let z ← experiment A}[Breaks extractor z] ≤ soundnessError Q := by
