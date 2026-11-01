@@ -1,4 +1,5 @@
 import LeanVM.Cost.Extractor.Replay
+import LeanVM.Cost.Bounds.Replay
 import LeanVMTests.Protocol.Verifier.Compiled
 
 /-!
@@ -36,5 +37,9 @@ def afterRootRun (s : List LeanVM.Parameters.E) : Option (Val × ℕ) :=
 /-- info: some 3525661 -/
 #guard_msgs in
 #eval (afterRootRun (stream 4 0)).map (·.2)
+
+/-- info: 'LeanVM.Cost.Bounds.afterRootLite_cost' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Cost.Bounds.afterRootLite_cost
 
 end LeanVMTests.Cost
