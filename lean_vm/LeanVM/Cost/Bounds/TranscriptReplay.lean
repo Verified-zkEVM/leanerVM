@@ -626,6 +626,122 @@ theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D 
   rw [hrate]
   omega
 
+theorem bytesInv_firstAnswers (P : Program) (hP : Includes P firstAnswersC.lam0.costDeps) (L D : ℕ)
+    (hD : D ≤ 61) (k : ℕ) : ∀ (pairs : List (List UInt8 × Protocol.Digest))
+      (m : SortedMap (List UInt8) Protocol.Digest),
+      (∀ p ∈ pairs, p.1.length ≤ L) → BytesInv L D m (pairs.length + k) →
+      BytesInv L D (pairs.foldl (fun m p ↦ insertIfNew m p.1 p.2) m) k := by
+  intro pairs
+  induction pairs with
+  | nil => intro m _ h; simpa using h
+  | cons p pairs ih =>
+    intro m hp h
+    exact ih _ (fun q hq ↦ hp q (by simp [hq]))
+      (firstAnswersStep_amortized P hP L D hD m (pairs.length + k)
+        (by simpa [Nat.add_right_comm] using h) p (hp p (by simp))).1
+
+theorem answerPairs_length_le (f : List UInt8 → Option Protocol.Digest) (keys : List (List UInt8)) :
+    (answerPairs f keys).length ≤ keys.length := by
+  unfold answerPairs; exact List.length_filterMap_le _ _
+
+theorem mem_answerPairs_fst {f : List UInt8 → Option Protocol.Digest} {keys : List (List UInt8)}
+    {p : List UInt8 × Protocol.Digest} (h : p ∈ answerPairs f keys) : p.1 ∈ keys := by
+  unfold answerPairs at h
+  obtain ⟨x, hx, hp⟩ := List.mem_filterMap.1 h
+  obtain ⟨d, -, rfl⟩ := Option.map_eq_some_iff.1 hp
+  exact hx
+
+/-- **The transcript's index** (`transcriptIndex T L`, compiled as `transcriptIndexC`), `N` queries
+below `2^D`, byte strings of at most `L` bytes: the evaluations (`keccakEvaluations_cost`), then per
+evaluation an amortized first-answer insertion (`firstAnswers_cost`), a lookup in the first answers
+(`D` binary searches of `D + 2` probes of `60 + 23·L`) and an amortized preimage-index insertion
+(`preimageIndex_cost`). -/
+theorem transcriptIndex_cost (hP : Includes P transcriptIndexC.costDeps) (D L : ℕ) (hD : D ≤ 61)
+    (hL : L < 2 ^ 61) (T : List (PermutationQuery KeccakState × KeccakState))
+    (hN : T.length + 2 ≤ 2 ^ D) :
+    machineCost P transcriptIndexC.costIdx [enc T, enc L] ≤
+      (23 * 8 + 31) * D + (replayStepBound (L + 136) D + 13) * T.length +
+        (114 * (L + 136) + 12313) * (T.length + 1) + 470 +
+        (T.length + 1) * ((23 * L * (D * D) + 60 * (D * D) + 69 * (L * D) + 208 * D + 94) +
+          (25 * L + 192 * (D * D) + 595 * D + 161) + D * (17 + (60 + 23 * L) * (D + 2)) + 60) + 50 := by
+  rw [transcriptIndexC.costEq P hP]
+  set Ev := keccakEvaluationsFast T L with hEv
+  have hlen : Ev.length ≤ T.length + 1 := keccakEvaluationsFast_length_le T L
+  have hmem : ∀ e ∈ Ev, e.1.length ≤ L := fun e he ↦ keccakEvaluationsFast_mem_length_le he
+  have hKE := keccakEvaluations_cost P (by includes) D L hD hL T (by omega)
+  have hFA := firstAnswers_cost P (by includes) L D hD Ev (by omega) hmem
+  have hmap := map_cost P (by includes) _ (.fn transcriptIndexC.lam1.costIdx [])
+    (fun a ↦ RunsApp.of_spec (transcriptIndexC.lam1.costSpec P (by includes) a)) 2 Ev
+    (fun a _ ↦ by rw [appCost_fn, List.nil_append, transcriptIndexC.lam1.costEq P (by includes)])
+  -- the first answers' map
+  have hinv : BytesInv L D (firstAnswers Ev) 1 := bytesInv_firstAnswers P (by includes) L D hD 1 Ev
+    SortedMap.empty hmem
+    ⟨smGood_empty, fun _ h ↦ by simp [SortedMap.empty] at h, by simp [smWeightSum_empty]; omega⟩
+  obtain ⟨hg, -, hw⟩ := hinv
+  have h62 : 2 ^ D < 2 ^ 62 := Nat.pow_lt_pow_right (by norm_num) (by omega)
+  obtain ⟨hlv, hsz⟩ := smGood_levels_le hg (by omega : smWeightSum (firstAnswers Ev) < 2 ^ D)
+  set G := D * (17 + (60 + 23 * L) * (D + 2)) with hG
+  have hget : ∀ x : List UInt8, x.length ≤ L →
+      machineCost P getBytesC.costIdx [enc (firstAnswers Ev), enc x] ≤ G + 9 := by
+    intro x hx
+    have := getBytes_cost P (by includes) (firstAnswers Ev) (2 ^ D) h62
+      (fun l hl ↦ (hsz l hl).1.trans (hsz l hl).2) x
+    rw [Nat.log2_two_pow] at this
+    have h1 : (firstAnswers Ev).levels.length * (17 + (60 + 23 * x.length) * (D + 2)) ≤ G :=
+      Nat.mul_le_mul hlv (Nat.add_le_add_left (Nat.mul_le_mul_right _ (by omega)) _)
+    omega
+  have hAP : machineCost P answerPairsC.costIdx
+      [.fn transcriptIndexC.lam0.costIdx [enc (firstAnswers Ev), enc Ev], enc (Ev.map (·.1))] ≤
+      (G + 44) * (T.length + 1) + 8 := by
+    rw [answerPairsC.costEq P (by includes) (firstAnswers Ev).get? _
+      (fun a ↦ RunsApp.of_spec (transcriptIndexC.lam0.costSpec P (by includes) _ _ a))]
+    have := filterMap_cost P (by includes) _
+      (.fn answerPairsC.lam0.costIdx [.fn transcriptIndexC.lam0.costIdx [enc (firstAnswers Ev), enc Ev]])
+      (fun a ↦ RunsApp.of_spec (answerPairsC.lam0.costSpec P (by includes) (firstAnswers Ev).get? _
+        (fun a ↦ RunsApp.of_spec (transcriptIndexC.lam0.costSpec P (by includes) _ _ a)) a))
+      (G + 31) (Ev.map (·.1)) (fun x hx ↦ by
+        obtain ⟨e, he, rfl⟩ := List.mem_map.1 hx
+        simp only [appCost_fn, List.cons_append, List.nil_append]
+        rw [answerPairsC.lam0.costEq P (by includes) (firstAnswers Ev).get? _
+          (fun a ↦ RunsApp.of_spec (transcriptIndexC.lam0.costSpec P (by includes) _ _ a)),
+          appCost_fn, List.cons_append, List.cons_append, List.nil_append,
+          transcriptIndexC.lam0.costEq P (by includes)]
+        have := hget e.1 (hmem e he)
+        generalize (firstAnswers Ev).get? e.1 = o
+        cases o with
+        | none =>
+          rw [Auto.Option.map.c106.costEq_none P (by includes) _
+            (.fn answerPairsC.lam0.lam0.costIdx [enc e.1])
+            (fun a ↦ RunsApp.of_spec (answerPairsC.lam0.lam0.costSpec P (by includes) e.1 a))]
+          omega
+        | some d =>
+          rw [Auto.Option.map.c106.costEq_some P (by includes) _
+            (.fn answerPairsC.lam0.lam0.costIdx [enc e.1])
+            (fun a ↦ RunsApp.of_spec (answerPairsC.lam0.lam0.costSpec P (by includes) e.1 a)),
+            appCost_fn, List.cons_append, List.nil_append, answerPairsC.lam0.lam0.costEq P (by includes)]
+          omega)
+    rw [List.length_map] at this
+    have : (G + 31 + 13) * Ev.length ≤ (G + 44) * (T.length + 1) := Nat.mul_le_mul_left _ hlen
+    omega
+  have hPI := preimageIndex_cost P (by includes) D L hD (by omega)
+    (answerPairs (firstAnswers Ev).get? (Ev.map (·.1)))
+    (by have := answerPairs_length_le (firstAnswers Ev).get? (Ev.map (·.1))
+        simp only [List.length_map] at this; omega)
+    (fun p hp ↦ by
+      obtain ⟨e, he, h⟩ := List.mem_map.1 (mem_answerPairs_fst hp)
+      rw [← h]; exact hmem e he)
+  have hPl : (answerPairs (firstAnswers Ev).get? (Ev.map (·.1))).length ≤ T.length + 1 := by
+    have := answerPairs_length_le (firstAnswers Ev).get? (Ev.map (·.1))
+    simp only [List.length_map] at this; omega
+  have e1 : (T.length + 1) * ((23 * L * (D * D) + 60 * (D * D) + 69 * (L * D) + 208 * D + 94) + (25 * L + 192 * (D * D) + 595 * D + 161) + G + 60) =
+      (T.length + 1) * (23 * L * (D * D) + 60 * (D * D) + 69 * (L * D) + 208 * D + 94) + (T.length + 1) * (25 * L + 192 * (D * D) + 595 * D + 161) + (T.length + 1) * G + 60 * (T.length + 1) := by
+    ring
+  have e2 : (G + 44) * (T.length + 1) = (T.length + 1) * G + 44 * (T.length + 1) := by ring
+  have f1 : Ev.length * (23 * L * (D * D) + 60 * (D * D) + 69 * (L * D) + 208 * D + 94) ≤ (T.length + 1) * (23 * L * (D * D) + 60 * (D * D) + 69 * (L * D) + 208 * D + 94) := Nat.mul_le_mul_right _ hlen
+  have f2 : (answerPairs (firstAnswers Ev).get? (Ev.map (·.1))).length * (25 * L + 192 * (D * D) + 595 * D + 161) ≤
+      (T.length + 1) * (25 * L + 192 * (D * D) + 595 * D + 161) := Nat.mul_le_mul_right _ hPl
+  omega
+
 end
 
 end LeanVM.Cost.Bounds
