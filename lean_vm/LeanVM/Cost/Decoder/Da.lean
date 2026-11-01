@@ -12,8 +12,8 @@ import LeanVM.Guest.Value.Bits
 `Guest.Fast.dvWitN_eq`): the rows of the cells' symbols and the vector of the columns' weights,
 compiled part by part. Staged, each frame looked up once:
 
-* the number of rows (a logarithm, `gLogD D`, the logarithm's tables `D` given) computed once by
-  `dvWitND` and passed to `dvWitNAt`;
+* the number of rows (a logarithm, `gLogD D`, the logarithm's tables `D` given, at most `1024`,
+  `daRowCount`, as `Da.dvRows`) computed once by `dvWitND` and passed to `dvWitNAt`;
 * each column's frame (`dvColVN`) looked up once, its two words the rows read (`dvColWords`)
   kept in an array of the `128` columns (`dvCols`), built once by `dvWitNAt` and passed to
   `dvWitNCols`;
@@ -109,17 +109,28 @@ theorem dvWitNAt_eq (r : ℕ) (σ : Val) (Vn : NFrames) :
   have h2 : dvWsCols σ Vn (dvCols σ Vn) = dvWsPN σ Vn := funext (dvWsCols_eq σ Vn)
   rw [h1, h2]
 
+/-- A count of rows, at most `1024` (`dvRows`'s clamp). -/
+def daRowCount (r : ℕ) : ℕ := if r ≤ 1024 then r else 1024
+
+theorem daRowCount_eq (r : ℕ) : daRowCount r = min r 1024 := by
+  unfold daRowCount
+  split <;> omega
+
+theorem daRowCount_le (r : ℕ) : daRowCount r ≤ 1024 := by
+  unfold daRowCount
+  split <;> omega
+
 /-- **`da_verify`'s witness** (`dvWitN`), the logarithm's tables `D` given: its rows counted
-once. -/
+once, at most `1024` (`daRowCount`). -/
 def dvWitND (D : DiscreteLogTables) (σ : Val) (Vn : NFrames) : LeanVM.Da.MatrixWitness :=
-  dvWitNAt (gLogD D (σ (.n 1))) σ Vn
+  dvWitNAt (daRowCount (gLogD D (σ (.n 1)))) σ Vn
 
 theorem dvWitND_tables : dvWitND discreteLogTables = dvWitN := by
   funext σ Vn
   unfold dvWitND
   rw [dvWitNAt_eq]
-  unfold dvWitN dvSymsPNAt dvSymsPN
-  rw [gLogD_tables]
+  unfold dvWitN dvSymsPNAt dvSymsPN dvRows
+  rw [gLogD_tables, daRowCount_eq]
 
 cost_compile dvColArgsC := LeanVM.Guest.B1.Da.dvColArgs
 cost_compile cellSymsOfC := LeanVM.Guest.B1.Da.cellSymsOf
@@ -139,6 +150,7 @@ cost_compile dvWsColsC := dvWsCols
 set_option maxHeartbeats 4000000 in
 cost_compile dvWitNColsC := dvWitNCols
 cost_compile dvWitNAtC := dvWitNAt
+cost_compile daRowCountC := daRowCount
 cost_compile dvWitNC := dvWitND
 
 end

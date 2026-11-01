@@ -35,7 +35,7 @@ def dvRowVN (σ : Val) (Vn : NFrames) (i j : ℕ) : Val :=
 
 /-- The symbols, padded outside the matrix (`dvSymsP`). -/
 noncomputable def dvSymsPN (σ : Val) (Vn : NFrames) (i j : ℕ) : List K :=
-  if i < gLog (σ (.n 1)) ∧ j < 128 then
+  if i < dvRows σ ∧ j < 128 then
     cellSymsOf (Vn 28 [dvColVN σ Vn j (.n 11)]
       [dvRowVN σ Vn i j (.n 7), dvRowVN σ Vn i j (.n 8), dvRowVN σ Vn i j (.n 9)])
   else List.replicate 256 0
@@ -47,7 +47,7 @@ def dvWsPN (σ : Val) (Vn : NFrames) (j : ℕ) : List E :=
 
 /-- **`da_verify`'s witness** (`dvWit`), its frames numbered. -/
 noncomputable def dvWitN (σ : Val) (Vn : NFrames) : LeanVM.Da.MatrixWitness :=
-  ⟨daRows (gLog (σ (.n 1))) (dvSymsPN σ Vn), daVector (dvWsPN σ Vn)⟩
+  ⟨daRows (dvRows σ) (dvSymsPN σ Vn), daVector (dvWsPN σ Vn)⟩
 
 theorem dvColVN_eq (σ : Val) (Vm : FrameMap) (j : ℕ) :
     dvColVN σ (fun k ↦ Vm (decoderFunctionName k)) j = dvColV σ Vm j := by

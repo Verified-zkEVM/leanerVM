@@ -23,12 +23,12 @@ matrix's rows `r ≤ 2^k`, `k ≤ 34` (`r < 2^34`, `gLogD_lt`):
 * the witness, its columns' words given (`dvWitNCols_cost`), and built (`dvWitNAt_cost`: at most
   `dvWitNRowsPrice k F S = (33152·F + 1152·S + 205440·k + 3333810)·2^k + 33024·F + 2176·S +
   10989648`);
-* **`dvWitN_cost`**: one logarithm (`GLogBound P D G`), the rows below `2^34`: at most
-  `S + G + dvWitNAtPrice F S + 14`, `dvWitNAtPrice F S = dvWitNRowsPrice 34 F S ≈
-  2^34·(33152·F + 1152·S) + 2^57.30` (`2^49.02·F + 2^44.17·S + 2^57.30`);
-  `dvWitN_cost_of_le`: at rows `≤ 2^k`, `S + G + dvWitNRowsPrice k F S + 14`; at `r ≤ 32`
-  (`k = 5`, the deployed DA), `1093888·F + 39041·S + G + 150541982` (`2^20.06·F + 2^15.25·S +
-  G + 2^27.17`).
+* **`dvWitN_cost_1024`**: one logarithm (`GLogBound P D G`), the count clamped to `1024`
+  (`daRowCount`, `daRowCount_cost`: `6`), the rows: at most `S + G + dvWitNRowsPrice 10 F S + 21`
+  on every input; `dvWitN_cost`: below `S + G + dvWitNAtPrice F S + 14`, `dvWitNAtPrice F S =
+  dvWitNRowsPrice 34 F S`; `dvWitN_cost_of_le`: at a clamped count `≤ 2^k`,
+  `S + G + dvWitNRowsPrice k F S + 21`; at `r ≤ 32` (`k = 5`, the deployed DA),
+  `1093888·F + 39041·S + G + 150541989` (`2^20.06·F + 2^15.25·S + G + 2^27.17`).
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -44,6 +44,14 @@ variable (P : MachineProgram) {G : ℕ}
 theorem colNum_cost (hP : Includes P Decoder.colNumC.costDeps) (j : ℕ) (hj : j < 2 ^ 64) :
     machineCost P Decoder.colNumC.costIdx [encodeValue j] ≤ 6 := by
   rw [Decoder.colNumC.costEq P hP, limbs_of_lt hj]; split_ifs <;> omega
+
+/-- The rows' count clamped to `1024` (`daRowCountC`): `6`. -/
+theorem daRowCount_cost (hP : Includes P Decoder.daRowCountC.costDeps) (r : ℕ) (hr : r < 2 ^ 64) :
+    machineCost P Decoder.daRowCountC.costIdx [encodeValue r] ≤ 6 := by
+  rw [Decoder.daRowCountC.costEq P hP, limbs_of_lt hr]; split_ifs <;> omega
+
+theorem daRowCount_le_self (r : ℕ) : Decoder.daRowCount r ≤ r := by
+  unfold Decoder.daRowCount; split <;> omega
 
 /-- Column `j`'s row loop (`rowNumC`): `6`. -/
 theorem rowNum_cost (hP : Includes P Decoder.rowNumC.costDeps) (j : ℕ) (hj : j < 2 ^ 64) :
@@ -367,33 +375,52 @@ theorem dvWitNAt_cost (hP : Includes P Decoder.dvWitNAtC.costDeps) (k r : ℕ) (
   omega
 
 /-- **`da_verify`'s witness at `r ≤ 2^k` rows** (`dvWitNC`), the logarithm's tables `D` given:
-one logarithm, then the rows: at most `S + G + dvWitNRowsPrice k F S + 14`. -/
+one logarithm, the count clamped to `1024` (`daRowCount`), then the rows: at most
+`S + G + dvWitNRowsPrice k F S + 21`. -/
 theorem dvWitN_cost_of_le (D : LeanVM.Extraction.Fast.DiscreteLogTables)
     (hP : Includes P Decoder.dvWitNC.costDeps) (hG : GLogBound P D G) (k : ℕ) (hk0 : 0 < k)
-    (hk : k ≤ 34) (hr : Decoder.gLogD D (σ (.n 1)) ≤ 2 ^ k) :
+    (hk : k ≤ 34) (hr : Decoder.daRowCount (Decoder.gLogD D (σ (.n 1))) ≤ 2 ^ k) :
     machineCost P Decoder.dvWitNC.costIdx [encodeValue D, σV, VnV] ≤
-      S + G + dvWitNRowsPrice k F S + 14 := by
+      S + G + dvWitNRowsPrice k F S + 21 := by
   rw [Decoder.dvWitNC.costEq P hP D σ σV hσ Vn VnV hVn]
   have := hG (σ (.n 1))
   have := hS (.n 1)
+  have := daRowCount_cost P (by includes) (Decoder.gLogD D (σ (.n 1)))
+    (by have := gLogD_lt D (σ (.n 1)); omega)
   have := dvWitNAt_cost P hVn hF hσ hS (by includes) k _ hk0 hk hr
   omega
 
 /-- **`da_verify`'s witness** (`dvWitNC`), the logarithm's tables `D` given: one logarithm, the
-rows below `2^34` (`gLogD_lt`): at most `S + G + dvWitNAtPrice F S + 14`. -/
+rows at most `1024` (`daRowCount_le`, on every input): at most
+`S + G + dvWitNRowsPrice 10 F S + 21`. -/
+theorem dvWitN_cost_1024 (D : LeanVM.Extraction.Fast.DiscreteLogTables)
+    (hP : Includes P Decoder.dvWitNC.costDeps) (hG : GLogBound P D G) :
+    machineCost P Decoder.dvWitNC.costIdx [encodeValue D, σV, VnV] ≤
+      S + G + dvWitNRowsPrice 10 F S + 21 :=
+  dvWitN_cost_of_le P hVn hF hσ hS D hP hG 10 (by norm_num) (by norm_num)
+    ((Decoder.daRowCount_le _).trans (by norm_num))
+
+/-- **`da_verify`'s witness** (`dvWitNC`), the logarithm's tables `D` given: at most
+`S + G + dvWitNAtPrice F S + 14` (`dvWitN_cost_1024`, below the price at `2^34` rows). -/
 theorem dvWitN_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
     (hP : Includes P Decoder.dvWitNC.costDeps) (hG : GLogBound P D G) :
     machineCost P Decoder.dvWitNC.costIdx [encodeValue D, σV, VnV] ≤
-      S + G + dvWitNAtPrice F S + 14 :=
-  dvWitN_cost_of_le P hVn hF hσ hS D hP hG 34 (by norm_num) le_rfl (gLogD_lt D _).le
+      S + G + dvWitNAtPrice F S + 14 := by
+  have := dvWitN_cost_1024 P hVn hF hσ hS D hP hG
+  have e : dvWitNRowsPrice 10 F S + 7 ≤ dvWitNAtPrice F S := by
+    unfold dvWitNAtPrice dvWitNRowsPrice
+    norm_num
+    nlinarith
+  omega
 
-/-- At `r ≤ 32` rows (`k = 5`): `1093888·F + 39041·S + G + 150541982`. -/
+/-- At `r ≤ 32` rows (`k = 5`): `1093888·F + 39041·S + G + 150541989`. -/
 theorem dvWitN_cost_32 (D : LeanVM.Extraction.Fast.DiscreteLogTables)
     (hP : Includes P Decoder.dvWitNC.costDeps) (hG : GLogBound P D G)
     (hr : Decoder.gLogD D (σ (.n 1)) ≤ 32) :
     machineCost P Decoder.dvWitNC.costIdx [encodeValue D, σV, VnV] ≤
-      1093888 * F + 39041 * S + G + 150541982 := by
-  have := dvWitN_cost_of_le P hVn hF hσ hS D hP hG 5 (by norm_num) (by norm_num) hr
+      1093888 * F + 39041 * S + G + 150541989 := by
+  have := dvWitN_cost_of_le P hVn hF hσ hS D hP hG 5 (by norm_num) (by norm_num)
+    ((daRowCount_le_self _).trans (by norm_num; exact hr))
   have e : dvWitNRowsPrice 5 F S = 1093888 * F + 39040 * S + 150541968 := by
     unfold dvWitNRowsPrice; ring
   omega
