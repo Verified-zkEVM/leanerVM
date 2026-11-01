@@ -147,7 +147,7 @@ theorem pruneUpTo_succ (κ R A : ℕ) (W : ℕ → List K) (U : ℕ) :
 /-- The elements of a lane list have size `2^κ`. -/
 theorem size_of_mem_laneListAt {κ R A : ℕ} {W : ℕ → List K} {u : ℕ} {c : Array K}
     (hc : c ∈ laneListAt κ R A W u) : c.size = 2 ^ κ := by
-  rw [laneListAt, List.mem_dedup, List.mem_map] at hc
+  rw [laneListAt, List.mem_mergeSort, List.mem_dedup, List.mem_map] at hc
   obtain ⟨p, _, rfl⟩ := hc
   exact size_novelInv _ Array.size_ofFn
 
@@ -289,7 +289,7 @@ theorem nodup_pruneUpTo (κ R A : ℕ) (W : ℕ → List K) (U : ℕ) :
     rw [pruneUpTo_succ, pruneStep, List.map_flatMap]
     refine List.nodup_flatMap.mpr ⟨fun s _ ↦ ?_, ?_⟩
     · rw [List.map_filterMap, laneEncodedAt, List.filterMap_map]
-      refine (List.nodup_dedup _).filterMap fun c c' b hb hb' ↦ ?_
+      refine ((List.mergeSort_perm _ _).nodup_iff.2 (List.nodup_dedup _)).filterMap fun c c' b hb hb' ↦ ?_
       simp only [Function.comp_apply, Option.mem_def, Option.map_eq_some_iff] at hb hb'
       obtain ⟨x, hx, rfl⟩ := hb
       obtain ⟨x', hx', hxx⟩ := hb'
@@ -383,7 +383,7 @@ theorem length_laneListAt_le {κ R A : ℕ} (hκ : 1 ≤ κ) (hn : κ + R ≤ 64
     (laneListAt κ R A W u).length ≤ T.card := by
   classical
   let e : Array K → Fin (2 ^ (κ + R)) → K := fun c v ↦ (novelFwd κ R c).getD v.val 0
-  have hnd : (laneListAt κ R A W u).Nodup := List.nodup_dedup _
+  have hnd : (laneListAt κ R A W u).Nodup := (List.mergeSort_perm _ _).nodup_iff.2 (List.nodup_dedup _)
   have hinj : ∀ x ∈ laneListAt κ R A W u, ∀ y ∈ laneListAt κ R A W u, e x = e y → x = y :=
     fun x hx y hy hxy ↦ eq_of_novelFwd_eq (R := R) (by omega)
       (laneListAt_sound hκ hn hA hcap W u hx).1 (laneListAt_sound hκ hn hA hcap W u hy).1

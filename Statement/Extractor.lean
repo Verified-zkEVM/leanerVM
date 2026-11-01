@@ -88,11 +88,16 @@ generic search.
 
 **The same function, faster** (proof side, `lean_vm/LeanVM/Protocol/Extraction/Fast/`):
 `transcriptExtractorFast`, proved equal to `transcriptExtractor` (`transcriptExtractorFast_eq`),
-substitutes in Roth–Ruckenstein by a Taylor shift with binomials by parity (`ℓ²·w/2` per
-substitution, `2^91.8` in all), skips the final root check where the Guruswami–Sudan lemma makes it
-redundant, and keeps the replay, the first answers and the preimages in hash maps (`O(N·L)`
-expected in `N`, keeping evaluations of at most `L = max(64, 8·width)` bytes): about `2^107.5` at
-the worst shape, the interpolation dominating.
+interpolates on large shapes with CompPoly's approximant-basis interpolation (Chowdhury,
+Jeannerod, Neiger, Schost, Villard: *Faster algorithms for multivariate interpolation with
+multiplicities and simultaneous polynomial approximations*, IEEE Trans. Inf. Theory 61, 2015) on
+Karatsuba's products (`2^84.8`, a heuristic model), substitutes in Roth–Ruckenstein by a Taylor
+shift with binomials by parity (`ℓ²·w/2` per substitution, `2^91.8` in all), skips the final root
+check where the Guruswami–Sudan lemma makes it redundant, and keeps the replay, the first answers
+and the preimages in hash maps (`O(N·L)` expected in `N`, keeping evaluations of at most
+`L = max(64, 8·width)` bytes): about `2^91.8` at the worst shape, Roth–Ruckenstein dominating.
+Each lane's list is sorted (`laneListAt`, `coeffsLE`), so it depends only on the set the decoder
+returns, whichever interpolation computes it.
 
 The Annexes are cited at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
 
@@ -613,9 +618,21 @@ def gsLaneAt (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) : Array (CPolynomial 
   GuruswamiSudan.decodeWithParams gsContext (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A)
     ⟨lanePoints (2 ^ (κ + R)) W u⟩
 
-/-- The lane decoder's list as novel-basis coefficients, without duplicates. -/
+/-- Lexicographic order on lists of natural numbers. -/
+def lexLE : List ℕ → List ℕ → Bool
+  | [], _ => true
+  | _ :: _, [] => false
+  | a :: as, b :: bs => decide (a < b) || (decide (a = b) && lexLE as bs)
+
+/-- The lane lists' order: lexicographic on the coefficients' 64-bit lanes. -/
+def coeffsLE (a b : Array K) : Bool :=
+  lexLE (a.toList.map fun x ↦ x.lane.toNat) (b.toList.map fun x ↦ x.lane.toNat)
+
+/-- The lane decoder's list as novel-basis coefficients, without duplicates, in increasing order
+(`coeffsLE`): it depends only on the set of polynomials the decoder returns, not on their
+order. -/
 def laneListAt (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) : List (Array K) :=
-  ((gsLaneAt κ R A W u).toList.map (toNovel κ)).dedup
+  (((gsLaneAt κ R A W u).toList.map (toNovel κ)).dedup).mergeSort coeffsLE
 
 /-! ### 6. The 64 lanes: prefix pruning -/
 

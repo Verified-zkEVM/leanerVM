@@ -207,7 +207,7 @@ theorem laneCoeffs_mem_laneListAt {μ R A : ℕ} (hμ : 7 ≤ μ) (hn : μ - ini
     exact (hv.2 ⟨u, hu⟩).symm
   obtain ⟨cp, hcp, hcpq⟩ := mem_gsLaneAt hκ hn hA hcap W u
     (degree_lanePoly_lt (by omega) q u) hagree
-  rw [laneListAt, List.mem_dedup, List.mem_map]
+  rw [laneListAt, List.mem_mergeSort, List.mem_dedup, List.mem_map]
   exact ⟨cp, hcp, toNovel_of_toPoly (by omega) cp _ hcpq⟩
 
 /-- **At the deployed shapes**: lane `u` of every candidate at the Johnson threshold is in the
@@ -275,7 +275,7 @@ theorem laneListAt_sound {κ R A : ℕ} (hκ : 1 ≤ κ) (hn : κ + R ≤ 64) (h
     (hc : c ∈ laneListAt κ R A W u) :
     c.size = 2 ^ κ ∧ A ≤ ((Finset.range (2 ^ (κ + R))).filter fun v ↦
       (novelFwd κ R c).getD v 0 = laneSymbol W u v).card := by
-  rw [laneListAt, List.mem_dedup, List.mem_map] at hc
+  rw [laneListAt, List.mem_mergeSort, List.mem_dedup, List.mem_map] at hc
   obtain ⟨cp, hcp, rfl⟩ := hc
   obtain ⟨hdeg, hagree⟩ := gsLaneAt_sound hκ hn hA hcap W u hcp
   refine ⟨size_novelInv _ Array.size_ofFn, hagree.trans_eq ?_⟩

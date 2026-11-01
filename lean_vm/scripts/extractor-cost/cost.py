@@ -14,7 +14,8 @@ Three tiers:
 * tier 0: today's code;
 * tier 1 (E1): Roth-Ruckenstein with a linear Taylor shift, binomials by parity and truncated
   substitution (the textbook bound), no final root check, sorted lookups; "as built": E1 as
-  implemented (`LeanVM/Protocol/Extraction/Fast/`), the substitution untruncated;
+  implemented (`LeanVM/Protocol/Extraction/Fast/`), the substitution untruncated; "2 as built":
+  E2 as implemented, the approximant-basis interpolation on Karatsuba's products;
 * tier 2 (E2): tier 1 with a fast interpolation (Chowdhury et al. 2015) in place of
   Lee-O'Sullivan and Mulders-Storjohann.
 
@@ -49,6 +50,12 @@ def costs(r):
     # log^2(m n) more (printed separately).
     t["interp2"] = LANES + 2 * lg(ell) + 2 * lg(m) + lg(n)
     t["interp2log"] = 2 * lg(lg(m * n))
+    # E2 as built: the same interpolation (CompPoly's approximant basis) on Karatsuba's products:
+    # the products of degree about m n / ell cost (m n / ell)^0.585 more than a quasi-linear
+    # one, no log factor (a heuristic: CompPoly's PM-basis is not analysed term by term); the
+    # relation matrix's ell m products of degree m n, (m n)^1.585 each.
+    t["interpKara"] = max(LANES + 2 * lg(ell) + 2 * lg(m) + lg(n) + 0.585 * lg(m * n / ell),
+                          LANES + lg(ell) + lg(m) + 1.585 * lg(m * n))
     # Roth-Ruckenstein as implemented (`substituteYRootPlusXY`): for each of the |Q| terms
     # x^i y^j, j + 1 monomials added one by one to a dense accumulator (`out + monomialXY`), each
     # addition Theta(|Q|): |Q|^2 ell / 2 per substitution; one substitution per depth, k depths
@@ -87,7 +94,7 @@ def main():
     rows = list(csv.DictReader(open(sys.argv[1])))
     table = [(int(r["mu"]), int(r["R"]), costs(r)) for r in rows]
     if "--worst" in sys.argv:
-        keys = ["interp0", "interp2", "rr0", "binom0", "rrTaylor", "rr1", "final0", "filter",
+        keys = ["interp0", "interp2", "interpKara", "rr0", "binom0", "rrTaylor", "rr1", "final0", "filter",
                 "prune", "runs"]
         for key in keys:
             mu, R, t = max(table, key=lambda x: x[2][key])
@@ -97,6 +104,8 @@ def main():
                              t["runs"]),
             "1 as built (E1)": lambda t: max(t["interp0"], t["rrTaylor"], t["filter"], t["prune"],
                                              t["runs"]),
+            "2 as built (E2)": lambda t: max(t["interpKara"], t["rrTaylor"], t["filter"],
+                                             t["prune"], t["runs"]),
             1: lambda t: max(t["interp0"], t["rr1"], t["prune"], t["runs"]),
             2: lambda t: max(t["interp2"] + t["interp2log"], t["rr1"], t["prune"], t["runs"]),
         }

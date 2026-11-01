@@ -3,6 +3,10 @@ module
 public import Statement.Extractor
 public import LeanVM.Protocol.Extraction.Fast.RothRuckenstein
 public import LeanVM.Protocol.Extraction.Lane
+public import LeanVM.Protocol.Extraction.Fast.Karatsuba
+public import LeanVM.Protocol.Extraction.Fast.Order
+public import CompPoly.Bivariate.GuruswamiSudan.Interpolation.ApproximantBasis.Correctness
+public import CompPoly.LinearAlgebra.PolynomialMatrix.Approximant
 
 /-!
 # The extractor, fast
@@ -14,7 +18,12 @@ with a faster lane decoder, `gsLaneAtFast`:
   `gsContext` with `rothRuckensteinRootContextFast`;
 * without the final root check where the parameters make it redundant (`gsRunNoCheck`,
   `checkRedundant`: at most `2^64` columns and `W < m·(n − radius)`, as at every shape the
-  statement decodes, `W = m·A − 1`, `radius = n − A`).
+  statement decodes, `W = m·A − 1`, `radius = n − A`);
+* from `2^approxFrom` columns on, CompPoly's approximant-basis interpolation on Karatsuba's
+  products (`approxInterpContext`) for Lee–O'Sullivan's. It may return another interpolation
+  polynomial, so another list in another order: what the list holds does not depend on it
+  (`mem_gsRunNoCheck`: the polynomials of degree `< k` within the radius), and the statement
+  sorts each lane's list (`laneListAt`), so the sorted lists are equal (`laneListAtFast_eq`).
 
 The definitions from the lane decoder up to the extractor are copied with it (a `@[csimp]` lemma
 acts where code is compiled, and the statement's definitions are compiled in `Statement/`), each
@@ -54,9 +63,9 @@ the root check is redundant, and `gsRunNoCheck` keeps the degree check and the d
 
 /-- **The list decoder without the final root check**: the fast Roth–Ruckenstein prefixes of
 the interpolated `Q` of degree `< k` that pass the distance filter. -/
-@[expose] def gsRunNoCheck (points : Array (K × K)) (params : GSInterpParams) (radius : ℕ) :
-    Array (CPolynomial K) :=
-  match interpContext.interpolate points params with
+@[expose] def gsRunNoCheck (I : GSInterpContext K) (points : Array (K × K))
+    (params : GSInterpParams) (radius : ℕ) : Array (CPolynomial K) :=
+  match I.interpolate points params with
   | none => #[]
   | some Q => (prefixesWithFuelFast fieldRootCtx params.messageDegree Q 0 default).filter fun p ↦
       degreeLtBool p params.messageDegree && passesCandidateDistance points radius p
@@ -81,17 +90,16 @@ theorem candidateMismatchCount_add_matchingPointCount (points : Array (K × K))
       split <;> rw [ih] <;> omega
   simpa using h 0 0
 
-theorem gsRunNoCheck_eq (points : Array (K × K)) (params : GSInterpParams) (radius : ℕ)
-    (hdist : DistinctXCoordinates points)
+theorem gsRunNoCheck_eq (I : GSInterpContext K) (points : Array (K × K))
+    (params : GSInterpParams) (radius : ℕ) (hdist : DistinctXCoordinates points)
     (hW : params.weightedDegreeBound < params.multiplicity * (points.size - radius)) :
-    gsRunNoCheck points params radius =
-      gsFilteredCore points interpContext (rothRuckensteinRootContext K fieldRootCtx) params
-        radius := by
+    gsRunNoCheck I points params radius =
+      gsFilteredCore points I (rothRuckensteinRootContext K fieldRootCtx) params radius := by
   rw [gsRunNoCheck, gsFilteredCore, gsCore]
-  cases hQ : interpContext.interpolate points params with
+  cases hQ : I.interpolate points params with
   | none => rfl
   | some Q =>
-    have hvalid := interpContext.sound points params Q hQ
+    have hvalid := I.sound points params Q hQ
     simp only [rothRuckensteinRootContext, rothRuckensteinRootsYDegreeLt,
       transformedRothRuckensteinRootsYDegreeLt, transformedRothRuckensteinRootPrefixes,
       prefixesWithFuelFast_eq, Array.filter_filter]
@@ -113,6 +121,27 @@ theorem gsRunNoCheck_eq (points : Array (K × K)) (params : GSInterpParams) (rad
       · simp [hp]
     · simp [hd]
 
+/-- **What the run lists does not depend on the interpolation**: the polynomials of degree `< k`
+within the radius, if the points have an interpolation polynomial. -/
+theorem mem_gsRunNoCheck (I : GSInterpContext K) (points : Array (K × K))
+    (params : GSInterpParams) (radius : ℕ) (hdist : DistinctXCoordinates points)
+    (hW : params.weightedDegreeBound < params.multiplicity * (points.size - radius))
+    (p : CPolynomial K) :
+    p ∈ (gsRunNoCheck I points params radius).toList ↔
+      (∃ Q, ValidInterpolationWitness points params Q) ∧ degreeLt p params.messageDegree ∧
+        candidateMismatchCount points p ≤ radius := by
+  rw [gsRunNoCheck_eq I points params radius hdist hW]
+  let C := filteredCoreContextOfInterpRootContexts I (rothRuckensteinRootContext K fieldRootCtx)
+  change p ∈ (C.run points params radius).toList ↔ _
+  constructor
+  · intro h
+    obtain ⟨Q, hv, hd, _, hm⟩ := C.sound h
+    exact ⟨⟨Q, hv⟩, hd, hm⟩
+  · rintro ⟨hex, hd, hm⟩
+    have hsum := candidateMismatchCount_add_matchingPointCount points p
+    exact C.complete hex hdist hd (lt_of_lt_of_le hW (Nat.mul_le_mul_left _ (by omega)))
+      (by simpa [passesCandidateDistance] using hm)
+
 /-- The lane decoder's points are distinct below `2^64` columns. -/
 theorem distinct_lanePoints (n : ℕ) (hn : n ≤ 2 ^ 64) (W : ℕ → List K) (u : ℕ) :
     DistinctXCoordinates (lanePoints n W u) := by
@@ -126,17 +155,37 @@ theorem distinct_lanePoints (n : ℕ) (hn : n ≤ 2 ^ 64) (W : ℕ → List K) (
     decide (params.interp.weightedDegreeBound <
       params.interp.multiplicity * (2 ^ (κ + R) - params.radius))
 
-/-- `gsLaneAt`, fast: without the final root check where it is redundant, and with the fast
-substitution. -/
+/-- **The fast interpolation** (Chowdhury, Jeannerod, Neiger, Schost, Villard): CompPoly's
+approximant-basis interpolation (PM-basis approximant bases solving the Guruswami–Sudan modular
+equations), proved sound and complete, on Karatsuba's products and remainders. -/
+@[expose] def approxInterpContext : GSInterpContext K :=
+  ApproximantBasis.approximantBasisInterpContext CPolynomial.VanishingPolynomialContext.direct
+    (CPolynomial.BatchEvalContext.horner K)
+    (PolynomialMatrix.Approximant.modularSolutionBasisContextViaPMBasis karatsubaMulContext
+      karatsubaModContext
+      (PolynomialMatrix.Approximant.kernelLeafPMBasisContext karatsubaMulContext 8))
+
+/-- From `2^approxFrom` columns on, the lane decoder interpolates with `approxInterpContext`:
+measured slower than Lee–O'Sullivan's below (up to `2^5` columns, compiled), modelled faster at the
+deployed shapes (`lean_vm/scripts/extractor-cost`). A choice of speed only: what the lane lists
+hold does not depend on it (`mem_gsRunNoCheck`). -/
+@[expose] def approxFrom : ℕ := 16
+
+/-- The interpolation at `2^(κ+R)` columns. -/
+@[expose] def interpAt (κ R : ℕ) : GSInterpContext K :=
+  if approxFrom ≤ κ + R then approxInterpContext else interpContext
+
+/-- `gsLaneAt`, fast: without the final root check where it is redundant, with the fast
+interpolation on large shapes, and the fast substitution. -/
 @[expose] def gsLaneAtFast (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) : Array (CPolynomial K) :=
   let params := gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A
   let points := lanePoints (2 ^ (κ + R)) W u
-  if checkRedundant κ R params then gsRunNoCheck points params.interp params.radius
+  if checkRedundant κ R params then gsRunNoCheck (interpAt κ R) points params.interp params.radius
   else GuruswamiSudan.decodeWithParams gsContextFast params ⟨points⟩
 
 /-- `laneListAt`, fast. -/
 @[expose] def laneListAtFast (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) : List (Array K) :=
-  ((gsLaneAtFast κ R A W u).toList.map (toNovel κ)).dedup
+  (((gsLaneAtFast κ R A W u).toList.map (toNovel κ)).dedup).mergeSort coeffsLE
 
 /-- `laneEncodedAt`, fast. -/
 @[expose] def laneEncodedAtFast (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) : List (Array K × Array K) :=
@@ -172,22 +221,34 @@ substitution. -/
   (fastStacks layout.stackLog logInverseRate word).findSome? execution <|>
     (decodeStacksFast layout.stackLog logInverseRate word).findSome? execution
 
-theorem gsLaneAtFast_eq : gsLaneAtFast = gsLaneAt := by
-  funext κ R A W u
-  rw [gsLaneAtFast, gsContextFast_eq, gsLaneAt]
+/-- **The lane decoder lists the same polynomials, fast.** -/
+theorem mem_gsLaneAtFast (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) (p : CPolynomial K) :
+    p ∈ (gsLaneAtFast κ R A W u).toList ↔ p ∈ (gsLaneAt κ R A W u).toList := by
+  rw [gsLaneAtFast, gsLaneAt, ← gsContextFast_eq]
   split
   · rename_i h
     simp only [checkRedundant, Bool.and_eq_true, decide_eq_true_eq] at h
-    rw [decodeWithParams, gsRunNoCheck_eq _ _ _
-      (distinct_lanePoints _ (Nat.pow_le_pow_right (by norm_num) h.1) W u)
-      (by simpa [lanePoints] using h.2)]
-    rfl
+    have hd := distinct_lanePoints _ (Nat.pow_le_pow_right (by norm_num) h.1) W u
+    have hW : (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp.weightedDegreeBound <
+        (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp.multiplicity *
+          ((lanePoints (2 ^ (κ + R)) W u).size - (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).radius) := by
+      simpa [lanePoints] using h.2
+    rw [decodeWithParams, gsContextFast_eq,
+      show gsContext.run _ _ _ = gsRunNoCheck interpContext _ _ _ from
+        (gsRunNoCheck_eq _ _ _ _ hd hW).symm,
+      mem_gsRunNoCheck _ _ _ _ hd hW, mem_gsRunNoCheck _ _ _ _ hd hW]
   · rfl
+
+theorem laneListAtFast_eq : laneListAtFast = laneListAt := by
+  funext κ R A W u
+  rw [laneListAtFast, laneListAt]
+  refine mergeSort_dedup_eq fun x ↦ ?_
+  simp only [List.mem_map, mem_gsLaneAtFast]
 
 theorem decodeStacksAtFast_eq : decodeStacksAtFast = decodeStacksAt := by
   funext μ R A W
-  simp only [decodeStacksAtFast, pruneUpToFast, laneEncodedAtFast, laneListAtFast, gsLaneAtFast_eq,
-    decodeStacksAt, pruneUpTo, laneEncodedAt, laneListAt]
+  simp only [decodeStacksAtFast, pruneUpToFast, laneEncodedAtFast, laneListAtFast_eq,
+    decodeStacksAt, pruneUpTo, laneEncodedAt]
 
 theorem decodeStacksFast_eq : decodeStacksFast = decodeStacks := by
   funext μ R W
