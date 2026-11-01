@@ -31,6 +31,8 @@ cost_compile powBelowAtC := powBelowAt
 cost_compile powBelowC := powBelow
 cost_compile readPowBelowC := readPowBelow
 cost_compile readIsC := readIs
+-- a known word's value, under a name of its own (the bounds name it, not an index)
+cost_compile symValC := LeanVM.Guest.Exec.Sym.val
 cost_compile envOneC := envOne
 cost_compile bndOneC := bndOne
 cost_compile memAtC := memAt
