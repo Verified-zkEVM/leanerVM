@@ -26,13 +26,14 @@ top `j` with its bodies `deps`:
   picked out by its index (`decoderProgramBodies_filter_locs`, by unfolding); the other bodies'
   sizes by `decide +kernel`, which reads the literal's index alone.
 
-For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (`784199`) plus two
-per index up to the top's, `decTopC`'s own (the last index allocated; so the bound names no index,
-which moves when a module before it in the chain gains a function): `785887` at index `843`. Its
-exact size is `785050` (`LeanVMTests/Cost/DecoderSize.lean`), of which the guest's frame cells
-(`guestLocs`, a literal held once, `guestLocsTable`) are `749835`. `guestDecoderSizeBound` is
-`786000` (`Statement/Theorems.lean`): the exact size and a slack of `950`, room for three leanXMSS
-signatures' encodings (`309` units each) but not four. The bound limits any program of that size,
+For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (`784210`: the
+frame cells' literal `749836` and the others' `34374`) plus two per index up to the top's,
+`decTopC`'s own (the last index allocated; so the bound names no index, which moves when a module
+before it in the chain gains a function): `785902` at index `845`. Its exact size is `785092`
+(`LeanVMTests/Cost/DecoderSize.lean`), of which the guest's frame cells (`guestLocs`, a literal
+held once, `guestLocsTable`) are `749835`. `guestDecoderSizeBound` is `786000`
+(`Statement/Theorems.lean`): the exact size and a slack of `908`, room for two leanXMSS
+signatures' encodings (`309` units each) but not three. The bound limits any program of that size,
 not only this one: the frame cells (below `2^20` each), packed three to a limb, would take about
 a third of their `749835`, freeing room for about `1600` signatures' encodings.
 -/
@@ -87,14 +88,14 @@ theorem bodies_size_bound_of_split (L : List (ℕ × Term)) (i k n r s : ℕ) (b
 theorem decoderProgramBodies_size_bound :
     ((decoderProgramBodiesOf decTopC.costIdx decTopC.costDeps).map fun p ↦ p.2.size).sum +
       2 * (((decoderProgramBodiesOf decTopC.costIdx decTopC.costDeps).map (·.1)).foldr max 0 + 1) ≤
-      784199 + 2 * (decTopC.costIdx + 1) :=
-  bodies_size_bound_of_split _ guestLocsTableC.costIdx decTopC.costIdx 749836 34363 784199 _
+      784210 + 2 * (decTopC.costIdx + 1) :=
+  bodies_size_bound_of_split _ guestLocsTableC.costIdx decTopC.costIdx 749836 34374 784210 _
     decoderProgramBodies_filter_locs guestLocsTable_size (by decide +kernel) (by decide +kernel) rfl
 
 /-- **The program's size**, evaluated. -/
 theorem decoderProgram_size_le_measured :
     (decoderProgramOf decTopC.costIdx decTopC.costDeps).size ≤
-      784199 + 2 * (decTopC.costIdx + 1) :=
+      784210 + 2 * (decTopC.costIdx + 1) :=
   decoderProgramOf_size_le decoderProgramBodies_size_bound
 
 end

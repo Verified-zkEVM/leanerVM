@@ -14,10 +14,10 @@ logarithm's baby-step tables `D` given. Parametric in what the test calls:
 
 * a memory read: the reader closure `rdVal` at most `R` (the decoder's `memReaderC`,
   `Bounds/Decoder/DecoderEnds.lean`: `123 + 42κ`);
-* a logarithm's bound: `powBelowC` at most `B`. `powBelow_cost` gives `B = Lg + 22` from the
-  discrete logarithm's price `Lg` (`discreteLogWith D`, the compiled body the chain uses, and its
-  logarithms word-sized); the logarithm is the one price that changes when the chain's
-  logarithms do, so every other bound takes `B`;
+* a logarithm's bound: `powBelowC` at most `B` at a bound `n ≤ 34` (every bound of the deployed
+  table, `preTable_shape`). `powBelow_cost` gives `B = 911`: the word's lane compared with the
+  lanes `2^0, …, 2^(n-1)` of `g^0, …, g^(n-1)` (`twoPowScanC`), no logarithm (the logarithm
+  serves only bounds above `34`, `powBelowLogC`);
 * the exponents of an entry within `W` bits (`FnPreWithin`): a power `g^o` by squaring at most
   `psAt W = 6 + 535·W`.
 
@@ -31,9 +31,10 @@ The bounds, bottom-up: `powBelowAt_cost` (`6`), `readIs_cost` (`19`), `symVal_co
 * **`preTestAt_cost`**: function `j`'s test at most `fnPrePrice W R B (T.getD j none) + 19`;
 * **`preTestAt_cost_deployed`**: on the deployed table (`preTable`, its shape evaluated in
   `PreTableShape.lean`: exponents below `2^7`, at most one check of each kind, at most `99`
-  bounds and memory cells), at most `269R + 99B + 1057579`. With `B = Lg + 22` and the deployed
-  reader (`R ≤ 123 + 42·32 = 1467`): `99·Lg + 1454380`, per call (≈ `2^20.5` beyond the
-  logarithms; it was `99·Lg + 6925060` with the powers `gen^(2^j)` by squaring at every call);
+  bounds and memory cells, their logarithms' bounds at most `34`), at most
+  `269R + 99B + 1057579`. With `B = 911` (`powBelow_cost`) and the deployed reader
+  (`R ≤ 1472`): `1543736 ≈ 2^20.56` per call (it was `99·402684 + 1453547 ≈ 2^25.30` with a
+  discrete logarithm per bound);
 * **`genPows_cost`**: the powers table, built once (`genPowsC`, `34` squarings), at most `80665`.
 -/
 
@@ -95,16 +96,33 @@ theorem powBelowAt_cost (hP : Includes P powBelowAtC.costDeps) (o : Option ℕ) 
     simp only [max_self]
     omega
 
-/-- **A logarithm's bound** (`powBelowC`): the discrete logarithm (at most `Lg`, its logarithms
-word-sized) and `22`. -/
-theorem powBelow_cost (hP : Includes P powBelowC.costDeps) (D : DiscreteLogTables) (Lg : ℕ)
-    (hLg : ∀ x : K, machineCost P discreteLogWithC.costIdx
-      [encodeValue D, encodeValue x] ≤ Lg)
-    (hD : ∀ x m, discreteLogWith D x = some m → m < 2 ^ 64) (w : E) (n : ℕ) (hn : n < 2 ^ 64) :
-    machineCost P powBelowC.costIdx [encodeValue D, encodeValue w, encodeValue n] ≤ Lg + 22 := by
-  rw [powBelowC.costEq P hP]
-  have h1 := hLg (w.limb 0)
-  have h2 := powBelowAt_cost P (by includes) _ n hn (hD (w.limb 0))
+/-- The lanes' scan (`twoPowScanC`) over `m` shifts from `e`, `e + m ≤ 63`: `26` per shift and
+`6`, on words. -/
+theorem twoPowScan_cost (hP : Includes P twoPowScanC.costDeps) (w : ℕ) (hw : w < 2 ^ 64) :
+    ∀ (m e : ℕ), e + m ≤ 63 →
+      machineCost P twoPowScanC.costIdx [encodeValue w, encodeValue e, encodeValue m] ≤ 26 * m + 6
+  | 0, e, _ => by rw [twoPowScanC.costEq_zero P hP]
+  | m + 1, e, he => by
+    have hs : 1 <<< e < 2 ^ 64 := by
+      rw [Nat.one_shiftLeft]; exact Nat.pow_lt_pow_right (by norm_num) (by omega)
+    rw [twoPowScanC.costEq_succ P hP, limbs_of_lt (by omega : m + 1 < 2 ^ 64), limbs_of_lt hs,
+      limbs_of_lt (by omega : e < 2 ^ 64), limbs_of_lt hw]
+    have := twoPowScan_cost hP w hw m (e + 1) (by omega)
+    simp only [max_self]
+    split_ifs <;> omega
+
+/-- **A logarithm's bound** (`powBelowC`) at a bound `n ≤ 34`: the word's lane compared with the
+lanes `2^0, …, 2^(n-1)` of `g^0, …, g^(n-1)` (`twoPowScanC`), at most `26·n + 27 ≤ 911`; no
+logarithm. -/
+theorem powBelow_cost (hP : Includes P powBelowC.costDeps) (D : DiscreteLogTables) (w : E)
+    (n : ℕ) (hn : n ≤ 34) :
+    machineCost P powBelowC.costIdx [encodeValue D, encodeValue w, encodeValue n] ≤ 911 := by
+  rw [powBelowC.costEq P hP, limbs_of_lt (by omega : n < 2 ^ 64),
+    limbs_of_lt (by unfold scanBound; norm_num : scanBound < 2 ^ 64)]
+  have := twoPowScan_cost P (by includes) (w.limb 0).lane.toNat (UInt64.toNat_lt _) n 0
+    (by omega)
+  have hs : n ≤ scanBound := hn
+  simp only [hs, ↓reduceIte, max_self]
   split_ifs <;> omega
 
 /-- Whether the word read is `x` (`readIsC`): at most `19`. -/
@@ -186,7 +204,7 @@ section Checks
 variable (D : DiscreteLogTables) (rd : Reader) (rdVal : MachineValue)
   (hrd : ∀ a : K, RunsApp P rdVal [encodeValue a] (encodeValue (rd a)))
   (R : ℕ) (hR : ∀ a : K, appCost P rdVal [encodeValue a] ≤ R)
-  (B : ℕ) (hB : ∀ (w : E) (n : ℕ), n < 2 ^ 64 →
+  (B : ℕ) (hB : ∀ (w : E) (n : ℕ), n ≤ 34 →
     machineCost P powBelowC.costIdx [encodeValue D, encodeValue w, encodeValue n] ≤ B)
   {W : ℕ} (hW : 0 < W) (hW64 : W < 64)
 
@@ -209,7 +227,7 @@ omit hrd hW hW64 in
 include hB in
 /-- A read's logarithm's bound (`readPowBelowC`): `B + 6`. -/
 theorem readPowBelow_cost (hP : Includes P readPowBelowC.costDeps) (o : Option E) (n : ℕ)
-    (hn : n < 2 ^ 64) :
+    (hn : n ≤ 34) :
     machineCost P readPowBelowC.costIdx [encodeValue D, encodeValue o, encodeValue n] ≤ B + 6 := by
   rw [readPowBelowC.costEq P hP]
   cases o with
@@ -219,7 +237,7 @@ theorem readPowBelow_cost (hP : Includes P readPowBelowC.costDeps) (o : Option E
 include hR hB in
 /-- A bound on a frame cell (`bndOneC`): a power, a read, a logarithm's bound and `274`. -/
 theorem bndOne_cost (hP : Includes P bndOneC.costDeps) (fp : K) (p : ℕ × ℕ)
-    (h1 : p.1 < 2 ^ W) (h2 : p.2 < 2 ^ 64) :
+    (h1 : p.1 < 2 ^ W) (h2 : p.2 ≤ 34) :
     machineCost P bndOneC.costIdx [encodeValue D, rdVal, encodeValue fp, encodeValue p] ≤
       psAt W + R + B + 274 := by
   rw [bndOneC.costEq P hP D rd rdVal hrd]
@@ -230,7 +248,7 @@ theorem bndOne_cost (hP : Includes P bndOneC.costDeps) (fp : K) (p : ℕ × ℕ)
 
 include hR hB in
 /-- A memory bound at one cell (`memAtC`): a power, a read, a logarithm's bound and `283`. -/
-theorem memAt_cost (hP : Includes P memAtC.costDeps) (n c : ℕ) (p : E) (hn : n < 2 ^ 64)
+theorem memAt_cost (hP : Includes P memAtC.costDeps) (n c : ℕ) (p : E) (hn : n ≤ 34)
     (hc : c < 2 ^ W) :
     machineCost P memAtC.costIdx [encodeValue D, rdVal, encodeValue n, encodeValue c,
       encodeValue p] ≤ psAt W + R + B + 283 := by
@@ -244,7 +262,7 @@ include hR hB in
 /-- A memory bound at one cell of the address in a frame cell (`memCellC`): two powers, two
 reads, a logarithm's bound and `553`. -/
 theorem memCell_cost (hP : Includes P memCellC.costDeps) (fp : K) (o n c : ℕ) (ho : o < 2 ^ W)
-    (hn : n < 2 ^ 64) (hc : c < 2 ^ W) :
+    (hn : n ≤ 34) (hc : c < 2 ^ W) :
     machineCost P memCellC.costIdx [encodeValue D, rdVal, encodeValue fp, encodeValue o,
       encodeValue n, encodeValue c] ≤ 2 * psAt W + 2 * R + B + 553 := by
   rw [memCellC.costEq P hP D rd rdVal hrd]
@@ -260,7 +278,7 @@ theorem memCell_cost (hP : Includes P memCellC.costDeps) (fp : K) (o n c : ℕ) 
 include hR hB in
 /-- A memory bound (`memOneC`): per cell `2·psAt W + 2R + B + 586`, and `29`. -/
 theorem memOne_cost (hP : Includes P memOneC.costDeps) (fp : K) (m : ℕ × ℕ × ℕ)
-    (h1 : m.1 < 2 ^ W) (h2 : m.2.1 ≤ 2 ^ W) (h3 : m.2.2 < 2 ^ 64) :
+    (h1 : m.1 < 2 ^ W) (h2 : m.2.1 ≤ 2 ^ W) (h3 : m.2.2 ≤ 34) :
     machineCost P memOneC.costIdx [encodeValue D, rdVal, encodeValue fp, encodeValue m] ≤
       (2 * psAt W + 2 * R + B + 586) * m.2.1 + 29 := by
   have h64 : 2 ^ W < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) hW64
@@ -473,7 +491,7 @@ theorem preTestAt_cost_deployed (hP : Includes P preTestAtC.costDeps) (D : Discr
     (rd : Reader) (rdVal : MachineValue)
     (hrd : ∀ a : K, RunsApp P rdVal [encodeValue a] (encodeValue (rd a)))
     (R : ℕ) (hR : ∀ a : K, appCost P rdVal [encodeValue a] ≤ R)
-    (B : ℕ) (hB : ∀ (w : E) (n : ℕ), n < 2 ^ 64 →
+    (B : ℕ) (hB : ∀ (w : E) (n : ℕ), n ≤ 34 →
       machineCost P powBelowC.costIdx [encodeValue D, encodeValue w, encodeValue n] ≤ B)
     (T : Array (Option FnPre)) (hT : tableShape T = true) (Pw : Array E) (j : ℕ)
     (hj : j < 2 ^ 64) (fp : K) :

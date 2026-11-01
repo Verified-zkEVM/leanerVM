@@ -13,8 +13,8 @@ the proofs.
 Each price is in the bits `W` of the exponents the entry names (the frame's offsets, the known
 words' exponents, the memory bounds' cell counts: a power `g^o` by squaring costs at most
 `6 + 535·W`, `psAt W`), the price `R` of a memory read (the reader closure) and the price `B` of
-one logarithm's bound (`powBelowC`: the discrete logarithm and a comparison; `powBelow_cost`
-gives `B` from the logarithm's price).
+one logarithm's bound (`powBelowC` at a bound `n ≤ 34`: the word's lane compared with the lanes
+of `g^0, …, g^(n-1)`; `powBelow_cost` gives `B = 911`).
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -36,11 +36,11 @@ def symExp : Sym → ℕ
 def memCells (t : FnPre) : ℕ := (t.mem.map (·.2.1)).sum
 
 /-- **An entry's exponents within `W` bits**: the frame's offsets, the known words' exponents and
-the memory bounds' cell counts below `2^W` (the counts at most `2^W`), the logarithms' bounds
-word-sized. -/
+the memory bounds' cell counts below `2^W` (the counts at most `2^W`), the logarithms' bounds at
+most `34` (`scanBound`: the lanes' scan serves them). -/
 def FnPreWithin (W : ℕ) (t : FnPre) : Prop :=
-  (∀ p ∈ t.env, p.1 < 2 ^ W ∧ symExp p.2 < 2 ^ W) ∧ (∀ p ∈ t.pre, p.1 < 2 ^ W ∧ p.2 < 2 ^ 64) ∧
-    (∀ m ∈ t.mem, m.1 < 2 ^ W ∧ m.2.1 ≤ 2 ^ W ∧ m.2.2 < 2 ^ 64) ∧
+  (∀ p ∈ t.env, p.1 < 2 ^ W ∧ symExp p.2 < 2 ^ W) ∧ (∀ p ∈ t.pre, p.1 < 2 ^ W ∧ p.2 ≤ 34) ∧
+    (∀ m ∈ t.mem, m.1 < 2 ^ W ∧ m.2.1 ≤ 2 ^ W ∧ m.2.2 ≤ 34) ∧
     (∀ p ∈ t.sem, p.1 < 2 ^ W ∧ p.2 < 2 ^ W)
 
 /-- **The price of an entry's test** (`fnPreTestC`), its exponents within `W` bits, a memory read
@@ -56,13 +56,13 @@ def fnPrePrice (W R B : ℕ) : Option FnPre → ℕ
       (2 * psAt W + 70 * R + 241176) * t.sem.length + 55
 
 /-- **The deployed table's shape**, decided: at most one check of each kind, at most `99` bounds
-and memory cells, exponents below `2^7`, logarithms' bounds word-sized. -/
+and memory cells, exponents below `2^7`, logarithms' bounds at most `34`. -/
 def fnPreShape (t : FnPre) : Bool :=
   decide (t.env.length ≤ 1) && decide (t.pre.length ≤ 1) && decide (t.mem.length ≤ 1) &&
     decide (t.sem.length ≤ 1) && decide (t.pre.length + memCells t ≤ 99) &&
     t.env.all (fun p ↦ decide (p.1 < 2 ^ 7) && decide (symExp p.2 < 2 ^ 7)) &&
-    t.pre.all (fun p ↦ decide (p.1 < 2 ^ 7) && decide (p.2 < 2 ^ 64)) &&
-    t.mem.all (fun m ↦ decide (m.1 < 2 ^ 7) && decide (m.2.1 ≤ 2 ^ 7) && decide (m.2.2 < 2 ^ 64)) &&
+    t.pre.all (fun p ↦ decide (p.1 < 2 ^ 7) && decide (p.2 ≤ 34)) &&
+    t.mem.all (fun m ↦ decide (m.1 < 2 ^ 7) && decide (m.2.1 ≤ 2 ^ 7) && decide (m.2.2 ≤ 34)) &&
     t.sem.all (fun p ↦ decide (p.1 < 2 ^ 7) && decide (p.2 < 2 ^ 7))
 
 /-- Every entry of a table has the deployed shape. -/

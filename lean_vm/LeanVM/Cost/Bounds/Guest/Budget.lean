@@ -25,9 +25,10 @@ the decoder program's price is within `guestDecoderBudget` (`Statement/Theorems.
   `da_verify`'s rows at most `1024` (`dvWitN_cost_1024`, on every input);
 * the entry table, one sorted array (`entryArrayT_cost`) at the key exponent
   `guestDecoderEntryTableKeyExponent steps`, the precondition test (`preTestAt_cost_deployed`, its
-  logarithms by `powBelow_cost` at `discreteLogWith_cost`), the pc table (`pcTableT_get_cost`,
+  logarithms' bounds by the lanes' scan, `powBelow_cost`: `decoderPreconditionPrice ≈ 2^20.56`,
+  within the statement's `guestDecoderPreconditionPrice`), the pc table (`pcTableT_get_cost`,
   `pcTableT_getD_length`): per state within `guestDecoderStateFilingPrice`
-  (`entryArrayStatePrice_le`);
+  (`entryArrayStatePrice_le`, `decoderStateFilingPrice_le`);
 * the frame map (`frameAtA_cost`, one binary search, calls of at most `16` words): within
   `guestDecoderFramePrice` (`frameAtAPrice_le`); the cursor's length (`cursorLength_cost`, value
   at most `2^32`), the witness (`frameWit_cost`);
@@ -86,6 +87,31 @@ theorem entryArrayStatePrice_le (e : ℕ) (he : 1 ≤ e) :
   have hV : (3060 + 5 * w) * e = 3060 * e + 5 * (w * e) := by ring
   omega
 
+/-- **A function's precondition test at a state, compiled**: `269` memory reads (`1472` each),
+`99` logarithms' bounds by the lanes' scan (`911` each, `powBelow_cost`: every bound of the
+preconditions' table is at most `34`, `preTable_shape`) and `1057586`: `1543743 ≈ 2^20.56`. -/
+@[expose] def decoderPreconditionPrice : ℕ := 269 * 1472 + 99 * 911 + 1057579 + 7
+
+/-- It is within the statement's (`guestDecoderPreconditionPrice`, priced at `99` discrete
+logarithms). -/
+theorem decoderPreconditionPrice_le : decoderPreconditionPrice ≤ guestDecoderPreconditionPrice := by
+  unfold decoderPreconditionPrice guestDecoderPreconditionPrice
+  omega
+
+/-- **Filing a state, compiled**: the sorted entry array's price per state
+(`entryArrayStatePrice`) at `decoderPreconditionPrice`. At the key exponent `e = 40` (about
+`2^39` steps) `3668954 ≈ 2^21.81`; with the step's replay at `κ = ℓ = 32` (`runnerStepPrice`),
+per step `≈ 2^21.97`, and `2^21.95` at `e = 30`. -/
+@[expose] def decoderStateFilingPrice (e : ℕ) : ℕ :=
+  entryArrayStatePrice 8339 2 decoderPreconditionPrice 1472 e + 9
+
+theorem decoderStateFilingPrice_le (e : ℕ) (he : 1 ≤ e) :
+    decoderStateFilingPrice e ≤ guestDecoderStateFilingPrice e := by
+  refine le_trans ?_ (entryArrayStatePrice_le e he)
+  unfold decoderStateFilingPrice entryArrayStatePrice pairsStatePrice
+  have := decoderPreconditionPrice_le
+  omega
+
 /-- A frame lookup of at most `16` words on the sorted array, within the statement's. -/
 theorem frameAtAPrice_le (e n : ℕ) (hn : n ≤ 16) (he : 1 ≤ e) :
     (67 * n + 89 + 9 * wl e) * (e + 2) + 28 * n + 1472 + 11056 ≤ guestDecoderFramePrice e := by
@@ -139,8 +165,9 @@ theorem decoderPriceWithinBudget : DecoderPriceWithinBudget := by
   have hLg : ∀ x : K, machineCost decoderProgram Decoder.discreteLogWithC.costIdx
       [encodeValue discreteLogTables, encodeValue x] ≤ 402662 :=
     fun x ↦ discreteLogWith_cost decoderProgram includes_budget_discreteLogWith x
-  have hB := powBelow_cost decoderProgram includes_budget_powBelow discreteLogTables 402662 hLg
-    discreteLogWith_lt
+  have hB : ∀ (w : E) (n : ℕ), n ≤ 34 → machineCost decoderProgram Decoder.powBelowC.costIdx
+      [encodeValue discreteLogTables, encodeValue w, encodeValue n] ≤ 911 :=
+    fun w n hn ↦ powBelow_cost decoderProgram includes_budget_powBelow discreteLogTables w n hn
   have hpre : ∀ (j : ℕ) (fp : K), RunsApp decoderProgram
       (.closure Decoder.decTopStatesC.lam1.costIdx [encodeValue discreteLogTables,
         encodeValue preTable, encodeValue genPows, readerV t.logMemorySize (Decoder.memoryVector t.memory)]) [encodeValue j, encodeValue fp]
@@ -155,8 +182,9 @@ theorem decoderPriceWithinBudget : DecoderPriceWithinBudget := by
     rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
       List.nil_append, Decoder.decTopStatesC.lam1.costEq decoderProgram includes_budget_preTestLam _ _ _ _ _ hrd]
     have := preTestAt_cost_deployed decoderProgram includes_budget_preTestAt discreteLogTables _ _ hrd 1472 hR
-      (402662 + 22) hB preTable preTable_shape genPows j hj fp
-    unfold guestDecoderPreconditionPrice
+      911 hB preTable preTable_shape genPows j hj fp
+    have := decoderPreconditionPrice_le
+    unfold decoderPreconditionPrice at this
     omega
   have he1 := keyExponent_pos t.steps
   have hpos := replayStatesOf_length_pos (powTable t.logMemorySize)
