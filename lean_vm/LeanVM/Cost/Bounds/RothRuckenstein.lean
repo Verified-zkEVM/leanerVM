@@ -71,7 +71,7 @@ variable {F : Type*} [Field F] [BEq F] [LawfulBEq F] [DecidableEq F]
 /-! ## Distinct roots -/
 
 /-- A root finder that lists each root once. -/
-def RootsNodup (fr : FieldRootContext F) : Prop :=
+@[expose] def RootsNodup (fr : FieldRootContext F) : Prop :=
   ∀ p, (fr.rootsInField p).toList.Nodup
 
 omit [DecidableEq F] in
@@ -298,10 +298,10 @@ theorem cpoly_val_size_le_of_coeff {R : Type*} [Zero R] [BEq R] [LawfulBEq R]
     exact this
 
 /-- No coefficient `Y^j` with `j ≥ Y`. -/
-def YLenLe (Q : CBivariate F) (Y : ℕ) : Prop := ∀ i j, Y ≤ j → CBivariate.coeff Q i j = 0
+@[expose] def YLenLe (Q : CBivariate F) (Y : ℕ) : Prop := ∀ i j, Y ≤ j → CBivariate.coeff Q i j = 0
 
 /-- No coefficient `X^i` with `i ≥ X`. -/
-def XLenLe (Q : CBivariate F) (X : ℕ) : Prop := ∀ i j, X ≤ i → CBivariate.coeff Q i j = 0
+@[expose] def XLenLe (Q : CBivariate F) (X : ℕ) : Prop := ∀ i j, X ≤ i → CBivariate.coeff Q i j = 0
 
 omit [DecidableEq F] in
 /-- **At most `Y` rows.** -/
@@ -482,7 +482,7 @@ at most `X₀ + (f₀ − f)·Y ≤ Xmax − f·Y` columns, `Xmax = X₀ + f₀�
 recursion's has `Y` rows and at most `M ≤ M₀` columns, its exact polynomial `WInv`'s (`TInv`). -/
 
 /-- The sizes at an exact node with remaining fuel `fuel`. -/
-def WInv (Y Xmax fuel : ℕ) (Q : CBivariate F) : Prop :=
+@[expose] def WInv (Y Xmax fuel : ℕ) (Q : CBivariate F) : Prop :=
   YLenLe Q Y ∧ XLenLe Q (Xmax - fuel * Y) ∧ fuel * Y ≤ Xmax
 
 theorem WInv.residualFast [CharP F 2] {Y Xmax fuel : ℕ} {Q : CBivariate F}
@@ -510,7 +510,7 @@ theorem rrCost_le_nodes [CharP F 2] (fr : FieldRootContext F) (Y Xmax : ℕ)
 
 /-- The sizes at a truncated node: `q` has `Y` rows of at most `M ≤ M₀` coefficients, and the
 exact polynomial `WInv`'s sizes. -/
-def TInv (Y M₀ Xmax : ℕ) (Q₀ : CBivariate F) (fuel : ℕ) (q : CBivariate F) (M : ℕ)
+@[expose] def TInv (Y M₀ Xmax : ℕ) (Q₀ : CBivariate F) (fuel : ℕ) (q : CBivariate F) (M : ℕ)
     (path : List F) : Prop :=
   YLenLe q Y ∧ XLenLe q M ∧ M ≤ M₀ ∧ WInv Y Xmax fuel (replayPath Q₀ path)
 
@@ -759,7 +759,7 @@ Where `prefixesTruncD` falls back, the exact polynomial after `d` roots is
 depth `≤ k`, not `W + 1 + d·(ℓ + 1)` (`replayPath_lenLe`). -/
 
 /-- Weighted degree at remaining fuel `f`: `i + j·(f − 1) ≤ W`, written without subtraction. -/
-def WtLe (W f : ℕ) (E : CBivariate F) : Prop :=
+@[expose] def WtLe (W f : ℕ) (E : CBivariate F) : Prop :=
   ∀ i j, CBivariate.coeff E i j ≠ 0 → i + j * f ≤ W + j
 
 omit [DecidableEq F] in
