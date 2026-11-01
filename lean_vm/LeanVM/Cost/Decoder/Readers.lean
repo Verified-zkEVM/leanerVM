@@ -17,10 +17,11 @@ own, under the statement's encodings of their values (`Statement/Theorems.lean`)
   through `cellVal_eq`, `cellPairVal_eq`: its number, a `BitVec.ofFin`);
 * the memory's cells (`cellAt`, `readCells`, `slotCells`), the claims of a table's slots
   (`xmssAt`, `sphincsAt`), a DA digest's slot (`daDigestAt`);
-* **the seed** (`decSeed`) and **the statement** (`decStmt`).
+* **the seed** (`decSeed`) and **the statement** (`decStmt`; compiled `decStmtD`, the
+  logarithm's tables `D` given, `decStmtD_tables`).
 
-The reader `rd` (the memory's index, `Located.readIn`) and `main`'s valuation `σ` are closures:
-the decoder's top level supplies them.
+The reader `rd` (the memory's index, `Located.readIn`) and `main`'s valuation `σ` are closures,
+the logarithm's tables `D` a value: the decoder's top level supplies them.
 -/
 
 namespace LeanVM.Cost.Decoder
@@ -74,8 +75,22 @@ cost_compile daDigestAtC := daDigestAt
 
 cost_compile decSeedC := decSeed
 
+open LeanVM.Extraction.Fast LeanVM.Guest.Core LeanVM.Node in
+/-- **The statement** (`decStmt`), the logarithm's tables `D` given. -/
+noncomputable def decStmtD (D : DiscreteLogTables) (σ : Val) (rd : Reader) : NodeStatement :=
+  ⟨⟨(List.range (gLogD D (σ (.n 0)))).map (xmssAt rd (σ (.n 53))),
+    (List.range (gLogD D (σ (.n 3)))).map (sphincsAt rd (σ (.n 56))),
+    daDigestAt rd σ (gLogD D (σ (.n 387)))⟩,
+   deferOfCells (readCells rd (σ (.n 402)) 24)⟩
+
+open LeanVM.Extraction.Fast in
+theorem decStmtD_tables : decStmtD discreteLogTables = decStmt := by
+  funext σ rd
+  unfold decStmtD decStmt
+  rw [gLogD_tables]
+
 set_option maxHeartbeats 4000000 in
-cost_compile decStmtC := decStmt
+cost_compile decStmtC := decStmtD
 
 end
 

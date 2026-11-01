@@ -9,7 +9,8 @@ import all LeanVM.Guest.Glob
 /-!
 # The guest decoder's compiled chain: the witness and `main`'s valuation
 
-* **`decWitN`, staged** (`decWitNStaged`; `Equations.lean`: `decWitNStaged = Guest.Fast.decWitN`):
+* **`decWitN`, staged** (`decWitNStaged`, the logarithm's tables `D` given; `Equations.lean`:
+  `decWitNStaged discreteLogTables = Guest.Fast.decWitN`):
   `decWitStaged` (`Staged.lean`) with each callee's witness off its frame (`Frames.lean`), by
   partial application; `Guest.Fast.decWitN` is the deployed decoder's witness at the frame map
   keyed by index (`decWitN_eq`, `decode_eq_numbered`);
@@ -27,10 +28,10 @@ open LeanVM.Protocol.Verifier LeanVM.Node
 open LeanVM.Guest.Fast in
 /-- **`decWitN`, staged**: `decWitStaged` with each callee's witness off its frame, by partial
 application. -/
-noncomputable def decWitNStaged (σ : Val) (rd : Reader) (Vn : NFrames) (cl : E → E → ℕ) :
-    NodeWitness :=
-  decWitStaged σ rd (xmssAtFrame Vn) (sphincsAtFrame σ Vn) (daAtFrame Vn) (proofAtFrame rd Vn cl)
-    (hintsAtFrame rd Vn)
+noncomputable def decWitNStaged (D : LeanVM.Extraction.Fast.DiscreteLogTables) (σ : Val)
+    (rd : Reader) (Vn : NFrames) (cl : E → E → ℕ) : NodeWitness :=
+  decWitStaged D σ rd (xmssAtFrame Vn) (sphincsAtFrame σ Vn) (daAtFrame D Vn)
+    (proofAtFrame rd Vn cl) (hintsAtFrame rd Vn)
 
 set_option maxHeartbeats 4000000 in
 cost_compile decWitNC := decWitNStaged

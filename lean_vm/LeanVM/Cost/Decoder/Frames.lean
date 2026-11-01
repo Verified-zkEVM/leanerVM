@@ -33,9 +33,11 @@ noncomputable def sphincsAtFrame (σ : Val) (Vn : NFrames) (p : E) : Sphincs.Sig
   sphincsSigOfN (Vn 21 [p, σ (.n 68)] [])
 
 open LeanVM.Guest.Fast in
-/-- The DA matrix `da_verify` (`26`) checks on the call's words. -/
-noncomputable def daAtFrame (Vn : NFrames) (args rets : List E) : LeanVM.Da.MatrixWitness :=
-  dvWitN (Vn 26 args rets) Vn
+/-- The DA matrix `da_verify` (`26`) checks on the call's words, the logarithm's tables `D`
+given. -/
+noncomputable def daAtFrame (D : LeanVM.Extraction.Fast.DiscreteLogTables) (Vn : NFrames)
+    (args rets : List E) : LeanVM.Da.MatrixWitness :=
+  dvWitND D (Vn 26 args rets) Vn
 
 open LeanVM.Guest.Fast in
 /-- A child's proof at its `verify_sub` (`19`) call's words. -/
