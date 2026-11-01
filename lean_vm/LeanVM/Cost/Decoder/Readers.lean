@@ -77,19 +77,134 @@ cost_compile daDigestAtC := daDigestAt
 
 cost_compile decSeedC := decSeed
 
-open LeanVM.Extraction.Fast LeanVM.Guest.Core LeanVM.Node in
-/-- **The statement** (`decStmt`), the logarithm's tables `D` given. -/
+/-! ## A slot's claim at its address's low limb
+
+A table's slot `s` at `p` is at `p · g^(4s)`, and its cells are read off the address's low limb
+(`cellAt`). `p * gen ^ n` compiled multiplies in `E` with the power substituted in each of its
+three limbs (three exponentiations); here the power is taken once, in `K`:
+
+* `mulK p x`: `p` times `x ∈ K`, limb by limb (`mulK_gen_pow : mulK p (g^n) = p * gen^n`);
+* `readCellsK rd x n`: the `n` cells from the address of low limb `x` (`readCells_mul_gen_pow`);
+* `xmssAtK`, `sphincsAtK`: a slot's claim at its address's low limb (`xmssAt_eq_K`);
+* `xmssRun rd step x n`: the claims of `n` consecutive slots, the address advanced by `step = g^4`
+  (one multiplication per slot; `xmssRun_eq`). -/
+
+open LeanVM.Guest.Core LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
+open LeanVM.Protocol.Verifier LeanVM.Guest.B1.Digest LeanVM.Node
+
+/-- `p · x`, `x ∈ K`, limb by limb. -/
+def mulK (p : E) (x : K) : E := E.ofLimbs (p.limb 0 * x) (p.limb 1 * x) (p.limb 2 * x)
+
+theorem mulK_gen_pow (p : E) (n : ℕ) : mulK p (Parameters.g ^ n) = p * gen ^ n :=
+  (LeanVM.Guest.Fast.mul_gen_pow_eq p n).symm
+
+/-- The `n` cells from the address of low limb `x`. -/
+noncomputable def readCellsK (rd : Reader) (x : K) (n : ℕ) : List E := readCells rd (E.ofLimbs x 0 0) n
+
+theorem readCells_mul_gen_pow (rd : Reader) (p : E) (k n : ℕ) :
+    readCells rd (p * gen ^ k) n = readCellsK rd (p.limb 0 * Parameters.g ^ k) n := by
+  unfold readCellsK readCells cellAt
+  rw [LeanVM.Guest.Fast.mul_gen_pow_eq]
+  rfl
+
+/-- The leanXMSS claim of the slot at the address of low limb `x` (`xmssAt`). -/
+noncomputable def xmssAtK (rd : Reader) (x : K) : XmssClaim :=
+  let c := readCellsK rd x 4
+  Sig.xmssClaimOf (c.getD 0 0) (c.getD 1 0) (c.getD 2 0) (c.getD 3 0)
+
+/-- The leanSPHINCS claim of the slot at the address of low limb `x` (`sphincsAt`). -/
+noncomputable def sphincsAtK (rd : Reader) (x : K) : SphincsClaim :=
+  let c := readCellsK rd x 4
+  Sig.sphincsClaimOf (c.getD 0 0) (c.getD 1 0) (c.getD 2 0) (c.getD 3 0)
+
+theorem xmssAt_eq_K (rd : Reader) (p : E) (s : ℕ) :
+    xmssAt rd p s = xmssAtK rd (p.limb 0 * Parameters.g ^ (4 * s)) := by
+  unfold xmssAt xmssAtK slotCells
+  rw [readCells_mul_gen_pow]
+
+theorem sphincsAt_eq_K (rd : Reader) (p : E) (s : ℕ) :
+    sphincsAt rd p s = sphincsAtK rd (p.limb 0 * Parameters.g ^ (4 * s)) := by
+  unfold sphincsAt sphincsAtK slotCells
+  rw [readCells_mul_gen_pow]
+
+/-- The leanXMSS claims of `n` consecutive slots from the address of low limb `x`, the address
+advanced by `step`. -/
+noncomputable def xmssRun (rd : Reader) (step x : K) : ℕ → List XmssClaim
+  | 0 => []
+  | n + 1 => xmssAtK rd x :: xmssRun rd step (x * step) n
+
+/-- The leanSPHINCS claims of `n` consecutive slots (`xmssRun`). -/
+noncomputable def sphincsRun (rd : Reader) (step x : K) : ℕ → List SphincsClaim
+  | 0 => []
+  | n + 1 => sphincsAtK rd x :: sphincsRun rd step (x * step) n
+
+theorem gpow_four_mul_succ (a : K) (s : ℕ) :
+    a * Parameters.g ^ (4 * s) * Parameters.g ^ 4 = a * Parameters.g ^ (4 * (s + 1)) := by
+  rw [mul_assoc, ← pow_add]; ring_nf
+
+theorem xmssRun_eq (rd : Reader) (p : E) :
+    ∀ n s, xmssRun rd (Parameters.g ^ 4) (p.limb 0 * Parameters.g ^ (4 * s)) n =
+      (List.range' s n).map (xmssAt rd p)
+  | 0, _ => rfl
+  | n + 1, s => by
+    rw [xmssRun.eq_2, gpow_four_mul_succ, xmssRun_eq rd p n (s + 1), List.range'_succ, List.map_cons,
+      xmssAt_eq_K]
+
+theorem sphincsRun_eq (rd : Reader) (p : E) :
+    ∀ n s, sphincsRun rd (Parameters.g ^ 4) (p.limb 0 * Parameters.g ^ (4 * s)) n =
+      (List.range' s n).map (sphincsAt rd p)
+  | 0, _ => rfl
+  | n + 1, s => by
+    rw [sphincsRun.eq_2, gpow_four_mul_succ, sphincsRun_eq rd p n (s + 1), List.range'_succ,
+      List.map_cons, sphincsAt_eq_K]
+
+/-- The declared claims of a table at `p`, slots `0 … n - 1`. -/
+theorem xmssRun_range (rd : Reader) (p : E) (n : ℕ) :
+    xmssRun rd (Parameters.g ^ 4) (p.limb 0) n = (List.range n).map (xmssAt rd p) := by
+  have := xmssRun_eq rd p n 0
+  rwa [Nat.mul_zero, pow_zero, mul_one, ← List.range_eq_range'] at this
+
+theorem sphincsRun_range (rd : Reader) (p : E) (n : ℕ) :
+    sphincsRun rd (Parameters.g ^ 4) (p.limb 0) n = (List.range n).map (sphincsAt rd p) := by
+  have := sphincsRun_eq rd p n 0
+  rwa [Nat.mul_zero, pow_zero, mul_one, ← List.range_eq_range'] at this
+
+/-- The DA digest of slot `k` of the digests at `p` (`daDigestAt`, `p = da_digests`). -/
+noncomputable def daDigestAtP (rd : Reader) (p : E) (k : ℕ) : Digest :=
+  Main.digestOfCells (cellAt rd p (2 * k)) (cellAt rd p (2 * k + 1))
+
+cost_compile mulKC := mulK
+cost_compile readCellsKC := readCellsK
+cost_compile xmssAtKC := xmssAtK
+cost_compile sphincsAtKC := sphincsAtK
+cost_compile xmssRunC := xmssRun
+cost_compile sphincsRunC := sphincsRun
+cost_compile daDigestAtPC := daDigestAtP
+
+/-- The statement, its counts given: `n0` declared leanXMSS claims at `p53`, `n3` leanSPHINCS
+claims at `p56` (each table's slots in a run, `xmssRun`), the DA digest of slot `pick` of the
+digests at `p334`, the deferred claim at `p402`. -/
+noncomputable def decStmtAt (rd : Reader) (p53 p56 p334 p402 : E) (n0 n3 pick : ℕ) :
+    NodeStatement :=
+  ⟨⟨xmssRun rd (Parameters.g ^ 4) (p53.limb 0) n0, sphincsRun rd (Parameters.g ^ 4) (p56.limb 0) n3,
+    daDigestAtP rd p334 pick⟩,
+   deferOfCells (readCells rd p402 24)⟩
+
+open LeanVM.Extraction.Fast in
+/-- **The statement** (`decStmt`), the logarithm's tables `D` given: the counts (logarithms)
+computed here and passed to `decStmtAt`. -/
 noncomputable def decStmtD (D : DiscreteLogTables) (σ : Val) (rd : Reader) : NodeStatement :=
-  ⟨⟨(List.range (gLogD D (σ (.n 0)))).map (xmssAt rd (σ (.n 53))),
-    (List.range (gLogD D (σ (.n 3)))).map (sphincsAt rd (σ (.n 56))),
-    daDigestAt rd σ (gLogD D (σ (.n 387)))⟩,
-   deferOfCells (readCells rd (σ (.n 402)) 24)⟩
+  decStmtAt rd (σ (.n 53)) (σ (.n 56)) (σ (.n 334)) (σ (.n 402)) (gLogD D (σ (.n 0)))
+    (gLogD D (σ (.n 3))) (gLogD D (σ (.n 387)))
 
 open LeanVM.Extraction.Fast in
 theorem decStmtD_tables : decStmtD discreteLogTables = decStmt := by
   funext σ rd
-  unfold decStmtD decStmt
-  rw [gLogD_tables]
+  unfold decStmtD decStmtAt decStmt
+  rw [gLogD_tables, xmssRun_range, sphincsRun_range]
+  rfl
+
+cost_compile decStmtAtC := decStmtAt
 
 set_option maxHeartbeats 4000000 in
 cost_compile decStmtC := decStmtD

@@ -15,7 +15,8 @@ import all LeanVM.Guest.Glob
   partial application; `Guest.Fast.decWitN` is the deployed decoder's witness at the frame map
   keyed by index (`decWitN_eq`, `decode_eq_numbered`);
 * **`main`'s valuation** off the reader (`mainVal`: `EndFinal.mainValWith`'s word, by the
-  certificate's cells).
+  certificate's cells); `mainValAt rd mainLocs` (`mainValAt_eq`), the locations an array built
+  once (`mainLocs`), for the top level's valuation.
 -/
 
 namespace LeanVM.Cost.Decoder
@@ -46,6 +47,27 @@ def mainVal (rd : Reader) (v : V) : E :=
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 4000000 in
 cost_compile mainValC := mainVal
+
+/-- The cells' locations of `main`'s values in its frame (`mainVal`'s two lists), as an array:
+built once by the decoder's top level, so that each value is one array read, not a walk of the
+appended lists (about `420` entries). -/
+def mainLocs : Array ℕ := (LeanVM.Guest.Data.cert1_w0_0 ++ LeanVM.Guest.Data.cert1_w1_0).toArray
+
+/-- The word of `main`'s value `v`, its location read off the array `locs` (`mainVal` at
+`locs = mainLocs`, `mainValAt_eq`). -/
+def mainValAt (rd : Reader) (locs : Array ℕ) (v : V) : E :=
+  LeanVM.Guest.Located.wordWith rd 1 (locs.getD v.idx 0)
+
+/-- **Off the array, `main`'s valuation is `mainVal`.** -/
+theorem mainValAt_eq (rd : Reader) : mainValAt rd mainLocs = mainVal rd := by
+  funext v
+  simp only [mainValAt, mainVal, mainLocs, Array.getD_eq_getD_getElem?, List.getElem?_toArray,
+    List.getD_eq_getElem?_getD]
+
+set_option maxRecDepth 100000 in
+set_option maxHeartbeats 4000000 in
+cost_compile mainLocsC := mainLocs
+cost_compile mainValAtC := mainValAt
 
 end
 
