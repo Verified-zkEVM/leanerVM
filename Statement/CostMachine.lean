@@ -36,8 +36,10 @@ prices:
 * a `GF(2^64)` multiplication: `256`, the carry-less product by 64 shift-and-xor steps of four
   operations each, and its reduction;
 * an operation on natural numbers of at most `m` and `m'` limbs of 64 bits: `max m m' + 1` for
-  `+`, `−`, comparisons and bitwise operations, `m·m' + 1` for `·`, `/` and `%` (schoolbook), and
-  the limbs written plus one for shifts;
+  `+`, `−`, comparisons and bitwise operations, `m·m' + 1` for `·`, `/` and `%` (schoolbook), and,
+  for shifts, the shifted number's limbs (the result's for a left shift, the operand's for a right
+  shift) plus the shift amount's limbs plus one; a conversion between a word and a natural
+  number: `1`;
 * arrays: the size or an entry `1`; a new array of `n` entries (from a list, a slice, an append, a
   copy with one entry set or appended, a replicate) `n + 1`, and a list of `n` cells from an array
   `3·n + 1`.
@@ -46,9 +48,9 @@ prices:
 for `ℕ` and `Fin n`, a constructor for each inductive type (its constructor's index as the tag,
 its fields in order), arrays for `Vector` and for the functions of a finite domain
 (`encodeFiniteFunction`: `Semantics.Program.code`, `PublicInput.lanes`, an execution's memory).
-`encode prog input T proof` is the extractor's input: the program, the public input, the
-transcript's permutation queries (`permutationQueries`: the coins are dropped, they are the
-adversary's private randomness, answered by unbounded naturals) and the proof.
+`encodeExtractorInput prog input T proof` is the extractor's input: the program, the public
+input, the transcript's permutation queries (`permutationQueries`: the transcript without the
+adversary's coin flips, its private randomness) and the proof.
 `decodeExecution prog` is a linear parse of an execution, the inverse of its encoding: no search,
 no check, no run.
 
@@ -59,15 +61,16 @@ output parsed as an execution. A run that fails or exceeds its budget extracts
 nothing, which counts as a break in `KnowledgeSoundness`. `Statement.Theorems` takes the program
 as a parameter, with its size at most `extractorSizeBound`; `lean_vm` proves it for its knowledge
 extractor compiled. What excludes a vacuous statement: `P` is a program (no classical choice),
-the size bound excludes a table of witnesses, the machine's only runtime data is its input, and
-the budget is the one below. The guest decoder is a program of the same machine, with a size
-bound and a budget of its own (`GuestKnowledge`, `Theorems.lean`).
+the size bound leaves no room for a useful table of witnesses beside the compiled extractor, the
+machine's only runtime data is its input, and the budget is the one below. The guest decoder is
+a program of the same machine, with a size bound and a budget of its own (`GuestKnowledge`,
+`Theorems.lean`).
 
 **The budget** (`extractorBudgetAt`) is a closed formula in the shape the proof announces and the
-number `N` of the adversary's permutation queries, `extractorPrice`: about `N·log³N + 2^117.67`
-at the worst shape, polylogarithmic per query, so about `2^117.67` for `N ≤ 2^40` and `2^156.69`
-at `N = 2^128`. Near `Q = 2^128` queries the soundness bound (`KnowledgeSoundness`) is already
-trivial.
+number `N` of the adversary's permutation queries, `extractorPrice`: about
+`2^117.67 + 2^14.7·N·log²N` at the worst shape (`O(N·log³N)` as `N` grows), polylogarithmic per
+query, so about `2^117.67` for `N ≤ 2^80` and `2^156.69` at `N = 2^128`. Near `Q = 2^128`
+queries the soundness bound (`KnowledgeSoundness`) is already trivial.
 -/
 
 namespace LeanVM.Cost
@@ -426,8 +429,8 @@ instance {prog : Semantics.Program} : MachineEncoding (Execution prog) :=
 
 /-- **The extractor's input**: the program, the public input, the transcript's permutation
 queries, the proof. -/
-def encode (prog : Semantics.Program) (input : PublicInput) (T : OracleQueryLog) (proof : Proof) :
-    MachineValue :=
+def encodeExtractorInput (prog : Semantics.Program) (input : PublicInput) (T : OracleQueryLog)
+    (proof : Proof) : MachineValue :=
   .ctor 0 [encodeValue prog, encodeValue input, encodeValue (permutationQueries T),
     encodeValue proof]
 
@@ -457,9 +460,9 @@ end LeanVM.Cost
 Natural-number formulas only: the budget `extractorBudgetAt` is `extractorPrice` at the announced
 shape. Each is a bound `lean_vm` proves on the compiled extractor's part it names
 (`lean_vm/LeanVM/Cost/Bounds/`); a reader checks only the budget's size: about
-`N·log³N + 2^117.67` for `N` permutation queries at the worst shape `(μ, R) = (28, 4)` with
-`κ = ℓ = 32`, so about `2^117.67` for at most `2^40` queries (the list decoder dominating) and
-`2^156.69` for `2^128` queries (the transcript's index dominating). -/
+`2^117.67 + 2^14.7·N·log²N` for `N` permutation queries (`O(N·log³N)` as `N` grows) at the worst
+shape `(μ, R) = (28, 4)` with `κ = ℓ = 32`, so about `2^117.67` for at most `2^80` queries (the
+list decoder dominating) and `2^156.69` for `2^128` queries (the transcript's index dominating). -/
 
 namespace LeanVM.Cost
 
@@ -468,8 +471,9 @@ namespace LeanVM.Cost
 /-- The limbs of a natural below `2^E`, at most. -/
 def limbsBelowTwoPow (E : ℕ) : ℕ := E / 64 + 1
 
-/-- One step of a candidate's run, its memory of `2^κ` words and its program of `2^ℓ` slots
-indexed in sorted tables. -/
+/-- One step of a leanISA run replayed (the extractor's candidate runs, the guest decoder's
+replay), its memory of `2^κ` words and its program of `2^ℓ` instructions indexed in sorted
+tables. -/
 def runnerStepPrice (κ ℓ : ℕ) : ℕ := 411697 + 42 * ℓ + 1092 * κ
 
 /-- One candidate's run: at most `2^35` steps (the step cap), and its memory image. -/
@@ -534,14 +538,18 @@ def afterRootStagePrice (μ R κ ℓ D N h W : ℕ) : ℕ :=
   transcriptIndexPrice D 512 N W + committedLeavesPrice D h W + fastPathPrice μ R 64 24 +
     runnerTablesPrice κ ℓ + (stackRunPrice κ ℓ + 15) * (2 ^ 18 + 1) + decoderPrice + 133
 
-/-- **The extractor's price at a shape**: the stack's log-size `μ`, the rate's `R`, the memory's
-`κ`, the program's `ℓ`, `N` permutation queries (`D = log₂(N + 2) + 1` levels of the sorted maps,
-their positions and weights of at most `limbsBelowTwoPow (D + 1)` limbs): the bytecode's words,
-the replay of the verifier's first two steps, the stage and the glue. -/
+/-- The levels of the extractor's sorted maps for `N` permutation queries: `log₂(N + 2) + 1`. -/
+def extractorSortedMapLevels (N : ℕ) : ℕ := Nat.log2 (N + 2) + 1
+
+/-- **An upper bound on the extractor's price at a shape**: the stack's log-size `μ`, the rate's
+`R`, the memory's `κ`, the program's `ℓ`, `N` permutation queries (`D =
+extractorSortedMapLevels N` levels of the sorted maps, their positions and weights of at most
+`limbsBelowTwoPow (D + 1)` limbs): the bytecode's words, the replay of the verifier's first two
+steps, the stage and the glue. -/
 def extractorPrice (μ R κ ℓ N : ℕ) : ℕ :=
   bytecodeWordsPrice ℓ + (144 * 2 ^ ℓ + 1004514000) +
-    afterRootStagePrice μ R κ ℓ (Nat.log2 (N + 2) + 1) N (μ - 6 + R)
-      (limbsBelowTwoPow (Nat.log2 (N + 2) + 1 + 1)) + 60
+    afterRootStagePrice μ R κ ℓ (extractorSortedMapLevels N) N (μ - 6 + R)
+      (limbsBelowTwoPow (extractorSortedMapLevels N + 1)) + 60
 
 end
 
@@ -556,10 +564,11 @@ open Common
 
 @[expose] public section
 
-/-- **The bound on the extractor program's size**: `11000` terms, the compiled extractor's size
-(`10489`: its `511` compiled bodies and the entry, at `524` indices, `12` of them holes, a literal
-`0` each) and a slack of `511`, room for about one leanXMSS signature's encoding (each `400` to
-`500` units), so no useful table of witnesses fits. -/
+/-- **The bound on the extractor program's size** (`MachineProgram.size`): `11000`, the compiled
+extractor's size (`10489`: its `511` compiled bodies and the entry, at `524` indices, `12` of
+them holes, a literal `0` each) and a slack of `511`, room for one leanXMSS signature's encoding
+(`309`: two layers of `153`, each a randomizer, `58` chain values and a path of `16`, digests of
+two limbs) but not two, so no useful table of witnesses fits. -/
 def extractorSizeBound : ℕ := 11000
 
 /-- **The extractor's budget at a shape**: `extractorPrice` at the layout's stack and memory
@@ -579,13 +588,13 @@ def extractorBudget (prog : Semantics.Program) (T : OracleQueryLog) (proof : Pro
   | none => 0
 
 /-- **The extractor a program computes**: the program run within the budget on the encoded
-statement, transcript and proof (`encode`, `extractorBudget`), its output parsed as an execution
-(`decodeExecution`); `none` if the run fails, exceeds its budget, or outputs no execution's
-encoding. -/
+statement, transcript and proof (`encodeExtractorInput`, `extractorBudget`), its output parsed
+as an execution (`decodeExecution`); `none` if the run fails, exceeds its budget, or outputs no
+execution's encoding. -/
 def extractorOf (P : Cost.MachineProgram) : StraightLineExtractor :=
   fun prog input T proof ↦
-    (Cost.outputWithin P (Cost.encode prog input T proof) (extractorBudget prog T proof)).bind
-      (Cost.decodeExecution prog)
+    (Cost.outputWithin P (Cost.encodeExtractorInput prog input T proof)
+      (extractorBudget prog T proof)).bind (Cost.decodeExecution prog)
 
 end
 

@@ -25,21 +25,21 @@ import LeanVM.Cost.GuestDecoding
 `LeanVM.theorems_hold` (at the end) proves `Statement.Theorems` (`Statement/Theorems.lean`): every end
 statement of the repository, leanXMSS's, leanSPHINCS's and LeanDA's included, in one theorem.
 `LeanVM.corollaries_of_theorems` proves `Statement.Corollaries` (`Statement/Corollaries.lean`) from
-the fields of `Statement.Theorems` alone, and `LeanVM.corollaries_hold` for a decoder program and
-the extractor program `LeanVM.Cost.extractorProgram`.
+the fields of `Statement.Theorems` alone, and `LeanVM.corollaries_hold` for the compiled decoder
+and extractor programs (`LeanVM.Cost.decoderProgram`, `LeanVM.Cost.extractorProgram`).
 
 **The guest decoder.** `Statement.Theorems` takes the guest program's decoder as a cost-machine
 program too (`GuestKnowledge`, `Statement/Theorems.lean`): `LeanVM.Cost.decoderProgram`, the
-deployed decoder `LeanVM.Guest.End.decode` compiled (`LeanVM/Cost/Decoder/`, its top `decTopC`),
+proofs' decoder `LeanVM.Guest.End.decode` compiled (`LeanVM/Cost/Decoder/`, its top `decTopC`),
 within `guestDecoderSizeBound` (`Cost/DecoderSize.lean`) and computing `decode` on every valid
 execution (`Cost/DecoderSpec.lean`: `decoderProgram_spec`) within its budget, its price within
 `guestDecoderPrice` (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget :
 DecoderPriceWithinBudget`, `Cost/Bounds/Guest/Budget.lean`). `theorems_hold` and
 `corollaries_hold` take no hypothesis (the `example` after `theorems_hold` pins the statement).
-The field proofs are
-`theorems_of_decoderSpec`'s, for any decoder program meeting `DecoderProgramSpec` with decodings
-explaining the input (`DecoderExplains`, `LeanVM/Guest/DecoderProgram.lean`; for `decode`,
-`guest_knowledge`: `theorems_hold_of_decode`).
+Its fields are proved by `theorems_of_decoderSpec`, for any decoder program meeting
+`DecoderProgramSpec` for a decoder whose decodings explain the input (`DecoderExplains`,
+`LeanVM/Guest/DecoderProgram.lean`); `theorems_hold_of_decode` takes that decoder to be `decode`,
+whose decodings explain the input by `guest_knowledge`.
 
 **The extractor.** `Statement.Theorems` takes the extractor as a cost-machine program
 (`Statement/CostMachine.lean`): `extractorProgram`, the knowledge extractor `transcriptExtractor`
@@ -50,11 +50,12 @@ explaining the input (`DecoderExplains`, `LeanVM/Guest/DecoderProgram.lean`; for
 `knowledgeSoundness_holds` is proved; its price is within `extractorBudgetAt`
 (`Cost/Bounds/Top.lean`).
 
-Each proves a proposition of `Statement/` (`Statement/README.md`), in the random-permutation model
-where an adversary is involved, except the memory-decoder forms `MemoryGuestKnowledge` and
-`MemoryAggregateSound`, which are `lean_vm`'s own definitions (`Guest/EndKnow.lean`,
-`Guest/EndRpm.lean`), steps to `Statement`'s `GuestKnowledge` and `AggregateSound`; the final
-`example`, after `theorems_hold`, checks the end theorem against `Statement.Theorems` itself:
+Each theorem below proves a proposition of `Statement/` (`Statement/README.md`), in the
+random-permutation model where an adversary is involved, except the memory-decoder forms
+`MemoryGuestKnowledge` and `MemoryAggregateSound`, which are `lean_vm`'s own definitions
+(`Guest/EndKnow.lean`, `Guest/EndRpm.lean`), steps to `Statement`'s `GuestKnowledge` and
+`AggregateSound`; the final `example`, after `theorems_hold`, checks the end theorem against
+`Statement.Theorems` itself:
 
 * `LeanVM.knowledgeSoundness_holds : KnowledgeSoundness transcriptExtractor` and
   `LeanVM.completeness_holds : Completeness` (`Statement/LeanVm.lean`): the verifier, knowledge
@@ -309,7 +310,7 @@ open OracleComp in
 `knowledgeSoundness`, `guestKnowledge` and `digestBinds` (an accepted proof whose extracted
 execution decodes, by `guestKnowledge`, to a statement of the accepted digest, which `digestBinds`
 identifies with the accepted statement or turns into a collision), the completeness on recursion
-nodes and leaves from `guestCompleteCovered` (the first two families of `Covered`). -/
+nodes and leaves from `guestCompleteCovered` (the first two families of `CoveredNode`). -/
 theorem LeanVM.corollaries_of_theorems {decoderProgram extractorProgram : LeanVM.Cost.MachineProgram}
     (h : Statement.Theorems (decoderProgram := decoderProgram)
       (extractorProgram := extractorProgram)) :

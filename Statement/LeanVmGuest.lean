@@ -14,10 +14,11 @@ The specification of a node of the aggregation (its statement, witness and relat
 leanXMSS and leanSPHINCS claims, a DA digest, children verified by the leanVM verifier with deferred
 claims), what a decoding explains (`Decoded`, `ExplainsInput`, of which `GuestKnowledge`,
 `Theorems.lean`, is the end statement) and the binding of a statement's digest (`DigestBinds`),
-the deployed leanISA guest program (`LeanVM.Guest.guest`, assembled from the generated `Statement/Data/`), its
-completeness on the covered nodes (`GuestCompleteCovered`, with the deployed limits it assumes) and on its own honest proofs as children (`GuestChildComplete`), and the recursion
-step, the batching of the children's deferred claims, sound in the random-permutation model
-(`BatchingSound`).
+the deployed leanISA guest program (`LeanVM.Guest.guest`, assembled from the generated
+`Statement/Data/`), its completeness on the covered nodes (`GuestCompleteCovered`, with the
+deployed limits it assumes) and on its own honest proofs as children (`GuestChildComplete`), and
+the recursion step, the batching of the children's deferred claims, sound in the
+random-permutation model (`BatchingSound`).
 
 Transcribed from leanVM at the pin (`../leanvm-rev`), `crates/rec_aggregation/src/aggregation.rs`
 (the statement, its digest, the batching, the outer verifier) and
@@ -48,9 +49,9 @@ program of the cost machine run within a budget (`GuestKnowledge`, `Theorems.lea
 computes the witness from the execution (the proofs' decoder reads it off the memory). A program
 that output another statement of the same digest would satisfy `AggregateSound`
 (`Corollaries.lean`) through a Keccak-256 collision, which it would exhibit: what excludes such a
-program is that no collision is known. That the root's statement
-makes every claim held at the leaves is not proved: it would need Keccak, computed inside the guest program, to behave as Keccak-256 and Keccak-f[1600]
-built from the random permutation of `LeanVM.KnowledgeSoundness`.
+program is that no collision is known. That the root's statement makes every claim held at the
+leaves is not proved: it would need Keccak, computed inside the guest program, to behave as
+Keccak-256 and Keccak-f[1600] built from the random permutation of `LeanVM.KnowledgeSoundness`.
 -/
 
 @[expose] public section
@@ -759,8 +760,8 @@ every count of `meta` below `2^16` (G:4085-4090), the bus depth at most `32` (G:
 heights at most `28` (G:2003). -/
 structure Limits (s : NodeStatement) (w : NodeWitness) : Prop where
   /-- A claim declared `n` times is held `n` times, by witnesses or by distinct entries of the
-  children's lists: each coverage slot is written once (G:3866-3867, 4148-4149, 4153-4154, 4200), where
-  `NodeRelation` lets two equal claims share one holder. -/
+  children's lists: each coverage slot is written once (G:3866-3867, 4148-4149, 4153-4154,
+  4200), where `NodeRelation` lets two equal claims share one holder. -/
   xmssHeld : ∀ x, s.claims.xmss.count x ≤ ((heldDirectly s.claims.xmss w.xmss).map (·.1)).count x +
     (w.children.map fun c ↦ c.statement.claims.xmss.count x).sum
   sphincsHeld :

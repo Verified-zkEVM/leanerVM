@@ -42,7 +42,7 @@ extracted, or the decoder program `decoderProgram`, run on it within its budget
 that explains `s` (`ExplainsStatement`: the deployed seed, `s` and a witness holding it, or a
 Keccak-256 collision among `collisionCandidates`). It composes
 `KnowledgeSoundness`, `GuestKnowledge` and `DigestBinds`; its probability is at most the bound of
-`KnowledgeSoundness`, `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, for at most `Q ≤ 2^128`
+`KnowledgeSoundness`, `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, for `Q ≤ 2^128`
 queries to `π`, `π⁻¹`. Keccak-256 and Keccak-f[1600] outside the executed program are built from
 `π`; the statement's digest and the collisions are of the deployed Keccak-256, which the guest
 program computes. -/
@@ -113,11 +113,12 @@ namespace Statement
 
 /-- **The corollaries**, each following from `Theorems`, for the same decoder and extractor
 programs (two parameters of the same type: every use names them). -/
-structure Corollaries (decoderProgram extractorProgram : LeanVM.Cost.MachineProgram) : Prop where
+structure Corollaries (extractorProgram decoderProgram : LeanVM.Cost.MachineProgram) : Prop where
   /-- An accepted proof of the leanISA guest program on the digest of `s` under the deployed seed is
   explained by the execution the extractor program extracts (the decoder program outputs, on it,
   the encoding of that seed, `s` and a witness holding `s`) or by a Keccak-256 collision, except
-  with the bound of `knowledgeSoundness`: from `knowledgeSoundness`, `guestKnowledge` and `digestBinds`. -/
+  with the bound of `knowledgeSoundness`: from `knowledgeSoundness`, `guestKnowledge` and
+  `digestBinds`. -/
   aggregateSound : LeanVM.Node.AggregateSound LeanVM.Guest.guest decoderProgram
     (LeanVM.extractorOf extractorProgram)
   /-- The leanISA guest program is complete on every recursion node of at most `2048` claims
