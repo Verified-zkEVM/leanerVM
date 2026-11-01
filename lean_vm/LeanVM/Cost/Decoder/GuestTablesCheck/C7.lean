@@ -8,7 +8,7 @@ public import LeanVM.Cost.Decoder.GuestTables
 public import LeanVM.Guest.Glob
 import all LeanVM.Guest.Glob
 
-/-! The guest decoder's tables, functions `700 … 799`, checked: the entries, argument and return
+/-! The guest decoder's tables, functions `280 … 319`, checked: the entries, argument and return
 counts by evaluation (`glob.sig`), the frame cells by unfolding (`certOf`). -/
 
 namespace LeanVM.Cost.Decoder
@@ -17,14 +17,14 @@ open LeanVM.Guest
 
 @[expose] public section
 
-theorem guestSig_eq_7 : ∀ i < 100,
-    guestEntries.getD (700 + i) 0 = (glob.sig (700 + i)).entry ∧ guestArgCounts.getD (700 + i) 0 = (glob.sig (700 + i)).nargs ∧
-      guestRetCounts.getD (700 + i) 0 = (glob.sig (700 + i)).nret := by
+theorem guestSig_eq_7 : ∀ i < 40,
+    guestEntries.getD (280 + i) 0 = (glob.sig (280 + i)).entry ∧ guestArgCounts.getD (280 + i) 0 = (glob.sig (280 + i)).nargs ∧
+      guestRetCounts.getD (280 + i) 0 = (glob.sig (280 + i)).nret := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem guestLocsList_eq_7 : ∀ i < 100,
-    guestLocsList.getD (700 + i) [] = (certOf (700 + i)).locs := by
+theorem guestLocsList_eq_7 : ∀ i < 40,
+    guestLocsList.getD (280 + i) [] = (certOf (280 + i)).locs := by
   intro i hi
   interval_cases i <;> rfl
 

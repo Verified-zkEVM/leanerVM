@@ -10,7 +10,8 @@ evaluation of its size, or of its equality with the certificates, takes 10-19 GB
 * `LeanVM/Cost/DecoderSize/Locs.lean`: their sum, `(guestLocsList.map rowSize).sum`;
 * `LeanVM/Cost/Decoder/GuestTablesCheck/C{k}.lean`: the tables' entries for functions
   `a … a + n - 1` (`glob.sig`, `certOf`), `--functions` per module, and
-  `GuestTablesCheck.lean`, combining them.
+  `GuestTablesCheck.lean`, combining them;
+* `LeanVM/Cost/DecoderTablesFirewall.lean`: the guard that the chunks import the tables alone.
 
 Inputs: the rows' lengths (`--row-lengths FILE`, the output of
 `#eval guestLocsList.map List.length`) and function `21`'s lists' lengths (`--row21-lengths
@@ -93,8 +94,7 @@ def size_files(rows, names, limit):
              "  rw [sum_rowSize_eq_rowsSize, hl]"]
     for i, (a, n, s) in enumerate(rch):
         rest = N - a - n
-        lines.append(f"  have s{i} := rowsSize_add {a} {n} {rest}")
-        lines.append(f"  simp only [Nat.reduceAdd] at s{i}")
+        lines.append(f"  have s{i} := rowsSize_split {a} {n} {rest} {a + n} {n + rest} rfl rfl")
         if s is not None:
             lines.append(f"  have c{i} := rowsSize_{a}_{n}")
     lines.append(f"  have e := rowsSize_zero {N}")
@@ -104,8 +104,8 @@ def size_files(rows, names, limit):
     lines.append(f"  rw [rowSize_flatten, hn] at r")
     for i, (a, n, s) in enumerate(nch):
         rest = len(names) - a - n
-        lines.append(f"  have t{i} := namesSize_add guestLocsRow{SPLIT} {a} {n} {rest}")
-        lines.append(f"  simp only [Nat.reduceAdd] at t{i}")
+        lines.append(f"  have t{i} := namesSize_split guestLocsRow{SPLIT} {a} {n} {rest} {a + n} {n + rest} "
+                     "rfl rfl")
         lines.append(f"  have d{i} := namesSize_{a}_{n}")
     lines.append(f"  have f := namesSize_zero guestLocsRow{SPLIT} {len(names)}")
     lines.append("  omega")
@@ -114,7 +114,7 @@ def size_files(rows, names, limit):
         "The size of the guest's frame cells, the chunks' sizes summed (`DecoderSize/Rows*.lean`, "
         "`Names*.lean`): every row's encoding's size, the table's literal less its array and "
         "`Term.val` (`Cost/DecoderSize.lean`).",
-        "set_option maxRecDepth 100000 in\nset_option maxHeartbeats 1000000 in\n/-- **The rows' "
+        "set_option maxRecDepth 100000 in\n/-- **The rows' "
         "sizes**, summed. -/\n" + "\n".join(lines) + "\n")
     return files
 
@@ -188,17 +188,30 @@ def check_files(per):
     return files
 
 
+FIREWALL = Path("LeanVM/Cost/DecoderTablesFirewall.lean")
+FIREWALL_BODY = '\n/-! **The decoder\'s table checks read the tables alone.** The kernel evaluations of the guest\ndecoder\'s tables (their size, `DecoderSize/Rows*.lean`, `Names*.lean`; their equality with the\nguest\'s signatures and certificates, `Decoder/GuestTablesCheck/C*.lean`) are split into chunks,\neach under the memory a module may take, and a module is rebuilt whenever anything it imports\nchanges. So they import only the tables (`Decoder/GuestTables.lean`), the definitions of the\nsizes (`DecoderSize/Rows.lean`) and the statement, and, for the equalities, the guest\'s\nsignatures and certificates (`Guest/Glob.lean`): none of the cost compiler, the compiled decoder\nor the guest\'s proofs. This module, which imports the chunks alone, fails to build if their\nimports reach any other `LeanVM.Cost` module, or the guest\'s proofs (`LeanVM.Guest.B1`,\n`LeanVM.Guest.Located`, `LeanVM.Protocol`). -/\n\nopen Lean Elab Command in\n#eval show CommandElabM Unit from do\n  let allowed := [`LeanVM.Cost.Decoder.GuestTables, `LeanVM.Cost.DecoderSize.Rows]\n  let chunk (m : Name) : Bool :=\n    (m.getPrefix == `LeanVM.Cost.DecoderSize && m != `LeanVM.Cost.DecoderSize.Locs) ||\n      m.getPrefix == `LeanVM.Cost.Decoder.GuestTablesCheck\n  let forbidden := [`LeanVM.Guest.B1, `LeanVM.Guest.Located, `LeanVM.Protocol]\n  let reached := (← getEnv).header.moduleNames.filter fun m ↦\n    ((`LeanVM.Cost).isPrefixOf m && !allowed.contains m && !chunk m &&\n        m != `LeanVM.Cost.DecoderTablesFirewall) ||\n      forbidden.any (·.isPrefixOf m)\n  unless reached.isEmpty do\n    throwError m!"the decoder\'s table checks import {reached.toList}: keep the definitions they \\\n      evaluate in modules that do not (see `Cost/DecoderTablesFirewall.lean`)"\n'
+
+
+def firewall(size_mods, check_mods):
+    imports = "".join(f"import LeanVM.Cost.DecoderSize.{m}\n" for m in size_mods)
+    imports += "".join(f"import LeanVM.Cost.Decoder.GuestTablesCheck.{m}\n" for m in check_mods)
+    return f"/-\n  {HEADER}\n-/\n\n" + imports + FIREWALL_BODY
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--row-lengths", required=True)
     ap.add_argument("--row21-lengths", required=True)
-    ap.add_argument("--limit", type=int, default=35000)
-    ap.add_argument("--functions", type=int, default=100)
+    ap.add_argument("--limit", type=int, default=70000)
+    ap.add_argument("--functions", type=int, default=40)
     ap.add_argument("--check", action="store_true")
     a = ap.parse_args()
     rows, names = nums(a.row_lengths), nums(a.row21_lengths)
     assert len(rows) == N and sum(names) == rows[SPLIT], (len(rows), sum(names), rows[SPLIT])
     files = {**size_files(rows, names, a.limit), **check_files(a.functions)}
+    size_mods = [p.stem for p in files if p.parent == SIZE_DIR and p.stem != "Locs"]
+    check_mods = [p.stem for p in files if p.parent == CHECK_DIR]
+    files[FIREWALL] = firewall(size_mods, check_mods)
     stale = [str(p) for p, t in files.items() if not p.exists() or p.read_text() != t]
     if a.check:
         if stale:

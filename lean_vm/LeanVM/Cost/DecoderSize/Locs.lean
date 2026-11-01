@@ -10,11 +10,6 @@ public import LeanVM.Cost.DecoderSize.Rows1
 public import LeanVM.Cost.DecoderSize.Rows2
 public import LeanVM.Cost.DecoderSize.Rows3
 public import LeanVM.Cost.DecoderSize.Rows4
-public import LeanVM.Cost.DecoderSize.Rows5
-public import LeanVM.Cost.DecoderSize.Rows6
-public import LeanVM.Cost.DecoderSize.Rows7
-public import LeanVM.Cost.DecoderSize.Rows8
-public import LeanVM.Cost.DecoderSize.Rows9
 public import LeanVM.Cost.DecoderSize.Names0
 public import LeanVM.Cost.DecoderSize.Names1
 public import LeanVM.Cost.DecoderSize.Names2
@@ -24,14 +19,6 @@ public import LeanVM.Cost.DecoderSize.Names5
 public import LeanVM.Cost.DecoderSize.Names6
 public import LeanVM.Cost.DecoderSize.Names7
 public import LeanVM.Cost.DecoderSize.Names8
-public import LeanVM.Cost.DecoderSize.Names9
-public import LeanVM.Cost.DecoderSize.Names10
-public import LeanVM.Cost.DecoderSize.Names11
-public import LeanVM.Cost.DecoderSize.Names12
-public import LeanVM.Cost.DecoderSize.Names13
-public import LeanVM.Cost.DecoderSize.Names14
-public import LeanVM.Cost.DecoderSize.Names15
-public import LeanVM.Cost.DecoderSize.Names16
 
 /-! The size of the guest's frame cells, the chunks' sizes summed (`DecoderSize/Rows*.lean`,
 `Names*.lean`): every row's encoding's size, the table's literal less its array and `Term.val`
@@ -42,100 +29,45 @@ namespace LeanVM.Cost.Decoder
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 1000000 in
 /-- **The rows' sizes**, summed. -/
 theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 749834 := by
   have hl : guestLocsList.length = 879 := by decide +kernel
   have hn : guestLocsRow21.length = 93 := by decide +kernel
   rw [sum_rowSize_eq_rowsSize, hl]
-  have s0 := rowsSize_add 0 20 859
-  simp only [Nat.reduceAdd] at s0
-  have c0 := rowsSize_0_20
-  have s1 := rowsSize_add 20 1 858
-  simp only [Nat.reduceAdd] at s1
-  have c1 := rowsSize_20_1
-  have s2 := rowsSize_add 21 1 857
-  simp only [Nat.reduceAdd] at s2
-  have s3 := rowsSize_add 22 230 627
-  simp only [Nat.reduceAdd] at s3
-  have c3 := rowsSize_22_230
-  have s4 := rowsSize_add 252 49 578
-  simp only [Nat.reduceAdd] at s4
-  have c4 := rowsSize_252_49
-  have s5 := rowsSize_add 301 14 564
-  simp only [Nat.reduceAdd] at s5
-  have c5 := rowsSize_301_14
-  have s6 := rowsSize_add 315 92 472
-  simp only [Nat.reduceAdd] at s6
-  have c6 := rowsSize_315_92
-  have s7 := rowsSize_add 407 244 228
-  simp only [Nat.reduceAdd] at s7
-  have c7 := rowsSize_407_244
-  have s8 := rowsSize_add 651 180 48
-  simp only [Nat.reduceAdd] at s8
-  have c8 := rowsSize_651_180
-  have s9 := rowsSize_add 831 29 19
-  simp only [Nat.reduceAdd] at s9
-  have c9 := rowsSize_831_29
-  have s10 := rowsSize_add 860 19 0
-  simp only [Nat.reduceAdd] at s10
-  have c10 := rowsSize_860_19
+  have s0 := rowsSize_split 0 21 858 21 879 rfl rfl
+  have c0 := rowsSize_0_21
+  have s1 := rowsSize_split 21 1 857 22 858 rfl rfl
+  have s2 := rowsSize_split 22 280 577 302 857 rfl rfl
+  have c2 := rowsSize_22_280
+  have s3 := rowsSize_split 302 125 452 427 577 rfl rfl
+  have c3 := rowsSize_302_125
+  have s4 := rowsSize_split 427 407 45 834 452 rfl rfl
+  have c4 := rowsSize_427_407
+  have s5 := rowsSize_split 834 45 0 879 45 rfl rfl
+  have c5 := rowsSize_834_45
   have e := rowsSize_zero 879
   have g : guestLocsList.getD 21 [] = guestLocsRow21.flatten := rfl
   have r := rowsSize_one (a := 21) (by omega)
   rw [g] at r
   rw [rowSize_flatten, hn] at r
-  have t0 := namesSize_add guestLocsRow21 0 4 89
-  simp only [Nat.reduceAdd] at t0
-  have d0 := namesSize_0_4
-  have t1 := namesSize_add guestLocsRow21 4 4 85
-  simp only [Nat.reduceAdd] at t1
-  have d1 := namesSize_4_4
-  have t2 := namesSize_add guestLocsRow21 8 2 83
-  simp only [Nat.reduceAdd] at t2
-  have d2 := namesSize_8_2
-  have t3 := namesSize_add guestLocsRow21 10 4 79
-  simp only [Nat.reduceAdd] at t3
-  have d3 := namesSize_10_4
-  have t4 := namesSize_add guestLocsRow21 14 2 77
-  simp only [Nat.reduceAdd] at t4
-  have d4 := namesSize_14_2
-  have t5 := namesSize_add guestLocsRow21 16 4 73
-  simp only [Nat.reduceAdd] at t5
-  have d5 := namesSize_16_4
-  have t6 := namesSize_add guestLocsRow21 20 2 71
-  simp only [Nat.reduceAdd] at t6
-  have d6 := namesSize_20_2
-  have t7 := namesSize_add guestLocsRow21 22 4 67
-  simp only [Nat.reduceAdd] at t7
-  have d7 := namesSize_22_4
-  have t8 := namesSize_add guestLocsRow21 26 2 65
-  simp only [Nat.reduceAdd] at t8
-  have d8 := namesSize_26_2
-  have t9 := namesSize_add guestLocsRow21 28 4 61
-  simp only [Nat.reduceAdd] at t9
-  have d9 := namesSize_28_4
-  have t10 := namesSize_add guestLocsRow21 32 2 59
-  simp only [Nat.reduceAdd] at t10
-  have d10 := namesSize_32_2
-  have t11 := namesSize_add guestLocsRow21 34 4 55
-  simp only [Nat.reduceAdd] at t11
-  have d11 := namesSize_34_4
-  have t12 := namesSize_add guestLocsRow21 38 2 53
-  simp only [Nat.reduceAdd] at t12
-  have d12 := namesSize_38_2
-  have t13 := namesSize_add guestLocsRow21 40 4 49
-  simp only [Nat.reduceAdd] at t13
-  have d13 := namesSize_40_4
-  have t14 := namesSize_add guestLocsRow21 44 2 47
-  simp only [Nat.reduceAdd] at t14
-  have d14 := namesSize_44_2
-  have t15 := namesSize_add guestLocsRow21 46 18 29
-  simp only [Nat.reduceAdd] at t15
-  have d15 := namesSize_46_18
-  have t16 := namesSize_add guestLocsRow21 64 29 0
-  simp only [Nat.reduceAdd] at t16
-  have d16 := namesSize_64_29
+  have t0 := namesSize_split guestLocsRow21 0 8 85 8 93 rfl rfl
+  have d0 := namesSize_0_8
+  have t1 := namesSize_split guestLocsRow21 8 6 79 14 85 rfl rfl
+  have d1 := namesSize_8_6
+  have t2 := namesSize_split guestLocsRow21 14 6 73 20 79 rfl rfl
+  have d2 := namesSize_14_6
+  have t3 := namesSize_split guestLocsRow21 20 6 67 26 73 rfl rfl
+  have d3 := namesSize_20_6
+  have t4 := namesSize_split guestLocsRow21 26 6 61 32 67 rfl rfl
+  have d4 := namesSize_26_6
+  have t5 := namesSize_split guestLocsRow21 32 6 55 38 61 rfl rfl
+  have d5 := namesSize_32_6
+  have t6 := namesSize_split guestLocsRow21 38 6 49 44 55 rfl rfl
+  have d6 := namesSize_38_6
+  have t7 := namesSize_split guestLocsRow21 44 36 13 80 49 rfl rfl
+  have d7 := namesSize_44_36
+  have t8 := namesSize_split guestLocsRow21 80 13 0 93 13 rfl rfl
+  have d8 := namesSize_80_13
   have f := namesSize_zero guestLocsRow21 93
   omega
 
