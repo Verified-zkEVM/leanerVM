@@ -28,6 +28,8 @@ cost_enc LeanVM.Guest.Exec.Sym
 cost_enc LeanVM.Guest.Fast.FnPre
 
 cost_compile powBelowAtC := powBelowAt
+cost_compile twoPowScanC measure fun _ _ m ↦ m := twoPowScan
+cost_compile powBelowLogC := powBelowLog
 cost_compile powBelowC := powBelow
 cost_compile readPowBelowC := readPowBelow
 cost_compile readIsC := readIs

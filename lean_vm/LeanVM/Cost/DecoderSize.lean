@@ -19,13 +19,13 @@ top `j` with its bodies `deps`, two evaluations by `decide +kernel`:
 * the bound `size_ofList_le` gives, the bodies' sizes and two per index, at most a measured
   number: the program's size (`decoderProgramOf_size_le`), then `guestDecoderSizeBound`.
 
-For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (`784199`) plus two
+For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (`784241`) plus two
 per index up to the top's, `decTopC`'s own (the last index allocated; so the bound names no index,
-which moves when a module before it in the chain gains a function): `785891` at index `845`. Its
-exact size is `785083` (`LeanVMTests/Cost/DecoderSize.lean`), of which the guest's frame cells
+which moves when a module before it in the chain gains a function): `785937` at index `847`. Its
+exact size is `785125` (`LeanVMTests/Cost/DecoderSize.lean`), of which the guest's frame cells
 (`guestLocs`, a literal held once, `guestLocsTable`) are `749835`. `guestDecoderSizeBound` is
-`786000` (`Statement/Theorems.lean`): the exact size and a slack of `917`, room for one or two
-leanXMSS signatures' encodings.
+`786000` (`Statement/Theorems.lean`): the exact size and a slack of `875`, room for one or two
+leanXMSS signatures' encodings; the bound this module proves leaves `63`.
 -/
 
 namespace LeanVM.Cost
@@ -43,13 +43,13 @@ theorem decoderProgram_indices_increasing :
 theorem decoderProgramBodies_size_bound :
     ((decoderProgramBodiesOf decTopC.costIdx decTopC.costDeps).map fun p ↦ p.2.size).sum +
       2 * (((decoderProgramBodiesOf decTopC.costIdx decTopC.costDeps).map (·.1)).foldr max 0 + 1) ≤
-      784199 + 2 * (decTopC.costIdx + 1) := by
+      784241 + 2 * (decTopC.costIdx + 1) := by
   decide +kernel
 
 /-- **The program's size**, evaluated. -/
 theorem decoderProgram_size_le_measured :
     (decoderProgramOf decTopC.costIdx decTopC.costDeps).size ≤
-      784199 + 2 * (decTopC.costIdx + 1) :=
+      784241 + 2 * (decTopC.costIdx + 1) :=
   decoderProgramOf_size_le decoderProgramBodies_size_bound
 
 end
