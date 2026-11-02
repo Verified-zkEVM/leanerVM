@@ -96,8 +96,11 @@ def maxLogInvRate : ℕ := 4
 of the code its commitment is in (`R_i`), and the number of positions queried (`t_i`), in the
 notation of Annex B. -/
 structure Level where
+  /-- `ℓ_i`: the sumcheck rounds it folds. -/
   fold : ℕ
+  /-- `R_i`: the rate exponent of its commitment's code. -/
   logInvRate : ℕ
+  /-- `t_i`: the positions queried. -/
   queries : ℕ
   deriving DecidableEq
 
@@ -192,7 +195,9 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash
 /-- The verifier language: a program returns a value of type `α` after reading scalars,
 sampling challenges, checking proofs of work, reading commitments and opening rows, or fails. -/
 inductive Prog (α : Type) : Type where
+  /-- Return `a`. -/
   | ret (a : α)
+  /-- Reject. -/
   | fail
   /-- Read the next prover scalar, absorbed into the sponge (`next_scalar`). -/
   | read (k : E → Prog α)
@@ -278,7 +283,9 @@ def rateScalars : ℕ := 4
 /-- The duplex sponge: the Keccak state, and the scalars waiting to be absorbed (at most
 `rateScalars`), each with its tag (`Transcript.state`, `Transcript.pending`). -/
 structure Sponge where
+  /-- The Keccak state the last permutation left. -/
   state : KeccakState
+  /-- The scalars waiting to be absorbed, each with its tag, in order. -/
   pending : List (E × ℕ)
 
 /-- The rate lanes of the waiting scalars: each its three limbs, then its tag
@@ -314,21 +321,29 @@ def seedInput (iv publicInput : Digest) : KeccakState :=
 
 /-- One Merkle opening: the leaf's words and the siblings from the leaf up. -/
 structure Opening where
+  /-- The leaf's words. -/
   leaf : List K
+  /-- The siblings from the leaf up. -/
   path : List Digest
 
 /-- A proof: the scalar stream and the Merkle openings, in the order the verifier reads them
 (`verifier.py:336-345`). -/
 structure Proof where
+  /-- The scalars the prover sends, in order. -/
   stream : List E
+  /-- The Merkle openings, in order. -/
   openings : List Opening
 
 /-- The compiled verifier's state: the sponge, the scalars and openings not yet read, and the
 roots read so far, each with its height and width. -/
 structure ProgState where
+  /-- The Fiat-Shamir sponge. -/
   sponge : Sponge
+  /-- The scalars not yet read. -/
   stream : List E
+  /-- The openings not yet read. -/
   openings : List Opening
+  /-- The roots read so far, each with its tree's height and width. -/
   roots : List (Digest × ℕ × ℕ)
 
 section Run
@@ -573,18 +588,22 @@ def busBits : ℕ := 4
 /-- The columns no instruction table owns, first in the global numbering. -/
 def numGlobalColumns : ℕ := 6
 
--- The global columns `MEMORY_0`, `MEMORY_1`, `MEMORY_2`, `MEMORY_FINAL_COUNTERS`,
--- `BYTECODE_FINAL_COUNTERS`.
+/-- Global column `MEMORY_0` (`verifier.py:688`). -/
 def memory0 : ℕ := 0
+/-- Global column `MEMORY_1`. -/
 def memory1 : ℕ := 1
+/-- Global column `MEMORY_2`. -/
 def memory2 : ℕ := 2
+/-- Global column `MEMORY_FINAL_COUNTERS`. -/
 def memoryFinalCounters : ℕ := 3
+/-- Global column `BYTECODE_FINAL_COUNTERS`. -/
 def bytecodeFinalCounters : ℕ := 4
 /-- Global column `QKECCAK`, the Keccak reduction's committed column: per step, its input state's
 lanes and the state after every `KECCAK_DEPTH` rounds but the last, a lane per slot, and in the
 slots left over the `KECCAK` table's own first committed columns (`keccakSlot`). -/
 def qkeccak : ℕ := 5
 
+/-- `K_BITS`: a `K` word's bits (`verifier.py:690`). -/
 def kBits : ℕ := 64
 
 /-- `KECCAK_DEPTH`: the reduction commits a step's state every `12` rounds. -/
@@ -610,6 +629,7 @@ def keccakBits : ℕ := 1600
 /-- `KECCAK_LOCAL_BITS`: a bit position is `z + 64 · lane`, in a cube of `2^11`. -/
 def keccakLocalBits : ℕ := 11
 
+/-- `KECCAK_LANE_BITS`: the bits of a lane's index, `25 ≤ 2^5` (`verifier.py:703`). -/
 def keccakLaneBits : ℕ := 5
 
 /-- `SEP_STATE = ONE`. -/
@@ -619,12 +639,17 @@ def sepMem : E := gen
 /-- `SEP_BYTECODE = GEN²`. -/
 def sepBytecode : E := gen ^ 2
 
--- The opcodes `XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `KECCAK`.
+/-- `OP_XOR`, the opcode `XOR`'s number (`verifier.py:926`). -/
 def opXor : ℕ := 0
+/-- `OP_MUL`. -/
 def opMul : ℕ := 1
+/-- `OP_SET`. -/
 def opSet : ℕ := 2
+/-- `OP_DEREF`. -/
 def opDeref : ℕ := 3
+/-- `OP_JUMP`. -/
 def opJump : ℕ := 4
+/-- `OP_KECCAK`. -/
 def opKeccak : ℕ := 5
 
 /-! ### Placements (`verifier.py:304-331`) -/
@@ -640,8 +665,11 @@ are the same verifier: every placement the verifier builds has `low = 0` (`busLa
 is `selectorPoint (index >>> vars) (stackLog - vars)`, `_selector_point` writing the selector's
 bits lowest first. -/
 structure Placement where
+  /-- The coordinates the claim's point fills. -/
   vars : ℕ
+  /-- The selector whose bits fix the other coordinates. -/
   index : ℕ
+  /-- The selector bits below the point (`0` in every placement the verifier builds). -/
   low : ℕ := 0
   deriving Inhabited, DecidableEq
 
@@ -671,6 +699,7 @@ def stackOffsets (sizes : List ℕ) : List ℕ × ℕ :=
 /-- A polynomial of degree at most two in a table's columns: monomial (sorted column indices) to
 coefficient, in insertion order. -/
 structure Form where
+  /-- The monomials, each with its coefficient. -/
   terms : List (List ℕ × E) := []
   deriving Inhabited
 
@@ -708,7 +737,9 @@ def Form.prod (a b : ℕ) (exponent : ℕ := 0) : Form := ⟨[([min a b, max a b
 
 /-- A table's bus flushes: the tuples it pushes and pulls, in pairs. -/
 structure Flushes where
+  /-- The tuples pushed. -/
   push : List (List Form) := []
+  /-- The tuples pulled, each paired with the push at its position. -/
   pull : List (List Form) := []
   deriving Inhabited
 
@@ -948,7 +979,9 @@ def flushesKeccak : Flushes :=
 structure Table where
   /-- Its opcode, also its index in `TABLES`. -/
   opcode : ℕ
+  /-- Its columns' names, in order. -/
   columns : List String
+  /-- Its bus flushes. -/
   flushes : Flushes
   /-- Its constraints, as a function of a row's evaluations. -/
   constraints : List E → List E := fun _ ↦ []
@@ -1017,8 +1050,11 @@ structure BusBlock where
 /-- Where a side's blocks sit in the stacked leaf cube: its log-size, the framework blocks'
 placements, and the table blocks', in the side's block order. -/
 structure BusLayout where
+  /-- The log-size of the stacked leaf cube. -/
   depth : ℕ
+  /-- The framework blocks' placements. -/
   framework : List Placement
+  /-- The table blocks' placements, in the side's block order. -/
   tables : List Placement
 
 /-- `bus_layout(framework_log_rows, blocks)` (`verifier.py:547-552`). -/
@@ -1032,8 +1068,11 @@ def busLayout (frameworkLogRows : List ℕ) (blocks : List BusBlock) : BusLayout
 /-- A column claim: the global column's multilinear extension at `point` (over the column's own
 variables) is `value`. -/
 structure ColumnClaim where
+  /-- The global column. -/
   column : ℕ
+  /-- The point, over the column's own variables. -/
   point : List E
+  /-- The claimed value. -/
   value : E
   deriving Inhabited
 
@@ -1044,15 +1083,21 @@ abbrev StackClaim : Type := (List E → E) × E
 
 /-- The layout the verifier derives from the bytecode and the announced sizes. -/
 structure Layout where
+  /-- The memory's log-size, `κ`. -/
   logMemory : ℕ
   /-- The bytecode's log-size, in tuples of `2^BUS_BITS` words. -/
   logBytecode : ℕ
+  /-- The bytecode's words. -/
   bytecode : List K
+  /-- The push side's blocks. -/
   push : List BusBlock
+  /-- The pull side's blocks. -/
   pull : List BusBlock
+  /-- The count side's blocks. -/
   count : List BusBlock
   /-- Every global column's placement; `none` for a `KECCAK` output lane. -/
   placements : List (Option Placement)
+  /-- The stack's log-size: the committed columns stacked in one cube. -/
   stackLog : ℕ
   /-- The tables' log-heights, each the least `h` with `rows ≤ 2 ^ h`, at least its floor. -/
   tableLogHeights : List ℕ
@@ -1188,7 +1233,9 @@ side's total is the GKR value less the framework and the padding.
 
 /-- The state of the GKR walk: the push, pull and count trees' values at `point`. -/
 structure GkrState where
+  /-- The push, pull and count trees' values. -/
   values : List E
+  /-- The point they are at. -/
   point : List E
 
 /-- One step of `step` levels of the GKR walk (`verifier.py:483-494`). -/
@@ -1231,9 +1278,13 @@ def verifyGkrGrandProducts (depth : ℕ) : Prog (E × List E × List E) := do
 /-- `BusResult`: the framework columns' claims, the GKR point (which the table sumcheck reuses),
 each table's form per side (`forms[table][side]`), and the three sides' totals. -/
 structure BusResult where
+  /-- The framework columns' claims. -/
   claims : List ColumnClaim
+  /-- The GKR point. -/
   point : List E
+  /-- Each table's form per side. -/
   forms : List (List Form)
+  /-- The three sides' totals. -/
   totals : List E
 
 /-- The three framework fingerprints of a side (`verifier.py:603-615`, `fingerprints`; the
@@ -1458,8 +1509,11 @@ structure GluedClaim where
 /-- The running state of `verify_whir`: `running_quad`, every fold challenge so far, and the glued
 claims so far (`running_target` is the final level's tail rounds', `tailRounds`). -/
 structure WhirState where
+  /-- `running_quad`: the running sumcheck's quadratic. -/
   quad : List E
+  /-- Every fold challenge so far. -/
   folds : List E
+  /-- The glued claims so far. -/
   glued : List GluedClaim
 
 /-- A level's fold rounds: sample, fold the running claim, read the next quadratic
@@ -1682,9 +1736,13 @@ def rmfeProject : List ℕ := rmfe.2
 /-- `KeccakClaim`: a claim's value, the weight of each instance of a pack, its point (a pack
 index, then a segment index), and the weight of each bit position. -/
 structure KeccakClaim where
+  /-- The claimed value. -/
   value : E
+  /-- The weight of each instance of a pack. -/
   mu : List E
+  /-- Its point: a pack index, then a segment index. -/
   point : List E
+  /-- The weight of each bit position. -/
   weights : List E
   deriving Inhabited
 

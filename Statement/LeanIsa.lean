@@ -25,11 +25,17 @@ namespace LeanVM.Parameters
 
 /-- The six instructions, in bus-code order (`crates/leanvm_core/src/tables.rs:99-104`). -/
 inductive Opcode
+  /-- `XOR`: an addition in `E`. -/
   | xor
+  /-- `MUL`: a product in `E`. -/
   | mulNative
+  /-- `SET`: a constant. -/
   | setConstant
+  /-- `DEREF`: a read through a computed address. -/
   | deref
+  /-- `JUMP`: a conditional jump. -/
   | jump
+  /-- `KECCAK`: one Keccak-f[1600] permutation. -/
   | keccak
   deriving DecidableEq
 
@@ -74,6 +80,7 @@ noncomputable def MemoryImage.read {κ : ℕ} (L : MemoryImage κ) (a : K) : Opt
 
 /-- The public input: 256 bits, as four `K` lanes. -/
 structure PublicInput where
+  /-- Its four `64`-bit lanes, as `K` words. -/
   lanes : Fin 4 → K
   deriving DecidableEq
 
@@ -89,8 +96,11 @@ An operand `o` names the word at `fp · o`, written `[o]`. -/
 
 /-- What a `DEREF` stores: a local word, the return address, or the frame pointer. -/
 inductive DerefMode
+  /-- A local word, `[o₃]`. -/
   | cell
+  /-- The return address, the next `pc`. -/
   | pc
+  /-- The frame pointer, `fp`. -/
   | fp
   deriving DecidableEq
 
@@ -125,8 +135,11 @@ def Instr.opcode : Instr → Opcode
 
 /-- A program: `2^logSize ≤ 2^32` instructions, instruction `i` at address `g^i`. -/
 structure Program where
+  /-- The log-size: `2^logSize` instructions. -/
   logSize : ℕ
+  /-- At most `2^32` instructions. -/
   logSize_le : logSize ≤ maxLogBytecode
+  /-- Instruction `i`, at address `g^i`. -/
   code : Fin (2 ^ logSize) → Instr
 
 /-- The instruction at address `pc`. -/
@@ -207,7 +220,9 @@ def readCells (read : K → Option E) (fp : K) (offset : Fin 13 → K) : Option 
 
 /-- The registers: the program counter and the frame pointer. -/
 structure Registers (F : Type) where
+  /-- The program counter: the address of the next instruction. -/
   pc : F
+  /-- The frame pointer: operand `o` names the word at `fp · o`. -/
   fp : F
 
 /-- Register equality is decided field by field. Not derived: the derived instance decides the
@@ -310,8 +325,11 @@ noncomputable def run {κ : ℕ} (prog : Program) (L : MemoryImage κ) :
 /-- An execution: a memory of `2^logMemorySize` words (`2^κ` in the specification) and a number of
 steps. -/
 structure Execution (prog : Program) where
+  /-- `κ`: the memory holds `2^κ` words. -/
   logMemorySize : ℕ
+  /-- The memory, fixed before the run and only read. -/
   memory : MemoryImage logMemorySize
+  /-- The number of steps the run takes. -/
   steps : ℕ
 
 /-- The memory has between `2^16` and `2^32` words and holds the public input in words `0`, `1`. -/
@@ -459,9 +477,13 @@ def nth {α : Type} : List α → ℕ → α → α
 /-- A compiled function: its name (`f__L…` for a specialization), entry pc, number of
 instructions, and code in chunks of `chunkSize` instructions (the last shorter). -/
 structure CompiledFn where
+  /-- Its name, for a reader of the generated data. -/
   name : String
+  /-- The pc of its first instruction. -/
   entry : ℕ
+  /-- Its number of instructions. -/
   len : ℕ
+  /-- Its code, in chunks of `chunkSize` instructions. -/
   chunks : List (List OInstr)
 
 /-- Instruction `i` of code in chunks of `C`, the padding past the end. -/
