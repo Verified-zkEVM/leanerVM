@@ -204,7 +204,7 @@ theorem limbs_le_two {x : ℕ} (h : x < 2 ^ 128) : limbCount x ≤ 2 := by
     omega
 
 theorem appCost_fn (P : MachineProgram) (j : ℕ) (us vs : List MachineValue) :
-    appCost P (.closure j us) vs = machineCost P j (us ++ vs) := rfl
+    appCost P (.closure j us) vs = machineCost P j (us ++ vs) + us.length := rfl
 
 /-- `cost_simp`: fold a recurrence's constants: `limbCount` of numbers `omega` shows word-sized, the
 lengths of literal lists, a known closure's price as its function's. It may do nothing (the
@@ -303,12 +303,12 @@ section Library
 
 variable (P : MachineProgram) {α β γ : Type} [MachineEncoding α] [MachineEncoding β] [MachineEncoding γ]
 
-/-- **`List.zipWith`** (`listZipWith`): `15` per pair and the closure's price, `5` at the end. -/
+/-- **`List.zipWith`** (`listZipWith`): `19` per pair and the closure's price, `7` at the end. -/
 theorem listZipWith_le (hP : Includes P listZipWith.costDeps) (f : α → β → γ) (fVal : MachineValue)
     (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b))) (B : ℕ) :
     ∀ (xs : List α) (ys : List β), (∀ a ∈ xs, ∀ b ∈ ys, appCost P fVal [encodeValue a, encodeValue b] ≤ B) →
       machineCost P listZipWith.costIdx [fVal, encodeValue xs, encodeValue ys] ≤
-        (B + 15) * min xs.length ys.length + 5 := by
+        (B + 19) * min xs.length ys.length + 7 := by
   intro xs
   induction xs with
   | nil => intro ys _; rw [listZipWith.costEq_nil P hP f fVal hf]; omega
@@ -324,13 +324,13 @@ theorem listZipWith_le (hP : Includes P listZipWith.costDeps) (f : α → β →
       rw [Nat.min_def] at h1 ⊢
       split_ifs at h1 ⊢ <;> nlinarith
 
-/-- **`List.foldl`** (`listFoldl`): `9` per element and the closure's price, `3` at the end; the
+/-- **`List.foldl`** (`listFoldl`): `11` per element and the closure's price, `3` at the end; the
 closure's price bounded on the accumulators an invariant `I` holds. -/
 theorem listFoldl_le (hP : Includes P listFoldl.costDeps) (f : α → β → α) (fVal : MachineValue)
     (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b))) (B : ℕ) (I : α → Prop) :
     ∀ (l : List β) (init : α), I init →
       (∀ acc, I acc → ∀ b ∈ l, I (f acc b) ∧ appCost P fVal [encodeValue acc, encodeValue b] ≤ B) →
-      machineCost P listFoldl.costIdx [fVal, encodeValue init, encodeValue l] ≤ (B + 9) * l.length + 3 := by
+      machineCost P listFoldl.costIdx [fVal, encodeValue init, encodeValue l] ≤ (B + 11) * l.length + 3 := by
   intro l
   induction l with
   | nil => intro init _ _; rw [listFoldl.costEq_nil P hP f fVal hf]; omega
@@ -343,14 +343,14 @@ theorem listFoldl_le (hP : Includes P listFoldl.costDeps) (f : α → β → α)
     nlinarith
 
 /-- **`List.map`, by its recurrence**: an on-demand `List.map` (compiled once per program, at its
-own index `i`) has these two equations (its `costEq_nil` and `costEq_cons`); then `11` per
+own index `i`) has these two equations (its `costEq_nil` and `costEq_cons`); then `13` per
 element and the closure's price, `3` at the end. -/
 theorem listMap_le (i : ℕ) {α : Type} [MachineEncoding α] (fVal : MachineValue)
     (h0 : machineCost P i [fVal, encodeValue ([] : List α)] = 3)
     (hs : ∀ (x : α) (l : List α), machineCost P i [fVal, encodeValue (x :: l)] =
-      appCost P fVal [encodeValue x] + machineCost P i [fVal, encodeValue l] + 11)
+      appCost P fVal [encodeValue x] + machineCost P i [fVal, encodeValue l] + 13)
     (B : ℕ) : ∀ l : List α, (∀ a ∈ l, appCost P fVal [encodeValue a] ≤ B) →
-      machineCost P i [fVal, encodeValue l] ≤ (B + 11) * l.length + 3 := by
+      machineCost P i [fVal, encodeValue l] ≤ (B + 13) * l.length + 3 := by
   intro l
   induction l with
   | nil => intro _; rw [h0]; simp
@@ -369,7 +369,7 @@ theorem listFoldl_le_idx (hP : Includes P listFoldl.costDeps) (f : α → β →
     (L : List β)
     (hI : ∀ k acc, I (k + 1) acc → ∀ b ∈ L, I k (f acc b) ∧ appCost P fVal [encodeValue acc, encodeValue b] ≤ B) :
     ∀ (l : List β) (init : α), (∀ b ∈ l, b ∈ L) → I l.length init →
-      machineCost P listFoldl.costIdx [fVal, encodeValue init, encodeValue l] ≤ (B + 9) * l.length + 3 := by
+      machineCost P listFoldl.costIdx [fVal, encodeValue init, encodeValue l] ≤ (B + 11) * l.length + 3 := by
   intro l
   induction l with
   | nil => intro init _ _; rw [listFoldl.costEq_nil P hP f fVal hf]; omega
