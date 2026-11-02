@@ -113,7 +113,7 @@ public section
 
 /-- The GS data's price. -/
 @[expose] def dataPrice (N m w MB LB LBq IB : ℕ) : ℕ :=
-  (MB + m + 40) * (m - 1) + 34 * m + 120 + matPrice N w m MB LB LBq IB + 40 * w + 80
+  (MB + m + 33) * (m - 1) + 33 * m + 54 + matPrice N w m MB LB LBq IB + 37 * w + 43
 
 /-- **The interpolation's price** (`interpolatePMC_cost`): `G` and `R` (the chain's), the GS data,
 the certified solve, the least row, the row read and normalized. -/
