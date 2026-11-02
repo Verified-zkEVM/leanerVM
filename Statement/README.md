@@ -33,7 +33,8 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 
 **What is trusted.** That the deployed Keccak-f[1600] behaves as a random permutation; that no one
 finds a Keccak-256 collision (the guest program's statements); that the cost machine's prices are
-honest (among them a `GF(2^64)` product at `256`, on the basis of a hardware carry-less multiply);
+honest (each step at least `1` and at least the words it writes; a carry-less product of one-limb
+operands one instruction, x86-64's PCLMULQDQ or ARMv8's PMULL);
 and that the leanVM definitions transcribe their sources. Accepted trade-offs: the statement does
 not name the extractor or decoder program (only their sizes and budgets); the decoder computes the
 witness from the execution; the extracted execution need not be the committed one; the decoder's
