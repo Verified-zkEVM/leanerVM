@@ -130,8 +130,8 @@ coefficients, `N = 2^κ`, `M = 2^(κ+R)`. -/
 price `BW`, columns of at most `Lw` symbols), per lane its candidates (`G`) and the pruning step
 (`Smax` survivors, `Lc` candidates). -/
 @[expose] def pruneBound (κ R U BW Lw G Lc Smax : ℕ) : ℕ :=
-  (BW + 10 * Lw + 28) * 2 ^ (κ + R) + 17 * 2 ^ (κ + R) +
-    (G + Smax * (Lc * (41 * 2 ^ (κ + R) + 9 * U + 62) + 32) + 60) * U + 17 * U + 80
+  (BW + 12 * Lw + 28) * 2 ^ (κ + R) + 16 * 2 ^ (κ + R) +
+    (G + Smax * (Lc * (48 * 2 ^ (κ + R) + 11 * U + 71) + 39) + 53) * U + 15 * U + 62
 
 /-- The sizes at which a lane is bounded: word-sized parameters (`InterpSizes`, …), `k > 1`, at
 most `2^20` multiplicities tried. -/
