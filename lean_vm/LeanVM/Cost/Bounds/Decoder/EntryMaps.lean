@@ -3,6 +3,7 @@ module
 public import LeanVM.Cost.Bounds.Transcript
 public import LeanVM.Cost.Decoder.EntryTable
 import all LeanVM.Protocol.Extraction.Fast.SortedMap
+public import LeanVM.Cost.Prices
 
 /-!
 # Bound: the entry table's sorted maps and searches, compiled

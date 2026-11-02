@@ -1,6 +1,7 @@
 module
 
 public import LeanVM.Cost.Bounds.Step
+public import LeanVM.Cost.Prices
 
 /-!
 # Bounds: the candidate runner

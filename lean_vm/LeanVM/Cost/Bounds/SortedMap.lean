@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Cost.Bounds.Basic
 public import LeanVM.Cost.Bounds.Sizes.Transcript
+public import LeanVM.Cost.Prices
 public meta import Lean.Elab.Tactic
 
 /-!

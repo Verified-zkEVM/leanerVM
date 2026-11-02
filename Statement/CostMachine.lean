@@ -67,11 +67,10 @@ machine's only runtime data is its input, and the budget is the one below. The g
 a program of the same machine, with a size bound and a budget of its own (`GuestKnowledge`,
 `Theorems.lean`).
 
-**The budget** (`extractorBudgetAt`) is a closed formula in the shape the proof announces and the
-number `N` of the adversary's permutation queries, `extractorPrice`: about
-`2^117.67 + 2^14.7·N·log²N` at the worst shape (`O(N·log³N)` as `N` grows), polylogarithmic per
-query, so about `2^117.67` for `N ≤ 2^80` and `2^156.69` at `N = 2^128`. Near `Q = 2^128`
-queries the soundness bound (`KnowledgeSoundness`) is already trivial.
+**The budget** (`extractorBudgetFor`) is a closed formula in the number `N` of the adversary's
+permutation queries: `2^118` and `O(N·log³N)`, polylogarithmic per query, so about `2^118` for
+`N ≤ 2^80` and `2^157.08` at `N = 2^128`. Near `Q = 2^128` queries the soundness bound
+(`KnowledgeSoundness`) is already trivial.
 -/
 
 namespace LeanVM.Cost
@@ -456,102 +455,23 @@ end
 
 end LeanVM.Cost
 
-/-! ## The extractor's price, in closed form
-
-Natural-number formulas only: the budget `extractorBudgetAt` is `extractorPrice` at the announced
-shape. Each is a bound `lean_vm` proves on the compiled extractor's part it names
-(`lean_vm/LeanVM/Cost/Bounds/`); a reader checks only the budget's size: about
-`2^117.67 + 2^14.7·N·log²N` for `N` permutation queries (`O(N·log³N)` as `N` grows) at the worst
-shape `(μ, R) = (28, 4)` with `κ = ℓ = 32`, so about `2^117.67` for at most `2^80` queries (the
-list decoder dominating) and `2^156.69` for `2^128` queries (the transcript's index dominating). -/
+/-! ## The extractor's budget -/
 
 namespace LeanVM.Cost
 
 @[expose] public section
 
-/-- The limbs of a natural below `2^E`, at most. -/
-def limbsBelowTwoPow (E : ℕ) : ℕ := E / 64 + 1
-
-/-- One step of a leanISA run replayed (the extractor's candidate runs, the guest decoder's
-replay), its memory of `2^κ` words and its program of `2^ℓ` instructions indexed in sorted
-tables. -/
-def runnerStepPrice (κ ℓ : ℕ) : ℕ := 411697 + 42 * ℓ + 1092 * κ
-
-/-- One candidate's run: at most `2^35` steps (the step cap), and its memory image. -/
-def stackRunPrice (κ ℓ : ℕ) : ℕ := (runnerStepPrice κ ℓ + 45) * 2 ^ 35 + 44 * 2 ^ κ + 1796
-
-/-- The runner's tables: the sorted address tables of the memory and the program. -/
-def runnerTablesPrice (κ ℓ : ℕ) : ℕ :=
-  (70 * κ + 374) * 2 ^ κ + (70 * ℓ + 374) * 2 ^ ℓ + 535 * ℓ + 830
-
-/-- The fast path (interpolation alone, for a word without errors), a column of `w` words read at
-`17·w + cW`. -/
-def fastPathPrice (μ R w cW : ℕ) : ℕ :=
-  64 * ((μ - 6) * (1520 * 2 ^ (μ - 6 + R) + 39583) + 102 * 2 ^ (μ - 6 + R) + 17509) +
-    (17 * w + cW + 10 * w + 46) * 2 ^ (μ - 6 + R) + 1016 * 2 ^ μ + 1300
-
-/-- One step of the transcript's replay, amortized: two lookups among `25`-word keys, one among
-`8`-word keys, three insertions into sorted maps below `2^D` entries, a block's `B` bytes; `W` the
-limbs of positions and weights. -/
-def replayStepPrice (B D W : ℕ) : ℕ :=
-  2 * (D * (17 + (60 + 23 * 25 + 11 * W) * (D + 2))) + D * (17 + (60 + 23 * 8 + 11 * W) * (D + 2)) +
-    2 * ((23 * 25 + 31) * D) + (23 * 8 + 31) * D + 3 * ((40 + 2 * W) * D) + 6 * W + 16 * B + 10000
-
-/-- One step of the first answers, amortized: a lookup and an insertion of a key of at most `L`
-bytes. -/
-def firstAnswersStepPrice (L D W : ℕ) : ℕ :=
-  D * (17 + (60 + 23 * L + 11 * W) * (D + 2)) + (23 * L + 31) * D + (40 + 2 * W) * D + 85 + 2 * W
-
-/-- One step of the preimage index, amortized: a key of at most `L` bytes, a lookup, an
-insertion. -/
-def preimageStepPrice (L D W : ℕ) : ℕ :=
-  25 * L + 192 * (D * D) + 595 * D + 152 + W * (11 * (D * (D + 2)) + 2 * (D + 1))
-
-/-- The transcript's index: `N` permutation queries, `N + 2 ≤ 2^D`, evaluations of at most `L`
-bytes kept. -/
-def transcriptIndexPrice (D L N W : ℕ) : ℕ :=
-  (23 * 8 + 31) * D + (replayStepPrice (L + 136) D W + 13) * N +
-    (114 * (L + 136) + 12313) * (N + 1) + 470 +
-    (N + 1) * ((firstAnswersStepPrice L D W + 9) + (preimageStepPrice L D W + 9) +
-      D * (17 + (60 + 23 * L + 11 * W) * (D + 2)) + 60) + 50
-
-/-- The committed leaves: a tree of height `h`, leaves of `64` words, each lookup `D` levels of
-binary searches. -/
-def committedLeavesPrice (D h W : ℕ) : ℕ :=
-  2 ^ h * (2 * (D * (17 + (192 + 11 * W) * (D + 2)) + 40) + 64853 + 8 * h)
-
-/-- The list decoder's part (the extractor's Guruswami–Sudan decoder over the `64` lanes, and the
-pruning), beyond the word's reads, at the worst admissible shape `(28, 4)`: about `2^117.67`. It
-is `lean_vm`'s `decoderBound 28 4 0 0` (`Cost/Bounds/Decoder/Decode.lean`, the list decoder's
-price beyond the word's reads), evaluated, and bounds `decoderBound μ R 0 0` at every admissible
-shape `(μ, R)` (`decoderShape_ok`, `Cost/Bounds/DecoderShapes.lean`). -/
-def listDecoderWorstPrice : ℕ := 263761295154139905848615297830647322
-
-/-- The list decoder's part, at every admissible shape: its word's reads and
-`listDecoderWorstPrice`. -/
-def listDecoderPrice : ℕ := 1752 * 2 ^ 26 + listDecoderWorstPrice + 17
-
-/-- The bytecode's words: `16·2^ℓ` words. -/
-def bytecodeWordsPrice (ℓ : ℕ) : ℕ := 4700 * 2 ^ ℓ + 1100
-
-/-- The stage after the stack's root: the transcript's index, the committed leaves of height `h`,
-the fast path, the runner's tables, at most `1 + 2^18` candidate runs and the list decoder. -/
-def afterRootStagePrice (μ R κ ℓ D N h W : ℕ) : ℕ :=
-  transcriptIndexPrice D 512 N W + committedLeavesPrice D h W + fastPathPrice μ R 64 24 +
-    runnerTablesPrice κ ℓ + (stackRunPrice κ ℓ + 15) * (2 ^ 18 + 1) + listDecoderPrice + 133
-
-/-- The levels of the extractor's sorted maps for `N` permutation queries: `log₂(N + 2) + 1`. -/
-def extractorSortedMapLevels (N : ℕ) : ℕ := Nat.log2 (N + 2) + 1
-
-/-- **An upper bound on the extractor's price at a shape**: the stack's log-size `μ`, the rate's
-`R`, the memory's `κ`, the program's `ℓ`, `N` permutation queries (`D =
-extractorSortedMapLevels N` levels of the sorted maps, their positions and weights of at most
-`limbsBelowTwoPow (D + 1)` limbs): the bytecode's words, the replay of the verifier's first two
-steps, the stage and the glue. -/
-def extractorPrice (μ R κ ℓ N : ℕ) : ℕ :=
-  bytecodeWordsPrice ℓ + (144 * 2 ^ ℓ + 1004514000) +
-    afterRootStagePrice μ R κ ℓ (extractorSortedMapLevels N) N (μ - 6 + R)
-      (limbsBelowTwoPow (extractorSortedMapLevels N + 1)) + 60
+/-- **The extractor's budget** for `N` permutation queries: `2^118 + (N + 2^30)·(D + 2)²·(2^15 +
+2D)`, with `D = log₂(N + 2) + 1` the levels of the extractor's sorted tables of the transcript.
+`lean_vm` proves the compiled extractor's price at most this at every shape the replay admits
+(stack log-size `15` to `28`, rate exponent `1` to `4`, memory and program log-sizes at most `32`):
+`2^118` bounds the list decoder (about `2^117.67`, its `64` lanes' Guruswami–Sudan decoding at the
+worst shape) and the runs of the candidate executions (about `2^71.8`); the second term bounds
+the transcript's index (about `2^14.7` per query and level squared, a level's positions growing by
+a limb per `64` levels) and the committed leaves (`2^26` at most, the `2^30`). So about `2^118`
+for at most `2^80` queries and `2^157.08` for `2^128`. -/
+def extractorBudgetFor (N : ℕ) : ℕ :=
+  2 ^ 118 + (N + 2 ^ 30) * (Nat.log2 (N + 2) + 3) ^ 2 * (2 ^ 15 + 2 * (Nat.log2 (N + 2) + 1))
 
 end
 
@@ -574,20 +494,13 @@ two limbs) but not two, so the compiled extractor could carry no useful table of
 its code. -/
 def extractorSizeBound : ℕ := 11000
 
-/-- **The extractor's budget at a shape**: `extractorPrice` at the layout's stack and memory
-log-sizes, the rate exponent, the program's log-size and the number of the transcript's
-permutation queries, and `9` for the entry. -/
-def extractorBudgetAt (prog : Semantics.Program) (layout : Layout) (logInverseRate queries : ℕ) :
-    ℕ :=
-  Cost.extractorPrice layout.stackLog logInverseRate layout.logMemory prog.logSize queries + 9
-
-/-- **The extractor's budget**, read off the shape the proof's stream announces (`announced`,
-`LeanVmVerifier.lean`: the layout and the rate exponent); `0` when it announces none (the run is
-then out of budget: nothing is extracted). -/
+/-- **The extractor's budget**: `extractorBudgetFor` at the transcript's number of permutation
+queries, where the proof's stream announces a shape (`announced`, `LeanVmVerifier.lean`: a layout
+and a rate exponent); `0` when it announces none (the run is then out of budget: nothing is
+extracted). -/
 def extractorBudget (prog : Semantics.Program) (T : OracleQueryLog) (proof : Proof) : ℕ :=
   match announced (bytecodeWords prog) proof.stream with
-  | some (layout, logInverseRate) =>
-    extractorBudgetAt prog layout logInverseRate (permutationQueries T).length
+  | some _ => Cost.extractorBudgetFor (permutationQueries T).length
   | none => 0
 
 /-- **The extractor a program computes**: the program run within the budget on the encoded

@@ -133,11 +133,11 @@ verifier's state bus checks for, so knowledge soundness needs no condition on th
 machine computes (\lean{LeanVM.extractorOf}~$P$, \lean{Statement/CostMachine.lean}): the program
 $P$, of size at most $11000$ (\lean{extractorSizeBound}: the compiled extractor's $10489$ and a
 slack of about one leanXMSS signature's encoding), run on the encoded statement, transcript
-and proof within a budget read off the announced shape (\lean{extractorPrice}, a closed formula:
-about $2^{117.67} + 2^{14.7} N \log^2 N$ ($O(N\log^3 N)$ as $N$ grows) operations at the worst
-shape for $N$ permutation queries,
-polylogarithmic per query: $2^{117.67}$ for $N \le 2^{80}$, the list decoder dominating, and
-$2^{156.69}$ at $N = 2^{128}$, the transcript's index dominating, where the soundness bound is
+and proof within a budget, wherever the proof announces a shape (\lean{extractorBudgetFor}:
+$2^{118} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for $N$ permutation queries, $D = \log_2(N + 2) + 1$,
+above the price \lean{lean_vm} proves of the compiled extractor at every shape;
+polylogarithmic per query: about $2^{118}$ for $N \le 2^{80}$, the list decoder dominating, and
+$2^{157.08}$ at $N = 2^{128}$, the transcript's index dominating, where the soundness bound is
 already trivial), its output
 parsed as an execution; a run out of budget outputs nothing, which counts as a break. The
 statement takes $P$ as a parameter (\texttt{extractorProgram := P}) and constrains it only by
@@ -517,30 +517,23 @@ only that it compute a valid execution within its budget. A program that output 
 statement of the same digest would exhibit a Keccak-256 collision; what excludes it is that none
 is known.
 
-\paragraph{The decoder's budget.} The budget's formula (\lean{guestDecoderPrice}) is a closed-form upper
-bound \lean{lean_vm} proves on the compiled decoder's price, as \lean{extractorPrice} is on the
-extractor's: per step $2^{20.9}$ to $2^{21.1}$ (the replay and the filing of the state in a
-sorted array, its share of one sort, growing as $\log$ of the steps), so
-$O(\mathit{steps}\cdot\log\mathit{steps})$ below $2^{61}$ steps
-($O(\mathit{steps}\cdot\log^2\mathit{steps})$ as they grow); the address tables of the memory and
-the program at the execution's $\kappa$ and the program's $\ell$
-(\lean{guestDecoderAddressTablesPrice}, $(70\kappa + 374)\cdot 2^\kappa + (70\ell + 374)\cdot
-2^\ell + 48$: $2^{31.36}$ at $\kappa = 20$, $2^{43.35}$ at $\kappa = 32$, with $\ell = 19$); and
-a constant of about $2^{38.59}$ (\lean{guestDecoderWitnessPriceAtValidCounts}) with about
-$2^{26.57}$ frame lookups, the witness read at the counts and the cursors a valid execution bounds:
-$G$'s own asserts give at most $16$ children, $65535$ claims of each scheme and $65535$ coverage
-slots (\lean{valid_counts}); each child's cursor is at most $8192$ words, as the stream of its
-proof is, which the deferring verifier accepts on a valid execution (\lean{valid_cursor}, from
+\paragraph{The decoder's budget.} The budget (\lean{guestDecoderBudget}) is
+$(\mathit{steps} + 1)(2^{21} + 2^{13}\lambda) + (70\kappa + 374)\cdot 2^\kappa + 2^{37}(\lambda + 16)$,
+$\lambda = \log_2(\mathit{steps} + 1)$, above the closed-form price \lean{lean_vm} proves of the
+compiled decoder (within $0.16$ bits of it): per step $2^{20.9}$ to $2^{21.1}$ (the replay and the
+filing of the state in a sorted array, its share of one sort, growing as $\log$ of the steps); the
+sorted table of the memory's addresses at the execution's $\kappa$; and about $2^{41}$ for the
+witness read at the counts and the cursors a valid execution bounds, with about $2^{26.57}$ frame
+lookups: $G$'s own asserts give at most $16$ children, $65535$ claims of each scheme and $65535$
+coverage slots (\lean{valid_counts}); each child's cursor is at most $8192$ words, as the stream of
+its proof is, which the deferring verifier accepts on a valid execution (\lean{valid_cursor}, from
 \lean{stream_le_of_verifyDeferred}); and the decoder clamps the DA matrix's row count at $1024$.
-At $\ell = 19$ the budget is $2^{42.60}$ at $\kappa = 20$ and $2^{20}$ steps, $2^{45.18}$ at
-$\kappa = 24$ and $2^{24}$, $2^{49.02}$ at $\kappa = 28$ and $2^{28}$, $2^{51.03}$ at
-$\kappa = 32$ and $2^{30}$, $2^{72.10}$ at $\kappa = 32$ and $2^{51}$, and $2^{81.14}$ at
-$\kappa = 32$ and $2^{60}$; the terms besides the steps' ($2^{42.04}$ to $2^{44.21}$ at these
-points: the constant, the address tables and the frame lookups) dominate up to about $2^{21}$ steps
-at $\kappa \le 28$ and $2^{23}$ at $\kappa = 32$. The constant and its frame lookups price the
-witness at the bounds above, not at the run's, so with fewer children and claims, at $\kappa \le 28$
-and well below $2^{21}$ steps, the budget is several times the compiled decoder's price (at
-$\kappa = 32$ the address tables, priced at the run's $\kappa$, are most of it). There is no cap on
+The budget is $2^{42.74}$ at $\kappa = 20$ and $2^{20}$ steps, $2^{45.32}$ at $\kappa = 24$ and
+$2^{24}$, $2^{49.17}$ at $\kappa = 28$ and $2^{28}$, $2^{51.17}$ at $\kappa = 32$ and $2^{30}$,
+$2^{72.26}$ at $\kappa = 32$ and $2^{51}$, and $2^{81.30}$ at $\kappa = 32$ and $2^{60}$. The
+constant prices the witness at the bounds above, not at the run's, so with fewer children and
+claims, at $\kappa \le 28$ and well below $2^{21}$ steps, the budget is several times the compiled
+decoder's price. There is no cap on
 the steps in the budget. A valid execution
 of $G$ (\lean{ValidExecution}) has fewer than $2^{51}$ steps: the memory is fixed and every
 instruction reads a cell at $\mathit{fp}\cdot o$ for an offset $o$ fixed by $\mathit{pc}$, so at
@@ -761,8 +754,7 @@ written differently could pack the guest's frame-cell table about three times ti
 room for about $1600$ signatures' encodings).
 \item How $D$ computes the witness: the statement accepts any program that computes it from the
 execution within its budget, not only one that reads it off the memory.
-\item A tight extractor budget: it is about $2^{117.67} + 2^{14.7} N\log^2 N$, priced at the worst
-shape.
+\item A tight extractor budget: it is $2^{118} + O(N\log^3 N)$, priced at the worst shape.
 \item The Rust verifier, prover and guests. They are tested against the Lean specification: the
 verifier differential fuzz; the prover differential (the Lean prover's proofs byte-identical to the
 Rust prover's, accepted by both verifiers, every mutation rejected by both), which does not yet

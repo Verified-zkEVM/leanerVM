@@ -3,6 +3,7 @@ module
 public import LeanVM.Cost.Bounds.Decoder.Prune
 public import LeanVM.Cost.Bounds.Decoder.Prefixes
 public import LeanVM.Cost.Bounds.DecoderShapes
+public import LeanVM.Cost.Prices
 
 /-!
 # Bound: the decoder, compiled

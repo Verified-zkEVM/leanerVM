@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Cost.ExtractorSize
 public import LeanVM.Cost.Bounds.Top
+public import LeanVM.Cost.Prices
 
 /-!
 # The extractor the compiled program computes
@@ -17,9 +18,9 @@ it destructures the input, calls function `j` on its four fields and unwraps the
 the call (`runsBody_entry`).
 
 * **`extractorTop_output`**: in a program whose function `0` is `entryBody j`, if function `j`
-  computes `extractorTop` at a price `cost` that is within `extractorBudgetAt` at the shape
-  `afterRoot` reads whenever the extraction succeeds, the decoded output within `extractorBudget`
-  (at the shape the stream announces, the same: `announced_of_afterRoot`) is
+  computes `extractorTop` at a price `cost` that is within `extractorBudgetFor` whenever the
+  extraction succeeds, the decoded output within `extractorBudget` (the stream announces a shape
+  wherever `afterRoot` reads one: `announced_of_afterRoot`) is
   `transcriptExtractor`'s, on every input; **`extractorOf_eq_of_spec`**: `extractorOf P =
   transcriptExtractor`;
 * `extractorProgram_size_le`: `extractorProgram`'s size is within `extractorSizeBound`
@@ -99,8 +100,7 @@ theorem transcriptExtractor_eq_none {prog : Semantics.Program} {π : Proof}
   rfl
 
 /-- **The glue**: in a program whose function `0` is `entryBody j`, if function `j` computes
-`extractorTop` at the price `cost`, within the budget at the announced shape (less the entry's
-`9`) wherever the extraction succeeds, the output within `extractorBudget`, decoded, is
+`extractorTop` at the price `cost`, within the budget (less the entry's `9`) wherever the extraction succeeds, the output within `extractorBudget`, decoded, is
 `transcriptExtractor`'s. -/
 theorem extractorTop_output (P : MachineProgram) (j : ℕ) (hentry : P[0]? = some (entryBody j))
     (cost : Semantics.Program → PublicInput →
@@ -111,7 +111,7 @@ theorem extractorTop_output (P : MachineProgram) (j : ℕ) (hentry : P[0]? = som
       afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st) →
       extractorTop prog input (permutationQueries T) π = some t →
       cost prog input (permutationQueries T) π + 9 ≤
-        extractorBudgetAt prog layout logInverseRate (permutationQueries T).length)
+        extractorBudgetFor (permutationQueries T).length)
     (prog : Semantics.Program) (input : PublicInput) (T : OracleQueryLog) (proof : Proof) :
     (outputWithin P (encodeExtractorInput prog input T proof) (extractorBudget prog T proof)).bind
         (decodeExecution prog) =
@@ -137,7 +137,7 @@ theorem extractorTop_output (P : MachineProgram) (j : ℕ) (hentry : P[0]? = som
     | some r =>
       obtain ⟨⟨layout, R⟩, st⟩ := r
       have hb : extractorBudget prog T proof =
-          extractorBudgetAt prog layout R (permutationQueries T).length := by
+          extractorBudgetFor (permutationQueries T).length := by
         simp only [extractorBudget, announced_of_afterRoot ha]
       have hc := hcost prog input T proof layout R st t ha ht
       have hx : encodeExtractorInput prog input T proof =
@@ -157,7 +157,7 @@ theorem extractorOf_eq_of_spec (P : MachineProgram) (j : ℕ) (hentry : P[0]? = 
       afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st) →
       extractorTop prog input (permutationQueries T) π = some t →
       cost prog input (permutationQueries T) π + 9 ≤
-        extractorBudgetAt prog layout logInverseRate (permutationQueries T).length) :
+        extractorBudgetFor (permutationQueries T).length) :
     LeanVM.extractorOf P = transcriptExtractor := by
   funext prog input T proof
   exact extractorTop_output P j hentry cost hrun hcost prog input T proof
@@ -188,13 +188,13 @@ theorem extractorProgram_entry : extractorProgram[0]? = some (entryBody extracto
 
 /-- **The compiled extractor's price is within the budget** (`extractorC_within`,
 `Cost/Bounds/Top.lean`): wherever the proof announces a shape, the price in `extractorProgram` and
-the entry's `9` are within `extractorBudgetAt`. -/
+the entry's `9` are within `extractorBudgetFor`. -/
 theorem extractorPrice_within_budget : ∀ prog input T π layout logInverseRate st (t : Execution prog),
     afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st) →
     extractorTop prog input (permutationQueries T) π = some t →
     machineCost extractorProgram extractorC.costIdx
         [encodeValue prog, encodeValue input, encodeValue (permutationQueries T), encodeValue π] + 9 ≤
-      extractorBudgetAt prog layout logInverseRate (permutationQueries T).length :=
+      extractorBudgetFor (permutationQueries T).length :=
   fun prog input T π layout logInverseRate st _ ha _ ↦
     Bounds.extractorC_within extractorProgram extractorProgram_includes prog input T π layout
       logInverseRate st ha

@@ -4,6 +4,7 @@ public import LeanVM.Cost.Bounds.ListLib
 public import LeanVM.Cost.Bounds.SortedMap
 public import LeanVM.Cost.Extractor.Transcript
 import all LeanVM.Protocol.Extraction.Fast.SortedMap
+public import LeanVM.Cost.Prices
 
 /-!
 # Bounds: the committed word's reader

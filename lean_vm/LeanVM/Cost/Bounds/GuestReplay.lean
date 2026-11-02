@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Cost.Bounds.Runner
 public import LeanVM.Cost.Decoder.Replay
+public import LeanVM.Cost.Prices
 
 /-!
 # Bound: the guest decoder's replay of the run, compiled

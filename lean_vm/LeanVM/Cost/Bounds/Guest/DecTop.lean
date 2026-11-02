@@ -5,6 +5,7 @@ public import LeanVM.Cost.Bounds.Decoder.DecoderEnds
 public import LeanVM.Cost.Bounds.Decoder.PreTest
 public import LeanVM.Cost.Bounds.GuestReplay
 public import LeanVM.Cost.Decoder.Top
+public import LeanVM.Cost.Prices
 
 /-!
 # Bounds on the guest decoder's prices: the top

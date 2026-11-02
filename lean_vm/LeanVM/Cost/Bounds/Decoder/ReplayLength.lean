@@ -57,6 +57,17 @@ theorem replayStatesOf_length {input : PublicInput} {t : Execution LeanVM.Guest.
   rw [replayStatesOf_eq, memoryVector_get, statesTable_eq hκ]
   exact statesIn_length_le (stepIn_powIndex hκ L) T replayFuel _ hT
 
+
+/-- **A valid execution of the guest takes fewer than `2^128` steps** (`Located.steps_lt_replayFuel`:
+a halting run repeats no state). -/
+theorem steps_lt_of_valid {input : PublicInput} {t : Execution LeanVM.Guest.guest}
+    (hv : ValidExecution LeanVM.Guest.guest input t) : t.steps < 2 ^ 128 := by
+  obtain ⟨κ, L, T⟩ := t
+  have hT : LeanVM.Semantics.run LeanVM.Guest.guest L T ⟨gpow 0, 1⟩ =
+      some (Registers.final LeanVM.Guest.guest) :=
+    LeanVM.Guest.safe_of_validExecution hv
+  exact LeanVM.Guest.Located.steps_lt_replayFuel hT
+
 end
 
 end LeanVM.Cost.Bounds

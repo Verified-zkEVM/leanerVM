@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Cost.Bounds.FastPath
 import all LeanVM.Protocol.Extraction.Fast.SortedMap
+public import LeanVM.Cost.Prices
 
 /-!
 # Bounds: the transcript's replay and its evaluations
