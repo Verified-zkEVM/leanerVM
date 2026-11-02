@@ -15,11 +15,16 @@ bits of security (`StronglyUnforgeable`). leanXMSS and leanSPHINCS are stated wi
 open OracleComp OracleSpec MeasureTheory
 open scoped ENNReal
 
-set_option linter.unusedSectionVars false
-
 namespace Common
 
 /-! ## The SUF-CMA game of a hash-based signature scheme, in the random-permutation model -/
+
+/-- A byte as its residue modulo `256`. -/
+def uInt8EquivFin : UInt8 ≃ Fin 256 where
+  toFun b := b.toFin
+  invFun f := UInt8.ofFin f
+  left_inv _ := rfl
+  right_inv _ := rfl
 
 namespace SufCma
 

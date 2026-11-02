@@ -44,8 +44,6 @@ section).
 
 open Polynomial OracleComp OracleSpec ENNReal Common MeasureTheory
 
-set_option linter.unusedSectionVars false
-
 /-! ## Wagner's framework: erasure codes -/
 
 namespace PqDas

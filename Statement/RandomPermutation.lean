@@ -13,8 +13,8 @@ public import Statement.Keccak
 /-!
 # The random-permutation model
 
-Read second (`Statement/README.md` states the model): the model (namespace `Common`): `π` and `π⁻¹` lazily sampled, a cost bounded on
-every path, the oracles of the model and a game's run (`RandomPermutationOracles`: coins, `π` and
+Read second (`Statement/README.md` states the model): the model (namespace `Common`): `π` and
+`π⁻¹` lazily sampled, a cost bounded on every path, the oracles of the model and a game's run (`RandomPermutationOracles`: coins, `π` and
 `π⁻¹`, nothing else; `permutationCallCost`, `runWithRandomPermutation`; a computation's queries
 recorded, `loggedOracles`), over the state of Keccak-f[1600] (`KeccakState`, `Keccak.lean`).
 -/
@@ -23,8 +23,6 @@ recorded, `loggedOracles`), over the state of Keccak-f[1600] (`KeccakState`, `Ke
 
 open OracleComp OracleSpec MeasureTheory
 open scoped ENNReal
-
-set_option linter.unusedSectionVars false
 
 /-! ## The random permutation: `π` and `π⁻¹`, lazily sampled -/
 
@@ -92,13 +90,6 @@ count, not an expected one. With `permutationCallCost` (below) it counts the cal
 def QueryCostAtMost {ι : Type} {spec : OracleSpec.{0, 0} ι} {α : Type} (oa : OracleComp spec α)
     (cost : ι → ℕ) (Q : ℕ) : Prop :=
   IsQueryBound oa Q (fun t b ↦ cost t ≤ b) (fun t b ↦ b - cost t)
-
-/-- A byte as a residue. -/
-def uInt8EquivFin : UInt8 ≃ Fin 256 where
-  toFun b := b.toFin
-  invFun f := UInt8.ofFin f
-  left_inv _ := rfl
-  right_inv _ := rfl
 
 /-! ## The oracles of the model and a game's run -/
 

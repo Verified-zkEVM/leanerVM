@@ -50,8 +50,11 @@ export HashSig (digestBits winternitzBits chainLength MasterSeed Digest HashOutp
   PublicParameter Randomness Digit ChainStep HashInput truncateHash upperHash hashHalf PublicKey
   bytesLE TweakFields fieldBytes tweakFields thInput sampleMasterSeed)
 
+/-- The encoding counter's bits, `32`. -/
 def counterBits : Nat := 32
+/-- `v`, the chains of a one-time key, `64`. -/
 def numChains : Nat := 64
+/-- `T`, the digit sum of a codeword, `123`. -/
 def targetSum : Nat := 123
 /-- `h`, the height of the tree. -/
 def totalHeight : Nat := 26
@@ -63,23 +66,28 @@ def encodingAttemptLimit : Nat := 2 ^ 32
 /-- The key's shape and lifetime: the kept subtree holds `2^subtreeHeight` leaves
 (`subtreeHeight = 26` is the full key), and the key signs at most `signatureLimit` messages. -/
 class Params where
+  /-- `b`, the kept subtree's height. -/
   subtreeHeight : Nat
+  /-- `N`, the most messages the key signs. -/
   signatureLimit : Nat
   subtreeHeight_le : subtreeHeight ≤ totalHeight
 
 export Params (subtreeHeight signatureLimit)
 
+/-- `c`, the WOTS+C encoding counter. -/
 abbrev Counter := BitVec counterBits
 /-- `idx = e`, the leaf of the tree and the forest instance a digest selects. -/
 abbrev Index := Fin (2 ^ totalHeight)
+/-- `i`, a chain of a one-time key. -/
 abbrev ChainIndex := Fin numChains
 /-- A pair of chains `(2t, 2t + 1)` of a one-time key, `t < 32`: one seed derivation. -/
 abbrev ChainPair := Fin 32
+/-- The `v` digits a codeword assigns to the chains: how far each chain is opened. -/
 abbrev Encoding := ChainIndex → Digit
 
 /-! #### Forest parameters and types -/
 
-/-- Number of coordinates. -/
+/-- The forest's coordinates: `8` trees under each leaf. -/
 def forestCoords : Nat := 8
 /-- Height of a coordinate's top tree (16 super-children). -/
 def topHeight : Nat := 4
@@ -90,10 +98,15 @@ def childChains : Nat := 6
 /-- The top position of a chain: positions `0 .. 4`. -/
 def chainTop : Nat := 4
 
+/-- `c`, a coordinate: one of the forest's trees. -/
 abbrev Coord := Fin forestCoords
+/-- `s`, a super-child: a leaf of a coordinate's top tree. -/
 abbrev SuperIdx := Fin (2 ^ topHeight)
+/-- `j`, one of a super-child's two sub-trees. -/
 abbrev SubIdx := Fin 2
+/-- `a`, a child: a leaf of a sub-tree, a forest WOTS key. -/
 abbrev ChildIdx := Fin (2 ^ subHeight)
+/-- `i`, a chain of a forest WOTS key. -/
 abbrev FChain := Fin childChains
 /-- A pair of chains `(2t, 2t + 1)` of a forest WOTS key, `t < 3`: one seed derivation. -/
 abbrev FPair := Fin 3
@@ -148,6 +161,7 @@ def coordBits : Nat := 26
 /-- The message digest is `h + 8 · 26 = 234` bits: an index and the fields of 8 coordinates. -/
 def messageDigestBits : Nat := totalHeight + forestCoords * coordBits
 
+/-- The message digest's `234` bits. -/
 abbrev MessageDigest := BitVec messageDigestBits
 
 /-- The first 234 bits of the single digest call. -/
@@ -157,8 +171,11 @@ def truncateMessageDigest (first : HashOutput) : MessageDigest :=
 /-- What a digest selects in one coordinate: the super-child, and per sub-tree a child and a codeword
 index. -/
 structure CoordMark where
+  /-- The super-child `s`. -/
   super : SuperIdx
+  /-- The child `a` of each sub-tree. -/
   child : SubIdx → ChildIdx
+  /-- The codeword index of each sub-tree's child. -/
   word : SubIdx → LutIdx
 deriving DecidableEq
 
@@ -168,23 +185,32 @@ abbrev ForestKey := Coord → Digest × Digest
 
 /-- The opening of one sub-tree: the 6 revealed chain values and the 3 auth nodes. -/
 structure SubOpening where
+  /-- The child's chains, each opened to position `4 - d_i`. -/
   values : FChain → Digest
+  /-- The sub-tree's siblings, the last the other level-2 node. -/
   path : Fin subHeight → Digest
 deriving DecidableEq
 
 /-- The opening of one coordinate: both sub-trees, then the 4 auth nodes of the top tree. -/
 structure CoordOpening where
+  /-- Each sub-tree's opening. -/
   sub : SubIdx → SubOpening
+  /-- The top tree's siblings, the last the other level-3 node. -/
   top : Fin topHeight → Digest
 deriving DecidableEq
 
 /-- The randomizer, the forest opening, the WOTS+C signature (its counter and chain values) and the
 authentication path: 4276 bytes (`LeanSphincsSignature`, `scheme.rs`). -/
 structure Signature where
+  /-- The randomizer `ρ`, which grinds the leaf index into the kept subtree. -/
   randomness : Randomness
+  /-- The forest's opening, one per coordinate. -/
   forest : Coord → CoordOpening
+  /-- The WOTS+C counter `c` that makes the forest key's encoding a codeword. -/
   counter : Counter
+  /-- Chain `i` opened to its codeword digit. -/
   chainValues : ChainIndex → Digest
+  /-- The siblings from the leaf up to the root, surrogates above the kept subtree. -/
   path : Fin totalHeight → Digest
 deriving DecidableEq
 
@@ -206,23 +232,36 @@ leaves: a `subNode` at `level` is the node of sub-tree level `level + 1`, a `top
 node of top-tree level `level + 1`. The scheme hashes sub-tree levels 1 and 2 and top-tree levels 1
 to 3: the address of a tree's root exists and no algorithm uses it. -/
 inductive HashDomain where
+  /-- A step of chain `chainIdx` of the one-time key at `leaf`. -/
   | chain (leaf : Index) (chainIdx : ChainIndex) (step : ChainStep)
+  /-- The one-time key's leaf, the hash of its chain ends. -/
   | leaf (leaf : Index)
+  /-- A tree node at `level`, index `nodeIdx`. -/
   | node (level : Nat) (nodeIdx : Nat)
+  /-- The WOTS+C encoding of the forest key at `leaf`. -/
   | encoding (leaf : Index)
-  | fchain (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) (t : FStep)
+  /-- Step `t` of chain `i` of child `(c, s, j, a)` of forest instance `index`. -/
+  | fchain (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain)
+      (t : FStep)
+  /-- A child's leaf, the hash of its chain tops. -/
   | childLeaf (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx)
-  | subNode (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (level : Fin subHeight) (node : ChildIdx)
+  /-- A sub-tree's node. -/
+  | subNode (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (level : Fin subHeight)
+      (node : ChildIdx)
+  /-- A super-child, the hash of its sub-trees' level-2 nodes. -/
   | superChild (index : Index) (c : Coord) (s : SuperIdx)
+  /-- A top tree's node. -/
   | topNode (index : Index) (c : Coord) (level : Fin topHeight) (node : SuperIdx)
+  /-- No algorithm's: a label of the proofs. -/
   | roots (index : Index)
+  /-- The message digest. -/
   | message
 deriving DecidableEq
 
 /-- The address of a hash domain: types `TWEAK_CHAIN = 1`, ..., `TWEAK_MSG = 12`, forest types 15 to
 19 (`lean_sphincs/hash.rs`); type 20 (`roots`) is not the crate's, a label of the proofs under which
-no algorithm hashes. In the tree `lo` is the leaf (or the node index) and `hi` the chain (or the node level); a chain
-step carries its step. In a forest instance `lo` is `idx` and `hi` the packed position; a forest chain
+no algorithm hashes. In the tree `lo` is the leaf (or the node index) and `hi` the chain (or the
+node level); a chain step carries its step. In a forest instance `lo` is `idx` and `hi` the packed position; a forest chain
 step from position `t` carries step `t`. An address has no layer and no tree field (`Tweak`,
 `tweak.rs`). -/
 def hashDomainFields : HashDomain → TweakFields
@@ -256,9 +295,13 @@ one-time key at a leaf, `forest` the starts `x_{2t,0}` and `x_{2t+1,0}` of chain
 of child `(idx, c, s, j, a)`: the two 16-byte halves of the hash. The parameter and a surrogate are
 the first 16 bytes of their hash. -/
 inductive KeygenDomain where
+  /-- The public parameter `P`. -/
   | parameter
+  /-- The starts of chains `2t` and `2t + 1` of the one-time key at `leaf`, `t = pair`. -/
   | ots (leaf : Index) (pair : ChainPair)
+  /-- The starts of chains `2t` and `2t + 1` of child `(c, s, j, a)`, `t = pair`. -/
   | forest (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (pair : FPair)
+  /-- The surrogate sibling at `level`. -/
   | surrogate (level : Fin totalHeight)
 deriving DecidableEq
 
@@ -364,7 +407,8 @@ def encode (parameter : PublicParameter) (leaf : Index) (message : ForestKey) (c
     (rootsPayload message ++ bytesLE 4 counter)
   return TargetSum.decodeDigest digest
 
-/-- `Ots.leaf` (`wots_leaf`, `wots.rs`): the verifier's leaf, or nothing if the counter does not encode the message. -/
+/-- `Ots.leaf` (`wots_leaf`, `wots.rs`): the verifier's leaf, or nothing if the counter does not
+encode the message. -/
 def otsLeaf (parameter : PublicParameter) (leaf : Index) (message : ForestKey) (counter : Counter)
     (values : ChainIndex → Digest) : m (Option Digest) := do
   let some encoding ← encode π parameter leaf message counter | return none
@@ -570,12 +614,15 @@ def otsSecrets (parameter : PublicParameter) (leaf : Index) (seed : MasterSeed) 
     thPair π parameter (keygenDomainFields (.ots leaf pair)) (bytesLE 32 seed)
   return fun chainIdx => hashHalf chainIdx.val (outputs (chainPair chainIdx))
 
+/-- The chain ends of the one-time key at a leaf. -/
 def oneTimePublicKey (parameter : PublicParameter) (leaf : Index) (seed : MasterSeed) :
     m (ChainIndex → Digest) := do
   let secrets ← otsSecrets π parameter leaf seed
   sequenceFin fun chainIdx =>
     chainWalk π parameter leaf chainIdx 0 (chainLength - 1) (secrets chainIdx)
 
+/-- The encoding counters `counter, counter + 1, ...`, at most `attempts` of them, stopping at the
+first that encodes the message. -/
 def otsSignFrom (parameter : PublicParameter) (leaf : Index) (seed : MasterSeed)
     (message : ForestKey) : Nat → Nat → m (Option (Counter × (ChainIndex → Digest)))
   | 0, _ => pure none
@@ -696,8 +743,8 @@ def spineNode (parameter : PublicParameter) (seed : MasterSeed) : Nat → m Dige
 def treeRoot (parameter : PublicParameter) (seed : MasterSeed) : m Digest :=
   spineNode π parameter seed (totalHeight - subtreeHeight)
 
-/-- The authentication path of a kept leaf (`LeanSphincsSecretKey::path`, `scheme.rs`): subtree nodes below level `b`,
-surrogates from level `b` on. -/
+/-- The authentication path of a kept leaf (`LeanSphincsSecretKey::path`, `scheme.rs`): subtree
+nodes below level `b`, surrogates from level `b` on. -/
 def treePath (parameter : PublicParameter) (seed : MasterSeed) (leaf : Index) :
     m (Fin totalHeight → Digest) :=
   sequenceFin fun level =>
@@ -759,17 +806,22 @@ end Seeded
 
 /-! ## Forgeries and transcripts -/
 
+/-- A claimed forgery: a message and a signature. -/
 structure Forgery where
+  /-- The message. -/
   message : Message
+  /-- Its claimed signature. -/
   signature : Signature
 deriving DecidableEq
 
+/-- The signing oracle answers a message with a signature, or `none` if the signer fails. -/
 abbrev SigningSpec := Message →ₒ Option Signature
 
 namespace SigningTranscript
 
 variable [Params]
 
+/-- A transcript is valid when it has at most `signatureLimit` requests. -/
 abbrev Valid (log : QueryLog SigningSpec) : Prop := log.length ≤ signatureLimit
 
 end SigningTranscript
@@ -804,12 +856,19 @@ namespace Lifetimes
 
 open Common.SufCma
 
+/-- The full key, `b = 26`. -/
 abbrev full : Params := ⟨26, 1383000000, by decide⟩
+/-- The key pruned to a kept subtree of height `b = 20`. -/
 abbrev pruned20 : Params := ⟨20, 26030000, by decide⟩
+/-- The key pruned to a kept subtree of height `b = 14`. -/
 abbrev pruned14 : Params := ⟨14, 480900, by decide⟩
+/-- The key pruned to a kept subtree of height `b = 13`. -/
 abbrev pruned13 : Params := ⟨13, 247000, by decide⟩
+/-- The key pruned to a kept subtree of height `b = 12`. -/
 abbrev pruned12 : Params := ⟨12, 126900, by decide⟩
+/-- The key pruned to a kept subtree of height `b = 10`. -/
 abbrev pruned10 : Params := ⟨10, 33490, by decide⟩
+/-- The key pruned to a kept subtree of height `b = 8`. -/
 abbrev pruned8 : Params := ⟨8, 8830, by decide⟩
 
 /-! ### The end statement -/
@@ -821,8 +880,8 @@ their signature limits), an adversary whose game makes at most `Q` permutation c
 `Q` counts every call on the game's worst path, the honest signer's included (`QueryCostAtMost` is
 structural): a signature costs about `2^35` calls at `b = 26` (`2^32` encoding counters of three
 calls, `2^33.6`; `treePath` rebuilding the kept subtree, `2^33.9`; the grinding into the kept
-subtree is one call at `b = 26` and up to `2^32` below), so at the largest lifetime, `N ≈ 2^30.4` signatures, `Q ≥ 2^65` and the bound is about
-`2^-62`. Proved by `Sphincs.Lifetimes.requestedSecurityRpm`. -/
+subtree is one call at `b = 26` and up to `2^32` below), so at the largest lifetime,
+`N ≈ 2^30.4` signatures, `Q ≥ 2^65` and the bound is about `2^-62`. Proved by `Sphincs.Lifetimes.requestedSecurityRpm`. -/
 abbrev LeanSphincsStronglyUnforgeable : Prop :=
   ∀ P ∈ [full, pruned20, pruned14, pruned13, pruned12, pruned10, pruned8],
     StronglyUnforgeable (@Rpm.scheme P) 127
