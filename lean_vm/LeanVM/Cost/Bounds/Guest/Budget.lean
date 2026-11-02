@@ -39,7 +39,7 @@ the decoder program's price is within `guestDecoderPrice` (`Cost/Prices.lean`,
   address tables at the execution's `κ` and the guest's `ℓ`, `addressTablesPrice κ ℓ =
   (74κ + 121)·2^κ + (74ℓ + 121)·2^ℓ + 42` (`decoderTables_cost`),
   `guestDecoderAddressTablesPrice` (`addressTablesPrice_eq`), and the rest of the constant,
-  `topConstPrice`, at most `116077077815 + 99702868·F` (`2^36.76 + 2^26.57·F`,
+  `topConstPrice`, at most `116077062271 + 99702868·F` (`2^36.76 + 2^26.57·F`,
   `topConst_valid_le`, each child's cursor at most `8192` words by `valid_cursor`), the
   `guestDecoderWitnessPriceAtValidCounts + guestDecoderFrameLookupCountAtValidCounts·F`
   (`topConst_le`).
@@ -57,11 +57,11 @@ attribute [local instance] lexOrd
 
 /-- The constant's linear form in the frame map's price, the address tables apart, at a valid
 run's counts (`16` children, `65535` slots in the two regions together, `65535` declared claims a
-scheme, each child's cursor at most `8192` words): `116077077815 + 99702868·F`. -/
+scheme, each child's cursor at most `8192` words): `116077062271 + 99702868·F`. -/
 theorem topConst_valid_le (F : ℕ) :
     topConstPrice 65535 (decWitNPrice gLogPrice 1271 (1271 + 1525) (F + 9) (125634 + 5)
       8192 (dvFramePrice gLogPrice (F + 9)) 16 65535 65535) ≤
-      116077077815 + 99702868 * F := by
+      116077062271 + 99702868 * F := by
   unfold topConstPrice framesPrice decStmtPrice decStmtAtPrice decWitNPrice decWitPrice
     decWitAtPrice decWitTabPrice kidsTPrice decKidPrice kidStmtPrice kidStmtAtPrice
     xmssHoldersTPrice sphincsHoldersTPrice regionTablePrice kidMaxPrice vsPiPrice vsMPrice
@@ -206,7 +206,7 @@ theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.
   rw [addressTablesPrice_eq] at hT
   rw [entryArrayStatePrice_eq] at hT
   rw [← hstates] at hT
-  have h1 := Nat.mul_le_mul_left (runnerStepPrice t.logMemorySize LeanVM.Guest.guest.logSize + 48) hlen
+  have h1 := Nat.mul_le_mul_left (runnerStepPrice t.logMemorySize LeanVM.Guest.guest.logSize + 46) hlen
   have h2 := Nat.mul_le_mul_left (guestDecoderStateFilingPrice e) hlen
   rw [Nat.add_mul]
   omega
@@ -232,7 +232,7 @@ theorem guestDecoderPrice_le_budget {κ steps : ℕ} (hκ : κ ≤ 32) (hs : ste
   generalize Nat.log2 (steps + 1) = lg at hlg ⊢
   have hL : guestDecoderEntryTablePositionLimbs (lg + 2) ≤ 3 := by
     unfold guestDecoderEntryTablePositionLimbs limbsBelowTwoPow; omega
-  have hstep : runnerStepPrice κ 19 + 48 + guestDecoderStateFilingPrice (lg + 2) ≤
+  have hstep : runnerStepPrice κ 19 + 46 + guestDecoderStateFilingPrice (lg + 2) ≤
       2 ^ 21 + 2 ^ 13 * lg := by
     unfold runnerStepPrice guestDecoderStateFilingPrice guestDecoderPreconditionPrice
     generalize guestDecoderEntryTablePositionLimbs (lg + 2) = L at hL ⊢

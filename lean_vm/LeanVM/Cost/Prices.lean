@@ -219,7 +219,7 @@ bounds, the frame lookups and the address tables apart: `16` children of up to `
 each scheme, each child's cursor at most `8192` words, the declared claims' holders (up to `65535`
 of each scheme), the DA matrix of up to `1024` rows, the children's proofs, the tables built once
 (the discrete logarithm's, the generator's powers', the readers'). About `2^36.76`. -/
-def guestDecoderWitnessPriceAtValidCounts : ℕ := 116077077815
+def guestDecoderWitnessPriceAtValidCounts : ℕ := 116077062271
 
 /-- How many frame lookups the constant pays for: about `2^26.57`. -/
 def guestDecoderFrameLookupCountAtValidCounts : ℕ := 99702868
@@ -230,7 +230,7 @@ filing of the state, then the guest's tables of preconditions (`12895`) and of e
 (`7188478`), the address tables, the witness at a valid execution's counts and cursors, and its
 frame lookups. -/
 def guestDecoderPrice (κ ℓ steps : ℕ) : ℕ :=
-  (LeanVM.Cost.runnerStepPrice κ ℓ + 48 +
+  (LeanVM.Cost.runnerStepPrice κ ℓ + 46 +
       guestDecoderStateFilingPrice (guestDecoderEntryTableKeyExponent steps)) * (steps + 1) +
     12895 + 7188478 + guestDecoderAddressTablesPrice κ ℓ + guestDecoderWitnessPriceAtValidCounts +
     guestDecoderFrameLookupCountAtValidCounts *

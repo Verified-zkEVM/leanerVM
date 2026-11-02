@@ -243,12 +243,10 @@ theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProg
     (hexplains : LeanVM.Guest.End.DecoderExplains decoder) :
     Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.extractorProgram)
       (guestWitnessDecoder := decoderProgram) where
-  extractorSize := LeanVM.Cost.extractorProgram_size_le
   knowledgeSoundness := by
     rw [LeanVM.Cost.extractorOf_extractorProgram]
     exact LeanVM.knowledgeSoundness_holds
   completeness := LeanVM.completeness_holds
-  decoderSize := hspec.size
   guestKnowledge := LeanVM.Guest.End.guestKnowledge_of_spec hspec hexplains
   digestBinds := LeanVM.Guest.Binding.digest_binds
   guestCompleteCovered := LeanVM.Guest.Budget.guest_complete_covered
@@ -320,8 +318,8 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
   aggregateSound := by
     intro A Q hA hQ
     refine le_trans (prEvent_mono _ _ _ ?_) (h.knowledgeSoundness A Q hA hQ)
-    rintro ⟨⟨⟨⟨prog, input⟩, π⟩, b⟩, T⟩ ⟨s, hb, hprog, hpub, hs, hno⟩
-    dsimp only [LeanVM.ExperimentOutcome.program] at hprog
+    rintro ⟨prog, input, π, b, T⟩ ⟨s, hb, hprog, hpub, hs, hno⟩
+    dsimp only at hprog
     subst hprog
     refine ⟨hb, ?_⟩
     rintro ⟨t, hx, hv⟩
