@@ -122,9 +122,9 @@ coefficients, `k` levels. -/
 /-- The price of one lane beyond its Guruswami–Sudan run: at most `L` candidates of at most `k`
 coefficients, `N = 2^κ`, `M = 2^(κ+R)`. -/
 @[expose] def laneExtraBound (κ R L k : ℕ) : ℕ :=
-  ((272 * k + 33) * 2 ^ κ + κ * (760 * 2 ^ κ + 19790) + 57) * L +
-    ((17 * 2 ^ κ + 22) * L + 30) * L + (50 * 2 ^ κ + 124) * (L * L) +
-    (κ * (760 * 2 ^ (κ + R) + 19793) + 30 * 2 ^ (κ + R) + 61) * L + 60
+  ((46 * k + 34) * 2 ^ κ + κ * (174 * 2 ^ κ + 2921) + 51) * L +
+    ((21 * 2 ^ κ + 26) * L + 25) * L + (53 * 2 ^ κ + 95) * (L * L) +
+    (κ * (171 * 2 ^ (κ + R) + 2924) + 28 * 2 ^ (κ + R) + 60) * L + 44
 
 /-- The bound of the pruning over `U` lanes of `n = 2^(κ+R)` columns: the word's table (a column
 price `BW`, columns of at most `Lw` symbols), per lane its candidates (`G`) and the pruning step
