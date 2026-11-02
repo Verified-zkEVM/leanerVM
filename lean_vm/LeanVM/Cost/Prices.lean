@@ -41,10 +41,10 @@ def runnerTablesPrice (κ ℓ : ℕ) : ℕ :=
   (74 * κ + 121) * 2 ^ κ + (74 * ℓ + 121) * 2 ^ ℓ + 73 * ℓ + 357
 
 /-- The fast path (interpolation alone, for a word without errors), a column of `w` words read at
-`17·w + cW`. -/
+`15·w + cW`. -/
 def fastPathPrice (μ R w cW : ℕ) : ℕ :=
-  64 * ((μ - 6) * (1520 * 2 ^ (μ - 6 + R) + 39583) + 102 * 2 ^ (μ - 6 + R) + 17509) +
-    (17 * w + cW + 10 * w + 46) * 2 ^ (μ - 6 + R) + 1016 * 2 ^ μ + 1300
+  64 * ((μ - 6) * (345 * 2 ^ (μ - 6 + R) + 5845) + 108 * 2 ^ (μ - 6 + R) + 15013) +
+    (15 * w + cW + 12 * w + 44) * 2 ^ (μ - 6 + R) + 1008 * 2 ^ μ + 1071
 
 /-- One step of the transcript's replay, amortized: two lookups among `25`-word keys, one among
 `8`-word keys, three insertions into sorted maps below `2^D` entries, a block's `B` bytes; `W` the
@@ -74,7 +74,7 @@ def transcriptIndexPrice (D L N W : ℕ) : ℕ :=
 /-- The committed leaves: a tree of height `h`, leaves of `64` words, each lookup `D` levels of
 binary searches. -/
 def committedLeavesPrice (D h W : ℕ) : ℕ :=
-  2 ^ h * (2 * (D * (17 + (192 + 11 * W) * (D + 2)) + 40) + 64853 + 8 * h)
+  2 ^ h * (2 * (D * (20 + (162 + 9 * W) * (D + 2)) + 42) + 60712 + 5 * h)
 
 /-- The list decoder's part (the extractor's Guruswami–Sudan decoder over the `64` lanes, each
 interpolated by the approximant basis on `pmSolver`, and the pruning), beyond the word's reads, at
@@ -89,13 +89,13 @@ def listDecoderWorstPrice : ℕ := 20790986008017779583761482458
 def listDecoderPrice : ℕ := 1752 * 2 ^ 26 + listDecoderWorstPrice + 17
 
 /-- The bytecode's words: `16·2^ℓ` words. -/
-def bytecodeWordsPrice (ℓ : ℕ) : ℕ := 4700 * 2 ^ ℓ + 1100
+def bytecodeWordsPrice (ℓ : ℕ) : ℕ := 4320 * 2 ^ ℓ + 947
 
 /-- The stage after the stack's root: the transcript's index, the committed leaves of height `h`,
 the fast path, the runner's tables, at most `1 + 2^18` candidate runs and the list decoder. -/
 def afterRootStagePrice (μ R κ ℓ D N h W : ℕ) : ℕ :=
-  transcriptIndexPrice D 512 N W + committedLeavesPrice D h W + fastPathPrice μ R 64 24 +
-    runnerTablesPrice κ ℓ + (stackRunPrice κ ℓ + 15) * (2 ^ 18 + 1) + listDecoderPrice + 133
+  transcriptIndexPrice D 512 N W + committedLeavesPrice D h W + fastPathPrice μ R 64 23 +
+    runnerTablesPrice κ ℓ + (stackRunPrice κ ℓ + 21) * (2 ^ 18 + 1) + listDecoderPrice + 133
 
 /-- The levels of the extractor's sorted maps for `N` permutation queries: `log₂(N + 2) + 1`. -/
 def extractorSortedMapLevels (N : ℕ) : ℕ := Nat.log2 (N + 2) + 1
