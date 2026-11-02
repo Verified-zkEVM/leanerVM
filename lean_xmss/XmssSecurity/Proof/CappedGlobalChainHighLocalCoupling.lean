@@ -150,7 +150,6 @@ noncomputable def globalFilteredCausalLeafHashPlan
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 noncomputable def globalFilteredCausalUncachedAttackerHashPlan
     (secretKey : SecretKey) (input : HashInput)
@@ -352,7 +351,6 @@ theorem globalCausalAttackerHashQueryFromHigh_isProbeQueryBoundP
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 theorem relTriple_programmed_globalFilteredHashQuery_cached
     (left : ProgrammedGlobalChainKeygenView)
@@ -487,7 +485,6 @@ theorem relTriple_programmed_globalFilteredHashQuery_redirect
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 theorem relTriple_programmed_globalFilteredHashQuery_revealEdge
     (left : ProgrammedGlobalChainKeygenView)
@@ -588,7 +585,6 @@ theorem relTriple_programmed_globalFilteredHashQuery_revealEdge
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 def GlobalFilteredHashUntilHitRelation
     (left : ProgrammedGlobalChainKeygenView)

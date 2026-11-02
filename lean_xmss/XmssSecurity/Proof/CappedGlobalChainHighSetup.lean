@@ -12,7 +12,6 @@ open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.CappedChain
 
-set_option maxHeartbeats 2000000
 set_option maxRecDepth 1000000
 set_option linter.constructorNameAsVariable false
 
@@ -231,7 +230,6 @@ theorem relTriple_coupledGlobalChainKeygen_withBaseHigh
 
 
 set_option maxRecDepth 2000000
-set_option maxHeartbeats 3000000
 set_option linter.constructorNameAsVariable false
 
 noncomputable def coupledGlobalChainKeygenWithBaseHighFull :
@@ -423,7 +421,6 @@ theorem relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable :
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 noncomputable def globalFilteredCausalKeygenState
     (view : ProgrammedGlobalChainKeygenView) : GlobalCausalHashState := by
@@ -730,7 +727,6 @@ def GlobalFilteredHashResultRelation
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 structure GlobalFilteredResultRelation (Output : Type)
     (parameter : PublicParameter)
@@ -810,7 +806,6 @@ theorem relTriple_globalEncodingHash_run_filtered
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 theorem programmedGlobal_filteredKeygen_stateRelation
     (left : ProgrammedGlobalChainKeygenView)
@@ -868,7 +863,6 @@ theorem programmedGlobal_filteredKeygen_stateRelation
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 noncomputable def globalChainValueHighTableOfEdges
     (high : GlobalChainEdgeIndex → Digest) :
@@ -1377,7 +1371,6 @@ theorem relTriple_programmed_globalFilteredCausalSigningQuery
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 theorem globalChainTableEdgeInput_not_signingComparable
     (parameter : PublicParameter)

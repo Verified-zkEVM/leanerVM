@@ -13,7 +13,6 @@ open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity
 
-set_option maxHeartbeats 2000000
 
 theorem relTriple_enforcedHit_append
     [Fintype Index] [DecidableEq Index]

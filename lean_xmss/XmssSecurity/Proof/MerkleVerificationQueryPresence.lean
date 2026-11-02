@@ -8,7 +8,6 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.Concrete.CacheReplay
 
-set_option maxHeartbeats 2000000
 set_option linter.constructorNameAsVariable false
 
 def verificationAfterEncoding (publicKey : PublicKey) (leafIndex : LeafIndex)

@@ -10,7 +10,6 @@ open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.CappedChain
 
-set_option maxHeartbeats 2000000
 set_option maxRecDepth 1000000
 
 noncomputable def globalHighDirectUniformImpl :
@@ -385,7 +384,6 @@ def globalHighMonitoredDirectProjection
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 def globalHighDirectErasedResult
     (result : GlobalHighDirectResult) :

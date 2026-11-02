@@ -11,7 +11,6 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
 
-set_option maxHeartbeats 10000
 
 noncomputable def keygenStructuralTargetInput
     (secretKey : SecretKey) (cache : QueryCache HashSpec)

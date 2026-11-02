@@ -1189,7 +1189,6 @@ theorem evalDist_globalFirstLaneExactCoupledProjection_eq_eagerExperiment
 
 
 set_option maxRecDepth 2000000
-set_option maxHeartbeats 2000000
 set_option linter.constructorNameAsVariable false
 
 def liftGlobalChainTrace

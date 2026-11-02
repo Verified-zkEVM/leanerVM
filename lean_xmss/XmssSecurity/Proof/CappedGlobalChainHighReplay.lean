@@ -11,7 +11,6 @@ open OracleComp.ProgramLogic.Relational
 namespace XmssSecurity.CappedChain
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 theorem globalFilteredCausalAttackerHashPlan_eq_leafProbeThenFresh
     (secretKey : SecretKey) (state : GlobalCausalHashState)
@@ -74,7 +73,6 @@ theorem globalFilteredCausalAttackerHashPlan_eq_leafFresh_of_mismatch
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 theorem globalLeaf_not_match_endpoint_miss
     (table : GlobalChainValueIndex → Digest)
@@ -221,7 +219,6 @@ theorem relTriple_programmed_globalFilteredLeafHashQuery_until_hit
 
 
 set_option maxRecDepth 10000000
-set_option maxHeartbeats 2000000
 
 theorem Concrete.keygen_cache_none_at_global_chainAddress_of_probe_none
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
@@ -338,7 +335,6 @@ theorem relTriple_programmed_globalFilteredOrdinaryHashQuery
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 def GlobalMerkleKeygenCacheRetained
     (secretKey : SecretKey) (state : GlobalCausalHashState) : Prop :=
@@ -472,7 +468,6 @@ theorem relTriple_programmed_globalFilteredAttackerHashQuery_until_hit
 
 
 set_option maxRecDepth 10000000
-set_option maxHeartbeats 2000000
 
 theorem GlobalMerkleKeygenCacheRetained.recordedState
     {secretKey : SecretKey} {state : GlobalCausalHashState}
