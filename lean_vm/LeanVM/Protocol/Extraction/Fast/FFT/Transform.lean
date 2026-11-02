@@ -228,7 +228,8 @@ structure MulSchedule (F : Type*) [Field F] [BEq F] [LawfulBEq F] where
 points, `j` least with `2^j ≥ |p| + |q| − 1`, if `j ≤ maxLog` (else `S.fallback`). -/
 @[expose] def mulVia (T : PointTransform F Plan) (S : MulSchedule F) (p q : CPolynomial F) :
     CPolynomial F :=
-  if p.val.size ≤ S.small ∨ q.val.size ≤ S.small then p * q
+  if p.val.size ≤ S.small then p * q
+  else if q.val.size ≤ S.small then q * p
   else if p.val.size ≤ S.mid ∧ q.val.size ≤ S.mid then S.fallback.mul p q
   else
     let j := logAbove (p.val.size + q.val.size - 2)
@@ -243,16 +244,19 @@ theorem mulVia_eq (T : PointTransform F Plan) (S : MulSchedule F) (p q : CPolyno
   unfold mulVia
   split
   · rfl
-  · rename_i hc
-    split
-    · exact S.fallback.mul_eq_mul p q
-    · dsimp only
+  · split
+    · exact CPolynomial.toPoly_injective (by
+        rw [CPolynomial.toPoly_mul, CPolynomial.toPoly_mul, mul_comm])
+    · rename_i hp hq
       split
-      · rename_i hj
-        have h2 := lt_two_pow_logAbove (p.val.size + q.val.size - 2)
-        have hpq := size_mul_le p q (by omega) (by omega)
-        exact T.inv_pmul_fwd hj p q (by omega) (by omega) (by omega)
       · exact S.fallback.mul_eq_mul p q
+      · dsimp only
+        split
+        · rename_i hj
+          have h2 := lt_two_pow_logAbove (p.val.size + q.val.size - 2)
+          have hpq := size_mul_le p q (by omega) (by omega)
+          exact T.inv_pmul_fwd hj p q (by omega) (by omega) (by omega)
+        · exact S.fallback.mul_eq_mul p q
 
 /-- CompPoly's multiplication context for the transform's product. -/
 @[expose] def mulContextOf (T : PointTransform F Plan) (S : MulSchedule F) : CPolynomial.MulContext F where
