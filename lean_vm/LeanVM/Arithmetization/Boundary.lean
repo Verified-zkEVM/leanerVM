@@ -181,14 +181,15 @@ def memTable : GeneralFormalCircuit K MemRow unit where
 /-- The seed row of word `i` of the image `mem`, with finalize count `cntFin`: the address `g^i`
 and the word's limbs. -/
 def memRowOf {κ : ℕ} (mem : MemoryImage κ) (i : Fin (2 ^ κ)) (cntFin : K) : MemRow K :=
-  ⟨gpow i, cntFin, #v[(mem i).limb 0, (mem i).limb 1, (mem i).limb 2]⟩
+  ⟨addressOfIndex i, cntFin, #v[(mem i).limb 0, (mem i).limb 1, (mem i).limb 2]⟩
 
 /-- On an image within the address space `gLog?_spec` covers, `memRowOf` is bound, with any
 finalize count. -/
 theorem memRowOf_bindings {κ : ℕ} (hκ : κ < 64) (mem : MemoryImage κ) (i : Fin (2 ^ κ))
     (cntFin : K) : MemBindings mem (memRowOf mem i cntFin) :=
   ⟨by
-    show mem.read (gpow i) = some (E.ofLimbs ((mem i).limb 0) ((mem i).limb 1) ((mem i).limb 2))
+    show mem.read (addressOfIndex i) = some (E.ofLimbs ((mem i).limb 0) ((mem i).limb 1) ((mem
+        i).limb 2))
     rw [MemoryImage.read_gpow hκ, ofLimbs_limb]⟩
 
 /-- Every word of the image named by the data has a satisfying seed row, from the image alone:
@@ -229,7 +230,7 @@ and the row's entry decodes to it. The per-row reading of `BytecodeRowsAreThePro
 the statement's conjunct that the block's rows are the program's, and never the block's `Spec`
 (the module docstring): `Soundness` derives it for every seed row from the conjunct, and
 `bytecodeRowOf_bindings` proves it of every row the builder writes. -/
-structure BytecodeBindings (prog : Program) (r : BytecodeRow K) : Prop where
+structure BytecodeBindings (prog : LeanIsaProgram) (r : BytecodeRow K) : Prop where
   /-- The program fetches at `idx` the instruction the row's entry decodes to. -/
   entry_eq : ∃ ins, prog.fetch r.idx = some ins ∧ decode (#v[r.opcode] ++ r.op) = some ins
 
@@ -271,30 +272,34 @@ private theorem cons_append_ops (e : Vector K 11) :
 
 /-- The seed row of slot `i` of the program `prog`, with finalize count `cntFin`: the counter
 `g^i` and the slot's `entry` as the opcode and the ten operand slots. -/
-def bytecodeRowOf (prog : Program) (i : Fin (2 ^ prog.logSize)) (cntFin : K) : BytecodeRow K :=
-  let e := entry (prog.code i)
-  ⟨gpow i, cntFin, e[0], #v[e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8], e[9], e[10]]⟩
+def bytecodeRowOf (prog : LeanIsaProgram) (i : Fin (2 ^ prog.logSize)) (cntFin : K) :
+    BytecodeRow K :=
+  let e := busEntry (prog.instructions i)
+  ⟨addressOfIndex i, cntFin, e[0], #v[e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8], e[9], e[10]]⟩
 
 /-- `bytecodeRowOf` is bound to its program, with any finalize count. -/
-theorem bytecodeRowOf_bindings (prog : Program) (i : Fin (2 ^ prog.logSize)) (cntFin : K) :
+theorem bytecodeRowOf_bindings (prog : LeanIsaProgram) (i : Fin (2 ^ prog.logSize)) (cntFin : K) :
     BytecodeBindings prog (bytecodeRowOf prog i cntFin) :=
   ⟨_, prog.fetch_gpow i, by
-    show decode (#v[(entry (prog.code i))[0]] ++ #v[(entry (prog.code i))[1],
-      (entry (prog.code i))[2], (entry (prog.code i))[3], (entry (prog.code i))[4],
-      (entry (prog.code i))[5], (entry (prog.code i))[6], (entry (prog.code i))[7],
-      (entry (prog.code i))[8], (entry (prog.code i))[9], (entry (prog.code i))[10]]) = some _
+    show decode (#v[(busEntry (prog.instructions i))[0]] ++ #v[(busEntry (prog.instructions i))[1],
+      (busEntry (prog.instructions i))[2], (busEntry (prog.instructions i))[3], (busEntry
+          (prog.instructions i))[4],
+      (busEntry (prog.instructions i))[5], (busEntry (prog.instructions i))[6], (busEntry
+          (prog.instructions i))[7],
+      (busEntry (prog.instructions i))[8], (busEntry (prog.instructions i))[9], (busEntry
+          (prog.instructions i))[10]]) = some _
     rw [cons_append_ops]
     exact decode_entry _⟩
 
 /-- `bytecodeRowOf` decodes, with any finalize count: the block's `Spec` of every row the
 builder writes. -/
-theorem bytecodeRowOf_decodes (prog : Program) (i : Fin (2 ^ prog.logSize)) (cntFin : K) :
+theorem bytecodeRowOf_decodes (prog : LeanIsaProgram) (i : Fin (2 ^ prog.logSize)) (cntFin : K) :
     BytecodeDecodes (bytecodeRowOf prog i cntFin) :=
   ⟨(bytecodeRowOf_bindings prog i cntFin).entry_eq.imp fun _ h ↦ h.2⟩
 
 /-- Every slot of a program has a satisfying seed row, from the program alone and over any
 data: the constraints of `main` hold of `bytecodeRowOf` in the row environment. -/
-theorem bytecode_entry_complete {data : ProverData K} (prog : Program)
+theorem bytecode_entry_complete {data : ProverData K} (prog : LeanIsaProgram)
     (i : Fin (2 ^ prog.logSize)) (cntFin : K) :
     ConstraintsHold.Completeness (rowEnv data)
       ((bytecodeTable.main (const (bytecodeRowOf prog i cntFin))).operations 0) :=
@@ -309,7 +314,7 @@ theorem bytecode_entry_complete {data : ProverData K} (prog : Program)
 `(g^(N_prog - 1), 1)`, the counter a constant of the program as `Const(g_pow(final_pc))` is
 (`layout.rs:334`, `:356`). `Spec` is `True`: the state pull carries no guarantee, and the
 run the boundary closes is `exists_run_of_balanced`. -/
-def leanIsaVerifier (prog : Program) : GeneralFormalCircuit K PublicIO unit where
+def leanIsaVerifier (prog : LeanIsaProgram) : GeneralFormalCircuit K PublicIO unit where
   main _ := do
     StatePush.push ⟨1, 1⟩
     StatePull.pull ⟨Expression.const prog.pcFinal, 1⟩
@@ -334,7 +339,7 @@ theorem verifier_push_eval (env : Environment K) :
 
 /-- The state the verifier pulls is `Registers.final prog`, in every environment: the
 counter is a constant of the component, not a column or a public coordinate. -/
-theorem verifier_pull_eval (prog : Program) (env : Environment K) :
+theorem verifier_pull_eval (prog : LeanIsaProgram) (env : Environment K) :
     eval env (⟨Expression.const prog.pcFinal, 1⟩ : Registers (Expression K)) = Registers.final prog := by
   simp only [circuit_norm]; rfl
 

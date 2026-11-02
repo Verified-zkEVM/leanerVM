@@ -25,13 +25,15 @@ open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section
 
-theorem gpow_ne_window {e e' : ℕ} (h : e < e') (h' : e' - e < 2 ^ 64 - 1) : gpow e ≠ gpow e' := by
+theorem gpow_ne_window {e e' : ℕ} (h : e < e') (h' : e' - e < 2 ^ 64 - 1) : addressOfIndex e ≠
+    addressOfIndex e' := by
   intro heq
   have hadd := gpow_add' e (e' - e)
   rw [Nat.add_sub_cancel' h.le, ← heq] at hadd
-  have h1 : gpow (e' - e) = gpow 0 := by
+  have h1 : addressOfIndex (e' - e) = addressOfIndex 0 := by
     have hne := gpow_ne_zero e
-    have : gpow e * gpow (e' - e) = gpow e * 1 := by rw [hadd, mul_one]
+    have : addressOfIndex e * addressOfIndex (e' - e) = addressOfIndex e * 1 :=
+        by rw [hadd, mul_one]
     rw [mul_left_cancel₀ hne this]; rfl
   have := gpow_injOn (show e' - e ∈ Set.Iio (2 ^ 64 - 1) from h')
     (show (0 : ℕ) ∈ Set.Iio (2 ^ 64 - 1) by simp) h1
@@ -76,10 +78,10 @@ theorem one_add_gen_pow_ne_zero {n : ℕ} (hn0 : 0 < n) (hn : n < 2 ^ 64 - 1) : 
   rw [LeanVM.Guest.Value.gen_pow_eq_ofK, ← ofK_one, ← ofK_add]
   intro h
   rw [← ofK_zero] at h
-  have h1 : (1 : K) + gpow n = 0 := ofK_injective h
-  have hg : gpow n = gpow 0 := by
+  have h1 : (1 : K) + addressOfIndex n = 0 := ofK_injective h
+  have hg : addressOfIndex n = addressOfIndex 0 := by
     have h2 : (2 : K) = 0 := by decide
-    show gpow n = 1
+    show addressOfIndex n = 1
     linear_combination h1 - h2
   have := gpow_injOn (show n ∈ Set.Iio (2 ^ 64 - 1) from hn)
     (show (0 : ℕ) ∈ Set.Iio (2 ^ 64 - 1) by simp) hg

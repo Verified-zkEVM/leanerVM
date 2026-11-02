@@ -12,10 +12,10 @@ namespace SphincsLayered.Security
 payload. -/
 theorem fieldInput_injective {fields fields' : TweakFields}
     {parameter parameter' : PublicParameter} {payload payload' : HashInput}
-    (h : bytesLE 16 parameter ++ fieldBytes fields ++ payload =
-      bytesLE 16 parameter' ++ fieldBytes fields' ++ payload') :
+    (h : littleEndianBytes 16 parameter ++ addressBytes fields ++ payload =
+      littleEndianBytes 16 parameter' ++ addressBytes fields' ++ payload') :
     fields = fields' ∧ parameter = parameter' ∧ payload = payload' := by
-  obtain ⟨hprefix, hpayload⟩ := List.append_inj h (by simp [fieldBytes, bytesLE_length])
+  obtain ⟨hprefix, hpayload⟩ := List.append_inj h (by simp [addressBytes, bytesLE_length])
   obtain ⟨hparameter, hfields⟩ := List.append_inj hprefix (by simp [bytesLE_length])
   exact ⟨fieldBytes_injective hfields, bytesLE_injective hparameter, hpayload⟩
 

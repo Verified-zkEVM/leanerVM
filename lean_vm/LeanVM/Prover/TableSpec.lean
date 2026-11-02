@@ -32,7 +32,7 @@ open LeanVM.Protocol.EndToEnd.Complete
 
 @[expose] public section
 
-variable (prog : Program) (s : Sizes) (q : LeanVM.Protocol.Column (leanIsaμ prog s))
+variable (prog : LeanIsaProgram) (s : Sizes) (q : LeanVM.Protocol.Column (leanIsaμ prog s))
 
 /-- Table `t`'s constraints and forms at the evaluations `ev`. -/
 def rowPart (cp fp : List E) (bus : BusResult) (t : Fin 6) (ev : List E) : E :=

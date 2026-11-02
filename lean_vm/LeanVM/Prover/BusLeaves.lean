@@ -36,7 +36,8 @@ open LeanVM.Protocol (Column)
 @[expose] public section
 
 /-- **The columns as arrays**: entry `pyCol c` of `cols` is column `c`'s table. -/
-def ColsOk (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) (cols : Array (Array K)) :
+def ColsOk (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) (cols : Array
+    (Array K)) :
     Prop :=
   ∀ c : Col, cols.getD (pyCol c) #[] = ((inst prog s).column q c).values.toArray
 
@@ -121,7 +122,7 @@ theorem getD_powsA_gen {n y : ℕ} (hy : y < n) : (powsA gen n).getD y 0 = Proto
 
 section Cols
 
-variable {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)} {cols : Array (Array K)}
+variable {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ prog s)} {cols : Array (Array K)}
 
 /-- A cell of a column read off the arrays. -/
 theorem cell_eq (hcols : ColsOk prog s q cols) (c : Col) {y : ℕ} (hy : y < 2 ^ kappa prog s c) :

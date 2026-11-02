@@ -106,14 +106,14 @@ theorem os_completeAtB_cfg (hrf : Lift.RunsFit fs cert) {Bk : String → ℕ} {c
     (hcaps : Whir.CapsAgree μ r target S xs os root)
     {Lin : Layout} (hLin : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd cur xs) :
     CompleteAtB fs cert κ name Lin
-      (capOf S ++ [target, (digestScalars root).1, (digestScalars root).2, cur]) (OsOut μ w)
+      (capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur]) (OsOut μ w)
       (osBos fs Bk name c) := by
   obtain ⟨c0, c2, tr, hfit, hplen, hptC, hpt1C, hbody, hrunT⟩ := osBodyA_honest hF hP.sizes hrun hnz
   have hlen : tr.Ls.length = c.levels.length := hfit.len
   have hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap := by
     rw [hplen]; exact hF.mu40
   have htl : tr.Lf.ml ≤ yrLogCap := by rw [lf_ml hF hfit]; exact hP.sizes.yr
-  set args := capOf S ++ [target, (digestScalars root).1, (digestScalars root).2, cur] with hargs
+  set args := capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur] with hargs
   have hb' : fn.body = osBodyA c ++ [.ret (osFinishRet c (osTlSt c).2.1 (osTlSt c).2.2)] := by
     rw [hb, osBody_split]
   refine os_completeAt_placeJB hfind hloop κ Lin args (OsOut μ w) hb' (osBodyA_straight c)

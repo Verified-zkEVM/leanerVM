@@ -32,7 +32,7 @@ open LeanVM.Protocol.EndToEnd.Complete
 
 @[expose] public section
 
-variable (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 
 theorem tau_sub_add : s.τ 5 - 4 + 4 = s.τ 5 := by
   have := s.minSteps_le

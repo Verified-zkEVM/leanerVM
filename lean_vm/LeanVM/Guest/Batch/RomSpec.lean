@@ -82,7 +82,7 @@ theorem card_filter_le {p : E → Prop} {_ : DecidablePred p} {m : ℕ} (h : {c 
 open Classical in
 /-- **Constant doom**: any program keeps a doom that ignores the history, at the potential the
 follower's lead. -/
-noncomputable def constSpec {α : Type} (p : Prog α) (φ : Prop) {εmax T : ℝ≥0∞}
+noncomputable def constSpec {α : Type} (p : VerifierProgram α) (φ : Prop) {εmax T : ℝ≥0∞}
     (hT : T ≤ εmax) : Spec p (fun _ ↦ φ) (fun _ _ ↦ φ) εmax T T where
   D _ _ := φ
   V _ _ := if φ then min 1 T else 1
@@ -149,7 +149,7 @@ theorem lam_bad_card {G : List E} {n : ℕ} (hG : G.length = 2 * n) (hg : ∃ g 
 /-- **The challenge `λ`**, for `n < M` children whose `2n` gaps are not all zero: doom kept, the
 gaps' combination by `λ`'s powers nonzero, but for a fraction `batchε M` of its values. -/
 noncomputable def lamSpec (G : List E) {n M : ℕ} (hG : G.length = 2 * n) (hn : n < M) :
-    Spec Prog.sampleChallenge (fun _ ↦ ∃ g ∈ G, g ≠ 0)
+    Spec VerifierProgram.sampleChallenge (fun _ ↦ ∃ g ∈ G, g ≠ 0)
       (fun c _ ↦ dot (flat2 (lambdaPowers c n)) G ≠ 0) (batchε M) (batchε M) 0 :=
   (Spec.sampleE (Pre := fun _ ↦ ∃ g ∈ G, g ≠ 0)
       (Post := fun c _ ↦ dot (flat2 (lambdaPowers c n)) G ≠ 0) (T := 0) (batchε M)
@@ -243,8 +243,8 @@ theorem length_gapsB (bytecode : List K) (cs : List ChildClaims) :
 noncomputable def endSpec (M : ℕ) (φ : Prop) (C : E → Prop) {_ : ∀ a, Decidable (C a)}
     (h : ∀ a, φ → C a → False) :
     Spec (do
-        let a ← Prog.readScalar
-        Prog.require (C a)
+        let a ← VerifierProgram.readScalar
+        VerifierProgram.require (C a)
         return true) (fun _ ↦ φ) (fun b _ ↦ b = false) (batchε M) 0 0 :=
   (constSpec _ φ zero_le).bind' fun a ↦
     (Spec.require (Post := fun _ _ ↦ False) fun _ hφ hc ↦ h a hφ hc).bind' fun _ ↦

@@ -75,17 +75,17 @@ theorem vsHeadT_holds (h : Stmt.HoldsList C rd σ vsHeadT next kret) :
 
 /-- A digest of two canonical cells. -/
 theorem digest_of_canonical {a b : E} (ha : IsCanonical128 a) (hb : IsCanonical128 b) :
-    ∃ d : Digest, (a, b) = digestScalars d := by
-  obtain ⟨d, hd⟩ : ∃ d, digestOfScalars (a, b) = some d :=
-    ⟨_, by simp only [digestOfScalars, ha, hb, and_self, ↓reduceIte]; exact rfl⟩
+    ∃ d : Digest, (a, b) = digestHalves d := by
+  obtain ⟨d, hd⟩ : ∃ d, digestFromHalves (a, b) = some d :=
+    ⟨_, by simp only [digestFromHalves, ha, hb, and_self, ↓reduceIte]; exact rfl⟩
   exact ⟨d, (digestScalars_digestOfScalars hd).symm⟩
 
 /-- **The seed** (G:3155-3157; V:2338): the four cells are two digests' cells, and the capacity
 the atom writes is the seed state's. -/
 theorem vs_seed (hk : vsSeedAtom.Holds rd σ) (h10 : σ (.n 10) = 0) (h11 : σ (.n 11) = 0)
     (h12 : σ (.n 12) = 0) (h13 : σ (.n 13) = 0) :
-    ∃ seed pi : Digest, (σ (.n 2), σ (.n 3)) = digestScalars seed ∧
-      (σ (.n 0), σ (.n 1)) = digestScalars pi ∧
+    ∃ seed pi : Digest, (σ (.n 2), σ (.n 3)) = digestHalves seed ∧
+      (σ (.n 0), σ (.n 1)) = digestHalves pi ∧
       [σ (.n 22), σ (.n 23), σ (.n 24), σ (.n 25), σ (.n 26)] =
         capOf (keccakF1600 (seedInput seed pi)) := by
   obtain ⟨-, -, hc, -⟩ := keccakA_perm hk
@@ -109,8 +109,8 @@ theorem vs_seed (hk : vsSeedAtom.Holds rd σ) (h10 : σ (.n 10) = 0) (h11 : σ (
       obtain rfl : k = 0 := by omega
       exact hK)
   simp only [one_ne_zero, ↓reduceIte] at hch
-  rw [show [σ (.n 2), σ (.n 3), σ (.n 0), σ (.n 1)] = [(digestScalars seed).1,
-    (digestScalars seed).2, (digestScalars pi).1, (digestScalars pi).2] by rw [← es, ← ep],
+  rw [show [σ (.n 2), σ (.n 3), σ (.n 0), σ (.n 1)] = [(digestHalves seed).1,
+    (digestHalves seed).2, (digestHalves pi).1, (digestHalves pi).2] by rw [← es, ← ep],
     Keccak.absorbChunks_seed] at hch
   simp only [capOf]
   rw [← congrFun hch 8, ← congrFun hch 9, ← congrFun hch 10, ← congrFun hch 11, ← congrFun hch 12]

@@ -23,7 +23,7 @@ def runOn (deps : List (ℕ × Term)) (i : ℕ) (vs : List MachineValue) : Optio
   evaluateFunctionBody (MachineProgram.ofList deps) 100000 i vs
 
 /-- A valuation whose value `v` is `g^(v mod 61)`. -/
-def powSigma (v : V) : E := ofK (LeanVM.Parameters.gpow (v.idx % 61))
+def powSigma (v : V) : E := ofK (LeanVM.Parameters.addressOfIndex (v.idx % 61))
 cost_compile powSigmaC := powSigma
 
 /-- A memory of `0`/`1` words, read at a constant price: `1` where the address's lane is a

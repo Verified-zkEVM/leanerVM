@@ -30,12 +30,12 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization
 
 /-! ## Separators and directions (specification §5.1; `tables.rs:94-96`) -/
 
-#guard channelSep StatePull.toRaw = gpow 0
-#guard channelSep StatePush.toRaw = gpow 0
-#guard channelSep MemPull.toRaw = gpow 1
-#guard channelSep MemPush.toRaw = gpow 1
-#guard channelSep BytecodePull.toRaw = gpow 2
-#guard channelSep BytecodePush.toRaw = gpow 2
+#guard channelSep StatePull.toRaw = addressOfIndex 0
+#guard channelSep StatePush.toRaw = addressOfIndex 0
+#guard channelSep MemPull.toRaw = addressOfIndex 1
+#guard channelSep MemPush.toRaw = addressOfIndex 1
+#guard channelSep BytecodePull.toRaw = addressOfIndex 2
+#guard channelSep BytecodePush.toRaw = addressOfIndex 2
 
 #guard channelDir StatePull.toRaw = .pull
 #guard channelDir MemPull.toRaw = .pull
@@ -50,7 +50,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization
 #guard channelSep BytecodePull.toRaw = K.ofBits 0x4
 
 /-- Separators and directions decide in the kernel. -/
-example : channelSep MemPull.toRaw = gpow 1 ∧ channelDir MemPull.toRaw = .pull ∧
+example : channelSep MemPull.toRaw = addressOfIndex 1 ∧ channelDir MemPull.toRaw = .pull ∧
     channelDir MemPush.toRaw = .push := by
   decide
 
@@ -71,21 +71,25 @@ example : channelSep foreign ≠ channelSep MemPull.toRaw := by decide
 
 /-! ## Element orders (specification §6.1, §6.2, §6.4; `tables.rs:131-170`) -/
 
-def st : Registers K := ⟨gpow 3, gpow 5⟩
-def mm : MemMsg K := ⟨gpow 3 * gpow 5, gpow 2, #v[K.ofBits 7, K.ofBits 8, K.ofBits 9]⟩
-def bm : BytecodeMsg K := ⟨gpow 3, gpow 4, Opcode.deref.code, #v[gpow 4, 1, gpow 5, 1, 0, 0, 0, 0, 0, 0]⟩
+def st : Registers K := ⟨addressOfIndex 3, addressOfIndex 5⟩
+def mm : MemMsg K := ⟨addressOfIndex 3 * addressOfIndex 5, addressOfIndex 2, #v[K.ofBits 7, K.ofBits
+    8, K.ofBits 9]⟩
+def bm : BytecodeMsg K := ⟨addressOfIndex 3, addressOfIndex 4, Opcode.deref.busCode, #v[addressOfIndex 4, 1, addressOfIndex 5, 1, 0, 0, 0, 0, 0, 0]⟩
 
-#guard (toElements st).toList = [gpow 3, gpow 5]
-#guard (toElements mm).toList = [gpow 3 * gpow 5, gpow 2, K.ofBits 7, K.ofBits 8, K.ofBits 9]
+#guard (toElements st).toList = [addressOfIndex 3, addressOfIndex 5]
+#guard (toElements mm).toList = [addressOfIndex 3 * addressOfIndex 5, addressOfIndex 2, K.ofBits 7,
+    K.ofBits 8, K.ofBits 9]
 #guard (toElements bm).toList =
-  [gpow 3, gpow 4, Opcode.deref.code, gpow 4, 1, gpow 5, 1, 0, 0, 0, 0, 0, 0]
+  [addressOfIndex 3, addressOfIndex 4, Opcode.deref.busCode, addressOfIndex 4, 1, addressOfIndex 5,
+      1, 0, 0, 0, 0, 0, 0]
 
 /-- The orders as theorems, through the three `toElements` lemmas. -/
-example : (toElements st).toList = [gpow 3, gpow 5] := regs_toElements st
-example : (toElements mm).toList = [gpow 3 * gpow 5, gpow 2, K.ofBits 7, K.ofBits 8, K.ofBits 9] := by
+example : (toElements st).toList = [addressOfIndex 3, addressOfIndex 5] := regs_toElements st
+example : (toElements mm).toList = [addressOfIndex 3 * addressOfIndex 5, addressOfIndex 2, K.ofBits 7, K.ofBits 8, K.ofBits 9] := by
   rw [memMsg_toElements]; rfl
 example : (toElements bm).toList =
-    [gpow 3, gpow 4, Opcode.deref.code, gpow 4, 1, gpow 5, 1, 0, 0, 0, 0, 0, 0] := by
+    [addressOfIndex 3, addressOfIndex 4, Opcode.deref.busCode, addressOfIndex 4, 1, addressOfIndex
+        5, 1, 0, 0, 0, 0, 0, 0] := by
   rw [bytecodeMsg_toElements]; rfl
 
 -- Sizes: two, five, and thirteen coordinates after the separator.
@@ -101,11 +105,13 @@ example : (toElements Registers.initial).toList = [1, 1] := by
 /-! ## The sixteen-slot tuples (specification §5.1) -/
 
 #guard (busTuple StatePull.toRaw (toElements st).toList).toList =
-  [1, gpow 3, gpow 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  [1, addressOfIndex 3, addressOfIndex 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 #guard (busTuple MemPush.toRaw (toElements mm).toList).toList =
-  [g, gpow 3 * gpow 5, gpow 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  [g, addressOfIndex 3 * addressOfIndex 5, addressOfIndex 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0]
 #guard (busTuple BytecodePull.toRaw (toElements bm).toList).toList =
-  [g ^ 2, gpow 3, gpow 4, Opcode.deref.code, gpow 4, 1, gpow 5, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+  [g ^ 2, addressOfIndex 3, addressOfIndex 4, Opcode.deref.busCode, addressOfIndex 4, 1,
+      addressOfIndex 5, 1, 0, 0, 0, 0, 0, 0, 0, 0]
 
 /-- Slot `0` is the separator, slot `3` the first limb, slot `6` the padding. -/
 example : (busTuple MemPull.toRaw (toElements mm).toList)[0] = g ∧
@@ -220,17 +226,17 @@ example : ¬ WellShapedData emptyData := by
 def one : Fin (2 ^ (imageOf sampleData).1) := ⟨1, by rw [sampleData_logSize]; decide⟩
 
 /-- A correct read satisfies the memory guarantee: word `1` sits at `g^1`. -/
-example : MemPull.Guarantees ⟨gpow 1, gpow 0, #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]⟩ sampleData := by
-  show (imageOf sampleData).2.read (gpow 1) = some (E.ofLimbs (K.ofBits 4) (K.ofBits 5) (K.ofBits 6))
-  rw [show gpow 1 = gpow (one : ℕ) from rfl,
+example : MemPull.Guarantees ⟨addressOfIndex 1, addressOfIndex 0, #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]⟩ sampleData := by
+  show (imageOf sampleData).2.read (addressOfIndex 1) = some (E.ofLimbs (K.ofBits 4) (K.ofBits 5) (K.ofBits 6))
+  rw [show addressOfIndex 1 = addressOfIndex (one : ℕ) from rfl,
     MemoryImage.read_gpow (by rw [sampleData_logSize]; decide),
     imageOf_apply sampleData_wellShaped one (v := #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]) (by decide +kernel)]
   rfl
 
 /-- A wrong word does not: the guarantee is a statement about the committed image. -/
-example : ¬ MemPull.Guarantees ⟨gpow 1, gpow 0, #v[K.ofBits 4, K.ofBits 5, K.ofBits 7]⟩ sampleData := by
-  show ¬ (imageOf sampleData).2.read (gpow 1) = some (E.ofLimbs (K.ofBits 4) (K.ofBits 5) (K.ofBits 7))
-  rw [show gpow 1 = gpow (one : ℕ) from rfl,
+example : ¬ MemPull.Guarantees ⟨addressOfIndex 1, addressOfIndex 0, #v[K.ofBits 4, K.ofBits 5, K.ofBits 7]⟩ sampleData := by
+  show ¬ (imageOf sampleData).2.read (addressOfIndex 1) = some (E.ofLimbs (K.ofBits 4) (K.ofBits 5) (K.ofBits 7))
+  rw [show addressOfIndex 1 = addressOfIndex (one : ℕ) from rfl,
     MemoryImage.read_gpow (by rw [sampleData_logSize]; decide),
     imageOf_apply sampleData_wellShaped one (v := #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]) (by decide +kernel)]
   decide +kernel
@@ -238,23 +244,24 @@ example : ¬ MemPull.Guarantees ⟨gpow 1, gpow 0, #v[K.ofBits 4, K.ofBits 5, K.
 /-- The bytecode guarantee is decodability alone: an instruction's entry passes, at any counter
 and with any count, over every data (the guarantee reads no data). -/
 example (pc c : K) (data : ProverData K) :
-    BytecodePull.Guarantees ⟨pc, c, Opcode.jump.code, #v[1, 1, 1, 0, 0, 0, 0, 0, 0, 0]⟩ data :=
+    BytecodePull.Guarantees ⟨pc, c, Opcode.jump.busCode, #v[1, 1, 1, 0, 0, 0, 0, 0, 0, 0]⟩ data :=
   ⟨_, decode_entry (.jump 1 1 1)⟩
 
 /-- An entry that decodes to nothing is no bytecode read at any counter: the flag pair `(1, 1)`
 is no store mode. -/
 example (pc c : K) (data : ProverData K) :
-    ¬ BytecodePull.Guarantees ⟨pc, c, Opcode.deref.code, #v[1, 1, 1, 1, 1, 0, 0, 0, 0, 0]⟩ data := by
+    ¬ BytecodePull.Guarantees ⟨pc, c, Opcode.deref.busCode, #v[1, 1, 1, 1, 1, 0, 0, 0, 0, 0]⟩ data := by
   rintro ⟨ins, hdec⟩
-  have h : decode (#v[Opcode.deref.code] ++ #v[(1: K), 1, 1, 1, 1, 0, 0, 0, 0, 0]) = none := by
+  have h : decode (#v[Opcode.deref.busCode] ++ #v[(1: K), 1, 1, 1, 1, 0, 0, 0, 0, 0]) = none := by
     decide +kernel
   exact nomatch h.symm.trans hdec
 
 /-- Nor is a nonzero spare slot. -/
 example (pc c : K) (data : ProverData K) :
-    ¬ BytecodePull.Guarantees ⟨pc, c, Opcode.xor.code, #v[1, 1, 1, 0, 0, 0, 0, 0, 0, 1]⟩ data := by
+    ¬ BytecodePull.Guarantees ⟨pc, c, Opcode.xor.busCode, #v[1, 1, 1, 0, 0, 0, 0, 0, 0, 1]⟩
+        data := by
   rintro ⟨ins, hdec⟩
-  have h : decode (#v[Opcode.xor.code] ++ #v[(1: K), 1, 1, 0, 0, 0, 0, 0, 0, 1]) = none := by
+  have h : decode (#v[Opcode.xor.busCode] ++ #v[(1: K), 1, 1, 0, 0, 0, 0, 0, 0, 1]) = none := by
     decide +kernel
   exact nomatch h.symm.trans hdec
 

@@ -147,9 +147,10 @@ def domG (c : VCache) : Set Common.DigestBytes := {d | c (.inr d) ≠ none}
 challenges `v`, every matrix whose commitment's inputs are cached, which commits to `d` and passes
 the membership test on `v`, a codeword. -/
 def Good (r : ℕ) (c : VCache) : Prop :=
-  Set.InjOn (fOf c) (domH c) ∧ ∀ (d : Common.DigestBytes) (v : Challenges), c (.inr d) = some v →
+  Set.InjOn (fOf c) (domH c) ∧ ∀ (d : Common.DigestBytes) (v : MembershipChallenges), c (.inr d) =
+      some v →
     ∀ w : Fin (r * 128) → Cell, commitIn (fOf c) w ⊆ domH c → commitCellsWithHash (fOf c) w = d →
-      membershipCheck v w = true → w ∈ (code r).code
+      membershipCheck v w = true → w ∈ (leanDaErasureCode r).code
 
 theorem good_empty (r : ℕ) : Good r ∅ :=
   ⟨fun a ha ↦ (ha rfl).elim, fun _ _ h ↦ by simp at h⟩
@@ -177,11 +178,11 @@ theorem vcache_inl_inr (a : List UInt8) (u : Common.DigestBytes) (d : Common.Dig
     (c.cacheQuery (.inl a) u) (.inr d) = c (.inr d) :=
   QueryCache.cacheQuery_of_ne _ _ (by simp)
 
-theorem vcache_inr_inl (d : Common.DigestBytes) (v : Challenges) (a : List UInt8) :
+theorem vcache_inr_inl (d : Common.DigestBytes) (v : MembershipChallenges) (a : List UInt8) :
     (c.cacheQuery (.inr d) v) (.inl a) = c (.inl a) :=
   QueryCache.cacheQuery_of_ne _ _ (by simp)
 
-theorem vcache_inr_inr (d e : Common.DigestBytes) (v : Challenges) :
+theorem vcache_inr_inr (d e : Common.DigestBytes) (v : MembershipChallenges) :
     (c.cacheQuery (.inr d) v) (.inr e) = if e = d then some v else c (.inr e) := by
   by_cases h : e = d
   · subst h; simp
@@ -201,13 +202,13 @@ theorem domH_insertH (a : List UInt8) (u : Common.DigestBytes) :
 theorem domG_insertH (a : List UInt8) (u : Common.DigestBytes) : domG (c.cacheQuery (.inl a) u) = domG c := by
   ext d; simp [domG]
 
-theorem fOf_insertG (d : Common.DigestBytes) (v : Challenges) : fOf (c.cacheQuery (.inr d) v) = fOf c := by
+theorem fOf_insertG (d : Common.DigestBytes) (v : MembershipChallenges) : fOf (c.cacheQuery (.inr d) v) = fOf c := by
   funext a; simp [fOf]
 
-theorem domH_insertG (d : Common.DigestBytes) (v : Challenges) : domH (c.cacheQuery (.inr d) v) = domH c := by
+theorem domH_insertG (d : Common.DigestBytes) (v : MembershipChallenges) : domH (c.cacheQuery (.inr d) v) = domH c := by
   ext a; simp [domH]
 
-theorem domG_insertG (d : Common.DigestBytes) (v : Challenges) :
+theorem domG_insertG (d : Common.DigestBytes) (v : MembershipChallenges) :
     domG (c.cacheQuery (.inr d) v) = insert d (domG c) := by
   ext e
   simp only [domG, Set.mem_ofPred_eq, Set.mem_insert_iff, vcache_inr_inr]
@@ -265,9 +266,10 @@ theorem good_insertH {r : ℕ} {c : VCache} (hc : Good r c) {a : List UInt8} (ha
 
 /-- **Fresh challenges keep a cache good** when every matrix whose commitment's inputs are cached
 and which commits to the root passes the test on them only if it is a codeword. -/
-theorem good_insertG {r : ℕ} {c : VCache} (hc : Good r c) {d : Common.DigestBytes} {v : Challenges}
+theorem good_insertG {r : ℕ} {c : VCache} (hc : Good r c) {d : Common.DigestBytes} {v :
+    MembershipChallenges}
     (hv : ∀ w : Fin (r * 128) → Cell, commitIn (fOf c) w ⊆ domH c → commitCellsWithHash (fOf c) w = d →
-      membershipCheck v w = true → w ∈ (code r).code) :
+      membershipCheck v w = true → w ∈ (leanDaErasureCode r).code) :
     Good r (c.cacheQuery (.inr d) v) := by
   rw [Good, fOf_insertG, domH_insertG]
   refine ⟨hc.1, fun e v' he ↦ ?_⟩
@@ -365,22 +367,24 @@ theorem prob_insertH_le {r : ℕ} {c : VCache} (hc : Good r c) (hfin : VFin c) {
 /-- **The probability that fresh challenges spoil a good cache** is at most `14 / 2^192`: the one
 matrix committed to the root is fixed before they are drawn. -/
 theorem prob_insertG_le {r : ℕ} {c : VCache} (hc : Good r c) (d : Common.DigestBytes) :
-    Pr{let v ← ($ᵗ Challenges : ProbComp Challenges)}[¬ Good r (c.cacheQuery (.inr d) v)] ≤
+    Pr{let v ← ($ᵗ MembershipChallenges : ProbComp MembershipChallenges)}[¬ Good r (c.cacheQuery
+        (.inr d) v)] ≤
       14 / 2 ^ 192 := by
   classical
   by_cases hS : ∃ w : Fin (r * 128) → Cell, commitIn (fOf c) w ⊆ domH c ∧
-      commitCellsWithHash (fOf c) w = d ∧ w ∉ (code r).code
+      commitCellsWithHash (fOf c) w = d ∧ w ∉ (leanDaErasureCode r).code
   · obtain ⟨w₀, hw₀, hd₀, hn₀⟩ := hS
-    calc Pr{let v ← ($ᵗ Challenges : ProbComp Challenges)}[¬ Good r (c.cacheQuery (.inr d) v)]
-        ≤ Pr{let v ← ($ᵗ Challenges : ProbComp Challenges)}[(checker r).check v w₀ = true] := by
+    calc Pr{let v ← ($ᵗ MembershipChallenges : ProbComp MembershipChallenges)}[¬ Good r
+          (c.cacheQuery (.inr d) v)]
+        ≤ Pr{let v ← ($ᵗ MembershipChallenges : ProbComp MembershipChallenges)}[(checker r).check v w₀ = true] := by
           refine prEvent_mono _ _ _ fun v hv ↦ ?_
           by_contra hck
           refine hv (good_insertG hc fun w hw hd hm ↦ ?_)
           have := commit_unique hc.1 hw hw₀ (hd.trans hd₀.symm)
           subst this
           exact absurd hm hck
-      _ = Pr{let x ← (fun l ↦ (checker r).check l w₀) <$> ($ᵗ Challenges)}[x = true] :=
-          (prEvent_map ($ᵗ Challenges) (fun l ↦ (checker r).check l w₀) (· = true)).symm
+      _ = Pr{let x ← (fun l ↦ (checker r).check l w₀) <$> ($ᵗ MembershipChallenges)}[x = true] :=
+          (prEvent_map ($ᵗ MembershipChallenges) (fun l ↦ (checker r).check l w₀) (· = true)).symm
       _ ≤ 14 / 2 ^ 192 := checker_sound r w₀ hn₀
   · push Not at hS
     refine le_of_eq_of_le (prEvent_eq_zero_of_forall_mem_support _ _ fun v _ hv ↦

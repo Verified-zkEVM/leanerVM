@@ -121,14 +121,18 @@ theorem block_ite {μ v y : ℕ} (index : ℕ) (a : ℕ → E) :
 /-- **A column claim's weight on the cube**: the equality kernel of its point on its block. -/
 theorem onStack_boolPoint {layout : Layout} {c : ColumnClaim} {μ y : ℕ}
     (hlow : (layout.placement c.column).low = 0)
-    (hlen : c.point.length = (layout.placement c.column).vars)
-    (hv : (layout.placement c.column).vars ≤ μ) (hμ : layout.stackLog = μ) (hy : y < 2 ^ μ) :
+    (hlen : c.point.length = (layout.placement c.column).variableCount)
+    (hv : (layout.placement c.column).variableCount ≤ μ) (hμ : layout.stackLog = μ) (hy : y <
+        2 ^ μ) :
     (c.stackClaim layout).1 (boolPoint μ y) =
-      if blockOff μ (layout.placement c.column).vars (layout.placement c.column).index ≤ y ∧
-          y < blockOff μ (layout.placement c.column).vars (layout.placement c.column).index +
-            2 ^ (layout.placement c.column).vars then
+      if blockOff μ (layout.placement c.column).variableCount (layout.placement
+          c.column).index ≤ y ∧
+          y < blockOff μ (layout.placement c.column).variableCount (layout.placement
+              c.column).index +
+            2 ^ (layout.placement c.column).variableCount then
         (eqKernel c.point).getD
-          (y - blockOff μ (layout.placement c.column).vars (layout.placement c.column).index) 0
+          (y - blockOff μ (layout.placement c.column).variableCount (layout.placement
+              c.column).index) 0
       else 0 := by
   set pl := layout.placement c.column with hpl
   rw [← block_ite pl.index (fun j ↦ (eqKernel c.point).getD j 0)]
@@ -152,15 +156,16 @@ theorem ringWeight_boolPoint {point ch : List E} {v : ℕ} (hlen : point.length 
 /-- **The ring claim's weight on the cube**: `Φ(eq(point, ·))` on the block of `q_keccak`. -/
 theorem ringSwitchClaim_boolPoint {layout : Layout} {target : E} {point ch : List E} {μ y : ℕ}
     (hlow : (layout.placement qkeccak).low = 0)
-    (hlen : point.length = (layout.placement qkeccak).vars)
-    (hv : (layout.placement qkeccak).vars ≤ μ) (h6 : ch.length = 6) (hy : y < 2 ^ μ) :
+    (hlen : point.length = (layout.placement qkeccak).variableCount)
+    (hv : (layout.placement qkeccak).variableCount ≤ μ) (h6 : ch.length = 6) (hy : y < 2 ^ μ) :
     (ringSwitchClaim layout target fun rPrime ↦ ringWeight point rPrime (ringCoefficients ch)).1
         (boolPoint μ y) =
-      if blockOff μ (layout.placement qkeccak).vars (layout.placement qkeccak).index ≤ y ∧
-          y < blockOff μ (layout.placement qkeccak).vars (layout.placement qkeccak).index +
-            2 ^ (layout.placement qkeccak).vars then
+      if blockOff μ (layout.placement qkeccak).variableCount (layout.placement qkeccak).index ≤ y ∧
+          y < blockOff μ (layout.placement qkeccak).variableCount (layout.placement qkeccak).index +
+            2 ^ (layout.placement qkeccak).variableCount then
         phiMap ((eqKernel point).getD
-          (y - blockOff μ (layout.placement qkeccak).vars (layout.placement qkeccak).index) 0) ch
+          (y - blockOff μ (layout.placement qkeccak).variableCount (layout.placement
+              qkeccak).index) 0) ch
       else 0 := by
   set pl := layout.placement qkeccak with hpl
   rw [← block_ite pl.index (fun j ↦ phiMap ((eqKernel point).getD j 0) ch)]
@@ -182,7 +187,7 @@ theorem addClaim_spec {μ : ℕ} (s : E) (d : ClaimDesc) (acc : Array E) (hs : a
     split
     · rename_i h
       obtain ⟨hlow, hlen, hv, hμ⟩ := h
-      obtain ⟨h1, h2⟩ := addSlice_spec (blockOff μ (layout.placement c.column).vars
+      obtain ⟨h1, h2⟩ := addSlice_spec (blockOff μ (layout.placement c.column).variableCount
         (layout.placement c.column).index) (eqKernelA c.point) s (eqKernelA c.point).size acc
       refine ⟨by rw [h1, hs], fun y hy ↦ ?_⟩
       rw [h2 y (by rw [hs]; exact hy), ClaimDesc.denote,
@@ -197,7 +202,7 @@ theorem addClaim_spec {μ : ℕ} (s : E) (d : ClaimDesc) (acc : Array E) (hs : a
     split
     · rename_i h
       obtain ⟨hlow, hlen, hv, h6⟩ := h
-      obtain ⟨h1, h2⟩ := addSlice_spec (blockOff μ (layout.placement qkeccak).vars
+      obtain ⟨h1, h2⟩ := addSlice_spec (blockOff μ (layout.placement qkeccak).variableCount
         (layout.placement qkeccak).index) ((eqKernelA point).map (phiMap · ch)) s
         ((eqKernelA point).map (phiMap · ch)).size acc
       refine ⟨by rw [h1, hs], fun y hy ↦ ?_⟩

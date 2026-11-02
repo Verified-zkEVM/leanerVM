@@ -32,21 +32,23 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 @[expose] public section
 
 /-- **`P'` refines `P`**: it is `P` with failures inserted. -/
-inductive Refines {α : Type} : Prog α → Prog α → Prop
-  | fail (P : Prog α) : Refines .fail P
+inductive Refines {α : Type} : VerifierProgram α → VerifierProgram α → Prop
+  | fail (P : VerifierProgram α) : Refines .fail P
   | ret (a : α) : Refines (.ret a) (.ret a)
-  | read {k k' : E → Prog α} : (∀ x, Refines (k' x) (k x)) → Refines (.read k') (.read k)
-  | sample {k k' : E → Prog α} : (∀ x, Refines (k' x) (k x)) → Refines (.sample k') (.sample k)
-  | grind {b : ℕ} {k k' : Prog α} : Refines k' k → Refines (.grind b k') (.grind b k)
-  | commit {h w : ℕ} {k k' : Prog α} : Refines k' k → Refines (.commit h w k') (.commit h w k)
-  | query {i : ℕ} {ps : List ℕ} {k k' : List (List K) → Prog α} :
+  | read {k k' : E → VerifierProgram α} : (∀ x, Refines (k' x) (k x)) → Refines (.read k') (.read k)
+  | sample {k k' : E → VerifierProgram α} : (∀ x, Refines (k' x) (k x)) → Refines (.sample k')
+      (.sample k)
+  | grind {b : ℕ} {k k' : VerifierProgram α} : Refines k' k → Refines (.grind b k') (.grind b k)
+  | commit {h w : ℕ} {k k' : VerifierProgram α} : Refines k' k → Refines (.commit h w k')
+      (.commit h w k)
+  | query {i : ℕ} {ps : List ℕ} {k k' : List (List K) → VerifierProgram α} :
       (∀ r, Refines (k' r) (k r)) → Refines (.query i ps k') (.query i ps k)
 
 namespace Refines
 
 variable {α β : Type}
 
-theorem refl : ∀ P : Prog α, Refines P P
+theorem refl : ∀ P : VerifierProgram α, Refines P P
   | .ret a => .ret a
   | .fail => .fail _
   | .read k => .read fun x ↦ refl (k x)
@@ -55,7 +57,7 @@ theorem refl : ∀ P : Prog α, Refines P P
   | .commit _ _ k => .commit (refl k)
   | .query _ _ k => .query fun r ↦ refl (k r)
 
-theorem bind {P' P : Prog α} (h : Refines P' P) {f' f : α → Prog β}
+theorem bind {P' P : VerifierProgram α} (h : Refines P' P) {f' f : α → VerifierProgram β}
     (hf : ∀ a, Refines (f' a) (f a)) : Refines (P'.bind f') (P.bind f) := by
   induction h with
   | fail P => exact .fail _
@@ -67,9 +69,9 @@ theorem bind {P' P : Prog α} (h : Refines P' P) {f' f : α → Prog β}
   | query _ ih => exact .query ih
 
 /-- A `require` before a refining program refines the program. -/
-theorem require_bind {c : Prop} [Decidable c] {k' k : Prog α} (h : Refines k' k) :
-    Refines ((Prog.require c).bind fun _ ↦ k') k := by
-  unfold Prog.require
+theorem require_bind {c : Prop} [Decidable c] {k' k : VerifierProgram α} (h : Refines k' k) :
+    Refines ((VerifierProgram.require c).bind fun _ ↦ k') k := by
+  unfold VerifierProgram.require
   split
   · exact h
   · exact .fail _
@@ -81,8 +83,9 @@ section Run
 variable {H : Bytes → Id Digest} {F : KeccakState → Id KeccakState}
 
 /-- **Running a refining program is running the program**, where it does not fail. -/
-theorem run_refines {α : Type} {P' P : Prog α} (h : Refines P' P) :
-    ∀ (s : ProgState) (r : α × ProgState), Id.run (Compile.runWithHash H F P' s) = some r →
+theorem run_refines {α : Type} {P' P : VerifierProgram α} (h : Refines P' P) :
+    ∀ (s : VerifierProgramState) (r : α × VerifierProgramState), Id.run (Compile.runWithHash H F P'
+        s) = some r →
       Id.run (Compile.runWithHash H F P s) = some r := by
   induction h with
   | fail P =>
@@ -120,7 +123,7 @@ theorem run_refines {α : Type} {P' P : Prog α} (h : Refines P' P) :
     · simp [hs] at hr
     · simp [hs] at hr
     · simp only [hs, Id.run_bind] at hr ⊢
-      cases hd : digestOfScalars (x0, x1) with
+      cases hd : digestFromHalves (x0, x1) with
       | none => simp [hd] at hr
       | some root =>
         simp only [hd] at hr ⊢
@@ -141,7 +144,8 @@ theorem run_refines {α : Type} {P' P : Prog α} (h : Refines P' P) :
         exact ih _ _ _ hr
 
 /-- **A refining program accepts only what the program accepts.** -/
-theorem runProof_refines {P' P : Prog Bool} (h : Refines P' P) (seed : KeccakState) (π : Proof)
+theorem runProof_refines {P' P : VerifierProgram Bool} (h : Refines P' P) (seed : KeccakState) (π
+    : Proof)
     (hacc : Id.run (runProofWithHash H F P' seed π) = true) : Id.run (runProofWithHash H F P seed π) = true := by
   unfold runProofWithHash at hacc ⊢
   simp only [Id.run_bind] at hacc ⊢
@@ -227,7 +231,7 @@ theorem verifyStackedOpeningNZ_refines (stackLog logInvRate : ℕ) (claims : Lis
   repeat (first | exact verifyWhirNZ_refines _ _ _ _ | refines_step)
 
 theorem deferredProgramNZ_refines (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
-    Refines (deferredProgramNZ c bytecode publicInput) (deferredProgram c bytecode publicInput) := by
+    Refines (deferredProgramNZ c bytecode publicInput) (deferringVerifierProgram c bytecode publicInput) := by
   unfold deferredProgramNZ
   rw [deferredProgram_eq]
   refine Refines.bind ?_ fun _ ↦ Refines.refl _

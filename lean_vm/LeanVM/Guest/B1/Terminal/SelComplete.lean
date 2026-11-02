@@ -42,7 +42,7 @@ them and the point. -/
 theorem selTabs_of_memL {ept ept1 ese esg : ℕ} {p p1 : List E} (hl : p.length = 28)
     (hl1 : p1.length = 28) {rd : Reader}
     (hm : MemL rd (Tables.stOwn ept ept1 ese esg p p1 ++ Tables.stLin ept ept1 p p1)) :
-    Tables.SelTabsAt rd (ofK (gpow ese)) (ofK (gpow esg)) p p1 :=
+    Tables.SelTabsAt rd (ofK (addressOfIndex ese)) (ofK (addressOfIndex esg)) p p1 :=
   Tables.selector_tables_sound (Tables.st_holds ept ept1 ese esg p p1 hl hl1 rd hm) p p1 hl hl1
     (hm (ept, p) (by simp [Tables.stLin])) (hm (ept1, p1) (by simp [Tables.stLin]))
 
@@ -54,7 +54,7 @@ theorem cs_completeAt (k : ℕ) {κ : ℕ} (hκ : κ < 29) {o : ℕ} (ho : o < 2
     {ept ept1 ese esg : ℕ} {p p1 : List E} (hl : p.length = 28) (hl1 : p1.length = 28) :
     CompleteAtD fs cert k (Tables.lName "column_selector" κ)
       (Tables.stOwn ept ept1 ese esg p p1 ++ Tables.stLin ept ept1 p p1)
-      [gen ^ o, ofK (gpow ese), ofK (gpow esg)]
+      [gen ^ o, ofK (addressOfIndex ese), ofK (addressOfIndex esg)]
       (Returns [Tables.bitsEq ((List.range (28 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ)
         (p1.drop κ)]) :=
   completeAt_of_rel_pureD cs_pure (colSelNames_mem hκ) (fun rd hm ↦

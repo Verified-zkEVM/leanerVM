@@ -70,7 +70,7 @@ theorem committedColumns_tables : committedColumns.map (fun c ↦ c.1) =
   decide +kernel
 
 /-- **The stacked size**: every committed column at its table's height. -/
-theorem blocks_total_eq (prog : Program) (s : Sizes) : (LeanIsa.blocks prog s).total =
+theorem blocks_total_eq (prog : LeanIsaProgram) (s : Sizes) : (LeanIsa.blocks prog s).total =
     4 * 2 ^ s.logMem + 2 ^ prog.logSize + 2 ^ (s.τ 5 + 6) + 15 * 2 ^ s.τ 0 + 15 * 2 ^ s.τ 1 +
       8 * 2 ^ s.τ 2 + 15 * 2 ^ s.τ 3 + 14 * 2 ^ s.τ 4 + 26 * 2 ^ s.τ 5 := by
   rw [Blocks.total_eq_sum]
@@ -89,7 +89,7 @@ theorem blocks_total_eq (prog : Program) (s : Sizes) : (LeanIsa.blocks prog s).t
   rfl
 
 /-- The stacked size is within the cap when the blocks fit on `2^maxMu` cells. -/
-theorem leanIsaμ_le_of_total_le {prog : Program} {s : Sizes}
+theorem leanIsaμ_le_of_total_le {prog : LeanIsaProgram} {s : Sizes}
     (h : (LeanIsa.blocks prog s).total ≤ 2 ^ maxMu) : leanIsaμ prog s ≤ maxMu :=
   max_le (Nat.clog_le_of_le_pow h) (by decide)
 
@@ -98,17 +98,18 @@ theorem leanIsaμ_le_of_total_le {prog : Program} {s : Sizes}
 /-- **An admissible witness, under the budget.** A valid execution whose committed size is at most
 `2^28` has a witness representing it that satisfies leanISA's constraint system at sizes the
 verifier admits. -/
-theorem exists_admissible_witness {prog : Program} {input : PublicInput} {t : Execution prog}
+theorem exists_admissible_witness {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu) :
     ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧
       Sizes.ofWitness w = some s ∧ s.Admissible prog := by
-  have hcount : ∀ op, t.count op = t.runRows op := Execution.count_eq_runRows hv.2
+  have hcount : ∀ op, t.opcodeCount op = t.runRows op := Execution.count_eq_runRows hv.2
   -- A table's rows fit in its height, which the committed size counts.
-  have hheight : ∀ op, 2 ^ Nat.clog 2 (t.count op) ≤ t.committedSize := by
+  have hheight : ∀ op, 2 ^ Nat.clog 2 (t.opcodeCount op) ≤ t.committedSize := by
     intro op
     -- `omega` takes `2 ^ x` for an atom without its sign: the bound it needs, stated.
     have : 0 < 2 ^ prog.logSize := Nat.two_pow_pos _
-    have hk : 2 ^ Nat.clog 2 (t.count .keccak) ≤ 2 ^ max (Nat.clog 2 (t.count .keccak)) 9 :=
+    have hk : 2 ^ Nat.clog 2 (t.opcodeCount .keccak) ≤ 2 ^ max (Nat.clog 2 (t.opcodeCount
+        .keccak)) 9 :=
       Nat.pow_le_pow_right (by norm_num) (le_max_left _ _)
     simp only [Execution.committedSize]
     cases op <;> omega
@@ -122,7 +123,7 @@ theorem exists_admissible_witness {prog : Program} {input : PublicInput} {t : Ex
   obtain ⟨hpos, rfl⟩ := eq_of_ofWitness hs
   -- The sizes: the trace's memory, and each table's row count that of the run.
   have hmem : (witnessSizes w hpos).logMem = t.logMemorySize := hrep.κ_eq
-  have hr : ∀ j : Fin 6, (witnessSizes w hpos).rows j = t.count (tableOpcode j) := fun j ↦
+  have hr : ∀ j : Fin 6, (witnessSizes w hpos).rows j = t.opcodeCount (tableOpcode j) := fun j ↦
     (hlen j).trans (hcount _).symm
   have htotal : (LeanIsa.blocks prog (witnessSizes w hpos)).total = t.committedSize := by
     have e : tableOpcode 0 = .xor ∧ tableOpcode 1 = .mulNative ∧ tableOpcode 2 = .setConstant ∧
@@ -148,7 +149,7 @@ theorem exists_admissible_witness {prog : Program} {input : PublicInput} {t : Ex
 
 /-- The honest prover's witness for an execution `t` at rate `ρ`: the rate is valid, and `w`
 satisfies leanISA's constraint system at sizes `s` the verifier admits and represents `t`. -/
-def HonestFor (prog : Program) (input : PublicInput) (t : Execution prog) (ρ : ℕ)
+def HonestFor (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ)
     (w : EnsembleWitness (leanIsaEnsemble prog)) (s : Sizes) : Prop :=
   validRate ρ ∧ SatisfiedBy prog input w ∧ Sizes.ofWitness w = some s ∧ s.Admissible prog ∧
     AssignmentRepresents w t
@@ -158,20 +159,21 @@ open Classical in
 and the permutation `F`, of a witness for `t` at rate `ρ` (`HonestFor`, chosen classically);
 `none` when there is none, or when a proof-of-work search finds no nonce below `fuel`. A
 specification. -/
-noncomputable def honestProofOf (H : Bytes → Digest) (F : KeccakState → KeccakState) (prog : Program)
+noncomputable def honestProofOf (H : Bytes → Digest) (F : KeccakState → KeccakState) (prog : LeanIsaProgram)
     (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) : Option Proof :=
   if h : ∃ w s, HonestFor prog input t ρ w s then
-    prove H F (leanVmProgram (bytecodeWords prog) (publicDigest input))
+    prove H F (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
       (leanVmProver prog h.choose_spec.choose ρ (stackOf prog h.choose_spec.choose h.choose))
-      (Id.run (seedWithHash (m := Id) H F (bytecodeWords prog) (publicDigest input))) fuel
+      (Id.run (seedWithHash (m := Id) H F (bytecodeWords prog) (publicInputDigest input))) fuel
   else none
 
 /-- **The honest proof is accepted**, for every hash function and permutation: whenever the
 honest prover outputs a proof, the verifier accepts it. -/
-theorem verify_honestProofOf (H : Bytes → Digest) (F : KeccakState → KeccakState) {prog : Program}
+theorem verify_honestProofOf (H : Bytes → Digest) (F : KeccakState → KeccakState) {prog :
+    LeanIsaProgram}
     {input : PublicInput} {t : Execution prog} {ρ fuel : ℕ} {proof : Proof}
     (h : honestProofOf H F prog input t ρ fuel = some proof) :
-    verifyWithHash (m := Id) H F (bytecodeWords prog) (publicDigest input) proof = true := by
+    verifyWithHash (m := Id) H F (bytecodeWords prog) (publicInputDigest input) proof = true := by
   unfold honestProofOf at h
   split_ifs at h with hc
   obtain ⟨hρ, hw, hs, hadm, -⟩ := hc.choose_spec.choose_spec
@@ -182,11 +184,12 @@ theorem verify_honestProofOf (H : Bytes → Digest) (F : KeccakState → KeccakS
 /-- **The honest prover succeeds within the budget.** For a valid execution whose committed size is
 at most `2^28`, at a valid rate, the honest proof exists as soon as every proof-of-work search the
 verifier program asks for finds a nonce below `fuel`. -/
-theorem honestProofOf_isSome {prog : Program} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
+theorem honestProofOf_isSome {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
+    {ρ : ℕ}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
     (hρ : validRate ρ) (H : Bytes → Digest) (F : KeccakState → KeccakState) (fuel : ℕ)
     (hpow : ∀ hist bits k sp,
-      (leanVmProgram (bytecodeWords prog) (publicDigest input)).after hist =
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)).after hist =
           some (.grind bits k) → findNonce F bits sp fuel ≠ none) :
     (honestProofOf H F prog input t ρ fuel).isSome := by
   obtain ⟨w, s, hw, hrep, hs, hadm⟩ := exists_admissible_witness hv hbudget
@@ -198,14 +201,15 @@ theorem honestProofOf_isSome {prog : Program} {input : PublicInput} {t : Executi
 /-- **Completeness within the budget.** A valid execution whose committed size is at most `2^28`,
 at a valid rate: when every proof-of-work search succeeds below `fuel`, the honest prover outputs
 a proof, and the verifier accepts it, for every hash function and permutation. -/
-theorem complete_of_budget {prog : Program} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
+theorem complete_of_budget {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
+    {ρ : ℕ}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
     (hρ : validRate ρ) (H : Bytes → Digest) (F : KeccakState → KeccakState) (fuel : ℕ)
     (hpow : ∀ hist bits k sp,
-      (leanVmProgram (bytecodeWords prog) (publicDigest input)).after hist =
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)).after hist =
           some (.grind bits k) → findNonce F bits sp fuel ≠ none) :
     ∃ proof, honestProofOf H F prog input t ρ fuel = some proof ∧
-      verifyWithHash (m := Id) H F (bytecodeWords prog) (publicDigest input) proof = true := by
+      verifyWithHash (m := Id) H F (bytecodeWords prog) (publicInputDigest input) proof = true := by
   obtain ⟨proof, h⟩ := Option.isSome_iff_exists.mp
     (honestProofOf_isSome hv hbudget hρ H F fuel hpow)
   exact ⟨proof, h, verify_honestProofOf H F h⟩

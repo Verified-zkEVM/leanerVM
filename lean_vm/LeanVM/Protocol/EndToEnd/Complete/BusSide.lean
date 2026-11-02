@@ -51,15 +51,15 @@ theorem length_stackOffsets (sizes : List ℕ) : (stackOffsets sizes).1.length =
 
 /-- The placement `bus_layout` gives block `b`. -/
 theorem getElem_busPlacements (sizes : List ℕ) (b : ℕ) (hb : b < sizes.length) :
-    (List.zipWith (fun size offset ↦ ({ vars := size, index := offset } : Placement)) sizes
+    (List.zipWith (fun size offset ↦ ({ variableCount := size, index := offset } : Placement)) sizes
       (stackOffsets sizes).1)[b]'(by simp [length_stackOffsets, hb]) =
-      { vars := sizes.getD b 0, index := blockOffset sizes b } := by
+      { variableCount := sizes.getD b 0, index := blockOffset sizes b } := by
   simp only [List.getElem_zipWith, blockOffset]
   rw [List.getD_eq_getElem _ _ hb, List.getD_eq_getElem _ _ (by rw [length_stackOffsets]; exact hb)]
 
 /-- An aligned placement's `eq_above` is the block's selector. -/
 theorem eqAbove_aligned (v o : ℕ) (p : List E) :
-    ({ vars := v, index := o } : Placement).eqAbove p =
+    ({ variableCount := v, index := o } : Placement).eqAbove p =
       eqEval (boolPoint (p.length - v) (o / 2 ^ v)) (p.drop v) := by
   simp [Placement.eqAbove, selectorPoint_eq_boolPoint, Nat.shiftRight_eq_div_pow]
 

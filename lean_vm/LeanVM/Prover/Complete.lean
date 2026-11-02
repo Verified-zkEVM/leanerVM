@@ -55,28 +55,28 @@ variable {m : Type → Type} [Monad m] [LawfulMonad m] (H : Bytes → m Digest)
   (F : KeccakState → m KeccakState)
 
 /-- **No program reading first accepts the empty proof**: it rejects, with no call. -/
-theorem runProof_read_empty (k : E → Prog Bool) (sd : KeccakState) :
-    runProofWithHash H F (Prog.read k) sd ⟨[], []⟩ = pure false := by
+theorem runProof_read_empty (k : E → VerifierProgram Bool) (sd : KeccakState) :
+    runProofWithHash H F (VerifierProgram.read k) sd ⟨[], []⟩ = pure false := by
   simp only [runProofWithHash, runWithHash, pure_bind]
 
 /-- The verifier's program reads first. -/
 theorem leanVmProgram_read (bytecode : List K) (publicInput : Digest) :
-    ∃ k, leanVmProgram bytecode publicInput = Prog.read k :=
+    ∃ k, leanVmVerifierProgram bytecode publicInput = VerifierProgram.read k :=
   ⟨_, rfl⟩
 
 /-- **The verifier rejects the empty proof**, once it has its seed. -/
-theorem verifierWithHash_empty (prog : Program) (input : PublicInput) :
+theorem verifierWithHash_empty (prog : LeanIsaProgram) (input : PublicInput) :
     verifierWithHash H F prog input ⟨[], []⟩ =
-      seedWithHash H F (bytecodeWords prog) (publicDigest input) >>= fun _ ↦ pure false := by
-  obtain ⟨k, hk⟩ := leanVmProgram_read (bytecodeWords prog) (publicDigest input)
+      seedWithHash H F (bytecodeWords prog) (publicInputDigest input) >>= fun _ ↦ pure false := by
+  obtain ⟨k, hk⟩ := leanVmProgram_read (bytecodeWords prog) (publicInputDigest input)
   simp only [verifierWithHash, verifyWithHash, hk, runProof_read_empty]
 
 /-- **The verifier refusing a zero challenge rejects the empty proof**, once it has its seed. -/
-theorem verifierRefusingZeroWithHash_empty (prog : Program) (input : PublicInput) :
+theorem verifierRefusingZeroWithHash_empty (prog : LeanIsaProgram) (input : PublicInput) :
     Guest.Budget.verifierRefusingZeroWithHash H F prog input ⟨[], []⟩ =
-      seedWithHash H F (bytecodeWords prog) (publicDigest input) >>= fun _ ↦ pure false := by
-  obtain ⟨k, hk⟩ := leanVmProgram_read (bytecodeWords prog) (publicDigest input)
-  simp only [Guest.Budget.verifierRefusingZeroWithHash, hk, Prog.refusingZeroChallenge,
+      seedWithHash H F (bytecodeWords prog) (publicInputDigest input) >>= fun _ ↦ pure false := by
+  obtain ⟨k, hk⟩ := leanVmProgram_read (bytecodeWords prog) (publicInputDigest input)
+  simp only [Guest.Budget.verifierRefusingZeroWithHash, hk, VerifierProgram.refusingZeroChallenge,
     runProof_read_empty]
 
 end Empty
@@ -106,20 +106,21 @@ theorem noProof_evalDistEq {σ α : Type} (impl : QueryImpl KeccakCalls (StateT 
 /-- **The prover is the specification at an honest witness** on every valid execution within the
 verifier's cap, at a valid rate. -/
 def SpecOnValid (A : HonestProverWithHash)
-    (W : (prog : Program) → PublicInput → Execution prog → ℕ →
+    (W : (prog : LeanIsaProgram) → PublicInput → Execution prog → ℕ →
       EnsembleWitness (leanIsaEnsemble prog) → Sizes → Prop) : Prop :=
-  ∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
+  ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
     ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
     ∃ w s, W prog input t ρ w s ∧
-      A prog input t ρ fuel = Rom.honestComp? (leanVmSeed (bytecodeWords prog) (publicDigest input))
-        (leanVmProgram (bytecodeWords prog) (publicDigest input))
+      A prog input t ρ fuel = Rom.honestComp? (leanVmSeed (bytecodeWords prog) (publicInputDigest
+          input))
+        (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
         (leanVmProver prog s ρ (stackOf prog s w)) fuel
 
 /-- **Completeness for a prover that is the specification at an honest witness**: the body of
 `LeanVM.Completeness` for `A`. No proof is a rejection, as the empty proof's is
 (`noProof_evalDistEq`). -/
 theorem completeness_of_spec (A : HonestProverWithHash) (hA : SpecOnValid A HonestFor) :
-    ∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
+    ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
       ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
       Pr{let v ← verifierCompletenessExperimentWithHash A prog input t ρ (2 ^ 25)}[v = false] ≤
         (2 : ℝ≥0∞)⁻¹ ^ 256 := by
@@ -134,9 +135,9 @@ theorem completeness_of_spec (A : HonestProverWithHash) (hA : SpecOnValid A Hone
 witness**: on valid executions within the cap at a valid rate (`SpecOnValid A ChildFor`), and
 everywhere the specification at a child's witness or no proof (`ChildSpec`). -/
 theorem guestChildComplete_of_spec (A : HonestProverWithHash) (hA : SpecOnValid A ChildFor)
-    (hA' : ∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
+    (hA' : ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
       ChildSpec A prog input t ρ fuel) :
-    (∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
+    (∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
       ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
       Pr{let v ← (simulateQ LeanVM.keccakCallsOverRandomPermutation (do
           match ← A prog input t ρ (2 ^ 25) with

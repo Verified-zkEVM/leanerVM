@@ -112,7 +112,8 @@ def storesOf (c : Nat) : List Stmt → List Atom
 /-! ## The evaluator -/
 
 /-- The word at `p·g^k`, or `0`. -/
-noncomputable def rdAt (rd : Reader) (p : E) (k : Nat) : E := (rd (p.limb 0 * gpow k)).getD 0
+noncomputable def rdAt (rd : Reader) (p : E) (k : Nat) : E := (rd (p.limb 0 * addressOfIndex
+    k)).getD 0
 
 /-- The outputs of a `KECCAK` of the words `ws`. -/
 def kecOut (ws : List E) (inOdd outOdd : Bool) (c : Nat) : E :=
@@ -189,19 +190,19 @@ def Side (rd : Reader) (S : List Atom) (σ : Val) : Atom → Prop
   | .mul d x y => if x.idx < d.idx ∧ y.idx < d.idx then True else σ y ≠ 0
   | .load d p off =>
       if Atom.load d p off ∈ S then LoadHolds rd (σ p) off (σ d)
-      else IsInK (σ p) ∧ (rd ((σ p).limb 0 * gpow off)).isSome
+      else IsInK (σ p) ∧ (rd ((σ p).limb 0 * addressOfIndex off)).isSome
   | .assertEq x y => σ x + σ y = 0
   | .assertInK x y => IsInK (σ x) ∧ IsInK (σ y)
   | .assertNe x _ _ => σ x ≠ 0
   | .rangeCheck x y _ _ k =>
-      IsInK (σ x) ∧ (rd ((σ x).limb 0 * gpow 0)).isSome ∧ IsInK (σ y) ∧
-        (rd ((σ y).limb 0 * gpow 0)).isSome ∧ (if k.idx < y.idx then σ x ≠ 0 else True)
+      IsInK (σ x) ∧ (rd ((σ x).limb 0 * addressOfIndex 0)).isSome ∧ IsInK (σ y) ∧
+        (rd ((σ y).limb 0 * addressOfIndex 0)).isSome ∧ (if k.idx < y.idx then σ x ≠ 0 else True)
   | .keccak ins _ _ _ => ∀ c : Fin 13, IsCanonical128 (cells13 (ins.map σ) c)
   | .frameAddr p run => Atom.Holds rd σ (.frameAddr p run)
   | _ => True
 
 theorem load_of_rdAt {rd : Reader} {p d : E} {off : Nat} (hd : d = rdAt rd p off) (hp : IsInK p)
-    (hs : (rd (p.limb 0 * gpow off)).isSome) : LoadHolds rd p off d := by
+    (hs : (rd (p.limb 0 * addressOfIndex off)).isSome) : LoadHolds rd p off d := by
   refine ⟨hp, ?_⟩
   obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp hs
   rw [hd, rdAt, hv]

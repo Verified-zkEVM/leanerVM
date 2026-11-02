@@ -126,7 +126,8 @@ theorem retOK_keccakPhase (layout : Verifier.Layout) (claims : List Verifier.Col
   omega
 
 /-- `sampleN n` returns `n` challenges. -/
-theorem retOK_sampleN : ∀ n : ℕ, RetOK (fun xs : List E ↦ xs.length = n) (Prog.sampleChallenges n)
+theorem retOK_sampleN : ∀ n : ℕ, RetOK (fun xs : List E ↦ xs.length = n)
+    (VerifierProgram.sampleChallenges n)
   | 0 => RetOK.ret rfl
   | n + 1 => RetOK.bind_true fun _ ↦ (retOK_sampleN n).bind fun xs hxs ↦
       RetOK.ret (by simp [hxs])
@@ -229,7 +230,7 @@ theorem eval₂Mle_eq_sum_eqAt {n : ℕ} (v : Vector K (2 ^ n)) (z : Vector E n)
 
 section Reading
 
-variable (prog : Program) (s : Sizes)
+variable (prog : LeanIsaProgram) (s : Sizes)
 
 /-- `q_keccak`'s words on a candidate are its reading's cells past `QKECCAK`'s offset. -/
 theorem qkOf_eq (q : Column (verifierLayout prog s).stackLog) (n : ℕ) :
@@ -418,7 +419,7 @@ end Reading
 
 section TablePub
 
-variable (prog : Program) (s : Sizes)
+variable (prog : LeanIsaProgram) (s : Sizes)
 
 /-- The program's claims hold claims on all 25 output lanes at the low `τ_KECCAK` coordinates of
 the point `pt`. -/
@@ -483,7 +484,8 @@ end TablePub
 
 section Phase
 
-variable (prog : Program) (s : Sizes) (C : List Ev → Set (Column (verifierLayout prog s).stackLog))
+variable (prog : LeanIsaProgram) (s : Sizes) (C : List Ev → Set (Column (verifierLayout prog
+    s).stackLog))
 
 /-- **The Keccak phase's precondition**: at some point `pt` of the table sumcheck at whose low
 `τ_KECCAK` coordinates the claims hold claims on every output lane, no candidate satisfies the
@@ -512,10 +514,11 @@ abbrev LanesOk (claims : List Verifier.ColumnClaim) : Prop :=
 
 /-- The Keccak phase is the check on the lanes, then the reduction on them. -/
 theorem keccakPhase_eq (layout : Verifier.Layout) (claims : List Verifier.ColumnClaim) :
-    keccakPhaseClaims layout claims = (Prog.require (LanesOk claims)).bind fun _ ↦
+    keccakPhaseClaims layout claims = (VerifierProgram.require (LanesOk claims)).bind fun _ ↦
       (verifyKeccak (layout.tableLogHeights.getD opKeccak 0) ((lanesOf claims).headD default).point
         ((lanesOf claims).map (·.value))).bind fun r ↦
-        Prog.ret (claims.filter (fun c ↦ c.column ∉ keccakOutputColumns) ++ r.1, r.2.1, r.2.2) :=
+        VerifierProgram.ret (claims.filter (fun c ↦ c.column ∉ keccakOutputColumns) ++ r.1, r.2.1,
+            r.2.2) :=
   rfl
 
 /-- Once the check passes, the lanes' common point is the low `τ_KECCAK` coordinates of `pt`. -/

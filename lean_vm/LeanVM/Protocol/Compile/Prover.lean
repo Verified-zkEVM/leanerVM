@@ -90,7 +90,7 @@ namespace Strategy
 strategy's moves, the challenge at each `sample`, a passed proof of work at each `grind`, and the
 rows the committed words give at each `query`; `none` on rejection or on an opening of a missing
 commitment. -/
-def runFrom (S : Strategy) (chal : List Ev → E) {α : Type} : Prog α → List Ev → Option α
+def runFrom (S : Strategy) (chal : List Ev → E) {α : Type} : VerifierProgram α → List Ev → Option α
   | .ret a, _ => some a
   | .fail, _ => none
   | .read k, h => S.runFrom chal (k (S.msg h)) (h ++ [Ev.read (S.msg h)])
@@ -103,7 +103,7 @@ def runFrom (S : Strategy) (chal : List Ev → E) {α : Type} : Prog α → List
 
 /-- The words the strategy commits along the interactive run from a history, against the
 challenges `chal`, are well shaped: each has the width its `commit` node announces. -/
-def ShapedFrom (S : Strategy) (chal : List Ev → E) {α : Type} : Prog α → List Ev → Prop
+def ShapedFrom (S : Strategy) (chal : List Ev → E) {α : Type} : VerifierProgram α → List Ev → Prop
   | .ret _, _ => True
   | .fail, _ => True
   | .read k, h => S.ShapedFrom chal (k (S.msg h)) (h ++ [Ev.read (S.msg h)])
@@ -117,7 +117,7 @@ def ShapedFrom (S : Strategy) (chal : List Ev → E) {α : Type} : Prog α → L
 
 /-- The strategy wins from a history for every choice of the remaining challenges: the
 program accepts, every committed word is well shaped, and every opening is answered. -/
-def AcceptsFrom (S : Strategy) : Prog Bool → List Ev → Prop
+def AcceptsFrom (S : Strategy) : VerifierProgram Bool → List Ev → Prop
   | .ret b, _ => b = true
   | .fail, _ => False
   | .read k, h => S.AcceptsFrom (k (S.msg h)) (h ++ [Ev.read (S.msg h)])
@@ -131,11 +131,11 @@ def AcceptsFrom (S : Strategy) : Prog Bool → List Ev → Prop
 end Strategy
 
 /-- The interactive run of a program from the empty history. -/
-def runI {α : Type} (P : Prog α) (S : Strategy) (chal : List Ev → E) : Option α :=
+def runI {α : Type} (P : VerifierProgram α) (S : Strategy) (chal : List Ev → E) : Option α :=
   S.runFrom chal P []
 
 /-- The words the strategy commits along the interactive run of a program are well shaped. -/
-def shapedI {α : Type} (P : Prog α) (S : Strategy) (chal : List Ev → E) : Prop :=
+def shapedI {α : Type} (P : VerifierProgram α) (S : Strategy) (chal : List Ev → E) : Prop :=
   S.ShapedFrom chal P []
 
 /-! ## The compiled honest prover -/
@@ -165,7 +165,7 @@ def findNonce (bits : ℕ) (sp : Sponge) (fuel : ℕ) : Option E :=
     nonceOf
 
 /-- The leaf hash: the hash of the leaf's words as little-endian bytes (`hash_words`). -/
-def leafHash (leaf : List K) : Digest := H (leaf.flatMap kBytes)
+def leafHash (leaf : List K) : Digest := H (leaf.flatMap K.toBytes)
 
 /-- The node hash: the hash of the 64 bytes of the two children, left first (`hash_pair`). -/
 def nodeHash (left right : Digest) : Digest := H (digestBytes left ++ digestBytes right)
@@ -189,7 +189,7 @@ def openingAt (height : ℕ) (word : Word) (q : ℕ) : Opening where
 in the proof from there on, or `none` if a proof-of-work search fails. A rejection, and an opening
 of a missing commitment, end the proof. -/
 def proveFrom (S : Strategy) (fuel : ℕ) {α : Type} :
-    Prog α → Sponge → List Ev → Option (List E × List Opening)
+    VerifierProgram α → Sponge → List Ev → Option (List E × List Opening)
   | .ret _, _, _ => some ([], [])
   | .fail, _, _ => some ([], [])
   | .read k, sp, h =>
@@ -205,11 +205,11 @@ def proveFrom (S : Strategy) (fuel : ℕ) {α : Type} :
         fun t ↦ (n :: t.1, t.2)
   | .commit ht w k, sp, h =>
     (proveFrom S fuel k
-      (absorbI F (absorbI F sp (digestScalars (treeRoot H ht (S.word h))).1 dsObserve)
-        (digestScalars (treeRoot H ht (S.word h))).2 dsObserve)
+      (absorbI F (absorbI F sp (digestHalves (treeRoot H ht (S.word h))).1 dsObserve)
+        (digestHalves (treeRoot H ht (S.word h))).2 dsObserve)
       (h ++ [Ev.commit ht w (S.word h)])).map
-      fun t ↦ ((digestScalars (treeRoot H ht (S.word h))).1 ::
-        (digestScalars (treeRoot H ht (S.word h))).2 :: t.1, t.2)
+      fun t ↦ ((digestHalves (treeRoot H ht (S.word h))).1 ::
+        (digestHalves (treeRoot H ht (S.word h))).2 :: t.1, t.2)
   | .query i ps k, sp, h => match (commits h)[i]? with
     | none => some ([], [])
     | some (ht, _, word) =>
@@ -219,7 +219,8 @@ def proveFrom (S : Strategy) (fuel : ℕ) {α : Type} :
 
 /-- The honest prover: the proof of the program from the seed state and the empty history, or
 `none` if a proof-of-work search finds no nonce below `fuel`. -/
-def prove (P : Prog Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ) : Option Proof :=
+def prove (P : VerifierProgram Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ) : Option
+    Proof :=
   (proveFrom H F S fuel P ⟨seed, []⟩ []).map fun t ↦ ⟨t.1, t.2⟩
 
 end Prover
@@ -233,19 +234,22 @@ theorem commits_append (h h' : List Ev) : commits (h ++ h') = commits h ++ commi
   | cons e es ih => cases e <;> simp [commits, ih]
 
 /-- Following a history in two pieces. -/
-theorem Prog.after_append {α : Type} :
-    ∀ (P : Prog α) (h h' : List Ev), P.after (h ++ h') = (P.after h).bind fun p ↦ p.after h'
-  | _, [], _ => by simp [Prog.after]
+theorem VerifierProgram.after_append {α : Type} :
+    ∀ (P : VerifierProgram α) (h h' : List Ev), P.after (h ++ h') = (P.after h).bind fun p ↦
+        p.after h'
+  | _, [], _ => by simp [VerifierProgram.after]
   | P, e :: es, h' => by
-    cases P <;> cases e <;> simp only [List.cons_append, Prog.after, Option.bind_none] <;>
+    cases P <;> cases e <;> simp only [List.cons_append, VerifierProgram.after,
+        Option.bind_none] <;>
       first
-      | exact Prog.after_append _ es h'
-      | (split <;> simp [Prog.after_append _ es h'])
+      | exact VerifierProgram.after_append _ es h'
+      | (split <;> simp [VerifierProgram.after_append _ es h'])
 
 /-- One more event, after a history that leads to `p`, is read by `p`. -/
-theorem Prog.after_append_single {α : Type} {P p : Prog α} {h : List Ev} (e : Ev)
+theorem VerifierProgram.after_append_single {α : Type} {P p : VerifierProgram α} {h : List Ev}
+    (e : Ev)
     (ha : P.after h = some p) : P.after (h ++ [e]) = p.after [e] := by
-  rw [Prog.after_append, ha, Option.bind_some]
+  rw [VerifierProgram.after_append, ha, Option.bind_some]
 
 /-! ## From the interactive run to `AcceptsFrom` -/
 
@@ -253,7 +257,7 @@ namespace Strategy
 
 /-- The run from `h` reads the challenges only at histories at least as long as `h`. -/
 theorem runFrom_congr (S : Strategy) {α : Type} :
-    ∀ (p : Prog α) (h : List Ev) (chal chal' : List Ev → E),
+    ∀ (p : VerifierProgram α) (h : List Ev) (chal chal' : List Ev → E),
       (∀ h', h.length ≤ h'.length → chal h' = chal' h') →
         S.runFrom chal p h = S.runFrom chal' p h := by
   intro p
@@ -284,7 +288,7 @@ theorem runFrom_congr (S : Strategy) {α : Type} :
 /-- The shape condition from `h` reads the challenges only at histories at least as long as
 `h`. -/
 theorem shapedFrom_congr (S : Strategy) {α : Type} :
-    ∀ (p : Prog α) (h : List Ev) (chal chal' : List Ev → E),
+    ∀ (p : VerifierProgram α) (h : List Ev) (chal chal' : List Ev → E),
       (∀ h', h.length ≤ h'.length → chal h' = chal' h') →
         S.ShapedFrom chal p h = S.ShapedFrom chal' p h := by
   intro p
@@ -326,7 +330,7 @@ private theorem setChal_agree (chal : List Ev → E) (h : List Ev) (c : E) (e : 
 /-- A strategy that wins every interactive run from a history and commits well-shaped words
 along it wins from that history for every choice of the remaining challenges. -/
 theorem acceptsFrom_of_runFrom {S : Strategy} :
-    ∀ (p : Prog Bool) (h : List Ev), (∀ chal, S.runFrom chal p h = some true) →
+    ∀ (p : VerifierProgram Bool) (h : List Ev), (∀ chal, S.runFrom chal p h = some true) →
       (∀ chal, S.ShapedFrom chal p h) → S.AcceptsFrom p h := by
   intro p
   induction p with
@@ -461,7 +465,7 @@ shaped, and the honest prover's output from `h` at sponge `sp` is `(xs, os)`, th
 verifier, from sponge `sp` with the roots of `h`'s trees, accepts on any stream and openings that
 start with `xs` and `os`, leaving exactly what follows them. -/
 theorem run_proveFrom (S : Strategy) (fuel : ℕ) :
-    ∀ (p : Prog Bool) (h : List Ev) (sp : Sponge) (xs : List E) (os : List Opening)
+    ∀ (p : VerifierProgram Bool) (h : List Ev) (sp : Sponge) (xs : List E) (os : List Opening)
       (restS : List E) (restO : List Opening),
       S.AcceptsFrom p h → (∀ c ∈ commits h, WellShaped c.2.1 c.2.2) →
       proveFrom H F S fuel p sp h = some (xs, os) →
@@ -536,8 +540,8 @@ theorem run_proveFrom (S : Strategy) (fuel : ℕ) :
     obtain ⟨s', hrun, hs1, hs2⟩ := ih _ _ t.1 t.2 restS restO hacc hws' htt
     refine ⟨s', ?_, hs1, hs2⟩
     rw [← hrun]
-    have hdec : digestOfScalars ((digestScalars (treeRoot H ht (S.word h))).1,
-        (digestScalars (treeRoot H ht (S.word h))).2) = some (treeRoot H ht (S.word h)) :=
+    have hdec : digestFromHalves ((digestHalves (treeRoot H ht (S.word h))).1,
+        (digestHalves (treeRoot H ht (S.word h))).2) = some (treeRoot H ht (S.word h)) :=
       digestOfScalars_digestScalars _
     have hroots : rootsOf H (commits (h ++ [Ev.commit ht w (S.word h)])) =
         rootsOf H (commits h) ++ [(treeRoot H ht (S.word h), ht, w)] := by
@@ -583,7 +587,7 @@ end Simulation
 strategy `S`, seed and fuel: if `S` wins every interactive run of `P` (whatever the
 challenges) and commits well-shaped words, then every proof the honest prover produces is
 accepted by the compiled verifier at `H` and `F`. -/
-theorem runProof_prove (H : Bytes → Digest) (F : KeccakState → KeccakState) (P : Prog Bool) (S : Strategy)
+theorem runProof_prove (H : Bytes → Digest) (F : KeccakState → KeccakState) (P : VerifierProgram Bool) (S : Strategy)
     (seed : KeccakState) (fuel : ℕ) {π : Proof} (hc : ∀ chal, runI P S chal = some true)
     (hs : ∀ chal, shapedI P S chal)
     (hπ : prove H F P S seed fuel = some π) :
@@ -617,9 +621,9 @@ theorem findNonce_eq_none_iff (F : KeccakState → KeccakState) (bits : ℕ) (sp
 program is at `p`, if the search succeeds at every `grind` node the program can reach and every
 sponge, the prover produces a proof. -/
 theorem proveFrom_ne_none (H : Bytes → Digest) (F : KeccakState → KeccakState) (S : Strategy) (fuel : ℕ)
-    {P : Prog Bool}
+    {P : VerifierProgram Bool}
     (hg : ∀ h bits k sp, P.after h = some (.grind bits k) → findNonce F bits sp fuel ≠ none) :
-    ∀ (p : Prog Bool) (h : List Ev) (sp : Sponge), P.after h = some p →
+    ∀ (p : VerifierProgram Bool) (h : List Ev) (sp : Sponge), P.after h = some p →
       proveFrom H F S fuel p sp h ≠ none := by
   intro p
   induction p with
@@ -628,11 +632,11 @@ theorem proveFrom_ne_none (H : Bytes → Digest) (F : KeccakState → KeccakStat
   | read k ih =>
     intro h sp ha
     simp only [proveFrom, ne_eq, Option.map_eq_none_iff]
-    exact ih _ _ _ (by rw [Prog.after_append_single _ ha]; simp [Prog.after])
+    exact ih _ _ _ (by rw [VerifierProgram.after_append_single _ ha]; simp [VerifierProgram.after])
   | sample k ih =>
     intro h sp ha
     simp only [proveFrom]
-    exact ih _ _ _ (by rw [Prog.after_append_single _ ha]; simp [Prog.after])
+    exact ih _ _ _ (by rw [VerifierProgram.after_append_single _ ha]; simp [VerifierProgram.after])
   | grind b k ih =>
     intro h sp ha
     simp only [proveFrom]
@@ -640,32 +644,33 @@ theorem proveFrom_ne_none (H : Bytes → Digest) (F : KeccakState → KeccakStat
     · rename_i hn
       exact absurd hn (hg h b k sp ha)
     · simp only [ne_eq, Option.map_eq_none_iff]
-      exact ih _ _ (by rw [Prog.after_append_single _ ha]; simp [Prog.after])
+      exact ih _ _ (by rw [VerifierProgram.after_append_single _ ha]; simp [VerifierProgram.after])
   | commit ht w k ih =>
     intro h sp ha
     simp only [proveFrom, ne_eq, Option.map_eq_none_iff]
-    exact ih _ _ (by rw [Prog.after_append_single _ ha]; simp [Prog.after])
+    exact ih _ _ (by rw [VerifierProgram.after_append_single _ ha]; simp [VerifierProgram.after])
   | query i ps k ih =>
     intro h sp ha
     simp only [proveFrom]
     split
     · simp
     · simp only [ne_eq, Option.map_eq_none_iff]
-      exact ih _ _ _ (by rw [Prog.after_append_single _ ha]; simp [Prog.after])
+      exact ih _ _ _ (by rw [VerifierProgram.after_append_single _ ha]; simp [VerifierProgram.after])
 
 /-- The honest prover produces a proof as soon as the proof-of-work search succeeds at every
 `grind` node of the program, at every sponge. -/
-theorem prove_ne_none (H : Bytes → Digest) (F : KeccakState → KeccakState) (P : Prog Bool) (S : Strategy)
+theorem prove_ne_none (H : Bytes → Digest) (F : KeccakState → KeccakState) (P : VerifierProgram Bool) (S : Strategy)
     (seed : KeccakState) (fuel : ℕ)
     (hg : ∀ h bits k sp, P.after h = some (.grind bits k) → findNonce F bits sp fuel ≠ none) :
     prove H F P S seed fuel ≠ none := by
   simp only [prove, ne_eq, Option.map_eq_none_iff]
-  exact proveFrom_ne_none H F S fuel hg P [] ⟨seed, []⟩ (Prog.after.eq_1 P)
+  exact proveFrom_ne_none H F S fuel hg P [] ⟨seed, []⟩ (VerifierProgram.after.eq_1 P)
 
 /-- **Completeness, conditioned on the proof of work.** A strategy that wins every interactive
 run with well-shaped words gives, for every hash function, an accepted proof whenever every
 proof-of-work search finds its nonce below `fuel`. -/
-theorem exists_prove_runProof (H : Bytes → Digest) (F : KeccakState → KeccakState) (P : Prog Bool)
+theorem exists_prove_runProof (H : Bytes → Digest) (F : KeccakState → KeccakState) (P :
+    VerifierProgram Bool)
     (S : Strategy) (seed : KeccakState) (fuel : ℕ) (hc : ∀ chal, runI P S chal = some true)
     (hs : ∀ chal, shapedI P S chal)
     (hg : ∀ h bits k sp, P.after h = some (.grind bits k) → findNonce F bits sp fuel ≠ none) :

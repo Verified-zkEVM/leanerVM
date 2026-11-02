@@ -75,13 +75,13 @@ open scoped ENNReal NNReal
 /-- The point of the public claims, `(r, 0, …, 0)` on the memory's variables
 (`verifier.py:1406`). -/
 def pubPoint (layout : Verifier.Layout) (r : E) : List E :=
-  r :: List.replicate ((layout.placement memory0).vars - 1) 0
+  r :: List.replicate ((layout.placement memory0).variableCount - 1) 0
 
 /-- The program's value of memory limb `ℓ` at the challenge: the line through limb `ℓ` of the
 digest's two halves, `multilinear_eval((first.c_ℓ, second.c_ℓ), [r])` (`verifier.py:1404-1405`). -/
 def pubLimb (publicInput : Digest) (r : E) (ℓ : Fin 3) : E :=
-  multilinearEval [ofK ((digestScalars publicInput).1.limb ℓ),
-    ofK ((digestScalars publicInput).2.limb ℓ)] [r]
+  multilinearEval [ofK ((digestHalves publicInput).1.limb ℓ),
+    ofK ((digestHalves publicInput).2.limb ℓ)] [r]
 
 /-- The program's claims: the three limbs on the three memory columns at the public point
 (`verifier.py:1405-1407`). -/
@@ -93,13 +93,14 @@ def pubClaims (layout : Verifier.Layout) (publicInput : Digest) (r : E) :
 /-- The public-input phase is a challenge, then the claims. -/
 theorem publicInputPhase_eq (layout : Verifier.Layout) (publicInput : Digest) :
     Verifier.publicInputPhase layout publicInput =
-      Prog.sampleChallenge >>= fun r ↦ Prog.ret (pubClaims layout publicInput r) := rfl
+      VerifierProgram.sampleChallenge >>= fun r ↦ VerifierProgram.ret (pubClaims layout publicInput
+          r) := rfl
 
 /-- The limb, computed: `(1 + r)·h₀,ℓ + r·h₁,ℓ`. -/
 theorem pubLimb_eq (publicInput : Digest) (r : E) (ℓ : Fin 3) :
     pubLimb publicInput r ℓ =
-      (1 + r) * ofK ((digestScalars publicInput).1.limb ℓ) +
-        r * ofK ((digestScalars publicInput).2.limb ℓ) := by
+      (1 + r) * ofK ((digestHalves publicInput).1.limb ℓ) +
+        r * ofK ((digestHalves publicInput).2.limb ℓ) := by
   simp only [pubLimb, multilinearEval, List.foldl, foldPairs, List.headD]
   ring
 
@@ -109,14 +110,14 @@ theorem pubLimb_eq (publicInput : Digest) (r : E) (ℓ : Fin 3) :
 
 section Fidelity
 
-variable (prog : Program) (s : LeanIsa.Sizes)
+variable (prog : LeanIsaProgram) (s : LeanIsa.Sizes)
   {fl : Option (KeccakRegion (LeanIsa.shape prog s))}
 
 /-- **The phase's line values are the program's limbs.** When the statement is the digest's, the
 value the ArkLib phase computes for line `j` (`MEM_LO, MEM_HI, MEM_TOP`) is the program's limb
 `j`. -/
 theorem lineValue_eq_pubLimb {publicInput : Digest} {input : PublicInput}
-    (hinput : digestScalars publicInput = (input.word0, input.word1)) (r : E) (j : Fin 3) :
+    (hinput : digestHalves publicInput = (input.word0, input.word1)) (r : E) (j : Fin 3) :
     PublicInput.lineValue (leanIsaWith prog s fl) r
       ((leanIsaWith prog s fl).publicLines input)[j] = pubLimb publicInput r j := by
   rw [pubLimb_eq, hinput]
@@ -126,7 +127,7 @@ theorem lineValue_eq_pubLimb {publicInput : Digest} {input : PublicInput}
 /-- The phase's claim on line `j` is the program's claim on memory column `j`, read on the
 instance: `MEM_j` at `linePoint r`, at the program's limb. -/
 theorem lineClaim_eq {publicInput : Digest} {input : PublicInput}
-    (hinput : digestScalars publicInput = (input.word0, input.word1)) (r : E) (j : Fin 3) :
+    (hinput : digestHalves publicInput = (input.word0, input.word1)) (r : E) (j : Fin 3) :
     PublicInput.lineClaim (leanIsaWith prog s fl) r
       ((leanIsaWith prog s fl).publicLines input)[j] =
       ⟨LeanIsa.memCol j.castSucc, PublicInput.linePoint s.logMem_pos r,
@@ -140,7 +141,7 @@ end Fidelity
 
 section Spec
 
-variable (prog : Program) (s : LeanIsa.Sizes)
+variable (prog : LeanIsaProgram) (s : LeanIsa.Sizes)
   (fl : Option (KeccakRegion (LeanIsa.shape prog s))) (layout : Verifier.Layout)
   (C : List Ev → Set (Column layout.stackLog))
   (toI : Column layout.stackLog → Column (leanIsaWith prog s fl).μ)
@@ -211,7 +212,7 @@ theorem trueStmt_not_table (q : Column (leanIsaWith prog s fl).μ)
 the public claims at `r` and the Keccak predicate at `pt`, the phase's pool at `r` is in the
 public seam. -/
 theorem good_imp_state (hlayout : pubLayoutHypWith prog s fl layout toI H)
-    {publicInput : Digest} (hinput : digestScalars publicInput = (input.word0, input.word1))
+    {publicInput : Digest} (hinput : digestHalves publicInput = (input.word0, input.word1))
     {q : Column layout.stackLog} {r : E}
     (hcl : ClaimsHoldBy H (pubClaims layout publicInput r) q)
     (haux : (leanIsaWith prog s fl).auxAt pt.toList (toI q)) :
@@ -236,7 +237,7 @@ theorem good_imp_state (hlayout : pubLayoutHypWith prog s fl layout toI H)
 good" is at most `L₀ / |E|`, `L₀` bounding the number of candidates: per candidate, the phase's
 round-by-round knowledge soundness at the slot's error `1/|E|`, and the union bound. -/
 theorem pub_escape (hlayout : pubLayoutHypWith prog s fl layout toI H)
-    {publicInput : Digest} (hinput : digestScalars publicInput = (input.word0, input.word1))
+    {publicInput : Digest} (hinput : digestHalves publicInput = (input.word0, input.word1))
     {L₀ : ℕ} (hcard : ∀ h, (C h).ncard ≤ L₀) {h₀ : List Ev}
     (hpre : PubPreWith prog s fl layout C toI H claims input pt h₀) :
     avgE (fun r ↦ indE (PubGoodWith prog s fl layout C toI H claims pt publicInput h₀ r)) ≤
@@ -289,7 +290,7 @@ open Classical in
 (`pubLayoutHyp`), the instance's statement read off the digest, and candidates stable along the
 phase. -/
 noncomputable def pubPhaseSpecWith (hlayout : pubLayoutHypWith prog s fl layout toI H)
-    {publicInput : Digest} (hinput : digestScalars publicInput = (input.word0, input.word1))
+    {publicInput : Digest} (hinput : digestHalves publicInput = (input.word0, input.word1))
     (hstable : CandsStable layout C) {L₀ : ℕ} (hcard : ∀ h, (C h).ncard ≤ L₀)
     {εmax T : ℝ≥0∞} :
     Spec (Verifier.publicInputPhase layout publicInput)
@@ -317,7 +318,7 @@ end Spec
 
 section Deployed
 
-variable (prog : Program) (s : LeanIsa.Sizes) (layout : Verifier.Layout)
+variable (prog : LeanIsaProgram) (s : LeanIsa.Sizes) (layout : Verifier.Layout)
   (C : List Ev → Set (Column layout.stackLog))
   (toI : Column layout.stackLog → Column (leanIsaInstance prog s).μ)
   (H : Verifier.ColumnClaim → Column layout.stackLog → Prop)
@@ -349,7 +350,7 @@ abbrev stackOracle :
 open Classical in
 /-- **The public-input phase's specification** at the deployed instance (`pubPhaseSpecWith`). -/
 noncomputable def pubPhaseSpec (hlayout : pubLayoutHyp prog s layout toI H)
-    {publicInput : Digest} (hinput : digestScalars publicInput = (input.word0, input.word1))
+    {publicInput : Digest} (hinput : digestHalves publicInput = (input.word0, input.word1))
     (hstable : CandsStable layout C) {L₀ : ℕ} (hcard : ∀ h, (C h).ncard ≤ L₀)
     {εmax T : ℝ≥0∞} :
     Spec (Verifier.publicInputPhase layout publicInput)

@@ -37,13 +37,13 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 open Classical in
 /-- The exponent `k < bound` with `x = g^k` (`0` if none). -/
 noncomputable def logG (x : E) (bound : Nat) : Nat :=
-  ((List.range bound).find? fun k => decide (x = ofK (gpow k))).getD 0
+  ((List.range bound).find? fun k => decide (x = ofK (addressOfIndex k))).getD 0
 
 theorem logG_eq {x : E} {k bound : Nat} (hk : k < bound) (hb : bound ≤ 2 ^ 64 - 1)
-    (hx : x = ofK (gpow k)) : logG x bound = k := by
+    (hx : x = ofK (addressOfIndex k)) : logG x bound = k := by
   classical
   unfold logG
-  have hsome : ((List.range bound).find? fun k => decide (x = ofK (gpow k))).isSome := by
+  have hsome : ((List.range bound).find? fun k => decide (x = ofK (addressOfIndex k))).isSome := by
     rw [List.find?_isSome]
     exact ⟨k, List.mem_range.mpr hk, by simp [hx]⟩
   obtain ⟨k', hk'⟩ := Option.isSome_iff_exists.mp hsome
@@ -67,7 +67,7 @@ def cwState (W : WotsT) (b : Nat) : Nat → V × V × Nat
 
 /-- What group `q` of `G + 1` establishes: its digits `k < 4^n`, its arm. -/
 def GroupOK (rd : Reader) (σ : Val) (W : WotsT) (b q : Nat) (fold : Bool) (n : Nat) : Prop :=
-  ∃ k < 4 ^ n, σ (.n (cwState W b q).2.2) = ofK (gpow k) ∧
+  ∃ k < 4 ^ n, σ (.n (cwState W b q).2.2) = ofK (addressOfIndex k) ∧
     AtomsHold rd σ (armT W (slotsT W fold (cwState W b q).2.2) (3 * q) n fold (cwState W b q).1
       (cwState W b q).2.1 (prodT W fold n (cwState W b q).2.2) (encT W fold n (cwState W b q).2.2) k
       (armBase W (slotsT W fold (cwState W b q).2.2) (3 * q) n fold (cwState W b q).1
@@ -152,7 +152,7 @@ theorem codewordT_groups {W : WotsT} (hW : StepAtoms W) {G : Nat} (hG : 0 < G) {
     {b : Nat} {rest : List Stmt} {next : Prop}
     (h : Stmt.HoldsList C rd σ ((codewordT W G target d0 b).1 ++ rest) next kret) :
     Stmt.HoldsList C rd σ rest next kret ∧
-      (∀ p ≤ G, ∃ k < 4 ^ cwN G p, σ (.n (cwState W b p).2.2) = ofK (gpow k) ∧
+      (∀ p ≤ G, ∃ k < 4 ^ cwN G p, σ (.n (cwState W b p).2.2) = ofK (addressOfIndex k) ∧
         AtomsHold rd σ (cwArm W G b p k).1) ∧
       σ d0 = σ (encT W false 1 (cwState W b G).2.2) ∧
       σ (prodT W false 1 (cwState W b G).2.2) = target := by
@@ -235,7 +235,7 @@ their base-4 number. -/
 theorem codeword_vals {W : WotsT} {f : Nat → Nat → E → E}
     (hs : StepSound rd σ W f) (hpow : ∀ s < 10, σ (W.power s) = gen ^ s) {G : Nat} (hG : 0 < G)
     (hG21 : G ≤ 21) {b : Nat}
-    (hgrp : ∀ p ≤ G, ∃ k < 4 ^ cwN G p, σ (.n (cwState W b p).2.2) = ofK (gpow k) ∧
+    (hgrp : ∀ p ≤ G, ∃ k < 4 ^ cwN G p, σ (.n (cwState W b p).2.2) = ofK (addressOfIndex k) ∧
         AtomsHold rd σ (cwArm W G b p k).1) :
       (∀ i < 3 * G + 1, cwDigit W G b σ i < 4 ∧
         σ (cwTip W b i) = chainT f i (3 - cwDigit W G b σ i) (cwDigit W G b σ i)

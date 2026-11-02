@@ -40,13 +40,13 @@ inductive Opcode
   deriving DecidableEq
 
 /-- The bus code of an opcode: `g^0, …, g^5` in constructor order (specification §6.4). -/
-def Opcode.code : Opcode → K
-  | .xor => gpow 0
-  | .mulNative => gpow 1
-  | .setConstant => gpow 2
-  | .deref => gpow 3
-  | .jump => gpow 4
-  | .keccak => gpow 5
+def Opcode.busCode : Opcode → K
+  | .xor => addressOfIndex 0
+  | .mulNative => addressOfIndex 1
+  | .setConstant => addressOfIndex 2
+  | .deref => addressOfIndex 3
+  | .jump => addressOfIndex 4
+  | .keccak => addressOfIndex 5
 
 /-- The least memory log-size, `2^16` cells (`crates/leanvm_core/src/cpu/mod.rs:41`, `MIN_LOG_MEM`).
 -/
@@ -71,7 +71,7 @@ open LeanVM.Parameters
 open Classical in
 /-- The index of an address: `some i` when `a = g^i` with `i < 2^κ`, otherwise `none`. -/
 noncomputable def addressIndex? (κ : ℕ) (a : K) : Option (Fin (2 ^ κ)) :=
-  if h : ∃ i : Fin (2 ^ κ), a = gpow i then some (Classical.choose h) else none
+  if h : ∃ i : Fin (2 ^ κ), a = addressOfIndex i then some (Classical.choose h) else none
 
 /-- A memory of `2^κ` words, by index. -/
 abbrev MemoryImage (κ : ℕ) : Type := Fin (2 ^ κ) → E
@@ -107,7 +107,7 @@ inductive DerefMode
   deriving DecidableEq
 
 /-- The six instructions. -/
-inductive Instr
+inductive LeanIsaInstruction
   /-- `[o_C] = [o_A] + [o_B]`. -/
   | xor (oA oB oC : K)
   /-- `[o_C] = [o_A] · [o_B]`. -/
@@ -127,7 +127,7 @@ inductive Instr
   deriving DecidableEq
 
 /-- The opcode of an instruction. -/
-def Instr.opcode : Instr → Opcode
+def LeanIsaInstruction.opcode : LeanIsaInstruction → Opcode
   | .xor .. => .xor
   | .mulNative .. => .mulNative
   | .setConstant .. => .setConstant
@@ -136,17 +136,18 @@ def Instr.opcode : Instr → Opcode
   | .keccak .. => .keccak
 
 /-- A program: `2^logSize ≤ 2^32` instructions, instruction `i` at address `g^i`. -/
-structure Program where
+structure LeanIsaProgram where
   /-- The log-size: `2^logSize` instructions. -/
   logSize : ℕ
   /-- At most `2^32` instructions. -/
   logSize_le : logSize ≤ maxLogBytecode
   /-- Instruction `i`, at address `g^i`. -/
-  code : Fin (2 ^ logSize) → Instr
+  instructions : Fin (2 ^ logSize) → LeanIsaInstruction
 
 /-- The instruction at address `pc`. -/
-noncomputable def Program.fetch (prog : Program) (pc : K) : Option Instr :=
-  (addressIndex? prog.logSize pc).map prog.code
+noncomputable def LeanIsaProgram.fetch (prog : LeanIsaProgram) (pc : K) : Option
+    LeanIsaInstruction :=
+  (addressIndex? prog.logSize pc).map prog.instructions
 
 /-! ## `KECCAK`
 
@@ -205,7 +206,7 @@ instance {input : Fin 13 → E} {inOdd : Bool} {output : Fin 13 → E} {outOdd :
 /-- The address of read cell `c` relative to the frame: `o_m₀, …, o_m₃`, then `g^k · o_tail`
 (`k < 4`), `o_b8`, then `g^k · o_cap` (`k < 4`) (`_flushes_keccak`'s `address`,
 `verifier.py:907-912`). -/
-def keccakInOffset (om : Fin 4 → K) (otail ob8 ocap : K) (c : Fin 13) : K :=
+def keccakInputCellOffset (om : Fin 4 → K) (otail ob8 ocap : K) (c : Fin 13) : K :=
   if h : c.val < 4 then om ⟨c.val, h⟩
   else if c.val < 8 then g ^ (c.val - 4) * otail
   else if c.val = 8 then ob8
@@ -246,7 +247,7 @@ def derefSource : DerefMode → Registers K → E → E
 
 /-- Execute an instruction with the memory reader `read`: read its words, check its relation, and
 return the next registers; `none` if a read or a check fails. -/
-def executeWith (read : K → Option E) (r : Registers K) : Instr → Option (Registers K)
+def executeWith (read : K → Option E) (r : Registers K) : LeanIsaInstruction → Option (Registers K)
   | .xor oA oB oC => do
     let vA ← read (r.fp * oA)
     let vB ← read (r.fp * oB)
@@ -277,18 +278,18 @@ def executeWith (read : K → Option E) (r : Registers K) : Instr → Option (Re
     guard (IsInK c ∧ IsInK d ∧ IsInK f)
     pure (if c = 0 then r.next else ⟨d.limb 0, f.limb 0⟩)
   | .keccak om otail ob8 ocap oout inOdd outOdd => do
-    let input ← readCells read r.fp (keccakInOffset om otail ob8 ocap)
+    let input ← readCells read r.fp (keccakInputCellOffset om otail ob8 ocap)
     let output ← readCells read r.fp fun c ↦ g ^ c.val * oout
     guard (KeccakCellsRelation input inOdd output outOdd)
     pure r.next
 
 /-- Execute an instruction on the memory `L`. -/
 noncomputable def execute {κ : ℕ} (L : MemoryImage κ) (r : Registers K) :
-    Instr → Option (Registers K) :=
+    LeanIsaInstruction → Option (Registers K) :=
   executeWith L.read r
 
 /-- One step: fetch the instruction at `pc` and execute it. -/
-noncomputable def step {κ : ℕ} (prog : Program) (L : MemoryImage κ) (r : Registers K) :
+noncomputable def step {κ : ℕ} (prog : LeanIsaProgram) (L : MemoryImage κ) (r : Registers K) :
     Option (Registers K) :=
   prog.fetch r.pc >>= execute L r
 
@@ -301,7 +302,7 @@ abbrev pcInitial : K := 1
 abbrev fpInitial : K := 1
 
 /-- The final `pc`: the last bytecode slot, `g^(2^logSize − 1)`. -/
-def Program.pcFinal (prog : Program) : K := gpow (2 ^ prog.logSize - 1)
+def LeanIsaProgram.pcFinal (prog : LeanIsaProgram) : K := addressOfIndex (2 ^ prog.logSize - 1)
 
 /-- The final `fp`: `main`'s frame again. -/
 abbrev fpFinal : K := 1
@@ -310,7 +311,7 @@ abbrev fpFinal : K := 1
 def Registers.initial : Registers K := ⟨pcInitial, fpInitial⟩
 
 /-- The final state `(pcFinal, fpFinal)`, where the machine halts. -/
-def Registers.final (prog : Program) : Registers K := ⟨prog.pcFinal, fpFinal⟩
+def Registers.final (prog : LeanIsaProgram) : Registers K := ⟨prog.pcFinal, fpFinal⟩
 
 /-- `n` steps from `r`, halting in the final state: `none` if a step fails or the machine halts
 first. The machine halts when both registers are the final state's, checked before each step, as
@@ -320,37 +321,39 @@ another frame executes like any other slot, and a step that falls through it, to
 (`doc/leanvm/body/02-vm-specification.tex`, §2) executes an instruction before it checks for the
 final state; the two differ only at `logSize = 0`, where the initial and final states coincide
 and this `run` and the Rust's accept a run of zero steps. -/
-noncomputable def run {κ : ℕ} (prog : Program) (L : MemoryImage κ) :
+noncomputable def run {κ : ℕ} (prog : LeanIsaProgram) (L : MemoryImage κ) :
     ℕ → Registers K → Option (Registers K)
   | 0, r => some r
   | n + 1, r => if r = Registers.final prog then none else step prog L r >>= run prog L n
 
 /-- An execution: a memory of `2^logMemorySize` words (`2^κ` in the specification) and a number of
 steps. -/
-structure Execution (prog : Program) where
+structure Execution (prog : LeanIsaProgram) where
   /-- `κ`: the memory holds `2^κ` words. -/
   logMemorySize : ℕ
   /-- The memory, fixed before the run and only read. -/
   memory : MemoryImage logMemorySize
   /-- The number of steps the run takes. -/
-  steps : ℕ
+  stepCount : ℕ
 
 /-- The memory has between `2^16` and `2^32` words and holds the public input in words `0`, `1`. -/
-def HoldsPublicInput {prog : Program} (input : PublicInput) (t : Execution prog) : Prop :=
+def HoldsPublicInput {prog : LeanIsaProgram} (input : PublicInput) (t : Execution prog) : Prop :=
   minLogMem ≤ t.logMemorySize ∧ t.logMemorySize ≤ maxLogMem ∧
-    t.memory.read (gpow 0) = some input.word0 ∧ t.memory.read (gpow 1) = some input.word1
+    t.memory.read (addressOfIndex 0) = some input.word0 ∧ t.memory.read (addressOfIndex 1) = some
+        input.word1
 
 /-- **A valid execution** of `prog` on `input`: the memory holds the public input, and `t.steps`
 steps from the initial state halt in the final state. -/
-def ValidExecution (prog : Program) (input : PublicInput) (t : Execution prog) : Prop :=
+def ValidExecution (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) : Prop :=
   HoldsPublicInput input t ∧
-    run prog t.memory t.steps Registers.initial = some (Registers.final prog)
+    run prog t.memory t.stepCount Registers.initial = some (Registers.final prog)
 
 /-! ## Instruction counts -/
 
 /-- The number of instructions of opcode `op` executed in `n` steps from `r`, stepping as `run`
 does; the count stops at a step that fails. -/
-noncomputable def opcodeCountInRun {κ : ℕ} (prog : Program) (L : MemoryImage κ) (op : Opcode) :
+noncomputable def opcodeCountInRun {κ : ℕ} (prog : LeanIsaProgram) (L : MemoryImage κ) (op :
+    Opcode) :
     ℕ → Registers K → ℕ
   | 0, _ => 0
   | n + 1, r =>
@@ -359,8 +362,9 @@ noncomputable def opcodeCountInRun {κ : ℕ} (prog : Program) (L : MemoryImage 
     | _, _ => 0
 
 /-- The number of instructions of opcode `op` an execution executes. -/
-noncomputable def Execution.count {prog : Program} (t : Execution prog) (op : Opcode) : ℕ :=
-  opcodeCountInRun prog t.memory op t.steps Registers.initial
+noncomputable def Execution.opcodeCount {prog : LeanIsaProgram} (t : Execution prog) (op :
+    Opcode) : ℕ :=
+  opcodeCountInRun prog t.memory op t.stepCount Registers.initial
 
 end LeanVM.Semantics
 
@@ -379,28 +383,29 @@ def derefFlags : DerefMode → K × K
 
 /-- A layout flag as the bytecode carries it: `0` or `1` (`flag`,
 `crates/leanvm_core/src/cpu/layout.rs:297`). -/
-def flagK (b : Bool) : K := if b then 1 else 0
+def layoutFlagWord (b : Bool) : K := if b then 1 else 0
 
 /-- The bus entry of an instruction, `(opcode, op₁, …, op₁₀)`: slots 3 to 13 of specification
 §8.1, the eleven public columns of `bytecode_columns` (`cpu/layout.rs:288-353`): offsets as
 g-powers, a `SET` immediate as its three limbs, the `DEREF` store-mode flags and `KECCAK`'s
 layout flags as `0` or `1`, unused slots zero. -/
-def entry : Instr → Vector K 11
-  | .xor oA oB oC => #v[Opcode.xor.code, oA, oB, oC, 0, 0, 0, 0, 0, 0, 0]
-  | .mulNative oA oB oC => #v[Opcode.mulNative.code, oA, oB, oC, 0, 0, 0, 0, 0, 0, 0]
+def busEntry : LeanIsaInstruction → Vector K 11
+  | .xor oA oB oC => #v[Opcode.xor.busCode, oA, oB, oC, 0, 0, 0, 0, 0, 0, 0]
+  | .mulNative oA oB oC => #v[Opcode.mulNative.busCode, oA, oB, oC, 0, 0, 0, 0, 0, 0, 0]
   | .setConstant o k =>
-      #v[Opcode.setConstant.code, o, k.limb 0, k.limb 1, k.limb 2, 0, 0, 0, 0, 0, 0]
+      #v[Opcode.setConstant.busCode, o, k.limb 0, k.limb 1, k.limb 2, 0, 0, 0, 0, 0, 0]
   | .deref o1 o2 o3 mode =>
-      #v[Opcode.deref.code, o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2, 0, 0, 0, 0, 0]
-  | .jump oc od of => #v[Opcode.jump.code, oc, od, of, 0, 0, 0, 0, 0, 0, 0]
+      #v[Opcode.deref.busCode, o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2, 0, 0, 0, 0, 0]
+  | .jump oc od of => #v[Opcode.jump.busCode, oc, od, of, 0, 0, 0, 0, 0, 0, 0]
   | .keccak om otail ob8 ocap oout inOdd outOdd =>
-      #v[Opcode.keccak.code, om 0, om 1, om 2, om 3, otail, ob8, ocap, oout, flagK inOdd,
-        flagK outOdd]
+      #v[Opcode.keccak.busCode, om 0, om 1, om 2, om 3, otail, ob8, ocap, oout,
+          layoutFlagWord inOdd,
+        layoutFlagWord outOdd]
 
 /-- The sixteen slots of an instruction (specification §8.1; `BYTECODE_PUBLIC_SLOT = 3`,
 `crates/leanvm_core/src/leaf.rs:770`): the entry at slots 3 to 13, zero elsewhere. -/
-def encodeSlots (i : Instr) : Vector K 16 :=
-  let e := entry i
+def instructionSlots (i : LeanIsaInstruction) : Vector K 16 :=
+  let e := busEntry i
   #v[0, 0, 0, e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8], e[9], e[10], 0, 0]
 
 end LeanVM.Arithmetization
@@ -411,14 +416,14 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 
 /-- The bytecode the verifier reads: the sixteen slots of every instruction (`encodeSlots`),
 slot by slot: word `i + 2^logSize · s` is slot `s` of instruction `i`. -/
-def bytecodeWords (prog : Program) : List K :=
+def bytecodeWords (prog : LeanIsaProgram) : List K :=
   (List.finRange 16).flatMap fun s ↦
-    (List.finRange (2 ^ prog.logSize)).map fun i ↦ (encodeSlots (prog.code i))[s]
+    (List.finRange (2 ^ prog.logSize)).map fun i ↦ (instructionSlots (prog.instructions i))[s]
 
 /-- The public input as the verifier reads it: its four lanes, the digest's four words
 (`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:716-723`; `Digest.halves`,
 `verifier.py:225-228`). -/
-def publicDigest (input : PublicInput) : Digest :=
+def publicInputDigest (input : PublicInput) : Digest :=
   #v[(input.lanes 0).lane, (input.lanes 1).lane, (input.lanes 2).lane, (input.lanes 3).lane]
 
 /-- The public input whose digest is `d` (`publicDigest`'s inverse): its four lanes as `K` words. -/
@@ -434,7 +439,7 @@ open LeanVM.Parameters LeanVM.Semantics
 /-! ## Compiled functions, assembled into a program -/
 
 /-- An instruction with frame offsets as `ℕ` and a `SET` immediate as three limbs. -/
-inductive OInstr
+inductive OffsetInstruction
   /-- `fp[c] = fp[a] + fp[b]`. -/
   | xor (a b c : ℕ)
   /-- `fp[c] = fp[a] · fp[b]`. -/
@@ -453,58 +458,63 @@ inductive OInstr
   deriving DecidableEq
 
 /-- The padding instruction, `SET fp[0] = 0`. -/
-def OInstr.pad : OInstr := .set 0 0 0 0
+def OffsetInstruction.padding : OffsetInstruction := .set 0 0 0 0
 
 /-- The word of a `SET` immediate's limbs. -/
-def OInstr.imm (k0 k1 k2 : ℕ) : E := E.ofLimbs (K.ofBits k0) (K.ofBits k1) (K.ofBits k2)
+def OffsetInstruction.immediateWord (k0 k1 k2 : ℕ) : E := E.ofLimbs (K.ofBits k0) (K.ofBits k1)
+    (K.ofBits k2)
 
 /-- The instruction of the ISA (`Instr`) an offset-form instruction denotes. -/
-def OInstr.toInstr : OInstr → Instr
-  | .xor a b c => .xor (gpow a) (gpow b) (gpow c)
-  | .mul a b c => .mulNative (gpow a) (gpow b) (gpow c)
-  | .set o k0 k1 k2 => .setConstant (gpow o) (OInstr.imm k0 k1 k2)
-  | .deref o1 o2 o3 mode => .deref (gpow o1) (gpow o2) (gpow o3) mode
-  | .jump oc od of => .jump (gpow oc) (gpow od) (gpow of)
+def OffsetInstruction.toLeanIsaInstruction : OffsetInstruction → LeanIsaInstruction
+  | .xor a b c => .xor (addressOfIndex a) (addressOfIndex b) (addressOfIndex c)
+  | .mul a b c => .mulNative (addressOfIndex a) (addressOfIndex b) (addressOfIndex c)
+  | .set o k0 k1 k2 => .setConstant (addressOfIndex o) (OffsetInstruction.immediateWord k0 k1 k2)
+  | .deref o1 o2 o3 mode => .deref (addressOfIndex o1) (addressOfIndex o2) (addressOfIndex o3) mode
+  | .jump oc od of => .jump (addressOfIndex oc) (addressOfIndex od) (addressOfIndex of)
   | .keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd =>
-      .keccak ![gpow m0, gpow m1, gpow m2, gpow m3] (gpow tail) (gpow b8) (gpow cap) (gpow out)
+      .keccak ![addressOfIndex m0, addressOfIndex m1, addressOfIndex m2, addressOfIndex m3]
+          (addressOfIndex tail) (addressOfIndex b8) (addressOfIndex cap) (addressOfIndex out)
         inOdd outOdd
 
 /-- The instructions per chunk of a compiled function's code. -/
 def chunkSize : ℕ := 2048
 
 /-- Element `n` of a list, `d` past its end; structural, for the kernel. -/
-def nth {α : Type} : List α → ℕ → α → α
+def listElementOrDefault {α : Type} : List α → ℕ → α → α
   | [], _, d => d
   | a :: _, 0, _ => a
-  | _ :: as, n + 1, d => nth as n d
+  | _ :: as, n + 1, d => listElementOrDefault as n d
 
 /-- A compiled function: its name (`f__L…` for a specialization), entry pc, number of
 instructions, and code in chunks of `chunkSize` instructions (the last shorter). -/
-structure CompiledFn where
+structure CompiledFunction where
   /-- Its name, for a reader of the generated data. -/
   name : String
   /-- The pc of its first instruction. -/
-  entry : ℕ
+  entryPc : ℕ
   /-- Its number of instructions. -/
-  len : ℕ
+  instructionCount : ℕ
   /-- Its code, in chunks of `chunkSize` instructions. -/
-  chunks : List (List OInstr)
+  chunks : List (List OffsetInstruction)
 
 /-- Instruction `i` of code in chunks of `C`, the padding past the end. -/
-def chunkAt (C : ℕ) (cs : List (List OInstr)) (i : ℕ) : OInstr := nth (nth cs (i / C) [])
-    (i % C) .pad
+def chunkedInstructionAt (C : ℕ) (cs : List (List OffsetInstruction)) (i : ℕ) : OffsetInstruction :=
+    listElementOrDefault (listElementOrDefault cs (i / C) [])
+    (i % C) .padding
 
 /-- The instruction at offset `i`, the padding past the end. -/
-def CompiledFn.instrAt (f : CompiledFn) (i : ℕ) : OInstr := chunkAt chunkSize f.chunks i
+def CompiledFunction.instructionAt (f : CompiledFunction) (i : ℕ) : OffsetInstruction :=
+    chunkedInstructionAt chunkSize f.chunks i
 
 /-- The instruction at pc `pc` of the functions `fns`, the padding outside them. -/
-def lookup : List CompiledFn → ℕ → OInstr
-  | [], _ => .pad
-  | f :: fs, pc => if pc < f.entry + f.len then f.instrAt (pc - f.entry) else lookup fs pc
+def instructionAtPc : List CompiledFunction → ℕ → OffsetInstruction
+  | [], _ => .padding
+  | f :: fs, pc => if pc < f.entryPc + f.instructionCount then f.instructionAt (pc - f.entryPc) else instructionAtPc fs pc
 
 /-- The program of `2^logSize` slots holding the functions `fns`, padded. -/
-def assemble (fns : List CompiledFn) (logSize : ℕ) (h : logSize ≤ maxLogBytecode) : Program :=
-  ⟨logSize, h, fun i ↦ (lookup fns i).toInstr⟩
+def assemble (fns : List CompiledFunction) (logSize : ℕ) (h : logSize ≤ maxLogBytecode) :
+    LeanIsaProgram :=
+  ⟨logSize, h, fun i ↦ (instructionAtPc fns i).toLeanIsaInstruction⟩
 
 end LeanVM.Guest
 

@@ -51,11 +51,11 @@ open Classical in
 /-- **The honest prover against the random oracle**: the honest prover of `honestProofOf`, with
 every hash a query to the random oracle; the empty proof when the execution has no witness at
 admissible sizes or a proof-of-work search finds no nonce below `fuel`. -/
-noncomputable def honestComp (prog : Program) (input : PublicInput) (t : Execution prog)
+noncomputable def honestComp (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog)
     (ρ fuel : ℕ) : OracleComp KeccakCalls Proof :=
   if h : ∃ w s, HonestFor prog input t ρ w s then
-    Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
-      (leanVmProgram (bytecodeWords prog) (publicDigest input))
+    Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
       (leanVmProver prog h.choose_spec.choose ρ (stackOf prog h.choose_spec.choose h.choose)) fuel
   else pure ⟨[], []⟩
 
@@ -72,35 +72,37 @@ noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
 /-- **Completeness in the random-oracle model, at a witness.** For an honest witness `w` at the
 sizes `s` (`HonestFor`) and a fuel of at most `2^64` nonces, the verifier rejects the proof of the
 specification's honest prover at that witness with probability at most `completenessError fuel`. -/
-theorem romComplete_at {prog : Program} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
+theorem romComplete_at {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
     {w : EnsembleWitness (leanIsaEnsemble prog)} {s : Sizes} (hw : HonestFor prog input t ρ w s)
     {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
-    Pr{let z ← romExperiment (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
-          (leanVmProgram (bytecodeWords prog) (publicDigest input))
+    Pr{let z ← romExperiment (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicInputDigest
+        input))
+          (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
           (leanVmProver prog s ρ (stackOf prog s w)) fuel)
-        (verifierComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
-          (leanVmProgram (bytecodeWords prog) (publicDigest input)))}[z.1.2 = false] ≤
+        (verifierComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+          (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)))}[z.1.2 = false] ≤
       completenessError fuel := by
   obtain ⟨hρ, hw', hs', hadm', -⟩ := hw
   have hq := m3Honest_stackOf hw' hs'
   have hrun := runI_leanVmProgram hadm' hρ hq
-  have h := Rom.romComplete (leanVmProgram (bytecodeWords prog) (publicDigest input)) _
-    (leanVmSeed (bytecodeWords prog) (publicDigest input)) (bits := Whir.queryGrindingBits)
+  have h := Rom.romComplete (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) _
+    (leanVmSeed (bytecodeWords prog) (publicInputDigest input)) (bits := Whir.queryGrindingBits)
     (by decide) (by decide) hfuel (fun _ _ _ hg ↦ Sound.grind_bits_eq _ _ hg)
     (fun chal ↦ (hrun chal).1) (fun chal ↦ (hrun chal).2)
-    (costLE_leanVmProgram (bytecodeWords prog) (publicDigest input))
+    (costLE_leanVmProgram (bytecodeWords prog) (publicInputDigest input))
   refine h.trans (le_of_eq ?_)
   rfl
 
 /-- **Completeness in the random-oracle model.** For a valid execution whose committed size is at
 most `2^28`, at a valid rate, and a fuel of at most `2^64` nonces, the verifier rejects the honest
 prover's proof with probability at most `completenessError fuel`. -/
-theorem romComplete_leanVm {prog : Program} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
+theorem romComplete_leanVm {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
+    {ρ : ℕ}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
     (hρ : validRate ρ) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← romExperiment (honestComp prog input t ρ fuel)
-        (verifierComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
-          (leanVmProgram (bytecodeWords prog) (publicDigest input)))}[z.1.2 = false] ≤
+        (verifierComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+          (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)))}[z.1.2 = false] ≤
       completenessError fuel := by
   obtain ⟨w, s, hw, hrep, hs, hadm⟩ := exists_admissible_witness hv hbudget
   have hex : ∃ w s, HonestFor prog input t ρ w s := ⟨w, s, hρ, hw, hs, hadm, hrep⟩

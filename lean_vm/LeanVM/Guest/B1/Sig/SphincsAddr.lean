@@ -32,7 +32,7 @@ theorem eOfNat_add_high {x y k : Nat} (hx : x < 2 ^ k) :
 theorem sAdr_bytes {lo hi tag step : Nat} (hlo : lo < 2 ^ 32) (hhi : hi < 2 ^ 24) (htag : tag < 32)
     (hstep : step < 8) :
     cellBytes (eOfNat (lo + 2 ^ 32 * hi + 2 ^ 56 * (tag + 32 * step))) =
-      Sphincs.fieldBytes (Sphincs.tweakFields tag step hi lo) := by
+      Sphincs.addressBytes (Sphincs.tweakFields tag step hi lo) := by
   rw [sTweak]
   congr 2
   unfold addrNat
@@ -58,7 +58,7 @@ theorem fchainAdr_bytes {idx c s j a i t : Nat} (hidx : idx < 2 ^ 26) (hc : c < 
     (hj : j < 2) (ha : a < 8) (hi : i < 6) (ht : t < 4) :
     cellBytes (eOfNat idx + word (c * hiMul + s * 2 ^ 35) 0 0 + word (j * 2 ^ 39 + a * 2 ^ 40) 0 0 +
         eOfNat (tw 15 + i * 2 ^ 43 + t * stepMul)) =
-      Sphincs.fieldBytes (Sphincs.tweakFields 15 t (c + 8 * s + 128 * j + 256 * a + 2048 * i) idx) := by
+      Sphincs.addressBytes (Sphincs.tweakFields 15 t (c + 8 * s + 128 * j + 256 * a + 2048 * i) idx) := by
   have e : eOfNat idx + word (c * hiMul + s * 2 ^ 35) 0 0 + word (j * 2 ^ 39 + a * 2 ^ 40) 0 0 +
       eOfNat (tw 15 + i * 2 ^ 43 + t * stepMul) =
       eOfNat (idx + 2 ^ 32 * (c + 8 * s + 128 * j + 256 * a + 2048 * i) + 2 ^ 56 * (15 + 32 * t)) := by
@@ -73,7 +73,7 @@ theorem childLeafAdr_bytes {idx c s j a : Nat} (hidx : idx < 2 ^ 26) (hc : c < 8
     (hj : j < 2) (ha : a < 8) :
     cellBytes (eOfNat idx + word (c * hiMul + s * 2 ^ 35) 0 0 + word (j * 2 ^ 39 + a * 2 ^ 40) 0 0 +
         word (tw 16) 0 0) =
-      Sphincs.fieldBytes (Sphincs.tweakFields 16 0 (c + 8 * s + 128 * j + 256 * a) idx) := by
+      Sphincs.addressBytes (Sphincs.tweakFields 16 0 (c + 8 * s + 128 * j + 256 * a) idx) := by
   have e : eOfNat idx + word (c * hiMul + s * 2 ^ 35) 0 0 + word (j * 2 ^ 39 + a * 2 ^ 40) 0 0 +
       word (tw 16) 0 0 = eOfNat (idx + 2 ^ 32 * (c + 8 * s + 128 * j + 256 * a) + 2 ^ 56 * (16 + 32 * 0)) := by
     rw [keyAt_word hidx hc hs, word_shift (k := 43) (y := 2 ^ 13 * 16) (by simp [tw]),
@@ -96,7 +96,7 @@ theorem subNodeAdr_bytes {idx c s j a l : Nat} (hidx : idx < 2 ^ 26) (hc : c < 8
     (hj : j < 2) (ha : a < 8) (hl : l < 2) :
     cellBytes (eOfNat idx + word (c * hiMul + s * 2 ^ 35) 0 0 + word (j * 2 ^ 39 + a * 2 ^ 40) 0 0 +
         word (a * 2 ^ 40 ^^^ (tw 17 + (l + 1) * 2 ^ 40 + a / 2 ^ (l + 1) * 2 ^ 42)) 0 0) =
-      Sphincs.fieldBytes (Sphincs.tweakFields 17 0
+      Sphincs.addressBytes (Sphincs.tweakFields 17 0
         (c + 8 * s + 128 * j + 256 * (l + 1) + 1024 * (a / 2 ^ (l + 1))) idx) := by
   have hq : a / 2 ^ (l + 1) < 2 ^ 2 := div_two_pow_lt (n := 2) (by simpa using ha)
   have e1 : word (j * 2 ^ 39 + a * 2 ^ 40) 0 0 = eOfNat (2 ^ 39 * j) + eOfNat (2 ^ 40 * a) := by
@@ -126,7 +126,7 @@ theorem subNodeAdr_bytes {idx c s j a l : Nat} (hidx : idx < 2 ^ 26) (hc : c < 8
 
 theorem superAdr_bytes {idx c s : Nat} (hidx : idx < 2 ^ 26) (hc : c < 8) (hs : s < 16) :
     cellBytes (eOfNat idx + word (c * hiMul + s * 2 ^ 35) 0 0 + word (tw 18) 0 0) =
-      Sphincs.fieldBytes (Sphincs.tweakFields 18 0 (c + 8 * s) idx) := by
+      Sphincs.addressBytes (Sphincs.tweakFields 18 0 (c + 8 * s) idx) := by
   have e : eOfNat idx + word (c * hiMul + s * 2 ^ 35) 0 0 + word (tw 18) 0 0 =
       eOfNat (idx + 2 ^ 32 * (c + 8 * s) + 2 ^ 56 * (18 + 32 * 0)) := by
     rw [leafAt_word hidx, word_shift (k := 39) (y := 2 ^ 17 * 18) (by simp [tw]),
@@ -139,7 +139,7 @@ theorem topNodeAdr_bytes {idx c s l : Nat} (hidx : idx < 2 ^ 26) (hc : c < 8) (h
     (hl : l < 3) :
     cellBytes (eOfNat idx + word (c * hiMul + s * 2 ^ 35) 0 0 +
         word (s * 2 ^ 35 ^^^ (tw 19 + (l + 1) * (8 * hiMul) + s / 2 ^ (l + 1) * (64 * hiMul))) 0 0) =
-      Sphincs.fieldBytes (Sphincs.tweakFields 19 0 (c + 8 * (l + 1) + 64 * (s / 2 ^ (l + 1))) idx) := by
+      Sphincs.addressBytes (Sphincs.tweakFields 19 0 (c + 8 * (l + 1) + 64 * (s / 2 ^ (l + 1))) idx) := by
   have hq : s / 2 ^ (l + 1) < 2 ^ 3 := div_two_pow_lt (n := 3) (by simpa using hs)
   have e1 : word (c * hiMul + s * 2 ^ 35) 0 0 = eOfNat (2 ^ 32 * c) + eOfNat (2 ^ 35 * s) := by
     rw [word_eq_eOfNat, eOfNat_add_high (x := 2 ^ 32 * c) (k := 35) (by omega)]
@@ -168,7 +168,7 @@ theorem topNodeAdr_bytes {idx c s l : Nat} (hidx : idx < 2 ^ 26) (hc : c < 8) (h
   exact sAdr_bytes (by omega) (by omega) (by omega) (by omega)
 
 theorem encAdr_bytes {idx : Nat} (hidx : idx < 2 ^ 26) :
-    cellBytes (eOfNat idx + word (tw 4) 0 0) = Sphincs.fieldBytes (Sphincs.tweakFields 4 0 0 idx) := by
+    cellBytes (eOfNat idx + word (tw 4) 0 0) = Sphincs.addressBytes (Sphincs.tweakFields 4 0 0 idx) := by
   have e : eOfNat idx + word (tw 4) 0 0 = eOfNat (idx + 2 ^ 32 * 0 + 2 ^ 56 * (4 + 32 * 0)) := by
     rw [word_shift (k := 56) (y := 4) (by simp [tw]),
       eOfNat_add_high (x := idx) (k := 56) (by omega)]
@@ -178,7 +178,7 @@ theorem encAdr_bytes {idx : Nat} (hidx : idx < 2 ^ 26) :
 
 theorem chainAdr_bytes {idx i st : Nat} (hidx : idx < 2 ^ 26) (hi : i < 64) (hst : st < 3) :
     cellBytes (eOfNat idx + word (tw 1 + i * hiMul + st * stepMul) 0 0) =
-      Sphincs.fieldBytes (Sphincs.tweakFields 1 st i idx) := by
+      Sphincs.addressBytes (Sphincs.tweakFields 1 st i idx) := by
   have e : eOfNat idx + word (tw 1 + i * hiMul + st * stepMul) 0 0 =
       eOfNat (idx + 2 ^ 32 * i + 2 ^ 56 * (1 + 32 * st)) := by
     rw [word_shift (k := 32) (y := i + 2 ^ 24 * (1 + 32 * st)) (by simp [tw, hiMul, stepMul]; ring),
@@ -188,7 +188,7 @@ theorem chainAdr_bytes {idx i st : Nat} (hidx : idx < 2 ^ 26) (hi : i < 64) (hst
   exact sAdr_bytes (by omega) (by omega) (by omega) (by omega)
 
 theorem leafAdr_bytes {idx : Nat} (hidx : idx < 2 ^ 26) :
-    cellBytes (eOfNat idx + word (tw 2) 0 0) = Sphincs.fieldBytes (Sphincs.tweakFields 2 0 0 idx) := by
+    cellBytes (eOfNat idx + word (tw 2) 0 0) = Sphincs.addressBytes (Sphincs.tweakFields 2 0 0 idx) := by
   have e : eOfNat idx + word (tw 2) 0 0 = eOfNat (idx + 2 ^ 32 * 0 + 2 ^ 56 * (2 + 32 * 0)) := by
     rw [word_shift (k := 56) (y := 2) (by simp [tw]),
       eOfNat_add_high (x := idx) (k := 56) (by omega)]
@@ -196,7 +196,7 @@ theorem leafAdr_bytes {idx : Nat} (hidx : idx < 2 ^ 26) :
   rw [e]
   exact sAdr_bytes (by omega) (by omega) (by omega) (by omega)
 
-theorem msgAdr_bytes : cellBytes (word (tw 12) 0 0) = Sphincs.fieldBytes (Sphincs.tweakFields 12 0 0 0) := by
+theorem msgAdr_bytes : cellBytes (word (tw 12) 0 0) = Sphincs.addressBytes (Sphincs.tweakFields 12 0 0 0) := by
   have e : word (tw 12) 0 0 = eOfNat (0 + 2 ^ 32 * 0 + 2 ^ 56 * (12 + 32 * 0)) := by
     rw [word_eq_eOfNat]
     rfl
@@ -206,7 +206,7 @@ theorem msgAdr_bytes : cellBytes (word (tw 12) 0 0) = Sphincs.fieldBytes (Sphinc
 theorem nodeAdr_bytes {idx l : Nat} (hidx : idx < 2 ^ 26) (hl : l < 26) :
     cellBytes (word (tw 3 + (l + 1) * hiMul) 0 0 +
         (if l + 1 = 26 then 0 else eOfNat (idx >>> (l + 1)))) =
-      Sphincs.fieldBytes (Sphincs.tweakFields 3 0 (l + 1) (idx / 2 ^ (l + 1))) := by
+      Sphincs.addressBytes (Sphincs.tweakFields 3 0 (l + 1) (idx / 2 ^ (l + 1))) := by
   have hq : idx >>> (l + 1) < 2 ^ 26 := lt_of_le_of_lt (Nat.shiftRight_le _ _) hidx
   have hw : word (tw 3 + (l + 1) * hiMul) 0 0 = eOfNat (2 ^ 32 * ((l + 1) + 2 ^ 24 * 3)) :=
     word_shift (by simp [tw, hiMul]; ring)

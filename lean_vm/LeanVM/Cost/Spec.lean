@@ -33,7 +33,7 @@ theorem evaluateTerm_case (P : MachineProgram) (n : ℕ) (env : List MachineValu
     (alts : List Term) :
     evaluateTerm P n env (.case t alts) = (evaluateTerm P n env t).bind fun (v, c) ↦
       match v with
-      | .ctor k fs => (alts[k]?).bind fun a ↦
+      | .constructor k fs => (alts[k]?).bind fun a ↦
           (evaluateTerm P n (fs ++ env) a).map fun (w, d) ↦ (w, c + d + fs.length + 1)
       | _ => none := by
   rw [evaluateTerm]
@@ -41,7 +41,7 @@ theorem evaluateTerm_case (P : MachineProgram) (n : ℕ) (env : List MachineValu
   congr 1
   funext ⟨v, c⟩
   cases v with
-  | ctor k fs =>
+  | constructor k fs =>
     simp only
     split
     · next a h => simp only [h, Option.bind_some]; cases evaluateTerm P n (fs ++ env) a <;> rfl
@@ -82,7 +82,7 @@ theorem eval_mono (P : MachineProgram) :
       rw [ih _ hl]
       simp only [Option.bind_some]
       cases v with
-      | ctor k fs =>
+      | constructor k fs =>
         simp only at h ⊢
         obtain ⟨a, ha, h⟩ := Option.bind_eq_some_iff.1 h
         obtain ⟨⟨w, d⟩, hb, h⟩ := Option.map_eq_some_iff.1 h
@@ -173,30 +173,30 @@ namespace Runs
 
 variable {P : MachineProgram} {env : List MachineValue}
 
-theorem var {i : ℕ} {v : MachineValue} (h : env[i]? = some v) : Runs P env (.var i) v 1 :=
+theorem var {i : ℕ} {v : MachineValue} (h : env[i]? = some v) : Runs P env (.position i) v 1 :=
   ⟨0, by simp [evaluateTerm, h]⟩
 
-theorem val (v : MachineValue) : Runs P env (.val v) v 1 := ⟨0, by simp [evaluateTerm]⟩
+theorem val (v : MachineValue) : Runs P env (.literal v) v 1 := ⟨0, by simp [evaluateTerm]⟩
 
 theorem op {o : PrimitiveOperation} {ts : List Term} {vs : List MachineValue} {v : MachineValue} {c d : ℕ}
     (h : RunsList P env ts vs c) (ho : o.apply vs = some (v, d)) :
-    Runs P env (.op o ts) v (c + d) := by
+    Runs P env (.primitive o ts) v (c + d) := by
   obtain ⟨n, h⟩ := h
   exact ⟨n, by simp [evaluateTerm, h, ho]⟩
 
 theorem ctor {k : ℕ} {ts : List Term} {vs : List MachineValue} {c : ℕ} (h : RunsList P env ts vs c) :
-    Runs P env (.ctor k ts) (.ctor k vs) (c + vs.length + 1) := by
+    Runs P env (.constructor k ts) (.constructor k vs) (c + vs.length + 1) := by
   obtain ⟨n, h⟩ := h
   exact ⟨n, by simp [evaluateTerm, h]⟩
 
 theorem field {i k : ℕ} {t : Term} {fs : List MachineValue} {v : MachineValue} {c : ℕ}
-    (h : Runs P env t (.ctor k fs) c) (hi : fs[i]? = some v) :
+    (h : Runs P env t (.constructor k fs) c) (hi : fs[i]? = some v) :
     Runs P env (.field i t) v (c + 1) := by
   obtain ⟨n, h⟩ := h
   exact ⟨n, by simp [evaluateTerm, h, hi]⟩
 
 theorem case {t : Term} {alts : List Term} {k : ℕ} {fs : List MachineValue} {a : Term} {v : MachineValue}
-    {c d : ℕ} (h : Runs P env t (.ctor k fs) c) (ha : alts[k]? = some a)
+    {c d : ℕ} (h : Runs P env t (.constructor k fs) c) (ha : alts[k]? = some a)
     (hb : Runs P (fs ++ env) a v d) : Runs P env (.case t alts) v (c + d + fs.length + 1) := by
   obtain ⟨n, h⟩ := h
   obtain ⟨m, hb⟩ := hb
@@ -205,13 +205,13 @@ theorem case {t : Term} {alts : List Term} {k : ℕ} {fs : List MachineValue} {a
 
 /-- `case` on a constructor without fields. -/
 theorem case0 {t : Term} {alts : List Term} {k : ℕ} {a : Term} {v : MachineValue}
-    {c d : ℕ} (h : Runs P env t (.ctor k []) c) (ha : alts[k]? = some a)
+    {c d : ℕ} (h : Runs P env t (.constructor k []) c) (ha : alts[k]? = some a)
     (hb : Runs P env a v d) : Runs P env (.case t alts) v (c + d + 1) :=
   case h ha hb
 
 /-- `case`, the fields' count `m` added to the alternative's price. -/
 theorem caseAt {t : Term} {alts : List Term} {k : ℕ} {fs : List MachineValue} {a : Term} {v : MachineValue}
-    {c d m : ℕ} (h : Runs P env t (.ctor k fs) c) (ha : alts[k]? = some a)
+    {c d m : ℕ} (h : Runs P env t (.constructor k fs) c) (ha : alts[k]? = some a)
     (hb : Runs P (fs ++ env) a v d) (hm : fs.length = m) : Runs P env (.case t alts) v (c + (d + m) + 1) := by
   have := case h ha hb
   rw [hm] at this
@@ -291,7 +291,7 @@ theorem Includes.ofSublist {P : MachineProgram} {l l' : List (ℕ × Term)} (h :
 other entries a literal `0`. -/
 def MachineProgram.ofList (l : List (ℕ × Term)) : MachineProgram :=
   let n := (l.map (·.1)).foldr max 0 + 1
-  l.foldl (fun P p ↦ P.setIfInBounds p.1 p.2) (Array.replicate n (.val (.nat 0)))
+  l.foldl (fun P p ↦ P.setIfInBounds p.1 p.2) (Array.replicate n (.literal (.nat 0)))
 
 theorem RunsBody.cost_eq {P : MachineProgram} {f : ℕ} {vs : List MachineValue} {v : MachineValue} {c c' : ℕ}
     (h : RunsBody P f vs v c) (hc : c = c') : RunsBody P f vs v c' := hc ▸ h
@@ -323,7 +323,7 @@ theorem eval_fuel (P : MachineProgram) :
       simp only [evaluateTerm, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists] at h
       obtain ⟨w, c₁, hl, h⟩ := h
       cases w with
-      | ctor k fs =>
+      | constructor k fs =>
         simp only [Option.map_eq_some_iff, Prod.mk.injEq] at h
         obtain ⟨x, hx, rfl, rfl⟩ := h
         simp [evaluateTerm, eval_le (m := c₁ + 1) (by omega) (ih _ _ hl), hx]
@@ -332,7 +332,7 @@ theorem eval_fuel (P : MachineProgram) :
       rw [evaluateTerm_case] at h
       obtain ⟨⟨w, c₁⟩, hl, h⟩ := Option.bind_eq_some_iff.1 h
       cases w with
-      | ctor k fs =>
+      | constructor k fs =>
         simp only at h
         obtain ⟨a, ha, h⟩ := Option.bind_eq_some_iff.1 h
         obtain ⟨⟨w', d⟩, hb, h⟩ := Option.map_eq_some_iff.1 h
@@ -391,7 +391,7 @@ theorem outputWithin_of_runs {P : MachineProgram} {s : ℕ} {x v : MachineValue}
     (hs : MachineProgram.size P ≤ s) (h : RunsBody P 0 [x] v c) (hc : c ≤ b) : outputWithin P s x b = some v := by
   obtain ⟨n, h⟩ := h
   have := evalBody_le (show c + 1 ≤ b + 1 by omega) ((eval_fuel P).2.2 _ _ _ _ _ h)
-  simp [outputWithin, run, this, hc, hs]
+  simp [outputWithin, runMachineProgram, this, hc, hs]
 
 end
 

@@ -19,11 +19,13 @@ variable (f : QueryImpl HashSpec Id) (parameter : PublicParameter) (lay : Layer)
 def HiddenPredecessor (trace : List HashInput) : Prop :=
   ∃ (index : ChainIndex) (step : ChainStep), step.val < (reference index).val ∧
     tweakableHashInput parameter (.chain lay tree leaf index step)
-      (bytesLE 16 (honestChain f parameter lay tree leaf index (secret index) step.val)) ∈ trace
+      (littleEndianBytes 16 (honestChain f parameter lay tree leaf index (secret index) step.val))
+          ∈ trace
 
 def ChainOutputMatch (trace : List HashInput) : Prop :=
   ∃ (index : ChainIndex) (step : ChainStep) (payload : Digest),
-    tweakableHashInput parameter (.chain lay tree leaf index step) (bytesLE 16 payload) ∈ trace ∧
+    tweakableHashInput parameter (.chain lay tree leaf index step) (littleEndianBytes 16 payload) ∈
+        trace ∧
     ChainHit f parameter lay tree leaf index (secret index) step.val step.isLt payload
 
 theorem contact_hidden_or_output (trace : List HashInput) (index : ChainIndex)
@@ -63,7 +65,8 @@ def HiddenChainQuery (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
   ∃ (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) (p : FStep),
     (∀ q ∈ revealed index c s j a i, p.val < q.val) ∧
     tweakableHashInput parameter (.fchain index c s j a i p)
-      (bytesLE 16 (Completeness.chainValueOf f parameter index c s j a i seed p.val)) ∈ trace
+      (littleEndianBytes 16 (Completeness.chainValueOf f parameter index c s j a i seed p.val))
+          ∈ trace
 
 /-- A canonical opening outside the disclosure coverage hashes an unrevealed honest chain value
 during the actual verification. The disclosure table can depend on the whole past. -/

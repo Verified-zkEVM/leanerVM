@@ -59,7 +59,7 @@ export LeanVM (bytecodeWords)
 
 /-- The bytecode the verifier takes (`LeanVM.bytecodeWords`) is the program's sixteen-slot
 bytecode column as a list of words, instruction bits low, slot bits high (`bytecodeColumn`). -/
-theorem bytecodeWords_eq_column (prog : Program) :
+theorem bytecodeWords_eq_column (prog : LeanIsaProgram) :
     bytecodeWords prog = (bytecodeColumn prog).values.toList := by
   have h16 : 2 ^ prog.logSize * 16 = 2 ^ (prog.logSize + 4) := by rw [pow_add]; norm_num
   rw [bytecodeColumn, Vector.toList_ofFn, List.ofFn_congr h16.symm, List.ofFn_mul',
@@ -77,7 +77,7 @@ theorem bytecodeWords_eq_column (prog : Program) :
   simp only [hs]
 
 /-- The bytecode has `2 ^ (logSize + 4)` words. -/
-theorem length_bytecodeWords (prog : Program) :
+theorem length_bytecodeWords (prog : LeanIsaProgram) :
     (bytecodeWords prog).length = 2 ^ (prog.logSize + 4) := by
   simp [bytecodeWords_eq_column]
 
@@ -105,7 +105,7 @@ theorem log2Strict_two_pow (n : ℕ) : log2Strict (2 ^ n) = some n := by
   simp [log2Strict, hpos, hand, hbl]
 
 /-- The bytecode's `log2_strict` length. -/
-theorem log2Strict_length_bytecodeWords (prog : Program) :
+theorem log2Strict_length_bytecodeWords (prog : LeanIsaProgram) :
     log2Strict (bytecodeWords prog).length = some (prog.logSize + 4) := by
   rw [length_bytecodeWords, log2Strict_two_pow]
 
@@ -178,12 +178,12 @@ def LayoutOk (s : Sizes) : Prop :=
 instance (s : Sizes) : Decidable (LayoutOk s) := inferInstanceAs (Decidable (_ ∧ _))
 
 /-- The Python's column log-sizes, in global order (`columnKappas`). -/
-abbrev pyKappas (prog : Program) (s : Sizes) : List ℕ :=
+abbrev pyKappas (prog : LeanIsaProgram) (s : Sizes) : List ℕ :=
   columnKappas s.logMem prog.logSize (tableLogs s)
 
 /-- The layout the verifier builds for the program `prog` at the sizes `s`: `build_layout`'s
 value when its checks pass. -/
-def verifierLayout (prog : Program) (s : Sizes) : Verifier.Layout :=
+def verifierLayout (prog : LeanIsaProgram) (s : Sizes) : Verifier.Layout :=
   let (push, pull, count) := busBlocks (tableLogs s) (tableRows s)
   let (placements, stackLog) := placementsOf (pyKappas prog s)
   ⟨s.logMem, prog.logSize, bytecodeWords prog, push, pull, count, placements, stackLog,
@@ -196,7 +196,7 @@ private theorem all_tableRows (s : Sizes) :
 
 /-- **The layout is built** exactly when the sizes pass `build_layout`'s checks, and it is then
 `verifierLayout prog s`. -/
-theorem buildLayout_eq (prog : Program) (s : Sizes) :
+theorem buildLayout_eq (prog : LeanIsaProgram) (s : Sizes) :
     buildLayout (bytecodeWords prog) s.logMem (tableRows s) =
       if LayoutOk s then some (verifierLayout prog s) else none := by
   have hL := prog.logSize_le
@@ -238,7 +238,7 @@ theorem columns_map_fst (h : Fin 9 → ℕ) :
   simp [Function.comp_def, List.map_const']
 
 /-- The Python's column log-sizes are the instance's, in global order. -/
-theorem pyKappas_eq (prog : Program) (s : Sizes) :
+theorem pyKappas_eq (prog : LeanIsaProgram) (s : Sizes) :
     pyKappas prog s = columns.map (kappa prog s) := by
   rw [columns_map_fst (height prog s)]
   obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8⟩ := width_vals
@@ -254,7 +254,7 @@ theorem pyKappas_eq (prog : Program) (s : Sizes) :
   rfl
 
 /-- The Python's log-size of a column is the instance's. -/
-theorem getD_pyKappas (prog : Program) (s : Sizes) (c : Col) :
+theorem getD_pyKappas (prog : LeanIsaProgram) (s : Sizes) (c : Col) :
     (pyKappas prog s).getD (pyCol c) 0 = kappa prog s c := by
   have h : pyCol c < (columns.map (kappa prog s)).length := by
     rw [List.length_map, length_columns]
@@ -262,7 +262,7 @@ theorem getD_pyKappas (prog : Program) (s : Sizes) (c : Col) :
   rw [pyKappas_eq, List.getD_eq_getElem _ _ h, List.getElem_map, getElem_columns_pyCol]
 
 /-- The Python has `163` columns. -/
-theorem length_pyKappas (prog : Program) (s : Sizes) : (pyKappas prog s).length = 163 := by
+theorem length_pyKappas (prog : LeanIsaProgram) (s : Sizes) : (pyKappas prog s).length = 163 := by
   rw [pyKappas_eq, List.length_map, length_columns]
 
 /-- The `q_keccak` slot of a global column below `163`: lane `l`'s for input lane `l` (global
@@ -342,7 +342,7 @@ theorem idxOf_blockCols : ∀ c ∈ committedColumns,
   decide +kernel
 
 /-- The block sizes the Python stacks are the committed columns' log-sizes. -/
-theorem blockSizes_eq (prog : Program) (s : Sizes) :
+theorem blockSizes_eq (prog : LeanIsaProgram) (s : Sizes) :
     (committedColumns.map pyCol).map ((pyKappas prog s).getD · 0) =
       committedColumns.map (kappa prog s) := by
   rw [List.map_map]
@@ -359,7 +359,7 @@ private theorem map_idxOf_self {α : Type} [BEq α] [LawfulBEq α] {l : List α}
   exact hl.idxOf_getElem i _
 
 /-- The size of the block at a committed column's index. -/
-private theorem getD_blockSizes (prog : Program) (s : Sizes) {c : Col}
+private theorem getD_blockSizes (prog : LeanIsaProgram) (s : Sizes) {c : Col}
     (hc : c ∈ committedColumns) :
     (committedColumns.map (kappa prog s)).getD (committedColumns.idxOf c) 0 = kappa prog s c := by
   rw [List.getD_eq_getElem _ _ (by
@@ -368,7 +368,7 @@ private theorem getD_blockSizes (prog : Program) (s : Sizes) {c : Col}
 
 /-- **The Python's stacking order is the instance's**: `stack_offsets`' sort of the committed
 columns' indices is the instance's stacking order, read as indices. -/
-theorem order_eq (prog : Program) (s : Sizes) :
+theorem order_eq (prog : LeanIsaProgram) (s : Sizes) :
     (List.range committedColumns.length).mergeSort
         (fun i j ↦ decide ((committedColumns.map (kappa prog s)).getD j 0 ≤
           (committedColumns.map (kappa prog s)).getD i 0)) =
@@ -381,7 +381,7 @@ theorem order_eq (prog : Program) (s : Sizes) :
   rw [getD_blockSizes prog s ha, getD_blockSizes prog s hb]
 
 /-- The instance's offsets: the heights of the blocks before, in stacking order. -/
-theorem offsetNat_eq (prog : Program) (s : Sizes) (k : ℕ) (hk : k ≤ (blocks prog s).n) :
+theorem offsetNat_eq (prog : LeanIsaProgram) (s : Sizes) (k : ℕ) (hk : k ≤ (blocks prog s).n) :
     (blocks prog s).offsetNat k =
       (((stackOrder prog s).take k).map fun c ↦ 2 ^ kappa prog s c).sum := by
   induction k with
@@ -393,13 +393,13 @@ theorem offsetNat_eq (prog : Program) (s : Sizes) (k : ℕ) (hk : k ≤ (blocks 
     rfl
 
 /-- The stacking order holds the committed columns. -/
-private theorem mem_committed_of_mem_stackOrder (prog : Program) (s : Sizes) {c : Col}
+private theorem mem_committed_of_mem_stackOrder (prog : LeanIsaProgram) (s : Sizes) {c : Col}
     (h : c ∈ stackOrder prog s) : c ∈ committedColumns :=
   List.mem_mergeSort.mp h
 
 /-- **The Python's offsets are the instance's**: in `stack_offsets` of the committed columns'
 sizes, the block of a committed column starts at the instance's offset of its block. -/
-theorem stackOffsets_getD (prog : Program) (s : Sizes) (c : Col) (h : ¬ IsVirtual c) :
+theorem stackOffsets_getD (prog : LeanIsaProgram) (s : Sizes) (c : Col) (h : ¬ IsVirtual c) :
     (stackOffsets (committedColumns.map (kappa prog s))).1.getD (committedColumns.idxOf c) 0 =
       (blocks prog s).offset (blockOf c h) := by
   have hnd := (List.mergeSort_perm (List.range committedColumns.length)
@@ -430,7 +430,7 @@ theorem stackOffsets_getD (prog : Program) (s : Sizes) (c : Col) (h : ¬ IsVirtu
     (List.mem_of_mem_take ha))]
 
 /-- The Python's stacked total is the instance's. -/
-theorem stackOffsets_snd (prog : Program) (s : Sizes) :
+theorem stackOffsets_snd (prog : LeanIsaProgram) (s : Sizes) :
     (stackOffsets (committedColumns.map (kappa prog s))).2 = Nat.clog 2 (blocks prog s).total := by
   rw [stackOffsets_eq]
   simp only [List.length_map]
@@ -445,35 +445,35 @@ theorem stackOffsets_snd (prog : Program) (s : Sizes) :
 /-! ## The placements -/
 
 /-- The Python's offset of a global column's block (`offset_of` in `placements_of`). -/
-def pyOffset (prog : Program) (s : Sizes) (column : ℕ) : ℕ :=
+def pyOffset (prog : LeanIsaProgram) (s : Sizes) (column : ℕ) : ℕ :=
   let blockCols := (List.range (pyKappas prog s).length).filter fun c ↦
     (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns
   (stackOffsets (blockCols.map ((pyKappas prog s).getD · 0))).1.getD (blockCols.idxOf column) 0
 
 /-- `placements_of`, unfolded: each column's placement from its log-size and the offsets. -/
-theorem placementsOf_pyKappas (prog : Program) (s : Sizes) :
+theorem placementsOf_pyKappas (prog : LeanIsaProgram) (s : Sizes) :
     placementsOf (pyKappas prog s) =
       ((pyKappas prog s).zipIdx.map fun (kappa, column) ↦
         match keccakSlot column with
         | some slot =>
-          some ({ vars := kappa, index := pyOffset prog s qkeccak + slot * 2 ^ kappa } :
+          some ({ variableCount := kappa, index := pyOffset prog s qkeccak + slot * 2 ^ kappa } :
             Placement)
         | none =>
           if column ∈ keccakOutputColumns then none
-          else some { vars := kappa, index := pyOffset prog s column },
+          else some { variableCount := kappa, index := pyOffset prog s column },
       max Whir.minLogStack (stackOffsets (((List.range (pyKappas prog s).length).filter
         fun c ↦ (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns).map
           ((pyKappas prog s).getD · 0))).2) := rfl
 
 /-- The Python's offset of a committed column is its block's. -/
-theorem pyOffset_pyCol (prog : Program) (s : Sizes) (c : Col) (h : ¬ IsVirtual c) :
+theorem pyOffset_pyCol (prog : LeanIsaProgram) (s : Sizes) (c : Col) (h : ¬ IsVirtual c) :
     pyOffset prog s (pyCol c) = (blocks prog s).offset (blockOf c h) := by
   unfold pyOffset
   simp only [length_pyKappas, blockCols_eq, blockSizes_eq]
   rw [idxOf_blockCols c (mem_committedColumns h), stackOffsets_getD]
 
 /-- **The stacked size is the instance's `μ`.** -/
-theorem stackLog_verifierLayout (prog : Program) (s : Sizes) :
+theorem stackLog_verifierLayout (prog : LeanIsaProgram) (s : Sizes) :
     (verifierLayout prog s).stackLog = leanIsaμ prog s := by
   show (placementsOf (pyKappas prog s)).2 = _
   rw [placementsOf_pyKappas]
@@ -482,14 +482,14 @@ theorem stackLog_verifierLayout (prog : Program) (s : Sizes) :
   rfl
 
 /-- The Python's placement of a global column. -/
-theorem placements_getD (prog : Program) (s : Sizes) (c : Col) :
+theorem placements_getD (prog : LeanIsaProgram) (s : Sizes) (c : Col) :
     (verifierLayout prog s).placements.getD (pyCol c) none =
       match keccakSlot (pyCol c) with
       | some slot =>
-        some { vars := kappa prog s c, index := pyOffset prog s qkeccak + slot * 2 ^ kappa prog s c }
+        some { variableCount := kappa prog s c, index := pyOffset prog s qkeccak + slot * 2 ^ kappa prog s c }
       | none =>
         if pyCol c ∈ keccakOutputColumns then none
-        else some { vars := kappa prog s c, index := pyOffset prog s (pyCol c) } := by
+        else some { variableCount := kappa prog s c, index := pyOffset prog s (pyCol c) } := by
   show (placementsOf (pyKappas prog s)).1.getD (pyCol c) none = _
   have hlt : pyCol c < (pyKappas prog s).zipIdx.length := by
     rw [List.length_zipIdx, length_pyKappas]; exact pyCol_lt c
@@ -500,9 +500,9 @@ theorem placements_getD (prog : Program) (s : Sizes) (c : Col) :
   simp only [zero_add, hk]
 
 /-- **A committed column's placement**: its log-size, at its block's offset. -/
-theorem placement_committed (prog : Program) (s : Sizes) (c : Col) (h : ¬ IsVirtual c) :
+theorem placement_committed (prog : LeanIsaProgram) (s : Sizes) (c : Col) (h : ¬ IsVirtual c) :
     (verifierLayout prog s).placement (pyCol c) =
-      { vars := kappa prog s c, index := (blocks prog s).offset (blockOf c h) } := by
+      { variableCount := kappa prog s c, index := (blocks prog s).offset (blockOf c h) } := by
   have hno : ¬ IsOut c := fun ho ↦ h ho.isVirtual
   have hns : ¬ (IsVirtual c ∧ ¬ IsOut c) := fun h' ↦ h h'.1
   unfold Verifier.Layout.placement
@@ -511,7 +511,7 @@ theorem placement_committed (prog : Program) (s : Sizes) (c : Col) (h : ¬ IsVir
   rw [pyOffset_pyCol prog s c h]
 
 /-- **An output lane has no placement**: the instance commits none. -/
-theorem placements_outLane (prog : Program) (s : Sizes) (c : Col) (h : IsOut c) :
+theorem placements_outLane (prog : LeanIsaProgram) (s : Sizes) (c : Col) (h : IsOut c) :
     (verifierLayout prog s).placements.getD (pyCol c) none = none := by
   have hns : ¬ (IsVirtual c ∧ ¬ IsOut c) := fun h' ↦ h'.2 h
   rw [placements_getD, keccakSlot_pyCol, ite_eq_right hns]
@@ -520,9 +520,9 @@ theorem placements_outLane (prog : Program) (s : Sizes) (c : Col) (h : IsOut c) 
 /-- **The placement of a column with a slot**: an input lane or a column riding a spare slot
 has `τ_KECCAK` variables at its slot `k = qSlot c` of `QKECCAK`, the cells
 `offset + k · 2 ^ τ_KECCAK + x`. -/
-theorem placement_slot (prog : Program) (s : Sizes) (c : Col) (h : IsVirtual c ∧ ¬ IsOut c) :
+theorem placement_slot (prog : LeanIsaProgram) (s : Sizes) (c : Col) (h : IsVirtual c ∧ ¬ IsOut c) :
     (verifierLayout prog s).placement (pyCol c) =
-      { vars := s.τ 5,
+      { variableCount := s.τ 5,
         index := (blocks prog s).offset (keccakBlock prog s) + (qSlot c).val * 2 ^ s.τ 5 } := by
   have hk : kappa prog s c = s.τ 5 := kappa_of_isVirtual prog s h.1
   unfold Verifier.Layout.placement
@@ -553,7 +553,7 @@ theorem toList_boolVec {m : ℕ} (x : Fin (2 ^ m)) :
 
 /-- The instance lifts a point of a committed column to the point followed by the bits of its
 block's selector. -/
-theorem extend_committed (prog : Program) (s : Sizes) (c : Col)
+theorem extend_committed (prog : LeanIsaProgram) (s : Sizes) (c : Col)
     (h : ¬ IsVirtual c) (z : Vector E (kappa prog s c)) :
     ((LeanIsa.layout prog s).extend c z).toList =
       z.toList ++ boolPoint (leanIsaμ prog s - kappa prog s c)
@@ -571,7 +571,7 @@ theorem extend_committed (prog : Program) (s : Sizes) (c : Col)
 
 /-- The instance lifts a point of a virtual column to the point, its slot's bits, and the bits of
 `QKECCAK`'s selector. -/
-theorem extend_virtual (prog : Program) (s : Sizes) (c : Col)
+theorem extend_virtual (prog : LeanIsaProgram) (s : Sizes) (c : Col)
     (h : IsVirtual c) (z : Vector E (kappa prog s c)) :
     ((LeanIsa.layout prog s).extend c z).toList =
       z.toList ++ boolPoint 6 (qSlot c).val ++
@@ -590,7 +590,7 @@ theorem extend_virtual (prog : Program) (s : Sizes) (c : Col)
 
 /-- **A placed point is the instance's lifted point**: for a column that is not an output lane,
 the verifier's layout places a point of column `pyCol c` where the instance's layout lifts it. -/
-theorem stackPoint_eq_extend (prog : Program) (s : Sizes) (c : Col) (hc : ¬ IsOut c)
+theorem stackPoint_eq_extend (prog : LeanIsaProgram) (s : Sizes) (c : Col) (hc : ¬ IsOut c)
     (z : Vector E (kappa prog s c)) :
     ((verifierLayout prog s).placement (pyCol c)).stackPoint z.toList
         (verifierLayout prog s).stackLog =
@@ -610,7 +610,7 @@ theorem stackPoint_eq_extend (prog : Program) (s : Sizes) (c : Col) (hc : ¬ IsO
 output lane, the claim on global column `pyCol c` at `z` with value `v`, placed on the stack by
 the verifier's layout, holds of a stack exactly when the instance's claim on `c` at `z` with value
 `v` holds of it. -/
-theorem onStack_holds_iff (prog : Program) (s : Sizes) (c : Col) (hc : ¬ IsOut c)
+theorem onStack_holds_iff (prog : LeanIsaProgram) (s : Sizes) (c : Col) (hc : ¬ IsOut c)
     (z : Vector E (kappa prog s c)) (v : E) (q : Column (leanIsaμ prog s)) :
     StackClaim.Holds (leanIsaμ prog s)
         ((⟨pyCol c, z.toList, v⟩ : Verifier.ColumnClaim).stackClaim (verifierLayout prog s)) q ↔
@@ -626,7 +626,7 @@ theorem onStack_holds_iff (prog : Program) (s : Sizes) (c : Col) (hc : ¬ IsOut 
 
 /-- The bytecode column's extension at `(z, w)` is the eleven entry columns' extensions at `z`,
 weighted by the Lagrange basis of `w` at slots `3 to 13`: the other slots are zero. -/
-theorem bytecodeColumnEval_eq_entries (prog : Program) (z : Vector E prog.logSize)
+theorem bytecodeColumnEval_eq_entries (prog : LeanIsaProgram) (z : Vector E prog.logSize)
     (w : Vector E 4) :
     bytecodeColumnEval prog z w =
       ∑ k : Fin 11, (lagrangeBasis w)[k.val + 3] *
@@ -641,7 +641,7 @@ theorem bytecodeColumnEval_eq_entries (prog : Program) (z : Vector E prog.logSiz
     simp only [e, eval₂Mle, evalMle_eq_sum]
     refine congrArg₂ (· * ·) rfl (Finset.sum_congr rfl fun i _ ↦ ?_)
     refine congrArg₂ (· * ·) ?_ rfl
-    have h := encodeSlots_getElem (prog.code i) (k.val + 3) (by omega)
+    have h := encodeSlots_getElem (prog.instructions i) (k.val + 3) (by omega)
     simp only [show 3 ≤ k.val + 3 ∧ k.val + 3 < 14 from ⟨by omega, by omega⟩] at h
     simp only [Fin.getElem_fin] at h ⊢
     rw [h]
@@ -658,7 +658,7 @@ sum over the instance's eleven entry coordinates (`entryColumn`, coordinates `3 
 boundary blocks) of the fingerprint weight times the column's extension at `low`. Added to the
 weighted separator, index and count (slots `0 to 2`), it is the instance's fingerprint of the
 bytecode block at `low`. -/
-theorem multilinearEval_bytecodeWords (prog : Program) (z : Vector E prog.logSize)
+theorem multilinearEval_bytecodeWords (prog : LeanIsaProgram) (z : Vector E prog.logSize)
     (w : Vector E 4) :
     multilinearEval ((bytecodeWords prog).map ofK) (z.toList ++ w.toList) =
       ∑ k : Fin 11, (lagrangeBasis w)[k.val + 3] *

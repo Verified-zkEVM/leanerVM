@@ -26,7 +26,7 @@ theorem bad_trace_complete :
 theorem badTrace_runRows (op : Opcode) :
     badTrace.runRows op = if op = .jump then 1 else 0 := by
   have h1 : stateAt badTrace 1 = Registers.final jumpProg := by
-    have := run_stateAt badTrace_valid.2 (k := badTrace.steps) le_rfl
+    have := run_stateAt badTrace_valid.2 (k := badTrace.stepCount) le_rfl
     rw [badTrace_valid.2] at this
     exact (Option.some.inj this).symm
   have hregs : badTrace.regs = [Registers.initial, Registers.final jumpProg] := by
@@ -36,7 +36,7 @@ theorem badTrace_runRows (op : Opcode) :
     rfl
   unfold Execution.runRows
   rw [hregs]
-  cases op <;> simp [jumpProg_fetch_one, Registers.initial, Instr.opcode]
+  cases op <;> simp [jumpProg_fetch_one, Registers.initial, LeanIsaInstruction.opcode]
 
 /-- The witness's `XOR` table is empty and its `JUMP` table has the one row of the run. -/
 theorem bad_trace_witness_rows :

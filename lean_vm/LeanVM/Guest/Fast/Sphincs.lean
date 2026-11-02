@@ -72,7 +72,7 @@ theorem subOpening_eq (σ : Val) (c j : ℕ) (enc : Option V) {b fold p0 p1 : �
     have hi : i.val < 6 := i.isLt
     unfold subVal subT
     rw [fkCB_fkAB, fkOff_eq, offAt_map ht hi, logG_eq_logGT _ (by norm_num)]
-  have hs (l : Fin Sphincs.subHeight) : subSib σ c j enc b l.val =
+  have hs (l : Fin Sphincs.forestSubtreeHeight) : subSib σ c j enc b l.val =
       if l.val < 2 then σ (.n (foldPos 35 32 fold (logGT (σ (.n b)) 8) + 16 * l.val))
       else σ (.n (if logGT (σ (.n b)) 8 / 4 = 0 then p0 else p1)) := by
     unfold subSib subA
@@ -101,7 +101,7 @@ theorem coordOpening_eq (σ : Val) {c : ℕ} (hc : c < 8) :
       have hj : j.val = 1 := by omega
       rw [hj, hs1]
       exact subOpening_eq σ c 1 _ hf1 hp10 hp11
-  have htop (l : Fin Sphincs.topHeight) : topSib σ c (cSt c).1 (cSt c).2.1 r.b l.val =
+  have htop (l : Fin Sphincs.topTreeHeight) : topSib σ c (cSt c).1 (cSt c).2.1 r.b l.val =
       if l.val < 3 then σ (.n (foldPos 54 51 r.top (logGT (σ (.n r.b)) 16) + 17 * l.val))
       else σ (.n (if logGT (σ (.n r.b)) 16 / 8 = 0 then r.q0 else r.q1)) := by
     unfold topSib coordS
@@ -119,8 +119,8 @@ theorem sphincsSigOfN_eq (σ : Val) : sphincsSigOfN σ = sphincsSigOf σ := by
       .n (cwCell 21 sSel sFirst sRest sLast σ i.val) := by
     rw [henc]
     exact cwStart_eq_cwCell (W := sW) (G := 21) (b := 412513) sSel_eq sTabs (by norm_num) σ
-      (by have := i.isLt; simp only [Sphincs.numChains] at this; omega)
-  have hp (l : Fin Sphincs.totalHeight) : mSib σ sBit l.val (mBase sNodeOf 0 l.val sLeaf.2.1) =
+      (by have := i.isLt; simp only [Sphincs.chainCount] at this; omega)
+  have hp (l : Fin Sphincs.treeHeight) : mSib σ sBit l.val (mBase sNodeOf 0 l.val sLeaf.2.1) =
       sibN σ (30 + l.val) (sPath.getD l.val 0) := by
     have hl : l.val < 26 := l.isLt
     rw [hleaf, sPath_eq, getD_map_range hl]

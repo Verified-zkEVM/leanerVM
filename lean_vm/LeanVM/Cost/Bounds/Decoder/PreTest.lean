@@ -334,8 +334,8 @@ theorem wordWith_cost (hP : Includes P wordWithC.costDeps) (fp : K)
       [rdVal, encodeValue fp, encodeValue o] ≤ psAt W + R + 43 := by
   rw [wordWithC.costEq P hP rd rdVal hrd]
   have := powSqW_cost P (by includes) hW hW64 ho
-  have := hR (fp * gpow o)
-  generalize rd (fp * gpow o) = r
+  have := hR (fp * addressOfIndex o)
+  generalize rd (fp * addressOfIndex o) = r
   cases r <;> dsimp only <;> omega
 
 include hR in

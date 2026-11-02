@@ -19,7 +19,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## Carried sponges -/
 
-theorem RunsTo.carrier {α : Type} {p : Prog α} {s s' : Fs} {xs : List E} {a : α}
+theorem RunsTo.carrier {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
     (h : RunsTo p s xs a s') {sp : Sponge} (hs : s.Carries sp) : ∃ sp', s'.Carries sp' := by
   obtain ⟨sp', h', -⟩ := h sp hs [] [] []
   exact ⟨sp', h'⟩
@@ -90,7 +90,7 @@ theorem vs_lanes {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {C : CallR
   rw [F.capG_eq] at hs5
   have hcl' : F.claims.length = 165 := hcl
   have hτdef : vsTau F.rowsN = (Tables.tableHeightsOf F.rowsN).getD 5 0 := rfl
-  have hrunT := F.hrunT (claimedValue (vsFixed σ F.r.2.1)) (by
+  have hrunT := F.hrunT (claimedBytecodeValue (vsFixed σ F.r.2.1)) (by
     rw [logBytecode_eq hbl]; exact bytecodeAt_claimed bytecode _ _)
   obtain ⟨pt, hptL, hpt⟩ := RunsTo.always hrunT hs5 (tablesSeg_lanes _ _ _ _ _ _ _)
   rw [layoutOf_heights, show opKeccak = 5 from rfl] at hpt

@@ -23,7 +23,7 @@ Then the load-bearing checks:
 
 namespace LeanVMTests.Protocol.Compile.Spec
 
-open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Compile Prog
+open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Compile VerifierProgram
 
 noncomputable section
 
@@ -43,7 +43,7 @@ theorem le_ε0 {s : Finset E} (hs : ∀ a ∈ s, ∀ b ∈ s, a = b) :
 
 /-! ## Statement locks -/
 
-example {α β : Type} {p : Prog α} {f : α → Prog β} {Pre : List Ev → Prop}
+example {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {Pre : List Ev → Prop}
     {Post : α → List Ev → Prop} {Q : β → List Ev → Prop} {εmax Lp Lf T : ENNReal}
     (S : Spec p Pre Post εmax Lp Lf) (F : ∀ a, Spec (f a) (Post a) Q εmax Lf T) :
     Spec (p.bind f) Pre Q εmax Lp T :=
@@ -61,13 +61,13 @@ example {Pre : List Ev → Prop} {Post : E → List Ev → Prop} {εmax T : ENNR
     Spec sampleChallenge Pre Post εmax (e + T) T :=
   Spec.sampleE e h
 
-example {α : Type} {p : Prog α} {Pre : List Ev → Prop} {Post : α → List Ev → Prop}
+example {α : Type} {p : VerifierProgram α} {Pre : List Ev → Prop} {Post : α → List Ev → Prop}
     {εmax T e : ENNReal} (hnm : ∀ {h₀ l q}, p.Reach h₀ l → p.after l = some q → ¬ q.IsMove)
     (he : e < 1) (h : ∀ h₀, Pre h₀ → escRet Post h₀ [] p ≤ e) :
     Spec p Pre Post εmax (e + T) T :=
   Spec.ofNoMove hnm he h
 
-example {P : Prog Bool} {εmax L : ENNReal}
+example {P : VerifierProgram Bool} {εmax L : ENNReal}
     (S : Spec P (fun _ ↦ False) (fun b _ ↦ b = false) εmax L 0)
     (hstart : S.D [] [] → S.V [] [] ≤ εmax) (h : List Ev) :
     (2 : ENNReal)⁻¹ ^ grindBits h * S.toCert.ε h ≤ εmax ∧ S.toCert.D = S.D [] :=
@@ -77,27 +77,27 @@ example {P : Prog Bool} {εmax L : ENNReal}
 
 open Classical in
 /-- After `d`: accept iff `c = x ∨ d = x`. -/
-def tailP (x c d : E) : Prog Bool := do
-  Prog.require (c = x ∨ d = x)
+def tailP (x c d : E) : VerifierProgram Bool := do
+  VerifierProgram.require (c = x ∨ d = x)
   return true
 
 /-- The second group: sample `d`. -/
-def secondP (x c : E) : Prog Bool := do
+def secondP (x c : E) : VerifierProgram Bool := do
   let d ← sampleChallenge
   tailP x c d
 
 /-- The proof of work, then the second group. -/
-def afterP (x c : E) : Prog Bool := do
+def afterP (x c : E) : VerifierProgram Bool := do
   grindProofOfWork 3
   secondP x c
 
 /-- The first group: sample `c`. -/
-def firstP (x : E) : Prog Bool := do
+def firstP (x : E) : VerifierProgram Bool := do
   let c ← sampleChallenge
   afterP x c
 
 /-- Read `x`, sample `c`, a three-bit proof of work, sample `d`; accept iff `c = x ∨ d = x`. -/
-def prog : Prog Bool := do
+def prog : VerifierProgram Bool := do
   let x ← readScalar
   firstP x
 
@@ -171,11 +171,11 @@ theorem no_grind_spec :
 /-! ## The counterexample to the earlier `bind` rule -/
 
 /-- Read a scalar, return a challenge. -/
-def p : Prog E := do let _ ← readScalar; sampleChallenge
+def p : VerifierProgram E := do let _ ← readScalar; sampleChallenge
 
 open Classical in
 /-- Accept iff the challenge is `0`. -/
-def f (x : E) : Prog Unit := if x = 0 then .ret () else .fail
+def f (x : E) : VerifierProgram Unit := if x = 0 then .ret () else .fail
 
 /-- The specification of `p`: the challenge misses `0`, with the follower's lead `0`; the
 challenge's escape is charged at the boundary after the read. -/

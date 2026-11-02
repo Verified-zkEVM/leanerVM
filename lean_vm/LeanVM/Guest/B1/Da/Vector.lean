@@ -88,7 +88,7 @@ def isFrameAt (p : V) (run : List V) : Atom → Bool
 theorem frame_sound {atoms : List Atom} {p : V} {run : List V}
     (h : atoms.any (isFrameAt p run) = true) (hat : ∀ x ∈ atoms, x.Holds rd σ) :
     IsInK (σ p) ∧ ∀ (k : ℕ) (hk : k < run.length) (w : E),
-      rd ((σ p).limb 0 * Parameters.gpow k) = some w → w = σ run[k] := by
+      rd ((σ p).limb 0 * Parameters.addressOfIndex k) = some w → w = σ run[k] := by
   obtain ⟨x, hp, hx⟩ := any_holds h hat
   cases x <;> simp only [isFrameAt, Bool.false_eq_true, Bool.and_eq_true, decide_eq_true_eq] at hp
   obtain ⟨rfl, rfl⟩ := hp

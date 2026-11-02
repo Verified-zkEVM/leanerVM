@@ -56,13 +56,13 @@ def stream (rate n : ℕ) (top : ℕ := 0) : List E :=
     [e (fw 8 0) (fw 8 1) 0, e (fw 9 0) (fw 9 1) top] ++ (List.range n).map fun k ↦ fe (10 + k)
 
 /-- The first two steps of the program, then five challenges. -/
-def prefixProgram : Prog (List E) := do
-  let (layout, rate) ← readSizes sampleBytecode
+def prefixProgram : VerifierProgram (List E) := do
+  let (layout, rate) ← readAnnouncedSizes sampleBytecode
   commitStack layout.stackLog rate
-  Prog.sampleChallenges 5
+  VerifierProgram.sampleChallenges 5
 
 /-- The compiled reading of `prefixProgram` on a stream, from the deployed seed. -/
-def prefixRun (s : List E) : Option (List E × ProgState) :=
+def prefixRun (s : List E) : Option (List E × VerifierProgramState) :=
   Id.run (Compile.run (m := Id) keccakF1600 prefixProgram
     ⟨⟨seed sampleBytecode samplePublicInput, []⟩, s, [], []⟩)
 

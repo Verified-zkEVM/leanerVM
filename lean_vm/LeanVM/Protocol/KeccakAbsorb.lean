@@ -29,7 +29,7 @@ open LeanVM.Parameters LeanVM.Semantics
 permute (`absorbBlockWith` without the monad). -/
 def absorbBlock (state : KeccakState) (block : List UInt8) : KeccakState :=
   keccakF1600 (Vector.ofFn fun i ↦
-    if i.val < 17 then Keccak.lane state i ^^^ leLane block i else Keccak.lane state i)
+    if i.val < 17 then Keccak.lane state i ^^^ littleEndianLane block i else Keccak.lane state i)
 
 /-- Absorb `data` into `state` with Keccak-f[1600]: `blocks` whole blocks of `136` bytes, then the
 padded last block (`absorbWith` without the monad). -/

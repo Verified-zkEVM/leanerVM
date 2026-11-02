@@ -361,7 +361,7 @@ structure Seeds (X : Type) where
 /-- The root two adjacent waiting scalars of tag `1`, in slots `i` and `i + 1` of a permutation
 input, encode. -/
 def pairRoot (t : KeccakState) (i : ℕ) : Option Digest :=
-  if slotTag t i = 1 ∧ slotTag t (i + 1) = 1 then digestOfScalars (slotE t i, slotE t (i + 1))
+  if slotTag t i = 1 ∧ slotTag t (i + 1) = 1 then digestFromHalves (slotE t i, slotE t (i + 1))
   else none
 
 /-- The input that produced the state a permutation input continues: the first permutation
@@ -373,7 +373,7 @@ def predIn (ℓ : Log) (t : KeccakState) : Option KeccakState :=
 the first of this one, both of tag `1`. -/
 def straddleRoot (ℓ : Log) (t : KeccakState) : Option Digest :=
   (predIn ℓ t).bind fun t' ↦
-    if slotTag t' 3 = 1 ∧ slotTag t 0 = 1 then digestOfScalars (slotE t' 3, slotE t 0) else none
+    if slotTag t' 3 = 1 ∧ slotTag t 0 = 1 then digestFromHalves (slotE t' 3, slotE t 0) else none
 
 /-- The permutation input `t` absorbs the root `r` in the log `ℓ`. -/
 def RootOf (ℓ : Log) (t : KeccakState) (r : Digest) : Prop :=

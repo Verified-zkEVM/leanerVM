@@ -186,7 +186,7 @@ def subOpeningEquiv : SphincsLayered.SubOpening ≃ SubtreeOpening where
 /-- A coordinate's opening, in the layered presentation. -/
 def coordOpeningEquiv : SphincsLayered.CoordOpening ≃ CoordinateOpening where
   toFun o := ⟨fun j ↦ subOpeningEquiv (o.sub j), o.top⟩
-  invFun o := ⟨fun j ↦ subOpeningEquiv.symm (o.sub j), o.top⟩
+  invFun o := ⟨fun j ↦ subOpeningEquiv.symm (o.subtreeOpenings j), o.topTreePath⟩
   left_inv _ := rfl
   right_inv _ := rfl
 
@@ -196,8 +196,8 @@ def signatureEquiv : SphincsLayered.Signature ≃ Signature where
   toFun σ := ⟨σ.randomness, fun c ↦ coordOpeningEquiv (σ.forest c),
     (σ.layers SphincsLayered.topLayer).counter, (σ.layers SphincsLayered.topLayer).chainValues,
     (σ.layers SphincsLayered.topLayer).path⟩
-  invFun σ := ⟨σ.randomness, fun c ↦ coordOpeningEquiv.symm (σ.forest c),
-    fun _ ↦ ⟨σ.counter, σ.chainValues, σ.path⟩⟩
+  invFun σ := ⟨σ.randomizer, fun c ↦ coordOpeningEquiv.symm (σ.forestOpening c),
+    fun _ ↦ ⟨σ.counter, σ.chainValues, σ.authenticationPath⟩⟩
   left_inv σ := by
     rcases σ with ⟨randomness, forest, layers⟩
     have hl : (fun lay : SphincsLayered.Layer ↦ (⟨(layers SphincsLayered.topLayer).counter,
@@ -217,8 +217,8 @@ def forgeryEquiv : SphincsLayered.Forgery ≃ Forgery where
   right_inv f := by cases f; simp
 
 /-- The parameters in the layered presentation. -/
-abbrev layeredParams [P : Params] : SphincsLayered.Params :=
-  ⟨P.subtreeHeight, P.signatureLimit, P.subtreeHeight_le⟩
+abbrev layeredParams [P : KeyShape] : SphincsLayered.Params :=
+  ⟨P.keptSubtreeHeight, P.signatureLimit, P.keptSubtreeHeight_le_treeHeight⟩
 
 attribute [local instance] layeredParams
 
@@ -232,14 +232,14 @@ omit [HasQuery HashSpec m] in
 /-- `sequenceFin` through a map of its entries. -/
 theorem sequenceFin_map {α β : Type} (g : α → β) :
     ∀ (n : Nat) (f : Fin n → m α),
-      Concrete.sequenceFin (fun i ↦ g <$> f i) = (fun v ↦ g ∘ v) <$> Concrete.sequenceFin f
+      Verification.sequenceFin (fun i ↦ g <$> f i) = (fun v ↦ g ∘ v) <$> Verification.sequenceFin f
   | 0, f => by
-    simp only [Concrete.sequenceFin, map_pure]
+    simp only [Verification.sequenceFin, map_pure]
     congr 1
     funext i
     exact i.elim0
   | n + 1, f => by
-    simp only [Concrete.sequenceFin, map_bind, bind_map_left, map_pure]
+    simp only [Verification.sequenceFin, map_bind, bind_map_left, map_pure]
     refine bind_congr fun head ↦ ?_
     rw [sequenceFin_map g n (fun i : Fin n ↦ f i.succ), bind_map_left]
     refine bind_congr fun tail ↦ ?_
@@ -252,7 +252,7 @@ omit [HasQuery HashSpec m] in
 theorem bind_sequenceFin_map {α β γ : Type} (g : α → β) {n : Nat} (f : Fin n → m α)
     (f' : Fin n → m β) (k : (Fin n → β) → m γ) (k' : (Fin n → α) → m γ)
     (hf : ∀ i, f' i = g <$> f i) (hk : ∀ v, k (g ∘ v) = k' v) :
-    Concrete.sequenceFin f' >>= k = Concrete.sequenceFin f >>= k' := by
+    Verification.sequenceFin f' >>= k = Verification.sequenceFin f >>= k' := by
   rw [show f' = fun i ↦ g <$> f i from funext hf, sequenceFin_map, bind_map_left]
   exact bind_congr hk
 
@@ -264,9 +264,10 @@ theorem bind_map_congr {α β γ : Type} (g : α → β) (x : m α) (y : m β) (
   exact bind_congr hk
 
 /-- The opening of a coordinate, through the bijection. -/
-theorem coordOpen_eq (parameter : PublicParameter) (index : Index) (c : ForestCoordinate)
+theorem coordOpen_eq (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
     (digest : MessageDigest) (seed : MasterSeed) :
-    Seeded.coordOpenWithHash (m := m) parameter index c (Concrete.digestMarks digest c) seed =
+    KeyGenerationAndSigning.coordOpenWithHash (m := m) parameter index c
+        (Verification.digestCoordinateSelections digest c) seed =
       coordOpeningEquiv <$> SphincsLayered.Seeded.coordOpen parameter index c
         (SphincsLayered.Concrete.digestMarks digest c) seed := by
   refine Eq.trans ?_ (map_bind _ _ _).symm
@@ -277,19 +278,20 @@ theorem coordOpen_eq (parameter : PublicParameter) (index : Index) (c : ForestCo
     rfl
 
 /-- The forest opening, through the bijection. -/
-theorem forestOpen_eq (parameter : PublicParameter) (index : Index) (digest : MessageDigest)
+theorem forestOpen_eq (parameter : PublicParameter) (index : LeafIndex) (digest : MessageDigest)
     (seed : MasterSeed) :
-    Seeded.forestOpenWithHash (m := m) parameter index (Concrete.digestMarks digest) seed =
+    KeyGenerationAndSigning.forestOpenWithHash (m := m) parameter index
+        (Verification.digestCoordinateSelections digest) seed =
       (fun opening ↦ coordOpeningEquiv ∘ opening) <$> SphincsLayered.Seeded.forestOpen parameter
         index (SphincsLayered.Concrete.digestMarks digest) seed :=
-  (congrArg Concrete.sequenceFin
+  (congrArg Verification.sequenceFin
     (funext fun c ↦ coordOpen_eq parameter index c digest seed)).trans (sequenceFin_map _ _ _)
 
 /-- An index as a layered leaf. -/
 def toLeaf (index : SphincsLayered.Index) : SphincsLayered.LeafIndex := ⟨index.val, index.isLt⟩
 
 /-- A layered leaf as an index. -/
-def ofLeaf (leaf : SphincsLayered.LeafIndex) : Index := ⟨leaf.val, leaf.isLt⟩
+def ofLeaf (leaf : SphincsLayered.LeafIndex) : LeafIndex := ⟨leaf.val, leaf.isLt⟩
 
 /-- A layered forest key as a forest key. -/
 def ofKey (key : SphincsLayered.ForestKey) : ForestKey := key
@@ -311,13 +313,13 @@ theorem otsSignFrom_eq (parameter : PublicParameter) (lay : SphincsLayered.Layer
     ∀ attempts counter,
       SphincsLayered.Seeded.otsSignFrom (m := m) parameter lay tree leaf seed message attempts
           counter =
-        Seeded.otsSignFromWithHash parameter (ofLeaf leaf) seed (ofKey message) attempts counter := by
+        KeyGenerationAndSigning.otsSignFromWithHash parameter (ofLeaf leaf) seed (ofKey message) attempts counter := by
   intro attempts
   induction attempts with
   | zero => intro counter; rfl
   | succ attempts ih =>
     intro counter
-    rw [SphincsLayered.Seeded.otsSignFrom.eq_2, Seeded.otsSignFromWithHash.eq_2]
+    rw [SphincsLayered.Seeded.otsSignFrom.eq_2, KeyGenerationAndSigning.otsSignFromWithHash.eq_2]
     refine bind_congr fun encoding ↦ ?_
     rcases encoding with _ | encoding
     · exact ih (counter + 1)
@@ -325,13 +327,13 @@ theorem otsSignFrom_eq (parameter : PublicParameter) (lay : SphincsLayered.Layer
 
 omit [LawfulMonad m] in
 /-- A node of the spine, the same hashes. -/
-theorem spineNode_eq [Params] (parameter : PublicParameter) (lay : SphincsLayered.Layer)
+theorem spineNode_eq [KeyShape] (parameter : PublicParameter) (lay : SphincsLayered.Layer)
     (tree : SphincsLayered.TreeIndex) (seed : MasterSeed) :
     ∀ steps, SphincsLayered.Seeded.spineNode (m := m) parameter lay tree seed steps =
-      Seeded.spineNodeWithHash parameter seed steps
+      KeyGenerationAndSigning.spineNodeWithHash parameter seed steps
   | 0 => rfl
   | steps + 1 => by
-    rw [SphincsLayered.Seeded.spineNode, Seeded.spineNodeWithHash, spineNode_eq parameter lay tree seed steps]
+    rw [SphincsLayered.Seeded.spineNode, KeyGenerationAndSigning.spineNodeWithHash, spineNode_eq parameter lay tree seed steps]
     rfl
 
 omit [LawfulMonad m] in
@@ -374,40 +376,43 @@ theorem verify_layered (publicKey : PublicKey) (message : Message)
 
 /-- **The verifier, through the bijection.** -/
 theorem verify_eq (publicKey : PublicKey) (message : Message) (signature : Signature) :
-    Concrete.verifyWithHash (m := m) publicKey message signature =
+    Verification.verifyWithHash (m := m) publicKey message signature =
       SphincsLayered.Concrete.verify publicKey message (signatureEquiv.symm signature) := by
-  rw [verify_layered, Concrete.verifyWithHash.eq_def]
+  rw [verify_layered, Verification.verifyWithHash.eq_def]
   rfl
 
-variable [Params]
+variable [KeyShape]
 
-omit [Params] in
+omit [KeyShape] in
 theorem digestIndex_truncate (first : HashOutput) :
-    Concrete.digestIndex (truncateMessageDigest first) = SphincsLayered.Concrete.blockIndex first := by
-  unfold Concrete.digestIndex truncateMessageDigest SphincsLayered.Concrete.blockIndex
+    Verification.digestLeafIndex (truncateMessageDigest first) = SphincsLayered.Concrete.blockIndex first := by
+  unfold Verification.digestLeafIndex truncateMessageDigest SphincsLayered.Concrete.blockIndex
   rw [BitVec.extractLsb'_extractLsb'_of_le (by decide)]
   rfl
 
 omit [LawfulMonad m] in
 /-- One grinding attempt, the same hash. -/
-theorem signAttempt_eq (secretKey : LeanXmss.Seeded.SecretKey) (message : Message)
-    (randomness : Randomness) :
-    Seeded.signAttemptWithHash (m := m) secretKey message randomness =
+theorem signAttempt_eq (secretKey : LeanXmss.KeyGenerationAndSigning.SecretKey) (message : Message)
+    (randomness : Randomizer) :
+    KeyGenerationAndSigning.signAttemptWithHash (m := m) secretKey message randomness =
       SphincsLayered.Seeded.signAttempt secretKey message randomness := by
-  unfold Seeded.signAttemptWithHash SphincsLayered.Seeded.signAttempt
+  unfold KeyGenerationAndSigning.signAttemptWithHash SphincsLayered.Seeded.signAttempt
   refine congrArg₂ (· >>= ·) rfl (funext fun first ↦ ?_)
   rw [digestIndex_truncate]
   rfl
 
 omit [LawfulMonad m] in
 /-- The grinding loop, the same hashes. -/
-theorem signDigestLoop_eq (secretKey : LeanXmss.Seeded.SecretKey) (message : Message) :
+theorem signDigestLoop_eq (secretKey : LeanXmss.KeyGenerationAndSigning.SecretKey) (message :
+    Message) :
     ∀ attempts randomness,
-      Seeded.signDigestLoopWithHash (m := m) secretKey message attempts randomness =
+      KeyGenerationAndSigning.signDigestLoopWithHash (m := m) secretKey message attempts
+          randomness =
         SphincsLayered.Seeded.signDigestLoop secretKey message attempts randomness
   | 0, _ => rfl
   | attempts + 1, randomness => by
-    rw [Seeded.signDigestLoopWithHash, SphincsLayered.Seeded.signDigestLoop, signAttempt_eq]
+    rw [KeyGenerationAndSigning.signDigestLoopWithHash, SphincsLayered.Seeded.signDigestLoop,
+        signAttempt_eq]
     refine bind_congr fun found ↦ ?_
     rcases found with _ | index
     · exact signDigestLoop_eq secretKey message attempts (randomness + 1)
@@ -415,21 +420,21 @@ theorem signDigestLoop_eq (secretKey : LeanXmss.Seeded.SecretKey) (message : Mes
 
 /-- The layered signer, written as the statement's: no loop over the layers, the encoding
 counter's search the statement's. -/
-theorem sign_layered (secretKey : LeanXmss.Seeded.SecretKey) (message : Message) :
+theorem sign_layered (secretKey : LeanXmss.KeyGenerationAndSigning.SecretKey) (message : Message) :
     SphincsLayered.Seeded.sign (m := m) secretKey message = (do
-      let base ← SphincsLayered.deriveRandomizer secretKey.parameter secretKey.seed message
+      let base ← SphincsLayered.deriveRandomizer secretKey.parameter secretKey.schemeSeed message
       let some (randomness, _) ← SphincsLayered.Seeded.signDigestLoop secretKey message
           SphincsLayered.digestAttemptLimit base | return none
       let digest ← SphincsLayered.Concrete.messageDigest secretKey.parameter message
         randomness
       let index := SphincsLayered.Concrete.digestIndex digest
       let opening ← SphincsLayered.Seeded.forestOpen secretKey.parameter index
-        (SphincsLayered.Concrete.digestMarks digest) secretKey.seed
-      let key ← SphincsLayered.Seeded.forestKey secretKey.parameter index secretKey.seed
-      let some (counter, values) ← Seeded.otsSignFromWithHash secretKey.parameter (ofLeaf (toLeaf index))
-          secretKey.seed (ofKey key) SphincsLayered.encodingAttemptLimit 0 | return none
+        (SphincsLayered.Concrete.digestMarks digest) secretKey.schemeSeed
+      let key ← SphincsLayered.Seeded.forestKey secretKey.parameter index secretKey.schemeSeed
+      let some (counter, values) ← KeyGenerationAndSigning.otsSignFromWithHash secretKey.parameter (ofLeaf (toLeaf index))
+          secretKey.schemeSeed (ofKey key) SphincsLayered.encodingAttemptLimit 0 | return none
       let path ← SphincsLayered.Seeded.treePath secretKey.parameter SphincsLayered.topLayer 0
-        secretKey.seed (toLeaf index)
+        secretKey.schemeSeed (toLeaf index)
       return some ⟨randomness, opening,
         Fin.cases (⟨counter, values, path⟩ : SphincsLayered.LayerSignature SphincsLayered.topLayer)
           (fun i ↦ Fin.elim0 i)⟩) := by
@@ -448,11 +453,11 @@ theorem sign_layered (secretKey : LeanXmss.Seeded.SecretKey) (message : Message)
       rfl
 
 /-- **The signer, through the bijection.** -/
-theorem sign_eq (secretKey : LeanXmss.Seeded.SecretKey) (message : Message) :
-    Seeded.signWithHash (m := m) secretKey message =
+theorem sign_eq (secretKey : LeanXmss.KeyGenerationAndSigning.SecretKey) (message : Message) :
+    KeyGenerationAndSigning.signWithHash (m := m) secretKey message =
       Option.map signatureEquiv <$> SphincsLayered.Seeded.sign secretKey message := by
-  rw [sign_layered, Seeded.signWithHash]
-  simp only [signDigestLoop_eq, Seeded.otsSignWithHash, map_bind]
+  rw [sign_layered, KeyGenerationAndSigning.signWithHash]
+  simp only [signDigestLoop_eq, KeyGenerationAndSigning.otsSignWithHash, map_bind]
   refine bind_congr fun base ↦ bind_congr fun found ↦ ?_
   rcases found with _ | ⟨randomness, _⟩
   · simp
@@ -469,9 +474,10 @@ theorem sign_eq (secretKey : LeanXmss.Seeded.SecretKey) (message : Message) :
 
 /-- **Key generation, the same computation.** -/
 theorem keygenFromSeed_eq (seed : MasterSeed) :
-    Seeded.keygenFromSeedWithHash seed = SphincsLayered.Seeded.keygenFromSeed seed := by
-  simp only [Seeded.keygenFromSeedWithHash, SphincsLayered.Seeded.keygenFromSeed,
-    Seeded.keygenFromMasterWithHash, SphincsLayered.Seeded.keygenFromMaster, Seeded.treeRootWithHash,
+    KeyGenerationAndSigning.keygenFromSeedWithHash seed = SphincsLayered.Seeded.keygenFromSeed
+        seed := by
+  simp only [KeyGenerationAndSigning.keygenFromSeedWithHash, SphincsLayered.Seeded.keygenFromSeed,
+    KeyGenerationAndSigning.keygenFromMasterWithHash, SphincsLayered.Seeded.keygenFromMaster, KeyGenerationAndSigning.treeRootWithHash,
     SphincsLayered.Seeded.treeRoot]
   refine bind_congr fun master ↦ bind_congr fun parameter ↦ ?_
   have h := spineNode_eq (m := OracleComp HashSpec) parameter SphincsLayered.topLayer
@@ -482,13 +488,13 @@ theorem keygenFromSeed_eq (seed : MasterSeed) :
 
 /-- The winning condition, through the bijection. -/
 theorem win_eq (log : QueryLog SphincsLayered.SigningSpec) (forgery : Forgery) :
-    Rpm.schemeWithHash.win (mapLog (Option.map signatureEquiv) log) forgery =
+    RandomPermutationModel.schemeWithHash.win (mapLog (Option.map signatureEquiv) log) forgery =
       SphincsLayered.Rpm.scheme.win log (forgeryEquiv.symm forgery) := by
-  simp only [Rpm.schemeWithHash, SphincsLayered.Rpm.scheme, decide_eq_decide]
+  simp only [RandomPermutationModel.schemeWithHash, SphincsLayered.Rpm.scheme, decide_eq_decide]
   refine and_congr ?_ (not_congr ?_)
   · exact Iff.of_eq (congrArg (· ≤ signatureLimit)
       (by simp [mapLog] : (mapLog (Option.map signatureEquiv) log).length = log.length))
-  · unfold Common.SufCma.SignerReturned SphincsLayered.SigningTranscript.Contains mapLog
+  · unfold Common.SufCma.SignerReturnedForgery SphincsLayered.SigningTranscript.Contains mapLog
     constructor
     · rintro ⟨entry', hmem, hmsg, hsig⟩
       obtain ⟨entry, hentry, rfl⟩ := List.mem_map.mp hmem
@@ -507,9 +513,9 @@ theorem win_eq (log : QueryLog SphincsLayered.SigningSpec) (forgery : Forgery) :
 /-- **The same game**: the statement's scheme has the layered scheme's bits of security, and
 conversely, through the bijection. -/
 theorem rpmSecure_iff (bits : ℕ) :
-    StronglyUnforgeableWithHash Rpm.schemeWithHash bits ↔
+    StronglyUnforgeableWithHash RandomPermutationModel.schemeWithHash bits ↔
       StronglyUnforgeableWithHash SphincsLayered.Rpm.scheme bits :=
-  rpmSecure_iff_of_equiv SphincsLayered.Rpm.scheme Rpm.schemeWithHash
+  rpmSecure_iff_of_equiv SphincsLayered.Rpm.scheme RandomPermutationModel.schemeWithHash
     (Equiv.optionCongr signatureEquiv) forgeryEquiv.symm rfl
     (funext keygenFromSeed_eq) (fun sk message ↦ sign_eq sk message)
     (fun pk forgery ↦ verify_eq pk forgery.message forgery.signature) win_eq bits

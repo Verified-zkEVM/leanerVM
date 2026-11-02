@@ -345,7 +345,7 @@ end FlushesC
 
 /-- `_flushes_arith(opcode, multiply)`, symbolically. -/
 def flushesArithC (opcode : ℕ) (multiply : Bool) : FlushesC :=
-  let c := colIdx arithColumns
+  let c := columnIndexByName arithColumns
   let va := [c "va_0", c "va_1", c "va_2"]
   let vb := [c "vb_0", c "vb_1", c "vb_2"]
   let result : List FormC :=
@@ -364,7 +364,7 @@ def flushesArithC (opcode : ℕ) (multiply : Bool) : FlushesC :=
 
 /-- `_flushes_set()`, symbolically. -/
 def flushesSetC : FlushesC :=
-  let c := colIdx setColumns
+  let c := columnIndexByName setColumns
   let k := [c "k_0", c "k_1", c "k_2"]
   let f : FlushesC := {}
   let f := f.stateStep (c "pc") (c "fp")
@@ -374,7 +374,7 @@ def flushesSetC : FlushesC :=
 
 /-- `_flushes_deref()`, symbolically. -/
 def flushesDerefC : FlushesC :=
-  let c := colIdx derefColumns
+  let c := columnIndexByName derefColumns
   let pc := c "pc"
   let fp := c "fp"
   let fPc := c "f_pc"
@@ -394,7 +394,7 @@ def flushesDerefC : FlushesC :=
 
 /-- `_flushes_jump()`, symbolically. -/
 def flushesJumpC : FlushesC :=
-  let c := colIdx jumpColumns
+  let c := columnIndexByName jumpColumns
   let pc := c "pc"
   let fp := c "fp"
   let b := c "b"
@@ -427,7 +427,7 @@ def layoutLimbC (even odd : Option ℕ) (flag : ℕ) (missing : Option ℕ) : Fo
 
 /-- `_flushes_keccak()`, symbolically. -/
 def flushesKeccakC : FlushesC :=
-  let c := colIdx keccakColumns
+  let c := columnIndexByName keccakColumns
   let oM := ["o_m0", "o_m1", "o_m2", "o_m3"].map c
   let fp := c "fp"
   let f : FlushesC := {}
@@ -442,14 +442,14 @@ def flushesKeccakC : FlushesC :=
   let sides : List (String × ℕ × Option ℕ) := [("in", c "odd_in", some (c "free")),
     ("out", c "odd_out", none)]
   sides.zipIdx.foldl (fun f ((pre, flag, missing), side) ↦
-    let lane := fun (l : Option ℕ) ↦ l.map fun l ↦ c (pre ++ "_" ++ decimal l)
+    let lane := fun (l : Option ℕ) ↦ l.map fun l ↦ c (pre ++ "_" ++ decimalNumeral l)
     (List.range 13).foldl (fun f cell ↦
       let values := ([0, 1] : List ℕ).map (fun h ↦
         let pick := fun (p : Option ℕ × Option ℕ) ↦ if h = 0 then p.1 else p.2
         layoutLimbC (lane (pick (LeanVM.Semantics.cellLanes false cell)))
           (lane (pick (LeanVM.Semantics.cellLanes true cell))) flag missing) ++ [FormC.const .zero]
       f.memory (if side = 0 then address cell else FormC.prod fp (c "o_out") cell)
-        (c ("cnt_" ++ decimal (13 * side + cell))) values) f) f
+        (c ("cnt_" ++ decimalNumeral (13 * side + cell))) values) f) f
 
 /-- The tables' flushes, symbolically, in opcode order. -/
 def flushesC : Fin 6 → FlushesC
@@ -660,7 +660,7 @@ theorem pyCountColumns : ∀ t : Fin 6,
   | 5 => by
     rw [show (LeanIsa.counts (opIdx 5)).map (·.val) = (List.range 27).map (63 + ·) by
       decide +kernel]
-    simp [Table.countColumns, tables, keccakColumns, laneNames, decimal, List.range_succ]
+    simp [Table.countColumns, tables, keccakColumns, laneNames, decimalNumeral, List.range_succ]
 
 /-- Only `JUMP` has constraints, two. -/
 theorem pyNConstraints : tables.map Table.nConstraints = [0, 0, 0, 0, 2, 0] := by
@@ -708,9 +708,9 @@ theorem pyConstraints_eval (t : Fin 6) (row : Fin (width (opIdx t)) → K) :
   by_cases ht : t = 4
   · subst ht
     rw [jump_constraints_canon]
-    have h5 : colIdx jumpColumns "v_cond" = 5 := by decide +kernel
-    have h12 : colIdx jumpColumns "w" = 12 := by decide +kernel
-    have h13 : colIdx jumpColumns "b" = 13 := by decide +kernel
+    have h5 : columnIndexByName jumpColumns "v_cond" = 5 := by decide +kernel
+    have h12 : columnIndexByName jumpColumns "w" = 12 := by decide +kernel
+    have h13 : columnIndexByName jumpColumns "b" = 13 := by decide +kernel
     have hw : width (opIdx 4) = 14 := by decide +kernel
     have l5 : 5 < width (opIdx 4) := by rw [hw]; omega
     have l12 : 12 < width (opIdx 4) := by rw [hw]; omega

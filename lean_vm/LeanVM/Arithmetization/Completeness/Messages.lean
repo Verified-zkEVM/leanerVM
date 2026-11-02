@@ -141,8 +141,9 @@ theorem xor_sends_gen (x : Var XorRow K) (env : Environment K) (n : ℕ) (r : Xo
     (((xorTable.main x).operations n).interactionValues env).map
       (fun i ↦ (i.channel.name, i.msg)) =
       [(StatePull.name, #[r.pc, r.fp]), (StatePush.name, #[g * r.pc, r.fp]),
-       (BytecodePull.name, #[r.pc, r.rbc, Opcode.xor.code, r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0]),
-       (BytecodePush.name, #[r.pc, g * r.rbc, Opcode.xor.code, r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0]),
+       (BytecodePull.name, #[r.pc, r.rbc, Opcode.xor.busCode, r.oA, r.oB, r.oC, 0, 0, 0, 0, 0,
+           0, 0]),
+       (BytecodePush.name, #[r.pc, g * r.rbc, Opcode.xor.busCode, r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0]),
        (MemPull.name, #[r.fp * r.oA, r.rA, r.vA[0], r.vA[1], r.vA[2]]),
        (MemPush.name, #[r.fp * r.oA, g * r.rA, r.vA[0], r.vA[1], r.vA[2]]),
        (MemPull.name, #[r.fp * r.oB, r.rB, r.vB[0], r.vB[1], r.vB[2]]),
@@ -164,9 +165,9 @@ theorem mul_sends_gen (x : Var MulRow K) (env : Environment K) (n : ℕ) (r : Mu
       (fun i ↦ (i.channel.name, i.msg)) =
       [(StatePull.name, #[r.pc, r.fp]), (StatePush.name, #[g * r.pc, r.fp]),
        (BytecodePull.name,
-        #[r.pc, r.rbc, Opcode.mulNative.code, r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0]),
+        #[r.pc, r.rbc, Opcode.mulNative.busCode, r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0]),
        (BytecodePush.name,
-        #[r.pc, g * r.rbc, Opcode.mulNative.code, r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0]),
+        #[r.pc, g * r.rbc, Opcode.mulNative.busCode, r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0]),
        (MemPull.name, #[r.fp * r.oA, r.rA, r.vA[0], r.vA[1], r.vA[2]]),
        (MemPush.name, #[r.fp * r.oA, g * r.rA, r.vA[0], r.vA[1], r.vA[2]]),
        (MemPull.name, #[r.fp * r.oB, r.rB, r.vB[0], r.vB[1], r.vB[2]]),
@@ -194,9 +195,10 @@ theorem set_sends_gen (x : Var SetRow K) (env : Environment K) (n : ℕ) (r : Se
       (fun i ↦ (i.channel.name, i.msg)) =
       [(StatePull.name, #[r.pc, r.fp]), (StatePush.name, #[g * r.pc, r.fp]),
        (BytecodePull.name,
-        #[r.pc, r.rbc, Opcode.setConstant.code, r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0, 0, 0, 0]),
+        #[r.pc, r.rbc, Opcode.setConstant.busCode, r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0, 0, 0, 0]),
        (BytecodePush.name,
-        #[r.pc, g * r.rbc, Opcode.setConstant.code, r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0, 0, 0, 0]),
+        #[r.pc, g * r.rbc, Opcode.setConstant.busCode, r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0, 0,
+            0, 0]),
        (MemPull.name, #[r.fp * r.o, r.r, r.k[0], r.k[1], r.k[2]]),
        (MemPush.name, #[r.fp * r.o, g * r.r, r.k[0], r.k[1], r.k[2]])] := by
   subst hx
@@ -212,9 +214,9 @@ theorem deref_sends_gen (x : Var DerefRow K) (env : Environment K) (n : ℕ) (r 
       (fun i ↦ (i.channel.name, i.msg)) =
       [(StatePull.name, #[r.pc, r.fp]), (StatePush.name, #[g * r.pc, r.fp]),
        (BytecodePull.name,
-        #[r.pc, r.rbc, Opcode.deref.code, r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0, 0, 0, 0]),
+        #[r.pc, r.rbc, Opcode.deref.busCode, r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0, 0, 0, 0]),
        (BytecodePush.name,
-        #[r.pc, g * r.rbc, Opcode.deref.code, r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0, 0, 0, 0]),
+        #[r.pc, g * r.rbc, Opcode.deref.busCode, r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0, 0, 0, 0]),
        (MemPull.name, #[r.fp * r.o1, r.r1, r.p, 0, 0]),
        (MemPush.name, #[r.fp * r.o1, g * r.r1, r.p, 0, 0]),
        (MemPull.name, #[r.p * r.o2, r.r2,
@@ -239,8 +241,9 @@ theorem jump_sends_gen (x : Var JumpRow K) (env : Environment K) (n : ℕ) (r : 
       (fun i ↦ (i.channel.name, i.msg)) =
       [(StatePull.name, #[r.pc, r.fp]),
        (StatePush.name, #[b * r.vpc + b * (g * r.pc) + g * r.pc, b * r.vfp + b * r.fp + r.fp]),
-       (BytecodePull.name, #[r.pc, r.rbc, Opcode.jump.code, r.oc, r.od, r.of, 0, 0, 0, 0, 0, 0, 0]),
-       (BytecodePush.name, #[r.pc, g * r.rbc, Opcode.jump.code, r.oc, r.od, r.of, 0, 0, 0, 0, 0, 0, 0]),
+       (BytecodePull.name, #[r.pc, r.rbc, Opcode.jump.busCode, r.oc, r.od, r.of, 0, 0, 0, 0, 0,
+           0, 0]),
+       (BytecodePush.name, #[r.pc, g * r.rbc, Opcode.jump.busCode, r.oc, r.od, r.of, 0, 0, 0, 0, 0, 0, 0]),
        (MemPull.name, #[r.fp * r.oc, r.rc, r.vcond, 0, 0]),
        (MemPush.name, #[r.fp * r.oc, g * r.rc, r.vcond, 0, 0]),
        (MemPull.name, #[r.fp * r.od, r.rd, r.vpc, 0, 0]),
@@ -263,10 +266,11 @@ theorem keccak_sends_gen (x : Var KeccakRow K) (env : Environment K) (n : ℕ)
       (fun i ↦ (i.channel.name, i.msg)) =
       [(StatePull.name, #[r.pc, r.fp]), (StatePush.name, #[g * r.pc, r.fp]),
        (BytecodePull.name,
-        #[r.pc, r.rbc, Opcode.keccak.code, r.om[0], r.om[1], r.om[2], r.om[3], r.otail, r.ob8,
+        #[r.pc, r.rbc, Opcode.keccak.busCode, r.om[0], r.om[1], r.om[2], r.om[3], r.otail, r.ob8,
           r.ocap, r.oout, r.oddIn, r.oddOut]),
        (BytecodePush.name,
-        #[r.pc, g * r.rbc, Opcode.keccak.code, r.om[0], r.om[1], r.om[2], r.om[3], r.otail, r.ob8,
+        #[r.pc, g * r.rbc, Opcode.keccak.busCode, r.om[0], r.om[1], r.om[2], r.om[3],
+            r.otail, r.ob8,
           r.ocap, r.oout, r.oddIn, r.oddOut]),
        (MemPull.name, #[r.fp * r.om[0], r.cnt[0], r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0], 0]),
        (MemPush.name, #[r.fp * r.om[0], g * r.cnt[0], r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0], 0]),
@@ -360,7 +364,7 @@ theorem bytecode_sends_gen (x : Var BytecodeRow K) (env : Environment K) (n : �
 
 /-- The sends of the verifier: the push of the initial state and the pull of the final one, in
 every environment. -/
-theorem verifier_sends (prog : Program) (env : Environment K) :
+theorem verifier_sends (prog : LeanIsaProgram) (env : Environment K) :
     rowSends ⟨leanIsaVerifier prog⟩ env =
       [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])] := by
   unfold rowSends

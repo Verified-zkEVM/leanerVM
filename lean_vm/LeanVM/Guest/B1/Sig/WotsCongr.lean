@@ -154,7 +154,8 @@ theorem cwPos_weq (h : WEq W W' I) (G b : Nat) (K : Nat → Nat) (i : Nat) (hi :
 /-- **A codeword's start**, read off a valuation holding the digits `K`, is the start of the arms
 of `K`. -/
 theorem cwStart_eq_cwPos {W : WotsT} {G b : Nat} {K : Nat → Nat} {σ : Val}
-    (hK : ∀ q ≤ G, K q < 4 ^ cwN G q) (hx : ∀ q ≤ G, σ (.n (cwState W b q).2.2) = ofK (gpow (K q)))
+    (hK : ∀ q ≤ G, K q < 4 ^ cwN G q) (hx : ∀ q ≤ G, σ (.n (cwState W b q).2.2) = ofK
+        (addressOfIndex (K q)))
     {i : Nat} (hi : i < 3 * G + 1) : cwStart W G b σ i = cwPos W G b K i := by
   have hb : 4 ^ cwN G (i / 3) ≤ 2 ^ 64 - 1 := by unfold cwN; split <;> norm_num
   have e : cwK W G b σ (i / 3) = K (i / 3) := logG_eq (hK _ (by omega)) hb (hx _ (by omega))

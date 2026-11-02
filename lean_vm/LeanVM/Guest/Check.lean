@@ -370,13 +370,14 @@ theorem natsSeq_eq {β : Type} (l : List ℕ) (k : List ℕ → β) : natsSeq l 
 def LAtom.seq {β : Type} (a : LAtom) (k : LAtom → β) : β :=
   match a with
   | .const d x => natSeq d fun d ↦ k (.const d x)
-  | .add d a b => natsSeq [d, a, b] fun l ↦ k (.add (nth l 0 0) (nth l 1 0) (nth l 2 0))
-  | .mul d a b => natsSeq [d, a, b] fun l ↦ k (.mul (nth l 0 0) (nth l 1 0) (nth l 2 0))
+  | .add d a b => natsSeq [d, a, b] fun l ↦ k (.add (listElementOrDefault l 0 0) (listElementOrDefault l 1 0) (listElementOrDefault l 2 0))
+  | .mul d a b => natsSeq [d, a, b] fun l ↦ k (.mul (listElementOrDefault l 0 0) (listElementOrDefault l 1 0) (listElementOrDefault l 2 0))
   | .same a b => natSeq a fun a ↦ natSeq b fun b ↦ k (.same a b)
-  | .load d p off => natsSeq [d, p, off] fun l ↦ k (.load (nth l 0 0) (nth l 1 0) (nth l 2 0))
-  | .ne x i p => natsSeq [x, i, p] fun l ↦ k (.ne (nth l 0 0) (nth l 1 0) (nth l 2 0))
+  | .load d p off => natsSeq [d, p, off] fun l ↦ k (.load (listElementOrDefault l 0 0) (listElementOrDefault l 1 0) (listElementOrDefault l 2 0))
+  | .ne x i p => natsSeq [x, i, p] fun l ↦ k (.ne (listElementOrDefault l 0 0) (listElementOrDefault l 1 0) (listElementOrDefault l 2 0))
   | .range x y t1 t2 c => natsSeq [x, y, t1, t2, c] fun l ↦
-      k (.range (nth l 0 0) (nth l 1 0) (nth l 2 0) (nth l 3 0) (nth l 4 0))
+      k (.range (listElementOrDefault l 0 0) (listElementOrDefault l 1 0) (listElementOrDefault l 2
+          0) (listElementOrDefault l 3 0) (listElementOrDefault l 4 0))
   | .inK a b => natSeq a fun a ↦ natSeq b fun b ↦ k (.inK a b)
   | .keccak ins outs inOdd outOdd =>
       natsSeq ins fun ins ↦ natsSeq outs fun outs ↦ k (.keccak ins outs inOdd outOdd)
@@ -384,7 +385,7 @@ def LAtom.seq {β : Type} (a : LAtom) (k : LAtom → β) : β :=
   | .none => k .none
 
 theorem LAtom.seq_eq {β : Type} (a : LAtom) (k : LAtom → β) : a.seq k = k a := by
-  cases a <;> simp [LAtom.seq, natSeq_eq, natsSeq_eq, nth]
+  cases a <;> simp [LAtom.seq, natSeq_eq, natsSeq_eq, listElementOrDefault]
 
 /-- The run's cells are consecutive from `base`. -/
 def runCells : ℕ → List ℕ → Bool
@@ -701,22 +702,24 @@ noncomputable def envStoresOk (B : Book) (q : ℕ) (env : List (ℕ × Sym)) : B
 noncomputable def preOk (mem : List (ℕ × ℕ × ℕ)) (B : Book) (bnd : List (ℕ × ℕ)) (args : List ℕ)
     (pre : List (ℕ × ℕ)) : Bool :=
   pre.all fun p ↦ Nat.ble 2 p.1 && Nat.blt (p.1 - 2) args.length &&
-    boundOk mem B bnd (nth args (p.1 - 2) 0) p.2
+    boundOk mem B bnd (listElementOrDefault args (p.1 - 2) 0) p.2
 
 /-- The callee's memory bounds, on memory the caller knows bounded through its argument cells. -/
 def memOk (known : List (ℕ × ℕ × ℕ)) (args : List ℕ) (mem : List (ℕ × ℕ × ℕ)) : Bool :=
   mem.all fun m ↦ Nat.ble 2 m.1 && Nat.blt (m.1 - 2) args.length &&
-    known.any fun k ↦ k.1 == nth args (m.1 - 2) 0 && Nat.ble m.2.1 k.2.1 && Nat.ble k.2.2 m.2.2
+    known.any fun k ↦ k.1 == listElementOrDefault args (m.1 - 2) 0 && Nat.ble m.2.1 k.2.1 && Nat.ble
+        k.2.2 m.2.2
 
 /-- The callee's pairs of cells in the semantic relation, on pairs of argument cells the caller
 knows so. -/
 def semOk (sems : List (ℕ × ℕ)) (args : List ℕ) (sem : List (ℕ × ℕ)) : Bool :=
   sem.all fun p ↦ Nat.ble 2 p.1 && Nat.blt (p.1 - 2) args.length && Nat.ble 2 p.2 &&
     Nat.blt (p.2 - 2) args.length &&
-    sems.any fun q ↦ q.1 == nth args (p.1 - 2) 0 && q.2 == nth args (p.2 - 2) 0
+    sems.any fun q ↦ q.1 == listElementOrDefault args (p.1 - 2) 0 && q.2 == listElementOrDefault
+        args (p.2 - 2) 0
 
 /-- The caller's cell of a callee frame cell, the arguments' and returns' cells after `fp[0..1]`. -/
-def frameCell (cs : List ℕ) (o : ℕ) : ℕ := nth cs (o - 2) 0
+def frameCell (cs : List ℕ) (o : ℕ) : ℕ := listElementOrDefault cs (o - 2) 0
 
 /-- The callee's bounds after the call, on the caller's cells. -/
 def postBnd (cs : List ℕ) (post : List (ℕ × ℕ)) : List (ℕ × ℕ) :=
@@ -998,11 +1001,11 @@ noncomputable def bookOf : List (ℕ × Exec.Atom) → Book → Book
 /-- Where window `i` starts: the function's entry for the first. -/
 def Cert.cutAt (C : Cert) : ℕ → Cut
   | 0 => ⟨0, C.facts.env, 0, [], C.pre, [], C.sem⟩
-  | i + 1 => nth C.cuts i ⟨0, [], 0, [], [], [], []⟩
+  | i + 1 => listElementOrDefault C.cuts i ⟨0, [], 0, [], [], [], []⟩
 
 /-- The code offset window `i`'s executor runs to. -/
-def Cert.endAt (C : Cert) (f : CompiledFn) (i : ℕ) : ℕ :=
-  bif Nat.blt i C.cuts.length then nth C.ends i 0 else f.len
+def Cert.endAt (C : Cert) (f : CompiledFunction) (i : ℕ) : ℕ :=
+  bif Nat.blt i C.cuts.length then listElementOrDefault C.ends i 0 else f.instructionCount
 
 /-- The core statements of window `i`. -/
 def Cert.stmtsAt (C : Cert) (cf : Core.Fn) (i : ℕ) : List Core.Stmt :=
@@ -1011,9 +1014,10 @@ def Cert.stmtsAt (C : Cert) (cf : Core.Fn) (i : ℕ) : List Core.Stmt :=
   else cf.body.drop (C.cutAt i).start
 
 /-- The walk's context of window `i` over the segments `segs`. -/
-noncomputable def Cert.fxAt (G : Glob) (f : CompiledFn) (cf : Core.Fn) (C : Cert) (main : Bool)
+noncomputable def Cert.fxAt (G : Glob) (f : CompiledFunction) (cf : Core.Fn) (C : Cert) (main
+    : Bool)
     (i : ℕ) (segs : List Exec.Seg) (idx : Trie Exec.Seg) (loc : Trie ℕ) : Fx :=
-  ⟨G, C.facts, f.entry, segs, idx, loc, cf.params.length, C.nret, main, C.callees, C.post, C.mem,
+  ⟨G, C.facts, f.entryPc, segs, idx, loc, cf.params.length, C.nret, main, C.callees, C.post, C.mem,
     (C.cutAt i).known, (C.cutAt i).sems,
     bif Nat.blt i C.cuts.length then
       some ((C.cutAt (i + 1)).J, (C.cutAt (i + 1)).facts, (C.cutAt (i + 1)).bnd)
@@ -1042,19 +1046,20 @@ noncomputable def insTrie : List (ℕ × ℕ × ℕ) → Trie ℕ → Trie ℕ
 
 /-- Window `i`'s cells: its own, and those its statements name outside them. -/
 noncomputable def Cert.locAt (C : Cert) (i : ℕ) : Trie ℕ :=
-  (locTrieFrom (nth C.cells i []) (nth C.los i 0) .nil).seq fun t ↦ insTrie (nth C.ins i []) t
+  (locTrieFrom (listElementOrDefault C.cells i []) (listElementOrDefault C.los i 0) .nil).seq fun t
+      ↦ insTrie (listElementOrDefault C.ins i []) t
 
 /-- The windows' cells are consecutive: window `0`'s from value `0`, window `i + 1`'s right after
 window `i`'s. -/
 def Cert.contOk (C : Cert) (i : ℕ) : Bool :=
-  (bif i == 0 then nth C.los 0 0 == 0 else true) &&
-    (bif Nat.blt i C.cuts.length then nth C.los (i + 1) 0 == nth C.los i 0 + (nth C.cells i []).length
+  (bif i == 0 then listElementOrDefault C.los 0 0 == 0 else true) &&
+    (bif Nat.blt i C.cuts.length then listElementOrDefault C.los (i + 1) 0 == listElementOrDefault C.los i 0 + (listElementOrDefault C.cells i []).length
       else true)
 
 /-- The cells a window takes from other windows are theirs. -/
 def Cert.insOk (C : Cert) (ps : List (ℕ × ℕ × ℕ)) : Bool :=
-  ps.all fun p ↦ Nat.ble p.2.2 C.cuts.length && Nat.ble (nth C.los p.2.2 0) p.1 &&
-    (nth C.cells p.2.2 [])[p.1 - nth C.los p.2.2 0]? == some p.2.1
+  ps.all fun p ↦ Nat.ble p.2.2 C.cuts.length && Nat.ble (listElementOrDefault C.los p.2.2 0) p.1 &&
+    (listElementOrDefault C.cells p.2.2 [])[p.1 - listElementOrDefault C.los p.2.2 0]? == some p.2.1
 
 /-- The values an atom names. -/
 def atomVals : Core.Atom → List Core.V
@@ -1101,11 +1106,11 @@ noncomputable def covOk (loc : Trie ℕ) (ss : List Core.Stmt) : Bool :=
 executor's segments are linked, its cells are the certificate's and cover its statements, its walk
 starts at its start offset in its environment with what the previous window handed on, and ends
 as `winEnd` says; the first window also has the parameters in their cells. -/
-noncomputable def checkWin (G : Glob) (f : CompiledFn) (cf : Core.Fn) (C : Cert) (main : Bool)
+noncomputable def checkWin (G : Glob) (f : CompiledFunction) (cf : Core.Fn) (C : Cert) (main : Bool)
     (i : ℕ) : Bool :=
   match execWin C.facts f (C.cutAt i).J (C.cutAt i).env (C.endAt f i) with
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (C.locAt i).seq fun loc ↦
-      C.contOk i && C.insOk (nth C.ins i []) && covOk loc (C.stmtsAt cf i) &&
+      C.contOk i && C.insOk (listElementOrDefault C.ins i []) && covOk loc (C.stmtsAt cf i) &&
       linkedWeak idx segs (C.fxAt G f cf main i segs idx loc).wJ (C.fxAt G f cf main i segs idx loc).wenv &&
       (bif i == 0 then runAt loc 2 cf.params && main == C.facts.fpOne else true) &&
       (match segAt (C.fxAt G f cf main i segs idx loc) (C.cutAt i).J

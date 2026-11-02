@@ -67,7 +67,7 @@ noncomputable def imageOf (κ : ℕ) (L : Layout) (hdr : E × E) : MemoryImage �
     | none => 0
 
 theorem imageOf_hdr {κ : ℕ} (hκ : κ < 64) (h1 : 1 ≤ κ) (L : Layout) (hdr : E × E) :
-    (imageOf κ L hdr).read (gpow 0) = some hdr.1 ∧ (imageOf κ L hdr).read (gpow 1) = some hdr.2 := by
+    (imageOf κ L hdr).read (addressOfIndex 0) = some hdr.1 ∧ (imageOf κ L hdr).read (addressOfIndex 1) = some hdr.2 := by
   have h2 : 1 < 2 ^ κ := Nat.one_lt_two_pow (by omega)
   refine ⟨?_, ?_⟩
   · have := MemoryImage.read_gpow hκ (imageOf κ L hdr) ⟨0, by omega⟩
@@ -129,7 +129,7 @@ structure KFacts (T : Tree) : Prop where
       q ∈ I.cells C
 
 theorem read_some_gpow {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ} {a : K} {v : E} (h : M.read a = some v) :
-    ∃ i : Fin (2 ^ κ), a = Parameters.gpow i :=
+    ∃ i : Fin (2 ^ κ), a = Parameters.addressOfIndex i :=
   let ⟨i, hi, _⟩ := (MemoryImage.read_eq_some_iff hκ M).mp h; ⟨i, hi⟩
 
 /-- **Every equation names a word of the memory**. -/
@@ -138,7 +138,7 @@ theorem dischargeAddr {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ} {T : Tree}
     (hrun : ∀ I ∈ honestInsts P fs H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
       ∀ p r rs, Ev.atom (.frameAddr p (r :: rs)) ∈ I.t.events P →
         ∀ k < (r :: rs).length, I.fp + (cert f r + k) < 2 ^ κ) :
-    ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ κ), q.1 = Parameters.gpow i := by
+    ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ κ), q.1 = Parameters.addressOfIndex i := by
   intro q hq
   obtain ⟨I, hI, ⟨f, σ, bufs, kids, ht⟩, a, ha, hqa⟩ := eqns_insts (lp := P.loop) (H := H) T 0 hdr q hq
   have hgood := insts_good (H := H) T 0 hdr hv I hI

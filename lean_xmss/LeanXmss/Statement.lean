@@ -25,23 +25,25 @@ namespace Security
 
 /-- A probabilistic adaptive adversary with private randomness and access to hashing and signing. -/
 structure Adversary where
-  main : PublicKey → OracleComp (OracleWorld + SigningSpec) Forgery
+  main : PublicKey → OracleComp (OracleWorld + SigningOracleSpec) Forgery
 
 /-- Record each signing request and its answer. -/
-def signingOracle (sk : Seeded.SecretKey) :
-    QueryImpl SigningSpec (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) :=
+def signingOracle (sk : KeyGenerationAndSigning.SecretKey) :
+    QueryImpl SigningOracleSpec (WriterT (QueryLog SigningOracleSpec) (OracleComp OracleWorld)) :=
   QueryImpl.withLogging fun request =>
-    liftM (Seeded.signWithHash sk request.leafIndex request.message : OracleComp HashSpec _)
+    liftM (KeyGenerationAndSigning.signWithHash sk request.leafIndex request.message : OracleComp
+        HashSpec _)
 
 /-- Sample the master seed, then run all parties with one shared hash oracle. -/
 noncomputable def gameCore (adversary : Adversary) : OracleComp OracleWorld Bool := do
   let seed ← liftM sampleMasterSeed
-  let (pk, sk) ← liftM (Seeded.keygenFromSeedWithHash seed)
-  let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
-    (simulateQ (QueryImpl.ofLift OracleWorld (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) +
+  let (pk, sk) ← liftM (KeyGenerationAndSigning.keygenFromSeedWithHash seed)
+  let ((forgery, log) : Forgery × QueryLog SigningOracleSpec) ←
+    (simulateQ (QueryImpl.ofLift OracleWorld (WriterT (QueryLog SigningOracleSpec) (OracleComp OracleWorld)) +
       signingOracle sk) (adversary.main pk)).run
-  let verified ← liftM (Concrete.verifyWithHash pk forgery.message forgery.signature : OracleComp HashSpec Bool)
-  return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
+  let verified ← liftM (Verification.verifyWithHash pk forgery.message forgery.signature : OracleComp HashSpec Bool)
+  return decide (SigningTranscript.NoLeafIndexReused log ∧ ¬SigningTranscript.Contains log forgery)
+      && verified
 
 /-- Forward private sampling for free; answer hash queries consistently and count every call,
 including cache hits. -/

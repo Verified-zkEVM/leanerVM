@@ -75,7 +75,8 @@ theorem idxBelow_take (w : ℕ) : ∀ (tab : List ℕ) (i m : ℕ),
 /-- **`logG` off the table.** -/
 theorem logG_eq_logGT (x : E) {bound : ℕ} (hb : bound ≤ 256) : logG x bound = logGT x bound := by
   classical
-  have htab : gLanes.take bound = (List.range' 0 bound).map fun k ↦ (gpow k).lane.toNat := by
+  have htab : gLanes.take bound = (List.range' 0 bound).map fun k ↦ (addressOfIndex
+      k).lane.toNat := by
     rw [gLanes_eq, ← List.map_take, List.take_range, Nat.min_eq_left hb, List.range_eq_range']
     apply List.map_congr_left
     intro k hk
@@ -89,7 +90,7 @@ theorem logG_eq_logGT (x : E) {bound : ℕ} (hb : bound ≤ 256) : logG x bound 
     funext k
     simp only [eq_ofK_iff, hx, and_self, true_and]
   · simp only [hx, ↓reduceIte]
-    have : (List.range bound).find? (fun k ↦ decide (x = ofK (gpow k))) = none := by
+    have : (List.range bound).find? (fun k ↦ decide (x = ofK (addressOfIndex k))) = none := by
       rw [List.find?_eq_none]
       intro k _
       simp only [decide_eq_true_eq, eq_ofK_iff]
@@ -98,7 +99,7 @@ theorem logG_eq_logGT (x : E) {bound : ℕ} (hb : bound ≤ 256) : logG x bound 
 
 theorem logG_lt (x : E) {bound : ℕ} (hb : 0 < bound) : logG x bound < bound := by
   unfold logG
-  cases h : (List.range bound).find? (fun k ↦ decide (x = ofK (gpow k))) with
+  cases h : (List.range bound).find? (fun k ↦ decide (x = ofK (addressOfIndex k))) with
   | none => simpa using hb
   | some k => simpa using List.mem_range.mp (List.mem_of_find?_eq_some h)
 

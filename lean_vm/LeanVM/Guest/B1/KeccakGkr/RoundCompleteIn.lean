@@ -30,7 +30,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- The word at `p·g^k` lies in the region `R`. -/
 def InR (R : ℕ → Prop) (p : E) (k : ℕ) : Prop :=
-  ∃ i, p.limb 0 * Parameters.gpow k = Parameters.gpow i ∧ R i
+  ∃ i, p.limb 0 * Parameters.addressOfIndex k = Parameters.addressOfIndex i ∧ R i
 
 /-- The record's offsets `keccak_round` reads and writes. -/
 def roundRecOffs : List ℕ := [0, 16, 32, 48, 64, 80, 96, 112, 1, 17, 33, 49, 65, 81, 97, 113]
@@ -78,7 +78,8 @@ theorem keccak_round_relIn {rd : Reader} {R : ℕ → Prop} {rec pp pt : E} {ret
   rw [loadAddrs_straight σ roundPre round_straight, round_loads] at hA
   simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
   rw [h0, h1, h2, h8] at hA
-  have hr : ∀ k ∈ roundRecOffs, ∃ i, rec.limb 0 * Parameters.gpow k = Parameters.gpow i ∧ R i :=
+  have hr : ∀ k ∈ roundRecOffs, ∃ i, rec.limb 0 * Parameters.addressOfIndex k =
+      Parameters.addressOfIndex i ∧ R i :=
     hrec
   simp only [roundRecOffs, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp,
     forall_eq] at hr

@@ -32,9 +32,11 @@ structure OqIt1Ok (rd : Reader) (R : ℕ → Prop) (cert : String → V → ℕ)
     (odd fp j : ℕ) (qptrs cap flags wp ch mu : E) (r1 r2 : List K) (w1 w2 : ℕ → E) (q1 q2 : ℕ)
     (sb1 sb2 : List Digest) (bp1 bp2 v : E) : Prop where
   ok1 : (⟨s, 11, true, 0, r1, w1, q1, sb1,
-    ofK (Parameters.gpow (fp + cert loop (.n (oqCh s 11 true)))), cap, flags, rd⟩ : QD).Ok rd wp
+    ofK (Parameters.addressOfIndex (fp + cert loop (.n (oqCh s 11 true)))), cap, flags, rd⟩ :
+        QD).Ok rd wp
   ok2 : (⟨s, oqE1 s + 1, false, oqK1 11 s.R + s.D, r2, w2, q2, sb2,
-    ofK (Parameters.gpow (fp + cert loop (.n (oqCh s (oqE1 s + 1) false)))), cap, flags, rd⟩ :
+    ofK (Parameters.addressOfIndex (fp + cert loop (.n (oqCh s (oqE1 s + 1) false)))), cap,
+        flags, rd⟩ :
       QD).Ok rd wp
   b1 : LoadHolds rd qptrs (2 * j + odd) bp1
   bits1 : ∀ l < s.pd + s.cd, LoadHolds rd bp1 l (bitE (q1.testBit l))
@@ -42,24 +44,25 @@ structure OqIt1Ok (rd : Reader) (R : ℕ → Prop) (cert : String → V → ℕ)
   bits2 : ∀ l < s.pd + s.cd, LoadHolds rd bp2 l (bitE (q2.testBit l))
   chv : LoadHolds rd ch j v
   chv1 : LoadHolds rd ch (j + 1) (((v + rowDot s.base s.I r1 w1) * mu + rowDot s.base s.I r2 w2) * mu)
-  rq : ∀ e < 2, OqIn R ((qptrs * gen ^ j * gen ^ j).limb 0 * Parameters.gpow (odd + e))
+  rq : ∀ e < 2, OqIn R ((qptrs * gen ^ j * gen ^ j).limb 0 * Parameters.addressOfIndex (odd + e))
   reg1 : OqQReg R s cap flags wp bp1 q1
   reg2 : OqQReg R s cap flags wp bp2 q2
-  rc : ∀ e < 2, OqIn R ((ch * gen ^ j).limb 0 * Parameters.gpow e)
+  rc : ∀ e < 2, OqIn R ((ch * gen ^ j).limb 0 * Parameters.addressOfIndex e)
 
 /-- **What a deeper iteration at `g^j`, placed at `fp`, needs.** -/
 structure OqIt0Ok (rd : Reader) (R : ℕ → Prop) (cert : String → V → ℕ) (loop : String) (s : Oq)
     (fp j : ℕ) (qptrs cap flags wp ch mu : E) (r : List K) (w : ℕ → E) (q : ℕ)
     (sb : List Digest) (bp v : E) : Prop where
   ok : (⟨s, 10, true, 0, r, w, q, sb,
-    ofK (Parameters.gpow (fp + cert loop (.n (oqCh s 10 true)))), cap, flags, rd⟩ : QD).Ok rd wp
+    ofK (Parameters.addressOfIndex (fp + cert loop (.n (oqCh s 10 true)))), cap, flags, rd⟩ :
+        QD).Ok rd wp
   b : LoadHolds rd qptrs j bp
   bits : ∀ l < s.pd + s.cd, LoadHolds rd bp l (bitE (q.testBit l))
   chv : LoadHolds rd ch j v
   chv1 : LoadHolds rd ch (j + 1) ((v + rowDot s.base s.I r w) * mu)
-  rq : OqIn R ((qptrs * gen ^ j).limb 0 * Parameters.gpow 0)
+  rq : OqIn R ((qptrs * gen ^ j).limb 0 * Parameters.addressOfIndex 0)
   reg : OqQReg R s cap flags wp bp q
-  rc : ∀ e < 2, OqIn R ((ch * gen ^ j).limb 0 * Parameters.gpow e)
+  rc : ∀ e < 2, OqIn R ((ch * gen ^ j).limb 0 * Parameters.addressOfIndex e)
 
 theorem gen_pow_guard {j N : ℕ} (hN : N < ordG) (hj : j + 1 ≤ N) :
     IsInK (gen ^ j * gen + gen ^ N) ∧ (gen ^ j * gen + gen ^ N ≠ 0 ↔ j + 1 < N) := by

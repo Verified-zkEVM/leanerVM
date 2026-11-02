@@ -125,7 +125,8 @@ def log2_Spec : Prop :=
 /-- `p` names a frame run holding the 192 bits of `W`: every readable word at `p·g^k`, `k < 192`,
 is bit `k` (`addr(bits)`). -/
 def FrameBits192 (rd : Reader) (p : E) (W : ℕ) : Prop :=
-  IsInK p ∧ ∀ k < 192, ∀ w, rd (p.limb 0 * Parameters.gpow k) = some w → w = bitE (W.testBit k)
+  IsInK p ∧ ∀ k < 192, ∀ w, rd (p.limb 0 * Parameters.addressOfIndex k) = some w → w = bitE
+      (W.testBit k)
 
 /-- **`decode_query_bits(word, positions, bit_ptrs, d)`**: the frame run `p` of the word's 192
 bits, and for each group `j < 192 / d` the position `j`, the word's `d` bits from `j·d` (one chunk

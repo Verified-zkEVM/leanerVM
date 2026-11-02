@@ -31,7 +31,7 @@ open LeanVM.Parameters
 /-- The specification of `addressIndex?`: on an address space of at most `2 ^ 63` cells, so that
 `2 ^ κ ≤ orderOf g`, `addressIndex? κ a = some i` exactly when `a = g ^ i`. -/
 theorem gLog?_spec {κ : ℕ} (hκ : κ < 64) {a : K} {i : Fin (2 ^ κ)} :
-    addressIndex? κ a = some i ↔ a = gpow i := by
+    addressIndex? κ a = some i ↔ a = addressOfIndex i := by
   unfold addressIndex?
   split_ifs with h
   · have hc := Classical.choose_spec h
@@ -50,7 +50,7 @@ theorem gLog?_spec {κ : ℕ} (hκ : κ < 64) {a : K} {i : Fin (2 ^ κ)} :
 /-- `addressIndex?` fails exactly on the addresses that are no power below `2 ^ κ`; no size bound is
 needed. -/
 theorem gLog?_eq_none_iff {κ : ℕ} {a : K} :
-    addressIndex? κ a = none ↔ ∀ i : Fin (2 ^ κ), a ≠ gpow i := by
+    addressIndex? κ a = none ↔ ∀ i : Fin (2 ^ κ), a ≠ addressOfIndex i := by
   unfold addressIndex?
   split_ifs with h
   · exact ⟨fun hn ↦ (nomatch hn), fun hn ↦ absurd h (not_exists.mpr hn)⟩
@@ -62,7 +62,7 @@ theorem gLog?_zero (κ : ℕ) : addressIndex? κ 0 = none :=
 
 /-- A power past the end is no address: `g ^ j` with `2 ^ κ ≤ j < orderOf g` has no index. -/
 theorem gLog?_gpow_eq_none {κ j : ℕ} (hj : 2 ^ κ ≤ j) (hj' : j < 2 ^ 64 - 1) :
-    addressIndex? κ (gpow j) = none :=
+    addressIndex? κ (addressOfIndex j) = none :=
   gLog?_eq_none_iff.mpr fun i h ↦ by
     have hi : (i : ℕ) < 2 ^ 64 - 1 := by have := i.isLt; omega
     have := gpow_injOn hj' hi h
@@ -91,17 +91,17 @@ noncomputable def MemoryImage.cellAt {κ : ℕ} (L : MemoryImage κ) (a : K) : V
 
 /-- Reading at the address of index `i` gives word `i`. -/
 theorem MemoryImage.read_gpow {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) (i : Fin (2 ^ κ)) :
-    L.read (gpow i) = some (L i) := by
+    L.read (addressOfIndex i) = some (L i) := by
   rw [MemoryImage.read, (gLog?_spec hκ).mpr rfl, Option.map_some]
 
 /-- A successful read is the word of the address's index. -/
 theorem MemoryImage.read_eq_some_iff {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) {a : K} {v : E} :
-    L.read a = some v ↔ ∃ i : Fin (2 ^ κ), a = gpow i ∧ L i = v := by
+    L.read a = some v ↔ ∃ i : Fin (2 ^ κ), a = addressOfIndex i ∧ L i = v := by
   simp only [MemoryImage.read, Option.map_eq_some_iff, gLog?_spec hκ]
 
 /-- A read fails exactly at the addresses that are no power below `2 ^ κ`. -/
 theorem MemoryImage.read_eq_none_iff {κ : ℕ} (L : MemoryImage κ) {a : K} :
-    L.read a = none ↔ ∀ i : Fin (2 ^ κ), a ≠ gpow i := by
+    L.read a = none ↔ ∀ i : Fin (2 ^ κ), a ≠ addressOfIndex i := by
   rw [MemoryImage.read, Option.map_eq_none_iff, gLog?_eq_none_iff]
 
 /-- Address `0` reads nothing. -/
@@ -151,29 +151,31 @@ theorem PublicInput.words_injective :
 /-! ### Proof helpers -/
 
 /-- The cap keeps the bytecode inside the address space `gLog?_spec` covers. -/
-private theorem Program.logSize_lt (prog : Program) : prog.logSize < 64 :=
+private theorem LeanIsaProgram.logSize_lt (prog : LeanIsaProgram) : prog.logSize < 64 :=
   lt_of_le_of_lt prog.logSize_le (by decide)
 
 /-! ### Load-bearing lemmas -/
 
 /-- Fetching at the address of index `i` gives instruction `i`. -/
-theorem Program.fetch_gpow (prog : Program) (i : Fin (2 ^ prog.logSize)) :
-    prog.fetch (gpow i) = some (prog.code i) := by
-  rw [Program.fetch, (gLog?_spec prog.logSize_lt).mpr rfl, Option.map_some]
+theorem LeanIsaProgram.fetch_gpow (prog : LeanIsaProgram) (i : Fin (2 ^ prog.logSize)) :
+    prog.fetch (addressOfIndex i) = some (prog.instructions i) := by
+  rw [LeanIsaProgram.fetch, (gLog?_spec prog.logSize_lt).mpr rfl, Option.map_some]
 
 /-- A successful fetch is the instruction of the counter's index. -/
-theorem Program.fetch_eq_some_iff (prog : Program) {pc : K} {ins : Instr} :
-    prog.fetch pc = some ins ↔ ∃ i : Fin (2 ^ prog.logSize), pc = gpow i ∧ prog.code i = ins := by
-  simp only [Program.fetch, Option.map_eq_some_iff, gLog?_spec prog.logSize_lt]
+theorem LeanIsaProgram.fetch_eq_some_iff (prog : LeanIsaProgram) {pc : K} {ins :
+    LeanIsaInstruction} :
+    prog.fetch pc = some ins ↔ ∃ i : Fin (2 ^ prog.logSize), pc = addressOfIndex i ∧
+        prog.instructions i = ins := by
+  simp only [LeanIsaProgram.fetch, Option.map_eq_some_iff, gLog?_spec prog.logSize_lt]
 
 /-- A fetch fails exactly at the counters that are no power below `2 ^ logSize`. -/
-theorem Program.fetch_eq_none_iff (prog : Program) {pc : K} :
-    prog.fetch pc = none ↔ ∀ i : Fin (2 ^ prog.logSize), pc ≠ gpow i := by
-  rw [Program.fetch, Option.map_eq_none_iff, gLog?_eq_none_iff]
+theorem LeanIsaProgram.fetch_eq_none_iff (prog : LeanIsaProgram) {pc : K} :
+    prog.fetch pc = none ↔ ∀ i : Fin (2 ^ prog.logSize), pc ≠ addressOfIndex i := by
+  rw [LeanIsaProgram.fetch, Option.map_eq_none_iff, gLog?_eq_none_iff]
 
 /-- Program counter `0` fetches nothing. -/
-theorem Program.fetch_zero (prog : Program) : prog.fetch 0 = none := by
-  rw [Program.fetch, gLog?_zero, Option.map_none]
+theorem LeanIsaProgram.fetch_zero (prog : LeanIsaProgram) : prog.fetch 0 = none := by
+  rw [LeanIsaProgram.fetch, gLog?_zero, Option.map_none]
 
 /-! ## Lanes -/
 
@@ -192,13 +194,15 @@ theorem K.lane_injective : Function.Injective K.lane := fun a b h ↦ by
 /-! ### Load-bearing lemmas -/
 
 /-- A counter that fetches nothing steps nowhere. -/
-theorem step_eq_none_of_fetch_eq_none {κ : ℕ} {prog : Program} {L : MemoryImage κ} {r : Registers K}
+theorem step_eq_none_of_fetch_eq_none {κ : ℕ} {prog : LeanIsaProgram} {L : MemoryImage κ} {r :
+    Registers K}
     (h : prog.fetch r.pc = none) : step prog L r = none := by
   rw [step, h]; rfl
 
 /-- A step from a counter that fetches `ins` executes `ins`. -/
-theorem step_of_fetch_eq_some {κ : ℕ} {prog : Program} {L : MemoryImage κ} {r : Registers K}
-    {ins : Instr} (h : prog.fetch r.pc = some ins) : step prog L r = execute L r ins := by
+theorem step_of_fetch_eq_some {κ : ℕ} {prog : LeanIsaProgram} {L : MemoryImage κ} {r : Registers K}
+    {ins : LeanIsaInstruction} (h : prog.fetch r.pc = some ins) : step prog L r = execute L r
+        ins := by
   rw [step, h]; rfl
 
 /-! ## Execution -/
@@ -207,14 +211,15 @@ theorem step_of_fetch_eq_some {κ : ℕ} {prog : Program} {L : MemoryImage κ} {
 
 /-- The register sequence `r_0 = (1, 1), r_1, …, r_steps` of a trace; a prefix that fails to
 run is dropped, so a valid trace has exactly `steps + 1` entries (`Execution.regs_length`). -/
-noncomputable def Execution.regs {prog : Program} (t : Execution prog) : List (Registers K) :=
-  (List.range (t.steps + 1)).filterMap fun n ↦ run prog t.memory n Registers.initial
+noncomputable def Execution.regs {prog : LeanIsaProgram} (t : Execution prog) : List
+    (Registers K) :=
+  (List.range (t.stepCount + 1)).filterMap fun n ↦ run prog t.memory n Registers.initial
 
 /-! ### Load-bearing lemmas -/
 
 section
 
-variable {κ : ℕ} {prog : Program} {L : MemoryImage κ}
+variable {κ : ℕ} {prog : LeanIsaProgram} {L : MemoryImage κ}
 
 /-- Zero steps go nowhere. -/
 @[simp] theorem run_zero (r : Registers K) : run prog L 0 r = some r := rfl
@@ -273,8 +278,9 @@ theorem run_intermediate {n : ℕ} {r r' : Registers K} (h : run prog L n r = so
 end
 
 /-- A trace that runs has `steps + 1` register states. -/
-theorem Execution.regs_length {prog : Program} {t : Execution prog} {r : Registers K}
-    (h : run prog t.memory t.steps Registers.initial = some r) : t.regs.length = t.steps + 1 := by
+theorem Execution.regs_length {prog : LeanIsaProgram} {t : Execution prog} {r : Registers K}
+    (h : run prog t.memory t.stepCount Registers.initial = some r) : t.regs.length = t.stepCount +
+        1 := by
   rw [Execution.regs]
   refine (List.filterMap_length_eq_length.mpr ?_).trans List.length_range
   intro n hn

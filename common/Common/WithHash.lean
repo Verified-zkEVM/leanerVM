@@ -12,7 +12,8 @@ The proofs reason with the hash a query of its own (`LeanXmss.HashSpec`, the gam
 over `π` in the random-permutation model (`SufCma.schemeHashOverPermutation`). These are those
 forms, each the statement's definition with the hash a query: the game (`SufCma.SchemeWithHash`,
 `forgeryGameWithHash`, `StronglyUnforgeableWithHash`) and leanXMSS's algorithms
-(`LeanXmss.Concrete`, `LeanXmss.Seeded`, the scheme `LeanXmss.Rpm.schemeWithHash`).
+(`LeanXmss.Verification`, `LeanXmss.KeyGenerationAndSigning`, the scheme
+`LeanXmss.RandomPermutationModel.schemeWithHash`).
 `Common.WithHashBridge` proves the statement's the hash-query forms with the hash Keccak-256 over
 `π`.
 -/
@@ -58,7 +59,7 @@ variable {Seed PK SK Req Resp F : Type}
 /-- The hash in the random-permutation model: Keccak-256 over `π` (`keccak256OverPermutation`), its
 digest read as a bit vector (`digestBitVec`). -/
 def schemeHashOverPermutation : QueryImpl SchemeHashSpec (OracleComp RandomPermutationOracles) :=
-  fun m ↦ digestBitVec <$> keccak256OverPermutation m
+  fun m ↦ digestBytesEquivBitVec <$> keccak256OverPermutation m
 
 /-- The signing oracle in the random-permutation model. -/
 def loggedSigningOracleWithHash (S : SchemeWithHash Seed PK SK Req Resp F) (sk : SK) :
@@ -109,9 +110,9 @@ open HashSig
 `Common.SufCma.SchemeHashSpec`). -/
 abbrev HashSpec := HashInput →ₒ HashOutput
 
-namespace Concrete
+namespace Verification
 
-open HashSig.Concrete
+open HashSig.OverPermutation
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
@@ -132,7 +133,7 @@ def thPairWithHash (parameter : PublicParameter) (fields : TweakFields) (payload
 
 /-- `H(tag || S_0)`, all 32 bytes (`tagged_seed`): the seed `S` a scheme derives from. -/
 def taggedSeedWithHash (tag : HashInput) (seed : MasterSeed) : m MasterSeed :=
-  oracleHashWithHash (tag ++ bytesLE 32 seed)
+  oracleHashWithHash (tag ++ littleEndianBytes 32 seed)
 
 /-- The tweakable hash at a hash domain's address. -/
 abbrev tweakableHashWithHash (parameter : PublicParameter) (domain : HashDomain)
@@ -148,7 +149,7 @@ def chainWalkWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyInde
 
 /-- The verifier's half of a chain: walk the remaining `3 - x_i` steps. -/
 def recoverChainWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
-    (chainIdx : ChainIndex) (digit : Digit) (value : Digest) : m Digest :=
+    (chainIdx : ChainIndex) (digit : WinternitzDigit) (value : Digest) : m Digest :=
   chainWalkWithHash parameter lay key chainIdx digit.val (chainLength - 1 - digit.val) value
 
 /-- The one-time leaf: the hash of the `v` chain ends (`wots_leaf_hash`). -/
@@ -158,14 +159,14 @@ def leafHashWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex
 
 /-- `D = Th(P, A_msg(l, e), M || rho)` (`message_digest`). -/
 def messageDigestWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
-    (message : HashInput) (randomness : Randomness) : m Digest :=
-  tweakableHashWithHash parameter (.message lay key) (message ++ bytesLE 16 randomness)
+    (message : HashInput) (randomness : Randomizer) : m Digest :=
+  tweakableHashWithHash parameter (.message lay key) (message ++ littleEndianBytes 16 randomness)
 
 /-- `Ots.leaf` (`wots_leaf`): the leaf a claimed one-time signature recovers, or nothing if its
 digest is not a codeword. -/
 def otsLeafWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
     (message : HashInput)
-    (randomness : Randomness) (values : ChainIndex → Digest) : m (Option Digest) := do
+    (randomness : Randomizer) (values : ChainIndex → Digest) : m (Option Digest) := do
   let digest ← messageDigestWithHash parameter lay key message randomness
   let some encoding := Codeword.decode digest | return none
   let endpoints ← sequenceFin fun chainIdx =>
@@ -184,9 +185,9 @@ def treeFoldWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex
 def layerRootWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
     (message : HashInput)
     (part : LayerSignature) : m (Option Digest) := do
-  let some leaf ← otsLeafWithHash parameter lay key message part.randomness part.chainValues |
+  let some leaf ← otsLeafWithHash parameter lay key message part.randomizer part.chainValues |
     return none
-  let root ← treeFoldWithHash parameter lay key part.path layerHeight leaf
+  let root ← treeFoldWithHash parameter lay key part.authenticationPath layerHeight leaf
   return some root
 
 /-- `Ver(pk, m, sigma)`: recover the bottom root from the message, then the top root from the bottom
@@ -194,17 +195,18 @@ root, and compare it with the public key. -/
 def verifyWithHash (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool :=
   do
   let index := signature.leafIndex
-  let some bottomRoot ← layerRootWithHash publicKey.parameter bottomLayer (keyAt index bottomLayer)
-      (bytesLE 32 message) (signature.layers bottomLayer) | return false
-  let some root ← layerRootWithHash publicKey.parameter topLayer (keyAt index topLayer)
-      (bytesLE 16 bottomRoot) (signature.layers topLayer) | return false
+  let some bottomRoot ← layerRootWithHash publicKey.parameter bottomLayer (keyIndexOnLayer index
+      bottomLayer)
+      (littleEndianBytes 32 message) (signature.layers bottomLayer) | return false
+  let some root ← layerRootWithHash publicKey.parameter topLayer (keyIndexOnLayer index topLayer)
+      (littleEndianBytes 16 bottomRoot) (signature.layers topLayer) | return false
   return decide (root = publicKey.root)
 
-end Concrete
+end Verification
 
-namespace Seeded
+namespace KeyGenerationAndSigning
 
-open Concrete HashSig.Concrete
+open Verification HashSig.OverPermutation
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
@@ -214,9 +216,10 @@ Chains `2t` and `2t + 1` start at the two halves of derivation `t`. -/
 def otsSecretsWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
     (seed : MasterSeed) :
     m (ChainIndex → Digest) := do
-  let outputs ← sequenceFin fun pair : ChainPair =>
-    thPairWithHash parameter (keygenDomainFields (.ots lay key pair)) (bytesLE 32 seed)
-  return fun chainIdx => hashHalf chainIdx.val (outputs (chainPair chainIdx))
+  let outputs ← sequenceFin fun pair : ChainPairIndex =>
+    thPairWithHash parameter (keygenDomainFields (.oneTimeChainPair lay key pair))
+        (littleEndianBytes 32 seed)
+  return fun chainIdx => hashHalfForChain chainIdx.val (outputs (chainPair chainIdx))
 
 /-- The chain ends of a one-time key. -/
 def oneTimePublicKeyWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
@@ -228,8 +231,8 @@ def oneTimePublicKeyWithHash (parameter : PublicParameter) (lay : Layer) (key : 
 /-- The randomizer trials `R0 + c, R0 + c + 1, ...`, stopping at the first codeword. -/
 def otsSignFromWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
     (seed : MasterSeed)
-    (message : HashInput) (base : Randomness) :
-    Nat → Nat → m (Option (Randomness × (ChainIndex → Digest)))
+    (message : HashInput) (base : Randomizer) :
+    Nat → Nat → m (Option (Randomizer × (ChainIndex → Digest)))
   | 0, _ => pure none
   | attempts + 1, trial => do
       let randomness := base + BitVec.ofNat digestBits trial
@@ -245,9 +248,10 @@ def otsSignFromWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIn
 
 /-- `wots_sign`: derive `R0`, take the least admissible trial, then open the chains. -/
 def otsSignWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (seed : MasterSeed)
-    (message : HashInput) : m (Option (Randomness × (ChainIndex → Digest))) := do
+    (message : HashInput) : m (Option (Randomizer × (ChainIndex → Digest))) := do
   -- `R0`, the randomizer base (`TWEAK_RANDOMIZER = 7`)
-  let base ← thWithHash parameter (tweakFields 7 0 (layerHi lay 0) key) (bytesLE 32 seed ++ message)
+  let base ← thWithHash parameter (tweakFields 7 0 (layerHi lay 0) key) (littleEndianBytes 32 seed
+      ++ message)
   otsSignFromWithHash parameter lay key seed message base randomizerAttemptLimit 0
 
 /-- Node `nodeIdx` at tree level `level` of layer `l`, from the one-time keys below it. On the
@@ -272,34 +276,36 @@ top tree. -/
 def keygenFromSeedWithHash (keySeed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) :=
   do
   let seed ← taggedSeedWithHash seedTag keySeed
-  let parameter ← thWithHash 0 (keygenDomainFields .parameter) (bytesLE 32 seed)
+  let parameter ← thWithHash 0 (keygenDomainFields .parameter) (littleEndianBytes 32 seed)
   let root ← treeNodeWithHash parameter topLayer seed layerHeight 0
   return (⟨root, parameter⟩, ⟨seed, parameter⟩)
 
 /-- One layer's signature by key `e` of `message`: the one-time signature and the path. -/
 def signLayerWithHash (secretKey : SecretKey) (lay : Layer) (key : KeyIndex) (message : HashInput) :
     m (Option LayerSignature) := do
-  let some (randomness, values) ← otsSignWithHash secretKey.parameter lay key secretKey.seed message
+  let some (randomness, values) ← otsSignWithHash secretKey.parameter lay key secretKey.schemeSeed
+      message
     | return none
-  let path ← treePathWithHash secretKey.parameter lay secretKey.seed key
+  let path ← treePathWithHash secretKey.parameter lay secretKey.schemeSeed key
   return some ⟨randomness, values, path⟩
 
 /-- `Sign` at leaf index `idx`: the bottom key `idx` signs `m`, and the top key `idx / 2^16` signs
 the root of bottom tree `idx / 2^16`. -/
 def signWithHash (secretKey : SecretKey) (index : LeafIndex) (message : Message) :
     m (Option Signature) := do
-  let bottomKey := keyAt index bottomLayer
-  let topKey := keyAt index topLayer
+  let bottomKey := keyIndexOnLayer index bottomLayer
+  let topKey := keyIndexOnLayer index topLayer
   let some bottom ← signLayerWithHash secretKey bottomLayer bottomKey
-    (bytesLE 32 message) | return none
-  let bottomRoot ← treeNodeWithHash secretKey.parameter bottomLayer secretKey.seed layerHeight
+    (littleEndianBytes 32 message) | return none
+  let bottomRoot ← treeNodeWithHash secretKey.parameter bottomLayer secretKey.schemeSeed layerHeight
     topKey.val
-  let some top ← signLayerWithHash secretKey topLayer topKey (bytesLE 16 bottomRoot) | return none
+  let some top ← signLayerWithHash secretKey topLayer topKey (littleEndianBytes 16
+      bottomRoot) | return none
   return some ⟨index, fun lay => if lay = bottomLayer then bottom else top⟩
 
-end Seeded
+end KeyGenerationAndSigning
 
-namespace Rpm
+namespace RandomPermutationModel
 
 open Common Common.SufCma
 
@@ -307,17 +313,19 @@ open Common Common.SufCma
 /-- leanXMSS in the generic SUF-CMA game: the seed, key generation, the signer of a request, the
 verifier, and the winning condition: a valid transcript without the forgery (`SignerReturned`). -/
 noncomputable def schemeWithHash :
-    SchemeWithHash MasterSeed PublicKey Seeded.SecretKey SignRequest (Option Signature)
+    SchemeWithHash MasterSeed PublicKey KeyGenerationAndSigning.SecretKey SigningRequest (Option
+        Signature)
       Forgery where
   sample := sampleMasterSeed
-  keygen := Seeded.keygenFromSeedWithHash
+  keygen := KeyGenerationAndSigning.keygenFromSeedWithHash
   sign sk request :=
-    Seeded.signWithHash (m := OracleComp HashSpec) sk request.leafIndex request.message
+    KeyGenerationAndSigning.signWithHash (m := OracleComp HashSpec) sk request.leafIndex
+        request.message
   verify pk forgery :=
-    Concrete.verifyWithHash (m := OracleComp HashSpec) pk forgery.message forgery.signature
+    Verification.verifyWithHash (m := OracleComp HashSpec) pk forgery.message forgery.signature
   win log forgery :=
-    decide (SigningTranscript.Valid log ∧
-      ¬SignerReturned SignRequest.message log forgery.message forgery.signature)
+    decide (SigningTranscript.NoLeafIndexReused log ∧
+      ¬SignerReturnedForgery SigningRequest.message log forgery.message forgery.signature)
 
 /-- **leanXMSS in the random-permutation model**: an adversary whose game makes at most `Q`
 permutation calls, `Q ≥ 1`, forges with probability at most `(Q + 1) · 2^-127`
@@ -328,7 +336,7 @@ signer's included (`QueryCostAtMost` is structural): a signing request costs abo
 abbrev LeanXmssStronglyUnforgeableWithHash : Prop :=
   StronglyUnforgeableWithHash schemeWithHash 127
 
-end Rpm
+end RandomPermutationModel
 
 end LeanXmss
 

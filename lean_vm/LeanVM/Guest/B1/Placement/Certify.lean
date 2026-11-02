@@ -34,15 +34,15 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- `g^98`, as the data writes it. -/
-theorem word_g98 : word 463856467968 0 0 = ofK (Parameters.gpow 98) := by
+theorem word_g98 : word 463856467968 0 0 = ofK (Parameters.addressOfIndex 98) := by
   rw [tb_word_eOfNat]
-  show ofK (K.ofBits 463856467968) = ofK (Parameters.gpow 98)
-  rw [show K.ofBits 463856467968 = Parameters.gpow 98 by decide +kernel]
+  show ofK (K.ofBits 463856467968) = ofK (Parameters.addressOfIndex 98)
+  rw [show K.ofBits 463856467968 = Parameters.addressOfIndex 98 by decide +kernel]
 
-theorem word_g33 : word 8589934592 0 0 = ofK (Parameters.gpow 33) := by
+theorem word_g33 : word 8589934592 0 0 = ofK (Parameters.addressOfIndex 33) := by
   rw [tb_word_eOfNat]
-  show ofK (K.ofBits 8589934592) = ofK (Parameters.gpow 33)
-  rw [show K.ofBits 8589934592 = Parameters.gpow 33 by decide +kernel]
+  show ofK (K.ofBits 8589934592) = ofK (Parameters.addressOfIndex 33)
+  rw [show K.ofBits 8589934592 = Parameters.addressOfIndex 33 by decide +kernel]
 
 /-! ## The columns' sources -/
 

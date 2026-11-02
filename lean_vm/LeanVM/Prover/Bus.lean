@@ -32,15 +32,15 @@ open LeanVM.Protocol (Column)
 
 section Sides
 
-variable {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)} {cols : Array (Array K)}
+variable {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ prog s)} {cols : Array (Array K)}
 
-theorem layout_logMemory (prog : Program) (s : Sizes) :
+theorem layout_logMemory (prog : LeanIsaProgram) (s : Sizes) :
     (verifierLayout prog s).logMemory = s.logMem := rfl
 
-theorem layout_logBytecode (prog : Program) (s : Sizes) :
+theorem layout_logBytecode (prog : LeanIsaProgram) (s : Sizes) :
     (verifierLayout prog s).logBytecode = prog.logSize := rfl
 
-theorem layout_bytecode (prog : Program) (s : Sizes) :
+theorem layout_bytecode (prog : LeanIsaProgram) (s : Sizes) :
     (verifierLayout prog s).bytecode = bytecodeWords prog := rfl
 
 theorem getD_onesList_one (n y : ℕ) (hy : y < 2 ^ n) : (onesList n).getD y 0 = 1 := by
@@ -51,7 +51,7 @@ theorem getD_side_mem {l : List BusBlock} {b : ℕ} (hb : b < l.length) : l.getD
   exact List.getElem_mem hb
 
 /-- The powers of `g` the framework blocks read. -/
-abbrev powsOf (prog : Program) (s : Sizes) : Array E :=
+abbrev powsOf (prog : LeanIsaProgram) (s : Sizes) : Array E :=
   powsA gen (2 ^ max (verifierLayout prog s).logMemory (verifierLayout prog s).logBytecode)
 
 /-- **The push side's leaves** are the specification's. -/
@@ -159,7 +159,7 @@ end Sides
 
 /-- **The bus phase makes the moves of `hBus`**, to the same result, from the instance's columns
 as arrays. -/
-theorem corr_busFast {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)}
+theorem corr_busFast {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ prog s)}
     {cols : Array (Array K)} (hcols : ColsOk prog s q cols) :
     Corr (· = ·) (busFast (verifierLayout prog s) cols) (hBus prog s q) := by
   unfold busFast hBus

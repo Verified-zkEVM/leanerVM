@@ -59,9 +59,10 @@ theorem completeAt_flatDTB {f : String} {fn : Fn} (hf : coreProgram.find? f = so
         Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun r => r = rets) ∧
         (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
         ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-          (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
+          (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b)) ∧
         CallsMatch σ (flatCalls pre σ) (kids fp) outs ∧
-        (∀ q ∈ pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧
+        (∀ q ∈ pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 =
+            addressOfIndex i ∧
           (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) ∧ Q σ) :
     CompleteAtDTB fs cert κ f Lin args (Returns rets)
       (Budget.NodeHonest coreProgram f Q (flatCalls pre) (fun _ ↦ sizes) Ts) (fs f + sizes.sum + KB) := by
@@ -96,7 +97,7 @@ theorem completeAt_flatDTB {f : String} {fn : Fn} (hf : coreProgram.find? f = so
   have hb' : fp + fs f + sizes.sum = fp + fs f + (allocs σ (pre.flatMap (flEvs σ))).sum := by
     rw [hal]
   rw [hb'] at hk
-  have hload : ∀ A ∈ loadAddrs σ (pre.flatMap (flEvs σ)), ∃ i, A = gpow i ∧
+  have hload : ∀ A ∈ loadAddrs σ (pre.flatMap (flEvs σ)), ∃ i, A = addressOfIndex i ∧
       (ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i ∨
         RegionL Lin i ∨ (False ∨ outRegion (kids fp) outs i)) := by
     intro A hA
@@ -143,9 +144,10 @@ theorem completeAt_flatOutDTB {f : String} {fn : Fn} (hf : coreProgram.find? f =
         Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun r => r = rets fp) ∧
         (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
         ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-          (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
+          (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b)) ∧
         CallsMatch σ (flatCalls pre σ) (kids fp) outs ∧
-        (∀ q ∈ pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧
+        (∀ q ∈ pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 =
+            addressOfIndex i ∧
           (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) ∧ Q σ) :
     CompleteAtDTB fs cert κ f Lin args Res
       (Budget.NodeHonest coreProgram f Q (flatCalls pre) (fun _ ↦ sizes) Ts) (fs f + sizes.sum + KB) := by
@@ -179,7 +181,7 @@ theorem completeAt_flatOutDTB {f : String} {fn : Fn} (hf : coreProgram.find? f =
   have hb' : fp + fs f + sizes.sum = fp + fs f + (allocs σ (pre.flatMap (flEvs σ))).sum := by
     rw [hal]
   rw [hb'] at hk
-  have hload : ∀ A ∈ loadAddrs σ (pre.flatMap (flEvs σ)), ∃ i, A = gpow i ∧
+  have hload : ∀ A ∈ loadAddrs σ (pre.flatMap (flEvs σ)), ∃ i, A = addressOfIndex i ∧
       (ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i ∨
         RegionL Lin i ∨ (False ∨ outRegion (kids fp) outs i)) := by
     intro A hA

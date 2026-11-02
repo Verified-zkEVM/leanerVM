@@ -68,27 +68,27 @@ structure WhirEnd where
   target : E
 
 /-- `whirLevels` (V:1791) without the final `require`: it returns what the terminal reads. -/
-def whirLevelsOpen (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirStateT → Prog WhirEnd
-  | _, [], _ => Prog.fail
+def whirLevelsOpen (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirStateT → VerifierProgram WhirEnd
+  | _, [], _ => VerifierProgram.fail
   | index, level :: rest, s => do
     let (s, levelFolds) ← foldRoundsT level.fold s []
     let messageLog := logN - s.folds.length
     let (residual, pending) ← match rest with
       | [] => do
-        let residual ← Prog.readScalars (2 ^ messageLog)
+        let residual ← VerifierProgram.readScalars (2 ^ messageLog)
         pure (residual, ([] : List (E × List E × (List E → E))))
       | next :: _ => do
         let (height, width) := levelShape messageLog next (3 * 2 ^ next.fold)
-        Prog.readCommitment height width
-        let oodPoint ← Prog.sampleChallenges messageLog
-        let oodValue ← Prog.readScalar
+        VerifierProgram.readCommitment height width
+        let oodPoint ← VerifierProgram.sampleChallenges messageLog
+        let oodValue ← VerifierProgram.readScalar
         let intro ← sumcheckRoundPoly 3 oodValue none
         pure ([], [(oodValue, intro, fun x ↦ eqEval oodPoint x)])
-    Prog.grindProofOfWork Whir.queryGrindingBits
+    VerifierProgram.grindProofOfWork Whir.queryGrindingBits
     let queries ← sampleQueries (messageLog + level.logInvRate) level.queries
-    let lam ← Prog.sampleChallenge
+    let lam ← VerifierProgram.sampleChallenge
     let queryWeights := powers lam queries.length
-    let words ← Prog.queryOpenings index queries
+    let words ← VerifierProgram.queryOpenings index queries
     let rows : List (List E) :=
       if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
     let enforced := enforcedSum rows levelFolds queryWeights
@@ -108,7 +108,7 @@ def whirLevelsOpen (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirStat
     | _ :: _ => whirLevelsOpen logN laneFolds (index + 1) rest s
 
 /-- `verifyWhir` (V:1836) up to its terminal: what `open_stacked` runs. -/
-def whirOpen (logN logInvRate : ℕ) (target : E) : Prog WhirEnd := do
+def whirOpen (logN logInvRate : ℕ) (target : E) : VerifierProgram WhirEnd := do
   let config ← liftOption (Whir.ladder logN logInvRate)
   let quad ← sumcheckRoundPoly 3 target none
   whirLevelsOpen logN ((config.head?.map (·.fold)).getD 0) 0 config ⟨target, quad, [], []⟩
@@ -126,31 +126,36 @@ theorem foldl_add_shift {α : Type} (f : α → E) (a : E) (l : List α) :
   | nil => simp
   | cons x l ih => rw [List.foldl_cons, List.foldl_cons, ih, ih (0 + f x), zero_add, add_assoc]
 
-theorem prog_bind_congr {α β : Type} {p : Prog α} {f g : α → Prog β} (h : ∀ a, f a = g a) :
+theorem prog_bind_congr {α β : Type} {p : VerifierProgram α} {f g : α → VerifierProgram β} (h : ∀ a,
+    f a = g a) :
     p.bind f = p.bind g := by rw [funext h]
 
 theorem whirLevels_split (logN laneFolds : ℕ) (eb : List E → E) :
     ∀ (index : ℕ) (levels : List Whir.Level) (s : WhirStateT),
       whirLevelsT logN laneFolds eb index levels s =
-        (whirLevelsOpen logN laneFolds index levels s).bind fun w ↦ Prog.require (w.Accepts eb)
+        (whirLevelsOpen logN laneFolds index levels s).bind fun w ↦ VerifierProgram.require
+            (w.Accepts eb)
   | _, [], _ => rfl
   | index, [level], s => by
     rw [whirLevelsT, whirLevelsOpen]
-    simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind, WhirEnd.Accepts]
+    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
+        VerifierProgram.ret_bind, WhirEnd.Accepts]
     repeat refine prog_bind_congr fun _ ↦ ?_
     rw [foldl_add_shift _ (eb _), add_comm (eb _)]
     congr 1
   | index, level :: next :: rest, s => by
     rw [whirLevelsT, whirLevelsOpen]
-    simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind,
+    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
+        VerifierProgram.ret_bind,
       whirLevels_split logN laneFolds eb (index + 1) (next :: rest)]
 
 /-- **`verifyWhir` is `whirOpen`, then the terminal's check.** -/
 theorem verifyWhir_split (logN logInvRate : ℕ) (target : E) (eb : List E → E) :
     verifyWhirT logN logInvRate target eb = (do
       let w ← whirOpen logN logInvRate target
-      Prog.require (w.Accepts eb)) := by
-  simp only [verifyWhirT, whirOpen, Prog.bind_eq, Prog.bind_assoc, whirLevels_split]
+      VerifierProgram.require (w.Accepts eb)) := by
+  simp only [verifyWhirT, whirOpen, VerifierProgram.bind_eq, VerifierProgram.bind_assoc,
+      whirLevels_split]
 
 /-- The shape `commitStack` gives the stack's root (V:1844): `(height, width)`. -/
 def stackShape (logN logInvRate : ℕ) : ℕ × ℕ :=
@@ -162,8 +167,9 @@ def stackShape (logN logInvRate : ℕ) : ℕ × ℕ :=
 theorem commitStack_eq {logN logInvRate : ℕ} {level : Whir.Level} {rest : List Whir.Level}
     (h : Whir.ladder logN logInvRate = some (level :: rest)) :
     commitStack logN logInvRate =
-      Prog.readCommitment (stackShape logN logInvRate).1 (stackShape logN logInvRate).2 := by
-  simp only [commitStack, stackShape, h, Prog.bind_eq]
+      VerifierProgram.readCommitment (stackShape logN logInvRate).1 (stackShape logN
+          logInvRate).2 := by
+  simp only [commitStack, stackShape, h, VerifierProgram.bind_eq]
   rfl
 
 /-! ## The specializations -/
@@ -188,7 +194,7 @@ abbrev pointCap : ℕ := 40
 `xs` and the openings `os`, the commitments read so far being `roots`, and returns `a`, leaving a
 sponge the guest carries as `s'` and the commitments `roots'`, on any rest of the stream and of
 the openings. -/
-def RunsWith {α : Type} (p : Prog α) (s : Fs) (xs : List E) (os : List Opening)
+def RunsWith {α : Type} (p : VerifierProgram α) (s : Fs) (xs : List E) (os : List Opening)
     (roots : List (Digest × ℕ × ℕ)) (a : α) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)) : Prop :=
   ∀ sp : Sponge, s.Carries sp → ∀ (rest : List E) (orest : List Opening), ∃ sp' : Sponge,
     s'.Carries sp' ∧ runId p ⟨sp, xs ++ rest, os ++ orest, roots⟩ = some (a, ⟨sp', rest, orest, roots'⟩)
@@ -218,7 +224,7 @@ the capacity cells `fs`, the claim `target`, the root's two cells and the cursor
 def open_stacked_sound_Spec : Prop :=
   ∀ (rd : Reader) (μ r : ℕ), 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
     ∀ (root : Digest) (fs : List E) (target root0 root1 cur : E) (rets : List E),
-      fs.length = 5 → (root0, root1) = digestScalars root →
+      fs.length = 5 → (root0, root1) = digestHalves root →
       coreProgram.Rel rd (openName μ r) (fs ++ [target, root0, root1, cur]) rets →
         OpenOut rd μ r root fs target cur rets
 

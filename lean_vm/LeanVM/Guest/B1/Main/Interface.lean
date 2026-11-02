@@ -64,7 +64,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 /-- The index of `a` among the powers `g^i`, `i < 2^κ`, by a search: the first `i` with `a = g^i`
 (`addressIndex?` on at most `2^63` words, `indexSearch_eq`), decided by evaluation. -/
 def indexSearch (κ : ℕ) (a : K) : Option (Fin (2 ^ κ)) :=
-  (List.finRange (2 ^ κ)).find? fun i ↦ decide (a = Parameters.gpow i)
+  (List.finRange (2 ^ κ)).find? fun i ↦ decide (a = Parameters.addressOfIndex i)
 
 /-- The exponent `i < 2^34` with `g^i` the word's low limb, `0` if there is none. Only the low limb
 is read: a word whose `y`, `y²` limbs are nonzero gets the exponent of its low limb. -/
@@ -76,7 +76,7 @@ def digestOfCells (a b : E) : Digest :=
 
 /-- The word at `p · g^k`, or `0`. -/
 noncomputable def cellAt (rd : Reader) (p : E) (k : ℕ) : E :=
-  (rd (p.limb 0 * Parameters.gpow k)).getD 0
+  (rd (p.limb 0 * Parameters.addressOfIndex k)).getD 0
 
 /-- The `n` words from `p`. -/
 noncomputable def readCells (rd : Reader) (p : E) (n : ℕ) : List E := (List.range n).map (cellAt rd p)
@@ -97,8 +97,8 @@ proof's claim at `child_fresh · g^(24c)`, its statement's deferred claim at
 `child_carried · g^(24c)`, both claims at `23` coordinates. -/
 def ChildWordsAt (rd : Reader) (cpi cfresh ccarried : E) (c : ℕ) (cc : ChildClaims) : Prop :=
   cc.freshClaim.bytecodePoint.length = bytecodeVars ∧ cc.carriedClaim.bytecodePoint.length = bytecodeVars ∧
-    LoadHolds rd cpi (2 * c) (digestScalars cc.publicInput).1 ∧
-    LoadHolds rd cpi (2 * c + 1) (digestScalars cc.publicInput).2 ∧
+    LoadHolds rd cpi (2 * c) (digestHalves cc.publicInput).1 ∧
+    LoadHolds rd cpi (2 * c + 1) (digestHalves cc.publicInput).2 ∧
     ReadsAt rd (cfresh * gen ^ (24 * c)) (DeferredClaim.cells cc.freshClaim) ∧
     ReadsAt rd (ccarried * gen ^ (24 * c)) cc.carriedClaim.cells
 
@@ -128,8 +128,8 @@ argument the child proof's claim on the bytecode (`23` coordinates, then the val
 deferring verifier accepts `π` for the public input under the seed. -/
 def VerifySubOut (bytecode : List K) (rd : Reader) (args : List E) (π : Proof) : Prop :=
   ∃ pi0 pi1 s0 s1 glp gsq out, args = [pi0, pi1, s0, s1, glp, gsq, out] ∧
-    ∃ (seed pi : Digest) (fresh : BytecodeClaim), (s0, s1) = digestScalars seed ∧
-      (pi0, pi1) = digestScalars pi ∧ fresh.bytecodePoint.length = bytecodeVars ∧
+    ∃ (seed pi : Digest) (fresh : BytecodeClaim), (s0, s1) = digestHalves seed ∧
+      (pi0, pi1) = digestHalves pi ∧ fresh.bytecodePoint.length = bytecodeVars ∧
       ReadsAt rd out (DeferredClaim.cells fresh) ∧ verifyDeferred bytecode seed pi fresh π = true
 
 /-- **The callees' contracts with witness functions**, on the call relation `coreProgram.Rel`. -/
@@ -287,8 +287,8 @@ def main_sound_Spec (bytecode : List K) : Prop :=
   ∀ (wX : E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
     (wD : List E → List E → LeanVM.Da.MatrixWitness) (wV : List E → Proof) (wA : List E → BatchingHints),
     CalleesW bytecode rd wX wS wD wV wA →
-  ∀ (D : Digest) (σ : Val), LoadHolds rd 1 0 (digestScalars D).1 →
-    LoadHolds rd 1 1 (digestScalars D).2 →
+  ∀ (D : Digest) (σ : Val), LoadHolds rd 1 0 (digestHalves D).1 →
+    LoadHolds rd 1 1 (digestHalves D).2 →
     Stmt.HoldsList (coreProgram.Rel rd) rd σ Data.core0.body False (fun rs => rs = []) →
       statementDigest (decSeed σ) (decStmt σ rd) = D ∧
         NodeRelation bytecode (decSeed σ) (decStmt σ rd) (decWit σ rd wX wS wD wV wA)

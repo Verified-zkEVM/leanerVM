@@ -146,13 +146,13 @@ theorem words_le_of_size {b : Budget} {u : Work} (h : b.size u ≤ 2 ^ 28) :
 /-- The committed size of a run on `2^logMem n` words, padded to `2^padLog n`, is `sizeOf n` at
 its counts. -/
 theorem committedSize_pad_eq {n : ℕ} (L : MemoryImage (Memory.logMem n)) (steps : ℕ)
-    (hc : ∀ op, ((⟨_, L, steps⟩ : Execution guestProgram).pad (padLog n)).count op =
-      (⟨_, L, steps⟩ : Execution guestProgram).count op) :
+    (hc : ∀ op, ((⟨_, L, steps⟩ : Execution guestProgram).pad (padLog n)).opcodeCount op =
+      (⟨_, L, steps⟩ : Execution guestProgram).opcodeCount op) :
     ((⟨_, L, steps⟩ : Execution guestProgram).pad (padLog n)).committedSize =
-      sizeOf n (⟨_, L, steps⟩ : Execution guestProgram).count := by
+      sizeOf n (⟨_, L, steps⟩ : Execution guestProgram).opcodeCount := by
   have h := committedSize_pad (⟨_, L, steps⟩ : Execution guestProgram) (padLog n) hc
   have h2 : (⟨_, L, steps⟩ : Execution guestProgram).committedSize + 4 * 2 ^ padLog n =
-      sizeOf n (⟨_, L, steps⟩ : Execution guestProgram).count + 4 * 2 ^ Memory.logMem n := by
+      sizeOf n (⟨_, L, steps⟩ : Execution guestProgram).opcodeCount + 4 * 2 ^ Memory.logMem n := by
     unfold Semantics.Execution.committedSize sizeOf
     simp only
     omega
@@ -193,7 +193,7 @@ structure CompletePieces (fs : String → ℕ) (H : Memory.Inst → ℕ → E ×
   its entry at `fp = 1` to the halting registers. -/
   b2 : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
     Memory.HonestAt coreProgram fs H C hdr T cert rd [] [] →
-      Reach guestProgram (Memory.honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Registers.final guestProgram)
+      Reach guestProgram (Memory.honest coreProgram fs H C hdr T) ⟨addressOfIndex mainEntry, 1⟩ (Registers.final guestProgram)
   /-- B2 (counting): a halting run on the honest memory, padded to `2^padLog` words, commits at
   most the tree's cost. -/
   size : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
@@ -218,13 +218,13 @@ structure CompletePiecesWithin (fs : String → ℕ) (H : Memory.Inst → ℕ �
   /-- As `CompletePieces.b2`. -/
   b2 : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
     Memory.HonestAt coreProgram fs H C hdr T cert rd [] [] →
-      Reach guestProgram (Memory.honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Registers.final guestProgram)
+      Reach guestProgram (Memory.honest coreProgram fs H C hdr T) ⟨addressOfIndex mainEntry, 1⟩ (Registers.final guestProgram)
   /-- B2 (counting): a halting run on the honest memory executes at most the tree's
   instructions of each opcode. -/
   count : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
     Memory.HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ n,
       run guestProgram (Memory.honest coreProgram fs H C hdr T) n Registers.initial = some (Registers.final guestProgram) →
-        ∀ op, (⟨_, Memory.honest coreProgram fs H C hdr T, n⟩ : Execution guestProgram).count op ≤ cnt T op
+        ∀ op, (⟨_, Memory.honest coreProgram fs H C hdr T, n⟩ : Execution guestProgram).opcodeCount op ≤ cnt T op
 
 theorem CompletePiecesWithin.pieces {fs : String → ℕ} {H : Memory.Inst → ℕ → E × E}
     {C : Memory.Inst → List (ℕ × E)} {cert : String → V → ℕ} {cnt : Memory.Tree → Opcode → ℕ}
@@ -261,7 +261,7 @@ theorem jumpTables_honest {fs : String → ℕ} {H : Memory.Inst → ℕ → E �
       exact htable I σ bufs kids (by rw [hIt, hname]) hq
     | phantom => exact (hv : False).elim
   have := hH.read_C hI hC
-  rwa [hfp, gpow, pow_zero, one_mul] at this
+  rwa [hfp, addressOfIndex, pow_zero, one_mul] at this
 
 /-- **Completeness, from its pieces.** -/
 theorem guest_complete_of {fs : String → ℕ} {H : Memory.Inst → ℕ → E × E}

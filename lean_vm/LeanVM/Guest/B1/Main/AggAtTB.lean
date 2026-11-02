@@ -242,46 +242,46 @@ theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V
     · refine ⟨axAbs m b0 + i, ?_, Or.inl (hz (s := 13 * (m + 1)) (x := axAbs m b0)
         (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 60)).limb 0 * gpow i = _
+      show (σ (.n 60)).limb 0 * addressOfIndex i = _
       rw [hV.v60]; exact limb0_gen_pow_mul _ _
     · refine ⟨axChain m b0 + 0, ?_, Or.inl (hz (s := 2 * (m + 1)) (x := axChain m b0)
         (by rw [zl]; simp) (by omega) (by omega))⟩
-      show (σ (.n 111)).limb 0 * gpow 0 = _
+      show (σ (.n 111)).limb 0 * addressOfIndex 0 = _
       rw [hV.v111]; exact limb0_gen_pow_mul _ _
     · refine ⟨axChain m b0 + 1, ?_, Or.inl (hz (s := 2 * (m + 1)) (x := axChain m b0)
         (by rw [zl]; simp) (by omega) (by omega))⟩
-      show (σ (.n 111)).limb 0 * gpow 1 = _
+      show (σ (.n 111)).limb 0 * addressOfIndex 1 = _
       rw [hV.v111]; exact limb0_gen_pow_mul _ _
     · refine ⟨axW m b0 + 0, ?_, Or.inl (hz (s := m + 1) (x := axW m b0)
         (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 129)).limb 0 * gpow 0 = _
+      show (σ (.n 129)).limb 0 * addressOfIndex 0 = _
       rw [hV.v129]; exact limb0_gen_pow_mul _ _
     · have hcl2 : (aggOut cs h).cells.length = 24 := by
         simp [aggOut, DeferredClaim.cells, aggRun, bsRun_len, hrl]
       refine ⟨ds + k, ?_, Or.inr (Or.inl (regionL_of_mem hdst (by rw [hcl2]; exact hk)))⟩
-      show (σ (.n 4)).limb 0 * gpow k = _
+      show (σ (.n 4)).limb 0 * addressOfIndex k = _
       rw [hV.e4]; exact limb0_gen_pow_mul _ _
     · refine ⟨axAbs m b0 + 13 * m + k, ?_, Or.inl (hz (s := 13 * (m + 1)) (x := axAbs m b0)
         (by rw [zl]; simp)
         (by omega) (by omega))⟩
-      show (σ (.n 69)).limb 0 * gpow k = _
+      show (σ (.n 69)).limb 0 * addressOfIndex k = _
       rw [hV.p69, show P.absorb = gen ^ axAbs m b0 from rfl, ← pow_mul, ← pow_add,
         limb0_gen_pow_mul, Nat.mul_comm m 13]
     · refine ⟨axChain m b0 + 2 * m + 1, ?_, Or.inl (hz (s := 2 * (m + 1)) (x := axChain m b0)
         (by rw [zl]; simp)
         (by omega) (by omega))⟩
-      show (σ (.n 118)).limb 0 * gpow 1 = _
+      show (σ (.n 118)).limb 0 * addressOfIndex 1 = _
       rw [hV.p118, show P.chain = gen ^ axChain m b0 from rfl, ← pow_mul, ← pow_add,
         limb0_gen_pow_mul, Nat.mul_comm m 2]
     · refine ⟨axW m b0 + m + 0, ?_, Or.inl (hz (s := m + 1) (x := axW m b0)
         (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 134)).limb 0 * gpow 0 = _
+      show (σ (.n 134)).limb 0 * addressOfIndex 0 = _
       rw [hV.p134, show P.w = gen ^ axW m b0 from rfl, ← pow_add, limb0_gen_pow_mul]
     · refine ⟨axPt m b0 + k, ?_, Or.inl (hz (s := 23) (x := axPt m b0) (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 120)).limb 0 * gpow k = _
+      show (σ (.n 120)).limb 0 * addressOfIndex k = _
       rw [hV.v120]; exact limb0_gen_pow_mul _ _
 end
 end LeanVM.Guest.B1.Main

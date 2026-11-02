@@ -97,13 +97,13 @@ def mKids (m : MainIn) (Lin : B1.Main.Layout) : List Kid :=
       m.a119], Lin, Returns []⟩] ++
   (if m.nd = 1 then [⟨"da_verify", true, [m.et2], Lin, Returns m.daR⟩] else []) ++
   [⟨"__loop4", decide (m.nc ≠ 0), [one, gen ^ m.nc, m.a409, m.a77, m.a117, gen ^ X, m.a80, gen ^ Y,
-    m.a406, m.aDa, (digestScalars m.seed).1, (digestScalars m.seed).2, m.a394, m.et1, m.et2,
+    m.a406, m.aDa, (digestHalves m.seed).1, (digestHalves m.seed).2, m.a394, m.et1, m.et2,
     m.a400], Lin, Returns []⟩] ++
   (if m.nc = 0 then [] else
     [⟨"aggregate_claims", true, [gen ^ m.nc, m.a394, m.a400, m.a406, m.a417], Lin, Returns []⟩]) ++
-  [⟨"statement_digest", true, [(digestScalars m.seed).1, (digestScalars m.seed).2,
-    (digestScalars m.xd).1, (digestScalars m.xd).2, (digestScalars m.sd).1, (digestScalars m.sd).2,
-    (digestScalars m.dap).1, (digestScalars m.dap).2, m.a417], Lin, Returns (digestCells m.sdg)⟩]
+  [⟨"statement_digest", true, [(digestHalves m.seed).1, (digestHalves m.seed).2,
+    (digestHalves m.xd).1, (digestHalves m.xd).2, (digestHalves m.sd).1, (digestHalves m.sd).2,
+    (digestHalves m.dap).1, (digestHalves m.dap).2, m.a417], Lin, Returns (digestCells m.sdg)⟩]
 
 end
 end LeanVM.Guest.B1.Main

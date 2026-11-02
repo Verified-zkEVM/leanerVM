@@ -44,21 +44,21 @@ theorem interp_weight_constW {s : State} {α : Type} (computation : OracleComp C
 (the arithmetic of `sign_term`). -/
 theorem walk_avg_le_grpM {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (s : State) (d : Multiset View)
     (excl : Pair → Prop) :
-    X d + (Fintype.card Randomness : ℝ≥0∞)⁻¹ * ∑ start, walk nextRand landing (stOf parameter data m s)
+    X d + (Fintype.card Randomizer : ℝ≥0∞)⁻¹ * ∑ start, walk nextRand landing (stOf parameter data m s)
         (poolValue parameter data m s (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d))
         (freshAvg Finset.univ (fun v => X (d + {v}) - X d)) 0 digestAttemptLimit start ≤
       grpM parameter data s excl m (fun e => freshAvg Finset.univ fun v => X (e + {v})) d := by
   set gf : View → ℝ≥0∞ := fun v => X (d + {v}) - X d with hgf
-  set gp : Randomness → View → ℝ≥0∞ := fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d with hgp
-  set c := (Fintype.card Randomness : ℝ≥0∞)⁻¹ with hc
-  have hcard : c * (Fintype.card Randomness : ℝ≥0∞) = 1 :=
+  set gp : Randomizer → View → ℝ≥0∞ := fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d with hgp
+  set c := (Fintype.card Randomizer : ℝ≥0∞)⁻¹ with hc
+  have hcard : c * (Fintype.card Randomizer : ℝ≥0∞) = 1 :=
     ENNReal.inv_mul_cancel (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _)
   have hUX : ∀ e, X e ≤ freshAvg Finset.univ (fun v => X (e + {v})) := by
     intro e
     calc X e = freshAvg Finset.univ (fun _ : View => X e) := (freshAvg_const _ Finset.univ_nonempty _).symm
       _ ≤ _ := freshAvg_mono _ fun v _ => hX _ _ (Multiset.le_add_right _ _)
   -- the base value joins every walk
-  have hbase : X d = c * ∑ start : Randomness, walk nextRand landing (stOf parameter data m s) (fun _ => X d)
+  have hbase : X d = c * ∑ start : Randomizer, walk nextRand landing (stOf parameter data m s) (fun _ => X d)
       (X d) (X d) digestAttemptLimit start := by
     simp only [walk_const landing_le_one, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
     rw [← mul_assoc, hcard, one_mul]
@@ -119,8 +119,8 @@ theorem upper_expectW (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = 
         grpM parameter data s excl m (fun e => freshAvg Finset.univ fun v => X (e + {v})) d := by
   refine le_trans ?_ (mul_le_mul' le_rfl (walk_avg_le_grpM parameter data m hX s d excl))
   set gf : View → ℝ≥0∞ := fun v => X (d + {v}) - X d with hgf
-  set gp : Randomness → View → ℝ≥0∞ := fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d with hgp
-  set c := (Fintype.card Randomness : ℝ≥0∞)⁻¹ with hc
+  set gp : Randomizer → View → ℝ≥0∞ := fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d with hgp
+  set c := (Fintype.card Randomizer : ℝ≥0∞)⁻¹ with hc
   have hscan : ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
         (weight tg initial out.2 *
           (freshNewWeight parameter data m s gf out + outWeight parameter data m s 0 gp out)) ≤
@@ -128,7 +128,7 @@ theorem upper_expectW (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = 
         (poolValue parameter data m s gp) (freshAvg Finset.univ gf) 0 digestAttemptLimit start) := by
     unfold signCostSource
     rw [interp_liftProb_bind, OracleComp.tsum_prEvent_bind_mul]
-    have hpr : ∀ ρ, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = ρ] = c := by
+    have hpr : ∀ ρ, Pr{let x ← ($ᵗ Randomizer : ProbComp Randomizer)}[x = ρ] = c := by
       intro ρ
       rw [SampleableType.prEvent_uniformSample_eq_singleton]
     simp only [hpr]
@@ -152,7 +152,7 @@ theorem fresh_expectW (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = 
       weight tg initial s * freshAvg Finset.univ gf := by
   unfold signCostSource
   rw [interp_liftProb_bind, OracleComp.tsum_prEvent_bind_mul]
-  have hstart : ∀ start : Randomness, ∑' out, Pr{let x ← (interp tg initial model
+  have hstart : ∀ start : Randomizer, ∑' out, Pr{let x ← (interp tg initial model
       (signCostSourceLoop parameter data m digestAttemptLimit start) budget s)}[x = out] *
       (weight tg initial out.2 * freshNewWeight parameter data m s gf out) ≤
       weight tg initial s * freshAvg Finset.univ gf := by
@@ -165,7 +165,7 @@ theorem fresh_expectW (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = 
     refine walk_le landing_le_one _ (fun ρ => ?_) le_rfl bot_le _ start
     unfold poolValue
     cases s.cache (blk parameter data m ρ) <;> simp
-  calc _ ≤ ∑' start, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = start] *
+  calc _ ≤ ∑' start, Pr{let x ← ($ᵗ Randomizer : ProbComp Randomizer)}[x = start] *
         (weight tg initial s * freshAvg Finset.univ gf) :=
         ENNReal.tsum_le_tsum fun start => mul_le_mul' le_rfl (hstart start)
     _ ≤ _ := by rw [ENNReal.tsum_mul_right]; exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)

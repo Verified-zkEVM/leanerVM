@@ -126,8 +126,8 @@ theorem kws_weight_le_of_stat {f : String} {pre : List (ℕ × ℕ)} {b : Aff} {
 theorem kws_weight_le_of_loop {f : String} {endc : Option ℕ} {pre : List (ℕ × ℕ)} {b : Aff}
     {ks : List (V × ℕ)} (hcf : kwscertOf f = .loop endc pre b ks) {rd : Reader} {t : Tree}
     {args rets : List E} (hn : t.name = f) (hv : t.Valid coreProgram rd args rets)
-    (hb : t.BufsOk coreProgram) {a e : ℕ} (ha : args.getD 0 0 = ofK (gpow a))
-    (he : endOf endc args = ofK (gpow e)) (hae : a < e) (heo : e < 2 ^ 64 - 1)
+    (hb : t.BufsOk coreProgram) {a e : ℕ} (ha : args.getD 0 0 = ofK (addressOfIndex a))
+    (he : endOf endc args = ofK (addressOfIndex e)) (hae : a < e) (heo : e < 2 ^ 64 - 1)
     (hpre : ArgsPre pre args) : t.weight (B2C.ωArm B2C.xmssArmC .setConstant) ≤ (e - a) * b.eval args :=
   weight_le_of_loop kws_checked hcf hn hv hb ha he hae heo hpre
 

@@ -34,7 +34,7 @@ theorem relIn_of_sem {C : CallRel} {rd : Reader} {R : ℕ → Prop} {f : String}
     (H : ∀ σ, fn.params.map σ = args →
       Stmt.HoldsList C rd σ fn.body False (fun rs ↦ rs = rets) → ∀ es vs,
       walk σ fn.body = .ret es vs →
-      (∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧ R i) ∧
+      (∀ A ∈ loadAddrs σ es, ∃ i, A = addressOfIndex i ∧ R i) ∧
         ∀ c ∈ calls es, c.taken = true → coreProgram.RelIn rd R c.f (c.args.map σ) (c.rets.map σ)) :
     coreProgram.RelIn rd R f args rets := by
   obtain ⟨σ, hp, hh⟩ := hsem
@@ -59,7 +59,8 @@ theorem relIn_of_flat {C : CallRel} {rd : Reader} {R : ℕ → Prop} {f : String
     (H : ∀ σ, fn.params.map σ = args →
       Stmt.HoldsList C rd σ fn.body False (fun rs ↦ rs = rets) →
       (∀ s ∈ pre, DispOk σ s) ∧
-      (∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧ R i) ∧
+      (∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex i
+          ∧ R i) ∧
       ∀ c ∈ (pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ), c.taken = true →
         coreProgram.RelIn rd R c.f (c.args.map σ) (c.rets.map σ))
     (hnl : pre.all noLoadIte = true := by decide +kernel) :
@@ -84,7 +85,8 @@ theorem relIn_of_flatRel {rd : Reader} {R : ℕ → Prop} {f : String} {fn : Fn}
     (H : ∀ σ, fn.params.map σ = args →
       Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun rs ↦ rs = rets) →
       (∀ s ∈ pre, DispOk σ s) ∧
-      (∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧ R i) ∧
+      (∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex i
+          ∧ R i) ∧
       ∀ c ∈ (pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ), c.taken = true →
         coreProgram.RelIn rd R c.f (c.args.map σ) (c.rets.map σ))
     (hnl : pre.all noLoadIte = true := by decide +kernel) :
@@ -103,7 +105,8 @@ def loadsViaB (tbl : List (ℕ × ℕ)) : Stmt → Bool
 /-- **The loads of a block through the table's pointers**, each pointer's run in `R`. -/
 theorem loads_via {pre : List Stmt} {tbl : List (ℕ × ℕ)} (h : pre.all (loadsViaB tbl) = true)
     {σ : Val} {R : ℕ → Prop} (hp : ∀ pb ∈ tbl, PtrIn R (σ (.n pb.1)) pb.2) :
-    ∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧ R i := by
+    ∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex i ∧ R
+        i := by
   intro q hq
   obtain ⟨s, hs, hsq⟩ := List.mem_filterMap.mp hq
   have hok := List.all_eq_true.mp h s hs

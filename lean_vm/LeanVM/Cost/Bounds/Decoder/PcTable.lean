@@ -29,7 +29,7 @@ public section
 variable (P : MachineProgram)
 
 /-- The code of function `j`'s entry pc. -/
-@[expose] def pcCode (j : ℕ) : ℕ := laneCode (gpow (guestEntries.getD j 0))
+@[expose] def pcCode (j : ℕ) : ℕ := laneCode (addressOfIndex (guestEntries.getD j 0))
 
 theorem pcCode_key (j : ℕ) : NatKey (pcCode j) := UInt64.toNat_lt _
 
@@ -138,7 +138,7 @@ theorem pcTableT_getD_length (k : ℕ) : (pcTableT.getD k []).length ≤ 2 := by
       rw [decide_eq_true_iff] at hj ⊢
       have hc : pcCode j = pcCode j0 := hj.trans hk.symm
       unfold pcCode at hc
-      have hg : gpow (guestEntries.getD j 0) = gpow (guestEntries.getD j0 0) :=
+      have hg : addressOfIndex (guestEntries.getD j 0) = addressOfIndex (guestEntries.getD j0 0) :=
         laneCode_injective hc
       have := gpow_injOn (show guestEntries.getD j 0 ∈ Set.Iio (2 ^ 64 - 1) by
           have := entry_lt j; simp only [Set.mem_Iio]; omega)
@@ -191,7 +191,7 @@ theorem addEntry_amortized (hP : Includes P addEntryC.costDeps) (m : SortedMap �
   unfold psAt at hp
   rw [wl_ten] at hget hcarry
   change machineCost P getPcC.costIdx [encodeValue m, encodeValue (pcCode j)] ≤ _ at hget
-  generalize m.get? (laneCode (gpow (guestEntries.getD j 0))) = o
+  generalize m.get? (laneCode (addressOfIndex (guestEntries.getD j 0))) = o
   cases o <;> dsimp only <;> unfold pcCode at hget hcarry ⊢ <;> omega
 
 set_option maxRecDepth 100000 in

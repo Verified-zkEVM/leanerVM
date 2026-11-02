@@ -56,11 +56,11 @@ Each proves a proposition of `Statement/LeanDa.lean`, all three in `LeanDa/PiOnl
 PositionBindingRpm` and `leanDa_codeBinding_rpm_bound : CodeBindingRpm`; the axioms are pinned at
 the end of this file. -/
 
-example : LeanDa.PerfectlyCompleteRpm := LeanDa.leanDa_perfectlyComplete_rpm
+example : LeanDa.LeanDaPerfectlyComplete := LeanDa.leanDa_perfectlyComplete_rpm
 
-example : LeanDa.PositionBindingRpm := LeanDa.leanDa_positionBinding_rpm
+example : LeanDa.LeanDaPositionBinding := LeanDa.leanDa_positionBinding_rpm
 
-example : LeanDa.CodeBindingRpm := LeanDa.leanDa_codeBinding_rpm_bound
+example : LeanDa.LeanDaCodeBinding := LeanDa.leanDa_codeBinding_rpm_bound
 
 open PqDas PqDas.CommittedSoundness OracleComp OracleSpec ENNReal
 
@@ -71,12 +71,12 @@ variable (r : ℕ) (H : List UInt8 → Common.DigestBytes) {Crs Proof : Type} (p
 /-- **Position binding**: an adversary opening a commitment at one cell to two different cells
 gives, through the explicit reduction, a collision of `H`. -/
 theorem leanDa_positionBinding
-    (A : ErasureCodeCommitment.PosBindingAdv (OracleComp (unifSpec + (Common.DigestBytes →ₒ Challenges))) Cell
-      (r * 128) (Unit × Crs) (Common.DigestBytes × Proof) Opening) :
-    (leanDa r H ps).posBindingExp (roRuntime Common.DigestBytes Challenges) A {true} ≤
+    (A : ErasureCodeCommitment.PosBindingAdv (OracleComp (unifSpec + (Common.DigestBytes →ₒ MembershipChallenges))) Cell
+      (r * 128) (Unit × Crs) (Common.DigestBytes × Proof) CellOpening) :
+    (leanDa r H ps).posBindingExp (roRuntime Common.DigestBytes MembershipChallenges) A {true} ≤
       Pr{let b ← hashCollisionExp H
           (merkleCollider r H (posBindingReduction ps A))}[b = true] :=
-  (scheme_positionBinding (code r) (merkleVC r H) (checker r) ps A).trans
+  (scheme_positionBinding (leanDaErasureCode r) (merkleVC r H) (checker r) ps A).trans
     (posBindingExp_le_hashCollisionExp r H _)
 
 /-- **Code binding**: for an adversary making at most `Q` random-oracle queries,
@@ -84,28 +84,31 @@ theorem leanDa_positionBinding
 the reduction against the argument's knowledge soundness and `ε₁`, `ε₂` those of two explicit
 reductions finding collisions of `H`. -/
 theorem leanDa_codeBinding [NeZero r]
-    (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-    (A : ErasureCodeCommitment.CodeBindingAdv (OracleComp (unifSpec + (Common.DigestBytes →ₒ Challenges))) Cell
-      (r * 128) (Unit × Crs) (Common.DigestBytes × Proof) Opening) {Q : ℕ} (hA : ∀ ck, HashQueryBound (A ck) Q) :
-    ((leanDa r H ps).codeBindingExp (code r) (roRuntime Common.DigestBytes Challenges) A {true} -
+    (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+        Crs Proof)
+    (A : ErasureCodeCommitment.CodeBindingAdv (OracleComp (unifSpec + (Common.DigestBytes →ₒ MembershipChallenges))) Cell
+      (r * 128) (Unit × Crs) (Common.DigestBytes × Proof) CellOpening) {Q : ℕ} (hA : ∀ ck, HashQueryBound (A ck) Q) :
+    ((leanDa r H ps).codeBindingExp (leanDaErasureCode r) (roRuntime Common.DigestBytes
+        MembershipChallenges) A {true} -
         (Pr{let b ← ps.knowledgeSoundnessExp ext (ksReduction (merkleVC r H) A)}[b = true] +
           Pr{let b ← hashCollisionExp H (merkleCollider r H
             ((wpbReduction ps ext A).toPosBindingAdv (merkleVC r H)))}[b = true])) ^ 2 ≤
       ((Q : ℝ≥0∞) + 2) *
         (Pr{let b ← hashCollisionExp H (merkleCollider r H
-            ((forkCollisionReduction (code r) (merkleVC r H) (checker r)
+            ((forkCollisionReduction (leanDaErasureCode r) (merkleVC r H) (checker r)
               (csReduction ps ext A) (Q + 1)).toPosBindingAdv (merkleVC r H)))}[b = true] +
           14 / 2 ^ 192 + (2 ^ 2688)⁻¹) := by
-  have h := scheme_codeBinding_concrete_posBinding (code r) (merkleVC r H) (checker r) ps
+  have h := scheme_codeBinding_concrete_posBinding (leanDaErasureCode r) (merkleVC r H)
+      (checker r) ps
     ext A (merkleVC_perfectlyComplete r H) (checker_sound r) hA
-  have hcard : (Fintype.card Challenges : ℝ≥0∞)⁻¹ = (2 ^ 2688)⁻¹ := by
+  have hcard : (Fintype.card MembershipChallenges : ℝ≥0∞)⁻¹ = (2 ^ 2688)⁻¹ := by
     rw [card_challenges, Nat.cast_pow, Nat.cast_ofNat, show 192 * 14 = 2688 from rfl]
   rw [hcard] at h
   unfold leanDa
   have h₁ := posBindingExp_le_hashCollisionExp r H
     ((wpbReduction ps ext A).toPosBindingAdv (merkleVC r H))
   have h₂ := posBindingExp_le_hashCollisionExp r H
-    ((forkCollisionReduction (code r) (merkleVC r H) (checker r)
+    ((forkCollisionReduction (leanDaErasureCode r) (merkleVC r H) (checker r)
       (csReduction ps ext A) (Q + 1)).toPosBindingAdv (merkleVC r H))
   refine le_trans ?_ (h.trans ?_)
   · exact pow_le_pow_left₀ zero_le (tsub_le_tsub_left (add_le_add le_rfl h₁) _) 2
@@ -115,8 +118,9 @@ section CodeBindingRpm
 
 open Common
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
 
 /-- **Wagner's code-binding bound for LeanDA, averaged over a uniformly random table of `H`.** For
 every argument `ps` and extractor `ext`, and every adversary whose game, verifications included,
@@ -134,7 +138,8 @@ Wagner's reduction against the knowledge soundness of `ps` for the relation with
 is a random oracle of the roots unless two of at most `Q + 15` states share their 576-bit
 capacity), and the rest is Wagner's bound for each `h`, averaged over `h`. -/
 theorem leanDa_codeBinding_avg [NeZero r]
-    (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+    (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+        Crs Proof)
     (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) :
     (Pr{let b ← codeBindingExpRpm r ps A}[b = true] -
@@ -148,7 +153,7 @@ theorem leanDa_codeBinding_avg [NeZero r]
   set ε₁ := Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= wpbCollExpH r ps ext A}[b = true]
   set ε₂ := Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= forkCollExpH r ps ext A Q}[b = true]
   set cb : ProbComp Bool := ($ᵗ HTab : ProbComp HTab) >>= fun h ↦ ps.setup >>= fun crs ↦
-    (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl (gameW r ps A h crs)).run' ∅
+    (simulateQ (Common.DigestBytes →ₒ MembershipChallenges).romImpl (gameW r ps A h crs)).run' ∅
   -- Wagner's bound, averaged over `H`
   have hW : (prT cb - (εks + ε₁)) ^ 2 ≤ ((Q : ℝ≥0∞) + 2) * (ε₂ + (14 / 2 ^ 192 + (2 ^ 2688)⁻¹)) := by
     refine sq_tsub_avg_le _ _ _ _ _ _ _ fun h ↦ ?_
@@ -179,14 +184,16 @@ section Core
 
 open Common
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
 
 /-- **Code binding with Wagner's three terms bounded**: the knowledge-soundness term by the RPM
 knowledge-soundness experiment of `ksAdv A` and the transfer and duplex terms of its game, and the
 two collision terms by birthday bounds. -/
 theorem leanDa_codeBinding_core [NeZero r]
-    (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+    (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+        Crs Proof)
     (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) :
     (Pr{let b ← codeBindingExpRpm r ps A}[b = true] -
@@ -222,9 +229,10 @@ knowledge-soundness term read back in the random-permutation model (`ksExpRpm_ks
 `rom2_le_ksExpRpm` and `ksIdealG_le`), its collision terms birthday bounds (`wpbColl_le`,
 `forkColl_le`), and the forking lemma's square root bounded (`fork_sq_le`). -/
 theorem leanDa_codeBinding_fork (r : ℕ) {Crs Proof : Type}
-    {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-    (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof) (c k : ℕ)
+    {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+        Proof rel)
+    (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs Proof) (c k : ℕ)
     (hks : ∀ (B : KsAdvB Crs Proof) (q : ℕ), QueryCostAtMost (ksGame2 r ps ext B) permCalls2 q →
       q ≤ 2 ^ 128 → Pr{let b ← ksExpRpm r ps ext B}[b = true] ≤ ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k)
     (hr1 : 1 ≤ r) (hrM : r ≤ maxRows) (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)

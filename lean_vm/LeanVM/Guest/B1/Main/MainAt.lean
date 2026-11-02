@@ -172,13 +172,13 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
         (fun i => Dacc i ∨ outRegion (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++
           etL d fs fp)) outs i))
     (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
-      LoadHolds rd 1 0 (digestScalars d.sdg).1 → LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+      LoadHolds rd 1 0 (digestHalves d.sdg).1 → LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         MainMem rd (d.toIn fs fp)) :
     ∃ (L : B1.Main.Layout),
       Within L fp (fs "main" + (mSizes d).sum + (fs "exponent_tables" + 68 + Nk)) ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
-      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestScalars d.sdg).1 →
-        LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
+        LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp (fs "main" + (mSizes d).sum + (fs "exponent_tables" + 68 + Nk)) "main"
           [] []
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (d.toIn fs fp) ∧
@@ -319,7 +319,7 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
   have hbuf : (allocDsts (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 338) ::
       (if m.nd = 1 then mDa else mDaZ).flatMap (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++
         (.inK (.n 404) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
-          mPost.flatMap (Main.slEvs σ)))))).map σ = (Memory.bases b0 (mSizes d)).map fun b => ofK (gpow b) := by
+          mPost.flatMap (Main.slEvs σ)))))).map σ = (Memory.bases b0 (mSizes d)).map fun b => ofK (addressOfIndex b) := by
     rw [allocDsts_append, allocDsts_append, allocDsts_inK, allocDsts_append, allocDsts_append,
       allocDsts_inK, pd1, pd2, pd3, pd4, pd5, a1, aDa, a3, aBr, a6]
     simp only [List.map_cons, List.map_nil, List.append_nil, List.nil_append, List.cons_append,
@@ -605,12 +605,12 @@ theorem main_relAtInT (fs : String → ℕ) (cert : String → V → ℕ) (fp : 
     (Ts : List (Tree → Prop))
     (hok : KidsDT fs cert 16 (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Ts)
     (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
-      LoadHolds rd 1 0 (digestScalars d.sdg).1 → LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+      LoadHolds rd 1 0 (digestHalves d.sdg).1 → LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         MainMem rd (d.toIn fs fp)) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
-      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestScalars d.sdg).1 →
-        LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
+        LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (d.toIn fs fp) ∧
             KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks ∧
@@ -633,13 +633,13 @@ theorem main_relAtInTB (fs : String → ℕ) (cert : String → V → ℕ) (fp :
     (Ts : List (Tree → Prop)) (Bs : List ℕ)
     (hok : KidsDTB fs cert 16 (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Ts Bs)
     (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
-      LoadHolds rd 1 0 (digestScalars d.sdg).1 → LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+      LoadHolds rd 1 0 (digestHalves d.sdg).1 → LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         MainMem rd (d.toIn fs fp)) :
     ∃ (n : ℕ) (L : B1.Main.Layout), n ≤ mainB fs d (mKids (d.toIn fs fp)
         (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Bs ∧ Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
-      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestScalars d.sdg).1 →
-        LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
+        LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (d.toIn fs fp) ∧
             KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks ∧
@@ -661,12 +661,12 @@ theorem main_relAtInW (fs : String → ℕ) (cert : String → V → ℕ) (fp : 
     (hok : ∀ k ∈ mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp),
       k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out)
     (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
-      LoadHolds rd 1 0 (digestScalars d.sdg).1 → LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+      LoadHolds rd 1 0 (digestHalves d.sdg).1 → LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         MainMem rd (d.toIn fs fp)) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
-      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestScalars d.sdg).1 →
-        LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
+        LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         RelAtInW coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun σ => MVals rd σ (d.toIn fs fp)) :=
   let ⟨n, L, h1, h1', h2, h3, h4⟩ := main_relAtInT fs cert fp d own hfit hb [] (kidsDT_nil _ hok) hmm

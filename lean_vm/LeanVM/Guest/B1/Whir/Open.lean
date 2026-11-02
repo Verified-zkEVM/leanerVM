@@ -101,12 +101,14 @@ theorem lv_getD {c : OsCfg} {i : ℕ} (h : i < c.levels.length) :
 /-- `levelTail` with its tail rounds as the guest runs them. -/
 theorem levelTail_eq (lane ml : ℕ) (ms : List E) (s : WhirStateT) :
     levelTail lane ml ms s =
-      ((tailRoundsT ml s.target s.quad).bind fun r ↦ Prog.ret ([] ++ r.1, r.2)).bind fun r ↦
-        Prog.ret (⟨(s.folds ++ r.1).drop lane ++ (s.folds ++ r.1).take lane,
+      ((tailRoundsT ml s.target s.quad).bind fun r ↦ VerifierProgram.ret ([] ++ r.1, r.2)).bind
+          fun r ↦
+        VerifierProgram.ret (⟨(s.folds ++ r.1).drop lane ++ (s.folds ++ r.1).take lane,
           s.glued.foldl (fun weight claim ↦
             weight + claim.scalar * claim.weightAt (s.folds.drop claim.foldStart ++ r.1)) 0,
           multilinearEval ms r.1, r.2⟩ : WhirEnd) := by
-  simp only [levelTail, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind,
+  simp only [levelTail, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+      VerifierProgram.bind_assoc, VerifierProgram.ret_bind,
     List.nil_append]
 
 /-- **`whirOpen`, as the guest runs it**: the first round polynomial, the levels' heads, the
@@ -117,7 +119,7 @@ theorem whirOpen_eq {μ r : ℕ} {cfg : List Whir.Level} (hdc : Whir.ladder μ r
       (whirLevelsHead μ 0 cfg ⟨target, quad, [], []⟩).bind fun res ↦
         levelTail ((cfg.head?.map (·.fold)).getD 0) res.2.1 res.1 res.2.2 := by
   rw [whirOpen, hdc]
-  simp only [Verifier.liftOption, Prog.bind_eq, Prog.ret_bind]
+  simp only [Verifier.liftOption, VerifierProgram.bind_eq, VerifierProgram.ret_bind]
   exact prog_bind_congr fun quad ↦ whirLevelsOpen_eq _ _ 0 cfg _ hne
 
 /-- A padded buffer's words. -/
@@ -146,7 +148,7 @@ theorem open_generic {m μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
     (hfm : ∀ args rets, coreProgram.Rel rd ("fold_final_msg__L" ++ natStr c.yrLog)
       args rets → MeaningFoldFinalMsg c.yrLog rd args rets)
     {root : Digest} {fs : List E} {target root0 root1 cur : E} {rets : List E}
-    (hfs : fs.length = 5) (hroot : (root0, root1) = digestScalars root)
+    (hfs : fs.length = 5) (hroot : (root0, root1) = digestHalves root)
     {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd))
     {Wf : ℕ → OsLv → List E → List E → List QW} (hqw : QWOk rd C Wf 0 c.levels)
     {σ : Val} {fn' : Fn} (hfind' : coreProgram.find? ("open_stacked__L" ++ natStr m) = some fn')

@@ -35,12 +35,13 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Exec
 
 /-- **A counted run**: some run goes from `s` to `t`, executing `c op` instructions of each
 opcode `op`. -/
-def RunC {κ : ℕ} (prog : Program) (L : MemoryImage κ) (s t : Registers K) (c : Opcode → ℕ) : Prop :=
+def RunC {κ : ℕ} (prog : LeanIsaProgram) (L : MemoryImage κ) (s t : Registers K) (c : Opcode → ℕ) :
+    Prop :=
   ∃ n, run prog L n s = some t ∧ ∀ op, opcodeCountInRun prog L op n s = c op
 
 section
 
-variable {κ : ℕ} {prog : Program} {L : MemoryImage κ}
+variable {κ : ℕ} {prog : LeanIsaProgram} {L : MemoryImage κ}
 
 /-- Along a run that reaches `t`, the counts of a longer run add. -/
 theorem runCount_add_of_run {op : Opcode} : ∀ {n : ℕ} {s t : Registers K}, run prog L n s = some t →
@@ -77,32 +78,37 @@ theorem RunC.reach {s t : Registers K} {c : Opcode → ℕ} (h : RunC prog L s t
 /-! ## Counted steps -/
 
 /-- One step from a fetched instruction away from the last slot, counting its opcode. -/
-theorem runC_step {pc : ℕ} {fp : K} {ins : OInstr} {r : Registers K}
-    (hf : prog.fetch (gpow pc) = some ins.toInstr) (hpc : pc < 2 ^ prog.logSize - 1)
-    (h : execute L ⟨gpow pc, fp⟩ ins.toInstr = some r) :
-    RunC prog L ⟨gpow pc, fp⟩ r (fun op ↦ if op = ins.toInstr.opcode then 1 else 0) := by
-  have hf' : prog.fetch (⟨gpow pc, fp⟩ : Registers K).pc = some ins.toInstr := hf
-  have hs : step prog L ⟨gpow pc, fp⟩ = some r := by rw [step_of_fetch_eq_some hf', h]
+theorem runC_step {pc : ℕ} {fp : K} {ins : OffsetInstruction} {r : Registers K}
+    (hf : prog.fetch (addressOfIndex pc) = some ins.toLeanIsaInstruction) (hpc : pc < 2 ^
+        prog.logSize - 1)
+    (h : execute L ⟨addressOfIndex pc, fp⟩ ins.toLeanIsaInstruction = some r) :
+    RunC prog L ⟨addressOfIndex pc, fp⟩ r (fun op ↦ if op = ins.toLeanIsaInstruction.opcode
+        then 1 else 0) := by
+  have hf' : prog.fetch (⟨addressOfIndex pc, fp⟩ : Registers K).pc = some
+      ins.toLeanIsaInstruction := hf
+  have hs : step prog L ⟨addressOfIndex pc, fp⟩ = some r := by rw [step_of_fetch_eq_some hf', h]
   refine ⟨1, ?_, fun op ↦ ?_⟩
   · rw [run_succ_of_ne (gpow_ne_pcFinal hpc), hs]
     rfl
   · simp only [opcodeCountInRun, hf', hs, add_zero]
-    by_cases ho : op = ins.toInstr.opcode
+    by_cases ho : op = ins.toLeanIsaInstruction.opcode
     · simp [ho]
     · simp [ho, Ne.symm ho]
 
 /-- A non-`JUMP` that `Holds` falls through, counting its opcode. -/
-theorem runC_fallThrough {pc : ℕ} {fp : K} {ins : OInstr}
-    (hf : prog.fetch (gpow pc) = some ins.toInstr) (hpc : pc < 2 ^ prog.logSize - 1)
+theorem runC_fallThrough {pc : ℕ} {fp : K} {ins : OffsetInstruction}
+    (hf : prog.fetch (addressOfIndex pc) = some ins.toLeanIsaInstruction) (hpc : pc < 2 ^
+        prog.logSize - 1)
     (hj : ins.isJump = false) (h : Holds L pc fp ins) :
-    RunC prog L ⟨gpow pc, fp⟩ ⟨gpow (pc + 1), fp⟩ (fun op ↦ if op = ins.toInstr.opcode then 1 else 0) :=
+    RunC prog L ⟨addressOfIndex pc, fp⟩ ⟨addressOfIndex (pc + 1), fp⟩ (fun op ↦ if op = ins.toLeanIsaInstruction.opcode then 1 else 0) :=
   runC_step hf hpc ((execute_iff_holds hj).mpr ⟨h, rfl⟩)
 
 /-- A `JUMP` goes where it `JumpsTo`, counting one `JUMP`. -/
 theorem runC_jump {pc : ℕ} {fp : K} {oc od of : ℕ} {r : Registers K}
-    (hf : prog.fetch (gpow pc) = some (OInstr.jump oc od of).toInstr)
+    (hf : prog.fetch (addressOfIndex pc) = some (OffsetInstruction.jump oc od
+        of).toLeanIsaInstruction)
     (hpc : pc < 2 ^ prog.logSize - 1) (h : JumpsTo L pc fp oc od of r) :
-    RunC prog L ⟨gpow pc, fp⟩ r (fun op ↦ if op = .jump then 1 else 0) :=
+    RunC prog L ⟨addressOfIndex pc, fp⟩ r (fun op ↦ if op = .jump then 1 else 0) :=
   runC_step hf hpc (execute_jump_iff.mpr h)
 
 /-! ## The final registers -/
@@ -127,7 +133,7 @@ theorem run_final_unique {n m : ℕ} {s : Registers K} (hn : run prog L n s = so
 theorem count_eq_of_runC {n : ℕ} {c : Opcode → ℕ}
     (hc : RunC prog L Registers.initial (Registers.final prog) c)
     (hn : run prog L n Registers.initial = some (Registers.final prog)) (op : Opcode) :
-    (⟨κ, L, n⟩ : Execution prog).count op = c op := by
+    (⟨κ, L, n⟩ : Execution prog).opcodeCount op = c op := by
   obtain ⟨m, hm, hcm⟩ := hc
   obtain rfl := run_final_unique hn hm
   exact hcm op
@@ -139,7 +145,7 @@ end
 /-- The instructions of opcode `op` an item executes: an instruction's, a `JUMP` or a branch
 one `JUMP`, a fact none. -/
 def itemOp : Item → Opcode → ℕ
-  | .ins (.instr _ ins), op => if op = ins.toInstr.opcode then 1 else 0
+  | .ins (.instr _ ins), op => if op = ins.toLeanIsaInstruction.opcode then 1 else 0
   | .ins (.jump ..), op => if op = .jump then 1 else 0
   | .ins _, _ => 0
   | .fact _, _ => 0
@@ -162,17 +168,18 @@ theorem itemOps_cons (a : Item) (l : List Item) (op : Opcode) :
 
 section Pass
 
-variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program} {entry len : ℕ}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : LeanIsaProgram} {entry len : ℕ}
 
 /-- A counted run from `s` to `r` within the instructions of `its`, by an exit `x` with `X x`
 whose kind names `r` and whose environment holds. -/
-def LeavesC (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (s r : Registers K) (its : List Item)
+def LeavesC (L : MemoryImage κ) (fp : K) (prog : LeanIsaProgram) (entry : ℕ) (s r : Registers K) (its : List Item)
     (X : Exit → Prop) : Prop :=
   ∃ c, RunC prog L s r c ∧ (∀ op, c op ≤ itemOps its op) ∧
     ∃ x, X x ∧ x.kind.Regs L fp entry r ∧ EnvHolds L fp x.env
 
 /-- A counted run from `s` to `t` within the instructions of `its`. -/
-def ReachC (L : MemoryImage κ) (prog : Program) (s t : Registers K) (its : List Item) : Prop :=
+def ReachC (L : MemoryImage κ) (prog : LeanIsaProgram) (s t : Registers K) (its : List Item) :
+    Prop :=
   ∃ c, RunC prog L s t c ∧ ∀ op, c op ≤ itemOps its op
 
 private theorem LeavesC.prefix {s r : Registers K} {l₁ l₂ : List Item} {X Y : Exit → Prop}
@@ -200,13 +207,16 @@ private theorem ReachC.trans {s t u : Registers K} {l₁ l₂ : List Item} (h₁
 
 /-- What an instruction's result gives a run to `r`, counted: from its atoms, the run reaches `r`
 by a branch's exit, or the next offset with `Q`; or, when it stops, `r` by its exit. -/
-private def ResCompC (L : MemoryImage κ) (fp : K) (prog : Program) (entry i : ℕ) (r : Registers K) :
+private def ResCompC (L : MemoryImage κ) (fp : K) (prog : LeanIsaProgram) (entry i : ℕ) (r :
+    Registers K) :
     Res → Prop
   | .go its st => ∀ Q : Prop, Follows L fp entry r Q its →
-      LeavesC L fp prog entry ⟨gpow (entry + i), fp⟩ r its (· ∈ branchExits its) ∨
-        (Q ∧ St.Holds L fp st ∧ ReachC L prog ⟨gpow (entry + i), fp⟩ ⟨gpow (entry + i + 1), fp⟩ its)
+      LeavesC L fp prog entry ⟨addressOfIndex (entry + i), fp⟩ r its (· ∈ branchExits its) ∨
+        (Q ∧ St.Holds L fp st ∧ ReachC L prog ⟨addressOfIndex (entry + i), fp⟩ ⟨addressOfIndex
+            (entry + i + 1), fp⟩ its)
   | .stop its x => Follows L fp entry r (x.kind.Regs L fp entry r) its →
-      LeavesC L fp prog entry ⟨gpow (entry + i), fp⟩ r its (fun y ↦ y = x ∨ y ∈ branchExits its)
+      LeavesC L fp prog entry ⟨addressOfIndex (entry + i), fp⟩ r its (fun y ↦ y = x ∨ y ∈
+          branchExits its)
 
 private theorem itemOps_ins_facts (a : Atom) (fs : List Atom) (op : Opcode) :
     itemOp (.ins a) op ≤ itemOps (.ins a :: fs.map .fact) op := by
@@ -214,8 +224,8 @@ private theorem itemOps_ins_facts (a : Atom) (fs : List Atom) (op : Opcode) :
   exact Nat.le_add_right _ _
 
 /-- **One instruction is complete, counted.** -/
-private theorem stepI_completeC (hctx : Ctx F κ fp) {i : ℕ} {st : St} {ins : OInstr}
-    (hf : prog.fetch (gpow (entry + i)) = some ins.toInstr)
+private theorem stepI_completeC (hctx : Ctx F κ fp) {i : ℕ} {st : St} {ins : OffsetInstruction}
+    (hf : prog.fetch (addressOfIndex (entry + i)) = some ins.toLeanIsaInstruction)
     (hpc : entry + i < 2 ^ prog.logSize - 1) (hst : St.Holds L fp st) (r : Registers K) :
     ResCompC L fp prog entry i r (stepI F entry len i st ins) := by
   cases hj : ins.isJump with
@@ -234,10 +244,11 @@ private theorem stepI_completeC (hctx : Ctx F κ fp) {i : ℕ} {st : St} {ins : 
         intro a ha op
         rw [itemOps_cons, itemOps_nil, ha]
         exact Nat.le_add_right _ _
-      have hgo : ∀ {c d f : E}, L.read (fp * gpow oc) = some c → L.read (fp * gpow od) = some d →
-          L.read (fp * gpow of) = some f → IsInK c → IsInK d → IsInK f → c ≠ 0 →
+      have hgo : ∀ {c d f : E}, L.read (fp * addressOfIndex oc) = some c → L.read (fp *
+          addressOfIndex od) = some d →
+          L.read (fp * addressOfIndex of) = some f → IsInK c → IsInK d → IsInK f → c ≠ 0 →
           (jumpExit F entry len i st od of).kind.Regs L fp entry r →
-          RunC prog L ⟨gpow (entry + i), fp⟩ r (fun op ↦ if op = .jump then 1 else 0) ∧
+          RunC prog L ⟨addressOfIndex (entry + i), fp⟩ r (fun op ↦ if op = .jump then 1 else 0) ∧
             EnvHolds L fp (jumpExit F entry len i st od of).env := by
         intro c d f hc hd hf' hcK hdK hfK hc0 hr
         obtain ⟨hreg, -⟩ := jumpKind_holds (entry := entry) (len := len) (i := i) hctx.fpOne hst
@@ -246,9 +257,10 @@ private theorem stepI_completeC (hctx : Ctx F κ fp) {i : ℕ} {st : St} {ins : 
         obtain rfl := Kind.regs_unique hr hreg
         exact ⟨runC_jump hf hpc ⟨c, d, f, hc, hd, hf', hcK, hdK, hfK, by rw [ite_eq_right hc0]⟩,
           hst.1⟩
-      have hnext : ∀ {d f : E}, L.read (fp * gpow oc) = some 0 → L.read (fp * gpow od) = some d →
-          L.read (fp * gpow of) = some f → IsInK d → IsInK f →
-          RunC prog L ⟨gpow (entry + i), fp⟩ ⟨gpow (entry + i + 1), fp⟩
+      have hnext : ∀ {d f : E}, L.read (fp * addressOfIndex oc) = some 0 → L.read (fp *
+          addressOfIndex od) = some d →
+          L.read (fp * addressOfIndex of) = some f → IsInK d → IsInK f →
+          RunC prog L ⟨addressOfIndex (entry + i), fp⟩ ⟨addressOfIndex (entry + i + 1), fp⟩
             (fun op ↦ if op = .jump then 1 else 0) := by
         intro d f hc hd hf' hdK hfK
         exact runC_jump hf hpc ⟨0, d, f, hc, hd, hf', (isInK_iff _).mpr ⟨0, ofK_zero.symm⟩, hdK,
@@ -270,21 +282,23 @@ private theorem stepI_completeC (hctx : Ctx F κ fp) {i : ℕ} {st : St} {ins : 
         · obtain rfl := Option.some.inj (hv.symm.trans hc)
           obtain ⟨hrun, he⟩ := hgo hc hd hf' hcK hdK hfK hv0 hr
           exact Or.inl ⟨_, hrun, hone _ fun _ ↦ rfl, _, List.mem_singleton_self _, hr, he⟩
-    | _ => simp [OInstr.isJump] at hj
+    | _ => simp [OffsetInstruction.isJump] at hj
 
 /-- A segment being walked, at offset `i`, complete with counts. -/
-private def CurGoodC (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (c : Cur) (i : ℕ) :
+private def CurGoodC (L : MemoryImage κ) (fp : K) (prog : LeanIsaProgram) (entry : ℕ) (c : Cur)
+    (i : ℕ) :
     Prop :=
   EnvHolds L fp c.env → ∀ r Q, Follows L fp entry r Q c.acc.reverse →
-    LeavesC L fp prog entry ⟨gpow (entry + c.start), fp⟩ r c.acc.reverse
+    LeavesC L fp prog entry ⟨addressOfIndex (entry + c.start), fp⟩ r c.acc.reverse
         (· ∈ branchExits c.acc.reverse) ∨
       (Q ∧ St.Holds L fp c.st ∧
-        ReachC L prog ⟨gpow (entry + c.start), fp⟩ ⟨gpow (entry + i), fp⟩ c.acc.reverse)
+        ReachC L prog ⟨addressOfIndex (entry + c.start), fp⟩ ⟨addressOfIndex (entry + i), fp⟩
+            c.acc.reverse)
 
 /-- A segment, complete with counts and its exit. -/
-def SegGoodC (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (s : Seg) : Prop :=
+def SegGoodC (L : MemoryImage κ) (fp : K) (prog : LeanIsaProgram) (entry : ℕ) (s : Seg) : Prop :=
   EnvHolds L fp s.env → ∀ r, Follows L fp entry r (s.exit.kind.Regs L fp entry r) s.items →
-    LeavesC L fp prog entry ⟨gpow (entry + s.start), fp⟩ r s.items
+    LeavesC L fp prog entry ⟨addressOfIndex (entry + s.start), fp⟩ r s.items
       (fun x ↦ x = s.exit ∨ x ∈ branchExits s.items)
 
 private theorem curGoodC_init (i : ℕ) (env : Trie Sym) :
@@ -299,8 +313,9 @@ private theorem segGoodC_close {c : Cur} {i : ℕ} (hc : CurGoodC L fp prog entr
   · exact ⟨n, hn, hle, x, Or.inr hx, hr, hxe⟩
   · exact ⟨n, hn, hle, _, Or.inl rfl, rfl, hst.1⟩
 
-private theorem curGoodC_go (hctx : Ctx F κ fp) {c : Cur} {i : ℕ} {ins : OInstr}
-    (hc : CurGoodC L fp prog entry c i) (hf : prog.fetch (gpow (entry + i)) = some ins.toInstr)
+private theorem curGoodC_go (hctx : Ctx F κ fp) {c : Cur} {i : ℕ} {ins : OffsetInstruction}
+    (hc : CurGoodC L fp prog entry c i) (hf : prog.fetch (addressOfIndex (entry + i)) = some
+        ins.toLeanIsaInstruction)
     (hpc : entry + i < 2 ^ prog.logSize - 1) {its : List Item} {st : St}
     (hs : stepI F entry len i c.st ins = .go its st) :
     CurGoodC L fp prog entry
@@ -322,8 +337,9 @@ private theorem curGoodC_go (hctx : Ctx F κ fp) {c : Cur} {i : ℕ} {ins : OIns
       rw [e] at h'
       exact h.trans h'
 
-private theorem segGoodC_stop (hctx : Ctx F κ fp) {c : Cur} {i : ℕ} {ins : OInstr}
-    (hc : CurGoodC L fp prog entry c i) (hf : prog.fetch (gpow (entry + i)) = some ins.toInstr)
+private theorem segGoodC_stop (hctx : Ctx F κ fp) {c : Cur} {i : ℕ} {ins : OffsetInstruction}
+    (hc : CurGoodC L fp prog entry c i) (hf : prog.fetch (addressOfIndex (entry + i)) = some
+        ins.toLeanIsaInstruction)
     (hpc : entry + i < 2 ^ prog.logSize - 1) {its : List Item} {x : Exit}
     (hs : stepI F entry len i c.st ins = .stop its x) : SegGoodC L fp prog entry (c.close its x) := by
   intro he r hq
@@ -369,7 +385,8 @@ private theorem atJoinC_good {i : ℕ} {cur : Option Cur} {pend : Pend} {out : L
   · exact ⟨hcur, hout⟩
 
 /-- **The walk produces segments complete with counts.** -/
-private theorem passC_good (hctx : Ctx F κ fp) : ∀ (code : List OInstr) (i : ℕ) (cur : Option Cur)
+private theorem passC_good (hctx : Ctx F κ fp) : ∀ (code : List OffsetInstruction) (i : ℕ) (cur :
+    Option Cur)
     (pend : Pend) (out : List Seg) (dead : ℕ), Fetches prog (entry + i) code →
     (∀ c, cur = some c → CurGoodC L fp prog entry c i) →
     (∀ s ∈ out, SegGoodC L fp prog entry s) →
@@ -423,7 +440,8 @@ end Pass
 
 section Main
 
-variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program} {f : CompiledFn}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : LeanIsaProgram} {f :
+    CompiledFunction}
 
 end Main
 

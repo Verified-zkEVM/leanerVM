@@ -27,11 +27,12 @@ public section
 /-! ## Addressing -/
 
 /-- `gLog?_spec` applies at the memory cap. -/
-example (a : K) (i : Fin (2 ^ maxLogMem)) : addressIndex? maxLogMem a = some i ↔ a = gpow i :=
+example (a : K) (i : Fin (2 ^ maxLogMem)) : addressIndex? maxLogMem a = some i ↔ a =
+    addressOfIndex i :=
   gLog?_spec (by decide)
 
 /-- `gLog?_spec` applies at the bytecode cap. -/
-example (a : K) (i : Fin (2 ^ maxLogBytecode)) : addressIndex? maxLogBytecode a = some i ↔ a = gpow i :=
+example (a : K) (i : Fin (2 ^ maxLogBytecode)) : addressIndex? maxLogBytecode a = some i ↔ a = addressOfIndex i :=
   gLog?_spec (by decide)
 
 /-- Index `0` is address `1`, at the floor and in a one-cell memory. -/
@@ -39,13 +40,13 @@ example : addressIndex? minLogMem 1 = some 0 := (gLog?_spec (by decide)).mpr (po
 example : addressIndex? 0 1 = some 0 := (gLog?_spec (by decide)).mpr (pow_zero g).symm
 
 /-- `g ^ 4000` has index `4000` at the floor. -/
-example : addressIndex? minLogMem (gpow 4000) = some ⟨4000, by decide⟩ := (gLog?_spec (by decide)).mpr rfl
+example : addressIndex? minLogMem (addressOfIndex 4000) = some ⟨4000, by decide⟩ := (gLog?_spec (by decide)).mpr rfl
 
 /-- A one-cell memory has no second address. -/
 example : addressIndex? 0 g = none := gLog?_gpow_eq_none (j := 1) (by decide) (by decide)
 
 /-- One past the end of a sixteen-cell memory is no address. -/
-example : addressIndex? 4 (gpow 16) = none := gLog?_gpow_eq_none (by decide) (by decide)
+example : addressIndex? 4 (addressOfIndex 16) = none := gLog?_gpow_eq_none (by decide) (by decide)
 
 /-- A nonzero word that is no small power is no address: `g + 1 ≠ g ^ i` for `i < 4`. -/
 example : addressIndex? 2 (g + 1) = none :=
@@ -59,17 +60,21 @@ def image : MemoryImage 4 := fun i ↦ E.ofLimbs (K.ofBits i) (K.ofBits (2 * i))
 example : image 5 = E.ofLimbs (K.ofBits 5) (K.ofBits 10) 0 := rfl
 
 example : image.read 1 = some (image 0) := by simpa using MemoryImage.read_gpow (by decide) image 0
-example : image.read (gpow 5) = some (image 5) := MemoryImage.read_gpow (by decide) image 5
-example : image.read (gpow 15) = some (image 15) := MemoryImage.read_gpow (by decide) image 15
-example : image.read (gpow 16) = none := by
+example : image.read (addressOfIndex 5) = some (image 5) := MemoryImage.read_gpow
+    (by decide) image 5
+example : image.read (addressOfIndex 15) = some (image 15) := MemoryImage.read_gpow
+    (by decide) image 15
+example : image.read (addressOfIndex 16) = none := by
   rw [MemoryImage.read, gLog?_gpow_eq_none (by decide) (by decide), Option.map_none]
 example : image.read 0 = none := MemoryImage.read_zero image
 
 /-- The read lemmas apply at the floor and at the cap. -/
-example (L : MemoryImage minLogMem) (i : Fin (2 ^ minLogMem)) : L.read (gpow i) = some (L i) :=
+example (L : MemoryImage minLogMem) (i : Fin (2 ^ minLogMem)) : L.read (addressOfIndex i) = some
+    (L i) :=
   MemoryImage.read_gpow (by decide) L i
 
-example (L : MemoryImage maxLogMem) (i : Fin (2 ^ maxLogMem)) : L.read (gpow i) = some (L i) :=
+example (L : MemoryImage maxLogMem) (i : Fin (2 ^ maxLogMem)) : L.read (addressOfIndex i) = some
+    (L i) :=
   MemoryImage.read_gpow (by decide) L i
 
 /-- Reading `0` fails for every size, the cap included. -/

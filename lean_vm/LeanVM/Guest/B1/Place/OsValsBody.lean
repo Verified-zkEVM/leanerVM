@@ -235,7 +235,7 @@ theorem body_allocs_placed (c : OsCfg) (tr : OsTr) (σ0 : Val) (c0 c2 : E) (b0 :
       osSizesL c ∧
     (((osBodyA c).filterMap Main.Stmt.allocSz).map Prod.fst).map
         (fill σ0 9 (osFinEnd c (osTlSt c).2.1 (osTlSt c).2.2) (osBodyF c tr σ0 c0 c2 (osAtOf c b0))) =
-      (bases b0 (osSizesL c)).map (fun b ↦ ofK (gpow b)) := by
+      (bases b0 (osSizesL c)).map (fun b ↦ ofK (addressOfIndex b)) := by
   obtain ⟨h1, h2⟩ := body_alloc_vals c tr σ0 c0 c2 b0 hlen
   rw [osBodyA_allocs]
   generalize fill σ0 9 (osFinEnd c (osTlSt c).2.1 (osTlSt c).2.2) (osBodyF c tr σ0 c0 c2 (osAtOf c b0)) = σ

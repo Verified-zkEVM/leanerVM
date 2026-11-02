@@ -104,7 +104,7 @@ theorem expand_pK (x : LeanVM.Semantics.KeccakState) : simulateQ expand (pK x) =
   simp [pK, expand, queryPermutation]
 
 theorem expand_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell)
-    (τ : Opening) : simulateQ expand (verifyCellMWithHash hK r com p x τ) = verifyCellMWithHash keccak256OverPermutation r com p x τ := by
+    (τ : CellOpening) : simulateQ expand (verifyCellMWithHash hK r com p x τ) = verifyCellMWithHash keccak256OverPermutation r com p x τ := by
   rw [verifyCellM_map (fun x ↦ simulateQ expand x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [expand_hK]
@@ -233,16 +233,16 @@ a hash so instantiated (`LeanDa.WithHashBridge`). -/
 
 /-- **LeanDA is perfectly complete in the random-permutation model, for every permutation**
 (`PerfectlyCompleteRpm`). -/
-theorem leanDa_perfectlyComplete_rpm : PerfectlyCompleteRpm :=
+theorem leanDa_perfectlyComplete_rpm : LeanDaPerfectlyComplete :=
   perfectlyCompleteRpm_of_withHash leanDa_perfectlyComplete_rpmWithHash
 
 /-- **LeanDA is position binding in the random-permutation model** (`PositionBindingRpm`). -/
-theorem leanDa_positionBinding_rpm : PositionBindingRpm :=
+theorem leanDa_positionBinding_rpm : LeanDaPositionBinding :=
   positionBindingRpm_of_withHash leanDa_positionBinding_rpmWithHash
 
 /-- **LeanDA is code binding in the random-permutation model, for an argument knowledge sound in
 it** (`CodeBindingRpm`). -/
-theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm :=
+theorem leanDa_codeBinding_rpm_bound : LeanDaCodeBinding :=
   codeBindingRpm_of_withHash leanDa_codeBinding_rpm_boundWithHash
 
 end LeanDa

@@ -23,15 +23,15 @@ theorem signLayer_spec (secretKey : Seeded.SecretKey) (index : Index) (lay : Lay
     (h : evalWithAnswerFn f (Seeded.signLayer secretKey index lay
         : OracleComp HashSpec (Option (LayerSignature lay))) = some part) :
     evalWithAnswerFn f (otsSign secretKey.parameter lay (treeIndexAt index lay)
-        (leafIndexAt index lay) secretKey.seed (layerMessageValue f secretKey index lay)
+        (leafIndexAt index lay) secretKey.schemeSeed (layerMessageValue f secretKey index lay)
         : OracleComp HashSpec (Option (Counter × (ChainIndex → Digest))))
         = some (part.counter, part.chainValues)
       ∧ part.path = evalWithAnswerFn f (Seeded.treePath secretKey.parameter lay
-          (treeIndexAt index lay) secretKey.seed (leafIndexAt index lay)
+          (treeIndexAt index lay) secretKey.schemeSeed (leafIndexAt index lay)
           : OracleComp HashSpec (Fin (layerHeight lay) → Digest)) := by
   simp only [layerMessageValue, Seeded.signLayer, evalWithAnswerFn_bind] at h ⊢
   cases hots : evalWithAnswerFn f (otsSign secretKey.parameter lay (treeIndexAt index lay)
-      (leafIndexAt index lay) secretKey.seed
+      (leafIndexAt index lay) secretKey.schemeSeed
       (evalWithAnswerFn f (Seeded.layerMessage secretKey index lay : OracleComp HashSpec ForestKey))
       : OracleComp HashSpec (Option (Counter × (ChainIndex → Digest)))) with
   | none =>
@@ -72,14 +72,14 @@ theorem digestIndex_truncate (first : HashOutput) :
   simp only [BitVec.getLsbD_extractLsb', indexOffset, hlt, hi, decide_true, Bool.true_and,
     Nat.zero_add]
 
-def digestValue (secretKey : Seeded.SecretKey) (message : Message) (randomness : Randomness) :
+def digestValue (secretKey : Seeded.SecretKey) (message : Message) (randomness : Randomizer) :
     MessageDigest :=
   evalWithAnswerFn f (messageDigest secretKey.parameter message randomness
     : OracleComp HashSpec MessageDigest)
 
 omit [Params] in
 theorem digestValue_index (secretKey : Seeded.SecretKey) (message : Message)
-    (randomness : Randomness) :
+    (randomness : Randomizer) :
     digestIndex (digestValue f secretKey message randomness) =
       blockIndex (evalWithAnswerFn f (messageDigestCall secretKey.parameter
         message randomness : OracleComp HashSpec HashOutput)) := by
@@ -87,9 +87,9 @@ theorem digestValue_index (secretKey : Seeded.SecretKey) (message : Message)
     digestIndex_truncate]
 
 theorem signDigestLoop_spec (secretKey : Seeded.SecretKey) (message : Message) :
-    ∀ (attempts : Nat) (start : Randomness) {randomness : Randomness} {index : Index},
+    ∀ (attempts : Nat) (start : Randomizer) {randomness : Randomizer} {index : Index},
       evalWithAnswerFn f (Seeded.signDigestLoop secretKey message attempts start
-        : OracleComp HashSpec (Option (Randomness × Index))) = some (randomness, index) →
+        : OracleComp HashSpec (Option (Randomizer × Index))) = some (randomness, index) →
       Landed secretKey.parameter (digestIndex (digestValue f secretKey message randomness)) := by
   intro attempts
   induction attempts with
@@ -132,7 +132,7 @@ theorem sign_spec (secretKey : Seeded.SecretKey) (message : Message) {signature 
     Landed secretKey.parameter (digestIndex (digestValue f secretKey message signature.randomness))
       ∧ signature.forest = evalWithAnswerFn f (Seeded.forestOpen secretKey.parameter
           (digestIndex (digestValue f secretKey message signature.randomness))
-          (digestMarks (digestValue f secretKey message signature.randomness)) secretKey.seed
+          (digestMarks (digestValue f secretKey message signature.randomness)) secretKey.schemeSeed
           : OracleComp HashSpec (Coord → CoordOpening))
       ∧ ∀ lay : Layer, evalWithAnswerFn f (Seeded.signLayer secretKey
           (digestIndex (digestValue f secretKey message signature.randomness)) lay
@@ -159,17 +159,18 @@ theorem eval_layer (secretKey : Seeded.SecretKey) (index : Index) (lay : Layer)
         (leafIndexAt index lay) (layerMessageValue f secretKey index lay)
         (signature.layers lay).counter (signature.layers lay).chainValues
         : OracleComp HashSpec (Option Digest))
-      = some (node f secretKey.parameter lay (treeIndexAt index lay) secretKey.seed 0 index.val)
+      = some (node f secretKey.parameter lay (treeIndexAt index lay) secretKey.schemeSeed 0
+          index.val)
     ∧ evalWithAnswerFn f (treeFold secretKey.parameter lay (treeIndexAt index lay)
         (leafIndexAt index lay) (signaturePath signature lay) (layerHeight lay)
-        (node f secretKey.parameter lay (treeIndexAt index lay) secretKey.seed 0 index.val)
+        (node f secretKey.parameter lay (treeIndexAt index lay) secretKey.schemeSeed 0 index.val)
         : OracleComp HashSpec Digest)
       = evalWithAnswerFn f (treeRoot secretKey.parameter lay (treeIndexAt index lay)
-          secretKey.seed : OracleComp HashSpec Digest) := by
+          secretKey.schemeSeed : OracleComp HashSpec Digest) := by
   obtain ⟨hots, hpath⟩ := signLayer_spec f secretKey index lay h
   refine ⟨?_, ?_⟩
   · rw [eval_otsLeaf_of_otsSign f secretKey.parameter lay (treeIndexAt index lay)
-      (leafIndexAt index lay) secretKey.seed _ hots,
+      (leafIndexAt index lay) secretKey.schemeSeed _ hots,
       ← congrArg Fin.val (leafIndexAt_eq index lay), node_zero]
   · rw [leafIndexAt_eq] at hpath ⊢
     apply eval_treeFold_pruned_path f _ _ _ _ _ hland
@@ -179,12 +180,12 @@ theorem eval_layer (secretKey : Seeded.SecretKey) (index : Index) (lay : Layer)
 /-- Every successful signature verifies under every fixed hash function, for any pruning height. -/
 theorem verify_of_parts (secretKey : Seeded.SecretKey) (message : Message) {signature : Signature}
     {root : Digest} (hroot : root = evalWithAnswerFn f (Seeded.treeRoot secretKey.parameter topLayer
-      rootTree secretKey.seed : OracleComp HashSpec Digest))
+      rootTree secretKey.schemeSeed : OracleComp HashSpec Digest))
     (hparts :
     Landed secretKey.parameter (digestIndex (digestValue f secretKey message signature.randomness))
       ∧ signature.forest = evalWithAnswerFn f (Seeded.forestOpen secretKey.parameter
           (digestIndex (digestValue f secretKey message signature.randomness))
-          (digestMarks (digestValue f secretKey message signature.randomness)) secretKey.seed
+          (digestMarks (digestValue f secretKey message signature.randomness)) secretKey.schemeSeed
           : OracleComp HashSpec (Coord → CoordOpening))
       ∧ ∀ lay : Layer, evalWithAnswerFn f (Seeded.signLayer secretKey
           (digestIndex (digestValue f secretKey message signature.randomness)) lay
@@ -201,7 +202,8 @@ theorem verify_of_parts (secretKey : Seeded.SecretKey) (message : Message) {sign
   obtain ⟨hleaf, hfold⟩ := eval_layer f secretKey index topLayer hland signature (hlayers _)
   have hfold' : evalWithAnswerFn f (treeFold secretKey.parameter topLayer (treeIndexAt index topLayer)
       (leafIndexAt index topLayer) (signaturePath signature topLayer) (layerHeight topLayer)
-      (node f secretKey.parameter topLayer (treeIndexAt index topLayer) secretKey.seed 0 index.val)
+      (node f secretKey.parameter topLayer (treeIndexAt index topLayer) secretKey.schemeSeed 0
+          index.val)
         : OracleComp HashSpec Digest) = root := by
     rw [hfold, treeIndexAt_eq, ← hroot]
   have hdig : evalWithAnswerFn f (messageDigest secretKey.parameter message
@@ -216,7 +218,7 @@ theorem verify_of_parts (secretKey : Seeded.SecretKey) (message : Message) {sign
 /-- Every successful signature verifies under every fixed hash function, for any pruning height. -/
 theorem verify_of_sign (secretKey : Seeded.SecretKey) (message : Message) {signature : Signature}
     {root : Digest} (hroot : root = evalWithAnswerFn f (Seeded.treeRoot secretKey.parameter topLayer
-      rootTree secretKey.seed : OracleComp HashSpec Digest))
+      rootTree secretKey.schemeSeed : OracleComp HashSpec Digest))
     (h : evalWithAnswerFn f (Seeded.sign secretKey message
         : OracleComp HashSpec (Option Signature)) = some signature) :
     evalWithAnswerFn f (Concrete.verify ⟨root, secretKey.parameter⟩ message signature

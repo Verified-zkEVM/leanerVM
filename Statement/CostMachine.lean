@@ -37,7 +37,7 @@ each operation is a few instructions of a 64-bit CPU (one, and a comparison for 
 more, a truncated subtraction or a division by `0`), the carry-less product x86-64's PCLMULQDQ or
 ARMv8's PMULL; on more limbs, a constant number per limb or pair of limbs.
 
-**The extractor a program computes** (`LeanVM.knowledgeExtractorOf P`): `P`, if its size is at most
+**The extractor a program computes** (`LeanVM.extractorComputedBy P`): `P`, if its size is at most
 `knowledgeExtractorSizeBound`, run on the encoded statement, transcript and proof
 (`encodeKnowledgeExtractorInput`; the transcript without the adversary's coin flips) within its
 budget (`knowledgeExtractorBudget`, at the transcript's number of permutation queries: the most its
@@ -60,25 +60,25 @@ inductive MachineValue where
   /-- A natural number, of any size. -/
   | nat (n : ℕ)
   /-- A constructor: its tag and its fields. -/
-  | ctor (tag : ℕ) (fields : List MachineValue)
+  | constructor (tag : ℕ) (fields : List MachineValue)
   /-- An array. -/
-  | arr (xs : Array MachineValue)
+  | array (xs : Array MachineValue)
   /-- A closure: function `f` with its first arguments. -/
   | closure (f : ℕ) (args : List MachineValue)
   deriving Inhabited, BEq, Repr
 
 /-- `false` and `true`: the constructors of tags `0` and `1`. -/
-def MachineValue.ofBool (b : Bool) : MachineValue := .ctor (if b then 1 else 0) []
+def MachineValue.ofBool (b : Bool) : MachineValue := .constructor (if b then 1 else 0) []
 
 /-- A list: `nil` the constructor of tag `0`, `cons` of tag `1`. -/
 def MachineValue.ofList : List MachineValue → MachineValue
-  | [] => .ctor 0 []
-  | x :: xs => .ctor 1 [x, MachineValue.ofList xs]
+  | [] => .constructor 0 []
+  | x :: xs => .constructor 1 [x, MachineValue.ofList xs]
 
 /-- The elements of a list value. -/
 def MachineValue.toList? : MachineValue → Option (List MachineValue)
-  | .ctor 0 [] => some []
-  | .ctor 1 [x, xs] => (MachineValue.toList? xs).map (x :: ·)
+  | .constructor 0 [] => some []
+  | .constructor 1 [x, xs] => (MachineValue.toList? xs).map (x :: ·)
   | _ => none
 
 /-- The limbs of 64 bits of a natural number, at least one. -/
@@ -129,28 +129,28 @@ def PrimitiveOperation.apply : PrimitiveOperation → List MachineValue → Opti
   | .modulo, [.nat a, .nat b] => quadraticallyPricedResult (a % b) a b
   | .carrylessMultiply, [.nat a, .nat b] =>
     quadraticallyPricedResult (Protocol.Verifier.carryless a b) a b
-  | .arraySize, [.arr xs] => some (.nat xs.size, 1)
-  | .arrayGet, [.arr xs, .nat i, d] => some (xs.getD i d, 1)
-  | .arraySet, [.arr xs, .nat i, v] => some (.arr (xs.setIfInBounds i v), xs.size + 1)
-  | .arrayPush, [.arr xs, v] => some (.arr (xs.push v), xs.size + 2)
-  | .arrayOfList, [l] => (MachineValue.toList? l).map fun xs ↦ (.arr xs.toArray, xs.length + 1)
-  | .arrayToList, [.arr xs] => some (.ofList xs.toList, 3 * xs.size + 1)
-  | .arrayAppend, [.arr xs, .arr ys] => some (.arr (xs ++ ys), xs.size + ys.size + 1)
-  | .arrayExtract, [.arr xs, .nat i, .nat j] =>
-    some (.arr (xs.extract i j), (xs.extract i j).size + 1)
-  | .arrayReplicate, [.nat n, v] => some (.arr (Array.replicate n v), n + 1)
+  | .arraySize, [.array xs] => some (.nat xs.size, 1)
+  | .arrayGet, [.array xs, .nat i, d] => some (xs.getD i d, 1)
+  | .arraySet, [.array xs, .nat i, v] => some (.array (xs.setIfInBounds i v), xs.size + 1)
+  | .arrayPush, [.array xs, v] => some (.array (xs.push v), xs.size + 2)
+  | .arrayOfList, [l] => (MachineValue.toList? l).map fun xs ↦ (.array xs.toArray, xs.length + 1)
+  | .arrayToList, [.array xs] => some (.ofList xs.toList, 3 * xs.size + 1)
+  | .arrayAppend, [.array xs, .array ys] => some (.array (xs ++ ys), xs.size + ys.size + 1)
+  | .arrayExtract, [.array xs, .nat i, .nat j] =>
+    some (.array (xs.extract i j), (xs.extract i j).size + 1)
+  | .arrayReplicate, [.nat n, v] => some (.array (Array.replicate n v), n + 1)
   | _, _ => none
 
 /-- The language's terms. -/
 inductive Term where
   /-- The value at position `i` of the environment. -/
-  | var (i : ℕ)
+  | position (i : ℕ)
   /-- A literal value (part of the program). -/
-  | val (v : MachineValue)
+  | literal (v : MachineValue)
   /-- A primitive operation on the values of the terms. -/
-  | op (o : PrimitiveOperation) (args : List Term)
+  | primitive (o : PrimitiveOperation) (args : List Term)
   /-- A constructor of the values of the terms. -/
-  | ctor (tag : ℕ) (args : List Term)
+  | constructor (tag : ℕ) (args : List Term)
   /-- Field `i` of a constructor. -/
   | field (i : ℕ) (t : Term)
   /-- On a constructor of tag `k`, alternative `k` with the fields in front of the
@@ -173,24 +173,24 @@ mutual
 
 /-- A term's value and price in an environment, with `fuel` nested calls at most. -/
 def evaluateTerm (P : MachineProgram) : ℕ → List MachineValue → Term → Option (MachineValue × ℕ)
-  | _, env, .var i => env[i]?.map (·, 1)
-  | _, _, .val v => some (v, 1)
-  | n, env, .op o ts => do
+  | _, env, .position i => env[i]?.map (·, 1)
+  | _, _, .literal v => some (v, 1)
+  | n, env, .primitive o ts => do
     let (vs, c) ← evaluateTerms P n env ts
     let (v, d) ← o.apply vs
     pure (v, c + d)
-  | n, env, .ctor k ts => do
+  | n, env, .constructor k ts => do
     let (vs, c) ← evaluateTerms P n env ts
-    pure (.ctor k vs, c + vs.length + 1)
+    pure (.constructor k vs, c + vs.length + 1)
   | n, env, .field i t => do
     let (v, c) ← evaluateTerm P n env t
     match v with
-    | .ctor _ fs => fs[i]?.map (·, c + 1)
+    | .constructor _ fs => fs[i]?.map (·, c + 1)
     | _ => none
   | n, env, .case t alts => do
     let (v, c) ← evaluateTerm P n env t
     match v with
-    | .ctor k fs =>
+    | .constructor k fs =>
       match _h : alts[k]? with
       | some a => do
         let (w, d) ← evaluateTerm P n (fs ++ env) a
@@ -244,7 +244,8 @@ termination_by n _ _ => (n, 0)
 end
 
 /-- **A run**: function `0` on the input `x`, with `fuel` nested calls at most below it. -/
-def run (P : MachineProgram) (fuel : ℕ) (x : MachineValue) : Option (MachineValue × ℕ) :=
+def runMachineProgram (P : MachineProgram) (fuel : ℕ) (x : MachineValue) : Option (MachineValue
+    × ℕ) :=
   evaluateFunctionBody P (fuel + 1) 0 [x]
 
 /-! ## Size
@@ -263,8 +264,8 @@ mutual
 literal counts in full; a tag or a function index counts with its node). -/
 def MachineValue.size : MachineValue → ℕ
   | .nat n => limbCount n
-  | .ctor _ fs => MachineValue.sizeList fs + 1
-  | .arr xs => MachineValue.sizeList xs.toList + 1
+  | .constructor _ fs => MachineValue.sizeList fs + 1
+  | .array xs => MachineValue.sizeList xs.toList + 1
   | .closure _ us => MachineValue.sizeList us + 1
 
 /-- The sizes of the values. -/
@@ -279,9 +280,9 @@ mutual
 /-- A term's size: one per node, literals by their size (a position, a tag or a function index
 counts with its node). -/
 def Term.size : Term → ℕ
-  | .var _ => 1
-  | .val v => v.size + 1
-  | .op _ ts | .ctor _ ts | .call _ ts | .closure _ ts => Term.sizeList ts + 1
+  | .position _ => 1
+  | .literal v => v.size + 1
+  | .primitive _ ts | .constructor _ ts | .call _ ts | .closure _ ts => Term.sizeList ts + 1
   | .field _ t => t.size + 1
   | .case t alts => t.size + Term.sizeList alts + 1
   | .letIn t b => t.size + b.size + 1
@@ -302,7 +303,7 @@ def MachineProgram.size (P : MachineProgram) : ℕ := (P.toList.map Term.size).s
 def outputWithin (P : MachineProgram) (sizeBound : ℕ) (x : MachineValue) (budget : ℕ) :
     Option MachineValue :=
   if MachineProgram.size P ≤ sizeBound then
-    match run P budget x with
+    match runMachineProgram P budget x with
     | some (v, c) => if c ≤ budget then some v else none
     | none => none
   else none
@@ -324,78 +325,80 @@ instance {n : ℕ} : MachineEncoding (Fin n) := ⟨fun i ↦ .nat i.val⟩
 instance : MachineEncoding Bool := ⟨MachineValue.ofBool⟩
 instance : MachineEncoding K := ⟨fun a ↦ .nat a.lane.toNat⟩
 instance : MachineEncoding E :=
-  ⟨fun x ↦ .ctor 0 [encodeValue (x.limb 0), encodeValue (x.limb 1), encodeValue (x.limb 2)]⟩
+  ⟨fun x ↦ .constructor 0 [encodeValue (x.limb 0), encodeValue (x.limb 1), encodeValue (x.limb 2)]⟩
 
 instance {α : Type} [MachineEncoding α] : MachineEncoding (List α) :=
   ⟨fun l ↦ .ofList (l.map encodeValue)⟩
 
 instance {α β : Type} [MachineEncoding α] [MachineEncoding β] : MachineEncoding (α × β) :=
-  ⟨fun p ↦ .ctor 0 [encodeValue p.1, encodeValue p.2]⟩
+  ⟨fun p ↦ .constructor 0 [encodeValue p.1, encodeValue p.2]⟩
 
 /-- An option: `none` the constructor of tag `0`, `some a` of tag `1`. -/
 instance {α : Type} [MachineEncoding α] : MachineEncoding (Option α) where
-  encodeValue | none => .ctor 0 [] | some a => .ctor 1 [encodeValue a]
+  encodeValue | none => .constructor 0 [] | some a => .constructor 1 [encodeValue a]
 
 instance {α : Type} [MachineEncoding α] {n : ℕ} : MachineEncoding (Vector α n) :=
-  ⟨fun v ↦ .arr (v.toArray.map encodeValue)⟩
+  ⟨fun v ↦ .array (v.toArray.map encodeValue)⟩
 
 /-- A function of a finite domain, as the array of its values. -/
 def encodeFiniteFunction {α : Type} [MachineEncoding α] {n : ℕ} (f : Fin n → α) : MachineValue :=
-  .arr (Array.ofFn fun i ↦ encodeValue (f i))
+  .array (Array.ofFn fun i ↦ encodeValue (f i))
 
 /-- A function of a finite domain: the array of its values. -/
 instance {α : Type} [MachineEncoding α] {n : ℕ} : MachineEncoding (Fin n → α) :=
   ⟨encodeFiniteFunction⟩
 
 instance {S : Type} [MachineEncoding S] : MachineEncoding (PermutationQuery S) where
-  encodeValue | .forward x => .ctor 0 [encodeValue x] | .inverse y => .ctor 1 [encodeValue y]
+  encodeValue | .forward x => .constructor 0 [encodeValue x] | .inverse y => .constructor 1 [encodeValue y]
 
-instance : MachineEncoding PublicInput := ⟨fun p ↦ .ctor 0 [encodeFiniteFunction p.lanes]⟩
+instance : MachineEncoding PublicInput := ⟨fun p ↦ .constructor 0 [encodeFiniteFunction p.lanes]⟩
 
 instance : MachineEncoding DerefMode where
-  encodeValue | .cell => .ctor 0 [] | .pc => .ctor 1 [] | .fp => .ctor 2 []
+  encodeValue | .cell => .constructor 0 [] | .pc => .constructor 1 [] | .fp => .constructor 2 []
 
-instance : MachineEncoding Instr where
+instance : MachineEncoding LeanIsaInstruction where
   encodeValue
-    | .xor a b c => .ctor 0 [encodeValue a, encodeValue b, encodeValue c]
-    | .mulNative a b c => .ctor 1 [encodeValue a, encodeValue b, encodeValue c]
-    | .setConstant o k => .ctor 2 [encodeValue o, encodeValue k]
-    | .deref a b c m => .ctor 3 [encodeValue a, encodeValue b, encodeValue c, encodeValue m]
-    | .jump c d f => .ctor 4 [encodeValue c, encodeValue d, encodeValue f]
+    | .xor a b c => .constructor 0 [encodeValue a, encodeValue b, encodeValue c]
+    | .mulNative a b c => .constructor 1 [encodeValue a, encodeValue b, encodeValue c]
+    | .setConstant o k => .constructor 2 [encodeValue o, encodeValue k]
+    | .deref a b c m => .constructor 3 [encodeValue a, encodeValue b, encodeValue c, encodeValue m]
+    | .jump c d f => .constructor 4 [encodeValue c, encodeValue d, encodeValue f]
     | .keccak om t b c o i j =>
-      .ctor 5 [encodeFiniteFunction om, encodeValue t, encodeValue b, encodeValue c, encodeValue o,
+      .constructor 5 [encodeFiniteFunction om, encodeValue t, encodeValue b, encodeValue c,
+          encodeValue o,
         encodeValue i, encodeValue j]
 
-instance : MachineEncoding Semantics.Program :=
-  ⟨fun p ↦ .ctor 0 [encodeValue p.logSize, encodeFiniteFunction p.code]⟩
+instance : MachineEncoding Semantics.LeanIsaProgram :=
+  ⟨fun p ↦ .constructor 0 [encodeValue p.logSize, encodeFiniteFunction p.instructions]⟩
 
-instance : MachineEncoding Opening := ⟨fun o ↦ .ctor 0 [encodeValue o.leaf, encodeValue o.path]⟩
+instance : MachineEncoding Opening := ⟨fun o ↦ .constructor 0 [encodeValue o.leaf, encodeValue
+    o.path]⟩
 
 instance : MachineEncoding Proof :=
-  ⟨fun π ↦ .ctor 0 [encodeValue π.stream, encodeValue π.openings]⟩
+  ⟨fun π ↦ .constructor 0 [encodeValue π.stream, encodeValue π.openings]⟩
 
-instance {prog : Semantics.Program} : MachineEncoding (Execution prog) :=
-  ⟨fun t ↦ .ctor 0 [encodeValue t.logMemorySize, encodeFiniteFunction t.memory,
-    encodeValue t.steps]⟩
+instance {prog : Semantics.LeanIsaProgram} : MachineEncoding (Execution prog) :=
+  ⟨fun t ↦ .constructor 0 [encodeValue t.logMemorySize, encodeFiniteFunction t.memory,
+    encodeValue t.stepCount]⟩
 
 /-- **The extractor's input**: the program, the public input, the transcript's permutation
 queries, the proof. -/
-def encodeKnowledgeExtractorInput (prog : Semantics.Program) (input : PublicInput)
+def encodeLeanVmKnowledgeExtractorInput (prog : Semantics.LeanIsaProgram) (input : PublicInput)
     (T : OracleQueryLog)
     (proof : Proof) : MachineValue :=
-  .ctor 0 [encodeValue prog, encodeValue input, encodeValue (permutationQueries T),
+  .constructor 0 [encodeValue prog, encodeValue input, encodeValue (permutationQueries T),
     encodeValue proof]
 
 /-- A word of `E` from its encoding (each limb modulo `2^64`). -/
 def decodeExtensionElement : MachineValue → Option E
-  | .ctor 0 [.nat a, .nat b, .nat c] =>
+  | .constructor 0 [.nat a, .nat b, .nat c] =>
     some (E.ofLimbs (K.ofLane a.toUInt64) (K.ofLane b.toUInt64) (K.ofLane c.toUInt64))
   | _ => none
 
 /-- **An execution from its encoding**: the memory's log-size `κ`, its `2^κ` words, the steps;
 `none` on anything else. -/
-def decodeExecution (prog : Semantics.Program) : MachineValue → Option (Execution prog)
-  | .ctor 0 [.nat κ, .arr mem, .nat steps] =>
+def decodeExecution (prog : Semantics.LeanIsaProgram) : MachineValue → Option (Execution prog)
+  | .constructor 0 [.nat κ, .array mem, .nat steps] =>
     match (mem.toList.mapM decodeExtensionElement) with
     | some words =>
       if h : words.length = 2 ^ κ then
@@ -419,7 +422,7 @@ second term bounds the transcript's index (about `2^14.85` per query and level s
 positions growing by a limb per `64` levels) and the committed leaves (`2^26` at most, the `2^30`).
 So about `2^81` for at most `2^50` queries, `2^86.98` for `2^60`, `2^107.76` for `2^80` and
 `2^157.08` for `2^128`. -/
-def knowledgeExtractorBudget (N : ℕ) : ℕ :=
+def leanVmKnowledgeExtractorBudget (N : ℕ) : ℕ :=
   2 ^ 81 + (N + 2 ^ 30) * (Nat.log2 (N + 2) + 3) ^ 2 * (2 ^ 15 + 2 * (Nat.log2 (N + 2) + 1))
 
 end
@@ -441,7 +444,7 @@ them holes, a literal `0` each) and a slack of `375`, room for one leanXMSS sign
 (`309`: two layers of `153`, each a randomizer, `58` chain values and a path of `16`, digests of
 two limbs) but not two, so the compiled extractor could carry no useful table of witnesses beside
 its code. -/
-def knowledgeExtractorSizeBound : ℕ := 14500
+def leanVmKnowledgeExtractorSizeBound : ℕ := 14500
 
 /-- **The extractor a program computes**: the program, of size at most
 `knowledgeExtractorSizeBound`, run on the encoded statement, transcript and proof
@@ -450,11 +453,11 @@ queries (`knowledgeExtractorBudget`), its output parsed as an execution (`decode
 if the program is larger, or the run fails, exceeds its budget, or outputs no execution's encoding.
 A larger program extracts nothing, so `KnowledgeSoundness (knowledgeExtractorOf P)` fails for it: an
 adversary running the honest prover is accepted. -/
-def knowledgeExtractorOf (P : Cost.MachineProgram) : StraightLineExtractor :=
+def extractorComputedBy (P : Cost.MachineProgram) : StraightLineExtractor :=
   fun prog input T proof ↦
-    (Cost.outputWithin P knowledgeExtractorSizeBound
-        (Cost.encodeKnowledgeExtractorInput prog input T proof)
-      (Cost.knowledgeExtractorBudget (permutationQueries T).length)).bind
+    (Cost.outputWithin P leanVmKnowledgeExtractorSizeBound
+        (Cost.encodeLeanVmKnowledgeExtractorInput prog input T proof)
+      (Cost.leanVmKnowledgeExtractorBudget (permutationQueries T).length)).bind
           (Cost.decodeExecution prog)
 
 end

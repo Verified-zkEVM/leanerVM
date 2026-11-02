@@ -43,35 +43,41 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- **The prefix, grouped as `verify_sub` runs it.** -/
 def flatPre (c : BytecodeClaim) (bytecode : List K) (pi : Digest) :
-    Prog (Layout × ℕ × List StackClaim) :=
-  (readSizes bytecode).bind fun ls ↦
+    VerifierProgram (Layout × ℕ × List StackClaim) :=
+  (readAnnouncedSizes bytecode).bind fun ls ↦
   (commitStack ls.1.stackLog ls.2).bind fun _ ↦
-  (Prog.sampleChallenges busBits).bind fun alphas ↦
-  Prog.sampleChallenge.bind fun beta ↦
+  (VerifierProgram.sampleChallenges busBits).bind fun alphas ↦
+  VerifierProgram.sampleChallenge.bind fun beta ↦
   (Tables.gkrPhase (busLayout [0, ls.1.logMemory, ls.1.logBytecode] ls.1.push).depth).bind fun r ↦
-  (Tables.tablesSeg (claimedValue c) ls.1 pi alphas beta r.2.1 r.2.2).bind fun bc ↦
-  (Prog.require ((lanesOf bc.2).map (·.column) = keccakOutputColumns ∧
+  (Tables.tablesSeg (claimedBytecodeValue c) ls.1 pi alphas beta r.2.1 r.2.2).bind fun bc ↦
+  (VerifierProgram.require ((lanesOf bc.2).map (·.column) = keccakOutputColumns ∧
     ∀ c ∈ lanesOf bc.2, c.point = ((lanesOf bc.2).headD default).point)).bind fun _ ↦
   (keccakSeg (ls.1.tableLogHeights.getD opKeccak 0) ((lanesOf bc.2).headD default).point
     ((lanesOf bc.2).map (·.value))).bind fun km ↦
-  (Prog.sampleChallenges 5).bind fun chs ↦
-  Prog.ret (ls.1, ls.2, stackClaims ls.1 bc.2 km.1.1 km.1.2.1 km.1.2.2 (km.2 :: chs))
+  (VerifierProgram.sampleChallenges 5).bind fun chs ↦
+  VerifierProgram.ret (ls.1, ls.2, stackClaims ls.1 bc.2 km.1.1 km.1.2.1 km.1.2.2 (km.2 :: chs))
 
 theorem specPre_flat (c : BytecodeClaim) (bytecode : List K) (pi : Digest) :
-    specPre (claimedValue c) bytecode pi = flatPre c bytecode pi := by
-  simp only [specPre, flatPre, restClaims, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc]
+    specPre (claimedBytecodeValue c) bytecode pi = flatPre c bytecode pi := by
+  simp only [specPre, flatPre, restClaims, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+      VerifierProgram.bind_assoc]
   refine congrArg _ (funext fun ls ↦ congrArg _ (funext fun _ ↦ ?_))
   rw [verifyBusBalance_split]
-  simp only [Tables.tablesSeg, Prog.bind_assoc, Prog.bind_eq, Prog.pure_eq, Prog.ret_bind]
+  simp only [Tables.tablesSeg, VerifierProgram.bind_assoc, VerifierProgram.bind_eq,
+      VerifierProgram.pure_eq, VerifierProgram.ret_bind]
   refine congrArg _ (funext fun alphas ↦ congrArg _ (funext fun beta ↦ congrArg _ (funext fun r ↦
     congrArg _ (funext fun bus ↦ congrArg _ (funext fun cl ↦ congrArg _ (funext fun pc ↦ ?_))))))
-  simp only [keccakPhaseClaims, lanesOf, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+  simp only [keccakPhaseClaims, lanesOf, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+      VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
   refine congrArg _ (funext fun _ ↦ ?_)
-  simp only [keccakSeg, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+  simp only [keccakSeg, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+      VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
   refine congrArg _ (funext fun kr ↦ ?_)
-  simp only [ringSwitch, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
-  rw [show ringMapShifts.length = 5 + 1 from rfl, Prog.sampleChallenges]
-  simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+  simp only [ringSwitch, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+      VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
+  rw [show ringMapShifts.length = 5 + 1 from rfl, VerifierProgram.sampleChallenges]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
+      VerifierProgram.ret_bind]
   refine congrArg _ (funext fun m ↦ congrArg _ (funext fun chs ↦ ?_))
   rfl
 
@@ -79,7 +85,7 @@ theorem specPre_flat (c : BytecodeClaim) (bytecode : List K) (pi : Digest) :
 /-! ## Carried runs without commitments are `RunsTo` -/
 
 /-- The deployed run from a carried one, on a sponge the start carries. -/
-theorem runId_of_runF {α : Type} {p : Prog α} {st : Whir.FSt} {a : α} {st' : Whir.FSt}
+theorem runId_of_runF {α : Type} {p : VerifierProgram α} {st : Whir.FSt} {a : α} {st' : Whir.FSt}
     (h : Whir.runF p st = some (a, st')) {sp : Sponge} (hs : st.sponge.Carries sp) :
     ∃ sp', st'.sponge.Carries sp' ∧
       runId p ⟨sp, st.stream, st.openings, st.roots⟩ =
@@ -91,7 +97,7 @@ theorem runId_of_runF {α : Type} {p : Prog α} {st : Whir.FSt} {a : α} {st' : 
   exact Tables.runId_of_runT p (toT st) sp hs _ t ht
 
 /-- A carried run keeps the words past what it reads, on any rest. -/
-theorem runF_frame {α : Type} {p : Prog α} {st : Whir.FSt} {a : α} {st' : Whir.FSt}
+theorem runF_frame {α : Type} {p : VerifierProgram α} {st : Whir.FSt} {a : α} {st' : Whir.FSt}
     (h : Whir.runF p st = some (a, st')) :
     ∃ pre opre, st.stream = pre ++ st'.stream ∧ st.openings = opre ++ st'.openings ∧
       ∀ zs orest, Whir.runF p { st with stream := pre ++ zs, openings := opre ++ orest } =
@@ -108,7 +114,8 @@ theorem runF_frame {α : Type} {p : Prog α} {st : Whir.FSt} {a : α} {st' : Whi
   rw [e]
   rfl
 
-theorem NoCommitA.runF_any {α : Type} (p : Prog α) : NoCommitA p → ∀ (s : Fs) (T : List E)
+theorem NoCommitA.runF_any {α : Type} (p : VerifierProgram α) : NoCommitA p → ∀ (s : Fs) (T :
+    List E)
     (O : List Opening) (R : List (Digest × ℕ × ℕ)) (a : α) (st' : Whir.FSt),
     Whir.runF p ⟨s, T, O, R⟩ = some (a, st') →
       ∀ O2 R2, Whir.runF p ⟨s, T, O2, R2⟩ = some (a, { st' with openings := O2, roots := R2 }) := by
@@ -144,7 +151,7 @@ theorem NoCommitA.runF_any {α : Type} (p : Prog α) : NoCommitA p → ∀ (s : 
   | query _ _ _ _ => intro hp; exact hp.elim
 
 /-- **A carried run of a program without commitments is a `RunsTo`** on the words it reads. -/
-theorem runsTo_of_runF {α : Type} {p : Prog α} (hp : NoCommit p) {s : Fs} {T : List E}
+theorem runsTo_of_runF {α : Type} {p : VerifierProgram α} (hp : NoCommit p) {s : Fs} {T : List E}
     {O : List Opening} {R : List (Digest × ℕ × ℕ)} {a : α} {st' : Whir.FSt}
     (h : Whir.runF p ⟨s, T, O, R⟩ = some (a, st')) :
     ∃ xs, T = xs ++ st'.stream ∧ RunsTo p s xs a st'.sponge := by
@@ -160,14 +167,14 @@ theorem runsTo_of_runF {α : Type} {p : Prog α} (hp : NoCommit p) {s : Fs} {T :
 /-! ## The announced sizes -/
 
 theorem runF_readN : ∀ (n : ℕ) (st : Whir.FSt) (xs : List E) (st' : Whir.FSt),
-    Whir.runF (Prog.readScalars n) st = some (xs, st') →
+    Whir.runF (VerifierProgram.readScalars n) st = some (xs, st') →
       st.stream = xs ++ st'.stream ∧ xs.length = n
   | 0, st, xs, st', h => by
-    simp only [Prog.readScalars, Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
+    simp only [VerifierProgram.readScalars, Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     exact ⟨rfl, rfl⟩
   | n + 1, st, xs, st', h => by
-    simp only [Prog.readScalars, Prog.bind_eq, Prog.pure_eq] at h
+    simp only [VerifierProgram.readScalars, VerifierProgram.bind_eq, VerifierProgram.pure_eq] at h
     obtain ⟨x, s1, h1, h⟩ := Whir.runF_bind_some h
     obtain ⟨ys, s2, h2, h⟩ := Whir.runF_bind_some h
     simp only [Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
@@ -175,19 +182,19 @@ theorem runF_readN : ∀ (n : ℕ) (st : Whir.FSt) (xs : List E) (st' : Whir.FSt
     obtain ⟨e2, l2⟩ := runF_readN n s1 ys s2 h2
     obtain ⟨sp, stream, os, R⟩ := st
     cases stream with
-    | nil => simp [Prog.readScalar, Whir.runF] at h1
+    | nil => simp [VerifierProgram.readScalar, Whir.runF] at h1
     | cons y rest =>
-      simp only [Prog.readScalar, Whir.runF, Option.some.injEq, Prod.mk.injEq] at h1
+      simp only [VerifierProgram.readScalar, Whir.runF, Option.some.injEq, Prod.mk.injEq] at h1
       obtain ⟨rfl, rfl⟩ := h1
       refine ⟨?_, by simp [l2]⟩
       simp only at e2 ⊢
       rw [e2, List.cons_append]
 
-theorem runF_liftOption_bind {α β : Type} {o : Option α} {k : α → Prog β} {st : Whir.FSt}
+theorem runF_liftOption_bind {α β : Type} {o : Option α} {k : α → VerifierProgram β} {st : Whir.FSt}
     {r : β × Whir.FSt} (h : Whir.runF ((liftOption o).bind k) st = some r) :
     ∃ a, o = some a ∧ Whir.runF (k a) st = some r := by
   cases o with
-  | none => simp [Verifier.liftOption, Prog.bind, Whir.runF] at h
+  | none => simp [Verifier.liftOption, VerifierProgram.bind, Whir.runF] at h
   | some a => exact ⟨a, rfl, h⟩
 
 theorem word_eOfNat_of {v : E} (h1 : v.limb 1 = 0) (h2 : v.limb 2 = 0) :
@@ -203,14 +210,14 @@ theorem word_eOfNat_of {v : E} (h1 : v.limb 1 = 0) (h2 : v.limb 2 = 0) :
 layout `layoutOf bytecode logMem rows`. -/
 theorem readSizes_inv {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {st : Whir.FSt}
     {L : Layout} {r : ℕ} {st' : Whir.FSt}
-    (h : Whir.runF (readSizes bytecode) st = some ((L, r), st')) :
+    (h : Whir.runF (readAnnouncedSizes bytecode) st = some ((L, r), st')) :
     ∃ (logMem : ℕ) (rowsN : List ℕ),
       st.stream = (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat r]) ++ st'.stream ∧
       L = Tables.layoutOf bytecode logMem rowsN ∧ 16 ≤ logMem ∧ logMem ≤ 32 ∧
       rowsN.length = 6 ∧ (∀ n ∈ rowsN, n ≤ 2 ^ 32) ∧ 1 ≤ r ∧ r ≤ 4 ∧
       Whir.minLogStack ≤ L.stackLog ∧ L.stackLog ≤ Whir.maxLogStack := by
-  unfold readSizes at h
-  simp only [Prog.bind_eq, Prog.pure_eq] at h
+  unfold readAnnouncedSizes at h
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq] at h
   obtain ⟨xs, s1, h1, h⟩ := Whir.runF_bind_some h
   obtain ⟨hs1, hl⟩ := runF_readN _ _ _ _ h1
   obtain ⟨hall, h⟩ := runF_require_bind h
@@ -257,7 +264,7 @@ theorem readSizes_inv {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {st :
 /-! ## The announced sizes are `Verifier.announced`'s -/
 
 /-- Only reads (the run is a parse of the stream). -/
-def ReadOnlyA {α : Type} : Prog α → Prop
+def ReadOnlyA {α : Type} : VerifierProgram α → Prop
   | .ret _ => True
   | .fail => True
   | .read k => ∀ x, ReadOnlyA (k x)
@@ -267,12 +274,13 @@ def ReadOnlyA {α : Type} : Prog α → Prop
   | .query _ _ _ => False
 
 /-- **Only reads.** Irreducible, as `NoCommit`. -/
-@[irreducible] def ReadOnly {α : Type} (p : Prog α) : Prop := ReadOnlyA p
+@[irreducible] def ReadOnly {α : Type} (p : VerifierProgram α) : Prop := ReadOnlyA p
 
-theorem readOnly_iff {α : Type} (p : Prog α) : ReadOnly p ↔ ReadOnlyA p := by
+theorem readOnly_iff {α : Type} (p : VerifierProgram α) : ReadOnly p ↔ ReadOnlyA p := by
   unfold ReadOnly; rfl
 
-theorem ReadOnly.bind {α β : Type} {p : Prog α} {f : α → Prog β} (hp : ReadOnly p)
+theorem ReadOnly.bind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} (hp :
+    ReadOnly p)
     (hf : ∀ a, ReadOnly (f a)) : ReadOnly (p.bind f) := by
   rw [readOnly_iff] at hp ⊢
   have hf' : ∀ a, ReadOnlyA (f a) := fun a ↦ (readOnly_iff _).1 (hf a)
@@ -286,19 +294,21 @@ theorem ReadOnly.bind {α β : Type} {p : Prog α} {f : α → Prog β} (hp : Re
   | commit _ _ _ _ => exact hp.elim
   | query _ _ _ _ => exact hp.elim
 
-theorem readOnly_ret {α : Type} (a : α) : ReadOnly (Prog.ret a) := (readOnly_iff _).2 trivial
+theorem readOnly_ret {α : Type} (a : α) : ReadOnly (VerifierProgram.ret a) := (readOnly_iff _).2
+    trivial
 
-theorem readOnly_fail {α : Type} : ReadOnly (Prog.fail : Prog α) := (readOnly_iff _).2 trivial
+theorem readOnly_fail {α : Type} : ReadOnly (VerifierProgram.fail : VerifierProgram α) :=
+    (readOnly_iff _).2 trivial
 
-theorem readOnly_readN : ∀ n, ReadOnly (Prog.readScalars n)
+theorem readOnly_readN : ∀ n, ReadOnly (VerifierProgram.readScalars n)
   | 0 => readOnly_ret _
   | n + 1 => by
-    simp only [Prog.readScalars, Prog.bind_eq, Prog.pure_eq]
+    simp only [VerifierProgram.readScalars, VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     refine ReadOnly.bind ((readOnly_iff _).2 fun _ ↦ trivial) fun _ ↦ ?_
     exact ReadOnly.bind (readOnly_readN n) fun _ ↦ readOnly_ret _
 
-theorem readOnly_require (c : Prop) [Decidable c] : ReadOnly (Prog.require c) := by
-  unfold Prog.require
+theorem readOnly_require (c : Prop) [Decidable c] : ReadOnly (VerifierProgram.require c) := by
+  unfold VerifierProgram.require
   split
   · exact readOnly_ret _
   · exact readOnly_fail
@@ -308,9 +318,9 @@ theorem readOnly_liftOption {α : Type} (o : Option α) : ReadOnly (Verifier.lif
   · exact readOnly_fail
   · exact readOnly_ret _
 
-theorem readOnly_readSizes (bytecode : List K) : ReadOnly (readSizes bytecode) := by
-  unfold readSizes
-  simp only [Prog.bind_eq, Prog.pure_eq]
+theorem readOnly_readSizes (bytecode : List K) : ReadOnly (readAnnouncedSizes bytecode) := by
+  unfold readAnnouncedSizes
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   refine ReadOnly.bind (readOnly_readN _) fun _ ↦ ?_
   refine ReadOnly.bind (readOnly_require _) fun _ ↦ ?_
   refine ReadOnly.bind (readOnly_require _) fun _ ↦ ?_
@@ -319,7 +329,7 @@ theorem readOnly_readSizes (bytecode : List K) : ReadOnly (readSizes bytecode) :
   exact readOnly_ret _
 
 /-- A run that only reads returns what the stream gives, whatever the hashes and the sponge. -/
-theorem ReadOnlyA.run_eq {α : Type} (p : Prog α) : ReadOnlyA p →
+theorem ReadOnlyA.run_eq {α : Type} (p : VerifierProgram α) : ReadOnlyA p →
     ∀ (H H' : Bytes → Id Digest) (F F' : KeccakState → Id KeccakState) (sp sp' : Sponge) (T : List E)
       (O O' : List Opening) (R R' : List (Digest × ℕ × ℕ)),
       (Id.run (Compile.runWithHash (m := Id) H F p ⟨sp, T, O, R⟩)).map (·.1) =
@@ -340,14 +350,15 @@ theorem ReadOnlyA.run_eq {α : Type} (p : Prog α) : ReadOnlyA p →
 /-- **The run's sizes are `Verifier.announced`'s.** -/
 theorem announced_eq {bytecode : List K} {s : Fs} {T : List E} {O : List Opening}
     {R : List (Digest × ℕ × ℕ)} {L : Layout} {r : ℕ} {st' : Whir.FSt} {sp : Sponge}
-    (hs : s.Carries sp) (h : Whir.runF (readSizes bytecode) ⟨s, T, O, R⟩ = some ((L, r), st')) :
-    Verifier.announced bytecode T = some (L, r) := by
+    (hs : s.Carries sp) (h : Whir.runF (readAnnouncedSizes bytecode) ⟨s, T, O, R⟩ = some ((L, r),
+        st')) :
+    Verifier.announcedLayoutAndRate bytecode T = some (L, r) := by
   obtain ⟨sp', -, hr⟩ := runId_of_runF h hs
   have e := ReadOnlyA.run_eq _ ((readOnly_iff _).1 (readOnly_readSizes bytecode))
     (fun _ ↦ default) keccak256 (fun _ ↦ default) keccakF1600 ⟨default, []⟩ sp T [] O [] R
-  unfold Verifier.announced
+  unfold Verifier.announcedLayoutAndRate
   rw [Compile.runPure_eq_withHash, e]
-  change (runId (readSizes bytecode) ⟨sp, T, O, R⟩).map (·.1) = _
+  change (runId (readAnnouncedSizes bytecode) ⟨sp, T, O, R⟩).map (·.1) = _
   rw [hr]
   rfl
 
@@ -355,17 +366,19 @@ theorem announced_eq {bytecode : List K} {s : Fs} {T : List E} {O : List Opening
 /-! ## Squeezes and the stack's root -/
 
 theorem runF_sampleN : ∀ (n : ℕ) (st : Whir.FSt) (xs : List E) (st' : Whir.FSt),
-    Whir.runF (Prog.sampleChallenges n) st = some (xs, st') →
+    Whir.runF (VerifierProgram.sampleChallenges n) st = some (xs, st') →
       st.sponge.squeezeN n = (xs, st'.sponge) ∧ st'.stream = st.stream ∧
         st'.openings = st.openings ∧ st'.roots = st.roots
   | 0, st, xs, st', h => by
-    simp only [Prog.sampleChallenges, Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
+    simp only [VerifierProgram.sampleChallenges, Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     exact ⟨rfl, rfl, rfl, rfl⟩
   | n + 1, st, xs, st', h => by
-    simp only [Prog.sampleChallenges, Prog.bind_eq, Prog.pure_eq] at h
-    rw [show Prog.sampleChallenge = Prog.sample Prog.ret from rfl] at h
-    simp only [Prog.bind, Whir.runF] at h
+    simp only [VerifierProgram.sampleChallenges, VerifierProgram.bind_eq,
+        VerifierProgram.pure_eq] at h
+    rw [show VerifierProgram.sampleChallenge = VerifierProgram.sample VerifierProgram.ret from
+        rfl] at h
+    simp only [VerifierProgram.bind, Whir.runF] at h
     obtain ⟨ys, s2, h2, h⟩ := Whir.runF_bind_some h
     simp only [Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
@@ -376,7 +389,7 @@ theorem runF_sampleN : ∀ (n : ℕ) (st : Whir.FSt) (xs : List E) (st' : Whir.F
 /-- **The stack's commitment**: two words, the root their digest, absorbed. -/
 theorem commitStack_runF' {μ r : ℕ} {st : Whir.FSt} {u : Unit} {st' : Whir.FSt}
     (h : Whir.runF (commitStack μ r) st = some (u, st')) :
-    ∃ (x0 x1 : E) (root : Digest), digestOfScalars (x0, x1) = some root ∧
+    ∃ (x0 x1 : E) (root : Digest), digestFromHalves (x0, x1) = some root ∧
       st.stream = x0 :: x1 :: st'.stream ∧
       st'.sponge = (st.sponge.absorb x0 dsObserve).absorb x1 dsObserve ∧
       st'.roots = st.roots ++ [(root, Whir.stackShape μ r)] ∧ st'.openings = st.openings := by
@@ -384,19 +397,19 @@ theorem commitStack_runF' {μ r : ℕ} {st : Whir.FSt} {u : Unit} {st' : Whir.FS
   | none =>
     unfold commitStack at h
     rw [hc] at h
-    exact absurd h (by simp [Verifier.liftOption, Prog.bind, Whir.runF])
+    exact absurd h (by simp [Verifier.liftOption, VerifierProgram.bind, Whir.runF])
   | some cfg =>
     cases cfg with
     | nil =>
       unfold commitStack at h
       rw [hc] at h
-      exact absurd h (by simp [Verifier.liftOption, Prog.bind, Whir.runF])
+      exact absurd h (by simp [Verifier.liftOption, VerifierProgram.bind, Whir.runF])
     | cons level rest =>
       rw [Whir.commitStack_eq hc] at h
       obtain ⟨s, stream, os, R⟩ := st
       match stream, h with
       | x0 :: x1 :: xs, h =>
-        simp only [Prog.readCommitment, Whir.runF] at h
+        simp only [VerifierProgram.readCommitment, Whir.runF] at h
         split at h
         · rename_i root hr
           simp only [Option.some.injEq, Prod.mk.injEq] at h
@@ -429,14 +442,14 @@ structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type 
   hmu28 : layout.stackLog ≤ 28
   /-- The announced sizes. -/
   s1 : Fs
-  runS : RunsTo (readSizes bytecode) ⟨capOf (keccakF1600 (seedInput seed
+  runS : RunsTo (readAnnouncedSizes bytecode) ⟨capOf (keccakF1600 (seedInput seed
     (Node.statementDigest seed c.statement))), []⟩
     (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat rate]) (layout, rate) s1
   /-- The stack's root. -/
   x0 : E
   x1 : E
   root : Digest
-  hroot : digestOfScalars (x0, x1) = some root
+  hroot : digestFromHalves (x0, x1) = some root
   /-- The bus challenges. -/
   alphas : List E
   s3 : Fs
@@ -452,7 +465,7 @@ structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type 
   bus : BusResult
   claims : List ColumnClaim
   s6 : Fs
-  runT : RunsTo (Tables.tablesSeg (claimedValue c.freshClaim) layout (Node.statementDigest seed c.statement)
+  runT : RunsTo (Tables.tablesSeg (claimedBytecodeValue c.freshClaim) layout (Node.statementDigest seed c.statement)
     alphas s3.squeeze.1 rG.2.1 rG.2.2) s5 xsT (bus, claims) s6
   /-- The output lanes: the table's columns, one point. -/
   hlanes : (lanesOf claims).map (·.column) = keccakOutputColumns ∧
@@ -490,18 +503,18 @@ structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type 
   hstream : c.proof.stream = (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat rate]) ++ [x0, x1] ++
     xsG ++ xsT ++ xsK ++ xsW
   /-- The announced sizes are `Verifier.announced`'s. -/
-  hann : Verifier.announced bytecode c.proof.stream = some (layout, rate)
+  hann : Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, rate)
 
 /-- **An honest child's run, in segments** (G7's per-child hypotheses; the guest's bytecode of
 `2^23` words). -/
 theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (seed : Digest)
     (c : Node.Child)
-    (hmu : ∀ layout r, Verifier.announced bytecode c.proof.stream = some (layout, r) →
+    (hmu : ∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog)
     (hnz : Limits.verifyDeferredNZ bytecode seed (Node.statementDigest seed c.statement) c.freshClaim
       c.proof = true)
     (hcaps : ∀ b ∈ Limits.queryStepsOf
-      (deferredProgram c.freshClaim bytecode (Node.statementDigest seed c.statement))
+      (deferringVerifierProgram c.freshClaim bytecode (Node.statementDigest seed c.statement))
       (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2) :
     Nonempty (ChildSegs bytecode seed c) := by
   obtain ⟨q, sq, root, xsW, w, s', roots', hpre, hrun, hnzW, hcapsW, hacc⟩ :=

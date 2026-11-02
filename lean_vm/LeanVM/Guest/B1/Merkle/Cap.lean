@@ -101,7 +101,7 @@ def mcState (a0 a1 b0 b1 : E) : KeccakState :=
 theorem pair_digest (a0 a1 b0 b1 : E) (O : Fin 13 → E)
     (hK : KeccakCellsRelation (cells13 [a0, a1, b0, b1, word 1 0 0, 0, 0, 0, w63, 0, 0, 0, 0]) false O
       false) :
-    (O 0, O 1) = digestScalars (keccak256 (cellsBytes [a0, a1, b0, b1])) := by
+    (O 0, O 1) = digestHalves (keccak256 (cellsBytes [a0, a1, b0, b1])) := by
   have := (keccak_one (cells := [a0, a1, b0, b1]) (len := 64) (by simp) (by decide)
     (getD_cellsBytes_of_le (by simp))
     (fun c hc ↦ by

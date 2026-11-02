@@ -47,7 +47,7 @@ theorem readExt_padImage {κ κ' : ℕ} (h : κ ≤ κ') (h' : κ' < 64) (L : Me
   have hκ : κ < 64 := by omega
   obtain ⟨i, rfl, rfl⟩ := (MemoryImage.read_eq_some_iff hκ L).mp hr
   have hi : i.val < 2 ^ κ' := lt_of_lt_of_le i.isLt (Nat.pow_le_pow_right (by norm_num) h)
-  rw [show gpow (i : ℕ) = gpow ((⟨i.val, hi⟩ : Fin (2 ^ κ')) : ℕ) from rfl,
+  rw [show addressOfIndex (i : ℕ) = addressOfIndex ((⟨i.val, hi⟩ : Fin (2 ^ κ')) : ℕ) from rfl,
     MemoryImage.read_gpow h' (padImage κ' L) ⟨i.val, hi⟩]
   simp [padImage]
 
@@ -59,7 +59,7 @@ theorem readCells_ext {read read' : K → Option E} (h : ReadExt read read') (fp
 
 /-- **An instruction executes alike on an extending reader.** -/
 theorem executeWith_ext {read read' : K → Option E} (h : ReadExt read read') (r : Registers K)
-    (ins : Instr) {r' : Registers K} (hx : executeWith read r ins = some r') :
+    (ins : LeanIsaInstruction) {r' : Registers K} (hx : executeWith read r ins = some r') :
     executeWith read' r ins = some r' := by
   cases ins with
   | xor oA oB oC =>
@@ -87,7 +87,7 @@ theorem executeWith_ext {read read' : K → Option E} (h : ReadExt read read') (
     obtain ⟨i, hi, o, ho, rest⟩ := hx
     exact ⟨i, readCells_ext h _ _ hi, o, readCells_ext h _ _ ho, rest⟩
 
-variable {prog : Program} {κ κ' : ℕ} {L : MemoryImage κ} {L' : MemoryImage κ'}
+variable {prog : LeanIsaProgram} {κ κ' : ℕ} {L : MemoryImage κ} {L' : MemoryImage κ'}
 
 theorem step_ext (h : ReadExt L.read L'.read) {r r' : Registers K} (hs : step prog L r = some r') :
     step prog L' r = some r' := by
@@ -116,19 +116,19 @@ theorem run_ext (h : ReadExt L.read L'.read) :
 
 /-- **The trace on `2^κ'` words.** -/
 noncomputable def _root_.LeanVM.Semantics.Execution.pad (t : Execution prog) (κ' : ℕ) : Execution prog :=
-  ⟨κ', padImage κ' t.memory, t.steps⟩
+  ⟨κ', padImage κ' t.memory, t.stepCount⟩
 
 theorem validExecution_pad {input : PublicInput} {t : Execution prog} {κ' : ℕ}
     (hv : ValidExecution prog input t) (hκ : t.logMemorySize ≤ κ') (hκ' : κ' ≤ maxLogMem) :
-    ValidExecution prog input (t.pad κ') ∧ ∀ op, (t.pad κ').count op = t.count op := by
+    ValidExecution prog input (t.pad κ') ∧ ∀ op, (t.pad κ').opcodeCount op = t.opcodeCount op := by
   have h64 : κ' < 64 := by unfold maxLogMem at hκ'; omega
   have he := readExt_padImage hκ h64 t.memory
   obtain ⟨⟨h16, -, h0, h1⟩, hr⟩ := hv
-  obtain ⟨hr', hc⟩ := run_ext he t.steps _ _ hr
+  obtain ⟨hr', hc⟩ := run_ext he t.stepCount _ _ hr
   exact ⟨⟨⟨le_trans h16 hκ, hκ', he _ _ h0, he _ _ h1⟩, hr'⟩, hc⟩
 
 theorem committedSize_pad (t : Execution prog) (κ' : ℕ)
-    (hc : ∀ op, (t.pad κ').count op = t.count op) :
+    (hc : ∀ op, (t.pad κ').opcodeCount op = t.opcodeCount op) :
     (t.pad κ').committedSize + 4 * 2 ^ t.logMemorySize = t.committedSize + 4 * 2 ^ κ' := by
   simp only [Semantics.Execution.committedSize, hc]
   simp only [Semantics.Execution.pad]

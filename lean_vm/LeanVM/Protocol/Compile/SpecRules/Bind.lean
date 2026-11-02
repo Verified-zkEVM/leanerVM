@@ -26,7 +26,7 @@ public import LeanVM.Protocol.Compile.SpecRules.Basic
 
 namespace LeanVM.Protocol.Compile
 
-open LeanVM.Parameters Prog
+open LeanVM.Parameters VerifierProgram
 
 @[expose] public section
 
@@ -41,11 +41,11 @@ theorem avg_le_one (g : E → ENNReal) (hg : ∀ c, g c ≤ 1) :
       rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one]
       exact ENNReal.inv_mul_cancel (by simp) (by simp)
 
-namespace Prog
+namespace VerifierProgram
 
 /-- A local run of `p.bind f` is strictly inside `p`, at `p`'s node followed by `f`, or at or
 after a return of `p`, in a run of `f a`. -/
-theorem reach_bind_pos {p : Prog α} {f : α → Prog β} {h₀ l : List Ev}
+theorem reach_bind_pos {p : VerifierProgram α} {f : α → VerifierProgram β} {h₀ l : List Ev}
     (hl : (p.bind f).Reach h₀ l) :
     (p.retSplit l = none ∧ p.Reach h₀ l ∧ ∃ q, p.after l = some q ∧ (∀ a, q ≠ ret a) ∧
         (p.bind f).after l = some (q.bind f)) ∨
@@ -63,15 +63,15 @@ theorem reach_bind_pos {p : Prog α} {f : α → Prog β} {h₀ l : List Ev}
     exact .inr ⟨a, l₁, l₂, rfl, he, h1, ha, h2, after_bind_of_retSplit_eq_some f hs⟩
 
 /-- `p` at a return is found by `retSplit` there. -/
-theorem retSplit_self {p : Prog α} {l : List Ev} {a : α} (h : p.after l = some (ret a)) :
+theorem retSplit_self {p : VerifierProgram α} {l : List Ev} {a : α} (h : p.after l = some (ret a)) :
     p.retSplit l = some (a, l, []) := by
   simpa using retSplit_of_after p l [] h
 
-end Prog
+end VerifierProgram
 
 namespace Spec
 
-variable {p : Prog α} {Pre Pre' : List Ev → Prop} {Post Post' : α → List Ev → Prop}
+variable {p : VerifierProgram α} {Pre Pre' : List Ev → Prop} {Post Post' : α → List Ev → Prop}
   {εmax εmax' L L' T T' : ENNReal}
 
 /-! ## Consequence -/
@@ -163,11 +163,11 @@ noncomputable def exPre {ι : Type} {Pre : ι → List Ev → Prop}
     exact (S _).bound hl hne hm hD
 
 /-- Transport along an equality of programs (for a `match` or a definitional unfolding). -/
-def congr {p' : Prog α} (h : p = p') (S : Spec p Pre Post εmax L T) :
+def congr {p' : VerifierProgram α} (h : p = p') (S : Spec p Pre Post εmax L T) :
     Spec p' Pre Post εmax L T := h ▸ S
 
 /-- **Case split** on a decidable proposition. -/
-def ite {c : Prop} [Decidable c] {p₁ p₂ : Prog α} (S₁ : c → Spec p₁ Pre Post εmax L T)
+def ite {c : Prop} [Decidable c] {p₁ p₂ : VerifierProgram α} (S₁ : c → Spec p₁ Pre Post εmax L T)
     (S₂ : ¬ c → Spec p₂ Pre Post εmax L T) : Spec (if c then p₁ else p₂) Pre Post εmax L T :=
   if h : c then (S₁ h).congr (by simp [h]) else (S₂ h).congr (by simp [h])
 
@@ -175,7 +175,7 @@ def ite {c : Prop} [Decidable c] {p₁ p₂ : Prog α} (S₁ : c → Spec p₁ P
 
 section Bind
 
-variable {f : α → Prog β} {Q : β → List Ev → Prop} {Lp Lf : ENNReal}
+variable {f : α → VerifierProgram β} {Q : β → List Ev → Prop} {Lp Lf : ENNReal}
   (S : Spec p Pre Post εmax Lp Lf) (F : ∀ a, Spec (f a) (Post a) Q εmax Lf T)
 
 /-- Doom of `p.bind f`: `p`'s strictly inside `p`; at a return of `p`, `p`'s and the start doom
@@ -332,7 +332,7 @@ noncomputable def bind : Spec (p.bind f) Pre Q εmax Lp T where
     cases q with
     | ret a => exact absurd rfl (hnr a)
     | read k' => exact ⟨.read x hr hq, S.read x hr hq hD⟩
-    | _ => simp [Prog.bind] at hb
+    | _ => simp [VerifierProgram.bind] at hb
   grind := by
     intro h₀ l b k hl ha hD
     refine bindD_keep _ hl hD (fun q hr hq hnr hb hD ↦ ?_)
@@ -341,10 +341,10 @@ noncomputable def bind : Spec (p.bind f) Pre Q εmax Lp T where
     cases q with
     | ret a => exact absurd rfl (hnr a)
     | grind b' k' =>
-      simp only [Prog.bind, Option.some.injEq, Prog.grind.injEq] at hb
+      simp only [VerifierProgram.bind, Option.some.injEq, VerifierProgram.grind.injEq] at hb
       obtain ⟨rfl, -⟩ := hb
       exact ⟨.grind hr hq, S.grind hr hq hD⟩
-    | _ => simp [Prog.bind] at hb
+    | _ => simp [VerifierProgram.bind] at hb
   commit := by
     intro h₀ l ht w k word hl ha hw hD
     refine bindD_keep _ hl hD (fun q hr hq hnr hb hD ↦ ?_)
@@ -353,10 +353,10 @@ noncomputable def bind : Spec (p.bind f) Pre Q εmax Lp T where
     cases q with
     | ret a => exact absurd rfl (hnr a)
     | commit ht' w' k' =>
-      simp only [Prog.bind, Option.some.injEq, Prog.commit.injEq] at hb
+      simp only [VerifierProgram.bind, Option.some.injEq, VerifierProgram.commit.injEq] at hb
       obtain ⟨rfl, rfl, -⟩ := hb
       exact ⟨.commit word hr hq hw, S.commit word hr hq hw hD⟩
-    | _ => simp [Prog.bind] at hb
+    | _ => simp [VerifierProgram.bind] at hb
   sample := by
     intro h₀ l k hl ha
     rcases reach_bind_pos hl with ⟨hs, hr, q, hq, hnr, hb⟩ | ⟨a, l₁, l₂, hs, -, -, -, h2, hb⟩
@@ -370,7 +370,7 @@ noncomputable def bind : Spec (p.bind f) Pre Q εmax Lp T where
               gcongr with c
               exact bindV_le_child hs (.sample c hr hq)
           _ ≤ S.V h₀ l := S.sample hr hq
-      | _ => simp [Prog.bind] at hb
+      | _ => simp [VerifierProgram.bind] at hb
     · have hfa : (f a).after l₂ = some (.sample k) := hb.symm.trans ha
       have hc : ∀ c, bindV S F h₀ (l ++ [Ev.sample c]) = (F a).V (h₀ ++ l₁) (l₂ ++ [Ev.sample c]) :=
         fun c ↦ bindV_after (retSplit_append [Ev.sample c] hs) (by simp)
@@ -386,11 +386,11 @@ noncomputable def bind : Spec (p.bind f) Pre Q εmax Lp T where
       cases q with
       | ret a => exact absurd rfl (hnr a)
       | query i' ps' k' =>
-        simp only [Prog.bind, Option.some.injEq, Prog.query.injEq] at hb
+        simp only [VerifierProgram.bind, Option.some.injEq, VerifierProgram.query.injEq] at hb
         obtain ⟨rfl, rfl, -⟩ := hb
         rw [bindV_none hs]
         exact (bindV_le_child hs (.query hr hq hans)).trans (S.query hr hq hans)
-      | _ => simp [Prog.bind] at hb
+      | _ => simp [VerifierProgram.bind] at hb
     · have hfa : (f a).after l₂ = some (.query i ps k) := hb.symm.trans ha
       rw [bindV_after (retSplit_append [Ev.query rows] hs) (by simp), bindV_some hs]
       split_ifs
@@ -412,7 +412,7 @@ noncomputable def bind : Spec (p.bind f) Pre Q εmax Lp T where
     · rw [ha] at hb
       cases q with
       | ret a => exact absurd rfl (hnr a)
-      | _ => simp [Prog.bind] at hb
+      | _ => simp [VerifierProgram.bind] at hb
     · rcases bindV_of_not_bindD hs hD with h | ⟨h, hn⟩
       · exact h
       · rw [h]; exact (F a).retEnd h2 (hb.symm.trans ha) hn
@@ -422,7 +422,7 @@ noncomputable def bind : Spec (p.bind f) Pre Q εmax Lp T where
     · rw [ha] at hb
       cases q with
       | ret a => exact absurd rfl (hnr a)
-      | _ => simp [Prog.bind] at hb
+      | _ => simp [VerifierProgram.bind] at hb
     · obtain ⟨h, hF⟩ := bindV_of_bindD hs hD
       rw [h]; exact (F a).retDoom h2 (hb.symm.trans ha) hF
   post := by
@@ -431,7 +431,7 @@ noncomputable def bind : Spec (p.bind f) Pre Q εmax Lp T where
     · rw [ha] at hb
       cases q with
       | ret a => exact absurd rfl (hnr a)
-      | _ => simp [Prog.bind] at hb
+      | _ => simp [VerifierProgram.bind] at hb
     · have := (F a).post h2 (hb.symm.trans ha) (bindV_of_bindD hs hD).2
       rwa [List.append_assoc, ← he] at this
   bound := by

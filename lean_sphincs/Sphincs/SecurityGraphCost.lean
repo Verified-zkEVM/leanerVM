@@ -133,16 +133,16 @@ theorem hashCalls_signLayer_exact (f : QueryImpl HashSpec Id) (sk : Seeded.Secre
     (index : Index) (lay : Layer) :
     hashCalls f (Seeded.signLayer sk index lay : OracleComp HashSpec (Option (LayerSignature lay))) =
       59120 + hashCalls f (ReferenceChoice.search sk.parameter lay rootTree index
-        (evalWithAnswerFn f (Seeded.forestKey sk.parameter index sk.seed : OracleComp HashSpec ForestKey))
+        (evalWithAnswerFn f (Seeded.forestKey sk.parameter index sk.schemeSeed : OracleComp HashSpec ForestKey))
         encodingAttemptLimit 0) +
       if (firstEncoding f sk.parameter lay rootTree index
-        (evalWithAnswerFn f (Seeded.forestKey sk.parameter index sk.seed : OracleComp HashSpec ForestKey))
+        (evalWithAnswerFn f (Seeded.forestKey sk.parameter index sk.schemeSeed : OracleComp HashSpec ForestKey))
         encodingAttemptLimit 0).isSome then 155 + treePathCost else 0 := by
   simp only [Seeded.signLayer, Seeded.layerMessage, hashCalls_bind, hashCalls_forsKey_exact,
     treeIndexAt_eq, leafIndexAt_eq, Seeded.otsSign, hashCalls_otsSignFrom_search,
     otsSignFrom_eq_firstEncoding]
   cases hs : firstEncoding f sk.parameter lay rootTree index
-      (evalWithAnswerFn f (Seeded.forestKey sk.parameter index sk.seed : OracleComp HashSpec ForestKey))
+      (evalWithAnswerFn f (Seeded.forestKey sk.parameter index sk.schemeSeed : OracleComp HashSpec ForestKey))
       encodingAttemptLimit 0 <;>
     simp only [Option.map_none, Option.map_some, Option.isSome_none, Option.isSome_some,
       Bool.false_eq_true, ↓reduceIte, hashCalls_pure, hashCalls_bind, hashCalls_treePath_exact,
@@ -150,7 +150,7 @@ theorem hashCalls_signLayer_exact (f : QueryImpl HashSpec Id) (sk : Seeded.Secre
   omega
 
 noncomputable def finishHashCost (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (data : PublicData) (message : Message) (randomness : Randomness) : Nat :=
+    (data : PublicData) (message : Message) (randomness : Randomizer) : Nat :=
   let index := digestIndex (evalWithAnswerFn f
     (messageDigest parameter message randomness : OracleComp HashSpec MessageDigest))
   118081 + hashCalls f (ReferenceChoice.search parameter topLayer rootTree index
@@ -163,7 +163,7 @@ and all subtree and tree authentication nodes) and the canonical forest-key comp
 WOTS fails. -/
 theorem hashCalls_finishSign_exact (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (seed : MasterSeed) (data : PublicData) (hdata : DataCorrect f parameter seed data)
-    (message : Message) (randomness : Randomness) :
+    (message : Message) (randomness : Randomizer) :
     hashCalls f (Randomized.finishSign ⟨seed, parameter⟩ message randomness) =
       finishHashCost f parameter data message randomness := by
   simp only [Randomized.finishSign, hashCalls_bind, hashCalls_messageDigest, hashCalls_forsOpen_exact,

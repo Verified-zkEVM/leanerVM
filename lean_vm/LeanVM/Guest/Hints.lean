@@ -106,7 +106,7 @@ def cellsOfBytes (b : List UInt8) : List E :=
 def cell128 (v : BitVec 128) : E := cellOfBytes (littleEndianBytes16 v)
 
 /-- A digest's two cells (`pack_hash_state`). -/
-def digestCells (d : Digest) : Entry := [(digestScalars d).1, (digestScalars d).2]
+def digestCells (d : Digest) : Entry := [(digestHalves d).1, (digestHalves d).2]
 
 /-- A claim's four cells: the key's root and parameter, the message (`claim_cells`). -/
 def claimCells (root parameter : BitVec 128) (message : BitVec 256) : Entry :=
@@ -145,32 +145,34 @@ codeword's digits and the chain values; and the root the layer reaches. -/
 def xmssLayer (parameter : HashSig.PublicParameter) (lay : LeanXmss.Layer)
     (key : LeanXmss.KeyIndex) (message : List UInt8) (part : LeanXmss.LayerSignature) :
     List (String × Entry) × HashSig.Digest :=
-  let digest := Id.run (LeanXmss.Concrete.messageDigest (m := Id) keccakF1600 parameter lay key
-    message part.randomness)
-  let leaf := (Id.run (LeanXmss.Concrete.otsLeaf (m := Id) keccakF1600 parameter lay key message
-    part.randomness part.chainValues)).getD 0
-  let fold := fun levels ↦ Id.run (LeanXmss.Concrete.treeFold (m := Id) keccakF1600 parameter lay
-    key part.path levels leaf)
+  let digest := Id.run (LeanXmss.Verification.messageDigest (m := Id) keccakF1600 parameter lay key
+    message part.randomizer)
+  let leaf := (Id.run (LeanXmss.Verification.otsLeaf (m := Id) keccakF1600 parameter lay key message
+    part.randomizer part.chainValues)).getD 0
+  let fold := fun levels ↦ Id.run (LeanXmss.Verification.treeFold (m := Id) keccakF1600
+      parameter lay
+    key part.authenticationPath levels leaf)
   let siblings := (List.finRange LeanXmss.layerHeight).map fun l ↦
-    ("siblings", ordered (key.val.testBit l.val) (fold l.val) (part.path l))
-  let digits := (List.finRange LeanXmss.numChains).map fun i ↦
+    ("siblings", ordered (key.val.testBit l.val) (fold l.val) (part.authenticationPath l))
+  let digits := (List.finRange LeanXmss.chainCount).map fun i ↦
     (LeanXmss.Codeword.encoding digest i).val
-  let starts := (List.finRange LeanXmss.numChains).map fun i ↦
+  let starts := (List.finRange LeanXmss.chainCount).map fun i ↦
     ("chain_starts", [cell128 (part.chainValues i)])
-  (siblings ++ [("randomizer", [cell128 part.randomness])] ++ digitGroups digits ++ starts,
+  (siblings ++ [("randomizer", [cell128 part.randomizer])] ++ digitGroups digits ++ starts,
     fold LeanXmss.layerHeight)
 
 /-- A leanXMSS signature's hints: its leaf index's bits, then each layer's, bottom first. -/
 def xmssHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : LeanXmss.Signature) :
     List (String × Entry) :=
   let index := σ.leafIndex
-  let bits := (List.range (LeanXmss.numLayers * LeanXmss.layerHeight)).map fun b ↦
+  let bits := (List.range (LeanXmss.layerCount * LeanXmss.layerHeight)).map fun b ↦
     bit (index.val.testBit b)
   let (bottom, root) := xmssLayer pk.parameter LeanXmss.bottomLayer
-    (LeanXmss.keyAt index LeanXmss.bottomLayer) (HashSig.bytesLE 32 message)
+    (LeanXmss.keyIndexOnLayer index LeanXmss.bottomLayer) (HashSig.littleEndianBytes 32 message)
     (σ.layers LeanXmss.bottomLayer)
-  let (top, _) := xmssLayer pk.parameter LeanXmss.topLayer (LeanXmss.keyAt index LeanXmss.topLayer)
-    (HashSig.bytesLE 16 root) (σ.layers LeanXmss.topLayer)
+  let (top, _) := xmssLayer pk.parameter LeanXmss.topLayer (LeanXmss.keyIndexOnLayer index
+      LeanXmss.topLayer)
+    (HashSig.littleEndianBytes 16 root) (σ.layers LeanXmss.topLayer)
   ("leaf_index_bits", bits) :: bottom ++ top
 
 /-! ## A leanSPHINCS signature (`push_lean_sphincs_hints`) -/
@@ -179,13 +181,13 @@ def xmssHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : LeanXms
 `aggregation.rs:149-151`): from bit `128` of the digest, the index, every tree's leaf and every
 subtree's key. -/
 def sphincsUsedBits : ℕ :=
-  Sphincs.totalHeight + Sphincs.forestCoordinates * Sphincs.topHeight +
-    2 * Sphincs.forestCoordinates * Sphincs.subHeight
+  Sphincs.treeHeight + Sphincs.forestCoordinateCount * Sphincs.topTreeHeight +
+    2 * Sphincs.forestCoordinateCount * Sphincs.forestSubtreeHeight
 
 /-- A field the guest dispatches on: in the exponent, and as the address cell whose `hi` it is
 (`mark`, `aggregation.rs:1576-1579`). -/
 def markEntry (index field : ℕ) : Entry :=
-  [count index, cellOfBytes (Sphincs.fieldBytes (Sphincs.tweakFields 0 0 field 0))]
+  [count index, cellOfBytes (Sphincs.addressBytes (Sphincs.tweakFields 0 0 field 0))]
 
 /-- A leanSPHINCS signature's hints: the randomizer, the forest's chain values, the digest's
 unused bits, its codeword indices, each tree's leaf, each subtree's key and the forest's path
@@ -194,42 +196,43 @@ children of every node on the tree's path. -/
 def sphincsHints (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sphincs.Signature) :
     List (String × Entry) :=
   let parameter := pk.parameter
-  let call := Id.run (Sphincs.Concrete.messageDigestCall (m := Id) keccakF1600 parameter message
-    σ.randomness)
+  let call := Id.run (Sphincs.Verification.messageDigestCall (m := Id) keccakF1600 parameter message
+    σ.randomizer)
   let digest := Sphincs.truncateMessageDigest call
-  let index := Sphincs.Concrete.digestIndex digest
-  let marks := Sphincs.Concrete.digestMarks digest
-  let coords := List.finRange Sphincs.forestCoordinates
+  let index := Sphincs.Verification.digestLeafIndex digest
+  let marks := Sphincs.Verification.digestCoordinateSelections digest
+  let coords := List.finRange Sphincs.forestCoordinateCount
   let subtrees := List.finRange 2
   let values := coords.flatMap fun c ↦ subtrees.flatMap fun j ↦
-    (List.finRange Sphincs.childChains).map fun i ↦
-      ("sp_forest_values", [cell128 (((σ.forest c).sub j).values i)])
+    (List.finRange Sphincs.forestChainCount).map fun i ↦
+      ("sp_forest_values", [cell128 (((σ.forestOpening c).subtreeOpenings j).values i)])
   let unused := call.toNat / 2 ^ (128 + sphincsUsedBits)
   let words := coords.flatMap fun c ↦ subtrees.map fun j ↦
-    ("sp_words", [count ((marks c).word j).val])
+    ("sp_words", [count ((marks c).codewordIndex j).val])
   let trees := coords.flatMap fun c ↦
-    ("sp_leaves", markEntry (marks c).super.val (c.val + 8 * (marks c).super.val)) ::
+    ("sp_leaves", markEntry (marks c).superChild.val (c.val + 8 * (marks c).superChild.val)) ::
       (subtrees.flatMap fun j ↦
         ("sp_keys", markEntry ((marks c).child j).val (128 * j.val + 256 * ((marks c).child j).val)) ::
-          (List.finRange Sphincs.subHeight).map fun l ↦
-            ("sp_forest_nodes", [cell128 (((σ.forest c).sub j).path l)])) ++
-      (List.finRange Sphincs.topHeight).map fun l ↦ ("sp_forest_nodes", [cell128 ((σ.forest c).top l)])
-  let forestKey := Id.run (Sphincs.Concrete.forestRecover (m := Id) keccakF1600 parameter index
-    marks σ.forest)
+          (List.finRange Sphincs.forestSubtreeHeight).map fun l ↦
+            ("sp_forest_nodes", [cell128 (((σ.forestOpening c).subtreeOpenings j).path l)])) ++
+      (List.finRange Sphincs.topTreeHeight).map fun l ↦ ("sp_forest_nodes", [cell128 ((σ.forestOpening c).topTreePath l)])
+  let forestKey := Id.run (Sphincs.Verification.forestRecover (m := Id) keccakF1600 parameter index
+    marks σ.forestOpening)
   let leaf := index
-  let encoding := Id.run (Sphincs.Concrete.encode (m := Id) keccakF1600 parameter leaf forestKey
+  let encoding := Id.run (Sphincs.Verification.encode (m := Id) keccakF1600 parameter leaf forestKey
     σ.counter)
-  let digits := (List.finRange Sphincs.numChains).map fun i ↦ (encoding.map (· i |>.val)).getD 0
-  let starts := (List.finRange Sphincs.numChains).map fun i ↦
+  let digits := (List.finRange Sphincs.chainCount).map fun i ↦ (encoding.map (· i |>.val)).getD 0
+  let starts := (List.finRange Sphincs.chainCount).map fun i ↦
     ("chain_starts", [cell128 (σ.chainValues i)])
-  let wotsLeaf := (Id.run (Sphincs.Concrete.otsLeaf (m := Id) keccakF1600 parameter leaf forestKey
+  let wotsLeaf := (Id.run (Sphincs.Verification.otsLeaf (m := Id) keccakF1600 parameter leaf
+      forestKey
     σ.counter σ.chainValues)).getD 0
-  let path := fun l ↦ if h : l < Sphincs.totalHeight then σ.path ⟨l, h⟩ else 0
-  let siblings := (List.range Sphincs.totalHeight).map fun l ↦
+  let path := fun l ↦ if h : l < Sphincs.treeHeight then σ.authenticationPath ⟨l, h⟩ else 0
+  let siblings := (List.range Sphincs.treeHeight).map fun l ↦
     ("siblings", ordered (leaf.val.testBit l)
-      (Id.run (Sphincs.Concrete.treeFold (m := Id) keccakF1600 parameter leaf path l wotsLeaf))
+      (Id.run (Sphincs.Verification.treeFold (m := Id) keccakF1600 parameter leaf path l wotsLeaf))
       (path l))
-  [("sp_rand", [cell128 σ.randomness])] ++ values ++
+  [("sp_rand", [cell128 σ.randomizer])] ++ values ++
     [("sp_unused", exponentBytes unused (128 - sphincsUsedBits))] ++ words ++ trees ++
     [("sp_counter", exponentBytes σ.counter.toNat 32)] ++ digitGroups digits ++ starts ++
     siblings
@@ -249,7 +252,7 @@ def daHints (w : Da.MatrixWitness) : List (String × Entry) :=
 
 /-- The program returning, beside its value, every query it makes: the commitment opened and the
 positions, in order. -/
-def recordQueries {α : Type} : Prog α → Prog (α × List (ℕ × List ℕ))
+def recordQueries {α : Type} : VerifierProgram α → VerifierProgram (α × List (ℕ × List ℕ))
   | .ret a => .ret (a, [])
   | .fail => .fail
   | .read k => .read fun x ↦ recordQueries (k x)
@@ -263,7 +266,8 @@ def recordQueries {α : Type} : Prog α → Prog (α × List (ℕ × List ℕ))
 the height of the commitment it opens. -/
 def childQueries (bytecode : List K) (seed : Digest) (c : Child) : List (ℕ × List ℕ) :=
   match Id.run (Compile.run (m := Id) keccakF1600
-      (recordQueries (deferredProgram c.freshClaim bytecode (statementDigest seed c.statement)))
+      (recordQueries (deferringVerifierProgram c.freshClaim bytecode (statementDigest seed
+          c.statement)))
       (childVerifierStart seed c)) with
   | some ((_, queries), st) => queries.map fun (i, ps) ↦ ((st.roots[i]?.map (·.2.1)).getD 0, ps)
   | none => []
@@ -342,7 +346,7 @@ def colSortOrder (layout : Layout) : Entry :=
 /-- A child's hints (`gen_verify`): its proof stream, padded; its claim's value; the Merkle caps;
 the tables' log heights; the two layout orders; and every query's leaf and path. -/
 def childHints (bytecode : List K) (seed : Digest) (c : Child) : List (String × Entry) :=
-  match announced bytecode c.proof.stream with
+  match announcedLayoutAndRate bytecode c.proof.stream with
   | none => []
   | some (layout, _) =>
     let (queries, caps, active) := merkleHints (childQueries bytecode seed c) c.proof.openings
@@ -403,7 +407,7 @@ def honestStreams (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : N
 
 /-- **The public input**, the initial memory at `g^0` and `g^1`: the statement's digest. -/
 def publicInput (seed : Digest) (s : NodeStatement) : List E :=
-  [(digestScalars (statementDigest seed s)).1, (digestScalars (statementDigest seed s)).2]
+  [(digestHalves (statementDigest seed s)).1, (digestHalves (statementDigest seed s)).2]
 
 end
 end LeanVM.Guest.Hints

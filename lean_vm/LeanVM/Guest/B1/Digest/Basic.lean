@@ -148,9 +148,9 @@ theorem padCells_getD_lt (cells : List E) (len : ℕ) {i : ℕ} (hi : i < cells.
 /-! ## Digests as cells -/
 
 theorem digestScalars_ofCells {a b : E} (ha : IsCanonical128 a) (hb : IsCanonical128 b) :
-    digestScalars #v[(a.limb 0).lane, (a.limb 1).lane, (b.limb 0).lane, (b.limb 1).lane] =
+    digestHalves #v[(a.limb 0).lane, (a.limb 1).lane, (b.limb 0).lane, (b.limb 1).lane] =
       (a, b) := by
-  simp only [digestScalars, Vector.getElem_mk, List.getElem_toArray, List.getElem_cons_zero,
+  simp only [digestHalves, Vector.getElem_mk, List.getElem_toArray, List.getElem_cons_zero,
     List.getElem_cons_succ, K.ofLane_lane]
   rw [eq_ofLimbs_of_canonical ha, eq_ofLimbs_of_canonical hb]
   simp

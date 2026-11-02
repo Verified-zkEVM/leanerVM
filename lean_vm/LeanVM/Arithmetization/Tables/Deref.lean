@@ -188,7 +188,7 @@ def DerefSpec (r : DerefRow K) (next : Registers K) (data : ProverData K) : Prop
 /-- The bytecode tuple of a row is `entry` of the instruction it names, by definition; spelled
 once, so that the unifier need not see it through `decode`. -/
 private theorem deref_entry (o1 o2 o3 : K) (mode : DerefMode) :
-    #v[Opcode.deref.code] ++ #v[o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2, 0, 0, 0, 0, 0] = entry (.deref o1 o2 o3 mode) := rfl
+    #v[Opcode.deref.busCode] ++ #v[o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2, 0, 0, 0, 0, 0] = busEntry (.deref o1 o2 o3 mode) := rfl
 
 /-- A pulled `DEREF` tuple, flat. -/
 private theorem deref_tuple (c o1 o2 o3 fpc ffp : K) :
@@ -209,7 +209,7 @@ def derefTable : GeneralFormalCircuit K DerefRow Registers where
     let fbar : Expression K := 1 + r.fpc + r.ffp
     StatePull.pull ⟨r.pc, r.fp⟩
     StatePush.push next
-    bytecodeRead r.pc r.rbc (Expression.const Opcode.deref.code)
+    bytecodeRead r.pc r.rbc (Expression.const Opcode.deref.busCode)
       #v[r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0, 0, 0, 0]
     memRead (r.fp * r.o1) r.r1 #v[r.p, 0, 0]
     memRead (r.p * r.o2) r.r2

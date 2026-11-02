@@ -147,7 +147,7 @@ theorem flat_completeAtTB (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : Li
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
     (w : ℕ → ℕ → E) (bufs : ℕ → List (E × ℕ))
-    (hbufs : ∀ fp, ∀ q ∈ bufs fp, ∃ b, q.1 = ofK (gpow b) ∧
+    (hbufs : ∀ fp, ∀ q ∈ bufs fp, ∃ b, q.1 = ofK (addressOfIndex b) ∧
       ∀ i < q.2, RegionL (flatL F.name Lin sizes own fs fp) (b + i))
     (hrun : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) →
       (∀ s ∈ F.pre, VSH (coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp))) rd
@@ -156,7 +156,7 @@ theorem flat_completeAtTB (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : Li
       (F.pre.filterMap Main.Stmt.allocSz).map
         (fun x => x.2.elim id fun s => logG (F.σ rd (w fp) args s)) = sizes ∧
       ((F.pre.filterMap Main.Stmt.allocSz).map Prod.fst).map (F.σ rd (w fp) args) =
-        (bases (fp + fs F.name) sizes).map (fun b => ofK (gpow b)) ∧
+        (bases (fp + fs F.name) sizes).map (fun b => ofK (addressOfIndex b)) ∧
       F.rets.map (F.σ rd (w fp) args) = rets)
     (Q : Val → Prop) (Ts : List (Tree → Prop))
     (hQ : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) →
@@ -280,7 +280,7 @@ theorem flat_completeAtTB (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : Li
       refine ⟨(by simpa using hok.1 _ (List.getElem_mem hj)),
         fun rd hlow hL ↦ ?_⟩
       obtain ⟨j', hj', hxj', h⟩ := ((hrun fp rd hlow hL).1 _ hs :
-        ∃ (j' : ℕ) (h : j' < fs'.length), F.σ rd (w fp) args x = ofK (gpow j') ∧
+        ∃ (j' : ℕ) (h : j' < fs'.length), F.σ rd (w fp) args x = ofK (addressOfIndex j') ∧
           coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp)) fs'[j']
             (a.map (F.σ rd (w fp) args)) (r.map (F.σ rd (w fp) args)))
       have e := hag fp rd hlow hL _ hs rfl x (by simp [Stmt.vals])

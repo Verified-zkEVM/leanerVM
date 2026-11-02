@@ -349,11 +349,12 @@ theorem limbCount_le_of_lt_two_pow {n k : ℕ} (hk : 1 ≤ k) (h : n < 2 ^ (64 *
 /-- `mulKNat` as a term of the machine, the lanes at positions `i` and `j` of the environment:
 the carry-less product bound once, the rest nested. -/
 def mulKTerm (i j : ℕ) : Term :=
-  .letIn (.op .carrylessMultiply [.var i, .var j])
-    (.op .bitwiseXor [.var 0, .op .carrylessMultiply [
-      .op .shiftRight [.op .carrylessMultiply [.op .shiftRight [.var 0, .val (.nat 64)],
-        .val (.nat 0x1000000000000001B)], .val (.nat 64)],
-      .val (.nat 0x1000000000000001B)]])
+  .letIn (.primitive .carrylessMultiply [.position i, .position j])
+    (.primitive .bitwiseXor [.position 0, .primitive .carrylessMultiply [
+      .primitive .shiftRight [.primitive .carrylessMultiply [.primitive .shiftRight [.position 0,
+          .literal (.nat 64)],
+        .literal (.nat 0x1000000000000001B)], .literal (.nat 64)],
+      .literal (.nat 0x1000000000000001B)]])
 
 /-- **`mulKTerm` computes `mulKNat` at a price of at most `21`** (see the module docstring). -/
 theorem evaluateTerm_mulKTerm (P : MachineProgram) (n : ℕ) (env : List MachineValue)

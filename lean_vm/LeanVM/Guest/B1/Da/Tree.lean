@@ -41,8 +41,8 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 theorem toList_toBytes (d : Digest) : (LeanVM.Protocol.Digest.toBytes d).toList = digestBytes d := by
   simp [LeanVM.Protocol.Digest.toBytes, Vector.toList]
 
-theorem kBytes_eq (a : K) : LeanDa.kBytes a = kBytes a := by
-  unfold LeanDa.kBytes kBytes wordBytes
+theorem kBytes_eq (a : K) : LeanDa.symbolBytes a = K.toBytes a := by
+  unfold LeanDa.symbolBytes K.toBytes wordBytes
   refine List.map_congr_left fun t ht => ?_
   have ht8 : t < 8 := List.mem_range.mp ht
   refine UInt8.toNat_inj.mp ?_
@@ -79,14 +79,14 @@ theorem toBytes_mRoot : ∀ (d : ℕ) (g : ℕ → Digest),
     congr 1
 
 theorem nodeCells_scalars (a b : Digest) :
-    nodeCells (digestScalars a) (digestScalars b) =
-      digestScalars (keccak256 (digestBytes a ++ digestBytes b)) := by
+    nodeCells (digestHalves a) (digestHalves b) =
+      digestHalves (keccak256 (digestBytes a ++ digestBytes b)) := by
   rw [nodeCells, digestBytes_eq_cells, digestBytes_eq_cells]
   simp [cellsBytes]
 
 theorem cellLevel_scalars (d : ℕ) (g : ℕ → Digest) :
-    cellLevel ((List.range (2 ^ (d + 1))).map fun i => digestScalars (g i)) =
-      (List.range (2 ^ d)).map fun i => digestScalars (upD g i) := by
+    cellLevel ((List.range (2 ^ (d + 1))).map fun i => digestHalves (g i)) =
+      (List.range (2 ^ d)).map fun i => digestHalves (upD g i) := by
   have hlen : 2 ^ (d + 1) / 2 = 2 ^ d := by rw [pow_succ, Nat.mul_div_cancel _ (by norm_num)]
   rw [cellLevel, List.length_map, List.length_range, hlen]
   refine List.map_congr_left fun i hi => ?_
@@ -98,7 +98,7 @@ theorem cellLevel_scalars (d : ℕ) (g : ℕ → Digest) :
 
 /-- **The guest's root of cell pairs is the root of the digests.** -/
 theorem cellRoot_mRoot : ∀ (d : ℕ) (g : ℕ → Digest),
-    cellRoot d ((List.range (2 ^ d)).map fun i => digestScalars (g i)) = digestScalars (mRoot d g)
+    cellRoot d ((List.range (2 ^ d)).map fun i => digestHalves (g i)) = digestHalves (mRoot d g)
   | 0, _ => rfl
   | d + 1, g => by
     rw [cellRoot, cellLevel_scalars, cellRoot_mRoot d, mRoot]

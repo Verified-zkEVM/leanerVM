@@ -216,10 +216,11 @@ section Pure
 variable (π : KeccakState → KeccakState)
 
 /-- The eight little-endian bytes of a symbol (`as_bytes`). -/
-def kBytes (a : K) : List UInt8 := (List.range 8).map fun t ↦ (a.toBitVec.toNat >>> (8 * t)).toUInt8
+def symbolBytes (a : K) : List UInt8 := (List.range 8).map fun t ↦ (a.toBitVec.toNat >>> (8 *
+    t)).toUInt8
 
 /-- A cell's bytes: its symbols' bytes in order. -/
-def cellBytes (x : Cell) : List UInt8 := (List.ofFn x).flatMap kBytes
+def cellBytes (x : Cell) : List UInt8 := (List.ofFn x).flatMap symbolBytes
 
 /-- The 64 bytes of a pair of digests (`hash_pair`, `tree_from_leaves`). -/
 def pairBytes (a b : DigestBytes) : List UInt8 := a.toList ++ b.toList
@@ -260,7 +261,7 @@ def rowLeaves {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : DigestBytes :=
     ((List.ofFn fun j : Fin 64 ↦ cellDigest π (paddedCell c i j)).flatMap Vector.toList))
 
 /-- The column tree's leaves: leaf `j · 2^⌈log₂ r⌉ + i` is cell `j` of padded row `i`. -/
-def colLeaves {r : ℕ} (c : Fin (r * 128) → Cell) (l : ℕ) : DigestBytes :=
+def columnLeaves {r : ℕ} (c : Fin (r * 128) → Cell) (l : ℕ) : DigestBytes :=
   cellDigest π (paddedCell c (l % paddedRowCount r) (l / paddedRowCount r))
 
 /-- The row root (`root_row`). -/
@@ -268,17 +269,17 @@ def rowRoot {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
   merkleRoot π (logPaddedRowCount r) (rowLeaves π c)
 
 /-- The column root (`root_col`). -/
-def colRoot {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
-  merkleRoot π (7 + logPaddedRowCount r) (colLeaves π c)
+def columnRoot {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
+  merkleRoot π (7 + logPaddedRowCount r) (columnLeaves π c)
 
 /-- **The root of a matrix** (`commit_codewords`): `H(rowRoot ‖ colRoot)`. -/
 def commitCells {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
-  Id.run (keccakDigestBytes π (pairBytes (rowRoot π c) (colRoot π c)))
+  Id.run (keccakDigestBytes π (pairBytes (rowRoot π c) (columnRoot π c)))
 
 /-! ### Openings -/
 
 /-- The opening of a cell: the row root and the cell's path in the column tree. -/
-structure Opening where
+structure CellOpening where
   /-- The row root. -/
   rowRoot : DigestBytes
   /-- The siblings from the cell's leaf up to the column root. -/
@@ -286,12 +287,12 @@ structure Opening where
 deriving Inhabited
 
 /-- The column tree index of a position: cell `j` of row `i` is leaf `j · 2^⌈log₂ r⌉ + i`. -/
-def colIndex {r : ℕ} (p : Fin (r * 128)) : ℕ :=
+def columnTreeIndex {r : ℕ} (p : Fin (r * 128)) : ℕ :=
   (positionCell p : ℕ) * paddedRowCount r + positionRow p
 
 /-- The honest opening of a position. -/
-def openCell {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : Opening :=
-  ⟨rowRoot π c, merklePath π (7 + logPaddedRowCount r) (colLeaves π c) (colIndex p)⟩
+def openCell {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : CellOpening :=
+  ⟨rowRoot π c, merklePath π (7 + logPaddedRowCount r) (columnLeaves π c) (columnTreeIndex p)⟩
 
 /-! ### Membership (`membership.rs`, `verifier/src/da.rs`) -/
 
@@ -302,7 +303,7 @@ noncomputable def normalizedSubspacePolynomial (j : Fin 14) : K[X] :=
 
 /-- **The dual codeword of challenges `z`** (`dual_codeword`): `L(x) = ∏_j (1 + z_j Ŵ_j(x))` on
 the domain, the encoding of `tensor z` (`lean_da`'s `dual_eq_sum`). -/
-noncomputable def dual (z : Fin 14 → E) (b : Fin (2 ^ 15)) : E :=
+noncomputable def dualCodewordAt (z : Fin 14 → E) (b : Fin (2 ^ 15)) : E :=
   ∏ j : Fin 14, (1 + z j * ι ((normalizedSubspacePolynomial j).eval (point b)))
 
 /-- The inner product of the dual codeword with a row: `Σ_x L(x) w(x)` (`check_membership`). -/
@@ -310,7 +311,7 @@ noncomputable def innerProduct (L : Fin (2 ^ 15) → E) (w : Row) : E := ∑ b, 
 
 /-- **The membership check**: every row is orthogonal to the dual codeword. -/
 noncomputable def membershipCheck {r : ℕ} (z : Fin 14 → E) (c : Fin (r * 128) → Cell) : Bool :=
-  decide (∀ i : Fin r, innerProduct (dual z) (matrixRow c i) = 0)
+  decide (∀ i : Fin r, innerProduct (dualCodewordAt z) (matrixRow c i) = 0)
 
 /-! ### The deployed commitment (`commit.rs:55-145`)
 
@@ -334,7 +335,7 @@ def listCell (row : List K) (j : ℕ) : List K := (row.drop (j * cellSymbols)).t
 
 /-- The digest of cell `j` of a codeword (`hash_cells`). -/
 def listCellDigest (row : List K) (j : ℕ) : DigestBytes :=
-  Id.run (keccakDigestBytes π ((listCell row j).flatMap kBytes))
+  Id.run (keccakDigestBytes π ((listCell row j).flatMap symbolBytes))
 
 /-- A row's digest: the hash of its payload cells' digests. -/
 def rowDigest (row : List K) : DigestBytes :=
@@ -342,21 +343,22 @@ def rowDigest (row : List K) : DigestBytes :=
     ((List.range payloadCells).flatMap fun j ↦ (listCellDigest π row j).toList))
 
 /-- The digest of the zero cell, which pads the columns (`padding_digests`). -/
-def paddingCell : DigestBytes :=
-  Id.run (keccakDigestBytes π ((List.replicate cellSymbols 0).flatMap kBytes))
+def paddingCellDigest : DigestBytes :=
+  Id.run (keccakDigestBytes π ((List.replicate cellSymbols 0).flatMap symbolBytes))
 
 /-- The digest of the zero row, which pads the row tree (`padding_digests`). -/
-def paddingRow : DigestBytes :=
-  Id.run (keccakDigestBytes π ((List.replicate payloadCells (paddingCell π)).flatMap Vector.toList))
+def paddingRowDigest : DigestBytes :=
+  Id.run (keccakDigestBytes π ((List.replicate payloadCells (paddingCellDigest π)).flatMap
+      Vector.toList))
 
 /-- **The root of a matrix of codewords, as the crate computes it** (`commit_codewords`): the
 rows padded to a power of two, the hash of the row tree's root and the column tree's. -/
 def commitCodewords (rows : List (List K)) : DigestBytes :=
   let n := paddedRowCount rows.length
   let rowTree := treeRoot π
-    (rows.map (rowDigest π) ++ List.replicate (n - rows.length) (paddingRow π))
+    (rows.map (rowDigest π) ++ List.replicate (n - rows.length) (paddingRowDigest π))
   let columnTree := treeRoot π ((List.range cellsPerRow).flatMap fun j ↦ (List.range n).map fun i ↦
-    if h : i < rows.length then listCellDigest π rows[i] j else paddingCell π)
+    if h : i < rows.length then listCellDigest π rows[i] j else paddingCellDigest π)
   Id.run (keccakDigestBytes π (pairBytes rowTree columnTree))
 
 /-! ### The membership challenges (`verifier/src/da.rs:15-22`)
@@ -366,13 +368,14 @@ statements). The crate's membership vector, their dual codeword by the additive 
 (`membershipVector`, which computes `dual`: `membershipVector_eq_dual`). -/
 
 /-- `leanDA/rs-membership/v1`, the label of the challenges' transcript (`LABEL`). -/
-def label : List UInt8 := "leanDA/rs-membership/v1".toUTF8.toList
+def membershipLabel : List UInt8 := "leanDA/rs-membership/v1".toUTF8.toList
 
 /-- The symbol of eight little-endian bytes (`u64::from_le_bytes`). -/
-def ofBytes (bytes : List UInt8) : K := K.ofBits (bytes.foldr (fun b acc ↦ b.toNat + 256 * acc) 0)
+def symbolOfBytes (bytes : List UInt8) : K := K.ofBits (bytes.foldr (fun b acc ↦ b.toNat + 256 *
+    acc) 0)
 
 /-- Word `i` of a digest, its bytes `8 i … 8 i + 7` (`Digest::words`). -/
-def word (d : DigestBytes) (i : ℕ) : K := ofBytes ((d.toList.drop (8 * i)).take 8)
+def digestWord (d : DigestBytes) (i : ℕ) : K := symbolOfBytes ((d.toList.drop (8 * i)).take 8)
 
 /-- The element `c0 + c1·y + c2·y²` (`E::new`). -/
 def ofLimbs (c0 c1 c2 : K) : E := CompPoly.Extension.Ext.ofVector #v[c0, c1, c2]
@@ -426,105 +429,106 @@ def duplexInput (s : Sponge) : KeccakState :=
     if (i : ℕ) < rateLanes then ((rateWords s.pending).getD i 0).lane else s.state[i]
 
 /-- The lanes of a fresh sponge: the IV's words in lanes `0 … 3`, the public input's in `4 … 7`. -/
-def newInput (iv publicInput : DigestBytes) : KeccakState :=
+def freshSpongeInput (iv publicInput : DigestBytes) : KeccakState :=
   Vector.ofFn fun i : Fin 25 ↦
-    if (i : ℕ) < 4 then (word iv i).lane else if (i : ℕ) < 8 then (word publicInput (i - 4)).lane
+    if (i : ℕ) < 4 then (digestWord iv i).lane else if (i : ℕ) < 8 then (digestWord publicInput (i - 4)).lane
     else 0
 
 /-- A sponge seeded with one permutation of `newInput` (`Sponge::new`). -/
-def Sponge.newM (iv publicInput : DigestBytes) : m Sponge := do
-  let state ← P (newInput iv publicInput)
+def Sponge.newWith (iv publicInput : DigestBytes) : m Sponge := do
+  let state ← P (freshSpongeInput iv publicInput)
   pure ⟨state, []⟩
 
 /-- A sponge with no public input of its own, seeded from the hash of `label`
 (`Sponge::from_label`). -/
-def Sponge.fromLabelM (label : List UInt8) : m Sponge := do
+def Sponge.fromLabelWith (label : List UInt8) : m Sponge := do
   let iv ← keccakDigestBytes P label
-  Sponge.newM P iv (Vector.replicate 32 0)
+  Sponge.newWith P iv (Vector.replicate 32 0)
 
 /-- Permute `duplexInput` (`duplex`). -/
-def Sponge.duplexM (s : Sponge) : m Sponge := do
+def Sponge.duplexWith (s : Sponge) : m Sponge := do
   let state ← P (duplexInput s)
   pure ⟨state, []⟩
 
 /-- Absorb a scalar with a tag, permuting first when `rateScalars` wait (`absorb`). -/
-def Sponge.absorbM (s : Sponge) (x : E) (tag : K) : m Sponge :=
-  (if s.pending.length = rateScalars then Sponge.duplexM P s else pure s) >>= fun s ↦
+def Sponge.absorbWith (s : Sponge) (x : E) (tag : K) : m Sponge :=
+  (if s.pending.length = rateScalars then Sponge.duplexWith P s else pure s) >>= fun s ↦
     pure ⟨s.state, s.pending ++ [(x, tag)]⟩
 
 /-- Observe a scalar (`observe`). -/
-def Sponge.observeM (s : Sponge) (x : E) : m Sponge := Sponge.absorbM P s x dsObserve
+def Sponge.observeWith (s : Sponge) (x : E) : m Sponge := Sponge.absorbWith P s x dsObserve
 
 /-- Draw a challenge: a permutation of its own, whose lanes `0 … 2` are its limbs (`sample`). -/
-def Sponge.sampleM (s : Sponge) : m (E × Sponge) := do
-  let s ← Sponge.duplexM P s
+def Sponge.sampleWith (s : Sponge) : m (E × Sponge) := do
+  let s ← Sponge.duplexWith P s
   pure (ofLimbs (K.ofLane s.state[0]) (K.ofLane s.state[1]) (K.ofLane s.state[2]), s)
 
 /-- `n` challenges, in order. -/
-def Sponge.samplesM : ℕ → Sponge → m (List E)
+def Sponge.samplesWith : ℕ → Sponge → m (List E)
   | 0, _ => pure []
   | n + 1, s => do
-    let (z, s) ← Sponge.sampleM P s
-    let zs ← Sponge.samplesM n s
+    let (z, s) ← Sponge.sampleWith P s
+    let zs ← Sponge.samplesWith n s
     pure (z :: zs)
 
 /-- **The challenges `z_0 … z_13` of a root** (`membership_challenges`, `verifier/src/da.rs:15-22`):
 a sponge from the label, the root's words observed as two scalars `(w_0, w_1, 0)` and
 `(w_2, w_3, 0)`, then `14` samples. -/
-def membershipChallengesM (root : DigestBytes) : m (List E) := do
-  let s ← Sponge.fromLabelM P label
-  let s ← Sponge.observeM P s (ofLimbs (word root 0) (word root 1) 0)
-  let s ← Sponge.observeM P s (ofLimbs (word root 2) (word root 3) 0)
-  Sponge.samplesM P logK s
+def membershipChallengesWith (root : DigestBytes) : m (List E) := do
+  let s ← Sponge.fromLabelWith P membershipLabel
+  let s ← Sponge.observeWith P s (ofLimbs (digestWord root 0) (digestWord root 1) 0)
+  let s ← Sponge.observeWith P s (ofLimbs (digestWord root 2) (digestWord root 3) 0)
+  Sponge.samplesWith P logK s
 
 /-- Climb from `node` at index `idx` along the siblings `path`. -/
-def walkM : ℕ → DigestBytes → List DigestBytes → m DigestBytes
+def climbWith : ℕ → DigestBytes → List DigestBytes → m DigestBytes
   | _, node, [] => pure node
   | idx, node, s :: rest => do
     let d ← keccakDigestBytes P (if idx % 2 = 0 then pairBytes node s else pairBytes s node)
-    walkM (idx / 2) d rest
+    climbWith (idx / 2) d rest
 
 /-- **Verification of a cell opening**: a path of the column tree's height that climbs from the
 cell's digest to a column root, which hashed after the row root gives the commitment. -/
-def verifyCellM (r : ℕ) (com : DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) : m Bool :=
+def verifyCellWith (r : ℕ) (com : DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) : m
+    Bool :=
   do
   let d ← keccakDigestBytes P (cellBytes x)
-  let w ← walkM P (colIndex p) d τ.path
+  let w ← climbWith P (columnTreeIndex p) d τ.path
   let root ← keccakDigestBytes P (pairBytes τ.rowRoot w)
   pure (decide (τ.path.length = 7 + logPaddedRowCount r) && decide (root = com))
 
 /-- One level up a Merkle tree over an oracle (`merkleLevelUp`). -/
-def merkleLevelUpM (f : ℕ → m DigestBytes) (i : ℕ) : m DigestBytes := do
+def merkleLevelUpWith (f : ℕ → m DigestBytes) (i : ℕ) : m DigestBytes := do
   let a ← f (2 * i)
   let b ← f (2 * i + 1)
   keccakDigestBytes P (pairBytes a b)
 
 /-- The root of a Merkle tree over an oracle (`merkleRoot`). -/
-def merkleRootM : ℕ → (ℕ → m DigestBytes) → m DigestBytes
+def merkleRootWith : ℕ → (ℕ → m DigestBytes) → m DigestBytes
   | 0, f => f 0
-  | d + 1, f => merkleRootM d (merkleLevelUpM P f)
+  | d + 1, f => merkleRootWith d (merkleLevelUpWith P f)
 
 /-- The row tree's leaves over an oracle (`rowLeaves`). -/
-def rowLeavesM {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : m DigestBytes := do
+def rowLeavesWith {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : m DigestBytes := do
   let ds ← (List.range 64).mapM fun j ↦ keccakDigestBytes P (cellBytes (paddedCell c i j))
   keccakDigestBytes P (ds.flatMap Vector.toList)
 
 /-- The column tree's leaves over an oracle (`colLeaves`). -/
-def colLeavesM {r : ℕ} (c : Fin (r * 128) → Cell) (l : ℕ) : m DigestBytes :=
+def columnLeavesWith {r : ℕ} (c : Fin (r * 128) → Cell) (l : ℕ) : m DigestBytes :=
   keccakDigestBytes P (cellBytes (paddedCell c (l % paddedRowCount r) (l / paddedRowCount r)))
 
 /-- The row root over an oracle (`rowRoot`). -/
-def rowRootM {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes :=
-  merkleRootM P (logPaddedRowCount r) (rowLeavesM P c)
+def rowRootWith {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes :=
+  merkleRootWith P (logPaddedRowCount r) (rowLeavesWith P c)
 
 /-- The column root over an oracle (`colRoot`). -/
-def colRootM {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes :=
-  merkleRootM P (7 + logPaddedRowCount r) (colLeavesM P c)
+def columnRootWith {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes :=
+  merkleRootWith P (7 + logPaddedRowCount r) (columnLeavesWith P c)
 
 /-- **The root of a matrix over an oracle** (`commitCells`). -/
-def commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes := do
-  let a ← rowRootM P c
-  let b ← colRootM P c
+def commitCellsWith {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes := do
+  let a ← rowRootWith P c
+  let b ← columnRootWith P c
   keccakDigestBytes P (pairBytes a b)
 
 end Monadic
@@ -535,7 +539,7 @@ variable (π : KeccakState → KeccakState)
 
 /-- The bytes of entries: three little-endian limbs each. -/
 def limbBytes (entries : List E) : List UInt8 :=
-  (entries.flatMap fun e ↦ [limb e 0, limb e 1, limb e 2]).flatMap kBytes
+  (entries.flatMap fun e ↦ [limb e 0, limb e 1, limb e 2]).flatMap symbolBytes
 
 /-- The digest of column `j` of a vector, its entries `256 j … 256 j + 255`. -/
 def columnDigest (vector : List E) (j : ℕ) : DigestBytes :=
@@ -550,22 +554,22 @@ def vectorDigest (vector : List E) : DigestBytes :=
 /-! ## LeanDA's code and the argument's relation -/
 
 /-- **LeanDA's erasure code**: `r` payloads, encoded row by row and cut into cells. -/
-noncomputable def code (r : ℕ) : ErasureCode Payload Cell r (r * 128) := ⟨encodeMatrix⟩
+noncomputable def leanDaErasureCode (r : ℕ) : ErasureCode Payload Cell r (r * 128) := ⟨encodeMatrix⟩
 
 /-- The challenges of the membership test. -/
-abbrev Challenges := Fin 14 → E
+abbrev MembershipChallenges := Fin 14 → E
 
 /-- The challenges of the sponge's list. -/
-def toChallenges (zs : List E) : Challenges := fun j ↦ zs.getD j 0
+def toChallenges (zs : List E) : MembershipChallenges := fun j ↦ zs.getD j 0
 
 /-- **The relation the argument proves**, over a permutation `P` in any monad: the cells commit to
 the root and pass the membership test on the root's challenges, drawn by the deployed duplex
 (`membershipChallengesM`), the hash Keccak-256 over `P`. In the games `P` is `π`
 (`queryPermutation`). -/
-noncomputable def relationM {m : Type → Type} [Monad m] (P : KeccakState → m KeccakState) {r : ℕ}
+noncomputable def relationWith {m : Type → Type} [Monad m] (P : KeccakState → m KeccakState) {r : ℕ}
     (root : DigestBytes) (c : Fin (r * 128) → Cell) : m Bool := do
-  let zs ← membershipChallengesM P root
-  let d ← commitCellsM P c
+  let zs ← membershipChallengesWith P root
+  let d ← commitCellsWith P c
   pure (decide (d = root) && membershipCheck (toChallenges zs) c)
 
 /-! ## Arguments in the random-permutation model -/
@@ -607,7 +611,7 @@ def OracleArgument.PerfectlyComplete {Stmt Wit Crs Proof : Type}
 /-- **LeanDA's relation for a permutation `π`**: `relationM` over `π`. -/
 noncomputable def relationForPermutation (r : ℕ) (π : Equiv.Perm KeccakState) (root : DigestBytes)
     (c : Fin (r * 128) → Cell) : Bool :=
-  Id.run (relationM (fun x ↦ pure (π x)) root c)
+  Id.run (relationWith (fun x ↦ pure (π x)) root c)
 
 /-- An argument for LeanDA's relation: the statement a root, the witness the cells. -/
 abbrev LeanDaArgument (r : ℕ) (Crs Proof : Type) :=
@@ -630,7 +634,7 @@ with their openings. -/
 abbrev PositionBindingAdversary (Crs Proof : Type) :=
   Unit × Crs →
     OracleComp RandomPermutationOracles
-      ((DigestBytes × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening)
+      ((DigestBytes × Proof) × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening)
 
 /-- **The position-binding game**: the argument's setup, the adversary, then the verifications:
 the argument's of the root's proof and the two openings'; it wins when all verify, at two
@@ -640,8 +644,8 @@ def positionBindingGame (A : PositionBindingAdversary r Crs Proof) :
   let crs ← liftM ps.setup
   let (com, p, x, τ, x', τ') ← A ((), crs)
   let ok ← ps.verify crs com.1 com.2
-  let b ← verifyCellM queryPermutation r com.1 p x τ
-  let b' ← verifyCellM queryPermutation r com.1 p x' τ'
+  let b ← verifyCellWith queryPermutation r com.1 p x τ
+  let b' ← verifyCellWith queryPermutation r com.1 p x' τ'
   pure (decide (x ≠ x') && ok && b && b')
 
 /-- A code-binding adversary: from the commitment key, a commitment and a list of opened
@@ -649,7 +653,7 @@ positions. -/
 abbrev CodeBindingAdversary (Crs Proof : Type) :=
   Unit × Crs →
     OracleComp RandomPermutationOracles
-      ((DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening))
+      ((DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening))
 
 /-- **The code-binding game**: the argument's setup, the adversary, then the verifications; it wins
 when the root's proof and every opening verify and no codeword agrees with the opened cells. -/
@@ -658,8 +662,9 @@ noncomputable def codeBindingGame (A : CodeBindingAdversary r Crs Proof) :
   let crs ← liftM ps.setup
   let (com, opened) ← A ((), crs)
   let ok ← ps.verify crs com.1 com.2
-  let verdicts ← opened.mapM fun o ↦ verifyCellM queryPermutation r com.1 o.1 o.2.1 o.2.2
-  pure (ok && verdicts.all id && !decide ((code r).Consistent (opened.map fun o ↦ (o.1, o.2.1))))
+  let verdicts ← opened.mapM fun o ↦ verifyCellWith queryPermutation r com.1 o.1 o.2.1 o.2.2
+  pure (ok && verdicts.all id && !decide ((leanDaErasureCode r).Consistent (opened.map fun o ↦ (o.1,
+      o.2.1))))
 
 /-- A knowledge-soundness adversary: from the crs, a root and a proof. -/
 abbrev KnowledgeSoundnessAdversary (Crs Proof : Type) :=
@@ -675,7 +680,7 @@ noncomputable def knowledgeSoundnessGame (B : KnowledgeSoundnessAdversary Crs Pr
   let crs ← liftM ps.setup
   let ((root, proof), log) ← (simulateQ loggedOracles (B crs)).run []
   let v ← ps.verify crs root proof
-  let ok ← relationM queryPermutation root (ext crs root proof log)
+  let ok ← relationWith queryPermutation root (ext crs root proof log)
   pure (v && !ok)
 
 /-- **The completeness experiment for a permutation `π`** (Wagner's, Foundations Definition 8,
@@ -687,10 +692,10 @@ noncomputable def completenessExperiment (π : Equiv.Perm KeccakState)
     (ps : LeanDaArgument r Crs Proof)
     (msg : Fin r → Payload) (p : Fin (r * 128)) : ProbComp Bool := do
   let crs ← ps.setup
-  let c := (code r).encode msg
+  let c := (leanDaErasureCode r).encode msg
   let root := commitCells π c
   let ok ← simulateQ (oraclesFromPermutation π) (ps.prove crs root c >>= ps.verify crs root)
-  pure (ok && Id.run (verifyCellM (fun x ↦ pure (π x)) r root p (c p) (openCell π c p)))
+  pure (ok && Id.run (verifyCellWith (fun x ↦ pure (π x)) r root p (c p) (openCell π c p)))
 
 /-! ### The end statements -/
 
@@ -702,7 +707,7 @@ verifier answered by `π`): every position `p` of the honest commitment to every
 opens and verifies with probability one (`completenessExperiment`). Holding for each `π`, it holds
 for every outcome of the binding statements' uniformly random permutation. The proof is Wagner's
 completeness proof, transferred. Proved by `LeanDa.leanDa_perfectlyComplete_rpm`. -/
-abbrev PerfectlyCompleteRpm : Prop :=
+abbrev LeanDaPerfectlyComplete : Prop :=
   ∀ (r : ℕ) (π : Equiv.Perm KeccakState) {Crs Proof : Type} (ps : LeanDaArgument r Crs Proof),
     ps.PerfectlyComplete (relationForPermutation r) →
       ∀ (msg : Fin r → Payload) (p : Fin (r * 128)),
@@ -715,7 +720,7 @@ calls of `π` and `π⁻¹` on every path (`permutationCallCost`; a hash of `n` 
 position to two different cells is at most `(Q + 1)² · 2^-256`, for every `Q` (past `2^128` the
 bound exceeds one). Proved by
 `LeanDa.leanDa_positionBinding_rpm`. -/
-abbrev PositionBindingRpm : Prop :=
+abbrev LeanDaPositionBinding : Prop :=
   ∀ (r : ℕ) {Crs Proof : Type} (ps : LeanDaArgument r Crs Proof)
     (A : PositionBindingAdversary r Crs Proof)
     (Q : ℕ), QueryCostAtMost (positionBindingGame r ps A) permutationCallCost Q →
@@ -751,7 +756,7 @@ check, cannot meet the hypothesis in this model: an adversary computes such a ro
 to `π` and proves its opening honestly, and no straight-line extractor finds a `π`-preimage of it.
 The theorem covers arguments whose relation is evaluated over `π`. Proved by
 `LeanDa.leanDa_codeBinding_rpm_bound`. -/
-abbrev CodeBindingRpm : Prop :=
+abbrev LeanDaCodeBinding : Prop :=
   ∀ (r : ℕ) {Crs Proof : Type} (ps : LeanDaArgument r Crs Proof)
     (ext : StraightLineExtractor DigestBytes (Fin (r * 128) → Cell) Crs Proof) (c k : ℕ),
     (∀ (B : KnowledgeSoundnessAdversary Crs Proof) (q : ℕ),

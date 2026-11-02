@@ -131,7 +131,7 @@ noncomputable def nextOf {κ : ℕ} (img : MemoryImage κ) (sk : Skel) : Registe
 
 /-- A skeleton is sound for the program and the image: the program fetches its instruction at its
 counter, and the instruction executes from its state. -/
-def SkelOk {κ : ℕ} (prog : Program) (img : MemoryImage κ) (sk : Skel) : Prop :=
+def SkelOk {κ : ℕ} (prog : LeanIsaProgram) (img : MemoryImage κ) (sk : Skel) : Prop :=
   prog.fetch sk.pc = some sk.ins ∧ ∃ next, execute img sk.regs sk.ins = some next
 
 /-- The raw row of a row of the witness, in the table of its instruction's opcode. -/
@@ -140,7 +140,7 @@ noncomputable def PRow.raw {κ : ℕ} (img : MemoryImage κ) (r : PRow) : Array 
 
 /-- What a row of the witness sends. -/
 noncomputable def PRow.sends {κ : ℕ} (img : MemoryImage κ) (r : PRow) : List (String × Array K) :=
-  sendsOf r.sk.pc r.sk.fp (nextOf img r.sk) (g ^ r.bc) (entry r.sk.ins)
+  sendsOf r.sk.pc r.sk.fp (nextOf img r.sk) (g ^ r.bc) (busEntry r.sk.ins)
     (readsOf img r.sk.fp r.cnt r.sk.ins)
 
 /-- The row circuit of a row of an executing skeleton sends what `PRow.sends` says. -/
@@ -177,13 +177,13 @@ noncomputable def memMsg {κ : ℕ} (img : MemoryImage κ) (a : K) (e : ℕ) : A
   memMsgOf a (g ^ e) (img.limbsAt a)
 
 /-- The entry the program holds at the counter `pc`, `0` where it holds none. -/
-noncomputable def entryAt (prog : Program) (pc : K) : Vector K 11 :=
+noncomputable def entryAt (prog : LeanIsaProgram) (pc : K) : Vector K 11 :=
   match prog.fetch pc with
-  | some ins => entry ins
+  | some ins => busEntry ins
   | none => 0
 
 /-- The message of the bytecode slot at `pc` with the number `e`. -/
-noncomputable def bcMsg (prog : Program) (pc : K) (e : ℕ) : Array K :=
+noncomputable def bcMsg (prog : LeanIsaProgram) (pc : K) (e : ℕ) : Array K :=
   bcMsgOf pc (g ^ e) (entryAt prog pc)
 
 /-- A row's memory pulls are the messages of the cells it reads, numbered as its row says. -/
@@ -244,13 +244,13 @@ theorem mkRows_memPushes {κ : ℕ} (img : MemoryImage κ) (sm sb : K → ℕ) (
 
 /-- A row of a skeleton the program fetches pulls the bytecode entry at its counter with its
 number. -/
-theorem PRow.bcPulls_eq {κ : ℕ} {prog : Program} (img : MemoryImage κ) (r : PRow)
+theorem PRow.bcPulls_eq {κ : ℕ} {prog : LeanIsaProgram} (img : MemoryImage κ) (r : PRow)
     (h : prog.fetch r.sk.pc = some r.sk.ins) :
     ((r.sends img).filter (·.1 = BytecodePull.name)).map (·.2) = [bcMsg prog r.sk.pc r.bc] := by
   rw [PRow.sends, sendsOf_bcPull, bcMsg, entryAt, h]
 
 /-- … and pushes it with the next. -/
-theorem PRow.bcPushes_eq {κ : ℕ} {prog : Program} (img : MemoryImage κ) (r : PRow)
+theorem PRow.bcPushes_eq {κ : ℕ} {prog : LeanIsaProgram} (img : MemoryImage κ) (r : PRow)
     (h : prog.fetch r.sk.pc = some r.sk.ins) :
     ((r.sends img).filter (·.1 = BytecodePush.name)).map (·.2) =
       [bcMsg prog r.sk.pc (r.bc + 1)] := by
@@ -258,7 +258,7 @@ theorem PRow.bcPushes_eq {κ : ℕ} {prog : Program} (img : MemoryImage κ) (r :
 
 /-- The bytecode pulls of the rows of a list of fetched skeletons are the messages of their
 counters, numbered by the chain over the counters. -/
-theorem mkRows_bcPulls {κ : ℕ} {prog : Program} (img : MemoryImage κ) (sm sb : K → ℕ)
+theorem mkRows_bcPulls {κ : ℕ} {prog : LeanIsaProgram} (img : MemoryImage κ) (sm sb : K → ℕ)
     (S : List Skel) (hS : ∀ sk ∈ S, prog.fetch sk.pc = some sk.ins) :
     (mkRows img sm sb S).flatMap
         (fun r ↦ ((r.sends img).filter (·.1 = BytecodePull.name)).map (·.2)) =
@@ -273,7 +273,7 @@ theorem mkRows_bcPulls {κ : ℕ} {prog : Program} (img : MemoryImage κ) (sm sb
     exact ih _ _ fun sk' h ↦ hS sk' (List.mem_cons_of_mem _ h)
 
 /-- The bytecode pushes of the rows of a list of fetched skeletons, likewise. -/
-theorem mkRows_bcPushes {κ : ℕ} {prog : Program} (img : MemoryImage κ) (sm sb : K → ℕ)
+theorem mkRows_bcPushes {κ : ℕ} {prog : LeanIsaProgram} (img : MemoryImage κ) (sm sb : K → ℕ)
     (S : List Skel) (hS : ∀ sk ∈ S, prog.fetch sk.pc = some sk.ins) :
     (mkRows img sm sb S).flatMap
         (fun r ↦ ((r.sends img).filter (·.1 = BytecodePush.name)).map (·.2)) =

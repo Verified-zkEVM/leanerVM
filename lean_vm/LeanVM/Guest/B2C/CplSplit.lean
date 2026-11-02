@@ -34,7 +34,7 @@ open LeanVM.Guest.Check
 
 /-! ## Walks of atoms read no cell -/
 
-theorem justI_loc (X : CX) (L : CLoc) (st : CW) (pc : ℕ) (ins : OInstr) :
+theorem justI_loc (X : CX) (L : CLoc) (st : CW) (pc : ℕ) (ins : OffsetInstruction) :
     justI { X with loc := L } st pc ins = justI X st pc ins := rfl
 
 theorem cellK_loc (X : CX) (L : CLoc) (st : CW) (o : ℕ) : cellK { X with loc := L } st o = cellK X st o :=
@@ -149,10 +149,12 @@ end Congr
 /-- A group's cells in window `i`: the window's of the values `lo + gm` on (`gn` of them) packed, those
 of arm `0`'s values `lo + am` on (`an`) and of the values named outside the window listed. -/
 noncomputable def clocG (C : Cert) (i gm gn am an : ℕ) : CLoc :=
-  ⟨nth C.los i 0 + gm, (((nth C.cells i []).drop gm).take gn).length,
-    packC (((nth C.cells i []).drop gm).take gn),
-    nth C.ins i [] ++ ((((nth C.cells i []).drop am).take an).zipIdx).map fun p ↦
-      (nth C.los i 0 + am + p.2, p.1, 0)⟩
+  ⟨listElementOrDefault C.los i 0 + gm, (((listElementOrDefault C.cells i []).drop gm).take
+      gn).length,
+    packC (((listElementOrDefault C.cells i []).drop gm).take gn),
+    listElementOrDefault C.ins i [] ++ ((((listElementOrDefault C.cells i []).drop am).take
+        an).zipIdx).map fun p ↦
+      (listElementOrDefault C.los i 0 + am + p.2, p.1, 0)⟩
 
 theorem insC_append (v : ℕ) : ∀ (l₁ l₂ : List (ℕ × ℕ × ℕ)),
     insC v (l₁ ++ l₂) = match insC v l₁ with
@@ -177,15 +179,15 @@ theorem insC_some {v c : ℕ} : ∀ {l : List (ℕ × ℕ × ℕ)}, insC v l = s
 /-- What a completeness window split by arms checks once: its cells below `2^16`, the values it
 names outside it below it. -/
 def cplFits (C : Cert) (i : ℕ) : Bool :=
-  (nth C.cells i []).all (fun c ↦ Nat.blt c 65536) &&
-    (nth C.ins i []).all fun p ↦ Nat.blt p.1 (nth C.los i 0)
+  (listElementOrDefault C.cells i []).all (fun c ↦ Nat.blt c 65536) &&
+    (listElementOrDefault C.ins i []).all fun p ↦ Nat.blt p.1 (listElementOrDefault C.los i 0)
 
 theorem clocG_get {C : Cert} {i gm gn am an : ℕ} (hf : cplFits C i = true) {v c : ℕ}
     (h : (clocG C i gm gn am an).get? v = some c) : (clocW C i).get? v = some c := by
   simp only [cplFits, Bool.and_eq_true, List.all_eq_true, Nat.blt_eq] at hf
   obtain ⟨hc, hins⟩ := hf
-  set cells := nth C.cells i []
-  set lo := nth C.los i 0
+  set cells := listElementOrDefault C.cells i []
+  set lo := listElementOrDefault C.los i 0
   have hwin : ∀ (hm : v - lo < cells.length), lo ≤ v → (clocW C i).get? v = some cells[v - lo] := by
     intro hm hv
     have hcond : (Nat.ble lo v && Nat.blt v (Nat.add lo cells.length)) = true := by
@@ -193,13 +195,13 @@ theorem clocG_get {C : Cert} {i gm gn am an : ℕ} (hf : cplFits C i = true) {v 
       exact ⟨hv, by show v < lo + cells.length; omega⟩
     show (bif Nat.ble lo v && Nat.blt v (Nat.add lo cells.length) then
       some (Nat.mod (Nat.div (packC cells) (Nat.pow 65536 (Nat.sub v lo))) 65536)
-      else insC v (nth C.ins i [])) = _
+      else insC v (listElementOrDefault C.ins i [])) = _
     rw [hcond, Bool.cond_true]
     exact congrArg some (packC_digit cells hc _ hm)
   have hg : (clocG C i gm gn am an).get? v =
       (bif Nat.ble (lo + gm) v && Nat.blt v (Nat.add (lo + gm) ((cells.drop gm).take gn).length) then
         some (Nat.mod (Nat.div (packC ((cells.drop gm).take gn)) (Nat.pow 65536 (Nat.sub v (lo + gm)))) 65536)
-      else insC v (nth C.ins i [] ++ (((cells.drop am).take an).zipIdx).map fun p ↦
+      else insC v (listElementOrDefault C.ins i [] ++ (((cells.drop am).take an).zipIdx).map fun p ↦
         (lo + am + p.2, p.1, 0))) := rfl
   rw [hg] at h
   cases hr : (Nat.ble (lo + gm) v && Nat.blt v (Nat.add (lo + gm) ((cells.drop gm).take gn).length))
@@ -214,7 +216,7 @@ theorem clocG_get {C : Cert} {i gm gn am an : ℕ} (hf : cplFits C i = true) {v 
         rw [this, Bool.false_and]
       show (bif Nat.ble lo p.1 && Nat.blt p.1 (Nat.add lo cells.length) then
         some (Nat.mod (Nat.div (packC cells) (Nat.pow 65536 (Nat.sub p.1 lo))) 65536)
-        else insC p.1 (nth C.ins i [])) = _
+        else insC p.1 (listElementOrDefault C.ins i [])) = _
       rw [hcond, Bool.cond_false, hc']
       exact h
     · obtain ⟨p, hp, hv, hpc⟩ := insC_some h
@@ -600,7 +602,8 @@ noncomputable def cplWinS (j i lo hi gm gn am an : ℕ) : Bool :=
   Nat.beq (nParts j i) 1 && Nat.beq (partM j i 0) 0 && Nat.blt i (certOf j).cuts.length &&
   match partStmts j i 0 with
   | [.match_ v (a0 :: as)] =>
-    matchAtoms lo hi [.match_ v (a0 :: as)] && (armKeyD (nth Data.cplArms j []) v.idx).isNone &&
+    matchAtoms lo hi [.match_ v (a0 :: as)] && (armKeyD (listElementOrDefault Data.cplArms j [])
+        v.idx).isNone &&
     match execWinC (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
         ((certOf j).endAt (fnOf j) i) with
     | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦
@@ -665,7 +668,7 @@ theorem cplWin_of_split {j i : ℕ} (gs : List (ℕ × ℕ × ℕ × ℕ × ℕ 
   -- each group's facts
   have hG : ∀ g ∈ gs, nParts j i = 1 ∧ partM j i 0 = 0 ∧ i < (certOf j).cuts.length ∧
       matchAtoms g.1 g.2.1 [.match_ v (a0 :: as)] = true ∧
-      armKeyD (nth Data.cplArms j []) v.idx = none ∧
+      armKeyD (listElementOrDefault Data.cplArms j []) v.idx = none ∧
       (∀ x ∈ stmtsVals (selStmts g.1 g.2.1 [.match_ v (a0 :: as)]),
         ((clocG (certOf j) i g.2.2.1 g.2.2.2.1 g.2.2.2.2.1 g.2.2.2.2.2).get? x.idx).isSome = true) ∧
       ∃ s, getF (index segs) (partJ j i 0) = some s ∧ s.start = partJ j i 0 ∧

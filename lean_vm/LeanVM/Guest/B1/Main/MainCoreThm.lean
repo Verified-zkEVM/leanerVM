@@ -159,15 +159,15 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
     · rw [h, rdAt_of_load hv]
   have r386 : σ (.n 386) = gen ^ m.total :=
     rdL 386 385 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v385]; exact hm.wN)
-  have r429 : σ (.n 429) = (digestScalars m.dap).1 :=
+  have r429 : σ (.n 429) = (digestHalves m.dap).1 :=
     rdL 429 401 0 _ (by decide +kernel) (by simp [mStoresL]) (by
       rw [v401]; exact hm.dap 0 (by simp [digestCells]))
-  have r430 : σ (.n 430) = (digestScalars m.dap).2 :=
+  have r430 : σ (.n 430) = (digestHalves m.dap).2 :=
     rdL 430 401 1 _ (by decide +kernel) (by simp [mStoresL]) (by
       rw [v401]; exact hm.dap 1 (by simp [digestCells]))
-  have r434 : σ (.n 434) = (digestScalars m.sdg).1 :=
+  have r434 : σ (.n 434) = (digestHalves m.sdg).1 :=
     rdL 434 433 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v433]; exact hm.h0)
-  have r438 : σ (.n 438) = (digestScalars m.sdg).2 :=
+  have r438 : σ (.n 438) = (digestHalves m.sdg).2 :=
     rdL 438 437 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v437]; exact hm.h1)
   -- the side conditions
   have hS : ∀ a ∈ atomsIn mFlat, a ∉ mStores → needsSide a = true →

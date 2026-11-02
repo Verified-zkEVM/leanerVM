@@ -51,7 +51,7 @@ theorem take_append_drop' (xs : List E) (n : ℕ) : xs = xs.take n ++ xs.drop n 
 /-- The query steps of a level's queries and intro: the query, then the continuation's. -/
 theorem rest_qs {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} {ws1 : WhirStateT}
     {pending : List (E × List E × (List E → E))} {F2 : Fs} {R : List (Digest × ℕ × ℕ)}
-    (hd : 1 ≤ 192 / (ml + level.logInvRate)) {K : WhirStateT → Prog β}
+    (hd : 1 ≤ 192 / (ml + level.logInvRate)) {K : WhirStateT → VerifierProgram β}
     {osL osR : List Opening} {ic0 ic2 : E} {xsR : List E} {root : Digest} {height width : ℕ}
     (hlam : (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2.squeeze.1 ≠ 0)
     (hR : R[index]? = some (root, height, width))
@@ -65,8 +65,9 @@ theorem rest_qs {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} 
           (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1
           level.queries)[k] osL[k]) = true) :
     queryStepsOf ((sampleQueries (ml + level.logInvRate) level.queries).bind fun queries ↦
-      Prog.sampleChallenge.bind fun lam ↦ (Prog.require (lam ≠ 0)).bind fun _ ↦
-        (Prog.queryOpenings index queries).bind fun words ↦
+      VerifierProgram.sampleChallenge.bind fun lam ↦ (VerifierProgram.require (lam ≠ 0)).bind
+          fun _ ↦
+        (VerifierProgram.queryOpenings index queries).bind fun words ↦
           (sumcheckRoundPoly 3 (enforcedSum (if index = 0 then words.map fun row ↦ row.reverse.map ofK
             else words.map extRow) lf (powers lam queries.length)) none).bind fun intro ↦
             K (glueT lam ws1 (pending ++ [(enforcedSum (if index = 0 then
@@ -118,17 +119,18 @@ theorem head_inv {μ r : ℕ} {target : E} {F : Fs} {xs : List E} {os : List Ope
         queryStepsOf (whirLevelsOpenNZ μ ((cfg.head?.map (·.fold)).getD 0) 0 cfg
           ⟨target, [c0, target + c2, c2], [], []⟩)
           ⟨(F.absorb c0 dsObserve).absorb c2 dsObserve, xs', os, R⟩ := by
-  simp only [whirOpenNZ, Prog.bind_eq] at h
+  simp only [whirOpenNZ, VerifierProgram.bind_eq] at h
   cases hc : Whir.ladder μ r with
-  | none => simp [hc, Verifier.liftOption, Prog.bind, runF] at h
+  | none => simp [hc, Verifier.liftOption, VerifierProgram.bind, runF] at h
   | some cfg =>
-    simp only [hc, Verifier.liftOption, Prog.ret_bind] at h
+    simp only [hc, Verifier.liftOption, VerifierProgram.ret_bind] at h
     rw [sumcheck3_bind] at h
     obtain ⟨c0, xs1, hx1, h1⟩ := runF_readE_bind h
     obtain ⟨c2, xs2, hx2, h2⟩ := runF_readE_bind h1
     subst hx1 hx2
     refine ⟨cfg, c0, c2, xs2, rfl, rfl, h2, ?_⟩
-    simp only [whirOpenNZ, Prog.bind_eq, hc, Verifier.liftOption, Prog.ret_bind, sumcheck3_bind]
+    simp only [whirOpenNZ, VerifierProgram.bind_eq, hc, Verifier.liftOption,
+        VerifierProgram.ret_bind, sumcheck3_bind]
     rfl
 
 /-- **A level that is not the last, backwards.** -/
@@ -149,9 +151,9 @@ theorem level_nf_inv {logN lane index : ℕ} {level next : Whir.Level} {rest : L
             (next :: rest) L.wsEnd)
             ⟨L.Fend, xsR, osR, R ++ [(d, levelShape L.ml next (3 * 2 ^ next.fold))]⟩ := by
   rw [whirLevelsOpenNZ] at h
-  simp only [Prog.bind_eq, Prog.pure_eq] at h
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq] at h
   obtain ⟨hl, hnz, h1⟩ := foldsNZ_inv _ _ _ _ _ _ _ _ h
-  simp only [Prog.ret_bind, List.nil_append] at h1
+  simp only [VerifierProgram.ret_bind, List.nil_append] at h1
   have hF1 : (foldsTr level.fold F ws.quad ws.target xs).1.pend.length = 2 :=
     foldsTr_pend _ _ _ _ _ hF
   have hfl : (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length =
@@ -246,9 +248,9 @@ theorem level_nf_inv {logN lane index : ℕ} {level next : Whir.Level} {rest : L
     exact h7
   · rw [eWsEnd, eFend, eEnf, eLam, eWs1, ePend, eQs, eMl]
     rw [whirLevelsOpenNZ]
-    simp only [Prog.bind_eq, Prog.pure_eq]
+    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     rw [qs_folds _ _ _ _ _ _ _ hl hnz]
-    simp only [Prog.ret_bind, List.nil_append]
+    simp only [VerifierProgram.ret_bind, List.nil_append]
     rw [hx2, qs_commitP_bind _ _ _ _ _ _ _ hdig, absorb_two hF1, qs_sampleN_bind,
       squeezeN_cF1 _ _ (by rw [hfl]; exact hml), qs_readE_bind, sumcheck3_bind, qs_readE_bind,
       qs_readE_bind, qs_grindP_bind _ _ _ _ _ _ (by rw [absorb_four]; exact hpow), absorb_four, eos]
@@ -276,7 +278,7 @@ theorem level_fin_inv {logN lane index : ℕ} {level : Whir.Level} {ws : WhirSta
       queryStepsOf (whirLevelsOpenNZ logN lane index [level] ws) ⟨F, xs, os, R⟩ =
         [(L.height, L.qs.zip L.os)] := by
   rw [whirLevelsOpenNZ_last] at h
-  simp only [Prog.bind_eq] at h
+  simp only [VerifierProgram.bind_eq] at h
   obtain ⟨hl, hnz, h1⟩ := foldsNZ_inv _ _ _ _ _ _ _ _ h
   simp only at h1
   have hfl : (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length =
@@ -373,7 +375,7 @@ theorem level_fin_inv {logN lane index : ℕ} {level : Whir.Level} {ws : WhirSta
               level.queries).length) x)] := by
     rw [eWsEnd, eEnf, eLam, eWs1, ePend, eQs, eMl]
     rfl
-  simp only [levelTailNZ, Prog.bind_eq, Prog.pure_eq] at h7
+  simp only [levelTailNZ, VerifierProgram.bind_eq, VerifierProgram.pure_eq] at h7
   obtain ⟨htl, htnz, h8⟩ := tailNZ_inv _ _ _ _ _ _ _ _ h7
   simp only at h8
   have hres := runF_ret_some h8
@@ -398,13 +400,14 @@ theorem level_fin_inv {logN lane index : ℕ} {level : Whir.Level} {ws : WhirSta
   · rw [eW, eFend, eMl]; exact htnz
   · rw [eW, eFend, eMl]; exact hres
   · rw [eQs, whirLevelsOpenNZ_last]
-    simp only [Prog.bind_eq]
+    simp only [VerifierProgram.bind_eq]
     rw [qs_folds _ _ _ _ _ _ _ hl hnz]
     simp only
     rw [qs_readN_bind _ _ _ _ _ _ hml, hx3, qs_grindP_bind _ _ _ _ _ _ hpow, eos]
-    simp only [levelRestNZ, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+    simp only [levelRestNZ, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+        VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
     rw [rest_qs hd' hlam hroot hol hok]
-    simp only [List.nil_append, levelTailNZ, Prog.bind_eq, Prog.pure_eq]
+    simp only [List.nil_append, levelTailNZ, VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     rw [qs_tail _ _ _ _ _ _ _ htl htnz]
     rfl
 

@@ -128,19 +128,19 @@ sentinel (`3`), an `XOR` loop in frame `g^5` (`4`, `5`), a `DEREF` loop in the s
 block's first counter `d`, and its own frame `f`. The `KECCAK` operands are the executor
 test's layout moved into the frame: `m = [0, 1, 0, 1]`, `tail = 2`, `b8 = 6`, `cap = 7`,
 `out = 11`, even layout in, odd layout out. -/
-def walkProg : Program :=
+def walkProg : LeanIsaProgram :=
   ⟨5, by decide, fun i ↦
     match (i : ℕ) with
-    | 0 => .setConstant (gpow 2) mulX
-    | 1 => .setConstant (gpow 3) mulY
-    | 2 => .mulNative (gpow 2) (gpow 3) (gpow 4)
-    | 3 => .jump (gpow 41) (gpow 42) (gpow 43)
+    | 0 => .setConstant (addressOfIndex 2) mulX
+    | 1 => .setConstant (addressOfIndex 3) mulY
+    | 2 => .mulNative (addressOfIndex 2) (addressOfIndex 3) (addressOfIndex 4)
+    | 3 => .jump (addressOfIndex 41) (addressOfIndex 42) (addressOfIndex 43)
     | 4 => .xor 1 1 1
-    | 5 => .jump g (gpow 2) (gpow 6)
-    | 6 => .deref (gpow 6) 1 1 .cell
-    | 7 => .jump g (gpow 3) (gpow 6)
-    | 8 => .keccak ![1, g, 1, g] (gpow 2) (gpow 6) (gpow 7) (gpow 11) false true
-    | 9 => .jump (gpow 24) (gpow 25) (gpow 26)
+    | 5 => .jump g (addressOfIndex 2) (addressOfIndex 6)
+    | 6 => .deref (addressOfIndex 6) 1 1 .cell
+    | 7 => .jump g (addressOfIndex 3) (addressOfIndex 6)
+    | 8 => .keccak ![1, g, 1, g] (addressOfIndex 2) (addressOfIndex 6) (addressOfIndex 7) (addressOfIndex 11) false true
+    | 9 => .jump (addressOfIndex 24) (addressOfIndex 25) (addressOfIndex 26)
     | _ => .xor 1 1 1⟩
 
 /-- The forty-four cells the run and the loops touch, by index, the `KECCAK` output cells holding
@@ -152,9 +152,11 @@ operands and the product (`2..4`), the sentinel `JUMP`'s `c, d, f` (`41..43`). F
 `c, d, f` (`38..40`). -/
 def walkCells (L : Vector K 25) : Array E :=
   ([cellK 1, cellK (K.ofBits 2), mulX, mulY, mulXY,
-    0, cellK 1, cellK (gpow 4), cellK (gpow 6), 0, 0, cellK (gpow 5), 0, 0,
+    0, cellK 1, cellK (addressOfIndex 4), cellK (addressOfIndex 6), 0, 0, cellK (addressOfIndex
+        5), 0, 0,
     kA, kB, kPad, 0, 0, 0, kEnd, 0, 0, 0, 0] ++ outCells L ++
-    [cellK 1, cellK (gpow 8), cellK (gpow 14), cellK 1, cellK (gpow 31), cellK 1]).toArray
+    [cellK 1, cellK (addressOfIndex 8), cellK (addressOfIndex 14), cellK 1, cellK (addressOfIndex
+        31), cellK 1]).toArray
 
 /-- The image, at the minimum size `2^16`. -/
 def walkImage (L : Vector K 25) : MemoryImage minLogMem := fun i ↦ ((walkCells L)[(i : ℕ)]?).getD 0
@@ -209,28 +211,35 @@ def bcCntFin (i : Fin (2 ^ walkProg.logSize)) : K := bcCnt i
 -- Frame `1`: the run.
 /-- Slot `0`, `SET_CONSTANT g^2 ← x`, with read count `c` (`1` for the honest prover). -/
 def setRow0 (c : K) : SetRow K :=
-  ⟨gpow 0, 1, gpow 2, #v[mulX.limb 0, mulX.limb 1, mulX.limb 2], c, 1⟩
+  ⟨addressOfIndex 0, 1, addressOfIndex 2, #v[mulX.limb 0, mulX.limb 1, mulX.limb 2], c, 1⟩
 /-- Slot `1`, `SET_CONSTANT g^3 ← y`. -/
-def setRow1 : SetRow K := ⟨gpow 1, 1, gpow 3, #v[mulY.limb 0, mulY.limb 1, mulY.limb 2], 1, 1⟩
+def setRow1 : SetRow K := ⟨addressOfIndex 1, 1, addressOfIndex 3, #v[mulY.limb 0, mulY.limb 1,
+    mulY.limb 2], 1, 1⟩
 /-- Slot `2`, `MUL_NATIVE`: the read of `x` with count `rA` (`g` for the honest prover, the
 second read), the second read of `y`, the first of the product. -/
 def mulRow (rA : K) : MulRow K :=
-  ⟨gpow 2, 1, gpow 2, gpow 3, gpow 4, #v[mulX.limb 0, mulX.limb 1, mulX.limb 2],
+  ⟨addressOfIndex 2, 1, addressOfIndex 2, addressOfIndex 3, addressOfIndex 4, #v[mulX.limb 0,
+      mulX.limb 1, mulX.limb 2],
     #v[mulY.limb 0, mulY.limb 1, mulY.limb 2], rA, g, 1, 1⟩
 /-- Slot `3`, the `JUMP` to the sentinel: `(g^3, 1) → (g^31, 1)`. -/
-def jumpRow3 : JumpRow K := ⟨gpow 3, 1, gpow 41, gpow 42, gpow 43, 1, gpow 31, 1, 1, 1, 1, 1⟩
+def jumpRow3 : JumpRow K := ⟨addressOfIndex 3, 1, addressOfIndex 41, addressOfIndex 42,
+    addressOfIndex 43, 1, addressOfIndex 31, 1, 1, 1, 1, 1⟩
 
 -- Frame `g^5`: the `XOR` and `DEREF` blocks.
 /-- Slot `4`, `XOR 1 1 1` on the zero cell `g^5`: three reads. -/
-def xorRow : XorRow K := ⟨gpow 4, gpow 5, 1, 1, 1, #v[0, 0, 0], #v[0, 0, 0], 1, g, g ^ 2, 1⟩
+def xorRow : XorRow K := ⟨addressOfIndex 4, addressOfIndex 5, 1, 1, 1, #v[0, 0, 0], #v[0, 0, 0], 1,
+    g, g ^ 2, 1⟩
 /-- Slot `5`, the `JUMP` back to slot `4`. -/
-def jumpRow5 : JumpRow K := ⟨gpow 5, gpow 5, g, gpow 2, gpow 6, 1, gpow 4, gpow 5, 1, 1, 1, 1⟩
+def jumpRow5 : JumpRow K := ⟨addressOfIndex 5, addressOfIndex 5, g, addressOfIndex 2, addressOfIndex
+    6, 1, addressOfIndex 4, addressOfIndex 5, 1, 1, 1, 1⟩
 /-- Slot `6`, `DEREF` in `cell` mode: the pointer `g^5` at `g^11`, the local and target cell
 both `g^5` (its fourth and fifth reads). -/
 def derefRow : DerefRow K :=
-  ⟨gpow 6, gpow 5, gpow 6, 1, 1, 0, 0, gpow 5, #v[0, 0, 0], g, g ^ 4, g ^ 3, 1⟩
+  ⟨addressOfIndex 6, addressOfIndex 5, addressOfIndex 6, 1, 1, 0, 0, addressOfIndex 5, #v[0, 0, 0],
+      g, g ^ 4, g ^ 3, 1⟩
 /-- Slot `7`, the `JUMP` back to slot `6`. -/
-def jumpRow7 : JumpRow K := ⟨gpow 7, gpow 5, g, gpow 3, gpow 6, 1, gpow 6, gpow 5, g, 1, g ^ 2, 1⟩
+def jumpRow7 : JumpRow K := ⟨addressOfIndex 7, addressOfIndex 5, g, addressOfIndex 3, addressOfIndex
+    6, 1, addressOfIndex 6, addressOfIndex 5, g, 1, g ^ 2, 1⟩
 
 -- Frame `g^14`: the `KECCAK` block.
 /-- The `KECCAK` row's read counts: the first reads of `a, b`, their second reads (the aliased
@@ -240,11 +249,13 @@ def kCnt : Vector K 26 :=
 /-- Slot `8`, the executor's `KECCAK` row in frame `g^14`, with output lanes `L` (`kLout` for the
 honest prover): even layout in (flag `0`), odd layout out (flag `1`), the free limb `0x5555`. -/
 def kRow (L : Vector K 25) : KeccakRow K :=
-  ⟨gpow 8, gpow 14, #v[1, g, 1, g], gpow 2, gpow 6, gpow 7, gpow 11, 0, 1, K.ofBits 0x5555, kLin,
+  ⟨addressOfIndex 8, addressOfIndex 14, #v[1, g, 1, g], addressOfIndex 2, addressOfIndex 6,
+      addressOfIndex 7, addressOfIndex 11, 0, 1, K.ofBits 0x5555, kLin,
     L, kCnt, 1⟩
 /-- Slot `9`, the `JUMP` back to slot `8`. -/
 def jumpRow9 : JumpRow K :=
-  ⟨gpow 9, gpow 14, gpow 24, gpow 25, gpow 26, 1, gpow 8, gpow 14, 1, 1, 1, 1⟩
+  ⟨addressOfIndex 9, addressOfIndex 14, addressOfIndex 24, addressOfIndex 25, addressOfIndex 26, 1,
+      addressOfIndex 8, addressOfIndex 14, 1, 1, 1, 1⟩
 
 /-- The `JUMP` rows as raw rows `jumpRaw r 1 1`, their two local witnesses `w = 1`, `b = 1`
 (every condition is `1`), have the table's width. -/
@@ -258,13 +269,14 @@ theorem jumpRaws_size (rs : List (JumpRow K)) :
 
 /-- Row `i` of the memory block: `(g^i, cnt i, mem[i])`, the raw form of the typed row. -/
 def memRowArr (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) : Array K :=
-  (toElements (⟨gpow i, cnt i,
+  (toElements (⟨addressOfIndex i, cnt i,
     #v[(walkImage L i).limb 0, (walkImage L i).limb 1, (walkImage L i).limb 2]⟩ : MemRow K)).toArray
 
 /-- The memory row's five coordinates, without evaluating the block's row list. -/
 theorem memRowArr_eq (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) :
     memRowArr L cnt i =
-      #[gpow i, cnt i, (walkImage L i).limb 0, (walkImage L i).limb 1, (walkImage L i).limb 2] := by
+      #[addressOfIndex i, cnt i, (walkImage L i).limb 0, (walkImage L i).limb 1, (walkImage L
+          i).limb 2] := by
   with_unfolding_all rfl
 
 /-! ## The tables and the witness -/
@@ -409,60 +421,69 @@ theorem data_eq (L : Vector K 25) (c rA : K) (cnt : ℕ → K) : (walkW L c rA c
 /-! ## The run -/
 
 /-- The instruction at `g^i`. -/
-theorem fetch_at (i : ℕ) (ins : Instr) (hi : i < 2 ^ walkProg.logSize := by decide)
-    (hd : walkProg.code ⟨i, hi⟩ = ins := by rfl) : walkProg.fetch (gpow i) = some ins := by
-  rw [show gpow i = gpow ((⟨i, hi⟩ : Fin (2 ^ walkProg.logSize)) : ℕ) from rfl,
-    Program.fetch_gpow, hd]
+theorem fetch_at (i : ℕ) (ins : LeanIsaInstruction) (hi : i < 2 ^ walkProg.logSize := by decide)
+    (hd : walkProg.instructions ⟨i, hi⟩ = ins :=
+        by rfl) : walkProg.fetch (addressOfIndex i) = some ins := by
+  rw [show addressOfIndex i = addressOfIndex ((⟨i, hi⟩ : Fin (2 ^ walkProg.logSize)) : ℕ) from rfl,
+    LeanIsaProgram.fetch_gpow, hd]
 
 /-- The instruction at the counter `1 = g^0`. -/
-theorem fetch_one : walkProg.fetch 1 = some (.setConstant (gpow 2) mulX) := by
-  simpa using fetch_at 0 (.setConstant (gpow 2) mulX)
+theorem fetch_one : walkProg.fetch 1 = some (.setConstant (addressOfIndex 2) mulX) := by
+  simpa using fetch_at 0 (.setConstant (addressOfIndex 2) mulX)
 
 /-- The word at `g^k`. -/
 theorem read_at (L : Vector K 25) (k : ℕ) (v : E) (hk : k < 2 ^ minLogMem := by decide)
-    (hv : walkImage L ⟨k, hk⟩ = v := by rfl) : (walkImage L).read (gpow k) = some v := by
-  rw [show gpow k = gpow ((⟨k, hk⟩ : Fin (2 ^ minLogMem)) : ℕ) from rfl,
+    (hv : walkImage L ⟨k, hk⟩ = v := by rfl) : (walkImage L).read (addressOfIndex k) = some v := by
+  rw [show addressOfIndex k = addressOfIndex ((⟨k, hk⟩ : Fin (2 ^ minLogMem)) : ℕ) from rfl,
     MemoryImage.read_gpow (by decide), hv]
 
-theorem walk_step0 : step walkProg (walkImage kLout) ⟨1, 1⟩ = some ⟨gpow 1, 1⟩ := by
+theorem walk_step0 : step walkProg (walkImage kLout) ⟨1, 1⟩ = some ⟨addressOfIndex 1, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) fetch_one]
-  show execute (walkImage kLout) ⟨1, 1⟩ (.setConstant (gpow 2) mulX) = _
+  show execute (walkImage kLout) ⟨1, 1⟩ (.setConstant (addressOfIndex 2) mulX) = _
   simp only [execute, executeWith, one_mul, read_at kLout 2 mulX]
   decide +kernel
 
-theorem walk_step1 : step walkProg (walkImage kLout) ⟨gpow 1, 1⟩ = some ⟨gpow 2, 1⟩ := by
-  rw [step_of_fetch_eq_some (r := ⟨gpow 1, 1⟩) (fetch_at 1 (.setConstant (gpow 3) mulY))]
-  show execute (walkImage kLout) ⟨gpow 1, 1⟩ (.setConstant (gpow 3) mulY) = _
+theorem walk_step1 : step walkProg (walkImage kLout) ⟨addressOfIndex 1, 1⟩ = some ⟨addressOfIndex 2,
+    1⟩ := by
+  rw [step_of_fetch_eq_some (r := ⟨addressOfIndex 1, 1⟩) (fetch_at 1 (.setConstant (addressOfIndex
+      3) mulY))]
+  show execute (walkImage kLout) ⟨addressOfIndex 1, 1⟩ (.setConstant (addressOfIndex 3) mulY) = _
   simp only [execute, executeWith, one_mul, read_at kLout 3 mulY]
   decide +kernel
 
-theorem walk_step2 : step walkProg (walkImage kLout) ⟨gpow 2, 1⟩ = some ⟨gpow 3, 1⟩ := by
-  rw [step_of_fetch_eq_some (r := ⟨gpow 2, 1⟩) (fetch_at 2 (.mulNative (gpow 2) (gpow 3) (gpow 4)))]
-  show execute (walkImage kLout) ⟨gpow 2, 1⟩ (.mulNative (gpow 2) (gpow 3) (gpow 4)) = _
+theorem walk_step2 : step walkProg (walkImage kLout) ⟨addressOfIndex 2, 1⟩ = some ⟨addressOfIndex 3,
+    1⟩ := by
+  rw [step_of_fetch_eq_some (r := ⟨addressOfIndex 2, 1⟩) (fetch_at 2 (.mulNative (addressOfIndex 2)
+      (addressOfIndex 3) (addressOfIndex 4)))]
+  show execute (walkImage kLout) ⟨addressOfIndex 2, 1⟩ (.mulNative (addressOfIndex 2)
+      (addressOfIndex 3) (addressOfIndex 4)) = _
   simp only [execute, executeWith, one_mul, read_at kLout 2 mulX, read_at kLout 3 mulY,
     read_at kLout 4 mulXY]
   decide +kernel
 
-theorem walk_step3 : step walkProg (walkImage kLout) ⟨gpow 3, 1⟩ = some ⟨gpow 31, 1⟩ := by
-  rw [step_of_fetch_eq_some (r := ⟨gpow 3, 1⟩) (fetch_at 3 (.jump (gpow 41) (gpow 42) (gpow 43)))]
-  show execute (walkImage kLout) ⟨gpow 3, 1⟩ (.jump (gpow 41) (gpow 42) (gpow 43)) = _
+theorem walk_step3 : step walkProg (walkImage kLout) ⟨addressOfIndex 3, 1⟩ = some ⟨addressOfIndex
+    31, 1⟩ := by
+  rw [step_of_fetch_eq_some (r := ⟨addressOfIndex 3, 1⟩) (fetch_at 3 (.jump (addressOfIndex 41)
+      (addressOfIndex 42) (addressOfIndex 43)))]
+  show execute (walkImage kLout) ⟨addressOfIndex 3, 1⟩ (.jump (addressOfIndex 41) (addressOfIndex
+      42) (addressOfIndex 43)) = _
   simp only [execute, executeWith, one_mul, read_at kLout 41 (cellK 1),
-    read_at kLout 42 (cellK (gpow 31)), read_at kLout 43 (cellK 1)]
+    read_at kLout 42 (cellK (addressOfIndex 31)), read_at kLout 43 (cellK 1)]
   decide +kernel
 
-theorem walk_run1 : run walkProg (walkImage kLout) 1 ⟨1, 1⟩ = some ⟨gpow 1, 1⟩ := by
+theorem walk_run1 : run walkProg (walkImage kLout) 1 ⟨1, 1⟩ = some ⟨addressOfIndex 1, 1⟩ := by
   simp (disch := decide +kernel) only [run_succ_of_ne, walk_step0, Option.bind_eq_bind,
     Option.bind_some, run_zero]
 
-theorem walk_run2 : run walkProg (walkImage kLout) 2 ⟨1, 1⟩ = some ⟨gpow 2, 1⟩ := by
+theorem walk_run2 : run walkProg (walkImage kLout) 2 ⟨1, 1⟩ = some ⟨addressOfIndex 2, 1⟩ := by
   simp (disch := decide +kernel) only [run_succ_of_ne, walk_step0, walk_step1,
     Option.bind_eq_bind, Option.bind_some, run_zero]
 
-theorem walk_run3 : run walkProg (walkImage kLout) 3 ⟨1, 1⟩ = some ⟨gpow 3, 1⟩ := by
+theorem walk_run3 : run walkProg (walkImage kLout) 3 ⟨1, 1⟩ = some ⟨addressOfIndex 3, 1⟩ := by
   simp (disch := decide +kernel) only [run_succ_of_ne, walk_step0, walk_step1, walk_step2,
     Option.bind_eq_bind, Option.bind_some, run_zero]
 
-theorem walk_run4 : run walkProg (walkImage kLout) 4 ⟨1, 1⟩ = some ⟨gpow 31, 1⟩ := by
+theorem walk_run4 : run walkProg (walkImage kLout) 4 ⟨1, 1⟩ = some ⟨addressOfIndex 31, 1⟩ := by
   simp (disch := decide +kernel) only [run_succ_of_ne, walk_step0, walk_step1, walk_step2,
     walk_step3, Option.bind_eq_bind, Option.bind_some, run_zero]
 
@@ -479,7 +500,8 @@ example : ValidExecution walkProg mulInput walkTrace := ⟨walk_boundary, walk_r
 
 /-- Its register sequence. -/
 theorem walk_regs :
-    walkTrace.regs = [⟨1, 1⟩, ⟨gpow 1, 1⟩, ⟨gpow 2, 1⟩, ⟨gpow 3, 1⟩, ⟨gpow 31, 1⟩] := by
+    walkTrace.regs = [⟨1, 1⟩, ⟨addressOfIndex 1, 1⟩, ⟨addressOfIndex 2, 1⟩, ⟨addressOfIndex 3, 1⟩,
+        ⟨addressOfIndex 31, 1⟩] := by
   show (List.range 5).filterMap (fun n ↦ run walkProg (walkImage kLout) n ⟨1, 1⟩) = _
   simp only [List.range_succ, List.range_zero, List.nil_append, List.filterMap_append,
     List.filterMap_cons, List.filterMap_nil, run_zero, walk_run1, walk_run2, walk_run3, walk_run4,
@@ -518,11 +540,11 @@ theorem touched_add_untouched : touched + untouched = 2 ^ minLogMem := by decide
 
 /-- The seed message of cell `i`: `(g^i, 1, mem[i])`. -/
 def seedMsg (L : Vector K 25) (i : Fin (2 ^ minLogMem)) : Array K :=
-  #[gpow i, 1, (walkImage L i).limb 0, (walkImage L i).limb 1, (walkImage L i).limb 2]
+  #[addressOfIndex i, 1, (walkImage L i).limb 0, (walkImage L i).limb 1, (walkImage L i).limb 2]
 
 /-- The finalize message of cell `i`: `(g^i, cnt i, mem[i])`. -/
 def finMsg (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) : Array K :=
-  #[gpow i, cnt i, (walkImage L i).limb 0, (walkImage L i).limb 1, (walkImage L i).limb 2]
+  #[addressOfIndex i, cnt i, (walkImage L i).limb 0, (walkImage L i).limb 1, (walkImage L i).limb 2]
 
 /-- A row of the memory block pushes its seed message … -/
 theorem memRow_push (d : ProverData K) (a : Array K) :
@@ -598,7 +620,8 @@ theorem fins_split (L : Vector K 25) (cnt : ℕ → K) (h : ∀ i, touched ≤ i
   rw [show List.ofFn (finMsg L cnt) = List.ofFn fun i : Fin (touched + untouched) ↦ finMsg L cnt i
     from rfl, List.ofFn_add]
   refine congrArg₂ _ rfl (congrArg _ (funext fun j ↦ ?_))
-  show #[gpow (touched + j), cnt (touched + j), (walkImage L (Fin.natAdd touched j)).limb 0,
+  show #[addressOfIndex (touched + j), cnt (touched + j), (walkImage L (Fin.natAdd touched
+      j)).limb 0,
     (walkImage L (Fin.natAdd touched j)).limb 1, (walkImage L (Fin.natAdd touched j)).limb 2] = _
   rw [h _ (Nat.le_add_right touched j)]
   rfl
@@ -734,7 +757,7 @@ theorem seedRows_gen (L : Vector K 25) {tables : List (Air.Flat.Table K)} {pi : 
           (toElements (⟨idx i, cntFin i, #v[(s.2 i).limb 0, (s.2 i).limb 1, (s.2 i).limb 2]⟩ :
             MemRow K)).toArray := by
   subst hs
-  exact ⟨fun i ↦ gpow i, fun i ↦ cnt i, hrows⟩
+  exact ⟨fun i ↦ addressOfIndex i, fun i ↦ cnt i, hrows⟩
 
 /-- A witness over the fixture's data whose memory block is the honest one, with any finalize
 counts, has the image as its seed rows. Stated over a destructured witness, so that its
@@ -780,12 +803,12 @@ theorem walk_keccakValid (c rA : K) (cnt : ℕ → K) : KeccakRowsValid (walkW k
 /-- The two public words sit at `g^0` and `g^1` of the image the data names, whatever the output
 lanes. -/
 theorem walk_word0 (L : Vector K 25) (c rA : K) (cnt : ℕ → K) :
-    (imageOf (walkW L c rA cnt).data).2.read (gpow 0) = some mulInput.word0 := by
+    (imageOf (walkW L c rA cnt).data).2.read (addressOfIndex 0) = some mulInput.word0 := by
   rw [data_eq, walk_imageOf]
   exact read_at L 0 mulInput.word0
 
 theorem walk_word1 (L : Vector K 25) (c rA : K) (cnt : ℕ → K) :
-    (imageOf (walkW L c rA cnt).data).2.read (gpow 1) = some mulInput.word1 := by
+    (imageOf (walkW L c rA cnt).data).2.read (addressOfIndex 1) = some mulInput.word1 := by
   rw [data_eq, walk_imageOf]
   exact read_at L 1 mulInput.word1
 
@@ -815,19 +838,19 @@ theorem walk_regs_embed :
   have hk' : k < 4 := by rw [walk_regs] at hk; exact Nat.lt_of_succ_lt_succ hk
   simp only [walk_regs]
   interval_cases k
-  · show RowSteps (walkW kLout 1 g memCnt) ⟨1, 1⟩ ⟨gpow 1, 1⟩
+  · show RowSteps (walkW kLout 1 g memCnt) ⟨1, 1⟩ ⟨addressOfIndex 1, 1⟩
     exact ⟨setT kLout 1, List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self),
       rawRow (setRow0 1), List.mem_cons_self,
       by rw [rowMessagesOn_eq]; decide +kernel, by rw [rowMessagesOn_eq]; decide +kernel⟩
-  · show RowSteps (walkW kLout 1 g memCnt) ⟨gpow 1, 1⟩ ⟨gpow 2, 1⟩
+  · show RowSteps (walkW kLout 1 g memCnt) ⟨addressOfIndex 1, 1⟩ ⟨addressOfIndex 2, 1⟩
     exact ⟨setT kLout 1, List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self),
       rawRow setRow1, List.mem_cons_of_mem _ List.mem_cons_self,
       by rw [rowMessagesOn_eq]; decide +kernel, by rw [rowMessagesOn_eq]; decide +kernel⟩
-  · show RowSteps (walkW kLout 1 g memCnt) ⟨gpow 2, 1⟩ ⟨gpow 3, 1⟩
+  · show RowSteps (walkW kLout 1 g memCnt) ⟨addressOfIndex 2, 1⟩ ⟨addressOfIndex 3, 1⟩
     exact ⟨mulT kLout g, List.mem_cons_of_mem _ List.mem_cons_self, rawRow (mulRow g),
       List.mem_cons_self,
       by rw [rowMessagesOn_eq]; decide +kernel, by rw [rowMessagesOn_eq]; decide +kernel⟩
-  · show RowSteps (walkW kLout 1 g memCnt) ⟨gpow 3, 1⟩ ⟨gpow 31, 1⟩
+  · show RowSteps (walkW kLout 1 g memCnt) ⟨addressOfIndex 3, 1⟩ ⟨addressOfIndex 31, 1⟩
     exact ⟨jumpT kLout, List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
       (List.mem_cons_of_mem _ List.mem_cons_self))), jumpRaw jumpRow3 1 1, List.mem_cons_self,
       by rw [rowMessagesOn_eq]; decide +kernel, by rw [rowMessagesOn_eq]; decide +kernel⟩
@@ -928,8 +951,8 @@ theorem zero_count_witness :
     SeedRowsAreTheImage (walkW kLout 0 1 zeroCnt) ∧
     BytecodeRowsAreTheProgram walkProg (walkW kLout 0 1 zeroCnt) ∧
     KeccakRowsValid (walkW kLout 0 1 zeroCnt) ∧
-    (imageOf (walkW kLout 0 1 zeroCnt).data).2.read (gpow 0) = some mulInput.word0 ∧
-    (imageOf (walkW kLout 0 1 zeroCnt).data).2.read (gpow 1) = some mulInput.word1 ∧
+    (imageOf (walkW kLout 0 1 zeroCnt).data).2.read (addressOfIndex 0) = some mulInput.word0 ∧
+    (imageOf (walkW kLout 0 1 zeroCnt).data).2.read (addressOfIndex 1) = some mulInput.word1 ∧
     ¬ CountsNonzero (walkW kLout 0 1 zeroCnt) :=
   ⟨rfl, walk_constraints kLout 0 1 zeroCnt, zero_state_balanced, zero_mem_balanced,
     zero_bytecode_balanced, walk_caps kLout 0 1 zeroCnt, walk_indexColumns kLout 0 1 zeroCnt,
@@ -998,8 +1021,8 @@ theorem wrong_lane_witness :
     Caps (walkW wrongLout 1 g memCnt) ∧ IndexColumnsAreRowIndices (walkW wrongLout 1 g memCnt) ∧
     SeedRowsAreTheImage (walkW wrongLout 1 g memCnt) ∧
     BytecodeRowsAreTheProgram walkProg (walkW wrongLout 1 g memCnt) ∧
-    (imageOf (walkW wrongLout 1 g memCnt).data).2.read (gpow 0) = some mulInput.word0 ∧
-    (imageOf (walkW wrongLout 1 g memCnt).data).2.read (gpow 1) = some mulInput.word1 ∧
+    (imageOf (walkW wrongLout 1 g memCnt).data).2.read (addressOfIndex 0) = some mulInput.word0 ∧
+    (imageOf (walkW wrongLout 1 g memCnt).data).2.read (addressOfIndex 1) = some mulInput.word1 ∧
     ¬ KeccakRowsValid (walkW wrongLout 1 g memCnt) :=
   ⟨rfl, walk_constraints wrongLout 1 g memCnt, wrong_state_balanced, wrong_mem_balanced,
     wrong_bytecode_balanced, by
@@ -1012,7 +1035,7 @@ theorem wrong_lane_witness :
 
 /-- The memory block with its index column shifted by one row. -/
 def memRowArrShift (i : Fin (2 ^ minLogMem)) : Array K :=
-  (toElements (⟨gpow (i + 1), memCnt i,
+  (toElements (⟨addressOfIndex (i + 1), memCnt i,
     #v[(walkImage kLout i).limb 0, (walkImage kLout i).limb 1, (walkImage kLout i).limb 2]⟩ :
       MemRow K)).toArray
 

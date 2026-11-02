@@ -94,7 +94,7 @@ theorem columnAt_five {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : Lis
 
 section Out
 
-variable {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog))
+variable {prog : LeanIsaProgram} (w : EnsembleWitness (leanIsaEnsemble prog))
   (hp : 0 < (imageOf w.data).1)
 
 /-- **An output lane of the stack**, as an array: the last twelve rounds of the first twelve of
@@ -121,7 +121,7 @@ end Out
 
 /-! ## Every column of an execution -/
 
-variable {prog : Program} {input : PublicInput} {t : Execution prog}
+variable {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
 
 /-- The pass's tables, by number. -/
 theorem tabs_trace' (hv : ValidExecution prog input t) (j : ℕ) (hj : j < 6) :

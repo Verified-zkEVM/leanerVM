@@ -15,7 +15,8 @@ namespace LeanXmss
 
 open HashSig
 
-theorem bytesLE_injective {n : Nat} {x y : BitVec (8 * n)} (h : bytesLE n x = bytesLE n y) :
+theorem bytesLE_injective {n : Nat} {x y : BitVec (8 * n)} (h : littleEndianBytes n x =
+    littleEndianBytes n y) :
     x = y := by
   have hfun := List.ofFn_inj.mp h
   apply BitVec.eq_of_getLsbD_eq
@@ -30,11 +31,11 @@ theorem bytesLE_injective {n : Nat} {x y : BitVec (8 * n)} (h : bytesLE n x = by
   have hsum : 8 * (i / 8) + i % 8 = i := by omega
   simpa [hmod, hsum] using hlsb
 
-theorem bytesLE_length (n : Nat) (x : BitVec (8 * n)) : (bytesLE n x).length = n := by
-  simp [bytesLE]
+theorem bytesLE_length (n : Nat) (x : BitVec (8 * n)) : (littleEndianBytes n x).length = n := by
+  simp [littleEndianBytes]
 
 @[simp] theorem bytesLE_length_publicParameter (x : PublicParameter) :
-    (bytesLE 16 x).length = 16 :=
+    (littleEndianBytes 16 x).length = 16 :=
   bytesLE_length 16 x
 
 /-- A bit vector determines the natural it encodes, below the wrap. -/
@@ -57,10 +58,10 @@ theorem bitVec_append_inj {n m : Nat} {a a' : BitVec n} {b b' : BitVec m}
     simpa [BitVec.getLsbD_append, hi] using this
 
 /-- The 16 address bytes determine the type, the step and the two fields. -/
-theorem fieldBytes_injective {t1 t2 : TweakFields} (h : fieldBytes t1 = fieldBytes t2) : t1 = t2 := by
+theorem fieldBytes_injective {t1 t2 : TweakFields} (h : addressBytes t1 = addressBytes t2) : t1 = t2 := by
   obtain ⟨tag1, step1, hi1, lo1⟩ := t1
   obtain ⟨tag2, step2, hi2, lo2⟩ := t2
-  simp only [fieldBytes] at h
+  simp only [addressBytes] at h
   obtain ⟨h, _⟩ := List.append_inj' h (by simp [bytesLE_length])
   obtain ⟨h, htag⟩ := List.append_inj' h (by simp [bytesLE_length])
   obtain ⟨hlo, hhi⟩ := List.append_inj' h (by simp [bytesLE_length])
@@ -70,10 +71,10 @@ theorem fieldBytes_injective {t1 t2 : TweakFields} (h : fieldBytes t1 = fieldByt
 /-- `P || A || payload` determines the parameter, the address and the payload. -/
 theorem fieldInput_injective {fields fields' : TweakFields}
     {parameter parameter' : PublicParameter} {payload payload' : HashInput}
-    (h : bytesLE 16 parameter ++ fieldBytes fields ++ payload =
-      bytesLE 16 parameter' ++ fieldBytes fields' ++ payload') :
+    (h : littleEndianBytes 16 parameter ++ addressBytes fields ++ payload =
+      littleEndianBytes 16 parameter' ++ addressBytes fields' ++ payload') :
     fields = fields' ∧ parameter = parameter' ∧ payload = payload' := by
-  obtain ⟨hprefix, hpayload⟩ := List.append_inj h (by simp [fieldBytes, bytesLE_length])
+  obtain ⟨hprefix, hpayload⟩ := List.append_inj h (by simp [addressBytes, bytesLE_length])
   obtain ⟨hparameter, hfields⟩ := List.append_inj hprefix (by simp)
   exact ⟨fieldBytes_injective hfields, bytesLE_injective hparameter, hpayload⟩
 
@@ -108,17 +109,17 @@ theorem tweakFields_inj {tag tag' step step' hi hi' lo lo' : Nat}
     ofNat_inj_of_lt hhi hhi' h.2.2.1, ofNat_inj_of_lt hlo hlo' h.2.2.2⟩
 
 theorem key_lt (key : KeyIndex) : key.val < 2 ^ 32 := by
-  have := key.isLt; simp only [lifetime, numLayers, layerHeight] at this; omega
+  have := key.isLt; simp only [lifetime, layerCount, layerHeight] at this; omega
 
 /-- `hi` determines the layer and the field below bit 23. -/
 theorem layerHi_inj {lay lay' : Layer} {a a' : Nat} (ha : a < 2 ^ 23) (ha' : a' < 2 ^ 23)
     (h : layerHi lay a = layerHi lay' a') : lay = lay' ∧ a = a' := by
   have := lay.isLt; have := lay'.isLt
-  simp only [layerHi, numLayers] at *
+  simp only [layerHi, layerCount] at *
   refine ⟨Fin.ext ?_, ?_⟩ <;> omega
 
 theorem layerHi_lt (lay : Layer) {a : Nat} (ha : a < 2 ^ 23) : layerHi lay a < 2 ^ 24 := by
-  have := lay.isLt; simp only [layerHi, numLayers] at *; omega
+  have := lay.isLt; simp only [layerHi, layerCount] at *; omega
 
 /-- A domain is in range when its node coordinates are: a level at most 16 and an index below
 `2^32`, as every honest node and every node the verifier hashes. -/

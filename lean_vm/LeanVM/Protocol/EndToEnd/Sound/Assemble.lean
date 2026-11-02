@@ -57,7 +57,7 @@ namespace LeanVM.Protocol.EndToEnd.Sound
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier LeanVM.Protocol.LeanIsa LeanVM.Protocol.Whir.Sound
 open LeanVM.Protocol.EndToEnd.Front
-open LeanVM.Protocol.EndToEnd.Complete (publicDigest)
+open LeanVM.Protocol.EndToEnd.Complete (publicInputDigest)
 open scoped ENNReal NNReal
 
 @[expose] public section
@@ -75,19 +75,20 @@ abbrev StackShape (μ R : ℕ) (h : List Ev) : Prop := ShapeOK 0 (code₀ μ R) 
 
 /-- **The doom the stack's root creates** for the announced value `a = (layout, ρ)`: no candidate
 satisfies the leanISA relation (`CommitDoom`), and the stack's is the only commitment. -/
-def CommitPost (prog : Program) (input : PublicInput) (a : Verifier.Layout × ℕ) (_ : Unit)
+def CommitPost (prog : LeanIsaProgram) (input : PublicInput) (a : Verifier.Layout × ℕ) (_ : Unit)
     (h : List Ev) : Prop :=
   CommitDoom prog input thrOf a h ∧ StackShape a.1.stackLog a.2 h
 
 /-- What the announced value is on a run: the verifier's layout at admissible sizes, an
 admissible WHIR shape, and a layout `buildLayout` returned. -/
-def Good (prog : Program) (a : Verifier.Layout × ℕ) (s : Sizes) : Prop :=
+def Good (prog : LeanIsaProgram) (a : Verifier.Layout × ℕ) (s : Sizes) : Prop :=
   a.1 = verifierLayout prog s ∧ s.Admissible prog ∧ Whir.Admissible a.1.stackLog a.2 ∧
     LayoutBounds a.1
 
 /-- **The announced value of a run is good.** -/
-theorem good_of_readSizes (prog : Program) {l : List Ev} {a : Verifier.Layout × ℕ}
-    (h : (readSizes (bytecodeWords prog)).after l = some (.ret a)) : ∃ s, Good prog a s := by
+theorem good_of_readSizes (prog : LeanIsaProgram) {l : List Ev} {a : Verifier.Layout × ℕ}
+    (h : (readAnnouncedSizes (bytecodeWords prog)).after l = some (.ret a)) : ∃ s, Good prog a
+        s := by
   obtain ⟨s, hs, hρ, hl, -⟩ := readSizes_ret_sizes prog h
   obtain ⟨xs, -, -, -, hρ1, hρ2, -, hb, hμ1, hμ2⟩ := readSizes_ret h
   exact ⟨s, hl, hs, ⟨hμ1, hμ2, hρ1, hρ2⟩, layoutBounds_of_buildLayout hb⟩
@@ -95,9 +96,9 @@ theorem good_of_readSizes (prog : Program) {l : List Ev} {a : Verifier.Layout ×
 /-! ## The program after the announced sizes -/
 
 /-- `verify_execution` after the announced sizes `(layout, ρ)`. -/
-def veBody (publicInput : Digest) (layout : Verifier.Layout) (ρ : ℕ) : Prog Unit := do
+def veBody (publicInput : Digest) (layout : Verifier.Layout) (ρ : ℕ) : VerifierProgram Unit := do
   Verifier.commitStack layout.stackLog ρ
-  let bus ← Verifier.verifyBusBalance computedValue layout
+  let bus ← Verifier.verifyBusBalance computedBytecodeValue layout
   let claims ← Verifier.tablePhaseClaims layout bus
   let publicClaims ← Verifier.publicInputPhase layout publicInput
   let claims := claims ++ publicClaims
@@ -108,14 +109,14 @@ def veBody (publicInput : Digest) (layout : Verifier.Layout) (ρ : ℕ) : Prog U
 
 /-- `verify_execution` is the announced sizes, then `veBody`. -/
 theorem verifyExecution_eq (bytecode : List K) (publicInput : Digest) :
-    verifyExecutionClaims computedValue bytecode publicInput =
-      (readSizes bytecode).bind fun a ↦ veBody publicInput a.1 a.2 := rfl
+    verifyExecutionClaims computedBytecodeValue bytecode publicInput =
+      (readAnnouncedSizes bytecode).bind fun a ↦ veBody publicInput a.1 a.2 := rfl
 
 /-! ## The phases at sizes `s` and rate `ρ` -/
 
 section Phases
 
-variable (prog : Program) (input : PublicInput) (s : Sizes) (ρ : ℕ)
+variable (prog : LeanIsaProgram) (input : PublicInput) (s : Sizes) (ρ : ℕ)
 
 /-- The candidates of the history's stack word, on the verifier's layout. -/
 abbrev Cs : List Ev → Set (Column (verifierLayout prog s).stackLog) := candsL prog s ρ thrOf
@@ -163,7 +164,8 @@ theorem cs_ncard (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ) (h :
   · rw [cs_eq prog s ρ hW]; exact (candidates_bound hw W).2
 
 /-- A sub-program without commitments keeps the shape of the commitments. -/
-theorem stackShape_keep {α : Type} {p : Prog α} (hp : MovesOK (fun _ ↦ False) False p) (μ R : ℕ) :
+theorem stackShape_keep {α : Type} {p : VerifierProgram α} (hp : MovesOK (fun _ ↦ False) False p) (μ
+    R : ℕ) :
     ∀ h₀ l, p.Reach h₀ l → StackShape μ R h₀ → StackShape μ R (h₀ ++ l) := by
   intro h₀ l hl hJ
   simpa [StackShape, commits_append_hist, hp.reach_commits hl] using hJ
@@ -274,7 +276,8 @@ noncomputable def pubPartAt (hw : Whir.Admissible (verifierLayout prog s).stackL
     (hlb : LayoutBounds (verifierLayout prog s)) (cl : List Verifier.ColumnClaim)
     (hcl : cl.length ≤ 545)
     (pt : Vector E (leanIsaInstance prog s).τmax) :
-    Spec ((Verifier.publicInputPhase (verifierLayout prog s) (publicDigest input)).bind fun pc ↦
+    Spec ((Verifier.publicInputPhase (verifierLayout prog s) (publicInputDigest input)).bind
+        fun pc ↦
         (keccakPhaseClaims (verifierLayout prog s) (cl ++ pc)).bind fun r ↦
         (ringSwitch r.2.1 r.2.2).bind fun y ↦ verifyStackedOpening (verifierLayout prog s).stackLog ρ
           (ringSwitchClaim (verifierLayout prog s) y.1 y.2 ::
@@ -316,7 +319,7 @@ theorem candsOf_bound (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ)
 variable (prog s ρ) in
 /-- The bus phase and the table sumcheck commit nothing. -/
 theorem movesOK_busTable (layout : Verifier.Layout) :
-    MovesOK (fun _ ↦ False) False ((verifyBusBalance computedValue layout).bind (tablePhaseClaims layout)) :=
+    MovesOK (fun _ ↦ False) False ((verifyBusBalance computedBytecodeValue layout).bind (tablePhaseClaims layout)) :=
   (movesOK_verifyBusBalance layout).bind (movesOK_tablePhase layout)
 
 open Classical in
@@ -326,9 +329,9 @@ the opening. -/
 noncomputable def restSpec
     (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ)
     (hlb : LayoutBounds (verifierLayout prog s)) :
-    Spec ((verifyBusBalance computedValue (verifierLayout prog s)).bind fun bus ↦
+    Spec ((verifyBusBalance computedBytecodeValue (verifierLayout prog s)).bind fun bus ↦
         (tablePhaseClaims (verifierLayout prog s) bus).bind fun cl ↦
-        (Verifier.publicInputPhase (verifierLayout prog s) (publicDigest input)).bind fun pc ↦
+        (Verifier.publicInputPhase (verifierLayout prog s) (publicInputDigest input)).bind fun pc ↦
         (keccakPhaseClaims (verifierLayout prog s) (cl ++ pc)).bind fun r ↦
         (ringSwitch r.2.1 r.2.2).bind fun y ↦ verifyStackedOpening (verifierLayout prog s).stackLog ρ
           (ringSwitchClaim (verifierLayout prog s) y.1 y.2 ::
@@ -337,7 +340,7 @@ noncomputable def restSpec
       (fun _ _ ↦ False) εLean (abError (leanIsaInstance prog s) L₀ + 0) 0 :=
   have he := phase_errors (leanIsaInstance prog s) (μBus_le prog s hlb)
     (B_leanIsa_le prog s)
-  Spec.congr (Prog.bind_assoc _ _ _) <|
+  Spec.congr (VerifierProgram.bind_assoc _ _ _) <|
     ((Spec.frame (Spec.retInv (busTableSpec_leanIsa prog s input
         (candsOf prog s ρ thrOf) (fun W ↦ (candsOf_bound hw W).1)
         (fun W ↦ (candsOf_bound hw W).2) he.2.1 he.2.2.1 he.2.2.2.1 he.2.2.2.2.1
@@ -360,7 +363,7 @@ noncomputable def restSpec
 noncomputable def realSpec
     (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ)
     (hlb : LayoutBounds (verifierLayout prog s)) :
-    Spec (veBody (publicDigest input) (verifierLayout prog s) ρ) (fun _ ↦ False)
+    Spec (veBody (publicInputDigest input) (verifierLayout prog s) ρ) (fun _ ↦ False)
       (fun _ _ ↦ False) εLean 0 0 :=
   (commitSpec (CommitPost prog input (verifierLayout prog s, ρ))
       (verifierLayout prog s).stackLog ρ
@@ -374,13 +377,13 @@ end Phases
 
 section Whole
 
-variable (prog : Program) (input : PublicInput)
+variable (prog : LeanIsaProgram) (input : PublicInput)
 
 open Classical in
 /-- `verify_execution` after the announced value `a`: `realSpec` at good sizes, dead
 otherwise. -/
 noncomputable def bodySpec (a : Verifier.Layout × ℕ) :
-    Spec (veBody (publicDigest input) a.1 a.2) (fun _ ↦ False) (fun _ _ ↦ False) εLean 0 0 :=
+    Spec (veBody (publicInputDigest input) a.1 a.2) (fun _ ↦ False) (fun _ _ ↦ False) εLean 0 0 :=
   if h : ∃ s, Good prog a s then
     (realSpec (prog := prog) (s := h.choose) (ρ := a.2) input
       (by rw [← h.choose_spec.1]; exact h.choose_spec.2.2.1)
@@ -390,7 +393,7 @@ noncomputable def bodySpec (a : Verifier.Layout × ℕ) :
 
 /-- **The specification of `verify_execution`.** -/
 noncomputable def veSpec :
-    Spec (verifyExecutionClaims computedValue (bytecodeWords prog) (publicDigest input)) (fun _ ↦ False)
+    Spec (verifyExecutionClaims computedBytecodeValue (bytecodeWords prog) (publicInputDigest input)) (fun _ ↦ False)
       (fun _ _ ↦ False) εLean 0 0 :=
   (readSizesSpec (bytecodeWords prog) (fun _ _ ↦ False)).bind' (bodySpec prog input)
 
@@ -399,14 +402,15 @@ returns in doom, every group's escape at most `2^-128` (discounted by its proof 
 `0`, transported to the statement's program (`leanVmProgram_eq`); irreducible, so that
 elaboration does not reduce the transport. -/
 @[irreducible] noncomputable def leanVmSpec :
-    Spec (leanVmProgram (bytecodeWords prog) (publicDigest input)) (fun _ ↦ False)
+    Spec (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) (fun _ ↦ False)
       (fun b _ ↦ b = false) εLean 0 0 :=
   ((veSpec prog input).bind' fun _ ↦
     (Spec.ret (Post := fun b _ ↦ b = false) true).mono (fun _ h ↦ h.elim) (fun _ _ h ↦ h)
       le_rfl le_rfl le_rfl).congr (leanVmProgram_eq _ _).symm
 
 /-- **The doom certificate of the leanVM verifier.** -/
-noncomputable def leanVmCert : Cert (leanVmProgram (bytecodeWords prog) (publicDigest input)) :=
+noncomputable def leanVmCert : Cert (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest
+    input)) :=
   (leanVmSpec prog input).toCert
 
 end Whole

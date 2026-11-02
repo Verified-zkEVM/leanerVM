@@ -37,7 +37,7 @@ structure TSt where
   roots : List (Digest × ℕ × ℕ)
 
 /-- **A run on the carried sponge.** -/
-def runT {α : Type} : Prog α → TSt → Option (α × TSt)
+def runT {α : Type} : VerifierProgram α → TSt → Option (α × TSt)
   | .ret a, s => some (a, s)
   | .fail, _ => none
   | .read k, s => match s.stream with
@@ -51,7 +51,7 @@ def runT {α : Type} : Prog α → TSt → Option (α × TSt)
       if powOk bits n sq.1 then runT k { s with sponge := sq.2, stream := xs } else none
   | .commit height width k, s => match s.stream with
     | x0 :: x1 :: xs =>
-      match digestOfScalars (x0, x1) with
+      match digestFromHalves (x0, x1) with
       | some root =>
         runT k { s with
           sponge := (s.sponge.absorb x0 dsObserve).absorb x1 dsObserve
@@ -66,33 +66,33 @@ def runT {α : Type} : Prog α → TSt → Option (α × TSt)
       | some (rows, rest) => runT (k rows) { s with openings := rest }
       | none => none
 
-theorem runT_bind {α β : Type} (p : Prog α) (f : α → Prog β) (st : TSt) :
+theorem runT_bind {α β : Type} (p : VerifierProgram α) (f : α → VerifierProgram β) (st : TSt) :
     runT (p.bind f) st = (runT p st).bind (fun r ↦ runT (f r.1) r.2) := by
   induction p generalizing st with
   | ret a => rfl
   | fail => rfl
   | read k ih =>
-    simp only [Prog.bind, runT]
+    simp only [VerifierProgram.bind, runT]
     split
     · rfl
     · exact ih _ _
   | sample k ih => exact ih _ _
   | grind b k ih =>
-    simp only [Prog.bind, runT]
+    simp only [VerifierProgram.bind, runT]
     split
     · rfl
     · split
       · exact ih _
       · rfl
   | commit h w k ih =>
-    simp only [Prog.bind, runT]
+    simp only [VerifierProgram.bind, runT]
     split
     · split
       · exact ih _
       · rfl
     · rfl
   | query i ps k ih =>
-    simp only [Prog.bind, runT]
+    simp only [VerifierProgram.bind, runT]
     split
     · rfl
     · split
@@ -131,7 +131,7 @@ theorem openAll_frame (root : Digest) (height width : ℕ) : ∀ (qs : List ℕ)
     · simp [pure] at h
 
 /-- **A run keeps the words and openings it does not read.** -/
-theorem runT_frame {α : Type} (p : Prog α) : ∀ (st : TSt) (a : α) (st' : TSt),
+theorem runT_frame {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : α) (st' : TSt),
     runT p st = some (a, st') → ∃ pre opre, st.stream = pre ++ st'.stream ∧
       st.openings = opre ++ st'.openings ∧ ∀ zs orest,
         runT p { st with stream := pre ++ zs, openings := opre ++ orest } =
@@ -215,7 +215,8 @@ theorem eq_fsOfT {s : Fs} {sp : Sponge} (h : s.Carries sp) : s = fsOfT sp := by
   exact ⟨h1.symm, h2.symm⟩
 
 /-- **The carried run is the deployed run** on every sponge the state carries. -/
-theorem runId_of_runT {α : Type} (p : Prog α) : ∀ (st : TSt) (sp : Sponge), st.sponge.Carries sp →
+theorem runId_of_runT {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (sp : Sponge),
+    st.sponge.Carries sp →
     ∀ (a : α) (st' : TSt), runT p st = some (a, st') →
       ∃ sp', st'.sponge.Carries sp' ∧
         runId p ⟨sp, st.stream, st.openings, st.roots⟩ = some (a, ⟨sp', st'.stream, st'.openings, st'.roots⟩) := by
@@ -276,7 +277,7 @@ theorem runId_of_runT {α : Type} (p : Prog α) : ∀ (st : TSt) (sp : Sponge), 
       · rename_i root hr
         obtain ⟨sp', c1, c2⟩ := ih _ _ h2 a st' h
         refine ⟨sp', c1, ?_⟩
-        show (match digestOfScalars (x0, x1) with
+        show (match digestFromHalves (x0, x1) with
             | some root => runId k ⟨Id.run (Compile.absorb (m := Id) keccakF1600
                 (Id.run (Compile.absorb (m := Id) keccakF1600 sp x0 dsObserve)) x1 dsObserve), xs, os,
                 R ++ [(root, hh, ww)]⟩
@@ -300,8 +301,10 @@ theorem runId_of_runT {α : Type} (p : Prog α) : ∀ (st : TSt) (sp : Sponge), 
       · simp at h
 
 /-- **The deployed run is the carried run.** -/
-theorem runT_of_runId {α : Type} (p : Prog α) : ∀ (st : TSt) (sp : Sponge), st.sponge.Carries sp →
-    ∀ (a : α) (t : ProgState), runId p ⟨sp, st.stream, st.openings, st.roots⟩ = some (a, t) →
+theorem runT_of_runId {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (sp : Sponge),
+    st.sponge.Carries sp →
+    ∀ (a : α) (t : VerifierProgramState), runId p ⟨sp, st.stream, st.openings, st.roots⟩ = some
+        (a, t) →
       runT p st = some (a, ⟨fsOfT t.sponge, t.stream, t.openings, t.roots⟩) := by
   induction p with
   | ret a =>
@@ -334,7 +337,7 @@ theorem runT_of_runId {α : Type} (p : Prog α) : ∀ (st : TSt) (sp : Sponge), 
     | cons n xs =>
       have ha := carries_absorb hs n dsPowNonce
       obtain ⟨e1, e2⟩ := carries_squeeze ha
-      have key : runId (Prog.grind b k) ⟨sp, n :: xs, os, roots⟩ =
+      have key : runId (VerifierProgram.grind b k) ⟨sp, n :: xs, os, roots⟩ =
           (if powOk b n (Id.run (Compile.squeeze (m := Id) keccakF1600
               (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).1 = true then
             runId k ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600
@@ -356,8 +359,8 @@ theorem runT_of_runId {α : Type} (p : Prog α) : ∀ (st : TSt) (sp : Sponge), 
     | x0 :: x1 :: xs =>
       have h1 := carries_absorb hs x0 dsObserve
       have h2 := carries_absorb h1 x1 dsObserve
-      have key : runId (Prog.commit hh ww k) ⟨sp, x0 :: x1 :: xs, os, roots⟩ =
-          (match digestOfScalars (x0, x1) with
+      have key : runId (VerifierProgram.commit hh ww k) ⟨sp, x0 :: x1 :: xs, os, roots⟩ =
+          (match digestFromHalves (x0, x1) with
             | some root => runId k ⟨Id.run (Compile.absorb (m := Id) keccakF1600
                 (Id.run (Compile.absorb (m := Id) keccakF1600 sp x0 dsObserve)) x1 dsObserve), xs, os,
                 roots ++ [(root, hh, ww)]⟩
@@ -391,7 +394,7 @@ theorem runT_of_runId {α : Type} (p : Prog α) : ∀ (st : TSt) (sp : Sponge), 
 
 
 /-- The roots only grow. -/
-theorem runT_roots {α : Type} (p : Prog α) : ∀ (st : TSt) (a : α) (st' : TSt),
+theorem runT_roots {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : α) (st' : TSt),
     runT p st = some (a, st') → ∃ C, st'.roots = st.roots ++ C := by
   induction p with
   | ret b =>
@@ -444,7 +447,7 @@ theorem runT_roots {α : Type} (p : Prog α) : ∀ (st : TSt) (a : α) (st' : TS
       · simp at h
 
 /-- A run from no roots to no roots runs from any roots. -/
-theorem runT_noRoots {α : Type} (p : Prog α) : ∀ (st : TSt) (a : α) (st' : TSt),
+theorem runT_noRoots {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : α) (st' : TSt),
     st.roots = [] → st'.roots = [] → runT p st = some (a, st') →
       ∀ R, runT p { st with roots := R } = some (a, { st' with roots := R }) := by
   induction p with
@@ -498,7 +501,8 @@ theorem runT_noRoots {α : Type} (p : Prog α) : ∀ (st : TSt) (a : α) (st' : 
     simp [runT] at h
 
 /-- **An accepting run of a sequence splits.** -/
-theorem RunsTo.unbind {α β : Type} {p : Prog α} {f : α → Prog β} {s s'' : Fs} {xs : List E} {b : β}
+theorem RunsTo.unbind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {s s'' : Fs}
+    {xs : List E} {b : β}
     (h : RunsTo (p >>= f) s xs b s'') (hc : ∃ sp, s.Carries sp) :
     ∃ (a : α) (xs1 xs2 : List E) (s1 : Fs), xs = xs1 ++ xs2 ∧ RunsTo p s xs1 a s1 ∧
       RunsTo (f a) s1 xs2 b s'' := by

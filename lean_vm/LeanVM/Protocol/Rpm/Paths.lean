@@ -42,8 +42,9 @@ def hashesOfB (P : List (Bytes × Common.DigestBytes)) (x : Bytes) : Option Dige
 /-! ## Bytes and lanes of a state -/
 
 theorem leLane_congr {l l' : List UInt8} {i : ℕ}
-    (h : ∀ k < 8, l.getD (8 * i + k) 0 = l'.getD (8 * i + k) 0) : leLane l i = leLane l' i := by
-  unfold leLane
+    (h : ∀ k < 8, l.getD (8 * i + k) 0 = l'.getD (8 * i + k) 0) : littleEndianLane l i =
+        littleEndianLane l' i := by
+  unfold littleEndianLane
   refine List.foldl_ext _ _ _ fun a k hk ↦ ?_
   simp only [List.mem_range] at hk
   rw [h k hk]
@@ -61,10 +62,10 @@ theorem cap_toRpm_iff (a b : KeccakState) :
   · intro h
     have hl : ∀ i (hi : 17 ≤ i) (hi' : i < 25), a[i] = b[i] := by
       intro i hi hi'
-      have ea : a[i] = leLane (KState.toRpm a).toBytes i := by
+      have ea : a[i] = littleEndianLane (KState.toRpm a).toBytes i := by
         conv_lhs => rw [← ofRpm_toRpm a]
         simp [KState.ofRpm]
-      have eb : b[i] = leLane (KState.toRpm b).toBytes i := by
+      have eb : b[i] = littleEndianLane (KState.toRpm b).toBytes i := by
         conv_lhs => rw [← ofRpm_toRpm b]
         simp [KState.ofRpm]
       rw [ea, eb]
@@ -123,10 +124,10 @@ theorem toBytes_blockTo (s x : KeccakState) :
 theorem digest_ofRpm (s : Common.KState) :
     (#v[(KState.ofRpm s)[0], (KState.ofRpm s)[1], (KState.ofRpm s)[2], (KState.ofRpm s)[3]] :
       Digest) = Digest.ofRpm s.1.1 := by
-  have e : ∀ i (hi : i < 4), (KState.ofRpm s)[i] = leLane s.1.1.toList i := by
+  have e : ∀ i (hi : i < 4), (KState.ofRpm s)[i] = littleEndianLane s.1.1.toList i := by
     intro i hi
     rw [KState.ofRpm, Vector.getElem_ofFn]
-    show leLane (s.1.1.toList ++ s.1.2.toList ++ s.2.toList) i = _
+    show littleEndianLane (s.1.1.toList ++ s.1.2.toList ++ s.2.toList) i = _
     rw [List.append_assoc, leLane_append_left _ _ _ (by simp only [Vector.length_toList]; omega)]
   rw [e 0 (by norm_num), e 1 (by norm_num), e 2 (by norm_num), e 3 (by norm_num)]
   rfl

@@ -27,20 +27,20 @@ open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Exec
 @[expose] public section
 
 /-- `g^(d·16^w)`, from the table. -/
-def gw (w d : ℕ) : K := K.ofBits (nth (nth Data.gtab w []) d 0)
+def gw (w d : ℕ) : K := K.ofBits (listElementOrDefault (listElementOrDefault Data.gtab w []) d 0)
 
 /-- `g^e` for `e < 2^20`, by the hexadecimal digits of `e`. -/
 def gpowW (e : ℕ) : K :=
   gw 0 (e % 16) * gw 1 (e / 16 % 16) * gw 2 (e / 256 % 16) * gw 3 (e / 4096 % 16) *
     gw 4 (e / 65536 % 16)
 
-theorem gw_eq : ∀ w < 5, ∀ d < 16, gw w d = gpow (d * 16 ^ w) := by decide +kernel
+theorem gw_eq : ∀ w < 5, ∀ d < 16, gw w d = addressOfIndex (d * 16 ^ w) := by decide +kernel
 
-theorem gpowW_eq {e : ℕ} (h : e < 2 ^ 20) : gpowW e = gpow e := by
+theorem gpowW_eq {e : ℕ} (h : e < 2 ^ 20) : gpowW e = addressOfIndex e := by
   unfold gpowW
   rw [gw_eq 0 (by decide) _ (Nat.mod_lt _ (by decide)), gw_eq 1 (by decide) _ (Nat.mod_lt _ (by decide)),
     gw_eq 2 (by decide) _ (Nat.mod_lt _ (by decide)), gw_eq 3 (by decide) _ (Nat.mod_lt _ (by decide)),
-    gw_eq 4 (by decide) _ (Nat.mod_lt _ (by decide)), gpow, gpow, gpow, gpow, gpow, gpow,
+    gw_eq 4 (by decide) _ (Nat.mod_lt _ (by decide)), addressOfIndex, addressOfIndex, addressOfIndex, addressOfIndex, addressOfIndex, addressOfIndex,
     ← pow_add, ← pow_add, ← pow_add, ← pow_add]
   congr 1
   omega
@@ -124,7 +124,7 @@ theorem ofBits_mulN (a b : ℕ) : K.ofBits (mulN a b) = K.ofBits a * K.ofBits b 
   rfl
 
 /-- `gw` as a word in `ℕ`. -/
-def gwN (w d : ℕ) : ℕ := nth (nth Data.gtab w []) d 0
+def gwN (w d : ℕ) : ℕ := listElementOrDefault (listElementOrDefault Data.gtab w []) d 0
 
 /-- `gpowW` on words in `ℕ`. -/
 def gpowN (e : ℕ) : ℕ :=

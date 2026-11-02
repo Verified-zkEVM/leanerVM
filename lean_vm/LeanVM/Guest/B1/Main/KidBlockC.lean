@@ -86,7 +86,7 @@ theorem low_load {rd : Reader} (hlow : LowDef 16 rd) {e : ℕ} (he : e < 2 ^ 16)
     LoadHolds rd (gen ^ e) 0 (rdAt rd (gen ^ e) 0) := by
   have := B1.loadHolds_low hlow he
   rw [← gen_pow_eq_ofK] at this
-  rw [rdAt, show (gen ^ e).limb 0 * gpow 0 = gpow e by
+  rw [rdAt, show (gen ^ e).limb 0 * addressOfIndex 0 = addressOfIndex e by
     rw [Da.limb0_gen_pow_mul, Nat.add_zero]]
   exact this
 

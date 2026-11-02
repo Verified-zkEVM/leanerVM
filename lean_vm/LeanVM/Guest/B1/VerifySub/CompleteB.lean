@@ -178,9 +178,10 @@ def VkCompleteAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ Bvk : 
     CompleteAtB fs cert κ "verify_keccak"
       [(curE, xs), (chiE, chis), (olE, outs), (zvE, op), (zvE + qkeccakVarsCap, point),
         (slE, slices)]
-      (f ++ [ofK (gpow curE), gen ^ τ, ofK (gpow chiE), ofK (gpow olE), ofK (gpow zvE),
-        ofK (gpow slE)])
-      (Returns (cap' ++ [ofK (gpow curE) * gen ^ xs.length, word, m0])) Bvk
+      (f ++ [ofK (addressOfIndex curE), gen ^ τ, ofK (addressOfIndex chiE), ofK (addressOfIndex
+          olE), ofK (addressOfIndex zvE),
+        ofK (addressOfIndex slE)])
+      (Returns (cap' ++ [ofK (addressOfIndex curE) * gen ^ xs.length, word, m0])) Bvk
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 

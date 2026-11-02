@@ -17,7 +17,8 @@ public import LeanVM.Protocol.WithHash
 
 The random-oracle theorem bounds the probability that the compiled verifier accepts a proof
 whose *extracted history* passes through a doomed boundary. The extracted history is the
-interactive history (`List Ev`, `LeanVM.Protocol.Compile.Prog`) of the compiled run, with every
+interactive history (`List Ev`, `LeanVM.Protocol.Compile.VerifierProgram`) of the compiled run, with
+every
 commitment's word read off the oracles' answers (`extract`): `xrun` is `run` with the hash and
 the permutation answered by partial functions `H : Bytes → Option Digest` and
 `F : KState → Option KState` (the oracles' answers, a missing answer stopping the run), recording the scalars read, the challenges squeezed, the proofs of
@@ -45,7 +46,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protoc
 /-- The verifier of the random-oracle theorem: seed the sponge by `σ`, then run `P` on the
 proof. -/
 def verify {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState) (σ : Seed)
-    (P : Prog Bool) (π : Proof) : m Bool := do
+    (P : VerifierProgram Bool) (π : Proof) : m Bool := do
   let seed ← σ.run H F
   runProofWithHash H F P seed π
 
@@ -58,7 +59,8 @@ variable (H : Bytes → Option Digest) (F : KeccakState → Option KeccakState)
 /-- The compiled run under the answers `H` and `F`, with its extracted history: every commitment
 holds the word extracted for its root, every opening the rows it returned. `none` on rejection or
 on a missing answer. -/
-noncomputable def xrun {α : Type} : Prog α → ProgState → List Ev → Option (α × ProgState × List Ev)
+noncomputable def xrun {α : Type} : VerifierProgram α → VerifierProgramState → List Ev → Option (α ×
+    VerifierProgramState × List Ev)
   | .ret a, s, h => some (a, s, h)
   | .fail, _, _ => none
   | .read k, s, h => match s.stream with
@@ -77,7 +79,7 @@ noncomputable def xrun {α : Type} : Prog α → ProgState → List Ev → Optio
   | .commit height width k, s, h => match s.stream with
     | x0 :: x1 :: xs => (absorb (m := Option) F s.sponge x0 dsObserve).bind fun sp0 ↦
       (absorb (m := Option) F sp0 x1 dsObserve).bind fun sp1 ↦
-      match digestOfScalars (x0, x1) with
+      match digestFromHalves (x0, x1) with
       | some root =>
         xrun k { s with sponge := sp1, stream := xs, roots := s.roots ++ [(root, height, width)] }
           (h ++ [Ev.commit height width (extract H root height width)])
@@ -91,7 +93,8 @@ noncomputable def xrun {α : Type} : Prog α → ProgState → List Ev → Optio
 
 /-- An accepting run in `Option` has an extracted history, ending at the same state. -/
 theorem xrun_of_run {α : Type} :
-    ∀ (p : Prog α) (s : ProgState) (h : List Ev) {a : α} {s' : ProgState},
+    ∀ (p : VerifierProgram α) (s : VerifierProgramState) (h : List Ev) {a : α} {s' :
+        VerifierProgramState},
       runWithHash (m := Option) H F p s = some (some (a, s')) → ∃ hist, xrun H F p s h = some (a, s', hist)
   | .ret a, s, h, _, _, hr => by
     simp only [runWithHash, pure, Option.some.injEq, Prod.mk.injEq] at hr
@@ -152,7 +155,8 @@ theorem xrun_of_run {α : Type} :
 
 /-- The extracted history extends the history the run starts from. -/
 theorem xrun_prefix {α : Type} :
-    ∀ (p : Prog α) (s : ProgState) (h : List Ev) {a : α} {s' : ProgState} {hist : List Ev},
+    ∀ (p : VerifierProgram α) (s : VerifierProgramState) (h : List Ev) {a : α} {s' :
+        VerifierProgramState} {hist : List Ev},
       xrun H F p s h = some (a, s', hist) → h <+: hist
   | .ret a, s, h, _, _, _, hr => by
     simp only [xrun, Option.some.injEq, Prod.mk.injEq] at hr
@@ -224,12 +228,12 @@ theorem rows_of_openAll {H : Bytes → Option Digest} (hH : AnswersInj H) (root 
           rows_of_openAll hH root ht w qs os hr]
 
 /-- The roots a run holds, as the commitments of its extracted history. -/
-def RootsInv (H : Bytes → Option Digest) (s : ProgState) (h : List Ev) : Prop :=
+def RootsInv (H : Bytes → Option Digest) (s : VerifierProgramState) (h : List Ev) : Prop :=
   commits h = s.roots.map fun r ↦ (r.2.1, r.2.2, extract H r.1 r.2.1 r.2.2)
 
 /-- **Openings answer from the extracted words.** With injective answers, an accepted opening
 of the `i`-th root returns the rows the `i`-th commitment of the extracted history holds. -/
-theorem answer_of_openAll {H : Bytes → Option Digest} (hH : AnswersInj H) {s : ProgState}
+theorem answer_of_openAll {H : Bytes → Option Digest} (hH : AnswersInj H) {s : VerifierProgramState}
     {h : List Ev} (hR : RootsInv H s h) {i : ℕ} {root : Digest} {ht w : ℕ}
     (hi : s.roots[i]? = some (root, ht, w)) {ps : List ℕ} {rows : List (List K)}
     {rest : List Opening}
@@ -238,31 +242,31 @@ theorem answer_of_openAll {H : Bytes → Option Digest} (hH : AnswersInj H) {s :
   rw [answer, hR, List.getElem?_map, hi, rows_of_openAll hH root ht w ps s.openings ho]
   rfl
 
-theorem rootsInv_append_query {H : Bytes → Option Digest} {s : ProgState} {h : List Ev}
+theorem rootsInv_append_query {H : Bytes → Option Digest} {s : VerifierProgramState} {h : List Ev}
     (hR : RootsInv H s h) (rows : List (List K)) (rest : List Opening) :
     RootsInv H { s with openings := rest } (h ++ [Ev.query rows]) := by
   simp only [RootsInv, commits_append, commits, List.append_nil]
   exact hR
 
-theorem rootsInv_append_sample {H : Bytes → Option Digest} {s : ProgState} {h : List Ev}
+theorem rootsInv_append_sample {H : Bytes → Option Digest} {s : VerifierProgramState} {h : List Ev}
     (hR : RootsInv H s h) (c : E) (sp : Sponge) :
     RootsInv H { s with sponge := sp } (h ++ [Ev.sample c]) := by
   simp only [RootsInv, commits_append, commits, List.append_nil]
   exact hR
 
-theorem rootsInv_append_read {H : Bytes → Option Digest} {s : ProgState} {h : List Ev}
+theorem rootsInv_append_read {H : Bytes → Option Digest} {s : VerifierProgramState} {h : List Ev}
     (hR : RootsInv H s h) (x : E) (sp : Sponge) (xs : List E) :
     RootsInv H { s with sponge := sp, stream := xs } (h ++ [Ev.read x]) := by
   simp only [RootsInv, commits_append, commits, List.append_nil]
   exact hR
 
-theorem rootsInv_append_grind {H : Bytes → Option Digest} {s : ProgState} {h : List Ev}
+theorem rootsInv_append_grind {H : Bytes → Option Digest} {s : VerifierProgramState} {h : List Ev}
     (hR : RootsInv H s h) (b : ℕ) (sp : Sponge) (xs : List E) :
     RootsInv H { s with sponge := sp, stream := xs } (h ++ [Ev.grind b]) := by
   simp only [RootsInv, commits_append, commits, List.append_nil]
   exact hR
 
-theorem rootsInv_append_commit {H : Bytes → Option Digest} {s : ProgState} {h : List Ev}
+theorem rootsInv_append_commit {H : Bytes → Option Digest} {s : VerifierProgramState} {h : List Ev}
     (hR : RootsInv H s h) (root : Digest) (ht w : ℕ) (sp : Sponge) (xs : List E) :
     RootsInv H { s with sponge := sp, stream := xs, roots := s.roots ++ [(root, ht, w)] }
       (h ++ [Ev.commit ht w (extract H root ht w)]) := by
@@ -274,7 +278,7 @@ theorem rootsInv_append_commit {H : Bytes → Option Digest} {s : ProgState} {h 
 /-- The extracted history of the seeded verifier's run of the node `p` on `π` from the history
 `h₀`, under the answers `H` and `F`; `[]` if the run stops before a verdict. -/
 noncomputable def extractedFrom (H : Bytes → Option Digest) (F : KeccakState → Option KeccakState)
-    (σ : Seed) (p : Prog Bool) (h₀ : List Ev) (π : Proof) : List Ev :=
+    (σ : Seed) (p : VerifierProgram Bool) (h₀ : List Ev) (π : Proof) : List Ev :=
   match σ.run H F with
   | some seed => match xrun H F p ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ h₀ with
     | some (_, _, hist) => hist
@@ -283,12 +287,12 @@ noncomputable def extractedFrom (H : Bytes → Option Digest) (F : KeccakState �
 
 /-- The extracted history of the seeded verifier's run from the empty history. -/
 noncomputable def extractedHistory (H : Bytes → Option Digest) (F : KeccakState → Option KeccakState)
-    (σ : Seed) (P : Prog Bool) (π : Proof) : List Ev :=
+    (σ : Seed) (P : VerifierProgram Bool) (π : Proof) : List Ev :=
   extractedFrom H F σ P [] π
 
 /-- An accepting seeded run has an extracted history from any history, at the seed. -/
 theorem xrun_of_verify_from {H : Bytes → Option Digest} {F : KeccakState → Option KeccakState} {σ : Seed}
-    {p : Prog Bool} {π : Proof} (h₀ : List Ev) (hv : verify H F σ p π = some true) :
+    {p : VerifierProgram Bool} {π : Proof} (h₀ : List Ev) (hv : verify H F σ p π = some true) :
     ∃ seed s, σ.run H F = some seed ∧
       xrun H F p ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ h₀ =
         some (true, s, extractedFrom H F σ p h₀ π) := by
@@ -305,7 +309,7 @@ theorem xrun_of_verify_from {H : Bytes → Option Digest} {F : KeccakState → O
 
 /-- An accepting seeded run has an extracted history from the empty history, at the seed. -/
 theorem xrun_of_verify {H : Bytes → Option Digest} {F : KeccakState → Option KeccakState} {σ : Seed}
-    {P : Prog Bool} {π : Proof} (hv : verify H F σ P π = some true) :
+    {P : VerifierProgram Bool} {π : Proof} (hv : verify H F σ P π = some true) :
     ∃ seed s, σ.run H F = some seed ∧
       xrun H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ [] =
         some (true, s, extractedHistory H F σ P π) :=

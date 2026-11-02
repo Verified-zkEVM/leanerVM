@@ -57,7 +57,8 @@ structure MainCounts (ω fs : String → ℕ) : Type where
   aggC : ℕ
   aggD : ℕ
   agg : ∀ (rd : Reader) (t : Tree) (args rets : List E) (n : ℕ), t.name = "aggregate_claims" →
-    t.Valid coreProgram rd args rets → t.BufsOk coreProgram → args.getD 0 0 = ofK (gpow n) →
+    t.Valid coreProgram rd args rets → t.BufsOk coreProgram → args.getD 0 0 = ofK
+        (addressOfIndex n) →
     0 < n → n < 2 ^ 64 - 1 → t.weight ω ≤ aggC + aggD * n
   clA : ℕ
   clS : ℕ

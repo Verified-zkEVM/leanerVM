@@ -74,13 +74,13 @@ abbrev vecRun (cert : String → V → ℕ) (fp : ℕ) : ℕ := fp + cert "da_ve
 /-- **`da_vector_cell` at `fp`**: its weights in its run, their digest's cells at `g^c` in `R`. -/
 theorem vec_at (fs : String → ℕ) (cert : String → V → ℕ) {rd : Reader} {ws : List E}
     (hwl : ws.length = 256) {c fp : ℕ} {R : ℕ → Prop}
-    (hrun : ReadsAt rd (ofK (gpow (vecRun cert fp))) ws)
+    (hrun : ReadsAt rd (ofK (addressOfIndex (vecRun cert fp))) ws)
     (hdig : ReadsAt rd (gen ^ c) (digestCells (keccak256 (ws.flatMap Node.extensionElementBytes))))
     (hR : R c ∧ R (c + 1)) :
     RelAtIn coreProgram fs cert rd R
       (fun i => vecRun cert fp ≤ i ∧ i < vecRun cert fp + 256) fp (fs "da_vector_cell")
-      "da_vector_cell" [gen ^ c] [ofK (gpow (vecRun cert fp))] := by
-  have hrel := da_vector_cell_complete rd (gen ^ c) (ofK (gpow (vecRun cert fp))) ws
+      "da_vector_cell" [gen ^ c] [ofK (addressOfIndex (vecRun cert fp))] := by
+  have hrel := da_vector_cell_complete rd (gen ^ c) (ofK (addressOfIndex (vecRun cert fp))) ws
     (by simpa [LeanDa.cellSymbols] using hwl) ((isInK_iff _).mpr ⟨_, rfl⟩)
     (fun k hk v hv => by
       have h := (hrun k (by simpa [LeanDa.cellSymbols, hwl] using hk)).2
@@ -91,7 +91,7 @@ theorem vec_at (fs : String → ℕ) (cert : String → V → ℕ) {rd : Reader}
   rw [vec_split, holdsList_atoms_ret] at hh
   obtain ⟨hat, hr⟩ := hh
   have hcp := hat _ (List.contains_iff_mem.mp vec_copy)
-  have h4461 : σ (.n 4461) = ofK (gpow (vecRun cert fp)) := by
+  have h4461 : σ (.n 4461) = ofK (addressOfIndex (vecRun cert fp)) := by
     simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hr
     rw [← hr]; exact hcp.symm
   have h0 : σ (.n 0) = gen ^ c := by

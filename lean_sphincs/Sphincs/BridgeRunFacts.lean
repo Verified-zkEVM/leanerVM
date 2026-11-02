@@ -415,13 +415,13 @@ theorem closedRuns_coordCostSource (data : PublicData) (index : Index) (c : Coor
     closedRuns_revealChainCost tg initial model index c mark j i) fun _ => closedRuns_pure tg initial model _
 
 omit [Params] in
-theorem not_isFc_chain (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (chain : ChainIndex) (st : Digit) :
+theorem not_isFc_chain (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (chain : ChainIndex) (st : WinternitzDigit) :
     ¬IsFc (Coordinate.chain lay tree leaf chain st) := by
   rintro ⟨_, _, _, _, _, _, _, h⟩
   cases h
 
 theorem closedRuns_finishRest (parameter : PublicParameter) (data : PublicData) (message : Message)
-    (randomness : Randomness) (digest : MessageDigest) :
+    (randomness : Randomizer) (digest : MessageDigest) :
     ClosedRuns tg initial model (finishRest parameter data message randomness digest) := by
   unfold finishRest
   refine closedRuns_bind tg initial model (closedRuns_of_revealsIn tg initial model (revealsIn_tick _ _)) fun _ => ?_
@@ -476,7 +476,7 @@ end Closed
 section Avoid
 
 theorem avoids_finishRest_fchain (p : PublicParameter) (parameter : PublicParameter) (data : PublicData)
-    (message : Message) (randomness : Randomness) (digest : MessageDigest) :
+    (message : Message) (randomness : Randomizer) (digest : MessageDigest) :
     Avoids (D := HashInput) (R := HashOutput) (ι := Coordinate) (IsFchainIn p)
       (finishRest parameter data message randomness digest) := by
   unfold finishRest

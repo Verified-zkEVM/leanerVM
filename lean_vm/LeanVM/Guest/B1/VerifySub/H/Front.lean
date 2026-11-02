@@ -90,15 +90,15 @@ theorem ChildSegs.stream_getD {bytecode : List K} {seed : Digest} {c : Child}
   · rw [e, List.getD_append_right _ _ _ _ (by omega), hl]; rfl
   · rw [e, List.getD_append_right _ _ _ _ (by omega), hl]; rfl
 
-theorem digest_inj {d d' : Digest} (h : digestScalars d = digestScalars d') : d = d' := by
+theorem digest_inj {d d' : Digest} (h : digestHalves d = digestHalves d') : d = d' := by
   have e := digestOfScalars_digestScalars d
   rw [h, digestOfScalars_digestScalars d'] at e
   exact (Option.some.inj e).symm
 
 theorem digest_canonical (d : Digest) :
-    IsCanonical128 (digestScalars d).1 ∧ IsCanonical128 (digestScalars d).2 := by
+    IsCanonical128 (digestHalves d).1 ∧ IsCanonical128 (digestHalves d).2 := by
   have h := digestOfScalars_digestScalars d
-  unfold digestOfScalars at h
+  unfold digestFromHalves at h
   split at h
   · rename_i hc; exact hc
   · simp at h
@@ -129,9 +129,9 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 /-- **The honest front is the run's.** -/
 theorem vsH_spec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest} {c : Child}
     (S : ChildSegs bytecode seed c) {lp sq out : E}
-    (hargs : args = [(digestScalars (statementDigest seed c.statement)).1,
-      (digestScalars (statementDigest seed c.statement)).2, (digestScalars seed).1,
-      (digestScalars seed).2, lp, sq, out])
+    (hargs : args = [(digestHalves (statementDigest seed c.statement)).1,
+      (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
+      (digestHalves seed).2, lp, sq, out])
     (hws : ∀ i < 10, LoadHolds rd (vsσ rd w args (.n 27)) i (c.proof.stream.getD i 0)) :
     VsFrontH S rd (vsσ rd w args) := by
   have hl : args.length = 7 := by rw [hargs]; rfl

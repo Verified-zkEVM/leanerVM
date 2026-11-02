@@ -34,19 +34,19 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- **A range check is sound** on any memory image of at most `2^32` words, whatever `K ≤ 2^33`:
 both reads are below `2^32`, so their exponents' sum `K - 1` is below the order of `g`. -/
 theorem tb_rc_sound' {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {K : ℕ} (hK1 : 1 ≤ K)
-    (hK : K ≤ 2 ^ 33) {x y t1 t2 k : E} (hk : k = ofK (Parameters.gpow (K - 1)))
+    (hK : K ≤ 2 ^ 33) {x y t1 t2 k : E} (hk : k = ofK (Parameters.addressOfIndex (K - 1)))
     (h1 : LoadHolds Lm.read x 0 t1) (h2 : k = x * y) (h3 : LoadHolds Lm.read y 0 t2) :
     ∃ e < K, x = gen ^ e := by
   have hμ64 : μ < 64 := by omega
   have h32 : 2 ^ μ ≤ 2 ^ 32 := Nat.pow_le_pow_right (by decide) hμ
   obtain ⟨hx, h1⟩ := h1
   obtain ⟨hy, h3⟩ := h3
-  rw [Parameters.gpow, pow_zero, mul_one] at h1 h3
+  rw [Parameters.addressOfIndex, pow_zero, mul_one] at h1 h3
   obtain ⟨i, hi, -⟩ := (read_some_iff hμ64 Lm _ _).mp h1
   obtain ⟨j, hj, -⟩ := (read_some_iff hμ64 Lm _ _).mp h3
-  have ex : x = ofK (Parameters.gpow i) := by rw [eq_ofK_limb hx, hi]
-  have ey : y = ofK (Parameters.gpow j) := by rw [eq_ofK_limb hy, hj]
-  rw [hk, ex, ey, ← ofK_mul, Parameters.gpow, Parameters.gpow, ← pow_add] at h2
+  have ex : x = ofK (Parameters.addressOfIndex i) := by rw [eq_ofK_limb hx, hi]
+  have ey : y = ofK (Parameters.addressOfIndex j) := by rw [eq_ofK_limb hy, hj]
+  rw [hk, ex, ey, ← ofK_mul, Parameters.addressOfIndex, Parameters.addressOfIndex, ← pow_add] at h2
   have hij := gpow_injOn (by have := i.isLt; have := j.isLt; simp only [Set.mem_Iio]; omega)
     (by simp only [Set.mem_Iio]; omega) (ofK_injective h2).symm
   exact ⟨i, by omega, by rw [ex, gen_pow_eq_ofK]⟩
@@ -54,7 +54,7 @@ theorem tb_rc_sound' {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {K : ℕ
 /-- The auxiliary words of a passing range check, chosen. -/
 noncomputable def tbRcAux {μ : ℕ} (Lm : MemoryImage μ) (x : E) (K : ℕ) : E × E × E :=
   open Classical in
-  if h : ∃ y t1 t2 : E, LoadHolds Lm.read x 0 t1 ∧ ofK (Parameters.gpow (K - 1)) = x * y ∧
+  if h : ∃ y t1 t2 : E, LoadHolds Lm.read x 0 t1 ∧ ofK (Parameters.addressOfIndex (K - 1)) = x * y ∧
       LoadHolds Lm.read y 0 t2 then
     (Classical.choose h, Classical.choose (Classical.choose_spec h),
       Classical.choose (Classical.choose_spec (Classical.choose_spec h)))

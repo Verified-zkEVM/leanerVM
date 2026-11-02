@@ -101,7 +101,8 @@ theorem isWeightBound_absorbWith_inv {β : Type} {g : LState → OracleComp Rand
 
 /-- A state whose first four lanes are the digest's words: Keccak-256's output can be any
 digest. -/
-def digestState (d : DigestBytes) : LState := Vector.ofFn fun i ↦ KeccakHash.leLane d.toList i
+def digestState (d : DigestBytes) : LState := Vector.ofFn fun i ↦ KeccakHash.littleEndianLane
+    d.toList i
 
 /-- The digest of a final state: the bytes of its first four lanes (`keccak256With`). -/
 def digestOf (s : LState) : DigestBytes :=

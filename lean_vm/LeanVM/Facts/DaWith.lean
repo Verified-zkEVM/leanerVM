@@ -44,7 +44,7 @@ variable {m : Type → Type} [Monad m] (HD : List UInt8 → m Common.DigestBytes
 
 /-- `LeanDa.listCellDigest` with the hash `HD`. -/
 def listCellDigestWith (row : List K) (j : ℕ) : m Common.DigestBytes :=
-  HD ((LeanDa.listCell row j).flatMap LeanDa.kBytes)
+  HD ((LeanDa.listCell row j).flatMap LeanDa.symbolBytes)
 
 /-- `LeanDa.rowDigest` with the hash `HD`. -/
 def rowDigestWith (row : List K) : m Common.DigestBytes := do
@@ -82,39 +82,39 @@ def commitCodewordsWith (pc pr : Common.DigestBytes) (rows : List (List K)) : m 
 
 /-! ### The challenges' sponge -/
 
-/-- `LeanDa.Sponge.newM` with the permutation `PD`. -/
+/-- `LeanDa.Sponge.newWith` with the permutation `PD`. -/
 def spongeNewWith (iv publicInput : Common.DigestBytes) : m LeanDa.Sponge := do
   let state ← PD (Vector.ofFn fun i : Fin 25 ↦
-    if (i : ℕ) < 4 then (LeanDa.word iv i).lane
-    else if (i : ℕ) < 8 then (LeanDa.word publicInput (i - 4)).lane else 0)
+    if (i : ℕ) < 4 then (LeanDa.digestWord iv i).lane
+    else if (i : ℕ) < 8 then (LeanDa.digestWord publicInput (i - 4)).lane else 0)
   pure ⟨state, []⟩
 
-/-- `LeanDa.Sponge.fromLabelM` with the hash `HD` and the permutation `PD`. -/
+/-- `LeanDa.Sponge.fromLabelWith` with the hash `HD` and the permutation `PD`. -/
 def spongeFromLabelWith (label : List UInt8) : m LeanDa.Sponge := do
   spongeNewWith PD (← HD label) (Vector.replicate 32 0)
 
-/-- `LeanDa.Sponge.duplexM` with the permutation `PD`. -/
+/-- `LeanDa.Sponge.duplexWith` with the permutation `PD`. -/
 def spongeDuplexWith (s : LeanDa.Sponge) : m LeanDa.Sponge := do
   let state ← PD (Vector.ofFn fun i : Fin 25 ↦
     if (i : ℕ) < LeanDa.rateLanes then ((LeanDa.rateWords s.pending).getD i 0).lane
     else s.state[i])
   pure ⟨state, []⟩
 
-/-- `LeanDa.Sponge.absorbM` with the permutation `PD`. -/
+/-- `LeanDa.Sponge.absorbWith` with the permutation `PD`. -/
 def spongeAbsorbWith (s : LeanDa.Sponge) (x : E) (tag : K) : m LeanDa.Sponge := do
   let s ← if s.pending.length = LeanDa.rateScalars then spongeDuplexWith PD s else pure s
   pure ⟨s.state, s.pending ++ [(x, tag)]⟩
 
-/-- `LeanDa.Sponge.observeM` with the permutation `PD`. -/
+/-- `LeanDa.Sponge.observeWith` with the permutation `PD`. -/
 def spongeObserveWith (s : LeanDa.Sponge) (x : E) : m LeanDa.Sponge :=
   spongeAbsorbWith PD s x LeanDa.dsObserve
 
-/-- `LeanDa.Sponge.sampleM` with the permutation `PD`. -/
+/-- `LeanDa.Sponge.sampleWith` with the permutation `PD`. -/
 def spongeSampleWith (s : LeanDa.Sponge) : m (E × LeanDa.Sponge) := do
   let s ← spongeDuplexWith PD s
   pure (LeanDa.ofLimbs (K.ofLane s.state[0]) (K.ofLane s.state[1]) (K.ofLane s.state[2]), s)
 
-/-- `LeanDa.Sponge.samplesM` with the permutation `PD`. -/
+/-- `LeanDa.Sponge.samplesWith` with the permutation `PD`. -/
 def spongeSamplesWith : ℕ → LeanDa.Sponge → m (List E)
   | 0, _ => pure []
   | n + 1, s => do
@@ -122,11 +122,13 @@ def spongeSamplesWith : ℕ → LeanDa.Sponge → m (List E)
     let rest ← spongeSamplesWith n s
     pure (c :: rest)
 
-/-- `LeanDa.membershipChallengesM` with the hash `HD` and the permutation `PD`. -/
+/-- `LeanDa.membershipChallengesWith` with the hash `HD` and the permutation `PD`. -/
 def membershipChallengesWith (root : Common.DigestBytes) : m (List E) := do
-  let s ← spongeFromLabelWith HD PD LeanDa.label
-  let s ← spongeObserveWith PD s (LeanDa.ofLimbs (LeanDa.word root 0) (LeanDa.word root 1) 0)
-  let s ← spongeObserveWith PD s (LeanDa.ofLimbs (LeanDa.word root 2) (LeanDa.word root 3) 0)
+  let s ← spongeFromLabelWith HD PD LeanDa.membershipLabel
+  let s ← spongeObserveWith PD s (LeanDa.ofLimbs (LeanDa.digestWord root 0) (LeanDa.digestWord
+      root 1) 0)
+  let s ← spongeObserveWith PD s (LeanDa.ofLimbs (LeanDa.digestWord root 2) (LeanDa.digestWord
+      root 3) 0)
   spongeSamplesWith PD LeanDa.logK s
 
 /-- `LeanDa.membershipVector` with the hash `HD` and the permutation `PD`. -/
@@ -222,21 +224,22 @@ theorem commitCodewordsWith_id (rows : List (List K)) :
     rw [List.map_map]
     congr 1
 
-/-- The sponge's samples with the pure permutation are `LeanDa.Sponge.samplesM` over `Id`. -/
+/-- The sponge's samples with the pure permutation are `LeanDa.Sponge.samplesWith` over `Id`. -/
 theorem spongeSamplesWith_id : ∀ (n : ℕ) (s : LeanDa.Sponge),
     Id.run (spongeSamplesWith (m := Id) P n s) =
-      Id.run (LeanDa.Sponge.samplesM (m := Id) (fun L ↦ pure (P L)) n s)
+      Id.run (LeanDa.Sponge.samplesWith (m := Id) (fun L ↦ pure (P L)) n s)
   | 0, _ => rfl
   | n + 1, s => by
     show _ :: Id.run (spongeSamplesWith (m := Id) P n _) = _
     rw [spongeSamplesWith_id n]
     rfl
 
-/-- Observing with the pure permutation is `LeanDa.Sponge.observeM` over `Id`. -/
+/-- Observing with the pure permutation is `LeanDa.Sponge.observeWith` over `Id`. -/
 theorem spongeObserveWith_id (s : LeanDa.Sponge) (x : E) :
     Id.run (spongeObserveWith (m := Id) P s x) =
-      Id.run (LeanDa.Sponge.observeM (m := Id) (fun L ↦ pure (P L)) s x) := by
-  simp only [spongeObserveWith, spongeAbsorbWith, LeanDa.Sponge.observeM, LeanDa.Sponge.absorbM]
+      Id.run (LeanDa.Sponge.observeWith (m := Id) (fun L ↦ pure (P L)) s x) := by
+  simp only [spongeObserveWith, spongeAbsorbWith, LeanDa.Sponge.observeWith,
+      LeanDa.Sponge.absorbWith]
   split <;> rfl
 
 /-- The membership vector with the pure hash and permutation is `LeanDa.membershipVector`. -/
@@ -244,7 +247,7 @@ theorem membershipVectorWith_id (root : Common.DigestBytes) :
     Id.run (membershipVectorWith (m := Id) H P root) = LeanDa.membershipVector H P root := by
   show LeanDa.dualCodeword (Id.run (spongeSamplesWith (m := Id) P _
     (Id.run (spongeObserveWith (m := Id) P (Id.run (spongeObserveWith (m := Id) P
-      (Id.run (spongeFromLabelWith (m := Id) H P LeanDa.label)) _)) _)))) = _
+      (Id.run (spongeFromLabelWith (m := Id) H P LeanDa.membershipLabel)) _)) _)))) = _
   rw [spongeObserveWith_id, spongeObserveWith_id, spongeSamplesWith_id]
   rfl
 

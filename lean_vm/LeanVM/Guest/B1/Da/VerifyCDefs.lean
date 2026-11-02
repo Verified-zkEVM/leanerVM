@@ -39,13 +39,13 @@ def accSum (i b : ℕ) : E := ∑ j ∈ Finset.range b, cellDot syms ws i j
 
 /-- Column `j`'s tree's leaves: its cells' digests, then the padding cells. -/
 def nodeLeaves (j : ℕ) : List (E × E) :=
-  (List.range (2 ^ L)).map fun i => digestScalars (cellLeaf r syms j i)
+  (List.range (2 ^ L)).map fun i => digestHalves (cellLeaf r syms j i)
 
 /-- The column tree's leaves: the columns' roots. -/
-def colLeaves : List (E × E) := (List.range 128).map fun j => digestScalars (mRoot L (cellLeaf r syms j))
+def colLeaves : List (E × E) := (List.range 128).map fun j => digestHalves (mRoot L (cellLeaf r syms j))
 
 /-- The row tree's leaves: the rows' digests, then the padding rows. -/
-def rowLeaves : List (E × E) := (List.range (2 ^ L)).map fun i => digestScalars (rowLeaf r syms i)
+def rowLeaves : List (E × E) := (List.range (2 ^ L)).map fun i => digestHalves (rowLeaf r syms i)
 
 /-- Row `i`'s prefix: its first `64` cells' digests. -/
 def prefixCells (i : ℕ) : List E := (List.range 64).flatMap fun j => digestCells (cellD syms i j)

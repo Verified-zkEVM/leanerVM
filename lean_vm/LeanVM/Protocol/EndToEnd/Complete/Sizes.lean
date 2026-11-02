@@ -53,15 +53,15 @@ theorem kToNat_eOfNat {n : ℕ} (h : n < 2 ^ 64) : kToNat ((eOfNat n).limb 0) = 
 /-- **The honest announcement passes `readSizes`.** For sizes admissible for the program and a
 valid rate, the honest prover's eight scalars pass every check, and `readSizes` returns the
 verifier's layout at the sizes, and the rate. -/
-theorem follows_readSizes (prog : Program) {s : Sizes} (hs : s.Admissible prog) {ρ : ℕ}
+theorem follows_readSizes (prog : LeanIsaProgram) {s : Sizes} (hs : s.Admissible prog) {ρ : ℕ}
     (hρ : validRate ρ) (cs : Commits) :
     Follows (fun cs' _ b ↦ cs' = cs ∧ b = (verifierLayout prog s, ρ))
-      (Script.sendList (announce s ρ)) (readSizes (bytecodeWords prog)) cs := by
+      (Script.sendList (announce s ρ)) (readAnnouncedSizes (bytecodeWords prog)) cs := by
   obtain ⟨h1, h2, h3, h5⟩ := hs
   have hlen : (announce s ρ).length = 2 + tables.length := by
     simp [announce, tables]
-  unfold readSizes
-  simp only [Prog.bind_eq]
+  unfold readAnnouncedSizes
+  simp only [VerifierProgram.bind_eq]
   rw [← hlen, ← Script.bind_ret (Script.sendList (announce s ρ))]
   refine Follows.bind (fun cs' _ b hb ↦ ?_) _ _ _ (Follows.sendList_readN cs _)
   obtain ⟨rfl, rfl⟩ := hb
@@ -96,13 +96,14 @@ theorem follows_readSizes (prog : Program) {s : Sizes} (hs : s.Admissible prog) 
       (verifierLayout prog s).stackLog ≤ Whir.maxLogStack := by
     rw [stackLog_verifierLayout]
     exact ⟨le_max_right _ _, h5⟩
-  simp only [Prog.require, hlimbs, ↓reduceIte, Prog.ret_bind, hlast, hhead, htab, hb,
-    Verifier.liftOption, hwin, and_self, Prog.pure_eq]
-  simp only [show 1 ≤ ρ ∧ ρ ≤ 4 from hρ, and_self, ↓reduceIte, Prog.ret_bind]
+  simp only [VerifierProgram.require, hlimbs, ↓reduceIte, VerifierProgram.ret_bind, hlast, hhead,
+      htab, hb,
+    Verifier.liftOption, hwin, and_self, VerifierProgram.pure_eq]
+  simp only [show 1 ≤ ρ ∧ ρ ≤ 4 from hρ, and_self, ↓reduceIte, VerifierProgram.ret_bind]
   exact ⟨rfl, rfl⟩
 
 /-- The stack's size and an admissible rate are in WHIR's window. -/
-theorem whirAdmissible (prog : Program) {s : Sizes} (hs : s.Admissible prog) {ρ : ℕ}
+theorem whirAdmissible (prog : LeanIsaProgram) {s : Sizes} (hs : s.Admissible prog) {ρ : ℕ}
     (hρ : validRate ρ) : Whir.Admissible (leanIsaμ prog s) ρ :=
   ⟨le_max_right _ _, hs.2.2.2, hρ.1, hρ.2⟩
 

@@ -33,11 +33,12 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 @[expose] public section
 
 /-- The address word of `Parameters.gpow b`. -/
-noncomputable abbrev ptr (b : ℕ) : E := ofK (Parameters.gpow b)
+noncomputable abbrev ptr (b : ℕ) : E := ofK (Parameters.addressOfIndex b)
 
-theorem ptr_mul_gen_limb (b j off : ℕ) : (ptr b * gen ^ j).limb 0 * Parameters.gpow off = Parameters.gpow (b + j + off) := by
-  have e : ptr b * gen ^ j = ofK (Parameters.gpow (b + j)) := by
-    rw [gen_pow_eq_ofK, ← ofK_mul, Parameters.gpow, Parameters.gpow, Parameters.gpow, pow_add]
+theorem ptr_mul_gen_limb (b j off : ℕ) : (ptr b * gen ^ j).limb 0 * Parameters.addressOfIndex off = Parameters.addressOfIndex (b + j + off) := by
+  have e : ptr b * gen ^ j = ofK (Parameters.addressOfIndex (b + j)) := by
+    rw [gen_pow_eq_ofK, ← ofK_mul, Parameters.addressOfIndex, Parameters.addressOfIndex,
+        Parameters.addressOfIndex, pow_add]
   rw [e, Main.addr_ofK]
 
 /-- A load at `ptr b·g^j + off` inside an entry `(b, ws)` of a layout. -/

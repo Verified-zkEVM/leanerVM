@@ -47,8 +47,8 @@ def vtShC1 : List ℕ := [1, 299140177199104, 116417108763, 12802355687494521950
 def vtShC2 : List ℕ := [1, 21299200, 299140177199104, 4977884963127958635, 116417108763,
   2137722311186776064]
 
-theorem vtShC_eq : ∀ t < 6, K.ofBits (vtShC1.getD t 0) = Parameters.gpow (288 * t) ∧
-    K.ofBits (vtShC2.getD t 0) = Parameters.gpow (144 * t) := by
+theorem vtShC_eq : ∀ t < 6, K.ofBits (vtShC1.getD t 0) = Parameters.addressOfIndex (288 * t) ∧
+    K.ofBits (vtShC2.getD t 0) = Parameters.addressOfIndex (144 * t) := by
   decide +kernel
 
 /-- Table `t`'s shared tables, `t ≥ 1`, values from `v`. -/

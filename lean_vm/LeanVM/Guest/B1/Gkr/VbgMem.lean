@@ -116,10 +116,11 @@ theorem vbgRecBlock_length (hd : depth ≤ 32) (f : ℕ) :
 theorem vbg_memLay {rd : Reader} (hd : depth ≤ 32) (hcl : cap0.length = 5)
     (hcan : AllCanonical cap0)
     (hpl : ∀ j ≤ depth / 2, (gkSl cap0 xs (depth % 2) j).2.1.point.length = 2 * j + depth % 2)
-    (hL : TbReadsAt rd (ofK (gpow eL)) (vbgLayersW depth cap0 xs cur eP))
-    (hR : TbReadsAt rd (ofK (gpow eR)) (vbgRoundsW depth cap0 xs cur))
-    (hP : TbReadsAt rd (ofK (gpow eP)) (vbgRowsW depth cap0 xs))
-    (hPa : TbReadsAt rd (ofK (gpow ePa)) vbgPairsW) (hD : TbReadsAt rd (ofK (gpow eD)) vbgDshW) :
+    (hL : TbReadsAt rd (ofK (addressOfIndex eL)) (vbgLayersW depth cap0 xs cur eP))
+    (hR : TbReadsAt rd (ofK (addressOfIndex eR)) (vbgRoundsW depth cap0 xs cur))
+    (hP : TbReadsAt rd (ofK (addressOfIndex eP)) (vbgRowsW depth cap0 xs))
+    (hPa : TbReadsAt rd (ofK (addressOfIndex ePa)) vbgPairsW) (hD : TbReadsAt rd (ofK
+        (addressOfIndex eD)) vbgDshW) :
     MemLay rd (vbgLay depth cap0 xs cur eL eR eP ePa eD) := by
   have hLb := tbReadsAt_flatMap_eq (w := 17) _ (depth + 2)
     (fun c _ ↦ vbgLayBlock_length hcl hcan c) hL
@@ -179,7 +180,7 @@ theorem vbg_memLay {rd : Reader} (hd : depth ≤ 32) (hcl : cap0.length = 5)
         ((List.range j).map fun i ↦ 2 * i + depth % 2 + 1).sum := by
       congr 1; apply List.map_congr_left; intro i _; simp [vbgRecRun]
     rw [e] at hr
-    show TbReadsAt rd (ofK (gpow (eR + 862 * f + gkPos (depth % 2) j))) _
+    show TbReadsAt rd (ofK (addressOfIndex (eR + 862 * f + gkPos (depth % 2) j))) _
     rw [gkPos_eq, ← Nat.add_assoc]
     exact hr
   · -- the tables

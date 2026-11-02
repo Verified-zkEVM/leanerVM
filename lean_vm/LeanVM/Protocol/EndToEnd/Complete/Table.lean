@@ -85,7 +85,8 @@ theorem follows_tableTerms (cp fp point : List E) :
     simp [Script.sendList, tableTermsClaims, termsPure, Follows]
   | ((table, height, forms, weight), ev) :: rest, cursor, final, claims, cs, h => by
     have hev : ev.length = table.width := h ((table, height, forms, weight), ev) (by simp)
-    simp only [List.flatMap_cons, List.map_cons, tableTermsClaims, termsPure, Prog.bind_eq]
+    simp only [List.flatMap_cons, List.map_cons, tableTermsClaims, termsPure,
+        VerifierProgram.bind_eq]
     rw [sendList_append, ← hev]
     refine Follows.bind (fun cs' _ b hb ↦ ?_) _ _ _ (Follows.sendList_readN cs ev)
     obtain ⟨rfl, rfl⟩ := hb
@@ -109,7 +110,7 @@ theorem termsPure_snd (cp fp point : List E) :
 
 section Honest
 
-variable (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 
 /-- Column `i` of opcode table `t` read off the stack, lifted to `E`: `2^τ_t` entries. -/
 def tableColList (t : Fin 6) (i : Fin (width (opIdx t))) : List E :=
@@ -206,14 +207,14 @@ theorem coordPoly_evaluate {n : ℕ} (f : Form) (col : List E → ℕ → E)
 theorem jumpConstraints_eq (ev : List E) :
     jumpConstraints ev = [ev.getD 13 0 + ev.getD 5 0 * ev.getD 12 0,
       ev.getD 5 0 * (ev.getD 13 0 + 1)] := by
-  have h5 : colIdx jumpColumns "v_cond" = 5 := by decide +kernel
-  have h12 : colIdx jumpColumns "w" = 12 := by decide +kernel
-  have h13 : colIdx jumpColumns "b" = 13 := by decide +kernel
+  have h5 : columnIndexByName jumpColumns "v_cond" = 5 := by decide +kernel
+  have h12 : columnIndexByName jumpColumns "w" = 12 := by decide +kernel
+  have h13 : columnIndexByName jumpColumns "b" = 13 := by decide +kernel
   simp only [jumpConstraints, h5, h12, h13]
 
 section Degree
 
-variable (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 
 /-- The announced heights, read back. -/
 theorem getD_tableLogs (t : Fin 6) : (tableLogs s).getD t 0 = s.τ t := by
@@ -319,7 +320,7 @@ theorem sum_cube_weight (e : List E) {h n : ℕ} (hn : h ≤ n) (he : h ≤ e.le
 
 section Sum
 
-variable (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 
 /-- Cell `i` of row `y` of opcode table `t`, read off the stack. -/
 def rowCell (t : Fin 6) (y : Fin (2 ^ s.τ t)) (i : Fin (width (opIdx t))) : K :=
@@ -427,7 +428,7 @@ end Sum
 
 section Prover
 
-variable (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 
 /-- The constraint powers of `ξ` (`verifier.py:1382-1384`). -/
 def cpOf (xi : E) : List E :=
@@ -556,11 +557,12 @@ theorem follows_tableTail (claims : List Verifier.ColumnClaim) (cp fp pt : List 
       ((Script.sendList (P.flatMap (·.2))).bind fun _ ↦
         Script.ret (claims ++ (termsPure cp fp pt P 0 0 []).2))
       ((tableTermsClaims cp fp pt (P.map (·.1)) 0 0 []).bind fun a ↦
-        ((Prog.require (a.1 = fin)).bind fun _ ↦ pure a.2).bind fun tableClaims ↦
+        ((VerifierProgram.require (a.1 = fin)).bind fun _ ↦ pure a.2).bind fun tableClaims ↦
           pure (claims ++ tableClaims)) cs := by
   refine Follows.bind (fun cs' _ b h ↦ ?_) _ _ _ (follows_tableTerms cp fp pt P 0 0 [] cs hP)
   obtain ⟨rfl, rfl⟩ := h
-  simp only [Prog.require, hcheck, ↓reduceIte, Prog.ret_bind, Prog.pure_eq, Follows, true_and]
+  simp only [VerifierProgram.require, hcheck, ↓reduceIte, VerifierProgram.ret_bind,
+      VerifierProgram.pure_eq, Follows, true_and]
   exact hgood
 
 /-- Setting the entry after a prefix. -/
@@ -722,7 +724,7 @@ theorem follows_tablePhase {input : PublicInput} (hq : M3Holds (inst prog s) inp
           tc.filter (fun c ↦ c.column ∈ keccakOutputColumns) = honestLanes prog s q z)
       (hTable prog s q bus) (tablePhaseClaims (verifierLayout prog s) bus) cs := by
   unfold tablePhaseClaims tableSumcheckClaims hTable
-  simp only [Prog.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   refine Follows.bind (fun cs₁ xi xi' h ↦ ?_) _ _ _ (Follows.sampleE_sampleE cs)
   obtain ⟨rfl, rfl⟩ := h
   have hh : (verifierLayout prog s).tableLogHeights = tableLogs s := rfl
@@ -737,14 +739,14 @@ theorem follows_tablePhase {input : PublicInput} (hq : M3Holds (inst prog s) inp
     simp only [List.length_nil, Nat.sub_zero, List.reverse_nil, List.append_nil]
     exact (sum_summand prog s q hb (cpOf xi) (fpOf xi) hfp
       (consPart_rowEvals prog s q hq (cpOf xi))).symm
-  rw [hh, htarget, Prog.bind_assoc]
+  rw [hh, htarget, VerifierProgram.bind_assoc]
   refine Follows.bind (fun cs₂ r r' h ↦ ?_) _ _ _
     (follows_sumcheck 4 (by norm_num) (claimOf prog s q (cpOf xi) (fpOf xi) bus)
       (List.replicate (nRounds s) none) [] cs₁ ?_ ?_)
   · obtain ⟨rfl, rfl, hlen, hfin⟩ := h
     simp only [List.length_replicate] at hlen
     simp only [List.nil_append] at hfin
-    rw [rows_eq prog s q bus hb.forms_length, Prog.bind_assoc]
+    rw [rows_eq prog s q bus hb.forms_length, VerifierProgram.bind_assoc]
     have hcheck : (termsPure (cpOf xi) (fpOf xi) r.1.reverse
         (pairsAt prog s q bus r.1.reverse) 0 0 []).1 = r.2 := by
       rw [hfin, claimOf, hlen, Nat.sub_self, pow_zero, sum_range_one]

@@ -34,7 +34,7 @@ open LeanVM.Protocol.LeanIsa LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
 open LeanVM.Protocol.EndToEnd LeanVM.Protocol.EndToEnd.Front
 
 /-- Four `XOR` instructions. -/
-def prog4 : Program := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
+def prog4 : LeanIsaProgram := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
 
 /-- The first size vector of the instance's tests, heights `16, 3, 16, 4, 16, 16`: a table as
 tall as the memory. -/
@@ -64,17 +64,17 @@ def s₃ : Sizes := ⟨18, by decide, ![3, 200000, 17, 0, 65, 5]⟩
 column riding a spare slot, the column of `QKECCAK`'s block at its slot (input lane `l`: `l`;
 the `KECCAK` table's columns `0 … 12`: `50 … 62`; its `cnt_0`: `63`, written out here rather
 than read off `qSlot`); otherwise its block's offset. -/
-def instancePlacement (prog : Program) (s : Sizes) (c : Col) : Option Placement :=
+def instancePlacement (prog : LeanIsaProgram) (s : Sizes) (c : Col) : Option Placement :=
   if IsOut c then none
   else if h : IsVirtual c then
     let slot := if c.2.val < 13 then 50 + c.2.val else if c.2.val = 63 then 63 else c.2.val - 13
     some
-      { vars := s.τ 5,
+      { variableCount := s.τ 5,
         index := (blocks prog s).offset (keccakBlock prog s) + slot * 2 ^ s.τ 5 }
-  else some { vars := kappa prog s c, index := (blocks prog s).offset (blockOf c h) }
+  else some { variableCount := kappa prog s c, index := (blocks prog s).offset (blockOf c h) }
 
 /-- The verifier's placement of every column agrees with the instance's. -/
-def placementsAgree (prog : Program) (s : Sizes) : Bool :=
+def placementsAgree (prog : LeanIsaProgram) (s : Sizes) : Bool :=
   columns.all fun c ↦
     (verifierLayout prog s).placements.getD (pyCol c) none = instancePlacement prog s c
 
@@ -87,7 +87,7 @@ example : (verifierLayout prog4 s₁).stackLog = leanIsaμ prog4 s₁ := stackLo
 
 example (c : Col) (h : ¬ IsVirtual c) :
     (verifierLayout prog4 s₂).placement (pyCol c) =
-      { vars := kappa prog4 s₂ c, index := (blocks prog4 s₂).offset (blockOf c h) } :=
+      { variableCount := kappa prog4 s₂ c, index := (blocks prog4 s₂).offset (blockOf c h) } :=
   placement_committed prog4 s₂ c h
 
 example (c : Col) (h : IsOut c) : (verifierLayout prog4 s₂).placements.getD (pyCol c) none = none :=
@@ -104,13 +104,13 @@ example (c : Col) (hc : ¬ IsOut c) (z : Vector E (kappa prog4 s₁ c)) (v : E)
 
 /-- Whether `readSizes` returns after the announcement, with the expected stacked size and rate. -/
 def readsTo (s : Sizes) (ρ : ℕ) (μ : ℕ) : Bool :=
-  match (readSizes (bytecodeWords prog4)).after ((announce s ρ).map Ev.read) with
+  match (readAnnouncedSizes (bytecodeWords prog4)).after ((announce s ρ).map Ev.read) with
   | some (.ret a) => a.1.stackLog == μ && a.2 == ρ
   | _ => false
 
 /-- Whether `readSizes` rejects after the announcement. -/
 def rejects (s : Sizes) (ρ : ℕ) : Bool :=
-  match (readSizes (bytecodeWords prog4)).after ((announce s ρ).map Ev.read) with
+  match (readAnnouncedSizes (bytecodeWords prog4)).after ((announce s ρ).map Ev.read) with
   | some .fail => true
   | _ => false
 
@@ -141,7 +141,7 @@ def stackOffsetsHighTies (sizes : List ℕ) : List ℕ :=
 #guard (columns.filter fun c ↦ decide (IsLane c ∧ ¬ IsOut c)).any fun c ↦
   (verifierLayout prog4 s₁).placements.getD (pyCol c) none ≠
     some
-      { vars := s₁.τ 5, low := 6,
+      { variableCount := s₁.τ 5, low := 6,
         index := (blocks prog4 s₁).offset (keccakBlock prog4 s₁) + (c.2.val - 13) }
 
 /-! ## The bus flushes: the `DEREF` order -/

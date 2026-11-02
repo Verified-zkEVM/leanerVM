@@ -56,9 +56,9 @@ abbrev OracleWorld := unifSpec + HashSpec
 `walkChain`, `foldPath` and `buildTree`; their equations here are the proofs' unfolding of each,
 step by step. -/
 
-namespace Concrete
+namespace Verification
 
-open HashSig.Concrete
+open HashSig.OverPermutation
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m] (parameter : PublicParameter)
   (lay : Layer) (key : KeyIndex)
@@ -92,9 +92,9 @@ theorem treeFold_eq_succ (path : Fin layerHeight → Digest) (levels : Nat) (val
   funext current
   split <;> rfl
 
-end Concrete
+end Verification
 
-namespace Seeded
+namespace KeyGenerationAndSigning
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m] (parameter : PublicParameter)
   (lay : Layer) (seed : MasterSeed)
@@ -103,16 +103,16 @@ theorem treeNode_eq_zero (nodeIdx : Nat) :
     treeNodeWithHash (m := m) parameter lay seed 0 nodeIdx = (do
       let key : KeyIndex := ⟨nodeIdx % lifetime, Nat.mod_lt _ (by decide)⟩
       let endpoints ← oneTimePublicKeyWithHash parameter lay key seed
-      Concrete.leafHashWithHash parameter lay key endpoints) := rfl
+      Verification.leafHashWithHash parameter lay key endpoints) := rfl
 
 theorem treeNode_eq_succ (level nodeIdx : Nat) :
     treeNodeWithHash (m := m) parameter lay seed (level + 1) nodeIdx = (do
       let left ← treeNodeWithHash parameter lay seed level (2 * nodeIdx)
       let right ← treeNodeWithHash parameter lay seed level (2 * nodeIdx + 1)
-      Concrete.tweakableHashWithHash parameter (.node lay (level + 1) nodeIdx)
-        (Concrete.nodePayload left right)) := rfl
+      Verification.tweakableHashWithHash parameter (.node lay (level + 1) nodeIdx)
+        (OverPermutation.nodePayload left right)) := rfl
 
-end Seeded
+end KeyGenerationAndSigning
 
 end
 

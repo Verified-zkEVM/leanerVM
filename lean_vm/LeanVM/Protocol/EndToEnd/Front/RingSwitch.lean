@@ -154,8 +154,8 @@ theorem ring_end {h₅ off : ℕ} (hlay : RingLayoutHyp layout h₅ off) (pt sv 
 
 /-- Ring switching draws the six coefficients and returns the target and the weight. -/
 theorem ringSwitch_eq (point sv : List E) :
-    LeanVM.Protocol.Verifier.ringSwitch point sv = Prog.sampleChallenges 6 >>= fun ch ↦
-      Prog.ret (LeanVM.Protocol.Verifier.polyEval
+    LeanVM.Protocol.Verifier.ringSwitch point sv = VerifierProgram.sampleChallenges 6 >>= fun ch ↦
+      VerifierProgram.ret (LeanVM.Protocol.Verifier.polyEval
           (sv.map (LeanVM.Protocol.Verifier.phiMap · ch)) LeanVM.Protocol.Verifier.gen,
         fun rPrime ↦ LeanVM.Protocol.Verifier.ringWeight point rPrime
           (LeanVM.Protocol.Verifier.ringCoefficients ch)) := rfl

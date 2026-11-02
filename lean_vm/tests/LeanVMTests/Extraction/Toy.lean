@@ -123,7 +123,7 @@ def merklize (leaves : Array (List K)) (ht : ℕ) : Digest × List (Bytes × Dig
   let mut level : Array Digest := #[]
   for v in [0:2 ^ ht] do
     let d : Digest := #v[(table.length).toUInt64, 0, 0, 7]
-    table := ((leaves.getD v []).flatMap kBytes, d) :: table
+    table := ((leaves.getD v []).flatMap K.toBytes, d) :: table
     level := level.push d
   for _ in [0:ht] do
     let mut next : Array Digest := #[]
@@ -147,7 +147,7 @@ def toyAnswers (x : Bytes) : Option Digest := (toyTree.2.find? (·.1 == x)).map 
 
 -- Leaf `0` unanswered: zeros there, the other leaves unchanged.
 #guard
-  let keys := toyTree.2.map (·.1) |>.filter (· != (toyWord.getD 0 []).flatMap kBytes)
+  let keys := toyTree.2.map (·.1) |>.filter (· != (toyWord.getD 0 []).flatMap K.toBytes)
   let answers : Bytes → Option Digest := fun x ↦ if keys.contains x then toyAnswers x else none
   committedLeaves answers keys toyTree.1 4 64 = toyWord.set! 0 (List.replicate 64 0)
 

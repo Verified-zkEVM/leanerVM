@@ -6,13 +6,14 @@ import Common.WithHash
 /-! # The end theorem of leanXMSS
 
 `XmssSecurity.leanXmss_rpm_security` (`XmssSecurity/Rpm.lean`) proves
-`LeanXmss.Rpm.LeanXmssStronglyUnforgeable` (`Statement/LeanXmss.lean`): in the
+`LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable` (`Statement/LeanXmss.lean`): in the
 random-permutation model, an adversary whose game makes at most `Q` permutation calls,
 for every `Q ≥ 1`, forges with probability at most `(Q + 1) · 2^-127` (from
 `Q / 2^127 + Q² / 2^509`, the sponge's indifferentiability added). Its proof passes through the random-oracle
 model (`leanXmss_has_127_bits_of_classical_security`, a step). -/
 
-example : LeanXmss.Rpm.LeanXmssStronglyUnforgeable := XmssSecurity.leanXmss_rpm_security
+example : LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable :=
+    XmssSecurity.leanXmss_rpm_security
 
 namespace XmssSecurity
 

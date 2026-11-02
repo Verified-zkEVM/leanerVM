@@ -61,7 +61,7 @@ theorem guest_knowledge_sub (hv : B1.Main.SubSoundW bytecode piOf) :
 theorem decode_binds_sub (hv : B1.Main.SubSoundW bytecode piOf)
     {input : PublicInput} {t : Execution guestProgram} (hvt : ValidExecution guestProgram input t) {iv : Digest}
     {s₀ : NodeStatement} (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode)
-    (hpub : publicDigest input = statementDigest iv s₀) :
+    (hpub : publicInputDigest input = statementDigest iv s₀) :
     ((decodeV piOf t.memory).seed = iv ∧ (decodeV piOf t.memory).statement = s₀) ∨
       HasCollision (collisionCandidates (decodeV piOf t.memory).seed
         (decodeV piOf t.memory).statement iv s₀) :=

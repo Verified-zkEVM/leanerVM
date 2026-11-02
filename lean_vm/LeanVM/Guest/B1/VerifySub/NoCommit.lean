@@ -29,7 +29,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- No `commit` and no `query` on any path (the recursion). -/
-def NoCommitA {α : Type} : Prog α → Prop
+def NoCommitA {α : Type} : VerifierProgram α → Prop
   | .ret _ => True
   | .fail => True
   | .read k => ∀ x, NoCommitA (k x)
@@ -40,12 +40,13 @@ def NoCommitA {α : Type} : Prog α → Prop
 
 /-- **No `commit` and no `query` on any path.** Irreducible: unfolding it on a large program would
 evaluate the program. -/
-@[irreducible] def NoCommit {α : Type} (p : Prog α) : Prop := NoCommitA p
+@[irreducible] def NoCommit {α : Type} (p : VerifierProgram α) : Prop := NoCommitA p
 
-theorem noCommit_iff {α : Type} (p : Prog α) : NoCommit p ↔ NoCommitA p := by
+theorem noCommit_iff {α : Type} (p : VerifierProgram α) : NoCommit p ↔ NoCommitA p := by
   unfold NoCommit; rfl
 
-theorem NoCommitA.bind {α β : Type} {p : Prog α} {f : α → Prog β} (hp : NoCommitA p)
+theorem NoCommitA.bind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} (hp :
+    NoCommitA p)
     (hf : ∀ a, NoCommitA (f a)) : NoCommitA (p.bind f) := by
   induction p with
   | ret a => exact hf a
@@ -56,11 +57,12 @@ theorem NoCommitA.bind {α β : Type} {p : Prog α} {f : α → Prog β} (hp : N
   | commit _ _ _ _ => exact hp.elim
   | query _ _ _ _ => exact hp.elim
 
-theorem NoCommit.bind {α β : Type} {p : Prog α} {f : α → Prog β} (hp : NoCommit p)
+theorem NoCommit.bind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} (hp :
+    NoCommit p)
     (hf : ∀ a, NoCommit (f a)) : NoCommit (p.bind f) :=
   (noCommit_iff _).2 (NoCommitA.bind ((noCommit_iff _).1 hp) fun a ↦ (noCommit_iff _).1 (hf a))
 
-theorem NoCommitA.runF {α : Type} (p : Prog α) : NoCommitA p → ∀ (st : Whir.FSt) (a : α)
+theorem NoCommitA.runF {α : Type} (p : VerifierProgram α) : NoCommitA p → ∀ (st : Whir.FSt) (a : α)
     (st' : Whir.FSt), Whir.runF p st = some (a, st') →
       st'.roots = st.roots ∧ st'.openings = st.openings := by
   induction p with
@@ -95,39 +97,42 @@ theorem NoCommitA.runF {α : Type} (p : Prog α) : NoCommitA p → ∀ (st : Whi
   | query _ _ _ _ => intro hp; exact hp.elim
 
 /-- **A carried run without commitments keeps the roots and the openings.** -/
-theorem NoCommit.runF {α : Type} {p : Prog α} (hp : NoCommit p) {st : Whir.FSt} {a : α}
+theorem NoCommit.runF {α : Type} {p : VerifierProgram α} (hp : NoCommit p) {st : Whir.FSt} {a : α}
     {st' : Whir.FSt} (h : Whir.runF p st = some (a, st')) :
     st'.roots = st.roots ∧ st'.openings = st.openings :=
   NoCommitA.runF p ((noCommit_iff _).1 hp) st a st' h
 
 /-! ## The primitives -/
 
-theorem noCommit_ret {α : Type} (a : α) : NoCommit (Prog.ret a) := (noCommit_iff _).2 trivial
+theorem noCommit_ret {α : Type} (a : α) : NoCommit (VerifierProgram.ret a) := (noCommit_iff _).2
+    trivial
 
-theorem noCommit_fail {α : Type} : NoCommit (Prog.fail : Prog α) := (noCommit_iff _).2 trivial
+theorem noCommit_fail {α : Type} : NoCommit (VerifierProgram.fail : VerifierProgram α) :=
+    (noCommit_iff _).2 trivial
 
-theorem noCommit_readE : NoCommit Prog.readScalar := (noCommit_iff _).2 fun _ ↦ trivial
+theorem noCommit_readE : NoCommit VerifierProgram.readScalar := (noCommit_iff _).2 fun _ ↦ trivial
 
-theorem noCommit_sampleE : NoCommit Prog.sampleChallenge := (noCommit_iff _).2 fun _ ↦ trivial
+theorem noCommit_sampleE : NoCommit VerifierProgram.sampleChallenge := (noCommit_iff _).2 fun _ ↦
+    trivial
 
-theorem noCommit_readN : ∀ n, NoCommit (Prog.readScalars n)
+theorem noCommit_readN : ∀ n, NoCommit (VerifierProgram.readScalars n)
   | 0 => noCommit_ret _
   | n + 1 => by
-    simp only [Prog.readScalars, Prog.bind_eq, Prog.pure_eq]
+    simp only [VerifierProgram.readScalars, VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     refine NoCommit.bind noCommit_readE fun _ ↦ ?_
     refine NoCommit.bind (noCommit_readN n) fun _ ↦ ?_
     exact noCommit_ret _
 
-theorem noCommit_sampleN : ∀ n, NoCommit (Prog.sampleChallenges n)
+theorem noCommit_sampleN : ∀ n, NoCommit (VerifierProgram.sampleChallenges n)
   | 0 => noCommit_ret _
   | n + 1 => by
-    simp only [Prog.sampleChallenges, Prog.bind_eq, Prog.pure_eq]
+    simp only [VerifierProgram.sampleChallenges, VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     refine NoCommit.bind noCommit_sampleE fun _ ↦ ?_
     refine NoCommit.bind (noCommit_sampleN n) fun _ ↦ ?_
     exact noCommit_ret _
 
-theorem noCommit_require (c : Prop) [Decidable c] : NoCommit (Prog.require c) := by
-  unfold Prog.require
+theorem noCommit_require (c : Prop) [Decidable c] : NoCommit (VerifierProgram.require c) := by
+  unfold VerifierProgram.require
   split
   · exact noCommit_ret _
   · exact noCommit_fail
@@ -163,20 +168,20 @@ theorem noCommit_sumcheck (claim : E) (count : ℕ) : ∀ eqs : List (Option E),
   | nil => exact noCommit_ret _
   | cons e eqs ih =>
     unfold sumcheck
-    simp only [Prog.bind_eq, Prog.pure_eq]
+    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     refine NoCommit.bind (noCommit_sumcheckRoundPoly _ _ _) fun _ ↦ ?_
     refine NoCommit.bind noCommit_sampleE fun _ ↦ ?_
     exact NoCommit.bind (ih _) fun _ ↦ noCommit_ret _
 
 /-! ## The phases -/
 
-theorem noCommit_readSizes (bytecode : List K) : NoCommit (readSizes bytecode) := by
-  unfold readSizes
+theorem noCommit_readSizes (bytecode : List K) : NoCommit (readAnnouncedSizes bytecode) := by
+  unfold readAnnouncedSizes
   nc
 
 theorem noCommit_gkrStep (step : ℕ) (s : GkrState) : NoCommit (gkrStep step s) := by
   unfold gkrStep
-  simp only [Prog.bind_eq, Prog.pure_eq]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   refine NoCommit.bind noCommit_sampleE fun _ ↦ ?_
   refine NoCommit.bind (noCommit_sumcheck _ _ _) fun _ ↦ ?_
   nc
@@ -185,19 +190,19 @@ theorem noCommit_gkrLayers : ∀ (n : ℕ) (s : GkrState), NoCommit (gkrLayers n
   | 0, _ => noCommit_ret _
   | 1, s => by
     unfold gkrLayers
-    simp only [Prog.bind_eq]
+    simp only [VerifierProgram.bind_eq]
     exact NoCommit.bind (noCommit_gkrStep _ _) fun _ ↦ noCommit_gkrLayers 0 _
   | n + 2, s => by
     unfold gkrLayers
     split
-    · simp only [Prog.bind_eq]
+    · simp only [VerifierProgram.bind_eq]
       exact NoCommit.bind (noCommit_gkrStep _ _) fun _ ↦ noCommit_gkrLayers (n + 1) _
-    · simp only [Prog.bind_eq]
+    · simp only [VerifierProgram.bind_eq]
       exact NoCommit.bind (noCommit_gkrStep _ _) fun _ ↦ noCommit_gkrLayers n _
 
 theorem noCommit_gkrPhase (depth : ℕ) : NoCommit (Tables.gkrPhase depth) := by
   unfold Tables.gkrPhase verifyGkrGrandProducts
-  simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc]
   refine NoCommit.bind noCommit_readE fun _ ↦ NoCommit.bind noCommit_readE fun _ ↦ ?_
   refine NoCommit.bind (noCommit_gkrLayers _ _) fun _ ↦ ?_
   nc
@@ -208,13 +213,13 @@ theorem noCommit_tableTerms (cP fP point : List E) :
   | [], _, _, _ => noCommit_ret _
   | (table, height, forms, weight) :: rest, cursor, final, claims => by
     unfold tableTermsClaims
-    simp only [Prog.bind_eq]
+    simp only [VerifierProgram.bind_eq]
     exact NoCommit.bind (noCommit_readN _) fun _ ↦ noCommit_tableTerms cP fP point rest _ _ _
 
 theorem noCommit_tablePhase (layout : Layout) (bus : BusResult) :
     NoCommit (tablePhaseClaims layout bus) := by
   unfold tablePhaseClaims tableSumcheckClaims
-  simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc]
   refine NoCommit.bind noCommit_sampleE fun _ ↦ ?_
   refine NoCommit.bind ?_ ?_
   · exact noCommit_sumcheck _ _ _
@@ -226,12 +231,12 @@ theorem noCommit_tablePhase (layout : Layout) (bus : BusResult) :
 
 theorem noCommit_tablesSeg (c : BytecodeClaim) (L : Layout) (pi : Digest) (alphas : List E)
     (beta : E) (point tv : List E) :
-    NoCommit (Tables.tablesSeg (claimedValue c) L pi alphas beta point tv) := by
+    NoCommit (Tables.tablesSeg (claimedBytecodeValue c) L pi alphas beta point tv) := by
   unfold Tables.tablesSeg
-  simp only [Prog.bind_eq, Prog.pure_eq]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   refine NoCommit.bind ?_ fun _ ↦ NoCommit.bind (noCommit_tablePhase _ _) fun _ ↦ ?_
   · unfold Tables.busRest
-    simp only [claimedValue]
+    simp only [claimedBytecodeValue]
     nc
   · unfold publicInputPhase
     nc
@@ -241,7 +246,7 @@ theorem noCommit_keccakPackRounds : ∀ (rs : List E) (value scale : E),
   | [], _, _ => noCommit_ret _
   | r :: rs, value, scale => by
     unfold keccakPackRounds
-    simp only [Prog.bind_eq, Prog.pure_eq]
+    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     refine NoCommit.bind (noCommit_sumcheckRoundPoly _ _ _) fun _ ↦ ?_
     refine NoCommit.bind noCommit_sampleE fun _ ↦ ?_
     refine NoCommit.bind ?_ ?_
@@ -252,7 +257,7 @@ theorem noCommit_keccakPackRounds : ∀ (rs : List E) (value scale : E),
 theorem noCommit_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
     NoCommit (verifyKeccakLayer logSteps step claim) := by
   unfold verifyKeccakLayer
-  simp only [Prog.bind_eq, Prog.pure_eq]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   refine NoCommit.bind ?_ ?_
   · exact noCommit_readN _
   intro _
@@ -286,7 +291,7 @@ theorem noCommit_keccakLayers (logSteps : ℕ) (steps : List ℕ) :
   | cons step steps ih =>
     intro claim
     unfold keccakLayers
-    simp only [Prog.bind_eq]
+    simp only [VerifierProgram.bind_eq]
     refine NoCommit.bind ?_ ?_
     · exact noCommit_verifyKeccakLayer logSteps step claim
     intro _
@@ -295,7 +300,7 @@ theorem noCommit_keccakLayers (logSteps : ℕ) (steps : List ℕ) :
 theorem noCommit_keccakOpen (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) (value : E) :
     NoCommit (keccakOpen logSteps claim first count value) := by
   unfold keccakOpen
-  simp only [Prog.bind_eq, Prog.pure_eq]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   refine NoCommit.bind ?_ ?_
   · exact noCommit_sumcheck _ _ _
   intro _
@@ -305,7 +310,8 @@ theorem noCommit_keccakSeg (logSteps : ℕ) (inst output : List E) :
     NoCommit (keccakSeg logSteps inst output) := by
   have h1 : 1 < keccakSegments := by decide
   unfold keccakSeg verifyKeccak
-  simp only [h1, ↓reduceIte, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+  simp only [h1, ↓reduceIte, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+      VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
   refine NoCommit.bind ?_ ?_
   · exact noCommit_sampleN _
   intro _

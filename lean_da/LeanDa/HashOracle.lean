@@ -87,7 +87,7 @@ variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpmH r Crs Proof)
 /-- A position-binding adversary: from the commitment key, a commitment, a position, and two cells
 with their openings. -/
 abbrev PosBindingAdvRpmH (Crs Proof : Type) :=
-  Unit × Crs → OracleComp KSpecH ((DigestBytes × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening)
+  Unit × Crs → OracleComp KSpecH ((DigestBytes × Proof) × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening)
 
 /-- **The position-binding game**: the argument's setup, the adversary, then the verifications:
 the argument's of the root's proof and the two openings'; it wins when all verify, at two
@@ -103,7 +103,7 @@ def posBindingGameH (A : PosBindingAdvRpmH r Crs Proof) : OracleComp KSpecH Bool
 /-- A code-binding adversary: from the commitment key, a commitment and a list of opened
 positions. -/
 abbrev CodeBindingAdvRpmH (Crs Proof : Type) :=
-  Unit × Crs → OracleComp KSpecH ((DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening))
+  Unit × Crs → OracleComp KSpecH ((DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening))
 
 /-- **The code-binding game**: the argument's setup, the adversary, then the verifications; it wins
 when the root's proof and every opening verify and no codeword agrees with the opened cells. -/
@@ -112,7 +112,8 @@ noncomputable def codeBindingGameH (A : CodeBindingAdvRpmH r Crs Proof) : Oracle
   let (com, opened) ← A ((), crs)
   let ok ← ps.verify crs com.1 com.2
   let verdicts ← opened.mapM fun o ↦ verifyCellMWithHash hK r com.1 o.1 o.2.1 o.2.2
-  pure (ok && verdicts.all id && !decide ((code r).Consistent (opened.map fun o ↦ (o.1, o.2.1))))
+  pure (ok && verdicts.all id && !decide ((leanDaErasureCode r).Consistent (opened.map fun o ↦ (o.1,
+      o.2.1))))
 
 /-- **The adversary's oracles, logged**: each query asked, and appended with its answer to the
 transcript. -/
@@ -144,7 +145,7 @@ verification of the encoding's cell at `p` with its honest opening. -/
 noncomputable def completenessExpRpmH (π : Equiv.Perm KeccakState) (ps : ArgumentRpmH r Crs Proof)
     (msg : Fin r → Payload) (p : Fin (r * 128)) : ProbComp Bool := do
   let crs ← ps.setup
-  let c := (code r).encode msg
+  let c := (leanDaErasureCode r).encode msg
   let root := commitCellsWithHash (keccak256WithPermutation π) c
   let ok ← simulateQ (permImplH π) (ps.prove crs root c >>= ps.verify crs root)
   pure (ok && Id.run (verifyCellMWithHash (fun a ↦ pure (keccak256WithPermutation π a)) r root p (c p)

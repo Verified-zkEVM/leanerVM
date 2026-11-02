@@ -52,17 +52,18 @@ open LeanVM.Parameters
 
 @[expose] public section
 
-namespace Prog
+namespace VerifierProgram
 
 variable {α β γ : Type}
 
-@[simp] theorem pure_eq (a : α) : (pure a : Prog α) = ret a := rfl
+@[simp] theorem pure_eq (a : α) : (pure a : VerifierProgram α) = ret a := rfl
 
-@[simp] theorem bind_eq (p : Prog α) (f : α → Prog β) : p >>= f = p.bind f := rfl
+@[simp] theorem bind_eq (p : VerifierProgram α) (f : α → VerifierProgram β) : p >>= f = p.bind
+    f := rfl
 
-@[simp] theorem ret_bind (a : α) (f : α → Prog β) : (ret a).bind f = f a := rfl
+@[simp] theorem ret_bind (a : α) (f : α → VerifierProgram β) : (ret a).bind f = f a := rfl
 
-theorem bind_ret (p : Prog α) : p.bind ret = p := by
+theorem bind_ret (p : VerifierProgram α) : p.bind ret = p := by
   induction p with
   | ret a => rfl
   | fail => rfl
@@ -72,7 +73,7 @@ theorem bind_ret (p : Prog α) : p.bind ret = p := by
   | commit h w k ih => simp only [bind, ih]
   | query i ps k ih => simp only [bind, ih]
 
-theorem bind_assoc (p : Prog α) (f : α → Prog β) (g : β → Prog γ) :
+theorem bind_assoc (p : VerifierProgram α) (f : α → VerifierProgram β) (g : β → VerifierProgram γ) :
     (p.bind f).bind g = p.bind fun a ↦ (f a).bind g := by
   induction p with
   | ret a => rfl
@@ -83,12 +84,12 @@ theorem bind_assoc (p : Prog α) (f : α → Prog β) (g : β → Prog γ) :
   | commit h w k ih => simp only [bind, ih]
   | query i ps k ih => simp only [bind, ih]
 
-instance : LawfulMonad Prog := LawfulMonad.mk'
+instance : LawfulMonad VerifierProgram := LawfulMonad.mk'
   (id_map := fun p ↦ bind_ret p)
   (pure_bind := fun _ _ ↦ rfl)
   (bind_assoc := fun p f g ↦ bind_assoc p f g)
 
-end Prog
+end VerifierProgram
 
 /-- Digests are finite: the uniform distribution of the random oracle ranges over them. A proof
 object only: its element list has `2^256` entries, and compiled code would build it when the
@@ -137,12 +138,12 @@ def commits : List Ev → List (ℕ × ℕ × Word)
 def answer (h : List Ev) (i : ℕ) (positions : List ℕ) : Option (List (List K)) :=
   (commits h)[i]?.map fun c ↦ positions.map fun p ↦ c.2.2 (p % 2 ^ c.1)
 
-namespace Prog
+namespace VerifierProgram
 
 variable {α : Type}
 
 /-- The program after a history: follow the events, each of the kind the program expects. -/
-def after : Prog α → List Ev → Option (Prog α)
+def after : VerifierProgram α → List Ev → Option (VerifierProgram α)
   | p, [] => some p
   | read k, Ev.read x :: es => (k x).after es
   | sample k, Ev.sample c :: es => (k c).after es
@@ -153,7 +154,7 @@ def after : Prog α → List Ev → Option (Prog α)
 
 /-- The interactive runs of a program: every prover move the program expects, every challenge,
 every well-shaped commitment, and every opening answered from the words committed so far. -/
-inductive Reachable (P : Prog α) : List Ev → Prop where
+inductive Reachable (P : VerifierProgram α) : List Ev → Prop where
   | nil : Reachable P []
   | read {h k} (x : E) : Reachable P h → P.after h = some (read k) →
       Reachable P (h ++ [Ev.read x])
@@ -166,7 +167,7 @@ inductive Reachable (P : Prog α) : List Ev → Prop where
   | query {h i ps k rows} : Reachable P h → P.after h = some (query i ps k) →
       answer h i ps = some rows → Reachable P (h ++ [Ev.query rows])
 
-end Prog
+end VerifierProgram
 
 /-- A history ends with a prover move (or is empty): the points at which a group of challenges
 can start. -/
@@ -188,13 +189,14 @@ def grindBits (h : List Ev) : ℕ :=
 the group's uniform challenges that the run reaches the next prover move, or the verdict,
 outside the doom predicate `D`. Openings answer from the words of `h`; an opening of a missing
 commitment, and a rejection, escape nothing. -/
-noncomputable def esc (D : List Ev → Prop) : List Ev → Prog Bool → ENNReal
-  | h, Prog.sample k => (Fintype.card E : ENNReal)⁻¹ * ∑ c : E, esc D (h ++ [Ev.sample c]) (k c)
-  | h, Prog.query i ps k => match answer h i ps with
+noncomputable def esc (D : List Ev → Prop) : List Ev → VerifierProgram Bool → ENNReal
+  | h, VerifierProgram.sample k
+      => (Fintype.card E : ENNReal)⁻¹ * ∑ c : E, esc D (h ++ [Ev.sample c]) (k c)
+  | h, VerifierProgram.query i ps k => match answer h i ps with
     | some rows => esc D (h ++ [Ev.query rows]) (k rows)
     | none => 0
-  | _, Prog.fail => 0
-  | _, Prog.ret false => 0
+  | _, VerifierProgram.fail => 0
+  | _, VerifierProgram.ret false => 0
   | h, _ => by classical exact if D h then 0 else 1
 
 /-- A **doom certificate** for the program `P`: a predicate `D` on histories ("the prover has
@@ -208,7 +210,7 @@ lost") with
 The random-oracle theorem bounds the probability that the compiled verifier accepts a proof whose
 extracted history passes through `D` by the number of queries times the largest `ε`, each
 discounted by the proof of work that precedes its group, plus the hash's collision terms. -/
-structure Cert (P : Prog Bool) where
+structure Cert (P : VerifierProgram Bool) where
   /-- The doom predicate. -/
   D : List Ev → Prop
   /-- The escape bound of the group starting at a history. -/

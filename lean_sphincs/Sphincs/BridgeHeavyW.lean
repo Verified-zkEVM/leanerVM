@@ -226,16 +226,16 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate) (initial : 
 arithmetic of `sign_termS`). -/
 theorem walk_avg_le_sgnM {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (s : State) (d : Multiset View)
     (excl : Pair → Prop) :
-    X d + (Fintype.card Randomness : ℝ≥0∞)⁻¹ * ∑ start, walk nextRand landing (stOf parameter data m s)
+    X d + (Fintype.card Randomizer : ℝ≥0∞)⁻¹ * ∑ start, walk nextRand landing (stOf parameter data m s)
         (poolValue parameter data m s (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d))
         (freshAvg Finset.univ (fun v => X (d + {v}) - X d)) 0 digestAttemptLimit start ≤
       sgnM parameter data s excl m X d := by
   set gf : View → ℝ≥0∞ := fun v => X (d + {v}) - X d with hgf
-  set gp : Randomness → View → ℝ≥0∞ := fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d with hgp
-  set c := (Fintype.card Randomness : ℝ≥0∞)⁻¹ with hc
-  have hcard : c * (Fintype.card Randomness : ℝ≥0∞) = 1 :=
+  set gp : Randomizer → View → ℝ≥0∞ := fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d with hgp
+  set c := (Fintype.card Randomizer : ℝ≥0∞)⁻¹ with hc
+  have hcard : c * (Fintype.card Randomizer : ℝ≥0∞) = 1 :=
     ENNReal.inv_mul_cancel (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _)
-  have hbase : X d = c * ∑ start : Randomness, walk nextRand landing (stOf parameter data m s) (fun _ => X d)
+  have hbase : X d = c * ∑ start : Randomizer, walk nextRand landing (stOf parameter data m s) (fun _ => X d)
       (X d) (X d) digestAttemptLimit start := by
     simp only [walk_const landing_le_one, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
     rw [← mul_assoc, hcard, one_mul]
@@ -246,7 +246,7 @@ theorem walk_avg_le_sgnM {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (
           congr 1
           funext v
           exact add_tsub_cancel_of_le (hX _ _ (Multiset.le_add_right _ _))
-  have hgoal : c * (∑ start : Randomness, walk nextRand landing (stOf parameter data m s) (fun _ => X d)
+  have hgoal : c * (∑ start : Randomizer, walk nextRand landing (stOf parameter data m s) (fun _ => X d)
         (X d) (X d) digestAttemptLimit start) +
       c * ∑ start, walk nextRand landing (stOf parameter data m s) (poolValue parameter data m s gp)
         (freshAvg Finset.univ gf) 0 digestAttemptLimit start ≤ sgnM parameter data s excl m X d := by
@@ -285,12 +285,12 @@ theorem upper_scanW (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = no
           (X d + (freshNewWeight parameter data m s (fun v => X (d + {v}) - X d) out +
             outWeight parameter data m s 0 (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d) out))) ≤
       weight tg initial s *
-        (X d + (Fintype.card Randomness : ℝ≥0∞)⁻¹ * ∑ start, walk nextRand landing (stOf parameter data m s)
+        (X d + (Fintype.card Randomizer : ℝ≥0∞)⁻¹ * ∑ start, walk nextRand landing (stOf parameter data m s)
           (poolValue parameter data m s (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d))
           (freshAvg Finset.univ (fun v => X (d + {v}) - X d)) 0 digestAttemptLimit start) := by
   set gf : View → ℝ≥0∞ := fun v => X (d + {v}) - X d with hgf
-  set gp : Randomness → View → ℝ≥0∞ := fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d with hgp
-  set c := (Fintype.card Randomness : ℝ≥0∞)⁻¹ with hc
+  set gp : Randomizer → View → ℝ≥0∞ := fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d with hgp
+  set c := (Fintype.card Randomizer : ℝ≥0∞)⁻¹ with hc
   have hscan : ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
         (weight tg initial out.2 *
           (freshNewWeight parameter data m s gf out + outWeight parameter data m s 0 gp out)) ≤
@@ -298,7 +298,7 @@ theorem upper_scanW (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = no
         (poolValue parameter data m s gp) (freshAvg Finset.univ gf) 0 digestAttemptLimit start) := by
     unfold signCostSource
     rw [interp_liftProb_bind, OracleComp.tsum_prEvent_bind_mul]
-    have hpr : ∀ ρ, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = ρ] = c := by
+    have hpr : ∀ ρ, Pr{let x ← ($ᵗ Randomizer : ProbComp Randomizer)}[x = ρ] = c := by
       intro ρ
       rw [SampleableType.prEvent_uniformSample_eq_singleton]
     simp only [hpr]

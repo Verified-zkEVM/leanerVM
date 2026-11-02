@@ -97,7 +97,8 @@ theorem mem_oqPathT_level {s : Oq} {bp : V} {pr kL ch l : ℕ} (hl : l < s.pd) {
 theorem oqPath_frame {s : Oq} {bp : V} {pr kL ch : ℕ}
     (hA : ∀ a, Stmt.atom a ∈ oqPathT s bp pr kL ch → a.Holds rd σ) :
     IsInK (σ (.n (ch + 4 * s.pd))) ∧ ∀ k < 4 * s.pd, ∀ x,
-      rd ((σ (.n (ch + 4 * s.pd))).limb 0 * Parameters.gpow k) = some x → x = σ (.n (ch + k)) := by
+      rd ((σ (.n (ch + 4 * s.pd))).limb 0 * Parameters.addressOfIndex k) = some x → x = σ (.n (ch +
+          k)) := by
   have h := hA _ (by simp [oqPathT] : Stmt.atom (.frameAddr (.n (ch + 4 * s.pd))
     (((List.range (4 * s.pd)).map fun j ↦ .n (ch + j)) ++
       ((List.range (80 - 4 * s.pd)).map fun j ↦ .n (ch + 4 * s.pd + 1 + j)))) ∈ _)
@@ -114,12 +115,12 @@ theorem oqLevel_sound {s : Oq} {bp : V} {pr kL ch l : ℕ} (hl : l < s.pd)
     (hA : ∀ a, Stmt.atom a ∈ oqPathT s bp pr kL ch → a.Holds rd σ)
     (hpad : σ (.n pr) = word 1 0 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0)
     {b : Bool} (hbit : LoadHolds rd (σ bp) l (bitE b)) {node : Digest}
-    (hnode : (σ (.n (oqNode s kL ch l 0)), σ (.n (oqNode s kL ch l 1))) = digestScalars node) :
+    (hnode : (σ (.n (oqNode s kL ch l 0)), σ (.n (oqNode s kL ch l 1))) = digestHalves node) :
     ∃ sib : Digest,
-      (σ (.n (ch + 4 * l)), σ (.n (ch + 4 * l + 1))) = digestScalars (if b then sib else node) ∧
-      (σ (.n (ch + 4 * l + 2)), σ (.n (ch + 4 * l + 3))) = digestScalars (if b then node else sib) ∧
+      (σ (.n (ch + 4 * l)), σ (.n (ch + 4 * l + 1))) = digestHalves (if b then sib else node) ∧
+      (σ (.n (ch + 4 * l + 2)), σ (.n (ch + 4 * l + 3))) = digestHalves (if b then node else sib) ∧
       (σ (.n (oqNode s kL ch (l + 1) 0)), σ (.n (oqNode s kL ch (l + 1) 1))) =
-        digestScalars (if b then hashPair sib node else hashPair node sib) ∧
+        digestHalves (if b then hashPair sib node else hashPair node sib) ∧
       LoadHolds rd (σ (.n (ch + 4 * s.pd)) * gen ^ (if b then 2 else 0)) (4 * l)
         (σ (.n (oqNode s kL ch l 0))) ∧
       LoadHolds rd (σ (.n (ch + 4 * s.pd)) * gen ^ (if b then 2 else 0)) (4 * l + 1)
@@ -161,7 +162,7 @@ theorem oqLevel_sound {s : Oq} {bp : V} {pr kL ch l : ℕ} (hl : l < s.pd)
   have o0 : oqNode s kL ch (l + 1) 0 = L + 4 := by simp [oqNode, hL]
   have o1 : oqNode s kL ch (l + 1) 1 = L + 5 := by simp [oqNode, hL]
   have hout : (σ (.n (oqNode s kL ch (l + 1) 0)), σ (.n (oqNode s kL ch (l + 1) 1))) =
-      digestScalars (hashPair dl dr) := by
+      digestHalves (hashPair dl dr) := by
     rw [o0, o1, ← hp]; simp [List.getD_eq_getElem?_getD]
   cases b
   · simp only [Bool.false_eq_true, ↓reduceIte, Nat.add_zero] at n0 n1 ⊢
@@ -198,29 +199,29 @@ theorem oqPath_sound {s : Oq} {bp : V} {pr kL ch q : ℕ} {leaf : Digest}
     (hA : ∀ a, Stmt.atom a ∈ oqPathT s bp pr kL ch → a.Holds rd σ)
     (hpad : σ (.n pr) = word 1 0 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0)
     (hbits : ∀ l < s.pd, LoadHolds rd (σ bp) l (bitE (q.testBit l)))
-    (hleaf : (σ (.n (oqNode s kL ch 0 0)), σ (.n (oqNode s kL ch 0 1))) = digestScalars leaf) :
+    (hleaf : (σ (.n (oqNode s kL ch 0 0)), σ (.n (oqNode s kL ch 0 1))) = digestHalves leaf) :
     ∃ sibs : List Digest, sibs.length = s.pd ∧
       (∀ k < 4 * s.pd, σ (.n (ch + k)) = pathCell leaf q sibs k) ∧
       (∀ l < s.pd,
         (σ (.n (oqNode s kL ch l 0)), σ (.n (oqNode s kL ch l 1))) =
-          digestScalars (climbNode leaf q sibs l) ∧
+          digestHalves (climbNode leaf q sibs l) ∧
         LoadHolds rd (σ (.n (ch + 4 * s.pd)) * gen ^ (if q.testBit l then 2 else 0)) (4 * l)
           (σ (.n (oqNode s kL ch l 0))) ∧
         LoadHolds rd (σ (.n (ch + 4 * s.pd)) * gen ^ (if q.testBit l then 2 else 0)) (4 * l + 1)
           (σ (.n (oqNode s kL ch l 1)))) ∧
       (σ (.n (oqNode s kL ch s.pd 0)), σ (.n (oqNode s kL ch s.pd 1))) =
-        digestScalars (climbD leaf q sibs) := by
+        digestHalves (climbD leaf q sibs) := by
   suffices h : ∀ m ≤ s.pd, ∃ sibs : List Digest, sibs.length = m ∧
       (∀ k < 4 * m, σ (.n (ch + k)) = pathCell leaf q sibs k) ∧
       (∀ l < m,
         (σ (.n (oqNode s kL ch l 0)), σ (.n (oqNode s kL ch l 1))) =
-          digestScalars (climbNode leaf q sibs l) ∧
+          digestHalves (climbNode leaf q sibs l) ∧
         LoadHolds rd (σ (.n (ch + 4 * s.pd)) * gen ^ (if q.testBit l then 2 else 0)) (4 * l)
           (σ (.n (oqNode s kL ch l 0))) ∧
         LoadHolds rd (σ (.n (ch + 4 * s.pd)) * gen ^ (if q.testBit l then 2 else 0)) (4 * l + 1)
           (σ (.n (oqNode s kL ch l 1)))) ∧
       (σ (.n (oqNode s kL ch m 0)), σ (.n (oqNode s kL ch m 1))) =
-        digestScalars (climbD leaf q sibs) from h s.pd le_rfl
+        digestHalves (climbD leaf q sibs) from h s.pd le_rfl
   intro m hm
   induction m with
   | zero => exact ⟨[], rfl, fun k hk => absurd hk (by omega), fun l hl => absurd hl (by omega), hleaf⟩

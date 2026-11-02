@@ -212,7 +212,7 @@ theorem boolPoint_mod (k n : ℕ) : boolPoint k (n % 2 ^ k) = boolPoint k n := b
 /-- **An aligned placement** (`low = 0`): the point, then the bits of the index above the
 window. -/
 theorem stackPoint_aligned (v off μ : ℕ) (z : List E) :
-    ({ vars := v, index := off } : Placement).stackPoint z μ =
+    ({ variableCount := v, index := off } : Placement).stackPoint z μ =
       z ++ boolPoint (μ - v) (off / 2 ^ v) := by
   simp [Placement.stackPoint, selectorPoint_eq_boolPoint, drop_boolPoint]
 
@@ -233,7 +233,7 @@ theorem boolPoint_add_two_pow_mul (a b x m : ℕ) (hx : x < 2 ^ a) :
 above it. -/
 theorem stackPoint_slice (v k off slot μ : ℕ) (hk : v + k ≤ μ) (hoff : 2 ^ (v + k) ∣ off)
     (hslot : slot < 2 ^ k) (z : List E) :
-    ({ vars := v, index := off + slot * 2 ^ v } : Placement).stackPoint z μ =
+    ({ variableCount := v, index := off + slot * 2 ^ v } : Placement).stackPoint z μ =
       z ++ boolPoint k slot ++ boolPoint (μ - (v + k)) (off / 2 ^ (v + k)) := by
   rw [stackPoint_aligned, List.append_assoc]
   congr 1

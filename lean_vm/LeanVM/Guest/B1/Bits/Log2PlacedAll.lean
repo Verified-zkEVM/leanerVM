@@ -51,7 +51,7 @@ theorem loop_vl_L15 : coreProgram.loop "verify_log2_ceil__L15_L34" = false := by
 theorem log2_L0_completeAtB (κ : ℕ) (hκ6 : 6 ≤ κ) (N lpE sqE : ℕ) (hN : N < 2 ^ 34)
     (hL : max 0 (log2Ceil N) < 34) :
     CompleteAtB fs cert κ "log2_ceil_in_the_exponent__L0_L34" (log2Lin lpE sqE)
-      [gen ^ N, ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)]
+      [gen ^ N, ofK (Parameters.addressOfIndex lpE), ofK (Parameters.addressOfIndex sqE)]
       (Returns [gen ^ max 0 (log2Ceil N)])
       (fs "log2_ceil_in_the_exponent__L0_L34" + 34 + (fs "verify_log2_ceil__L0_L34" + 35)) :=
   lce_completeAtB 0 (by norm_num) find_lce_L0 rfl rfl loop_lce_L0 find_verify_log2_ceil_L0_L34 rfl
@@ -61,7 +61,7 @@ theorem log2_L0_completeAtB (κ : ℕ) (hκ6 : 6 ≤ κ) (N lpE sqE : ℕ) (hN :
 theorem log2_L15_completeAtB (κ : ℕ) (hκ6 : 6 ≤ κ) (N lpE sqE : ℕ) (hN : N < 2 ^ 34)
     (hL : max 15 (log2Ceil N) < 34) :
     CompleteAtB fs cert κ "log2_ceil_in_the_exponent__L15_L34" (log2Lin lpE sqE)
-      [gen ^ N, ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)]
+      [gen ^ N, ofK (Parameters.addressOfIndex lpE), ofK (Parameters.addressOfIndex sqE)]
       (Returns [gen ^ max 15 (log2Ceil N)])
       (fs "log2_ceil_in_the_exponent__L15_L34" + 34 + (fs "verify_log2_ceil__L15_L34" + 35)) :=
   lce_completeAtB 15 (by norm_num) find_lce_L15 rfl rfl loop_lce_L15 find_verify_log2_ceil_L15_L34
@@ -71,7 +71,7 @@ theorem log2_L15_completeAtB (κ : ℕ) (hκ6 : 6 ≤ κ) (N lpE sqE : ℕ) (hN 
 theorem log2_L0_completeAt (κ : ℕ) (hκ6 : 6 ≤ κ) : ∀ (N lpE sqE : ℕ), N < 2 ^ 34 →
     max 0 (log2Ceil N) < 34 →
     CompleteAtD fs cert κ "log2_ceil_in_the_exponent__L0_L34" (log2Lin lpE sqE)
-      [gen ^ N, ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)]
+      [gen ^ N, ofK (Parameters.addressOfIndex lpE), ofK (Parameters.addressOfIndex sqE)]
       (Returns [gen ^ max 0 (log2Ceil N)]) :=
   fun N lpE sqE hN hL => (log2_L0_completeAtB κ hκ6 N lpE sqE hN hL).toCompleteAtD
 
@@ -79,7 +79,7 @@ theorem log2_L0_completeAt (κ : ℕ) (hκ6 : 6 ≤ κ) : ∀ (N lpE sqE : ℕ),
 theorem log2_L15_completeAt (κ : ℕ) (hκ6 : 6 ≤ κ) : ∀ (N lpE sqE : ℕ), N < 2 ^ 34 →
     max 15 (log2Ceil N) < 34 →
     CompleteAtD fs cert κ "log2_ceil_in_the_exponent__L15_L34" (log2Lin lpE sqE)
-      [gen ^ N, ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)]
+      [gen ^ N, ofK (Parameters.addressOfIndex lpE), ofK (Parameters.addressOfIndex sqE)]
       (Returns [gen ^ max 15 (log2Ceil N)]) :=
   fun N lpE sqE hN hL => (log2_L15_completeAtB κ hκ6 N lpE sqE hN hL).toCompleteAtD
 

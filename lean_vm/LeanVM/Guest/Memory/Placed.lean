@@ -82,8 +82,9 @@ variable (P : Core.Program) (fs : String → ℕ) (cert : String → V → ℕ)
 `ns` and path `es` is placed: its `HeapBuf` pointers are the allocator's bases, its `frameAddr`s
 the addresses of their runs in its frame. -/
 def NodeAt (fp : ℕ) (f : String) (σ : Val) (bufs ns : List ℕ) (es : List Ev) : Prop :=
-  (allocDsts es).map σ = (bases (bufBase fs P.loop fp f ns) bufs).map (fun b => ofK (gpow b)) ∧
-    ∀ q ∈ addrs es, σ q.1 = ofK (gpow (fp + cert f q.2))
+  (allocDsts es).map σ = (bases (bufBase fs P.loop fp f ns) bufs).map (fun b
+      => ofK (addressOfIndex b)) ∧
+    ∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + cert f q.2))
 
 mutual
 /-- **A placed tree**: every instance of `t` placed from `fp` is `NodeAt` its frame. -/
@@ -430,8 +431,8 @@ end
 /-- **An instance's `HeapBuf` pointers are its `bufBases`, its `frameAddr`s in its frame.** -/
 theorem Inst.nodeAt {I : Inst} (hp : I.t.Placed P fs cert I.fp) (hI : I.Placed fs P.loop)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) :
-    (allocDsts (I.t.events P)).map σ = I.bufBases.map (fun b => ofK (gpow b)) ∧
-      ∀ q ∈ addrs (I.t.events P), σ q.1 = ofK (gpow (I.fp + cert f q.2)) := by
+    (allocDsts (I.t.events P)).map σ = I.bufBases.map (fun b => ofK (addressOfIndex b)) ∧
+      ∀ q ∈ addrs (I.t.events P), σ q.1 = ofK (addressOfIndex (I.fp + cert f q.2)) := by
   rw [ht, placed_node] at hp
   rw [hI.2, ht]
   exact hp.1

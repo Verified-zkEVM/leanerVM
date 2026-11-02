@@ -20,7 +20,7 @@ theorem evalDist_digestBlock_uniform :
 
 /-- The exact byte string queried for a message digest. -/
 abbrev digestInput (parameter : PublicParameter) (message : Message)
-    (randomness : Randomness) : HashInput :=
+    (randomness : Randomizer) : HashInput :=
   tweakableHashInput parameter .message (messageDigestPayload message randomness)
 
 end SphincsLayered.Security

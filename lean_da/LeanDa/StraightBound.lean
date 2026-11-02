@@ -60,13 +60,15 @@ theorem prEvent_bind_le_of_support {α β : Type} (mx : ProbComp α) (f : α →
 
 section Ideal
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+      Crs Proof)
 
 /-- **The simulated world with a verdict `T`** after the challenges of the adversary's root. -/
 noncomputable def idealT (A : CodeBindingAdvB r Crs Proof) (crs : Crs)
-    (T : CbOut r Proof → Challenges → OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool) :
+    (T : CbOut r Proof → MembershipChallenges → OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool) :
     ProbComp Bool :=
   (simulateQ (GSpec (List UInt8) DigestBytes Common.DigestBytes E 14).romImpl
     (advSim r A crs >>= fun out ↦ readVec (Msg := List UInt8) (Dg := DigestBytes) out.1.1 >>= fun l ↦
@@ -82,11 +84,13 @@ theorem ksIdealG_eq (A : CodeBindingAdvB r Crs Proof) (crs : Crs) :
 verdict's pure form.** -/
 theorem idealT_evalDistEq (A : CodeBindingAdvB r Crs Proof) {crs : Crs}
     (hcrs : crs ∈ support ps.setup)
-    (T : CbOut r Proof → Challenges → OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool)
-    (TP : HTab → CbOut r Proof → Challenges → Bool)
+    (T : CbOut r Proof → MembershipChallenges → OracleComp (unifSpec + roSpec (List UInt8)
+        DigestBytes) Bool)
+    (TP : HTab → CbOut r Proof → MembershipChallenges → Bool)
     (hT : ∀ h out l s, (simulateQ (phiG h) (simulateQ embG (T out l))).run s = pure (TP h out l, s)) :
     idealT r A crs T =ᵈ ($ᵗ HTab >>= fun h ↦
-      (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl (advH r ps A h ((), crs) >>= fun out ↦
+      (simulateQ (Common.DigestBytes →ₒ MembershipChallenges).romImpl (advH r ps A h ((), crs) >>=
+          fun out ↦
         TP h out <$> readVecW out.1.1)).run' ∅) := by
   rw [idealT]
   refine (run'_romImpl_evalDistEq_vec _).trans ?_
@@ -110,10 +114,11 @@ theorem idealT_evalDistEq (A : CodeBindingAdvB r Crs Proof) {crs : Crs}
 
 /-- Wagner's world with a pure verdict, as the verdict of one run. -/
 theorem run'_verdict_eq (A : CodeBindingAdvB r Crs Proof) (h : HTab) (crs : Crs)
-    (F : CbOut r Proof → Challenges → Bool) :
-    (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl (advH r ps A h ((), crs) >>= fun out ↦
+    (F : CbOut r Proof → MembershipChallenges → Bool) :
+    (simulateQ (Common.DigestBytes →ₒ MembershipChallenges).romImpl (advH r ps A h ((), crs) >>=
+        fun out ↦
         F out <$> readVecW out.1.1)).run' ∅ =
-      (fun p ↦ F p.1 p.2) <$> (simulateQ (Common.DigestBytes →ₒ Challenges).romImpl
+      (fun p ↦ F p.1 p.2) <$> (simulateQ (Common.DigestBytes →ₒ MembershipChallenges).romImpl
         (advH r ps A h ((), crs) >>= fun out ↦ (out, ·) <$> readVecW out.1.1)).run' ∅ := by
   have e : (advH r ps A h ((), crs) >>= fun out ↦ F out <$> readVecW out.1.1) =
       (fun p ↦ F p.1 p.2) <$> (advH r ps A h ((), crs) >>= fun out ↦
@@ -195,13 +200,13 @@ theorem isWeightBound_walkM {ι : Type} {spec : OracleSpec.{0, 0} ι}
 
 theorem isWeightBound_verifyCellM {ι : Type} {spec : OracleSpec.{0, 0} ι}
     (H : List UInt8 → OracleComp spec Common.DigestBytes) (w : ι → ℕ) (hH : ∀ a, QueryCostAtMost (H a) w 1)
-    (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
+    (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     QueryCostAtMost (verifyCellMWithHash H r com p x τ) w (τ.path.length + 2) :=
   ((hH _).bind fun _ ↦ (isWeightBound_walkM H w hH _ _ _).bind fun _ ↦
     (hH _).bind fun _ ↦ isWeightBound_pure _ _ 0).mono (by omega)
 
 set_option maxRecDepth 4000 in
-theorem isWeightBound_tailH (crs : Crs) (out : CbOut r Proof) (l : Challenges) :
+theorem isWeightBound_tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenges) :
     QueryCostAtMost (tailH r ps ext crs out l) tCount (commitCalls r + (9 + logPaddedRowCount r)) := by
   classical
   have h1 : ∀ a, QueryCostAtMost (LeanDa.hH a) tCount 1 := fun a ↦

@@ -84,7 +84,7 @@ theorem vtc_selblock (hl : args.length = 22) {v b t pos : ℕ} {prev : Option �
     (hbits : TbReadsAt rd (vtσ rd wo args (.n (v + 6))) (offBits off))
     (hw0 : wo (vtSelE v t) = Placement.eqAbove ⟨τ, off, 0⟩ point)
     (hw1 : wo (vtSelE v t + 1) = gen ^ off)
-    (hlow : ∀ i < 34, (rd (Parameters.gpow i)).isSome) :
+    (hlow : ∀ i < 34, (rd (Parameters.addressOfIndex i)).isSome) :
     (∀ s ∈ vtSelT v b t prev, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s) ∧
       vtσ rd wo args (.n (vtSelE v t)) = Placement.eqAbove ⟨τ, off, 0⟩ point ∧
       vtσ rd wo args (.n (vtSelCopy v t prev)) = vtσ rd wo args (.n (vtSelE v t)) ∧
@@ -231,7 +231,7 @@ theorem vtc_fwblock (hl : args.length = 22) {v b pos : ℕ} {prev : Option ℕ}
     (hob : off < 2 ^ point.length)
     (hbits : TbReadsAt rd (vtσ rd wo args (.n (v + 6))) (offBits off))
     (hw0 : wo (v + 16) = Placement.eqAbove ⟨κ, off, 0⟩ point) (hw1 : wo (v + 17) = gen ^ off)
-    (hlow : ∀ i < 34, (rd (Parameters.gpow i)).isSome) :
+    (hlow : ∀ i < 34, (rd (Parameters.addressOfIndex i)).isSome) :
     (∀ s ∈ vtFwSelT v b prev, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s) ∧
       vtσ rd wo args (.n (v + 16)) = Placement.eqAbove ⟨κ, off, 0⟩ point ∧
       vtσ rd wo args (.n (if prev.isNone then v + 19 else v + 20)) = vtσ rd wo args (.n (v + 16)) ∧

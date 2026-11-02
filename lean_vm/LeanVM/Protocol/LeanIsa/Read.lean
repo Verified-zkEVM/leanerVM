@@ -28,7 +28,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization CompPoly CMlPolyn
 
 @[expose] public section
 
-variable (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 
 /-- An output lane is a lane. -/
 theorem IsOut.isLane {c : Col} (h : IsOut c) : IsLane c := ⟨h.1, by have := h.2.1; omega, h.2.2⟩

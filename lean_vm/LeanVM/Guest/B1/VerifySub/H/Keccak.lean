@@ -21,17 +21,19 @@ open LeanVM.Protocol.EndToEnd.Sound (RetOK)
 @[expose] public section
 
 /-- **A value a program may return satisfies what every return does.** -/
-theorem retOK_returns {α : Type} {Q : α → Prop} {p : Prog α} {a : α} (hr : Prog.Returns p a)
+theorem retOK_returns {α : Type} {Q : α → Prop} {p : VerifierProgram α} {a : α} (hr :
+    VerifierProgram.Returns p a)
     (h : RetOK Q p) : Q a := by
   induction hr with
   | ret a => exact h [] a rfl
-  | read x _ ih => exact ih fun l b hl ↦ h (Ev.read x :: l) b (by simpa [Prog.after] using hl)
-  | sample x _ ih => exact ih fun l b hl ↦ h (Ev.sample x :: l) b (by simpa [Prog.after] using hl)
-  | grind bits _ ih => exact ih fun l b hl ↦ h (Ev.grind bits :: l) b (by simpa [Prog.after] using hl)
+  | read x _ ih => exact ih fun l b hl ↦ h (Ev.read x :: l) b (by simpa [VerifierProgram.after] using hl)
+  | sample x _ ih => exact ih fun l b hl ↦ h (Ev.sample x :: l) b (by simpa [VerifierProgram.after] using hl)
+  | grind bits _ ih => exact ih fun l b hl ↦ h (Ev.grind bits :: l) b (by simpa [VerifierProgram.after] using hl)
   | commit ht w _ ih =>
-    exact ih fun l b hl ↦ h (Ev.commit ht w (fun _ ↦ []) :: l) b (by simpa [Prog.after] using hl)
+    exact ih fun l b hl ↦ h (Ev.commit ht w (fun _ ↦ []) :: l) b
+        (by simpa [VerifierProgram.after] using hl)
   | query i ps rows _ ih =>
-    exact ih fun l b hl ↦ h (Ev.query rows :: l) b (by simpa [Prog.after] using hl)
+    exact ih fun l b hl ↦ h (Ev.query rows :: l) b (by simpa [VerifierProgram.after] using hl)
 
 /-- **`keccakSeg`'s outputs**: one committed outputs' claim on `q_keccak` at `τ + 6` coordinates,
 the ring switch's point of `τ + 6` coordinates and `64` slices. -/
@@ -44,11 +46,11 @@ theorem keccakSeg_out {τ : ℕ} {inst out : List E} {s t : Fs} {xs : List E}
   obtain ⟨op, word, hk⟩ := keccakSeg_shape h hc
   obtain ⟨sp, hsp⟩ := hc
   obtain ⟨sp', -, e⟩ := h sp hsp [] [] []
-  have hr := Prog.returns_of_run keccak256 keccakF1600 e
+  have hr := VerifierProgram.returns_of_run keccak256 keccakF1600 e
   unfold keccakSeg at hr
-  obtain ⟨r, hr1, hr2⟩ := Prog.returns_bind hr
-  obtain ⟨m, -, hr2⟩ := Prog.returns_bind hr2
-  have ek := Prog.returns_ret hr2
+  obtain ⟨r, hr1, hr2⟩ := VerifierProgram.returns_bind hr
+  obtain ⟨m, -, hr2⟩ := VerifierProgram.returns_bind hr2
+  have ek := VerifierProgram.returns_ret hr2
   subst ek
   have h1 := retOK_returns hr1 (LeanVM.Protocol.EndToEnd.Front.retOK_verifyKeccak τ inst out hi)
   have h2 := retOK_returns hr1

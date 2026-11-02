@@ -38,15 +38,16 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## Composing runs -/
 
 /-- A run reading no opening, at any commitments. -/
-theorem RunsTo.withRoots {α : Type} {p : Prog α} {s s' : Fs} {xs : List E} {a : α}
+theorem RunsTo.withRoots {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
     (h : RunsTo p s xs a s') (roots : List (Digest × ℕ × ℕ)) : RunsWith p s xs [] roots a s' roots :=
   fun sp hs rest orest ↦ h sp hs rest ([] ++ orest) roots
 
 theorem runsWith_ret {α : Type} (a : α) (s : Fs) (roots : List (Digest × ℕ × ℕ)) :
-    RunsWith (pure a : Prog α) s [] [] roots a s roots :=
+    RunsWith (pure a : VerifierProgram α) s [] [] roots a s roots :=
   fun sp h _ _ ↦ ⟨sp, h, rfl⟩
 
-theorem RunsWith.bind {α β : Type} {p : Prog α} {f : α → Prog β} {s s1 s2 : Fs}
+theorem RunsWith.bind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {s s1
+    s2 : Fs}
     {xs ys : List E} {os1 os2 : List Opening} {r0 r1 r2 : List (Digest × ℕ × ℕ)} {a : α} {b : β}
     (h1 : RunsWith p s xs os1 r0 a s1 r1) (h2 : RunsWith (f a) s1 ys os2 r1 b s2 r2) :
     RunsWith (p >>= f) s (xs ++ ys) (os1 ++ os2) r0 b s2 r2 := by
@@ -58,17 +59,19 @@ theorem RunsWith.bind {α β : Type} {p : Prog α} {f : α → Prog β} {s s1 s2
   exact e2
 
 /-- `RunsTo.bind` on `Prog.bind`. -/
-theorem RunsTo.bind' {α β : Type} {p : Prog α} {f : α → Prog β} {s s1 s2 : Fs} {xs ys : List E}
+theorem RunsTo.bind' {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {s s1 s2 : Fs}
+    {xs ys : List E}
     {a : α} {b : β} (h1 : RunsTo p s xs a s1) (h2 : RunsTo (f a) s1 ys b s2) :
     RunsTo (p.bind f) s (xs ++ ys) b s2 := RunsTo.bind h1 h2
 
 /-- `RunsWith.bind` on `Prog.bind`. -/
-theorem RunsWith.bind' {α β : Type} {p : Prog α} {f : α → Prog β} {s s1 s2 : Fs}
+theorem RunsWith.bind' {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {s s1
+    s2 : Fs}
     {xs ys : List E} {os1 os2 : List Opening} {r0 r1 r2 : List (Digest × ℕ × ℕ)} {a : α} {b : β}
     (h1 : RunsWith p s xs os1 r0 a s1 r1) (h2 : RunsWith (f a) s1 ys os2 r1 b s2 r2) :
     RunsWith (p.bind f) s (xs ++ ys) (os1 ++ os2) r0 b s2 r2 := RunsWith.bind h1 h2
 
-theorem RunsWith.of_eq {α : Type} {p : Prog α} {s s' t t' : Fs} {xs xs' : List E}
+theorem RunsWith.of_eq {α : Type} {p : VerifierProgram α} {s s' t t' : Fs} {xs xs' : List E}
     {os os' : List Opening} {r r' q q' : List (Digest × ℕ × ℕ)} {a a' : α}
     (h : RunsWith p s xs os r a t q) (hs : s = s') (hx : xs = xs') (ho : os = os') (hr : r = r')
     (ha : a = a') (ht : t = t') (hq : q = q') : RunsWith p s' xs' os' r' a' t' q' := by
@@ -78,16 +81,16 @@ theorem RunsWith.of_eq {α : Type} {p : Prog α} {s s' t t' : Fs} {xs xs' : List
 
 /-- **A commitment** reads the root's two scalars, absorbs them, and appends the root with its
 shape. -/
-theorem runsWith_commitP (s : Fs) (x0 x1 : E) {d : Digest} (hd : digestOfScalars (x0, x1) = some d)
+theorem runsWith_commitP (s : Fs) (x0 x1 : E) {d : Digest} (hd : digestFromHalves (x0, x1) = some d)
     (height width : ℕ) (roots : List (Digest × ℕ × ℕ)) :
-    RunsWith (Prog.readCommitment height width) s [x0, x1] [] roots ()
+    RunsWith (VerifierProgram.readCommitment height width) s [x0, x1] [] roots ()
       ((s.absorb x0 dsObserve).absorb x1 dsObserve) (roots ++ [(d, height, width)]) := by
   intro sp hs rest orest
   have h1 := carries_absorb hs x0 dsObserve
   have h2 := carries_absorb h1 x1 dsObserve
   refine ⟨_, h2, ?_⟩
-  show (match digestOfScalars (x0, x1) with
-    | some root => runId (Prog.ret ()) _
+  show (match digestFromHalves (x0, x1) with
+    | some root => runId (VerifierProgram.ret ()) _
     | none => none) = _
   rw [hd]
   rfl
@@ -118,12 +121,13 @@ theorem runsWith_queryP (s : Fs) (roots : List (Digest × ℕ × ℕ)) {i : ℕ}
     (os : List Opening) (hl : os.length = ps.length)
     (hok : ∀ k (hk : k < ps.length) (ho : k < os.length),
       Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width ps[k] os[k]) = true) :
-    RunsWith (Prog.queryOpenings i ps) s [] os roots (os.map (·.leaf)) s roots := by
+    RunsWith (VerifierProgram.queryOpenings i ps) s [] os roots (os.map (·.leaf)) s roots := by
   intro sp hs rest orest
   refine ⟨sp, hs, ?_⟩
   have := openAll_eq root height width ps os orest hl hok
   simp only [Id.run] at this
-  simp only [runId, Prog.queryOpenings, Compile.runWithHash, hi, List.nil_append, bind, this]
+  simp only [runId, VerifierProgram.queryOpenings, Compile.runWithHash, hi, List.nil_append,
+      bind, this]
   rfl
 
 /-! ## A level of `whirLevelsOpen` -/
@@ -131,26 +135,26 @@ theorem runsWith_queryP (s : Fs) (roots : List (Digest × ℕ × ℕ)) {i : ℕ}
 /-- A level's claims after its folds (V:1798-1810): the residual at the last level, otherwise the
 next commitment and its out-of-domain claim. -/
 def levelMid (messageLog : ℕ) : List Whir.Level →
-    Prog (List E × List (E × List E × (List E → E)))
+    VerifierProgram (List E × List (E × List E × (List E → E)))
   | [] => do
-    let residual ← Prog.readScalars (2 ^ messageLog)
+    let residual ← VerifierProgram.readScalars (2 ^ messageLog)
     pure (residual, ([] : List (E × List E × (List E → E))))
   | next :: _ => do
     let (height, width) := levelShape messageLog next (3 * 2 ^ next.fold)
-    Prog.readCommitment height width
-    let oodPoint ← Prog.sampleChallenges messageLog
-    let oodValue ← Prog.readScalar
+    VerifierProgram.readCommitment height width
+    let oodPoint ← VerifierProgram.sampleChallenges messageLog
+    let oodValue ← VerifierProgram.readScalar
     let intro ← sumcheckRoundPoly 3 oodValue none
     pure ([], [(oodValue, intro, fun x ↦ eqEval oodPoint x)])
 
 /-- A level's proof of work, queries and glue (V:1811-1823), after its folds and its claims. -/
 def levelQueries (messageLog index : ℕ) (level : Whir.Level) (levelFolds : List E)
-    (s : WhirStateT) (pending : List (E × List E × (List E → E))) : Prog WhirStateT := do
-  Prog.grindProofOfWork Whir.queryGrindingBits
+    (s : WhirStateT) (pending : List (E × List E × (List E → E))) : VerifierProgram WhirStateT := do
+  VerifierProgram.grindProofOfWork Whir.queryGrindingBits
   let queries ← sampleQueries (messageLog + level.logInvRate) level.queries
-  let lam ← Prog.sampleChallenge
+  let lam ← VerifierProgram.sampleChallenge
   let queryWeights := powers lam queries.length
-  let words ← Prog.queryOpenings index queries
+  let words ← VerifierProgram.queryOpenings index queries
   let rows : List (List E) :=
     if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
   let enforced := enforcedSum rows levelFolds queryWeights
@@ -159,7 +163,8 @@ def levelQueries (messageLog index : ℕ) (level : Whir.Level) (levelFolds : Lis
     [(enforced, intro, fun x ↦ inducedWeight messageLog queries queryWeights x)])
 
 /-- The last level's tail (V:1824-1833), from its glued state and its residual. -/
-def levelTail (laneFolds messageLog : ℕ) (residual : List E) (s : WhirStateT) : Prog WhirEnd := do
+def levelTail (laneFolds messageLog : ℕ) (residual : List E) (s : WhirStateT) : VerifierProgram
+    WhirEnd := do
   let (tailFolds, target) ← tailRoundsT messageLog s.target s.quad
   let point := s.folds ++ tailFolds
   let inner := s.glued.foldl
@@ -182,8 +187,9 @@ theorem whirLevelsOpen_cons (logN laneFolds index : ℕ) (level : Whir.Level)
       | _ :: _ => whirLevelsOpen logN laneFolds (index + 1) rest s) := by
   rw [whirLevelsOpen]
   rcases rest with _ | ⟨next, rest⟩ <;>
-    simp only [levelMid, levelQueries, levelTail, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc,
-      Prog.ret_bind]
+    simp only [levelMid, levelQueries, levelTail, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+        VerifierProgram.bind_assoc,
+      VerifierProgram.ret_bind]
 
 end
 end LeanVM.Guest.B1.Whir

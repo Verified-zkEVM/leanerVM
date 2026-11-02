@@ -56,12 +56,12 @@ open Air.Flat (Component EnsembleWitness)
 constraint statement of well-formed bytecode on `input` represents a valid execution of the
 program on `input`: the trace is the image the data names and the run the state channel's balance
 contains, each of whose steps is a row of the witness. -/
-theorem constraintSoundness {prog : Program} {input : PublicInput}
+theorem constraintSoundness {prog : LeanIsaProgram} {input : PublicInput}
     {w : EnsembleWitness (leanIsaEnsemble prog)} (h : SatisfiedBy prog input w) :
     ∃ t, AssignmentRepresents w t ∧ ValidExecution prog input t := by
   obtain ⟨f, hf, n, hn, hsteps⟩ := exists_walk h
   let t : Execution prog := ⟨(imageOf w.data).1, (imageOf w.data).2, n⟩
-  have hv : run prog t.memory t.steps Registers.initial = some (Registers.final prog) := hn
+  have hv : run prog t.memory t.stepCount Registers.initial = some (Registers.final prog) := hn
   refine ⟨t, ⟨rfl, fun _ _ ↦ rfl, ?_⟩,
     ⟨h.caps.minLogMem_le, h.caps.le_maxLogMem, h.word0_eq, h.word1_eq⟩, hn⟩
   intro k hk

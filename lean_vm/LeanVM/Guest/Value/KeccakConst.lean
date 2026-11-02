@@ -139,8 +139,8 @@ two cells. -/
 theorem daPadCell_cells :
     (LeanVM.Guest.word 15569472805043175342 18354418831448413762 0,
       LeanVM.Guest.word 11782766640862828499 15718207409690975807 0) =
-      digestScalars daPadCellDigest := by
-  simp only [digestScalars, daPadCellDigest, LeanVM.Guest.word]; rfl
+      digestHalves daPadCellDigest := by
+  simp only [digestHalves, daPadCellDigest, LeanVM.Guest.word]; rfl
 
 /-- The digest of the zero row. -/
 def daPadRowDigest : Digest :=
@@ -157,8 +157,8 @@ cells. -/
 theorem daPadRow_cells :
     (LeanVM.Guest.word 4665334884586258498 1553031596697948144 0,
       LeanVM.Guest.word 7487832681283088925 14683883899259534590 0) =
-      digestScalars daPadRowDigest := by
-  simp only [digestScalars, daPadRowDigest, LeanVM.Guest.word]; rfl
+      digestHalves daPadRowDigest := by
+  simp only [digestHalves, daPadRowDigest, LeanVM.Guest.word]; rfl
 
 end
 end LeanVM.Guest.Value.Keccak

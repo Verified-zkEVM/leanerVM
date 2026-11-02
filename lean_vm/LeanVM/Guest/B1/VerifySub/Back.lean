@@ -65,7 +65,7 @@ theorem vs_back (h10 : σ (.n 10) = 0) (h11 : σ (.n 11) = 0) (h12 : σ (.n 12) 
       (σ (.n 124) * σ (.n 124) * σ (.n 124)) * σ (.n 124)) ∧
     (LoadHolds rd (σ (.n 1901)) 0 (σ (.n 1904)) ∧ word 134217728 0 0 = σ (.n 1901) * σ (.n 1903) ∧
       LoadHolds rd (σ (.n 1903)) 0 (σ (.n 1905))) ∧
-    (∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1901) = ofK (gpow j) ∧
+    (∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1901) = ofK (addressOfIndex j) ∧
       C vsOpenNames[j] (vsOsArgs σ) (vsOsRets σ)) ∧
     C "check_opening_terminal" [σ (.n 523), σ (.n 848), σ (.n 857), σ (.n 522), σ (.n 855),
       σ (.n 130), σ (.n 858), σ (.n 8), σ (.n 1884), σ (.n 1324), σ (.n 1888), σ (.n 1889),

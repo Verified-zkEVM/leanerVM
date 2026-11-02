@@ -182,11 +182,11 @@ theorem queried_fchain_revealedA (table : HiddenGraph.Table) (reveals : List Coo
     (hguess : NoHiddenGuess (sampleModel parameterOutput highs) table known reveals entries)
     (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) (t : FStep)
     (hmem : Sum.inl (tweakableHashInput (truncateHash parameterOutput) (.fchain index c s j a i t)
-      (bytesLE 16 (table (.fchain index c s j a i ⟨t.val, by omega⟩)))) ∈ entries) :
+      (littleEndianBytes 16 (table (.fchain index c s j a i ⟨t.val, by omega⟩)))) ∈ entries) :
     ∃ q : FPos, q.val ≤ t.val ∧ Coordinate.fchain index c s j a i q ∈ reveals := by
   have hparse : (sampleModel parameterOutput highs).parse
       (tweakableHashInput (truncateHash parameterOutput) (.fchain index c s j a i t)
-        (bytesLE 16 (table (.fchain index c s j a i ⟨t.val, by omega⟩)))) =
+        (littleEndianBytes 16 (table (.fchain index c s j a i ⟨t.val, by omega⟩)))) =
       some (.fchain index c s j a i t, table (.fchain index c s j a i ⟨t.val, by omega⟩)) := by
     rw [sampleModel_parse]
     exact parse_input _ _ (.fchain index c s j a i t, _) trivial
@@ -208,17 +208,17 @@ theorem queried_chain_reachA (table : HiddenGraph.Table) (reveals : List Coordin
     (entries : List (HiddenCost.Entry HashInput))
     (hguess : NoHiddenGuess (sampleModel parameterOutput highs) table known reveals entries)
     (leaf : LeafIndex) (hland : Landed (truncateHash parameterOutput) leaf)
-    (hreveals : ∀ (chain : ChainIndex) (position : Digit),
+    (hreveals : ∀ (chain : ChainIndex) (position : WinternitzDigit),
       Coordinate.chain topLayer rootTree leaf chain position ∈ reveals →
         (preparedWord results leaf chain).val ≤ position.val)
     (chain : ChainIndex) (step : ChainStep)
     (hmem : Sum.inl (tweakableHashInput (truncateHash parameterOutput) (.chain topLayer rootTree leaf chain step)
-      (bytesLE 16 (table (.chain topLayer rootTree leaf chain ⟨step.val, by have := step.isLt; omega⟩)))) ∈
+      (littleEndianBytes 16 (table (.chain topLayer rootTree leaf chain ⟨step.val, by have := step.isLt; omega⟩)))) ∈
         entries) :
     (preparedWord results leaf chain).val ≤ step.val := by
   have hparse : (sampleModel parameterOutput highs).parse
       (tweakableHashInput (truncateHash parameterOutput) (.chain topLayer rootTree leaf chain step)
-        (bytesLE 16 (table (.chain topLayer rootTree leaf chain ⟨step.val, by have := step.isLt; omega⟩)))) =
+        (littleEndianBytes 16 (table (.chain topLayer rootTree leaf chain ⟨step.val, by have := step.isLt; omega⟩)))) =
       some (.chain topLayer rootTree leaf chain step,
         table (.chain topLayer rootTree leaf chain ⟨step.val, by have := step.isLt; omega⟩)) := by
     rw [sampleModel_parse]
@@ -238,7 +238,7 @@ theorem chain_below_ne (table : HiddenGraph.Table) (reveals : List Coordinate)
     (entries : List (HiddenCost.Entry HashInput))
     (hguess : NoHiddenGuess (sampleModel parameterOutput highs) table known reveals entries)
     (leaf : LeafIndex) (hland : Landed (truncateHash parameterOutput) leaf)
-    (hreveals : ∀ (chain : ChainIndex) (position : Digit),
+    (hreveals : ∀ (chain : ChainIndex) (position : WinternitzDigit),
       Coordinate.chain topLayer rootTree leaf chain position ∈ reveals →
         (preparedWord results leaf chain).val ≤ position.val)
     (chain : ChainIndex) (step : ChainStep) (payload : Digest)
@@ -509,7 +509,7 @@ theorem badA_of_accepted (hb : 0 < subtreeHeight) (parameterOutput : HashOutput)
         (((some (forgery, log, true), reveals), entries), cacheF) :=
     fun input hinput hmem => hfirstFull input hinput (graph_targets_subset _ _ _ _ _ hmem)
   -- revealed chain values are at or above the word, so chain queries below it are not guesses
-  have hreveals : ∀ (leaf : Index) (chain : ChainIndex) (position : Digit),
+  have hreveals : ∀ (leaf : Index) (chain : ChainIndex) (position : WinternitzDigit),
       Coordinate.chain topLayer rootTree leaf chain position ∈ reveals →
         (preparedWord results leaf chain).val ≤ position.val := by
     intro leaf chain position h

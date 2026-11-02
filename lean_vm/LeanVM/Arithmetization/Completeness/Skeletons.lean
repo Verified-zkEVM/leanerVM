@@ -34,14 +34,14 @@ structure Skel where
   /-- The frame pointer of the state. -/
   fp : K
   /-- The instruction fetched at `pc`. -/
-  ins : Instr
+  ins : LeanIsaInstruction
 
 /-- The state a skeleton is stepped from. -/
 def Skel.regs (s : Skel) : Registers K := ⟨s.pc, s.fp⟩
 
 /-- The skeletons of the run: the states stepped from, the final state dropped, each with the
 instruction fetched there. -/
-noncomputable def Execution.runSkels {prog : Program} (t : Execution prog) : List Skel :=
+noncomputable def Execution.runSkels {prog : LeanIsaProgram} (t : Execution prog) : List Skel :=
   t.regs.dropLast.filterMap fun r ↦ (prog.fetch r.pc).map fun ins ↦ ⟨r.pc, r.fp, ins⟩
 
 /-- The rows of table `op` among the skeletons: those whose instruction has its opcode. -/
@@ -53,11 +53,12 @@ def Skel.count (op : Opcode) (l : List Skel) : ℕ := (Skel.onTable op l).length
 
 /-- The rows of opcode `op` in the run of `t`: the states stepped from, whose fetched instruction
 has that opcode. The final state is not stepped from, so it is dropped. -/
-noncomputable def Execution.runRows {prog : Program} (t : Execution prog) (op : Opcode) : ℕ :=
-  (t.regs.dropLast.filter fun r ↦ (prog.fetch r.pc).map Instr.opcode = some op).length
+noncomputable def Execution.runRows {prog : LeanIsaProgram} (t : Execution prog) (op :
+    Opcode) : ℕ :=
+  (t.regs.dropLast.filter fun r ↦ (prog.fetch r.pc).map LeanIsaInstruction.opcode = some op).length
 
 /-- The run's skeletons on a table are the run's rows of it. -/
-theorem Execution.count_runSkels {prog : Program} (t : Execution prog) (op : Opcode) :
+theorem Execution.count_runSkels {prog : LeanIsaProgram} (t : Execution prog) (op : Opcode) :
     Skel.count op t.runSkels = t.runRows op := by
   unfold Skel.count Skel.onTable Execution.runSkels Execution.runRows
   generalize t.regs.dropLast = l
@@ -70,9 +71,9 @@ theorem Execution.count_runSkels {prog : Program} (t : Execution prog) (op : Opc
       by_cases ho : ins.opcode = op <;> simp [hf, ho, ih]
 
 /-- No table has more rows than the run has steps. -/
-theorem Execution.runRows_le_steps {prog : Program} {t : Execution prog} {rf : Registers K}
-    (h : run prog t.memory t.steps Registers.initial = some rf) (op : Opcode) :
-    t.runRows op ≤ t.steps := by
+theorem Execution.runRows_le_steps {prog : LeanIsaProgram} {t : Execution prog} {rf : Registers K}
+    (h : run prog t.memory t.stepCount Registers.initial = some rf) (op : Opcode) :
+    t.runRows op ≤ t.stepCount := by
   unfold Execution.runRows
   refine (List.length_filter_le _ _).trans ?_
   rw [List.length_dropLast, Execution.regs_length h]
@@ -80,10 +81,10 @@ theorem Execution.runRows_le_steps {prog : Program} {t : Execution prog} {rf : R
 
 /-- Along a run that succeeds, `opcodeCountInRun` counts the states stepped from whose fetched instruction
 has opcode `op`. -/
-theorem runCount_eq_length {κ : ℕ} {prog : Program} {L : MemoryImage κ} (op : Opcode) {n : ℕ}
+theorem runCount_eq_length {κ : ℕ} {prog : LeanIsaProgram} {L : MemoryImage κ} (op : Opcode) {n : ℕ}
     {r rf : Registers K} (h : run prog L n r = some rf) :
     opcodeCountInRun prog L op n r = (((List.range n).filterMap fun m ↦ run prog L m r).filter
-      fun r₁ ↦ (prog.fetch r₁.pc).map Instr.opcode = some op).length := by
+      fun r₁ ↦ (prog.fetch r₁.pc).map LeanIsaInstruction.opcode = some op).length := by
   induction n generalizing r with
   | zero => rfl
   | succ n ih =>
@@ -105,10 +106,10 @@ theorem runCount_eq_length {κ : ℕ} {prog : Program} {L : MemoryImage κ} (op 
     by_cases ho : ins.opcode = op <;> simp [hf, ho, Nat.add_comm]
 
 /-- The instructions of an opcode an execution executes are the rows of its table. -/
-theorem Execution.count_eq_runRows {prog : Program} {t : Execution prog} {rf : Registers K}
-    (h : run prog t.memory t.steps Registers.initial = some rf) (op : Opcode) :
-    t.count op = t.runRows op := by
-  unfold Execution.count Execution.runRows Execution.regs
+theorem Execution.count_eq_runRows {prog : LeanIsaProgram} {t : Execution prog} {rf : Registers K}
+    (h : run prog t.memory t.stepCount Registers.initial = some rf) (op : Opcode) :
+    t.opcodeCount op = t.runRows op := by
+  unfold Execution.opcodeCount Execution.runRows Execution.regs
   rw [List.range_succ, List.filterMap_append]
   simp only [List.filterMap_cons, List.filterMap_nil, h, List.dropLast_concat]
   exact runCount_eq_length op h

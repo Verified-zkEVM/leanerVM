@@ -15,7 +15,8 @@ public import LeanVM.Guest.WithHash
 /-!
 # leanXMSS over cells
 
-`Node.xmssVerify` runs `LeanXmss.Concrete.verify` in `Id` with Keccak-256 as the oracle. The lemmas
+`Node.xmssVerify` runs `LeanXmss.Verification.verify` in `Id` with Keccak-256 as the oracle. The
+lemmas
 here are stated for any oracle instance on `Id` with the hypothesis `XQ` that it is Keccak-256: the
 kernel then never compares the instance with another term, which would unfold the hash. Each
 routine is a pure function in `Id` (`*_id`, `*_succ`), and a hash of cells' bytes is the first cell
@@ -33,12 +34,12 @@ namespace LeanVM.Guest.B1.Sig
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier LeanVM.Guest LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
-open LeanXmss HashSig LeanXmss.Concrete HashSig.Concrete
+open LeanXmss HashSig LeanXmss.Verification HashSig.OverPermutation
 
 @[expose] public section
 
 /-- The digest cells of the Keccak-256 hash of cells. -/
-def hcell (cs : List E) : E × E := digestScalars (keccak256 (cs.flatMap cellBytes))
+def hcell (cs : List E) : E × E := digestHalves (keccak256 (cs.flatMap cellBytes))
 
 theorem cellsBytes_eq_flatMap (cs : List E) : cellsBytes cs = cs.flatMap cellBytes := rfl
 
@@ -72,12 +73,13 @@ theorem sequenceFin_id {α : Type} : ∀ {n : Nat} (f : Fin n → Id α), sequen
 
 /-- **Verification**: the bottom layer's root, then the top layer's from it, is the key's. -/
 theorem verify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
-    @LeanXmss.Concrete.verifyWithHash Id _ inst pk msg σ = true ↔
-      ∃ r0, @layerRootWithHash Id _ inst pk.parameter bottomLayer (keyAt σ.leafIndex bottomLayer)
-          (bytesLE 32 msg) (σ.layers bottomLayer) = some r0 ∧
-        @layerRootWithHash Id _ inst pk.parameter topLayer (keyAt σ.leafIndex topLayer) (bytesLE 16 r0)
+    @LeanXmss.Verification.verifyWithHash Id _ inst pk msg σ = true ↔
+      ∃ r0, @layerRootWithHash Id _ inst pk.parameter bottomLayer (keyIndexOnLayer σ.leafIndex
+          bottomLayer)
+          (littleEndianBytes 32 msg) (σ.layers bottomLayer) = some r0 ∧
+        @layerRootWithHash Id _ inst pk.parameter topLayer (keyIndexOnLayer σ.leafIndex topLayer) (littleEndianBytes 16 r0)
           (σ.layers topLayer) = some pk.root := by
-  rw [LeanXmss.Concrete.verifyWithHash.eq_def]
+  rw [LeanXmss.Verification.verifyWithHash.eq_def]
   simp only [bind, pure]
   split
   next r0 h1 =>
@@ -106,9 +108,11 @@ theorem idRun {α : Type} (x : Id α) : Id.run x = x := rfl
 theorem xmssVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
     Node.leanXmssVerifyWithKeccak pk msg σ = true ↔
       ∃ r0, @layerRootWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter bottomLayer
-          (keyAt σ.leafIndex bottomLayer) (bytesLE 32 msg) (σ.layers bottomLayer) = some r0 ∧
-        @layerRootWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter topLayer (keyAt σ.leafIndex topLayer)
-          (bytesLE 16 r0) (σ.layers topLayer) = some pk.root := by
+          (keyIndexOnLayer σ.leafIndex bottomLayer) (littleEndianBytes 32 msg) (σ.layers
+              bottomLayer) = some r0 ∧
+        @layerRootWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter topLayer (keyIndexOnLayer σ.leafIndex
+            topLayer)
+          (littleEndianBytes 16 r0) (σ.layers topLayer) = some pk.root := by
   rw [Node.xmssVerify_eq_withHash, idRun]
   exact verify_iff pk msg σ
 
@@ -117,19 +121,19 @@ theorem xmssVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
 theorem layerRoot_id (P : PublicParameter) (lay : Layer) (key : KeyIndex) (msg : HashInput)
     (part : LayerSignature) :
     @layerRootWithHash Id _ inst P lay key msg part =
-      (@otsLeafWithHash Id _ inst P lay key msg part.randomness part.chainValues).map
-        (fun leaf => @treeFoldWithHash Id _ inst P lay key part.path layerHeight leaf) := by
+      (@otsLeafWithHash Id _ inst P lay key msg part.randomizer part.chainValues).map
+        (fun leaf => @treeFoldWithHash Id _ inst P lay key part.authenticationPath layerHeight leaf) := by
   rw [layerRootWithHash.eq_def]
   simp only [bind, pure]
   split
   next leaf h => rw [h]; rfl
   next h =>
-    cases h' : @otsLeafWithHash Id _ inst P lay key msg part.randomness part.chainValues with
+    cases h' : @otsLeafWithHash Id _ inst P lay key msg part.randomizer part.chainValues with
     | none => rfl
     | some leaf => exact absurd h' (h leaf)
 
 theorem otsLeaf_id (P : PublicParameter) (lay : Layer) (key : KeyIndex) (msg : HashInput)
-    (R : Randomness) (vals : ChainIndex → HashSig.Digest) :
+    (R : Randomizer) (vals : ChainIndex → HashSig.Digest) :
     @otsLeafWithHash Id _ inst P lay key msg R vals =
       (Codeword.decode (@messageDigestWithHash Id _ inst P lay key msg R)).map fun enc =>
         @leafHashWithHash Id _ inst P lay key fun i => @recoverChainWithHash Id _ inst P lay key i (enc i) (vals i) := by
@@ -194,12 +198,12 @@ def xv (x : E) : HashSig.Digest := cellVal x
 /-- A cell as a leanXMSS public parameter. -/
 def xpp (x : E) : PublicParameter := cellVal x
 
-theorem bytesLE_xv (x : E) : bytesLE 16 (xv x) = cellBytes x := bytesLE_cellVal x
+theorem bytesLE_xv (x : E) : littleEndianBytes 16 (xv x) = cellBytes x := bytesLE_cellVal x
 
-theorem bytesLE_xpp (x : E) : bytesLE 16 (xpp x) = cellBytes x := bytesLE_cellVal x
+theorem bytesLE_xpp (x : E) : littleEndianBytes 16 (xpp x) = cellBytes x := bytesLE_cellVal x
 
 theorem bytesLE_ofNat_cell {i : Nat} (hi : i < 2 ^ 64) :
-    bytesLE 16 (BitVec.ofNat 128 i) = cellBytes (eOfNat i) := by
+    littleEndianBytes 16 (BitVec.ofNat 128 i) = cellBytes (eOfNat i) := by
   rw [bytesLE_eq, cellBytes_eOfNat hi, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)]
 
 /-- A hash of cells, as a digest. -/
@@ -213,9 +217,9 @@ theorem chainStep_cells (hq : XQ inst) {pp a x : E} {lay : Layer} {key : KeyInde
     @tweakableHashWithHash Id _ inst (xpp pp) (.chain lay key s) (chainPayload i (xv x)) =
       xv (hcell [pp, a, x, eOfNat i.val]).1 := by
   apply tweakableHash_xv hq
-  show bytesLE 16 (xpp pp) ++ tweakBytes _ ++ (bytesLE 16 (xv x) ++ bytesLE 16 (BitVec.ofNat 128 i.val)) = _
+  show littleEndianBytes 16 (xpp pp) ++ tweakBytes _ ++ (littleEndianBytes 16 (xv x) ++ littleEndianBytes 16 (BitVec.ofNat 128 i.val)) = _
   rw [bytesLE_xpp, bytesLE_xv, ← ha,
-    bytesLE_ofNat_cell (by have := i.isLt; simp [numChains] at this; omega)]
+    bytesLE_ofNat_cell (by have := i.isLt; simp [chainCount] at this; omega)]
   simp
 
 /-- `n` chain steps from position `s` on cells: the step leaving position `s` hashes `P`, its
@@ -227,7 +231,7 @@ def xChain (pp : E) (adr : Nat → E) (i : Nat) : Nat → Nat → E → E
 /-- **A chain walked from digit `d` over cells.** -/
 theorem recoverChain_cells (hq : XQ inst) {pp : E} {adr : Nat → E} {lay : Layer} {key : KeyIndex}
     {i : ChainIndex} (hadr : ∀ (s : ChainStep), cellBytes (adr s) = tweakBytes (.chain lay key s)) :
-    ∀ (d : Digit) (x : E), @recoverChainWithHash Id _ inst (xpp pp) lay key i d (xv x) =
+    ∀ (d : WinternitzDigit) (x : E), @recoverChainWithHash Id _ inst (xpp pp) lay key i d (xv x) =
       xv (xChain pp adr i.val (3 - d.val) d.val x) := by
   have hwalk : ∀ (n start : Nat) (x : E), start + n ≤ chainLength - 1 →
       @chainWalkWithHash Id _ inst (xpp pp) lay key i start n (xv x) = xv (xChain pp adr i.val n start x) := by
@@ -251,23 +255,23 @@ theorem ofFn_val_eq {α : Type} (n : Nat) (g : Nat → α) :
   intro i h1 h2
   simp
 
-theorem flatMap_bytesLE_xv : ∀ (l : List E), List.flatMap (bytesLE 16) (l.map xv) = l.flatMap cellBytes
+theorem flatMap_bytesLE_xv : ∀ (l : List E), List.flatMap (littleEndianBytes 16) (l.map xv) = l.flatMap cellBytes
   | [] => rfl
   | x :: l => by
-      show bytesLE 16 (xv x) ++ List.flatMap (bytesLE 16) (l.map xv) = cellBytes x ++ l.flatMap cellBytes
+      show littleEndianBytes 16 (xv x) ++ List.flatMap (littleEndianBytes 16) (l.map xv) = cellBytes x ++ l.flatMap cellBytes
       rw [bytesLE_xv, flatMap_bytesLE_xv l]
 
 /-- **The one-time leaf over cells.** -/
 theorem leafHash_cells (hq : XQ inst) {pp a : E} {lay : Layer} {key : KeyIndex} (tips : Nat → E)
     (ha : cellBytes a = tweakBytes (.leaf lay key)) :
     @leafHashWithHash Id _ inst (xpp pp) lay key (fun i => xv (tips i.val)) =
-      xv (hcell (pp :: a :: (List.range numChains).map tips)).1 := by
+      xv (hcell (pp :: a :: (List.range chainCount).map tips)).1 := by
   apply tweakableHash_xv hq
-  show bytesLE 16 (xpp pp) ++ tweakBytes _ ++
-    (List.ofFn fun i : ChainIndex => xv (tips i.val)).flatMap (bytesLE 16) = _
+  show littleEndianBytes 16 (xpp pp) ++ tweakBytes _ ++
+    (List.ofFn fun i : ChainIndex => xv (tips i.val)).flatMap (littleEndianBytes 16) = _
   rw [bytesLE_xpp, ← ha, show (List.ofFn fun i : ChainIndex => xv (tips i.val)) =
-      ((List.range numChains).map tips).map xv
-    from (ofFn_val_eq numChains (fun i => xv (tips i))).trans (List.map_map.symm)]
+      ((List.range chainCount).map tips).map xv
+    from (ofFn_val_eq chainCount (fun i => xv (tips i))).trans (List.map_map.symm)]
   exact (congrArg (fun t => cellBytes pp ++ cellBytes a ++ t) (flatMap_bytesLE_xv _)).trans (by simp)
 
 /-- **The message digest over cells.** -/
@@ -276,7 +280,7 @@ theorem messageDigest_cells (hq : XQ inst) {pp a rho : E} {lay : Layer} {key : K
     (hM : M = cs.flatMap cellBytes) :
     @messageDigestWithHash Id _ inst (xpp pp) lay key M (xv rho) = xv (hcell (pp :: a :: cs ++ [rho])).1 := by
   apply tweakableHash_xv hq
-  show bytesLE 16 (xpp pp) ++ tweakBytes _ ++ (M ++ bytesLE 16 (xv rho)) = _
+  show littleEndianBytes 16 (xpp pp) ++ tweakBytes _ ++ (M ++ littleEndianBytes 16 (xv rho)) = _
   rw [bytesLE_xpp, bytesLE_xv, ← ha, hM]
   simp
 
@@ -303,11 +307,11 @@ theorem treeFold_cells (hq : XQ inst) {pp : E} {A : Nat → E} {lay : Layer} {ke
       rw [treeFold_cells hq hA sibs m (by omega) x, dite_of (by omega)]
       split
       · apply tweakableHash_xv hq
-        show bytesLE 16 (xpp pp) ++ tweakBytes _ ++ (bytesLE 16 (xv (sibs m)) ++ bytesLE 16 (xv _)) = _
+        show littleEndianBytes 16 (xpp pp) ++ tweakBytes _ ++ (littleEndianBytes 16 (xv (sibs m)) ++ littleEndianBytes 16 (xv _)) = _
         rw [bytesLE_xpp, bytesLE_xv, bytesLE_xv, ← hA m (by omega)]
         simp_all
       · apply tweakableHash_xv hq
-        show bytesLE 16 (xpp pp) ++ tweakBytes _ ++ (bytesLE 16 (xv _) ++ bytesLE 16 (xv (sibs m))) = _
+        show littleEndianBytes 16 (xpp pp) ++ tweakBytes _ ++ (littleEndianBytes 16 (xv _) ++ littleEndianBytes 16 (xv (sibs m))) = _
         rw [bytesLE_xpp, bytesLE_xv, bytesLE_xv, ← hA m (by omega)]
         simp_all
 
@@ -365,27 +369,29 @@ theorem digit_val (d : HashSig.Digest) (i : Nat) : (Codeword.digit d i).val = d.
 /-- **A codeword's digits**: the digest holding the literal of `58` digits below 4 summing to
 106 decodes to them. -/
 theorem decode_lit {dig : Nat → Nat} (hd : ∀ j, dig j < 4)
-    (hs : ∑ i ∈ Finset.range numChains, dig i = targetSum) :
-    Codeword.decode (xv (lit (∑ j ∈ Finset.range numChains, dig j * 4 ^ j))) =
+    (hs : ∑ i ∈ Finset.range chainCount, dig i = targetSum) :
+    Codeword.decode (xv (lit (∑ j ∈ Finset.range chainCount, dig j * 4 ^ j))) =
       some fun i => ⟨dig i.val, hd _⟩ := by
-  have hlt := base4_lt hd numChains
-  have hlt' : ∑ j ∈ Finset.range numChains, dig j * 4 ^ j < 2 ^ 116 := by
-    have : (4 : Nat) ^ numChains = 2 ^ 116 := by norm_num [numChains]
+  have hlt := base4_lt hd chainCount
+  have hlt' : ∑ j ∈ Finset.range chainCount, dig j * 4 ^ j < 2 ^ 116 := by
+    have : (4 : Nat) ^ chainCount = 2 ^ 116 := by norm_num [chainCount]
     omega
   rw [xv_lit]
-  have henc : Codeword.encoding (BitVec.ofNat 128 (∑ j ∈ Finset.range numChains, dig j * 4 ^ j)) =
+  have henc : Codeword.encoding (BitVec.ofNat 128 (∑ j ∈ Finset.range chainCount, dig j * 4 ^ j)) =
       fun i => ⟨dig i.val, hd _⟩ := by
     funext i
     apply Fin.ext
     show (Codeword.digit _ i.val).val = dig i.val
-    rw [digit_ofNat, Nat.mod_eq_of_lt (a := ∑ j ∈ Finset.range numChains, dig j * 4 ^ j) (by omega)]
+    rw [digit_ofNat, Nat.mod_eq_of_lt (a := ∑ j ∈ Finset.range chainCount, dig j * 4 ^ j)
+        (by omega)]
     exact base4_digit hd _ _ i.isLt
-  have hv : Codeword.Valid (BitVec.ofNat 128 (∑ j ∈ Finset.range numChains, dig j * 4 ^ j)) := by
+  have hv : Codeword.Valid (BitVec.ofNat 128 (∑ j ∈ Finset.range chainCount, dig j * 4 ^ j)) := by
     refine ⟨?_, ?_⟩
-    · have ht : (BitVec.ofNat 128 (∑ j ∈ Finset.range numChains, dig j * 4 ^ j)).toNat =
-          ∑ j ∈ Finset.range numChains, dig j * 4 ^ j := by
+    · have ht : (BitVec.ofNat 128 (∑ j ∈ Finset.range chainCount, dig j * 4 ^ j)).toNat =
+          ∑ j ∈ Finset.range chainCount, dig j * 4 ^ j := by
         rw [BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)]
-      show (BitVec.ofNat 128 (∑ j ∈ Finset.range numChains, dig j * 4 ^ j)).toNat / 2 ^ (2 * 58) = 0
+      show (BitVec.ofNat 128 (∑ j ∈ Finset.range chainCount, dig j * 4 ^ j)).toNat / 2 ^ (2 *
+          58) = 0
       rw [ht]
       exact Nat.div_eq_of_lt (by norm_num at hlt' ⊢; omega)
     · rw [henc, Codeword.sum, ← hs, ← Fin.sum_univ_eq_sum_range]
@@ -410,8 +416,8 @@ theorem base4_expand : ∀ n N, N < 4 ^ n → ∑ j ∈ Finset.range n, N / 4 ^ 
 digits, which sum to 106. -/
 theorem decode_some {d : HashSig.Digest} {enc : Encoding} (h : Codeword.decode d = some enc) :
     (∀ i : ChainIndex, (enc i).val = d.toNat / 4 ^ i.val % 4) ∧
-      ∑ i ∈ Finset.range numChains, d.toNat / 4 ^ i % 4 = targetSum ∧
-      d.toNat = ∑ j ∈ Finset.range numChains, d.toNat / 4 ^ j % 4 * 4 ^ j := by
+      ∑ i ∈ Finset.range chainCount, d.toNat / 4 ^ i % 4 = targetSum ∧
+      d.toNat = ∑ j ∈ Finset.range chainCount, d.toNat / 4 ^ j % 4 * 4 ^ j := by
   simp only [Codeword.decode] at h
   split at h
   next hv =>
@@ -420,10 +426,10 @@ theorem decode_some {d : HashSig.Digest} {enc : Encoding} (h : Codeword.decode d
     · rw [← hv.2, Codeword.sum, ← Fin.sum_univ_eq_sum_range]
       exact Finset.sum_congr rfl fun i _ => (digit_val d i.val).symm
     · have h1 := hv.1
-      have hlt : d.toNat < 4 ^ numChains := by
-        simp only [winternitzBits, numChains] at h1
+      have hlt : d.toNat < 4 ^ chainCount := by
+        simp only [winternitzBits, chainCount] at h1
         rw [Nat.div_eq_zero_iff] at h1
-        norm_num [numChains] at h1 ⊢
+        norm_num [chainCount] at h1 ⊢
         omega
       exact (base4_expand _ _ hlt).symm
   next => cases h

@@ -18,7 +18,7 @@ set_option maxRecDepth 20000
 @[expose] public section
 
 /-- `__jump_tables` from offset 0. -/
-def f0c0 : List OInstr := [
+def f0c0 : List OffsetInstruction := [
   .set 406 13063652579795698784 0 0,
   .set 407 6104256465926113013 0 0,
   .set 408 7879562097255638051 0 0,
@@ -2069,7 +2069,7 @@ def f0c0 : List OInstr := [
   .set 2453 2098816106805812935 0 0]
 
 /-- `__jump_tables` from offset 2048. -/
-def f0c1 : List OInstr := [
+def f0c1 : List OffsetInstruction := [
   .set 2454 2341345204711114271 0 0,
   .set 2455 4544281023669800496 0 0,
   .set 2456 14132824409223957657 0 0,
@@ -4120,7 +4120,7 @@ def f0c1 : List OInstr := [
   .set 4501 15382104056299063362 0 0]
 
 /-- `__jump_tables` from offset 4096. -/
-def f0c2 : List OInstr := [
+def f0c2 : List OffsetInstruction := [
   .set 4502 15605174143360831264 0 0,
   .set 4503 15911363204168061174 0 0,
   .set 4504 1306310670675950582 0 0,
@@ -6171,7 +6171,7 @@ def f0c2 : List OInstr := [
   .set 6549 15277259449207111182 0 0]
 
 /-- `__jump_tables` from offset 6144. -/
-def f0c3 : List OInstr := [
+def f0c3 : List OffsetInstruction := [
   .set 6550 16869162457876295810 0 0,
   .set 6551 4000287501429980431 0 0,
   .set 6552 9306416693909025433 0 0,
@@ -8222,7 +8222,7 @@ def f0c3 : List OInstr := [
   .set 8597 10145433596545267641 0 0]
 
 /-- `__jump_tables` from offset 8192. -/
-def f0c4 : List OInstr := [
+def f0c4 : List OffsetInstruction := [
   .set 8598 10435811376070000114 0 0,
   .set 8599 8297809341902109405 0 0,
   .set 8600 17848961316092061644 0 0,
@@ -8489,7 +8489,7 @@ def f0c4 : List OInstr := [
   .set 8861 13420463064805409735 0 0]
 
 /-- `main` from offset 0. -/
-def f1c0 : List OInstr := [
+def f1c0 : List OffsetInstruction := [
   .set 10 9272771591053052074 0 0,
   .deref 2 0 12 .cell,
   .mul 2 11 10,
@@ -9239,7 +9239,7 @@ def f1c0 : List OInstr := [
   .jump 49 405 49]
 
 /-- `assert_canonical` from offset 0. -/
-def f2c0 : List OInstr := [
+def f2c0 : List OffsetInstruction := [
   .xor 2 4 5,
   .set 6 1 0 1,
   .mul 5 6 7,
@@ -9250,7 +9250,7 @@ def f2c0 : List OInstr := [
   .jump 9 0 1]
 
 /-- `exponent_tables` from offset 0. -/
-def f3c0 : List OInstr := [
+def f3c0 : List OffsetInstruction := [
   .set 5 1 0 0,
   .deref 4 0 5 .cell,
   .set 6 2 0 0,
@@ -9386,7 +9386,7 @@ def f3c0 : List OInstr := [
   .jump 5 0 1]
 
 /-- `g_power_of_word` from offset 0. -/
-def f4c0 : List OInstr := [
+def f4c0 : List OffsetInstruction := [
   .mul 4 4 4,
   .set 10 1 0 0,
   .set 11 3 0 0,
@@ -9438,7 +9438,7 @@ def f4c0 : List OInstr := [
   .jump 10 0 1]
 
 /-- `eq_prefix_chain` from offset 0. -/
-def f5c0 : List OInstr := [
+def f5c0 : List OffsetInstruction := [
   .set 7 1099511627776 0 0,
   .deref 6 0 9 .cell,
   .mul 6 8 7,
@@ -9457,7 +9457,7 @@ def f5c0 : List OInstr := [
   .jump 12 0 1]
 
 /-- `rs_eq_run` from offset 0. -/
-def f6c0 : List OInstr := [
+def f6c0 : List OffsetInstruction := [
   .mul 7 7 7,
   .mul 8 8 8,
   .set 13 1 0 0,
@@ -9846,7 +9846,7 @@ def f6c0 : List OInstr := [
   .jump 13 0 1]
 
 /-- `sumcheck_round4` from offset 0. -/
-def f7c0 : List OInstr := [
+def f7c0 : List OffsetInstruction := [
   .deref 2 0 9 .cell,
   .deref 2 1 10 .cell,
   .deref 2 2 11 .cell,
@@ -9899,7 +9899,7 @@ def f7c0 : List OInstr := [
   .jump 28 0 1]
 
 /-- `opening_fold` from offset 0. -/
-def f8c0 : List OInstr := [
+def f8c0 : List OffsetInstruction := [
   .set 29 1 0 0,
   .mul 2 29 24,
   .mul 3 29 25,
@@ -9958,7 +9958,7 @@ def f8c0 : List OInstr := [
   .jump 29 0 1]
 
 /-- `verify_bus_gkr` from offset 0. -/
-def f9c0 : List OInstr := [
+def f9c0 : List OffsetInstruction := [
   .set 19 4 0 0,
   .mul 8 19 20,
   .mul 20 20 21,
@@ -10248,7 +10248,7 @@ def f9c0 : List OInstr := [
   .jump 39 0 1]
 
 /-- `shared_selector_tables` from offset 0. -/
-def f10c0 : List OInstr := [
+def f10c0 : List OffsetInstruction := [
   .mul 8 8 8,
   .mul 9 9 9,
   .mul 10 10 10,
@@ -10316,7 +10316,7 @@ def f10c0 : List OInstr := [
   .jump 14 0 1]
 
 /-- `verify_tables` from offset 0. -/
-def f11c0 : List OInstr := [
+def f11c0 : List OffsetInstruction := [
   .set 39 1 0 0,
   .mul 2 39 34,
   .mul 3 39 35,
@@ -12367,7 +12367,7 @@ def f11c0 : List OInstr := [
   .deref 1711 0 1713 .cell]
 
 /-- `verify_tables` from offset 2048. -/
-def f11c1 : List OInstr := [
+def f11c1 : List OffsetInstruction := [
   .mul 52 1710 1714,
   .deref 1714 0 1715 .cell,
   .xor 1715 54 53,
@@ -14418,7 +14418,7 @@ def f11c1 : List OInstr := [
   .xor 2587 2607 3404]
 
 /-- `verify_tables` from offset 4096. -/
-def f11c2 : List OInstr := [
+def f11c2 : List OffsetInstruction := [
   .mul 2436 3404 3405,
   .xor 2587 2699 3406,
   .xor 3406 2652 3407,

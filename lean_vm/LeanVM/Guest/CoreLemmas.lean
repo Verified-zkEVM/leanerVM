@@ -122,7 +122,7 @@ theorem holdsList_flatten (bs : List (List Stmt)) (h : ∀ b ∈ bs, Stmt.noRetL
 theorem holdsArms_iff (x : V) : ∀ (arms : List (List Stmt)) (j : Nat) (next : Prop)
     (kret : List E → Prop),
     Stmt.HoldsArms C rd σ x j arms next kret ↔
-      ∃ (i : Nat) (h : i < arms.length), σ x = ofK (gpow (j + i)) ∧
+      ∃ (i : Nat) (h : i < arms.length), σ x = ofK (addressOfIndex (j + i)) ∧
         Stmt.HoldsList C rd σ arms[i] next kret
   | [], _, _, _ => by simp [Stmt.HoldsArms]
   | a :: as, j, next, kret => by
@@ -140,7 +140,7 @@ theorem holdsArms_iff (x : V) : ∀ (arms : List (List Stmt)) (j : Nat) (next : 
 /-- A `match` holds of one arm `j < arms.length`, at `x = g^j`. -/
 theorem holds_match_iff (x : V) (arms : List (List Stmt)) (next : Prop) (kret : List E → Prop) :
     Stmt.Holds C rd σ (.match_ x arms) next kret ↔
-      ∃ (j : Nat) (h : j < arms.length), σ x = ofK (gpow j) ∧
+      ∃ (j : Nat) (h : j < arms.length), σ x = ofK (addressOfIndex j) ∧
         Stmt.HoldsList C rd σ arms[j] next kret := by
   simp only [Stmt.Holds, holdsArms_iff, Nat.zero_add]
 
@@ -273,7 +273,7 @@ theorem rel_iff (P : Program) (f : String) (args rets : List E) :
 /-! ## Range checks -/
 
 theorem read_some_iff {κ : Nat} (hκ : κ < 64) (L : MemoryImage κ) (a : K) (w : E) :
-    L.read a = some w ↔ ∃ i : Fin (2 ^ κ), a = gpow i ∧ L i = w := by
+    L.read a = some w ↔ ∃ i : Fin (2 ^ κ), a = addressOfIndex i ∧ L i = w := by
   unfold MemoryImage.read
   constructor
   · intro h
@@ -291,35 +291,35 @@ theorem eq_ofK_limb {x : E} (h : IsInK x) : x = ofK (x.limb 0) := by
 `1 ≤ K ≤ 2^κ`. The compiler's cap `K ≤ 2^16` is this bound at the least memory size. -/
 theorem rangeCheck_iff {κ : Nat} (hκ : κ ≤ 32) (L : MemoryImage κ) (x : E) {K : Nat}
     (hK1 : 1 ≤ K) (hK : K ≤ 2 ^ κ) :
-    (∃ y t1 t2 : E, LoadHolds L.read x 0 t1 ∧ ofK (gpow (K - 1)) = x * y ∧ LoadHolds L.read y 0 t2) ↔
-      ∃ e < K, x = ofK (gpow e) := by
+    (∃ y t1 t2 : E, LoadHolds L.read x 0 t1 ∧ ofK (addressOfIndex (K - 1)) = x * y ∧ LoadHolds L.read y 0 t2) ↔
+      ∃ e < K, x = ofK (addressOfIndex e) := by
   have hκ64 : κ < 64 := by omega
   have h32 : 2 ^ κ ≤ 2 ^ 32 := Nat.pow_le_pow_right (by decide) hκ
   constructor
   · rintro ⟨y, t1, t2, ⟨hx, h1⟩, hk, ⟨hy, h2⟩⟩
-    rw [gpow, pow_zero, mul_one] at h1 h2
+    rw [addressOfIndex, pow_zero, mul_one] at h1 h2
     obtain ⟨i, hi, -⟩ := (read_some_iff hκ64 L _ _).mp h1
     obtain ⟨j, hj, -⟩ := (read_some_iff hκ64 L _ _).mp h2
-    have ex : x = ofK (gpow i) := by rw [eq_ofK_limb hx, hi]
-    have ey : y = ofK (gpow j) := by rw [eq_ofK_limb hy, hj]
-    rw [ex, ey, ← ofK_mul, gpow, gpow, ← pow_add] at hk
+    have ex : x = ofK (addressOfIndex i) := by rw [eq_ofK_limb hx, hi]
+    have ey : y = ofK (addressOfIndex j) := by rw [eq_ofK_limb hy, hj]
+    rw [ex, ey, ← ofK_mul, addressOfIndex, addressOfIndex, ← pow_add] at hk
     have hij := gpow_injOn (by have := i.isLt; have := j.isLt; simp only [Set.mem_Iio]; omega)
       (by simp only [Set.mem_Iio]; omega) (ofK_injective hk).symm
     exact ⟨i, by omega, ex⟩
   · rintro ⟨e, he, rfl⟩
     have he' : e < 2 ^ κ := by omega
     have hc : K - 1 - e < 2 ^ κ := by omega
-    refine ⟨ofK (gpow (K - 1 - e)), L ⟨e, he'⟩, L ⟨K - 1 - e, hc⟩, ⟨?_, ?_⟩, ?_, ⟨?_, ?_⟩⟩
+    refine ⟨ofK (addressOfIndex (K - 1 - e)), L ⟨e, he'⟩, L ⟨K - 1 - e, hc⟩, ⟨?_, ?_⟩, ?_, ⟨?_, ?_⟩⟩
     · exact (isInK_iff _).mpr ⟨_, rfl⟩
     · rw [limb_ofK]
-      simp only [gpow, pow_zero, mul_one]
+      simp only [addressOfIndex, pow_zero, mul_one]
       exact (read_some_iff hκ64 L _ _).mpr ⟨⟨e, he'⟩, rfl, rfl⟩
-    · rw [← ofK_mul, gpow, gpow, ← pow_add]
+    · rw [← ofK_mul, addressOfIndex, addressOfIndex, ← pow_add]
       congr 2
       omega
     · exact (isInK_iff _).mpr ⟨_, rfl⟩
     · rw [limb_ofK]
-      simp only [gpow, pow_zero, mul_one]
+      simp only [addressOfIndex, pow_zero, mul_one]
       exact (read_some_iff hκ64 L _ _).mpr ⟨⟨K - 1 - e, hc⟩, rfl, rfl⟩
 
 end

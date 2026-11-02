@@ -87,16 +87,17 @@ theorem rangeS_nb (x : V) (bound : E) (b : Nat) (hx : NBv b x) :
   exact .cons ⟨b, by omega, rfl⟩ (.cons (hx.mono' (by omega)) (.cons ⟨b + 1, by omega, rfl⟩
     (.cons ⟨b + 2, by omega, rfl⟩ (.cons ⟨b + 3, by omega, rfl⟩ (.cons ⟨b, by omega, rfl⟩ (.nil _))))))
 
-theorem g7W_k : g7W = ofK (gpow (8 - 1)) := g7W_eq
-theorem g255W_k : g255W = ofK (gpow (256 - 1)) := g255W_eq
-theorem g15W_k : g15W = ofK (gpow (16 - 1)) := g15W_eq
-theorem g63W_k : g63W = ofK (gpow (64 - 1)) := g63W_eq
+theorem g7W_k : g7W = ofK (addressOfIndex (8 - 1)) := g7W_eq
+theorem g255W_k : g255W = ofK (addressOfIndex (256 - 1)) := g255W_eq
+theorem g15W_k : g15W = ofK (addressOfIndex (16 - 1)) := g15W_eq
+theorem g63W_k : g63W = ofK (addressOfIndex (64 - 1)) := g63W_eq
 
 /-- What a sub-tree's valuation holds: its hints, its level-2 nodes canonical, its encoding and
 bound updated. -/
 def SubPost (encIn boundIn : E) (c j : Nat) (enc : Option V) (b : Nat) (h : SubH)
     (σ : Val) : Prop :=
-  σ (.n b) = ofK (gpow h.a) ∧ σ (.n (b + 1)) = subMark j h.a ∧ σ (.n (b + 6)) = ofK (gpow h.t) ∧
+  σ (.n b) = ofK (addressOfIndex h.a) ∧ σ (.n (b + 1)) = subMark j h.a ∧ σ (.n (b + 6)) = ofK
+      (addressOfIndex h.t) ∧
     (∀ i < 6, σ (.n (fkCB h.t (.n (b + 11)) 0 (fkAB (2 * c + j) (.n (b + 11)) (b + 12) h.t) i)) = h.vals i) ∧
     (∀ l < 2, σ (.n (flBase (subAdr h.a) 0 l (foAB (.n (b + 11)) subAdr 3 (subFk c j b).2.2.1 (.n (b + 1))
       (subMark j) (fun a => cbMul a (58 + 3 * (2 * c + j))) (subE c j enc b).2.2 h.a))) = h.sibs l) ∧
@@ -165,11 +166,11 @@ theorem sSubtree_complete {c j : Nat} {leafAt : V} {enc : Option V} {bound : V}
       rw [foAB_one, foldArm_snd, foldLevels_snd]; rfl
     rw [← h1, subFd_eq, foldArms_end]; exact (hfo 1).2 8 (by omega)
   -- the keys
-  set σ1 := Function.update (Function.update σ (.n b) (ofK (gpow h.a))) (.n (b + 1)) (subMark j h.a) with hσ1
+  set σ1 := Function.update (Function.update σ (.n b) (ofK (addressOfIndex h.a))) (.n (b + 1)) (subMark j h.a) with hσ1
   have he1 : Ext b (b + 2) σ σ1 := fun v hv => by
     rw [hσ1, Function.update_of_ne (hv (b + 1) (by omega) (by omega)),
       Function.update_of_ne (hv b le_rfl (by omega))]
-  have h1a : σ1 (.n b) = ofK (gpow h.a) := by
+  have h1a : σ1 (.n b) = ofK (addressOfIndex h.a) := by
     rw [hσ1, Function.update_of_ne (by simp), Function.update_self]
   have h1m : σ1 (.n (b + 1)) = subMark j h.a := by rw [hσ1, Function.update_self]
   refine Completes.append (m := b + 2) (by omega) (by omega)
@@ -182,13 +183,13 @@ theorem sSubtree_complete {c j : Nat} {leafAt : V} {enc : Option V} {bound : V}
       exact rangeS_complete (n := 256) (K := 8) hm (by norm_num) ha σ1 (.n b) ⟨b, by omega, rfl⟩ h1a)
     (fun σ2 he2 _ => ?_)
   -- the codeword index
-  set σ3 := Function.update σ2 (.n (b + 6)) (ofK (gpow h.t)) with hσ3
+  set σ3 := Function.update σ2 (.n (b + 6)) (ofK (addressOfIndex h.t)) with hσ3
   have he3 : Ext (b + 6) (b + 7) σ2 σ3 := fun v hv => Function.update_of_ne (hv (b + 6) le_rfl (by omega)) _ _
   refine Completes.append (m := b + 7) (by omega) (by omega)
     (by rw [valsList_hint]; exact .cons ⟨b + 6, by omega, rfl⟩ (.nil _))
     (Completes.reload he3 (hintKeep_complete σ3 _ _ (b + 6) (b + 7))) (fun σ3' _ e3 => ?_)
   subst e3
-  have h3t : σ3 (.n (b + 6)) = ofK (gpow h.t) := Function.update_self ..
+  have h3t : σ3 (.n (b + 6)) = ofK (addressOfIndex h.t) := Function.update_self ..
   refine Completes.append (m := b + 11) (by omega) (by omega) (rangeS_nb _ _ _ ⟨b + 6, by omega, rfl⟩)
     (by
       rw [g255W_k]
@@ -207,9 +208,9 @@ theorem sSubtree_complete {c j : Nat} {leafAt : V} {enc : Option V} {bound : V}
       he2.apply (Or.inl hk)]
   have h1σ : ∀ k < b, σ1 (.n k) = σ (.n k) := fun k hk => he1.apply (Or.inl hk)
   have h54 : ∀ k < b + 11, σ5 (.n k) = σ4 (.n k) := fun k hk => he5.apply (Or.inl hk)
-  have h5b : σ5 (.n b) = ofK (gpow h.a) := by rw [h54 b (by omega), h41 b (by omega), h1a]
+  have h5b : σ5 (.n b) = ofK (addressOfIndex h.a) := by rw [h54 b (by omega), h41 b (by omega), h1a]
   have h5b1 : σ5 (.n (b + 1)) = subMark j h.a := by rw [h54 _ (by omega), h41 _ (by omega), h1m]
-  have h5t : σ5 (.n (b + 6)) = ofK (gpow h.t) := by
+  have h5t : σ5 (.n (b + 6)) = ofK (addressOfIndex h.t) := by
     rw [h54 _ (by omega), he4.apply (Or.inl (by omega)), h3t]
   have hlow5 : ∀ k < b, σ5 (.n k) = σ (.n k) := fun k hk => by
     rw [h54 k (by omega), h41 k (by omega), h1σ k hk]

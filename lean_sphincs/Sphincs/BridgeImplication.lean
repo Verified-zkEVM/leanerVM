@@ -47,22 +47,23 @@ theorem otsSignFrom_firstEncoding (f : QueryImpl HashSpec Id) (parameter : Publi
 
 theorem honest_counter (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) (root : Digest)
     (message : Message)
-    (randomness : Randomness) (signature : Signature)
+    (randomness : Randomizer) (signature : Signature)
     (hland : Landed sk.parameter (digestIndex (Completeness.digestValue f sk message randomness)))
     (hsign : evalWithAnswerFn f (Randomized.finishSign sk message randomness) = some signature) :
-    SignatureWitness.chosenCounter f sk.parameter sk.seed
+    SignatureWitness.chosenCounter f sk.parameter sk.schemeSeed
       (SignatureWitness.index f ⟨root, sk.parameter⟩ message signature) =
         some (signature.layers topLayer).counter := by
   obtain ⟨-, -, hlayers⟩ := Completeness.finishSign_spec f sk message randomness hland hsign
   obtain ⟨hots, -⟩ := Completeness.signLayer_spec f sk _ topLayer (hlayers topLayer)
   simp only [Completeness.treeIndexAt_eq, Completeness.leafIndexAt_eq] at hots
-  obtain ⟨word, hword⟩ := otsSignFrom_firstEncoding f sk.parameter topLayer rootTree _ sk.seed _
+  obtain ⟨word, hword⟩ := otsSignFrom_firstEncoding f sk.parameter topLayer rootTree _
+      sk.schemeSeed _
     encodingAttemptLimit 0 hots
   have hindex : SignatureWitness.index f ⟨root, sk.parameter⟩ message signature =
       digestIndex (Completeness.digestValue f sk message signature.randomness) := rfl
   rw [hindex]
   simp only [SignatureWitness.chosenCounter, ReferenceChoice.selection]
-  rw [show SignatureWitness.canonicalForest f sk.parameter sk.seed
+  rw [show SignatureWitness.canonicalForest f sk.parameter sk.schemeSeed
       (digestIndex (Completeness.digestValue f sk message signature.randomness)) =
     Completeness.layerMessageValue f sk
       (digestIndex (Completeness.digestValue f sk message signature.randomness)) topLayer from rfl, hword]
@@ -108,7 +109,7 @@ end Events
 
 /-- The verifier's message digest of a forgery, read from a cache. -/
 def cachedDigest (cache : QueryCache HashSpec) (parameter : PublicParameter)
-    (message : Message) (randomness : Randomness) : Option MessageDigest := do
+    (message : Message) (randomness : Randomizer) : Option MessageDigest := do
   let first ← cache (tweakableHashInput parameter .message (messageDigestPayload message randomness))
   return truncateMessageDigest first
 
@@ -397,12 +398,12 @@ theorem reach_fchain (parameterOutput : HashOutput) (highs : CoordinateHighs) (f
 theorem reach_chain (parameterOutput : HashOutput) (highs : CoordinateHighs) (fixed : HiddenGraph.Table)
     (reveals : List Coordinate) (leaf : LeafIndex) (hland : Landed (truncateHash parameterOutput) leaf)
     (word : Encoding)
-    (hreveals : ∀ (chain : ChainIndex) (position : Digit),
+    (hreveals : ∀ (chain : ChainIndex) (position : WinternitzDigit),
       Coordinate.chain topLayer rootTree leaf chain position ∈ reveals → (word chain).val ≤ position.val)
     (coordinate : Coordinate)
     (h : Reach (sampleModel parameterOutput highs) (knownOf (truncateHash parameterOutput) fixed)
       reveals coordinate) :
-    ∀ (chain : ChainIndex) (position : Digit),
+    ∀ (chain : ChainIndex) (position : WinternitzDigit),
       coordinate = .chain topLayer rootTree leaf chain position → (word chain).val ≤ position.val := by
   induction h with
   | known coordinate value hvalue =>
@@ -443,8 +444,8 @@ theorem firstEncoding_congr (f g : QueryImpl HashSpec Id) (parameter : PublicPar
         evalWithAnswerFn g (encode parameter lay tree leaf message counter : OracleComp HashSpec (Option Encoding)) := by
     intro counter
     simp only [encode, evalWithAnswerFn_bind, eval_tweakableHash, evalWithAnswerFn_pure]
-    rw [show f (tweakableHashInput parameter (.encoding lay tree leaf) (rootsPayload message ++ bytesLE 4 counter)) =
-      g (tweakableHashInput parameter (.encoding lay tree leaf) (rootsPayload message ++ bytesLE 4 counter)) from
+    rw [show f (tweakableHashInput parameter (.encoding lay tree leaf) (rootsPayload message ++ littleEndianBytes 4 counter)) =
+      g (tweakableHashInput parameter (.encoding lay tree leaf) (rootsPayload message ++ littleEndianBytes 4 counter)) from
       h counter]
   intro attempts
   induction attempts with
@@ -678,11 +679,13 @@ theorem queried_fchain_revealed (parameterOutput : HashOutput) (highs : Coordina
       (knownOf (truncateHash parameterOutput) fixed) reveals entries)
     (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) (t : FStep)
     (hmem : Sum.inl (tweakableHashInput (truncateHash parameterOutput) (.fchain index c s j a i t)
-      (bytesLE 16 (table (.fchain index c s j a i ⟨t.val, by have := t.isLt; omega⟩)))) ∈ entries) :
+      (littleEndianBytes 16 (table (.fchain index c s j a i ⟨t.val,
+          by have := t.isLt; omega⟩)))) ∈ entries) :
     ∃ q : FPos, q.val ≤ t.val ∧ Coordinate.fchain index c s j a i q ∈ reveals := by
   have hparse : (sampleModel parameterOutput highs).parse
       (tweakableHashInput (truncateHash parameterOutput) (.fchain index c s j a i t)
-        (bytesLE 16 (table (.fchain index c s j a i ⟨t.val, by have := t.isLt; omega⟩)))) =
+        (littleEndianBytes 16 (table (.fchain index c s j a i ⟨t.val,
+            by have := t.isLt; omega⟩)))) =
       some (.fchain index c s j a i t, table (.fchain index c s j a i ⟨t.val, by have := t.isLt; omega⟩)) := by
     rw [sampleModel_parse]
     exact parse_input _ _ (.fchain index c s j a i t, _) trivial
@@ -699,16 +702,16 @@ theorem queried_chain_reach (parameterOutput : HashOutput) (highs : CoordinateHi
     (hguess : NoHiddenGuess (sampleModel parameterOutput highs) table
       (knownOf (truncateHash parameterOutput) fixed) reveals entries)
     (leaf : LeafIndex) (hland : Landed (truncateHash parameterOutput) leaf) (word : Encoding)
-    (hreveals : ∀ (chain : ChainIndex) (position : Digit),
+    (hreveals : ∀ (chain : ChainIndex) (position : WinternitzDigit),
       Coordinate.chain topLayer rootTree leaf chain position ∈ reveals → (word chain).val ≤ position.val)
     (chain : ChainIndex) (step : ChainStep)
     (hmem : Sum.inl (tweakableHashInput (truncateHash parameterOutput) (.chain topLayer rootTree leaf chain step)
-      (bytesLE 16 (table (.chain topLayer rootTree leaf chain ⟨step.val, by have := step.isLt; omega⟩)))) ∈
+      (littleEndianBytes 16 (table (.chain topLayer rootTree leaf chain ⟨step.val, by have := step.isLt; omega⟩)))) ∈
         entries) :
     (word chain).val ≤ step.val := by
   have hparse : (sampleModel parameterOutput highs).parse
       (tweakableHashInput (truncateHash parameterOutput) (.chain topLayer rootTree leaf chain step)
-        (bytesLE 16 (table (.chain topLayer rootTree leaf chain ⟨step.val, by have := step.isLt; omega⟩)))) =
+        (littleEndianBytes 16 (table (.chain topLayer rootTree leaf chain ⟨step.val, by have := step.isLt; omega⟩)))) =
       some (.chain topLayer rootTree leaf chain step,
         table (.chain topLayer rootTree leaf chain ⟨step.val, by have := step.isLt; omega⟩)) := by
     rw [sampleModel_parse]
@@ -722,7 +725,7 @@ theorem revealed_chain_word (f : QueryImpl HashSpec Id) (parameter : PublicParam
     (data : GraphView.PublicData) (log : QueryLog SigningSpec) (reveals : List Coordinate)
     (hgood : LogGood f parameter seed data log reveals)
     (hfors : ∀ leaf : Index, SignatureWitness.canonicalForest f parameter seed leaf = data.forestKey leaf)
-    (leaf : Index) (chain : ChainIndex) (position : Digit)
+    (leaf : Index) (chain : ChainIndex) (position : WinternitzDigit)
     (hmem : Coordinate.chain topLayer rootTree leaf chain position ∈ reveals) :
     (SignatureWitness.chosenWord f parameter seed leaf chain).val ≤ position.val := by
   obtain ⟨entry, -, signature, -, hcoordinate⟩ := hgood.2 _ hmem
@@ -752,14 +755,14 @@ theorem revealed_chain_word (f : QueryImpl HashSpec Id) (parameter : PublicParam
 /-- A canonical opening sharing an honest signature's message and randomizer is that signature. -/
 theorem canonical_signed_eq (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) (root : Digest)
     (message : Message)
-    (randomness : Randomness) (signature honest : Signature)
+    (randomness : Randomizer) (signature honest : Signature)
     (hland : Landed sk.parameter (digestIndex (Completeness.digestValue f sk message randomness)))
     (hfinish : evalWithAnswerFn f (Randomized.finishSign sk message randomness) = some honest)
     (hrandomness : honest.randomness = signature.randomness) (counter : Counter)
-    (hchosen : SignatureWitness.chosenCounter f sk.parameter sk.seed
+    (hchosen : SignatureWitness.chosenCounter f sk.parameter sk.schemeSeed
       (SignatureWitness.index f ⟨root, sk.parameter⟩ message signature) = some counter)
-    (hcanonical : SignatureWitness.CanonicalOpening f ⟨root, sk.parameter⟩ sk.seed message signature counter
-      (SignatureWitness.chosenWord f sk.parameter sk.seed
+    (hcanonical : SignatureWitness.CanonicalOpening f ⟨root, sk.parameter⟩ sk.schemeSeed message signature counter
+      (SignatureWitness.chosenWord f sk.parameter sk.schemeSeed
         (SignatureWitness.index f ⟨root, sk.parameter⟩ message signature))) :
     signature = honest := by
   have hindex : SignatureWitness.index f ⟨root, sk.parameter⟩ message honest =
@@ -774,11 +777,11 @@ theorem canonical_signed_eq (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) 
   -- the honest word is the chosen word
   obtain ⟨pair, hpair⟩ : ∃ pair, ReferenceChoice.selection f sk.parameter topLayer rootTree
       (SignatureWitness.index f ⟨root, sk.parameter⟩ message signature)
-      (SignatureWitness.canonicalForest f sk.parameter sk.seed
+      (SignatureWitness.canonicalForest f sk.parameter sk.schemeSeed
         (SignatureWitness.index f ⟨root, sk.parameter⟩ message signature)) = some pair := by
     cases h : ReferenceChoice.selection f sk.parameter topLayer rootTree
         (SignatureWitness.index f ⟨root, sk.parameter⟩ message signature)
-        (SignatureWitness.canonicalForest f sk.parameter sk.seed
+        (SignatureWitness.canonicalForest f sk.parameter sk.schemeSeed
           (SignatureWitness.index f ⟨root, sk.parameter⟩ message signature)) with
     | none => simp [SignatureWitness.chosenCounter, h] at hchosen
     | some pair => exact ⟨pair, rfl⟩
@@ -787,7 +790,7 @@ theorem canonical_signed_eq (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) 
   have hencode := ReferenceChoice.firstEncoding_sound f sk.parameter topLayer rootTree _ _
     encodingAttemptLimit 0 pair.1 pair.2 hpair
   rw [hpairCounter] at hencode
-  have hword : word = SignatureWitness.chosenWord f sk.parameter sk.seed
+  have hword : word = SignatureWitness.chosenWord f sk.parameter sk.schemeSeed
       (SignatureWitness.index f ⟨root, sk.parameter⟩ message signature) := by
     have h := href.symm.trans hencode
     rw [Option.some.injEq] at h
@@ -795,7 +798,8 @@ theorem canonical_signed_eq (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) 
     unfold SignatureWitness.chosenWord
     rw [ReferenceChoice.word_of_some _ _ _ _ _ _ pair.1 pair.2 hpair]
   rw [hword] at hhonest
-  exact SignatureWitness.canonicalOpening_unique f _ sk.seed message signature honest counter _
+  exact SignatureWitness.canonicalOpening_unique f _ sk.schemeSeed message signature honest
+      counter _
     hcanonical hhonest hrandomness.symm
 
 /-- The verifier's digest is read off the final cache. -/

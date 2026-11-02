@@ -56,16 +56,16 @@ open scoped ENNReal
 /-! ## The program -/
 
 /-- `verify_keccak`, the `do` block's join points inlined. -/
-def gkrProg (h : ℕ) (inst output : List E) : Prog (List ColumnClaim × List E × List E) :=
-  Prog.sampleChallenges keccakSegmentBits >>= fun segment ↦
-  Prog.sampleChallenges keccakLaneBits >>= fun lanesPt ↦
-  Prog.readScalar >>= fun committed ↦
+def gkrProg (h : ℕ) (inst output : List E) : VerifierProgram (List ColumnClaim × List E × List E) :=
+  VerifierProgram.sampleChallenges keccakSegmentBits >>= fun segment ↦
+  VerifierProgram.sampleChallenges keccakLaneBits >>= fun lanesPt ↦
+  VerifierProgram.readScalar >>= fun committed ↦
   keccakLayers h (List.range keccakDepth) (firstClaim inst segment lanesPt output committed) >>=
     fun claim ↦
   keccakOpen h (firstClaim inst segment lanesPt output committed) 1 (keccakSegments - 1)
     committed >>= fun x ↦
-  Prog.readScalar >>= fun word ↦
-  Prog.require (x.2.1.headD 0 * word = x.2.2) >>= fun _ ↦
+  VerifierProgram.readScalar >>= fun word ↦
+  VerifierProgram.require (x.2.1.headD 0 * word = x.2.2) >>= fun _ ↦
   inputTail h claim [(⟨qkeccak, inst.take 4 ++ inst.drop 4 ++ x.1, word⟩ : ColumnClaim)]
 
 theorem verifyKeccak_eq (h : ℕ) (inst output : List E) :
@@ -116,8 +116,8 @@ noncomputable def midSpec (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L₀)
         (firstClaim inst segment lanesPt output committed) >>= fun claim ↦
       keccakOpen (P + 4) (firstClaim inst segment lanesPt output committed) 1 (keccakSegments - 1)
         committed >>= fun x ↦
-      Prog.readScalar >>= fun word ↦
-      Prog.require (x.2.1.headD 0 * word = x.2.2) >>= fun _ ↦
+      VerifierProgram.readScalar >>= fun word ↦
+      VerifierProgram.require (x.2.1.headD 0 * word = x.2.2) >>= fun _ ↦
       inputTail (P + 4) claim [(⟨qkeccak, inst.take 4 ++ inst.drop 4 ++ x.1, word⟩ : ColumnClaim)])
       (Doomed C (AliveC qk R P inst segment lanesPt output committed))
       (KeccakPost qk R P C) εmax 0 T :=
@@ -131,7 +131,8 @@ noncomputable def midSpec (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L₀)
   if hc : ClaimShape P claim then
     (Spec.congr (keccakOpen_eq (P + 4) first 1 (keccakSegments - 1) committed).symm <|
       Spec.congr (p := sumcheck committed 3 (List.replicate 6 none) >>= fun x ↦
-        Prog.ret (x.1, (foldAll x.1 (keccakSlotWeights (P + 4) first 1 1)).headD [], x.2))
+        VerifierProgram.ret (x.1, (foldAll x.1 (keccakSlotWeights (P + 4) first 1 1)).headD
+            [], x.2))
         (by rw [qkeccakSlotBits_eq]; rfl) <|
       ((sumcheckSpec (T := 0) hst hcard
         (fun q ↦ ClaimTrue (statesAt (P + 4) (qk q) 12) P claim ∧ R q)

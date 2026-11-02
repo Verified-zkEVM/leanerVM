@@ -42,7 +42,8 @@ theorem vsh_call {f : String} {args rets : List V} :
 
 theorem vsh_dispatch {x : V} {fs : List String} {args rets : List V} :
     VSH C rd σ (.dispatch x fs args rets) ↔
-      ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (gpow j) ∧ C fs[j] (args.map σ) (rets.map σ) :=
+      ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (addressOfIndex j) ∧ C fs[j] (args.map σ)
+          (rets.map σ) :=
   Iff.rfl
 
 theorem rdAt_of_load {p : E} {off : ℕ} {v : E} (h : LoadHolds rd p off v) : rdAt rd p off = v := by

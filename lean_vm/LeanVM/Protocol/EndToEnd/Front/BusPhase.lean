@@ -42,7 +42,7 @@ variable {εmax : ℝ≥0∞}
 /-- **A sub-program whose postcondition is already decided**: if every return satisfies `Post`
 (whatever the history), doom holds throughout and no challenge escapes it. The lead is the
 follower's, capped at `1`. -/
-noncomputable def alwaysSpec {α : Type} {p : Prog α} {Pre : List Ev → Prop}
+noncomputable def alwaysSpec {α : Type} {p : VerifierProgram α} {Pre : List Ev → Prop}
     {Post : α → List Ev → Prop} {T : ℝ≥0∞} (hpost : ∀ a h, Post a h) (hT : min 1 T ≤ εmax) :
     Spec p Pre Post εmax (min 1 T) T where
   D _ _ := True
@@ -67,7 +67,7 @@ noncomputable def alwaysSpec {α : Type} {p : Prog α} {Pre : List Ev → Prop}
     exact le_trans (mul_le_of_le_one_left zero_le (pow_le_one₀ zero_le (by norm_num))) hT
 
 /-- `alwaysSpec` before a follower of lead `0`. -/
-noncomputable def alwaysSpec0 {α : Type} {p : Prog α} {Pre : List Ev → Prop}
+noncomputable def alwaysSpec0 {α : Type} {p : VerifierProgram α} {Pre : List Ev → Prop}
     {Post : α → List Ev → Prop} (hpost : ∀ a h, Post a h) : Spec p Pre Post εmax 0 0 :=
   (alwaysSpec (T := 0) hpost (by simp)).mono (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl (by simp) le_rfl
 
@@ -82,23 +82,26 @@ theorem sum_fin_succ_fun (n : ℕ) (F : (Fin (n + 1) → E) → ℝ≥0∞) :
 /-- **`n` challenges in a row**, then a sub-program: the expectation of a function of the return
 is at most the average, over the tuples of challenges, of a bound on the sub-program's. -/
 theorem retExp_sampleN_bind_le {β : Type} (g : β → List Ev → ℝ≥0∞) (h₀ : List Ev) :
-    ∀ (n : ℕ) (k : List E → Prog β) (B : List E → ℝ≥0∞),
-      (∀ xs l, Prog.retExp g h₀ l (k xs) ≤ B xs) → ∀ l,
-      Prog.retExp g h₀ l ((Prog.sampleChallenges n).bind k) ≤
+    ∀ (n : ℕ) (k : List E → VerifierProgram β) (B : List E → ℝ≥0∞),
+      (∀ xs l, VerifierProgram.retExp g h₀ l (k xs) ≤ B xs) → ∀ l,
+      VerifierProgram.retExp g h₀ l ((VerifierProgram.sampleChallenges n).bind k) ≤
         ((Fintype.card E : ℝ≥0∞) ^ n)⁻¹ * ∑ v : Fin n → E, B (List.ofFn v)
   | 0, k, B, hk, l => by
-    simpa [Prog.sampleChallenges] using hk [] l
+    simpa [VerifierProgram.sampleChallenges] using hk [] l
   | n + 1, k, B, hk, l => by
-    show (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ x : E, Prog.retExp g h₀ (l ++ [Ev.sample x])
-        (((Prog.sampleChallenges n).bind fun xs ↦ Prog.ret (x :: xs)).bind k) ≤ _
-    have ih : ∀ x : E, Prog.retExp g h₀ (l ++ [Ev.sample x])
-        (((Prog.sampleChallenges n).bind fun xs ↦ Prog.ret (x :: xs)).bind k) ≤
+    show (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ x : E, VerifierProgram.retExp g h₀ (l ++ [Ev.sample x])
+        (((VerifierProgram.sampleChallenges n).bind fun xs ↦ VerifierProgram.ret (x ::
+            xs)).bind k) ≤ _
+    have ih : ∀ x : E, VerifierProgram.retExp g h₀ (l ++ [Ev.sample x])
+        (((VerifierProgram.sampleChallenges n).bind fun xs ↦ VerifierProgram.ret (x ::
+            xs)).bind k) ≤
         ((Fintype.card E : ℝ≥0∞) ^ n)⁻¹ * ∑ v : Fin n → E, B (x :: List.ofFn v) := fun x ↦ by
-      rw [Prog.bind_assoc]
+      rw [VerifierProgram.bind_assoc]
       exact retExp_sampleN_bind_le g h₀ n (fun xs ↦ k (x :: xs)) (fun xs ↦ B (x :: xs))
         (fun xs l ↦ hk _ l) _
-    calc (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ x : E, Prog.retExp g h₀ (l ++ [Ev.sample x])
-          (((Prog.sampleChallenges n).bind fun xs ↦ Prog.ret (x :: xs)).bind k)
+    calc (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ x : E, VerifierProgram.retExp g h₀ (l ++ [Ev.sample x])
+          (((VerifierProgram.sampleChallenges n).bind fun xs ↦ VerifierProgram.ret (x ::
+              xs)).bind k)
         ≤ (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ x : E,
           ((Fintype.card E : ℝ≥0∞) ^ n)⁻¹ * ∑ v : Fin n → E, B (x :: List.ofFn v) := by
           gcongr with x
@@ -114,40 +117,42 @@ theorem retExp_sampleN_bind_le {β : Type} (g : β → List Ev → ℝ≥0∞) (
           rfl
 
 /-- A program of challenges and returns only: no prover move. -/
-inductive SampleOnly {α : Type} : Prog α → Prop
+inductive SampleOnly {α : Type} : VerifierProgram α → Prop
   | ret (a : α) : SampleOnly (.ret a)
   | fail : SampleOnly .fail
-  | sample {k : E → Prog α} : (∀ c, SampleOnly (k c)) → SampleOnly (.sample k)
+  | sample {k : E → VerifierProgram α} : (∀ c, SampleOnly (k c)) → SampleOnly (.sample k)
 
 /-- What a program of challenges reaches is a program of challenges. -/
-theorem SampleOnly.after {α : Type} {p : Prog α} (hp : SampleOnly p) :
-    ∀ {l : List Ev} {q : Prog α}, p.after l = some q → SampleOnly q := by
+theorem SampleOnly.after {α : Type} {p : VerifierProgram α} (hp : SampleOnly p) :
+    ∀ {l : List Ev} {q : VerifierProgram α}, p.after l = some q → SampleOnly q := by
   induction hp with
   | ret a =>
     intro l q h
     cases l with
-    | nil => simp [Prog.after] at h; subst h; exact .ret a
-    | cons e l => cases e <;> simp [Prog.after] at h
+    | nil => simp [VerifierProgram.after] at h; subst h; exact .ret a
+    | cons e l => cases e <;> simp [VerifierProgram.after] at h
   | fail =>
     intro l q h
     cases l with
-    | nil => simp [Prog.after] at h; subst h; exact .fail
-    | cons e l => cases e <;> simp [Prog.after] at h
+    | nil => simp [VerifierProgram.after] at h; subst h; exact .fail
+    | cons e l => cases e <;> simp [VerifierProgram.after] at h
   | sample _ ih =>
     intro l q h
     cases l with
-    | nil => simp [Prog.after] at h; subst h; exact .sample ‹_›
+    | nil => simp [VerifierProgram.after] at h; subst h; exact .sample ‹_›
     | cons e l =>
-      cases e <;> simp [Prog.after] at h
+      cases e <;> simp [VerifierProgram.after] at h
       exact ih _ h
 
 /-- A program of challenges makes no prover move. -/
-theorem SampleOnly.not_isMove {α : Type} {q : Prog α} (hq : SampleOnly q) : ¬ q.IsMove := by
-  cases hq <;> simp [Prog.IsMove]
+theorem SampleOnly.not_isMove {α : Type} {q : VerifierProgram α} (hq : SampleOnly q) : ¬
+    q.IsMove := by
+  cases hq <;> simp [VerifierProgram.IsMove]
 
 /-- The fingerprint challenges `(α, β)` as the wire draws them: four, then one. -/
-def abProg : Prog (List E × E) :=
-  (Prog.sampleChallenges 4).bind fun as ↦ Prog.sampleChallenge.bind fun b ↦ Prog.ret (as, b)
+def abProg : VerifierProgram (List E × E) :=
+  (VerifierProgram.sampleChallenges 4).bind fun as ↦ VerifierProgram.sampleChallenge.bind fun b ↦
+      VerifierProgram.ret (as, b)
 
 /-- The wire's four `α` as the protocol's. -/
 def toAlpha (as : List E) : Fin 4 → E := fun i ↦ as.getD i 0
@@ -229,7 +234,7 @@ noncomputable def abSpec (hI : Bus.Conditions I) {L₀ : ℕ} (hfin : ∀ W, (ca
     obtain ⟨W, hW, hR⟩ := hp
     let bad : (Fin 4 → E) × E → Prop := fun ab ↦
       ∃ o ∈ cands W, (((input, ab), o), ()) ∈ Bus.afterChallenge I
-    unfold Prog.escRet abProg
+    unfold VerifierProgram.escRet abProg
     refine le_trans (retExp_sampleN_bind_le _ h₀ 4 _
       (fun as ↦ (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ b : E, if bad (toAlpha as, b) then 1 else 0)
       (fun as l ↦ ?_) []) ?_
@@ -392,25 +397,27 @@ def BusWit.result (layout : Verifier.Layout) (w : BusWit) : BusResult :=
 
 /-- The bus phase after the grand product, followed by `k`: the count root's check, the boundary
 values, and `k` of what was read. -/
-def busTailK {β : Type} (k : BusWit → Prog β) (alphas : List E) (beta : E)
-    (r : E × List E × List E) : Prog β :=
+def busTailK {β : Type} (k : BusWit → VerifierProgram β) (alphas : List E) (beta : E)
+    (r : E × List E × List E) : VerifierProgram β :=
   match r with
   | (countRoot, point, values) => do
-    Prog.require (countRoot ≠ 0)
-    let memory ← Prog.readScalars 3
-    let mf ← Prog.readScalar
-    let bf ← Prog.readScalar
+    VerifierProgram.require (countRoot ≠ 0)
+    let memory ← VerifierProgram.readScalars 3
+    let mf ← VerifierProgram.readScalar
+    let bf ← VerifierProgram.readScalar
     k ⟨alphas, beta, point, values, memory, mf, bf⟩
 
 /-- **The bus phase followed by `f`** is the fingerprint challenges, the grand product at the push
 side's depth, and the tail followed by `f` of the result. -/
-theorem verifyBusBalance_bind_eq {β : Type} (layout : Verifier.Layout) (f : BusResult → Prog β) :
-    (verifyBusBalance computedValue layout).bind f =
+theorem verifyBusBalance_bind_eq {β : Type} (layout : Verifier.Layout) (f : BusResult →
+    VerifierProgram β) :
+    (verifyBusBalance computedBytecodeValue layout).bind f =
       abProg.bind fun ab ↦ (verifyGkrGrandProducts
         (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth).bind
         (busTailK (fun w ↦ f (w.result layout)) ab.1 ab.2) := by
-  unfold verifyBusBalance computedValue abProg busTailK BusWit.result
-  simp only [Prog.bind_eq, Prog.bind_assoc, Prog.ret_bind, Prog.pure_eq]
+  unfold verifyBusBalance computedBytecodeValue abProg busTailK BusWit.result
+  simp only [VerifierProgram.bind_eq, VerifierProgram.bind_assoc, VerifierProgram.ret_bind,
+      VerifierProgram.pure_eq]
   rfl
 
 variable (I : M3Instance) (hI : Bus.Conditions I) (cands : Word → Set (∀ i, TheOracle I i))
@@ -447,7 +454,7 @@ variable {εmax : ℝ≥0∞}
 /-- **The bus phase's tail, then a continuation** specified from the bus seam at what was read:
 the count root's check (which rejects the root `0`), the boundary values (the protocol's last
 message), then `k`. -/
-noncomputable def busTailSpec {β : Type} {k : BusWit → Prog β} {Q : β → List Ev → Prop}
+noncomputable def busTailSpec {β : Type} {k : BusWit → VerifierProgram β} {Q : β → List Ev → Prop}
     {Lk T : ℝ≥0∞} (hLk : Lk ≤ εmax) (K : ∀ w, Spec (k w) (BusAt I hI cands input w) Q εmax Lk T)
     (alphas : List E) (beta : E) (r : E × List E × List E) :
     Spec (busTailK k alphas beta r) (GkrPost I cands (input, (toAlpha alphas, beta)) r) Q
@@ -475,7 +482,8 @@ was read, then `f` of the result, specified from there by `K`, at the depth `μ_
 side. The fingerprint challenges are charged `L₀ · 4 · 2^{μ_bus} / |E|`; every later group of
 challenges (a sumcheck round's, the descendants' combination challenges with the next combiner)
 at most `L₀ · 4 / |E|`. -/
-noncomputable def busThenSpec {β : Type} {f : BusResult → Prog β} {Q : β → List Ev → Prop}
+noncomputable def busThenSpec {β : Type} {f : BusResult → VerifierProgram β} {Q : β → List Ev
+    → Prop}
     {Lk T : ℝ≥0∞} (hLk : Lk ≤ εmax)
     (K : ∀ w : BusWit, Spec (f (w.result layout)) (BusAt I hI cands input w) Q εmax Lk T)
     {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
@@ -483,7 +491,8 @@ noncomputable def busThenSpec {β : Type} {f : BusResult → Prog β} {Q : β �
     (hdepth : (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth = I.μBus)
     (hab : abError I L₀ < 1) (he : roundError L₀ 4 ≤ εmax)
     (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax) (hlam : lambdaError L₀ + 0 ≤ εmax) :
-    Spec ((verifyBusBalance computedValue layout).bind f) (HDoom cands (Seam.commit I) input) Q εmax
+    Spec ((verifyBusBalance computedBytecodeValue layout).bind f) (HDoom cands (Seam.commit I)
+        input) Q εmax
       (abError I L₀ + 0) T :=
   Spec.congr (verifyBusBalance_bind_eq layout f).symm
     ((abSpec I cands input hI hfin hcard hab (T := 0)).bind' fun ab ↦
@@ -498,9 +507,9 @@ noncomputable def busPhaseSpec {T : ℝ≥0∞} (hTf : T ≤ εmax) {L₀ : ℕ}
     (hdepth : (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth = I.μBus)
     (hab : abError I L₀ < 1) (he : roundError L₀ 4 ≤ εmax)
     (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax) (hlam : lambdaError L₀ + 0 ≤ εmax) :
-    Spec (verifyBusBalance computedValue layout) (HDoom cands (Seam.commit I) input)
+    Spec (verifyBusBalance computedBytecodeValue layout) (HDoom cands (Seam.commit I) input)
       (BusPost I hI cands input layout) εmax (abError I L₀ + 0) T :=
-  Spec.congr (Prog.bind_ret _)
+  Spec.congr (VerifierProgram.bind_ret _)
     (busThenSpec I hI cands input layout hTf
       (fun w ↦ (Spec.ret (Post := BusPost I hI cands input layout) (w.result layout)).mono
         (fun _ hp ↦ ⟨w, rfl, hp⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl)

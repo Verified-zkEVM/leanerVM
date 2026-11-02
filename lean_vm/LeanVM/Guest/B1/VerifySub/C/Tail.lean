@@ -142,7 +142,7 @@ theorem vsTailPre_complete (hl : args.length = 7) {κ : ℕ} (hκ6 : 6 ≤ κ) (
         simp [vsTailHead])), c1902, v1901, gen_pow_div hcand])
     (g _ (show vsRange 1901 1903 1904 1905 1902 ∈ vsTailHead by simp [vsTailHead]))
   have hlen : vsOpenNames.length = 28 := by simp [vsOpenNames]
-  have hdisp : ∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1901) = ofK (gpow j) ∧
+  have hdisp : ∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1901) = ofK (addressOfIndex j) ∧
       C vsOpenNames[j] ([V.n 1312, V.n 1313, V.n 1314, V.n 1315, V.n 1316, V.n 1886, V.n 537,
         V.n 547, V.n 868].map σ) ((vsRun 1906 5).map σ) := by
     refine ⟨B1.Whir.candidate m r, by omega, by rw [v1901, gen_pow_eq_ofK], ?_⟩

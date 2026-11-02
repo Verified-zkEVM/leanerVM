@@ -42,9 +42,9 @@ def merklePathM : ℕ → (ℕ → m Common.DigestBytes) → ℕ → m (List Com
     pure (s :: rest)
 
 /-- The honest opening of a position over an oracle (`openCell`). -/
-def openCellM {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : m Opening := do
+def openCellM {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : m CellOpening := do
   let rr ← rowRootMWithHash H c
-  let path ← merklePathM H (7 + logPaddedRowCount r) (colLeavesMWithHash H c) (colIndex p)
+  let path ← merklePathM H (7 + logPaddedRowCount r) (colLeavesMWithHash H c) (columnTreeIndex p)
   pure ⟨rr, path⟩
 
 /-- The hash inputs of a climb over an oracle (`hashInputs`). -/

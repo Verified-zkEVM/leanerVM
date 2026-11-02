@@ -44,7 +44,7 @@ variable {α β : Type}
 
 /-- **The reads of a program**: every run of `p` reads at most `n` scalars of the stream (a read
 `1`, a proof of work `1`, a commitment `2`), and every value it returns satisfies `Q`. -/
-def Reads : Prog α → ℕ → (α → Prop) → Prop
+def Reads : VerifierProgram α → ℕ → (α → Prop) → Prop
   | .ret a, _, Q => Q a
   | .fail, _, _ => True
   | .read k, n, Q => 1 ≤ n ∧ ∀ x, Reads (k x) (n - 1) Q
@@ -55,7 +55,7 @@ def Reads : Prog α → ℕ → (α → Prop) → Prop
 
 namespace Reads
 
-theorem mono {p : Prog α} {n m : ℕ} {Q R : α → Prop} (h : Reads p n Q) (hnm : n ≤ m)
+theorem mono {p : VerifierProgram α} {n m : ℕ} {Q R : α → Prop} (h : Reads p n Q) (hnm : n ≤ m)
     (hQR : ∀ a, Q a → R a) : Reads p m R := by
   induction p generalizing n m with
   | ret a => exact hQR a h
@@ -66,7 +66,8 @@ theorem mono {p : Prog α} {n m : ℕ} {Q R : α → Prop} (h : Reads p n Q) (hn
   | commit ht w k ih => exact ⟨by have := h.1; omega, ih h.2 (by omega)⟩
   | query i ps k ih => exact fun r ↦ ih r (h r) hnm
 
-theorem bind {p : Prog α} {f : α → Prog β} {n m : ℕ} {Q : α → Prop} {R : β → Prop}
+theorem bind {p : VerifierProgram α} {f : α → VerifierProgram β} {n m : ℕ} {Q : α → Prop} {R : β
+    → Prop}
     (hp : Reads p n Q) (hf : ∀ a, Q a → Reads (f a) m R) : Reads (p.bind f) (n + m) R := by
   induction p generalizing n with
   | ret a => exact (hf a hp).mono (by omega) fun _ h ↦ h
@@ -86,52 +87,56 @@ theorem bind {p : Prog α} {f : α → Prog β} {n m : ℕ} {Q : α → Prop} {R
     rwa [show n - 2 + m = n + m - 2 by have := hp.1; omega] at this
   | query i ps k ih => exact fun r ↦ ih r (hp r)
 
-theorem seq {p : Prog α} {f : α → Prog β} {a n : ℕ} {Q : α → Prop} {R : β → Prop}
+theorem seq {p : VerifierProgram α} {f : α → VerifierProgram β} {a n : ℕ} {Q : α → Prop} {R : β
+    → Prop}
     (hp : Reads p a Q) (hf : ∀ x, Q x → Reads (f x) (n - a) R) (ha : a ≤ n) :
     Reads (p >>= f) n R :=
   (bind hp hf).mono (by omega) fun _ h ↦ h
 
-theorem ite {c : Prop} [Decidable c] {p q : Prog α} {n : ℕ} {Q : α → Prop}
+theorem ite {c : Prop} [Decidable c] {p q : VerifierProgram α} {n : ℕ} {Q : α → Prop}
     (hp : c → Reads p n Q) (hq : ¬ c → Reads q n Q) : Reads (if c then p else q) n Q := by
   split
   · exact hp ‹_›
   · exact hq ‹_›
 
-theorem pure0 (a : α) : Reads (pure a : Prog α) 0 fun _ ↦ True := trivial
+theorem pure0 (a : α) : Reads (pure a : VerifierProgram α) 0 fun _ ↦ True := trivial
 
-theorem readE : Reads Prog.readScalar 1 fun _ ↦ True := ⟨le_rfl, fun _ ↦ trivial⟩
+theorem readE : Reads VerifierProgram.readScalar 1 fun _ ↦ True := ⟨le_rfl, fun _ ↦ trivial⟩
 
-theorem sampleE : Reads Prog.sampleChallenge 0 fun _ ↦ True := fun _ ↦ trivial
+theorem sampleE : Reads VerifierProgram.sampleChallenge 0 fun _ ↦ True := fun _ ↦ trivial
 
-theorem readN : ∀ n, Reads (Prog.readScalars n) n fun xs ↦ xs.length = n
+theorem readN : ∀ n, Reads (VerifierProgram.readScalars n) n fun xs ↦ xs.length = n
   | 0 => rfl
   | n + 1 => by
     have h := bind readE fun x (_ : True) ↦
       bind (m := 0) (readN n) fun xs (hxs : xs.length = n) ↦
-        (show Reads (Prog.ret (x :: xs)) 0 fun ys ↦ ys.length = n + 1 by
+        (show Reads (VerifierProgram.ret (x :: xs)) 0 fun ys ↦ ys.length = n + 1 by
           show (x :: xs).length = n + 1
           simp [hxs])
     exact h.mono (by omega) fun _ h ↦ h
 
-theorem sampleN : ∀ n, Reads (Prog.sampleChallenges n) 0 fun xs ↦ xs.length = n
+theorem sampleN : ∀ n, Reads (VerifierProgram.sampleChallenges n) 0 fun xs ↦ xs.length = n
   | 0 => rfl
   | n + 1 => by
     have h := bind sampleE fun x (_ : True) ↦
       bind (m := 0) (sampleN n) fun xs (hxs : xs.length = n) ↦
-        (show Reads (Prog.ret (x :: xs)) 0 fun ys ↦ ys.length = n + 1 by
+        (show Reads (VerifierProgram.ret (x :: xs)) 0 fun ys ↦ ys.length = n + 1 by
           show (x :: xs).length = n + 1
           simp [hxs])
     exact h.mono (by omega) fun _ h ↦ h
 
-theorem grindP (bits : ℕ) : Reads (Prog.grindProofOfWork bits) 1 fun _ ↦ True := ⟨le_rfl, trivial⟩
+theorem grindP (bits : ℕ) : Reads (VerifierProgram.grindProofOfWork bits) 1 fun _ ↦ True := ⟨le_rfl,
+    trivial⟩
 
-theorem commitP (ht w : ℕ) : Reads (Prog.readCommitment ht w) 2 fun _ ↦ True := ⟨le_rfl, trivial⟩
+theorem commitP (ht w : ℕ) : Reads (VerifierProgram.readCommitment ht w) 2 fun _ ↦ True := ⟨le_rfl,
+    trivial⟩
 
-theorem queryP (i : ℕ) (ps : List ℕ) : Reads (Prog.queryOpenings i ps) 0 fun _ ↦ True :=
+theorem queryP (i : ℕ) (ps : List ℕ) : Reads (VerifierProgram.queryOpenings i ps) 0 fun _ ↦ True :=
   fun _ ↦ trivial
 
-theorem require (c : Prop) [Decidable c] {n : ℕ} : Reads (Prog.require c) n fun _ ↦ c := by
-  unfold Prog.require
+theorem require (c : Prop) [Decidable c] {n : ℕ} : Reads (VerifierProgram.require c) n fun _ ↦
+    c := by
+  unfold VerifierProgram.require
   split
   · exact ‹c›
   · trivial
@@ -147,7 +152,8 @@ end Reads
 
 /-- **A run of a program of `n` reads consumes at most `n` scalars of the stream.** -/
 theorem run_reads (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) :
-    ∀ {p : Prog α} {n : ℕ} {Q : α → Prop}, Reads p n Q → ∀ {s : ProgState} {r : α × ProgState},
+    ∀ {p : VerifierProgram α} {n : ℕ} {Q : α → Prop}, Reads p n Q → ∀ {s : VerifierProgramState} {r
+        : α × VerifierProgramState},
       Compile.runWithHash H F p s = some r → ∃ xs, s.stream = xs ++ r.2.stream ∧ xs.length ≤ n := by
   intro p
   induction p with
@@ -191,7 +197,7 @@ theorem run_reads (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
     simp only [Compile.runWithHash] at h
     split at h
     · next x0 x1 xs hs =>
-      change (match digestOfScalars (x0, x1) with | some root => _ | none => _) = _ at h
+      change (match digestFromHalves (x0, x1) with | some root => _ | none => _) = _ at h
       split at h
       · obtain ⟨ys, hys, hl⟩ := ih hp.2 h
         refine ⟨x0 :: x1 :: ys, ?_, ?_⟩
@@ -214,7 +220,7 @@ theorem run_reads (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
       · simp at h
 
 /-- **An accepted proof's stream has at most the program's reads.** -/
-theorem stream_le_of_runProof (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) {P : Prog Bool}
+theorem stream_le_of_runProof (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) {P : VerifierProgram Bool}
     {n : ℕ} {Q : Bool → Prop} (hP : Reads P n Q) {seed : KeccakState} {π : Proof}
     (h : runProofWithHash H F P seed π = true) : π.stream.length ≤ n := by
   unfold runProofWithHash at h
@@ -334,13 +340,14 @@ theorem reads_verifyGkrGrandProducts (depth : ℕ) :
 
 /-- An evaluation of the fixed polynomial that reads nothing: the deployed one and the claimed
 ones. -/
-def ReadsNothing (ev : (List K → List E → Prog E)) : Prop :=
+def ReadsNothing (ev : (List K → List E → VerifierProgram E)) : Prop :=
   ∀ words point, Reads (ev words point) 0 fun _ ↦ True
 
-theorem readsNothing_claimed (c : BytecodeClaim) : ReadsNothing (claimedValue c) := fun _ _ ↦
+theorem readsNothing_claimed (c : BytecodeClaim) : ReadsNothing (claimedBytecodeValue c) :=
+    fun _ _ ↦
   Reads.seq (Reads.require (n := 0) _) (fun _ _ ↦ trivial) le_rfl
 
-theorem reads_verifyBusBalance {ev : (List K → List E → Prog E)} (hev : ReadsNothing ev) (layout : Layout)
+theorem reads_verifyBusBalance {ev : (List K → List E → VerifierProgram E)} (hev : ReadsNothing ev) (layout : Layout)
     (hm : layout.logMemory ≤ 32) (hb : layout.logBytecode ≤ 32) :
     Reads (verifyBusBalance ev layout)
       (2 + gkrReads (busLayout [0, layout.logMemory, layout.logBytecode]
@@ -365,7 +372,7 @@ theorem reads_verifyBusBalance {ev : (List K → List E → Prog E)} (hev : Read
 
 theorem gkrReads_le : ∀ D ≤ 38, gkrReads D 0 ≤ gkrReads 38 0 := by decide
 
-theorem reads_verifyBusBalance_le {ev : (List K → List E → Prog E)} (hev : ReadsNothing ev) {layout : Layout}
+theorem reads_verifyBusBalance_le {ev : (List K → List E → VerifierProgram E)} (hev : ReadsNothing ev) {layout : Layout}
     (h : LayoutBounds layout) :
     Reads (verifyBusBalance ev layout) (2 + gkrReads 38 0 + 5) fun r ↦ ClaimsShort r.claims :=
   (reads_verifyBusBalance hev layout h.logMemory_le h.logBytecode_le).mono
@@ -672,7 +679,7 @@ end Whir
 
 /-! ## The whole program -/
 
-theorem reads_readSizes (bytecode : List K) : Reads (readSizes bytecode) 8 SizesOK := by
+theorem reads_readSizes (bytecode : List K) : Reads (readAnnouncedSizes bytecode) 8 SizesOK := by
   refine Reads.seq (Reads.readN _) (fun announced _ ↦ Reads.seq
     (Reads.require (n := 0) _) (fun _ _ ↦ Reads.seq (Reads.require (n := 0) _)
       (fun _ hr ↦ Reads.seq (Reads.liftOption _ 0) (fun layout hl ↦ Reads.seq
@@ -682,7 +689,7 @@ theorem reads_readSizes (bytecode : List K) : Reads (readSizes bytecode) 8 Sizes
 
 /-- **The reads of `verify_execution`**, for an evaluation of the fixed polynomial that reads
 nothing. -/
-theorem reads_verifyExecution {ev : (List K → List E → Prog E)} (hev : ReadsNothing ev) (bytecode : List K)
+theorem reads_verifyExecution {ev : (List K → List E → VerifierProgram E)} (hev : ReadsNothing ev) (bytecode : List K)
     (publicInput : Digest) :
     Reads (verifyExecutionClaims ev bytecode publicInput) childReads fun _ ↦ True := by
   unfold childReads
@@ -713,7 +720,7 @@ theorem childReads_le : childReads ≤ LeanVM.Guest.Coverage.childStreamCap := b
 theorem stream_le_of_verifyDeferred {bytecode : List K} {iv publicInput : Digest}
     {c : BytecodeClaim} {π : Proof} (h : verifyDeferred bytecode iv publicInput c π = true) :
     π.stream.length ≤ LeanVM.Guest.Coverage.childStreamCap := by
-  have hP : Reads (deferredProgram c bytecode publicInput) childReads fun _ ↦ True := by
+  have hP : Reads (deferringVerifierProgram c bytecode publicInput) childReads fun _ ↦ True := by
     rw [deferredProgram_eq]
     exact Reads.seq (reads_verifyExecution (readsNothing_claimed c) bytecode publicInput)
       (fun _ _ ↦ trivial) le_rfl

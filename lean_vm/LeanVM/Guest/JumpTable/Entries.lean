@@ -27,8 +27,8 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Exec
 
 /-- The entry `(s, t)` is the `SET` at instruction `s - 406` of `__jump_tables`. -/
 noncomputable def entryOk (s t : ℕ) : Bool :=
-  Nat.blt (s - 406) Data.f0.len &&
-    match Data.f0.instrAt (s - 406) with
+  Nat.blt (s - 406) Data.f0.instructionCount &&
+    match Data.f0.instructionAt (s - 406) with
     | .set o k0 k1 k2 => o == s && k1 == 0 && k2 == 0 && Data.powTree.find k0 == some t
     | _ => false
 

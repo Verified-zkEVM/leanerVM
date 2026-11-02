@@ -100,7 +100,7 @@ root. -/
 theorem openOne_eq_some_true_iff (H : Bytes → Option Digest) (r : Digest) (ht w q : ℕ)
     (o : Opening) :
     openOneWithHash (m := Option) H r ht w q o = some true ↔
-      o.leaf.length = w ∧ o.path.length = ht ∧ ∃ ld, H (o.leaf.flatMap kBytes) = some ld ∧
+      o.leaf.length = w ∧ o.path.length = ht ∧ ∃ ld, H (o.leaf.flatMap K.toBytes) = some ld ∧
         climbWithHash (m := Option) H ld q o.path = some r := by
   unfold openOneWithHash
   by_cases hs : o.leaf.length = w ∧ o.path.length = ht

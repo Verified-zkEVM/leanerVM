@@ -126,8 +126,8 @@ set_option maxRecDepth 20000 in
 theorem gap_block {j : ℕ} {f : String} (hs : loopShapeF (coreProgram.getD j default) f = true)
     (hl : (coreProgram.getD j default).params.length = 4)
     (hb : Fn.body (coreProgram.getD j default) = gapBody f) {x N node nb : E}
-    (h0 : LoadHolds rd (node * (nb * nb) * (x * x)) 0 (digestScalars daPadCellDigest).1)
-    (h1 : LoadHolds rd (node * (nb * nb) * (x * x)) 1 (digestScalars daPadCellDigest).2) :
+    (h0 : LoadHolds rd (node * (nb * nb) * (x * x)) 0 (digestHalves daPadCellDigest).1)
+    (h1 : LoadHolds rd (node * (nb * nb) * (x * x)) 1 (digestHalves daPadCellDigest).2) :
     LoopBlock rd (coreProgram.getD j default) x N [node, nb] := by
   have e := daPadCell_cells
   simp only [Prod.ext_iff] at e

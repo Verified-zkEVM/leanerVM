@@ -33,8 +33,8 @@ abbrev TrivC : CallRel := fun _ _ _ => True
 
 /-- **The oracle of `check_opening_terminal`'s evaluation**: its buffers, its callees' results. -/
 noncomputable def termW (b0 : ℕ) (outs : List (List E × Main.Layout)) : ℕ → E := fun i =>
-  if i = 19 then ofK (gpow b0) else if i = 21 then ofK (gpow (b0 + 35)) else
-  if i = 25 then ofK (gpow (b0 + 70)) else if i = 1993 then ofK (gpow (b0 + 105)) else
+  if i = 19 then ofK (addressOfIndex b0) else if i = 21 then ofK (addressOfIndex (b0 + 35)) else
+  if i = 25 then ofK (addressOfIndex (b0 + 70)) else if i = 1993 then ofK (addressOfIndex (b0 + 105)) else
   if i = 34 then (stRes outs).1.getD 0 0 else if i = 35 then (stRes outs).1.getD 1 0 else
   if i = 2001 then (outs.getD 104 ([], [])).1.getD 0 0 else
   (outs.getD (4 + (i - 38) / 3) ([], [])).1.getD 0 0
@@ -65,12 +65,14 @@ theorem head_complete (hS : StoresAt25 S) {b0 : ℕ} {outs : List (List E × Mai
     (hg : ∀ s ∈ termHeadT, GoodS rd S (termW b0 outs) σ s) {m : ℕ} {rm : E} {ps : List E}
     (hm1 : 1 ≤ m) (e5 : σ (.n 5) = gen ^ m) (e2 : σ (.n 2) = rm)
     (h15 : LoadHolds rd (σ (.n 15)) 0 (ps.getD 0 0)) (a15 : AddrIn R (σ (.n 15)) 0)
-    (hpi : ReadsAt rd (ofK (gpow (b0 + 70))) (piW rm ps m)) (api : ∀ k ≤ m, R (b0 + 70 + k)) :
+    (hpi : ReadsAt rd (ofK (addressOfIndex (b0 + 70))) (piW rm ps m)) (api : ∀ k ≤ m, R (b0 + 70
+        + k)) :
     (∀ s ∈ termHeadT, Fwd.SHolds TrivC rd σ s) ∧
       (∀ q ∈ termHeadT.filterMap Stmt.loadS, AddrIn R (σ q.1) q.2) ∧
-      σ (.n 19) = ofK (gpow b0) ∧ σ (.n 20) = word 1 0 0 ∧ σ (.n 21) = ofK (gpow (b0 + 35)) ∧
+      σ (.n 19) = ofK (addressOfIndex b0) ∧ σ (.n 20) = word 1 0 0 ∧ σ (.n 21) = ofK (addressOfIndex
+          (b0 + 35)) ∧
       σ (.n 22) = word 1 0 0 ∧ σ (.n 23) = σ (.n 14) * σ (.n 6) ∧
-      σ (.n 24) = σ (.n 15) * σ (.n 6) ∧ σ (.n 25) = ofK (gpow (b0 + 70)) ∧
+      σ (.n 24) = σ (.n 15) * σ (.n 6) ∧ σ (.n 25) = ofK (addressOfIndex (b0 + 70)) ∧
       σ (.n 30) = word 2 0 0 + gen ^ m ∧ σ (.n 31) = word 2 0 0 ∧
       σ (.n 33) = (piW rm ps m).getD m 0 ∧ σ (.n 34) = (stRes outs).1.getD 0 0 ∧
       σ (.n 35) = (stRes outs).1.getD 1 0 := by
@@ -79,13 +81,13 @@ theorem head_complete (hS : StoresAt25 S) {b0 : ℕ} {outs : List (List E × Mai
     forall_eq] at mm
   obtain ⟨g0, g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13, g14, g15, g16, g17, g18,
     g19, g20⟩ := mm
-  have e19 : σ (.n 19) = ofK (gpow b0) := by rw [good_hint_alloc g0]; simp [termW]
+  have e19 : σ (.n 19) = ofK (addressOfIndex b0) := by rw [good_hint_alloc g0]; simp [termW]
   have e20 := good_const g1
-  have e21 : σ (.n 21) = ofK (gpow (b0 + 35)) := by rw [good_hint_alloc g3]; simp [termW]
+  have e21 : σ (.n 21) = ofK (addressOfIndex (b0 + 35)) := by rw [good_hint_alloc g3]; simp [termW]
   have e22 := good_const g4
   have e23 := good_mul g6 (by omega) (by omega)
   have e24 := good_mul g7 (by omega) (by omega)
-  have e25 : σ (.n 25) = ofK (gpow (b0 + 70)) := by rw [good_hint_alloc g8]; simp [termW]
+  have e25 : σ (.n 25) = ofK (addressOfIndex (b0 + 70)) := by rw [good_hint_alloc g8]; simp [termW]
   have e26 := good_const g9
   obtain ⟨e27, l27⟩ := good_load_eq hS (n_ne_25 (by decide)) g11 h15
   have e28 := good_add g12
@@ -93,7 +95,7 @@ theorem head_complete (hS : StoresAt25 S) {b0 : ℕ} {outs : List (List E × Mai
   have e30 := good_add g15
   have e31 := good_const g16
   have e32 := good_mul g18 (by omega) (by omega)
-  have hpk : ∀ k ≤ m, LoadHolds rd (ofK (gpow (b0 + 70))) k ((piW rm ps m).getD k 0) := fun k hk => by
+  have hpk : ∀ k ≤ m, LoadHolds rd (ofK (addressOfIndex (b0 + 70))) k ((piW rm ps m).getD k 0) := fun k hk => by
     rw [List.getD_eq_getElem _ _ (by rw [piW_length]; omega)]
     exact hpi k (by rw [piW_length]; omega)
   have h32 : LoadHolds rd (σ (.n 32)) 0 ((piW rm ps m).getD m 0) := by
@@ -149,7 +151,7 @@ theorem head_complete (hS : StoresAt25 S) {b0 : ℕ} {outs : List (List E × Mai
     · exact a15
     · exact a25 1 hm1
     · refine ⟨b0 + 70 + m, ?_, api m le_rfl⟩
-      show (σ (.n 32)).limb 0 * gpow 0 = _
+      show (σ (.n 32)).limb 0 * addressOfIndex 0 = _
       rw [e32, e25, e5, ofK_gpow_mul_gen, Main.addr_ofK, Nat.add_zero]
 
 /-! ## The selectors -/
@@ -174,7 +176,7 @@ theorem sel_complete (hS : StoresAt25 S) {b0 : ℕ} {outs : List (List E × Main
   have e2 : σ (.n (selV c)) = (outs.getD (4 + c) ([], [])).1.getD 0 0 := by
     rw [r2]; exact termW_sel b0 outs hc
   have hl : colSelNames.length = 29 := by simp [colSelNames]
-  have hd : σ (.n (37 + 3 * c)) = ofK (gpow κ) := by rw [e1, gen_pow_eq_ofK]
+  have hd : σ (.n (37 + 3 * c)) = ofK (addressOfIndex κ) := by rw [e1, gen_pow_eq_ofK]
   refine ⟨fun s hs => ?_, fun s hs => ?_, fun q hq => ?_, e0, e1, e2⟩
   · simp only [selBlockT, List.mem_cons, List.not_mem_nil, or_false] at hs
     rcases hs with rfl | rfl | rfl
@@ -214,10 +216,11 @@ theorem tail_complete (hS : StoresAt25 S) {b0 : ℕ} {outs : List (List E × Mai
     (hg : ∀ s ∈ termTailPre, GoodS rd S (termW b0 outs) σ s) {τ : ℕ} {v : E}
     (e6 : σ (.n 6) = gen ^ τ) (hkap : LoadHolds rd (σ (.n 11)) 5 (gen ^ (τ + 6)))
     (akap : AddrIn R (σ (.n 11)) 5)
-    (hch : LoadHolds rd (ofK (gpow (b0 + 105))) (τ + 6) v) (ach : R (b0 + 105 + (τ + 6))) :
+    (hch : LoadHolds rd (ofK (addressOfIndex (b0 + 105))) (τ + 6) v) (ach : R (b0 + 105 + (τ
+        + 6))) :
     (σ (.n 2008) = σ (.n 18) → ∀ s ∈ termTailPre, Fwd.SHolds TrivC rd σ s) ∧
       (∀ q ∈ termTailPre.filterMap Stmt.loadS, AddrIn R (σ q.1) q.2) ∧
-      σ (.n 1993) = ofK (gpow (b0 + 105)) ∧ σ (.n 1994) = word 1 0 0 ∧
+      σ (.n 1993) = ofK (addressOfIndex (b0 + 105)) ∧ σ (.n 1994) = word 1 0 0 ∧
       σ (.n 1996) = gen ^ τ * word 64 0 0 ∧ σ (.n 1998) = σ (.n 12) * word 549755813888 0 0 ∧
       σ (.n 2000) = gen ^ τ * word 64 0 0 ∧ σ (.n 2001) = (outs.getD 104 ([], [])).1.getD 0 0 ∧
       σ (.n 2003) = v ∧
@@ -232,7 +235,8 @@ theorem tail_complete (hS : StoresAt25 S) {b0 : ℕ} {outs : List (List E × Mai
   have e0 := good_const g0
   have e1 := good_mul g1 (by omega) (by omega)
   obtain ⟨e2, l2⟩ := good_load_eq hS (n_ne_25 (by decide)) g2 hkap
-  have e4 : σ (.n 1993) = ofK (gpow (b0 + 105)) := by rw [good_hint_alloc g4]; simp [termW]
+  have e4 : σ (.n 1993) = ofK (addressOfIndex (b0 + 105)) :=
+      by rw [good_hint_alloc g4]; simp [termW]
   have e5 := good_const g5
   have e6' := good_const g6
   have e7 := good_mul g7 (by omega) (by omega)
@@ -286,7 +290,7 @@ theorem tail_complete (hS : StoresAt25 S) {b0 : ℕ} {outs : List (List E × Mai
     rcases hq with rfl | rfl
     · exact akap
     · refine ⟨b0 + 105 + (τ + 6), ?_, ach⟩
-      show (σ (.n 2002)).limb 0 * gpow 6 = _
+      show (σ (.n 2002)).limb 0 * addressOfIndex 6 = _
       rw [e14, e4, e6, ofK_gpow_mul_gen, Main.addr_ofK, Nat.add_assoc]
 
 end

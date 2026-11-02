@@ -314,7 +314,7 @@ products by the additive FFT). What the lane lists hold does not depend on the i
   st.map fun s ↦ stackOf μ s.1
 
 /-- **The extractor, fast**: `extract` with `decodeStacksFast`. -/
-@[expose] def extractFast (prog : Program) (input : PublicInput) (bytecode : List K)
+@[expose] def extractFast (prog : LeanIsaProgram) (input : PublicInput) (bytecode : List K)
     (answers : Bytes → Option Digest) (keys : List Bytes) (π : Proof) :
     Option (Execution prog) := do
   let ((layout, logInverseRate), state) ← afterRoot bytecode π

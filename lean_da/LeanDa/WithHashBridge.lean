@@ -50,8 +50,8 @@ theorem rowRoot_eq_withHash {r : ℕ} (c : Fin (r * 128) → Cell) :
   rw [rowRoot, rowRootWithHash, merkleRoot_eq_withHash]; rfl
 
 theorem colRoot_eq_withHash {r : ℕ} (c : Fin (r * 128) → Cell) :
-    colRoot π c = colRootWithHash (hashOver π) c := by
-  rw [colRoot, colRootWithHash, merkleRoot_eq_withHash]; rfl
+    columnRoot π c = colRootWithHash (hashOver π) c := by
+  rw [columnRoot, colRootWithHash, merkleRoot_eq_withHash]; rfl
 
 theorem commitCells_eq_withHash {r : ℕ} (c : Fin (r * 128) → Cell) :
     commitCells π c = commitCellsWithHash (hashOver π) c := by
@@ -88,34 +88,34 @@ section Monadic
 variable {m : Type → Type} [Monad m] (P : KeccakState → m KeccakState)
 
 theorem membershipChallengesM_eq_withHash (root : DigestBytes) :
-    membershipChallengesM P root = membershipChallengesMWithHash (keccakDigestBytes P) P root :=
+    membershipChallengesWith P root = membershipChallengesMWithHash (keccakDigestBytes P) P root :=
   rfl
 
 theorem walkM_eq_withHash : ∀ (idx : ℕ) (node : DigestBytes) (path : List DigestBytes),
-    walkM P idx node path = walkMWithHash (keccakDigestBytes P) idx node path
+    climbWith P idx node path = walkMWithHash (keccakDigestBytes P) idx node path
   | _, _, [] => rfl
   | idx, node, s :: rest => by
-    simp only [walkM, walkMWithHash, walkM_eq_withHash]
+    simp only [climbWith, walkMWithHash, walkM_eq_withHash]
 
 theorem verifyCellM_eq_withHash (r : ℕ) (com : DigestBytes) (p : Fin (r * 128)) (x : Cell)
-    (τ : Opening) :
-    verifyCellM P r com p x τ = verifyCellMWithHash (keccakDigestBytes P) r com p x τ := by
-  simp only [verifyCellM, verifyCellMWithHash, walkM_eq_withHash]
+    (τ : CellOpening) :
+    verifyCellWith P r com p x τ = verifyCellMWithHash (keccakDigestBytes P) r com p x τ := by
+  simp only [verifyCellWith, verifyCellMWithHash, walkM_eq_withHash]
 
 theorem merkleRootM_eq_withHash : ∀ (d : ℕ) (f : ℕ → m DigestBytes),
-    merkleRootM P d f = merkleRootMWithHash (keccakDigestBytes P) d f
+    merkleRootWith P d f = merkleRootMWithHash (keccakDigestBytes P) d f
   | 0, _ => rfl
-  | d + 1, f => by rw [merkleRootM, merkleRootMWithHash, merkleRootM_eq_withHash d]; rfl
+  | d + 1, f => by rw [merkleRootWith, merkleRootMWithHash, merkleRootM_eq_withHash d]; rfl
 
 theorem commitCellsM_eq_withHash {r : ℕ} (c : Fin (r * 128) → Cell) :
-    commitCellsM P c = commitCellsMWithHash (keccakDigestBytes P) c := by
-  simp only [commitCellsM, commitCellsMWithHash, rowRootM, rowRootMWithHash, colRootM,
+    commitCellsWith P c = commitCellsMWithHash (keccakDigestBytes P) c := by
+  simp only [commitCellsWith, commitCellsMWithHash, rowRootWith, rowRootMWithHash, columnRootWith,
     colRootMWithHash, merkleRootM_eq_withHash]; rfl
 
 theorem relationM_eq_withHash {r : ℕ} (root : DigestBytes) (c : Fin (r * 128) → Cell) :
-    relationM P root c = relationMWithHash (keccakDigestBytes P) P root c := by
+    relationWith P root c = relationMWithHash (keccakDigestBytes P) P root c := by
   simp only
-    [relationM, relationMWithHash, membershipChallengesM_eq_withHash, commitCellsM_eq_withHash]
+    [relationWith, relationMWithHash, membershipChallengesM_eq_withHash, commitCellsM_eq_withHash]
 
 end Monadic
 
@@ -156,19 +156,20 @@ theorem completenessExperiment_eq_withHash (π : Equiv.Perm KeccakState) (msg : 
 
 /-- **Perfect completeness, from the hash-parameter form.** -/
 theorem perfectlyCompleteRpm_of_withHash (h : PerfectlyCompleteRpmWithHash) :
-    PerfectlyCompleteRpm := by
+    LeanDaPerfectlyComplete := by
   intro r π Crs Proof ps hps msg p
   rw [completenessExperiment_eq_withHash]
   exact h r π ps (relationForPermutation_eq_withHash r ▸ hps) msg p
 
 /-- **Position binding, from the hash-parameter form.** -/
-theorem positionBindingRpm_of_withHash (h : PositionBindingRpmWithHash) : PositionBindingRpm := by
+theorem positionBindingRpm_of_withHash (h : PositionBindingRpmWithHash) :
+    LeanDaPositionBinding := by
   intro r Crs Proof ps A Q hQ
   rw [positionBindingGame_eq_withHash] at hQ ⊢
   exact h r ps A Q hQ
 
 /-- **Code binding, from the hash-parameter form.** -/
-theorem codeBindingRpm_of_withHash (h : CodeBindingRpmWithHash) : CodeBindingRpm := by
+theorem codeBindingRpm_of_withHash (h : CodeBindingRpmWithHash) : LeanDaCodeBinding := by
   intro r Crs Proof ps ext c k hks hr hrmax A Q hQ
   rw [codeBindingGame_eq_withHash] at hQ ⊢
   refine h r ps ext c k (fun B q hq hq' ↦ ?_) hr hrmax A Q hQ

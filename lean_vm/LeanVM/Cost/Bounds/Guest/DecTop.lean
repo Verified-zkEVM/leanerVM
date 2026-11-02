@@ -278,7 +278,7 @@ abbrev readerV (κ : ℕ) (mem : Vector E (2 ^ κ)) : MachineValue :=
 `κ ≤ 32`: the replay, then the states stage at the reader's price `1271`. -/
 theorem decTopTables_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decTopTablesC.costDeps)
     (hG : GLogBound P D G) (T : Array (Option FnPre)) (Pw : Array E) (Rt : ReaderTabs)
-    (pcT : SortedMap ℕ (List ℕ)) (prog : Semantics.Program) {κ : ℕ} (hκ : κ ≤ 32)
+    (pcT : SortedMap ℕ (List ℕ)) (prog : Semantics.LeanIsaProgram) {κ : ℕ} (hκ : κ ≤ 32)
     (mem : Vector E (2 ^ κ)) (E' Wn : ℕ)
     (hE : machineCost P Decoder.entryArrayTC.costIdx [encodeValue pcT,
       .closure Decoder.decTopStatesC.lam1.costIdx [encodeValue D, encodeValue T, encodeValue Pw,
@@ -325,7 +325,8 @@ the tables built once (the logarithm's, the preconditions' at most `Kpre`, the p
 `30452`, the entries' at most `Kpc`, the address tables), the replay, the entry table (at most
 `E`), the witness (at most `Wn`), the counts within `K N X`: at most `(runnerStepPrice κ ℓ +
 46)·|states| + E + Kpre + Kpc + addressTablesPrice κ ℓ + topConstPrice X Wn`. -/
-theorem decTop_cost (hP : Includes P Decoder.decTopC.costDeps) (prog : Semantics.Program) {κ : ℕ}
+theorem decTop_cost (hP : Includes P Decoder.decTopC.costDeps) (prog : Semantics.LeanIsaProgram)
+    {κ : ℕ}
     (hκ : κ ≤ 32) (mem : Vector E (2 ^ κ)) (Kpre Kpc E' Wn : ℕ)
     (hPre : machineCost P Decoder.preTableC.costIdx [] ≤ Kpre)
     (hPc : machineCost P Decoder.pcTableTC.costIdx [] ≤ Kpc)

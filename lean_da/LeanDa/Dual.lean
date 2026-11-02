@@ -401,22 +401,22 @@ theorem encode_eq_novelEval {m : List E} (hm : m.length = 2 ^ 14) :
 /-- **The deployed dual codeword is the dual codeword**: entry `b` of the NTT of the tensor
 `⊗_j (1, z_j)` is `∏_j (1 + z_j Ŵ_j(point b))`. -/
 theorem dualCodeword_eq_dual (z : Fin 14 → E) :
-    dualCodeword (List.ofFn z) = List.ofFn (dual z) := by
+    dualCodeword (List.ofFn z) = List.ofFn (dualCodewordAt z) := by
   obtain ⟨hlen, heval⟩ := novelEval_tensor 14 z
   rw [dualCodeword, encode_eq_novelEval hlen]
   congr 1
   funext b
-  rw [heval, dual]
+  rw [heval, dualCodewordAt]
   simp only [normW_eval]
 
 variable (H : List UInt8 → Common.DigestBytes) (P : LeanVM.Semantics.KeccakState → LeanVM.Semantics.KeccakState)
 
 /-- `Sponge.samplesM n` draws `n` challenges. -/
 theorem length_samples : ∀ (n : ℕ) (s : Sponge),
-    (Id.run (Sponge.samplesM (m := Id) (fun L ↦ pure (P L)) n s)).length = n
+    (Id.run (Sponge.samplesWith (m := Id) (fun L ↦ pure (P L)) n s)).length = n
   | 0, _ => rfl
   | n + 1, s => congrArg Nat.succ
-      (length_samples n (Id.run (Sponge.sampleM (m := Id) (fun L ↦ pure (P L)) s)).2)
+      (length_samples n (Id.run (Sponge.sampleWith (m := Id) (fun L ↦ pure (P L)) s)).2)
 
 /-- A root has `14` challenges. -/
 theorem length_membershipChallenges (root : Common.DigestBytes) :
@@ -426,13 +426,13 @@ theorem length_membershipChallenges (root : Common.DigestBytes) :
 /-- **The membership vector of a root is the dual codeword of its challenges.** -/
 theorem membershipVector_eq_dual (root : Common.DigestBytes) (z : Fin 14 → E)
     (hz : membershipChallenges H P root = List.ofFn z) :
-    membershipVector H P root = List.ofFn (dual z) := by
+    membershipVector H P root = List.ofFn (dualCodewordAt z) := by
   rw [membershipVector, hz, dualCodeword_eq_dual]
 
 /-- The membership vector of a root is the dual codeword of its challenges, `z_i` entry `i` of
 `membershipChallenges`. -/
 theorem membershipVector_eq_dual_challenges (root : Common.DigestBytes) :
-    membershipVector H P root = List.ofFn (dual fun i : Fin 14 ↦
+    membershipVector H P root = List.ofFn (dualCodewordAt fun i : Fin 14 ↦
       (membershipChallenges H P root)[(i : ℕ)]'(by
         rw [length_membershipChallenges]; exact i.isLt)) :=
   membershipVector_eq_dual H P root _

@@ -27,8 +27,8 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
 /-- **One trial of the scan**, with any continuation. -/
 theorem trial_boundV
     (hparse : ∀ ρ, model.parse (blk parameter data message ρ) = none)
-    (reference : DebtState HashInput HashOutput Coordinate) (ρ : Randomness)
-    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomness → Lifetime.KeptDigestView → ℝ≥0∞)
+    (reference : DebtState HashInput HashOutput Coordinate) (ρ : Randomizer)
+    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomizer → Lifetime.KeptDigestView → ℝ≥0∞)
     (V : List Coordinate → ℝ≥0∞)
     (hV0 : V [] = 0)
     (hVfin : ∀ (s' : DebtState HashInput HashOutput Coordinate) (u0 : HashOutput) (b : ℕ),
@@ -120,10 +120,10 @@ reference by rejected blocks behind the start. -/
 theorem loop_boundV
     (hparse : ∀ ρ, model.parse (blk parameter data message ρ) = none)
     (reference : DebtState HashInput HashOutput Coordinate)
-    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomness → Lifetime.KeptDigestView → ℝ≥0∞)
+    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomizer → Lifetime.KeptDigestView → ℝ≥0∞)
     (V : List Coordinate → ℝ≥0∞)
     (hV0 : V [] = 0)
-    (hVfin : ∀ (ρ : Randomness) (s' : DebtState HashInput HashOutput Coordinate) (u0 : HashOutput) (b : ℕ),
+    (hVfin : ∀ (ρ : Randomizer) (s' : DebtState HashInput HashOutput Coordinate) (u0 : HashOutput) (b : ℕ),
       RelatedOff parameter data message reference s' ρ → s'.cache (blk parameter data message ρ) = some u0 →
       Landed parameter (blockIndex u0) →
       ∀ out ∈ support (interp tg initial model (finishCostSource parameter data message ρ) b s'),

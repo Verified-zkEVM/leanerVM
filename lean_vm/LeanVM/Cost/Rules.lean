@@ -177,18 +177,18 @@ section MachineEncoding
 
 variable {α β : Type} [MachineEncoding α] [MachineEncoding β]
 
-@[simp] theorem enc_none : encodeValue (none : Option α) = .ctor 0 [] := rfl
-@[simp] theorem enc_some (a : α) : encodeValue (some a) = .ctor 1 [encodeValue a] := rfl
-@[simp] theorem enc_nil : encodeValue ([] : List α) = .ctor 0 [] := rfl
-@[simp] theorem enc_cons (a : α) (l : List α) : encodeValue (a :: l) = .ctor 1 [encodeValue a, encodeValue l] := rfl
-@[simp] theorem enc_pair (a : α) (b : β) : encodeValue (a, b) = .ctor 0 [encodeValue a, encodeValue b] := rfl
-@[simp] theorem enc_true : encodeValue true = .ctor 1 [] := rfl
-@[simp] theorem enc_false : encodeValue false = .ctor 0 [] := rfl
+@[simp] theorem enc_none : encodeValue (none : Option α) = .constructor 0 [] := rfl
+@[simp] theorem enc_some (a : α) : encodeValue (some a) = .constructor 1 [encodeValue a] := rfl
+@[simp] theorem enc_nil : encodeValue ([] : List α) = .constructor 0 [] := rfl
+@[simp] theorem enc_cons (a : α) (l : List α) : encodeValue (a :: l) = .constructor 1 [encodeValue a, encodeValue l] := rfl
+@[simp] theorem enc_pair (a : α) (b : β) : encodeValue (a, b) = .constructor 0 [encodeValue a, encodeValue b] := rfl
+@[simp] theorem enc_true : encodeValue true = .constructor 1 [] := rfl
+@[simp] theorem enc_false : encodeValue false = .constructor 0 [] := rfl
 @[simp] theorem enc_nat (n : ℕ) : encodeValue n = .nat n := rfl
 @[simp] theorem enc_word (x : UInt64) : encodeValue x = .nat x.toNat := rfl
 @[simp] theorem enc_u8 (x : UInt8) : encodeValue x = .nat x.toNat := rfl
 @[simp] theorem enc_k (x : K) : encodeValue x = .nat x.lane.toNat := rfl
-@[simp] theorem enc_array (a : Array α) : encodeValue a = .arr (a.map encodeValue) := rfl
+@[simp] theorem enc_array (a : Array α) : encodeValue a = .array (a.map encodeValue) := rfl
 
 theorem enc_bool (b : Bool) : encodeValue b = MachineValue.ofBool b := rfl
 
@@ -200,12 +200,12 @@ namespace Rule
 
 variable {P : MachineProgram} {env : List MachineValue} {α β γ : Type} [MachineEncoding α] [MachineEncoding β] [MachineEncoding γ]
 
-theorem var {i : ℕ} {x : α} (h : env[i]? = some (encodeValue x)) : Runs P env (.var i) (encodeValue x) 1 :=
+theorem var {i : ℕ} {x : α} (h : env[i]? = some (encodeValue x)) : Runs P env (.position i) (encodeValue x) 1 :=
   Runs.var h
 
-theorem natLit (n : ℕ) : Runs P env (.val (.nat n)) (encodeValue n) 1 := Runs.val _
+theorem natLit (n : ℕ) : Runs P env (.literal (.nat n)) (encodeValue n) 1 := Runs.val _
 
-theorem boolLit (b : Bool) : Runs P env (.val (MachineValue.ofBool b)) (encodeValue b) 1 := Runs.val _
+theorem boolLit (b : Bool) : Runs P env (.literal (MachineValue.ofBool b)) (encodeValue b) 1 := Runs.val _
 
 theorem letIn {t b : Term} {v : α} {f : α → β} {c : ℕ} {d : α → ℕ} (h : Runs P env t (encodeValue v) c)
     (hb : ∀ x, x = v → Runs P (encodeValue x :: env) b (encodeValue (f x)) (d x)) :
@@ -219,22 +219,22 @@ theorem letV {t b : Term} {v : α} {w : β} {c d : ℕ} (h : Runs P env t (encod
 
 /-! ### Constructors and fields -/
 
-theorem none : Runs P env (.ctor 0 []) (encodeValue (none : Option α)) 1 :=
+theorem none : Runs P env (.constructor 0 []) (encodeValue (none : Option α)) 1 :=
   (Runs.ctor (k := 0) RunsList.nil).cost_eq (by simp)
 
 theorem some {t : Term} {a : α} {c : ℕ} (h : Runs P env t (encodeValue a) c) :
-    Runs P env (.ctor 1 [t]) (encodeValue (some a)) (c + 2) :=
+    Runs P env (.constructor 1 [t]) (encodeValue (some a)) (c + 2) :=
   (Runs.ctor (k := 1) (RunsList.cons h RunsList.nil)).cost_eq (by simp)
 
-theorem nil : Runs P env (.ctor 0 []) (encodeValue ([] : List α)) 1 :=
+theorem nil : Runs P env (.constructor 0 []) (encodeValue ([] : List α)) 1 :=
   (Runs.ctor (k := 0) RunsList.nil).cost_eq (by simp)
 
 theorem cons {t u : Term} {a : α} {l : List α} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
-    (hl : Runs P env u (encodeValue l) d) : Runs P env (.ctor 1 [t, u]) (encodeValue (a :: l)) (c + d + 3) :=
+    (hl : Runs P env u (encodeValue l) d) : Runs P env (.constructor 1 [t, u]) (encodeValue (a :: l)) (c + d + 3) :=
   (Runs.ctor (k := 1) (RunsList.cons h (RunsList.cons hl RunsList.nil))).cost_eq (by simp)
 
 theorem pair {t u : Term} {a : α} {b : β} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
-    (hb : Runs P env u (encodeValue b) d) : Runs P env (.ctor 0 [t, u]) (encodeValue (a, b)) (c + d + 3) :=
+    (hb : Runs P env u (encodeValue b) d) : Runs P env (.constructor 0 [t, u]) (encodeValue (a, b)) (c + d + 3) :=
   (Runs.ctor (k := 0) (RunsList.cons h (RunsList.cons hb RunsList.nil))).cost_eq (by simp)
 
 theorem fst {t : Term} {p : α × β} {c : ℕ} (h : Runs P env t (encodeValue p) c) :
@@ -308,27 +308,27 @@ theorem cond {tc ta tb : Term} {b : Bool} {x y : α} {c ca cb : ℕ}
 theorem caseNat {t a b : Term} {n : ℕ} {e₀ : α} {e₁ : ℕ → α} {c c₀ : ℕ} {c₁ : ℕ → ℕ}
     (h : Runs P env t (encodeValue n) c) (h₀ : n = 0 → Runs P env a (encodeValue e₀) c₀)
     (h₁ : ∀ k, n = k + 1 → Runs P (encodeValue k :: env) b (encodeValue (e₁ k)) (c₁ k)) :
-    Runs P env (.case (.op .equal [t, .val (.nat 0)]) [.letIn (.op .truncatedSubtract [t, .val (.nat 1)]) b, a])
+    Runs P env (.case (.primitive .equal [t, .literal (.nat 0)]) [.letIn (.primitive .truncatedSubtract [t, .literal (.nat 1)]) b, a])
       (encodeValue (Nat.casesOn (motive := fun _ ↦ α) n e₀ e₁))
       (c + 1 + limbCount n +
         Nat.casesOn (motive := fun _ ↦ ℕ) n c₀ (fun k ↦ c + 1 + limbCount n + c₁ k + 1) + 1) := by
-  have hz : Runs P env (.op .equal [t, .val (.nat 0)]) (encodeValue (decide (n = 0)))
+  have hz : Runs P env (.primitive .equal [t, .literal (.nat 0)]) (encodeValue (decide (n = 0)))
       (c + 1 + limbCount n) :=
     (Runs.op (RunsList.cons h (RunsList.cons (Runs.val _) RunsList.nil))
       (d := max (limbCount n) (limbCount 0))
       (by simp [PrimitiveOperation.apply, enc_bool, MachineValue.ofBool])).cost_eq
       (by simp only [show limbCount 0 = 1 from rfl, max_limbs_one])
   cases n with
-  | zero => exact Runs.case0 (k := 1) (by simpa using hz : Runs P env _ (.ctor 1 []) (c + 1 + limbCount 0)) rfl (h₀ rfl)
+  | zero => exact Runs.case0 (k := 1) (by simpa using hz : Runs P env _ (.constructor 1 []) (c + 1 + limbCount 0)) rfl (h₀ rfl)
   | succ k =>
-    have hs : Runs P env (.op .truncatedSubtract [t, .val (.nat 1)]) (encodeValue k)
+    have hs : Runs P env (.primitive .truncatedSubtract [t, .literal (.nat 1)]) (encodeValue k)
         (c + 1 + limbCount (k + 1)) :=
       (Runs.op (RunsList.cons h (RunsList.cons (Runs.val _) RunsList.nil))
         (d := max (limbCount (k + 1)) (limbCount 1)) (by
           simp only [enc_nat, PrimitiveOperation.apply]
           exact linearlyPriced_le (limbs_le_max_left (Nat.sub_le (k + 1) 1)))).cost_eq
         (by simp only [show limbCount 1 = 1 from rfl, max_limbs_one])
-    exact Runs.case0 (k := 0) (by simpa using hz : Runs P env _ (.ctor 0 []) (c + 1 + limbCount (k + 1))) rfl
+    exact Runs.case0 (k := 0) (by simpa using hz : Runs P env _ (.constructor 0 []) (c + 1 + limbCount (k + 1))) rfl
       (Runs.letIn hs (h₁ k rfl))
 
 /-- A closure of function `j` with the values of `ts`. -/
@@ -343,7 +343,7 @@ theorem applyClosure {t : Term} {ts : List Term} {f : MachineValue} {vs : List M
   exact (Runs.applyClosure h hl hb).cost_eq (by simp only [appCost]; omega)
 
 /-- A raw value of the environment. -/
-theorem rawVar {i : ℕ} {v : MachineValue} (h : env[i]? = .some v) : Runs P env (.var i) v 1 := Runs.var h
+theorem rawVar {i : ℕ} {v : MachineValue} (h : env[i]? = .some v) : Runs P env (.position i) v 1 := Runs.var h
 
 /-- A call of a function on the encodings of its arguments. -/
 theorem call {f : ℕ} {ts : List Term} {vs : List MachineValue} {w : MachineValue} {c d : ℕ}
@@ -353,7 +353,8 @@ theorem call {f : ℕ} {ts : List Term} {vs : List MachineValue} {w : MachineVal
 /-- `a || b`, short-circuit. -/
 theorem boolOr {t u : Term} {a b : Bool} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : a = false → Runs P env u (encodeValue b) d) :
-    Runs P env (.case t [u, .ctor 1 []]) (encodeValue (a || b)) (c + (if a then 1 else d) + 1) := by
+    Runs P env (.case t [u, .constructor 1 []]) (encodeValue (a
+        || b)) (c + (if a then 1 else d) + 1) := by
   cases a
   · exact Runs.case0 (k := 0) h rfl (by simpa using hb rfl)
   · exact Runs.case0 (k := 1) h rfl (by simpa using (Runs.ctor (k := 1) (P := P) (env := env) RunsList.nil))
@@ -361,13 +362,14 @@ theorem boolOr {t u : Term} {a b : Bool} {c d : ℕ} (h : Runs P env t (encodeVa
 /-- `a && b`, short-circuit. -/
 theorem boolAnd {t u : Term} {a b : Bool} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : a = true → Runs P env u (encodeValue b) d) :
-    Runs P env (.case t [.ctor 0 [], u]) (encodeValue (a && b)) (c + (if a then d else 1) + 1) := by
+    Runs P env (.case t [.constructor 0 [], u]) (encodeValue (a && b)) (c + (if a
+        then d else 1) + 1) := by
   cases a
   · exact Runs.case0 (k := 0) h rfl (by simpa using (Runs.ctor (k := 0) (P := P) (env := env) RunsList.nil))
   · exact Runs.case0 (k := 1) h rfl (by simpa using hb rfl)
 
 theorem boolNot {t : Term} {a : Bool} {c : ℕ} (h : Runs P env t (encodeValue a) c) :
-    Runs P env (.case t [.ctor 1 [], .ctor 0 []]) (encodeValue (!a)) (c + 1 + 1) := by
+    Runs P env (.case t [.constructor 1 [], .constructor 0 []]) (encodeValue (!a)) (c + 1 + 1) := by
   cases a
   · exact Runs.case0 (k := 0) h rfl (by simpa using (Runs.ctor (k := 1) (P := P) (env := env) RunsList.nil))
   · exact Runs.case0 (k := 1) h rfl (by simpa using (Runs.ctor (k := 0) (P := P) (env := env) RunsList.nil))
@@ -377,12 +379,12 @@ theorem boolNot {t : Term} {a : Bool} {c : ℕ} (h : Runs P env t (encodeValue a
 /-- A primitive of two arguments, from the runs of its arguments. -/
 theorem op₂ {o : PrimitiveOperation} {t u : Term} {a : α} {b : β} {v : MachineValue} {c d e : ℕ}
     (h : Runs P env t (encodeValue a) c) (hb : Runs P env u (encodeValue b) d)
-    (ho : o.apply [encodeValue a, encodeValue b] = .some (v, e)) : Runs P env (.op o [t, u]) v (c + d + e) :=
+    (ho : o.apply [encodeValue a, encodeValue b] = .some (v, e)) : Runs P env (.primitive o [t, u]) v (c + d + e) :=
   (Runs.op (RunsList.cons h (RunsList.cons hb RunsList.nil)) ho).cost_eq (by omega)
 
 /-- A primitive of one argument. -/
 theorem op₁ {o : PrimitiveOperation} {t : Term} {a : α} {v : MachineValue} {c e : ℕ} (h : Runs P env t (encodeValue a) c)
-    (ho : o.apply [encodeValue a] = .some (v, e)) : Runs P env (.op o [t]) v (c + e) :=
+    (ho : o.apply [encodeValue a] = .some (v, e)) : Runs P env (.primitive o [t]) v (c + e) :=
   (Runs.op (RunsList.cons h RunsList.nil) ho).cost_eq (by omega)
 
 /-! ### Natural numbers
@@ -392,86 +394,90 @@ result has no more limbs than the operands (`−`, `and`, `or`, `xor`, `>>>`, `/
 
 theorem natAdd {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .add [t, u]) (encodeValue (a + b))
+    Runs P env (.primitive .add [t, u]) (encodeValue (a + b))
       (c + d + max (limbCount (a + b)) (max (limbCount a) (limbCount b))) :=
   op₂ h hb rfl
 
 theorem natSub {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .truncatedSubtract [t, u]) (encodeValue (a - b)) (c + d + max (limbCount a) (limbCount b)) :=
+    Runs P env (.primitive .truncatedSubtract [t, u]) (encodeValue (a - b)) (c + d + max (limbCount a) (limbCount b)) :=
   op₂ h hb (linearlyPriced_le (limbs_le_max_left (Nat.sub_le a b)))
 
 theorem natMul {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .multiply [t, u]) (encodeValue (a * b))
+    Runs P env (.primitive .multiply [t, u]) (encodeValue (a * b))
       (c + d + max (limbCount (a * b)) (limbCount a * limbCount b)) :=
   op₂ h hb rfl
 
 theorem natDiv {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .divide [t, u]) (encodeValue (a / b)) (c + d + limbCount a * limbCount b) :=
+    Runs P env (.primitive .divide [t, u]) (encodeValue (a / b)) (c + d + limbCount a *
+        limbCount b) :=
   op₂ h hb (quadraticallyPriced_le (limbs_le_mul_left (Nat.div_le_self a b)))
 
 theorem natMod {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .modulo [t, u]) (encodeValue (a % b)) (c + d + limbCount a * limbCount b) :=
+    Runs P env (.primitive .modulo [t, u]) (encodeValue (a % b)) (c + d + limbCount a *
+        limbCount b) :=
   op₂ h hb (quadraticallyPriced_le (limbs_le_mul_left (Nat.mod_le a b)))
 
 theorem natLt {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .lessThan [t, u]) (encodeValue (decide (a < b))) (c + d + max (limbCount a) (limbCount b)) :=
+    Runs P env (.primitive .lessThan [t, u]) (encodeValue (decide (a < b))) (c + d + max (limbCount a) (limbCount b)) :=
   op₂ h hb rfl
 
 /-- `a ≤ b`: `¬ b < a`. -/
 theorem natLe {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.case (.op .lessThan [u, t]) [.ctor 1 [], .ctor 0 []]) (encodeValue (decide (a ≤ b)))
+    Runs P env (.case (.primitive .lessThan [u, t]) [.constructor 1 [], .constructor 0 []]) (encodeValue (decide (a ≤ b)))
       (c + d + max (limbCount a) (limbCount b) + 2) := by
-  have hlt : Runs P env (.op .lessThan [u, t]) (encodeValue (decide (b < a)))
+  have hlt : Runs P env (.primitive .lessThan [u, t]) (encodeValue (decide (b < a)))
       (d + c + max (limbCount b) (limbCount a)) := op₂ hb h rfl
   by_cases hab : b < a
-  · have := Runs.case0 (k := 1) (alts := [.ctor 1 [], .ctor 0 []]) (by simpa [hab] using hlt) rfl
+  · have := Runs.case0 (k := 1) (alts := [.constructor 1 [], .constructor 0 []])
+      (by simpa [hab] using hlt) rfl
       (Runs.ctor (k := 0) (P := P) (env := env) RunsList.nil)
     refine (by simpa [Nat.not_le.2 hab, enc_bool, MachineValue.ofBool] using this : Runs P env _ _ _).cost_eq ?_
     rw [Nat.max_comm]; omega
-  · have := Runs.case0 (k := 0) (alts := [.ctor 1 [], .ctor 0 []]) (by simpa [hab] using hlt) rfl
+  · have := Runs.case0 (k := 0) (alts := [.constructor 1 [], .constructor 0 []])
+      (by simpa [hab] using hlt) rfl
       (Runs.ctor (k := 1) (P := P) (env := env) RunsList.nil)
     refine (by simpa [Nat.le_of_not_lt hab, enc_bool, MachineValue.ofBool] using this : Runs P env _ _ _).cost_eq ?_
     rw [Nat.max_comm]; omega
 
 theorem natEq {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .equal [t, u]) (encodeValue (decide (a = b))) (c + d + max (limbCount a) (limbCount b)) :=
+    Runs P env (.primitive .equal [t, u]) (encodeValue (decide (a = b))) (c + d + max (limbCount a) (limbCount b)) :=
   op₂ h hb (by simp [PrimitiveOperation.apply, enc_bool, MachineValue.ofBool])
 
 theorem natBEq {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .equal [t, u]) (encodeValue (a == b)) (c + d + max (limbCount a) (limbCount b)) :=
+    Runs P env (.primitive .equal [t, u]) (encodeValue (a == b)) (c + d + max (limbCount a) (limbCount b)) :=
   op₂ h hb (by simp [PrimitiveOperation.apply, enc_bool, MachineValue.ofBool])
 
 theorem natAnd {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .bitwiseAnd [t, u]) (encodeValue (a &&& b)) (c + d + max (limbCount a) (limbCount b)) :=
+    Runs P env (.primitive .bitwiseAnd [t, u]) (encodeValue (a &&& b)) (c + d + max (limbCount a) (limbCount b)) :=
   op₂ h hb (linearlyPriced_le (limbs_le_max_left Nat.and_le_left))
 
 theorem natOr {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .bitwiseOr [t, u]) (encodeValue (a ||| b)) (c + d + max (limbCount a) (limbCount b)) :=
+    Runs P env (.primitive .bitwiseOr [t, u]) (encodeValue (a ||| b)) (c + d + max (limbCount a) (limbCount b)) :=
   op₂ h hb (linearlyPriced_le (limbs_or_le a b))
 
 theorem natXor {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .bitwiseXor [t, u]) (encodeValue (a ^^^ b)) (c + d + max (limbCount a) (limbCount b)) :=
+    Runs P env (.primitive .bitwiseXor [t, u]) (encodeValue (a ^^^ b)) (c + d + max (limbCount a) (limbCount b)) :=
   op₂ h hb (linearlyPriced_le (limbs_xor_le a b))
 
 theorem natShiftRight {t u : Term} {a k : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue k) d) :
-    Runs P env (.op .shiftRight [t, u]) (encodeValue (a >>> k)) (c + d + max (limbCount a) (limbCount k)) :=
+    Runs P env (.primitive .shiftRight [t, u]) (encodeValue (a >>> k)) (c + d + max (limbCount a) (limbCount k)) :=
   op₂ h hb (linearlyPriced_le (limbs_le_max_left (Nat.shiftRight_le a k)))
 
 theorem natShiftLeft {t u : Term} {a k : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue k) d) :
-    Runs P env (.op .shiftLeft [t, u]) (encodeValue (a <<< k))
+    Runs P env (.primitive .shiftLeft [t, u]) (encodeValue (a <<< k))
       (c + d + max (limbCount (a <<< k)) (max (limbCount a) (limbCount k))) :=
   op₂ h hb rfl
 
@@ -481,51 +487,53 @@ theorem natShiftLeft {t u : Term} {a k : ℕ} {c d : ℕ} (h : Runs P env t (enc
 natural-number code, wrap-arounds masked, each at a constant price (the limb counts of the
 operands, the masks and the results proved `1`, or `2` where an operand is a two-limb mask). -/
 
-theorem wordLit (x : UInt64) {n : ℕ} (hn : x.toNat = n) : Runs P env (.val (.nat n)) (encodeValue x) 1 :=
+theorem wordLit (x : UInt64) {n : ℕ} (hn : x.toNat = n) : Runs P env (.literal (.nat n)) (encodeValue x) 1 :=
   hn ▸ Runs.val _
 
-theorem kLit (x : K) {n : ℕ} (hn : x.lane.toNat = n) : Runs P env (.val (.nat n)) (encodeValue x) 1 :=
+theorem kLit (x : K) {n : ℕ} (hn : x.lane.toNat = n) : Runs P env (.literal (.nat n)) (encodeValue x) 1 :=
   hn ▸ Runs.val _
 
-theorem u8Lit (x : UInt8) {n : ℕ} (hn : x.toNat = n) : Runs P env (.val (.nat n)) (encodeValue x) 1 :=
+theorem u8Lit (x : UInt8) {n : ℕ} (hn : x.toNat = n) : Runs P env (.literal (.nat n)) (encodeValue x) 1 :=
   hn ▸ Runs.val _
 
 /-- A primitive of two numbers. -/
 theorem nat₂ {o : PrimitiveOperation} {t u : Term} {x y : ℕ} {v : MachineValue} {c d e : ℕ}
     (h : Runs P env t (.nat x) c) (hb : Runs P env u (.nat y) d)
-    (ho : o.apply [.nat x, .nat y] = .some (v, e)) : Runs P env (.op o [t, u]) v (c + d + e) :=
+    (ho : o.apply [.nat x, .nat y] = .some (v, e)) : Runs P env (.primitive o [t, u]) v (c + d
+        + e) :=
   (Runs.op (RunsList.cons h (RunsList.cons hb RunsList.nil)) ho).cost_eq (by omega)
 
 /-- A one-limb operation of two words: price `1`. -/
 theorem word₂ {o : PrimitiveOperation} {t u : Term} {x y : ℕ} {v : MachineValue} {c d : ℕ}
     (h : Runs P env t (.nat x) c) (hb : Runs P env u (.nat y) d)
-    (ho : o.apply [.nat x, .nat y] = .some (v, 1)) : Runs P env (.op o [t, u]) v (c + d + 1) :=
+    (ho : o.apply [.nat x, .nat y] = .some (v, 1)) : Runs P env (.primitive o [t, u]) v (c + d
+        + 1) :=
   (Runs.op (RunsList.cons h (RunsList.cons hb RunsList.nil)) ho).cost_eq (by omega)
 
 theorem wXor {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .bitwiseXor [t, u]) (encodeValue (a ^^^ b)) (c + d + 1) :=
+    Runs P env (.primitive .bitwiseXor [t, u]) (encodeValue (a ^^^ b)) (c + d + 1) :=
   word₂ h hb (by
     simp only [PrimitiveOperation.apply, enc_word, UInt64.toNat_xor]
     exact linearlyPriced_one (UInt64.toNat_xor a b ▸ (a ^^^ b).toNat_lt) a.toNat_lt b.toNat_lt)
 
 theorem wAnd {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .bitwiseAnd [t, u]) (encodeValue (a &&& b)) (c + d + 1) :=
+    Runs P env (.primitive .bitwiseAnd [t, u]) (encodeValue (a &&& b)) (c + d + 1) :=
   word₂ h hb (by
     simp only [PrimitiveOperation.apply, enc_word, UInt64.toNat_and]
     exact linearlyPriced_one (UInt64.toNat_and a b ▸ (a &&& b).toNat_lt) a.toNat_lt b.toNat_lt)
 
 theorem wOr {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .bitwiseOr [t, u]) (encodeValue (a ||| b)) (c + d + 1) :=
+    Runs P env (.primitive .bitwiseOr [t, u]) (encodeValue (a ||| b)) (c + d + 1) :=
   word₂ h hb (by
     simp only [PrimitiveOperation.apply, enc_word, UInt64.toNat_or]
     exact linearlyPriced_one (UInt64.toNat_or a b ▸ (a ||| b).toNat_lt) a.toNat_lt b.toNat_lt)
 
 /-- `~~~a`: `a ^^^ (2^64 - 1)`. -/
 theorem wNot {t : Term} {a : UInt64} {c : ℕ} (h : Runs P env t (encodeValue a) c) :
-    Runs P env (.op .bitwiseXor [t, .val (.nat 18446744073709551615)]) (encodeValue (~~~a)) (c + 1 + 1) :=
+    Runs P env (.primitive .bitwiseXor [t, .literal (.nat 18446744073709551615)]) (encodeValue (~~~a)) (c + 1 + 1) :=
   word₂ h (Runs.val _) (by
     simp only [PrimitiveOperation.apply, enc_word, uint64_toNat_not]
     exact linearlyPriced_one (uint64_toNat_not a ▸ (~~~a).toNat_lt) a.toNat_lt (by decide))
@@ -534,19 +542,20 @@ theorem wNot {t : Term} {a : UInt64} {c : ℕ} (h : Runs P env t (encodeValue a)
 limb counts constant (`2`). -/
 theorem wShl {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .bitwiseAnd [.op .shiftLeft [.op .bitwiseOr [t, .val (.nat 18446744073709551616)],
-        .op .bitwiseAnd [u, .val (.nat 63)]], .val (.nat 18446744073709551615)])
+    Runs P env (.primitive .bitwiseAnd [.primitive .shiftLeft [.primitive .bitwiseOr [t, .literal (.nat 18446744073709551616)],
+        .primitive .bitwiseAnd [u, .literal (.nat 63)]], .literal (.nat 18446744073709551615)])
       (encodeValue (a <<< b)) (c + d + 10) := by
   have ha := a.toNat_lt
   have hs : b.toNat &&& 63 < 64 := Nat.lt_of_le_of_lt Nat.and_le_right (by decide)
   have hor : a.toNat ||| 2 ^ 64 = a.toNat + 2 ^ 64 := uint64_or_two_pow a
-  have h1 : Runs P env (.op .bitwiseOr [t, .val (.nat 18446744073709551616)]) (.nat (a.toNat + 2 ^ 64))
+  have h1 : Runs P env (.primitive .bitwiseOr [t, .literal (.nat 18446744073709551616)]) (.nat (a.toNat + 2 ^ 64))
       (c + 1 + 2) :=
     Runs.op (RunsList.cons h (RunsList.cons (Runs.val _) RunsList.nil)) (by
       simp only [enc_word, PrimitiveOperation.apply, linearlyPricedResult]
       rw [show (18446744073709551616 : ℕ) = 2 ^ 64 from rfl, hor,
         limbs_two (by omega) (by omega), limbs_of_lt ha, limbs_two (by decide) (by decide)]; rfl)
-  have h2 : Runs P env (.op .bitwiseAnd [u, .val (.nat 63)]) (.nat (b.toNat &&& 63)) (d + 1 + 1) :=
+  have h2 : Runs P env (.primitive .bitwiseAnd [u, .literal (.nat 63)]) (.nat (b.toNat &&& 63)) (d +
+      1 + 1) :=
     Runs.op (RunsList.cons hb (RunsList.cons (Runs.val _) RunsList.nil)) (by
       simp only [enc_word, PrimitiveOperation.apply]
       exact linearlyPriced_one (by omega) b.toNat_lt (by decide))
@@ -560,8 +569,10 @@ theorem wShl {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeVa
     calc (a.toNat + 2 ^ 64) * 2 ^ (b.toNat &&& 63) < 2 ^ 65 * 2 ^ 63 :=
           Nat.mul_lt_mul_of_lt_of_le h65 (Nat.pow_le_pow_right (by omega) (by omega)) (Nat.two_pow_pos _)
       _ = 2 ^ 128 := by norm_num
-  have h3 : Runs P env (.op .shiftLeft [.op .bitwiseOr [t, .val (.nat 18446744073709551616)],
-      .op .bitwiseAnd [u, .val (.nat 63)]]) (.nat ((a.toNat + 2 ^ 64) <<< (b.toNat &&& 63)))
+  have h3 : Runs P env (.primitive .shiftLeft [.primitive .bitwiseOr [t, .literal (.nat
+      18446744073709551616)],
+      .primitive .bitwiseAnd [u, .literal (.nat 63)]]) (.nat ((a.toNat + 2 ^ 64) <<< (b.toNat
+          &&& 63)))
       (c + 1 + 2 + (d + 1 + 1) + 2) :=
     nat₂ h1 h2 (by
       show PrimitiveOperation.apply .shiftLeft [.nat (a.toNat + 2 ^ 64), .nat (b.toNat &&& 63)] = _
@@ -577,8 +588,9 @@ theorem wShl {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeVa
 /-- `a >>> b`: `a >>> (b &&& 63)`. -/
 theorem wShr {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .shiftRight [t, .op .bitwiseAnd [u, .val (.nat 63)]]) (encodeValue (a >>> b)) (c + d + 3) := by
-  have h2 : Runs P env (.op .bitwiseAnd [u, .val (.nat 63)]) (.nat (b.toNat &&& 63)) (d + 1 + 1) :=
+    Runs P env (.primitive .shiftRight [t, .primitive .bitwiseAnd [u, .literal (.nat 63)]]) (encodeValue (a >>> b)) (c + d + 3) := by
+  have h2 : Runs P env (.primitive .bitwiseAnd [u, .literal (.nat 63)]) (.nat (b.toNat &&& 63)) (d +
+      1 + 1) :=
     Runs.op (RunsList.cons hb (RunsList.cons (Runs.val _) RunsList.nil)) (by
       simp only [enc_word, PrimitiveOperation.apply]
       exact linearlyPriced_one (Nat.lt_of_le_of_lt Nat.and_le_right (by decide)) b.toNat_lt (by decide))
@@ -591,20 +603,20 @@ theorem wShr {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeVa
 
 theorem wordLt {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .lessThan [t, u]) (encodeValue (decide (a < b))) (c + d + 1) :=
+    Runs P env (.primitive .lessThan [t, u]) (encodeValue (decide (a < b))) (c + d + 1) :=
   word₂ h hb (by
     simp only [PrimitiveOperation.apply, limbs_of_lt a.toNat_lt, limbs_of_lt b.toNat_lt, max_self,
       enc_bool, UInt64.lt_iff_toNat_lt])
 
 theorem wordEq {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .equal [t, u]) (encodeValue (decide (a = b))) (c + d + 1) :=
+    Runs P env (.primitive .equal [t, u]) (encodeValue (decide (a = b))) (c + d + 1) :=
   word₂ h hb (by
     simp [PrimitiveOperation.apply, limbs_of_lt a.toNat_lt, limbs_of_lt b.toNat_lt, enc_bool,
       MachineValue.ofBool, UInt64.toNat_inj])
 
 theorem wordBEq {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
-    (hb : Runs P env u (encodeValue b) d) : Runs P env (.op .equal [t, u]) (encodeValue (a == b)) (c + d + 1) :=
+    (hb : Runs P env u (encodeValue b) d) : Runs P env (.primitive .equal [t, u]) (encodeValue (a == b)) (c + d + 1) :=
   word₂ h hb (by
     simp [PrimitiveOperation.apply, limbs_of_lt a.toNat_lt, limbs_of_lt b.toNat_lt, enc_bool,
       MachineValue.ofBool, UInt64.toNat_inj])
@@ -615,7 +627,8 @@ theorem wToNat {t : Term} {a : UInt64} {c : ℕ} (h : Runs P env t (encodeValue 
 
 /-- `n.toUInt64`: `n &&& (2^64 - 1)`. -/
 theorem natToUInt64 {t : Term} {n : ℕ} {c : ℕ} (h : Runs P env t (encodeValue n) c) :
-    Runs P env (.op .bitwiseAnd [t, .val (.nat 18446744073709551615)]) (encodeValue n.toUInt64)
+    Runs P env (.primitive .bitwiseAnd [t, .literal (.nat 18446744073709551615)]) (encodeValue
+        n.toUInt64)
       (c + 1 + limbCount n) :=
   op₂ (b := (18446744073709551615 : ℕ)) h (natLit _) (by
     simp only [enc_nat, enc_word, PrimitiveOperation.apply, linearlyPricedResult, Nat.toUInt64_eq,
@@ -625,7 +638,7 @@ theorem natToUInt64 {t : Term} {n : ℕ} {c : ℕ} (h : Runs P env t (encodeValu
 
 /-- `UInt64.ofNat n`: `n &&& (2^64 - 1)`. -/
 theorem uint64OfNat {t : Term} {n : ℕ} {c : ℕ} (h : Runs P env t (encodeValue n) c) :
-    Runs P env (.op .bitwiseAnd [t, .val (.nat 18446744073709551615)]) (encodeValue (UInt64.ofNat n))
+    Runs P env (.primitive .bitwiseAnd [t, .literal (.nat 18446744073709551615)]) (encodeValue (UInt64.ofNat n))
       (c + 1 + limbCount n) :=
   natToUInt64 h
 
@@ -638,16 +651,16 @@ theorem kOfLane {t : Term} {w : UInt64} {c : ℕ} (h : Runs P env t (encodeValue
     Runs P env t (encodeValue (K.ofLane w)) c := h
 
 theorem kAdd {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
-    (hb : Runs P env u (encodeValue b) d) : Runs P env (.op .bitwiseXor [t, u]) (encodeValue (a + b)) (c + d + 1) :=
+    (hb : Runs P env u (encodeValue b) d) : Runs P env (.primitive .bitwiseXor [t, u]) (encodeValue (a + b)) (c + d + 1) :=
   wXor (a := a.lane) (b := b.lane) h hb
 
 theorem kSub {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
-    (hb : Runs P env u (encodeValue b) d) : Runs P env (.op .bitwiseXor [t, u]) (encodeValue (a - b)) (c + d + 1) :=
+    (hb : Runs P env u (encodeValue b) d) : Runs P env (.primitive .bitwiseXor [t, u]) (encodeValue (a - b)) (c + d + 1) :=
   wXor (a := a.lane) (b := b.lane) h hb
 
 theorem kEq {t u : Term} {a b : K} {inst : Decidable (a = b)} {c d : ℕ}
     (h : Runs P env t (encodeValue a) c) (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .equal [t, u]) (encodeValue (@decide (a = b) inst)) (c + d + 1) := by
+    Runs P env (.primitive .equal [t, u]) (encodeValue (@decide (a = b) inst)) (c + d + 1) := by
   have : @decide (a = b) inst = decide (a.lane = b.lane) := by
     rw [Bool.eq_iff_iff, decide_eq_true_iff, decide_eq_true_iff]
     exact ⟨fun e ↦ e ▸ rfl, fun e ↦ by
@@ -656,7 +669,7 @@ theorem kEq {t u : Term} {a b : K} {inst : Decidable (a = b)} {c d : ℕ}
   exact wordEq (a := a.lane) (b := b.lane) h hb
 
 theorem kBEq {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
-    (hb : Runs P env u (encodeValue b) d) : Runs P env (.op .equal [t, u]) (encodeValue (a == b)) (c + d + 1) := by
+    (hb : Runs P env u (encodeValue b) d) : Runs P env (.primitive .equal [t, u]) (encodeValue (a == b)) (c + d + 1) := by
   have : (a == b) = (a.lane == b.lane) := by
     obtain ⟨x⟩ := a
     obtain ⟨y⟩ := b
@@ -709,22 +722,25 @@ theorem modulus_product_bounds {x : ℕ} (h1 : 1 ≤ x) (hx : x < 2 ^ 64) :
 
 /-- The padding of the product's short case: `p` at price `17`. -/
 theorem kMulPadding {env : List MachineValue} {p : ℕ} :
-    Runs P (.nat p :: env) (.letIn (.op .arrayReplicate [.val (.nat 12), .val (.nat 0)]) (.var 1))
+    Runs P (.nat p :: env) (.letIn (.primitive .arrayReplicate [.literal (.nat 12), .literal (.nat
+        0)]) (.position 1))
       (.nat p) 17 :=
   (Runs.letIn (Runs.op (RunsList.cons (Runs.val _) (RunsList.cons (Runs.val _) RunsList.nil))
-    (v := .arr (Array.replicate 12 (.nat 0))) (d := 13) (by simp [PrimitiveOperation.apply]))
+    (v := .array (Array.replicate 12 (.nat 0))) (d := 13) (by simp [PrimitiveOperation.apply]))
     (Runs.var rfl)).cost_eq (by norm_num)
 
 /-- **`a * b` in `K`**: the carry-less product, then Barrett's reduction (or, below `2^64`, a
 padding), at a constant price. -/
 theorem kMul {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.letIn (.op .carrylessMultiply [t, u])
-      (.case (.op .lessThan [.var 0, .val (.nat 18446744073709551616)])
-        [.op .bitwiseXor [.var 0, .op .carrylessMultiply [.op .shiftRight [.op .carrylessMultiply
-          [.op .shiftRight [.var 0, .val (.nat 64)], .val (.nat 0x1000000000000001B)], .val (.nat 64)],
-          .val (.nat 0x1000000000000001B)]],
-         .letIn (.op .arrayReplicate [.val (.nat 12), .val (.nat 0)]) (.var 1)]))
+    Runs P env (.letIn (.primitive .carrylessMultiply [t, u])
+      (.case (.primitive .lessThan [.position 0, .literal (.nat 18446744073709551616)])
+        [.primitive .bitwiseXor [.position 0, .primitive .carrylessMultiply [.primitive .shiftRight
+            [.primitive .carrylessMultiply
+          [.primitive .shiftRight [.position 0, .literal (.nat 64)], .literal (.nat 0x1000000000000001B)], .literal (.nat 64)],
+          .literal (.nat 0x1000000000000001B)]],
+         .letIn (.primitive .arrayReplicate [.literal (.nat 12), .literal (.nat 0)])
+             (.position 1)]))
       (encodeValue (a * b)) (c + d + 24) := by
   have hA := a.lane.toNat_lt
   have hB := b.lane.toNat_lt
@@ -739,7 +755,7 @@ theorem kMul {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (encodeValue a
   have hmul : mulKNat A B = carryless A B ^^^ carryless (carryless (carryless A B >>> 64) kModulus >>> 64)
       kModulus := rfl
   rw [hmul] at hres ⊢
-  have hP : Runs P env (.op .carrylessMultiply [t, u]) (.nat (carryless A B)) (c + d + limbCount (carryless A B)) :=
+  have hP : Runs P env (.primitive .carrylessMultiply [t, u]) (.nat (carryless A B)) (c + d + limbCount (carryless A B)) :=
     nat₂ h hb (by
       simp only [PrimitiveOperation.apply, quadraticallyPricedResult, limbs_of_lt hA, limbs_of_lt hB,
         Nat.mul_one, max_limbs_one])
@@ -747,16 +763,18 @@ theorem kMul {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (encodeValue a
   have hM : limbCount kModulus = 2 := limbs_two (by norm_num) (by norm_num)
   have h64 : limbCount 18446744073709551616 = 2 := limbs_two (by norm_num) (by norm_num)
   have hp2 : limbCount p ≤ 2 := (limbs_le_iff (by omega)).2 (by omega)
-  have hcmp : Runs P (.nat p :: env) (.op .lessThan [.var 0, .val (.nat 18446744073709551616)])
+  have hcmp : Runs P (.nat p :: env) (.primitive .lessThan [.position 0, .literal (.nat
+      18446744073709551616)])
       (.ofBool (decide (p < 2 ^ 64))) (1 + 1 + 2) :=
     nat₂ (Runs.var rfl) (Runs.val _) (by
       simp only [PrimitiveOperation.apply, h64, Nat.max_eq_right hp2]; rfl)
   by_cases hlt : p < 2 ^ 64
   · have hh : p >>> 64 = 0 := by rw [Nat.shiftRight_eq_div_pow]; exact Nat.div_eq_of_lt hlt
     rw [hh, carryless_zero_modulus, Nat.zero_shiftRight, carryless_zero_modulus, Nat.xor_zero]
-    have hc : Runs P (.nat p :: env) (.op .lessThan [.var 0, .val (.nat 18446744073709551616)])
-        (.ctor 1 []) (1 + 1 + 2) := by
-      rw [show MachineValue.ctor 1 [] = .ofBool (decide (p < 2 ^ 64)) by simp [MachineValue.ofBool, show p < 18446744073709551616 from hlt]]
+    have hc : Runs P (.nat p :: env) (.primitive .lessThan [.position 0, .literal (.nat
+        18446744073709551616)])
+        (.constructor 1 []) (1 + 1 + 2) := by
+      rw [show MachineValue.constructor 1 [] = .ofBool (decide (p < 2 ^ 64)) by simp [MachineValue.ofBool, show p < 18446744073709551616 from hlt]]
       exact hcmp
     refine (Runs.letIn hP (Runs.case0 (k := 1) hc rfl kMulPadding)).cost_eq ?_
     rw [limbs_of_lt hlt]
@@ -779,29 +797,32 @@ theorem kMul {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (encodeValue a
     rw [hz] at hq1 hq2 hu1 hu2 hres ⊢
     obtain ⟨w, hw⟩ : ∃ w, carryless z kModulus = w := ⟨_, rfl⟩
     rw [hw] at hu1 hu2 hres ⊢
-    have hc : Runs P (.nat p :: env) (.op .lessThan [.var 0, .val (.nat 18446744073709551616)])
-        (.ctor 0 []) (1 + 1 + 2) := by
-      rw [show MachineValue.ctor 0 [] = .ofBool (decide (p < 2 ^ 64)) by simp [MachineValue.ofBool, show ¬ p < 18446744073709551616 from hlt]]
+    have hc : Runs P (.nat p :: env) (.primitive .lessThan [.position 0, .literal (.nat
+        18446744073709551616)])
+        (.constructor 0 []) (1 + 1 + 2) := by
+      rw [show MachineValue.constructor 0 [] = .ofBool (decide (p < 2 ^ 64)) by simp [MachineValue.ofBool, show ¬ p < 18446744073709551616 from hlt]]
       exact hcmp
     have l64 : limbCount 64 = 1 := limbs_of_lt (by norm_num)
-    have r1 : Runs P (.nat p :: env) (.op .shiftRight [.var 0, .val (.nat 64)]) (.nat x) (1 + 1 + 2) :=
+    have r1 : Runs P (.nat p :: env) (.primitive .shiftRight [.position 0, .literal (.nat 64)]) (.nat x) (1 + 1 + 2) :=
       nat₂ (Runs.var rfl) (Runs.val _) (by
         simp only [PrimitiveOperation.apply, linearlyPricedResult, hx, limbs_of_lt hh2, hp1, l64]; rfl)
-    have r2 : Runs P (.nat p :: env) (.op .carrylessMultiply [.op .shiftRight [.var 0, .val (.nat 64)],
-        .val (.nat 0x1000000000000001B)]) (.nat y) (1 + 1 + 2 + 1 + 2) :=
+    have r2 : Runs P (.nat p :: env) (.primitive .carrylessMultiply [.primitive .shiftRight [.position 0, .literal (.nat 64)],
+        .literal (.nat 0x1000000000000001B)]) (.nat y) (1 + 1 + 2 + 1 + 2) :=
       nat₂ r1 (Runs.val _) (by
         simp only [PrimitiveOperation.apply, quadraticallyPricedResult, hy, limbs_of_lt hh2,
           limbs_two ht1 ht2]
         rw [hM]; rfl)
-    have r3 : Runs P (.nat p :: env) (.op .shiftRight [.op .carrylessMultiply [.op .shiftRight
-        [.var 0, .val (.nat 64)], .val (.nat 0x1000000000000001B)], .val (.nat 64)]) (.nat z)
+    have r3 : Runs P (.nat p :: env) (.primitive .shiftRight [.primitive .carrylessMultiply
+        [.primitive .shiftRight
+        [.position 0, .literal (.nat 64)], .literal (.nat 0x1000000000000001B)], .literal (.nat
+            64)]) (.nat z)
         (1 + 1 + 2 + 1 + 2 + 1 + 2) :=
       nat₂ r2 (Runs.val _) (by
         simp only [PrimitiveOperation.apply, linearlyPricedResult, hz, limbs_of_lt hq2,
           limbs_two ht1 ht2, l64]; rfl)
-    have r4 : Runs P (.nat p :: env) (.op .carrylessMultiply [.op .shiftRight [.op .carrylessMultiply
-        [.op .shiftRight [.var 0, .val (.nat 64)], .val (.nat 0x1000000000000001B)], .val (.nat 64)],
-        .val (.nat 0x1000000000000001B)]) (.nat w) (1 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 2) :=
+    have r4 : Runs P (.nat p :: env) (.primitive .carrylessMultiply [.primitive .shiftRight [.primitive .carrylessMultiply
+        [.primitive .shiftRight [.position 0, .literal (.nat 64)], .literal (.nat 0x1000000000000001B)], .literal (.nat 64)],
+        .literal (.nat 0x1000000000000001B)]) (.nat w) (1 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 2) :=
       nat₂ r3 (Runs.val _) (by
         simp only [PrimitiveOperation.apply, quadraticallyPricedResult, hw, limbs_of_lt hq2,
           limbs_two hu1 hu2]
@@ -818,12 +839,13 @@ def kMulFn (a b : K) : K := a * b
 
 /-- `kMul`'s code on the arguments `0` and `1`. -/
 def kMulBody : Term :=
-  .letIn (.op .carrylessMultiply [.var 0, .var 1])
-    (.case (.op .lessThan [.var 0, .val (.nat 18446744073709551616)])
-      [.op .bitwiseXor [.var 0, .op .carrylessMultiply [.op .shiftRight [.op .carrylessMultiply
-        [.op .shiftRight [.var 0, .val (.nat 64)], .val (.nat 0x1000000000000001B)], .val (.nat 64)],
-        .val (.nat 0x1000000000000001B)]],
-       .letIn (.op .arrayReplicate [.val (.nat 12), .val (.nat 0)]) (.var 1)])
+  .letIn (.primitive .carrylessMultiply [.position 0, .position 1])
+    (.case (.primitive .lessThan [.position 0, .literal (.nat 18446744073709551616)])
+      [.primitive .bitwiseXor [.position 0, .primitive .carrylessMultiply [.primitive .shiftRight
+          [.primitive .carrylessMultiply
+        [.primitive .shiftRight [.position 0, .literal (.nat 64)], .literal (.nat 0x1000000000000001B)], .literal (.nat 64)],
+        .literal (.nat 0x1000000000000001B)]],
+       .letIn (.primitive .arrayReplicate [.literal (.nat 12), .literal (.nat 0)]) (.position 1)])
 
 theorem kMulBody_runs (a b : K) :
     Runs P [encodeValue a, encodeValue b] kMulBody (encodeValue (a * b)) 26 :=
@@ -839,19 +861,19 @@ theorem kMulCall {t u : Term} {a b : K} {c d j : ℕ} {body : Term} (hP : Includ
     (RunsBody.intro (hP.get List.mem_cons_self) (kMulBody_runs a b))).cost_eq (by omega)
 
 theorem u8Xor {t u : Term} {a b : UInt8} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
-    (hb : Runs P env u (encodeValue b) d) : Runs P env (.op .bitwiseXor [t, u]) (encodeValue (a ^^^ b)) (c + d + 1) :=
+    (hb : Runs P env u (encodeValue b) d) : Runs P env (.primitive .bitwiseXor [t, u]) (encodeValue (a ^^^ b)) (c + d + 1) :=
   word₂ h hb (by
     simp only [PrimitiveOperation.apply, enc_u8, UInt8.toNat_xor]
     exact linearlyPriced_one (UInt8.toNat_xor a b ▸ u8_lt (a ^^^ b)) (u8_lt a) (u8_lt b))
 
 theorem u8And {t u : Term} {a b : UInt8} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
-    (hb : Runs P env u (encodeValue b) d) : Runs P env (.op .bitwiseAnd [t, u]) (encodeValue (a &&& b)) (c + d + 1) :=
+    (hb : Runs P env u (encodeValue b) d) : Runs P env (.primitive .bitwiseAnd [t, u]) (encodeValue (a &&& b)) (c + d + 1) :=
   word₂ h hb (by
     simp only [PrimitiveOperation.apply, enc_u8, UInt8.toNat_and]
     exact linearlyPriced_one (UInt8.toNat_and a b ▸ u8_lt (a &&& b)) (u8_lt a) (u8_lt b))
 
 theorem u8Or {t u : Term} {a b : UInt8} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
-    (hb : Runs P env u (encodeValue b) d) : Runs P env (.op .bitwiseOr [t, u]) (encodeValue (a ||| b)) (c + d + 1) :=
+    (hb : Runs P env u (encodeValue b) d) : Runs P env (.primitive .bitwiseOr [t, u]) (encodeValue (a ||| b)) (c + d + 1) :=
   word₂ h hb (by
     simp only [PrimitiveOperation.apply, enc_u8, UInt8.toNat_or]
     exact linearlyPriced_one (UInt8.toNat_or a b ▸ u8_lt (a ||| b)) (u8_lt a) (u8_lt b))
@@ -863,7 +885,8 @@ theorem u8ToUInt64 {t : Term} {a : UInt8} {c : ℕ} (h : Runs P env t (encodeVal
 
 /-- A word's low byte: `&&& 255`. -/
 theorem u64ToUInt8 {t : Term} {a : UInt64} {c : ℕ} (h : Runs P env t (encodeValue a) c) :
-    Runs P env (.op .bitwiseAnd [t, .val (.nat 255)]) (encodeValue a.toUInt8) (c + 1 + 1) :=
+    Runs P env (.primitive .bitwiseAnd [t, .literal (.nat 255)]) (encodeValue a.toUInt8) (c + 1
+        + 1) :=
   word₂ h (Runs.val _) (by
     simp only [PrimitiveOperation.apply, enc_u8, UInt64.toNat_toUInt8,
       show (255 : ℕ) = 2 ^ 8 - 1 from rfl, Nat.and_two_pow_sub_one_eq_mod]
@@ -875,7 +898,7 @@ theorem uint8ToNat {t : Term} {x : UInt8} {c : ℕ} (h : Runs P env t (encodeVal
 
 theorem uint8Eq {t u : Term} {a b : UInt8} {inst : Decidable (a = b)} {c d : ℕ}
     (h : Runs P env t (encodeValue a) c) (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .equal [t, u]) (encodeValue (@decide (a = b) inst)) (c + d + 1) :=
+    Runs P env (.primitive .equal [t, u]) (encodeValue (@decide (a = b) inst)) (c + d + 1) :=
   word₂ h hb (by
     have : decide (a.toNat = b.toNat) = @decide (a = b) inst := by
       by_cases hab : a = b
@@ -887,7 +910,7 @@ theorem uint8Eq {t u : Term} {a b : UInt8} {inst : Decidable (a = b)} {c d : ℕ
 
 theorem u8Lt {t u : Term} {a b : UInt8} {inst : Decidable (a < b)} {c d : ℕ}
     (h : Runs P env t (encodeValue a) c) (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .lessThan [t, u]) (encodeValue (@decide (a < b) inst)) (c + d + 1) :=
+    Runs P env (.primitive .lessThan [t, u]) (encodeValue (@decide (a < b) inst)) (c + d + 1) :=
   word₂ h hb (by
     have : decide (a.toNat < b.toNat) = @decide (a < b) inst := by
       by_cases hab : a < b
@@ -903,56 +926,60 @@ theorem decideEqTrue {t : Term} {b : Bool} {c : ℕ} (h : Runs P env t (encodeVa
 /-- `decide (p ∧ q)`, short-circuit. -/
 theorem decideAnd {t u : Term} {p q : Prop} [Decidable p] [Decidable q] {inst : Decidable (p ∧ q)}
     {c d : ℕ} (h : Runs P env t (encodeValue (decide p)) c) (hq : p → Runs P env u (encodeValue (decide q)) d) :
-    Runs P env (.case t [.ctor 0 [], u]) (encodeValue (@decide (p ∧ q) inst))
+    Runs P env (.case t [.constructor 0 [], u]) (encodeValue (@decide (p ∧ q) inst))
       (c + (if p then d else 1) + 1) := by
   by_cases hp : p
-  · have := Runs.case0 (k := 1) (alts := [.ctor 0 [], u]) (by simpa [hp] using h) rfl (hq hp)
+  · have := Runs.case0 (k := 1) (alts := [.constructor 0 [], u]) (by simpa [hp] using h) rfl (hq hp)
     simpa [hp] using this
-  · have := Runs.case0 (k := 0) (alts := [.ctor 0 [], u]) (by simpa [hp] using h) rfl
+  · have := Runs.case0 (k := 0) (alts := [.constructor 0 [], u]) (by simpa [hp] using h) rfl
       (Runs.ctor (k := 0) (P := P) (env := env) RunsList.nil)
     simpa [hp, enc_bool, MachineValue.ofBool] using this
 
 /-- `decide (p ∨ q)`, short-circuit. -/
 theorem decideOr {t u : Term} {p q : Prop} [Decidable p] [Decidable q] {inst : Decidable (p ∨ q)}
     {c d : ℕ} (h : Runs P env t (encodeValue (decide p)) c) (hq : ¬p → Runs P env u (encodeValue (decide q)) d) :
-    Runs P env (.case t [u, .ctor 1 []]) (encodeValue (@decide (p ∨ q) inst))
+    Runs P env (.case t [u, .constructor 1 []]) (encodeValue (@decide (p ∨ q) inst))
       (c + (if p then 1 else d) + 1) := by
   by_cases hp : p
-  · have := Runs.case0 (k := 1) (alts := [u, .ctor 1 []]) (by simpa [hp] using h) rfl
+  · have := Runs.case0 (k := 1) (alts := [u, .constructor 1 []]) (by simpa [hp] using h) rfl
       (Runs.ctor (k := 1) (P := P) (env := env) RunsList.nil)
     simpa [hp, enc_bool, MachineValue.ofBool] using this
-  · have := Runs.case0 (k := 0) (alts := [u, .ctor 1 []]) (by simpa [hp] using h) rfl (hq hp)
+  · have := Runs.case0 (k := 0) (alts := [u, .constructor 1 []]) (by simpa [hp] using h) rfl (hq hp)
     simpa [hp] using this
 
 /-- `decide ¬p`. -/
 theorem decideNot {t : Term} {p : Prop} [Decidable p] {inst : Decidable ¬p} {c : ℕ}
     (h : Runs P env t (encodeValue (decide p)) c) :
-    Runs P env (.case t [.ctor 1 [], .ctor 0 []]) (encodeValue (@decide (¬p) inst)) (c + 1 + 1) := by
+    Runs P env (.case t [.constructor 1 [], .constructor 0 []]) (encodeValue (@decide (¬p) inst)) (c + 1 + 1) := by
   by_cases hp : p
-  · have := Runs.case0 (k := 1) (alts := [.ctor 1 [], .ctor 0 []]) (by simpa [hp] using h) rfl
+  · have := Runs.case0 (k := 1) (alts := [.constructor 1 [], .constructor 0 []])
+      (by simpa [hp] using h) rfl
       (Runs.ctor (k := 0) (P := P) (env := env) RunsList.nil)
     simpa [hp, enc_bool, MachineValue.ofBool] using this
-  · have := Runs.case0 (k := 0) (alts := [.ctor 1 [], .ctor 0 []]) (by simpa [hp] using h) rfl
+  · have := Runs.case0 (k := 0) (alts := [.constructor 1 [], .constructor 0 []])
+      (by simpa [hp] using h) rfl
       (Runs.ctor (k := 1) (P := P) (env := env) RunsList.nil)
     simpa [hp, enc_bool, MachineValue.ofBool] using this
 
 /-! ### Arrays -/
 
 theorem arrSize {t : Term} {a : Array α} {c : ℕ} (h : Runs P env t (encodeValue a) c) :
-    Runs P env (.op .arraySize [t]) (encodeValue a.size) (c + 1) := op₁ h (by simp [PrimitiveOperation.apply])
+    Runs P env (.primitive .arraySize [t]) (encodeValue a.size) (c + 1) := op₁ h (by simp [PrimitiveOperation.apply])
 
 theorem arrAppend {t u : Term} {a b : Array α} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .arrayAppend [t, u]) (encodeValue (a ++ b)) (c + d + (a.size + b.size + 1)) :=
+    Runs P env (.primitive .arrayAppend [t, u]) (encodeValue (a ++ b)) (c + d + (a.size + b.size
+        + 1)) :=
   op₂ h hb (by simp [PrimitiveOperation.apply])
 
 theorem arrReplicate {t u : Term} {n : ℕ} {x : α} {c d : ℕ} (h : Runs P env t (encodeValue n) c)
     (hb : Runs P env u (encodeValue x) d) :
-    Runs P env (.op .arrayReplicate [t, u]) (encodeValue (Array.replicate n x)) (c + d + (n + 1)) :=
+    Runs P env (.primitive .arrayReplicate [t, u]) (encodeValue (Array.replicate n x)) (c + d + (n
+        + 1)) :=
   op₂ h hb (by simp [PrimitiveOperation.apply])
 
 theorem arrToList {t : Term} {a : Array α} {c : ℕ} (h : Runs P env t (encodeValue a) c) :
-    Runs P env (.op .arrayToList [t]) (encodeValue a.toList) (c + (3 * a.size + 1)) :=
+    Runs P env (.primitive .arrayToList [t]) (encodeValue a.toList) (c + (3 * a.size + 1)) :=
   op₁ h (by simp [PrimitiveOperation.apply]; rfl)
 
 theorem valToList_ofList (l : List MachineValue) : MachineValue.toList? (.ofList l) = .some l := by
@@ -961,14 +988,14 @@ theorem valToList_ofList (l : List MachineValue) : MachineValue.toList? (.ofList
   | cons x l ih => simp [MachineValue.ofList, MachineValue.toList?, ih]
 
 theorem listToArray {t : Term} {l : List α} {c : ℕ} (h : Runs P env t (encodeValue l) c) :
-    Runs P env (.op .arrayOfList [t]) (encodeValue l.toArray) (c + (l.length + 1)) :=
+    Runs P env (.primitive .arrayOfList [t]) (encodeValue l.toArray) (c + (l.length + 1)) :=
   op₁ h (by
     show PrimitiveOperation.apply .arrayOfList [.ofList (l.map encodeValue)] = _
     simp [PrimitiveOperation.apply, valToList_ofList])
 
 theorem arrGetD {t u w : Term} {a : Array α} {i : ℕ} {x : α} {c d e : ℕ}
     (h : Runs P env t (encodeValue a) c) (hi : Runs P env u (encodeValue i) d) (hx : Runs P env w (encodeValue x) e) :
-    Runs P env (.op .arrayGet [t, u, w]) (encodeValue (a.getD i x)) (c + d + e + 1) :=
+    Runs P env (.primitive .arrayGet [t, u, w]) (encodeValue (a.getD i x)) (c + d + e + 1) :=
   (Runs.op (RunsList.cons h (RunsList.cons hi (RunsList.cons hx RunsList.nil)))
     (v := encodeValue (a.getD i x)) (d := 1) (by
       simp only [enc_array, enc_nat, PrimitiveOperation.apply, Option.some.injEq, Prod.mk.injEq, and_true]
@@ -976,18 +1003,18 @@ theorem arrGetD {t u w : Term} {a : Array α} {i : ℕ} {x : α} {c d e : ℕ}
 
 theorem arrGetElem? {t u : Term} {a : Array α} {i : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hi : Runs P env u (encodeValue i) d) :
-    Runs P env (.case (.op .lessThan [u, .op .arraySize [t]]) [.ctor 0 [], .ctor 1 [.op .arrayGet [t, u, .val (.ctor 0 [])]]])
+    Runs P env (.case (.primitive .lessThan [u, .primitive .arraySize [t]]) [.constructor 0 [], .constructor 1 [.primitive .arrayGet [t, u, .literal (.constructor 0 [])]]])
       (encodeValue a[i]?) (d + (c + 1) + max (limbCount i) (limbCount a.size) +
         (if i < a.size then c + d + 1 + 1 + 2 else 1) + 1) := by
   have hlt := natLt hi (arrSize h)
   by_cases hia : i < a.size
-  · have hg : Runs P env (.op .arrayGet [t, u, .val (.ctor 0 [])]) (encodeValue a[i]) (c + d + 1 + 1) :=
+  · have hg : Runs P env (.primitive .arrayGet [t, u, .literal (.constructor 0 [])]) (encodeValue a[i]) (c + d + 1 + 1) :=
       (Runs.op (RunsList.cons h (RunsList.cons hi (RunsList.cons (Runs.val _) RunsList.nil)))
         (v := encodeValue a[i]) (d := 1) (by simp [PrimitiveOperation.apply, hia])).cost_eq (by omega)
-    have := Runs.case0 (k := 1) (alts := [.ctor 0 [], .ctor 1 [.op .arrayGet [t, u, .val (.ctor 0 [])]]])
+    have := Runs.case0 (k := 1) (alts := [.constructor 0 [], .constructor 1 [.primitive .arrayGet [t, u, .literal (.constructor 0 [])]]])
       (by simpa [hia] using hlt) rfl (some hg)
     simpa [hia, Array.getElem?_eq_getElem hia] using this
-  · have := Runs.case0 (k := 0) (alts := [.ctor 0 [], .ctor 1 [.op .arrayGet [t, u, .val (.ctor 0 [])]]])
+  · have := Runs.case0 (k := 0) (alts := [.constructor 0 [], .constructor 1 [.primitive .arrayGet [t, u, .literal (.constructor 0 [])]]])
       (by simpa [hia] using hlt) rfl (none (P := P) (env := env) (α := α))
     simpa [hia, Array.getElem?_eq_none (Nat.le_of_not_lt hia)] using this
 
@@ -1002,24 +1029,26 @@ theorem subtypeMk {t : Term} {p : α → Prop} {x : α} {hx : p x} {c : ℕ} (h 
 /-- `a[i]'h`: an entry in bounds. -/
 theorem arrGetElem {t u : Term} {a : Array α} {i : ℕ} {h : i < a.size} {c d : ℕ}
     (ha : Runs P env t (encodeValue a) c) (hi : Runs P env u (encodeValue i) d) :
-    Runs P env (.op .arrayGet [t, u, .val (.ctor 0 [])]) (encodeValue (a[i]'h)) (c + d + 1 + 1) :=
+    Runs P env (.primitive .arrayGet [t, u, .literal (.constructor 0 [])]) (encodeValue (a[i]'h)) (c
+        + d + 1 + 1) :=
   (Runs.op (RunsList.cons ha (RunsList.cons hi (RunsList.cons (Runs.val _) RunsList.nil)))
     (v := encodeValue (a[i]'h)) (d := 1) (by simp [PrimitiveOperation.apply, h])).cost_eq (by omega)
 
 /-- A function of a finite domain at `i`: entry `i` of its array. -/
 theorem finFunApp {t u : Term} {n : ℕ} {f : Fin n → α} {i : Fin n} {c d : ℕ}
     (h : Runs P env t (encodeValue f) c) (hi : Runs P env u (encodeValue i) d) :
-    Runs P env (.op .arrayGet [t, u, .val (.ctor 0 [])]) (encodeValue (f i)) (c + d + 1 + 1) :=
+    Runs P env (.primitive .arrayGet [t, u, .literal (.constructor 0 [])]) (encodeValue (f i)) (c +
+        d + 1 + 1) :=
   (Runs.op (RunsList.cons h (RunsList.cons hi (RunsList.cons (Runs.val _) RunsList.nil)))
     (v := encodeValue (f i)) (d := 1) (by
-      show PrimitiveOperation.apply .arrayGet [.arr (Array.ofFn fun j ↦ encodeValue (f j)), .nat i.val, _] = _
+      show PrimitiveOperation.apply .arrayGet [.array (Array.ofFn fun j ↦ encodeValue (f j)), .nat i.val, _] = _
       simp [PrimitiveOperation.apply])).cost_eq (by omega)
 
 /-- A function of a finite domain as data: the array of its values. -/
 theorem finFunOfArray {t : Term} {n : ℕ} {f : Fin n → α} {c : ℕ}
     (h : Runs P env t (encodeValue (Array.ofFn f)) c) : Runs P env t (encodeValue f) c := by
   have : encodeValue (Array.ofFn f) = encodeValue f := by
-    show MachineValue.arr ((Array.ofFn f).map encodeValue) = MachineValue.arr (Array.ofFn fun i ↦ encodeValue (f i))
+    show MachineValue.array ((Array.ofFn f).map encodeValue) = MachineValue.array (Array.ofFn fun i ↦ encodeValue (f i))
     rw [Array.map_ofFn]; rfl
   exact this ▸ h
 
@@ -1027,7 +1056,7 @@ theorem finFunOfArray {t : Term} {n : ℕ} {f : Fin n → α} {c : ℕ}
 theorem vecGet {t : Term} {n : ℕ} {v : Vector α n} {c : ℕ} (h : Runs P env t (encodeValue v) c) :
     Runs P env t (encodeValue v.get) c := by
   have : encodeValue v.get = encodeValue v := by
-    show MachineValue.arr (Array.ofFn fun i ↦ encodeValue (v.get i)) = MachineValue.arr (v.toArray.map encodeValue)
+    show MachineValue.array (Array.ofFn fun i ↦ encodeValue (v.get i)) = MachineValue.array (v.toArray.map encodeValue)
     congr 1
     apply Array.ext
     · simp
@@ -1041,10 +1070,11 @@ theorem vecToArray {t : Term} {n : ℕ} {v : Vector α n} {c : ℕ} (h : Runs P 
 /-- `v[i]'h` of a vector: an entry in bounds. -/
 theorem vecGetElem {t u : Term} {n : ℕ} {v : Vector α n} {i : ℕ} {h : i < n} {c d : ℕ}
     (hv : Runs P env t (encodeValue v) c) (hi : Runs P env u (encodeValue i) d) :
-    Runs P env (.op .arrayGet [t, u, .val (.ctor 0 [])]) (encodeValue (v[i]'h)) (c + d + 1 + 1) :=
+    Runs P env (.primitive .arrayGet [t, u, .literal (.constructor 0 [])]) (encodeValue (v[i]'h)) (c
+        + d + 1 + 1) :=
   (Runs.op (RunsList.cons hv (RunsList.cons hi (RunsList.cons (Runs.val _) RunsList.nil)))
     (v := encodeValue (v[i]'h)) (d := 1) (by
-      show PrimitiveOperation.apply .arrayGet [.arr (v.toArray.map encodeValue), .nat i, _] = _
+      show PrimitiveOperation.apply .arrayGet [.array (v.toArray.map encodeValue), .nat i, _] = _
       simp [PrimitiveOperation.apply, h])).cost_eq (by omega)
 
 /-- Limb `i` of a word of `E`: field `i`. -/
@@ -1061,14 +1091,15 @@ theorem eLimb2 {t : Term} {x : E} {c : ℕ} (h : Runs P env t (encodeValue x) c)
 /-- A word of `E` from its limbs. -/
 theorem eOfLimbs {ta tb tc : Term} {a b c : K} {ca cb cc : ℕ} (ha : Runs P env ta (encodeValue a) ca)
     (hb : Runs P env tb (encodeValue b) cb) (hc : Runs P env tc (encodeValue c) cc) :
-    Runs P env (.ctor 0 [ta, tb, tc]) (encodeValue (E.ofLimbs a b c)) (ca + cb + cc + 4) :=
+    Runs P env (.constructor 0 [ta, tb, tc]) (encodeValue (E.ofLimbs a b c)) (ca + cb + cc + 4) :=
   (Runs.ctor (k := 0) (RunsList.cons ha (RunsList.cons hb (RunsList.cons hc RunsList.nil)))).cost_eq
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem vecToList {t : Term} {n : ℕ} {v : Vector α n} {c : ℕ} (h : Runs P env t (encodeValue v) c) :
-    Runs P env (.op .arrayToList [t]) (encodeValue v.toList) (c + (3 * v.toArray.size + 1)) :=
+    Runs P env (.primitive .arrayToList [t]) (encodeValue v.toList) (c + (3 * v.toArray.size
+        + 1)) :=
   op₁ h (by
-    show PrimitiveOperation.apply .arrayToList [.arr (v.toArray.map encodeValue)] = _
+    show PrimitiveOperation.apply .arrayToList [.array (v.toArray.map encodeValue)] = _
     simp [PrimitiveOperation.apply, Vector.toList]
     rfl)
 
@@ -1078,22 +1109,22 @@ theorem vecMk {t : Term} {n : ℕ} {a : Array α} {ha : a.size = n} {c : ℕ}
 
 theorem arrPush {t u : Term} {a : Array α} {x : α} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hx : Runs P env u (encodeValue x) d) :
-    Runs P env (.op .arrayPush [t, u]) (encodeValue (a.push x)) (c + d + (a.size + 2)) :=
+    Runs P env (.primitive .arrayPush [t, u]) (encodeValue (a.push x)) (c + d + (a.size + 2)) :=
   op₂ h hx (by simp [PrimitiveOperation.apply])
 
 theorem arrayMk {t : Term} {l : List α} {c : ℕ} (h : Runs P env t (encodeValue l) c) :
-    Runs P env (.op .arrayOfList [t]) (encodeValue (Array.mk l)) (c + (l.length + 1)) := listToArray h
+    Runs P env (.primitive .arrayOfList [t]) (encodeValue (Array.mk l)) (c + (l.length + 1)) := listToArray h
 
 theorem arrSetIfInBounds {t u w : Term} {a : Array α} {i : ℕ} {x : α} {c d e : ℕ}
     (h : Runs P env t (encodeValue a) c) (hi : Runs P env u (encodeValue i) d) (hx : Runs P env w (encodeValue x) e) :
-    Runs P env (.op .arraySet [t, u, w]) (encodeValue (a.setIfInBounds i x)) (c + d + e + (a.size + 1)) :=
+    Runs P env (.primitive .arraySet [t, u, w]) (encodeValue (a.setIfInBounds i x)) (c + d + e + (a.size + 1)) :=
   (Runs.op (RunsList.cons h (RunsList.cons hi (RunsList.cons hx RunsList.nil)))
     (v := encodeValue (a.setIfInBounds i x)) (d := a.size + 1) (by
       simp [PrimitiveOperation.apply, Array.map_setIfInBounds])).cost_eq (by omega)
 
 theorem arrExtract {t u w : Term} {a : Array α} {i j : ℕ} {c d e : ℕ}
     (h : Runs P env t (encodeValue a) c) (hi : Runs P env u (encodeValue i) d) (hj : Runs P env w (encodeValue j) e) :
-    Runs P env (.op .arrayExtract [t, u, w]) (encodeValue (a.extract i j))
+    Runs P env (.primitive .arrayExtract [t, u, w]) (encodeValue (a.extract i j))
       (c + d + e + ((a.extract i j).size + 1)) :=
   (Runs.op (RunsList.cons h (RunsList.cons hi (RunsList.cons hj RunsList.nil)))
     (v := encodeValue (a.extract i j)) (d := (a.extract i j).size + 1) (by
@@ -1112,24 +1143,26 @@ written through the list (`List.map`, which the kernel evaluates structurally wh
 the program, unlike `Array.map`). The compiler applies it to the constants the rules table lists
 (the guest decoder's tables), whose encodings are far smaller than their code. -/
 theorem literalNats (l : List ℕ) :
-    Runs P env (.val (.arr (l.map encodeValue).toArray)) (encodeValue l.toArray) 1 := by
-  have h : encodeValue l.toArray = MachineValue.arr (l.map encodeValue).toArray := by
-    show MachineValue.arr (l.toArray.map encodeValue) = _
+    Runs P env (.literal (.array (l.map encodeValue).toArray)) (encodeValue l.toArray) 1 := by
+  have h : encodeValue l.toArray = MachineValue.array (l.map encodeValue).toArray := by
+    show MachineValue.array (l.toArray.map encodeValue) = _
     simp
   rw [h]; exact Runs.val _
 
 /-- An array of arrays of numbers given by a list of lists, as a literal of the program. -/
 theorem literalNatArrays (l : List (List ℕ)) :
-    Runs P env (.val (.arr (l.map fun r ↦ MachineValue.arr (r.map encodeValue).toArray).toArray))
+    Runs P env (.literal (.array (l.map fun r ↦ MachineValue.array (r.map
+        encodeValue).toArray).toArray))
       (encodeValue (l.map List.toArray).toArray) 1 := by
   have h : encodeValue (l.map List.toArray).toArray =
-      MachineValue.arr (l.map fun r ↦ MachineValue.arr (r.map encodeValue).toArray).toArray := by
-    show MachineValue.arr ((l.map List.toArray).toArray.map encodeValue) = _
+      MachineValue.array (l.map fun r ↦ MachineValue.array (r.map
+          encodeValue).toArray).toArray := by
+    show MachineValue.array ((l.map List.toArray).toArray.map encodeValue) = _
     simp only [List.map_toArray, List.map_map]
     congr 2
     apply List.map_congr_left
     intro r _
-    show MachineValue.arr (r.toArray.map encodeValue) = _
+    show MachineValue.array (r.toArray.map encodeValue) = _
     simp
   rw [h]; exact Runs.val _
 
@@ -1160,7 +1193,8 @@ theorem bvToFin {w : ℕ} [MachineEncoding (BitVec w)] (henc : ∀ v : BitVec w,
 /-- `BitVec.ofNat w n`: `n &&& (2^w - 1)`. -/
 theorem bvOfNat {w : ℕ} [MachineEncoding (BitVec w)] (henc : ∀ v : BitVec w, encodeValue v = .nat v.toNat)
     {t : Term} {n : ℕ} {c : ℕ} (h : Runs P env t (encodeValue n) c) :
-    Runs P env (.op .bitwiseAnd [t, .val (.nat (2 ^ w - 1))]) (encodeValue (BitVec.ofNat w n))
+    Runs P env (.primitive .bitwiseAnd [t, .literal (.nat (2 ^ w - 1))]) (encodeValue
+        (BitVec.ofNat w n))
       (c + 1 + max (limbCount n) (limbCount (2 ^ w - 1))) := by
   rw [henc, BitVec.toNat_ofNat, ← Nat.and_two_pow_sub_one_eq_mod]
   exact op₂ (b := 2 ^ w - 1) h (natLit (2 ^ w - 1)) (linearlyPriced_le (limbs_le_max_left Nat.and_le_left))

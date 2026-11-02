@@ -165,7 +165,7 @@ theorem VtH.callIf (h : VtH rd σ) (n : ℕ) (c : V) (f : String)
 theorem VtH.dispatch (h : VtH rd σ) (n : ℕ) (x : V) (fs : List String)
     (args rets : List V)
     (heq : tbStmtsEqb [.dispatch x fs args rets] ((vtPre.drop n).take 1) = true) :
-    ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (Parameters.gpow j) ∧
+    ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (Parameters.addressOfIndex j) ∧
       coreProgram.Rel rd fs[j] (args.map σ) (rets.map σ) := by
   obtain ⟨k, h⟩ := h
   exact tb_holds_dispatch vtPre_noRet h n x fs args rets heq
@@ -184,7 +184,7 @@ theorem VtH.sliceAt (h : VtH rd σ) (n : ℕ) (blk : List Stmt)
 theorem VtH.dispatchAt (h : VtH rd σ) (n : ℕ) (x : V) (fs : List String)
     (args rets : List V)
     (heq : tbStmtsEqb [.dispatch x fs args rets] ((vtAt n).take 1) = true) :
-    ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (Parameters.gpow j) ∧
+    ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (Parameters.addressOfIndex j) ∧
       coreProgram.Rel rd fs[j] (args.map σ) (rets.map σ) :=
   h.dispatch n x fs args rets (vtPre_drop n ▸ heq)
 

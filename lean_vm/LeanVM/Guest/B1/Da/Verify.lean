@@ -116,7 +116,7 @@ theorem da_verify_holds : da_verify_sound_Spec := by
       coreProgram.Rel rd "da_vector_cell" [σ (.n 17) * (gen ^ j) ^ 2] [lv] ∧
       (∀ i < r, RowStepC rd lv (σ (.n 27)) (gen ^ j) node (σ (.n 13)) (decide (j < 64)) (gen ^ i)) ∧
       (∀ d < 2 ^ L - r, GapStepC rd node (gen ^ r) (gen ^ d)) ∧
-      (∃ k < 11, gen ^ L = ofK (Parameters.gpow k) ∧
+      (∃ k < 11, gen ^ L = ofK (Parameters.addressOfIndex k) ∧
         coreProgram.Rel rd (daLevelsName k) [node] [c0, c1]) ∧
       LoadHolds rd (σ (.n 31) * (gen ^ j) ^ 2) 0 c0 ∧ LoadHolds rd (σ (.n 31) * (gen ^ j) ^ 2) 1 c1 := by
     intro j
@@ -134,7 +134,8 @@ theorem da_verify_holds : da_verify_sound_Spec := by
   choose lv node c0 c1 hcol using colF
   -- the columns' weights
   have vecF : ∀ j, ∃ ws : List E, j < 128 → ws.length = 256 ∧
-      (∀ k < 256, ∀ w, rd ((lv j).limb 0 * Parameters.gpow k) = some w → w = ws.getD k 0) ∧
+      (∀ k < 256, ∀ w, rd ((lv j).limb 0 * Parameters.addressOfIndex k) = some w → w =
+          ws.getD k 0) ∧
       ReadsAt rd (σ (.n 17) * (gen ^ j) ^ 2) (digestCells (keccak256 (ws.flatMap Node.extensionElementBytes))) := by
     intro j
     by_cases hj : j < 128
@@ -146,14 +147,14 @@ theorem da_verify_holds : da_verify_sound_Spec := by
   -- the cells
   have cellF : ∀ i j, ∃ (sy : List K) (s : E), i < r → j < 128 → sy.length = 256 ∧
       s = ∑ e ∈ Finset.range 256, (ws j).getD e 0 * ofK (sy.getD e 0) ∧
-      LoadHolds rd (node j * (gen ^ i) ^ 2) 0 (digestScalars (keccak256 (sy.flatMap kBytes))).1 ∧
-      LoadHolds rd (node j * (gen ^ i) ^ 2) 1 (digestScalars (keccak256 (sy.flatMap kBytes))).2 ∧
+      LoadHolds rd (node j * (gen ^ i) ^ 2) 0 (digestHalves (keccak256 (sy.flatMap K.toBytes))).1 ∧
+      LoadHolds rd (node j * (gen ^ i) ^ 2) 1 (digestHalves (keccak256 (sy.flatMap K.toBytes))).2 ∧
       LoadHolds rd (memAt rd (σ (.n 27) * gen ^ i) 0 * gen ^ j) 1
         (memAt rd (memAt rd (σ (.n 27) * gen ^ i) 0 * gen ^ j) 0 + s) ∧
       (j < 64 → LoadHolds rd (memAt rd (σ (.n 13) * gen ^ i) 0 * (gen ^ j) ^ 2) 0
-          (digestScalars (keccak256 (sy.flatMap kBytes))).1 ∧
+          (digestHalves (keccak256 (sy.flatMap K.toBytes))).1 ∧
         LoadHolds rd (memAt rd (σ (.n 13) * gen ^ i) 0 * (gen ^ j) ^ 2) 1
-          (digestScalars (keccak256 (sy.flatMap kBytes))).2) := by
+          (digestHalves (keccak256 (sy.flatMap K.toBytes))).2) := by
     intro i j
     by_cases hij : i < r ∧ j < 128
     · obtain ⟨d0, d1, s, hc, -, hch, hn0, hn1, hst⟩ := (hcol j hij.2).2.1 i hij.1
@@ -216,7 +217,7 @@ theorem da_verify_holds : da_verify_sound_Spec := by
     have hj' := Finset.mem_range.mp hj
     rw [(hcell i j hi hj').2.1, hsP i j hi hj', hwP j hj']
   -- the columns' roots
-  have hcr : ∀ j < 128, (c0 j, c1 j) = digestScalars (mRoot L (cellLeaf r symsP j)) := by
+  have hcr : ∀ j < 128, (c0 j, c1 j) = digestHalves (mRoot L (cellLeaf r symsP j)) := by
     intro j hj
     obtain ⟨-, -, hgaps, ⟨k, hk, hkL, hrel⟩, -, -⟩ := hcol j hj
     refine levels_root_of hk hL hkL.symm hrel fun i hi => ?_
@@ -230,7 +231,7 @@ theorem da_verify_holds : da_verify_sound_Spec := by
       simp only [cellLeaf, hir, ite_false]
       exact ⟨by simpa using g0, g1⟩
   -- the column tree
-  have hct : (σ (.n 37), σ (.n 38)) = digestScalars (mRoot 7 fun j => mRoot L (cellLeaf r symsP j)) := by
+  have hct : (σ (.n 37), σ (.n 38)) = digestHalves (mRoot 7 fun j => mRoot L (cellLeaf r symsP j)) := by
     have c7 := call_of_flat hall hc7
     simp only [List.map_cons, List.map_nil] at c7
     refine levels_root_of (k := 7) (L := 7) (by norm_num) (by norm_num) (gen_pow_eq_ofK 7).symm c7
@@ -245,9 +246,9 @@ theorem da_verify_holds : da_verify_sound_Spec := by
   have L23 : ∀ i < r, ∃ run, LoadHolds rd (σ (.n 13) * gen ^ i) 0 run ∧
       ReadsAt rd run (memRun rd run 128) ∧
       LoadHolds rd (σ (.n 41) * (gen ^ i) ^ 2) 0
-        (digestScalars (keccak256 (cellsBytes (memRun rd run 128)))).1 ∧
+        (digestHalves (keccak256 (cellsBytes (memRun rd run 128)))).1 ∧
       LoadHolds rd (σ (.n 41) * (gen ^ i) ^ 2) 1
-        (digestScalars (keccak256 (cellsBytes (memRun rd run 128)))).2 :=
+        (digestHalves (keccak256 (cellsBytes (memRun rd run 128)))).2 :=
     loop_sound (f := "__loop22") (ps := [σ (.n 1), σ (.n 13), σ (.n 41)]) (ordG_of (by omega)) h1
       (fun y hy => by
         obtain ⟨k1, k2⟩ := l23_step hy
@@ -259,8 +260,8 @@ theorem da_verify_holds : da_verify_sound_Spec := by
         obtain ⟨k1, k2⟩ := l24_step hy
         exact ⟨k1 _ _ _ rfl, k2⟩)
       (fun hne => by simpa using guardK_sound hg24 hall hne)
-  have hrowd : ∀ i < r, LoadHolds rd (σ (.n 41)) (2 * i) (digestScalars (rowD symsP i)).1 ∧
-      LoadHolds rd (σ (.n 41)) (2 * i + 1) (digestScalars (rowD symsP i)).2 := by
+  have hrowd : ∀ i < r, LoadHolds rd (σ (.n 41)) (2 * i) (digestHalves (rowD symsP i)).1 ∧
+      LoadHolds rd (σ (.n 41)) (2 * i + 1) (digestHalves (rowD symsP i)).2 := by
     intro i hi
     obtain ⟨run, hrun, -, k0, k1⟩ := L23 i hi
     have hm13 := memAt_of_load hrun
@@ -276,7 +277,7 @@ theorem da_verify_holds : da_verify_sound_Spec := by
       obtain ⟨-, -, -, -, -, hpre⟩ := hcell i (c / 2) hi (by omega)
       obtain ⟨p0, p1⟩ := hpre (by omega)
       rw [hm13, shift2] at p0 p1
-      have e2 : cellD symsP i (c / 2) = keccak256 ((syms i (c / 2)).flatMap kBytes) := by
+      have e2 : cellD symsP i (c / 2) = keccak256 ((syms i (c / 2)).flatMap K.toBytes) := by
         rw [cellD, hsP i (c / 2) hi (by omega)]
       rcases (show c % 2 = 0 ∨ c % 2 = 1 by omega) with h | h
       · rw [h, memAt_of_load (by simpa using p0), e2]; rfl
@@ -288,7 +289,7 @@ theorem da_verify_holds : da_verify_sound_Spec := by
       rw [digestBytes_eq_cells, cellsBytes]; rfl
     rw [hbytes, shift2] at k0 k1
     exact ⟨by simpa [rowD] using k0, by simpa [rowD] using k1⟩
-  have hrt : (σ (.n 48), σ (.n 49)) = digestScalars (mRoot L (rowLeaf r symsP)) := by
+  have hrt : (σ (.n 48), σ (.n 49)) = digestHalves (mRoot L (rowLeaf r symsP)) := by
     obtain ⟨k, hk, hk2, hrel⟩ := dispatch_of_flat hall hdisp
     simp only [dlNames, List.length_map, List.length_range] at hk
     simp only [dlNames, List.getElem_map, List.getElem_range, List.map_cons, List.map_nil] at hrel
@@ -310,10 +311,10 @@ theorem da_verify_holds : da_verify_sound_Spec := by
     rw [hv, List.nil_append] at hd
     simp only [Prod.ext_iff] at hrt hct
     rw [hrt.1, hrt.2, hct.1, hct.2] at hd
-    have hb : cellsBytes [(digestScalars (mRoot L (rowLeaf r symsP))).1,
-        (digestScalars (mRoot L (rowLeaf r symsP))).2,
-        (digestScalars (mRoot 7 fun j => mRoot L (cellLeaf r symsP j))).1,
-        (digestScalars (mRoot 7 fun j => mRoot L (cellLeaf r symsP j))).2] =
+    have hb : cellsBytes [(digestHalves (mRoot L (rowLeaf r symsP))).1,
+        (digestHalves (mRoot L (rowLeaf r symsP))).2,
+        (digestHalves (mRoot 7 fun j => mRoot L (cellLeaf r symsP j))).1,
+        (digestHalves (mRoot 7 fun j => mRoot L (cellLeaf r symsP j))).2] =
         digestBytes (mRoot L (rowLeaf r symsP)) ++
           digestBytes (mRoot 7 fun j => mRoot L (cellLeaf r symsP j)) := by
       rw [digestBytes_eq_cells, digestBytes_eq_cells]

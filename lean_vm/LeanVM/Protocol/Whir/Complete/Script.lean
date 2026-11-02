@@ -151,7 +151,7 @@ theorem answer_eq_answerOf (h : List Ev) (i : ℕ) (ps : List ℕ) :
 from the commitments), and where `P` returns it returns too, the results related by `R` at the
 commitments then in place. `P` never fails. -/
 def Follows {α β : Type} (R : Commits → α → β → Prop) :
-    Script α → Prog β → Commits → Prop
+    Script α → VerifierProgram β → Commits → Prop
   | .ret a, .ret b, cs => R cs a b
   | .send x k, .read k', cs => Follows R k (k' x) cs
   | .sample k, .sample k', cs => ∀ c, Follows R (k c) (k' c) cs
@@ -167,7 +167,8 @@ variable {α β γ δ : Type}
 
 /-- A weaker result relation. -/
 theorem mono {R R' : Commits → α → β → Prop} (hR : ∀ cs a b, R cs a b → R' cs a b) :
-    ∀ (H : Script α) (P : Prog β) (cs : Commits), Follows R H P cs → Follows R' H P cs := by
+    ∀ (H : Script α) (P : VerifierProgram β) (cs : Commits), Follows R H P cs → Follows R' H P
+        cs := by
   intro H
   induction H with
   | ret a => intro P cs h; cases P <;> simp_all [Follows]
@@ -183,9 +184,9 @@ theorem mono {R R' : Commits → α → β → Prop} (hR : ∀ cs a b, R cs a b 
 
 /-- **Simulations compose along `bind`.** -/
 theorem bind {R' : Commits → α → β → Prop} {R : Commits → γ → δ → Prop}
-    {F : α → Script γ} {G : β → Prog δ}
+    {F : α → Script γ} {G : β → VerifierProgram δ}
     (hk : ∀ cs a b, R' cs a b → Follows R (F a) (G b) cs) :
-    ∀ (H : Script α) (P : Prog β) (cs : Commits), Follows R' H P cs →
+    ∀ (H : Script α) (P : VerifierProgram β) (cs : Commits), Follows R' H P cs →
       Follows R (H.bind F) (P.bind G) cs := by
   intro H
   induction H with
@@ -217,7 +218,8 @@ theorem bind {R' : Commits → α → β → Prop} {R : Commits → γ → δ �
 
 /-- Bind with the intermediate commitments and results pinned down. -/
 theorem bind_of {R' : Commits → α → β → Prop} {R : Commits → γ → δ → Prop}
-    {F : α → Script γ} {G : β → Prog δ} {H : Script α} {P : Prog β} {cs : Commits}
+    {F : α → Script γ} {G : β → VerifierProgram δ} {H : Script α} {P : VerifierProgram β} {cs :
+        Commits}
     (h : Follows R' H P cs) (hk : ∀ cs a b, R' cs a b → Follows R (F a) (G b) cs) :
     Follows R (H >>= F) (P >>= G) cs :=
   bind hk H P cs h
@@ -225,37 +227,38 @@ theorem bind_of {R' : Commits → α → β → Prop} {R : Commits → γ → δ
 /-! ### The moves -/
 
 theorem ret_ret {R : Commits → α → β → Prop} {a : α} {b : β} {cs : Commits} (h : R cs a b) :
-    Follows R (Script.ret a) (Prog.ret b) cs := h
+    Follows R (Script.ret a) (VerifierProgram.ret b) cs := h
 
 /-- Sending a scalar meets reading it. -/
 theorem sendE_readE (x : E) (cs : Commits) :
-    Follows (fun cs' _ b ↦ cs' = cs ∧ b = x) (Script.sendE x) Prog.readScalar cs := by
-  simp [Follows, Script.sendE, Prog.readScalar]
+    Follows (fun cs' _ b ↦ cs' = cs ∧ b = x) (Script.sendE x) VerifierProgram.readScalar cs := by
+  simp [Follows, Script.sendE, VerifierProgram.readScalar]
 
 /-- Sending a list meets reading as many scalars. -/
 theorem sendList_readN (cs : Commits) :
     ∀ (xs : List E), Follows (fun cs' _ b ↦ cs' = cs ∧ b = xs) (Script.sendList xs)
-      (Prog.readScalars xs.length) cs
-  | [] => by simp [Follows, Script.sendList, Prog.readScalars]
+      (VerifierProgram.readScalars xs.length) cs
+  | [] => by simp [Follows, Script.sendList, VerifierProgram.readScalars]
   | x :: xs => by
-    simp only [Script.sendList, List.length_cons, Prog.readScalars, Prog.readScalar, Prog.bind_eq,
-      Prog.bind, Follows]
+    simp only [Script.sendList, List.length_cons, VerifierProgram.readScalars,
+        VerifierProgram.readScalar, VerifierProgram.bind_eq,
+      VerifierProgram.bind, Follows]
     rw [← Script.bind_ret (Script.sendList xs)]
     exact bind (fun cs' _ b h ↦ by rcases h with ⟨rfl, rfl⟩; exact ⟨rfl, rfl⟩) _ _ _
       (sendList_readN cs xs)
 
 /-- Receiving a challenge meets sampling it. -/
 theorem sampleE_sampleE (cs : Commits) :
-    Follows (fun cs' a b ↦ cs' = cs ∧ a = b) Script.sampleE Prog.sampleChallenge cs := by
-  simp [Follows, Script.sampleE, Prog.sampleChallenge]
+    Follows (fun cs' a b ↦ cs' = cs ∧ a = b) Script.sampleE VerifierProgram.sampleChallenge cs := by
+  simp [Follows, Script.sampleE, VerifierProgram.sampleChallenge]
 
 /-- Receiving `n` challenges meets sampling them. -/
 theorem sampleN_sampleN (cs : Commits) :
     ∀ n, Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ b.length = n) (Script.sampleN n)
-      (Prog.sampleChallenges n) cs
-  | 0 => by simp [Follows, Script.sampleN, Prog.sampleChallenges]
+      (VerifierProgram.sampleChallenges n) cs
+  | 0 => by simp [Follows, Script.sampleN, VerifierProgram.sampleChallenges]
   | n + 1 => by
-    simp only [Script.sampleN, Prog.sampleChallenges]
+    simp only [Script.sampleN, VerifierProgram.sampleChallenges]
     refine bind_of (sampleE_sampleE cs) ?_
     rintro cs' a b ⟨rfl, rfl⟩
     refine bind_of (sampleN_sampleN cs' n) ?_
@@ -264,24 +267,24 @@ theorem sampleN_sampleN (cs : Commits) :
 
 /-- Passing a proof of work meets checking it. -/
 theorem grindS_grindP (bits : ℕ) (cs : Commits) :
-    Follows (fun cs' _ _ ↦ cs' = cs) Script.grindS (Prog.grindProofOfWork bits) cs := by
-  simp [Follows, Script.grindS, Prog.grindProofOfWork]
+    Follows (fun cs' _ _ ↦ cs' = cs) Script.grindS (VerifierProgram.grindProofOfWork bits) cs := by
+  simp [Follows, Script.grindS, VerifierProgram.grindProofOfWork]
 
 /-- Committing a word of the announced width meets reading the commitment. -/
 theorem commitS_commitP {ht w : ℕ} {W : Word} (hW : WellShaped w W) (cs : Commits) :
-    Follows (fun cs' _ _ ↦ cs' = cs ++ [(ht, w, W)]) (Script.commitS W) (Prog.readCommitment ht w) cs := by
-  simp [Follows, Script.commitS, Prog.readCommitment, hW]
+    Follows (fun cs' _ _ ↦ cs' = cs ++ [(ht, w, W)]) (Script.commitS W) (VerifierProgram.readCommitment ht w) cs := by
+  simp [Follows, Script.commitS, VerifierProgram.readCommitment, hW]
 
 /-- Receiving rows meets an opening answered from the commitments. -/
 theorem queryS_queryP {i : ℕ} {ps : List ℕ} {cs : Commits} {rows : List (List K)}
     (h : answerOf cs i ps = some rows) :
-    Follows (fun cs' a b ↦ cs' = cs ∧ a = rows ∧ b = rows) Script.queryS (Prog.queryOpenings i ps) cs := by
-  simp [Follows, Script.queryS, Prog.queryOpenings, h]
+    Follows (fun cs' a b ↦ cs' = cs ∧ a = rows ∧ b = rows) Script.queryS (VerifierProgram.queryOpenings i ps) cs := by
+  simp [Follows, Script.queryS, VerifierProgram.queryOpenings, h]
 
 /-- A `require` that holds is met by stopping. -/
 theorem ret_require {R : Commits → α → Unit → Prop} {a : α} {c : Prop} [Decidable c] {cs : Commits}
-    (hc : c) (h : R cs a ()) : Follows R (Script.ret a) (Prog.require c) cs := by
-  simp [Prog.require, hc, Follows, h]
+    (hc : c) (h : R cs a ()) : Follows R (Script.ret a) (VerifierProgram.require c) cs := by
+  simp [VerifierProgram.require, hc, Follows, h]
 
 end Follows
 
@@ -294,7 +297,7 @@ challenge function, and commits well-shaped words on the way. -/
 theorem runFrom_of_follows {α β : Type} {R : Commits → α → β → Prop} (S : Strategy)
     (chal : List Ev → E) (H₀ : Script α) (h₀ : List Ev)
     (hS : ∀ e, S.msg (h₀ ++ e) = H₀.msgAt e ∧ S.word (h₀ ++ e) = H₀.wordAt e) :
-    ∀ (H : Script α) (P : Prog β) (e : List Ev), H₀.walk e = some H →
+    ∀ (H : Script α) (P : VerifierProgram β) (e : List Ev), H₀.walk e = some H →
       Follows R H P (commits (h₀ ++ e)) →
       (∃ b, S.runFrom chal P (h₀ ++ e) = some b ∧ ∃ cs a, R cs a b) ∧
         S.ShapedFrom chal P (h₀ ++ e) := by
@@ -386,7 +389,7 @@ theorem ofScript_agrees {α : Type} (H : Script α) (h₀ : List Ev) (e : List E
 followed from, for every challenge function, against every strategy that agrees with the
 script's replay after that history. -/
 theorem runFrom_of_follows' {α β : Type} {R : Commits → α → β → Prop} (S : Strategy)
-    (chal : List Ev → E) {H : Script α} {P : Prog β} {h₀ : List Ev}
+    (chal : List Ev → E) {H : Script α} {P : VerifierProgram β} {h₀ : List Ev}
     (hS : ∀ e, S.msg (h₀ ++ e) = H.msgAt e ∧ S.word (h₀ ++ e) = H.wordAt e)
     (hf : Follows R H P (commits h₀)) :
     (∃ b, S.runFrom chal P h₀ = some b ∧ ∃ cs a, R cs a b) ∧ S.ShapedFrom chal P h₀ := by

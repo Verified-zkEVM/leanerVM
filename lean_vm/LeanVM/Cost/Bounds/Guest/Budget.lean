@@ -103,7 +103,8 @@ theorem frameAtAPrice_le (e n : ℕ) (hn : n ≤ 16) :
   omega
 
 /-- The replay lists the initial state at least. -/
-theorem replayStatesOf_length_pos (memT codeT : Array (ℕ × ℕ)) (prog : LeanVM.Semantics.Program)
+theorem replayStatesOf_length_pos (memT codeT : Array (ℕ × ℕ)) (prog :
+    LeanVM.Semantics.LeanIsaProgram)
     {κ : ℕ} (mem : Vector E (2 ^ κ)) : 1 ≤ (Decoder.replayStatesOf memT codeT prog mem).length := by
   unfold Decoder.replayStatesOf replayFuel
   rw [show (2 : ℕ) ^ 128 = (2 ^ 128 - 1) + 1 by norm_num, Decoder.statesVec]
@@ -123,7 +124,7 @@ price** (`guestDecoderPrice`, `Cost/Prices.lean`). -/
 theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.guestProgram)
     (hv : ValidExecution LeanVM.Guest.guestProgram input t) :
     decoderProgramPrice LeanVM.Guest.guestProgram t ≤
-      guestDecoderPrice t.logMemorySize LeanVM.Guest.guestProgram.logSize t.steps := by
+      guestDecoderPrice t.logMemorySize LeanVM.Guest.guestProgram.logSize t.stepCount := by
   unfold decoderProgramPrice guestDecoderPrice
   have hP := decoderProgram_includes
   have hκ : t.logMemorySize ≤ 32 := hv.1.2.1
@@ -136,71 +137,75 @@ theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.
       by have := hcv.slots; omega, hcv.xClaims, hcv.sClaims⟩
   set states := Decoder.replayStatesOf (powTable t.logMemorySize) (powTable LeanVM.Guest.guestProgram.logSize)
     LeanVM.Guest.guestProgram (Decoder.memoryVector t.memory) with hstates
-  set e := guestDecoderEntryTableKeyExponent t.steps
+  set e := guestDecoderEntryTableKeyExponent t.stepCount
   have hn : 2 * states.length < 2 ^ e :=
-    lt_of_le_of_lt (by omega) (tableExponent_spec t.steps)
-  have hrd := readerClosure_runs decoderProgram includes_budget_readerClosure (Decoder.memoryVector t.memory)
-  have hR := readerClosure_cost decoderProgram includes_budget_readerClosure hκ (Decoder.memoryVector t.memory)
-  have hLg : ∀ x : K, machineCost decoderProgram Decoder.discreteLogWithC.costIdx
+    lt_of_le_of_lt (by omega) (tableExponent_spec t.stepCount)
+  have hrd := readerClosure_runs compiledGuestWitnessDecoder includes_budget_readerClosure (Decoder.memoryVector t.memory)
+  have hR := readerClosure_cost compiledGuestWitnessDecoder includes_budget_readerClosure hκ (Decoder.memoryVector t.memory)
+  have hLg : ∀ x : K, machineCost compiledGuestWitnessDecoder Decoder.discreteLogWithC.costIdx
       [encodeValue discreteLogTables, encodeValue x] ≤ 122420 :=
-    fun x ↦ discreteLogWith_cost decoderProgram includes_budget_discreteLogWith x
-  have hB : ∀ (w : E) (n : ℕ), n ≤ 34 → machineCost decoderProgram Decoder.powBelowC.costIdx
+    fun x ↦ discreteLogWith_cost compiledGuestWitnessDecoder includes_budget_discreteLogWith x
+  have hB : ∀ (w : E) (n : ℕ), n ≤ 34 → machineCost compiledGuestWitnessDecoder
+      Decoder.powBelowC.costIdx
       [encodeValue discreteLogTables, encodeValue w, encodeValue n] ≤ 706 :=
-    fun w n hn ↦ powBelow_cost decoderProgram includes_budget_powBelow discreteLogTables w n hn
-  have hpre : ∀ (j : ℕ) (fp : K), RunsApp decoderProgram
+    fun w n hn ↦ powBelow_cost compiledGuestWitnessDecoder includes_budget_powBelow
+        discreteLogTables w n hn
+  have hpre : ∀ (j : ℕ) (fp : K), RunsApp compiledGuestWitnessDecoder
       (.closure Decoder.decTopStatesC.lam1.costIdx [encodeValue discreteLogTables,
         encodeValue preTable, encodeValue genPows, readerV t.logMemorySize (Decoder.memoryVector t.memory)]) [encodeValue j, encodeValue fp]
       (encodeValue (preTestAt discreteLogTables preTable genPows
         (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)) j fp)) := fun j fp ↦
-    RunsApp.of_spec (Decoder.decTopStatesC.lam1.costSpec decoderProgram includes_budget_preTestLam
+    RunsApp.of_spec (Decoder.decTopStatesC.lam1.costSpec compiledGuestWitnessDecoder
+        includes_budget_preTestLam
       discreteLogTables preTable genPows _ _ hrd j fp)
-  have hPr : ∀ (j : ℕ) (fp : K), j < 2 ^ 64 → appCost decoderProgram
+  have hPr : ∀ (j : ℕ) (fp : K), j < 2 ^ 64 → appCost compiledGuestWitnessDecoder
       (.closure Decoder.decTopStatesC.lam1.costIdx [encodeValue discreteLogTables,
         encodeValue preTable, encodeValue genPows, readerV t.logMemorySize (Decoder.memoryVector t.memory)]) [encodeValue j, encodeValue fp] ≤
       guestDecoderPreconditionPrice := fun j fp hj ↦ by
     rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
-      List.nil_append, Decoder.decTopStatesC.lam1.costEq decoderProgram includes_budget_preTestLam _ _ _ _ _ hrd, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-    have := preTestAt_cost_deployed decoderProgram includes_budget_preTestAt discreteLogTables _ _ hrd 1271 hR
+      List.nil_append, Decoder.decTopStatesC.lam1.costEq compiledGuestWitnessDecoder includes_budget_preTestLam _ _ _ _ _ hrd, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
+    have := preTestAt_cost_deployed compiledGuestWitnessDecoder includes_budget_preTestAt discreteLogTables _ _ hrd 1271 hR
       706 hB preTable preTable_shape genPows j hj fp
     unfold guestDecoderPreconditionPrice
     omega
-  have he1 := keyExponent_pos t.steps
+  have he1 := keyExponent_pos t.stepCount
   have hpos := replayStatesOf_length_pos (powTable t.logMemorySize)
     (powTable LeanVM.Guest.guestProgram.logSize) LeanVM.Guest.guestProgram (Decoder.memoryVector t.memory)
   rw [← hstates] at hpos
-  have hE := entryArrayT_cost decoderProgram _ _ hrd 1271 hR _ _ hpre _ hPr
+  have hE := entryArrayT_cost compiledGuestWitnessDecoder _ _ hrd 1271 hR _ _ hpre _ hPr
     includes_budget_entryArrayT Decoder.pcTableT 2 5969 e pcTableT_getD_lt pcTableT_getD_length
-    (fun k hk ↦ pcTableT_get_cost decoderProgram includes_budget_getPc k hk) states hn
+    (fun k hk ↦ pcTableT_get_cost compiledGuestWitnessDecoder includes_budget_getPc k hk) states hn
   obtain ⟨hok, hsz⟩ := entryArrayT_ok (Decoder.memReader (powTable t.logMemorySize)
     (Decoder.memoryVector t.memory)) (preTestAt discreteLogTables preTable genPows
     (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)))
     Decoder.pcTableT 2 pcTableT_getD_lt pcTableT_getD_length states
   have hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 16 →
-      machineCost decoderProgram Decoder.frameAtAC.costIdx
+      machineCost compiledGuestWitnessDecoder Decoder.frameAtAC.costIdx
         [encodeValue (Decoder.entryArrayT Decoder.pcTableT
           (preTestAt discreteLogTables preTable genPows (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)))
           states (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory))), readerV t.logMemorySize (Decoder.memoryVector t.memory), encodeValue k,
           encodeValue a, encodeValue r, encodeValue v] ≤ guestDecoderFramePrice e :=
-    fun k a r v hk hl ↦ (frameAtA_cost decoderProgram _ _ hrd 1271 hR includes_budget_frameAtA e _
+    fun k a r v hk hl ↦ (frameAtA_cost compiledGuestWitnessDecoder _ _ hrd 1271 hR
+        includes_budget_frameAtA e _
       hok (by omega) k hk a r v).trans (frameAtAPrice_le e _ hl)
-  have hσ : ∀ v : V, RunsApp decoderProgram
+  have hσ : ∀ v : V, RunsApp compiledGuestWitnessDecoder
       (.closure Decoder.decTopStatesC.lam0.costIdx [readerV t.logMemorySize (Decoder.memoryVector t.memory)]) [encodeValue v]
       (encodeValue (Decoder.mainVal (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)) v)) := fun v ↦
-    RunsApp.of_spec (Decoder.decTopStatesC.lam0.costSpec decoderProgram includes_budget_mainValLam _ _ hrd v)
-  have hS : ∀ v : V, appCost decoderProgram
+    RunsApp.of_spec (Decoder.decTopStatesC.lam0.costSpec compiledGuestWitnessDecoder includes_budget_mainValLam _ _ hrd v)
+  have hS : ∀ v : V, appCost compiledGuestWitnessDecoder
       (.closure Decoder.decTopStatesC.lam0.costIdx [readerV t.logMemorySize (Decoder.memoryVector t.memory)]) [encodeValue v] ≤
         1271 + 1525 := fun v ↦ by
     rw [appCost_fn, List.cons_append, List.nil_append,
-      Decoder.decTopStatesC.lam0.costEq decoderProgram includes_budget_mainValLam _ _ hrd, List.length_cons, List.length_nil]
-    have := mainVal_cost decoderProgram includes_budget_mainVal hrd hR v; omega
-  have hW := frameWit_cost decoderProgram discreteLogTables includes_budget_decWitN includes_budget_frameLam
-    includes_budget_cursorLam (gLog_bound decoderProgram includes_budget_gLogD) readerTabs readerTabs_ok hrd hR hσ hS
+      Decoder.decTopStatesC.lam0.costEq compiledGuestWitnessDecoder includes_budget_mainValLam _ _ hrd, List.length_cons, List.length_nil]
+    have := mainVal_cost compiledGuestWitnessDecoder includes_budget_mainVal hrd hR v; omega
+  have hW := frameWit_cost compiledGuestWitnessDecoder discreteLogTables includes_budget_decWitN includes_budget_frameLam
+    includes_budget_cursorLam (gLog_bound compiledGuestWitnessDecoder includes_budget_gLogD) readerTabs readerTabs_ok hrd hR hσ hS
     _ (guestDecoderFramePrice e) hF 125634
-    (fun p q ↦ cursorLength_cost decoderProgram includes_budget_cursorLength discreteLogTables 122420 hLg
+    (fun p q ↦ cursorLength_cost compiledGuestWitnessDecoder includes_budget_cursorLength discreteLogTables 122420 hLg
       discreteLogWith_lt p q)
     hc 8192 (by norm_num) (fun c hck ↦ valid_cursor hv c hck)
-  have hT := decTop_cost decoderProgram hP LeanVM.Guest.guestProgram hκ (Decoder.memoryVector t.memory) 12895 7188478 _ _
-    (preTable_cost decoderProgram includes_budget_preTable).le (pcTableT_cost decoderProgram includes_budget_pcTableT)
+  have hT := decTop_cost compiledGuestWitnessDecoder hP LeanVM.Guest.guestProgram hκ (Decoder.memoryVector t.memory) 12895 7188478 _ _
+    (preTable_cost compiledGuestWitnessDecoder includes_budget_preTable).le (pcTableT_cost compiledGuestWitnessDecoder includes_budget_pcTableT)
     hE hW hc
   have hk := topConst_le (guestDecoderFramePrice e)
   rw [addressTablesPrice_eq] at hT

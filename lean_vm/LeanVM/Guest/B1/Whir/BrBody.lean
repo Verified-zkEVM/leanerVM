@@ -103,7 +103,7 @@ theorem osBodyA_honest {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : Ca
         w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1 ∧
       (∀ (C : CallRel) (rd : Reader) (σ : Val) (A : OsAt),
         [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] = capOf S → σ (.n 5) = target →
-        σ (.n 6) = (digestScalars root).1 → σ (.n 7) = (digestScalars root).2 →
+        σ (.n 6) = (digestHalves root).1 → σ (.n 7) = (digestHalves root).2 →
         ReadsAt rd (σ (.n 8)) xs → OsMem rd A c tr → OsCallsOk C rd A c tr →
         BlkF C rd σ 9 (osFinEnd c (osTlSt c).2.1 (osTlSt c).2.2) (osBodyF c tr σ c0 c2 A)
           (osBodyA c)

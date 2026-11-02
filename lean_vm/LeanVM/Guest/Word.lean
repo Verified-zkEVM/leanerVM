@@ -83,7 +83,7 @@ theorem powBin_eq {M : Type} [Monoid M] :
 /-- `g^e` for `e < 2^128` (`g_pow_u128`), by square-and-multiply. -/
 def gpowK (e : Nat) : K := powBin 128 g 1 e
 
-theorem gpowK_eq {e : Nat} (h : e < u128Bound) : gpowK e = gpow e := by
+theorem gpowK_eq {e : Nat} (h : e < u128Bound) : gpowK e = addressOfIndex e := by
   rw [gpowK, powBin_eq 128 g 1 e h, one_mul]
 
 /-- `g^e` as a word. -/

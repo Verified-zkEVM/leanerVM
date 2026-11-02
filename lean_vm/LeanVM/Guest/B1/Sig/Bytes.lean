@@ -15,7 +15,7 @@ public import LeanVM.Guest.WithHash
 /-!
 # Cells as the schemes' values
 
-The schemes hash byte strings `P || A || payload` of 16-byte fields (`HashSig.bytesLE`,
+The schemes hash byte strings `P || A || payload` of 16-byte fields (`HashSig.littleEndianBytes`,
 `Sphincs.bytesLE`), the guest hashes cells (`Value.Keccak.cellBytes`). A field `v : BitVec 128` is
 the cell `cellOf128 v`, and a cell `x` reads back as `cellVal x`, whose bytes are `x`'s for any `x`
 (`bytesLE_cellVal`): the bytes ignore the top limb, which `KECCAK` pins to zero.
@@ -79,17 +79,18 @@ theorem leBytes_add_mul (lo hi a b : Nat) (hlo : lo < 256 ^ a) :
   rw [← leBytes_append, ← leBytes_mod (lo + 256 ^ a * hi) a, Nat.add_mul_mod_self_left,
     Nat.mod_eq_of_lt hlo, Nat.add_mul_div_left _ _ (by positivity), Nat.div_eq_of_lt hlo, zero_add]
 
-/-- The bytes of a bit vector, as `HashSig.bytesLE` writes them. -/
-theorem bytesLE_eq (k : Nat) (v : BitVec (8 * k)) : HashSig.bytesLE k v = leBytes v.toNat k := by
-  apply List.ext_getElem (by simp [HashSig.bytesLE])
+/-- The bytes of a bit vector, as `HashSig.littleEndianBytes` writes them. -/
+theorem bytesLE_eq (k : Nat) (v : BitVec (8 * k)) : HashSig.littleEndianBytes k v = leBytes v.toNat
+    k := by
+  apply List.ext_getElem (by simp [HashSig.littleEndianBytes])
   intro i h1 h2
-  simp only [HashSig.bytesLE, List.getElem_ofFn, getElem_leBytes]
+  simp only [HashSig.littleEndianBytes, List.getElem_ofFn, getElem_leBytes]
   apply UInt8.toNat_inj.mp
   simp only [UInt8.toNat_ofBitVec, BitVec.extractLsb'_toNat, toNat_uint8_ofNat, Nat.shiftRight_eq_div_pow,
     pow_mul]
   norm_num
 
-theorem sphincs_bytesLE_eq (k : Nat) (v : BitVec (8 * k)) : Sphincs.bytesLE k v = leBytes v.toNat k :=
+theorem sphincs_bytesLE_eq (k : Nat) (v : BitVec (8 * k)) : Sphincs.littleEndianBytes k v = leBytes v.toNat k :=
   bytesLE_eq k v
 
 /-- A 64-bit word's bytes. -/
@@ -103,8 +104,8 @@ theorem wordBytes_eq (w : UInt64) : wordBytes w = leBytes w.toNat 8 := by
   interval_cases i <;> simp [wordBytes, Nat.shiftRight_eq_div_pow, UInt64.toNat_shiftRight]
 
 /-- A `K` word's bytes. -/
-theorem kBytes_eq (a : K) : kBytes a = leBytes (kToNat a) 8 := by
-  rw [kBytes, wordBytes_eq]
+theorem kBytes_eq (a : K) : K.toBytes a = leBytes (kToNat a) 8 := by
+  rw [K.toBytes, wordBytes_eq]
   rfl
 
 /-! ## Cells as 128-bit values -/
@@ -134,10 +135,10 @@ theorem toNat_cellVal (x : E) : (cellVal x).toNat = cellNat x := by
   omega
 
 /-- **A cell's bytes are its value's**, whatever its top limb. -/
-theorem bytesLE_cellVal (x : E) : HashSig.bytesLE 16 (cellVal x) = cellBytes x := by
+theorem bytesLE_cellVal (x : E) : HashSig.littleEndianBytes 16 (cellVal x) = cellBytes x := by
   rw [bytesLE_eq, toNat_cellVal, cellBytes_eq_leBytes]
 
-theorem sphincs_bytesLE_cellVal (x : E) : Sphincs.bytesLE 16 (cellVal x) = cellBytes x :=
+theorem sphincs_bytesLE_cellVal (x : E) : Sphincs.littleEndianBytes 16 (cellVal x) = cellBytes x :=
   bytesLE_cellVal x
 
 theorem cellNat_cellOf128 (v : BitVec 128) : cellNat (cellOf128 v) = v.toNat := by
@@ -215,9 +216,9 @@ theorem leNat_leBytes (n k : Nat) : leNat (leBytes n k) = n % 256 ^ k := by
 
 /-- A digest's bytes are its two cells'. -/
 theorem digestBytes_eq (d : Digest) :
-    digestBytes d = cellBytes (digestScalars d).1 ++ cellBytes (digestScalars d).2 := by
-  rw [digestBytes, digestScalars]
-  simp only [cellBytes, kBytes, ofLimbs_limb0, ofLimbs_limb1, lane_ofLane]
+    digestBytes d = cellBytes (digestHalves d).1 ++ cellBytes (digestHalves d).2 := by
+  rw [digestBytes, digestHalves]
+  simp only [cellBytes, K.toBytes, ofLimbs_limb0, ofLimbs_limb1, lane_ofLane]
   rcases d with ⟨⟨l⟩, hl⟩
   simp only [List.size_toArray] at hl
   match l, hl with
@@ -225,18 +226,18 @@ theorem digestBytes_eq (d : Digest) :
 
 /-- The number of a digest's 32 bytes: its two cells'. -/
 theorem leNat_digestBytes (d : Digest) :
-    leNat (digestBytes d) = cellNat (digestScalars d).1 + 2 ^ 128 * cellNat (digestScalars d).2 := by
+    leNat (digestBytes d) = cellNat (digestHalves d).1 + 2 ^ 128 * cellNat (digestHalves d).2 := by
   rw [digestBytes_eq, leNat_append, cellBytes_eq_leBytes, cellBytes_eq_leBytes, leNat_leBytes,
     leNat_leBytes, length_leBytes,
-    Nat.mod_eq_of_lt (by have := cellNat_lt (digestScalars d).1; norm_num; omega),
-    Nat.mod_eq_of_lt (by have := cellNat_lt (digestScalars d).2; norm_num; omega)]
+    Nat.mod_eq_of_lt (by have := cellNat_lt (digestHalves d).1; norm_num; omega),
+    Nat.mod_eq_of_lt (by have := cellNat_lt (digestHalves d).2; norm_num; omega)]
   norm_num
 
 theorem keccakBits_toNat (I : List UInt8) :
-    (Node.keccakBits I).toNat = cellNat (digestScalars (keccak256 I)).1 +
-      2 ^ 128 * cellNat (digestScalars (keccak256 I)).2 := by
-  have h0 := cellNat_lt (digestScalars (keccak256 I)).1
-  have h1 := cellNat_lt (digestScalars (keccak256 I)).2
+    (Node.keccakBits I).toNat = cellNat (digestHalves (keccak256 I)).1 +
+      2 ^ 128 * cellNat (digestHalves (keccak256 I)).2 := by
+  have h0 := cellNat_lt (digestHalves (keccak256 I)).1
+  have h1 := cellNat_lt (digestHalves (keccak256 I)).2
   have e : (digestBytes (keccak256 I)).foldr (fun b acc ↦ b.toNat + 256 * acc) 0 =
       leNat (digestBytes (keccak256 I)) := rfl
   rw [Node.keccakBits, Node.digestBits, BitVec.toNat_ofNat, e, leNat_digestBytes,
@@ -244,17 +245,17 @@ theorem keccakBits_toNat (I : List UInt8) :
 
 /-- **A hash's truncation is its first output cell.** -/
 theorem truncateHash_keccakBits (I : List UInt8) :
-    HashSig.truncateHash (Node.keccakBits I) = cellVal (digestScalars (keccak256 I)).1 := by
+    HashSig.truncateHash (Node.keccakBits I) = cellVal (digestHalves (keccak256 I)).1 := by
   apply BitVec.eq_of_toNat_eq
   have h : (HashSig.truncateHash (Node.keccakBits I)).toNat = (Node.keccakBits I).toNat % 2 ^ 128 := by
     show ((Node.keccakBits I).toNat >>> 0) % 2 ^ 128 = _
     rw [Nat.shiftRight_zero]
-  have h0 := cellNat_lt (digestScalars (keccak256 I)).1
+  have h0 := cellNat_lt (digestHalves (keccak256 I)).1
   rw [h, keccakBits_toNat, Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt h0]
   exact (toNat_cellVal _).symm
 
 theorem sphincs_truncateHash_keccakBits (I : List UInt8) :
-    Sphincs.truncateHash (Node.keccakBits I) = cellVal (digestScalars (keccak256 I)).1 :=
+    Sphincs.truncateHash (Node.keccakBits I) = cellVal (digestHalves (keccak256 I)).1 :=
   truncateHash_keccakBits I
 
 /-! ## Addresses -/
@@ -273,7 +274,7 @@ theorem addrNat_lt (tag step hi lo : Nat) : addrNat tag step hi lo < 2 ^ 64 := b
 
 /-- **An address is the cell of its packed fields.** -/
 theorem fieldBytes_tweakFields (tag step hi lo : Nat) :
-    HashSig.fieldBytes (HashSig.tweakFields tag step hi lo) =
+    HashSig.addressBytes (HashSig.tweakFields tag step hi lo) =
       cellBytes (eOfNat (addrNat tag step hi lo)) := by
   have hS : (BitVec.ofNat 3 step ++ BitVec.ofNat 5 tag).toNat = tag % 32 + 32 * (step % 8) := by
     rw [BitVec.toNat_append, BitVec.toNat_ofNat, BitVec.toNat_ofNat, Nat.shiftLeft_eq, mul_comm,
@@ -284,7 +285,7 @@ theorem fieldBytes_tweakFields (tag step hi lo : Nat) :
   have hhi := Nat.mod_lt hi (show 2 ^ 24 > 0 by norm_num)
   have htag := Nat.mod_lt tag (show 32 > 0 by norm_num)
   have hst := Nat.mod_lt step (show 8 > 0 by norm_num)
-  rw [cellBytes_eOfNat (addrNat_lt _ _ _ _), HashSig.fieldBytes, HashSig.tweakFields,
+  rw [cellBytes_eOfNat (addrNat_lt _ _ _ _), HashSig.addressBytes, HashSig.tweakFields,
     bytesLE_eq, bytesLE_eq, bytesLE_eq, bytesLE_eq, hS]
   simp only [BitVec.toNat_ofNat, BitVec.ofNat_eq_ofNat, Nat.zero_mod]
   rw [show addrNat tag step hi lo = lo % 2 ^ 32 + 256 ^ 4 * (hi % 2 ^ 24 + 256 ^ 3 *
@@ -294,7 +295,7 @@ theorem fieldBytes_tweakFields (tag step hi lo : Nat) :
   simp only [List.append_assoc]
 
 theorem sphincs_fieldBytes_tweakFields (tag step hi lo : Nat) :
-    Sphincs.fieldBytes (Sphincs.tweakFields tag step hi lo) =
+    Sphincs.addressBytes (Sphincs.tweakFields tag step hi lo) =
       cellBytes (eOfNat (addrNat tag step hi lo)) :=
   fieldBytes_tweakFields tag step hi lo
 

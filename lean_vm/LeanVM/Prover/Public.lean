@@ -29,7 +29,7 @@ open LeanVM.Protocol (Column)
 @[expose] public section
 
 /-- A memory limb's line, from the arrays. -/
-theorem lineAt_memCol {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)}
+theorem lineAt_memCol {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ prog s)}
     {cols : Array (Array K)} (hcols : ColsOk prog s q cols) (i : Fin 4) (r : E) :
     lineAt (cols.getD (i : ℕ) #[]) r = memLine prog s q i r := by
   rw [memLine_eq, cols_memCol hcols, lineAt]
@@ -39,7 +39,7 @@ theorem lineAt_memCol {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s
       (Nat.one_lt_two_pow s.logMem_pos.ne') 0)
 
 /-- **The public-input phase makes the moves of `hPub`**, to the same claims. -/
-theorem corr_pubFast {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)}
+theorem corr_pubFast {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ prog s)}
     {cols : Array (Array K)} (hcols : ColsOk prog s q cols) :
     Corr (· = ·) (pubFast (verifierLayout prog s) cols) (hPub prog s q) := by
   unfold pubFast hPub

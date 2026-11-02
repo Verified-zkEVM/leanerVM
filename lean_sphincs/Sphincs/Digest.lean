@@ -19,14 +19,14 @@ variable [Params]
 open Concrete
 
 /-- The input a digest trial hashes to test its randomizer. -/
-abbrev msgInput (secretKey : Seeded.SecretKey) (message : Message) (randomness : Randomness) :
+abbrev msgInput (secretKey : Seeded.SecretKey) (message : Message) (randomness : Randomizer) :
     HashInput :=
   tweakableHashInput secretKey.parameter .message
     (messageDigestPayload message randomness)
 
 omit [Params] in
 theorem msgInput_inj (secretKey : Seeded.SecretKey) (message : Message)
-    {randomness randomness' : Randomness}
+    {randomness randomness' : Randomizer}
     (h : msgInput secretKey message randomness = msgInput secretKey message randomness') :
     randomness = randomness' := by
   simp only [msgInput, tweakableHashInput, messageDigestPayload, List.append_assoc] at h

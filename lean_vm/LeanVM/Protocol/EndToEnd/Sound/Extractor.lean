@@ -48,7 +48,7 @@ namespace LeanVM.Protocol.EndToEnd.Sound
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.Whir LeanVM.Protocol.EndToEnd.Front
-open LeanVM.Protocol.EndToEnd.Complete (publicDigest)
+open LeanVM.Protocol.EndToEnd.Complete (publicInputDigest)
 open LeanVM.Protocol.KeccakHash LeanVM.Protocol.Rom
 open OracleComp OracleSpec
 open scoped ENNReal
@@ -66,25 +66,25 @@ variable (H : Bytes → Option Digest) (F : KeccakState → Option KeccakState)
 
 /-- **The extracted run of a sequence** is the extracted run of its first part, then of the
 second from where the first stopped. -/
-theorem xrun_bind {α β : Type} (f : α → Prog β) :
-    ∀ (p : Prog α) (s : ProgState) (h : List Ev),
+theorem xrun_bind {α β : Type} (f : α → VerifierProgram β) :
+    ∀ (p : VerifierProgram α) (s : VerifierProgramState) (h : List Ev),
       xrun H F (p.bind f) s h = (xrun H F p s h).bind fun r ↦ xrun H F (f r.1) r.2.1 r.2.2
   | .ret a, s, h => rfl
   | .fail, s, h => rfl
   | .read k, s, h => by
-    simp only [Prog.bind, xrun]
+    simp only [VerifierProgram.bind, xrun]
     split
     · rfl
     · rcases Compile.absorb (m := Option) F s.sponge _ _ with _ | sp
       · rfl
       · exact xrun_bind f _ _ _
   | .sample k, s, h => by
-    simp only [Prog.bind, xrun]
+    simp only [VerifierProgram.bind, xrun]
     rcases squeeze (m := Option) F s.sponge with _ | r
     · rfl
     · exact xrun_bind f _ _ _
   | .grind bits k, s, h => by
-    simp only [Prog.bind, xrun]
+    simp only [VerifierProgram.bind, xrun]
     split
     · rfl
     · rcases Compile.absorb (m := Option) F s.sponge _ _ with _ | sp
@@ -97,7 +97,7 @@ theorem xrun_bind {α β : Type} (f : α → Prog β) :
           · exact xrun_bind f _ _ _
           · rfl
   | .commit height width k, s, h => by
-    simp only [Prog.bind, xrun]
+    simp only [VerifierProgram.bind, xrun]
     split
     · rcases Compile.absorb (m := Option) F s.sponge _ _ with _ | sp0
       · rfl
@@ -110,7 +110,7 @@ theorem xrun_bind {α β : Type} (f : α → Prog β) :
           · rfl
     · rfl
   | .query i ps k, s, h => by
-    simp only [Prog.bind, xrun]
+    simp only [VerifierProgram.bind, xrun]
     split
     · rfl
     · split
@@ -125,7 +125,8 @@ def ReadsCommits (l : List Ev) : Prop :=
 extracted run whose events are reads and commitments is a run with any hash `H'` and permutation
 `F'` from any sponge, reaching the same value and state up to the sponge. -/
 theorem run_id_of_xrun (H' : Bytes → Digest) (F' : KeccakState → KeccakState) {α : Type} :
-    ∀ (p : Prog α) (s : ProgState) (h l : List Ev) {a : α} {s' : ProgState},
+    ∀ (p : VerifierProgram α) (s : VerifierProgramState) (h l : List Ev) {a : α} {s' :
+        VerifierProgramState},
       xrun H F p s h = some (a, s', h ++ l) → ReadsCommits l → ∀ sp : Sponge,
         ∃ sp', Id.run (Compile.runWithHash H' F' p { s with sponge := sp }) =
           some (a, { s' with sponge := sp' })
@@ -207,7 +208,8 @@ theorem run_id_of_xrun (H' : Bytes → Digest) (F' : KeccakState → KeccakState
 /-- **The roots of an extracted run are its history's commitments**, the words extracted under
 the roots. -/
 theorem xrun_rootsInv {α : Type} :
-    ∀ (p : Prog α) (s : ProgState) (h : List Ev) {a : α} {s' : ProgState} {h' : List Ev},
+    ∀ (p : VerifierProgram α) (s : VerifierProgramState) (h : List Ev) {a : α} {s' :
+        VerifierProgramState} {h' : List Ev},
       RootsInv H s h → xrun H F p s h = some (a, s', h') → RootsInv H s' h'
   | .ret a, s, h, _, _, _, hR, hr => by
     simp only [xrun, Option.some.injEq, Prod.mk.injEq] at hr
@@ -266,11 +268,11 @@ theorem commits_map_read (xs : List E) : commits (xs.map Ev.read) = [] := by
   | nil => rfl
   | cons x xs ih => simpa [commits] using ih
 
-variable {prog : Program} {input : PublicInput}
+variable {prog : LeanIsaProgram} {input : PublicInput}
 
 /-- The root the proof announces for the stack: the first root the verifier's steps 1 and 2
 read off it. -/
-def announcedRoot (prog : Program) (π : Proof) : Option Digest :=
+def announcedRoot (prog : LeanIsaProgram) (π : Proof) : Option Digest :=
   (Extraction.afterRoot (bytecodeWords prog) π).bind fun x ↦ x.2.roots.head?.map (·.1)
 
 /-- **The specification's commitment is the extracted history's**: on an accepted proof, the
@@ -279,15 +281,15 @@ its rate, and a root whose word under the hash answers is the history's first wo
 are good and the ladder has a first level. -/
 theorem commitment_eq {c : KeccakCalls.QueryCache} {π : Proof}
     (hv : Rom.verify (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
-      (leanVmSeed (bytecodeWords prog) (publicDigest input))
-      (leanVmProgram (bytecodeWords prog) (publicDigest input)) π = some true)
+      (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π = some true)
     {s : Sizes} {ρ : ℕ} {W : Word}
     (hann : announced prog (extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
-      (leanVmSeed (bytecodeWords prog) (publicDigest input))
-      (leanVmProgram (bytecodeWords prog) (publicDigest input)) π) = some (s, ρ))
+      (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π) = some (s, ρ))
     (hfw : firstWord (extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
-      (leanVmSeed (bytecodeWords prog) (publicDigest input))
-      (leanVmProgram (bytecodeWords prog) (publicDigest input)) π) = some W) :
+      (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π) = some W) :
     (∃ root ht w, announcedRoot prog π = some root ∧
       W = extract (fun x ↦ c (.inl x)) root ht w ∧
       ∃ st, Extraction.afterRoot (bytecodeWords prog) π = some ((verifierLayout prog s, ρ), st) ∧
@@ -296,13 +298,14 @@ theorem commitment_eq {c : KeccakCalls.QueryCache} {π : Proof}
       ∃ level rest, Whir.ladder (verifierLayout prog s).stackLog ρ = some (level :: rest) := by
   set H : Bytes → Option Digest := fun x ↦ c (.inl x)
   set F : KeccakState → Option KeccakState := fun s ↦ c (.inr s)
-  set hist := extractedHistory H F (leanVmSeed (bytecodeWords prog) (publicDigest input))
-    (leanVmProgram (bytecodeWords prog) (publicDigest input)) π with hhist
+  set hist := extractedHistory H F (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+    (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π with hhist
   obtain ⟨seed, sf, hseed, hx⟩ := xrun_of_verify hv
   rw [← hhist] at hx
   -- The run: the announced sizes, the root, the rest.
-  have hP : leanVmProgram (bytecodeWords prog) (publicDigest input) =
-      ((readSizes (bytecodeWords prog)).bind fun a ↦ veBody (publicDigest input) a.1 a.2).bind
+  have hP : leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input) =
+      ((readAnnouncedSizes (bytecodeWords prog)).bind fun a ↦ veBody (publicInputDigest input) a.1
+          a.2).bind
         fun _ ↦ .ret true := by
     rw [leanVmProgram_eq, verifyExecution_eq]
   rw [hP, xrun_bind, Option.bind_eq_some_iff] at hx
@@ -311,7 +314,7 @@ theorem commitment_eq {c : KeccakCalls.QueryCache} {π : Proof}
   obtain ⟨-, -, rfl⟩ := hfin
   rw [xrun_bind, Option.bind_eq_some_iff] at hx3
   obtain ⟨⟨a, s1, h1⟩, hx1, hx3⟩ := hx3
-  obtain ⟨g, hg⟩ : ∃ g, veBody (publicDigest input) a.1 a.2 =
+  obtain ⟨g, hg⟩ : ∃ g, veBody (publicInputDigest input) a.1 a.2 =
       (commitStack a.1.stackLog a.2).bind g := ⟨_, rfl⟩
   simp only at hx3
   rw [hg, xrun_bind, Option.bind_eq_some_iff] at hx3
@@ -357,7 +360,7 @@ theorem commitment_eq {c : KeccakCalls.QueryCache} {π : Proof}
       ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ [] = some (a, s2, [] ++ (l₁ ++ [Ev.commit
         (levelShape a.1.stackLog level (2 ^ level.fold)).1
         (levelShape a.1.stackLog level (2 ^ level.fold)).2 W'])) := by
-    change xrun H F ((readSizes (bytecodeWords prog)).bind fun a ↦
+    change xrun H F ((readAnnouncedSizes (bytecodeWords prog)).bind fun a ↦
       (commitStack a.1.stackLog a.2).bind fun _ ↦ .ret a) _ _ = _
     rw [xrun_bind, hx1, Option.bind_some]
     simp only

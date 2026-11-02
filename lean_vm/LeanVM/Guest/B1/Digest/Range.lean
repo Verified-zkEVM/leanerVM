@@ -33,7 +33,7 @@ theorem load_gpow {rd : Reader} (hm : MemOk rd) {x t : E} (h : LoadHolds rd x 0 
     ∃ e < 2 ^ 32, x = gen ^ e := by
   obtain ⟨κ, -, hκ, L, rfl⟩ := hm
   obtain ⟨hx, hr⟩ := h
-  rw [Parameters.gpow, pow_zero, mul_one] at hr
+  rw [Parameters.addressOfIndex, pow_zero, mul_one] at hr
   obtain ⟨i, hi, -⟩ := (read_some_iff (by omega) L _ _).mp hr
   refine ⟨i, lt_of_lt_of_le i.2 (Nat.pow_le_pow_right (by decide) hκ), ?_⟩
   rw [eq_ofK_limb hx, hi, gen_pow_eq_ofK]

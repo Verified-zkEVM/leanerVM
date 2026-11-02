@@ -28,7 +28,7 @@ namespace LeanVM.Guest.B1.Sig
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Guest.Memory
 open LeanVM.Protocol.Verifier (eOfNat)
-open Sphincs Sphincs.Concrete
+open Sphincs Sphincs.Verification
 
 @[expose] public section
 
@@ -132,7 +132,7 @@ end
 
 /-- **The addresses a checked path loads from.** -/
 theorem loadAddrs_of_loadOk {ptrs : List Nat} {es : List Ev} (h : ∀ e ∈ es, Ev.loadOk ptrs e) :
-    ∀ A ∈ loadAddrs σ es, (∃ k < 4, A = (σ (.n 0)).limb 0 * gpow k) ∨
+    ∀ A ∈ loadAddrs σ es, (∃ k < 4, A = (σ (.n 0)).limb 0 * addressOfIndex k) ∨
       ∃ q ∈ ptrs, A = (σ (.n q)).limb 0 := by
   intro A hA
   obtain ⟨e, he, hea⟩ := List.mem_filterMap.mp hA
@@ -145,7 +145,7 @@ theorem loadAddrs_of_loadOk {ptrs : List Nat} {es : List Ev} (h : ∀ e ∈ es, 
     List.any_eq_true] at hok
   rcases hok with ⟨rfl, hoff⟩ | ⟨rfl, q, hq, rfl⟩
   · exact Or.inl ⟨off, hoff, rfl⟩
-  · exact Or.inr ⟨q, hq, by simp [gpow]⟩
+  · exact Or.inr ⟨q, hq, by simp [addressOfIndex]⟩
 
 /-! ## The body's loads -/
 
@@ -171,21 +171,22 @@ theorem unusedBytes_lt {N : Nat} (h : N < 2 ^ 128) : ∀ j, unusedBytes N j < 25
   | _ + 2 => by simp only [unusedBytes]; omega
 
 theorem limb_mul_ofK {bb : E} (hK : IsInK bb) (v : Nat) :
-    (bb * ofK (gpow v)).limb 0 = bb.limb 0 * gpow v := by
-  have e : bb * ofK (gpow v) = ofK (bb.limb 0 * gpow v) := by rw [ofK_mul, ← eq_ofK_limb hK]
+    (bb * ofK (addressOfIndex v)).limb 0 = bb.limb 0 * addressOfIndex v := by
+  have e : bb * ofK (addressOfIndex v) = ofK (bb.limb 0 * addressOfIndex v) :=
+      by rw [ofK_mul, ← eq_ofK_limb hK]
   rw [e]
   simp
 
 /-- **The byte reads' pointers hold `σ n1 · g^v`**, `v` a byte, the marks the hints'. -/
 theorem sPtr_val {rd : Reader} {Pc m0 m1 rho : E} (hsp : SP1 rd σ Pc m0 m1 rho)
-    (hmid : AtomsHold rd σ sMid) {ctr : Nat} (hcm : ∀ j < 4, σ (.n (sB + j)) = ofK (gpow (ctrByte ctr j))) :
-    ∀ q ∈ sPtrs, ∃ v < 256, σ (.n q) = σ (.n 1) * ofK (gpow v) := by
+    (hmid : AtomsHold rd σ sMid) {ctr : Nat} (hcm : ∀ j < 4, σ (.n (sB + j)) = ofK (addressOfIndex (ctrByte ctr j))) :
+    ∀ q ∈ sPtrs, ∃ v < 256, σ (.n q) = σ (.n 1) * ofK (addressOfIndex v) := by
   have hN := cellNat_lt (σ (.n 18))
   have pro : ∀ (j k : Nat), j < 3 → Stmt.atom (.mul (.n k) (.n 1) (.n (132 + j))) ∈ sPrologue →
-      ∃ v < 256, σ (.n k) = σ (.n 1) * ofK (gpow v) := fun j k hj hk =>
+      ∃ v < 256, σ (.n k) = σ (.n 1) * ofK (addressOfIndex v) := fun j k hj hk =>
     ⟨_, unusedBytes_lt hN j, by rw [hsp.atoms.atom hk, hsp.marks j hj]⟩
   have ctrm : ∀ (j k : Nat), j < 4 → Stmt.atom (.mul (.n k) (.n 1) (.n (sB + j))) ∈ sFb.1 →
-      ∃ v < 256, σ (.n k) = σ (.n 1) * ofK (gpow v) := fun j k hj hk =>
+      ∃ v < 256, σ (.n k) = σ (.n 1) * ofK (addressOfIndex v) := fun j k hj hk =>
     ⟨ctrByte ctr j, Nat.mod_lt _ (by norm_num), by
       rw [hmid.atom (a := .mul (.n k) (.n 1) (.n (sB + j))) (by
         rw [sMid_split]; exact List.mem_append_right _ (List.mem_append_left _ hk)), hcm j hj]⟩
@@ -219,7 +220,7 @@ def verify_sig_lean_sphincs_complete_loads_Spec : Prop :=
       ∃ σ : Val, σ (.n 0) = p ∧ σ (.n 1) = bb ∧
         Stmt.HoldsList C rd σ Data.core20.body False (fun rs => rs = []) ∧
         ∀ es vs, walk σ Data.core20.body = .ret es vs → ∀ A ∈ loadAddrs σ es,
-          (∃ k < 4, A = p.limb 0 * gpow k) ∨ ∃ v < 256, A = bb.limb 0 * gpow v
+          (∃ k < 4, A = p.limb 0 * addressOfIndex k) ∨ ∃ v < 256, A = bb.limb 0 * addressOfIndex v
 
 /-- **`verify_sig_lean_sphincs`'s complete valuation loads only the claim and the byte table.** -/
 theorem verify_sig_lean_sphincs_complete_loads : verify_sig_lean_sphincs_complete_loads_Spec := by

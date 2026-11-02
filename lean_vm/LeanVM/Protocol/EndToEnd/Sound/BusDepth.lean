@@ -48,7 +48,7 @@ theorem length_pySide_push (t : Fin 6) :
 
 /-- The instance's push leaves: the three seeds' (state, memory, bytecode), then each opcode
 table's push flushes. -/
-theorem pushLeaves_leanIsa (prog : Program) (s : Sizes) :
+theorem pushLeaves_leanIsa (prog : LeanIsaProgram) (s : Sizes) :
     (leanIsaInstance prog s).pushLeaves = (1 + 2 ^ s.logMem + 2 ^ prog.logSize) +
       ∑ t : Fin 6, ((LeanIsa.flushes (opIdx t)).filter fun f ↦ decide (f.1 = Side.push)).length *
         2 ^ s.τ t := by
@@ -69,7 +69,7 @@ theorem pushLeaves_leanIsa (prog : Program) (s : Sizes) :
     rfl
 
 /-- The push side's stacked total at the verifier's layout is the instance's push leaves. -/
-theorem blockTotal_push_eq_pushLeaves (prog : Program) (s : Sizes) :
+theorem blockTotal_push_eq_pushLeaves (prog : LeanIsaProgram) (s : Sizes) :
     blockTotal (sideSizes (fwLogs prog s) (pushBlocks s)) =
       (leanIsaInstance prog s).pushLeaves := by
   rw [pushLeaves_leanIsa, blockTotal_sideSizes, pushBlocks, sum_flatten_ofFn, fwLogs]
@@ -80,7 +80,7 @@ theorem blockTotal_push_eq_pushLeaves (prog : Program) (s : Sizes) :
 /-! ## The four facts -/
 
 /-- The push side's depth at the verifier's layout is the instance's bus depth. -/
-theorem busLayout_depth_leanIsa (prog : Program) (s : Sizes) :
+theorem busLayout_depth_leanIsa (prog : LeanIsaProgram) (s : Sizes) :
     (busLayout [0, (verifierLayout prog s).logMemory, (verifierLayout prog s).logBytecode]
       (verifierLayout prog s).push).depth = (leanIsaInstance prog s).μBus := by
   rw [busLayout_depth_verifier, busDepth, log2Ceil_eq_clog, blockTotal_push_eq_pushLeaves]
@@ -92,7 +92,7 @@ theorem length_constraints : ∀ j : Fin 9,
   decide +kernel
 
 /-- The sumcheck tables have two constraints, `JUMP`'s. -/
-theorem B_leanIsa (prog : Program) (s : Sizes) :
+theorem B_leanIsa (prog : LeanIsaProgram) (s : Sizes) :
     (leanIsaInstance prog s).B = 2 := by
   let I := leanIsaInstance prog s
   have hsub : I.B = ∑ j ∈ Finset.univ.filter I.SumcheckTable, (I.constraints j).length :=
@@ -106,7 +106,7 @@ theorem B_leanIsa (prog : Program) (s : Sizes) :
   simp
 
 /-- The instance's constraint count is at most `2 ^ 20`. -/
-theorem B_leanIsa_le (prog : Program) (s : Sizes) :
+theorem B_leanIsa_le (prog : LeanIsaProgram) (s : Sizes) :
     (leanIsaInstance prog s).B ≤ 2 ^ 20 := by
   rw [B_leanIsa]
   norm_num

@@ -74,7 +74,7 @@ theorem idx_one_iff {f : String} {j : ℕ} (hj : idxOf f = some j) : j = 1 ↔ f
     rw [idxOf_main] at hj
     exact (Option.some.inj hj).symm
 
-theorem entryOf_of {f : String} {j : ℕ} (hj : idxOf f = some j) : entryOf f = (fnOf j).entry := by
+theorem entryOf_of {f : String} {j : ℕ} (hj : idxOf f = some j) : entryOf f = (fnOf j).entryPc := by
   unfold entryOf
   rw [hj]
 
@@ -160,8 +160,9 @@ private theorem ite_elim_neg {p : Prop} [Decidable p] {a b : Prop} (hp : ¬p) (h
 /-- **The jump table's prologue, counted**: `__jump_tables`' `SET`s from `(g^0, 1)` to `main`'s
 entry. -/
 theorem runC_jumpTables {κ : ℕ} {L : MemoryImage κ} (h : JumpTables L) :
-    RunC guestProgram L ⟨gpow 0, 1⟩ ⟨gpow mainEntry, 1⟩ jtSets := by
-  have hwalk : ∀ i ≤ Data.f0.len, RunC guestProgram L ⟨gpow 0, 1⟩ ⟨gpow i, 1⟩
+    RunC guestProgram L ⟨addressOfIndex 0, 1⟩ ⟨addressOfIndex mainEntry, 1⟩ jtSets := by
+  have hwalk : ∀ i ≤ Data.f0.instructionCount, RunC guestProgram L ⟨addressOfIndex 0, 1⟩
+      ⟨addressOfIndex i, 1⟩
       (fun op => if op = .setConstant then i else 0) := by
     intro i
     induction i with
@@ -173,23 +174,26 @@ theorem runC_jumpTables {κ : ℕ} {L : MemoryImage κ} (h : JumpTables L) :
       exact RunC.refl _
     | succ i ih =>
       intro hi
-      obtain ⟨o, k0, k1, k2, hins, hq⟩ := End.f0_instr (show i < Data.f0.len by omega)
-      have hf := End.f0_fetch (show i < Data.f0.len by omega)
+      obtain ⟨o, k0, k1, k2, hins, hq⟩ := End.f0_instr (show i < Data.f0.instructionCount by omega)
+      have hf := End.f0_fetch (show i < Data.f0.instructionCount by omega)
       rw [hins] at hf
       have hH : Holds L i 1 (.set o k0 k1 k2) := by
-        show L.read (1 * gpow o) = some (OInstr.imm k0 k1 k2)
+        show L.read (1 * addressOfIndex o) = some (OffsetInstruction.immediateWord k0 k1 k2)
         rw [End.gpow_mul_one]
         exact h _ hq
       have := (ih (by omega)).trans (runC_fallThrough hf (End.f0_pc_lt (by omega)) rfl hH)
       have e : (fun op : Opcode => if op = .setConstant then i + 1 else 0) =
           (fun op : Opcode => if op = .setConstant then i else 0) +
-            (fun op ↦ if op = (OInstr.set o k0 k1 k2).toInstr.opcode then 1 else 0) := by
+            (fun op ↦ if op = (OffsetInstruction.set o k0 k1 k2).toLeanIsaInstruction.opcode
+                then 1 else 0) := by
         funext op
-        by_cases hop : op = .setConstant <;> simp [hop, OInstr.toInstr, Instr.opcode]
+        by_cases hop : op = .setConstant <;> simp [hop, OffsetInstruction.toLeanIsaInstruction,
+            LeanIsaInstruction.opcode]
       rw [e]
       exact this
   have := hwalk _ le_rfl
-  have e : (fun op : Opcode => if op = .setConstant then Data.f0.len else 0) = jtSets := by
+  have e : (fun op : Opcode
+      => if op = .setConstant then Data.f0.instructionCount else 0) = jtSets := by
     funext op
     unfold jtSets
     rfl
@@ -203,9 +207,10 @@ there from its entry at its frame within its subtree's weight, and its returns a
 arguments. -/
 def InstRuns {κ : ℕ} (L : MemoryImage κ) (I : Inst) (args rets : List E) : Prop :=
   ∃ (r : Registers K) (c : Opcode → ℕ),
-    (if I.t.name = "main" then r = Registers.final guestProgram else retRegs L (gpow I.fp) = some r) ∧
-    RunC guestProgram L ⟨gpow (entryOf I.t.name), gpow I.fp⟩ r c ∧ (∀ op, c op ≤ weightV (fun f σ ↦ pathCountN f σ op) I.t) ∧
-    ∀ k (hk : k < rets.length), L.read (gpow (I.fp + (2 + args.length + k))) = some rets[k]
+    (if I.t.name = "main" then r = Registers.final guestProgram else retRegs L (addressOfIndex I.fp) = some r) ∧
+    RunC guestProgram L ⟨addressOfIndex (entryOf I.t.name), addressOfIndex I.fp⟩ r c ∧ (∀ op, c op ≤ weightV (fun f σ ↦ pathCountN f σ op) I.t) ∧
+    ∀ k (hk : k < rets.length), L.read (addressOfIndex (I.fp + (2 + args.length + k))) = some
+        rets[k]
 
 section Insts
 
@@ -232,10 +237,11 @@ theorem inst_runs : ∀ n, ∀ I ∈ honestInsts coreProgram fs H hdr T, I.t.tot
       have hkv := kidsValid_get hk
       have hkids : I.t.kids = kids := by rw [hti]; rfl
       have hex : ∀ i' : ℕ, ∃ ci : Opcode → ℕ, (∀ (c : Memory.Call) (kfp : ℕ), (calls es)[i']? = some c →
-          I.kidFps[i']? = some kfp → c.taken = true → (∃ r, retRegs L (gpow kfp) = some r ∧
-            RunC guestProgram L ⟨gpow (entryOf c.f), gpow kfp⟩ r ci) ∧
+          I.kidFps[i']? = some kfp → c.taken = true → (∃ r, retRegs L (addressOfIndex kfp) =
+              some r ∧
+            RunC guestProgram L ⟨addressOfIndex (entryOf c.f), addressOfIndex kfp⟩ r ci) ∧
             ∀ k (hk : k < c.rets.length),
-              L.read (gpow (kfp + (2 + c.args.length + k))) = some (σ c.rets[k])) ∧
+              L.read (addressOfIndex (kfp + (2 + c.args.length + k))) = some (σ c.rets[k])) ∧
           ∀ op, ci op ≤ ((kids[i']?).map (weightV (fun f σ ↦ pathCountN f σ op))).getD 0 := by
         intro i'
         cases hc : (calls es)[i']? with
@@ -317,7 +323,7 @@ end Insts
 /-- `main` runs from its entry at frame `1` to the final registers, within the tree's weight. -/
 theorem main_runC (h : B2Hyps) {hdr : E × E} {rd : Reader} {T : Memory.Tree} (hname : T.name = "main")
     (hH : HonestAt coreProgram fs H C hdr T cert rd [] []) :
-    ∃ c : Opcode → ℕ, RunC guestProgram (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Registers.final guestProgram) c ∧
+    ∃ c : Opcode → ℕ, RunC guestProgram (honest coreProgram fs H C hdr T) ⟨addressOfIndex mainEntry, 1⟩ (Registers.final guestProgram) c ∧
       ∀ op, c op ≤ weightV (fun f σ ↦ pathCountN f σ op) T := by
   obtain ⟨I, hI, hIt, hfp, -⟩ := root_inst (P := coreProgram) (fs := fs) (H := H) (hdr := hdr) (T := T)
   have hv : I.t.Valid coreProgram (honest coreProgram fs H C hdr T).read [] [] := by
@@ -327,14 +333,14 @@ theorem main_runC (h : B2Hyps) {hdr : E × E} {rd : Reader} {T : Memory.Tree} (h
   rw [hname] at hr hrun
   simp only [↓reduceIte] at hr
   subst hr
-  rw [entryOf_main, hfp, show (gpow 0 : K) = 1 by rw [gpow, pow_zero]] at hrun
+  rw [entryOf_main, hfp, show (addressOfIndex 0 : K) = 1 by rw [addressOfIndex, pow_zero]] at hrun
   exact ⟨c, hrun, hle⟩
 
 /-- **B2**: on the honest memory, `main` runs from its entry to the final registers (`End`'s
 `b2`). -/
 theorem b2_complete (h : B2Hyps) : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
     HonestAt coreProgram fs H C hdr T cert rd [] [] →
-      Reach guestProgram (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Registers.final guestProgram) := by
+      Reach guestProgram (honest coreProgram fs H C hdr T) ⟨addressOfIndex mainEntry, 1⟩ (Registers.final guestProgram) := by
   intro hdr rd T hname hH
   obtain ⟨c, hc, -⟩ := main_runC h hname hH
   exact hc.reach
@@ -344,13 +350,14 @@ of each opcode (`End`'s `count`). -/
 theorem b2_count (h : B2Hyps) : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
     HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ n,
       run guestProgram (honest coreProgram fs H C hdr T) n Registers.initial = some (Registers.final guestProgram) →
-        ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Execution guestProgram).count op ≤ cnt T op := by
+        ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Execution guestProgram).opcodeCount op ≤ cnt T op := by
   intro hdr rd T hname hH n hn op
   obtain ⟨c, hc, hle⟩ := main_runC h hname hH
   have hjt : JumpTables (honest coreProgram fs H C hdr T) :=
     jumpTables_honestC hH.toHonest hname
   have hpro := runC_jumpTables hjt
-  rw [show (⟨gpow 0, 1⟩ : Registers K) = Registers.initial by rw [gpow, pow_zero]; rfl] at hpro
+  rw [show (⟨addressOfIndex 0, 1⟩ : Registers K) = Registers.initial
+      by rw [addressOfIndex, pow_zero]; rfl] at hpro
   rw [count_eq_of_runC (hpro.trans hc) hn op, Pi.add_apply]
   have := hle op
   unfold cnt

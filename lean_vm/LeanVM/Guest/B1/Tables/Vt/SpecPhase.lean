@@ -61,7 +61,7 @@ theorem vt_tableSumcheck_run (heights : List ℕ) (busForms : List (List Form))
   rw [hT] at ht hfin
   simp only at hfin ⊢
   have hr := tb_runsTo_require hfin (s1.absorbAll evs.flatten dsObserve)
-  have h3 := hr.bind (f := fun _ ↦ (pure cl : Prog (List ColumnClaim))) (runsTo_ret _ _)
+  have h3 := hr.bind (f := fun _ ↦ (pure cl : VerifierProgram (List ColumnClaim))) (runsTo_ret _ _)
   unfold tableSumcheckClaims
   rw [hn]
   refine RunsTo.of_eq (hsc.bind (ht.bind h3)) rfl (by simp) rfl rfl
@@ -91,7 +91,7 @@ theorem vt_tablePhase_run (layout : Layout) (bus : BusResult) (s0 : Fs) {n : ℕ
   have h1 := runsTo_sampleE s0
   have h2 := vt_tableSumcheck_run layout.tableLogHeights bus.forms _ _ bus.point _ hn hsc evs
     hlen hw hfin
-  have h3 := h2.bind (f := fun c ↦ (pure (bus.claims ++ c) : Prog (List ColumnClaim)))
+  have h3 := h2.bind (f := fun c ↦ (pure (bus.claims ++ c) : VerifierProgram (List ColumnClaim)))
     (runsTo_ret _ _)
   unfold tablePhaseClaims
   exact RunsTo.of_eq (h1.bind h3) rfl (by simp) rfl rfl
@@ -100,10 +100,10 @@ theorem vt_tablePhase_run (layout : Layout) (bus : BusResult) (s0 : Fs) {n : ℕ
 theorem vt_publicInputPhase_run (layout : Layout) (pi : Digest) (s : Fs) :
     RunsTo (publicInputPhase layout pi) s []
       (List.zipWith (fun column value ↦ ⟨column, s.squeeze.1 ::
-        List.replicate ((layout.placement memory0).vars - 1) 0, value⟩)
+        List.replicate ((layout.placement memory0).variableCount - 1) 0, value⟩)
         [memory0, memory1, memory2] (([0, 1, 2] : List (Fin 3)).map fun limb ↦
-          multilinearEval [ofK ((digestScalars pi).1.limb limb),
-            ofK ((digestScalars pi).2.limb limb)] [s.squeeze.1])) s.squeeze.2 := by
+          multilinearEval [ofK ((digestHalves pi).1.limb limb),
+            ofK ((digestHalves pi).2.limb limb)] [s.squeeze.1])) s.squeeze.2 := by
   have h1 := runsTo_sampleE s
   unfold publicInputPhase
   exact RunsTo.of_eq (h1.bind (runsTo_ret _ _)) rfl (by simp) rfl rfl

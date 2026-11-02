@@ -104,7 +104,7 @@ theorem vtc_sels (hl : args.length = 22) {point : List E}
         (vtCountSel.getD i default).2.2.2.1) = blockSel (vtSizesC τ) point.length i point ∧
       wo (vtSelE (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).2.2.2.1 + 1) =
         gen ^ (stackOffsets (vtSizesC τ)).1.getD i 0)
-    (hlow : ∀ i < 34, (rd (Parameters.gpow i)).isSome) :
+    (hlow : ∀ i < 34, (rd (Parameters.addressOfIndex i)).isSome) :
     ((∀ b < 3, ∀ s ∈ vtFwSelT (vtFwV.getD b 0) b (vtFwPrev.getD b none),
         VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s) ∧
       (∀ i < 51, ∀ s ∈ vtSelT (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).1

@@ -24,21 +24,21 @@ public section
 
 /-! ## A program -/
 
-def i0 : Instr := .setConstant (gpow 2) (E.ofLimbs (K.ofBits 7) 0 0)
-def i1 : Instr := .xor (gpow 2) (gpow 3) (gpow 4)
-def i2 : Instr := .deref (gpow 4) 1 (gpow 5) .pc
-def i3 : Instr := .jump (gpow 2) (gpow 3) (gpow 4)
+def i0 : LeanIsaInstruction := .setConstant (addressOfIndex 2) (E.ofLimbs (K.ofBits 7) 0 0)
+def i1 : LeanIsaInstruction := .xor (addressOfIndex 2) (addressOfIndex 3) (addressOfIndex 4)
+def i2 : LeanIsaInstruction := .deref (addressOfIndex 4) 1 (addressOfIndex 5) .pc
+def i3 : LeanIsaInstruction := .jump (addressOfIndex 2) (addressOfIndex 3) (addressOfIndex 4)
 
 /-- Four instructions: `logSize = 2`. -/
-def prog : Program := ⟨2, by decide, ![i0, i1, i2, i3]⟩
+def prog : LeanIsaProgram := ⟨2, by decide, ![i0, i1, i2, i3]⟩
 
 example : prog.fetch 1 = some i0 := by simpa [prog] using prog.fetch_gpow 0
 example : prog.fetch g = some i1 := by simpa [prog] using prog.fetch_gpow 1
-example : prog.fetch (gpow 2) = some i2 := prog.fetch_gpow 2
-example : prog.fetch (gpow 3) = some i3 := prog.fetch_gpow 3
+example : prog.fetch (addressOfIndex 2) = some i2 := prog.fetch_gpow 2
+example : prog.fetch (addressOfIndex 3) = some i3 := prog.fetch_gpow 3
 -- The sentinel slot is the last instruction; one past it, and `0`, fetch nothing.
-example : prog.fetch (gpow 4) = none := by
-  rw [Program.fetch, gLog?_gpow_eq_none (by decide) (by decide), Option.map_none]
+example : prog.fetch (addressOfIndex 4) = none := by
+  rw [LeanIsaProgram.fetch, gLog?_gpow_eq_none (by decide) (by decide), Option.map_none]
 example : prog.fetch 0 = none := prog.fetch_zero
 
 /-! ## Opcodes -/
@@ -47,27 +47,34 @@ example : prog.fetch 0 = none := prog.fetch_zero
 #guard i1.opcode = .xor
 #guard i2.opcode = .deref
 #guard i3.opcode = .jump
-#guard (Instr.mulNative 1 g (gpow 2)).opcode = .mulNative
-#guard (Instr.keccak ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 8) (gpow 9) (gpow 13) false true).opcode = .keccak
+#guard (LeanIsaInstruction.mulNative 1 g (addressOfIndex 2)).opcode = .mulNative
+#guard (LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4) (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true).opcode = .keccak
 
 /-! ## Equality -/
 
-#guard Instr.keccak ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 8) (gpow 9) (gpow 13) false true =
-  Instr.keccak ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 8) (gpow 9) (gpow 13) false true
-#guard Instr.keccak ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 8) (gpow 9) (gpow 13) false true ≠
-  Instr.keccak ![1, g, gpow 2, gpow 5] (gpow 4) (gpow 8) (gpow 9) (gpow 13) false true
-#guard Instr.keccak ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 8) (gpow 9) (gpow 13) false true ≠
-  Instr.keccak ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 8) (gpow 9) (gpow 13) true true
-#guard Instr.deref 1 g (gpow 2) .pc ≠ Instr.deref 1 g (gpow 2) .fp
-#guard Instr.setConstant 1 (E.ofLimbs 1 (K.ofBits 2) (K.ofBits 3)) ≠ Instr.setConstant 1 (E.ofLimbs 1 (K.ofBits 2) (K.ofBits 4))
+#guard LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4)
+    (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true =
+  LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4)
+      (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true
+#guard LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4)
+    (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true ≠
+  LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 5] (addressOfIndex 4)
+      (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true
+#guard LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4)
+    (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true ≠
+  LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4)
+      (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) true true
+#guard LeanIsaInstruction.deref 1 g (addressOfIndex 2) .pc ≠ LeanIsaInstruction.deref 1 g
+    (addressOfIndex 2) .fp
+#guard LeanIsaInstruction.setConstant 1 (E.ofLimbs 1 (K.ofBits 2) (K.ofBits 3)) ≠ LeanIsaInstruction.setConstant 1 (E.ofLimbs 1 (K.ofBits 2) (K.ofBits 4))
 
 /-! ## The bytecode cap -/
 
 /-- The largest program the cap admits, `2 ^ 32` copies of `i0`. -/
-def largest : Program := ⟨maxLogBytecode, le_rfl, fun _ ↦ i0⟩
+def largest : LeanIsaProgram := ⟨maxLogBytecode, le_rfl, fun _ ↦ i0⟩
 
 /-- Fetching the last slot of the largest program. -/
-example : largest.fetch (gpow (2 ^ 32 - 1)) = some i0 :=
+example : largest.fetch (addressOfIndex (2 ^ 32 - 1)) = some i0 :=
   largest.fetch_gpow ⟨2 ^ 32 - 1, by decide⟩
 
 /-- `2 ^ 33` instructions is not a program. -/

@@ -177,7 +177,7 @@ structure FnStatic (j : ℕ) : Prop where
   runsFun : ∀ p ∈ (plumbOf j).runs, ∀ q ∈ (plumbOf j).runs, p.2 = q.2 → p.1 = q.1
   runsTmp : ∀ p ∈ (plumbOf j).runs, ∀ q ∈ (plumbOf j).tmps, q.2 ≠ p.2
 
-theorem fnStatic {j : ℕ} {G : Glob} {f : CompiledFn} {main : Bool} (hS : ShareOk j)
+theorem fnStatic {j : ℕ} {G : Glob} {f : CompiledFunction} {main : Bool} (hS : ShareOk j)
     (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G f (coreOf j) (certOf j) main i = true) : FnStatic j := by
   have hcont := cont_of hchk
   obtain ⟨-, hlists, hsn, -, -⟩ := shareStatic_spec hS.1

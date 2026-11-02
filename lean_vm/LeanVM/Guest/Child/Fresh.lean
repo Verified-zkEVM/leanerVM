@@ -35,21 +35,21 @@ open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 /-! ## The compiled run of a sequence -/
 
 /-- A sequence's run is the first part's, then the continuation's. -/
-theorem run_bind' {α β : Type} (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) (p : Prog α)
-    (f : α → Prog β) (st : ProgState) :
+theorem run_bind' {α β : Type} (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) (p : VerifierProgram α)
+    (f : α → VerifierProgram β) (st : VerifierProgramState) :
     Compile.runWithHash H F (p.bind f) st =
       (Compile.runWithHash H F p st).bind (fun r => Compile.runWithHash H F (f r.1) r.2) := by
   induction p generalizing st with
   | ret a => rfl
   | fail => rfl
   | read k ih =>
-    simp only [Prog.bind, Compile.runWithHash]
+    simp only [VerifierProgram.bind, Compile.runWithHash]
     split
     · rfl
     · exact ih _ _
   | sample k ih => exact ih _ _
   | grind b k ih =>
-    simp only [Prog.bind, Compile.runWithHash]
+    simp only [VerifierProgram.bind, Compile.runWithHash]
     split
     · rfl
     · simp only [bind, pure]
@@ -57,7 +57,7 @@ theorem run_bind' {α β : Type} (H : Bytes → Id Digest) (F : KeccakState → 
       · exact ih _
       · rfl
   | commit h w k ih =>
-    simp only [Prog.bind, Compile.runWithHash]
+    simp only [VerifierProgram.bind, Compile.runWithHash]
     split
     · simp only [bind]
       split
@@ -65,7 +65,7 @@ theorem run_bind' {α β : Type} (H : Bytes → Id Digest) (F : KeccakState → 
       · rfl
     · rfl
   | query i ps k ih =>
-    simp only [Prog.bind, Compile.runWithHash]
+    simp only [VerifierProgram.bind, Compile.runWithHash]
     split
     · rfl
     · simp only [bind]
@@ -76,9 +76,10 @@ theorem run_bind' {α β : Type} (H : Bytes → Id Digest) (F : KeccakState → 
 /-! ## The verifier, split at its evaluation -/
 
 /-- `verify_execution` with the evaluation `ev` and the stacked opening `opening`. -/
-def execWith (ev : (List K → List E → Prog E)) (opening : ℕ → ℕ → List StackClaim → Prog Unit)
-    (bytecode : List K) (publicInput : Digest) : Prog Unit := do
-  let (layout, logInverseRate) ← readSizes bytecode
+def execWith (ev : (List K → List E → VerifierProgram E)) (opening : ℕ → ℕ → List StackClaim →
+    VerifierProgram Unit)
+    (bytecode : List K) (publicInput : Digest) : VerifierProgram Unit := do
+  let (layout, logInverseRate) ← readAnnouncedSizes bytecode
   commitStack layout.stackLog logInverseRate
   let bus ← verifyBusBalance ev layout
   let claims ← tablePhaseClaims layout bus
@@ -102,17 +103,17 @@ structure Pre where
   bytecodeFinal : E
 
 /-- The verifier up to its evaluation of the bytecode. -/
-def prefixProg (bytecode : List K) : Prog Pre := do
-  let (layout, rate) ← readSizes bytecode
+def prefixProg (bytecode : List K) : VerifierProgram Pre := do
+  let (layout, rate) ← readAnnouncedSizes bytecode
   commitStack layout.stackLog rate
-  let alphas ← Prog.sampleChallenges busBits
-  let beta ← Prog.sampleChallenge
+  let alphas ← VerifierProgram.sampleChallenges busBits
+  let beta ← VerifierProgram.sampleChallenge
   let (countRoot, point, treeValues) ←
     verifyGkrGrandProducts (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth
-  Prog.require (countRoot ≠ 0)
-  let memory ← Prog.readScalars 3
-  let memoryFinal ← Prog.readScalar
-  let bytecodeFinal ← Prog.readScalar
+  VerifierProgram.require (countRoot ≠ 0)
+  let memory ← VerifierProgram.readScalars 3
+  let memoryFinal ← VerifierProgram.readScalar
+  let bytecodeFinal ← VerifierProgram.readScalar
   return ⟨layout, rate, alphas, beta, point, treeValues, memory, memoryFinal, bytecodeFinal⟩
 
 /-- The point at which the verifier evaluates the bytecode. -/
@@ -145,8 +146,9 @@ def busOf (y : Pre) (bytecodeValue : E) : BusResult :=
   ⟨claims, y.point, forms3, [total0, total1, total2]⟩
 
 /-- The verifier after its evaluation of the bytecode. -/
-def suffixProg (opening : ℕ → ℕ → List StackClaim → Prog Unit) (publicInput : Digest) (y : Pre)
-    (v : E) : Prog Unit := do
+def suffixProg (opening : ℕ → ℕ → List StackClaim → VerifierProgram Unit) (publicInput : Digest)
+    (y : Pre)
+    (v : E) : VerifierProgram Unit := do
   let layout := y.layout
   let bus := busOf y v
   let claims ← tablePhaseClaims layout bus
@@ -158,15 +160,18 @@ def suffixProg (opening : ℕ → ℕ → List StackClaim → Prog Unit) (public
     (ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.stackClaim layout))
 
 /-- **The verifier, split at its evaluation of the bytecode.** -/
-theorem execSplit (ev : (List K → List E → Prog E)) (opening : ℕ → ℕ → List StackClaim → Prog Unit)
+theorem execSplit (ev : (List K → List E → VerifierProgram E)) (opening : ℕ → ℕ → List StackClaim →
+    VerifierProgram Unit)
     (bytecode : List K) (publicInput : Digest) :
     execWith ev opening bytecode publicInput = (prefixProg bytecode).bind fun y ↦
       (ev y.layout.bytecode (busPoint y)).bind (suffixProg opening publicInput y) := by
-  simp only [execWith, prefixProg, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+  simp only [execWith, prefixProg, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+      VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
   refine congrArg _ (funext fun ls ↦ ?_)
   obtain ⟨layout, rate⟩ := ls
   refine congrArg _ (funext fun _ ↦ ?_)
-  simp only [verifyBusBalance, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+  simp only [verifyBusBalance, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+      VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
   refine congrArg _ (funext fun alphas ↦ congrArg _ (funext fun beta ↦
     congrArg _ (funext fun g ↦ ?_)))
   obtain ⟨countRoot, point, treeValues⟩ := g
@@ -176,20 +181,21 @@ theorem execSplit (ev : (List K → List E → Prog E)) (opening : ℕ → ℕ �
   rfl
 
 /-- The prefix returns a layout of the bytecode it read. -/
-theorem prefix_bytecode {bytecode : List K} {y : Pre} (h : Prog.Returns (prefixProg bytecode) y) :
+theorem prefix_bytecode {bytecode : List K} {y : Pre} (h : VerifierProgram.Returns (prefixProg
+    bytecode) y) :
     y.layout.bytecode = bytecode := by
   unfold prefixProg at h
-  obtain ⟨ls, hls, h⟩ := Prog.returns_bind h
+  obtain ⟨ls, hls, h⟩ := VerifierProgram.returns_bind h
   have hb := readSizes_bytecode hls
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  rw [Prog.returns_ret h]
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  rw [VerifierProgram.returns_ret h]
   exact hb
 
 /-! ## The deferring verifiers -/
@@ -197,8 +203,8 @@ theorem prefix_bytecode {bytecode : List K} {y : Pre} (h : Prog.Returns (prefixP
 /-- The deferring program refusing a zero challenge, as a sequence. -/
 theorem deferredProgramNZ_eq (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
     Limits.deferredProgramNZ c bytecode publicInput =
-      (execWith (claimedValue c) Limits.verifyStackedOpeningNZ bytecode publicInput).bind
-        fun _ ↦ Prog.ret true := rfl
+      (execWith (claimedBytecodeValue c) Limits.verifyStackedOpeningNZ bytecode publicInput).bind
+        fun _ ↦ VerifierProgram.ret true := rfl
 
 end
 end LeanVM.Guest.Child

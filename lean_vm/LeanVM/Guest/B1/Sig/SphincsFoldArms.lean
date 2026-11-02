@@ -381,7 +381,7 @@ theorem foldArms_complete {b index : Nat} {x : V} (hidx : index < 2 ^ height) (h
     (hlo : 206 ≤ b) (hadr : ∀ i < 2 ^ height, AdrOK (adr i) (height - 1)) (hat : NBv b atV) (hn0 : NBv b node0) (hmk : NBv b markV)
     (hx : NBv b x) (sibs : Nat → E) (hs : ∀ j < height, IsCanonical128 (sibs j)) (σ : Val)
     (hX : ∀ v, SX atV node0 v → NBv b v → IsCanonical128 (σ v)) (hmv : σ markV = markC index)
-    (hxv : σ x = ofK (gpow index)) :
+    (hxv : σ x = ofK (addressOfIndex index)) :
     Completes C rd b (foldArms atV adr height node0 markV markC wC b).2.1
       [.match_ x (foldArms atV adr height node0 markV markC wC b).1] σ
       (fun σ' => (∀ j < height - 1, σ' (.n (flBase (adr index) 0 j

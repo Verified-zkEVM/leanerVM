@@ -179,7 +179,7 @@ open Air.Flat (Ensemble EnsembleWitness Component)
 /-- The leanISA ensemble of the public program `prog`: the six opcode tables, the memory and
 bytecode blocks, the six channels, and the verifier `leanIsaVerifier prog`, its one
 program-bearing component (`layout.rs:418-461`). -/
-def leanIsaEnsemble (prog : Program) : Ensemble K PublicIO where
+def leanIsaEnsemble (prog : LeanIsaProgram) : Ensemble K PublicIO where
   tables := [⟨xorTable⟩, ⟨mulTable⟩, ⟨setTable⟩, ⟨derefTable⟩, ⟨jumpTable⟩, ⟨keccakTable⟩,
     ⟨memTable⟩, ⟨bytecodeTable⟩]
   channels := [StatePull.toRaw, StatePush.toRaw, MemPull.toRaw, MemPush.toRaw,
@@ -190,7 +190,7 @@ def leanIsaEnsemble (prog : Program) : Ensemble K PublicIO where
 
 /-! ## Reading a witness -/
 
-variable {prog : Program}
+variable {prog : LeanIsaProgram}
 
 /-- The witness's table of component `j`, in the order of the ensemble's `tables`: `XOR`,
 `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK`, then the memory block and the
@@ -276,7 +276,7 @@ index column is written by `bytecodeRowOf prog i` inside `BytecodeRowsAreTheProg
 `SeedRowsAreTheImage` leaves the memory block's free, since the Rust computes the two from
 different sources (the row index here, the program there). Removed by Clean PR #446. -/
 def IndexColumnsAreRowIndices (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop :=
-  ∀ i (hi : i < (memBlockRows w).length), (memRowAt w (memBlockRows w)[i]).idx = gpow i
+  ∀ i (hi : i < (memBlockRows w).length), (memRowAt w (memBlockRows w)[i]).idx = addressOfIndex i
 
 /-- The memory block's rows are the words of the image the prover data names, in order, for
 some index column `idx` and finalize-count column `cntFin`: the committed columns `MEM_LO,
@@ -293,7 +293,7 @@ block's raw rows are `bytecodeRowOf prog i (cntFin i)` for `i < 2 ^ prog.logSize
 The verifier forms the block's entry columns from the program itself (§8.5, Bus 4;
 `Coord::Public`), the prover commits only `cntFin`; Clean PR #446's fixed columns are this
 conjunct as a primitive. Its per-row reading is `BytecodeBindings prog`. -/
-def BytecodeRowsAreTheProgram (prog : Program) (w : EnsembleWitness (leanIsaEnsemble prog)) :
+def BytecodeRowsAreTheProgram (prog : LeanIsaProgram) (w : EnsembleWitness (leanIsaEnsemble prog)) :
     Prop :=
   ∃ cntFin : Fin (2 ^ prog.logSize) → K,
     bytecodeBlockRows w = List.ofFn fun i ↦ (toElements (bytecodeRowOf prog i (cntFin i))).toArray
@@ -314,7 +314,7 @@ proof system proves and extracts (issue #13). `constraints` is Clean's; the thre
 `BalancedPair`; `counts_nonzero` and `caps` are the verifier's checks; the three named
 hypotheses are the facts Clean cannot yet express; `keccak_valid` is the Keccak reduction's; the two words
 are §8.2's evaluation claim against the committed memory. -/
-structure SatisfiedBy (prog : Program) (input : PublicInput)
+structure SatisfiedBy (prog : LeanIsaProgram) (input : PublicInput)
     (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop where
   /-- The public input is the run's: the four lanes (`PublicIO`). No component reads them; the
   run is bound to them by `word0_eq` and `word1_eq`. -/
@@ -341,9 +341,9 @@ structure SatisfiedBy (prog : Program) (input : PublicInput)
   /-- Every `KECCAK` row permutes. -/
   keccak_valid : KeccakRowsValid w
   /-- The first word of the image is `input₀ + input₁·y` (§8.2). -/
-  word0_eq : (imageOf w.data).2.read (gpow 0) = some input.word0
+  word0_eq : (imageOf w.data).2.read (addressOfIndex 0) = some input.word0
   /-- The second word of the image is `input₂ + input₃·y` (§8.2). -/
-  word1_eq : (imageOf w.data).2.read (gpow 1) = some input.word1
+  word1_eq : (imageOf w.data).2.read (addressOfIndex 1) = some input.word1
 
 /-! ## The trace a witness represents -/
 

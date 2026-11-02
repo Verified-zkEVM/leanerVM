@@ -75,8 +75,8 @@ theorem sizeList_map {α : Type} (f : α → MachineValue) (l : List α) :
 /-- **A table literal's size**: its rows', the array's and `Term.val`'s. Stated for any table:
 on the guest's, a ground term, `simp` would evaluate it. -/
 theorem literal_size (L : List (List ℕ)) :
-    (Term.val (MachineValue.arr
-      (L.map fun r ↦ MachineValue.arr (r.map encodeValue).toArray).toArray)).size =
+    (Term.literal (MachineValue.array
+      (L.map fun r ↦ MachineValue.array (r.map encodeValue).toArray).toArray)).size =
       (L.map rowSize).sum + 2 := by
   simp only [Term.size, MachineValue.size, sizeList_map]
   have hr : (fun r : List ℕ ↦ (List.map (fun x ↦ (encodeValue x).size) r).sum + 1) = rowSize := by

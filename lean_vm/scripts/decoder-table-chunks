@@ -113,7 +113,7 @@ def size_files(rows, names, limit):
         ["LeanVM.Cost.DecoderSize.Rows"] + [f"LeanVM.Cost.DecoderSize.{m}" for m in mods],
         "The size of the guest's frame cells, the chunks' sizes summed (`DecoderSize/Rows*.lean`, "
         "`Names*.lean`): every row's encoding's size, the table's literal less its array and "
-        "`Term.val` (`Cost/DecoderSize.lean`).",
+        "`Term.literal` (`Cost/DecoderSize.lean`).",
         "set_option maxRecDepth 100000 in\n/-- **The rows' "
         "sizes**, summed. -/\n" + "\n".join(lines) + "\n")
     return files

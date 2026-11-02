@@ -55,7 +55,7 @@ theorem sum_eqEval_mul {μ : ℕ} (z : Vector E μ) (q : Column μ) :
   rw [eqEval_boolPoint, mul_comm]
   simp [CMlPolynomialEval.map, Vector.getD, x.isLt]
 
-variable (prog : Program) (s : Sizes)
+variable (prog : LeanIsaProgram) (s : Sizes)
 
 /-- **A candidate read on the instance's stack**: the cast along `stackLog_verifierLayout`. -/
 def toI (q : Column (verifierLayout prog s).stackLog) : Column (leanIsaμ prog s) :=
@@ -136,7 +136,7 @@ theorem not_isVirtual_memCol (i : Fin 4) : ¬ IsVirtual (memCol i) := by
 /-- The public point of the program is the instance's line point. -/
 theorem pubPoint_eq (r : E) :
     pubPoint (verifierLayout prog s) r = (PublicInput.linePoint s.logMem_pos r).toList := by
-  have hv : ((verifierLayout prog s).placement memory0).vars = s.logMem := by
+  have hv : ((verifierLayout prog s).placement memory0).variableCount = s.logMem := by
     have h := placement_committed prog s (memCol 0) (not_isVirtual_memCol 0)
     rw [pyCol_memCol] at h
     simp only [Fin.val_zero] at h

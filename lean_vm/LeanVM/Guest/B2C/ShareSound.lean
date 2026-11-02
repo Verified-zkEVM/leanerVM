@@ -200,7 +200,7 @@ theorem keyHolds_keyCells {rd : Reader} {x : E} {Ψ : ℕ → E} (op : ℕ) (cs 
 /-! ## The invariant -/
 
 /-- The word of a constant's limbs. -/
-def tw (x : ℕ × ℕ × ℕ) : E := OInstr.imm x.1 x.2.1 x.2.2
+def tw (x : ℕ × ℕ × ℕ) : E := OffsetInstruction.immediateWord x.1 x.2.1 x.2.2
 
 section Inv
 
@@ -1500,27 +1500,30 @@ theorem packCells_digit : ∀ (l : List ℕ) (m : ℕ) (hm : m < l.length), (∀
 
 /-- **A window's cells are the certificate's.** -/
 theorem locW_get {C : Cert} {n i : ℕ} (hcont : Cont C n) (hi : i ≤ n)
-    (hins : C.insOk (nth C.ins i []) = true) (hn : C.cuts.length = n)
-    (hcells : ∀ c ∈ nth C.cells i [], c < 65536) {v c : ℕ} (h : (locW C i).get? v = some c) :
+    (hins : C.insOk (listElementOrDefault C.ins i []) = true) (hn : C.cuts.length = n)
+    (hcells : ∀ c ∈ listElementOrDefault C.cells i [], c < 65536) {v c : ℕ} (h : (locW C i).get? v =
+        some c) :
     C.locs.getD v 0 = c := by
   simp only [Loc.get?, locW, Bool.cond_eq_ite, Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at h
   split_ifs at h with hr
   · cases h
     obtain ⟨h1, h2⟩ := hr
-    have hm : v - nth C.los i 0 < (nth C.cells i []).length := by
-      show Nat.sub v (nth C.los i 0) < _
-      have : Nat.add (nth C.los i 0) (nth C.cells i []).length = nth C.los i 0 + (nth C.cells i []).length := rfl
-      rw [this] at h2; show v - nth C.los i 0 < _; omega
+    have hm : v - listElementOrDefault C.los i 0 < (listElementOrDefault C.cells i []).length := by
+      show Nat.sub v (listElementOrDefault C.los i 0) < _
+      have : Nat.add (listElementOrDefault C.los i 0) (listElementOrDefault C.cells i []).length = listElementOrDefault C.los i 0 + (listElementOrDefault C.cells i []).length := rfl
+      rw [this] at h2; show v - listElementOrDefault C.los i 0 < _; omega
     have hd := packCells_digit _ _ hm hcells
     have e1 := cont_locs hcont hi hm
-    rw [show nth C.los i 0 + (v - nth C.los i 0) = v by omega] at e1
+    rw [show listElementOrDefault C.los i 0 + (v - listElementOrDefault C.los i 0) = v
+        by omega] at e1
     rw [e1]; exact hd.symm
   · obtain ⟨j, hj⟩ := (insTrie_get _ _ h).resolve_right (by simp [getF_eq])
     have := List.all_eq_true.mp hins _ hj
     simp only [Bool.and_eq_true, Nat.ble_eq, beq_iff_eq] at this
     obtain ⟨⟨hjn, hlo⟩, hget⟩ := this
     obtain ⟨hm, hget⟩ := List.getElem?_eq_some_iff.mp hget
-    rw [show v = nth C.los j 0 + (v - nth C.los j 0) by omega, cont_locs hcont (hn ▸ hjn) hm, hget]
+    rw [show v = listElementOrDefault C.los j 0 + (v - listElementOrDefault C.los j 0)
+        by omega, cont_locs hcont (hn ▸ hjn) hm, hget]
 
 end Cells
 
@@ -1617,7 +1620,7 @@ theorem shareStatic_spec (h : shareStatic j = true) :
 
 /-- What a window's check says. -/
 theorem shareWin_spec {i : ℕ} (h : shareWin j (snapsOf j) i = true) :
-    (∀ c ∈ nth (certOf j).cells (winW (snapsOf j) i) [], c < 65536) ∧
+    (∀ c ∈ listElementOrDefault (certOf j).cells (winW (snapsOf j) i) [], c < 65536) ∧
     (∀ v ∈ Stmt.usesList (stmtsW (coreOf j).body (snapsOf j) i) ++ Stmt.tmpsList (stmtsW (coreOf j).body (snapsOf j) i),
       valOk (locW (certOf j) (winW (snapsOf j) i)) (byCell (plumbOf j).tmps) (tmpCells (plumbOf j)) (fpgCells (plumbOf j)) (fsN j) v
         = true) ∧
@@ -1863,12 +1866,13 @@ theorem initSt_inv (P : Plumb) (cg : V → ℕ) : Inv cg rd σ (initSt P) [] (in
 
 /-- **The sharing check's conclusion on a path** of function `j` that returns: one word per cell
 for every value the path names, a fixed cell's constant. -/
-theorem shareOk_path {G : Glob} {f : CompiledFn} {main : Bool} (hS : ShareOk j)
+theorem shareOk_path {G : Glob} {f : CompiledFunction} {main : Bool} (hS : ShareOk j)
     (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G f (coreOf j) (certOf j) main i = true)
     {es : List Ev} {vs : List V} (hw : walk σ (coreOf j).body = .ret es vs) (he : ∀ e ∈ es, e.Holds rd σ) :
     ∃ Ψ : ℕ → E, (∀ v ∈ (coreOf j).params ++ es.flatMap Ev.uses ++ vs, 2 ≤ cellJ j v →
       σ v = Ψ (cellJ j v)) ∧
-      ∀ o a b c, (o, PC.k a b c) ∈ (plumbOf j).stat → Ψ o = OInstr.imm a b c := by
+      ∀ o a b c, (o, PC.k a b c) ∈ (plumbOf j).stat → Ψ o = OffsetInstruction.immediateWord a b
+          c := by
   have hcont := cont_of hchk
   obtain ⟨-, hlists, hsn, -, hpv⟩ := shareStatic_spec hS.1
   have hA : ∀ i ≤ (snapsOf j).length, ∀ v c, (locW (certOf j) (winW (snapsOf j) i)).get? v.idx = some c →
@@ -1889,7 +1893,8 @@ theorem shareOk_path {G : Glob} {f : CompiledFn} {main : Bool} (hS : ShareOk j)
   simp only [beq_iff_eq] at this
   have hocc : (initSt (plumbOf j)).occ.testBit o = true :=
     (testBit_bitsOf _ _).mpr (List.mem_map_of_mem (f := Prod.fst) ho)
-  have h0 : initW (plumbOf j) o = OInstr.imm a b c := by simp only [initW, this.2]; rfl
+  have h0 : initW (plumbOf j) o = OffsetInstruction.immediateWord a b c :=
+      by simp only [initW, this.2]; rfl
   rw [hf2 o (by rw [hst0]; exact (hs1 o hocc).1), (hs1 o hocc).2, h0]
 
 end FnPath

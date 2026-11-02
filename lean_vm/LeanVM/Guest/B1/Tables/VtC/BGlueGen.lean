@@ -336,7 +336,7 @@ theorem vtB_glue_3910 (hl : args.length = 22) {W : ℕ → E}
     (hbkc : ∀ b < 153, LoadHolds rd (vtσ rd wo args (.n 12)) b (gen ^ κ b))
     (hκ : ∀ b < 153, κ b < 34) {Q : ℕ → E}
     (hidx : ∀ i < 3, LoadHolds rd (vtσ rd wo args (.n 2851)) i (Q i)) 
-    (hlow : ∀ i < 34, (rd (Parameters.gpow i)).isSome) :
+    (hlow : ∀ i < 34, (rd (Parameters.addressOfIndex i)).isSome) :
     ∀ s ∈ (vtPre.drop 3910).take 28, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s := by
   refine vtB_blockR hl 3910 28 [
     .atom (.load (.n 4412) (.n 12) 54),
@@ -374,7 +374,7 @@ theorem vtB_glue_3947 (hl : args.length = 22) {W : ℕ → E}
     (hκ : ∀ b < 153, κ b < 34) {P : ℕ → E}
     (hpool : ∀ i < 5, LoadHolds rd (vtσ rd wo args (.n 16)) i (P i)) {Q : ℕ → E}
     (hidx : ∀ i < 3, LoadHolds rd (vtσ rd wo args (.n 2851)) i (Q i)) 
-    (hlow : ∀ i < 34, (rd (Parameters.gpow i)).isSome)
+    (hlow : ∀ i < 34, (rd (Parameters.addressOfIndex i)).isSome)
     (h3947 : VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.atom (.load (.n 4444) (.n 16) 3)))
     (h3948 : VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.atom (.load (.n 4430) (.n 17) 3)))
     (h3982 : VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.atom (.keccak [.n 2921, .n 2923, .n 2934, .n 2936, .n 2947, .n 2949, .n 4451, .n 4453, .n 22, .n 23, .n 24, .n 25, .n 26] [.n 4489, .n 4490, .n 4491, .n 4492, .n 4493, .n 4494, .n 4495, .n 4496, .n 4497, .n 4498, .n 4499, .n 4500, .n 4501] false false))) :
@@ -421,7 +421,7 @@ theorem vtB_glue_3992 (hl : args.length = 22) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (vtσ rd wo args (.n 14)) i (W i)) {κ : ℕ → ℕ}
     (hbkc : ∀ b < 153, LoadHolds rd (vtσ rd wo args (.n 12)) b (gen ^ κ b))
     (hκ : ∀ b < 153, κ b < 34) 
-    (hlow : ∀ i < 34, (rd (Parameters.gpow i)).isSome)
+    (hlow : ∀ i < 34, (rd (Parameters.addressOfIndex i)).isSome)
     (h3992 : VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.atom (.load (.n 4502) (.n 16) 4)))
     (h3993 : VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.atom (.load (.n 4475) (.n 17) 4))) :
     ∀ s ∈ (vtPre.drop 3992).take 313, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s := by

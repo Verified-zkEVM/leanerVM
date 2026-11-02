@@ -35,10 +35,10 @@ instance : Inhabited SpLv :=
      ic0 := 0, ic2 := 0, root := Vector.replicate 4 0, height := 0, width := 0 }⟩
 
 /-- The next commitment's digest a level reads (any, at the last level). -/
-def SpLv.dn (L : SpLv) : Digest := (digestOfScalars (L.ra, L.rb)).getD (Vector.replicate 4 0)
+def SpLv.dn (L : SpLv) : Digest := (digestFromHalves (L.ra, L.rb)).getD (Vector.replicate 4 0)
 
-theorem SpLv.dn_of {L : SpLv} {d : Digest} (h : digestOfScalars (L.ra, L.rb) = some d) :
-    digestOfScalars (L.ra, L.rb) = some L.dn := by
+theorem SpLv.dn_of {L : SpLv} {d : Digest} (h : digestFromHalves (L.ra, L.rb) = some d) :
+    digestFromHalves (L.ra, L.rb) = some L.dn := by
   rw [SpLv.dn, h]; rfl
 
 /-- The levels' data from the trace's levels. -/
@@ -50,8 +50,8 @@ def spDats : List SpLv → ℕ → (ℕ → E) → (ℕ → E) → List LvDat
 structure LvMemB (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (L : SpLv)
     (sqz : E) : Prop where
   fch : ∀ j < lv.folds, LoadHolds rd P.fch (lv.foldsOff + j) (L.chs.getD j 0)
-  r0 : LoadHolds rd P.roots (2 * lvl) (digestScalars L.root).1
-  r1 : LoadHolds rd P.roots (2 * lvl + 1) (digestScalars L.root).2
+  r0 : LoadHolds rd P.roots (2 * lvl) (digestHalves L.root).1
+  r1 : LoadHolds rd P.roots (2 * lvl + 1) (digestHalves L.root).2
   rows : ∀ j ≤ lv.squeezes, ∀ i < 5, LoadHolds rd sqz (5 * j + i)
     ((L.F2.squeezeN j).2.cap.getD i 0)
   qw : ∀ i < lv.queries, LoadHolds rd P.qw (lvl * c.maxQ + i) (L.lam ^ i)

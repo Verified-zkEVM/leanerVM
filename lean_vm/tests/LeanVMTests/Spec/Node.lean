@@ -61,12 +61,12 @@ def utf8 (s : String) : List UInt8 := s.toUTF8.toList
 def c : BytecodeClaim := ⟨[1, 0], 1⟩
 
 example (words : List K) :
-    claimedValue c words c.bytecodePoint = .ret c.bytecodeValue := by
-  simp [claimedValue, Prog.require]; rfl
+    claimedBytecodeValue c words c.bytecodePoint = .ret c.bytecodeValue := by
+  simp [claimedBytecodeValue, VerifierProgram.require]; rfl
 
 -- Mutation: at another point the claimed evaluation rejects.
-example (words : List K) : claimedValue c words [0, 0] = .fail := by
-  simp [claimedValue, Prog.require, c]; rfl
+example (words : List K) : claimedBytecodeValue c words [0, 0] = .fail := by
+  simp [claimedBytecodeValue, VerifierProgram.require, c]; rfl
 
 /-- The deferring verifier's seed is the deployed verifier's, from the deployed IV. -/
 example (bytecode : List K) (publicInput : Digest) :

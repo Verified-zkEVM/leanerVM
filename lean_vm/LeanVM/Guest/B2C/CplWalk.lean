@@ -72,14 +72,14 @@ theorem idxOf_coreOf {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) : idxOf (coreOf j)
 
 /-- A callee the code reaches, by its entry. -/
 theorem calleeC_some {X : CX} (hG : X.G = glob) {e j' : ℕ} (h : calleeC X e = some j') :
-    2 ≤ j' ∧ j' < nFns ∧ (fnOf j').entry = e := by
+    2 ≤ j' ∧ j' < nFns ∧ (fnOf j').entryPc = e := by
   unfold calleeC at h
   obtain ⟨⟨j, sg⟩, hs, rfl⟩ := Option.map_eq_some_iff.mp h
   obtain ⟨h1, h2, h3, -⟩ := calleeS_spec hG hs
   exact ⟨h1, h2, h3⟩
 
 theorem entryOf_callee {j' : ℕ} (h1 : 2 ≤ j') (h2 : j' < nFns) :
-    entryOf (coreOf j').name = (fnOf j').entry := by
+    entryOf (coreOf j').name = (fnOf j').entryPc := by
   unfold entryOf
   rw [idxOf_coreOf (by omega) h2]
 
@@ -172,8 +172,8 @@ structure WH (L : MemoryImage κ) (j fp : ℕ) (X : CX) (segs : List Exec.Seg) (
     (σ : Val) (es : List Ev) (vs : List V) (kfps : List ℕ) (hdr : E × E)
     (ck : List (Opcode → ℕ)) : Prop where
   hX : CXOk L fp X
-  ctx : Exec.Ctx X.F κ (gpow fp)
-  segz : ∀ s ∈ segs, SegZ L (gpow fp) guestProgram X.entry s
+  ctx : Exec.Ctx X.F κ (addressOfIndex fp)
+  segz : ∀ s ∈ segs, SegZ L (addressOfIndex fp) guestProgram X.entry s
   exits : ∀ s ∈ segs, ∀ x, x = s.exit ∨ x ∈ branchExits s.items → x ∈ s.exits
   idx : X.idx = index segs
   linked : linkedWeak X.idx segs wJ wenv = true
@@ -186,7 +186,7 @@ structure WH (L : MemoryImage κ) (j fp : ℕ) (X : CX) (segs : List Exec.Seg) (
   sites : X.sites = (plumbOf j).sites
   arms : X.arms = (plumbOf j).arms
   self : X.self = (certOf j).facts.env.map (·.1)
-  entry : X.entry = (fnOf j).entry
+  entry : X.entry = (fnOf j).entryPc
   /-- A parameter, or a value of one of the body's atoms, is a value the path names. -/
   named : ∀ n, (Nat.blt n X.nargs || bitK X.nv n) = true → V.n n ∈ namedOf (coreOf j).params es vs
   frame : FrameHolds L j fp σ es vs kfps hdr
@@ -195,7 +195,7 @@ structure WH (L : MemoryImage κ) (j fp : ℕ) (X : CX) (segs : List Exec.Seg) (
   /-- A loop helper's last call is its closing one. -/
   lastCall : (coreOf j).loop = true → ∀ c, (calls es).getLast? = some c → c.f = (coreOf j).name
   jt : JTHolds glob L
-  tab : ∀ q ∈ Memory.tableCells, L.read (gpow q.1) = some q.2
+  tab : ∀ q ∈ Memory.tableCells, L.read (addressOfIndex q.1) = some q.2
   j1 : 1 ≤ j
   jn : j < nFns
 
@@ -205,8 +205,8 @@ structure PosZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) (W0
     (n : ℕ) (x : Opcode → ℕ) : Prop where
   seg : st.seg ∈ segs
   ok : CWOk L fp X st
-  run : ∃ pre c, pre ++ st.its = st.seg.items ∧ Fall L (gpow fp) pre ∧
-    RunC guestProgram L W0 ⟨gpow (X.entry + st.seg.start), gpow fp⟩ c ∧
+  run : ∃ pre c, pre ++ st.its = st.seg.items ∧ Fall L (addressOfIndex fp) pre ∧
+    RunC guestProgram L W0 ⟨addressOfIndex (X.entry + st.seg.start), addressOfIndex fp⟩ c ∧
     ∀ op, c op + itemOps pre op ≤ st.cnt.get op + x op + ksum ck n op
   fresh : ∀ t, st.fresh = some t → st.seg.start = t ∧ st.its = st.seg.items ∧ getF X.idx t = some st.seg
   nm : ∀ n, st.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs
@@ -226,22 +226,23 @@ theorem PosZ.sel {H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck} {st : CW} {
 /-- The environment of the segment at offset `J` holds; at the window's end, where none starts,
 the next window's. -/
 def EnvAt (L : MemoryImage κ) (fp : ℕ) (X : CX) (wJ : ℕ) (wenv : Trie Sym) (J : ℕ) : Prop :=
-  (∀ s, getF X.idx J = some s → s.start = J → EnvHolds L (gpow fp) s.env) ∧
-    (J = wJ → getF X.idx J = none → EnvHolds L (gpow fp) wenv)
+  (∀ s, getF X.idx J = some s → s.start = J → EnvHolds L (addressOfIndex fp) s.env) ∧
+    (J = wJ → getF X.idx J = none → EnvHolds L (addressOfIndex fp) wenv)
 
 /-- **The run arrives at offset `J`**, from `W0`, within the counts `c` and the first `n`
 callees'. -/
 def Arr (L : MemoryImage κ) (fp : ℕ) (X : CX) (wJ : ℕ) (wenv : Trie Sym) (ck : List (Opcode → ℕ))
     (W0 : Registers K) (J : ℕ) (c : Cnt) (n : ℕ) (x : Opcode → ℕ) : Prop :=
-  (∃ cr, RunC guestProgram L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr ∧ ∀ op, cr op ≤ c.get op + x op + ksum ck n op) ∧
+  (∃ cr, RunC guestProgram L W0 ⟨addressOfIndex (X.entry + J), addressOfIndex fp⟩ cr ∧ ∀ op, cr op ≤ c.get op + x op + ksum ck n op) ∧
     EnvAt L fp X wJ wenv J
 
 /-- **The run is inside the segment starting at `J`**, its first `m` items passed, within the
 counts `c` and the first `n` callees'. -/
 def ArrMid (L : MemoryImage κ) (fp : ℕ) (X : CX) (ck : List (Opcode → ℕ)) (W0 : Registers K) (J m : ℕ)
     (c : Cnt) (n : ℕ) (x : Opcode → ℕ) : Prop :=
-  ∃ s, getF X.idx J = some s ∧ s.start = J ∧ m ≤ s.items.length ∧ EnvHolds L (gpow fp) s.env ∧
-    ∃ cr, Fall L (gpow fp) (s.items.take m) ∧ RunC guestProgram L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr ∧
+  ∃ s, getF X.idx J = some s ∧ s.start = J ∧ m ≤ s.items.length ∧ EnvHolds L (addressOfIndex fp)
+      s.env ∧
+    ∃ cr, Fall L (addressOfIndex fp) (s.items.take m) ∧ RunC guestProgram L W0 ⟨addressOfIndex (X.entry + J), addressOfIndex fp⟩ cr ∧
       ∀ op, cr op + itemOps (s.items.take m) op ≤ c.get op + x op + ksum ck n op
 
 /-! ## Moves -/
@@ -263,7 +264,7 @@ theorem segAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ}
     (h : segAtC X t st = some sn) (hb : BookOk L fp st.book) (hfr : FrOk L fp st.fr)
     (htg : TgOk L fp st.tg) (hnx : NxOk L fp X.fs st.nx) (he : EnvAt L fp X wJ wenv t)
     {W0 : Registers K} {n : ℕ} {xc : Opcode → ℕ} {c : Opcode → ℕ}
-    (hr : RunC guestProgram L W0 ⟨gpow (X.entry + t), gpow fp⟩ c)
+    (hr : RunC guestProgram L W0 ⟨addressOfIndex (X.entry + t), addressOfIndex fp⟩ c)
     (hc : ∀ op, c op ≤ st.cnt.get op + xc op + ksum ck n op)
     (hnm : ∀ n, st.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
     PosZ H sn W0 n xc ∧ sn.book = st.book ∧ sn.fr = st.fr ∧ sn.tg = st.tg ∧ sn.nx = st.nx ∧
@@ -281,7 +282,7 @@ theorem segAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ}
 /-- The successor `t` of an exit whose environment holds has its environment holding. -/
 theorem envAt_of_exit (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {s : Exec.Seg}
     (hs : s ∈ segs) {x : Exit} (hx : x ∈ s.exits) {t : ℕ} (ht : t ∈ x.succ)
-    (he : EnvHolds L (gpow fp) x.env) : EnvAt L fp X wJ wenv t := by
+    (he : EnvHolds L (addressOfIndex fp) x.env) : EnvAt L fp X wJ wenv t := by
   refine ⟨fun s' hs' _ ↦ ?_, fun htJ hn ↦ ?_⟩
   · rw [getF_eq] at hs'
     exact he.sub (linkedWeak_get H.linked hs hx ht hs').2
@@ -306,15 +307,16 @@ theorem endAtC_reach (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st se 
     {n : ℕ} {xc : Opcode → ℕ} (hp : PosZ H st W0 n xc) (he : endAtC X st = .ok se) :
     se.seg = st.seg ∧ se.book = st.book ∧ se.fr = st.fr ∧ se.tg = st.tg ∧ se.nx = st.nx ∧
       se.uq = st.uq ∧
-      ∀ r, st.seg.exit.kind.Regs L (gpow fp) X.entry r → ∃ cr, RunC guestProgram L W0 r cr ∧
-        (∀ op, cr op ≤ se.cnt.get op + xc op + ksum ck n op) ∧ EnvHolds L (gpow fp) st.seg.exit.env := by
+      ∀ r, st.seg.exit.kind.Regs L (addressOfIndex fp) X.entry r → ∃ cr, RunC guestProgram L
+          W0 r cr ∧
+        (∀ op, cr op ≤ se.cnt.get op + xc op + ksum ck n op) ∧ EnvHolds L (addressOfIndex fp) st.seg.exit.env := by
   obtain ⟨c, hpl, rfl⟩ := endAtC_eq he
   refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, fun r hr ↦ ?_⟩
   obtain ⟨pre2, hpre2, hf2, hc2, -⟩ := passL_sound H.hX hp.ok st.its st.cnt hpl
   obtain ⟨pre, c0, hpre, hf, hrun, hc0⟩ := hp.run
   rw [List.append_nil] at hpre2
   subst hpre2
-  have hfall : Fall L (gpow fp) st.seg.items := by
+  have hfall : Fall L (addressOfIndex fp) st.seg.items := by
     rw [← hpre]
     exact (fall_append _ _).mpr ⟨hf, hf2⟩
   obtain ⟨cs, hcs, hle, henv⟩ := (H.segz _ hp.seg hp.ok.env).1 hfall r hr
@@ -355,10 +357,12 @@ theorem brAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st st' : 
     (hb : brAtC X st = .ok (st', oc, od, of, x)) :
     st'.seg = st.seg ∧ st'.book = st.book ∧ st'.fr = st.fr ∧ st'.tg = st.tg ∧ st'.nx = st.nx ∧
       st'.uq = st.uq ∧ st'.fresh = none ∧ x ∈ st.seg.exits ∧ CWOk L fp X st' ∧
-      ((Atom.jump oc od of).Holds L (gpow fp) → rdc L fp oc = some 0 → PosZ H st' W0 n xc) ∧
-      (Taken L (gpow fp) oc od of → ∀ r, x.kind.Regs L (gpow fp) X.entry r → ∃ cr,
+      ((Atom.jump oc od of).Holds L (addressOfIndex fp) → rdc L fp oc = some 0 → PosZ H st' W0
+          n xc) ∧
+      (Taken L (addressOfIndex fp) oc od of → ∀ r, x.kind.Regs L (addressOfIndex fp) X.entry r
+          → ∃ cr,
         RunC guestProgram L W0 r cr ∧ (∀ op, cr op ≤ st'.cnt.get op + xc op + ksum ck n op) ∧
-        EnvHolds L (gpow fp) x.env) := by
+        EnvHolds L (addressOfIndex fp) x.env) := by
   obtain ⟨its, c, hpl, rfl⟩ := brAtC_eq hb
   obtain ⟨pre2, hpre2, hf2, hc2, -⟩ := passL_sound H.hX hp.ok st.its st.cnt hpl
   obtain ⟨pre, c0, hpre, hf, hrun, hc0⟩ := hp.run
@@ -378,7 +382,7 @@ theorem brAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st st' : 
       simp only [itemOps_append, Cnt.get_bumpJ, hc2 op]
       simp only [itemOps_cons, itemOps_nil, itemOp]
       omega
-  · have hfall : Fall L (gpow fp) (pre ++ pre2) := (fall_append _ _).mpr ⟨hf, hf2⟩
+  · have hfall : Fall L (addressOfIndex fp) (pre ++ pre2) := (fall_append _ _).mpr ⟨hf, hf2⟩
     obtain ⟨cs, hcs, hle, henv⟩ := (H.segz _ hp.seg hp.ok.env).2 _ oc od of x its hitems hfall ht r hr
     refine ⟨c0 + cs, hrun.trans hcs, fun op ↦ ?_, henv⟩
     have h1 := hle op
@@ -394,7 +398,7 @@ theorem brAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st st' : 
 returned values at the cells after its parameters. -/
 def FinZ (L : MemoryImage κ) (j fp : ℕ) (X : CX) (ck : List (Opcode → ℕ)) (W0 : Registers K) (n : ℕ)
     (x : Opcode → ℕ) (vs' : List V) : Prop :=
-  (∃ r cr, (if j = 1 then r = Registers.final guestProgram else retRegs L (gpow fp) = some r) ∧
+  (∃ r cr, (if j = 1 then r = Registers.final guestProgram else retRegs L (addressOfIndex fp) = some r) ∧
     RunC guestProgram L W0 r cr ∧ ∀ op, cr op ≤ X.pmax.get op + x op + ksum ck n op) ∧
   ∀ k (hk : k < vs'.length), X.loc.cell vs'[k] = 2 + X.nargs + k ∧ 2 ≤ X.loc.cell vs'[k] ∧
     X.loc.cell vs'[k] < X.fs
@@ -568,7 +572,7 @@ theorem argFC_mem {loc : CLoc} : ∀ {o : ℕ} {vs : List V} {p : ℕ × FC}, p 
 
 theorem posZ_fr (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {W0 : Registers K} {n : ℕ}
     {xc : Opcode → ℕ} (hp : PosZ H st W0 n xc) {q : ℕ} {fcs : List (ℕ × FC)} {kfp : ℕ}
-    (hq : rdc L fp q = some (ofK (gpow kfp))) (hf : ∀ p ∈ fcs, FCHolds L fp kfp p.1 p.2) :
+    (hq : rdc L fp q = some (ofK (addressOfIndex kfp))) (hf : ∀ p ∈ fcs, FCHolds L fp kfp p.1 p.2) :
     PosZ H { st with fr := (q, fcs) :: st.fr } W0 n xc :=
   ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, fun x hx ↦ by
     rcases List.mem_cons.mp hx with rfl | hx
@@ -599,22 +603,22 @@ theorem call_frame (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {n : ℕ}
     (hnl : (coreOf j).loop = true → n + 1 < (calls es).length)
     (hin : inFrame X.fs (s0.q :: c.args.map X.loc.cell) = true) {selfs : List ℕ}
     (hsf : ∀ o ∈ selfs, o ∈ (certOf j').facts.env.map (·.1)) :
-    ∃ kfp, kfps[n]? = some kfp ∧ rdc L fp s0.q = some (ofK (gpow kfp)) ∧
+    ∃ kfp, kfps[n]? = some kfp ∧ rdc L fp s0.q = some (ofK (addressOfIndex kfp)) ∧
       (∀ p ∈ callFC X c.args selfs s0.r, FCHolds L fp kfp p.1 p.2) ∧
-      retRegs L (gpow kfp) = some ⟨gpow s0.r, gpow fp⟩ := by
+      retRegs L (addressOfIndex kfp) = some ⟨addressOfIndex s0.r, addressOfIndex fp⟩ := by
   have hlen : n < kfps.length := by
     rw [H.frame.len]
     exact (List.getElem?_eq_some_iff.mp hci).1
   refine ⟨kfps[n], List.getElem?_eq_getElem hlen, ?_⟩
   have hkfp := List.getElem?_eq_getElem hlen
   have hfr := inFrame_mem hin
-  have hq : rdc L fp s0.q = some (ofK (gpow kfps[n])) := by
+  have hq : rdc L fp s0.q = some (ofK (addressOfIndex kfps[n])) := by
     have := (H.frame.site n c kfps[n] s0 hci hkfp (by rw [← siteC_eq H.sites]; exact hs0)).1
       (hfr _ List.mem_cons_self).1 (by rw [← H.fs]; exact (hfr _ List.mem_cons_self).2)
     rw [gpow_addC] at this
     exact this
   obtain ⟨h0, h1, hargs, hself⟩ := H.frame.kid n c kfps[n] hci hkfp
-  have hhdr : kidHdr j fp hdr es n = (ofK (gpow s0.r), ofK (gpow fp)) := by
+  have hhdr : kidHdr j fp hdr es n = (ofK (addressOfIndex s0.r), ofK (addressOfIndex fp)) := by
     unfold kidHdr
     rw [hci]
     simp only
@@ -706,13 +710,14 @@ theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : Stri
   have hp1 := posZ_fr H hp hq hfcs
   obtain ⟨hseg, hbk, hfr, htg, hnx, huq, hreach⟩ := endAtC_reach H hp1 hse
   simp only at hseg hbk hfr htg hnx huq hreach
-  obtain ⟨cr, hcr, hcle, henv⟩ := hreach ⟨gpow e, gpow kfp⟩ (by
+  obtain ⟨cr, hcr, hcle, henv⟩ := hreach ⟨addressOfIndex e, addressOfIndex kfp⟩ (by
     rw [hk]
-    exact ⟨_, gpow e, hq, isInK_ofK _, rfl, by simp⟩)
+    exact ⟨_, addressOfIndex e, hq, isInK_ofK _, rfl, by simp⟩)
   have hent : entryOf f = e := by rw [hfn, entryOf_callee hj1 hj2, he]
   rw [hent] at hrun
-  have hgr : gpow r = gpow (X.entry + (r - X.entry)) := by rw [Nat.add_sub_cancel' hle]
-  have hrun2 : RunC guestProgram L W0 ⟨gpow (X.entry + (r - X.entry)), gpow fp⟩ (cr + ck.getD n 0) := by
+  have hgr : addressOfIndex r = addressOfIndex (X.entry + (r - X.entry)) :=
+      by rw [Nat.add_sub_cancel' hle]
+  have hrun2 : RunC guestProgram L W0 ⟨addressOfIndex (X.entry + (r - X.entry)), addressOfIndex fp⟩ (cr + ck.getD n 0) := by
     rw [← hgr]
     exact hcr.trans hrun
   have henvR : EnvAt L fp X wJ wenv (r - X.entry) :=
@@ -763,7 +768,7 @@ theorem posZ_book (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} 
 theorem segAtC_posW (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ} {st sn : CW}
     (h : segAtC X t st = some sn) (hok : CWOk L fp X st) (he : EnvAt L fp X wJ wenv t)
     {W0 : Registers K} {n : ℕ} {xc : Opcode → ℕ} {c : Opcode → ℕ}
-    (hr : RunC guestProgram L W0 ⟨gpow (X.entry + t), gpow fp⟩ c)
+    (hr : RunC guestProgram L W0 ⟨addressOfIndex (X.entry + t), addressOfIndex fp⟩ c)
     {C : Cnt} {U : ℕ} (hc : ∀ op, c op ≤ C.get op + xc op + ksum ck n op)
     (hnm : ∀ n, st.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
     PosZ H { sn with cnt := C, uq := U } W0 n xc ∧ sn.book = st.book ∧ sn.fr = st.fr ∧
@@ -823,7 +828,7 @@ theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z
     val_cell H.frame H.loc (uses_named hinK (by simp [Ev.uses])) hfc.1 (H.fs ▸ hfc.2)
   obtain ⟨vd, hvd, hKd⟩ := cellK_sound H.hX hok' hod
   obtain ⟨vf, hvf, hKf⟩ := cellK_sound H.hX hok' hof
-  have hjump : (Atom.jump (X.loc.cell c) od of).Holds L (gpow fp) :=
+  have hjump : (Atom.jump (X.loc.cell c) od of).Holds L (addressOfIndex fp) :=
     ⟨σ c, vd, vf, hcell, hvd, hvf, hcK, hKd, hKf⟩
   -- the rest of the path after the branch
   have hatoms : ∀ b : List Stmt, walk σ b = .fall eb → ∀ a, Stmt.atom a ∈ b → Ev.atom a ∈ es :=
@@ -999,18 +1004,20 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
     obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hpk')
     obtain ⟨vd, hvd, hKd⟩ := cellK_sound H.hX hok' hod
     obtain ⟨vf, hvf, hKf⟩ := cellK_sound H.hX hok' hof
-    have hjump : (Atom.jump (X.loc.cell c) od of).Holds L (gpow fp) :=
+    have hjump : (Atom.jump (X.loc.cell c) od of).Holds L (addressOfIndex fp) :=
       ⟨σ c, vd, vf, hcell, hvd, hvf, hcK, hKd, hKf⟩
-    have hgr : gpow r = gpow (X.entry + (r - X.entry)) := by rw [Nat.add_sub_cancel' hle]
+    have hgr : addressOfIndex r = addressOfIndex (X.entry + (r - X.entry)) :=
+        by rw [Nat.add_sub_cancel' hle]
     obtain ⟨cr, hcr, hcle, henvR⟩ : ∃ cr,
-        RunC guestProgram L W0 ⟨gpow (X.entry + (r - X.entry)), gpow fp⟩ cr ∧
+        RunC guestProgram L W0 ⟨addressOfIndex (X.entry + (r - X.entry)), addressOfIndex fp⟩ cr ∧
         (∀ op, cr op ≤ (Cnt.max se.cnt st'.cnt).get op + xc op + ksum ck (n + 1) op) ∧
         EnvAt L fp X wJ wenv (r - X.entry) := by
       by_cases h0 : σ c = 0
       · have hp' := hfall hjump (h0 ▸ hcell)
         obtain ⟨hsg, -, -, -, -, -, hr⟩ := endAtC_reach H hp' hse
         rw [hsg] at ht hsu'
-        obtain ⟨cr, hcr, hle', henv⟩ := hr ⟨gpow (X.entry + t), gpow fp⟩ (by rw [ht]; rfl)
+        obtain ⟨cr, hcr, hle', henv⟩ := hr ⟨addressOfIndex (X.entry + t), addressOfIndex fp⟩
+            (by rw [ht]; rfl)
         rw [hrt] at hcr
         refine ⟨cr, hcr, fun op ↦ ?_, ?_⟩
         · have := hle' op
@@ -1020,8 +1027,9 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
           omega
         · rw [← hrt]
           exact envAt_of_exit H hp'.seg (H.exits _ hp'.seg _ (Or.inl rfl)) (by rw [hsu']; simp) henv
-      · obtain ⟨cr, hcr, hle', henv⟩ := htaken ⟨hjump, σ c, hcell, h0⟩ ⟨gpow e, gpow kfp⟩
-          (by rw [hk]; exact ⟨_, gpow e, hq, isInK_ofK _, rfl, by simp⟩)
+      · obtain ⟨cr, hcr, hle', henv⟩ := htaken ⟨hjump, σ c, hcell, h0⟩ ⟨addressOfIndex e,
+          addressOfIndex kfp⟩
+          (by rw [hk]; exact ⟨_, addressOfIndex e, hq, isInK_ofK _, rfl, by simp⟩)
         obtain ⟨-, hkid⟩ := H.kids
         obtain ⟨⟨rr, hrr, hrun⟩, -⟩ := hkid n _ kfp hci hkfp (by simp [h0])
         rw [hret] at hrr
@@ -1100,9 +1108,9 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
     obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hpk')
     obtain ⟨vd, hvd, hKd⟩ := cellK_sound H.hX hok' hod
     obtain ⟨vf, hvf, hKf⟩ := cellK_sound H.hX hok' hof
-    have hjump : (Atom.jump (X.loc.cell c) od of).Holds L (gpow fp) :=
+    have hjump : (Atom.jump (X.loc.cell c) od of).Holds L (addressOfIndex fp) :=
       ⟨σ c, vd, vf, hcell, hvd, hvf, hcK, hKd, hKf⟩
-    have hrT : retRegs L (gpow fp) = some ⟨hdr.1.limb 0, hdr.2.limb 0⟩ :=
+    have hrT : retRegs L (addressOfIndex fp) = some ⟨hdr.1.limb 0, hdr.2.limb 0⟩ :=
       retRegs_eq_some_iff.mpr ⟨_, _, hd0, hd1, rfl⟩
     obtain ⟨cr, hcr, hcle⟩ : ∃ cr, RunC guestProgram L W0 ⟨hdr.1.limb 0, hdr.2.limb 0⟩ cr ∧
         ∀ op, cr op ≤ X.pmax.get op + xc op + ksum ck (n + 1) op := by
@@ -1116,17 +1124,19 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
         have h1 := Cnt.le_spec hle2 op
         have h2 := ksum_mono ck (show n ≤ n + 1 by omega) op
         omega
-      · obtain ⟨cr, hcr, hle', -⟩ := htaken ⟨hjump, σ c, hcell, h0⟩ ⟨gpow e, gpow fp * gpow S⟩
+      · obtain ⟨cr, hcr, hle', -⟩ := htaken ⟨hjump, σ c, hcell, h0⟩ ⟨addressOfIndex e,
+          addressOfIndex fp * addressOfIndex S⟩
           (by rw [hk]; exact ⟨_, _, rfl, rfl, rfl⟩)
         obtain ⟨-, hkid⟩ := H.kids
         obtain ⟨⟨rr, hrr, hrun⟩, -⟩ := hkid n _ kfp hci hkfp (by simp [h0])
-        have hrr' : retRegs L (gpow kfp) = some ⟨hdr.1.limb 0, hdr.2.limb 0⟩ :=
+        have hrr' : retRegs L (addressOfIndex kfp) = some ⟨hdr.1.limb 0, hdr.2.limb 0⟩ :=
           retRegs_eq_some_iff.mpr ⟨_, _, h0', h1', rfl⟩
         rw [hrr'] at hrr
         obtain rfl := Option.some.inj hrr
         have hentf : entryOf f = e := by
           rw [hf, H.name, entryOf_callee hj2 H.jn, ← H.entry, he]
-        have hkf : gpow fp * gpow S = gpow kfp := by rw [hkt, hS, H.fs, gpow_addC]
+        have hkf : addressOfIndex fp * addressOfIndex S = addressOfIndex kfp :=
+            by rw [hkt, hS, H.fs, gpow_addC]
         rw [hentf, ← hkf] at hrun
         refine ⟨cr + ck.getD n 0, hcr.trans hrun, fun op ↦ ?_⟩
         rw [Pi.add_apply, ksum_succ]
@@ -1155,8 +1165,9 @@ theorem runCells_get : ∀ {base : ℕ} {cs : List ℕ}, runCells base cs = true
       rw [runCells_get h.2 k (by simpa using hk)]
       omega
 
-theorem final_guest : Registers.final guestProgram = ⟨gpow (2 ^ 19 - 1), gpow 0⟩ := by
-  simp [Registers.final, Program.pcFinal, guest_logSize]
+theorem final_guest : Registers.final guestProgram = ⟨addressOfIndex (2 ^ 19 - 1), addressOfIndex
+    0⟩ := by
+  simp [Registers.final, LeanIsaProgram.pcFinal, guest_logSize]
 
 theorem walk_retZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (vs' : List V)
     (ss : List Stmt) (st : CW) : WGood H (.ret vs' :: ss) st := by
@@ -1172,10 +1183,10 @@ theorem walk_retZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (vs' : Lis
   have hd0 := H.frame.hdr0
   have hd1 := H.frame.hdr1
   rw [gpow_addC] at hd0 hd1
-  have hrT : retRegs L (gpow fp) = some ⟨hdr.1.limb 0, hdr.2.limb 0⟩ :=
+  have hrT : retRegs L (addressOfIndex fp) = some ⟨hdr.1.limb 0, hdr.2.limb 0⟩ :=
     retRegs_eq_some_iff.mpr ⟨_, _, hd0, hd1, rfl⟩
-  obtain ⟨r, hrg, hregs⟩ : ∃ r, (if j = 1 then r = Registers.final guestProgram else retRegs L (gpow fp) = some r) ∧
-      st.seg.exit.kind.Regs L (gpow fp) X.entry r := by
+  obtain ⟨r, hrg, hregs⟩ : ∃ r, (if j = 1 then r = Registers.final guestProgram else retRegs L (addressOfIndex fp) = some r) ∧
+      st.seg.exit.kind.Regs L (addressOfIndex fp) X.entry r := by
     by_cases hj1 : j = 1
     · have hm : X.main = true := by rw [H.main, hj1]; rfl
       simp only [hm, ↓reduceIte] at hkind

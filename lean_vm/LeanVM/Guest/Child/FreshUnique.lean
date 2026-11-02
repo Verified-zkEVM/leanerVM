@@ -27,20 +27,20 @@ open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 
 /-- The deferring program, as a sequence. -/
 theorem deferredProgram_execWith (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
-    deferredProgram c bytecode publicInput =
-      (execWith (claimedValue c) verifyStackedOpening bytecode publicInput).bind
-        fun _ ↦ Prog.ret true := by
+    deferringVerifierProgram c bytecode publicInput =
+      (execWith (claimedBytecodeValue c) verifyStackedOpening bytecode publicInput).bind
+        fun _ ↦ VerifierProgram.ret true := by
   rw [deferredProgram_eq]
   rfl
 
 /-- **An accepted run of the deferring program has its claim at the prefix's point.** -/
 theorem point_of_run_deferred (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
-    {c : BytecodeClaim} {bytecode : List K} {publicInput : Digest} {st : ProgState}
-    {r : Bool × ProgState}
-    (h : Compile.runWithHash H F (deferredProgram c bytecode publicInput) st = some r) :
+    {c : BytecodeClaim} {bytecode : List K} {publicInput : Digest} {st : VerifierProgramState}
+    {r : Bool × VerifierProgramState}
+    (h : Compile.runWithHash H F (deferringVerifierProgram c bytecode publicInput) st = some r) :
     ∃ y s1, Compile.runWithHash H F (prefixProg bytecode) st = some (y, s1) ∧
       c.bytecodePoint = busPoint y := by
-  rw [deferredProgram_execWith, execSplit, Prog.bind_assoc, run_bind'] at h
+  rw [deferredProgram_execWith, execSplit, VerifierProgram.bind_assoc, run_bind'] at h
   rcases hp : Compile.runWithHash H F (prefixProg bytecode) st with _ | ⟨y, s1⟩
   · rw [hp] at h
     simp at h
@@ -48,8 +48,9 @@ theorem point_of_run_deferred (H : Bytes → Id Digest) (F : KeccakState → Id 
   refine ⟨y, s1, rfl, ?_⟩
   by_contra hne
   have hne' : ¬ busPoint y = c.bytecodePoint := fun e ↦ hne e.symm
-  simp only [Option.bind_some, claimedValue, Prog.require, Prog.bind_eq, Prog.pure_eq, hne',
-    ↓reduceIte, Prog.bind] at h
+  simp only [Option.bind_some, claimedBytecodeValue, VerifierProgram.require,
+      VerifierProgram.bind_eq, VerifierProgram.pure_eq, hne',
+    ↓reduceIte, VerifierProgram.bind] at h
   simp [Compile.runWithHash] at h
 
 /-- **The deferring verifier's acceptance places its claim at the prefix's point**, from the seed
@@ -61,11 +62,12 @@ theorem point_of_verifyDeferred {bytecode : List K} {iv publicInput : Digest} {c
           some (y, s1) ∧ c.bytecodePoint = busPoint y := by
   rw [verifyDeferred_eq_withHash] at h
   have h2 : Id.run (runProofWithHash (m := Id) keccak256 keccakF1600
-      (deferredProgram c bytecode publicInput) (keccakF1600 (seedInput iv publicInput)) proof) =
+      (deferringVerifierProgram c bytecode publicInput) (keccakF1600 (seedInput iv publicInput))
+          proof) =
         true := h
   unfold runProofWithHash at h2
   cases hr : Compile.runWithHash (m := Id) keccak256 keccakF1600
-      (deferredProgram c bytecode publicInput)
+      (deferringVerifierProgram c bytecode publicInput)
       ⟨⟨keccakF1600 (seedInput iv publicInput), []⟩, proof.stream, proof.openings, []⟩ with
   | none => rw [hr] at h2; cases h2
   | some r => exact point_of_run_deferred _ _ hr

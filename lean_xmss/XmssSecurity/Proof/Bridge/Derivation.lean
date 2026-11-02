@@ -45,18 +45,18 @@ def paramInput (seed : MasterSeed) : HashInput :=
   LeanXmss.keygenHashInput 0 .parameter seed
 
 def bottomInput (parameter : PublicParameter) (seed : MasterSeed) (pos : BottomPos) : HashInput :=
-  LeanXmss.keygenHashInput parameter (.ots LeanXmss.bottomLayer pos.1 pos.2) seed
+  LeanXmss.keygenHashInput parameter (.oneTimeChainPair LeanXmss.bottomLayer pos.1 pos.2) seed
 
 def topInput (parameter : PublicParameter) (seed : MasterSeed) (pos : TopOtsPos) : HashInput :=
-  LeanXmss.keygenHashInput parameter (.ots LeanXmss.topLayer (topKey pos.1) pos.2) seed
+  LeanXmss.keygenHashInput parameter (.oneTimeChainPair LeanXmss.topLayer (topKey pos.1) pos.2) seed
 
 def rndInput (parameter : PublicParameter) (seed : MasterSeed) (request : SignRequest) : HashInput :=
   LeanXmss.randomizerHashInput parameter LeanXmss.bottomLayer request.leafIndex seed
-    (HashSig.bytesLE 32 request.message)
+    (HashSig.littleEndianBytes 32 request.message)
 
 def topRndInput (parameter : PublicParameter) (seed : MasterSeed) (pos : TopRndPos) : HashInput :=
   LeanXmss.randomizerHashInput parameter LeanXmss.topLayer (topKey pos.1) seed
-    (HashSig.bytesLE 16 pos.2)
+    (HashSig.littleEndianBytes 16 pos.2)
 
 /-! ## Input layout -/
 

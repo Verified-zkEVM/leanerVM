@@ -81,7 +81,8 @@ theorem filter_answerPairs (P : List (Bytes × Digest)) (L : ℕ) :
   preimageIndex (answerPairs (firstAnswers P).get? (P.map (·.1)))
 
 /-- **The extractor in the random-permutation model, fast.** -/
-@[expose] def transcriptExtractorFast (prog : Program) (input : PublicInput) (T : OracleQueryLog)
+@[expose] def transcriptExtractorFast (prog : LeanIsaProgram) (input : PublicInput) (T :
+    OracleQueryLog)
     (proof : Proof) : Option (Execution prog) :=
   extractWith prog input (bytecodeWords prog)
     (fun width ↦ transcriptIndex (permutationQueries T) (max 64 (8 * width))) preimageIn proof

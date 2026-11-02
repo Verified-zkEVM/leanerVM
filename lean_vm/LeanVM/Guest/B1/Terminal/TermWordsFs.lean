@@ -97,7 +97,7 @@ theorem l14_totalLeOn_fs :
   intro rd t args rets hn ha hv hb
   have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 259) (by decide +kernel)]; rfl :
       wcertOf "__loop13" = .loop (some 8) [] ⟨1322, []⟩ []) hn hv hb (a := 0) (e := 8)
-    (by rw [ha]; simp [Parameters.gpow]) rfl (by decide) (by decide)
+    (by rw [ha]; simp [Parameters.addressOfIndex]) rfl (by decide) (by decide)
     (fun _ h => (List.not_mem_nil h).elim)
   simpa [Aff.eval] using this
 

@@ -100,7 +100,8 @@ theorem probEvent_searchLoop (inputs : Nat → HashInput) (decode : HashOutput �
 /-! ## Distinct inputs
 
 The counter rides in the hashed bytes, so trials below the wrap hash distinct inputs. -/
-theorem bytesLE_inj {n : Nat} {x y : BitVec (8 * n)} (h : bytesLE n x = bytesLE n y) : x = y := by
+theorem bytesLE_inj {n : Nat} {x y : BitVec (8 * n)} (h : littleEndianBytes n x = littleEndianBytes
+    n y) : x = y := by
   have hfun := List.ofFn_inj.mp h
   apply BitVec.eq_of_getLsbD_eq
   intro i hi
@@ -116,8 +117,8 @@ theorem bytesLE_inj {n : Nat} {x y : BitVec (8 * n)} (h : bytesLE n x = bytesLE 
 
 /-- Counter inputs below the wrap are distinct. -/
 theorem counter_bytes_inj {c c' : Nat} (hc : c < 2 ^ 32) (hc' : c' < 2 ^ 32)
-    (h : (bytesLE 4 (BitVec.ofNat counterBits c) : HashInput)
-        = bytesLE 4 (BitVec.ofNat counterBits c')) : c = c' := by
+    (h : (littleEndianBytes 4 (BitVec.ofNat counterBits c) : HashInput)
+        = littleEndianBytes 4 (BitVec.ofNat counterBits c')) : c = c' := by
   have hv := congrArg BitVec.toNat (bytesLE_inj h)
   simp only [BitVec.toNat_ofNat, counterBits] at hv
   rwa [Nat.mod_eq_of_lt hc, Nat.mod_eq_of_lt hc'] at hv
@@ -137,7 +138,7 @@ theorem otsSignFrom_eq_searchLoop (parameter : PublicParameter) (lay : Layer) (t
         : OracleComp HashSpec (Option (Counter × (ChainIndex → Digest))))
         = searchLoop
             (fun c => tweakableHashInput parameter (.encoding lay tree leaf)
-              (rootsPayload message ++ bytesLE 4 (BitVec.ofNat counterBits c)))
+              (rootsPayload message ++ littleEndianBytes 4 (BitVec.ofNat counterBits c)))
             (fun out => TargetSum.decodeDigest (truncateHash out))
             (fun c encoding => do
               let secrets ← otsSecrets parameter lay tree leaf seed

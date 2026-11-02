@@ -134,7 +134,7 @@ theorem osLevelA_nonfinal_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsS
     (hrd : ReadsAt rd (st.cur σ) xs)
     (hst : ∀ j, j < lv.folds → LoadHolds rd (σ (.n osFch)) (lv.foldsOff + j)
       ((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).2.1.getD j 0))
-    {ra rb y c0 c2 nonce : E} {d : Digest} (hd : (ra, rb) = digestScalars d)
+    {ra rb y c0 c2 nonce : E} {d : Digest} (hd : (ra, rb) = digestHalves d)
     (hrd2 : ReadsAt rd (st.cur σ * gen ^ (2 * lv.folds)) [ra, rb, y, c0, c2, nonce])
     (hr0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 2) ra)
     (hr1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 3) rb)

@@ -114,7 +114,7 @@ theorem chainWalk_eq_succ (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (c
       let previous ← chainWalk parameter lay tree leaf chainIdx start steps value
       if hstep : start + steps < chainLength - 1 then
         tweakableHash parameter (.chain lay tree leaf chainIdx ⟨start + steps, hstep⟩)
-          (bytesLE 16 previous)
+          (littleEndianBytes 16 previous)
       else
         pure 0) := rfl
 
@@ -127,7 +127,7 @@ theorem forestWalk_eq_succ (index : Index) (c : Coord) (s : SuperIdx) (j : SubId
     forestWalk (m := m) parameter index c s j a i start (steps + 1) value = (do
       let previous ← forestWalk parameter index c s j a i start steps value
       if hstep : start + steps < chainTop then
-        tweakableHash parameter (.fchain index c s j a i ⟨start + steps, hstep⟩) (bytesLE 16 previous)
+        tweakableHash parameter (.fchain index c s j a i ⟨start + steps, hstep⟩) (littleEndianBytes 16 previous)
       else
         pure 0) := rfl
 
@@ -271,7 +271,7 @@ this is the value of each of its entries (`Completeness.eval_otsSecrets`). -/
 def otsStart (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
     (leaf : LeafIndex) (chainIdx : ChainIndex) (seed : MasterSeed) : m Digest := do
   let output ← deriveOutput parameter (.ots lay tree leaf (chainPair chainIdx)) seed
-  return hashHalf chainIdx.val output
+  return hashHalfForChain chainIdx.val output
 
 variable [Params]
 
@@ -288,7 +288,7 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 def forestStart (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
     (a : ChildIdx) (i : FChain) (seed : MasterSeed) : m Digest := do
   let output ← deriveOutput parameter (.forest index c s j a (fchainPair i)) seed
-  return hashHalf i.val output
+  return hashHalfForChain i.val output
 
 /-- The forest chain value `x_{i,pos}` of a child, by its own derivation. The signer computes the 6
 chains of a child from one call of `forestSecrets` (`childLeaf`, `coordOpen`); this is the value of

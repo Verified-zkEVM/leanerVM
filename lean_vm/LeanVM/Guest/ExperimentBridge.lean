@@ -47,12 +47,12 @@ namespace Guest
 namespace Batch
 
 theorem runBatching_eq_withHash {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
-    (prog : Prog Bool) (proof : Proof) :
+    (prog : VerifierProgram Bool) (proof : Proof) :
     runBatching F prog proof = runBatchingWithHash (keccak256With F) F prog proof := by
   simp only [runBatching, runBatchingWithHash, runProof_eq_withHash]
 
 theorem simulateQ_runBatchingWithHash {r : Type → Type} [Monad r] [LawfulMonad r]
-    (impl : QueryImpl KeccakCalls r) (prog : Prog Bool) (proof : Proof) :
+    (impl : QueryImpl KeccakCalls r) (prog : VerifierProgram Bool) (proof : Proof) :
     simulateQ impl (runBatchingWithHash callKeccak256 callKeccakF1600 prog proof) =
       runBatchingWithHash (implH impl) (implF impl) prog proof := by
   simp only [runBatchingWithHash, simulateQ_bind, simulateQ_queryH, simulateQ_queryF,
@@ -61,7 +61,7 @@ theorem simulateQ_runBatchingWithHash {r : Type → Type} [Monad r] [LawfulMonad
 /-- **The batching game over `π`** is the adversary's run with its transcript recorded, then the
 batching with the two calls, the transcript forgotten. -/
 theorem batchingGame_eq_withHash (A : OracleComp RandomPermutationOracles (Unit × Proof))
-    (prog : Prog Bool) :
+    (prog : VerifierProgram Bool) :
     runWithRandomPermutation (do
         let z ← A
         let accepted ← runBatching queryPermutation prog z.2
@@ -97,14 +97,14 @@ open LeanVM.Guest.Completeness
 
 theorem verifierRefusingZero_eq_withHash {m : Type → Type} [Monad m]
     (F : KeccakState → m KeccakState)
-    (prog : Program) (input : PublicInput) (proof : Proof) :
+    (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) :
     verifierRefusingZero F prog input proof =
       verifierRefusingZeroWithHash (keccak256With F) F prog input proof := by
   simp only
     [verifierRefusingZero, verifierRefusingZeroWithHash, seedWith_eq_withHash, runProof_eq_withHash]
 
 theorem simulateQ_verifierRefusingZeroWithHash {r : Type → Type} [Monad r] [LawfulMonad r]
-    (impl : QueryImpl KeccakCalls r) (prog : Program) (input : PublicInput) (proof : Proof) :
+    (impl : QueryImpl KeccakCalls r) (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) :
     simulateQ impl (verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input proof) =
       verifierRefusingZeroWithHash (implH impl) (implF impl) prog input proof := by
   simp only [verifierRefusingZeroWithHash, simulateQ_bind, Prover.simulateQ_seedWith,
@@ -112,11 +112,12 @@ theorem simulateQ_verifierRefusingZeroWithHash {r : Type → Type} [Monad r] [La
 
 /-- The honest proof over the deployed Keccak-f[1600] is the two-call prover's with the deployed
 Keccak-256 and Keccak-f[1600]. -/
-theorem honestProofWithDeployedKeccak_eq_withHash (prog : Program) (input : PublicInput)
+theorem honestProofWithDeployedKeccak_eq_withHash (prog : LeanIsaProgram) (input : PublicInput)
     (t : Execution prog) (ρ fuel : ℕ) :
-    honestProofWithDeployedKeccak prover prog input t ρ fuel =
+    honestProofWithDeployedKeccak leanVmHonestProver prog input t ρ fuel =
       honestProofWithDeployedKeccakWithHash proverWithHash prog input t ρ fuel := by
-  simp only [honestProofWithDeployedKeccak, honestProofWithDeployedKeccakWithHash, prover,
+  simp only [honestProofWithDeployedKeccak, honestProofWithDeployedKeccakWithHash,
+      leanVmHonestProver,
     Prover.prove_eq_withHash, proverWithHash, simulateQ_proveWithHash]
   rfl
 

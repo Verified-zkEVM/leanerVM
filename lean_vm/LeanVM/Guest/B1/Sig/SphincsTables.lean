@@ -25,7 +25,7 @@ open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Value LeanVM.Protocol.Verifier
 @[expose] public section
 
 theorem spCode_lut_all : ∀ t < 256, ∀ i < 6,
-    spCodes / 5 ^ (6 * t + i) % 5 = Sphincs.codewordCodes.getD t 0 / 5 ^ (5 - i) % 5 := by
+    spCodes / 5 ^ (6 * t + i) % 5 = Sphincs.codewordTableBase5.getD t 0 / 5 ^ (5 - i) % 5 := by
   decide +kernel
 
 theorem spCode_lut (t : Sphincs.CodewordIndex) (i : Sphincs.ForestChainIndex) : spCode t.val i.val = (Sphincs.lut t i).val := by

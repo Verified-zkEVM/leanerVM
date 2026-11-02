@@ -20,7 +20,7 @@ open LeanVM.Protocol.EndToEnd.Sound
 
 example (layout : LeanVM.Protocol.Verifier.Layout) :
     RetOK (fun claims : List LeanVM.Protocol.Verifier.ColumnClaim ↦ claims.length ≤ 545)
-      ((LeanVM.Protocol.Verifier.verifyBusBalance LeanVM.Protocol.Verifier.computedValue layout).bind
+      ((LeanVM.Protocol.Verifier.verifyBusBalance LeanVM.Protocol.Verifier.computedBytecodeValue layout).bind
         (LeanVM.Protocol.Verifier.tablePhaseClaims layout)) :=
   retOK_busTable layout
 
@@ -48,18 +48,18 @@ info: 'LeanVM.Protocol.EndToEnd.Sound.retOK_publicInputPhase' depends on axioms:
 /-! ## What is load-bearing -/
 
 /-- The predicate constrains the returns: `3` is not at most `2`. -/
-example : ¬ RetOK (fun n : ℕ ↦ n ≤ 2) (Prog.ret 3) := by
+example : ¬ RetOK (fun n : ℕ ↦ n ≤ 2) (VerifierProgram.ret 3) := by
   intro h
   have := h [] 3 rfl
   omega
 
 /-- The bound is on the returns, not the reads: `readN 4` returns four scalars, not three. -/
-example : ¬ RetOK (fun xs : List E ↦ xs.length ≤ 3) (Prog.readScalars 4) := by
+example : ¬ RetOK (fun xs : List E ↦ xs.length ≤ 3) (VerifierProgram.readScalars 4) := by
   intro h
   have := h ([0, 0, 0, 0].map Ev.read) [0, 0, 0, 0] rfl
   simp at this
 
 /-- A rejecting program returns nothing, so it satisfies even the false predicate. -/
-example : RetOK (fun _ : ℕ ↦ False) Prog.fail := RetOK.fail
+example : RetOK (fun _ : ℕ ↦ False) VerifierProgram.fail := RetOK.fail
 
 end LeanVMTests.Protocol.EndToEnd.Sound.Returns

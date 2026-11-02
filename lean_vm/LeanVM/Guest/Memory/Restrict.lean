@@ -30,21 +30,21 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
 open Classical in
 /-- `rd` at the addresses `g^i` with `S i`, nothing elsewhere. -/
 noncomputable def restrict (rd : Reader) (S : ℕ → Prop) : Reader := fun A =>
-  if ∃ i, A = gpow i ∧ S i then rd A else none
+  if ∃ i, A = addressOfIndex i ∧ S i then rd A else none
 
 theorem restrict_supp {rd : Reader} {S : ℕ → Prop} {A : K} {v : E} (h : restrict rd S A = some v) :
-    ∃ i, A = gpow i ∧ S i := by
+    ∃ i, A = addressOfIndex i ∧ S i := by
   unfold restrict at h
   split at h
   · assumption
   · exact absurd h (by simp)
 
-theorem restrict_of {rd : Reader} {S : ℕ → Prop} {A : K} (h : ∃ i, A = gpow i ∧ S i) :
+theorem restrict_of {rd : Reader} {S : ℕ → Prop} {A : K} (h : ∃ i, A = addressOfIndex i ∧ S i) :
     restrict rd S A = rd A := by
   unfold restrict; simp only [h, ↓reduceIte]
 
 theorem loadHolds_restrict {rd : Reader} {S : ℕ → Prop} {p : E} {k : ℕ} {v : E}
-    (h : LoadHolds rd p k v) (hS : ∃ i, p.limb 0 * gpow k = gpow i ∧ S i) :
+    (h : LoadHolds rd p k v) (hS : ∃ i, p.limb 0 * addressOfIndex k = addressOfIndex i ∧ S i) :
     LoadHolds (restrict rd S) p k v :=
   ⟨h.1, by rw [restrict_of hS]; exact h.2⟩
 
@@ -52,8 +52,9 @@ section Supp
 
 variable {P : Core.Program} {rd : Reader} {R : ℕ → Prop}
 
-theorem loads_of_supp (hR : ∀ A v, rd A = some v → ∃ i, A = gpow i ∧ R i) {σ : Val} {es : List Ev}
-    (hes : ∀ e ∈ es, e.Holds rd σ) : ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧ R i := by
+theorem loads_of_supp (hR : ∀ A v, rd A = some v → ∃ i, A = addressOfIndex i ∧ R i) {σ : Val} {es :
+    List Ev}
+    (hes : ∀ e ∈ es, e.Holds rd σ) : ∀ A ∈ loadAddrs σ es, ∃ i, A = addressOfIndex i ∧ R i := by
   intro A hA
   obtain ⟨e, he, hea⟩ := List.mem_filterMap.mp hA
   match e, he, hea with
@@ -64,7 +65,7 @@ theorem loads_of_supp (hR : ∀ A v, rd A = some v → ∃ i, A = gpow i ∧ R i
 
 mutual
 /-- **A tree valid on a reader that reads nothing outside `R` loads from `R`.** -/
-theorem loadsR_of_supp (hR : ∀ A v, rd A = some v → ∃ i, A = gpow i ∧ R i) :
+theorem loadsR_of_supp (hR : ∀ A v, rd A = some v → ∃ i, A = addressOfIndex i ∧ R i) :
     ∀ (t : Tree) {args rets : List E}, t.Valid P rd args rets → t.LoadsR P R
   | .node f σ bufs kids, _, _, ⟨fn, hf, _, es, vs, hw, _, hes, hk⟩ => by
       rw [Tree.LoadsR, events_node hf hw]
@@ -72,7 +73,7 @@ theorem loadsR_of_supp (hR : ∀ A v, rd A = some v → ∃ i, A = gpow i ∧ R 
   | .phantom .., _, _, h => h.elim
 
 /-- `loadsR_of_supp` for the callees. -/
-theorem loadsRKids_of_supp (hR : ∀ A v, rd A = some v → ∃ i, A = gpow i ∧ R i) :
+theorem loadsRKids_of_supp (hR : ∀ A v, rd A = some v → ∃ i, A = addressOfIndex i ∧ R i) :
     ∀ (ks : List Tree) (σ : Val) (cs : List Call), Tree.KidsValid P rd σ cs ks → Tree.LoadsRKids P R ks
   | [], _, _, _ => by rw [Tree.LoadsRKids]; trivial
   | k :: ks, σ, c :: cs, ⟨_, hc, hks⟩ => by
@@ -88,13 +89,13 @@ theorem loadsRKids_of_supp (hR : ∀ A v, rd A = some v → ∃ i, A = gpow i �
 end
 
 /-- **A relation on a reader that reads nothing outside `R` loads from `R`.** -/
-theorem relIn_of_rel_supp (hP : P.Wf) (hR : ∀ A v, rd A = some v → ∃ i, A = gpow i ∧ R i)
+theorem relIn_of_rel_supp (hP : P.Wf) (hR : ∀ A v, rd A = some v → ∃ i, A = addressOfIndex i ∧ R i)
     {f : String} {args rets : List E} (h : P.Rel rd f args rets) : P.RelIn rd R f args rets := by
   obtain ⟨t, hn, hv, hb⟩ := Program.Rel.tree hP h
   exact ⟨t, hn, hv, hb, loadsR_of_supp hR t hv⟩
 
 theorem restrict_supp' (rd : Reader) (S : ℕ → Prop) :
-    ∀ A v, restrict rd S A = some v → ∃ i, A = gpow i ∧ S i :=
+    ∀ A v, restrict rd S A = some v → ∃ i, A = addressOfIndex i ∧ S i :=
   fun _ _ h => restrict_supp h
 
 end Supp
@@ -161,7 +162,7 @@ end
 placed anywhere, on every memory extending that reader. -/
 theorem relAtIn_uniform_of_supp (fs : String → ℕ) (cert : String → V → ℕ) (hP : P.Wf)
     (hS : P.PureIn S) {g : String} (hg : g ∈ S) {R : ℕ → Prop}
-    (hR : ∀ A v, rd0 A = some v → ∃ i, A = gpow i ∧ R i) {args rets : List E}
+    (hR : ∀ A v, rd0 A = some v → ∃ i, A = addressOfIndex i ∧ R i) {args rets : List E}
     (h : P.Rel rd0 g args rets) :
     ∃ n, ∀ fp (rd : Reader), (∀ A v, rd0 A = some v → rd A = some v) →
       RelAtIn P fs cert rd R (fun _ => False) fp n g args rets := by

@@ -44,21 +44,24 @@ theorem oqMain_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Strin
     (h1 : odd = 1 → LoadHolds rd qptrs 0 bp ∧
       (∀ l < s.pd + s.cd, LoadHolds rd bp l (bitE (q.testBit l))) ∧
       (⟨s, 13, true, 0, r, w, q, sb,
-        ofK (Parameters.gpow (fp + cert name (.n (oqCh s 13 true)))), cap, flags, rd⟩ : QD).Ok rd wp ∧
-      LoadHolds rd (ofK (Parameters.gpow (fp + fs name))) 0 (rowDot s.base s.I r w * lam⁻¹) ∧
-      OqIn R (qptrs.limb 0 * Parameters.gpow 0) ∧ OqQReg R s cap flags wp bp q)
-    (h0 : odd ≠ 1 → LoadHolds rd (ofK (Parameters.gpow (fp + fs name))) 0 0)
-    (hNl : LoadHolds rd (ofK (Parameters.gpow (fp + fs name))) N hNv)
+        ofK (Parameters.addressOfIndex (fp + cert name (.n (oqCh s 13 true)))), cap, flags, rd⟩ : QD).Ok rd wp ∧
+      LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs name))) 0 (rowDot s.base s.I r w *
+          lam⁻¹) ∧
+      OqIn R (qptrs.limb 0 * Parameters.addressOfIndex 0) ∧ OqQReg R s cap flags wp bp q)
+    (h0 : odd ≠ 1 → LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs name))) 0 0)
+    (hNl : LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs name))) N hNv)
     (hloop : if 1 + gen ^ N ≠ 0 then
       RelAtIn coreProgram fs cert rd (fun i ↦ R i ∨ (fp + fs name ≤ i ∧ i < fp + fs name + (N + 1)))
         (fun _ ↦ False) (fp + fs name + (N + 1)) m loop
-        [1, gen ^ N, qptrs, cap, flags, wp, ofK (Parameters.gpow (fp + fs name)), lam⁻¹] []
+        [1, gen ^ N, qptrs, cap, flags, wp, ofK (Parameters.addressOfIndex (fp + fs name)),
+            lam⁻¹] []
       else m = fs loop) :
     RelAtIn coreProgram fs cert rd R (fun _ ↦ False) fp (fs name + (N + 1) + m) name
       [cap, flags, lam, lamN, qptrs, wp, gen ^ N] [hNv * lamN] := by
-  set ch0 : E := ofK (Parameters.gpow (fp + fs name)) with hch0
+  set ch0 : E := ofK (Parameters.addressOfIndex (fp + fs name)) with hch0
   set c0 := fp + cert name (.n (oqCh s 13 true)) with hc0
-  set D : QD := ⟨s, 13, true, 0, r, w, q, sb, ofK (Parameters.gpow c0), cap, flags, rd⟩ with hD
+  set D : QD := ⟨s, 13, true, 0, r, w, q, sb, ofK (Parameters.addressOfIndex c0), cap, flags, rd⟩
+      with hD
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, ∀ v : V, σ v = oqMainF s odd [cap, flags, lam, lamN, qptrs, wp, gen ^ N]
       ch0 bp D [ch0 * gen ^ N, hNv, hNv * lamN] v.idx := ⟨_, fun _ ↦ rfl⟩
   obtain ⟨hpar, e8, e10, e11, eT, eodd, hA⟩ := oqMain_at (σ := σ) hs hpd hcd hcd8 hodd hlam
@@ -141,7 +144,7 @@ theorem oqMain_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Strin
       stmtRun_oqRun s _ hpd1 hpd (.n (oqCh s 13 true + 4 * s.pd))⟩)
     simp only [oqMainA, ho, ↓reduceIte, List.mem_append]
     exact Or.inl (Or.inr (Or.inl (Or.inr (oqQuery_frameAddr _ _ _ _ _ _ _ _))))
-  have hR : ∀ i, R i → ∃ j, Parameters.gpow i = Parameters.gpow j ∧
+  have hR : ∀ i, R i → ∃ j, Parameters.addressOfIndex i = Parameters.addressOfIndex j ∧
       (ownData cert fp (fp + fs name) name (allocs σ es) es j ∨ R j ∨ False) :=
     fun i hi ↦ ⟨i, rfl, Or.inr (Or.inl hi)⟩
   have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd) hP

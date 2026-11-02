@@ -33,7 +33,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- The word at `p · g^k`, or `0`. -/
 noncomputable def memAt (rd : Reader) (p : E) (k : ℕ) : E :=
-  (rd (p.limb 0 * Parameters.gpow k)).getD 0
+  (rd (p.limb 0 * Parameters.addressOfIndex k)).getD 0
 
 /-- The `n` words from `p`. -/
 noncomputable def memRun (rd : Reader) (p : E) (n : ℕ) : List E := (List.range n).map (memAt rd p)
@@ -358,7 +358,7 @@ theorem dispatch_of_flat {C : CallRel} {rd : Reader} {σ : Val} {ss : List Stmt}
     {kret : List E → Prop} (h : ∀ s ∈ ss, Stmt.Holds C rd σ s True kret) {x : V}
     {fs : List String} {args rets : List V}
     (hm : ss.any (stmtEqb · (.dispatch x fs args rets)) = true) :
-    ∃ (j : ℕ) (hj : j < fs.length), σ x = ofK (Parameters.gpow j) ∧
+    ∃ (j : ℕ) (hj : j < fs.length), σ x = ofK (Parameters.addressOfIndex j) ∧
       C fs[j] (args.map σ) (rets.map σ) := by
   obtain ⟨s, hs, he⟩ := List.any_eq_true.mp hm
   rw [stmtEqb_sound he] at hs

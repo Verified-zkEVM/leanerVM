@@ -57,7 +57,7 @@ open scoped ENNReal
 /- The enumerations of `Digest` and `KState` must never be unfolded by unification. -/
 attribute [local irreducible] instFintypeDigest instFintypeKState
 
-variable {X : Type} {σ : Seeds X} {P : Prog Bool}
+variable {X : Type} {σ : Seeds X} {P : VerifierProgram Bool}
 
 /-! ## The sponge in `Option` -/
 
@@ -113,14 +113,14 @@ theorem noBnd_trans {h h₁ h₂ : List Ev} (h01 : NoBnd h h₁) (h12 : NoBnd h�
   · exact h12 n (by omega) hn2
 
 /-- A prover move or the accepting verdict: where a group of challenges ends. -/
-def Move : Prog Bool → Prop
+def Move : VerifierProgram Bool → Prop
   | .ret true => True
   | .read _ => True
   | .grind _ _ => True
   | .commit _ _ _ => True
   | _ => False
 
-theorem esc_move {D : List Ev → Prop} {h : List Ev} {p : Prog Bool} (hm : Move p)
+theorem esc_move {D : List Ev → Prop} {h : List Ev} {p : VerifierProgram Bool} (hm : Move p)
     (hD : ¬ D h) : esc D h p = 1 := by
   cases p with
   | ret a => cases a <;> simp_all [Move, esc]
@@ -131,51 +131,52 @@ theorem esc_move {D : List Ev → Prop} {h : List Ev} {p : Prog Bool} (hm : Move
   | query _ _ _ => exact absurd hm id
   | fail => exact absurd hm id
 
-theorem not_query_of_move {p : Prog Bool} (hm : Move p) : ∀ i ps k, p ≠ .query i ps k := by
+theorem not_query_of_move {p : VerifierProgram Bool} (hm : Move p) : ∀ i ps k, p ≠ .query i ps
+    k := by
   rintro i ps k rfl; exact hm
 
 /-! ## Openings between absorptions -/
 
 /-- The run goes from `(h, p)` to `(h', p')` through openings only, each answered from the
 history's words. -/
-inductive QSteps : List Ev → Prog Bool → List Ev → Prog Bool → Prop where
-  | refl (h : List Ev) (p : Prog Bool) : QSteps h p h p
-  | step {h : List Ev} {i : ℕ} {ps : List ℕ} {k : List (List K) → Prog Bool}
-      {rows : List (List K)} {h' : List Ev} {p' : Prog Bool} :
+inductive QSteps : List Ev → VerifierProgram Bool → List Ev → VerifierProgram Bool → Prop where
+  | refl (h : List Ev) (p : VerifierProgram Bool) : QSteps h p h p
+  | step {h : List Ev} {i : ℕ} {ps : List ℕ} {k : List (List K) → VerifierProgram Bool}
+      {rows : List (List K)} {h' : List Ev} {p' : VerifierProgram Bool} :
       answer h i ps = some rows → QSteps (h ++ [Ev.query rows]) (k rows) h' p' →
       QSteps h (.query i ps k) h' p'
 
-theorem QSteps.snoc {h₁ h : List Ev} {p₁ : Prog Bool} {i : ℕ} {ps : List ℕ}
-    {k : List (List K) → Prog Bool} {rows : List (List K)}
+theorem QSteps.snoc {h₁ h : List Ev} {p₁ : VerifierProgram Bool} {i : ℕ} {ps : List ℕ}
+    {k : List (List K) → VerifierProgram Bool} {rows : List (List K)}
     (hq : QSteps h₁ p₁ h (.query i ps k)) (ha : answer h i ps = some rows) :
     QSteps h₁ p₁ (h ++ [Ev.query rows]) (k rows) := by
-  generalize hp : (Prog.query i ps k : Prog Bool) = q at hq
+  generalize hp : (VerifierProgram.query i ps k : VerifierProgram Bool) = q at hq
   induction hq with
   | refl => subst hp; exact .step ha (.refl _ _)
   | step ha' _ ih => exact .step ha' (ih ha hp)
 
-theorem settle_eq_of_qsteps {h₁ h : List Ev} {p₁ p : Prog Bool} (hq : QSteps h₁ p₁ h p) :
+theorem settle_eq_of_qsteps {h₁ h : List Ev} {p₁ p : VerifierProgram Bool} (hq : QSteps h₁ p₁ h p) :
     settle h₁ p₁ = settle h p := by
   induction hq with
   | refl => rfl
   | step ha _ ih => simp only [settle, ha]; exact ih
 
-theorem settle_self {h : List Ev} {q : Prog Bool} (hq : ∀ i ps k, q ≠ .query i ps k) :
+theorem settle_self {h : List Ev} {q : VerifierProgram Bool} (hq : ∀ i ps k, q ≠ .query i ps k) :
     settle h q = some (h, q) := by
   cases q with
   | query i ps k => exact absurd rfl (hq i ps k)
   | _ => rfl
 
-theorem esc_eq_of_qsteps (D : List Ev → Prop) {h h' : List Ev} {p p' : Prog Bool}
+theorem esc_eq_of_qsteps (D : List Ev → Prop) {h h' : List Ev} {p p' : VerifierProgram Bool}
     (hq : QSteps h p h' p') : esc D h p = esc D h' p' := by
   induction hq with
   | refl => rfl
   | step ha _ ih => rw [esc_query, ha]; exact ih
 
 theorem gv1_eq_of_qsteps (D : List Ev → Prop) (ℓ : Log) (u : KeccakState) {h h' : List Ev}
-    {p : Prog Bool} {k : E → Prog Bool} (hq : QSteps h p h' (.sample k)) :
+    {p : VerifierProgram Bool} {k : E → VerifierProgram Bool} (hq : QSteps h p h' (.sample k)) :
     gv1 D ℓ u h p = gv D ℓ u (h' ++ [Ev.sample (challengeOf u)]) (k (challengeOf u)) := by
-  generalize hs : (Prog.sample k : Prog Bool) = q at hq
+  generalize hs : (VerifierProgram.sample k : VerifierProgram Bool) = q at hq
   induction hq with
   | refl => subst hs; rfl
   | step ha _ ih => simp only [gv1, ha]; exact ih hs
@@ -210,7 +211,7 @@ theorem consume_append_done {W : Digest → ℕ → ℕ → Word} :
     simp only [List.cons_append, consume] at hc ⊢
     by_cases htag : tag = 1
     · simp only [htag, ↓reduceIte] at hc ⊢
-      rcases hr : digestOfScalars (x₀, x) with _ | r
+      rcases hr : digestFromHalves (x₀, x) with _ | r
       · simp [hr] at hc
       · simp only [hr] at hc ⊢
         exact consume_append_done rest _ _ qs hc
@@ -218,7 +219,7 @@ theorem consume_append_done {W : Digest → ℕ → ℕ → Word} :
       cases hc
 
 /-- A node at which the program absorbs a scalar. -/
-def Absorbs : Prog Bool → Prop
+def Absorbs : VerifierProgram Bool → Prop
   | .read _ => True
   | .grind _ _ => True
   | .commit _ _ _ => True
@@ -229,13 +230,14 @@ def Absorbs : Prog Bool → Prop
 /-- **The sponge at a point of the run.** Its waiting scalars are as the verifier keeps them; its
 state's capacity is known at `(h₀, pos₀)`; consuming the waiting scalars from there, with the
 whole log's words, reaches `(h₁, p₁)`, from which openings reach the run's `(h, p)`. -/
-def SpInv (σ : Seeds X) (P : Prog Bool) (ℓ : Log) (sp : Sponge) (h : List Ev) (p : Prog Bool) :
+def SpInv (σ : Seeds X) (P : VerifierProgram Bool) (ℓ : Log) (sp : Sponge) (h : List Ev) (p :
+    VerifierProgram Bool) :
     Prop :=
   ValidPending sp.pending ∧ ∃ h₀ pos₀ h₁ p₁, Known σ P ℓ (capOf sp.state) (h₀, pos₀) ∧
     consume (extract (lookH ℓ)) h₀ pos₀ sp.pending = .done h₁ (.node p₁) ∧ QSteps h₁ p₁ h p
 
 theorem SpInv.snoc {ℓ : Log} {sp : Sponge} {h : List Ev} {i : ℕ} {ps : List ℕ}
-    {k : List (List K) → Prog Bool} {rows : List (List K)}
+    {k : List (List K) → VerifierProgram Bool} {rows : List (List K)}
     (hs : SpInv σ P ℓ sp h (.query i ps k)) (ha : answer h i ps = some rows) :
     SpInv σ P ℓ sp (h ++ [Ev.query rows]) (k rows) := by
   obtain ⟨hv, h₀, pos₀, h₁, p₁, hk, hc, hq⟩ := hs
@@ -298,11 +300,12 @@ variable (C : Cert P) {ℓ : Log}
 /-- **Following a group with no scalar waiting.** From a state the decoder knows, the run's
 squeezes and openings up to the next prover move or the verdict are those `gv` follows. -/
 theorem follow (hf : ¬ Fail σ ℓ) :
-    ∀ (p : Prog Bool) (s : ProgState) (h : List Ev) {s_f : ProgState} {hist : List Ev},
+    ∀ (p : VerifierProgram Bool) (s : VerifierProgramState) (h : List Ev) {s_f :
+        VerifierProgramState} {hist : List Ev},
       RootsInv (lookH ℓ) s h → P.Reachable h → P.after h = some p →
       s.sponge.pending = [] → SpInv σ P ℓ s.sponge h p →
       xrun (lookH ℓ) (lookF ℓ) p s h = some (true, s_f, hist) →
-      ∃ (p_e : Prog Bool) (s_e : ProgState) (h_e : List Ev),
+      ∃ (p_e : VerifierProgram Bool) (s_e : VerifierProgramState) (h_e : List Ev),
         gv C.D ℓ s.sponge.state h p = esc C.D h_e p_e ∧
         xrun (lookH ℓ) (lookF ℓ) p_e s_e h_e = some (true, s_f, hist) ∧
         RootsInv (lookH ℓ) s_e h_e ∧ P.Reachable h_e ∧ P.after h_e = some p_e ∧
@@ -335,7 +338,7 @@ theorem follow (hf : ¬ Fail σ ℓ) :
     have hk' : Known σ P ℓ (capOf u)
         (h ++ [Ev.sample (challengeOf u)], .node (k (challengeOf u))) :=
       hkn _ (by simp [consume, decodeAt, hsq])
-    have hr' := Prog.Reachable.sample (challengeOf u) hr ha
+    have hr' := VerifierProgram.Reachable.sample (challengeOf u) hr ha
     have ha' := after_sample_step ha (challengeOf u)
     obtain ⟨p_e, s_e, h_e, hg, hx', hR', hre, hae, hse, hm, hp, hnb, hst⟩ :=
       follow hf (k (challengeOf u)) { s with sponge := ⟨u, []⟩ } _
@@ -355,7 +358,7 @@ theorem follow (hf : ¬ Fail σ ℓ) :
       split at hx
       · rename_i rows rest ho
         have hans := answer_of_openAll (answersInj_lookH hf) hR hroot ho
-        have hr' := Prog.Reachable.query hr ha hans
+        have hr' := VerifierProgram.Reachable.query hr ha hans
         have ha' := after_query_step ha rows
         obtain ⟨p_e, s_e, h_e, hg, hx', hR', hre, hae, hse, hm, hp, hnb, hst⟩ :=
           follow hf (k rows) { s with openings := rest } _ (rootsInv_append_query hR rows rest)
@@ -371,15 +374,17 @@ theorem follow (hf : ¬ Fail σ ℓ) :
 waiting scalars, consumed, end, the run's openings lead either to the group's first squeeze, a
 permutation of the waiting scalars decoded as the record `sq h p`, and the rest of the group, or
 to a prover move or the verdict with no squeeze at all. -/
-theorem walk (hf : ¬ Fail σ ℓ) {h : List Ev} {p : Prog Bool} {h₀ : List Ev} {pos₀ : Pos} :
-    ∀ (p' : Prog Bool) (s : ProgState) (h' : List Ev) {s_f : ProgState} {hist : List Ev},
+theorem walk (hf : ¬ Fail σ ℓ) {h : List Ev} {p : VerifierProgram Bool} {h₀ : List Ev} {pos₀
+    : Pos} :
+    ∀ (p' : VerifierProgram Bool) (s : VerifierProgramState) (h' : List Ev) {s_f :
+        VerifierProgramState} {hist : List Ev},
       Known σ P ℓ (capOf s.sponge.state) (h₀, pos₀) → ValidPending s.sponge.pending →
       s.sponge.pending ≠ [] →
       consume (extract (lookH ℓ)) h₀ pos₀ s.sponge.pending = .done h (.node p) →
       QSteps h p h' p' →
       RootsInv (lookH ℓ) s h' → P.Reachable h' → P.after h' = some p' →
       xrun (lookH ℓ) (lookF ℓ) p' s h' = some (true, s_f, hist) →
-      ∃ (p_e : Prog Bool) (s_e : ProgState) (h_e : List Ev),
+      ∃ (p_e : VerifierProgram Bool) (s_e : VerifierProgramState) (h_e : List Ev),
         xrun (lookH ℓ) (lookF ℓ) p_e s_e h_e = some (true, s_f, hist) ∧
         RootsInv (lookH ℓ) s_e h_e ∧ P.Reachable h_e ∧ P.after h_e = some p_e ∧
         SpInv σ P ℓ s_e.sponge h_e p_e ∧ Move p_e ∧ h' <+: h_e ∧ NoBnd h' h_e ∧
@@ -400,7 +405,7 @@ theorem walk (hf : ¬ Fail σ ℓ) {h : List Ev} {p : Prog Bool} {h₀ : List Ev
       simp [decodeAt, hsq, hne]
     rw [hdec] at hkind hkn
     have hk' := hkn _ rfl
-    have hr' := Prog.Reachable.sample (challengeOf u) hr ha
+    have hr' := VerifierProgram.Reachable.sample (challengeOf u) hr ha
     have ha' := after_sample_step ha (challengeOf u)
     obtain ⟨p_e, s_e, h_e, hg, hx', hR', hre, hae, hse, hm, hp, hnb, hst⟩ :=
       follow C hf (k (challengeOf u)) { s with sponge := ⟨u, []⟩ } _
@@ -419,7 +424,7 @@ theorem walk (hf : ¬ Fail σ ℓ) {h : List Ev} {p : Prog Bool} {h₀ : List Ev
       split at hx
       · rename_i rows rest ho
         have hans := answer_of_openAll (answersInj_lookH hf) hR hroot ho
-        have hr' := Prog.Reachable.query hr ha hans
+        have hr' := VerifierProgram.Reachable.query hr ha hans
         have ha' := after_query_step ha rows
         obtain ⟨p_e, s_e, h_e, hx', hR', hre, hae, hse, hm, hp, hnb, hst, hres⟩ :=
           walk hf (k rows) { s with openings := rest } _ hk hv hne hc (hq.snoc hans)
@@ -445,7 +450,8 @@ theorem walk (hf : ¬ Fail σ ℓ) {h : List Ev} {p : Prog Bool} {h₀ : List Ev
 /-- The group at a boundary is carried: after the seed or a proof of work, with no scalar
 waiting, by the state's record; after a scalar or a commitment, with scalars waiting, at a
 history without proof of work, by the record of the group's first squeeze. -/
-def Carried (C : Cert P) (ℓ : Log) (s : ProgState) (h : List Ev) (p : Prog Bool) : Prop :=
+def Carried (C : Cert P) (ℓ : Log) (s : VerifierProgramState) (h : List Ev) (p : VerifierProgram
+    Bool) : Prop :=
   (s.sponge.pending = [] ∧ ∃ κ ∈ (decode σ P ℓ).kinds,
     ind (C.D h) * gv C.D ℓ s.sponge.state h p ≤ term C.D ℓ κ) ∨
   (s.sponge.pending ≠ [] ∧ grindBits h = 0)
@@ -453,13 +459,14 @@ def Carried (C : Cert P) (ℓ : Log) (s : ProgState) (h : List Ev) (p : Prog Boo
 /-- **A group.** From a boundary whose group is carried, the run reaches the next prover move or
 the verdict; either a record bounds `[D h]` times the escape probability there, or the group has
 no squeeze and its escape probability is the one at its start. -/
-theorem group (hf : ¬ Fail σ ℓ) {p : Prog Bool} {s : ProgState} {h : List Ev} {s_f : ProgState}
+theorem group (hf : ¬ Fail σ ℓ) {p : VerifierProgram Bool} {s : VerifierProgramState} {h : List Ev}
+    {s_f : VerifierProgramState}
     {hist : List Ev} (hR : RootsInv (lookH ℓ) s h) (hr : P.Reachable h)
     (ha : P.after h = some p)
     (hsp : ValidPending s.sponge.pending ∧ ∃ h₀ pos₀, Known σ P ℓ (capOf s.sponge.state) (h₀, pos₀) ∧
       consume (extract (lookH ℓ)) h₀ pos₀ s.sponge.pending = .done h (.node p))
     (hcar : Carried (σ := σ) C ℓ s h p) (hx : xrun (lookH ℓ) (lookF ℓ) p s h = some (true, s_f, hist)) :
-    ∃ (p_e : Prog Bool) (s_e : ProgState) (h_e : List Ev),
+    ∃ (p_e : VerifierProgram Bool) (s_e : VerifierProgramState) (h_e : List Ev),
       xrun (lookH ℓ) (lookF ℓ) p_e s_e h_e = some (true, s_f, hist) ∧
       RootsInv (lookH ℓ) s_e h_e ∧ P.Reachable h_e ∧ P.after h_e = some p_e ∧
       SpInv σ P ℓ s_e.sponge h_e p_e ∧ Move p_e ∧ h <+: h_e ∧ NoBnd h h_e ∧
@@ -488,11 +495,12 @@ variable (C : Cert P) {ℓ : Log}
 /-- **A prover move.** From the run at a prover move, with the sponge's invariant, the run
 reaches the next boundary, where the invariant holds with no opening pending and the group is
 carried; doom is kept. -/
-theorem move (hf : ¬ Fail σ ℓ) {p : Prog Bool} (hm : Move p) (hp : ∀ a, p ≠ .ret a) {s : ProgState}
-    {h : List Ev} {s_f : ProgState} {hist : List Ev} (hR : RootsInv (lookH ℓ) s h)
+theorem move (hf : ¬ Fail σ ℓ) {p : VerifierProgram Bool} (hm : Move p) (hp : ∀ a, p ≠ .ret a) {s :
+    VerifierProgramState}
+    {h : List Ev} {s_f : VerifierProgramState} {hist : List Ev} (hR : RootsInv (lookH ℓ) s h)
     (hr : P.Reachable h) (ha : P.after h = some p) (hsp : SpInv σ P ℓ s.sponge h p)
     (hx : xrun (lookH ℓ) (lookF ℓ) p s h = some (true, s_f, hist)) :
-    ∃ (s' : ProgState) (h' : List Ev) (p' : Prog Bool),
+    ∃ (s' : VerifierProgramState) (h' : List Ev) (p' : VerifierProgram Bool),
       s'.stream.length < s.stream.length ∧ RootsInv (lookH ℓ) s' h' ∧ P.Reachable h' ∧
       Boundary h' ∧ P.after h' = some p' ∧
       (ValidPending s'.sponge.pending ∧ ∃ h₀ pos₀, Known σ P ℓ (capOf s'.sponge.state) (h₀, pos₀) ∧
@@ -517,7 +525,7 @@ theorem move (hf : ¬ Fail σ ℓ) {p : Prog Bool} (hm : Move p) (hp : ∀ a, p 
       obtain ⟨sp', hab, hx⟩ := hx
       obtain ⟨hv', hne', h₀', pos₀', hk', hc'⟩ := absorb_step hf hk hv hc
         (fun p₁' he ↦ by cases he; exact ⟨h, _, hset, trivial⟩) (Or.inl rfl) hab
-      have hr' := Prog.Reachable.read x hr ha
+      have hr' := VerifierProgram.Reachable.read x hr ha
       have ha' := after_read_step ha x
       refine ⟨_, h ++ [Ev.read x], k x, by simp [hs], rootsInv_append_read hR x sp' xs, hr',
         boundary_append_read h x, ha', ⟨hv', h₀', pos₀', hk', ?_⟩,
@@ -545,7 +553,7 @@ theorem move (hf : ¬ Fail σ ℓ) {p : Prog Bool} (hm : Move p) (hp : ∀ a, p 
         rw [hgrd] at hkind hkn
         simp only [decodeAt] at hkind hkn
         have hku := hkn _ rfl
-        have hr' := Prog.Reachable.grind hr ha
+        have hr' := VerifierProgram.Reachable.grind hr ha
         have ha' := after_grind_step ha
         refine ⟨_, h ++ [Ev.grind b], k, by simp [hs], rootsInv_append_grind hR b _ xs, hr',
           boundary_append_grind h b, ha', ⟨⟨by simp, by simp⟩, _, _, hku, rfl⟩,
@@ -569,7 +577,7 @@ theorem move (hf : ¬ Fail σ ℓ) {p : Prog Bool} (hm : Move p) (hp : ∀ a, p 
           simp [consume, hset]
         obtain ⟨hv1, hne1, h₀'', pos₀'', hk1, hc1⟩ := absorb_step hf hk0 hv0 hc0'
           (fun p₁' he ↦ by cases he) (Or.inl rfl) h1
-        have hr' := Prog.Reachable.commit (extract (lookH ℓ) root ht w) hr ha
+        have hr' := VerifierProgram.Reachable.commit (extract (lookH ℓ) root ht w) hr ha
           (wellShaped_extract _ _ _ _)
         have ha' := after_commit_step ha (extract (lookH ℓ) root ht w)
         refine ⟨_, _, k, by simp [hs], rootsInv_append_commit hR root ht w sp1 xs, hr',
@@ -601,9 +609,11 @@ theorem term_le_termSum {κ : Shape × KeccakState} (hκ : κ ∈ (decode σ P �
 /-- **The run from a boundary.** From a boundary of an accepting run whose group is carried, if a
 boundary at least as long on the extracted history is doomed, the records' terms sum to at least
 one. -/
-theorem from_boundary (hf : ¬ Fail σ ℓ) (hε1 : ∀ h, grindBits h = 0 → C.ε h < 1) {s_f : ProgState}
+theorem from_boundary (hf : ¬ Fail σ ℓ) (hε1 : ∀ h, grindBits h = 0 → C.ε h < 1) {s_f :
+    VerifierProgramState}
     {hist : List Ev} :
-    ∀ (n : ℕ) (s : ProgState) (h : List Ev) (p : Prog Bool), s.stream.length < n →
+    ∀ (n : ℕ) (s : VerifierProgramState) (h : List Ev) (p : VerifierProgram Bool),
+        s.stream.length < n →
       RootsInv (lookH ℓ) s h → P.Reachable h → P.after h = some p → Boundary h →
       (ValidPending s.sponge.pending ∧ ∃ h₀ pos₀, Known σ P ℓ (capOf s.sponge.state) (h₀, pos₀) ∧
         consume (extract (lookH ℓ)) h₀ pos₀ s.sponge.pending = .done h (.node p)) →

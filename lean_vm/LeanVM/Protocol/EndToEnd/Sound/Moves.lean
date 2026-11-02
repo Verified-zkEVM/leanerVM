@@ -56,7 +56,7 @@ variable {α β : Type}
 
 /-- Every prover move of `p` is allowed: every proof of work's bits satisfy `g`, and a commitment
 occurs only if `c`. -/
-def MovesOK (g : ℕ → Prop) (c : Prop) : Prog α → Prop
+def MovesOK (g : ℕ → Prop) (c : Prop) : VerifierProgram α → Prop
   | .ret _ => True
   | .fail => True
   | .read k => ∀ x, MovesOK g c (k x)
@@ -71,7 +71,7 @@ variable {g : ℕ → Prop} {c : Prop}
 
 /-- Monotonicity in the allowed proofs of work and commitments. -/
 theorem mono {g g' : ℕ → Prop} {c c' : Prop} (hg : ∀ b, g b → g' b) (hc : c → c') :
-    ∀ {p : Prog α}, MovesOK g c p → MovesOK g' c' p
+    ∀ {p : VerifierProgram α}, MovesOK g c p → MovesOK g' c' p
   | .ret _, _ => trivial
   | .fail, _ => trivial
   | .read _, h => fun x ↦ mono hg hc (h x)
@@ -81,12 +81,14 @@ theorem mono {g g' : ℕ → Prop} {c c' : Prop} (hg : ∀ b, g b → g' b) (hc 
   | .query _ _ _, h => fun rows ↦ mono hg hc (h rows)
 
 /-- A program with no prover move other than reads is allowed under any constraint. -/
-theorem of_none {g : ℕ → Prop} {c : Prop} {p : Prog α} (h : MovesOK (fun _ ↦ False) False p) :
+theorem of_none {g : ℕ → Prop} {c : Prop} {p : VerifierProgram α} (h : MovesOK (fun _ ↦ False)
+    False p) :
     MovesOK g c p :=
   mono (fun _ h ↦ h.elim) False.elim h
 
 /-- **Sequencing.** -/
-theorem bind {p : Prog α} {f : α → Prog β} (hp : MovesOK g c p) (hf : ∀ a, MovesOK g c (f a)) :
+theorem bind {p : VerifierProgram α} {f : α → VerifierProgram β} (hp : MovesOK g c p) (hf : ∀ a,
+    MovesOK g c (f a)) :
     MovesOK g c (p.bind f) := by
   induction p with
   | ret a => exact hf a
@@ -98,35 +100,36 @@ theorem bind {p : Prog α} {f : α → Prog β} (hp : MovesOK g c p) (hf : ∀ a
   | query i ps k ih => exact fun rows ↦ ih rows (hp rows)
 
 /-- Sequencing in `do` notation. -/
-theorem seq {p : Prog α} {f : α → Prog β} (hp : MovesOK g c p) (hf : ∀ a, MovesOK g c (f a)) :
+theorem seq {p : VerifierProgram α} {f : α → VerifierProgram β} (hp : MovesOK g c p) (hf : ∀ a,
+    MovesOK g c (f a)) :
     MovesOK g c (p >>= f) :=
   bind hp hf
 
 /-- A rejection is allowed. -/
-theorem fail : MovesOK g c (Prog.fail : Prog α) := trivial
+theorem fail : MovesOK g c (VerifierProgram.fail : VerifierProgram α) := trivial
 
 /-- `pure` is allowed. -/
-theorem pure (a : α) : MovesOK g c (Pure.pure a : Prog α) := trivial
+theorem pure (a : α) : MovesOK g c (Pure.pure a : VerifierProgram α) := trivial
 
 /-- A read is allowed. -/
-theorem readE : MovesOK g c Prog.readScalar := fun _ ↦ trivial
+theorem readE : MovesOK g c VerifierProgram.readScalar := fun _ ↦ trivial
 
 /-- A sample is allowed. -/
-theorem sampleE : MovesOK g c Prog.sampleChallenge := fun _ ↦ trivial
+theorem sampleE : MovesOK g c VerifierProgram.sampleChallenge := fun _ ↦ trivial
 
 /-- `n` reads are allowed. -/
-theorem readN : ∀ n, MovesOK g c (Prog.readScalars n)
+theorem readN : ∀ n, MovesOK g c (VerifierProgram.readScalars n)
   | 0 => trivial
   | n + 1 => seq readE fun _ ↦ seq (readN n) fun _ ↦ trivial
 
 /-- `n` samples are allowed. -/
-theorem sampleN : ∀ n, MovesOK g c (Prog.sampleChallenges n)
+theorem sampleN : ∀ n, MovesOK g c (VerifierProgram.sampleChallenges n)
   | 0 => trivial
   | n + 1 => seq sampleE fun _ ↦ seq (sampleN n) fun _ ↦ trivial
 
 /-- A check is allowed. -/
-theorem require (q : Prop) [Decidable q] : MovesOK g c (Prog.require q) := by
-  unfold Prog.require
+theorem require (q : Prop) [Decidable q] : MovesOK g c (VerifierProgram.require q) := by
+  unfold VerifierProgram.require
   split <;> trivial
 
 /-- A pure step that may fail is allowed. -/
@@ -134,16 +137,19 @@ theorem liftOption (o : Option α) : MovesOK g c (Verifier.liftOption o) := by
   cases o <;> trivial
 
 /-- A proof of work is allowed when its bits are. -/
-theorem grindP {b : ℕ} (hb : g b) : MovesOK g c (Prog.grindProofOfWork b) := ⟨hb, trivial⟩
+theorem grindP {b : ℕ} (hb : g b) : MovesOK g c (VerifierProgram.grindProofOfWork b) := ⟨hb,
+    trivial⟩
 
 /-- A commitment is allowed when commitments are. -/
-theorem commitP (hc : c) (ht w : ℕ) : MovesOK g c (Prog.readCommitment ht w) := ⟨hc, trivial⟩
+theorem commitP (hc : c) (ht w : ℕ) : MovesOK g c (VerifierProgram.readCommitment ht w) := ⟨hc,
+    trivial⟩
 
 /-- An opening is allowed. -/
-theorem queryP (i : ℕ) (ps : List ℕ) : MovesOK g c (Prog.queryOpenings i ps) := fun _ ↦ trivial
+theorem queryP (i : ℕ) (ps : List ℕ) : MovesOK g c (VerifierProgram.queryOpenings i ps) := fun _ ↦
+    trivial
 
 /-- A conditional is allowed when both branches are. -/
-theorem ite {q : Prop} [Decidable q] {p p' : Prog α} (hp : q → MovesOK g c p)
+theorem ite {q : Prop} [Decidable q] {p p' : VerifierProgram α} (hp : q → MovesOK g c p)
     (hp' : ¬ q → MovesOK g c p') : MovesOK g c (if q then p else p') := by
   split
   · exact hp ‹_›
@@ -152,59 +158,59 @@ theorem ite {q : Prop} [Decidable q] {p p' : Prog α} (hp : q → MovesOK g c p)
 /-! ## Along histories -/
 
 /-- The program after a history of an allowed program is allowed. -/
-theorem after {p : Prog α} (hp : MovesOK g c p) :
-    ∀ {l : List Ev} {q : Prog α}, p.after l = some q → MovesOK g c q := by
+theorem after {p : VerifierProgram α} (hp : MovesOK g c p) :
+    ∀ {l : List Ev} {q : VerifierProgram α}, p.after l = some q → MovesOK g c q := by
   induction p with
   | ret a =>
     intro l q h
     rcases l with _ | ⟨e, l⟩
-    · simp only [Prog.after, Option.some.injEq] at h
+    · simp only [VerifierProgram.after, Option.some.injEq] at h
       exact h ▸ hp
-    · cases e <;> simp [Prog.after] at h
+    · cases e <;> simp [VerifierProgram.after] at h
   | fail =>
     intro l q h
     rcases l with _ | ⟨e, l⟩
-    · simp only [Prog.after, Option.some.injEq] at h
+    · simp only [VerifierProgram.after, Option.some.injEq] at h
       exact h ▸ hp
-    · cases e <;> simp [Prog.after] at h
+    · cases e <;> simp [VerifierProgram.after] at h
   | read k ih =>
     intro l q h
     rcases l with _ | ⟨e, l⟩
-    · simp only [Prog.after, Option.some.injEq] at h
+    · simp only [VerifierProgram.after, Option.some.injEq] at h
       exact h ▸ hp
-    · cases e <;> simp only [Prog.after, reduceCtorEq] at h
+    · cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at h
       exact ih _ (hp _) h
   | sample k ih =>
     intro l q h
     rcases l with _ | ⟨e, l⟩
-    · simp only [Prog.after, Option.some.injEq] at h
+    · simp only [VerifierProgram.after, Option.some.injEq] at h
       exact h ▸ hp
-    · cases e <;> simp only [Prog.after, reduceCtorEq] at h
+    · cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at h
       exact ih _ (hp _) h
   | grind b k ih =>
     intro l q h
     rcases l with _ | ⟨e, l⟩
-    · simp only [Prog.after, Option.some.injEq] at h
+    · simp only [VerifierProgram.after, Option.some.injEq] at h
       exact h ▸ hp
-    · cases e <;> simp only [Prog.after, reduceCtorEq] at h
+    · cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at h
       split at h
       · exact ih hp.2 h
       · cases h
   | commit ht w k ih =>
     intro l q h
     rcases l with _ | ⟨e, l⟩
-    · simp only [Prog.after, Option.some.injEq] at h
+    · simp only [VerifierProgram.after, Option.some.injEq] at h
       exact h ▸ hp
-    · cases e <;> simp only [Prog.after, reduceCtorEq] at h
+    · cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at h
       split at h
       · exact ih hp.2 h
       · cases h
   | query i ps k ih =>
     intro l q h
     rcases l with _ | ⟨e, l⟩
-    · simp only [Prog.after, Option.some.injEq] at h
+    · simp only [VerifierProgram.after, Option.some.injEq] at h
       exact h ▸ hp
-    · cases e <;> simp only [Prog.after, reduceCtorEq] at h
+    · cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at h
       exact ih _ (hp _) h
 
 /-- The commitments of a history extended by one event. -/
@@ -215,7 +221,8 @@ private theorem commits_snoc (l : List Ev) (e : Ev) :
   | cons e' l ih => cases e' <;> simp [commits, ih]
 
 /-- A program without commitments commits nothing along a run. -/
-theorem reach_commits {g : ℕ → Prop} {p : Prog α} (hp : MovesOK g False p) {h₀ l : List Ev}
+theorem reach_commits {g : ℕ → Prop} {p : VerifierProgram α} (hp : MovesOK g False p) {h₀ l :
+    List Ev}
     (hl : p.Reach h₀ l) : commits l = [] := by
   induction hl with
   | nil => rfl
@@ -226,7 +233,8 @@ theorem reach_commits {g : ℕ → Prop} {p : Prog α} (hp : MovesOK g False p) 
   | query _ _ _ ih => simp [commits_snoc, ih, commits]
 
 /-- Along a reachable history, the last proof of work's bits are at most `B`. -/
-theorem grindBits_le {B : ℕ} {c : Prop} {P : Prog α} (hP : MovesOK (· ≤ B) c P) {h : List Ev}
+theorem grindBits_le {B : ℕ} {c : Prop} {P : VerifierProgram α} (hP : MovesOK
+    (· ≤ B) c P) {h : List Ev}
     (hh : P.Reachable h) : grindBits h ≤ B := by
   cases hh with
   | nil => simp [grindBits]
@@ -293,7 +301,7 @@ theorem movesOK_verifyGkrGrandProducts (depth : ℕ) :
 
 /-- The bus makes no prover move other than reads. -/
 theorem movesOK_verifyBusBalance (layout : Layout) :
-    MovesOK (fun _ ↦ False) False (verifyBusBalance computedValue layout) := by
+    MovesOK (fun _ ↦ False) False (verifyBusBalance computedBytecodeValue layout) := by
   refine MovesOK.seq (MovesOK.sampleN _) fun _ ↦ MovesOK.seq MovesOK.sampleE fun _ ↦
     MovesOK.seq (movesOK_verifyGkrGrandProducts _) fun r ↦ ?_
   obtain ⟨countRoot, point, treeValues⟩ := r
@@ -305,7 +313,7 @@ theorem movesOK_verifyBusBalance (layout : Layout) :
 
 /-- The announced sizes are reads. -/
 theorem movesOK_readSizes (bytecode : List K) :
-    MovesOK (fun _ ↦ False) False (readSizes bytecode) :=
+    MovesOK (fun _ ↦ False) False (readAnnouncedSizes bytecode) :=
   MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (MovesOK.require _) fun _ ↦
     MovesOK.seq (MovesOK.require _) fun _ ↦ MovesOK.seq (MovesOK.liftOption _) fun _ ↦
       MovesOK.seq (MovesOK.require _) fun _ ↦ MovesOK.pure _
@@ -499,7 +507,7 @@ theorem movesOK_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List 
 
 /-- `verify_execution`: commitments, and proofs of work of `Whir.queryGrindingBits` bits. -/
 theorem movesOK_verifyExecution (bytecode : List K) (publicInput : Digest) :
-    MovesOK (· = Whir.queryGrindingBits) True (verifyExecutionClaims computedValue bytecode publicInput) := by
+    MovesOK (· = Whir.queryGrindingBits) True (verifyExecutionClaims computedBytecodeValue bytecode publicInput) := by
   refine MovesOK.seq (MovesOK.of_none (movesOK_readSizes bytecode)) fun p ↦ ?_
   obtain ⟨layout, logInverseRate⟩ := p
   refine MovesOK.seq ((movesOK_commitStack _ _).mono (fun _ h ↦ h.elim) id) fun _ ↦
@@ -517,21 +525,22 @@ end Phases
 /-- **The leanVM verifier program**: its commitments, and proofs of work of
 `Whir.queryGrindingBits = 17` bits. -/
 theorem movesOK_leanVmProgram (bytecode : List K) (publicInput : Digest) :
-    MovesOK (· = Whir.queryGrindingBits) True (leanVmProgram bytecode publicInput) := by
+    MovesOK (· = Whir.queryGrindingBits) True (leanVmVerifierProgram bytecode publicInput) := by
   rw [leanVmProgram_eq]
   exact MovesOK.seq (movesOK_verifyExecution bytecode publicInput) fun _ ↦ MovesOK.pure _
 
 /-- **Every reachable history of the leanVM verifier ends with a proof of work of at most 64
 bits.** -/
 theorem grindBits_le_of_reachable (bytecode : List K) (publicInput : Digest) {h : List Ev}
-    (hh : (leanVmProgram bytecode publicInput).Reachable h) : grindBits h ≤ 64 :=
+    (hh : (leanVmVerifierProgram bytecode publicInput).Reachable h) : grindBits h ≤ 64 :=
   ((movesOK_leanVmProgram bytecode publicInput).mono (fun _ hb ↦ hb ▸ queryGrindingBits_le)
     id).grindBits_le hh
 
 /-- **Every proof of work of the leanVM verifier has `Whir.queryGrindingBits = 17` bits**, along
 any history. -/
 theorem grind_bits_eq (bytecode : List K) (publicInput : Digest) {h : List Ev} {bits : ℕ}
-    {k : Prog Bool} (hg : (leanVmProgram bytecode publicInput).after h = some (.grind bits k)) :
+    {k : VerifierProgram Bool} (hg : (leanVmVerifierProgram bytecode publicInput).after h = some
+        (.grind bits k)) :
     bits = Whir.queryGrindingBits :=
   ((movesOK_leanVmProgram bytecode publicInput).after hg).1
 

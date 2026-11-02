@@ -36,8 +36,9 @@ variable {fs : String → ℕ}
 theorem vbg_ly7Mem {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E} {r : E × List E × List E} {cap' : List E}
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
     (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP ePa eD : ℕ} {rd : Reader}
-    (hm : MemLay rd (vbgLay depth cap0 xs (ofK (gpow ec)) eL eR eP ePa eD)) :
-    Ly7Mem rd (ofK (gpow eD)) (gen ^ depth) (ofK (gpow eL)) (depth % 2) (depth / 2) := by
+    (hm : MemLay rd (vbgLay depth cap0 xs (ofK (addressOfIndex ec)) eL eR eP ePa eD)) :
+    Ly7Mem rd (ofK (addressOfIndex eD)) (gen ^ depth) (ofK (addressOfIndex eL)) (depth % 2) (depth /
+        2) := by
   obtain ⟨-, -, -, hsteps, -, -, -, -⟩ := gk_walk hrun hc
   obtain ⟨sp, hsp⟩ := hc
   have hsc : capOf sp.state = cap0 := hsp.1
@@ -74,16 +75,16 @@ theorem vbg_loop7_total {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     {r : E × List E × List E} {cap' : List E}
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
     (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP ePa eD : ℕ} {rd : Reader}
-    (hm : MemLay rd (vbgLay depth cap0 xs (ofK (gpow ec)) eL eR eP ePa eD)) {K29 R : ℕ}
+    (hm : MemLay rd (vbgLay depth cap0 xs (ofK (addressOfIndex ec)) eL eR eP ePa eD)) {K29 R : ℕ}
     (h29 : TotalLeOn coreProgram fs "__loop27" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
     (hR1 : TotalLe coreProgram fs "gkr_rounds__L1" (fun _ ↦ R))
     (hR2 : TotalLe coreProgram fs "gkr_rounds__L2" (fun _ ↦ R))
     (hm0 : 0 < depth / 2) {t : Tree} {rets : List E} (hn : t.name = "__loop6")
-    (hv : t.Valid coreProgram rd [1, gen ^ (depth / 2), ofK (gpow eD), gen ^ depth,
-      ofK (gpow eL), ofK (gpow eR)] rets) (hb : t.BufsOk coreProgram) :
+    (hv : t.Valid coreProgram rd [1, gen ^ (depth / 2), ofK (addressOfIndex eD), gen ^ depth,
+      ofK (addressOfIndex eL), ofK (addressOfIndex eR)] rets) (hb : t.BufsOk coreProgram) :
     t.total fs ≤ ly7Total fs K29 R depth := by
   rw [show (1 : E) = gen ^ 0 from (pow_zero _).symm] at hv
-  have hch := ly7_chain (rounds := ofK (gpow eR)) (by omega : depth % 2 < 2) (by omega)
+  have hch := ly7_chain (rounds := ofK (addressOfIndex eR)) (by omega : depth % 2 < 2) (by omega)
     (vbg_ly7Mem hd hrun hc hm) (depth / 2) 0 t rets (by omega) hm0 hn hv hb
   exact ly7_total fs (by omega) h29 hR1 hR2 _ _ t _ rets hch hv hb
 
@@ -125,8 +126,8 @@ theorem verify_bus_gkr_completeAtTB {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : d
     (hR2 : TotalLe coreProgram fs "gkr_rounds__L2" (fun _ ↦ R))
     (h8 : TotalLeOn coreProgram fs "__loop7" LoopPre (fun a ↦ logG (a.getD 1 0) * K8)) :
     CompleteAtDTB fs cert κ "verify_bus_gkr" [(ec, xs), (ez, r.2.1)]
-      (cap0 ++ [ofK (gpow ec), gen ^ depth, ofK (gpow ez)])
-      (Returns (cap' ++ [ofK (gpow ec) * gen ^ xs.length] ++ r.2.2)) (fun _ ↦ True)
+      (cap0 ++ [ofK (addressOfIndex ec), gen ^ depth, ofK (addressOfIndex ez)])
+      (Returns (cap' ++ [ofK (addressOfIndex ec) * gen ^ xs.length] ++ r.2.2)) (fun _ ↦ True)
       (vbgBound fs K29 R K8 depth) := by
   have hcl : cap0.length = 5 := by
     obtain ⟨sp, hsp⟩ := hc
@@ -135,10 +136,10 @@ theorem verify_bus_gkr_completeAtTB {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : d
   obtain ⟨hown, hbufs, hfacts⟩ := vbg_lift_facts (fs := fs) hd1 hd hκ hrun hc ec ez
   refine (flat_completeAtTB (cert := cert) vbgFlat [(ec, xs), (ez, r.2.1)] _ _
     (by simp [vbgFlat, hcl]) (vbgSizes depth)
-    (fun fp ↦ vbgOwnW depth cap0 xs (ofK (gpow ec)) (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034))
+    (fun fp ↦ vbgOwnW depth cap0 xs (ofK (addressOfIndex ec)) (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034))
     hown
-    (fun fp ↦ vbgW (ofK (gpow (vbgEL fs fp))) (ofK (gpow (vbgER fs depth fp)))
-      (ofK (gpow (vbgEP fs depth fp))) (ofK (gpow (vbgEPa fs depth fp))) (ofK (gpow (vbgED fs depth fp))))
+    (fun fp ↦ vbgW (ofK (addressOfIndex (vbgEL fs fp))) (ofK (addressOfIndex (vbgER fs depth fp)))
+      (ofK (addressOfIndex (vbgEP fs depth fp))) (ofK (addressOfIndex (vbgEPa fs depth fp))) (ofK (addressOfIndex (vbgED fs depth fp))))
     (vbgBufs fs depth xs ec) hbufs (fun fp rd hlow hL ↦ (hfacts fp rd hlow hL).1)
     (fun _ ↦ True) [fun _ ↦ True, fun _ ↦ True] (fun _ _ _ _ ↦ trivial)
     (by show (vbgPre.filter callB).length ≤ 2; decide +kernel)
@@ -146,9 +147,11 @@ theorem verify_bus_gkr_completeAtTB {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : d
     [ly7Total fs K29 R depth, depth * K8] _ (fun fp rd hlow hL i c hci ht rd' hlow' hL' t rr hn hv hb ↦ ?_)
     (fun σ ↦ callsBound_le vbgPre σ _)).mono le_rfl (fun _ _ ↦ trivial)
   obtain ⟨-, hV, -⟩ := hfacts fp rd hlow hL
-  have hV' : VbgVals (vbgFlat.σ rd (vbgW (ofK (gpow (vbgEL fs fp))) (ofK (gpow (vbgER fs depth fp)))
-      (ofK (gpow (vbgEP fs depth fp))) (ofK (gpow (vbgEPa fs depth fp))) (ofK (gpow (vbgED fs depth fp))))
-      (cap0 ++ [ofK (gpow ec), gen ^ depth, ofK (gpow ez)])) depth (vbgEL fs fp) (vbgER fs depth fp)
+  have hV' : VbgVals (vbgFlat.σ rd (vbgW (ofK (addressOfIndex (vbgEL fs fp))) (ofK (addressOfIndex
+      (vbgER fs depth fp)))
+      (ofK (addressOfIndex (vbgEP fs depth fp))) (ofK (addressOfIndex (vbgEPa fs depth fp))) (ofK (addressOfIndex (vbgED fs depth fp))))
+      (cap0 ++ [ofK (addressOfIndex ec), gen ^ depth, ofK (addressOfIndex ez)])) depth (vbgEL fs fp)
+          (vbgER fs depth fp)
       (vbgED fs depth fp) := hV
   obtain ⟨v304, v306, v317, v6, v57, v15, v16, v303⟩ := hV'
   obtain ⟨-, -, hm'⟩ := hfacts fp rd' hlow' hL'

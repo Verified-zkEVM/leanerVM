@@ -55,29 +55,33 @@ noncomputable def l15σ (x N ch p a b : E) : Val :=
   B1.Val.ofArgs [x, N, ch, p, ch * x, a, p * x, b, a * b, ch * x, word 2 0 0, x * word 2 0 0,
     x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0]
 
-theorem l15_addr (b c k : ℕ) : (ofK (gpow b) * gen ^ c).limb 0 * gpow k = gpow (b + c + k) := by
-  have e : ofK (gpow b) * gen ^ c = ofK (gpow (b + c)) := by
-    rw [gen_pow_eq_ofK, ← ofK_mul, gpow, gpow, gpow, pow_add]
+theorem l15_addr (b c k : ℕ) : (ofK (addressOfIndex b) * gen ^ c).limb 0 * addressOfIndex k =
+    addressOfIndex (b + c + k) := by
+  have e : ofK (addressOfIndex b) * gen ^ c = ofK (addressOfIndex (b + c)) := by
+    rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
   rw [e, Main.addr_ofK]
 
 /-- **One iteration of `__loop14`, loading the chain and the point.** -/
 theorem l15_iter {rd : Reader} {bc bp m : ℕ} {cs ps : List E} (hcl : cs.length = m + 1)
-    (hpl : ps.length = m) (hc : ReadsAt rd (ofK (gpow bc)) cs) (hp : ReadsAt rd (ofK (gpow bp)) ps)
+    (hpl : ps.length = m) (hc : ReadsAt rd (ofK (addressOfIndex bc)) cs) (hp : ReadsAt rd (ofK
+        (addressOfIndex bp)) ps)
     (hstep : ∀ k, 1 ≤ k → k < m → cs.getD (k + 1) 0 = cs.getD k 0 * ps.getD k 0) {R : ℕ → Prop}
     (hR : ∀ i, (bc ≤ i ∧ i ≤ bc + m) ∨ (bp ≤ i ∧ i < bp + m) → R i) {k : ℕ} (hk1 : 1 ≤ k)
     (hkm : k < m)
     (hnext : k + 1 < m → coreProgram.RelIn rd R "__loop14"
-      [gen ^ (k + 1), gen ^ m, ofK (gpow bc), ofK (gpow bp)] []) :
-    coreProgram.RelIn rd R "__loop14" [gen ^ k, gen ^ m, ofK (gpow bc), ofK (gpow bp)] [] := by
-  set σ := l15σ (gen ^ k) (gen ^ m) (ofK (gpow bc)) (ofK (gpow bp)) (cs.getD k 0) (ps.getD k 0)
+      [gen ^ (k + 1), gen ^ m, ofK (addressOfIndex bc), ofK (addressOfIndex bp)] []) :
+    coreProgram.RelIn rd R "__loop14" [gen ^ k, gen ^ m, ofK (addressOfIndex bc), ofK
+        (addressOfIndex bp)] [] := by
+  set σ := l15σ (gen ^ k) (gen ^ m) (ofK (addressOfIndex bc)) (ofK (addressOfIndex bp)) (cs.getD k
+      0) (ps.getD k 0)
     with hσ
   have hw := Main.walk_straight σ [] l15Pre l15_straight
   rw [← l15_body] at hw
-  have lc : ∀ j (hj : j ≤ m), LoadHolds rd (ofK (gpow bc)) j (cs.getD j 0) := by
+  have lc : ∀ j (hj : j ≤ m), LoadHolds rd (ofK (addressOfIndex bc)) j (cs.getD j 0) := by
     intro j hj
     rw [List.getD_eq_getElem _ _ (by omega)]
     exact hc j (by omega)
-  have lp : LoadHolds rd (ofK (gpow bp)) k (ps.getD k 0) := by
+  have lp : LoadHolds rd (ofK (addressOfIndex bp)) k (ps.getD k 0) := by
     rw [List.getD_eq_getElem _ _ (by omega)]
     exact hp k (by omega)
   have hw2 : word 2 0 0 = gen := word_gen
@@ -89,14 +93,14 @@ theorem l15_iter {rd : Reader} {bc bp m : ℕ} {cs ps : List E} (hcl : cs.length
       simp only [Main.slEvs, List.mem_cons, List.not_mem_nil, or_false] at he
     all_goals try (subst he)
     · rfl
-    · show LoadHolds rd (ofK (gpow bc) * gen ^ k) 0 (cs.getD k 0)
+    · show LoadHolds rd (ofK (addressOfIndex bc) * gen ^ k) 0 (cs.getD k 0)
       rw [loadHolds_mul_gen_pow]; exact lc k (by omega)
     · rfl
-    · show LoadHolds rd (ofK (gpow bp) * gen ^ k) 0 (ps.getD k 0)
+    · show LoadHolds rd (ofK (addressOfIndex bp) * gen ^ k) 0 (ps.getD k 0)
       rw [loadHolds_mul_gen_pow]; exact lp
     · rfl
     · rfl
-    · show LoadHolds rd (ofK (gpow bc) * gen ^ k) 1 (cs.getD k 0 * ps.getD k 0)
+    · show LoadHolds rd (ofK (addressOfIndex bc) * gen ^ k) 1 (cs.getD k 0 * ps.getD k 0)
       rw [loadHolds_mul_gen_pow, ← hstep k hk1 hkm]; exact lc (k + 1) (by omega)
     · rfl
     · rfl
@@ -129,17 +133,19 @@ theorem l15_iter {rd : Reader} {bc bp m : ℕ} {cs ps : List E} (hcl : cs.length
       show gen ^ k * word 2 0 0 + gen ^ (k + 1) = 0
       rw [hw2, gen_pow_mul_gen]; exact e_add_self _
     show coreProgram.RelIn rd R "__loop14"
-      [gen ^ k * word 2 0 0, gen ^ m, ofK (gpow bc), ofK (gpow bp)] []
+      [gen ^ k * word 2 0 0, gen ^ m, ofK (addressOfIndex bc), ofK (addressOfIndex bp)] []
     rw [hw2, gen_pow_mul_gen]
     exact hnext hk'
 
 /-- **`__loop14`, completely, loading the chain and the point**: from every `g^k`, `1 ≤ k < m`. -/
 theorem l15_relIn {rd : Reader} {bc bp m : ℕ} {cs ps : List E} (hcl : cs.length = m + 1)
-    (hpl : ps.length = m) (hc : ReadsAt rd (ofK (gpow bc)) cs) (hp : ReadsAt rd (ofK (gpow bp)) ps)
+    (hpl : ps.length = m) (hc : ReadsAt rd (ofK (addressOfIndex bc)) cs) (hp : ReadsAt rd (ofK
+        (addressOfIndex bp)) ps)
     (hstep : ∀ k, 1 ≤ k → k < m → cs.getD (k + 1) 0 = cs.getD k 0 * ps.getD k 0) {R : ℕ → Prop}
     (hR : ∀ i, (bc ≤ i ∧ i ≤ bc + m) ∨ (bp ≤ i ∧ i < bp + m) → R i) :
     ∀ t k, k + 1 + t = m → 1 ≤ k →
-      coreProgram.RelIn rd R "__loop14" [gen ^ k, gen ^ m, ofK (gpow bc), ofK (gpow bp)] [] := by
+      coreProgram.RelIn rd R "__loop14" [gen ^ k, gen ^ m, ofK (addressOfIndex bc), ofK
+          (addressOfIndex bp)] [] := by
   intro t
   induction t with
   | zero =>

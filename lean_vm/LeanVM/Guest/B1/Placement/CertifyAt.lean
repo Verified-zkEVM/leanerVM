@@ -34,7 +34,7 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 three buffers holding `cpOwn`. -/
 def cpOut (lm : ℕ) (hs : List ℕ) : List E → Layout → Prop := fun rets L =>
   ∃ e2 e120 e121 : ℕ, rets = [gen ^ stackTotal (columnKappas lm guestLogBytecode hs),
-    ofK (gpow e121), ofK (gpow e2)] ∧ L = cpOwn lm hs e2 e120 e121
+    ofK (addressOfIndex e121), ofK (addressOfIndex e2)] ∧ L = cpOwn lm hs e2 e120 e121
 
 /-- The body before its `ret`. -/
 def cpPreL : List Stmt :=
@@ -97,9 +97,10 @@ theorem cp_loads {q : V × ℕ} (hq : q ∈ cpPreL.filterMap Stmt.loadS) :
     exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨r, hr, hq⟩))))
   · simp [Stmt.loadS] at hq
 
-theorem cp_limb_mul (b c : ℕ) : (ofK (gpow b) * gen ^ c).limb 0 * gpow 0 = gpow (b + c) := by
-  have e : ofK (gpow b) * gen ^ c = ofK (gpow (b + c)) := by
-    rw [gen_pow_eq_ofK, ← ofK_mul, gpow, gpow, gpow, pow_add]
+theorem cp_limb_mul (b c : ℕ) : (ofK (addressOfIndex b) * gen ^ c).limb 0 * addressOfIndex 0 =
+    addressOfIndex (b + c) := by
+  have e : ofK (addressOfIndex b) * gen ^ c = ofK (addressOfIndex (b + c)) := by
+    rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
   rw [e, tb_addr_ofK, Nat.add_zero]
 
 /-- **`certify_placement` is complete, placed**: on its base and squares runs, at every frame
@@ -109,7 +110,7 @@ theorem certify_placement_completeAt (fs : String → ℕ) (cert : String → V 
     (hk : 7 ≤ k) {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 32)
     (hhs : ∀ h ∈ hs, h < 29) (h5 : hs.getD 5 0 ≤ 27) (ekb esq : ℕ) :
     CompleteAtD fs cert k "certify_placement" (cpLin lm hs ekb esq)
-      [ofK (gpow ekb), ofK (gpow esq)] (cpOut lm hs) := by
+      [ofK (addressOfIndex ekb), ofK (addressOfIndex esq)] (cpOut lm hs) := by
   have hf : coreProgram.find? "certify_placement" = some Data.core15 :=
     Program.find?_of_indexOf? (j := 15) (by decide +kernel) rfl
   set f := "certify_placement"
@@ -126,7 +127,8 @@ theorem certify_placement_completeAt (fs : String → ℕ) (cert : String → V 
     intro fp; simp [bufL, bases, cpOwn]
   refine completeAt_flatOutD (fs := fs) (cert := cert) hf cp_not_loop k (cpLin lm hs ekb esq) _
     (fun fp ↦ [gen ^ stackTotal (columnKappas lm guestLogBytecode hs),
-      ofK (gpow (fp + fs f + 99 + 99)), ofK (gpow (fp + fs f))]) _ hb cp_flat cp_addrs
+      ofK (addressOfIndex (fp + fs f + 99 + 99)), ofK (addressOfIndex (fp + fs f))]) _ hb cp_flat
+          cp_addrs
     [99, 99, 99] (fun _ ↦ [(cpKs lm hs).map (gen ^ ·), (cpOrd lm hs).map (gen ^ ·),
       (stackOffsets (cpKs lm hs)).1.map (gen ^ ·)])
     (fun _ ↦ hown) (fun fp ↦ ⟨_, _, _, rfl, hbuf fp⟩) (fun _ ↦ []) (fun _ _ h ↦ absurd h (by simp))
@@ -177,40 +179,43 @@ theorem certify_placement_completeAt (fs : String → ℕ) (cert : String → V 
     have hc0 := cpColF_lt (lm := lm) (hs := hs) (r := 0) (by norm_num)
     rcases cp_loads hq with ⟨c, hc, rfl | rfl⟩ | rfl | rfl | rfl | rfl | ⟨r, hr, rfl | rfl | rfl | rfl⟩
     · exact ⟨ekb + colKappaSrc c, tb_addr_ofK _ _, Or.inl (hKb _ colKappaSrc_lt)⟩
-    · exact ⟨fp + fs f + c, by rw [show σ (.n 2) = ofK (gpow (fp + fs f)) from rfl,
+    · exact ⟨fp + fs f + c, by rw [show σ (.n 2) = ofK (addressOfIndex (fp + fs f)) from rfl,
         tb_addr_ofK], Or.inr (hOwn 0 (by norm_num) _ (by omega) (by omega))⟩
-    · exact ⟨fp + fs f + 99 + 0, by rw [show σ (.n 106) = ofK (gpow (fp + fs f + 99)) from rfl,
+    · exact ⟨fp + fs f + 99 + 0,
+        by rw [show σ (.n 106) = ofK (addressOfIndex (fp + fs f + 99)) from rfl,
         tb_addr_ofK], Or.inr (hOwn 1 (by norm_num) _ (by omega) (by omega))⟩
     · refine ⟨fp + fs f + cpColF lm hs 0, ?_, Or.inr (hOwn 0 (by norm_num) _
         (by omega) (by omega))⟩
-      rw [show σ (.n 113) = ofK (gpow (fp + fs f)) * gen ^ cpColF lm hs 0 from
+      rw [show σ (.n 113) = ofK (addressOfIndex (fp + fs f)) * gen ^ cpColF lm hs 0 from
         cpσ_rank0 lm hs ekb esq _ _ _ rd (j := 5) (by norm_num)]
       rw [cp_limb_mul]
     · refine ⟨fp + fs f + 99 + 99 + cpColF lm hs 0, ?_, Or.inr (hOwn 2 (by norm_num) _
         (by omega) (by omega))⟩
-      rw [show σ (.n 116) = ofK (gpow (fp + fs f + 99 + 99)) * gen ^ cpColF lm hs 0 from
+      rw [show σ (.n 116) = ofK (addressOfIndex (fp + fs f + 99 + 99)) * gen ^ cpColF lm hs 0 from
         cpσ_rank0 lm hs ekb esq _ _ _ rd (j := 8) (by norm_num)]
       rw [cp_limb_mul]
     · refine ⟨esq + cpKF lm hs 0, ?_, Or.inl (hSq _ (hK 0 (by norm_num)))⟩
-      rw [show σ (.n 121) = ofK (gpow esq) * gen ^ cpKF lm hs 0 from
+      rw [show σ (.n 121) = ofK (addressOfIndex esq) * gen ^ cpKF lm hs 0 from
         cpσ_rank0 lm hs ekb esq _ _ _ rd (j := 13) (by norm_num)]
       rw [cp_limb_mul]
-    · exact ⟨fp + fs f + 99 + (r + 1), by rw [show σ (.n 106) = ofK (gpow (fp + fs f + 99))
+    · exact ⟨fp + fs f + 99 + (r + 1),
+        by rw [show σ (.n 106) = ofK (addressOfIndex (fp + fs f + 99))
         from rfl, tb_addr_ofK], Or.inr (hOwn 1 (by norm_num) _ (by omega) (by omega))⟩
     · have hcr := cpColF_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
       refine ⟨fp + fs f + cpColF lm hs (r + 1), ?_, Or.inr (hOwn 0 (by norm_num) _
         (by omega) (by omega))⟩
-      rw [show σ (.n (97 + 26 * (r + 1) + 5)) = ofK (gpow (fp + fs f)) * gen ^ cpColF lm hs (r + 1) from
+      rw [show σ (.n (97 + 26 * (r + 1) + 5)) = ofK (addressOfIndex (fp + fs f)) * gen ^ cpColF lm hs (r + 1) from
         cpσ_rank lm hs ekb esq _ _ _ rd (r := r + 1) (j := 5) (by omega) (by omega) (by norm_num)]
       rw [cp_limb_mul]
     · have hcr := cpColF_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
       refine ⟨fp + fs f + 99 + 99 + cpColF lm hs (r + 1), ?_, Or.inr (hOwn 2 (by norm_num) _
         (by omega) (by omega))⟩
-      rw [show σ (.n (97 + 26 * (r + 1) + 18)) = ofK (gpow (fp + fs f + 99 + 99)) * gen ^ cpColF lm hs (r + 1) from
+      rw [show σ (.n (97 + 26 * (r + 1) + 18)) = ofK (addressOfIndex (fp + fs f + 99 + 99)) * gen ^ cpColF lm hs (r + 1) from
         cpσ_rank lm hs ekb esq _ _ _ rd (r := r + 1) (j := 18) (by omega) (by omega) (by norm_num)]
       rw [cp_limb_mul]
     · refine ⟨esq + cpKF lm hs (r + 1), ?_, Or.inl (hSq _ (hK (r + 1) (by omega)))⟩
-      rw [show σ (.n (97 + 26 * (r + 1) + 23)) = ofK (gpow esq) * gen ^ cpKF lm hs (r + 1) from
+      rw [show σ (.n (97 + 26 * (r + 1) + 23)) = ofK (addressOfIndex esq) * gen ^ cpKF lm hs (r +
+          1) from
         cpσ_rank lm hs ekb esq _ _ _ rd (r := r + 1) (j := 23) (by omega) (by omega) (by norm_num)]
       rw [cp_limb_mul]
 
@@ -222,7 +227,7 @@ theorem certify_placement_completeAtB (fs : String → ℕ) (cert : String → V
     (hk : 7 ≤ k) {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 32)
     (hhs : ∀ h ∈ hs, h < 29) (h5 : hs.getD 5 0 ≤ 27) (ekb esq : ℕ) :
     CompleteAtDTB fs cert k "certify_placement" (cpLin lm hs ekb esq)
-      [ofK (gpow ekb), ofK (gpow esq)] (cpOut lm hs) (fun _ ↦ True)
+      [ofK (addressOfIndex ekb), ofK (addressOfIndex esq)] (cpOut lm hs) (fun _ ↦ True)
       (fs "certify_placement" + [99, 99, 99].sum) := by
   have hf : coreProgram.find? "certify_placement" = some Data.core15 :=
     Program.find?_of_indexOf? (j := 15) (by decide +kernel) rfl
@@ -240,7 +245,8 @@ theorem certify_placement_completeAtB (fs : String → ℕ) (cert : String → V
     intro fp; simp [bufL, bases, cpOwn]
   refine (completeAt_flatOutDTB (fs := fs) (cert := cert) hf cp_not_loop k (cpLin lm hs ekb esq) _
     (fun fp ↦ [gen ^ stackTotal (columnKappas lm guestLogBytecode hs),
-      ofK (gpow (fp + fs f + 99 + 99)), ofK (gpow (fp + fs f))]) _ hb cp_flat cp_addrs
+      ofK (addressOfIndex (fp + fs f + 99 + 99)), ofK (addressOfIndex (fp + fs f))]) _ hb cp_flat
+          cp_addrs
     [99, 99, 99] (fun _ ↦ [(cpKs lm hs).map (gen ^ ·), (cpOrd lm hs).map (gen ^ ·),
       (stackOffsets (cpKs lm hs)).1.map (gen ^ ·)])
     (fun _ ↦ hown) (fun fp ↦ ⟨_, _, _, rfl, hbuf fp⟩) (fun _ ↦ []) (fun _ ↦ True) [] [] 0 (fun _ ↦ trivial) (fun _ ↦ le_rfl)
@@ -292,40 +298,43 @@ theorem certify_placement_completeAtB (fs : String → ℕ) (cert : String → V
     have hc0 := cpColF_lt (lm := lm) (hs := hs) (r := 0) (by norm_num)
     rcases cp_loads hq with ⟨c, hc, rfl | rfl⟩ | rfl | rfl | rfl | rfl | ⟨r, hr, rfl | rfl | rfl | rfl⟩
     · exact ⟨ekb + colKappaSrc c, tb_addr_ofK _ _, Or.inl (hKb _ colKappaSrc_lt)⟩
-    · exact ⟨fp + fs f + c, by rw [show σ (.n 2) = ofK (gpow (fp + fs f)) from rfl,
+    · exact ⟨fp + fs f + c, by rw [show σ (.n 2) = ofK (addressOfIndex (fp + fs f)) from rfl,
         tb_addr_ofK], Or.inr (hOwn 0 (by norm_num) _ (by omega) (by omega))⟩
-    · exact ⟨fp + fs f + 99 + 0, by rw [show σ (.n 106) = ofK (gpow (fp + fs f + 99)) from rfl,
+    · exact ⟨fp + fs f + 99 + 0,
+        by rw [show σ (.n 106) = ofK (addressOfIndex (fp + fs f + 99)) from rfl,
         tb_addr_ofK], Or.inr (hOwn 1 (by norm_num) _ (by omega) (by omega))⟩
     · refine ⟨fp + fs f + cpColF lm hs 0, ?_, Or.inr (hOwn 0 (by norm_num) _
         (by omega) (by omega))⟩
-      rw [show σ (.n 113) = ofK (gpow (fp + fs f)) * gen ^ cpColF lm hs 0 from
+      rw [show σ (.n 113) = ofK (addressOfIndex (fp + fs f)) * gen ^ cpColF lm hs 0 from
         cpσ_rank0 lm hs ekb esq _ _ _ rd (j := 5) (by norm_num)]
       rw [cp_limb_mul]
     · refine ⟨fp + fs f + 99 + 99 + cpColF lm hs 0, ?_, Or.inr (hOwn 2 (by norm_num) _
         (by omega) (by omega))⟩
-      rw [show σ (.n 116) = ofK (gpow (fp + fs f + 99 + 99)) * gen ^ cpColF lm hs 0 from
+      rw [show σ (.n 116) = ofK (addressOfIndex (fp + fs f + 99 + 99)) * gen ^ cpColF lm hs 0 from
         cpσ_rank0 lm hs ekb esq _ _ _ rd (j := 8) (by norm_num)]
       rw [cp_limb_mul]
     · refine ⟨esq + cpKF lm hs 0, ?_, Or.inl (hSq _ (hK 0 (by norm_num)))⟩
-      rw [show σ (.n 121) = ofK (gpow esq) * gen ^ cpKF lm hs 0 from
+      rw [show σ (.n 121) = ofK (addressOfIndex esq) * gen ^ cpKF lm hs 0 from
         cpσ_rank0 lm hs ekb esq _ _ _ rd (j := 13) (by norm_num)]
       rw [cp_limb_mul]
-    · exact ⟨fp + fs f + 99 + (r + 1), by rw [show σ (.n 106) = ofK (gpow (fp + fs f + 99))
+    · exact ⟨fp + fs f + 99 + (r + 1),
+        by rw [show σ (.n 106) = ofK (addressOfIndex (fp + fs f + 99))
         from rfl, tb_addr_ofK], Or.inr (hOwn 1 (by norm_num) _ (by omega) (by omega))⟩
     · have hcr := cpColF_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
       refine ⟨fp + fs f + cpColF lm hs (r + 1), ?_, Or.inr (hOwn 0 (by norm_num) _
         (by omega) (by omega))⟩
-      rw [show σ (.n (97 + 26 * (r + 1) + 5)) = ofK (gpow (fp + fs f)) * gen ^ cpColF lm hs (r + 1) from
+      rw [show σ (.n (97 + 26 * (r + 1) + 5)) = ofK (addressOfIndex (fp + fs f)) * gen ^ cpColF lm hs (r + 1) from
         cpσ_rank lm hs ekb esq _ _ _ rd (r := r + 1) (j := 5) (by omega) (by omega) (by norm_num)]
       rw [cp_limb_mul]
     · have hcr := cpColF_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
       refine ⟨fp + fs f + 99 + 99 + cpColF lm hs (r + 1), ?_, Or.inr (hOwn 2 (by norm_num) _
         (by omega) (by omega))⟩
-      rw [show σ (.n (97 + 26 * (r + 1) + 18)) = ofK (gpow (fp + fs f + 99 + 99)) * gen ^ cpColF lm hs (r + 1) from
+      rw [show σ (.n (97 + 26 * (r + 1) + 18)) = ofK (addressOfIndex (fp + fs f + 99 + 99)) * gen ^ cpColF lm hs (r + 1) from
         cpσ_rank lm hs ekb esq _ _ _ rd (r := r + 1) (j := 18) (by omega) (by omega) (by norm_num)]
       rw [cp_limb_mul]
     · refine ⟨esq + cpKF lm hs (r + 1), ?_, Or.inl (hSq _ (hK (r + 1) (by omega)))⟩
-      rw [show σ (.n (97 + 26 * (r + 1) + 23)) = ofK (gpow esq) * gen ^ cpKF lm hs (r + 1) from
+      rw [show σ (.n (97 + 26 * (r + 1) + 23)) = ofK (addressOfIndex esq) * gen ^ cpKF lm hs (r +
+          1) from
         cpσ_rank lm hs ekb esq _ _ _ rd (r := r + 1) (j := 23) (by omega) (by omega) (by norm_num)]
       rw [cp_limb_mul]
 

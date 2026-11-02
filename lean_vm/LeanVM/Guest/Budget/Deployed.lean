@@ -34,7 +34,7 @@ theorem guest_complete_budget {SB SK : String → ℕ} {Pvs : NodeWitness → �
     (C : Opcode → ℕ)
     (hC : ∀ op σ bufs kids rd args rets,
       (Memory.Tree.node "verify_lean_xmss" σ bufs kids).Valid coreProgram rd args rets →
-        B2C.costW (nth Data.cplArms 20 []) σ (coreOf 20).body op ≤ C op)
+        B2C.costW (listElementOrDefault Data.cplArms 20 []) σ (coreOf 20).body op ≤ C op)
     (H : ∀ op, MainCounts (B2C.ωArm C op) B2C.fs) (hS : MainStatics B2C.fs SB SK)
     (hV : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w →
       ChildrenOk bytecode seed w →

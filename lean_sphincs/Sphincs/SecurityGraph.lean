@@ -35,7 +35,7 @@ def canonicalGraphInput (parameter : PublicParameter)
     (ftsSecret : ForestSecrets)
     (position : Position) (labels : CanonicalGraphLabels) : HashInput :=
   tweakableHashInput parameter position.domain
-    ((canonicalGraphSlots otsSecret ftsSecret labels position).flatMap (bytesLE 16))
+    ((canonicalGraphSlots otsSecret ftsSecret labels position).flatMap (littleEndianBytes 16))
 
 variable (parameter : PublicParameter)
   (otsSecret : Layer → TreeIndex → LeafIndex → ChainIndex → Digest)
@@ -54,7 +54,7 @@ theorem canonicalGraphInput_congr (position : Position) (left right : CanonicalG
       canonicalGraphInput parameter otsSecret ftsSecret position right := by
   have hmap := List.map_congr_left hchildren
   apply congrArg (fun values : List Digest =>
-    tweakableHashInput parameter position.domain (values.flatMap (bytesLE 16)))
+    tweakableHashInput parameter position.domain (values.flatMap (littleEndianBytes 16)))
   cases position <;> simp only [canonicalGraphSlots] <;>
     first | rfl | exact hmap | (split_ifs <;> first | rfl | exact hmap)
 

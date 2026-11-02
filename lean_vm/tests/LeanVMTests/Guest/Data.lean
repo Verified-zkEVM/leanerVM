@@ -20,7 +20,7 @@ namespace LeanVMTests.Guest.Data
 open LeanVM.Guest LeanVM.Guest.Data
 
 /-- The opcode index of an instruction: `XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `KECCAK`. -/
-def opIdx : OInstr → Nat
+def opIdx : OffsetInstruction → Nat
   | .xor .. => 0
   | .mul .. => 1
   | .set .. => 2
@@ -37,7 +37,7 @@ def opcodeCounts : List Nat :=
 #guard logSize = Manifest.logSize
 #guard codeLen = Manifest.codeLen
 #guard functions.length = Manifest.functionCount
-#guard (functions.map (·.len)).sum = codeLen
+#guard (functions.map (·.instructionCount)).sum = codeLen
 #guard opcodeCounts = Manifest.opcodeCounts
 
 /- The source's placeholders are those of the bytecode's size. -/

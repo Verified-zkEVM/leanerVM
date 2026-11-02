@@ -46,7 +46,8 @@ def KState.toRpm (s : KeccakState) : Common.KState :=
 
 /-- A digest of 32 bytes as four little-endian words (`Digest.words`, `verifier.py:221-223`). -/
 def Digest.ofRpm (d : Common.DigestBytes) : Digest :=
-  #v[leLane d.toList 0, leLane d.toList 1, leLane d.toList 2, leLane d.toList 3]
+  #v[littleEndianLane d.toList 0, littleEndianLane d.toList 1, littleEndianLane d.toList 2,
+      littleEndianLane d.toList 3]
 
 /-- A query on the bytes of the states. -/
 def permQueryToRpm : Common.PermutationQuery KeccakState → Common.PermutationQuery Common.KState
@@ -109,12 +110,12 @@ theorem bytesLane_wordBytes_append (w : UInt64) (rest : List UInt8) :
 
 /-- `leLane` reads the eight bytes from `8i` as `bytesLane` does. -/
 theorem leLane_eq_bytesLane (bs : List UInt8) (i : ℕ) :
-    leLane bs i = bytesLane (bs.drop (8 * i)) := by
+    littleEndianLane bs i = bytesLane (bs.drop (8 * i)) := by
   apply UInt64.toNat_inj.mp
   have hb : ∀ k, (bs[8 * i + k]?.getD 0).toNat < 256 := fun k ↦ UInt8.toNat_lt _
   have e : ∀ k, (bs.drop (8 * i)).getD k 0 = bs.getD (8 * i + k) 0 := fun k ↦ by
     simp [List.getD_eq_getElem?_getD]
-  simp only [leLane, bytesLane, e, List.range_succ, List.range_zero, List.nil_append,
+  simp only [littleEndianLane, bytesLane, e, List.range_succ, List.range_zero, List.nil_append,
     List.foldl_append, List.foldr_append, List.foldl_cons, List.foldl_nil, List.foldr_cons,
     List.foldr_nil, UInt64.toNat_or, UInt64.toNat_shiftLeft, UInt8.toNat_toUInt64,
     List.getD_eq_getElem?_getD, UInt64.zero_or]
@@ -156,7 +157,7 @@ theorem wordBytes_bytesLane (b : List UInt8) :
 
 /-- The bytes of `leLane bs i` are bytes `8i` to `8i + 7` of `bs`, missing ones `0`. -/
 theorem wordBytes_leLane (bs : List UInt8) (i : ℕ) :
-    wordBytes (leLane bs i) = (List.range 8).map fun k ↦ bs.getD (8 * i + k) 0 := by
+    wordBytes (littleEndianLane bs i) = (List.range 8).map fun k ↦ bs.getD (8 * i + k) 0 := by
   rw [leLane_eq_bytesLane, wordBytes_bytesLane]
   refine List.map_congr_left fun k _ ↦ ?_
   simp [List.getD_eq_getElem?_getD]
@@ -188,7 +189,7 @@ theorem drop_lanesBytes (l : List UInt64) (i : ℕ) :
         List.drop_left' (wordBytes_len a), ih, List.drop_succ_cons]
 
 theorem leLane_lanesBytes (l : List UInt64) (i : ℕ) (hi : i < l.length) :
-    leLane (lanesBytes l) i = l[i] := by
+    littleEndianLane (lanesBytes l) i = l[i] := by
   rw [leLane_eq_bytesLane, drop_lanesBytes, List.drop_eq_getElem_cons hi, lanesBytes_cons,
     bytesLane_wordBytes_append]
 
@@ -201,9 +202,10 @@ theorem getD_lanesBytes (l : List UInt64) (j : ℕ) (hj : j < 8 * l.length) :
     List.getElem?_append_left (by rw [wordBytes_len]; omega), ← List.getD_eq_getElem?_getD]
 
 theorem lanesBytes_ofFn_leLane (bs : List UInt8) (n : ℕ) (h : bs.length = 8 * n) :
-    lanesBytes (List.ofFn fun i : Fin n ↦ leLane bs i) = bs := by
+    lanesBytes (List.ofFn fun i : Fin n ↦ littleEndianLane bs i) = bs := by
   refine List.ext_getElem (by simp [h]) fun j h1 h2 ↦ ?_
-  have hj : j < 8 * (List.ofFn fun i : Fin n ↦ leLane bs i).length := by simp [h] at h2 ⊢; omega
+  have hj : j < 8 * (List.ofFn fun i : Fin n ↦ littleEndianLane bs i).length :=
+      by simp [h] at h2 ⊢; omega
   have e := getD_lanesBytes _ j hj
   rw [List.getD_eq_getElem _ _ h1] at e
   rw [e, List.getElem_ofFn, wordBytes_leLane, List.getD_eq_getElem _ _ (by simp; omega)]
@@ -255,7 +257,7 @@ theorem toBytes_ofBytes (bs : List UInt8) (h : bs.length = 200) :
       simp only [e]
 
 /-- The lane state of 200 bytes: lane `i` is bytes `8i` to `8i + 7`, little-endian. -/
-def KState.ofRpm (x : Common.KState) : KeccakState := Vector.ofFn fun i : Fin 25 ↦ leLane x.toBytes i
+def KState.ofRpm (x : Common.KState) : KeccakState := Vector.ofFn fun i : Fin 25 ↦ littleEndianLane x.toBytes i
 
 theorem toBytes_toRpm (s : KeccakState) : (KState.toRpm s).toBytes = lanesBytes s.toList :=
   toBytes_ofBytes (lanesBytes s.toList) (by simp)
@@ -319,7 +321,7 @@ theorem toList_digestToRpm (d : Digest) : (Digest.toRpm d).toList = lanesBytes d
   rw [List.getD_eq_getElem _ _ h2]
 
 theorem digestOfRpm_toRpm (d : Digest) : Digest.ofRpm (Digest.toRpm d) = d := by
-  have e : ∀ k (hk : k < 4), leLane (Digest.toRpm d).toList k = d[k] := fun k hk ↦ by
+  have e : ∀ k (hk : k < 4), littleEndianLane (Digest.toRpm d).toList k = d[k] := fun k hk ↦ by
     rw [toList_digestToRpm, leLane_lanesBytes _ _ (by simpa)]
     simp
   refine Vector.ext fun i hi ↦ ?_
@@ -332,7 +334,7 @@ theorem digestOfRpm_toRpm (d : Digest) : Digest.ofRpm (Digest.toRpm d) = d := by
 theorem digestToRpm_ofRpm (d : Common.DigestBytes) : Digest.toRpm (Digest.ofRpm d) = d := by
   apply Vector.toList_inj.mp
   rw [toList_digestToRpm]
-  have e : (Digest.ofRpm d).toList = List.ofFn fun i : Fin 4 ↦ leLane d.toList i := by
+  have e : (Digest.ofRpm d).toList = List.ofFn fun i : Fin 4 ↦ littleEndianLane d.toList i := by
     simp [Digest.ofRpm, List.ofFn_succ]
   rw [e, lanesBytes_ofFn_leLane _ 4 (by simp)]
 
@@ -361,7 +363,7 @@ theorem wordBytes_xor_getD (a b : UInt64) (k : ℕ) (hk : k < 8) :
     UInt64.toUInt8_xor]
 
 theorem wordBytes_leLane_getD (bs : List UInt8) (i k : ℕ) (hk : k < 8) :
-    (wordBytes (leLane bs i)).getD k 0 = bs.getD (8 * i + k) 0 := by
+    (wordBytes (littleEndianLane bs i)).getD k 0 = bs.getD (8 * i + k) 0 := by
   rw [wordBytes_leLane, List.getD_eq_getElem _ _ (by simpa using hk)]
   simp
 
@@ -394,11 +396,11 @@ theorem toRpm_snd (s : KeccakState) (j : ℕ) (hj : j < 64) :
 /-- **XORing a block's lanes into the rate is XORing its bytes** (`absorbBlock`, `absorb`). -/
 theorem toRpm_absorbInput (s : KeccakState) (block : List UInt8) :
     KState.toRpm (Vector.ofFn fun i : Fin 25 ↦
-        if i.val < 17 then Keccak.lane s i ^^^ leLane block i else Keccak.lane s i) =
+        if i.val < 17 then Keccak.lane s i ^^^ littleEndianLane block i else Keccak.lane s i) =
       Common.absorb (KState.toRpm s) (Common.KBlock.ofBytes block) := by
   set v : KeccakState := Vector.ofFn fun i : Fin 25 ↦
-    if i.val < 17 then Keccak.lane s i ^^^ leLane block i else Keccak.lane s i with hv
-  have hin : ∀ i (hi : i < 17), v[i]'(by omega) = s[i]'(by omega) ^^^ leLane block i := by
+    if i.val < 17 then Keccak.lane s i ^^^ littleEndianLane block i else Keccak.lane s i with hv
+  have hin : ∀ i (hi : i < 17), v[i]'(by omega) = s[i]'(by omega) ^^^ littleEndianLane block i := by
     intro i hi
     rw [hv, Vector.getElem_ofFn]
     simp only [hi, ↓reduceIte, lane_eq_getElem s i (by omega)]
@@ -513,8 +515,8 @@ theorem absorbWith_lanePerm : ∀ (n : ℕ) (s : KeccakState) (data : List UInt8
     rw [absorbWith_lanePerm n _ _ hd, toRpm_ofRpm]
 
 theorem leLane_append_left (l r : List UInt8) (i : ℕ) (h : 8 * i + 8 ≤ l.length) :
-    leLane (l ++ r) i = leLane l i := by
-  unfold leLane
+    littleEndianLane (l ++ r) i = littleEndianLane l i := by
+  unfold littleEndianLane
   refine List.foldl_ext _ _ _ fun a k hk ↦ ?_
   simp only [List.mem_range] at hk
   rw [List.getD_append _ _ _ _ (by omega)]
@@ -527,10 +529,10 @@ theorem keccak256With_rpm (data : List UInt8) :
   rw [keccak256With, absorbWith_lanePerm π (data.length / rate) _ data rfl, toRpm_zero, Common.keccak256With,
     Common.spongeWith, bind_map_left, Functor.map_map, map_eq_bind_pure_comp]
   refine bind_congr fun y ↦ ?_
-  have e : ∀ i (hi : i < 4), Keccak.lane (KState.ofRpm y) i = leLane y.1.1.toList i := by
+  have e : ∀ i (hi : i < 4), Keccak.lane (KState.ofRpm y) i = littleEndianLane y.1.1.toList i := by
     intro i hi
     rw [lane_eq_getElem _ _ (by omega), KState.ofRpm, Vector.getElem_ofFn]
-    show leLane (y.1.1.toList ++ y.1.2.toList ++ y.2.toList) i = _
+    show littleEndianLane (y.1.1.toList ++ y.1.2.toList ++ y.2.toList) i = _
     rw [List.append_assoc, leLane_append_left _ _ _ (by simp only [Vector.length_toList]; omega)]
   have hv : (#v[Keccak.lane (KState.ofRpm y) 0, Keccak.lane (KState.ofRpm y) 1,
       Keccak.lane (KState.ofRpm y) 2, Keccak.lane (KState.ofRpm y) 3] : Digest) =

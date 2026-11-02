@@ -64,14 +64,14 @@ theorem firstWord_append {h : List Ev} {W : Word} (hW : firstWord h = some W) (l
 the verifier's layout at sizes `s`, the history's first commitment is the word `W₀`, and no
 candidate of `W₀` (at the threshold `A μ ρ`) satisfies the leanISA relation at `s` for the public
 input `input`. -/
-def CommitDoom (prog : Program) (input : PublicInput) (A : ℕ → ℕ → ℕ)
+def CommitDoom (prog : LeanIsaProgram) (input : PublicInput) (A : ℕ → ℕ → ℕ)
     (a : Verifier.Layout × ℕ) (h : List Ev) : Prop :=
   ∃ s W₀, a.1 = verifierLayout prog s ∧ firstWord h = some W₀ ∧
     ∀ q ∈ Candidates (leanIsaμ prog s) a.2 (A (leanIsaμ prog s) a.2) W₀,
       ¬ M3Holds (leanIsaInstance prog s) input q
 
 /-- The commitment's doom is a property of the stack's root: later events keep it. -/
-theorem CommitDoom.append {prog : Program} {input : PublicInput}
+theorem CommitDoom.append {prog : LeanIsaProgram} {input : PublicInput}
     {A : ℕ → ℕ → ℕ} {a : Verifier.Layout × ℕ} {h : List Ev}
     (hD : CommitDoom prog input A a h) (l : List Ev) : CommitDoom prog input A a (h ++ l) := by
   obtain ⟨s, W₀, hs, hW, hq⟩ := hD
@@ -81,12 +81,12 @@ variable {εmax T : ENNReal}
 
 /-- **The announced sizes**: no doom, none created. -/
 def readSizesSpec (bytecode : List K) (Post : Verifier.Layout × ℕ → List Ev → Prop) :
-    Spec (readSizes bytecode) (fun _ ↦ False) Post εmax 0 0 :=
+    Spec (readAnnouncedSizes bytecode) (fun _ ↦ False) Post εmax 0 0 :=
   Spec.dead
 
 /-- **The stack's root**: from no doom to the commitment's doom. The boundary after the root
 carries the follower's lead `T`, so `T ≤ εmax`. -/
-noncomputable def commitStackSpec (prog : Program) (input : PublicInput)
+noncomputable def commitStackSpec (prog : LeanIsaProgram) (input : PublicInput)
     (A : ℕ → ℕ → ℕ) (a : Verifier.Layout × ℕ) (logN logInvRate : ℕ) (hT : T ≤ εmax) :
     Spec (commitStack logN logInvRate) (fun _ ↦ False)
       (fun _ h ↦ CommitDoom prog input A a h) εmax 0 T :=

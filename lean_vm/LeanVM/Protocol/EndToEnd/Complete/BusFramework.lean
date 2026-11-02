@@ -151,7 +151,7 @@ theorem indexMle_eq (z : List E) :
 
 section Stack
 
-variable (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 
 /-- An instance column read off the stack, as a list in `E`. -/
 def colList (c : Col) : List E := ((inst prog s).column q c).values.toList.map ofK
@@ -314,8 +314,8 @@ theorem dot_take_eq (w l : List E) (n : ℕ) (hn : l.length = n) (h : n ≤ w.le
 /-- A bytecode word: instruction `i`'s slot `k`. -/
 theorem getD_bytecodeWords (i : Fin (2 ^ prog.logSize)) (k : ℕ) (hk : k < 16) :
     ((bytecodeWords prog).map ofK).getD (i.val + 2 ^ prog.logSize * k) 0 =
-      ofK ((encodeSlots (prog.code i)).toList.getD k 0) := by
-  rw [List.getD_eq_getElem (encodeSlots (prog.code i)).toList _ (by simpa using hk),
+      ofK ((instructionSlots (prog.instructions i)).toList.getD k 0) := by
+  rw [List.getD_eq_getElem (instructionSlots (prog.instructions i)).toList _ (by simpa using hk),
     Vector.getElem_toList]
   have hlt : i.val + 2 ^ prog.logSize * k < 2 ^ (prog.logSize + 4) := by
     rw [pow_add]; exact add_mul_lt i.isLt (by norm_num; omega)
@@ -330,7 +330,7 @@ theorem getD_bytecodeWords (i : Fin (2 ^ prog.logSize)) (k : ℕ) (hk : k < 16) 
   rfl
 
 /-- `ofK` of a power of the generator. -/
-theorem ofK_gpow (n : ℕ) : ofK (Parameters.gpow n) = Verifier.gpow n := by
+theorem ofK_gpow (n : ℕ) : ofK (Parameters.addressOfIndex n) = Verifier.gpow n := by
   show algebraMap K E (g ^ n) = gen ^ n
   rw [map_pow]
   rfl
@@ -346,8 +346,8 @@ variable {prog s q} in
 theorem memTab_getD (β : E) (w : List E) (hw : w.length = 16) (cnt : List E)
     (x : Fin (2 ^ s.logMem)) (c : K) (hc : cnt.getD x 0 = ofK c) :
     (memTab prog s q β w cnt).getD x 0 =
-      fpV β w (tupleOf (Parameters.gpow 1)
-        (#[Parameters.gpow x, c] ++ (memLimbs s q x).toArray)) := by
+      fpV β w (tupleOf (Parameters.addressOfIndex 1)
+        (#[Parameters.addressOfIndex x, c] ++ (memLimbs s q x).toArray)) := by
   rw [fpV_tupleOf β w hw _ _ (by simp), List.getD_eq_getElem _ _ (by simp [memTab])]
   simp only [memTab, List.getElem_map, List.getElem_range]
   rw [dot_take_eq w _ 6 rfl (by omega)]
@@ -363,46 +363,51 @@ theorem memTab_getD (β : E) (w : List E) (hw : w.length = 16) (cnt : List E)
 
 /-- The eleven entry coordinates of an instruction, listed. -/
 theorem entryList_eq (i : Fin (2 ^ prog.logSize)) :
-    entryList i = [(entry (prog.code i))[0], (entry (prog.code i))[1], (entry (prog.code i))[2],
-      (entry (prog.code i))[3], (entry (prog.code i))[4], (entry (prog.code i))[5],
-      (entry (prog.code i))[6], (entry (prog.code i))[7], (entry (prog.code i))[8],
-      (entry (prog.code i))[9], (entry (prog.code i))[10]] := rfl
+    entryList i = [(busEntry (prog.instructions i))[0], (busEntry (prog.instructions i))[1],
+        (busEntry (prog.instructions i))[2],
+      (busEntry (prog.instructions i))[3], (busEntry (prog.instructions i))[4], (busEntry
+          (prog.instructions i))[5],
+      (busEntry (prog.instructions i))[6], (busEntry (prog.instructions i))[7], (busEntry
+          (prog.instructions i))[8],
+      (busEntry (prog.instructions i))[9], (busEntry (prog.instructions i))[10]] := rfl
 
 variable {prog} in
 /-- **The bytecode block's leaves are the boundary tuples' fingerprints.** -/
 theorem bcTab_getD (β : E) (w : List E) (hw : w.length = 16) (cnt : List E)
     (i : Fin (2 ^ prog.logSize)) (c : K) (hc : cnt.getD i 0 = ofK c) :
     (bcTab prog β w cnt).getD i 0 =
-      fpV β w (tupleOf (Parameters.gpow 2) (#[Parameters.gpow i, c] ++ (entryList i).toArray)) := by
+      fpV β w (tupleOf (Parameters.addressOfIndex 2) (#[Parameters.addressOfIndex i, c] ++
+          (entryList i).toArray)) := by
   rw [fpV_tupleOf β w hw _ _ (by simp [entryList_eq]),
     List.getD_eq_getElem _ _ (by simp [bcTab])]
   simp only [bcTab, List.getElem_map, List.getElem_range]
   rw [dot_take_eq w _ 3 rfl (by omega)]
   have h16 : ((List.range 16).map fun k ↦
       w.getD k 0 * ((bytecodeWords prog).map ofK).getD (i.val + 2 ^ prog.logSize * k) 0).sum =
-      ∑ k ∈ range 16, w.getD k 0 * ofK ((encodeSlots (prog.code i)).toList.getD k 0) := by
+      ∑ k ∈ range 16, w.getD k 0 * ofK ((instructionSlots (prog.instructions i)).toList.getD k
+          0) := by
     rw [← sum_range_eq_list]
     exact sum_congr rfl fun k hk ↦ by rw [getD_bytecodeWords prog i k (mem_range.mp hk)]
   rw [h16]
   simp only [entryList_eq, List.length_cons, List.length_nil, Array.size_append, List.size_toArray]
   simp only [sum_range_succ, sum_range_zero, zero_add, List.getD_cons_zero,
     List.getD_cons_succ, hc]
-  simp [encodeSlots, ofK_gpow, sepBytecode, Verifier.gpow, gen]
+  simp [instructionSlots, ofK_gpow, sepBytecode, Verifier.gpow, gen]
   ring
 
 /-- The state block's leaf on the push side is the initial state's fingerprint. -/
 theorem stateTab_push (β : E) (w : List E) (hw : w.length = 16) :
-    stateTab β w (Verifier.gpow 0) = [fpV β w (tupleOf (Parameters.gpow 0) #[1, 1])] := by
+    stateTab β w (Verifier.gpow 0) = [fpV β w (tupleOf (Parameters.addressOfIndex 0) #[1, 1])] := by
   rw [stateTab, fpV_tupleOf β w hw _ _ (by simp), dot_take_eq w _ 3 rfl (by omega)]
-  simp [sum_range_succ, sepState, Verifier.gpow, Parameters.gpow]
+  simp [sum_range_succ, sepState, Verifier.gpow, Parameters.addressOfIndex]
   ring
 
 /-- The state block's leaf on the pull side is the final state's fingerprint. -/
 theorem stateTab_pull (β : E) (w : List E) (hw : w.length = 16) :
     stateTab β w (Verifier.gpow (2 ^ prog.logSize - 1)) =
-      [fpV β w (tupleOf (Parameters.gpow 0) #[prog.pcFinal, 1])] := by
+      [fpV β w (tupleOf (Parameters.addressOfIndex 0) #[prog.pcFinal, 1])] := by
   rw [stateTab, fpV_tupleOf β w hw _ _ (by simp), dot_take_eq w _ 3 rfl (by omega)]
-  simp [sum_range_succ, sepState, Program.pcFinal, ofK_gpow]
+  simp [sum_range_succ, sepState, LeanIsaProgram.pcFinal, ofK_gpow]
   simp [Verifier.gpow]
   ring
 

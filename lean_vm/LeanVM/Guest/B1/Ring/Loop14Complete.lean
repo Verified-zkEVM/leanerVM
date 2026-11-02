@@ -62,7 +62,7 @@ theorem rt_rdAt_of_load {rd : Reader} {p : E} {k : ℕ} {v : E} (h : LoadHolds r
   rw [rdAt, h.2]; rfl
 
 theorem rt_side_of_load {rd : Reader} {p : E} {k : ℕ} {v : E} (h : LoadHolds rd p k v) :
-    IsInK p ∧ (rd (p.limb 0 * Parameters.gpow k)).isSome := ⟨h.1, by rw [h.2]; rfl⟩
+    IsInK p ∧ (rd (p.limb 0 * Parameters.addressOfIndex k)).isSome := ⟨h.1, by rw [h.2]; rfl⟩
 
 /-- A block of atoms that hold holds. -/
 theorem holdsList_of_atoms {C : CallRel} {rd : Reader} {σ : Val} :
@@ -354,32 +354,39 @@ theorem l14_straight : l14Pre.all Main.Stmt.straight = true := by
 theorem l14_callS : l14Pre.filterMap Main.Stmt.callS =
     [(some (.n 696), "__loop13", [.n 698, .n 1, .n 2, .n 3], [])] := by decide +kernel
 
-theorem rt_addr_mul (b c k : ℕ) : (ofK (Parameters.gpow b) * gen ^ c).limb 0 * Parameters.gpow k =
-    Parameters.gpow (b + c + k) := by
-  have e : ofK (Parameters.gpow b) * gen ^ c = ofK (Parameters.gpow (b + c)) := by
-    rw [gen_pow_eq_ofK, ← ofK_mul, Parameters.gpow, Parameters.gpow, Parameters.gpow, pow_add]
+theorem rt_addr_mul (b c k : ℕ) : (ofK (Parameters.addressOfIndex b) * gen ^ c).limb 0 *
+    Parameters.addressOfIndex k =
+    Parameters.addressOfIndex (b + c + k) := by
+  have e : ofK (Parameters.addressOfIndex b) * gen ^ c = ofK (Parameters.addressOfIndex (b +
+      c)) := by
+    rw [gen_pow_eq_ofK, ← ofK_mul, Parameters.addressOfIndex, Parameters.addressOfIndex,
+        Parameters.addressOfIndex, pow_add]
   rw [e, Main.addr_ofK]
 
 /-- **One iteration of `__loop13`, loading its regions**: at `g^j`, `j < 8`, over the honest
 chain, the next iteration's relation (while `j < 7`) gives this one's. -/
 theorem l14_iter {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length = 64)
-    (hc : chs.length = 6) (hsl : ReadsAt rd (ofK (Parameters.gpow bs)) s)
-    (hmc : ReadsAt rd (ofK (Parameters.gpow bm)) chs)
-    (hch : ReadsAt rd (ofK (Parameters.gpow bc)) (chainWords s chs)) {R : ℕ → Prop}
+    (hc : chs.length = 6) (hsl : ReadsAt rd (ofK (Parameters.addressOfIndex bs)) s)
+    (hmc : ReadsAt rd (ofK (Parameters.addressOfIndex bm)) chs)
+    (hch : ReadsAt rd (ofK (Parameters.addressOfIndex bc)) (chainWords s chs)) {R : ℕ → Prop}
     (hR : ∀ i, (bs ≤ i ∧ i < bs + 64) ∨ (bm ≤ i ∧ i < bm + 6) ∨ (bc ≤ i ∧ i < bc + 18) → R i)
     {j : ℕ} (hj : j < 8)
-    (hnext : j < 7 → coreProgram.RelIn rd R "__loop13" [gen ^ (j + 1), ofK (Parameters.gpow bs),
-      ofK (Parameters.gpow bm), ofK (Parameters.gpow bc)] []) :
-    coreProgram.RelIn rd R "__loop13" [gen ^ j, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm),
-      ofK (Parameters.gpow bc)] [] := by
+    (hnext : j < 7 → coreProgram.RelIn rd R "__loop13" [gen ^ (j + 1), ofK
+        (Parameters.addressOfIndex bs),
+      ofK (Parameters.addressOfIndex bm), ofK (Parameters.addressOfIndex bc)] []) :
+    coreProgram.RelIn rd R "__loop13" [gen ^ j, ofK (Parameters.addressOfIndex bs), ofK
+        (Parameters.addressOfIndex bm),
+      ofK (Parameters.addressOfIndex bc)] [] := by
   -- the row's facts
   have hvl : ((s.drop (8 * j)).take 8).length = 8 := by simp [hs]; omega
-  have hvs : ReadsAt rd (ofK (Parameters.gpow bs) * (gen ^ j) ^ 8) ((s.drop (8 * j)).take 8) := by
+  have hvs : ReadsAt rd (ofK (Parameters.addressOfIndex bs) * (gen ^ j) ^ 8) ((s.drop (8 * j)).take
+      8) := by
     intro k hk
     rw [← pow_mul, show j * 8 = 8 * j by ring, loadHolds_mul_gen_pow]
     simp only [List.getElem_take, List.getElem_drop]
     exact hsl _ (by rw [hs]; rw [hvl] at hk; omega)
-  have hrow : ∀ k, (hk : 2 * j + k < 18) → LoadHolds rd (ofK (Parameters.gpow bc) * (gen ^ j) ^ 2) k
+  have hrow : ∀ k, (hk : 2 * j + k < 18) → LoadHolds rd (ofK (Parameters.addressOfIndex bc) * (gen ^
+      j) ^ 2) k
       ((chainWords s chs)[2 * j + k]'(by rw [chainWords_length]; exact hk)) := by
     intro k hk
     rw [← pow_mul, show j * 2 = 2 * j by ring, loadHolds_mul_gen_pow]
@@ -398,8 +405,8 @@ theorem l14_iter {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length 
   simp only [chainWords_get, show (2 * j + 3) % 2 = 1 by omega,
     show (2 * j + 3) / 2 = j + 1 by omega, one_ne_zero, ↓reduceIte, runL] at h3
   obtain ⟨hat, e0, e1, e2, e3, e696, e698, e7, e686⟩ := l14_block hvl hc hvs hmc h0 h1 h2 h3
-  obtain ⟨σ, hσdef⟩ : ∃ σ, σ = l14σ rd (gen ^ j) (ofK (Parameters.gpow bs))
-      (ofK (Parameters.gpow bm)) (ofK (Parameters.gpow bc)) := ⟨_, rfl⟩
+  obtain ⟨σ, hσdef⟩ : ∃ σ, σ = l14σ rd (gen ^ j) (ofK (Parameters.addressOfIndex bs))
+      (ofK (Parameters.addressOfIndex bm)) (ofK (Parameters.addressOfIndex bc)) := ⟨_, rfl⟩
   rw [← hσdef] at hat e0 e1 e2 e3 e696 e698 e7 e686
   have hw := Main.walk_straight σ [] l14Pre l14_straight
   rw [← l14_body_pre] at hw
@@ -468,12 +475,12 @@ theorem l14_iter {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length 
 
 /-- **`__loop13`, completely, loading its regions**: over the honest chain, from `g^j`, `j ≤ 7`. -/
 theorem l14_relIn {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length = 64)
-    (hc : chs.length = 6) (hsl : ReadsAt rd (ofK (Parameters.gpow bs)) s)
-    (hmc : ReadsAt rd (ofK (Parameters.gpow bm)) chs)
-    (hch : ReadsAt rd (ofK (Parameters.gpow bc)) (chainWords s chs)) {R : ℕ → Prop}
+    (hc : chs.length = 6) (hsl : ReadsAt rd (ofK (Parameters.addressOfIndex bs)) s)
+    (hmc : ReadsAt rd (ofK (Parameters.addressOfIndex bm)) chs)
+    (hch : ReadsAt rd (ofK (Parameters.addressOfIndex bc)) (chainWords s chs)) {R : ℕ → Prop}
     (hR : ∀ i, (bs ≤ i ∧ i < bs + 64) ∨ (bm ≤ i ∧ i < bm + 6) ∨ (bc ≤ i ∧ i < bc + 18) → R i) :
     ∀ t j, j + t = 7 → coreProgram.RelIn rd R "__loop13"
-      [gen ^ j, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm), ofK (Parameters.gpow bc)] [] := by
+      [gen ^ j, ofK (Parameters.addressOfIndex bs), ofK (Parameters.addressOfIndex bm), ofK (Parameters.addressOfIndex bc)] [] := by
   intro t
   induction t with
   | zero => exact fun j hj ↦ l14_iter hs hc hsl hmc hch hR (by omega) fun h ↦ absurd h (by omega)

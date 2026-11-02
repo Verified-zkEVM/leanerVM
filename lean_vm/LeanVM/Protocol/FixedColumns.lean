@@ -70,19 +70,21 @@ theorem idxColumnEval_eq {κ : ℕ} (z : Vector E κ) :
 /-! ## The bytecode column -/
 
 /-- The complete sixteen-slot public bytecode column, with instruction bits first. -/
-def bytecodeColumn (prog : Program) : Column (prog.logSize + 4) :=
+def bytecodeColumn (prog : LeanIsaProgram) : Column (prog.logSize + 4) :=
   ⟨Vector.ofFn fun i ↦
     let p := (cubeSplit prog.logSize 4).symm i
-    (encodeSlots (prog.code p.1))[p.2]⟩
+    (instructionSlots (prog.instructions p.1))[p.2]⟩
 
 /-- The cell of instruction `i` and slot `s` holds that slot, spare slots included. -/
-private theorem bytecodeColumn_slot (prog : Program) (i : Fin (2 ^ prog.logSize)) (s : Fin 16) :
-    (bytecodeColumn prog).values[cubeIndex (m := 4) i s] = (encodeSlots (prog.code i))[s] := by
+private theorem bytecodeColumn_slot (prog : LeanIsaProgram) (i : Fin (2 ^ prog.logSize)) (s :
+    Fin 16) :
+    (bytecodeColumn prog).values[cubeIndex (m := 4) i s] = (instructionSlots (prog.instructions
+        i))[s] := by
   simp [bytecodeColumn, ← cubeSplit_apply]
 
 /-- **The bytecode column names the program**: two programs of one size with the same column
 are the same program. -/
-theorem bytecodeColumn_injective {prog prog' : Program} (h : prog.logSize = prog'.logSize)
+theorem bytecodeColumn_injective {prog prog' : LeanIsaProgram} (h : prog.logSize = prog'.logSize)
     (hv : (bytecodeColumn prog).values.toList = (bytecodeColumn prog').values.toList) :
     prog = prog' := by
   obtain ⟨n, hn, code⟩ := prog
@@ -105,13 +107,13 @@ theorem bytecodeColumn_injective {prog prog' : Program} (h : prog.logSize = prog
   rfl
 
 /-- Native bytecode evaluation from the public instruction and slot tables. -/
-def bytecodeColumnEval (prog : Program) (z : Vector E prog.logSize) (w : Vector E 4) : E :=
+def bytecodeColumnEval (prog : LeanIsaProgram) (z : Vector E prog.logSize) (w : Vector E 4) : E :=
   ∑ s : Fin 16, (lagrangeBasis w)[s] *
     ∑ i : Fin (2 ^ prog.logSize),
-      algebraMap K E ((encodeSlots (prog.code i))[s]) * (lagrangeBasis z)[i]
+      algebraMap K E ((instructionSlots (prog.instructions i))[s]) * (lagrangeBasis z)[i]
 
 /-- The native evaluator is the column's extension, at every point of `E`. -/
-theorem bytecodeColumn_eval (prog : Program) (z : Vector E prog.logSize) (w : Vector E 4) :
+theorem bytecodeColumn_eval (prog : LeanIsaProgram) (z : Vector E prog.logSize) (w : Vector E 4) :
     eval₂Mle (bytecodeColumn prog).values (algebraMap K E) (z ++ w) =
       bytecodeColumnEval prog z w := by
   rw [eval₂Mle, evalMle_split]

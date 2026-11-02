@@ -16,7 +16,7 @@ public import LeanVM.Guest.AcceptableChild
 
 `Node.batch` runs on the duplex sponge of the verifier language: `observe` is a read's
 absorption (tag `1`) and `sample` a sample's squeeze. So the batching is a program
-`boundedBatchingProgram M bytecode` (`LeanVM.Protocol.Compile.Prog`; defined in `Statement/LeanVmGuestCompleteness.lean`,
+`boundedBatchingProgram M bytecode` (`LeanVM.Protocol.Compile.VerifierProgram`; defined in `Statement/LeanVmGuestCompleteness.lean`,
 with the batching's end statement `BatchingSound`) whose prover sends the count `g^n` and
 three zeros, each child's words and the zeros to a whole rate (`childCells`), the sumcheck's
 messages and the final value, and whose challenges are the lambdas and the sumcheck's challenges.
@@ -97,7 +97,7 @@ theorem countOf_gpow {M n : ℕ} (hM : M ≤ 2 ^ 64 - 1) (hn : n < M) :
   rw [childCountOfGeneratorPower, dite_eq_left hex, Option.some.injEq]
   generalize hk : Nat.find hex = k at *
   obtain ⟨hlt, hs⟩ : k < M ∧ Verifier.gpow k = Verifier.gpow n := hk ▸ Nat.find_spec hex
-  have hK : ∀ m, Verifier.gpow m = ofK (Parameters.gpow m) := fun m ↦ by
+  have hK : ∀ m, Verifier.gpow m = ofK (Parameters.addressOfIndex m) := fun m ↦ by
     show gen ^ m = algebraMap K E (g ^ m)
     rw [map_pow]
     rfl
@@ -109,12 +109,13 @@ theorem headCells_eq (n : ℕ) : childCountCells n = [Verifier.gpow n, 0, 0, 0] 
 /-! ## The compiled run, piece by piece -/
 
 /-- The deployed compiled run: Keccak-256 and Keccak-f[1600]. -/
-abbrev runD {α : Type} (p : Prog α) (s : ProgState) : Option (α × ProgState) :=
+abbrev runD {α : Type} (p : VerifierProgram α) (s : VerifierProgramState) : Option (α ×
+    VerifierProgramState) :=
   Id.run (runWithHash keccak256 keccakF1600 p s)
 
 /-- The compiled run of a sequence: the first program's, then the continuation's. -/
-theorem runD_bind {α β : Type} (f : α → Prog β) :
-    ∀ (p : Prog α) (s : ProgState), runD (p.bind f) s =
+theorem runD_bind {α β : Type} (f : α → VerifierProgram β) :
+    ∀ (p : VerifierProgram α) (s : VerifierProgramState), runD (p.bind f) s =
       match runD p s with
       | some (a, s') => runD (f a) s'
       | none => none
@@ -134,8 +135,8 @@ theorem runD_bind {α β : Type} (f : α → Prog β) :
   | .commit ht w k, ⟨sp, [], os, roots⟩ => rfl
   | .commit ht w k, ⟨sp, [x0], os, roots⟩ => rfl
   | .commit ht w k, ⟨sp, x0 :: x1 :: xs, os, roots⟩ => by
-    show (match digestOfScalars (x0, x1) with | some root => _ | none => _) =
-      match (match digestOfScalars (x0, x1) with | some root => _ | none => _) with
+    show (match digestFromHalves (x0, x1) with | some root => _ | none => _) =
+      match (match digestFromHalves (x0, x1) with | some root => _ | none => _) with
       | some (a, s') => runD (f a) s'
       | none => none
     split
@@ -143,9 +144,9 @@ theorem runD_bind {α β : Type} (f : α → Prog β) :
     · rfl
   | .query i ps k, s => by
     rcases h : s.roots[i]? with _ | ⟨root, height, width⟩
-    · simp only [runD, Prog.bind, Compile.runWithHash, h]
+    · simp only [runD, VerifierProgram.bind, Compile.runWithHash, h]
       rfl
-    · simp only [runD, Prog.bind, Compile.runWithHash, h]
+    · simp only [runD, VerifierProgram.bind, Compile.runWithHash, h]
       rcases ho : Id.run (openAllWithHash keccak256 root height width ps s.openings) with _ | ⟨rows, rest⟩
       · simp only [Id.run] at ho
         simp only [id_bind, ho]
@@ -156,14 +157,16 @@ theorem runD_bind {α β : Type} (f : α → Prog β) :
 
 /-- **`p` runs from the sponge `sp` on the scalars `xs`, returning `a` at the sponge `sp'`**,
 whatever follows in the proof. -/
-def RunsTo {α : Type} (p : Prog α) (sp : Sponge) (xs : List E) (a : α) (sp' : Sponge) : Prop :=
+def RunsTo {α : Type} (p : VerifierProgram α) (sp : Sponge) (xs : List E) (a : α) (sp' : Sponge) :
+    Prop :=
   ∀ (rest : List E) (os : List Opening) (roots : List (Digest × ℕ × ℕ)),
     runD p ⟨sp, xs ++ rest, os, roots⟩ = some (a, ⟨sp', rest, os, roots⟩)
 
-theorem runsTo_ret {α : Type} (a : α) (sp : Sponge) : RunsTo (Prog.ret a) sp [] a sp :=
+theorem runsTo_ret {α : Type} (a : α) (sp : Sponge) : RunsTo (VerifierProgram.ret a) sp [] a sp :=
   fun _ _ _ ↦ rfl
 
-theorem RunsTo.bind {α β : Type} {p : Prog α} {f : α → Prog β} {sp sp1 sp2 : Sponge}
+theorem RunsTo.bind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {sp sp1 sp2 :
+    Sponge}
     {xs ys : List E} {a : α} {b : β} (hp : RunsTo p sp xs a sp1)
     (hf : RunsTo (f a) sp1 ys b sp2) : RunsTo (p >>= f) sp (xs ++ ys) b sp2 := by
   intro rest os roots
@@ -171,37 +174,40 @@ theorem RunsTo.bind {α β : Type} {p : Prog α} {f : α → Prog β} {sp sp1 sp
   rw [runD_bind, List.append_assoc, hp]
   exact hf rest os roots
 
-theorem RunsTo.of_eq {α : Type} {p : Prog α} {sp sp' : Sponge} {xs ys : List E} {a : α}
+theorem RunsTo.of_eq {α : Type} {p : VerifierProgram α} {sp sp' : Sponge} {xs ys : List E} {a : α}
     (h : RunsTo p sp xs a sp') (hxy : xs = ys) : RunsTo p sp ys a sp' := hxy ▸ h
 
-theorem runsTo_readE (sp : Sponge) (x : E) : RunsTo Prog.readScalar sp [x] x (obs sp x) :=
+theorem runsTo_readE (sp : Sponge) (x : E) : RunsTo VerifierProgram.readScalar sp [x] x (obs
+    sp x) :=
   fun _ _ _ ↦ rfl
 
-theorem runsTo_sampleE (sp : Sponge) : RunsTo Prog.sampleChallenge sp [] (sq sp).1 (sq sp).2 :=
+theorem runsTo_sampleE (sp : Sponge) : RunsTo VerifierProgram.sampleChallenge sp [] (sq sp).1 (sq
+    sp).2 :=
   fun _ _ _ ↦ rfl
 
 theorem runsTo_require {c : Prop} [Decidable c] (hc : c) (sp : Sponge) :
-    RunsTo (Prog.require c) sp [] () sp := by
+    RunsTo (VerifierProgram.require c) sp [] () sp := by
   intro rest os roots
-  simp [Prog.require, hc]
+  simp [VerifierProgram.require, hc]
   rfl
 
 theorem runsTo_liftOption {α : Type} (a : α) (sp : Sponge) :
     RunsTo (liftOption (some a)) sp [] a sp := runsTo_ret a sp
 
 theorem runsTo_readN (sp : Sponge) :
-    ∀ xs : List E, RunsTo (Prog.readScalars xs.length) sp xs xs (obsAll sp xs)
+    ∀ xs : List E, RunsTo (VerifierProgram.readScalars xs.length) sp xs xs (obsAll sp xs)
   | [] => runsTo_ret _ _
   | x :: xs => by
     have h := (runsTo_readE sp x).bind (f := fun x ↦ do
-        let xs ← Prog.readScalars xs.length
+        let xs ← VerifierProgram.readScalars xs.length
         return x :: xs)
-      ((runsTo_readN (obs sp x) xs).bind (f := fun xs' ↦ (pure (x :: xs') : Prog (List E)))
+      ((runsTo_readN (obs sp x) xs).bind (f := fun xs' ↦ (pure (x :: xs') : VerifierProgram
+          (List E)))
         (runsTo_ret _ _))
     exact h.of_eq (by simp)
 
 theorem runsTo_readN' (sp : Sponge) {n : ℕ} (xs : List E) (hn : xs.length = n) :
-    RunsTo (Prog.readScalars n) sp xs xs (obsAll sp xs) := hn ▸ runsTo_readN sp xs
+    RunsTo (VerifierProgram.readScalars n) sp xs xs (obsAll sp xs) := hn ▸ runsTo_readN sp xs
 
 /-- A shaped child is read off its cells. -/
 theorem runsTo_readChild {bytecode : List K} {c : ChildClaims} (hc : ChildHasBytecodeShape bytecode c)
@@ -210,7 +216,7 @@ theorem runsTo_readChild {bytecode : List K} {c : ChildClaims} (hc : ChildHasByt
       (obsAll sp (childCells c)) := by
   have h := (runsTo_readN' sp (childCells c) (length_childCells hc)).bind
     (f := fun xs ↦ do
-      Prog.require (xs.drop (childWordCount (Nat.log2 bytecode.length)) =
+      VerifierProgram.require (xs.drop (childWordCount (Nat.log2 bytecode.length)) =
         List.replicate (zerosToWholeRate (childWordCount (Nat.log2 bytecode.length))) 0)
       liftOption (parseChild (Nat.log2 bytecode.length) xs))
     ((runsTo_require (drop_childCells hc) _).bind
@@ -230,7 +236,7 @@ theorem runsTo_readChildren {bytecode : List K} :
         let cs ← readChildren (Nat.log2 bytecode.length) cs.length
         return c :: cs)
       ((runsTo_readChildren (fun c' h' ↦ hs c' (List.mem_cons_of_mem c h')) _).bind
-        (f := fun cs' ↦ (pure (c :: cs') : Prog (List ChildClaims))) (runsTo_ret _ _))
+        (f := fun cs' ↦ (pure (c :: cs') : VerifierProgram (List ChildClaims))) (runsTo_ret _ _))
     rw [List.append_nil, ← obsAll_append, ← List.flatMap_cons] at h
     exact h
 
@@ -239,7 +245,7 @@ theorem runsTo_readCount {M n : ℕ} (hM : M ≤ 2 ^ 64 - 1) (hn : n < M) (sp : 
     RunsTo (readChildCount M) sp (childCountCells n) n (obsAll sp (childCountCells n)) := by
   have h := (runsTo_readN' sp (childCountCells n) rfl).bind
     (f := fun xs ↦ do
-      Prog.require (xs.drop 1 = List.replicate (rateScalars - 1) 0)
+      VerifierProgram.require (xs.drop 1 = List.replicate (rateScalars - 1) 0)
       liftOption (childCountOfGeneratorPower M (xs.getD 0 0)))
     ((runsTo_require (show (childCountCells n).drop 1 = List.replicate (rateScalars - 1) 0 from rfl)
       _).bind (f := fun _ ↦ liftOption (childCountOfGeneratorPower M ((childCountCells n).getD 0 0)))
@@ -257,13 +263,13 @@ theorem runsTo_roundsProg : ∀ (rounds : List (E × E)) (claim : E) (sp : Spong
     subst hk
     have h := (runsTo_readE sp g1).bind
       (f := fun g1 ↦ do
-        let gInf ← Prog.readScalar
-        let r ← Prog.sampleChallenge
+        let gInf ← VerifierProgram.readScalar
+        let r ← VerifierProgram.sampleChallenge
         let rest ← sumcheckRoundsProgram (sumcheckRoundPolynomial claim (g1, gInf) r) rounds.length
         return (r :: rest.1, rest.2))
       ((runsTo_readE (obs sp g1) gInf).bind
         (f := fun gInf ↦ do
-          let r ← Prog.sampleChallenge
+          let r ← VerifierProgram.sampleChallenge
           let rest ← sumcheckRoundsProgram (sumcheckRoundPolynomial claim (g1, gInf) r) rounds.length
           return (r :: rest.1, rest.2))
         ((runsTo_sampleE (obs (obs sp g1) gInf)).bind
@@ -271,19 +277,20 @@ theorem runsTo_roundsProg : ∀ (rounds : List (E × E)) (claim : E) (sp : Spong
             let rest ← sumcheckRoundsProgram (sumcheckRoundPolynomial claim (g1, gInf) r) rounds.length
             return (r :: rest.1, rest.2))
           ((runsTo_roundsProg rounds _ _ rfl).bind
-            (f := fun rest ↦ (pure (_ :: rest.1, rest.2) : Prog (List E × E)))
+            (f := fun rest ↦ (pure (_ :: rest.1, rest.2) : VerifierProgram (List E × E)))
             (runsTo_ret _ _))))
     exact h.of_eq (by simp)
 
 /-- A check followed by acceptance. -/
-theorem runD_require_true (c : Prop) [Decidable c] (s : ProgState) :
-    runD (Prog.require c >>= fun _ ↦ (pure true : Prog Bool)) s =
+theorem runD_require_true (c : Prop) [Decidable c] (s : VerifierProgramState) :
+    runD (VerifierProgram.require c >>= fun _ ↦ (pure true : VerifierProgram Bool)) s =
       if c then some (true, s) else none := by
-  unfold Prog.require
+  unfold VerifierProgram.require
   split_ifs <;> rfl
 
 /-- A run continues where its first program's run ends. -/
-theorem runD_bind_of_runsTo {α β : Type} {p : Prog α} {f : α → Prog β} {sp sp' : Sponge}
+theorem runD_bind_of_runsTo {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {sp sp'
+    : Sponge}
     {xs : List E} {a : α} (hp : RunsTo p sp xs a sp') (rest : List E) (os : List Opening)
     (roots : List (Digest × ℕ × ℕ)) :
     runD (p >>= f) ⟨sp, xs ++ rest, os, roots⟩ = runD (f a) ⟨sp', rest, os, roots⟩ := by

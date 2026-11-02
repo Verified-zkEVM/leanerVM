@@ -45,8 +45,8 @@ set_option maxRecDepth 20000 in
 /-- **A row's digest** (`__loop22`). -/
 theorem l23_block {x N pb rt run : E} {cells : List E} (hrun : LoadHolds rd (pb * x) 0 run)
     (hcells : ReadsAt rd run cells) (hlen : cells.length = 128) (hcan : AllCanonical cells)
-    (hd0 : LoadHolds rd (rt * (x * x)) 0 (digestScalars (keccak256 (cellsBytes cells))).1)
-    (hd1 : LoadHolds rd (rt * (x * x)) 1 (digestScalars (keccak256 (cellsBytes cells))).2) :
+    (hd0 : LoadHolds rd (rt * (x * x)) 0 (digestHalves (keccak256 (cellsBytes cells))).1)
+    (hd1 : LoadHolds rd (rt * (x * x)) 1 (digestHalves (keccak256 (cellsBytes cells))).2) :
     LoopBlock rd (coreProgram.getD 362 default) x N [pb, rt] := by
   have hok := l23_ok
   have hcok := l23c_ok

@@ -27,13 +27,15 @@ attribute [local irreducible] Follows
 
 /-! ## The phases -/
 
-example : ∀ {prog : Program} {s : Sizes} {input : PublicInput} {q : Column (leanIsaμ prog s)},
+example : ∀ {prog : LeanIsaProgram} {s : Sizes} {input : PublicInput} {q : Column (leanIsaμ
+    prog s)},
     s.Admissible prog → M3Honest (inst prog s) input q → ∀ (cs : Commits),
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ BusGood prog s q b) (hBus prog s q)
-      (verifyBusBalance computedValue (verifierLayout prog s)) cs :=
+      (verifyBusBalance computedBytecodeValue (verifierLayout prog s)) cs :=
   follows_verifyBusBalance
 
-example : ∀ {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)} {input : PublicInput},
+example : ∀ {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ prog s)} {input :
+    PublicInput},
     M3Holds (inst prog s) input q → ∀ (bus : BusResult), BusGood prog s q bus → ∀ (cs : Commits),
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b ∧
         ∃ tc, b = bus.claims ++ tc ∧ ∃ z : Vector E (s.τ 5),
@@ -41,7 +43,8 @@ example : ∀ {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)} {inpu
       (hTable prog s q bus) (tablePhaseClaims (verifierLayout prog s) bus) cs :=
   follows_tablePhase
 
-example : ∀ (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) {input : PublicInput},
+example : ∀ (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) {input :
+    PublicInput},
     M3Holds (inst prog s) input q → ∀ {claims : List ColumnClaim}, TrueClaims prog s q claims →
     ∀ (z : Vector E (s.τ 5)), lanesOf claims = honestLanes prog s q z → ∀ (cs : Commits),
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧
@@ -50,7 +53,8 @@ example : ∀ (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) {inpu
       (hKeccakPhase prog s q claims) (keccakPhaseClaims (verifierLayout prog s) claims) cs :=
   follows_keccakPhase
 
-example : ∀ {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)} (r : List E × List E),
+example : ∀ {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ prog s)} (r : List E ×
+    List E),
     KeccakGkr.slicesTrue (s.τ 5) (Front.qkAt ((blocks prog s).offset (keccakBlock prog s)) q)
       r.1 r.2 → ∀ (cs : Commits),
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧
@@ -76,45 +80,53 @@ example : tables.map Table.nConstraints = [0, 0, 0, 0, 2, 0] := pyNConstraints
 
 /-! ## The assembled theorems -/
 
-example : ∀ {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
+example : ∀ {prog : LeanIsaProgram} {input : PublicInput} {w : EnsembleWitness
+    (leanIsaEnsemble prog)}
     {s : Sizes} {ρ : ℕ}, SatisfiedBy prog input w → Sizes.ofWitness w = some s →
     s.Admissible prog → validRate ρ →
     ∃ S : Strategy, ∀ chal : List Ev → E,
-      runI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal = some true ∧
-        shapedI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal :=
+      runI (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) S chal =
+          some true ∧
+        shapedI (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) S chal :=
   leanVm_complete
 
 example : ∀ (H : Bytes → Digest) (F : LeanVM.Semantics.KeccakState → LeanVM.Semantics.KeccakState)
-    {prog : Program} {input : PublicInput}
+    {prog : LeanIsaProgram} {input : PublicInput}
     {w : EnsembleWitness (leanIsaEnsemble prog)} {s : Sizes} {ρ : ℕ},
     SatisfiedBy prog input w → Sizes.ofWitness w = some s → s.Admissible prog → validRate ρ →
     ∀ (fuel : ℕ),
     (∀ hist bits k sp,
-      (leanVmProgram (bytecodeWords prog) (publicDigest input)).after hist = some (.grind bits k) →
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)).after hist = some
+          (.grind bits k) →
         findNonce F bits sp fuel ≠ none) →
-    ∃ S π, prove H F (leanVmProgram (bytecodeWords prog) (publicDigest input)) S
-        (Id.run (seedWithHash (m := Id) H F (bytecodeWords prog) (publicDigest input))) fuel =
+    ∃ S π, prove H F (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) S
+        (Id.run (seedWithHash (m := Id) H F (bytecodeWords prog) (publicInputDigest input))) fuel =
           some π ∧
-      Id.run (verifyWithHash (m := Id) H F (bytecodeWords prog) (publicDigest input) π) = true :=
+      Id.run (verifyWithHash (m := Id) H F (bytecodeWords prog) (publicInputDigest input) π) =
+          true :=
   exists_prove_verifyWith
 
-example : ∀ {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
+example : ∀ {prog : LeanIsaProgram} {input : PublicInput} {w : EnsembleWitness
+    (leanIsaEnsemble prog)}
     {s : Sizes} {ρ : ℕ}, SatisfiedBy prog input w → Sizes.ofWitness w = some s →
     s.Admissible prog → validRate ρ → ∀ (fuel : ℕ),
     (∀ hist bits k sp,
-      (leanVmProgram (bytecodeWords prog) (publicDigest input)).after hist = some (.grind bits k) →
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)).after hist = some
+          (.grind bits k) →
         findNonce keccakF1600 bits sp fuel ≠ none) →
-    ∃ S π, prove keccak256 keccakF1600 (leanVmProgram (bytecodeWords prog) (publicDigest input)) S
-        (seed (bytecodeWords prog) (publicDigest input)) fuel = some π ∧
-      verify (bytecodeWords prog) (publicDigest input) π = true :=
+    ∃ S π, prove keccak256 keccakF1600 (leanVmVerifierProgram (bytecodeWords prog)
+        (publicInputDigest input)) S
+        (seed (bytecodeWords prog) (publicInputDigest input)) fuel = some π ∧
+      verify (bytecodeWords prog) (publicInputDigest input) π = true :=
   exists_prove_verify
 
-example : ∀ {prog : Program} {input : PublicInput} {t : Execution prog},
-    ValidExecution prog input t → t.steps ≤ 2 ^ maxLogRows →
+example : ∀ {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog},
+    ValidExecution prog input t → t.stepCount ≤ 2 ^ maxLogRows →
     ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧ Sizes.ofWitness w = some s ∧
       (s.Admissible prog → ∀ ρ, validRate ρ → ∃ S : Strategy, ∀ chal : List Ev → E,
-        runI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal = some true ∧
-          shapedI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal) :=
+        runI (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) S chal =
+            some true ∧
+          shapedI (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) S chal) :=
   leanVm_complete_of_execution
 
 end LeanVMTests.Protocol.EndToEnd.Complete.Theorem

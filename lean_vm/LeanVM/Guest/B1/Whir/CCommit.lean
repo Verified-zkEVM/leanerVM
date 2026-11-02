@@ -106,7 +106,7 @@ theorem osCommit_complete
       C ("grind_check__L" ++ natStr lv.grind) args rets)
     {st : OsSt} (σ : Val) (hfs : st.fs.length = 5) (hb : st.Below) (hk : 34 ≤ st.k)
     (hcan : AllCanonical (st.fsv σ)) (hlvl : (lvl + 1) * ligColsCap < u128Bound)
-    {ra rb y c0 c2 nonce : E} {d : Digest} (hd : (ra, rb) = digestScalars d)
+    {ra rb y c0 c2 nonce : E} {d : Digest} (hd : (ra, rb) = digestHalves d)
     (hrd : ReadsAt rd (st.cur σ) [ra, rb, y, c0, c2, nonce])
     (hr0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 2) ra)
     (hr1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 3) rb)

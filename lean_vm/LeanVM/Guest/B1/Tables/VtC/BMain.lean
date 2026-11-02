@@ -150,7 +150,8 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
     hpool, hcpl, hcan, e22, e185, eSh, e2732, e2767, e2769, e2770, hoff, hidxc, hz1, hrun, hidxB,
     hfitP, hfitC, hbitsF, hbitsP, hbitsC, hwF, hwP, hwC, hwI, hbc, hpw⟩ := H
   have p : ∀ i < 22, vtσ rd wo args (.n i) = args.getD i 0 := fun i hi ↦ vt_param hl hi
-  have hlow34 : ∀ i < 34, (rd (Parameters.gpow i)).isSome := fun i hi ↦ hlow i (by norm_num; omega)
+  have hlow34 : ∀ i < 34, (rd (Parameters.addressOfIndex i)).isSome := fun i hi ↦ hlow i
+      (by norm_num; omega)
   -- the weights
   have hWl : (eqKernel D.alphas).length = 16 := by rw [vt_length_eqKernel, hal]; rfl
   set W : ℕ → E := fun i ↦ (eqKernel D.alphas).getD i 0 with hWd

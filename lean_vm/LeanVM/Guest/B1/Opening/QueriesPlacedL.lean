@@ -38,8 +38,8 @@ def oqRunCells (pd : ℕ) (row : List K) (q : ℕ) (sibs : List Digest) : List E
 
 theorem pathCell_node (leaf : Digest) (q : ℕ) (sibs : List Digest) (l e : ℕ) (he : e < 2) :
     pathCell leaf q sibs (4 * l + (if q.testBit l then 2 else 0) + e) =
-      if e = 0 then (digestScalars (climbNode leaf q sibs l)).1
-      else (digestScalars (climbNode leaf q sibs l)).2 := by
+      if e = 0 then (digestHalves (climbNode leaf q sibs l)).1
+      else (digestHalves (climbNode leaf q sibs l)).2 := by
   have h1 : (4 * l + (if q.testBit l then 2 else 0) + e) / 4 = l := by split <;> omega
   have h2 : (4 * l + (if q.testBit l then 2 else 0) + e) % 4 / 2 =
       (if q.testBit l then 1 else 0) := by split <;> omega
@@ -52,14 +52,15 @@ theorem pathCell_node (leaf : Digest) (q : ℕ) (sibs : List Digest) (l e : ℕ)
 theorem qdOk_of_run {rd : Reader} {s : Oq} {b : ℕ} {emit : Bool} {pr : ℕ} {row : List K}
     {w : ℕ → E} {q : ℕ} {sibs : List Digest} {c : ℕ} {cap flags wp : E}
     (hrow : row.length = s.R) (hsl : sibs.length = s.pd) (hq : q < 2 ^ (s.pd + s.cd))
-    (hrun : ReadsAt rd (ofK (Parameters.gpow c)) (oqRunCells s.pd row q sibs))
+    (hrun : ReadsAt rd (ofK (Parameters.addressOfIndex c)) (oqRunCells s.pd row q sibs))
     (hw : ∀ l < s.lo + s.I / s.lo, LoadHolds rd wp l (w l))
     (hc0 : LoadHolds rd cap (2 * (2 ^ s.cd + q / 2 ^ s.pd))
-      (digestScalars (climbD (merkleLeafDigest row) q sibs)).1)
+      (digestHalves (climbD (merkleLeafDigest row) q sibs)).1)
     (hc1 : LoadHolds rd cap (2 * (2 ^ s.cd + q / 2 ^ s.pd) + 1)
-      (digestScalars (climbD (merkleLeafDigest row) q sibs)).2)
+      (digestHalves (climbD (merkleLeafDigest row) q sibs)).2)
     (hfl : LoadHolds rd flags (2 ^ (s.cd - 1) + q / 2 ^ (s.pd + 1)) 1) :
-    (⟨s, b, emit, pr, row, w, q, sibs, ofK (Parameters.gpow c), cap, flags, rd⟩ : QD).Ok rd wp := by
+    (⟨s, b, emit, pr, row, w, q, sibs, ofK (Parameters.addressOfIndex c), cap, flags, rd⟩ : QD).Ok
+        rd wp := by
   have hlen : (oqRunCells s.pd row q sibs).length = 4 * s.pd := by simp [oqRunCells]
   refine ⟨hsl, hrow, ⟨ofK_isInK _, fun k hk x hx ↦ ?_, fun l hl ↦ ?_, hc0, hc1, hfl⟩, rfl, hw, hq⟩
   · have := (hrun k (by rw [hlen]; exact hk)).2
@@ -68,7 +69,7 @@ theorem qdOk_of_run {rd : Reader} {s : Oq} {b : ℕ} {emit : Bool} {pr : ℕ} {r
     simp only [oqRunCells, List.getElem_map, List.getElem_range] at e
     exact e
   · have hl' : l < s.pd := hl
-    have hcell : ∀ e < 2, LoadHolds rd (ofK (Parameters.gpow c) *
+    have hcell : ∀ e < 2, LoadHolds rd (ofK (Parameters.addressOfIndex c) *
         gen ^ (if q.testBit l then 2 else 0)) (4 * l + e)
         ((oqRunCells s.pd row q sibs).getD (4 * l + (if q.testBit l then 2 else 0) + e) 0) := by
       intro e he

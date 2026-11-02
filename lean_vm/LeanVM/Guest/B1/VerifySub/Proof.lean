@@ -31,7 +31,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- The `n` memory words at `p`, `p·g^k` for `k < n` (`0` where there is none). -/
 def wordsAt (rd : Reader) (p : E) (n : ℕ) : List E :=
-  (List.range n).map fun k ↦ (rd (p.limb 0 * Parameters.gpow k)).getD 0
+  (List.range n).map fun k ↦ (rd (p.limb 0 * Parameters.addressOfIndex k)).getD 0
 
 /-- The `n ≤ 2^32` with `q = p·g^n`, the first one (`0` if there is none). -/
 def cursorLen (p q : E) : ℕ :=
@@ -39,7 +39,7 @@ def cursorLen (p q : E) : ℕ :=
 
 /-- The `j < 28` with `x = g^j`, the first one (`0` if there is none). -/
 def dispatchIdx (x : E) : ℕ :=
-  ((List.range 28).find? fun j ↦ decide (x = ofK (Parameters.gpow j))).getD 0
+  ((List.range 28).find? fun j ↦ decide (x = ofK (Parameters.addressOfIndex j))).getD 0
 
 /-- `open_stacked`'s argument words in `verify_sub`. -/
 def vsOsArgs (σ : Val) : List E :=
@@ -98,7 +98,7 @@ theorem cursorLen_eq {p q : E} {n : ℕ} (hp : p ≠ 0) (hq : q = p * gen ^ n) (
     exact gen_pow_inj (by omega) (by omega) (mul_left_cancel₀ hp e).symm)]
   rfl
 
-theorem dispatchIdx_eq {x : E} {j : ℕ} (hj : j < 28) (hx : x = ofK (Parameters.gpow j)) :
+theorem dispatchIdx_eq {x : E} {j : ℕ} (hj : j < 28) (hx : x = ofK (Parameters.addressOfIndex j)) :
     dispatchIdx x = j := by
   unfold dispatchIdx
   rw [find?_range_unique (n := j) hj (by simp [hx]) (fun m hm hP ↦ by

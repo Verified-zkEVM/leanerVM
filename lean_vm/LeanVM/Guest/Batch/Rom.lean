@@ -77,7 +77,7 @@ def batchSeeds : Seeds Unit where
   inj _ _ _ _ _ _ _ _ _ := rfl
 
 theorem rootOk_batch (M : ℕ) (bytecode : List K) : RootOk (boundedBatchingProgram M bytecode) [] :=
-  ⟨Prog.Reachable.nil, trivial, rfl, rfl, rfl⟩
+  ⟨VerifierProgram.Reachable.nil, trivial, rfl, rfl, rfl⟩
 
 /-- The verifier of a proof is the batching program from the batching's seeding. -/
 theorem verifierFam_batch (M : ℕ) (bytecode : List K) (z : Unit × Proof) :
@@ -88,24 +88,24 @@ theorem verifierFam_batch (M : ℕ) (bytecode : List K) (z : Unit × Proof) :
 
 /-- `n` reads, along `n` scalars read, return them. -/
 theorem after_readN : ∀ xs : List E,
-    (Prog.readScalars xs.length).after (xs.map Ev.read) = some (.ret xs)
+    (VerifierProgram.readScalars xs.length).after (xs.map Ev.read) = some (.ret xs)
   | [] => rfl
   | x :: xs => by
-    simp only [List.length_cons, Prog.readScalars, Prog.bind_eq, Prog.readScalar, Prog.bind, List.map_cons,
-      Prog.after, Prog.pure_eq]
-    rw [Prog.after_bind_of_after _ _ _ (after_readN xs)]
+    simp only [List.length_cons, VerifierProgram.readScalars, VerifierProgram.bind_eq, VerifierProgram.readScalar, VerifierProgram.bind, List.map_cons,
+      VerifierProgram.after, VerifierProgram.pure_eq]
+    rw [VerifierProgram.after_bind_of_after _ _ _ (after_readN xs)]
     rfl
 
 theorem after_readN' {n : ℕ} (xs : List E) (hn : xs.length = n) :
-    (Prog.readScalars n).after (xs.map Ev.read) = some (.ret xs) := hn ▸ after_readN xs
+    (VerifierProgram.readScalars n).after (xs.map Ev.read) = some (.ret xs) := hn ▸ after_readN xs
 
 /-- A child's read, along its cells, returns it. -/
 theorem after_readChild {bytecode : List K} {c : ChildClaims} (hc : ChildHasBytecodeShape bytecode c) :
     (readChild (Nat.log2 bytecode.length)).after ((childCells c).map Ev.read) =
       some (.ret c) := by
-  simp only [readChild, Prog.bind_eq]
-  rw [Prog.after_bind_of_after _ _ _ (after_readN' _ (length_childCells hc))]
-  simp [Prog.require, drop_childCells hc, parseChild_childCells hc, Verifier.liftOption]
+  simp only [readChild, VerifierProgram.bind_eq]
+  rw [VerifierProgram.after_bind_of_after _ _ _ (after_readN' _ (length_childCells hc))]
+  simp [VerifierProgram.require, drop_childCells hc, parseChild_childCells hc, Verifier.liftOption]
 
 /-- The children's reads, along their cells, return them. -/
 theorem after_readChildren {bytecode : List K} :
@@ -114,19 +114,21 @@ theorem after_readChildren {bytecode : List K} :
         ((cs.flatMap childCells).map Ev.read) = some (.ret cs)
   | [], _ => rfl
   | c :: cs, hs => by
-    simp only [List.length_cons, readChildren, Prog.bind_eq, Prog.pure_eq, List.flatMap_cons,
+    simp only [List.length_cons, readChildren, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+        List.flatMap_cons,
       List.map_append]
-    rw [Prog.after_bind_append _ (after_readChild (hs c List.mem_cons_self)),
-      Prog.after_bind_of_after _ _ _
+    rw [VerifierProgram.after_bind_append _ (after_readChild (hs c List.mem_cons_self)),
+      VerifierProgram.after_bind_of_after _ _ _
         (after_readChildren fun x hx ↦ hs x (List.mem_cons_of_mem _ hx))]
     rfl
 
 /-- The count's read, along its cells, returns it. -/
 theorem after_readCount {M n : ℕ} (hM : M ≤ 2 ^ 64 - 1) (hn : n < M) :
     (readChildCount M).after ((childCountCells n).map Ev.read) = some (.ret n) := by
-  simp only [readChildCount, Prog.bind_eq]
-  rw [Prog.after_bind_of_after _ _ _ (after_readN' (n := rateScalars) (childCountCells n) rfl)]
-  simp [Prog.require, headCells_eq, countOf_gpow hM hn, Verifier.liftOption, rateScalars]
+  simp only [readChildCount, VerifierProgram.bind_eq]
+  rw [VerifierProgram.after_bind_of_after _ _ _ (after_readN' (n := rateScalars) (childCountCells
+      n) rfl)]
+  simp [VerifierProgram.require, headCells_eq, countOf_gpow hM hn, Verifier.liftOption, rateScalars]
 
 /-- **Past the count's and the children's cells, the batching is `batchingAfterChildren`.** -/
 theorem after_batchAny {M : ℕ} (hM : M ≤ 2 ^ 64 - 1) {bytecode : List K} {cs : List ChildClaims}
@@ -134,8 +136,8 @@ theorem after_batchAny {M : ℕ} (hM : M ≤ 2 ^ 64 - 1) {bytecode : List K} {cs
     (boundedBatchingProgram M bytecode).after ((cellsBeforeChallenge cs).map Ev.read ++ l) =
       (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode cs).after l := by
   rw [cellsBeforeChallenge, List.map_append, List.append_assoc]
-  exact (Prog.after_bind_append _ (after_readCount hM hn) _).trans
-    (Prog.after_bind_append _ (after_readChildren hs) l)
+  exact (VerifierProgram.after_bind_append _ (after_readCount hM hn) _).trans
+    (VerifierProgram.after_bind_append _ (after_readChildren hs) l)
 
 /-! ## The children's cells -/
 
@@ -182,7 +184,7 @@ theorem movesOK_roundsProg : ∀ (k : ℕ) (claim : E), MovesOK (· ≤ 64) Fals
       MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (movesOK_roundsProg k _) fun _ ↦ trivial
 
 theorem movesOK_require (q : Prop) (inst : Decidable q) :
-    MovesOK (· ≤ 64) False (@Prog.require q inst) :=
+    MovesOK (· ≤ 64) False (@VerifierProgram.require q inst) :=
   MovesOK.require q
 
 theorem movesOK_batchRest (bytecode : List K) (cs : List ChildClaims) :
@@ -222,7 +224,7 @@ noncomputable def cert (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)
 theorem after_hist (hM : M ≤ 2 ^ 64 - 1) (p : BatchPre M bytecode) :
     (boundedBatchingProgram M bytecode).after p.hist = some (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode p.cs) := by
   rw [hist, ← List.append_nil (List.map _ _), after_batchAny hM p.lt p.shaped]
-  simp [Prog.after]
+  simp [VerifierProgram.after]
 
 theorem commits_hist (p : BatchPre M bytecode) : commits p.hist = [] := commits_map_read _
 
@@ -357,10 +359,10 @@ end Cert
 
 section Costs
 
-open Prog
+open VerifierProgram
 
 theorem costs_require (q : Prop) (inst : Decidable q) {n : ℕ} :
-    Costs 0 (@Prog.require q inst) n fun _ ↦ q :=
+    Costs 0 (@VerifierProgram.require q inst) n fun _ ↦ q :=
   Costs.require q
 
 theorem countOf_lt {M n : ℕ} {x : E} (h : childCountOfGeneratorPower M x = some n) : n < M := by
@@ -437,7 +439,7 @@ theorem isTotalQueryBound_batchFam (M : ℕ) (bytecode : List K) (z : Unit × Pr
 /-- **An accepted run records the reads of its stream's first scalars**: along scalars the
 program reads, the extracted history extends the start by their reads. -/
 theorem xrun_reads (H : Bytes → Option Digest) (F : KeccakState → Option KeccakState) {α : Type} :
-    ∀ (l : List E) (p : Prog α) {q : Prog α} (s : ProgState) (h : List Ev) {r : α × ProgState × List Ev},
+    ∀ (l : List E) (p : VerifierProgram α) {q : VerifierProgram α} (s : VerifierProgramState) (h : List Ev) {r : α × VerifierProgramState × List Ev},
       p.after (l.map Ev.read) = some q → l <+: s.stream → xrun H F p s h = some r →
       h ++ l.map Ev.read <+: r.2.2
   | [], p, _, s, h, ⟨a, s', hist⟩, _, _, hx => by simpa using xrun_prefix H F p s h hx
@@ -447,10 +449,10 @@ theorem xrun_reads (H : Bytes → Option Digest) (F : KeccakState → Option Kec
       obtain ⟨t, ht⟩ := hl
       simp only [xrun, ← ht, List.cons_append] at hx
       obtain ⟨sp, -, hx⟩ := Option.bind_eq_some_iff.mp hx
-      have := xrun_reads H F l (k x) _ _ (by simpa [Prog.after] using ha)
+      have := xrun_reads H F l (k x) _ _ (by simpa [VerifierProgram.after] using ha)
         (List.prefix_append l t) hx
       simpa using this
-    all_goals simp [Prog.after] at ha
+    all_goals simp [VerifierProgram.after] at ha
 
 /-- **False children leave a nonzero gap**, `bytecode` of length a power of two. -/
 theorem someGap_of_false (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)

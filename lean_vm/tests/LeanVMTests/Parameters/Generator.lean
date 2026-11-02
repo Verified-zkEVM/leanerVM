@@ -20,13 +20,13 @@ public section
 
 /-! ## `g = x` -/
 
-#guard gpow 0 = 1
-#guard gpow 1 = g
-#guard (List.range 64).all fun k ↦ gpow k = BF64.ofBitVec (1#64 <<< k)
-#guard gpow 64 = K.ofBits 0x1b
+#guard addressOfIndex 0 = 1
+#guard addressOfIndex 1 = g
+#guard (List.range 64).all fun k ↦ addressOfIndex k = BF64.ofBitVec (1#64 <<< k)
+#guard addressOfIndex 64 = K.ofBits 0x1b
 
 /-- `gpow k` is bit `k` for `k < 64`, checked in the kernel. -/
-example : ∀ k < 64, gpow k = BF64.ofBitVec (1#64 <<< k) := by decide +kernel
+example : ∀ k < 64, addressOfIndex k = BF64.ofBitVec (1#64 <<< k) := by decide +kernel
 
 /-! ## Nearby false statements -/
 
@@ -35,7 +35,7 @@ example : ∀ k < 64, gpow k = BF64.ofBitVec (1#64 <<< k) := by decide +kernel
 example : (g ^ 3) ^ ((2 ^ 64 - 1) / 3) = 1 := by decide +kernel
 
 /-- `gpow` wraps at the order: `g^(2^64 - 1) = g^0`. -/
-example : gpow (2 ^ 64 - 1) = gpow 0 := by
+example : addressOfIndex (2 ^ 64 - 1) = addressOfIndex 0 := by
   show g ^ (2 ^ 64 - 1) = g ^ 0
   rw [pow_zero]
   exact g_pow_card_sub_one

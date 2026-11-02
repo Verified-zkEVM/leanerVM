@@ -123,7 +123,7 @@ variable [Params]
 
 /-- The final assembly after its digest call. -/
 noncomputable def finishRest (parameter : PublicParameter) (data : PublicData) (_message : Message)
-    (randomness : Randomness) (digest : MessageDigest) : OracleComp CostSpec (Option Signature) := do
+    (randomness : Randomizer) (digest : MessageDigest) : OracleComp CostSpec (Option Signature) := do
   HiddenCost.tick 118080
   let index := digestIndex digest
   let some (counter, word) ← liftM (ReferenceChoice.search parameter topLayer rootTree index
@@ -136,7 +136,7 @@ noncomputable def finishRest (parameter : PublicParameter) (data : PublicData) (
   return some ⟨randomness, opening, Fin.cases top (fun i => Fin.elim0 i)⟩
 
 theorem finishCostSource_eq (parameter : PublicParameter) (data : PublicData) (message : Message)
-    (randomness : Randomness) :
+    (randomness : Randomizer) :
     finishCostSource parameter data message randomness =
       liftM (CostSpec.query (.inl (.inr (.inl (Security.digestInput parameter message randomness))))) >>=
         fun first => finishRest parameter data message randomness (truncateMessageDigest first) := by
@@ -146,7 +146,7 @@ theorem finishCostSource_eq (parameter : PublicParameter) (data : PublicData) (m
 
 omit [Params] in
 theorem msgInput_digestInput (parameter : PublicParameter) (message : Message)
-    (randomness : Randomness) :
+    (randomness : Randomizer) :
     IsMsgInput (Security.digestInput parameter message randomness) :=
   ⟨parameter, _, rfl⟩
 
@@ -164,7 +164,7 @@ theorem avoids_coordCostSource (avoid : HashInput → Prop) (data : PublicData) 
 
 /-- The rest of the final assembly never queries a message-digest input. -/
 theorem avoids_finishRest (parameter : PublicParameter) (data : PublicData) (message : Message)
-    (randomness : Randomness) (digest : MessageDigest) :
+    (randomness : Randomizer) (digest : MessageDigest) :
     Avoids IsMsgInput (finishRest parameter data message randomness digest) := by
   unfold finishRest
   refine avoids_bind _ (avoids_tick _ _) fun _ => ?_
@@ -186,7 +186,7 @@ theorem post_bind {spec : OracleSpec ι} {α β : Type} (P : β → Prop) (first
 
 /-- A completed assembly signs with the trial's randomizer. -/
 theorem finish_randomness (parameter : PublicParameter) (data : PublicData) (message : Message)
-    (randomness : Randomness) :
+    (randomness : Randomizer) :
     ∀ v ∈ support (finishCostSource parameter data message randomness), ∀ sig, v = some sig →
       sig.randomness = randomness := by
   rw [finishCostSource_eq]
@@ -212,7 +212,7 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate) (initial : 
 
 /-- **Final assembly, one cached block.** -/
 theorem finish_bound₁ (parameter : PublicParameter) (data : PublicData) (message : Message)
-    (randomness : Randomness)
+    (randomness : Randomizer)
     (hparse : model.parse (Security.digestInput parameter message randomness) = none)
     (state : DebtState HashInput HashOutput Coordinate) (u0 : HashOutput)
     (hc0 : state.cache (Security.digestInput parameter message randomness) = some u0)
@@ -295,22 +295,22 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
 
 /-- The digest block of the signed message with a randomizer. It does not read the public data
 (the message digest hashes no root); the unused argument keeps the hidden-debt layer's signatures. -/
-abbrev blk (parameter : PublicParameter) (_ : PublicData) (message : Message) (randomness : Randomness) :
+abbrev blk (parameter : PublicParameter) (_ : PublicData) (message : Message) (randomness : Randomizer) :
     HashInput :=
   Security.digestInput parameter message randomness
 
 /-- Weight of a selected pair with a known block: fresh pairs (relative to the reference state)
 use `gf` (landed only), pool pairs use `gp`. -/
 noncomputable def pairWeight (reference : DebtState HashInput HashOutput Coordinate)
-    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomness → Lifetime.KeptDigestView → ℝ≥0∞)
-    (randomness : Randomness) (u0 : HashOutput) : ℝ≥0∞ :=
+    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomizer → Lifetime.KeptDigestView → ℝ≥0∞)
+    (randomness : Randomizer) (u0 : HashOutput) : ℝ≥0∞ :=
   if reference.cache (blk parameter data message randomness) = none then
     (if Landed parameter (blockIndex u0) then gf (viewOf u0) else 0)
   else gp randomness (viewOf u0)
 
 /-- Weight of a signing outcome: the weight of the pair it signed. -/
 noncomputable def outWeight (reference : DebtState HashInput HashOutput Coordinate)
-    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomness → Lifetime.KeptDigestView → ℝ≥0∞)
+    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomizer → Lifetime.KeptDigestView → ℝ≥0∞)
     (out : Run HashInput Coordinate (Option Signature) × DebtState HashInput HashOutput Coordinate) : ℝ≥0∞ :=
   match out.1.1 with
   | some (some sig) => (out.2.cache (blk parameter data message sig.randomness)).elim 0
@@ -319,7 +319,7 @@ noncomputable def outWeight (reference : DebtState HashInput HashOutput Coordina
 
 /-- Forecast weight of a cached landed pair of the reference state. -/
 noncomputable def poolValue (reference : DebtState HashInput HashOutput Coordinate)
-    (gp : Randomness → Lifetime.KeptDigestView → ℝ≥0∞) (randomness : Randomness) : ℝ≥0∞ :=
+    (gp : Randomizer → Lifetime.KeptDigestView → ℝ≥0∞) (randomness : Randomizer) : ℝ≥0∞ :=
   (reference.cache (blk parameter data message randomness)).elim 0 fun u0 =>
     if Landed parameter (blockIndex u0) then gp randomness (viewOf u0) else 0
 
@@ -330,33 +330,33 @@ def Related (reference state : DebtState HashInput HashOutput Coordinate) : Prop
       state.cache (blk parameter data message ρ) = some u ∧ ¬Landed parameter (blockIndex u))
 
 /-- The state differs from the reference only by rejected trial blocks, except at one randomizer. -/
-def RelatedOff (reference state : DebtState HashInput HashOutput Coordinate) (ρ : Randomness) : Prop :=
+def RelatedOff (reference state : DebtState HashInput HashOutput Coordinate) (ρ : Randomizer) : Prop :=
   ∀ ρ', ρ' ≠ ρ → (state.cache (blk parameter data message ρ') = reference.cache (blk parameter data message ρ') ∨
     (reference.cache (blk parameter data message ρ') = none ∧ ∃ u,
       state.cache (blk parameter data message ρ') = some u ∧ ¬Landed parameter (blockIndex u)))
 
 /-- Randomizers whose block is cached. -/
 noncomputable def cachedCount (state : DebtState HashInput HashOutput Coordinate) : ℕ :=
-  (Finset.univ.filter fun ρ : Randomness => state.cache (blk parameter data message ρ) ≠ none).card
+  (Finset.univ.filter fun ρ : Randomizer => state.cache (blk parameter data message ρ) ≠ none).card
 
 /-- Randomizers whose block is cached and lands: the pool of the message. -/
 noncomputable def landedCount (state : DebtState HashInput HashOutput Coordinate) : ℕ :=
-  (Finset.univ.filter fun ρ : Randomness => ∃ u0, state.cache (blk parameter data message ρ) = some u0 ∧
+  (Finset.univ.filter fun ρ : Randomizer => ∃ u0, state.cache (blk parameter data message ρ) = some u0 ∧
     Landed parameter (blockIndex u0)).card
 
 omit [Params] in
-theorem payload_randomness_injective (message : Message) {ρ ρ' : Randomness}
+theorem payload_randomness_injective (message : Message) {ρ ρ' : Randomizer}
     (h : messageDigestPayload message ρ = messageDigestPayload message ρ') : ρ = ρ' := by
   have hparts := List.append_inj h (by simp [bytesLE_length])
   exact bytesLE_injective hparts.2
 
 omit [Params] in
-theorem blk_ne_of_ne {ρ ρ' : Randomness} (h : ρ ≠ ρ') :
+theorem blk_ne_of_ne {ρ ρ' : Randomizer} (h : ρ ≠ ρ') :
     blk parameter data message ρ ≠ blk parameter data message ρ' := fun heq =>
   h (payload_randomness_injective message (tweakableInput_injective heq).2.2)
 
 theorem related_store (reference state : DebtState HashInput HashOutput Coordinate)
-    (hrel : Related parameter data message reference state) (ρ : Randomness)
+    (hrel : Related parameter data message reference state) (ρ : Randomizer)
     (hs : state.cache (blk parameter data message ρ) = none) (u : HashOutput)
     (hu : ¬Landed parameter (blockIndex u)) :
     Related parameter data message reference (state.store (blk parameter data message ρ) u) := by
@@ -373,8 +373,8 @@ theorem related_store (reference state : DebtState HashInput HashOutput Coordina
 
 /-- The weight of a completed assembly is the weight of its own pair. -/
 theorem outWeight_finish_le (reference : DebtState HashInput HashOutput Coordinate)
-    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomness → Lifetime.KeptDigestView → ℝ≥0∞)
-    (ρ : Randomness) (budget : ℕ) (state : DebtState HashInput HashOutput Coordinate)
+    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomizer → Lifetime.KeptDigestView → ℝ≥0∞)
+    (ρ : Randomizer) (budget : ℕ) (state : DebtState HashInput HashOutput Coordinate)
     (out : Run HashInput Coordinate (Option Signature) × DebtState HashInput HashOutput Coordinate)
     (hout : out ∈ support (interp tg initial model (finishCostSource parameter data message ρ) budget state)) :
     outWeight parameter data message reference gf gp out ≤
@@ -391,7 +391,7 @@ theorem outWeight_finish_le (reference : DebtState HashInput HashOutput Coordina
     exact le_rfl
 
 omit [Params] in
-theorem card_randomness : Fintype.card Randomness = 2 ^ 128 := HiddenDebt.card_digest
+theorem card_randomness : Fintype.card Randomizer = 2 ^ 128 := HiddenDebt.card_digest
 
 theorem landed_mass (parameter : PublicParameter) :
     ∑' u0, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u0] *
@@ -421,7 +421,7 @@ theorem unlanded_mass (parameter : PublicParameter) :
 noncomputable def freshNewWeight (reference : DebtState HashInput HashOutput Coordinate)
     (gf : Lifetime.KeptDigestView → ℝ≥0∞)
     (out : Run HashInput Coordinate (Option Signature) × DebtState HashInput HashOutput Coordinate) : ℝ≥0∞ :=
-  if out.1.1.isSome then ∑ ρ : Randomness,
+  if out.1.1.isSome then ∑ ρ : Randomizer,
     (if reference.cache (blk parameter data message ρ) = none then
       (out.2.cache (blk parameter data message ρ)).elim 0 fun u0 =>
         if Landed parameter (blockIndex u0) then gf (viewOf u0) else 0
@@ -429,7 +429,7 @@ noncomputable def freshNewWeight (reference : DebtState HashInput HashOutput Coo
   else 0
 
 /-- A final assembly from a cached block keeps every message-digest entry. -/
-theorem finish_keeps_msg (hparse : ∀ ρ, model.parse (blk parameter data message ρ) = none) (ρ : Randomness)
+theorem finish_keeps_msg (hparse : ∀ ρ, model.parse (blk parameter data message ρ) = none) (ρ : Randomizer)
     (b : ℕ) (s' : DebtState HashInput HashOutput Coordinate) (u0 : HashOutput)
     (hc0 : s'.cache (blk parameter data message ρ) = some u0)
     (out : Run HashInput Coordinate (Option Signature) × DebtState HashInput HashOutput Coordinate)

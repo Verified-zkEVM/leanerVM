@@ -309,7 +309,7 @@ variable [Params]
 
 /-- The coordinates the signer reveals for a randomizer under a fixed function. -/
 noncomputable def revealsOf (parameter : PublicParameter) (data : PublicData) (message : Message)
-    (randomness : Randomness) : List HiddenGraph.Coordinate :=
+    (randomness : Randomizer) : List HiddenGraph.Coordinate :=
   let digest := evalWithAnswerFn f (messageDigest parameter message randomness :
     OracleComp HashSpec MessageDigest)
   let index := digestIndex digest
@@ -322,7 +322,7 @@ attribute [local irreducible] ReferenceChoice.search encodingAttemptLimit Concre
   Concrete.sequenceFin
 
 theorem finish_support (parameter : PublicParameter) (data : PublicData) (message : Message)
-    (randomness : Randomness) (result : RunResult (Option Signature))
+    (randomness : Randomizer) (result : RunResult (Option Signature))
     (hresult : result ∈ support (costRun f table (withReveals
       (finishCostSource parameter data message randomness)))) :
     result.1.1 = assembled f parameter data table message randomness ∧
@@ -380,7 +380,7 @@ def SignOutcome (parameter : PublicParameter) (seed : MasterSeed) (data : Public
 
 omit [Params] in
 theorem revealsOf_of_assembled_none (parameter : PublicParameter) (data : PublicData) (message : Message)
-    (randomness : Randomness) (h : assembled f parameter data table message randomness = none) :
+    (randomness : Randomizer) (h : assembled f parameter data table message randomness = none) :
     revealsOf f parameter data message randomness = [] := by
   unfold assembled at h
   unfold revealsOf
@@ -395,7 +395,7 @@ theorem revealsOf_of_assembled_none (parameter : PublicParameter) (data : Public
 
 theorem signLoop_support (parameter : PublicParameter) (seed : MasterSeed) (data : PublicData)
     (hdata : DataCorrect f parameter seed data) (htable : CoordinatesCorrect f parameter seed table)
-    (message : Message) (attempts : Nat) (randomness : Randomness) (result : RunResult (Option Signature))
+    (message : Message) (attempts : Nat) (randomness : Randomizer) (result : RunResult (Option Signature))
     (hresult : result ∈ support (costRun f table (withReveals
       (signCostSourceLoop parameter data message attempts randomness)))) :
     SignOutcome f parameter seed data message result.1 := by

@@ -77,7 +77,7 @@ def spongeQueries (m : List UInt8) : List (PermutationQuery KeccakState × Kecca
   ((List.range (bs.length / rate)).foldl (fun (acc : _ × _) j ↦
     let blk := (bs.drop (rate * j)).take rate
     let x : KeccakState := Vector.ofFn fun i ↦
-      if i.val < 17 then Keccak.lane acc.1 i ^^^ leLane blk i else Keccak.lane acc.1 i
+      if i.val < 17 then Keccak.lane acc.1 i ^^^ littleEndianLane blk i else Keccak.lane acc.1 i
     let y := keccakF1600 x
     (y, acc.2 ++ [(.forward x, y)])) (Vector.replicate 25 0, [])).2
 
@@ -105,8 +105,8 @@ def toyTranscript : List (PermutationQuery KeccakState × KeccakState) :=
 /-! ## The address table -/
 
 #guard (List.range 1024).all fun i ↦
-  (gLogTable (powTable 10) 10 (gpow i)).map (·.val) == some i
-#guard gLogTable (powTable 10) 10 (gpow 1024) == none
+  (gLogTable (powTable 10) 10 (addressOfIndex i)).map (·.val) == some i
+#guard gLogTable (powTable 10) 10 (addressOfIndex 1024) == none
 #guard gLogTable (powTable 10) 10 0 == none
 
 /-! ## The sorted map -/

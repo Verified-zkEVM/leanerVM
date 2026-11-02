@@ -64,12 +64,13 @@ export LeanVM.Guest.Memory (Stmt.straight slEvs walk1_straight walk_straight Stm
 abbrev Layout : Type := List (ℕ × List E)
 
 /-- The memory holds a layout. -/
-def MemL (rd : Reader) (L : Layout) : Prop := ∀ q ∈ L, ReadsAt rd (ofK (gpow q.1)) q.2
+def MemL (rd : Reader) (L : Layout) : Prop := ∀ q ∈ L, ReadsAt rd (ofK (addressOfIndex q.1)) q.2
 
 /-- The addresses of a layout. -/
 def RegionL (L : Layout) (i : ℕ) : Prop := ∃ q ∈ L, q.1 ≤ i ∧ i < q.1 + q.2.length
 
-theorem addr_ofK (b k : ℕ) : (ofK (gpow b)).limb 0 * gpow k = gpow (b + k) := by
+theorem addr_ofK (b k : ℕ) : (ofK (addressOfIndex b)).limb 0 * addressOfIndex k = addressOfIndex (b
+    + k) := by
   rw [limb_ofK]; exact (pow_add _ _ _).symm
 
 theorem memL_append {rd : Reader} {L L' : Layout} : MemL rd (L ++ L') ↔ MemL rd L ∧ MemL rd L' := by
@@ -84,7 +85,7 @@ theorem memL_restrict {rd : Reader} {L : Layout} {S : ℕ → Prop} (h : MemL rd
 
 /-- **Two memories holding a layout agree on it.** -/
 theorem memL_agree {rd rd' : Reader} {L : Layout} (h : MemL rd L) (h' : MemL rd' L) :
-    ∀ i, RegionL L i → rd (gpow i) = rd' (gpow i) := by
+    ∀ i, RegionL L i → rd (addressOfIndex i) = rd' (addressOfIndex i) := by
   rintro i ⟨q, hq, h1, h2⟩
   have a := (h q hq (i - q.1) (by omega)).2
   have b := (h' q hq (i - q.1) (by omega)).2
@@ -151,7 +152,7 @@ def Within (L : Layout) (b n : ℕ) : Prop := ∀ q ∈ L, b ≤ q.1 ∧ q.1 + q
 
 /-- The memory is defined at the addresses below `2^k`, where range checks `log x < K ≤ 2^k`
 read (any memory image of at least `2^k` words). -/
-def LowDef (k : ℕ) (rd : Reader) : Prop := ∀ i < 2 ^ k, (rd (gpow i)).isSome
+def LowDef (k : ℕ) (rd : Reader) : Prop := ∀ i < 2 ^ k, (rd (addressOfIndex i)).isSome
 
 theorem LowDef.mono {k k' : ℕ} {rd : Reader} (h : LowDef k rd) (hk : k' ≤ k) : LowDef k' rd :=
   fun i hi => h i (lt_of_lt_of_le hi (Nat.pow_le_pow_right (by decide) hk))
@@ -345,10 +346,11 @@ theorem relAtIn_dmono {rd : Reader} {R D D' : ℕ → Prop} {fp n : ℕ} {f : St
 /-- A range check's auxiliary words for `x = g^e` against `g^(K-1)`: the complement `g^(K-1-e)`
 and the words the memory holds at both. -/
 noncomputable def rcLow (rd : Reader) (e K : ℕ) : E × E × E :=
-  (ofK (gpow (K - 1 - e)), (rd (gpow e)).getD 0, (rd (gpow (K - 1 - e))).getD 0)
+  (ofK (addressOfIndex (K - 1 - e)), (rd (addressOfIndex e)).getD 0, (rd (addressOfIndex (K - 1 -
+      e))).getD 0)
 
 theorem loadHolds_low {k : ℕ} {rd : Reader} (hl : LowDef k rd) {i : ℕ} (hi : i < 2 ^ k) :
-    LoadHolds rd (ofK (gpow i)) 0 ((rd (gpow i)).getD 0) := by
+    LoadHolds rd (ofK (addressOfIndex i)) 0 ((rd (addressOfIndex i)).getD 0) := by
   refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
   rw [Main.addr_ofK, Nat.add_zero]
   obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp (hl i hi)
@@ -357,11 +359,11 @@ theorem loadHolds_low {k : ℕ} {rd : Reader} (hl : LowDef k rd) {i : ℕ} (hi :
 /-- **A range check passes** on a memory defined below `2^k`, for `x = g^e`, `e < K ≤ 2^k`. -/
 theorem rc_complete_low {k : ℕ} {rd : Reader} (hl : LowDef k rd) {K e : ℕ} (hK : K ≤ 2 ^ k)
     (he : e < K) :
-    LoadHolds rd (ofK (gpow e)) 0 (rcLow rd e K).2.1 ∧
-      ofK (gpow (K - 1)) = ofK (gpow e) * (rcLow rd e K).1 ∧
+    LoadHolds rd (ofK (addressOfIndex e)) 0 (rcLow rd e K).2.1 ∧
+      ofK (addressOfIndex (K - 1)) = ofK (addressOfIndex e) * (rcLow rd e K).1 ∧
       LoadHolds rd (rcLow rd e K).1 0 (rcLow rd e K).2.2 := by
   refine ⟨loadHolds_low hl (by omega), ?_, loadHolds_low hl (by omega)⟩
-  rw [rcLow, ← ofK_mul, gpow, gpow, ← pow_add]
+  rw [rcLow, ← ofK_mul, addressOfIndex, addressOfIndex, ← pow_add]
   congr 2
   omega
 
@@ -405,7 +407,7 @@ def Stmt.loadS : Stmt → Option (V × ℕ)
 
 theorem loadAddrs_straight (σ : Val) : ∀ pre : List Stmt, pre.all Main.Stmt.straight = true →
     loadAddrs σ (pre.flatMap (Main.slEvs σ)) =
-      (pre.filterMap Stmt.loadS).map fun q => (σ q.1).limb 0 * gpow q.2
+      (pre.filterMap Stmt.loadS).map fun q => (σ q.1).limb 0 * addressOfIndex q.2
   | [], _ => rfl
   | s :: pre, h => by
     simp only [List.all_cons, Bool.and_eq_true] at h
@@ -437,14 +439,14 @@ theorem walk_pre_straight (σ : Val) (rest : List Stmt) : ∀ pre : List Stmt,
 
 /-- **A dispatch on `g^j` enters callee `j`**, the first arm with that power. -/
 theorem pick_eq (σ : Val) (x : V) (args rets : List V) : ∀ (fs : List String) (i j : ℕ),
-    i ≤ j → (hj : j - i < fs.length) → j < 2 ^ 64 - 1 → σ x = ofK (gpow j) →
+    i ≤ j → (hj : j - i < fs.length) → j < 2 ^ 64 - 1 → σ x = ofK (addressOfIndex j) →
       pick σ x args rets i fs = .fall [.call fs[j - i] args rets]
   | [], _, _, _, hj, _, _ => absurd hj (by simp)
   | f :: fs, i, j, hij, hj, hj64, hx => by
     unfold pick
     by_cases he : i = j
     · subst he; simp [hx]
-    · have hne : σ x ≠ ofK (gpow i) := by
+    · have hne : σ x ≠ ofK (addressOfIndex i) := by
         rw [hx]; intro h
         have := gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega)
           (ofK_injective h)
@@ -787,8 +789,8 @@ theorem completeAt_leafB {f : String} {fn : Fn} (hf : coreProgram.find? f = some
       ∃ (σ : Val) (es : List Ev) (vs : List V), fn.params.map σ = args ∧
         walk σ fn.body = .ret es vs ∧ vs.map σ = rets ∧ (∀ e ∈ es, e.Holds rd σ) ∧
         calls es = [] ∧ addrs es = [] ∧ allocs σ es = sizes ∧
-        (allocDsts es).map σ = (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
-        ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧
+        (allocDsts es).map σ = (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b)) ∧
+        ∀ A ∈ loadAddrs σ es, ∃ i, A = addressOfIndex i ∧
           (RegionL (bufL (fp + fs f) sizes (own fp)) i ∨ RegionL Lin i)) :
     CompleteAtB fs cert k f Lin args (Returns rets) (fs f + sizes.sum) := by
   intro fp

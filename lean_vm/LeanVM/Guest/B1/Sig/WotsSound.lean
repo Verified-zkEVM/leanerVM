@@ -259,7 +259,7 @@ atoms hold, from its base. -/
 theorem groupT_sound {W : WotsT} (hW : StepAtoms W) {first n : Nat} {fold : Bool} {prodIn encIn : V}
     {b : Nat} {rest : List Stmt} {next : Prop}
     (h : Stmt.HoldsList C rd σ ((groupT W first n fold prodIn encIn b).1 ++ rest) next kret) :
-    Stmt.HoldsList C rd σ rest next kret ∧ ∃ k < 4 ^ n, σ (.n b) = ofK (gpow k) ∧
+    Stmt.HoldsList C rd σ rest next kret ∧ ∃ k < 4 ^ n, σ (.n b) = ofK (addressOfIndex k) ∧
       AtomsHold rd σ (armT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b)
         (encT W fold n b) k (armBase W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b)
           (encT W fold n b) 0 k (b + 5))).1 := by

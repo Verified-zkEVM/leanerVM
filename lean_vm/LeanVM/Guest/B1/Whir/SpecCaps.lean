@@ -54,17 +54,17 @@ theorem openOne_facts {root : Digest} {height width q : ℕ} {o : Opening}
 /-! ## Digests in cells -/
 
 theorem digestScalars_canonical (d : Digest) :
-    IsCanonical128 (digestScalars d).1 ∧ IsCanonical128 (digestScalars d).2 := by
+    IsCanonical128 (digestHalves d).1 ∧ IsCanonical128 (digestHalves d).2 := by
   have h := digestOfScalars_digestScalars d
-  unfold digestOfScalars at h
+  unfold digestFromHalves at h
   split at h
   · rename_i hc; exact hc
   · simp at h
 
 /-- A parent's cells hash its children's. -/
 theorem hashesPair_of (dl dr : Digest) :
-    HashesPair (digestScalars dl).1 (digestScalars dl).2 (digestScalars dr).1 (digestScalars dr).2
-      (digestScalars (hashPair dl dr)).1 (digestScalars (hashPair dl dr)).2 := by
+    HashesPair (digestHalves dl).1 (digestHalves dl).2 (digestHalves dr).1 (digestHalves dr).2
+      (digestHalves (hashPair dl dr)).1 (digestHalves (hashPair dl dr)).2 := by
   refine ⟨fun c hc ↦ ?_, ?_⟩
   · simp only [List.mem_cons, List.mem_nil_iff, or_false] at hc
     rcases hc with rfl | rfl | rfl | rfl
@@ -124,8 +124,8 @@ noncomputable def nodeD (v : ℕ) : Digest :=
 
 /-- The honest cap's cell `k`: node `k / 2`'s cell `k % 2`. -/
 noncomputable def capCell (k : ℕ) : E :=
-  if k % 2 = 0 then (digestScalars (nodeD depth batch (k / 2))).1
-  else (digestScalars (nodeD depth batch (k / 2))).2
+  if k % 2 = 0 then (digestHalves (nodeD depth batch (k / 2))).1
+  else (digestHalves (nodeD depth batch (k / 2))).2
 
 open Classical in
 /-- The honest cap's flag of node `k` (cap depth `cd`): `1` strictly between the cap's leaves and
@@ -142,11 +142,11 @@ theorem nodeD_eq (hag : BatchAgrees depth batch) {a : ℕ × Opening} (ha : a �
   exact hag a' ha' a ha v _ _ h' h
 
 theorem capCell_even (k : ℕ) :
-    capCell depth batch (2 * k) = (digestScalars (nodeD depth batch k)).1 := by
+    capCell depth batch (2 * k) = (digestHalves (nodeD depth batch k)).1 := by
   unfold capCell; simp
 
 theorem capCell_odd (k : ℕ) :
-    capCell depth batch (2 * k + 1) = (digestScalars (nodeD depth batch k)).2 := by
+    capCell depth batch (2 * k + 1) = (digestHalves (nodeD depth batch k)).2 := by
   unfold capCell
   simp only [show (2 * k + 1) % 2 ≠ 0 by omega, ↓reduceIte, show (2 * k + 1) / 2 = k by omega]
 
@@ -231,7 +231,7 @@ theorem cap_meaning {cd : ℕ} (hcd : 2 ≤ cd) (hcdd : cd ≤ depth) {root : Di
     {rd : Reader} {cap flags : E}
     (hcap : ∀ k, 2 ≤ k → k < 2 ^ (cd + 2) → LoadHolds rd cap k (capCell depth batch k))
     (hfl : ∀ k, 2 ≤ k → k < 2 ^ cd → LoadHolds rd flags k (capFl depth batch cd k)) :
-    MeaningVerifyMerkleCap cd rd [cap, flags] [(digestScalars root).1, (digestScalars root).2] := by
+    MeaningVerifyMerkleCap cd rd [cap, flags] [(digestHalves root).1, (digestHalves root).2] := by
   obtain ⟨a0, ha0⟩ := List.exists_mem_of_ne_nil batch hne
   have hroot := nodeD_root hq hag ha0
   refine ⟨capCell depth batch, capFl depth batch cd, hcap, fun k h1 h2 ↦ ⟨hfl k h1 h2, ?_⟩,
@@ -282,9 +282,9 @@ theorem cap_writes {cd : ℕ} (hcd : 2 ≤ cd) (hcdd : cd ≤ depth) {root : Dig
     (hfl : ∀ k, 2 ≤ k → k < 2 ^ cd → LoadHolds rd flags k (capFl depth batch cd k))
     {a : ℕ × Opening} (ha : a ∈ batch) :
     LoadHolds rd cap (2 * (2 ^ cd + a.1 / 2 ^ (depth - cd)))
-        (digestScalars (climbD (merkleLeafDigest a.2.leaf) a.1 (a.2.path.take (depth - cd)))).1 ∧
+        (digestHalves (climbD (merkleLeafDigest a.2.leaf) a.1 (a.2.path.take (depth - cd)))).1 ∧
       LoadHolds rd cap (2 * (2 ^ cd + a.1 / 2 ^ (depth - cd)) + 1)
-        (digestScalars (climbD (merkleLeafDigest a.2.leaf) a.1 (a.2.path.take (depth - cd)))).2 ∧
+        (digestHalves (climbD (merkleLeafDigest a.2.leaf) a.1 (a.2.path.take (depth - cd)))).2 ∧
       LoadHolds rd flags (2 ^ (cd - 1) + a.1 / 2 ^ (depth - cd + 1)) 1 := by
   have hlt := (hq a ha).1
   have hv : 2 ^ cd + a.1 / 2 ^ (depth - cd) = heapNode depth a.1 (depth - cd) := by

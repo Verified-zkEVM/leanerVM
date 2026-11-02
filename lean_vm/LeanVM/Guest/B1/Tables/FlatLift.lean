@@ -128,16 +128,17 @@ end FlatFn
 /-! ## Addresses -/
 
 theorem limb_mul_gen (b j off : ℕ) :
-    (ofK (gpow b) * gen ^ j).limb 0 * gpow off = gpow (b + j + off) := by
-  have e : ofK (gpow b) * gen ^ j = ofK (gpow (b + j)) := by
-    rw [gen_pow_eq_ofK, ← ofK_mul, gpow, gpow, gpow, pow_add]
+    (ofK (addressOfIndex b) * gen ^ j).limb 0 * addressOfIndex off = addressOfIndex (b + j +
+        off) := by
+  have e : ofK (addressOfIndex b) * gen ^ j = ofK (addressOfIndex (b + j)) := by
+    rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
   rw [e, Main.addr_ofK]
 
 /-- A load inside a listed buffer of a layout reads inside the layout. -/
 theorem inBuf_region {σ : Val} {bufs : List (E × ℕ)} {L : Layout}
-    (hbufs : ∀ q ∈ bufs, ∃ b, q.1 = ofK (gpow b) ∧ ∀ i < q.2, RegionL L (b + i))
+    (hbufs : ∀ q ∈ bufs, ∃ b, q.1 = ofK (addressOfIndex b) ∧ ∀ i < q.2, RegionL L (b + i))
     {p : V} {off : ℕ} (h : InBuf σ bufs p off) :
-    ∃ i, (σ p).limb 0 * gpow off = gpow i ∧ RegionL L i := by
+    ∃ i, (σ p).limb 0 * addressOfIndex off = addressOfIndex i ∧ RegionL L i := by
   obtain ⟨q, hq, j, hp, hj⟩ := h
   obtain ⟨b, hb, hr⟩ := hbufs q hq
   refine ⟨b + j + off, by rw [hp, hb, limb_mul_gen], ?_⟩
@@ -194,15 +195,16 @@ reads**, when the first one's loads land inside the layout. -/
 theorem FlatFn.agree (F : FlatFn) {rd1 rd2 : Reader} {w : ℕ → E} {args : List E}
     (hl : args.length = F.k)
     {L : Layout} (h1 : MemL rd1 L) (h2 : MemL rd2 L) {bufs : List (E × ℕ)}
-    (hbufs : ∀ q ∈ bufs, ∃ b, q.1 = ofK (gpow b) ∧ ∀ i < q.2, RegionL L (b + i))
+    (hbufs : ∀ q ∈ bufs, ∃ b, q.1 = ofK (addressOfIndex b) ∧ ∀ i < q.2, RegionL L (b + i))
     (hld : LoadsInBuf (F.σ rd1 w args) bufs F.evL) {v : V} (hv : F.aux v.idx = false) :
     F.σ rd1 w args v = F.σ rd2 w args v := by
   have hrd : ∀ d p off, Stmt.atom (.load d p off) ∈ F.evL →
-      rd1 ((B1.Val.ofArgs (ev rd1 w args F.evL) p).limb 0 * gpow off) =
-        rd2 ((B1.Val.ofArgs (ev rd1 w args F.evL) p).limb 0 * gpow off) := by
+      rd1 ((B1.Val.ofArgs (ev rd1 w args F.evL) p).limb 0 * addressOfIndex off) =
+        rd2 ((B1.Val.ofArgs (ev rd1 w args F.evL) p).limb 0 * addressOfIndex off) := by
     intro d p off hm
     obtain ⟨i, hi, hr⟩ := inBuf_region hbufs (hld d p off hm)
-    have hi' : (B1.Val.ofArgs (ev rd1 w args F.evL) p).limb 0 * gpow off = gpow i := hi
+    have hi' : (B1.Val.ofArgs (ev rd1 w args F.evL) p).limb 0 * addressOfIndex off = addressOfIndex
+        i := hi
     rw [hi']
     exact Main.memL_agree h1 h2 i hr
   obtain ⟨c, hc⟩ := F.hchk
@@ -331,7 +333,7 @@ theorem flat_completeAt (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : List
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
     (w : ℕ → ℕ → E) (bufs : ℕ → List (E × ℕ))
-    (hbufs : ∀ fp, ∀ q ∈ bufs fp, ∃ b, q.1 = ofK (gpow b) ∧
+    (hbufs : ∀ fp, ∀ q ∈ bufs fp, ∃ b, q.1 = ofK (addressOfIndex b) ∧
       ∀ i < q.2, RegionL (flatL F.name Lin sizes own fs fp) (b + i))
     (hrun : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) →
       (∀ s ∈ F.pre, VSH (coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp))) rd
@@ -340,7 +342,7 @@ theorem flat_completeAt (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : List
       (F.pre.filterMap Main.Stmt.allocSz).map
         (fun x => x.2.elim id fun s => logG (F.σ rd (w fp) args s)) = sizes ∧
       ((F.pre.filterMap Main.Stmt.allocSz).map Prod.fst).map (F.σ rd (w fp) args) =
-        (bases (fp + fs F.name) sizes).map (fun b => ofK (gpow b)) ∧
+        (bases (fp + fs F.name) sizes).map (fun b => ofK (addressOfIndex b)) ∧
       F.rets.map (F.σ rd (w fp) args) = rets) :
     CompleteAtD fs cert κ F.name Lin args (Returns rets) := by
   have hf := F.hf
@@ -439,7 +441,7 @@ theorem flat_completeAt (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : List
       refine Lift.completeAtD_of_relIn F.hpure (by simpa using hok.1 _ (List.getElem_mem hj))
         fun rd hlow hL ↦ ?_
       obtain ⟨j', hj', hxj', h⟩ := ((hrun fp rd hlow hL).1 _ hs :
-        ∃ (j' : ℕ) (h : j' < fs'.length), F.σ rd (w fp) args x = ofK (gpow j') ∧
+        ∃ (j' : ℕ) (h : j' < fs'.length), F.σ rd (w fp) args x = ofK (addressOfIndex j') ∧
           coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp)) fs'[j'] (a.map (F.σ rd (w fp) args))
             (r.map (F.σ rd (w fp) args)))
       have e := hag fp rd hlow hL _ hs rfl x (by simp [Stmt.vals])

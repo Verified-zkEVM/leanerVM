@@ -66,7 +66,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 @[expose] public section
 
 -- The statement derives no `Repr`; the guest's derived ones need these.
-deriving instance Repr for LeanVM.Semantics.DerefMode, LeanVM.Guest.OInstr
+deriving instance Repr for LeanVM.Semantics.DerefMode, LeanVM.Guest.OffsetInstruction
 
 /-! ## Evaluation order
 
@@ -212,8 +212,8 @@ def Sym.beq : Sym → Sym → Bool
 /-- The word a symbolic value denotes at frame `fp`. -/
 def Sym.val (fp : K) : Sym → E
   | .zero => 0
-  | .gp e => ofK (gpow e)
-  | .fpg e => ofK (fp * gpow e)
+  | .gp e => ofK (addressOfIndex e)
+  | .fpg e => ofK (fp * addressOfIndex e)
 
 /-- The exponent of a known power of `g`. -/
 def Sym.expo : Option Sym → Option ℕ
@@ -258,14 +258,14 @@ noncomputable def PowTree.find (t : PowTree) (k : ℕ) : Option ℕ :=
 /-- Every pair of the tree is a power of `g` (decided by the kernel). -/
 def PowTree.Ok : PowTree → Prop
   | .leaf => True
-  | .node k e l r => K.ofBits k = gpow e ∧ l.Ok ∧ r.Ok
+  | .node k e l r => K.ofBits k = addressOfIndex e ∧ l.Ok ∧ r.Ok
 
 instance PowTree.decOk : (t : PowTree) → Decidable t.Ok
   | .leaf => isTrue trivial
   | .node k e l r =>
     haveI := PowTree.decOk l
     haveI := PowTree.decOk r
-    inferInstanceAs (Decidable (K.ofBits k = gpow e ∧ l.Ok ∧ r.Ok))
+    inferInstanceAs (Decidable (K.ofBits k = addressOfIndex e ∧ l.Ok ∧ r.Ok))
 
 /-- What the executor is told about a function. -/
 structure Facts where
@@ -314,7 +314,7 @@ inductive Atom where
   /-- A non-`JUMP` instruction at pc `g^pc` holds (`Holds`): `fp[c] = fp[a] + fp[b]`,
   `fp[c] = fp[a]·fp[b]`, `fp[o] = k`, `L[fp[o1]·g^o2] = fp[o3]` (or `g²·pc`, or `fp`),
   `KeccakCellsRelation` over the operand cells. -/
-  | instr (pc : ℕ) (ins : OInstr)
+  | instr (pc : ℕ) (ins : OffsetInstruction)
   /-- The cells a `JUMP` reads are words of `K`. -/
   | jump (oc od of : ℕ)
   /-- `fp[dst] = fp[src]` (a copy, `MUL dst = src·1`). -/
@@ -392,7 +392,7 @@ structure Result where
 structure St where
   env : Trie Sym
   mem : List (ℕ × ℕ × Sym)
-  prev : List (ℕ × OInstr)
+  prev : List (ℕ × OffsetInstruction)
 
 /-- The state at a segment's start. -/
 def St.init (env : Trie Sym) : St := ⟨env, [], []⟩
@@ -418,7 +418,8 @@ noncomputable def learn (env : Trie Sym) (o : ℕ) (v : Sym) : Trie Sym :=
   | none => env.set v envDepth o
 
 /-- The state after a non-`JUMP` instruction at pc `pc`. -/
-def St.push (st : St) (env : Trie Sym) (mem : List (ℕ × ℕ × Sym)) (pc : ℕ) (ins : OInstr) : St :=
+def St.push (st : St) (env : Trie Sym) (mem : List (ℕ × ℕ × Sym)) (pc : ℕ) (ins : OffsetInstruction)
+    : St :=
   ⟨env, mem, (pc, ins) :: st.prev.take 1⟩
 
 /-- How an instruction continues a path. -/
@@ -447,7 +448,7 @@ noncomputable def mulEnv (F : Facts) (env : Trie Sym) (a b c : ℕ) : Trie Sym :
 
 /-- The range check ending at `DEREF *(fp[y]·g^0) = fp[t]`: `DEREF *(fp[x]·g^0)`,
 `MUL fp[z] = fp[x]·fp[y]` just before it. -/
-noncomputable def rangeFact (env : Trie Sym) (y : ℕ) : List (ℕ × OInstr) → List Atom
+noncomputable def rangeFact (env : Trie Sym) (y : ℕ) : List (ℕ × OffsetInstruction) → List Atom
   | [(_, .mul x y' z), (_, .deref x' 0 _ .cell)] =>
     if y' = y ∧ x' = x then
       match Sym.expo (env.get z) with
@@ -458,7 +459,7 @@ noncomputable def rangeFact (env : Trie Sym) (y : ℕ) : List (ℕ × OInstr) �
 
 /-- The `!=` gadget ending at `SET fp[p] = 1`: `MUL fp[p] = fp[x]·fp[inv]` just before it, and
 `XOR fp[x] = fp[a] + fp[b]` before that for `fp[a] ≠ fp[b]`. -/
-def neFacts (p : ℕ) : List (ℕ × OInstr) → List Atom
+def neFacts (p : ℕ) : List (ℕ × OffsetInstruction) → List Atom
   | (_, .mul x _ p') :: rest =>
     if p' = p then
       .nz x :: (match rest with
@@ -485,7 +486,7 @@ noncomputable def derefMem (pc : ℕ) (st : St) (o1 o2 o3 : ℕ) :
 /-- What a non-`JUMP` instruction at pc `pc` teaches: its facts, and the environment and stores
 after it. -/
 noncomputable def nonJump (F : Facts) (pc : ℕ) (st : St) :
-    OInstr → List Atom × Trie Sym × List (ℕ × ℕ × Sym)
+    OffsetInstruction → List Atom × Trie Sym × List (ℕ × ℕ × Sym)
   | .xor a b c => (if isZero (st.env.get c) then [.eq a b] else [], st.env, st.mem)
   | .mul a b c => (mulFacts a b c (st.env.get a) (st.env.get b), mulEnv F st.env a b c, st.mem)
   | .set o k0 k1 k2 =>
@@ -525,7 +526,7 @@ noncomputable def jumpExit (F : Facts) (entry len i : ℕ) (st : St) (od of : �
   | (k, succ) => ⟨k, st.env, succ⟩
 
 /-- **One instruction**, at offset `i` of a function at `entry` of `len` instructions. -/
-noncomputable def stepI (F : Facts) (entry len i : ℕ) (st : St) (ins : OInstr) : Res :=
+noncomputable def stepI (F : Facts) (entry len i : ℕ) (st : St) (ins : OffsetInstruction) : Res :=
   match ins with
   | .jump oc od of =>
     optSeq (st.env.get oc) fun c ↦
@@ -606,7 +607,7 @@ noncomputable def atJoin (i : ℕ) (cur : Option Cur) (pend : Pend) (out : List 
   | [] => (cur, pend, out)
 
 /-- One offset of the walk, `w` walking the rest. -/
-noncomputable def passStep (F : Facts) (entry len : ℕ) (ins : OInstr)
+noncomputable def passStep (F : Facts) (entry len : ℕ) (ins : OffsetInstruction)
     (w : ℕ → Option Cur → Pend → List Seg → ℕ → Result)
     (i : ℕ) (cur : Option Cur) (pend : Pend) (out : List Seg) (dead : ℕ) : Result :=
   match atJoin i cur pend out with
@@ -630,7 +631,7 @@ def passEnd (len i : ℕ) (cur : Option Cur) (out : List Seg) (dead : ℕ) : Res
   | none => ⟨out, dead⟩
 
 /-- The walk over the code from offset `i`. -/
-noncomputable def pass (F : Facts) (entry len : ℕ) (code : List OInstr) :
+noncomputable def pass (F : Facts) (entry len : ℕ) (code : List OffsetInstruction) :
     ℕ → Option Cur → Pend → List Seg → ℕ → Result :=
   List.rec (motive := fun _ ↦ ℕ → Option Cur → Pend → List Seg → ℕ → Result)
     (fun i cur _ out dead ↦ passEnd len i cur out dead)
@@ -644,15 +645,17 @@ noncomputable def envOf (env : List (ℕ × Sym)) : Trie Sym :=
 noncomputable def Facts.entryEnv (F : Facts) : Trie Sym := envOf F.env
 
 /-- **The symbolic executor**: the segments of `f`'s code. -/
-noncomputable def exec (F : Facts) (f : CompiledFn) : Result :=
-  pass F f.entry f.len f.code 0 (some (Cur.init 0 F.entryEnv)) [] [] 0
+noncomputable def exec (F : Facts) (f : CompiledFunction) : Result :=
+  pass F f.entryPc f.instructionCount f.code 0 (some (Cur.init 0 F.entryEnv)) [] [] 0
 
 /-- **A window** of `f`'s code, offsets `a` to `b`, starting a segment at `a` with environment
 `env`: the executor on a large function in pieces, each evaluated by the kernel on its own. The
 segment live at `b` ends there with `b` its successor, to start the next window with. -/
-noncomputable def execWin (F : Facts) (f : CompiledFn) (a : ℕ) (env : List (ℕ × Sym)) (b : ℕ) :
+noncomputable def execWin (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
+    (b : ℕ) :
     Result :=
-  pass F f.entry f.len ((f.code.drop a).take (b - a)) a (some (Cur.init a (envOf env))) [] [] 0
+  pass F f.entryPc f.instructionCount ((f.code.drop a).take (b - a)) a (some (Cur.init a (envOf
+      env))) [] [] 0
 
 /-! ## Linking -/
 

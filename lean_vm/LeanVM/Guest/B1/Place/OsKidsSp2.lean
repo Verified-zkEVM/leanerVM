@@ -27,12 +27,13 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
 
-theorem ofK_gpow_mul_gen (a m : ℕ) : ofK (gpow a) * gen ^ m = ofK (gpow (a + m)) := by
+theorem ofK_gpow_mul_gen (a m : ℕ) : ofK (addressOfIndex a) * gen ^ m = ofK (addressOfIndex (a +
+    m)) := by
   rw [gen_pow_eq_ofK, ← ofK_mul']
   congr 1
-  simp only [Parameters.gpow, pow_add]
+  simp only [Parameters.addressOfIndex, pow_add]
 
-theorem osPtrAt_eq (c : OsCfg) (b j : ℕ) : osPtrAt c b j = ofK (Parameters.gpow (osBase c b j)) := rfl
+theorem osPtrAt_eq (c : OsCfg) (b j : ℕ) : osPtrAt c b j = ofK (Parameters.addressOfIndex (osBase c b j)) := rfl
 
 theorem osAtOf_qpos (c : OsCfg) (b : ℕ) : (osAtOf c b).P.qpos = osPtrAt c b 7 := rfl
 

@@ -88,7 +88,8 @@ the verifier accepts; the honest child's hypothesis refuses a zero challenge any
 `2^-192`. -/
 
 /-- **`program` refusing a zero challenge**: every sampled challenge `0` fails. -/
-def _root_.LeanVM.Protocol.Compile.Prog.refusingZeroChallenge {α : Type} : Prog α → Prog α
+def _root_.LeanVM.Protocol.Compile.VerifierProgram.refusingZeroChallenge {α : Type} :
+    VerifierProgram α → VerifierProgram α
   | .ret a => .ret a
   | .fail => .fail
   | .read k => .read fun x ↦ (k x).refusingZeroChallenge
@@ -178,29 +179,32 @@ for the same prover and check (`verifierRefusingZero`). -/
 /-- **The leanVM verifier refusing a zero challenge** (`Prog.refusingZeroChallenge`): `verifier π`
 with every sampled challenge `0` a failure. -/
 def verifierRefusingZero {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
-    (program : Program) (input : PublicInput) (proof : Proof) : m Bool := do
-  let seed ← seedWith π (bytecodeWords program) (publicDigest input)
+    (program : LeanIsaProgram) (input : PublicInput) (proof : Proof) : m Bool := do
+  let seed ← spongeSeedWith π (bytecodeWords program) (publicInputDigest input)
   runProof π
-    (leanVmProgram (bytecodeWords program) (publicDigest input)).refusingZeroChallenge seed proof
+    (leanVmVerifierProgram (bytecodeWords program) (publicInputDigest input)).refusingZeroChallenge
+        seed proof
 
 /-- **An honest prover's proof over the deployed Keccak-f[1600]**, the hash Keccak-256, if it
 makes one. -/
-def honestProofWithDeployedKeccak (honestProver : HonestProver) (program : Program)
+def honestProofWithDeployedKeccak (honestProver : HonestProver) (program : LeanIsaProgram)
     (input : PublicInput) (execution : Execution program) (ρ nonceAttemptsPerProofOfWork : ℕ) :
     Option Proof :=
   honestProver (m := Id) keccakF1600 program input execution ρ nonceAttemptsPerProofOfWork
 
 open OracleComp OracleSpec in
 /-- **The honest proof is rarely refused**: in the random-permutation model, at `2^25` nonces per
-proof of work, the honest prover `LeanVM.prover` (`LeanVm.lean`, `LeanVM.Prover.prove`) makes no
+proof of work, the honest prover `LeanVM.leanVmHonestProver` (`LeanVm.lean`, `LeanVM.Prover.prove`)
+makes no
 proof, or `verifierRefusingZero` rejects its proof, of a valid execution of committed size at most
 `2^28`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`. -/
 def HonestProofRarelyRefused : Prop :=
-  ∀ (program : Program) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
+  ∀ (program : LeanIsaProgram) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
     ValidExecution program input execution → execution.committedSize ≤ 2 ^ 28 →
     1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let accepted ← Common.runWithRandomPermutation (do
-        match ← LeanVM.prover Common.queryPermutation program input execution ρ (2 ^ 25) with
+        match ← LeanVM.leanVmHonestProver Common.queryPermutation program input execution ρ (2 ^
+            25) with
         | none => pure false
         | some proof =>
           verifierRefusingZero Common.queryPermutation program input proof)}[accepted = false] ≤
@@ -215,7 +219,8 @@ def HonestChild (child : Child) : Prop :=
   let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) child.statement)
   child.freshClaim.Holds (bytecodeWords guestProgram) ∧
     ∃ (execution : Execution guestProgram) (ρ : ℕ), 2 ^ 22 ≤ execution.committedSize ∧
-      honestProofWithDeployedKeccak LeanVM.prover guestProgram input execution ρ (2 ^ 25) =
+      honestProofWithDeployedKeccak LeanVM.leanVmHonestProver guestProgram input execution ρ (2
+          ^ 25) =
         some child.proof ∧
       verifierRefusingZero (m := Id) keccakF1600 guestProgram input child.proof = true
 
@@ -269,16 +274,16 @@ noncomputable def childCountOfGeneratorPower (childCountBound : ℕ) (x : E) : O
   if h : ∃ n, n < childCountBound ∧ Verifier.gpow n = x then some (Nat.find h) else none
 
 /-- Read the count: `g^n`, then three zeros. -/
-noncomputable def readChildCount (childCountBound : ℕ) : Prog ℕ := do
-  let words ← Prog.readScalars rateScalars
-  Prog.require (words.drop 1 = List.replicate (rateScalars - 1) 0)
+noncomputable def readChildCount (childCountBound : ℕ) : VerifierProgram ℕ := do
+  let words ← VerifierProgram.readScalars rateScalars
+  VerifierProgram.require (words.drop 1 = List.replicate (rateScalars - 1) 0)
   liftOption (childCountOfGeneratorPower childCountBound (words.getD 0 0))
 
 /-- **The batching as a verifier program**, of fewer than `childCountBound` children: the count,
 then the batching of that many, its deferred claim true of `bytecode`, shape and length included
 (`DeferredClaim.HoldsWithShape`). -/
 noncomputable def boundedBatchingProgram (childCountBound : ℕ) (bytecode : List K) :
-    Prog Bool := do
+    VerifierProgram Bool := do
   let childCount ← readChildCount childCountBound
   batchingProgram (DeferredClaim.HoldsWithShape bytecode) bytecode childCount
 

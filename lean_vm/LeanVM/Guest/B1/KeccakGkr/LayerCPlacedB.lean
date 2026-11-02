@@ -261,14 +261,14 @@ theorem layer_completeAtFB {first odd : ℕ} (hf : first < 2) (ho : odd < 2) (κ
     · -- the loads
       have fin : ∀ {bb : ℕ} {ws : List E} {j off : ℕ},
           (bb, ws) ∈ layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b →
-          j + off < ws.length → ∃ i, (ptr bb * gen ^ j).limb 0 * Parameters.gpow off =
-            Parameters.gpow i ∧ (RegionL (layerLin D first CL bcur bout b) i ∨
+          j + off < ws.length → ∃ i, (ptr bb * gen ^ j).limb 0 * Parameters.addressOfIndex off =
+            Parameters.addressOfIndex i ∧ (RegionL (layerLin D first CL bcur bout b) i ∨
               RegionL (layerBufs D first (ptr bcur) b) i) :=
         fun hq h ↦ inR_split (inR_entry hq h)
       have fin0 : ∀ {bb : ℕ} {ws : List E} {off : ℕ},
           (bb, ws) ∈ layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b →
-          off < ws.length → ∃ i, (ptr bb).limb 0 * Parameters.gpow off =
-            Parameters.gpow i ∧ (RegionL (layerLin D first CL bcur bout b) i ∨
+          off < ws.length → ∃ i, (ptr bb).limb 0 * Parameters.addressOfIndex off =
+            Parameters.addressOfIndex i ∧ (RegionL (layerLin D first CL bcur bout b) i ∨
               RegionL (layerBufs D first (ptr bcur) b) i) := fun {bb ws off} hq h ↦ by
         have := fin (bb := bb) (ws := ws) (j := 0) (off := off) hq (by omega)
         simpa using this

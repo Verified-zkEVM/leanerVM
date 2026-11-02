@@ -146,10 +146,11 @@ theorem completeAt_flatGB {f : String} {fn : Fn} (hf : coreProgram.find? f = som
         Stmt.HoldsList (fun _ _ _ => True) rd σ fn.body False (fun r => r = rets) ∧
         (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
         ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-          (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
+          (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b)) ∧
         CallsMatch σ ((pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ))
           (atAllG [] (kids fp) fps) outs ∧
-        ∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧
+        ∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 =
+            addressOfIndex i ∧
           (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp fps)) i ∨
             outRegion (atAllG [] (kids fp) fps) outs i)) :
     CompleteAtB fs cert κ f Lin args (Returns rets) (fs f + sizes.sum + NB) := by

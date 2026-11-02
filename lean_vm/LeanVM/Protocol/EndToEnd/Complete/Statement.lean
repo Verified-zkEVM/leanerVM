@@ -54,7 +54,7 @@ theorem experiment_map_romExperiment (A : LeanVM.Adversary) :
   simp [map_eq_bind_pure_comp]
 
 /-- **The honest prover of the statement**: the proof of `honestComp`, with its statement. -/
-noncomputable def honestProverRom (prog : Program) (input : PublicInput) (t : Execution prog)
+noncomputable def honestProverRom (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog)
     (ρ fuel : ℕ) : LeanVM.Adversary :=
   (fun proof ↦ ((prog, input), proof)) <$> honestComp prog input t ρ fuel
 
@@ -72,14 +72,14 @@ theorem completenessError_eq (fuel : ℕ) :
 is at most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, and a fuel of at most `2^64`
 nonces: the verifier rejects the honest prover's proof with probability at most
 `completenessError fuel`. -/
-theorem completeness_le {prog : Program} {input : PublicInput} {t : Execution prog}
+theorem completeness_le {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← LeanVM.experiment (honestProverRom prog input t ρ fuel)}[z.rejected] ≤
       LeanVM.completenessError fuel := by
   have hV : (fun π ↦ LeanVM.verifierWithHash LeanVM.callKeccak256 LeanVM.callKeccakF1600 prog input π) =
-      verifierComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
-        (leanVmProgram (bytecodeWords prog) (publicDigest input)) :=
+      verifierComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+        (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) :=
     funext fun π ↦ (verifierComp_leanVm _ _ π).symm
   have h := romComplete_leanVm hv hbudget hρ hfuel
   rw [← hV, ← completenessError_eq] at h

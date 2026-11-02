@@ -174,7 +174,8 @@ theorem sqLoop_iter (fs : String → ℕ) (cert : String → V → ℕ) {lv : Os
     (htail : if X * gen + N ≠ 0 then
       RelAtIn coreProgram fs cert rd R Dt (fp + fs name) m name [X * gen, N, sqz, qpos, qbp] []
       else m = fs name)
-    (hreg : ∀ t < 10, ∃ i, (sqz * X ^ 5).limb 0 * Parameters.gpow t = Parameters.gpow i ∧ R i) :
+    (hreg : ∀ t < 10, ∃ i, (sqz * X ^ 5).limb 0 * Parameters.addressOfIndex t =
+        Parameters.addressOfIndex i ∧ R i) :
     RelAtIn coreProgram fs cert rd R (fun i => Dd i ∨ (X * gen + N ≠ 0 ∧ Dt i)) fp
       (fs name + m + fs (sqDecName lv)) name [X, N, sqz, qpos, qbp] [] := by
   set σ := sqIterVal lv X N sqz qpos qbp cap with hσ
@@ -358,10 +359,11 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
       LoadHolds rd (qpos * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth)) i
           (eOfNat ((eToNat (sqWJ cap0 j) >>> (i * lv.depth)) % 2 ^ lv.depth)) ∧
         LoadHolds rd (qbp * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth)) i
-          (ofK (Parameters.gpow (sqDecAt fs lv name n fp j + cert (sqDecName lv) (.n 3))) *
+          (ofK (Parameters.addressOfIndex (sqDecAt fs lv name n fp j + cert (sqDecName lv)
+              (.n 3))) *
             gen ^ (i * lv.depth)))
-    (hreg : ∀ j < n, ∀ t < 10, ∃ i, (sqz * (gen ^ j) ^ 5).limb 0 * Parameters.gpow t =
-      Parameters.gpow i ∧ RegionL Lin i)
+    (hreg : ∀ j < n, ∀ t < 10, ∃ i, (sqz * (gen ^ j) ^ 5).limb 0 * Parameters.addressOfIndex t =
+      Parameters.addressOfIndex i ∧ RegionL Lin i)
     (hregd : ∀ j < n, RegPtrs [(1, 192 / lv.depth), (2, 192 / lv.depth)]
       [sqWJ cap0 j, qpos * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth),
         qbp * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth)] (RegionL Lin)) :

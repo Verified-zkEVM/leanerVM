@@ -163,10 +163,10 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
         (tables.map Table.nConstraints).sum) pts.reverse
       (List.zip (vtRows L.tableLogHeights bus.forms bus.point pts) evs) 0 0 []).2 with htc
   set pclaims := List.zipWith (fun column value ↦ (⟨column, (vtEvalFs σ).squeeze.1 ::
-        List.replicate ((L.placement memory0).vars - 1) 0, value⟩ : ColumnClaim))
+        List.replicate ((L.placement memory0).variableCount - 1) 0, value⟩ : ColumnClaim))
         [memory0, memory1, memory2] (([0, 1, 2] : List (Fin 3)).map fun limb ↦
-          multilinearEval [ofK ((digestScalars pi).1.limb limb),
-            ofK ((digestScalars pi).2.limb limb)] [(vtEvalFs σ).squeeze.1]) with hpc
+          multilinearEval [ofK ((digestHalves pi).1.limb limb),
+            ofK ((digestHalves pi).2.limb limb)] [(vtEvalFs σ).squeeze.1]) with hpc
   have hAC := vt_asm_claims hμ Lm h hbc hpi hz hmu hml hsq hlm hr hτ hdim hbk hgn hnm hτn hpl hchi
     bus rfl ((powers s0.squeeze.1 ((tables.map Table.nConstraints).sum + 3)).take
         (tables.map Table.nConstraints).sum)

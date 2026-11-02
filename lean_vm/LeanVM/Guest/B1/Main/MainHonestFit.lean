@@ -48,7 +48,7 @@ theorem length_daCells (c : DaClaim) : (daCells c).length = 4 := by
   simp [daCells, B1.Digest.digestCells]
 
 theorem length_claimCells (r p : BitVec 128) (m : BitVec 256) : (claimCells r p m).length = 4 := by
-  simp [claimCells, cellsOfBytes, claimBytes, littleEndianBytes16, HashSig.bytesLE]
+  simp [claimCells, cellsOfBytes, claimBytes, littleEndianBytes16, HashSig.littleEndianBytes]
 
 theorem length_flatMap_const {α : Type} (l : List α) (f : α → List E) (k : ℕ)
     (h : ∀ a ∈ l, (f a).length = k) : (l.flatMap f).length = k * l.length := by
@@ -133,7 +133,7 @@ theorem raw_le_table {α W : Type} [BEq α] [LawfulBEq α] (D : List α) (R : Li
 /-! ## The published DA digest -/
 
 theorem digestCells_zero : B1.Digest.digestCells zeroDigest = [0, 0] := by
-  simp [B1.Digest.digestCells, digestScalars, zeroDigest]
+  simp [B1.Digest.digestCells, digestHalves, zeroDigest]
   exact zero_eq_ofLimbs.symm
 
 theorem daPick_le : daPick s w ≤ w.children.length := by
@@ -259,8 +259,8 @@ theorem mem_bufL_getD {b : ℕ} {sizes : List ℕ} {own : List (List E)} (hlen :
 theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytecode seed s w)
     (hf : FreshShaped w) (hl : DeployedLimits s w) (fs : String → ℕ) (fp : ℕ) (rd : Reader)
     (hM : B1.Main.MemL rd (bufL (fp + fs "main") (mSizes (hData seed s w)) (hOwn seed s w)))
-    (h0 : LoadHolds rd 1 0 (digestScalars (statementDigest seed s)).1)
-    (h1 : LoadHolds rd gen 0 (digestScalars (statementDigest seed s)).2) :
+    (h0 : LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1)
+    (h1 : LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2) :
     MainMem rd ((hData seed s w).toIn fs fp) := by
   have hlen : (hOwn seed s w).length = (mSizes (hData seed s w)).length := by
     rw [← hOwn_lengths hlog hr hf, List.length_map]

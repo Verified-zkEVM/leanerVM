@@ -50,7 +50,7 @@ theorem vk_loads : (vkPre.filterMap Stmt.loadS).all inGroups = true := by decide
 theorem reg_at {L : Main.Layout} {b : ℕ} {ws : List E} (hq : (b, ws) ∈ L) {T : ℕ → Prop}
     (hT : ∀ i, RegionL L i → T i) {p : E} {a off : ℕ} (hp : p = ptr a) (h1 : b ≤ a + off)
     (h2 : a + off < b + ws.length) :
-    ∃ i, p.limb 0 * Parameters.gpow off = Parameters.gpow i ∧ T i :=
+    ∃ i, p.limb 0 * Parameters.addressOfIndex off = Parameters.addressOfIndex i ∧ T i :=
   ⟨a + off, by rw [hp]; exact Main.addr_ofK a off, hT _ ⟨(b, ws), hq, h1, h2⟩⟩
 
 namespace VkData
@@ -70,7 +70,7 @@ theorem loads_in (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val
     (hLay : ∀ s < 12, ∀ i,
       RegionL (layerBufs (D.layer s) (firstOf s) (ptr (curE + D.lcur s)) (ls s)) i → T i) :
     ∀ q ∈ vkPre.filterMap Stmt.loadS,
-      ∃ i, (σ q.1).limb 0 * Parameters.gpow q.2 = Parameters.gpow i ∧ T i := by
+      ∃ i, (σ q.1).limb 0 * Parameters.addressOfIndex q.2 = Parameters.addressOfIndex i ∧ T i := by
   have hτ1 := h.1
   have hτ2 := h.2.1
   have hchis := h.2.2.1
@@ -107,17 +107,17 @@ theorem loads_in (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val
   have mLin : ∀ {b ws}, (b, ws) ∈ [(curE, D.xs), (chiE, D.chis), (olE, D.outs), (zvE, D.op),
       (zvE + qkeccakVarsCap, D.point), (slE, D.slices)] → ∀ {p : E} {a off : ℕ}, p = ptr a →
       b ≤ a + off → a + off < b + ws.length →
-      ∃ i, p.limb 0 * Parameters.gpow off = Parameters.gpow i ∧ T i :=
+      ∃ i, p.limb 0 * Parameters.addressOfIndex off = Parameters.addressOfIndex i ∧ T i :=
     fun hq _ _ _ hp h1 h2 ↦ reg_at hq hLin hp h1 h2
   have mOwn : ∀ {b ws}, (b, ws) ∈ bufL B D.sizes (D.own B ls) → ∀ {p : E} {a off : ℕ}, p = ptr a →
       b ≤ a + off → a + off < b + ws.length →
-      ∃ i, p.limb 0 * Parameters.gpow off = Parameters.gpow i ∧ T i :=
+      ∃ i, p.limb 0 * Parameters.addressOfIndex off = Parameters.addressOfIndex i ∧ T i :=
     fun hq _ _ _ hp h1 h2 ↦ reg_at hq hOwn hp h1 h2
   have hO := bufL_eq (D := D) (by omega) B ls
   have mLay : ∀ s < 12, ∀ {b ws},
       (b, ws) ∈ layerBufs (D.layer s) (firstOf s) (ptr (curE + D.lcur s)) (ls s) →
       ∀ {p : E} {a off : ℕ}, p = ptr a → b ≤ a + off → a + off < b + ws.length →
-      ∃ i, p.limb 0 * Parameters.gpow off = Parameters.gpow i ∧ T i :=
+      ∃ i, p.limb 0 * Parameters.addressOfIndex off = Parameters.addressOfIndex i ∧ T i :=
     fun s hs _ _ hq _ _ _ hp h1 h2 ↦ reg_at hq (hLay s hs) hp h1 h2
   intro q hq
   have hg := List.all_eq_true.mp vk_loads q hq

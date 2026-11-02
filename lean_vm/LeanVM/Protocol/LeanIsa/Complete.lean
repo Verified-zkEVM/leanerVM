@@ -49,7 +49,7 @@ open Air.Flat (Component EnsembleWitness)
 
 @[expose] public section
 
-variable (prog : Program) (s : Sizes) (w : EnsembleWitness (leanIsaEnsemble prog))
+variable (prog : LeanIsaProgram) (s : Sizes) (w : EnsembleWitness (leanIsaEnsemble prog))
 
 /-! ## Reading the stack of a witness -/
 
@@ -295,7 +295,7 @@ private theorem memRows_stackOf {input : PublicInput} (h : SatisfiedBy prog inpu
         (toElements (⟨idx x, cnt x, #v[((imageOf w.data).2 x).limb 0,
           ((imageOf w.data).2 x).limb 1, ((imageOf w.data).2 x).limb 2]⟩ : MemRow K)).toArray :=
     fun x ↦ by simp only [hrows, List.getElem_ofFn]
-  have hidx : ∀ x : Fin (2 ^ (imageOf w.data).1), idx x = gpow x := fun x ↦ by
+  have hidx : ∀ x : Fin (2 ^ (imageOf w.data).1), idx x = addressOfIndex x := fun x ↦ by
     have := h.index_columns x.val (by rw [hlen]; exact x.isLt)
     rw [hrow, memRowAt_toElements] at this
     exact this
@@ -592,13 +592,13 @@ theorem witnessOf_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
 /-! ## The refinement -/
 
 /-- `SatisfiedBy` as a relation on the protocol's statements: the public input, no oracle. -/
-def satisfiedByRel (prog : Program) :
+def satisfiedByRel (prog : LeanIsaProgram) :
     Set ((PublicInput × ∀ i, NoOracle i) × EnsembleWitness (leanIsaEnsemble prog)) :=
   {p | SatisfiedBy prog p.1.1 p.2}
 
 /-- The adaptor as a refinement: on admissible sizes, reading the witness off the stack maps the
 protocol's relation into leanISA's. -/
-def leanIsaRefinement (prog : Program) (s : Sizes) (hs : s.Admissible prog) :
+def leanIsaRefinement (prog : LeanIsaProgram) (s : Sizes) (hs : s.Admissible prog) :
     Refinement (M3Rel (leanIsaInstance prog s)) (satisfiedByRel prog) where
   map _ q := witnessOf prog s q
   map_valid _ q h := satisfiedBy_witnessOf prog s q hs h

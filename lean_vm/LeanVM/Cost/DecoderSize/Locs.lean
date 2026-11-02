@@ -21,7 +21,7 @@ public import LeanVM.Cost.DecoderSize.Names7
 public import LeanVM.Cost.DecoderSize.Names8
 
 /-! The size of the guest's frame cells, the chunks' sizes summed (`DecoderSize/Rows*.lean`,
-`Names*.lean`): every row's encoding's size, the table's literal less its array and `Term.val`
+`Names*.lean`): every row's encoding's size, the table's literal less its array and `Term.literal`
 (`Cost/DecoderSize.lean`). -/
 
 namespace LeanVM.Cost.Decoder

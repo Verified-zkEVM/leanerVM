@@ -46,16 +46,16 @@ open LeanVM.Extraction
 
 /-- The lanes of the powers `g^j`, `j < 2^64 − 1`, are distinct. -/
 theorem lane_gpow_inj {i j : ℕ} (hi : i < 2 ^ 64 - 1) (hj : j < 2 ^ 64 - 1)
-    (h : (gpow i).lane = (gpow j).lane) : i = j :=
+    (h : (addressOfIndex i).lane = (addressOfIndex j).lane) : i = j :=
   gpow_injOn hi hj (K.lane_injective h)
 
 /-- An index built from `g^i` past the indices whose lane is `k` reads `k` from where it started. -/
 theorem powIndexFrom_of_not {k : UInt64} :
-    ∀ (n i : ℕ) (m : Std.HashMap UInt64 ℕ), (∀ j, i ≤ j → j < i + n → (gpow j).lane ≠ k) →
-      (powIndexFrom n i (gpow i) m)[k]? = m[k]?
+    ∀ (n i : ℕ) (m : Std.HashMap UInt64 ℕ), (∀ j, i ≤ j → j < i + n → (addressOfIndex j).lane ≠ k) →
+      (powIndexFrom n i (addressOfIndex i) m)[k]? = m[k]?
   | 0, _, _, _ => rfl
   | n + 1, i, m, h => by
-    rw [powIndexFrom, show gpow i * g = gpow (i + 1) from (pow_succ g i).symm,
+    rw [powIndexFrom, show addressOfIndex i * g = addressOfIndex (i + 1) from (pow_succ g i).symm,
       powIndexFrom_of_not n (i + 1) _ fun j hj hj' ↦ h j (by omega) (by omega),
       Std.HashMap.getElem?_insert]
     split
@@ -66,10 +66,10 @@ theorem powIndexFrom_of_not {k : UInt64} :
 /-- An index built over `[i, i + n)`, below `2^64 − 1`, maps the lane of `g^j` to `j`. -/
 theorem powIndexFrom_of_mem :
     ∀ (n i : ℕ) (m : Std.HashMap UInt64 ℕ) {j : ℕ}, i + n ≤ 2 ^ 64 - 1 → i ≤ j → j < i + n →
-      (powIndexFrom n i (gpow i) m)[(gpow j).lane]? = some j
+      (powIndexFrom n i (addressOfIndex i) m)[(addressOfIndex j).lane]? = some j
   | 0, _, _, _, _, h₁, h₂ => absurd h₂ (by omega)
   | n + 1, i, m, j, hn, h₁, h₂ => by
-    rw [powIndexFrom, show gpow i * g = gpow (i + 1) from (pow_succ g i).symm]
+    rw [powIndexFrom, show addressOfIndex i * g = addressOfIndex (i + 1) from (pow_succ g i).symm]
     rcases h₁.lt_or_eq with h₁ | rfl
     · exact powIndexFrom_of_mem n (i + 1) _ (by omega) (by omega) (by omega)
     · rw [powIndexFrom_of_not n (i + 1) _ fun j' hj hj' hl ↦ by
@@ -79,25 +79,25 @@ theorem powIndexFrom_of_mem :
 /-- **The index lookup is `addressIndex?`** on at most `2^63` words. -/
 theorem gLogIn_powIndex {κ : ℕ} (hκ : κ < 64) (a : K) : gLogIn (powIndex κ) κ a = addressIndex? κ a := by
   have hb : 2 ^ κ ≤ 2 ^ 63 := Nat.pow_le_pow_right (by norm_num) (by omega)
-  by_cases h : ∃ i : Fin (2 ^ κ), a = gpow i
+  by_cases h : ∃ i : Fin (2 ^ κ), a = addressOfIndex i
   · obtain ⟨i, rfl⟩ := h
     rw [(gLog?_spec hκ).mpr rfl, gLogIn, powIndex,
-      show (1 : K) = gpow 0 from (pow_zero g).symm,
+      show (1 : K) = addressOfIndex 0 from (pow_zero g).symm,
       powIndexFrom_of_mem _ 0 _ (by omega) (Nat.zero_le _) (by omega)]
     simp [i.isLt]
   · rw [gLog?_eq_none_iff.mpr fun i hi ↦ h ⟨i, hi⟩, gLogIn, powIndex,
-      show (1 : K) = gpow 0 from (pow_zero g).symm,
+      show (1 : K) = addressOfIndex 0 from (pow_zero g).symm,
       powIndexFrom_of_not _ 0 _ fun j _ hj hl ↦ h ⟨⟨j, by omega⟩, (K.lane_injective hl).symm⟩,
       Std.HashMap.getElem?_empty]
 
 /-! ## 2. The step and the run -/
 
 /-- The bytecode's address space is within `addressIndex?`'s. -/
-theorem logSize_lt (prog : Program) : prog.logSize < 64 :=
+theorem logSize_lt (prog : LeanIsaProgram) : prog.logSize < 64 :=
   lt_of_le_of_lt prog.logSize_le (by decide)
 
 /-- **The step through the indices is `step`.** -/
-theorem stepIn_powIndex {prog : Program} {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) (r : Registers K) :
+theorem stepIn_powIndex {prog : LeanIsaProgram} {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) (r : Registers K) :
     stepIn (powIndex κ) (powIndex prog.logSize) prog L r = step prog L r := by
   have hread : (fun a ↦ (gLogIn (powIndex κ) κ a).map L) = L.read :=
     funext fun a ↦ by rw [gLogIn_powIndex hκ]; rfl
@@ -108,7 +108,7 @@ theorem stepIn_powIndex {prog : Program} {κ : ℕ} (hκ : κ < 64) (L : MemoryI
 
 section Search
 
-variable {prog : Program} {κ : ℕ} {L : MemoryImage κ}
+variable {prog : LeanIsaProgram} {κ : ℕ} {L : MemoryImage κ}
 
 /-- From the final state, a run reaches the final state only in zero steps. -/
 theorem run_final_eq_iff {d : ℕ} :
@@ -202,14 +202,14 @@ theorem haltingRun_eq_some_iff {t : Execution prog} :
 
 /-- The steps of `haltingRun`'s execution are those of any halting run. -/
 theorem haltingRun_steps {t : Execution prog} (ht : haltingRun prog L = some t) {n : ℕ}
-    (hn : run prog L n Registers.initial = some (Registers.final prog)) : t.steps = n := by
+    (hn : run prog L n Registers.initial = some (Registers.final prog)) : t.stepCount = n := by
   obtain ⟨m, rfl, hm⟩ := haltingRun_eq_some_iff.mp ht
   exact run_final_unique hm hn
 
 /-- What the capped search returns is the image, with the number of steps it found. -/
 theorem haltingRunC_eq_some {cap : ℕ} {t : Execution prog} (h : haltingRunC prog L cap = some t) :
-    t = ⟨κ, L, t.steps⟩ ∧
-      haltLoop (powIndex κ) (powIndex prog.logSize) prog L cap 0 Registers.initial = some t.steps := by
+    t = ⟨κ, L, t.stepCount⟩ ∧
+      haltLoop (powIndex κ) (powIndex prog.logSize) prog L cap 0 Registers.initial = some t.stepCount := by
   dsimp only [haltingRunC, haltingRunIn] at h
   obtain ⟨n, hn, rfl⟩ := Option.map_eq_some_iff.mp h
   exact ⟨rfl, hn⟩
@@ -224,7 +224,7 @@ theorem haltingRunC_eq_some_iff (hκ : κ < 64) {cap : ℕ} {t : Execution prog}
     obtain ⟨ht, hl⟩ := haltingRunC_eq_some h
     obtain ⟨d, hd, hcap, hrun⟩ := (haltLoop_eq_some_iff hS cap 0 _ _).mp hl
     rw [Nat.zero_add] at hd
-    exact ⟨t.steps, ht, hd ▸ hcap, hd ▸ hrun⟩
+    exact ⟨t.stepCount, ht, hd ▸ hcap, hd ▸ hrun⟩
   · rintro ⟨n, rfl, hcap, hrun⟩
     dsimp only [haltingRunC, haltingRunIn]
     rw [(haltLoop_eq_some_iff hS cap 0 _ n).mpr ⟨n, (Nat.zero_add n).symm, hcap, hrun⟩]
@@ -243,14 +243,14 @@ end Search
 /-! ## 4. The boundary and a candidate's execution -/
 
 /-- **The Boolean boundary is `HoldsPublicInput`.** -/
-theorem boundaryOK_iff {prog : Program} (input : PublicInput) (t : Execution prog) :
+theorem boundaryOK_iff {prog : LeanIsaProgram} (input : PublicInput) (t : Execution prog) :
     boundaryOK input t = true ↔ HoldsPublicInput input t := by
   unfold boundaryOK HoldsPublicInput
   split_ifs with h
   · have hκ : t.logMemorySize < 64 := by have := h.2; unfold maxLogMem at this; omega
     have h1 : 1 < 2 ^ t.logMemorySize := Nat.one_lt_two_pow (by unfold minLogMem at h; omega)
-    rw [show gpow 0 = gpow ((⟨0, Nat.two_pow_pos t.logMemorySize⟩ : Fin (2 ^ t.logMemorySize)) : ℕ) from rfl,
-      show gpow 1 = gpow ((⟨1, h1⟩ : Fin (2 ^ t.logMemorySize)) : ℕ) from rfl,
+    rw [show addressOfIndex 0 = addressOfIndex ((⟨0, Nat.two_pow_pos t.logMemorySize⟩ : Fin (2 ^ t.logMemorySize)) : ℕ) from rfl,
+      show addressOfIndex 1 = addressOfIndex ((⟨1, h1⟩ : Fin (2 ^ t.logMemorySize)) : ℕ) from rfl,
       MemoryImage.read_gpow hκ, MemoryImage.read_gpow hκ]
     simp only [Bool.and_eq_true, decide_eq_true_eq, Option.some.injEq]
     exact ⟨fun h' ↦ ⟨h.1, h.2, h'⟩, fun h' ↦ h'.2.2⟩
@@ -259,7 +259,8 @@ theorem boundaryOK_iff {prog : Program} (input : PublicInput) (t : Execution pro
 
 /-- A candidate's execution is the capped halting run of its memory image, filtered by the
 boundary. -/
-theorem candidateExecution_eq {prog : Program} (input : PublicInput) (layout : Verifier.Layout)
+theorem candidateExecution_eq {prog : LeanIsaProgram} (input : PublicInput) (layout :
+    Verifier.Layout)
     {μ : ℕ} (q : Vector K (2 ^ μ)) :
     candidateExecution prog input layout q =
       (haltingRunC prog (memoryImage layout q) (stepCap layout)).filter (boundaryOK input) :=
@@ -267,7 +268,8 @@ theorem candidateExecution_eq {prog : Program} (input : PublicInput) (layout : V
 
 /-- **A candidate's execution is valid**, for every candidate: the boundary bounds the memory, so
 the search's addresses and run are the specification's. -/
-theorem candidateExecution_valid {prog : Program} {input : PublicInput} {layout : Verifier.Layout}
+theorem candidateExecution_valid {prog : LeanIsaProgram} {input : PublicInput} {layout :
+    Verifier.Layout}
     {μ : ℕ} {q : Vector K (2 ^ μ)} {t : Execution prog}
     (h : candidateExecution prog input layout q = some t) :
     ValidExecution prog input t := by
@@ -285,7 +287,7 @@ theorem candidateExecution_valid {prog : Program} {input : PublicInput} {layout 
 
 /-- **A stack's execution, with the extractor's indices, is valid**: with the indices of the
 memory's and the bytecode's address spaces, it is `candidateExecution`. -/
-theorem candidateExecutionIn_valid {prog : Program} {input : PublicInput}
+theorem candidateExecutionIn_valid {prog : LeanIsaProgram} {input : PublicInput}
     {layout : Verifier.Layout} {μ : ℕ} {q : Vector K (2 ^ μ)} {t : Execution prog}
     (h : candidateExecutionIn (powIndex layout.logMemory) (powIndex prog.logSize) prog input
       layout q = some t) :
@@ -296,7 +298,7 @@ theorem candidateExecutionIn_valid {prog : Program} {input : PublicInput}
 
 section Repeat
 
-variable {prog : Program}
+variable {prog : LeanIsaProgram}
 
 /-- **A halting run never repeats a state**: from a repeated state the run would reach the final
 state before its end, where it halts. -/

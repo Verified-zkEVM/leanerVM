@@ -40,8 +40,8 @@ theorem plain41_leafOk : Stmt.leafOkList (plainLoad 4) Data.core257.body = true 
   decide +kernel
 
 theorem plain_loads {n : ℕ} {σ : Val} {es : List Ev} (h : ∀ e ∈ es, EvLeafOk (plainLoad n) e) :
-    ∀ A ∈ loadAddrs σ es, (∃ off < 2 * n, A = (σ (.n 7)).limb 0 * Parameters.gpow off) ∨
-      (∃ off < n, A = (σ (.n 9)).limb 0 * Parameters.gpow off) := by
+    ∀ A ∈ loadAddrs σ es, (∃ off < 2 * n, A = (σ (.n 7)).limb 0 * Parameters.addressOfIndex off) ∨
+      (∃ off < n, A = (σ (.n 9)).limb 0 * Parameters.addressOfIndex off) := by
   intro A hA
   obtain ⟨e, he, hea⟩ := List.mem_filterMap.mp hA
   have hok := h e he

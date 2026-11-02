@@ -13,7 +13,7 @@ numbers, with the axioms each depends on.
 open LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol.LeanIsa LeanVM
 open LeanVM.Protocol.KeccakHash
 
-example (prog : Program) (input : PublicInput) (proof : LeanVM.Protocol.Compile.Proof) :
+example (prog : LeanIsaProgram) (input : PublicInput) (proof : LeanVM.Protocol.Compile.Proof) :
     verify prog input proof = Id.run (verifierWithHash (m := Id) keccak256 keccakF1600 prog input proof) :=
   rfl
 
@@ -26,7 +26,7 @@ example {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
 
 /-- The adversary chooses the statement: a fixed statement is the special case of an adversary
 that outputs it. -/
-example (prog : Program) (input : PublicInput) (P : OracleComp KeccakCalls LeanVM.Protocol.Compile.Proof) {Q : ℕ}
+example (prog : LeanIsaProgram) (input : PublicInput) (P : OracleComp KeccakCalls LeanVM.Protocol.Compile.Proof) {Q : ℕ}
     (hP : P.IsTotalQueryBound Q) :
     Pr{let z ← experiment ((fun proof ↦ ((prog, input), proof)) <$> P)}[Breaks extractor z] ≤
       soundnessError Q :=

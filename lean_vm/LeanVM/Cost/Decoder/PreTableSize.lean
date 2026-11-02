@@ -30,7 +30,7 @@ public section
 /-- **The table's size**: `5129`. -/
 theorem preTable_size : (encodeValue preTable).size = 5129 := by
   -- an array's encoding maps `Array.map`, whose body the kernel does not see here: by its list
-  show (MachineValue.arr (preTable.map encodeValue)).size = 5129
+  show (MachineValue.array (preTable.map encodeValue)).size = 5129
   rw [MachineValue.size, Array.toList_map]
   decide +kernel
 

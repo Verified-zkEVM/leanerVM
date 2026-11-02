@@ -42,7 +42,7 @@ namespace LeanVM.Parameters
 @[expose] public section
 
 /-- Distinct opcodes have distinct codes. -/
-theorem Opcode.code_injective : Function.Injective Opcode.code := by
+theorem Opcode.code_injective : Function.Injective Opcode.busCode := by
   intro a b h
   cases a <;> cases b <;> first | rfl | exact absurd h (by decide +kernel)
 

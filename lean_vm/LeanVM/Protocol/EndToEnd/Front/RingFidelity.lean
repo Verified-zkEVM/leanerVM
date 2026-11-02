@@ -243,7 +243,7 @@ theorem qkOf_eq_qkAt (layout : Verifier.Layout) (q : Column layout.stackLog) :
 offset aligned to its size, inside the stack. -/
 structure RingLayoutHyp (layout : Verifier.Layout) (h off : ℕ) : Prop where
   /-- `q_keccak`'s placement: `h + 6` variables at `off`. -/
-  placement : layout.placement qkeccak = { vars := h + 6, index := off }
+  placement : layout.placement qkeccak = { variableCount := h + 6, index := off }
   /-- The offset is aligned to the block's size. -/
   aligned : 2 ^ (h + 6) ∣ off
   /-- The block lies inside the stack. -/
@@ -266,7 +266,7 @@ theorem eqEval_boolPoint_eqAt : ∀ (p : List E) (y : ℕ), eqEval p (boolPoint 
 equality weight of the offset inside it. -/
 theorem eqAbove_mul_eqEval_boolPoint {v off μ x : ℕ} (hfit : off + 2 ^ v ≤ 2 ^ μ) (hx : x < 2 ^ μ)
     (p : List E) (hp : p.length = v) :
-    ({ vars := v, index := off } : Placement).eqAbove (boolPoint μ x) *
+    ({ variableCount := v, index := off } : Placement).eqAbove (boolPoint μ x) *
         eqEval p ((boolPoint μ x).take v) =
       if x / 2 ^ v = off / 2 ^ v then eqAt p (x % 2 ^ v) else 0 := by
   have hv : v ≤ μ := by
@@ -287,12 +287,13 @@ theorem eqAbove_mul_eqEval_boolPoint {v off μ x : ℕ} (hfit : off + 2 ^ v ≤ 
 /-- **A sum over the stack weighted by an aligned placement** is the sum over the block. -/
 theorem sum_placed {v off μ : ℕ} (hal : 2 ^ v ∣ off) (hfit : off + 2 ^ v ≤ 2 ^ μ) (p : List E)
     (hp : p.length = v) (q : Column μ) :
-    ∑ x : Fin (2 ^ μ), ({ vars := v, index := off } : Placement).eqAbove (boolPoint μ x) *
+    ∑ x : Fin (2 ^ μ), ({ variableCount := v, index := off } : Placement).eqAbove (boolPoint μ x) *
         eqEval p ((boolPoint μ x).take v) * ofK (q.values.getD x 0) =
       ∑ n ∈ Finset.range (2 ^ v), eqAt p n * ofK (qkAt off q n) := by
   obtain ⟨t, rfl⟩ := hal
   have hpos := Nat.two_pow_pos v
-  rw [Fin.sum_univ_eq_sum_range (fun x ↦ ({ vars := v, index := 2 ^ v * t } : Placement).eqAbove
+  rw [Fin.sum_univ_eq_sum_range (fun x ↦ ({ variableCount := v, index := 2 ^ v * t } :
+      Placement).eqAbove
     (boolPoint μ x) * eqEval p ((boolPoint μ x).take v) * ofK (q.values.getD x 0))]
   have hsub : Finset.Ico (2 ^ v * t) (2 ^ v * t + 2 ^ v) ⊆ Finset.range (2 ^ μ) := fun x hx ↦ by
     simp only [Finset.mem_Ico] at hx
@@ -322,7 +323,8 @@ theorem sum_placed {v off μ : ℕ} (hal : 2 ^ v ∣ off) (hfit : off + 2 ^ v �
 `q_keccak` placed on `h + 6` variables at an aligned `off`, the pairing of the program's ring
 claim is `Σ_i x^i Φ(ẑ_i(point))`. -/
 theorem pair_ringClaim {layout : Verifier.Layout} {h off μ : ℕ}
-    (hpl : layout.placement qkeccak = { vars := h + 6, index := off }) (hal : 2 ^ (h + 6) ∣ off)
+    (hpl : layout.placement qkeccak = { variableCount := h + 6, index := off }) (hal : 2 ^ (h +
+        6) ∣ off)
     (hfit : off + 2 ^ (h + 6) ≤ 2 ^ μ) (q : Column μ) {pt ch : List E}
     (hpt : pt.length = h + 6) (hch : ch.length = 6) (target : E) :
     ∑ x : Fin (2 ^ μ), (ringSwitchClaim layout target
@@ -333,7 +335,8 @@ theorem pair_ringClaim {layout : Verifier.Layout} {h off μ : ℕ}
     Finset.sum_mul]
   rw [Finset.sum_comm]
   have e : ∀ k ∈ Finset.range 64,
-      ∑ x : Fin (2 ^ μ), ({ vars := h + 6, index := off } : Placement).eqAbove (boolPoint μ x) *
+      ∑ x : Fin (2 ^ μ), ({ variableCount := h + 6, index := off } : Placement).eqAbove
+          (boolPoint μ x) *
           ((ringCoefficients ch).getD k 0 *
             eqEval (pt.map (· ^ 2 ^ k)) ((boolPoint μ x).take (h + 6))) *
           ofK (q.values.getD x 0) =
@@ -354,7 +357,8 @@ def ringErr (h : ℕ) (col : ℕ → K) (pt sv : List E) (i : Fin 64) : E :=
 /-- **The ring claim holds exactly when the errors' twisted sum vanishes**: for the program's
 target and weight, the claim on a stack holds iff `Σ_i x^i Φ(s_i - ẑ_i(point)) = 0`. -/
 theorem ringClaim_holds_iff {layout : Verifier.Layout} {h off μ : ℕ}
-    (hpl : layout.placement qkeccak = { vars := h + 6, index := off }) (hal : 2 ^ (h + 6) ∣ off)
+    (hpl : layout.placement qkeccak = { variableCount := h + 6, index := off }) (hal : 2 ^ (h +
+        6) ∣ off)
     (hfit : off + 2 ^ (h + 6) ≤ 2 ^ μ) (q : Column μ) {pt sv ch : List E}
     (hpt : pt.length = h + 6) (hsv : sv.length = 64) (hch : ch.length = 6) :
     StackClaim.Holds μ (ringSwitchClaim layout (polyEval (sv.map (phiMap · ch)) gen)
@@ -370,7 +374,7 @@ theorem ringClaim_holds_iff {layout : Verifier.Layout} {h off μ : ℕ}
 
 /-- **The verifier's layout places `q_keccak` as ring switching needs**: on `τ_KECCAK + 6`
 variables at its block's offset, aligned and inside the stack. -/
-theorem ringLayoutHyp_verifierLayout (prog : Program) (s : Sizes) :
+theorem ringLayoutHyp_verifierLayout (prog : LeanIsaProgram) (s : Sizes) :
     RingLayoutHyp (verifierLayout prog s) (s.τ 5) ((blocks prog s).offset (keccakBlock prog s)) where
   placement := placement_qkeccak prog s
   aligned := by

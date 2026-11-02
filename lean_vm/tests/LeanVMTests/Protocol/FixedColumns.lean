@@ -55,16 +55,16 @@ example (z : Vector E 2) : eval₂Mle (idxColumn 2).values (algebraMap K E) z =
 /-! ## The bytecode column -/
 
 /-- A public fixture with two different opcodes. -/
-def fixedColumnProgram : Program where
+def fixedColumnProgram : LeanIsaProgram where
   logSize := 1
   logSize_le := by decide
-  code i := if i.val = 0 then .xor 1 1 1 else .mulNative 1 1 1
+  instructions i := if i.val = 0 then .xor 1 1 1 else .mulNative 1 1 1
 
 -- The cell of instruction `i` and slot 3 holds the opcode; slot 15 is spare.
 #guard (bytecodeColumn fixedColumnProgram).values[
-    cubeIndex (k := 1) (m := 4) (0 : Fin 2) (3 : Fin 16)] = Opcode.xor.code
+    cubeIndex (k := 1) (m := 4) (0 : Fin 2) (3 : Fin 16)] = Opcode.xor.busCode
 #guard (bytecodeColumn fixedColumnProgram).values[
-    cubeIndex (k := 1) (m := 4) (1 : Fin 2) (3 : Fin 16)] = Opcode.mulNative.code
+    cubeIndex (k := 1) (m := 4) (1 : Fin 2) (3 : Fin 16)] = Opcode.mulNative.busCode
 #guard (List.finRange 2).all fun i ↦
   (bytecodeColumn fixedColumnProgram).values[cubeIndex (k := 1) (m := 4) i (15 : Fin 16)] = 0
 
@@ -75,17 +75,17 @@ example : eval₂Mle (bytecodeColumn fixedColumnProgram).values (algebraMap K E)
 
 -- Instruction bit 1 selects the second instruction; slot 3 has bits (1,1,0,0).
 #guard fixedColumnAnswer (bytecodeColumn fixedColumnProgram)
-    ((#v[1] : Vector E 1) ++ (#v[1, 1, 0, 0] : Vector E 4)) = ofK Opcode.mulNative.code
+    ((#v[1] : Vector E 1) ++ (#v[1, 1, 0, 0] : Vector E 4)) = ofK Opcode.mulNative.busCode
 -- Reversing the slot bits selects spare slot 12 and must not return the opcode.
 #guard fixedColumnAnswer (bytecodeColumn fixedColumnProgram)
     ((#v[1] : Vector E 1) ++ (#v[0, 0, 1, 1] : Vector E 4)) = 0
 #guard fixedColumnAnswer (bytecodeColumn fixedColumnProgram)
-    ((#v[1] : Vector E 1) ++ (#v[0, 0, 1, 1] : Vector E 4)) ≠ ofK Opcode.mulNative.code
+    ((#v[1] : Vector E 1) ++ (#v[0, 0, 1, 1] : Vector E 4)) ≠ ofK Opcode.mulNative.busCode
 
 -- The same cube point written with the index and the slot: instruction 1, slot 3.
 #guard fixedColumnAnswer (bytecodeColumn fixedColumnProgram)
     ((boolVec (1 : Fin (2 ^ 1)) : Vector E 1) ++ (boolVec (m := 4) (3 : Fin 16) : Vector E 4)) =
-  ofK Opcode.mulNative.code
+  ofK Opcode.mulNative.busCode
 
 -- The native evaluator agrees with the oracle at a point outside `K` and off the cube.
 #guard fixedColumnAnswer (bytecodeColumn fixedColumnProgram)
@@ -97,13 +97,13 @@ example : eval₂Mle (bytecodeColumn fixedColumnProgram).values (algebraMap K E)
   bytecodeColumnEval fixedColumnProgram #v[y] #v[1, y, y ^ 2, y + 1]
 
 /-- With no instruction bits, the public program contains exactly one instruction. -/
-def singletonColumnProgram : Program where
+def singletonColumnProgram : LeanIsaProgram where
   logSize := 0
   logSize_le := by decide
-  code _ := .xor 1 1 1
+  instructions _ := .xor 1 1 1
 
 #guard fixedColumnAnswer (bytecodeColumn singletonColumnProgram)
-    ((#v[] : Vector E 0) ++ (#v[1, 1, 0, 0] : Vector E 4)) = ofK Opcode.xor.code
+    ((#v[] : Vector E 0) ++ (#v[1, 1, 0, 0] : Vector E 4)) = ofK Opcode.xor.busCode
 #guard fixedColumnAnswer (bytecodeColumn singletonColumnProgram)
     ((#v[] : Vector E 0) ++ (#v[1, 1, 1, 1] : Vector E 4)) = 0
 
@@ -116,10 +116,10 @@ example (w : Vector E 4) : eval₂Mle (bytecodeColumn singletonColumnProgram).va
 /-- Sixteen instructions of the six kinds, with the distinct operands `K.ofBits 1` to
 `K.ofBits 58` in order of appearance (the two `KECCAK`s' output operands `K.ofBits 59` and
 `K.ofBits 60`), the three `DEREF` modes, and both `KECCAK` layout-flag pairs. -/
-def sixteen : Program where
+def sixteen : LeanIsaProgram where
   logSize := 4
   logSize_le := by decide
-  code := ![
+  instructions := ![
     .xor (K.ofBits 1) (K.ofBits 2) (K.ofBits 3),
     .mulNative (K.ofBits 4) (K.ofBits 5) (K.ofBits 6),
     .setConstant (K.ofBits 7) (E.ofLimbs (K.ofBits 8) (K.ofBits 9) (K.ofBits 10)),
@@ -144,10 +144,12 @@ def zeroSlot : List K := List.replicate 16 0
 
 /-- Slot 3, the opcodes, one per instruction. -/
 def opcodeSlot : List K :=
-  [Opcode.xor.code, Opcode.mulNative.code, Opcode.setConstant.code, Opcode.deref.code,
-    Opcode.jump.code, Opcode.keccak.code, Opcode.deref.code, Opcode.deref.code, Opcode.xor.code,
-    Opcode.mulNative.code, Opcode.setConstant.code, Opcode.jump.code, Opcode.keccak.code,
-    Opcode.xor.code, Opcode.mulNative.code, Opcode.jump.code]
+  [Opcode.xor.busCode, Opcode.mulNative.busCode, Opcode.setConstant.busCode, Opcode.deref.busCode,
+    Opcode.jump.busCode, Opcode.keccak.busCode, Opcode.deref.busCode, Opcode.deref.busCode,
+        Opcode.xor.busCode,
+    Opcode.mulNative.busCode, Opcode.setConstant.busCode, Opcode.jump.busCode,
+        Opcode.keccak.busCode,
+    Opcode.xor.busCode, Opcode.mulNative.busCode, Opcode.jump.busCode]
 
 /-- Slot 4, the first operand of every instruction. -/
 def slot4 : List K :=
@@ -204,7 +206,7 @@ def rustTable : List K :=
 -- Mutation: the instruction-major layout, the sixteen slots of each instruction in turn, is
 -- another table.
 #guard (bytecodeColumn sixteen).values.toList ≠
-  (List.finRange 16).flatMap fun i ↦ (encodeSlots (sixteen.code i)).toList
+  (List.finRange 16).flatMap fun i ↦ (instructionSlots (sixteen.instructions i)).toList
 
 end
 end LeanVMTests.Protocol

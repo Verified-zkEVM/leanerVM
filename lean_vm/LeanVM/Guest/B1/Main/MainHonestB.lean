@@ -88,7 +88,7 @@ structure MainGoalsTB (p : MainPreds) (b : MainBs) : Prop where
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
         (hm fs fp seed s w).a406, (hm fs fp seed s w).aDa,
-        (digestScalars (hm fs fp seed s w).seed).1, (digestScalars (hm fs fp seed s w).seed).2,
+        (digestHalves (hm fs fp seed s w).seed).1, (digestHalves (hm fs fp seed s w).seed).2,
         (hm fs fp seed s w).a394, (hm fs fp seed s w).et1, (hm fs fp seed s w).et2,
         (hm fs fp seed s w).a400] (Returns []) p.T5 b.B5
 
@@ -137,8 +137,8 @@ theorem main_honest_relAtInTB {SB SK : String → ℕ} {p : MainPreds} {b : Main
       Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
       ∀ rd, LowDef 16 rd → B1.Main.MemL rd L →
-        LoadHolds rd 1 0 (digestScalars (statementDigest seed s)).1 →
-        LoadHolds rd gen 0 (digestScalars (statementDigest seed s)).2 →
+        LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1 →
+        LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (hm fs fp seed s w) ∧
             KidsT (mCalls σ (hm fs fp seed s w)) ((fun _ => True) :: mTs (hm fs fp seed s w) p) ks ∧

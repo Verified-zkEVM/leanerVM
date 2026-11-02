@@ -89,7 +89,7 @@ theorem atom_holds_agree : ∀ (a : Atom), a.Holds rd0 σ →
       ⟨⟨h.1.1, (he _ List.mem_cons_self).trans h.1.2⟩, h.2.1,
         ⟨h.2.2.1, (he _ (List.mem_cons_of_mem _ List.mem_cons_self)).trans h.2.2.2⟩⟩
   | .frameAddr p run, h, he => ⟨h.1, fun k hk w hw => h.2 k hk w <| by
-      have hm : ((σ p).limb 0 * gpow k, σ run[k]) ∈ atomEqns σ (.frameAddr p run) :=
+      have hm : ((σ p).limb 0 * addressOfIndex k, σ run[k]) ∈ atomEqns σ (.frameAddr p run) :=
         List.mem_mapIdx.mpr ⟨k, hk, rfl⟩
       exact (he _ hm).symm.trans hw⟩
   | .const .., h, _ => h
@@ -271,8 +271,8 @@ def Tree.ReadsAs : ℕ → Tree → Prop
   | fp, t@(.node f σ _ kids) =>
       (∀ a, Ev.atom a ∈ t.events P → atomTmps a = [] → ∀ q ∈ atomEqns σ a, rd q.1 = rd0 q.1) ∧
       (∀ x y t1 t2 k, Ev.atom (.rangeCheck x y t1 t2 k) ∈ t.events P →
-        rd ((σ x).limb 0 * gpow 0) = some (ν fp f σ t1) ∧
-          rd ((σ y).limb 0 * gpow 0) = some (ν fp f σ t2)) ∧
+        rd ((σ x).limb 0 * addressOfIndex 0) = some (ν fp f σ t1) ∧
+          rd ((σ y).limb 0 * addressOfIndex 0) = some (ν fp f σ t2)) ∧
       Tree.ReadsAsKids (kidPos fs P.loop fp f t.bufs (kids.map (Tree.total fs))) kids
   | _, .phantom .. => True
 
@@ -290,8 +290,8 @@ theorem readsAs_node {fp : ℕ} {f : String} {σ : Val} {bufs : List ℕ} {kids 
       (∀ a, Ev.atom a ∈ (Tree.node f σ bufs kids).events P → atomTmps a = [] →
         ∀ q ∈ atomEqns σ a, rd q.1 = rd0 q.1) ∧
       (∀ x y t1 t2 k, Ev.atom (.rangeCheck x y t1 t2 k) ∈ (Tree.node f σ bufs kids).events P →
-        rd ((σ x).limb 0 * gpow 0) = some (ν fp f σ t1) ∧
-          rd ((σ y).limb 0 * gpow 0) = some (ν fp f σ t2)) ∧
+        rd ((σ x).limb 0 * addressOfIndex 0) = some (ν fp f σ t1) ∧
+          rd ((σ y).limb 0 * addressOfIndex 0) = some (ν fp f σ t2)) ∧
       Tree.ReadsAsKids P fs ν rd rd0 (kidPos fs P.loop fp f bufs (kids.map (Tree.total fs))) kids := by
   rw [Tree.ReadsAs]; rfl
 
@@ -320,8 +320,8 @@ theorem events_holds_retemp (hF : P.Fresh) {fn : Fn} {f : String} (hf : P.find? 
     (hes : ∀ e ∈ es, e.Holds rd0 σ)
     (hna : ∀ a, Ev.atom a ∈ es → atomTmps a = [] → ∀ q ∈ atomEqns σ a, rd q.1 = rd0 q.1)
     (hrc : ∀ x y t1 t2 k, Ev.atom (.rangeCheck x y t1 t2 k) ∈ es →
-      rd ((σ x).limb 0 * gpow 0) = some (ν fp f σ t1) ∧
-        rd ((σ y).limb 0 * gpow 0) = some (ν fp f σ t2)) :
+      rd ((σ x).limb 0 * addressOfIndex 0) = some (ν fp f σ t1) ∧
+        rd ((σ y).limb 0 * addressOfIndex 0) = some (ν fp f σ t2)) :
     ∀ e ∈ es, e.Holds rd (retempVal P ν fp f σ) := by
   have hag := evAgree_retemp (ν := ν) hF hf (fp := fp) hw
   intro e he
@@ -583,7 +583,8 @@ theorem eq_of_nodup_flatMap {α β : Type} {g : α → List β} : ∀ {l : List 
 /-- A range check on the path of `f` under `σ` reads the temporary `t` at `A`. -/
 def RcRead (P : Core.Program) (f : String) (σ : Val) (t : V) (A : K) : Prop :=
   ∃ x y t1 t2 k, Ev.atom (.rangeCheck x y t1 t2 k) ∈ (Tree.node f σ [] []).events P ∧
-    ((t = t1 ∧ A = (σ x).limb 0 * gpow 0) ∨ (t = t2 ∧ A = (σ y).limb 0 * gpow 0))
+    ((t = t1 ∧ A = (σ x).limb 0 * addressOfIndex 0) ∨ (t = t2 ∧ A = (σ y).limb 0 *
+        addressOfIndex 0))
 
 theorem events_eq_node {f : String} {σ : Val} {bufs bufs' : List ℕ} {ks ks' : List Tree} :
     (Tree.node f σ bufs ks).events P = (Tree.node f σ bufs' ks').events P := rfl
@@ -648,7 +649,7 @@ the temporaries read from it. -/
 theorem readsAs_nuRead (hF : P.Fresh) (hdef : ∀ A, (rd0 A).isSome → (rd A).isSome) :
     ∀ (t : Tree) (R : ℕ → Prop) (fp : ℕ) {args rets : List E}, t.Valid P rd0 args rets →
     t.Placed P fs cert fp → t.LoadsIn P fs cert R fp →
-    (∀ i, R i ∨ t.Data P fs cert fp i → rd (gpow i) = rd0 (gpow i)) →
+    (∀ i, R i ∨ t.Data P fs cert fp i → rd (addressOfIndex i) = rd0 (addressOfIndex i)) →
     t.ReadsAs P fs (nuRead P rd) rd rd0 fp
   | .node f σ bufs kids, R, fp, _, _, ⟨fn, hf, _, es, vs, hw, _, hes, hk⟩, hp, hl, hag => by
       have hev : (Tree.node f σ bufs kids).events P = es := events_node hf hw
@@ -659,7 +660,7 @@ theorem readsAs_nuRead (hF : P.Fresh) (hdef : ∀ A, (rd0 A).isSome → (rd A).i
       · cases a with
         | load d p off =>
             rw [List.mem_singleton.mp hq]
-            obtain ⟨i, hi, hd⟩ := hl.1 ((σ p).limb 0 * gpow off) (List.mem_filterMap.mpr ⟨_, ha, rfl⟩)
+            obtain ⟨i, hi, hd⟩ := hl.1 ((σ p).limb 0 * addressOfIndex off) (List.mem_filterMap.mpr ⟨_, ha, rfl⟩)
             simp only
             rw [hi]
             exact hag i hd.symm
@@ -670,9 +671,11 @@ theorem readsAs_nuRead (hF : P.Fresh) (hdef : ∀ A, (rd0 A).isSome → (rd A).i
             | cons r rs =>
                 have hpv := hp.1.2 (p, r) (List.mem_filterMap.mpr ⟨_, ha, rfl⟩)
                 simp only at hpv hk ⊢
-                rw [hpv, show (ofK (gpow (fp + cert f r))).limb 0 = gpow (fp + cert f r) by simp,
-                  show gpow (fp + cert f r) * gpow k = gpow (fp + cert f r + k) by
-                    simp only [gpow, pow_add]]
+                rw [hpv, show (ofK (addressOfIndex (fp + cert f r))).limb 0 = addressOfIndex (fp +
+                    cert f r) by simp,
+                  show addressOfIndex (fp + cert f r) * addressOfIndex k = addressOfIndex (fp + cert
+                      f r + k) by
+                    simp only [addressOfIndex, pow_add]]
                 refine hag _ (Or.inr (data_node.mpr (Or.inl (Or.inr ⟨(r, rs.length + 1),
                   by rw [hev]; exact List.mem_filterMap.mpr ⟨_, ha, rfl⟩, ?_, ?_⟩))))
                 · simp only; omega
@@ -708,7 +711,7 @@ theorem readsAsKids_nuRead (hF : P.Fresh) (hdef : ∀ A, (rd0 A).isSome → (rd 
     ∀ (ks : List Tree) (σ : Val) (cs : List Call) (R : ℕ → Prop) (ps : List ℕ),
     Tree.KidsValid P rd0 σ cs ks → Tree.PlacedKids P fs cert ps ks →
     Tree.LoadsInKids P fs cert R ps ks →
-    (∀ i, R i ∨ Tree.DataKids P fs cert ps ks i → rd (gpow i) = rd0 (gpow i)) →
+    (∀ i, R i ∨ Tree.DataKids P fs cert ps ks i → rd (addressOfIndex i) = rd0 (addressOfIndex i)) →
     Tree.ReadsAsKids P fs (nuRead P rd) rd rd0 ps ks
   | [], _, _, _, ps, _, _, _, _ => by cases ps <;> (rw [Tree.ReadsAsKids]; trivial)
   | _ :: _, _, _, _, [], _, _, _, _ => by rw [Tree.ReadsAsKids]; trivial
@@ -733,7 +736,7 @@ wherever it is: its temporaries re-read, it keeps everything else. -/
 theorem transfer (hF : P.Fresh) (hdef : ∀ A, (rd0 A).isSome → (rd A).isSome) {t : Tree}
     {R : ℕ → Prop} {fp : ℕ} {args rets : List E} (hv : t.Valid P rd0 args rets)
     (hp : t.Placed P fs cert fp) (hl : t.LoadsIn P fs cert R fp)
-    (hag : ∀ i, R i ∨ t.Data P fs cert fp i → rd (gpow i) = rd0 (gpow i)) :
+    (hag : ∀ i, R i ∨ t.Data P fs cert fp i → rd (addressOfIndex i) = rd0 (addressOfIndex i)) :
     (t.retemp P fs (nuRead P rd) fp).name = t.name ∧
       (t.retemp P fs (nuRead P rd) fp).Valid P rd args rets ∧
       (t.BufsOk P → (t.retemp P fs (nuRead P rd) fp).BufsOk P) ∧
@@ -750,7 +753,7 @@ theorem relAtIn_transfer (hF : P.Fresh) {t : Tree} {R D : ℕ → Prop} {fp : �
     {args rets : List E} (hn : t.name = f) (hv : t.Valid P rd0 args rets) (hb : t.BufsOk P)
     (hp : t.Placed P fs cert fp) (hl : t.LoadsIn P fs cert R fp)
     (hD : ∀ i, D i → t.Data P fs cert fp i) (rd : Reader)
-    (hag : ∀ i, R i ∨ t.Data P fs cert fp i → rd (gpow i) = rd0 (gpow i))
+    (hag : ∀ i, R i ∨ t.Data P fs cert fp i → rd (addressOfIndex i) = rd0 (addressOfIndex i))
     (hdef : ∀ A, (rd0 A).isSome → (rd A).isSome) :
     RelAtIn P fs cert rd R D fp (t.total fs) f args rets := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := transfer (rd := rd) hF hdef hv hp hl hag
@@ -816,7 +819,7 @@ end
 on any reader agreeing with `rd0` on `R` and defined wherever it is, at any frame pointer. -/
 theorem relAtIn_uniform_pure (hF : P.Fresh) (hS : P.PureIn S) {g : String} (hg : g ∈ S)
     {R : ℕ → Prop} {args rets : List E} (h : P.RelIn rd0 R g args rets) :
-    ∃ n, ∀ (fp : ℕ) (rd : Reader), (∀ i, R i → rd (gpow i) = rd0 (gpow i)) →
+    ∃ n, ∀ (fp : ℕ) (rd : Reader), (∀ i, R i → rd (addressOfIndex i) = rd0 (addressOfIndex i)) →
       (∀ A, (rd0 A).isSome → (rd A).isSome) →
       RelAtIn P fs cert rd R (fun _ => False) fp n g args rets := by
   obtain ⟨t, hn, hv, hb, hl⟩ := h

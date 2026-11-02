@@ -71,7 +71,7 @@ def vsRetVars : List (List ℕ) :=
 
 /-- **The oracle**: an allocation's pointer, a callee's return. -/
 noncomputable def vsW (bs : List ℕ) (outs : List (List E × Main.Layout)) (n : ℕ) : E :=
-  if n ∈ vsAllocVars then ofK (gpow (bs.getD (vsAllocVars.idxOf n) 0))
+  if n ∈ vsAllocVars then ofK (addressOfIndex (bs.getD (vsAllocVars.idxOf n) 0))
   else (outs.getD (vsRetVars.findIdx (n ∈ ·)) ([], [])).1.getD
     ((vsRetVars.getD (vsRetVars.findIdx (n ∈ ·)) []).idxOf n) 0
 
@@ -79,7 +79,7 @@ theorem vsAllocVars_idx : ∀ i < 16, vsAllocVars.getD i 0 ∈ vsAllocVars ∧
     vsAllocVars.idxOf (vsAllocVars.getD i 0) = i := by decide
 
 theorem vsW_alloc (bs : List ℕ) (outs : List (List E × Main.Layout)) {i : ℕ} (hi : i < 16) :
-    vsW bs outs (vsAllocVars.getD i 0) = ofK (gpow (bs.getD i 0)) := by
+    vsW bs outs (vsAllocVars.getD i 0) = ofK (addressOfIndex (bs.getD i 0)) := by
   obtain ⟨h1, h2⟩ := vsAllocVars_idx i hi
   simp only [vsW, h1, ↓reduceIte, h2]
 

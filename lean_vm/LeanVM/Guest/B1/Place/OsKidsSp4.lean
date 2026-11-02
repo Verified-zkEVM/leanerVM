@@ -27,9 +27,9 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
 
-theorem readsAt_shift {rd : Reader} {a : ℕ} {xs : List E} (h : ReadsAt rd (ofK (Parameters.gpow a)) xs)
+theorem readsAt_shift {rd : Reader} {a : ℕ} {xs : List E} (h : ReadsAt rd (ofK (Parameters.addressOfIndex a)) xs)
     {k m : ℕ} (hk : k + m < xs.length) :
-    LoadHolds rd (ofK (Parameters.gpow (a + k))) m (xs[k + m]'hk) := by
+    LoadHolds rd (ofK (Parameters.addressOfIndex (a + k))) m (xs[k + m]'hk) := by
   rw [← ofK_gpow_mul_gen, loadHolds_mul_gen_pow]
   exact h (k + m) hk
 
@@ -49,8 +49,8 @@ def osEb (fs : String → ℕ) (cert : String → V → ℕ) (c : OsCfg) (l p k 
 /-- **Level `l`'s bit pointers.** -/
 theorem osW_reads {b l p : ℕ} {rd : Reader} (hm : MemL rd (osW fs cert c b l p)) {k : ℕ}
     (hk : k < (lvAt c l).squeezes * (192 / (lvAt c l).depth)) :
-    LoadHolds rd (ofK (Parameters.gpow (osBase c b 8 + (lvAt c l).posOff))) k
-      (ofK (Parameters.gpow (osEb fs cert c l p k))) := by
+    LoadHolds rd (ofK (Parameters.addressOfIndex (osBase c b 8 + (lvAt c l).posOff))) k
+      (ofK (Parameters.addressOfIndex (osEb fs cert c l p k))) := by
   have := hm _ (List.mem_singleton_self _) k (by simpa using hk)
   simp only [List.getElem_map, List.getElem_range, osBp] at this
   rw [ofK_gpow_mul_gen] at this
@@ -73,7 +73,7 @@ theorem osS_mem {tr : OsTr} {l p j : ℕ} (hj : j < osSqN c l) :
 theorem osS_bits {tr : OsTr} {l p : ℕ} {rd : Reader} (hm : MemL rd (osS fs cert c tr l p)) {k : ℕ}
     (hk : k < (lvAt c l).squeezes * (192 / (lvAt c l).depth))
     {t : ℕ} (ht : t < (lvAt c l).depth) :
-    LoadHolds rd (ofK (Parameters.gpow (osEb fs cert c l p k))) t
+    LoadHolds rd (ofK (Parameters.addressOfIndex (osEb fs cert c l p k))) t
       (bitE ((eToNat (sqWJ ((tr.L l).F2.squeezeN 0).2.cap (k / (192 / (lvAt c l).depth)))).testBit
         ((k % (192 / (lvAt c l).depth)) * (lvAt c l).depth + t))) := by
   have hper : 1 ≤ 192 / (lvAt c l).depth := by

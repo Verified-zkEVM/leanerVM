@@ -42,7 +42,7 @@ theorem revealsIn_coordCostSource (digest : MessageDigest) (data : PublicData) (
   · exact revealsIn_pure _ _
 
 theorem revealsIn_finishRest (parameter : PublicParameter) (data : PublicData) (message : Message)
-    (randomness : Randomness) (digest : MessageDigest) :
+    (randomness : Randomizer) (digest : MessageDigest) :
     RevealsIn (D := HashInput) (R := HashOutput) (ForestOk digest)
       (finishRest parameter data message randomness digest) := by
   unfold finishRest
@@ -79,7 +79,7 @@ theorem no_reveals_of_false {α : Type} (computation : OracleComp CostSpec α)
   · exact absurd (interp_reveals tg initial model computation h budget state out hout c (by rw [hr]; simp)) id
 
 /-- A failed final assembly reveals nothing. -/
-theorem finishRest_none (randomness : Randomness) (digest : MessageDigest) (budget : ℕ)
+theorem finishRest_none (randomness : Randomizer) (digest : MessageDigest) (budget : ℕ)
     (state : DebtState HashInput HashOutput Coordinate)
     (out : Run HashInput Coordinate (Option Signature) × DebtState HashInput HashOutput Coordinate)
     (hout : out ∈ support (interp tg initial model (finishRest parameter data message randomness digest) budget state))
@@ -116,7 +116,7 @@ theorem finish_post (hparse : ∀ ρ, model.parse (blk parameter data message ρ
     (hfail : ∀ ρ digest budget (s1 : DebtState HashInput HashOutput Coordinate), Prepared initial s1 →
       ∀ out ∈ support (interp tg initial model (finishRest parameter data message ρ digest) budget s1),
         out.1.1 = some none → (Lifetime.localDigestView digest).1 ∈ Fail)
-    (ρ : Randomness) (budget : ℕ) (s1 : DebtState HashInput HashOutput Coordinate)
+    (ρ : Randomizer) (budget : ℕ) (s1 : DebtState HashInput HashOutput Coordinate)
     (hprep : Prepared initial s1) (u0 : HashOutput) (hc0 : s1.cache (blk parameter data message ρ) = some u0)
     (out : Run HashInput Coordinate (Option Signature) × DebtState HashInput HashOutput Coordinate)
     (hout : out ∈ support (interp tg initial model (finishCostSource parameter data message ρ) budget s1))
@@ -161,15 +161,15 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
   (parameter : PublicParameter) (data : PublicData) (message : Message)
 
 /-- One randomizer of the message: its block unchanged or a new rejected one. -/
-def RelatedAt (s s' : DebtState HashInput HashOutput Coordinate) (ρ : Randomness) : Prop :=
+def RelatedAt (s s' : DebtState HashInput HashOutput Coordinate) (ρ : Randomizer) : Prop :=
   s'.cache (blk parameter data message ρ) = s.cache (blk parameter data message ρ) ∨
     (s.cache (blk parameter data message ρ) = none ∧ ∃ u,
       s'.cache (blk parameter data message ρ) = some u ∧ ¬Landed parameter (blockIndex u))
 
-theorem RelatedAt.refl (s : DebtState HashInput HashOutput Coordinate) (ρ : Randomness) :
+theorem RelatedAt.refl (s : DebtState HashInput HashOutput Coordinate) (ρ : Randomizer) :
     RelatedAt parameter data message s s ρ := Or.inl rfl
 
-theorem RelatedAt.trans {s s' s'' : DebtState HashInput HashOutput Coordinate} {ρ : Randomness}
+theorem RelatedAt.trans {s s' s'' : DebtState HashInput HashOutput Coordinate} {ρ : Randomizer}
     (h : RelatedAt parameter data message s s' ρ) (h' : RelatedAt parameter data message s' s'' ρ) :
     RelatedAt parameter data message s s'' ρ := by
   rcases h' with h2 | ⟨h2n, u, hu, hnl⟩
@@ -181,7 +181,7 @@ theorem RelatedAt.trans {s s' s'' : DebtState HashInput HashOutput Coordinate} {
     · rw [hu1] at h2n; cases h2n
 
 /-- The selected pair of a completed signing call. -/
-def Selected (s s' : DebtState HashInput HashOutput Coordinate) (ρ : Randomness) (u0 : HashOutput) : Prop :=
+def Selected (s s' : DebtState HashInput HashOutput Coordinate) (ρ : Randomizer) (u0 : HashOutput) : Prop :=
   s'.cache (blk parameter data message ρ) = some u0 ∧ Landed parameter (blockIndex u0) ∧
   (s.cache (blk parameter data message ρ) = none ∨ s.cache (blk parameter data message ρ) = some u0) ∧
   ∀ ρ', ρ' ≠ ρ → RelatedAt parameter data message s s' ρ'

@@ -33,7 +33,7 @@ open Air.Flat (Component EnsembleWitness Ensemble)
 
 @[expose] public section
 
-variable {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)}
+variable {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ prog s)}
   {w : EnsembleWitness (leanIsaEnsemble prog)}
 
 /-! ## Facts of the opcode components -/

@@ -51,8 +51,9 @@ end ChildSegs
 theorem vsH_termPre {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (bs : List ℕ) {rd : Reader} {e2 e120 e121 pb pb1 : ℕ}
     (hcpo : Main.MemL rd (Tables.cpOwn S.logMem S.hs e2 e120 e121))
-    (hpt : ReadsAt rd (ofK (gpow pb)) (S.w.point ++ List.replicate (B1.Whir.pointCap - S.μs) 0))
-    (hpt1 : ReadsAt rd (ofK (gpow pb1))
+    (hpt : ReadsAt rd (ofK (addressOfIndex pb)) (S.w.point ++ List.replicate (B1.Whir.pointCap -
+        S.μs) 0))
+    (hpt1 : ReadsAt rd (ofK (addressOfIndex pb1))
       (S.w.point.map (1 + ·) ++ List.replicate (B1.Whir.pointCap - S.μs) 1))
     (ht : Main.MemL rd (S.termLin bs)) :
     TermPre rd S.layout S.bus S.claims ⟨qkeccak, S.op, S.word⟩ S.lam S.kpt (ringCoefficients S.rchs)
@@ -66,29 +67,30 @@ theorem vsH_termPre {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed :
   obtain ⟨-, hopl, hkpl, -, -⟩ := S.runK' hbl
   have hwl : S.w.point.length = S.layout.stackLog := S.w_point_length
   -- the terminal's words
-  have hm : ∀ q ∈ S.termLin bs, ReadsAt rd (ofK (gpow q.1)) q.2 := ht
-  have mZ : ReadsAt rd (ofK (gpow (vb bs 7))) S.point := hm (vb bs 7, S.point) (by simp [ChildSegs.termLin])
-  have mC : ReadsAt rd (ofK (gpow (vb bs 10))) S.chis := hm (vb bs 10, S.chis) (by simp [ChildSegs.termLin])
-  have mP : ReadsAt rd (ofK (gpow (vb bs 1))) S.H.cplenW := hm (vb bs 1, S.H.cplenW) (by simp [ChildSegs.termLin])
-  have mL : ReadsAt rd (ofK (gpow (vb bs 15))) (lamW S.lam) := hm (vb bs 15, lamW S.lam) (by simp [ChildSegs.termLin])
-  have mV : ReadsAt rd (ofK (gpow (vb bs 11))) (zvW S.op S.kpt) := hm (vb bs 11, zvW S.op S.kpt) (by simp [ChildSegs.termLin])
-  have mT : ReadsAt rd (ofK (gpow (vb bs 14))) (ringCoefficients S.rchs) :=
+  have hm : ∀ q ∈ S.termLin bs, ReadsAt rd (ofK (addressOfIndex q.1)) q.2 := ht
+  have mZ : ReadsAt rd (ofK (addressOfIndex (vb bs 7))) S.point := hm (vb bs 7, S.point) (by simp [ChildSegs.termLin])
+  have mC : ReadsAt rd (ofK (addressOfIndex (vb bs 10))) S.chis := hm (vb bs 10, S.chis) (by simp [ChildSegs.termLin])
+  have mP : ReadsAt rd (ofK (addressOfIndex (vb bs 1))) S.H.cplenW := hm (vb bs 1, S.H.cplenW) (by simp [ChildSegs.termLin])
+  have mL : ReadsAt rd (ofK (addressOfIndex (vb bs 15))) (lamW S.lam) := hm (vb bs 15, lamW S.lam) (by simp [ChildSegs.termLin])
+  have mV : ReadsAt rd (ofK (addressOfIndex (vb bs 11))) (zvW S.op S.kpt) := hm (vb bs 11, zvW S.op S.kpt) (by simp [ChildSegs.termLin])
+  have mT : ReadsAt rd (ofK (addressOfIndex (vb bs 14))) (ringCoefficients S.rchs) :=
     hm (vb bs 14, ringCoefficients S.rchs) (by simp [ChildSegs.termLin])
   -- `z_vals`
   have hopl39 : S.op.length ≤ 39 := by omega
   have mV' := Main.readsAt_append'.mp mV
-  have mOp : ReadsAt rd (ofK (gpow (vb bs 11))) S.op := readsAt_left mV'.1
-  have mKp : ReadsAt rd (ofK (gpow (vb bs 11)) * gen ^ qkeccakVarsCap) S.kpt := by
+  have mOp : ReadsAt rd (ofK (addressOfIndex (vb bs 11))) S.op := readsAt_left mV'.1
+  have mKp : ReadsAt rd (ofK (addressOfIndex (vb bs 11)) * gen ^ qkeccakVarsCap) S.kpt := by
     have := mV'.2
     rwa [List.length_append, List.length_replicate, show S.op.length + (39 - S.op.length) = 39 by
       omega] at this
   -- `certify_placement`'s buffers
   have hcpOut : Tables.cpOut S.logMem S.hs
       [gen ^ Tables.stackTotal (columnKappas S.logMem Tables.guestLogBytecode S.hs),
-        ofK (gpow e121), ofK (gpow e2)] (Tables.cpOwn S.logMem S.hs e2 e120 e121) :=
+        ofK (addressOfIndex e121), ofK (addressOfIndex e2)] (Tables.cpOwn S.logMem S.hs e2 e120
+            e121) :=
     ⟨e2, e120, e121, rfl, rfl⟩
   have hP := Tables.cp_out_ctx hcpOut hcpo
-  have mK : ReadsAt rd (ofK (gpow e2)) ((Tables.cpKs S.logMem S.hs).map (gen ^ ·)) :=
+  have mK : ReadsAt rd (ofK (addressOfIndex e2)) ((Tables.cpKs S.logMem S.hs).map (gen ^ ·)) :=
     hcpo (e2, (Tables.cpKs S.logMem S.hs).map (gen ^ ·)) (by simp [Tables.cpOwn])
   have hK28 := committed_le28 hbl S.stack28
   -- the bus point
@@ -105,7 +107,7 @@ theorem vsH_termPre {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed :
     mT, hwl, ?_, ?_⟩
   · rw [logBytecode_eq hbl]; exact hP
   · obtain ⟨k, hk, hl⟩ : ∃ k, k = (Tables.cpKs S.logMem S.hs).getD c 0 ∧
-        LoadHolds rd (ofK (gpow e2)) c (gen ^ k) := by
+        LoadHolds rd (ofK (addressOfIndex e2)) c (gen ^ k) := by
       refine ⟨_, rfl, ?_⟩
       have hcl : c < (Tables.cpKs S.logMem S.hs).length := by
         rw [Tables.cpKs, Tables.committedKappas_length _ (Tables.columnKappas_length _ _ _)]

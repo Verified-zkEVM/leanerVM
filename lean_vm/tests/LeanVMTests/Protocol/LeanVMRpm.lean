@@ -12,7 +12,7 @@ open LeanVM.Semantics LeanVM
 
 example {A : RandomPermutationAdversary} {Q : ℕ} (hA : Common.QueryCostAtMost A Common.permutationCallCost Q)
     (hQ : Q ≤ 2 ^ 128) :
-    Pr{let z ← soundnessExperiment A}[z.accepted = true ∧
+    Pr{let z ← knowledgeSoundnessExperiment A}[z.accepted = true ∧
       ¬ ∃ t, transcriptExtractor z.program z.input z.transcript z.proof = some t ∧
         ValidExecution z.program z.input t] ≤
       (Q + 2 ^ 14 : ENNReal) * (2 : ENNReal)⁻¹ ^ 128 +

@@ -209,7 +209,7 @@ theorem execute_keccak_eq_some_iff {κ : ℕ} (mem : MemoryImage κ) (r : Regist
     (otail ob8 ocap oout : K) (inOdd outOdd : Bool) (next : Registers K) :
     execute mem r (.keccak om otail ob8 ocap oout inOdd outOdd) = some next ↔
       ∃ input output : Fin 13 → E,
-        (∀ c, mem.read (r.fp * keccakInOffset om otail ob8 ocap c) = some (input c)) ∧
+        (∀ c, mem.read (r.fp * keccakInputCellOffset om otail ob8 ocap c) = some (input c)) ∧
         (∀ c : Fin 13, mem.read (r.fp * (g ^ c.val * oout)) = some (output c)) ∧
         KeccakCellsRelation input inOdd output outOdd ∧ next = r.next := by
   simp only [execute, executeWith, Option.bind_eq_bind, Option.bind_eq_some_iff]

@@ -2,7 +2,8 @@ import Sphincs.Scheme
 
 /-! Byte encoding and domain separation; adapted from leanVM b7a107256. -/
 namespace SphincsLayered
-theorem bytesLE_injective {n : Nat} {x y : BitVec (8 * n)} (h : bytesLE n x = bytesLE n y) :
+theorem bytesLE_injective {n : Nat} {x y : BitVec (8 * n)} (h : littleEndianBytes n x =
+    littleEndianBytes n y) :
     x = y := by
   have hfun := List.ofFn_inj.mp h
   apply BitVec.eq_of_getLsbD_eq
@@ -17,8 +18,8 @@ theorem bytesLE_injective {n : Nat} {x y : BitVec (8 * n)} (h : bytesLE n x = by
   have hsum : 8 * (i / 8) + i % 8 = i := by omega
   simpa [hmod, hsum] using hlsb
 
-theorem bytesLE_length (n : Nat) (x : BitVec (8 * n)) : (bytesLE n x).length = n := by
-  simp [bytesLE]
+theorem bytesLE_length (n : Nat) (x : BitVec (8 * n)) : (littleEndianBytes n x).length = n := by
+  simp [littleEndianBytes]
 
 /-- A bit vector determines the natural it encodes, below the wrap. -/
 theorem ofNat_inj_of_lt {w a b : Nat} (ha : a < 2 ^ w) (hb : b < 2 ^ w)
@@ -40,10 +41,10 @@ theorem bitVec_append_inj {n m : Nat} {a a' : BitVec n} {b b' : BitVec m}
     simpa [BitVec.getLsbD_append, hi] using this
 
 /-- The 16 address bytes determine the type, the step and the two fields. -/
-theorem fieldBytes_injective {t1 t2 : TweakFields} (h : fieldBytes t1 = fieldBytes t2) : t1 = t2 := by
+theorem fieldBytes_injective {t1 t2 : TweakFields} (h : addressBytes t1 = addressBytes t2) : t1 = t2 := by
   obtain ⟨tag1, step1, hi1, lo1⟩ := t1
   obtain ⟨tag2, step2, hi2, lo2⟩ := t2
-  simp only [fieldBytes] at h
+  simp only [addressBytes] at h
   obtain ⟨h, _⟩ := List.append_inj' h (by simp [bytesLE_length])
   obtain ⟨h, htag⟩ := List.append_inj' h (by simp [bytesLE_length])
   obtain ⟨hlo, hhi⟩ := List.append_inj' h (by simp [bytesLE_length])

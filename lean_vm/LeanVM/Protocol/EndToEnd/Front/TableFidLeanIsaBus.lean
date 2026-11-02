@@ -80,7 +80,7 @@ theorem constraints_opIdx_length :
     ∀ t : Fin 6, (LeanIsa.constraints (opIdx t)).length = if t = 4 then 2 else 0 := by
   decide +kernel
 
-variable (prog : Program) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
+variable (prog : LeanIsaProgram) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
 
 /-- The opcode tables are sumcheck tables. -/
 theorem sumcheckTable_opIdx (t : Fin 6) : (leanIsaWith prog s fl).SumcheckTable (opIdx t) :=
@@ -167,7 +167,7 @@ theorem pyPlacements_eqAbove (sizes : List ℕ) (i : ℕ) (hi : i < (pyPlacement
     ((pyPlacements sizes)[i]).eqAbove p = Complete.blockSel sizes p.length i p := by
   have hi' : i < sizes.length := by rwa [length_pyPlacements] at hi
   rw [show (pyPlacements sizes)[i] =
-      { vars := sizes.getD i 0, index := Complete.blockOffset sizes i }
+      { variableCount := sizes.getD i 0, index := Complete.blockOffset sizes i }
     from Complete.getElem_busPlacements sizes i hi', Complete.eqAbove_aligned]
   rfl
 
@@ -288,7 +288,7 @@ theorem flatMap_finRange_nine {X : Type} (g : Fin 9 → List X) :
 
 section Sides
 
-variable (prog : Program) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
+variable (prog : LeanIsaProgram) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
 
 variable (fl) in
 /-- Opcode table `t` among the instance's tables. -/
@@ -433,7 +433,7 @@ theorem blockVal_eq_wsum (β : E) (w : List E) (b : BusBlock) (col : ℕ → E)
 
 section Forms
 
-variable (prog : Program) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
+variable (prog : LeanIsaProgram) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
   (α : Fin 4 → E) (β : E)
 
 variable (fl) in
@@ -544,7 +544,7 @@ theorem side_sum_eq {X : Type} (L : List X) (κ : X → ℕ) (G : X → E) (fw :
 
 section FormLists
 
-variable (prog : Program) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
+variable (prog : LeanIsaProgram) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
   (β : E)
 
 /-- A list of zeros as a constant map. -/
@@ -621,7 +621,7 @@ end FormLists
 
 section SideLists
 
-variable (prog : Program) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
+variable (prog : LeanIsaProgram) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
   (β : E)
 
 /-- The push side's blocks. -/
@@ -683,7 +683,7 @@ end SideLists
 
 section PyForms
 
-variable (prog : Program) (s : Sizes)
+variable (prog : LeanIsaProgram) (s : Sizes)
 
 /-- The bus phase's result on what it read is the tail of `verify_bus_balance` on those reads. -/
 theorem result_eq_busOut (L : Verifier.Layout) (w : BusWit) :
@@ -762,7 +762,7 @@ end PyForms
 
 section FormEq
 
-variable (prog : Program) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
+variable (prog : LeanIsaProgram) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
   (input : PublicInput)
 
 variable (fl) in
@@ -867,27 +867,28 @@ theorem sum_map_one {X : Type} (sel : ℕ → E) (L : List X) :
 
 /-- The state channels' separator is `g⁰`. -/
 theorem channelSep_state :
-    Arithmetization.channelSep Arithmetization.StatePush.toRaw = Parameters.gpow 0 ∧
-      Arithmetization.channelSep Arithmetization.StatePull.toRaw = Parameters.gpow 0 := by
+    Arithmetization.channelSep Arithmetization.StatePush.toRaw = Parameters.addressOfIndex 0 ∧
+      Arithmetization.channelSep Arithmetization.StatePull.toRaw = Parameters.addressOfIndex 0 := by
   decide +kernel
 
 /-- The memory channels' separator is `g¹`. -/
 theorem channelSep_mem :
-    Arithmetization.channelSep Arithmetization.MemPush.toRaw = Parameters.gpow 1 ∧
-      Arithmetization.channelSep Arithmetization.MemPull.toRaw = Parameters.gpow 1 := by
+    Arithmetization.channelSep Arithmetization.MemPush.toRaw = Parameters.addressOfIndex 1 ∧
+      Arithmetization.channelSep Arithmetization.MemPull.toRaw = Parameters.addressOfIndex 1 := by
   decide +kernel
 
 /-- The bytecode channels' separator is `g²`. -/
 theorem channelSep_bytecode :
-    Arithmetization.channelSep Arithmetization.BytecodePush.toRaw = Parameters.gpow 2 ∧
-      Arithmetization.channelSep Arithmetization.BytecodePull.toRaw = Parameters.gpow 2 := by
+    Arithmetization.channelSep Arithmetization.BytecodePush.toRaw = Parameters.addressOfIndex 2 ∧
+      Arithmetization.channelSep Arithmetization.BytecodePull.toRaw = Parameters.addressOfIndex
+          2 := by
   decide +kernel
 
 /-! ## The boundary blocks' fingerprints -/
 
 section Boundary
 
-variable (prog : Program) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
+variable (prog : LeanIsaProgram) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
 
 variable (fl) in
 /-- A boundary block's value at the low coordinates of a point, as the verifier has it. -/
@@ -1090,7 +1091,7 @@ theorem bnd_pull (w : BusWit) (ha : w.alphas.length = 4) (hm : w.memory.length =
     sum_coords_dot prog s (fl := fl) ha _ _ (by simp)]
   simp only [List.cons.injEq, and_true, CharTwo.sub_eq_add]
   refine ⟨congrArg (w.beta + ·) ?_, congrArg (w.beta + ·) ?_, congrArg (w.beta + ·) ?_⟩
-  · simp [Bus.coordValue, channelSep_state.2, sepState, Verifier.gpow, Program.pcFinal,
+  · simp [Bus.coordValue, channelSep_state.2, sepState, Verifier.gpow, LeanIsaProgram.pcFinal,
       Complete.ofK_gpow]
     rfl
   · simp [Bus.coordValue, channelSep_mem.2, v0, v1, v2, v3, sepMem,
@@ -1107,7 +1108,7 @@ end Boundary
 
 section Padding
 
-variable (prog : Program) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
+variable (prog : LeanIsaProgram) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
 
 /-- The Python's padding term of a block (`padding_rows`, `verifier.py:638`): the padding weight of
 its owner's rows times its form at the owner's padding row, plus one. -/
@@ -1332,7 +1333,7 @@ theorem accumulateSide_snd_eq (forms : List (List Form)) (side : ℕ) (fw : List
 
 section Totals
 
-variable (prog : Program) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
+variable (prog : LeanIsaProgram) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
   (input : PublicInput)
 
 /-- A block's low point is the vector of the point's first coordinates. -/

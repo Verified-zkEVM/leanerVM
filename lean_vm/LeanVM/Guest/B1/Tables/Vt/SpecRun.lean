@@ -30,12 +30,13 @@ open LeanVM.Protocol.EndToEnd.Complete (termsPure)
 @[expose] public section
 
 /-- A program that keeps every state and returns `a`. -/
-theorem vt_runsTo_const {α : Type} {p : Prog α} {a : α} (h : ∀ st, runId p st = some (a, st))
+theorem vt_runsTo_const {α : Type} {p : VerifierProgram α} {a : α} (h : ∀ st, runId p st = some
+    (a, st))
     (s : Fs) : RunsTo p s [] a s :=
   fun sp hs rest os roots ↦ ⟨sp, hs, by rw [List.nil_append]; exact h _⟩
 
 /-- The bytecode's value. -/
-theorem vt_runsTo_bytecode {ev : (List K → List E → Prog E)} {words : List K} {point : List E} {v : E}
+theorem vt_runsTo_bytecode {ev : (List K → List E → VerifierProgram E)} {words : List K} {point : List E} {v : E}
     (h : BytecodeAt ev words point v) (s : Fs) : RunsTo (ev words point) s [] v s :=
   vt_runsTo_const h s
 

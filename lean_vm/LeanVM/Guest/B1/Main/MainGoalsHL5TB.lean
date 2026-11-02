@@ -261,9 +261,11 @@ theorem l5_stepAtTB (SB : String → ℕ)
         [(.n 16, 0), (.n 42, 0), (.n 42, 1), (.n 48, 0), (.n 49, 1), (.n 57, 1)] from rfl] at hA
     simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
     rw [hal]
-    have hW' : ∀ e, (gen ^ W * gen ^ c).limb 0 * gpow e = gpow (W + c + e) := fun e => by
+    have hW' : ∀ e, (gen ^ W * gen ^ c).limb 0 * addressOfIndex e = addressOfIndex (W + c + e) :=
+        fun e => by
       rw [← pow_add, limb0_gen_pow_mul]
-    have hsq : ∀ B e, (gen ^ B * (gen ^ c * gen ^ c)).limb 0 * gpow e = gpow (B + 2 * c + e) :=
+    have hsq : ∀ B e, (gen ^ B * (gen ^ c * gen ^ c)).limb 0 * addressOfIndex e = addressOfIndex (B
+        + 2 * c + e) :=
       fun B e => by rw [gen_sq', ← pow_add, limb0_gen_pow_mul]
     rcases hA with rfl | rfl | rfl | rfl | rfl | rfl
     · refine ⟨W + c + 0, ?_, Or.inr (Or.inl rW0)⟩
@@ -337,9 +339,9 @@ variable {fs cert}
 def VerifySubGoalsTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) (Pvs : ℕ → Tree → Prop) (Bv : ℕ → ℕ) : Prop :=
   ∀ c (hc : c < w.children.length), CompleteAtDTB fs cert 16 "verify_sub" (hLmain fs fp seed s w)
-    [(digestScalars (statementDigest seed w.children[c].statement)).1,
-      (digestScalars (statementDigest seed w.children[c].statement)).2,
-      (digestScalars seed).1, (digestScalars seed).2, (hm fs fp seed s w).et1,
+    [(digestHalves (statementDigest seed w.children[c].statement)).1,
+      (digestHalves (statementDigest seed w.children[c].statement)).2,
+      (digestHalves seed).1, (digestHalves seed).2, (hm fs fp seed s w).et1,
       (hm fs fp seed s w).et2, (hm fs fp seed s w).a400 * gen ^ (24 * c)] (Returns []) (Pvs c) (Bv c)
 
 theorem VerifySubGoalsTB.toT {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
@@ -364,7 +366,7 @@ def MainGoalL5TB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) 
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
         (hm fs fp seed s w).a406, (hm fs fp seed s w).aDa,
-        (digestScalars (hm fs fp seed s w).seed).1, (digestScalars (hm fs fp seed s w).seed).2,
+        (digestHalves (hm fs fp seed s w).seed).1, (digestHalves (hm fs fp seed s w).seed).2,
         (hm fs fp seed s w).a394, (hm fs fp seed s w).et1, (hm fs fp seed s w).et2,
         (hm fs fp seed s w).a400] (Returns []) T5 B5
 

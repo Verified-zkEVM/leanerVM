@@ -35,8 +35,8 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## Checks -/
 
 theorem runsTo_require {c : Prop} [Decidable c] (h : c) (s : Fs) :
-    RunsTo (Prog.require c) s [] () s := by
-  simp only [Prog.require, h, ↓reduceIte]
+    RunsTo (VerifierProgram.require c) s [] () s := by
+  simp only [VerifierProgram.require, h, ↓reduceIte]
   exact runsTo_ret () s
 
 /-! ## The pack rounds -/
@@ -52,7 +52,7 @@ def packRunF : List E → List (E × E) → E → E → Fs → (E × E × List E
   | _, _, v, sc, s => ((v, sc, []), s)
 
 theorem runsTo_readN2 (s : Fs) (a b : E) :
-    RunsTo (Prog.readScalars 2) s [a, b] [a, b] (s.absorbAll [a, b] dsObserve) :=
+    RunsTo (VerifierProgram.readScalars 2) s [a, b] [a, b] (s.absorbAll [a, b] dsObserve) :=
   runsTo_readN s [a, b]
 
 theorem runsTo_packRounds :
@@ -65,7 +65,7 @@ theorem runsTo_packRounds :
     have hmsg : RunsTo (sumcheckRoundPoly 3 v (some r)) s [g1, g2]
         [v + r * sumE [g1, g2], g1, g2] (s.absorbAll [g1, g2] dsObserve) := by
       have := (runsTo_readN2 s g1 g2).bind (f := fun tail ↦ (pure ((v + r * sumE tail) :: tail) :
-        Prog (List E))) (runsTo_ret _ _)
+        VerifierProgram (List E))) (runsTo_ret _ _)
       simpa [sumcheckRoundPoly] using this
     set q := (s.absorbAll [g1, g2] dsObserve).squeeze with hq
     have hs := runsTo_sampleE (s.absorbAll [g1, g2] dsObserve)
@@ -73,21 +73,22 @@ theorem runsTo_packRounds :
     have hrest := runsTo_packRounds rs ms ((1 + r + q.1) *
         polyEval [v + r * sumE [g1, g2], g1, g2] q.1) (sc * (1 + r + q.1)) q.2 hl
     have key : keccakPackRounds (r :: rs) v sc = (sumcheckRoundPoly 3 v (some r) >>= fun message ↦
-        Prog.sampleChallenge >>= fun challenge ↦
+        VerifierProgram.sampleChallenge >>= fun challenge ↦
           keccakPackRounds rs ((1 + r + challenge) * polyEval message challenge)
             (sc * (1 + r + challenge)) >>= fun x ↦
-            (pure (x.1, x.2.1, challenge :: x.2.2) : Prog (E × E × List E))) := rfl
+            (pure (x.1, x.2.1, challenge :: x.2.2) : VerifierProgram (E × E × List E))) := rfl
     rw [key]
-    have h3 := hrest.bind (f := fun x ↦ (pure (x.1, x.2.1, q.1 :: x.2.2) : Prog (E × E × List E)))
+    have h3 := hrest.bind (f := fun x ↦ (pure (x.1, x.2.1, q.1 :: x.2.2) : VerifierProgram (E × E ×
+        List E)))
       (runsTo_ret _ _)
     have h2 := hs.bind (f := fun challenge ↦
       keccakPackRounds rs ((1 + r + challenge) * polyEval [v + r * sumE [g1, g2], g1, g2] challenge)
         (sc * (1 + r + challenge)) >>= fun x ↦
-        (pure (x.1, x.2.1, challenge :: x.2.2) : Prog (E × E × List E))) h3
-    have h1 := hmsg.bind (f := fun message ↦ Prog.sampleChallenge >>= fun challenge ↦
+        (pure (x.1, x.2.1, challenge :: x.2.2) : VerifierProgram (E × E × List E))) h3
+    have h1 := hmsg.bind (f := fun message ↦ VerifierProgram.sampleChallenge >>= fun challenge ↦
           keccakPackRounds rs ((1 + r + challenge) * polyEval message challenge)
             (sc * (1 + r + challenge)) >>= fun x ↦
-            (pure (x.1, x.2.1, challenge :: x.2.2) : Prog (E × E × List E))) h2
+            (pure (x.1, x.2.1, challenge :: x.2.2) : VerifierProgram (E × E × List E))) h2
     simpa [packRunF, ← hq] using h1
   | [], _ :: _, _, _, _, h | _ :: _, [], _, _, _, h => by simp at h
 
@@ -112,34 +113,37 @@ theorem runsTo_sumcheck4 :
         [c0, v + sumE [c2, c3], c2, c3] (s.absorbAll [c0, c2, c3] dsObserve) := by
       have h0 := runsTo_readE s c0
       have h1 := runsTo_readN (s.absorb c0 dsObserve) [c2, c3]
-      have h2 := h1.bind (f := fun tail ↦ (pure (c0 :: (v + sumE tail) :: tail) : Prog (List E)))
+      have h2 := h1.bind (f := fun tail ↦ (pure (c0 :: (v + sumE tail) :: tail) : VerifierProgram
+          (List E)))
         (runsTo_ret _ _)
-      have h3 := h0.bind (f := fun constant ↦ Prog.readScalars 2 >>= fun tail ↦
-        (pure (constant :: (v + sumE tail) :: tail) : Prog (List E))) h2
+      have h3 := h0.bind (f := fun constant ↦ VerifierProgram.readScalars 2 >>= fun tail ↦
+        (pure (constant :: (v + sumE tail) :: tail) : VerifierProgram (List E))) h2
       simpa [sumcheckRoundPoly, Fs.absorbAll] using h3
     set q := (s.absorbAll [c0, c2, c3] dsObserve).squeeze with hq
     have hs := runsTo_sampleE (s.absorbAll [c0, c2, c3] dsObserve)
     rw [← hq] at hs
     have hrest := runsTo_sumcheck4 ms (polyEval [c0, v + sumE [c2, c3], c2, c3] q.1) q.2
     have key : sumcheck v 4 (List.replicate ((c0, c2, c3) :: ms).length none) =
-        (sumcheckRoundPoly 4 v none >>= fun message ↦ Prog.sampleChallenge >>= fun challenge ↦
+        (sumcheckRoundPoly 4 v none >>= fun message ↦ VerifierProgram.sampleChallenge >>=
+            fun challenge ↦
           sumcheck (polyEval message challenge) 4 (List.replicate ms.length none) >>= fun x ↦
-            (pure (challenge :: x.1, x.2) : Prog (List E × E))) := rfl
+            (pure (challenge :: x.1, x.2) : VerifierProgram (List E × E))) := rfl
     rw [key]
-    have h3 := hrest.bind (f := fun x ↦ (pure (q.1 :: x.1, x.2) : Prog (List E × E)))
+    have h3 := hrest.bind (f := fun x ↦ (pure (q.1 :: x.1, x.2) : VerifierProgram (List E × E)))
       (runsTo_ret _ _)
     have h2 := hs.bind (f := fun challenge ↦
       sumcheck (polyEval [c0, v + sumE [c2, c3], c2, c3] challenge) 4
         (List.replicate ms.length none) >>= fun x ↦
-        (pure (challenge :: x.1, x.2) : Prog (List E × E))) h3
-    have h1 := hmsg.bind (f := fun message ↦ Prog.sampleChallenge >>= fun challenge ↦
+        (pure (challenge :: x.1, x.2) : VerifierProgram (List E × E))) h3
+    have h1 := hmsg.bind (f := fun message ↦ VerifierProgram.sampleChallenge >>= fun challenge ↦
           sumcheck (polyEval message challenge) 4 (List.replicate ms.length none) >>= fun x ↦
-            (pure (challenge :: x.1, x.2) : Prog (List E × E))) h2
+            (pure (challenge :: x.1, x.2) : VerifierProgram (List E × E))) h2
     simpa [localRunF, ← hq] using h1
 
 /-! ## The layer -/
 
-theorem RunsTo.bind_nil {α β : Type} {p : Prog α} {f : α → Prog β} {s s1 s2 : Fs} {ys : List E}
+theorem RunsTo.bind_nil {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {s s1 s2 :
+    Fs} {ys : List E}
     {a : α} {b : β} (h1 : RunsTo p s [] a s1) (h2 : RunsTo (f a) s1 ys b s2) :
     RunsTo (p >>= f) s ys b s2 := by
   simpa using h1.bind h2
@@ -201,7 +205,7 @@ theorem layer_runsTo (logSteps step : ℕ) (c : KeccakClaim) (s0 : Fs) (product 
         localMsgs.flatMap (fun m ↦ [m.1, m.2.1, m.2.2]) ++ [t.1, t.2.1, t.2.2])
       (layerClaim c s0 product packMsgs localMsgs t)
       (layerBeta c s0 product packMsgs localMsgs t).2 := by
-  have r1 : RunsTo (Prog.readScalars productBits) s0 product product (s0.absorbAll product dsObserve) :=
+  have r1 : RunsTo (VerifierProgram.readScalars productBits) s0 product product (s0.absorbAll product dsObserve) :=
     hp ▸ runsTo_readN s0 product
   have r3 := runsTo_packRounds c.point packMsgs (polyEval product (layerSq s0 product).1) 1
     (layerSq s0 product).2 hpm

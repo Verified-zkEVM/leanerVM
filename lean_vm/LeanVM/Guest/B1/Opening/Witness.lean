@@ -46,13 +46,14 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## Reading words -/
 
 /-- The memory's word at `p·g^off` (`0` where it has none). -/
-def memRead (rd : Reader) (p : E) (off : ℕ) : E := (rd (p.limb 0 * Parameters.gpow off)).getD 0
+def memRead (rd : Reader) (p : E) (off : ℕ) : E := (rd (p.limb 0 * Parameters.addressOfIndex
+    off)).getD 0
 
 /-- The `n` words of the run at `p`. -/
 def readN (rd : Reader) (p : E) (n : ℕ) : List E := (List.range n).map (memRead rd p)
 
 /-- The digest of two cells (the zero digest when they are not one's). -/
-def digestOfCells (a b : E) : Digest := (digestOfScalars (a, b)).getD (Vector.replicate 4 0)
+def digestOfCells (a b : E) : Digest := (digestFromHalves (a, b)).getD (Vector.replicate 4 0)
 
 /-- The position whose `D` bits the run at `bp` holds as `0`/`1` words. -/
 def posOf (rd : Reader) (bp : E) (D : ℕ) : ℕ := bitsVal (fun l ↦ decide (memRead rd bp l = 1)) D
@@ -99,17 +100,17 @@ def QueryOpensS (rd : Reader) (base I depth cd : ℕ) (cap flags wp : E) (q : �
     ∃ (w : ℕ → E) (pp : E),
       (∀ l < rowLo I + I / rowLo I, LoadHolds rd wp l (w l)) ∧
       IsInK pp ∧
-      (∀ k < 4 * (depth - cd), ∀ x, rd (pp.limb 0 * Parameters.gpow k) = some x →
+      (∀ k < 4 * (depth - cd), ∀ x, rd (pp.limb 0 * Parameters.addressOfIndex k) = some x →
         x = pathCell (merkleLeafDigest row) q sibs k) ∧
       (∀ l < depth - cd,
         LoadHolds rd (pp * gen ^ (if q.testBit l then 2 else 0)) (4 * l)
-          (digestScalars (climbNode (merkleLeafDigest row) q sibs l)).1 ∧
+          (digestHalves (climbNode (merkleLeafDigest row) q sibs l)).1 ∧
         LoadHolds rd (pp * gen ^ (if q.testBit l then 2 else 0)) (4 * l + 1)
-          (digestScalars (climbNode (merkleLeafDigest row) q sibs l)).2) ∧
+          (digestHalves (climbNode (merkleLeafDigest row) q sibs l)).2) ∧
       LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)))
-        (digestScalars (climbD (merkleLeafDigest row) q sibs)).1 ∧
+        (digestHalves (climbD (merkleLeafDigest row) q sibs)).1 ∧
       LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)) + 1)
-        (digestScalars (climbD (merkleLeafDigest row) q sibs)).2 ∧
+        (digestHalves (climbD (merkleLeafDigest row) q sibs)).2 ∧
       LoadHolds rd flags (2 ^ (cd - 1) + q / 2 ^ (depth - cd + 1)) 1 ∧
       d = rowDot base I row w
 

@@ -93,11 +93,12 @@ def whirCost (height : ℕ) : ℕ → List Whir.Level → ℕ
   | μ, [level] =>
     6 * level.fold + 2 ^ (μ - level.fold) + 5 +
       4 * queryRounds (μ - level.fold + level.logInvRate) level.queries + 4 +
-      Prog.openCost height level.queries + 2 + 6 * (μ - level.fold)
+      VerifierProgram.openCost height level.queries + 2 + 6 * (μ - level.fold)
   | μ, level :: next :: rest =>
     6 * level.fold + (5 + 4 * (μ - level.fold)) + 5 +
       4 * queryRounds (μ - level.fold + level.logInvRate) level.queries + 4 +
-      Prog.openCost height level.queries + 2 + whirCost height (μ - level.fold) (next :: rest)
+      VerifierProgram.openCost height level.queries + 2 + whirCost height (μ - level.fold) (next
+          :: rest)
 
 /-- Every commitment the WHIR levels read from a message of `μ` variables has height at most
 `height`. -/
@@ -156,30 +157,32 @@ variable {height : ℕ}
 
 /-- A pure step that may fail costs nothing, and returns what the option holds. -/
 theorem costs_liftOption {α : Type} (o : Option α) (n : ℕ) :
-    Prog.Costs height (liftOption o) n fun a ↦ o = some a := by
+    VerifierProgram.Costs height (liftOption o) n fun a ↦ o = some a := by
   cases o
   · trivial
   · rfl
 
 /-- A round polynomial of `count` coefficients reads `count - 1` of them (at least one). -/
 theorem costs_sumcheckRoundPoly (count : ℕ) (claim : E) (eq : Option E) :
-    Prog.Costs height (sumcheckRoundPoly count claim eq) (max count 2 - 1) fun _ ↦ True := by
+    VerifierProgram.Costs height (sumcheckRoundPoly count claim eq) (max count 2 - 1) fun _ ↦
+        True := by
   cases eq with
   | none =>
-    refine Prog.Costs.seq Prog.Costs.readE (fun _ _ ↦ Prog.Costs.seq (Prog.Costs.readN _)
+    refine VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦
+        VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _)
       (fun _ _ ↦ trivial) ?_) ?_ <;> omega
   | some r =>
-    exact Prog.Costs.seq (Prog.Costs.readN _) (fun _ _ ↦ trivial) (by omega)
+    exact VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _) (fun _ _ ↦ trivial) (by omega)
 
 /-- A sumcheck of `k` rounds costs `k · (max count 2 + 3)`, and returns `k` challenges. -/
 theorem costs_sumcheck (count : ℕ) : ∀ (claim : E) (eqs : List (Option E)),
-    Prog.Costs height (sumcheck claim count eqs) (eqs.length * (max count 2 + 3))
+    VerifierProgram.Costs height (sumcheck claim count eqs) (eqs.length * (max count 2 + 3))
       fun r ↦ r.1.length = eqs.length
   | _, [] => rfl
   | claim, e :: es => by
-    refine Prog.Costs.seq (costs_sumcheckRoundPoly count claim e) (fun msg _ ↦
-      Prog.Costs.seq Prog.Costs.sampleE (fun c _ ↦
-        Prog.Costs.seq (costs_sumcheck count _ es) (fun r hr ↦ ?_) ?_) ?_) ?_
+    refine VerifierProgram.Costs.seq (costs_sumcheckRoundPoly count claim e) (fun msg _ ↦
+      VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun c _ ↦
+        VerifierProgram.Costs.seq (costs_sumcheck count _ es) (fun r hr ↦ ?_) ?_) ?_) ?_
     · obtain ⟨point, final⟩ := r
       show (c :: point).length = (e :: es).length
       simpa using hr
@@ -188,15 +191,17 @@ theorem costs_sumcheck (count : ℕ) : ∀ (claim : E) (eqs : List (Option E)),
 /-! ## The bus -/
 
 theorem costs_gkrStep (step : ℕ) (s : GkrState) :
-    Prog.Costs height (gkrStep step s) (gkrStepCost step s.point.length)
+    VerifierProgram.Costs height (gkrStep step s) (gkrStepCost step s.point.length)
       fun t ↦ t.point.length = step + s.point.length := by
-  refine Prog.Costs.seq Prog.Costs.sampleE (fun _ _ ↦
-    Prog.Costs.seq (costs_sumcheck _ _ (s.point.map some)) (fun r hr ↦ ?_) ?_) ?_
+  refine VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun _ _ ↦
+    VerifierProgram.Costs.seq (costs_sumcheck _ _ (s.point.map some)) (fun r hr ↦ ?_) ?_) ?_
   · obtain ⟨x, claim⟩ := r
-    refine Prog.Costs.seq (Prog.Costs.readN _) (fun c0 _ ↦ Prog.Costs.seq (Prog.Costs.readN _)
-      (fun c1 _ ↦ Prog.Costs.seq (Prog.Costs.readN _) (fun c2 _ ↦
-        Prog.Costs.seq (Prog.Costs.require (n := 0) _) (fun _ _ ↦
-          Prog.Costs.seq (Prog.Costs.sampleN step) (fun y hy ↦ ?_) ?_) ?_) ?_) ?_) ?_
+    refine VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _) (fun c0 _ ↦
+        VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _)
+      (fun c1 _ ↦ VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _) (fun c2 _ ↦
+        VerifierProgram.Costs.seq (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦
+          VerifierProgram.Costs.seq (VerifierProgram.Costs.sampleN step) (fun y hy ↦ ?_) ?_) ?_)
+              ?_) ?_) ?_
     · show (y ++ x).length = step + s.point.length
       simp only [List.length_map] at hr
       simp [hy, hr]
@@ -205,25 +210,28 @@ theorem costs_gkrStep (step : ℕ) (s : GkrState) :
 
 /-- The GKR walk costs `gkrCost`. -/
 theorem costs_gkrLayers : ∀ (n : ℕ) (s : GkrState),
-    Prog.Costs height (gkrLayers n s) (gkrCost n s.point.length) fun _ ↦ True
+    VerifierProgram.Costs height (gkrLayers n s) (gkrCost n s.point.length) fun _ ↦ True
   | 0, _ => trivial
   | 1, s => by
-    refine Prog.Costs.seq (costs_gkrStep 1 s) (fun t ht ↦
+    refine VerifierProgram.Costs.seq (costs_gkrStep 1 s) (fun t ht ↦
       (costs_gkrLayers 0 t).mono (by simp [gkrCost]) fun _ h ↦ h) ?_
     simp only [gkrCost]; omega
   | n + 2, s => by
     simp only [gkrLayers, gkrCost]
     split
-    · refine Prog.Costs.seq (costs_gkrStep 1 s) (fun t ht ↦
+    · refine VerifierProgram.Costs.seq (costs_gkrStep 1 s) (fun t ht ↦
         (costs_gkrLayers (n + 1) t).mono (by rw [ht]; omega) fun _ h ↦ h) (by omega)
-    · refine Prog.Costs.seq (costs_gkrStep 2 s) (fun t ht ↦
+    · refine VerifierProgram.Costs.seq (costs_gkrStep 2 s) (fun t ht ↦
         (costs_gkrLayers n t).mono (by rw [ht]; omega) fun _ h ↦ h) (by omega)
 
 /-- The GKR grand products: the two roots and the walk. -/
 theorem costs_verifyGkrGrandProducts (depth : ℕ) :
-    Prog.Costs height (verifyGkrGrandProducts depth) (2 + gkrCost depth 0) fun _ ↦ True := by
-  refine Prog.Costs.seq Prog.Costs.readE (fun _ _ ↦ Prog.Costs.seq Prog.Costs.readE
-    (fun _ _ ↦ Prog.Costs.seq (costs_gkrLayers depth _) (fun _ _ ↦ trivial) ?_) ?_) ?_ <;>
+    VerifierProgram.Costs height (verifyGkrGrandProducts depth) (2 + gkrCost depth 0) fun _ ↦
+        True := by
+  refine VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦ VerifierProgram.Costs.seq
+      VerifierProgram.Costs.readE
+    (fun _ _ ↦ VerifierProgram.Costs.seq (costs_gkrLayers depth _) (fun _ _ ↦ trivial) ?_)
+        ?_) ?_ <;>
     (try simp only [List.length_nil]) <;> omega
 
 /-- The claims on `KECCAK` output lanes are at points of at most `32` coordinates. -/
@@ -233,16 +241,19 @@ def ClaimsShort (claims : List ColumnClaim) : Prop :=
 /-- The bus phase, at the push side's depth. -/
 theorem costs_verifyBusBalance (layout : Layout) (hm : layout.logMemory ≤ 32)
     (hb : layout.logBytecode ≤ 32) :
-    Prog.Costs height (verifyBusBalance computedValue layout)
+    VerifierProgram.Costs height (verifyBusBalance computedBytecodeValue layout)
       (4 * busBits + 4 + (2 + gkrCost (busLayout [0, layout.logMemory, layout.logBytecode]
         layout.push).depth 0) + 3 + 2) fun r ↦ ClaimsShort r.claims := by
-  refine Prog.Costs.seq (Prog.Costs.sampleN _) (fun _ _ ↦ Prog.Costs.seq Prog.Costs.sampleE
-    (fun _ _ ↦ Prog.Costs.seq (costs_verifyGkrGrandProducts _) (fun r _ ↦ ?_) ?_) ?_) ?_
+  refine VerifierProgram.Costs.seq (VerifierProgram.Costs.sampleN _) (fun _ _ ↦
+      VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE
+    (fun _ _ ↦ VerifierProgram.Costs.seq (costs_verifyGkrGrandProducts _) (fun r _ ↦ ?_) ?_) ?_) ?_
   · obtain ⟨countRoot, point, treeValues⟩ := r
-    refine Prog.Costs.seq (Prog.Costs.require (n := 0) _) (fun _ _ ↦ Prog.Costs.seq
-      (Prog.Costs.readN 3)
-      (fun memory hmem ↦ Prog.Costs.seq Prog.Costs.readE (fun _ _ ↦ Prog.Costs.seq
-        Prog.Costs.readE (fun _ _ ↦ ?_) ?_) ?_) ?_) ?_
+    refine VerifierProgram.Costs.seq (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦
+        VerifierProgram.Costs.seq
+      (VerifierProgram.Costs.readN 3)
+      (fun memory hmem ↦ VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦
+          VerifierProgram.Costs.seq
+        VerifierProgram.Costs.readE (fun _ _ ↦ ?_) ?_) ?_) ?_) ?_
     · intro c hc _
       simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
       rcases hc with hc | rfl | rfl
@@ -362,11 +373,14 @@ def SizesOK (p : Layout × ℕ) : Prop :=
 
 /-- The announced sizes: eight reads, and sizes in the window the program checks. -/
 theorem costs_readSizes {height : ℕ} (bytecode : List K) :
-    Prog.Costs height (readSizes bytecode) 8 SizesOK := by
-  refine Prog.Costs.seq (Prog.Costs.readN _) (fun announced _ ↦ Prog.Costs.seq
-    (Prog.Costs.require (n := 0) _) (fun _ _ ↦ Prog.Costs.seq (Prog.Costs.require (n := 0) _)
-      (fun _ hr ↦ Prog.Costs.seq (costs_liftOption _ 0) (fun layout hl ↦ Prog.Costs.seq
-        (Prog.Costs.require (n := 0) _) (fun _ hs ↦ ?_) ?_) ?_) ?_) ?_) ?_
+    VerifierProgram.Costs height (readAnnouncedSizes bytecode) 8 SizesOK := by
+  refine VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _) (fun announced _ ↦
+      VerifierProgram.Costs.seq
+    (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦ VerifierProgram.Costs.seq
+        (VerifierProgram.Costs.require (n := 0) _)
+      (fun _ hr ↦ VerifierProgram.Costs.seq (costs_liftOption _ 0) (fun layout hl ↦
+          VerifierProgram.Costs.seq
+        (VerifierProgram.Costs.require (n := 0) _) (fun _ hs ↦ ?_) ?_) ?_) ?_) ?_) ?_
   · exact ⟨layoutBounds_of_buildLayout hl, hr.1, hr.2, hs.1, hs.2⟩
   all_goals simp [tables]
 
@@ -391,7 +405,7 @@ theorem gkrCost_le : ∀ D ≤ 38, gkrCost D 0 ≤ gkrBound := by decide
 
 /-- **The bus phase** on a built layout. -/
 theorem costs_verifyBusBalance_le {height : ℕ} {layout : Layout} (h : LayoutBounds layout) :
-    Prog.Costs height (verifyBusBalance computedValue layout)
+    VerifierProgram.Costs height (verifyBusBalance computedBytecodeValue layout)
       (4 * busBits + 4 + (2 + gkrBound) + 3 + 2) fun r ↦ ClaimsShort r.claims :=
   (costs_verifyBusBalance layout h.logMemory_le h.logBytecode_le).mono
     (by have := gkrCost_le _ (pushDepth_le h); omega) fun _ h ↦ h
@@ -407,12 +421,12 @@ the rows' heights. -/
 theorem costs_tableTerms (constraintPowers formPowers point : List E) :
     ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E)
       (claims : List ColumnClaim), ClaimsShort claims → (∀ r ∈ rows, r.2.1 ≤ 32) →
-      Prog.Costs height (tableTermsClaims constraintPowers formPowers point rows cursor final claims)
+      VerifierProgram.Costs height (tableTermsClaims constraintPowers formPowers point rows cursor final claims)
         (rows.map (·.1.width)).sum fun r ↦ ClaimsShort r.2
   | [], _, _, claims, hc, _ => hc
   | (table, h, forms, weight) :: rest, cursor, final, claims, hc, hh => by
     have h0 : h ≤ 32 := hh _ List.mem_cons_self
-    refine Prog.Costs.seq (Prog.Costs.readN _) (fun evals _ ↦
+    refine VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _) (fun evals _ ↦
       (costs_tableTerms constraintPowers formPowers point rest _ _ _ ?_
         fun r hr ↦ hh r (List.mem_cons_of_mem _ hr)).mono ?_ fun _ h ↦ h) ?_
     · intro c hc' hcol
@@ -446,20 +460,22 @@ theorem sum_width_zip {β : Type} : ∀ (l : List Table) (m : List β),
 theorem costs_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E)
     (hh : ∀ h ∈ heights, h ≤ 32) :
-    Prog.Costs height
+    VerifierProgram.Costs height
       (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target)
       (32 * 7 + tableWidthSum) fun cl ↦ ClaimsShort cl := by
   have hmax := foldl_max_le 32 heights 0 (Nat.zero_le _) hh
-  refine Prog.Costs.seq (costs_sumcheck _ _ _) (fun r _ ↦ ?_) ?_
+  refine VerifierProgram.Costs.seq (costs_sumcheck _ _ _) (fun r _ ↦ ?_) ?_
   · obtain ⟨challenges, claim⟩ := r
     have hrows : ∀ r ∈ List.zip tables (List.zip heights (List.zip busForms
         (tableWeights heights equalityPoint challenges.reverse))), r.2.1 ≤ 32 := by
       intro r hr
       exact hh _ (List.of_mem_zip (List.of_mem_zip hr).2).1
-    refine Prog.Costs.seq (costs_tableTerms _ _ _ _ 0 0 [] (fun _ h ↦ by simp at h) hrows)
+    refine VerifierProgram.Costs.seq (costs_tableTerms _ _ _ _ 0 0 [] (fun _ h ↦
+        by simp at h) hrows)
       (fun r hr ↦ ?_) ?_
     · obtain ⟨final, claims⟩ := r
-      exact Prog.Costs.seq (Prog.Costs.require (n := 0) _) (fun _ _ ↦ hr) (Nat.zero_le _)
+      exact VerifierProgram.Costs.seq (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦ hr)
+          (Nat.zero_le _)
     · simp only [List.length_replicate, show max 4 2 + 3 = 7 from rfl]
       have := sum_width_zip tables (List.zip heights (List.zip busForms
         (tableWeights heights equalityPoint challenges.reverse)))
@@ -471,9 +487,9 @@ theorem costs_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
 /-- **The table phase** on a built layout. -/
 theorem costs_tablePhase {layout : Layout} (hl : LayoutBounds layout) (bus : BusResult)
     (hbus : ClaimsShort bus.claims) :
-    Prog.Costs height (tablePhaseClaims layout bus) (4 + (32 * 7 + tableWidthSum))
+    VerifierProgram.Costs height (tablePhaseClaims layout bus) (4 + (32 * 7 + tableWidthSum))
       fun cl ↦ ClaimsShort cl :=
-  Prog.Costs.seq Prog.Costs.sampleE (fun _ _ ↦ Prog.Costs.seq
+  VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun _ _ ↦ VerifierProgram.Costs.seq
     (costs_tableSumcheck _ _ _ _ _ _ hl.heights_le) (fun cl hcl ↦ by
       intro c hc hcol
       rcases List.mem_append.mp hc with hc | hc
@@ -482,8 +498,9 @@ theorem costs_tablePhase {layout : Layout} (hl : LayoutBounds layout) (bus : Bus
 
 /-- **The public-input phase**: one challenge; its claims are on the memory's columns. -/
 theorem costs_publicInputPhase (layout : Layout) (publicInput : Digest) :
-    Prog.Costs height (publicInputPhase layout publicInput) 4 fun cl ↦ ClaimsShort cl := by
-  refine Prog.Costs.seq Prog.Costs.sampleE (fun _ _ ↦ ?_) (by omega)
+    VerifierProgram.Costs height (publicInputPhase layout publicInput) 4 fun cl ↦ ClaimsShort
+        cl := by
+  refine VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun _ _ ↦ ?_) (by omega)
   intro c hc hcol
   exfalso
   have hbase : ∀ x ∈ keccakOutputColumns, 6 ≤ x := by
@@ -505,12 +522,14 @@ theorem costs_publicInputPhase (layout : Layout) (publicInput : Digest) :
 /-- The pack rounds: one equality-mode round of three coefficients per coordinate, keeping the
 point's length. -/
 theorem costs_keccakPackRounds : ∀ (point : List E) (value scale : E),
-    Prog.Costs height (keccakPackRounds point value scale) (point.length * 6)
+    VerifierProgram.Costs height (keccakPackRounds point value scale) (point.length * 6)
       fun r ↦ r.2.2.length = point.length
   | [], _, _ => rfl
   | r :: rs, value, scale => by
-    refine Prog.Costs.seq (costs_sumcheckRoundPoly 3 _ _) (fun _ _ ↦ Prog.Costs.seq
-      Prog.Costs.sampleE (fun c _ ↦ Prog.Costs.seq (costs_keccakPackRounds rs _ _)
+    refine VerifierProgram.Costs.seq (costs_sumcheckRoundPoly 3 _ _) (fun _ _ ↦
+        VerifierProgram.Costs.seq
+      VerifierProgram.Costs.sampleE (fun c _ ↦ VerifierProgram.Costs.seq (costs_keccakPackRounds
+          rs _ _)
         (fun t ht ↦ ?_) ?_) ?_) ?_
     · obtain ⟨v, s, p⟩ := t
       show (c :: p).length = (r :: rs).length
@@ -519,16 +538,20 @@ theorem costs_keccakPackRounds : ∀ (point : List E) (value scale : E),
 
 /-- One layer of the Keccak reduction keeps the claim's point length. -/
 theorem costs_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
-    Prog.Costs height (verifyKeccakLayer logSteps step claim)
+    VerifierProgram.Costs height (verifyKeccakLayer logSteps step claim)
       (keccakLayerCost claim.point.length) fun c ↦ c.point.length = claim.point.length := by
-  refine Prog.Costs.seq (Prog.Costs.readN _) (fun _ _ ↦ Prog.Costs.seq
-    (Prog.Costs.require (n := 0) _) (fun _ _ ↦ Prog.Costs.seq Prog.Costs.sampleE (fun _ _ ↦
-      Prog.Costs.seq (costs_keccakPackRounds _ _ _) (fun r hr ↦ ?_) ?_) ?_) ?_) ?_
+  refine VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _) (fun _ _ ↦
+      VerifierProgram.Costs.seq
+    (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦ VerifierProgram.Costs.seq
+        VerifierProgram.Costs.sampleE (fun _ _ ↦
+      VerifierProgram.Costs.seq (costs_keccakPackRounds _ _ _) (fun r hr ↦ ?_) ?_) ?_) ?_) ?_
   · obtain ⟨value, scale, point⟩ := r
-    refine Prog.Costs.seq (costs_sumcheck 4 _ _) (fun r _ ↦ ?_) ?_
+    refine VerifierProgram.Costs.seq (costs_sumcheck 4 _ _) (fun r _ ↦ ?_) ?_
     · obtain ⟨localPoint, value⟩ := r
-      refine Prog.Costs.seq (Prog.Costs.readN 3) (fun _ _ ↦ Prog.Costs.seq
-        (Prog.Costs.require (n := 0) _) (fun _ _ ↦ Prog.Costs.seq Prog.Costs.sampleE
+      refine VerifierProgram.Costs.seq (VerifierProgram.Costs.readN 3) (fun _ _ ↦
+          VerifierProgram.Costs.seq
+        (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦ VerifierProgram.Costs.seq
+            VerifierProgram.Costs.sampleE
           (fun _ _ ↦ hr) ?_) ?_) ?_
       all_goals simp only [keccakLayerCost, List.length_replicate, show max 4 2 + 3 = 7 from rfl]
       all_goals omega
@@ -538,26 +561,27 @@ theorem costs_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
 
 /-- The Keccak layers keep the claim's point length. -/
 theorem costs_keccakLayers (logSteps : ℕ) : ∀ (steps : List ℕ) (claim : KeccakClaim),
-    Prog.Costs height (keccakLayers logSteps steps claim)
+    VerifierProgram.Costs height (keccakLayers logSteps steps claim)
       (steps.length * keccakLayerCost claim.point.length)
       fun c ↦ c.point.length = claim.point.length
   | [], _ => rfl
   | s :: ss, claim => by
-    refine Prog.Costs.seq (costs_verifyKeccakLayer logSteps s claim) (fun c hc ↦
+    refine VerifierProgram.Costs.seq (costs_verifyKeccakLayer logSteps s claim) (fun c hc ↦
       (costs_keccakLayers logSteps ss c).mono (by
         rw [hc]; simp only [List.length_cons, Nat.succ_mul]; omega) fun _ h ↦ h.trans hc) ?_
     simp only [List.length_cons, Nat.succ_mul]; omega
 
 /-- Opening `q_keccak`: a sumcheck over the slot. -/
 theorem costs_keccakOpen (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) (value : E) :
-    Prog.Costs height (keccakOpen logSteps claim first count value) (6 * qkeccakSlotBits)
+    VerifierProgram.Costs height (keccakOpen logSteps claim first count value) (6 * qkeccakSlotBits)
       fun _ ↦ True :=
-  Prog.Costs.seq (costs_sumcheck 3 _ _) (fun _ _ ↦ trivial)
+  VerifierProgram.Costs.seq (costs_sumcheck 3 _ _) (fun _ _ ↦ trivial)
     (by simp only [List.length_replicate, show max 3 2 + 3 = 6 from rfl]; omega)
 
 /-- **The Keccak reduction** at an instance point of at most `32` coordinates. -/
 theorem costs_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.length ≤ 32) :
-    Prog.Costs height (verifyKeccak logSteps inst output) (keccakCost 29) fun _ ↦ True := by
+    VerifierProgram.Costs height (verifyKeccak logSteps inst output) (keccakCost 29) fun _ ↦
+        True := by
   have hL : (inst.drop 4).length + keccakSegmentBits ≤ 29 := by
     simp only [List.length_drop, keccakSegmentBits]
     have : log2Ceil keccakSegments = 1 := by decide
@@ -565,8 +589,10 @@ theorem costs_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.le
   have h1 : 1 < keccakSegments := by decide
   unfold verifyKeccak
   simp only [h1, ↓reduceIte]
-  refine Prog.Costs.seq (Prog.Costs.sampleN _) (fun segment hseg ↦ Prog.Costs.seq
-    (Prog.Costs.sampleN _) (fun _ _ ↦ Prog.Costs.seq Prog.Costs.readE (fun committed _ ↦ ?_) ?_)
+  refine VerifierProgram.Costs.seq (VerifierProgram.Costs.sampleN _) (fun segment hseg ↦
+      VerifierProgram.Costs.seq
+    (VerifierProgram.Costs.sampleN _) (fun _ _ ↦ VerifierProgram.Costs.seq
+        VerifierProgram.Costs.readE (fun committed _ ↦ ?_) ?_)
     ?_) ?_
   · have hpl : (inst.drop 4 ++ segment).length ≤ 29 := by
       rw [List.length_append, hseg]; exact hL
@@ -575,14 +601,17 @@ theorem costs_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.le
       refine Nat.mul_le_mul_left _ ?_
       unfold keccakLayerCost
       omega
-    refine Prog.Costs.seq (costs_keccakLayers logSteps (List.range keccakDepth) _)
-      (fun claim _ ↦ Prog.Costs.seq (costs_keccakOpen logSteps _ 1 _ _) (fun r _ ↦
-        Prog.Costs.seq Prog.Costs.readE (fun word _ ↦ Prog.Costs.seq
-          (Prog.Costs.require (n := 0) _) (fun _ _ ↦ Prog.Costs.seq (Prog.Costs.pure0 _)
-            (fun outputs _ ↦ Prog.Costs.seq (costs_sumcheck 3 _ _) (fun r2 _ ↦
-              Prog.Costs.seq (costs_keccakOpen logSteps _ 0 _ _) (fun r3 _ ↦
-                Prog.Costs.seq (Prog.Costs.readN kBits) (fun slices _ ↦
-                  Prog.Costs.seq (Prog.Costs.require (n := 0) _) (fun _ _ ↦ trivial)
+    refine VerifierProgram.Costs.seq (costs_keccakLayers logSteps (List.range keccakDepth) _)
+      (fun claim _ ↦ VerifierProgram.Costs.seq (costs_keccakOpen logSteps _ 1 _ _) (fun r _ ↦
+        VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun word _ ↦
+            VerifierProgram.Costs.seq
+          (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦ VerifierProgram.Costs.seq
+              (VerifierProgram.Costs.pure0 _)
+            (fun outputs _ ↦ VerifierProgram.Costs.seq (costs_sumcheck 3 _ _) (fun r2 _ ↦
+              VerifierProgram.Costs.seq (costs_keccakOpen logSteps _ 0 _ _) (fun r3 _ ↦
+                VerifierProgram.Costs.seq (VerifierProgram.Costs.readN kBits) (fun slices _ ↦
+                  VerifierProgram.Costs.seq (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦
+                      trivial)
                     (Nat.zero_le _)) ?_) ?_) ?_) (Nat.zero_le _)) (Nat.zero_le _)) ?_) ?_) ?_
     all_goals simp only [keccakCost, List.length_range, List.length_replicate,
       show max 3 2 + 3 = 6 from rfl] at hlay ⊢
@@ -606,15 +635,18 @@ theorem headD_filter_short : ∀ (l : List ColumnClaim), ClaimsShort l →
 /-- **The Keccak phase**, its claims at points of at most `32` coordinates. -/
 theorem costs_keccakPhase (layout : Layout) (claims : List ColumnClaim)
     (hc : ClaimsShort claims) :
-    Prog.Costs height (keccakPhaseClaims layout claims) (keccakCost 29) fun _ ↦ True := by
-  exact Prog.Costs.seq (Prog.Costs.require (n := 0) _) (fun _ _ ↦ Prog.Costs.seq
+    VerifierProgram.Costs height (keccakPhaseClaims layout claims) (keccakCost 29) fun _ ↦
+        True := by
+  exact VerifierProgram.Costs.seq (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦
+      VerifierProgram.Costs.seq
     (costs_verifyKeccak _ _ _ (headD_filter_short claims hc)) (fun _ _ ↦ trivial) le_rfl)
     (Nat.zero_le _)
 
 /-- **Ring switching**: six challenges. -/
 theorem costs_ringSwitch (point s : List E) :
-    Prog.Costs height (ringSwitch point s) 24 fun _ ↦ True :=
-  Prog.Costs.seq (Prog.Costs.sampleN _) (fun _ _ ↦ trivial) (by simp [ringMapShifts])
+    VerifierProgram.Costs height (ringSwitch point s) 24 fun _ ↦ True :=
+  VerifierProgram.Costs.seq (VerifierProgram.Costs.sampleN _) (fun _ _ ↦ trivial)
+      (by simp [ringMapShifts])
 
 end Phases2
 
@@ -626,11 +658,12 @@ variable {height : ℕ}
 
 /-- A level's fold rounds, six each; they append one fold challenge each. -/
 theorem costs_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
-    Prog.Costs height (foldRoundsT n s levelFolds) (6 * n)
+    VerifierProgram.Costs height (foldRoundsT n s levelFolds) (6 * n)
       fun r ↦ r.1.folds.length = s.folds.length + n
   | 0, _, _ => rfl
   | n + 1, s, levelFolds => by
-    refine Prog.Costs.seq Prog.Costs.sampleE (fun c _ ↦ Prog.Costs.seq
+    refine VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun c _ ↦
+        VerifierProgram.Costs.seq
       (costs_sumcheckRoundPoly 3 _ none) (fun _ _ ↦
         (costs_foldRounds n _ _).mono ?_ fun r hr ↦ ?_) ?_) ?_
     · simp only [show max 3 2 = 3 from rfl]; omega
@@ -640,12 +673,13 @@ theorem costs_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
 
 /-- The final level's tail rounds, at most six each. -/
 theorem costs_tailRounds : ∀ (n : ℕ) (target : E) (quad : List E),
-    Prog.Costs height (tailRoundsT n target quad) (6 * n) fun _ ↦ True
+    VerifierProgram.Costs height (tailRoundsT n target quad) (6 * n) fun _ ↦ True
   | 0, _, _ => trivial
   | n + 1, _, quad => by
-    refine Prog.Costs.seq Prog.Costs.sampleE (fun c _ ↦ Prog.Costs.ite (fun _ ↦ trivial)
-      fun _ ↦ Prog.Costs.seq (costs_sumcheckRoundPoly 3 _ none) (fun _ _ ↦
-        Prog.Costs.seq (costs_tailRounds n _ _) (fun r _ ↦ ?_) ?_) ?_) ?_
+    refine VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun c _ ↦
+        VerifierProgram.Costs.ite (fun _ ↦ trivial)
+      fun _ ↦ VerifierProgram.Costs.seq (costs_sumcheckRoundPoly 3 _ none) (fun _ _ ↦
+        VerifierProgram.Costs.seq (costs_tailRounds n _ _) (fun r _ ↦ ?_) ?_) ?_) ?_
     · obtain ⟨rest, target⟩ := r
       trivial
     all_goals (try simp only [show max 3 2 = 3 from rfl])
@@ -655,15 +689,18 @@ theorem costs_tailRounds : ∀ (n : ℕ) (target : E) (quad : List E),
 positions. -/
 theorem costs_sampleQueriesAux (depth : ℕ) (hd1 : 1 ≤ depth) (hd : depth ≤ 64) :
     ∀ (fuel remaining : ℕ),
-    Prog.Costs height (sampleQueriesAux depth fuel remaining) (4 * queryRounds depth remaining)
+    VerifierProgram.Costs height (sampleQueriesAux depth fuel remaining) (4 * queryRounds depth
+        remaining)
       fun qs ↦ qs.length ≤ remaining
   | 0, _ => Nat.zero_le _
   | fuel + 1, remaining => by
     have hper : 3 ≤ 192 / depth := (Nat.le_div_iff_mul_le (by omega)).mpr (by omega)
     have hq : queryRounds depth remaining = (remaining + 192 / depth - 1) / (192 / depth) := by
       simp [queryRounds, show 192 / depth ≠ 0 by omega]
-    refine Prog.Costs.ite (fun _ ↦ Nat.zero_le _) fun hr ↦ Prog.Costs.seq Prog.Costs.sampleE
-      (fun c _ ↦ Prog.Costs.seq (costs_sampleQueriesAux depth hd1 hd fuel _) (fun qs hqs ↦ ?_) ?_)
+    refine VerifierProgram.Costs.ite (fun _ ↦ Nat.zero_le _) fun hr ↦ VerifierProgram.Costs.seq
+        VerifierProgram.Costs.sampleE
+      (fun c _ ↦ VerifierProgram.Costs.seq (costs_sampleQueriesAux depth hd1 hd fuel _) (fun qs hqs
+          ↦ ?_) ?_)
       ?_
     · show (List.map _ (List.range (min (192 / depth) remaining)) ++ qs).length ≤ remaining
       simp only [List.length_append, List.length_map, List.length_range]
@@ -687,7 +724,7 @@ theorem costs_sampleQueriesAux (depth : ℕ) (hd1 : 1 ≤ depth) (hd : depth ≤
       omega
 
 theorem costs_sampleQueries (depth count : ℕ) (hd : 1 ≤ depth ∧ depth ≤ 64) :
-    Prog.Costs height (sampleQueries depth count) (4 * queryRounds depth count)
+    VerifierProgram.Costs height (sampleQueries depth count) (4 * queryRounds depth count)
       fun qs ↦ qs.length ≤ count :=
   costs_sampleQueriesAux depth hd.1 hd.2 count count
 
@@ -704,8 +741,8 @@ theorem glue_folds (lam : E) (s : WhirStateT) (pending : List (E × List E × (L
     exact ih _ _
 
 theorem openCost_mono {height : ℕ} {k k' : ℕ} (h : k ≤ k') :
-    Prog.openCost height k ≤ Prog.openCost height k' := by
-  unfold Prog.openCost; exact Nat.mul_le_mul_left _ (Nat.mul_le_mul_right _ h)
+    VerifierProgram.openCost height k ≤ VerifierProgram.openCost height k' := by
+  unfold VerifierProgram.openCost; exact Nat.mul_le_mul_left _ (Nat.mul_le_mul_right _ h)
 
 /-- **The WHIR levels** from a message of `μ` variables cost `whirCost`, when their commitments
 have height at most `height` and their query positions at most `64` bits. -/
@@ -713,28 +750,31 @@ theorem costs_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirStateT) (μ : ℕ),
       logN - s.folds.length = μ → whirHeightsLE height μ levels = true →
       queryDepthsLE μ levels = true →
-      Prog.Costs height (whirLevelsT logN laneFolds evaluateBasis index levels s)
+      VerifierProgram.Costs height (whirLevelsT logN laneFolds evaluateBasis index levels s)
         (whirCost height μ levels) fun _ ↦ True
   | [], _, _, _, _, _, _ => trivial
   | [level], index, s, μ, hμ, _, hD => by
     simp only [queryDepthsLE, Bool.and_eq_true, decide_eq_true_eq] at hD
     simp only [whirCost]
     generalize hP : 2 ^ (μ - level.fold) = P
-    refine Prog.Costs.seq (costs_foldRounds level.fold s []) (fun r hr ↦ ?_) (by omega)
+    refine VerifierProgram.Costs.seq (costs_foldRounds level.fold s []) (fun r hr ↦ ?_) (by omega)
     obtain ⟨s', levelFolds⟩ := r
     simp only at hr
     have hm : logN - s'.folds.length = μ - level.fold := by rw [hr]; omega
-    refine Prog.Costs.seq (Prog.Costs.readN _) (fun _ _ ↦ Prog.Costs.seq (Prog.Costs.pure0 _)
-      (fun _ _ ↦ Prog.Costs.seq (Prog.Costs.grindP _) (fun _ _ ↦ Prog.Costs.seq
+    refine VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _) (fun _ _ ↦
+        VerifierProgram.Costs.seq (VerifierProgram.Costs.pure0 _)
+      (fun _ _ ↦ VerifierProgram.Costs.seq (VerifierProgram.Costs.grindP _) (fun _ _ ↦
+          VerifierProgram.Costs.seq
         (costs_sampleQueries _ level.queries (by rw [hm]; exact hD.1)) (fun queries hq ↦ ?_)
           ?_) ?_) ?_) ?_
     · have hqm := openCost_mono (height := height) hq
-      refine Prog.Costs.seq Prog.Costs.sampleE (fun lam _ ↦ Prog.Costs.seq
-        (Prog.Costs.queryP index queries) (fun words _ ↦ Prog.Costs.seq
-          (costs_sumcheckRoundPoly 3 _ none) (fun intro _ ↦ Prog.Costs.seq
+      refine VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun lam _ ↦
+          VerifierProgram.Costs.seq
+        (VerifierProgram.Costs.queryP index queries) (fun words _ ↦ VerifierProgram.Costs.seq
+          (costs_sumcheckRoundPoly 3 _ none) (fun intro _ ↦ VerifierProgram.Costs.seq
             (costs_tailRounds _ _ _) (fun r _ ↦ ?_) ?_) ?_) ?_) ?_
       · obtain ⟨tailFolds, target⟩ := r
-        exact (Prog.Costs.require (n := 0) _).mono (Nat.zero_le _) fun _ _ ↦ trivial
+        exact (VerifierProgram.Costs.require (n := 0) _).mono (Nat.zero_le _) fun _ _ ↦ trivial
       all_goals (try simp only [hm, hP, show max 3 2 = 3 from rfl])
       all_goals omega
     all_goals (try simp only [hm, hP])
@@ -743,20 +783,24 @@ theorem costs_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     simp only [whirHeightsLE, Bool.and_eq_true, decide_eq_true_eq] at hH
     rw [queryDepthsLE, Bool.and_eq_true, decide_eq_true_eq] at hD
     simp only [whirCost]
-    refine Prog.Costs.seq (costs_foldRounds level.fold s []) (fun r hr ↦ ?_) (by omega)
+    refine VerifierProgram.Costs.seq (costs_foldRounds level.fold s []) (fun r hr ↦ ?_) (by omega)
     obtain ⟨s', levelFolds⟩ := r
     simp only at hr
     have hm : logN - s'.folds.length = μ - level.fold := by rw [hr]; omega
-    refine Prog.Costs.seq (Prog.Costs.commitP _ (by rw [hm]; exact hH.1)) (fun _ _ ↦
-      Prog.Costs.seq (Prog.Costs.sampleN _) (fun _ _ ↦ Prog.Costs.seq Prog.Costs.readE
-        (fun _ _ ↦ Prog.Costs.seq (costs_sumcheckRoundPoly 3 _ none) (fun _ _ ↦
-          Prog.Costs.seq (Prog.Costs.pure0 _) (fun _ _ ↦
-          Prog.Costs.seq (Prog.Costs.grindP _) (fun _ _ ↦ Prog.Costs.seq
+    refine VerifierProgram.Costs.seq (VerifierProgram.Costs.commitP _
+        (by rw [hm]; exact hH.1)) (fun _ _ ↦
+      VerifierProgram.Costs.seq (VerifierProgram.Costs.sampleN _) (fun _ _ ↦
+          VerifierProgram.Costs.seq VerifierProgram.Costs.readE
+        (fun _ _ ↦ VerifierProgram.Costs.seq (costs_sumcheckRoundPoly 3 _ none) (fun _ _ ↦
+          VerifierProgram.Costs.seq (VerifierProgram.Costs.pure0 _) (fun _ _ ↦
+          VerifierProgram.Costs.seq (VerifierProgram.Costs.grindP _) (fun _ _ ↦
+              VerifierProgram.Costs.seq
             (costs_sampleQueries _ level.queries (by rw [hm]; exact hD.1))
               (fun queries hq ↦ ?_) ?_) ?_) ?_) ?_) ?_) ?_) ?_
     · have hqm := openCost_mono (height := height) hq
-      refine Prog.Costs.seq Prog.Costs.sampleE (fun lam _ ↦ Prog.Costs.seq
-        (Prog.Costs.queryP index queries) (fun words _ ↦ Prog.Costs.seq
+      refine VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun lam _ ↦
+          VerifierProgram.Costs.seq
+        (VerifierProgram.Costs.queryP index queries) (fun words _ ↦ VerifierProgram.Costs.seq
           (costs_sumcheckRoundPoly 3 _ none) (fun intro _ ↦
             (costs_whirLevels logN laneFolds evaluateBasis (next :: rest) (index + 1) _
               (μ - level.fold) (by rw [glue_folds]; exact hm) hH.2 hD.2).mono ?_
@@ -771,9 +815,9 @@ theorem costs_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : L
     (W : ℕ) (hW : ∀ levels, Whir.ladder logN logInvRate = some levels →
       whirHeightsLE height logN levels = true ∧ queryDepthsLE logN levels = true ∧
         whirCost height logN levels ≤ W) :
-    Prog.Costs height (verifyWhirT logN logInvRate target evaluateBasis) (2 + W)
+    VerifierProgram.Costs height (verifyWhirT logN logInvRate target evaluateBasis) (2 + W)
       fun _ ↦ True := by
-  refine Prog.Costs.seq (costs_liftOption _ 0) (fun config hc ↦ Prog.Costs.seq
+  refine VerifierProgram.Costs.seq (costs_liftOption _ 0) (fun config hc ↦ VerifierProgram.Costs.seq
     (costs_sumcheckRoundPoly 3 _ none) (fun quad _ ↦
       ((costs_whirLevels logN _ evaluateBasis config 0 _ logN rfl (hW config hc).1
         (hW config hc).2.1).mono ((hW config hc).2.2.trans (by omega)) fun _ h ↦ h)) ?_)
@@ -784,24 +828,24 @@ theorem costs_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : L
 theorem costs_commitStack (logN logInvRate : ℕ)
     (hH : ∀ levels, Whir.ladder logN logInvRate = some levels →
       stackHeightLE height logN levels = true) :
-    Prog.Costs height (commitStack logN logInvRate) 2 fun _ ↦ True := by
-  refine Prog.Costs.seq (costs_liftOption _ 0) (fun config hc ↦ ?_) (Nat.zero_le _)
+    VerifierProgram.Costs height (commitStack logN logInvRate) 2 fun _ ↦ True := by
+  refine VerifierProgram.Costs.seq (costs_liftOption _ 0) (fun config hc ↦ ?_) (Nat.zero_le _)
   have h := hH config hc
   cases config with
   | nil => trivial
   | cons level rest =>
     simp only [stackHeightLE, decide_eq_true_eq] at h
-    exact Prog.Costs.commitP _ h
+    exact VerifierProgram.Costs.commitP _ h
 
 /-- **The stacked opening**: the batching challenge and WHIR. -/
 theorem costs_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim)
     (W : ℕ) (hW : ∀ levels, Whir.ladder stackLog logInvRate = some levels →
       whirHeightsLE height stackLog levels = true ∧ queryDepthsLE stackLog levels = true ∧
         whirCost height stackLog levels ≤ W) :
-    Prog.Costs height (verifyStackedOpening stackLog logInvRate claims) (4 + (2 + W))
+    VerifierProgram.Costs height (verifyStackedOpening stackLog logInvRate claims) (4 + (2 + W))
       fun _ ↦ True := by
   rw [verifyStackedOpening_eq_target]
-  exact Prog.Costs.seq Prog.Costs.sampleE (fun _ _ ↦
+  exact VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun _ _ ↦
     (costs_verifyWhir _ _ _ _ W hW).mono (by omega) fun _ h ↦ h) (by omega)
 
 end Whir
@@ -832,23 +876,27 @@ theorem ladder_cost (μ logInvRate : ℕ) (levels : List Whir.Level)
 
 /-- **The cost of `verify_execution`.** -/
 theorem costs_verifyExecution (bytecode : List K) (publicInput : Digest) :
-    Prog.Costs costHeight (verifyExecutionClaims computedValue bytecode publicInput) leanVmCost
+    VerifierProgram.Costs costHeight (verifyExecutionClaims computedBytecodeValue bytecode
+        publicInput) leanVmCost
       fun _ ↦ True := by
   unfold leanVmCost
-  refine Prog.Costs.seq (costs_readSizes bytecode) (fun p hp ↦ ?_) (by omega)
+  refine VerifierProgram.Costs.seq (costs_readSizes bytecode) (fun p hp ↦ ?_) (by omega)
   obtain ⟨layout, logInverseRate⟩ := p
   obtain ⟨hl, -, -, -, -⟩ := hp
-  refine Prog.Costs.seq (costs_commitStack _ _ fun levels h ↦ (ladder_cost _ _ levels h).2.1)
-    (fun _ _ ↦ Prog.Costs.seq (costs_verifyBusBalance_le hl) (fun bus hbus ↦ Prog.Costs.seq
-      (costs_tablePhase hl bus hbus) (fun claims hcl ↦ Prog.Costs.seq
+  refine VerifierProgram.Costs.seq (costs_commitStack _ _ fun levels h ↦ (ladder_cost _ _ levels
+      h).2.1)
+    (fun _ _ ↦ VerifierProgram.Costs.seq (costs_verifyBusBalance_le hl) (fun bus hbus ↦
+        VerifierProgram.Costs.seq
+      (costs_tablePhase hl bus hbus) (fun claims hcl ↦ VerifierProgram.Costs.seq
         (costs_publicInputPhase layout publicInput) (fun publicClaims hpc ↦
-          Prog.Costs.seq (costs_keccakPhase layout _ ?_) (fun r _ ↦ ?_) ?_) ?_) ?_) ?_) ?_
+          VerifierProgram.Costs.seq (costs_keccakPhase layout _ ?_) (fun r _ ↦ ?_) ?_) ?_)
+              ?_) ?_) ?_
   · intro c hc hcol
     rcases List.mem_append.mp hc with hc | hc
     · exact hcl c hc hcol
     · exact hpc c hc hcol
   · obtain ⟨claims', keccakPoint, keccakSlices⟩ := r
-    refine Prog.Costs.seq (costs_ringSwitch keccakPoint keccakSlices) (fun r _ ↦ ?_) ?_
+    refine VerifierProgram.Costs.seq (costs_ringSwitch keccakPoint keccakSlices) (fun r _ ↦ ?_) ?_
     · obtain ⟨ringTarget, ringWeight⟩ := r
       exact costs_verifyStackedOpening _ _ _ whirBound fun levels h ↦
         ⟨(ladder_cost _ _ levels h).1, (ladder_cost _ _ levels h).2.2.1,
@@ -860,16 +908,17 @@ theorem costs_verifyExecution (bytecode : List K) (publicInput : Digest) :
 `leanVmCost` quarters, every commitment having height at most `costHeight`, for every bytecode
 and public input. -/
 theorem costLE_leanVmProgram (bytecode : List K) (publicInput : Digest) :
-    (leanVmProgram bytecode publicInput).CostLE costHeight leanVmCost := by
+    (leanVmVerifierProgram bytecode publicInput).CostLE costHeight leanVmCost := by
   rw [leanVmProgram_eq]
-  exact Prog.Costs.seq (costs_verifyExecution bytecode publicInput) (fun _ _ ↦ trivial) le_rfl
+  exact VerifierProgram.Costs.seq (costs_verifyExecution bytecode publicInput) (fun _ _ ↦
+      trivial) le_rfl
 
 /-! ## The seed and the query bound -/
 
 /-- **The leanVM seeding**: the IV, the hash of the version tag and the bytecode, then the
 permutation of the IV and the public input (`seedWith`). -/
 def leanVmSeed (bytecode : List K) (publicInput : Digest) : Seed where
-  hs := [fun _ ↦ versionTag ++ bytecode.flatMap kBytes]
+  hs := [fun _ ↦ versionTag ++ bytecode.flatMap K.toBytes]
   fin ds := seedInput (ds.getD 0 default) publicInput
 
 /-- The seeding computes `seedWith`, with any hash and permutation in any lawful monad. -/
@@ -881,7 +930,7 @@ theorem seedRun_leanVmSeed {m : Type → Type} [Monad m] [LawfulMonad m] (H : By
 /-- The seeded verifier of the random-oracle theorem at the leanVM seed and program is the
 compiled leanVM verifier with the hash and the permutation queries. -/
 theorem verifierComp_leanVm (bytecode : List K) (publicInput : Digest) (π : Proof) :
-    verifierComp (leanVmSeed bytecode publicInput) (leanVmProgram bytecode publicInput) π =
+    verifierComp (leanVmSeed bytecode publicInput) (leanVmVerifierProgram bytecode publicInput) π =
       verifyWithHash callKeccak256 callKeccakF1600 bytecode publicInput π := by
   simp only [verifierComp, Rom.verify, verifyWithHash, seedRun_leanVmSeed]
 
@@ -897,7 +946,8 @@ oracles on every proof, for every bytecode and public input: the hypothesis `hV`
 at the leanVM program and seed. -/
 theorem isTotalQueryBound_leanVm (bytecode : List K) (publicInput : Digest) (π : Proof) :
     IsTotalQueryBound
-      (verifierComp (leanVmSeed bytecode publicInput) (leanVmProgram bytecode publicInput) π)
+      (verifierComp (leanVmSeed bytecode publicInput) (leanVmVerifierProgram bytecode
+          publicInput) π)
       leanVmQueryBound :=
   isTotalQueryBound_verifierComp (costLE_leanVmProgram bytecode publicInput) _ π
 

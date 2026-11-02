@@ -53,8 +53,8 @@ theorem Only.query {input : HashInput} (h : IsShort input) :
   intro hlong
   exact absurd h hlong
 
-theorem fieldBytes_length (fields : TweakFields) : (fieldBytes fields).length = 16 := by
-  simp [fieldBytes, bytesLE_length]
+theorem fieldBytes_length (fields : TweakFields) : (addressBytes fields).length = 16 := by
+  simp [addressBytes, bytesLE_length]
 
 theorem tweakableHashInput_length (parameter : PublicParameter) (domain : HashDomain)
     (payload : HashInput) :
@@ -101,13 +101,14 @@ theorem Only.sequenceFin {α : Type} {n : Nat} (computation : Fin n → OracleCo
       rw [Concrete.sequenceFin]
       exact Only.bind (h 0) (fun _ => Only.bind (ih _ (fun i => h i.succ)) (fun _ => Only.pure' _))
 
-theorem bytes16_length (value : Digest) : (bytesLE 16 value).length = 16 := bytesLE_length _ _
+theorem bytes16_length (value : Digest) : (littleEndianBytes 16 value).length = 16 :=
+    bytesLE_length _ _
 
 theorem nodePayload_length (left right : Digest) : (nodePayload left right).length = 32 := by
   simp [nodePayload, bytesLE_length]
 
 theorem flatMap_bytes_length' {n : Nat} (values : Fin n → BitVec (8 * 16)) :
-    ((List.ofFn values).flatMap (bytesLE 16)).length = 16 * n := by
+    ((List.ofFn values).flatMap (littleEndianBytes 16)).length = 16 * n := by
   induction n with
   | zero => simp
   | succ n ih =>
@@ -116,7 +117,8 @@ theorem flatMap_bytes_length' {n : Nat} (values : Fin n → BitVec (8 * 16)) :
       ring
 
 theorem flatMap_bytes_length {n : Nat} (values : Fin n → Digest) :
-    ((List.ofFn values).flatMap (bytesLE 16)).length = 16 * n := flatMap_bytes_length' values
+    ((List.ofFn values).flatMap (littleEndianBytes 16)).length = 16 * n :=
+        flatMap_bytes_length' values
 
 theorem leafPayload_length (endpoints : ChainIndex → Digest) :
     (leafPayload endpoints).length = 1024 := by
@@ -136,7 +138,7 @@ theorem childPayload_length (ends : FChain → Digest) :
   rw [childPayload, flatMap_bytes_length]
   rfl
 
-theorem messageDigestPayload_length (message : Message) (randomness : Randomness) :
+theorem messageDigestPayload_length (message : Message) (randomness : Randomizer) :
     (messageDigestPayload message randomness).length = 48 := by
   simp [messageDigestPayload, bytesLE_length]
 
@@ -253,7 +255,7 @@ theorem Only.forestRecover (parameter : PublicParameter) (index : Index)
       (fun _ => Only.bind (Only.topFold _ _ _ _ _ _ _) (fun _ => Only.pure' _))
 
 theorem Only.messageDigestCall (parameter : PublicParameter) (message : Message)
-    (randomness : Randomness) :
+    (randomness : Randomizer) :
     Only (Concrete.messageDigestCall parameter message randomness :
       OracleComp HashSpec HashOutput) := by
   unfold Concrete.messageDigestCall
@@ -262,7 +264,7 @@ theorem Only.messageDigestCall (parameter : PublicParameter) (message : Message)
   omega
 
 theorem Only.messageDigest (parameter : PublicParameter) (message : Message)
-    (randomness : Randomness) :
+    (randomness : Randomizer) :
     Only (Concrete.messageDigest parameter message randomness :
       OracleComp HashSpec MessageDigest) := by
   unfold Concrete.messageDigest
@@ -453,7 +455,7 @@ theorem Only.keygenFromSeed (seed : MasterSeed) :
   unfold SphincsLayered.Seeded.keygenFromSeed
   exact Short.Only.bind (Short.Only.schemeSeed _) (fun _ => Only.keygenFromMaster _)
 
-theorem Only.signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :
+theorem Only.signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomizer) :
     Short.Only (signAttempt secretKey message randomness : OracleComp HashSpec (Option Index)) := by
   unfold SphincsLayered.Seeded.signAttempt
   exact Short.Only.bind (Short.Only.messageDigestCall _ _ _) (fun _ =>
@@ -482,7 +484,7 @@ variable [Params]
 attribute [local irreducible] SphincsLayered.Seeded.signLayer SphincsLayered.Seeded.forestOpen
 
 theorem Only.finishSign (secretKey : SphincsLayered.Seeded.SecretKey) (message : Message)
-    (randomness : Randomness) :
+    (randomness : Randomizer) :
     Only (Randomized.finishSign secretKey message randomness :
       OracleComp HashSpec (Option Signature)) := by
   unfold Randomized.finishSign

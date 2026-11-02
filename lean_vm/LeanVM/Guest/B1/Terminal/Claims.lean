@@ -63,7 +63,7 @@ structure TermCtx (rd : Reader) (σ : Val) (layout : Layout) (kappas : List ℕ)
   hlane : ∀ g, 73 ≤ g → g < 163 → kappas.getD g 0 = layout.tableLogHeights.getD opKeccak 0
   hmem : ∀ c < 3, (Tables.committedKappas kappas).getD c 0 = layout.logMemory
   hlm : 1 ≤ layout.logMemory
-  hmem0 : (layout.placement memory0).vars = layout.logMemory
+  hmem0 : (layout.placement memory0).variableCount = layout.logMemory
   hcols : claims.map (·.column) = Tables.claimColumns
   hzs : zs.length ≤ 40
   hchis : chis.length ≤ zs.length
@@ -71,7 +71,7 @@ structure TermCtx (rd : Reader) (σ : Val) (layout : Layout) (kappas : List ℕ)
   hpc : ∀ j, 5 ≤ j → j < 162 →
     (claims.getD j default).point = chis.take (claims.getD j default).point.length
   hpp : ∀ j, 162 ≤ j → j < 165 → (claims.getD j default).point =
-    rm :: List.replicate ((layout.placement memory0).vars - 1) 0
+    rm :: List.replicate ((layout.placement memory0).variableCount - 1) 0
   hcp : ∀ j < 162, cp j = (claims.getD j default).point.length
   hlam : ∀ j < 165, termKind j ≠ 4 → valOf rd (σ (.n 9)) j = lam ^ (1 + poolRank j)
   hsel : ∀ c < Tables.nCommittedCols, σ (.n (selV c)) =

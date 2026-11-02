@@ -253,7 +253,7 @@ theorem rateS_eqF : rateS = ENNReal.ofReal ((2 - 1 / (H0.scanM : ℝ)) / 2 ^ 128
   have hM : (1 : ℝ) ≤ (H0.scanM : ℝ) := by exact_mod_cast H0.scanM_pos
   have h1M : (0 : ℝ) ≤ 1 - 1 / (H0.scanM : ℝ) := by
     rw [sub_nonneg, div_le_one (by linarith)]; exact hM
-  have hc : (Fintype.card Randomness : ℝ≥0∞)⁻¹ = ENNReal.ofReal (1 / 2 ^ 128) := by
+  have hc : (Fintype.card Randomizer : ℝ≥0∞)⁻¹ = ENNReal.ofReal (1 / 2 ^ 128) := by
     rw [GraphView.card_randomness, one_div, ENNReal.ofReal_inv_of_pos (by positivity)]
     congr 1
     rw [← ENNReal.ofReal_natCast]

@@ -81,10 +81,12 @@ def offC : List ℕ := (stackOffsets (vtSizesC H.τ)).1
 
 /-- The arguments. -/
 noncomputable def args : List E :=
-  [H.f.getD 0 0, H.f.getD 1 0, H.f.getD 2 0, H.f.getD 3 0, H.f.getD 4 0, ofK (gpow B.cur),
-    (digestScalars H.pi).1, (digestScalars H.pi).2, ofK (gpow B.zeta), gen ^ H.μ,
-    ofK (gpow B.dims), ofK (gpow B.rows), ofK (gpow B.bk), ofK (gpow B.sq), ofK (gpow B.fpw),
-    H.beta, ofK (gpow B.pool), ofK (gpow B.cplen), ofK (gpow B.chi), H.values.getD 0 0,
+  [H.f.getD 0 0, H.f.getD 1 0, H.f.getD 2 0, H.f.getD 3 0, H.f.getD 4 0, ofK (addressOfIndex B.cur),
+    (digestHalves H.pi).1, (digestHalves H.pi).2, ofK (addressOfIndex B.zeta), gen ^ H.μ,
+    ofK (addressOfIndex B.dims), ofK (addressOfIndex B.rows), ofK (addressOfIndex B.bk), ofK
+        (addressOfIndex B.sq), ofK (addressOfIndex B.fpw),
+    H.beta, ofK (addressOfIndex B.pool), ofK (addressOfIndex B.cplen), ofK (addressOfIndex B.chi),
+        H.values.getD 0 0,
     H.values.getD 1 0, H.values.getD 2 0]
 
 /-- `dims_g`'s words. -/
@@ -99,8 +101,8 @@ def curW : List E := H.xs5 ++ H.xsR ++ H.evsT.flatten
 /-- The public input's claims' values. -/
 noncomputable def pcW : List E :=
   ([0, 1, 2] : List (Fin 3)).map fun limb ↦
-    multilinearEval [ofK ((digestScalars H.pi).1.limb limb),
-      ofK ((digestScalars H.pi).2.limb limb)] [H.rm]
+    multilinearEval [ofK ((digestHalves H.pi).1.limb limb),
+      ofK ((digestHalves H.pi).2.limb limb)] [H.rm]
 
 /-- `claim_pool`'s words. -/
 noncomputable def poolW : List E := H.xs5 ++ H.evsT.flatten ++ H.pcW
@@ -130,7 +132,7 @@ noncomputable def ownW : List (List E) :=
     vtShGW H.point H.τ, vtIdxBufW H.point H.lm] ++
     (List.range 54).map (fun i ↦ offBits (H.offP.getD i 0)) ++
     (List.range 45).map (fun i ↦ offBits (H.offC.getD i 0)) ++
-    [zcRoundsW H.cap0 H.target (ofK (gpow B.cur) * gen ^ 5) H.xsR H.n,
+    [zcRoundsW H.cap0 H.target (ofK (addressOfIndex B.cur) * gen ^ 5) H.xsR H.n,
       zcCprodW H.cap0 H.target H.xsR H.n,
       (List.range (H.n + 1)).map (prefixProd 1 H.chiW ((H.point.map (1 + ·)).take H.n))]
 
@@ -145,7 +147,7 @@ end VtHonest
 /-- **What the oracle answers**: the allocations' pointers, the witnesses, the callees'
 returns. -/
 structure VtWOk (H : VtHonest) (B : VtBases) (w : ℕ → E) : Prop where
-  alloc : ∀ j < 110, w (vtAllocVars.getD j 0) = ofK (gpow ((H.ownB B).getD j 0))
+  alloc : ∀ j < 110, w (vtAllocVars.getD j 0) = ofK (addressOfIndex ((H.ownB B).getD j 0))
   pads : ∀ t < 6, w (vtPadV t) = paddingWeight (H.point.take (H.τ t)) (vtRw H.rows t) ∧
     w (vtPadV t + 1) = PadLead (H.τ t) (vtRw H.rows t) ∧
     w (vtPadV t + 2) = PadRest (H.τ t) (vtRw H.rows t)

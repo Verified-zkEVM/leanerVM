@@ -113,8 +113,8 @@ theorem osQueries_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) 
         (if lvl = 0 then 1 else 0) lv.interleave lv.depth lv.capDepth rd (W args rets) args rets)
     {lf : List E} (hlf : lf.length = lv.folds)
     (hfch : ∀ j < lv.folds, LoadHolds rd (σ (.n osFch)) (lv.foldsOff + j) (lf.getD j 0))
-    {root : Digest} (hr0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestScalars root).1)
-    (hr1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestScalars root).2)
+    {root : Digest} (hr0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestHalves root).1)
+    (hr1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestHalves root).2)
     (qs : List ℕ) (hqlt : ∀ k < lv.queries, qs.getD k 0 < 2 ^ lv.depth)
     (hpos : ∀ k < lv.queries, ∃ bp, LoadHolds rd (σ (.n osQbp)) (lv.posOff + k) bp ∧
       ∀ l < lv.depth, ∀ w, LoadHolds rd bp l w → w = bitE ((qs.getD k 0).testBit l))
@@ -175,7 +175,7 @@ theorem osQueries_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) 
   have eg : σ (.n g) = gen ^ N0 := by rw [hcg, gw_eq hb6]
   have er0 := loadHolds_unique hs0 hr0
   have er1 := loadHolds_unique hs1 hr1
-  have hroot : (σ (.n r), σ (.n (r + 1))) = digestScalars root := by rw [er0, er1]
+  have hroot : (σ (.n r), σ (.n (r + 1))) = digestHalves root := by rw [er0, er1]
   obtain ⟨-, rs, hrsl, hrs, hlo, hhi⟩ := hRW _ _ (hle _ _ _ hrw)
   have hrsf : rs = lf := by
     apply List.ext_getElem (by rw [hrsl, hlf])

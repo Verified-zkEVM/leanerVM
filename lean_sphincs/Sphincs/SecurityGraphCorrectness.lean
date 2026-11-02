@@ -91,7 +91,7 @@ theorem leaf_input (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
   unfold canonicalGraphInput canonicalGraphSlots
   simp only [Position.children, Position.domain, List.map_ofFn]
   congr 1
-  apply congrArg (fun values : List Digest => values.flatMap (bytesLE 16))
+  apply congrArg (fun values : List Digest => values.flatMap (littleEndianBytes 16))
   apply congrArg List.ofFn
   funext chain
   simp only [Function.comp_apply]
@@ -330,7 +330,7 @@ theorem chain_input (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     canonicalGraphInput parameter (otsSecrets f parameter seed) (ftsSecrets f parameter seed)
       (.chain lay tree leaf chain step) labels =
     tweakableHashInput parameter (.chain lay tree leaf chain step)
-      (bytesLE 16 (Chain.honestChain f parameter lay tree leaf chain
+      (littleEndianBytes 16 (Chain.honestChain f parameter lay tree leaf chain
         (otsSecrets f parameter seed lay tree leaf chain) step.val)) := by
   obtain ⟨step, hstep⟩ := step
   cases step with
@@ -521,7 +521,7 @@ theorem fchain_input (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) (t 
     canonicalGraphInput parameter (otsSecrets f parameter seed) (ftsSecrets f parameter seed)
       (.fchain index c s j a i t) labels =
     tweakableHashInput parameter (.fchain index c s j a i t)
-      (bytesLE 16 (Forest.honestChain f parameter index c s j a i
+      (littleEndianBytes 16 (Forest.honestChain f parameter index c s j a i
         (Completeness.forestSecret f parameter index c s j a i seed) t.val)) := by
   obtain ⟨t, ht⟩ := t
   cases t with
@@ -568,7 +568,7 @@ theorem childLeaf_input (s : SuperIdx) (j : SubIdx) (a : ChildIdx) :
   unfold canonicalGraphInput canonicalGraphSlots
   simp only [Position.children, Position.domain, List.map_ofFn]
   congr 1
-  apply congrArg (fun values : List Digest => values.flatMap (bytesLE 16))
+  apply congrArg (fun values : List Digest => values.flatMap (littleEndianBytes 16))
   apply congrArg List.ofFn
   funext i
   simp only [Function.comp_apply]

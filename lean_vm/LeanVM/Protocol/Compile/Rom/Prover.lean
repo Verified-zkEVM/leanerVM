@@ -58,7 +58,7 @@ variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState
 /-- The honest prover from a history `h` at sponge `sp`, the trees of the commitments so far `cs`
 (`proveFrom`): each commitment's tree built once, the openings read from it. -/
 def proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
-    Prog α → Sponge → List Ev → List Tree → m (Option (List E × List Opening))
+    VerifierProgram α → Sponge → List Ev → List Tree → m (Option (List E × List Opening))
   | .ret _, _, _, _ => pure (some ([], []))
   | .fail, _, _, _ => pure (some ([], []))
   | .read k, sp, h, cs => do
@@ -77,10 +77,10 @@ def proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
       pure (t.map fun t ↦ (n :: t.1, t.2))
   | .commit ht w k, sp, h, cs => do
     let tree ← buildTreeWithHash H ht (S.word h)
-    let sp0 ← Compile.absorb F sp (digestScalars tree.root).1 dsObserve
-    let sp1 ← Compile.absorb F sp0 (digestScalars tree.root).2 dsObserve
+    let sp0 ← Compile.absorb F sp (digestHalves tree.root).1 dsObserve
+    let sp1 ← Compile.absorb F sp0 (digestHalves tree.root).2 dsObserve
     let r ← proveFromM S fuel k sp1 (h ++ [Ev.commit ht w (S.word h)]) (cs ++ [tree])
-    pure (r.map fun t ↦ ((digestScalars tree.root).1 :: (digestScalars tree.root).2 :: t.1, t.2))
+    pure (r.map fun t ↦ ((digestHalves tree.root).1 :: (digestHalves tree.root).2 :: t.1, t.2))
   | .query i ps k, sp, h, cs => match cs[i]? with
     | none => pure (some ([], []))
     | some tree => do
@@ -89,7 +89,8 @@ def proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
       pure (r.map fun t ↦ (t.1, ps.map tree.opening ++ t.2))
 
 /-- **The honest prover**, with the hash and the permutation in any monad (`prove`). -/
-def proveM (P : Prog Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ) : m (Option Proof) := do
+def proveM (P : VerifierProgram Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ) : m (Option
+    Proof) := do
   let r ← proveFromM H F S fuel P ⟨seed, []⟩ [] []
   pure (r.map fun t ↦ ⟨t.1, t.2⟩)
 
@@ -224,7 +225,7 @@ theorem treesOf_append_nil (h : List Ev) (e : Ev) (he : commits [e] = []) :
 
 /-- The `Id` instance from the trees of a history's commitments is `proveFrom`. -/
 theorem proveFromM_id (S : Strategy) (fuel : ℕ) {α : Type} :
-    ∀ (p : Prog α) (sp : Sponge) (h : List Ev),
+    ∀ (p : VerifierProgram α) (sp : Sponge) (h : List Ev),
       proveFromM (m := Id) H F S fuel p sp h (treesOf H (commits h)) = proveFrom H F S fuel p sp h
   | .ret _, _, _ => rfl
   | .fail, _, _ => rfl
@@ -269,7 +270,7 @@ theorem proveFromM_id (S : Strategy) (fuel : ℕ) {α : Type} :
         proveFromM_id S fuel]
 
 /-- **The `Id` instance is the honest prover.** -/
-theorem proveM_id (P : Prog Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ) :
+theorem proveM_id (P : VerifierProgram Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ) :
     proveM (m := Id) H F P S seed fuel = prove H F P S seed fuel := by
   show (proveFromM (m := Id) H F S fuel P ⟨seed, []⟩ [] (treesOf H (commits []))).map _ = _
   rw [proveFromM_id]
@@ -338,7 +339,7 @@ theorem simulateQ_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
   · exact simulateQ_searchM impl bits sp _ _
 
 theorem simulateQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
-    ∀ (p : Prog α) (sp : Sponge) (h : List Ev) (cs : List Tree),
+    ∀ (p : VerifierProgram α) (sp : Sponge) (h : List Ev) (cs : List Tree),
       simulateQ impl (proveFromM callKeccak256 callKeccakF1600 S fuel p sp h cs) =
         proveFromM (implH impl) (implF impl) S fuel p sp h cs
   | .ret _, _, _, _ => by simp [proveFromM]
@@ -369,7 +370,7 @@ theorem simulateQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
       rw [simulateQ_proveFromM S fuel]
 
 /-- **The prover commutes with simulation.** -/
-theorem simulateQ_proveM (P : Prog Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ) :
+theorem simulateQ_proveM (P : VerifierProgram Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ) :
     simulateQ impl (proveM callKeccak256 callKeccakF1600 P S seed fuel) =
       proveM (implH impl) (implF impl) P S seed fuel := by
   simp only [proveM, simulateQ_bind, simulateQ_proveFromM, simulateQ_pure]
@@ -457,7 +458,7 @@ theorem isTotalQueryBound_levelsM :
 
 theorem isTotalQueryBound_leafDigestsM (height : ℕ) (word : Word) :
     IsTotalQueryBound (leafDigestsWithHash callKeccak256 height word) (2 ^ height) := by
-  have := isTotalQueryBound_arrayMapM (β := Digest) (fun i : ℕ ↦ callKeccak256 ((word i).flatMap kBytes))
+  have := isTotalQueryBound_arrayMapM (β := Digest) (fun i : ℕ ↦ callKeccak256 ((word i).flatMap K.toBytes))
     1 (fun _ ↦ isTotalQueryBound_queryH_bind (f := pure) _ fun _ ↦ isTotalQueryBound_pure' _ 0
       |>.mono (by simp)) (Array.range (2 ^ height))
   simpa [leafDigestsWithHash, callKeccak256] using this
@@ -530,7 +531,7 @@ theorem pow_le_proverFactor (height fuel : ℕ) :
 /-- **The prover's queries.** The prover runs a program of cost `n` (`Prog.Costs`, in quarters)
 at height `height` with at most `n · proverFactor height fuel` queries. -/
 theorem isTotalQueryBound_proveFromM (S : Strategy) (fuel height : ℕ) {α : Type} :
-    ∀ (p : Prog α) (sp : Sponge) (h : List Ev) (cs : List Tree) (n : ℕ) (Q : α → Prop),
+    ∀ (p : VerifierProgram α) (sp : Sponge) (h : List Ev) (cs : List Tree) (n : ℕ) (Q : α → Prop),
       p.Costs height n Q →
       IsTotalQueryBound (proveFromM callKeccak256 callKeccakF1600 S fuel p sp h cs) (n * proverFactor height fuel)
   | .ret _, _, _, _, _, _, _ => trivial
@@ -596,14 +597,14 @@ theorem isTotalQueryBound_proveFromM (S : Strategy) (fuel height : ℕ) {α : Ty
     split
     · trivial
     · refine (isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height _ sp _ cs
-        (n - Prog.openCost height ps.length) Q (hp.2 _)) fun _ ↦
+        (n - VerifierProgram.openCost height ps.length) Q (hp.2 _)) fun _ ↦
           isTotalQueryBound_pure' _ 0).mono ?_
       rw [Nat.add_zero]
       exact Nat.mul_le_mul_right _ (Nat.sub_le _ _)
 
 /-- **The honest prover's queries**: at most `n · proverFactor height fuel` for a program of
 cost `n` at `height`. -/
-theorem isTotalQueryBound_proveM {P : Prog Bool} {height n : ℕ} (hP : P.CostLE height n)
+theorem isTotalQueryBound_proveM {P : VerifierProgram Bool} {height n : ℕ} (hP : P.CostLE height n)
     (S : Strategy) (seed : KeccakState) (fuel : ℕ) :
     IsTotalQueryBound (proveM callKeccak256 callKeccakF1600 P S seed fuel) (n * proverFactor height fuel) := by
   unfold proveM

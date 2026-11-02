@@ -46,7 +46,7 @@ def xPartN (rho bitBase : ℕ) (sel path : List ℕ) (σ : Val) : LeanXmss.Layer
   ⟨xv (σ (.n rho)), fun i ↦ xv (σ (.n (cwCell 19 sel xFirst xRest xLast σ i.val))),
     fun l ↦ xv (sibN σ (bitBase + l.val) (path.getD l.val 0))⟩
 
-theorem bitsN_lt (σ : Val) : bitsN σ 2 32 < 2 ^ (LeanXmss.numLayers * LeanXmss.layerHeight) := by
+theorem bitsN_lt (σ : Val) : bitsN σ 2 32 < 2 ^ (LeanXmss.layerCount * LeanXmss.layerHeight) := by
   rw [← bitsOf_eq]; exact xLeaf_lt σ
 
 /-- **The leanXMSS signature `verify_lean_xmss` checks**, read off its valuation (`xmssSigOf`). -/
@@ -60,7 +60,7 @@ theorem xPart0_eq (σ : Val) : xPart 0 196 σ = xPartN 196 2 xSel0 xPath0 σ := 
   have hc (i : LeanXmss.ChainIndex) : cwStart (xW 0 196) 19 (xA 0 196 + 6) σ i.val =
       .n (cwCell 19 xSel0 xFirst xRest xLast σ i.val) :=
     cwStart_eq_cwCell (W := xW 0 196) (G := 19) (b := 230) xSel0_eq xTabs (by norm_num) σ
-      (by have := i.isLt; simp only [LeanXmss.numChains] at this; omega)
+      (by have := i.isLt; simp only [LeanXmss.chainCount] at this; omega)
   have hp (l : Fin LeanXmss.layerHeight) :
       mSib σ (xBitOf 0) l.val (mBase (xNodeOf 0) 0 l.val (xLeafK 0 196).2.1) =
         sibN σ (2 + l.val) (xPath0.getD l.val 0) := by
@@ -74,7 +74,7 @@ theorem xPart1_eq (σ : Val) : xPart 1 12602 σ = xPartN 12604 18 xSel1 xPath1 �
   have hc (i : LeanXmss.ChainIndex) : cwStart (xW 1 12602) 19 (xA 1 12602 + 6) σ i.val =
       .n (cwCell 19 xSel1 xFirst xRest xLast σ i.val) :=
     cwStart_eq_cwCell (W := xW 1 12602) (G := 19) (b := 12627) xSel1_eq xTabs (by norm_num) σ
-      (by have := i.isLt; simp only [LeanXmss.numChains] at this; omega)
+      (by have := i.isLt; simp only [LeanXmss.chainCount] at this; omega)
   have hp (l : Fin LeanXmss.layerHeight) :
       mSib σ (xBitOf 1) l.val (mBase (xNodeOf 1) 0 l.val (xLeafK 1 12602).2.1) =
         sibN σ (18 + l.val) (xPath1.getD l.val 0) := by

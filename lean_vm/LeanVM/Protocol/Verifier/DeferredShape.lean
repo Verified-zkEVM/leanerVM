@@ -35,13 +35,14 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash
 
 @[expose] public section
 
-namespace Prog
+namespace VerifierProgram
 
 variable {α : Type}
 
 /-- A program's successful run returns what the program may return. -/
-theorem returns_of_run (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) {p : Prog α} :
-    ∀ {s : ProgState} {a : α} {s' : ProgState}, runWithHash H F p s = some (a, s') → Returns p a := by
+theorem returns_of_run (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) {p :
+    VerifierProgram α} :
+    ∀ {s : VerifierProgramState} {a : α} {s' : VerifierProgramState}, runWithHash H F p s = some (a, s') → Returns p a := by
   induction p with
   | ret b =>
     intro s a s' h
@@ -71,7 +72,7 @@ theorem returns_of_run (H : Bytes → Id Digest) (F : KeccakState → Id KeccakS
     simp only [runWithHash] at h
     split at h
     · next x0 x1 xs hs =>
-      change (match digestOfScalars (x0, x1) with | some root => _ | none => _) = _ at h
+      change (match digestFromHalves (x0, x1) with | some root => _ | none => _) = _ at h
       split at h
       · next root hroot => exact .commit height width (ih h)
       · simp at h
@@ -89,7 +90,7 @@ theorem returns_of_run (H : Bytes → Id Digest) (F : KeccakState → Id KeccakS
       · simp at h
 
 /-- An accepted proof's program may return `true`. -/
-theorem returns_of_runProof (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) {P : Prog Bool}
+theorem returns_of_runProof (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) {P : VerifierProgram Bool}
     {seed : KeccakState} {π : Proof} (h : runProofWithHash H F P seed π = true) : Returns P true := by
   unfold runProofWithHash at h
   revert h
@@ -114,7 +115,7 @@ theorem returns_require {c : Prop} [Decidable c] {u : Unit} (h : Returns (requir
   · assumption
   · cases h
 
-end Prog
+end VerifierProgram
 
 end
 end LeanVM.Protocol.Compile
@@ -126,75 +127,78 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.
 @[expose] public section
 
 /-- A lifted option that may return `a` is `some a`. -/
-theorem returns_liftOption {α : Type} {o : Option α} {a : α} (h : Prog.Returns (liftOption o) a) :
+theorem returns_liftOption {α : Type} {o : Option α} {a : α} (h : VerifierProgram.Returns
+    (liftOption o) a) :
     o = some a := by
   unfold liftOption at h
   split at h
   · cases h
-  · rw [Prog.returns_ret h]
+  · rw [VerifierProgram.returns_ret h]
 
 /-- A sumcheck's point has one challenge per round. -/
 theorem returns_sumcheck {count : ℕ} :
     ∀ {eqs : List (Option E)} {claim : E} {x : List E × E},
-      Prog.Returns (sumcheck claim count eqs) x → x.1.length = eqs.length
-  | [], claim, x, h => by unfold sumcheck at h; rw [Prog.returns_ret h]; rfl
+      VerifierProgram.Returns (sumcheck claim count eqs) x → x.1.length = eqs.length
+  | [], claim, x, h => by unfold sumcheck at h; rw [VerifierProgram.returns_ret h]; rfl
   | e :: es, claim, x, h => by
     unfold sumcheck at h
-    obtain ⟨_, -, h⟩ := Prog.returns_bind h
-    obtain ⟨_, -, h⟩ := Prog.returns_bind h
-    obtain ⟨⟨pt, fin⟩, hp, h⟩ := Prog.returns_bind h
-    rw [Prog.returns_ret h, List.length_cons, List.length_cons, ← returns_sumcheck hp]
+    obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+    obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+    obtain ⟨⟨pt, fin⟩, hp, h⟩ := VerifierProgram.returns_bind h
+    rw [VerifierProgram.returns_ret h, List.length_cons, List.length_cons, ← returns_sumcheck hp]
 
 /-- A GKR step of `step` levels adds `step` coordinates to the point. -/
-theorem returns_gkrStep {step : ℕ} {s t : GkrState} (h : Prog.Returns (gkrStep step s) t) :
+theorem returns_gkrStep {step : ℕ} {s t : GkrState} (h : VerifierProgram.Returns (gkrStep step
+    s) t) :
     t.point.length = step + s.point.length := by
   unfold gkrStep at h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨⟨x, cl⟩, hx, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨y, hy, h⟩ := Prog.returns_bind h
-  rw [Prog.returns_ret h, List.length_append, Prog.returns_sampleN hy, returns_sumcheck hx,
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨⟨x, cl⟩, hx, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨y, hy, h⟩ := VerifierProgram.returns_bind h
+  rw [VerifierProgram.returns_ret h, List.length_append, VerifierProgram.returns_sampleN hy,
+      returns_sumcheck hx,
     List.length_map]
 
 /-- The GKR walk over `n` levels adds `n` coordinates to the point. -/
 theorem returns_gkrLayers :
-    ∀ (n : ℕ) {s t : GkrState}, Prog.Returns (gkrLayers n s) t →
+    ∀ (n : ℕ) {s t : GkrState}, VerifierProgram.Returns (gkrLayers n s) t →
       t.point.length = n + s.point.length
-  | 0, s, t, h => by unfold gkrLayers at h; rw [Prog.returns_ret h, zero_add]
+  | 0, s, t, h => by unfold gkrLayers at h; rw [VerifierProgram.returns_ret h, zero_add]
   | 1, s, t, h => by
     unfold gkrLayers at h
-    obtain ⟨s1, h1, h⟩ := Prog.returns_bind h
+    obtain ⟨s1, h1, h⟩ := VerifierProgram.returns_bind h
     rw [returns_gkrLayers 0 h, returns_gkrStep h1]
     omega
   | n + 2, s, t, h => by
     unfold gkrLayers at h
     split at h
-    · obtain ⟨s1, h1, h⟩ := Prog.returns_bind h
+    · obtain ⟨s1, h1, h⟩ := VerifierProgram.returns_bind h
       rw [returns_gkrLayers (n + 1) h, returns_gkrStep h1]
       omega
-    · obtain ⟨s1, h1, h⟩ := Prog.returns_bind h
+    · obtain ⟨s1, h1, h⟩ := VerifierProgram.returns_bind h
       rw [returns_gkrLayers n h, returns_gkrStep h1]
       omega
 
 /-- The GKR point has the depth's length. -/
 theorem returns_verifyGkrGrandProducts {depth : ℕ} {x : E × List E × List E}
-    (h : Prog.Returns (verifyGkrGrandProducts depth) x) : x.2.1.length = depth := by
+    (h : VerifierProgram.Returns (verifyGkrGrandProducts depth) x) : x.2.1.length = depth := by
   unfold verifyGkrGrandProducts at h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨t, ht, h⟩ := Prog.returns_bind h
-  rw [Prog.returns_ret h]
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨t, ht, h⟩ := VerifierProgram.returns_bind h
+  rw [VerifierProgram.returns_ret h]
   exact (returns_gkrLayers depth ht).trans (add_zero _)
 
 /-- The claimed bytecode value is given only at the claimed point. -/
 theorem returns_claimed_bytecode {c : BytecodeClaim} {words : List K} {point : List E} {v : E}
-    (h : Prog.Returns (claimedValue c words point) v) :
+    (h : VerifierProgram.Returns (claimedBytecodeValue c words point) v) :
     point = c.bytecodePoint := by
-  obtain ⟨_, h, -⟩ := Prog.returns_bind h
-  exact Prog.returns_require h
+  obtain ⟨_, h, -⟩ := VerifierProgram.returns_bind h
+  exact VerifierProgram.returns_require h
 
 /-- `log2Strict` gives `Nat.log2`. -/
 theorem log2Strict_eq {n k : ℕ} (h : log2Strict n = some k) : k = Nat.log2 n := by
@@ -242,15 +246,15 @@ theorem busLayout_depth_ge (logMemory logBytecode : ℕ) (blocks : List BusBlock
 
 /-- The layout `readSizes` returns has the bytecode's log-size, in tuples of `2 ^ busBits`. -/
 theorem readSizes_logBytecode {bytecode : List K} {x : Layout × ℕ}
-    (h : Prog.Returns (readSizes bytecode) x) :
+    (h : VerifierProgram.Returns (readAnnouncedSizes bytecode) x) :
     x.1.logBytecode + busBits = Nat.log2 bytecode.length := by
-  unfold readSizes at h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨layout, hl, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  rw [Prog.returns_ret h]
+  unfold readAnnouncedSizes at h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨layout, hl, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  rw [VerifierProgram.returns_ret h]
   have ho := returns_liftOption hl
   unfold buildLayout at ho
   split at ho
@@ -266,32 +270,34 @@ theorem readSizes_logBytecode {bytecode : List K} {x : Layout × ℕ}
 
 /-- The bus asks for the bytecode at a point of length `logBytecode + busBits`. -/
 theorem verifyBusBalance_bytecodePoint {c : BytecodeClaim} {layout : Layout} {b : BusResult}
-    (h : Prog.Returns (verifyBusBalance (claimedValue c) layout) b) :
+    (h : VerifierProgram.Returns (verifyBusBalance (claimedBytecodeValue c) layout) b) :
     c.bytecodePoint.length = layout.logBytecode + busBits := by
   unfold verifyBusBalance at h
-  obtain ⟨alphas, ha, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨⟨cr, point, tv⟩, hg, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, hv, -⟩ := Prog.returns_bind h
+  obtain ⟨alphas, ha, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨⟨cr, point, tv⟩, hg, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, hv, -⟩ := VerifierProgram.returns_bind h
   have hd := busLayout_depth_ge layout.logMemory layout.logBytecode layout.push
   have hp : point.length = _ := returns_verifyGkrGrandProducts hg
-  rw [← returns_claimed_bytecode hv, List.length_append, List.length_take, Prog.returns_sampleN ha,
+  rw [← returns_claimed_bytecode hv, List.length_append, List.length_take,
+      VerifierProgram.returns_sampleN ha,
     hp]
   omega
 
 /-- **The verifier's claims, of the verifier's shapes**: a run of the verifier on the claimed
 evaluator that may return makes claims of the lengths the program fixes. -/
 theorem verifyExecution_shaped {c : BytecodeClaim} {bytecode : List K} {publicInput : Digest}
-    {u : Unit} (h : Prog.Returns (verifyExecutionClaims (claimedValue c) bytecode publicInput) u) :
+    {u : Unit} (h : VerifierProgram.Returns (verifyExecutionClaims (claimedBytecodeValue c) bytecode
+        publicInput) u) :
     c.bytecodePoint.length = Nat.log2 bytecode.length := by
   unfold verifyExecutionClaims at h
-  obtain ⟨⟨layout, r⟩, hl, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, hb, -⟩ := Prog.returns_bind h
+  obtain ⟨⟨layout, r⟩, hl, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, hb, -⟩ := VerifierProgram.returns_bind h
   rw [verifyBusBalance_bytecodePoint hb]
   exact readSizes_logBytecode hl
 
@@ -301,9 +307,9 @@ theorem verifyDeferred_shaped {bytecode : List K} {iv publicInput : Digest} {c :
     {π : Proof} (h : verifyDeferred bytecode iv publicInput c π = true) :
     c.bytecodePoint.length = Nat.log2 bytecode.length := by
   rw [verifyDeferred_eq_withHash] at h
-  have hP := Prog.returns_of_runProof keccak256 keccakF1600 h
+  have hP := VerifierProgram.returns_of_runProof keccak256 keccakF1600 h
   rw [deferredProgram_eq] at hP
-  obtain ⟨_, hu, -⟩ := Prog.returns_bind hP
+  obtain ⟨_, hu, -⟩ := VerifierProgram.returns_bind hP
   exact verifyExecution_shaped hu
 
 end

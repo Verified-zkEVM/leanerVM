@@ -28,7 +28,7 @@ open LeanVM.Cost CompPoly
 @[expose] public section
 
 instance {F : Type} [MachineEncoding F] : MachineEncoding (PolynomialMatrix.ShiftedLeadingTerm F) :=
-  ⟨fun t ↦ .ctor 0 [encodeValue t.position, encodeValue t.degree, encodeValue t.shiftedDegree, encodeValue t.coeff]⟩
+  ⟨fun t ↦ .constructor 0 [encodeValue t.position, encodeValue t.degree, encodeValue t.shiftedDegree, encodeValue t.coeff]⟩
 
 theorem beqZero {R : Type} [Zero R] [BEq R] (p : CPolynomial R) :
     (p == 0) = decide (p.val.size = 0) := by

@@ -220,7 +220,8 @@ theorem subtreeLeavesWith_congr {pre pre' : Digest → ℕ → Option Bytes} {w 
 
 /-- **The extractor with indexed preimages**: `extractFast` with the leaves read through
 `lookup (mk width)`, the index `mk width` built once. -/
-@[expose] def extractWith {α : Type} (prog : Program) (input : PublicInput) (bytecode : List K)
+@[expose] def extractWith {α : Type} (prog : LeanIsaProgram) (input : PublicInput) (bytecode :
+    List K)
     (mk : ℕ → α) (lookup : α → Digest → ℕ → Option Bytes) (π : Proof) :
     Option (Execution prog) := do
   let ((layout, logInverseRate), state) ← afterRoot bytecode π
@@ -232,13 +233,14 @@ theorem subtreeLeavesWith_congr {pre pre' : Digest → ℕ → Option Bytes} {w 
   (fastStacks layout.stackLog logInverseRate word).findSome? execution <|>
     (decodeStacksFast layout.stackLog logInverseRate word).findSome? execution
 
-theorem extractWith_preimage (prog : Program) (input : PublicInput) (bytecode : List K)
+theorem extractWith_preimage (prog : LeanIsaProgram) (input : PublicInput) (bytecode : List K)
     (answers : Bytes → Option Digest) (keys : List Bytes) (π : Proof) :
     extractWith prog input bytecode (fun _ ↦ answerPairs answers keys) preimage π =
       extractFast prog input bytecode answers keys π := by
   simp only [extractWith, extractFast, committedLeaves, subtreeLeavesWith_preimage]
 
-theorem extractWith_congr {α β : Type} (prog : Program) (input : PublicInput) (bytecode : List K)
+theorem extractWith_congr {α β : Type} (prog : LeanIsaProgram) (input : PublicInput) (bytecode :
+    List K)
     (mk : ℕ → α) (lookup : α → Digest → ℕ → Option Bytes) (mk' : ℕ → β)
     (lookup' : β → Digest → ℕ → Option Bytes)
     (h : ∀ w d, ∀ len ∈ [64, 8 * w], lookup (mk w) d len = lookup' (mk' w) d len) (π : Proof) :

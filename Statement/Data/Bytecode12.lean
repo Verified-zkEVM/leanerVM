@@ -18,7 +18,7 @@ set_option maxRecDepth 20000
 @[expose] public section
 
 /-- `open_stacked__L2` from offset 0. -/
-def f295c0 : List OInstr := [
+def f295c0 : List OffsetInstruction := [
   .deref 10 0 16 .cell,
   .deref 10 1 17 .cell,
   .xor 7 17 18,
@@ -2069,7 +2069,7 @@ def f295c0 : List OInstr := [
   .deref 1431 0 1420 .cell]
 
 /-- `open_stacked__L2` from offset 2048. -/
-def f295c1 : List OInstr := [
+def f295c1 : List OffsetInstruction := [
   .deref 1431 1 1421 .cell,
   .deref 1431 2 1422 .cell,
   .deref 1431 3 1423 .cell,
@@ -2891,7 +2891,7 @@ def f295c1 : List OInstr := [
   .jump 54 0 1]
 
 /-- `open_stacked__L3` from offset 0. -/
-def f296c0 : List OInstr := [
+def f296c0 : List OffsetInstruction := [
   .deref 10 0 16 .cell,
   .deref 10 1 17 .cell,
   .xor 7 17 18,
@@ -4942,7 +4942,7 @@ def f296c0 : List OInstr := [
   .jump 54 1431 1430]
 
 /-- `open_stacked__L3` from offset 2048. -/
-def f296c1 : List OInstr := [
+def f296c1 : List OffsetInstruction := [
   .deref 1432 0 1421 .cell,
   .deref 1432 1 1422 .cell,
   .deref 1432 2 1423 .cell,
@@ -5838,7 +5838,7 @@ def f296c1 : List OInstr := [
   .jump 54 0 1]
 
 /-- `open_stacked__L4` from offset 0. -/
-def f297c0 : List OInstr := [
+def f297c0 : List OffsetInstruction := [
   .deref 10 0 16 .cell,
   .deref 10 1 17 .cell,
   .xor 7 17 18,
@@ -7889,7 +7889,7 @@ def f297c0 : List OInstr := [
   .deref 1432 1 0 .fp]
 
 /-- `open_stacked__L4` from offset 2048. -/
-def f297c1 : List OInstr := [
+def f297c1 : List OffsetInstruction := [
   .deref 1432 0 0 .pc,
   .jump 54 1433 1432,
   .deref 1434 0 1423 .cell,
@@ -8845,7 +8845,7 @@ def f297c1 : List OInstr := [
   .jump 54 0 1]
 
 /-- `open_stacked__L5` from offset 0. -/
-def f298c0 : List OInstr := [
+def f298c0 : List OffsetInstruction := [
   .deref 10 0 16 .cell,
   .deref 10 1 17 .cell,
   .xor 7 17 18,
@@ -10896,7 +10896,7 @@ def f298c0 : List OInstr := [
   .deref 1432 2 1422 .cell]
 
 /-- `open_stacked__L5` from offset 2048. -/
-def f298c1 : List OInstr := [
+def f298c1 : List OffsetInstruction := [
   .deref 1432 1 0 .fp,
   .deref 1432 0 0 .pc,
   .jump 54 1433 1432,
@@ -12020,7 +12020,7 @@ def f298c1 : List OInstr := [
   .jump 54 0 1]
 
 /-- `open_stacked__L6` from offset 0. -/
-def f299c0 : List OInstr := [
+def f299c0 : List OffsetInstruction := [
   .deref 10 0 16 .cell,
   .deref 10 1 17 .cell,
   .xor 7 17 18,
@@ -14071,7 +14071,7 @@ def f299c0 : List OInstr := [
   .mul 139 1458 1459]
 
 /-- `open_stacked__L6` from offset 2048. -/
-def f299c1 : List OInstr := [
+def f299c1 : List OffsetInstruction := [
   .xor 1455 1459 1436,
   .xor 1458 141 1437,
   .set 1463 11351932574384133043 0 0,
@@ -15532,7 +15532,7 @@ def f299c1 : List OInstr := [
   .jump 54 0 1]
 
 /-- `open_stacked__L7` from offset 0. -/
-def f300c0 : List OInstr := [
+def f300c0 : List OffsetInstruction := [
   .deref 10 0 16 .cell,
   .deref 10 1 17 .cell,
   .xor 7 17 18,

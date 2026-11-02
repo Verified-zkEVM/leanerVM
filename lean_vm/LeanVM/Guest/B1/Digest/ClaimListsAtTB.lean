@@ -333,7 +333,7 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
     -- the path
     have h3ne : σ (.n 3) ≠ 0 := by
       rw [hV.v3, Ne, e_add_eq_zero_iff, pow_zero, gen_pow_eq_one_iff (by omega)]; omega
-    have hx : σ (.n 24) = ofK (gpow r) := by rw [hV.v24, gen_pow_eq_ofK]
+    have hx : σ (.n 24) = ofK (addressOfIndex r) := by rw [hV.v24, gen_pow_eq_ofK]
     have hb : (if σ (.n 3) = 0 then walk σ cl23Zero else walk σ cl23Else) =
         .fall (clP1.flatMap (Main.slEvs σ) ++ .call clNames[r]! [.n 54, .n 62] [.n 63, .n 64] ::
           clPost.flatMap (Main.slEvs σ)) := by
@@ -666,7 +666,7 @@ theorem child_claim_list_digest_completeAtTB (fs : String → ℕ) (cert : Strin
     -- the path
     have h7ne : σ (.n 7) ≠ 0 := by
       rw [hV.v7, Ne, e_add_eq_zero_iff, pow_zero, gen_pow_eq_one_iff (by omega)]; omega
-    have hx : σ (.n 28) = ofK (gpow r) := by rw [hV.v28, gen_pow_eq_ofK]
+    have hx : σ (.n 28) = ofK (addressOfIndex r) := by rw [hV.v28, gen_pow_eq_ofK]
     have hb : (if σ (.n 7) = 0 then walk σ cc24Zero else walk σ cc24Else) =
         .fall (ccP1.flatMap (Main.slEvs σ) ++ .call cclNames[r]! [.n 58, .n 0, .n 1, .n 64, .n 3, .n 4]
           [.n 65, .n 66] :: ccPost.flatMap (Main.slEvs σ)) := by

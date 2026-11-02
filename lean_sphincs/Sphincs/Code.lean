@@ -50,11 +50,11 @@ theorem digit_of_sum (B : Nat) (hB : 0 < B) (c : Nat → Nat) (hc : ∀ s, c s <
           exact ih (fun s => c (s + 1)) (fun s => hc (s + 1)) k (Nat.lt_of_succ_lt_succ hk)
 
 theorem weight_pow (B : Nat) :
-    (∑ d : Digit, B ^ d.val) ^ numChains = ∑ x : Encoding, B ^ (TargetSum.sum x) := by
+    (∑ d : WinternitzDigit, B ^ d.val) ^ numChains = ∑ x : Encoding, B ^ (TargetSum.sum x) := by
   have hcard : (Finset.univ : Finset ChainIndex).card = numChains := by
     simp [Finset.card_univ]
-  have h1 : (∑ d : Digit, B ^ d.val) ^ numChains
-      = ∏ _i : ChainIndex, ∑ d : Digit, B ^ d.val := by
+  have h1 : (∑ d : WinternitzDigit, B ^ d.val) ^ numChains
+      = ∏ _i : ChainIndex, ∑ d : WinternitzDigit, B ^ d.val := by
     rw [Finset.prod_const, hcard]
   rw [h1, Finset.prod_univ_sum, Fintype.piFinset_univ]
   apply Finset.sum_congr rfl
@@ -89,10 +89,11 @@ theorem codeCount_lt_base (s : Nat) : codeCount s < base := by
   rw [hcard] at h
   exact Nat.lt_of_le_of_lt h (by decide)
 
-theorem weight_eq : (∑ d : Digit, base ^ d.val) = (base ^ 4 - 1) / (base - 1) := by decide
+theorem weight_eq : (∑ d : WinternitzDigit, base ^ d.val) = (base ^ 4 - 1) / (base - 1) := by decide
 
 theorem codeCount_target :
-    codeCount targetSum = (∑ d : Digit, base ^ d.val) ^ numChains / base ^ targetSum % base := by
+    codeCount targetSum = (∑ d : WinternitzDigit, base ^ d.val) ^ numChains / base ^ targetSum %
+        base := by
   rw [weight_pow, sum_encoding_pow]
   exact (digit_of_sum base (by decide) codeCount codeCount_lt_base 193 targetSum (by decide)).symm
 

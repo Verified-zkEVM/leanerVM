@@ -154,10 +154,10 @@ theorem prod_range_lt (f : ℕ → E) {m μ : ℕ} (h : m ≤ μ) :
 /-- **A window's equality kernel times the kernel above it is a product of affine functions**: the
 two read disjoint coordinates. -/
 theorem affineProd_eqAbove_mul (μ : ℕ) (pl : Placement) (a : List E) :
-    AffineProd μ fun y ↦ pl.eqAbove y * eqEval a (y.take pl.vars) := by
-  let o := pl.low + pl.vars
-  let bits := selectorPoint (pl.index >>> o) (μ - pl.low - pl.vars)
-  let m := min a.length (min pl.vars μ)
+    AffineProd μ fun y ↦ pl.eqAbove y * eqEval a (y.take pl.variableCount) := by
+  let o := pl.low + pl.variableCount
+  let bits := selectorPoint (pl.index >>> o) (μ - pl.low - pl.variableCount)
+  let m := min a.length (min pl.variableCount μ)
   refine ⟨fun i ↦ if i < m then 1 + a.getD i 0 else if o ≤ i then 1 + bits.getD (i - o) 0 else 1,
     fun i ↦ if i < m then 1 else if o ≤ i then 1 else 0, fun y hy ↦ ?_⟩
   have hbits : bits.length = μ - o := by simp [bits, selectorPoint, o, Nat.sub_sub]
@@ -166,22 +166,23 @@ theorem affineProd_eqAbove_mul (μ : ℕ) (pl : Placement) (a : List E) :
     unfold Placement.eqAbove
     rw [eqEval_eq_prod]
     simp only [hy, List.length_drop]
-    rw [show (selectorPoint (pl.index >>> (pl.low + pl.vars)) (μ - pl.low - pl.vars)) = bits from
-      rfl, hbits, show μ - (pl.low + pl.vars) = μ - o from rfl, min_self]
+    rw [show (selectorPoint (pl.index >>> (pl.low + pl.variableCount)) (μ - pl.low -
+        pl.variableCount)) = bits from
+      rfl, hbits, show μ - (pl.low + pl.variableCount) = μ - o from rfl, min_self]
     rw [← prod_range_shift (fun i ↦ 1 + bits.getD (i - o) 0 + y.getD i 0) o μ]
     refine Finset.prod_congr rfl fun i _ ↦ ?_
     simp [List.getD_eq_getElem?_getD]
     rfl
-  have h2 : eqEval a (y.take pl.vars) = ∏ i ∈ Finset.range μ,
+  have h2 : eqEval a (y.take pl.variableCount) = ∏ i ∈ Finset.range μ,
       (if i < m then 1 + a.getD i 0 + y.getD i 0 else 1) := by
     rw [eqEval_eq_prod, List.length_take, hy]
-    rw [prod_range_lt _ (show min a.length (min pl.vars μ) ≤ μ by omega)]
+    rw [prod_range_lt _ (show min a.length (min pl.variableCount μ) ≤ μ by omega)]
     refine Finset.prod_congr rfl fun i _ ↦ ?_
     split_ifs with hi
     · simp only [List.getD_eq_getElem?_getD, List.getElem?_take]
-      simp [show i < pl.vars by omega]
+      simp [show i < pl.variableCount by omega]
     · rfl
-  show pl.eqAbove y * eqEval a (y.take pl.vars) = _
+  show pl.eqAbove y * eqEval a (y.take pl.variableCount) = _
   rw [h1, h2, ← Finset.prod_mul_distrib]
   refine Finset.prod_congr rfl fun i _ ↦ ?_
   by_cases hm : i < m
@@ -194,10 +195,10 @@ theorem affineProd_eqAbove_mul (μ : ℕ) (pl : Placement) (a : List E) :
 /-- **The ring claim's weight is multilinear**: `u ↦ eqAbove(u) · Σ_k c_k eq(r^(2^k), u_window)`,
 for any placement, point and coefficients. -/
 theorem isMultilinearFn_ringWeight (μ : ℕ) (pl : Placement) (r cs : List E) :
-    IsMultilinearFn μ fun y ↦ pl.eqAbove y * ringWeight r (y.take pl.vars) cs := by
-  have h : (fun y ↦ pl.eqAbove y * ringWeight r (y.take pl.vars) cs) = fun y ↦
+    IsMultilinearFn μ fun y ↦ pl.eqAbove y * ringWeight r (y.take pl.variableCount) cs := by
+  have h : (fun y ↦ pl.eqAbove y * ringWeight r (y.take pl.variableCount) cs) = fun y ↦
       ∑ k ∈ Finset.range cs.length, cs.getD k 0 *
-        (pl.eqAbove y * eqEval (r.map (· ^ 2 ^ k)) (y.take pl.vars)) := by
+        (pl.eqAbove y * eqEval (r.map (· ^ 2 ^ k)) (y.take pl.variableCount)) := by
     funext y
     rw [ringWeight_eq_sum, Finset.mul_sum]
     exact Finset.sum_congr rfl fun k _ ↦ by ring

@@ -120,11 +120,12 @@ noncomputable def ωArm (C : Opcode → ℕ) (op : Opcode) (f : String) : ℕ :=
   pathMax f op + if f = "verify_lean_xmss" then C op else 0
 
 /-- Only `verify_lean_xmss` (function `20`) counts arms separately. -/
-theorem cplArms_only20 : ∀ j, j ≠ 20 → nth Data.cplArms j [] = [] := by
+theorem cplArms_only20 : ∀ j, j ≠ 20 → listElementOrDefault Data.cplArms j [] = [] := by
   intro j hj
   by_cases hl : j < Data.cplArms.length
   · have h : (List.range Data.cplArms.length).all
-        (fun j ↦ Nat.beq j 20 || (nth Data.cplArms j []).isEmpty) = true := by decide +kernel
+        (fun j ↦ Nat.beq j 20
+            || (listElementOrDefault Data.cplArms j []).isEmpty) = true := by decide +kernel
     have := List.all_eq_true.mp h j (List.mem_range.mpr hl)
     simp only [Bool.or_eq_true, List.isEmpty_iff] at this
     rcases this with h1 | h1
@@ -139,7 +140,7 @@ theorem coreOf20_name : (coreOf 20).name = "verify_lean_xmss" := by decide +kern
 theorem pathCountN_le_arm (C : Opcode → ℕ)
     (hC : ∀ op σ bufs kids rd args rets,
       (Memory.Tree.node "verify_lean_xmss" σ bufs kids).Valid coreProgram rd args rets →
-        costW (nth Data.cplArms 20 []) σ (coreOf 20).body op ≤ C op)
+        costW (listElementOrDefault Data.cplArms 20 []) σ (coreOf 20).body op ≤ C op)
     (op : Opcode) (f : String) (σ : Val) (bufs : List ℕ) (kids : List Tree) (rd : Reader)
     (args rets : List E) (hv : (Memory.Tree.node f σ bufs kids).Valid coreProgram rd args rets) :
     pathCountN f σ op ≤ ωArm C op f := by
@@ -163,7 +164,7 @@ theorem pathCountN_le_arm (C : Opcode → ℕ)
 theorem cnt_le_weight_arm (C : Opcode → ℕ)
     (hC : ∀ op σ bufs kids rd args rets,
       (Memory.Tree.node "verify_lean_xmss" σ bufs kids).Valid coreProgram rd args rets →
-        costW (nth Data.cplArms 20 []) σ (coreOf 20).body op ≤ C op) :
+        costW (listElementOrDefault Data.cplArms 20 []) σ (coreOf 20).body op ≤ C op) :
     ∀ (rd : Reader) (t : Tree), t.Valid coreProgram rd [] [] → ∀ op,
       cnt t op ≤ t.weight (ωArm C op) + jtSets op :=
   cnt_le_weight_valid (ωArm C) fun op f σ bufs kids rd args rets hv ↦

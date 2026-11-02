@@ -65,15 +65,17 @@ theorem reference_of_signLayer (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKe
     (part : LayerSignature topLayer)
     (hsign : evalWithAnswerFn f (Seeded.signLayer sk leaf topLayer :
       OracleComp HashSpec (Option (LayerSignature topLayer))) = some part) :
-    ∃ word, ReferenceCertificate f sk.parameter sk.seed leaf part.counter word ∧
+    ∃ word, ReferenceCertificate f sk.parameter sk.schemeSeed leaf part.counter word ∧
       part.chainValues = Wots.frontier f sk.parameter topLayer rootTree leaf word
-        (Completeness.otsSecret f sk.parameter topLayer rootTree leaf sk.seed) ∧
-      part.path = evalWithAnswerFn f (Seeded.treePath sk.parameter topLayer rootTree sk.seed leaf :
+        (Completeness.otsSecret f sk.parameter topLayer rootTree leaf sk.schemeSeed) ∧
+      part.path = evalWithAnswerFn f (Seeded.treePath sk.parameter topLayer rootTree
+          sk.schemeSeed leaf :
         OracleComp HashSpec (Fin (layerHeight topLayer) → Digest)) := by
   obtain ⟨hots, hpath⟩ := Completeness.signLayer_spec f sk leaf topLayer hsign
   simp only [Completeness.treeIndexAt_eq, Completeness.leafIndexAt_eq] at hots hpath
   obtain ⟨word, hencode, hvalues⟩ := Completeness.otsSignFrom_spec f sk.parameter topLayer rootTree
-    leaf sk.seed (Completeness.layerMessageValue f sk leaf topLayer) encodingAttemptLimit 0 hots
+    leaf sk.schemeSeed (Completeness.layerMessageValue f sk leaf topLayer)
+        encodingAttemptLimit 0 hots
   exact ⟨word, hencode, funext hvalues, hpath⟩
 
 /-- Exact retained-leaf components of a canonical signature. The message and randomizer are
@@ -152,7 +154,7 @@ attribute [local irreducible] Seeded.signLayer Seeded.forestOpen sequenceFin
 
 /-- Honest assembly preserves its selected randomizer exactly. -/
 theorem finishSign_randomness (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey)
-    (message : Message) (randomness : Randomness) (signature : Signature)
+    (message : Message) (randomness : Randomizer) (signature : Signature)
     (hsign : evalWithAnswerFn f (Randomized.finishSign sk message randomness) = some signature) :
     signature.randomness = randomness := by
   rw [Randomized.finishSign, evalWithAnswerFn_bind, evalWithAnswerFn_bind,
@@ -167,13 +169,13 @@ theorem finishSign_randomness (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey
 /-- A successful honest assembly supplies a canonical opening and its concrete reference
 certificate. Only the randomizer's actual landing condition is required. -/
 theorem canonical_of_finishSign (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) (root : Digest)
-    (message : Message) (randomness : Randomness) (signature : Signature)
+    (message : Message) (randomness : Randomizer) (signature : Signature)
     (hland : Landed sk.parameter (digestIndex (Completeness.digestValue f sk message randomness)))
     (hsign : evalWithAnswerFn f (Randomized.finishSign sk message randomness) = some signature) :
     ∃ word,
-      ReferenceCertificate f sk.parameter sk.seed
+      ReferenceCertificate f sk.parameter sk.schemeSeed
         (index f ⟨root, sk.parameter⟩ message signature) (signature.layers topLayer).counter word ∧
-      CanonicalOpening f ⟨root, sk.parameter⟩ sk.seed message signature
+      CanonicalOpening f ⟨root, sk.parameter⟩ sk.schemeSeed message signature
         (signature.layers topLayer).counter word := by
   obtain ⟨hland, hforest, hlayers⟩ := Completeness.finishSign_spec f sk message randomness hland hsign
   obtain ⟨word, href, hvalues, hpath⟩ := reference_of_signLayer f sk _ _ (hlayers topLayer)

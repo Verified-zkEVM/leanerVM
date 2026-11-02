@@ -45,10 +45,10 @@ noncomputable def dloadCheck (g : String) (bs : List ℕ) : Bool :=
 
 /-- `p` is in `K` and the `B` words from `p` lie in `R`. -/
 def PtrIn (R : ℕ → Prop) (p : E) (B : ℕ) : Prop :=
-  IsInK p ∧ ∀ off < B, ∃ i, p.limb 0 * gpow off = gpow i ∧ R i
+  IsInK p ∧ ∀ off < B, ∃ i, p.limb 0 * addressOfIndex off = addressOfIndex i ∧ R i
 
 theorem ptrIn_ofK {R : ℕ → Prop} {b B : ℕ} (h : ∀ i < B, R (b + i)) :
-    PtrIn R (ofK (gpow b)) B :=
+    PtrIn R (ofK (addressOfIndex b)) B :=
   ⟨tb_isInK_ofK _, fun off hoff ↦ ⟨b + off, Main.addr_ofK b off, h off hoff⟩⟩
 
 theorem ptrIn_mono {R : ℕ → Prop} {p : E} {B B' : ℕ} (h : PtrIn R p B) (hle : B' ≤ B) :
@@ -57,11 +57,12 @@ theorem ptrIn_mono {R : ℕ → Prop} {p : E} {B B' : ℕ} (h : PtrIn R p B) (hl
 /-- A run from `p·g^j` lies inside the run from `p`. -/
 theorem ptrIn_mul {R : ℕ → Prop} {p : E} {j B : ℕ} (h : PtrIn R p (j + B)) :
     PtrIn R (p * gen ^ j) B := by
-  have hg : Parameters.gpow j ≠ 0 := pow_ne_zero _ g_ne_zero
+  have hg : Parameters.addressOfIndex j ≠ 0 := pow_ne_zero _ g_ne_zero
   refine ⟨by rw [gen_pow_eq_ofK]; exact (tb_isInK_mul_ofK hg).mpr h.1, fun off hoff ↦ ?_⟩
   obtain ⟨i, hi, hr⟩ := h.2 (j + off) (by omega)
   refine ⟨i, ?_, hr⟩
-  rw [gen_pow_eq_ofK, tb_limb0_mul_ofK h.1, mul_assoc, Parameters.gpow, Parameters.gpow,
+  rw [gen_pow_eq_ofK, tb_limb0_mul_ofK h.1, mul_assoc, Parameters.addressOfIndex,
+      Parameters.addressOfIndex,
     ← pow_add]
   exact hi
 

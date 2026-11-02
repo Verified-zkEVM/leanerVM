@@ -29,7 +29,7 @@ theorem randomizerHashInput_short (parameter : PublicParameter) (seed : MasterSe
 
 theorem Only.deriveRandomizer (parameter : PublicParameter) (seed : MasterSeed)
     (message : Message) :
-    Only (SphincsLayered.deriveRandomizer parameter seed message : OracleComp HashSpec Randomness) := by
+    Only (SphincsLayered.deriveRandomizer parameter seed message : OracleComp HashSpec Randomizer) := by
   unfold SphincsLayered.deriveRandomizer
   exact Only.bind (Only.query (randomizerHashInput_short _ _ _)) (fun _ => Only.pure' _)
 
@@ -40,7 +40,7 @@ attribute [local irreducible] digestAttemptLimit encodingAttemptLimit Randomized
 
 theorem Only.seededLoop (sk : SphincsLayered.Seeded.SecretKey) (message : Message) :
     ∀ attempts randomness, Only (SphincsLayered.Seeded.signDigestLoop sk message attempts randomness :
-      OracleComp HashSpec (Option (Randomness × Index)))
+      OracleComp HashSpec (Option (Randomizer × Index)))
   | 0, _ => Only.pure' _
   | attempts + 1, randomness => by
       rw [SphincsLayered.Seeded.signDigestLoop]
@@ -52,7 +52,7 @@ theorem Only.seededLoop (sk : SphincsLayered.Seeded.SecretKey) (message : Messag
 /-- The deterministic signer is the randomizer derivation, the scan, and the common assembly. -/
 theorem seededSign_eq (sk : SphincsLayered.Seeded.SecretKey) (message : Message) :
     (SphincsLayered.Seeded.sign sk message : OracleComp HashSpec (Option Signature)) = (do
-      let base ← SphincsLayered.deriveRandomizer sk.parameter sk.seed message
+      let base ← SphincsLayered.deriveRandomizer sk.parameter sk.schemeSeed message
       let some (randomness, _) ← SphincsLayered.Seeded.signDigestLoop sk message digestAttemptLimit base
         | return none
       Randomized.finishSign sk message randomness) := by

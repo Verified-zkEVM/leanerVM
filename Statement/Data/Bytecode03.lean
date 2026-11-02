@@ -18,7 +18,7 @@ set_option maxRecDepth 20000
 @[expose] public section
 
 /-- `verify_lean_xmss` from offset 18432. -/
-def f20c9 : List OInstr := [
+def f20c9 : List OffsetInstruction := [
   .keccak 3 3316 5743 150 192 191 193 4864 false false,
   .keccak 3 3316 5744 151 192 191 193 4903 false false,
   .mul 5727 108 5739,
@@ -2069,7 +2069,7 @@ def f20c9 : List OInstr := [
   .set 5794 0 10445360463872 0]
 
 /-- `verify_lean_xmss` from offset 20480. -/
-def f20c10 : List OInstr := [
+def f20c10 : List OffsetInstruction := [
   .xor 5776 5794 5788,
   .jump 68 5789 2472,
   .keccak 3 3315 5791 163 192 191 193 5358 false false,
@@ -2992,7 +2992,7 @@ def f20c10 : List OInstr := [
   .jump 68 0 1]
 
 /-- `verify_sig_lean_sphincs` from offset 0. -/
-def f21c0 : List OInstr := [
+def f21c0 : List OffsetInstruction := [
   .deref 2 1 4 .cell,
   .set 19 864691128455135232 0 0,
   .deref 2 2 20 .cell,
@@ -5043,7 +5043,7 @@ def f21c0 : List OInstr := [
   .keccak 4 282 268 28 29 27 29 269 false false]
 
 /-- `verify_sig_lean_sphincs` from offset 2048. -/
-def f21c1 : List OInstr := [
+def f21c1 : List OffsetInstruction := [
   .xor 224 169 296,
   .keccak 4 296 269 28 29 27 29 283 false false,
   .xor 224 170 310,
@@ -7094,7 +7094,7 @@ def f21c1 : List OInstr := [
   .keccak 4 313 286 28 29 27 29 300 false false]
 
 /-- `verify_sig_lean_sphincs` from offset 4096. -/
-def f21c2 : List OInstr := [
+def f21c2 : List OffsetInstruction := [
   .mul 300 26 233,
   .xor 224 183 328,
   .set 329 9223372036854775809 0 0,
@@ -9145,7 +9145,7 @@ def f21c2 : List OInstr := [
   .keccak 4 477 385 388 380 478 29 464 false false]
 
 /-- `verify_sig_lean_sphincs` from offset 6144. -/
-def f21c3 : List OInstr := [
+def f21c3 : List OffsetInstruction := [
   .mul 464 26 376,
   .set 377 18688 0 0,
   .jump 26 378 228,
@@ -11196,7 +11196,7 @@ def f21c3 : List OInstr := [
   .keccak 4 464 437 28 29 27 29 451 false false]
 
 /-- `verify_sig_lean_sphincs` from offset 8192. -/
-def f21c4 : List OInstr := [
+def f21c4 : List OffsetInstruction := [
   .mul 451 26 383,
   .xor 375 183 478,
   .set 479 9223372036854775809 0 0,
@@ -13247,7 +13247,7 @@ def f21c4 : List OInstr := [
   .keccak 4 688 674 28 29 27 29 675 false false]
 
 /-- `verify_sig_lean_sphincs` from offset 10240. -/
-def f21c5 : List OInstr := [
+def f21c5 : List OffsetInstruction := [
   .xor 606 183 706,
   .set 707 9223372036854775809 0 0,
   .keccak 4 706 659 675 611 707 29 693 false false,
@@ -15298,7 +15298,7 @@ def f21c5 : List OInstr := [
   .mul 695 26 607]
 
 /-- `verify_sig_lean_sphincs` from offset 12288. -/
-def f21c6 : List OInstr := [
+def f21c6 : List OffsetInstruction := [
   .set 608 9371648 0 0,
   .jump 26 609 228,
   .xor 606 165 632,

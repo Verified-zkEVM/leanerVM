@@ -64,7 +64,7 @@ theorem readTable_powTable {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
 
 /-- **The states of the run from `r`, through the address tables** (`statesIn`): each step the
 extractor's `stepTable` (its compiled `stepVec` on the memory's vector). -/
-def statesTable (memT codeT : Array (ℕ × ℕ)) (prog : Semantics.Program) {κ : ℕ}
+def statesTable (memT codeT : Array (ℕ × ℕ)) (prog : Semantics.LeanIsaProgram) {κ : ℕ}
     (L : MemoryImage κ) : ℕ → Registers K → List (Registers K)
   | 0, r => [r]
   | n + 1, r => r :: if r = Registers.final prog then [] else
@@ -73,7 +73,7 @@ def statesTable (memT codeT : Array (ℕ × ℕ)) (prog : Semantics.Program) {κ
       | none => []
 
 /-- Through the tables, on at most `2^63` words, the replay is `statesIn`'s. -/
-theorem statesTable_eq {prog : Semantics.Program} {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
+theorem statesTable_eq {prog : Semantics.LeanIsaProgram} {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
     ∀ fuel r, statesTable (powTable κ) (powTable prog.logSize) prog L fuel r =
       statesIn (powIndex κ) (powIndex prog.logSize) prog L fuel r
   | 0, r => rfl
@@ -93,9 +93,9 @@ end Tables
 /-- **A discrete logarithm of `K*`**: `dl x = some n` exactly when `x = g^n` with `n` below the
 order `2^64 − 1` of `g`. -/
 def DiscreteLogSpec (dl : K → Option ℕ) : Prop :=
-  ∀ x n, dl x = some n ↔ gpow n = x ∧ n < 2 ^ 64 - 1
+  ∀ x n, dl x = some n ↔ addressOfIndex n = x ∧ n < 2 ^ 64 - 1
 
-theorem gpow_mod_order (e : ℕ) : gpow (e % (2 ^ 64 - 1)) = gpow e := by
+theorem gpow_mod_order (e : ℕ) : addressOfIndex (e % (2 ^ 64 - 1)) = addressOfIndex e := by
   show Parameters.g ^ _ = Parameters.g ^ _
   rw [← orderOf_g, pow_mod_orderOf]
 
@@ -106,7 +106,7 @@ variable {dl : K → Option ℕ}
 /-- With a discrete logarithm, `x` is a power `g^e` with `e < n` exactly when its logarithm is
 below `n`. -/
 theorem exists_lt_gpow_iff (hdl : DiscreteLogSpec dl) (x : K) (n : ℕ) :
-    (∃ e < n, gpow e = x) ↔ ∃ m, dl x = some m ∧ m < n := by
+    (∃ e < n, addressOfIndex e = x) ↔ ∃ m, dl x = some m ∧ m < n := by
   constructor
   · rintro ⟨e, he, rfl⟩
     exact ⟨e % (2 ^ 64 - 1), (hdl _ _).mpr ⟨gpow_mod_order e, Nat.mod_lt _ (by norm_num)⟩,
@@ -121,7 +121,7 @@ def isPowBelow (dl : K → Option ℕ) (w : E) (n : ℕ) : Bool :=
     | none => false
 
 theorem isPowBelow_iff (hdl : DiscreteLogSpec dl) (w : E) (n : ℕ) :
-    isPowBelow dl w n = true ↔ ∃ e < n, w = ofK (gpow e) := by
+    isPowBelow dl w n = true ↔ ∃ e < n, w = ofK (addressOfIndex e) := by
   unfold isPowBelow
   rw [Bool.and_eq_true, decide_eq_true_iff]
   constructor
@@ -133,13 +133,13 @@ theorem isPowBelow_iff (hdl : DiscreteLogSpec dl) (w : E) (n : ℕ) :
       rw [eq_ofK_limb hK, ((hdl _ _).mp hm).1]
   · rintro ⟨e, he, rfl⟩
     refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
-    obtain ⟨m, hm, hmn⟩ := (exists_lt_gpow_iff hdl (gpow e) n).mp ⟨e, he, rfl⟩
-    have h0 : (ofK (gpow e)).limb 0 = gpow e := by simp [limb_ofK]
+    obtain ⟨m, hm, hmn⟩ := (exists_lt_gpow_iff hdl (addressOfIndex e) n).mp ⟨e, he, rfl⟩
+    have h0 : (ofK (addressOfIndex e)).limb 0 = addressOfIndex e := by simp [limb_ofK]
     rw [h0, hm]
     exact decide_eq_true hmn
 
 theorem any_range_pow_iff (hdl : DiscreteLogSpec dl) (o : Option E) (n : ℕ) :
-    ((List.range n).any fun e ↦ decide (o = some (ofK (gpow e)))) =
+    ((List.range n).any fun e ↦ decide (o = some (ofK (addressOfIndex e)))) =
       match o with
       | some w => isPowBelow dl w n
       | none => false := by
@@ -151,14 +151,14 @@ theorem any_range_pow_iff (hdl : DiscreteLogSpec dl) (o : Option E) (n : ℕ) :
 
 /-- The bounds hold (`bndTest`), by the logarithm. -/
 def bndTestWith (dl : K → Option ℕ) (rd : Reader) (fp : K) (bnd : List (ℕ × ℕ)) : Bool :=
-  bnd.all fun p ↦ match rd (fp * gpow p.1) with
+  bnd.all fun p ↦ match rd (fp * addressOfIndex p.1) with
     | some w => isPowBelow dl w p.2
     | none => false
 
 /-- The memory bounds hold (`memTest`), by the logarithm. -/
 def memTestWith (dl : K → Option ℕ) (rd : Reader) (fp : K) (mem : List (ℕ × ℕ × ℕ)) : Bool :=
-  mem.all fun m ↦ (List.range m.2.1).all fun c ↦ match rd (fp * gpow m.1) with
-    | some p => decide (IsInK p) && match rd (p.limb 0 * gpow c) with
+  mem.all fun m ↦ (List.range m.2.1).all fun c ↦ match rd (fp * addressOfIndex m.1) with
+    | some p => decide (IsInK p) && match rd (p.limb 0 * addressOfIndex c) with
       | some w => isPowBelow dl w m.2.2
       | none => false
     | none => false
@@ -182,7 +182,7 @@ theorem memTestWith_eq (hdl : DiscreteLogSpec dl) : memTestWith dl = memTest := 
   funext m
   congr 1
   funext c
-  cases rd (fp * gpow m.1) with
+  cases rd (fp * addressOfIndex m.1) with
   | none => rfl
   | some p =>
     show (decide (IsInK p) && _) = (decide (IsInK p) && _)
@@ -287,7 +287,8 @@ def addAt (m : SortedMap ℕ (List ℕ)) (k j : ℕ) : SortedMap ℕ (List ℕ) 
 
 /-- **The functions entered at each pc**: the code of function `j`'s entry to `j`, `j < nFns`. -/
 noncomputable def pcTable : SortedMap ℕ (List ℕ) :=
-  (List.range nFns).foldl (fun m j ↦ addAt m (laneCode (gpow (glob.sig j).entry)) j) .empty
+  (List.range nFns).foldl (fun m j ↦ addAt m (laneCode (addressOfIndex (glob.sig j).entry))
+      j) .empty
 
 theorem mem_foldl_addAt (c : ℕ → ℕ) (k j : ℕ) :
     ∀ (js : List ℕ) (m : SortedMap ℕ (List ℕ)),
@@ -321,7 +322,7 @@ theorem mem_foldl_addAt (c : ℕ → ℕ) (k j : ℕ) :
 
 /-- The functions the table gives at a pc are those entered there. -/
 theorem mem_pcTable {pc : K} {j : ℕ} :
-    j ∈ pcTable.getD (laneCode pc) [] ↔ j < nFns ∧ pc = gpow (glob.sig j).entry := by
+    j ∈ pcTable.getD (laneCode pc) [] ↔ j < nFns ∧ pc = addressOfIndex (glob.sig j).entry := by
   rw [pcTable, mem_foldl_addAt, SortedMap.getD_empty, List.mem_range]
   simp only [List.not_mem_nil, false_or]
   exact and_congr_right fun _ ↦ ⟨fun h ↦ (laneCode_injective h).symm, fun h ↦ h ▸ rfl⟩

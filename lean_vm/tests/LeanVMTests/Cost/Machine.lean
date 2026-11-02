@@ -40,44 +40,49 @@ open LeanVM.Cost LeanVM.Semantics LeanVM.Parameters
 #guard PrimitiveOperation.carrylessMultiply.apply [.nat 3, .nat 3] == some (.nat 5, 1)
 #guard PrimitiveOperation.carrylessMultiply.apply [.nat (2 ^ 63), .nat 2] == some (.nat (2 ^ 64), 2)
 -- Arrays: a new array of `n` entries costs `n + 1`.
-#guard PrimitiveOperation.arraySize.apply [.arr #[.nat 1, .nat 2]] == some (.nat 2, 1)
-#guard PrimitiveOperation.arrayGet.apply [.arr #[.nat 1, .nat 2], .nat 1, .nat 0] == some (.nat 2, 1)
-#guard PrimitiveOperation.arrayGet.apply [.arr #[.nat 1, .nat 2], .nat 5, .nat 0] == some (.nat 0, 1)
-#guard PrimitiveOperation.arraySet.apply [.arr #[.nat 1, .nat 2], .nat 0, .nat 7] == some (.arr #[.nat 7, .nat 2], 3)
-#guard PrimitiveOperation.arrayPush.apply [.arr #[.nat 1], .nat 7] == some (.arr #[.nat 1, .nat 7], 3)
-#guard PrimitiveOperation.arrayOfList.apply [.ofList [.nat 1, .nat 2]] == some (.arr #[.nat 1, .nat 2], 3)
-#guard PrimitiveOperation.arrayToList.apply [.arr #[.nat 1, .nat 2]] == some (.ofList [.nat 1, .nat 2], 7)
-#guard PrimitiveOperation.arrayAppend.apply [.arr #[.nat 1], .arr #[.nat 2]] == some (.arr #[.nat 1, .nat 2], 3)
-#guard PrimitiveOperation.arrayExtract.apply [.arr #[.nat 1, .nat 2, .nat 3], .nat 1, .nat 9] ==
-  some (.arr #[.nat 2, .nat 3], 3)
-#guard PrimitiveOperation.arrayReplicate.apply [.nat 2, .nat 0] == some (.arr #[.nat 0, .nat 0], 3)
+#guard PrimitiveOperation.arraySize.apply [.array #[.nat 1, .nat 2]] == some (.nat 2, 1)
+#guard PrimitiveOperation.arrayGet.apply [.array #[.nat 1, .nat 2], .nat 1, .nat 0] == some (.nat 2, 1)
+#guard PrimitiveOperation.arrayGet.apply [.array #[.nat 1, .nat 2], .nat 5, .nat 0] == some (.nat 0, 1)
+#guard PrimitiveOperation.arraySet.apply [.array #[.nat 1, .nat 2], .nat 0, .nat 7] == some (.array #[.nat 7, .nat 2], 3)
+#guard PrimitiveOperation.arrayPush.apply [.array #[.nat 1], .nat 7] == some (.array #[.nat 1, .nat 7], 3)
+#guard PrimitiveOperation.arrayOfList.apply [.ofList [.nat 1, .nat 2]] == some (.array #[.nat 1, .nat 2], 3)
+#guard PrimitiveOperation.arrayToList.apply [.array #[.nat 1, .nat 2]] == some (.ofList [.nat 1, .nat 2], 7)
+#guard PrimitiveOperation.arrayAppend.apply [.array #[.nat 1], .array #[.nat 2]] == some (.array #[.nat 1, .nat 2], 3)
+#guard PrimitiveOperation.arrayExtract.apply [.array #[.nat 1, .nat 2, .nat 3], .nat 1, .nat 9] ==
+  some (.array #[.nat 2, .nat 3], 3)
+#guard PrimitiveOperation.arrayReplicate.apply [.nat 2, .nat 0] == some (.array #[.nat 0,
+    .nat 0], 3)
 
 /-! ## Misuse fails -/
 
-#guard PrimitiveOperation.bitwiseAnd.apply [.ctor 0 [], .nat 2] == none
+#guard PrimitiveOperation.bitwiseAnd.apply [.constructor 0 [], .nat 2] == none
 #guard PrimitiveOperation.bitwiseAnd.apply [.nat 1] == none
 #guard PrimitiveOperation.arrayGet.apply [.nat 1, .nat 0, .nat 0] == none
-#guard PrimitiveOperation.arrayOfList.apply [.ctor 1 [.nat 1, .nat 2]] == none
-#guard evaluateTerm #[] 5 [] (.var 0) == none
-#guard evaluateTerm #[] 5 [] (.field 2 (.ctor 0 [.val (.nat 1)])) == none
-#guard evaluateTerm #[] 5 [] (.case (.val (.nat 1)) [.val (.nat 2)]) == none
-#guard evaluateTerm #[] 5 [] (.case (.ctor 3 []) [.val (.nat 2)]) == none
+#guard PrimitiveOperation.arrayOfList.apply [.constructor 1 [.nat 1, .nat 2]] == none
+#guard evaluateTerm #[] 5 [] (.position 0) == none
+#guard evaluateTerm #[] 5 [] (.field 2 (.constructor 0 [.literal (.nat 1)])) == none
+#guard evaluateTerm #[] 5 [] (.case (.literal (.nat 1)) [.literal (.nat 2)]) == none
+#guard evaluateTerm #[] 5 [] (.case (.constructor 3 []) [.literal (.nat 2)]) == none
 #guard evaluateTerm #[] 5 [] (.call 0 []) == none
-#guard evaluateTerm #[] 5 [] (.applyClosure (.val (.nat 0)) []) == none
+#guard evaluateTerm #[] 5 [] (.applyClosure (.literal (.nat 0)) []) == none
 -- A function that calls itself forever runs out of fuel.
-#guard run #[.call 0 [.var 0]] 1000 (.nat 0) == none
+#guard runMachineProgram #[.call 0 [.position 0]] 1000 (.nat 0) == none
 -- Prices: a variable `1`, a constructor of `n` values `n + 1`, a field `1`, a `let` `1`.
-#guard run #[.letIn (.ctor 4 [.var 0, .var 0]) (.field 1 (.var 0))] 1 (.nat 9) == some (.nat 9, 8)
+#guard runMachineProgram #[.letIn (.constructor 4 [.position 0, .position 0]) (.field 1 (.position
+    0))] 1 (.nat 9) == some (.nat 9, 8)
 -- A `case` costs `1` and the fields it puts in front of the environment; a closure's application
 -- `1` and its captured values.
-#guard run #[.case (.ctor 4 [.var 0, .var 0]) [.var 9, .var 9, .var 9, .var 9, .var 1]] 1 (.nat 9) ==
+#guard runMachineProgram #[.case (.constructor 4 [.position 0, .position 0]) [.position 9, .position 9, .position 9, .position 9, .position 1]] 1 (.nat 9) ==
   some (.nat 9, 9)
-#guard run #[.applyClosure (.closure 1 [.var 0, .var 0]) [.var 0], .var 2] 1 (.nat 9) == some (.nat 9, 10)
+#guard runMachineProgram #[.applyClosure (.closure 1 [.position 0, .position 0]) [.position 0], .position 2] 1 (.nat 9) == some (.nat 9, 10)
 -- The output within a budget and a size bound (the program's size is `6`).
-#guard outputWithin #[.letIn (.ctor 4 [.var 0, .var 0]) (.field 1 (.var 0))] 6 (.nat 9) 8 ==
+#guard outputWithin #[.letIn (.constructor 4 [.position 0, .position 0]) (.field 1 (.position 0))] 6
+    (.nat 9) 8 ==
   some (.nat 9)
-#guard outputWithin #[.letIn (.ctor 4 [.var 0, .var 0]) (.field 1 (.var 0))] 6 (.nat 9) 7 == none
-#guard outputWithin #[.letIn (.ctor 4 [.var 0, .var 0]) (.field 1 (.var 0))] 5 (.nat 9) 8 == none
+#guard outputWithin #[.letIn (.constructor 4 [.position 0, .position 0]) (.field 1 (.position 0))] 6
+    (.nat 9) 7 == none
+#guard outputWithin #[.letIn (.constructor 4 [.position 0, .position 0]) (.field 1 (.position 0))] 5
+    (.nat 9) 8 == none
 
 /-! ## Keccak-f[1600] in the language -/
 
@@ -86,21 +91,21 @@ bound, turned into positions. -/
 abbrev B := ℕ → Term
 
 /-- Argument `j` of `n`. -/
-def arg (n j : ℕ) : B := fun d ↦ .var (d - n + j)
+def arg (n j : ℕ) : B := fun d ↦ .position (d - n + j)
 
 /-- `let x := t; body x`. -/
-def letB (t : B) (body : B → B) : B := fun d ↦ .letIn (t d) (body (fun d' ↦ .var (d' - d - 1)) (d + 1))
+def letB (t : B) (body : B → B) : B := fun d ↦ .letIn (t d) (body (fun d' ↦ .position (d' - d - 1)) (d + 1))
 
 /-- `let`s of a list of terms, in order. -/
 def letsB : List B → (List B → B) → B
   | [], k => k []
   | t :: ts, k => letB t fun x ↦ letsB ts fun xs ↦ k (x :: xs)
 
-def opB (o : PrimitiveOperation) (args : List B) : B := fun d ↦ .op o (args.map (· d))
+def opB (o : PrimitiveOperation) (args : List B) : B := fun d ↦ .primitive o (args.map (· d))
 
-def wlit (x : UInt64) : B := fun _ ↦ .val (.nat x.toNat)
+def wlit (x : UInt64) : B := fun _ ↦ .literal (.nat x.toNat)
 
-def nlit (n : ℕ) : B := fun _ ↦ .val (.nat n)
+def nlit (n : ℕ) : B := fun _ ↦ .literal (.nat n)
 
 def xorB (a b : B) : B := opB .bitwiseXor [a, b]
 
@@ -111,8 +116,8 @@ def rotB (x : B) (n : ℕ) : B :=
 
 /-- A list value of the terms. -/
 def listB : List B → B
-  | [] => fun _ ↦ .ctor 0 []
-  | t :: ts => fun d ↦ .ctor 1 [t d, listB ts d]
+  | [] => fun _ ↦ .constructor 0 []
+  | t :: ts => fun d ↦ .constructor 1 [t d, listB ts d]
 
 /-- One round on the state (argument `0`) with the round constant (argument `1`). -/
 def roundB : B :=
@@ -131,19 +136,21 @@ def roundB : B :=
 /-- The program: `0` runs the rounds from round `0`; `1` the rounds from round `i` (argument `1`);
 `2` one round. -/
 def keccakProgram : LeanVM.Cost.MachineProgram := #[
-  .call 1 [.var 0, .val (.nat 0)],
-  .case (.op .lessThan [.var 1, .val (.nat 24)]) [
-    .var 0,
-    .call 1 [.call 2 [.var 0, .op .arrayGet [.val (.arr (keccakRC.toArray.map (.nat ·.toNat))), .var 1,
-      .val (.nat 0)]], .op .add [.var 1, .val (.nat 1)]]],
+  .call 1 [.position 0, .literal (.nat 0)],
+  .case (.primitive .lessThan [.position 1, .literal (.nat 24)]) [
+    .position 0,
+    .call 1 [.call 2 [.position 0, .primitive .arrayGet [.literal (.array (keccakRC.toArray.map (.nat ·.toNat))), .position 1,
+      .literal (.nat 0)]], .primitive .add [.position 1, .literal (.nat 1)]]],
   roundB 2]
 
 def stateA : KeccakState := Vector.ofFn fun i ↦ (i.val * 0x9E3779B97F4A7C15 + 7).toUInt64
 
-#guard (run keccakProgram 100 (MachineEncoding.encodeValue (0 : KeccakState))).map (·.1) ==
+#guard (runMachineProgram keccakProgram 100 (MachineEncoding.encodeValue (0 : KeccakState))).map
+    (·.1) ==
   some (MachineEncoding.encodeValue (keccakF1600 0))
-#guard (run keccakProgram 100 (MachineEncoding.encodeValue stateA)).map (·.1) == some (MachineEncoding.encodeValue (keccakF1600 stateA))
+#guard (runMachineProgram keccakProgram 100 (MachineEncoding.encodeValue stateA)).map (·.1) == some (MachineEncoding.encodeValue (keccakF1600 stateA))
 -- The price of one permutation: `26648`, between `2^14` and `2^15`.
-#guard (run keccakProgram 100 (MachineEncoding.encodeValue stateA)).map (·.2) == some 26648
+#guard (runMachineProgram keccakProgram 100 (MachineEncoding.encodeValue stateA)).map
+    (·.2) == some 26648
 
 end LeanVMTests.Cost

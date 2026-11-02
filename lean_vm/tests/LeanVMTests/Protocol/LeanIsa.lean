@@ -31,7 +31,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.LeanIsa
 
 /-- Four `XOR` instructions: a bytecode of log-size `2`. -/
-def prog4 : Program := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
+def prog4 : LeanIsaProgram := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
 
 /-- A table as tall as the memory, and three more. -/
 def s₁ : Sizes := ⟨16, by decide, ![2 ^ 16, 2 ^ 3, 2 ^ 16, 2 ^ 4, 2 ^ 16, 2 ^ 16]⟩
@@ -51,7 +51,7 @@ def s₃ : Sizes := ⟨18, by decide, ![3, 2 ^ 17 + 1, 17, 0, 100, 5]⟩
 /-- Every column's offset in the stack, in global order: its block's; a `KECCAK` input lane's or
 spare column's, `QKECCAK`'s offset plus its slot times the table's height (the column is the
 column of `QKECCAK`'s block at that slot); `none` for an output lane, which is derived. -/
-def offsets (prog : Program) (s : Sizes) : List (Option ℕ) :=
+def offsets (prog : LeanIsaProgram) (s : Sizes) : List (Option ℕ) :=
   columns.map fun c ↦
     if IsOut c then none
     else if h : IsVirtual c then
@@ -142,12 +142,12 @@ def offsets (prog : Program) (s : Sizes) : List (Option ℕ) :=
 #guard (List.finRange 9).map (fun j ↦ (counts j).length) = [0, 0, 0, 4, 4, 2, 4, 4, 27]
 
 /-- The instance meets the bus phase's conditions and the degree bound at every size. -/
-example (prog : Program) (s : Sizes) :
+example (prog : LeanIsaProgram) (s : Sizes) :
     Bus.Conditions (leanIsaInstance prog s) ∧ (leanIsaInstance prog s).d ≤ 2 :=
   ⟨leanIsa_conditions prog s, le_rfl⟩
 
 /-- The relation is decidable, by instance search. -/
-example (prog : Program) (s : Sizes) (input : PublicInput)
+example (prog : LeanIsaProgram) (s : Sizes) (input : PublicInput)
     (q : Column (leanIsaInstance prog s).μ) :
     Decidable (M3Holds (leanIsaInstance prog s) input q) :=
   inferInstance

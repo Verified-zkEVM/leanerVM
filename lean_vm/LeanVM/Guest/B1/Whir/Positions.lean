@@ -95,10 +95,10 @@ theorem sampleQueriesAux_run (d : ℕ) (hd : 1 ≤ 192 / d) :
         return ((List.range (min (192 / d) (rem + 1))).map fun c ↦
           (eToNat w >>> (c * d)) % 2 ^ d) ++ rest)
       (ih.bind (f := fun rest ↦ (pure (((List.range (min (192 / d) (rem + 1))).map fun c ↦
-          (eToNat F.squeeze.1 >>> (c * d)) % 2 ^ d) ++ rest) : Prog (List ℕ)))
+          (eToNat F.squeeze.1 >>> (c * d)) % 2 ^ d) ++ rest) : VerifierProgram (List ℕ)))
         (runsTo_ret _ _))
     have hp : sampleQueriesAux d (fuel + 1) (rem + 1) = (do
-        let w ← Prog.sampleChallenge
+        let w ← VerifierProgram.sampleChallenge
         let rest ← sampleQueriesAux d fuel (rem + 1 - min (192 / d) (rem + 1))
         return ((List.range (min (192 / d) (rem + 1))).map fun c ↦
           (eToNat w >>> (c * d)) % 2 ^ d) ++ rest) := by

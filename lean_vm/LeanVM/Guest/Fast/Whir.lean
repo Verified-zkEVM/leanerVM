@@ -123,20 +123,23 @@ def wordsFrom (rd : Reader) : K → ℕ → List E
   | _, 0 => []
   | a, n + 1 => (rd a).getD 0 :: wordsFrom rd (a * Parameters.g) n
 
-theorem wordsFrom_gpow (rd : Reader) (a : K) : ∀ n k, wordsFrom rd (a * Parameters.gpow k) n =
-    (List.range' k n).map fun i ↦ (rd (a * Parameters.gpow i)).getD 0
+theorem wordsFrom_gpow (rd : Reader) (a : K) : ∀ n k, wordsFrom rd (a *
+    Parameters.addressOfIndex k) n =
+    (List.range' k n).map fun i ↦ (rd (a * Parameters.addressOfIndex i)).getD 0
   | 0, _ => rfl
   | n + 1, k => by
     rw [wordsFrom, List.range'_succ, List.map_cons,
-      show a * Parameters.gpow k * Parameters.g = a * Parameters.gpow (k + 1) by
+      show a * Parameters.addressOfIndex k * Parameters.g = a * Parameters.addressOfIndex (k + 1) by
         show a * Parameters.g ^ k * Parameters.g = a * Parameters.g ^ (k + 1)
         rw [pow_succ, mul_assoc],
       wordsFrom_gpow rd a n (k + 1)]
 
 theorem wordsFrom_eq (rd : Reader) (a : K) (n : ℕ) :
-    wordsFrom rd a n = (List.range n).map fun i ↦ (rd (a * Parameters.gpow i)).getD 0 := by
+    wordsFrom rd a n = (List.range n).map fun i ↦ (rd (a * Parameters.addressOfIndex i)).getD
+        0 := by
   have h := wordsFrom_gpow rd a n 0
-  rw [show a * Parameters.gpow 0 = a by show a * Parameters.g ^ 0 = a; rw [pow_zero, mul_one]] at h
+  rw [show a * Parameters.addressOfIndex 0 = a
+      by show a * Parameters.g ^ 0 = a; rw [pow_zero, mul_one]] at h
   rw [h, List.range_eq_range']
 
 theorem readN_eq_wordsFrom (rd : Reader) (p : E) (n : ℕ) : readN rd p n = wordsFrom rd (p.limb 0) n := by

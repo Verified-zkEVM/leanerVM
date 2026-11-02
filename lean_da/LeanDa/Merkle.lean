@@ -31,15 +31,15 @@ theorem pairBytes_injective {a b c d : Common.DigestBytes} (h : pairBytes a b = 
   obtain ⟨h1, h2⟩ := List.append_inj h (by simp)
   exact ⟨Vector.toList_inj.mp h1, Vector.toList_inj.mp h2⟩
 
-theorem length_kBytes (a : K) : (kBytes a).length = 8 := by simp [kBytes]
+theorem length_kBytes (a : K) : (symbolBytes a).length = 8 := by simp [symbolBytes]
 
 theorem testBit_kBytes (a : K) {t j : ℕ} (ht : t < 8) (hj : j < 8) :
-    ((((kBytes a)[t]'(by simp [kBytes, ht])).toNat).testBit j) = a.toBitVec.toNat.testBit (8 * t + j) := by
-  simp only [kBytes, List.getElem_map, List.getElem_range, Nat.toUInt8_eq, UInt8.toNat_ofNat']
+    ((((symbolBytes a)[t]'(by simp [symbolBytes, ht])).toNat).testBit j) = a.toBitVec.toNat.testBit (8 * t + j) := by
+  simp only [symbolBytes, List.getElem_map, List.getElem_range, Nat.toUInt8_eq, UInt8.toNat_ofNat']
   rw [Nat.testBit_mod_two_pow, Nat.testBit_shiftRight]
   simp [hj]
 
-theorem kBytes_injective : Function.Injective kBytes := by
+theorem kBytes_injective : Function.Injective symbolBytes := by
   intro a b h
   apply BF64.ext
   apply BitVec.eq_of_toNat_eq
@@ -48,14 +48,14 @@ theorem kBytes_injective : Function.Injective kBytes := by
   · have ht : i / 8 < 8 := by omega
     have hj : i % 8 < 8 := by omega
     have hab := congrArg (fun l ↦ ((l[i / 8]?).getD 0).toNat.testBit (i % 8)) h
-    rw [List.getElem?_eq_getElem (by simp [kBytes, ht]), List.getElem?_eq_getElem (by simp [kBytes, ht]),
+    rw [List.getElem?_eq_getElem (by simp [symbolBytes, ht]), List.getElem?_eq_getElem (by simp [symbolBytes, ht]),
       Option.getD_some, Option.getD_some, testBit_kBytes a ht hj, testBit_kBytes b ht hj] at hab
     rwa [show 8 * (i / 8) + i % 8 = i by omega] at hab
   · rw [Nat.testBit_eq_false_of_lt (lt_of_lt_of_le a.toBitVec.isLt (Nat.pow_le_pow_right (by norm_num) (by omega))),
       Nat.testBit_eq_false_of_lt (lt_of_lt_of_le b.toBitVec.isLt (Nat.pow_le_pow_right (by norm_num) (by omega)))]
 
 theorem flatMap_kBytes_injective {l₁ l₂ : List K} (hl : l₁.length = l₂.length)
-    (h : l₁.flatMap kBytes = l₂.flatMap kBytes) : l₁ = l₂ := by
+    (h : l₁.flatMap symbolBytes = l₂.flatMap symbolBytes) : l₁ = l₂ := by
   induction l₁ generalizing l₂ with
   | nil => cases l₂ <;> simp_all
   | cons a as ih =>
@@ -98,13 +98,14 @@ theorem length_merklePath (d : ℕ) (f : ℕ → Common.DigestBytes) (idx : ℕ)
 theorem le_nPad (r : ℕ) : r ≤ paddedRowCount r := Nat.le_pow_clog (by norm_num) r
 
 theorem colLeaves_colIndex {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
-    colLeavesWithHash H c (colIndex p) = cellDigestWithHash H (c p) := by
+    colLeavesWithHash H c (columnTreeIndex p) = cellDigestWithHash H (c p) := by
   have hr := le_nPad r
   have hrow : (positionRow p : ℕ) < paddedRowCount r := lt_of_lt_of_le (positionRow p).isLt hr
-  have hmod : colIndex p % paddedRowCount r = positionRow p := by
-    rw [colIndex, Nat.mul_comm, Nat.mul_add_mod, Nat.mod_eq_of_lt hrow]
-  have hdiv : colIndex p / paddedRowCount r = positionCell p := by
-    rw [colIndex, Nat.add_comm, Nat.add_mul_div_right _ _ (by unfold paddedRowCount; positivity),
+  have hmod : columnTreeIndex p % paddedRowCount r = positionRow p := by
+    rw [columnTreeIndex, Nat.mul_comm, Nat.mul_add_mod, Nat.mod_eq_of_lt hrow]
+  have hdiv : columnTreeIndex p / paddedRowCount r = positionCell p := by
+    rw [columnTreeIndex, Nat.add_comm, Nat.add_mul_div_right _ _
+        (by unfold paddedRowCount; positivity),
       Nat.div_eq_of_lt hrow, Nat.zero_add]
   have h1 : (positionRow p : ℕ) < r := (positionRow p).isLt
   have h2 : (positionCell p : ℕ) < 128 := (positionCell p).isLt
@@ -115,10 +116,11 @@ theorem colLeaves_colIndex {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 
   simp only [cellPosition, positionRow, positionCell]
   omega
 
-theorem colIndex_lt {r : ℕ} (p : Fin (r * 128)) : colIndex p < 2 ^ (7 + logPaddedRowCount r) := by
+theorem colIndex_lt {r : ℕ} (p : Fin (r * 128)) : columnTreeIndex p < 2 ^ (7 + logPaddedRowCount
+    r) := by
   have hrow : (positionRow p : ℕ) < paddedRowCount r := lt_of_lt_of_le (positionRow p).isLt (le_nPad r)
   have hcell := (positionCell p).isLt
-  rw [pow_add, colIndex]
+  rw [pow_add, columnTreeIndex]
   unfold paddedRowCount at hrow ⊢
   nlinarith
 
@@ -168,7 +170,7 @@ theorem findCollision_spec (idx : ℕ) (a b : List UInt8) (p q : List Common.Dig
 
 /-- **Two verifying openings of one position to different cells give a collision.** -/
 theorem openingsCollision_spec {r : ℕ} {com : Common.DigestBytes} {p : Fin (r * 128)} {x x' : Cell}
-    {τ τ' : Opening} (hx : x ≠ x') (hτ : verifyCell H r com p x τ = true)
+    {τ τ' : CellOpening} (hx : x ≠ x') (hτ : verifyCell H r com p x τ = true)
     (hτ' : verifyCell H r com p x' τ' = true) :
     (openingsCollision H r p x τ x' τ').1 ≠ (openingsCollision H r p x τ x' τ').2 ∧
       H (openingsCollision H r p x τ x' τ').1 = H (openingsCollision H r p x τ x' τ').2 := by

@@ -54,7 +54,7 @@ namespace LeanVM.Arithmetization
 open LeanVM.Parameters LeanVM.Semantics
 
 /-- Away from the final state, a run under the semantics `S` takes a step. -/
-theorem runB_succ_of_ne (S : KeccakSem) {prog : Program} {κ : ℕ} {L : MemoryImage κ} {r : Registers K}
+theorem runB_succ_of_ne (S : KeccakSem) {prog : LeanIsaProgram} {κ : ℕ} {L : MemoryImage κ} {r : Registers K}
     (h : r ≠ Registers.final prog) (n : ℕ) :
     runB S prog L (n + 1) r = stepB S prog L r >>= runB S prog L n := by
   rw [runB, ite_eq_right h]
@@ -63,7 +63,8 @@ theorem runB_succ_of_ne (S : KeccakSem) {prog : Program} {κ : ℕ} {L : MemoryI
 `KECCAK`: edges that are steps, balanced against a start `s` and the final registers, contain a
 run from `s` to the final registers, the walk from `s` cut at its first visit of them; each step
 of the run is an edge. -/
-theorem exists_runB_of_perm (S : KeccakSem) {α : Type*} {prog : Program} {κ : ℕ} {L : MemoryImage κ}
+theorem exists_runB_of_perm (S : KeccakSem) {α : Type*} {prog : LeanIsaProgram} {κ : ℕ} {L :
+    MemoryImage κ}
     (src dst : α → Registers K) (E : List α)
     (hE : ∀ e ∈ E, stepB S prog L (src e) = some (dst e))
     (s : Registers K) (hbal : (s :: E.map dst).Perm (Registers.final prog :: E.map src)) :

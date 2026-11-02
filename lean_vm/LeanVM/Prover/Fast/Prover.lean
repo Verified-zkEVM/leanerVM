@@ -69,8 +69,9 @@ def foldRoundsA.fast : ℕ → WhirState → List E → Array E → Array E →
     let challenge ← Script.sampleE
     let W' := foldPairsW challenge W
     let g' := foldPairsW challenge g
-    let quad ← roundA (polyEval s.quad challenge) W' g'
-    foldRoundsA.fast n { s with quad, folds := s.folds ++ [challenge] } (levelFolds ++ [challenge])
+    let quad ← roundA (polyEval s.runningQuad challenge) W' g'
+    foldRoundsA.fast n { s with runningQuad := quad, folds := s.folds ++ [challenge] } (levelFolds
+        ++ [challenge])
       W' g'
 
 @[csimp] theorem foldRoundsA.fast_eq : @foldRoundsA = @foldRoundsA.fast := by
@@ -180,7 +181,7 @@ def levelsA.fast (μ : ℕ) : ℕ → List Whir.Level → WhirState → Array E 
     let s := glue lam s pending
     let W := glueTablesA lam W (tables ++ [T])
     match rest with
-    | [] => tailRoundsA messageLog s.quad W residual
+    | [] => tailRoundsA messageLog s.runningQuad W residual
     | _ :: _ => levelsA.fast μ (index + 1) rest s W g
 
 @[csimp] theorem levelsA.fast_eq : @levelsA = @levelsA.fast := by
@@ -233,7 +234,7 @@ variable {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
 
 /-- `runFrom`, copied. -/
 def runFrom.fast (fuel : ℕ) {α β : Type} :
-    Prog α → Option (Script β) → Sponge → List Tree → m (Option (List E × List Opening))
+    VerifierProgram α → Option (Script β) → Sponge → List Tree → m (Option (List E × List Opening))
   | .ret _, _, _, _ => pure (some ([], []))
   | .fail, _, _, _ => pure (some ([], []))
   | .read k, S, sp, cs => do
@@ -252,10 +253,10 @@ def runFrom.fast (fuel : ℕ) {α β : Type} :
       pure (t.map fun t ↦ (n :: t.1, t.2))
   | .commit ht _ k, S, sp, cs => do
     let tree ← buildTreeM F ht (Script.wordOf S)
-    let sp0 ← absorb F sp (digestScalars tree.root).1 dsObserve
-    let sp1 ← absorb F sp0 (digestScalars tree.root).2 dsObserve
+    let sp0 ← absorb F sp (digestHalves tree.root).1 dsObserve
+    let sp1 ← absorb F sp0 (digestHalves tree.root).2 dsObserve
     let r ← runFrom.fast fuel k (Script.afterCommit S) sp1 (cs ++ [tree])
-    pure (r.map fun t ↦ ((digestScalars tree.root).1 :: (digestScalars tree.root).2 :: t.1, t.2))
+    pure (r.map fun t ↦ ((digestHalves tree.root).1 :: (digestHalves tree.root).2 :: t.1, t.2))
   | .query i ps k, S, sp, cs => match cs[i]? with
     | none => pure (some ([], []))
     | some tree => do

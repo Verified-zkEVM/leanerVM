@@ -39,23 +39,25 @@ public section
 /-! ## The run's algebra -/
 
 /-- `runPure` without `Id.run`: the run with every permutation answered by `default`. -/
-abbrev runDefault {α : Type} (p : Prog α) (s : ProgState) : Option (α × ProgState) :=
+abbrev runDefault {α : Type} (p : VerifierProgram α) (s : VerifierProgramState) : Option (α ×
+    VerifierProgramState) :=
   Compile.run (m := Id) (fun _ ↦ default) p s
 
 /-- A sequence runs as its first program, then the continuation on the first's value. -/
-theorem runDefault_bind {α β : Type} (p : Prog α) (f : α → Prog β) (s : ProgState) :
+theorem runDefault_bind {α β : Type} (p : VerifierProgram α) (f : α → VerifierProgram β) (s :
+    VerifierProgramState) :
     runDefault (p.bind f) s = (runDefault p s).bind fun r ↦ runDefault (f r.1) r.2 := by
   induction p generalizing s with
   | ret a => rfl
   | fail => rfl
   | read k ih =>
-    simp only [runDefault, Prog.bind, Compile.run]
+    simp only [runDefault, VerifierProgram.bind, Compile.run]
     split
     · rfl
     · exact ih _ _
   | sample k ih => exact ih _ _
   | grind b k ih =>
-    simp only [runDefault, Prog.bind, Compile.run]
+    simp only [runDefault, VerifierProgram.bind, Compile.run]
     split
     · rfl
     · simp only [bind, pure]
@@ -63,7 +65,7 @@ theorem runDefault_bind {α β : Type} (p : Prog α) (f : α → Prog β) (s : P
       · exact ih _
       · rfl
   | commit h w k ih =>
-    simp only [runDefault, Prog.bind, Compile.run]
+    simp only [runDefault, VerifierProgram.bind, Compile.run]
     split
     · simp only [bind]
       split
@@ -71,7 +73,7 @@ theorem runDefault_bind {α β : Type} (p : Prog α) (f : α → Prog β) (s : P
       · rfl
     · rfl
   | query i ps k ih =>
-    simp only [runDefault, Prog.bind, Compile.run]
+    simp only [runDefault, VerifierProgram.bind, Compile.run]
     split
     · rfl
     · simp only [bind]
@@ -80,27 +82,30 @@ theorem runDefault_bind {α β : Type} (p : Prog α) (f : α → Prog β) (s : P
       · rfl
 
 /-- **`runPure` of a sequence**: the first program's run, then the continuation's. -/
-theorem runPure_bind {α β : Type} (p : Prog α) (f : α → Prog β) (s : ProgState) :
+theorem runPure_bind {α β : Type} (p : VerifierProgram α) (f : α → VerifierProgram β) (s :
+    VerifierProgramState) :
     runPure (p >>= f) s = (runPure p s).bind fun r ↦ runPure (f r.1) r.2 :=
   runDefault_bind p f s
 
-theorem runPure_bind_of_some {α β : Type} {p : Prog α} {f : α → Prog β} {s s' : ProgState}
+theorem runPure_bind_of_some {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {s s'
+    : VerifierProgramState}
     {a : α} (h : runPure p s = some (a, s')) : runPure (p >>= f) s = runPure (f a) s' := by
   have := runPure_bind p f s
   rw [h] at this
   exact this
 
-theorem runPure_pure {α : Type} (a : α) (s : ProgState) :
-    runPure (pure a : Prog α) s = some (a, s) := rfl
+theorem runPure_pure {α : Type} (a : α) (s : VerifierProgramState) :
+    runPure (pure a : VerifierProgram α) s = some (a, s) := rfl
 
-theorem runPure_require_bind {β : Type} (c : Prop) [Decidable c] (f : Unit → Prog β)
-    (s : ProgState) :
-    runPure (Prog.require c >>= f) s = if c then runPure (f ()) s else none := by
+theorem runPure_require_bind {β : Type} (c : Prop) [Decidable c] (f : Unit → VerifierProgram β)
+    (s : VerifierProgramState) :
+    runPure (VerifierProgram.require c >>= f) s = if c then runPure (f ()) s else none := by
   by_cases hc : c
-  · simp only [Prog.require, hc, ↓reduceIte]; rfl
-  · simp only [Prog.require, hc, ↓reduceIte]; rfl
+  · simp only [VerifierProgram.require, hc, ↓reduceIte]; rfl
+  · simp only [VerifierProgram.require, hc, ↓reduceIte]; rfl
 
-theorem runPure_liftOption_bind {α β : Type} (o : Option α) (f : α → Prog β) (s : ProgState) :
+theorem runPure_liftOption_bind {α β : Type} (o : Option α) (f : α → VerifierProgram β) (s :
+    VerifierProgramState) :
     runPure (liftOption o >>= f) s = o.bind fun a ↦ runPure (f a) s := by
   cases o <;> rfl
 
@@ -113,7 +118,7 @@ default state with an empty queue, then the scalar joins the queue. -/
   { sp with pending := sp.pending ++ [(x, tag)] }
 
 /-- Read `n` prover scalars, each absorbed with `dsObserve` (`Prog.readScalars`). -/
-@[expose] def readPure : ℕ → ProgState → Option (List E × ProgState)
+@[expose] def readPure : ℕ → VerifierProgramState → Option (List E × VerifierProgramState)
   | 0, s => some ([], s)
   | n + 1, s =>
     match s.stream with
@@ -123,34 +128,38 @@ default state with an empty queue, then the scalar joins the queue. -/
         fun r ↦ (x :: r.1, r.2)
 
 /-- **`readScalars`, run**, is `readPure`. -/
-theorem runPure_readScalars (n : ℕ) (s : ProgState) :
-    runPure (Prog.readScalars n) s = readPure n s := by
+theorem runPure_readScalars (n : ℕ) (s : VerifierProgramState) :
+    runPure (VerifierProgram.readScalars n) s = readPure n s := by
   induction n generalizing s with
   | zero => rfl
   | succ n ih =>
     rcases s with ⟨sp, _ | ⟨x, xs⟩, os, roots⟩
     · rfl
-    · have h1 : runPure Prog.readScalar ⟨sp, x :: xs, os, roots⟩ =
+    · have h1 : runPure VerifierProgram.readScalar ⟨sp, x :: xs, os, roots⟩ =
           some (x, ⟨absorbPure sp x dsObserve, xs, os, roots⟩) := by
-        simp only [runPure, Prog.readScalar, Compile.run, Compile.absorb, Compile.duplex,
+        simp only [runPure, VerifierProgram.readScalar, Compile.run, Compile.absorb, Compile.duplex,
           absorbPure]
         split <;> rfl
-      show runPure (Prog.readScalar >>= fun y ↦ Prog.readScalars n >>= fun ys ↦ pure (y :: ys))
+      show runPure (VerifierProgram.readScalar >>= fun y ↦ VerifierProgram.readScalars n >>= fun ys
+          ↦ pure (y :: ys))
         ⟨sp, x :: xs, os, roots⟩ = _
       rw [runPure_bind_of_some h1, runPure_bind, ih]
       show _ = (readPure n ⟨absorbPure sp x dsObserve, xs, os, roots⟩).map fun r ↦ (x :: r.1, r.2)
       cases readPure n ⟨absorbPure sp x dsObserve, xs, os, roots⟩ <;> rfl
 
-theorem runPure_readScalars_bind {β : Type} (n : ℕ) (f : List E → Prog β) (s : ProgState) :
-    runPure (Prog.readScalars n >>= f) s = (readPure n s).bind fun r ↦ runPure (f r.1) r.2 := by
+theorem runPure_readScalars_bind {β : Type} (n : ℕ) (f : List E → VerifierProgram β) (s :
+    VerifierProgramState) :
+    runPure (VerifierProgram.readScalars n >>= f) s = (readPure n s).bind fun r ↦ runPure (f r.1)
+        r.2 := by
   rw [runPure_bind, runPure_readScalars]
 
 /-- Read a root (`Prog.readCommitment height width`): two scalars, absorbed, which must encode a
 digest; the root is recorded with its shape. -/
-@[expose] def commitPure (height width : ℕ) (s : ProgState) : Option (Unit × ProgState) :=
+@[expose] def commitPure (height width : ℕ) (s : VerifierProgramState) : Option (Unit ×
+    VerifierProgramState) :=
   match s.stream with
   | x0 :: x1 :: xs =>
-    match digestOfScalars (x0, x1) with
+    match digestFromHalves (x0, x1) with
     | some root =>
       some ((), { s with
         sponge := absorbPure (absorbPure s.sponge x0 dsObserve) x1 dsObserve
@@ -159,14 +168,14 @@ digest; the root is recorded with its shape. -/
     | none => none
   | _ => none
 
-theorem runPure_readCommitment (height width : ℕ) (s : ProgState) :
-    runPure (Prog.readCommitment height width) s = commitPure height width s := by
+theorem runPure_readCommitment (height width : ℕ) (s : VerifierProgramState) :
+    runPure (VerifierProgram.readCommitment height width) s = commitPure height width s := by
   rcases s with ⟨sp, _ | ⟨x0, _ | ⟨x1, xs⟩⟩, os, roots⟩
-  · simp only [runPure, Prog.readCommitment, Compile.run, commitPure]; rfl
-  · simp only [runPure, Prog.readCommitment, Compile.run, commitPure]; rfl
-  · simp only [runPure, Prog.readCommitment, Compile.run, commitPure, Compile.absorb,
+  · simp only [runPure, VerifierProgram.readCommitment, Compile.run, commitPure]; rfl
+  · simp only [runPure, VerifierProgram.readCommitment, Compile.run, commitPure]; rfl
+  · simp only [runPure, VerifierProgram.readCommitment, Compile.run, commitPure, Compile.absorb,
       Compile.duplex, absorbPure]
-    cases digestOfScalars (x0, x1)
+    cases digestFromHalves (x0, x1)
     · simp [Id.run, bind, pure]
     · simp [Id.run, bind, pure]
       split_ifs <;> simp_all
@@ -175,8 +184,8 @@ theorem runPure_readCommitment (height width : ℕ) (s : ProgState) :
 
 /-- `readSizes bytecode` (`Statement/LeanVmVerifier.lean`), run: the announced sizes, read and
 checked, and the layout they give. -/
-@[expose] def readSizesPure (bytecode : List K) (s : ProgState) :
-    Option ((Layout × ℕ) × ProgState) :=
+@[expose] def readSizesPure (bytecode : List K) (s : VerifierProgramState) :
+    Option ((Layout × ℕ) × VerifierProgramState) :=
   (readPure (2 + tables.length) s).bind fun r ↦
     if (r.1.all fun value ↦ value.limb 1 = 0 ∧ value.limb 2 = 0) then
       let logMemory := kToNat ((r.1.headD 0).limb 0)
@@ -190,19 +199,20 @@ checked, and the layout they give. -/
       else none
     else none
 
-theorem runPure_readSizes (bytecode : List K) (s : ProgState) :
-    runPure (readSizes bytecode) s = readSizesPure bytecode s := by
-  simp only [readSizes, readSizesPure, runPure_readScalars_bind, runPure_require_bind,
+theorem runPure_readSizes (bytecode : List K) (s : VerifierProgramState) :
+    runPure (readAnnouncedSizes bytecode) s = readSizesPure bytecode s := by
+  simp only [readAnnouncedSizes, readSizesPure, runPure_readScalars_bind, runPure_require_bind,
     runPure_liftOption_bind, runPure_pure]
 
 /-- `commitStack logN logInvRate`, run: the stack's root, at the shape of the ladder's first
 level. -/
-@[expose] def commitStackPure (logN logInvRate : ℕ) (s : ProgState) : Option (Unit × ProgState) :=
+@[expose] def commitStackPure (logN logInvRate : ℕ) (s : VerifierProgramState) : Option (Unit ×
+    VerifierProgramState) :=
   match Whir.ladder logN logInvRate with
   | some (level :: _) => commitPure (logN - level.fold + level.logInvRate) (2 ^ level.fold) s
   | _ => none
 
-theorem runPure_commitStack (logN logInvRate : ℕ) (s : ProgState) :
+theorem runPure_commitStack (logN logInvRate : ℕ) (s : VerifierProgramState) :
     runPure (commitStack logN logInvRate) s = commitStackPure logN logInvRate s := by
   unfold commitStack commitStackPure
   cases Whir.ladder logN logInvRate with
@@ -214,11 +224,12 @@ theorem runPure_commitStack (logN logInvRate : ℕ) (s : ProgState) :
       exact runPure_readCommitment (logN - level.fold + level.logInvRate) (2 ^ level.fold) s
 
 /-- The verifier's state at the start: the sponge's default state, the proof unread, no root. -/
-@[expose] def initialState (π : Proof) : ProgState := ⟨⟨default, []⟩, π.stream, π.openings, []⟩
+@[expose] def initialState (π : Proof) : VerifierProgramState := ⟨⟨default, []⟩, π.stream,
+    π.openings, []⟩
 
 /-- **`afterRoot`, direct**: the announced sizes, then the stack's root. -/
 @[expose] def afterRootDirect (bytecode : List K) (π : Proof) :
-    Option ((Layout × ℕ) × ProgState) :=
+    Option ((Layout × ℕ) × VerifierProgramState) :=
   (readSizesPure bytecode (initialState π)).bind fun r ↦
     (commitStackPure r.1.1.stackLog r.1.2 r.2).map fun t ↦ (r.1, t.2)
 
@@ -283,8 +294,8 @@ theorem readSizesPure_carry (bytecode : List K) (sp : Compile.Sponge) (st : List
 /-- **The shape `afterRoot` reads is the one the stream announces** (`announced`, which the
 statement's budget reads). -/
 theorem announced_of_afterRoot {bytecode : List K} {π : Proof} {layout : Layout} {R : ℕ}
-    {st : ProgState} (h : afterRoot bytecode π = some ((layout, R), st)) :
-    announced bytecode π.stream = some (layout, R) := by
+    {st : VerifierProgramState} (h : afterRoot bytecode π = some ((layout, R), st)) :
+    announcedLayoutAndRate bytecode π.stream = some (layout, R) := by
   rw [← afterRootDirect_eq] at h
   unfold afterRootDirect at h
   obtain ⟨r, hr, hc⟩ := Option.bind_eq_some_iff.1 h
@@ -293,7 +304,7 @@ theorem announced_of_afterRoot {bytecode : List K} {π : Proof} {layout : Layout
   unfold initialState at hr
   rw [readSizesPure_carry bytecode ⟨default, []⟩ π.stream [] π.openings [] []] at hr
   obtain ⟨r', hr', rfl⟩ := Option.map_eq_some_iff.1 hr
-  unfold announced
+  unfold announcedLayoutAndRate
   rw [runPure_readSizes, hr']
   exact congrArg some h1
 
@@ -340,12 +351,13 @@ theorem buildLayoutLite_eq (bytecode : List K) (logMemory : ℕ) (tableRows : Li
     split_ifs <;> rfl
 
 /-- An `afterRoot` result with its layout cut to the fields the extractor reads. -/
-@[expose] def liteResult (r : (Layout × ℕ) × ProgState) : (LayoutLite × ℕ) × ProgState :=
+@[expose] def liteResult (r : (Layout × ℕ) × VerifierProgramState) : (LayoutLite × ℕ) ×
+    VerifierProgramState :=
   ((layoutLite r.1.1, r.1.2), r.2)
 
 /-- `readSizesPure` with the lighter layout. -/
-@[expose] def readSizesLite (bytecode : List K) (s : ProgState) :
-    Option ((LayoutLite × ℕ) × ProgState) :=
+@[expose] def readSizesLite (bytecode : List K) (s : VerifierProgramState) :
+    Option ((LayoutLite × ℕ) × VerifierProgramState) :=
   (readPure (2 + tables.length) s).bind fun r ↦
     if (r.1.all fun value ↦ value.limb 1 = 0 ∧ value.limb 2 = 0) then
       let logMemory := kToNat ((r.1.headD 0).limb 0)
@@ -359,7 +371,7 @@ theorem buildLayoutLite_eq (bytecode : List K) (logMemory : ℕ) (tableRows : Li
       else none
     else none
 
-theorem bind_map_layoutLite (o : Option Layout) (R : ℕ) (st : ProgState) :
+theorem bind_map_layoutLite (o : Option Layout) (R : ℕ) (st : VerifierProgramState) :
     (o.map layoutLite).bind (fun layout ↦
         if Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack then
           some ((layout, R), st)
@@ -377,7 +389,7 @@ theorem bind_map_layoutLite (o : Option Layout) (R : ℕ) (st : ProgState) :
         layout.stackLog ≤ Whir.maxLogStack then some ((layout, R), st) else none)
     split_ifs <;> rfl
 
-theorem readSizesLite_eq (bytecode : List K) (s : ProgState) :
+theorem readSizesLite_eq (bytecode : List K) (s : VerifierProgramState) :
     readSizesLite bytecode s = (readSizesPure bytecode s).map liteResult := by
   unfold readSizesLite readSizesPure
   cases readPure (2 + tables.length) s with
@@ -391,7 +403,7 @@ theorem readSizesLite_eq (bytecode : List K) (s : ProgState) :
 
 /-- `afterRootDirect` with the lighter layout. -/
 @[expose] def afterRootLite (bytecode : List K) (π : Proof) :
-    Option ((LayoutLite × ℕ) × ProgState) :=
+    Option ((LayoutLite × ℕ) × VerifierProgramState) :=
   (readSizesLite bytecode (initialState π)).bind fun r ↦
     (commitStackPure r.1.1.stackLog r.1.2 r.2).map fun t ↦ (r.1, t.2)
 

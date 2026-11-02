@@ -115,12 +115,12 @@ theorem run_walkM (idx : ℕ) (node : Common.DigestBytes) (path : List Common.Di
 
 /-- **An opening's verification run**: the cache grows, and in every later cache the result is
 `verifyCell` of the cache's hash function, the opening's hash inputs cached. -/
-theorem run_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening)
+theorem run_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening)
     (c : Cache2) {z : Bool × Cache2}
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
       (verifyCellMWithHash hR r com p x τ)).run c)) :
     c ≤ z.2 ∧ ∀ c', z.2 ≤ c' → z.1 = verifyCell (hOf c') r com p x τ ∧
-      ∀ a ∈ hashInputs (hOf c') (colIndex p) (cellBytes x) τ.path τ.rowRoot,
+      ∀ a ∈ hashInputs (hOf c') (columnTreeIndex p) (cellBytes x) τ.path τ.rowRoot,
         c' (.inl a) ≠ none := by
   simp only [verifyCellMWithHash, simulateQ_bind, StateT.run_bind, mem_support_bind_iff,
     simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
@@ -174,17 +174,18 @@ theorem permCalls2_eq :
 
 section Games
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
 
 /-- **A verification's run**: the cache grows, and an accepting verification makes the opening
 verify for the hash function of every later cache, its hash inputs cached. -/
 theorem run_verifyRpm (crs : Crs) (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell)
-    (τ : Opening) (c : Cache2) {z : Bool × Cache2}
+    (τ : CellOpening) (c : Cache2) {z : Bool × Cache2}
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
       (verifyRpm hR pR r ps crs com p x τ)).run c)) :
     c ≤ z.2 ∧ (z.1 = true → ∀ c', z.2 ≤ c' → verifyCell (hOf c') r com.1 p x τ = true ∧
-      ∀ a ∈ hashInputs (hOf c') (colIndex p) (cellBytes x) τ.path τ.rowRoot,
+      ∀ a ∈ hashInputs (hOf c') (columnTreeIndex p) (cellBytes x) τ.path τ.rowRoot,
         c' (.inl a) ≠ none) := by
   simp only [verifyRpm, simulateQ_bind, StateT.run_bind, mem_support_bind_iff,
     simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
@@ -205,7 +206,7 @@ theorem cache_eq_hOf {c : Cache2} {a : List UInt8} (h : c (.inl a) ≠ none) :
 
 /-- **A win of the position-binding game is a collision of `H` in the final cache.** -/
 theorem posBindingPost_win (crs : Crs)
-    (out : (Common.DigestBytes × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening) (c : Cache2)
+    (out : (Common.DigestBytes × Proof) × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening) (c : Cache2)
     {z : Bool × Cache2}
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
       (posBindingPost r ps crs out)).run c)) (hwin : z.1 = true) : HCollision z.2 := by
@@ -235,20 +236,21 @@ theorem duplexP_walkM (idx : ℕ) (node : Common.DigestBytes) (path : List Commo
   | nil => exact duplexP_pure trivial
   | cons s rest ih => exact duplexP_hR_bind _ _ hist fun d ↦ ih _ _
 
-theorem duplexP_verifyCellM (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening)
+theorem duplexP_verifyCellM (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ :
+    CellOpening)
     (hist : List KState) : DuplexP (fun _ _ ↦ True) (verifyCellMWithHash hR r com p x τ) hist :=
   duplexP_hR_bind _ _ hist fun _ ↦ duplexP_bind (duplexP_walkM _ _ _ hist) fun _ hist' _ ↦
     duplexP_hR_bind _ _ hist' fun _ ↦ duplexP_pure trivial
 
 theorem duplexP_verifyRpm (crs : Crs) (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell)
-    (τ : Opening) (hist : List KState) :
+    (τ : CellOpening) (hist : List KState) :
     DuplexP (fun _ _ ↦ True) (verifyRpm hR pR r ps crs com p x τ) hist :=
   duplexP_bind (duplexP_membershipChallengesR com.1 hist) fun _ hist' _ ↦
     duplexP_bind (duplexP_verifyCellM r com.1 p x τ hist') fun _ _ _ ↦ duplexP_pure trivial
 
 /-- **The position-binding verifier follows the duplex discipline.** -/
 theorem duplex_posBindingPost (crs : Crs)
-    (out : (Common.DigestBytes × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening) :
+    (out : (Common.DigestBytes × Proof) × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening) :
     Duplex KState.zero keccakNF (posBindingPost r ps crs out) [] :=
   duplex_of_duplexP (Q := fun _ _ ↦ True) <|
     duplexP_bind (duplexP_verifyRpm r ps crs _ _ _ _ []) fun _ hist _ ↦
@@ -442,8 +444,9 @@ theorem prob_hCollision_le {α : Type} (X : OracleComp Rom2 α) (Q : ℕ)
 
 section CodeBinding
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
 
 /-- **The code-binding game in the two-oracle random-oracle model**: `H` a random oracle, the
 challenges' sponge over an independent random function `F`, against the ROM adversary
@@ -465,7 +468,7 @@ theorem duplexP_mapM {β γ : Type} (f : β → OracleComp Rom2 γ)
 
 /-- **The code-binding verifier follows the duplex discipline.** -/
 theorem duplex_codeBindingPost (crs : Crs)
-    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) :
+    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) :
     Duplex KState.zero keccakNF (codeBindingPost r ps crs out) [] :=
   duplex_of_duplexP (Q := fun _ _ ↦ True) <|
     duplexP_bind (duplexP_mapM _ (fun _ hist ↦ duplexP_verifyRpm r ps crs _ _ _ _ hist) _ [])

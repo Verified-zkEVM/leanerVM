@@ -91,8 +91,8 @@ theorem l22_block {x N rb a : E} (h1 : LoadHolds rd (rb * x) 0 a) (h2 : LoadHold
 set_option maxRecDepth 20000 in
 /-- **A padding row in the row tree** (`__loop23`). -/
 theorem l24_block {x N rt nb : E}
-    (h0 : LoadHolds rd (rt * (nb * nb) * (x * x)) 0 (digestScalars daPadRowDigest).1)
-    (h1 : LoadHolds rd (rt * (nb * nb) * (x * x)) 1 (digestScalars daPadRowDigest).2) :
+    (h0 : LoadHolds rd (rt * (nb * nb) * (x * x)) 0 (digestHalves daPadRowDigest).1)
+    (h1 : LoadHolds rd (rt * (nb * nb) * (x * x)) 1 (digestHalves daPadRowDigest).2) :
     LoopBlock rd (coreProgram.getD 363 default) x N [rt, nb] := by
   obtain ⟨-, -, -, hs, hl⟩ := dvloops_shape
   have e := daPadRow_cells

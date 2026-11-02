@@ -44,14 +44,14 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 @[expose] public section
 
 /-- `main`'s entry pc, after `__jump_tables`. -/
-def mainEntry : ℕ := Data.f0.len
+def mainEntry : ℕ := Data.f0.instructionCount
 
 /-- **The jump table is written**: every slot of `Memory.tableCells` holds its word. -/
-def JumpTables {κ : ℕ} (L : MemoryImage κ) : Prop := ∀ q ∈ Memory.tableCells, L.read (gpow q.1) = some q.2
+def JumpTables {κ : ℕ} (L : MemoryImage κ) : Prop := ∀ q ∈ Memory.tableCells, L.read (addressOfIndex q.1) = some q.2
 
 /-- The slot a `SET` writes. -/
-def setCell? : OInstr → Option (ℕ × E)
-  | .set o k0 k1 k2 => some (o, OInstr.imm k0 k1 k2)
+def setCell? : OffsetInstruction → Option (ℕ × E)
+  | .set o k0 k1 k2 => some (o, OffsetInstruction.immediateWord k0 k1 k2)
   | _ => none
 
 theorem tableCells_eq : Memory.tableCells = Data.f0.code.filterMap setCell? := by
@@ -64,43 +64,46 @@ theorem f0_all_set : Data.f0.code.all (fun ins ↦ (setCell? ins).isSome) = true
 
 theorem f0_mem : Data.f0 ∈ Data.functions := List.mem_cons_self
 
-theorem f0_entry : Data.f0.entry = 0 := rfl
+theorem f0_entry : Data.f0.entryPc = 0 := rfl
 
 /-- Instruction `i` of `__jump_tables` is a `SET` of a slot of the table. -/
-theorem f0_instr {i : ℕ} (hi : i < Data.f0.len) :
-    ∃ o k0 k1 k2, Data.f0.instrAt i = .set o k0 k1 k2 ∧ (o, OInstr.imm k0 k1 k2) ∈ Memory.tableCells := by
-  have hc := CompiledFn.getElem?_code (CompiledFn.wellChunked_of_mem f0_mem) hi
-  have hmem : Data.f0.instrAt i ∈ Data.f0.code := List.mem_of_getElem? hc
+theorem f0_instr {i : ℕ} (hi : i < Data.f0.instructionCount) :
+    ∃ o k0 k1 k2, Data.f0.instructionAt i = .set o k0 k1 k2 ∧ (o, OffsetInstruction.immediateWord k0 k1 k2) ∈ Memory.tableCells := by
+  have hc := CompiledFunction.getElem?_code (CompiledFunction.wellChunked_of_mem f0_mem) hi
+  have hmem : Data.f0.instructionAt i ∈ Data.f0.code := List.mem_of_getElem? hc
   have hs := List.all_eq_true.mp f0_all_set _ hmem
-  rcases h : Data.f0.instrAt i with _ | _ | ⟨o, k0, k1, k2⟩ | _ | _ | _ <;> rw [h] at hs hmem <;>
+  rcases h : Data.f0.instructionAt i with
+      _ | _ | ⟨o, k0, k1, k2⟩ | _ | _ | _ <;> rw [h] at hs hmem <;>
     simp only [setCell?, Option.isSome_none, Bool.false_eq_true] at hs
   exact ⟨o, k0, k1, k2, rfl, tableCells_eq ▸ List.mem_filterMap.mpr ⟨_, hmem, rfl⟩⟩
 
-theorem f0_fetch {i : ℕ} (hi : i < Data.f0.len) :
-    guestProgram.fetch (gpow i) = some (Data.f0.instrAt i).toInstr := by
+theorem f0_fetch {i : ℕ} (hi : i < Data.f0.instructionCount) :
+    guestProgram.fetch (addressOfIndex i) = some (Data.f0.instructionAt
+        i).toLeanIsaInstruction := by
   have := guest_fetch f0_mem hi
   rwa [f0_entry, Nat.zero_add] at this
 
-theorem f0_pc_lt {i : ℕ} (hi : i < Data.f0.len) : i < 2 ^ guestProgram.logSize - 1 := by
+theorem f0_pc_lt {i : ℕ} (hi : i < Data.f0.instructionCount) : i < 2 ^ guestProgram.logSize -
+    1 := by
   have := guest_pc_lt f0_mem hi
   rwa [f0_entry, Nat.zero_add] at this
 
-theorem gpow_mul_one (o : ℕ) : (1 : K) * gpow o = gpow o := one_mul _
+theorem gpow_mul_one (o : ℕ) : (1 : K) * addressOfIndex o = addressOfIndex o := one_mul _
 
 /-- **The run's start, soundly**: a halting run from `(g^0, 1)` writes the jump table and halts
 from `main`'s entry at `fp = 1`. -/
-theorem safe_jumpTables {κ : ℕ} {L : MemoryImage κ} {k : ℕ} (h : Safe guestProgram L k ⟨gpow 0, 1⟩) :
-    JumpTables L ∧ ∃ k', Safe guestProgram L k' ⟨gpow mainEntry, 1⟩ := by
-  have hwalk : ∀ i ≤ Data.f0.len, (∀ j < i, Holds L j 1 (Data.f0.instrAt j)) ∧
-      ∃ k', Safe guestProgram L k' ⟨gpow i, 1⟩ := by
+theorem safe_jumpTables {κ : ℕ} {L : MemoryImage κ} {k : ℕ} (h : Safe guestProgram L k ⟨addressOfIndex 0, 1⟩) :
+    JumpTables L ∧ ∃ k', Safe guestProgram L k' ⟨addressOfIndex mainEntry, 1⟩ := by
+  have hwalk : ∀ i ≤ Data.f0.instructionCount, (∀ j < i, Holds L j 1 (Data.f0.instructionAt j)) ∧
+      ∃ k', Safe guestProgram L k' ⟨addressOfIndex i, 1⟩ := by
     intro i
     induction i with
     | zero => exact fun _ ↦ ⟨fun _ hj ↦ absurd hj (Nat.not_lt_zero _), k, h⟩
     | succ i ih =>
       intro hi
       obtain ⟨hh, k', hk'⟩ := ih (by omega)
-      obtain ⟨o, k0, k1, k2, hins, -⟩ := f0_instr (show i < Data.f0.len by omega)
-      have hf := f0_fetch (show i < Data.f0.len by omega)
+      obtain ⟨o, k0, k1, k2, hins, -⟩ := f0_instr (show i < Data.f0.instructionCount by omega)
+      have hf := f0_fetch (show i < Data.f0.instructionCount by omega)
       rw [hins] at hf
       obtain ⟨k'', -, hH, hs⟩ := hk'.fallThrough hf (f0_pc_lt (by omega)) rfl
       refine ⟨fun j hj ↦ ?_, k'', hs⟩
@@ -111,8 +114,9 @@ theorem safe_jumpTables {κ : ℕ} {L : MemoryImage κ} {k : ℕ} (h : Safe gues
   refine ⟨fun q hq ↦ ?_, hrun⟩
   obtain ⟨ins, hmem, hq⟩ := List.mem_filterMap.mp (tableCells_eq ▸ hq)
   obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hmem
-  have hlen : i < Data.f0.len := CompiledFn.length_code (CompiledFn.wellChunked_of_mem f0_mem) ▸ hi
-  have hc := CompiledFn.getElem?_code (CompiledFn.wellChunked_of_mem f0_mem) hlen
+  have hlen : i < Data.f0.instructionCount := CompiledFunction.length_code
+      (CompiledFunction.wellChunked_of_mem f0_mem) ▸ hi
+  have hc := CompiledFunction.getElem?_code (CompiledFunction.wellChunked_of_mem f0_mem) hlen
   rw [List.getElem?_eq_getElem hi, Option.some.injEq] at hc
   obtain ⟨o, k0, k1, k2, hins, -⟩ := f0_instr hlen
   have hH := hh i hlen
@@ -126,18 +130,19 @@ theorem safe_jumpTables {κ : ℕ} {L : MemoryImage κ} {k : ℕ} (h : Safe gues
 /-- **The run's start, completely**: on a memory holding the jump table, `__jump_tables` runs
 from `(g^0, 1)` to `main`'s entry at `fp = 1`. -/
 theorem reach_jumpTables {κ : ℕ} {L : MemoryImage κ} (h : JumpTables L) :
-    Reach guestProgram L ⟨gpow 0, 1⟩ ⟨gpow mainEntry, 1⟩ := by
-  have hwalk : ∀ i ≤ Data.f0.len, Reach guestProgram L ⟨gpow 0, 1⟩ ⟨gpow i, 1⟩ := by
+    Reach guestProgram L ⟨addressOfIndex 0, 1⟩ ⟨addressOfIndex mainEntry, 1⟩ := by
+  have hwalk : ∀ i ≤ Data.f0.instructionCount, Reach guestProgram L ⟨addressOfIndex 0, 1⟩
+      ⟨addressOfIndex i, 1⟩ := by
     intro i
     induction i with
     | zero => exact fun _ ↦ Reach.refl _
     | succ i ih =>
       intro hi
-      obtain ⟨o, k0, k1, k2, hins, hq⟩ := f0_instr (show i < Data.f0.len by omega)
-      have hf := f0_fetch (show i < Data.f0.len by omega)
+      obtain ⟨o, k0, k1, k2, hins, hq⟩ := f0_instr (show i < Data.f0.instructionCount by omega)
+      have hf := f0_fetch (show i < Data.f0.instructionCount by omega)
       rw [hins] at hf
       have hH : Holds L i 1 (.set o k0 k1 k2) := by
-        show L.read (1 * gpow o) = some (OInstr.imm k0 k1 k2)
+        show L.read (1 * addressOfIndex o) = some (OffsetInstruction.immediateWord k0 k1 k2)
         rw [gpow_mul_one]
         exact h _ hq
       exact (ih (by omega)).trans (reach_fallThrough hf (f0_pc_lt (by omega)) rfl hH)
@@ -172,14 +177,15 @@ theorem jtOk : allEntries entryOk Data.jtTrie 1 0 = true :=
 
 /-- The jump table the checker reads is what `__jump_tables` wrote. -/
 theorem jt_of_jumpTables {κ : ℕ} {L : MemoryImage κ} (h : End.JumpTables L) (hpows : Data.powTree.Ok) :
-    ∀ s t, Data.jtTrie.get s = some t → L.read (gpow s) = some (ofK (gpow t)) := by
+    ∀ s t, Data.jtTrie.get s = some t → L.read (addressOfIndex s) = some (ofK (addressOfIndex
+        t)) := by
   intro s t hs
   have he := allEntries_get jtOk hs
   rw [Nat.one_mul, Nat.add_zero] at he
   unfold entryOk at he
   rw [Bool.and_eq_true] at he
   obtain ⟨hlt, he⟩ := he
-  have hlen : s - 406 < Data.f0.len := by simpa using hlt
+  have hlen : s - 406 < Data.f0.instructionCount := by simpa using hlt
   obtain ⟨o, k0, k1, k2, hins, hmem⟩ := End.f0_instr hlen
   rw [hins] at he
   simp only [Bool.and_eq_true, beq_iff_eq] at he

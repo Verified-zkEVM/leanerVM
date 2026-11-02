@@ -35,16 +35,18 @@ namespace LeanDa
 
 section Fork
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+      Crs Proof)
   (A : CodeBindingAdvB r Crs Proof)
 
 /-- Wagner's reduction to committed soundness (`csReduction`) with `H` as queries. -/
 noncomputable def csX (ckVC : Unit) : OracleComp (WSpec + XS) (Common.DigestBytes × (Fin (r * 128) → Cell)) := do
   let crs ← liftL (liftM ps.setup : OracleComp WSpec Crs)
   let out ← advX r ps A (ckVC, crs)
-  let l ← liftL (HasQuery.query (spec := (Common.DigestBytes →ₒ Challenges)) (m := OracleComp WSpec) out.1.1)
+  let l ← liftL (HasQuery.query (spec := (Common.DigestBytes →ₒ MembershipChallenges)) (m := OracleComp WSpec) out.1.1)
   pure (out.1.1, ext crs (ckVC, out.1.1, l) out.1.2)
 
 theorem csReduction_eq (h : HTab) (ckVC : Unit) :
@@ -53,9 +55,9 @@ theorem csReduction_eq (h : HTab) (ckVC : Unit) :
   rfl
 
 /-- The wrapped adversary of the fork (`wrappedAdv`) with `H` as queries. -/
-noncomputable def wrX : OracleComp (WSpec + XS) (Common.DigestBytes × (Fin (r * 128) → Cell) × Challenges) := do
+noncomputable def wrX : OracleComp (WSpec + XS) (Common.DigestBytes × (Fin (r * 128) → Cell) × MembershipChallenges) := do
   let out ← csX r ps ext A ()
-  let l ← liftL (HasQuery.query (spec := (Common.DigestBytes →ₒ Challenges)) (m := OracleComp WSpec) out.1)
+  let l ← liftL (HasQuery.query (spec := (Common.DigestBytes →ₒ MembershipChallenges)) (m := OracleComp WSpec) out.1)
   pure (out.1, out.2, l)
 
 theorem wrappedAdv_eq (h : HTab) :
@@ -65,26 +67,27 @@ theorem wrappedAdv_eq (h : HTab) :
   rfl
 
 /-- The win of a run of the fork (`winOn`) with `H` as queries. -/
-noncomputable def winX (out : Common.DigestBytes × (Fin (r * 128) → Cell) × Challenges) :
-    OracleComp (wrappedSpec Challenges + XS) Bool := do
+noncomputable def winX (out : Common.DigestBytes × (Fin (r * 128) → Cell) × MembershipChallenges) :
+    OracleComp (wrappedSpec MembershipChallenges + XS) Bool := do
   let root ← commitCellsMWithHash hS out.2.1
-  pure (decide (out.2.1 ∉ (code r).code) && (checker r).check out.2.2 out.2.1 && decide (root = out.1))
+  pure (decide (out.2.1 ∉ (leanDaErasureCode r).code) && (checker r).check out.2.2 out.2.1 && decide (root = out.1))
 
-theorem winX_eval (h : HTab) (out : Common.DigestBytes × (Fin (r * 128) → Cell) × Challenges) :
-    simulateQ (col h) (winX r out) = pure (winOn (code r) (merkleVC r (Hh h)) (checker r) () out) := by
+theorem winX_eval (h : HTab) (out : Common.DigestBytes × (Fin (r * 128) → Cell) ×
+    MembershipChallenges) :
+    simulateQ (col h) (winX r out) = pure (winOn (leanDaErasureCode r) (merkleVC r (Hh h)) (checker r) () out) := by
   rw [winX, simulateQ_bind, commitCellsM_eval (fun x ↦ simulateQ (col h) x) (fun a ↦ rfl)
     (fun x f ↦ simulateQ_bind _ x f) hS (Hh h) (simulateQ_col_hS h), pure_bind]
   rfl
 
 /-- **A run of the fork** (`runTrace`) with `H` as queries. -/
-noncomputable def mainX : OracleComp (wrappedSpec Challenges + XS) (Trace Cell (r * 128) Common.DigestBytes Challenges) := do
-  let p ← (simulateQ (extImpl (unifForward Common.DigestBytes Challenges + roImpl Common.DigestBytes Challenges))
+noncomputable def mainX : OracleComp (wrappedSpec MembershipChallenges + XS) (Trace Cell (r * 128) Common.DigestBytes MembershipChallenges) := do
+  let p ← (simulateQ (extImpl (unifForward Common.DigestBytes MembershipChallenges + roImpl Common.DigestBytes MembershipChallenges))
     (wrX r ps ext A)).run (∅, [])
   let w ← winX r p.1
   pure { com := p.1.1, vec := p.1.2.1, chal := p.1.2.2, roCache := p.2.1, queryLog := p.2.2, win := w }
 
 theorem runTrace_eq (h : HTab) :
-    runTrace (code r) (merkleVC r (Hh h)) (checker r)
+    runTrace (leanDaErasureCode r) (merkleVC r (Hh h)) (checker r)
       (csReduction (argH r ps (Hh h)) ext (advH r ps A h)) () = simulateQ (col h) (mainX r ps ext A) := by
   rw [runTrace, wrappedAdv_eq, run_simulateQ_col_ext, mainX, simulateQ_bind]
   congr 1
@@ -100,14 +103,15 @@ def qbX (Q : ℕ) : ((ℕ ⊕ Unit) ⊕ HDom) → ℕ
 
 /-- **The fork and its two vectors** (`forkVecPair`) with `H` as queries. -/
 noncomputable def forkX (Q : ℕ) :
-    OracleComp (wrappedSpec Challenges + XS) ((Fin (r * 128) → Cell) × (Fin (r * 128) → Cell)) :=
+    OracleComp (wrappedSpec MembershipChallenges + XS) ((Fin (r * 128) → Cell) × (Fin (r * 128) →
+        Cell)) :=
   contextFork (mainX r ps ext A) (qbX Q) (.inl (.inr ())) (forkPoint (Q + 1)) >>= fun o ↦
     match o with
     | some (x₁, x₂) => pure (x₁.vec, x₂.vec)
     | none => pure (fun _ ↦ default, fun _ ↦ default)
 
 theorem forkVecPair_eq (h : HTab) (Q : ℕ) :
-    forkVecPair (code r) (merkleVC r (Hh h)) (checker r)
+    forkVecPair (leanDaErasureCode r) (merkleVC r (Hh h)) (checker r)
       (csReduction (argH r ps (Hh h)) ext (advH r ps A h)) (Q + 1) () =
       simulateQ (col h) (forkX r ps ext A Q) := by
   rw [forkVecPair, runTrace_eq, forkX, simulateQ_bind]
@@ -119,12 +123,12 @@ theorem forkVecPair_eq (h : HTab) (Q : ℕ) :
   rcases o with _ | ⟨x₁, x₂⟩ <;> rfl
 
 /-- The fork's oracles answered by uniform sampling. -/
-noncomputable abbrev forkI : QueryImpl (wrappedSpec Challenges) ProbComp :=
+noncomputable abbrev forkI : QueryImpl (wrappedSpec MembershipChallenges) ProbComp :=
   QueryImpl.ofLift unifSpec ProbComp +
-    uniformSampleImpl (spec := ((Unit →ₒ Challenges) : OracleSpec Unit))
+    uniformSampleImpl (spec := ((Unit →ₒ MembershipChallenges) : OracleSpec Unit))
 
 theorem forkCollisionReduction_eq (h : HTab) (Q : ℕ) :
-    forkCollisionReduction (code r) (merkleVC r (Hh h)) (checker r)
+    forkCollisionReduction (leanDaErasureCode r) (merkleVC r (Hh h)) (checker r)
       (csReduction (argH r ps (Hh h)) ext (advH r ps A h)) (Q + 1) () =
       simulateQ (col h) (simulateQ (extI forkI) (forkX r ps ext A Q)) := by
   rw [forkCollisionReduction, forkVecPair_eq, simulateQ_col_extI]
@@ -156,9 +160,9 @@ def colPairX (r : ℕ) [NeZero r] (vv : (Fin (r * 128) → Cell) × (Fin (r * 12
     do
       let τ ← openCellM hS vv.1 i
       let τ' ← openCellM hS vv.2 i
-      let l₁ ← hashInputsM hS (colIndex i) (cellBytes (vv.1 i)) (τ.path.take (7 + logPaddedRowCount r))
+      let l₁ ← hashInputsM hS (columnTreeIndex i) (cellBytes (vv.1 i)) (τ.path.take (7 + logPaddedRowCount r))
         τ.rowRoot
-      let l₂ ← hashInputsM hS (colIndex i) (cellBytes (vv.2 i)) (τ'.path.take (7 + logPaddedRowCount r))
+      let l₂ ← hashInputsM hS (columnTreeIndex i) (cellBytes (vv.2 i)) (τ'.path.take (7 + logPaddedRowCount r))
         τ'.rowRoot
       findCollisionM hS l₁ (l₂.take (9 + logPaddedRowCount r))
 
@@ -230,16 +234,18 @@ theorem colPairX_eval (r : ℕ) [NeZero r] (h : HTab)
 
 section Fork2
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+      Crs Proof)
   (A : CodeBindingAdvB r Crs Proof)
 
 /-- **Wagner's forking collision experiment for the table `h`, as a function of the two vectors.** -/
 theorem forkCollExpH_eq [NeZero r] (h : HTab) (Q : ℕ) :
     forkCollExpH r ps ext A Q h = (fun vv ↦ decide ((colPair r (Hh h) vv).1 ≠ (colPair r (Hh h) vv).2) &&
       decide (Hh h (colPair r (Hh h) vv).1 = Hh h (colPair r (Hh h) vv).2)) <$>
-        forkCollisionReduction (code r) (merkleVC r (Hh h)) (checker r)
+        forkCollisionReduction (leanDaErasureCode r) (merkleVC r (Hh h)) (checker r)
           (csReduction (argH r ps (Hh h)) ext (advH r ps A h)) (Q + 1) () := by
   simp only [forkCollExpH, hashCollisionExp, merkleCollider,
     VectorCommitment.CollisionAdv.toPosBindingAdv, bind_assoc, map_eq_bind_pure_comp]
@@ -283,9 +289,11 @@ end Weight
 
 section Fork3
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+      Crs Proof)
   (A : CodeBindingAdvB r Crs Proof)
 
 /-- The hash calls of an honest opening over `H` as queries. -/
@@ -312,11 +320,12 @@ theorem isWeightBound_openCellM_hS {ι : Type} {Ψ : OracleSpec ι} (c : Fin (r 
     (fun _ _ ↦ isWeightBound_hS (Ψ := Ψ) _) c i
   exact this.mono (le_of_eq (by ring))
 
-theorem isWeightBound_winX (out : Common.DigestBytes × (Fin (r * 128) → Cell) × Challenges) :
+theorem isWeightBound_winX (out : Common.DigestBytes × (Fin (r * 128) → Cell) ×
+    MembershipChallenges) :
     QueryCostAtMost (winX r out) xCalls (commitCalls r) := by
-  have := (isWeightBound_commitCellsM_hS r (Ψ := wrappedSpec Challenges) out.2.1).bind
-    fun root ↦ isWeightBound_pure (spec := wrappedSpec Challenges + XS)
-      (decide (out.2.1 ∉ (code r).code) && (checker r).check out.2.2 out.2.1 &&
+  have := (isWeightBound_commitCellsM_hS r (Ψ := wrappedSpec MembershipChallenges) out.2.1).bind
+    fun root ↦ isWeightBound_pure (spec := wrappedSpec MembershipChallenges + XS)
+      (decide (out.2.1 ∉ (leanDaErasureCode r).code) && (checker r).check out.2.2 out.2.1 &&
         decide (root = out.1)) xCalls 0
   exact this
 
@@ -329,9 +338,9 @@ theorem isWeightBound_mainX (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGame2 r 
     (hcs.bind fun _ ↦ (isWeightBound_liftL _).bind fun _ ↦ isWeightBound_pure _ _ 0).mono
       (by omega)
   have hrun := isWeightBound_run_simulateQ
-    (extImpl (Ψ := wrappedSpec Challenges) (unifForward Common.DigestBytes Challenges + roImpl Common.DigestBytes Challenges))
+    (extImpl (Ψ := wrappedSpec MembershipChallenges) (unifForward Common.DigestBytes MembershipChallenges + roImpl Common.DigestBytes MembershipChallenges))
     xCalls xCalls (isWeightBound_extImpl _) hwr
-    (((∅ : (Common.DigestBytes →ₒ Challenges).QueryCache), ([] : List Common.DigestBytes)) : SimState Common.DigestBytes Challenges)
+    (((∅ : (Common.DigestBytes →ₒ MembershipChallenges).QueryCache), ([] : List Common.DigestBytes)) : SimState Common.DigestBytes MembershipChallenges)
   exact (hrun.bind fun p ↦ ((isWeightBound_winX r p.1).bind fun w ↦
     isWeightBound_pure _ _ 0)).mono le_rfl
 

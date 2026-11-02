@@ -78,15 +78,15 @@ theorem oqQuery_sound {s : Oq} (hs : s.RowShape) (hcd : 2 ≤ s.cd) (hcd8 : s.cd
   · rw [hfr k hk x hx, hch k hk]
   · obtain ⟨hn, h0, h1⟩ := hlv l hl
     rw [show σ (.n (oqNode s (oqKL s b emit) (oqCh s b emit) l 0)) =
-      (digestScalars (climbNode (merkleLeafDigest (oqRow b s.R σ)) q sibs l)).1 by rw [← hn]] at h0
+      (digestHalves (climbNode (merkleLeafDigest (oqRow b s.R σ)) q sibs l)).1 by rw [← hn]] at h0
     rw [show σ (.n (oqNode s (oqKL s b emit) (oqCh s b emit) l 1)) =
-      (digestScalars (climbNode (merkleLeafDigest (oqRow b s.R σ)) q sibs l)).2 by rw [← hn]] at h1
+      (digestHalves (climbNode (merkleLeafDigest (oqRow b s.R σ)) q sibs l)).2 by rw [← hn]] at h1
     exact ⟨h0, h1⟩
   · rw [show σ (.n (oqNode s (oqKL s b emit) (oqCh s b emit) s.pd 0)) =
-      (digestScalars (climbD (merkleLeafDigest (oqRow b s.R σ)) q sibs)).1 by rw [← hnd]] at hc0
+      (digestHalves (climbD (merkleLeafDigest (oqRow b s.R σ)) q sibs)).1 by rw [← hnd]] at hc0
     exact hc0
   · rw [show σ (.n (oqNode s (oqKL s b emit) (oqCh s b emit) s.pd 1)) =
-      (digestScalars (climbD (merkleLeafDigest (oqRow b s.R σ)) q sibs)).2 by rw [← hnd]] at hc1
+      (digestHalves (climbD (merkleLeafDigest (oqRow b s.R σ)) q sibs)).2 by rw [← hnd]] at hc1
     exact hc1
   · rw [hdot, rowDot_eq]
     congr 1

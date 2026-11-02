@@ -237,14 +237,14 @@ theorem card_filter_truncateHash (value : Digest)
   have h : (Finset.univ.filter fun output : HashOutput => truncateHash output = value) =
       (Finset.univ : Finset Digest).map
         ⟨joinHalves value, fun left right heq => by
-          have := congrArg upperHash heq
+          have := congrArg upperHalfOfHash heq
           rwa [upperHash_joinHalves, upperHash_joinHalves] at this⟩ := by
     ext output
     simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_map,
       Function.Embedding.coeFn_mk]
     constructor
     · rintro rfl
-      exact ⟨upperHash output, joinHalves_halves output⟩
+      exact ⟨upperHalfOfHash output, joinHalves_halves output⟩
     · rintro ⟨high, rfl⟩
       exact truncateHash_joinHalves value high
   rw [h, Finset.card_map]

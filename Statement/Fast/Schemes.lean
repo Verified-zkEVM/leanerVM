@@ -57,16 +57,16 @@ def sequenceFin {m : Type → Type} [Monad m] {α : Type} :
 /-- The schemes' `sequenceFin` (leanSPHINCS's is leanXMSS's) is `sequenceFin`. -/
 theorem sequenceFin_xmss {m : Type → Type} [Monad m] {α : Type} :
     ∀ {n : Nat} (computation : Fin n → m α),
-      HashSig.Concrete.sequenceFin computation = sequenceFin computation
+      HashSig.OverPermutation.sequenceFin computation = sequenceFin computation
   | 0, _ => rfl
   | n + 1, computation => by
-    simp only [HashSig.Concrete.sequenceFin, sequenceFin, cases_eq_cons]
+    simp only [HashSig.OverPermutation.sequenceFin, sequenceFin, cases_eq_cons]
     congr 1
     funext head
     rw [sequenceFin_xmss]
 
 /-- The schemes' `sequenceFin` compiles as `sequenceFin`. -/
-@[csimp] theorem xmss_sequenceFin_eq : @HashSig.Concrete.sequenceFin = @sequenceFin := by
+@[csimp] theorem xmss_sequenceFin_eq : @HashSig.OverPermutation.sequenceFin = @sequenceFin := by
   funext m _ α n computation
   exact sequenceFin_xmss computation
 
@@ -74,47 +74,49 @@ theorem sequenceFin_xmss {m : Type → Type} [Monad m] {α : Type} :
 
 namespace Xmss
 
-open LeanXmss HashSig LeanXmss.Concrete HashSig.Concrete
+open LeanXmss HashSig LeanXmss.Verification HashSig.OverPermutation
 open LeanVM.Semantics (KeccakState)
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
-/-- `LeanXmss.Concrete.otsLeaf`. -/
+/-- `LeanXmss.Verification.otsLeaf`. -/
 def otsLeaf (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (message : HashInput)
-    (randomness : Randomness) (values : ChainIndex → Digest) : m (Option Digest) := do
+    (randomness : Randomizer) (values : ChainIndex → Digest) : m (Option Digest) := do
   let digest ← messageDigest π parameter lay key message randomness
   let some encoding := Codeword.decode digest | return none
-  let endpoints ← HashSig.Concrete.sequenceFin fun chainIdx =>
+  let endpoints ← HashSig.OverPermutation.sequenceFin fun chainIdx =>
     recoverChain π parameter lay key chainIdx (encoding chainIdx) (values chainIdx)
   let value ← leafHash π parameter lay key endpoints
   return some value
 
-/-- `LeanXmss.Concrete.otsLeaf` compiles as its restatement. -/
-@[csimp] theorem otsLeaf_eq : @LeanXmss.Concrete.otsLeaf = @otsLeaf := rfl
+/-- `LeanXmss.Verification.otsLeaf` compiles as its restatement. -/
+@[csimp] theorem otsLeaf_eq : @LeanXmss.Verification.otsLeaf = @otsLeaf := rfl
 
-/-- `LeanXmss.Concrete.layerRoot`, with `otsLeaf`. -/
+/-- `LeanXmss.Verification.layerRoot`, with `otsLeaf`. -/
 def layerRoot (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (message : HashInput)
     (part : LayerSignature) : m (Option Digest) := do
-  let some leaf ← LeanXmss.Concrete.otsLeaf π parameter lay key message part.randomness
+  let some leaf ← LeanXmss.Verification.otsLeaf π parameter lay key message part.randomizer
     part.chainValues | return none
-  let root ← treeFold π parameter lay key part.path layerHeight leaf
+  let root ← treeFold π parameter lay key part.authenticationPath layerHeight leaf
   return some root
 
-/-- `LeanXmss.Concrete.layerRoot` compiles as its restatement. -/
-@[csimp] theorem layerRoot_eq : @LeanXmss.Concrete.layerRoot = @layerRoot := rfl
+/-- `LeanXmss.Verification.layerRoot` compiles as its restatement. -/
+@[csimp] theorem layerRoot_eq : @LeanXmss.Verification.layerRoot = @layerRoot := rfl
 
-/-- `LeanXmss.Concrete.verify`, with `layerRoot`. -/
+/-- `LeanXmss.Verification.verify`, with `layerRoot`. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
   let index := signature.leafIndex
-  let some bottomRoot ← LeanXmss.Concrete.layerRoot π publicKey.parameter bottomLayer
-      (keyAt index bottomLayer) (bytesLE 32 message) (signature.layers bottomLayer) | return false
-  let some root ← LeanXmss.Concrete.layerRoot π publicKey.parameter topLayer (keyAt index topLayer)
-      (bytesLE 16 bottomRoot) (signature.layers topLayer) | return false
+  let some bottomRoot ← LeanXmss.Verification.layerRoot π publicKey.parameter bottomLayer
+      (keyIndexOnLayer index bottomLayer) (littleEndianBytes 32 message) (signature.layers
+          bottomLayer) | return false
+  let some root ← LeanXmss.Verification.layerRoot π publicKey.parameter topLayer (keyIndexOnLayer
+      index topLayer)
+      (littleEndianBytes 16 bottomRoot) (signature.layers topLayer) | return false
   return decide (root = publicKey.root)
 
-/-- `LeanXmss.Concrete.verify` compiles as its restatement. -/
-@[csimp] theorem verify_eq : @LeanXmss.Concrete.verify = @verify := by
-  unfold LeanXmss.Concrete.verify
+/-- `LeanXmss.Verification.verify` compiles as its restatement. -/
+@[csimp] theorem verify_eq : @LeanXmss.Verification.verify = @verify := by
+  unfold LeanXmss.Verification.verify
   rfl
 
 end Xmss
@@ -123,37 +125,40 @@ end Xmss
 
 namespace Sphincs
 
-open _root_.Sphincs _root_.Sphincs.Concrete
+open _root_.Sphincs _root_.Sphincs.Verification
 open LeanVM.Semantics (KeccakState)
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
-/-- `Sphincs.Concrete.otsLeaf`. -/
-def otsLeaf (parameter : PublicParameter) (leaf : Index) (message : ForestKey) (counter : Counter)
+/-- `Sphincs.Verification.otsLeaf`. -/
+def otsLeaf (parameter : PublicParameter) (leaf : LeafIndex) (message : ForestKey) (counter :
+    EncodingCounter)
     (values : ChainIndex → Digest) : m (Option Digest) := do
   let some encoding ← encode π parameter leaf message counter | return none
-  let endpoints ← HashSig.Concrete.sequenceFin fun chainIdx =>
+  let endpoints ← HashSig.OverPermutation.sequenceFin fun chainIdx =>
     recoverChain π parameter leaf chainIdx (encoding chainIdx) (values chainIdx)
   let value ← leafHash π parameter leaf endpoints
   return some value
 
-/-- `Sphincs.Concrete.otsLeaf` compiles as its restatement. -/
-@[csimp] theorem otsLeaf_eq : @_root_.Sphincs.Concrete.otsLeaf = @otsLeaf := rfl
+/-- `Sphincs.Verification.otsLeaf` compiles as its restatement. -/
+@[csimp] theorem otsLeaf_eq : @_root_.Sphincs.Verification.otsLeaf = @otsLeaf := rfl
 
-/-- `Sphincs.Concrete.verify`, with `otsLeaf`. -/
+/-- `Sphincs.Verification.verify`, with `otsLeaf`. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
-  let digest ← messageDigest π publicKey.parameter message signature.randomness
-  let index := digestIndex digest
-  let forestKey ← forestRecover π publicKey.parameter index (digestMarks digest) signature.forest
-  let some leaf ← _root_.Sphincs.Concrete.otsLeaf π publicKey.parameter index forestKey
+  let digest ← messageDigest π publicKey.parameter message signature.randomizer
+  let index := digestLeafIndex digest
+  let forestKey ← forestRecover π publicKey.parameter index (digestCoordinateSelections digest)
+      signature.forestOpening
+  let some leaf ← _root_.Sphincs.Verification.otsLeaf π publicKey.parameter index forestKey
     signature.counter signature.chainValues | return false
   let root ← treeFold π publicKey.parameter index
-    (fun level ↦ if h : level < totalHeight then signature.path ⟨level, h⟩ else 0) totalHeight leaf
+    (fun level ↦ if h : level < treeHeight
+        then signature.authenticationPath ⟨level, h⟩ else 0) treeHeight leaf
   return decide (root = publicKey.root)
 
-/-- `Sphincs.Concrete.verify` compiles as its restatement. -/
-@[csimp] theorem verify_eq : @_root_.Sphincs.Concrete.verify = @verify := by
-  unfold _root_.Sphincs.Concrete.verify
+/-- `Sphincs.Verification.verify` compiles as its restatement. -/
+@[csimp] theorem verify_eq : @_root_.Sphincs.Verification.verify = @verify := by
+  unfold _root_.Sphincs.Verification.verify
   rfl
 
 end Sphincs

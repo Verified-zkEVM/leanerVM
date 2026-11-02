@@ -42,12 +42,14 @@ def OqCompleteD (fs : String → ℕ) (cert : String → V → ℕ) (name loop :
         (sibs k).length = s.pd) →
       OqLinReg (RegionL Lin) s ecap eflags eqp ewp eb qs (oqCount odd s.base N) →
       (∀ rd, LowDef κ rd → MemL rd Lin →
-        OqLinMem rd s (ofK (Parameters.gpow ecap)) (ofK (Parameters.gpow eflags))
-          (ofK (Parameters.gpow ewp)) (ofK (Parameters.gpow eqp)) w eb qs rows sibs
+        OqLinMem rd s (ofK (Parameters.addressOfIndex ecap)) (ofK (Parameters.addressOfIndex
+            eflags))
+          (ofK (Parameters.addressOfIndex ewp)) (ofK (Parameters.addressOfIndex eqp)) w eb qs
+              rows sibs
           (oqCount odd s.base N)) →
       CompleteAtD fs cert κ name Lin
-        [ofK (Parameters.gpow ecap), ofK (Parameters.gpow eflags), lam, lamN,
-          ofK (Parameters.gpow eqp), ofK (Parameters.gpow ewp), gen ^ N]
+        [ofK (Parameters.addressOfIndex ecap), ofK (Parameters.addressOfIndex eflags), lam, lamN,
+          ofK (Parameters.addressOfIndex eqp), ofK (Parameters.addressOfIndex ewp), gen ^ N]
         (Returns [oqChain odd s.base lam⁻¹ (fun k ↦ rowDot s.base s.I (rows k) w) N * lamN])
 
 /-- `opening_queries`' tree bound: its frame, its chain buffer (`N + 1` cells) and its `N + 1`
@@ -66,12 +68,14 @@ def OqCompleteDB (fs : String → ℕ) (cert : String → V → ℕ) (name loop 
         (sibs k).length = s.pd) →
       OqLinReg (RegionL Lin) s ecap eflags eqp ewp eb qs (oqCount odd s.base N) →
       (∀ rd, LowDef κ rd → MemL rd Lin →
-        OqLinMem rd s (ofK (Parameters.gpow ecap)) (ofK (Parameters.gpow eflags))
-          (ofK (Parameters.gpow ewp)) (ofK (Parameters.gpow eqp)) w eb qs rows sibs
+        OqLinMem rd s (ofK (Parameters.addressOfIndex ecap)) (ofK (Parameters.addressOfIndex
+            eflags))
+          (ofK (Parameters.addressOfIndex ewp)) (ofK (Parameters.addressOfIndex eqp)) w eb qs
+              rows sibs
           (oqCount odd s.base N)) →
       CompleteAtB fs cert κ name Lin
-        [ofK (Parameters.gpow ecap), ofK (Parameters.gpow eflags), lam, lamN,
-          ofK (Parameters.gpow eqp), ofK (Parameters.gpow ewp), gen ^ N]
+        [ofK (Parameters.addressOfIndex ecap), ofK (Parameters.addressOfIndex eflags), lam, lamN,
+          ofK (Parameters.addressOfIndex eqp), ofK (Parameters.addressOfIndex ewp), gen ^ N]
         (Returns [oqChain odd s.base lam⁻¹ (fun k ↦ rowDot s.base s.I (rows k) w) N * lamN])
         (oqBound fs name loop N)
 

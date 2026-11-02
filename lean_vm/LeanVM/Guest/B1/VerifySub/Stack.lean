@@ -17,7 +17,8 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem word_pow_eq {a : ℕ} (h : a < 64) : word (2 ^ a) 0 0 = ofK (Parameters.gpow a) := by
+theorem word_pow_eq {a : ℕ} (h : a < 64) : word (2 ^ a) 0 0 = ofK (Parameters.addressOfIndex
+    a) := by
   rw [word_two_pow h, gen_pow_eq_ofK]
 
 /-- A range check against `g^(K-1)` (`K ≤ 64`) on a memory of at least `64` words. -/

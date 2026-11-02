@@ -40,14 +40,14 @@ theorem loadHolds_one {rd : Reader} {x : E} (h : rd 1 = some x) : LoadHolds rd 1
   rw [one_eq_ofK]
   refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
   rw [B1.Main.addr_ofK]
-  simpa [Parameters.gpow] using h
+  simpa [Parameters.addressOfIndex] using h
 
 theorem loadHolds_gen {rd : Reader} {x : E} (h : rd g = some x) : LoadHolds rd gen 0 x := by
-  have e : gen = ofK (gpow 1) := by rw [← Value.gen_pow_eq_ofK, pow_one]
+  have e : gen = ofK (addressOfIndex 1) := by rw [← Value.gen_pow_eq_ofK, pow_one]
   rw [e]
   refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
   rw [B1.Main.addr_ofK]
-  simpa [Parameters.gpow] using h
+  simpa [Parameters.addressOfIndex] using h
 
 /-- **`MainComplete` from `main`'s completeness within a words bound and its tree's counts.** -/
 theorem mainComplete_of_bounds (fs : String → ℕ) (cert : String → V → ℕ)
@@ -57,8 +57,8 @@ theorem mainComplete_of_bounds (fs : String → ℕ) (cert : String → V → �
     (hmain : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w → ChildrenOk bytecode seed w →
       ∃ (n : ℕ) (L : B1.Main.Layout), n ≤ Bm seed s w ∧ Within L 0 n ∧ (∀ q ∈ L, fs "main" ≤ q.1) ∧
         DisjL L ∧ ∀ rd, LowDef 16 rd → B1.Main.MemL rd L →
-          LoadHolds rd 1 0 (digestScalars (statementDigest seed s)).1 →
-          LoadHolds rd gen 0 (digestScalars (statementDigest seed s)).2 →
+          LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1 →
+          LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2 →
           RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) 0 n "main" [] []
             (T seed s w rd))
     (hcnt : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w →

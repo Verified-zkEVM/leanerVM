@@ -107,7 +107,7 @@ pub fn files(guest: &Program) -> Vec<File> {
         for (c, (chunk, ops)) in chunks.iter().zip(code.chunks(CHUNK)).enumerate() {
             let ops: Vec<String> = ops.iter().map(|op| format!("  {}", lean_op(op))).collect();
             writeln!(body, "/-- `{name}` from offset {}. -/", c * CHUNK).unwrap();
-            writeln!(body, "def {chunk} : List OInstr := [\n{}]\n", ops.join(",\n")).unwrap();
+            writeln!(body, "def {chunk} : List OffsetInstruction := [\n{}]\n", ops.join(",\n")).unwrap();
             size += ops.len();
             if size >= MODULE {
                 close(&mut files, &mut body);
@@ -116,7 +116,7 @@ pub fn files(guest: &Program) -> Vec<File> {
         }
         writeln!(
             records,
-            "/-- `{name}`: pc {entry} to {}. -/\ndef f{index} : CompiledFn :=\n  ⟨\"{name}\", {entry}, {len}, [{}]⟩\n",
+            "/-- `{name}`: pc {entry} to {}. -/\ndef f{index} : CompiledFunction :=\n  ⟨\"{name}\", {entry}, {len}, [{}]⟩\n",
             entry + len,
             chunks.join(", ")
         )
@@ -144,7 +144,7 @@ pub fn files(guest: &Program) -> Vec<File> {
     let rows: Vec<String> = table.chunks(16).map(|row| format!("  {}", row.join(", "))).collect();
     writeln!(
         body,
-        "/-- The compiled functions, in layout order. -/\ndef functions : List CompiledFn := [\n{}]\n",
+        "/-- The compiled functions, in layout order. -/\ndef functions : List CompiledFunction := [\n{}]\n",
         rows.join(",\n")
     )
     .unwrap();

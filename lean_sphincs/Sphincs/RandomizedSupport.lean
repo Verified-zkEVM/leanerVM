@@ -71,7 +71,7 @@ attribute [local irreducible] digestAttemptLimit encodingAttemptLimit Seeded.tre
 
 /-- A successful scan leaves a cached answer certifying that it landed. -/
 theorem scanLoop_support (sk : Seeded.SecretKey) (message : Message) :
-    ∀ (n : Nat) (start : Randomness) (cache : QueryCache HashSpec) (result : Option Randomness)
+    ∀ (n : Nat) (start : Randomizer) (cache : QueryCache HashSpec) (result : Option Randomizer)
       (cache' : QueryCache HashSpec),
       (result, cache') ∈ support ((simulateQ randomOracle
         (Randomized.scanLoop sk message n start)).run cache) →
@@ -105,7 +105,7 @@ theorem scanLoop_support (sk : Seeded.SecretKey) (message : Message) :
 
 /-- A successful randomized grinding loop leaves a cached answer certifying that it landed. -/
 theorem randomizedDigest_support (sk : Seeded.SecretKey) (message : Message)
-    (n : Nat) (cache : QueryCache HashSpec) (result : Option Randomness)
+    (n : Nat) (cache : QueryCache HashSpec) (result : Option Randomizer)
     (cache' : QueryCache HashSpec)
     (hmem : (result, cache') ∈ support ((simulateQ romImpl
       (Randomized.signDigestLoop sk message n)).run cache)) :
@@ -143,7 +143,7 @@ theorem randomized_sign_replay (sk : Seeded.SecretKey) (message : Message)
 /-- Fixed-function correctness for the independent-randomizer assembly, with a generated key. -/
 theorem correct_randomized_assembly (f : QueryImpl HashSpec Id) (seed : MasterSeed)
     (pk : PublicKey) (sk : Seeded.SecretKey) (message : Message)
-    (ρ : Randomness) (signature : Signature)
+    (ρ : Randomizer) (signature : Signature)
     (hkey : evalWithAnswerFn f (Seeded.keygenFromMaster seed) = (pk, sk))
     (hland : Landed sk.parameter (digestIndex (digestValue f sk message ρ)))
     (hsign : evalWithAnswerFn f (Randomized.finishSign sk message ρ) = some signature) :

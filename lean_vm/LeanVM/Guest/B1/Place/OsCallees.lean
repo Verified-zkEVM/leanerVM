@@ -49,7 +49,7 @@ def OsDecodeAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (d
     RegPtrs [(1, 192 / d), (2, 192 / d)] [w, pos, ptrs] (RegionL Lin) →
     (∀ rd, LowDef k rd → MemL rd Lin → ∀ j < 192 / d,
       LoadHolds rd pos j (eOfNat ((eToNat w >>> (j * d)) % 2 ^ d)) ∧
-        LoadHolds rd ptrs j (ofK (gpow (fp + cert name (.n 3))) * gen ^ (j * d))) →
+        LoadHolds rd ptrs j (ofK (addressOfIndex (fp + cert name (.n 3))) * gen ^ (j * d))) →
     ∃ Lown : Layout, Within (dqRunL cert name fp w ++ Lown) fp (fs name) ∧
       DisjL (dqRunL cert name fp w ++ Lown) ∧
       ∀ rd, LowDef k rd → MemL rd (dqRunL cert name fp w ++ Lown ++ Lin) →

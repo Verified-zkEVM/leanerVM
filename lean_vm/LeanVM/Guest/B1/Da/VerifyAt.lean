@@ -174,7 +174,7 @@ theorem dvk_l23 (hrL : r ≤ 2 ^ L) (hr : r < 2 ^ 34) (hr1 : 1 ≤ r) :
     ((one_add_gen_pow_ne' (by omega)).mpr (by omega))
   have hi2 : i < 2 ^ L := by omega
   obtain ⟨t0, t1⟩ := treeMem_leaf hb.rt (by simp [rowLeaves]) hi2
-  have hrl : (rowLeaves r L syms).getD i 0 = digestScalars (rowD syms i) := by
+  have hrl : (rowLeaves r L syms).getD i 0 = digestHalves (rowD syms i) := by
     simp [rowLeaves, List.getD_eq_getElem?_getD, hi2, rowLeaf, hi]
   rw [hrl, rowD, ← prefixCells_bytes, ← gen_sq] at t0 t1
   exact l23_block (hb.pbase i hi) (hb.pcells i hi)
@@ -187,7 +187,7 @@ theorem dvk_l24 (hrL : r ≤ 2 ^ L) (hL : 2 ^ L < 2 ^ 34) (hg : 2 ^ L - r ≠ 0)
     fun d hd => ?_).2 ((one_add_gen_pow_ne' (by omega)).mpr hg)
   have hrd : r + d < 2 ^ L := by omega
   obtain ⟨t0, t1⟩ := treeMem_leaf hb.rt (by simp [rowLeaves]) hrd
-  have hrl : (rowLeaves r L syms).getD (r + d) 0 = digestScalars daPadRowDigest := by
+  have hrl : (rowLeaves r L syms).getD (r + d) 0 = digestHalves daPadRowDigest := by
     simp [rowLeaves, List.getD_eq_getElem?_getD, hrd, rowLeaf]
   rw [hrl] at t0 t1
   have e : P.rt * (gen ^ r * gen ^ r) * (gen ^ d * gen ^ d) = P.rt * gen ^ (2 * (r + d)) := by
@@ -333,7 +333,7 @@ theorem da_verify_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
   -- the valuation and the path
   have hV := dv_core (rd := rd) (gsq := gen ^ s) (syms := syms) (r := r) (L := L) hb.cd
   set σ := dvσ rd (gen ^ s) r L P cr rr with hσ
-  have hx : σ (.n 2) = ofK (gpow L) := by rw [hV.v2, gen_pow_eq_ofK]
+  have hx : σ (.n 2) = ofK (addressOfIndex L) := by rw [hV.v2, gen_pow_eq_ofK]
   have hw := walk_dispatch σ dvPre dvPost dvPre_straight dvPost_straight (.n 2) dlNames [.n 41]
     [.n 48, .n 49] [.n 993, .n 994, .n 995, .n 996] (i := L) (by simp [dlNames]; omega)
     (by simp [dlNames]) hx

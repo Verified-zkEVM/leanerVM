@@ -44,10 +44,11 @@ theorem z_div {d x y : V} (hg : σ x = σ d * (σ y)⁻¹) (hy : σ y ≠ 0) :
   show σ d = σ x * σ y
   rw [hg, mul_assoc, inv_mul_cancel₀ hy, mul_one]
 
-theorem z_gen_addr (a : ℕ) : (gen ^ a).limb 0 * Parameters.gpow 0 = Parameters.gpow a := by
-  rw [gen_pow_eq_ofK]; simp [Parameters.gpow]
+theorem z_gen_addr (a : ℕ) : (gen ^ a).limb 0 * Parameters.addressOfIndex 0 =
+    Parameters.addressOfIndex a := by
+  rw [gen_pow_eq_ofK]; simp [Parameters.addressOfIndex]
 
-theorem z_low_load {a : ℕ} (h : (rd (Parameters.gpow a)).isSome) :
+theorem z_low_load {a : ℕ} (h : (rd (Parameters.addressOfIndex a)).isSome) :
     LoadHolds rd (gen ^ a) 0 (rdAt rd (gen ^ a) 0) :=
   load_of_rdAt rfl (gen_pow_isInK a) (by rw [z_gen_addr]; exact h)
 
@@ -55,7 +56,8 @@ theorem z_low_load {a : ℕ} (h : (rd (Parameters.gpow a)).isSome) :
 `g^(K - a)`. -/
 theorem z_rc {x y t1 t2 k : V} {a K : ℕ} (haK : a ≤ K) (hx : σ x = gen ^ a) (hk : σ k = gen ^ K)
     (hg : σ t1 = rdAt rd (σ x) 0 ∧ σ t2 = rdAt rd (σ y) 0 ∧ σ y = σ k * (σ x)⁻¹)
-    (h1 : (rd (Parameters.gpow a)).isSome) (h2 : (rd (Parameters.gpow (K - a))).isSome) :
+    (h1 : (rd (Parameters.addressOfIndex a)).isSome) (h2 : (rd (Parameters.addressOfIndex (K -
+        a))).isSome) :
     (Atom.rangeCheck x y t1 t2 k).Holds rd σ := by
   obtain ⟨e1, e2, ey⟩ := hg
   have ey' : σ y = gen ^ (K - a) := by rw [ey, hk, hx, ← pow_sub₀ _ gen_ne_zero haK]
@@ -65,8 +67,8 @@ theorem z_rc {x y t1 t2 k : V} {a K : ℕ} (haK : a ≤ K) (hx : σ x = gen ^ a)
   · rw [e2, ey']; exact z_low_load h2
 
 /-- A range check's facts, as `eq_prefix_chain` states them. -/
-theorem z_rcd {a K : ℕ} (haK : a ≤ K) (h1 : (rd (Parameters.gpow a)).isSome)
-    (h2 : (rd (Parameters.gpow (K - a))).isSome) : RangeChecked rd (gen ^ a) (gen ^ K) :=
+theorem z_rcd {a K : ℕ} (haK : a ≤ K) (h1 : (rd (Parameters.addressOfIndex a)).isSome)
+    (h2 : (rd (Parameters.addressOfIndex (K - a))).isSome) : RangeChecked rd (gen ^ a) (gen ^ K) :=
   ⟨gen ^ (K - a), _, _, z_low_load h1, by rw [← pow_add, Nat.add_sub_cancel' haK],
     z_low_load h2⟩
 
@@ -174,7 +176,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     {m n : ℕ} {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t ≤ n) (hτn : ∃ t < 6, τ t = n) (hnm : n ≤ m)
     (hm : m ≤ 32) (h9 : vtσ rd w args (.n 9) = gen ^ m)
     (hdim : ∀ t < 6, LoadHolds rd (vtσ rd w args (.n 10)) (t + 1) (gen ^ τ t))
-    (hlow : ∀ i < 64, (rd (Parameters.gpow i)).isSome) (hwn : w 5817 = gen ^ n) {S : Fs}
+    (hlow : ∀ i < 64, (rd (Parameters.addressOfIndex i)).isSome) (hwn : w 5817 = gen ^ n) {S : Fs}
     (hSr : rateOf S.pend = [vtσ rd w args (.n 4509), vtσ rd w args (.n 4511), 0, 0, 0, 0, 0, 0])
     (hSc : S.cap = [vtσ rd w args (.n 4497), vtσ rd w args (.n 4498), vtσ rd w args (.n 4499),
       vtσ rd w args (.n 4500), vtσ rd w args (.n 4501)])

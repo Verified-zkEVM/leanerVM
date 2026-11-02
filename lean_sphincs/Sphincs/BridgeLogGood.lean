@@ -48,7 +48,7 @@ theorem signedRevealed_append (parameter : PublicParameter) (data : PublicData)
 omit [Params] in
 /-- An assembled signature carries its randomizer, and its leaf search succeeded. -/
 theorem assembled_some (parameter : PublicParameter) (data : PublicData) (message : Message)
-    (randomness : Randomness) (signature : Signature)
+    (randomness : Randomizer) (signature : Signature)
     (h : assembled f parameter data table message randomness = some signature) :
     signature.randomness = randomness ∧
       ∃ pair, firstEncoding f parameter topLayer rootTree
@@ -74,7 +74,7 @@ attribute [local irreducible] ReferenceChoice.search encodingAttemptLimit Concre
 
 /-- A signing loop that returns a signature revealed exactly that signature's coordinates. -/
 theorem signLoop_revealed (parameter : PublicParameter) (data : PublicData) (message : Message)
-    (attempts : Nat) (randomness : Randomness) (result : RunResult (Option Signature))
+    (attempts : Nat) (randomness : Randomizer) (result : RunResult (Option Signature))
     (hresult : result ∈ support (costRun f table (withReveals
       (signCostSourceLoop parameter data message attempts randomness)))) :
     ∀ signature, result.1.1 = some signature →

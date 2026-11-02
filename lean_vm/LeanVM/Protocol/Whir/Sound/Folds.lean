@@ -34,7 +34,7 @@ the glued claims are well formed (`GluedOK`), the round polynomial sums to the t
 namespace LeanVM.Protocol.Whir.Sound
 
 open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-  LeanVM.Protocol.Whir Prog Finset
+  LeanVM.Protocol.Whir VerifierProgram Finset
 
 @[expose] public section
 

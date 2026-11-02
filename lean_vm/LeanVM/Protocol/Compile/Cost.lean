@@ -58,7 +58,7 @@ open OracleComp OracleSpec
 
 /-! ## The cost calculus -/
 
-namespace Prog
+namespace VerifierProgram
 
 variable {α β : Type}
 
@@ -70,7 +70,7 @@ def openCost (height k : ℕ) : ℕ := 4 * (k * (1 + height))
 `p` has height at most `height`, every run of `p` costs at most `n` (a read `1`, a sample `4`, a
 proof of work `5`, a commitment `2`, an opening of `k` positions `openCost height k`), and every
 value `p` returns satisfies `Q`. -/
-def Costs (height : ℕ) : Prog α → ℕ → (α → Prop) → Prop
+def Costs (height : ℕ) : VerifierProgram α → ℕ → (α → Prop) → Prop
   | ret a, _, Q => Q a
   | fail, _, _ => True
   | read k, n, Q => 1 ≤ n ∧ ∀ x, Costs height (k x) (n - 1) Q
@@ -82,7 +82,7 @@ def Costs (height : ℕ) : Prog α → ℕ → (α → Prop) → Prop
 
 /-- **The cost of a program, without a postcondition**: every run of `p` costs at most `n`, every
 commitment having height at most `height`. -/
-def CostLE (height : ℕ) (p : Prog α) (n : ℕ) : Prop := Costs height p n fun _ ↦ True
+def CostLE (height : ℕ) (p : VerifierProgram α) (n : ℕ) : Prop := Costs height p n fun _ ↦ True
 
 namespace Costs
 
@@ -90,10 +90,11 @@ variable {height : ℕ}
 
 theorem ret' {a : α} {n : ℕ} {Q : α → Prop} (h : Q a) : Costs height (ret a) n Q := h
 
-theorem fail' {n : ℕ} {Q : α → Prop} : Costs height (fail : Prog α) n Q := trivial
+theorem fail' {n : ℕ} {Q : α → Prop} : Costs height (fail : VerifierProgram α) n Q := trivial
 
 /-- Monotonicity in the budget and the postcondition. -/
-theorem mono {p : Prog α} {n m : ℕ} {Q R : α → Prop} (h : Costs height p n Q) (hnm : n ≤ m)
+theorem mono {p : VerifierProgram α} {n m : ℕ} {Q R : α → Prop} (h : Costs height p n Q) (hnm
+    : n ≤ m)
     (hQR : ∀ a, Q a → R a) : Costs height p m R := by
   induction p generalizing n m with
   | ret a => exact hQR a h
@@ -105,7 +106,7 @@ theorem mono {p : Prog α} {n m : ℕ} {Q R : α → Prop} (h : Costs height p n
   | query i ps k ih => exact ⟨by have := h.1; omega, fun r ↦ ih r (h.2 r) (by omega)⟩
 
 /-- Two postconditions at one budget. -/
-theorem and {p : Prog α} {n : ℕ} {Q R : α → Prop} (hQ : Costs height p n Q)
+theorem and {p : VerifierProgram α} {n : ℕ} {Q R : α → Prop} (hQ : Costs height p n Q)
     (hR : Costs height p n R) : Costs height p n fun a ↦ Q a ∧ R a := by
   induction p generalizing n with
   | ret a => exact ⟨hQ, hR⟩
@@ -118,7 +119,8 @@ theorem and {p : Prog α} {n : ℕ} {Q R : α → Prop} (hQ : Costs height p n Q
 
 /-- **Sequencing**: the costs add, the continuation charged only at the values the first part
 returns. -/
-theorem bind {p : Prog α} {f : α → Prog β} {n m : ℕ} {Q : α → Prop} {R : β → Prop}
+theorem bind {p : VerifierProgram α} {f : α → VerifierProgram β} {n m : ℕ} {Q : α → Prop} {R : β
+    → Prop}
     (hp : Costs height p n Q) (hf : ∀ a, Q a → Costs height (f a) m R) :
     Costs height (p.bind f) (n + m) R := by
   induction p generalizing n with
@@ -147,33 +149,36 @@ theorem bind {p : Prog α} {f : α → Prog β} {n m : ℕ} {Q : α → Prop} {R
       have := hp.1; omega] at this
 
 /-- Sequencing in `do` notation. -/
-theorem bind' {p : Prog α} {f : α → Prog β} {n m : ℕ} {Q : α → Prop} {R : β → Prop}
+theorem bind' {p : VerifierProgram α} {f : α → VerifierProgram β} {n m : ℕ} {Q : α → Prop} {R : β
+    → Prop}
     (hp : Costs height p n Q) (hf : ∀ a, Q a → Costs height (f a) m R) :
     Costs height (p >>= f) (n + m) R := bind hp hf
 
 /-- Sequencing against a fixed budget: the first part spends `a` of `n`, the continuation the
 rest. -/
-theorem seq {p : Prog α} {f : α → Prog β} {a n : ℕ} {Q : α → Prop} {R : β → Prop}
+theorem seq {p : VerifierProgram α} {f : α → VerifierProgram β} {a n : ℕ} {Q : α → Prop} {R : β
+    → Prop}
     (hp : Costs height p a Q) (hf : ∀ x, Q x → Costs height (f x) (n - a) R) (ha : a ≤ n) :
     Costs height (p >>= f) n R :=
   (bind hp hf).mono (by omega) fun _ h ↦ h
 
 /-- A conditional costs the larger of its branches. -/
-theorem ite {c : Prop} [Decidable c] {p q : Prog α} {n : ℕ} {Q : α → Prop}
+theorem ite {c : Prop} [Decidable c] {p q : VerifierProgram α} {n : ℕ} {Q : α → Prop}
     (hp : c → Costs height p n Q) (hq : ¬ c → Costs height q n Q) :
     Costs height (if c then p else q) n Q := by
   split
   · exact hp ‹_›
   · exact hq ‹_›
 
-theorem pure0 (a : α) : Costs height (pure a : Prog α) 0 fun _ ↦ True := trivial
+theorem pure0 (a : α) : Costs height (pure a : VerifierProgram α) 0 fun _ ↦ True := trivial
 
-theorem readE : Costs height Prog.readScalar 1 fun _ ↦ True := ⟨le_rfl, fun _ ↦ trivial⟩
+theorem readE : Costs height VerifierProgram.readScalar 1 fun _ ↦ True := ⟨le_rfl, fun _ ↦ trivial⟩
 
-theorem sampleE : Costs height Prog.sampleChallenge 4 fun _ ↦ True := ⟨le_rfl, fun _ ↦ trivial⟩
+theorem sampleE : Costs height VerifierProgram.sampleChallenge 4 fun _ ↦ True := ⟨le_rfl, fun _ ↦
+    trivial⟩
 
 /-- `n` reads cost `n`, and return `n` scalars. -/
-theorem readN : ∀ n, Costs height (Prog.readScalars n) n fun xs ↦ xs.length = n
+theorem readN : ∀ n, Costs height (VerifierProgram.readScalars n) n fun xs ↦ xs.length = n
   | 0 => rfl
   | n + 1 => by
     have h := bind (height := height) readE fun x (_ : True) ↦
@@ -184,7 +189,8 @@ theorem readN : ∀ n, Costs height (Prog.readScalars n) n fun xs ↦ xs.length 
     exact h.mono (by omega) fun _ h ↦ h
 
 /-- `n` samples cost `4n`, and return `n` challenges. -/
-theorem sampleN : ∀ n, Costs height (Prog.sampleChallenges n) (4 * n) fun xs ↦ xs.length = n
+theorem sampleN : ∀ n, Costs height (VerifierProgram.sampleChallenges n) (4 * n) fun xs ↦
+    xs.length = n
   | 0 => rfl
   | n + 1 => by
     have h := bind (height := height) sampleE fun x (_ : True) ↦
@@ -194,19 +200,19 @@ theorem sampleN : ∀ n, Costs height (Prog.sampleChallenges n) (4 * n) fun xs �
           simp [hxs])
     exact h.mono (by omega) fun _ h ↦ h
 
-theorem grindP (bits : ℕ) : Costs height (Prog.grindProofOfWork bits) 5 fun _ ↦ True :=
+theorem grindP (bits : ℕ) : Costs height (VerifierProgram.grindProofOfWork bits) 5 fun _ ↦ True :=
   ⟨le_rfl, trivial⟩
 
 theorem commitP {ht : ℕ} (w : ℕ) (hht : ht ≤ height) :
-    Costs height (Prog.readCommitment ht w) 2 fun _ ↦ True := ⟨hht, le_rfl, trivial⟩
+    Costs height (VerifierProgram.readCommitment ht w) 2 fun _ ↦ True := ⟨hht, le_rfl, trivial⟩
 
 theorem queryP (i : ℕ) (ps : List ℕ) :
-    Costs height (Prog.queryOpenings i ps) (openCost height ps.length) fun _ ↦ True :=
+    Costs height (VerifierProgram.queryOpenings i ps) (openCost height ps.length) fun _ ↦ True :=
   ⟨le_rfl, fun _ ↦ trivial⟩
 
 theorem require (c : Prop) [Decidable c] {n : ℕ} :
-    Costs height (Prog.require c) n fun _ ↦ c := by
-  unfold Prog.require
+    Costs height (VerifierProgram.require c) n fun _ ↦ c := by
+  unfold VerifierProgram.require
   split
   · exact ‹c›
   · trivial
@@ -219,28 +225,28 @@ variable {height : ℕ}
 
 theorem ret' (a : α) (n : ℕ) : CostLE height (ret a) n := trivial
 
-theorem fail' (n : ℕ) : CostLE height (fail : Prog α) n := trivial
+theorem fail' (n : ℕ) : CostLE height (fail : VerifierProgram α) n := trivial
 
-theorem read {k : E → Prog α} {n : ℕ} (h : ∀ x, CostLE height (k x) n) :
-    CostLE height (Prog.read k) (n + 1) :=
+theorem read {k : E → VerifierProgram α} {n : ℕ} (h : ∀ x, CostLE height (k x) n) :
+    CostLE height (VerifierProgram.read k) (n + 1) :=
   ⟨by omega, fun x ↦ by rw [Nat.add_sub_cancel]; exact h x⟩
 
-theorem sample {k : E → Prog α} {n : ℕ} (h : ∀ c, CostLE height (k c) n) :
-    CostLE height (Prog.sample k) (n + 4) :=
+theorem sample {k : E → VerifierProgram α} {n : ℕ} (h : ∀ c, CostLE height (k c) n) :
+    CostLE height (VerifierProgram.sample k) (n + 4) :=
   ⟨by omega, fun x ↦ by rw [Nat.add_sub_cancel]; exact h x⟩
 
-theorem commit {ht : ℕ} (w : ℕ) {k : Prog α} {n : ℕ} (hht : ht ≤ height)
-    (h : CostLE height k n) : CostLE height (Prog.commit ht w k) (n + 2) :=
+theorem commit {ht : ℕ} (w : ℕ) {k : VerifierProgram α} {n : ℕ} (hht : ht ≤ height)
+    (h : CostLE height k n) : CostLE height (VerifierProgram.commit ht w k) (n + 2) :=
   ⟨hht, by omega, by rw [Nat.add_sub_cancel]; exact h⟩
 
-theorem query (i : ℕ) (ps : List ℕ) {k : List (List K) → Prog α} {n : ℕ}
+theorem query (i : ℕ) (ps : List ℕ) {k : List (List K) → VerifierProgram α} {n : ℕ}
     (h : ∀ rows, CostLE height (k rows) n) :
-    CostLE height (Prog.query i ps k) (n + openCost height ps.length) :=
+    CostLE height (VerifierProgram.query i ps k) (n + openCost height ps.length) :=
   ⟨by omega, fun r ↦ by rw [Nat.add_sub_cancel]; exact h r⟩
 
 end CostLE
 
-end Prog
+end VerifierProgram
 
 /-! ## The compiled run's queries -/
 
@@ -343,7 +349,8 @@ theorem isTotalQueryBound_absorb {β : Type} (sp : Sponge) (hk : sp.pending.leng
 roots have height at most `height` and whose sponge has at most four scalars waiting, makes at
 most `(n + k) / 4` queries, `k` the number of waiting scalars. -/
 theorem isTotalQueryBound_run {α : Type} (height : ℕ) :
-    ∀ (p : Prog α) (s : ProgState) (n : ℕ) (Q : α → Prop), p.Costs height n Q →
+    ∀ (p : VerifierProgram α) (s : VerifierProgramState) (n : ℕ) (Q : α → Prop), p.Costs
+        height n Q →
       (∀ r ∈ s.roots, r.2.1 ≤ height) → s.sponge.pending.length ≤ 4 →
       IsTotalQueryBound (runWithHash callKeccak256 callKeccakF1600 p s) ((n + s.sponge.pending.length) / 4)
   | .ret a, s, n, Q, _, _, _ => trivial
@@ -401,10 +408,10 @@ theorem isTotalQueryBound_run {α : Type} (height : ℕ) :
     · trivial
     · rename_i root ht w hroot
       have hht : ht ≤ height := hs _ (List.mem_of_getElem? hroot)
-      have hle : Prog.openCost height ps.length ≤ n := hp.1
+      have hle : VerifierProgram.openCost height ps.length ≤ n := hp.1
       rw [show (n + s.sponge.pending.length) / 4 = ps.length * (1 + height) +
-          (n - Prog.openCost height ps.length + s.sponge.pending.length) / 4 by
-        unfold Prog.openCost at hle ⊢; omega]
+          (n - VerifierProgram.openCost height ps.length + s.sponge.pending.length) / 4 by
+        unfold VerifierProgram.openCost at hle ⊢; omega]
       refine isTotalQueryBound_bind ((isTotalQueryBound_openAll root ht w ps s.openings).mono
         (Nat.mul_le_mul_left _ (by omega))) fun o ↦ ?_
       split
@@ -412,7 +419,8 @@ theorem isTotalQueryBound_run {α : Type} (height : ℕ) :
       · trivial
 
 /-- A program of cost `n`, run on a proof from any seed, makes at most `n / 4` queries. -/
-theorem isTotalQueryBound_runProof {P : Prog Bool} {height n : ℕ} (hP : P.CostLE height n)
+theorem isTotalQueryBound_runProof {P : VerifierProgram Bool} {height n : ℕ} (hP : P.CostLE
+    height n)
     (seed : KeccakState) (π : Proof) : IsTotalQueryBound (runProofWithHash callKeccak256 callKeccakF1600 P seed π) (n / 4) := by
   unfold runProofWithHash
   rw [← Nat.add_zero (n / 4)]
@@ -439,7 +447,8 @@ theorem isTotalQueryBound_seedRun (σ : Seed) :
 /-- **The query bound of the compiled verifier.** A verifier program of cost `n` at `height`
 makes, seeded by `σ`, at most `|σ.hs| + 1 + n / 4` queries to the random oracles on every proof:
 the hypothesis `hV` of `romSound`. -/
-theorem isTotalQueryBound_verifierComp {P : Prog Bool} {height n : ℕ} (hP : P.CostLE height n)
+theorem isTotalQueryBound_verifierComp {P : VerifierProgram Bool} {height n : ℕ} (hP : P.CostLE
+    height n)
     (σ : Seed) (π : Proof) :
     IsTotalQueryBound (verifierComp σ P π) (σ.hs.length + 1 + n / 4) :=
   isTotalQueryBound_bind (isTotalQueryBound_seedRun σ) fun seed ↦

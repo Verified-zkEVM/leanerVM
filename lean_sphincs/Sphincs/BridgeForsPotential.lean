@@ -23,14 +23,14 @@ attribute [local instance] Classical.propDecidable
 variable [Params]
 
 /-- A message and a randomizer. -/
-abbrev Pair := Message × Randomness
+abbrev Pair := Message × Randomizer
 
 abbrev State := DebtState HashInput HashOutput Coordinate
 
 noncomputable instance viewInhabited : Inhabited View := ⟨(⟨0, Nat.two_pow_pos _⟩, fun _ => ⟨0, Nat.two_pow_pos _⟩)⟩
 
 omit [Params] in
-theorem payload_pair_injective {m m' : Message} {ρ ρ' : Randomness}
+theorem payload_pair_injective {m m' : Message} {ρ ρ' : Randomizer}
     (h : messageDigestPayload m ρ = messageDigestPayload m' ρ') : m = m' ∧ ρ = ρ' := by
   have hparts := List.append_inj h (by simp [bytesLE_length])
   exact ⟨bytesLE_injective hparts.1, bytesLE_injective hparts.2⟩
@@ -286,7 +286,7 @@ section Count
 variable {parameter : PublicParameter} {data : PublicData}
 
 omit [Params] in
-theorem blk_injective' (m : Message) : Function.Injective fun ρ : Randomness => blk parameter data m ρ := by
+theorem blk_injective' (m : Message) : Function.Injective fun ρ : Randomizer => blk parameter data m ρ := by
   intro ρ ρ' h
   by_contra hne
   exact blk_ne_of_ne parameter data m hne h
@@ -483,7 +483,7 @@ section SignDefs
 variable (parameter : PublicParameter) (data : PublicData) (m : Message) (s : State)
 
 /-- Randomizers of the message whose block is new and lands. -/
-noncomputable def newRand (s' : State) : Finset Randomness :=
+noncomputable def newRand (s' : State) : Finset Randomizer :=
   Finset.univ.filter fun ρ => s.cache (blk parameter data m ρ) = none ∧ LandedIn parameter data s' (m, ρ)
 
 /-- Pairs created by a signing call. -/
@@ -535,7 +535,7 @@ theorem newRand_eq_empty {s' : State} (h : ∀ ρ, RelatedAt parameter data m s 
   · change s'.cache (blk parameter data m ρ) = some u at hu
     rw [hu'] at hu; cases hu; exact hnl hl
 
-theorem newRand_eq_single {s' : State} {ρ : Randomness} (h : ∀ ρ', ρ' ≠ ρ → RelatedAt parameter data m s s' ρ')
+theorem newRand_eq_single {s' : State} {ρ : Randomizer} (h : ∀ ρ', ρ' ≠ ρ → RelatedAt parameter data m s s' ρ')
     (h0 : s.cache (blk parameter data m ρ) = none) (hl : LandedIn parameter data s' (m, ρ)) :
     newRand parameter data m s s' = {ρ} := by
   ext ρ'
@@ -551,7 +551,7 @@ theorem newRand_eq_single {s' : State} {ρ : Randomness} (h : ∀ ρ', ρ' ≠ �
   · rintro rfl
     exact ⟨h0, hl⟩
 
-theorem newRand_eq_empty_of_pool {s' : State} {ρ : Randomness} (h : ∀ ρ', ρ' ≠ ρ → RelatedAt parameter data m s s' ρ')
+theorem newRand_eq_empty_of_pool {s' : State} {ρ : Randomizer} (h : ∀ ρ', ρ' ≠ ρ → RelatedAt parameter data m s s' ρ')
     (h0 : s.cache (blk parameter data m ρ) ≠ none) : newRand parameter data m s s' = ∅ := by
   refine Finset.eq_empty_of_forall_notMem fun ρ' hρ' => ?_
   simp only [newRand, Finset.mem_filter, Finset.mem_univ, true_and] at hρ'

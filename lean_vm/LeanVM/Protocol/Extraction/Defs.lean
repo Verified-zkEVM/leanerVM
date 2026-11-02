@@ -102,7 +102,7 @@ open Classical in
 /-- The execution of `prog` on a memory image: the image, run from the initial state
 `(pcInitial, fpInitial)` for the least number of steps after which it halts in the final state
 `(pcFinal, fpFinal)`; `none` if it never does. -/
-noncomputable def haltingRun (prog : Program) {κ : ℕ} (image : MemoryImage κ) : Option (Execution prog) :=
+noncomputable def haltingRun (prog : LeanIsaProgram) {κ : ℕ} (image : MemoryImage κ) : Option (Execution prog) :=
   if h : ∃ n, Semantics.run prog image n Registers.initial = some (Registers.final prog) then
     some ⟨κ, image, Nat.find h⟩
   else none
@@ -112,21 +112,23 @@ noncomputable def haltingRun (prog : Program) {κ : ℕ} (image : MemoryImage κ
 def gLogC (κ : ℕ) (a : K) : Option (Fin (2 ^ κ)) := gLogIn (powIndex κ) κ a
 
 /-- One step, computably: `stepIn` with fresh indices. It is `step` when `κ < 64`. -/
-def stepC (prog : Program) {κ : ℕ} (L : MemoryImage κ) (r : Registers K) : Option (Registers K) :=
+def stepC (prog : LeanIsaProgram) {κ : ℕ} (L : MemoryImage κ) (r : Registers K) : Option
+    (Registers K) :=
   stepIn (powIndex κ) (powIndex prog.logSize) prog L r
 
 /-- `n` steps from `r`, halting in the final state, computably: `run` with `stepC`. It is `run`
 when `κ < 64`. -/
-def runC {κ : ℕ} (prog : Program) (L : MemoryImage κ) : ℕ → Registers K → Option (Registers K)
+def runC {κ : ℕ} (prog : LeanIsaProgram) (L : MemoryImage κ) : ℕ → Registers K → Option
+    (Registers K)
   | 0, r => some r
   | n + 1, r => if r = Registers.final prog then none else stepC prog L r >>= runC prog L n
 
 /-- **The capped halting run**, with the indices built per search. -/
-def haltingRunC (prog : Program) {κ : ℕ} (image : MemoryImage κ) (cap : ℕ) : Option (Execution prog) :=
+def haltingRunC (prog : LeanIsaProgram) {κ : ℕ} (image : MemoryImage κ) (cap : ℕ) : Option (Execution prog) :=
   haltingRunIn (powIndex κ) (powIndex prog.logSize) prog image cap
 
 /-- **The execution of a candidate**, with the indices built per call. -/
-def candidateExecution (prog : Program) (input : PublicInput) (layout : Layout) {μ : ℕ}
+def candidateExecution (prog : LeanIsaProgram) (input : PublicInput) (layout : Layout) {μ : ℕ}
     (q : Vector K (2 ^ μ)) : Option (Execution prog) :=
   candidateExecutionIn (powIndex layout.logMemory) (powIndex prog.logSize) prog input layout q
 

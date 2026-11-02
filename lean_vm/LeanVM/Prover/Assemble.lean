@@ -145,7 +145,7 @@ theorem noQuery_hGkr (D : ℕ) (L₀ L₁ L₂ : List E) : Script.NoQuery (hGkr 
   refine noQuery_sendE_bind L₀.prod (noQuery_sendE_bind L₂.prod ?_)
   exact Script.NoQuery.bind (fun _ ↦ trivial) _ (noQuery_hLayers _ _ _ _ _)
 
-theorem noQuery_hBusK3 (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+theorem noQuery_hBusK3 (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
     (alphas : List E) (beta : E) (g : E × List E × List E) :
     Script.NoQuery (hBusK3 prog s q alphas beta g) := by
   unfold hBusK3
@@ -153,7 +153,7 @@ theorem noQuery_hBusK3 (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog 
   exact noQuery_sendE_bind (mfVal prog s q g.2.1) (noQuery_sendE_bind (bfVal prog s q g.2.1) trivial)
 
 attribute [local irreducible] Script.NoQuery Script.bind hBusK1 hBusK2 hBusK3 hGkr in
-theorem noQuery_hBus (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) :
+theorem noQuery_hBus (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) :
     Script.NoQuery (hBus prog s q) := by
   unfold hBus
   refine Script.NoQuery.bind (fun alphas ↦ ?_) _ (noQuery_sampleN _)
@@ -162,7 +162,7 @@ theorem noQuery_hBus (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)
   unfold hBusK2
   exact Script.NoQuery.bind (fun g ↦ noQuery_hBusK3 prog s q alphas beta g) _ (noQuery_hGkr _ _ _ _)
 
-theorem noQuery_hTable (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+theorem noQuery_hTable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
     (bus : BusResult) : Script.NoQuery (hTable prog s q bus) := by
   unfold hTable
   refine noQuery_sampleE_bind fun xi ↦ ?_
@@ -170,7 +170,7 @@ theorem noQuery_hTable (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog 
   exact Script.NoQuery.bind (fun _ ↦ Script.NoQuery.bind (fun _ ↦ trivial) _ (noQuery_sendList _))
     _ (noQuery_hSumcheck _ _ _ _)
 
-theorem noQuery_hPub (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) :
+theorem noQuery_hPub (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) :
     Script.NoQuery (hPub prog s q) := by
   unfold hPub
   exact noQuery_sampleE_bind fun _ ↦ trivial
@@ -178,7 +178,7 @@ theorem noQuery_hPub (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)
 /-- A script with no opening that follows a program returns only results the simulation's
 relation relates to some result of the program. -/
 theorem follows_allRet {α β : Type} {R : Commits → α → β → Prop} :
-    ∀ (H : Script α) (P : Prog β) (cs : Commits), Script.NoQuery H → Follows R H P cs →
+    ∀ (H : Script α) (P : VerifierProgram β) (cs : Commits), Script.NoQuery H → Follows R H P cs →
       Script.AllRet (fun a ↦ ∃ cs' b, R cs' a b) H := by
   intro H
   induction H with
@@ -215,7 +215,7 @@ theorem Corr.and_allRet {α β : Type} {R : α → β → Prop} {P : β → Prop
 
 section Honest
 
-variable {prog : Program} {input : PublicInput} {t : Execution prog}
+variable {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
 
 /-- The output lanes' point of an honest claim list has the `KECCAK` table's height. -/
 theorem lanes_point_length {s : Sizes} {q : Column (leanIsaμ prog s)}
@@ -308,7 +308,7 @@ end Honest
 
 section Prove
 
-variable {prog : Program} {input : PublicInput} {t : Execution prog}
+variable {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
 
 /-- The prover's layout is the verifier's, at the execution's sizes. -/
 theorem buildLayout_witness (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28)
@@ -329,8 +329,8 @@ stack. -/
 theorem prove_eq_honestComp (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28)
     {ρ : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (fuel : ℕ) :
     proveWithHash callKeccak256 callKeccakF1600 prog input t ρ fuel =
-      Rom.honestComp? (leanVmSeed (bytecodeWords prog) (publicDigest input))
-        (leanVmProgram (bytecodeWords prog) (publicDigest input))
+      Rom.honestComp? (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+        (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
         (leanVmProver prog (traceSizes prog input t) ρ
           (stackOf prog (traceSizes prog input t) (traceWitness prog input t))) fuel := by
   obtain ⟨W, hW, hspec⟩ := witness?_spec hv hcap
@@ -338,7 +338,7 @@ theorem prove_eq_honestComp (hv : ValidExecution prog input t) (hcap : t.committ
   simp only [proveWithHash, hW, hρ, and_self, ↓reduceIte, hL, Rom.honestComp?,
     seedRun_leanVmSeed]
   refine congrArg (fun k : KeccakState → OracleComp KeccakCalls (Option Proof) ↦
-    seedWithHash callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicDigest input) >>= k)
+    seedWithHash callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicInputDigest input) >>= k)
     (funext fun seed ↦ ?_)
   rw [runScript_corr callKeccak256 callKeccakF1600 fuel _ (corr_honestScript hv hcap hρ hspec) seed,
     runScript_eq_proveM]
@@ -359,7 +359,8 @@ theorem specOnValid_prove_honest : SpecOnValid oracleProver HonestFor :=
     ⟨w, s, h.1, e⟩
 
 /-- **Everywhere, the prover is the specification at a child's witness or makes no proof.** -/
-theorem childSpec_prove (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) :
+theorem childSpec_prove (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ
+    fuel : ℕ) :
     ChildSpec oracleProver prog input t ρ fuel := by
   by_cases h : ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 28 ∧ 1 ≤ ρ ∧ ρ ≤ 4
   · exact .inr (specOnValid_prove prog input t ρ fuel h.1 h.2.1 h.2.2)

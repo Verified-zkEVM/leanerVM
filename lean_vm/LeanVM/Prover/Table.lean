@@ -71,7 +71,7 @@ theorem corr_sumcheckBy_le {σ : Type} (count : ℕ) (hc : 1 ≤ count) (hc' : c
 
 /-! ## The state's invariant -/
 
-variable (prog : Program) (s : Sizes) (q : LeanVM.Protocol.Column (leanIsaμ prog s))
+variable (prog : LeanIsaProgram) (s : Sizes) (q : LeanVM.Protocol.Column (leanIsaμ prog s))
 
 /-- **The state's invariant** after the challenges `pre`. -/
 def TInv (bus : BusResult) (pre : List E) (st : TableState) : Prop :=

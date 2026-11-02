@@ -17,7 +17,7 @@ open LeanVM.Prover LeanVM.Prover.KeccakGkr
 
 /-- The verifier program run against a prover script, the `n`-th challenge `chal n`: the
 program's result if every read meets a send and every sample a sample. -/
-def drive {α β : Type} (chal : ℕ → E) : Prog α → Script β → ℕ → Option α
+def drive {α β : Type} (chal : ℕ → E) : VerifierProgram α → Script β → ℕ → Option α
   | .ret a, _, _ => some a
   | .read k, .send x s, n => drive chal (k x) s n
   | .sample k, .sample s, n => drive chal (k (chal n)) (s (chal n)) (n + 1)

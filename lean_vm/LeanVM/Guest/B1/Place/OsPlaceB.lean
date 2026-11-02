@@ -53,7 +53,7 @@ theorem os_completeAt_placeJB {f : String} {fn : Fn} (hf : coreProgram.find? f =
         Stmt.HoldsList C rd σ fn.body False (fun r => r = rets) ∧
         (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
         ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-          (bases (fp + fs f) sizes).map (fun b => ofK (gpow b))) ∧
+          (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b))) ∧
       ∀ rd, LowDef κ rd → MemL rd (bufL (fp + fs f) sizes own) → MemL rd L → MemL rd Lin →
         KidsFromIn coreProgram fs cert rd σ
           (fun i => RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes own) i)
@@ -122,7 +122,7 @@ theorem os_completeAt_placeJB {f : String} {fn : Fn} (hf : coreProgram.find? f =
       simp only [Ev.loadAddr?, Option.some.injEq] at hea
       subst hea
       have hall : ∀ rd', LowDef κ rd' → MemL rd' (B ++ Lin) →
-          rd' ((σ p).limb 0 * gpow off) = some (σ d) := fun rd' h1 h2 => by
+          rd' ((σ p).limb 0 * addressOfIndex off) = some (σ d) := fun rd' h1 h2 => by
         obtain ⟨h21, h22⟩ := Main.memL_append.mp h2
         exact ((hsat rd' h1 h21 h22).1 _ he).2
       obtain ⟨i, hi, hreg⟩ := os_addr_in_regionL hall hlow (Main.memL_append.mpr ⟨hB1, hLin⟩)

@@ -68,7 +68,8 @@ theorem total_le_of_loop {X : String → Prop} (hchk : CheckedExcept P true cert
     (hX : HandOk P fs cert X) {f : String} {endc : Option ℕ} {pre : List (ℕ × ℕ)} {b : Aff}
     {ks : List (V × ℕ)} (hcf : cert f = .loop endc pre b ks) {t : Tree} {args rets : List E}
     (hn : t.name = f) (hv : t.Valid P rd args rets) (hb : t.BufsOk P) {a e : ℕ}
-    (ha : args.getD 0 0 = ofK (gpow a)) (he : endOf endc args = ofK (gpow e)) (hae : a < e)
+    (ha : args.getD 0 0 = ofK (addressOfIndex a)) (he : endOf endc args = ofK (addressOfIndex e))
+        (hae : a < e)
     (heo : e < 2 ^ 64 - 1) (hpre : ArgsPre pre args) : t.total fs ≤ (e - a) * b.eval args := by
   rw [total_eq_cost t hb]
   exact cost_le_of_loop hchk (fun f hf => hX f hf rd) hcf hn hv hb ha he hae heo hpre

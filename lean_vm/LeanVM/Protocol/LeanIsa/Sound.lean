@@ -49,18 +49,18 @@ open Air.Flat (Component EnsembleWitness)
 @[expose] public section
 
 /-- Input lane `l` of a raw `KECCAK` row is its cell `13 + l`. -/
-theorem keccakRowAt_lin {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog)) (row : Array K)
+theorem keccakRowAt_lin {prog : LeanIsaProgram} (w : EnsembleWitness (leanIsaEnsemble prog)) (row : Array K)
     (l : Fin 25) : (keccakRowAt w row).lin[l] = row[13 + l.val]?.getD 0 := by
   simp [keccakRowAt, valueFromOffset, explicit_provable_type, circuit_norm]
   fin_cases l <;> simp
 
 /-- Output lane `l` of a raw `KECCAK` row is its cell `38 + l`. -/
-theorem keccakRowAt_lout {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog)) (row : Array K)
+theorem keccakRowAt_lout {prog : LeanIsaProgram} (w : EnsembleWitness (leanIsaEnsemble prog)) (row : Array K)
     (l : Fin 25) : (keccakRowAt w row).lout[l] = row[38 + l.val]?.getD 0 := by
   simp [keccakRowAt, valueFromOffset, explicit_provable_type, circuit_norm]
   fin_cases l <;> simp
 
-variable (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 
 /-- The `KECCAK` rows of the witness read off a stack are the rows of opcode table `5`. -/
 private theorem keccakRows_witnessOf :
@@ -215,14 +215,14 @@ theorem caps_witnessOf (hs : s.Admissible prog) : Caps (witnessOf prog s q) := b
     exact Array.size_ofFn
 
 /-- The seed rows are the image, for an image given as a dependent pair. -/
-private def SeedRowsAre {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog))
+private def SeedRowsAre {prog : LeanIsaProgram} (w : EnsembleWitness (leanIsaEnsemble prog))
     (d : (κ : ℕ) × MemoryImage κ) : Prop :=
   ∃ idx cntFin : Fin (2 ^ d.1) → K, memBlockRows w = List.ofFn fun i ↦
     (toElements (⟨idx i, cntFin i, #v[(d.2 i).limb 0, (d.2 i).limb 1, (d.2 i).limb 2]⟩ :
       MemRow K)).toArray
 
 /-- `SeedRowsAreTheImage` is `SeedRowsAre` of the image the data names. -/
-private theorem seedRows_iff {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog)) :
+private theorem seedRows_iff {prog : LeanIsaProgram} (w : EnsembleWitness (leanIsaEnsemble prog)) :
     SeedRowsAreTheImage w ↔ SeedRowsAre w (imageOf w.data) := Iff.rfl
 
 /-! ## The adaptor -/
@@ -248,10 +248,10 @@ theorem satisfiedByB_witnessOf {input : PublicInput} (hs : s.Admissible prog)
   · show publicInputOf prog s q = PublicIO.ofInput input
     rw [publicInputOf, PublicIO.ofInput, c00, c01, c10, c11]
   · intro i hi
-    show (memRowAt _ ((memBlockRowsOf prog s q)[i]'hi)).idx = gpow i
+    show (memRowAt _ ((memBlockRowsOf prog s q)[i]'hi)).idx = addressOfIndex i
     simp only [memBlockRowsOf, List.getElem_ofFn, memRowAt_toElements]
   · rw [seedRows_iff, himg]
-    refine ⟨fun x ↦ gpow x, fun x ↦ cell prog s q (memCol 3) x, ?_⟩
+    refine ⟨fun x ↦ addressOfIndex x, fun x ↦ cell prog s q (memCol 3) x, ?_⟩
     show memBlockRowsOf prog s q = _
     simp only [memBlockRowsOf, imageWord, limb_ofLimbs]
     rfl

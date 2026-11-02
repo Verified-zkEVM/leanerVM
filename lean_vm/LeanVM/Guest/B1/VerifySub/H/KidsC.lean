@@ -47,9 +47,9 @@ theorem vsH_tau22 {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {logMem :
   rw [List.getD_eq_getElem?_getD]
   omega
 
-theorem x_canonical {x0 x1 : E} {root : Digest} (h : digestOfScalars (x0, x1) = some root) :
+theorem x_canonical {x0 x1 : E} {root : Digest} (h : digestFromHalves (x0, x1) = some root) :
     IsCanonical128 x0 ∧ IsCanonical128 x1 := by
-  unfold digestOfScalars at h
+  unfold digestFromHalves at h
   split at h
   · rename_i hc; exact hc
   · simp at h
@@ -62,7 +62,7 @@ theorem s6_capOf (hbl : bytecode.length = 2 ^ 23) : S.s6.cap = S.H.s3.squeeze.2.
   obtain ⟨hok, -, -, -⟩ := S.H_run hbl
   exact (Tables.vt_spec hok).2.2.2
 
-theorem root_cells : (digestScalars S.root) = (S.x0, S.x1) := digestScalars_digestOfScalars S.hroot
+theorem root_cells : (digestHalves S.root) = (S.x0, S.x1) := digestScalars_digestOfScalars S.hroot
 
 end ChildSegs
 

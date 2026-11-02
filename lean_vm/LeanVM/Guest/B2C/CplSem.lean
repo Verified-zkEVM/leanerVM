@@ -63,28 +63,31 @@ theorem insC_get : ∀ {v c : ℕ} (ps : List (ℕ × ℕ × ℕ)), insC v ps = 
 
 /-- **A window's packed cells are the certificate's.** -/
 theorem clocW_get {C : Cert} {n i : ℕ} (hcont : Cont C n) (hi : i ≤ n)
-    (hins : C.insOk (nth C.ins i []) = true) (hn : C.cuts.length = n)
-    (hb : (nth C.cells i []).all (fun c ↦ Nat.blt c 65536) = true) {v c : ℕ}
+    (hins : C.insOk (listElementOrDefault C.ins i []) = true) (hn : C.cuts.length = n)
+    (hb : (listElementOrDefault C.cells i []).all (fun c ↦ Nat.blt c 65536) = true) {v c : ℕ}
     (h : (clocW C i).get? v = some c) : C.locs.getD v 0 = c := by
   unfold CLoc.get? clocW at h
   simp only at h
-  cases hr : (Nat.ble (nth C.los i 0) v && Nat.blt v (Nat.add (nth C.los i 0) (nth C.cells i []).length))
+  cases hr : (Nat.ble (listElementOrDefault C.los i 0) v && Nat.blt v (Nat.add (listElementOrDefault C.los i 0) (listElementOrDefault C.cells i []).length))
   · rw [hr] at h
     obtain ⟨j, hj⟩ := insC_get _ h
     have := List.all_eq_true.mp hins _ hj
     simp only [Bool.and_eq_true, Nat.ble_eq, beq_iff_eq] at this
     obtain ⟨⟨hjn, hlo⟩, hget⟩ := this
     obtain ⟨hm, hget⟩ := List.getElem?_eq_some_iff.mp hget
-    rw [show v = nth C.los j 0 + (v - nth C.los j 0) by omega, cont_locs hcont (hn ▸ hjn) hm, hget]
+    rw [show v = listElementOrDefault C.los j 0 + (v - listElementOrDefault C.los j 0)
+        by omega, cont_locs hcont (hn ▸ hjn) hm, hget]
   · rw [hr] at h
     simp only [Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at hr
     obtain ⟨h1, h2⟩ := hr
-    have hm : v - nth C.los i 0 < (nth C.cells i []).length := by
-      change v < nth C.los i 0 + _ at h2
+    have hm : v - listElementOrDefault C.los i 0 < (listElementOrDefault C.cells i []).length := by
+      change v < listElementOrDefault C.los i 0 + _ at h2
       omega
     simp only [Bool.cond_true, Option.some.injEq] at h
-    rw [show v = nth C.los i 0 + (v - nth C.los i 0) by omega, cont_locs hcont hi hm]
-    rw [show Nat.sub v (nth C.los i 0) = v - nth C.los i 0 from rfl,
+    rw [show v = listElementOrDefault C.los i 0 + (v - listElementOrDefault C.los i 0)
+        by omega, cont_locs hcont hi hm]
+    rw [show Nat.sub v (listElementOrDefault C.los i 0) = v - listElementOrDefault C.los i 0
+        from rfl,
       packC_digit _ (fun x hx ↦ Nat.blt_eq.mp (List.all_eq_true.mp hb x hx)) _ hm] at h
     exact h
 

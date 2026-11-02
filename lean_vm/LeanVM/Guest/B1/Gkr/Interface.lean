@@ -32,9 +32,9 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- The GKR walk and the count root's check (V:1488-1490): what `verify_bus_gkr` runs. -/
-def gkrPhase (depth : ℕ) : Prog (E × List E × List E) := do
+def gkrPhase (depth : ℕ) : VerifierProgram (E × List E × List E) := do
   let r ← verifyGkrGrandProducts depth
-  Prog.require (r.1 ≠ 0)
+  VerifierProgram.require (r.1 ≠ 0)
   return r
 
 /-- **`verify_bus_gkr`'s outcome** on its arguments `[fs0, …, fs4, cursor, g_bus_mu, zeta]`:

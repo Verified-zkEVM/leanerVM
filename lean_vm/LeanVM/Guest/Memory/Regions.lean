@@ -58,7 +58,7 @@ def runs (es : List Ev) : List (V × ℕ) := es.filterMap Ev.run?
 
 /-- The address an event loads from. -/
 def Ev.loadAddr? (σ : Val) : Ev → Option K
-  | .atom (.load _ p off) => some ((σ p).limb 0 * gpow off)
+  | .atom (.load _ p off) => some ((σ p).limb 0 * addressOfIndex off)
   | _ => none
 
 /-- The addresses a path loads from. -/
@@ -91,7 +91,7 @@ mutual
 subtree's data or `R`; a callee's region is its caller's subtree's data and `R`. -/
 def Tree.LoadsIn : (ℕ → Prop) → ℕ → Tree → Prop
   | R, fp, t@(.node f σ bufs kids) =>
-      (∀ A ∈ loadAddrs σ (t.events P), ∃ i, A = gpow i ∧ (t.Data P fs cert fp i ∨ R i)) ∧
+      (∀ A ∈ loadAddrs σ (t.events P), ∃ i, A = addressOfIndex i ∧ (t.Data P fs cert fp i ∨ R i)) ∧
         Tree.LoadsInKids (fun i => t.Data P fs cert fp i ∨ R i)
           (kidPos fs P.loop fp f bufs (kids.map (Tree.total fs))) kids
   | _, _, .phantom .. => True
@@ -162,7 +162,7 @@ theorem dataKids_append : ∀ {ps : List ℕ} {ks : List Tree} {ps' : List ℕ} 
 theorem loadsIn_node {R : ℕ → Prop} {fp : ℕ} {f : String} {σ : Val} {bufs : List ℕ}
     {kids : List Tree} :
     (Tree.node f σ bufs kids).LoadsIn P fs cert R fp ↔
-      (∀ A ∈ loadAddrs σ ((Tree.node f σ bufs kids).events P), ∃ i, A = gpow i ∧
+      (∀ A ∈ loadAddrs σ ((Tree.node f σ bufs kids).events P), ∃ i, A = addressOfIndex i ∧
         ((Tree.node f σ bufs kids).Data P fs cert fp i ∨ R i)) ∧
       Tree.LoadsInKids P fs cert (fun i => (Tree.node f σ bufs kids).Data P fs cert fp i ∨ R i)
         (kidPos fs P.loop fp f bufs (kids.map (Tree.total fs))) kids := by
@@ -286,11 +286,12 @@ theorem relAtIn_of_walk (hP : P.Wf) {R D Dk : ℕ → Prop} {fp N : ℕ} {f : St
     {args rets : List E} {fn : Fn} {es : List Ev} {vs : List V} (hf : P.find? f = some fn)
     (hl : P.loop f = false ∨ calls es = []) (hp : fn.params.map σ = args)
     (hw : walk σ fn.body = .ret es vs) (hr : vs.map σ = rets) (hes : ∀ e ∈ es, e.Holds rd σ)
-    (hbuf : (allocDsts es).map σ = (bases (fp + fs f) (allocs σ es)).map fun b => ofK (gpow b))
-    (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (gpow (fp + cert f q.2)))
+    (hbuf : (allocDsts es).map σ = (bases (fp + fs f) (allocs σ es)).map fun b
+        => ofK (addressOfIndex b))
+    (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + cert f q.2)))
     (hk : KidsFromIn P fs cert rd σ (fun i => R i ∨ ownData cert fp (fp + fs f) f (allocs σ es) es i)
       (fun _ => False) (calls es) (fp + fs f + (allocs σ es).sum) N Dk)
-    (hload : ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧
+    (hload : ∀ A ∈ loadAddrs σ es, ∃ i, A = addressOfIndex i ∧
       (ownData cert fp (fp + fs f) f (allocs σ es) es i ∨ R i ∨ Dk i))
     (hD : ∀ i, D i → ownData cert fp (fp + fs f) f (allocs σ es) es i ∨ Dk i) :
     RelAtIn P fs cert rd R D fp (fs f + (allocs σ es).sum + N) f args rets := by
@@ -344,12 +345,13 @@ theorem relAtIn_of_walk_loop (hP : P.Wf) {R D Dk Rt Dt : ℕ → Prop} {fp m N :
     (hc : calls es = cs ++ [c])
     (htail : if c.taken then RelAtIn P fs cert rd Rt Dt (fp + fs f) m c.f (c.args.map σ) (c.rets.map σ)
       else m = fs c.f)
-    (hbuf : (allocDsts es).map σ = (bases (fp + fs f + m) (allocs σ es)).map fun b => ofK (gpow b))
-    (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (gpow (fp + cert f q.2)))
+    (hbuf : (allocDsts es).map σ = (bases (fp + fs f + m) (allocs σ es)).map fun b
+        => ofK (addressOfIndex b))
+    (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + cert f q.2)))
     (hk : KidsFromIn P fs cert rd σ (fun i => R i ∨ ownData cert fp (fp + fs f + m) f (allocs σ es) es i)
       (fun _ => False) cs (fp + fs f + m + (allocs σ es).sum) N Dk)
     (hRt : ∀ i, Rt i → R i ∨ ownData cert fp (fp + fs f + m) f (allocs σ es) es i ∨ Dk i)
-    (hload : ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧
+    (hload : ∀ A ∈ loadAddrs σ es, ∃ i, A = addressOfIndex i ∧
       (ownData cert fp (fp + fs f + m) f (allocs σ es) es i ∨ R i ∨ Dk i ∨ (c.taken = true ∧ Dt i)))
     (hD : ∀ i, D i → ownData cert fp (fp + fs f + m) f (allocs σ es) es i ∨ Dk i ∨
       (c.taken = true ∧ Dt i)) :
@@ -430,7 +432,7 @@ variable {S : List String}
 mutual
 /-- Every load of every instance of `t` reads `R`. -/
 def Tree.LoadsR (P : Core.Program) (R : ℕ → Prop) : Tree → Prop
-  | t@(.node _ σ _ kids) => (∀ A ∈ loadAddrs σ (t.events P), ∃ i, A = gpow i ∧ R i) ∧
+  | t@(.node _ σ _ kids) => (∀ A ∈ loadAddrs σ (t.events P), ∃ i, A = addressOfIndex i ∧ R i) ∧
       Tree.LoadsRKids P R kids
   | .phantom .. => True
 
@@ -501,7 +503,7 @@ theorem kids_of_relIn {R : ℕ → Prop} : ∀ cs : List Call,
 theorem relIn_of_walk (hP : P.Wf) {R : ℕ → Prop} {f : String} {args rets : List E} {fn : Fn}
     {es : List Ev} {vs : List V} (hf : P.find? f = some fn) (hp : fn.params.map σ = args)
     (hw : walk σ fn.body = .ret es vs) (hr : vs.map σ = rets) (hes : ∀ e ∈ es, e.Holds rd σ)
-    (hload : ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧ R i)
+    (hload : ∀ A ∈ loadAddrs σ es, ∃ i, A = addressOfIndex i ∧ R i)
     (hk : ∀ c ∈ calls es, c.taken = true → P.RelIn rd R c.f (c.args.map σ) (c.rets.map σ)) :
     P.RelIn rd R f args rets := by
   obtain ⟨ks, hkv, hkb, hkl⟩ := kids_of_relIn (calls es)
@@ -695,7 +697,8 @@ mutual
 /-- **Every load of an instance reads its tree's data or its region.** -/
 theorem loads_insts : ∀ (t : Tree) (R : ℕ → Prop) (fp : ℕ) (hdr : E × E), t.LoadsIn P fs cert R fp →
     ∀ I ∈ t.insts fs P.loop H fp hdr, (∃ f σ bufs kids, I.t = .node f σ bufs kids) →
-      ∀ A ∈ loadAddrs I.t.val (I.t.events P), ∃ i, A = gpow i ∧ (t.Data P fs cert fp i ∨ R i)
+      ∀ A ∈ loadAddrs I.t.val (I.t.events P), ∃ i, A = addressOfIndex i ∧ (t.Data P fs cert fp
+          i ∨ R i)
   | .node f σ bufs kids, R, fp, hdr, h, I, hI, hn, A, hA => by
       rw [loadsIn_node] at h
       rw [insts_node, List.mem_cons] at hI
@@ -716,7 +719,7 @@ theorem loads_insts : ∀ (t : Tree) (R : ℕ → Prop) (fp : ℕ) (hdr : E × E
 theorem loadsKids_insts : ∀ (ks : List Tree) (R : ℕ → Prop) (ps : List ℕ) (J : Inst) (j : ℕ),
     Tree.LoadsInKids P fs cert R ps ks → ∀ I ∈ Tree.instsKids fs P.loop H J j ps ks,
       (∃ f σ bufs kids, I.t = .node f σ bufs kids) → ∀ A ∈ loadAddrs I.t.val (I.t.events P),
-        ∃ i, A = gpow i ∧ (Tree.DataKids P fs cert ps ks i ∨ R i)
+        ∃ i, A = addressOfIndex i ∧ (Tree.DataKids P fs cert ps ks i ∨ R i)
   | [], _, _, _, _, _, I, hI, _, _, _ => by
       rw [instsKids_nil] at hI; exact (List.not_mem_nil hI).elim
   | _ :: _, _, [], _, _, _, I, hI, _, _, _ => by

@@ -38,13 +38,14 @@ def word (s : ℕ) : E :=
 def checks : List (String × Bool) :=
   let T := discreteLogTables
   let dl := discreteLogWith T
-  [("g^n", exponents.all fun n ↦ dl (gpow n) == some n),
+  [("g^n", exponents.all fun n ↦ dl (addressOfIndex n) == some n),
     -- past the order, the exponent modulo it
-    ("order", dl (gpow (2 ^ 64 - 1)) == some 0 && dl (gpow (2 ^ 64 + 5)) == some 6),
+    ("order", dl (addressOfIndex (2 ^ 64 - 1)) == some 0 && dl (addressOfIndex (2 ^ 64 + 5)) ==
+        some 6),
     -- every nonzero word is a power of `g`, and its logarithm an exponent of it
     ("words", (List.range 32).all fun i ↦
       let x := K.ofBits (lcg (i + 100))
-      x == 0 || (dl x).any fun n ↦ LeanVM.Parameters.gpow n == x && decide (n < 2 ^ 64 - 1)),
+      x == 0 || (dl x).any fun n ↦ LeanVM.Parameters.addressOfIndex n == x && decide (n < 2 ^ 64 - 1)),
     ("zero", dl 0 == none),
     ("cursor", (List.range 8).all fun s ↦
       [0, 1, 7, 1000, 2 ^ 20, 2 ^ 32].all fun n ↦
@@ -52,8 +53,9 @@ def checks : List (String × Bool) :=
     ("cursor off", (List.range 4).all fun s ↦
       cursorLenWith dl (word s) (word s * gen ^ (2 ^ 32 + 1)) == 0 &&
         cursorLenWith dl (word s) (word (s + 1)) == 0 && cursorLenWith dl 0 (word s) == 0),
-    ("gLog", ([0, 1, 5, 2 ^ 33, 2 ^ 34 - 1].all fun n ↦ gLogWith dl (ofK (gpow n)) == n) &&
-      gLogWith dl (ofK (gpow (2 ^ 34))) == 0 && gLogWith dl 0 == 0)]
+    ("gLog", ([0, 1, 5, 2 ^ 33, 2 ^ 34 - 1].all fun n ↦ gLogWith dl (ofK (addressOfIndex n))
+        == n) &&
+      gLogWith dl (ofK (addressOfIndex (2 ^ 34))) == 0 && gLogWith dl 0 == 0)]
 
 /-- info: [] -/
 #guard_msgs in

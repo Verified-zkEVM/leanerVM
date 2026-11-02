@@ -107,7 +107,7 @@ theorem offsetNat_sortedL (B : Blocks) (hn : B.n = (sortedL L κ).length)
 
 /-- The Python's placements of the blocks of sizes `sizes` (`bus_layout`). -/
 def pyPlacements (sizes : List ℕ) : List Placement :=
-  List.zipWith (fun size offset ↦ ({ vars := size, index := offset } : Placement)) sizes
+  List.zipWith (fun size offset ↦ ({ variableCount := size, index := offset } : Placement)) sizes
     (stackOffsets sizes).1
 
 theorem length_stackOffsets_fst (sizes : List ℕ) :
@@ -124,7 +124,7 @@ theorem pyPlacements_getElem_ordL (x₀ : α) (b : ℕ) (hb : b < L.length) :
     (pyPlacements (L.map κ))[(ordL L κ)[b]'(by rwa [length_ordL])]'(by
         rw [length_pyPlacements, List.length_map]
         exact ordL_lt L κ (List.getElem_mem _)) =
-      { vars := κ ((sortedL L κ)[b]'(by rwa [length_sortedL])),
+      { variableCount := κ ((sortedL L κ)[b]'(by rwa [length_sortedL])),
         index := (((sortedL L κ).take b).map fun a ↦ 2 ^ κ a).sum } := by
   have hi := ordL_lt L κ (List.getElem_mem (l := ordL L κ) (n := b) (by rwa [length_ordL]))
   simp only [pyPlacements, List.getElem_zipWith, List.getElem_map]
@@ -150,7 +150,7 @@ theorem toList_highPoint (B : Blocks) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b :
 offset, at a point, is the protocol's selector weight of the block there. -/
 theorem eqAbove_eq_selectorWeight (B : Blocks) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
     (z : Vector E μ) :
-    ({ vars := B.size b, index := B.offset b } : Placement).eqAbove z.toList =
+    ({ variableCount := B.size b, index := B.offset b } : Placement).eqAbove z.toList =
       B.selectorWeight hμ b z := by
   rw [Blocks.selectorWeight]
   have h := eqEval_boolPoint (B.highPoint hμ b z) (B.selector hμ b)

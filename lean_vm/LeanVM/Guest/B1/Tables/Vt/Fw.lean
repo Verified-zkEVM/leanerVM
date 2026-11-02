@@ -29,7 +29,7 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 theorem vt_index_arm {rd : Reader} {σ : Val} {v r : ℕ} {point : List E} {κ : ℕ}
     (hz : TbReadsAt rd (σ (.n 8)) point) (hκ : κ ≤ point.length) (hκ34 : κ < 34)
     (hv : σ (.n v) = gen ^ κ)
-    (hd : ∃ (j : ℕ) (h : j < vtImNames.length), σ (.n v) = ofK (Parameters.gpow j) ∧
+    (hd : ∃ (j : ℕ) (h : j < vtImNames.length), σ (.n v) = ofK (Parameters.addressOfIndex j) ∧
       coreProgram.Rel rd vtImNames[j] ([V.n 8].map σ) ([V.n r].map σ)) :
     σ (.n r) = indexMle (point.take κ) := by
   obtain ⟨j, hj, hjv, hrel⟩ := hd

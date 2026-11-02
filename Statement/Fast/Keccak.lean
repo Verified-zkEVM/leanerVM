@@ -36,7 +36,8 @@ with its restatement compiles it as the restatement in every module that imports
 of the repository compile them so). `keccak256With`, over any permutation in any monad, is
 restated with the blocks read from arrays (`keccak256With_eq_keccak256WithArray`): the verifier,
 the prover and the schemes hash with it, over Keccak-f[1600] when run. (A digest's bytes as a
-number, `Common.SufCma.digestBitVec`, compiles fast by `Statement.Fast.SufCma`.) Nothing here
+number, `Common.SufCma.digestBytesEquivBitVec`, compiles fast by `Statement.Fast.SufCma`.) Nothing
+here
 transcribes a source.
 -/
 
@@ -266,10 +267,10 @@ def leLaneArray (bytes : Array UInt8) (i : ℕ) : UInt64 :=
 
 /-- **Reading a lane from the bytes as an array is `leLane`.** -/
 theorem leLane_eq_leLaneArray (bytes : List UInt8) (i : ℕ) :
-    leLane bytes i = leLaneArray bytes.toArray i := by
+    littleEndianLane bytes i = leLaneArray bytes.toArray i := by
   have h : ∀ j, bytes.toArray.getD j 0 = bytes.getD j 0 := fun j ↦ by
     simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
-  simp only [leLane, leLaneArray, h]
+  simp only [littleEndianLane, leLaneArray, h]
 
 /-- Absorbing one block with Keccak-f[1600], the block read from an array. -/
 def absorbBlockArray (state : KeccakState) (block : List UInt8) : KeccakState :=

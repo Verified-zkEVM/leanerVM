@@ -32,7 +32,8 @@ theorem da_vector_cell_val {C : CallRel} {rd : Reader} {σ : Val} {args rets : L
     (hb : Stmt.HoldsList C rd σ (Fn.body Data.core28) False (fun rs => rs = rets)) :
     ∃ dg, args = [dg] ∧ rets = [σ (.n 4462)] ∧ (vecWsOf σ).length = LeanDa.cellSymbols ∧
       IsInK (σ (.n 4462)) ∧
-      (∀ k < LeanDa.cellSymbols, ∀ w, rd ((σ (.n 4462)).limb 0 * Parameters.gpow k) = some w →
+      (∀ k < LeanDa.cellSymbols, ∀ w, rd ((σ (.n 4462)).limb 0 * Parameters.addressOfIndex k) =
+          some w →
         w = (vecWsOf σ).getD k 0) ∧
       ReadsAt rd dg (digestCells (keccak256 ((vecWsOf σ).flatMap Node.extensionElementBytes))) := by
   have hok := vec_tmpl_ok

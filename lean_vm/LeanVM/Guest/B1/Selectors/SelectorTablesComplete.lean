@@ -34,11 +34,12 @@ open LeanVM.Guest.B1.Fwd
 def stLin (ept ept1 : ℕ) (p p1 : List E) : TLay := [(ept, p), (ept1, p1)]
 
 /-- The allocations' answers: the eq buffer at `ese`, the `g` buffer at `esg`. -/
-def stW (ese esg : ℕ) : ℕ → E := fun i => if i = 2 then ofK (gpow ese) else ofK (gpow esg)
+def stW (ese esg : ℕ) : ℕ → E := fun i
+    => if i = 2 then ofK (addressOfIndex ese) else ofK (addressOfIndex esg)
 
 /-- **The honest valuation.** -/
 noncomputable def stVal (ept ept1 ese esg : ℕ) (p p1 : List E) : Val :=
-  B1.Val.ofArgs (ev (layRd (stLin ept ept1 p p1)) (stW ese esg) [ofK (gpow ept), ofK (gpow ept1)] stPre)
+  B1.Val.ofArgs (ev (layRd (stLin ept ept1 p p1)) (stW ese esg) [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)] stPre)
 
 /-- The eq buffer's words: the stored values. -/
 def stEqWords (σ : Val) : List E := (List.range 210).map fun k => σ (.n (stEq (k / 30) (k % 30)))
@@ -113,8 +114,8 @@ theorem pure_holds_rd {a : Atom} (ha : pureB a = true) {rd rd' : Reader} {σ : V
 
 theorem st_rdAt {rd : Reader} {L : TLay} (hm : MemLay rd L) {q : ℕ × List E} (hq : q ∈ L)
     {o : ℕ} (ho : o < q.2.length) :
-    rdAt (layRd L) (ofK (gpow q.1)) o = q.2.getD o 0 ∧
-      LoadHolds rd (ofK (gpow q.1)) o (q.2.getD o 0) := by
+    rdAt (layRd L) (ofK (addressOfIndex q.1)) o = q.2.getD o 0 ∧
+      LoadHolds rd (ofK (addressOfIndex q.1)) o (q.2.getD o 0) := by
   have hr := memLay_read hm hq ho
   refine ⟨?_, tb_isInK_ofK _, by rw [tb_addr_ofK]; exact hr⟩
   rw [rdAt, tb_addr_ofK, layRd_agree hm ⟨q, hq, o, ho, rfl⟩, hr]
@@ -129,16 +130,16 @@ theorem st_sholds (ept ept1 ese esg : ℕ) (p p1 : List E) (hl : p.length = 28)
   have hg : ∀ s ∈ stPre, GoodS (layRd (stLin ept ept1 p p1)) (storesOf 2 stPre) (stW ese esg)
       (stVal ept ept1 ese esg p p1) s :=
     (ev_spec (layRd (stLin ept ept1 p p1)) (stW ese esg) stPre
-      [ofK (gpow ept), ofK (gpow ept1)] st_chk).2.2
-  have e0 : stVal ept ept1 ese esg p p1 (.n 0) = ofK (gpow ept) :=
-    ev_params _ _ (l := [ofK (gpow ept), ofK (gpow ept1)]) st_chk (by norm_num)
-  have e1 : stVal ept ept1 ese esg p p1 (.n 1) = ofK (gpow ept1) :=
-    ev_params _ _ (l := [ofK (gpow ept), ofK (gpow ept1)]) st_chk (by norm_num)
+      [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)] st_chk).2.2
+  have e0 : stVal ept ept1 ese esg p p1 (.n 0) = ofK (addressOfIndex ept) :=
+    ev_params _ _ (l := [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)]) st_chk (by norm_num)
+  have e1 : stVal ept ept1 ese esg p p1 (.n 1) = ofK (addressOfIndex ept1) :=
+    ev_params _ _ (l := [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)]) st_chk (by norm_num)
   set σ := stVal ept ept1 ese esg p p1 with hσ
-  have e2 : σ (.n 2) = ofK (gpow ese) := by
+  have e2 : σ (.n 2) = ofK (addressOfIndex ese) := by
     have := hg _ st_alloc_mem.1
     simpa [GoodS, Good, stW] using this
-  have e3 : σ (.n 3) = ofK (gpow esg) := by
+  have e3 : σ (.n 3) = ofK (addressOfIndex esg) := by
     have := hg _ st_alloc_mem.2
     simpa [GoodS, Good, stW] using this
   obtain ⟨hmo, hmi⟩ := memLay_append.mp hm
@@ -180,22 +181,22 @@ set_option maxRecDepth 10000 in
 theorem st_holds (ept ept1 ese esg : ℕ) (p p1 : List E) (hl : p.length = 28)
     (hl1 : p1.length = 28) (rd : Reader)
     (hm : MemLay rd (stOwn ept ept1 ese esg p p1 ++ stLin ept ept1 p p1)) :
-    coreProgram.Rel rd "selector_tables" [ofK (gpow ept), ofK (gpow ept1)]
-      [ofK (gpow ese), ofK (gpow esg)] := by
+    coreProgram.Rel rd "selector_tables" [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)]
+      [ofK (addressOfIndex ese), ofK (addressOfIndex esg)] := by
   obtain ⟨fn, hf, hp, hb⟩ := stFound
   have hg : ∀ s ∈ stPre, GoodS (layRd (stLin ept ept1 p p1)) (storesOf 2 stPre) (stW ese esg)
       (stVal ept ept1 ese esg p p1) s :=
     (ev_spec (layRd (stLin ept ept1 p p1)) (stW ese esg) stPre
-      [ofK (gpow ept), ofK (gpow ept1)] st_chk).2.2
-  have e0 : stVal ept ept1 ese esg p p1 (.n 0) = ofK (gpow ept) :=
-    ev_params _ _ (l := [ofK (gpow ept), ofK (gpow ept1)]) st_chk (by norm_num)
-  have e1 : stVal ept ept1 ese esg p p1 (.n 1) = ofK (gpow ept1) :=
-    ev_params _ _ (l := [ofK (gpow ept), ofK (gpow ept1)]) st_chk (by norm_num)
+      [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)] st_chk).2.2
+  have e0 : stVal ept ept1 ese esg p p1 (.n 0) = ofK (addressOfIndex ept) :=
+    ev_params _ _ (l := [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)]) st_chk (by norm_num)
+  have e1 : stVal ept ept1 ese esg p p1 (.n 1) = ofK (addressOfIndex ept1) :=
+    ev_params _ _ (l := [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)]) st_chk (by norm_num)
   set σ := stVal ept ept1 ese esg p p1 with hσ
-  have e2 : σ (.n 2) = ofK (gpow ese) := by
+  have e2 : σ (.n 2) = ofK (addressOfIndex ese) := by
     have := hg _ st_alloc_mem.1
     simpa [GoodS, Good, stW] using this
-  have e3 : σ (.n 3) = ofK (gpow esg) := by
+  have e3 : σ (.n 3) = ofK (addressOfIndex esg) := by
     have := hg _ st_alloc_mem.2
     simpa [GoodS, Good, stW] using this
   obtain ⟨hmo, hmi⟩ := memLay_append.mp hm

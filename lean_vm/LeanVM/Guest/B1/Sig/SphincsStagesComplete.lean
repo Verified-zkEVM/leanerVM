@@ -30,7 +30,7 @@ attribute [local irreducible] sCoords
 variable {C : CallRel} {rd : Reader}
 
 theorem canon_hcell2 (cs : List E) : IsCanonical128 (hcell cs).2 := by
-  simp [IsCanonical128, hcell, digestScalars]
+  simp [IsCanonical128, hcell, digestHalves]
 
 theorem sIdx_eq {σ : Val} {N : Nat} (h : ∀ l < 26, σ (.n (30 + l)) = if N.testBit l then 1 else 0) :
     sIdx σ = N % 2 ^ 26 := by
@@ -52,7 +52,7 @@ structure SP1 (rd : Reader) (σ : Val) (Pc m0 m1 rho : E) : Prop where
   dg : (σ (.n 17), σ (.n 18)) = hcell [Pc, word (tw 12) 0 0, m0, m1, rho]
   bits : ∀ l < 26, σ (.n (30 + l)) = if (cellNat (σ (.n 18))).testBit l then 1 else 0
   unused : σ (.n 158) = eOfNat (cellNat (σ (.n 18)) / 2 ^ 106)
-  marks : ∀ j < 3, σ (.n (132 + j)) = ofK (gpow (unusedBytes (cellNat (σ (.n 18))) j))
+  marks : ∀ j < 3, σ (.n (132 + j)) = ofK (addressOfIndex (unusedBytes (cellNat (σ (.n 18))) j))
 
 /-- **The prologue completes** to `SP1`. -/
 theorem sP_stage (hm : MemOK rd 256) {bb p Pc m0 m1 rho : E} (hbb : ByteBits rd bb)
@@ -79,7 +79,7 @@ theorem SP1.frame {σ σ' : Val} {Pc m0 m1 rho : E} (h : SP1 rd σ Pc m0 m1 rho)
 
 /-- **The forest's hints of a signature**, from the digest's cells' integers. -/
 def sH (sig : Sphincs.Signature) (N17 N18 c : Nat) : CoordH :=
-  coordHOf (sig.forest ⟨c % 8, Nat.mod_lt _ (by decide)⟩) (dS N18 c) (dT N17 (2 * c)) (dA N18 (2 * c))
+  coordHOf (sig.forestOpening ⟨c % 8, Nat.mod_lt _ (by decide)⟩) (dS N18 c) (dT N17 (2 * c)) (dA N18 (2 * c))
     (dT N17 (2 * c + 1)) (dA N18 (2 * c + 1))
 
 theorem sH_ok (sig : Sphincs.Signature) (N17 N18 c : Nat) : (sH sig N17 N18 c).OK :=

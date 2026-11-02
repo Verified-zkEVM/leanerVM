@@ -69,7 +69,7 @@ theorem follows_pack (F : List E → E) (r : List E) (hF : EqFamily (fun (_ : Un
     have hround := follows_sumcheckRoundPoly 3 value (some rk)
       (coeffsOf 2 fun x ↦ scale * F (acc ++ [x])) (by rw [length_coeffsOf]) (by norm_num) (by
         rw [RoundSplit, polyEval_coeffsOf hd, polyEval_coeffsOf hd, hv, hsplit, hrk]; ring) cs
-    simp only [hPack, keccakPackRounds, Prog.bind_eq]
+    simp only [hPack, keccakPackRounds, VerifierProgram.bind_eq]
     refine Follows.bind (fun cs₁ _ msg h₁ ↦ ?_) _ _ _ hround
     obtain ⟨rfl, rfl⟩ := h₁
     refine Follows.bind (fun cs₂ c c' h₂ ↦ ?_) _ _ _ (Follows.sampleE_sampleE cs₁)

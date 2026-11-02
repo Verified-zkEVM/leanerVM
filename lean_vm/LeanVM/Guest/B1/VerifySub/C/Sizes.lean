@@ -32,8 +32,8 @@ theorem gen_pow_div {a b : ℕ} (h : b ≤ a) : gen ^ a * (gen ^ b)⁻¹ = gen ^
   rw [← pow_sub₀ _ gen_ne_zero h]
 
 theorem gen_defined {κ : ℕ} {rd : Reader} (hlow : LowDef κ rd) {a : ℕ} (ha : a < 2 ^ κ) :
-    (rd ((gen ^ a).limb 0 * Parameters.gpow 0)).isSome := by
-  rw [gen_pow_eq_ofK, show Parameters.gpow 0 = 1 from pow_zero _, mul_one]
+    (rd ((gen ^ a).limb 0 * Parameters.addressOfIndex 0)).isSome := by
+  rw [gen_pow_eq_ofK, show Parameters.addressOfIndex 0 = 1 from pow_zero _, mul_one]
   simp only [limb_ofK, Fin.isValue, Fin.val_zero, ↓reduceIte]
   exact hlow a ha
 

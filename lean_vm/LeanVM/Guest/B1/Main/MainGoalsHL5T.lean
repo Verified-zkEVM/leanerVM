@@ -325,9 +325,11 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
         [(.n 16, 0), (.n 42, 0), (.n 42, 1), (.n 48, 0), (.n 49, 1), (.n 57, 1)] from rfl] at hA
     simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
     rw [hal]
-    have hW' : ∀ e, (gen ^ W * gen ^ c).limb 0 * gpow e = gpow (W + c + e) := fun e => by
+    have hW' : ∀ e, (gen ^ W * gen ^ c).limb 0 * addressOfIndex e = addressOfIndex (W + c + e) :=
+        fun e => by
       rw [← pow_add, limb0_gen_pow_mul]
-    have hsq : ∀ B e, (gen ^ B * (gen ^ c * gen ^ c)).limb 0 * gpow e = gpow (B + 2 * c + e) :=
+    have hsq : ∀ B e, (gen ^ B * (gen ^ c * gen ^ c)).limb 0 * addressOfIndex e = addressOfIndex (B
+        + 2 * c + e) :=
       fun B e => by rw [gen_sq', ← pow_add, limb0_gen_pow_mul]
     rcases hA with rfl | rfl | rfl | rfl | rfl | rfl
     · refine ⟨W + c + 0, ?_, Or.inr (Or.inl rW0)⟩
@@ -390,9 +392,9 @@ with `CompleteAtDT`. -/
 def VerifySubGoalsT (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) (Pvs : ℕ → Tree → Prop) : Prop :=
   ∀ c (hc : c < w.children.length), CompleteAtDT fs cert 16 "verify_sub" (hLmain fs fp seed s w)
-    [(digestScalars (statementDigest seed w.children[c].statement)).1,
-      (digestScalars (statementDigest seed w.children[c].statement)).2,
-      (digestScalars seed).1, (digestScalars seed).2, (hm fs fp seed s w).et1,
+    [(digestHalves (statementDigest seed w.children[c].statement)).1,
+      (digestHalves (statementDigest seed w.children[c].statement)).2,
+      (digestHalves seed).1, (digestHalves seed).2, (hm fs fp seed s w).et1,
       (hm fs fp seed s w).et2, (hm fs fp seed s w).a400 * gen ^ (24 * c)] (Returns []) (Pvs c)
 
 theorem VerifySubGoals.toT {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}

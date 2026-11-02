@@ -33,7 +33,7 @@ involved: after the query group the verifier holds a claim about `f_final` itsel
 namespace LeanVM.Protocol.Whir.Sound
 
 open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-  LeanVM.Protocol.Whir Prog Finset
+  LeanVM.Protocol.Whir VerifierProgram Finset
 
 @[expose] public section
 

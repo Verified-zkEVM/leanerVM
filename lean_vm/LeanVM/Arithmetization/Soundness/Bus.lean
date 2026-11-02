@@ -57,7 +57,7 @@ namespace LeanVM.Arithmetization
 open LeanVM.Parameters LeanVM.Semantics
 open Air.Flat (Component EnsembleWitness)
 
-variable {prog : Program}
+variable {prog : LeanIsaProgram}
 
 /-! ## Messages by channel name -/
 
@@ -161,11 +161,11 @@ def OpRecs (w : EnsembleWitness (leanIsaEnsemble prog)) (f : Air.Flat.Table K ×
       (p.1.component.Assumptions (p.1.environment p.2) →
         p.1.component.operations.ConstraintsHold (p.1.environment p.2) →
         p.1.component.operations.FullGuarantees (p.1.environment p.2) →
-        ∃ ins, (f p).e = entry ins ∧ execute (imageOf w.data).2 (f p).src ins = some (f p).next ∧
+        ∃ ins, (f p).e = busEntry ins ∧ execute (imageOf w.data).2 (f p).src ins = some (f p).next ∧
           (ins.opcode ≠ .jump → (f p).next = ⟨g * (f p).pc, (f p).fp⟩)) ∧
       (p.1.component.operations.ConstraintsHold (p.1.environment p.2) →
         p.1.component.operations.FullGuarantees (p.1.environment p.2) →
-        ∃ ins, (f p).e = entry ins ∧
+        ∃ ins, (f p).e = busEntry ins ∧
           executeWithB keccakFree (imageOf w.data).2.read (f p).src ins = some (f p).next ∧
           (ins.opcode ≠ .jump → (f p).next = ⟨g * (f p).pc, (f p).fp⟩))
 
@@ -197,7 +197,7 @@ theorem exists_opRecs (w : EnsembleWitness (leanIsaEnsemble prog)) : ∃ f, OpRe
 but `keccak_valid`, what a proof establishes when nothing binds the `KECCAK` rows to the
 permutation (the reduction-blind instance). The bus, the channels
 and the state walk need no more. -/
-structure SatisfiedByB (prog : Program) (input : PublicInput)
+structure SatisfiedByB (prog : LeanIsaProgram) (input : PublicInput)
     (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop where
   /-- The public input is the run's. -/
   public_input_eq : w.publicInput = PublicIO.ofInput input
@@ -220,9 +220,9 @@ structure SatisfiedByB (prog : Program) (input : PublicInput)
   /-- The bytecode block's rows are the program's. -/
   bytecode_rows : BytecodeRowsAreTheProgram prog w
   /-- The first word of the image is `input₀ + input₁·y`. -/
-  word0_eq : (imageOf w.data).2.read (gpow 0) = some input.word0
+  word0_eq : (imageOf w.data).2.read (addressOfIndex 0) = some input.word0
   /-- The second word of the image is `input₂ + input₃·y`. -/
-  word1_eq : (imageOf w.data).2.read (gpow 1) = some input.word1
+  word1_eq : (imageOf w.data).2.read (addressOfIndex 1) = some input.word1
 
 /-- The constraint statement without its `KECCAK` validity. -/
 theorem SatisfiedBy.toB {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
@@ -249,7 +249,7 @@ theorem rowSends_toElements {Input Output : TypeMap} [ProvableType Input] [Prova
         (Environment.fromArray (rawRow r) data)).map (fun i ↦ (i.channel.name, i.msg)) := rfl
 
 /-- What the verifier sends: the push of the initial registers and the pull of the final ones. -/
-def verifierSends (prog : Program) : List (String × Array K) :=
+def verifierSends (prog : LeanIsaProgram) : List (String × Array K) :=
   [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])]
 
 /-- The limbs of word `i` of an image. -/
@@ -261,15 +261,16 @@ seed push `(g^i, 1, m_i)` and the finalize pull `(g^i, fin i, m_i)`. -/
 def memSeedSends {κ : ℕ} (img : MemoryImage κ) (fin : Fin (2 ^ κ) → K) :
     List (String × Array K) :=
   (List.finRange (2 ^ κ)).flatMap fun i : Fin (2 ^ κ) ↦
-    [(MemPush.name, memMsgOf (gpow i) 1 (limbsOf img i)),
-      (MemPull.name, memMsgOf (gpow i) (fin i) (limbsOf img i))]
+    [(MemPush.name, memMsgOf (addressOfIndex i) 1 (limbsOf img i)),
+      (MemPull.name, memMsgOf (addressOfIndex i) (fin i) (limbsOf img i))]
 
 /-- What the bytecode block sends for the program and the finalize counts `fin`: per slot the seed
 push `(g^i, 1, entry)` and the finalize pull `(g^i, fin i, entry)`. -/
-def bcSeedSends (prog : Program) (fin : Fin (2 ^ prog.logSize) → K) : List (String × Array K) :=
+def bcSeedSends (prog : LeanIsaProgram) (fin : Fin (2 ^ prog.logSize) → K) : List (String ×
+    Array K) :=
   (List.finRange (2 ^ prog.logSize)).flatMap fun i : Fin (2 ^ prog.logSize) ↦
-    [(BytecodePush.name, bcMsgOf (gpow i) 1 (entry (prog.code i))),
-      (BytecodePull.name, bcMsgOf (gpow i) (fin i) (entry (prog.code i)))]
+    [(BytecodePush.name, bcMsgOf (addressOfIndex i) 1 (busEntry (prog.instructions i))),
+      (BytecodePull.name, bcMsgOf (addressOfIndex i) (fin i) (busEntry (prog.instructions i)))]
 
 /-- The sends of a table's rows. -/
 def tableSends (t : Air.Flat.Table K) : List (String × Array K) :=
@@ -284,7 +285,7 @@ theorem memBlock_sends_eq {input : PublicInput} {w : EnsembleWitness (leanIsaEns
   obtain ⟨idx, mfin, hmem⟩ := h.seed_rows
   refine ⟨mfin, ?_⟩
   have hlen : (memBlockRows w).length = 2 ^ (imageOf w.data).1 := by rw [hmem]; simp
-  have hidx : ∀ i, idx i = gpow i := fun i ↦ by
+  have hidx : ∀ i, idx i = addressOfIndex i := fun i ↦ by
     have := h.index_columns i (by rw [hlen]; exact i.isLt)
     simp only [hmem, List.getElem_ofFn, memRowAt_toElements] at this
     exact this
@@ -377,7 +378,8 @@ theorem chanOf_verifier_eq_nil {n : String} (h1 : n ≠ StatePull.name) (h2 : n 
 /-- The memory block pushes the seeds. -/
 theorem chanOf_memSeed_push {κ : ℕ} (img : MemoryImage κ) (fin : Fin (2 ^ κ) → K) :
     chanOf MemPush.name (memSeedSends img fin) =
-      (List.finRange (2 ^ κ)).map fun i : Fin (2 ^ κ) ↦ memMsgOf (gpow i) 1 (limbsOf img i) := by
+      (List.finRange (2 ^ κ)).map fun i : Fin (2 ^ κ) ↦ memMsgOf (addressOfIndex i) 1 (limbsOf img
+          i) := by
   rw [memSeedSends, chanOf_flatMap, ← flatMap_singleton_eq_map]
   refine List.flatMap_congr fun i _ ↦ ?_
   simp [chanOf, MemPull, MemPush]
@@ -386,7 +388,7 @@ theorem chanOf_memSeed_push {κ : ℕ} (img : MemoryImage κ) (fin : Fin (2 ^ κ
 theorem chanOf_memSeed_pull {κ : ℕ} (img : MemoryImage κ) (fin : Fin (2 ^ κ) → K) :
     chanOf MemPull.name (memSeedSends img fin) =
       (List.finRange (2 ^ κ)).map fun i : Fin (2 ^ κ) ↦
-        memMsgOf (gpow i) (fin i) (limbsOf img i) := by
+        memMsgOf (addressOfIndex i) (fin i) (limbsOf img i) := by
   rw [memSeedSends, chanOf_flatMap, ← flatMap_singleton_eq_map]
   refine List.flatMap_congr fun i _ ↦ ?_
   simp [chanOf, MemPull, MemPush]
@@ -401,7 +403,7 @@ theorem chanOf_memSeed_eq_nil {κ : ℕ} (img : MemoryImage κ) (fin : Fin (2 ^ 
 theorem chanOf_bcSeed_push (fin : Fin (2 ^ prog.logSize) → K) :
     chanOf BytecodePush.name (bcSeedSends prog fin) =
       (List.finRange (2 ^ prog.logSize)).map fun i : Fin (2 ^ prog.logSize) ↦
-        bcMsgOf (gpow i) 1 (entry (prog.code i)) := by
+        bcMsgOf (addressOfIndex i) 1 (busEntry (prog.instructions i)) := by
   rw [bcSeedSends, chanOf_flatMap, ← flatMap_singleton_eq_map]
   refine List.flatMap_congr fun i _ ↦ ?_
   simp [chanOf, BytecodePull, BytecodePush]
@@ -410,7 +412,7 @@ theorem chanOf_bcSeed_push (fin : Fin (2 ^ prog.logSize) → K) :
 theorem chanOf_bcSeed_pull (fin : Fin (2 ^ prog.logSize) → K) :
     chanOf BytecodePull.name (bcSeedSends prog fin) =
       (List.finRange (2 ^ prog.logSize)).map fun i : Fin (2 ^ prog.logSize) ↦
-        bcMsgOf (gpow i) (fin i) (entry (prog.code i)) := by
+        bcMsgOf (addressOfIndex i) (fin i) (busEntry (prog.instructions i)) := by
   rw [bcSeedSends, chanOf_flatMap, ← flatMap_singleton_eq_map]
   refine List.flatMap_congr fun i _ ↦ ?_
   simp [chanOf, BytecodePull, BytecodePush]

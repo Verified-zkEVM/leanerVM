@@ -25,7 +25,7 @@ least one variable (`ladder_sum_lt`), so the tail rounds never start from none.
 
 namespace LeanVM.Protocol.Verifier
 
-open LeanVM.Parameters hiding gpow
+open LeanVM.Parameters hiding addressOfIndex
 open LeanVM.Semantics LeanVM.Protocol.Compile Claims
 
 @[expose] public section
@@ -43,20 +43,20 @@ structure WhirStateT where
 def WhirStateT.forget (s : WhirStateT) : WhirState := ⟨s.quad, s.folds, s.glued⟩
 
 /-- `foldRounds`, folding the running claim. -/
-def foldRoundsT : ℕ → WhirStateT → List E → Prog (WhirStateT × List E)
+def foldRoundsT : ℕ → WhirStateT → List E → VerifierProgram (WhirStateT × List E)
   | 0, s, levelFolds => return (s, levelFolds)
   | n + 1, s, levelFolds => do
-    let challenge ← Prog.sampleChallenge
+    let challenge ← VerifierProgram.sampleChallenge
     let target := polyEval s.quad challenge
     let quad ← sumcheckRoundPoly 3 target none
     foldRoundsT n { s with target, quad, folds := s.folds ++ [challenge] }
       (levelFolds ++ [challenge])
 
 /-- `tailRounds` from a running claim, which it returns when there is no round. -/
-def tailRoundsT : ℕ → E → List E → Prog (List E × E)
+def tailRoundsT : ℕ → E → List E → VerifierProgram (List E × E)
   | 0, target, _ => return ([], target)
   | n + 1, _, quad => do
-    let challenge ← Prog.sampleChallenge
+    let challenge ← VerifierProgram.sampleChallenge
     let target := polyEval quad challenge
     if n = 0 then return ([challenge], target)
     else do
@@ -75,27 +75,27 @@ def glueT (lam : E) (s : WhirStateT) (pending : List (E × List E × (List E →
 
 /-- `whirLevels` with the running claim. -/
 def whirLevelsT (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
-    ℕ → List Whir.Level → WhirStateT → Prog Unit
-  | _, [], _ => Prog.fail
+    ℕ → List Whir.Level → WhirStateT → VerifierProgram Unit
+  | _, [], _ => VerifierProgram.fail
   | index, level :: rest, s => do
     let (s, levelFolds) ← foldRoundsT level.fold s []
     let messageLog := logN - s.folds.length
     let (residual, pending) ← match rest with
       | [] => do
-        let residual ← Prog.readScalars (2 ^ messageLog)
+        let residual ← VerifierProgram.readScalars (2 ^ messageLog)
         pure (residual, ([] : List (E × List E × (List E → E))))
       | next :: _ => do
         let (height, width) := levelShape messageLog next (3 * 2 ^ next.fold)
-        Prog.readCommitment height width
-        let oodPoint ← Prog.sampleChallenges messageLog
-        let oodValue ← Prog.readScalar
+        VerifierProgram.readCommitment height width
+        let oodPoint ← VerifierProgram.sampleChallenges messageLog
+        let oodValue ← VerifierProgram.readScalar
         let intro ← sumcheckRoundPoly 3 oodValue none
         pure ([], [(oodValue, intro, fun x ↦ eqEval oodPoint x)])
-    Prog.grindProofOfWork Whir.queryGrindingBits
+    VerifierProgram.grindProofOfWork Whir.queryGrindingBits
     let queries ← sampleQueries (messageLog + level.logInvRate) level.queries
-    let lam ← Prog.sampleChallenge
+    let lam ← VerifierProgram.sampleChallenge
     let queryWeights := powers lam queries.length
-    let words ← Prog.queryOpenings index queries
+    let words ← VerifierProgram.queryOpenings index queries
     let rows : List (List E) :=
       if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
     let enforced := enforcedSum rows levelFolds queryWeights
@@ -112,11 +112,12 @@ def whirLevelsT (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
           weight + claim.scalar * claim.weightAt (s.folds.drop claim.foldStart ++ tailFolds))
         (evaluateBasis (point.drop laneFolds ++ point.take laneFolds))
       let terminal := weight * multilinearEval residual tailFolds
-      Prog.require (terminal = target)
+      VerifierProgram.require (terminal = target)
     | _ :: _ => whirLevelsT logN laneFolds evaluateBasis (index + 1) rest s
 
 /-- `verifyWhir` with the running claim. -/
-def verifyWhirT (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) : Prog Unit := do
+def verifyWhirT (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) : VerifierProgram
+    Unit := do
   let config ← liftOption (Whir.ladder logN logInvRate)
   let quad ← sumcheckRoundPoly 3 target none
   whirLevelsT logN ((config.head?.map (·.fold)).getD 0) evaluateBasis 0 config
@@ -128,11 +129,11 @@ namespace WhirTarget
 
 theorem foldRounds_forget : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
     foldRounds n s.forget levelFolds =
-      (foldRoundsT n s levelFolds).bind fun r ↦ Prog.ret (r.1.forget, r.2)
+      (foldRoundsT n s levelFolds).bind fun r ↦ VerifierProgram.ret (r.1.forget, r.2)
   | 0, _, _ => rfl
   | n + 1, s, levelFolds => by
     unfold foldRounds foldRoundsT
-    simp only [Prog.bind_eq, Prog.bind_assoc]
+    simp only [VerifierProgram.bind_eq, VerifierProgram.bind_assoc]
     congr 1
     funext challenge
     congr 1
@@ -144,7 +145,7 @@ theorem allRet_foldRoundsT : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E
   | 0, _, _ => .ret rfl
   | n + 1, s, levelFolds => by
     unfold foldRoundsT
-    simp only [Prog.bind_eq]
+    simp only [VerifierProgram.bind_eq]
     refine AllRet.bind (fun challenge _ ↦ ?_) _ (allRet_true _)
     refine AllRet.bind (fun quad _ ↦ ?_) _ (allRet_true _)
     refine AllRet.mono (fun r hr ↦ ?_) (allRet_foldRoundsT n _ _)
@@ -157,7 +158,7 @@ theorem tailRounds_eq : ∀ (n : ℕ), 1 ≤ n → ∀ (target : E) (quad : List
   | 0, h, _, _ => absurd h (by decide)
   | n + 1, _, target, quad => by
     unfold tailRounds tailRoundsT
-    simp only [Prog.bind_eq]
+    simp only [VerifierProgram.bind_eq]
     congr 1
     funext challenge
     split
@@ -168,7 +169,7 @@ theorem tailRounds_eq : ∀ (n : ℕ), 1 ≤ n → ∀ (target : E) (quad : List
       rw [tailRounds_eq n (Nat.one_le_iff_ne_zero.mpr hn)]
 
 theorem bind_tailRounds {β : Type} (n : ℕ) (h : 1 ≤ n) (target : E) (quad quad' : List E)
-    (hq : quad = quad') (f g : List E × E → Prog β) (hfg : f = g) :
+    (hq : quad = quad') (f g : List E × E → VerifierProgram β) (hfg : f = g) :
     (tailRounds n quad).bind f = (tailRoundsT n target quad').bind g := by
   rw [tailRounds_eq n h target, hq, hfg]
 
@@ -180,11 +181,11 @@ theorem whirLevels_eq (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
   | [], _, _, _ => rfl
   | level :: rest, index, s, hlt => by
     unfold whirLevels whirLevelsT
-    simp only [Prog.bind_eq, Prog.pure_eq]
-    rw [foldRounds_forget, Prog.bind_assoc]
+    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
+    rw [foldRounds_forget, VerifierProgram.bind_assoc]
     refine bind_congr (fun r hr ↦ ?_) _ (allRet_foldRoundsT level.fold s [])
     obtain ⟨s', levelFolds⟩ := r
-    simp only [Prog.ret_bind] at hr ⊢
+    simp only [VerifierProgram.ret_bind] at hr ⊢
     simp only [List.map_cons, List.sum_cons] at hlt
     have hfolds : s'.forget.folds = s'.folds := rfl
     cases rest with
@@ -239,7 +240,7 @@ theorem verifyWhir_eq_target (logN logInvRate : ℕ) (target : E) (evaluateBasis
     verifyWhir logN logInvRate target evaluateBasis =
       verifyWhirT logN logInvRate target evaluateBasis := by
   unfold verifyWhir verifyWhirT
-  simp only [Prog.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   refine bind_congr (fun config hc ↦ ?_) _ (allRet_liftOption _)
   congr 1
   funext quad
@@ -249,7 +250,7 @@ theorem verifyWhir_eq_target (logN logInvRate : ℕ) (target : E) (evaluateBasis
 /-- `verifyStackedOpening` on the threaded form. -/
 theorem verifyStackedOpening_eq_target (stackLog logInvRate : ℕ) (claims : List StackClaim) :
     verifyStackedOpening stackLog logInvRate claims = (do
-      let scales := powers (← Prog.sampleChallenge) claims.length
+      let scales := powers (← VerifierProgram.sampleChallenge) claims.length
       verifyWhirT stackLog logInvRate (dot scales (claims.map (·.2)))
         fun point ↦ dot scales (claims.map fun c ↦ c.1 point)) := by
   unfold verifyStackedOpening

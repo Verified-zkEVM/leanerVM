@@ -47,7 +47,7 @@ open OracleComp OracleSpec
 export LeanVM (KeccakCalls callKeccak256 callKeccakF1600)
 
 /-- The seeded verifier as an oracle computation. -/
-def verifierComp (σ : Seed) (P : Prog Bool) (π : Proof) : OracleComp KeccakCalls Bool :=
+def verifierComp (σ : Seed) (P : VerifierProgram Bool) (π : Proof) : OracleComp KeccakCalls Bool :=
   verify callKeccak256 callKeccakF1600 σ P π
 
 /-! ## Simulation commutes with the verifier -/
@@ -113,7 +113,7 @@ theorem simulateQ_squeeze (sp : Sponge) :
   simp only [squeeze, simulateQ_bind, simulateQ_duplex, simulateQ_pure]
 
 theorem simulateQ_run :
-    ∀ (p : Prog Bool) (s : ProgState),
+    ∀ (p : VerifierProgram Bool) (s : VerifierProgramState),
       simulateQ impl (runWithHash callKeccak256 callKeccakF1600 p s) = runWithHash (implH impl) (implF impl) p s
   | .ret a, s => by simp [runWithHash]
   | .fail, s => by simp [runWithHash]
@@ -154,7 +154,7 @@ theorem simulateQ_run :
       · exact simulateQ_run _ _
       · simp
 
-theorem simulateQ_runProof (P : Prog Bool) (seed : KeccakState) (π : Proof) :
+theorem simulateQ_runProof (P : VerifierProgram Bool) (seed : KeccakState) (π : Proof) :
     simulateQ impl (runProofWithHash callKeccak256 callKeccakF1600 P seed π) =
       runProofWithHash (implH impl) (implF impl) P seed π := by
   simp only [runProofWithHash, simulateQ_bind, simulateQ_run]
@@ -174,7 +174,7 @@ theorem simulateQ_seedRun (σ : Seed) :
   simp only [Seed.run, simulateQ_bind, simulateQ_hsRun, simulateQ_queryF]
 
 /-- **The verifier commutes with simulation.** -/
-theorem simulateQ_verify (σ : Seed) (P : Prog Bool) (π : Proof) :
+theorem simulateQ_verify (σ : Seed) (P : VerifierProgram Bool) (π : Proof) :
     simulateQ impl (verifierComp σ P π) = verify (implH impl) (implF impl) σ P π := by
   simp only [verifierComp, verify, simulateQ_bind, simulateQ_seedRun, simulateQ_runProof]
 
@@ -242,14 +242,14 @@ theorem simulateQ_look_of_mem_support {β : Type} (oa : OracleComp KeccakCalls �
 
 /-- **The verifier of a family of statements**: on a statement and a proof, the statement's
 seeded verifier, run from its root node. -/
-def verifierFam {X : Type} (σ : Seeds X) (P : Prog Bool) (z : X × Proof) :
+def verifierFam {X : Type} (σ : Seeds X) (P : VerifierProgram Bool) (z : X × Proof) :
     OracleComp KeccakCalls Bool :=
   verifierComp (σ.seed z.1) (nodeAt P (σ.root z.1)) z.2
 
 /-- **The bridge, for a family.** On every reachable outcome of the logged experiment in which
 the verifier accepts, the statement's seeded verifier accepts the adversary's proof with every
 query answered by the final log. -/
-theorem verifyFam_of_mem_support_logExperiment {X : Type} {σ : Seeds X} {P : Prog Bool}
+theorem verifyFam_of_mem_support_logExperiment {X : Type} {σ : Seeds X} {P : VerifierProgram Bool}
     (A : OracleComp KeccakCalls (X × Proof)) {z : ((X × Proof) × Bool) × Log}
     (hz : z ∈ support (logExperiment A (verifierFam σ P))) (hacc : z.1.2 = true) :
     verify (lookH z.2) (lookF z.2) (σ.seed z.1.1.1) (nodeAt P (σ.root z.1.1.1)) z.1.1.2 =

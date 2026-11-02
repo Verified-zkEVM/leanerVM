@@ -186,7 +186,7 @@ noncomputable def interpSpec {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
     (hcard : ∀ W, (cands W).ncard ≤ L₀)
     (base : X × (Vector E m × (Fin 3 → CMlPolynomialEval E ρ))) :
     (n i : ℕ) → (pre : Vector E i) →
-      Spec (Prog.sampleChallenges n) (HDoom cands (Gkr.childRelT 3 μ leaves riders ρ m T i) (base, pre))
+      Spec (VerifierProgram.sampleChallenges n) (HDoom cands (Gkr.childRelT 3 μ leaves riders ρ m T i) (base, pre))
         (fun ys h ↦ ys.length = n ∧ HDoom cands (Gkr.childRelT 3 μ leaves riders ρ m T (i + n))
           (base, vecOf (i + n) (pre.toList ++ ys)) h) εmax (interpLead L₀ n T') T'
   | 0, i, pre => (Spec.ret (Post := fun ys h ↦ ys.length = 0 ∧ HDoom cands
@@ -287,7 +287,8 @@ theorem lambda_escape {ρ' m' : ℕ} (T' : Gkr.RiderTrack μ riders ρ' m') (hm 
 variable {εmax T' : ℝ≥0∞}
 
 /-- A specification from a precondition that cannot hold. -/
-def specOfFalse {α : Type} {p : Prog α} {Pre : List Ev → Prop} {Post : α → List Ev → Prop}
+def specOfFalse {α : Type} {p : VerifierProgram α} {Pre : List Ev → Prop} {Post : α → List Ev
+    → Prop}
     {L T : ℝ≥0∞} (h : ∀ h, Pre h → False) : Spec p Pre Post εmax L T :=
   (Spec.dead (p := p) (Post := Post) (εmax := εmax) (L := L) (T := T)).mono (fun h' hp ↦ h h' hp)
     (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
@@ -323,7 +324,8 @@ noncomputable def stepSpec {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
     let P0 := SumcheckPost (Gkr.familyT 3 μ leaves riders ρ m T) cands
       (layerStmtOf data m s, combiner) m #v[] (x, claim)
     have hP0 : ∀ h z, P0 h → P0 (h ++ [Ev.read z]) := fun _ _ hp ↦ ⟨hp.1, hp.2.append _⟩
-    have hread : Prog.readScalars (2 ^ ρ - 1 + 1) = Prog.readScalars (2 ^ ρ) := by
+    have hread : VerifierProgram.readScalars (2 ^ ρ - 1 + 1) = VerifierProgram.readScalars (2 ^
+        ρ) := by
       rw [Nat.sub_add_cancel Nat.one_le_two_pow]
     (Spec.congr hread (readNSuccSpec P0 hP0 zero_le (2 ^ ρ - 1))).bind' fun child0 ↦
     let P1 := fun h ↦ child0.length = 2 ^ ρ - 1 + 1 ∧ P0 h

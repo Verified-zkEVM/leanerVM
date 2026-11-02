@@ -27,7 +27,7 @@ invariant (`TailInv`, `tailSpec`) and the failing terminal check (`tailDone_ne`)
 namespace LeanVM.Protocol.Whir.Sound
 
 open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-  LeanVM.Protocol.Whir Prog Finset
+  LeanVM.Protocol.Whir VerifierProgram Finset
 
 @[expose] public section
 
@@ -43,15 +43,15 @@ def glueFin (r : WhirStateT × List E) (qs : List ℕ) (lam : E) (words : List (
 
 /-- After the query group of the final level. -/
 def finFinish (r : WhirStateT × List E) (residual : List E) (qs : List ℕ) (lam : E)
-    (words : List (List K)) : Prog Unit :=
+    (words : List (List K)) : VerifierProgram Unit :=
   (sumcheckRoundPoly 3 (enfOf i r.2 qs lam words) none).bind fun hq ↦
     (tailRoundsT (μ - r.1.folds.length) (glueFin μ i r qs lam words hq).target
       (glueFin μ i r qs lam words hq).quad).bind fun x ↦
-      Prog.require (runW w ℓ₀ (glueFin μ i r qs lam words hq) x.1 *
+      VerifierProgram.require (runW w ℓ₀ (glueFin μ i r qs lam words hq) x.1 *
         multilinearEval residual x.1 = x.2)
 
 /-- After the fold rounds of the final level. -/
-def finTail (r : WhirStateT × List E) : Prog Unit :=
+def finTail (r : WhirStateT × List E) : VerifierProgram Unit :=
   (readScalars (2 ^ (μ - r.1.folds.length))).bind fun residual ↦
   (grindProofOfWork Whir.queryGrindingBits).bind fun _ ↦
   (sampleQueries (μ - r.1.folds.length + level.logInvRate) level.queries).bind fun qs ↦
@@ -59,7 +59,7 @@ def finTail (r : WhirStateT × List E) : Prog Unit :=
     finFinish μ ℓ₀ w i r residual qs lam words
 
 /-- The final level, unfolded. -/
-def finProg (s : WhirStateT) : Prog Unit :=
+def finProg (s : WhirStateT) : VerifierProgram Unit :=
   (foldRoundsT level.fold s []).bind fun r ↦ finTail μ ℓ₀ w i level r
 
 /-- **`whirLevels` on the final level is `finProg`.** -/

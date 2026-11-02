@@ -140,7 +140,7 @@ theorem limbsIn_powIndex (hκ : κ < 64) (img : MemoryImage κ) :
   cases img.read a <;> rfl
 
 /-- The cells an instruction reads, through the index, are `readAddrs`. -/
-theorem addrsIn_powIndex (hκ : κ < 64) (img : MemoryImage κ) (fp : K) (ins : Instr) :
+theorem addrsIn_powIndex (hκ : κ < 64) (img : MemoryImage κ) (fp : K) (ins : LeanIsaInstruction) :
     addrsIn (powIndex κ) img fp ins = readAddrs img fp ins := by
   cases ins <;> simp only [addrsIn, readAddrs, limbsIn_powIndex hκ]
 
@@ -155,7 +155,8 @@ theorem keccakInputIn_powIndex (hκ : κ < 64) (img : MemoryImage κ) (fp : K) (
 
 /-- **The raw row through the index is `rowOf`.** -/
 theorem rowIn_powIndex (hκ : κ < 64) (img : MemoryImage κ) (pc fp : K) (c : ℕ → K) (rbc : K)
-    (ins : Instr) : rowIn (powIndex κ) img pc fp c rbc ins = rowOf img pc fp c rbc ins := by
+    (ins : LeanIsaInstruction) : rowIn (powIndex κ) img pc fp c rbc ins = rowOf img pc fp c rbc
+        ins := by
   cases ins with
   | xor oA oB oC =>
     simp only [rowIn, rowOf, rawRow, xorRow_toArray, xorRowOf, limbsIn_powIndex hκ]
@@ -179,18 +180,19 @@ theorem rowIn_powIndex (hκ : κ < 64) (img : MemoryImage κ) (pc fp : K) (c : �
 
 /-- Powers of `g` below `2^κ`, `κ < 64`, are distinct. -/
 theorem gpow_inj (hκ : κ < 64) {i j : ℕ} (hi : i < 2 ^ κ) (hj : j < 2 ^ κ) :
-    gpow i = gpow j ↔ i = j := by
+    addressOfIndex i = addressOfIndex j ↔ i = j := by
   have hb : 2 ^ κ ≤ 2 ^ 63 := Nat.pow_le_pow_right (by norm_num) (by omega)
   refine ⟨fun h ↦ gpow_injOn (by simp; omega) (by simp; omega) h, fun h ↦ h ▸ rfl⟩
 
 /-- A counter array: `g` to the counter of each address, `2^κ` of them. -/
 def CtrOk (κ : ℕ) (s : K → ℕ) (ctr : Array K) : Prop :=
-  ctr.size = 2 ^ κ ∧ ∀ i (h : i < ctr.size), ctr[i] = g ^ s (gpow i)
+  ctr.size = 2 ^ κ ∧ ∀ i (h : i < ctr.size), ctr[i] = g ^ s (addressOfIndex i)
 
 /-- One read steps its cell's counter. -/
 theorem ctrOk_modify (hκ : κ < 64) {s : K → ℕ} {ctr : Array K} (h : CtrOk κ s ctr) {i : ℕ}
     (hi : i < 2 ^ κ) :
-    CtrOk κ (Function.update s (gpow i) (s (gpow i) + 1)) (ctr.modify i (g * ·)) := by
+    CtrOk κ (Function.update s (addressOfIndex i) (s (addressOfIndex i) + 1)) (ctr.modify i (g *
+        ·)) := by
   refine ⟨by rw [Array.size_modify, h.1], fun j hj ↦ ?_⟩
   have hj' : j < 2 ^ κ := by rw [Array.size_modify, h.1] at hj; exact hj
   rw [Array.getElem_modify]
@@ -203,20 +205,22 @@ theorem ctrOk_modify (hκ : κ < 64) {s : K → ℕ} {ctr : Array K} (h : CtrOk 
 /-- **The counts of a sequence of reads**: `g` to the numbers `readExps` gives them, the counters
 after them `g` to `readBump`. -/
 theorem countReads_spec (hκ : κ < 64) :
-    ∀ (as : List K) (s : K → ℕ) (cs ctr : Array K), (∀ a ∈ as, ∃ i, i < 2 ^ κ ∧ a = gpow i) →
+    ∀ (as : List K) (s : K → ℕ) (cs ctr : Array K), (∀ a ∈ as, ∃ i, i < 2 ^ κ ∧ a =
+        addressOfIndex i) →
       CtrOk κ s ctr →
       (countReads (powIndex κ) κ as cs ctr).1 = cs ++ ((readExps s as).map (g ^ ·)).toArray ∧
       CtrOk κ (readBump s as) (countReads (powIndex κ) κ as cs ctr).2
   | [], s, cs, ctr, _, h => by simp [countReads, readExps, readBump, h]
   | a :: rest, s, cs, ctr, ha, h => by
     obtain ⟨i, hi, rfl⟩ := ha a List.mem_cons_self
-    have hg : gLogIn (powIndex κ) κ (gpow i) = some ⟨i, hi⟩ := by
+    have hg : gLogIn (powIndex κ) κ (addressOfIndex i) = some ⟨i, hi⟩ := by
       rw [gLogIn_powIndex hκ]
       exact (gLog?_spec hκ (i := ⟨i, hi⟩)).mpr rfl
-    have hget : ctr.getD i 1 = g ^ s (gpow i) := by
+    have hget : ctr.getD i 1 = g ^ s (addressOfIndex i) := by
       rw [Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem (by rw [h.1]; exact hi),
         Option.getD_some, h.2]
-    obtain ⟨h1, h2⟩ := countReads_spec hκ rest (Function.update s (gpow i) (s (gpow i) + 1))
+    obtain ⟨h1, h2⟩ := countReads_spec hκ rest (Function.update s (addressOfIndex i) (s
+        (addressOfIndex i) + 1))
       (cs.push (ctr.getD i 1)) (ctr.modify i (g * ·))
       (fun a ha' ↦ ha a (List.mem_cons_of_mem _ ha')) (ctrOk_modify hκ h hi)
     simp only [countReads, hg]
@@ -288,12 +292,12 @@ theorem stepRows_eq (memIdx : Std.HashMap UInt64 ℕ) (img : MemoryImage κ) (ac
         acc.bc.modify st.slot (g * ·)⟩ := rfl
 
 /-- **One step keeps the invariant.** -/
-theorem rowsInv_step (hκ : κ < 64) {prog : Program} (img : MemoryImage κ) {acc : Rows}
+theorem rowsInv_step (hκ : κ < 64) {prog : LeanIsaProgram} (img : MemoryImage κ) {acc : Rows}
     {S : List Skel} (h : RowsInv img prog.logSize acc S) {st : Step}
     (hst : StepOk prog img st) :
     RowsInv img prog.logSize (stepRows (powIndex κ) img acc st) (S ++ [st.toSkel]) := by
   obtain ⟨hslot, hpc, -, next, hex⟩ := hst
-  have hvalid : ∀ a ∈ readAddrs img st.fp st.ins, ∃ i, i < 2 ^ κ ∧ a = gpow i := by
+  have hvalid : ∀ a ∈ readAddrs img st.fp st.ins, ∃ i, i < 2 ^ κ ∧ a = addressOfIndex i := by
     intro a ha
     obtain ⟨w, hw⟩ := readAddrs_valid hex a ha
     obtain ⟨i, hi, -⟩ := (MemoryImage.read_eq_some_iff hκ img).mp hw
@@ -344,7 +348,7 @@ theorem rowsInv_step (hκ : κ < 64) {prog : Program} (img : MemoryImage κ) {ac
 /-- **The rows of a valid run's steps.** Over steps that each fetch and execute, the pass holds,
 table by table, the raw rows of the rows of their skeletons, and its counters are `g` to the
 finalize counts. -/
-theorem rowsInv_rowsOf (hκ : κ < 64) {prog : Program} (img : MemoryImage κ) (L : List Step)
+theorem rowsInv_rowsOf (hκ : κ < 64) {prog : LeanIsaProgram} (img : MemoryImage κ) (L : List Step)
     (hL : ∀ st ∈ L, StepOk prog img st) :
     RowsInv img prog.logSize (rowsOf (powIndex κ) img prog.logSize L.toArray)
       (L.map Step.toSkel) := by

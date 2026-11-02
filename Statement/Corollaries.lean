@@ -26,7 +26,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 /-- **The decoding `d` explains the statement `s`**: it is the deployed seed, `s` and a witness
 holding `s`; or the decoded seed and statement, with the deployed seed and `s`, give a Keccak-256
 collision among the candidates. -/
-def ExplainsStatement (guest : Program) (s : NodeStatement) (d : SeedStatementAndWitness) :
+def ExplainsStatement (guest : LeanIsaProgram) (s : NodeStatement) (d : SeedStatementAndWitness) :
     Prop :=
   (d.seed = deployedSeed guest ∧ d.statement = s ∧
       NodeRelation (bytecodeWords guest) (deployedSeed guest) s d.witness) ∨
@@ -47,12 +47,12 @@ bound of `KnowledgeSoundness`, `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`
 queries to `π`, `π⁻¹`. Keccak-256 and Keccak-f[1600] outside the executed program are built from
 `π`; the statement's digest and the collisions are of the deployed Keccak-256, which the guest
 program computes. -/
-def AggregateSound (guest : Program) (guestWitnessDecoder : LeanVM.Cost.MachineProgram)
+def AggregateSound (guest : LeanIsaProgram) (guestWitnessDecoder : LeanVM.Cost.MachineProgram)
     (extractor : StraightLineExtractor) : Prop :=
   ∀ (A : RandomPermutationAdversary) (Q : ℕ),
     Common.QueryCostAtMost A Common.permutationCallCost Q → Q ≤ 2 ^ 128 →
-    Pr{let z ← soundnessExperiment A}[∃ s : NodeStatement, z.accepted ∧ z.program = guest ∧
-      publicDigest z.input = statementDigest (deployedSeed guest) s ∧
+    Pr{let z ← knowledgeSoundnessExperiment A}[∃ s : NodeStatement, z.accepted ∧ z.program = guest ∧
+      publicInputDigest z.input = statementDigest (deployedSeed guest) s ∧
       s.deferredClaim.HasBytecodeShape (bytecodeWords guest) ∧
       ¬ ∃ t, ∃ d : SeedStatementAndWitness,
         extractor z.program z.input z.transcript z.proof = some t ∧
@@ -125,7 +125,7 @@ structure Corollaries
   with the bound of `knowledgeSoundness`: from `knowledgeSoundness`, `guestKnowledge` and
   `digestBinds`. -/
   aggregateSound : LeanVM.Node.AggregateSound LeanVM.Guest.guestProgram guestWitnessDecoder
-    (LeanVM.knowledgeExtractorOf leanVmKnowledgeExtractor)
+    (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)
   /-- The leanISA guest program is complete on every recursion node of at most `2048` claims
   holding no raw signature and no blob itself, its children carrying honest proofs: from
   `guestCompleteOnHonestChildren`. -/

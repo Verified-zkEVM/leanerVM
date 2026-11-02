@@ -88,7 +88,7 @@ theorem xLayer0_complete (hm : MemOK rd 64) (σ : Val) (hpre : XPre σ) (hPc : I
         ∀ σ'', AgreeBelow (xLayer 0 196 (.n 0)).2.1 σ' σ'' → σ'' (.n 196) = rho ∧ σ'' (.n 199) = c ∧
           σ'' (.n 200) = d ∧
           (∀ q ≤ 19, σ'' (.n (cwState (xW 0 196) (xA 0 196 + 6) q).2.2) =
-            ofK (gpow (nDigits 19 (dN (hcell [σ (.n 1), σ (xNode 0) + word (tw 12) 0 0, c, d, rho]).1) q))) ∧
+            ofK (addressOfIndex (nDigits 19 (dN (hcell [σ (.n 1), σ (xNode 0) + word (tw 12) 0 0, c, d, rho]).1) q))) ∧
           (∀ i < 58, σ'' (cwPos (xW 0 196) 19 (xA 0 196 + 6)
             (nDigits 19 (dN (hcell [σ (.n 1), σ (xNode 0) + word (tw 12) 0 0, c, d, rho]).1)) i) = vals i) ∧
           ∀ l < 16, mSib σ'' (xBitOf 0) l (mBase (xNodeOf 0) 0 l (xLeafK 0 196).2.1) = sibs l) := by
@@ -163,7 +163,8 @@ theorem xLayer1_complete {b : Nat} {root : V} (hb : 211 ≤ b) (hroot : NBv b ro
     Completes C rd b (xLayer 1 b root).2.1 (xLayer 1 b root).1 σ
       (fun σ' => IsCanonical128 (σ' (xLayer 1 b root).2.2) ∧
         ∀ σ'', AgreeBelow (xLayer 1 b root).2.1 σ' σ'' → σ'' (.n (b + 2)) = rho ∧
-          (∀ q ≤ 19, σ'' (.n (cwState (xW 1 b) (xA 1 b + 6) q).2.2) = ofK (gpow (nDigits 19
+          (∀ q ≤ 19, σ'' (.n (cwState (xW 1 b) (xA 1 b + 6) q).2.2) = ofK (addressOfIndex
+              (nDigits 19
             (dN (hcell [σ (.n 1), σ (xNode 16) + word lxTop 0 0 + word (tw 12) 0 0, σ root, rho]).1) q))) ∧
           (∀ i < 58, σ'' (cwPos (xW 1 b) 19 (xA 1 b + 6) (nDigits 19
             (dN (hcell [σ (.n 1), σ (xNode 16) + word lxTop 0 0 + word (tw 12) 0 0, σ root, rho]).1)) i) =

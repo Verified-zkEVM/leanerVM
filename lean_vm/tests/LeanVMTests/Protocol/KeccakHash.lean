@@ -113,21 +113,21 @@ example : keccakF1600 (Vector.replicate 25 0) = keccakFZero := by decide +kernel
 /-! ## The digest encoding -/
 
 /- The first half of the `"abc"` digest: its words `0` and `1` as the two low limbs. -/
-#guard (digestScalars abcDigest).1 =
+#guard (digestHalves abcDigest).1 =
   E.ofLimbs (K.ofBits 0x4fa945ea7a65034e) (K.ofBits 0x67d6c826a87bd4c7) 0
 
-#guard (digestScalars abcDigest).2 =
+#guard (digestHalves abcDigest).2 =
   E.ofLimbs (K.ofBits 0x36a0643ae3e6d1c0) (K.ofBits 0x456c2da18ff544ec) 0
 
-#guard digestOfScalars (digestScalars abcDigest) = some abcDigest
+#guard digestFromHalves (digestHalves abcDigest) = some abcDigest
 
 /- A nonzero top limb in either half is rejected (`Digest.from_halves`). -/
-#guard digestOfScalars
+#guard digestFromHalves
   (E.ofLimbs (K.ofBits 0x4fa945ea7a65034e) (K.ofBits 0x67d6c826a87bd4c7) (K.ofBits 1),
-    (digestScalars abcDigest).2) = none
+    (digestHalves abcDigest).2) = none
 
-#guard digestOfScalars
-  ((digestScalars abcDigest).1,
+#guard digestFromHalves
+  ((digestHalves abcDigest).1,
     E.ofLimbs (K.ofBits 0x36a0643ae3e6d1c0) (K.ofBits 0x456c2da18ff544ec) (K.ofBits 1)) = none
 
 end LeanVMTests.Protocol.KeccakHash

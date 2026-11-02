@@ -70,7 +70,8 @@ theorem sEnd_complete (hm : MemOK rd 256) (σ : Val) (hg : SGood sEnc.2.1 σ) {N
     {sibs : Nat → E} (hsc : ∀ l < 26, IsCanonical128 (sibs l)) :
     Completes C rd (sEnc.2.1 + 10) sMk.2.1 (sCw.1 ++ sEndPre) σ
       (fun σ' => IsCanonical128 (σ' sMk.2.2) ∧ ∀ σ'', AgreeBelow sMk.2.1 σ' σ'' →
-        (∀ q ≤ 21, σ'' (.n (cwState sW (sEnc.2.1 + 10) q).2.2) = ofK (gpow (nDigits 21 N q))) ∧
+        (∀ q ≤ 21, σ'' (.n (cwState sW (sEnc.2.1 + 10) q).2.2) = ofK (addressOfIndex (nDigits 21
+            N q))) ∧
         (∀ i < 64, σ'' (cwPos sW 21 (sEnc.2.1 + 10) (nDigits 21 N) i) = vals i) ∧
         ∀ l < 26, mSib σ'' sBit l (mBase sNodeOf 0 l sLeaf.2.1) = sibs l) := by
   have hB := sB_ge

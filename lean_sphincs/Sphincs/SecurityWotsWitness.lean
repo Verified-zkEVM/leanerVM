@@ -18,7 +18,7 @@ attribute [local irreducible] chainWalk
 
 theorem leafPayload_injective {endpoints endpoints' : ChainIndex → Digest}
     (h : leafPayload endpoints = leafPayload endpoints') : endpoints = endpoints' :=
-  flatMap_ofFn_injective (bytesLE 16) 16 (bytesLE_length 16)
+  flatMap_ofFn_injective (littleEndianBytes 16) 16 (bytesLE_length 16)
     (fun _ _ => bytesLE_injective) h
 
 variable (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
@@ -26,7 +26,8 @@ variable (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
 
 /-- The encoding's input: the forest key's sixteen nodes, then the counter. -/
 def encodingInput (message : ForestKey) (counter : Counter) : HashInput :=
-  tweakableHashInput parameter (.encoding lay tree leaf) (rootsPayload message ++ bytesLE 4 counter)
+  tweakableHashInput parameter (.encoding lay tree leaf) (rootsPayload message ++ littleEndianBytes
+      4 counter)
 
 theorem encodingInput_injective {message message' : ForestKey} {counter counter' : Counter}
     (h : encodingInput parameter lay tree leaf message counter =

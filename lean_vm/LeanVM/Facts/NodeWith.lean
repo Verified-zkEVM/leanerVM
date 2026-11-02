@@ -44,13 +44,13 @@ variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState
 def xmssVerifyWith (pk : HashSig.PublicKey) (message : HashSig.Message)
     (σ : LeanXmss.Signature) : m Bool :=
   letI : HasQuery LeanXmss.HashSpec m := ⟨fun x ↦ digestBits <$> H x⟩
-  LeanXmss.Concrete.verifyWithHash pk message σ
+  LeanXmss.Verification.verifyWithHash pk message σ
 
 /-- leanSPHINCS verification with the hash `H`. -/
 def sphincsVerifyWith (pk : Sphincs.PublicKey) (message : Sphincs.Message)
     (σ : Sphincs.Signature) : m Bool :=
   letI : HasQuery Sphincs.HashSpec m := ⟨fun x ↦ digestBits <$> H x⟩
-  Sphincs.Concrete.verifyWithHash pk message σ
+  Sphincs.Verification.verifyWithHash pk message σ
 
 /-! ### The statement's digest -/
 

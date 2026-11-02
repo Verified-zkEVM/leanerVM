@@ -79,7 +79,8 @@ theorem honestChain_succ (position : Nat) (hposition : position < chainLength - 
     honestChain f parameter lay tree leaf chainIdx secret (position + 1)
       = truncateHash (f (tweakableHashInput parameter
           (.chain lay tree leaf chainIdx ⟨position, hposition⟩)
-          ((bytesLE 16) (honestChain f parameter lay tree leaf chainIdx secret position)))) := by
+          ((littleEndianBytes 16) (honestChain f parameter lay tree leaf chainIdx secret
+              position)))) := by
   simp only [honestChain, chainWalk_eq_succ, evalWithAnswerFn_bind, Nat.zero_add, dite_eq_left hposition,
     Completeness.eval_tweakableHash]
 
@@ -88,7 +89,8 @@ theorem walkValue_succ (start : Nat) (value : Digest) (steps : Nat)
     walkValue f parameter lay tree leaf chainIdx start value (steps + 1)
       = truncateHash (f (tweakableHashInput parameter
           (.chain lay tree leaf chainIdx ⟨start + steps, hrange⟩)
-          ((bytesLE 16) (walkValue f parameter lay tree leaf chainIdx start value steps)))) := by
+          ((littleEndianBytes 16) (walkValue f parameter lay tree leaf chainIdx start value
+              steps)))) := by
   simp only [walkValue, chainWalk_eq_succ, evalWithAnswerFn_bind, dite_eq_left hrange, Completeness.eval_tweakableHash]
 
 /-- A hit at a chain step: something other than the honest value at `position` hashing to the honest
@@ -96,7 +98,7 @@ value at `position + 1`. -/
 def ChainHit (position : Nat) (hposition : position < chainLength - 1) (payload : Digest) : Prop :=
   payload ≠ honestChain f parameter lay tree leaf chainIdx secret position
     ∧ truncateHash (f (tweakableHashInput parameter
-        (.chain lay tree leaf chainIdx ⟨position, hposition⟩) ((bytesLE 16) payload)))
+        (.chain lay tree leaf chainIdx ⟨position, hposition⟩) ((littleEndianBytes 16) payload)))
       = honestChain f parameter lay tree leaf chainIdx secret (position + 1)
 
 theorem chainWalk_extract_above (start : Nat) (value : Digest) (steps cutoff : Nat)
@@ -132,7 +134,8 @@ theorem chainWalk_query_mem (lay : Layer) (tree : TreeIndex) (leafIdx : LeafInde
     (chainIdx : ChainIndex) (start steps : Nat) (value : Digest) (offset : Nat)
     (hoffset : offset < steps) (hrange : start + offset < chainLength - 1) :
     tweakableHashInput parameter (.chain lay tree leafIdx chainIdx ⟨start + offset, hrange⟩)
-        ((bytesLE 16) (walkValue f parameter lay tree leafIdx chainIdx start value offset))
+        ((littleEndianBytes 16) (walkValue f parameter lay tree leafIdx chainIdx start value
+            offset))
       ∈ queriedInputs f (chainWalk parameter lay tree leafIdx chainIdx start steps value) := by
   induction steps generalizing offset with
   | zero => omega
@@ -150,34 +153,37 @@ theorem chainWalk_query_mem (lay : Layer) (tree : TreeIndex) (leafIdx : LeafInde
         exact ih offset (by omega) hrange
 
 /-- A different predecessor queried at or above the published chain position. -/
-def ForwardMatch (reference : Digit) (trace : List HashInput) : Prop :=
+def ForwardMatch (reference : WinternitzDigit) (trace : List HashInput) : Prop :=
   ∃ (step : ChainStep) (payload : Digest), reference.val ≤ step.val ∧
-    tweakableHashInput parameter (.chain lay tree leaf chainIdx step) (bytesLE 16 payload) ∈ trace ∧
+    tweakableHashInput parameter (.chain lay tree leaf chainIdx step) (littleEndianBytes 16 payload)
+        ∈ trace ∧
     ChainHit f parameter lay tree leaf chainIdx secret step.val step.isLt payload
 
 /-- One queried edge immediately below a published chain position reaches that frontier. -/
-def Contact (reference : Digit) (frontier : Digest) (trace : List HashInput) : Prop :=
+def Contact (reference : WinternitzDigit) (frontier : Digest) (trace : List HashInput) : Prop :=
   ∃ (step : ChainStep) (payload : Digest), step.val + 1 = reference.val ∧
-    tweakableHashInput parameter (.chain lay tree leaf chainIdx step) (bytesLE 16 payload) ∈ trace ∧
+    tweakableHashInput parameter (.chain lay tree leaf chainIdx step) (littleEndianBytes 16 payload)
+        ∈ trace ∧
     truncateHash (f (tweakableHashInput parameter (.chain lay tree leaf chainIdx step)
-      (bytesLE 16 payload))) = frontier
+      (littleEndianBytes 16 payload))) = frontier
 
 /-- Two consecutive queried edges below a published position reach its frontier. -/
-def TwoEdge (reference : Digit) (frontier : Digest) (trace : List HashInput) : Prop :=
+def TwoEdge (reference : WinternitzDigit) (frontier : Digest) (trace : List HashInput) : Prop :=
   ∃ (first second : ChainStep) (payload middle : Digest),
     first.val + 1 = second.val ∧ second.val + 1 = reference.val ∧
-    tweakableHashInput parameter (.chain lay tree leaf chainIdx first) (bytesLE 16 payload) ∈ trace ∧
-    tweakableHashInput parameter (.chain lay tree leaf chainIdx second) (bytesLE 16 middle) ∈ trace ∧
+    tweakableHashInput parameter (.chain lay tree leaf chainIdx first) (littleEndianBytes 16 payload) ∈ trace ∧
+    tweakableHashInput parameter (.chain lay tree leaf chainIdx second) (littleEndianBytes 16 middle) ∈ trace ∧
     truncateHash (f (tweakableHashInput parameter (.chain lay tree leaf chainIdx first)
-      (bytesLE 16 payload))) = middle ∧
+      (littleEndianBytes 16 payload))) = middle ∧
     truncateHash (f (tweakableHashInput parameter (.chain lay tree leaf chainIdx second)
-      (bytesLE 16 middle))) = frontier
+      (littleEndianBytes 16 middle))) = frontier
 
 attribute [local irreducible] chainWalk
 
 /-- Without a forward distinct-input hit, endpoint agreement propagates back to every position
 at or above the published frontier. -/
-theorem recover_canonical_above (reference digit : Digit) (value : Digest) (trace : List HashInput)
+theorem recover_canonical_above (reference digit : WinternitzDigit) (value : Digest) (trace : List
+    HashInput)
     (cutoff : Nat) (hcut : cutoff ≤ chainLength - 1 - digit.val)
     (habove : reference.val ≤ digit.val + cutoff)
     (hendpoint : evalWithAnswerFn f (recoverChain parameter lay tree leaf chainIdx digit value)
@@ -198,7 +204,8 @@ theorem recover_canonical_above (reference digit : Digit) (value : Digest) (trac
       hrun _ (chainWalk_query_mem f parameter lay tree leaf chainIdx digit.val
         (chainLength - 1 - digit.val) value offset hs ho), hh⟩)
 
-theorem recover_frontier (reference digit : Digit) (value : Digest) (trace : List HashInput)
+theorem recover_frontier (reference digit : WinternitzDigit) (value : Digest) (trace : List
+    HashInput)
     (hbelow : digit.val ≤ reference.val)
     (hendpoint : evalWithAnswerFn f (recoverChain parameter lay tree leaf chainIdx digit value)
       = honestChain f parameter lay tree leaf chainIdx secret (chainLength - 1))
@@ -211,7 +218,7 @@ theorem recover_frontier (reference digit : Digit) (value : Digest) (trace : Lis
     chainIdx secret reference digit value trace (reference.val - digit.val)
     (by omega) (by omega) hendpoint hrun hforward
 
-theorem recover_value (reference digit : Digit) (value : Digest) (trace : List HashInput)
+theorem recover_value (reference digit : WinternitzDigit) (value : Digest) (trace : List HashInput)
     (habove : reference.val ≤ digit.val)
     (hendpoint : evalWithAnswerFn f (recoverChain parameter lay tree leaf chainIdx digit value)
       = honestChain f parameter lay tree leaf chainIdx secret (chainLength - 1))
@@ -223,7 +230,8 @@ theorem recover_value (reference digit : Digit) (value : Digest) (trace : List H
       0 (by omega) (by omega) hendpoint hrun hforward
 
 /-- The last verifier query before a lower digit reaches the reference frontier. -/
-theorem recover_contact (reference digit : Digit) (value frontier : Digest) (trace : List HashInput)
+theorem recover_contact (reference digit : WinternitzDigit) (value frontier : Digest) (trace : List
+    HashInput)
     (hbelow : digit.val < reference.val)
     (hfrontier : walkValue f parameter lay tree leaf chainIdx digit.val value
       (reference.val - digit.val) = frontier)
@@ -241,7 +249,8 @@ theorem recover_contact (reference digit : Digit) (value frontier : Digest) (tra
     exact hfrontier
 
 /-- A two-step deficit produces both linked queries, not merely the terminal preimage. -/
-theorem recover_twoEdge (reference digit : Digit) (value frontier : Digest) (trace : List HashInput)
+theorem recover_twoEdge (reference digit : WinternitzDigit) (value frontier : Digest) (trace : List
+    HashInput)
     (hbelow : digit.val + 2 ≤ reference.val)
     (hfrontier : walkValue f parameter lay tree leaf chainIdx digit.val value
       (reference.val - digit.val) = frontier)
@@ -271,11 +280,13 @@ addresses (the step bits of the type byte). -/
 theorem chain_input_address_injective (parameter : PublicParameter) (lay : Layer)
     (tree : TreeIndex) (leaf : LeafIndex) {chain chain' : ChainIndex}
     {step step' : ChainStep} (payload payload' : Digest)
-    (heq : tweakableHashInput parameter (.chain lay tree leaf chain step) (bytesLE 16 payload) =
-      tweakableHashInput parameter (.chain lay tree leaf chain' step') (bytesLE 16 payload')) :
+    (heq : tweakableHashInput parameter (.chain lay tree leaf chain step) (littleEndianBytes 16
+        payload) =
+      tweakableHashInput parameter (.chain lay tree leaf chain' step') (littleEndianBytes 16
+          payload')) :
     chain = chain' ∧ step = step' := by
   obtain ⟨hprefix, _⟩ := List.append_inj heq (by
-    simp [tweakBytes, fieldBytes, bytesLE_length])
+    simp [tweakBytes, addressBytes, bytesLE_length])
   obtain ⟨_, htweak⟩ := List.append_inj hprefix (by simp [bytesLE_length])
   have hfields := fieldBytes_injective htweak
   have hhi := congrArg HashSig.TweakFields.hi hfields

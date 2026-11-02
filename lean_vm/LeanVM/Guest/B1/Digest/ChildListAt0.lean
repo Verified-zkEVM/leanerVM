@@ -117,7 +117,7 @@ noncomputable def cczσ (rd : Reader) (args : List E) : Val :=
 /-- The oracle of the nonempty list's valuation. -/
 noncomputable def ccw (m r : ℕ) (chain : E) (D : Digest) (i : ℕ) : E :=
   if i = 27 then gen ^ m else if i = 28 then gen ^ r else if i = 36 then chain
-  else if i = 14 ∨ i = 65 then (digestScalars D).1 else if i = 15 ∨ i = 66 then (digestScalars D).2
+  else if i = 14 ∨ i = 65 then (digestHalves D).1 else if i = 15 ∨ i = 66 then (digestHalves D).2
   else 0
 
 /-- The nonempty list's valuation. -/
@@ -189,8 +189,8 @@ structure CcVals (rd : Reader) (σ : Val) (args : List E) (n : ℕ) (chain : E) 
   par : [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] = args
   v5 : σ (.n 5) = gen ^ n
   v7 : σ (.n 7) = gen ^ n + gen ^ 0
-  v14 : σ (.n 14) = (digestScalars D).1
-  v15 : σ (.n 15) = (digestScalars D).2
+  v14 : σ (.n 14) = (digestHalves D).1
+  v15 : σ (.n 15) = (digestHalves D).2
   v27 : σ (.n 27) = gen ^ (n / 17)
   v28 : σ (.n 28) = gen ^ (n % 17)
   v35 : σ (.n 35) = gen ^ (13 * (n / 17 + 1))
@@ -199,10 +199,10 @@ structure CcVals (rd : Reader) (σ : Val) (args : List E) (n : ℕ) (chain : E) 
   v52 : σ (.n 52) = 1
   v58 : σ (.n 58) = chain * gen ^ (13 * (n / 17))
   v64 : σ (.n 64) = σ (.n 2) * gen ^ (17 * (n / 17))
-  v65 : σ (.n 65) = (digestScalars D).1
-  v66 : σ (.n 66) = (digestScalars D).2
-  v67 : σ (.n 67) = (digestScalars D).1
-  v68 : σ (.n 68) = (digestScalars D).2
+  v65 : σ (.n 65) = (digestHalves D).1
+  v66 : σ (.n 66) = (digestHalves D).2
+  v67 : σ (.n 67) = (digestHalves D).1
+  v68 : σ (.n 68) = (digestHalves D).2
 
 set_option maxRecDepth 100000 in
 theorem cc_size_atoms : ∀ a ∈ [Atom.const (.n 29) (word 2 0 0), .mul (.n 30) (.n 27) (.n 29),
@@ -233,10 +233,10 @@ theorem cc_core {entries cover base origin limit chain : E} {n : ℕ} (D : Diges
   have w27 : w 27 = gen ^ m := by rw [hw]; simp [ccw]
   have w28 : w 28 = gen ^ r := by rw [hw]; simp [ccw]
   have w36 : w 36 = chain := by rw [hw]; simp [ccw]
-  have w14 : w 14 = (digestScalars D).1 := by rw [hw]; simp [ccw]
-  have w65 : w 65 = (digestScalars D).1 := by rw [hw]; simp [ccw]
-  have w15 : w 15 = (digestScalars D).2 := by rw [hw]; simp [ccw]
-  have w66 : w 66 = (digestScalars D).2 := by rw [hw]; simp [ccw]
+  have w14 : w 14 = (digestHalves D).1 := by rw [hw]; simp [ccw]
+  have w65 : w 65 = (digestHalves D).1 := by rw [hw]; simp [ccw]
+  have w15 : w 15 = (digestHalves D).2 := by rw [hw]; simp [ccw]
+  have w66 : w 66 = (digestHalves D).2 := by rw [hw]; simp [ccw]
   obtain ⟨c', hchk⟩ := Option.isSome_iff_exists.mp b2
   let args : List E := [entries, cover, base, origin, limit, gen ^ n]
   set σ := ccσ rd args n chain D with hσ
@@ -301,14 +301,14 @@ theorem cc_core {entries cover base origin limit chain : E} {n : ℕ} (D : Diges
     obtain ⟨s, hs, he⟩ := List.any_eq_true.mp b7; rwa [stmtEqb_sound he] at hs
   have gd : ∀ v ∈ [V.n 65, V.n 66], σ v = w v.idx := hgs _ (mP _ hdisp)
   have gc : ∀ v ∈ [V.n 27, V.n 28], σ v = w v.idx := hgs _ (mP _ hcall)
-  have v65 : σ (.n 65) = (digestScalars D).1 := (gd _ (by simp)).trans w65
-  have v66 : σ (.n 66) = (digestScalars D).2 := (gd _ (by simp)).trans w66
+  have v65 : σ (.n 65) = (digestHalves D).1 := (gd _ (by simp)).trans w65
+  have v66 : σ (.n 66) = (digestHalves D).2 := (gd _ (by simp)).trans w66
   have v27 : σ (.n 27) = gen ^ m := (gc _ (by simp)).trans w27
   have v28 : σ (.n 28) = gen ^ r := (gc _ (by simp)).trans w28
-  have v14 : σ (.n 14) = (digestScalars D).1 := by
+  have v14 : σ (.n 14) = (digestHalves D).1 := by
     have : σ (.n 14) = w 14 := hgs _ (mF 6 (by omega))
     rw [this, w14]
-  have v15 : σ (.n 15) = (digestScalars D).2 := by
+  have v15 : σ (.n 15) = (digestHalves D).2 := by
     have : σ (.n 15) = w 15 := hgs _ (mF 7 (by omega))
     rw [this, w15]
   have hatElse : ∀ a ∈ atomsIn cc24Else, a.Holds rd σ := by

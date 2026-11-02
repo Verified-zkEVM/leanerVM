@@ -47,7 +47,7 @@ instance {n : ℕ} : MachineDecoding (Fin n) where
   decodeValue | .nat i => if h : i < n then some ⟨i, h⟩ else none | _ => none
 
 instance : MachineDecoding Bool where
-  decodeValue | .ctor 0 [] => some false | .ctor 1 [] => some true | _ => none
+  decodeValue | .constructor 0 [] => some false | .constructor 1 [] => some true | _ => none
 
 instance {w : ℕ} : MachineDecoding (BitVec w) where
   decodeValue | .nat n => some (BitVec.ofNat w n) | _ => none
@@ -62,17 +62,17 @@ instance {α : Type} [MachineDecoding α] : MachineDecoding (List α) :=
   ⟨fun v ↦ (MachineValue.toList? v).bind (·.mapM decodeValue)⟩
 
 instance {α β : Type} [MachineDecoding α] [MachineDecoding β] : MachineDecoding (α × β) where
-  decodeValue | .ctor 0 [a, b] => do pure (← decodeValue a, ← decodeValue b) | _ => none
+  decodeValue | .constructor 0 [a, b] => do pure (← decodeValue a, ← decodeValue b) | _ => none
 
 instance {α : Type} [MachineDecoding α] : MachineDecoding (Option α) where
   decodeValue
-    | .ctor 0 [] => some none
-    | .ctor 1 [a] => (decodeValue a).map some
+    | .constructor 0 [] => some none
+    | .constructor 1 [a] => (decodeValue a).map some
     | _ => none
 
 instance {α : Type} [MachineDecoding α] {n : ℕ} : MachineDecoding (Vector α n) where
   decodeValue
-    | .arr xs =>
+    | .array xs =>
       match xs.toList.mapM decodeValue with
       | some ys => if h : ys.length = n then some ⟨ys.toArray, by simpa using h⟩ else none
       | none => none
@@ -80,7 +80,7 @@ instance {α : Type} [MachineDecoding α] {n : ℕ} : MachineDecoding (Vector α
 
 /-- A function of a finite domain from the array of its values. -/
 def decodeFiniteFunction {α : Type} [MachineDecoding α] {n : ℕ} : MachineValue → Option (Fin n → α)
-  | .arr xs =>
+  | .array xs =>
     match xs.toList.mapM decodeValue with
     | some ys =>
       if h : ys.length = n then some fun i ↦ ys[i.val]'(by rw [h]; exact i.isLt) else none
@@ -91,77 +91,77 @@ instance {α : Type} [MachineDecoding α] {n : ℕ} : MachineDecoding (Fin n →
   ⟨decodeFiniteFunction⟩
 
 instance : MachineDecoding Opening where
-  decodeValue | .ctor 0 [l, p] => do pure ⟨← decodeValue l, ← decodeValue p⟩ | _ => none
+  decodeValue | .constructor 0 [l, p] => do pure ⟨← decodeValue l, ← decodeValue p⟩ | _ => none
 
 instance : MachineDecoding Proof where
-  decodeValue | .ctor 0 [s, o] => do pure ⟨← decodeValue s, ← decodeValue o⟩ | _ => none
+  decodeValue | .constructor 0 [s, o] => do pure ⟨← decodeValue s, ← decodeValue o⟩ | _ => none
 
 instance : MachineDecoding HashSig.PublicKey where
-  decodeValue | .ctor 0 [r, p] => do pure ⟨← decodeValue r, ← decodeValue p⟩ | _ => none
+  decodeValue | .constructor 0 [r, p] => do pure ⟨← decodeValue r, ← decodeValue p⟩ | _ => none
 
 instance : MachineDecoding LeanXmss.LayerSignature where
   decodeValue
-    | .ctor 0 [r, c, p] =>
+    | .constructor 0 [r, c, p] =>
       do pure ⟨← decodeValue r, ← decodeValue c, ← decodeValue p⟩
     | _ => none
 
 instance : MachineDecoding LeanXmss.Signature where
-  decodeValue | .ctor 0 [i, l] => do pure ⟨← decodeValue i, ← decodeValue l⟩ | _ => none
+  decodeValue | .constructor 0 [i, l] => do pure ⟨← decodeValue i, ← decodeValue l⟩ | _ => none
 
 instance : MachineDecoding Sphincs.SubtreeOpening where
-  decodeValue | .ctor 0 [v, p] => do pure ⟨← decodeValue v, ← decodeValue p⟩ | _ => none
+  decodeValue | .constructor 0 [v, p] => do pure ⟨← decodeValue v, ← decodeValue p⟩ | _ => none
 
 instance : MachineDecoding Sphincs.CoordinateOpening where
-  decodeValue | .ctor 0 [s, t] => do pure ⟨← decodeValue s, ← decodeValue t⟩ | _ => none
+  decodeValue | .constructor 0 [s, t] => do pure ⟨← decodeValue s, ← decodeValue t⟩ | _ => none
 
 instance : MachineDecoding Sphincs.Signature where
   decodeValue
-    | .ctor 0 [r, f, c, v, p] =>
+    | .constructor 0 [r, f, c, v, p] =>
       do pure ⟨← decodeValue r, ← decodeValue f, ← decodeValue c, ← decodeValue v, ← decodeValue p⟩
     | _ => none
 
 instance : MachineDecoding BytecodeClaim where
-  decodeValue | .ctor 0 [p, v] => do pure ⟨← decodeValue p, ← decodeValue v⟩ | _ => none
+  decodeValue | .constructor 0 [p, v] => do pure ⟨← decodeValue p, ← decodeValue v⟩ | _ => none
 
 instance : MachineDecoding DaClaim where
-  decodeValue | .ctor 0 [r, v] => do pure ⟨← decodeValue r, ← decodeValue v⟩ | _ => none
+  decodeValue | .constructor 0 [r, v] => do pure ⟨← decodeValue r, ← decodeValue v⟩ | _ => none
 
 instance : MachineDecoding Da.MatrixWitness where
-  decodeValue | .ctor 0 [r, v] => do pure ⟨← decodeValue r, ← decodeValue v⟩ | _ => none
+  decodeValue | .constructor 0 [r, v] => do pure ⟨← decodeValue r, ← decodeValue v⟩ | _ => none
 
 instance : MachineDecoding NodeClaims where
   decodeValue
-    | .ctor 0 [x, s, d] =>
+    | .constructor 0 [x, s, d] =>
       do pure ⟨← decodeValue x, ← decodeValue s, ← decodeValue d⟩
     | _ => none
 
 instance : MachineDecoding NodeStatement where
-  decodeValue | .ctor 0 [c, d] => do pure ⟨← decodeValue c, ← decodeValue d⟩ | _ => none
+  decodeValue | .constructor 0 [c, d] => do pure ⟨← decodeValue c, ← decodeValue d⟩ | _ => none
 
 instance : MachineDecoding Child where
   decodeValue
-    | .ctor 0 [s, f, p] =>
+    | .constructor 0 [s, f, p] =>
       do pure ⟨← decodeValue s, ← decodeValue f, ← decodeValue p⟩
     | _ => none
 
 instance {W : Type} [MachineDecoding W] : MachineDecoding (ClaimHolder W) where
   decodeValue
-    | .ctor 0 [w] => (decodeValue w).map .direct
-    | .ctor 1 [i] => (decodeValue i).map .child
+    | .constructor 0 [w] => (decodeValue w).map .direct
+    | .constructor 1 [i] => (decodeValue i).map .child
     | _ => none
 
 instance : MachineDecoding BatchingHints where
-  decodeValue | .ctor 0 [m, v] => do pure ⟨← decodeValue m, ← decodeValue v⟩ | _ => none
+  decodeValue | .constructor 0 [m, v] => do pure ⟨← decodeValue m, ← decodeValue v⟩ | _ => none
 
 instance : MachineDecoding NodeWitness where
   decodeValue
-    | .ctor 0 [c, x, s, d, h] =>
+    | .constructor 0 [c, x, s, d, h] =>
       do pure ⟨← decodeValue c, ← decodeValue x, ← decodeValue s, ← decodeValue d, ← decodeValue h⟩
     | _ => none
 
 instance : MachineDecoding SeedStatementAndWitness where
   decodeValue
-    | .ctor 0 [s, t, w] =>
+    | .constructor 0 [s, t, w] =>
       do pure ⟨← decodeValue s, ← decodeValue t, ← decodeValue w⟩
     | _ => none
 
@@ -242,7 +242,7 @@ instance {α : Type} [MachineEncoding α] [MachineDecoding α] [LawfulMachineDec
       have : (List.ofFn fun i ↦ encodeValue (f i)) = (List.ofFn f).map encodeValue := by
         rw [List.map_ofFn]; rfl
       rw [Array.toList_ofFn, this, mapM_decodeValue_map_encodeValue]
-    show decodeFiniteFunction (.arr (Array.ofFn fun i ↦ encodeValue (f i))) = some f
+    show decodeFiniteFunction (.array (Array.ofFn fun i ↦ encodeValue (f i))) = some f
     simp only [decodeFiniteFunction]
     rw [hm]
     simp only [List.length_ofFn, ↓reduceDIte, Option.some.injEq]

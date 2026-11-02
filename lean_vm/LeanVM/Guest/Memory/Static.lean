@@ -72,7 +72,7 @@ def Aff.scale (n : ℕ) (a : Aff) : Aff := ⟨n * a.c, a.cs.map fun q => (q.1, n
 
 /-- Preconditions `(k, a)`: argument `k` is `g^b` with `a < b` below the order of `g`. -/
 def ArgsPre (pre : List (ℕ × ℕ)) (args : List E) : Prop :=
-  ∀ q ∈ pre, ∃ b, q.2 < b ∧ b < 2 ^ 64 - 1 ∧ args.getD q.1 0 = ofK (gpow b)
+  ∀ q ∈ pre, ∃ b, q.2 < b ∧ b < 2 ^ 64 - 1 ∧ args.getD q.1 0 = ofK (addressOfIndex b)
 
 /-- A function's certificate. -/
 inductive Cert where

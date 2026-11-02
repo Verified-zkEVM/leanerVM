@@ -128,8 +128,8 @@ theorem l22_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop21" (x :: 
 theorem l23_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop22" (x :: ps) []) :
     (∀ N pbT rt, ps = [N, pbT, rt] → ∃ run, LoadHolds rd (pbT * x) 0 run ∧
       ReadsAt rd run (memRun rd run 128) ∧
-      LoadHolds rd (rt * x ^ 2) 0 (digestScalars (keccak256 (cellsBytes (memRun rd run 128)))).1 ∧
-      LoadHolds rd (rt * x ^ 2) 1 (digestScalars (keccak256 (cellsBytes (memRun rd run 128)))).2) ∧
+      LoadHolds rd (rt * x ^ 2) 0 (digestHalves (keccak256 (cellsBytes (memRun rd run 128)))).1 ∧
+      LoadHolds rd (rt * x ^ 2) 1 (digestHalves (keccak256 (cellsBytes (memRun rd run 128)))).2) ∧
       (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop22" (x * gen :: ps) []) := by
   have hok := l23_ok
   simp only [Bool.and_eq_true, decide_eq_true_eq, l23Ok] at hok
@@ -180,8 +180,8 @@ theorem l23_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop22" (x :: 
 
 /-- **A padding row**: the padding row's two cells at node `n_blob + x`. -/
 def GapRowC (rd : Reader) (node nb : E) (x : E) : Prop :=
-  LoadHolds rd (node * nb ^ 2 * x ^ 2) 0 (digestScalars daPadRowDigest).1 ∧
-    LoadHolds rd (node * nb ^ 2 * x ^ 2) 1 (digestScalars daPadRowDigest).2
+  LoadHolds rd (node * nb ^ 2 * x ^ 2) 0 (digestHalves daPadRowDigest).1 ∧
+    LoadHolds rd (node * nb ^ 2 * x ^ 2) 1 (digestHalves daPadRowDigest).2
 
 theorem l24_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop23" (x :: ps) []) :
     (∀ N node nb, ps = [N, node, nb] → GapRowC rd node nb x) ∧

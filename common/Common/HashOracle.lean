@@ -53,7 +53,8 @@ variable {Seed PK SK Req Resp F : Type}
 
 /-- The hash as the Keccak-256 oracle (`digestBitVec`). -/
 def hashKH : QueryImpl SchemeHashSpec (OracleComp KSpecH) :=
-  fun m ↦ digestBitVec <$> (liftM (KSpecH.query (.inr (.inl m))) : OracleComp KSpecH DigestBytes)
+  fun m ↦ digestBytesEquivBitVec <$> (liftM (KSpecH.query (.inr (.inl m))) : OracleComp KSpecH
+      DigestBytes)
 
 /-- The signing oracle with the hash oracle. -/
 def signingOracleKH (S : SchemeWithHash Seed PK SK Req Resp F) (sk : SK) :

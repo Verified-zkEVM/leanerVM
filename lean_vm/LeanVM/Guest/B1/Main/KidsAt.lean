@@ -55,7 +55,7 @@ namespace KidH
 
 /-- The child's statement's digest. -/
 def pi (k : KidH) (s0 s1 : E) : E × E :=
-  digestScalars (keccak256
+  digestHalves (keccak256
     (stmtBytes [s0, s1, k.cx.1, k.cx.2, k.cs.1, k.cs.2, k.da.1, k.da.2] k.defer))
 
 end KidH
@@ -316,9 +316,11 @@ theorem l5_stepAt {Lin : Layout} {W D Pi Cr nk c : ℕ}
         [(.n 16, 0), (.n 42, 0), (.n 42, 1), (.n 48, 0), (.n 49, 1), (.n 57, 1)] from rfl] at hA
     simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
     rw [hal]
-    have hW' : ∀ e, (gen ^ W * gen ^ c).limb 0 * gpow e = gpow (W + c + e) := fun e => by
+    have hW' : ∀ e, (gen ^ W * gen ^ c).limb 0 * addressOfIndex e = addressOfIndex (W + c + e) :=
+        fun e => by
       rw [← pow_add, limb0_gen_pow_mul]
-    have hsq : ∀ B e, (gen ^ B * (gen ^ c * gen ^ c)).limb 0 * gpow e = gpow (B + 2 * c + e) :=
+    have hsq : ∀ B e, (gen ^ B * (gen ^ c * gen ^ c)).limb 0 * addressOfIndex e = addressOfIndex (B
+        + 2 * c + e) :=
       fun B e => by rw [gen_sq', ← pow_add, limb0_gen_pow_mul]
     rcases hA with rfl | rfl | rfl | rfl | rfl | rfl
     · refine ⟨W + c + 0, ?_, Or.inr (Or.inl rW0)⟩

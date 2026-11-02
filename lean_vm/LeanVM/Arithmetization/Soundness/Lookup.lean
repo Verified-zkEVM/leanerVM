@@ -73,7 +73,7 @@ theorem eq_nil_of_perm_map_mul_g (P : List K) (h0 : ∀ c ∈ P, c ≠ 0)
   obtain ⟨c, hc⟩ := List.exists_mem_of_ne_nil P hne
   have hinj : Set.InjOn (fun k : ℕ ↦ g ^ k * c) (Finset.range (2 ^ 64 - 1) : Set ℕ) := by
     intro a ha b hb hab
-    have hab' : gpow a = gpow b := mul_right_cancel₀ (h0 c hc) hab
+    have hab' : addressOfIndex a = addressOfIndex b := mul_right_cancel₀ (h0 c hc) hab
     exact gpow_injOn (by simpa using ha) (by simpa using hb) hab'
   have hsub : (Finset.range (2 ^ 64 - 1)).image (fun k : ℕ ↦ g ^ k * c) ⊆ P.toFinset := by
     intro x hx

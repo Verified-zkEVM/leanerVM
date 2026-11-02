@@ -29,17 +29,18 @@ open LeanVM.Guest.B1.Whir
 
 @[expose] public section
 
-theorem require_true {c : Prop} [Decidable c] (h : c) : Prog.require c = Prog.ret () := by
-  simp [Prog.require, h]
+theorem require_true {c : Prop} [Decidable c] (h : c) : VerifierProgram.require c =
+    VerifierProgram.ret () := by
+  simp [VerifierProgram.require, h]
 
 /-- **The deferring verifier accepts**, given its phases' runs. -/
 theorem deferred_accepts {bytecode : List K} {seed pi : Digest} {c : BytecodeClaim} {s0 : Fs}
     (hs0 : s0.Carries ⟨keccakF1600 (seedInput seed pi), []⟩)
     {L : Layout} {lir : ℕ} {xs0 : List E} {s1 : Fs}
-    (h1 : RunsTo (readSizes bytecode) s0 xs0 (L, lir) s1)
+    (h1 : RunsTo (readAnnouncedSizes bytecode) s0 xs0 (L, lir) s1)
     {level : Whir.Level} {rest : List Whir.Level}
     (hcfg : Whir.ladder L.stackLog lir = some (level :: rest))
-    {x0 x1 : E} {root : Digest} (hroot : digestOfScalars (x0, x1) = some root)
+    {x0 x1 : E} {root : Digest} (hroot : digestFromHalves (x0, x1) = some root)
     {alphas : List E} {s3 : Fs}
     (h3 : ((s1.absorb x0 dsObserve).absorb x1 dsObserve).squeezeN busBits = (alphas, s3))
     {beta : E} {s4 : Fs} (h4 : s3.squeeze = (beta, s4))
@@ -47,7 +48,8 @@ theorem deferred_accepts {bytecode : List K} {seed pi : Digest} {c : BytecodeCla
     (h5 : RunsTo (Tables.gkrPhase (busLayout [0, L.logMemory, L.logBytecode] L.push).depth) s4 xsG
       r s5)
     {xsT : List E} {bc : BusResult × List ColumnClaim} {s6 : Fs}
-    (h6 : RunsTo (Tables.tablesSeg (claimedValue c) L pi alphas beta r.2.1 r.2.2) s5 xsT bc s6)
+    (h6 : RunsTo (Tables.tablesSeg (claimedBytecodeValue c) L pi alphas beta r.2.1 r.2.2) s5
+        xsT bc s6)
     (h7 : (lanesOf bc.2).map (·.column) = keccakOutputColumns ∧
       ∀ c ∈ lanesOf bc.2, c.point = ((lanesOf bc.2).headD default).point)
     {xsK : List E} {km : (List ColumnClaim × List E × List E) × E} {s7 : Fs}
@@ -107,7 +109,7 @@ theorem deferred_accepts {bytecode : List K} {seed pi : Digest} {c : BytecodeCla
   rw [verifyDeferred_eq_withHash]
   simp only [verifyDeferredWithHash, Compile.runProofWithHash]
   simp only [runId] at hsp
-  exact congrArg (fun o : Option (Bool × ProgState) ↦ match o with
+  exact congrArg (fun o : Option (Bool × VerifierProgramState) ↦ match o with
     | some (true, s) => (s.stream.isEmpty && s.openings.isEmpty : Bool)
     | _ => false) hsp
 

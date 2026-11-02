@@ -240,8 +240,8 @@ theorem memRead_cost (hP : Includes P Decoder.memReadC.costDeps) (p : E)
       [rdV, encodeValue p, encodeValue k] ≤ R + 2969 := by
   rw [Decoder.memReadC.costEq P hP rd rdV hrd]
   have := powSqK_cost_lt P (by includes) g k 40 (by norm_num) (by norm_num) hk
-  have := hR (p.limb 0 * gpow k)
-  cases rd (p.limb 0 * gpow k) <;> dsimp only <;> omega
+  have := hR (p.limb 0 * addressOfIndex k)
+  cases rd (p.limb 0 * addressOfIndex k) <;> dsimp only <;> omega
 
 /-- **`n` consecutive words** (`wordsFromC`), the address stepped by `g`: `(R + 56)·n + 5`. -/
 theorem wordsFrom_cost (hP : Includes P Decoder.wordsFromC.costDeps) :
@@ -314,7 +314,7 @@ theorem digestOfCells640_cost (hP : Includes P Decoder.digestOfCellsWC.costDeps)
       58 := by
   rw [Decoder.digestOfCellsWC.costEq P hP,
     Extractor.digestOfScalarsC.costEq P (by includes)]
-  cases LeanVM.Protocol.KeccakHash.digestOfScalars (a, b) <;> dsimp only <;> split_ifs <;> omega
+  cases LeanVM.Protocol.KeccakHash.digestFromHalves (a, b) <;> dsimp only <;> split_ifs <;> omega
 
 omit hrd hR in
 /-- A bit (`testBit.c211`), of a word: at most `9`. -/

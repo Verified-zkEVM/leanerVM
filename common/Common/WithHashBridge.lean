@@ -8,14 +8,15 @@ public import Common.WithHash
 # The statement's SUF-CMA game and leanXMSS are the hash-query forms, the hash over `π`
 
 The statement's signature schemes hash with Keccak-256 over the permutation they are given
-(`HashSig.Concrete.keccakHash`); the proofs' forms query a hash (`Common.WithHash`). With the
+(`HashSig.OverPermutation.keccakHash`); the proofs' forms query a hash (`Common.WithHash`). With the
 model's permutation `π`, the statement's algorithms are the hash-query ones with each query
 answered by Keccak-256 over `π` (`SufCma.schemeHashOverPermutation`):
 
 * `SufCma.SchemeWithHash.overPermutation`: a hash-query scheme with its queries so answered, a
   scheme of the statement's game, whose game is the hash-query one
   (`SufCma.stronglyUnforgeable_overPermutation`);
-* `LeanXmss.Rpm.scheme_eq`: the statement's leanXMSS is `schemeWithHash` so answered, each
+* `LeanXmss.RandomPermutationModel.scheme_eq`: the statement's leanXMSS is `schemeWithHash` so
+answered, each
   algorithm by its simulation lemma (`simulateQ_verifyWithHash`, …).
 -/
 
@@ -29,11 +30,11 @@ variable {Seed PK SK Req Resp F : Type}
 over `π` (`schemeHashOverPermutation`). -/
 def SchemeWithHash.overPermutation (S : SchemeWithHash Seed PK SK Req Resp F) :
     Scheme Seed PK SK Req Resp F where
-  sample := S.sample
-  keygen seed := simulateQ schemeHashOverPermutation (S.keygen seed)
+  sampleSeed := S.sample
+  generateKeys seed := simulateQ schemeHashOverPermutation (S.keygen seed)
   sign sk r := simulateQ schemeHashOverPermutation (S.sign sk r)
   verify pk f := simulateQ schemeHashOverPermutation (S.verify pk f)
-  win := S.win
+  winningCondition := S.win
 
 /-- The statement's game of a hash-query scheme over `π` is its hash-query game. -/
 theorem forgeryGame_overPermutation (S : SchemeWithHash Seed PK SK Req Resp F)
@@ -59,7 +60,7 @@ section Combinators
 variable {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
   (impl : QueryImpl spec (OracleComp spec'))
 
-open Concrete HashSig.Concrete
+open Verification HashSig.OverPermutation
 
 theorem simulateQ_sequenceFin {α : Type} :
     ∀ {n : ℕ} (c : Fin n → OracleComp spec α),
@@ -103,9 +104,9 @@ end Combinators
 
 local notation "σ" => schemeHashOverPermutation
 
-namespace Concrete
+namespace Verification
 
-open HashSig.Concrete
+open HashSig.OverPermutation
 
 theorem simulateQ_oracleHashWithHash (input : HashInput) :
     simulateQ σ (oracleHashWithHash (m := OracleComp HashSpec) input) =
@@ -143,7 +144,7 @@ theorem simulateQ_chainWalkWithHash (parameter : PublicParameter) (lay : Layer) 
   simp only [chainWalkWithHash, chainWalk, simulateQ_walkChain, simulateQ_tweakableHashWithHash]
 
 theorem simulateQ_recoverChainWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
-    (chainIdx : ChainIndex) (digit : Digit) (value : Digest) :
+    (chainIdx : ChainIndex) (digit : WinternitzDigit) (value : Digest) :
     simulateQ σ (recoverChainWithHash (m := OracleComp HashSpec) parameter lay key chainIdx digit
       value) = recoverChain queryPermutation parameter lay key chainIdx digit value :=
   simulateQ_chainWalkWithHash _ _ _ _ _ _ _
@@ -155,13 +156,13 @@ theorem simulateQ_leafHashWithHash (parameter : PublicParameter) (lay : Layer) (
   simulateQ_tweakableHashWithHash _ _ _
 
 theorem simulateQ_messageDigestWithHash (parameter : PublicParameter) (lay : Layer)
-    (key : KeyIndex) (message : HashInput) (randomness : Randomness) :
+    (key : KeyIndex) (message : HashInput) (randomness : Randomizer) :
     simulateQ σ (messageDigestWithHash (m := OracleComp HashSpec) parameter lay key message
       randomness) = messageDigest queryPermutation parameter lay key message randomness :=
   simulateQ_tweakableHashWithHash _ _ _
 
 theorem simulateQ_otsLeafWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
-    (message : HashInput) (randomness : Randomness) (values : ChainIndex → Digest) :
+    (message : HashInput) (randomness : Randomizer) (values : ChainIndex → Digest) :
     simulateQ σ (otsLeafWithHash (m := OracleComp HashSpec) parameter lay key message randomness
       values) = otsLeaf queryPermutation parameter lay key message randomness values := by
   simp only [otsLeafWithHash, otsLeaf, simulateQ_bind, simulateQ_messageDigestWithHash]
@@ -199,11 +200,11 @@ theorem simulateQ_verifyWithHash (publicKey : PublicKey) (message : Message)
     congr 1; funext root
     rcases root with _ | root <;> simp
 
-end Concrete
+end Verification
 
-namespace Seeded
+namespace KeyGenerationAndSigning
 
-open Concrete HashSig.Concrete
+open Verification HashSig.OverPermutation
 
 theorem simulateQ_otsSecretsWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
     (seed : MasterSeed) :
@@ -220,7 +221,7 @@ theorem simulateQ_oneTimePublicKeyWithHash (parameter : PublicParameter) (lay : 
     simulateQ_otsSecretsWithHash, simulateQ_chainWalkWithHash]
 
 theorem simulateQ_otsSignFromWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
-    (seed : MasterSeed) (message : HashInput) (base : Randomness) :
+    (seed : MasterSeed) (message : HashInput) (base : Randomizer) :
     ∀ attempts trial : ℕ,
       simulateQ σ (otsSignFromWithHash (m := OracleComp HashSpec) parameter lay key seed message
         base attempts trial) =
@@ -284,15 +285,16 @@ theorem simulateQ_signWithHash (secretKey : SecretKey) (index : LeafIndex) (mess
     congr 1; funext bottomRoot; congr 1; funext top
     rcases top with _ | top <;> simp
 
-end Seeded
+end KeyGenerationAndSigning
 
-namespace Rpm
+namespace RandomPermutationModel
 
 /-- **The statement's leanXMSS is the hash-query scheme over `π`.** -/
-theorem scheme_eq : scheme = schemeWithHash.overPermutation := by
-  simp only [scheme, schemeWithHash, SchemeWithHash.overPermutation,
-    Seeded.simulateQ_keygenFromSeedWithHash, Seeded.simulateQ_signWithHash,
-    Concrete.simulateQ_verifyWithHash]
+theorem scheme_eq : sufCmaScheme = schemeWithHash.overPermutation := by
+  simp only [sufCmaScheme, schemeWithHash, SchemeWithHash.overPermutation,
+    KeyGenerationAndSigning.simulateQ_keygenFromSeedWithHash,
+        KeyGenerationAndSigning.simulateQ_signWithHash,
+    Verification.simulateQ_verifyWithHash]
 
 /-- **leanXMSS in the random-permutation model, from its hash-query form.** -/
 theorem leanXmssStronglyUnforgeable_of_withHash (h : LeanXmssStronglyUnforgeableWithHash) :
@@ -300,6 +302,6 @@ theorem leanXmssStronglyUnforgeable_of_withHash (h : LeanXmssStronglyUnforgeable
   rw [LeanXmssStronglyUnforgeable, scheme_eq]
   exact stronglyUnforgeable_overPermutation h
 
-end Rpm
+end RandomPermutationModel
 
 end LeanXmss

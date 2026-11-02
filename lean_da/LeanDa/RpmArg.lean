@@ -89,7 +89,8 @@ argument's verdict. -/
 abbrev PrfV (Proof : Type) := Option Proof × TranscriptH × Bool
 
 /-- **The virtual oracle-free argument**: it reads the verdict its proof carries. -/
-def psV : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs (PrfV Proof)
+def psV : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+    (PrfV Proof)
     (fun _ _ ↦ true) where
   setup := ps.setup
   prove _ _ _ := (none, [], false)
@@ -97,7 +98,7 @@ def psV : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cel
 
 /-- **The virtual extractor**: the extractor on the proof and the transcript the virtual proof
 carries. -/
-def extV : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs (PrfV Proof) :=
+def extV : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs (PrfV Proof) :=
   fun crs stmt p ↦ match p.1 with
     | some proof => ext crs stmt.2.1 proof p.2.1
     | none => fun _ _ ↦ 0
@@ -181,14 +182,14 @@ theorem relabel_ksGame (A : CodeBindingAdvRpmH r Crs Proof) :
 
 /-- **The position-binding adversary followed by the argument's verification.** -/
 noncomputable def advP (A : PosBindingAdvRpmH r Crs Proof) (ck : Unit × Crs) :
-    OracleComp KSpecH ((Common.DigestBytes × (Proof × Bool)) × Fin (r * 128) × Cell × Opening × Cell × Opening) := do
+    OracleComp KSpecH ((Common.DigestBytes × (Proof × Bool)) × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening) := do
   let (com, p, x, τ, x', τ') ← A ck
   let ok ← ps.verify ck.2 com.1 com.2
   pure ((com.1, (com.2, ok)), p, x, τ, x', τ')
 
 /-- The climbs of the position-binding game, with the argument's verdict. -/
 def posPostV (_ : Crs)
-    (out : (Common.DigestBytes × (Proof × Bool)) × Fin (r * 128) × Cell × Opening × Cell × Opening) :
+    (out : (Common.DigestBytes × (Proof × Bool)) × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening) :
     OracleComp Rom2 Bool := do
   let b ← verifyCellMWithHash hR r out.1.1 out.2.1 out.2.2.1 out.2.2.2.1
   let b' ← verifyCellMWithHash hR r out.1.1 out.2.1 out.2.2.2.2.1 out.2.2.2.2.2
@@ -220,7 +221,7 @@ section PositionBinding
 variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpmH r Crs Proof)
 
 theorem duplex_posPostV (crs : Crs)
-    (out : (Common.DigestBytes × (Proof × Bool)) × Fin (r * 128) × Cell × Opening × Cell × Opening) :
+    (out : (Common.DigestBytes × (Proof × Bool)) × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening) :
     Duplex KState.zero keccakNF (posPostV r crs out) [] :=
   duplex_of_duplexP (Q := fun _ _ ↦ True) <|
     duplexP_bind (duplexP_verifyCellM r _ _ _ _ []) fun _ hist _ ↦
@@ -228,7 +229,8 @@ theorem duplex_posPostV (crs : Crs)
 
 /-- **A win of the climbs is a collision of `H` in the final cache.** -/
 theorem posPostV_win (crs : Crs)
-    (out : (Common.DigestBytes × (Proof × Bool)) × Fin (r * 128) × Cell × Opening × Cell × Opening)
+    (out : (Common.DigestBytes × (Proof × Bool)) × Fin (r * 128) × Cell × CellOpening × Cell ×
+        CellOpening)
     (c : Cache2) {z : Bool × Cache2}
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
       (posPostV r crs out)).run c)) (hwin : z.1 = true) : HCollision z.2 := by

@@ -25,10 +25,10 @@ structure VsOuts {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs 
   o3 : (outs.getD 3 ([], [])).1 = [0]
   o4 : (outs.getD 4 ([], [])).1 = [0]
   o5 : (outs.getD 5 ([], [])).1 =
-    S.s5.cap ++ [ofK (gpow (vcG bs)) * gen ^ S.xsG.length] ++ S.vals
+    S.s5.cap ++ [ofK (addressOfIndex (vcG bs)) * gen ^ S.xsG.length] ++ S.vals
   o6 : (outs.getD 6 ([], [])).1 = S.H.retsH (S.vtB bs sqE)
   o7 : (outs.getD 7 ([], [])).1 =
-    S.s7.cap ++ [ofK (gpow (S.cK bs)) * gen ^ S.xsK.length, S.word, S.m0]
+    S.s7.cap ++ [ofK (addressOfIndex (S.cK bs)) * gen ^ S.xsK.length, S.word, S.m0]
   o8 : (outs.getD 8 ([], [])).1 = [polyEval (S.slices.map (phiMap · S.rchs)) gen]
   o9 : Tables.cpOut S.logMem S.hs (outs.getD 9 ([], [])).1 (outs.getD 9 ([], [])).2
   o10 : (outs.getD 10 ([], [])).1 = [gen ^ max 15 (log2Ceil (Tables.stackTotal S.kappas))]

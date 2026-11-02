@@ -104,12 +104,12 @@ theorem powTable_cost (hP : Includes P powTable.c237.costDeps) (κ : ℕ) (hκ :
   omega
 
 /-- The final `pc` (`pcFinal.c242`): `g^(2^ℓ − 1)` by squaring, at most `88 + 73·ℓ`. -/
-theorem pcFinal_cost (hP : Includes P Auto.LeanVM.Semantics.Program.pcFinal.c242.costDeps)
-    (prog : Semantics.Program) :
-    machineCost P Auto.LeanVM.Semantics.Program.pcFinal.c242.costIdx [encodeValue prog] ≤
+theorem pcFinal_cost (hP : Includes P Auto.LeanVM.Semantics.LeanIsaProgram.pcFinal.c242.costDeps)
+    (prog : Semantics.LeanIsaProgram) :
+    machineCost P Auto.LeanVM.Semantics.LeanIsaProgram.pcFinal.c242.costIdx [encodeValue prog] ≤
       88 + 73 * prog.logSize := by
   have hls : prog.logSize ≤ 32 := prog.logSize_le
-  rw [Auto.LeanVM.Semantics.Program.pcFinal.c242.costEq P hP, limbs_shift (by omega),
+  rw [Auto.LeanVM.Semantics.LeanIsaProgram.pcFinal.c242.costEq P hP, limbs_shift (by omega),
     limbs_of_lt (by omega : prog.logSize < 2 ^ 64), limbs_two_pow (by omega)]
   have h2 : 2 ^ prog.logSize ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hls
   have := powSq_cost P (by includes) LeanVM.Parameters.g (2 ^ prog.logSize - 1) (by omega)
@@ -205,7 +205,7 @@ end Tables
 /-- **The runner's tables** (`runnerTablesC`): the memory's and the code's address tables, the
 final `pc`, the step cap: at most `(74·κ + 121)·2^κ + (74·ℓ + 121)·2^ℓ + 73·ℓ + 357`, `κ` the
 memory's and `ℓ` the bytecode's log-size. -/
-theorem runnerTables_cost (hP : Includes P runnerTablesC.costDeps) (prog : Semantics.Program)
+theorem runnerTables_cost (hP : Includes P runnerTablesC.costDeps) (prog : Semantics.LeanIsaProgram)
     (layout : LayoutLite) (hm : layout.logMemory ≤ 32) (hb : layout.logBytecode ≤ 32)
     (hh : ∀ h ∈ layout.tableLogHeights, h ≤ 32) (hl : layout.tableLogHeights.length ≤ 6) :
     machineCost P runnerTablesC.costIdx [encodeValue prog, encodeValue layout] ≤
@@ -329,7 +329,8 @@ open Auto.LeanVM.Extraction.Fast
 /-- **The halting loop** (`haltLoopVec.c257`): `n` steps at most, each one step's price (at most
 `S`) and `41`; `19` at the end. The step counter `a` stays a word. -/
 theorem haltLoopVec_cost (hP : Includes P haltLoopVec.c257.costDeps)
-    (memT codeT : Array (ℕ × ℕ)) (prog : LeanVM.Semantics.Program) {κ : ℕ} (mem : Vector E (2 ^ κ))
+    (memT codeT : Array (ℕ × ℕ)) (prog : LeanVM.Semantics.LeanIsaProgram) {κ : ℕ} (mem : Vector E
+        (2 ^ κ))
     (fin : Registers K) (S : ℕ)
     (hS : ∀ r : Registers K, machineCost P Auto.LeanVM.Extraction.Fast.stepVec.c258.costIdx
       [encodeValue memT, encodeValue codeT, encodeValue prog, encodeValue κ, encodeValue mem, encodeValue r] ≤ S) :
@@ -361,7 +362,7 @@ theorem haltLoopVec_cost (hP : Includes P haltLoopVec.c257.costDeps)
 /-- **A stack's execution** (`candidateExecutionVec.c248`): the boundary, then the memory vector
 and the halting loop of fuel `cap`: at most `(S + 41)·cap + 45·2^κ + 1712`. -/
 theorem candidateExecutionVec_cost (hP : Includes P candidateExecutionVec.c248.costDeps)
-    (memT codeT : Array (ℕ × ℕ)) (prog : Semantics.Program) (input : PublicInput) (layout : LayoutLite)
+    (memT codeT : Array (ℕ × ℕ)) (prog : Semantics.LeanIsaProgram) (input : PublicInput) (layout : LayoutLite)
     (hm : layout.logMemory ≤ 62) (hidx : ∀ c, (layout.placement c).index < 2 ^ 63)
     (fin : Registers K) (cap : ℕ) (hcap : cap < 2 ^ 64) {μ : ℕ} (q : Vector K (2 ^ μ)) (S : ℕ)
     (hS : ∀ r : Registers K, machineCost P stepVec.c258.costIdx
@@ -384,7 +385,8 @@ theorem candidateExecutionVec_cost (hP : Includes P candidateExecutionVec.c248.c
 
 /-- **One stack, from the runner's tables** (`runWithTablesC`): at most
 `(runnerStepPrice κ ℓ + 41)·stepCapLite + 45·2^κ + 1738`. -/
-theorem runWithTables_cost (hP : Includes P runWithTablesC.costDeps) (prog : Semantics.Program)
+theorem runWithTables_cost (hP : Includes P runWithTablesC.costDeps) (prog :
+    Semantics.LeanIsaProgram)
     (input : PublicInput) (layout : LayoutLite) (hm : layout.logMemory ≤ 32)
     (hb : layout.logBytecode ≤ 32) (hh : ∀ h ∈ layout.tableLogHeights, h ≤ 32)
     (hl : layout.tableLogHeights.length ≤ 6) (hidx : ∀ c, (layout.placement c).index < 2 ^ 63)
@@ -413,7 +415,7 @@ theorem runWithTables_cost (hP : Includes P runWithTablesC.costDeps) (prog : Sem
 
 /-- **One stack at the worst shape** (`κ, ℓ ≤ 32`, at most six tables of at most `2^32` rows):
 at most `396611·2^35 + 45·2^32 + 1738` (`≈ 2^53.60`). -/
-theorem runWithTables_cost_worst (hP : Includes P runWithTablesC.costDeps) (prog : Semantics.Program)
+theorem runWithTables_cost_worst (hP : Includes P runWithTablesC.costDeps) (prog : Semantics.LeanIsaProgram)
     (input : PublicInput) (layout : LayoutLite) (hm : layout.logMemory ≤ 32)
     (hb : layout.logBytecode ≤ 32) (hh : ∀ h ∈ layout.tableLogHeights, h ≤ 32)
     (hl : layout.tableLogHeights.length ≤ 6) (hidx : ∀ c, (layout.placement c).index < 2 ^ 63)
@@ -441,7 +443,7 @@ end Loop
 (at most one from the fast path, at most `2^12` from the decoder): at most `runnerBudget`
 (`≈ 2^65.60`). -/
 theorem runner_cost (hT : Includes P runnerTablesC.costDeps) (hW : Includes P runWithTablesC.costDeps)
-    (prog : Semantics.Program) (input : PublicInput) (layout : LayoutLite)
+    (prog : Semantics.LeanIsaProgram) (input : PublicInput) (layout : LayoutLite)
     (hm : layout.logMemory ≤ 32) (hb : layout.logBytecode ≤ 32)
     (hh : ∀ h ∈ layout.tableLogHeights, h ≤ 32) (hl : layout.tableLogHeights.length ≤ 6)
     (hidx : ∀ c, (layout.placement c).index < 2 ^ 63) (qs : List (Vector K (2 ^ layout.stackLog)))

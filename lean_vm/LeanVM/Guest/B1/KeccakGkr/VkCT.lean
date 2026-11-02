@@ -108,7 +108,7 @@ theorem body_sizes (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE z
 /-- **The buffers' bases.** -/
 theorem body_bases (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE zvE slE) :
     ((vkPre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-      (bases B D.sizes).map (fun b ↦ ofK (Parameters.gpow b)) := by
+      (bases B D.sizes).map (fun b ↦ ofK (Parameters.addressOfIndex b)) := by
   have ha : ∀ x ∈ vkAllocs, σ x.1 = D.w B curE x.1.idx := by subst hσd; exact val_alloc h
   have e : vkAllocs.map (σ ∘ Prod.fst) = vkAllocs.map (fun x ↦ D.w B curE x.1.idx) :=
     List.map_congr_left (fun x hx ↦ ha x hx)

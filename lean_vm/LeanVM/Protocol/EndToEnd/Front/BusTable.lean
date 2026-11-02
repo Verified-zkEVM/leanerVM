@@ -55,7 +55,7 @@ noncomputable def busTableSpec (colOf : I.ColumnId → ℕ)
     {T : ℝ≥0∞} (he3 : roundError L₀ 3 + T ≤ εmax) (hTf : T ≤ εmax)
     (hxi : xiError I L₀ + sumcheckLead (List.replicate (layout.tableLogHeights.foldl max 0) none)
       T ≤ εmax) :
-    Spec ((verifyBusBalance computedValue layout).bind (tablePhaseClaims layout)) (HDoom cands (Seam.commit I) input)
+    Spec ((verifyBusBalance computedBytecodeValue layout).bind (tablePhaseClaims layout)) (HDoom cands (Seam.commit I) input)
       (TablePost I cands input colOf) εmax (abError I L₀ + 0) T :=
   busThenSpec I hI cands input layout hxi
     (fun w ↦ if hw : w.Shaped I then
@@ -69,7 +69,7 @@ section LeanIsa
 
 open LeanVM.Protocol.LeanIsa
 
-variable (prog : Program) (s : Sizes) (input' : PublicInput)
+variable (prog : LeanIsaProgram) (s : Sizes) (input' : PublicInput)
 
 /-- The candidates of a committed word as oracles of the instance. -/
 def candsOf (ρ : ℕ) (A : ℕ → ℕ → ℕ) (W : Word) :

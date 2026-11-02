@@ -45,7 +45,7 @@ open LeanVM.Protocol.EndToEnd.Front LeanVM.Extraction
 
 section Rows
 
-variable {prog : Program}
+variable {prog : LeanIsaProgram}
 
 open Classical in
 /-- **A witness representing a halting trace has at least as many rows as the trace has steps.**
@@ -54,25 +54,25 @@ Step `k` is some row's state pull and push (`regs_embed`); the pull of a row det
 distinct rows. -/
 theorem steps_le_rows {w : Air.Flat.EnsembleWitness (leanIsaEnsemble prog)} {t : Execution prog}
     (hrep : AssignmentRepresents w t)
-    (hv : run prog t.memory t.steps Registers.initial = some (Registers.final prog)) :
-    t.steps ≤ (w.tables.map fun tb ↦ tb.table.length).sum := by
+    (hv : run prog t.memory t.stepCount Registers.initial = some (Registers.final prog)) :
+    t.stepCount ≤ (w.tables.map fun tb ↦ tb.table.length).sum := by
   let st : ℕ → Registers K := fun k ↦ (run prog t.memory k Registers.initial).getD Registers.initial
-  have hst : ∀ k ≤ t.steps, run prog t.memory k Registers.initial = some (st k) := fun k hk ↦ by
+  have hst : ∀ k ≤ t.stepCount, run prog t.memory k Registers.initial = some (st k) := fun k hk ↦ by
     rcases hk.lt_or_eq with hk | rfl
     · obtain ⟨r₁, h₁, -⟩ := run_intermediate hv hk
       simp only [st, h₁, Option.getD_some]
     · simp only [st, hv, Option.getD_some]
-  have hregs : t.regs = (List.range (t.steps + 1)).map st :=
+  have hregs : t.regs = (List.range (t.stepCount + 1)).map st :=
     (List.filterMap_congr fun k hk ↦ hst k (Nat.lt_succ_iff.mp (List.mem_range.mp hk))).trans
       (congrFun List.filterMap_eq_map' _)
-  have hlen : t.regs.length = t.steps + 1 := by rw [hregs]; simp
+  have hlen : t.regs.length = t.stepCount + 1 := by rw [hregs]; simp
   have e : ∀ j (hj : j < t.regs.length), t.regs[j] = st j := fun j hj ↦ by
     rw [List.getElem_of_eq hregs hj]
     simp
   let P := w.tables.flatMap fun tb ↦ tb.table.map fun row ↦ (tb, row)
   have hP : P.length = (w.tables.map fun tb ↦ tb.table.length).sum := by
     simp [P, List.length_flatMap]
-  have hrow : ∀ k : Fin t.steps, ∃ p ∈ P,
+  have hrow : ∀ k : Fin t.stepCount, ∃ p ∈ P,
       rowMessagesOn p.1 p.2 StatePull.toRaw = [#[(st k).pc, (st k).fp]] := fun k ↦ by
     have hk : (k : ℕ) + 1 < t.regs.length := by have := k.isLt; omega
     have h := hrep.regs_embed k hk
@@ -91,7 +91,7 @@ theorem steps_le_rows {w : Air.Flat.EnsembleWitness (leanIsaEnsemble prog)} {t :
     rcases Nat.lt_or_gt_of_ne (Fin.val_ne_of_ne hne) with hlt | hlt
     · exact run_injective hv hlt (by omega) (hst a (by omega)) (hab' ▸ hst b (by omega))
     · exact run_injective hv hlt (by omega) (hst b (by omega)) (hab' ▸ hst a (by omega))
-  calc t.steps = (Finset.univ : Finset (Fin t.steps)).card := by simp
+  calc t.stepCount = (Finset.univ : Finset (Fin t.stepCount)).card := by simp
     _ ≤ P.toFinset.card :=
       Finset.card_le_card_of_injOn c (fun k _ ↦ List.mem_toFinset.mpr (hcP k)) hcinj.injOn
     _ ≤ P.length := List.toFinset_card_le P
@@ -144,7 +144,7 @@ end Rows
 
 section Structural
 
-variable (prog : Program) (s : Sizes)
+variable (prog : LeanIsaProgram) (s : Sizes)
 
 /-- Every opcode table has a column. -/
 theorem width_opIdx_pos : ∀ j : Fin 6, 0 < width (opIdx j) := by decide +kernel
@@ -185,13 +185,13 @@ end Structural
 
 section Extracted
 
-variable {prog : Program} {input : PublicInput}
+variable {prog : LeanIsaProgram} {input : PublicInput}
 
 /-- A witness representing a halting trace has the trace's halting run on the image it names. -/
 theorem haltingRun_of_represents {w : Air.Flat.EnsembleWitness (leanIsaEnsemble prog)}
     {t : Execution prog} (hrep : AssignmentRepresents w t)
-    (hv : run prog t.memory t.steps Registers.initial = some (Registers.final prog)) :
-    ∃ t', haltingRun prog (imageOf w.data).2 = some t' ∧ t'.steps = t.steps := by
+    (hv : run prog t.memory t.stepCount Registers.initial = some (Registers.final prog)) :
+    ∃ t', haltingRun prog (imageOf w.data).2 = some t' ∧ t'.stepCount = t.stepCount := by
   obtain ⟨κ, image, steps⟩ := t
   obtain ⟨hκ, himage, -⟩ := hrep
   generalize imageOf w.data = p at hκ himage ⊢
@@ -211,7 +211,7 @@ theorem haltingRunC_eq_of_extracted {s : Sizes} {q : Column (leanIsaμ prog s)}
         (stepCap (verifierLayout prog s)) =
       haltingRun prog (memoryImage (verifierLayout prog s) (q.values : Vector K (2 ^ _))) := by
   obtain ⟨t, hrep, hv⟩ := execution_of_extracted hs h
-  have hsteps : t.steps ≤ stepCap (verifierLayout prog s) :=
+  have hsteps : t.stepCount ≤ stepCap (verifierLayout prog s) :=
     (steps_le_rows hrep hv.2).trans (rows_le_stepCap s q)
   obtain ⟨t', ht', hst'⟩ := haltingRun_of_represents hrep hv.2
   rw [Sound.haltingRun_imageOf s hs.2.1 q] at ht'

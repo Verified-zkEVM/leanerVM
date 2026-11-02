@@ -65,7 +65,7 @@ theorem digestBytes_length (d : Digest) : (digestBytes d).length = 32 := by
   match l, hl with
   | [_, _, _, _], _ => rfl
 
-theorem kBytes_length (a : K) : (kBytes a).length = 8 := rfl
+theorem kBytes_length (a : K) : (K.toBytes a).length = 8 := rfl
 
 /-- Digests are read back from their bytes. -/
 theorem digestBytes_injective : Function.Injective digestBytes := by
@@ -84,24 +84,24 @@ theorem digestBytes_injective : Function.Injective digestBytes := by
 
 /-- Decoding the encoding of a digest gives the digest back. -/
 theorem digestOfScalars_digestScalars (d : Digest) :
-    digestOfScalars (digestScalars d) = some d := by
+    digestFromHalves (digestHalves d) = some d := by
   obtain ⟨⟨l⟩, hl⟩ := d
   match l, hl with
-  | [_, _, _, _], _ => simp [digestOfScalars, digestScalars, IsCanonical128, limb_ofLimbs]
+  | [_, _, _, _], _ => simp [digestFromHalves, digestHalves, IsCanonical128, limb_ofLimbs]
 
 /-- Encoding a decoded pair gives the pair back: the encoding is a bijection between digests and
 pairs of canonical cells. -/
 theorem digestScalars_digestOfScalars {s : E × E} {d : Digest}
-    (h : digestOfScalars s = some d) : digestScalars d = s := by
+    (h : digestFromHalves s = some d) : digestHalves d = s := by
   obtain ⟨a, b⟩ := s
-  unfold digestOfScalars at h
+  unfold digestFromHalves at h
   split at h
   · rename_i hc
     have ha : a.limb 2 = 0 := hc.1
     have hb : b.limb 2 = 0 := hc.2
     rw [Option.some.injEq] at h
     subst h
-    simp only [digestScalars, Vector.getElem_mk, List.getElem_toArray, List.getElem_cons_zero,
+    simp only [digestHalves, Vector.getElem_mk, List.getElem_toArray, List.getElem_cons_zero,
       List.getElem_cons_succ, K.ofLane_lane, Prod.mk.injEq]
     exact ⟨E.ext fun i ↦ by fin_cases i <;> simp [limb_ofLimbs, ha],
       E.ext fun i ↦ by fin_cases i <;> simp [limb_ofLimbs, hb]⟩

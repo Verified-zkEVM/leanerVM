@@ -170,7 +170,7 @@ def toyScales : List E := [1, eK 3 4 5]
 def toyTarget {μ : ℕ} (q : Column μ) : E := dot toyScales ((toyClaims q).map (·.2))
 
 /-- The verifier: `whirRun` on a toy ladder. -/
-def toyProg {μ : ℕ} (levels : List Whir.Level) (q : Column μ) (target : E) : Prog Unit :=
+def toyProg {μ : ℕ} (levels : List Whir.Level) (q : Column μ) (target : E) : VerifierProgram Unit :=
   whirRun μ levels target (batchedBasis toyScales (toyClaims q))
 
 /-- The honest prover for the stack `q` and the claimed value `target`. -/
@@ -184,7 +184,7 @@ def chal (h : List Ev) : E :=
 /-- The program run against the script's moves directly: the run `Strategy.runFrom` makes
 against `Strategy.ofScript`, without replaying the script from its start at every message. -/
 def lockstep {α β : Type} (chal : List Ev → E) :
-    Script α → Prog β → List Ev → Commits → Option β
+    Script α → VerifierProgram β → List Ev → Commits → Option β
   | .ret _, .ret b, _, _ => some b
   | .send x k, .read k', h, cs => lockstep chal k (k' x) (h ++ [Ev.read x]) cs
   | .sample k, .sample k', h, cs =>

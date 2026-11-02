@@ -127,15 +127,17 @@ def addClaim (μ : ℕ) (acc : Array E) (s : E) (d : ClaimDesc) : Array E :=
   match d with
   | .column layout c =>
     let pl := layout.placement c.column
-    if pl.low = 0 ∧ c.point.length = pl.vars ∧ pl.vars ≤ μ ∧ layout.stackLog = μ then
+    if pl.low = 0 ∧ c.point.length = pl.variableCount ∧ pl.variableCount ≤ μ ∧ layout.stackLog
+        = μ then
       let vals := eqKernelA c.point
-      addSlice (blockOff μ pl.vars pl.index) vals s vals.size acc
+      addSlice (blockOff μ pl.variableCount pl.index) vals s vals.size acc
     else addFull μ d.denote.1 s acc
   | .ring layout _ point challenges =>
     let pl := layout.placement qkeccak
-    if pl.low = 0 ∧ point.length = pl.vars ∧ pl.vars ≤ μ ∧ challenges.length = 6 then
+    if pl.low = 0 ∧ point.length = pl.variableCount ∧ pl.variableCount ≤ μ ∧ challenges.length
+        = 6 then
       let vals := (eqKernelA point).map (phiMap · challenges)
-      addSlice (blockOff μ pl.vars pl.index) vals s vals.size acc
+      addSlice (blockOff μ pl.variableCount pl.index) vals s vals.size acc
     else addFull μ d.denote.1 s acc
 
 /-- The batched weight `Σ_k s_k·w_k` on the cube, in the stack's order. -/
@@ -180,8 +182,9 @@ def foldRoundsA : ℕ → WhirState → List E → Array E → Array E →
     let challenge ← Script.sampleE
     let W' := foldPairsW challenge W
     let g' := foldPairsW challenge g
-    let quad ← roundA (polyEval s.quad challenge) W' g'
-    foldRoundsA n { s with quad, folds := s.folds ++ [challenge] } (levelFolds ++ [challenge]) W' g'
+    let quad ← roundA (polyEval s.runningQuad challenge) W' g'
+    foldRoundsA n { s with runningQuad := quad, folds := s.folds ++ [challenge] } (levelFolds ++
+        [challenge]) W' g'
 
 /-- The final level's tail rounds. -/
 def tailRoundsA : ℕ → List E → Array E → Array E → Script Unit
@@ -240,7 +243,7 @@ def levelsA (μ : ℕ) : ℕ → List Whir.Level → WhirState → Array E → A
     let s := glue lam s pending
     let W := glueTablesA lam W (tables ++ [T])
     match rest with
-    | [] => tailRoundsA messageLog s.quad W residual
+    | [] => tailRoundsA messageLog s.runningQuad W residual
     | _ :: _ => levelsA μ (index + 1) rest s W g
 
 /-- **The honest prover of the stacked opening** (`verify_stacked_opening`, then `verify_whir`):

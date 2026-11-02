@@ -20,55 +20,58 @@ open HashSig
 
 /-- The exact 16 address bytes of a hash domain. -/
 def tweakBytes (domain : HashDomain) : HashInput :=
-  fieldBytes (hashDomainFields domain)
+  addressBytes (hashDomainFields domain)
 
 /-- The hash input `P || A || payload` of every tweakable hash call. -/
 def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
     (payload : HashInput) : HashInput :=
-  bytesLE 16 parameter ++ tweakBytes domain ++ payload
+  littleEndianBytes 16 parameter ++ tweakBytes domain ++ payload
 
 /-- `"leanXMSS" || S_0`, the 40-byte input of the scheme's seed `S`. -/
 def seedHashInput (keySeed : MasterSeed) : HashInput :=
-  seedTag ++ bytesLE 32 keySeed
+  seedTag ++ littleEndianBytes 32 keySeed
 
 /-- `P || A || S`. -/
 def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
     (seed : MasterSeed) : HashInput :=
-  bytesLE 16 parameter ++ fieldBytes (keygenDomainFields domain) ++ bytesLE 32 seed
+  littleEndianBytes 16 parameter ++ addressBytes (keygenDomainFields domain) ++ littleEndianBytes
+      32 seed
 
 /-- `P || A_rnd(l, e) || S || M` (`TWEAK_RANDOMIZER = 7`): the randomizer base of a message. -/
 def randomizerHashInput (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
     (seed : MasterSeed) (message : HashInput) : HashInput :=
-  thInput parameter (tweakFields 7 0 (layerHi lay 0) key) (bytesLE 32 seed ++ message)
+  thInput parameter (tweakFields 7 0 (layerHi lay 0) key) (littleEndianBytes 32 seed ++ message)
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
 /-- `S = H("leanXMSS" || S_0)` (`taggedSeed`). -/
 abbrev schemeSeed (keySeed : MasterSeed) : m MasterSeed :=
-  Concrete.taggedSeedWithHash seedTag keySeed
+  Verification.taggedSeedWithHash seedTag keySeed
 
 /-- One seed derivation, first 16 bytes. -/
 abbrev deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
     m Digest :=
-  Concrete.thWithHash parameter (keygenDomainFields domain) (bytesLE 32 seed)
+  Verification.thWithHash parameter (keygenDomainFields domain) (littleEndianBytes 32 seed)
 
 /-- One seed derivation, all 32 bytes. -/
 abbrev deriveOutput (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
     m HashOutput :=
-  Concrete.thPairWithHash parameter (keygenDomainFields domain) (bytesLE 32 seed)
+  Verification.thPairWithHash parameter (keygenDomainFields domain) (littleEndianBytes 32 seed)
 
 /-- `R0`, the randomizer base of a message, first 16 bytes. -/
 abbrev deriveRandomizer (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
-    (seed : MasterSeed) (message : HashInput) : m Randomness :=
-  Concrete.thWithHash parameter (tweakFields 7 0 (layerHi lay 0) key) (bytesLE 32 seed ++ message)
+    (seed : MasterSeed) (message : HashInput) : m Randomizer :=
+  Verification.thWithHash parameter (tweakFields 7 0 (layerHi lay 0) key) (littleEndianBytes 32 seed
+      ++ message)
 
 theorem thInput_hashDomainFields (parameter : PublicParameter) (domain : HashDomain)
     (payload : HashInput) :
     thInput parameter (hashDomainFields domain) payload =
       tweakableHashInput parameter domain payload := rfl
 
-/-- The signer returned the forgery (`Common.SufCma.SignerReturned` at the requests' messages). -/
-abbrev SigningTranscript.Contains (log : OracleSpec.QueryLog SigningSpec) (forgery : Forgery) : Prop :=
-  Common.SufCma.SignerReturned SignRequest.message log forgery.message forgery.signature
+/-- The signer returned the forgery (`Common.SufCma.SignerReturnedForgery` at the requests'
+messages). -/
+abbrev SigningTranscript.Contains (log : OracleSpec.QueryLog SigningOracleSpec) (forgery : Forgery) : Prop :=
+  Common.SufCma.SignerReturnedForgery SigningRequest.message log forgery.message forgery.signature
 
 end LeanXmss

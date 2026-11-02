@@ -33,42 +33,43 @@ variable {σ : Val}
 /-- **A range check, sound**: against `g^(K-1)`, on a memory image of at most `2^32` words, the
 value is `g^e` for some `e < K`. -/
 theorem range_sound {κ : Nat} (hκ : κ ≤ 32) (L : MemoryImage κ) {x y t1 t2 : E} {K : Nat}
-    (hK : 1 ≤ K) (hK' : K ≤ 2 ^ 32) (h1 : LoadHolds L.read x 0 t1) (hk : ofK (gpow (K - 1)) = x * y)
-    (h2 : LoadHolds L.read y 0 t2) : ∃ e < K, x = ofK (gpow e) := by
+    (hK : 1 ≤ K) (hK' : K ≤ 2 ^ 32) (h1 : LoadHolds L.read x 0 t1) (hk : ofK (addressOfIndex (K -
+        1)) = x * y)
+    (h2 : LoadHolds L.read y 0 t2) : ∃ e < K, x = ofK (addressOfIndex e) := by
   have hκ64 : κ < 64 := by omega
   have h32 : 2 ^ κ ≤ 2 ^ 32 := Nat.pow_le_pow_right (by decide) hκ
   obtain ⟨hx, h1⟩ := h1
   obtain ⟨hy, h2⟩ := h2
-  rw [gpow, pow_zero, mul_one] at h1 h2
+  rw [addressOfIndex, pow_zero, mul_one] at h1 h2
   obtain ⟨i, hi, -⟩ := (read_some_iff hκ64 L _ _).mp h1
   obtain ⟨j, hj, -⟩ := (read_some_iff hκ64 L _ _).mp h2
-  have ex : x = ofK (gpow i) := by rw [eq_ofK_limb hx, hi]
-  have ey : y = ofK (gpow j) := by rw [eq_ofK_limb hy, hj]
-  rw [ex, ey, ← ofK_mul, gpow, gpow, ← pow_add] at hk
+  have ex : x = ofK (addressOfIndex i) := by rw [eq_ofK_limb hx, hi]
+  have ey : y = ofK (addressOfIndex j) := by rw [eq_ofK_limb hy, hj]
+  rw [ex, ey, ← ofK_mul, addressOfIndex, addressOfIndex, ← pow_add] at hk
   have hij := gpow_injOn (by have := i.isLt; have := j.isLt; simp only [Set.mem_Iio]; omega)
     (by simp only [Set.mem_Iio]; omega) (ofK_injective hk).symm
   exact ⟨i, by omega, ex⟩
 
-theorem g255W_eq : g255W = ofK (gpow 255) := by
+theorem g255W_eq : g255W = ofK (addressOfIndex 255) := by
   rw [g255W, word, Value.ofBits_zero, ← ofK_eq_ofLimbs]
   exact congrArg ofK (by decide +kernel)
 
-theorem g63W_eq : g63W = ofK (gpow 63) := by
+theorem g63W_eq : g63W = ofK (addressOfIndex 63) := by
   rw [g63W, word, Value.ofBits_zero, ← ofK_eq_ofLimbs]
   exact congrArg ofK (by decide +kernel)
 
-theorem g15W_eq : g15W = ofK (gpow 15) := by
+theorem g15W_eq : g15W = ofK (addressOfIndex 15) := by
   rw [g15W, word, Value.ofBits_zero, ← ofK_eq_ofLimbs]
   exact congrArg ofK (by decide +kernel)
 
-theorem g7W_eq : g7W = ofK (gpow 7) := by
+theorem g7W_eq : g7W = ofK (addressOfIndex 7) := by
   rw [g7W, word, Value.ofBits_zero, ← ofK_eq_ofLimbs]
   exact congrArg ofK (by decide +kernel)
 
 /-- **A byte, sound**: a mark range checked below `K ≤ 256` and read off the byte table at
 `σ (.n 1)` is the word of its exponent. -/
 theorem sByte_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} {mark : V} {bound : E} {b K : Nat}
-    (hK : 1 ≤ K) (hK256 : K ≤ 256) (hbound : bound = ofK (gpow (K - 1)))
+    (hK : 1 ≤ K) (hK256 : K ≤ 256) (hbound : bound = ofK (addressOfIndex (K - 1)))
     (hbb : ByteBits L.read (σ (.n 1))) (h : AtomsHold L.read σ (sByte mark bound b)) :
     ∃ e < K, σ (.n (b + 5)) = eOfNat e := by
   have c : σ (.n b) = bound := h.atom (a := .const (.n b) bound) (by simp [sByte, rangeS, cst])
@@ -83,11 +84,12 @@ theorem sByte_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} {mark : V}
   obtain ⟨e, he, hm⟩ := range_sound hκ L hK (by omega) r1 r2 r3
   obtain ⟨hbbK, hbbv⟩ := hbb e (by omega)
   obtain ⟨-, hl⟩ := l
-  have hp : σ (.n (b + 4)) = ofK ((σ (.n 1)).limb 0 * gpow e) := by
+  have hp : σ (.n (b + 4)) = ofK ((σ (.n 1)).limb 0 * addressOfIndex e) := by
     rw [m, hm, ofK_mul, ← eq_ofK_limb hbbK]
-  have hl0 : (ofK ((σ (.n 1)).limb 0 * gpow e)).limb 0 = (σ (.n 1)).limb 0 * gpow e := by simp
+  have hl0 : (ofK ((σ (.n 1)).limb 0 * addressOfIndex e)).limb 0 = (σ (.n 1)).limb 0 *
+      addressOfIndex e := by simp
   rw [hp, hl0] at hl
-  simp only [gpow, pow_zero, mul_one] at hl hbbv
+  simp only [addressOfIndex, pow_zero, mul_one] at hl hbbv
   refine ⟨e, he, ?_⟩
   rw [hbbv] at hl
   rw [← word_eq_eOfNat]
@@ -131,7 +133,7 @@ theorem sFromBytesRest_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
 `K · 256^n`, `n` the bytes after it. -/
 theorem sFromBytes_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} (hbb : ByteBits L.read (σ (.n 1)))
     {top : V} {rest : List V} {bound : E} {b K : Nat} (hK : 1 ≤ K) (hK256 : K ≤ 256)
-    (hbound : bound = ofK (gpow (K - 1))) (hM : K * 256 ^ rest.length ≤ 2 ^ 64)
+    (hbound : bound = ofK (addressOfIndex (K - 1))) (hM : K * 256 ^ rest.length ≤ 2 ^ 64)
     (h : AtomsHold L.read σ (sFromBytes top rest bound b).1) :
     ∃ N, σ (sFromBytes top rest bound b).2.2 = eOfNat N ∧ N < K * 256 ^ rest.length := by
   have h' : AtomsHold L.read σ (sByte top bound b ++ (sFromBytesRest rest (b + 6) (.n (b + 5))).1) := h

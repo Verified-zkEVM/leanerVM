@@ -29,7 +29,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- **A run on the carried sponge.** -/
-def runF {α : Type} : Prog α → FSt → Option (α × FSt)
+def runF {α : Type} : VerifierProgram α → FSt → Option (α × FSt)
   | .ret a, s => some (a, s)
   | .fail, _ => none
   | .read k, s => match s.stream with
@@ -43,7 +43,7 @@ def runF {α : Type} : Prog α → FSt → Option (α × FSt)
       if powOk bits n sq.1 then runF k { s with sponge := sq.2, stream := xs } else none
   | .commit height width k, s => match s.stream with
     | x0 :: x1 :: xs =>
-      match digestOfScalars (x0, x1) with
+      match digestFromHalves (x0, x1) with
       | some root =>
         runF k { s with
           sponge := (s.sponge.absorb x0 dsObserve).absorb x1 dsObserve
@@ -58,40 +58,41 @@ def runF {α : Type} : Prog α → FSt → Option (α × FSt)
       | some (rows, rest) => runF (k rows) { s with openings := rest }
       | none => none
 
-theorem runF_bind {α β : Type} (p : Prog α) (f : α → Prog β) (st : FSt) :
+theorem runF_bind {α β : Type} (p : VerifierProgram α) (f : α → VerifierProgram β) (st : FSt) :
     runF (p.bind f) st = (runF p st).bind (fun r ↦ runF (f r.1) r.2) := by
   induction p generalizing st with
   | ret a => rfl
   | fail => rfl
   | read k ih =>
-    simp only [Prog.bind, runF]
+    simp only [VerifierProgram.bind, runF]
     split
     · rfl
     · exact ih _ _
   | sample k ih => exact ih _ _
   | grind b k ih =>
-    simp only [Prog.bind, runF]
+    simp only [VerifierProgram.bind, runF]
     split
     · rfl
     · split
       · exact ih _
       · rfl
   | commit h w k ih =>
-    simp only [Prog.bind, runF]
+    simp only [VerifierProgram.bind, runF]
     split
     · split
       · exact ih _
       · rfl
     · rfl
   | query i ps k ih =>
-    simp only [Prog.bind, runF]
+    simp only [VerifierProgram.bind, runF]
     split
     · rfl
     · split
       · exact ih _ _
       · rfl
 
-theorem runF_bind_some {α β : Type} {p : Prog α} {f : α → Prog β} {st : FSt} {r : β × FSt}
+theorem runF_bind_some {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {st : FSt}
+    {r : β × FSt}
     (h : runF (p.bind f) st = some r) :
     ∃ a st', runF p st = some (a, st') ∧ runF (f a) st' = some r := by
   rw [runF_bind] at h
@@ -108,8 +109,10 @@ theorem eq_fsOf {s : Fs} {sp : Sponge} (h : s.Carries sp) : s = fsOf sp := by
   exact ⟨h1.symm, h2.symm⟩
 
 /-- **The deployed run is the carried run.** -/
-theorem runF_of_runId {α : Type} (p : Prog α) : ∀ (st : FSt) (sp : Sponge), st.sponge.Carries sp →
-    ∀ (a : α) (t : ProgState), runId p ⟨sp, st.stream, st.openings, st.roots⟩ = some (a, t) →
+theorem runF_of_runId {α : Type} (p : VerifierProgram α) : ∀ (st : FSt) (sp : Sponge),
+    st.sponge.Carries sp →
+    ∀ (a : α) (t : VerifierProgramState), runId p ⟨sp, st.stream, st.openings, st.roots⟩ = some
+        (a, t) →
       runF p st = some (a, ⟨fsOf t.sponge, t.stream, t.openings, t.roots⟩) := by
   induction p with
   | ret a =>
@@ -142,7 +145,7 @@ theorem runF_of_runId {α : Type} (p : Prog α) : ∀ (st : FSt) (sp : Sponge), 
     | cons n xs =>
       have ha := carries_absorb hs n dsPowNonce
       obtain ⟨e1, e2⟩ := carries_squeeze ha
-      have key : runId (Prog.grind b k) ⟨sp, n :: xs, os, roots⟩ =
+      have key : runId (VerifierProgram.grind b k) ⟨sp, n :: xs, os, roots⟩ =
           (if powOk b n (Id.run (Compile.squeeze (m := Id) keccakF1600
               (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).1 = true then
             runId k ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600
@@ -164,8 +167,8 @@ theorem runF_of_runId {α : Type} (p : Prog α) : ∀ (st : FSt) (sp : Sponge), 
     | x0 :: x1 :: xs =>
       have h1 := carries_absorb hs x0 dsObserve
       have h2 := carries_absorb h1 x1 dsObserve
-      have key : runId (Prog.commit hh ww k) ⟨sp, x0 :: x1 :: xs, os, roots⟩ =
-          (match digestOfScalars (x0, x1) with
+      have key : runId (VerifierProgram.commit hh ww k) ⟨sp, x0 :: x1 :: xs, os, roots⟩ =
+          (match digestFromHalves (x0, x1) with
             | some root => runId k ⟨Id.run (Compile.absorb (m := Id) keccakF1600
                 (Id.run (Compile.absorb (m := Id) keccakF1600 sp x0 dsObserve)) x1 dsObserve), xs, os,
                 roots ++ [(root, hh, ww)]⟩
@@ -198,7 +201,8 @@ theorem runF_of_runId {α : Type} (p : Prog α) : ∀ (st : FSt) (sp : Sponge), 
         exact ih rows ⟨s, stream, rest, roots⟩ sp hs a t h
 
 /-- **An accepting run is a carried run.** -/
-theorem runF_of_runsWith {α : Type} {p : Prog α} {s : Fs} {xs : List E} {os : List Opening}
+theorem runF_of_runsWith {α : Type} {p : VerifierProgram α} {s : Fs} {xs : List E} {os : List
+    Opening}
     {R : List (Digest × ℕ × ℕ)} {a : α} {s' : Fs} {R' : List (Digest × ℕ × ℕ)}
     (h : RunsWith p s xs os R a s' R') {sp : Sponge} (hs : s.Carries sp) :
     runF p ⟨s, xs, os, R⟩ = some (a, ⟨s', [], [], R'⟩) := by
@@ -208,69 +212,71 @@ theorem runF_of_runsWith {α : Type} {p : Prog α} {s : Fs} {xs : List E} {os : 
   rw [this, ← eq_fsOf hc]
 
 /-- A run is unique. -/
-theorem runF_det {α : Type} {p : Prog α} {st : FSt} {r r' : α × FSt} (h : runF p st = some r)
+theorem runF_det {α : Type} {p : VerifierProgram α} {st : FSt} {r r' : α × FSt} (h : runF p st =
+    some r)
     (h' : runF p st = some r') : r = r' := Option.some.inj (h.symm.trans h')
 
 /-! ## Query steps -/
 
-theorem queriesOf_bind {α β : Type} (p : Prog α) (f : α → Prog β) (st : FSt) :
+theorem queriesOf_bind {α β : Type} (p : VerifierProgram α) (f : α → VerifierProgram β) (st : FSt) :
     queryStepsOf (p.bind f) st = queryStepsOf p st ++
       (match runF p st with
         | some r => queryStepsOf (f r.1) r.2
         | none => []) := by
   induction p generalizing st with
-  | ret a => simp [Prog.bind, queryStepsOf, runF]
-  | fail => simp [Prog.bind, queryStepsOf, runF]
+  | ret a => simp [VerifierProgram.bind, queryStepsOf, runF]
+  | fail => simp [VerifierProgram.bind, queryStepsOf, runF]
   | read k ih =>
     obtain ⟨s, stream, os, roots⟩ := st
     cases stream with
-    | nil => simp [Prog.bind, queryStepsOf, runF]
+    | nil => simp [VerifierProgram.bind, queryStepsOf, runF]
     | cons x xs => exact ih _ _
   | sample k ih => exact ih _ _
   | grind b k ih =>
     obtain ⟨s, stream, os, roots⟩ := st
     cases stream with
-    | nil => simp [Prog.bind, queryStepsOf, runF]
+    | nil => simp [VerifierProgram.bind, queryStepsOf, runF]
     | cons n xs =>
-      simp only [Prog.bind, queryStepsOf, runF]
+      simp only [VerifierProgram.bind, queryStepsOf, runF]
       split
       · exact ih _
       · simp
   | commit h w k ih =>
     obtain ⟨s, stream, os, roots⟩ := st
     match stream with
-    | [] => simp [Prog.bind, queryStepsOf, runF]
-    | [_] => simp [Prog.bind, queryStepsOf, runF]
+    | [] => simp [VerifierProgram.bind, queryStepsOf, runF]
+    | [_] => simp [VerifierProgram.bind, queryStepsOf, runF]
     | x0 :: x1 :: xs =>
-      cases hd : digestOfScalars (x0, x1) with
-      | none => simp [Prog.bind, queryStepsOf, runF, hd]
+      cases hd : digestFromHalves (x0, x1) with
+      | none => simp [VerifierProgram.bind, queryStepsOf, runF, hd]
       | some root =>
-        simp only [Prog.bind, queryStepsOf, runF, hd]
+        simp only [VerifierProgram.bind, queryStepsOf, runF, hd]
         exact ih _
   | query i ps k ih =>
     obtain ⟨s, stream, os, roots⟩ := st
     cases hr : roots[i]? with
-    | none => simp [Prog.bind, queryStepsOf, runF, hr]
+    | none => simp [VerifierProgram.bind, queryStepsOf, runF, hr]
     | some v =>
       obtain ⟨root, height, width⟩ := v
       cases ho : Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps os) with
       | none =>
         simp only [Id.run] at ho
-        simp [Prog.bind, queryStepsOf, runF, hr, ho, Id.run]
+        simp [VerifierProgram.bind, queryStepsOf, runF, hr, ho, Id.run]
       | some v' =>
         obtain ⟨rows, rest⟩ := v'
         simp only [Id.run] at ho
-        simp only [Prog.bind, queryStepsOf, runF, hr, ho, ih, Id.run, List.cons_append]
+        simp only [VerifierProgram.bind, queryStepsOf, runF, hr, ho, ih, Id.run, List.cons_append]
 
 /-! ## Refinement -/
 
 /-- `p'` refines `p`: every run of `p'` is a run of `p`, with the same query steps. -/
-def Ref {α : Type} (p' p : Prog α) : Prop :=
+def Ref {α : Type} (p' p : VerifierProgram α) : Prop :=
   ∀ st r, runF p' st = some r → runF p st = some r ∧ queryStepsOf p' st = queryStepsOf p st
 
-theorem Ref.refl {α : Type} (p : Prog α) : Ref p p := fun _ _ h ↦ ⟨h, rfl⟩
+theorem Ref.refl {α : Type} (p : VerifierProgram α) : Ref p p := fun _ _ h ↦ ⟨h, rfl⟩
 
-theorem Ref.bind {α β : Type} {p' p : Prog α} {f' f : α → Prog β} (h : Ref p' p)
+theorem Ref.bind {α β : Type} {p' p : VerifierProgram α} {f' f : α → VerifierProgram β} (h :
+    Ref p' p)
     (hf : ∀ a, Ref (f' a) (f a)) : Ref (p'.bind f') (p.bind f) := by
   intro st r hr
   obtain ⟨a, st', h1, h2⟩ := runF_bind_some hr
@@ -281,15 +287,15 @@ theorem Ref.bind {α β : Type} {p' p : Prog α} {f' f : α → Prog β} (h : Re
   simp only [q2]
 
 /-- A `require` before a program refines the program. -/
-theorem Ref.require {α : Type} (c : Prop) [Decidable c] {p' p : Prog α} (h : Ref p' p) :
-    Ref ((Prog.require c).bind fun _ ↦ p') p := by
+theorem Ref.require {α : Type} (c : Prop) [Decidable c] {p' p : VerifierProgram α} (h : Ref p' p) :
+    Ref ((VerifierProgram.require c).bind fun _ ↦ p') p := by
   intro st r hr
   by_cases hc : c
-  · have e : (Prog.require c).bind (fun _ ↦ p') = p' := by
-      simp only [Prog.require, hc, ↓reduceIte]; rfl
+  · have e : (VerifierProgram.require c).bind (fun _ ↦ p') = p' := by
+      simp only [VerifierProgram.require, hc, ↓reduceIte]; rfl
     rw [e] at hr ⊢
     exact h st r hr
-  · simp [Prog.require, hc, Prog.bind, runF] at hr
+  · simp [VerifierProgram.require, hc, VerifierProgram.bind, runF] at hr
 
 end
 end LeanVM.Guest.B1.Whir

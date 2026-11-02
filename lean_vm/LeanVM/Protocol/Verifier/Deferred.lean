@@ -36,46 +36,48 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash
 
 @[expose] public section
 
-namespace Prog
+namespace VerifierProgram
 
 variable {α β : Type}
 
 /-- **`p` refines `q`**: `p` makes the same moves as `q` and returns what `q` returns, or fails
 earlier. -/
-inductive Le : Prog α → Prog α → Prop where
+inductive Le : VerifierProgram α → VerifierProgram α → Prop where
   /-- Failing refines anything. -/
-  | fail (q : Prog α) : Le fail q
+  | fail (q : VerifierProgram α) : Le fail q
   /-- A return refines itself. -/
   | ret (a : α) : Le (ret a) (ret a)
   /-- Reading a scalar. -/
-  | read {k k' : E → Prog α} : (∀ x, Le (k x) (k' x)) → Le (read k) (read k')
+  | read {k k' : E → VerifierProgram α} : (∀ x, Le (k x) (k' x)) → Le (read k) (read k')
   /-- Sampling a challenge. -/
-  | sample {k k' : E → Prog α} : (∀ x, Le (k x) (k' x)) → Le (sample k) (sample k')
+  | sample {k k' : E → VerifierProgram α} : (∀ x, Le (k x) (k' x)) → Le (sample k) (sample k')
   /-- A proof of work. -/
-  | grind (bits : ℕ) {k k' : Prog α} : Le k k' → Le (grind bits k) (grind bits k')
+  | grind (bits : ℕ) {k k' : VerifierProgram α} : Le k k' → Le (grind bits k) (grind bits k')
   /-- A commitment. -/
-  | commit (height width : ℕ) {k k' : Prog α} : Le k k' → Le (commit height width k) (commit height width k')
+  | commit (height width : ℕ) {k k' : VerifierProgram α} : Le k k' → Le (commit height width k) (commit height width k')
   /-- An opening. -/
-  | query (i : ℕ) (positions : List ℕ) {k k' : List (List K) → Prog α} :
+  | query (i : ℕ) (positions : List ℕ) {k k' : List (List K) → VerifierProgram α} :
       (∀ rows, Le (k rows) (k' rows)) → Le (query i positions k) (query i positions k')
 
 /-- **`p` may return `a`**, along some run. -/
-inductive Returns : Prog α → α → Prop where
+inductive Returns : VerifierProgram α → α → Prop where
   /-- A return. -/
   | ret (a : α) : Returns (ret a) a
   /-- After reading a scalar. -/
-  | read {k : E → Prog α} {a : α} (x : E) : Returns (k x) a → Returns (read k) a
+  | read {k : E → VerifierProgram α} {a : α} (x : E) : Returns (k x) a → Returns (read k) a
   /-- After sampling a challenge. -/
-  | sample {k : E → Prog α} {a : α} (x : E) : Returns (k x) a → Returns (sample k) a
+  | sample {k : E → VerifierProgram α} {a : α} (x : E) : Returns (k x) a → Returns (sample k) a
   /-- After a proof of work. -/
-  | grind (bits : ℕ) {k : Prog α} {a : α} : Returns k a → Returns (grind bits k) a
+  | grind (bits : ℕ) {k : VerifierProgram α} {a : α} : Returns k a → Returns (grind bits k) a
   /-- After a commitment. -/
-  | commit (height width : ℕ) {k : Prog α} {a : α} : Returns k a → Returns (commit height width k) a
+  | commit (height width : ℕ) {k : VerifierProgram α} {a : α} : Returns k a → Returns (commit height
+      width k) a
   /-- After an opening. -/
-  | query (i : ℕ) (positions : List ℕ) {k : List (List K) → Prog α} {a : α} (rows : List (List K)) :
+  | query (i : ℕ) (positions : List ℕ) {k : List (List K) → VerifierProgram α} {a : α} (rows : List
+      (List K)) :
       Returns (k rows) a → Returns (query i positions k) a
 
-theorem Le.refl : ∀ p : Prog α, Le p p
+theorem Le.refl : ∀ p : VerifierProgram α, Le p p
   | .ret a => .ret a
   | .fail => .fail _
   | .read k => .read fun x ↦ Le.refl (k x)
@@ -85,7 +87,7 @@ theorem Le.refl : ∀ p : Prog α, Le p p
   | .query i ps k => .query i ps fun r ↦ Le.refl (k r)
 
 /-- Sequencing refines, the continuation at every value the first program may return. -/
-theorem Le.bind_of {p p' : Prog α} {f g : α → Prog β} (hp : Le p p')
+theorem Le.bind_of {p p' : VerifierProgram α} {f g : α → VerifierProgram β} (hp : Le p p')
     (hf : ∀ a, Returns p a → Le (f a) (g a)) : Le (p >>= f) (p' >>= g) := by
   induction hp with
   | fail q => exact .fail _
@@ -96,11 +98,13 @@ theorem Le.bind_of {p p' : Prog α} {f g : α → Prog β} (hp : Le p p')
   | commit h w _ ih => exact .commit h w (ih fun a h' ↦ hf a (.commit h w h'))
   | query i ps _ ih => exact .query i ps fun r ↦ ih r fun a h ↦ hf a (.query i ps r h)
 
-theorem Le.bind {p p' : Prog α} {f g : α → Prog β} (hp : Le p p') (hf : ∀ a, Le (f a) (g a)) :
+theorem Le.bind {p p' : VerifierProgram α} {f g : α → VerifierProgram β} (hp : Le p p') (hf : ∀ a,
+    Le (f a) (g a)) :
     Le (p >>= f) (p' >>= g) :=
   hp.bind_of fun a _ ↦ hf a
 
-theorem returns_bind {p : Prog α} {f : α → Prog β} {b : β} (h : Returns (p >>= f) b) :
+theorem returns_bind {p : VerifierProgram α} {f : α → VerifierProgram β} {b : β} (h : Returns (p >>=
+    f) b) :
     ∃ a, Returns p a ∧ Returns (f a) b := by
   induction p with
   | ret a => exact ⟨a, .ret a, h⟩
@@ -121,18 +125,18 @@ theorem returns_bind {p : Prog α} {f : α → Prog β} {b : β} (h : Returns (p
     cases h with
     | query _ _ r h => obtain ⟨a, ha, hb⟩ := ih r h; exact ⟨a, .query _ _ r ha, hb⟩
 
-theorem returns_ret {a b : α} (h : Returns (ret a : Prog α) b) : b = a := by
+theorem returns_ret {a b : α} (h : Returns (ret a : VerifierProgram α) b) : b = a := by
   cases h; rfl
 
-end Prog
+end VerifierProgram
 
 section Run
 
 variable (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
 
 /-- A refining program's successful run is the refined program's. -/
-theorem run_of_le {α : Type} {p q : Prog α} (hpq : Prog.Le p q) :
-    ∀ {s : ProgState} {r : α × ProgState}, runWithHash H F p s = some r → runWithHash H F q s = some r := by
+theorem run_of_le {α : Type} {p q : VerifierProgram α} (hpq : VerifierProgram.Le p q) :
+    ∀ {s : VerifierProgramState} {r : α × VerifierProgramState}, runWithHash H F p s = some r → runWithHash H F q s = some r := by
   induction hpq with
   | fail q => intro s r h; simp [runWithHash] at h
   | ret a => intro s r h; exact h
@@ -159,8 +163,8 @@ theorem run_of_le {α : Type} {p q : Prog α} (hpq : Prog.Le p q) :
     simp only [runWithHash] at h ⊢
     split at h
     · next x0 x1 xs hs =>
-      change (match digestOfScalars (x0, x1) with | some root => _ | none => _) = _ at h
-      change (match digestOfScalars (x0, x1) with | some root => _ | none => _) = _
+      change (match digestFromHalves (x0, x1) with | some root => _ | none => _) = _ at h
+      change (match digestFromHalves (x0, x1) with | some root => _ | none => _) = _
       split at h
       · next root hroot => exact ih h
       · simp at h
@@ -180,7 +184,8 @@ theorem run_of_le {α : Type} {p q : Prog α} (hpq : Prog.Le p q) :
       · simp at h
 
 /-- A refining program's accepted proof is the refined program's. -/
-theorem runProof_of_le {P Q : Prog Bool} (hPQ : Prog.Le P Q) {seed : KeccakState} {π : Proof}
+theorem runProof_of_le {P Q : VerifierProgram Bool} (hPQ : VerifierProgram.Le P Q) {seed :
+    KeccakState} {π : Proof}
     (h : runProofWithHash H F P seed π = true) : runProofWithHash H F Q seed π = true := by
   unfold runProofWithHash at h ⊢
   revert h
@@ -202,33 +207,33 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.
 
 /-- **`ev` refines `ev'` on the bytecode `bytecode`**: at every point, `ev`'s value is `ev'`'s or
 refused. -/
-def Evaluations.Le (bytecode : List K) (ev ev' : (List K → List E → Prog E)) : Prop :=
-  ∀ point, Prog.Le (ev bytecode point) (ev' bytecode point)
+def Evaluations.Le (bytecode : List K) (ev ev' : (List K → List E → VerifierProgram E)) : Prop :=
+  ∀ point, VerifierProgram.Le (ev bytecode point) (ev' bytecode point)
 
 /-- True claims refine the computed values. -/
 theorem claimed_le_computed {bytecode : List K} {c : BytecodeClaim} (hc : c.Holds bytecode) :
-    Evaluations.Le bytecode (claimedValue c) computedValue := by
+    Evaluations.Le bytecode (claimedBytecodeValue c) computedBytecodeValue := by
   intro point
-  simp only [claimedValue, computedValue, Prog.require]
+  simp only [claimedBytecodeValue, computedBytecodeValue, VerifierProgram.require]
   split
   · next h => rw [h, ← hc]; exact .ret _
   · exact .fail _
 
 /-- The layout `readSizes` returns carries the bytecode it read. -/
 theorem readSizes_bytecode {bytecode : List K} {x : Layout × ℕ}
-    (h : Prog.Returns (readSizes bytecode) x) : x.1.bytecode = bytecode := by
-  unfold readSizes at h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨layout, hl, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  rw [Prog.returns_ret h]
+    (h : VerifierProgram.Returns (readAnnouncedSizes bytecode) x) : x.1.bytecode = bytecode := by
+  unfold readAnnouncedSizes at h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨layout, hl, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  rw [VerifierProgram.returns_ret h]
   unfold liftOption at hl
   split at hl
   · cases hl
   · next o ho =>
-    rw [Prog.returns_ret hl]
+    rw [VerifierProgram.returns_ret hl]
     unfold buildLayout at ho
     split at ho
     · simp at ho
@@ -236,9 +241,9 @@ theorem readSizes_bytecode {bytecode : List K} {x : Layout × ℕ}
       · simp only [Option.some.injEq] at ho; rw [← ho]
       · simp at ho
 
-theorem verifyBusBalance_le {ev ev' : (List K → List E → Prog E)} {layout : Layout}
+theorem verifyBusBalance_le {ev ev' : (List K → List E → VerifierProgram E)} {layout : Layout}
     (hev : Evaluations.Le layout.bytecode ev ev') :
-    Prog.Le (verifyBusBalance ev layout) (verifyBusBalance ev' layout) := by
+    VerifierProgram.Le (verifyBusBalance ev layout) (verifyBusBalance ev' layout) := by
   unfold verifyBusBalance
   refine .bind (.refl _) fun _ ↦ .bind (.refl _) fun _ ↦ .bind (.refl _) fun x ↦ ?_
   obtain ⟨_, _, _⟩ := x
@@ -246,11 +251,11 @@ theorem verifyBusBalance_le {ev ev' : (List K → List E → Prog E)} {layout : 
     .bind (.refl _) fun _ ↦ .bind (hev _) fun _ ↦ .refl _
 
 /-- **The verifier's run refines with its evaluations.** -/
-theorem verifyExecution_le {ev ev' : (List K → List E → Prog E)} {bytecode : List K}
+theorem verifyExecution_le {ev ev' : (List K → List E → VerifierProgram E)} {bytecode : List K}
     (hev : Evaluations.Le bytecode ev ev') (publicInput : Digest) :
-    Prog.Le (verifyExecutionClaims ev bytecode publicInput) (verifyExecutionClaims ev' bytecode publicInput) := by
+    VerifierProgram.Le (verifyExecutionClaims ev bytecode publicInput) (verifyExecutionClaims ev' bytecode publicInput) := by
   unfold verifyExecutionClaims
-  refine (Prog.Le.refl _).bind_of fun x hx ↦ ?_
+  refine (VerifierProgram.Le.refl _).bind_of fun x hx ↦ ?_
   obtain ⟨layout, r⟩ := x
   have hb : layout.bytecode = bytecode := readSizes_bytecode hx
   exact .bind (.refl _) fun _ ↦ .bind (verifyBusBalance_le (hb ▸ hev)) fun _ ↦ .refl _
@@ -262,7 +267,7 @@ theorem verify_of_verifyDeferred {bytecode : List K} {publicInput : Digest} {c :
     {π : Proof} (hc : c.Holds bytecode)
     (h : verifyDeferred bytecode (fiatShamirIv bytecode) publicInput c π = true) :
     verify bytecode publicInput π = true := by
-  have hle : Prog.Le (deferredProgram c bytecode publicInput) (leanVmProgram bytecode publicInput) := by
+  have hle : VerifierProgram.Le (deferringVerifierProgram c bytecode publicInput) (leanVmVerifierProgram bytecode publicInput) := by
     rw [deferredProgram_eq, leanVmProgram_eq]
     exact .bind (verifyExecution_le (claimed_le_computed hc) publicInput) fun _ ↦ .refl _
   rw [verifyDeferred_eq_withHash] at h

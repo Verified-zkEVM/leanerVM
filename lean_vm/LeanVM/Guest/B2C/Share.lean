@@ -91,7 +91,7 @@ theorem Loc.seq_eq {β : Type} (L : Loc) (k : Loc → β) : L.seq k = k L := by
 
 /-- Window `i`'s cells in certificate `C`. -/
 noncomputable def locW (C : Cert) (i : ℕ) : Loc :=
-  ⟨nth C.los i 0, (nth C.cells i []).length, packCells (nth C.cells i []), insTrie (nth C.ins i []) .nil⟩
+  ⟨listElementOrDefault C.los i 0, (listElementOrDefault C.cells i []).length, packCells (listElementOrDefault C.cells i []), insTrie (listElementOrDefault C.ins i []) .nil⟩
 
 /-! ## The state -/
 
@@ -466,7 +466,8 @@ noncomputable def apartOk (j : ℕ) : Bool :=
     (bif Nat.beq j 1 then Nat.blt (Nat.lor (Nat.lor trsv sc) ac) (2 ^ 406) else true)
 
 /-- The snapshot window `k` starts from (`k ≥ 1`). -/
-def snapAt (snaps : List Snap) (k : ℕ) : Snap := nth snaps (k - 1) ⟨0, 0, 0, [], [], []⟩
+def snapAt (snaps : List Snap) (k : ℕ) : Snap := listElementOrDefault snaps (k - 1) ⟨0, 0, 0, [],
+    [], []⟩
 
 /-- Where window `k` starts. -/
 def startW (snaps : List Snap) (k : ℕ) : ℕ := bif k == 0 then 0 else (snapAt snaps k).start
@@ -489,7 +490,7 @@ windows' order, the cells apart, the parameters numbered in the first window's c
 noncomputable def shareStatic (j : ℕ) : Bool :=
   (locW (certOf j) 0).seq fun loc ↦ natSeq (tmpCells (plumbOf j)) fun tc ↦
   natSeq (fpgCells (plumbOf j)) fun fc ↦ (byCell (plumbOf j).tmps).seq fun tt ↦
-  (nth (certOf j).cells 0 []).all (fun c ↦ Nat.blt c 65536) &&
+  (listElementOrDefault (certOf j).cells 0 []).all (fun c ↦ Nat.blt c 65536) &&
   Nat.blt (fsN j) (2 ^ envDepth) && listsOk (plumbOf j) (fsN j) && snapsOk (certOf j) (snapsOf j) &&
     apartOk j && (coreOf j).params.all (valOk loc tt tc fc (fsN j))
 
@@ -500,7 +501,7 @@ noncomputable def shareWin (j : ℕ) (snaps : List Snap) (k : ℕ) : Bool :=
   (locW (certOf j) (winW snaps k)).seq fun loc ↦ natSeq (bitsOf (plumbOf j).sh) fun sh ↦
   natSeq (tmpCells (plumbOf j)) fun tc ↦ natSeq (fpgCells (plumbOf j)) fun fc ↦
   (byCell (plumbOf j).tmps).seq fun tt ↦
-  (nth (certOf j).cells (winW snaps k) []).all (fun c ↦ Nat.blt c 65536) &&
+  (listElementOrDefault (certOf j).cells (winW snaps k) []).all (fun c ↦ Nat.blt c 65536) &&
   (Memory.Stmt.usesList (stmtsW (coreOf j).body snaps k) ++
     Memory.Stmt.tmpsList (stmtsW (coreOf j).body snaps k)).all (valOk loc tt tc fc (fsN j)) &&
   (match swL loc sh tt (plumbOf j)

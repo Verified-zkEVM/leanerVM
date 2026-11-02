@@ -112,7 +112,7 @@ end Valid
 addresses. -/
 theorem Tree.Valid.eqns_consistent {P : Core.Program} {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ}
     {T : Tree} {args rets : List E} (hv : T.Valid P M.read args rets)
-    (ha : ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ κ), q.1 = gpow i) : Consistent (T.eqns P) :=
+    (ha : ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ κ), q.1 = addressOfIndex i) : Consistent (T.eqns P) :=
   consistent_of_read fun q hq => hv.eqns_read hκ T q hq (ha q hq)
 
 /-! ## The honest memory -/
@@ -139,7 +139,7 @@ structure Honest (rd : Reader) (args rets : List E) : Prop where
   /-- The cells fit their frames and agree. -/
   cells : CellsOk fs C (honestInsts P fs H hdr T)
   /-- The equations name addresses of the memory. -/
-  addr : ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ logMem (T.total fs)), q.1 = gpow i
+  addr : ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ logMem (T.total fs)), q.1 = addressOfIndex i
   /-- The equations agree among themselves. -/
   eqns : Consistent (T.eqns P)
   /-- The equations agree with the frames where they meet. -/
@@ -182,27 +182,27 @@ theorem Honest.consistent (h : Honest P fs H C hdr T rd args rets) :
 /-- **Every frame cell reads back**: header and cells, at `fp · g^o`. -/
 theorem Honest.read_cell (h : Honest P fs H C hdr T rd args rets) {I : Inst}
     (hI : I ∈ honestInsts P fs H hdr T) {q : ℕ × E} (hq : q ∈ I.cells C) :
-    (honest P fs H C hdr T).read (gpow I.fp * gpow q.1) = some q.2 := by
+    (honest P fs H C hdr T).read (addressOfIndex I.fp * addressOfIndex q.1) = some q.2 := by
   have hlt := h.cells.cell_lt hI hq
   have hw := honest_within hI (by omega)
   have hle := le_two_pow_logMem (T.total fs)
   rw [← pow_add]
-  exact image_read h.lt_64 h.consistent (q := (gpow (I.fp + q.1), q.2))
+  exact image_read h.lt_64 h.consistent (q := (addressOfIndex (I.fp + q.1), q.2))
     (List.mem_append_left _ (List.mem_flatMap.mpr ⟨I, hI, List.mem_map.mpr ⟨q, hq, rfl⟩⟩))
     ⟨⟨I.fp + q.1, by omega⟩, rfl⟩
 
 /-- The header: `fp[0]`, `fp[1]`. -/
 theorem Honest.read_hdr (h : Honest P fs H C hdr T rd args rets) {I : Inst}
     (hI : I ∈ honestInsts P fs H hdr T) :
-    (honest P fs H C hdr T).read (gpow I.fp * gpow 0) = some I.hdr.1 ∧
-      (honest P fs H C hdr T).read (gpow I.fp * gpow 1) = some I.hdr.2 :=
+    (honest P fs H C hdr T).read (addressOfIndex I.fp * addressOfIndex 0) = some I.hdr.1 ∧
+      (honest P fs H C hdr T).read (addressOfIndex I.fp * addressOfIndex 1) = some I.hdr.2 :=
   ⟨h.read_cell hI (q := (0, I.hdr.1)) List.mem_cons_self,
     h.read_cell hI (q := (1, I.hdr.2)) (List.mem_cons_of_mem _ List.mem_cons_self)⟩
 
 /-- A cell of `C`. -/
 theorem Honest.read_C (h : Honest P fs H C hdr T rd args rets) {I : Inst}
     (hI : I ∈ honestInsts P fs H hdr T) {o : ℕ} {w : E} (hq : (o, w) ∈ C I) :
-    (honest P fs H C hdr T).read (gpow I.fp * gpow o) = some w :=
+    (honest P fs H C hdr T).read (addressOfIndex I.fp * addressOfIndex o) = some w :=
   h.read_cell hI (q := (o, w)) (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ hq))
 
 /-- Every memory equation reads back. -/
@@ -227,21 +227,21 @@ theorem root_inst : ∃ I ∈ honestInsts P fs H hdr T, I.t = T ∧ I.fp = 0 ∧
 
 /-- **The public boundary**: with the public input as `main`'s header, the honest memory holds
 it in words `0`, `1`, and has between `2^16` and `2^32` words. -/
-theorem Honest.publicBoundary {input : PublicInput} {prog : Semantics.Program}
+theorem Honest.publicBoundary {input : PublicInput} {prog : Semantics.LeanIsaProgram}
     (h : Honest P fs H C (input.word0, input.word1) T rd args rets) :
     HoldsPublicInput input
       (⟨logMem (T.total fs), honest P fs H C (input.word0, input.word1) T, 0⟩ : Execution prog) := by
   obtain ⟨I, hI, -, hfp, hh⟩ := root_inst (fs := fs) (H := H) (hdr := (input.word0, input.word1))
     (T := T)
   obtain ⟨h0, h1⟩ := h.read_hdr hI
-  rw [hfp, hh, gpow, pow_zero, one_mul] at h0 h1
+  rw [hfp, hh, addressOfIndex, pow_zero, one_mul] at h0 h1
   exact ⟨minLogMem_le_logMem _, h.logMem_le, h0, h1⟩
 
 /-- A word nothing writes reads `0`, as the Rust runner reads an unwritten cell. -/
 theorem Honest.read_unwritten (h : Honest P fs H C hdr T rd args rets)
     (i : Fin (2 ^ logMem (T.total fs)))
-    (hn : ∀ q ∈ frameWrites C (honestInsts P fs H hdr T) ++ T.eqns P, q.1 ≠ gpow i) :
-    (honest P fs H C hdr T).read (gpow i) = some 0 :=
+    (hn : ∀ q ∈ frameWrites C (honestInsts P fs H hdr T) ++ T.eqns P, q.1 ≠ addressOfIndex i) :
+    (honest P fs H C hdr T).read (addressOfIndex i) = some 0 :=
   image_read_zero h.lt_64 i hn
 
 /-- **The callees of an instance**: its `i`-th callee is an instance at its `i`-th callee frame,
@@ -268,14 +268,14 @@ theorem honest_kidFps {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) :
 /-- A frame write is at a word of an instance's frame. -/
 theorem frameWrites_addr (hok : CellsOk fs C (honestInsts P fs H hdr T)) {a : Write}
     (ha : a ∈ frameWrites C (honestInsts P fs H hdr T)) :
-    ∃ I ∈ honestInsts P fs H hdr T, ∃ o < fs I.t.name, a.1 = gpow (I.fp + o) := by
+    ∃ I ∈ honestInsts P fs H hdr T, ∃ o < fs I.t.name, a.1 = addressOfIndex (I.fp + o) := by
   obtain ⟨I, hI, q, hq, rfl⟩ := mem_frameWrites ha
   exact ⟨I, hI, q.1, hok.cell_lt hI hq, rfl⟩
 
 /-- **No frame write is in a `HeapBuf`**: an equation there meets no frame. -/
 theorem frameWrites_not_buf (hok : CellsOk fs C (honestInsts P fs H hdr T))
     (hsize : T.total fs ≤ 2 ^ 32) {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {i : ℕ}
-    (hi : I.Buf i) : ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), a.1 ≠ gpow i := by
+    (hi : I.Buf i) : ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), a.1 ≠ addressOfIndex i := by
   intro a ha he
   obtain ⟨J, hJ, o, ho, hao⟩ := frameWrites_addr hok ha
   have hiw := insts_within T 0 hdr I hI i (Or.inr hi)
@@ -296,8 +296,8 @@ addresses of their runs in its frame. -/
 theorem HonestAt.nodeAt {cert : String → V → ℕ} (h : HonestAt P fs H C hdr T cert rd args rets)
     {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
     {kids : List Tree} (ht : I.t = .node f σ bufs kids) :
-    (allocDsts (I.t.events P)).map σ = I.bufBases.map (fun b => ofK (gpow b)) ∧
-      ∀ q ∈ addrs (I.t.events P), σ q.1 = ofK (gpow (I.fp + cert f q.2)) :=
+    (allocDsts (I.t.events P)).map σ = I.bufBases.map (fun b => ofK (addressOfIndex b)) ∧
+      ∀ q ∈ addrs (I.t.events P), σ q.1 = ofK (addressOfIndex (I.fp + cert f q.2)) :=
   Inst.nodeAt (insts_placedAt T 0 hdr h.placed I hI) (insts_placed T 0 hdr I hI) ht
 
 /-- **A `frameAddr`'s equations are frame writes** of a placed instance whose cells hold its run
@@ -315,8 +315,9 @@ theorem HonestAt.frameAddr_eqns {cert : String → V → ℕ}
     List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (hrun k hk)), ?_⟩⟩
   simp only at hp ⊢
   rw [hp]
-  rw [show (ofK (gpow (I.fp + cert f r))).limb 0 = gpow (I.fp + cert f r) by simp, gpow, gpow,
-    gpow, ← pow_add, Nat.add_assoc]
+  rw [show (ofK (addressOfIndex (I.fp + cert f r))).limb 0 = addressOfIndex (I.fp + cert f r)
+      by simp, addressOfIndex, addressOfIndex,
+    addressOfIndex, ← pow_add, Nat.add_assoc]
 
 /-! ## Certificates -/
 
@@ -347,7 +348,8 @@ theorem CellsOk.append {Is : List Inst} {C₁ C₂ : Inst → List (ℕ × E)} (
 theorem Honest.read_value (h : Honest P fs H C hdr T rd args rets) {cert : String → V → ℕ}
     {dom : Inst → List V} (hC : ∀ I, valueCells cert dom I ⊆ C I) {I : Inst}
     (hI : I ∈ honestInsts P fs H hdr T) {v : V} (hv : v ∈ dom I) :
-    (honest P fs H C hdr T).read (gpow I.fp * gpow (cert I.t.name v)) = some (I.t.val v) :=
+    (honest P fs H C hdr T).read (addressOfIndex I.fp * addressOfIndex (cert I.t.name v)) = some
+        (I.t.val v) :=
   h.read_C hI (hC I (mem_valueCells hv))
 
 /-! ## `main`'s jump table -/
@@ -356,7 +358,7 @@ theorem Honest.read_value (h : Honest P fs H C hdr T rd args rets) {cert : Strin
 and its word. -/
 def tableCells : List (ℕ × E) :=
   Data.f0.code.filterMap fun
-    | .set o k0 k1 k2 => some (o, OInstr.imm k0 k1 k2)
+    | .set o k0 k1 k2 => some (o, OffsetInstruction.immediateWord k0 k1 k2)
     | _ => none
 
 set_option maxRecDepth 100000 in

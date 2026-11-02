@@ -40,7 +40,7 @@ open Air.Flat (EnsembleWitness)
 
 @[expose] public section
 
-variable {prog : Program} {input : PublicInput} {t : Execution prog}
+variable {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
 
 /-! ## The specification witness is a child's -/
 
@@ -73,11 +73,12 @@ a valid rate: `exists_childFor`, for the concrete witness. -/
 theorem childFor_trace (hv : ValidExecution prog input t)
     (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ} (hρ : validRate ρ) :
     ChildFor prog input t ρ (traceWitness prog input t) (traceSizes prog input t) := by
-  have hcount : ∀ op, t.count op = t.runRows op := Execution.count_eq_runRows hv.2
-  have hheight : ∀ op, 2 ^ Nat.clog 2 (t.count op) ≤ t.committedSize := by
+  have hcount : ∀ op, t.opcodeCount op = t.runRows op := Execution.count_eq_runRows hv.2
+  have hheight : ∀ op, 2 ^ Nat.clog 2 (t.opcodeCount op) ≤ t.committedSize := by
     intro op
     have : 0 < 2 ^ prog.logSize := Nat.two_pow_pos _
-    have hk : 2 ^ Nat.clog 2 (t.count .keccak) ≤ 2 ^ max (Nat.clog 2 (t.count .keccak)) 9 :=
+    have hk : 2 ^ Nat.clog 2 (t.opcodeCount .keccak) ≤ 2 ^ max (Nat.clog 2 (t.opcodeCount
+        .keccak)) 9 :=
       Nat.pow_le_pow_right (by norm_num) (le_max_left _ _)
     simp only [Execution.committedSize]
     cases op <;> omega
@@ -102,7 +103,7 @@ theorem childFor_trace (hv : ValidExecution prog input t)
     hrep.κ_eq
   have hr : ∀ j : Fin 6,
       (witnessSizes (traceWitness prog input t) (traceWitness_pos hv)).rows j =
-        t.count (tableOpcode j) :=
+        t.opcodeCount (tableOpcode j) :=
     fun j ↦ (length_traceWitness j).trans ((t.count_runSkels _).trans (hcount _).symm)
   have htotal : (LeanIsa.blocks prog
       (witnessSizes (traceWitness prog input t) (traceWitness_pos hv))).total =
@@ -131,7 +132,8 @@ theorem childFor_trace (hv : ValidExecution prog input t)
 /-- **What the executable data of an execution is**: the sizes of the specification witness
 (`traceSizes`), its stack's number of variables, every column of the instance read off its stack
 by Python column number, the stack's cells, and the announcement. -/
-structure WitnessSpec (prog : Program) (input : PublicInput) (t : Execution prog) (W : Witness) :
+structure WitnessSpec (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (W :
+    Witness) :
     Prop where
   /-- The memory log-size. -/
   logMem : W.logMem = (traceSizes prog input t).logMem
@@ -199,7 +201,7 @@ theorem witness?_spec (hv : ValidExecution prog input t) (hcap : t.committedSize
   ⟨_, witness?_eq hv hcap, buildWitness_spec hv⟩
 
 /-- `witness?` returns exactly when `checkTrace` holds. -/
-theorem isSome_witness? (prog : Program) (input : PublicInput) (t : Execution prog) :
+theorem isSome_witness? (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) :
     (witness? prog input t).isSome = checkTrace prog input t := by
   unfold witness? checkTrace
   by_cases hb : boundaryOK input t = true
@@ -211,7 +213,7 @@ theorem isSome_witness? (prog : Program) (input : PublicInput) (t : Execution pr
   · simp [hb]
 
 /-- `witness?` returns exactly on a valid execution within the cap. -/
-theorem isSome_witness?_iff (prog : Program) (input : PublicInput) (t : Execution prog) :
+theorem isSome_witness?_iff (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) :
     (witness? prog input t).isSome = true ↔
       ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 28 := by
   rw [isSome_witness?, checkTrace_iff]

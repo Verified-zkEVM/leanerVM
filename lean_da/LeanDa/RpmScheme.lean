@@ -41,11 +41,11 @@ namespace LeanDa
 /-! ## Lanes and bytes -/
 
 /-- A lane's bytes are the crate's (`kBytes`, `as_bytes`). -/
-theorem laneBytes_toList (a : K) : (laneBytes a).toList = kBytes a := by
+theorem laneBytes_toList (a : K) : (laneBytes a).toList = symbolBytes a := by
   apply List.ext_getElem
-  · simp [kBytes]
+  · simp [symbolBytes]
   intro t h1 h2
-  simp only [Vector.getElem_toList, kBytes, List.getElem_map, List.getElem_range]
+  simp only [Vector.getElem_toList, symbolBytes, List.getElem_map, List.getElem_range]
   apply UInt8.toNat_inj.mp
   simp only [laneBytes, Equiv.trans_apply, arrayVectorEquivFin, Equiv.coe_fn_symm_mk,
     Vector.getElem_ofFn, Equiv.arrowCongr_apply, Function.comp_apply]
@@ -83,7 +83,7 @@ theorem walkM_id (idx : ℕ) (node : Common.DigestBytes) (path : List Common.Dig
     exact ih _ _
 
 /-- **Over a pure function, the verification is `verifyCell`.** -/
-theorem verifyCellM_id (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
+theorem verifyCellM_id (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     verifyCellMWithHash (m := Id) (fun a ↦ pure (H a)) r com p x τ = verifyCell H r com p x τ := by
   simp only [verifyCellMWithHash, verifyCell]
   change (decide _ && decide (H (pairBytes τ.rowRoot (walkMWithHash (m := Id) _ _ _ _)) = com)) = _
@@ -191,9 +191,10 @@ theorem admissible_duplexInput {hist : List KState} {s : Sponge} (hs : SpongeOK 
 
 /-- A fresh sponge permutes an admissible state. -/
 theorem admissible_newInput (hist : List KState) (iv publicInput : Common.DigestBytes) :
-    Admissible KState.zero keccakNF hist (lanesToState (newInput iv publicInput)) := by
-  have hk := lanesToState_keep (L := newInput iv publicInput) (y := KState.zero) fun i hi ↦ by
-    simp only [newInput, Vector.getElem_ofFn, stateToLanes_zero, Vector.getElem_replicate,
+    Admissible KState.zero keccakNF hist (lanesToState (freshSpongeInput iv publicInput)) := by
+  have hk := lanesToState_keep (L := freshSpongeInput iv publicInput) (y := KState.zero) fun i
+      hi ↦ by
+    simp only [freshSpongeInput, Vector.getElem_ofFn, stateToLanes_zero, Vector.getElem_replicate,
       Fin.getElem_fin, show ¬ (i : ℕ) < 4 by omega, show ¬ (i : ℕ) < 8 by omega, ↓reduceIte]
   exact Or.inl ⟨hk.1, keccakNF_blockTo KState.zero _ hk.2⟩
 
@@ -209,13 +210,13 @@ theorem duplexP_pR {hist : List KState} {L : Lanes}
     duplexP_pure ⟨⟨y, List.mem_cons_self, rfl⟩, List.subset_cons_self _ _⟩
 
 theorem duplexP_newM (hist : List KState) (iv publicInput : Common.DigestBytes) :
-    DuplexP (SpongePost hist) (Sponge.newM pR iv publicInput) hist := by
+    DuplexP (SpongePost hist) (Sponge.newWith pR iv publicInput) hist := by
   refine duplexP_bind (duplexP_pR (admissible_newInput hist iv publicInput)) fun L hist' h ↦ ?_
   obtain ⟨⟨y, hy, rfl⟩, hsub⟩ := h
   exact duplexP_pure ⟨⟨y, hy, rfl⟩, hsub⟩
 
 theorem duplexP_duplexM {hist : List KState} {s : Sponge} (hs : SpongeOK hist s) :
-    DuplexP (SpongePost hist) (Sponge.duplexM pR s) hist := by
+    DuplexP (SpongePost hist) (Sponge.duplexWith pR s) hist := by
   refine duplexP_bind (duplexP_pR (admissible_duplexInput hs)) fun L hist' h ↦ ?_
   obtain ⟨⟨y, hy, rfl⟩, hsub⟩ := h
   exact duplexP_pure ⟨⟨y, hy, rfl⟩, hsub⟩
@@ -224,21 +225,21 @@ theorem SpongePost.trans {h₀ h₁ h₂ : List KState} {s : Sponge} (h01 : h₀
     (h : SpongePost h₁ s h₂) : SpongePost h₀ s h₂ := ⟨h.1, fun _ ha ↦ h.2 (h01 ha)⟩
 
 theorem duplexP_absorbM {hist : List KState} {s : Sponge} (hs : SpongeOK hist s) (x : E)
-    (tag : K) : DuplexP (SpongePost hist) (Sponge.absorbM pR s x tag) hist := by
-  unfold Sponge.absorbM
+    (tag : K) : DuplexP (SpongePost hist) (Sponge.absorbWith pR s x tag) hist := by
+  unfold Sponge.absorbWith
   have h1 : DuplexP (SpongePost hist)
-      (if s.pending.length = rateScalars then Sponge.duplexM pR s else pure s) hist := by
+      (if s.pending.length = rateScalars then Sponge.duplexWith pR s else pure s) hist := by
     split
     · exact duplexP_duplexM hs
     · exact duplexP_pure ⟨hs, List.Subset.refl _⟩
   exact duplexP_bind h1 fun s' hist' h ↦ duplexP_pure ⟨h.1, h.2⟩
 
 theorem duplexP_samplesM (n : ℕ) {hist : List KState} {s : Sponge} (hs : SpongeOK hist s) :
-    DuplexP (fun _ hist' ↦ hist ⊆ hist') (Sponge.samplesM pR n s) hist := by
+    DuplexP (fun _ hist' ↦ hist ⊆ hist') (Sponge.samplesWith pR n s) hist := by
   induction n generalizing hist s with
   | zero => exact duplexP_pure (List.Subset.refl _)
   | succ n ih =>
-    unfold Sponge.samplesM Sponge.sampleM
+    unfold Sponge.samplesWith Sponge.sampleWith
     rw [bind_assoc]
     refine duplexP_bind (duplexP_duplexM hs) fun s' hist' h ↦ ?_
     simp only [pure_bind]

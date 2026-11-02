@@ -16,7 +16,7 @@ open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.P
 
 /-- Run a verifier program against a prover script, the `i`-th challenge `eOfNat (7·i + 3)`: the
 program's result, or `none` when it fails or the two disagree on the move. -/
-def play {α β : Type} : ℕ → Prog α → Script β → ℕ → Option α
+def play {α β : Type} : ℕ → VerifierProgram α → Script β → ℕ → Option α
   | 0, _, _, _ => none
   | _ + 1, .ret a, _, _ => some a
   | _ + 1, .fail, _, _ => none

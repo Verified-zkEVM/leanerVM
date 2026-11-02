@@ -27,7 +27,7 @@ left after its folds, and the next code those after the next level's.
 namespace LeanVM.Protocol.Whir.Sound
 
 open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-  LeanVM.Protocol.Whir Prog Finset
+  LeanVM.Protocol.Whir VerifierProgram Finset
 
 @[expose] public section
 

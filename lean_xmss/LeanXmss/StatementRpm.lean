@@ -13,7 +13,8 @@ public import Common.WithHash
 The SUF-CMA game of `Statement.lean` with the hash `H` instantiated as Keccak-256 over a uniformly
 random permutation `π` of the Keccak-f[1600] state of 25 lanes (`Common`): `H` is the sponge over
 `π` (rate 136 bytes, capacity 512 bits, Keccak padding), its 32 output bytes read as the
-little-endian `HashOutput` (`Common.SufCma.digestBitVec`), and the adversary queries Keccak-256,
+little-endian `HashOutput` (`Common.SufCma.digestBytesEquivBitVec`), and the adversary queries
+Keccak-256,
 `π` and `π⁻¹` besides the signing oracle (the model with the hash oracle, `Common.HashOracle`; the
 statement's adversary queries `π` and `π⁻¹` alone, `Common.PiOnly`). Key generation, signing and
 the final verification hash through the same `π`.
@@ -26,14 +27,14 @@ and `π⁻¹`, one each (`Common.SufCma.oracleCalls`).
 
 open OracleComp OracleSpec ENNReal Common Common.SufCma
 
-namespace LeanXmss.Rpm
+namespace LeanXmss.RandomPermutationModel
 
 open HashSig
 
 /-- An adversary in the random-permutation model: private coins, Keccak-256 (32 bytes), `π`,
 `π⁻¹` and the signing oracle. -/
 structure Adversary where
-  main : PublicKey → OracleComp (KSpecH + SigningSpec) Forgery
+  main : PublicKey → OracleComp (KSpecH + SigningOracleSpec) Forgery
 
 /-- The game: the master seed, key generation, the adversary with the signing oracle, the final
 verification, all hashing with Keccak-256 over the permutation. -/
@@ -52,4 +53,4 @@ def HasPermutationBound (adversary : Adversary) (Q : Nat) : Prop :=
 def HasCallBound (adversary : Adversary) (q : Nat) : Prop :=
   QueryCostAtMost (game adversary) oracleCalls q
 
-end LeanXmss.Rpm
+end LeanXmss.RandomPermutationModel

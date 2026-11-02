@@ -160,8 +160,8 @@ def subHOf (op : SubtreeOpening) (t a : Nat) : SubH :=
 
 /-- A coordinate's hints: its super-child `s`, its opening's top path, its sub-trees'. -/
 def coordHOf (op : CoordinateOpening) (s t0 a0 t1 a1 : Nat) : CoordH :=
-  ⟨s, fun l => if h : l < 4 then cellOf128 (op.top ⟨l, h⟩) else 0, subHOf (op.sub 0) t0 a0,
-    subHOf (op.sub 1) t1 a1⟩
+  ⟨s, fun l => if h : l < 4 then cellOf128 (op.topTreePath ⟨l, h⟩) else 0, subHOf (op.subtreeOpenings 0) t0 a0,
+    subHOf (op.subtreeOpenings 1) t1 a1⟩
 
 theorem canon_dite {p : Prop} [Decidable p] {f : p → BitVec 128} :
     IsCanonical128 (if h : p then cellOf128 (f h) else 0) := by
@@ -203,7 +203,7 @@ theorem subOpening_eq {σ : Val} {encIn boundIn : E} {c j : Nat} {enc : Option V
         rw [show (fun a => word (j * 2 ^ 39 + a * 2 ^ 40) 0 0) = subMark j from rfl, this]
         exact sv_dite l
       · simp only [hl, ↓reduceIte]
-        have hl2 : l = ⟨2, by decide⟩ := Fin.ext (by have := l.isLt; simp [subHeight] at this ⊢; omega)
+        have hl2 : l = ⟨2, by decide⟩ := Fin.ext (by have := l.isLt; simp [forestSubtreeHeight] at this ⊢; omega)
         subst hl2
         by_cases hq : a / 2 ^ 2 = 0 <;> simp only [hq, ↓reduceIte] at hs2 ⊢ <;> rw [hs2] <;>
           exact sv_dite (n := 3) ⟨2, by decide⟩
@@ -232,7 +232,7 @@ theorem coordOpening_eq {σ : Val} {encIn boundIn : E} {c : Nat} {enc : Option V
         rw [show (fun s => word (c * hiMul + s * 2 ^ 35) 0 0) = coordMark c from rfl, this]
         exact sv_dite l
       · simp only [hl, ↓reduceIte]
-        have hl3 : l = ⟨3, by decide⟩ := Fin.ext (by have := l.isLt; simp [topHeight] at this ⊢; omega)
+        have hl3 : l = ⟨3, by decide⟩ := Fin.ext (by have := l.isLt; simp [topTreeHeight] at this ⊢; omega)
         subst hl3
         by_cases hq : s / 2 ^ 3 = 0 <;> simp only [hq, ↓reduceIte] at ht3 ⊢ <;> rw [ht3] <;>
           exact sv_dite (n := 4) ⟨3, by decide⟩

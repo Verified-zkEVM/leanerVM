@@ -101,7 +101,7 @@ theorem firstWord_of_shapeOK {P₀ : LevelCode} {h : List Ev}
 /-- **Ring switching's postcondition is the opening's precondition**: no candidate of the stack's
 word satisfies the column claims and the ring claim, and the stack's commitment is the only one,
 of level 0's shape; so every candidate violates one of the opening's claims. -/
-theorem stackedPre_of_ringPost (prog : Program) (s : Sizes) (ρ : ℕ)
+theorem stackedPre_of_ringPost (prog : LeanIsaProgram) (s : Sizes) (ρ : ℕ)
     (cl : List Verifier.ColumnClaim) (r : E × (List E → E)) (h : List Ev)
     (hpost : RingPost (verifierLayout prog s) (candsL prog s ρ thrOf) cl r h)
     (hJ : ShapeOK 0 (Whir.Params.deployedCodes (verifierLayout prog s).stackLog ρ 0) laneBits

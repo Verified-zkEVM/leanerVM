@@ -32,7 +32,7 @@ def word0 : Word := fun p ↦ if p % 2 = 0 then [w 5, w 6] else [w 7, w 8]
 def pos (c : E) : ℕ := (c.limb 0).toBitVec.toNat
 
 /-- The verifier after the proof of work, with `bits` bits of work. -/
-def prog (bits : ℕ) : Prog Bool :=
+def prog (bits : ℕ) : VerifierProgram Bool :=
   .read fun _ ↦ .commit 1 2 (.grind bits (.sample fun c ↦
     .query 0 [pos c] fun rows ↦ .ret (decide (rows = [word0 (pos c % 2)]))))
 

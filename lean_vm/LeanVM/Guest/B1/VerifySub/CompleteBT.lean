@@ -167,18 +167,19 @@ theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 2
     (hrf : Lift.RunsFit fs cert) (hap : Lift.RunsApart cert) (W : VsWords fs) {Bvk κ : ℕ}
     (hκ : 16 ≤ κ) (hvk : VkCompleteAtB fs cert κ Bvk) (seed : Digest) (c : Child)
     (lpE sqE outE : ℕ) (Lin : Main.Layout)
-    (hmu : ∀ layout r, Verifier.announced bytecode c.proof.stream = some (layout, r) →
+    (hmu : ∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog)
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
     (hnz : Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim
       c.proof = true)
-    (hcaps : ∀ b ∈ Limits.queryStepsOf (deferredProgram c.freshClaim bytecode
+    (hcaps : ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
       (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2)
     (hexpL : ∀ q ∈ log2Lin lpE sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTB fs cert κ "verify_sub" Lin
-      [(digestScalars (statementDigest seed c.statement)).1,
-        (digestScalars (statementDigest seed c.statement)).2, (digestScalars seed).1,
-        (digestScalars seed).2, ofK (gpow lpE), ofK (gpow sqE), ofK (gpow outE)] (Returns [])
+      [(digestHalves (statementDigest seed c.statement)).1,
+        (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
+        (digestHalves seed).2, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE), ofK
+            (addressOfIndex outE)] (Returns [])
       (Budget.FlatShape coreProgram "verify_sub"
         (vsTs fs W Bvk (childShape bytecode c).1 (childShape bytecode c).2))
       (vsBoundAt W Bvk (childShape bytecode c).1 (childShape bytecode c).2) := by
@@ -202,18 +203,19 @@ theorem verify_sub_completeBT_fs {bytecode : List K} (hbl : bytecode.length = 2 
     {cert : String → V → ℕ} (hrf : Lift.RunsFit LeanVM.Guest.B2C.fs cert)
     (hap : Lift.RunsApart cert) (W : VsWords LeanVM.Guest.B2C.fs) {κ : ℕ} (hκ : 16 ≤ κ)
     (seed : Digest) (c : Child) (lpE sqE outE : ℕ) (Lin : Main.Layout)
-    (hmu : ∀ layout r, Verifier.announced bytecode c.proof.stream = some (layout, r) →
+    (hmu : ∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog)
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
     (hnz : Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim
       c.proof = true)
-    (hcaps : ∀ b ∈ Limits.queryStepsOf (deferredProgram c.freshClaim bytecode
+    (hcaps : ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
       (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2)
     (hexpL : ∀ q ∈ log2Lin lpE sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTB LeanVM.Guest.B2C.fs cert κ "verify_sub" Lin
-      [(digestScalars (statementDigest seed c.statement)).1,
-        (digestScalars (statementDigest seed c.statement)).2, (digestScalars seed).1,
-        (digestScalars seed).2, ofK (gpow lpE), ofK (gpow sqE), ofK (gpow outE)] (Returns [])
+      [(digestHalves (statementDigest seed c.statement)).1,
+        (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
+        (digestHalves seed).2, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE), ofK
+            (addressOfIndex outE)] (Returns [])
       (Budget.FlatShape coreProgram "verify_sub"
         (vsTs LeanVM.Guest.B2C.fs W vkBound (childShape bytecode c).1 (childShape bytecode c).2))
       (vsBoundAt W vkBound (childShape bytecode c).1 (childShape bytecode c).2) :=

@@ -43,16 +43,17 @@ theorem oqMain1_placed (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Strin
     (h1 : odd = 1 → LoadHolds rd qptrs 0 bp ∧
       (∀ l < s.pd + s.cd, LoadHolds rd bp l (bitE (q.testBit l))) ∧
       (⟨s, 13, true, 0, r, w, q, sb,
-        ofK (Parameters.gpow (fp + cert name (.n (oqCh s 13 true)))), cap, flags, rd⟩ : QD).Ok rd wp ∧
-      LoadHolds rd (ofK (Parameters.gpow (fp + fs name))) 0 (rowDot s.base s.I r w * lam⁻¹) ∧
-      OqIn R (qptrs.limb 0 * Parameters.gpow 0) ∧ OqQReg R s cap flags wp bp q)
-    (h0 : odd ≠ 1 → LoadHolds rd (ofK (Parameters.gpow (fp + fs name))) 0 0)
-    (hNl : LoadHolds rd (ofK (Parameters.gpow (fp + fs name))) N hNv)
+        ofK (Parameters.addressOfIndex (fp + cert name (.n (oqCh s 13 true)))), cap, flags, rd⟩ : QD).Ok rd wp ∧
+      LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs name))) 0 (rowDot s.base s.I r w *
+          lam⁻¹) ∧
+      OqIn R (qptrs.limb 0 * Parameters.addressOfIndex 0) ∧ OqQReg R s cap flags wp bp q)
+    (h0 : odd ≠ 1 → LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs name))) 0 0)
+    (hNl : LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs name))) N hNv)
     {r1 r2 : ℕ → List K} {w1 w2 : ℕ → ℕ → E} {q1 q2 : ℕ → ℕ} {sb1 sb2 : ℕ → List Digest}
     {bp1 bp2 v : ℕ → E}
     (hit : ∀ j < N, OqIt1Ok rd (oqLoopR R (fp + fs name) (N + 1)) cert loop s odd
       (fp + fs name + (N + 1) + j * fs loop) j qptrs cap flags wp
-      (ofK (Parameters.gpow (fp + fs name))) lam⁻¹
+      (ofK (Parameters.addressOfIndex (fp + fs name))) lam⁻¹
       (r1 j) (r2 j) (w1 j) (w2 j) (q1 j) (q2 j) (sb1 j) (sb2 j) (bp1 j) (bp2 j) (v j)) :
     RelAtIn coreProgram fs cert rd R (fun _ ↦ False) fp (fs name + (N + 1) + (N + 1) * fs loop)
       name [cap, flags, lam, lamN, qptrs, wp, gen ^ N] [hNv * lamN] := by
@@ -86,12 +87,13 @@ theorem oqMain0_placed (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Strin
     (hbl : fl.body = oqLoop0T s loop) (hlp : coreProgram.loop loop = true)
     {rd : Reader} {R : ℕ → Prop} {fp N : ℕ} (hN : N + 1 < ordG)
     {cap flags lam lamN qptrs wp : E} (hlam : lam ≠ 0) {hNv : E}
-    (h0 : LoadHolds rd (ofK (Parameters.gpow (fp + fs name))) 0 0)
-    (hNl : LoadHolds rd (ofK (Parameters.gpow (fp + fs name))) N hNv)
+    (h0 : LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs name))) 0 0)
+    (hNl : LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs name))) N hNv)
     {r : ℕ → List K} {w : ℕ → ℕ → E} {q : ℕ → ℕ} {sb : ℕ → List Digest} {bp v : ℕ → E}
     (hit : ∀ j < N, OqIt0Ok rd (oqLoopR R (fp + fs name) (N + 1)) cert loop s
       (fp + fs name + (N + 1) + j * fs loop) j qptrs cap flags wp
-      (ofK (Parameters.gpow (fp + fs name))) lam⁻¹ (r j) (w j) (q j) (sb j) (bp j) (v j)) :
+      (ofK (Parameters.addressOfIndex (fp + fs name))) lam⁻¹ (r j) (w j) (q j) (sb j) (bp j)
+          (v j)) :
     RelAtIn coreProgram fs cert rd R (fun _ ↦ False) fp (fs name + (N + 1) + (N + 1) * fs loop)
       name [cap, flags, lam, lamN, qptrs, wp, gen ^ N] [hNv * lamN] := by
   refine oqMain_relAtIn (r := []) (w := fun _ ↦ 0) (q := 0) (sb := []) (bp := 0) hP fs cert hs hpd

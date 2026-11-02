@@ -89,8 +89,9 @@ def layoutOf (bytecode : List K) (logMemory : ℕ) (tableRows : List ℕ) : Layo
 /-! ## The programs -/
 
 /-- `verifyBusBalance` after the GKR walk (V:1492-1513), from its challenges, point and values. -/
-def busRest (ev : (List K → List E → Prog E)) (layout : Layout) (alphas : List E) (beta : E)
-    (point treeValues : List E) : Prog BusResult := do
+def busRest (ev : (List K → List E → VerifierProgram E)) (layout : Layout) (alphas : List E)
+    (beta : E)
+    (point treeValues : List E) : VerifierProgram BusResult := do
   let frameworkLogRows := [0, layout.logMemory, layout.logBytecode]
   let pushLayout := busLayout frameworkLogRows layout.push
   let pullLayout := busLayout frameworkLogRows layout.pull
@@ -98,9 +99,9 @@ def busRest (ev : (List K → List E → Prog E)) (layout : Layout) (alphas : Li
   let weights := eqKernel alphas
   let memoryLow := point.take layout.logMemory
   let bytecodeLow := point.take layout.logBytecode
-  let memory ← Prog.readScalars 3
-  let memoryFinal ← Prog.readScalar
-  let bytecodeFinal ← Prog.readScalar
+  let memory ← VerifierProgram.readScalars 3
+  let memoryFinal ← VerifierProgram.readScalar
+  let bytecodeFinal ← VerifierProgram.readScalar
   let claims : List ColumnClaim :=
     (List.zipWith (fun column value ↦ ⟨column, memoryLow, value⟩) [memory0, memory1, memory2]
       memory) ++
@@ -120,8 +121,8 @@ def busRest (ev : (List K → List E → Prog E)) (layout : Layout) (alphas : Li
 
 /-- What `verify_tables` runs: the bus after GKR, the table sumcheck and the public input's
 binding (V:2307-2311); the bus result and every column claim, the public input's last. -/
-def tablesSeg (ev : (List K → List E → Prog E)) (layout : Layout) (publicInput : Digest) (alphas : List E)
-    (beta : E) (point treeValues : List E) : Prog (BusResult × List ColumnClaim) := do
+def tablesSeg (ev : (List K → List E → VerifierProgram E)) (layout : Layout) (publicInput : Digest) (alphas : List E)
+    (beta : E) (point treeValues : List E) : VerifierProgram (BusResult × List ColumnClaim) := do
   let bus ← busRest ev layout alphas beta point treeValues
   let claims ← tablePhaseClaims layout bus
   let publicClaims ← publicInputPhase layout publicInput
@@ -157,7 +158,7 @@ def TCtx (rd : Reader) (layout : Layout) (bus : BusResult) (claims : List Column
           (j < nPooled → LoadHolds rd cplen j (gen ^ p.length)) ∧
           (j < 5 → p = bus.point.take p.length) ∧
           (5 ≤ j → j < nPooled → p = chis.take p.length) ∧
-          (nPooled ≤ j → p = rm :: List.replicate ((layout.placement memory0).vars - 1) 0)
+          (nPooled ≤ j → p = rm :: List.replicate ((layout.placement memory0).variableCount - 1) 0)
   | _ => False
 
 /-! ## `verify_tables` -/
@@ -191,7 +192,7 @@ def TablesPre (pi : Digest) (logMem : ℕ) (alphas point values : List E) (rd : 
     List E → Prop
   | [_, _, _, _, _, _, pi0, pi1, zeta, gmu, dims, _, bk, sq, fpw, _, _, _, _, cpush, cpull,
       ccount] =>
-      (pi0, pi1) = digestScalars pi ∧ TbReadsAt rd zeta point ∧ gmu = gen ^ point.length ∧
+      (pi0, pi1) = digestHalves pi ∧ TbReadsAt rd zeta point ∧ gmu = gen ^ point.length ∧
       point.length < 33 ∧ 16 ≤ logMem ∧ logMem ≤ 32 ∧
       (∃ ds : List E, ds.length = 6 ∧ TbReadsAt rd dims (gen ^ logMem :: ds) ∧
         TbReadsAt rd bk (blockKappaWords (gen ^ logMem) ds)) ∧

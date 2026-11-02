@@ -30,14 +30,14 @@ theorem extractorProgram_indices_increasing :
 
 /-- **The program's size**, from its bodies (`size_ofList_add_length`: the bodies' sizes and two
 per index without a body), each count evaluated: at most (exactly) `14125`. -/
-theorem extractorProgram_size_le_measured : extractorProgram.size ≤ 14125 := by
+theorem extractorProgram_size_le_measured : compiledKnowledgeExtractor.size ≤ 14125 := by
   have h := size_ofList_add_length extractorProgramBodies (by
     rw [extractorProgramBodies, List.map_cons]
     exact nodup_of_increasing extractorProgram_indices_increasing)
   have h1 : (extractorProgramBodies.map fun p ↦ p.2.size).sum = 14101 := by decide +kernel
   have h2 : (extractorProgramBodies.map (·.1)).foldr max 0 = 710 := by decide +kernel
   have h3 : extractorProgramBodies.length = 699 := by decide +kernel
-  unfold extractorProgram
+  unfold compiledKnowledgeExtractor
   omega
 
 end

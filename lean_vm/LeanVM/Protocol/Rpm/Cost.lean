@@ -94,7 +94,7 @@ theorem allQ_queryH₀ {x : Bytes} (hx : x.length ≤ 2 ^ 39) : AllQueriesSatisf
 theorem allQ_pure {α : Type} (a : α) : AllQueriesSatisfy (pure a : OracleComp KeccakCalls α) Short :=
   trivial
 
-theorem flatMap_kBytes_length (l : List K) : (l.flatMap kBytes).length = 8 * l.length := by
+theorem flatMap_kBytes_length (l : List K) : (l.flatMap K.toBytes).length = 8 * l.length := by
   induction l with
   | nil => rfl
   | cons a l ih => simp [List.flatMap_cons, kBytes_length, ih]; ring
@@ -102,13 +102,13 @@ theorem flatMap_kBytes_length (l : List K) : (l.flatMap kBytes).length = 8 * l.l
 theorem pair_length (a b : Digest) : (digestBytes a ++ digestBytes b).length ≤ 2 ^ 39 := by
   simp [digestBytes_length]
 
-theorem bytecodeWords_length (prog : Program) :
+theorem bytecodeWords_length (prog : LeanIsaProgram) :
     (bytecodeWords prog).length = 16 * 2 ^ prog.logSize := by
   simp [bytecodeWords, List.length_flatMap]
   omega
 
-theorem bytecode_length (prog : Program) :
-    ((bytecodeWords prog).flatMap kBytes).length ≤ 2 ^ 39 := by
+theorem bytecode_length (prog : LeanIsaProgram) :
+    ((bytecodeWords prog).flatMap K.toBytes).length ≤ 2 ^ 39 := by
   rw [flatMap_kBytes_length, bytecodeWords_length]
   have h1 : 2 ^ prog.logSize ≤ 2 ^ 32 :=
     Nat.pow_le_pow_right (by norm_num) prog.logSize_le
@@ -119,7 +119,7 @@ theorem bytecode_length (prog : Program) :
 /-! ## The widths of the commitments -/
 
 /-- Every commitment of a program has width at most `W`. -/
-def WidthsLE (W : ℕ) {α : Type} : Prog α → Prop
+def WidthsLE (W : ℕ) {α : Type} : VerifierProgram α → Prop
   | .ret _ => True
   | .fail => True
   | .read k => ∀ x, WidthsLE W (k x)
@@ -132,7 +132,8 @@ namespace WidthsLE
 
 variable {W : ℕ} {α β : Type}
 
-theorem bind {p : Prog α} {f : α → Prog β} (hp : WidthsLE W p) (hf : ∀ a, WidthsLE W (f a)) :
+theorem bind {p : VerifierProgram α} {f : α → VerifierProgram β} (hp : WidthsLE W p) (hf : ∀ a,
+    WidthsLE W (f a)) :
     WidthsLE W (p.bind f) := by
   induction p with
   | ret a => exact hf a
@@ -143,12 +144,13 @@ theorem bind {p : Prog α} {f : α → Prog β} (hp : WidthsLE W p) (hf : ∀ a,
   | commit ht w k ih => exact ⟨hp.1, ih hp.2⟩
   | query i ps k ih => exact fun rows ↦ ih rows (hp rows)
 
-theorem seq {p : Prog α} {f : α → Prog β} (hp : WidthsLE W p) (hf : ∀ a, WidthsLE W (f a)) :
+theorem seq {p : VerifierProgram α} {f : α → VerifierProgram β} (hp : WidthsLE W p) (hf : ∀ a,
+    WidthsLE W (f a)) :
     WidthsLE W (p >>= f) :=
   bind hp hf
 
 /-- A program without commitments. -/
-theorem of_moves {g : ℕ → Prop} {p : Prog α} (h : MovesOK g False p) : WidthsLE W p := by
+theorem of_moves {g : ℕ → Prop} {p : VerifierProgram α} (h : MovesOK g False p) : WidthsLE W p := by
   induction p with
   | ret a => trivial
   | fail => trivial
@@ -158,10 +160,12 @@ theorem of_moves {g : ℕ → Prop} {p : Prog α} (h : MovesOK g False p) : Widt
   | commit ht w k ih => exact h.1.elim
   | query i ps k ih => exact fun rows ↦ ih rows (h rows)
 
-theorem commitP {ht w : ℕ} (hw : w ≤ W) : WidthsLE W (Prog.readCommitment ht w) := ⟨hw, trivial⟩
+theorem commitP {ht w : ℕ} (hw : w ≤ W) : WidthsLE W (VerifierProgram.readCommitment ht w) := ⟨hw,
+    trivial⟩
 
 /-- A pure step that may fail, then a continuation at its value. -/
-theorem liftOption_seq {o : Option α} {f : α → Prog β} (hf : ∀ a, o = some a → WidthsLE W (f a)) :
+theorem liftOption_seq {o : Option α} {f : α → VerifierProgram β} (hf : ∀ a, o = some a → WidthsLE W
+    (f a)) :
     WidthsLE W (liftOption o >>= f) := by
   cases o with
   | none => trivial
@@ -248,7 +252,7 @@ theorem widthsLE_commitStack (logN logInvRate : ℕ) :
       exact WidthsLE.commitP (pow_le (ladder_folds _ _ _ hc level (by simp)))
 
 theorem widthsLE_verifyExecution (bytecode : List K) (publicInput : Digest) :
-    WidthsLE maxWidth (verifyExecutionClaims computedValue bytecode publicInput) := by
+    WidthsLE maxWidth (verifyExecutionClaims computedBytecodeValue bytecode publicInput) := by
   refine WidthsLE.seq (WidthsLE.of_moves (movesOK_readSizes bytecode)) fun p ↦ ?_
   obtain ⟨layout, logInverseRate⟩ := p
   refine WidthsLE.seq (widthsLE_commitStack _ _) fun _ ↦
@@ -268,7 +272,7 @@ end Phases
 
 /-- **Every commitment of the leanVM verifier program has width at most `192`.** -/
 theorem widthsLE_leanVmProgram (bytecode : List K) (publicInput : Digest) :
-    WidthsLE maxWidth (leanVmProgram bytecode publicInput) := by
+    WidthsLE maxWidth (leanVmVerifierProgram bytecode publicInput) := by
   rw [leanVmProgram_eq]
   exact WidthsLE.seq (widthsLE_verifyExecution bytecode publicInput) fun _ ↦ trivial
 
@@ -321,7 +325,8 @@ theorem allQ_openAll (root : Digest) (height width : ℕ) (hw : width ≤ maxWid
     · exact allQueriesSatisfy_bind (allQ_openAll root height width hw qs os) fun _ ↦ trivial
     · trivial
 
-theorem allQ_run {α : Type} : ∀ (P : Prog α) (s : ProgState), WidthsLE maxWidth P →
+theorem allQ_run {α : Type} : ∀ (P : VerifierProgram α) (s : VerifierProgramState), WidthsLE
+    maxWidth P →
     (∀ r ∈ s.roots, r.2.2 ≤ maxWidth) → AllQueriesSatisfy (Compile.runWithHash callKeccak256 callKeccakF1600 P s) Short
   | .ret _, _, _, _ => trivial
   | .fail, _, _, _ => trivial
@@ -370,7 +375,8 @@ theorem allQ_run {α : Type} : ∀ (P : Prog α) (s : ProgState), WidthsLE maxWi
       · exact allQ_run _ _ (hP _) hr
       · trivial
 
-theorem allQ_runProof (P : Prog Bool) (seed : KeccakState) (π : Proof) (hP : WidthsLE maxWidth P) :
+theorem allQ_runProof (P : VerifierProgram Bool) (seed : KeccakState) (π : Proof) (hP : WidthsLE
+    maxWidth P) :
     AllQueriesSatisfy (runProofWithHash callKeccak256 callKeccakF1600 P seed π) Short := by
   unfold runProofWithHash
   refine allQueriesSatisfy_bind (allQ_run P _ hP fun r hr ↦ by simp at hr) fun o ↦ ?_
@@ -388,8 +394,8 @@ theorem allQ_hsRun : ∀ (fs : List (List Digest → Bytes)) (ds : List Digest),
 /-- `TAG` is nine bytes. -/
 theorem versionTag_length : versionTag.length = 9 := by decide +kernel
 
-theorem allQ_seedRun (prog : Program) (input : PublicInput) :
-    AllQueriesSatisfy ((leanVmSeed (bytecodeWords prog) (publicDigest input)).run callKeccak256 callKeccakF1600)
+theorem allQ_seedRun (prog : LeanIsaProgram) (input : PublicInput) :
+    AllQueriesSatisfy ((leanVmSeed (bytecodeWords prog) (publicInputDigest input)).run callKeccak256 callKeccakF1600)
       Short := by
   refine allQueriesSatisfy_bind (allQ_hsRun _ _ fun f hf ds ↦ ?_) fun _ ↦ allQ_queryF _
   simp only [leanVmSeed, List.mem_cons, List.not_mem_nil, or_false] at hf
@@ -399,13 +405,13 @@ theorem allQ_seedRun (prog : Program) (input : PublicInput) :
   omega
 
 /-- The verifier of the statement is the seeded verifier at the leanVM seed and program. -/
-theorem verifier_eq (prog : Program) (input : PublicInput) (proof : Proof) :
+theorem verifier_eq (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) :
     verifierWithHash callKeccak256 callKeccakF1600 prog input proof =
-      verifierComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
-        (leanVmProgram (bytecodeWords prog) (publicDigest input)) proof :=
+      verifierComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+        (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) proof :=
   (verifierComp_leanVm _ _ _).symm
 
-theorem allQ_verifier (prog : Program) (input : PublicInput) (proof : Proof) :
+theorem allQ_verifier (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) :
     AllQueriesSatisfy (verifierWithHash callKeccak256 callKeccakF1600 prog input proof) Short := by
   rw [verifier_eq]
   exact allQueriesSatisfy_bind (allQ_seedRun prog input) fun seed ↦
@@ -413,10 +419,10 @@ theorem allQ_verifier (prog : Program) (input : PublicInput) (proof : Proof) :
 
 /-- **The verifier makes at most `verifierPermCalls` permutation calls** on every statement and
 proof. -/
-theorem isWeightBound_verifier (prog : Program) (input : PublicInput) (proof : Proof) :
+theorem isWeightBound_verifier (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) :
     Common.QueryCostAtMost (verifierWithHash callKeccak256 callKeccakF1600 prog input proof) hashBlocks
       verifierPermCalls := by
-  have hN := isTotalQueryBound_leanVm (bytecodeWords prog) (publicDigest input) proof
+  have hN := isTotalQueryBound_leanVm (bytecodeWords prog) (publicInputDigest input) proof
   rw [leanVmQueryBound_eq, ← verifier_eq] at hN
   exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 32) hN
     ((allQ_verifier prog input proof).mono fun _ h ↦ hashBlocks_le_of_short h)
@@ -459,7 +465,7 @@ theorem allQ_levelsM : ∀ (k : ℕ) (level : Array Digest),
 def RowsLE (word : Word) : Prop := ∀ p, (word p).length ≤ maxWidth
 
 theorem row_length {word : Word} (hw : RowsLE word) (p : ℕ) :
-    ((word p).flatMap kBytes).length ≤ 2 ^ 39 := by
+    ((word p).flatMap K.toBytes).length ≤ 2 ^ 39 := by
   rw [flatMap_kBytes_length]
   have := hw p
   unfold maxWidth at this
@@ -492,7 +498,7 @@ theorem allQ_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
 /-- **Locality**: the words a strategy commits along the run from `h` depend on the challenges
 only at the histories extending `h`. -/
 theorem shapedFrom_congr (S : Strategy) {chal₁ chal₂ : List Ev → E} {α : Type} :
-    ∀ (P : Prog α) (h : List Ev), (∀ h', h <+: h' → chal₁ h' = chal₂ h') →
+    ∀ (P : VerifierProgram α) (h : List Ev), (∀ h', h <+: h' → chal₁ h' = chal₂ h') →
       (S.ShapedFrom chal₁ P h ↔ S.ShapedFrom chal₂ P h)
   | .ret _, _, _ => Iff.rfl
   | .fail, _, _ => Iff.rfl
@@ -517,7 +523,7 @@ theorem shapedFrom_congr (S : Strategy) {chal₁ chal₂ : List Ev → E} {α : 
     · exact Iff.rfl
 
 /-- After a sample, the run from the extended history is shaped for every challenge. -/
-theorem shaped_sample (S : Strategy) {α : Type} {k : E → Prog α} {h : List Ev}
+theorem shaped_sample (S : Strategy) {α : Type} {k : E → VerifierProgram α} {h : List Ev}
     (hG : ∀ chal, S.ShapedFrom chal (.sample k) h) (c : E) (chal : List Ev → E) :
     S.ShapedFrom chal (k c) (h ++ [Ev.sample c]) := by
   classical
@@ -575,7 +581,7 @@ theorem answer_of_treesOK {cs : List Tree} {h : List Ev} (hT : TreesOK cs h) {i 
     rfl
 
 theorem allQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
-    ∀ (P : Prog α) (sp : Sponge) (h : List Ev) (cs : List Tree), WidthsLE maxWidth P →
+    ∀ (P : VerifierProgram α) (sp : Sponge) (h : List Ev) (cs : List Tree), WidthsLE maxWidth P →
       (∀ chal, S.ShapedFrom chal P h) → HistOK h → TreesOK cs h →
       AllQueriesSatisfy (proveFromM callKeccak256 callKeccakF1600 S fuel P sp h cs) Short
   | .ret _, _, _, _, _, _, _, _ => allQ_pure _
@@ -630,16 +636,17 @@ theorem allQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
       exact allQueriesSatisfy_bind (allQ_proveFromM S fuel _ sp _ cs (hP _) hG'
           (histOK_append_of_nil _ rfl hh) (treesOK_append_of_nil _ rfl hT)) fun _ ↦ allQ_pure _
 
-theorem allQ_proveM (P : Prog Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ)
+theorem allQ_proveM (P : VerifierProgram Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ)
     (hP : WidthsLE maxWidth P) (hs : ∀ chal, shapedI P S chal) :
     AllQueriesSatisfy (proveM callKeccak256 callKeccakF1600 P S seed fuel) Short :=
   allQueriesSatisfy_bind (allQ_proveFromM S fuel P _ [] [] hP hs
     (fun _ hc ↦ by simp [commits] at hc) rfl) fun _ ↦ allQ_pure _
 
-theorem allQ_romHonestComp (prog : Program) (input : PublicInput) (S : Strategy) (fuel : ℕ)
-    (hs : ∀ chal, shapedI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal) :
-    AllQueriesSatisfy (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
-      (leanVmProgram (bytecodeWords prog) (publicDigest input)) S fuel) Short := by
+theorem allQ_romHonestComp (prog : LeanIsaProgram) (input : PublicInput) (S : Strategy) (fuel : ℕ)
+    (hs : ∀ chal, shapedI (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) S
+        chal) :
+    AllQueriesSatisfy (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) S fuel) Short := by
   unfold Rom.honestComp
   exact allQueriesSatisfy_bind (allQ_seedRun prog input) fun seed ↦
     allQueriesSatisfy_bind (allQ_proveM _ _ seed fuel (widthsLE_leanVmProgram _ _) hs)
@@ -649,10 +656,10 @@ theorem allQ_romHonestComp (prog : Program) (input : PublicInput) (S : Strategy)
 -- does not cover it.
 set_option maxHeartbeats 1000000 in
 /-- The honest strategy of a witness commits well-shaped words. -/
-theorem shaped_of {prog : Program} {input : PublicInput} {t : Execution prog} {ρ : ℕ} {s : LeanIsa.Sizes}
+theorem shaped_of {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ : ℕ} {s : LeanIsa.Sizes}
     {w : Air.Flat.EnsembleWitness (Arithmetization.leanIsaEnsemble prog)}
     (hw : Complete.HonestFor prog input t ρ w s) (chal : List Ev → E) :
-    shapedI (leanVmProgram (bytecodeWords prog) (publicDigest input))
+    shapedI (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
       (Complete.leanVmProver prog s ρ (LeanIsa.stackOf prog s w)) chal := by
   obtain ⟨hρ', hw', hs', hadm', -⟩ := hw
   have hq := LeanIsa.m3Honest_stackOf hw' hs'
@@ -663,7 +670,8 @@ theorem shaped_of {prog : Program} {input : PublicInput} {t : Execution prog} {�
 
 /-- The honest prover's queries: the seed's four, and `leanVmCost = 48017` quarters at the
 prover's factor. -/
-theorem isTotalQueryBound_honestComp' (prog : Program) (input : PublicInput) (t : Execution prog)
+theorem isTotalQueryBound_honestComp' (prog : LeanIsaProgram) (input : PublicInput) (t :
+    Execution prog)
     (ρ fuel : ℕ) :
     IsTotalQueryBound (Complete.honestComp prog input t ρ fuel)
       (2 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
@@ -671,9 +679,9 @@ theorem isTotalQueryBound_honestComp' (prog : Program) (input : PublicInput) (t 
   · unfold Complete.honestComp
     simp only [hex, ↓reduceDIte]
     have h := Rom.isTotalQueryBound_honestComp
-      (costLE_leanVmProgram (bytecodeWords prog) (publicDigest input)) (Complete.leanVmProver
+      (costLE_leanVmProgram (bytecodeWords prog) (publicInputDigest input)) (Complete.leanVmProver
         prog hex.choose_spec.choose ρ (LeanIsa.stackOf prog hex.choose_spec.choose hex.choose))
-      fuel (σ := leanVmSeed (bytecodeWords prog) (publicDigest input))
+      fuel (σ := leanVmSeed (bytecodeWords prog) (publicInputDigest input))
     have hc : leanVmCost = 48017 := by decide
     rw [hc] at h
     exact h
@@ -685,7 +693,7 @@ end Prover
 
 /-- **A prover of at most `2 + 48017 · (2^27 + 2·fuel + 2)` short queries and the verifier make
 at most `completenessPermCalls fuel` permutation calls.** -/
-theorem isWeightBound_proverVerifier {X : OracleComp KeccakCalls Proof} (prog : Program)
+theorem isWeightBound_proverVerifier {X : OracleComp KeccakCalls Proof} (prog : LeanIsaProgram)
     (input : PublicInput) {fuel : ℕ}
     (hX : IsTotalQueryBound X (2 + 48017 * (2 ^ 27 + 2 * fuel + 2)))
     (hXq : AllQueriesSatisfy X Short) :
@@ -694,7 +702,7 @@ theorem isWeightBound_proverVerifier {X : OracleComp KeccakCalls Proof} (prog : 
   have hN : IsTotalQueryBound (X >>= fun proof ↦ verifierWithHash callKeccak256 callKeccakF1600 prog input proof)
       (12008 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
     have h := isTotalQueryBound_bind hX fun proof ↦ by
-        have := isTotalQueryBound_leanVm (bytecodeWords prog) (publicDigest input) proof
+        have := isTotalQueryBound_leanVm (bytecodeWords prog) (publicInputDigest input) proof
         rw [leanVmQueryBound_eq, ← verifier_eq] at this
         exact this
     refine h.mono ?_
@@ -705,14 +713,14 @@ theorem isWeightBound_proverVerifier {X : OracleComp KeccakCalls Proof} (prog : 
 
 /-- The specification's honest prover of any strategy makes at most
 `2 + 48017 · (2^27 + 2·fuel + 2)` queries. -/
-theorem isTotalQueryBound_romHonestComp (prog : Program) (input : PublicInput) (S : Strategy)
+theorem isTotalQueryBound_romHonestComp (prog : LeanIsaProgram) (input : PublicInput) (S : Strategy)
     (fuel : ℕ) :
-    IsTotalQueryBound (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
-      (leanVmProgram (bytecodeWords prog) (publicDigest input)) S fuel)
+    IsTotalQueryBound (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) S fuel)
       (2 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
   have h := Rom.isTotalQueryBound_honestComp
-    (costLE_leanVmProgram (bytecodeWords prog) (publicDigest input)) S fuel
-    (σ := leanVmSeed (bytecodeWords prog) (publicDigest input))
+    (costLE_leanVmProgram (bytecodeWords prog) (publicInputDigest input)) S fuel
+    (σ := leanVmSeed (bytecodeWords prog) (publicInputDigest input))
   have hc : leanVmCost = 48017 := by decide
   rw [hc] at h
   exact h
@@ -721,12 +729,13 @@ theorem isTotalQueryBound_romHonestComp (prog : Program) (input : PublicInput) (
 set_option maxHeartbeats 1000000 in
 /-- **The specification's honest prover at an honest witness, then the verifier, make at most
 `completenessPermCalls fuel` permutation calls.** -/
-theorem isWeightBound_romHonest {prog : Program} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
+theorem isWeightBound_romHonest {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
+    {ρ : ℕ}
     {s : LeanIsa.Sizes} {w : Air.Flat.EnsembleWitness (Arithmetization.leanIsaEnsemble prog)}
     (hw : Complete.HonestFor prog input t ρ w s) (fuel : ℕ) :
     Common.QueryCostAtMost
-      (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
-        (leanVmProgram (bytecodeWords prog) (publicDigest input))
+      (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+        (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
         (Complete.leanVmProver prog s ρ (LeanIsa.stackOf prog s w)) fuel >>= fun proof ↦
           verifierWithHash callKeccak256 callKeccakF1600 prog input proof) hashBlocks (completenessPermCalls fuel) :=
   isWeightBound_proverVerifier prog input (isTotalQueryBound_romHonestComp prog input _ fuel)

@@ -205,8 +205,8 @@ theorem getD_toNats (a : KeccakState) (i : ℕ) : (toNats a).getD i 0 = (Keccak.
   rcases a.toList[i]? <;> rfl
 
 theorem leLane_toNat (bytes : List UInt8) (i : ℕ) :
-    (leLane bytes i).toNat = leLaneN (bytes.map UInt8.toNat) i := by
-  unfold leLane leLaneN
+    (littleEndianLane bytes i).toNat = leLaneN (bytes.map UInt8.toNat) i := by
+  unfold littleEndianLane leLaneN
   rw [foldl_toNat _ _ _ ?_]
   · rfl
   intro u k hk

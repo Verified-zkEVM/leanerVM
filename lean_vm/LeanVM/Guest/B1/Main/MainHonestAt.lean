@@ -84,8 +84,8 @@ theorem main_honest_relAtInW (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRe
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
       ∀ rd, LowDef 16 rd → B1.Main.MemL rd L →
-        LoadHolds rd 1 0 (digestScalars (statementDigest seed s)).1 →
-        LoadHolds rd gen 0 (digestScalars (statementDigest seed s)).2 →
+        LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1 →
+        LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2 →
         RelAtInW coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun σ => MVals rd σ (hm fs fp seed s w)) :=
   main_relAtInW fs cert fp (hData seed s w) (hOwn seed s w) (hOwn_fit hlog hr hf)

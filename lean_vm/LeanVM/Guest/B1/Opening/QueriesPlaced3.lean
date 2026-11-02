@@ -84,11 +84,11 @@ theorem AtomsOk.addr {L : V → ℕ → Prop} {F : V → List V → Prop} {ss : 
   | _ => simp [Stmt.addrS] at he
 
 /-- An address of the region `R`. -/
-def OqIn (R : ℕ → Prop) (A : K) : Prop := ∃ i, A = Parameters.gpow i ∧ R i
+def OqIn (R : ℕ → Prop) (A : K) : Prop := ∃ i, A = Parameters.addressOfIndex i ∧ R i
 
 theorem addr_gpow (c k off : ℕ) :
-    (ofK (Parameters.gpow c) * gen ^ k).limb 0 * Parameters.gpow off =
-      Parameters.gpow (c + k + off) := by
+    (ofK (Parameters.addressOfIndex c) * gen ^ k).limb 0 * Parameters.addressOfIndex off =
+      Parameters.addressOfIndex (c + k + off) := by
   rw [gen_pow_eq_ofK, ← ofK_mul, gpow_add', limb_ofK]
   simp [gpow_add']
 

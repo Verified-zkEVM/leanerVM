@@ -86,7 +86,7 @@ theorem col_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ)
   have hN1 : 1 ≤ N := Nat.one_le_two_pow
   -- the memory the callees read
   have hCM : ∀ rd, MemL rd (Lin ++ A) →
-      ColMem r L syms ws rd (dvPtrsAt r L b0 (fun _ => gen ^ nodeP) (fun _ => ofK (gpow runP))) j := by
+      ColMem r L syms ws rd (dvPtrsAt r L b0 (fun _ => gen ^ nodeP) (fun _ => ofK (addressOfIndex runP))) j := by
     intro rd hm
     obtain ⟨h1, h2⟩ := memL_append.mp hm
     exact colMem_of_memL h1 (treeMem_of_reads (length_nodeLeaves r L syms j)
@@ -94,7 +94,8 @@ theorem col_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ)
       ((isInK_iff _).mpr ⟨_, rfl⟩) (h2 (runP, ws j) (by simp [hA]))
   -- the pure callees
   let ks : List Kid :=
-    [⟨rl, true, [word 1 0 0, gen ^ r, ofK (gpow runP), gen ^ dxB r L b0, gen ^ j, gen ^ nodeP,
+    [⟨rl, true, [word 1 0 0, gen ^ r, ofK (addressOfIndex runP), gen ^ dxB r L b0, gen ^ j, gen
+        ^ nodeP,
         gen ^ dxP L b0], Lin ++ A, Returns []⟩,
       ⟨gl, decide (N - r ≠ 0), [word 1 0 0, gen ^ (N - r), gen ^ nodeP, gen ^ r], Lin ++ A, Returns []⟩,
       ⟨dlNames[L]!, true, [gen ^ nodeP], Lin ++ A, Returns [cr.1, cr.2]⟩]
@@ -154,9 +155,9 @@ theorem col_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ)
   have hholds := col_holds hfr hsr hfg hsg hL (colm_vec hcm hwl hj) (hrowsM rd _ _ hcm)
     (hgapsM rd _ _ hcm) (colm_lev hcm hL) hct.1 hct.2
   set σ := colσ (gen ^ j) r (N - r) L (gen ^ dxP L b0) (gen ^ dxT r L b0) (gen ^ dxB r L b0)
-    (gen ^ dxC r L b0) (ofK (gpow runP)) (gen ^ nodeP) cr.1 cr.2 with hσ
+    (gen ^ dxC r L b0) (ofK (addressOfIndex runP)) (gen ^ nodeP) cr.1 cr.2 with hσ
   -- the path
-  have hx : σ (.n 4) = ofK (gpow L) := by rw [← gen_pow_eq_ofK]; rfl
+  have hx : σ (.n 4) = ofK (addressOfIndex L) := by rw [← gen_pow_eq_ofK]; rfl
   have hw := walk_dispatch σ (colPre rl gl) colPost (colPre_straight rl gl) colPost_straight (.n 4)
     dlNames [.n 14] [.n 21, .n 22] [] (i := L) (by simp [dlNames]; omega) (by simp [dlNames]) hx
   rw [← colBody_split, ← hbody] at hw

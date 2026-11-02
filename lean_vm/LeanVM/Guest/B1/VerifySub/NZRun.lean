@@ -41,7 +41,7 @@ def toT (st : Whir.FSt) : Tables.TSt := ⟨st.sponge, st.stream, st.openings, st
 /-- A `Tables.TSt` as a `Whir.FSt`. -/
 def ofT (st : Tables.TSt) : Whir.FSt := ⟨st.sponge, st.stream, st.openings, st.roots⟩
 
-theorem runF_eq_runT {α : Type} (p : Prog α) : ∀ st : Whir.FSt,
+theorem runF_eq_runT {α : Type} (p : VerifierProgram α) : ∀ st : Whir.FSt,
     Whir.runF p st = (Tables.runT p (toT st)).map fun r ↦ (r.1, ofT r.2) := by
   induction p with
   | ret a => intro st; rfl
@@ -103,7 +103,8 @@ theorem runF_eq_runT {α : Type} (p : Prog α) : ∀ st : Whir.FSt,
         exact ih rows _
 
 /-- **A carried run consuming all it is given is a `RunsWith`.** -/
-theorem runsWith_of_runF {α : Type} {p : Prog α} {s : Fs} {xs : List E} {os : List Opening}
+theorem runsWith_of_runF {α : Type} {p : VerifierProgram α} {s : Fs} {xs : List E} {os : List
+    Opening}
     {R : List (Digest × ℕ × ℕ)} {a : α} {s' : Fs} {R' : List (Digest × ℕ × ℕ)}
     (h : Whir.runF p ⟨s, xs, os, R⟩ = some (a, ⟨s', [], [], R'⟩)) :
     Whir.RunsWith p s xs os R a s' R' := by
@@ -123,7 +124,7 @@ theorem runsWith_of_runF {α : Type} {p : Prog α} {s : Fs} {xs : List E} {os : 
 /-! ## Query steps -/
 
 /-- **The deployed run's query steps are the carried run's.** -/
-theorem queriesOf_eq_steps {α : Type} (p : Prog α) : ∀ (st : Whir.FSt) (sp : Sponge),
+theorem queriesOf_eq_steps {α : Type} (p : VerifierProgram α) : ∀ (st : Whir.FSt) (sp : Sponge),
     st.sponge.Carries sp →
       Limits.queryStepsOf p ⟨sp, st.stream, st.openings, st.roots⟩ = Whir.queryStepsOf p st := by
   induction p with
@@ -150,7 +151,7 @@ theorem queriesOf_eq_steps {α : Type} (p : Prog α) : ∀ (st : Whir.FSt) (sp :
     | cons n xs =>
       have ha := carries_absorb hs n dsPowNonce
       obtain ⟨e1, e2⟩ := carries_squeeze ha
-      have key : Limits.queryStepsOf (Prog.grind b k) ⟨sp, n :: xs, os, roots⟩ =
+      have key : Limits.queryStepsOf (VerifierProgram.grind b k) ⟨sp, n :: xs, os, roots⟩ =
           (if powOk b n (Id.run (Compile.squeeze (m := Id) keccakF1600
               (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).1 = true then
             Limits.queryStepsOf k ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600
@@ -170,8 +171,9 @@ theorem queriesOf_eq_steps {α : Type} (p : Prog α) : ∀ (st : Whir.FSt) (sp :
     | x0 :: x1 :: xs =>
       have h1 := carries_absorb hs x0 dsObserve
       have h2 := carries_absorb h1 x1 dsObserve
-      have key : Limits.queryStepsOf (Prog.commit hh ww k) ⟨sp, x0 :: x1 :: xs, os, roots⟩ =
-          (match digestOfScalars (x0, x1) with
+      have key : Limits.queryStepsOf (VerifierProgram.commit hh ww k) ⟨sp, x0 :: x1 :: xs, os,
+          roots⟩ =
+          (match digestFromHalves (x0, x1) with
             | some root => Limits.queryStepsOf k ⟨Id.run (Compile.absorb (m := Id) keccakF1600
                 (Id.run (Compile.absorb (m := Id) keccakF1600 sp x0 dsObserve)) x1 dsObserve), xs, os,
                 roots ++ [(root, hh, ww)]⟩

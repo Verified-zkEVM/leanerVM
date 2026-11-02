@@ -150,8 +150,8 @@ theorem cellAt_cost (hP : Includes P Decoder.cellAtC.costDeps) (p : E) (k : ℕ)
     machineCost P Decoder.cellAtC.costIdx [rdV, encodeValue p, encodeValue k] ≤ R + 2969 := by
   rw [Decoder.cellAtC.costEq P hP rd rdV hrd]
   have := powSqK_cost_lt P (by includes) g k 40 (by norm_num) (by norm_num) hk
-  have := hR (p.limb 0 * gpow k)
-  cases rd (p.limb 0 * gpow k) <;> dsimp only <;> omega
+  have := hR (p.limb 0 * addressOfIndex k)
+  cases rd (p.limb 0 * addressOfIndex k) <;> dsimp only <;> omega
 
 /-- A cell (`digestMemAtC`), as `cellAt`. -/
 theorem memAt_cost (hP : Includes P Decoder.digestMemAtC.costDeps) (p : E)
@@ -160,8 +160,8 @@ theorem memAt_cost (hP : Includes P Decoder.digestMemAtC.costDeps) (p : E)
       [rdV, encodeValue p, encodeValue k] ≤ R + 2969 := by
   rw [Decoder.digestMemAtC.costEq P hP rd rdV hrd]
   have := powSqK_cost_lt P (by includes) g k 40 (by norm_num) (by norm_num) hk
-  have := hR (p.limb 0 * gpow k)
-  cases rd (p.limb 0 * gpow k) <;> dsimp only <;> omega
+  have := hR (p.limb 0 * addressOfIndex k)
+  cases rd (p.limb 0 * addressOfIndex k) <;> dsimp only <;> omega
 
 /-- **`n` cells** (`readCellsC`), `n ≤ 2^40`: at most `(R + 3003)·n + 17`. -/
 theorem readCells_cost (hP : Includes P Decoder.readCellsC.costDeps) (p : E) (n : ℕ)

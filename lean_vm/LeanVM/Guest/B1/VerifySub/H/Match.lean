@@ -50,36 +50,37 @@ theorem ChildSegs.candidate_lt (S : ChildSegs bytecode seed c) :
 set_option maxRecDepth 100000 in
 /-- **`verify_sub`'s frames are its callees.** -/
 theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {lpE outE : ℕ}
-    (hargs : args = [(digestScalars (statementDigest seed c.statement)).1,
-      (digestScalars (statementDigest seed c.statement)).2, (digestScalars seed).1,
-      (digestScalars seed).2, ofK (gpow lpE), ofK (gpow sqE), ofK (gpow outE)])
+    (hargs : args = [(digestHalves (statementDigest seed c.statement)).1,
+      (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
+      (digestHalves seed).2, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE), ofK (addressOfIndex
+          outE)])
     (G : VsSig S bs sqE outs args σ) (O : VsOuts S bs lpE sqE outs) :
     CallsMatch σ ((vsCPre.filterMap (Core.Stmt.callSF σ)).map (mkCall σ))
       (kidsAt (S.kids bs lpE sqE) [] outs) outs := by
   have R := G.ret
   have P := G.ptr
   -- the parameters
-  have a0 : σ (.n 0) = (digestScalars (statementDigest seed c.statement)).1 := by
+  have a0 : σ (.n 0) = (digestHalves (statementDigest seed c.statement)).1 := by
     rw [G.par 0 (by norm_num), hargs]; rfl
-  have a1 : σ (.n 1) = (digestScalars (statementDigest seed c.statement)).2 := by
+  have a1 : σ (.n 1) = (digestHalves (statementDigest seed c.statement)).2 := by
     rw [G.par 1 (by norm_num), hargs]; rfl
-  have a4 : σ (.n 4) = ofK (gpow lpE) := by rw [G.par 4 (by norm_num), hargs]; rfl
-  have a5 : σ (.n 5) = ofK (gpow sqE) := by rw [G.par 5 (by norm_num), hargs]; rfl
+  have a4 : σ (.n 4) = ofK (addressOfIndex lpE) := by rw [G.par 4 (by norm_num), hargs]; rfl
+  have a5 : σ (.n 5) = ofK (addressOfIndex sqE) := by rw [G.par 5 (by norm_num), hargs]; rfl
   -- the pointers
-  have q7 : σ (.n 7) = ofK (gpow (vb bs 0)) := P 0 (by norm_num)
-  have q8 : σ (.n 8) = ofK (gpow (vb bs 1)) := P 1 (by norm_num)
-  have q28 : σ (.n 28) = ofK (gpow (vb bs 3)) := P 3 (by norm_num)
-  have q129 : σ (.n 129) = ofK (gpow (vb bs 4)) := P 4 (by norm_num)
-  have q141 : σ (.n 141) = ofK (gpow (vb bs 5)) := P 5 (by norm_num)
-  have q149 : σ (.n 149) = ofK (gpow (vb bs 6)) := P 6 (by norm_num)
-  have q523 : σ (.n 523) = ofK (gpow (vb bs 7)) := P 7 (by norm_num)
-  have q640 : σ (.n 640) = ofK (gpow (vb bs 9)) := P 9 (by norm_num)
-  have q848 : σ (.n 848) = ofK (gpow (vb bs 10)) := P 10 (by norm_num)
-  have q859 : σ (.n 859) = ofK (gpow (vb bs 11)) := P 11 (by norm_num)
-  have q860 : σ (.n 860) = ofK (gpow (vb bs 12)) := P 12 (by norm_num)
-  have q876 : σ (.n 876) = ofK (gpow (vb bs 13)) := P 13 (by norm_num)
-  have q877 : σ (.n 877) = ofK (gpow (vb bs 14)) := P 14 (by norm_num)
-  have q1324 : σ (.n 1324) = ofK (gpow (vb bs 15)) := P 15 (by norm_num)
+  have q7 : σ (.n 7) = ofK (addressOfIndex (vb bs 0)) := P 0 (by norm_num)
+  have q8 : σ (.n 8) = ofK (addressOfIndex (vb bs 1)) := P 1 (by norm_num)
+  have q28 : σ (.n 28) = ofK (addressOfIndex (vb bs 3)) := P 3 (by norm_num)
+  have q129 : σ (.n 129) = ofK (addressOfIndex (vb bs 4)) := P 4 (by norm_num)
+  have q141 : σ (.n 141) = ofK (addressOfIndex (vb bs 5)) := P 5 (by norm_num)
+  have q149 : σ (.n 149) = ofK (addressOfIndex (vb bs 6)) := P 6 (by norm_num)
+  have q523 : σ (.n 523) = ofK (addressOfIndex (vb bs 7)) := P 7 (by norm_num)
+  have q640 : σ (.n 640) = ofK (addressOfIndex (vb bs 9)) := P 9 (by norm_num)
+  have q848 : σ (.n 848) = ofK (addressOfIndex (vb bs 10)) := P 10 (by norm_num)
+  have q859 : σ (.n 859) = ofK (addressOfIndex (vb bs 11)) := P 11 (by norm_num)
+  have q860 : σ (.n 860) = ofK (addressOfIndex (vb bs 12)) := P 12 (by norm_num)
+  have q876 : σ (.n 876) = ofK (addressOfIndex (vb bs 13)) := P 13 (by norm_num)
+  have q877 : σ (.n 877) = ofK (addressOfIndex (vb bs 14)) := P 14 (by norm_num)
+  have q1324 : σ (.n 1324) = ofK (addressOfIndex (vb bs 15)) := P 15 (by norm_num)
   -- the results
   obtain ⟨-, -, -, ⟨K5, hK5⟩⟩ := S.runG' hbl
   obtain ⟨K7, hK7⟩ := S.s7_capOf hbl
@@ -93,12 +94,12 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {lpE outE : ℕ}
     rw [← vsRetVars_runs.1 i hi]; exact R 5 (by norm_num) i (by rw [vsRetVars_lens.1]; exact hi)
   have r6 : ∀ i < 9, σ (.n (849 + i)) = (outs.getD 6 ([], [])).1.getD i 0 := fun i hi ↦ by
     rw [← vsRetVars_runs.2.1 i hi]; exact R 6 (by norm_num) i (by rw [vsRetVars_lens.2.1]; exact hi)
-  have r844 : σ (.n 844) = ofK (gpow (S.cT bs)) := by
+  have r844 : σ (.n 844) = ofK (addressOfIndex (S.cT bs)) := by
     rw [show σ (.n 844) = _ from r5 5 (by norm_num), O.o5, hK5]
     exact Tables.tb_ofK_gpow_mul _ _
-  have r854 : σ (.n 854) = ofK (gpow (S.cK bs)) := by
+  have r854 : σ (.n 854) = ofK (addressOfIndex (S.cK bs)) := by
     rw [show σ (.n 854) = _ from r6 5 (by norm_num), O.o6]
-    show ofK (gpow (S.cT bs)) * gen ^ 5 * gen ^ (3 * S.H.n) * gen ^ 157 = _
+    show ofK (addressOfIndex (S.cT bs)) * gen ^ 5 * gen ^ (3 * S.H.n) * gen ^ 157 = _
     rw [Tables.tb_ofK_gpow_mul, Tables.tb_ofK_gpow_mul, Tables.tb_ofK_gpow_mul, ChildSegs.cK,
       (S.H_run hbl).2.2.2, show S.cT bs + 5 + 3 * S.H.n + 157 = S.cT bs + (5 + 3 * S.H.n + 157) by
         omega]
@@ -106,7 +107,7 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {lpE outE : ℕ}
     rw [show σ (.n 855) = _ from r6 6 (by norm_num), O.o6]; rfl
   have r857 : σ (.n 857) = S.H.rm := by
     rw [show σ (.n 857) = _ from r6 8 (by norm_num), O.o6]; rfl
-  have r868 : σ (.n 868) = ofK (gpow (S.cW bs)) := by
+  have r868 : σ (.n 868) = ofK (addressOfIndex (S.cW bs)) := by
     rw [show σ (.n 868) = _ from R 7 (by norm_num) 5 (by decide), O.o7, hK7]
     exact Tables.tb_ofK_gpow_mul _ _
   have r1887 : σ (.n 1887) = gen ^ Tables.stackTotal S.kappas := by
@@ -137,7 +138,7 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {lpE outE : ℕ}
   · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 2 (by norm_num) 
       (by rw [O.o2]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
     show [σ (.n 521), σ (.n 4), σ (.n 5)] =
-      [gen ^ pushTotal S.logMem S.hs, ofK (gpow lpE), ofK (gpow sqE)]
+      [gen ^ pushTotal S.logMem S.hs, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE)]
     rw [G.e521, a4, a5]
   · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 3 (by norm_num) 
       (by rw [O.o3]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
@@ -150,7 +151,8 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {lpE outE : ℕ}
   · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 5 (by norm_num)
       (by rw [vsRetVars_lens.1, O.o5, hK5]; simp [capOf, hvl])⟩⟩
     show [σ (.n 825), σ (.n 826), σ (.n 827), σ (.n 828), σ (.n 829), σ (.n 838), σ (.n 522),
-      σ (.n 523)] = S.capS ++ [ofK (gpow (vcG bs)), gen ^ S.μ, ofK (gpow (vb bs 7))]
+      σ (.n 523)] = S.capS ++ [ofK (addressOfIndex (vcG bs)), gen ^ S.μ, ofK (addressOfIndex (vb
+          bs 7))]
     rw [← G.e825, G.e838, r522, q523]; rfl
   · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 6 (by norm_num)
       (by rw [vsRetVars_lens.2.1, O.o6]; simp [Tables.VtHonest.retsH, Fs.squeeze, capOf])⟩⟩
@@ -158,11 +160,13 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {lpE outE : ℕ}
       σ (.n 1), σ (.n 523), σ (.n 522), σ (.n 129), σ (.n 28), σ (.n 149), σ (.n 5), σ (.n 640),
       σ (.n 836), σ (.n 7), σ (.n 8), σ (.n 848), σ (.n 845), σ (.n 846), σ (.n 847)] =
       [S.s5.cap.getD 0 0, S.s5.cap.getD 1 0, S.s5.cap.getD 2 0, S.s5.cap.getD 3 0,
-        S.s5.cap.getD 4 0, ofK (gpow (S.cT bs)), (digestScalars (statementDigest seed c.statement)).1,
-        (digestScalars (statementDigest seed c.statement)).2, ofK (gpow (vb bs 7)),
-        gen ^ S.point.length, ofK (gpow (vb bs 4)), ofK (gpow (vb bs 3)), ofK (gpow (vb bs 6)),
-        ofK (gpow sqE), ofK (gpow (vb bs 9)), S.β, ofK (gpow (vb bs 0)), ofK (gpow (vb bs 1)),
-        ofK (gpow (vb bs 10)), S.vals.getD 0 0, S.vals.getD 1 0, S.vals.getD 2 0]
+        S.s5.cap.getD 4 0, ofK (addressOfIndex (S.cT bs)), (digestHalves (statementDigest seed c.statement)).1,
+        (digestHalves (statementDigest seed c.statement)).2, ofK (addressOfIndex (vb bs 7)),
+        gen ^ S.point.length, ofK (addressOfIndex (vb bs 4)), ofK (addressOfIndex (vb bs 3)), ofK
+            (addressOfIndex (vb bs 6)),
+        ofK (addressOfIndex sqE), ofK (addressOfIndex (vb bs 9)), S.β, ofK (addressOfIndex (vb bs
+            0)), ofK (addressOfIndex (vb bs 1)),
+        ofK (addressOfIndex (vb bs 10)), S.vals.getD 0 0, S.vals.getD 1 0, S.vals.getD 2 0]
     rw [show σ (.n 839) = _ from r5 0 (by norm_num), show σ (.n 840) = _ from r5 1 (by norm_num),
       show σ (.n 841) = _ from r5 2 (by norm_num), show σ (.n 842) = _ from r5 3 (by norm_num),
       show σ (.n 843) = _ from r5 4 (by norm_num), show σ (.n 845) = _ from r5 6 (by norm_num),
@@ -173,21 +177,23 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {lpE outE : ℕ}
       (by rw [vsRetVars_lens.2.2.1, O.o7, hK7]; simp [capOf])⟩⟩
     show [σ (.n 849), σ (.n 850), σ (.n 851), σ (.n 852), σ (.n 853), σ (.n 854), σ (.n 858),
       σ (.n 848), σ (.n 862), σ (.n 859), σ (.n 860)] =
-      S.s6.cap ++ [ofK (gpow (S.cK bs)), gen ^ S.τ, ofK (gpow (vb bs 10)),
-        ofK (gpow (vb bs 0 + 110)), ofK (gpow (vb bs 11)), ofK (gpow (vb bs 12))]
+      S.s6.cap ++ [ofK (addressOfIndex (S.cK bs)), gen ^ S.τ, ofK (addressOfIndex (vb bs 10)),
+        ofK (addressOfIndex (vb bs 0 + 110)), ofK (addressOfIndex (vb bs 11)), ofK (addressOfIndex
+            (vb bs 12))]
     rw [← e6, r854, G.e858, q848, G.e862, q859, q860]; rfl
   · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 8 (by norm_num) 
       (by rw [O.o8]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
-    show [σ (.n 860), σ (.n 876)] = [ofK (gpow (vb bs 12)), ofK (gpow (vb bs 13))]
+    show [σ (.n 860), σ (.n 876)] = [ofK (addressOfIndex (vb bs 12)), ofK (addressOfIndex (vb
+        bs 13))]
     rw [q860, q876]
   · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 9 (by norm_num)
       (by rw [h9]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
-    show [σ (.n 141), σ (.n 5)] = [ofK (gpow (vb bs 5)), ofK (gpow sqE)]
+    show [σ (.n 141), σ (.n 5)] = [ofK (addressOfIndex (vb bs 5)), ofK (addressOfIndex sqE)]
     rw [q141, a5]
   · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 10 (by norm_num) 
       (by rw [O.o10]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
     show [σ (.n 1887), σ (.n 4), σ (.n 5)] =
-      [gen ^ Tables.stackTotal S.kappas, ofK (gpow lpE), ofK (gpow sqE)]
+      [gen ^ Tables.stackTotal S.kappas, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE)]
     rw [r1887, a4, a5]
   · refine ⟨?_, rfl, fun _ ↦ ⟨?_, vs_rets G 11 (by norm_num)
       (by rw [h11]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
@@ -196,7 +202,7 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {lpE outE : ℕ}
       rfl
     · show [σ (.n 1312), σ (.n 1313), σ (.n 1314), σ (.n 1315), σ (.n 1316), σ (.n 1886),
         σ (.n 537), σ (.n 547), σ (.n 868)] = capOf S.s8.perm ++ [S.target,
-          (digestScalars S.root).1, (digestScalars S.root).2, ofK (gpow (S.cW bs))]
+          (digestHalves S.root).1, (digestHalves S.root).2, ofK (addressOfIndex (S.cW bs))]
       rw [← G.e1312, G.e1886, G.e537, G.e547, r868, S.root_cells]
       rfl
   · refine ⟨rfl, ?_, fun _ ↦ ⟨?_, vs_rets G 12 (by norm_num)
@@ -207,10 +213,12 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {lpE outE : ℕ}
     · show [σ (.n 523), σ (.n 848), σ (.n 857), σ (.n 522), σ (.n 855), σ (.n 130), σ (.n 858),
         σ (.n 8), σ (.n 1884), σ (.n 1324), σ (.n 1888), σ (.n 1889), σ (.n 859), σ (.n 877),
         σ (.n 1907), σ (.n 1908), σ (.n 1909), σ (.n 1910), σ (.n 1906)] =
-        [ofK (gpow (vb bs 7)), ofK (gpow (vb bs 10)), S.H.rm, gen ^ S.μ, gen ^ S.H.n,
-          gen ^ S.logMem, gen ^ S.τ, ofK (gpow (vb bs 1)), S.lam ^ 141, ofK (gpow (vb bs 15)),
+        [ofK (addressOfIndex (vb bs 7)), ofK (addressOfIndex (vb bs 10)), S.H.rm, gen ^ S.μ, gen
+            ^ S.H.n,
+          gen ^ S.logMem, gen ^ S.τ, ofK (addressOfIndex (vb bs 1)), S.lam ^ 141, ofK
+              (addressOfIndex (vb bs 15)),
           ((outs.take 12).getD 9 ([], [])).1.getD 1 0, ((outs.take 12).getD 9 ([], [])).1.getD 2 0,
-          ofK (gpow (vb bs 11)), ofK (gpow (vb bs 14)), ((outs.take 12).getD 11 ([], [])).1.getD 1 0,
+          ofK (addressOfIndex (vb bs 11)), ofK (addressOfIndex (vb bs 14)), ((outs.take 12).getD 11 ([], [])).1.getD 1 0,
           ((outs.take 12).getD 11 ([], [])).1.getD 2 0, ((outs.take 12).getD 11 ([], [])).1.getD 3 0,
           ((outs.take 12).getD 11 ([], [])).1.getD 4 0, ((outs.take 12).getD 11 ([], [])).1.getD 0 0]
       rw [take_getD _ _ (by norm_num : 9 < 12), take_getD _ _ (by norm_num : 11 < 12), q523, q848,
@@ -260,7 +268,7 @@ theorem vs_alloc_sizes (hbl : bytecode.length = 2 ^ 23) {lpE : ℕ} (G : VsSig S
 /-- **The allocations' pointers** are the own buffers' first words. -/
 theorem vs_alloc_bases (G : VsSig S bs sqE outs args σ) {b : ℕ} (hbs : bs = bases b (vsSizes S.μ)) :
     ((vsCPre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-      (bases b (vsSizes S.μ)).map (fun x ↦ ofK (gpow x)) := by
+      (bases b (vsSizes S.μ)).map (fun x ↦ ofK (addressOfIndex x)) := by
   have e : (vsCPre.filterMap Main.Stmt.allocSz).map Prod.fst = vsAllocVars.map V.n := by
     rw [vs_allocs]; rfl
   have hl : (bases b (vsSizes S.μ)).length = 16 := by rw [bases_length]; rfl

@@ -25,7 +25,7 @@ structure Segment where
   tree : TreeIndex
   leaf : LeafIndex
   chainIdx : ChainIndex
-  digit : Digit
+  digit : WinternitzDigit
 
 abbrev Query (segment : Segment) := Fin segment.digit.val × Digest
 abbrev High := BitVec (256 - digestBits)
@@ -36,7 +36,7 @@ def step (segment : Segment) (index : Fin segment.digit.val) : ChainStep :=
 def input (segment : Segment) (query : Query segment) : HashInput :=
   tweakableHashInput segment.parameter
     (.chain segment.lay segment.tree segment.leaf segment.chainIdx (step segment query.1))
-    (bytesLE 16 query.2)
+    (littleEndianBytes 16 query.2)
 
 theorem input_injective (segment : Segment) : Function.Injective (input segment) := by
   intro left right heq

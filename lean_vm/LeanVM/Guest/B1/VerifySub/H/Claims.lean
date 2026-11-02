@@ -166,7 +166,7 @@ theorem pclaims_columns : H.pclaims.map (·.column) = [memory0, memory1, memory2
 
 theorem pclaims_points :
     H.pclaims.map (·.point) =
-      List.replicate 3 (H.rm :: List.replicate ((H.L.placement memory0).vars - 1) 0) := rfl
+      List.replicate 3 (H.rm :: List.replicate ((H.L.placement memory0).variableCount - 1) 0) := rfl
 
 /-- **The honest claims' columns.** -/
 theorem vtH_columns (h : H.Ok) (hr : H.rows.length = 6) : H.claims.map (·.column) = claimColumns := by
@@ -188,7 +188,7 @@ theorem vtH_columns (h : H.Ok) (hr : H.rows.length = 6) : H.claims.map (·.colum
 theorem vtH_points (h : H.Ok) (hr : H.rows.length = 6) (hbc : H.bc.length = 2 ^ 23) :
     H.claims.map (·.point) = List.replicate 4 (H.point.take H.lm) ++ [H.point.take 19] ++
       (List.range 157).map (fun k ↦ H.chiW.take (vtHt H.rows (vtEvTab k))) ++
-      List.replicate 3 (H.rm :: List.replicate ((H.L.placement memory0).vars - 1) 0) := by
+      List.replicate 3 (H.rm :: List.replicate ((H.L.placement memory0).variableCount - 1) 0) := by
   have hlb : H.L.logBytecode = 19 := by
     show Nat.log2 H.bc.length - busBits = 19
     rw [hbc, Nat.log2_two_pow]; rfl

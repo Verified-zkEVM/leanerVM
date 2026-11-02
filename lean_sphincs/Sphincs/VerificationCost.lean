@@ -65,7 +65,7 @@ theorem permutations_bind {α β : Type} (f : QueryImpl HashSpec Id)
 theorem tweakableHashInput_length (parameter : PublicParameter) (domain : HashDomain)
     (payload : HashInput) :
     (tweakableHashInput parameter domain payload).length = 32 + payload.length := by
-  simp [tweakableHashInput, tweakBytes, fieldBytes, bytesLE_length]
+  simp [tweakableHashInput, tweakBytes, addressBytes, bytesLE_length]
   omega
 
 @[simp] theorem permutations_tweakableHash (f : QueryImpl HashSpec Id)
@@ -96,7 +96,7 @@ theorem permutations_chainWalk (f : QueryImpl HashSpec Id) (parameter : PublicPa
 
 @[simp] theorem permutations_recoverChain (f : QueryImpl HashSpec Id)
     (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (chain : ChainIndex) (digit : Digit) (value : Digest) :
+    (chain : ChainIndex) (digit : WinternitzDigit) (value : Digest) :
     permutations f (recoverChain parameter lay tree leaf chain digit value) =
       chainLength - 1 - digit.val := by
   apply permutations_chainWalk
@@ -219,14 +219,14 @@ encoding absorbs it. -/
 
 @[simp] theorem permutations_messageDigestCall (f : QueryImpl HashSpec Id)
     (parameter : PublicParameter) (message : Message)
-    (randomness : Randomness) :
+    (randomness : Randomizer) :
     permutations f (messageDigestCall parameter message randomness) = 1 := by
   simp only [messageDigestCall, permutations_oracleHash, tweakableHashInput_length,
     messageDigestPayload, List.length_append, bytesLE_length]
   rfl
 
 @[simp] theorem permutations_messageDigest (f : QueryImpl HashSpec Id)
-    (parameter : PublicParameter) (message : Message) (randomness : Randomness) :
+    (parameter : PublicParameter) (message : Message) (randomness : Randomizer) :
     permutations f (messageDigest parameter message randomness) = 1 := by
   simp only [messageDigest, permutations_bind, permutations_messageDigestCall,
     permutations_pure]

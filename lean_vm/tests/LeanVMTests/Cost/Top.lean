@@ -15,7 +15,7 @@ open LeanVM.Cost LeanVM.Cost.Extractor LeanVM.Extraction.Fast LeanVM.Protocol.Co
 open LeanVMTests.Protocol.Verifier.Compiled LeanVM.Semantics LeanVM.Parameters
 
 /-- A program of two `JUMP`s. -/
-def tinyProg : LeanVM.Semantics.Program := ⟨1, by decide, fun _ ↦ .jump 0 0 0⟩
+def tinyProg : LeanVM.Semantics.LeanIsaProgram := ⟨1, by decide, fun _ ↦ .jump 0 0 0⟩
 
 def tinyInput : PublicInput := ⟨fun _ ↦ 0⟩
 

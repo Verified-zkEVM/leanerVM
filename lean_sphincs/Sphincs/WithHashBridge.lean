@@ -8,30 +8,33 @@ The statement's leanSPHINCS hashes with Keccak-256 over the permutation it is gi
 form queries a hash (`Sphincs.WithHash`). With the model's permutation `π`, each algorithm is the
 hash-query one with every query answered by Keccak-256 over `π`
 (`Common.SufCma.schemeHashOverPermutation`), one simulation lemma per algorithm; so the statement's
-scheme is `Rpm.schemeWithHash` so answered (`Sphincs.Rpm.scheme_eq`), and its end statement
+scheme is `Rpm.schemeWithHash` so answered (`Sphincs.RandomPermutationModel.scheme_eq`), and its end
+statement
 follows from the hash-query one (`Sphincs.Lifetimes.leanSphincsStronglyUnforgeable_of_withHash`).
 -/
 
 open OracleComp OracleSpec
 open Common Common.SufCma
 open LeanXmss (simulateQ_sequenceFin simulateQ_walkChain simulateQ_foldPath simulateQ_buildTree)
-open LeanXmss.Concrete (simulateQ_thWithHash simulateQ_thPairWithHash simulateQ_taggedSeedWithHash)
+open LeanXmss.Verification (simulateQ_thWithHash simulateQ_thPairWithHash
+    simulateQ_taggedSeedWithHash)
 
 local notation "σ" => schemeHashOverPermutation
 
 namespace Sphincs
 
-namespace Concrete
+namespace Verification
 
-variable (parameter : PublicParameter) (leaf index : Index) (chainIdx : ChainIndex) (digit : Digit)
+variable (parameter : PublicParameter) (leaf index : LeafIndex) (chainIdx : ChainIndex) (digit :
+    WinternitzDigit)
   (value : Digest) (start steps : ℕ) (endpoints : ChainIndex → Digest) (message : ForestKey)
-  (counter : Counter) (values : ChainIndex → Digest) (path : ℕ → Digest) (c : ForestCoordinate) (s : SuperChildIndex)
+  (counter : EncodingCounter) (values : ChainIndex → Digest) (path : ℕ → Digest) (c : ForestCoordinate) (s : SuperChildIndex)
   (j : SubtreeIndex) (a : ChildIndex) (i : ForestChainIndex) (deficit : ForestChainPosition) (ends : ForestChainIndex → Digest)
   (word : Codeword) (fvalues : ForestChainIndex → Digest) (level node : ℕ) (payload : HashInput)
-  (subPath : Fin subHeight → Digest) (tops : SubtreeIndex → Digest × Digest)
-  (topPath : Fin topHeight → Digest) (mark : CoordinateSelection) (opening : CoordinateOpening)
+  (subPath : Fin forestSubtreeHeight → Digest) (tops : SubtreeIndex → Digest × Digest)
+  (topPath : Fin topTreeHeight → Digest) (mark : CoordinateSelection) (opening : CoordinateOpening)
   (marks : ForestCoordinate → CoordinateSelection) (openings : ForestCoordinate → CoordinateOpening) (msg : Message)
-  (randomness : Randomness) (domain : HashDomain)
+  (randomness : Randomizer) (domain : HashDomain)
 
 theorem simulateQ_tweakableHashWithHash :
     simulateQ σ (tweakableHashWithHash (m := OracleComp HashSpec) parameter domain payload) =
@@ -76,8 +79,9 @@ theorem simulateQ_treeFoldWithHash :
 
 theorem simulateQ_forestWalkWithHash :
     simulateQ σ (forestWalkWithHash (m := OracleComp HashSpec) parameter index c s j a i start steps
-      value) = forestWalk queryPermutation parameter index c s j a i start steps value := by
-  simp only [forestWalkWithHash, forestWalk, simulateQ_walkChain, simulateQ_tweakableHashWithHash]
+      value) = forestChainWalk queryPermutation parameter index c s j a i start steps value := by
+  simp only [forestWalkWithHash, forestChainWalk, simulateQ_walkChain,
+      simulateQ_tweakableHashWithHash]
 
 theorem simulateQ_forestRecoverChainWithHash :
     simulateQ σ (forestRecoverChainWithHash (m := OracleComp HashSpec) parameter index c s j a i
@@ -92,36 +96,36 @@ theorem simulateQ_childLeafHashWithHash :
 
 theorem simulateQ_childRecoverWithHash :
     simulateQ σ (childRecoverWithHash (m := OracleComp HashSpec) parameter index c s j a word
-      fvalues) = childRecover queryPermutation parameter index c s j a word fvalues := by
-  simp only [childRecoverWithHash, childRecover, simulateQ_bind, simulateQ_sequenceFin,
+      fvalues) = childLeafRecover queryPermutation parameter index c s j a word fvalues := by
+  simp only [childRecoverWithHash, childLeafRecover, simulateQ_bind, simulateQ_sequenceFin,
     simulateQ_forestRecoverChainWithHash, simulateQ_childLeafHashWithHash]
 
 theorem simulateQ_subNodeHashWithHash :
     simulateQ σ (subNodeHashWithHash (m := OracleComp HashSpec) parameter index c s j level node
-      payload) = subNodeHash queryPermutation parameter index c s j level node payload := by
-  simp only [subNodeHashWithHash, subNodeHash]
+      payload) = subtreeNodeHash queryPermutation parameter index c s j level node payload := by
+  simp only [subNodeHashWithHash, subtreeNodeHash]
   split <;> simp only [simulateQ_pure, simulateQ_tweakableHashWithHash]
 
 theorem simulateQ_subFoldWithHash :
     simulateQ σ (subFoldWithHash (m := OracleComp HashSpec) parameter index c s j a subPath steps
-      value) = subFold queryPermutation parameter index c s j a subPath steps value := by
-  simp only [subFoldWithHash, subFold, simulateQ_foldPath, simulateQ_subNodeHashWithHash]
+      value) = subtreeFold queryPermutation parameter index c s j a subPath steps value := by
+  simp only [subFoldWithHash, subtreeFold, simulateQ_foldPath, simulateQ_subNodeHashWithHash]
 
 theorem simulateQ_superHashWithHash :
     simulateQ σ (superHashWithHash (m := OracleComp HashSpec) parameter index c s tops) =
-      superHash queryPermutation parameter index c s tops :=
+      superChildHash queryPermutation parameter index c s tops :=
   simulateQ_tweakableHashWithHash _ _ _
 
 theorem simulateQ_topNodeHashWithHash :
     simulateQ σ (topNodeHashWithHash (m := OracleComp HashSpec) parameter index c level node
-      payload) = topNodeHash queryPermutation parameter index c level node payload := by
-  simp only [topNodeHashWithHash, topNodeHash]
+      payload) = topTreeNodeHash queryPermutation parameter index c level node payload := by
+  simp only [topNodeHashWithHash, topTreeNodeHash]
   split <;> simp only [simulateQ_pure, simulateQ_tweakableHashWithHash]
 
 theorem simulateQ_topFoldWithHash :
     simulateQ σ (topFoldWithHash (m := OracleComp HashSpec) parameter index c s topPath steps
-      value) = topFold queryPermutation parameter index c s topPath steps value := by
-  simp only [topFoldWithHash, topFold, simulateQ_foldPath, simulateQ_topNodeHashWithHash]
+      value) = topTreeFold queryPermutation parameter index c s topPath steps value := by
+  simp only [topFoldWithHash, topTreeFold, simulateQ_foldPath, simulateQ_topNodeHashWithHash]
 
 theorem simulateQ_coordRecoverWithHash :
     simulateQ σ (coordRecoverWithHash (m := OracleComp HashSpec) parameter index c mark opening) =
@@ -160,13 +164,13 @@ theorem simulateQ_verifyWithHash (publicKey : PublicKey) (signature : Signature)
   · simp
   · simp only [simulateQ_bind, simulateQ_pure, simulateQ_treeFoldWithHash]
 
-end Concrete
+end Verification
 
-namespace Seeded
+namespace KeyGenerationAndSigning
 
-open Concrete
+open Verification
 
-variable (parameter : PublicParameter) (leaf index : Index) (seed : MasterSeed)
+variable (parameter : PublicParameter) (leaf index : LeafIndex) (seed : MasterSeed)
   (message : ForestKey)
   (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex) (mark : CoordinateSelection)
   (marks : ForestCoordinate → CoordinateSelection) (level node : ℕ)
@@ -223,20 +227,21 @@ theorem simulateQ_childLeafWithHash :
 
 theorem simulateQ_subNodeWithHash :
     simulateQ σ (subNodeWithHash (m := OracleComp HashSpec) parameter index c s j seed level node) =
-      subNode queryPermutation parameter index c s j seed level node := by
-  simp only [subNodeWithHash, subNode, simulateQ_buildTree, simulateQ_childLeafWithHash,
+      subtreeNode queryPermutation parameter index c s j seed level node := by
+  simp only [subNodeWithHash, subtreeNode, simulateQ_buildTree, simulateQ_childLeafWithHash,
     simulateQ_subNodeHashWithHash]
 
 theorem simulateQ_superNodeWithHash :
     simulateQ σ (superNodeWithHash (m := OracleComp HashSpec) parameter index c s seed) =
-      superNode queryPermutation parameter index c s seed := by
-  simp only [superNodeWithHash, superNode, simulateQ_bind, simulateQ_pure, simulateQ_sequenceFin,
+      superChildNode queryPermutation parameter index c s seed := by
+  simp only [superNodeWithHash, superChildNode, simulateQ_bind, simulateQ_pure,
+      simulateQ_sequenceFin,
     simulateQ_subNodeWithHash, simulateQ_superHashWithHash]
 
 theorem simulateQ_topNodeWithHash :
     simulateQ σ (topNodeWithHash (m := OracleComp HashSpec) parameter index c seed level node) =
-      topNode queryPermutation parameter index c seed level node := by
-  simp only [topNodeWithHash, topNode, simulateQ_buildTree, simulateQ_superNodeWithHash,
+      topTreeNode queryPermutation parameter index c seed level node := by
+  simp only [topNodeWithHash, topTreeNode, simulateQ_buildTree, simulateQ_superNodeWithHash,
     simulateQ_topNodeHashWithHash]
 
 theorem simulateQ_forestKeyWithHash :
@@ -263,7 +268,7 @@ theorem simulateQ_surrogateWithHash :
   simp only [surrogateWithHash, surrogate]
   split <;> simp only [simulateQ_pure, simulateQ_thWithHash]
 
-variable [Params]
+variable [KeyShape]
 
 theorem simulateQ_spineNodeWithHash :
     ∀ steps : ℕ, simulateQ σ (spineNodeWithHash (m := OracleComp HashSpec) parameter seed steps) =
@@ -288,8 +293,8 @@ theorem simulateQ_treePathWithHash :
   split <;> simp only [simulateQ_treeNodeWithHash, simulateQ_surrogateWithHash]
 
 theorem simulateQ_keygenFromMasterWithHash :
-    simulateQ σ (keygenFromMasterWithHash seed) = keygenFromMaster queryPermutation seed := by
-  simp only [keygenFromMasterWithHash, keygenFromMaster, simulateQ_bind, simulateQ_pure,
+    simulateQ σ (keygenFromMasterWithHash seed) = keygenFromSchemeSeed queryPermutation seed := by
+  simp only [keygenFromMasterWithHash, keygenFromSchemeSeed, simulateQ_bind, simulateQ_pure,
     simulateQ_thWithHash]
   refine congrArg _ (funext fun parameter ↦ ?_)
   -- `parameter` is a `Digest`, the public parameter's type up to `digestBits = 128`
@@ -301,20 +306,21 @@ theorem simulateQ_keygenFromSeedWithHash :
     simulateQ_taggedSeedWithHash, simulateQ_keygenFromMasterWithHash]
 
 theorem simulateQ_signAttemptWithHash (secretKey : SecretKey) (msg : Message)
-    (randomness : Randomness) :
+    (randomness : Randomizer) :
     simulateQ σ (signAttemptWithHash (m := OracleComp HashSpec) secretKey msg randomness) =
-      signAttempt queryPermutation secretKey msg randomness := by
-  simp only [signAttemptWithHash, signAttempt, simulateQ_bind, simulateQ_messageDigestCallWithHash]
+      grindingAttempt queryPermutation secretKey msg randomness := by
+  simp only [signAttemptWithHash, grindingAttempt, simulateQ_bind,
+      simulateQ_messageDigestCallWithHash]
   congr 1; funext first
   split <;> simp
 
 theorem simulateQ_signDigestLoopWithHash (secretKey : SecretKey) (msg : Message) :
-    ∀ (attempts : ℕ) (randomness : Randomness),
+    ∀ (attempts : ℕ) (randomness : Randomizer),
       simulateQ σ (signDigestLoopWithHash (m := OracleComp HashSpec) secretKey msg attempts
-        randomness) = signDigestLoop queryPermutation secretKey msg attempts randomness
-  | 0, _ => by simp [signDigestLoopWithHash, signDigestLoop]
+        randomness) = grindRandomizer queryPermutation secretKey msg attempts randomness
+  | 0, _ => by simp [signDigestLoopWithHash, grindRandomizer]
   | attempts + 1, randomness => by
-    simp only [signDigestLoopWithHash, signDigestLoop, simulateQ_bind,
+    simp only [signDigestLoopWithHash, grindRandomizer, simulateQ_bind,
       simulateQ_signAttemptWithHash]
     congr 1; funext attempt
     rcases attempt with _ | index
@@ -338,19 +344,20 @@ theorem simulateQ_signWithHash (secretKey : SecretKey) (msg : Message) :
     · simp
     · simp only [simulateQ_bind, simulateQ_pure, simulateQ_treePathWithHash]
 
-end Seeded
+end KeyGenerationAndSigning
 
-namespace Rpm
+namespace RandomPermutationModel
 
-variable [Params]
+variable [KeyShape]
 
 /-- **The statement's leanSPHINCS is the hash-query scheme over `π`.** -/
-theorem scheme_eq : scheme = schemeWithHash.overPermutation := by
-  simp only [scheme, schemeWithHash, SchemeWithHash.overPermutation,
-    Seeded.simulateQ_keygenFromSeedWithHash, Seeded.simulateQ_signWithHash,
-    Concrete.simulateQ_verifyWithHash]
+theorem scheme_eq : sufCmaScheme = schemeWithHash.overPermutation := by
+  simp only [sufCmaScheme, schemeWithHash, SchemeWithHash.overPermutation,
+    KeyGenerationAndSigning.simulateQ_keygenFromSeedWithHash,
+        KeyGenerationAndSigning.simulateQ_signWithHash,
+    Verification.simulateQ_verifyWithHash]
 
-end Rpm
+end RandomPermutationModel
 
 namespace Lifetimes
 
@@ -358,7 +365,7 @@ namespace Lifetimes
 theorem leanSphincsStronglyUnforgeable_of_withHash (h : LeanSphincsStronglyUnforgeableWithHash) :
     LeanSphincsStronglyUnforgeable := by
   intro P hP
-  rw [@Rpm.scheme_eq P]
+  rw [@RandomPermutationModel.scheme_eq P]
   exact stronglyUnforgeable_overPermutation (h P hP)
 
 end Lifetimes

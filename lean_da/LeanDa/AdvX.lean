@@ -52,12 +52,13 @@ theorem col_tImplX (h : HTab) (t : (unifSpec + TSpec).Domain) (s : HCache) :
 
 section Adversary
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
 
 /-- **Wagner's adversary with `H` on short strings as queries of `XS`** (`advH`). -/
 noncomputable def advX (A : CodeBindingAdvB r Crs Proof) (ck : Unit × Crs) :
-    OracleComp (WSpec + XS) ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) :=
+    OracleComp (WSpec + XS) ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) :=
   (simulateQ tImplX (simulateQ (swapImpl ∘ₛ toV) (advSim r A (fixCrs r ps ck.2)))).run' ∅
 
 /-- **Answered by `h`, it is Wagner's adversary for the table `h`.** -/

@@ -36,7 +36,7 @@ for 15 to 21 it is the second verifier's, which takes one sample per level after
 def oodSamples (level : ℕ) : ℕ := if level = 0 then 0 else 1
 
 /-- The variables left after every fold: the size of the residual sent in the clear. -/
-def residualLog (μ logInvRate : ℕ) : ℕ := μ - ((shape μ logInvRate).map Prod.fst).sum
+def residualLog (μ logInvRate : ℕ) : ℕ := μ - ((ladderShape μ logInvRate).map Prod.fst).sum
 
 /-- The log block lengths `κ_i + R_i` of the levels' codes: the message log after a level's fold
 plus its rate exponent (`LevelShapes.block_len`, `whir_config.rs:121-156`). -/

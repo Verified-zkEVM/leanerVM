@@ -109,7 +109,7 @@ theorem vt_completeAt {κ : ℕ} (Lin : Layout) (args rets : List E) (hl : args.
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
     (w : ℕ → ℕ → E) (bufs : ℕ → List (E × ℕ))
-    (hbufs : ∀ fp, ∀ q ∈ bufs fp, ∃ b, q.1 = ofK (gpow b) ∧
+    (hbufs : ∀ fp, ∀ q ∈ bufs fp, ∃ b, q.1 = ofK (addressOfIndex b) ∧
       ∀ i < q.2, RegionL (vtL Lin sizes own fs fp) (b + i))
     (hrun : ∀ fp rd, LowDef κ rd → MemL rd (vtL Lin sizes own fs fp) →
       (∀ s ∈ vtPre, VSH (coreProgram.RelIn rd (RegionL (vtL Lin sizes own fs fp))) rd
@@ -118,7 +118,7 @@ theorem vt_completeAt {κ : ℕ} (Lin : Layout) (args rets : List E) (hl : args.
       (vtPre.filterMap Main.Stmt.allocSz).map
         (fun x => x.2.elim id fun s => logG (vtσ rd (w fp) args s)) = sizes ∧
       ((vtPre.filterMap Main.Stmt.allocSz).map Prod.fst).map (vtσ rd (w fp) args) =
-        (bases (fp + fs "verify_tables") sizes).map (fun b => ofK (gpow b)) ∧
+        (bases (fp + fs "verify_tables") sizes).map (fun b => ofK (addressOfIndex b)) ∧
       vtRets.map (vtσ rd (w fp) args) = rets) :
     CompleteAtD fs cert κ "verify_tables" Lin args (Returns rets) :=
   flat_completeAt vtFlat Lin args rets hl sizes own hown w bufs hbufs fun fp rd hlow hL ↦

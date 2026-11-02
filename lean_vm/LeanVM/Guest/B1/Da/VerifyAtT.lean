@@ -200,7 +200,7 @@ theorem dvT_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
   -- the valuation and the path
   have hV := dv_core (rd := rd) (gsq := gen ^ s) (syms := syms) (r := r) (L := L) hb.cd
   set σ := dvσ rd (gen ^ s) r L P cr rr with hσ
-  have hx : σ (.n 2) = ofK (gpow L) := by rw [hV.v2, gen_pow_eq_ofK]
+  have hx : σ (.n 2) = ofK (addressOfIndex L) := by rw [hV.v2, gen_pow_eq_ofK]
   have hw := walk_dispatch σ dvPre dvPost dvPre_straight dvPost_straight (.n 2) dlNames [.n 41]
     [.n 48, .n 49] [.n 993, .n 994, .n 995, .n 996] (i := L) (by simp [dlNames]; omega)
     (by simp [dlNames]) hx

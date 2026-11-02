@@ -35,7 +35,7 @@ fn digest(d: &[u8; 32]) -> String {
     format!("#v[{}]", lanes.join(", "))
 }
 
-/// Two canonical cells as a digest (`digestScalars`' inverse).
+/// Two canonical cells as a digest (`digestHalves`' inverse).
 fn cells_digest(c: &[F192; 2]) -> String {
     assert!(c[0].c2 == 0 && c[1].c2 == 0);
     format!("#v[0x{:016x}, 0x{:016x}, 0x{:016x}, 0x{:016x}]", c[0].c0, c[0].c1, c[1].c0, c[1].c1)

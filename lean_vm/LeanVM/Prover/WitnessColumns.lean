@@ -35,13 +35,13 @@ open Air.Flat (EnsembleWitness)
 
 @[expose] public section
 
-variable {prog : Program} {input : PublicInput} {t : Execution prog}
+variable {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
 
 /-! ## The specification's witness and the executable pass -/
 
 /-- **The specification's witness of an execution**: the rows of its run's skeletons, its image,
 the program (`skelWitness`; the witness of `exists_childFor`). -/
-noncomputable def traceWitness (prog : Program) (input : PublicInput) (t : Execution prog) :
+noncomputable def traceWitness (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) :
     EnsembleWitness (leanIsaEnsemble prog) :=
   skelWitness prog input t.memory t.runSkels
 
@@ -95,7 +95,8 @@ theorem traceWitness_pos (hv : ValidExecution prog input t) :
 
 /-- **The sizes of an execution**: those its specification witness carries (`witnessSizes`); a
 placeholder when it carries none (never, on a valid execution). -/
-noncomputable def traceSizes (prog : Program) (input : PublicInput) (t : Execution prog) : Sizes :=
+noncomputable def traceSizes (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) :
+    Sizes :=
   if h : 0 < (imageOf (traceWitness prog input t).data).1 then
     witnessSizes (traceWitness prog input t) h
   else ⟨1, Nat.one_pos, fun _ ↦ 0⟩
@@ -183,18 +184,20 @@ theorem outStates_getD (R : Array (Array K)) (h x : ℕ) (hx : x < 2 ^ h) :
 /-- The memory block's cells. -/
 theorem memCell_trace (x : ℕ) (hx : x < 2 ^ t.logMemorySize) (k : ℕ) :
     cellOf (tableAt (traceWitness prog input t) 6) x k =
-      (#[gpow x, g ^ skelMemFin t.memory t.runSkels (gpow x), (t.memory ⟨x, hx⟩).limb 0,
+      (#[addressOfIndex x, g ^ skelMemFin t.memory t.runSkels (addressOfIndex x), (t.memory ⟨x,
+          hx⟩).limb 0,
         (t.memory ⟨x, hx⟩).limb 1, (t.memory ⟨x, hx⟩).limb 2][k]?).getD 0 := by
   show ((List.ofFn fun i : Fin (2 ^ t.logMemorySize) ↦ rawRow (memRowOf t.memory i
-    (g ^ skelMemFin t.memory t.runSkels (gpow i))))[x]?.bind (·[k]?)).getD 0 = _
+    (g ^ skelMemFin t.memory t.runSkels (addressOfIndex i))))[x]?.bind (·[k]?)).getD 0 = _
   rw [List.getElem?_ofFn]
   simp [hx, rawRow, memRow_toArray, memRowOf]
 
 /-- The bytecode block's finalize counts. -/
 theorem bcCell_trace (x : ℕ) (hx : x < 2 ^ prog.logSize) :
-    cellOf (tableAt (traceWitness prog input t) 7) x 1 = g ^ skelBcFin t.runSkels (gpow x) := by
+    cellOf (tableAt (traceWitness prog input t) 7) x 1 = g ^ skelBcFin t.runSkels (addressOfIndex
+        x) := by
   show ((List.ofFn fun i : Fin (2 ^ prog.logSize) ↦ rawRow (bytecodeRowOf prog i
-    (g ^ skelBcFin t.runSkels (gpow i))))[x]?.bind (·[1]?)).getD 0 = _
+    (g ^ skelBcFin t.runSkels (addressOfIndex i))))[x]?.bind (·[1]?)).getD 0 = _
   rw [List.getElem?_ofFn]
   simp [hx, rawRow, bytecodeRow_toArray, bytecodeRowOf]
 

@@ -26,7 +26,7 @@ takes out are the `KECCAK` row's, and the claims it keeps are those with a place
 
 namespace LeanVM.Protocol.Verifier
 
-open LeanVM.Parameters hiding gpow
+open LeanVM.Parameters hiding addressOfIndex
 open LeanVM.Semantics LeanVM.Protocol.Compile
 
 @[expose] public section
@@ -40,10 +40,11 @@ def ColumnClaim.stackClaim (c : ColumnClaim) (layout : Layout) : StackClaim :=
 
 /-- `tableTerms`, collecting the column claims of the evaluations. -/
 def tableTermsClaims (constraintPowers formPowers point : List E) :
-    List (Table × ℕ × List Form × E) → ℕ → E → List ColumnClaim → Prog (E × List ColumnClaim)
+    List (Table × ℕ × List Form × E) → ℕ → E → List ColumnClaim → VerifierProgram (E × List
+        ColumnClaim)
   | [], _, final, claims => return (final, claims)
   | (table, height, forms, weight) :: rest, cursor, final, claims => do
-    let evaluations ← Prog.readScalars table.width
+    let evaluations ← VerifierProgram.readScalars table.width
     let summand := dot ((constraintPowers.drop cursor).take table.nConstraints)
       (table.constraints evaluations)
     let final := final +
@@ -56,19 +57,19 @@ def tableTermsClaims (constraintPowers formPowers point : List E) :
 /-- `tableSumcheck`, returning the tables' column claims. -/
 def tableSumcheckClaims (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E) :
-    Prog (List ColumnClaim) := do
+    VerifierProgram (List ColumnClaim) := do
   let nRounds := heights.foldl max 0
   let (challenges, claim) ← sumcheck target 4 (List.replicate nRounds none)
   let point := challenges.reverse
   let weights := tableWeights heights equalityPoint point
   let rows := List.zip tables (List.zip heights (List.zip busForms weights))
   let (final, claims) ← tableTermsClaims constraintPowers formPowers point rows 0 0 []
-  Prog.require (final = claim)
+  VerifierProgram.require (final = claim)
   return claims
 
 /-- `tablePhase`, returning the bus's and the tables' column claims. -/
-def tablePhaseClaims (layout : Layout) (bus : BusResult) : Prog (List ColumnClaim) := do
-  let xi ← Prog.sampleChallenge
+def tablePhaseClaims (layout : Layout) (bus : BusResult) : VerifierProgram (List ColumnClaim) := do
+  let xi ← VerifierProgram.sampleChallenge
   let nConstraints := (tables.map Table.nConstraints).sum
   let xiPowers := powers xi (nConstraints + 3)
   let constraintPowers := xiPowers.take nConstraints
@@ -81,9 +82,9 @@ def tablePhaseClaims (layout : Layout) (bus : BusResult) : Prog (List ColumnClai
 /-- `keccakPhase` on the claim list: take the output lanes' claims out, check there is one per
 lane, in lane order, all at one point, and hand them to the Keccak reduction. -/
 def keccakPhaseClaims (layout : Layout) (claims : List ColumnClaim) :
-    Prog (List ColumnClaim × List E × List E) := do
+    VerifierProgram (List ColumnClaim × List E × List E) := do
   let lanes := claims.filter fun c ↦ c.column ∈ keccakOutputColumns
-  Prog.require (lanes.map (·.column) = keccakOutputColumns ∧
+  VerifierProgram.require (lanes.map (·.column) = keccakOutputColumns ∧
     ∀ c ∈ lanes, c.point = (lanes.headD default).point)
   let claims := claims.filter fun c ↦ c.column ∉ keccakOutputColumns
   let (outputs, point, slices) ← verifyKeccak (layout.tableLogHeights.getD opKeccak 0)
@@ -91,9 +92,9 @@ def keccakPhaseClaims (layout : Layout) (claims : List ColumnClaim) :
   return (claims ++ outputs, point, slices)
 
 /-- **`verify_execution` on the claim list.** -/
-def verifyExecutionClaims (ev : List K → List E → Prog E) (bytecode : List K)
-    (publicInput : Digest) : Prog Unit := do
-  let (layout, logInverseRate) ← readSizes bytecode
+def verifyExecutionClaims (ev : List K → List E → VerifierProgram E) (bytecode : List K)
+    (publicInput : Digest) : VerifierProgram Unit := do
+  let (layout, logInverseRate) ← readAnnouncedSizes bytecode
   commitStack layout.stackLog logInverseRate
   let bus ← verifyBusBalance ev layout
   let claims ← tablePhaseClaims layout bus
@@ -110,20 +111,21 @@ namespace Claims
 
 /-- Every value a program can return satisfies `P`, whatever it reads and samples: an inductive
 predicate, so that elaboration does not unfold it along a program. -/
-inductive AllRetI {α : Type} (P : α → Prop) : Prog α → Prop
+inductive AllRetI {α : Type} (P : α → Prop) : VerifierProgram α → Prop
   | ret {a : α} : P a → AllRetI P (.ret a)
   | fail : AllRetI P .fail
-  | read {k : E → Prog α} : (∀ x, AllRetI P (k x)) → AllRetI P (.read k)
-  | sample {k : E → Prog α} : (∀ c, AllRetI P (k c)) → AllRetI P (.sample k)
-  | grind {b : ℕ} {k : Prog α} : AllRetI P k → AllRetI P (.grind b k)
-  | commit {h w : ℕ} {k : Prog α} : AllRetI P k → AllRetI P (.commit h w k)
-  | query {i : ℕ} {ps : List ℕ} {k : List (List K) → Prog α} :
+  | read {k : E → VerifierProgram α} : (∀ x, AllRetI P (k x)) → AllRetI P (.read k)
+  | sample {k : E → VerifierProgram α} : (∀ c, AllRetI P (k c)) → AllRetI P (.sample k)
+  | grind {b : ℕ} {k : VerifierProgram α} : AllRetI P k → AllRetI P (.grind b k)
+  | commit {h w : ℕ} {k : VerifierProgram α} : AllRetI P k → AllRetI P (.commit h w k)
+  | query {i : ℕ} {ps : List ℕ} {k : List (List K) → VerifierProgram α} :
       (∀ r, AllRetI P (k r)) → AllRetI P (.query i ps k)
 
 /-- Every value `p` can return satisfies `P`. -/
-abbrev AllRet {α : Type} (p : Prog α) (P : α → Prop) : Prop := AllRetI P p
+abbrev AllRet {α : Type} (p : VerifierProgram α) (P : α → Prop) : Prop := AllRetI P p
 
-theorem allRet_of_forall {α : Type} {P : α → Prop} (h : ∀ a, P a) : ∀ p : Prog α, AllRet p P
+theorem allRet_of_forall {α : Type} {P : α → Prop} (h : ∀ a, P a) : ∀ p : VerifierProgram α,
+    AllRet p P
   | .ret a => .ret (h a)
   | .fail => .fail
   | .read k => .read fun x ↦ allRet_of_forall h (k x)
@@ -132,10 +134,10 @@ theorem allRet_of_forall {α : Type} {P : α → Prop} (h : ∀ a, P a) : ∀ p 
   | .commit _ _ k => .commit (allRet_of_forall h k)
   | .query _ _ k => .query fun r ↦ allRet_of_forall h (k r)
 
-theorem allRet_true {α : Type} (p : Prog α) : AllRet p fun _ ↦ True :=
+theorem allRet_true {α : Type} (p : VerifierProgram α) : AllRet p fun _ ↦ True :=
   allRet_of_forall (fun _ ↦ trivial) p
 
-theorem AllRet.mono {α : Type} {P Q : α → Prop} (hPQ : ∀ a, P a → Q a) {p : Prog α}
+theorem AllRet.mono {α : Type} {P Q : α → Prop} (hPQ : ∀ a, P a → Q a) {p : VerifierProgram α}
     (hp : AllRet p P) : AllRet p Q := by
   induction hp with
   | ret h => exact .ret (hPQ _ h)
@@ -146,8 +148,9 @@ theorem AllRet.mono {α : Type} {P Q : α → Prop} (hPQ : ∀ a, P a → Q a) {
   | commit _ ih => exact .commit ih
   | query _ ih => exact .query ih
 
-theorem AllRet.bind {α β : Type} {Q : α → Prop} {P : β → Prop} {f : α → Prog β}
-    (hf : ∀ a, Q a → AllRet (f a) P) (p : Prog α) (hp : AllRet p Q) : AllRet (p.bind f) P := by
+theorem AllRet.bind {α β : Type} {Q : α → Prop} {P : β → Prop} {f : α → VerifierProgram β}
+    (hf : ∀ a, Q a → AllRet (f a) P) (p : VerifierProgram α) (hp : AllRet p Q) : AllRet (p.bind f)
+        P := by
   induction hp with
   | ret h => exact hf _ h
   | fail => exact .fail
@@ -158,18 +161,19 @@ theorem AllRet.bind {α β : Type} {Q : α → Prop} {P : β → Prop} {f : α �
   | query _ ih => exact .query ih
 
 /-- Two continuations that agree on every value a program returns make one program. -/
-theorem bind_congr {α β : Type} {Q : α → Prop} {f g : α → Prog β} (h : ∀ a, Q a → f a = g a)
-    (p : Prog α) (hp : AllRet p Q) : p.bind f = p.bind g := by
+theorem bind_congr {α β : Type} {Q : α → Prop} {f g : α → VerifierProgram β} (h : ∀ a, Q a → f
+    a = g a)
+    (p : VerifierProgram α) (hp : AllRet p Q) : p.bind f = p.bind g := by
   induction hp with
   | ret hq => exact h _ hq
   | fail => rfl
-  | read _ ih => exact congrArg Prog.read (funext ih)
-  | sample _ ih => exact congrArg Prog.sample (funext ih)
-  | grind _ ih => exact congrArg (Prog.grind _) ih
-  | commit _ ih => exact congrArg (Prog.commit _ _) ih
-  | query _ ih => exact congrArg (Prog.query _ _) (funext ih)
+  | read _ ih => exact congrArg VerifierProgram.read (funext ih)
+  | sample _ ih => exact congrArg VerifierProgram.sample (funext ih)
+  | grind _ ih => exact congrArg (VerifierProgram.grind _) ih
+  | commit _ ih => exact congrArg (VerifierProgram.commit _ _) ih
+  | query _ ih => exact congrArg (VerifierProgram.query _ _) (funext ih)
 
-theorem allRet_readN : ∀ n : ℕ, AllRet (Prog.readScalars n) fun xs ↦ xs.length = n
+theorem allRet_readN : ∀ n : ℕ, AllRet (VerifierProgram.readScalars n) fun xs ↦ xs.length = n
   | 0 => .ret rfl
   | n + 1 => .read fun x ↦
     AllRet.bind (fun xs hxs ↦ .ret (by show (x :: xs).length = n + 1; simp [hxs])) _
@@ -225,9 +229,9 @@ theorem buildLayout_ok {bytecode : List K} {logMemory : ℕ} {tableRows : List �
       rfl
 
 theorem allRet_readSizes (bytecode : List K) :
-    AllRet (readSizes bytecode) fun x ↦ LayoutOk x.1 := by
-  unfold readSizes
-  simp only [Prog.bind_eq, Prog.pure_eq]
+    AllRet (readAnnouncedSizes bytecode) fun x ↦ LayoutOk x.1 := by
+  unfold readAnnouncedSizes
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
   refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
   refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
@@ -276,10 +280,10 @@ theorem zipWith_columns {β : Type} (pt : List E) :
     · exact List.mem_cons_self ..
     · exact List.mem_cons_of_mem _ (zipWith_columns pt cols vals g c h)
 
-theorem allRet_verifyBusBalance (ev : List K → List E → Prog E) (layout : Layout) :
+theorem allRet_verifyBusBalance (ev : List K → List E → VerifierProgram E) (layout : Layout) :
     AllRet (verifyBusBalance ev layout) BusOk := by
   unfold verifyBusBalance
-  simp only [Prog.bind_eq, Prog.pure_eq]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
   refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
   refine AllRet.bind (fun r _ ↦ ?_) _ (allRet_true _)
@@ -326,7 +330,7 @@ theorem allRet_tableTerms (cP fP point : List E) :
   | [], _, _ => .ret List.Forall₂.nil
   | (table, height, forms, weight) :: rest, cursor, final => by
     unfold tableTerms
-    simp only [Prog.bind_eq, Prog.pure_eq]
+    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     refine AllRet.bind (fun evs hevs ↦ ?_) _ (allRet_readN table.width)
     refine AllRet.bind (fun r hr ↦ ?_) _ (allRet_tableTerms cP fP point rest _ _)
     obtain ⟨fin, rs⟩ := r
@@ -337,7 +341,7 @@ theorem allRet_tableSumcheck {heights : List ℕ} {busForms : List (List Form)}
     (cP fP eqPt : List E) (target : E) :
     AllRet (tableSumcheck heights busForms cP fP eqPt target) RowsOk := by
   unfold tableSumcheck
-  simp only [Prog.bind_eq, Prog.pure_eq]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   refine AllRet.bind (fun r _ ↦ ?_) _ (allRet_true _)
   obtain ⟨chs, cl⟩ := r
   dsimp only
@@ -358,7 +362,7 @@ theorem allRet_tableSumcheck {heights : List ℕ} {busForms : List (List Form)}
 theorem allRet_tablePhase {layout : Layout} {bus : BusResult} (hl : LayoutOk layout)
     (hb : BusOk bus) : AllRet (tablePhase layout bus) RowsOk := by
   unfold tablePhase
-  simp only [Prog.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   exact AllRet.bind (fun _ _ ↦ allRet_tableSumcheck hl.1 hb.1 _ _ _ _) _ (allRet_true _)
 
 /-- The tables' column claims, `ColumnClaim(base + local, point, value)` table by table
@@ -377,7 +381,8 @@ theorem tableTermsClaims_eq (cP fP point : List E) :
       ∀ (cursor : ℕ) (final : E) (acc : List ColumnClaim),
       tableTermsClaims cP fP point rows cursor final acc =
         (tableTerms cP fP point rows cursor final).bind fun r ↦
-          Prog.ret (r.1, acc ++ (bases.zip r.2).flatMap fun (base, row) ↦ rowClaims base row)
+          VerifierProgram.ret (r.1, acc ++ (bases.zip r.2).flatMap fun (base, row) ↦ rowClaims
+              base row)
   | [], _, _, _, _, _, acc => by simp [tableTermsClaims, tableTerms]
   | (table, height, forms, weight) :: rest, b :: bases, hlen, hb, cursor, final, acc => by
     have hb0 := hb 0 (by simp)
@@ -385,7 +390,8 @@ theorem tableTermsClaims_eq (cP fP point : List E) :
     have ih := tableTermsClaims_eq cP fP point rest bases (by simpa using hlen)
       (fun i hi ↦ by simpa using hb (i + 1) (by simpa using hi))
     unfold tableTermsClaims tableTerms
-    simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
+        VerifierProgram.ret_bind]
     congr 1
     funext evs
     rw [ih]
@@ -403,14 +409,15 @@ theorem tableSumcheckClaims_eq (heights : List ℕ) (busForms : List (List Form)
     (cP fP eqPt : List E) (target : E) :
     tableSumcheckClaims heights busForms cP fP eqPt target =
       (tableSumcheck heights busForms cP fP eqPt target).bind fun rows ↦
-        Prog.ret (tableClaims rows) := by
+        VerifierProgram.ret (tableClaims rows) := by
   unfold tableSumcheckClaims tableSumcheck
-  simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc]
   congr 1
   funext r
   obtain ⟨chs, cl⟩ := r
   dsimp only
-  rw [tableTermsClaims_eq cP fP chs.reverse _ globalColumnBases ?_ ?_ 0 0 [], Prog.bind_assoc]
+  rw [tableTermsClaims_eq cP fP chs.reverse _ globalColumnBases ?_ ?_ 0 0 [],
+      VerifierProgram.bind_assoc]
   · rfl
   · simp [globalColumnBases]
   · intro i hi
@@ -424,9 +431,11 @@ theorem tableSumcheckClaims_eq (heights : List ℕ) (busForms : List (List Form)
 
 theorem tablePhaseClaims_eq (layout : Layout) (bus : BusResult) :
     tablePhaseClaims layout bus =
-      (tablePhase layout bus).bind fun rows ↦ Prog.ret (bus.claims ++ tableClaims rows) := by
+      (tablePhase layout bus).bind fun rows ↦ VerifierProgram.ret (bus.claims ++ tableClaims
+          rows) := by
   unfold tablePhaseClaims tablePhase
-  simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, tableSumcheckClaims_eq, Prog.ret_bind]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
+      tableSumcheckClaims_eq, VerifierProgram.ret_bind]
 
 /-! ## The public input and the Keccak reduction -/
 
@@ -434,14 +443,15 @@ theorem allRet_publicInputPhase (layout : Layout) (publicInput : Digest) :
     AllRet (publicInputPhase layout publicInput)
       fun claims ↦ ∀ c ∈ claims, c.column ∈ [memory0, memory1, memory2] := by
   unfold publicInputPhase
-  simp only [Prog.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   exact AllRet.bind (fun _ _ ↦ .ret fun c hc ↦ zipWith_columns _ _ _ id c hc) _ (allRet_true _)
 
 theorem allRet_verifyKeccak (logSteps : ℕ) (inst output : List E) :
     AllRet (verifyKeccak logSteps inst output) fun r ↦ ∀ c ∈ r.1, c.column = qkeccak := by
   have h1 : 1 < keccakSegments := by decide
   unfold verifyKeccak
-  simp only [h1, ↓reduceIte, Prog.bind_eq, Prog.pure_eq, Prog.ret_bind]
+  simp only [h1, ↓reduceIte, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+      VerifierProgram.ret_bind]
   refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
   refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
   refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
@@ -479,7 +489,7 @@ theorem zipIdx_map_eq {β : Type} (base : ℕ) (pt : List E) (vals : List E)
 theorem lanes_filter : ∀ i < tables.length,
     (List.range (tables.getD i default).width).filter
         (fun j ↦ decide (globalColumnBases.getD i 0 + j ∈ keccakOutputColumns)) =
-      if i = opKeccak then keccakOutputs.map (colIdx keccakColumns) else [] := by
+      if i = opKeccak then keccakOutputs.map (columnIndexByName keccakColumns) else [] := by
   decide +kernel
 
 theorem columns_lt : ∀ i < tables.length,
@@ -503,8 +513,8 @@ theorem tableClaims_range {rows : List (List E × List E)} (hlen : rows.length =
 /-- The output lanes' claims of the `KECCAK` row, by lane. -/
 abbrev laneClaims (row : List E × List E) : List ColumnClaim :=
   keccakOutputs.map fun name ↦
-    ⟨globalColumnBases.getD opKeccak 0 + colIdx keccakColumns name, row.1,
-      row.2.getD (colIdx keccakColumns name) 0⟩
+    ⟨globalColumnBases.getD opKeccak 0 + columnIndexByName keccakColumns name, row.1,
+      row.2.getD (columnIndexByName keccakColumns name) 0⟩
 
 theorem rowClaims_filter {i : ℕ} (hi : i < tables.length) {row : List E × List E}
     (hrow : row.2.length = (tables.getD i default).width) :
@@ -556,10 +566,10 @@ theorem keccakPhaseClaims_eq {layout : Layout} {busClaims publicClaims : List Co
     (hp : ∀ c ∈ publicClaims, c.column ∈ [memory0, memory1, memory2]) (hr : RowsOk rows) :
     keccakPhaseClaims layout (busClaims ++ tableClaims rows ++ publicClaims) =
       (keccakPhase layout rows).bind fun r ↦
-        Prog.ret ((busClaims ++ tableClaims rows ++ publicClaims).filter
+        VerifierProgram.ret ((busClaims ++ tableClaims rows ++ publicClaims).filter
           (fun c ↦ c.column ∉ keccakOutputColumns) ++ r.1, r.2.1, r.2.2) := by
   unfold keccakPhaseClaims keccakPhase
-  simp only [Prog.bind_eq, Prog.pure_eq]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   rw [lanes_eq hb hp hr]
   have hok : ((laneClaims (rows.getD opKeccak ([], []))).map (·.column) = keccakOutputColumns ∧
       ∀ c ∈ laneClaims (rows.getD opKeccak ([], [])),
@@ -567,9 +577,9 @@ theorem keccakPhaseClaims_eq {layout : Layout} {busClaims publicClaims : List Co
     refine ⟨by simp only [laneClaims, List.map_map]; rfl, fun c hc ↦ ?_⟩
     obtain ⟨name, -, rfl⟩ := List.mem_map.mp hc
     rfl
-  unfold Prog.require
+  unfold VerifierProgram.require
   split
-  · simp only [Prog.ret_bind, List.map_map]
+  · simp only [VerifierProgram.ret_bind, List.map_map]
     rfl
   · contradiction
 
@@ -618,21 +628,21 @@ end Claims
 
 open Claims in
 /-- **The two forms are one program.** -/
-theorem verifyExecution_claims (ev : List K → List E → Prog E) (bytecode : List K)
+theorem verifyExecution_claims (ev : List K → List E → VerifierProgram E) (bytecode : List K)
     (publicInput : Digest) :
     verifyExecution ev bytecode publicInput = verifyExecutionClaims ev bytecode publicInput := by
   unfold verifyExecution verifyExecutionClaims
-  simp only [Prog.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   refine bind_congr (Q := fun x ↦ LayoutOk x.1) (fun x hl ↦ ?_) _ (allRet_readSizes bytecode)
   refine bind_congr (Q := fun _ ↦ True) (fun _ _ ↦ ?_) _ (allRet_true _)
   refine bind_congr (fun bus hb ↦ ?_) _ (allRet_verifyBusBalance ev x.1)
-  rw [tablePhaseClaims_eq, Prog.bind_assoc]
+  rw [tablePhaseClaims_eq, VerifierProgram.bind_assoc]
   refine bind_congr (fun rows hr ↦ ?_) _ (allRet_tablePhase hl hb)
-  rw [Prog.ret_bind]
+  rw [VerifierProgram.ret_bind]
   refine bind_congr (fun pc hpc ↦ ?_) _ (allRet_publicInputPhase x.1 publicInput)
-  rw [keccakPhaseClaims_eq hb.2 hpc hr, Prog.bind_assoc]
+  rw [keccakPhaseClaims_eq hb.2 hpc hr, VerifierProgram.bind_assoc]
   refine bind_congr (fun r hout ↦ ?_) _ (allRet_keccakPhase x.1 rows)
-  rw [Prog.ret_bind]
+  rw [VerifierProgram.ret_bind]
   refine bind_congr (Q := fun _ ↦ True) (fun rs _ ↦ ?_) _ (allRet_true _)
   have hlt : ∀ c ∈ bus.claims ++ tableClaims rows ++ pc ++ r.1, c.column < 163 := by
     intro c hc
@@ -655,17 +665,19 @@ theorem verifyExecution_claims (ev : List K → List E → Prog E) (bytecode : L
 
 /-- The verifier program on the claim-list form. -/
 theorem leanVmProgram_eq (bytecode : List K) (publicInput : Digest) :
-    leanVmProgram bytecode publicInput =
-      (verifyExecutionClaims computedValue bytecode publicInput).bind fun _ ↦ Prog.ret true := by
-  unfold leanVmProgram
+    leanVmVerifierProgram bytecode publicInput =
+      (verifyExecutionClaims computedBytecodeValue bytecode publicInput).bind fun _ ↦
+          VerifierProgram.ret true := by
+  unfold leanVmVerifierProgram
   rw [verifyExecution_claims]
   rfl
 
 /-- The deferring verifier program on the claim-list form. -/
 theorem deferredProgram_eq (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
-    deferredProgram c bytecode publicInput =
-      (verifyExecutionClaims (claimedValue c) bytecode publicInput).bind fun _ ↦ Prog.ret true := by
-  unfold deferredProgram
+    deferringVerifierProgram c bytecode publicInput =
+      (verifyExecutionClaims (claimedBytecodeValue c) bytecode publicInput).bind fun _ ↦
+          VerifierProgram.ret true := by
+  unfold deferringVerifierProgram
   rw [verifyExecution_claims]
   rfl
 

@@ -34,14 +34,14 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## Runs as carried runs -/
 
 /-- **An accepting run is the carried run**, on any rest of the stream. -/
-theorem RunsTo.toT {α : Type} {p : Prog α} {s s' : Fs} {xs : List E} {a : α}
+theorem RunsTo.toT {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
     (h : RunsTo p s xs a s') {sp : Sponge} (hc : s.Carries sp) (rest : List E) :
     runT p ⟨s, xs ++ rest, [], []⟩ = some (a, ⟨s', rest, [], []⟩) := by
   obtain ⟨sp', hc', he⟩ := h sp hc rest [] []
   rw [runT_of_runId p ⟨s, xs ++ rest, [], []⟩ sp hc a _ he, ← eq_fsOfT hc']
 
 /-- The sponge after a run from a carried one is carried. -/
-theorem RunsTo.carries {α : Type} {p : Prog α} {s s' : Fs} {xs : List E} {a : α}
+theorem RunsTo.carries {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
     (h : RunsTo p s xs a s') (hc : ∃ sp, s.Carries sp) : ∃ sp, s'.Carries sp := by
   obtain ⟨sp, hsp⟩ := hc
   obtain ⟨sp', hc', -⟩ := h sp hsp [] [] []
@@ -49,7 +49,7 @@ theorem RunsTo.carries {α : Type} {p : Prog α} {s s' : Fs} {xs : List E} {a : 
 
 /-- **Two accepting runs of one program** from one carried sponge, the second's words extending
 the first's, are one. -/
-theorem RunsTo.det {α : Type} {p : Prog α} {s s1 s2 : Fs} {xs ys : List E} {a b : α}
+theorem RunsTo.det {α : Type} {p : VerifierProgram α} {s s1 s2 : Fs} {xs ys : List E} {a b : α}
     (h1 : RunsTo p s xs a s1) (h2 : RunsTo p s (xs ++ ys) b s2) (hc : ∃ sp, s.Carries sp) :
     ys = [] ∧ a = b ∧ s1 = s2 := by
   obtain ⟨sp, hsp⟩ := hc
@@ -61,7 +61,8 @@ theorem RunsTo.det {α : Type} {p : Prog α} {s s1 s2 : Fs} {xs ys : List E} {a 
 
 /-! ## The carried run, read back -/
 
-theorem runT_bind_some {α β : Type} {p : Prog α} {f : α → Prog β} {st st'' : TSt} {b : β}
+theorem runT_bind_some {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {st st'' :
+    TSt} {b : β}
     (h : runT (p >>= f) st = some (b, st'')) :
     ∃ a st', runT p st = some (a, st') ∧ runT (f a) st' = some (b, st'') := by
   rw [prog_bind_eq, runT_bind] at h
@@ -69,35 +70,35 @@ theorem runT_bind_some {α β : Type} {p : Prog α} {f : α → Prog β} {st st'
   exact ⟨a, st', h1, h2⟩
 
 theorem runT_pure_some {α : Type} {a b : α} {st st' : TSt}
-    (h : runT (pure a : Prog α) st = some (b, st')) : b = a ∧ st' = st := by
-  change runT (Prog.ret a) st = some (b, st') at h
+    (h : runT (pure a : VerifierProgram α) st = some (b, st')) : b = a ∧ st' = st := by
+  change runT (VerifierProgram.ret a) st = some (b, st') at h
   simp only [runT, Option.some.injEq, Prod.mk.injEq] at h
   exact ⟨h.1.symm, h.2.symm⟩
 
 theorem runT_readE_some {s : Fs} {zs : List E} {os : List Opening} {R : List (Digest × ℕ × ℕ)}
-    {x : E} {st' : TSt} (h : runT Prog.readScalar ⟨s, zs, os, R⟩ = some (x, st')) :
+    {x : E} {st' : TSt} (h : runT VerifierProgram.readScalar ⟨s, zs, os, R⟩ = some (x, st')) :
     ∃ zs', zs = x :: zs' ∧ st' = ⟨s.absorb x dsObserve, zs', os, R⟩ := by
   cases zs with
-  | nil => simp [Prog.readScalar, runT] at h
+  | nil => simp [VerifierProgram.readScalar, runT] at h
   | cons z zs' =>
-    simp only [Prog.readScalar, runT, Option.some.injEq, Prod.mk.injEq] at h
+    simp only [VerifierProgram.readScalar, runT, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     exact ⟨zs', rfl, rfl⟩
 
 theorem runT_sampleE (st : TSt) :
-    runT Prog.sampleChallenge st = some (st.sponge.squeeze.1, { st with sponge := st.sponge.squeeze.2 }) :=
+    runT VerifierProgram.sampleChallenge st = some (st.sponge.squeeze.1, { st with sponge := st.sponge.squeeze.2 }) :=
   rfl
 
 /-- `n` reads take the next `n` words, absorbed. -/
 theorem runT_readN_some : ∀ (n : ℕ) (s : Fs) (zs : List E) (os : List Opening)
     (R : List (Digest × ℕ × ℕ)) (xs : List E) (st' : TSt),
-    runT (Prog.readScalars n) ⟨s, zs, os, R⟩ = some (xs, st') →
+    runT (VerifierProgram.readScalars n) ⟨s, zs, os, R⟩ = some (xs, st') →
       ∃ rest, xs.length = n ∧ zs = xs ++ rest ∧ st' = ⟨s.absorbAll xs dsObserve, rest, os, R⟩
   | 0, s, zs, os, R, xs, st', h => by
     obtain ⟨rfl, rfl⟩ := runT_pure_some (a := ([] : List E)) h
     exact ⟨zs, rfl, rfl, rfl⟩
   | n + 1, s, zs, os, R, xs, st', h => by
-    simp only [Prog.readScalars] at h
+    simp only [VerifierProgram.readScalars] at h
     obtain ⟨x, st1, h1, h2⟩ := runT_bind_some h
     obtain ⟨zs1, rfl, rfl⟩ := runT_readE_some h1
     obtain ⟨ys, st2, h3, h4⟩ := runT_bind_some h2
@@ -107,17 +108,18 @@ theorem runT_readN_some : ∀ (n : ℕ) (s : Fs) (zs : List E) (os : List Openin
 
 /-- `n` samples squeeze `n` challenges. -/
 theorem runT_sampleN : ∀ (n : ℕ) (st : TSt),
-    runT (Prog.sampleChallenges n) st = some ((st.sponge.squeezeN n).1,
+    runT (VerifierProgram.sampleChallenges n) st = some ((st.sponge.squeezeN n).1,
       { st with sponge := (st.sponge.squeezeN n).2 })
   | 0, ⟨s, zs, os, R⟩ => rfl
   | n + 1, st => by
-    simp only [Prog.sampleChallenges, prog_bind_eq, runT_bind, runT_sampleE, Option.bind_some]
+    simp only [VerifierProgram.sampleChallenges, prog_bind_eq, runT_bind, runT_sampleE,
+        Option.bind_some]
     rw [runT_sampleN n]
     rfl
 
 theorem runT_require_some {c : Prop} [Decidable c] {st st' : TSt} {u : Unit}
-    (h : runT (Prog.require c) st = some (u, st')) : c ∧ st' = st := by
-  unfold Prog.require at h
+    (h : runT (VerifierProgram.require c) st = some (u, st')) : c ∧ st' = st := by
+  unfold VerifierProgram.require at h
   split at h
   · rename_i hc
     simp only [runT, Option.some.injEq, Prod.mk.injEq] at h

@@ -120,23 +120,24 @@ theorem grindBits_append_grind (h : List Ev) (b : ℕ) : grindBits (h ++ [Ev.gri
 /-- Follow the openings at a node, each answered from the words of the history: the history and
 node at the next operation that is not an opening, `none` at an opening of a missing
 commitment. -/
-def settle : List Ev → Prog Bool → Option (List Ev × Prog Bool)
+def settle : List Ev → VerifierProgram Bool → Option (List Ev × VerifierProgram Bool)
   | h, .query i ps k => match answer h i ps with
     | some rows => settle (h ++ [Ev.query rows]) (k rows)
     | none => none
   | h, p => some (h, p)
 
 /-- Settling keeps reachability. -/
-theorem settle_ok {P : Prog Bool} :
-    ∀ (p : Prog Bool) (h : List Ev) {h' : List Ev} {p' : Prog Bool}, P.Reachable h →
+theorem settle_ok {P : VerifierProgram Bool} :
+    ∀ (p : VerifierProgram Bool) (h : List Ev) {h' : List Ev} {p' : VerifierProgram Bool},
+        P.Reachable h →
       P.after h = some p → settle h p = some (h', p') → P.Reachable h' ∧ P.after h' = some p'
   | .query i ps k, h, h', p', hr, ha, hs => by
     simp only [settle] at hs
     split at hs
     · rename_i rows hrows
-      refine settle_ok (k rows) _ (Prog.Reachable.query hr ha hrows) ?_ hs
-      rw [Prog.after_append_single _ ha]
-      simp [Prog.after]
+      refine settle_ok (k rows) _ (VerifierProgram.Reachable.query hr ha hrows) ?_ hs
+      rw [VerifierProgram.after_append_single _ ha]
+      simp [VerifierProgram.after]
     · simp at hs
   | .ret _, h, _, _, hr, ha, hs => by
     simp only [settle, Option.some.injEq, Prod.mk.injEq] at hs
@@ -170,9 +171,9 @@ of a matrix of `2^ht` rows of `w` words, continuing with `k`, whose root's first
 been absorbed. -/
 inductive Pos where
   /-- At a node of the program. -/
-  | node (p : Prog Bool)
+  | node (p : VerifierProgram Bool)
   /-- In the middle of a commitment. -/
-  | half (ht w : ℕ) (k : Prog Bool) (x₀ : E)
+  | half (ht w : ℕ) (k : VerifierProgram Bool) (x₀ : E)
 
 /-- The result of consuming waiting scalars. -/
 inductive Cons where
@@ -180,7 +181,7 @@ inductive Cons where
   | done (h : List Ev) (pos : Pos)
   /-- The last one was the nonce `n` of a proof of work of `b` bits, at the history `h` before
   it, continuing with `k`. -/
-  | grd (h : List Ev) (b : ℕ) (k : Prog Bool) (n : E)
+  | grd (h : List Ev) (b : ℕ) (k : VerifierProgram Bool) (n : E)
   /-- Not the verifier's. -/
   | bad
 
@@ -196,7 +197,7 @@ def consume (W : Digest → ℕ → ℕ → Word) : List Ev → Pos → List (E 
     | _ => .bad
   | h, .half ht w k x₀, (x, tag) :: rest =>
     if tag = 1 then
-      match digestOfScalars (x₀, x) with
+      match digestFromHalves (x₀, x) with
       | some r => consume W (h ++ [Ev.commit ht w (W r ht w)]) (.node k) rest
       | none => .bad
     else .bad
@@ -213,9 +214,9 @@ inductive Shape where
   | none
   /-- A state at a boundary, after the seed (`pw = none`) or after a proof of work of `b` bits
   with the nonce `n` (`pw = some (b, n)`). -/
-  | st (h : List Ev) (p : Prog Bool) (pw : Option (ℕ × E))
+  | st (h : List Ev) (p : VerifierProgram Bool) (pw : Option (ℕ × E))
   /-- The first squeeze of the group starting at the boundary `h`, at node `p`. -/
-  | sq (h : List Ev) (p : Prog Bool)
+  | sq (h : List Ev) (p : VerifierProgram Bool)
 
 /-- The decoder's state. -/
 structure Dec where
@@ -229,7 +230,7 @@ def Dec.init : Dec := ⟨fun _ ↦ none, []⟩
 
 /-- A permutation forced by an absorption: four scalars consumed and the program about to absorb
 one more. -/
-def forced (h : List Ev) (p : Prog Bool) (ps : List (E × ℕ)) : Shape × (KeccakState → Option Info) :=
+def forced (h : List Ev) (p : VerifierProgram Bool) (ps : List (E × ℕ)) : Shape × (KeccakState → Option Info) :=
   if ps.length = 4 then (.none, fun _ ↦ some (h, .node p)) else (.none, fun _ ↦ none)
 
 /-- The record and the decoding of the output, once the waiting scalars are consumed. -/
@@ -250,13 +251,13 @@ def decodeAt : Cons → List (E × ℕ) → Shape × (KeccakState → Option Inf
 
 /-- A history at which a seed can put the program: reachable, a boundary without proof of work
 and without commitment, at a node of the program. -/
-def RootOk (P : Prog Bool) (h : List Ev) : Prop :=
+def RootOk (P : VerifierProgram Bool) (h : List Ev) : Prop :=
   P.Reachable h ∧ Boundary h ∧ grindBits h = 0 ∧ commits h = [] ∧ (P.after h).isSome
 
 /-- The node of the program at a history (`fail` off the program). -/
-def nodeAt (P : Prog Bool) (h : List Ev) : Prog Bool := (P.after h).getD .fail
+def nodeAt (P : VerifierProgram Bool) (h : List Ev) : VerifierProgram Bool := (P.after h).getD .fail
 
-theorem after_nodeAt {P : Prog Bool} {h : List Ev} (hr : RootOk P h) :
+theorem after_nodeAt {P : VerifierProgram Bool} {h : List Ev} (hr : RootOk P h) :
     P.after h = some (nodeAt P h) := by
   obtain ⟨-, -, -, -, hs⟩ := hr
   rcases ha : P.after h with _ | p
@@ -265,7 +266,7 @@ theorem after_nodeAt {P : Prog Bool} {h : List Ev} (hr : RootOk P h) :
 
 section Step
 
-variable {X : Type} (σ : Seeds X) (P : Prog Bool)
+variable {X : Type} (σ : Seeds X) (P : VerifierProgram Bool)
 
 open Classical in
 /-- The statement whose seeding the permutation input `t` completes after the entries `ℓ`, if
@@ -348,16 +349,16 @@ end Step
 
 section Invariants
 
-variable {X : Type} {σ : Seeds X} {P : Prog Bool}
+variable {X : Type} {σ : Seeds X} {P : VerifierProgram Bool}
 
 /-- A decoded state is at a reachable history where the program is at the recorded position. -/
-def InfoOk (P : Prog Bool) : Info → Prop
+def InfoOk (P : VerifierProgram Bool) : Info → Prop
   | (h, .node p) => P.Reachable h ∧ P.after h = some p
   | (h, .half ht w k _) => P.Reachable h ∧ P.after h = some (.commit ht w k)
 
 /-- A record is at a reachable boundary history where the program is at the recorded node, with
 the proof-of-work bits that precede it. -/
-def ShapeOk (P : Prog Bool) : Shape → Prop
+def ShapeOk (P : VerifierProgram Bool) : Shape → Prop
   | .none => True
   | .st h p pw => P.Reachable h ∧ Boundary h ∧ P.after h = some p ∧
       grindBits h = (pw.map Prod.fst).getD 0
@@ -366,33 +367,36 @@ def ShapeOk (P : Prog Bool) : Shape → Prop
 /-- What a consumption guarantees: every position it ends at is reachable, a node reached after
 at least one scalar is a boundary without proof of work, and a nonce is read at a `grind`
 node. -/
-def ConsOk (P : Prog Bool) (ps : List (E × ℕ)) : Cons → Prop
+def ConsOk (P : VerifierProgram Bool) (ps : List (E × ℕ)) : Cons → Prop
   | .done h pos => InfoOk P (h, pos) ∧
       (ps ≠ [] → ∀ p, pos = .node p → Boundary h ∧ grindBits h = 0)
   | .grd h b k _ => P.Reachable h ∧ P.after h = some (.grind b k)
   | .bad => True
 
-theorem after_read_step {h : List Ev} {k : E → Prog Bool} (ha : P.after h = some (.read k))
+theorem after_read_step {h : List Ev} {k : E → VerifierProgram Bool} (ha : P.after h = some
+    (.read k))
     (x : E) : P.after (h ++ [Ev.read x]) = some (k x) := by
-  rw [Prog.after_append_single _ ha]; simp [Prog.after]
+  rw [VerifierProgram.after_append_single _ ha]; simp [VerifierProgram.after]
 
-theorem after_sample_step {h : List Ev} {k : E → Prog Bool} (ha : P.after h = some (.sample k))
+theorem after_sample_step {h : List Ev} {k : E → VerifierProgram Bool} (ha : P.after h = some
+    (.sample k))
     (c : E) : P.after (h ++ [Ev.sample c]) = some (k c) := by
-  rw [Prog.after_append_single _ ha]; simp [Prog.after]
+  rw [VerifierProgram.after_append_single _ ha]; simp [VerifierProgram.after]
 
-theorem after_grind_step {h : List Ev} {b : ℕ} {k : Prog Bool}
+theorem after_grind_step {h : List Ev} {b : ℕ} {k : VerifierProgram Bool}
     (ha : P.after h = some (.grind b k)) : P.after (h ++ [Ev.grind b]) = some k := by
-  rw [Prog.after_append_single _ ha]; simp [Prog.after]
+  rw [VerifierProgram.after_append_single _ ha]; simp [VerifierProgram.after]
 
-theorem after_commit_step {h : List Ev} {ht w : ℕ} {k : Prog Bool}
+theorem after_commit_step {h : List Ev} {ht w : ℕ} {k : VerifierProgram Bool}
     (ha : P.after h = some (.commit ht w k)) (W : Word) :
     P.after (h ++ [Ev.commit ht w W]) = some k := by
-  rw [Prog.after_append_single _ ha]; simp [Prog.after]
+  rw [VerifierProgram.after_append_single _ ha]; simp [VerifierProgram.after]
 
-theorem after_query_step {h : List Ev} {i : ℕ} {ps : List ℕ} {k : List (List K) → Prog Bool}
+theorem after_query_step {h : List Ev} {i : ℕ} {ps : List ℕ} {k : List (List K) →
+    VerifierProgram Bool}
     (ha : P.after h = some (.query i ps k)) (rows : List (List K)) :
     P.after (h ++ [Ev.query rows]) = some (k rows) := by
-  rw [Prog.after_append_single _ ha]; simp [Prog.after]
+  rw [VerifierProgram.after_append_single _ ha]; simp [VerifierProgram.after]
 
 /-- **Consumption keeps the invariants**, for well-shaped words. -/
 theorem consume_ok {W : Digest → ℕ → ℕ → Word} (hW : ∀ r ht w, WellShaped w (W r ht w)) :
@@ -407,10 +411,11 @@ theorem consume_ok {W : Digest → ℕ → ℕ → Word} (hW : ∀ r ht w, WellS
       obtain ⟨hr1, ha1⟩ := settle_ok p h hr ha hs
       split
       · have hc := consume_ok hW rest (h1 ++ [Ev.read x]) (.node (k x))
-          ⟨Prog.Reachable.read x hr1 ha1, after_read_step ha1 x⟩
+          ⟨VerifierProgram.Reachable.read x hr1 ha1, after_read_step ha1 x⟩
         rcases hrest : rest with _ | ⟨y, rest'⟩
         · subst hrest
-          refine ⟨⟨Prog.Reachable.read x hr1 ha1, after_read_step ha1 x⟩, fun _ p' hp' ↦ ?_⟩
+          refine ⟨⟨VerifierProgram.Reachable.read x hr1 ha1, after_read_step ha1 x⟩, fun _ p'
+              hp' ↦ ?_⟩
           exact ⟨boundary_append_read _ _, grindBits_append_read _ _⟩
         · rw [← hrest]
           revert hc
@@ -449,7 +454,7 @@ theorem consume_ok {W : Digest → ℕ → ℕ → Word} (hW : ∀ r ht w, WellS
     split
     · split
       · rename_i r _
-        have hr' := Prog.Reachable.commit (W r ht w) hr ha (hW r ht w)
+        have hr' := VerifierProgram.Reachable.commit (W r ht w) hr ha (hW r ht w)
         have ha' := after_commit_step ha (W r ht w)
         have hc := consume_ok hW rest (h ++ [Ev.commit ht w (W r ht w)]) (.node k) ⟨hr', ha'⟩
         rcases hrest : rest with _ | ⟨y, rest'⟩
@@ -467,7 +472,8 @@ theorem consume_ok {W : Digest → ℕ → ℕ → Word} (hW : ∀ r ht w, WellS
       · trivial
     · trivial
 
-theorem forced_ok {h : List Ev} {p : Prog Bool} (hr : P.Reachable h) (ha : P.after h = some p)
+theorem forced_ok {h : List Ev} {p : VerifierProgram Bool} (hr : P.Reachable h) (ha : P.after h =
+    some p)
     (ps : List (E × ℕ)) :
     ShapeOk P (forced h p ps).1 ∧ ∀ u i, (forced h p ps).2 u = some i → InfoOk P i := by
   unfold forced
@@ -491,7 +497,7 @@ theorem decodeAt_ok {ps : List (E × ℕ)} {c : Cons} (hc : ConsOk P ps c) :
           obtain ⟨hb1, hg⟩ := hb hne p rfl
           exact ⟨hr, hb1, ha, hg⟩
       · cases hi
-        exact ⟨Prog.Reachable.sample _ hr1 ha1, after_sample_step ha1 _⟩
+        exact ⟨VerifierProgram.Reachable.sample _ hr1 ha1, after_sample_step ha1 _⟩
     · rename_i h1 k hs
       obtain ⟨hr1, ha1⟩ := settle_ok p h hr ha hs
       exact forced_ok hr1 ha1 ps
@@ -509,7 +515,7 @@ theorem decodeAt_ok {ps : List (E × ℕ)} {c : Cons} (hc : ConsOk P ps c) :
     · exact ⟨trivial, fun _ _ hi ↦ by simp at hi⟩
   · obtain ⟨hr, ha⟩ := hc
     simp only [decodeAt]
-    have hr' := Prog.Reachable.grind hr ha
+    have hr' := VerifierProgram.Reachable.grind hr ha
     have ha' := after_grind_step ha
     exact ⟨⟨hr', boundary_append_grind h b, ha', by simp [grindBits_append_grind]⟩,
       fun _ i hi ↦ by cases hi; exact ⟨hr', ha'⟩⟩

@@ -245,7 +245,8 @@ theorem foldAll_eq : ∀ (pt : List E) (rows : List (List E)), rows.length = 2 ^
 theorem keccakOpen_eq (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) (value : E) :
     keccakOpen logSteps claim first count value =
       sumcheck value 3 (List.replicate qkeccakSlotBits none) >>= fun x ↦
-        Prog.ret (x.1, (foldAll x.1 (keccakSlotWeights logSteps claim first count)).headD [],
+        VerifierProgram.ret (x.1, (foldAll x.1 (keccakSlotWeights logSteps claim first
+            count)).headD [],
           x.2) := rfl
 
 end

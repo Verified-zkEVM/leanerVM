@@ -142,16 +142,17 @@ theorem pushDepth_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (logMe
 
 /-! ## `readSizes` -/
 
-theorem sz_runsTo_require_bind {β : Type} {c : Prop} [Decidable c] (h : c) {f : Unit → Prog β}
+theorem sz_runsTo_require_bind {β : Type} {c : Prop} [Decidable c] (h : c) {f : Unit →
+    VerifierProgram β}
     {s s' : Fs} {xs : List E} {b : β} (hf : RunsTo (f ()) s xs b s') :
-    RunsTo (Prog.require c >>= f) s xs b s' := by
-  have hr : RunsTo (Prog.require c) s [] () s := by
-    simp only [Prog.require, h, ↓reduceIte]
+    RunsTo (VerifierProgram.require c >>= f) s xs b s' := by
+  have hr : RunsTo (VerifierProgram.require c) s [] () s := by
+    simp only [VerifierProgram.require, h, ↓reduceIte]
     exact runsTo_ret () s
   exact (hr.bind hf).of_eq rfl (List.nil_append _) rfl rfl
 
 theorem sz_runsTo_liftOption_bind {α β : Type} {o : Option α} {a : α} (h : o = some a)
-    {f : α → Prog β} {s s' : Fs} {xs : List E} {b : β} (hf : RunsTo (f a) s xs b s') :
+    {f : α → VerifierProgram β} {s s' : Fs} {xs : List E} {b : β} (hf : RunsTo (f a) s xs b s') :
     RunsTo (liftOption o >>= f) s xs b s' := by
   subst h
   exact ((runsTo_ret a s).bind hf).of_eq rfl (List.nil_append _) rfl rfl
@@ -206,7 +207,7 @@ theorem readSizes_runsTo {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {l
     {rowsN : List ℕ} (h16 : 16 ≤ logMem) (h32 : logMem ≤ 32) (hlen : rowsN.length = 6)
     (hh : ∀ h ∈ Tables.tableHeightsOf rowsN, h < 29) (hl1 : 1 ≤ lir) (hl4 : lir ≤ 4)
     (hst : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ 28) (s : Fs) :
-    RunsTo (readSizes bytecode) s (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat lir])
+    RunsTo (readAnnouncedSizes bytecode) s (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat lir])
       (Tables.layoutOf bytecode logMem rowsN, lir)
       (s.absorbAll (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat lir]) dsObserve) := by
   have hrows := rows_le hlen hh
@@ -230,7 +231,7 @@ theorem readSizes_runsTo {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {l
     exact kToNat_eOfNat (by omega)
   have hall : (xs.all fun value ↦ decide (value.limb 1 = 0 ∧ value.limb 2 = 0)) = true := by
     simp [xs, eOfNat_limb1, eOfNat_limb2]
-  unfold readSizes
+  unfold readAnnouncedSizes
   refine (r.bind ?_).of_eq rfl (List.append_nil _) rfl rfl
   simp only [e1, e2, e3]
   refine sz_runsTo_require_bind hall (sz_runsTo_require_bind ⟨hl1, hl4⟩

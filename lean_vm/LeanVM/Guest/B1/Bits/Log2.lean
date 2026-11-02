@@ -205,7 +205,7 @@ theorem gen_pow_mul_invGen (L : ℕ) : gen ^ (L + 1) * invGenWord = gen ^ L := b
 
 /-! ## Soundness -/
 
-theorem word_two_pow_33 : word (2 ^ 33) 0 0 = ofK (Parameters.gpow 33) := by
+theorem word_two_pow_33 : word (2 ^ 33) 0 0 = ofK (Parameters.addressOfIndex 33) := by
   rw [word_two_pow (by decide), gen_pow_eq_ofK]
 
 /-- The function's body, simplified to its conditions. -/
@@ -406,9 +406,11 @@ theorem verify_log2_ceil_complete_aux {name : String} {f : Fn} (fl : ℕ) (hfl :
   have hW64 : W < 2 ^ 64 := lt_of_lt_of_le hW (by decide)
   obtain ⟨c1, c2, c3⟩ := verify_log2_ceil_complete (floor := fl) hW64 (by omega)
   have hK34 : 34 ≤ 2 ^ κ := le_trans (by decide) (Nat.pow_le_pow_right (by decide) hκ6)
-  obtain ⟨y1, t1, t2, r1a, r1b, r1c⟩ := (rangeCheck_iff hκ Lm (ofK (Parameters.gpow L)) (K := 34)
+  obtain ⟨y1, t1, t2, r1a, r1b, r1c⟩ := (rangeCheck_iff hκ Lm (ofK (Parameters.addressOfIndex L))
+      (K := 34)
     (by omega) hK34).mpr ⟨L, hL, rfl⟩
-  obtain ⟨y2, u1, u2, r2a, r2b, r2c⟩ := (rangeCheck_iff hκ Lm (ofK (Parameters.gpow (L - fl)))
+  obtain ⟨y2, u1, u2, r2a, r2b, r2c⟩ := (rangeCheck_iff hκ Lm (ofK (Parameters.addressOfIndex (L
+      - fl)))
     (K := 34) (by omega) hK34).mpr ⟨L - fl, by omega, rfl⟩
   set b := fun j => bitE (W.testBit j)
   set sv := fun j => (gen ^ 2 ^ j : E)

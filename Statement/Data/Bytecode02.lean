@@ -18,7 +18,7 @@ set_option maxRecDepth 20000
 @[expose] public section
 
 /-- `verify_lean_xmss` from offset 2048. -/
-def f20c1 : List OInstr := [
+def f20c1 : List OffsetInstruction := [
   .jump 68 2509 2472,
   .keccak 3 198 2511 120 192 191 193 567 false false,
   .keccak 3 199 567 120 192 191 193 580 false false,
@@ -2069,7 +2069,7 @@ def f20c1 : List OInstr := [
   .xor 2544 2562 2556]
 
 /-- `verify_lean_xmss` from offset 4096. -/
-def f20c2 : List OInstr := [
+def f20c2 : List OffsetInstruction := [
   .jump 68 2557 2472,
   .keccak 3 199 2559 132 192 191 193 1048 false false,
   .keccak 3 198 2560 133 192 191 193 1074 false false,
@@ -4120,7 +4120,7 @@ def f20c2 : List OInstr := [
   .jump 68 2593 2472]
 
 /-- `verify_lean_xmss` from offset 6144. -/
-def f20c3 : List OInstr := [
+def f20c3 : List OffsetInstruction := [
   .keccak 3 198 2595 141 192 191 193 1386 false false,
   .keccak 3 199 1386 141 192 191 193 1399 false false,
   .keccak 3 198 2596 142 192 191 193 1425 false false,
@@ -6171,7 +6171,7 @@ def f20c3 : List OInstr := [
   .mul 2627 105 2639]
 
 /-- `verify_lean_xmss` from offset 8192. -/
-def f20c4 : List OInstr := [
+def f20c4 : List OffsetInstruction := [
   .set 2646 0 35651584 0,
   .xor 2628 2646 2640,
   .jump 68 2641 2472,
@@ -8222,7 +8222,7 @@ def f20c4 : List OInstr := [
   .keccak 3 199 2361 166 192 191 193 2374 false false]
 
 /-- `verify_lean_xmss` from offset 10240. -/
-def f20c5 : List OInstr := [
+def f20c5 : List OffsetInstruction := [
   .keccak 3 198 2693 167 192 191 193 2400 false false,
   .keccak 3 199 2400 167 192 191 193 2413 false false,
   .mul 2675 104 2687,
@@ -10273,7 +10273,7 @@ def f20c5 : List OInstr := [
   .keccak 3 3316 5613 119 192 191 193 3655 false false]
 
 /-- `verify_lean_xmss` from offset 12288. -/
-def f20c6 : List OInstr := [
+def f20c6 : List OffsetInstruction := [
   .mul 5595 106 5607,
   .set 5614 167936 0 0,
   .xor 5596 5614 5608,
@@ -12324,7 +12324,7 @@ def f20c6 : List OInstr := [
   .keccak 3 3315 5661 131 192 191 193 4110 false false]
 
 /-- `verify_lean_xmss` from offset 14336. -/
-def f20c7 : List OInstr := [
+def f20c7 : List OffsetInstruction := [
   .keccak 3 3316 4110 131 192 191 193 4123 false false,
   .mul 5643 104 5655,
   .set 5662 1649267441664 0 0,
@@ -14375,7 +14375,7 @@ def f20c7 : List OInstr := [
   .set 5710 10376293541461622784 0 0]
 
 /-- `verify_lean_xmss` from offset 16384. -/
-def f20c8 : List OInstr := [
+def f20c8 : List OffsetInstruction := [
   .xor 5692 5710 5704,
   .jump 68 5705 2472,
   .keccak 3 3316 5707 141 192 191 193 4513 false false,

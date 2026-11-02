@@ -52,7 +52,7 @@ theorem committedLeaves_keys_congr {answers : Bytes → Option Digest} {keys key
   simp only [committedLeaves, subtreeLeaves_congr (preimage_keys_congr hc hc')]
 
 /-- **The extraction does not depend on the covering keys.** -/
-theorem extract_keys_congr (prog : Program) (input : PublicInput) (bytecode : List K)
+theorem extract_keys_congr (prog : LeanIsaProgram) (input : PublicInput) (bytecode : List K)
     {answers : Bytes → Option Digest} {keys keys' : List Bytes} (hc : KeysCover answers keys)
     (hc' : KeysCover answers keys') (π : Proof) :
     extract prog input bytecode answers keys π = extract prog input bytecode answers keys' π := by
@@ -101,12 +101,12 @@ theorem orElse_findSome?_isSome {α β : Type} {f : α → Option β} (l₁ : Li
 
 section Extract
 
-variable {prog : Program} {input : PublicInput} {bytecode : List K}
+variable {prog : LeanIsaProgram} {input : PublicInput} {bytecode : List K}
   {answers : Bytes → Option Digest} {keys : List Bytes} {π : Proof}
 
 /-- **The extractor, after the announced shape and root**: the fast path's stacks, then the list
 decoder's, searched for an execution. -/
-theorem extract_eq_of_root {layout : Layout} {R : ℕ} {st : ProgState} {root : Digest}
+theorem extract_eq_of_root {layout : Layout} {R : ℕ} {st : VerifierProgramState} {root : Digest}
     {height width : ℕ} (haf : afterRoot bytecode π = some ((layout, R), st))
     (hroot : st.roots.head? = some (root, height, width)) :
     extract prog input bytecode answers keys π =
@@ -138,7 +138,7 @@ theorem extract_valid {t : Execution prog} (h : extract prog input bytecode answ
 shape admissible, no collision among the answers and keys covering them, if a candidate of the
 committed word at the Johnson threshold has an execution, the extractor returns some execution,
 and it is valid. -/
-theorem extract_of_candidate {layout : Layout} {R : ℕ} {st : ProgState} {root : Digest}
+theorem extract_of_candidate {layout : Layout} {R : ℕ} {st : VerifierProgramState} {root : Digest}
     {height width : ℕ} (haf : afterRoot bytecode π = some ((layout, R), st))
     (hroot : st.roots.head? = some (root, height, width)) (hinj : AnswersInj answers)
     (hc : KeysCover answers keys) {μ : ℕ} (e : layout.stackLog = μ) (hμ : 15 ≤ μ ∧ μ ≤ 28)
@@ -173,7 +173,7 @@ theorem keysCover_hashesOf (P : List (Bytes × Digest)) :
 
 /-- **The extractor of the random-permutation model is `extract` on the transcript's
 evaluations**, with the keys of their support: it depends on the evaluations only. -/
-theorem extractorRpm_eq_extract (prog : Program) (input : PublicInput) (T : LeanVM.PermutationTranscript)
+theorem extractorRpm_eq_extract (prog : LeanIsaProgram) (input : PublicInput) (T : LeanVM.PermutationTranscript)
     (proof : Proof) {answers : Bytes → Option Digest} (h : LeanVM.lookupEvaluation (LeanVM.keccakEvaluationsOfTranscript T) = answers) :
     LeanVM.transcriptExtractorWithHash prog input T proof =
       extract prog input (bytecodeWords prog) answers (supportKeys answers) proof := by

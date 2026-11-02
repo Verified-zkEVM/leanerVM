@@ -77,7 +77,7 @@ theorem openAll_eq_withHash (root : Digest) (height width : ℕ) (ps : List ℕ)
     | nil => rfl
     | cons o os => simp only [openAll, openAllWithHash, openOne_eq_withHash, ih]
 
-theorem run_eq_withHash {α : Type} (P : Prog α) : ∀ s : ProgState,
+theorem run_eq_withHash {α : Type} (P : VerifierProgram α) : ∀ s : VerifierProgramState,
     run F P s = runWithHash (keccak256With F) F P s := by
   induction P with
   | ret a => intro s; rfl
@@ -88,7 +88,7 @@ theorem run_eq_withHash {α : Type} (P : Prog α) : ∀ s : ProgState,
   | commit height width k ih => intro s; simp only [run, runWithHash, ih]; rfl
   | query i ps k ih => intro s; simp only [run, runWithHash, ih, openAll_eq_withHash]; rfl
 
-theorem runProof_eq_withHash (P : Prog Bool) (seed : KeccakState) (π : Proof) :
+theorem runProof_eq_withHash (P : VerifierProgram Bool) (seed : KeccakState) (π : Proof) :
     runProof F P seed π = runProofWithHash (keccak256With F) F P seed π := by
   simp only [runProof, runProofWithHash, run_eq_withHash]; rfl
 
@@ -96,7 +96,7 @@ end Run
 
 /-- The run with every permutation answered by `default` is the run with every hash and
 permutation answered by `default`. -/
-theorem runPure_eq_withHash {α : Type} (P : Prog α) (s : ProgState) :
+theorem runPure_eq_withHash {α : Type} (P : VerifierProgram α) (s : VerifierProgramState) :
     runPure P s =
       Id.run (runWithHash (m := Id) (fun _ ↦ default) (fun _ ↦ default) P s) := by
   have : keccak256With (m := Id) (fun _ ↦ (default : KeccakState)) = fun _ ↦ default :=
@@ -114,7 +114,8 @@ section Hash
 variable {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
 
 theorem seedWith_eq_withHash (bytecode : List K) (publicInput : Digest) :
-    seedWith F bytecode publicInput = seedWithHash (keccak256With F) F bytecode publicInput := rfl
+    spongeSeedWith F bytecode publicInput = seedWithHash (keccak256With F) F bytecode
+        publicInput := rfl
 
 theorem verifyWith_eq_withHash (bytecode : List K) (publicInput : Digest) (π : Proof) :
     verifyWith F bytecode publicInput π =
@@ -148,10 +149,10 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 theorem verifier_eq_withHash {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
-    (prog : Program)
+    (prog : LeanIsaProgram)
     (input : PublicInput) (proof : Proof) :
-    verifier F prog input proof = verifierWithHash (keccak256With F) F prog input proof := by
-  simp only [verifier, verifierWithHash, verifyWith_eq_withHash]
+    leanVmVerifier F prog input proof = verifierWithHash (keccak256With F) F prog input proof := by
+  simp only [leanVmVerifier, verifierWithHash, verifyWith_eq_withHash]
 
 namespace Prover
 
@@ -175,7 +176,7 @@ theorem buildTreeM_eq_withHash (height : ℕ) (word : Word) :
     buildTreeM F height word = buildTreeWithHash (keccak256With F) height word := by
   simp only [buildTreeM, buildTreeWithHash, leafDigestsM_eq_withHash, levelsM_eq_withHash]
 
-theorem runFrom_eq_withHash (fuel : ℕ) {α β : Type} (P : Prog α) :
+theorem runFrom_eq_withHash (fuel : ℕ) {α β : Type} (P : VerifierProgram α) :
     ∀ (S : Option (Script β)) (sp : Sponge) (cs : List Tree),
       runFrom F fuel P S sp cs = runFromWithHash (keccak256With F) F fuel P S sp cs := by
   induction P with
@@ -191,13 +192,13 @@ theorem runFrom_eq_withHash (fuel : ℕ) {α β : Type} (P : Prog α) :
 end Monadic
 
 theorem runScript_eq_withHash {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
-    (P : Prog Bool)
+    (P : VerifierProgram Bool)
     {β : Type} (S : Script β) (seed : KeccakState) (fuel : ℕ) :
     runScript F P S seed fuel = runScriptWithHash (keccak256With F) F P S seed fuel := by
   simp only [runScript, runScriptWithHash, runFrom_eq_withHash]
 
 theorem prove_eq_withHash {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
-    (prog : Program)
+    (prog : LeanIsaProgram)
     (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) :
     prove F prog input t ρ fuel = proveWithHash (keccak256With F) F prog input t ρ fuel := by
   simp only [prove, proveWithHash, seedWith_eq_withHash, runScript_eq_withHash]; rfl

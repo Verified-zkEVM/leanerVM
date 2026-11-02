@@ -44,7 +44,8 @@ variable (H : Bytes → Option Digest) (F : KeccakState → Option KeccakState)
 starting history by a history along which the program returns the run's value, and every
 commitment in it holds a well-shaped word. -/
 theorem xrun_after {α : Type} :
-    ∀ (p : Prog α) (s : ProgState) (h : List Ev) {a : α} {s' : ProgState} {hist : List Ev},
+    ∀ (p : VerifierProgram α) (s : VerifierProgramState) (h : List Ev) {a : α} {s' :
+        VerifierProgramState} {hist : List Ev},
       xrun H F p s h = some (a, s', hist) →
         ∃ l, hist = h ++ l ∧ p.after l = some (.ret a) ∧
           ∀ ht w W, Ev.commit ht w W ∈ l → WellShaped w W
@@ -60,7 +61,7 @@ theorem xrun_after {α : Type} :
     · simp only [Option.bind_eq_some_iff] at hr
       obtain ⟨_, _, hr⟩ := hr
       obtain ⟨l, rfl, hl, hw⟩ := xrun_after _ _ _ hr
-      refine ⟨_ :: l, List.append_assoc _ _ _, by simpa [Prog.after] using hl, ?_⟩
+      refine ⟨_ :: l, List.append_assoc _ _ _, by simpa [VerifierProgram.after] using hl, ?_⟩
       intro ht w W hm
       simp only [List.mem_cons, reduceCtorEq, false_or] at hm
       exact hw _ _ _ hm
@@ -68,7 +69,7 @@ theorem xrun_after {α : Type} :
     simp only [xrun, Option.bind_eq_some_iff] at hr
     obtain ⟨_, _, hr⟩ := hr
     obtain ⟨l, rfl, hl, hw⟩ := xrun_after _ _ _ hr
-    refine ⟨_ :: l, List.append_assoc _ _ _, by simpa [Prog.after] using hl, ?_⟩
+    refine ⟨_ :: l, List.append_assoc _ _ _, by simpa [VerifierProgram.after] using hl, ?_⟩
     intro ht w W hm
     simp only [List.mem_cons, reduceCtorEq, false_or] at hm
     exact hw _ _ _ hm
@@ -80,7 +81,7 @@ theorem xrun_after {α : Type} :
       obtain ⟨_, _, _, _, hr⟩ := hr
       split at hr
       · obtain ⟨l, rfl, hl, hw⟩ := xrun_after _ _ _ hr
-        refine ⟨_ :: l, List.append_assoc _ _ _, by simpa [Prog.after] using hl, ?_⟩
+        refine ⟨_ :: l, List.append_assoc _ _ _, by simpa [VerifierProgram.after] using hl, ?_⟩
         intro ht w W hm
         simp only [List.mem_cons, reduceCtorEq, false_or] at hm
         exact hw _ _ _ hm
@@ -92,7 +93,7 @@ theorem xrun_after {α : Type} :
       obtain ⟨_, _, _, _, hr⟩ := hr
       split at hr
       · obtain ⟨l, rfl, hl, hw⟩ := xrun_after _ _ _ hr
-        refine ⟨_ :: l, List.append_assoc _ _ _, by simpa [Prog.after] using hl, ?_⟩
+        refine ⟨_ :: l, List.append_assoc _ _ _, by simpa [VerifierProgram.after] using hl, ?_⟩
         intro ht w W hm
         rcases List.mem_cons.1 hm with he | hm
         · simp only [Ev.commit.injEq] at he
@@ -107,7 +108,7 @@ theorem xrun_after {α : Type} :
     · simp at hr
     · split at hr
       · obtain ⟨l, rfl, hl, hw⟩ := xrun_after _ _ _ hr
-        refine ⟨_ :: l, List.append_assoc _ _ _, by simpa [Prog.after] using hl, ?_⟩
+        refine ⟨_ :: l, List.append_assoc _ _ _, by simpa [VerifierProgram.after] using hl, ?_⟩
         intro ht w W hm
         simp only [List.mem_cons, reduceCtorEq, false_or] at hm
         exact hw _ _ _ hm
@@ -115,7 +116,7 @@ theorem xrun_after {α : Type} :
 
 /-- **An accepted proof's extracted history is an accepting history of the program**, whose
 commitments hold well-shaped words. -/
-theorem after_extractedHistory {σ : Seed} {P : Prog Bool} {π : Proof}
+theorem after_extractedHistory {σ : Seed} {P : VerifierProgram Bool} {π : Proof}
     (hv : Rom.verify H F σ P π = some true) :
     P.after (extractedHistory H F σ P π) = some (.ret true) ∧
       ∀ ht w W, Ev.commit ht w W ∈ extractedHistory H F σ P π → WellShaped w W := by
@@ -130,25 +131,27 @@ end XRun
 /-! ## The first phases' runs -/
 
 /-- The announced sizes are read: `readSizes` does not return without an event. -/
-theorem readSizes_ne_ret (bytecode : List K) (a : Layout × ℕ) : readSizes bytecode ≠ .ret a := by
+theorem readSizes_ne_ret (bytecode : List K) (a : Layout × ℕ) : readAnnouncedSizes bytecode ≠ .ret
+    a := by
   intro h
   obtain ⟨x, hx, -⟩ := bind_eq_ret_iff h
   rw [show 2 + tables.length = 7 + 1 from rfl] at hx
-  simp [Prog.readScalars, Prog.readScalar, Prog.bind] at hx
+  simp [VerifierProgram.readScalars, VerifierProgram.readScalar, VerifierProgram.bind] at hx
 
 /-- `verify_execution` does not return without an event. -/
 theorem verifyExecution_ne_ret (bytecode : List K) (publicInput : Digest) (u : Unit) :
-    verifyExecutionClaims computedValue bytecode publicInput ≠ .ret u := by
+    verifyExecutionClaims computedBytecodeValue bytecode publicInput ≠ .ret u := by
   intro h
   obtain ⟨a, ha, -⟩ := bind_eq_ret_iff h
   exact readSizes_ne_ret bytecode a ha
 
 /-- The bus phase starts with its fingerprint challenges. -/
 theorem verifyBusBalance_ne_ret (layout : Layout) (b : BusResult) :
-    verifyBusBalance computedValue layout ≠ .ret b := by
+    verifyBusBalance computedBytecodeValue layout ≠ .ret b := by
   intro h
   obtain ⟨x, hx, -⟩ := bind_eq_ret_iff h
-  simp [busBits, Prog.sampleChallenges, Prog.sampleChallenge, Prog.bind] at hx
+  simp [busBits, VerifierProgram.sampleChallenges, VerifierProgram.sampleChallenge,
+      VerifierProgram.bind] at hx
 
 /-- **The stack's root returns after exactly one commitment**, of the shape of the ladder's first
 level. -/
@@ -161,31 +164,32 @@ theorem commitStack_after_ret {logN logInvRate : ℕ} {m : List Ev}
   rcases hc : Whir.ladder logN logInvRate with _ | c
   · rw [hc] at h1
     cases l₁ with
-    | nil => simp [Verifier.liftOption, Prog.after] at h1
-    | cons e es => cases e <;> simp [Verifier.liftOption, Prog.after] at h1
+    | nil => simp [Verifier.liftOption, VerifierProgram.after] at h1
+    | cons e es => cases e <;> simp [Verifier.liftOption, VerifierProgram.after] at h1
   · rw [hc] at h1
     obtain rfl : l₁ = [] := by
       cases l₁ with
       | nil => rfl
-      | cons e es => cases e <;> simp [Verifier.liftOption, Prog.after] at h1
-    simp only [Verifier.liftOption, Prog.after, Option.some.injEq, Prog.ret.injEq] at h1
+      | cons e es => cases e <;> simp [Verifier.liftOption, VerifierProgram.after] at h1
+    simp only [Verifier.liftOption, VerifierProgram.after, Option.some.injEq,
+        VerifierProgram.ret.injEq] at h1
     subst h1
     rcases c with _ | ⟨level, rest⟩
     · cases l₂ with
-      | nil => simp [Prog.after] at h2
-      | cons e es => cases e <;> simp [Prog.after] at h2
+      | nil => simp [VerifierProgram.after] at h2
+      | cons e es => cases e <;> simp [VerifierProgram.after] at h2
     · refine ⟨level, rest, ?_⟩
       cases l₂ with
-      | nil => simp [Prog.after, Prog.readCommitment] at h2
+      | nil => simp [VerifierProgram.after, VerifierProgram.readCommitment] at h2
       | cons e es =>
         cases e with
         | commit ht w W =>
-          simp only [Prog.readCommitment, Prog.after] at h2
+          simp only [VerifierProgram.readCommitment, VerifierProgram.after] at h2
           split_ifs at h2 with hs
           · cases es with
             | nil => exact ⟨W, rfl, by simp [hs.1, hs.2]⟩
-            | cons e' es' => cases e' <;> simp [Prog.after] at h2
-        | _ => simp [Prog.after, Prog.readCommitment] at h2
+            | cons e' es' => cases e' <;> simp [VerifierProgram.after] at h2
+        | _ => simp [VerifierProgram.after, VerifierProgram.readCommitment] at h2
 
 end
 end LeanVM.Protocol.EndToEnd.Sound

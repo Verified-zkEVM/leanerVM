@@ -47,7 +47,7 @@ open LeanVM.Guest.B1.Digest
 def SquaresAt (rd : Reader) (q : E) : Prop := ∀ j < 34, LoadHolds rd q j (gen ^ 2 ^ j)
 
 /-- The two cells of a tree node from its children's: their digest. -/
-def nodeCells (l r : E × E) : E × E := digestScalars (keccak256 (cellsBytes [l.1, l.2, r.1, r.2]))
+def nodeCells (l r : E × E) : E × E := digestHalves (keccak256 (cellsBytes [l.1, l.2, r.1, r.2]))
 
 /-- One level of a tree of cell pairs. -/
 def cellLevel (nodes : List (E × E)) : List (E × E) :=
@@ -101,7 +101,7 @@ def da_row_shape_sound_Spec : Prop :=
 def MeaningDaVerifyCell (rd : Reader) : List E → List E → Prop
   | [lv], rets => ∃ (syms : List K) (ws : List E), syms.length = LeanDa.cellSymbols ∧
       ReadsAt rd lv ws ∧ ws.length = LeanDa.cellSymbols ∧
-      rets = digestCells (keccak256 (syms.flatMap kBytes)) ++
+      rets = digestCells (keccak256 (syms.flatMap K.toBytes)) ++
         [((List.range LeanDa.cellSymbols).map fun e ↦ ws.getD e 0 * ofK (syms.getD e 0)).sum]
   | _, _ => False
 
@@ -138,7 +138,7 @@ pointer `p` (every readable word at `p·g^k` is weight `k`), and the two cells o
 (three limbs a weight, `LeanDa.columnDigest`) written at `digest`. -/
 def MeaningDaVectorCell (rd : Reader) : List E → List E → Prop
   | [dg], [p] => ∃ ws : List E, ws.length = LeanDa.cellSymbols ∧ IsInK p ∧
-      (∀ k < LeanDa.cellSymbols, ∀ w, rd (p.limb 0 * Parameters.gpow k) = some w → w = ws.getD k 0) ∧
+      (∀ k < LeanDa.cellSymbols, ∀ w, rd (p.limb 0 * Parameters.addressOfIndex k) = some w → w = ws.getD k 0) ∧
       ReadsAt rd dg (digestCells (keccak256 (ws.flatMap Node.extensionElementBytes)))
   | _, _ => False
 

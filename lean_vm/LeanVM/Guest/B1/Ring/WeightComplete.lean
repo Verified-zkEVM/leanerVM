@@ -61,9 +61,9 @@ theorem rswChain_le (zs ps : List E) (count : ℕ) :
 
 /-- The chain read through `g^b`. -/
 theorem rswChain_load {rd : Reader} {zs ps : List E} {count b : ℕ}
-    (h : ReadsAt rd (ofK (gpow b)) (rswChain zs ps count)) {t : ℕ}
+    (h : ReadsAt rd (ofK (addressOfIndex b)) (rswChain zs ps count)) {t : ℕ}
     (ht : t < 64 * (rswH count + 1)) :
-    LoadHolds rd (ofK (gpow b)) t (if t / 64 = 0 then 1
+    LoadHolds rd (ofK (addressOfIndex b)) t (if t / 64 = 0 then 1
       else ringRow 1 (zs.take (min (2 * (t / 64)) count)) (ps.take (min (2 * (t / 64)) count))
         (t % 64)) := by
   have := h t (by rw [rswChain_length]; exact ht)
@@ -86,12 +86,13 @@ def rsLin (bb bz bp count : ℕ) (zs ps : List E) : Main.Layout :=
 
 theorem rs_rel {rd : Reader} {bb bz bp count : ℕ} {zs ps : List E} (hcount : count < 64)
     (hz : zs.length = count) (hp : ps.length = count) (hL : MemL rd (rsLin bb bz bp count zs ps)) :
-    coreProgram.Rel rd "rs_eq_run" [ofK (gpow bb), ofK (gpow bz), ofK (gpow bp), gen ^ count]
-      [ofK (gpow bb) * gen ^ (64 * rswH count)] := by
-  have hch : ReadsAt rd (ofK (gpow bb)) (rswChain zs ps count) :=
+    coreProgram.Rel rd "rs_eq_run" [ofK (addressOfIndex bb), ofK (addressOfIndex bz), ofK
+        (addressOfIndex bp), gen ^ count]
+      [ofK (addressOfIndex bb) * gen ^ (64 * rswH count)] := by
+  have hch : ReadsAt rd (ofK (addressOfIndex bb)) (rswChain zs ps count) :=
     hL (bb, rswChain zs ps count) (by simp [rsLin])
-  have hzs : ReadsAt rd (ofK (gpow bz)) zs := hL (bz, zs) (by simp [rsLin])
-  have hps : ReadsAt rd (ofK (gpow bp)) ps := hL (bp, ps) (by simp [rsLin])
+  have hzs : ReadsAt rd (ofK (addressOfIndex bz)) zs := hL (bz, zs) (by simp [rsLin])
+  have hps : ReadsAt rd (ofK (addressOfIndex bp)) ps := hL (bp, ps) (by simp [rsLin])
   refine (rs_eq_run_holds rd _ _).2 ⟨count, hcount, rfl, zs, ps, List.replicate 64 1, hz, hp,
     by simp, hzs, hps, fun _ k hk ↦ ?_, fun h hh1 hh2 k hk ↦ ?_, rfl⟩
   · simp only [List.length_replicate] at hk
@@ -159,7 +160,7 @@ theorem rsw_needs : (rswPre.filterMap fun s => match s with
 
 /-- The oracle of `ring_switch_weight`'s body: its chain's base, `rs_eq_run`'s return. -/
 noncomputable def rswW (bb H : ℕ) : ℕ → E := fun i =>
-  if i = 12 then ofK (gpow bb) else if i = 77 then ofK (gpow bb) * gen ^ (64 * H) else 0
+  if i = 12 then ofK (addressOfIndex bb) else if i = 77 then ofK (addressOfIndex bb) * gen ^ (64 * H) else 0
 
 /-- The evaluated valuation of `ring_switch_weight`'s body. -/
 noncomputable def rswσ (rd : Reader) (args : List E) (bb H : ℕ) : Val :=
@@ -189,44 +190,55 @@ theorem rswTerm_mem {k : ℕ} (hk : k < 64) (s : Stmt) (hs : s ∈ rswTerm k) : 
 chain, the coordinates, the point and the coefficients. -/
 theorem rsw_block {rd : Reader} {bz bp bc bb count : ℕ} {zs ps cs : List E} (hcount : count < 64)
     (hz : zs.length = count) (hp : ps.length = count) (hc : cs.length = 64)
-    (hzs : ReadsAt rd (ofK (gpow bz)) zs) (hps : ReadsAt rd (ofK (gpow bp)) ps)
-    (hcs : ReadsAt rd (ofK (gpow bc)) cs) (hch : ReadsAt rd (ofK (gpow bb)) (rswChain zs ps count)) :
-    (∀ a ∈ rswA, a.Holds rd (rswσ rd [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count] bb
+    (hzs : ReadsAt rd (ofK (addressOfIndex bz)) zs) (hps : ReadsAt rd (ofK (addressOfIndex bp)) ps)
+    (hcs : ReadsAt rd (ofK (addressOfIndex bc)) cs) (hch : ReadsAt rd (ofK (addressOfIndex bb)) (rswChain zs ps count)) :
+    (∀ a ∈ rswA, a.Holds rd (rswσ rd [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK
+        (addressOfIndex bc), gen ^ count] bb
       (rswH count))) ∧
-    rswσ rd [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count] bb (rswH count) (.n 11) =
-      ofK (gpow (64 * (count + 1))) ∧
-    rswσ rd [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count] bb (rswH count) (.n 12) =
-      ofK (gpow bb) ∧
-    rswσ rd [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count] bb (rswH count) (.n 77) =
-      ofK (gpow bb) * gen ^ (64 * rswH count) ∧
-    rswσ rd [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count] bb (rswH count) (.n 333) =
+    rswσ rd [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK (addressOfIndex bc), gen ^ count]
+        bb (rswH count) (.n 11) =
+      ofK (addressOfIndex (64 * (count + 1))) ∧
+    rswσ rd [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK (addressOfIndex bc), gen ^ count]
+        bb (rswH count) (.n 12) =
+      ofK (addressOfIndex bb) ∧
+    rswσ rd [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK (addressOfIndex bc), gen ^ count]
+        bb (rswH count) (.n 77) =
+      ofK (addressOfIndex bb) * gen ^ (64 * rswH count) ∧
+    rswσ rd [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK (addressOfIndex bc), gen ^ count]
+        bb (rswH count) (.n 333) =
       ringWeight zs (ps.map (1 + ·)) cs := by
-  obtain ⟨σ, hσdef⟩ : ∃ σ, σ = rswσ rd [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count] bb
+  obtain ⟨σ, hσdef⟩ : ∃ σ, σ = rswσ rd [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK
+      (addressOfIndex bc), gen ^ count] bb
       (rswH count) := ⟨_, rfl⟩
   rw [← hσdef]
   set S : List Atom := (List.range 64).map fun k => Atom.load (.n (13 + k)) (.n 12) k with hS
   obtain ⟨-, -, hgs⟩ := ev_spec rd (rswW bb (rswH count)) rswT
-    [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count] rsw_chk
-  rw [show [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count].length = 4 from rfl,
+    [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK (addressOfIndex bc), gen ^ count] rsw_chk
+  rw [show [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK (addressOfIndex bc), gen ^
+      count].length = 4 from rfl,
     rsw_stores, ← hS, ← rswσ, ← hσdef] at hgs
   have hgS : ∀ s ∈ rswPre, GoodS rd S (rswW bb (rswH count)) σ s := fun s hs =>
     hgs s (by rw [rswT_split]; exact List.mem_append_left _ hs)
   have hg : ∀ a ∈ rswA, Good rd S (rswW bb (rswH count)) σ a := fun a ha => hgS _ (rsw_mem_atom ha)
-  have e0 : σ (.n 0) = ofK (gpow bz) := by
+  have e0 : σ (.n 0) = ofK (addressOfIndex bz) := by
     rw [hσdef]
-    exact ev_params rd _ (l := [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count]) rsw_chk
+    exact ev_params rd _ (l := [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK
+        (addressOfIndex bc), gen ^ count]) rsw_chk
       (by simp)
-  have e1 : σ (.n 1) = ofK (gpow bp) := by
+  have e1 : σ (.n 1) = ofK (addressOfIndex bp) := by
     rw [hσdef]
-    exact ev_params rd _ (l := [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count]) rsw_chk
+    exact ev_params rd _ (l := [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK
+        (addressOfIndex bc), gen ^ count]) rsw_chk
       (by simp)
-  have e2 : σ (.n 2) = ofK (gpow bc) := by
+  have e2 : σ (.n 2) = ofK (addressOfIndex bc) := by
     rw [hσdef]
-    exact ev_params rd _ (l := [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count]) rsw_chk
+    exact ev_params rd _ (l := [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK
+        (addressOfIndex bc), gen ^ count]) rsw_chk
       (by simp)
   have e3 : σ (.n 3) = gen ^ count := by
     rw [hσdef]
-    exact ev_params rd _ (l := [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count]) rsw_chk
+    exact ev_params rd _ (l := [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK
+        (addressOfIndex bc), gen ^ count]) rsw_chk
       (by simp)
   have mulE : ∀ d u v : ℕ, u < d → v < d → Stmt.atom (.mul (.n d) (.n u) (.n v)) ∈ rswPre →
       σ (.n d) = σ (.n u) * σ (.n v) := by
@@ -251,13 +263,13 @@ theorem rsw_block {rd : Reader} {bz bp bc bb count : ℕ} {zs ps cs : List E} (h
   have e9 := mulE 9 8 8 (by omega) (by omega) (hmem _ (by simp))
   have e10 := mulE 10 9 9 (by omega) (by omega) (hmem _ (by simp))
   have e11 := mulE 11 10 10 (by omega) (by omega) (hmem _ (by simp))
-  have e12 : σ (.n 12) = ofK (gpow bb) := by
+  have e12 : σ (.n 12) = ofK (addressOfIndex bb) := by
     have := hg _ (rsw_atom_mem (hmem _ (by simp)) : Atom.hint (.allocDyn (.n 12) (.n 11)) ∈ rswA)
     simpa [Good, rswW] using this
-  have e77 : σ (.n 77) = ofK (gpow bb) * gen ^ (64 * rswH count) := by
+  have e77 : σ (.n 77) = ofK (addressOfIndex bb) * gen ^ (64 * rswH count) := by
     have := hgS (.call "rs_eq_run" [.n 12, .n 0, .n 1, .n 3] [.n 77]) (by simp [rswPre])
     simpa [GoodS, rswW] using this
-  have h11 : σ (.n 11) = ofK (gpow (64 * (count + 1))) := by
+  have h11 : σ (.n 11) = ofK (addressOfIndex (64 * (count + 1))) := by
     rw [e11, e10, e9, e8, e7, e6, e5, e3, e4, word_gen, ← gen_pow_eq_ofK]
     ring
   -- the coefficients and the chain's last row
@@ -410,14 +422,16 @@ coefficients, at every frame pointer, its chain at the bump allocator's position
 theorem rsw_completeAt (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (hcount : count < 64)
     (hz : zs.length = count) (hp : ps.length = count) (hc : cs.length = 64) :
     CompleteAtD fs cert κ "ring_switch_weight" [(bz, zs), (bp, ps), (bc, cs)]
-      [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count]
+      [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK (addressOfIndex bc), gen ^ count]
       (Returns [ringWeight zs (ps.map (1 + ·)) cs]) := by
   refine completeAt_flatD (fs := fs) (cert := cert) find_rsw rsw_not_loop κ _ _ _ rsw_body' rsw_flat
     rsw_addrs [64 * (count + 1)] (fun _ ↦ [rswChain zs ps count])
     (fun _ ↦ by simpa using rswChain_le zs ps count)
-    (fun fp ↦ [⟨"rs_eq_run", true, [ofK (gpow (fp + fs "ring_switch_weight")), ofK (gpow bz),
-      ofK (gpow bp), gen ^ count], rsLin (fp + fs "ring_switch_weight") bz bp count zs ps,
-      Returns [ofK (gpow (fp + fs "ring_switch_weight")) * gen ^ (64 * rswH count)]⟩]) ?_ ?_ ?_ ?_
+    (fun fp ↦ [⟨"rs_eq_run", true, [ofK (addressOfIndex (fp + fs "ring_switch_weight")), ofK
+        (addressOfIndex bz),
+      ofK (addressOfIndex bp), gen ^ count], rsLin (fp + fs "ring_switch_weight") bz bp count zs ps,
+      Returns [ofK (addressOfIndex (fp + fs "ring_switch_weight")) * gen ^ (64 * rswH count)]⟩]) ?_
+          ?_ ?_ ?_
   · intro fp k hk _
     rw [List.mem_singleton] at hk
     subst hk
@@ -441,10 +455,11 @@ theorem rsw_completeAt (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (hc
     · exact hLin (bz, zs) (by simp)
     · exact hLin (bp, ps) (by simp)
   · intro fp outs ho rd _ hB hLin
-    have hzs : ReadsAt rd (ofK (gpow bz)) zs := hLin (bz, zs) (by simp)
-    have hps : ReadsAt rd (ofK (gpow bp)) ps := hLin (bp, ps) (by simp)
-    have hcs : ReadsAt rd (ofK (gpow bc)) cs := hLin (bc, cs) (by simp)
-    have hch : ReadsAt rd (ofK (gpow (fp + fs "ring_switch_weight"))) (rswChain zs ps count) :=
+    have hzs : ReadsAt rd (ofK (addressOfIndex bz)) zs := hLin (bz, zs) (by simp)
+    have hps : ReadsAt rd (ofK (addressOfIndex bp)) ps := hLin (bp, ps) (by simp)
+    have hcs : ReadsAt rd (ofK (addressOfIndex bc)) cs := hLin (bc, cs) (by simp)
+    have hch : ReadsAt rd (ofK (addressOfIndex (fp + fs "ring_switch_weight"))) (rswChain zs ps
+        count) :=
       hB (fp + fs "ring_switch_weight", rswChain zs ps count) (by simp [bufL, bases])
     rcases outs with _ | ⟨o, _ | ⟨o', os⟩⟩
     · exact absurd ho (by simp [OutsOk])
@@ -452,15 +467,18 @@ theorem rsw_completeAt (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (hc
     · exact absurd ho.2 (by simp [OutsOk])
     obtain ⟨ho', -⟩ := ho
     obtain ⟨ho1, -⟩ := ho' rfl
-    obtain ⟨σ, hσdef⟩ : ∃ σ, σ = rswσ rd [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count]
+    obtain ⟨σ, hσdef⟩ : ∃ σ, σ = rswσ rd [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK
+        (addressOfIndex bc), gen ^ count]
         (fp + fs "ring_switch_weight") (rswH count) := ⟨_, rfl⟩
     obtain ⟨hat, h11, e12, e77, e333⟩ := rsw_block hcount hz hp hc hzs hps hcs hch
     rw [← hσdef] at hat h11 e12 e77 e333
     have hpar : ∀ i (hi : i < 4), σ (.n i) =
-        [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count].getD i 0 := by
+        [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK (addressOfIndex bc), gen ^
+            count].getD i 0 := by
       intro i hi
       rw [hσdef]
-      exact ev_params rd _ (l := [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count]) rsw_chk
+      exact ev_params rd _ (l := [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK
+          (addressOfIndex bc), gen ^ count]) rsw_chk
         (by simpa using hi)
     have e0 := hpar 0 (by omega)
     have e1 := hpar 1 (by omega)

@@ -86,7 +86,7 @@ def lens : List ℕ := [0, 48, 64, 80, 128, 136, 272, 292, 1088, 2000]
 -- `keccak_final_digest` with no prefix: the chain's digest cells are the hash.
 #guard lens.all fun len ↦
   let O := chain (padCells (msgCells len) len) zeroCells (len / rate + 1)
-  (O.getD 0 0, O.getD 1 0) = digestScalars (keccak256 (msg len))
+  (O.getD 0 0, O.getD 1 0) = digestHalves (keccak256 (msg len))
 -- And the chain's whole output is `keccak_final`'s state.
 #guard lens.all fun len ↦
   chain (padCells (msgCells len) len) zeroCells (len / rate + 1) =
@@ -96,7 +96,7 @@ def lens : List ℕ := [0, 48, 64, 80, 128, 136, 272, 292, 1088, 2000]
   let cells := msgCells 292 ++ []
   let bad := cells.set 18 (cells.getD 18 0 + E.ofLimbs (K.ofBits (2 ^ 40)) 0 0)
   let O := chain (padCells bad 292) zeroCells 3
-  (O.getD 0 0, O.getD 1 0) ≠ digestScalars (keccak256 (msg 292))
+  (O.getD 0 0, O.getD 1 0) ≠ digestHalves (keccak256 (msg 292))
 
 /-! ## `state=` after a whole-block prefix (`claim_list_digest`) -/
 
@@ -106,13 +106,13 @@ def lens : List ℕ := [0, 48, 64, 80, 128, 136, 272, 292, 1088, 2000]
   let pre := msgCells 1088
   let st := chain pre zeroCells 8
   let O := chain (padCells (msgCells 80) 80) st 1
-  (O.getD 0 0, O.getD 1 0) = digestScalars (keccak256 (cellsBytes pre ++ msg 80))
+  (O.getD 0 0, O.getD 1 0) = digestHalves (keccak256 (cellsBytes pre ++ msg 80))
 -- `keccak_cells([0], digest, state=, len=0)`: the padding alone.
 #guard
   let pre := msgCells 1088
   let st := chain pre zeroCells 8
   let O := chain (padCells [0] 0) st 1
-  (O.getD 0 0, O.getD 1 0) = digestScalars (keccak256 (cellsBytes pre))
+  (O.getD 0 0, O.getD 1 0) = digestHalves (keccak256 (cellsBytes pre))
 
 /-! ## The seed and the duplex -/
 
@@ -120,8 +120,8 @@ def lens : List ℕ := [0, 48, 64, 80, 128, 136, 272, 292, 1088, 2000]
 def d1 : Digest := keccak256 (bytes 5)
 def d2 : Digest := keccak256 (bytes 9)
 
-#guard toNats (absorbChunks 1 zeroState (cellsBytes [(digestScalars d1).1, (digestScalars d1).2,
-  (digestScalars d2).1, (digestScalars d2).2])) = toNats (keccakF1600 (Compile.seedInput d1 d2))
+#guard toNats (absorbChunks 1 zeroState (cellsBytes [(digestHalves d1).1, (digestHalves d1).2,
+  (digestHalves d2).1, (digestHalves d2).2])) = toNats (keccakF1600 (Compile.seedInput d1 d2))
 
 /-- Two waiting scalars, an observed one and a nonce. -/
 def pending : List (E × ℕ) :=
@@ -155,7 +155,7 @@ example (a0 a1 b0 b1 : E) (I O : Fin 13 → E)
     (hI : I = LeanVM.Guest.Core.cells13 [a0, a1, b0, b1, LeanVM.Guest.word 1 0 0, 0, 0, 0,
       LeanVM.Guest.word 9223372036854775808 0 0, 0, 0, 0, 0])
     (hK : KeccakCellsRelation I false O false) :
-    (O 0, O 1) = digestScalars (keccak256 (cellsBytes [a0, a1, b0, b1])) := by
+    (O 0, O 1) = digestHalves (keccak256 (cellsBytes [a0, a1, b0, b1])) := by
   have := (keccak_one (cells := [a0, a1, b0, b1]) (len := 64) (by simp) (by decide)
     (getD_cellsBytes_of_le (by simp))
     (fun c hc ↦ by

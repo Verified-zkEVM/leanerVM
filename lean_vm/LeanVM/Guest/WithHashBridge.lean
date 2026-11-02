@@ -25,7 +25,8 @@ is the deployed Keccak-256 (`keccak256With_keccakF1600`), so:
   challenge, the openings' climb (`runBatching_deployed`, …);
 * LeanDA's commitment and vector digest (`commitCodewords_keccakF1600`, `vectorDigest_keccakF1600`);
 * the signature schemes' verification (`xmssVerify_eq_withHash`, `sphincsVerify_eq_withHash`): the
-  schemes read a digest as a 256-bit number through its 32 bytes (`Common.SufCma.digestBitVec`),
+  schemes read a digest as a 256-bit number through its 32 bytes
+  (`Common.SufCma.digestBytesEquivBitVec`),
   which is the guest's little-endian reading (`digestBitVec_toBytes`).
 -/
 
@@ -38,15 +39,16 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 /-- **A digest's bytes read as a number, through `digestBitVec`, are its little-endian reading.** -/
 theorem digestBitVec_toBytes (d : Digest) :
-    Common.SufCma.digestBitVec d.toBytes = Node.digestBits d :=
+    Common.SufCma.digestBytesEquivBitVec d.toBytes = Node.digestBits d :=
   Fast.SufCma.digestBitVec_eq_digestBitVecFold d.toBytes
 
 /-- Keccak-256 over Keccak-f[1600], read as the schemes' hash output, is `keccakBits`. -/
 theorem keccakHash_keccakF1600 :
-    HashSig.Concrete.keccakHash (m := Id) keccakF1600 = Node.keccakBits := by
+    HashSig.OverPermutation.keccakHash (m := Id) keccakF1600 = Node.keccakBits := by
   funext input
-  rw [HashSig.Concrete.keccakHash, keccak256With_keccakF1600]
-  change Common.SufCma.digestBitVec (keccak256 input).toBytes = Node.digestBits (keccak256 input)
+  rw [HashSig.OverPermutation.keccakHash, keccak256With_keccakF1600]
+  change Common.SufCma.digestBytesEquivBitVec (keccak256 input).toBytes = Node.digestBits
+      (keccak256 input)
   exact digestBitVec_toBytes _
 
 /-- The statement's leanXMSS verification over `π` is the hash-query one with the hash Keccak-256
@@ -54,16 +56,18 @@ over `π`. -/
 theorem xmss_verify_eq_verifyWithHash {m : Type → Type} [Monad m]
     (π : KeccakState → m KeccakState) (pk : HashSig.PublicKey) (message : HashSig.Message)
     (σ : LeanXmss.Signature) :
-    LeanXmss.Concrete.verify π pk message σ =
-      @LeanXmss.Concrete.verifyWithHash m _ ⟨HashSig.Concrete.keccakHash π⟩ pk message σ := rfl
+    LeanXmss.Verification.verify π pk message σ =
+      @LeanXmss.Verification.verifyWithHash m _ ⟨HashSig.OverPermutation.keccakHash π⟩ pk message
+          σ := rfl
 
 /-- The statement's leanSPHINCS verification over `π` is the hash-query one with the hash
 Keccak-256 over `π`. -/
 theorem sphincs_verify_eq_verifyWithHash {m : Type → Type} [Monad m]
     (π : KeccakState → m KeccakState) (pk : Sphincs.PublicKey) (message : Sphincs.Message)
     (σ : Sphincs.Signature) :
-    Sphincs.Concrete.verify π pk message σ =
-      @Sphincs.Concrete.verifyWithHash m _ ⟨HashSig.Concrete.keccakHash π⟩ pk message σ := rfl
+    Sphincs.Verification.verify π pk message σ =
+      @Sphincs.Verification.verifyWithHash m _ ⟨HashSig.OverPermutation.keccakHash π⟩ pk message
+          σ := rfl
 
 namespace Node
 
@@ -71,7 +75,7 @@ namespace Node
 theorem xmssVerify_eq_withHash (pk : HashSig.PublicKey) (message : HashSig.Message)
     (σ : LeanXmss.Signature) :
     leanXmssVerifyWithKeccak pk message σ =
-      Id.run (@LeanXmss.Concrete.verifyWithHash Id _ ⟨keccakBits⟩ pk message σ) := by
+      Id.run (@LeanXmss.Verification.verifyWithHash Id _ ⟨keccakBits⟩ pk message σ) := by
   rw [leanXmssVerifyWithKeccak, xmss_verify_eq_verifyWithHash, keccakHash_keccakF1600]
 
 /-- leanSPHINCS verification over Keccak-f[1600] is the hash-query verification with
@@ -79,7 +83,7 @@ theorem xmssVerify_eq_withHash (pk : HashSig.PublicKey) (message : HashSig.Messa
 theorem sphincsVerify_eq_withHash (pk : Sphincs.PublicKey) (message : Sphincs.Message)
     (σ : Sphincs.Signature) :
     leanSphincsVerifyWithKeccak pk message σ =
-      Id.run (@Sphincs.Concrete.verifyWithHash Id _ ⟨keccakBits⟩ pk message σ) := by
+      Id.run (@Sphincs.Verification.verifyWithHash Id _ ⟨keccakBits⟩ pk message σ) := by
   rw [leanSphincsVerifyWithKeccak, sphincs_verify_eq_verifyWithHash, keccakHash_keccakF1600]
 
 end Node
@@ -102,13 +106,13 @@ end Da
 
 namespace Guest
 
-theorem Batch.runBatching_deployed (prog : Prog Bool) (proof : Proof) :
+theorem Batch.runBatching_deployed (prog : VerifierProgram Bool) (proof : Proof) :
     Batch.runBatching (m := Id) keccakF1600 prog proof =
       Batch.runBatchingWithHash (m := Id) keccak256 keccakF1600 prog proof := by
   simp only [Batch.runBatching, Batch.runBatchingWithHash, runProof_eq_withHash,
     keccak256With_keccakF1600]
 
-theorem Budget.verifierRefusingZero_deployed (prog : Program) (input : PublicInput)
+theorem Budget.verifierRefusingZero_deployed (prog : LeanIsaProgram) (input : PublicInput)
     (proof : Proof) :
     Completeness.verifierRefusingZero (m := Id) keccakF1600 prog input proof =
       Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 prog input proof := by
@@ -119,7 +123,7 @@ theorem Limits.verifyDeferredRefusingZero_eq_withHash (bytecode : List K) (iv pu
     (c : BytecodeClaim) (π : Proof) :
     Limits.verifyDeferredRefusingZero bytecode iv publicInput c π =
       Id.run (runProofWithHash (m := Id) keccak256 keccakF1600
-        (deferredProgram c bytecode publicInput).refusingZeroChallenge
+        (deferringVerifierProgram c bytecode publicInput).refusingZeroChallenge
         (keccakF1600 (seedInput iv publicInput)) π) := by
   rw [Limits.verifyDeferredRefusingZero, runProof_eq_withHash, keccak256With_keccakF1600]
 

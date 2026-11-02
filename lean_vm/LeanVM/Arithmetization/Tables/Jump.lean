@@ -187,7 +187,7 @@ def JumpSpec (r : JumpRow K) (next : Registers K) (data : ProverData K) : Prop :
 /-- The bytecode tuple of a row is `entry` of the instruction it names, by definition; spelled
 once, so that the unifier need not see it through `decode`. -/
 private theorem jump_entry (a b c : K) :
-    #v[Opcode.jump.code] ++ #v[a, b, c, 0, 0, 0, 0, 0, 0, 0] = entry (.jump a b c) := rfl
+    #v[Opcode.jump.busCode] ++ #v[a, b, c, 0, 0, 0, 0, 0, 0, 0] = busEntry (.jump a b c) := rfl
 
 /-! ## The table -/
 
@@ -207,7 +207,7 @@ def jumpTable : GeneralFormalCircuit K JumpRow Registers where
         b * r.vfp + b * r.fp + r.fp⟩
     StatePull.pull ⟨r.pc, r.fp⟩
     StatePush.push next
-    bytecodeRead r.pc r.rbc (Expression.const Opcode.jump.code) #v[r.oc, r.od, r.of, 0, 0, 0, 0, 0, 0, 0]
+    bytecodeRead r.pc r.rbc (Expression.const Opcode.jump.busCode) #v[r.oc, r.od, r.of, 0, 0, 0, 0, 0, 0, 0]
     memRead (r.fp * r.oc) r.rc #v[r.vcond, 0, 0]
     memRead (r.fp * r.od) r.rd #v[r.vpc, 0, 0]
     memRead (r.fp * r.of) r.rf #v[r.vfp, 0, 0]

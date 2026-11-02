@@ -44,7 +44,7 @@ noncomputable def apartOkN (j vb : ℕ) : Bool :=
 noncomputable def shareStaticN (j vb : ℕ) : Bool :=
   (locW (certOf j) 0).seq fun loc ↦ natSeq (tmpCells (plumbOf j)) fun tc ↦
   natSeq (fpgCells (plumbOf j)) fun fc ↦ (byCell (plumbOf j).tmps).seq fun tt ↦
-  (nth (certOf j).cells 0 []).all (fun c ↦ Nat.blt c 65536) &&
+  (listElementOrDefault (certOf j).cells 0 []).all (fun c ↦ Nat.blt c 65536) &&
   Nat.blt (fsN j) (2 ^ envDepth) && listsOk (plumbOf j) (fsN j) && snapsOk (certOf j) (snapsOf j) &&
     apartOkN j vb && (coreOf j).params.all (valOk loc tt tc fc (fsN j))
 
@@ -54,12 +54,14 @@ theorem shareStatic_eq (j : ℕ) : shareStatic j = shareStaticN j (bitsOf (certO
 def bitsFrom (s : ℕ) (l : List ℕ) : ℕ := l.foldl setBit s
 
 theorem foldl_flatten_of_chain (Ns : List ℕ) : ∀ (L : List (List ℕ)) (i : ℕ),
-    (∀ k < L.length, bitsFrom (nth Ns (i + k) 0) (nth L k []) = nth Ns (i + k + 1) 0) →
-      L.flatten.foldl setBit (nth Ns i 0) = nth Ns (i + L.length) 0
+    (∀ k < L.length, bitsFrom (listElementOrDefault Ns (i + k) 0) (listElementOrDefault L k []) =
+        listElementOrDefault Ns (i + k + 1) 0) →
+      L.flatten.foldl setBit (listElementOrDefault Ns i 0) = listElementOrDefault Ns (i +
+          L.length) 0
   | [], i, _ => rfl
   | l :: L, i, h => by
     have h0 := h 0 (by simp)
-    simp only [Nat.add_zero, bitsFrom, nth] at h0
+    simp only [Nat.add_zero, bitsFrom, listElementOrDefault] at h0
     rw [List.flatten_cons, List.foldl_append, h0,
       foldl_flatten_of_chain Ns L (i + 1) fun k hk ↦ by
         have := h (k + 1) (by simp; omega)
@@ -71,19 +73,23 @@ theorem foldl_flatten_of_chain (Ns : List ℕ) : ∀ (L : List (List ℕ)) (i : 
 
 /-- The bit set of the cells of the lists `L`, by a chain of sets, each list adding to one the
 next. -/
-theorem bitsOf_flatten_of_chain (L : List (List ℕ)) (Ns : List ℕ) (h0 : nth Ns 0 0 = 0)
-    (h : ∀ k < L.length, bitsFrom (nth Ns k 0) (nth L k []) = nth Ns (k + 1) 0) :
-    bitsOf L.flatten = nth Ns L.length 0 := by
+theorem bitsOf_flatten_of_chain (L : List (List ℕ)) (Ns : List ℕ) (h0 : listElementOrDefault Ns
+    0 0 = 0)
+    (h : ∀ k < L.length, bitsFrom (listElementOrDefault Ns k 0) (listElementOrDefault L k []) =
+        listElementOrDefault Ns (k + 1) 0) :
+    bitsOf L.flatten = listElementOrDefault Ns L.length 0 := by
   have := foldl_flatten_of_chain Ns L 0 (by simpa only [Nat.zero_add] using h)
   rw [h0, Nat.zero_add] at this
   exact this
 
 /-- **The static sharing check of function `j`** from a chain of bit sets over its windows' cells
 and the check with the last. -/
-theorem shareStatic_of_chain (j : ℕ) (Ns : List ℕ) (h0 : nth Ns 0 0 = 0)
+theorem shareStatic_of_chain (j : ℕ) (Ns : List ℕ) (h0 : listElementOrDefault Ns 0 0 = 0)
     (h : ∀ k < (certOf j).cells.length,
-      bitsFrom (nth Ns k 0) (nth (certOf j).cells k []) = nth Ns (k + 1) 0)
-    (hs : shareStaticN j (nth Ns (certOf j).cells.length 0) = true) : shareStatic j = true := by
+      bitsFrom (listElementOrDefault Ns k 0) (listElementOrDefault (certOf j).cells k []) =
+          listElementOrDefault Ns (k + 1) 0)
+    (hs : shareStaticN j (listElementOrDefault Ns (certOf j).cells.length 0) = true) : shareStatic j
+        = true := by
   rw [shareStatic_eq, show (certOf j).locs = (certOf j).cells.flatten from rfl,
     bitsOf_flatten_of_chain _ _ h0 h]
   exact hs

@@ -33,14 +33,15 @@ open LeanVM.Protocol.KeccakGkr LeanVM.Guest.B1.Tables
 /-! ## The carried run -/
 
 /-- **An accepting run is the carried run.** -/
-theorem runsTo_toT {α : Type} {p : Prog α} {s s' : Fs} {xs : List E} {a : α}
+theorem runsTo_toT {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
     (h : RunsTo p s xs a s') {sp : Sponge} (hc : s.Carries sp) :
     runT p ⟨s, xs, [], []⟩ = some (a, ⟨s', [], [], []⟩) := by
   obtain ⟨sp', hc', he⟩ := h sp hc [] [] []
   simp only [List.append_nil] at he
   rw [runT_of_runId p ⟨s, xs, [], []⟩ sp hc a _ he, ← eq_fsOfT hc']
 
-theorem vi_bind {α β : Type} {p : Prog α} {f : α → Prog β} {st st'' : TSt} {b : β}
+theorem vi_bind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {st st'' : TSt}
+    {b : β}
     (h : runT (p >>= f) st = some (b, st'')) :
     ∃ a st', runT p st = some (a, st') ∧ runT (f a) st' = some (b, st'') := by
   rw [prog_bind_eq, runT_bind] at h
@@ -48,29 +49,30 @@ theorem vi_bind {α β : Type} {p : Prog α} {f : α → Prog β} {st st'' : TSt
   exact ⟨a, st', h1, h2⟩
 
 theorem vi_pure {α : Type} {a b : α} {st st' : TSt}
-    (h : runT (pure a : Prog α) st = some (b, st')) : b = a ∧ st' = st := by
-  change runT (Prog.ret a) st = some (b, st') at h
+    (h : runT (pure a : VerifierProgram α) st = some (b, st')) : b = a ∧ st' = st := by
+  change runT (VerifierProgram.ret a) st = some (b, st') at h
   simp only [runT, Option.some.injEq, Prod.mk.injEq] at h
   exact ⟨h.1.symm, h.2.symm⟩
 
 theorem vi_ret {α : Type} {a b : α} {st st' : TSt}
-    (h : runT (Prog.ret a) st = some (b, st')) : b = a ∧ st' = st := vi_pure h
+    (h : runT (VerifierProgram.ret a) st = some (b, st')) : b = a ∧ st' = st := vi_pure h
 
 theorem vi_readE {s : Fs} {zs : List E} {os : List Opening} {R : List (Digest × ℕ × ℕ)}
-    {x : E} {st' : TSt} (h : runT Prog.readScalar ⟨s, zs, os, R⟩ = some (x, st')) :
+    {x : E} {st' : TSt} (h : runT VerifierProgram.readScalar ⟨s, zs, os, R⟩ = some (x, st')) :
     ∃ zs', zs = x :: zs' ∧ st' = ⟨s.absorb x dsObserve, zs', os, R⟩ := by
   cases zs with
-  | nil => simp [Prog.readScalar, runT] at h
+  | nil => simp [VerifierProgram.readScalar, runT] at h
   | cons z zs' =>
-    simp only [Prog.readScalar, runT, Option.some.injEq, Prod.mk.injEq] at h
+    simp only [VerifierProgram.readScalar, runT, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     exact ⟨zs', rfl, rfl⟩
 
 theorem vi_sampleE (st : TSt) :
-    runT Prog.sampleChallenge st = some (st.sponge.squeeze.1, { st with sponge := st.sponge.squeeze.2 }) :=
+    runT VerifierProgram.sampleChallenge st = some (st.sponge.squeeze.1, { st with sponge := st.sponge.squeeze.2 }) :=
   rfl
 
-theorem vi_sampleE' {st st' : TSt} {x : E} (h : runT Prog.sampleChallenge st = some (x, st')) :
+theorem vi_sampleE' {st st' : TSt} {x : E} (h : runT VerifierProgram.sampleChallenge st = some (x,
+    st')) :
     x = st.sponge.squeeze.1 ∧ st' = { st with sponge := st.sponge.squeeze.2 } := by
   rw [vi_sampleE] at h
   simp only [Option.some.injEq, Prod.mk.injEq] at h
@@ -79,13 +81,13 @@ theorem vi_sampleE' {st st' : TSt} {x : E} (h : runT Prog.sampleChallenge st = s
 /-- `n` reads take the next `n` words, absorbed. -/
 theorem vi_readN : ∀ (n : ℕ) (s : Fs) (zs : List E) (os : List Opening)
     (R : List (Digest × ℕ × ℕ)) (xs : List E) (st' : TSt),
-    runT (Prog.readScalars n) ⟨s, zs, os, R⟩ = some (xs, st') →
+    runT (VerifierProgram.readScalars n) ⟨s, zs, os, R⟩ = some (xs, st') →
       ∃ rest, xs.length = n ∧ zs = xs ++ rest ∧ st' = ⟨s.absorbAll xs dsObserve, rest, os, R⟩
   | 0, s, zs, os, R, xs, st', h => by
     obtain ⟨rfl, rfl⟩ := vi_ret (a := ([] : List E)) h
     exact ⟨zs, rfl, rfl, rfl⟩
   | n + 1, s, zs, os, R, xs, st', h => by
-    simp only [Prog.readScalars] at h
+    simp only [VerifierProgram.readScalars] at h
     obtain ⟨x, st1, h1, h2⟩ := vi_bind h
     obtain ⟨zs1, rfl, rfl⟩ := vi_readE h1
     obtain ⟨ys, st2, h3, h4⟩ := vi_bind h2
@@ -95,24 +97,25 @@ theorem vi_readN : ∀ (n : ℕ) (s : Fs) (zs : List E) (os : List Opening)
 
 /-- `n` samples squeeze `n` challenges. -/
 theorem vi_sampleN : ∀ (n : ℕ) (st : TSt),
-    runT (Prog.sampleChallenges n) st = some ((st.sponge.squeezeN n).1,
+    runT (VerifierProgram.sampleChallenges n) st = some ((st.sponge.squeezeN n).1,
       { st with sponge := (st.sponge.squeezeN n).2 })
   | 0, ⟨s, zs, os, R⟩ => rfl
   | n + 1, st => by
-    simp only [Prog.sampleChallenges, prog_bind_eq, runT_bind, vi_sampleE, Option.bind_some]
+    simp only [VerifierProgram.sampleChallenges, prog_bind_eq, runT_bind, vi_sampleE,
+        Option.bind_some]
     rw [vi_sampleN n]
     rfl
 
 theorem vi_sampleN' {n : ℕ} {st st' : TSt} {xs : List E}
-    (h : runT (Prog.sampleChallenges n) st = some (xs, st')) :
+    (h : runT (VerifierProgram.sampleChallenges n) st = some (xs, st')) :
     xs = (st.sponge.squeezeN n).1 ∧ st' = { st with sponge := (st.sponge.squeezeN n).2 } := by
   rw [vi_sampleN] at h
   simp only [Option.some.injEq, Prod.mk.injEq] at h
   exact ⟨h.1.symm, h.2.symm⟩
 
 theorem vi_require {c : Prop} [Decidable c] {st st' : TSt} {u : Unit}
-    (h : runT (Prog.require c) st = some (u, st')) : c ∧ st' = st := by
-  unfold Prog.require at h
+    (h : runT (VerifierProgram.require c) st = some (u, st')) : c ∧ st' = st := by
+  unfold VerifierProgram.require at h
   split at h
   · rename_i hc
     simp only [runT, Option.some.injEq, Prod.mk.injEq] at h
@@ -133,10 +136,10 @@ theorem vi_pack : ∀ (rs : List E) (v sc : E) (s : Fs) (zs : List E) (os : List
     exact ⟨[], zs, rfl, rfl, rfl, rfl⟩
   | r :: rs, v, sc, s, zs, os, R, res, st', h => by
     have key : keccakPackRounds (r :: rs) v sc = (sumcheckRoundPoly 3 v (some r) >>= fun message ↦
-        Prog.sampleChallenge >>= fun challenge ↦
+        VerifierProgram.sampleChallenge >>= fun challenge ↦
           keccakPackRounds rs ((1 + r + challenge) * polyEval message challenge)
             (sc * (1 + r + challenge)) >>= fun x ↦
-            (pure (x.1, x.2.1, challenge :: x.2.2) : Prog (E × E × List E))) := rfl
+            (pure (x.1, x.2.1, challenge :: x.2.2) : VerifierProgram (E × E × List E))) := rfl
     rw [key] at h
     obtain ⟨msg, st1, h1, h2⟩ := vi_bind h
     simp only [sumcheckRoundPoly] at h1
@@ -168,9 +171,10 @@ theorem vi_local : ∀ (n : ℕ) (v : E) (s : Fs) (zs : List E) (os : List Openi
     exact ⟨[], zs, rfl, rfl, rfl, rfl⟩
   | n + 1, v, s, zs, os, R, res, st', h => by
     have key : sumcheck v 4 (List.replicate (n + 1) none) =
-        (sumcheckRoundPoly 4 v none >>= fun message ↦ Prog.sampleChallenge >>= fun challenge ↦
+        (sumcheckRoundPoly 4 v none >>= fun message ↦ VerifierProgram.sampleChallenge >>=
+            fun challenge ↦
           sumcheck (polyEval message challenge) 4 (List.replicate n none) >>= fun x ↦
-            (pure (challenge :: x.1, x.2) : Prog (List E × E))) := rfl
+            (pure (challenge :: x.1, x.2) : VerifierProgram (List E × E))) := rfl
     rw [key] at h
     obtain ⟨msg, st1, h1, h2⟩ := vi_bind h
     simp only [sumcheckRoundPoly] at h1
@@ -206,9 +210,10 @@ theorem vi_plain : ∀ (n : ℕ) (v : E) (s : Fs) (zs : List E) (os : List Openi
     exact ⟨[], zs, rfl, rfl, rfl, rfl⟩
   | n + 1, v, s, zs, os, R, res, st', h => by
     have key : sumcheck v 3 (List.replicate (n + 1) none) =
-        (sumcheckRoundPoly 3 v none >>= fun message ↦ Prog.sampleChallenge >>= fun challenge ↦
+        (sumcheckRoundPoly 3 v none >>= fun message ↦ VerifierProgram.sampleChallenge >>=
+            fun challenge ↦
           sumcheck (polyEval message challenge) 3 (List.replicate n none) >>= fun x ↦
-            (pure (challenge :: x.1, x.2) : Prog (List E × E))) := rfl
+            (pure (challenge :: x.1, x.2) : VerifierProgram (List E × E))) := rfl
     rw [key] at h
     obtain ⟨msg, st1, h1, h2⟩ := vi_bind h
     simp only [sumcheckRoundPoly] at h1

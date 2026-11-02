@@ -146,7 +146,7 @@ def coordSource (data : PublicData) (index : Index) (c : Coord) (mark : CoordMar
 /-- No coordinate is revealed when WOTS encoding fails. On success only the 64 frontiers and the
 opened forest chains are read; all path values are public structural labels. -/
 def finishSource (parameter : PublicParameter) (data : PublicData)
-    (message : Message) (randomness : Randomness) : OracleComp HashViewSpec (Option Signature) := do
+    (message : Message) (randomness : Randomizer) : OracleComp HashViewSpec (Option Signature) := do
   let digest ← liftM (messageDigest parameter message randomness :
     OracleComp HashSpec MessageDigest)
   let index := digestIndex digest
@@ -165,7 +165,7 @@ def assembledForest (data : PublicData) (table : HiddenGraph.Table) (index : Ind
     data.topPath index c (marks c).super⟩
 
 noncomputable def assembled (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (data : PublicData) (table : HiddenGraph.Table) (message : Message) (randomness : Randomness) :
+    (data : PublicData) (table : HiddenGraph.Table) (message : Message) (randomness : Randomizer) :
     Option Signature :=
   let digest := evalWithAnswerFn f (messageDigest parameter message randomness :
     OracleComp HashSpec MessageDigest)
@@ -190,7 +190,7 @@ theorem eval_finishSign_assembled (f : QueryImpl HashSpec Id) (parameter : Publi
     (seed : MasterSeed) (data : PublicData) (table : HiddenGraph.Table)
     (hdata : DataCorrect f parameter seed data)
     (htable : CoordinatesCorrect f parameter seed table)
-    (message : Message) (randomness : Randomness)
+    (message : Message) (randomness : Randomizer)
     (hland : Landed parameter (digestIndex (evalWithAnswerFn f
       (messageDigest parameter message randomness : OracleComp HashSpec MessageDigest)))) :
     evalWithAnswerFn f (Randomized.finishSign ⟨seed, parameter⟩ message randomness) =

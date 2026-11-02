@@ -85,19 +85,19 @@ section Esc
 
 variable (D : List Ev → Prop)
 
-theorem esc_sample (h : List Ev) (k : E → Prog Bool) :
+theorem esc_sample (h : List Ev) (k : E → VerifierProgram Bool) :
     esc D h (.sample k) =
       (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ c : E, esc D (h ++ [Ev.sample c]) (k c) := by
   simp [esc]
 
-theorem esc_query (h : List Ev) (i : ℕ) (ps : List ℕ) (k : List (List K) → Prog Bool) :
+theorem esc_query (h : List Ev) (i : ℕ) (ps : List ℕ) (k : List (List K) → VerifierProgram Bool) :
     esc D h (.query i ps k) = match answer h i ps with
       | some rows => esc D (h ++ [Ev.query rows]) (k rows)
       | none => 0 := by
   simp only [esc]
   rfl
 
-theorem esc_le_one : ∀ (h : List Ev) (p : Prog Bool), esc D h p ≤ 1
+theorem esc_le_one : ∀ (h : List Ev) (p : VerifierProgram Bool), esc D h p ≤ 1
   | h, .sample k => by
     rw [esc_sample]
     calc (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ c : E, esc D (h ++ [Ev.sample c]) (k c)
@@ -120,7 +120,7 @@ theorem esc_le_one : ∀ (h : List Ev) (p : Prog Bool), esc D h p ≤ 1
   | h, .commit _ _ _ => by simp only [esc]; split <;> simp
 
 /-- At a doomed boundary, the escape probability is at most the certificate's bound. -/
-theorem esc_le_eps {P : Prog Bool} (C : Cert P) {h : List Ev} {p : Prog Bool}
+theorem esc_le_eps {P : VerifierProgram Bool} (C : Cert P) {h : List Ev} {p : VerifierProgram Bool}
     (hr : P.Reachable h) (hb : Boundary h) (ha : P.after h = some p) (hD : C.D h) :
     esc C.D h p ≤ C.ε h := by
   cases p with
@@ -139,7 +139,7 @@ theorem avg_ind_mul_const_le (F : KeccakState → Prop) (c : ℝ≥0∞) :
 
 /-- **The challenge of a fresh squeeze is uniform**: the average over a state `u` of the escape
 probability after the challenge `challengeOf u` is the escape probability before it. -/
-theorem avg_esc_sample (h : List Ev) (k : E → Prog Bool) :
+theorem avg_esc_sample (h : List Ev) (k : E → VerifierProgram Bool) :
     (∑ u : KeccakState, esc D (h ++ [Ev.sample (challengeOf u)]) (k (challengeOf u))) /
         Fintype.card KeccakState = esc D h (.sample k) := by
   rw [sum_challengeOf_div fun c ↦ esc D (h ++ [Ev.sample c]) (k c), esc_sample,
@@ -155,7 +155,7 @@ variable (D : List Ev → Prop)
 
 /-- The escape probability of a group conditioned on the squeezes the log answers: follow them
 from the state `d` with no scalar waiting, at history `h` and node `p`, then `esc`. -/
-noncomputable def gv (ℓ : Log) : KeccakState → List Ev → Prog Bool → ℝ≥0∞
+noncomputable def gv (ℓ : Log) : KeccakState → List Ev → VerifierProgram Bool → ℝ≥0∞
   | d, h, .sample k => match lookF ℓ (sqIn d) with
     | some u => gv ℓ u (h ++ [Ev.sample (challengeOf u)]) (k (challengeOf u))
     | none => esc D h (.sample k)
@@ -170,7 +170,7 @@ noncomputable def gv (ℓ : Log) : KeccakState → List Ev → Prog Bool → ℝ
 
 /-- From a fresh state, the group value is the escape probability. -/
 theorem gv_fresh {ℓ : Log} {d : KeccakState} (hd : Fresh ℓ d) :
-    ∀ (h : List Ev) (p : Prog Bool), gv D ℓ d h p = esc D h p
+    ∀ (h : List Ev) (p : VerifierProgram Bool), gv D ℓ d h p = esc D h p
   | h, .sample k => by simp only [gv, lookF_sqIn_of_fresh hd]
   | h, .query i ps k => by
     simp only [gv, esc_query]
@@ -185,7 +185,8 @@ theorem gv_fresh {ℓ : Log} {d : KeccakState} (hd : Fresh ℓ d) :
 
 /-- A hash entry leaves group values unchanged. -/
 theorem gv_append_inl (ℓ : Log) (e : Bytes × Digest) :
-    ∀ (d : KeccakState) (h : List Ev) (p : Prog Bool), gv D (ℓ ++ [.inl e]) d h p = gv D ℓ d h p
+    ∀ (d : KeccakState) (h : List Ev) (p : VerifierProgram Bool), gv D (ℓ ++ [.inl e]) d h p = gv D
+        ℓ d h p
   | d, h, .sample k => by
     simp only [gv, lookF_append_inl]
     split
@@ -206,7 +207,7 @@ theorem gv_append_inl (ℓ : Log) (e : Bytes × Digest) :
 the answer `u` of the group value after the entry `(t, u)`, on the answers that are fresh, is at
 most the group value before it. -/
 theorem gv_step {ℓ : Log} {t : KeccakState} (ht : lookF ℓ t = none) :
-    ∀ (d : KeccakState) (h : List Ev) (p : Prog Bool),
+    ∀ (d : KeccakState) (h : List Ev) (p : VerifierProgram Bool),
       (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) * gv D (ℓ ++ [.inr (t, u)]) d h p) /
           Fintype.card KeccakState ≤ gv D ℓ d h p
   | d, h, .sample k => by
@@ -251,7 +252,7 @@ theorem gv_step {ℓ : Log} {t : KeccakState} (ht : lookF ℓ t = none) :
 
 /-- The group value with its first squeeze answered by `u`: follow the openings to the squeeze,
 take `u`'s challenge, then `gv`. -/
-noncomputable def gv1 (ℓ : Log) (u : KeccakState) : List Ev → Prog Bool → ℝ≥0∞
+noncomputable def gv1 (ℓ : Log) (u : KeccakState) : List Ev → VerifierProgram Bool → ℝ≥0∞
   | h, .sample k => gv D ℓ u (h ++ [Ev.sample (challengeOf u)]) (k (challengeOf u))
   | h, .query i ps k => match answer h i ps with
     | some rows => gv1 ℓ u (h ++ [Ev.query rows]) (k rows)
@@ -263,7 +264,7 @@ noncomputable def gv1 (ℓ : Log) (u : KeccakState) : List Ev → Prog Bool → 
   | h, .commit ht w k => esc D h (.commit ht w k)
 
 theorem gv1_append_inl (ℓ : Log) (e : Bytes × Digest) (u : KeccakState) :
-    ∀ (h : List Ev) (p : Prog Bool), gv1 D (ℓ ++ [.inl e]) u h p = gv1 D ℓ u h p
+    ∀ (h : List Ev) (p : VerifierProgram Bool), gv1 D (ℓ ++ [.inl e]) u h p = gv1 D ℓ u h p
   | h, .sample k => gv_append_inl D ℓ e _ _ _
   | h, .query i ps k => by
     simp only [gv1]
@@ -278,7 +279,7 @@ theorem gv1_append_inl (ℓ : Log) (e : Bytes × Digest) (u : KeccakState) :
 
 /-- `gv1` is a supermartingale, as `gv` is. -/
 theorem gv1_step {ℓ : Log} {t : KeccakState} (ht : lookF ℓ t = none) (u : KeccakState) :
-    ∀ (h : List Ev) (p : Prog Bool),
+    ∀ (h : List Ev) (p : VerifierProgram Bool),
       (∑ v, ind (Fresh (ℓ ++ [.inr (t, v)]) v) * gv1 D (ℓ ++ [.inr (t, v)]) u h p) /
           Fintype.card KeccakState ≤ gv1 D ℓ u h p
   | h, .sample k => gv_step D ht _ _ _
@@ -295,7 +296,7 @@ theorem gv1_step {ℓ : Log} {t : KeccakState} (ht : lookF ℓ t = none) (u : Ke
 
 /-- **The first squeeze of a group, fresh, averages to the escape probability.** -/
 theorem gv1_new {ℓ : Log} {t : KeccakState} :
-    ∀ (h : List Ev) (p : Prog Bool),
+    ∀ (h : List Ev) (p : VerifierProgram Bool),
       (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) * gv1 D (ℓ ++ [.inr (t, u)]) u h p) /
           Fintype.card KeccakState ≤ esc D h p
   | h, .sample k => by
@@ -348,7 +349,7 @@ theorem term_append_inl (ℓ : Log) (e : Bytes × Digest) (κ : Shape × KeccakS
   | st h p pw => simp only [term, gv_append_inl]
   | sq h p => simp only [term, gv1_append_inl]
 
-variable {X : Type} (σ : Seeds X) (P : Prog Bool)
+variable {X : Type} (σ : Seeds X) (P : VerifierProgram Bool)
 
 /-- The sum of the terms of the records of a log. -/
 noncomputable def termSum (ℓ : Log) : ℝ≥0∞ := ((decode σ P ℓ).kinds.map (term D ℓ)).sum

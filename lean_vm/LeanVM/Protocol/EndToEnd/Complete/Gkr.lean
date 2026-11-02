@@ -381,7 +381,8 @@ noncomputable def hStep (L₀ L₁ L₂ : List E) (k step : ℕ) (s : GkrState) 
 
 /-- Sending a list meets reading as many scalars. -/
 theorem follows_sendList_readN' (xs : List E) {n : ℕ} (h : xs.length = n) (cs : Commits) :
-    Follows (fun cs' _ b ↦ cs' = cs ∧ b = xs) (Script.sendList xs) (Prog.readScalars n) cs := by
+    Follows (fun cs' _ b ↦ cs' = cs ∧ b = xs) (Script.sendList xs) (VerifierProgram.readScalars n)
+        cs := by
   subst h
   exact Follows.sendList_readN cs xs
 
@@ -405,7 +406,7 @@ theorem follows_gkrStep {L₀ L₁ L₂ : List E} {D : ℕ} (h₀ : L₀.length 
     rw [hv, Nat.add_comm, up_add, up_add, up_add]
     exact stepClaim_nil (hC L₀ h₀) (hC L₁ h₁) (hC L₂ h₂) _
   unfold gkrStep hStep
-  simp only [Prog.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   refine Follows.bind (fun cs₀ c c' h ↦ ?_) _ _ _ (Follows.sampleE_sampleE cs)
   obtain ⟨rfl, rfl⟩ := h
   rw [hclaim]
@@ -437,7 +438,7 @@ theorem follows_gkrStep {L₀ L₁ L₂ : List E} {D : ℕ} (h₀ : L₀.length 
         prodE) c := by
     rw [stepClaim_self _ _ _ _ _ _ _ hl]
     simp only [stepF, List.map_cons, List.map_nil, prodE_eq]
-  simp only [Prog.require, hreq, ↓reduceIte, Prog.ret_bind]
+  simp only [VerifierProgram.require, hreq, ↓reduceIte, VerifierProgram.ret_bind]
   refine Follows.bind (fun cs₅ y y' h ↦ ?_) _ _ _ (Follows.sampleN_sampleN cs₄ step)
   obtain ⟨rfl, rfl, hy⟩ := h
   refine ⟨rfl, by simp, by omega, by simp; omega, ?_⟩
@@ -463,19 +464,19 @@ theorem follows_gkrLayers {L₀ L₁ L₂ : List E} {D : ℕ} (h₀ : L₀.lengt
         (hLayers L₀ L₁ L₂ n s) (gkrLayers n s) cs
   | 0, s, cs, hI => ⟨rfl, rfl, hI⟩
   | 1, s, cs, hI => by
-    simp only [hLayers, gkrLayers, Prog.bind_eq]
+    simp only [hLayers, gkrLayers, VerifierProgram.bind_eq]
     refine Follows.bind (fun cs' a b h ↦ ?_) _ _ _ (follows_gkrStep h₀ h₁ h₂ 0 1 s hI cs)
     obtain ⟨rfl, rfl, hI'⟩ := h
     exact follows_gkrLayers h₀ h₁ h₂ 0 a cs' hI'
   | n + 2, s, cs, hI => by
     simp only [hLayers, gkrLayers]
     split_ifs
-    · simp only [Prog.bind_eq]
+    · simp only [VerifierProgram.bind_eq]
       refine Follows.bind (fun cs' a b h ↦ ?_) _ _ _
         (follows_gkrStep h₀ h₁ h₂ (n + 1) 1 s hI cs)
       obtain ⟨rfl, rfl, hI'⟩ := h
       exact follows_gkrLayers h₀ h₁ h₂ (n + 1) a cs' hI'
-    · simp only [Prog.bind_eq]
+    · simp only [VerifierProgram.bind_eq]
       refine Follows.bind (fun cs' a b h ↦ ?_) _ _ _
         (follows_gkrStep h₀ h₁ h₂ n 2 s hI cs)
       obtain ⟨rfl, rfl, hI'⟩ := h
@@ -501,7 +502,7 @@ theorem follows_verifyGkrGrandProducts (D : ℕ) (L₀ L₁ L₂ : List E)
         b.2.2 = [multilinearEval L₀ b.2.1, multilinearEval L₁ b.2.1, multilinearEval L₂ b.2.1])
       (hGkr D L₀ L₁ L₂) (verifyGkrGrandProducts D) cs := by
   unfold hGkr verifyGkrGrandProducts
-  simp only [Prog.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   refine Follows.bind (fun cs₁ _ a h ↦ ?_) _ _ _ (Follows.sendE_readE L₀.prod cs)
   obtain ⟨rfl, rfl⟩ := h
   refine Follows.bind (fun cs₂ _ b h ↦ ?_) _ _ _ (Follows.sendE_readE L₂.prod cs₁)

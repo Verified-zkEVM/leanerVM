@@ -40,7 +40,7 @@ attribute [local instance] lexOrd
 
 /-- Function `j`'s entry filed at its entry pc's code. -/
 def addEntry (m : SortedMap ℕ (List ℕ)) (j : ℕ) : SortedMap ℕ (List ℕ) :=
-  addAt m (laneCode (gpow (guestEntries.getD j 0))) j
+  addAt m (laneCode (addressOfIndex (guestEntries.getD j 0))) j
 
 /-- **The functions entered at each pc** (`pcTable`), from the table of entries. -/
 def pcTableT : SortedMap ℕ (List ℕ) := (List.range nFns).foldl addEntry .empty

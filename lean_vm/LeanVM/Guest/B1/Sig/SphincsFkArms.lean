@@ -277,7 +277,7 @@ theorem fkAB_mono {w : Nat} {keyAt : V} {b : Nat} (hlo : 206 ≤ b) (hk : NBv b 
 /-- **The forest keys' dispatch completes** on the digest's byte `t`, its chains' values loaded. -/
 theorem fkArms_complete {w t : Nat} {keyAt x : V} {b : Nat} (ht : t < 256) (hlo : 206 ≤ b)
     (hk : NBv b keyAt) (hx : NBv b x) (vals : Nat → E) (hv : ∀ i < 6, IsCanonical128 (vals i))
-    (σ : Val) (hX : ∀ v, SX keyAt keyAt v → NBv b v → IsCanonical128 (σ v)) (hxv : σ x = ofK (gpow t)) :
+    (σ : Val) (hX : ∀ v, SX keyAt keyAt v → NBv b v → IsCanonical128 (σ v)) (hxv : σ x = ofK (addressOfIndex t)) :
     Completes C rd b (fkArms w keyAt b).2.1 [.match_ x (fkArms w keyAt b).1] σ
       (fun σ' => (∀ i < 6, σ' (.n (fkCB t keyAt 0 (fkAB w keyAt b t) i)) = vals i) ∧
         IsCanonical128 (σ' (fkArms w keyAt b).2.2.1) ∧ σ' (fkArms w keyAt b).2.2.2 = fkWeight t w) := by

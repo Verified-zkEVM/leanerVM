@@ -171,7 +171,7 @@ theorem OnlyC.coordCostSource (data : PublicData) (index : Index) (c : Coord) (m
   · exact OnlyC.pure' _
 
 theorem OnlyC.finishCostSource (parameter : PublicParameter) (data : PublicData) (message : Message)
-    (randomness : Randomness) : OnlyC (GraphView.finishCostSource parameter data message randomness) := by
+    (randomness : Randomizer) : OnlyC (GraphView.finishCostSource parameter data message randomness) := by
   unfold GraphView.finishCostSource
   refine OnlyC.bind (OnlyC.liftHash (Short.Only.messageDigest _ _ _)) (fun digest => ?_)
   refine OnlyC.bind (OnlyC.tick _) (fun _ => ?_)

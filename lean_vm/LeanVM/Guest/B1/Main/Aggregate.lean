@@ -129,7 +129,7 @@ theorem kid_words {cpi cfresh ccarried : E} {c : ℕ} {cc : ChildClaims}
         l25Word rd cpi cfresh ccarried (gen ^ c) w := by
       simp [l25Words, List.getD_eq_getElem?_getD, hw]
     rw [lhs, l25Word, ChildClaims.words, e2, e24]
-    generalize hA2 : ([(digestScalars cc.publicInput).1, (digestScalars cc.publicInput).2] :
+    generalize hA2 : ([(digestHalves cc.publicInput).1, (digestHalves cc.publicInput).2] :
       List E) = A2
     have hA : A2.length = 2 := by rw [← hA2]; rfl
     have hAF : (A2 ++ DeferredClaim.cells cc.freshClaim).length = 26 := by simp [hA, hfl]

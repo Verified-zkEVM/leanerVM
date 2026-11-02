@@ -39,7 +39,7 @@ read the caller's words. -/
 def LoopBlockIn (κ : ℕ) (fn : Fn) (Lin : Layout) (k : ℕ) (N : E) (rest : List E) : Prop :=
   ∀ rd, LowDef κ rd → MemL rd Lin → ∃ σ : Val, fn.params.map σ = gen ^ k :: N :: rest ∧
     (∀ a ∈ atomsIn (loopPre fn), a.Holds rd σ) ∧
-    ∀ q ∈ (loopPre fn).filterMap B1.Stmt.loadS, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧ RegionL Lin i
+    ∀ q ∈ (loopPre fn).filterMap B1.Stmt.loadS, ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex i ∧ RegionL Lin i
 
 theorem isAtomS_straight : ∀ {ss : List Stmt}, ss.all isAtomS = true → ss.all Main.Stmt.straight = true
   | [], _ => rfl

@@ -35,9 +35,9 @@ theorem runsTo_roundPolyNone (s : Fs) (claim c : E) (tail : List E) (count : ℕ
   have h2 := runsTo_readN (s.absorb c dsObserve) tail
   rw [h] at h2
   exact (h1.bind (f := fun constant ↦ do
-      let tail ← Prog.readScalars (count - 2)
+      let tail ← VerifierProgram.readScalars (count - 2)
       return constant :: (claim + sumE tail) :: tail)
-    (h2.bind (f := fun t ↦ (pure (c :: (claim + sumE t) :: t) : Prog (List E)))
+    (h2.bind (f := fun t ↦ (pure (c :: (claim + sumE t) :: t) : VerifierProgram (List E)))
       (runsTo_ret _ _))).of_eq rfl (by simp) rfl rfl
 
 /-- One round of `sumcheck`: its polynomial, a sample, the rounds after it. -/
@@ -47,13 +47,13 @@ theorem runsTo_sumcheck_cons {s s1 s2 : Fs} {claim : E} {count : ℕ} {eq : Opti
     (h2 : RunsTo (sumcheck (polyEval msg s1.squeeze.1) count eqs) s1.squeeze.2 ys (pt, fin) s2) :
     RunsTo (sumcheck claim count (eq :: eqs)) s (xs ++ ys) (s1.squeeze.1 :: pt, fin) s2 := by
   have h := h1.bind (f := fun message ↦ do
-      let challenge ← Prog.sampleChallenge
+      let challenge ← VerifierProgram.sampleChallenge
       let (point, final) ← sumcheck (polyEval message challenge) count eqs
       return (challenge :: point, final))
     ((runsTo_sampleE s1).bind (f := fun challenge ↦ do
       let (point, final) ← sumcheck (polyEval msg challenge) count eqs
       return (challenge :: point, final))
-      (h2.bind (f := fun p ↦ (pure (s1.squeeze.1 :: p.1, p.2) : Prog (List E × E)))
+      (h2.bind (f := fun p ↦ (pure (s1.squeeze.1 :: p.1, p.2) : VerifierProgram (List E × E)))
         (runsTo_ret _ _)))
   exact h.of_eq rfl (by simp) rfl rfl
 

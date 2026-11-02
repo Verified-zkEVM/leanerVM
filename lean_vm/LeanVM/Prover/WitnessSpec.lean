@@ -57,7 +57,7 @@ theorem eq_outCol {i : Fin (width (opIdx 5))} (h : 38 ≤ i.val) (h' : i.val < 6
   congr 1
   exact Fin.ext (by simp; omega)
 
-variable {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog))
+variable {prog : LeanIsaProgram} (w : EnsembleWitness (leanIsaEnsemble prog))
   (hp : 0 < (imageOf w.data).1)
 
 /-- An input lane of a witness, at the sizes it carries, is its cell, a padding row's zero. -/

@@ -396,7 +396,7 @@ include hread hR in
 /-- `XOR`: three reads, at most `3R + 283`. -/
 theorem executeXor_cost (hP : Includes P executeWithShared.c260.costDeps) (r : Registers K)
     (oA oB oC : K) :
-    machineCost P executeWithShared.c260.costIdx [readVal, encodeValue r, encodeValue (Instr.xor oA oB oC)] ≤
+    machineCost P executeWithShared.c260.costIdx [readVal, encodeValue r, encodeValue (LeanIsaInstruction.xor oA oB oC)] ≤
       3 * R + 283 := by
   rw [executeWithShared.c260.costEq_xor P hP read readVal hread]
   have h3 : ∀ vA vB vC : E, appCost P (.closure executeWithShared.c260.lam0.lam0.lam0.costIdx
@@ -436,7 +436,7 @@ include hread hR in
 /-- `MUL`: three reads and one product in `E`, at most `3R + 1117`. -/
 theorem executeMul_cost (hP : Includes P executeWithShared.c260.costDeps) (r : Registers K)
     (oA oB oC : K) :
-    machineCost P executeWithShared.c260.costIdx [readVal, encodeValue r, encodeValue (Instr.mulNative oA oB oC)] ≤
+    machineCost P executeWithShared.c260.costIdx [readVal, encodeValue r, encodeValue (LeanIsaInstruction.mulNative oA oB oC)] ≤
       3 * R + 1117 := by
   rw [executeWithShared.c260.costEq_mulNative P hP read readVal hread]
   have h3 : ∀ vA vB vC : E, appCost P (.closure executeWithShared.c260.lam1.lam0.lam0.costIdx
@@ -476,7 +476,7 @@ include hread hR in
 /-- `SET`: one read, at most `R + 121`. -/
 theorem executeSet_cost (hP : Includes P executeWithShared.c260.costDeps) (r : Registers K)
     (o : K) (k : E) :
-    machineCost P executeWithShared.c260.costIdx [readVal, encodeValue r, encodeValue (Instr.setConstant o k)] ≤
+    machineCost P executeWithShared.c260.costIdx [readVal, encodeValue r, encodeValue (LeanIsaInstruction.setConstant o k)] ≤
       R + 121 := by
   rw [executeWithShared.c260.costEq_setConstant P hP read readVal hread]
   have h1 : ∀ v : E, appCost P (.closure executeWithShared.c260.lam2.costIdx [encodeValue k, encodeValue r]) [encodeValue v] ≤ 73 := by
@@ -503,7 +503,7 @@ include hread hR in
 /-- `DEREF`: three reads, at most `3R + 863`. -/
 theorem executeDeref_cost (hP : Includes P executeWithShared.c260.costDeps) (r : Registers K)
     (o1 o2 o3 : K) (mode : DerefMode) :
-    machineCost P executeWithShared.c260.costIdx [readVal, encodeValue r, encodeValue (Instr.deref o1 o2 o3 mode)] ≤
+    machineCost P executeWithShared.c260.costIdx [readVal, encodeValue r, encodeValue (LeanIsaInstruction.deref o1 o2 o3 mode)] ≤
       3 * R + 863 := by
   rw [executeWithShared.c260.costEq_deref P hP read readVal hread]
   have h4 : ∀ (p v3 v2 : E), appCost P (.closure executeWithShared.c260.lam3.lam0.lam0.lam0.costIdx
@@ -553,7 +553,7 @@ include hread hR in
 /-- `JUMP`: three reads, at most `3R + 286`. -/
 theorem executeJump_cost (hP : Includes P executeWithShared.c260.costDeps) (r : Registers K)
     (oc od of : K) :
-    machineCost P executeWithShared.c260.costIdx [readVal, encodeValue r, encodeValue (Instr.jump oc od of)] ≤
+    machineCost P executeWithShared.c260.costIdx [readVal, encodeValue r, encodeValue (LeanIsaInstruction.jump oc od of)] ≤
       3 * R + 286 := by
   rw [executeWithShared.c260.costEq_jump P hP read readVal hread]
   have h4 : ∀ (c d f : E) (u : Unit), appCost P (.closure executeWithShared.c260.lam4.lam0.lam0.lam0.costIdx
@@ -674,7 +674,7 @@ theorem keccakInOffset_cost (hP : Includes P executeWithShared.c260.costDeps) (o
     machineCost P executeWithShared.c260.lam6.costIdx [encodeValue om, encodeValue otail, encodeValue ob8, encodeValue ocap, encodeValue c] ≤
       206 := by
   rw [executeWithShared.c260.lam6.costEq P (by includes),
-    keccakInOffset.c309.costEq P (by includes) om _
+    keccakInputCellOffset.c309.costEq P (by includes) om _
       (fun a ↦ RunsApp.of_spec (executeWithShared.c260.lam6.lam0.costSpec P (by includes) om a))]
   have hc := c.isLt
   simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil,
@@ -693,7 +693,7 @@ include hread hR in
 theorem executeKeccak_cost (hP : Includes P executeWithShared.c260.costDeps) (r : Registers K)
     (om : Fin 4 → K) (otail ob8 ocap oout : K) (inOdd outOdd : Bool) :
     machineCost P executeWithShared.c260.costIdx
-      [readVal, encodeValue r, encodeValue (Instr.keccak om otail ob8 ocap oout inOdd outOdd)] ≤ 26 * R + 362367 := by
+      [readVal, encodeValue r, encodeValue (LeanIsaInstruction.keccak om otail ob8 ocap oout inOdd outOdd)] ≤ 26 * R + 362367 := by
   rw [executeWithShared.c260.costEq_keccak P hP read readVal hread]
   have h1 := readCells_cost P read readVal hread R hR (by includes) r.fp _
     (.closure executeWithShared.c260.lam6.costIdx [encodeValue om, encodeValue otail, encodeValue ob8, encodeValue ocap])
@@ -711,14 +711,14 @@ theorem executeKeccak_cost (hP : Includes P executeWithShared.c260.costDeps) (r 
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       have := keccakOutput_cost P read readVal hread R hR hP oout inOdd outOdd r input
       omega)
-    (readCells read r.fp (keccakInOffset om otail ob8 ocap))
+    (readCells read r.fp (keccakInputCellOffset om otail ob8 ocap))
   omega
 
 include hread hR in
 /-- **One instruction** (`executeWithShared.c260`, `executeWith` as compiled), each read at most
 `R`: at most `26R + 362367` (`KECCAK` the worst). -/
 theorem executeWith_cost (hP : Includes P executeWithShared.c260.costDeps) (r : Registers K)
-    (i : Instr) :
+    (i : LeanIsaInstruction) :
     machineCost P executeWithShared.c260.costIdx [readVal, encodeValue r, encodeValue i] ≤ 26 * R + 362367 := by
   cases i with
   | xor oA oB oC => have := executeXor_cost P read readVal hread R hR hP r oA oB oC; omega
@@ -774,7 +774,8 @@ theorem memRead_cost (hP : Includes P stepVec.c258.lam0.lam0.costDeps) (memT : A
 /-- **One step** (`stepVec.c258`): the code table's lookup, the instruction, its reads (each a
 lookup in the memory table): at most `365466 + 36·log₂|codeT| + 936·log₂|memT|`. -/
 theorem stepVec_cost (hP : Includes P stepVec.c258.costDeps) (memT codeT : Array (ℕ × ℕ))
-    (hm : WordTable memT) (hc : WordTable codeT) (prog : Semantics.Program) {κ : ℕ} (hκ : κ < 64)
+    (hm : WordTable memT) (hc : WordTable codeT) (prog : Semantics.LeanIsaProgram) {κ : ℕ} (hκ :
+        κ < 64)
     (mem : Vector E (2 ^ κ)) (r : Registers K) :
     machineCost P stepVec.c258.costIdx [encodeValue memT, encodeValue codeT, encodeValue prog, encodeValue κ, encodeValue mem, encodeValue r] ≤
       365466 + 36 * Nat.log2 codeT.size + 936 * Nat.log2 memT.size := by
@@ -800,7 +801,7 @@ theorem stepVec_cost (hP : Includes P stepVec.c258.costDeps) (memT codeT : Array
           have := memRead_cost P (by includes) memT hm hκ mem a
           omega) (by includes) r i
       omega)
-    (Option.map prog.code (gLogTable codeT prog.logSize r.pc))
+    (Option.map prog.instructions (gLogTable codeT prog.logSize r.pc))
   omega
 
 end Step

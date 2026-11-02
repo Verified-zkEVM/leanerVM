@@ -200,8 +200,8 @@ variable (P fs ν) in
 def ReadsAt (rd rd0 : Reader) (fp : ℕ) (f : String) (σ : Val) (es : List Ev) : Prop :=
   (∀ a, Ev.atom a ∈ es → atomTmps a = [] → ∀ q ∈ atomEqns σ a, rd q.1 = rd0 q.1) ∧
     ∀ x y t1 t2 k, Ev.atom (.rangeCheck x y t1 t2 k) ∈ es →
-      rd ((σ x).limb 0 * gpow 0) = some (ν fp f σ t1) ∧
-        rd ((σ y).limb 0 * gpow 0) = some (ν fp f σ t2)
+      rd ((σ x).limb 0 * addressOfIndex 0) = some (ν fp f σ t1) ∧
+        rd ((σ y).limb 0 * addressOfIndex 0) = some (ν fp f σ t2)
 
 mutual
 /-- **`Tree.ReadsAs` from its instances**: the local conditions at every node instance. -/
@@ -426,10 +426,10 @@ structure DischargeHyps (H : Inst → ℕ → E × E) (C : Inst → List (ℕ ×
   placed : T.Placed P fs cert 0
   loads : T.LoadsIn P fs cert R 0
   region : ∀ i, R i → i < 2 ∨ ∀ I ∈ honestInsts P fs H hdr T, ∀ o < fs I.t.name,
-    gpow i ≠ gpow (I.fp + o)
-  hdr_read : M.read (gpow 0) = some hdr.1 ∧ M.read (gpow 1) = some hdr.2
+    addressOfIndex i ≠ addressOfIndex (I.fp + o)
+  hdr_read : M.read (addressOfIndex 0) = some hdr.1 ∧ M.read (addressOfIndex 1) = some hdr.2
   size : T.total fs ≤ 2 ^ 32
-  addr : ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ logMem (T.total fs)), q.1 = gpow i
+  addr : ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ logMem (T.total fs)), q.1 = addressOfIndex i
   cells : CellsOk fs C (honestInsts P fs H hdr T)
   cells' : ∀ ν, CellsOk fs C (honestInsts P fs H hdr (T.retemp P fs ν 0))
   cert_lt : ∀ f, ∀ t ∈ P.temps f, 2 ≤ cert f t ∧ cert f t < fs f
@@ -451,7 +451,7 @@ variable (P fs cert H C hdr T) in
 /-- The words fixed independently of the temporaries: frame cells other than temporaries', and
 the equations of every atom but range checks. -/
 def FixedW (x : K) (w : E) : Prop :=
-  (∃ I ∈ honestInsts P fs H hdr T, ∃ q ∈ I.cells C, x = gpow (I.fp + q.1) ∧ w = q.2 ∧
+  (∃ I ∈ honestInsts P fs H hdr T, ∃ q ∈ I.cells C, x = addressOfIndex (I.fp + q.1) ∧ w = q.2 ∧
       ¬ TmpOff P cert I.t q.1) ∨
     ∃ I ∈ honestInsts P fs H hdr T, (∃ f σ bufs kids, I.t = .node f σ bufs kids) ∧
       ∃ a, Ev.atom a ∈ I.t.events P ∧ atomTmps a = [] ∧ (x, w) ∈ atomEqns I.t.val a
@@ -462,7 +462,8 @@ def TempsOn (τ : Inst × V × K) : Prop :=
   τ.1 ∈ honestInsts P fs H hdr T ∧ ∃ f σ bufs kids, τ.1.t = .node f σ bufs kids ∧ RcRead P f σ τ.2.1 τ.2.2
 
 /-- A temporary's cell. -/
-def tempCell (cert : String → V → ℕ) (τ : Inst × V × K) : K := gpow (τ.1.fp + cert τ.1.t.name τ.2.1)
+def tempCell (cert : String → V → ℕ) (τ : Inst × V × K) : K := addressOfIndex (τ.1.fp + cert
+    τ.1.t.name τ.2.1)
 
 section Proof
 
@@ -475,7 +476,7 @@ theorem DischargeHyps.within {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {o
   omega
 
 theorem DischargeHyps.inj {x y : ℕ} (hx : x < T.total fs) (hy : y < T.total fs)
-    (he : gpow x = gpow y) : x = y := by
+    (he : addressOfIndex x = addressOfIndex y) : x = y := by
   have := h.size
   exact gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega) he
 
@@ -503,28 +504,33 @@ theorem DischargeHyps.classify {q : Write}
     {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
     {kids : List Tree} (ht : I.t = .node f σ bufs kids) {a : Atom} (ha : Ev.atom a ∈ I.t.events P)
     (hta : atomTmps a = []) (hq : q ∈ atomEqns σ a) :
-    (∃ K ∈ honestInsts P fs H hdr T, ∃ i, K.Buf i ∧ q.1 = gpow i) ∨ (∃ i, R i ∧ q.1 = gpow i) ∨
+    (∃ K ∈ honestInsts P fs H hdr T, ∃ i, K.Buf i ∧ q.1 = addressOfIndex i) ∨ (∃ i, R i ∧ q.1 =
+        addressOfIndex i) ∨
       ∃ K ∈ honestInsts P fs H hdr T, ∃ g σK bufsK kidsK, K.t = .node g σK bufsK kidsK ∧
         ∃ pK r rs, Ev.atom (.frameAddr pK (r :: rs)) ∈ K.t.events P ∧
-          ∃ (k : ℕ) (hk : k < (r :: rs).length), q.1 = gpow (K.fp + (cert g r + k)) ∧
+          ∃ (k : ℕ) (hk : k < (r :: rs).length), q.1 = addressOfIndex (K.fp + (cert g r + k)) ∧
             (q.1, σK (r :: rs)[k]) ∈ T.eqns P := by
   have hpl : ∀ {K : Inst}, K ∈ honestInsts P fs H hdr T → ∀ {g σK bufsK kidsK},
       K.t = .node g σK bufsK kidsK → ∀ {pK r rs}, Ev.atom (.frameAddr pK (r :: rs)) ∈ K.t.events P →
-      σK pK = ofK (gpow (K.fp + cert g r)) := fun {K} hK {g σK bufsK kidsK} hKt {pK r rs} he =>
+      σK pK = ofK (addressOfIndex (K.fp + cert g r)) := fun {K} hK {g σK bufsK kidsK} hKt {pK r
+          rs} he =>
     (Inst.nodeAt (insts_placedAt T 0 hdr h.placed K hK) (insts_placed T 0 hdr K hK) hKt).2 (pK, r)
       (List.mem_filterMap.mpr ⟨_, he, rfl⟩)
   have hrunEq : ∀ {K : Inst}, K ∈ honestInsts P fs H hdr T → ∀ {g σK bufsK kidsK},
       K.t = .node g σK bufsK kidsK → ∀ {pK r rs}, Ev.atom (.frameAddr pK (r :: rs)) ∈ K.t.events P →
       ∀ (k : ℕ) (hk : k < (r :: rs).length),
-        (gpow (K.fp + (cert g r + k)), σK (r :: rs)[k]) ∈ T.eqns P := by
+        (addressOfIndex (K.fp + (cert g r + k)), σK (r :: rs)[k]) ∈ T.eqns P := by
     intro K hK g σK bufsK kidsK hKt pK r rs he k hk
-    have hm : ((σK pK).limb 0 * gpow k, σK (r :: rs)[k]) ∈ atomEqns σK (.frameAddr pK (r :: rs)) :=
+    have hm : ((σK pK).limb 0 * addressOfIndex k, σK (r :: rs)[k]) ∈ atomEqns σK (.frameAddr pK (r
+        :: rs)) :=
       List.mem_mapIdx.mpr ⟨k, hk, rfl⟩
     have := eqns_of_insts (P := P) T 0 hdr K hK ⟨g, σK, bufsK, kidsK, hKt⟩ _ he _
       (by rw [hKt]; exact hm)
-    rw [hpl hK hKt he, show (ofK (gpow (K.fp + cert g r))).limb 0 = gpow (K.fp + cert g r) by simp,
-      show gpow (K.fp + cert g r) * gpow k = gpow (K.fp + (cert g r + k)) by
-        simp only [gpow, pow_add, mul_assoc]] at this
+    rw [hpl hK hKt he, show (ofK (addressOfIndex (K.fp + cert g r))).limb 0 = addressOfIndex (K.fp +
+        cert g r) by simp,
+      show addressOfIndex (K.fp + cert g r) * addressOfIndex k = addressOfIndex (K.fp + (cert g r
+          + k)) by
+        simp only [addressOfIndex, pow_add, mul_assoc]] at this
     exact this
   cases a with
   | load d p off =>
@@ -559,13 +565,16 @@ theorem DischargeHyps.classify {q : Write}
           have hp := hpl hI ht he
           refine Or.inr (Or.inr ⟨I, hI, f, σ, bufs, kids, ht, p, r, rs, he, k, hk, ?_, ?_⟩)
           · simp only
-            rw [hp, show (ofK (gpow (I.fp + cert f r))).limb 0 = gpow (I.fp + cert f r) by simp]
-            simp only [gpow, pow_add, mul_assoc]
+            rw [hp, show (ofK (addressOfIndex (I.fp + cert f r))).limb 0 = addressOfIndex (I.fp +
+                cert f r) by simp]
+            simp only [addressOfIndex, pow_add, mul_assoc]
           · have := hrunEq hI ht he k hk
             simp only
-            rw [hp, show (ofK (gpow (I.fp + cert f r))).limb 0 = gpow (I.fp + cert f r) by simp,
-              show gpow (I.fp + cert f r) * gpow k = gpow (I.fp + (cert f r + k)) by
-                simp only [gpow, pow_add, mul_assoc]]
+            rw [hp, show (ofK (addressOfIndex (I.fp + cert f r))).limb 0 = addressOfIndex (I.fp +
+                cert f r) by simp,
+              show addressOfIndex (I.fp + cert f r) * addressOfIndex k = addressOfIndex (I.fp +
+                  (cert f r + k)) by
+                simp only [addressOfIndex, pow_add, mul_assoc]]
             exact this
   | rangeCheck _ _ _ _ _ => simp [atomTmps] at hta
   | const _ _ => exact (List.not_mem_nil hq).elim
@@ -580,7 +589,8 @@ theorem DischargeHyps.classify {q : Write}
 
 omit h in
 theorem honest_mem_frameWrites {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {q : ℕ × E}
-    (hq : q ∈ I.cells C) : (gpow (I.fp + q.1), q.2) ∈ frameWrites C (honestInsts P fs H hdr T) :=
+    (hq : q ∈ I.cells C) : (addressOfIndex (I.fp + q.1), q.2) ∈ frameWrites C (honestInsts P fs H
+        hdr T) :=
   List.mem_flatMap.mpr ⟨I, hI, List.mem_map.mpr ⟨q, hq, rfl⟩⟩
 
 /-- **A non-range-check equation agrees with the frames.** -/
@@ -597,9 +607,9 @@ theorem DischargeHyps.cross_fixed {a : Write} (ha : a ∈ frameWrites C (honestI
     · obtain ⟨I0, hI0, -, hfp0, hh0⟩ := root_inst (P := P) (fs := fs) (H := H) (hdr := hdr) (T := T)
       have hM := h.valid.eqns_read h.lt_64 T q hqT (h.addr q hqT)
       rw [hqi] at hM
-      have hrd : ∀ j < 2, (gpow (I0.fp + j), if j = 0 then hdr.1 else hdr.2) ∈
+      have hrd : ∀ j < 2, (addressOfIndex (I0.fp + j), if j = 0 then hdr.1 else hdr.2) ∈
           frameWrites C (honestInsts P fs H hdr T) ∧
-            M.read (gpow j) = some (if j = 0 then hdr.1 else hdr.2) := by
+            M.read (addressOfIndex j) = some (if j = 0 then hdr.1 else hdr.2) := by
         intro j hj
         rcases (by omega : j = 0 ∨ j = 1) with rfl | rfl
         · refine ⟨?_, h.hdr_read.1⟩
@@ -625,7 +635,7 @@ theorem DischargeHyps.cross_fixed {a : Write} (ha : a ∈ frameWrites C (honestI
 /-- **The fixed words are consistent.** -/
 theorem DischargeHyps.fixed_consistent {x : K} {w w' : E} (hw : FixedW P fs cert H C hdr T x w)
     (hw' : FixedW P fs cert H C hdr T x w') : w = w' := by
-  have hfr : ∀ {w}, (∃ I ∈ honestInsts P fs H hdr T, ∃ q ∈ I.cells C, x = gpow (I.fp + q.1) ∧ w = q.2 ∧
+  have hfr : ∀ {w}, (∃ I ∈ honestInsts P fs H hdr T, ∃ q ∈ I.cells C, x = addressOfIndex (I.fp + q.1) ∧ w = q.2 ∧
       ¬ TmpOff P cert I.t q.1) → (x, w) ∈ frameWrites C (honestInsts P fs H hdr T) := by
     rintro w ⟨I, hI, q, hq, rfl, rfl, -⟩
     exact honest_mem_frameWrites hI hq
@@ -642,7 +652,8 @@ theorem DischargeHyps.fixed_consistent {x : K} {w w' : E} (hw : FixedW P fs cert
 
 theorem DischargeHyps.temp_cell {τ : Inst × V × K} (hτ : TempsOn P fs H hdr T τ) :
     ∃ g σ bufs kids, τ.1.t = .node g σ bufs kids ∧ τ.2.1 ∈ P.temps g ∧
-      tempCell cert τ = gpow (τ.1.fp + cert g τ.2.1) ∧ τ.1.fp + cert g τ.2.1 < T.total fs ∧
+      tempCell cert τ = addressOfIndex (τ.1.fp + cert g τ.2.1) ∧ τ.1.fp + cert g τ.2.1 <
+          T.total fs ∧
       τ.1.Frame fs (τ.1.fp + cert g τ.2.1) := by
   obtain ⟨hJ, g, σ, bufs, kids, ht, hrc⟩ := hτ
   have hmem := temps_of_rcRead hrc
@@ -729,12 +740,12 @@ theorem honestAt_retemp : ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν 0) cer
     (fun _ w hτ => h.temp_not_fixed hτ w)
   set F := resolveF (FixedW P fs cert H C hdr T) (TempsOn P fs H hdr T) (tempCell cert)
     (fun τ => τ.2.2) with hFdef
-  refine ⟨fun fp f _ t => F (gpow (fp + cert f t)), ?_⟩
-  set ν : ℕ → String → Val → V → E := fun fp f _ t => F (gpow (fp + cert f t)) with hν
+  refine ⟨fun fp f _ t => F (addressOfIndex (fp + cert f t)), ?_⟩
+  set ν : ℕ → String → Val → V → E := fun fp f _ t => F (addressOfIndex (fp + cert f t)) with hν
   have hF := h.fresh
   have htot : (T.retemp P fs ν 0).total fs = T.total fs := total_retemp T 0
   have hrv : ∀ {fp : ℕ} {f : String} {σ : Val} {t : V}, t ∈ P.temps f →
-      retempVal P ν fp f σ t = F (gpow (fp + cert f t)) := fun ht => by
+      retempVal P ν fp f σ t = F (addressOfIndex (fp + cert f t)) := fun ht => by
     simp only [retempVal, ht, ↓reduceIte, hν]
   -- The frames of the re-chosen tree agree with `F`.
   have hG1 : ∀ a ∈ frameWrites C (honestInsts P fs H hdr (T.retemp P fs ν 0)), F a.1 = a.2 := by
@@ -762,7 +773,7 @@ theorem honestAt_retemp : ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν 0) cer
       exact hF1 _ _ (Or.inl ⟨I, hI, q, hq', rfl, rfl, hto⟩)
   -- The equations of the re-chosen tree agree with `F`, at addresses of the old tree's.
   have hG2 : ∀ q ∈ (T.retemp P fs ν 0).eqns P,
-      F q.1 = q.2 ∧ ∃ i : Fin (2 ^ logMem (T.total fs)), q.1 = gpow i := by
+      F q.1 = q.2 ∧ ∃ i : Fin (2 ^ logMem (T.total fs)), q.1 = addressOfIndex i := by
     intro q hq
     obtain ⟨I', hI', ⟨f, σ', bufs, kids', hI't⟩, a, he, hqa⟩ :=
       eqns_insts (fs := fs) (lp := P.loop) (H := H) (T.retemp P fs ν 0) 0 hdr q hq
@@ -787,9 +798,10 @@ theorem honestAt_retemp : ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν 0) cer
       have hx : retempVal P ν I.fp f σ x = σ x := hag _ he x (by simp [Ev.uses, atomUses])
       have hy : retempVal P ν I.fp f σ y = σ y := hag _ he y (by simp [Ev.uses, atomUses])
       have hrc : ∀ {t : V} {z : V}, (t = t1 ∧ z = x) ∨ (t = t2 ∧ z = y) →
-          F (tempCell cert (I, t, (σ z).limb 0 * gpow 0)) = F ((σ z).limb 0 * gpow 0) := by
+          F (tempCell cert (I, t, (σ z).limb 0 * addressOfIndex 0)) = F ((σ z).limb 0 *
+              addressOfIndex 0) := by
         intro t z htz
-        refine hF2 (I, t, (σ z).limb 0 * gpow 0) ⟨hI, f, σ, bufs, kids, hIt, x, y, t1, t2, k, ?_, ?_⟩
+        refine hF2 (I, t, (σ z).limb 0 * addressOfIndex 0) ⟨hI, f, σ, bufs, kids, hIt, x, y, t1, t2, k, ?_, ?_⟩
         · rw [events_eq_node (bufs := []) (ks := []) (bufs' := bufs) (ks' := kids), ← hIt, hev]
           exact he
         · rcases htz with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
@@ -797,7 +809,7 @@ theorem honestAt_retemp : ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν 0) cer
           · exact Or.inr ⟨rfl, rfl⟩
       have hname : I.t.name = f := by rw [hIt]; rfl
       have hT : ∀ {t z : V}, (t = t1 ∧ z = x) ∨ (t = t2 ∧ z = y) →
-          ((σ z).limb 0 * gpow 0, σ t) ∈ T.eqns P := by
+          ((σ z).limb 0 * addressOfIndex 0, σ t) ∈ T.eqns P := by
         intro t z htz
         refine eqns_of_insts T 0 hdr I hI ⟨f, σ, bufs, kids, hIt⟩ _ hIev _ ?_
         rw [hIt]
@@ -827,7 +839,7 @@ theorem honestAt_retemp : ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν 0) cer
   have hcons := consistent_of_read (rd := fun x => some (F x)) fun q hq => by rw [hall q hq]
   have hκ' : logMem ((T.retemp P fs ν 0).total fs) < 64 := by rw [htot]; exact h.lt_64
   have haddr' : ∀ q ∈ (T.retemp P fs ν 0).eqns P,
-      ∃ i : Fin (2 ^ logMem ((T.retemp P fs ν 0).total fs)), q.1 = gpow i := by
+      ∃ i : Fin (2 ^ logMem ((T.retemp P fs ν 0).total fs)), q.1 = addressOfIndex i := by
     intro q hq; rw [htot]; exact (hG2 q hq).2
   have hread : ∀ q ∈ (T.retemp P fs ν 0).eqns P,
       (honest P fs H C hdr (T.retemp P fs ν 0)).read q.1 = some q.2 :=

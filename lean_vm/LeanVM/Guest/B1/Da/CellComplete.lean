@@ -31,7 +31,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main LeanVM.Guest.B1.Fwd
 
 /-- The cell's returns: its symbols' digest's cells, then their dot product with the weights. -/
 def cellRets (syms : List K) (ws : List E) : List E :=
-  digestCells (keccak256 (syms.flatMap kBytes)) ++
+  digestCells (keccak256 (syms.flatMap K.toBytes)) ++
     [((List.range LeanDa.cellSymbols).map fun e ↦ ws.getD e 0 * ofK (syms.getD e 0)).sum]
 
 /-- `da_verify_cell`'s meaning, for given symbols and weights in memory, gives its core IR. -/
@@ -159,7 +159,7 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
         simp only [List.getElem_map, List.getElem_range]
         rw [hsym j (by simpa using h1), ofK_eq_ofLimbs, ofLimbs_limb0,
           List.getD_eq_getElem _ _ (by omega)]
-      have hb : cellsBytes ((List.range 128).map fun e => σ (.n (packV e))) = syms.flatMap kBytes := by
+      have hb : cellsBytes ((List.range 128).map fun e => σ (.n (packV e))) = syms.flatMap K.toBytes := by
         rw [← hsyms, show (256 : ℕ) = 2 * 128 from rfl, flatMap_pairs, cellsBytes, List.flatMap_map]
         refine List.flatMap_congr fun e he => ?_
         rw [cellBytes, hpack e (List.mem_range.mp he), ofLimbs_limb0, ofLimbs_limb1]

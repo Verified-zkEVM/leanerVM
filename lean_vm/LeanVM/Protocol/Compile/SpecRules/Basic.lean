@@ -40,13 +40,13 @@ public section
 
 variable {α β : Type}
 
-namespace Prog
+namespace VerifierProgram
 
 /-! ## Where a run leaves `p` -/
 
 /-- The point at which `p` returns along the history `l`: the value returned, the history up to
 the return, and the rest; `none` if `p` does not return along `l`. -/
-def retSplit : Prog α → List Ev → Option (α × List Ev × List Ev)
+def retSplit : VerifierProgram α → List Ev → Option (α × List Ev × List Ev)
   | ret a, l => some (a, [], l)
   | read k, Ev.read x :: es =>
     ((k x).retSplit es).map fun s ↦ (s.1, Ev.read x :: s.2.1, s.2.2)
@@ -63,7 +63,7 @@ def retSplit : Prog α → List Ev → Option (α × List Ev × List Ev)
   | _, _ => none
 
 /-- `retSplit` finds a return of `p`. -/
-theorem retSplit_spec : ∀ (p : Prog α) (l : List Ev) {a : α} {l₁ l₂ : List Ev},
+theorem retSplit_spec : ∀ (p : VerifierProgram α) (l : List Ev) {a : α} {l₁ l₂ : List Ev},
     p.retSplit l = some (a, l₁, l₂) → l = l₁ ++ l₂ ∧ p.after l₁ = some (ret a)
   | ret _, l, _, _, _, h => by
     simp only [retSplit, Option.some.injEq, Prod.mk.injEq] at h
@@ -123,7 +123,7 @@ theorem retSplit_spec : ∀ (p : Prog α) (l : List Ev) {a : α} {l₁ l₂ : Li
     · simp at h
 
 /-- A return of `p` is the one `retSplit` finds. -/
-theorem retSplit_of_after : ∀ (p : Prog α) (l₁ l₂ : List Ev) {a : α},
+theorem retSplit_of_after : ∀ (p : VerifierProgram α) (l₁ l₂ : List Ev) {a : α},
     p.after l₁ = some (ret a) → p.retSplit (l₁ ++ l₂) = some (a, l₁, l₂)
   | p, [], l₂, _, h => by
     simp only [after, Option.some.injEq] at h
@@ -140,24 +140,25 @@ theorem retSplit_of_after : ∀ (p : Prog α) (l₁ l₂ : List Ev) {a : α},
          · simp at h)
 
 /-- `retSplit` characterised. -/
-theorem retSplit_eq_some_iff {p : Prog α} {l : List Ev} {a : α} {l₁ l₂ : List Ev} :
+theorem retSplit_eq_some_iff {p : VerifierProgram α} {l : List Ev} {a : α} {l₁ l₂ : List Ev} :
     p.retSplit l = some (a, l₁, l₂) ↔ l = l₁ ++ l₂ ∧ p.after l₁ = some (ret a) :=
   ⟨retSplit_spec p l, fun ⟨h1, h2⟩ ↦ h1 ▸ retSplit_of_after p l₁ l₂ h2⟩
 
 /-- Where `retSplit` finds nothing, `p` is not at a return. -/
-theorem after_ne_ret_of_retSplit_eq_none {p : Prog α} {l : List Ev}
+theorem after_ne_ret_of_retSplit_eq_none {p : VerifierProgram α} {l : List Ev}
     (hs : p.retSplit l = none) (a : α) : p.after l ≠ some (ret a) := fun h ↦ by
   simpa [hs] using retSplit_of_after p l [] h
 
 /-- Extending a history past a return of `p` extends the rest. -/
-theorem retSplit_append {p : Prog α} {l : List Ev} {a : α} {l₁ l₂ : List Ev} (l' : List Ev)
+theorem retSplit_append {p : VerifierProgram α} {l : List Ev} {a : α} {l₁ l₂ : List Ev} (l' :
+    List Ev)
     (hs : p.retSplit l = some (a, l₁, l₂)) : p.retSplit (l ++ l') = some (a, l₁, l₂ ++ l') := by
   obtain ⟨rfl, h⟩ := retSplit_eq_some_iff.1 hs
   exact retSplit_eq_some_iff.2 ⟨by simp, h⟩
 
 /-- One event after a history along which `p` has not returned: if `p` returns now, it returns
 at the new history. -/
-theorem retSplit_concat {p : Prog α} {l : List Ev} {e : Ev} {a : α} {l₁ l₂ : List Ev}
+theorem retSplit_concat {p : VerifierProgram α} {l : List Ev} {e : Ev} {a : α} {l₁ l₂ : List Ev}
     (hs : p.retSplit l = none) (hs' : p.retSplit (l ++ [e]) = some (a, l₁, l₂)) :
     l₁ = l ++ [e] ∧ l₂ = [] := by
   obtain ⟨he, h⟩ := retSplit_eq_some_iff.1 hs'
@@ -168,15 +169,15 @@ theorem retSplit_concat {p : Prog α} {l : List Ev} {e : Ev} {a : α} {l₁ l₂
     simp [retSplit_of_after p l₁ L h] at hs
 
 /-- One more event after a history that leads to `p` is read by `p`. -/
-theorem after_snoc {P p : Prog α} {l : List Ev} (e : Ev) (ha : P.after l = some p) :
+theorem after_snoc {P p : VerifierProgram α} {l : List Ev} (e : Ev) (ha : P.after l = some p) :
     P.after (l ++ [e]) = p.after [e] :=
   after_append_single e ha
 
 /-! ## The program after a history of a `bind` -/
 
 /-- Inside `p`, `p.bind f` is at `p`'s node followed by `f`. -/
-theorem after_bind_of_after (f : α → Prog β) :
-    ∀ (p : Prog α) (l : List Ev) {q : Prog α}, p.after l = some q →
+theorem after_bind_of_after (f : α → VerifierProgram β) :
+    ∀ (p : VerifierProgram α) (l : List Ev) {q : VerifierProgram α}, p.after l = some q →
       (p.bind f).after l = some (q.bind f)
   | p, [], _, h => by simp only [after, Option.some.injEq] at h; simp [after, h]
   | p, e :: es, _, h => by
@@ -190,22 +191,23 @@ theorem after_bind_of_after (f : α → Prog β) :
          · simp at h)
 
 /-- After a return of `p` at `l₁`, `p.bind f` runs `f a`. -/
-theorem after_bind_append (f : α → Prog β) {p : Prog α} {l₁ : List Ev} {a : α}
+theorem after_bind_append (f : α → VerifierProgram β) {p : VerifierProgram α} {l₁ : List Ev} {a : α}
     (h : p.after l₁ = some (ret a)) (l₂ : List Ev) :
     (p.bind f).after (l₁ ++ l₂) = (f a).after l₂ := by
-  rw [Prog.after_append, after_bind_of_after f p l₁ h]
+  rw [VerifierProgram.after_append, after_bind_of_after f p l₁ h]
   rfl
 
 /-- Where `retSplit` finds the return of `p`, `p.bind f` runs `f`. -/
-theorem after_bind_of_retSplit_eq_some (f : α → Prog β) {p : Prog α} {l : List Ev} {a : α}
+theorem after_bind_of_retSplit_eq_some (f : α → VerifierProgram β) {p : VerifierProgram α} {l : List
+    Ev} {a : α}
     {l₁ l₂ : List Ev} (hs : p.retSplit l = some (a, l₁, l₂)) :
     (p.bind f).after l = (f a).after l₂ := by
   obtain ⟨rfl, h⟩ := retSplit_eq_some_iff.1 hs
   exact after_bind_append f h l₂
 
 /-- Where `retSplit` finds nothing, `p.bind f` is at `p`'s node, followed by `f`. -/
-theorem after_bind_of_retSplit_eq_none (f : α → Prog β) :
-    ∀ (p : Prog α) (l : List Ev), p.retSplit l = none →
+theorem after_bind_of_retSplit_eq_none (f : α → VerifierProgram β) :
+    ∀ (p : VerifierProgram α) (l : List Ev), p.retSplit l = none →
       (p.bind f).after l = (p.after l).map fun q ↦ q.bind f
   | p, [], _ => by simp [after]
   | ret a, e :: es, h => by simp [retSplit] at h
@@ -224,7 +226,8 @@ theorem after_bind_of_retSplit_eq_none (f : α → Prog β) :
 
 /-- The converse decomposition: a node of `p.bind f` is `p`'s followed by `f`, or `f a`'s after
 a return of `p` and at least one more event. -/
-theorem after_bind_cases (f : α → Prog β) {p : Prog α} {l : List Ev} {r : Prog β}
+theorem after_bind_cases (f : α → VerifierProgram β) {p : VerifierProgram α} {l : List Ev} {r :
+    VerifierProgram β}
     (h : (p.bind f).after l = some r) :
     (∃ q, p.after l = some q ∧ r = q.bind f) ∨
       ∃ a l₁ l₂, l = l₁ ++ l₂ ∧ p.after l₁ = some (ret a) ∧ l₂ ≠ [] ∧ (f a).after l₂ = some r := by
@@ -242,7 +245,7 @@ theorem after_bind_cases (f : α → Prog β) {p : Prog α} {l : List Ev} {r : P
 
 /-- A node of `p.bind f` inside `p` is `p`'s node followed by `f`: of the same kind, unless `p`
 returns. -/
-theorem bind_isMove {q : Prog α} {f : α → Prog β} (hq : ∀ a, q ≠ ret a) :
+theorem bind_isMove {q : VerifierProgram α} {f : α → VerifierProgram β} (hq : ∀ a, q ≠ ret a) :
     (q.bind f).IsMove ↔ q.IsMove := by
   cases q with
   | ret a => exact absurd rfl (hq a)
@@ -251,7 +254,7 @@ theorem bind_isMove {q : Prog α} {f : α → Prog β} (hq : ∀ a, q ≠ ret a)
 /-! ## Local runs of a `bind` -/
 
 /-- A local run reaches a node. -/
-theorem Reach.after_isSome {p : Prog α} {h₀ l : List Ev} (hl : p.Reach h₀ l) :
+theorem Reach.after_isSome {p : VerifierProgram α} {h₀ l : List Ev} (hl : p.Reach h₀ l) :
     ∃ q, p.after l = some q := by
   induction hl with
   | nil => simp [after]
@@ -260,11 +263,12 @@ theorem Reach.after_isSome {p : Prog α} {h₀ l : List Ev} (hl : p.Reach h₀ l
     simp [after]
 
 /-- The two cases of a local run of `p.bind f`. -/
-private def BindRun (p : Prog α) (f : α → Prog β) (h₀ l : List Ev) : Prop :=
+private def BindRun (p : VerifierProgram α) (f : α → VerifierProgram β) (h₀ l : List Ev) : Prop :=
   (p.retSplit l = none → p.Reach h₀ l) ∧
     ∀ a l₁ l₂, p.retSplit l = some (a, l₁, l₂) → p.Reach h₀ l₁ ∧ (f a).Reach (h₀ ++ l₁) l₂
 
-private theorem bindRun_step {p : Prog α} {f : α → Prog β} {h₀ l : List Ev} (e : Ev)
+private theorem bindRun_step {p : VerifierProgram α} {f : α → VerifierProgram β} {h₀ l : List Ev}
+    (e : Ev)
     (ih : BindRun p f h₀ l)
     (hp : p.Reach h₀ l → p.retSplit l = none → p.Reach h₀ (l ++ [e]))
     (hf : ∀ a l₁ l₂, l = l₁ ++ l₂ → (f a).Reach (h₀ ++ l₁) l₂ →
@@ -284,7 +288,7 @@ private theorem bindRun_step {p : Prog α} {f : α → Prog β} {h₀ l : List E
     exact ⟨h1, hf a l₁ l₂ (retSplit_eq_some_iff.1 hs).1 h2
       (after_bind_of_retSplit_eq_some f hs).symm⟩
 
-private theorem bindRun {p : Prog α} {f : α → Prog β} {h₀ l : List Ev}
+private theorem bindRun {p : VerifierProgram α} {f : α → VerifierProgram β} {h₀ l : List Ev}
     (hl : (p.bind f).Reach h₀ l) : BindRun p f h₀ l := by
   induction hl with
   | nil => exact ⟨fun _ ↦ .nil, fun a l₁ l₂ h ↦ by
@@ -338,13 +342,14 @@ private theorem bindRun {p : Prog α} {f : α → Prog β} {h₀ l : List Ev}
       exact .query hr hq hans
 
 /-- A local run of `p.bind f` along which `p` has not returned is a run of `p`. -/
-theorem reach_of_reach_bind {p : Prog α} {f : α → Prog β} {h₀ l : List Ev}
+theorem reach_of_reach_bind {p : VerifierProgram α} {f : α → VerifierProgram β} {h₀ l : List Ev}
     (hl : (p.bind f).Reach h₀ l) (hs : p.retSplit l = none) : p.Reach h₀ l :=
   (bindRun hl).1 hs
 
 /-- A local run of `p.bind f` past a return of `p` is a run of `p` to the return followed by a
 run of `f a`. -/
-theorem reach_of_reach_bind_of_retSplit {p : Prog α} {f : α → Prog β} {h₀ l : List Ev}
+theorem reach_of_reach_bind_of_retSplit {p : VerifierProgram α} {f : α → VerifierProgram β} {h₀ l :
+    List Ev}
     {a : α} {l₁ l₂ : List Ev} (hl : (p.bind f).Reach h₀ l) (hs : p.retSplit l = some (a, l₁, l₂)) :
     p.Reach h₀ l₁ ∧ (f a).Reach (h₀ ++ l₁) l₂ :=
   (bindRun hl).2 a l₁ l₂ hs
@@ -352,7 +357,7 @@ theorem reach_of_reach_bind_of_retSplit {p : Prog α} {f : α → Prog β} {h₀
 /-! ## Runs from the empty history -/
 
 /-- The local runs from the empty history are the interactive runs. -/
-theorem reach_nil_iff {P : Prog α} {l : List Ev} : P.Reach [] l ↔ P.Reachable l := by
+theorem reach_nil_iff {P : VerifierProgram α} {l : List Ev} : P.Reach [] l ↔ P.Reachable l := by
   constructor
   · intro hl
     induction hl with
@@ -371,7 +376,7 @@ theorem reach_nil_iff {P : Prog α} {l : List Ev} : P.Reach [] l ↔ P.Reachable
     | commit word _ ha hw ih => exact .commit word ih ha hw
     | query _ ha hans ih => exact .query ih ha (by simpa using hans)
 
-end Prog
+end VerifierProgram
 
 /-! ## Boundaries -/
 

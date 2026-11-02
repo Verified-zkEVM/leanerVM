@@ -47,7 +47,7 @@ def open_stacked_completeAtB_Spec : Prop :=
         Whir.NoZeroChallenge μ r target S xs os root → Whir.CapsAgree μ r target S xs os root →
         ∀ Lin : Layout, (∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd cur xs) →
           CompleteAtB fs cert κ (openName μ r) Lin
-            (capOf S ++ [target, (digestScalars root).1, (digestScalars root).2, cur]) (OsOut μ w)
+            (capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur]) (OsOut μ w)
             (osBosAt fs Bnd Kr μ r)
 
 /-- **`open_stacked` is complete placed at every candidate, within `osBosAt` words.** -/

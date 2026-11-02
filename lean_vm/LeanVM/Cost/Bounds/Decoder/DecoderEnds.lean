@@ -34,7 +34,7 @@ variable (P : LeanVM.Cost.MachineProgram)
 open Auto.LeanVM.Extraction.Fast in
 /-- **The address tables** (`decoderTablesC`): the memory's `2^κ` addresses and the bytecode's
 `2^ℓ`, each sorted. -/
-theorem decoderTables_cost (hP : Includes P decoderTablesC.costDeps) (prog : Program) (κ : ℕ)
+theorem decoderTables_cost (hP : Includes P decoderTablesC.costDeps) (prog : LeanIsaProgram) (κ : ℕ)
     (hκ : κ ≤ 62) :
     machineCost P decoderTablesC.costIdx [encodeValue prog, encodeValue κ] ≤
       (74 * κ + 121) * 2 ^ κ + (74 * prog.logSize + 121) * 2 ^ prog.logSize + 42 := by

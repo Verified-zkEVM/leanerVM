@@ -80,13 +80,13 @@ noncomputable def gA (R : List Coordinate) (C : ℝ≥0∞) (f : FIn) : ℝ≥0�
 noncomputable def sigRiskF (L : QueryLog SigningSpec) : ℝ≥0∞ := ((signatureLimit - L.length : ℕ) : ℝ≥0∞) * revRate
 
 /-- The creation rate of the scan signer: `(2 − landing)/2^128` per query. -/
-noncomputable def rateS : ℝ≥0∞ := (Fintype.card Randomness : ℝ≥0∞)⁻¹ * ((1 - landing) + 1)
+noncomputable def rateS : ℝ≥0∞ := (Fintype.card Randomizer : ℝ≥0∞)⁻¹ * ((1 - landing) + 1)
 
 /-- **The mass off the identity of the group of a message**: the mean over the starts of the walk
 value with payoff 1 at every cached landed pair, 0 for a fresh start that ends at a fresh position
 and 1 for a cached start that ends at a fresh position (pending mass). -/
 noncomputable def offMass (parameter : PublicParameter) (data : PublicData) (s : State) (m : Message) : ℝ≥0∞ :=
-  (Fintype.card Randomness : ℝ≥0∞)⁻¹ *
+  (Fintype.card Randomizer : ℝ≥0∞)⁻¹ *
     gv nextRand landing (stOf parameter data m s) (fun _ => 1) 0 1 digestAttemptLimit
 
 /-- The coin part of the reveal rate: the mass off the identity of the groups of the live messages
@@ -234,7 +234,7 @@ creation rate `(2 − landing)/2^128`. -/
 theorem offMass_newPair (s : State) (p : Pair) (hp0 : s.cache (pblk parameter data p) = none) :
     pairE (fun u0 => offMass parameter data (withPair parameter data s p u0) p.1) ≤
       offMass parameter data s p.1 + rateS := by
-  set cinv := (Fintype.card Randomness : ℝ≥0∞)⁻¹ with hcinv
+  set cinv := (Fintype.card Randomizer : ℝ≥0∞)⁻¹ with hcinv
   set st := stOf parameter data p.1 s with hstdef
   have hst : st p.2 = .fresh := by
     have h : s.cache (blk parameter data p.1 p.2) = none := hp0
@@ -252,7 +252,7 @@ theorem offMass_newPair (s : State) (p : Pair) (hp0 : s.cache (pblk parameter da
   have hc := creation_le (σ := nextRand) (p := landing) landing_le_one st (fun _ => (1 : ℝ≥0∞)) 0 1
     ENNReal.zero_ne_top ENNReal.one_ne_top p.2 hst digestAttemptLimit
     (fun j h0 hj => nextRand_pow_ne p.2 j h0 (lt_trans hj (by unfold digestAttemptLimit; norm_num)))
-  have hupd : Function.update (fun _ : Randomness => (1 : ℝ≥0∞)) p.2 (0 + 1) = fun _ => 1 := by
+  have hupd : Function.update (fun _ : Randomizer => (1 : ℝ≥0∞)) p.2 (0 + 1) = fun _ => 1 := by
     funext x
     by_cases hx : x = p.2
     · rw [hx, Function.update_self, zero_add]

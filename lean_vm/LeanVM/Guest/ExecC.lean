@@ -25,15 +25,17 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.Exec
 @[expose] public section
 
 /-- A function's code from offset `a`, its whole chunks before skipped first. -/
-def codeFrom (f : CompiledFn) (a : ℕ) : List OInstr :=
+def codeFrom (f : CompiledFunction) (a : ℕ) : List OffsetInstruction :=
   (f.chunks.drop (a / chunkSize)).flatten.drop (a % chunkSize)
 
 /-- `execWin`, the window's code read by `codeFrom`. -/
-noncomputable def execWinC (F : Facts) (f : CompiledFn) (a : ℕ) (env : List (ℕ × Sym)) (b : ℕ) :
+noncomputable def execWinC (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
+    (b : ℕ) :
     Result :=
-  pass F f.entry f.len ((codeFrom f a).take (b - a)) a (some (Cur.init a (envOf env))) [] [] 0
+  pass F f.entryPc f.instructionCount ((codeFrom f a).take (b - a)) a (some (Cur.init a (envOf
+      env))) [] [] 0
 
-theorem drop_flatten_chunked {C : ℕ} (hC : 0 < C) : ∀ {cs : List (List OInstr)} {n : ℕ},
+theorem drop_flatten_chunked {C : ℕ} (hC : 0 < C) : ∀ {cs : List (List OffsetInstruction)} {n : ℕ},
     chunked C cs n = true → ∀ a, cs.flatten.drop a = (cs.drop (a / C)).flatten.drop (a % C)
   | [], _, _, a => by simp
   | c :: cs, n, h, a => by
@@ -53,15 +55,17 @@ theorem drop_flatten_chunked {C : ℕ} (hC : 0 < C) : ∀ {cs : List (List OInst
           List.drop_eq_nil_of_le (by omega), List.nil_append, hl]
         exact drop_flatten_chunked hC h' (a - C)
 
-private theorem nth_past {α : Type} : ∀ {l : List α} {n : ℕ} {d : α}, l.length ≤ n → nth l n d = d
+private theorem nth_past {α : Type} : ∀ {l : List α} {n : ℕ} {d : α}, l.length ≤ n →
+    listElementOrDefault l n d = d
   | [], _, _, _ => rfl
   | _ :: _, 0, _, h => absurd h (by simp)
   | _ :: as, n + 1, _, h => nth_past (l := as) (by simpa using h)
 
-theorem fnOf_wellChunked (j : ℕ) : chunked chunkSize (fnOf j).chunks (fnOf j).len = true := by
+theorem fnOf_wellChunked (j : ℕ) : chunked chunkSize (fnOf j).chunks (fnOf j).instructionCount =
+    true := by
   by_cases h : j < Data.functions.length
   · unfold fnOf
-    rw [show nth Data.functions j default = Data.functions[j] from
+    rw [show listElementOrDefault Data.functions j default = Data.functions[j] from
       Option.some.inj ((nth_eq_getElem? default h).symm.trans (List.getElem?_eq_getElem h))]
     exact List.all_eq_true.mp functions_wellChunked _ (List.getElem_mem h)
   · unfold fnOf
@@ -70,7 +74,7 @@ theorem fnOf_wellChunked (j : ℕ) : chunked chunkSize (fnOf j).chunks (fnOf j).
 
 theorem execWinC_eq (j : ℕ) (F : Facts) (a : ℕ) (env : List (ℕ × Sym)) (b : ℕ) :
     execWinC F (fnOf j) a env b = execWin F (fnOf j) a env b := by
-  unfold execWinC execWin codeFrom CompiledFn.code
+  unfold execWinC execWin codeFrom CompiledFunction.code
   rw [← drop_flatten_chunked (by decide) (fnOf_wellChunked j)]
 
 end

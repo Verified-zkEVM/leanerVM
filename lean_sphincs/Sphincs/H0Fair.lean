@@ -74,7 +74,7 @@ theorem fair_of (q : ℕ) (hq : q + 2 ^ 32 + (scanM - 1) * LmaxOf q + (2 * scanM
   · unfold wbarOf
     rw [← ENNReal.ofReal_one]
     exact ENNReal.ofReal_le_ofReal ((div_le_one hDpos).2 hDger)
-  · have hc : (Fintype.card Randomness : ℝ≥0∞)⁻¹ = ENNReal.ofReal (1 / 2 ^ 128) := by
+  · have hc : (Fintype.card Randomizer : ℝ≥0∞)⁻¹ = ENNReal.ofReal (1 / 2 ^ 128) := by
       rw [GraphView.card_randomness, one_div, ENNReal.ofReal_inv_of_pos (by positivity)]
       congr 1
       rw [← ENNReal.ofReal_natCast]

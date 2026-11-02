@@ -37,7 +37,7 @@ theorem subOf_self {L : Main.Layout} {q : ℕ × List E} (hq : q ∈ L) : SubOf 
   ⟨q, hq, 0, by simp, by simp, by simp⟩
 
 theorem subOf_memL {rd : Reader} {L : Main.Layout} (hL : Main.MemL rd L) {q : ℕ × List E} (h : SubOf L q) :
-    ReadsAt rd (ofK (gpow q.1)) q.2 := by
+    ReadsAt rd (ofK (addressOfIndex q.1)) q.2 := by
   obtain ⟨q', hq', off, h1, h2, h3⟩ := h
   have hr := hL q' hq'
   intro k hk

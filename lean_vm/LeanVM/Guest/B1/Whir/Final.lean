@@ -43,7 +43,7 @@ theorem osFinal_sound {c : OsCfg} {m : ℕ} (hlen : 2 ^ m = c.yrLen)
       ReadsAt rd (st.cur σ) (ms ++ [nonce]) ∧ ReadsAt rd (σ (.n osFmsg)) ms ∧
       RunsTo (do
           let r ← levelMid m []
-          Prog.grindProofOfWork Whir.queryGrindingBits
+          VerifierProgram.grindProofOfWork Whir.queryGrindingBits
           pure r)
         (st.F σ) (ms ++ [nonce]) (ms, []) ⟨(osFinal c st).2.1.fsv σ, []⟩ ∧
       (osFinal c st).2.1.cur σ = st.cur σ * gen ^ (c.yrLen + 1) ∧
@@ -73,11 +73,12 @@ theorem osFinal_sound {c : OsCfg} {m : ℕ} (hlen : 2 ^ m = c.yrLen)
     exact decide_eq_true h17
   have e : (do
         let r ← levelMid m []
-        Prog.grindProofOfWork Whir.queryGrindingBits
+        VerifierProgram.grindProofOfWork Whir.queryGrindingBits
         pure r) =
-      (Prog.readScalars ms.length).bind fun residual ↦ (Prog.grindProofOfWork Whir.queryGrindingBits).bind
-        fun _ ↦ Prog.ret (residual, ([] : List (E × List E × (List E → E)))) := by
-    simp only [levelMid, hlen, hml, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+      (VerifierProgram.readScalars ms.length).bind fun residual ↦ (VerifierProgram.grindProofOfWork Whir.queryGrindingBits).bind
+        fun _ ↦ VerifierProgram.ret (residual, ([] : List (E × List E × (List E → E)))) := by
+    simp only [levelMid, hlen, hml, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+        VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
   refine ⟨ms, nonce, hml, ?_, hout, ?_, ?_, rfl⟩
   · simpa [OsSt.cur] using hrd
   · rw [e]

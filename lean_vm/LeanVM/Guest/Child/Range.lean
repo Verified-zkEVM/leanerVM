@@ -42,8 +42,9 @@ variable {α β : Type}
 /-! ## Refinement keeps the query steps -/
 
 /-- **A refining program's query steps are the refined one's.** -/
-theorem queriesOf_le {p q : Prog α} (hpq : Prog.Le p q) :
-    ∀ {st : ProgState} {b}, b ∈ Limits.queryStepsOf p st → b ∈ Limits.queryStepsOf q st := by
+theorem queriesOf_le {p q : VerifierProgram α} (hpq : VerifierProgram.Le p q) :
+    ∀ {st : VerifierProgramState} {b}, b ∈ Limits.queryStepsOf p st → b ∈ Limits.queryStepsOf q
+        st := by
   induction hpq with
   | fail q => intro st b h; simp [Limits.queryStepsOf] at h
   | ret a => intro st b h; exact h
@@ -98,7 +99,7 @@ theorem queriesOf_le {p q : Prog α} (hpq : Prog.Le p q) :
 /-- **Queries in range**: along every run of `p` from commitments of heights `hs`, every query
 asks positions below `2^` its commitment's height, and every value returned satisfies `Q` at the
 heights then committed. -/
-def InRange : Prog α → List ℕ → (α → List ℕ → Prop) → Prop
+def InRange : VerifierProgram α → List ℕ → (α → List ℕ → Prop) → Prop
   | .ret a, hs, Q => Q a hs
   | .fail, _, _ => True
   | .read k, hs, Q => ∀ x, InRange (k x) hs Q
@@ -109,7 +110,7 @@ def InRange : Prog α → List ℕ → (α → List ℕ → Prop) → Prop
 
 namespace InRange
 
-theorem mono {p : Prog α} {hs : List ℕ} {Q R : α → List ℕ → Prop} (h : InRange p hs Q)
+theorem mono {p : VerifierProgram α} {hs : List ℕ} {Q R : α → List ℕ → Prop} (h : InRange p hs Q)
     (hQR : ∀ a hs', Q a hs' → R a hs') : InRange p hs R := by
   induction p generalizing hs with
   | ret a => exact hQR a hs h
@@ -120,7 +121,8 @@ theorem mono {p : Prog α} {hs : List ℕ} {Q R : α → List ℕ → Prop} (h :
   | commit ht w k ih => exact ih h
   | query i ps k ih => exact ⟨h.1, fun r ↦ ih r (h.2 r)⟩
 
-theorem bind {p : Prog α} {f : α → Prog β} {hs : List ℕ} {Q : α → List ℕ → Prop}
+theorem bind {p : VerifierProgram α} {f : α → VerifierProgram β} {hs : List ℕ} {Q : α → List ℕ
+    → Prop}
     {R : β → List ℕ → Prop} (hp : InRange p hs Q) (hf : ∀ a hs', Q a hs' → InRange (f a) hs' R) :
     InRange (p.bind f) hs R := by
   induction p generalizing hs with
@@ -133,8 +135,8 @@ theorem bind {p : Prog α} {f : α → Prog β} {hs : List ℕ} {Q : α → List
   | query i ps k ih => exact ⟨hp.1, fun r ↦ ih r (hp.2 r)⟩
 
 /-- A program without commitments or queries keeps the heights. -/
-theorem of_noCommitA : ∀ {p : Prog α} {hs : List ℕ}, NoCommitA p →
-    InRange p hs fun a hs' ↦ hs' = hs ∧ Prog.Returns p a := by
+theorem of_noCommitA : ∀ {p : VerifierProgram α} {hs : List ℕ}, NoCommitA p →
+    InRange p hs fun a hs' ↦ hs' = hs ∧ VerifierProgram.Returns p a := by
   intro p
   induction p with
   | ret a => intro hs _; exact ⟨rfl, .ret a⟩
@@ -151,13 +153,14 @@ theorem of_noCommitA : ∀ {p : Prog α} {hs : List ℕ}, NoCommitA p →
   | commit _ _ _ _ => intro hs h; exact h.elim
   | query _ _ _ _ => intro hs h; exact h.elim
 
-theorem of_noCommit {p : Prog α} {hs : List ℕ} (h : NoCommit p) :
-    InRange p hs fun a hs' ↦ hs' = hs ∧ Prog.Returns p a :=
+theorem of_noCommit {p : VerifierProgram α} {hs : List ℕ} (h : NoCommit p) :
+    InRange p hs fun a hs' ↦ hs' = hs ∧ VerifierProgram.Returns p a :=
   of_noCommitA ((noCommit_iff _).1 h)
 
 /-- A program without commitments or queries, followed by one in range. -/
-theorem nc_bind {p : Prog α} {f : α → Prog β} {hs : List ℕ} {R : β → List ℕ → Prop}
-    (hp : NoCommit p) (hf : ∀ a, Prog.Returns p a → InRange (f a) hs R) :
+theorem nc_bind {p : VerifierProgram α} {f : α → VerifierProgram β} {hs : List ℕ} {R : β → List ℕ
+    → Prop}
+    (hp : NoCommit p) (hf : ∀ a, VerifierProgram.Returns p a → InRange (f a) hs R) :
     InRange (p.bind f) hs R :=
   bind (of_noCommit hp) fun a _ h ↦ h.1 ▸ hf a h.2
 
@@ -166,15 +169,15 @@ end InRange
 /-! ## WHIR -/
 
 theorem foldRounds_returns : ∀ (n : ℕ) (s : WhirStateT) (lf : List E) {r : WhirStateT × List E},
-    Prog.Returns (foldRoundsT n s lf) r → r.1.folds.length = s.folds.length + n
+    VerifierProgram.Returns (foldRoundsT n s lf) r → r.1.folds.length = s.folds.length + n
   | 0, s, lf, r, h => by
-    have := Prog.returns_ret h
+    have := VerifierProgram.returns_ret h
     subst this
     rfl
   | n + 1, s, lf, r, h => by
     unfold foldRoundsT at h
-    obtain ⟨c, -, h⟩ := Prog.returns_bind h
-    obtain ⟨_, -, h⟩ := Prog.returns_bind h
+    obtain ⟨c, -, h⟩ := VerifierProgram.returns_bind h
+    obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
     have := foldRounds_returns n _ _ h
     simp only [List.length_append, List.length_singleton] at this
     omega
@@ -184,7 +187,7 @@ theorem noCommit_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
   | 0, _, _ => noCommit_ret _
   | n + 1, s, lf => by
     unfold foldRoundsT
-    simp only [Prog.bind_eq]
+    simp only [VerifierProgram.bind_eq]
     exact NoCommit.bind noCommit_sampleE fun _ ↦ NoCommit.bind
       (noCommit_sumcheckRoundPoly _ _ _) fun _ ↦ noCommit_foldRounds n _ _
 
@@ -192,7 +195,7 @@ theorem noCommit_tailRounds : ∀ (n : ℕ) (t : E) (quad : List E), NoCommit (t
   | 0, _, _ => noCommit_ret _
   | n + 1, t, quad => by
     unfold tailRoundsT
-    simp only [Prog.bind_eq, Prog.pure_eq]
+    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     refine NoCommit.bind noCommit_sampleE fun _ ↦ ?_
     split
     · exact noCommit_ret _
@@ -204,27 +207,27 @@ theorem noCommit_sampleQueriesAux (depth : ℕ) : ∀ (fuel remaining : ℕ),
   | 0, _ => noCommit_ret _
   | fuel + 1, remaining => by
     unfold sampleQueriesAux
-    simp only [Prog.bind_eq, Prog.pure_eq]
+    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     split
     · exact noCommit_ret _
     · exact NoCommit.bind noCommit_sampleE fun _ ↦ NoCommit.bind
         (noCommit_sampleQueriesAux depth fuel _) fun _ ↦ noCommit_ret _
 
 theorem sampleQueriesAux_returns (depth : ℕ) : ∀ (fuel remaining : ℕ) {qs : List ℕ},
-    Prog.Returns (sampleQueriesAux depth fuel remaining) qs → ∀ q ∈ qs, q < 2 ^ depth
+    VerifierProgram.Returns (sampleQueriesAux depth fuel remaining) qs → ∀ q ∈ qs, q < 2 ^ depth
   | 0, _, qs, h => by
-    have := Prog.returns_ret h
+    have := VerifierProgram.returns_ret h
     subst this
     simp
   | fuel + 1, remaining, qs, h => by
     unfold sampleQueriesAux at h
     split at h
-    · have := Prog.returns_ret h
+    · have := VerifierProgram.returns_ret h
       subst this
       simp
-    · obtain ⟨c, -, h⟩ := Prog.returns_bind h
-      obtain ⟨rest, hrest, h⟩ := Prog.returns_bind h
-      have := Prog.returns_ret h
+    · obtain ⟨c, -, h⟩ := VerifierProgram.returns_bind h
+      obtain ⟨rest, hrest, h⟩ := VerifierProgram.returns_bind h
+      have := VerifierProgram.returns_ret h
       subst this
       intro q hq
       rcases List.mem_append.mp hq with hq | hq
@@ -253,11 +256,11 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
     cases rest with
     | nil =>
       refine InRange.nc_bind (noCommit_readN _) fun _ _ ↦ ?_
-      refine InRange.nc_bind (p := Prog.grindProofOfWork Whir.queryGrindingBits)
+      refine InRange.nc_bind (p := VerifierProgram.grindProofOfWork Whir.queryGrindingBits)
         ((noCommit_iff _).2 trivial) fun _ _ ↦ ?_
       refine InRange.nc_bind (p := sampleQueries _ level.queries)
         (noCommit_sampleQueriesAux _ _ _) fun queries hq ↦ ?_
-      refine InRange.nc_bind (p := Prog.sampleChallenge) noCommit_sampleE fun lam _ ↦ ?_
+      refine InRange.nc_bind (p := VerifierProgram.sampleChallenge) noCommit_sampleE fun lam _ ↦ ?_
       refine ⟨fun q hqq ↦ ?_, fun words ↦ ?_⟩
       · rw [← hdepth]
         exact sampleQueriesAux_returns _ _ _ hq q hqq
@@ -267,8 +270,9 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
         obtain ⟨tf, tg⟩ := r
         exact (InRange.of_noCommit (noCommit_require _)).mono fun _ _ _ ↦ trivial
     | cons next rest' =>
-      simp only [Prog.pure_eq, levelShape]
-      have hc : InRange (Prog.readCommitment (logN - s'.folds.length - next.fold + next.logInvRate)
+      simp only [VerifierProgram.pure_eq, levelShape]
+      have hc : InRange (VerifierProgram.readCommitment (logN - s'.folds.length - next.fold +
+          next.logInvRate)
           (3 * 2 ^ next.fold)) hs
           (fun _ hs' ↦ hs' = hs ++ [logN - s'.folds.length - next.fold + next.logInvRate]) :=
         rfl
@@ -282,11 +286,11 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
       refine InRange.nc_bind (noCommit_sampleN _) fun _ _ ↦ ?_
       refine InRange.nc_bind noCommit_readE fun _ _ ↦ ?_
       refine InRange.nc_bind (noCommit_sumcheckRoundPoly _ _ _) fun _ _ ↦ ?_
-      refine InRange.nc_bind (p := Prog.grindProofOfWork Whir.queryGrindingBits)
+      refine InRange.nc_bind (p := VerifierProgram.grindProofOfWork Whir.queryGrindingBits)
         ((noCommit_iff _).2 trivial) fun _ _ ↦ ?_
       refine InRange.nc_bind (p := sampleQueries _ level.queries)
         (noCommit_sampleQueriesAux _ _ _) fun queries hq ↦ ?_
-      refine InRange.nc_bind (p := Prog.sampleChallenge) noCommit_sampleE fun lam _ ↦ ?_
+      refine InRange.nc_bind (p := VerifierProgram.sampleChallenge) noCommit_sampleE fun lam _ ↦ ?_
       refine ⟨fun q hqq ↦ ?_, fun words ↦ ?_⟩
       · rw [hgi, ← hdepth]
         exact sampleQueriesAux_returns _ _ _ hq q hqq
@@ -302,21 +306,22 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
 /-! ## The verifier program -/
 
 theorem noCommit_busRest_computed (L : Layout) (alphas : List E) (beta : E) (point tv : List E) :
-    NoCommit (LeanVM.Guest.B1.Tables.busRest computedValue L alphas beta point tv) := by
+    NoCommit (LeanVM.Guest.B1.Tables.busRest computedBytecodeValue L alphas beta point tv) := by
   unfold LeanVM.Guest.B1.Tables.busRest
-  simp only [computedValue]
+  simp only [computedBytecodeValue]
   nc
 
 theorem noCommit_verifyBusBalance_computed (layout : Layout) :
-    NoCommit (verifyBusBalance computedValue layout) := by
+    NoCommit (verifyBusBalance computedBytecodeValue layout) := by
   rw [verifyBusBalance_split]
   exact NoCommit.bind (noCommit_sampleN _) fun _ ↦ NoCommit.bind noCommit_sampleE fun _ ↦
     NoCommit.bind (noCommit_gkrPhase _) fun _ ↦ noCommit_busRest_computed _ _ _ _ _
 
 theorem noCommit_restClaims_computed (layout : Layout) (pi : Digest) :
-    NoCommit (restClaims computedValue layout pi) := by
+    NoCommit (restClaims computedBytecodeValue layout pi) := by
   unfold restClaims keccakPhaseClaims ringSwitch
-  simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
+      VerifierProgram.ret_bind]
   refine NoCommit.bind (noCommit_verifyBusBalance_computed _) fun _ ↦ ?_
   refine NoCommit.bind (noCommit_tablePhase _ _) fun _ ↦ ?_
   refine NoCommit.bind (noCommit_publicInputPhase _ _) fun _ ↦ ?_
@@ -335,34 +340,34 @@ theorem inRange_commitStack (μ r : ℕ) (hs : List ℕ) :
     unfold Verifier.liftOption at hc
     split at hc
     · cases hc
-    · next a ha => rw [Prog.returns_ret hc]; exact ha
+    · next a ha => rw [VerifierProgram.returns_ret hc]; exact ha
   cases config with
   | nil => trivial
   | cons level rest => exact ⟨level, rest, hc', rfl⟩
 
 /-- **The verifier program opens in range**, from no commitment. -/
 theorem inRange_leanVmProgram (bytecode : List K) (publicInput : Digest) :
-    InRange (leanVmProgram bytecode publicInput) [] fun _ _ ↦ True := by
+    InRange (leanVmVerifierProgram bytecode publicInput) [] fun _ _ ↦ True := by
   rw [leanVmProgram_eq]
   rw [verifyExecution_pre]
   unfold specPre
-  simp only [Prog.bind_assoc]
+  simp only [VerifierProgram.bind_assoc]
   refine InRange.nc_bind (noCommit_readSizes _) fun ls _ ↦ ?_
   refine InRange.bind (inRange_commitStack _ _ []) fun _ hs' hc ↦ ?_
   obtain ⟨level, rest, hcfg, rfl⟩ := hc
   refine InRange.nc_bind (noCommit_restClaims_computed _ _) fun cl _ ↦ ?_
-  simp only [Prog.ret_bind]
+  simp only [VerifierProgram.ret_bind]
   unfold verifyStackedOpening
   simp only [verifyWhir_eq_target]
   unfold verifyWhirT
-  simp only [Prog.bind_eq, Prog.bind_assoc]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.bind_assoc]
   refine InRange.nc_bind noCommit_sampleE fun _ _ ↦ ?_
   refine InRange.nc_bind (noCommit_liftOption _) fun config hc ↦ ?_
   have hc' : Whir.ladder ls.1.stackLog ls.2 = some config := by
     unfold Verifier.liftOption at hc
     split at hc
     · cases hc
-    · next a ha => rw [Prog.returns_ret hc]; exact ha
+    · next a ha => rw [VerifierProgram.returns_ret hc]; exact ha
   rw [hcfg] at hc'
   cases hc'
   refine InRange.nc_bind (noCommit_sumcheckRoundPoly _ _ _) fun _ _ ↦ ?_

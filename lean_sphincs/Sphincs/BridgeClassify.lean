@@ -271,7 +271,7 @@ theorem chainOutput_hit (leaf : LeafIndex) (hland : Landed parameter leaf) (trac
     intro heq
     exact hne (bytesLE_injective (tweakableInput_injective heq).2.2)
   · change truncateHash (f (tweakableHashInput parameter (.chain topLayer rootTree leaf index step)
-      (bytesLE 16 payload))) = _
+      (littleEndianBytes 16 payload))) = _
     rw [hout, chain_value f parameter seed labels hconsistent topLayer rootTree leaf hland index step]
     rfl
 
@@ -290,7 +290,7 @@ theorem fchain_input_consistent (index : Index) (c : Coord) (s : SuperIdx) (j : 
     canonicalGraphInput parameter (otsSecrets f parameter seed) (ftsSecrets f parameter seed)
       (.fchain index c s j a i t) labels =
     tweakableHashInput parameter (.fchain index c s j a i t)
-      (bytesLE 16 (Forest.honestChain f parameter index c s j a i
+      (littleEndianBytes 16 (Forest.honestChain f parameter index c s j a i
         (Completeness.forestSecret f parameter index c s j a i seed) t.val)) := by
   refine fchain_input f parameter seed labels index c s j a i t (fun hpos => ?_)
   rw [fchain_value f parameter seed labels hconsistent]
@@ -516,7 +516,7 @@ theorem encodingMatch_hit (f : QueryImpl HashSpec Id) (parameter : PublicParamet
   have hexempt' : ¬ReferenceChoice.exemptInput f parameter topLayer rootTree leaf
       (SignatureWitness.canonicalForest f parameter seed leaf) =
         some (tweakableHashInput parameter (.encoding topLayer rootTree leaf)
-          (rootsPayload message ++ bytesLE 4 counter)) := hexempt
+          (rootsPayload message ++ littleEndianBytes 4 counter)) := hexempt
   unfold Wots.encodingInput
   rw [targets_at_entry _ _ _ _ _ hentry]
   simp only []

@@ -132,8 +132,8 @@ theorem osLevelB_common {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) 
     {lf : List E} (hlf : lf.length = lv.folds)
     (hfch : ∀ j < lv.folds, LoadHolds rd (σ (.n osFch)) (lv.foldsOff + j) (lf.getD j 0))
     {root : Digest}
-    (hr0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestScalars root).1)
-    (hr1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestScalars root).2) :
+    (hr0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestHalves root).1)
+    (hr1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestHalves root).2) :
     let F2 : Fs := ⟨st.fsv σ, []⟩
     let qs := queriesOf (192 / lv.depth) lv.depth (F2.squeezeN lv.squeezes).1 lv.queries
     σ (.n (bLam c lvl lv st)) = (F2.squeezeN lv.squeezes).2.squeeze.1 ∧
@@ -224,13 +224,14 @@ theorem levelRest_run {ml lvl : ℕ} {level : Whir.Level} {lf : List E} {ws : Wh
   rw [hF4] at h4
   have e : levelRest ml lvl level lf ws pending =
       (sampleQueries (ml + level.logInvRate) level.queries).bind fun queries ↦
-        Prog.sampleChallenge.bind fun lam ↦ (Prog.queryOpenings lvl queries).bind fun words ↦
+        VerifierProgram.sampleChallenge.bind fun lam ↦ (VerifierProgram.queryOpenings lvl
+            queries).bind fun words ↦
           (sumcheckRoundPoly 3 (enforcedSum (words.map (specRow lvl)) lf
             (powers lam queries.length)) none).bind fun intro ↦
-            Prog.ret (glueT lam ws (pending ++ [(enforcedSum (words.map (specRow lvl)) lf
+            VerifierProgram.ret (glueT lam ws (pending ++ [(enforcedSum (words.map (specRow lvl)) lf
               (powers lam queries.length), intro,
               fun x ↦ inducedWeight ml queries (powers lam queries.length) x)])) := by
-    simp only [levelRest, specRows_eq, Prog.bind_eq, Prog.pure_eq]
+    simp only [levelRest, specRows_eq, VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   rw [e]
   refine RunsWith.of_eq (RunsWith.bind' h1 (RunsWith.bind' h2 (RunsWith.bind' h3 (RunsWith.bind' h4
     (runsWith_ret _ _ _))))) rfl (by simp) (by simp) rfl rfl rfl rfl
@@ -263,8 +264,8 @@ theorem osLevelB_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) {
     (hfch : ∀ j < lv.folds, LoadHolds rd (σ (.n osFch)) (lv.foldsOff + j) (lf.getD j 0))
     {R : List (Digest × ℕ × ℕ)} {root : Digest}
     (hR : R[lvl]? = some (root, lv.depth, if lvl = 0 then lv.interleave else 3 * lv.interleave))
-    (hr0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestScalars root).1)
-    (hr1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestScalars root).2)
+    (hr0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestHalves root).1)
+    (hr1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestHalves root).2)
     {pending : List (E × List E × (List E → E))} (hpend : PendOk rd σ c lvl pending) :
     ∃ (xs : List E) (os : List Opening) (ws' : WhirStateT) (lam : E) (qs : List ℕ),
       os = bOs c lvl lv st rd σ W ∧ ReadsAt rd (st.cur σ) xs ∧ xs.length = 2 ∧

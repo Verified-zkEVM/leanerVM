@@ -107,7 +107,7 @@ input lanes, the cells written the output lanes. -/
 structure KeccakBindings {κ : ℕ} (mem : MemoryImage κ) (r : KeccakRow K) (inOdd outOdd : Bool) :
     Prop where
   /-- Cell `c` read holds the input lanes' cell `c` in the layout `inOdd`. -/
-  in_eq : ∀ c : Fin 13, mem.read (r.fp * keccakInOffset r.oms r.otail r.ob8 r.ocap c) =
+  in_eq : ∀ c : Fin 13, mem.read (r.fp * keccakInputCellOffset r.oms r.otail r.ob8 r.ocap c) =
     some (laneCells r.inLanes inOdd r.free c)
   /-- Cell `c` written holds the output lanes' cell `c` in the layout `outOdd`. -/
   out_eq : ∀ c : Fin 13, mem.read (r.fp * (g ^ c.val * r.oout)) =
@@ -116,7 +116,7 @@ structure KeccakBindings {κ : ℕ} (mem : MemoryImage κ) (r : KeccakRow K) (in
 /-- The relation a `KECCAK` row refines: its flags are the layouts `inOdd`, `outOdd`, it is bound
 to the image, and from its registers the machine executes the instruction it names to `next`. -/
 def KeccakRefines {κ : ℕ} (mem : MemoryImage κ) (r : KeccakRow K) (next : Registers K) : Prop :=
-  ∃ inOdd outOdd : Bool, r.oddIn = flagK inOdd ∧ r.oddOut = flagK outOdd ∧
+  ∃ inOdd outOdd : Bool, r.oddIn = layoutFlagWord inOdd ∧ r.oddOut = layoutFlagWord outOdd ∧
     KeccakBindings mem r inOdd outOdd ∧
     execute mem ⟨r.pc, r.fp⟩ (.keccak r.oms r.otail r.ob8 r.ocap r.oout inOdd outOdd) = some next
 
@@ -124,7 +124,7 @@ def KeccakRefines {κ : ℕ} (mem : MemoryImage κ) (r : KeccakRow K) (next : Re
 successor `(g·pc, fp)`. -/
 theorem keccak_refines_iff {κ : ℕ} (mem : MemoryImage κ) (r : KeccakRow K) (next : Registers K) :
     KeccakRefines mem r next ↔
-      (∃ inOdd outOdd : Bool, r.oddIn = flagK inOdd ∧ r.oddOut = flagK outOdd ∧
+      (∃ inOdd outOdd : Bool, r.oddIn = layoutFlagWord inOdd ∧ r.oddOut = layoutFlagWord outOdd ∧
         KeccakBindings mem r inOdd outOdd) ∧
       KeccakRelation r ∧ next = Registers.next ⟨r.pc, r.fp⟩ := by
   constructor
@@ -162,8 +162,8 @@ def KeccakSpec (r : KeccakRow K) (next : Registers K) (data : ProverData K) : Pr
 /-- A cell limb holding the same lane in both layouts, and the others, in the layout a flag
 selects (the forms `_layout_limb` takes with a missing lane). -/
 theorem layoutLimb_flag' (a : K) (odd : Bool) :
-    a + flagK odd * a = if odd then 0 else a := by
-  cases odd <;> simp [flagK, CharTwo.add_self_eq_zero]
+    a + layoutFlagWord odd * a = if odd then 0 else a := by
+  cases odd <;> simp [layoutFlagWord, CharTwo.add_self_eq_zero]
 
 /-- The tuple of a `KECCAK` bytecode read, flat. -/
 theorem keccak_tuple (c o0 o1 o2 o3 o4 o5 o6 o7 f1 f2 : K) :
@@ -172,19 +172,21 @@ theorem keccak_tuple (c o0 o1 o2 o3 o4 o5 o6 o7 f1 f2 : K) :
 
 /-- The bytecode tuple of a row is `entry` of the instruction it names. -/
 private theorem keccak_entry (om : Fin 4 → K) (otail ob8 ocap oout : K) (inOdd outOdd : Bool) :
-    #v[Opcode.keccak.code] ++ #v[om 0, om 1, om 2, om 3, otail, ob8, ocap, oout, flagK inOdd,
-      flagK outOdd] = entry (.keccak om otail ob8 ocap oout inOdd outOdd) := rfl
+    #v[Opcode.keccak.busCode] ++ #v[om 0, om 1, om 2, om 3, otail, ob8, ocap, oout,
+        layoutFlagWord inOdd,
+      layoutFlagWord outOdd] = busEntry (.keccak om otail ob8 ocap oout inOdd outOdd) := rfl
 
 /-- The bytecode tuple of a row, its operands spelled out, is `entry` of the instruction it names. -/
 private theorem keccak_entry' (a0 a1 a2 a3 otail ob8 ocap oout : K) (inOdd outOdd : Bool) :
-    #v[Opcode.keccak.code] ++ #v[a0, a1, a2, a3, otail, ob8, ocap, oout, flagK inOdd,
-      flagK outOdd] = entry (.keccak ![a0, a1, a2, a3] otail ob8 ocap oout inOdd outOdd) := rfl
+    #v[Opcode.keccak.busCode] ++ #v[a0, a1, a2, a3, otail, ob8, ocap, oout, layoutFlagWord inOdd,
+      layoutFlagWord outOdd] = busEntry (.keccak ![a0, a1, a2, a3] otail ob8 ocap oout inOdd
+          outOdd) := rfl
 
 /-- A decoding `KECCAK` tuple has `0/1` layout flags. -/
-theorem keccak_flags_of_decode {c o0 o1 o2 o3 o4 o5 o6 o7 f1 f2 : K} {ins : Instr}
-    (hc : c = Opcode.keccak.code)
+theorem keccak_flags_of_decode {c o0 o1 o2 o3 o4 o5 o6 o7 f1 f2 : K} {ins : LeanIsaInstruction}
+    (hc : c = Opcode.keccak.busCode)
     (h : decode #v[c, o0, o1, o2, o3, o4, o5, o6, o7, f1, f2] = some ins) :
-    ∃ b1 b2, f1 = flagK b1 ∧ f2 = flagK b2 := by
+    ∃ b1 b2, f1 = layoutFlagWord b1 ∧ f2 = layoutFlagWord b2 := by
   subst hc
   simp only [decode, Vector.getElem_mk, List.getElem_toArray, List.getElem_cons_zero,
     List.getElem_cons_succ, opcode?_code] at h
@@ -204,7 +206,7 @@ def keccakTable : GeneralFormalCircuit K KeccakRow Registers where
     let next : Var Registers K := ⟨Expression.const g * r.pc, r.fp⟩
     StatePull.pull ⟨r.pc, r.fp⟩
     StatePush.push next
-    bytecodeRead r.pc r.rbc (Expression.const Opcode.keccak.code)
+    bytecodeRead r.pc r.rbc (Expression.const Opcode.keccak.busCode)
       #v[r.om[0], r.om[1], r.om[2], r.om[3], r.otail, r.ob8, r.ocap, r.oout, r.oddIn, r.oddOut]
     memRead (r.fp * r.om[0]) r.cnt[0] #v[r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0], 0]
     memRead (r.fp * r.om[1]) r.cnt[1] #v[r.lin[2] + r.oddIn * r.lin[2] + r.oddIn * r.lin[1], r.lin[3] + r.oddIn * r.lin[3] + r.oddIn * r.lin[2], 0]
@@ -242,8 +244,8 @@ def keccakTable : GeneralFormalCircuit K KeccakRow Registers where
   Assumptions r _ := KeccakRelation r
   Spec := KeccakSpec
   -- The local premise: the flags are layouts and the twenty-six cells are bound.
-  ProverAssumptions r data _ := ∃ inOdd outOdd : Bool, r.oddIn = flagK inOdd ∧
-    r.oddOut = flagK outOdd ∧ KeccakBindings (imageOf data).2 r inOdd outOdd
+  ProverAssumptions r data _ := ∃ inOdd outOdd : Bool, r.oddIn = layoutFlagWord inOdd ∧
+    r.oddOut = layoutFlagWord outOdd ∧ KeccakBindings (imageOf data).2 r inOdd outOdd
   soundness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
       memRead, bytecodeRead]
@@ -257,29 +259,29 @@ def keccakTable : GeneralFormalCircuit K KeccakRow Registers where
     refine (keccak_refines_iff _ _ _).mpr ⟨⟨inOdd, outOdd, hfi, hfo, ⟨fun c ↦ ?_, fun c ↦ ?_⟩⟩,
       h_assumptions, rfl⟩
     · fin_cases c
-      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, KeccakRow.oms, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h0 ⊢ <;> exact h0
-      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, KeccakRow.oms, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h1 ⊢ <;> exact h1
-      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, KeccakRow.oms, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h2 ⊢ <;> exact h2
-      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, KeccakRow.oms, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h3 ⊢ <;> exact h3
-      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, pow_zero, one_mul] at h4 ⊢ <;> exact h4
-      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul, pow_one] at h5 ⊢ <;> exact h5
-      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h6 ⊢ <;> exact h6
-      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h7 ⊢ <;> exact h7
-      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h8 ⊢ <;> exact h8
-      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, Vector.getElem_map, pow_zero, one_mul] at h9 ⊢ <;> exact h9
-      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, Vector.getElem_map, pow_one] at h10 ⊢ <;> exact h10
-      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, Vector.getElem_map] at h11 ⊢ <;> exact h11
-      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, Vector.getElem_map] at h12 ⊢ <;> exact h12
+      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, KeccakRow.oms, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h0 ⊢ <;> exact h0
+      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, KeccakRow.oms, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h1 ⊢ <;> exact h1
+      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, KeccakRow.oms, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h2 ⊢ <;> exact h2
+      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, KeccakRow.oms, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h3 ⊢ <;> exact h3
+      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, pow_zero, one_mul] at h4 ⊢ <;> exact h4
+      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul, pow_one] at h5 ⊢ <;> exact h5
+      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h6 ⊢ <;> exact h6
+      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h7 ⊢ <;> exact h7
+      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h8 ⊢ <;> exact h8
+      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, Vector.getElem_map, pow_zero, one_mul] at h9 ⊢ <;> exact h9
+      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, Vector.getElem_map, pow_one] at h10 ⊢ <;> exact h10
+      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, Vector.getElem_map] at h11 ⊢ <;> exact h11
+      · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, Vector.getElem_map] at h12 ⊢ <;> exact h12
     · fin_cases c
-      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, pow_zero, one_mul] at h13 ⊢ <;> exact h13
-      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul, pow_one] at h14 ⊢ <;> exact h14
-      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h15 ⊢ <;> exact h15
-      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h16 ⊢ <;> exact h16
-      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h17 ⊢ <;> exact h17
-      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h18 ⊢ <;> exact h18
-      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h19 ⊢ <;> exact h19
-      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h20 ⊢ <;> exact h20
-      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h21 ⊢ <;> exact h21
+      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, pow_zero, one_mul] at h13 ⊢ <;> exact h13
+      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul, pow_one] at h14 ⊢ <;> exact h14
+      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h15 ⊢ <;> exact h15
+      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h16 ⊢ <;> exact h16
+      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h17 ⊢ <;> exact h17
+      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h18 ⊢ <;> exact h18
+      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h19 ⊢ <;> exact h19
+      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h20 ⊢ <;> exact h20
+      · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h21 ⊢ <;> exact h21
       · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, Vector.getElem_map] at h22 ⊢ <;> exact h22
       · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, Vector.getElem_map] at h23 ⊢ <;> exact h23
       · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, Vector.getElem_map] at h24 ⊢ <;> exact h24
@@ -292,49 +294,49 @@ def keccakTable : GeneralFormalCircuit K KeccakRow Registers where
     subst hom hlin hlout hfi hfo
     refine ⟨⟨_, by rw [keccak_entry']; exact decode_entry _⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · have h := hb.in_eq 0
-      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, KeccakRow.oms, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
+      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, KeccakRow.oms, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.in_eq 1
-      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, KeccakRow.oms, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
+      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, KeccakRow.oms, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.in_eq 2
-      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, KeccakRow.oms, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
+      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, KeccakRow.oms, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.in_eq 3
-      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, KeccakRow.oms, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
+      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, KeccakRow.oms, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.in_eq 4
-      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, pow_zero, one_mul] at h ⊢ <;> exact h
+      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, pow_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.in_eq 5
-      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul, pow_one] at h ⊢ <;> exact h
+      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul, pow_one] at h ⊢ <;> exact h
     · have h := hb.in_eq 6
-      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
+      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.in_eq 7
-      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
+      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.in_eq 8
-      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
+      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.in_eq 9
-      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, Vector.getElem_map, pow_zero, one_mul] at h ⊢ <;> exact h
+      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, Vector.getElem_map, pow_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.in_eq 10
-      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, Vector.getElem_map, pow_one] at h ⊢ <;> exact h
+      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, Vector.getElem_map, pow_one] at h ⊢ <;> exact h
     · have h := hb.in_eq 11
-      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, Vector.getElem_map] at h ⊢ <;> exact h
+      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, Vector.getElem_map] at h ⊢ <;> exact h
     · have h := hb.in_eq 12
-      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, Vector.getElem_map] at h ⊢ <;> exact h
+      cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, Vector.getElem_map] at h ⊢ <;> exact h
     · have h := hb.out_eq 0
-      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, pow_zero, one_mul] at h ⊢ <;> exact h
+      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, pow_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.out_eq 1
-      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul, pow_one] at h ⊢ <;> exact h
+      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul, pow_one] at h ⊢ <;> exact h
     · have h := hb.out_eq 2
-      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
+      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.out_eq 3
-      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
+      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.out_eq 4
-      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
+      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.out_eq 5
-      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
+      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.out_eq 6
-      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
+      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.out_eq 7
-      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
+      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.out_eq 8
-      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
+      cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h ⊢ <;> exact h
     · have h := hb.out_eq 9
       cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, Vector.getElem_map] at h ⊢ <;> exact h
     · have h := hb.out_eq 10
@@ -350,7 +352,7 @@ def keccakTable : GeneralFormalCircuit K KeccakRow Registers where
 read fails. -/
 noncomputable def keccakInputCells {κ : ℕ} (mem : MemoryImage κ) (fp : K) (om : Fin 4 → K)
     (otail ob8 ocap : K) (c : Fin 13) : E :=
-  (mem.read (fp * keccakInOffset om otail ob8 ocap c)).getD 0
+  (mem.read (fp * keccakInputCellOffset om otail ob8 ocap c)).getD 0
 
 /-- The row of an execution of `KECCAK om o_tail o_b8 o_cap o_out inOdd outOdd` from `(pc, fp)`
 over the image `mem`: the registers, the operands, the layout flags, the input lanes the cells
@@ -361,7 +363,8 @@ noncomputable def keccakRowOf {κ : ℕ} (mem : MemoryImage κ) (pc fp : K) (om 
     KeccakRow K :=
   let input := keccakInputCells mem fp om otail ob8 ocap
   let S := stateOfCells input inOdd
-  ⟨pc, fp, #v[om 0, om 1, om 2, om 3], otail, ob8, ocap, oout, flagK inOdd, flagK outOdd,
+  ⟨pc, fp, #v[om 0, om 1, om 2, om 3], otail, ob8, ocap, oout, layoutFlagWord inOdd, layoutFlagWord
+      outOdd,
     freeLimb input inOdd, Vector.ofFn (stateLanes S), Vector.ofFn (stateLanes (keccakF1600 S)), cnt,
     rbc⟩
 

@@ -25,12 +25,12 @@ variable {κ : ℕ} (L : MemoryImage κ) (fp : K)
 
 /-- The environment holds of the frame: every known cell holds its value. -/
 def EnvHolds (env : Trie Sym) : Prop :=
-  ∀ n v, env.get n = some v → L.read (fp * gpow n) = some (v.val fp)
+  ∀ n v, env.get n = some v → L.read (fp * addressOfIndex n) = some (v.val fp)
 
 /-- The stores hold: `L[fp[q]·g^off] = v`, `fp[q]` a word of `K`. -/
 def MemHolds (mem : List (ℕ × ℕ × Sym)) : Prop :=
-  ∀ q off v, (q, off, v) ∈ mem → ∃ p, L.read (fp * gpow q) = some p ∧ IsInK p ∧
-    L.read (p.limb 0 * gpow off) = some (v.val fp)
+  ∀ q off v, (q, off, v) ∈ mem → ∃ p, L.read (fp * addressOfIndex q) = some p ∧ IsInK p ∧
+    L.read (p.limb 0 * addressOfIndex off) = some (v.val fp)
 
 /-- What is known along a path holds. -/
 def St.Holds (st : St) : Prop :=
@@ -38,37 +38,38 @@ def St.Holds (st : St) : Prop :=
 
 /-- `a` is the register value `t` names. -/
 def Tgt.Is (a : K) : Tgt → Prop
-  | .gp e => a = gpow e
-  | .fpg e => a = fp * gpow e
-  | .cell o => ∃ v, L.read (fp * gpow o) = some v ∧ IsInK v ∧ a = v.limb 0
+  | .gp e => a = addressOfIndex e
+  | .fpg e => a = fp * addressOfIndex e
+  | .cell o => ∃ v, L.read (fp * addressOfIndex o) = some v ∧ IsInK v ∧ a = v.limb 0
 
 /-- **What an atom means**, of the memory and the frame. -/
 def Atom.Holds : Atom → Prop
   | .instr pc ins => Guest.Holds L pc fp ins
-  | .jump oc od of => ∃ c d f, L.read (fp * gpow oc) = some c ∧ L.read (fp * gpow od) = some d ∧
-      L.read (fp * gpow of) = some f ∧ IsInK c ∧ IsInK d ∧ IsInK f
-  | .copy dst src => ∃ v, L.read (fp * gpow src) = some v ∧ L.read (fp * gpow dst) = some v
-  | .eq a b => ∃ v, L.read (fp * gpow a) = some v ∧ L.read (fp * gpow b) = some v
-  | .nz x => ∃ v, L.read (fp * gpow x) = some v ∧ v ≠ 0
-  | .ne a b => ∃ u v, L.read (fp * gpow a) = some u ∧ L.read (fp * gpow b) = some v ∧ u ≠ v
-  | .bool x => ∃ v, L.read (fp * gpow x) = some v ∧ (v = 0 ∨ v = 1)
-  | .range x y k => ∃ e e', e + e' + 1 = k ∧ L.read (fp * gpow x) = some (ofK (gpow e)) ∧
-      L.read (fp * gpow y) = some (ofK (gpow e'))
+  | .jump oc od of => ∃ c d f, L.read (fp * addressOfIndex oc) = some c ∧ L.read (fp * addressOfIndex od) = some d ∧
+      L.read (fp * addressOfIndex of) = some f ∧ IsInK c ∧ IsInK d ∧ IsInK f
+  | .copy dst src => ∃ v, L.read (fp * addressOfIndex src) = some v ∧ L.read (fp * addressOfIndex dst) = some v
+  | .eq a b => ∃ v, L.read (fp * addressOfIndex a) = some v ∧ L.read (fp * addressOfIndex b) = some v
+  | .nz x => ∃ v, L.read (fp * addressOfIndex x) = some v ∧ v ≠ 0
+  | .ne a b => ∃ u v, L.read (fp * addressOfIndex a) = some u ∧ L.read (fp * addressOfIndex b) = some v ∧ u ≠ v
+  | .bool x => ∃ v, L.read (fp * addressOfIndex x) = some v ∧ (v = 0 ∨ v = 1)
+  | .range x y k => ∃ e e', e + e' + 1 = k ∧ L.read (fp * addressOfIndex x) = some (ofK (addressOfIndex e)) ∧
+      L.read (fp * addressOfIndex y) = some (ofK (addressOfIndex e'))
   | .powPair x y z => ∃ e e', e < 2 ^ κ ∧ e' < 2 ^ κ ∧
-      L.read (fp * gpow x) = some (ofK (gpow e)) ∧ L.read (fp * gpow y) = some (ofK (gpow e')) ∧
-      L.read (fp * gpow z) = some (ofK (gpow (e + e')))
+      L.read (fp * addressOfIndex x) = some (ofK (addressOfIndex e)) ∧ L.read (fp * addressOfIndex
+          y) = some (ofK (addressOfIndex e')) ∧
+      L.read (fp * addressOfIndex z) = some (ofK (addressOfIndex (e + e')))
 
 /-- The registers `r` an exit of a function at `entry` leaves to. -/
 def Kind.Regs (entry : ℕ) (r : Semantics.Registers K) : Kind → Prop
-  | .next t => r = ⟨gpow (entry + t), fp⟩
+  | .next t => r = ⟨addressOfIndex (entry + t), fp⟩
   | .ret => retRegs L fp = some r
-  | .call pc q _ => ∃ p a, L.read (fp * gpow q) = some p ∧ IsInK p ∧ pc.Is L fp a ∧
+  | .call pc q _ => ∃ p a, L.read (fp * addressOfIndex q) = some p ∧ IsInK p ∧ pc.Is L fp a ∧
       r = ⟨a, p.limb 0⟩
   | .jump pc f => ∃ a b, pc.Is L fp a ∧ f.Is L fp b ∧ r = ⟨a, b⟩
 
 /-- What else holds at an exit: a callee's frame holds the return registers. -/
 def Kind.Extra : Kind → Prop
-  | .call _ q r => ∃ p, L.read (fp * gpow q) = some p ∧ retRegs L (p.limb 0) = some ⟨gpow r, fp⟩
+  | .call _ q r => ∃ p, L.read (fp * addressOfIndex q) = some p ∧ retRegs L (p.limb 0) = some ⟨addressOfIndex r, fp⟩
   | _ => True
 
 /-- **Completeness along a path**: the atoms of `its` hold until the path leaves by a branch
@@ -78,10 +79,10 @@ def Follows (entry : ℕ) (r : Registers K) (Q : Prop) : List Item → Prop
   | .ins a :: its => a.Holds L fp ∧ Follows entry r Q its
   | .fact _ :: its => Follows entry r Q its
   | .branch oc od of x :: its => (Atom.jump oc od of).Holds L fp ∧
-      ((L.read (fp * gpow oc) = some 0 ∧ Follows entry r Q its) ∨
-        ((∃ v, L.read (fp * gpow oc) = some v ∧ v ≠ 0) ∧ x.kind.Regs L fp entry r))
+      ((L.read (fp * addressOfIndex oc) = some 0 ∧ Follows entry r Q its) ∨
+        ((∃ v, L.read (fp * addressOfIndex oc) = some v ∧ v ≠ 0) ∧ x.kind.Regs L fp entry r))
 
-variable (prog : Program)
+variable (prog : LeanIsaProgram)
 
 /-- An exit is reached with `k` steps left, fewer than the `k₀` the path started with: its
 environment and extra facts hold, and the run goes on from its registers. -/
@@ -97,8 +98,8 @@ def RunK (entry k₀ : ℕ) (Q : ℕ → Prop) : List Item → ℕ → Prop
   | .ins a :: its, k => a.Holds L fp ∧ ∃ k', k = k' + 1 ∧ RunK entry k₀ Q its k'
   | .fact a :: its, k => a.Holds L fp ∧ RunK entry k₀ Q its k
   | .branch oc od of x :: its, k => (Atom.jump oc od of).Holds L fp ∧ ∃ k', k = k' + 1 ∧
-      ((L.read (fp * gpow oc) = some 0 ∧ RunK entry k₀ Q its k') ∨
-        ((∃ v, L.read (fp * gpow oc) = some v ∧ v ≠ 0) ∧ x.Reached L fp prog entry k₀ k'))
+      ((L.read (fp * addressOfIndex oc) = some 0 ∧ RunK entry k₀ Q its k') ∨
+        ((∃ v, L.read (fp * addressOfIndex oc) = some v ∧ v ≠ 0) ∧ x.Reached L fp prog entry k₀ k'))
 
 end Semantics
 
@@ -110,16 +111,17 @@ structure Ctx (F : Facts) (κ : ℕ) (fp : K) : Prop where
   le : κ ≤ 32
 
 /-- The code from pc `pc` is fetched there, before the last slot. -/
-def Fetches (prog : Program) (pc : ℕ) (code : List OInstr) : Prop :=
+def Fetches (prog : LeanIsaProgram) (pc : ℕ) (code : List OffsetInstruction) : Prop :=
   ∀ j ins, code[j]? = some ins →
-    prog.fetch (gpow (pc + j)) = some ins.toInstr ∧ pc + j < 2 ^ prog.logSize - 1
+    prog.fetch (addressOfIndex (pc + j)) = some ins.toLeanIsaInstruction ∧ pc + j < 2 ^
+        prog.logSize - 1
 
 /-! ## Lemmas on values -/
 
 section Values
 
 theorem PowTree.find_ok {t : PowTree} (ht : t.Ok) {k e : ℕ} (h : t.find k = some e) :
-    K.ofBits k = gpow e := by
+    K.ofBits k = addressOfIndex e := by
   induction t with
   | leaf => exact absurd h (by simp [PowTree.find])
   | node k' e' l r ihl ihr =>
@@ -138,18 +140,20 @@ theorem ofK_zero : ofK 0 = 0 := map_zero (algebraMap K E)
 
 theorem ofK_one : ofK 1 = 1 := map_one (algebraMap K E)
 
-theorem imm_zero : OInstr.imm 0 0 0 = 0 := by
-  rw [OInstr.imm]
+theorem imm_zero : OffsetInstruction.immediateWord 0 0 0 = 0 := by
+  rw [OffsetInstruction.immediateWord]
   exact (ofLimbs_eq_zero_iff _).mpr rfl
 
-theorem imm_of_ofBits {k : ℕ} {a : K} (h : K.ofBits k = a) : OInstr.imm k 0 0 = ofK a := by
-  rw [OInstr.imm, h, ofK_eq_ofLimbs]
+theorem imm_of_ofBits {k : ℕ} {a : K} (h : K.ofBits k = a) : OffsetInstruction.immediateWord k 0 0 =
+    ofK a := by
+  rw [OffsetInstruction.immediateWord, h, ofK_eq_ofLimbs]
   rfl
 
-theorem gpow_zero' : gpow 0 = 1 := pow_zero g
+theorem gpow_zero' : addressOfIndex 0 = 1 := pow_zero g
 
 theorem symOf_val {F : Facts} (hp : F.pows.Ok) {k0 k1 k2 : ℕ} {v : Sym}
-    (h : F.symOf k0 k1 k2 = some v) (fp : K) : OInstr.imm k0 k1 k2 = v.val fp := by
+    (h : F.symOf k0 k1 k2 = some v) (fp : K) : OffsetInstruction.immediateWord k0 k1 k2 = v.val
+        fp := by
   simp only [Facts.symOf, Bool.cond_eq_ite, Bool.and_eq_true, beq_iff_eq] at h
   split_ifs at h with h12 h0 h1
   · obtain ⟨rfl, rfl⟩ := h12
@@ -166,7 +170,7 @@ theorem symOf_val {F : Facts} (hp : F.pows.Ok) {k0 k1 k2 : ℕ} {v : Sym}
     exact imm_of_ofBits (PowTree.find_ok hp he)
 
 theorem expo_val {s : Option Sym} {e : ℕ} (h : Sym.expo s = some e) (fp : K) :
-    ∃ v, s = some v ∧ v.val fp = ofK (gpow e) := by
+    ∃ v, s = some v ∧ v.val fp = ofK (addressOfIndex e) := by
   rcases s with _ | (_ | e' | _) <;> simp [Sym.expo] at h
   exact ⟨_, rfl, by rw [h]; rfl⟩
 
@@ -213,14 +217,15 @@ section Env
 variable {κ : ℕ} {L : MemoryImage κ} {fp : K}
 
 theorem EnvHolds.set {env : Trie Sym} (h : EnvHolds L fp env) {o : ℕ} {v : Sym} {d : ℕ}
-    (hv : L.read (fp * gpow o) = some (v.val fp)) : EnvHolds L fp (env.set v d o) := by
+    (hv : L.read (fp * addressOfIndex o) = some (v.val fp)) : EnvHolds L fp (env.set v d o) := by
   intro n w hw
   rcases Trie.get_set hw with ⟨rfl, rfl⟩ | hw
   · exact hv
   · exact h n w hw
 
 theorem EnvHolds.learn {env : Trie Sym} (h : EnvHolds L fp env) {o : ℕ} {v : Sym}
-    (hv : L.read (fp * gpow o) = some (v.val fp)) : EnvHolds L fp (Exec.learn env o v) := by
+    (hv : L.read (fp * addressOfIndex o) = some (v.val fp)) : EnvHolds L fp (Exec.learn env o
+        v) := by
   unfold Exec.learn
   split
   · exact h
@@ -233,8 +238,9 @@ theorem EnvHolds.sub {a b : Trie Sym} (hs : a.sub Sym.beq b = true) (h : EnvHold
   fun n v hv ↦ h n v (Trie.get_of_sub (fun _ _ ↦ Sym.beq_eq) hs hv)
 
 theorem MemHolds.cons {m : List (ℕ × ℕ × Sym)} (h : MemHolds L fp m) {q off : ℕ} {v : Sym}
-    (hv : ∃ p, L.read (fp * gpow q) = some p ∧ IsInK p ∧
-      L.read (p.limb 0 * gpow off) = some (v.val fp)) : MemHolds L fp ((q, off, v) :: m) := by
+    (hv : ∃ p, L.read (fp * addressOfIndex q) = some p ∧ IsInK p ∧
+      L.read (p.limb 0 * addressOfIndex off) = some (v.val fp)) : MemHolds L fp ((q, off, v) ::
+          m) := by
   intro q' off' v' hm
   rcases List.mem_cons.mp hm with he | hm
   · simp only [Prod.mk.injEq] at he
@@ -247,7 +253,7 @@ theorem MemHolds.take {m : List (ℕ × ℕ × Sym)} (h : MemHolds L fp m) (n : 
   fun q off v hm ↦ h q off v (List.mem_of_mem_take hm)
 
 theorem tgtOf_is {env : Trie Sym} (he : EnvHolds L fp env) {o : ℕ} {d : E}
-    (hd : L.read (fp * gpow o) = some d) (hdK : IsInK d) :
+    (hd : L.read (fp * addressOfIndex o) = some d) (hdK : IsInK d) :
     (tgtOf (env.get o) o).Is L fp (d.limb 0) := by
   unfold tgtOf
   split
@@ -304,19 +310,21 @@ section Step
 variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts}
 
 theorem read_addr (hκ : κ ≤ 32) {a : K} {v : E} (h : L.read a = some v) :
-    ∃ i < 2 ^ κ, a = gpow i := by
+    ∃ i < 2 ^ κ, a = addressOfIndex i := by
   obtain ⟨i, hi, -⟩ := (MemoryImage.read_eq_some_iff (by omega) L).mp h
   exact ⟨i, i.isLt, hi⟩
 
 /-- A word of `K` dereferenced at offset `0` is an address. -/
 theorem deref0_addr (hκ : κ ≤ 32) {p v : E} (hpK : IsInK p)
-    (h : L.read (p.limb 0 * gpow 0) = some v) : ∃ i < 2 ^ κ, p = ofK (gpow i) := by
+    (h : L.read (p.limb 0 * addressOfIndex 0) = some v) : ∃ i < 2 ^ κ, p = ofK (addressOfIndex
+        i) := by
   rw [gpow_zero', mul_one] at h
   obtain ⟨i, hi, he⟩ := read_addr hκ h
   exact ⟨i, hi, by rw [inK_eq hpK, he]⟩
 
-theorem ofK_gpow_mul (a b : ℕ) : ofK (gpow a) * ofK (gpow b) = ofK (gpow (a + b)) := by
-  rw [← ofK_mul, gpow, gpow, gpow, pow_add]
+theorem ofK_gpow_mul (a b : ℕ) : ofK (addressOfIndex a) * ofK (addressOfIndex b) = ofK
+    (addressOfIndex (a + b)) := by
+  rw [← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
 
 theorem mulFacts_holds {a b c pc : ℕ} {env : Trie Sym} (he : EnvHolds L fp env)
     (hh : Guest.Holds L pc fp (.mul a b c)) :
@@ -368,15 +376,17 @@ theorem mulEnv_holds {a b c pc : ℕ} {env : Trie Sym} (he : EnvHolds L fp env)
         obtain ⟨w, hw, hwv⟩ := expo_val heb fp
         obtain rfl := Option.some.inj ((he a _ hea).symm.trans hA)
         obtain rfl := Option.some.inj ((he b w hw).symm.trans hB)
-        rw [hC, hwv, Sym.val, Sym.val, ← ofK_mul, mul_assoc, gpow, gpow, gpow, pow_add]
+        rw [hC, hwv, Sym.val, Sym.val, ← ofK_mul, mul_assoc, addressOfIndex, addressOfIndex,
+            addressOfIndex, pow_add]
       · exact he
     · exact he
 
-theorem neFacts_holds {o pc : ℕ} {prev : List (ℕ × OInstr)}
+theorem neFacts_holds {o pc : ℕ} {prev : List (ℕ × OffsetInstruction)}
     (hprev : ∀ x ∈ prev, Guest.Holds L x.1 fp x.2) (hh : Guest.Holds L pc fp (.set o 1 0 0)) :
     ∀ x ∈ neFacts o prev, x.Holds L fp := by
-  have h1 : L.read (fp * gpow o) = some 1 := by
-    rw [show (1 : E) = OInstr.imm 1 0 0 from (imm_of_ofBits rfl).trans ofK_one |>.symm]
+  have h1 : L.read (fp * addressOfIndex o) = some 1 := by
+    rw [show (1 : E) = OffsetInstruction.immediateWord 1 0 0 from (imm_of_ofBits rfl).trans ofK_one
+        |>.symm]
     exact hh
   unfold neFacts
   split
@@ -406,7 +416,8 @@ theorem neFacts_holds {o pc : ℕ} {prev : List (ℕ × OInstr)}
     intro z hz
     simp at hz
 
-theorem rangeFact_holds (hκ : κ ≤ 32) {y t pc : ℕ} {env : Trie Sym} {prev : List (ℕ × OInstr)}
+theorem rangeFact_holds (hκ : κ ≤ 32) {y t pc : ℕ} {env : Trie Sym} {prev : List (ℕ ×
+    OffsetInstruction)}
     (he : EnvHolds L fp env) (hprev : ∀ x ∈ prev, Guest.Holds L x.1 fp x.2)
     (hh : Guest.Holds L pc fp (.deref y 0 t .cell)) : ∀ a ∈ rangeFact env y prev, a.Holds L fp := by
   unfold rangeFact
@@ -482,7 +493,7 @@ theorem derefMem_holds {pc o1 o2 o3 : ℕ} {mode : DerefMode} {st : St} (hst : S
         · exact ⟨hst.1, hst.2.1⟩
 
 /-- **A non-`JUMP` teaches only what holds.** -/
-theorem nonJump_holds (hκ : κ ≤ 32) (hp : F.pows.Ok) {pc : ℕ} {st : St} {ins : OInstr}
+theorem nonJump_holds (hκ : κ ≤ 32) (hp : F.pows.Ok) {pc : ℕ} {st : St} {ins : OffsetInstruction}
     (hst : St.Holds L fp st) (hh : Guest.Holds L pc fp ins) :
     (∀ a ∈ (nonJump F pc st ins).1, a.Holds L fp) ∧ EnvHolds L fp (nonJump F pc st ins).2.1 ∧
       MemHolds L fp (nonJump F pc st ins).2.2 := by
@@ -526,7 +537,8 @@ theorem nonJump_holds (hκ : κ ≤ 32) (hp : F.pows.Ok) {pc : ℕ} {st : St} {i
 
 theorem St.Holds.push {st : St} (hst : St.Holds L fp st) {env : Trie Sym}
     {mem : List (ℕ × ℕ × Sym)} (he : EnvHolds L fp env) (hm : MemHolds L fp mem) {pc : ℕ}
-    {ins : OInstr} (hh : Guest.Holds L pc fp ins) : St.Holds L fp (st.push env mem pc ins) := by
+    {ins : OffsetInstruction} (hh : Guest.Holds L pc fp ins) : St.Holds L fp (st.push env mem pc
+        ins) := by
   refine ⟨he, hm, fun x hx ↦ ?_⟩
   rcases List.mem_cons.mp hx with rfl | hx
   · exact hh
@@ -538,8 +550,9 @@ theorem tgtOf_cell {s : Option Sym} {o q : ℕ} (h : tgtOf s o = .cell q) : q = 
 
 /-- **Where a `JUMP` goes is what its exit says.** -/
 theorem jumpKind_holds (hfp : F.fpOne = true → fp = 1) {entry len i od of : ℕ} {st : St}
-    (hst : St.Holds L fp st) {d f : E} (hd : L.read (fp * gpow od) = some d) (hdK : IsInK d)
-    (hf : L.read (fp * gpow of) = some f) (hfK : IsInK f) :
+    (hst : St.Holds L fp st) {d f : E} (hd : L.read (fp * addressOfIndex od) = some d) (hdK :
+        IsInK d)
+    (hf : L.read (fp * addressOfIndex of) = some f) (hfK : IsInK f) :
     (jumpKind F entry len i st od of).1.Regs L fp entry ⟨d.limb 0, f.limb 0⟩ ∧
       (jumpKind F entry len i st od of).1.Extra L fp := by
   unfold jumpKind
@@ -590,32 +603,34 @@ end Step
 
 section StepRun
 
-variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : LeanIsaProgram}
 
 /-- What an instruction's result says of the run from it, with `k` steps left: on to the next
 offset with one step fewer, or out by an exit. -/
-def Res.Sound (L : MemoryImage κ) (fp : K) (prog : Program) (entry k₀ i k : ℕ) : Res → Prop
+def Res.Sound (L : MemoryImage κ) (fp : K) (prog : LeanIsaProgram) (entry k₀ i k : ℕ) : Res → Prop
   | .go its st => RunK L fp prog entry k₀
-      (fun k' ↦ k' + 1 = k ∧ St.Holds L fp st ∧ SafeReached prog L k' ⟨gpow (entry + i + 1), fp⟩) its k
+      (fun k' ↦ k' + 1 = k ∧ St.Holds L fp st ∧ SafeReached prog L k' ⟨addressOfIndex (entry + i + 1), fp⟩) its k
   | .stop its x => RunK L fp prog entry k₀ (x.Reached L fp prog entry k₀) its k
 
 /-- What an instruction's result gives a run to `r`: from its atoms, the run reaches `r` by an
 exit, or the next offset with `Q`. -/
-def Res.Comp (L : MemoryImage κ) (fp : K) (prog : Program) (entry i : ℕ) (r : Semantics.Registers K) :
+def Res.Comp (L : MemoryImage κ) (fp : K) (prog : LeanIsaProgram) (entry i : ℕ) (r : Semantics.Registers K) :
     Res → Prop
   | .go its st => ∀ Q : Prop, Follows L fp entry r Q its →
-      Reach prog L ⟨gpow (entry + i), fp⟩ r ∨
-        (Q ∧ St.Holds L fp st ∧ Reach prog L ⟨gpow (entry + i), fp⟩ ⟨gpow (entry + i + 1), fp⟩)
+      Reach prog L ⟨addressOfIndex (entry + i), fp⟩ r ∨
+        (Q ∧ St.Holds L fp st ∧ Reach prog L ⟨addressOfIndex (entry + i), fp⟩ ⟨addressOfIndex (entry
+            + i + 1), fp⟩)
   | .stop its x => Follows L fp entry r (x.kind.Regs L fp entry r) its →
-      Reach prog L ⟨gpow (entry + i), fp⟩ r
+      Reach prog L ⟨addressOfIndex (entry + i), fp⟩ r
 
-theorem stepI_of_nonJump {entry len i : ℕ} {st : St} {ins : OInstr} (hj : ins.isJump = false) :
+theorem stepI_of_nonJump {entry len i : ℕ} {st : St} {ins : OffsetInstruction} (hj : ins.isJump =
+    false) :
     stepI F entry len i st ins =
       .go (.ins (.instr (entry + i) ins) :: (nonJump F (entry + i) st ins).1.map .fact)
         (st.push (nonJump F (entry + i) st ins).2.1 (nonJump F (entry + i) st ins).2.2 (entry + i)
           ins) := by
   cases ins with
-  | jump => simp [OInstr.isJump] at hj
+  | jump => simp [OffsetInstruction.isJump] at hj
   | _ => rfl
 
 theorem runK_facts {entry k₀ k : ℕ} {Q : ℕ → Prop} {fs : List Atom}
@@ -631,16 +646,17 @@ theorem follows_facts {entry : ℕ} {r : Semantics.Registers K} {Q : Prop} {fs :
   | nil => rfl
   | cons a fs ih => exact ih
 
-theorem jump_atom {oc od of : ℕ} {c d f : E} (hc : L.read (fp * gpow oc) = some c)
-    (hd : L.read (fp * gpow od) = some d) (hf : L.read (fp * gpow of) = some f) (hcK : IsInK c)
+theorem jump_atom {oc od of : ℕ} {c d f : E} (hc : L.read (fp * addressOfIndex oc) = some c)
+    (hd : L.read (fp * addressOfIndex od) = some d) (hf : L.read (fp * addressOfIndex of) = some f)
+        (hcK : IsInK c)
     (hdK : IsInK d) (hfK : IsInK f) : (Atom.jump oc od of).Holds L fp :=
   ⟨c, d, f, hc, hd, hf, hcK, hdK, hfK⟩
 
 /-- **One instruction is sound.** -/
-theorem stepI_sound (hctx : Ctx F κ fp) {entry len i k k₀ : ℕ} {st : St} {ins : OInstr}
-    (hf : prog.fetch (gpow (entry + i)) = some ins.toInstr)
+theorem stepI_sound (hctx : Ctx F κ fp) {entry len i k k₀ : ℕ} {st : St} {ins : OffsetInstruction}
+    (hf : prog.fetch (addressOfIndex (entry + i)) = some ins.toLeanIsaInstruction)
     (hpc : entry + i < 2 ^ prog.logSize - 1) (hst : St.Holds L fp st) (hk : k ≤ k₀)
-    (h : SafeReached prog L k ⟨gpow (entry + i), fp⟩) :
+    (h : SafeReached prog L k ⟨addressOfIndex (entry + i), fp⟩) :
     (stepI F entry len i st ins).Sound L fp prog entry k₀ i k := by
   cases hj : ins.isJump with
   | false =>
@@ -675,11 +691,11 @@ theorem stepI_sound (hctx : Ctx F κ fp) {entry len i k k₀ : ℕ} {st : St} {i
           rw [ite_eq_left rfl] at hs
           exact Or.inl ⟨hc, rfl, hst, by simpa [Nat.add_assoc] using hs⟩
         · exact Or.inr ⟨⟨c, hc, hc0⟩, hreach _ rfl hc0⟩
-    | _ => simp [OInstr.isJump] at hj
+    | _ => simp [OffsetInstruction.isJump] at hj
 
 /-- **One instruction is complete.** -/
-theorem stepI_complete (hctx : Ctx F κ fp) {entry len i : ℕ} {st : St} {ins : OInstr}
-    (hf : prog.fetch (gpow (entry + i)) = some ins.toInstr)
+theorem stepI_complete (hctx : Ctx F κ fp) {entry len i : ℕ} {st : St} {ins : OffsetInstruction}
+    (hf : prog.fetch (addressOfIndex (entry + i)) = some ins.toLeanIsaInstruction)
     (hpc : entry + i < 2 ^ prog.logSize - 1) (hst : St.Holds L fp st) (r : Semantics.Registers K) :
     (stepI F entry len i st ins).Comp L fp prog entry i r := by
   cases hj : ins.isJump with
@@ -692,19 +708,21 @@ theorem stepI_complete (hctx : Ctx F κ fp) {entry len i : ℕ} {st : St} {ins :
   | true =>
     cases ins with
     | jump oc od of =>
-      have hgo : ∀ {c d f : E}, L.read (fp * gpow oc) = some c → L.read (fp * gpow od) = some d →
-          L.read (fp * gpow of) = some f → IsInK c → IsInK d → IsInK f → c ≠ 0 →
+      have hgo : ∀ {c d f : E}, L.read (fp * addressOfIndex oc) = some c → L.read (fp *
+          addressOfIndex od) = some d →
+          L.read (fp * addressOfIndex of) = some f → IsInK c → IsInK d → IsInK f → c ≠ 0 →
           (jumpExit F entry len i st od of).kind.Regs L fp entry r →
-          Reach prog L ⟨gpow (entry + i), fp⟩ r := by
+          Reach prog L ⟨addressOfIndex (entry + i), fp⟩ r := by
         intro c d f hc hd hf' hcK hdK hfK hc0 hr
         obtain ⟨hreg, -⟩ := jumpKind_holds (entry := entry) (len := len) (i := i) hctx.fpOne hst
           hd hdK hf' hfK
         rw [jumpExit_eq] at hr
         obtain rfl := Kind.regs_unique hr hreg
         exact reach_jump hf hpc ⟨c, d, f, hc, hd, hf', hcK, hdK, hfK, by rw [ite_eq_right hc0]⟩
-      have hnext : ∀ {d f : E}, L.read (fp * gpow oc) = some 0 → L.read (fp * gpow od) = some d →
-          L.read (fp * gpow of) = some f → IsInK d → IsInK f →
-          Reach prog L ⟨gpow (entry + i), fp⟩ ⟨gpow (entry + i + 1), fp⟩ := by
+      have hnext : ∀ {d f : E}, L.read (fp * addressOfIndex oc) = some 0 → L.read (fp *
+          addressOfIndex od) = some d →
+          L.read (fp * addressOfIndex of) = some f → IsInK d → IsInK f →
+          Reach prog L ⟨addressOfIndex (entry + i), fp⟩ ⟨addressOfIndex (entry + i + 1), fp⟩ := by
         intro d f hc hd hf' hdK hfK
         exact reach_jump hf hpc ⟨0, d, f, hc, hd, hf', (isInK_iff _).mpr ⟨0, ofK_zero.symm⟩, hdK,
           hfK, by rw [ite_eq_left rfl]⟩
@@ -723,7 +741,7 @@ theorem stepI_complete (hctx : Ctx F κ fp) {entry len i : ℕ} {st : St} {ins :
           exact Or.inr ⟨hq, hst, hnext hc hd hf' hdK hfK⟩
         · obtain rfl := Option.some.inj (hv.symm.trans hc)
           exact Or.inl (hgo hc hd hf' hcK hdK hfK hv0 hr)
-    | _ => simp [OInstr.isJump] at hj
+    | _ => simp [OffsetInstruction.isJump] at hj
 
 end StepRun
 
@@ -732,7 +750,7 @@ end StepRun
 
 section Paths
 
-variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {prog : Program}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {prog : LeanIsaProgram}
 
 theorem RunK.mono {entry k₀ : ℕ} {Q Q' : ℕ → Prop} (hQ : ∀ k, Q k → Q' k) :
     ∀ {its : List Item} {k : ℕ}, RunK L fp prog entry k₀ Q its k →
@@ -791,26 +809,28 @@ end Paths
 
 section Pass
 
-variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program} {entry len : ℕ}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : LeanIsaProgram} {entry len : ℕ}
 
 /-- **A good segment**: from its start, with its environment, it is sound (`RunK`) and complete
 (`Follows`), and `exits` lists its exits. -/
-def SegGood (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (s : Seg) : Prop :=
-  (∀ k₀, EnvHolds L fp s.env → SafeReached prog L k₀ ⟨gpow (entry + s.start), fp⟩ →
+def SegGood (L : MemoryImage κ) (fp : K) (prog : LeanIsaProgram) (entry : ℕ) (s : Seg) : Prop :=
+  (∀ k₀, EnvHolds L fp s.env → SafeReached prog L k₀ ⟨addressOfIndex (entry + s.start), fp⟩ →
     RunK L fp prog entry k₀ (s.exit.Reached L fp prog entry k₀) s.items k₀) ∧
   (EnvHolds L fp s.env → ∀ r, Follows L fp entry r (s.exit.kind.Regs L fp entry r) s.items →
-    Reach prog L ⟨gpow (entry + s.start), fp⟩ r) ∧
+    Reach prog L ⟨addressOfIndex (entry + s.start), fp⟩ r) ∧
   (∀ x, x = s.exit ∨ x ∈ branchExits s.items → x ∈ s.exits)
 
 /-- A good segment being walked, at offset `i`. -/
-def CurGood (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (c : Cur) (i : ℕ) : Prop :=
+def CurGood (L : MemoryImage κ) (fp : K) (prog : LeanIsaProgram) (entry : ℕ) (c : Cur) (i : ℕ) :
+    Prop :=
   c.start ≤ i ∧ branchExits c.acc = c.xs ∧
-  (∀ k₀, EnvHolds L fp c.env → SafeReached prog L k₀ ⟨gpow (entry + c.start), fp⟩ →
+  (∀ k₀, EnvHolds L fp c.env → SafeReached prog L k₀ ⟨addressOfIndex (entry + c.start), fp⟩ →
     RunK L fp prog entry k₀ (fun k ↦ k + i = k₀ + c.start ∧ St.Holds L fp c.st ∧
-      SafeReached prog L k ⟨gpow (entry + i), fp⟩) c.acc.reverse k₀) ∧
+      SafeReached prog L k ⟨addressOfIndex (entry + i), fp⟩) c.acc.reverse k₀) ∧
   (EnvHolds L fp c.env → ∀ r Q, Follows L fp entry r Q c.acc.reverse →
-    Reach prog L ⟨gpow (entry + c.start), fp⟩ r ∨
-      (Q ∧ St.Holds L fp c.st ∧ Reach prog L ⟨gpow (entry + c.start), fp⟩ ⟨gpow (entry + i), fp⟩))
+    Reach prog L ⟨addressOfIndex (entry + c.start), fp⟩ r ∨
+      (Q ∧ St.Holds L fp c.st ∧ Reach prog L ⟨addressOfIndex (entry + c.start), fp⟩ ⟨addressOfIndex
+          (entry + i), fp⟩))
 
 theorem stHolds_init {env : Trie Sym} (he : EnvHolds L fp env) : St.Holds L fp (St.init env) :=
   ⟨he, fun _ _ _ h ↦ by simp [St.init] at h, fun _ h ↦ by simp [St.init] at h⟩
@@ -841,8 +861,9 @@ theorem segGood_close {c : Cur} {i : ℕ} (hc : CurGood L fp prog entry c i) (hl
       have := mem_branchExits_reverse hx
       rwa [branchExits_reverseAux, hxs] at this
 
-theorem curGood_go (hctx : Ctx F κ fp) {c : Cur} {i : ℕ} {ins : OInstr}
-    (hc : CurGood L fp prog entry c i) (hf : prog.fetch (gpow (entry + i)) = some ins.toInstr)
+theorem curGood_go (hctx : Ctx F κ fp) {c : Cur} {i : ℕ} {ins : OffsetInstruction}
+    (hc : CurGood L fp prog entry c i) (hf : prog.fetch (addressOfIndex (entry + i)) = some
+        ins.toLeanIsaInstruction)
     (hpc : entry + i < 2 ^ prog.logSize - 1) {its : List Item} {st : St}
     (hs : stepI F entry len i c.st ins = .go its st) :
     CurGood L fp prog entry
@@ -867,8 +888,9 @@ theorem curGood_go (hctx : Ctx F κ fp) {c : Cur} {i : ℕ} {ins : OInstr}
       · exact Or.inl (h.trans h')
       · exact Or.inr ⟨hQ, hst', by simpa [Nat.add_assoc] using h.trans h'⟩
 
-theorem segGood_stop (hctx : Ctx F κ fp) {c : Cur} {i : ℕ} {ins : OInstr}
-    (hc : CurGood L fp prog entry c i) (hf : prog.fetch (gpow (entry + i)) = some ins.toInstr)
+theorem segGood_stop (hctx : Ctx F κ fp) {c : Cur} {i : ℕ} {ins : OffsetInstruction}
+    (hc : CurGood L fp prog entry c i) (hf : prog.fetch (addressOfIndex (entry + i)) = some
+        ins.toLeanIsaInstruction)
     (hpc : entry + i < 2 ^ prog.logSize - 1) {its : List Item} {x : Exit}
     (hs : stepI F entry len i c.st ins = .stop its x) : SegGood L fp prog entry (c.close its x) := by
   obtain ⟨hle, hxs, hsound, hcomp⟩ := hc
@@ -921,19 +943,19 @@ theorem atJoin_good {i : ℕ} {cur : Option Cur} {pend : Pend} {out : List Seg}
     · exact ⟨hcur, hout⟩
   · exact ⟨hcur, hout⟩
 
-theorem Fetches.tail {pc : ℕ} {ins : OInstr} {rest : List OInstr}
+theorem Fetches.tail {pc : ℕ} {ins : OffsetInstruction} {rest : List OffsetInstruction}
     (h : Fetches prog pc (ins :: rest)) : Fetches prog (pc + 1) rest := by
   intro j ins' hj
   have := h (j + 1) ins' (by simpa using hj)
   simpa [Nat.add_assoc, Nat.add_comm 1 j] using this
 
-theorem Fetches.head {pc : ℕ} {ins : OInstr} {rest : List OInstr}
+theorem Fetches.head {pc : ℕ} {ins : OffsetInstruction} {rest : List OffsetInstruction}
     (h : Fetches prog pc (ins :: rest)) :
-    prog.fetch (gpow pc) = some ins.toInstr ∧ pc < 2 ^ prog.logSize - 1 := by
+    prog.fetch (addressOfIndex pc) = some ins.toLeanIsaInstruction ∧ pc < 2 ^ prog.logSize - 1 := by
   simpa using h 0 ins rfl
 
 /-- **The walk produces good segments.** -/
-theorem pass_good (hctx : Ctx F κ fp) : ∀ (code : List OInstr) (i : ℕ) (cur : Option Cur)
+theorem pass_good (hctx : Ctx F κ fp) : ∀ (code : List OffsetInstruction) (i : ℕ) (cur : Option Cur)
     (pend : Pend) (out : List Seg) (dead : ℕ), Fetches prog (entry + i) code →
     (∀ c, cur = some c → CurGood L fp prog entry c i) →
     (∀ s ∈ out, SegGood L fp prog entry s) →
@@ -988,11 +1010,12 @@ end Pass
 
 section Main
 
-variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program} {f : CompiledFn}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : LeanIsaProgram} {f :
+    CompiledFunction}
 
 /-- Every segment of `exec F f` is good. -/
-theorem exec_good (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) :
-    ∀ s ∈ (exec F f).segs, SegGood L fp prog f.entry s :=
+theorem exec_good (hctx : Ctx F κ fp) (hf : Fetches prog f.entryPc f.code) :
+    ∀ s ∈ (exec F f).segs, SegGood L fp prog f.entryPc s :=
   pass_good hctx f.code 0 _ [] [] 0 (by simpa using hf)
     (fun _ h ↦ Option.some.inj h ▸ curGood_init 0 _) (fun _ h ↦ by cases h)
 
@@ -1000,10 +1023,10 @@ theorem exec_good (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) :
 environment holds of, satisfies every atom of the path it takes, one step per instruction, and
 leaves by that path's exit (`Exit.Reached`: with fewer steps left, its environment holding,
 at the registers its kind names). -/
-theorem exec_sound (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {s : Seg}
+theorem exec_sound (hctx : Ctx F κ fp) (hf : Fetches prog f.entryPc f.code) {s : Seg}
     (hs : s ∈ (exec F f).segs) {k : ℕ} (he : EnvHolds L fp s.env)
-    (h : SafeReached prog L k ⟨gpow (f.entry + s.start), fp⟩) :
-    RunK L fp prog f.entry k (s.exit.Reached L fp prog f.entry k) s.items k :=
+    (h : SafeReached prog L k ⟨addressOfIndex (f.entryPc + s.start), fp⟩) :
+    RunK L fp prog f.entryPc k (s.exit.Reached L fp prog f.entryPc k) s.items k :=
   (exec_good hctx hf s hs).1 k he h
 
 theorem index_get {segs : List Seg} {t : ℕ} {s : Seg} (h : (index segs).get t = some s) :
@@ -1041,12 +1064,12 @@ theorem Result.linked_spec {R : Result} (hl : R.linked = true) {s : Seg} (hs : s
   · exact absurd h (by simp)
 
 /-- The code of a guest function is fetched at its pcs. -/
-theorem guest_fetches {f : CompiledFn} (hf : f ∈ Data.functions) : Fetches guestProgram f.entry f.code := by
+theorem guest_fetches {f : CompiledFunction} (hf : f ∈ Data.functions) : Fetches guestProgram f.entryPc f.code := by
   intro j ins hj
-  have hw := CompiledFn.wellChunked_of_mem hf
+  have hw := CompiledFunction.wellChunked_of_mem hf
   obtain ⟨hjl, -⟩ := List.getElem?_eq_some_iff.mp hj
-  rw [CompiledFn.length_code hw] at hjl
-  rw [CompiledFn.getElem?_code hw hjl] at hj
+  rw [CompiledFunction.length_code hw] at hjl
+  rw [CompiledFunction.getElem?_code hw hjl] at hj
   obtain rfl := Option.some.inj hj
   exact ⟨guest_fetch hf hjl, guest_pc_lt hf hjl⟩
 
@@ -1057,7 +1080,7 @@ end Main
 
 section Straight
 
-variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {prog : Program}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {prog : LeanIsaProgram}
 
 /-- The atom of an item, if it has one of its own. -/
 def Item.atom? : Item → Option Atom
@@ -1093,9 +1116,11 @@ end Straight
 
 section Windows
 
-variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program} {f : CompiledFn}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : LeanIsaProgram} {f :
+    CompiledFunction}
 
-theorem Fetches.window {pc : ℕ} {code : List OInstr} (h : Fetches prog pc code) (a n : ℕ) :
+theorem Fetches.window {pc : ℕ} {code : List OffsetInstruction} (h : Fetches prog pc code) (a
+    n : ℕ) :
     Fetches prog (pc + a) ((code.drop a).take n) := by
   intro j ins hj
   rw [List.getElem?_take] at hj
@@ -1104,8 +1129,8 @@ theorem Fetches.window {pc : ℕ} {code : List OInstr} (h : Fetches prog pc code
   simpa [Nat.add_assoc] using h (a + j) ins hj
 
 /-- Every segment of a window is good. -/
-theorem execWin_good (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) (a : ℕ)
-    (env : List (ℕ × Sym)) (b : ℕ) : ∀ s ∈ (execWin F f a env b).segs, SegGood L fp prog f.entry s :=
+theorem execWin_good (hctx : Ctx F κ fp) (hf : Fetches prog f.entryPc f.code) (a : ℕ)
+    (env : List (ℕ × Sym)) (b : ℕ) : ∀ s ∈ (execWin F f a env b).segs, SegGood L fp prog f.entryPc s :=
   pass_good hctx _ a _ [] [] 0 (hf.window a (b - a))
     (fun _ h ↦ Option.some.inj h ▸ curGood_init a _) (fun _ h ↦ by cases h)
 

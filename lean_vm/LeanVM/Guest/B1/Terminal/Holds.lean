@@ -175,7 +175,7 @@ theorem check_opening_terminal_holds (hcs : Tables.column_selector_Spec)
   obtain ⟨hsum, hoks, -⟩ := claimsT_sound (C := coreProgram.Rel rd) (cp := cp) (List.range 165) claimsStart 16
     hCp hcl
   rw [show (claimsT (List.range 165) claimsStart 16).2.2 = 1989 by rw [claimsT_end]] at hsum
-  have hmem0 : (layout.placement memory0).vars = layout.logMemory := by
+  have hmem0 : (layout.placement memory0).variableCount = layout.logMemory := by
     have := placement_committed hkap hP (cc := 0) (by decide)
     rw [committedCols_getD (by decide)] at this
     rw [show memory0 = 0 from rfl, show colOfCommitted 0 = 0 from rfl] at *

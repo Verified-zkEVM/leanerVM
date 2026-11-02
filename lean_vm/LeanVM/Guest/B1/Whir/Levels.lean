@@ -30,8 +30,9 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.
 variable {rd : Reader} {σ : Val}
 
 /-- `whirLevelsOpen` up to the tail: the levels' heads. -/
-def whirLevelsHead (logN : ℕ) : ℕ → List Whir.Level → WhirStateT → Prog (List E × ℕ × WhirStateT)
-  | _, [], _ => Prog.fail
+def whirLevelsHead (logN : ℕ) : ℕ → List Whir.Level → WhirStateT → VerifierProgram (List E × ℕ ×
+    WhirStateT)
+  | _, [], _ => VerifierProgram.fail
   | index, [level], s => levelHead logN index level [] s
   | index, level :: next :: rest, s =>
     (levelHead logN index level (next :: rest) s).bind fun r ↦
@@ -45,7 +46,7 @@ theorem whirLevelsOpen_eq (logN laneFolds : ℕ) : ∀ (index : ℕ) (cfg : List
   | _, [], _, h => absurd rfl h
   | index, [level], s, _ => by rw [whirLevelsOpen_head]; rfl
   | index, level :: next :: rest, s, _ => by
-    rw [whirLevelsOpen_head, whirLevelsHead, Prog.bind_assoc]
+    rw [whirLevelsOpen_head, whirLevelsHead, VerifierProgram.bind_assoc]
     refine prog_bind_congr fun r ↦ ?_
     exact whirLevelsOpen_eq logN laneFolds (index + 1) (next :: rest) r.2.2 (by simp)
 

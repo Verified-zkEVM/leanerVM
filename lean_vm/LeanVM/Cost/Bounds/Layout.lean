@@ -176,7 +176,8 @@ theorem buildLayoutLite_facts {bytecode : List K} {logMemory : ℕ} {tableRows :
 
 /-- `readSizesLite`'s layout is `buildLayoutLite`'s, its stack's log-size in `[15, 28]`, its rate
 in `[1, 4]`. -/
-theorem readSizesLite_layout {bytecode : List K} {s s' : LeanVM.Protocol.Compile.ProgState}
+theorem readSizesLite_layout {bytecode : List K} {s s' :
+    LeanVM.Protocol.Compile.VerifierProgramState}
     {L : LayoutLite} {R : ℕ} (h : readSizesLite bytecode s = some ((L, R), s')) :
     (∃ logMemory tableRows, buildLayoutLite bytecode logMemory tableRows = some L) ∧
       15 ≤ L.stackLog ∧ L.stackLog ≤ 28 ∧ 1 ≤ R ∧ R ≤ 4 := by
@@ -195,7 +196,7 @@ theorem readSizesLite_layout {bytecode : List K} {s s' : LeanVM.Protocol.Compile
 /-- **`afterRootLite`'s layouts** meet `LayoutFacts`; the stack's log-size is in `[15, 28]`, the
 rate's in `[1, 4]`, and the bytecode has `2^(ℓ + 4)` words. -/
 theorem afterRootLite_facts {bytecode : List K} {π : LeanVM.Protocol.Compile.Proof}
-    {L : LayoutLite} {R : ℕ} {st : LeanVM.Protocol.Compile.ProgState}
+    {L : LayoutLite} {R : ℕ} {st : LeanVM.Protocol.Compile.VerifierProgramState}
     (h : afterRootLite bytecode π = some ((L, R), st)) :
     LayoutFacts L ∧ 15 ≤ L.stackLog ∧ L.stackLog ≤ 28 ∧ 1 ≤ R ∧ R ≤ 4 ∧
       log2Strict bytecode.length = some (L.logBytecode + busBits) := by
@@ -217,9 +218,11 @@ theorem afterRootLite_facts {bytecode : List K} {π : LeanVM.Protocol.Compile.Pr
 /-- **The runner on `afterRootLite`'s layouts**: `runner_cost`, its hypotheses on the layout
 discharged (`afterRootLite_facts`): at most `runnerBudget` (`≈ 2^65.60`). -/
 theorem runner_cost_afterRootLite (P : LeanVM.Cost.MachineProgram) (hT : Includes P runnerTablesC.costDeps)
-    (hW : Includes P runWithTablesC.costDeps) (prog : Semantics.Program) (input : PublicInput)
+    (hW : Includes P runWithTablesC.costDeps) (prog : Semantics.LeanIsaProgram) (input :
+        PublicInput)
     {bytecode : List K} {π : LeanVM.Protocol.Compile.Proof} {L : LayoutLite} {R : ℕ}
-    {st : LeanVM.Protocol.Compile.ProgState} (h : afterRootLite bytecode π = some ((L, R), st))
+    {st : LeanVM.Protocol.Compile.VerifierProgramState} (h : afterRootLite bytecode π = some ((L,
+        R), st))
     (qs : List (Vector K (2 ^ L.stackLog))) (hqs : qs.length ≤ 2 ^ 12 + 1) :
     machineCost P runnerTablesC.costIdx [encodeValue prog, encodeValue L] +
         (qs.map fun q ↦ machineCost P runWithTablesC.costIdx

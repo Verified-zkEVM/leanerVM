@@ -113,7 +113,8 @@ theorem challengeOf_nzState : challengeOf nzState ≠ 0 := by
 
 /-- **On every outcome where the verifier refusing a zero challenge rejects the honest proof**,
 the potential is at least `1`. -/
-theorem one_le_nzPot {σ : Seed} {P P' : Prog Bool} (hNZ : NZ P' P) {S : Strategy} {bits fuel : ℕ}
+theorem one_le_nzPot {σ : Seed} {P P' : VerifierProgram Bool} (hNZ : NZ P' P) {S : Strategy} {bits
+    fuel : ℕ}
     (hfuel : fuel ≤ 2 ^ 64) (hfuel0 : fuel ≠ 0)
     (hc : ∀ chal, runI P S chal = some true) (hs : ∀ chal, shapedI P S chal)
     (hg : ∀ h b k, P.after h = some (.grind b k) → b = bits)
@@ -185,7 +186,8 @@ theorem one_le_nzPot {σ : Seed} {P P' : Prog Bool} (hNZ : NZ P' P) {S : Strateg
       | none => exact ht
       | some _ => cases hr
     obtain ⟨h', b', k, sp, ha, hsp, hf⟩ :=
-      proveFromM_eq_some_none S fuel P ⟨seed, []⟩ [] [] (Prog.after.eq_1 P) ⟨by simp, by simp⟩ hr'
+      proveFromM_eq_some_none S fuel P ⟨seed, []⟩ [] [] (VerifierProgram.after.eq_1 P)
+          ⟨by simp, by simp⟩ hr'
     rw [hg h' b' k ha] at hf
     obtain ⟨-, hall⟩ := findNonceM_eq_some_none hf
     -- The position of the search, the same for every nonce.
@@ -243,7 +245,7 @@ that wins every interactive run of `P` with well-shaped words, `P'` refusing zer
 `P` (`NZ P' P`), both of cost `n`, the seeding `σ`, and a fuel of at most `2^64` nonces: the
 verifier `P'` rejects the honest prover's proof with probability at most
 `Q · ((1 - 2^-bits)^fuel + 2^-192)`, `Q` the queries of the prover and the verifier together. -/
-theorem romCompleteNZ (P P' : Prog Bool) (hNZ : NZ P' P) (S : Strategy) (σ : Seed)
+theorem romCompleteNZ (P P' : VerifierProgram Bool) (hNZ : NZ P' P) (S : Strategy) (σ : Seed)
     {bits fuel height n : ℕ} (hb0 : bits ≠ 0) (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64)
     (hg : ∀ h b k, P.after h = some (.grind b k) → b = bits)
     (hc : ∀ chal, runI P S chal = some true) (hs : ∀ chal, shapedI P S chal)
@@ -287,18 +289,20 @@ theorem romCompleteNZ (P P' : Prog Bool) (hNZ : NZ P' P) (S : Strategy) (σ : Se
 /-! ## The program refusing zero challenges -/
 
 /-- The verifier program refusing a zero fold, tail or level batching challenge. -/
-def nzProgram (bytecode : List K) (publicInput : Digest) : Prog Bool :=
-  (execWith computedValue Limits.verifyStackedOpeningNZ bytecode publicInput).bind fun _ ↦ Prog.ret true
+def nzProgram (bytecode : List K) (publicInput : Digest) : VerifierProgram Bool :=
+  (execWith computedBytecodeValue Limits.verifyStackedOpeningNZ bytecode publicInput).bind fun _ ↦ VerifierProgram.ret true
 
 theorem leanVmProgram_execWith (bytecode : List K) (publicInput : Digest) :
-    leanVmProgram bytecode publicInput =
-      (execWith computedValue verifyStackedOpening bytecode publicInput).bind fun _ ↦ Prog.ret true := by
+    leanVmVerifierProgram bytecode publicInput =
+      (execWith computedBytecodeValue verifyStackedOpening bytecode publicInput).bind fun _ ↦ VerifierProgram.ret true := by
   rw [Verifier.leanVmProgram_eq]
   rfl
 
 /-- A refining program costs at most what the refined one costs. -/
-theorem costs_of_refines {α : Type} {height : ℕ} {P' P : Prog α} (h : Limits.Refines P' P) :
-    ∀ {n : ℕ} {Q : α → Prop}, Prog.Costs height P n Q → Prog.Costs height P' n Q := by
+theorem costs_of_refines {α : Type} {height : ℕ} {P' P : VerifierProgram α} (h : Limits.Refines
+    P' P) :
+    ∀ {n : ℕ} {Q : α → Prop}, VerifierProgram.Costs height P n Q → VerifierProgram.Costs height P' n
+        Q := by
   induction h with
   | fail P => intro n Q _; trivial
   | ret a => intro n Q hc; exact hc

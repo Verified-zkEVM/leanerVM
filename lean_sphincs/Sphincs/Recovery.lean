@@ -94,7 +94,7 @@ theorem walk_add (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) 
 
 /-- The verifier's recovery of a signed chain value reaches the public endpoint. -/
 theorem eval_recoverChain_walk (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (chainIdx : ChainIndex) (digit : Digit) (secret : Digest) :
+    (leaf : LeafIndex) (chainIdx : ChainIndex) (digit : WinternitzDigit) (secret : Digest) :
     evalWithAnswerFn f (recoverChain parameter lay tree leaf chainIdx digit
         (walk f parameter lay tree leaf chainIdx 0 digit.val secret))
       = walk f parameter lay tree leaf chainIdx 0 (chainLength - 1) secret := by
@@ -119,7 +119,7 @@ def otsSecret (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (le
 theorem otsSecret_eq (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (seed : MasterSeed) (chainIdx : ChainIndex) :
     otsSecret f parameter lay tree leaf seed chainIdx =
-      hashHalf chainIdx.val (f (keygenHashInput parameter (.ots lay tree leaf (chainPair chainIdx)) seed)) := by
+      hashHalfForChain chainIdx.val (f (keygenHashInput parameter (.ots lay tree leaf (chainPair chainIdx)) seed)) := by
   simp only [otsSecret, otsStart, evalWithAnswerFn_bind, evalWithAnswerFn_pure, eval_deriveOutput]
 
 /-- The 32 derivations of a one-time key give the secret of each of its 64 chains. -/
@@ -336,7 +336,7 @@ def forestSecret (seed : MasterSeed) : Digest :=
 
 theorem forestSecret_eq (seed : MasterSeed) :
     forestSecret f parameter index c s j a i seed =
-      hashHalf i.val (f (keygenHashInput parameter (.forest index c s j a (fchainPair i)) seed)) := by
+      hashHalfForChain i.val (f (keygenHashInput parameter (.forest index c s j a (fchainPair i)) seed)) := by
   simp only [forestSecret, Seeded.forestStart, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
     eval_deriveOutput]
 

@@ -30,7 +30,7 @@ namespace LeanVM.Guest.B1.Sig
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier (eOfNat gen)
-open Sphincs Sphincs.Concrete
+open Sphincs Sphincs.Verification
 
 @[expose] public section
 
@@ -44,7 +44,7 @@ def sVals (sig : Sphincs.Signature) (i : Nat) : E :=
 
 /-- The path a signature hints. -/
 def sSibs (sig : Sphincs.Signature) (l : Nat) : E :=
-  if h : l < 26 then cellOf128 (sig.path ⟨l, h⟩) else 0
+  if h : l < 26 then cellOf128 (sig.authenticationPath ⟨l, h⟩) else 0
 
 /-- The statements before the root's check. -/
 def sPre : List Stmt := sPrologue ++ (sCs.1 ++ (sMid ++ (sCw.1 ++ sEndPre)))
@@ -56,11 +56,12 @@ def SFinal (rd : Reader) (σ : Val) (Pc m0 m1 rho : E) (sig : Sphincs.Signature)
   SP1 rd σ Pc m0 m1 rho ∧
     (∀ k < 8, ∃ e1 e2, CoordPost e1 e2 k (cSt k).1 (cSt k).2.1 (cSt k).2.2 (sH sig N17 N18 k) σ) ∧
     σ (.n sFb.2.1) = eOfNat ctr ∧
-    (∃ Ncw, (∀ q ≤ 21, σ (.n (cwState sW (sEnc.2.1 + 10) q).2.2) = ofK (gpow (nDigits 21 Ncw q))) ∧
+    (∃ Ncw, (∀ q ≤ 21, σ (.n (cwState sW (sEnc.2.1 + 10) q).2.2) = ofK (addressOfIndex (nDigits 21
+        Ncw q))) ∧
       ∀ i < 64, σ (cwPos sW 21 (sEnc.2.1 + 10) (nDigits 21 Ncw) i) = sVals sig i) ∧
     (∀ l < 26, mSib σ sBit l (mBase sNodeOf 0 l sLeaf.2.1) = sSibs sig l) ∧
     IsCanonical128 (σ sMk.2.2) ∧
-    ∀ j < 4, σ (.n (sB + j)) = ofK (gpow (ctrByte ctr j))
+    ∀ j < 4, σ (.n (sB + j)) = ofK (addressOfIndex (ctrByte ctr j))
 
 theorem sPre_bounds : 206 ≤ sB ∧ sB ≤ sEnc.2.1 + 10 ∧ sEnc.2.1 + 10 ≤ sMk.2.1 := by
   have := sB_ge
@@ -75,17 +76,18 @@ theorem sBack_stage (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) (sig : S
     (h1 : σ2 (.n 1) = bb) {H : Nat → CoordH} {E1 E2 : Nat → E}
     (hpost : ∀ k < 8, CoordPost (E1 k) (E2 k) k (cSt k).1 (cSt k).2.1 (cSt k).2.2 (H k) σ2)
     {Ncw : Nat}
-    (hd : (digestScalars (keccak256 ((cellsBytes (σ2 (.n 162) :: σ2 (.n 164) ::
+    (hd : (digestHalves (keccak256 ((cellsBytes (σ2 (.n 162) :: σ2 (.n 164) ::
       (List.range 16).map (sT σ2) ++ [eOfNat sig.counter.toNat])).take 292))).1 =
         lit (∑ i ∈ Finset.range 64, Ncw / 4 ^ i % 4 * 4 ^ i))
     (hs : ∑ i ∈ Finset.range 64, Ncw / 4 ^ i % 4 = 123) :
     Completes C rd sB sMk.2.1 (sMid ++ (sCw.1 ++ sEndPre)) σ2 (fun σ' =>
       σ' (.n sFb.2.1) = eOfNat sig.counter.toNat ∧
-      (∀ q ≤ 21, σ' (.n (cwState sW (sEnc.2.1 + 10) q).2.2) = ofK (gpow (nDigits 21 Ncw q))) ∧
+      (∀ q ≤ 21, σ' (.n (cwState sW (sEnc.2.1 + 10) q).2.2) = ofK (addressOfIndex (nDigits 21
+          Ncw q))) ∧
       (∀ i < 64, σ' (cwPos sW 21 (sEnc.2.1 + 10) (nDigits 21 Ncw) i) = sVals sig i) ∧
       (∀ l < 26, mSib σ' sBit l (mBase sNodeOf 0 l sLeaf.2.1) = sSibs sig l) ∧
       IsCanonical128 (σ' sMk.2.2) ∧
-      ∀ j < 4, σ' (.n (sB + j)) = ofK (gpow (ctrByte sig.counter.toNat j))) := by
+      ∀ j < 4, σ' (.n (sB + j)) = ofK (addressOfIndex (ctrByte sig.counter.toNat j))) := by
   obtain ⟨hB, hBE, hEM⟩ := sPre_bounds
   have hpre := sPrologue_sound hp.atoms
   have hn0 : IsCanonical128 (σ2 (sNode 0)) := by
@@ -123,7 +125,7 @@ theorem sCellPairVal_cellOf128 (m : Sphincs.Message) :
 
 /-- The message's bytes, as its two cells'. -/
 theorem sphincs_msg_bytes (m : Sphincs.Message) :
-    Sphincs.bytesLE 32 m = cellBytes (cellOf128 (m.extractLsb' 0 128)) ++
+    Sphincs.littleEndianBytes 32 m = cellBytes (cellOf128 (m.extractLsb' 0 128)) ++
       cellBytes (cellOf128 (m.extractLsb' 128 128)) := by
   rw [← sphincs_bytesLE_cellPairVal]
   congr 1
@@ -137,29 +139,29 @@ theorem sStages (hm : MemOK rd 256) {p bb : E} (hbb : ByteBits rd bb) (pk : Sphi
     (hld2 : LoadHolds rd p 2 (cellOf128 (m.extractLsb' 0 128)))
     (hld3 : LoadHolds rd p 3 (cellOf128 (m.extractLsb' 128 128))) :
     Completes C rd 2 sMk.2.1 sPre σ0 (fun σ' => SFinal rd σ' (cellOf128 pk.parameter)
-      (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)) (cellOf128 sig.randomness) sig
+      (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)) (cellOf128 sig.randomizer) sig
       (cellNat (hcell [cellOf128 pk.parameter, word (tw 12) 0 0, cellOf128 (m.extractLsb' 0 128),
-        cellOf128 (m.extractLsb' 128 128), cellOf128 sig.randomness]).1)
+        cellOf128 (m.extractLsb' 128 128), cellOf128 sig.randomizer]).1)
       (cellNat (hcell [cellOf128 pk.parameter, word (tw 12) 0 0, cellOf128 (m.extractLsb' 0 128),
-        cellOf128 (m.extractLsb' 128 128), cellOf128 sig.randomness]).2)
+        cellOf128 (m.extractLsb' 128 128), cellOf128 sig.randomizer]).2)
       sig.counter.toNat) := by
   obtain ⟨hB, hBE, hEM⟩ := sPre_bounds
   set Pc := cellOf128 pk.parameter with hPc
   set m0 := cellOf128 (m.extractLsb' 0 128) with hm0
   set m1 := cellOf128 (m.extractLsb' 128 128) with hm1
-  set rho := cellOf128 sig.randomness with hrho
+  set rho := cellOf128 sig.randomizer with hrho
   set dg := hcell [Pc, word (tw 12) 0 0, m0, m1, rho] with hdg
   set N17 := cellNat dg.1 with hN17
   set N18 := cellNat dg.2 with hN18
   set ctr := sig.counter.toNat with hctr
   have cPc : IsCanonical128 Pc := isCanonical128_cellOf128 _
   -- the digest
-  have hmd : @messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter m sig.randomness =
+  have hmd : @messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter m sig.randomizer =
       BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18) := by
     have := sMessageDigest_cells sq_keccak (pp := Pc) (a := word (tw 12) 0 0) (m0 := m0) (m1 := m1)
       (rho := rho) (m := m) msgAdr_bytes (sphincs_msg_bytes m)
     rwa [show spp Pc = pk.parameter from cellVal_cellOf128 _,
-      show sv rho = sig.randomness from cellVal_cellOf128 _] at this
+      show sv rho = sig.randomizer from cellVal_cellOf128 _] at this
   unfold sPre
   -- the prologue
   refine Completes.append (m := 206) (by norm_num) (by omega) sPrologue_nb
@@ -188,15 +190,15 @@ theorem sStages (hm : MemOK rd 256) {p bb : E} (hbb : ByteBits rd bb) (pk : Sphi
   rw [hmd, hkey, sOtsLeaf_id] at hots
   obtain ⟨enc, henc, -⟩ := Option.map_eq_some_iff.mp hots
   have hidx26 := sIdx_lt σ2
-  have hleafI : (digestIndex (BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18))).val = sIdx σ2 := by
+  have hleafI : (digestLeafIndex (BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18))).val = sIdx σ2 := by
     rw [digestIndex_ofNat (cellNat_lt _), hidx2]
   have hE : cellBytes (σ2 (.n 164)) = tweakBytes (.encoding
-      (digestIndex (BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18)))) := by
+      (digestLeafIndex (BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18)))) := by
     rw [hpre2.top1, sNode0_eq hpre2]
-    show _ = Sphincs.fieldBytes (Sphincs.tweakFields 4 0 0 _)
+    show _ = Sphincs.addressBytes (Sphincs.tweakFields 4 0 0 _)
     rw [hleafI]
     exact encAdr_bytes hidx26
-  have hc : Sphincs.bytesLE 4 sig.counter = (cellBytes (eOfNat ctr)).take 4 := by
+  have hc : Sphincs.littleEndianBytes 4 sig.counter = (cellBytes (eOfNat ctr)).take 4 := by
     have hc32 : ctr < 2 ^ 32 := sig.counter.isLt
     have e : BitVec.ofNat (8 * 4) (cellNat (eOfNat ctr)) = sig.counter := by
       apply BitVec.eq_of_toNat_eq
@@ -207,9 +209,9 @@ theorem sStages (hm : MemOK rd 256) {p bb : E} (hbb : ByteBits rd bb) (pk : Sphi
   rw [show pk.parameter = spp Pc from (cellVal_cellOf128 _).symm,
     sEncode_cells sq_keccak (pp := Pc) (aE := σ2 (.n 164)) (x := eOfNat ctr) (sT σ2) (fun _ => rfl) hE hc]
     at henc
-  have hcanE : IsCanonical128 (digestScalars (keccak256 ((cellsBytes (Pc :: σ2 (.n 164) ::
+  have hcanE : IsCanonical128 (digestHalves (keccak256 ((cellsBytes (Pc :: σ2 (.n 164) ::
       (List.range 16).map (sT σ2) ++ [eOfNat ctr])).take 292))).1 := by
-    simp [IsCanonical128, digestScalars]
+    simp [IsCanonical128, digestHalves]
   obtain ⟨hlit, hs⟩ := enc_lit hcanE henc
   -- the middle and the end
   have hback := sBack_stage (C := C) hm hbb sig cPc σ2 hp12
@@ -223,7 +225,7 @@ theorem sStages (hm : MemOK rd 256) {p bb : E} (hbb : ByteBits rd bb) (pk : Sphi
 theorem sRoot_final {pk : Sphincs.PublicKey} {m : Sphincs.Message} {sig : Sphincs.Signature}
     (hv : SRoot pk.parameter m sig pk.root) {σ : Val} {N17 N18 : Nat}
     (hf : SFinal rd σ (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))
-      (cellOf128 (m.extractLsb' 128 128)) (cellOf128 sig.randomness) sig N17 N18
+      (cellOf128 (m.extractLsb' 128 128)) (cellOf128 sig.randomizer) sig N17 N18
       sig.counter.toNat)
     (hh : Stmt.HoldsList C rd σ sPre True (fun _ => True)) :
     σ sMk.2.2 = cellOf128 pk.root := by
@@ -242,7 +244,7 @@ theorem sRoot_final {pk : Sphincs.PublicKey} {m : Sphincs.Message} {sig : Sphinc
       rw [hsp.r]; exact cellVal_cellOf128 _)
     (by
       funext c
-      show coordOpening σ c.val (cSt c.val).1 (cSt c.val).2.1 (cSt c.val).2.2 = sig.forest c
+      show coordOpening σ c.val (cSt c.val).1 (cSt c.val).2.1 (cSt c.val).2.2 = sig.forestOpening c
       obtain ⟨e1, e2, hP⟩ := hcp c.val c.isLt
       rw [coordOpening_eq (dS_lt _ _) (dT_lt _ _) (dA_lt _ _) (dT_lt _ _) (dA_lt _ _) hP]
       congr 1
@@ -257,12 +259,12 @@ theorem sRoot_final {pk : Sphincs.PublicKey} {m : Sphincs.Message} {sig : Sphinc
       funext i
       show sv (σ (cwStart sW 21 (sEnc.2.1 + 10) σ i.val)) = sig.chainValues i
       rw [cwStart_eq_cwPos (fun q _ => nDigits_lt 21 Ncw q) hdg (show i.val < 3 * 21 + 1 by
-        have := i.isLt; simp only [numChains] at this; omega),
+        have := i.isLt; simp only [chainCount] at this; omega),
         hst i.val i.isLt]
       exact sv_dite i)
     (by
       funext l
-      show sv (mSib σ sBit l.val (mBase sNodeOf 0 l.val sLeaf.2.1)) = sig.path l
+      show sv (mSib σ sBit l.val (mBase sNodeOf 0 l.val sLeaf.2.1)) = sig.authenticationPath l
       rw [hsb l.val l.isLt]
       exact sv_dite l)
   rw [← hr]
@@ -278,11 +280,11 @@ theorem sphincs_complete_val (C : CallRel) (rd : Reader) (p bb : E) (pk : Sphinc
     ∃ σf : Val, σf (.n 0) = p ∧ σf (.n 1) = bb ∧
       Stmt.HoldsList C rd σf Data.core20.body False (fun rs => rs = []) ∧
       SFinal rd σf (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))
-        (cellOf128 (m.extractLsb' 128 128)) (cellOf128 sig.randomness) sig
+        (cellOf128 (m.extractLsb' 128 128)) (cellOf128 sig.randomizer) sig
         (cellNat (hcell [cellOf128 pk.parameter, word (tw 12) 0 0, cellOf128 (m.extractLsb' 0 128),
-          cellOf128 (m.extractLsb' 128 128), cellOf128 sig.randomness]).1)
+          cellOf128 (m.extractLsb' 128 128), cellOf128 sig.randomizer]).1)
         (cellNat (hcell [cellOf128 pk.parameter, word (tw 12) 0 0, cellOf128 (m.extractLsb' 0 128),
-          cellOf128 (m.extractLsb' 128 128), cellOf128 sig.randomness]).2)
+          cellOf128 (m.extractLsb' 128 128), cellOf128 sig.randomizer]).2)
         sig.counter.toNat ∧
       Stmt.HoldsList C rd σf sPre True (fun _ => True) := by
   obtain ⟨hldR, hldP, hldLo, hldHi⟩ := hat

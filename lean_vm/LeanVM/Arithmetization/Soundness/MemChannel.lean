@@ -44,7 +44,7 @@ namespace LeanVM.Arithmetization
 open LeanVM.Parameters LeanVM.Semantics
 open Air.Flat (Component EnsembleWitness)
 
-variable {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
+variable {prog : LeanIsaProgram} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
 
 /-! ## Memory messages as triples -/
 
@@ -104,9 +104,9 @@ theorem mem_triples_perm (h : SatisfiedByB prog input w) {f : Air.Flat.Table K �
     (hall : allSends w = verifierSends prog ++ (opPairs w).flatMap (fun p ↦ (f p).sends) ++
       memSeedSends (imageOf w.data).2 mfin ++ bcSeedSends prog bfin) :
     ((opReads w f).map bumpRead ++ (List.finRange (2 ^ (imageOf w.data).1)).map fun i : Fin _ ↦
-        (gpow i, 1, limbsOf (imageOf w.data).2 i)).Perm
+        (addressOfIndex i, 1, limbsOf (imageOf w.data).2 i)).Perm
       (opReads w f ++ (List.finRange (2 ^ (imageOf w.data).1)).map fun i : Fin _ ↦
-        (gpow i, mfin i, limbsOf (imageOf w.data).2 i)) := by
+        (addressOfIndex i, mfin i, limbsOf (imageOf w.data).2 i)) := by
   have hb := h.mem_balanced
   unfold BalancedPair at hb
   rw [messagesOn_eq_chanOf, messagesOn_eq_chanOf, chanOf_allSends _ hall,
@@ -137,7 +137,8 @@ theorem mem_triples_perm (h : SatisfiedByB prog input w) {f : Air.Flat.Table K �
 /-- Every memory message a satisfying witness pulls has a seed's address and limbs. -/
 theorem mem_pulls_seeded (h : SatisfiedByB prog input w) :
     ∀ msg ∈ messagesOn w MemPull.toRaw, ∃ x : K × K × Vector K 3, msg = memMsgOfTriple x ∧
-      ∃ i : Fin (2 ^ (imageOf w.data).1), x.1 = gpow i ∧ x.2.2 = limbsOf (imageOf w.data).2 i := by
+      ∃ i : Fin (2 ^ (imageOf w.data).1), x.1 = addressOfIndex i ∧ x.2.2 = limbsOf (imageOf
+          w.data).2 i := by
   obtain ⟨f, hf⟩ := exists_opRecs w
   obtain ⟨mfin, bfin, hall⟩ := allSends_eq h hf
   have hperm := mem_triples_perm h hall
@@ -152,8 +153,9 @@ theorem mem_pulls_seeded (h : SatisfiedByB prog input w) :
       obtain ⟨i, -, rfl⟩ := List.mem_map.mp hx
       exact List.mem_map.mpr ⟨_, List.mem_map_of_mem (List.mem_finRange i), rfl⟩)
   have hkey : ∀ x ∈ opReads w f ++ (List.finRange (2 ^ (imageOf w.data).1)).map fun i : Fin _ ↦
-      (gpow i, mfin i, limbsOf (imageOf w.data).2 i),
-      ∃ i : Fin (2 ^ (imageOf w.data).1), x.1 = gpow i ∧ x.2.2 = limbsOf (imageOf w.data).2 i := by
+      (addressOfIndex i, mfin i, limbsOf (imageOf w.data).2 i),
+      ∃ i : Fin (2 ^ (imageOf w.data).1), x.1 = addressOfIndex i ∧ x.2.2 = limbsOf (imageOf
+          w.data).2 i := by
     intro x hx
     rcases List.mem_append.mp hx with hx | hx
     · obtain ⟨y, hy, hyx⟩ := List.mem_map.mp (hseeded x hx)
@@ -164,7 +166,7 @@ theorem mem_pulls_seeded (h : SatisfiedByB prog input w) :
   intro msg hmsg
   have hpull : messagesOn w MemPull.toRaw =
       (opReads w f ++ (List.finRange (2 ^ (imageOf w.data).1)).map fun i : Fin _ ↦
-        (gpow i, mfin i, limbsOf (imageOf w.data).2 i)).map memMsgOfTriple := by
+        (addressOfIndex i, mfin i, limbsOf (imageOf w.data).2 i)).map memMsgOfTriple := by
     rw [messagesOn_eq_chanOf, chanOf_allSends _ hall]
     simp only [Channel.toRaw_name]
     rw [chanOf_verifier_eq_nil (by simp [MemPull, StatePull]) (by simp [MemPull, StatePush]),
@@ -189,7 +191,7 @@ theorem mem_channel_sound (h : SatisfiedByB prog input w) :
   obtain rfl := memMsgOfTriple_injective hx
   have hκ : (imageOf w.data).1 < 64 := lt_of_le_of_lt h.caps.le_maxLogMem (by decide)
   show (imageOf w.data).2.read m.addr = some (E.ofLimbs m.v[0] m.v[1] m.v[2])
-  rw [show m.addr = gpow j from h1, show m.v = limbsOf (imageOf w.data).2 j from h2,
+  rw [show m.addr = addressOfIndex j from h1, show m.v = limbsOf (imageOf w.data).2 j from h2,
     MemoryImage.read_gpow hκ]
   simp only [limbsOf]
   exact congrArg some (ofLimbs_limb _).symm

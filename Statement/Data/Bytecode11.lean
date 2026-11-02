@@ -18,7 +18,7 @@ set_option maxRecDepth 20000
 @[expose] public section
 
 /-- `block_selector_tab__L32` from offset 0. -/
-def f248c0 : List OInstr := [
+def f248c0 : List OffsetInstruction := [
   .deref 2 0 7 .cell,
   .mul 7 7 8,
   .deref 2 0 8 .cell,
@@ -259,7 +259,7 @@ def f248c0 : List OInstr := [
   .jump 9 0 1]
 
 /-- `block_selector_tab__L33` from offset 0. -/
-def f249c0 : List OInstr := [
+def f249c0 : List OffsetInstruction := [
   .deref 2 0 7 .cell,
   .mul 7 7 8,
   .deref 2 0 8 .cell,
@@ -511,7 +511,7 @@ def f249c0 : List OInstr := [
   .jump 9 0 1]
 
 /-- `__loop9` from offset 0. -/
-def f250c0 : List OInstr := [
+def f250c0 : List OffsetInstruction := [
   .mul 2 2 9,
   .mul 9 2 10,
   .mul 10 10 11,
@@ -560,7 +560,7 @@ def f250c0 : List OInstr := [
   .jump 21 0 1]
 
 /-- `__loop10` from offset 0. -/
-def f251c0 : List OInstr := [
+def f251c0 : List OffsetInstruction := [
   .mul 5 2 7,
   .deref 7 0 8 .cell,
   .mul 4 2 9,
@@ -583,7 +583,7 @@ def f251c0 : List OInstr := [
   .jump 16 0 1]
 
 /-- `keccak_layer__L1_L0` from offset 0. -/
-def f252c0 : List OInstr := [
+def f252c0 : List OffsetInstruction := [
   .set 28 1 0 0,
   .mul 2 28 23,
   .mul 3 28 24,
@@ -2273,7 +2273,7 @@ def f252c0 : List OInstr := [
   .jump 28 0 1]
 
 /-- `keccak_layer__L1_L1` from offset 0. -/
-def f253c0 : List OInstr := [
+def f253c0 : List OffsetInstruction := [
   .set 28 1 0 0,
   .mul 2 28 23,
   .mul 3 28 24,
@@ -3974,7 +3974,7 @@ def f253c0 : List OInstr := [
   .jump 28 0 1]
 
 /-- `keccak_layer__L0_L0` from offset 0. -/
-def f254c0 : List OInstr := [
+def f254c0 : List OffsetInstruction := [
   .set 28 1 0 0,
   .mul 2 28 23,
   .mul 3 28 24,
@@ -5996,7 +5996,7 @@ def f254c0 : List OInstr := [
   .jump 28 0 1]
 
 /-- `keccak_layer__L0_L1` from offset 0. -/
-def f255c0 : List OInstr := [
+def f255c0 : List OffsetInstruction := [
   .set 28 1 0 0,
   .mul 2 28 23,
   .mul 3 28 24,
@@ -8029,7 +8029,7 @@ def f255c0 : List OInstr := [
   .jump 28 0 1]
 
 /-- `keccak_plain_rounds__L6_L0` from offset 0. -/
-def f256c0 : List OInstr := [
+def f256c0 : List OffsetInstruction := [
   .set 25 1 0 0,
   .mul 2 25 20,
   .mul 3 25 21,
@@ -8189,7 +8189,7 @@ def f256c0 : List OInstr := [
   .jump 25 0 1]
 
 /-- `__loop11` from offset 0. -/
-def f257c0 : List OInstr := [
+def f257c0 : List OffsetInstruction := [
   .mul 5 2 7,
   .deref 7 0 8 .cell,
   .mul 4 2 9,
@@ -8212,7 +8212,7 @@ def f257c0 : List OInstr := [
   .jump 16 0 1]
 
 /-- `keccak_plain_rounds__L4_L1` from offset 0. -/
-def f258c0 : List OInstr := [
+def f258c0 : List OffsetInstruction := [
   .set 25 1 0 0,
   .mul 2 25 20,
   .mul 3 25 21,
@@ -8332,7 +8332,7 @@ def f258c0 : List OInstr := [
   .jump 25 0 1]
 
 /-- `__loop12` from offset 0. -/
-def f259c0 : List OInstr := [
+def f259c0 : List OffsetInstruction := [
   .mul 5 2 7,
   .deref 7 0 8 .cell,
   .mul 4 2 9,
@@ -8355,7 +8355,7 @@ def f259c0 : List OInstr := [
   .jump 16 0 1]
 
 /-- `__loop13` from offset 0. -/
-def f260c0 : List OInstr := [
+def f260c0 : List OffsetInstruction := [
   .mul 2 2 7,
   .mul 7 7 8,
   .mul 8 8 9,
@@ -9015,7 +9015,7 @@ def f260c0 : List OInstr := [
   .jump 660 0 1]
 
 /-- `__loop14` from offset 0. -/
-def f261c0 : List OInstr := [
+def f261c0 : List OffsetInstruction := [
   .mul 4 2 7,
   .deref 7 0 8 .cell,
   .mul 5 2 9,
@@ -9040,7 +9040,7 @@ def f261c0 : List OInstr := [
   .jump 18 0 1]
 
 /-- `column_selector__L0` from offset 0. -/
-def f262c0 : List OInstr := [
+def f262c0 : List OffsetInstruction := [
   .mul 9 9 9,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -9197,7 +9197,7 @@ def f262c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L1` from offset 0. -/
-def f263c0 : List OInstr := [
+def f263c0 : List OffsetInstruction := [
   .mul 9 9 9,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -9350,7 +9350,7 @@ def f263c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L2` from offset 0. -/
-def f264c0 : List OInstr := [
+def f264c0 : List OffsetInstruction := [
   .mul 9 9 9,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -9499,7 +9499,7 @@ def f264c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L3` from offset 0. -/
-def f265c0 : List OInstr := [
+def f265c0 : List OffsetInstruction := [
   .mul 9 9 9,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -9644,7 +9644,7 @@ def f265c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L4` from offset 0. -/
-def f266c0 : List OInstr := [
+def f266c0 : List OffsetInstruction := [
   .mul 13 13 13,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -9780,7 +9780,7 @@ def f266c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L5` from offset 0. -/
-def f267c0 : List OInstr := [
+def f267c0 : List OffsetInstruction := [
   .mul 13 13 13,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -9912,7 +9912,7 @@ def f267c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L6` from offset 0. -/
-def f268c0 : List OInstr := [
+def f268c0 : List OffsetInstruction := [
   .mul 13 13 13,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -10040,7 +10040,7 @@ def f268c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L7` from offset 0. -/
-def f269c0 : List OInstr := [
+def f269c0 : List OffsetInstruction := [
   .mul 13 13 13,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -10164,7 +10164,7 @@ def f269c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L8` from offset 0. -/
-def f270c0 : List OInstr := [
+def f270c0 : List OffsetInstruction := [
   .mul 17 17 17,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -10279,7 +10279,7 @@ def f270c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L9` from offset 0. -/
-def f271c0 : List OInstr := [
+def f271c0 : List OffsetInstruction := [
   .mul 17 17 17,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -10390,7 +10390,7 @@ def f271c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L10` from offset 0. -/
-def f272c0 : List OInstr := [
+def f272c0 : List OffsetInstruction := [
   .mul 17 17 17,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -10497,7 +10497,7 @@ def f272c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L11` from offset 0. -/
-def f273c0 : List OInstr := [
+def f273c0 : List OffsetInstruction := [
   .mul 17 17 17,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -10600,7 +10600,7 @@ def f273c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L12` from offset 0. -/
-def f274c0 : List OInstr := [
+def f274c0 : List OffsetInstruction := [
   .mul 21 21 21,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -10694,7 +10694,7 @@ def f274c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L13` from offset 0. -/
-def f275c0 : List OInstr := [
+def f275c0 : List OffsetInstruction := [
   .mul 21 21 21,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -10784,7 +10784,7 @@ def f275c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L14` from offset 0. -/
-def f276c0 : List OInstr := [
+def f276c0 : List OffsetInstruction := [
   .mul 21 21 21,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -10870,7 +10870,7 @@ def f276c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L15` from offset 0. -/
-def f277c0 : List OInstr := [
+def f277c0 : List OffsetInstruction := [
   .mul 21 21 21,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -10952,7 +10952,7 @@ def f277c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L16` from offset 0. -/
-def f278c0 : List OInstr := [
+def f278c0 : List OffsetInstruction := [
   .mul 25 25 25,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -11025,7 +11025,7 @@ def f278c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L17` from offset 0. -/
-def f279c0 : List OInstr := [
+def f279c0 : List OffsetInstruction := [
   .mul 25 25 25,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -11094,7 +11094,7 @@ def f279c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L18` from offset 0. -/
-def f280c0 : List OInstr := [
+def f280c0 : List OffsetInstruction := [
   .mul 25 25 25,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -11159,7 +11159,7 @@ def f280c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L19` from offset 0. -/
-def f281c0 : List OInstr := [
+def f281c0 : List OffsetInstruction := [
   .mul 25 25 25,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -11220,7 +11220,7 @@ def f281c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L20` from offset 0. -/
-def f282c0 : List OInstr := [
+def f282c0 : List OffsetInstruction := [
   .mul 29 29 29,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -11272,7 +11272,7 @@ def f282c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L21` from offset 0. -/
-def f283c0 : List OInstr := [
+def f283c0 : List OffsetInstruction := [
   .mul 29 29 29,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -11320,7 +11320,7 @@ def f283c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L22` from offset 0. -/
-def f284c0 : List OInstr := [
+def f284c0 : List OffsetInstruction := [
   .mul 29 29 29,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -11364,7 +11364,7 @@ def f284c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L23` from offset 0. -/
-def f285c0 : List OInstr := [
+def f285c0 : List OffsetInstruction := [
   .mul 29 29 29,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -11404,7 +11404,7 @@ def f285c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L24` from offset 0. -/
-def f286c0 : List OInstr := [
+def f286c0 : List OffsetInstruction := [
   .mul 33 33 33,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -11435,7 +11435,7 @@ def f286c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L25` from offset 0. -/
-def f287c0 : List OInstr := [
+def f287c0 : List OffsetInstruction := [
   .mul 33 33 33,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -11461,7 +11461,7 @@ def f287c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L26` from offset 0. -/
-def f288c0 : List OInstr := [
+def f288c0 : List OffsetInstruction := [
   .mul 33 33 33,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -11482,7 +11482,7 @@ def f288c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L27` from offset 0. -/
-def f289c0 : List OInstr := [
+def f289c0 : List OffsetInstruction := [
   .mul 33 33 33,
   .set 34 1 0 0,
   .set 35 3 0 0,
@@ -11498,7 +11498,7 @@ def f289c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `column_selector__L28` from offset 0. -/
-def f290c0 : List OInstr := [
+def f290c0 : List OffsetInstruction := [
   .set 34 1 0 0,
   .set 35 0 0 0,
   .xor 34 2 35,
@@ -11506,7 +11506,7 @@ def f290c0 : List OInstr := [
   .jump 34 0 1]
 
 /-- `log2_ceil_in_the_exponent__L0_L34` from offset 0. -/
-def f291c0 : List OInstr := [
+def f291c0 : List OffsetInstruction := [
   .set 6 17179869184 0 0,
   .set 12 1 0 0,
   .set 11 3189906910508041570 0 0,
@@ -11524,7 +11524,7 @@ def f291c0 : List OInstr := [
   .jump 12 0 1]
 
 /-- `log2_ceil_in_the_exponent__L15_L34` from offset 0. -/
-def f292c0 : List OInstr := [
+def f292c0 : List OffsetInstruction := [
   .set 6 17179869184 0 0,
   .set 12 1 0 0,
   .set 11 6414496043487863039 0 0,
@@ -11542,7 +11542,7 @@ def f292c0 : List OInstr := [
   .jump 12 0 1]
 
 /-- `open_stacked__L0` from offset 0. -/
-def f293c0 : List OInstr := [
+def f293c0 : List OffsetInstruction := [
   .deref 10 0 16 .cell,
   .deref 10 1 17 .cell,
   .xor 7 17 18,
@@ -13593,7 +13593,7 @@ def f293c0 : List OInstr := [
   .deref 1355 38 137 .cell]
 
 /-- `open_stacked__L0` from offset 2048. -/
-def f293c1 : List OInstr := [
+def f293c1 : List OffsetInstruction := [
   .deref 1356 38 53 .cell,
   .deref 1355 39 137 .cell,
   .deref 1356 39 53 .cell,
@@ -14016,7 +14016,7 @@ def f293c1 : List OInstr := [
   .jump 53 0 1]
 
 /-- `open_stacked__L1` from offset 0. -/
-def f294c0 : List OInstr := [
+def f294c0 : List OffsetInstruction := [
   .deref 10 0 16 .cell,
   .deref 10 1 17 .cell,
   .xor 7 17 18,
@@ -16067,7 +16067,7 @@ def f294c0 : List OInstr := [
   .deref 1367 25 138 .cell]
 
 /-- `open_stacked__L1` from offset 2048. -/
-def f294c1 : List OInstr := [
+def f294c1 : List OffsetInstruction := [
   .deref 1368 25 54 .cell,
   .deref 1367 26 138 .cell,
   .deref 1368 26 54 .cell,

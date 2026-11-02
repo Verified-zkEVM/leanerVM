@@ -33,7 +33,8 @@ def RC.ok : RC → Bool
 
 theorem functions_lengthC : Data.functions.length = nFns := by decide +kernel
 
-theorem nth_getD {α : Type} : ∀ (l : List α) (n : ℕ) (d : α), nth l n d = l.getD n d
+theorem nth_getD {α : Type} : ∀ (l : List α) (n : ℕ) (d : α), listElementOrDefault l n d =
+    l.getD n d
   | [], _, _ => rfl
   | _ :: _, 0, _ => rfl
   | _ :: as, n + 1, d => nth_getD as n d
@@ -44,15 +45,15 @@ theorem tail_getD {α : Type} (l : List α) (m : ℕ) (d : α) : l.tail.getD m d
 theorem headD_getD {α : Type} (l : List α) (d : α) : l.headD d = l.getD 0 d := by
   cases l <;> rfl
 
-theorem sigT_get : ∀ (fs : List CompiledFn) (cs : List Core.Fn) (ks : List Cert) (i : ℕ)
+theorem sigT_get : ∀ (fs : List CompiledFunction) (cs : List Core.Fn) (ks : List Cert) (i : ℕ)
     (t : Trie (ℕ × Sig)) {k : ℕ} {v : ℕ × Sig}, getF (sigT fs cs ks i t) k = some v →
-      (∃ m f, fs[m]? = some f ∧ f.entry = k ∧
+      (∃ m f, fs[m]? = some f ∧ f.entryPc = k ∧
         v = (i + m, mkSig f (cs.getD m default) (ks.getD m default))) ∨ getF t k = some v
   | [], _, _, _, _, _, _, h => Or.inr h
   | f :: fs, cs, ks, i, t, k, v, h => by
     have e : sigT (f :: fs) cs ks i t = sigT fs cs.tail ks.tail (i + 1)
-        (setF (i, mkSig f (cs.headD default) (ks.headD default)) indexDepth t f.entry) := by
-      show (setF _ indexDepth t f.entry).seq (fun t ↦ sigT fs cs.tail ks.tail (i + 1) t) = _
+        (setF (i, mkSig f (cs.headD default) (ks.headD default)) indexDepth t f.entryPc) := by
+      show (setF _ indexDepth t f.entryPc).seq (fun t ↦ sigT fs cs.tail ks.tail (i + 1) t) = _
       rw [Trie.seq_eq]
     rw [e] at h
     rcases sigT_get fs cs.tail ks.tail (i + 1) _ h with ⟨m, g, hg, he, rfl⟩ | h'
@@ -63,10 +64,10 @@ theorem sigT_get : ∀ (fs : List CompiledFn) (cs : List Core.Fn) (ks : List Cer
       · exact Or.inl ⟨0, f, rfl, rfl, by rw [headD_getD, headD_getD, Nat.add_zero]⟩
       · exact Or.inr (by rw [getF_eq]; exact h'')
 
-theorem certOf_sig (j : ℕ) : (certOf j).nret = (nth Data.certs j default).nret ∧
-    (certOf j).facts.env = (nth Data.certs j default).facts.env ∧
-    (certOf j).pre = (nth Data.certs j default).pre ∧ (certOf j).post = (nth Data.certs j default).post ∧
-    (certOf j).mem = (nth Data.certs j default).mem ∧ (certOf j).sem = (nth Data.certs j default).sem := by
+theorem certOf_sig (j : ℕ) : (certOf j).nret = (listElementOrDefault Data.certs j default).nret ∧
+    (certOf j).facts.env = (listElementOrDefault Data.certs j default).facts.env ∧
+    (certOf j).pre = (listElementOrDefault Data.certs j default).pre ∧ (certOf j).post = (listElementOrDefault Data.certs j default).post ∧
+    (certOf j).mem = (listElementOrDefault Data.certs j default).mem ∧ (certOf j).sem = (listElementOrDefault Data.certs j default).sem := by
   unfold certOf
   split
   rename_i h
@@ -75,7 +76,7 @@ theorem certOf_sig (j : ℕ) : (certOf j).nret = (nth Data.certs j default).nret
 
 /-- **What `sigTrie` files**: the function entered there and what a caller knows of it. -/
 theorem sigTrie_get {k j : ℕ} {sg : Sig} (h : getF sigTrie k = some (j, sg)) :
-    1 ≤ j ∧ j < nFns ∧ (fnOf j).entry = k ∧ sg = sigOf j := by
+    1 ≤ j ∧ j < nFns ∧ (fnOf j).entryPc = k ∧ sg = sigOf j := by
   unfold sigTrie at h
   rcases sigT_get _ _ _ _ _ h with ⟨m, f, hf, he, hv⟩ | h0
   · simp only [Prod.mk.injEq] at hv
@@ -95,7 +96,7 @@ theorem sigTrie_get {k j : ℕ} {sg : Sig} (h : getF sigTrie k = some (j, sg)) :
 
 /-- **A callee the check finds**: a good function entered there, with its signature. -/
 theorem calleeS_spec {X : CX} (hG : X.G = glob) {pc j : ℕ} {sg : Sig} (h : calleeS X pc = some (j, sg)) :
-    2 ≤ j ∧ j < nFns ∧ (fnOf j).entry = pc ∧ sg = X.G.sig j ∧ calleeC X pc = some j := by
+    2 ≤ j ∧ j < nFns ∧ (fnOf j).entryPc = pc ∧ sg = X.G.sig j ∧ calleeC X pc = some j := by
   have hc : calleeC X pc = some j := by unfold calleeC; rw [h]; rfl
   unfold calleeS at h
   split at h

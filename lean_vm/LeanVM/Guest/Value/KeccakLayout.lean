@@ -43,7 +43,7 @@ open LeanVM.Guest.Value.KeccakEval
 
 /-- The sixteen bytes a cell holds: its limb `0`, then its limb `1`, little-endian
 (`pack_16_bytes`, `crates/rec_aggregation/src/aggregation.rs:177-180`). -/
-def cellBytes (c : E) : List UInt8 := kBytes (c.limb 0) ++ kBytes (c.limb 1)
+def cellBytes (c : E) : List UInt8 := K.toBytes (c.limb 0) ++ K.toBytes (c.limb 1)
 
 /-- The bytes of a run of cells, in order. -/
 def cellsBytes (cs : List E) : List UInt8 := cs.flatMap cellBytes
@@ -52,7 +52,7 @@ def cellsBytes (cs : List E) : List UInt8 := cs.flatMap cellBytes
   simp [wordBytes]
 
 @[simp] theorem length_cellBytes (c : E) : (cellBytes c).length = 16 := by
-  simp [cellBytes, kBytes]
+  simp [cellBytes, K.toBytes]
 
 @[simp] theorem cellsBytes_nil : cellsBytes [] = [] := rfl
 
@@ -120,7 +120,7 @@ private theorem foldl_bytes (n : ℕ) :
 
 /-- **The lane of a word's bytes is the word.** -/
 theorem leLane_wordBytes_append (w : UInt64) (rest : List UInt8) :
-    leLane (wordBytes w ++ rest) 0 = w := by
+    littleEndianLane (wordBytes w ++ rest) 0 = w := by
   apply UInt64.toNat_inj.mp
   rw [leLane_toNat, leLaneN]
   have hk : ∀ k ∈ List.range 8, ((wordBytes w ++ rest).map UInt8.toNat).getD (8 * 0 + k) 0 =
@@ -139,25 +139,27 @@ theorem leLane_wordBytes_append (w : UInt64) (rest : List UInt8) :
     _ _ (fun acc k hm ↦ by rw [hk k hm]), foldl_bytes _ 8 le_rfl, Nat.mod_eq_of_lt w.toNat_lt]
 
 /-- A lane past the first reads the bytes past the first eight. -/
-theorem leLane_succ (bs : List UInt8) (l : ℕ) : leLane bs (l + 1) = leLane (bs.drop 8) l := by
-  unfold leLane
+theorem leLane_succ (bs : List UInt8) (l : ℕ) : littleEndianLane bs (l + 1) = littleEndianLane
+    (bs.drop 8) l := by
+  unfold littleEndianLane
   congr 1
   funext acc k
   simp only [List.getD_eq_getElem?_getD, List.getElem?_drop,
     show 8 * (l + 1) + k = 8 + (8 * l + k) by ring]
 
-theorem leLane_nil (l : ℕ) : leLane [] l = 0 := by
-  simp [leLane]
+theorem leLane_nil (l : ℕ) : littleEndianLane [] l = 0 := by
+  simp [littleEndianLane]
 
 /-- Lane `l` of a byte string is the bytes from `8l`. -/
-theorem leLane_eq_drop (bs : List UInt8) (l : ℕ) : leLane bs l = leLane (bs.drop (8 * l)) 0 := by
+theorem leLane_eq_drop (bs : List UInt8) (l : ℕ) : littleEndianLane bs l = littleEndianLane (bs.drop
+    (8 * l)) 0 := by
   induction l generalizing bs with
   | zero => rfl
   | succ l ih => rw [leLane_succ, ih, List.drop_drop]; congr 2; ring
 
 /-- **Lane `l` of the bytes of cells** is limb `l % 2` of cell `l / 2` (zero past the end). -/
 theorem leLane_cellsBytes (cs : List E) (l : ℕ) :
-    leLane (cellsBytes cs) l = ((cs.getD (l / 2) 0).limb ⟨l % 2, by omega⟩).lane := by
+    littleEndianLane (cellsBytes cs) l = ((cs.getD (l / 2) 0).limb ⟨l % 2, by omega⟩).lane := by
   rw [leLane_eq_drop, show 8 * l = 16 * (l / 2) + 8 * (l % 2) by omega, ← List.drop_drop,
     ← cellsBytes_drop]
   rw [List.getD_eq_getElem?_getD, show cs[l / 2]? = (cs.drop (l / 2))[0]? by simp]
@@ -166,7 +168,7 @@ theorem leLane_cellsBytes (cs : List E) (l : ℕ) :
   · simp only [cellsBytes_nil, List.drop_nil, leLane_nil, List.getElem?_nil, Option.getD_none]
     rw [limb_zero]; rfl
   · rcases Nat.mod_two_eq_zero_or_one l with h | h <;>
-      simp only [h, cellsBytes_cons, cellBytes, kBytes, List.append_assoc, Nat.mul_zero,
+      simp only [h, cellsBytes_cons, cellBytes, K.toBytes, List.append_assoc, Nat.mul_zero,
         List.drop_zero, Nat.mul_one, leLane_wordBytes_append, List.getElem?_cons_zero,
         Option.getD_some, List.drop_left' (length_wordBytes _)]
     · rfl
@@ -236,14 +238,15 @@ def blockBytes (odd : Bool) (blk : List E) : List UInt8 :=
 
 /-- The state with a block's seventeen lanes XORed into the rate: what `absorbBlock` permutes. -/
 def xorRate (S : KeccakState) (block : List UInt8) : KeccakState :=
-  Vector.ofFn fun i ↦ if i.val < 17 then Keccak.lane S i ^^^ leLane block i else Keccak.lane S i
+  Vector.ofFn fun i ↦ if i.val < 17
+      then Keccak.lane S i ^^^ littleEndianLane block i else Keccak.lane S i
 
 theorem absorbBlock_eq (S : KeccakState) (block : List UInt8) :
     absorbBlock S block = keccakF1600 (xorRate S block) := rfl
 
 /-- Lane `l` of a block is where its cells hold it in the block's layout. -/
 theorem leLane_blockBytes (odd : Bool) (blk : List E) {l : ℕ} (hl : l < 17) :
-    leLane (blockBytes odd blk) l =
+    littleEndianLane (blockBytes odd blk) l =
       ((blk.getD (laneCellIdx odd l) 0).limb (laneLimb odd l)).lane := by
   cases odd
   · simp only [blockBytes, Bool.false_eq_true, ↓reduceIte, leLane_cellsBytes, laneCellIdx,

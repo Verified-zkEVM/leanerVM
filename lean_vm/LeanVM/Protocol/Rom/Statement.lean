@@ -70,7 +70,7 @@ abbrev Outcome : Type :=
   ((ProgramAndInput × Proof) × Bool) × KeccakCalls.QueryCache × KeccakCalls.QueryCache
 
 /-- The outcome's program. -/
-abbrev Outcome.program (z : Outcome) : Program := z.1.1.1.1
+abbrev Outcome.program (z : Outcome) : LeanIsaProgram := z.1.1.1.1
 
 /-- The outcome's public input. -/
 abbrev Outcome.input (z : Outcome) : PublicInput := z.1.1.1.2
@@ -102,7 +102,7 @@ noncomputable def experiment (A : Adversary) : ProbComp Outcome := do
 /-- An extractor of the random-oracle model: from the oracle's answers to the adversary's queries
 and the proof, an execution of the program. -/
 abbrev Extractor : Type :=
-  (prog : Program) → PublicInput → KeccakCalls.QueryCache → Proof → Option (Execution prog)
+  (prog : LeanIsaProgram) → PublicInput → KeccakCalls.QueryCache → Proof → Option (Execution prog)
 
 /-- **The extractor of the random-oracle model** (`LeanVM.Extraction.extract`,
 `LeanVM/Protocol/Extraction/Extractor.lean`) on the adversary's cached Keccak-256 answers, with the byte strings
@@ -131,7 +131,7 @@ def KnowledgeSoundnessRom : Prop :=
 /-- **Completeness in the two-oracle random-oracle model.** The experiment takes a proof: no
 proof (`none`) enters it as the empty proof, which the verifier rejects. -/
 def CompletenessRom : Prop :=
-  ∃ prover : HonestProverWithHash, ∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
+  ∃ prover : HonestProverWithHash, ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
     ValidExecution prog input t →
     t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
     Pr{let z ← experiment

@@ -57,7 +57,7 @@ theorem sTops_vals : (sTops.map KC.cell).map (KC.val σ) =
 /-- **The encoding's digest.** -/
 theorem sEnc_sound (hp : PadOK σ sPad) (h : AtomsHold rd σ sEnc.1) {N : Nat} (hN : N < 2 ^ 32)
     (hx : σ (.n sFb.2.1) = eOfNat N) :
-    σ (.n sEnc.2.2) = (digestScalars (keccak256 ((cellsBytes (σ (.n 162) :: σ (.n 164) ::
+    σ (.n sEnc.2.2) = (digestHalves (keccak256 ((cellsBytes (σ (.n 162) :: σ (.n 164) ::
       (List.range 16).map (sT σ) ++ [σ (.n sFb.2.1)])).take 292))).1 := by
   have hl : 8 ≤ sTops.length := by simp [sTops, sTops_count]
   have := kMsg_sound (out := none) (tailRun := true) hp (fun _ => tailCells_292 sTops hl _) h

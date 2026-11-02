@@ -58,7 +58,7 @@ theorem getElem?_flatten_offset {α : Type} :
 /-! ## The stacking order -/
 
 /-- **The executable stacking order is the instance's**, by Python number. -/
-theorem stackOrderOf_pyKappas (prog : Program) (s : Sizes) :
+theorem stackOrderOf_pyKappas (prog : LeanIsaProgram) (s : Sizes) :
     stackOrderOf (pyKappas prog s) = (stackOrder prog s).map pyCol := by
   unfold stackOrderOf
   have hb : blockColumns = committedColumns.map pyCol := blockCols_eq
@@ -72,13 +72,13 @@ theorem stackOrderOf_pyKappas (prog : Program) (s : Sizes) :
   rw [List.getD_eq_getElem _ _ hlt, List.getElem_map, List.getElem_idxOf]
 
 /-- The executable stack's log-size is the instance's `μ`. -/
-theorem placementsOf_snd (prog : Program) (s : Sizes) :
+theorem placementsOf_snd (prog : LeanIsaProgram) (s : Sizes) :
     (placementsOf (pyKappas prog s)).2 = leanIsaμ prog s :=
   stackLog_verifierLayout prog s
 
 /-! ## The stack -/
 
-variable {prog : Program} (s : Sizes) (w : EnsembleWitness (leanIsaEnsemble prog))
+variable {prog : LeanIsaProgram} (s : Sizes) (w : EnsembleWitness (leanIsaEnsemble prog))
 
 /-- The stacked total is the heights of the committed columns in stacking order. -/
 theorem total_eq_sum_stackOrder :

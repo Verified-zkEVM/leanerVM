@@ -35,17 +35,19 @@ abbrev hH (a : List UInt8) : OracleComp (unifSpec + roSpec (List UInt8) DigestBy
 
 section Post
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
 
 /-- The win of a code-binding adversary from its openings' verdicts and the argument's. -/
-noncomputable def cbWin (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening))
+noncomputable def cbWin (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell ×
+    CellOpening))
     (vs : List Bool) (b : Bool) : Bool :=
-  (vs.all id && b) && !decide ((code r).Consistent (out.2.map fun o ↦ (o.1, o.2.1)))
+  (vs.all id && b) && !decide ((leanDaErasureCode r).Consistent (out.2.map fun o ↦ (o.1, o.2.1)))
 
 /-- **The verification of the openings with the challenges `l`**, hashing with `H`. -/
-noncomputable def postV (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening))
-    (l : Challenges) : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool := do
+noncomputable def postV (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening))
+    (l : MembershipChallenges) : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool := do
   let vs ← out.2.mapM fun o ↦ verifyCellMWithHash hH r out.1.1 o.1 o.2.1 o.2.2
   pure (cbWin r out vs (ps.verify crs ((), out.1.1, l) out.1.2))
 
@@ -55,7 +57,8 @@ theorem simulateQ_embH_hH (a : List UInt8) :
   rfl
 
 theorem simulateQ_embH_postV (crs : Crs)
-    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) (l : Challenges) :
+    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) (l :
+        MembershipChallenges) :
     simulateQ (embH (Msg := List UInt8) (Dg := DigestBytes) (St := KState)) (postV r ps crs out l) =
       (do
         let vs ← out.2.mapM fun o ↦ verifyCellMWithHash hR r out.1.1 o.1 o.2.1 o.2.2
@@ -77,11 +80,11 @@ theorem all_cons_map_and (b v : Bool) (vs : List Bool) :
   cases b <;> simp
 
 /-- Recomputed challenges, from a cache extending one where they were computed. -/
-theorem run_mapM_rerun (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening))
+theorem run_mapM_rerun (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening))
     {c₀ : Cache2} {w : List E × Cache2}
     (hw : w ∈ support ((simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
       (chalR out.1.1)).run c₀))
-    (l : List (Fin (r * 128) × Cell × Opening)) (c : Cache2) (hc : w.2 ≤ c) :
+    (l : List (Fin (r * 128) × Cell × CellOpening)) (c : Cache2) (hc : w.2 ≤ c) :
     (simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
         (l.mapM fun o ↦ verifyRpm hR pR r ps crs out.1 o.1 o.2.1 o.2.2)).run c =ᵈ
       (fun z ↦ (z.1.map (ps.verify crs ((), out.1.1, toChallenges w.1) out.1.2 && ·), z.2)) <$>
@@ -103,11 +106,11 @@ theorem run_mapM_rerun (crs : Crs) (out : (Common.DigestBytes × Proof) × List 
     simp only [List.map_cons]
     exact EvalDistEq.rfl
 
-theorem consistent_nil : (code r).Consistent [] := ⟨fun _ ↦ 0, fun _ h ↦ by cases h⟩
+theorem consistent_nil : (leanDaErasureCode r).Consistent [] := ⟨fun _ ↦ 0, fun _ h ↦ by cases h⟩
 
 /-- **The verifier computes the challenges once.** -/
 theorem prob_codeBindingPost (crs : Crs)
-    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) (c : Cache2) :
+    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) (c : Cache2) :
     Pr{let b ← (simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
         (codeBindingPost r ps crs out)).run' c}[b = true] =
       Pr{let b ← (simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
@@ -115,7 +118,8 @@ theorem prob_codeBindingPost (crs : Crs)
           b = true] := by
   obtain ⟨com, l⟩ := out
   rcases l with _ | ⟨o, l⟩
-  · have hnc : !decide ((code r).Consistent ([] : List (Fin (r * 128) × Cell))) = false := by
+  · have hnc : !decide ((leanDaErasureCode r).Consistent ([] : List (Fin (r * 128) × Cell))) =
+      false := by
       simp [consistent_nil]
     rw [prEvent_eq_zero_of_forall_mem_support _ _ fun b hb ↦ ?_,
       prEvent_eq_zero_of_forall_mem_support _ _ fun b hb ↦ ?_]
@@ -192,8 +196,9 @@ theorem isWeightBound_shadowImpl_f (t : (dSpec2 (List UInt8) DigestBytes KState)
 
 section CodeBinding
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
 
 /-- **The simulated adversary calls `F` at most `Q` times** for every crs the setup can output,
 when the RPM game makes at most `Q` permutation calls. -/
@@ -255,7 +260,7 @@ theorem codeBindingExpRpm_le_G (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
       Pr{let b ← (simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
         (advS2 keccakPadding KState.zero (A ((), crs)) >>= fun out ↦ chalR out.1.1 >>= fun zs ↦
           simulateQ embH (postV r ps crs out (toVec zs)))).run' ∅}[b = true] := by
-    have e : ∀ (K : ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) →
+    have e : ∀ (K : ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) →
         OracleComp Rom2 Bool),
         (simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
           (advS2 keccakPadding KState.zero (A ((), crs)) >>= K)).run' ∅ =

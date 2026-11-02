@@ -33,7 +33,7 @@ def OsSoundW (C : CallRel) (rd : Reader) (osW : ℕ → List E → List E → Li
     Prop :=
   ∀ μ r, 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 → ∀ (root : Digest) (fs : List E)
     (target root0 root1 cur : E) (rets : List E), fs.length = 5 →
-    (root0, root1) = digestScalars root →
+    (root0, root1) = digestHalves root →
     C (B1.Whir.openName μ r) (fs ++ [target, root0, root1, cur]) rets →
     B1.Whir.OpenOutW rd μ r root fs target cur rets
       (osW (B1.Whir.candidate μ r) (fs ++ [target, root0, root1, cur]) rets).1
@@ -59,11 +59,11 @@ theorem vs_dispatch {C : CallRel} {rd : Reader} {σ : Val}
     {osW : ℕ → List E → List E → List E × List Opening} (hos : OsSoundW C rd osW) {μ r : ℕ}
     (hμ1 : 22 ≤ μ) (hμ2 : μ ≤ 28) (hr1 : 1 ≤ r) (hr2 : r ≤ 4)
     (h1901 : σ (.n 1901) = gen ^ B1.Whir.candidate μ r)
-    (hd : ∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1901) = ofK (gpow j) ∧
+    (hd : ∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1901) = ofK (addressOfIndex j) ∧
       C vsOpenNames[j] [σ (.n 1312), σ (.n 1313), σ (.n 1314), σ (.n 1315), σ (.n 1316),
         σ (.n 1886), σ (.n 537), σ (.n 547), σ (.n 868)]
         [σ (.n 1906), σ (.n 1907), σ (.n 1908), σ (.n 1909), σ (.n 1910)])
-    {root : Digest} (hroot : (σ (.n 537), σ (.n 547)) = digestScalars root) :
+    {root : Digest} (hroot : (σ (.n 537), σ (.n 547)) = digestHalves root) :
     B1.Whir.OpenOutW rd μ r root [σ (.n 1312), σ (.n 1313), σ (.n 1314), σ (.n 1315), σ (.n 1316)]
       (σ (.n 1886)) (σ (.n 868)) [σ (.n 1906), σ (.n 1907), σ (.n 1908), σ (.n 1909), σ (.n 1910)]
       (osW (B1.Whir.candidate μ r) [σ (.n 1312), σ (.n 1313), σ (.n 1314), σ (.n 1315),

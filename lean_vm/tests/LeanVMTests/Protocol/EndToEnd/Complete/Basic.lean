@@ -39,31 +39,32 @@ example : ∀ (count : ℕ), 2 ≤ count → ∀ (claimOf : List E → E) (modes
       (hSumcheck count claimOf modes pre) (sumcheck (claimOf pre) count modes) cs :=
   follows_sumcheck
 
-example : ∀ (prog : Program) {s : Sizes}, s.Admissible prog → ∀ {ρ : ℕ}, validRate ρ →
+example : ∀ (prog : LeanIsaProgram) {s : Sizes}, s.Admissible prog → ∀ {ρ : ℕ}, validRate ρ →
     ∀ (cs : Commits), Follows (fun cs' _ b ↦ cs' = cs ∧ b = (verifierLayout prog s, ρ))
-      (Script.sendList (announce s ρ)) (readSizes (bytecodeWords prog)) cs :=
+      (Script.sendList (announce s ρ)) (readAnnouncedSizes (bytecodeWords prog)) cs :=
   follows_readSizes
 
-example : ∀ {prog : Program} {s : Sizes} {input : PublicInput} {q : Column (leanIsaμ prog s)},
+example : ∀ {prog : LeanIsaProgram} {s : Sizes} {input : PublicInput} {q : Column (leanIsaμ
+    prog s)},
     M3Holds (inst prog s) input q → ∀ (cs : Commits),
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b) (hPub prog s q)
-      (Verifier.publicInputPhase (verifierLayout prog s) (publicDigest input)) cs :=
+      (Verifier.publicInputPhase (verifierLayout prog s) (publicInputDigest input)) cs :=
   follows_publicInputPhase
 
-example : ∀ {prog : Program} {s : Sizes} {input : PublicInput} {ρ : ℕ}
+example : ∀ {prog : LeanIsaProgram} {s : Sizes} {input : PublicInput} {ρ : ℕ}
     {q : Column (leanIsaμ prog s)}, s.Admissible prog → validRate ρ →
     M3Holds (inst prog s) input q → ∀ (P : Phases), P.Honest prog s q →
     ∀ (chal : List Ev → E),
-      runI (leanVmProgram (bytecodeWords prog) (publicDigest input))
+      runI (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
           (honestStrategy prog s ρ q P) chal = some true ∧
-        shapedI (leanVmProgram (bytecodeWords prog) (publicDigest input))
+        shapedI (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
           (honestStrategy prog s ρ q P) chal :=
   runI_leanVmProgram_of
 
 /-! ## The wire round -/
 
 /-- Run a program that only reads, on a list of scalars. -/
-def feed {α : Type} : Prog α → List E → Option α
+def feed {α : Type} : VerifierProgram α → List E → Option α
   | .ret a, _ => some a
   | .read k, x :: xs => feed (k x) xs
   | _, _ => none
@@ -97,7 +98,7 @@ def claimFor (mode : Option E) (c : List E) : E :=
 /-! ## The announcement -/
 
 /-- Four `XOR` instructions. -/
-def prog4 : Program := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
+def prog4 : LeanIsaProgram := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
 
 /-- Row counts with a table as tall as the memory, and others not powers of two: heights
 `2^16, 2^3, 2^16, 2^4, 2^16, 2^16`. -/
@@ -118,12 +119,12 @@ theorem admissible_s₁ : s₁.Admissible prog4 := by
 
 /-- The announcement's completeness at a concrete program, sizes and rate. -/
 example : Follows (fun cs' _ b ↦ cs' = [] ∧ b = (verifierLayout prog4 s₁, 2))
-    (Script.sendList (announce s₁ 2)) (readSizes (bytecodeWords prog4)) [] :=
+    (Script.sendList (announce s₁ 2)) (readAnnouncedSizes (bytecodeWords prog4)) [] :=
   follows_readSizes prog4 admissible_s₁ ⟨by decide, by decide⟩ []
 
 -- The honest announcement returns the verifier's layout; the rate `5` is rejected.
-#guard (feed (readSizes (bytecodeWords prog4)) (announce s₁ 2)).map (·.2) == some 2
-#guard (feed (readSizes (bytecodeWords prog4)) (announce s₁ 5)).isNone
+#guard (feed (readAnnouncedSizes (bytecodeWords prog4)) (announce s₁ 2)).map (·.2) == some 2
+#guard (feed (readAnnouncedSizes (bytecodeWords prog4)) (announce s₁ 5)).isNone
 
 /-! ## The public digest -/
 
@@ -132,6 +133,6 @@ def input₀ : PublicInput :=
   ⟨![K.ofBits 0x0123456789ABCDEF, K.ofBits 0xFEDCBA9876543210, K.ofBits 42,
     K.ofBits 0xFFFFFFFFFFFFFFFF]⟩
 
-#guard digestScalars (publicDigest input₀) == (input₀.word0, input₀.word1)
+#guard digestHalves (publicInputDigest input₀) == (input₀.word0, input₀.word1)
 
 end LeanVMTests.Protocol.EndToEnd.Complete.Basic

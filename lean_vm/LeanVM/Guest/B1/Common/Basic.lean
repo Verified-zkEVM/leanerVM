@@ -130,17 +130,19 @@ theorem readsAt_nil (rd : Reader) (p : E) : ReadsAt rd p [] := fun _ hk => absur
 /-- A load through `p·g^j` at offset `k` is the load at offset `j + k`. -/
 theorem loadHolds_mul_gen_pow (rd : Reader) (p : E) (j k : ℕ) (w : E) :
     LoadHolds rd (p * gen ^ j) k w ↔ LoadHolds rd p (j + k) w := by
-  have hg : Parameters.gpow j ≠ 0 := pow_ne_zero _ g_ne_zero
+  have hg : Parameters.addressOfIndex j ≠ 0 := pow_ne_zero _ g_ne_zero
   rw [gen_pow_eq_ofK]
   unfold LoadHolds
   rw [isInK_mul_ofK hg]
   constructor
   · rintro ⟨hp, h⟩
-    rw [limb0_mul_ofK hp, mul_assoc, Parameters.gpow, Parameters.gpow, ← pow_add] at h
+    rw [limb0_mul_ofK hp, mul_assoc, Parameters.addressOfIndex, Parameters.addressOfIndex, ←
+        pow_add] at h
     exact ⟨hp, h⟩
   · rintro ⟨hp, h⟩
     refine ⟨hp, ?_⟩
-    rw [limb0_mul_ofK hp, mul_assoc, Parameters.gpow, Parameters.gpow, ← pow_add]
+    rw [limb0_mul_ofK hp, mul_assoc, Parameters.addressOfIndex, Parameters.addressOfIndex, ←
+        pow_add]
     exact h
 
 
@@ -395,7 +397,7 @@ theorem armsEqb_sound : ∀ {s t : List (List Stmt)}, armsEqb s t = true → s =
 end
 
 theorem gen_pow_ordG : gen ^ ordG = 1 := by
-  rw [gen_pow_eq_ofK, Parameters.gpow, show ordG = orderOf g from orderOf_g.symm,
+  rw [gen_pow_eq_ofK, Parameters.addressOfIndex, show ordG = orderOf g from orderOf_g.symm,
     pow_orderOf_eq_one, ofK_one]
 
 theorem ordG_pos : 0 < ordG := Nat.sub_pos_of_lt (Nat.one_lt_two_pow (by decide))

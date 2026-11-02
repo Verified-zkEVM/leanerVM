@@ -12,7 +12,8 @@ The SUF-CMA game of `StatementDet.lean` (the deterministic signer, keys from a u
 seed) with the hash `H` instantiated as Keccak-256 over a uniformly random permutation `π` of the
 Keccak-f[1600] state of 25 lanes (`Common`): `H` is the sponge over `π` (rate 136 bytes, capacity
 512 bits, Keccak padding), its 32 output bytes read as the little-endian `HashOutput`
-(`Common.SufCma.digestBitVec`), and the adversary queries Keccak-256, `π` and `π⁻¹` besides the
+(`Common.SufCma.digestBytesEquivBitVec`), and the adversary queries Keccak-256, `π` and `π⁻¹`
+besides the
 signing oracle (the model with the hash oracle, `Common.HashOracle`; the statement's adversary
 queries `π` and `π⁻¹` alone, `Common.PiOnly`). Key generation, signing and the final verification
 hash through the same `π`.

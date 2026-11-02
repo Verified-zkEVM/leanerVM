@@ -48,7 +48,8 @@ noncomputable def wenvW (j i : ℕ) : Trie Sym :=
 
 /-- **What a soundness window's check gives the completeness walk.** -/
 theorem checkWin_cpl (hc : checkWin glob (fnOf j) (coreOf j) (certOf j) (j == 1) i = true) :
-    (certOf j).contOk i = true ∧ (certOf j).insOk (nth (certOf j).ins i []) = true ∧
+    (certOf j).contOk i = true ∧ (certOf j).insOk (listElementOrDefault (certOf j).ins i [])
+        = true ∧
       linkedWeak (index (segsW j i)) (segsW j i) (wJW j i) (wenvW j i) = true ∧
       (∃ s, getF (index (segsW j i)) ((certOf j).cutAt i).J = some s ∧
         s.start = ((certOf j).cutAt i).J ∧ s.env.sub Sym.beq (envOf ((certOf j).cutAt i).env) = true) ∧
@@ -175,7 +176,7 @@ structure FnH (L : MemoryImage κ) (j fp : ℕ) (σ : Val) (es : List Ev) (vs : 
   pows : (certOf j).facts.pows.Ok
   le32 : κ ≤ 32
   jt : JTHolds glob L
-  tab : ∀ q ∈ Memory.tableCells, L.read (gpow q.1) = some q.2
+  tab : ∀ q ∈ Memory.tableCells, L.read (addressOfIndex q.1) = some q.2
   main : j = 1 → fp = 0
   frame : FrameHolds L j fp σ es vs kfps hdr
   kids : KidsRun L σ es kfps ck
@@ -190,7 +191,8 @@ theorem winOkC_of {j i : ℕ} (h : cplWin j i 0 = true) : winOkC j i = true := b
   simp only [cplWin, Nat.beq_refl, Bool.cond_true, Bool.and_eq_true] at h
   exact h.1.1.1
 
-theorem FnH.ctx (F : FnH L j fp σ es vs kfps hdr ck) : Exec.Ctx (certOf j).facts κ (gpow fp) := by
+theorem FnH.ctx (F : FnH L j fp σ es vs kfps hdr ck) : Exec.Ctx (certOf j).facts κ (addressOfIndex
+    fp) := by
   refine ⟨F.pows, fun h ↦ ?_, F.le32⟩
   have := checkWin_fpOne (F.chk 0 (Nat.zero_le _))
   rw [h] at this

@@ -107,19 +107,20 @@ set_option maxRecDepth 100000 in
 /-- **The sections' data of the honest valuation on an honest child.** -/
 theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest} {c : Child}
     (S : ChildSegs bytecode seed c) {lpE sqE outE : ℕ}
-    (hargs : args = [(digestScalars (statementDigest seed c.statement)).1,
-      (digestScalars (statementDigest seed c.statement)).2, (digestScalars seed).1,
-      (digestScalars seed).2, ofK (gpow lpE), ofK (gpow sqE), ofK (gpow outE)])
+    (hargs : args = [(digestHalves (statementDigest seed c.statement)).1,
+      (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
+      (digestHalves seed).2, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE), ofK (addressOfIndex
+          outE)])
     (bs : List ℕ) (outs : List (List E × Main.Layout)) {κ : ℕ} (hκ : 16 ≤ κ) (hlow : LowDef κ rd)
-    (hmem : ∀ i < 16, ReadsAt rd (ofK (gpow (bs.getD i 0))) (S.ownW.getD i []))
-    (hlp : ReadsAt rd (ofK (gpow lpE)) ((List.range 34).map fun j ↦ eOfNat (2 ^ j)))
-    (hsq : ReadsAt rd (ofK (gpow sqE)) Tables.gSquaresList)
-    (hfx : ReadsAt rd (ofK (gpow outE)) (DeferredClaim.cells c.freshClaim))
+    (hmem : ∀ i < 16, ReadsAt rd (ofK (addressOfIndex (bs.getD i 0))) (S.ownW.getD i []))
+    (hlp : ReadsAt rd (ofK (addressOfIndex lpE)) ((List.range 34).map fun j ↦ eOfNat (2 ^ j)))
+    (hsq : ReadsAt rd (ofK (addressOfIndex sqE)) Tables.gSquaresList)
+    (hfx : ReadsAt rd (ofK (addressOfIndex outE)) (DeferredClaim.cells c.freshClaim))
     (o0 : (outs.getD 0 ([], [])).1 = [gen ^ S.rate])
     (o1 : (outs.getD 1 ([], [])).1 = [gen ^ S.logMem])
     (o6 : (outs.getD 6 ([], [])).1 = S.H.retsH (S.vtB bs sqE))
     (o7 : (outs.getD 7 ([], [])).1 =
-      S.s7.cap ++ [ofK (gpow (S.cK bs)) * gen ^ S.xsK.length, S.word, S.m0])
+      S.s7.cap ++ [ofK (addressOfIndex (S.cK bs)) * gen ^ S.xsK.length, S.word, S.m0])
     (o10 : (outs.getD 10 ([], [])).1 = [gen ^ max 15 (log2Ceil (Tables.stackTotal S.kappas))]) :
     ∃ D : VsSecData rd (vsW bs outs) args,
       D.vals = (fun i ↦ S.H.poolW.getD (vsKept i) 0) ∧ D.lir = S.rate ∧ D.logMem = S.logMem ∧
@@ -132,7 +133,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
       vsσ rd (vsW bs outs) args (.n 870) = S.m0 ∧ vsChs (vsσ rd (vsW bs outs) args) = S.chs := by
   have hl : args.length = 7 := by rw [hargs]; rfl
   have ptr : ∀ i < 16, vsσ rd (vsW bs outs) args (.n (vsAllocVars.getD i 0)) =
-      ofK (gpow (bs.getD i 0)) := fun i hi ↦ vs_alloc_ptr hl bs outs hi
+      ofK (addressOfIndex (bs.getD i 0)) := fun i hi ↦ vs_alloc_ptr hl bs outs hi
   have ret : ∀ j < 13, ∀ k < (vsRetVars.getD j []).length,
       vsσ rd (vsW bs outs) args (.n ((vsRetVars.getD j []).getD k 0)) =
         (outs.getD j ([], [])).1.getD k 0 := fun j hj k hk ↦ vs_ret_val hl bs outs hj hk

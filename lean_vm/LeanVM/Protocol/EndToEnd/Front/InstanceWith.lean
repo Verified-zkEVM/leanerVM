@@ -33,7 +33,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.LeanIsa
 
 /-- **The leanISA instance with the Keccak region `fl`**: `leanIsaInstance prog s` but for its
 region. -/
-abbrev leanIsaWith (prog : Program) (s : Sizes)
+abbrev leanIsaWith (prog : LeanIsaProgram) (s : Sizes)
     (fl : Option (KeccakRegion (shape prog s))) : M3Instance where
   toShape := shape prog s
   Stmt := PublicInput
@@ -54,7 +54,7 @@ abbrev leanIsaWith (prog : Program) (s : Sizes)
   publicLines := publicLines prog s
   keccak := fl
 
-variable (prog : Program) (s : Sizes)
+variable (prog : LeanIsaProgram) (s : Sizes)
 
 /-- A side's leaf count, from its blocks' log-heights. -/
 theorem leafCount_eq_κ (I : M3Instance) (k : Fin 3) :

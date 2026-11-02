@@ -44,9 +44,9 @@ theorem take_capSibsOf_succ {cap : E} {D p j : ℕ} (hj : j < D) :
 /-- **Up the cap by the siblings its cells hold** (`cap_climb`, the siblings named). -/
 theorem cap_climb_w {D : ℕ} (hD : 2 ≤ D) {cap flags r0 r1 : E} {root : Digest}
     (hcap : MeaningVerifyMerkleCap D rd [cap, flags] [r0, r1])
-    (hroot : (r0, r1) = digestScalars root) {p : ℕ} (hp : p < 2 ^ D) {x : Digest}
-    (hx0 : LoadHolds rd cap (2 * (2 ^ D + p)) (digestScalars x).1)
-    (hx1 : LoadHolds rd cap (2 * (2 ^ D + p) + 1) (digestScalars x).2)
+    (hroot : (r0, r1) = digestHalves root) {p : ℕ} (hp : p < 2 ^ D) {x : Digest}
+    (hx0 : LoadHolds rd cap (2 * (2 ^ D + p)) (digestHalves x).1)
+    (hx1 : LoadHolds rd cap (2 * (2 ^ D + p) + 1) (digestHalves x).2)
     (hfl : LoadHolds rd flags (2 ^ (D - 1) + p / 2) 1) :
     climbD x p (capSibsOf rd cap D p) = root := by
   obtain ⟨cell, fl, hc, hf, hh, hpin, hret⟩ := hcap
@@ -92,7 +92,7 @@ theorem cap_climb_w {D : ℕ} (hD : 2 ≤ D) {cap flags r0 r1 : E} {root : Diges
           exact loadHolds_unique hfj z1
   have climb : ∀ j, j ≤ D →
       (cell (2 * capAnc D p j), cell (2 * capAnc D p j + 1)) =
-        digestScalars (climbD x p ((capSibsOf rd cap D p).take j)) := by
+        digestHalves (climbD x p ((capSibsOf rd cap D p).take j)) := by
     intro j hjD
     induction j with
     | zero =>
@@ -160,12 +160,12 @@ siblings its cells hold. -/
 theorem query_openOne_w {D depth width : ℕ} (hD : 2 ≤ D) (hDd : D ≤ depth)
     {cap flags r0 r1 : E} {root : Digest}
     (hcap : MeaningVerifyMerkleCap D rd [cap, flags] [r0, r1])
-    (hroot : (r0, r1) = digestScalars root) {q : ℕ} (hq : q < 2 ^ depth) {row : List K}
+    (hroot : (r0, r1) = digestHalves root) {q : ℕ} (hq : q < 2 ^ depth) {row : List K}
     (hw : row.length = width) {sibs : List Digest} (hsl : sibs.length = depth - D)
     (h0 : LoadHolds rd cap (2 * (2 ^ D + q / 2 ^ (depth - D)))
-      (digestScalars (climbD (merkleLeafDigest row) q sibs)).1)
+      (digestHalves (climbD (merkleLeafDigest row) q sibs)).1)
     (h1 : LoadHolds rd cap (2 * (2 ^ D + q / 2 ^ (depth - D)) + 1)
-      (digestScalars (climbD (merkleLeafDigest row) q sibs)).2)
+      (digestHalves (climbD (merkleLeafDigest row) q sibs)).2)
     (hfl : LoadHolds rd flags (2 ^ (D - 1) + q / 2 ^ (depth - D + 1)) 1) :
     Id.run (Compile.openOneWithHash (m := Id) keccak256 root depth width q
       (toOpening rd cap D depth (q, row, sibs))) = true := by
@@ -189,7 +189,7 @@ theorem queries_open_w {odd base I depth cd q N0 : ℕ} {cap flags lam lamN qptr
     (hm : MeaningOpeningQueriesW odd base I depth cd rd ws [cap, flags, lam, lamN, qptrs, wp, nG]
       [sum])
     (hcap : MeaningVerifyMerkleCap cd rd [cap, flags] [r0, r1])
-    (hroot : (r0, r1) = digestScalars root) (hcd : 2 ≤ cd) (hcdd : cd ≤ depth)
+    (hroot : (r0, r1) = digestHalves root) (hcd : 2 ≤ cd) (hcdd : cd ≤ depth)
     (hnG : nG = gen ^ N0) (hN0 : N0 < ordG) (hQ : oqCount odd base N0 = q) (hodd : odd ≤ 1)
     (hb : base = 1 ∨ (base = 0 ∧ odd = 0))
     (qs : List ℕ) (hqlt : ∀ k < q, qs.getD k 0 < 2 ^ depth)

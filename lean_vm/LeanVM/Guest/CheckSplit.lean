@@ -171,16 +171,17 @@ theorem rangesTrie_getF_aux (cells : List ℕ) (lo : ℕ) (hlo : lo + cells.leng
 
 /-- Window `i`'s cells of the value ranges `rs`, and those its statements name outside it. -/
 noncomputable def Cert.locAtR (C : Cert) (i : ℕ) (rs : List (ℕ × ℕ)) : Exec.Trie ℕ :=
-  (rangesTrie (nth C.cells i []) (nth C.los i 0) rs).seq fun t ↦ insTrie (nth C.ins i []) t
+  (rangesTrie (listElementOrDefault C.cells i []) (listElementOrDefault C.los i 0) rs).seq fun t ↦
+      insTrie (listElementOrDefault C.ins i []) t
 
 /-- The window's values and those it names outside it are within the tries' depth. -/
 def Cert.winFits (C : Cert) (i : ℕ) : Bool :=
-  Nat.blt (nth C.los i 0 + (nth C.cells i []).length) (2 ^ 19) &&
-    (nth C.ins i []).all (fun p ↦ Nat.blt p.1 (2 ^ 19))
+  Nat.blt (listElementOrDefault C.los i 0 + (listElementOrDefault C.cells i []).length) (2 ^ 19) &&
+    (listElementOrDefault C.ins i []).all (fun p ↦ Nat.blt p.1 (2 ^ 19))
 
 /-- The value ranges `rs` of window `i` are within the tries' depth. -/
 def Cert.rsFit (C : Cert) (i : ℕ) (rs : List (ℕ × ℕ)) : Bool :=
-  rs.all fun r ↦ Nat.blt (nth C.los i 0 + r.1 + r.2) (2 ^ 19)
+  rs.all fun r ↦ Nat.blt (listElementOrDefault C.los i 0 + r.1 + r.2) (2 ^ 19)
 
 /-- **A group's cells are the window's** at every value it has a cell for. -/
 theorem locAtR_agree {C : Cert} {i : ℕ} {rs : List (ℕ × ℕ)} (hfit : C.winFits i = true)
@@ -189,15 +190,16 @@ theorem locAtR_agree {C : Cert} {i : ℕ} {rs : List (ℕ × ℕ)} (hfit : C.win
   simp only [Cert.winFits, Bool.and_eq_true, Nat.blt_eq, List.all_eq_true] at hfit
   simp only [Cert.rsFit, Nat.blt_eq, List.all_eq_true] at hrs
   have hd : (2 : ℕ) ^ indexDepth = 2 * 2 ^ 19 := by simp [indexDepth]
-  have hlo : nth C.los i 0 + (nth C.cells i []).length < 2 ^ indexDepth := by omega
-  have hins : ∀ p ∈ nth C.ins i [], p.1 + 1 < 2 ^ indexDepth := fun p hp ↦ by
+  have hlo : listElementOrDefault C.los i 0 + (listElementOrDefault C.cells i []).length < 2 ^
+      indexDepth := by omega
+  have hins : ∀ p ∈ listElementOrDefault C.ins i [], p.1 + 1 < 2 ^ indexDepth := fun p hp ↦ by
     have := hfit.2 p hp; omega
   unfold Cert.locAtR at hx ⊢
   unfold Cert.locAt
   rw [Exec.Trie.seq_eq] at hx ⊢
   rw [Exec.Trie.seq_eq]
   apply insTrie_agree _ _ _ x hins
-  by_cases hk : x ∈ (nth C.ins i []).map (·.1)
+  by_cases hk : x ∈ (listElementOrDefault C.ins i []).map (·.1)
   · exact Or.inr hk
   · left
     rw [insTrie_getF_of_not _ _ x hins hk] at hx
@@ -552,7 +554,7 @@ theorem chkL_of_groups (X : Fx) (v : Core.V) (a0 : List Core.Stmt) (as : List (L
 /-- What a window of one `match` checks once, its groups not: its cells consecutive and within the
 tries' depth, those it names outside it the certificate's. -/
 def checkWinP (C : Cert) (i : ℕ) : Bool :=
-  C.contOk i && C.insOk (nth C.ins i []) && C.winFits i
+  C.contOk i && C.insOk (listElementOrDefault C.ins i []) && C.winFits i
 
 /-- The walk of a window of one `match` with the arms `lo ≤ k < hi`. -/
 noncomputable def chkWinS (X : Fx) (lo hi : ℕ) : List Core.Stmt → CS → Res

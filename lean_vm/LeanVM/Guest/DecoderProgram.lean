@@ -17,7 +17,7 @@ a decoding. The proofs read a decoding off an execution (`decoder : Execution gu
   input (`ExplainsPublicInput`); for `decode` it is `guest_knowledge` (`decoderExplains_decode`).
 
 From them, **`guestKnowledge_of_spec : GuestKnowledge guest D`**, the decoding `decoder t`. For
-the compiled decoder `LeanVM.Cost.decoderProgram` and `decode`, both are proved
+the compiled decoder `LeanVM.Cost.compiledGuestWitnessDecoder` and `decode`, both are proved
 (`Cost/DecoderSpec.lean`'s `decoderProgram_spec` with `Cost/Bounds/Guest/Budget.lean`'s
 `decoderPriceWithinBudget`; `decoderExplains_decode`), and `LeanVM.theorems_hold` takes no
 hypothesis.
@@ -53,13 +53,13 @@ theorem decoderExplains_decode : DecoderExplains fun t ↦ decode t.memory := gu
 explaining the input. -/
 theorem guestKnowledge_of_spec {decoderProgram : Cost.MachineProgram}
     {decoder : Execution guestProgram → SeedStatementAndWitness} (h : DecoderProgramSpec decoderProgram decoder)
-    (hx : DecoderExplains decoder) : GuestKnowledge guestProgram decoderProgram :=
+    (hx : DecoderExplains decoder) : GuestKnowledgeSoundness guestProgram decoderProgram :=
   fun input t hv ↦ ⟨decoder t, h.computes input t hv, hx input t hv⟩
 
 /-- **`GuestKnowledge` of a program that computes `decode`**: its spec alone. -/
 theorem guestKnowledge_of_decode {decoderProgram : Cost.MachineProgram}
     (h : DecoderProgramSpec decoderProgram fun t ↦ decode t.memory) :
-    GuestKnowledge guestProgram decoderProgram :=
+    GuestKnowledgeSoundness guestProgram decoderProgram :=
   guestKnowledge_of_spec h decoderExplains_decode
 
 end

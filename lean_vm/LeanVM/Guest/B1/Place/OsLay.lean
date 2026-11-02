@@ -67,7 +67,7 @@ def osIxRC (c : OsCfg) (i : ℕ) : ℕ := 17 + 2 * c.levels.length + i
 def osBase (c : OsCfg) (b j : ℕ) : ℕ := (bases b (osSizesL c)).getD j 0
 
 /-- The pointer of buffer `j` from `b`. -/
-def osPtrAt (c : OsCfg) (b j : ℕ) : E := ofK (gpow (osBase c b j))
+def osPtrAt (c : OsCfg) (b j : ℕ) : E := ofK (addressOfIndex (osBase c b j))
 
 /-- The buffers' pointers from `b`. -/
 def osAtOf (c : OsCfg) (b : ℕ) : OsAt :=
@@ -83,7 +83,7 @@ def osSqN (c : OsCfg) (l : ℕ) : ℕ := (lvAt c l).squeezes
 /-- **The query bit pointers** when level `l`'s squeeze loop is placed at `ps l`: decoder `j`'s
 frame run. -/
 def osBp (fs : String → ℕ) (cert : String → V → ℕ) (c : OsCfg) (ps : ℕ → ℕ) (l j : ℕ) : E :=
-  ofK (gpow (sqDecAt fs (lvAt c l) (c.sqLoop l) (osSqN c l) (ps l) j +
+  ofK (addressOfIndex (sqDecAt fs (lvAt c l) (c.sqLoop l) (osSqN c l) (ps l) j +
     cert (sqDecName (lvAt c l)) (.n 3)))
 
 /-- The caller's words the callees read, but the query bit pointers: the own buffers without

@@ -90,9 +90,9 @@ theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit
     le_rfl fun t ht _ => ⟨by unfold B1.Whir.candidate; omega, ht⟩
   have hlen : ∀ a ∈ w.children, (DeferredClaim.cells a.freshClaim).length = 24 := fun a ha => by
     simp [DeferredClaim.cells, (kid_shapes hbl hr a ha).1, bytecodeVars]
-  have e1 : (hm fs fp seed s w).et1 = ofK (gpow e) := gen_pow_eq_ofK _
-  have e2 : (hm fs fp seed s w).et2 = ofK (gpow (e + 34)) := gen_pow_eq_ofK _
-  have e3 : (hm fs fp seed s w).a400 * gen ^ (24 * c) = ofK (gpow outE) := by
+  have e1 : (hm fs fp seed s w).et1 = ofK (addressOfIndex e) := gen_pow_eq_ofK _
+  have e2 : (hm fs fp seed s w).et2 = ofK (addressOfIndex (e + 34)) := gen_pow_eq_ofK _
+  have e3 : (hm fs fp seed s w).a400 * gen ^ (24 * c) = ofK (addressOfIndex outE) := by
     rw [hout, ← gen_pow_eq_ofK, pow_add]; rfl
   rw [e1, e2, e3]
   refine completeAtDTB_lin_mono (fun rd hM q hq => ?_) (fun i hi => ?_) h

@@ -39,20 +39,21 @@ open Air.Flat (EnsembleWitness)
 
 /-- The witness of a child's proof: an honest witness of the execution whose stacked size is the
 execution's committed size. -/
-def ChildFor (prog : Program) (input : PublicInput) (t : Execution prog) (ρ : ℕ)
+def ChildFor (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ)
     (w : EnsembleWitness (leanIsaEnsemble prog)) (s : Sizes) : Prop :=
   HonestFor prog input t ρ w s ∧ (LeanIsa.blocks prog s).total = t.committedSize
 
 /-- **A child's witness exists** for a valid execution within the verifier's cap, at a valid
 rate: `exists_admissible_witness`'s witness. -/
-theorem exists_childFor {prog : Program} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
+theorem exists_childFor {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
     (hρ : validRate ρ) : ∃ w s, ChildFor prog input t ρ w s := by
-  have hcount : ∀ op, t.count op = t.runRows op := Execution.count_eq_runRows hv.2
-  have hheight : ∀ op, 2 ^ Nat.clog 2 (t.count op) ≤ t.committedSize := by
+  have hcount : ∀ op, t.opcodeCount op = t.runRows op := Execution.count_eq_runRows hv.2
+  have hheight : ∀ op, 2 ^ Nat.clog 2 (t.opcodeCount op) ≤ t.committedSize := by
     intro op
     have : 0 < 2 ^ prog.logSize := Nat.two_pow_pos _
-    have hk : 2 ^ Nat.clog 2 (t.count .keccak) ≤ 2 ^ max (Nat.clog 2 (t.count .keccak)) 9 :=
+    have hk : 2 ^ Nat.clog 2 (t.opcodeCount .keccak) ≤ 2 ^ max (Nat.clog 2 (t.opcodeCount
+        .keccak)) 9 :=
       Nat.pow_le_pow_right (by norm_num) (le_max_left _ _)
     simp only [Execution.committedSize]
     cases op <;> omega
@@ -65,7 +66,7 @@ theorem exists_childFor {prog : Program} {input : PublicInput} {t : Execution pr
   have hs0 := hs
   obtain ⟨hpos, rfl⟩ := eq_of_ofWitness hs
   have hmem : (witnessSizes w hpos).logMem = t.logMemorySize := hrep.κ_eq
-  have hr : ∀ j : Fin 6, (witnessSizes w hpos).rows j = t.count (tableOpcode j) :=
+  have hr : ∀ j : Fin 6, (witnessSizes w hpos).rows j = t.opcodeCount (tableOpcode j) :=
     fun j ↦ (hlen j).trans (hcount _).symm
   have htotal : (LeanIsa.blocks prog (witnessSizes w hpos)).total = t.committedSize := by
     have e : tableOpcode 0 = .xor ∧ tableOpcode 1 = .mulNative ∧ tableOpcode 2 = .setConstant ∧
@@ -90,23 +91,24 @@ theorem exists_childFor {prog : Program} {input : PublicInput} {t : Execution pr
 open Classical in
 /-- **The honest prover of a child**: `honestComp` at a child's witness (`ChildFor`, chosen
 classically); the empty proof when there is none. -/
-noncomputable def childComp (prog : Program) (input : PublicInput) (t : Execution prog)
+noncomputable def childComp (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog)
     (ρ fuel : ℕ) : OracleComp KeccakCalls Proof :=
   if h : ∃ w s, ChildFor prog input t ρ w s then
-    Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
-      (leanVmProgram (bytecodeWords prog) (publicDigest input))
+    Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
       (leanVmProver prog h.choose_spec.choose ρ (stackOf prog h.choose_spec.choose h.choose)) fuel
   else pure ⟨[], []⟩
 
 /-- **The specification's honest prover, `none` where it makes no proof**: `Rom.honestComp`
 before it stands the empty proof in for `none` (`honestComp_eq_getD`). -/
-def _root_.LeanVM.Protocol.Compile.Rom.honestComp? (σ : Seed) (P : Prog Bool) (S : Strategy)
+def _root_.LeanVM.Protocol.Compile.Rom.honestComp? (σ : Seed) (P : VerifierProgram Bool) (S :
+    Strategy)
     (fuel : ℕ) : OracleComp KeccakCalls (Option Proof) := do
   let seed ← σ.run callKeccak256 callKeccakF1600
   proveM callKeccak256 callKeccakF1600 P S seed fuel
 
 /-- `Rom.honestComp` is `Rom.honestComp?` with the empty proof for `none`. -/
-theorem honestComp_eq_getD (σ : Seed) (P : Prog Bool) (S : Strategy) (fuel : ℕ) :
+theorem honestComp_eq_getD (σ : Seed) (P : VerifierProgram Bool) (S : Strategy) (fuel : ℕ) :
     Rom.honestComp σ P S fuel = (·.getD ⟨[], []⟩) <$> Rom.honestComp? σ P S fuel := by
   unfold Rom.honestComp Rom.honestComp?
   rw [map_bind]
@@ -117,8 +119,8 @@ open Classical in
 witness (`ChildFor`, chosen classically); `none` when there is none. -/
 noncomputable def childProver : HonestProverWithHash := fun prog input t ρ fuel ↦
   if h : ∃ w s, ChildFor prog input t ρ w s then
-    Rom.honestComp? (leanVmSeed (bytecodeWords prog) (publicDigest input))
-      (leanVmProgram (bytecodeWords prog) (publicDigest input))
+    Rom.honestComp? (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
       (leanVmProver prog h.choose_spec.choose ρ (stackOf prog h.choose_spec.choose h.choose)) fuel
   else pure none
 
@@ -129,15 +131,16 @@ theorem keccakImpl_eq : Budget.deployedKeccakCalls = totalImpl keccak256 keccakF
 
 /-- The specification's honest prover of a child at a witness: `Rom.honestComp?` at leanVM's
 seed, program and the witness's strategy, or no proof. -/
-abbrev ChildSpec (A : HonestProverWithHash) (prog : Program) (input : PublicInput)
+abbrev ChildSpec (A : HonestProverWithHash) (prog : LeanIsaProgram) (input : PublicInput)
     (t : Execution prog) (ρ fuel : ℕ) : Prop :=
   A prog input t ρ fuel = pure none ∨ ∃ w s, ChildFor prog input t ρ w s ∧
-    A prog input t ρ fuel = Rom.honestComp? (leanVmSeed (bytecodeWords prog) (publicDigest input))
-      (leanVmProgram (bytecodeWords prog) (publicDigest input))
+    A prog input t ρ fuel = Rom.honestComp? (leanVmSeed (bytecodeWords prog) (publicInputDigest
+        input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
       (leanVmProver prog s ρ (stackOf prog s w)) fuel
 
 /-- **The child prover is the specification at a child's witness**, or no proof. -/
-theorem childSpec_childProver (prog : Program) (input : PublicInput) (t : Execution prog)
+theorem childSpec_childProver (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog)
     (ρ fuel : ℕ) : ChildSpec childProver prog input t ρ fuel := by
   by_cases h : ∃ w s, ChildFor prog input t ρ w s
   · refine Or.inr ⟨_, _, h.choose_spec.choose_spec, ?_⟩
@@ -149,13 +152,15 @@ theorem childSpec_childProver (prog : Program) (input : PublicInput) (t : Execut
 
 /-- **A prover's proof with Keccak**, where it is the specification's honest prover of a
 strategy: the pure prover's proof. -/
-theorem atKeccak_of_eq {A : HonestProverWithHash} {prog : Program} {input : PublicInput}
+theorem atKeccak_of_eq {A : HonestProverWithHash} {prog : LeanIsaProgram} {input : PublicInput}
     {t : Execution prog} {ρ fuel : ℕ} {S : Strategy}
     (hA : A prog input t ρ fuel = Rom.honestComp? (leanVmSeed (bytecodeWords prog)
-      (publicDigest input)) (leanVmProgram (bytecodeWords prog) (publicDigest input)) S fuel) :
+      (publicInputDigest input)) (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest
+          input)) S fuel) :
     Budget.honestProofWithDeployedKeccakWithHash A prog input t ρ fuel =
-      prove keccak256 keccakF1600 (leanVmProgram (bytecodeWords prog) (publicDigest input)) S
-        (seed (bytecodeWords prog) (publicDigest input)) fuel := by
+      prove keccak256 keccakF1600 (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest
+          input)) S
+        (seed (bytecodeWords prog) (publicInputDigest input)) fuel := by
   unfold Budget.honestProofWithDeployedKeccakWithHash
   rw [hA]
   simp only [keccakImpl_eq, Rom.honestComp?, simulateQ_bind,
@@ -164,33 +169,35 @@ theorem atKeccak_of_eq {A : HonestProverWithHash} {prog : Program} {input : Publ
   rfl
 
 /-- The verifier refusing a zero challenge, at Keccak, is the run of `execWith`. -/
-theorem verifierNZ_eq (prog : Program) (input : PublicInput) (π : Proof) :
+theorem verifierNZ_eq (prog : LeanIsaProgram) (input : PublicInput) (π : Proof) :
     Budget.verifierNZ (m := Id) keccak256 keccakF1600 prog input π =
       Id.run (runProofWithHash (m := Id) keccak256 keccakF1600
-        ((execWith computedValue Limits.verifyStackedOpeningNZ (bytecodeWords prog)
-          (publicDigest input)).bind fun _ ↦ Prog.ret true)
-        (seed (bytecodeWords prog) (publicDigest input)) π) := rfl
+        ((execWith computedBytecodeValue Limits.verifyStackedOpeningNZ (bytecodeWords prog)
+          (publicInputDigest input)).bind fun _ ↦ VerifierProgram.ret true)
+        (seed (bytecodeWords prog) (publicInputDigest input)) π) := rfl
 
 /-- The statement's refusing verifier, at Keccak, is the run of `execWith` refusing zero
 challenges. -/
-theorem verifierRZ_eq (prog : Program) (input : PublicInput) (π : Proof) :
+theorem verifierRZ_eq (prog : LeanIsaProgram) (input : PublicInput) (π : Proof) :
     Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 prog input π =
       Id.run (runProofWithHash (m := Id) keccak256 keccakF1600
-        ((execWith computedValue verifyStackedOpening (bytecodeWords prog)
-          (publicDigest input)).bind fun _ ↦ Prog.ret true).refusingZeroChallenge
-        (seed (bytecodeWords prog) (publicDigest input)) π) := by
+        ((execWith computedBytecodeValue verifyStackedOpening (bytecodeWords prog)
+          (publicInputDigest input)).bind fun _ ↦ VerifierProgram.ret true).refusingZeroChallenge
+        (seed (bytecodeWords prog) (publicInputDigest input)) π) := by
   unfold Budget.verifierRefusingZeroWithHash
   rw [Verifier.leanVmProgram_eq]
   rfl
 
 /-- **A proof with Keccak**, of a prover that is the specification at a child's witness or makes
 no proof, is the pure prover's proof of a child's witness. -/
-theorem prove_of_some {A : HonestProverWithHash} {prog : Program} {input : PublicInput}
+theorem prove_of_some {A : HonestProverWithHash} {prog : LeanIsaProgram} {input : PublicInput}
     {t : Execution prog} {ρ fuel : ℕ} (hA : ChildSpec A prog input t ρ fuel) {proof : Proof}
     (hsome : Budget.honestProofWithDeployedKeccakWithHash A prog input t ρ fuel = some proof) :
     ∃ w s, ChildFor prog input t ρ w s ∧
-      prove keccak256 keccakF1600 (leanVmProgram (bytecodeWords prog) (publicDigest input))
-        (leanVmProver prog s ρ (stackOf prog s w)) (seed (bytecodeWords prog) (publicDigest input))
+      prove keccak256 keccakF1600 (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest
+          input))
+        (leanVmProver prog s ρ (stackOf prog s w)) (seed (bytecodeWords prog) (publicInputDigest
+            input))
         fuel = some proof := by
   rcases hA with hA | ⟨w, s, hc, hA⟩
   · unfold Budget.honestProofWithDeployedKeccakWithHash at hsome

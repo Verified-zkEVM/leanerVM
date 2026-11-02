@@ -20,15 +20,15 @@ chunks = {}
 fns = []
 for path in sorted(bc.glob("Bytecode*.lean")):
     text = path.read_text()
-    for m in re.finditer(r"def (f\d+c\d+) : List OInstr := \[\n(.*?)\]\n", text, re.S):
+    for m in re.finditer(r"def (f\d+c\d+) : List OffsetInstruction := \[\n(.*?)\]\n", text, re.S):
         chunks[m.group(1)] = [l.strip().rstrip(",") for l in m.group(2).splitlines() if l.strip()]
-    for m in re.finditer(r'def f(\d+) : CompiledFn :=\n  ⟨"([A-Za-z0-9_]+)", (\d+), (\d+), \[([^\]]*)\]⟩', text):
+    for m in re.finditer(r'def f(\d+) : CompiledFunction :=\n  ⟨"([A-Za-z0-9_]+)", (\d+), (\d+), \[([^\]]*)\]⟩', text):
         fns.append((int(m.group(1)), m.group(2), int(m.group(3)), int(m.group(4)),
                     [c.strip() for c in m.group(5).split(",") if c.strip()]))
 table = (bc / "Bytecode.lean").read_text()
 log_size = int(re.search(r"def logSize : ℕ := (\d+)", table).group(1))
 code_len = int(re.search(r"def codeLen : ℕ := (\d+)", table).group(1))
-order = re.findall(r"f(\d+)", re.search(r"def functions : List CompiledFn := \[(.*?)\]", table, re.S).group(1))
+order = re.findall(r"f(\d+)", re.search(r"def functions : List CompiledFunction := \[(.*?)\]", table, re.S).group(1))
 fns.sort()
 assert [str(i) for i, *_ in fns] == order, "function table order"
 

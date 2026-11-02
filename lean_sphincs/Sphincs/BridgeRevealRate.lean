@@ -186,12 +186,12 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate) (initial : 
 message: the mean over the starts of the walk value with payoff 1 at every cached landed pair and 0
 elsewhere. -/
 noncomputable def hitMass (s : State) (m : Message) : ℝ≥0∞ :=
-  (Fintype.card Randomness : ℝ≥0∞)⁻¹ *
+  (Fintype.card Randomizer : ℝ≥0∞)⁻¹ *
     ∑ ρ, walk nextRand landing (stOf parameter data m s) (fun _ => 1) 0 0 digestAttemptLimit ρ
 
 /-- A walk paying 1 at the cached landed pairs and `x` at a fresh landing pays at most `x` plus the
 walk of the cached landed pairs alone. -/
-theorem walk_hit_split (st : Randomness → St) (x : ℝ≥0∞) (attempts : ℕ) (ρ : Randomness) :
+theorem walk_hit_split (st : Randomizer → St) (x : ℝ≥0∞) (attempts : ℕ) (ρ : Randomizer) :
     walk nextRand landing st (fun _ => 1) x 0 attempts ρ ≤
       x + walk nextRand landing st (fun _ => 1) 0 0 attempts ρ := by
   have h := walk_add (σ := nextRand) (p := landing) st (fun _ => 0) (fun _ => 1) x 0 0 0 attempts ρ
@@ -200,7 +200,7 @@ theorem walk_hit_split (st : Randomness → St) (x : ℝ≥0∞) (attempts : ℕ
   exact add_le_add (walk_le landing_le_one st (fun _ => bot_le) le_rfl bot_le attempts ρ) le_rfl
 
 /-- Every reveal of a run of the final assembly from a cached digest block is opened by its digest. -/
-theorem finish_reveals_ok (ρ : Randomness) (b : ℕ) (s' : State) (u0 : HashOutput)
+theorem finish_reveals_ok (ρ : Randomizer) (b : ℕ) (s' : State) (u0 : HashOutput)
     (hparse : model.parse (blk parameter data m ρ) = none)
     (hc0 : s'.cache (blk parameter data m ρ) = some u0)
     (out : Run HashInput Coordinate (Option Signature) × State)
@@ -222,14 +222,14 @@ theorem finish_reveals_ok (ρ : Randomness) (b : ℕ) (s' : State) (u0 : HashOut
 chain at or below `k < 4` with probability at most the walk value paying the reveal rate at a fresh
 landing and 1 at a cached landed pair of the message. -/
 theorem reveal_scan_all (hparse : ∀ p, model.parse (pblk parameter data p) = none)
-    {s : State} (attempts : ℕ) (hA : attempts ≤ 2 ^ 128) (budget : ℕ) (start : Randomness)
+    {s : State} (attempts : ℕ) (hA : attempts ≤ 2 ^ 128) (budget : ℕ) (start : Randomizer)
     (index : Index) (c : Coord) (sp : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) (k : ℕ) (hk : k < chainTop) :
     ∑' o1, Pr{let x ← interp tg initial model (signCostSourceLoop parameter data m attempts start) budget s}[x = o1] *
         (if ∃ q : FPos, q.val ≤ k ∧ Coordinate.fchain index c sp j a i q ∈ o1.1.2.1 then 1 else 0) ≤
       walk nextRand landing (stOf parameter data m s) (fun _ => 1) revRate 0 attempts start := by
   have hparse' : ∀ ρ, model.parse (blk parameter data m ρ) = none := fun ρ => hparse (m, ρ)
   set g : View → ℝ≥0∞ := opensAt index c sp j a i k with hgdef
-  set gp : Randomness → View → ℝ≥0∞ := fun _ v => g v with hgp
+  set gp : Randomizer → View → ℝ≥0∞ := fun _ v => g v with hgp
   set V : List Coordinate → ℝ≥0∞ := fun L =>
     if ∃ q : FPos, q.val ≤ k ∧ Coordinate.fchain index c sp j a i q ∈ L then 1 else 0 with hV
   have hV0 : V [] = 0 := by
@@ -237,7 +237,7 @@ theorem reveal_scan_all (hparse : ∀ p, model.parse (pblk parameter data p) = n
     rw [ite_eq_right]
     rintro ⟨q, _, h⟩
     cases h
-  have hVfin : ∀ (ρ : Randomness) (s' : State) (u0 : HashOutput) (b : ℕ),
+  have hVfin : ∀ (ρ : Randomizer) (s' : State) (u0 : HashOutput) (b : ℕ),
       RelatedOff parameter data m s s' ρ → s'.cache (blk parameter data m ρ) = some u0 →
       Landed parameter (blockIndex u0) →
       ∀ out ∈ support (interp tg initial model (finishCostSource parameter data m ρ) b s'),
@@ -286,17 +286,17 @@ theorem reveal_le_all (hparse : ∀ p, model.parse (pblk parameter data p) = non
     ∑' o1, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = o1] *
         (if ∃ q : FPos, q.val ≤ k ∧ Coordinate.fchain index c sp j a i q ∈ o1.1.2.1 then 1 else 0) ≤
       revRate + hitMass parameter data s m := by
-  set cinv := (Fintype.card Randomness : ℝ≥0∞)⁻¹ with hc
-  have hcard : cinv * (Fintype.card Randomness : ℝ≥0∞) = 1 :=
+  set cinv := (Fintype.card Randomizer : ℝ≥0∞)⁻¹ with hc
+  have hcard : cinv * (Fintype.card Randomizer : ℝ≥0∞) = 1 :=
     ENNReal.inv_mul_cancel (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _)
   unfold signCostSource
   rw [interp_liftProb_bind, OracleComp.tsum_prEvent_bind_mul]
-  have hpr : ∀ ρ, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = ρ] = cinv := by
+  have hpr : ∀ ρ, Pr{let x ← ($ᵗ Randomizer : ProbComp Randomizer)}[x = ρ] = cinv := by
     intro ρ
     rw [SampleableType.prEvent_uniformSample_eq_singleton]
   simp only [hpr]
   rw [ENNReal.tsum_mul_left, tsum_fintype]
-  calc _ ≤ cinv * ∑ start : Randomness, (revRate +
+  calc _ ≤ cinv * ∑ start : Randomizer, (revRate +
           walk nextRand landing (stOf parameter data m s) (fun _ => 1) 0 0 digestAttemptLimit start) :=
         mul_le_mul' le_rfl (Finset.sum_le_sum fun start _ =>
           le_trans (reveal_scan_all tg initial model parameter data m hparse digestAttemptLimit

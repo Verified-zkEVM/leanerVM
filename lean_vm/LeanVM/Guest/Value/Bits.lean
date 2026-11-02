@@ -192,7 +192,7 @@ theorem prod_gen_pow_of_bool {n : ℕ} {b : ℕ → E} (hb : ∀ j < n, b j * b 
 
 theorem gen_eq_ofK : gen = ofK g := rfl
 
-theorem gen_pow_eq_ofK (a : ℕ) : gen ^ a = ofK (Parameters.gpow a) := by
+theorem gen_pow_eq_ofK (a : ℕ) : gen ^ a = ofK (Parameters.addressOfIndex a) := by
   rw [gen_eq_ofK, ← ofK_pow]
 
 theorem gen_ne_zero : gen ≠ 0 := by

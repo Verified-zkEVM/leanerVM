@@ -93,7 +93,7 @@ def MainGoalL5 : Prop :=
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
         (hm fs fp seed s w).a406, (hm fs fp seed s w).aDa,
-        (digestScalars (hm fs fp seed s w).seed).1, (digestScalars (hm fs fp seed s w).seed).2,
+        (digestHalves (hm fs fp seed s w).seed).1, (digestHalves (hm fs fp seed s w).seed).2,
         (hm fs fp seed s w).a394, (hm fs fp seed s w).et1, (hm fs fp seed s w).et2,
         (hm fs fp seed s w).a400] (Returns [])
 
@@ -105,10 +105,10 @@ def MainGoalAg : Prop :=
 
 def MainGoalSt : Prop :=
   CompleteAtD fs cert 16 "statement_digest" (hLmain fs fp seed s w)
-    [(digestScalars (hm fs fp seed s w).seed).1, (digestScalars (hm fs fp seed s w).seed).2,
-      (digestScalars (hm fs fp seed s w).xd).1, (digestScalars (hm fs fp seed s w).xd).2,
-      (digestScalars (hm fs fp seed s w).sd).1, (digestScalars (hm fs fp seed s w).sd).2,
-      (digestScalars (hm fs fp seed s w).dap).1, (digestScalars (hm fs fp seed s w).dap).2,
+    [(digestHalves (hm fs fp seed s w).seed).1, (digestHalves (hm fs fp seed s w).seed).2,
+      (digestHalves (hm fs fp seed s w).xd).1, (digestHalves (hm fs fp seed s w).xd).2,
+      (digestHalves (hm fs fp seed s w).sd).1, (digestHalves (hm fs fp seed s w).sd).2,
+      (digestHalves (hm fs fp seed s w).dap).1, (digestHalves (hm fs fp seed s w).dap).2,
       (hm fs fp seed s w).a417]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sdg))
 

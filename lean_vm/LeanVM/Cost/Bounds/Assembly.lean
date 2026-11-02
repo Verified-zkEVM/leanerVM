@@ -28,12 +28,13 @@ public section
 
 /-! ## Facts of the run -/
 
-theorem bytecodeWords_length (prog : Semantics.Program) :
+theorem bytecodeWords_length (prog : Semantics.LeanIsaProgram) :
     (LeanVM.bytecodeWords prog).length = 16 * 2 ^ prog.logSize := by
   simp [LeanVM.bytecodeWords, List.length_flatMap]
   omega
 
-theorem commitPure_roots {height width : ℕ} {s : ProgState} {t : Unit × ProgState}
+theorem commitPure_roots {height width : ℕ} {s : VerifierProgramState} {t : Unit ×
+    VerifierProgramState}
     (h : commitPure height width s = some t) :
     ∃ root, t.2.roots = s.roots ++ [(root, height, width)] := by
   unfold commitPure at h
@@ -47,7 +48,7 @@ theorem commitPure_roots {height width : ℕ} {s : ProgState} {t : Unit × ProgS
 /-- **The stack's root**: `afterRootLite`'s one root, at the ladder's first level: height
 `μ - 6 + R`, width `2^6`. -/
 theorem afterRootLite_roots {bytecode : List K} {π : Proof} {L : LayoutLite} {R : ℕ}
-    {st : ProgState} (h : afterRootLite bytecode π = some ((L, R), st)) :
+    {st : VerifierProgramState} (h : afterRootLite bytecode π = some ((L, R), st)) :
     ∃ root, st.roots = [(root, L.stackLog - 6 + R, 64)] := by
   unfold afterRootLite at h
   cases hr : readSizesLite bytecode (initialState π) with

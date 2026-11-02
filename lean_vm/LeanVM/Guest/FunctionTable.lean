@@ -25,7 +25,7 @@ open LeanVM.Parameters LeanVM.Semantics
 @[expose] public section
 
 /-- Every function's chunks hold exactly its instructions. -/
-theorem functions_wellChunked : Data.functions.all (fun f ↦ chunked chunkSize f.chunks f.len) = true := by
+theorem functions_wellChunked : Data.functions.all (fun f ↦ chunked chunkSize f.chunks f.instructionCount) = true := by
   decide +kernel
 
 end

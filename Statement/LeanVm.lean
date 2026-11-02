@@ -30,7 +30,7 @@ run against the lazily sampled permutation from no edge (`Common.runWithRandomPe
 reads the statement, the proof and the adversary's transcript, and nothing else (it neither queries
 `π` nor rewinds the adversary): `KnowledgeSoundness extractor`. `Statement.Theorems` states it for
 the extractor that a cost-machine program of bounded size computes within a budget in the number of
-permutation queries (`LeanVM.knowledgeExtractorOf`, `CostMachine.lean`). The statement does not name
+permutation queries (`LeanVM.extractorComputedBy`, `CostMachine.lean`). The statement does not name
 the program (`lean_vm` supplies its extractor, compiled); it constrains it only by its size bound,
 which leaves no room for a useful table of witnesses beside the compiled extractor's code, and its
 budget, `knowledgeExtractorBudget` (the most its run may cost, so also the most steps it may
@@ -84,12 +84,13 @@ open scoped ENNReal
 
 /-- **The leanVM verifier** over a permutation `F` in any monad `m`, Keccak-256 the sponge over
 `F`: does `proof` show that `prog` runs on `input`? -/
-def verifier {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState) (prog : Program)
+def leanVmVerifier {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState) (prog :
+    LeanIsaProgram)
     (input : PublicInput) (proof : Proof) : m Bool :=
-  verifyWith F (bytecodeWords prog) (publicDigest input) proof
+  verifyWith F (bytecodeWords prog) (publicInputDigest input) proof
 
 /-- A statement: a program and a public input. -/
-abbrev ProgramAndInput : Type := Program × PublicInput
+abbrev ProgramAndInput : Type := LeanIsaProgram × PublicInput
 
 /-! ### The honest prover and the committed size -/
 
@@ -97,14 +98,14 @@ abbrev ProgramAndInput : Type := Program × PublicInput
 commitment's rate exponent `ρ` and a fuel of nonces per proof of work, a proof, or `none` when it
 makes none. -/
 abbrev HonestProver : Type 1 :=
-  {m : Type → Type} → [Monad m] → (KeccakState → m KeccakState) → (prog : Program) →
+  {m : Type → Type} → [Monad m] → (KeccakState → m KeccakState) → (prog : LeanIsaProgram) →
     (input : PublicInput) → Execution prog → (ρ fuel : ℕ) → m (Option Proof)
 
 /-- **The honest prover**: `LeanVM.Prover.prove` (`Statement/Prover/Prove.lean`). From the
 execution `t` it computes the witness (`witness?`, no proof unless `t` is a valid execution within
 `2^28` committed cells), and, at a valid rate, runs the honest script against the verifier's
 own program `leanVmProgram`, trying `fuel` nonces per proof of work. -/
-def prover : HonestProver :=
+def leanVmHonestProver : HonestProver :=
   fun F prog input t ρ fuel ↦ Prover.prove F prog input t ρ fuel
 
 /-- **The committed size of an execution**: the number of cells the honest prover commits to,
@@ -116,9 +117,10 @@ execution executes (`Execution.count`), with `15, 15, 8, 15, 14, 26` committed c
 `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK` (of the `KECCAK` table's `90` columns, the
 `25` input lanes and `14` more ride `q_keccak`'s slots and the `25` output lanes are not committed,
 `verifier.py:932-954`); and `q_keccak` has `2^6` rows per row of the `KECCAK` table. -/
-noncomputable def Semantics.Execution.committedSize {prog : Program} (t : Execution prog) : ℕ :=
-  let height (op : Opcode) : ℕ := 2 ^ Nat.clog 2 (t.count op)
-  let keccakHeight : ℕ := 2 ^ max (Nat.clog 2 (t.count .keccak)) 9
+noncomputable def Semantics.Execution.committedSize {prog : LeanIsaProgram} (t : Execution
+    prog) : ℕ :=
+  let height (op : Opcode) : ℕ := 2 ^ Nat.clog 2 (t.opcodeCount op)
+  let keccakHeight : ℕ := 2 ^ max (Nat.clog 2 (t.opcodeCount .keccak)) 9
   4 * 2 ^ t.logMemorySize + 2 ^ prog.logSize +
     15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
     14 * height .jump + 26 * keccakHeight + 2 ^ 6 * keccakHeight
@@ -134,7 +136,7 @@ abbrev RandomPermutationAdversary : Type :=
 verifier's verdict, and the adversary's transcript. -/
 structure ExperimentOutcome where
   /-- The adversary's program. -/
-  program : Program
+  program : LeanIsaProgram
   /-- Its public input. -/
   input : PublicInput
   /-- Its proof. -/
@@ -148,11 +150,11 @@ structure ExperimentOutcome where
 (`Common.loggedOracles`), then the verifier over `π` (`Common.queryPermutation`) on its statement
 and proof, the whole game run against the lazily sampled permutation from no edge
 (`Common.runWithRandomPermutation`). -/
-noncomputable def soundnessExperiment (A : RandomPermutationAdversary) :
+noncomputable def knowledgeSoundnessExperiment (A : RandomPermutationAdversary) :
     ProbComp ExperimentOutcome :=
   Common.runWithRandomPermutation do
     let (((program, input), proof), transcript) ← (simulateQ Common.loggedOracles A).run []
-    let accepted ← verifier queryPermutation program input proof
+    let accepted ← leanVmVerifier queryPermutation program input proof
     return ⟨program, input, proof, accepted, transcript⟩
 
 /-! ### The extractor -/
@@ -167,7 +169,7 @@ def permutationQueries (T : OracleQueryLog) : List (PermutationQuery KeccakState
 adversary's transcript and the proof, an execution of the program, or none. It reads nothing
 else: it neither queries `π` nor runs the adversary again. -/
 abbrev StraightLineExtractor : Type :=
-  (prog : Program) → PublicInput → OracleQueryLog → Proof → Option (Execution prog)
+  (prog : LeanIsaProgram) → PublicInput → OracleQueryLog → Proof → Option (Execution prog)
 
 /-! ### Knowledge soundness -/
 
@@ -185,14 +187,14 @@ own oracle calls, at most `12006` (in the `Q + 12006` of `lean_vm`'s `soundnessE
 `12006 · 2^-256` for a fresh hash answer equal to a stack root the adversary announced without
 computing it, and the transfer from two random oracles to one permutation. `Statement.Theorems`
 states it for the extractor a cost-machine program computes within its budget
-(`LeanVM.knowledgeExtractorOf`, `CostMachine.lean`). The extractor must output some valid execution
+(`LeanVM.extractorComputedBy`, `CostMachine.lean`). The extractor must output some valid execution
 of the program on the input; nothing requires it to be the execution the proof commits to (its
 committed word). For a program with several valid executions on one input, the one extracted may
 differ, and `AggregateSound` (`Corollaries.lean`) then decodes that one. -/
 def KnowledgeSoundness (extractor : StraightLineExtractor) : Prop :=
   ∀ (A : RandomPermutationAdversary) (Q : ℕ),
     Common.QueryCostAtMost A Common.permutationCallCost Q → Q ≤ 2 ^ 128 →
-    Pr{let z ← soundnessExperiment A}[BreaksKnowledgeSoundness extractor z] ≤
+    Pr{let z ← knowledgeSoundnessExperiment A}[BreaksKnowledgeSoundness extractor z] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
         5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
@@ -201,20 +203,20 @@ def KnowledgeSoundness (extractor : StraightLineExtractor) : Prop :=
 /-- **The completeness experiment in the random-permutation model**: the honest prover's proof,
 then the verifier's verdict on it, both over `π`, run against the lazily sampled permutation; no
 proof is a failure. -/
-noncomputable def verifierCompletenessExperiment (prover : HonestProver) (prog : Program)
+noncomputable def completenessExperiment (prover : HonestProver) (prog : LeanIsaProgram)
     (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) : ProbComp Bool :=
   Common.runWithRandomPermutation do
     match ← prover queryPermutation prog input t ρ fuel with
     | none => pure false
-    | some proof => verifier queryPermutation prog input proof
+    | some proof => leanVmVerifier queryPermutation prog input proof
 
 /-- **Completeness in the random-permutation model**: trying `2^25` nonces per proof of work, the
 honest prover's (`prover`) proof of an execution within the verifier's size cap is rejected with
 probability at most `2^-256`. -/
 def Completeness : Prop :=
-  ∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
+  ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
     ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
-    Pr{let v ← verifierCompletenessExperiment prover prog input t ρ (2 ^ 25)}[v = false] ≤
+    Pr{let v ← completenessExperiment leanVmHonestProver prog input t ρ (2 ^ 25)}[v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 256
 
 end LeanVM

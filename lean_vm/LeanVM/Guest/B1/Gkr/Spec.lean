@@ -34,7 +34,8 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 theorem sumcheck_cons_eq' (claim : E) (count : ℕ) (e : Option E) (es : List (Option E)) :
     sumcheck claim count (e :: es) =
-      sumcheckRoundPoly count claim e >>= fun message => Prog.sampleChallenge >>= fun challenge =>
+      sumcheckRoundPoly count claim e >>= fun message
+          => VerifierProgram.sampleChallenge >>= fun challenge =>
         sumcheck (polyEval message challenge) count es >>= fun r =>
           pure (challenge :: r.1, r.2) := by
   simp only [sumcheck]
@@ -57,15 +58,15 @@ theorem gkr_sumcheck_run : ∀ (cs : List (List E)) (es : List E) (claim : E) (s
     have hround : RunsTo (sumcheckRoundPoly 5 claim (some e)) s c
         ((claim + e * sumE c) :: c) (s.absorbAll c dsObserve) := by
       have h := (runsTo_readN s c).bind
-        (f := fun tail => (pure ((claim + e * sumE tail) :: tail) : Prog (List E)))
+        (f := fun tail => (pure ((claim + e * sumE tail) :: tail) : VerifierProgram (List E)))
         (runsTo_ret ((claim + e * sumE c) :: c) _)
       rw [List.append_nil, hc4] at h
       simpa [sumcheckRoundPoly] using h
-    have := hround.bind (f := fun message => Prog.sampleChallenge >>= fun challenge =>
+    have := hround.bind (f := fun message => VerifierProgram.sampleChallenge >>= fun challenge =>
         sumcheck (polyEval message challenge) 5 (es.map some) >>= fun r =>
           pure (challenge :: r.1, r.2))
       ((runsTo_sampleE _).bind (ih.bind (f := fun r =>
-        (pure ((s.absorbAll c dsObserve).squeeze.1 :: r.1, r.2) : Prog (List E × E)))
+        (pure ((s.absorbAll c dsObserve).squeeze.1 :: r.1, r.2) : VerifierProgram (List E × E)))
         (runsTo_ret _ _)))
     refine this.of_eq rfl ?_ ?_ ?_
     · simp
@@ -75,18 +76,20 @@ theorem gkr_sumcheck_run : ∀ (cs : List (List E)) (es : List E) (claim : E) (s
 /-! ## One step of the walk -/
 
 theorem gkrStep_eq (step : ℕ) (st : GkrState) :
-    gkrStep step st = Prog.sampleChallenge >>= fun combiner =>
+    gkrStep step st = VerifierProgram.sampleChallenge >>= fun combiner =>
       sumcheck (polyEval st.values combiner) (2 ^ step + 1) (st.point.map some) >>= fun r =>
-        Prog.readScalars (2 ^ step) >>= fun child0 => Prog.readScalars (2 ^ step) >>= fun child1 =>
-          Prog.readScalars (2 ^ step) >>= fun child2 =>
-            Prog.require (r.2 = polyEval [prodE child0, prodE child1, prodE child2] combiner) >>=
-              fun _ => Prog.sampleChallenges step >>= fun y =>
+        VerifierProgram.readScalars (2 ^ step) >>= fun child0
+            => VerifierProgram.readScalars (2 ^ step) >>= fun child1 =>
+          VerifierProgram.readScalars (2 ^ step) >>= fun child2 =>
+            VerifierProgram.require (r.2 = polyEval [prodE child0, prodE child1, prodE child2]
+                combiner) >>=
+              fun _ => VerifierProgram.sampleChallenges step >>= fun y =>
                 pure ⟨[child0, child1, child2].map (multilinearEval · y), y ++ r.1⟩ := by
   simp only [gkrStep, List.map_cons, List.map_nil]
 
 theorem tb_runsTo_require {c : Prop} [Decidable c] (hc : c) (s : Fs) :
-    RunsTo (Prog.require c) s [] () s := by
-  simp only [Prog.require, hc, ↓reduceIte]
+    RunsTo (VerifierProgram.require c) s [] () s := by
+  simp only [VerifierProgram.require, hc, ↓reduceIte]
   exact runsTo_ret () s
 
 /-- **One step of the walk as a run**: from the sponge `s`, the step samples its combiner, runs
@@ -120,41 +123,50 @@ theorem gkrStep_run {step : ℕ} {st : GkrState} {s s1 : Fs} {xs : List E} {x : 
   have hy := runsTo_sampleN step
     (((s1.absorbAll ch0 dsObserve).absorbAll ch1 dsObserve).absorbAll ch2 dsObserve)
   have hc2 := r2.bind (f := fun child2 =>
-    Prog.require (claim' = polyEval [prodE ch0, prodE ch1, prodE child2] s.squeeze.1) >>=
-      fun _ => Prog.sampleChallenges step >>= fun y =>
-        (pure ⟨[ch0, ch1, child2].map (multilinearEval · y), y ++ x⟩ : Prog GkrState))
-    (hq.bind (f := fun _ => Prog.sampleChallenges step >>= fun y =>
-        (pure ⟨[ch0, ch1, ch2].map (multilinearEval · y), y ++ x⟩ : Prog GkrState))
+    VerifierProgram.require (claim' = polyEval [prodE ch0, prodE ch1, prodE child2] s.squeeze.1) >>=
+      fun _ => VerifierProgram.sampleChallenges step >>= fun y =>
+        (pure ⟨[ch0, ch1, child2].map (multilinearEval · y), y ++ x⟩ : VerifierProgram GkrState))
+    (hq.bind (f := fun _ => VerifierProgram.sampleChallenges step >>= fun y =>
+        (pure ⟨[ch0, ch1, ch2].map (multilinearEval · y), y ++ x⟩ : VerifierProgram GkrState))
       (hy.bind (f := fun y =>
-        (pure ⟨[ch0, ch1, ch2].map (multilinearEval · y), y ++ x⟩ : Prog GkrState))
+        (pure ⟨[ch0, ch1, ch2].map (multilinearEval · y), y ++ x⟩ : VerifierProgram GkrState))
         (runsTo_ret _ _)))
-  have hc1 := r1.bind (f := fun child1 => Prog.readScalars (2 ^ step) >>= fun child2 =>
-    Prog.require (claim' = polyEval [prodE ch0, prodE child1, prodE child2] s.squeeze.1) >>=
-      fun _ => Prog.sampleChallenges step >>= fun y =>
-        (pure ⟨[ch0, child1, child2].map (multilinearEval · y), y ++ x⟩ : Prog GkrState)) hc2
-  have hc0 := r0.bind (f := fun child0 => Prog.readScalars (2 ^ step) >>= fun child1 =>
-    Prog.readScalars (2 ^ step) >>= fun child2 =>
-    Prog.require (claim' = polyEval [prodE child0, prodE child1, prodE child2] s.squeeze.1) >>=
-      fun _ => Prog.sampleChallenges step >>= fun y =>
-        (pure ⟨[child0, child1, child2].map (multilinearEval · y), y ++ x⟩ : Prog GkrState)) hc1
-  have hs := hsc.bind (f := fun r => Prog.readScalars (2 ^ step) >>= fun child0 =>
-    Prog.readScalars (2 ^ step) >>= fun child1 => Prog.readScalars (2 ^ step) >>= fun child2 =>
-    Prog.require (r.2 = polyEval [prodE child0, prodE child1, prodE child2] s.squeeze.1) >>=
-      fun _ => Prog.sampleChallenges step >>= fun y =>
-        (pure ⟨[child0, child1, child2].map (multilinearEval · y), y ++ r.1⟩ : Prog GkrState)) hc0
+  have hc1 := r1.bind (f := fun child1 => VerifierProgram.readScalars (2 ^ step) >>= fun child2 =>
+    VerifierProgram.require (claim' = polyEval [prodE ch0, prodE child1, prodE child2]
+        s.squeeze.1) >>=
+      fun _ => VerifierProgram.sampleChallenges step >>= fun y =>
+        (pure ⟨[ch0, child1, child2].map
+            (multilinearEval · y), y ++ x⟩ : VerifierProgram GkrState)) hc2
+  have hc0 := r0.bind (f := fun child0 => VerifierProgram.readScalars (2 ^ step) >>= fun child1 =>
+    VerifierProgram.readScalars (2 ^ step) >>= fun child2 =>
+    VerifierProgram.require (claim' = polyEval [prodE child0, prodE child1, prodE child2]
+        s.squeeze.1) >>=
+      fun _ => VerifierProgram.sampleChallenges step >>= fun y =>
+        (pure ⟨[child0, child1, child2].map
+            (multilinearEval · y), y ++ x⟩ : VerifierProgram GkrState)) hc1
+  have hs := hsc.bind (f := fun r => VerifierProgram.readScalars (2 ^ step) >>= fun child0 =>
+    VerifierProgram.readScalars (2 ^ step) >>= fun child1
+        => VerifierProgram.readScalars (2 ^ step) >>= fun child2 =>
+    VerifierProgram.require (r.2 = polyEval [prodE child0, prodE child1, prodE child2]
+        s.squeeze.1) >>=
+      fun _ => VerifierProgram.sampleChallenges step >>= fun y =>
+        (pure ⟨[child0, child1, child2].map
+            (multilinearEval · y), y ++ r.1⟩ : VerifierProgram GkrState)) hc0
   have := (runsTo_sampleE s).bind (f := fun combiner =>
     sumcheck (polyEval st.values combiner) (2 ^ step + 1) (st.point.map some) >>= fun r =>
-      Prog.readScalars (2 ^ step) >>= fun child0 => Prog.readScalars (2 ^ step) >>= fun child1 =>
-        Prog.readScalars (2 ^ step) >>= fun child2 =>
-          Prog.require (r.2 = polyEval [prodE child0, prodE child1, prodE child2] combiner) >>=
-            fun _ => Prog.sampleChallenges step >>= fun y =>
-              (pure ⟨[child0, child1, child2].map (multilinearEval · y), y ++ r.1⟩ : Prog GkrState)) hs
+      VerifierProgram.readScalars (2 ^ step) >>= fun child0
+          => VerifierProgram.readScalars (2 ^ step) >>= fun child1 =>
+        VerifierProgram.readScalars (2 ^ step) >>= fun child2 =>
+          VerifierProgram.require (r.2 = polyEval [prodE child0, prodE child1, prodE child2]
+              combiner) >>=
+            fun _ => VerifierProgram.sampleChallenges step >>= fun y =>
+              (pure ⟨[child0, child1, child2].map (multilinearEval · y), y ++ r.1⟩ : VerifierProgram GkrState)) hs
   exact this.of_eq rfl (by simp) rfl rfl
 
 /-! ## The walk by layers -/
 
 /-- `n` steps of two levels, from `s`. -/
-def gkrPairs : ℕ → GkrState → Prog GkrState
+def gkrPairs : ℕ → GkrState → VerifierProgram GkrState
   | 0, s => pure s
   | k + 1, s => gkrPairs k s >>= gkrStep 2
 

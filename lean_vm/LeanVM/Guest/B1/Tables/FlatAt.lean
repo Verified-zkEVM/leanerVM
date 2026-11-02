@@ -64,7 +64,7 @@ noncomputable def flEvs (σ : Val) : Stmt → List Ev
 
 /-- A dispatch's selector is a power of `g` naming one of its callees. -/
 def DispOk (σ : Val) : Stmt → Prop
-  | .dispatch x fs _ _ => ∃ j < fs.length, j < 2 ^ 64 - 1 ∧ σ x = ofK (gpow j)
+  | .dispatch x fs _ _ => ∃ j < fs.length, j < 2 ^ 64 - 1 ∧ σ x = ofK (addressOfIndex j)
   | _ => True
 
 /-- The frame a flat statement sets up. -/
@@ -120,7 +120,7 @@ theorem atomsOf_parts (σ : Val) : ∀ l : List Stmt, l.all Stmt.plainS = true �
     (atomsOf l).filterMap Ev.allocDst? = [] ∧ (atomsOf l).filterMap (Ev.alloc? σ) = [] ∧
       (atomsOf l).filterMap Ev.addr? = [] ∧ (atomsOf l).filterMap Ev.call? = [] ∧
       (atomsOf l).filterMap (Ev.loadAddr? σ) =
-        (l.filterMap Stmt.loadS).map fun q => (σ q.1).limb 0 * gpow q.2
+        (l.filterMap Stmt.loadS).map fun q => (σ q.1).limb 0 * addressOfIndex q.2
   | [], _ => by simp [atomsOf]
   | s :: l, h => by
     simp only [List.all_cons, Bool.and_eq_true] at h
@@ -173,7 +173,7 @@ theorem flEvs_parts (σ : Val) (s : Stmt) (hs : s.flat = true) :
       ((Main.Stmt.allocSz s).map fun x => x.2.elim id fun s => logG (σ s)).toList ∧
     (flEvs σ s).filterMap Ev.addr? = (Main.Stmt.addrS s).toList ∧
     (flEvs σ s).filterMap Ev.call? = ((s.callSF σ).map (Main.mkCall σ)).toList ∧
-    (flEvs σ s).filterMap (Ev.loadAddr? σ) = (loadsEv σ s).map fun q => (σ q.1).limb 0 * gpow q.2 := by
+    (flEvs σ s).filterMap (Ev.loadAddr? σ) = (loadsEv σ s).map fun q => (σ q.1).limb 0 * addressOfIndex q.2 := by
   have hstr : ∀ t : Stmt, Main.Stmt.straight t = true → flEvs σ t = Main.slEvs σ t →
       t.callSF σ = Main.Stmt.callS t →
       (flEvs σ t).filterMap Ev.allocDst? = ((Main.Stmt.allocSz t).map Prod.fst).toList ∧
@@ -182,7 +182,7 @@ theorem flEvs_parts (σ : Val) (s : Stmt) (hs : s.flat = true) :
       (flEvs σ t).filterMap Ev.addr? = (Main.Stmt.addrS t).toList ∧
       (flEvs σ t).filterMap Ev.call? = ((t.callSF σ).map (Main.mkCall σ)).toList ∧
       (flEvs σ t).filterMap (Ev.loadAddr? σ) =
-        ((Stmt.loadS t).map fun q => (σ q.1).limb 0 * gpow q.2).toList := by
+        ((Stmt.loadS t).map fun q => (σ q.1).limb 0 * addressOfIndex q.2).toList := by
     intro t ht he hc
     obtain ⟨i1, i2, i3, i4⟩ := Main.straight_parts σ [t] (by simp [ht])
     have i5 := loadAddrs_straight σ [t] (by simp [ht])
@@ -202,7 +202,7 @@ theorem flEvs_parts (σ : Val) (s : Stmt) (hs : s.flat = true) :
         ((Main.Stmt.allocSz t).map fun x => x.2.elim id fun s => logG (σ s)).toList ∧
       (flEvs σ t).filterMap Ev.addr? = (Main.Stmt.addrS t).toList ∧
       (flEvs σ t).filterMap Ev.call? = ((t.callSF σ).map (Main.mkCall σ)).toList ∧
-      (flEvs σ t).filterMap (Ev.loadAddr? σ) = (loadsEv σ t).map fun q => (σ q.1).limb 0 * gpow q.2 := by
+      (flEvs σ t).filterMap (Ev.loadAddr? σ) = (loadsEv σ t).map fun q => (σ q.1).limb 0 * addressOfIndex q.2 := by
     intro t ht he hc hl
     obtain ⟨i1, i2, i3, i4, i5⟩ := hstr t ht he hc
     refine ⟨i1, i2, i3, i4, ?_⟩
@@ -230,7 +230,7 @@ theorem flat_parts (σ : Val) : ∀ pre : List Stmt, pre.all Stmt.flat = true �
       (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) ∧
     addrs (pre.flatMap (flEvs σ)) = pre.filterMap Main.Stmt.addrS ∧
     calls (pre.flatMap (flEvs σ)) = (pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ) ∧
-    loadAddrs σ (pre.flatMap (flEvs σ)) = (pre.flatMap (loadsEv σ)).map fun q => (σ q.1).limb 0 * gpow q.2
+    loadAddrs σ (pre.flatMap (flEvs σ)) = (pre.flatMap (loadsEv σ)).map fun q => (σ q.1).limb 0 * addressOfIndex q.2
   | [], _ => by simp [allocDsts, allocs, addrs, calls, loadAddrs]
   | s :: pre, h => by
     simp only [List.all_cons, Bool.and_eq_true] at h
@@ -266,9 +266,9 @@ theorem completeAt_flatD {f : String} {fn : Fn} (hf : coreProgram.find? f = some
         Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun r => r = rets) ∧
         (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
         ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-          (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
+          (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b)) ∧
         CallsMatch σ ((pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) (kids fp) outs ∧
-        ∀ q ∈ pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧
+        ∀ q ∈ pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex i ∧
           (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) :
     CompleteAtD fs cert κ f Lin args (Returns rets) := by
   intro fp
@@ -334,9 +334,9 @@ theorem completeAt_flatOutD {f : String} {fn : Fn} (hf : coreProgram.find? f = s
         Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun r => r = rets fp) ∧
         (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
         ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-          (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
+          (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b)) ∧
         CallsMatch σ ((pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) (kids fp) outs ∧
-        ∀ q ∈ pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧
+        ∀ q ∈ pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex i ∧
           (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) :
     CompleteAtD fs cert κ f Lin args Out := by
   intro fp

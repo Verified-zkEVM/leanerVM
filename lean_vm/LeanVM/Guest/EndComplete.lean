@@ -75,12 +75,13 @@ structure CompleteParts : Prop where
   /-- The checker: `CompletePiecesWithin.b2`. -/
   b2 : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
     HonestAt coreProgram fs H C hdr T cert rd [] [] →
-      Reach guestProgram (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Registers.final guestProgram)
+      Reach guestProgram (honest coreProgram fs H C hdr T) ⟨addressOfIndex mainEntry, 1⟩ (Registers.final guestProgram)
   /-- The checker: `CompletePiecesWithin.count`. -/
   count : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
     HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ n,
       run guestProgram (honest coreProgram fs H C hdr T) n Registers.initial = some (Registers.final guestProgram) →
-        ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Execution guestProgram).count op ≤ cnt T op
+        ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Execution guestProgram).opcodeCount op ≤
+            cnt T op
 
 variable {fs H C cert cnt b}
 
@@ -105,8 +106,8 @@ theorem honest_of_main (hm : MainComplete fs cert cnt b) (hk : KFactsAll fs H C 
   have hL := B1.Main.memL_imageOf h64 hcons (fun q hq => ⟨(hin q hq).1,
     le_trans (hin q hq).2 (le_two_pow_logMem N)⟩) hdr
   obtain ⟨hh0, hh1⟩ := B1.Main.imageOf_hdr h64 (by omega) L hdr
-  have e0 : (1 : K) = Parameters.gpow 0 := by simp [Parameters.gpow]
-  have e1 : Parameters.g = Parameters.gpow 1 := by simp [Parameters.gpow]
+  have e0 : (1 : K) = Parameters.addressOfIndex 0 := by simp [Parameters.addressOfIndex]
+  have e1 : Parameters.g = Parameters.addressOfIndex 1 := by simp [Parameters.addressOfIndex]
   obtain ⟨t, hn, hv, hb, hp, ht, hl, hcntT⟩ := hrelL M.read hlow hL (by rw [e0]; exact hh0)
     (by rw [e1]; exact hh1)
   subst ht

@@ -34,7 +34,7 @@ open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-variable {α β : Type} {p : Prog α} {Pre : List Ev → Prop} {Post : α → List Ev → Prop}
+variable {α β : Type} {p : VerifierProgram α} {Pre : List Ev → Prop} {Post : α → List Ev → Prop}
   {εmax L T : ENNReal}
 
 /-! ## The frame rule -/
@@ -100,45 +100,46 @@ def Spec.retInv (S : Spec p Pre Post εmax L T) (Q : α → Prop)
   bound := S.bound
 
 /-- The doom of a specification transported along an equality of programs is unchanged. -/
-theorem Spec.congr_D {p' : Prog α} (h : p = p') (S : Spec p Pre Post εmax L T) :
+theorem Spec.congr_D {p' : VerifierProgram α} (h : p = p') (S : Spec p Pre Post εmax L T) :
     (S.congr h).D = S.D := by
   subst h; rfl
 
 /-! ## Returns -/
 
 /-- Where a program is defined at a node that is not a return, it has not returned before. -/
-theorem retSplit_eq_none_of_after {p : Prog α} {l : List Ev} {q : Prog α}
+theorem retSplit_eq_none_of_after {p : VerifierProgram α} {l : List Ev} {q : VerifierProgram α}
     (ha : p.after l = some q) (hq : ∀ a, q ≠ .ret a) : p.retSplit l = none := by
   rcases hs : p.retSplit l with _ | ⟨a, l₁, l₂⟩
   · rfl
-  · obtain ⟨rfl, h1⟩ := Prog.retSplit_eq_some_iff.1 hs
-    rw [Prog.after_append, h1, Option.bind_some] at ha
+  · obtain ⟨rfl, h1⟩ := VerifierProgram.retSplit_eq_some_iff.1 hs
+    rw [VerifierProgram.after_append, h1, Option.bind_some] at ha
     cases l₂ with
-    | nil => simp only [Prog.after, Option.some.injEq] at ha; exact absurd ha.symm (hq a)
-    | cons e es => cases e <;> simp [Prog.after] at ha
+    | nil => simp only [VerifierProgram.after, Option.some.injEq] at ha; exact absurd ha.symm (hq a)
+    | cons e es => cases e <;> simp [VerifierProgram.after] at ha
 
 /-- A sequence equal to a return starts with a return. -/
-theorem bind_eq_ret_iff {p : Prog α} {f : α → Prog β} {b : β} (h : p.bind f = .ret b) :
+theorem bind_eq_ret_iff {p : VerifierProgram α} {f : α → VerifierProgram β} {b : β} (h : p.bind f =
+    .ret b) :
     ∃ a, p = .ret a ∧ f a = .ret b := by
-  cases p <;> simp_all [Prog.bind]
+  cases p <;> simp_all [VerifierProgram.bind]
 
 /-- **A return of a sequence** is a return of its first part followed by a return of the
 second. -/
-theorem after_bind_ret {p : Prog α} {f : α → Prog β} {l : List Ev} {b : β}
+theorem after_bind_ret {p : VerifierProgram α} {f : α → VerifierProgram β} {l : List Ev} {b : β}
     (h : (p.bind f).after l = some (.ret b)) :
     ∃ a l₁ l₂, l = l₁ ++ l₂ ∧ p.after l₁ = some (.ret a) ∧ (f a).after l₂ = some (.ret b) := by
-  rcases Prog.after_bind_cases f h with ⟨q, hq, hr⟩ | ⟨a, l₁, l₂, rfl, h1, -, h3⟩
+  rcases VerifierProgram.after_bind_cases f h with ⟨q, hq, hr⟩ | ⟨a, l₁, l₂, rfl, h1, -, h3⟩
   · obtain ⟨a, rfl, hfa⟩ := bind_eq_ret_iff hr.symm
-    exact ⟨a, l, [], by simp, hq, by simp [Prog.after, hfa]⟩
+    exact ⟨a, l, [], by simp, hq, by simp [VerifierProgram.after, hfa]⟩
   · exact ⟨a, l₁, l₂, rfl, h1, h3⟩
 
 /-- A return of a program at a history, and at an extension of it, are at the same history. -/
-theorem eq_of_after_ret {p : Prog α} {l l' : List Ev} {a : α}
+theorem eq_of_after_ret {p : VerifierProgram α} {l l' : List Ev} {a : α}
     (h : p.after l = some (.ret a)) (h' : (p.after (l ++ l')).isSome) : l' = [] := by
-  rw [Prog.after_append, h, Option.bind_some] at h'
+  rw [VerifierProgram.after_append, h, Option.bind_some] at h'
   cases l' with
   | nil => rfl
-  | cons e es => cases e <;> simp [Prog.after] at h'
+  | cons e es => cases e <;> simp [VerifierProgram.after] at h'
 
 /-! ## The stack's commitment with any postcondition -/
 
@@ -161,7 +162,7 @@ theorem commitSpec_D (Post : Unit → List Ev → Prop) {logN logInvRate : ℕ} 
   have hs : (liftOption (Whir.ladder logN logInvRate)).retSplit [e] =
       some (level :: rest, [], [e]) := by
     rw [hc]
-    exact Prog.retSplit_of_after (Prog.ret (level :: rest)) [] [e] rfl
+    exact VerifierProgram.retSplit_of_after (VerifierProgram.ret (level :: rest)) [] [e] rfl
   rw [commitSpec, Spec.bind_D, Spec.bindD_after hs (List.cons_ne_nil _ _)]
   simp only [List.append_nil]
   rfl

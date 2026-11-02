@@ -29,11 +29,11 @@ open scoped ENNReal
 
 /-- The end of `verify_keccak`, after the outputs' opening. -/
 def inputTail (h : ℕ) (claim : KeccakClaim) (outputs : List ColumnClaim) :
-    Prog (List ColumnClaim × List E × List E) :=
+    VerifierProgram (List ColumnClaim × List E × List E) :=
   sumcheck claim.value 3 (List.replicate 4 none) >>= fun y ↦
   keccakOpen h claim 0 keccakSegments y.2 >>= fun x ↦
-  Prog.readScalars kBits >>= fun slices ↦
-  Prog.require (multilinearEval claim.mu y.1 * dot x.2.1 slices = x.2.2) >>= fun _ ↦
+  VerifierProgram.readScalars kBits >>= fun slices ↦
+  VerifierProgram.require (multilinearEval claim.mu y.1 * dot x.2.1 slices = x.2.2) >>= fun _ ↦
   pure (outputs, y.1 ++ claim.point.take (h - 4) ++ x.1, slices)
 
 theorem multilinearEval_mu {mu low : List E} (hmu : mu.length = 16) (hlow : low.length = 4) :
@@ -77,7 +77,8 @@ noncomputable def inputSpec (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L�
   if hy : y.1.length = 4 then
     (Spec.congr (keccakOpen_eq (P + 4) claim 0 keccakSegments y.2).symm <|
       Spec.congr (p := sumcheck y.2 3 (List.replicate 6 none) >>= fun x ↦
-        Prog.ret (x.1, (foldAll x.1 (keccakSlotWeights (P + 4) claim 0 keccakSegments)).headD [],
+        VerifierProgram.ret (x.1, (foldAll x.1 (keccakSlotWeights (P + 4) claim 0
+            keccakSegments)).headD [],
           x.2)) (by rw [qkeccakSlotBits_eq]) <|
       ((sumcheckSpec (T := 0) hst hcard R (Fs_plainFamily P qk claim y.1) (count := 3)
         (by norm_num) (by norm_num) h0 he 6 [] y.2 (by simp)).mono

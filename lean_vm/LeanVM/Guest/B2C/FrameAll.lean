@@ -55,7 +55,7 @@ theorem H_eq_kidHdr {I : Inst} {f : String} {σ : Val} {bufs : List ℕ} {kids :
 
 /-- **A call site's cells hold its callee frame and target.** -/
 theorem read_site {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E} {j : ℕ} {G : Glob}
-    {fc : CompiledFn} {main : Bool}
+    {fc : CompiledFunction} {main : Bool}
     (h : Honest coreProgram fs H C hdr T rd args rets) (hS : ShareOk j)
     (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
     {I : Inst} (hI : I ∈ honestInsts coreProgram fs H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
@@ -63,9 +63,9 @@ theorem read_site {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E} {
     (hw : walk σ (coreOf j).body = .ret es vs) (hsa : SitesApart j es)
     (i : ℕ) (c : Call) (kfp : ℕ) (s : Site) (hc : (calls es)[i]? = some c) (hp : I.kidFps[i]? = some kfp)
     (hs : siteOf j c = some s) :
-    (2 ≤ s.q → s.q < fsN j → (honest coreProgram fs H C hdr T).read (gpow (I.fp + s.q)) = some (ofK (gpow kfp))) ∧
+    (2 ≤ s.q → s.q < fsN j → (honest coreProgram fs H C hdr T).read (addressOfIndex (I.fp + s.q)) = some (ofK (addressOfIndex kfp))) ∧
     (s.tgt ≠ 0 → 2 ≤ s.tgt → s.tgt < fsN j →
-      (honest coreProgram fs H C hdr T).read (gpow (I.fp + s.tgt)) = some (ofK (gpow (entryOf c.f)))) := by
+      (honest coreProgram fs H C hdr T).read (addressOfIndex (I.fp + s.tgt)) = some (ofK (addressOfIndex (entryOf c.f)))) := by
   have AP := apart_j hS
   obtain ⟨n, rfl, -, -, -, -, hfs, -⟩ := fn_of_idx hj
   have hsm := siteOf_mem hs
@@ -76,7 +76,7 @@ theorem read_site {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E} {
     simp only [siteCells, List.mem_flatMap]
     exact ⟨s, hsm, by simp [hb]⟩
   -- the call's own candidates in siteE
-  have hin : ∀ x, (x = (s.q, ofK (gpow kfp)) ∨ (s.tgt ≠ 0 ∧ x = (s.tgt, ofK (gpow (entryOf c.f))))) →
+  have hin : ∀ x, (x = (s.q, ofK (addressOfIndex kfp)) ∨ (s.tgt ≠ 0 ∧ x = (s.tgt, ofK (addressOfIndex (entryOf c.f))))) →
       x ∈ siteE (n + 1) I es := by
     intro x hx
     obtain ⟨hi1, hc1⟩ := List.getElem?_eq_some_iff.mp hc
@@ -88,9 +88,9 @@ theorem read_site {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E} {
     · exact Or.inl rfl
     · exact Or.inr (by simp [ht0])
   refine ⟨fun h2 hn ↦ ?_, fun ht0 h2 hn ↦ ?_⟩
-  · have hmem : (s.q, ofK (gpow kfp)) ∈ C I := by
+  · have hmem : (s.q, ofK (addressOfIndex kfp)) ∈ C I := by
       rw [C_node ht hj, hfs]
-      refine frameE_cell ⟨(s.q, ofK (gpow kfp)), ?_, rfl⟩ h2 hn fun x hx hxc ↦ ?_
+      refine frameE_cell ⟨(s.q, ofK (addressOfIndex kfp)), ?_, rfl⟩ h2 hn fun x hx hxc ↦ ?_
       · obtain ⟨hev, -⟩ := node_path ht hj hw
         simp only [nodeE, List.mem_append, hev]
         exact Or.inl (Or.inl (Or.inr (by rw [← hev]; exact hev ▸ hin _ (Or.inl rfl))))
@@ -107,11 +107,12 @@ theorem read_site {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E} {
       · rcases hx'' with rfl | ⟨ht0, rfl⟩
         · exact absurd hxc.symm (hsa i i' c c' s s' (Ne.symm hii) hc hc' hs hs').1
         · exact absurd hxc ((hsa i' i c' c s' s hii hc' hc hs' hs).2 ht0).2
-    rw [gpow, pow_add]
+    rw [addressOfIndex, pow_add]
     exact h.read_C hI hmem
-  · have hmem : (s.tgt, ofK (gpow (entryOf c.f))) ∈ C I := by
+  · have hmem : (s.tgt, ofK (addressOfIndex (entryOf c.f))) ∈ C I := by
       rw [C_node ht hj, hfs]
-      refine frameE_cell ⟨(s.tgt, ofK (gpow (entryOf c.f))), ?_, rfl⟩ h2 hn fun x hx hxc ↦ ?_
+      refine frameE_cell ⟨(s.tgt, ofK (addressOfIndex (entryOf c.f))), ?_, rfl⟩ h2 hn fun x hx
+          hxc ↦ ?_
       · obtain ⟨hev, -⟩ := node_path ht hj hw
         simp only [nodeE, List.mem_append, hev]
         exact Or.inl (Or.inl (Or.inr (by rw [← hev]; exact hev ▸ hin _ (Or.inr ⟨ht0, rfl⟩))))
@@ -127,7 +128,7 @@ theorem read_site {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E} {
       · rcases hx'' with rfl | ⟨ht0', rfl⟩
         · exact absurd hxc.symm ((hsa i i' c c' s s' (Ne.symm hii) hc hc' hs hs').2 ht0).2
         · exact absurd hxc.symm ((hsa i i' c c' s s' (Ne.symm hii) hc hc' hs hs').2 ht0).1
-    rw [gpow, pow_add]
+    rw [addressOfIndex, pow_add]
     exact h.read_C hI hmem
 
 /-- A callee's instance, as the reads take it: a node on its path, or a phantom, with its
@@ -175,8 +176,8 @@ theorem frameHolds_all (hsa : ∀ j σ es vs, 1 ≤ j → j < nFns → walk σ (
   obtain ⟨es', vs', hw', he, hk⟩ := node_valid ht hj (insts_good T 0 hdr hH.valid I hI)
   rw [hw] at hw'
   obtain ⟨rfl, rfl⟩ : es = es' ∧ vs = vs' := by cases hw'; exact ⟨rfl, rfl⟩
-  have hgp : ∀ a o, (honest coreProgram fs H C hdr T).read (gpow a * gpow o) =
-      (honest coreProgram fs H C hdr T).read (gpow (a + o)) := fun a o ↦ by rw [gpow, gpow, gpow, pow_add]
+  have hgp : ∀ a o, (honest coreProgram fs H C hdr T).read (addressOfIndex a * addressOfIndex o) =
+      (honest coreProgram fs H C hdr T).read (addressOfIndex (a + o)) := fun a o ↦ by rw [addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
   refine ⟨?_, ?_, fun hj1 ↦ ?_, fun v hv h2 hn ↦ read_val hH hS hchk hI ht hj hw he hv h2 hn,
     fun e he' t ht' h2 hn ↦ ?_, fun p hp h2 hn ↦ read_stat hH hS hchk hI ht hj hw he hp h2 hn,
     frame_addr h hI ht hj hw, fun a ha h2 hn ↦ read_arm hH hS hchk hI ht hj hw ha h2 hn,

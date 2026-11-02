@@ -28,7 +28,7 @@ open LeanVM.Protocol.EndToEnd LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.Tab
 open CompPoly CPoly
 
 /-- Four `XOR` instructions. -/
-def prog4 : Program := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
+def prog4 : LeanIsaProgram := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
 
 /-- A size vector with a table as tall as the memory. -/
 def s₁ : Sizes := ⟨16, by decide, ![2 ^ 16, 2 ^ 3, 2 ^ 16, 2 ^ 4, 2 ^ 16, 2 ^ 16]⟩

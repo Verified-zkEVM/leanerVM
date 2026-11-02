@@ -38,9 +38,10 @@ def VkCompleteAtBK (fs : String → ℕ) (cert : String → V → ℕ) (κ Bvk :
     CompleteAtB fs cert κ "verify_keccak"
       [(curE, xs), (chiE, chis), (olE, outs), (zvE, op), (zvE + qkeccakVarsCap, point),
         (slE, slices)]
-      (f ++ [ofK (Parameters.gpow curE), gen ^ τ, ofK (Parameters.gpow chiE),
-        ofK (Parameters.gpow olE), ofK (Parameters.gpow zvE), ofK (Parameters.gpow slE)])
-      (Returns (cap' ++ [ofK (Parameters.gpow curE) * gen ^ xs.length, word, m0])) Bvk
+      (f ++ [ofK (Parameters.addressOfIndex curE), gen ^ τ, ofK (Parameters.addressOfIndex chiE),
+        ofK (Parameters.addressOfIndex olE), ofK (Parameters.addressOfIndex zvE), ofK
+            (Parameters.addressOfIndex slE)])
+      (Returns (cap' ++ [ofK (Parameters.addressOfIndex curE) * gen ^ xs.length, word, m0])) Bvk
 
 /-- `verify_keccak`'s words at `B2C.fs`. -/
 noncomputable def vkBound : ℕ := LeanVM.Guest.B2C.fs "verify_keccak" + 464 + 81723

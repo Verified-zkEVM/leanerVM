@@ -157,7 +157,7 @@ def open_stacked_sound_w_Spec (osW : Reader → ℕ → Val → FrameMap → Lis
     CallRel.Le C (coreProgram.Rel rd) →
     ∀ (μ r : ℕ), 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
       ∀ (root : Digest) (fs : List E) (target root0 root1 cur : E) (rets : List E) (fn : Fn)
-        (σ : Val), fs.length = 5 → (root0, root1) = digestScalars root →
+        (σ : Val), fs.length = 5 → (root0, root1) = digestHalves root →
         coreProgram.find? (openName μ r) = some fn →
         fn.params.map σ = fs ++ [target, root0, root1, cur] →
         Stmt.HoldsList C rd σ fn.body False (fun rs ↦ rs = rets) →

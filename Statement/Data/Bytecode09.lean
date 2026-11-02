@@ -18,7 +18,7 @@ set_option maxRecDepth 20000
 @[expose] public section
 
 /-- `verify_sig_lean_sphincs` from offset 96256. -/
-def f21c47 : List OInstr := [
+def f21c47 : List OffsetInstruction := [
   .mul 6308 5835 6337,
   .set 6352 0 7146825580544 0,
   .xor 6309 6352 6338,
@@ -2069,7 +2069,7 @@ def f21c47 : List OInstr := [
   .set 6400 2377900848064757760 0 0]
 
 /-- `verify_sig_lean_sphincs` from offset 98304. -/
-def f21c48 : List OInstr := [
+def f21c48 : List OffsetInstruction := [
   .xor 59 6400 6401,
   .keccak 4 6401 6399 28 29 27 29 5570 false false,
   .set 6402 4683743857278451712 0 0,
@@ -4120,7 +4120,7 @@ def f21c48 : List OInstr := [
   .keccak 4 6991 6973 6974 28 27 29 6977 false false]
 
 /-- `verify_sig_lean_sphincs` from offset 100352. -/
-def f21c49 : List OInstr := [
+def f21c49 : List OffsetInstruction := [
   .xor 6977 6992 6994,
   .xor 6992 6993 6995,
   .mul 44 6995 6994,
@@ -4215,7 +4215,7 @@ def f21c49 : List OInstr := [
   .jump 26 0 1]
 
 /-- `statement_digest` from offset 0. -/
-def f22c0 : List OInstr := [
+def f22c0 : List OffsetInstruction := [
   .set 57 1 0 0,
   .mul 2 57 13,
   .mul 3 57 14,
@@ -4513,7 +4513,7 @@ def f22c0 : List OInstr := [
   .jump 57 0 1]
 
 /-- `list_split` from offset 0. -/
-def f23c0 : List OInstr := [
+def f23c0 : List OffsetInstruction := [
   .set 7 65536 0 0,
   .deref 6 0 9 .cell,
   .mul 6 8 7,
@@ -4536,7 +4536,7 @@ def f23c0 : List OInstr := [
   .jump 22 0 1]
 
 /-- `claim_list_digest` from offset 0. -/
-def f24c0 : List OInstr := [
+def f24c0 : List OffsetInstruction := [
   .set 19 1 0 0,
   .xor 3 19 20,
   .deref 21 0 0 .fp,
@@ -4619,7 +4619,7 @@ def f24c0 : List OInstr := [
   .jump 19 0 1]
 
 /-- `child_claim_list_digest` from offset 0. -/
-def f25c0 : List OInstr := [
+def f25c0 : List OffsetInstruction := [
   .set 23 1 0 0,
   .xor 7 23 24,
   .deref 25 0 0 .fp,
@@ -4708,7 +4708,7 @@ def f25c0 : List OInstr := [
   .jump 23 0 1]
 
 /-- `da_verify` from offset 0. -/
-def f26c0 : List OInstr := [
+def f26c0 : List OffsetInstruction := [
   .set 13 1 0 0,
   .set 12 1413559043820962689 0 0,
   .deref 11 2 7 .cell,
@@ -5389,7 +5389,7 @@ def f26c0 : List OInstr := [
   .jump 13 0 1]
 
 /-- `da_row_shape` from offset 0. -/
-def f27c0 : List OInstr := [
+def f27c0 : List OffsetInstruction := [
   .set 7 1 0 0,
   .xor 2 7 8,
   .mul 8 9 10,
@@ -5421,7 +5421,7 @@ def f27c0 : List OInstr := [
   .jump 7 0 1]
 
 /-- `da_verify_cell` from offset 0. -/
-def f28c0 : List OInstr := [
+def f28c0 : List OffsetInstruction := [
   .set 390 0 0 0,
   .jump 390 6 7,
   .set 391 0 1 0,
@@ -6732,7 +6732,7 @@ def f28c0 : List OInstr := [
   .jump 1313 0 1]
 
 /-- `da_vector_cell` from offset 0. -/
-def f29c0 : List OInstr := [
+def f29c0 : List OffsetInstruction := [
   .set 648 0 0 0,
   .jump 648 644 645,
   .set 649 0 1 0,
@@ -8783,7 +8783,7 @@ def f29c0 : List OInstr := [
   .mul 2452 652 2453]
 
 /-- `da_vector_cell` from offset 2048. -/
-def f29c1 : List OInstr := [
+def f29c1 : List OffsetInstruction := [
   .xor 2453 2448 2454,
   .mul 2454 652 2455,
   .jump 648 2455 2449,
@@ -9377,7 +9377,7 @@ def f29c1 : List OInstr := [
   .jump 2593 0 1]
 
 /-- `aggregate_claims` from offset 0. -/
-def f30c0 : List OInstr := [
+def f30c0 : List OffsetInstruction := [
   .set 11 1562680967124014521 0 0,
   .set 12 7666384441264927334 11925545048015809408 0,
   .set 13 14528471851986820829 15194020773630548750 0,
@@ -9566,7 +9566,7 @@ def f30c0 : List OInstr := [
   .jump 27 0 1]
 
 /-- `__loop0` from offset 0. -/
-def f31c0 : List OInstr := [
+def f31c0 : List OffsetInstruction := [
   .mul 5 2 7,
   .mul 7 7 8,
   .mul 8 8 9,
@@ -9589,7 +9589,7 @@ def f31c0 : List OInstr := [
   .jump 17 0 1]
 
 /-- `__loop1` from offset 0. -/
-def f32c0 : List OInstr := [
+def f32c0 : List OffsetInstruction := [
   .mul 5 2 7,
   .mul 7 7 8,
   .mul 8 8 9,
@@ -9612,7 +9612,7 @@ def f32c0 : List OInstr := [
   .jump 17 0 1]
 
 /-- `__loop2` from offset 0. -/
-def f33c0 : List OInstr := [
+def f33c0 : List OffsetInstruction := [
   .set 9 9223372036854775821 0 0,
   .mul 4 9 10,
   .deref 8 0 12 .cell,
@@ -9647,7 +9647,7 @@ def f33c0 : List OInstr := [
   .jump 20 0 1]
 
 /-- `__loop3` from offset 0. -/
-def f34c0 : List OInstr := [
+def f34c0 : List OffsetInstruction := [
   .set 12 9223372036854775821 0 0,
   .mul 4 12 13,
   .deref 11 0 15 .cell,
@@ -9688,7 +9688,7 @@ def f34c0 : List OInstr := [
   .jump 25 0 1]
 
 /-- `__loop4` from offset 0. -/
-def f35c0 : List OInstr := [
+def f35c0 : List OffsetInstruction := [
   .mul 4 2 19,
   .deref 19 0 20 .cell,
   .set 23 9272771591053052074 0 0,
@@ -9795,14 +9795,14 @@ def f35c0 : List OInstr := [
   .jump 33 0 1]
 
 /-- `eq_prefix_run__L0` from offset 0. -/
-def f36c0 : List OInstr := [
+def f36c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .set 6 0 0 0,
   .set 7 1 0 0,
   .jump 7 0 1]
 
 /-- `eq_prefix_run__L1` from offset 0. -/
-def f37c0 : List OInstr := [
+def f37c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -9814,7 +9814,7 @@ def f37c0 : List OInstr := [
   .jump 11 0 1]
 
 /-- `eq_prefix_run__L2` from offset 0. -/
-def f38c0 : List OInstr := [
+def f38c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -9831,7 +9831,7 @@ def f38c0 : List OInstr := [
   .jump 15 0 1]
 
 /-- `eq_prefix_run__L3` from offset 0. -/
-def f39c0 : List OInstr := [
+def f39c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -9853,7 +9853,7 @@ def f39c0 : List OInstr := [
   .jump 19 0 1]
 
 /-- `eq_prefix_run__L4` from offset 0. -/
-def f40c0 : List OInstr := [
+def f40c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -9880,7 +9880,7 @@ def f40c0 : List OInstr := [
   .jump 23 0 1]
 
 /-- `eq_prefix_run__L5` from offset 0. -/
-def f41c0 : List OInstr := [
+def f41c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -9912,7 +9912,7 @@ def f41c0 : List OInstr := [
   .jump 27 0 1]
 
 /-- `eq_prefix_run__L6` from offset 0. -/
-def f42c0 : List OInstr := [
+def f42c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -9949,7 +9949,7 @@ def f42c0 : List OInstr := [
   .jump 31 0 1]
 
 /-- `eq_prefix_run__L7` from offset 0. -/
-def f43c0 : List OInstr := [
+def f43c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -9991,7 +9991,7 @@ def f43c0 : List OInstr := [
   .jump 35 0 1]
 
 /-- `eq_prefix_run__L8` from offset 0. -/
-def f44c0 : List OInstr := [
+def f44c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -10038,7 +10038,7 @@ def f44c0 : List OInstr := [
   .jump 39 0 1]
 
 /-- `eq_prefix_run__L9` from offset 0. -/
-def f45c0 : List OInstr := [
+def f45c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -10090,7 +10090,7 @@ def f45c0 : List OInstr := [
   .jump 43 0 1]
 
 /-- `eq_prefix_run__L10` from offset 0. -/
-def f46c0 : List OInstr := [
+def f46c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -10147,7 +10147,7 @@ def f46c0 : List OInstr := [
   .jump 47 0 1]
 
 /-- `eq_prefix_run__L11` from offset 0. -/
-def f47c0 : List OInstr := [
+def f47c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -10209,7 +10209,7 @@ def f47c0 : List OInstr := [
   .jump 51 0 1]
 
 /-- `eq_prefix_run__L12` from offset 0. -/
-def f48c0 : List OInstr := [
+def f48c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -10276,7 +10276,7 @@ def f48c0 : List OInstr := [
   .jump 55 0 1]
 
 /-- `eq_prefix_run__L13` from offset 0. -/
-def f49c0 : List OInstr := [
+def f49c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -10348,7 +10348,7 @@ def f49c0 : List OInstr := [
   .jump 59 0 1]
 
 /-- `eq_prefix_run__L14` from offset 0. -/
-def f50c0 : List OInstr := [
+def f50c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -10425,7 +10425,7 @@ def f50c0 : List OInstr := [
   .jump 63 0 1]
 
 /-- `eq_prefix_run__L15` from offset 0. -/
-def f51c0 : List OInstr := [
+def f51c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -10507,7 +10507,7 @@ def f51c0 : List OInstr := [
   .jump 67 0 1]
 
 /-- `eq_prefix_run__L16` from offset 0. -/
-def f52c0 : List OInstr := [
+def f52c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -10594,7 +10594,7 @@ def f52c0 : List OInstr := [
   .jump 71 0 1]
 
 /-- `eq_prefix_run__L17` from offset 0. -/
-def f53c0 : List OInstr := [
+def f53c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -10686,7 +10686,7 @@ def f53c0 : List OInstr := [
   .jump 75 0 1]
 
 /-- `eq_prefix_run__L18` from offset 0. -/
-def f54c0 : List OInstr := [
+def f54c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -10783,7 +10783,7 @@ def f54c0 : List OInstr := [
   .jump 79 0 1]
 
 /-- `eq_prefix_run__L19` from offset 0. -/
-def f55c0 : List OInstr := [
+def f55c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -10885,7 +10885,7 @@ def f55c0 : List OInstr := [
   .jump 83 0 1]
 
 /-- `eq_prefix_run__L20` from offset 0. -/
-def f56c0 : List OInstr := [
+def f56c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -10992,7 +10992,7 @@ def f56c0 : List OInstr := [
   .jump 87 0 1]
 
 /-- `eq_prefix_run__L21` from offset 0. -/
-def f57c0 : List OInstr := [
+def f57c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -11104,7 +11104,7 @@ def f57c0 : List OInstr := [
   .jump 91 0 1]
 
 /-- `eq_prefix_run__L22` from offset 0. -/
-def f58c0 : List OInstr := [
+def f58c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -11221,7 +11221,7 @@ def f58c0 : List OInstr := [
   .jump 95 0 1]
 
 /-- `eq_prefix_run__L23` from offset 0. -/
-def f59c0 : List OInstr := [
+def f59c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -11343,7 +11343,7 @@ def f59c0 : List OInstr := [
   .jump 99 0 1]
 
 /-- `eq_prefix_run__L24` from offset 0. -/
-def f60c0 : List OInstr := [
+def f60c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -11470,7 +11470,7 @@ def f60c0 : List OInstr := [
   .jump 103 0 1]
 
 /-- `eq_prefix_run__L25` from offset 0. -/
-def f61c0 : List OInstr := [
+def f61c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -11602,7 +11602,7 @@ def f61c0 : List OInstr := [
   .jump 107 0 1]
 
 /-- `eq_prefix_run__L26` from offset 0. -/
-def f62c0 : List OInstr := [
+def f62c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -11739,7 +11739,7 @@ def f62c0 : List OInstr := [
   .jump 111 0 1]
 
 /-- `eq_prefix_run__L27` from offset 0. -/
-def f63c0 : List OInstr := [
+def f63c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -11881,7 +11881,7 @@ def f63c0 : List OInstr := [
   .jump 115 0 1]
 
 /-- `eq_prefix_run__L28` from offset 0. -/
-def f64c0 : List OInstr := [
+def f64c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -12028,7 +12028,7 @@ def f64c0 : List OInstr := [
   .jump 119 0 1]
 
 /-- `eq_prefix_run__L29` from offset 0. -/
-def f65c0 : List OInstr := [
+def f65c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -12180,7 +12180,7 @@ def f65c0 : List OInstr := [
   .jump 123 0 1]
 
 /-- `eq_prefix_run__L30` from offset 0. -/
-def f66c0 : List OInstr := [
+def f66c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -12337,7 +12337,7 @@ def f66c0 : List OInstr := [
   .jump 127 0 1]
 
 /-- `eq_prefix_run__L31` from offset 0. -/
-def f67c0 : List OInstr := [
+def f67c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -12499,7 +12499,7 @@ def f67c0 : List OInstr := [
   .jump 131 0 1]
 
 /-- `eq_prefix_run__L32` from offset 0. -/
-def f68c0 : List OInstr := [
+def f68c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -12666,7 +12666,7 @@ def f68c0 : List OInstr := [
   .jump 135 0 1]
 
 /-- `eq_prefix_run__L33` from offset 0. -/
-def f69c0 : List OInstr := [
+def f69c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -12838,7 +12838,7 @@ def f69c0 : List OInstr := [
   .jump 139 0 1]
 
 /-- `eq_prefix_run__L34` from offset 0. -/
-def f70c0 : List OInstr := [
+def f70c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -13015,7 +13015,7 @@ def f70c0 : List OInstr := [
   .jump 143 0 1]
 
 /-- `eq_prefix_run__L35` from offset 0. -/
-def f71c0 : List OInstr := [
+def f71c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -13197,7 +13197,7 @@ def f71c0 : List OInstr := [
   .jump 147 0 1]
 
 /-- `eq_prefix_run__L36` from offset 0. -/
-def f72c0 : List OInstr := [
+def f72c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -13384,7 +13384,7 @@ def f72c0 : List OInstr := [
   .jump 151 0 1]
 
 /-- `eq_prefix_run__L37` from offset 0. -/
-def f73c0 : List OInstr := [
+def f73c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -13576,7 +13576,7 @@ def f73c0 : List OInstr := [
   .jump 155 0 1]
 
 /-- `eq_prefix_run__L38` from offset 0. -/
-def f74c0 : List OInstr := [
+def f74c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -13773,7 +13773,7 @@ def f74c0 : List OInstr := [
   .jump 159 0 1]
 
 /-- `eq_prefix_run__L39` from offset 0. -/
-def f75c0 : List OInstr := [
+def f75c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -13975,7 +13975,7 @@ def f75c0 : List OInstr := [
   .jump 163 0 1]
 
 /-- `eq_prefix_run__L40` from offset 0. -/
-def f76c0 : List OInstr := [
+def f76c0 : List OffsetInstruction := [
   .deref 2 0 3 .cell,
   .deref 4 0 7 .cell,
   .deref 5 0 8 .cell,
@@ -14182,7 +14182,7 @@ def f76c0 : List OInstr := [
   .jump 167 0 1]
 
 /-- `__loop5` from offset 0. -/
-def f77c0 : List OInstr := [
+def f77c0 : List OffsetInstruction := [
   .mul 2 2 8,
   .mul 4 8 9,
   .mul 5 8 10,
@@ -14725,7 +14725,7 @@ def f77c0 : List OInstr := [
   .jump 473 0 1]
 
 /-- `__loop6` from offset 0. -/
-def f78c0 : List OInstr := [
+def f78c0 : List OffsetInstruction := [
   .mul 2 2 9,
   .mul 4 5 10,
   .deref 10 0 11 .cell,
@@ -15002,7 +15002,7 @@ def f78c0 : List OInstr := [
   .jump 43 0 1]
 
 /-- `__loop7` from offset 0. -/
-def f79c0 : List OInstr := [
+def f79c0 : List OffsetInstruction := [
   .mul 5 2 7,
   .deref 7 0 8 .cell,
   .mul 4 2 9,
@@ -15025,7 +15025,7 @@ def f79c0 : List OInstr := [
   .jump 16 0 1]
 
 /-- `__loop8` from offset 0. -/
-def f80c0 : List OInstr := [
+def f80c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 10 11,
   .mul 11 11 12,
@@ -15158,13 +15158,13 @@ def f80c0 : List OInstr := [
   .jump 81 0 1]
 
 /-- `sel_partial_nibble__L0` from offset 0. -/
-def f81c0 : List OInstr := [
+def f81c0 : List OffsetInstruction := [
   .set 7 0 0 0,
   .set 8 1 0 0,
   .jump 8 0 1]
 
 /-- `sel_partial_nibble__L1` from offset 0. -/
-def f82c0 : List OInstr := [
+def f82c0 : List OffsetInstruction := [
   .deref 5 0 8 .cell,
   .deref 4 0 9 .cell,
   .deref 2 0 8 .cell,
@@ -15178,7 +15178,7 @@ def f82c0 : List OInstr := [
   .jump 54 0 1]
 
 /-- `sel_partial_nibble__L2` from offset 0. -/
-def f83c0 : List OInstr := [
+def f83c0 : List OffsetInstruction := [
   .deref 5 0 8 .cell,
   .deref 4 0 9 .cell,
   .deref 4 1 38 .cell,
@@ -15207,7 +15207,7 @@ def f83c0 : List OInstr := [
   .jump 57 0 1]
 
 /-- `sel_partial_nibble__L3` from offset 0. -/
-def f84c0 : List OInstr := [
+def f84c0 : List OffsetInstruction := [
   .deref 5 0 8 .cell,
   .deref 4 0 9 .cell,
   .deref 4 1 38 .cell,
@@ -15263,7 +15263,7 @@ def f84c0 : List OInstr := [
   .jump 60 0 1]
 
 /-- `padding_weight__L0` from offset 0. -/
-def f85c0 : List OInstr := [
+def f85c0 : List OffsetInstruction := [
   .mul 7 7 7,
   .set 36 0 0 0,
   .xor 7 2 36,
@@ -15276,7 +15276,7 @@ def f85c0 : List OInstr := [
   .jump 38 0 1]
 
 /-- `padding_weight__L1` from offset 0. -/
-def f86c0 : List OInstr := [
+def f86c0 : List OffsetInstruction := [
   .set 7 1 0 0,
   .xor 2 7 8,
   .mul 9 9 9,
@@ -15301,7 +15301,7 @@ def f86c0 : List OInstr := [
   .jump 7 0 1]
 
 /-- `padding_weight__L2` from offset 0. -/
-def f87c0 : List OInstr := [
+def f87c0 : List OffsetInstruction := [
   .set 7 3 0 0,
   .xor 2 7 8,
   .mul 9 9 9,
@@ -15338,7 +15338,7 @@ def f87c0 : List OInstr := [
   .jump 50 0 1]
 
 /-- `padding_weight__L3` from offset 0. -/
-def f88c0 : List OInstr := [
+def f88c0 : List OffsetInstruction := [
   .set 7 7 0 0,
   .xor 2 7 8,
   .mul 9 9 9,
@@ -15385,7 +15385,7 @@ def f88c0 : List OInstr := [
   .jump 58 0 1]
 
 /-- `padding_weight__L4` from offset 0. -/
-def f89c0 : List OInstr := [
+def f89c0 : List OffsetInstruction := [
   .set 7 15 0 0,
   .xor 2 7 8,
   .mul 9 9 9,
@@ -15440,7 +15440,7 @@ def f89c0 : List OInstr := [
   .jump 65 0 1]
 
 /-- `padding_weight__L5` from offset 0. -/
-def f90c0 : List OInstr := [
+def f90c0 : List OffsetInstruction := [
   .set 7 31 0 0,
   .xor 2 7 8,
   .mul 9 9 9,
@@ -15503,7 +15503,7 @@ def f90c0 : List OInstr := [
   .jump 72 0 1]
 
 /-- `padding_weight__L6` from offset 0. -/
-def f91c0 : List OInstr := [
+def f91c0 : List OffsetInstruction := [
   .set 7 63 0 0,
   .xor 2 7 8,
   .mul 9 9 9,
@@ -15574,7 +15574,7 @@ def f91c0 : List OInstr := [
   .jump 79 0 1]
 
 /-- `padding_weight__L7` from offset 0. -/
-def f92c0 : List OInstr := [
+def f92c0 : List OffsetInstruction := [
   .set 7 127 0 0,
   .xor 2 7 8,
   .mul 9 9 9,
@@ -15653,7 +15653,7 @@ def f92c0 : List OInstr := [
   .jump 86 0 1]
 
 /-- `padding_weight__L8` from offset 0. -/
-def f93c0 : List OInstr := [
+def f93c0 : List OffsetInstruction := [
   .set 7 255 0 0,
   .xor 2 7 8,
   .mul 9 9 9,
@@ -15740,7 +15740,7 @@ def f93c0 : List OInstr := [
   .jump 93 0 1]
 
 /-- `padding_weight__L9` from offset 0. -/
-def f94c0 : List OInstr := [
+def f94c0 : List OffsetInstruction := [
   .set 7 511 0 0,
   .xor 2 7 8,
   .mul 9 9 9,
@@ -15835,7 +15835,7 @@ def f94c0 : List OInstr := [
   .jump 100 0 1]
 
 /-- `padding_weight__L10` from offset 0. -/
-def f95c0 : List OInstr := [
+def f95c0 : List OffsetInstruction := [
   .set 7 1023 0 0,
   .xor 2 7 8,
   .mul 9 9 9,
@@ -15938,7 +15938,7 @@ def f95c0 : List OInstr := [
   .jump 107 0 1]
 
 /-- `padding_weight__L11` from offset 0. -/
-def f96c0 : List OInstr := [
+def f96c0 : List OffsetInstruction := [
   .set 7 2047 0 0,
   .xor 2 7 8,
   .mul 9 9 9,
@@ -16049,7 +16049,7 @@ def f96c0 : List OInstr := [
   .jump 114 0 1]
 
 /-- `padding_weight__L12` from offset 0. -/
-def f97c0 : List OInstr := [
+def f97c0 : List OffsetInstruction := [
   .set 7 4095 0 0,
   .xor 2 7 8,
   .mul 9 9 9,
@@ -16168,7 +16168,7 @@ def f97c0 : List OInstr := [
   .jump 121 0 1]
 
 /-- `padding_weight__L13` from offset 0. -/
-def f98c0 : List OInstr := [
+def f98c0 : List OffsetInstruction := [
   .set 7 8191 0 0,
   .xor 2 7 8,
   .mul 9 9 9,
@@ -16295,7 +16295,7 @@ def f98c0 : List OInstr := [
   .jump 128 0 1]
 
 /-- `padding_weight__L14` from offset 0. -/
-def f99c0 : List OInstr := [
+def f99c0 : List OffsetInstruction := [
   .set 7 16383 0 0,
   .xor 2 7 8,
   .mul 9 9 9,
@@ -16430,7 +16430,7 @@ def f99c0 : List OInstr := [
   .jump 135 0 1]
 
 /-- `padding_weight__L15` from offset 0. -/
-def f100c0 : List OInstr := [
+def f100c0 : List OffsetInstruction := [
   .set 7 32767 0 0,
   .xor 2 7 8,
   .mul 9 9 9,
@@ -16573,7 +16573,7 @@ def f100c0 : List OInstr := [
   .jump 142 0 1]
 
 /-- `padding_weight__L16` from offset 0. -/
-def f101c0 : List OInstr := [
+def f101c0 : List OffsetInstruction := [
   .set 7 65535 0 0,
   .xor 2 7 8,
   .mul 9 9 9,

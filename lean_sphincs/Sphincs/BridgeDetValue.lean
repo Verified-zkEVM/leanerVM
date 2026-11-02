@@ -177,9 +177,9 @@ theorem tsum_uniform_update {D R : Type} [Fintype D] [DecidableEq D] [Fintype R]
       simp only [OracleComp.tsum_prEvent_pure_mul]
 
 omit g c in
-theorem tsum_uniform_truncate (F : Randomness → ℝ≥0∞) :
+theorem tsum_uniform_truncate (F : Randomizer → ℝ≥0∞) :
     ∑' a, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = a] * F (truncateHash a) =
-      ∑' r, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = r] * F r := by
+      ∑' r, Pr{let x ← ($ᵗ Randomizer : ProbComp Randomizer)}[x = r] * F r := by
   rw [← OracleComp.tsum_prEvent_map_mul]
   refine tsum_congr fun r => ?_
   rw [(evalDist_truncateHash_uniform).prEvent_eq _]
@@ -201,7 +201,7 @@ theorem row_le {α : Type} (E : α → Prop) (parameter : PublicParameter) (data
     ∑' a, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = a] *
         val g c E ((HiddenCost.tick 1 >>= fun _ =>
           signCostSourceLoop parameter data message n (truncateHash a)) >>= k) b ≤
-      val g c E (((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>=
+      val g c E (((liftM ($ᵗ Randomizer : ProbComp Randomizer) : OracleComp CostSpec Randomizer) >>=
         fun start => signCostSourceLoop parameter data message n start) >>= k) b := by
   calc
     _ ≤ ∑' a, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = a] *
@@ -209,7 +209,7 @@ theorem row_le {α : Type} (E : α → Prop) (parameter : PublicParameter) (data
       refine ENNReal.tsum_le_tsum fun a => mul_le_mul' le_rfl ?_
       rw [bind_assoc]
       exact val_tick_le g c E 1 _ b
-    _ = ∑' r, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = r] *
+    _ = ∑' r, Pr{let x ← ($ᵗ Randomizer : ProbComp Randomizer)}[x = r] *
           val g c E (signCostSourceLoop parameter data message n r >>= k) b :=
       tsum_uniform_truncate (fun r => val g c E (signCostSourceLoop parameter data message n r >>= k) b)
     _ = _ := by rw [bind_assoc, val_liftProb_bind]
@@ -484,7 +484,7 @@ theorem fixedCostP_coord_det (data : PublicData) (index : Index) (marks : Coord 
   exact ⟨_, by rw [coordCostSource, simulateQ_bind, hx, pure_bind, simulateQ_pure]⟩
 
 theorem finishCostSource_det (parameter : PublicParameter) (data : PublicData) (message : Message)
-    (randomness : Randomness) :
+    (randomness : Randomizer) :
     ∃ x, simulateQ (fixedCostP g c) (finishCostSource parameter data message randomness) = pure x := by
   simp only [finishCostSource, simulateQ_bind, fixedCostP_liftHash, pure_bind, fixedCostP_tick]
   split
@@ -496,7 +496,7 @@ theorem finishCostSource_det (parameter : PublicParameter) (data : PublicData) (
   · exact ⟨_, rfl⟩
 
 theorem signCostDetLoop_det (parameter : PublicParameter) (data : PublicData)
-    (message : Message) : ∀ (n : ℕ) (start : Randomness),
+    (message : Message) : ∀ (n : ℕ) (start : Randomizer),
     ∃ x, simulateQ (fixedCostP g c) (signCostSourceLoop parameter data message n start) = pure x := by
   intro n
   induction n with

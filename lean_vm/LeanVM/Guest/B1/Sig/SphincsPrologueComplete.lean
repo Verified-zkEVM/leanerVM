@@ -101,7 +101,8 @@ theorem sPrologue_complete (hm : MemOK rd 256) {bb p Pc m0 m1 rho : E} (hbb : By
       σ' (.n 6) = m1 ∧
       (∀ l < 26, σ' (.n (30 + l)) = if (cellNat (σ' (.n 18))).testBit l then 1 else 0) ∧
       σ' (.n 158) = eOfNat (cellNat (σ' (.n 18)) / 2 ^ 106) ∧
-      ∀ j < 3, σ' (.n (132 + j)) = ofK (gpow (unusedBytes (cellNat (σ' (.n 18))) j))) := by
+      ∀ j < 3, σ' (.n (132 + j)) = ofK (addressOfIndex (unusedBytes (cellNat (σ' (.n 18)))
+          j))) := by
   rw [sPrologue_split]
   -- `P`
   refine Completes.load ⟨0, by norm_num, rfl⟩ (w := Pc) (by rw [h0]; exact hldP) (by norm_num)
@@ -202,7 +203,7 @@ theorem sPrologue_complete (hm : MemOK rd 256) {bb p Pc m0 m1 rho : E} (hbb : By
   subst e8
   refine Completes.seq (m := 132) shifts_ok (by norm_num) (fun σ9 he9 _ => ?_)
   -- the unused bytes
-  set g : Nat → E := fun j => ofK (gpow (unusedBytes N j)) with hg
+  set g : Nat → E := fun j => ofK (addressOfIndex (unusedBytes N j)) with hg
   refine Completes.reload ((updRun_ext σ9 132 3 g).mono le_rfl (by norm_num)) ?_
   set σu := updRun σ9 132 3 g with hσu
   refine Completes.append (xs := [hintW "sp_unused" [.n 132, .n 133, .n 134]]) (m := 135) (by norm_num)
@@ -212,9 +213,9 @@ theorem sPrologue_complete (hm : MemOK rd 256) {bb p Pc m0 m1 rho : E} (hbb : By
     (hintKeep_complete _ _ _ _ _) (fun σ10 _ e10 => ?_)
   subst e10
   have hNlt : N < 2 ^ 128 := cellNat_lt _
-  have u0 : σu (.n 132) = ofK (gpow (N / 2 ^ 106 % 256)) := updRun_at σ9 132 3 g (j := 0) (by norm_num)
-  have u1 : σu (.n 133) = ofK (gpow (N / 2 ^ 106 / 256 % 256)) := updRun_at σ9 132 3 g (j := 1) (by norm_num)
-  have u2 : σu (.n 134) = ofK (gpow (N / 2 ^ 106 / 65536)) := updRun_at σ9 132 3 g (j := 2) (by norm_num)
+  have u0 : σu (.n 132) = ofK (addressOfIndex (N / 2 ^ 106 % 256)) := updRun_at σ9 132 3 g (j := 0) (by norm_num)
+  have u1 : σu (.n 133) = ofK (addressOfIndex (N / 2 ^ 106 / 256 % 256)) := updRun_at σ9 132 3 g (j := 1) (by norm_num)
+  have u2 : σu (.n 134) = ofK (addressOfIndex (N / 2 ^ 106 / 65536)) := updRun_at σ9 132 3 g (j := 2) (by norm_num)
   have ub1 : σu (.n 1) = bb := by
     rw [hσu, updRun_below σ9 132 3 g ⟨1, by norm_num, rfl⟩, he9.apply (Or.inl (by norm_num)), hσb,
       updRun_below σ7 30 26 f ⟨1, by norm_num, rfl⟩, he7.apply (Or.inl (by norm_num))]
@@ -249,7 +250,7 @@ theorem sPrologue_complete (hm : MemOK rd 256) {bb p Pc m0 m1 rho : E} (hbb : By
       σ' (.n 5) = m0 ∧ σ' (.n 6) = m1 ∧
       (∀ l < 26, σ' (.n (30 + l)) = if (cellNat (σ' (.n 18))).testBit l then 1 else 0) ∧
       σ' (.n 158) = eOfNat (cellNat (σ' (.n 18)) / 2 ^ 106) ∧
-      ∀ j < 3, σ' (.n (132 + j)) = ofK (gpow (unusedBytes (cellNat (σ' (.n 18))) j)))
+      ∀ j < 3, σ' (.n (132 + j)) = ofK (addressOfIndex (unusedBytes (cellNat (σ' (.n 18))) j)))
     ⟨by rw [show sPP = V.n 2 from rfl, klow 2 (by norm_num)]; exact v2,
       by rw [klow 3 (by norm_num)]; exact v3, by rw [klow 5 (by norm_num)]; exact v5,
       by rw [klow 6 (by norm_num)]; exact v6, fun l hl => by rw [kbits l hl, k18],

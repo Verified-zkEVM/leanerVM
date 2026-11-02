@@ -23,7 +23,7 @@ open LeanVM LeanVM.Parameters LeanVM.Semantics Common LeanVM.Protocol.Compile
 
 /-- A byte: its number. -/
 instance : MachineEncoding UInt8 := ⟨fun x ↦ .nat x.toNat⟩
-instance : MachineEncoding Unit := ⟨fun _ ↦ .ctor 0 []⟩
+instance : MachineEncoding Unit := ⟨fun _ ↦ .constructor 0 []⟩
 
 /-- A character: its code point. -/
 instance : MachineEncoding Char := ⟨fun c ↦ .nat c.toNat⟩
@@ -32,9 +32,9 @@ instance : MachineEncoding Char := ⟨fun c ↦ .nat c.toNat⟩
 instance : MachineEncoding String := ⟨fun s ↦ encodeValue s.toList⟩
 
 instance : MachineEncoding Ordering where
-  encodeValue | .lt => .ctor 0 [] | .eq => .ctor 1 [] | .gt => .ctor 2 []
+  encodeValue | .lt => .constructor 0 [] | .eq => .constructor 1 [] | .gt => .constructor 2 []
 
-instance {α : Type} [MachineEncoding α] : MachineEncoding (Array α) := ⟨fun a ↦ .arr (a.map encodeValue)⟩
+instance {α : Type} [MachineEncoding α] : MachineEncoding (Array α) := ⟨fun a ↦ .array (a.map encodeValue)⟩
 
 instance {α : Type} [MachineEncoding α] : MachineEncoding (CompPoly.CPolynomial.Raw α) := inferInstanceAs (MachineEncoding (Array α))
 
@@ -57,14 +57,14 @@ theorem mapM_decodeE (l : List E) : (l.map encodeValue).mapM decodeExtensionElem
   | cons x l ih => simp [List.mapM_cons, decodeE_enc, ih]
 
 /-- **Decoding inverts encoding.** -/
-theorem decodeExecution_enc (prog : Semantics.Program) (t : Execution prog) :
+theorem decodeExecution_enc (prog : Semantics.LeanIsaProgram) (t : Execution prog) :
     decodeExecution prog (encodeValue t) = some t := by
   obtain ⟨κ, mem, steps⟩ := t
   have hm : ((Array.ofFn fun i ↦ encodeValue (mem i)).toList.mapM decodeExtensionElement) = some (List.ofFn mem) := by
     have : (List.ofFn fun i ↦ encodeValue (mem i)) = (List.ofFn mem).map encodeValue := by
       rw [List.map_ofFn]; rfl
     rw [Array.toList_ofFn, this, mapM_decodeE]
-  show decodeExecution prog (.ctor 0 [.nat κ, .arr (Array.ofFn fun i ↦ encodeValue (mem i)), .nat steps]) = _
+  show decodeExecution prog (.constructor 0 [.nat κ, .array (Array.ofFn fun i ↦ encodeValue (mem i)), .nat steps]) = _
   simp only [decodeExecution]
   rw [hm]
   simp only [List.length_ofFn, ↓reduceDIte, Option.some.injEq, Execution.mk.injEq, true_and,

@@ -49,7 +49,7 @@ set_option maxRecDepth 100000 in
 theorem xmss_leafOk : Stmt.leafOkList claimLoad Data.core19.body = true := by decide +kernel
 
 theorem loads_claim {σ : Val} {es : List Ev} (h : ∀ e ∈ es, EvLeafOk claimLoad e) :
-    ∀ A ∈ loadAddrs σ es, ∃ off < 4, A = (σ (.n 0)).limb 0 * gpow off := by
+    ∀ A ∈ loadAddrs σ es, ∃ off < 4, A = (σ (.n 0)).limb 0 * addressOfIndex off := by
   intro A hA
   obtain ⟨e, he, hea⟩ := List.mem_filterMap.mp hA
   have hok := h e he
@@ -71,7 +71,7 @@ theorem verify_lean_xmss_relIn (hc : B1.Sig.verify_lean_xmss_complete_Spec) {rd 
     (hat : B1.Sig.ClaimAt rd p (B1.Sig.cellOf128 pk.root) (B1.Sig.cellOf128 pk.parameter)
       (B1.Sig.cellOf128 (m.extractLsb' 0 128)) (B1.Sig.cellOf128 (m.extractLsb' 128 128)))
     (hv : Node.leanXmssVerifyWithKeccak pk m sig = true)
-    (hreg : ∀ k < 4, ∃ i, p.limb 0 * gpow k = gpow i ∧ R i) :
+    (hreg : ∀ k < 4, ∃ i, p.limb 0 * addressOfIndex k = addressOfIndex i ∧ R i) :
     coreProgram.RelIn rd R "verify_lean_xmss" [p] [] :=
   relIn_of_leaf B1.Sig.find_verify_lean_xmss xmss_leafOk
     (fun σ es vs hp hw A hA => by
@@ -96,8 +96,8 @@ theorem verify_sig_lean_sphincs_relIn (hc : B1.Sig.verify_sig_lean_sphincs_compl
     (hat : B1.Sig.ClaimAt rd p (B1.Sig.cellOf128 pk.root) (B1.Sig.cellOf128 pk.parameter)
       (B1.Sig.cellOf128 (m.extractLsb' 0 128)) (B1.Sig.cellOf128 (m.extractLsb' 128 128)))
     (hv : Node.leanSphincsVerifyWithKeccak pk m sig = true)
-    (hreg : ∀ k < 4, ∃ i, p.limb 0 * gpow k = gpow i ∧ R i)
-    (hregb : ∀ v < 256, ∃ i, bb.limb 0 * gpow v = gpow i ∧ R i) :
+    (hreg : ∀ k < 4, ∃ i, p.limb 0 * addressOfIndex k = addressOfIndex i ∧ R i)
+    (hregb : ∀ v < 256, ∃ i, bb.limb 0 * addressOfIndex v = addressOfIndex i ∧ R i) :
     coreProgram.RelIn rd R "verify_sig_lean_sphincs" [p, bb] [] := by
   obtain ⟨σ, h0, h1, hb, hloads⟩ := hc (coreProgram.Rel rd) rd p bb pk m sig hrd hbb hat hv
   have hsat := walk_sat (P := coreProgram) Data.core20.body core20_wf hb

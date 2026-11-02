@@ -26,7 +26,7 @@ open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Node
 @[expose] public section
 
 theorem childShape_of {bytecode : List K} {c : Child} {layout : Layout} {r : ℕ}
-    (h : announced bytecode c.proof.stream = some (layout, r)) :
+    (h : announcedLayoutAndRate bytecode c.proof.stream = some (layout, r)) :
     childShape bytecode c = (layout.stackLog, r) := by
   unfold childShape; rw [h]
 

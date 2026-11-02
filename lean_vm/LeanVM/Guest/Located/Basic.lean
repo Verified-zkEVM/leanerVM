@@ -37,7 +37,7 @@ noncomputable abbrev RLg {κ : ℕ} (L : MemoryImage κ) : CallRel :=
 
 /-- The valuation of the guest function `f` with the memory's word `a` as its frame. -/
 noncomputable def valAt {κ : ℕ} (L : MemoryImage κ) (f : String) (a : ℕ) : Val :=
-  frameVal L certByName f (gpow a)
+  frameVal L certByName f (addressOfIndex a)
 
 /-- The first frame `a < 2^κ` passing the test `t`. -/
 def firstFrame (κ : ℕ) (t : ℕ → Bool) : Option ℕ := (List.range (2 ^ κ)).find? t

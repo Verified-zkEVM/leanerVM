@@ -63,7 +63,7 @@ oracle for Keccak-f[1600], each proof-of-work search trying at most `fuel` nonce
 if one fails). A specification: it takes a witness of leanISA's constraint system representing the
 execution (a classical choice), pads its tables with the public padding rows, and runs the honest
 strategy of every phase through the Fiat-Shamir transform (`Complete.honestProverRom`). -/
-noncomputable def honestProver (prog : Program) (input : PublicInput) (t : Execution prog)
+noncomputable def honestProver (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog)
     (ρ fuel : ℕ) : Adversary :=
   Complete.honestProverRom prog input t ρ fuel
 
@@ -76,7 +76,7 @@ theorem completenessError_eq (fuel : ℕ) :
 /-- **Completeness in the two-oracle random-oracle model.** For a valid execution whose committed size is at most `2^28`, at an inverse
 rate `2^ρ` with `1 ≤ ρ ≤ 4`: the verifier rejects the honest prover's proof, in the random-oracle
 experiment, with probability at most `completenessError fuel`. -/
-theorem completenessRom {prog : Program} {input : PublicInput} {t : Execution prog}
+theorem completenessRom {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← experiment (honestProver prog input t ρ fuel)}[z.1.2 = false] ≤

@@ -29,8 +29,9 @@ namespace SphincsLayered
 /-! ### The instance: parameters, types, and hash-input layout -/
 
 export HashSig (digestBits winternitzBits chainLength MasterSeed Digest HashOutput Message
-  PublicParameter Randomness Digit ChainStep HashInput truncateHash upperHash hashHalf PublicKey
-  bytesLE TweakFields fieldBytes tweakFields sampleMasterSeed)
+  PublicParameter Randomizer WinternitzDigit ChainStep HashInput truncateHash upperHalfOfHash
+      hashHalfForChain PublicKey
+  littleEndianBytes TweakFields addressBytes tweakFields sampleMasterSeed)
 
 export LeanXmss (HashSpec)
 
@@ -66,7 +67,7 @@ abbrev LeafIndex := Fin (2 ^ maxLayerHeight)
 abbrev ChainIndex := Fin numChains
 /-- A pair of chains `(2t, 2t + 1)` of a one-time key, `t < 32`: one seed derivation. -/
 abbrev ChainPair := Fin 32
-abbrev Encoding := ChainIndex → Digit
+abbrev Encoding := ChainIndex → WinternitzDigit
 
 /-- The layer height, `h = 26`. -/
 def layerHeight (_lay : Layer) : Nat := maxLayerHeight
@@ -126,7 +127,7 @@ deriving DecidableEq
 
 /-- The randomizer, the forest opening, and the WOTS+C signature with its path: 4276 bytes. -/
 structure Signature where
-  randomness : Randomness
+  randomness : Randomizer
   forest : Coord → CoordOpening
   layers : (lay : Layer) → LayerSignature lay
 deriving DecidableEq
@@ -182,19 +183,19 @@ def hashDomainFields : HashDomain → TweakFields
 
 /-- The exact 16 address bytes of a hash domain. -/
 def tweakBytes (domain : HashDomain) : HashInput :=
-  fieldBytes (hashDomainFields domain)
+  addressBytes (hashDomainFields domain)
 
 /-- The hash input `P || A || payload` of every tweakable hash call and of the message
 digest. -/
 def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
     (message : HashInput) : HashInput :=
-  bytesLE 16 parameter ++ tweakBytes domain ++ message
+  littleEndianBytes 16 parameter ++ tweakBytes domain ++ message
 
 /-- `P || A(7, 0, 0) || S || m` (`TWEAK_RANDOMIZER = 7`): the randomizer base of a message. -/
 def randomizerHashInput (parameter : PublicParameter) (seed : MasterSeed)
     (message : Message) : HashInput :=
-  bytesLE 16 parameter ++ fieldBytes ⟨7#5, 0#3, 0#24, 0#32⟩ ++
-    bytesLE 32 seed ++ bytesLE 32 message
+  littleEndianBytes 16 parameter ++ addressBytes ⟨7#5, 0#3, 0#24, 0#32⟩ ++
+    littleEndianBytes 32 seed ++ littleEndianBytes 32 message
 
 /-- The pair of chains a chain of a one-time key belongs to. -/
 def chainPair (chain : ChainIndex) : ChainPair :=
@@ -234,12 +235,13 @@ def seedTag : HashInput := [0x6c, 0x65, 0x61, 0x6e, 0x53, 0x50, 0x48, 0x49, 0x4e
 /-- `leanSPHINCS || S0` (`scheme_seed`), 43 bytes: its hash is the scheme seed `S`, the seed every
 other input below derives from. It has no parameter and no address. -/
 def schemeSeedInput (seed : MasterSeed) : HashInput :=
-  seedTag ++ bytesLE 32 seed
+  seedTag ++ littleEndianBytes 32 seed
 
 /-- `P || A || S`; parameter derivation uses `P = 0`. -/
 def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
     (seed : MasterSeed) : HashInput :=
-  bytesLE 16 parameter ++ fieldBytes (keygenDomainFields domain) ++ bytesLE 32 seed
+  littleEndianBytes 16 parameter ++ addressBytes (keygenDomainFields domain) ++ littleEndianBytes
+      32 seed
 
 /-! #### The target-sum code
 
@@ -277,9 +279,9 @@ signing. Hashing routines work in any monad with access to `HashSpec`. -/
 
 namespace Concrete
 
-export HashSig.Concrete (sequenceFin walkChain nodePayload foldPath buildTree)
+export HashSig.OverPermutation (sequenceFin walkChain nodePayload foldPath buildTree)
 
-export LeanXmss.Concrete (oracleHashWithHash)
+export LeanXmss.Verification (oracleHashWithHash)
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
@@ -310,16 +312,16 @@ def leafOfNat (value : Nat) : LeafIndex :=
 def chainWalk (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (chainIdx : ChainIndex) : Nat → Nat → Digest → m Digest :=
   walkChain fun step value ↦
-    tweakableHash parameter (.chain lay tree leaf chainIdx step) (bytesLE 16 value)
+    tweakableHash parameter (.chain lay tree leaf chainIdx step) (littleEndianBytes 16 value)
 
 /-- The verifier's half of a chain: walk the remaining `3 - x_i` steps. -/
 def recoverChain (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (chainIdx : ChainIndex) (digit : Digit) (value : Digest) : m Digest :=
+    (chainIdx : ChainIndex) (digit : WinternitzDigit) (value : Digest) : m Digest :=
   chainWalk parameter lay tree leaf chainIdx digit.val (chainLength - 1 - digit.val) value
 
 /-- `pk_0 || ... || pk_{v-1}`. -/
 def leafPayload (endpoints : ChainIndex → Digest) : HashInput :=
-  (List.ofFn endpoints).flatMap (bytesLE 16)
+  (List.ofFn endpoints).flatMap (littleEndianBytes 16)
 
 /-- The one-time leaf: the hash of the `v` chain ends (`wots_leaf_hash`). -/
 def leafHash (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
@@ -337,7 +339,7 @@ tweak, and decode. There is no forest-key hash: the counter falls in the last bl
 def encode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (message : ForestKey) (counter : Counter) : m (Option Encoding) := do
   let digest ← tweakableHash parameter (.encoding lay tree leaf)
-    (rootsPayload message ++ bytesLE 4 counter)
+    (rootsPayload message ++ littleEndianBytes 4 counter)
   return TargetSum.decodeDigest digest
 
 /-- `Ots.leaf` (`wots_recover`): the verifier's leaf, or nothing if the counter does not encode the message. -/
@@ -362,7 +364,7 @@ def treeFold (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (lea
 /-- Forest chain `i` of a child; the step onto position `t + 1` carries step `t`. -/
 def forestWalk (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
     (a : ChildIdx) (i : FChain) : Nat → Nat → Digest → m Digest :=
-  walkChain fun step value ↦ tweakableHash parameter (.fchain index c s j a i step) (bytesLE 16 value)
+  walkChain fun step value ↦ tweakableHash parameter (.fchain index c s j a i step) (littleEndianBytes 16 value)
 
 /-- The verifier's half of a forest chain: from position `4 - d` walk `d` steps. -/
 def forestRecoverChain (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
@@ -371,7 +373,7 @@ def forestRecoverChain (parameter : PublicParameter) (index : Index) (c : Coord)
 
 /-- `x_{0,4} || ... || x_{5,4}`. -/
 def childPayload (ends : FChain → Digest) : HashInput :=
-  (List.ofFn ends).flatMap (bytesLE 16)
+  (List.ofFn ends).flatMap (littleEndianBytes 16)
 
 /-- The child leaf: the hash of the 6 chain tops. -/
 def childLeafHash (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
@@ -459,12 +461,12 @@ def forestRecover (parameter : PublicParameter) (index : Index) (marks : Coord �
 /-- `m || rho`, what the message digest hashes after the parameter and the address: the input
 `P || A || m || rho` is 80 bytes, one block. The root is not hashed (`P` binds the key); the
 argument is kept for the callers. -/
-def messageDigestPayload (message : Message) (randomness : Randomness) : HashInput :=
-  bytesLE 32 message ++ bytesLE 16 randomness
+def messageDigestPayload (message : Message) (randomness : Randomizer) : HashInput :=
+  littleEndianBytes 32 message ++ littleEndianBytes 16 randomness
 
 /-- The single untruncated digest call (`digest_block`). -/
 def messageDigestCall (parameter : PublicParameter) (message : Message)
-    (randomness : Randomness) : m HashOutput :=
+    (randomness : Randomizer) : m HashOutput :=
   oracleHashWithHash (tweakableHashInput parameter .message (messageDigestPayload message randomness))
 
 /-- Bit offset of the index: the low 26 bits of the last 16 bytes of the digest. -/
@@ -481,7 +483,7 @@ def blockIndex (first : HashOutput) : Index :=
 /-- `Digest(P, m, rho)` (`message_digest`): the single call, truncated to 234 bits. The root is not
 an input of the hash. -/
 def messageDigest (parameter : PublicParameter) (message : Message)
-    (randomness : Randomness) : m MessageDigest := do
+    (randomness : Randomizer) : m MessageDigest := do
   let first ← messageDigestCall parameter message randomness
   return truncateMessageDigest first
 
@@ -580,7 +582,7 @@ def deriveOutput {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
 def deriveRandomizer {m : Type → Type} [Monad m] [HasQuery HashSpec m]
     (parameter : PublicParameter) (seed : MasterSeed)
-    (message : Message) : m Randomness := do
+    (message : Message) : m Randomizer := do
   return truncateHash (← Concrete.oracleHashWithHash (randomizerHashInput parameter seed message))
 
 /-- `scheme_seed`: the scheme seed `S`, the whole hash of `leanSPHINCS || S0`. -/
@@ -591,7 +593,7 @@ namespace Seeded
 
 open Concrete
 
-export LeanXmss.Seeded (SecretKey)
+export LeanXmss.KeyGenerationAndSigning (SecretKey)
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
@@ -600,7 +602,7 @@ derivations. Chains `2t` and `2t + 1` start at the two halves of derivation `t`.
 def otsSecrets (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
     (leaf : LeafIndex) (seed : MasterSeed) : m (ChainIndex → Digest) := do
   let outputs ← sequenceFin fun pair : ChainPair => deriveOutput parameter (.ots lay tree leaf pair) seed
-  return fun chainIdx => hashHalf chainIdx.val (outputs (chainPair chainIdx))
+  return fun chainIdx => hashHalfForChain chainIdx.val (outputs (chainPair chainIdx))
 
 def oneTimePublicKey (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
     (leaf : LeafIndex) (seed : MasterSeed) : m (ChainIndex → Digest) := do
@@ -640,7 +642,7 @@ def treeNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
 def forestSecrets (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx)
     (j : SubIdx) (a : ChildIdx) (seed : MasterSeed) : m (FChain → Digest) := do
   let outputs ← sequenceFin fun pair : FPair => deriveOutput parameter (.forest index c s j a pair) seed
-  return fun i => hashHalf i.val (outputs (fchainPair i))
+  return fun i => hashHalfForChain i.val (outputs (fchainPair i))
 
 /-- The leaf of a child, from its 6 chain tops. -/
 def childLeaf (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
@@ -752,7 +754,7 @@ def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × Secre
   keygenFromMaster master
 
 /-- One grinding attempt: the leaf index of the digest call (`digest_index`). -/
-def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :
+def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomizer) :
     m (Option Index) := do
   let first ← messageDigestCall secretKey.parameter message randomness
   if Landed secretKey.parameter (blockIndex first) then
@@ -761,20 +763,21 @@ def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Random
     return none
 
 def layerMessage (secretKey : SecretKey) (index : Index) (_lay : Layer) : m ForestKey :=
-  forestKey secretKey.parameter index secretKey.seed
+  forestKey secretKey.parameter index secretKey.schemeSeed
 
 def signLayer (secretKey : SecretKey) (index : Index) (lay : Layer) : m (Option (LayerSignature lay)) := do
   let tree := treeIndexAt index lay
   let leaf := leafIndexAt index lay
   let message ← layerMessage secretKey index lay
-  let some (counter, values) ← otsSign secretKey.parameter lay tree leaf secretKey.seed message
+  let some (counter, values) ← otsSign secretKey.parameter lay tree leaf secretKey.schemeSeed
+      message
     | return none
-  let path ← treePath secretKey.parameter lay tree secretKey.seed leaf
+  let path ← treePath secretKey.parameter lay tree secretKey.schemeSeed leaf
   return some ⟨counter, values, path⟩
 
 /-- Try `randomness, randomness + 1, ...`, stopping at the first that lands in the kept subtree. -/
-def signDigestLoop (secretKey : SecretKey) (message : Message) : Nat → Randomness →
-    m (Option (Randomness × Index))
+def signDigestLoop (secretKey : SecretKey) (message : Message) : Nat → Randomizer →
+    m (Option (Randomizer × Index))
   | 0, _ => pure none
   | attempts + 1, randomness => do
       match ← signAttempt secretKey message randomness with
@@ -785,12 +788,12 @@ def signDigestLoop (secretKey : SecretKey) (message : Message) : Nat → Randomn
 the kept subtree, compute the digest, open the forest, sign its key (the sixteen level-3 nodes) with
 WOTS+C and attach the path. -/
 def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
-  let base ← deriveRandomizer secretKey.parameter secretKey.seed message
+  let base ← deriveRandomizer secretKey.parameter secretKey.schemeSeed message
   let some (randomness, _) ← signDigestLoop secretKey message digestAttemptLimit base
     | return none
   let digest ← messageDigest secretKey.parameter message randomness
   let index := digestIndex digest
-  let opening ← forestOpen secretKey.parameter index (digestMarks digest) secretKey.seed
+  let opening ← forestOpen secretKey.parameter index (digestMarks digest) secretKey.schemeSeed
   let some layers ← sequenceLayers (fun lay => signLayer secretKey index lay) | return none
   return some ⟨randomness, opening, layers⟩
 

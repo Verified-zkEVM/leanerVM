@@ -63,7 +63,7 @@ instance {input : Fin 13 → E} {inOdd : Bool} {output : Fin 13 → E} {outOdd :
 def keccakFree : KeccakSem := ⟨CanonicalKeccak, fun _ _ _ _ ↦ inferInstance⟩
 
 /-- `executeWith` under the semantics `S`. -/
-def executeWithB (S : KeccakSem) (read : K → Option E) (r : Registers K) : Instr → Option (Registers K)
+def executeWithB (S : KeccakSem) (read : K → Option E) (r : Registers K) : LeanIsaInstruction → Option (Registers K)
   | .xor oA oB oC => do
     let vA ← read (r.fp * oA)
     let vB ← read (r.fp * oB)
@@ -94,39 +94,40 @@ def executeWithB (S : KeccakSem) (read : K → Option E) (r : Registers K) : Ins
     guard (IsInK c ∧ IsInK d ∧ IsInK f)
     pure (if c = 0 then r.next else ⟨d.limb 0, f.limb 0⟩)
   | .keccak om otail ob8 ocap oout inOdd outOdd => do
-    let input ← readCells read r.fp (keccakInOffset om otail ob8 ocap)
+    let input ← readCells read r.fp (keccakInputCellOffset om otail ob8 ocap)
     let output ← readCells read r.fp fun c ↦ g ^ c.val * oout
     @guard Option _ (S.check input inOdd output outOdd) (S.dec input inOdd output outOdd)
     pure r.next
 
 /-- One step under the semantics `S`. -/
-noncomputable def stepB (S : KeccakSem) {κ : ℕ} (prog : Program) (L : MemoryImage κ) (r : Registers K) :
+noncomputable def stepB (S : KeccakSem) {κ : ℕ} (prog : LeanIsaProgram) (L : MemoryImage κ) (r : Registers K) :
     Option (Registers K) :=
   prog.fetch r.pc >>= executeWithB S L.read r
 
 /-- `n` steps under the semantics `S`, halting in the final state. -/
-noncomputable def runB (S : KeccakSem) {κ : ℕ} (prog : Program) (L : MemoryImage κ) :
+noncomputable def runB (S : KeccakSem) {κ : ℕ} (prog : LeanIsaProgram) (L : MemoryImage κ) :
     ℕ → Registers K → Option (Registers K)
   | 0, r => some r
   | n + 1, r => if r = Registers.final prog then none else stepB S prog L r >>= runB S prog L n
 
 /-- **A valid execution under the semantics `S`.** -/
-def ValidExecutionB (S : KeccakSem) (prog : Program) (input : PublicInput) (t : Execution prog) :
+def ValidExecutionB (S : KeccakSem) (prog : LeanIsaProgram) (input : PublicInput) (t : Execution
+    prog) :
     Prop :=
-  HoldsPublicInput input t ∧ runB S prog t.memory t.steps Registers.initial = some (Registers.final prog)
+  HoldsPublicInput input t ∧ runB S prog t.memory t.stepCount Registers.initial = some (Registers.final prog)
 
 
-theorem executeWithB_deployed (read : K → Option E) (r : Registers K) (i : Instr) :
+theorem executeWithB_deployed (read : K → Option E) (r : Registers K) (i : LeanIsaInstruction) :
     executeWithB keccakDeployed read r i = executeWith read r i := by
   cases i <;> rfl
 
-theorem stepB_deployed {κ : ℕ} (prog : Program) (L : MemoryImage κ) (r : Registers K) :
+theorem stepB_deployed {κ : ℕ} (prog : LeanIsaProgram) (L : MemoryImage κ) (r : Registers K) :
     stepB keccakDeployed prog L r = step prog L r := by
   have : executeWithB keccakDeployed L.read r = executeWith L.read r :=
     funext (executeWithB_deployed L.read r)
   simp only [stepB, step, execute, this]
 
-theorem runB_deployed {κ : ℕ} (prog : Program) (L : MemoryImage κ) :
+theorem runB_deployed {κ : ℕ} (prog : LeanIsaProgram) (L : MemoryImage κ) :
     ∀ (n : ℕ) (r : Registers K), runB keccakDeployed prog L n r = run prog L n r
   | 0, _ => rfl
   | n + 1, r => by
@@ -134,7 +135,8 @@ theorem runB_deployed {κ : ℕ} (prog : Program) (L : MemoryImage κ) :
     simp only [runB, run, stepB_deployed, this]
 
 /-- **The deployed semantics gives the deployed valid executions.** -/
-theorem validExecutionB_deployed (prog : Program) (input : PublicInput) (t : Execution prog) :
+theorem validExecutionB_deployed (prog : LeanIsaProgram) (input : PublicInput) (t : Execution
+    prog) :
     ValidExecutionB keccakDeployed prog input t ↔ ValidExecution prog input t := by
   simp only [ValidExecutionB, ValidExecution, runB_deployed]
 

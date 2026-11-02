@@ -167,7 +167,7 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
   obtain ⟨hkap, -, -⟩ := hPC
   have hncl : chis.length = nc := gen_pow_inj_le (by omega) (by omega) (hgzc.symm.trans hgz)
   subst hncl
-  have hchis : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (gpow B.chi)) chis :=
+  have hchis : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (addressOfIndex B.chi)) chis :=
     fun rd _ hm => readsAt_transfer hm0 hm hchR fun k hk => hreg _ (by simp only [TermRegion]; omega)
   set kappas := columnKappas layout.logMemory layout.logBytecode layout.tableLogHeights with hkdef
   set KC := Tables.committedKappas kappas with hKCdef
@@ -238,7 +238,7 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
     refine termKids_mem Lin D _ outs hB hLin hLo (hst rd hl hLin) fun q hq => ?_
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl | rfl
-    · show ReadsAt rd (ofK (gpow (B.zv + 39))) ringPoint
+    · show ReadsAt rd (ofK (addressOfIndex (B.zv + 39))) ringPoint
       rw [← ofK_gpow_mul_gen]; exact hrp
     · exact readsAt_take hpt1 _
     · exact hct

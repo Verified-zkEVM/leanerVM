@@ -165,7 +165,7 @@ variable (parameter : PublicParameter) (data : PublicData)
 /-- The coin `w` pays the creation rate of the scan signer through the mass that the group of the
 message leaves on the identity. -/
 def Rate (w : ℝ≥0∞) (s : State) (m : Message) : Prop :=
-  (Fintype.card Randomness : ℝ≥0∞)⁻¹ * ((1 - landing) + 1) ≤ landing * w * idMassM parameter data s m
+  (Fintype.card Randomizer : ℝ≥0∞)⁻¹ * ((1 - landing) + 1) ≤ landing * w * idMassM parameter data s m
 
 variable {parameter data} {w : ℝ≥0∞}
 
@@ -338,9 +338,9 @@ cached landed pairs of a message, the coin `w` pays `(2 − landing)/2^128` thro
 group leaves on the identity. -/
 structure FairS (Cmax Lmax : ℕ) : Prop where
   le_one : w ≤ 1
-  rate : (Fintype.card Randomness : ℝ≥0∞)⁻¹ * ((1 - landing) + 1) ≤
-    w * (landing - (landing * (Cmax * (Fintype.card Randomness : ℝ≥0∞)⁻¹) +
-      Lmax * (1 - landing) * (Fintype.card Randomness : ℝ≥0∞)⁻¹))
+  rate : (Fintype.card Randomizer : ℝ≥0∞)⁻¹ * ((1 - landing) + 1) ≤
+    w * (landing - (landing * (Cmax * (Fintype.card Randomizer : ℝ≥0∞)⁻¹) +
+      Lmax * (1 - landing) * (Fintype.card Randomizer : ℝ≥0∞)⁻¹))
 
 end DefsO
 
@@ -1175,7 +1175,7 @@ theorem fresh_expectO (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = 
         freshNewWeight parameter data m s gf out ≤ freshAvg Finset.univ gf := by
   unfold signCostSource
   rw [interp_liftProb_bind, OracleComp.tsum_prEvent_bind_mul]
-  have hstart : ∀ start : Randomness, ∑' out, Pr{let x ← (interp tg initial model
+  have hstart : ∀ start : Randomizer, ∑' out, Pr{let x ← (interp tg initial model
       (signCostSourceLoop parameter data m digestAttemptLimit start) budget s)}[x = out] *
       freshNewWeight parameter data m s gf out ≤ freshAvg Finset.univ gf := by
     intro start
@@ -1185,7 +1185,7 @@ theorem fresh_expectO (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = 
     refine walk_le landing_le_one _ (fun ρ => ?_) le_rfl bot_le _ start
     unfold poolValue
     cases s.cache (blk parameter data m ρ) <;> simp
-  calc _ ≤ ∑' start, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = start] * freshAvg Finset.univ gf :=
+  calc _ ≤ ∑' start, Pr{let x ← ($ᵗ Randomizer : ProbComp Randomizer)}[x = start] * freshAvg Finset.univ gf :=
         ENNReal.tsum_le_tsum fun start => mul_le_mul_right (hstart start) _
     _ ≤ _ := by rw [ENNReal.tsum_mul_right]; exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
 
@@ -1211,7 +1211,7 @@ noncomputable def canonO (n k : ℕ) (out : Run HashInput Coordinate (Option Sig
 variable {parameter data w b0 Fail m s P Ms L d}
 
 theorem freshNewWeight_ge {out : Run HashInput Coordinate (Option Signature) × State} {r : Option Signature}
-    (hres : out.1.1 = some r) {ρ : Randomness} {u0 : HashOutput}
+    (hres : out.1.1 = some r) {ρ : Randomizer} {u0 : HashOutput}
     (hs0 : s.cache (blk parameter data m ρ) = none) (h0 : out.2.cache (blk parameter data m ρ) = some u0)
     (hl : Landed parameter (blockIndex u0)) (g : View → ℝ≥0∞) :
     g (viewOf u0) ≤ freshNewWeight parameter data m s g out := by

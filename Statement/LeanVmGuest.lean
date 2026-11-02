@@ -149,12 +149,12 @@ def ClaimIsHeld {Claim Witness : Type} (holds : Claim → Witness → Prop)
 signature's. -/
 def leanXmssVerifyWithKeccak (publicKey : HashSig.PublicKey) (message : HashSig.Message)
     (signature : LeanXmss.Signature) : Bool :=
-  Id.run (LeanXmss.Concrete.verify (m := Id) keccakF1600 publicKey message signature)
+  Id.run (LeanXmss.Verification.verify (m := Id) keccakF1600 publicKey message signature)
 
 /-- leanSPHINCS verification over Keccak-f[1600], the hash Keccak-256. -/
 def leanSphincsVerifyWithKeccak (publicKey : Sphincs.PublicKey) (message : Sphincs.Message)
     (signature : Sphincs.Signature) : Bool :=
-  Id.run (Sphincs.Concrete.verify (m := Id) keccakF1600 publicKey message signature)
+  Id.run (Sphincs.Verification.verify (m := Id) keccakF1600 publicKey message signature)
 
 /-- **The DA digest is covered**: it is the digest of the DA claim that the matrix checked here
 opens; without such a matrix, zero or some child's DA digest (`da_pick`,
@@ -229,9 +229,9 @@ structure SeedStatementAndWitness where
 digest (the statement is the one the input commits to), and its witness covers that statement's
 claims (`NodeRelation`). `GuestKnowledge` (`Theorems.lean`) says this of what the decoder program
 outputs on every valid execution. -/
-def ExplainsPublicInput (guest : Program) (input : PublicInput)
+def ExplainsPublicInput (guest : LeanIsaProgram) (input : PublicInput)
     (decoding : SeedStatementAndWitness) : Prop :=
-  statementDigest decoding.seed decoding.statement = publicDigest input ∧
+  statementDigest decoding.seed decoding.statement = publicInputDigest input ∧
     NodeRelation (bytecodeWords guest) decoding.seed decoding.statement decoding.witness
 
 /-- **The candidate collisions** of two statements' digests: the pairs of inputs of the three
@@ -263,14 +263,14 @@ def StatementDigestBinds : Prop :=
 
 /-- The guest program's deployed seed: its Fiat-Shamir IV (`fs_seed`,
 `crates/leanvm_core/src/cpu/mod.rs:63-67`). -/
-abbrev deployedSeed (guest : Program) : Digest := fiatShamirIv (bytecodeWords guest)
+abbrev deployedSeed (guest : LeanIsaProgram) : Digest := fiatShamirIv (bytecodeWords guest)
 
 end LeanVM.Node
 
 namespace LeanVM.Guest
 
 /-- **The deployed leanISA guest program**, assembled from the generated `Statement/Data/`. -/
-def guestProgram : LeanVM.Semantics.Program := assemble Data.functions 19 (by decide)
+def guestProgram : LeanVM.Semantics.LeanIsaProgram := assemble Data.functions 19 (by decide)
 
 end LeanVM.Guest
 

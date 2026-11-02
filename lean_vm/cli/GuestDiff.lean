@@ -31,7 +31,7 @@ It prints the first divergence of each check and exits with `1` if any check fai
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node LeanVM.Guest
-open LeanVM.Guest.Hints LeanVM.Guest.Interp
+open LeanVM.Guest.Hints LeanVM.Guest.Coverage LeanVM.Guest.Interp
 
 namespace GuestDiff
 
@@ -133,10 +133,10 @@ def xmssSigR : R LeanXmss.Signature := do
 
 def sphincsSigR : R Sphincs.Signature := do
   let randomness ← d128
-  let forest ← (List.range Sphincs.forestCoords).mapM fun _ => do
+  let forest ← (List.range Sphincs.forestCoordinateCount).mapM fun _ => do
     let subs ← (List.range 2).mapM fun _ => do
-      return (⟨fn128 (← many d128), fn128 (← many d128)⟩ : Sphincs.SubOpening)
-    return (⟨fun j => subs.getD j ⟨fun _ => 0, fun _ => 0⟩, fn128 (← many d128)⟩ : Sphincs.CoordOpening)
+      return (⟨fn128 (← many d128), fn128 (← many d128)⟩ : Sphincs.SubtreeOpening)
+    return (⟨fun j => subs.getD j ⟨fun _ => 0, fun _ => 0⟩, fn128 (← many d128)⟩ : Sphincs.CoordinateOpening)
   let counter ← nat
   let values ← many d128
   let path ← many d128
@@ -212,9 +212,9 @@ def daOpens (root vd : Digest) (w : LeanVM.Da.MatrixWitness) : Bool :=
   1 ≤ w.rows.length && w.rows.length ≤ LeanDa.maxRows &&
     w.rows.all (·.length == 2 ^ LeanDa.logM) &&
     (LeanDa.commitCodewords keccakF1600 w.rows).toList == (LeanVM.Protocol.Digest.toBytes root).toList &&
-    w.vector.length == 2 ^ LeanDa.logM &&
-    (LeanDa.vectorDigest keccakF1600 w.vector).toList == (LeanVM.Protocol.Digest.toBytes vd).toList &&
-    w.rows.all fun row => (w.vector.zip row).foldl (fun acc (v, x) => acc + v * ofK x) 0 == 0
+    w.orthogonalVector.length == 2 ^ LeanDa.logM &&
+    (LeanDa.vectorDigest keccakF1600 w.orthogonalVector).toList == (LeanVM.Protocol.Digest.toBytes vd).toList &&
+    w.rows.all fun row => (w.orthogonalVector.zip row).foldl (fun acc (v, x) => acc + v * ofK x) 0 == 0
 
 /-- Every claim of a kind is held, each by name. -/
 def held {α W : Type} (children : List Child) (kind : String) (claims : List α)
@@ -238,17 +238,20 @@ def nodeRel (c : Case) : List (String × Bool) :=
     [(s!"child {i}'s deferred claim is shaped", shaped ch.statement.deferredClaim),
       (s!"child {i}'s proof verifies", verifyDeferred bytecode c.seed (statementDigest c.seed ch.statement)
         ch.freshClaim ch.proof)]) ++
-  held w.children "leanXMSS" s.claims.xmss w.xmss (fun cl σ => xmssVerify cl.1 cl.2 σ)
+  held w.children "leanXMSS" s.claims.xmss w.xmssHolders (fun cl σ
+      => leanXmssVerifyWithKeccak cl.1 cl.2 σ)
     (fun ch cl => ch.statement.claims.xmss.any (· == cl)) ++
-  held w.children "leanSPHINCS" s.claims.sphincs w.sphincs (fun cl σ => sphincsVerify cl.1 cl.2 σ)
+  held w.children "leanSPHINCS" s.claims.sphincs w.sphincsHolders (fun cl σ
+      => leanSphincsVerifyWithKeccak cl.1 cl.2 σ)
     (fun ch cl => ch.statement.claims.sphincs.any (· == cl)) ++
   (match w.daMatrix with
     | some (cl, m) =>
-      [("the DA digest is the directly checked claim's", digestEq s.claims.da (daClaimDigest cl)),
+      [("the DA digest is the directly checked claim's", digestEq s.claims.daDigest
+          (daClaimDigest cl)),
         ("the directly checked matrix opens its claim", daOpens cl.daRoot cl.membershipVectorDigest m)]
     | none =>
-      [("the DA digest is zero or a child's", digestEq s.claims.da zeroDigest ||
-        w.children.any fun ch => digestEq ch.statement.claims.da s.claims.da)]) ++
+      [("the DA digest is zero or a child's", digestEq s.claims.daDigest zeroDigest ||
+        w.children.any fun ch => digestEq ch.statement.claims.daDigest s.claims.daDigest)]) ++
   [if w.children = [] then
       ("the leaf defers the bytecode at zero", s.deferredClaim.bytecodePoint.all (· == 0))
     else ("the batching defers the statement's claim",
@@ -259,10 +262,10 @@ def nodeRel (c : Case) : List (String × Bool) :=
 def limits (c : Case) : List (String × Bool) :=
   let s := c.statement
   let w := c.witness
-  let rawX := Hints.heldDirectly s.claims.xmss w.xmss
-  let rawS := Hints.heldDirectly s.claims.sphincs w.sphincs
+  let rawX := Coverage.heldDirectly s.claims.xmss w.xmssHolders
+  let rawS := Coverage.heldDirectly s.claims.sphincs w.sphincsHolders
   w.children.zipIdx.flatMap (fun (ch, i) => ([(s!"child {i}'s stack log is at least {minChildStackLog}",
-        match announced bytecode ch.proof.stream with
+        match announcedLayoutAndRate bytecode ch.proof.stream with
         | some (layout, _) => decide (minChildStackLog ≤ layout.stackLog)
         | none => true),
       (s!"child {i}'s stream is at most {childStreamCap} scalars", ch.proof.stream.length ≤ childStreamCap),
@@ -365,7 +368,7 @@ def main (args : List String) : IO UInt32 := do
     IO.println s!"case {c.name} ({path}): {c.witness.children.length} children, \
       {c.statement.claims.xmss.length} leanXMSS, {c.statement.claims.sphincs.length} leanSPHINCS, \
       {if c.witness.daMatrix.isSome then "a blob matrix" else "no blob matrix"}, DA digest \
-      {if c.statement.claims.da == zeroDigest then "zero" else "nonzero"}, read in {(← IO.monoMsNow) - start} ms"
+      {if c.statement.claims.daDigest == zeroDigest then "zero" else "nonzero"}, read in {(← IO.monoMsNow) - start} ms"
     let report := fun (what : String) (problem : Option String) (time : Nat) => do
       match problem with
       | none => IO.println s!"  {what}: ok ({time} ms)"

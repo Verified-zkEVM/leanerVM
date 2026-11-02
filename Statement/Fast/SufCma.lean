@@ -5,7 +5,8 @@ public import Statement.SufCma
 /-!
 # `digestBitVec`, compiled fast
 
-`Common.SufCma.digestBitVec`, the digest's bytes as a little-endian number, compiles as a fold
+`Common.SufCma.digestBytesEquivBitVec`, the digest's bytes as a little-endian number, compiles as a
+fold
 (`digestBitVec_eq_digestBitVecFast`, `@[csimp]`): proved, for speed only.
 -/
 
@@ -15,7 +16,7 @@ namespace LeanVM.Fast.SufCma
 
 /-! ## A digest's bytes as a number -/
 
-/-- `Common.SufCma.digestBitVec`, the bytes' little-endian number by a fold. -/
+/-- `Common.SufCma.digestBytesEquivBitVec`, the bytes' little-endian number by a fold. -/
 def digestBitVecFold (d : Common.DigestBytes) : BitVec 256 :=
   BitVec.ofNat 256 (d.toList.foldr (fun b acc ↦ b.toNat + 256 * acc) 0)
 
@@ -35,8 +36,8 @@ theorem foldr_bytes_eq_sum : ∀ l : List UInt8,
 
 /-- **`digestBitVec` is the fold.** -/
 theorem digestBitVec_eq_digestBitVecFold (d : Common.DigestBytes) :
-    Common.SufCma.digestBitVec d = digestBitVecFold d := by
-  have hval : (Common.SufCma.digestBitVec d).toNat =
+    Common.SufCma.digestBytesEquivBitVec d = digestBitVecFold d := by
+  have hval : (Common.SufCma.digestBytesEquivBitVec d).toNat =
       ∑ i : Fin 32, (d[(i : ℕ)]).toNat * 256 ^ (i : ℕ) := by
     change ((finFunctionFinEquiv
       (fun i : Fin 32 ↦ Common.uInt8EquivFin (d[(i : ℕ)])) : Fin (256 ^ 32)) : ℕ) = _
@@ -50,18 +51,18 @@ theorem digestBitVec_eq_digestBitVecFold (d : Common.DigestBytes) :
     simp [List.getD_eq_getElem?_getD]
   apply BitVec.eq_of_toNat_eq
   rw [digestBitVecFold, BitVec.toNat_ofNat, foldr_bytes_eq_sum, ← hsum, ← hval,
-    Nat.mod_eq_of_lt (Common.SufCma.digestBitVec d).isLt]
+    Nat.mod_eq_of_lt (Common.SufCma.digestBytesEquivBitVec d).isLt]
 
-/-- `Common.SufCma.digestBitVec` with the fold for its function. -/
+/-- `Common.SufCma.digestBytesEquivBitVec` with the fold for its function. -/
 def digestBitVecFast : Common.DigestBytes ≃ BitVec 256 where
   toFun := digestBitVecFold
-  invFun := Common.SufCma.digestBitVec.symm
+  invFun := Common.SufCma.digestBytesEquivBitVec.symm
   left_inv d := by rw [← digestBitVec_eq_digestBitVecFold, Equiv.symm_apply_apply]
   right_inv b := by rw [← digestBitVec_eq_digestBitVecFold, Equiv.apply_symm_apply]
 
-/-- `Common.SufCma.digestBitVec` compiles as `digestBitVecFast`. -/
+/-- `Common.SufCma.digestBytesEquivBitVec` compiles as `digestBitVecFast`. -/
 @[csimp] theorem digestBitVec_eq_digestBitVecFast :
-    @Common.SufCma.digestBitVec = @digestBitVecFast :=
+    @Common.SufCma.digestBytesEquivBitVec = @digestBitVecFast :=
   Equiv.ext digestBitVec_eq_digestBitVecFold
 
 end

@@ -164,7 +164,8 @@ layer's words at an odd depth, every layer's words (`LyIter`), and the last slot
 `zeta` give the relation, returning the last slot's capacity, cursor and values. -/
 theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 : List E}
     (hcl : cap0.length = 5) {cur zeta layers rounds rows pairs dsh : E}
-    (hrc : (rd (gpow depth)).isSome = true ∧ (rd (gpow (32 - depth))).isSome = true)
+    (hrc : (rd (addressOfIndex depth)).isSome = true ∧ (rd (addressOfIndex (32 - depth))).isSome
+        = true)
     {x0 x1 : E} (hx0 : LoadHolds rd cur 0 x0) (hx1 : LoadHolds rd cur 1 x1) (hcnt : x1 ≠ 0)
     (hroot : GkSlotC rd layers 0 ⟨cap0, [(x0, dsObserve), (x1, dsObserve)]⟩ (cur * gen ^ 2)
       ⟨[x0, x0, x1], []⟩ rows 1 1 0)

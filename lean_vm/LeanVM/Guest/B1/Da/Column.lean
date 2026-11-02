@@ -96,8 +96,8 @@ theorem row_step {f : String} {j : ℕ} {store : Bool} (hj : j < coreProgram.len
 
 /-- **A padding node**: the padding cell's two cells at node `n_blob + x`. -/
 def GapStepC (rd : Reader) (node nb : E) (x : E) : Prop :=
-  LoadHolds rd (node * nb ^ 2 * x ^ 2) 0 (digestScalars daPadCellDigest).1 ∧
-    LoadHolds rd (node * nb ^ 2 * x ^ 2) 1 (digestScalars daPadCellDigest).2
+  LoadHolds rd (node * nb ^ 2 * x ^ 2) 0 (digestHalves daPadCellDigest).1 ∧
+    LoadHolds rd (node * nb ^ 2 * x ^ 2) 1 (digestHalves daPadCellDigest).2
 
 theorem gap_step {f : String} {j : ℕ} (hj : j < coreProgram.length)
     (hok : (gapOk (coreProgram.getD j default) f padCellLo.1 padCellLo.2.1 padCellLo.2.2.1
@@ -147,7 +147,7 @@ theorem col_step {fname rl gl : String} {jc jr jg : ℕ} {store : Bool}
     ∃ lv node c0 c1 : E, coreProgram.Rel rd "da_vector_cell" [cd * xb ^ 2] [lv] ∧
       (∀ i < r, RowStepC rd lv rowbase xb node pb store (gen ^ i)) ∧
       (∀ d < gp, GapStepC rd node (gen ^ r) (gen ^ d)) ∧
-      (∃ k < 11, glp = ofK (Parameters.gpow k) ∧
+      (∃ k < 11, glp = ofK (Parameters.addressOfIndex k) ∧
         coreProgram.Rel rd (daLevelsName k) [node] [c0, c1]) ∧
       LoadHolds rd (coltree * xb ^ 2) 0 c0 ∧ LoadHolds rd (coltree * xb ^ 2) 1 c1 := by
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcol

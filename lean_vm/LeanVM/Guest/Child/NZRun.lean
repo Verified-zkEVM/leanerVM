@@ -30,21 +30,22 @@ open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 
 /-- **`p'` is `p` refusing zero challenges**: step for step, the continuations after a nonzero
 challenge related. -/
-inductive NZ {α : Type} : Prog α → Prog α → Prop
+inductive NZ {α : Type} : VerifierProgram α → VerifierProgram α → Prop
   | ret (a : α) : NZ (.ret a) (.ret a)
   | fail : NZ .fail .fail
-  | read {k k' : E → Prog α} : (∀ x, NZ (k' x) (k x)) → NZ (.read k') (.read k)
-  | sample {k k' : E → Prog α} : (∀ c, c ≠ 0 → NZ (k' c) (k c)) → NZ (.sample k') (.sample k)
-  | grind {b : ℕ} {k k' : Prog α} : NZ k' k → NZ (.grind b k') (.grind b k)
-  | commit {h w : ℕ} {k k' : Prog α} : NZ k' k → NZ (.commit h w k') (.commit h w k)
-  | query {i : ℕ} {ps : List ℕ} {k k' : List (List K) → Prog α} :
+  | read {k k' : E → VerifierProgram α} : (∀ x, NZ (k' x) (k x)) → NZ (.read k') (.read k)
+  | sample {k k' : E → VerifierProgram α} : (∀ c, c ≠ 0 → NZ (k' c) (k c)) → NZ (.sample k')
+      (.sample k)
+  | grind {b : ℕ} {k k' : VerifierProgram α} : NZ k' k → NZ (.grind b k') (.grind b k)
+  | commit {h w : ℕ} {k k' : VerifierProgram α} : NZ k' k → NZ (.commit h w k') (.commit h w k)
+  | query {i : ℕ} {ps : List ℕ} {k k' : List (List K) → VerifierProgram α} :
       (∀ r, NZ (k' r) (k r)) → NZ (.query i ps k') (.query i ps k)
 
 namespace NZ
 
 variable {α β : Type}
 
-theorem refl : ∀ p : Prog α, NZ p p
+theorem refl : ∀ p : VerifierProgram α, NZ p p
   | .ret a => .ret a
   | .fail => .fail
   | .read k => .read fun x ↦ refl (k x)
@@ -53,7 +54,8 @@ theorem refl : ∀ p : Prog α, NZ p p
   | .commit _ _ k => .commit (refl k)
   | .query _ _ k => .query fun r ↦ refl (k r)
 
-theorem bind {p' p : Prog α} (h : NZ p' p) {f' f : α → Prog β} (hf : ∀ a, NZ (f' a) (f a)) :
+theorem bind {p' p : VerifierProgram α} (h : NZ p' p) {f' f : α → VerifierProgram β} (hf : ∀ a, NZ
+    (f' a) (f a)) :
     NZ (p'.bind f') (p.bind f) := by
   induction h with
   | ret a => exact hf a
@@ -65,14 +67,14 @@ theorem bind {p' p : Prog α} (h : NZ p' p) {f' f : α → Prog β} (hf : ∀ a,
   | query _ ih => exact .query ih
 
 /-- A challenge, then programs related at every nonzero challenge. -/
-theorem sample_bind {f' f : E → Prog β} (hf : ∀ c, c ≠ 0 → NZ (f' c) (f c)) :
-    NZ (Prog.sampleChallenge.bind f') (Prog.sampleChallenge.bind f) :=
+theorem sample_bind {f' f : E → VerifierProgram β} (hf : ∀ c, c ≠ 0 → NZ (f' c) (f c)) :
+    NZ (VerifierProgram.sampleChallenge.bind f') (VerifierProgram.sampleChallenge.bind f) :=
   .sample hf
 
 /-- A check that holds, then related programs. -/
-theorem require_bind_of {c : Prop} [Decidable c] (hc : c) {k' k : Prog α} (h : NZ k' k) :
-    NZ ((Prog.require c).bind fun _ ↦ k') k := by
-  unfold Prog.require
+theorem require_bind_of {c : Prop} [Decidable c] (hc : c) {k' k : VerifierProgram α} (h : NZ k' k) :
+    NZ ((VerifierProgram.require c).bind fun _ ↦ k') k := by
+  unfold VerifierProgram.require
   simp only [hc, ↓reduceIte]
   exact h
 
@@ -150,10 +152,12 @@ theorem nz_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List Stack
   repeat (first | exact nz_verifyWhir _ _ _ _ | nz_step)
 
 /-- **The verifier refusing zero challenges is the verifier refusing zero challenges.** -/
-theorem nz_program (ev : (List K → List E → Prog E)) (bytecode : List K) (publicInput : Digest) :
+theorem nz_program (ev : (List K → List E → VerifierProgram E)) (bytecode : List K) (publicInput :
+    Digest) :
     NZ ((execWith ev Limits.verifyStackedOpeningNZ bytecode publicInput).bind
-        fun _ ↦ Prog.ret true)
-      ((execWith ev verifyStackedOpening bytecode publicInput).bind fun _ ↦ Prog.ret true) := by
+        fun _ ↦ VerifierProgram.ret true)
+      ((execWith ev verifyStackedOpening bytecode publicInput).bind fun _ ↦ VerifierProgram.ret
+          true) := by
   refine NZ.bind ?_ fun _ ↦ NZ.refl _
   unfold execWith
   refine NZ.bind (NZ.refl _) fun ls ↦ ?_
@@ -172,8 +176,8 @@ theorem nz_program (ev : (List K → List E → Prog E)) (bytecode : List K) (pu
 
 /-- **With a permutation that never outputs a zero challenge, the runs agree.** -/
 theorem run_nz (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
-    (hF : ∀ s, challengeOf (Id.run (F s)) ≠ 0) {α : Type} {p' p : Prog α} (h : NZ p' p) :
-    ∀ st : ProgState, Compile.runWithHash H F p' st = Compile.runWithHash H F p st := by
+    (hF : ∀ s, challengeOf (Id.run (F s)) ≠ 0) {α : Type} {p' p : VerifierProgram α} (h : NZ p' p) :
+    ∀ st : VerifierProgramState, Compile.runWithHash H F p' st = Compile.runWithHash H F p st := by
   induction h with
   | ret a => intro st; rfl
   | fail => intro st; rfl
@@ -201,7 +205,8 @@ theorem run_nz (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
     simp only [ih]
 
 theorem runProof_nz (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
-    (hF : ∀ s, challengeOf (Id.run (F s)) ≠ 0) {p' p : Prog Bool} (h : NZ p' p) (seed : KeccakState)
+    (hF : ∀ s, challengeOf (Id.run (F s)) ≠ 0) {p' p : VerifierProgram Bool} (h : NZ p' p) (seed :
+        KeccakState)
     (π : Proof) : runProofWithHash H F p' seed π = runProofWithHash H F p seed π := by
   unfold runProofWithHash
   rw [run_nz H F hF h]

@@ -57,9 +57,11 @@ structure TermBases where
 
 /-- `check_opening_terminal`'s arguments, its pointers at their bases. -/
 def termArgs (B : TermBases) (rm gmu gzcn glm gtau lamOut inner yr target : E) : List E :=
-  [ofK (gpow B.zeta), ofK (gpow B.chi), rm, gmu, gzcn, glm, gtau, ofK (gpow B.cplen), lamOut,
-    ofK (gpow B.lamPool), ofK (gpow B.off), ofK (gpow B.kap), ofK (gpow B.zv), ofK (gpow B.ct),
-    ofK (gpow B.pt), ofK (gpow B.pt1), inner, yr, target]
+  [ofK (addressOfIndex B.zeta), ofK (addressOfIndex B.chi), rm, gmu, gzcn, glm, gtau, ofK
+      (addressOfIndex B.cplen), lamOut,
+    ofK (addressOfIndex B.lamPool), ofK (addressOfIndex B.off), ofK (addressOfIndex B.kap), ofK
+        (addressOfIndex B.zv), ofK (addressOfIndex B.ct),
+    ofK (addressOfIndex B.pt), ofK (addressOfIndex B.pt1), inner, yr, target]
 
 /-- **The caller's words the terminal reads**: the bus point (`nz` words) and the tables' point
 (`nc`), the claims' lengths and batching powers, the columns' offsets and logs, the outputs'
@@ -121,8 +123,9 @@ theorem piW_getD {rm : E} {ps : List E} {m k : ℕ} (hk : k ≤ m) :
   rw [List.getD_eq_getElem _ _ (by simp [piW]; omega)]
   simp [piW]
 
-theorem ofK_gpow_mul_gen (b c : ℕ) : ofK (gpow b) * gen ^ c = ofK (gpow (b + c)) := by
-  rw [gen_pow_eq_ofK, ← ofK_mul, gpow, gpow, gpow, pow_add]
+theorem ofK_gpow_mul_gen (b c : ℕ) : ofK (addressOfIndex b) * gen ^ c = ofK (addressOfIndex (b +
+    c)) := by
+  rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
 
 theorem regionL_cons {L : Main.Layout} (q : ℕ × List E) {i : ℕ} (h : RegionL L i) :
     RegionL (q :: L) i := by
@@ -157,23 +160,26 @@ noncomputable def selKid (D : TermData) (c : ℕ) : KidD := fun pv =>
 /-- **`check_opening_terminal`'s callees, in order**, its buffers from `b0`. -/
 noncomputable def termKids (Lin : Main.Layout) (D : TermData) (b0 : ℕ) : List KidD :=
   [fun _ => ⟨"eq_prefix_chain", true,
-      [ofK (gpow b0), word 1 0 0, ofK (gpow D.B.zeta), ofK (gpow D.B.pt1), D.gmu],
+      [ofK (addressOfIndex b0), word 1 0 0, ofK (addressOfIndex D.B.zeta), ofK (addressOfIndex
+          D.B.pt1), D.gmu],
       (b0, eqChain D.zs ((p1Of D.x).take D.zs.length)) :: Lin, Returns []⟩,
     fun _ => ⟨"eq_prefix_chain", true,
-      [ofK (gpow (b0 + 35)), word 1 0 0, ofK (gpow D.B.chi), ofK (gpow D.B.pt1), D.gzcn],
+      [ofK (addressOfIndex (b0 + 35)), word 1 0 0, ofK (addressOfIndex D.B.chi), ofK (addressOfIndex
+          D.B.pt1), D.gzcn],
       (b0 + 35, eqChain D.chis ((p1Of D.x).take D.chis.length)) :: Lin, Returns []⟩,
     fun _ => ⟨"__loop14", decide (word 2 0 0 + D.glm ≠ 0),
-      [word 2 0 0, D.glm, ofK (gpow (b0 + 70)), ofK (gpow D.B.pt1)],
+      [word 2 0 0, D.glm, ofK (addressOfIndex (b0 + 70)), ofK (addressOfIndex D.B.pt1)],
       (b0 + 70, piW D.rm (p1Of D.x) D.m) :: Lin, Returns []⟩,
-    fun _ => ⟨"selector_tables", true, [ofK (gpow D.B.pt), ofK (gpow D.B.pt1)],
+    fun _ => ⟨"selector_tables", true, [ofK (addressOfIndex D.B.pt), ofK (addressOfIndex D.B.pt1)],
       Tables.stLin D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x),
       Tables.stOut D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x)⟩] ++
   (List.range Tables.nCommittedCols).map (selKid D) ++
   [fun _ => ⟨"eq_prefix_chain", true,
-      [ofK (gpow (b0 + 105)), word 1 0 0, ofK (gpow D.B.zv), ofK (gpow D.B.pt1), D.gtau * word 64 0 0],
+      [ofK (addressOfIndex (b0 + 105)), word 1 0 0, ofK (addressOfIndex D.B.zv), ofK (addressOfIndex D.B.pt1), D.gtau * word 64 0 0],
       (b0 + 105, eqChain D.outPt ((p1Of D.x).take D.outPt.length)) :: Lin, Returns []⟩,
     fun _ => ⟨"ring_switch_weight", true,
-      [ofK (gpow D.B.zv) * word 549755813888 0 0, ofK (gpow D.B.pt1), ofK (gpow D.B.ct),
+      [ofK (addressOfIndex D.B.zv) * word 549755813888 0 0, ofK (addressOfIndex D.B.pt1), ofK
+          (addressOfIndex D.B.ct),
         D.gtau * word 64 0 0],
       [(D.B.zv + 39, D.ringPoint), (D.B.pt1, (p1Of D.x).take (D.τ + 6)), (D.B.ct, D.coeffs)],
       Returns [ringWeight D.ringPoint (((p1Of D.x).take (D.τ + 6)).map (1 + ·)) D.coeffs]⟩]
@@ -194,7 +200,7 @@ theorem low_rc {κ : ℕ} (hκ : 6 ≤ κ) {rd : Reader} (hl : LowDef κ rd) {n 
   have h40 : 40 < 2 ^ κ := lt_of_lt_of_le (by norm_num) (Nat.pow_le_pow_right (by norm_num) hκ)
   have l1 := hl n (by omega)
   have l2 := hl (40 - n) (by omega)
-  have a : ∀ a, (gen ^ a).limb 0 * gpow 0 = gpow a := fun a => by
+  have a : ∀ a, (gen ^ a).limb 0 * addressOfIndex 0 = addressOfIndex a := fun a => by
     rw [gen_pow_eq_ofK, Main.addr_ofK, Nat.add_zero]
   obtain ⟨t1, h1⟩ := Option.isSome_iff_exists.mp l1
   obtain ⟨t2, h2⟩ := Option.isSome_iff_exists.mp l2
@@ -207,12 +213,13 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 chain `eqChain as bs` at `g^b`. -/
 theorem eqc_kid_complete (κ : ℕ) (hκ : 6 ≤ κ) {b ba bb : ℕ} {as bs : List E} {cg : E}
     {L : Main.Layout} (hn : as.length ≤ 40) (hbs : bs.length = as.length) (hcg : cg = gen ^ as.length)
-    (hrd : ∀ rd, LowDef κ rd → MemL rd L → ReadsAt rd (ofK (gpow ba)) as ∧ ReadsAt rd (ofK (gpow bb)) bs)
+    (hrd : ∀ rd, LowDef κ rd → MemL rd L → ReadsAt rd (ofK (addressOfIndex ba)) as ∧ ReadsAt rd (ofK (addressOfIndex bb)) bs)
     (hR : ∀ i, (ba ≤ i ∧ i < ba + as.length) ∨ (bb ≤ i ∧ i < bb + as.length) → RegionL L i) :
     CompleteAtD fs cert κ "eq_prefix_chain" ((b, eqChain as bs) :: L)
-      [ofK (gpow b), word 1 0 0, ofK (gpow ba), ofK (gpow bb), cg] (Returns []) := by
+      [ofK (addressOfIndex b), word 1 0 0, ofK (addressOfIndex ba), ofK (addressOfIndex bb), cg]
+          (Returns []) := by
   refine Lift.completeAtD_of_relIn eqc_pure List.mem_cons_self fun rd hl hm => ?_
-  have hm0 : ReadsAt rd (ofK (gpow b)) (eqChain as bs) := hm _ List.mem_cons_self
+  have hm0 : ReadsAt rd (ofK (addressOfIndex b)) (eqChain as bs) := hm _ List.mem_cons_self
   have hmL : MemL rd L := fun q hq => hm q (List.mem_cons_of_mem _ hq)
   obtain ⟨ha, hb⟩ := hrd rd hl hmL
   subst hcg
@@ -228,12 +235,12 @@ theorem eqc_kid_complete (κ : ℕ) (hκ : 6 ≤ κ) {b ba bb : ℕ} {as bs : Li
 and the point's complements `ps` at `g^bp`. -/
 theorem l15_kid_complete (κ : ℕ) {b bp m : ℕ} {rm glm : E} {ps : List E} {L : Main.Layout}
     (hm2 : 2 ≤ m) (hglm : glm = gen ^ m) (hps : m ≤ ps.length)
-    (hrd : ∀ rd, LowDef κ rd → MemL rd L → ReadsAt rd (ofK (gpow bp)) ps)
+    (hrd : ∀ rd, LowDef κ rd → MemL rd L → ReadsAt rd (ofK (addressOfIndex bp)) ps)
     (hR : ∀ i, bp ≤ i ∧ i < bp + m → RegionL L i) :
     CompleteAtD fs cert κ "__loop14" ((b, piW rm ps m) :: L)
-      [word 2 0 0, glm, ofK (gpow b), ofK (gpow bp)] (Returns []) := by
+      [word 2 0 0, glm, ofK (addressOfIndex b), ofK (addressOfIndex bp)] (Returns []) := by
   refine Lift.completeAtD_of_relIn l15_pure List.mem_cons_self fun rd hl hm => ?_
-  have hm0 : ReadsAt rd (ofK (gpow b)) (piW rm ps m) := hm _ List.mem_cons_self
+  have hm0 : ReadsAt rd (ofK (addressOfIndex b)) (piW rm ps m) := hm _ List.mem_cons_self
   have hmL : MemL rd L := fun q hq => hm q (List.mem_cons_of_mem _ hq)
   have hstep : ∀ k, 1 ≤ k → k < m →
       (piW rm ps m).getD (k + 1) 0 = (piW rm ps m).getD k 0 * (ps.take m).getD k 0 := by
@@ -260,9 +267,10 @@ theorem termKids_complete (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : T
     (hgz : D.gzcn = gen ^ D.chis.length) (hglm : D.glm = gen ^ D.m) (hgtau : D.gtau = gen ^ D.τ)
     (hm1 : 1 ≤ D.m) (hm : D.m ≤ 32) (hKC : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 29)
     (hOF : ∀ c < Tables.nCommittedCols, D.OF.getD c 0 < 2 ^ 28 ∧ 2 ^ D.KC.getD c 0 ∣ D.OF.getD c 0)
-    (hrd : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (gpow D.B.zeta)) D.zs ∧
-      ReadsAt rd (ofK (gpow D.B.chi)) D.chis ∧ ReadsAt rd (ofK (gpow D.B.zv)) D.outPt ∧
-      ReadsAt rd (ofK (gpow D.B.pt1)) (p1Of D.x)) :
+    (hrd : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (addressOfIndex D.B.zeta)) D.zs ∧
+      ReadsAt rd (ofK (addressOfIndex D.B.chi)) D.chis ∧ ReadsAt rd (ofK (addressOfIndex D.B.zv))
+          D.outPt ∧
+      ReadsAt rd (ofK (addressOfIndex D.B.pt1)) (p1Of D.x)) :
     ∀ k ∈ termKids Lin D b0, ∀ pv, (k pv).taken = true →
       CompleteAtD fs cert κ (k pv).f (k pv).Lin (k pv).args (k pv).Out := by
   have hpl : (p1Of D.x).length = 40 := p1Of_length (by simp only [termPointCap]; omega)
@@ -298,7 +306,8 @@ theorem termKids_complete (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : T
         Tables.stLin D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x) := by
       show @ite _ _ (Classical.propDecidable _) _ _ = _
       rw [@ite_pos' _ _ (Classical.propDecidable _) _ _ ⟨ese, esg, h1, h2⟩, h2]
-    have ha : (selKid D c pv).args = [gen ^ D.OF.getD c 0, ofK (gpow ese), ofK (gpow esg)] := by
+    have ha : (selKid D c pv).args = [gen ^ D.OF.getD c 0, ofK (addressOfIndex ese), ofK
+        (addressOfIndex esg)] := by
       show [_, (stRes pv).1.getD 0 0, (stRes pv).1.getD 1 0] = _
       rw [h1]; rfl
     rw [hL, ha]
@@ -306,16 +315,18 @@ theorem termKids_complete (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : T
       (by simp [pt128]; omega)
   · have e : D.gtau * word 64 0 0 = gen ^ D.outPt.length := by rw [hgtau, hw64, ← pow_add, hol]
     show CompleteAtD fs cert κ "eq_prefix_chain" _
-      [ofK (gpow (b0 + 105)), word 1 0 0, ofK (gpow D.B.zv), ofK (gpow D.B.pt1), D.gtau * word 64 0 0]
+      [ofK (addressOfIndex (b0 + 105)), word 1 0 0, ofK (addressOfIndex D.B.zv), ofK (addressOfIndex D.B.pt1), D.gtau * word 64 0 0]
       (Returns [])
     exact eqc_kid_complete κ hκ (by omega) (by simp; omega) e
       (fun rd hl hm => ⟨(hrd rd hl hm).2.2.1, readsAt_take (hrd rd hl hm).2.2.2 _⟩)
       (fun i hi => hreg i (by simp only [TermRegion]; omega))
-  · have e1 : ofK (gpow D.B.zv) * word 549755813888 0 0 = ofK (gpow (D.B.zv + 39)) := by
+  · have e1 : ofK (addressOfIndex D.B.zv) * word 549755813888 0 0 = ofK (addressOfIndex (D.B.zv +
+      39)) := by
       rw [show (549755813888 : ℕ) = 2 ^ 39 by norm_num, word_two_pow (by decide), ofK_gpow_mul_gen]
     have e2 : D.gtau * word 64 0 0 = gen ^ (D.τ + 6) := by rw [hgtau, hw64, ← pow_add]
     show CompleteAtD fs cert κ "ring_switch_weight" _
-      [ofK (gpow D.B.zv) * word 549755813888 0 0, ofK (gpow D.B.pt1), ofK (gpow D.B.ct),
+      [ofK (addressOfIndex D.B.zv) * word 549755813888 0 0, ofK (addressOfIndex D.B.pt1), ofK
+          (addressOfIndex D.B.ct),
         D.gtau * word 64 0 0] _
     rw [e1, e2]
     exact rsw_completeAt κ (by omega) hrl (by simp; omega) hcf
@@ -382,7 +393,8 @@ theorem regionL_cons_iff {q : ℕ × List E} {L : Main.Layout} {i : ℕ} (h : Re
 
 theorem termKid3 (Lin : Main.Layout) (D : TermData) (b0 : ℕ) (outs : List (List E × Main.Layout)) :
     kidAt (termKids Lin D b0) [] outs 3 = ⟨"selector_tables", true,
-      [ofK (gpow D.B.pt), ofK (gpow D.B.pt1)], Tables.stLin D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x),
+      [ofK (addressOfIndex D.B.pt), ofK (addressOfIndex D.B.pt1)], Tables.stLin D.B.pt D.B.pt1 (pt28
+          D.x) (pt128 D.x),
       Tables.stOut D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x)⟩ := rfl
 
 /-- **The callees read the caller's words, the buffers and `selector_tables`' result.** -/

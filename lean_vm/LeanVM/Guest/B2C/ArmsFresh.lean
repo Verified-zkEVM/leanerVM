@@ -31,8 +31,8 @@ def armsCheck (q : ℕ → ℕ × ℕ × ℕ → Bool) : List Plumb → ℕ → 
   | p :: ps, k => p.arms.all (q k) && armsCheck q ps (k + 1)
 
 theorem armsCheck_spec {q : ℕ → ℕ × ℕ × ℕ → Bool} : ∀ {l : List Plumb} {k : ℕ},
-    armsCheck q l k = true → ∀ j, ∀ a ∈ (nth l j {}).arms, q (j + k) a = true
-  | [], _, _, j, a, ha => by cases j <;> simp [nth] at ha
+    armsCheck q l k = true → ∀ j, ∀ a ∈ (listElementOrDefault l j {}).arms, q (j + k) a = true
+  | [], _, _, j, a, ha => by cases j <;> simp [listElementOrDefault] at ha
   | p :: ps, k, h, j, a, ha => by
     simp only [armsCheck, Bool.and_eq_true, List.all_eq_true] at h
     cases j with

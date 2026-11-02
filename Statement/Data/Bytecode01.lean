@@ -18,7 +18,7 @@ set_option maxRecDepth 20000
 @[expose] public section
 
 /-- `verify_tables` from offset 6144. -/
-def f11c3 : List OInstr := [
+def f11c3 : List OffsetInstruction := [
   .mul 5094 5097 5449,
   .xor 5448 5449 5450,
   .mul 5095 5096 5451,
@@ -2069,7 +2069,7 @@ def f11c3 : List OInstr := [
   .xor 8404 7970 8405]
 
 /-- `verify_tables` from offset 8192. -/
-def f11c4 : List OInstr := [
+def f11c4 : List OffsetInstruction := [
   .xor 8405 2711 8406,
   .xor 17 8406 8407,
   .mul 2519 8407 8408,
@@ -2345,7 +2345,7 @@ def f11c4 : List OInstr := [
   .jump 39 0 1]
 
 /-- `keccak_round` from offset 0. -/
-def f12c0 : List OInstr := [
+def f12c0 : List OffsetInstruction := [
   .deref 2 0 6 .cell,
   .deref 2 16 7 .cell,
   .deref 2 32 8 .cell,
@@ -2405,7 +2405,7 @@ def f12c0 : List OInstr := [
   .jump 27 0 1]
 
 /-- `verify_keccak` from offset 0. -/
-def f13c0 : List OInstr := [
+def f13c0 : List OffsetInstruction := [
   .set 27 1 0 0,
   .mul 2 27 22,
   .mul 3 27 23,
@@ -4456,7 +4456,7 @@ def f13c0 : List OInstr := [
   .deref 1851 36 1932 .cell]
 
 /-- `verify_keccak` from offset 2048. -/
-def f13c1 : List OInstr := [
+def f13c1 : List OffsetInstruction := [
   .mul 1867 1932 1933,
   .xor 1931 1933 1934,
   .deref 1851 25 1935 .cell,
@@ -6507,7 +6507,7 @@ def f13c1 : List OInstr := [
   .xor 4113 4308 4206]
 
 /-- `verify_keccak` from offset 4096. -/
-def f13c2 : List OInstr := [
+def f13c2 : List OffsetInstruction := [
   .xor 4115 4116 4309,
   .mul 4234 4309 4310,
   .xor 4115 4310 4207,
@@ -7705,7 +7705,7 @@ def f13c2 : List OInstr := [
   .jump 27 0 1]
 
 /-- `ring_switch_target` from offset 0. -/
-def f14c0 : List OInstr := [
+def f14c0 : List OffsetInstruction := [
   .set 6 1 0 0,
   .deref 5 0 6 .cell,
   .set 7 0 0 0,
@@ -7725,7 +7725,7 @@ def f14c0 : List OInstr := [
   .jump 6 0 1]
 
 /-- `ring_switch_weight` from offset 0. -/
-def f15c0 : List OInstr := [
+def f15c0 : List OffsetInstruction := [
   .set 7 2 0 0,
   .mul 5 7 8,
   .mul 8 8 9,
@@ -8067,7 +8067,7 @@ def f15c0 : List OInstr := [
   .jump 16 0 1]
 
 /-- `certify_placement` from offset 0. -/
-def f16c0 : List OInstr := [
+def f16c0 : List OffsetInstruction := [
   .deref 2 1 8 .cell,
   .deref 7 0 8 .cell,
   .deref 7 1 8 .cell,
@@ -10118,7 +10118,7 @@ def f16c0 : List OInstr := [
   .deref 1803 0 1786 .cell]
 
 /-- `certify_placement` from offset 2048. -/
-def f16c1 : List OInstr := [
+def f16c1 : List OffsetInstruction := [
   .deref 1792 0 1805 .cell,
   .mul 1792 1804 31,
   .deref 1804 0 1806 .cell,
@@ -10656,7 +10656,7 @@ def f16c1 : List OInstr := [
   .jump 29 0 1]
 
 /-- `selector_tables` from offset 0. -/
-def f17c0 : List OInstr := [
+def f17c0 : List OffsetInstruction := [
   .deref 3 3 8 .cell,
   .deref 2 3 9 .cell,
   .deref 2 2 38 .cell,
@@ -11342,7 +11342,7 @@ def f17c0 : List OInstr := [
   .jump 44 0 1]
 
 /-- `check_opening_terminal` from offset 0. -/
-def f18c0 : List OInstr := [
+def f18c0 : List OffsetInstruction := [
   .set 22 1 0 0,
   .set 24 14649646643316910959 0 0,
   .deref 23 2 21 .cell,
@@ -13393,7 +13393,7 @@ def f18c0 : List OInstr := [
   .mul 1449 1447 1450]
 
 /-- `check_opening_terminal` from offset 2048. -/
-def f18c1 : List OInstr := [
+def f18c1 : List OffsetInstruction := [
   .mul 1450 48 1451,
   .xor 1442 1451 1452,
   .deref 9 99 1453 .cell,
@@ -13796,7 +13796,7 @@ def f18c1 : List OInstr := [
   .jump 22 0 1]
 
 /-- `verify_sub` from offset 0. -/
-def f19c0 : List OInstr := [
+def f19c0 : List OffsetInstruction := [
   .set 24 1 0 0,
   .set 25 0 0 0,
   .set 26 0 0 0,
@@ -15432,7 +15432,7 @@ def f19c0 : List OInstr := [
   .jump 24 0 1]
 
 /-- `verify_lean_xmss` from offset 0. -/
-def f20c0 : List OInstr := [
+def f20c0 : List OffsetInstruction := [
   .deref 2 1 3 .cell,
   .mul 4 4 4,
   .mul 5 5 5,

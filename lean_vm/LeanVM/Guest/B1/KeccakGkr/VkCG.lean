@@ -80,7 +80,7 @@ theorem eqLevels_getD {rs : List E} : ∀ {n : ℕ}, n ≤ rs.length → ∀ t, 
 /-- `ptr b · g^j` is `ptr (b + j)`. -/
 theorem ptr_mul_gen (b j : ℕ) : ptr b * gen ^ j = ptr (b + j) := by
   rw [gen_pow_eq_ofK, ← ofK_mul]
-  unfold Parameters.gpow
+  unfold Parameters.addressOfIndex
   rw [← pow_add]
 
 namespace VkData

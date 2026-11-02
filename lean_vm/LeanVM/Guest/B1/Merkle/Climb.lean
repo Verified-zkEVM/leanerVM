@@ -36,34 +36,34 @@ open LeanVM.Guest.Value.Keccak
 
 /-! ## Digests in cells -/
 
-theorem kBytes_ofLane (w : UInt64) : kBytes (K.ofLane w) = wordBytes w := rfl
+theorem kBytes_ofLane (w : UInt64) : K.toBytes (K.ofLane w) = wordBytes w := rfl
 
 /-- A digest's two cells are its 32 bytes. -/
 theorem cellsBytes_digestScalars (d : Digest) :
-    cellsBytes [(digestScalars d).1, (digestScalars d).2] = digestBytes d := by
+    cellsBytes [(digestHalves d).1, (digestHalves d).2] = digestBytes d := by
   obtain ⟨⟨l⟩, hl⟩ := d
   match l, hl with
   | [a, b, c, e], _ =>
-    simp [cellsBytes, cellBytes, digestScalars, digestBytes, limb_ofLimbs, kBytes_ofLane]
+    simp [cellsBytes, cellBytes, digestHalves, digestBytes, limb_ofLimbs, kBytes_ofLane]
 
 /-- Two canonical cells encode a digest. -/
 theorem exists_digest {a b : E} (ha : IsCanonical128 a) (hb : IsCanonical128 b) :
-    ∃ d, (a, b) = digestScalars d := by
-  have : digestOfScalars (a, b) =
+    ∃ d, (a, b) = digestHalves d := by
+  have : digestFromHalves (a, b) =
       some #v[(a.limb 0).lane, (a.limb 1).lane, (b.limb 0).lane, (b.limb 1).lane] := by
-    unfold digestOfScalars
+    unfold digestFromHalves
     simp [ha, hb]
   exact ⟨_, (digestScalars_digestOfScalars this).symm⟩
 
-theorem capDigestScalars_injective : Function.Injective digestScalars := fun a b h => by
+theorem capDigestScalars_injective : Function.Injective digestHalves := fun a b h => by
   have ha := digestOfScalars_digestScalars a
   rw [h, digestOfScalars_digestScalars] at ha
   exact (Option.some.inj ha).symm
 
 /-- **A hashed node is `hashPair` of its children's digests.** -/
 theorem hashesPair_digests {l0 l1 r0 r1 p0 p1 : E} (h : HashesPair l0 l1 r0 r1 p0 p1) :
-    ∃ dl dr, (l0, l1) = digestScalars dl ∧ (r0, r1) = digestScalars dr ∧
-      (p0, p1) = digestScalars (hashPair dl dr) := by
+    ∃ dl dr, (l0, l1) = digestHalves dl ∧ (r0, r1) = digestHalves dr ∧
+      (p0, p1) = digestHalves (hashPair dl dr) := by
   obtain ⟨hc, hd⟩ := h
   obtain ⟨dl, hl⟩ := exists_digest (hc l0 (by simp)) (hc l1 (by simp))
   obtain ⟨dr, hr⟩ := exists_digest (hc r0 (by simp)) (hc r1 (by simp))
@@ -128,9 +128,9 @@ theorem capAnc_last {D p : ℕ} (hp : p < 2 ^ D) : capAnc D p D = 1 := by
 the cap's leaf `p` whose parent is flagged climbs to the root by `D` siblings of the cap. -/
 theorem cap_climb {D : ℕ} (hD : 2 ≤ D) {rd : Reader} {cap flags r0 r1 : E} {root : Digest}
     (hcap : MeaningVerifyMerkleCap D rd [cap, flags] [r0, r1])
-    (hroot : (r0, r1) = digestScalars root) {p : ℕ} (hp : p < 2 ^ D) {x : Digest}
-    (hx0 : LoadHolds rd cap (2 * (2 ^ D + p)) (digestScalars x).1)
-    (hx1 : LoadHolds rd cap (2 * (2 ^ D + p) + 1) (digestScalars x).2)
+    (hroot : (r0, r1) = digestHalves root) {p : ℕ} (hp : p < 2 ^ D) {x : Digest}
+    (hx0 : LoadHolds rd cap (2 * (2 ^ D + p)) (digestHalves x).1)
+    (hx1 : LoadHolds rd cap (2 * (2 ^ D + p) + 1) (digestHalves x).2)
     (hfl : LoadHolds rd flags (2 ^ (D - 1) + p / 2) 1) :
     ∃ cs : List Digest, cs.length = D ∧ climbD x p cs = root := by
   obtain ⟨cell, fl, hc, hf, hh, hpin, hret⟩ := hcap
@@ -178,7 +178,7 @@ theorem cap_climb {D : ℕ} (hD : 2 ≤ D) {rd : Reader} {cap flags r0 r1 : E} {
   -- the cells climb, level by level
   have climb : ∀ j, j ≤ D → ∃ cs : List Digest, cs.length = j ∧
       (cell (2 * capAnc D p j), cell (2 * capAnc D p j + 1)) =
-        digestScalars (climbD x p cs) := by
+        digestHalves (climbD x p cs) := by
     intro j hjD
     induction j with
     | zero =>
@@ -228,12 +228,12 @@ reaches from the leaf `leaf` at the position `q < 2^depth`, written at the cap's
 theorem query_opens_root {D depth : ℕ} (hD : 2 ≤ D) (hDd : D ≤ depth) {rd : Reader}
     {cap flags r0 r1 : E} {root : Digest}
     (hcap : MeaningVerifyMerkleCap D rd [cap, flags] [r0, r1])
-    (hroot : (r0, r1) = digestScalars root) {q : ℕ} (hq : q < 2 ^ depth) {leaf : Digest}
+    (hroot : (r0, r1) = digestHalves root) {q : ℕ} (hq : q < 2 ^ depth) {leaf : Digest}
     {sibs : List Digest} (hsl : sibs.length = depth - D)
     (h0 : LoadHolds rd cap (2 * (2 ^ D + q / 2 ^ (depth - D)))
-      (digestScalars (climbD leaf q sibs)).1)
+      (digestHalves (climbD leaf q sibs)).1)
     (h1 : LoadHolds rd cap (2 * (2 ^ D + q / 2 ^ (depth - D)) + 1)
-      (digestScalars (climbD leaf q sibs)).2)
+      (digestHalves (climbD leaf q sibs)).2)
     (hfl : LoadHolds rd flags (2 ^ (D - 1) + q / 2 ^ (depth - D + 1)) 1) :
     ∃ capSibs : List Digest, capSibs.length = D ∧ climbD leaf q (sibs ++ capSibs) = root := by
   have hp : q / 2 ^ (depth - D) < 2 ^ D := by

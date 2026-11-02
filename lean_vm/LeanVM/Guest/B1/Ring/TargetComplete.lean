@@ -98,8 +98,8 @@ theorem rst_callSF (σ : Val) : rstPre.filterMap (Stmt.callSF σ) =
 
 /-- The chain's words read through `g^b`. -/
 theorem chain_load {rd : Reader} {s chs : List E} {b : ℕ}
-    (h : ReadsAt rd (ofK (Parameters.gpow b)) (chainWords s chs)) {k : ℕ} (hk : k < 18) :
-    LoadHolds rd (ofK (Parameters.gpow b)) k
+    (h : ReadsAt rd (ofK (Parameters.addressOfIndex b)) (chainWords s chs)) {k : ℕ} (hk : k < 18) :
+    LoadHolds rd (ofK (Parameters.addressOfIndex b)) k
       (if k % 2 = 0 then gen ^ (8 * (k / 2)) else runL s chs (k / 2)) := by
   have := h k (by rw [chainWords_length]; exact hk)
   rwa [chainWords_get] at this
@@ -110,7 +110,8 @@ def l14Lin (bs bm bc : ℕ) (s chs : List E) : Main.Layout := [(bs, s), (bm, chs
 theorem l14_relIn_lin {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length = 64)
     (hc : chs.length = 6) (hL : MemL rd (l14Lin bs bm bc s chs)) :
     coreProgram.RelIn rd (RegionL (l14Lin bs bm bc s chs)) "__loop13"
-      [1, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm), ofK (Parameters.gpow bc)] [] := by
+      [1, ofK (Parameters.addressOfIndex bs), ofK (Parameters.addressOfIndex bm), ofK
+          (Parameters.addressOfIndex bc)] [] := by
   have := l14_relIn hs hc (hL (bs, s) (by simp [l14Lin])) (hL (bm, chs) (by simp [l14Lin]))
     (hL (bc, chainWords s chs) (by simp [l14Lin])) (R := RegionL (l14Lin bs bm bc s chs)) (fun i hi => by
       rcases hi with hi | hi | hi
@@ -127,12 +128,13 @@ pointer, its chain at the bump allocator's position, returning `Σ_i g^i Φ(s_i)
 theorem rst_completeAt (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length = 64)
     (hc : chs.length = 6) :
     CompleteAtD fs cert κ "ring_switch_target" [(bs, s), (bm, chs)]
-      [ofK (Parameters.gpow bs), ofK (Parameters.gpow bm)]
+      [ofK (Parameters.addressOfIndex bs), ofK (Parameters.addressOfIndex bm)]
       (Returns [polyEval (s.map (phiMap · chs)) gen]) := by
   refine completeAt_flatD (fs := fs) (cert := cert) find_rst rst_not_loop κ _ _ _ rst_body' rst_flat
     rst_addrs [18] (fun _ ↦ [chainWords s chs]) (fun _ ↦ by simp [chainWords_length])
-    (fun fp ↦ [⟨"__loop13", true, [1, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm),
-      ofK (Parameters.gpow (fp + fs "ring_switch_target"))], l14Lin bs bm (fp + fs "ring_switch_target") s chs, Returns []⟩])
+    (fun fp ↦ [⟨"__loop13", true, [1, ofK (Parameters.addressOfIndex bs), ofK
+        (Parameters.addressOfIndex bm),
+      ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))], l14Lin bs bm (fp + fs "ring_switch_target") s chs, Returns []⟩])
     ?_ ?_ ?_ ?_
   · -- the loop, placed
     intro fp k hk _
@@ -161,9 +163,9 @@ theorem rst_completeAt (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length 
     · exact hB (fp + fs "ring_switch_target", chainWords s chs) (by simp [bufL, bases])
   · -- the honest valuation
     intro fp outs ho rd _ hB hLin
-    have hsl : ReadsAt rd (ofK (Parameters.gpow bs)) s := hLin (bs, s) (by simp)
-    have hmc : ReadsAt rd (ofK (Parameters.gpow bm)) chs := hLin (bm, chs) (by simp)
-    have hch : ReadsAt rd (ofK (Parameters.gpow (fp + fs "ring_switch_target"))) (chainWords s chs) :=
+    have hsl : ReadsAt rd (ofK (Parameters.addressOfIndex bs)) s := hLin (bs, s) (by simp)
+    have hmc : ReadsAt rd (ofK (Parameters.addressOfIndex bm)) chs := hLin (bm, chs) (by simp)
+    have hch : ReadsAt rd (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))) (chainWords s chs) :=
       hB (fp + fs "ring_switch_target", chainWords s chs) (by simp [bufL, bases])
     rcases outs with _ | ⟨o, _ | ⟨o', os⟩⟩
     · exact absurd ho (by simp [OutsOk])
@@ -173,8 +175,8 @@ theorem rst_completeAt (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length 
     obtain ⟨ho1, -⟩ := ho' rfl
     have hw16 : word 65536 0 0 = gen ^ 16 := by
       rw [show (65536 : ℕ) = 2 ^ 16 from rfl]; exact word_two_pow (by decide)
-    refine ⟨rstσ (ofK (Parameters.gpow bs)) (ofK (Parameters.gpow bm))
-      (ofK (Parameters.gpow (fp + fs "ring_switch_target"))) (polyEval (s.map (phiMap · chs)) gen), rfl, ?_, ?_, ?_, ?_,
+    refine ⟨rstσ (ofK (Parameters.addressOfIndex bs)) (ofK (Parameters.addressOfIndex bm))
+      (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))) (polyEval (s.map (phiMap · chs)) gen), rfl, ?_, ?_, ?_, ?_,
       ?_, ?_⟩
     · intro st hst
       simp only [rstPre, List.mem_cons, List.not_mem_nil, or_false] at hst
@@ -185,16 +187,19 @@ theorem rst_completeAt (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length 
       rcases hst with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
       · trivial
       · rfl
-      · show LoadHolds rd (ofK (Parameters.gpow (fp + fs "ring_switch_target"))) 0 (word 1 0 0)
+      · show LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))) 0
+          (word 1 0 0)
         have := chain_load hch (k := 0) (by norm_num)
         simpa [word_one] using this
       · rfl
-      · show LoadHolds rd (ofK (Parameters.gpow (fp + fs "ring_switch_target"))) 1 (word 0 0 0)
+      · show LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))) 1
+          (word 0 0 0)
         have := chain_load hch (k := 1) (by norm_num)
         simpa [word_zero, runL] using this
       · rfl
-      · show coreProgram.Rel rd "__loop13" [word 1 0 0, ofK (Parameters.gpow bs),
-          ofK (Parameters.gpow bm), ofK (Parameters.gpow (fp + fs "ring_switch_target"))] []
+      · show coreProgram.Rel rd "__loop13" [word 1 0 0, ofK (Parameters.addressOfIndex bs),
+          ofK (Parameters.addressOfIndex bm), ofK (Parameters.addressOfIndex (fp + fs
+              "ring_switch_target"))] []
         rw [word_one]
         exact (l14_relIn_lin hs hc (fun q hq ↦ by
           simp only [l14Lin, List.mem_cons, List.not_mem_nil, or_false] at hq
@@ -204,7 +209,8 @@ theorem rst_completeAt (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length 
           · exact hch)).rel
       · rfl
       · rfl
-      · show LoadHolds rd (ofK (Parameters.gpow (fp + fs "ring_switch_target")) * word 65536 0 0) 1
+      · show LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target")) * word
+          65536 0 0) 1
           (polyEval (s.map (phiMap · chs)) gen)
         rw [hw16, loadHolds_mul_gen_pow, ← runL_eight hs]
         have := chain_load hch (k := 17) (by norm_num)
@@ -213,8 +219,8 @@ theorem rst_completeAt (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length 
     · rw [rst_allocs]; rfl
     · rw [rst_callSF]
       refine ⟨rfl, rfl, fun _ ↦ ⟨?_, ?_⟩, trivial⟩
-      · change [word 1 0 0, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm),
-          ofK (Parameters.gpow (fp + fs "ring_switch_target"))] = _
+      · change [word 1 0 0, ofK (Parameters.addressOfIndex bs), ofK (Parameters.addressOfIndex bm),
+          ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))] = _
         rw [word_one]
       · change [] = o.1
         rw [ho1]
@@ -232,7 +238,7 @@ theorem rst_completeAt (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length 
       · refine ⟨fp + fs "ring_switch_target" + 16 + 1, ?_, Or.inr
           ⟨(fp + fs "ring_switch_target", chainWords s chs), by simp [bufL, bases],
             by simp only [chainWords_length]; omega⟩⟩
-        show (ofK (Parameters.gpow (fp + fs "ring_switch_target")) * word 65536 0 0).limb 0 * Parameters.gpow 1 = _
+        show (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target")) * word 65536 0 0).limb 0 * Parameters.addressOfIndex 1 = _
         rw [hw16, rt_addr_mul]
 
 end

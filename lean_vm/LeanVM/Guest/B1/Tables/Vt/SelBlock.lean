@@ -45,7 +45,8 @@ theorem vt_selblock {rd : Reader} {σ : Val} (h : VtH rd σ) {w b t pos : ℕ} {
   -- the template's facts, uniformly in `t`
   obtain ⟨eqt, gt, heqt, hgt, hd, hl, hq, hrest⟩ : ∃ eqt gt : V,
       σ eqt = σ (.n 2769) * gen ^ (288 * t) ∧ σ gt = σ (.n 2770) * gen ^ (144 * t) ∧
-      (∃ (j : ℕ) (hj : j < vtBstNames.length), σ (.n (vtShLen t)) = ofK (Parameters.gpow j) ∧
+      (∃ (j : ℕ) (hj : j < vtBstNames.length), σ (.n (vtShLen t)) = ofK
+          (Parameters.addressOfIndex j) ∧
         coreProgram.Rel rd vtBstNames[j] [σ (.n (w + 9)), σ eqt, σ gt]
           [σ (.n (vtSelE w t)), σ (.n (vtSelE w t + 1))]) ∧
       LoadHolds rd (σ (.n 185)) b (σ (.n (vtSelE w t + 2))) ∧

@@ -30,7 +30,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol.L
 /-- **The extracted stack has an execution.** On admissible sizes and well-formed bytecode, a
 stack satisfying the leanISA instance's relation reads back to a witness that represents a valid
 execution of the program on the input. -/
-theorem execution_of_extracted {prog : Program} {input : PublicInput}
+theorem execution_of_extracted {prog : LeanIsaProgram} {input : PublicInput}
     {s : Sizes} {q : Column (leanIsaμ prog s)} (hs : s.Admissible prog) (h : M3Holds (leanIsaInstance prog s) input q) :
     ∃ t, AssignmentRepresents (witnessOf prog s q) t ∧ ValidExecution prog input t :=
   constraintSoundness (satisfiedBy_witnessOf prog s q hs h)

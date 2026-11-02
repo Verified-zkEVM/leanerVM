@@ -58,12 +58,12 @@ theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement}
     ∃ fresh, fresh.Holds bytecode ∧
       LeanVM.Guest.AcceptableChild bytecode (deployedSeed guestProgram) ⟨s, fresh, proof⟩ := by
   set d := statementDigest (deployedSeed guestProgram) s with hd
-  have hpd : publicDigest (publicInputOf d) = d := publicDigest_publicInputOf d
+  have hpd : publicInputDigest (publicInputOf d) = d := publicDigest_publicInputOf d
   -- the claim the run evaluates
   have hacc' := hacc
   rw [verifierRZ_eq] at hacc'
   obtain ⟨c, hc, hrz⟩ := runProof_claimed_of_computed_rz keccak256 keccakF1600
-    verifyStackedOpening (bytecodeWords guestProgram) (publicDigest (publicInputOf d)) hacc'
+    verifyStackedOpening (bytecodeWords guestProgram) (publicInputDigest (publicInputOf d)) hacc'
   rw [hpd] at hrz
   have hRZ : Limits.verifyDeferredRefusingZero bytecode (deployedSeed guestProgram) d c proof = true := by
     rw [Limits.verifyDeferredRefusingZero_eq_withHash, deferredProgram_eq]
@@ -75,12 +75,13 @@ theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement}
   obtain ⟨rest, hrest⟩ := stream_prefix keccak256 keccakF1600 hprove
   refine ⟨c, hc, ⟨hsh, hV, ?_, stream_le_of_verifyDeferred hV, ?_, hRZ⟩⟩
   · -- the stack log
-    show ∀ layout r, announced bytecode proof.stream = some (layout, r) → _
+    show ∀ layout r, announcedLayoutAndRate bytecode proof.stream = some (layout, r) → _
     rw [hrest]
     exact muMin_le_announced hchild h22 rest
   · -- the caps
     intro b hb
-    have hle : Prog.Le (deferredProgram c bytecode d) (leanVmProgram bytecode d) := by
+    have hle : VerifierProgram.Le (deferringVerifierProgram c bytecode d) (leanVmVerifierProgram
+        bytecode d) := by
       rw [deferredProgram_eq, leanVmProgram_eq]
       exact .bind (verifyExecution_le (claimed_le_computed hc) d) fun _ ↦ .refl _
     have hb' := queriesOf_le hle hb
@@ -92,7 +93,7 @@ theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement}
     obtain ⟨tt, htt, he⟩ := Option.map_eq_some_iff.mp hprove
     rw [hpd] at htt hacc0
     have hir := inRange_leanVmProgram bytecode d
-    have := queriesOf_proveFrom _ (2 ^ 25) (leanVmProgram bytecode d) [] _ tt.1 tt.2 [] []
+    have := queriesOf_proveFrom _ (2 ^ 25) (leanVmVerifierProgram bytecode d) [] _ tt.1 tt.2 [] []
       hacc0 (by simp [commits]) (by simpa [commits] using hir) htt b
     obtain ⟨ht, word, ps, rfl, hps⟩ := this (by
       have e : proof = ⟨tt.1, tt.2⟩ := he.symm

@@ -83,7 +83,7 @@ structure VsSig {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs b
     (bs : List ℕ) (sqE : ℕ) (outs : List (List E × Main.Layout)) (args : List E) (σ : Val) :
     Prop where
   par : ∀ i < 7, σ (.n i) = args.getD i 0
-  ptr : ∀ i < 16, σ (.n (vsAllocVars.getD i 0)) = ofK (gpow (vb bs i))
+  ptr : ∀ i < 16, σ (.n (vsAllocVars.getD i 0)) = ofK (addressOfIndex (vb bs i))
   ret : ∀ j < 13, ∀ k < (vsRetVars.getD j []).length,
     σ (.n ((vsRetVars.getD j []).getD k 0)) = (outs.getD j ([], [])).1.getD k 0
   e112 : σ (.n 112) = eOfNat S.rate
@@ -93,29 +93,30 @@ structure VsSig {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs b
   e547 : σ (.n 547) = S.x1
   e825 : [σ (.n 825), σ (.n 826), σ (.n 827), σ (.n 828), σ (.n 829)] = S.capS
   e836 : σ (.n 836) = S.β
-  e838 : σ (.n 838) = ofK (gpow (vcG bs))
+  e838 : σ (.n 838) = ofK (addressOfIndex (vcG bs))
   e858 : σ (.n 858) = gen ^ S.τ
-  e862 : σ (.n 862) = ofK (gpow (vb bs 0 + 110))
+  e862 : σ (.n 862) = ofK (addressOfIndex (vb bs 0 + 110))
   e1312 : [σ (.n 1312), σ (.n 1313), σ (.n 1314), σ (.n 1315), σ (.n 1316)] = capOf S.s8.perm
   e1884 : σ (.n 1884) = S.lam ^ 141
   e1886 : σ (.n 1886) = S.target
   e1901 : σ (.n 1901) = gen ^ B1.Whir.candidate S.μs S.rate
-  push : ∀ b < 54, ∃ k < 34, σ (.n (vsPushPtr b)) = ofK (gpow (sqE + k))
+  push : ∀ b < 54, ∃ k < 34, σ (.n (vsPushPtr b)) = ofK (addressOfIndex (sqE + k))
 
 variable {rd : Reader} {args : List E}
 
 /-- **The honest valuation holds `VsSig`**, with the section data. -/
 theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest} {c : Child}
     (S : ChildSegs bytecode seed c) {lpE sqE outE : ℕ}
-    (hargs : args = [(digestScalars (statementDigest seed c.statement)).1,
-      (digestScalars (statementDigest seed c.statement)).2, (digestScalars seed).1,
-      (digestScalars seed).2, ofK (gpow lpE), ofK (gpow sqE), ofK (gpow outE)])
+    (hargs : args = [(digestHalves (statementDigest seed c.statement)).1,
+      (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
+      (digestHalves seed).2, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE), ofK (addressOfIndex
+          outE)])
     (bs : List ℕ) (outs : List (List E × Main.Layout)) (O : VsOuts S bs lpE sqE outs) {κ : ℕ}
     (hκ : 16 ≤ κ) (hlow : LowDef κ rd)
-    (hmem : ∀ i < 16, ReadsAt rd (ofK (gpow (bs.getD i 0))) (S.ownW.getD i []))
-    (hlp : ReadsAt rd (ofK (gpow lpE)) ((List.range 34).map fun j ↦ eOfNat (2 ^ j)))
-    (hsq : ReadsAt rd (ofK (gpow sqE)) Tables.gSquaresList)
-    (hfx : ReadsAt rd (ofK (gpow outE)) (DeferredClaim.cells c.freshClaim)) :
+    (hmem : ∀ i < 16, ReadsAt rd (ofK (addressOfIndex (bs.getD i 0))) (S.ownW.getD i []))
+    (hlp : ReadsAt rd (ofK (addressOfIndex lpE)) ((List.range 34).map fun j ↦ eOfNat (2 ^ j)))
+    (hsq : ReadsAt rd (ofK (addressOfIndex sqE)) Tables.gSquaresList)
+    (hfx : ReadsAt rd (ofK (addressOfIndex outE)) (DeferredClaim.cells c.freshClaim)) :
     Nonempty (VsSecData rd (vsW bs outs) args) ∧
       VsSig S bs sqE outs args (vsσ rd (vsW bs outs) args) := by
   have hl : args.length = 7 := by rw [hargs]; rfl
@@ -150,9 +151,9 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
   have hL := vsH_lam (rd := rd) (w := vsW bs outs) hl D.hcap966
   obtain ⟨K7, hK7⟩ := S.s7_capOf hbl
   generalize vsσ rd (vsW bs outs) args = σ at *
-  have p7 : σ (.n 7) = ofK (gpow (vb bs 0)) := ptr 0 (by norm_num)
-  have p27 : σ (.n 27) = ofK (gpow (vb bs 2)) := ptr 2 (by norm_num)
-  have e5 : σ (.n 5) = ofK (gpow sqE) := by rw [par 5 (by norm_num), hargs]; rfl
+  have p7 : σ (.n 7) = ofK (addressOfIndex (vb bs 0)) := ptr 0 (by norm_num)
+  have p27 : σ (.n 27) = ofK (addressOfIndex (vb bs 2)) := ptr 2 (by norm_num)
+  have e5 : σ (.n 5) = ofK (addressOfIndex sqE) := by rw [par 5 (by norm_num), hargs]; rfl
   have e1303 : σ (.n 1303) = polyEval (S.slices.map (phiMap · S.rchs)) gen := by
     have := ret 8 (by norm_num) 0 (by decide); rw [O.o8] at this; exact this
   have e869 : σ (.n 869) = S.word := by

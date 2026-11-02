@@ -110,7 +110,7 @@ returns, whichever interpolation computes it.
 
 **Where it was.** This file and the transcript's extractor were the trusted statement's
 (`Statement/Extractor.lean`, `Statement/LeanVm.lean`) until the end statement took the extractor
-as a cost-machine program within a size bound and a budget (`LeanVM.knowledgeExtractorOf`,
+as a cost-machine program within a size bound and a budget (`LeanVM.extractorComputedBy`,
 `Statement/CostMachine.lean`): moved here verbatim, but for the address indices and the public
 boundary (`powIndex`, `gLogIn`, `stepIn`, `boundaryOK`, `Statement/Prover/Witness.lean`), which
 the statement keeps for the honest prover. The budget reads the announced shape off the stream
@@ -155,8 +155,8 @@ open CompPoly CompPoly.GuruswamiSudan CompPoly.CPolynomial.Roots.FiniteField
 
 /-- `verify_execution`'s steps 1 and 2 (`verifier.py:1467-1478`): read the announced sizes, then
 the stack's root; the layout and the WHIR rate exponent. -/
-def announceSizesAndRoot (bytecode : List K) : Prog (Layout × ℕ) := do
-  let (layout, logInverseRate) ← readSizes bytecode
+def announceSizesAndRoot (bytecode : List K) : VerifierProgram (Layout × ℕ) := do
+  let (layout, logInverseRate) ← readAnnouncedSizes bytecode
   commitStack layout.stackLog logInverseRate
   return (layout, logInverseRate)
 
@@ -164,7 +164,7 @@ def announceSizesAndRoot (bytecode : List K) : Prog (Layout × ℕ) := do
 exponent, and the state, whose first root is the stack's; `none` if the steps reject. The layout
 and the rate are the ones the stream announces (`announced`, which the statement's budget reads):
 `LeanVM.Extraction.Fast.announced_of_afterRoot`. -/
-def afterRoot (bytecode : List K) (π : Proof) : Option ((Layout × ℕ) × ProgState) :=
+def afterRoot (bytecode : List K) (π : Proof) : Option ((Layout × ℕ) × VerifierProgramState) :=
   runPure (announceSizesAndRoot bytecode) ⟨⟨default, []⟩, π.stream, π.openings, []⟩
 
 /-! ### 2. The committed word -/
@@ -720,7 +720,7 @@ def memoryImage (layout : Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) : MemoryIma
 /-- The halting search from `r`, reached after `n` steps, with at most `fuel` more steps: `some m`
 when the run is in the final state after `m` steps in all; `none` if a step fails or the fuel runs
 out first. -/
-def haltLoop (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) {κ : ℕ}
+def haltLoop (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram) {κ : ℕ}
     (L : MemoryImage κ) : ℕ → ℕ → Registers K → Option ℕ
   | 0, n, r => if r = Registers.final prog then some n else none
   | fuel + 1, n, r =>
@@ -732,7 +732,7 @@ def haltLoop (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) {κ : �
 
 /-- The image, run from the initial state `(pcInitial, fpInitial)` for the least number `n ≤ cap`
 of steps after which it is in the final state `(pcFinal, fpFinal)`, if any. -/
-def haltingRunIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) {κ : ℕ}
+def haltingRunIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram) {κ : ℕ}
     (image : MemoryImage κ) (cap : ℕ) : Option (Execution prog) :=
   (haltLoop memIdx codeIdx prog image cap 0 Registers.initial).map fun n ↦ ⟨κ, image, n⟩
 
@@ -745,7 +745,7 @@ def stepCap (layout : Layout) : ℕ :=
 /-- **The execution of a stack**: the halting run of its memory image within the layout's step
 cap, if it has the public boundary of `input`; `memIdx` and `codeIdx` index the memory's and the
 bytecode's addresses. -/
-def candidateExecutionIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program)
+def candidateExecutionIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram)
     (input : PublicInput) (layout : Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) :
       Option (Execution prog) :=
   (haltingRunIn memIdx codeIdx prog (memoryImage layout q) (stepCap layout)).filter
@@ -759,7 +759,7 @@ them: the announced layout, rate exponent and stack root (`afterRoot`), the word
 to (`committedLeaves`), and the execution of the first decoded stack (the fast path's, then the
 list decoder's) that has one; `none` otherwise. The leaves and the two address indices are
 computed once, for every stack. -/
-def extract (prog : Program) (input : PublicInput) (bytecode : List K)
+def extract (prog : LeanIsaProgram) (input : PublicInput) (bytecode : List K)
     (answers : Bytes → Option Digest) (keys : List Bytes) (π : Proof) : Option (Execution prog) :=
       do
   let ((layout, logInverseRate), state) ← afterRoot bytecode π
@@ -839,7 +839,7 @@ transcript and the proof, an execution of the program: the extractor of `Extract
 (`LeanVM.Extraction.extract`) on the Keccak-256 evaluations of the transcript's permutation queries
 (`lookupEvaluation (keccakEvaluationsOfTranscript (permutationQueries T))`), the byte strings they
 answer being those of the transcript's paths. The paths are computed once. -/
-def transcriptExtractor (prog : Program) (input : PublicInput) (T : OracleQueryLog)
+def transcriptExtractor (prog : LeanIsaProgram) (input : PublicInput) (T : OracleQueryLog)
     (proof : Proof) : Option (Execution prog) :=
   let paths := keccakEvaluationsOfTranscript (permutationQueries T)
   Extraction.extract prog input (bytecodeWords prog) (lookupEvaluation paths)

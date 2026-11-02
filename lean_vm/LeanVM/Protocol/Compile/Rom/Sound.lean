@@ -17,7 +17,7 @@ public import LeanVM.Protocol.WithHash
 /-!
 # The random-oracle theorem of the compiled verifier
 
-Let `P : Prog Bool` be a verifier program (`LeanVM.Protocol.Compile.Prog`) with a doom
+Let `P : Prog Bool` be a verifier program (`LeanVM.Protocol.Compile.VerifierProgram`) with a doom
 certificate `C : Cert P`, and `σ : Seeds X` a family of seedings of the Fiat-Shamir sponge, one
 per statement `x : X`, each with the root history `σ.root x` at which its seed puts `P`. The
 verifier of a statement and a proof (`verifierFam σ P`, `LeanVM.Protocol.Compile.Rom.Bridge`)
@@ -98,14 +98,14 @@ noncomputable def failBound {X : Type} (σ : Seeds X) (N : ℕ) : ℝ≥0∞ :=
 
 /-- Some boundary prefix, past the statement's root, of the extracted history of the verifier's
 run on the statement and proof `z`, under the answers of the cache `c`, is doomed. -/
-def Doomed {X : Type} {P : Prog Bool} (C : Cert P) (σ : Seeds X) (z : X × Proof)
+def Doomed {X : Type} {P : VerifierProgram Bool} (C : Cert P) (σ : Seeds X) (z : X × Proof)
     (c : KeccakCalls.QueryCache) : Prop :=
   ∃ h₀, h₀ <+: extractedFrom (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s)) (σ.seed z.1)
       (nodeAt P (σ.root z.1)) (σ.root z.1) z.2 ∧
     (σ.root z.1).length ≤ h₀.length ∧ Boundary h₀ ∧ C.D h₀
 
 /-- The seeded verifier always queries an oracle: it makes at least one query. -/
-theorem not_isTotalQueryBound_verifierComp_zero (σ₀ : Seed) (P : Prog Bool) (π : Proof) :
+theorem not_isTotalQueryBound_verifierComp_zero (σ₀ : Seed) (P : VerifierProgram Bool) (π : Proof) :
     ¬ IsTotalQueryBound (verifierComp σ₀ P π) 0 := by
   unfold verifierComp verify Seed.run
   rcases hs : σ₀.hs with _ | ⟨f, fs⟩
@@ -116,7 +116,8 @@ theorem not_isTotalQueryBound_verifierComp_zero (σ₀ : Seed) (P : Prog Bool) (
 
 /-- **The step inequality, packaged for the engine**: below `N` entries, a fresh answer to either
 oracle raises the potential by at most `εmax + failBound σ N` in expectation. -/
-theorem pot_logStepBelow {X : Type} {P : Prog Bool} (C : Cert P) (σ : Seeds X) {εmax : ℝ≥0∞}
+theorem pot_logStepBelow {X : Type} {P : VerifierProgram Bool} (C : Cert P) (σ : Seeds X) {εmax
+    : ℝ≥0∞}
     (hε : ∀ h, (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) (N : ℕ) :
     LogStepBelow N (pot C.D σ P) (εmax + failBound σ N) := by
   refine ⟨fun ℓ x hℓ _ ↦ ?_, fun ℓ s hℓ hs ↦ ?_⟩
@@ -133,7 +134,7 @@ theorem pot_logStepBelow {X : Type} {P : Prog Bool} (C : Cert P) (σ : Seeds X) 
 
 /-- **The random-oracle theorem for an event of the log that implies doom** on accepted proofs
 without failure, the bad event read off the ordered log. -/
-theorem romSound_log {X : Type} (P : Prog Bool) (C : Cert P) (σ : Seeds X)
+theorem romSound_log {X : Type} (P : VerifierProgram Bool) (C : Cert P) (σ : Seeds X)
     (hroot : ∀ x, RootOk P (σ.root x)) (εmax : ℝ≥0∞)
     (hε : ∀ h, (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax)
     (A : OracleComp KeccakCalls (X × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA)
@@ -171,7 +172,7 @@ theorem romSound_log {X : Type} (P : Prog Bool) (C : Cert P) (σ : Seeds X)
 proof the statement's seeded verifier accepts with the queries answered by the cache, the event
 `bad` implies that a boundary prefix of the extracted history is doomed, the probability that the
 verifier accepts while `bad` holds is at most `romSound`'s bound. -/
-theorem romSound_of_imp {X : Type} (P : Prog Bool) (C : Cert P) (σ : Seeds X)
+theorem romSound_of_imp {X : Type} (P : VerifierProgram Bool) (C : Cert P) (σ : Seeds X)
     (hroot : ∀ x, RootOk P (σ.root x)) (εmax : ℝ≥0∞)
     (hε : ∀ h, (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax)
     (A : OracleComp KeccakCalls (X × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA)
@@ -193,7 +194,7 @@ at most `QV` queries on every statement and proof, the probability that the veri
 while some boundary prefix of its extracted history is doomed is at most
 `(QA + QV) · (εmax + failBound σ (QA + QV))`, where `εmax` bounds every escape bound of the
 certificate discounted by the proof of work before it. -/
-theorem romSound {X : Type} (P : Prog Bool) (C : Cert P) (σ : Seeds X)
+theorem romSound {X : Type} (P : VerifierProgram Bool) (C : Cert P) (σ : Seeds X)
     (hroot : ∀ x, RootOk P (σ.root x)) (εmax : ℝ≥0∞)
     (hε : ∀ h, (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax)
     (A : OracleComp KeccakCalls (X × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA)

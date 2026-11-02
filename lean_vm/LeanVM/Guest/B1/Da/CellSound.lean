@@ -26,7 +26,7 @@ theorem da_verify_cell_val {C : CallRel} {rd : Reader} {σ : Val} {args rets : L
     (hb : Stmt.HoldsList C rd σ (Fn.body Data.core27) False (fun rs => rs = rets)) :
     ∃ lv, args = [lv] ∧ (cellSymsOf σ).length = LeanDa.cellSymbols ∧
       ReadsAt rd lv (memRun rd lv 256) ∧ (memRun rd lv 256).length = LeanDa.cellSymbols ∧
-      rets = digestCells (keccak256 ((cellSymsOf σ).flatMap kBytes)) ++
+      rets = digestCells (keccak256 ((cellSymsOf σ).flatMap K.toBytes)) ++
         [((List.range LeanDa.cellSymbols).map fun e ↦
           (memRun rd lv 256).getD e 0 * ofK ((cellSymsOf σ).getD e 0)).sum] := by
   have hok := cell_ok
@@ -74,7 +74,7 @@ theorem da_verify_cell_val {C : CallRel} {rd : Reader} {σ : Val} {args rets : L
         rfl
       rw [hv] at hd
       have hb : cellsBytes ((List.range 128).map fun e => σ (.n (packV e))) =
-          (cellSymsOf σ).flatMap kBytes := by
+          (cellSymsOf σ).flatMap K.toBytes := by
         rw [cellSymsOf, show (256 : ℕ) = 2 * 128 from rfl, flatMap_pairs, cellsBytes, List.flatMap_map]
         refine List.flatMap_congr fun e he => ?_
         have hp := (blk_sound (List.mem_range.mp he) htmpl).2.2.1

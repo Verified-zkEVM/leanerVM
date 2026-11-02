@@ -15,9 +15,9 @@ namespace LeanVMTests.Prover.Witness
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Prover
 
 /-- `SET [g^2] = 5`, then the last slot. -/
-def toyProg : Program :=
-  ⟨1, by decide, fun i ↦ if i.val = 0 then .setConstant (gpow 2) (E.ofLimbs (K.ofBits 5) 0 0)
-    else .setConstant (gpow 3) 0⟩
+def toyProg : LeanIsaProgram :=
+  ⟨1, by decide, fun i ↦ if i.val = 0 then .setConstant (addressOfIndex 2) (E.ofLimbs (K.ofBits 5) 0 0)
+    else .setConstant (addressOfIndex 3) 0⟩
 
 /-- The zero public input. -/
 def toyInput : PublicInput := ⟨fun _ ↦ 0⟩

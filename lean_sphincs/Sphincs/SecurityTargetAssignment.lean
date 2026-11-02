@@ -16,7 +16,7 @@ open Concrete Completeness
 attribute [local instance] Classical.propDecidable
 
 def atFields (parameter : PublicParameter) (input : HashInput) (fields : TweakFields) : Prop :=
-  ∃ payload, input = bytesLE 16 parameter ++ fieldBytes fields ++ payload
+  ∃ payload, input = littleEndianBytes 16 parameter ++ addressBytes fields ++ payload
 
 theorem atFields_unique (parameter : PublicParameter) (input : HashInput)
     {left right : TweakFields} (hl : atFields parameter input left)

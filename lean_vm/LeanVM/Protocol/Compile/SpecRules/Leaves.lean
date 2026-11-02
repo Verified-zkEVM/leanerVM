@@ -34,7 +34,7 @@ return.
 
 namespace LeanVM.Protocol.Compile
 
-open LeanVM.Parameters Prog
+open LeanVM.Parameters VerifierProgram
 
 @[expose] public section
 
@@ -42,12 +42,13 @@ variable {α : Type}
 
 /-! ## Expectations over the remaining challenges -/
 
-namespace Prog
+namespace VerifierProgram
 
 /-- The expectation of `g` at the return, over the challenges up to the first prover move:
 `g a h` at a return of `a` after the whole history `h`, `0` at a rejection, a prover move, or an
 opening of a missing commitment. -/
-noncomputable def retExp (g : α → List Ev → ENNReal) (h₀ : List Ev) : List Ev → Prog α → ENNReal
+noncomputable def retExp (g : α → List Ev → ENNReal) (h₀ : List Ev) : List Ev → VerifierProgram α →
+    ENNReal
   | l, sample k => (Fintype.card E : ENNReal)⁻¹ * ∑ c : E, retExp g h₀ (l ++ [Ev.sample c]) (k c)
   | l, query i ps k => match answer (h₀ ++ l) i ps with
     | some rows => retExp g h₀ (l ++ [Ev.query rows]) (k rows)
@@ -57,13 +58,14 @@ noncomputable def retExp (g : α → List Ev → ENNReal) (h₀ : List Ev) : Lis
 
 open Classical in
 /-- The probability, over the remaining challenges, of a return breaking `Post`. -/
-noncomputable def escRet (Post : α → List Ev → Prop) (h₀ : List Ev) (l : List Ev) (q : Prog α) :
+noncomputable def escRet (Post : α → List Ev → Prop) (h₀ : List Ev) (l : List Ev) (q :
+    VerifierProgram α) :
     ENNReal :=
   retExp (fun a h ↦ if Post a h then 0 else 1) h₀ l q
 
 /-- An expectation of a function into `[0, 1]` is at most `1`. -/
 theorem retExp_le_one {g : α → List Ev → ENNReal} (hg : ∀ a h, g a h ≤ 1) (h₀ : List Ev) :
-    ∀ (q : Prog α) (l : List Ev), retExp g h₀ l q ≤ 1
+    ∀ (q : VerifierProgram α) (l : List Ev), retExp g h₀ l q ≤ 1
   | ret a, l => by simpa [retExp] using hg a _
   | fail, l => by simp [retExp]
   | read k, l => by simp [retExp]
@@ -88,7 +90,7 @@ theorem avg_add_const (g : E → ENNReal) (T : ENNReal) :
 /-- An expectation of `g ≤ g' + T` is at most that of `g'` plus `T`. -/
 theorem retExp_le_add {g g' : α → List Ev → ENNReal} {T : ENNReal}
     (hg : ∀ a h, g a h ≤ g' a h + T) (h₀ : List Ev) :
-    ∀ (q : Prog α) (l : List Ev), retExp g h₀ l q ≤ retExp g' h₀ l q + T
+    ∀ (q : VerifierProgram α) (l : List Ev), retExp g h₀ l q ≤ retExp g' h₀ l q + T
   | ret a, l => by simpa [retExp] using hg a _
   | fail, l => by simp [retExp]
   | read k, l => by simp [retExp]
@@ -105,7 +107,7 @@ theorem retExp_le_add {g g' : α → List Ev → ENNReal} {T : ENNReal}
     · exact retExp_le_add hg h₀ _ _
     · simp
 
-end Prog
+end VerifierProgram
 
 namespace Spec
 
@@ -119,7 +121,8 @@ private theorem reach_ret {a : α} {h₀ l : List Ev} (hl : (ret a).Reach h₀ l
   | read _ _ ha ih | sample _ _ ha ih | grind _ ha ih | commit _ _ ha _ ih | query _ ha _ ih =>
     subst ih; simp [after] at ha
 
-private theorem reach_fail {h₀ l : List Ev} (hl : (fail : Prog α).Reach h₀ l) : l = [] := by
+private theorem reach_fail {h₀ l : List Ev} (hl : (fail : VerifierProgram α).Reach h₀ l) : l =
+    [] := by
   induction hl with
   | nil => rfl
   | read _ _ ha ih | sample _ _ ha ih | grind _ ha ih | commit _ _ ha _ ih | query _ ha _ ih =>
@@ -127,7 +130,7 @@ private theorem reach_fail {h₀ l : List Ev} (hl : (fail : Prog α).Reach h₀ 
 
 open Classical in
 /-- **Return**: the postcondition must hold at the start; the lead is the follower's. -/
-noncomputable def ret (a : α) : Spec (Prog.ret a) (Post a) Post εmax T T where
+noncomputable def ret (a : α) : Spec (VerifierProgram.ret a) (Post a) Post εmax T T where
   D h₀ _ := Post a h₀
   V h₀ _ := if Post a h₀ then min 1 T else 1
   le_one _ _ := by split_ifs <;> simp
@@ -145,11 +148,11 @@ noncomputable def ret (a : α) : Spec (Prog.ret a) (Post a) Post εmax T T where
   retDoom := by intro _ _ _ _ _ hD; simp [hD]
   post := by
     intro _ _ _ hl ha hD; obtain rfl := reach_ret hl
-    simp only [after, Option.some.injEq, Prog.ret.injEq] at ha; subst ha; simpa using hD
+    simp only [after, Option.some.injEq, VerifierProgram.ret.injEq] at ha; subst ha; simpa using hD
   bound := by intro _ _ hl hne; exact absurd (reach_ret hl) hne
 
 /-- **Rejection**: anything, with lead `0`. -/
-def fail : Spec (Prog.fail : Prog α) Pre Post εmax 0 T where
+def fail : Spec (VerifierProgram.fail : VerifierProgram α) Pre Post εmax 0 T where
   D _ _ := True
   V _ _ := 0
   le_one _ _ := zero_le_one
@@ -184,7 +187,7 @@ open Classical in
 follower's lead. -/
 noncomputable def readE {Post : E → List Ev → Prop}
     (h : ∀ h₀ x, Pre h₀ → Post x (h₀ ++ [Ev.read x])) (hT : T ≤ εmax) :
-    Spec Prog.readScalar Pre Post εmax 0 T where
+    Spec VerifierProgram.readScalar Pre Post εmax 0 T where
   D h₀ l := match l with
     | [] => Pre h₀
     | [Ev.read x] => Post x (h₀ ++ [Ev.read x])
@@ -204,38 +207,39 @@ noncomputable def readE {Post : E → List Ev → Prop}
     intro h₀ l k x hl ha hD
     rcases reach_readE hl with rfl | ⟨y, rfl⟩
     · exact h h₀ x hD
-    · simp [Prog.readScalar, after] at ha
+    · simp [VerifierProgram.readScalar, after] at ha
   grind := by
     intro _ _ _ _ hl ha
-    rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.readScalar, after] at ha
+    rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [VerifierProgram.readScalar, after] at ha
   commit := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.readScalar, after] at ha
+    rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [VerifierProgram.readScalar, after] at ha
   sample := by
-    intro _ _ _ hl ha; rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.readScalar, after] at ha
+    intro _ _ _ hl ha; rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [VerifierProgram.readScalar, after] at ha
   query := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.readScalar, after] at ha
+    rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [VerifierProgram.readScalar, after] at ha
   moveEnd := by
     intro h₀ l q hl ha hm hD
     rcases reach_readE hl with rfl | ⟨y, rfl⟩
     · simp [hD]
-    · simp only [Prog.readScalar, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
+    · simp only [VerifierProgram.readScalar, after, Option.some.injEq] at ha; subst ha; simp
+        [IsMove] at hm
   retEnd := by
     intro h₀ l a hl ha hD
     rcases reach_readE hl with rfl | ⟨y, rfl⟩
-    · simp [Prog.readScalar, after] at ha
+    · simp [VerifierProgram.readScalar, after] at ha
     · simp only at hD ⊢; simp [hD]
   retDoom := by
     intro h₀ l a hl ha hD
     rcases reach_readE hl with rfl | ⟨y, rfl⟩
-    · simp [Prog.readScalar, after] at ha
+    · simp [VerifierProgram.readScalar, after] at ha
     · simp only at hD ⊢; simp [hD]
   post := by
     intro h₀ l a hl ha hD
     rcases reach_readE hl with rfl | ⟨y, rfl⟩
-    · simp [Prog.readScalar, after] at ha
-    · simp only [Prog.readScalar, after, Option.some.injEq, Prog.ret.injEq] at ha; subst ha; exact hD
+    · simp [VerifierProgram.readScalar, after] at ha
+    · simp only [VerifierProgram.readScalar, after, Option.some.injEq, VerifierProgram.ret.injEq] at ha; subst ha; exact hD
   bound := by
     intro h₀ l hl hne hm hD
     rcases reach_readE hl with rfl | ⟨y, rfl⟩
@@ -250,7 +254,7 @@ private theorem reach_commitP {ht w : ℕ} {h₀ l : List Ev} (hl : (readCommitm
   | nil => exact .inl rfl
   | commit word _ ha hw ih =>
     rcases ih with rfl | ⟨y, -, rfl⟩
-    · simp only [readCommitment, after, Option.some.injEq, Prog.commit.injEq] at ha
+    · simp only [readCommitment, after, Option.some.injEq, VerifierProgram.commit.injEq] at ha
       obtain ⟨rfl, rfl, -⟩ := ha
       exact .inr ⟨word, hw, rfl⟩
     · simp [readCommitment, after] at ha
@@ -262,7 +266,7 @@ open Classical in
 carries the follower's lead. -/
 noncomputable def commitP {Post : Unit → List Ev → Prop} (ht w : ℕ)
     (h : ∀ h₀ word, Pre h₀ → WellShaped w word → Post () (h₀ ++ [Ev.commit ht w word]))
-    (hT : T ≤ εmax) : Spec (Prog.readCommitment ht w) Pre Post εmax 0 T where
+    (hT : T ≤ εmax) : Spec (VerifierProgram.readCommitment ht w) Pre Post εmax 0 T where
   D h₀ l := match l with
     | [] => Pre h₀
     | [e] => Post () (h₀ ++ [e])
@@ -280,43 +284,48 @@ noncomputable def commitP {Post : Unit → List Ev → Prop} (ht w : ℕ)
   start_V _ h := by simp [h]
   read := by
     intro _ _ _ _ hl ha
-    rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.readCommitment, after] at ha
+    rcases reach_commitP hl with
+        rfl | ⟨y, -, rfl⟩ <;> simp [VerifierProgram.readCommitment, after] at ha
   grind := by
     intro _ _ _ _ hl ha
-    rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.readCommitment, after] at ha
+    rcases reach_commitP hl with
+        rfl | ⟨y, -, rfl⟩ <;> simp [VerifierProgram.readCommitment, after] at ha
   commit := by
     intro h₀ l ht' w' k word hl ha hw hD
     rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩
-    · simp only [Prog.readCommitment, after, Option.some.injEq, Prog.commit.injEq] at ha
+    · simp only [VerifierProgram.readCommitment, after, Option.some.injEq,
+        VerifierProgram.commit.injEq] at ha
       obtain ⟨rfl, rfl, -⟩ := ha
       exact h h₀ word hD hw
-    · simp [Prog.readCommitment, after] at ha
+    · simp [VerifierProgram.readCommitment, after] at ha
   sample := by
     intro _ _ _ hl ha
-    rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.readCommitment, after] at ha
+    rcases reach_commitP hl with
+        rfl | ⟨y, -, rfl⟩ <;> simp [VerifierProgram.readCommitment, after] at ha
   query := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.readCommitment, after] at ha
+    rcases reach_commitP hl with
+        rfl | ⟨y, -, rfl⟩ <;> simp [VerifierProgram.readCommitment, after] at ha
   moveEnd := by
     intro h₀ l q hl ha hm hD
     rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩
     · simp [hD]
-    · simp [Prog.readCommitment, after] at ha; subst ha
+    · simp [VerifierProgram.readCommitment, after] at ha; subst ha
       simp [IsMove] at hm
   retEnd := by
     intro h₀ l a hl ha hD
     rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩
-    · simp [Prog.readCommitment, after] at ha
+    · simp [VerifierProgram.readCommitment, after] at ha
     · simp only at hD ⊢; simp [hD]
   retDoom := by
     intro h₀ l a hl ha hD
     rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩
-    · simp [Prog.readCommitment, after] at ha
+    · simp [VerifierProgram.readCommitment, after] at ha
     · simp only at hD ⊢; simp [hD]
   post := by
     intro h₀ l a hl ha hD
     rcases reach_commitP hl with rfl | ⟨y, -, rfl⟩
-    · simp [Prog.readCommitment, after] at ha
+    · simp [VerifierProgram.readCommitment, after] at ha
     · exact hD
   bound := by
     intro h₀ l hl hne hm hD
@@ -332,7 +341,7 @@ private theorem reach_grindP {b : ℕ} {h₀ l : List Ev} (hl : (grindProofOfWor
   | nil => exact .inl rfl
   | grind _ ha ih =>
     rcases ih with rfl | rfl
-    · simp only [grindProofOfWork, after, Option.some.injEq, Prog.grind.injEq] at ha
+    · simp only [grindProofOfWork, after, Option.some.injEq, VerifierProgram.grind.injEq] at ha
       obtain ⟨rfl, -⟩ := ha
       exact .inr rfl
     · simp [grindProofOfWork, after] at ha
@@ -344,7 +353,8 @@ open Classical in
 lead discounted by `2⁻¹ ^ b`. -/
 noncomputable def grindP {Post : Unit → List Ev → Prop} (b : ℕ)
     (h : ∀ h₀, Pre h₀ → Post () (h₀ ++ [Ev.grind b]))
-    (hT : (2 : ENNReal)⁻¹ ^ b * T ≤ εmax) : Spec (Prog.grindProofOfWork b) Pre Post εmax 0 T where
+    (hT : (2 : ENNReal)⁻¹ ^ b * T ≤ εmax) : Spec (VerifierProgram.grindProofOfWork b) Pre Post εmax
+        0 T where
   D h₀ l := match l with
     | [] => Pre h₀
     | [e] => Post () (h₀ ++ [e])
@@ -361,41 +371,42 @@ noncomputable def grindP {Post : Unit → List Ev → Prop} (b : ℕ)
   start_D _ h := h
   start_V _ h := by simp [h]
   read := by
-    intro _ _ _ _ hl ha; rcases reach_grindP hl with rfl | rfl <;> simp [Prog.grindProofOfWork, after] at ha
+    intro _ _ _ _ hl ha; rcases reach_grindP hl with rfl | rfl <;> simp [VerifierProgram.grindProofOfWork, after] at ha
   grind := by
     intro h₀ l b' k hl ha hD
     rcases reach_grindP hl with rfl | rfl
-    · simp only [Prog.grindProofOfWork, after, Option.some.injEq, Prog.grind.injEq] at ha
+    · simp only [VerifierProgram.grindProofOfWork, after, Option.some.injEq,
+        VerifierProgram.grind.injEq] at ha
       obtain ⟨rfl, -⟩ := ha
       exact h h₀ hD
-    · simp [Prog.grindProofOfWork, after] at ha
+    · simp [VerifierProgram.grindProofOfWork, after] at ha
   commit := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_grindP hl with rfl | rfl <;> simp [Prog.grindProofOfWork, after] at ha
+    rcases reach_grindP hl with rfl | rfl <;> simp [VerifierProgram.grindProofOfWork, after] at ha
   sample := by
-    intro _ _ _ hl ha; rcases reach_grindP hl with rfl | rfl <;> simp [Prog.grindProofOfWork, after] at ha
+    intro _ _ _ hl ha; rcases reach_grindP hl with rfl | rfl <;> simp [VerifierProgram.grindProofOfWork, after] at ha
   query := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_grindP hl with rfl | rfl <;> simp [Prog.grindProofOfWork, after] at ha
+    rcases reach_grindP hl with rfl | rfl <;> simp [VerifierProgram.grindProofOfWork, after] at ha
   moveEnd := by
     intro h₀ l q hl ha hm hD
     rcases reach_grindP hl with rfl | rfl
     · simp [hD]
-    · simp [Prog.grindProofOfWork, after] at ha; subst ha; simp [IsMove] at hm
+    · simp [VerifierProgram.grindProofOfWork, after] at ha; subst ha; simp [IsMove] at hm
   retEnd := by
     intro h₀ l a hl ha hD
     rcases reach_grindP hl with rfl | rfl
-    · simp [Prog.grindProofOfWork, after] at ha
+    · simp [VerifierProgram.grindProofOfWork, after] at ha
     · simp only at hD ⊢; simp [hD]
   retDoom := by
     intro h₀ l a hl ha hD
     rcases reach_grindP hl with rfl | rfl
-    · simp [Prog.grindProofOfWork, after] at ha
+    · simp [VerifierProgram.grindProofOfWork, after] at ha
     · simp only at hD ⊢; simp [hD]
   post := by
     intro h₀ l a hl ha hD
     rcases reach_grindP hl with rfl | rfl
-    · simp [Prog.grindProofOfWork, after] at ha
+    · simp [VerifierProgram.grindProofOfWork, after] at ha
     · exact hD
   bound := by
     intro h₀ l hl hne hm hD
@@ -441,7 +452,7 @@ open Classical in
 noncomputable def sampleE {Post : E → List Ev → Prop} (e : ENNReal)
     (h : ∀ h₀, Pre h₀ → (Fintype.card E : ENNReal)⁻¹ *
       ((Finset.univ.filter fun c ↦ ¬ Post c (h₀ ++ [Ev.sample c])).card : ENNReal) ≤ e) :
-    Spec Prog.sampleChallenge Pre Post εmax (e + T) T where
+    Spec VerifierProgram.sampleChallenge Pre Post εmax (e + T) T where
   D := sampleD Pre Post
   V h₀ l := match l with
     | [] => (Fintype.card E : ENNReal)⁻¹ * ∑ c : E, sampleG Pre Post T h₀ [Ev.sample c]
@@ -470,41 +481,45 @@ noncomputable def sampleE {Post : E → List Ev → Prop} (e : ENNReal)
       _ ≤ e + T := by gcongr; exact h h₀ hPre
   read := by
     intro _ _ _ _ hl ha
-    rcases reach_sampleE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.sampleChallenge, after] at ha
+    rcases reach_sampleE hl with
+        rfl | ⟨y, rfl⟩ <;> simp [VerifierProgram.sampleChallenge, after] at ha
   grind := by
     intro _ _ _ _ hl ha
-    rcases reach_sampleE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.sampleChallenge, after] at ha
+    rcases reach_sampleE hl with
+        rfl | ⟨y, rfl⟩ <;> simp [VerifierProgram.sampleChallenge, after] at ha
   commit := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_sampleE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.sampleChallenge, after] at ha
+    rcases reach_sampleE hl with
+        rfl | ⟨y, rfl⟩ <;> simp [VerifierProgram.sampleChallenge, after] at ha
   sample := by
     intro h₀ l k hl ha
     rcases reach_sampleE hl with rfl | ⟨y, rfl⟩
     · simp
-    · simp [Prog.sampleChallenge, after] at ha
+    · simp [VerifierProgram.sampleChallenge, after] at ha
   query := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_sampleE hl with rfl | ⟨y, rfl⟩ <;> simp [Prog.sampleChallenge, after] at ha
+    rcases reach_sampleE hl with
+        rfl | ⟨y, rfl⟩ <;> simp [VerifierProgram.sampleChallenge, after] at ha
   moveEnd := by
     intro h₀ l q hl ha hm
     rcases reach_sampleE hl with rfl | ⟨y, rfl⟩
-    · simp only [Prog.sampleChallenge, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
-    · simp only [Prog.sampleChallenge, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
+    · simp only [VerifierProgram.sampleChallenge, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
+    · simp only [VerifierProgram.sampleChallenge, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
   retEnd := by
     intro h₀ l a hl ha hD
     rcases reach_sampleE hl with rfl | ⟨y, rfl⟩
-    · simp [Prog.sampleChallenge, after] at ha
+    · simp [VerifierProgram.sampleChallenge, after] at ha
     · simp [sampleG, hD]
   retDoom := by
     intro h₀ l a hl ha hD
     rcases reach_sampleE hl with rfl | ⟨y, rfl⟩
-    · simp [Prog.sampleChallenge, after] at ha
+    · simp [VerifierProgram.sampleChallenge, after] at ha
     · simp [sampleG, hD]
   post := by
     intro h₀ l a hl ha hD
     rcases reach_sampleE hl with rfl | ⟨y, rfl⟩
-    · simp [Prog.sampleChallenge, after] at ha
-    · simp only [Prog.sampleChallenge, after, Option.some.injEq, Prog.ret.injEq] at ha; subst ha; exact hD
+    · simp [VerifierProgram.sampleChallenge, after] at ha
+    · simp only [VerifierProgram.sampleChallenge, after, Option.some.injEq, VerifierProgram.ret.injEq] at ha; subst ha; exact hD
   bound := by
     intro h₀ l hl hne hm
     rcases reach_sampleE hl with rfl | ⟨y, rfl⟩
@@ -518,7 +533,7 @@ private theorem reach_queryP {i : ℕ} {ps : List ℕ} {h₀ l : List Ev}
   | nil => exact .inl rfl
   | @query l i' ps' k rows _ ha hans ih =>
     rcases ih with rfl | ⟨y, -, rfl⟩
-    · simp only [queryOpenings, after, Option.some.injEq, Prog.query.injEq] at ha
+    · simp only [queryOpenings, after, Option.some.injEq, VerifierProgram.query.injEq] at ha
       obtain ⟨rfl, rfl, -⟩ := ha
       exact .inr ⟨rows, by simpa using hans, rfl⟩
     · simp [queryOpenings, after] at ha
@@ -538,7 +553,7 @@ open Classical in
 follower's. -/
 noncomputable def queryP {Post : List (List K) → List Ev → Prop} (i : ℕ) (ps : List ℕ)
     (h : ∀ h₀ rows, Pre h₀ → answer h₀ i ps = some rows → Post rows (h₀ ++ [Ev.query rows])) :
-    Spec (Prog.queryOpenings i ps) Pre Post εmax T T where
+    Spec (VerifierProgram.queryOpenings i ps) Pre Post εmax T T where
   D := queryD Pre Post
   V h₀ l := if queryD Pre Post h₀ l then min 1 T else 1
   le_one _ _ := by split_ifs <;> simp
@@ -546,39 +561,46 @@ noncomputable def queryP {Post : List (List K) → List Ev → Prop} (i : ℕ) (
   start_V _ h := by simp [queryD, h]
   read := by
     intro _ _ _ _ hl ha
-    rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.queryOpenings, after] at ha
+    rcases reach_queryP hl with
+        rfl | ⟨y, -, rfl⟩ <;> simp [VerifierProgram.queryOpenings, after] at ha
   grind := by
     intro _ _ _ _ hl ha
-    rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.queryOpenings, after] at ha
+    rcases reach_queryP hl with
+        rfl | ⟨y, -, rfl⟩ <;> simp [VerifierProgram.queryOpenings, after] at ha
   commit := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.queryOpenings, after] at ha
+    rcases reach_queryP hl with
+        rfl | ⟨y, -, rfl⟩ <;> simp [VerifierProgram.queryOpenings, after] at ha
   sample := by
     intro _ _ _ hl ha
-    rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩ <;> simp [Prog.queryOpenings, after] at ha
+    rcases reach_queryP hl with
+        rfl | ⟨y, -, rfl⟩ <;> simp [VerifierProgram.queryOpenings, after] at ha
   query := by
     intro h₀ l i' ps' k rows hl ha hans
     rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩
-    · simp only [Prog.queryOpenings, after, Option.some.injEq, Prog.query.injEq] at ha
+    · simp only [VerifierProgram.queryOpenings, after, Option.some.injEq,
+        VerifierProgram.query.injEq] at ha
       obtain ⟨rfl, rfl, -⟩ := ha
       by_cases hP : Pre h₀
       · have := h h₀ rows hP (by simpa using hans)
         simp [queryD, hP, this]
       · simp only [queryD, hP, ite_false]
         split_ifs <;> simp
-    · simp [Prog.queryOpenings, after] at ha
+    · simp [VerifierProgram.queryOpenings, after] at ha
   moveEnd := by
     intro h₀ l q hl ha hm
     rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩
-    · simp only [Prog.queryOpenings, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
-    · simp only [Prog.queryOpenings, after, Option.some.injEq] at ha; subst ha; simp [IsMove] at hm
+    · simp only [VerifierProgram.queryOpenings, after, Option.some.injEq] at ha; subst ha; simp
+        [IsMove] at hm
+    · simp only [VerifierProgram.queryOpenings, after, Option.some.injEq] at ha; subst ha; simp
+        [IsMove] at hm
   retEnd := by intro _ _ _ _ _ hD; simp [hD]
   retDoom := by intro _ _ _ _ _ hD; simp [hD]
   post := by
     intro h₀ l a hl ha hD
     rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩
-    · simp [Prog.queryOpenings, after] at ha
-    · simp only [Prog.queryOpenings, after, Option.some.injEq, Prog.ret.injEq] at ha; subst ha; exact hD
+    · simp [VerifierProgram.queryOpenings, after] at ha
+    · simp only [VerifierProgram.queryOpenings, after, Option.some.injEq, VerifierProgram.ret.injEq] at ha; subst ha; exact hD
   bound := by
     intro h₀ l hl hne hm
     rcases reach_queryP hl with rfl | ⟨y, -, rfl⟩
@@ -588,7 +610,7 @@ noncomputable def queryP {Post : List (List K) → List Ev → Prop} (i : ℕ) (
 /-- **Require** `c`: from a precondition under which `c` gives the postcondition; the lead is the
 follower's. -/
 noncomputable def require {c : Prop} [Decidable c] {Post : Unit → List Ev → Prop}
-    (h : ∀ h₀, Pre h₀ → c → Post () h₀) : Spec (Prog.require c) Pre Post εmax T T :=
+    (h : ∀ h₀, Pre h₀ → c → Post () h₀) : Spec (VerifierProgram.require c) Pre Post εmax T T :=
   Spec.ite (fun hc ↦ (Spec.ret ()).mono (fun h₀ hp ↦ h h₀ hp hc) (fun _ _ h ↦ h) le_rfl le_rfl
     le_rfl)
     (fun _ ↦ Spec.fail.mono (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl zero_le le_rfl)
@@ -598,22 +620,23 @@ noncomputable def require {c : Prop} [Decidable c] {Post : Unit → List Ev → 
 open Classical in
 /-- The potential of `Spec.ofNoMove`: the expectation of `1` at a return breaking `Post`, the
 follower's lead (capped) at one keeping it. -/
-noncomputable def noMoveV (p : Prog α) (Post : α → List Ev → Prop) (T : ENNReal) (h₀ l : List Ev) :
+noncomputable def noMoveV (p : VerifierProgram α) (Post : α → List Ev → Prop) (T : ENNReal) (h₀ l :
+    List Ev) :
     ENNReal :=
   match p.after l with
   | some q => retExp (fun a h ↦ if Post a h then min 1 T else 1) h₀ l q
   | none => 1
 
 /-- The doom of `Spec.ofNoMove`: `Post` at the returns. -/
-def noMoveD (p : Prog α) (Post : α → List Ev → Prop) (h₀ l : List Ev) : Prop :=
+def noMoveD (p : VerifierProgram α) (Post : α → List Ev → Prop) (h₀ l : List Ev) : Prop :=
   match p.after l with
-  | some (Prog.ret a) => Post a (h₀ ++ l)
+  | some (VerifierProgram.ret a) => Post a (h₀ ++ l)
   | _ => True
 
 open Classical in
 /-- **A sub-program with no prover move**: a joint bound `e < 1` on the probability of a return
 breaking `Post` gives the lead `e` plus the follower's. -/
-noncomputable def ofNoMove {p : Prog α} {e : ENNReal}
+noncomputable def ofNoMove {p : VerifierProgram α} {e : ENNReal}
     (hnm : ∀ {h₀ l q}, p.Reach h₀ l → p.after l = some q → ¬ q.IsMove)
     (he : e < 1) (h : ∀ h₀, Pre h₀ → escRet Post h₀ [] p ≤ e) :
     Spec p Pre Post εmax (e + T) T where

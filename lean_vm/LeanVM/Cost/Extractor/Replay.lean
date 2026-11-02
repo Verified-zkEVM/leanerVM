@@ -33,7 +33,7 @@ cost_compile readPureC := readPure
 
 cost_compile initialStateC := initialState
 
-cost_compile digestOfScalarsC := LeanVM.Protocol.KeccakHash.digestOfScalars
+cost_compile digestOfScalarsC := LeanVM.Protocol.KeccakHash.digestFromHalves
 
 cost_compile commitPureC := commitPure
 
@@ -53,7 +53,7 @@ cost_compile queryTableC := LeanVM.Parameters.Whir.queryTable
 
 cost_compile levelsFromC := LeanVM.Parameters.Whir.levelsFrom
 
-cost_compile shapeC := LeanVM.Parameters.Whir.shape
+cost_compile shapeC := LeanVM.Parameters.Whir.ladderShape
 
 cost_compile ladderC := LeanVM.Parameters.Whir.ladder
 

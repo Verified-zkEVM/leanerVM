@@ -143,7 +143,7 @@ structure LvHN (C : CallRel) (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) 
   hrd : ReadsAt rd cur D.xs
   hst : ∀ j, j < lv.folds → LoadHolds rd (P.fch) (lv.foldsOff + j)
     ((lvR lv D F q t).2.1.getD j 0)
-  hd : (D.ra, D.rb) = digestScalars D.d
+  hd : (D.ra, D.rb) = digestHalves D.d
   hrd2 : ReadsAt rd (cur * gen ^ (2 * lv.folds)) [D.ra, D.rb, D.y, D.c0, D.c2, D.nonce]
   hr0' : LoadHolds rd (P.roots) (2 * lvl + 2) D.ra
   hr1' : LoadHolds rd (P.roots) (2 * lvl + 3) D.rb

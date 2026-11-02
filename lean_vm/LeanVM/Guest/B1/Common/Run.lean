@@ -75,21 +75,23 @@ theorem carries_squeeze {s : Fs} {sp : Sponge} (h : s.Carries sp) :
 
 /-! ## Composing runs -/
 
-theorem prog_bind_eq {α β : Type} (p : Prog α) (f : α → Prog β) : p >>= f = p.bind f := rfl
+theorem prog_bind_eq {α β : Type} (p : VerifierProgram α) (f : α → VerifierProgram β) : p >>= f =
+    p.bind f := rfl
 
-theorem run_bind {α β : Type} (p : Prog α) (f : α → Prog β) (st : ProgState) :
+theorem run_bind {α β : Type} (p : VerifierProgram α) (f : α → VerifierProgram β) (st :
+    VerifierProgramState) :
     runId (p.bind f) st = (runId p st).bind (fun r => runId (f r.1) r.2) := by
   induction p generalizing st with
   | ret a => rfl
   | fail => rfl
   | read k ih =>
-    simp only [runId, Prog.bind, Compile.runWithHash]
+    simp only [runId, VerifierProgram.bind, Compile.runWithHash]
     split
     · rfl
     · exact ih _ _
   | sample k ih => exact ih _ _
   | grind b k ih =>
-    simp only [runId, Prog.bind, Compile.runWithHash]
+    simp only [runId, VerifierProgram.bind, Compile.runWithHash]
     split
     · rfl
     · simp only [bind, pure]
@@ -97,7 +99,7 @@ theorem run_bind {α β : Type} (p : Prog α) (f : α → Prog β) (st : ProgSta
       · exact ih _
       · rfl
   | commit h w k ih =>
-    simp only [runId, Prog.bind, Compile.runWithHash]
+    simp only [runId, VerifierProgram.bind, Compile.runWithHash]
     split
     · simp only [bind]
       split
@@ -105,7 +107,7 @@ theorem run_bind {α β : Type} (p : Prog α) (f : α → Prog β) (st : ProgSta
       · rfl
     · rfl
   | query i ps k ih =>
-    simp only [runId, Prog.bind, Compile.runWithHash]
+    simp only [runId, VerifierProgram.bind, Compile.runWithHash]
     split
     · rfl
     · simp only [bind]
@@ -113,10 +115,11 @@ theorem run_bind {α β : Type} (p : Prog α) (f : α → Prog β) (st : ProgSta
       · exact ih _ _
       · rfl
 
-theorem runsTo_ret {α : Type} (a : α) (s : Fs) : RunsTo (pure a : Prog α) s [] a s :=
+theorem runsTo_ret {α : Type} (a : α) (s : Fs) : RunsTo (pure a : VerifierProgram α) s [] a s :=
   fun sp h _ _ _ => ⟨sp, h, rfl⟩
 
-theorem RunsTo.bind {α β : Type} {p : Prog α} {f : α → Prog β} {s s1 s2 : Fs} {xs ys : List E}
+theorem RunsTo.bind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {s s1 s2 : Fs}
+    {xs ys : List E}
     {a : α} {b : β} (h1 : RunsTo p s xs a s1) (h2 : RunsTo (f a) s1 ys b s2) :
     RunsTo (p >>= f) s (xs ++ ys) b s2 := by
   intro sp hs rest os roots
@@ -126,7 +129,8 @@ theorem RunsTo.bind {α β : Type} {p : Prog α} {f : α → Prog β} {s s1 s2 :
   rw [prog_bind_eq, run_bind, List.append_assoc, e1]
   exact e2
 
-theorem RunsTo.of_eq {α : Type} {p : Prog α} {s s' t t' : Fs} {xs xs' : List E} {a a' : α}
+theorem RunsTo.of_eq {α : Type} {p : VerifierProgram α} {s s' t t' : Fs} {xs xs' : List E} {a
+    a' : α}
     (h : RunsTo p s xs a t) (hs : s = s') (hx : xs = xs') (ha : a = a') (ht : t = t') :
     RunsTo p s' xs' a' t' := by
   subst hs hx ha ht; exact h
@@ -134,49 +138,51 @@ theorem RunsTo.of_eq {α : Type} {p : Prog α} {s s' t t' : Fs} {xs xs' : List E
 /-! ## The steps -/
 
 /-- **A read** absorbs the stream word with `dsObserve`. -/
-theorem runsTo_readE (s : Fs) (x : E) : RunsTo Prog.readScalar s [x] x (s.absorb x dsObserve) := by
+theorem runsTo_readE (s : Fs) (x : E) : RunsTo VerifierProgram.readScalar s [x] x (s.absorb x
+    dsObserve) := by
   intro sp hs rest os roots
   exact ⟨_, carries_absorb hs x dsObserve, rfl⟩
 
 /-- **A sample** squeezes. -/
-theorem runsTo_sampleE (s : Fs) : RunsTo Prog.sampleChallenge s [] s.squeeze.1 s.squeeze.2 := by
+theorem runsTo_sampleE (s : Fs) : RunsTo VerifierProgram.sampleChallenge s [] s.squeeze.1
+    s.squeeze.2 := by
   intro sp hs rest os roots
   obtain ⟨e1, e2⟩ := carries_squeeze hs
   refine ⟨_, e2, ?_⟩
-  simp only [runId, Prog.sampleChallenge, Compile.runWithHash, List.nil_append]
+  simp only [runId, VerifierProgram.sampleChallenge, Compile.runWithHash, List.nil_append]
   rw [← e1]
   rfl
 
 theorem runsTo_readN (s : Fs) (xs : List E) :
-    RunsTo (Prog.readScalars xs.length) s xs xs (s.absorbAll xs dsObserve) := by
+    RunsTo (VerifierProgram.readScalars xs.length) s xs xs (s.absorbAll xs dsObserve) := by
   induction xs generalizing s with
   | nil => exact runsTo_ret _ _
   | cons x xs ih =>
-    have h := (runsTo_readE s x).bind (f := fun x => do let xs ← Prog.readScalars xs.length; return x :: xs)
-      ((ih (s.absorb x dsObserve)).bind (f := fun xs => (pure (x :: xs) : Prog (List E)))
+    have h := (runsTo_readE s x).bind (f := fun x => do let xs ← VerifierProgram.readScalars xs.length; return x :: xs)
+      ((ih (s.absorb x dsObserve)).bind (f := fun xs => (pure (x :: xs) : VerifierProgram (List E)))
         (runsTo_ret (x :: xs) _))
-    simpa [Prog.readScalars, Fs.absorbAll, List.foldl] using h
+    simpa [VerifierProgram.readScalars, Fs.absorbAll, List.foldl] using h
 
 theorem runsTo_sampleN (n : ℕ) (s : Fs) :
-    RunsTo (Prog.sampleChallenges n) s [] (s.squeezeN n).1 (s.squeezeN n).2 := by
+    RunsTo (VerifierProgram.sampleChallenges n) s [] (s.squeezeN n).1 (s.squeezeN n).2 := by
   induction n generalizing s with
   | zero => exact runsTo_ret _ _
   | succ n ih =>
-    have h := (runsTo_sampleE s).bind (f := fun x => do let xs ← Prog.sampleChallenges n; return x :: xs)
-      ((ih s.squeeze.2).bind (f := fun xs => (pure (s.squeeze.1 :: xs) : Prog (List E)))
+    have h := (runsTo_sampleE s).bind (f := fun x => do let xs ← VerifierProgram.sampleChallenges n; return x :: xs)
+      ((ih s.squeeze.2).bind (f := fun xs => (pure (s.squeeze.1 :: xs) : VerifierProgram (List E)))
         (runsTo_ret _ _))
-    simpa [Prog.sampleChallenges, Fs.squeezeN] using h
+    simpa [VerifierProgram.sampleChallenges, Fs.squeezeN] using h
 
 /-- **A proof of work**: the nonce absorbed with `dsPowNonce`, a squeeze, and `powOk` of its
 challenge. -/
 theorem runsTo_grindP (bits : ℕ) (s : Fs) (n : E)
     (hok : powOk bits n (s.absorb n dsPowNonce).squeeze.1 = true) :
-    RunsTo (Prog.grindProofOfWork bits) s [n] () (s.absorb n dsPowNonce).squeeze.2 := by
+    RunsTo (VerifierProgram.grindProofOfWork bits) s [n] () (s.absorb n dsPowNonce).squeeze.2 := by
   intro sp hs rest os roots
   have ha := carries_absorb hs n dsPowNonce
   obtain ⟨e1, e2⟩ := carries_squeeze ha
   refine ⟨_, e2, ?_⟩
-  have key : runId (Prog.grindProofOfWork bits) ⟨sp, [n] ++ rest, os, roots⟩ =
+  have key : runId (VerifierProgram.grindProofOfWork bits) ⟨sp, [n] ++ rest, os, roots⟩ =
       (if powOk bits n (Id.run (Compile.squeeze (m := Id) keccakF1600
           (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).1 = true then
         some ((), ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600

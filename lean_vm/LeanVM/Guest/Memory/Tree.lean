@@ -79,7 +79,7 @@ def _root_.LeanVM.Guest.Core.Program.Wf (P : Core.Program) : Prop :=
 /-! ## Arms -/
 
 theorem ofK_gpow_ne {i j : ℕ} (hij : i < j) (hj : j < 2 ^ 64 - 1) :
-    ofK (gpow i) ≠ ofK (gpow j) := fun h =>
+    ofK (addressOfIndex i) ≠ ofK (addressOfIndex j) := fun h =>
   absurd (gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega)
     (ofK_injective h)) (by omega)
 
@@ -91,7 +91,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {P : Core.Program}
 
 theorem pick_sat_of {x : V} {args rets : List V} {next : Prop} {kret : List E → Prop} :
     ∀ (fs : List String) (j : ℕ), j + fs.length ≤ 2 ^ 64 - 1 →
-      (∃ (i : ℕ) (h : i < fs.length), σ x = ofK (gpow (j + i)) ∧
+      (∃ (i : ℕ) (h : i < fs.length), σ x = ofK (addressOfIndex (j + i)) ∧
         C fs[i] (args.map σ) (rets.map σ)) → next → (pick σ x args rets j fs).Sat C rd σ next kret
   | [], _, _, ⟨i, hi, _⟩, _ => absurd hi (by simp)
   | f :: fs, j, hb, ⟨i, hi, hx, hc⟩, hn => by
@@ -301,13 +301,13 @@ open Classical
 
 /-- The least exponent `e` with `w = g^e`, `0` if there is none. -/
 noncomputable def logG (w : E) : ℕ :=
-  if h : ∃ e, w = ofK (gpow e) then Nat.find h else 0
+  if h : ∃ e, w = ofK (addressOfIndex e) then Nat.find h else 0
 
 end
 
-theorem logG_spec {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (ofK (gpow e)) = e := by
+theorem logG_spec {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (ofK (addressOfIndex e)) = e := by
   classical
-  have h : ∃ e', ofK (gpow e) = ofK (gpow e') := ⟨e, rfl⟩
+  have h : ∃ e', ofK (addressOfIndex e) = ofK (addressOfIndex e') := ⟨e, rfl⟩
   rw [logG, dite_eq_left h]
   have hle : Nat.find h ≤ e := Nat.find_min' h rfl
   exact gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega)

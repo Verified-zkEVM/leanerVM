@@ -57,7 +57,7 @@ def kRows : List (List E) :=
   (List.range 3).map fun q ↦ (List.range 4).map fun j ↦ ofK (K.ofBits (fw (10 * q + j) 7))
 
 /-- A placement with a low window. -/
-def samplePlacement : Placement := { vars := 3, index := 0b1011001, low := 2 }
+def samplePlacement : Placement := { variableCount := 3, index := 0b1011001, low := 2 }
 
 /-- The sample bytecode: 32 words, so `log_bytecode = 1`. -/
 def sampleBytecode : List K := (List.range 32).map fun i ↦ K.ofBits (fw i 9)
@@ -80,7 +80,7 @@ def blockProbe (blocks : List BusBlock) : List (ℕ × ℕ × ℕ × E) :=
 /-- A side's bus layout: its depth and every placement's size and offset. -/
 def busProbe (frameworkLogRows : List ℕ) (blocks : List BusBlock) : ℕ × List (ℕ × ℕ) :=
   let bl := busLayout frameworkLogRows blocks
-  (bl.depth, (bl.framework ++ bl.tables).map fun q ↦ (q.vars, q.index))
+  (bl.depth, (bl.framework ++ bl.tables).map fun q ↦ (q.variableCount, q.index))
 
 /-- The sample public input: the 32 bytes `fw(i, 10) mod 256`. -/
 def samplePublicInput : Digest :=
@@ -132,7 +132,7 @@ def divmodInputs : List (ℕ × ℕ) :=
 /-- The Keccak reduction's and the layout's constants, in the driver's order. -/
 def keccakConstants : List ℕ :=
   [keccakDepth, keccakSegments, keccakSegmentBits, qkeccakSlotBits, keccakMinStepsLog, keccakBits,
-    keccakLocalBits, keccakLaneBits, kBits, pack, embedBits, productBits, numGlobalColumns,
+    keccakLocalBits, keccakLaneBits, kBits, pack, embedBits, productBits, globalColumnCount,
     busBits, Whir.minLogStack, Whir.maxLogStack]
 
 /-! ## Constants and conventions -/
@@ -141,7 +141,7 @@ def keccakConstants : List ℕ :=
 #guard gen = ofK (K.ofBits 2)
 #guard (buildLayout sampleBytecode 16 sampleRows).isSome
 #guard sampleLayout.push.all fun b ↦ b.rows == sampleRows.getD b.owner 0
-#guard sampleLayout.placements.length = numGlobalColumns + tableWidths.sum
+#guard sampleLayout.placements.length = globalColumnCount + tableWidths.sum
 
 /- Every column a table's flushes name exists (the Python's `_cols` assertion): a missing name
 would be `colIdx`'s out-of-range index, the table's width. -/
@@ -462,7 +462,7 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
 #guard (sampleLayout.logBytecode) =
     1
 
-#guard (sampleLayout.placements.map (·.map fun p ↦ (p.vars, p.index, p.low))) =
+#guard (sampleLayout.placements.map (·.map fun p ↦ (p.variableCount, p.index, p.low))) =
     [some (16, 0, 0), some (16, 65536, 0), some (16, 131072, 0), some (16, 196608, 0),
      some (1, 308400, 0), some (15, 262144, 0), some (2, 308224, 0), some (2, 308228, 0),
      some (2, 308232, 0), some (2, 308236, 0), some (2, 308240, 0), some (2, 308244, 0),
@@ -884,7 +884,7 @@ def pythonConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
 
 #guard (versionTag) = [108, 101, 97, 110, 118, 109, 45, 118, 49]
 
-#guard ((keccak256 (sampleBytecode.flatMap kBytes)).toList) =
+#guard ((keccak256 (sampleBytecode.flatMap K.toBytes)).toList) =
     [0x5ee1b7ed85bd7f40, 0xe30f235e90f241ba, 0x2c5175ed6d0af92b, 0x99aaaff5bf8937b8]
 
 #guard ((fiatShamirIv sampleBytecode).toList) =
@@ -893,7 +893,7 @@ def pythonConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
 #guard (samplePublicInput.toList) =
     [0xdfcab5a08b76614c, 0x87725d48331e09f4, 0x2f1a05f0dbc6b19c, 0xd7c2ad98836e5944]
 
-#guard ([(digestScalars samplePublicInput).1, (digestScalars samplePublicInput).2]) =
+#guard ([(digestHalves samplePublicInput).1, (digestHalves samplePublicInput).2]) =
     [(e 0xdfcab5a08b76614c 0x87725d48331e09f4 0x0), (e 0x2f1a05f0dbc6b19c 0xd7c2ad98836e5944 0x0)]
 
 #guard ((seed sampleBytecode samplePublicInput).toList) =

@@ -42,7 +42,7 @@ open Classical
 
 /-- The memory of `2^κ` words holding the writes, `0` where nothing is written. -/
 noncomputable def image (κ : ℕ) (ws : List Write) : MemoryImage κ := fun i =>
-  match ws.find? (fun q => decide (q.1 = gpow i)) with
+  match ws.find? (fun q => decide (q.1 = addressOfIndex i)) with
   | some q => q.2
   | none => 0
 
@@ -52,7 +52,7 @@ variable {κ : ℕ} {ws : List Write}
 
 /-- **Every write reads back** from a consistent image, at an address below `2^κ`. -/
 theorem image_read (hκ : κ < 64) (hc : Consistent ws) {q : Write} (hq : q ∈ ws)
-    (ha : ∃ i : Fin (2 ^ κ), q.1 = gpow i) : (image κ ws).read q.1 = some q.2 := by
+    (ha : ∃ i : Fin (2 ^ κ), q.1 = addressOfIndex i) : (image κ ws).read q.1 = some q.2 := by
   classical
   obtain ⟨i, hi⟩ := ha
   rw [hi, MemoryImage.read_gpow hκ]
@@ -68,8 +68,8 @@ theorem image_read (hκ : κ < 64) (hc : Consistent ws) {q : Write} (hq : q ∈ 
     simp [hi] at this
 
 /-- Where nothing is written, an image holds `0`. -/
-theorem image_read_zero (hκ : κ < 64) (i : Fin (2 ^ κ)) (hn : ∀ q ∈ ws, q.1 ≠ gpow i) :
-    (image κ ws).read (gpow i) = some 0 := by
+theorem image_read_zero (hκ : κ < 64) (i : Fin (2 ^ κ)) (hn : ∀ q ∈ ws, q.1 ≠ addressOfIndex i) :
+    (image κ ws).read (addressOfIndex i) = some 0 := by
   classical
   rw [MemoryImage.read_gpow hκ]
   congr 1

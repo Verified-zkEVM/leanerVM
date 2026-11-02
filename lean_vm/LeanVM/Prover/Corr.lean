@@ -198,7 +198,7 @@ variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState
 
 /-- **The run sees only the moves**: related script states give the same proof. -/
 theorem runFrom_ocorr (fuel : ℕ) {γ : Type} :
-    ∀ (P : Prog γ) (S₁ : Option (Script α)) (S₂ : Option (Script β)) (sp : Sponge)
+    ∀ (P : VerifierProgram γ) (S₁ : Option (Script α)) (S₂ : Option (Script β)) (sp : Sponge)
       (cs : List Tree), OCorr R S₁ S₂ →
       runFromWithHash H F fuel P S₁ sp cs = runFromWithHash H F fuel P S₂ sp cs := by
   intro P
@@ -238,13 +238,13 @@ theorem runFrom_ocorr (fuel : ℕ) {γ : Type} :
       exact ih _ _ _ _ _ (h.after.2.2.2.2 _)
 
 /-- **Scripts that make the same moves give the same proof.** -/
-theorem runFrom_corr (fuel : ℕ) {γ : Type} (P : Prog γ) {H₁ : Script α} {H₂ : Script β}
+theorem runFrom_corr (fuel : ℕ) {γ : Type} (P : VerifierProgram γ) {H₁ : Script α} {H₂ : Script β}
     (h : Corr R H₁ H₂) (sp : Sponge) (cs : List Tree) :
     runFromWithHash H F fuel P (some H₁) sp cs = runFromWithHash H F fuel P (some H₂) sp cs :=
   runFrom_ocorr H F fuel P _ _ sp cs h
 
 /-- **Scripts that make the same moves give the same proof**, from a seed. -/
-theorem runScript_corr (fuel : ℕ) (P : Prog Bool) {H₁ : Script α} {H₂ : Script β}
+theorem runScript_corr (fuel : ℕ) (P : VerifierProgram Bool) {H₁ : Script α} {H₂ : Script β}
     (h : Corr R H₁ H₂) (seed : KeccakState) :
     runScriptWithHash H F P H₁ seed fuel = runScriptWithHash H F P H₂ seed fuel := by
   simp only [runScriptWithHash, runFrom_corr H F fuel P h]

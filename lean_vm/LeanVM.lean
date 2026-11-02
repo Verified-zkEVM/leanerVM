@@ -27,10 +27,12 @@ import LeanVM.Cost.GuestDecoding
 end statement of the repository, leanXMSS's, leanSPHINCS's and LeanDA's included, in one theorem.
 `LeanVM.corollaries_of_theorems` proves `Statement.Corollaries` (`Statement/Corollaries.lean`) from
 the fields of `Statement.Theorems` alone, and `LeanVM.corollaries_hold` for the compiled extractor
-and decoder programs (`LeanVM.Cost.extractorProgram`, `LeanVM.Cost.decoderProgram`).
+and decoder programs (`LeanVM.Cost.compiledKnowledgeExtractor`,
+`LeanVM.Cost.compiledGuestWitnessDecoder`).
 
 **The guest decoder.** `Statement.Theorems` takes the guest program's decoder as a cost-machine
-program too (`GuestKnowledge`, `Statement/Theorems.lean`): `LeanVM.Cost.decoderProgram`, the
+program too (`GuestKnowledge`, `Statement/Theorems.lean`):
+`LeanVM.Cost.compiledGuestWitnessDecoder`, the
 proofs' decoder `LeanVM.Guest.End.decode` compiled (`LeanVM/Cost/Decoder/`, its top `decTopC`),
 within `guestWitnessDecoderSizeBound` (`Cost/DecoderSize.lean`) and computing `decode` on every valid
 execution (`Cost/DecoderSpec.lean`: `decoderProgram_spec`) within its budget, its price within
@@ -70,7 +72,8 @@ random-permutation model where an adversary is involved, except the memory-decod
   (`LeanVM/Guest/EndFinal.lean`); `GuestKnowledge guestProgram D` of `Statement/Theorems.lean`
   follows
   for a decoder program `D` that computes it within its size bound and budget
-  (`LeanVM.Guest.End.guestKnowledge_of_decode`), the compiled `LeanVM.Cost.decoderProgram`;
+  (`LeanVM.Guest.End.guestKnowledge_of_decode`), the compiled
+  `LeanVM.Cost.compiledGuestWitnessDecoder`;
 * `LeanVM.Guest.Completeness.guest_complete_on_honest_children : GuestCompleteOnHonestChildren`
   (`Statement/LeanVmGuestCompleteness.lean`; `guest_complete_recursion : GuestCompleteRecursion`
   and `guest_complete_leaf : GuestCompleteLeaf`, `Statement/Corollaries.lean`, are its first two
@@ -254,7 +257,8 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 #print axioms LeanVM.Guest.Budget.guest_child_complete
 
 /-- **Every end theorem**, `Statement/Theorems.lean`, at the extractor
-`LeanVM.Cost.extractorProgram` and any decoder program `decoderProgram` meeting its specification
+`LeanVM.Cost.compiledKnowledgeExtractor` and any decoder program `decoderProgram` meeting its
+specification
 (`LeanVM/Guest/DecoderProgram.lean`). That specification has two parts. First, the program
 computes a decoder of executions `decoder` on every valid execution, within its size bound and
 budget (`DecoderProgramSpec`). Second, that decoder's decodings explain the public input
@@ -264,19 +268,19 @@ theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProg
       LeanVM.Node.SeedStatementAndWitness}
     (hspec : LeanVM.Guest.End.DecoderProgramSpec decoderProgram decoder)
     (hexplains : LeanVM.Guest.End.DecoderExplains decoder) :
-    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.extractorProgram)
+    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor)
       (guestWitnessDecoder := decoderProgram) where
-  knowledgeSoundness := by
+  leanVmKnowledgeSoundness := by
     rw [LeanVM.Cost.extractorOf_extractorProgram]
     exact LeanVM.knowledgeSoundness_holds
-  completeness := LeanVM.completeness_holds
-  guestKnowledge := LeanVM.Guest.End.guestKnowledge_of_spec hspec hexplains
-  digestBinds := LeanVM.Guest.Binding.digest_binds
+  leanVmCompleteness := LeanVM.completeness_holds
+  guestKnowledgeSoundness := LeanVM.Guest.End.guestKnowledge_of_spec hspec hexplains
+  statementDigestBinds := LeanVM.Guest.Binding.digest_binds
   guestCompleteOnHonestChildren := LeanVM.Guest.Completeness.guest_complete_on_honest_children
   honestProofRarelyRefused := LeanVM.Guest.Completeness.honest_proof_rarely_refused
-  batchSound := LeanVM.Guest.Batch.batch_sound_holds
-  leanXmss := XmssSecurity.leanXmss_rpm_security
-  leanSphincs := Sphincs.Lifetimes.requestedSecurityRpm
+  batchingSound := LeanVM.Guest.Batch.batch_sound_holds
+  leanXmssStronglyUnforgeable := XmssSecurity.leanXmss_rpm_security
+  leanSphincsStronglyUnforgeable := Sphincs.Lifetimes.requestedSecurityRpm
   leanDaComplete := LeanDa.leanDa_perfectlyComplete_rpm
   leanDaPositionBinding := LeanDa.leanDa_positionBinding_rpm
   leanDaCodeBinding := LeanDa.leanDa_codeBinding_rpm_bound
@@ -291,7 +295,7 @@ the memory) within its size bound and budget on every valid execution: that hypo
 theorem LeanVM.theorems_hold_of_decode {decoderProgram : LeanVM.Cost.MachineProgram}
     (hspec : LeanVM.Guest.End.DecoderProgramSpec decoderProgram
       fun t ↦ LeanVM.Guest.End.decode t.memory) :
-    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.extractorProgram)
+    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor)
       (guestWitnessDecoder := decoderProgram) :=
   LeanVM.theorems_of_decoderSpec hspec LeanVM.Guest.End.decoderExplains_decode
 
@@ -300,12 +304,12 @@ theorem LeanVM.theorems_hold_of_decode {decoderProgram : LeanVM.Cost.MachineProg
 #print axioms LeanVM.theorems_hold_of_decode
 
 /-- **Every end theorem**, `Statement/Theorems.lean`: the guest's witness named by the compiled
-decoder `LeanVM.Cost.decoderProgram`, its price within its budget
+decoder `LeanVM.Cost.compiledGuestWitnessDecoder`, its price within its budget
 (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`), the extractor
-`LeanVM.Cost.extractorProgram`. -/
+`LeanVM.Cost.compiledKnowledgeExtractor`. -/
 theorem LeanVM.theorems_hold :
-    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.extractorProgram)
-      (guestWitnessDecoder := LeanVM.Cost.decoderProgram) :=
+    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor)
+      (guestWitnessDecoder := LeanVM.Cost.compiledGuestWitnessDecoder) :=
   LeanVM.theorems_hold_of_decode
     (LeanVM.Cost.decoderProgram_spec LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget)
 
@@ -323,8 +327,8 @@ theorem LeanVM.theorems_hold :
 
 /-- The end theorems' statement, pinned: the programs named, no hypothesis. -/
 example :
-    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.extractorProgram)
-      (guestWitnessDecoder := LeanVM.Cost.decoderProgram) :=
+    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor)
+      (guestWitnessDecoder := LeanVM.Cost.compiledGuestWitnessDecoder) :=
   LeanVM.theorems_hold
 
 open OracleComp in
@@ -340,15 +344,15 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
       (guestWitnessDecoder := decoderProgram) where
   aggregateSound := by
     intro A Q hA hQ
-    refine le_trans (prEvent_mono _ _ _ ?_) (h.knowledgeSoundness A Q hA hQ)
+    refine le_trans (prEvent_mono _ _ _ ?_) (h.leanVmKnowledgeSoundness A Q hA hQ)
     rintro ⟨prog, input, π, b, T⟩ ⟨s, hb, hprog, hpub, hs, hno⟩
     dsimp only at hprog
     subst hprog
     refine ⟨hb, ?_⟩
     rintro ⟨t, hx, hv⟩
-    obtain ⟨d, hdec, hd, hrel⟩ := h.guestKnowledge input t hv
+    obtain ⟨d, hdec, hd, hrel⟩ := h.guestKnowledgeSoundness input t hv
     refine hno ⟨t, d, hx, hdec, ?_⟩
-    rcases h.digestBinds _ _ _ _ _ hrel.2.2.2.2 hs (hd.trans hpub) with ⟨h1, h2⟩ | hc
+    rcases h.statementDigestBinds _ _ _ _ _ hrel.2.2.2.2 hs (hd.trans hpub) with ⟨h1, h2⟩ | hc
     · exact Or.inl ⟨h1, h2, h1 ▸ h2 ▸ hrel⟩
     · exact Or.inr hc
   guestCompleteRecursion := by
@@ -369,8 +373,8 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
 /-- **Every corollary**, `Statement/Corollaries.lean`, for the compiled extractor and decoder
 programs. -/
 theorem LeanVM.corollaries_hold :
-    Statement.Corollaries (leanVmKnowledgeExtractor := LeanVM.Cost.extractorProgram)
-      (guestWitnessDecoder := LeanVM.Cost.decoderProgram) :=
+    Statement.Corollaries (leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor)
+      (guestWitnessDecoder := LeanVM.Cost.compiledGuestWitnessDecoder) :=
   LeanVM.corollaries_of_theorems LeanVM.theorems_hold
 
 /-- info: 'LeanVM.corollaries_hold' depends on axioms: [propext, Classical.choice, Quot.sound] -/

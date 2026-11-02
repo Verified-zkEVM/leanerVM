@@ -15,32 +15,33 @@ namespace LeanVM.Guest.B2C.Shared
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 8's cells. -/
-theorem lb21_8 : bitsFrom (nth locBits21 8 0) (nth (certOf 21).cells 8 []) = nth locBits21 9 0 := by
+theorem lb21_8 : bitsFrom (listElementOrDefault locBits21 8 0) (listElementOrDefault (certOf
+    21).cells 8 []) = listElementOrDefault locBits21 9 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 9's cells. -/
-theorem lb21_9 : bitsFrom (nth locBits21 9 0) (nth (certOf 21).cells 9 []) = nth locBits21 10 0 := by
+theorem lb21_9 : bitsFrom (listElementOrDefault locBits21 9 0) (listElementOrDefault (certOf 21).cells 9 []) = listElementOrDefault locBits21 10 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 10's cells. -/
-theorem lb21_10 : bitsFrom (nth locBits21 10 0) (nth (certOf 21).cells 10 []) = nth locBits21 11 0 := by
+theorem lb21_10 : bitsFrom (listElementOrDefault locBits21 10 0) (listElementOrDefault (certOf 21).cells 10 []) = listElementOrDefault locBits21 11 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 11's cells. -/
-theorem lb21_11 : bitsFrom (nth locBits21 11 0) (nth (certOf 21).cells 11 []) = nth locBits21 12 0 := by
+theorem lb21_11 : bitsFrom (listElementOrDefault locBits21 11 0) (listElementOrDefault (certOf 21).cells 11 []) = listElementOrDefault locBits21 12 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 12's cells. -/
-theorem lb21_12 : bitsFrom (nth locBits21 12 0) (nth (certOf 21).cells 12 []) = nth locBits21 13 0 := by
+theorem lb21_12 : bitsFrom (listElementOrDefault locBits21 12 0) (listElementOrDefault (certOf 21).cells 12 []) = listElementOrDefault locBits21 13 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 13's cells. -/
-theorem lb21_13 : bitsFrom (nth locBits21 13 0) (nth (certOf 21).cells 13 []) = nth locBits21 14 0 := by
+theorem lb21_13 : bitsFrom (listElementOrDefault locBits21 13 0) (listElementOrDefault (certOf 21).cells 13 []) = listElementOrDefault locBits21 14 0 := by
   decide +kernel
 
 end

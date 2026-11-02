@@ -230,9 +230,9 @@ theorem constraints_opIdx (t : Fin 6) :
 theorem jumpConstraints_getD (ev : List E) :
     jumpConstraints ev = [ev.getD 13 0 + ev.getD 5 0 * ev.getD 12 0,
       ev.getD 5 0 * (ev.getD 13 0 + 1)] := by
-  have h5 : colIdx jumpColumns "v_cond" = 5 := by decide +kernel
-  have h12 : colIdx jumpColumns "w" = 12 := by decide +kernel
-  have h13 : colIdx jumpColumns "b" = 13 := by decide +kernel
+  have h5 : columnIndexByName jumpColumns "v_cond" = 5 := by decide +kernel
+  have h12 : columnIndexByName jumpColumns "w" = 12 := by decide +kernel
+  have h13 : columnIndexByName jumpColumns "b" = 13 := by decide +kernel
   simp only [jumpConstraints, h5, h12, h13]
 
 /-- **`JUMP`'s constraints at values in `E`**: the Python's `JUMP` constraints of values read by

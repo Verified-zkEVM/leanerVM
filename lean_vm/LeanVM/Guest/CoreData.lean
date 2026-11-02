@@ -65,10 +65,10 @@ theorem Core.Program.find?_of_indexOf? {n : String} :
 theorem coreProgram_length : coreProgram.length = 878 := by decide +kernel
 
 /-- Function `j` has the name of compiled function `j + 1`, after `__jump_tables`. -/
-theorem names_eq : coreProgram.map Fn.name = Data.functions.tail.map CompiledFn.name := by
+theorem names_eq : coreProgram.map Fn.name = Data.functions.tail.map CompiledFunction.name := by
   decide +kernel
 
-theorem name_eq_compiled {j : Nat} {f : Fn} {c : CompiledFn} (hf : coreProgram[j]? = some f)
+theorem name_eq_compiled {j : Nat} {f : Fn} {c : CompiledFunction} (hf : coreProgram[j]? = some f)
     (hc : Data.functions[j + 1]? = some c) : f.name = c.name := by
   have h := congrArg (·[j]?) names_eq
   simp only [List.getElem?_map, hf, List.getElem?_tail, hc, Option.map_some] at h

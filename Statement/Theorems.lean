@@ -24,12 +24,13 @@ guest program establishes; the guest program's completeness on recursion nodes a
 
 `Theorems` takes two programs of the cost machine (`CostMachine.lean`) as parameters, of the same
 type, so every use names them: `leanVmKnowledgeExtractor`, the extractor leanVM's knowledge
-soundness is stated for (`LeanVM.knowledgeExtractorOf`: the program, of size at most
+soundness is stated for (`LeanVM.extractorComputedBy`: the program, of size at most
 `knowledgeExtractorSizeBound`, run within a budget in the number of queries), and
 `guestWitnessDecoder`, the decoder that names the guest program's witness (`GuestKnowledge`, below;
 `LeanVmGuest.lean` says why its content is in that decoder). A program's size is
 `MachineProgram.size`: one per term node, a literal by its size. `lean_vm` names both programs
-(`LeanVM.Cost.extractorProgram` and `LeanVM.Cost.decoderProgram`, its extractor and decoder
+(`LeanVM.Cost.compiledKnowledgeExtractor` and `LeanVM.Cost.compiledGuestWitnessDecoder`, its
+extractor and decoder
 compiled). The statement constrains them only by their size bounds and budgets;
 `knowledgeExtractorSizeBound` (`CostMachine.lean`), `guestWitnessDecoderSizeBound` and the guest
 decoder's budget (below) say what those exclude and what they do not. Every statement with an
@@ -71,60 +72,64 @@ order -/
 instance {w : ℕ} : MachineEncoding (BitVec w) := ⟨fun v ↦ .nat v.toNat⟩
 
 instance : MachineEncoding HashSig.PublicKey :=
-  ⟨fun k ↦ .ctor 0 [encodeValue k.root, encodeValue k.parameter]⟩
+  ⟨fun k ↦ .constructor 0 [encodeValue k.root, encodeValue k.parameter]⟩
 
 instance : MachineEncoding LeanXmss.LayerSignature :=
-  ⟨fun σ ↦ .ctor 0 [encodeValue σ.randomness, encodeValue σ.chainValues, encodeValue σ.path]⟩
+  ⟨fun σ ↦ .constructor 0 [encodeValue σ.randomizer, encodeValue σ.chainValues, encodeValue
+      σ.authenticationPath]⟩
 
 instance : MachineEncoding LeanXmss.Signature :=
-  ⟨fun σ ↦ .ctor 0 [encodeValue σ.leafIndex, encodeValue σ.layers]⟩
+  ⟨fun σ ↦ .constructor 0 [encodeValue σ.leafIndex, encodeValue σ.layers]⟩
 
 instance : MachineEncoding Sphincs.SubtreeOpening :=
-  ⟨fun o ↦ .ctor 0 [encodeValue o.values, encodeValue o.path]⟩
+  ⟨fun o ↦ .constructor 0 [encodeValue o.values, encodeValue o.path]⟩
 
 instance : MachineEncoding Sphincs.CoordinateOpening :=
-  ⟨fun o ↦ .ctor 0 [encodeValue o.sub, encodeValue o.top]⟩
+  ⟨fun o ↦ .constructor 0 [encodeValue o.subtreeOpenings, encodeValue o.topTreePath]⟩
 
 instance : MachineEncoding Sphincs.Signature :=
-  ⟨fun σ ↦ .ctor 0 [encodeValue σ.randomness, encodeValue σ.forest, encodeValue σ.counter,
-      encodeValue σ.chainValues, encodeValue σ.path]⟩
+  ⟨fun σ ↦ .constructor 0 [encodeValue σ.randomizer, encodeValue σ.forestOpening, encodeValue
+      σ.counter,
+      encodeValue σ.chainValues, encodeValue σ.authenticationPath]⟩
 
 instance : MachineEncoding BytecodeClaim :=
-  ⟨fun c ↦ .ctor 0 [encodeValue c.bytecodePoint, encodeValue c.bytecodeValue]⟩
+  ⟨fun c ↦ .constructor 0 [encodeValue c.bytecodePoint, encodeValue c.bytecodeValue]⟩
 
 instance : MachineEncoding DaClaim :=
-  ⟨fun c ↦ .ctor 0 [encodeValue c.daRoot, encodeValue c.membershipVectorDigest]⟩
+  ⟨fun c ↦ .constructor 0 [encodeValue c.daRoot, encodeValue c.membershipVectorDigest]⟩
 
 instance : MachineEncoding Da.MatrixWitness :=
-  ⟨fun m ↦ .ctor 0 [encodeValue m.rows, encodeValue m.orthogonalVector]⟩
+  ⟨fun m ↦ .constructor 0 [encodeValue m.rows, encodeValue m.orthogonalVector]⟩
 
 instance : MachineEncoding NodeClaims :=
-  ⟨fun c ↦ .ctor 0 [encodeValue c.xmss, encodeValue c.sphincs, encodeValue c.daDigest]⟩
+  ⟨fun c ↦ .constructor 0 [encodeValue c.xmss, encodeValue c.sphincs, encodeValue c.daDigest]⟩
 
 instance : MachineEncoding NodeStatement :=
-  ⟨fun s ↦ .ctor 0 [encodeValue s.claims, encodeValue s.deferredClaim]⟩
+  ⟨fun s ↦ .constructor 0 [encodeValue s.claims, encodeValue s.deferredClaim]⟩
 
 instance : MachineEncoding Child :=
-  ⟨fun c ↦ .ctor 0 [encodeValue c.statement, encodeValue c.freshClaim, encodeValue c.proof]⟩
+  ⟨fun c ↦ .constructor 0 [encodeValue c.statement, encodeValue c.freshClaim, encodeValue c.proof]⟩
 
 /-- `direct` the constructor of tag `0`, `child` of tag `1`. -/
 instance {W : Type} [MachineEncoding W] : MachineEncoding (ClaimHolder W) where
-  encodeValue | .direct w => .ctor 0 [encodeValue w] | .child i => .ctor 1 [encodeValue i]
+  encodeValue | .direct w => .constructor 0 [encodeValue w] | .child i => .constructor 1 [encodeValue i]
 
 instance : MachineEncoding BatchingHints :=
-  ⟨fun h ↦ .ctor 0 [encodeValue h.sumcheckMessages, encodeValue h.finalBytecodeValue]⟩
+  ⟨fun h ↦ .constructor 0 [encodeValue h.sumcheckMessages, encodeValue h.finalBytecodeValue]⟩
 
 instance : MachineEncoding NodeWitness :=
-  ⟨fun w ↦ .ctor 0 [encodeValue w.children, encodeValue w.xmssHolders, encodeValue w.sphincsHolders,
+  ⟨fun w ↦ .constructor 0 [encodeValue w.children, encodeValue w.xmssHolders, encodeValue
+      w.sphincsHolders,
     encodeValue w.daMatrix, encodeValue w.batchingHints]⟩
 
 instance : MachineEncoding SeedStatementAndWitness :=
-  ⟨fun d ↦ .ctor 0 [encodeValue d.seed, encodeValue d.statement, encodeValue d.witness]⟩
+  ⟨fun d ↦ .constructor 0 [encodeValue d.seed, encodeValue d.statement, encodeValue d.witness]⟩
 
 /-- **The decoder's input**: the program and its execution (the memory's log-size `κ`, its `2^κ`
 words, the steps). -/
-def encodeGuestWitnessDecoderInput (prog : Semantics.Program) (t : Execution prog) : MachineValue :=
-  .ctor 0 [encodeValue prog, encodeValue t]
+def encodeGuestWitnessDecoderInput (prog : Semantics.LeanIsaProgram) (t : Execution prog) :
+    MachineValue :=
+  .constructor 0 [encodeValue prog, encodeValue t]
 
 end
 
@@ -173,9 +178,9 @@ guest program has fewer than `2^51` steps (`2^ℓ·2^κ` states, `ℓ = 19`, `κ
 in a halting run; argued, not a Lean theorem). The constants are the deployed guest program's (its
 tables of preconditions and entries, its frames), not those of any program: `prog` is only ever
 `LeanVM.Guest.guestProgram`. -/
-def guestWitnessDecoderBudget {prog : Program} (t : Execution prog) : ℕ :=
-  (t.steps + 1) * (2 ^ 21 + 2 ^ 13 * Nat.log2 (t.steps + 1)) +
-    (70 * t.logMemorySize + 374) * 2 ^ t.logMemorySize + 2 ^ 37 * (Nat.log2 (t.steps + 1) + 16)
+def guestWitnessDecoderBudget {prog : LeanIsaProgram} (t : Execution prog) : ℕ :=
+  (t.stepCount + 1) * (2 ^ 21 + 2 ^ 13 * Nat.log2 (t.stepCount + 1)) +
+    (70 * t.logMemorySize + 374) * 2 ^ t.logMemorySize + 2 ^ 37 * (Nat.log2 (t.stepCount + 1) + 16)
 
 /-- **Knowledge soundness of the leanISA guest program, its witness named**: on every valid
 execution `t` of `guest` on a public input, the decoder program `guestWitnessDecoder`, of size at
@@ -187,7 +192,8 @@ budget, outputs nothing, so `GuestKnowledge` fails at that execution: a program 
 `guestWitnessDecoderSizeBound` satisfies it only if the guest program has no valid execution, which
 the completeness statements exclude, so `GuestKnowledge` bounds the program's size. Its `guest` is
 only ever `LeanVM.Guest.guestProgram`, whose program the budget's constants are. -/
-def GuestKnowledge (guest : Program) (guestWitnessDecoder : Cost.MachineProgram) : Prop :=
+def GuestKnowledgeSoundness (guest : LeanIsaProgram) (guestWitnessDecoder : Cost.MachineProgram) :
+    Prop :=
   ∀ input (t : Execution guest), ValidExecution guest input t →
     ∃ d : SeedStatementAndWitness,
       Cost.outputWithin guestWitnessDecoder guestWitnessDecoderSizeBound
@@ -221,13 +227,13 @@ structure Theorems
   an accepted proof within the budget: at most that many steps, about `2^81` up to `2^50`
   permutation queries and `O(N·log³N)` for `N`. That a price unit is a constant number of
   instructions of a 64-bit CPU is trusted (`CostMachine.lean`, *Why the prices are honest*). -/
-  knowledgeSoundness : LeanVM.KnowledgeSoundness
-      (LeanVM.knowledgeExtractorOf leanVmKnowledgeExtractor)
-  /-- leanVM is complete: the honest prover's (`LeanVM.prover`, the executable
+  leanVmKnowledgeSoundness : LeanVM.KnowledgeSoundness
+      (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)
+  /-- leanVM is complete: the honest prover's (`LeanVM.leanVmHonestProver`, the executable
   `LeanVM.Prover.prove` of `Prover/Prove.lean`) proof of a valid execution of committed size at
   most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^25` nonces per proof of work, is
   rejected with probability at most `2^-256` (`LeanVm.lean`). -/
-  completeness : LeanVM.Completeness
+  leanVmCompleteness : LeanVM.Completeness
 
   /-- Every valid execution of the leanISA guest program proves the node statement its public input
   commits to: the decoder program, of size at most `guestWitnessDecoderSizeBound`, outputs, within
@@ -237,7 +243,8 @@ structure Theorems
   from the witness and checked only at the root, and its DA digest is that of the blob matrix it
   checks, zeros or a child's, and its deferred claim is the batching of its children's
   (`NodeRelation`, `LeanVmGuest.lean`). -/
-  guestKnowledge : LeanVM.Node.GuestKnowledge LeanVM.Guest.guestProgram guestWitnessDecoder
+  guestKnowledgeSoundness : LeanVM.Node.GuestKnowledgeSoundness LeanVM.Guest.guestProgram
+      guestWitnessDecoder
   /-- A statement's digest binds the seed and the statement, up to a Keccak-256 collision among
   the candidates (`LeanVmGuest.lean`). With `knowledgeSoundness` and `guestKnowledge` it gives what
   an accepted proof establishes: an accepted proof of the leanISA guest program on
@@ -248,7 +255,7 @@ structure Theorems
   derives from these fields (`LeanVM.corollaries_of_theorems`); its form for the memory decoder
   `decode`, `MemoryAggregateSound`, is also proved directly
   (`LeanVM.Guest.End.aggregate_sound_outer`). -/
-  digestBinds : LeanVM.Node.StatementDigestBinds
+  statementDigestBinds : LeanVM.Node.StatementDigestBinds
   /-- The leanISA guest program is complete on the eight families of `CoveredNode`, mixed nodes and
   nodes checking one DA matrix of at most `32` rows among them, under the deployed seed and within
   the deployed limits, wherever every child carries the honest prover's proof (`HonestChild`: its
@@ -263,23 +270,23 @@ structure Theorems
   /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · M · 2^-191 +
   5 (QA + QV)² · 2^-256` for fewer than `M` children, `QA ≤ 2^128`, `QV ≤ 2^96`; it does not
   compose with the in-circuit statements (`LeanVmGuestCompleteness.lean`). -/
-  batchSound : LeanVM.Guest.Batch.BatchingSound
+  batchingSound : LeanVM.Guest.Batch.BatchingSound
   /-- leanXMSS is strongly unforgeable: at most `(Q + 1) · 2^-127` for `Q ≥ 1` permutation
   calls of the whole game (`LeanXmss.lean`), key generation and the honest signer's worst-case
   grinding, about `2^33` calls per signing request, included: about `2^-62` at a full lifetime. -/
-  leanXmss : LeanXmss.Rpm.LeanXmssStronglyUnforgeable
+  leanXmssStronglyUnforgeable : LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable
   /-- leanSPHINCS is strongly unforgeable at every proved lifetime: at most `(Q + 1) · 2^-127` for
   `Q ≥ 1` permutation calls of the whole game (`LeanSphincs.lean`), key generation and the honest
   signer's worst-case grinding, up to about `2^35` calls per signing request, included. -/
-  leanSphincs : Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable
+  leanSphincsStronglyUnforgeable : Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable
 
   /-- LeanDA is perfectly complete, for every `π` (`LeanDa.lean`). -/
-  leanDaComplete : LeanDa.PerfectlyCompleteRpm
+  leanDaComplete : LeanDa.LeanDaPerfectlyComplete
   /-- LeanDA is position binding: at most `(Q + 1)² · 2^-256` for every `Q` (`LeanDa.lean`). -/
-  leanDaPositionBinding : LeanDa.PositionBindingRpm
+  leanDaPositionBinding : LeanDa.LeanDaPositionBinding
   /-- LeanDA is code binding if its argument, querying the model's oracles, is knowledge sound in
   the random-permutation model with a straight-line extractor (`LeanDa.lean`). -/
-  leanDaCodeBinding : LeanDa.CodeBindingRpm
+  leanDaCodeBinding : LeanDa.LeanDaCodeBinding
 
 end Statement
 

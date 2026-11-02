@@ -69,7 +69,7 @@ theorem encodeMatrix_firstHalf {r : ℕ} (c : Fin (r * 128) → Cell) (h : ∀ i
 
 /-- A matrix is a codeword when every row is. -/
 theorem mem_code_iff {r : ℕ} (c : Fin (r * 128) → Cell) :
-    c ∈ (code r).code ↔ ∀ i, matrixRow c i ∈ rsCode := by
+    c ∈ (leanDaErasureCode r).code ↔ ∀ i, matrixRow c i ∈ rsCode := by
   constructor
   · rintro ⟨msg, rfl⟩ i
     change matrixRow (encodeMatrix msg) i ∈ rsCode
@@ -80,16 +80,16 @@ theorem mem_code_iff {r : ℕ} (c : Fin (r * 128) → Cell) :
 
 /-! ## The code checker -/
 
-theorem checker_check_iff {r : ℕ} (z : Challenges) (c : Fin (r * 128) → Cell) :
-    (checker r).check z c = true ↔ ∀ i, innerProduct (dual z) (matrixRow c i) = 0 :=
+theorem checker_check_iff {r : ℕ} (z : MembershipChallenges) (c : Fin (r * 128) → Cell) :
+    (checker r).check z c = true ↔ ∀ i, innerProduct (dualCodewordAt z) (matrixRow c i) = 0 :=
   decide_eq_true_iff
 
-theorem checker_complete (r : ℕ) : (checker r).Complete (code r) := by
+theorem checker_complete (r : ℕ) : (checker r).Complete (leanDaErasureCode r) := by
   intro c hc z
   rw [mem_code_iff] at hc
   exact (checker_check_iff z c).mpr fun i ↦ dot_dual_eq_zero (hc i) z
 
-theorem card_challenges : Fintype.card Challenges = 2 ^ (192 * 14) := by
+theorem card_challenges : Fintype.card MembershipChallenges = 2 ^ (192 * 14) := by
   rw [← Nat.card_eq_fintype_card, Nat.card_fun, BF64.nat_card_ext3, Nat.card_fin, ← pow_mul]
 
 /-- `a / (2^192)^14 ≤ 14 / 2^192` from `a ≤ 14 (2^192)^13`. -/
@@ -104,18 +104,18 @@ theorem div_le_fourteen_div {a : ℝ≥0∞} (h : a ≤ 14 * ((2 : ℝ≥0∞) ^
 
 /-- **The membership test is `14 / 2^192`-sound**: a fixed matrix that is not a codeword passes
 for at most a `14 / |E|` fraction of the challenges. -/
-theorem checker_sound (r : ℕ) : (checker r).Sound (code r) (14 / 2 ^ 192) := by
+theorem checker_sound (r : ℕ) : (checker r).Sound (leanDaErasureCode r) (14 / 2 ^ 192) := by
   intro c hc
   rw [mem_code_iff] at hc
   push Not at hc
   obtain ⟨i, hi⟩ := hc
   have hcard := card_acceptSet_le hi
   rw [← Nat.card_eq_fintype_card (α := E), BF64.nat_card_ext3] at hcard
-  calc Pr{let x ← (fun l ↦ (checker r).check l c) <$> ($ᵗ Challenges)}[x = true]
-      = Pr{let l ← $ᵗ Challenges}[(checker r).check l c = true] := prEvent_map _ _ _
-    _ ≤ Pr{let l ← $ᵗ Challenges}[innerProduct (dual l) (matrixRow c i) = 0] :=
+  calc Pr{let x ← (fun l ↦ (checker r).check l c) <$> ($ᵗ MembershipChallenges)}[x = true]
+      = Pr{let l ← $ᵗ MembershipChallenges}[(checker r).check l c = true] := prEvent_map _ _ _
+    _ ≤ Pr{let l ← $ᵗ MembershipChallenges}[innerProduct (dualCodewordAt l) (matrixRow c i) = 0] :=
         prEvent_mono _ _ _ fun l hl ↦ (checker_check_iff l c).mp hl i
-    _ = (acceptSet (matrixRow c i)).card / (Fintype.card Challenges : ℝ≥0∞) :=
+    _ = (acceptSet (matrixRow c i)).card / (Fintype.card MembershipChallenges : ℝ≥0∞) :=
         SampleableType.prEvent_uniformSample _
     _ ≤ 14 / 2 ^ 192 := by
         rw [card_challenges, Nat.cast_pow, Nat.cast_ofNat]
@@ -130,7 +130,7 @@ theorem merkleVC_perfectlyComplete (r : ℕ) (H : List UInt8 → Common.DigestBy
 
 /-- **Position binding of the Merkle commitment**, by reduction to an `H` collision. -/
 theorem posBindingExp_le_hashCollisionExp (r : ℕ) (H : List UInt8 → Common.DigestBytes)
-    (A : VectorCommitment.PosBindingAdv Cell (r * 128) Unit Common.DigestBytes Opening) :
+    (A : VectorCommitment.PosBindingAdv Cell (r * 128) Unit Common.DigestBytes CellOpening) :
     Pr{let b ← (merkleVC r H).posBindingExp A}[b = true] ≤
       Pr{let b ← hashCollisionExp H (merkleCollider r H A)}[b = true] := by
   unfold VectorCommitment.posBindingExp hashCollisionExp merkleCollider merkleVC
@@ -149,7 +149,8 @@ challenges a random oracle of the roots. His theorems for it are steps of the pr
 statements, which are in the random-permutation model. -/
 noncomputable def leanDa (r : ℕ) (H : List UInt8 → Common.DigestBytes) {Crs Proof : Type}
     (ps : WArgument r H Crs Proof) :=
-  scheme (m := OracleComp (unifSpec + (Common.DigestBytes →ₒ Challenges))) (code r) (merkleVC r H)
+  scheme (m := OracleComp (unifSpec + (Common.DigestBytes →ₒ MembershipChallenges)))
+      (leanDaErasureCode r) (merkleVC r H)
     (checker r) ps
 
 end LeanDa

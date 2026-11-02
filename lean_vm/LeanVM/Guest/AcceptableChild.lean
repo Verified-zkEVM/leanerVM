@@ -42,7 +42,7 @@ def minChildStackLog : ℕ := 22
 
 /-- The deferring verifier's initial state on a child's proof under the node's seed
 (`verifyDeferredWith`). -/
-def childVerifierStart (seed : Digest) (child : Child) : ProgState :=
+def childVerifierStart (seed : Digest) (child : Child) : VerifierProgramState :=
   ⟨⟨keccakF1600 (seedInput seed (statementDigest seed child.statement)), []⟩, child.proof.stream,
     child.proof.openings, []⟩
 
@@ -55,12 +55,13 @@ namespace Limits
 def verifyDeferredRefusingZero (bytecode : List K) (iv publicInput : Digest)
     (claim : BytecodeClaim) (proof : Proof) : Bool :=
   Id.run (runProof (m := Id) keccakF1600
-    (deferredProgram claim bytecode publicInput).refusingZeroChallenge
+    (deferringVerifierProgram claim bytecode publicInput).refusingZeroChallenge
     (keccakF1600 (seedInput iv publicInput)) proof)
 
 /-- **The query steps of a run** of the compiled verifier (Keccak-256, Keccak-f[1600]): each
 `query` step as its tree's height and its positions, each with the opening it consumes. -/
-def queryStepsOf {α : Type} : Prog α → ProgState → List (ℕ × List (ℕ × Opening))
+def queryStepsOf {α : Type} : VerifierProgram α → VerifierProgramState → List (ℕ × List (ℕ ×
+    Opening))
   | .ret _, _ => []
   | .fail, _ => []
   | .read k, state => match state.stream with
@@ -79,7 +80,7 @@ def queryStepsOf {α : Type} : Prog α → ProgState → List (ℕ × List (ℕ 
       if powOk bits n c then queryStepsOf k { state with sponge := sponge, stream := xs } else []
   | .commit height width k, state => match state.stream with
     | x0 :: x1 :: xs =>
-      match digestOfScalars (x0, x1) with
+      match digestFromHalves (x0, x1) with
       | some root =>
         queryStepsOf k { state with
           sponge :=
@@ -109,7 +110,7 @@ def siblingHeapIndex (depth leafPosition level : ℕ) : ℕ :=
 /-- The digest of a Merkle leaf: Keccak-256 of its words as bytes (`Transcript.merkle`,
 `verifier.py:433-445`), the leaf an opening's climb starts from. -/
 def _root_.LeanVM.Protocol.KeccakHash.merkleLeafDigest (words : List K) : Digest :=
-  keccak256 (words.flatMap kBytes)
+  keccak256 (words.flatMap K.toBytes)
 
 /-- The digest an opening's climb reaches from `node` at `leafPosition` over `path`. -/
 def climbTo (node : Digest) (leafPosition : ℕ) (path : List Digest) : Digest :=
@@ -151,13 +152,14 @@ structure AcceptableChild (bytecode : List K) (seed : Digest) (child : Child) : 
   verifies : verifyDeferred bytecode seed (statementDigest seed child.statement) child.freshClaim
     child.proof = true
   /-- Its stack log is at least `MU_MIN = 22`. -/
-  stackLogAtLeastMinimum : ∀ layout r, announced bytecode child.proof.stream = some (layout, r) →
+  stackLogAtLeastMinimum : ∀ layout r, announcedLayoutAndRate bytecode child.proof.stream = some
+      (layout, r) →
     Coverage.minChildStackLog ≤ layout.stackLog
   /-- Its proof stream is at most `STREAM_CAP = 8192` scalars. -/
   streamWithinCap : child.proof.stream.length ≤ Coverage.childStreamCap
   /-- Its openings agree in the guest program's Merkle caps. -/
   capsAgree : ∀ step ∈ Limits.queryStepsOf
-      (deferredProgram child.freshClaim bytecode (statementDigest seed child.statement))
+      (deferringVerifierProgram child.freshClaim bytecode (statementDigest seed child.statement))
         (Coverage.childVerifierStart seed child),
     Limits.OpeningsAgree step.1 step.2
   /-- The deferring verifier refusing a zero challenge accepts its proof. -/
@@ -200,7 +202,8 @@ def GuestChildComplete : Prop :=
     2 ^ 22 ≤ execution.committedSize →
     statement.deferredClaim.HasBytecodeShape (bytecodeWords guestProgram) →
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)
-    ∀ proof, honestProofWithDeployedKeccak LeanVM.prover guestProgram input execution ρ (2 ^ 25) =
+    ∀ proof, honestProofWithDeployedKeccak LeanVM.leanVmHonestProver guestProgram input execution ρ
+        (2 ^ 25) =
       some proof →
     verifierRefusingZero (m := Id) keccakF1600 guestProgram input proof = true →
     ∃ fresh, fresh.Holds (bytecodeWords guestProgram) ∧

@@ -111,11 +111,11 @@ theorem sMid_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) (σ : 
     (h1 : σ (.n 1) = bb) (hP : IsCanonical128 (σ sPP)) (hn0 : IsCanonical128 (σ (sNode 0)))
     (h162 : IsCanonical128 (σ (.n 162))) (h164 : IsCanonical128 (σ (.n 164)))
     (htops : ∀ k < 16, IsCanonical128 (sT σ k)) (hpad : PadOK σ sPad) {ctr N : Nat} (hctr : ctr < 2 ^ 32)
-    (hd : (digestScalars (keccak256 ((cellsBytes (σ (.n 162) :: σ (.n 164) ::
+    (hd : (digestHalves (keccak256 ((cellsBytes (σ (.n 162) :: σ (.n 164) ::
       (List.range 16).map (sT σ) ++ [eOfNat ctr])).take 292))).1 = lit N) :
     Completes C rd sB (sEnc.2.1 + 10) sMid σ (fun σ' => σ' (.n sFb.2.1) = eOfNat ctr ∧
       σ' (.n sEnc.2.2) = lit N ∧ SGood sEnc.2.1 σ' ∧
-      ∀ j < 4, σ' (.n (sB + j)) = ofK (gpow (ctrByte ctr j))) := by
+      ∀ j < 4, σ' (.n (sB + j)) = ofK (addressOfIndex (ctrByte ctr j))) := by
   have hB := sB_ge
   obtain ⟨f1, f2, f3⟩ := sFb_shape
   -- the encoding's cells and bounds
@@ -136,7 +136,7 @@ theorem sMid_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) (σ : 
   have hE2 : sEnc.2.2 + 13 ≤ sEnc.2.1 := kMsg_out _ _ _ _ _
   rw [sMid_split]
   -- the counter's bytes
-  set g : Nat → E := fun j => ofK (gpow (ctrByte ctr j)) with hg
+  set g : Nat → E := fun j => ofK (addressOfIndex (ctrByte ctr j)) with hg
   refine Completes.reload ((updRun_ext σ sB 4 g).mono le_rfl (by omega)) ?_
   set σr := updRun σ sB 4 g with hσr
   have rlow : ∀ k < sB, σr (.n k) = σ (.n k) := fun k hk => updRun_below σ sB 4 g ⟨k, hk, rfl⟩
@@ -144,7 +144,7 @@ theorem sMid_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) (σ : 
     (by rw [valsList_hint]; exact fun v hv => runV_mem_nb (by omega) hv) (hintKeep_complete _ _ _ _ _)
     (fun σ2 _ e2 => ?_)
   subst e2
-  have hbyte : ∀ j < 4, σr (.n (sB + j)) = ofK (gpow (ctrByte ctr j)) := fun j hj => updRun_at σ sB 4 g hj
+  have hbyte : ∀ j < 4, σr (.n (sB + j)) = ofK (addressOfIndex (ctrByte ctr j)) := fun j hj => updRun_at σ sB 4 g hj
   have hfb := sFromBytes_complete (C := C) hm hbb (K := 256) (v0 := ctrByte ctr 3) le_rfl
     (Nat.mod_lt _ (by norm_num)) (.n (sB + 3)) [.n (sB + 2), .n (sB + 1), .n sB]
     [ctrByte ctr 2, ctrByte ctr 1, ctrByte ctr 0] (sB + 4) σr (by omega) ⟨sB + 3, by omega, rfl⟩

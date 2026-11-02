@@ -113,7 +113,7 @@ def ByteBits (rd : Reader) (bb : E) : Prop := ∀ v < 256, LoadHolds rd bb v (wo
 
 /-- The memory holds a word at each of the first `n` addresses `g^i`: a range check below `n` has
 its witnesses. -/
-def MemOK (rd : Reader) (n : ℕ) : Prop := ∀ i < n, (rd (gpow i)).isSome
+def MemOK (rd : Reader) (n : ℕ) : Prop := ∀ i < n, (rd (addressOfIndex i)).isSome
 
 /-! ## The statements -/
 

@@ -33,7 +33,8 @@ theorem superPayload_injective {tops tops' : SubIdx → Digest × Digest}
 
 theorem childPayload_injective {ends ends' : FChain → Digest}
     (h : childPayload ends = childPayload ends') : ends = ends' :=
-  flatMap_ofFn_injective (bytesLE 16) 16 (bytesLE_length 16) (fun _ _ => bytesLE_injective) h
+  flatMap_ofFn_injective (littleEndianBytes 16) 16 (bytesLE_length 16) (fun _ _
+      => bytesLE_injective) h
 
 namespace Forest
 
@@ -55,14 +56,14 @@ def walkValue (start : Nat) (value : Digest) (steps : Nat) : Digest :=
 theorem honestChain_succ (position : Nat) (hposition : position < chainTop) :
     honestChain f parameter index c s j a i secret (position + 1)
       = truncateHash (f (tweakableHashInput parameter (.fchain index c s j a i ⟨position, hposition⟩)
-          ((bytesLE 16) (honestChain f parameter index c s j a i secret position)))) := by
+          ((littleEndianBytes 16) (honestChain f parameter index c s j a i secret position)))) := by
   simp only [honestChain, forestWalk_eq_succ, evalWithAnswerFn_bind, Nat.zero_add, dite_eq_left hposition,
     Completeness.eval_tweakableHash]
 
 theorem walkValue_succ (start : Nat) (value : Digest) (steps : Nat) (hrange : start + steps < chainTop) :
     walkValue f parameter index c s j a i start value (steps + 1)
       = truncateHash (f (tweakableHashInput parameter (.fchain index c s j a i ⟨start + steps, hrange⟩)
-          ((bytesLE 16) (walkValue f parameter index c s j a i start value steps)))) := by
+          ((littleEndianBytes 16) (walkValue f parameter index c s j a i start value steps)))) := by
   simp only [walkValue, forestWalk_eq_succ, evalWithAnswerFn_bind, dite_eq_left hrange, Completeness.eval_tweakableHash]
 
 /-- A hit at a forest chain step: something other than the honest value at `position` hashing to
@@ -70,7 +71,8 @@ the honest value at `position + 1`. -/
 def ChainHit (position : Nat) (hposition : position < chainTop) (payload : Digest) : Prop :=
   payload ≠ honestChain f parameter index c s j a i secret position
     ∧ truncateHash (f (tweakableHashInput parameter (.fchain index c s j a i ⟨position, hposition⟩)
-        ((bytesLE 16) payload))) = honestChain f parameter index c s j a i secret (position + 1)
+        ((littleEndianBytes 16) payload))) = honestChain f parameter index c s j a i secret
+            (position + 1)
 
 theorem forestWalk_extract_above (start : Nat) (value : Digest) (steps cutoff : Nat)
     (hrange : start + steps ≤ chainTop) (hcutoff : cutoff ≤ steps)
@@ -104,7 +106,7 @@ theorem forestWalk_extract_above (start : Nat) (value : Digest) (steps cutoff : 
 theorem forestWalk_query_mem (start steps : Nat) (value : Digest) (offset : Nat)
     (hoffset : offset < steps) (hrange : start + offset < chainTop) :
     tweakableHashInput parameter (.fchain index c s j a i ⟨start + offset, hrange⟩)
-        ((bytesLE 16) (walkValue f parameter index c s j a i start value offset))
+        ((littleEndianBytes 16) (walkValue f parameter index c s j a i start value offset))
       ∈ queriedInputs f (forestWalk parameter index c s j a i start steps value) := by
   induction steps generalizing offset with
   | zero => omega
@@ -612,7 +614,7 @@ theorem chainInput_mem (c : Coord) (j : SubIdx) (i : FChain) (offset : Nat)
     (hrange : chainTop - (lut ((marks c).word j) i).val + offset < chainTop) :
     tweakableHashInput parameter (.fchain index c (marks c).super j ((marks c).child j) i
         ⟨chainTop - (lut ((marks c).word j) i).val + offset, hrange⟩)
-      ((bytesLE 16) (walkValue f parameter index c (marks c).super j ((marks c).child j) i
+      ((littleEndianBytes 16) (walkValue f parameter index c (marks c).super j ((marks c).child j) i
         (chainTop - (lut ((marks c).word j) i).val) (((opening c).sub j).values i) offset)) ∈
       queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec ForestKey) := by
   apply subInput_mem f parameter index marks opening c j
@@ -686,7 +688,8 @@ theorem Exception.queried_output_match (f : QueryImpl HashSpec Id) (parameter : 
       ⟨c, j, level, hlevel, hnode⟩ | ⟨c, hne, heq⟩ | ⟨c, level, hlevel, hnode⟩
   · refine ⟨_, tweakableHashInput parameter (.fchain index c (marks c).super j ((marks c).child j) i
         ⟨chainTop - (lut ((marks c).word j) i).val + offset, hoffset⟩)
-        ((bytesLE 16) (honestChain f parameter index c (marks c).super j ((marks c).child j) i
+        ((littleEndianBytes 16) (honestChain f parameter index c (marks c).super j ((marks
+            c).child j) i
           (Completeness.forestSecret f parameter index c (marks c).super j ((marks c).child j) i seed)
           (chainTop - (lut ((marks c).word j) i).val + offset))),
       chainInput_mem f parameter index marks opening c j i offset hlt hoffset, ?_, ?_⟩

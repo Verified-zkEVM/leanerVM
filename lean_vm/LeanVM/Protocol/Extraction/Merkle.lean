@@ -193,11 +193,12 @@ theorem append_splitNode (x : Bytes) (hx : x.length = 64) :
     List.take_of_length_le (show (x.drop 32).length ≤ 32 by simp; omega), List.take_append_drop]
 
 theorem flatMap_kBytes (leaf : List K) :
-    leaf.flatMap kBytes = (leaf.map K.lane).flatMap wordBytes := by
+    leaf.flatMap K.toBytes = (leaf.map K.lane).flatMap wordBytes := by
   rw [List.flatMap_map]
   rfl
 
-theorem length_flatMap_kBytes (leaf : List K) : (leaf.flatMap kBytes).length = 8 * leaf.length := by
+theorem length_flatMap_kBytes (leaf : List K) : (leaf.flatMap K.toBytes).length = 8 *
+    leaf.length := by
   rw [flatMap_kBytes, length_flatMap_wordBytes, List.length_map]
 
 theorem length_bytesWords (w : ℕ) (b : Bytes) : (bytesWords w b).length = w := by
@@ -205,14 +206,14 @@ theorem length_bytesWords (w : ℕ) (b : Bytes) : (bytesWords w b).length = w :=
 
 /-- **`bytesWords` reads back a leaf.** -/
 theorem bytesWords_flatMap_kBytes (leaf : List K) :
-    bytesWords leaf.length (leaf.flatMap kBytes) = leaf := by
+    bytesWords leaf.length (leaf.flatMap K.toBytes) = leaf := by
   rw [bytesWords, flatMap_kBytes, ← List.append_nil ((leaf.map K.lane).flatMap wordBytes),
     show leaf.length = (leaf.map K.lane).length by simp, bytesLanes_flatMap_append, List.map_map]
   exact List.map_id'' (fun _ ↦ rfl) leaf
 
 /-- **`flatMap kBytes` reads back `8w` bytes.** -/
 theorem flatMap_kBytes_bytesWords (w : ℕ) (b : Bytes) (hb : b.length = 8 * w) :
-    (bytesWords w b).flatMap kBytes = b := by
+    (bytesWords w b).flatMap K.toBytes = b := by
   rw [flatMap_kBytes, bytesWords, List.map_map]
   rw [show (bytesLanes w b).map (K.lane ∘ K.ofLane) = bytesLanes w b from
     List.map_id'' (fun _ ↦ rfl) _]
@@ -342,7 +343,7 @@ theorem div_two_pow_mod_two (q h : ℕ) : q / 2 ^ h % 2 = 0 ↔ q.testBit h = fa
 theorem openOne_eq_some_true (H : Bytes → Option Digest) (root : Digest) (h w q : ℕ)
     (o : Opening) : openOneWithHash H root h w q o = some true ↔
       o.leaf.length = w ∧ o.path.length = h ∧
-        ∃ ld, H (o.leaf.flatMap kBytes) = some ld ∧ climbWithHash H ld q o.path = some root := by
+        ∃ ld, H (o.leaf.flatMap K.toBytes) = some ld ∧ climbWithHash H ld q o.path = some root := by
   unfold openOneWithHash
   split
   · rename_i hlen
@@ -436,7 +437,7 @@ theorem descend_of_openOne {answers : Bytes → Option Digest} {keys : List Byte
     obtain ⟨hw, hpath, ld, hld, hclimb⟩ := (openOne_eq_some_true ..).mp ho
     rw [List.length_eq_zero_iff.mp hpath] at hclimb
     obtain rfl : ld = d := by simpa [climbWithHash] using hclimb
-    rw [descend, ← hw, show 8 * o.leaf.length = (o.leaf.flatMap kBytes).length by
+    rw [descend, ← hw, show 8 * o.leaf.length = (o.leaf.flatMap K.toBytes).length by
       rw [length_flatMap_kBytes], preimage_of_answer hinj hc hld, Option.map_some,
       bytesWords_flatMap_kBytes]
   | succ h ih =>

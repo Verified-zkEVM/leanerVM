@@ -192,7 +192,7 @@ abbrev CallRel := String → List E → List E → Prop
 
 /-- A `DEREF` through the pointer word `p`: `p` is in `K` and the word at `p·g^off` is `d`. -/
 def LoadHolds (rd : Reader) (p : E) (off : Nat) (d : E) : Prop :=
-  IsInK p ∧ rd (p.limb 0 * gpow off) = some d
+  IsInK p ∧ rd (p.limb 0 * addressOfIndex off) = some d
 
 /-- The thirteen words of a `KECCAK` operand, from the list of their values' words (`0` past
 its end, which `Atom.keccak`'s semantics excludes). -/
@@ -215,7 +215,7 @@ def Atom.Holds (rd : Reader) (σ : Val) : Atom → Prop
         KeccakCellsRelation (cells13 (ins.map σ)) inOdd (cells13 (outs.map σ)) outOdd
   | .frameAddr p run =>
       IsInK (σ p) ∧ ∀ (k : Nat) (hk : k < run.length) (w : E),
-        rd ((σ p).limb 0 * gpow k) = some w → w = σ run[k]
+        rd ((σ p).limb 0 * addressOfIndex k) = some w → w = σ run[k]
   | .hint _ => True
 
 mutual
@@ -231,7 +231,8 @@ def Stmt.Holds (C : CallRel) (rd : Reader) (σ : Val) :
   | .call f args rets, next, _ => C f (args.map σ) (rets.map σ) ∧ next
   | .callIf c f args, next, _ => IsInK (σ c) ∧ (σ c ≠ 0 → C f (args.map σ) []) ∧ next
   | .dispatch x fs args rets, next, _ =>
-      (∃ (j : Nat) (h : j < fs.length), σ x = ofK (gpow j) ∧ C fs[j] (args.map σ) (rets.map σ)) ∧
+      (∃ (j : Nat) (h : j < fs.length), σ x = ofK (addressOfIndex j) ∧ C fs[j] (args.map σ)
+          (rets.map σ)) ∧
         next
   | .ret vs, _, kret => kret (vs.map σ)
 
@@ -246,7 +247,7 @@ def Stmt.HoldsArms (C : CallRel) (rd : Reader) (σ : Val) (x : V) :
     Nat → List (List Stmt) → Prop → (List E → Prop) → Prop
   | _, [], _, _ => False
   | j, a :: as, next, kret =>
-      (σ x = ofK (gpow j) ∧ Stmt.HoldsList C rd σ a next kret) ∨
+      (σ x = ofK (addressOfIndex j) ∧ Stmt.HoldsList C rd σ a next kret) ∨
         Stmt.HoldsArms C rd σ x (j + 1) as next kret
 end
 

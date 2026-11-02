@@ -38,7 +38,7 @@ theorem tbl_jt_mem {s t : ℕ} (h : glob.jt.get s = some t) : ∃ w, (s, w) ∈ 
   unfold JumpTable.entryOk at he
   rw [Bool.and_eq_true] at he
   obtain ⟨hlt, he⟩ := he
-  have hlen : s - 406 < Data.f0.len := by simpa using hlt
+  have hlen : s - 406 < Data.f0.instructionCount := by simpa using hlt
   obtain ⟨o, k0, k1, k2, hins, hmem⟩ := End.f0_instr hlen
   rw [hins] at he
   simp only [Bool.and_eq_true, beq_iff_eq] at he
@@ -47,8 +47,9 @@ theorem tbl_jt_mem {s t : ℕ} (h : glob.jt.get s = some t) : ∃ w, (s, w) ∈ 
 
 /-- **Slot `s` of the jump table**, holding `g^e`: the table cell found there. -/
 theorem tbl_slot {κ : ℕ} {L : MemoryImage κ} (hjt : JTHolds glob L)
-    (htab : ∀ q ∈ tableCells, L.read (gpow q.1) = some q.2) {s e : ℕ} (h : glob.jt.get s = some e) :
-    (tableCells.find? fun q ↦ q.1 == s) = some (s, ofK (gpow e)) ∧ s < 406 + 8456 := by
+    (htab : ∀ q ∈ tableCells, L.read (addressOfIndex q.1) = some q.2) {s e : ℕ} (h : glob.jt.get s =
+        some e) :
+    (tableCells.find? fun q ↦ q.1 == s) = some (s, ofK (addressOfIndex e)) ∧ s < 406 + 8456 := by
   obtain ⟨w, hw⟩ := tbl_jt_mem h
   have hs := tableCells_off hw
   obtain ⟨q, hq⟩ := Option.isSome_iff_exists.mp
@@ -62,9 +63,9 @@ theorem tbl_slot {κ : ℕ} {L : MemoryImage κ} (hjt : JTHolds glob L)
   exact congrArg some (Prod.ext hq1 (Option.some.inj hr).symm)
 
 /-- The table word `armWord` at the selector `g^k` is slot `base + k`'s. -/
-theorem tbl_armWord {σ : Val} {x base k e : ℕ} (hk : σ (V.n x) = ofK (gpow k))
-    (hf : (tableCells.find? fun q ↦ q.1 == base + k) = some (base + k, ofK (gpow e)))
-    (hlt : base + k < 406 + 8456) : armWord σ x base = ofK (gpow e) := by
+theorem tbl_armWord {σ : Val} {x base k e : ℕ} (hk : σ (V.n x) = ofK (addressOfIndex k))
+    (hf : (tableCells.find? fun q ↦ q.1 == base + k) = some (base + k, ofK (addressOfIndex e)))
+    (hlt : base + k < 406 + 8456) : armWord σ x base = ofK (addressOfIndex e) := by
   unfold armWord
   split
   case isFalse hn => exact absurd ⟨k, by omega, hk⟩ hn
@@ -121,7 +122,7 @@ variable {σ : Val}
 /-- The callee a `dispatch` calls: the first `k` with the selector `g^(i + k)`. -/
 theorem tbl_pick {x : V} {a r : List V} : ∀ (gs : List String) (i : ℕ) {e : List Ev},
     pick σ x a r i gs = .fall e →
-      ∃ k, ∃ hk : k < gs.length, σ x = ofK (gpow (i + k)) ∧ e = [.call gs[k] a r]
+      ∃ k, ∃ hk : k < gs.length, σ x = ofK (addressOfIndex (i + k)) ∧ e = [.call gs[k] a r]
   | [], _, _, h => by simp [pick] at h
   | g :: gs, i, e, h => by
     unfold pick at h
@@ -165,8 +166,10 @@ theorem tbl_arm {X : CX} {J : ℕ} {se : CW} {key : Option (List Cnt)} {a0 : Lis
     exact ⟨by simp; omega, s, ck, uk, h1, h2, h3, by rw [Nat.add_comm]; exact h4⟩
 
 theorem tbl_nth_ofList (cs : List (List ℕ)) (k : ℕ) (op : Opcode) :
-    (nth (cs.map Cnt.ofList) k Cnt.zero).get op = (nth cs k []).getD (opIdx op) 0 := by
-  have h : nth (cs.map Cnt.ofList) k Cnt.zero = Cnt.ofList (nth cs k []) := by
+    (listElementOrDefault (cs.map Cnt.ofList) k Cnt.zero).get op = (listElementOrDefault cs k
+        []).getD (opIdx op) 0 := by
+  have h : listElementOrDefault (cs.map Cnt.ofList) k Cnt.zero = Cnt.ofList (listElementOrDefault cs
+      k []) := by
     induction cs generalizing k with
     | nil => rfl
     | cons c cs ih =>
@@ -179,9 +182,9 @@ theorem tbl_nth_ofList (cs : List (List ℕ)) (k : ℕ) (op : Opcode) :
 /-- The arm a `match` takes, and the separately counted arms its path passes. -/
 theorem tbl_walkArmsC {σ : Val} {acs : List (ℕ × List (List ℕ))} {key : Option (List (List ℕ))} {x : V} :
     ∀ (arms : List (List Stmt)) (i : ℕ) {e : List Ev}, walkArms σ x i arms = .fall e →
-      ∃ k, ∃ hk : k < arms.length, σ x = ofK (gpow (i + k)) ∧ walk σ arms[k] = .fall e ∧
+      ∃ k, ∃ hk : k < arms.length, σ x = ofK (addressOfIndex (i + k)) ∧ walk σ arms[k] = .fall e ∧
         costArms acs σ x key i arms = (fun op ↦ match key with
-          | some cs => (nth cs (i + k) []).getD (opIdx op) 0
+          | some cs => (listElementOrDefault cs (i + k) []).getD (opIdx op) 0
           | none => 0) + costW acs σ arms[k]
   | [], _, _, h => by simp [walkArms] at h
   | a :: as, i, e, h => by
@@ -207,7 +210,7 @@ variable {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} 
 theorem tbl_segJ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {J : ℕ} {se sj : CW}
     (h : segAtC X J se = some sj) (hok : CWOk L fp X se) (he : EnvAt L fp X wJ wenv J) {W0 : Registers K}
     {n : ℕ} {xc : Opcode → ℕ} {c : Cnt} (u : ℕ) {cr : Opcode → ℕ}
-    (hr : RunC guestProgram L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr)
+    (hr : RunC guestProgram L W0 ⟨addressOfIndex (X.entry + J), addressOfIndex fp⟩ cr)
     (hc : ∀ op, cr op ≤ c.get op + xc op + ksum ck n op)
     (hnm : ∀ n, se.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
     PosZ H { sj with cnt := c, uq := u } W0 n xc := by
@@ -272,16 +275,18 @@ theorem walk_matchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) 
   have e3' : a3 = base := Nat.eq_of_beq_eq_true ha3
   subst e1' e2' e3'
   rw [H.arms] at ham
-  have harmw : L.read (gpow (fp + a2)) = some (armWord σ v.idx a3) :=
+  have harmw : L.read (addressOfIndex (fp + a2)) = some (armWord σ v.idx a3) :=
     H.frame.arm _ ham ht2.1 (H.fs ▸ ht2.2)
-  have hσk : σ (V.n v.idx) = ofK (gpow k) := by rw [← hvn]; exact hvk
+  have hσk : σ (V.n v.idx) = ofK (addressOfIndex k) := by rw [← hvn]; exact hvk
   rw [tbl_armWord hσk hfind hlt, gpow_addC] at harmw
   have htg1 : TgOk L fp ((a2, X.loc.cell v, a3) :: st.tg) := by
     intro x hx
     rcases List.mem_cons.mp hx with rfl | hx
-    · refine ⟨σ v, ofK (gpow (X.entry + (t0 :: ts)[k])), hcv, by rw [hvk]; exact isInK_ofK _, harmw,
+    · refine ⟨σ v, ofK (addressOfIndex (X.entry + (t0 :: ts)[k])), hcv,
+        by rw [hvk]; exact isInK_ofK _, harmw,
         isInK_ofK _, ?_⟩
-      show L.read ((σ v).limb 0 * gpow a3) = some (ofK (gpow (X.entry + (t0 :: ts)[k])))
+      show L.read ((σ v).limb 0 * addressOfIndex a3) = some (ofK (addressOfIndex (X.entry + (t0 ::
+          ts)[k])))
       rw [hvk, limb_ofK0, ← gpow_addC, Nat.add_comm k a3]
       exact H.jt _ _ hslot
     · exact hp.ok.tg x hx
@@ -290,16 +295,17 @@ theorem walk_matchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) 
   -- the jump to the arm
   obtain ⟨hseg, hbk, hfr', htg, hnx, -, hreach⟩ := endAtC_reach H hp0 hse
   simp only at hseg hbk hfr' htg hnx hreach
-  have hft : ft.Is L (gpow fp) (gpow fp) := by
+  have hft : ft.Is L (addressOfIndex fp) (addressOfIndex fp) := by
     unfold Facts.self at hself
     split at hself
-    · show gpow fp = gpow fp * gpow 0
+    · show addressOfIndex fp = addressOfIndex fp * addressOfIndex 0
       rw [gpow_zero', mul_one]
-    · show gpow fp = gpow 0
+    · show addressOfIndex fp = addressOfIndex 0
       rw [gpow_zero']
       exact H.ctx.fpOne hself
     · cases hself
-  obtain ⟨cr, hcr, hcle, henv⟩ := hreach ⟨gpow (X.entry + (t0 :: ts)[k]), gpow fp⟩ (by
+  obtain ⟨cr, hcr, hcle, henv⟩ := hreach ⟨addressOfIndex (X.entry + (t0 :: ts)[k]), addressOfIndex
+      fp⟩ (by
     rw [hk]
     exact ⟨_, _, ⟨_, harmw, isInK_ofK _, by rw [limb_ofK0]⟩, hft, rfl⟩)
   have htk : (t0 :: ts)[k] ∈ st.seg.exit.succ := by rw [hsu]; exact List.getElem_mem hkt
@@ -419,7 +425,7 @@ theorem walk_dispatchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : 
   -- the table read
   have ht2 := hfr t List.mem_cons_self
   have hent : entryOf fs[k] = pc := by rw [hfn, entryOf_callee hj1 hj2, he]
-  have htgt : rdc L fp t = some (ofK (gpow pc)) := by
+  have htgt : rdc L fp t = some (ofK (addressOfIndex pc)) := by
     have := (H.frame.site n _ kfp s0 hci hkfp (by rw [← siteC_eq H.sites]; exact hs0)).2
       (by rw [ht0]; have := ht2.1; omega) (by rw [ht0]; exact ht2.1) (by rw [ht0, ← H.fs]; exact ht2.2)
     rw [ht0, gpow_addC] at this
@@ -431,8 +437,9 @@ theorem walk_dispatchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : 
   have htg1 : TgOk L fp ((t, X.loc.cell v, base) :: st.tg) := by
     intro x hx
     rcases List.mem_cons.mp hx with rfl | hx
-    · refine ⟨σ v, ofK (gpow pc), hcv, by rw [hvk]; exact isInK_ofK _, htgt, isInK_ofK _, ?_⟩
-      show L.read ((σ v).limb 0 * gpow base) = some (ofK (gpow pc))
+    · refine ⟨σ v, ofK (addressOfIndex pc), hcv,
+        by rw [hvk]; exact isInK_ofK _, htgt, isInK_ofK _, ?_⟩
+      show L.read ((σ v).limb 0 * addressOfIndex base) = some (ofK (addressOfIndex pc))
       rw [hvk, limb_ofK0, ← gpow_addC, Nat.add_comm k base]
       exact H.jt _ _ hslot
     · exact hp.ok.tg x hx
@@ -442,12 +449,14 @@ theorem walk_dispatchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : 
   have hp1 := posZ_fr H hp0 hq hfcs
   obtain ⟨hseg, hbk, hfr', htg, hnx, -, hreach⟩ := endAtC_reach H hp1 hse
   simp only at hseg hbk hfr' htg hnx hreach
-  obtain ⟨cr, hcr, hcle, henv⟩ := hreach ⟨gpow pc, gpow kfp⟩ (by
+  obtain ⟨cr, hcr, hcle, henv⟩ := hreach ⟨addressOfIndex pc, addressOfIndex kfp⟩ (by
     rw [hk]
-    exact ⟨_, gpow pc, hq, isInK_ofK _, ⟨_, htgt, isInK_ofK _, by rw [limb_ofK0]⟩, by simp⟩)
+    exact ⟨_, addressOfIndex pc, hq, isInK_ofK _, ⟨_, htgt, isInK_ofK _,
+        by rw [limb_ofK0]⟩, by simp⟩)
   rw [hent] at hrun
-  have hgr : gpow r = gpow (X.entry + (r - X.entry)) := by rw [Nat.add_sub_cancel' hle]
-  have hrun2 : RunC guestProgram L W0 ⟨gpow (X.entry + (r - X.entry)), gpow fp⟩ (cr + ck.getD n 0) := by
+  have hgr : addressOfIndex r = addressOfIndex (X.entry + (r - X.entry)) :=
+      by rw [Nat.add_sub_cancel' hle]
+  have hrun2 : RunC guestProgram L W0 ⟨addressOfIndex (X.entry + (r - X.entry)), addressOfIndex fp⟩ (cr + ck.getD n 0) := by
     rw [← hgr]
     exact hcr.trans hrun
   have henvR : EnvAt L fp X wJ wenv (r - X.entry) :=

@@ -115,7 +115,7 @@ open Classical
 /-- The fused dispatch: the call of the first callee `j` with `x = g^j`. -/
 noncomputable def pick (σ : Val) (x : V) (args rets : List V) : ℕ → List String → Out
   | _, [] => .stuck
-  | j, f :: fs => if σ x = ofK (gpow j) then .fall [.call f args rets] else pick σ x args rets (j + 1) fs
+  | j, f :: fs => if σ x = ofK (addressOfIndex j) then .fall [.call f args rets] else pick σ x args rets (j + 1) fs
 
 mutual
 /-- What a statement does under `σ`. -/
@@ -136,7 +136,7 @@ noncomputable def walk (σ : Val) : List Stmt → Out
 /-- The first arm `j + i` with `x = g^(j + i)`. -/
 noncomputable def walkArms (σ : Val) (x : V) : ℕ → List (List Stmt) → Out
   | _, [] => .stuck
-  | j, a :: as => if σ x = ofK (gpow j) then walk σ a else walkArms σ x (j + 1) as
+  | j, a :: as => if σ x = ofK (addressOfIndex j) then walk σ a else walkArms σ x (j + 1) as
 end
 
 end
@@ -215,7 +215,7 @@ theorem Out.sat_pre {es : List Ev} {next : Prop} {kret : List E → Prop} :
 
 theorem pick_sat {x : V} {args rets : List V} {next : Prop} {kret : List E → Prop} :
     ∀ (fs : List String) (j : ℕ), (pick σ x args rets j fs).Sat C rd σ next kret →
-      (∃ (i : ℕ) (h : i < fs.length), σ x = ofK (gpow (j + i)) ∧
+      (∃ (i : ℕ) (h : i < fs.length), σ x = ofK (addressOfIndex (j + i)) ∧
         C fs[i] (args.map σ) (rets.map σ)) ∧ next
   | [], _, h => h.elim
   | f :: fs, j, h => by
@@ -322,9 +322,10 @@ end Faithful
 /-- The `(address, word)` equations of the memory an atom reads: a load, a range check's two
 loads at offset `0`, the cells of a frame run. -/
 def atomEqns (σ : Val) : Atom → List (K × E)
-  | .load d p off => [((σ p).limb 0 * gpow off, σ d)]
-  | .rangeCheck x y t1 t2 _ => [((σ x).limb 0 * gpow 0, σ t1), ((σ y).limb 0 * gpow 0, σ t2)]
-  | .frameAddr p run => run.mapIdx fun k v => ((σ p).limb 0 * gpow k, σ v)
+  | .load d p off => [((σ p).limb 0 * addressOfIndex off, σ d)]
+  | .rangeCheck x y t1 t2 _
+      => [((σ x).limb 0 * addressOfIndex 0, σ t1), ((σ y).limb 0 * addressOfIndex 0, σ t2)]
+  | .frameAddr p run => run.mapIdx fun k v => ((σ p).limb 0 * addressOfIndex k, σ v)
   | _ => []
 
 /-- The memory equations of events. -/
@@ -375,14 +376,15 @@ theorem holds_transfer : ∀ (a : Atom), a.Holds rd σ →
   | .keccak .., h, _ => h
   | .frameAddr p run, h, he => by
       refine ⟨h.1, fun k hk w hw => ?_⟩
-      have hm : ((σ p).limb 0 * gpow k, σ run[k]) ∈ run.mapIdx fun k v => ((σ p).limb 0 * gpow k, σ v) :=
+      have hm : ((σ p).limb 0 * addressOfIndex k, σ run[k]) ∈ run.mapIdx fun k v => ((σ p).limb 0 * addressOfIndex k, σ v) :=
         List.mem_mapIdx.mpr ⟨k, hk, rfl⟩
       exact Option.some.inj (hw.symm.trans (he _ hm))
   | .hint _, h, _ => h
 
 /-- An atom's equations hold on a memory it holds on, wherever they name an address. -/
 theorem atomEqns_read {κ : ℕ} (hκ : κ < 64) {L : MemoryImage κ} :
-    ∀ (a : Atom), a.Holds L.read σ → ∀ q ∈ atomEqns σ a, (∃ i : Fin (2 ^ κ), q.1 = gpow i) →
+    ∀ (a : Atom), a.Holds L.read σ → ∀ q ∈ atomEqns σ a, (∃ i : Fin (2 ^ κ), q.1 =
+        addressOfIndex i) →
       L.read q.1 = some q.2
   | .load .., h, q, hq, _ => by
       rw [List.mem_singleton.mp hq]
@@ -430,7 +432,7 @@ theorem events_transfer {es : List Ev} (h : ∀ e ∈ es, e.Holds rd σ)
 address. -/
 theorem evEqns_read {κ : ℕ} (hκ : κ < 64) {L : MemoryImage κ} {es : List Ev}
     (h : ∀ e ∈ es, e.Holds L.read σ) :
-    ∀ q ∈ evEqns σ es, (∃ i : Fin (2 ^ κ), q.1 = gpow i) → L.read q.1 = some q.2 := by
+    ∀ q ∈ evEqns σ es, (∃ i : Fin (2 ^ κ), q.1 = addressOfIndex i) → L.read q.1 = some q.2 := by
   intro q hq hi
   obtain ⟨e, he, hq⟩ := List.mem_flatMap.mp hq
   cases e with
@@ -472,7 +474,7 @@ mutual
 address. -/
 theorem Tree.Valid.eqns_read {κ : ℕ} (hκ : κ < 64) {L : MemoryImage κ} :
     ∀ (t : Tree) {args rets : List E}, t.Valid P L.read args rets → ∀ q ∈ t.eqns P,
-      (∃ i : Fin (2 ^ κ), q.1 = gpow i) → L.read q.1 = some q.2
+      (∃ i : Fin (2 ^ κ), q.1 = addressOfIndex i) → L.read q.1 = some q.2
   | .node _ σ _ kids, _, _, ⟨fn, hf, _, es, vs, hw, _, hes, hk⟩, q, hq, hi => by
       rw [eqns_node hf hw] at hq
       rcases List.mem_append.mp hq with hq | hq
@@ -483,7 +485,7 @@ theorem Tree.Valid.eqns_read {κ : ℕ} (hκ : κ < 64) {L : MemoryImage κ} :
 /-- `Tree.Valid.eqns_read` for the callees. -/
 theorem Tree.KidsValid.eqns_read {κ : ℕ} (hκ : κ < 64) {L : MemoryImage κ} :
     ∀ (σ : Val) (ks : List Tree) (cs : List Call), Tree.KidsValid P L.read σ cs ks →
-      ∀ q ∈ Tree.eqnsKids P ks, (∃ i : Fin (2 ^ κ), q.1 = gpow i) → L.read q.1 = some q.2
+      ∀ q ∈ Tree.eqnsKids P ks, (∃ i : Fin (2 ^ κ), q.1 = addressOfIndex i) → L.read q.1 = some q.2
   | _, [], [], _, _, hq, _ => (List.not_mem_nil hq).elim
   | σ, k :: ks, c :: cs, ⟨_, hc, hks⟩, q, hq, hi => by
       rw [Tree.eqnsKids] at hq

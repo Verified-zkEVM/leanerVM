@@ -115,8 +115,9 @@ builds `roundQuad claim W g` from it. -/
 theorem follows_round (W g : List E) (claim : E) (cs : Commits) :
     Follows (fun cs' _ b ↦ cs' = cs ∧ b = roundQuad claim W g) (hRound W g)
       (sumcheckRoundPoly 3 claim none) cs := by
-  simp [hRound, sumcheckRoundPoly, Script.sendE, Script.sendList, Prog.readScalar, Prog.readScalars,
-    Follows, roundQuad, Script.bind, Prog.bind]
+  simp [hRound, sumcheckRoundPoly, Script.sendE, Script.sendList, VerifierProgram.readScalar,
+      VerifierProgram.readScalars,
+    Follows, roundQuad, Script.bind, VerifierProgram.bind]
 
 /-- The fold rounds of a level (`foldRounds`): receive the challenge, fix the first coordinate
 of both tables at it, send the next round polynomial. -/
@@ -759,7 +760,8 @@ theorem multilinearEval_basisTable {μ : ℕ} (hμ : laneBits ≤ μ) (scales : 
 
 /-- `verify_whir` past `derive_config`: the first round polynomial, then the levels of the ladder
 `levels` from the claim `target` on the basis `B`. -/
-def whirRun (μ : ℕ) (levels : List Whir.Level) (target : E) (B : List E → E) : Prog Unit := do
+def whirRun (μ : ℕ) (levels : List Whir.Level) (target : E) (B : List E → E) : VerifierProgram
+    Unit := do
   let quad ← sumcheckRoundPoly 3 target none
   whirLevelsT μ ((levels.head?.map (·.fold)).getD 0) B 0 levels ⟨target, quad, [], []⟩
 
@@ -796,7 +798,8 @@ theorem follows_commitStack {μ R : ℕ} (hadm : Whir.Admissible μ R) (q : Colu
     Follows (fun cs' _ _ ↦ cs' = cs ++ [stackCommit μ R q]) (Script.commitS (stackWord μ q))
       (commitStack μ R) cs := by
   obtain ⟨q₀, rest, hc, _⟩ := exists_ladder hadm
-  simp only [commitStack, hc, Verifier.liftOption, Prog.bind_eq, Prog.ret_bind, levelShape]
+  simp only [commitStack, hc, Verifier.liftOption, VerifierProgram.bind_eq,
+      VerifierProgram.ret_bind, levelShape]
   exact Follows.commitS_commitP (wellShaped_stackWord μ q) cs
 
 /-- **Completeness of the WHIR run on any ladder** that starts with the lane fold at rate `R`
@@ -844,7 +847,7 @@ theorem follows_verifyStackedOpening {μ R : ℕ} (hadm : Whir.Admissible μ R) 
   simp only [honestOpening, verifyStackedOpening, verifyWhir_eq_target, verifyWhir_eq]
   refine Follows.bind_of (Follows.sampleE_sampleE _) ?_
   rintro cs c _ ⟨rfl, rfl⟩
-  simp only [hc, Verifier.liftOption, Prog.bind_eq, Prog.ret_bind]
+  simp only [hc, Verifier.liftOption, VerifierProgram.bind_eq, VerifierProgram.ret_bind]
   exact follows_whirRun hμ6 hμ64 hsum q _ claims hholds hml
 
 /-! ## The interactive runs -/
@@ -890,7 +893,7 @@ theorem follows_commitStack_verifyStackedOpening {μ R : ℕ} (hadm : Whir.Admis
 /-! ## Through the compilation -/
 
 /-- The commitment and the opening as a whole verifier: commit, open, accept. -/
-def openingProgram (μ R : ℕ) (claims : List StackClaim) : Prog Bool := do
+def openingProgram (μ R : ℕ) (claims : List StackClaim) : VerifierProgram Bool := do
   commitStack μ R
   verifyStackedOpening μ R claims
   return true
@@ -907,8 +910,10 @@ theorem follows_openingProgram {μ R : ℕ} (hadm : Whir.Admissible μ R) (q : C
       (openingProgram μ R claims) [] := by
   have h := follows_commitStack_verifyStackedOpening hadm q claims hholds hml
   have : openingProgram μ R claims =
-      (do commitStack μ R; verifyStackedOpening μ R claims) >>= fun _ ↦ Prog.ret true := by
-    simp only [openingProgram, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc]
+      (do commitStack μ R; verifyStackedOpening μ R claims) >>= fun _ ↦ VerifierProgram.ret
+          true := by
+    simp only [openingProgram, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+        VerifierProgram.bind_assoc]
   rw [this]
   exact Follows.bind_of h fun _ _ _ _ ↦ rfl
 

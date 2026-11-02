@@ -188,17 +188,17 @@ theorem hashCalls_sequenceLayers {α : Layer → Type} (f : QueryImpl HashSpec I
 
 omit [Params] in
 theorem hashCalls_messageDigestCall (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (message : Message) (randomness : Randomness) :
+    (message : Message) (randomness : Randomizer) :
     hashCalls f (messageDigestCall parameter message randomness : OracleComp HashSpec HashOutput) = 1 := rfl
 
 omit [Params] in
 theorem hashCalls_messageDigest (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (message : Message) (randomness : Randomness) :
+    (message : Message) (randomness : Randomizer) :
     hashCalls f (messageDigest parameter message randomness : OracleComp HashSpec MessageDigest) = 1 := by
   simp only [messageDigest, hashCalls_bind, hashCalls_messageDigestCall, hashCalls_pure]
 
 theorem hashCalls_signAttempt (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey)
-    (message : Message) (randomness : Randomness) :
+    (message : Message) (randomness : Randomizer) :
     hashCalls f (Seeded.signAttempt sk message randomness : OracleComp HashSpec (Option Index)) = 1 := by
   rw [Seeded.signAttempt, hashCalls_bind, hashCalls_messageDigestCall]
   split <;> rfl

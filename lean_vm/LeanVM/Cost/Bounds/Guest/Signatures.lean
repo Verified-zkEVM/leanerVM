@@ -336,7 +336,7 @@ theorem xPartA_cost (hP : Includes P Decoder.xPartNC.costDeps) (T : XmssTabs) (h
   rw [Decoder.xPartNC.costEq P hP _ _ _ _ _ σ σV hσ, ofFnFrom_length, ofFnFrom_length]
   have hc := cellNat_cost P (by includes) (σ (.n rho))
   have := hS (.n rho)
-  have m0 := ofFnFrom_cost P (by includes) (n := LeanXmss.numChains) (by decide) _
+  have m0 := ofFnFrom_cost P (by includes) (n := LeanXmss.chainCount) (by decide) _
     (.closure Decoder.xPartNC.lam0.costIdx [encodeValue T, encodeValue sel, σV])
     (fun i ↦ RunsApp.of_spec (Decoder.xPartNC.lam0.costSpec P (by includes) T sel σ σV hσ i))
     (2 * S + 1580) (fun i ↦ by
@@ -344,7 +344,7 @@ theorem xPartA_cost (hP : Includes P Decoder.xPartNC.costDeps) (T : XmssTabs) (h
         Decoder.xPartNC.lam0.costEq P (by includes) T sel σ σV hσ, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
       have := cwCellA_cost P hσ hS (by includes) T.lanes hT.lanes 19 sel T.first T.rest T.last hsel
         hT.first hT.rest hT.last (by norm_num) i.val
-        (by have := i.isLt; simp only [LeanXmss.numChains] at this; omega)
+        (by have := i.isLt; simp only [LeanXmss.chainCount] at this; omega)
       have := cellNat_cost P (by includes)
         (σ (.n (cwCellA T.lanes 19 sel T.first T.rest T.last σ i.val)))
       have := hS (.n (cwCellA T.lanes 19 sel T.first T.rest T.last σ i.val))
@@ -363,7 +363,7 @@ theorem xPartA_cost (hP : Includes P Decoder.xPartNC.costDeps) (T : XmssTabs) (h
       rw [limbs_of_lt (by omega : bitBase < 2 ^ 64), limbs_of_lt (by omega : l.val < 2 ^ 64),
         limbs_of_lt (by omega : bitBase + l.val < 2 ^ 64)]
       omega) 0 (Nat.zero_le _)
-  simp only [LeanXmss.numChains, LeanXmss.layerHeight, Nat.sub_zero] at m0 m1 ⊢
+  simp only [LeanXmss.chainCount, LeanXmss.layerHeight, Nat.sub_zero] at m0 m1 ⊢
   omega
 
 /-- **A leanXMSS signature, off the tables `T`** (`xmssSigOfNC`, `xmssSigOfA`): at most
@@ -373,21 +373,21 @@ theorem xmssSigOfN_cost (hP : Includes P Decoder.xmssSigOfNC.costDeps) (T : Xmss
     machineCost P Decoder.xmssSigOfNC.costIdx [encodeValue T, σV] ≤ 458 * S + 210280 := by
   rw [Decoder.xmssSigOfNC.costEq P hP T σ σV hσ, ofFnFrom_length]
   have hb := bitsN_cost P hσ hS (by includes) 2 (by norm_num) 32 le_rfl
-  have m := ofFnFrom_cost P (by includes) (n := LeanXmss.numLayers) (by decide) _
+  have m := ofFnFrom_cost P (by includes) (n := LeanXmss.layerCount) (by decide) _
     (.closure Decoder.xmssSigOfNC.lam0.costIdx [encodeValue T, σV])
     (fun l ↦ RunsApp.of_spec (Decoder.xmssSigOfNC.lam0.costSpec P (by includes) T σ σV hσ l))
     (181 * S + 103750) (fun l ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
         Decoder.xmssSigOfNC.lam0.costEq P (by includes) T σ σV hσ, List.length_cons, List.length_cons, List.length_nil]
       have hl := l.isLt
-      simp only [LeanXmss.numLayers] at hl
+      simp only [LeanXmss.layerCount] at hl
       rw [limbs_of_lt (by omega : l.val < 2 ^ 64)]
       have := xPartA_cost P hσ hS (by includes) T hT 196 2 T.sel0 T.path0 hT.sel0 hT.path0
         (by norm_num)
       have := xPartA_cost P hσ hS (by includes) T hT 12604 18 T.sel1 T.path1 hT.sel1 hT.path1
         (by norm_num)
       split_ifs <;> omega) 0 (Nat.zero_le _)
-  simp only [LeanXmss.numLayers, Nat.sub_zero] at m ⊢
+  simp only [LeanXmss.layerCount, Nat.sub_zero] at m ⊢
   omega
 
 /-! ## leanSPHINCS -/
@@ -429,7 +429,7 @@ theorem subOpeningAt_cost (hP : Includes P Decoder.subOpeningAtC.costDeps) (fk :
       [encodeValue fk, σV, encodeValue b, encodeValue fold, encodeValue p0, encodeValue p1,
         encodeValue t, encodeValue a] ≤ 9 * S + 596 := by
   rw [Decoder.subOpeningAtC.costEq P hP fk σ σV hσ, ofFnFrom_length, ofFnFrom_length]
-  have m0 := ofFnFrom_cost P (by includes) (n := Sphincs.childChains) (by decide) _
+  have m0 := ofFnFrom_cost P (by includes) (n := Sphincs.forestChainCount) (by decide) _
     (.closure Decoder.subOpeningAtC.lam0.costIdx [encodeValue fk, σV, encodeValue b, encodeValue t])
     (fun i ↦ RunsApp.of_spec (Decoder.subOpeningAtC.lam0.costSpec P (by includes) fk σ σV hσ b t i))
     (S + 41) (fun i ↦ by
@@ -443,7 +443,7 @@ theorem subOpeningAt_cost (hP : Includes P Decoder.subOpeningAtC.costDeps) (fk :
         limbs_of_lt (by omega : offAtA fk t i.val < 2 ^ 64),
         limbs_of_lt (by omega : b + 12 + offAtA fk t i.val < 2 ^ 64)]
       omega) 0 (Nat.zero_le _)
-  have m1 := ofFnFrom_cost P (by includes) (n := Sphincs.subHeight) (by decide) _
+  have m1 := ofFnFrom_cost P (by includes) (n := Sphincs.forestSubtreeHeight) (by decide) _
     (.closure Decoder.subOpeningAtC.lam1.costIdx
       [σV, encodeValue fold, encodeValue p0, encodeValue p1, encodeValue a])
     (fun l ↦ RunsApp.of_spec (Decoder.subOpeningAtC.lam1.costSpec P (by includes) σ σV hσ fold p0
@@ -453,7 +453,7 @@ theorem subOpeningAt_cost (hP : Includes P Decoder.subOpeningAtC.costDeps) (fk :
         List.cons_append, List.nil_append,
         Decoder.subOpeningAtC.lam1.costEq P (by includes) σ σV hσ, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
       have hl := l.isLt
-      simp only [Sphincs.subHeight] at hl
+      simp only [Sphincs.forestSubtreeHeight] at hl
       have := foldPos_cost P (by includes) 35 32 fold a (by norm_num) (by norm_num) hfold ha
       have := foldPos_lt 35 32 fold a (by norm_num) (by norm_num) hfold ha
       have := hS (.n (foldPos 35 32 fold a + 16 * l.val))
@@ -463,7 +463,7 @@ theorem subOpeningAt_cost (hP : Includes P Decoder.subOpeningAtC.costDeps) (fk :
           else σ (.n (if a / 4 = 0 then p0 else p1)))
       rw [limbs_of_lt (by omega : l.val < 2 ^ 64)]
       split_ifs <;> limbs_one <;> cost_facts [cellNat_cost P, hS] <;> omega) 0 (Nat.zero_le _)
-  simp only [Sphincs.childChains, Sphincs.subHeight, Nat.sub_zero] at m0 m1 ⊢
+  simp only [Sphincs.forestChainCount, Sphincs.forestSubtreeHeight, Nat.sub_zero] at m0 m1 ⊢
   omega
 
 /-- A sub-tree's opening, off the tables (`subOpeningNC`, `subOpeningA`): its key and arm read
@@ -512,14 +512,14 @@ theorem coordOpeningAt_cost (hP : Includes P Decoder.coordOpeningAtC.costDeps) (
       split_ifs
       · rw [limbs_of_lt (by omega : r.b < 2 ^ 64), limbs_of_lt (by omega : r.b + 10 < 2 ^ 64)]; omega
       · omega) 0 (Nat.zero_le _)
-  have m1 := ofFnFrom_cost P (by includes) (n := Sphincs.topHeight) (by decide) _
+  have m1 := ofFnFrom_cost P (by includes) (n := Sphincs.topTreeHeight) (by decide) _
     (.closure Decoder.coordOpeningAtC.lam1.costIdx [σV, encodeValue r, encodeValue s])
     (fun l ↦ RunsApp.of_spec (Decoder.coordOpeningAtC.lam1.costSpec P (by includes) σ σV hσ r s l))
     (S + 51) (fun l ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
         Decoder.coordOpeningAtC.lam1.costEq P (by includes) σ σV hσ, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
       have hl := l.isLt
-      simp only [Sphincs.topHeight] at hl
+      simp only [Sphincs.topTreeHeight] at hl
       have := foldPos_cost P (by includes) 54 51 r.top s (by norm_num) (by norm_num) htop hs
       have := foldPos_lt 54 51 r.top s (by norm_num) (by norm_num) htop hs
       have := hS (.n (foldPos 54 51 r.top s + 17 * l.val))
@@ -529,7 +529,7 @@ theorem coordOpeningAt_cost (hP : Includes P Decoder.coordOpeningAtC.costDeps) (
           else σ (.n (if s / 8 = 0 then r.q0 else r.q1)))
       rw [limbs_of_lt (by omega : l.val < 2 ^ 64)]
       split_ifs <;> limbs_one <;> cost_facts [cellNat_cost P, hS] <;> omega) 0 (Nat.zero_le _)
-  simp only [Sphincs.topHeight, Nat.sub_zero] at m0 m1 ⊢
+  simp only [Sphincs.topTreeHeight, Nat.sub_zero] at m0 m1 ⊢
   omega
 
 /-- A coordinate's opening, off the tables (`coordOpeningNC`, `coordOpeningA`): its arm read once:
@@ -561,7 +561,7 @@ theorem sphincsSigOfN_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) (T 
   have hl1 := limbs_le_of_lt (x := Sig.cellNat (σ (.n 412448))) (k := 2) (by norm_num)
     (Decoder.cellNat_lt _)
   rw [limbs_of_lt (by norm_num : 2 ^ 32 - 1 < 2 ^ 64)]
-  have m0 := ofFnFrom_cost P (by includes) (n := Sphincs.forestCoordinates) (by decide) _
+  have m0 := ofFnFrom_cost P (by includes) (n := Sphincs.forestCoordinateCount) (by decide) _
     (.closure Decoder.sphincsSigOfNC.lam0.costIdx [encodeValue T, σV])
     (fun c ↦ RunsApp.of_spec (Decoder.sphincsSigOfNC.lam0.costSpec P (by includes) T σ σV hσ c))
     (27 * S + 14336) (fun c ↦ by
@@ -571,7 +571,7 @@ theorem sphincsSigOfN_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) (T 
       have := coordOpeningA_cost P hσ hS (by includes) T.lanes hT.lanes T.fkOff hT.fkOff
         (T.coords.getD c.val sCoord0) (hT.coords c.val)
       omega) 0 (Nat.zero_le _)
-  have m1 := ofFnFrom_cost P (by includes) (n := Sphincs.numChains) (by decide) _
+  have m1 := ofFnFrom_cost P (by includes) (n := Sphincs.chainCount) (by decide) _
     (.closure Decoder.sphincsSigOfNC.lam1.costIdx [encodeValue T, σV])
     (fun i ↦ RunsApp.of_spec (Decoder.sphincsSigOfNC.lam1.costSpec P (by includes) T σ σV hσ i))
     (2 * S + 1580) (fun i ↦ by
@@ -579,27 +579,27 @@ theorem sphincsSigOfN_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) (T 
         Decoder.sphincsSigOfNC.lam1.costEq P (by includes) T σ σV hσ, List.length_cons, List.length_cons, List.length_nil]
       have := cwCellA_cost P hσ hS (by includes) T.lanes hT.lanes 21 T.sel T.first T.rest T.last
         hT.sel hT.first hT.rest hT.last (by norm_num) i.val
-        (by have := i.isLt; simp only [Sphincs.numChains] at this; omega)
+        (by have := i.isLt; simp only [Sphincs.chainCount] at this; omega)
       have := cellNat_cost P (by includes)
         (σ (.n (cwCellA T.lanes 21 T.sel T.first T.rest T.last σ i.val)))
       have := hS (.n (cwCellA T.lanes 21 T.sel T.first T.rest T.last σ i.val))
       omega) 0 (Nat.zero_le _)
-  have m2 := ofFnFrom_cost P (by includes) (n := Sphincs.totalHeight) (by decide) _
+  have m2 := ofFnFrom_cost P (by includes) (n := Sphincs.treeHeight) (by decide) _
     (.closure Decoder.sphincsSigOfNC.lam2.costIdx [encodeValue T, σV])
     (fun l ↦ RunsApp.of_spec (Decoder.sphincsSigOfNC.lam2.costSpec P (by includes) T σ σV hσ l))
     (4 * S + 96) (fun l ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
         Decoder.sphincsSigOfNC.lam2.costEq P (by includes) T σ σV hσ, List.length_cons, List.length_cons, List.length_nil]
       have hl := l.isLt
-      simp only [Sphincs.totalHeight] at hl
+      simp only [Sphincs.treeHeight] at hl
       have := hT.path l.val
       have := sibN_cost P hσ hS (by includes) (30 + l.val) (T.path.getD l.val 0) (by omega)
       have := cellNat_cost P (by includes) (sibN σ (30 + l.val) (T.path.getD l.val 0))
       rw [limbs_of_lt (by omega : l.val < 2 ^ 64), limbs_of_lt (by omega : 30 + l.val < 2 ^ 64)]
       omega) 0 (Nat.zero_le _)
-  have hnc : Sphincs.numChains = 64 := rfl
+  have hnc : Sphincs.chainCount = 64 := rfl
   rw [hnc] at m1 ⊢
-  simp only [Sphincs.forestCoordinates, Sphincs.totalHeight, Nat.sub_zero] at m0 m1 m2 ⊢
+  simp only [Sphincs.forestCoordinateCount, Sphincs.treeHeight, Nat.sub_zero] at m0 m1 m2 ⊢
   omega
 
 end Val

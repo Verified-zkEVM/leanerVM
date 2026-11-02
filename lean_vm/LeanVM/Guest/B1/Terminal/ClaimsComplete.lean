@@ -30,7 +30,8 @@ open LeanVM.Guest.Memory LeanVM.Guest.B1.Fwd
 @[expose] public section
 
 /-- The word at `P·g^k` lies in the region `R`. -/
-def AddrIn (R : ℕ → Prop) (P : E) (k : ℕ) : Prop := ∃ i, P.limb 0 * gpow k = gpow i ∧ R i
+def AddrIn (R : ℕ → Prop) (P : E) (k : ℕ) : Prop := ∃ i, P.limb 0 * addressOfIndex k =
+    addressOfIndex i ∧ R i
 
 /-- The stores load through `.n 25`. -/
 def StoresAt25 (S : List Atom) : Prop := ∀ a ∈ S, ∃ d off, a = .load d (.n 25) off

@@ -31,7 +31,8 @@ theorem oqIter0_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Stri
     {rd : Reader} {R : ℕ → Prop} {fp m j : ℕ} {N qptrs cap flags wp ch mu : E}
     {r : List K} {w : ℕ → E} {q : ℕ} {sb : List Digest} {bp v : E}
     (hok : (⟨s, 10, true, 0, r, w, q, sb,
-      ofK (Parameters.gpow (fp + cert loop (.n (oqCh s 10 true)))), cap, flags, rd⟩ : QD).Ok rd wp)
+      ofK (Parameters.addressOfIndex (fp + cert loop (.n (oqCh s 10 true)))), cap, flags, rd⟩ :
+          QD).Ok rd wp)
     (hb : LoadHolds rd qptrs j bp)
     (hbits : ∀ l < s.pd + s.cd, LoadHolds rd bp l (bitE (q.testBit l)))
     (hv : LoadHolds rd ch j v)
@@ -41,13 +42,13 @@ theorem oqIter0_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Stri
       RelAtIn coreProgram fs cert rd R (fun _ => False) (fp + fs loop) m loop
         [gen ^ j * gen, N, qptrs, cap, flags, wp, ch, mu] []
       else m = fs loop)
-    (hRq : OqIn R ((qptrs * gen ^ j).limb 0 * Parameters.gpow 0))
+    (hRq : OqIn R ((qptrs * gen ^ j).limb 0 * Parameters.addressOfIndex 0))
     (hR1 : OqQReg R s cap flags wp bp q)
-    (hRc : ∀ e < 2, OqIn R ((ch * gen ^ j).limb 0 * Parameters.gpow e)) :
+    (hRc : ∀ e < 2, OqIn R ((ch * gen ^ j).limb 0 * Parameters.addressOfIndex e)) :
     RelAtIn coreProgram fs cert rd R (fun _ => False) fp (fs loop + m) loop
       [gen ^ j, N, qptrs, cap, flags, wp, ch, mu] [] := by
   set c01 := fp + cert loop (.n (oqCh s 10 true)) with hc01
-  set D1 : QD := ⟨s, 10, true, 0, r, w, q, sb, ofK (Parameters.gpow c01), cap, flags, rd⟩
+  set D1 : QD := ⟨s, 10, true, 0, r, w, q, sb, ofK (Parameters.addressOfIndex c01), cap, flags, rd⟩
     with hD1
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, ∀ w : V, σ w = oqIter0F s [gen ^ j, N, qptrs, cap, flags, wp, ch, mu]
       D1 bp v w.idx := ⟨_, fun _ ↦ rfl⟩
@@ -101,7 +102,7 @@ theorem oqIter0_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Stri
   have hown1 : ∀ i, c01 ≤ i → i < c01 + 80 →
       ownData cert fp (fp + fs loop + m) loop (allocs σ es) es i :=
     fun i h1 h2 ↦ Or.inr ⟨_, hrun1, h1, h2⟩
-  have inR : ∀ A, OqIn R A → ∃ i, A = Parameters.gpow i ∧
+  have inR : ∀ A, OqIn R A → ∃ i, A = Parameters.addressOfIndex i ∧
       (ownData cert fp (fp + fs loop + m) loop (allocs σ es) es i ∨ R i ∨ False ∨
         ((⟨loop, [.n (oqC0 s + 9), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7], [],
           decide (σ (.n (oqC0 s + 7)) ≠ 0)⟩ : Call).taken = true ∧ False)) :=

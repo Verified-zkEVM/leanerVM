@@ -20,7 +20,7 @@ attribute [local instance] Classical.propDecidable
 
 variable [Params]
 
-instance instNonemptyRandomness : Nonempty Randomness := ⟨0⟩
+instance instNonemptyRandomness : Nonempty Randomizer := ⟨0⟩
 
 section Defs
 
@@ -28,7 +28,7 @@ variable (parameter : PublicParameter) (data : PublicData)
 
 /-- What a cached landed pair discloses when it is signed: its view, or nothing for an excluded
 pair (a candidate does not count its own signature). -/
-noncomputable def extOf (s : State) (excl : Pair → Prop) (m : Message) (ρ : Randomness) : Multiset View :=
+noncomputable def extOf (s : State) (excl : Pair → Prop) (m : Message) (ρ : Randomizer) : Multiset View :=
   if excl (m, ρ) then 0 else {pview parameter data s (m, ρ)}
 
 /-- **The group of a message.** -/
@@ -171,7 +171,7 @@ theorem stOf_withPair_other (s : State) (p : Pair) (u0 : HashOutput) {m : Messag
     withPair_other_pair s p (m, ρ) hne u0
   simp only [stOf, h]
 
-theorem extOf_withPair_other (s : State) (p : Pair) (u0 : HashOutput) (excl : Pair → Prop) {m : Message} {ρ : Randomness}
+theorem extOf_withPair_other (s : State) (p : Pair) (u0 : HashOutput) (excl : Pair → Prop) {m : Message} {ρ : Randomizer}
     (hne : (m, ρ) ≠ p) :
     extOf parameter data (withPair parameter data s p u0) excl m ρ = extOf parameter data s excl m ρ := by
   unfold extOf
@@ -231,7 +231,7 @@ pays `(2 − landing)/2^128` through the mass that the group of the message leav
 theorem grpAll_probe {w : ℝ≥0∞} (hw : w ≤ 1) {f : Multiset View → ℝ≥0∞} (hf : Monotone' f) (hfin : ∀ D, f D ≠ ⊤)
     (s : State) (p : Pair) (hp0 : s.cache (pblk parameter data p) = none) (excl : Pair → Prop)
     (Ms : List Message) (hMs : Ms.Nodup) (hp : p.1 ∈ Ms)
-    (hrate : (Fintype.card Randomness : ℝ≥0∞)⁻¹ * ((1 - landing) + 1) ≤ landing * w * idMassM parameter data s p.1)
+    (hrate : (Fintype.card Randomizer : ℝ≥0∞)⁻¹ * ((1 - landing) + 1) ≤ landing * w * idMassM parameter data s p.1)
     (n : ℕ) (I : List View) (d : Multiset View) :
     pairE (fun u0 => grpAll parameter data (withPair parameter data s p u0) excl Ms
         (virtualOnce Finset.univ w f n I) d) ≤
@@ -312,8 +312,8 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
 /-- **The scan from a start, with the fresh pair it completes.** -/
 theorem scan_bound_comb
     (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = none) (s : State)
-    (gf : View → ℝ≥0∞) (gp : Randomness → View → ℝ≥0∞) (attempts : ℕ) (hA : attempts ≤ 2 ^ 128)
-    (budget : ℕ) (start : Randomness) :
+    (gf : View → ℝ≥0∞) (gp : Randomizer → View → ℝ≥0∞) (attempts : ℕ) (hA : attempts ≤ 2 ^ 128)
+    (budget : ℕ) (start : Randomizer) :
     ∑' out, Pr{let x ← interp tg initial model (signCostSourceLoop parameter data m attempts start) budget s}[x = out] *
         (freshNewWeight parameter data m s gf out + outWeight parameter data m s 0 gp out) ≤
       walk nextRand landing (stOf parameter data m s) (poolValue parameter data m s gp)
@@ -435,15 +435,15 @@ theorem sign_term (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = none
     {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (s : State) (d : Multiset View)
     (excl : Pair → Prop) (budget : ℕ) :
     ∑' out, Pr{let x ← (interp tg initial model
-          ((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>= fun start =>
+          ((liftM ($ᵗ Randomizer : ProbComp Randomizer) : OracleComp CostSpec Randomizer) >>= fun start =>
             signCostSourceLoop parameter data m digestAttemptLimit start) budget s)}[x = out] *
         (X d + (freshNewWeight parameter data m s (fun v => X (d + {v}) - X d) out +
           outWeight parameter data m s 0 (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d) out)) ≤
       grpM parameter data s excl m (fun e => freshAvg Finset.univ fun v => X (e + {v})) d := by
   set gf : View → ℝ≥0∞ := fun v => X (d + {v}) - X d with hgf
-  set gp : Randomness → View → ℝ≥0∞ := fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d with hgp
-  set c := (Fintype.card Randomness : ℝ≥0∞)⁻¹ with hc
-  have hcard : c * (Fintype.card Randomness : ℝ≥0∞) = 1 :=
+  set gp : Randomizer → View → ℝ≥0∞ := fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d with hgp
+  set c := (Fintype.card Randomizer : ℝ≥0∞)⁻¹ with hc
+  have hcard : c * (Fintype.card Randomizer : ℝ≥0∞) = 1 :=
     ENNReal.inv_mul_cancel (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _)
   have hUX : ∀ e, X e ≤ freshAvg Finset.univ (fun v => X (e + {v})) := by
     intro e
@@ -451,13 +451,13 @@ theorem sign_term (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = none
       _ ≤ _ := freshAvg_mono _ fun v _ => hX _ _ (Multiset.le_add_right _ _)
   -- the scan part
   have hscan : ∑' out, Pr{let x ← (interp tg initial model
-        ((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>= fun start =>
+        ((liftM ($ᵗ Randomizer : ProbComp Randomizer) : OracleComp CostSpec Randomizer) >>= fun start =>
           signCostSourceLoop parameter data m digestAttemptLimit start) budget s)}[x = out] *
         (freshNewWeight parameter data m s gf out + outWeight parameter data m s 0 gp out) ≤
       c * ∑ start, walk nextRand landing (stOf parameter data m s) (poolValue parameter data m s gp)
         (freshAvg Finset.univ gf) 0 digestAttemptLimit start := by
     rw [interp_liftProb_bind, OracleComp.tsum_prEvent_bind_mul]
-    have hpr : ∀ ρ, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = ρ] = c := by
+    have hpr : ∀ ρ, Pr{let x ← ($ᵗ Randomizer : ProbComp Randomizer)}[x = ρ] = c := by
       intro ρ
       rw [SampleableType.prEvent_uniformSample_eq_singleton]
     simp only [hpr]
@@ -466,7 +466,7 @@ theorem sign_term (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = none
     exact scan_bound_comb tg initial model parameter data m hparse s gf gp digestAttemptLimit
       (by unfold digestAttemptLimit; norm_num) budget start
   have hsum : ∑' out, Pr{let x ← (interp tg initial model
-        ((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>= fun start =>
+        ((liftM ($ᵗ Randomizer : ProbComp Randomizer) : OracleComp CostSpec Randomizer) >>= fun start =>
           signCostSourceLoop parameter data m digestAttemptLimit start) budget s)}[x = out] *
         (X d + (freshNewWeight parameter data m s gf out + outWeight parameter data m s 0 gp out)) ≤
       X d + c * ∑ start, walk nextRand landing (stOf parameter data m s) (poolValue parameter data m s gp)
@@ -475,7 +475,7 @@ theorem sign_term (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = none
     exact add_le_add (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) hscan
   refine le_trans hsum ?_
   -- the base value joins every walk
-  have hbase : X d = c * ∑ start : Randomness, walk nextRand landing (stOf parameter data m s) (fun _ => X d)
+  have hbase : X d = c * ∑ start : Randomizer, walk nextRand landing (stOf parameter data m s) (fun _ => X d)
       (X d) (X d) digestAttemptLimit start := by
     simp only [walk_const landing_le_one, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
     rw [← mul_assoc, hcard, one_mul]

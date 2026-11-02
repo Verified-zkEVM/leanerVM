@@ -53,7 +53,7 @@ theorem readIn_powIndex {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
   funext fun a ↦ by rw [readIn, gLogIn_powIndex hκ]; rfl
 
 /-- The word in cell `o` of the frame `fp`, read with `rd`, `0` if none (`Check.wd`). -/
-def wordWith (rd : Reader) (fp : K) (o : ℕ) : E := (rd (fp * gpow o)).getD 0
+def wordWith (rd : Reader) (fp : K) (o : ℕ) : E := (rd (fp * addressOfIndex o)).getD 0
 
 /-- The `n` words of the frame `fp` from cell `o`, read with `rd` (`Check.frameWords`). -/
 def wordsWith (rd : Reader) (fp : K) (o n : ℕ) : List E := (List.range n).map fun i ↦ wordWith rd fp (o + i)
@@ -62,11 +62,11 @@ def wordsWith (rd : Reader) (fp : K) (o n : ℕ) : List E := (List.range n).map 
 
 section Replay
 
-variable {memIdx codeIdx : Std.HashMap UInt64 ℕ} {prog : Semantics.Program} {κ : ℕ} {L : MemoryImage κ}
+variable {memIdx codeIdx : Std.HashMap UInt64 ℕ} {prog : Semantics.LeanIsaProgram} {κ : ℕ} {L : MemoryImage κ}
 
 /-- **The states of the run from `r`**, stepped through the indices: `r`, then, unless `r` is the
 final state, the states from its step, for `fuel` steps at most. -/
-def statesIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Semantics.Program) {κ : ℕ} (L : MemoryImage κ) :
+def statesIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Semantics.LeanIsaProgram) {κ : ℕ} (L : MemoryImage κ) :
     ℕ → Registers K → List (Registers K)
   | 0, r => [r]
   | n + 1, r => r :: if r = Registers.final prog then [] else
@@ -187,25 +187,28 @@ end Replay
 /-- The entry environment holds of the frame, decided: every key the environment lists. -/
 noncomputable def envTest (rd : Reader) (fp : K) (env : List (ℕ × Sym)) : Bool :=
   env.all fun p ↦ match (envOf env).get p.1 with
-    | some v => decide (rd (fp * gpow p.1) = some (v.val fp))
+    | some v => decide (rd (fp * addressOfIndex p.1) = some (v.val fp))
     | none => true
 
 /-- The bounds hold, decided. -/
 def bndTest (rd : Reader) (fp : K) (bnd : List (ℕ × ℕ)) : Bool :=
-  bnd.all fun p ↦ (List.range p.2).any fun e ↦ decide (rd (fp * gpow p.1) = some (ofK (gpow e)))
+  bnd.all fun p ↦ (List.range p.2).any fun e ↦ decide (rd (fp * addressOfIndex p.1) = some (ofK
+      (addressOfIndex e)))
 
 /-- The memory bounds hold, decided. -/
 def memTest (rd : Reader) (fp : K) (mem : List (ℕ × ℕ × ℕ)) : Bool :=
-  mem.all fun m ↦ (List.range m.2.1).all fun c ↦ match rd (fp * gpow m.1) with
+  mem.all fun m ↦ (List.range m.2.1).all fun c ↦ match rd (fp * addressOfIndex m.1) with
     | some p => decide (IsInK p) &&
-        (List.range m.2.2).any fun e ↦ decide (rd (p.limb 0 * gpow c) = some (ofK (gpow e)))
+        (List.range m.2.2).any fun e ↦ decide (rd (p.limb 0 * addressOfIndex c) = some (ofK
+            (addressOfIndex e)))
     | none => false
 
 /-- The exponent tables at `p`, `q` (`B1.ExpTables`), decided. -/
 def expTablesTest (rd : Reader) (p q : E) : Bool :=
   (List.range sizeBits).all fun j ↦ decide (IsInK p) &&
-    decide (rd (p.limb 0 * gpow j) = some (Protocol.Verifier.eOfNat (2 ^ j))) && decide (IsInK q) &&
-    decide (rd (q.limb 0 * gpow j) = some (Protocol.Verifier.gen ^ 2 ^ j))
+    decide (rd (p.limb 0 * addressOfIndex j) = some (Protocol.Verifier.eOfNat (2 ^ j))) && decide
+        (IsInK q) &&
+    decide (rd (q.limb 0 * addressOfIndex j) = some (Protocol.Verifier.gen ^ 2 ^ j))
 
 /-- The semantic pairs hold, decided: the exponent tables at each pair of cells. -/
 def semTest (rd : Reader) (fp : K) (sems : List (ℕ × ℕ)) : Bool :=
@@ -293,7 +296,8 @@ end Tests
 frame's argument and return cells hold `args` and `rets`. -/
 noncomputable def enteredTest (rd : Reader) (f : String) (args rets : List E) (r : Registers K)
     (j : ℕ) : Bool :=
-  decide (r.pc = gpow (glob.sig j).entry) && decide ((glob.sig j).name = f) && preTest rd j r.fp &&
+  decide (r.pc = addressOfIndex (glob.sig j).entry) && decide ((glob.sig j).name = f) && preTest rd
+      j r.fp &&
     decide (wordsWith rd r.fp 2 (glob.sig j).nargs = args) &&
     decide (wordsWith rd r.fp (2 + (glob.sig j).nargs) (glob.sig j).nret = rets)
 
@@ -313,7 +317,7 @@ noncomputable def frameVWith (states : List (Registers K)) (rd : Reader) : Frame
 indices of the addresses, a call's valuation that of the first frame the run entered its callee
 at on the call's words. -/
 noncomputable def replayFrameV {κ : ℕ} (L : MemoryImage κ) : FrameMap :=
-  frameVWith (statesIn (powIndex κ) (powIndex guestProgram.logSize) guestProgram L replayFuel ⟨gpow 0, 1⟩)
+  frameVWith (statesIn (powIndex κ) (powIndex guestProgram.logSize) guestProgram L replayFuel ⟨addressOfIndex 0, 1⟩)
     (readIn (powIndex κ) L)
 
 /-- **The located relation unfolds along the replayed frame map**, on a valid execution: the frame
@@ -328,28 +332,28 @@ theorem unfoldsV_replay (hb2 : End.B2SoundL) {input : PublicInput} {t : Executio
   have hκ : κ < 64 := by unfold maxLogMem at h32; omega
   have hS : ∀ r, stepIn (powIndex κ) (powIndex guestProgram.logSize) guestProgram L r = step guestProgram L r :=
     stepIn_powIndex hκ L
-  have hT : run guestProgram L T ⟨gpow 0, 1⟩ = some (Registers.final guestProgram) :=
+  have hT : run guestProgram L T ⟨addressOfIndex 0, 1⟩ = some (Registers.final guestProgram) :=
     safe_of_validExecution hv
   have hTi : run guestProgram L T Registers.initial = some (Registers.final guestProgram) := hv.2
   have hjt : JTHolds glob L := End.jtHolds_of (End.safe_jumpTables hT).1
   have hfuel : T ≤ replayFuel := (steps_lt_replayFuel hTi).le
   have hV : replayFrameV L = frameVWith (statesIn (powIndex κ) (powIndex guestProgram.logSize) guestProgram L
-      replayFuel ⟨gpow 0, 1⟩) L.read := by
+      replayFuel ⟨addressOfIndex 0, 1⟩) L.read := by
     rw [replayFrameV, readIn_powIndex hκ]
-  set states := statesIn (powIndex κ) (powIndex guestProgram.logSize) guestProgram L replayFuel ⟨gpow 0, 1⟩
+  set states := statesIn (powIndex κ) (powIndex guestProgram.logSize) guestProgram L replayFuel ⟨addressOfIndex 0, 1⟩
   show UnfoldsV L.read (RLg L) (replayFrameV L)
   rw [hV]
   intro f args rets h
   obtain ⟨fn, fp, hfind, ⟨-, j, hname, hpre, ⟨n, hn⟩, hw1, hw2⟩, -, -⟩ :=
     (relL_iff coreProgram f args rets).mp h
   -- the run entered `j` at `fp`: a candidate
-  have hmem : (⟨gpow (glob.sig j).entry, fp⟩ : Registers K) ∈ states :=
+  have hmem : (⟨addressOfIndex (glob.sig j).entry, fp⟩ : Registers K) ∈ states :=
     mem_statesIn hS hn ((run_le_of_halts hT hn).trans hfuel)
   have hj : j < nFns := by
     have := hpre.1
     simp only [glob, good, Bool.and_eq_true, Nat.blt_eq] at this
     exact this.2
-  have htest : enteredTest L.read f args rets ⟨gpow (glob.sig j).entry, fp⟩ j = true := by
+  have htest : enteredTest L.read f args rets ⟨addressOfIndex (glob.sig j).entry, fp⟩ j = true := by
     simp only [enteredTest, Bool.and_eq_true]
     exact ⟨⟨⟨⟨by simp, decide_eq_true hname⟩, (preTest_iff hjt).mpr hpre⟩,
       decide_eq_true hw1⟩, decide_eq_true hw2⟩
@@ -369,14 +373,14 @@ theorem unfoldsV_replay (hb2 : End.B2SoundL) {input : PublicInput} {t : Executio
     obtain ⟨j', -, htest'⟩ := List.any_eq_true.mp hany
     simp only [enteredTest, Bool.and_eq_true] at htest'
     obtain ⟨⟨⟨⟨hpc, hname'⟩, hpre'⟩, hw1'⟩, hw2'⟩ := htest'
-    have hpc : r.pc = gpow (glob.sig j').entry := of_decide_eq_true hpc
+    have hpc : r.pc = addressOfIndex (glob.sig j').entry := of_decide_eq_true hpc
     have hname' : (glob.sig j').name = f := of_decide_eq_true hname'
     have hw1' : frameWords L r.fp 2 (glob.sig j').nargs = args := of_decide_eq_true hw1'
     have hw2' : frameWords L r.fp (2 + (glob.sig j').nargs) (glob.sig j').nret = rets :=
       of_decide_eq_true hw2'
     have hpre'' := (preTest_iff hjt).mp hpre'
     obtain ⟨n', hn'⟩ := run_of_mem_statesIn hS hr
-    have hreg : r = ⟨gpow (glob.sig j').entry, r.fp⟩ := regs_ext hpc rfl
+    have hreg : r = ⟨addressOfIndex (glob.sig j').entry, r.fp⟩ := regs_ext hpc rfl
     rw [hreg] at hn'
     obtain ⟨-, -, -, -, ⟨⟨fn', hfind', hp', hb'⟩, -, -⟩, -⟩ :=
       End.globSpec hb2 h16 h32 j' r.fp (T - n') hpre'' ⟨safe_of_halts hT hn', ⟨n', hn'⟩⟩

@@ -73,8 +73,8 @@ def commitCellsWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
   H (pairBytes (rowRootWithHash H c) (colRootWithHash H c))
 
 /-- The honest opening of a position. -/
-def openCellWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : Opening :=
-  ⟨rowRootWithHash H c, merklePathWithHash H (7 + logPaddedRowCount r) (colLeavesWithHash H c) (colIndex p)⟩
+def openCellWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : CellOpening :=
+  ⟨rowRootWithHash H c, merklePathWithHash H (7 + logPaddedRowCount r) (colLeavesWithHash H c) (columnTreeIndex p)⟩
 
 /-- One level of a Merkle tree: the digests of neighbouring pairs (`tree_from_leaves`). -/
 def treeLevelWithHash (nodes : List DigestBytes) : List DigestBytes :=
@@ -89,14 +89,14 @@ decreasing_by simp only [treeLevelWithHash, List.length_map, List.length_range];
 
 /-- The digest of cell `j` of a codeword (`hash_cells`). -/
 def listCellDigestWithHash (row : List K) (j : ℕ) : DigestBytes :=
-  H ((listCell row j).flatMap kBytes)
+  H ((listCell row j).flatMap symbolBytes)
 
 /-- A row's digest: the hash of its payload cells' digests. -/
 def rowDigestWithHash (row : List K) : DigestBytes :=
   H ((List.range payloadCells).flatMap fun j ↦ (listCellDigestWithHash H row j).toList)
 
 /-- The digest of the zero cell, which pads the columns (`padding_digests`). -/
-def paddingCellWithHash : DigestBytes := H ((List.replicate cellSymbols 0).flatMap kBytes)
+def paddingCellWithHash : DigestBytes := H ((List.replicate cellSymbols 0).flatMap symbolBytes)
 
 /-- The digest of the zero row, which pads the row tree (`padding_digests`). -/
 def paddingRowWithHash : DigestBytes :=
@@ -124,16 +124,16 @@ variable {m : Type → Type} [Monad m] (H : List UInt8 → m DigestBytes)
 (`Sponge::from_label`). -/
 def Sponge.fromLabelMWithHash (label : List UInt8) : m Sponge := do
   let iv ← H label
-  Sponge.newM P iv (Vector.replicate 32 0)
+  Sponge.newWith P iv (Vector.replicate 32 0)
 
 /-- **The challenges `z_0 … z_13` of a root** (`membership_challenges`, `verifier/src/da.rs:15-22`):
 a sponge from the label, the root's words observed as two scalars `(w_0, w_1, 0)` and
 `(w_2, w_3, 0)`, then `14` samples. -/
 def membershipChallengesMWithHash (root : DigestBytes) : m (List E) := do
-  let s ← Sponge.fromLabelMWithHash H P label
-  let s ← Sponge.observeM P s (ofLimbs (word root 0) (word root 1) 0)
-  let s ← Sponge.observeM P s (ofLimbs (word root 2) (word root 3) 0)
-  Sponge.samplesM P logK s
+  let s ← Sponge.fromLabelMWithHash H P membershipLabel
+  let s ← Sponge.observeWith P s (ofLimbs (digestWord root 0) (digestWord root 1) 0)
+  let s ← Sponge.observeWith P s (ofLimbs (digestWord root 2) (digestWord root 3) 0)
+  Sponge.samplesWith P logK s
 
 /-- Climb from `node` at index `idx` along the siblings `path`. -/
 def walkMWithHash : ℕ → DigestBytes → List DigestBytes → m DigestBytes
@@ -144,11 +144,12 @@ def walkMWithHash : ℕ → DigestBytes → List DigestBytes → m DigestBytes
 
 /-- **Verification of a cell opening**: a path of the column tree's height that climbs from the
 cell's digest to a column root, which hashed after the row root gives the commitment. -/
-def verifyCellMWithHash (r : ℕ) (com : DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
+def verifyCellMWithHash (r : ℕ) (com : DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ :
+    CellOpening) :
     m Bool :=
   do
   let d ← H (cellBytes x)
-  let w ← walkMWithHash H (colIndex p) d τ.path
+  let w ← walkMWithHash H (columnTreeIndex p) d τ.path
   let root ← H (pairBytes τ.rowRoot w)
   pure (decide (τ.path.length = 7 + logPaddedRowCount r) && decide (root = com))
 
@@ -250,7 +251,8 @@ noncomputable def codeBindingGameWithHash (A : CodeBindingAdversary r Crs Proof)
   let ok ← ps.verify crs com.1 com.2
   let verdicts ← opened.mapM fun o ↦
     verifyCellMWithHash keccak256OverPermutation r com.1 o.1 o.2.1 o.2.2
-  pure (ok && verdicts.all id && !decide ((code r).Consistent (opened.map fun o ↦ (o.1, o.2.1))))
+  pure (ok && verdicts.all id && !decide ((leanDaErasureCode r).Consistent (opened.map fun o ↦ (o.1,
+      o.2.1))))
 
 /-- **The argument's knowledge-soundness game** (Wagner's, Foundations Definition 18, in the
 random-permutation model with a straight-line extractor): the argument's setup, the adversary with
@@ -274,7 +276,7 @@ noncomputable def completenessExperimentWithHash (π : Equiv.Perm KeccakState)
     (ps : LeanDaArgument r Crs Proof)
     (msg : Fin r → Payload) (p : Fin (r * 128)) : ProbComp Bool := do
   let crs ← ps.setup
-  let c := (code r).encode msg
+  let c := (leanDaErasureCode r).encode msg
   let root := commitCellsWithHash (keccak256WithPermutation π) c
   let ok ← simulateQ (oraclesFromPermutation π) (ps.prove crs root c >>= ps.verify crs root)
   pure (ok && Id.run

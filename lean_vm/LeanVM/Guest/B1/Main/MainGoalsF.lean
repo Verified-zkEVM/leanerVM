@@ -87,7 +87,7 @@ theorem mf_lane_ofLane (w : UInt64) : K.lane (K.ofLane w) = w := rfl
 theorem mf_cellBytes_ofBytes {b : List UInt8} (h : 16 ≤ b.length) :
     cellBytes (cellOfBytes b) = b.take 16 := by
   simp only [cellBytes, cellOfBytes, limb_ofLimbs, Matrix.cons_val_zero, Matrix.cons_val_one,
-    kBytes, kOfBytes, mf_lane_ofLane]
+    K.toBytes, kOfBytes, mf_lane_ofLane]
   rw [wordBytes_laneOfBytes (by omega), wordBytes_laneOfBytes (by simp; omega),
     ← List.take_add]
 
@@ -133,7 +133,7 @@ theorem mf_canon_flatMap {α : Type} (f : α → List E) (hf : ∀ a, AllCanonic
 /-! ### The signature claims -/
 
 theorem mf_claimBytes_length (r p : BitVec 128) (m : BitVec 256) : (claimBytes r p m).length = 64 := by
-  simp [claimBytes, littleEndianBytes16, HashSig.bytesLE]
+  simp [claimBytes, littleEndianBytes16, HashSig.littleEndianBytes]
 
 theorem mf_claimCells_length (r p : BitVec 128) (m : BitVec 256) : (claimCells r p m).length = 4 := by
   simp [claimCells, cellsOfBytes, mf_claimBytes_length]

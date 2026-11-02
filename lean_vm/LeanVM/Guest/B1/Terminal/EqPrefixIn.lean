@@ -60,9 +60,9 @@ theorem ep_relIn {n : ℕ} (hn : n ≤ 40) {rd : Reader} {bc ba bb : ℕ} {seed 
     {R : ℕ → Prop}
     (hR : ∀ i, (bc ≤ i ∧ i ≤ bc + n) ∨ (ba ≤ i ∧ i < ba + n) ∨ (bb ≤ i ∧ i < bb + n) → R i)
     (h : coreProgram.Rel rd (eqPrefixRunNames.getD n "")
-      [ofK (gpow bc), seed, ofK (gpow ba), ofK (gpow bb)] rets) :
+      [ofK (addressOfIndex bc), seed, ofK (addressOfIndex ba), ofK (addressOfIndex bb)] rets) :
     coreProgram.RelIn rd R (eqPrefixRunNames.getD n "")
-      [ofK (gpow bc), seed, ofK (gpow ba), ofK (gpow bb)] rets := by
+      [ofK (addressOfIndex bc), seed, ofK (addressOfIndex ba), ofK (addressOfIndex bb)] rets := by
   obtain ⟨fn, hf, hp, hleaf⟩ := ep_found hn
   refine Lift.relIn_of_leaf hf hleaf (fun σ es vs hpar hw A hA => ?_) h
   have hall := Lift.walk_leafOk (σ := σ) _ hleaf
@@ -100,9 +100,11 @@ theorem eqPrefixRunNames_getElem {j : ℕ} (hj : j < eqPrefixRunNames.length) :
 theorem eqc_relIn {rd : Reader} {bc ba bb n : ℕ} (hn : n ≤ 40) {seed : E} {R : ℕ → Prop}
     (hR : ∀ i, (bc ≤ i ∧ i ≤ bc + n) ∨ (ba ≤ i ∧ i < ba + n) ∨ (bb ≤ i ∧ i < bb + n) → R i)
     (h : coreProgram.Rel rd "eq_prefix_chain"
-      [ofK (gpow bc), seed, ofK (gpow ba), ofK (gpow bb), gen ^ n] []) :
+      [ofK (addressOfIndex bc), seed, ofK (addressOfIndex ba), ofK (addressOfIndex bb), gen ^
+          n] []) :
     coreProgram.RelIn rd R "eq_prefix_chain"
-      [ofK (gpow bc), seed, ofK (gpow ba), ofK (gpow bb), gen ^ n] [] := by
+      [ofK (addressOfIndex bc), seed, ofK (addressOfIndex ba), ofK (addressOfIndex bb), gen ^ n]
+          [] := by
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_eq_prefix_chain _ _).mp h
   have hbody : Fn.body Data.core4 = eqcPre ++ [.ret []] := core4_body
   rw [hbody] at hb

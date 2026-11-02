@@ -57,7 +57,7 @@ theorem coordAdr_ok (s : Nat) : AdrOK (coordAdr s) (4 - 1) := by
 /-- What a coordinate's valuation holds. -/
 def CoordPost (encIn boundIn : E) (c : Nat) (enc : Option V) (bound : V) (b : Nat) (h : CoordH)
     (σ : Val) : Prop :=
-  σ (.n b) = ofK (gpow h.s) ∧ σ (.n (b + 1)) = coordMark c h.s ∧
+  σ (.n b) = ofK (addressOfIndex h.s) ∧ σ (.n (b + 1)) = coordMark c h.s ∧
     SubPost encIn boundIn c 0 enc (b + 10) h.sub0 σ ∧
     SubPost (encIn + fkWeight h.sub0.t (2 * c)) (boundIn + cbMul h.sub0.a (58 + 3 * (2 * c))) c 1
       (some (coordS0 c enc bound b).2.2.1) (coordS0 c enc bound b).2.1 h.sub1 σ ∧
@@ -140,12 +140,12 @@ theorem sCoord_complete {c : Nat} {enc : Option V} {bound : V} {b : Nat} (hb : 2
     rw [sCoord_fst, ← hf]; split <;> omega
   rw [sCoord_split]
   -- the super-child
-  set σ1 := Function.update (Function.update σ (.n b) (ofK (gpow h.s))) (.n (b + 1)) (coordMark c h.s)
+  set σ1 := Function.update (Function.update σ (.n b) (ofK (addressOfIndex h.s))) (.n (b + 1)) (coordMark c h.s)
     with hσ1
   have he1 : Ext b (b + 2) σ σ1 := fun v hv => by
     rw [hσ1, Function.update_of_ne (hv (b + 1) (by omega) (by omega)),
       Function.update_of_ne (hv b le_rfl (by omega))]
-  have h1s : σ1 (.n b) = ofK (gpow h.s) := by
+  have h1s : σ1 (.n b) = ofK (addressOfIndex h.s) := by
     rw [hσ1, Function.update_of_ne (by simp), Function.update_self]
   have h1m : σ1 (.n (b + 1)) = coordMark c h.s := by rw [hσ1, Function.update_self]
   refine Completes.append (m := b + 2) (by omega) (by omega)
@@ -325,7 +325,7 @@ theorem sCoord_complete {c : Nat} {enc : Option V} {bound : V} {b : Nat} (hb : 2
     rw [h76 _ (by omega), h65 _ (by omega), h54 _ (by omega), hla4]
   have hs7 : IsCanonical128 (σ7 (.n (f + 5))) := by
     rw [show f + 5 = f + 5 + 0 from rfl, h7 0 (by norm_num)]; exact canon_kOut _ _ _ _
-  have hb7 : σ7 (.n b) = ofK (gpow h.s) := by
+  have hb7 : σ7 (.n b) = ofK (addressOfIndex h.s) := by
     rw [h76 _ (by omega), h65 _ (by omega), h54 _ (by omega), he4.apply (Or.inl (by omega)),
       h31 b (by omega), h1s]
   have hm7 : σ7 (.n (b + 1)) = coordMark c h.s := by

@@ -86,9 +86,10 @@ theorem runsTo_round3 (s : Fs) (claim c0 c2 : E) :
   have hr0 := runsTo_readE s c0
   have hr1 := runsTo_readN (s.absorb c0 dsObserve) [c2]
   have := hr0.bind (f := fun c ↦ do
-      let tail ← Prog.readScalars 1
+      let tail ← VerifierProgram.readScalars 1
       return c :: (claim + sumE tail) :: tail)
-    (hr1.bind (f := fun tail ↦ (pure (c0 :: (claim + sumE tail) :: tail) : Prog (List E)))
+    (hr1.bind (f := fun tail ↦ (pure (c0 :: (claim + sumE tail) :: tail) : VerifierProgram
+        (List E)))
       (runsTo_ret _ _))
   simpa [sumcheckRoundPoly, sumE_single] using this
 
@@ -96,7 +97,7 @@ theorem runsTo_round3 (s : Fs) (claim c0 c2 : E) :
 the root's two scalars, the out-of-domain point squeezed from the four waiting scalars, its value
 and intro read, the nonce's proof of work on the permutation after it. -/
 theorem levelMid_grind_run (F : Fs) (ra rb y c0 c2 nonce : E)
-    {d : Digest} (hd : digestOfScalars (ra, rb) = some d) {m : ℕ} (hm : 1 ≤ m)
+    {d : Digest} (hd : digestFromHalves (ra, rb) = some d) {m : ℕ} (hm : 1 ≤ m)
     (next : Whir.Level) (rest : List Whir.Level) (roots : List (Digest × ℕ × ℕ))
     (hpow : powOk Whir.queryGrindingBits nonce
       ((⟨((F.absorbAll [ra, rb] dsObserve).squeezeN m).2.cap,
@@ -104,7 +105,7 @@ theorem levelMid_grind_run (F : Fs) (ra rb y c0 c2 nonce : E)
         challengeOf) = true) :
     RunsWith (do
         let r ← levelMid m (next :: rest)
-        Prog.grindProofOfWork Whir.queryGrindingBits
+        VerifierProgram.grindProofOfWork Whir.queryGrindingBits
         pure r)
       F [ra, rb, y, c0, c2, nonce] [] roots
       ([], [(y, [c0, y + c2, c2], fun x ↦ eqEval ((F.absorbAll [ra, rb] dsObserve).squeezeN m).1 x)])
@@ -120,14 +121,15 @@ theorem levelMid_grind_run (F : Fs) (ra rb y c0 c2 nonce : E)
     exact squeezeN_succ_pend k F1
   have e : (do
         let r ← levelMid m (next :: rest)
-        Prog.grindProofOfWork Whir.queryGrindingBits
+        VerifierProgram.grindProofOfWork Whir.queryGrindingBits
         pure r) =
-      (Prog.readCommitment hw.1 hw.2).bind fun _ ↦ (Prog.sampleChallenges m).bind fun zz ↦ Prog.readScalar.bind fun yv ↦
-        (sumcheckRoundPoly 3 yv none).bind fun intro ↦ (Prog.grindProofOfWork Whir.queryGrindingBits).bind
-          fun _ ↦ Prog.ret (([] : List E), [(yv, intro, fun x ↦ eqEval zz x)]) := by
-    simp only [levelMid, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind, hw]
+      (VerifierProgram.readCommitment hw.1 hw.2).bind fun _ ↦ (VerifierProgram.sampleChallenges m).bind fun zz ↦ VerifierProgram.readScalar.bind fun yv ↦
+        (sumcheckRoundPoly 3 yv none).bind fun intro ↦ (VerifierProgram.grindProofOfWork Whir.queryGrindingBits).bind
+          fun _ ↦ VerifierProgram.ret (([] : List E), [(yv, intro, fun x ↦ eqEval zz x)]) := by
+    simp only [levelMid, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+        VerifierProgram.bind_assoc, VerifierProgram.ret_bind, hw]
   rw [e]
-  have h1 : RunsWith (Prog.readCommitment hw.1 hw.2) F [ra, rb] [] roots () F1 (roots ++ [(d, hw)]) :=
+  have h1 : RunsWith (VerifierProgram.readCommitment hw.1 hw.2) F [ra, rb] [] roots () F1 (roots ++ [(d, hw)]) :=
     runsWith_commitP F ra rb hd hw.1 hw.2 roots
   have h2 := RunsTo.withRoots (runsTo_sampleN m F1) (roots ++ [(d, hw)])
   have hF3 : F2.absorb y dsObserve = ⟨F2.cap, [(y, dsObserve)]⟩ := by
@@ -167,7 +169,7 @@ theorem squeezeN_succ (k : ℕ) (s : Fs) :
 /-- What a level's next commitment leaves. -/
 structure CommitOut (rd : Reader) (σ : Val) (lvl m : ℕ) (st st' : OsSt) (F : Fs)
     (ra rb y c0 c2 nonce : E) (d : Digest) (z : List E) : Prop where
-  root : (ra, rb) = digestScalars d
+  root : (ra, rb) = digestHalves d
   rootA : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 2) ra
   rootB : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 3) rb
   zlen : z.length = m
@@ -199,7 +201,7 @@ theorem osCommit_sound
       CommitOut rd σ lvl lv.logCols st (osCommit lvl lv st).2.1 F' ra rb y c0 c2 nonce d z ∧
       RunsWith (do
           let r ← levelMid lv.logCols (next :: rest)
-          Prog.grindProofOfWork Whir.queryGrindingBits
+          VerifierProgram.grindProofOfWork Whir.queryGrindingBits
           pure r)
         (st.F σ) [ra, rb, y, c0, c2, nonce] [] roots
         ([], [(y, [c0, y + c2, c2], fun x ↦ eqEval z x)]) F'
@@ -217,7 +219,7 @@ theorem osCommit_sound
   obtain ⟨ca, -⟩ := hCan _ _ can23
   obtain ⟨cb, -⟩ := hCan _ _ can33
   obtain ⟨d, hd⟩ := exists_digest ca cb
-  have hdd : digestOfScalars (σ (.n (k + 23)), σ (.n (k + 33))) = some d := by
+  have hdd : digestFromHalves (σ (.n (k + 23)), σ (.n (k + 33))) = some d := by
     rw [hd]; exact digestOfScalars_digestScalars d
   -- the out-of-domain point
   have hood' := hOod _ _ hood

@@ -50,7 +50,7 @@ structure B2SoundL : Prop where
   /-- From `main`'s entry at `fp = 1`, the jump table written and the contracts holding for runs
   shorter than `k`, a halting run gives `main`'s body at its frame, its calls located. -/
   mainL : ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → JumpTables L → ∀ k,
-    GlobLt L k → SafeReached guestProgram L k ⟨gpow mainEntry, 1⟩ →
+    GlobLt L k → SafeReached guestProgram L k ⟨addressOfIndex mainEntry, 1⟩ →
       Stmt.HoldsList (RL coreProgram L certByName (Check.EnteredAt glob L)) L.read (valG L 1 (certOf 1)) (coreOf 1).body
         False (fun rs ↦ rs = [])
 
@@ -66,7 +66,8 @@ theorem globSpec (hb2 : B2SoundL) {κ : ℕ} {L : MemoryImage κ} (h16 : minLogM
 
 /-- **B2 at `main`, located, for a halting run from `(g^0, 1)`**. -/
 theorem mainBodyL_of_safe (hb2 : B2SoundL) {κ : ℕ} {L : MemoryImage κ}
-    (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem) {k : ℕ} (hs : Safe guestProgram L k ⟨gpow 0, 1⟩) :
+    (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem) {k : ℕ} (hs : Safe guestProgram L k ⟨addressOfIndex
+        0, 1⟩) :
     Stmt.HoldsList (Located.RLg L) L.read (valG L 1 (certOf 1)) Data.core0.body False
       (fun rs ↦ rs = []) := by
   obtain ⟨hjt, k', hk'⟩ := safe_jumpTables hs
@@ -79,8 +80,8 @@ theorem mainBodyL_of (hb2 : B2SoundL) {input : PublicInput}
     {t : Execution guestProgram} (hv : ValidExecution guestProgram input t) :
     Stmt.HoldsList (Located.RLg t.memory) t.memory.read (valG t.memory 1 (certOf 1)) Data.core0.body
       False (fun rs ↦ rs = []) ∧
-    LoadHolds t.memory.read 1 0 (digestScalars (publicDigest input)).1 ∧
-    LoadHolds t.memory.read 1 1 (digestScalars (publicDigest input)).2 :=
+    LoadHolds t.memory.read 1 0 (digestHalves (publicInputDigest input)).1 ∧
+    LoadHolds t.memory.read 1 1 (digestHalves (publicInputDigest input)).2 :=
   ⟨mainBodyL_of_safe hb2 hv.1.1 hv.1.2.1 (safe_of_validExecution hv), pub_loads hv⟩
 
 end

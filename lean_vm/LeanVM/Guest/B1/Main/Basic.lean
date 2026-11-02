@@ -36,11 +36,11 @@ theorem toNat_byteOfBitVec {n : ℕ} (v : BitVec n) (i : ℕ) :
     (UInt8.ofBitVec (v.extractLsb' (8 * i) 8)).toNat = v.toNat / 2 ^ (8 * i) % 256 := by
   simp [BitVec.extractLsb'_toNat, Nat.shiftRight_eq_div_pow]
 
-theorem length_kBytes (a : K) : (kBytes a).length = 8 := by simp [kBytes, wordBytes]
+theorem length_kBytes (a : K) : (K.toBytes a).length = 8 := by simp [K.toBytes, wordBytes]
 
 theorem toNat_kBytes (a : K) (k : ℕ) (hk : k < 8) :
-    ((kBytes a)[k]'(by rw [length_kBytes]; exact hk)).toNat = kToNat a / 2 ^ (8 * k) % 256 := by
-  simp only [kBytes, wordBytes, List.getElem_map, List.getElem_range]
+    ((K.toBytes a)[k]'(by rw [length_kBytes]; exact hk)).toNat = kToNat a / 2 ^ (8 * k) % 256 := by
+  simp only [K.toBytes, wordBytes, List.getElem_map, List.getElem_range]
   rw [UInt64.toNat_toUInt8, UInt64.toNat_shiftRight]
   have : (8 * k).toUInt64.toNat % 64 = 8 * k := by
     rw [Nat.toUInt64_eq]; simp; omega
@@ -54,11 +54,11 @@ theorem length_cellBytes' (c : E) : (cellBytes c).length = 16 := by
 
 /-- The bytes of a cell are its 128-bit value's (`Sig.cellVal`). -/
 theorem bytes16_cellVal (a : E) : littleEndianBytes16 (Sig.cellVal a) = cellBytes a := by
-  apply List.ext_getElem (by simp [littleEndianBytes16, HashSig.bytesLE])
+  apply List.ext_getElem (by simp [littleEndianBytes16, HashSig.littleEndianBytes])
   intro i h1 h2
-  have hi : i < 16 := by simpa [littleEndianBytes16, HashSig.bytesLE] using h1
+  have hi : i < 16 := by simpa [littleEndianBytes16, HashSig.littleEndianBytes] using h1
   apply UInt8.toNat_inj.mp
-  simp only [littleEndianBytes16, HashSig.bytesLE, List.getElem_ofFn]
+  simp only [littleEndianBytes16, HashSig.littleEndianBytes, List.getElem_ofFn]
   rw [toNat_byteOfBitVec]
   have hv : (Sig.cellVal a).toNat = kToNat (a.limb 1) * 2 ^ 64 + kToNat (a.limb 0) := by
     simp only [Sig.cellVal, BitVec.toNat_append]
@@ -77,12 +77,12 @@ theorem bytes16_cellVal (a : E) : littleEndianBytes16 (Sig.cellVal a) = cellByte
     interval_cases i <;> omega
 
 theorem bytes32_cellPairVal (c d : E) :
-    HashSig.bytesLE 32 (Sig.cellPairVal c d) = cellBytes c ++ cellBytes d := by
-  apply List.ext_getElem (by simp [HashSig.bytesLE])
+    HashSig.littleEndianBytes 32 (Sig.cellPairVal c d) = cellBytes c ++ cellBytes d := by
+  apply List.ext_getElem (by simp [HashSig.littleEndianBytes])
   intro i h1 h2
-  have hi : i < 32 := by simpa [HashSig.bytesLE] using h1
+  have hi : i < 32 := by simpa [HashSig.littleEndianBytes] using h1
   apply UInt8.toNat_inj.mp
-  simp only [HashSig.bytesLE, List.getElem_ofFn]
+  simp only [HashSig.littleEndianBytes, List.getElem_ofFn]
   rw [toNat_byteOfBitVec]
   have hv : (Sig.cellPairVal c d).toNat =
       (kToNat (d.limb 1) * 2 ^ 64 + kToNat (d.limb 0)) * 2 ^ 128 +
@@ -129,29 +129,29 @@ theorem claimBytes_cells (a b c d : E) :
 /-! ## Digests in cells -/
 
 theorem digestBytes_ofCells (a b : E) : digestBytes (digestOfCells a b) = cellsBytes [a, b] := by
-  simp [digestBytes, digestOfCells, cellsBytes, cellBytes, kBytes, List.append_assoc]
+  simp [digestBytes, digestOfCells, cellsBytes, cellBytes, K.toBytes, List.append_assoc]
 
 theorem digestScalars_ofCells' {a b : E} (ha : IsCanonical128 a) (hb : IsCanonical128 b) :
-    digestScalars (digestOfCells a b) = (a, b) :=
+    digestHalves (digestOfCells a b) = (a, b) :=
   digestScalars_ofCells ha hb
 
 theorem digestOfCells_scalars (d : Digest) :
-    digestOfCells (digestScalars d).1 (digestScalars d).2 = d := by
+    digestOfCells (digestHalves d).1 (digestHalves d).2 = d := by
   apply Vector.ext
   intro i hi
-  simp only [digestOfCells, digestScalars]
+  simp only [digestOfCells, digestHalves]
   interval_cases i <;> simp [K.ofLane, K.lane]
 
 theorem digestBytes_eq_cells (d : Digest) :
-    digestBytes d = cellsBytes [(digestScalars d).1, (digestScalars d).2] := by
+    digestBytes d = cellsBytes [(digestHalves d).1, (digestHalves d).2] := by
   conv_lhs => rw [← digestOfCells_scalars d]
   exact digestBytes_ofCells _ _
 
 theorem digestScalars_canonical (d : Digest) :
-    IsCanonical128 (digestScalars d).1 ∧ IsCanonical128 (digestScalars d).2 :=
+    IsCanonical128 (digestHalves d).1 ∧ IsCanonical128 (digestHalves d).2 :=
   ⟨rfl, rfl⟩
 
-theorem digestScalars_inj {d d' : Digest} (h : digestScalars d = digestScalars d') : d = d' := by
+theorem digestScalars_inj {d d' : Digest} (h : digestHalves d = digestHalves d') : d = d' := by
   rw [← digestOfCells_scalars d, ← digestOfCells_scalars d', h]
 
 theorem digestCells_inj {d d' : Digest} (h : digestCells d = digestCells d') : d = d' := by

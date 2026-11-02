@@ -574,7 +574,7 @@ def Inst.cells (C : Inst → List (ℕ × E)) (I : Inst) : List (ℕ × E) :=
 
 /-- A frame's writes. -/
 def Inst.writes (C : Inst → List (ℕ × E)) (I : Inst) : List Write :=
-  (I.cells C).map fun q => (gpow (I.fp + q.1), q.2)
+  (I.cells C).map fun q => (addressOfIndex (I.fp + q.1), q.2)
 
 /-- The writes of the frames of the instances. -/
 def frameWrites (C : Inst → List (ℕ × E)) (Is : List Inst) : List Write := Is.flatMap (Inst.writes C)
@@ -613,7 +613,7 @@ theorem CellsOk.cells_agree (h : CellsOk fs C Is) {I : Inst} (hI : I ∈ Is) {q 
   · exact h.agree I hI _ hq _ hq' he
 
 theorem mem_frameWrites {a : Write} (ha : a ∈ frameWrites C Is) :
-    ∃ I ∈ Is, ∃ q ∈ I.cells C, a = (gpow (I.fp + q.1), q.2) := by
+    ∃ I ∈ Is, ∃ q ∈ I.cells C, a = (addressOfIndex (I.fp + q.1), q.2) := by
   obtain ⟨I, hI, ha⟩ := List.mem_flatMap.mp ha
   obtain ⟨q, hq, rfl⟩ := List.mem_map.mp ha
   exact ⟨I, hI, q, hq, rfl⟩

@@ -48,7 +48,7 @@ def climbWithHash : Digest → ℕ → List Digest → m Digest
 (`verifier.py:436-443`). -/
 def openOneWithHash (root : Digest) (height width q : ℕ) (o : Opening) : m Bool :=
   if o.leaf.length = width ∧ o.path.length = height then do
-    let leafDigest ← H (o.leaf.flatMap kBytes)
+    let leafDigest ← H (o.leaf.flatMap K.toBytes)
     let top ← climbWithHash H leafDigest q o.path
     pure (decide (top.toList = root.toList))
   else pure false
@@ -67,7 +67,8 @@ def openAllWithHash (root : Digest) (height width : ℕ) :
 
 /-- The compiled reading of a program: run it on the state, every challenge squeezed out of the
 sponge and every opening authenticated; `none` on rejection. -/
-def runWithHash {α : Type} : Prog α → ProgState → m (Option (α × ProgState))
+def runWithHash {α : Type} : VerifierProgram α → VerifierProgramState → m (Option (α ×
+    VerifierProgramState))
   | .ret a, s => pure (some (a, s))
   | .fail, _ => pure none
   | .read k, s => match s.stream with
@@ -88,7 +89,7 @@ def runWithHash {α : Type} : Prog α → ProgState → m (Option (α × ProgSta
     | x0 :: x1 :: xs => do
       let sp ← absorb F s.sponge x0 dsObserve
       let sp ← absorb F sp x1 dsObserve
-      match digestOfScalars (x0, x1) with
+      match digestFromHalves (x0, x1) with
       | some root =>
         runWithHash k
           { s with sponge := sp, stream := xs, roots := s.roots ++ [(root, height, width)] }
@@ -103,7 +104,7 @@ def runWithHash {α : Type} : Prog α → ProgState → m (Option (α × ProgSta
 
 /-- Run a program on a proof from a seed state, and accept when it returns `true` with the
 stream and the openings fully consumed (`verifier.py:456-458`, `finish`). -/
-def runProofWithHash (P : Prog Bool) (seed : KeccakState) (π : Proof) : m Bool := do
+def runProofWithHash (P : VerifierProgram Bool) (seed : KeccakState) (π : Proof) : m Bool := do
   match ← runWithHash H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
   | some (true, s) => pure (s.stream.isEmpty && s.openings.isEmpty)
   | _ => pure false
@@ -114,7 +115,7 @@ end LeanVM.Protocol.Compile
 
 namespace LeanVM.Protocol.Verifier
 
-open LeanVM.Parameters hiding gpow
+open LeanVM.Parameters hiding addressOfIndex
 open LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
 
 section Hash
@@ -124,7 +125,7 @@ variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState
 /-- The IV with the hash `H`: the hash of the tag, then the bytecode as its little-endian words
 (`verifier.py:1464`). -/
 def fiatShamirIvWithHash (bytecode : List K) : m Digest :=
-  H (versionTag ++ bytecode.flatMap kBytes)
+  H (versionTag ++ bytecode.flatMap K.toBytes)
 
 /-- The sponge's initial state with the hash `H` and the permutation `F`: `F` of the IV's and the
 public input's words, the other lanes zero (`verifier.py:1464-1465`, `Transcript.__init__`). -/
@@ -136,7 +137,7 @@ def seedWithHash (bytecode : List K) (publicInput : Digest) : m KeccakState := d
 from the seed. -/
 def verifyWithHash (bytecode : List K) (publicInput : Digest) (π : Proof) : m Bool := do
   let seed ← seedWithHash H F bytecode publicInput
-  runProofWithHash H F (leanVmProgram bytecode publicInput) seed π
+  runProofWithHash H F (leanVmVerifierProgram bytecode publicInput) seed π
 
 /-- **The deferring verifier** with the hash `H` and the permutation `F`, as an aggregate runs it
 on a child's proof (`verify_sub`): the IV is given rather than hashed from the bytecode, and the
@@ -144,7 +145,7 @@ fixed polynomial's value is the one claimed by `c`. Only the bytecode's length i
 def verifyDeferredWithHash (bytecode : List K) (iv publicInput : Digest) (c : BytecodeClaim)
     (π : Proof) : m Bool := do
   let seed ← F (seedInput iv publicInput)
-  runProofWithHash H F (deferredProgram c bytecode publicInput) seed π
+  runProofWithHash H F (deferringVerifierProgram c bytecode publicInput) seed π
 
 end Hash
 
@@ -162,7 +163,7 @@ variable {m : Type → Type} [Monad m] (H : Bytes → m Digest)
 
 /-- The leaf digests of the `2^height` rows of a matrix (`hash_words`). -/
 def leafDigestsWithHash (height : ℕ) (word : Word) : m (Array Digest) :=
-  (Array.range (2 ^ height)).mapM fun i ↦ H ((word i).flatMap kBytes)
+  (Array.range (2 ^ height)).mapM fun i ↦ H ((word i).flatMap K.toBytes)
 
 /-- The first `n` parents of a level: parent `j` hashes nodes `2j` and `2j + 1`
 (`hash_pair`). -/
@@ -195,7 +196,7 @@ so far: the scalars and the openings the proof holds from there on, or `none` if
 search finds no nonce below `fuel`. A rejection, and an opening of a missing commitment, end the
 proof. -/
 def runFromWithHash (fuel : ℕ) {α β : Type} :
-    Prog α → Option (Script β) → Sponge → List Tree → m (Option (List E × List Opening))
+    VerifierProgram α → Option (Script β) → Sponge → List Tree → m (Option (List E × List Opening))
   | .ret _, _, _, _ => pure (some ([], []))
   | .fail, _, _, _ => pure (some ([], []))
   | .read k, S, sp, cs => do
@@ -214,10 +215,10 @@ def runFromWithHash (fuel : ℕ) {α β : Type} :
       pure (t.map fun t ↦ (n :: t.1, t.2))
   | .commit ht _ k, S, sp, cs => do
     let tree ← buildTreeWithHash H ht (Script.wordOf S)
-    let sp0 ← absorb F sp (digestScalars tree.root).1 dsObserve
-    let sp1 ← absorb F sp0 (digestScalars tree.root).2 dsObserve
+    let sp0 ← absorb F sp (digestHalves tree.root).1 dsObserve
+    let sp1 ← absorb F sp0 (digestHalves tree.root).2 dsObserve
     let r ← runFromWithHash fuel k (Script.afterCommit S) sp1 (cs ++ [tree])
-    pure (r.map fun t ↦ ((digestScalars tree.root).1 :: (digestScalars tree.root).2 :: t.1, t.2))
+    pure (r.map fun t ↦ ((digestHalves tree.root).1 :: (digestHalves tree.root).2 :: t.1, t.2))
   | .query i ps k, S, sp, cs => match cs[i]? with
     | none => pure (some ([], []))
     | some tree => do
@@ -227,7 +228,8 @@ def runFromWithHash (fuel : ℕ) {α β : Type} :
 
 /-- **A proof from a script**: the script run against the program from the seed, or `none` if a
 proof-of-work search finds no nonce below `fuel`. -/
-def runScriptWithHash (P : Prog Bool) {β : Type} (S : Script β) (seed : KeccakState) (fuel : ℕ) :
+def runScriptWithHash (P : VerifierProgram Bool) {β : Type} (S : Script β) (seed : KeccakState)
+    (fuel : ℕ) :
     m (Option Proof) := do
   let r ← runFromWithHash H F fuel P (some S) ⟨seed, []⟩ []
   pure (r.map fun t ↦ (⟨t.1, t.2⟩ : Proof))
@@ -239,7 +241,8 @@ end Run
 within the cap, an invalid rate, or a proof-of-work search that finds no nonce. -/
 def proveWithHash {m : Type → Type} [Monad m] (H : Bytes → m Digest)
     (F : KeccakState → m KeccakState)
-    (prog : Program) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) : m (Option Proof) :=
+    (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) : m (Option
+        Proof) :=
   match witness? prog input t with
   | none => pure none
   | some W =>
@@ -247,8 +250,8 @@ def proveWithHash {m : Type → Type} [Monad m] (H : Bytes → m Digest)
       match buildLayout (bytecodeWords prog) W.logMem W.rows with
       | none => pure none
       | some layout => do
-        let seed ← seedWithHash H F (bytecodeWords prog) (publicDigest input)
-        runScriptWithHash H F (leanVmProgram (bytecodeWords prog) (publicDigest input))
+        let seed ← seedWithHash H F (bytecodeWords prog) (publicInputDigest input)
+        runScriptWithHash H F (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
           (honestScript W layout ρ) seed fuel
     else pure none
 
@@ -268,8 +271,8 @@ open scoped ENNReal
 `proof` show that `prog` runs on `input`? -/
 def verifierWithHash {m : Type → Type} [Monad m] (H : Bytes → m Digest)
     (F : KeccakState → m KeccakState)
-    (prog : Program) (input : PublicInput) (proof : Proof) : m Bool :=
-  verifyWithHash H F (bytecodeWords prog) (publicDigest input) proof
+    (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) : m Bool :=
+  verifyWithHash H F (bytecodeWords prog) (publicInputDigest input) proof
 
 /-! ### The oracle calls -/
 
@@ -292,7 +295,7 @@ def callKeccakF1600 (s : KeccakState) : OracleComp KeccakCalls KeccakState :=
 fuel of nonces per proof of work, a proof, or `none` when it makes none, computed with calls to
 Keccak-256 and Keccak-f[1600] (`KeccakCalls`), which the model answers. -/
 abbrev HonestProverWithHash : Type :=
-  (prog : Program) → (input : PublicInput) → Execution prog → (ρ fuel : ℕ) →
+  (prog : LeanIsaProgram) → (input : PublicInput) → Execution prog → (ρ fuel : ℕ) →
     OracleComp KeccakCalls (Option Proof)
 
 /-- **The honest prover**: `LeanVM.Prover.prove` (`Statement/Prover/Prove.lean`) with Keccak-256 and
@@ -339,7 +342,8 @@ verdict (`accepted`), and the adversary's `transcript`. -/
 abbrev ExperimentOutcomeWithHash : Type :=
   ((ProgramAndInput × Proof) × Bool) × PermutationTranscript
 
-abbrev ExperimentOutcomeWithHash.program (z : ExperimentOutcomeWithHash) : Program := z.1.1.1.1
+abbrev ExperimentOutcomeWithHash.program (z : ExperimentOutcomeWithHash) : LeanIsaProgram :=
+    z.1.1.1.1
 abbrev ExperimentOutcomeWithHash.input (z : ExperimentOutcomeWithHash) : PublicInput := z.1.1.1.2
 abbrev ExperimentOutcomeWithHash.proof (z : ExperimentOutcomeWithHash) : Proof := z.1.1.2
 abbrev ExperimentOutcomeWithHash.accepted (z : ExperimentOutcomeWithHash) : Prop := z.1.2 = true
@@ -368,7 +372,8 @@ transcript and the proof, an execution of the program: the extractor of `Extract
 (`LeanVM.Extraction.extract`) on the Keccak-256 evaluations of the transcript
 (`lookupEvaluation (keccakEvaluationsOfTranscript T)`), the byte strings they answer being those of
 the transcript's paths. The paths are computed once. -/
-def transcriptExtractorWithHash (prog : Program) (input : PublicInput) (T : PermutationTranscript)
+def transcriptExtractorWithHash (prog : LeanIsaProgram) (input : PublicInput) (T :
+    PermutationTranscript)
     (proof : Proof) : Option (Execution prog) :=
   let paths := keccakEvaluationsOfTranscript T
   Extraction.extract prog input (bytecodeWords prog) (lookupEvaluation paths)
@@ -401,7 +406,7 @@ def KnowledgeSoundnessWithHash : Prop :=
 then the verifier's verdict on it, both with Keccak-256 the sponge over the lazily sampled
 permutation and Keccak-f[1600] the permutation. -/
 noncomputable def verifierCompletenessExperimentWithHash (proverWithHash : HonestProverWithHash)
-    (prog : Program)
+    (prog : LeanIsaProgram)
     (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ) : ProbComp Bool :=
   (simulateQ keccakCallsOverRandomPermutation (do
     match ← proverWithHash prog input t ρ fuel with
@@ -412,7 +417,7 @@ noncomputable def verifierCompletenessExperimentWithHash (proverWithHash : Hones
 honest prover's (`prover`) proof of an execution within the verifier's size cap is rejected with
 probability at most `2^-256`. -/
 def CompletenessWithHash : Prop :=
-  ∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
+  ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
     ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← verifierCompletenessExperimentWithHash proverWithHash prog input t ρ
           (2 ^ 25)}[v = false] ≤

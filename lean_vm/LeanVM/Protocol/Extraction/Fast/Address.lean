@@ -115,10 +115,12 @@ theorem findLane_complete (t : Array (ℕ × ℕ)) (hs : SortedLanes t) (key : �
 /-! ## The table -/
 
 theorem mem_powPairs (k : ℕ) (v : ℕ) :
-    ∀ (n i : ℕ), (k, v) ∈ powPairs n i (gpow i) ↔ i ≤ v ∧ v < i + n ∧ k = (gpow v).lane.toNat
+    ∀ (n i : ℕ), (k, v) ∈ powPairs n i (addressOfIndex i) ↔ i ≤ v ∧ v < i + n ∧ k = (addressOfIndex
+        v).lane.toNat
   | 0, i => by simp [powPairs]; omega
   | n + 1, i => by
-    rw [powPairs, show gpow i * g = gpow (i + 1) from (pow_succ g i).symm, List.mem_cons,
+    rw [powPairs, show addressOfIndex i * g = addressOfIndex (i + 1) from (pow_succ g i).symm,
+        List.mem_cons,
       mem_powPairs k v n (i + 1), Prod.mk.injEq]
     constructor
     · rintro (⟨rfl, rfl⟩ | ⟨h₁, h₂, h₃⟩)
@@ -130,9 +132,9 @@ theorem mem_powPairs (k : ℕ) (v : ℕ) :
       · exact .inl ⟨h₃, rfl⟩
 
 theorem mem_powTable (κ : ℕ) (k : ℕ) (v : ℕ) :
-    (k, v) ∈ (powTable κ).toList ↔ v < 2 ^ κ ∧ k = (gpow v).lane.toNat := by
+    (k, v) ∈ (powTable κ).toList ↔ v < 2 ^ κ ∧ k = (addressOfIndex v).lane.toNat := by
   rw [powTable, List.toList_toArray, List.mem_mergeSort,
-    show (1 : K) = gpow 0 from (pow_zero g).symm, mem_powPairs]
+    show (1 : K) = addressOfIndex 0 from (pow_zero g).symm, mem_powPairs]
   simp only [Nat.zero_le, true_and, Nat.zero_add]
 
 theorem sortedLanes_powTable (κ : ℕ) : SortedLanes (powTable κ) := by
@@ -157,13 +159,13 @@ theorem gLogTable_eq {κ : ℕ} (hκ : κ < 64) (a : K) :
   rw [gLogIn_powIndex hκ]
   have hb : 2 ^ κ ≤ 2 ^ 63 := Nat.pow_le_pow_right (by norm_num) (by omega)
   rw [gLogTable]
-  by_cases h : ∃ i : Fin (2 ^ κ), a = gpow i
+  by_cases h : ∃ i : Fin (2 ^ κ), a = addressOfIndex i
   · obtain ⟨i, rfl⟩ := h
     rw [(gLog?_spec hκ).mpr rfl]
-    have hmem : ((gpow i.val).lane.toNat, i.val) ∈ (powTable κ).toList :=
+    have hmem : ((addressOfIndex i.val).lane.toNat, i.val) ∈ (powTable κ).toList :=
       (mem_powTable κ _ _).2 ⟨i.isLt, rfl⟩
     obtain ⟨idx, hidx, hget⟩ := List.getElem_of_mem hmem
-    have hsome := findLane_complete (powTable κ) (sortedLanes_powTable κ) (gpow i.val).lane.toNat _ 0
+    have hsome := findLane_complete (powTable κ) (sortedLanes_powTable κ) (addressOfIndex i.val).lane.toNat _ 0
       (powTable κ).size rfl le_rfl (idx := idx) (Nat.zero_le _) (by simpa using hidx)
       (by simp [Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem (by simpa using hidx),
             ← Array.getElem_toList, hget])
@@ -182,13 +184,13 @@ theorem gLogTable_eq {κ : ℕ} (hκ : κ < 64) (a : K) :
 /-! ## The halting search with the tables -/
 
 /-- `stepIn`, with tables. -/
-@[expose] def stepTable (memT codeT : Array (ℕ × ℕ)) (prog : Program) {κ : ℕ}
+@[expose] def stepTable (memT codeT : Array (ℕ × ℕ)) (prog : LeanIsaProgram) {κ : ℕ}
     (L : MemoryImage κ) (r : Registers K) : Option (Registers K) :=
-  (gLogTable codeT prog.logSize r.pc).map prog.code >>=
+  (gLogTable codeT prog.logSize r.pc).map prog.instructions >>=
     executeWith (fun a ↦ (gLogTable memT κ a).map L) r
 
 /-- `haltLoop`, with tables. -/
-@[expose] def haltLoopTable (memT codeT : Array (ℕ × ℕ)) (prog : Program) {κ : ℕ}
+@[expose] def haltLoopTable (memT codeT : Array (ℕ × ℕ)) (prog : LeanIsaProgram) {κ : ℕ}
     (L : MemoryImage κ) : ℕ → ℕ → Registers K → Option ℕ
   | 0, n, r => if r = Registers.final prog then some n else none
   | fuel + 1, n, r =>
@@ -199,19 +201,20 @@ theorem gLogTable_eq {κ : ℕ} (hκ : κ < 64) (a : K) :
       | some r' => haltLoopTable memT codeT prog L fuel (n + 1) r'
 
 /-- `candidateExecutionIn`, with tables. -/
-@[expose] def candidateExecutionTable (memT codeT : Array (ℕ × ℕ)) (prog : Program)
+@[expose] def candidateExecutionTable (memT codeT : Array (ℕ × ℕ)) (prog : LeanIsaProgram)
     (input : PublicInput) (layout : Verifier.Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) :
     Option (Execution prog) :=
   ((haltLoopTable memT codeT prog (memoryImage layout q) (stepCap layout) 0
       Registers.initial).map fun n ↦ ⟨layout.logMemory, memoryImage layout q, n⟩).filter
     (boundaryOK input)
 
-theorem stepTable_eq {prog : Program} {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) (r : Registers K) :
+theorem stepTable_eq {prog : LeanIsaProgram} {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) (r :
+    Registers K) :
     stepTable (powTable κ) (powTable prog.logSize) prog L r =
       stepIn (powIndex κ) (powIndex prog.logSize) prog L r := by
   simp only [stepTable, stepIn, gLogTable_eq hκ, gLogTable_eq (logSize_lt prog)]
 
-theorem haltLoopTable_eq {prog : Program} {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
+theorem haltLoopTable_eq {prog : LeanIsaProgram} {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
     ∀ fuel n r, haltLoopTable (powTable κ) (powTable prog.logSize) prog L fuel n r =
       haltLoop (powIndex κ) (powIndex prog.logSize) prog L fuel n r
   | 0, n, r => rfl
@@ -224,7 +227,8 @@ theorem haltLoopTable_eq {prog : Program} {κ : ℕ} (hκ : κ < 64) (L : Memory
       | some r' => exact haltLoopTable_eq hκ L fuel (n + 1) r'
 
 /-- **The halting search with the tables is the statement's**, on at most `2^63` words. -/
-theorem candidateExecutionTable_eq {prog : Program} {input : PublicInput} {layout : Verifier.Layout}
+theorem candidateExecutionTable_eq {prog : LeanIsaProgram} {input : PublicInput} {layout :
+    Verifier.Layout}
     (hκ : layout.logMemory < 64) {μ : ℕ} (q : Vector K (2 ^ μ)) :
     candidateExecutionTable (powTable layout.logMemory) (powTable prog.logSize) prog input layout q =
       candidateExecutionIn (powIndex layout.logMemory) (powIndex prog.logSize) prog input layout q := by
@@ -232,7 +236,7 @@ theorem candidateExecutionTable_eq {prog : Program} {input : PublicInput} {layou
 
 /-- **A stack's execution, fast**: through the address tables, built once, on at most `2^63`
 words; through the statement's hash maps otherwise. -/
-@[expose] def candidateExecutionFast (prog : Program) (input : PublicInput)
+@[expose] def candidateExecutionFast (prog : LeanIsaProgram) (input : PublicInput)
     (layout : Verifier.Layout) : Vector K (2 ^ layout.stackLog) → Option (Execution prog) :=
   if layout.logMemory < 64 then
     let memT := powTable layout.logMemory
@@ -243,7 +247,7 @@ words; through the statement's hash maps otherwise. -/
     let codeIdx := powIndex prog.logSize
     candidateExecutionIn memIdx codeIdx prog input layout
 
-theorem candidateExecutionFast_eq (prog : Program) (input : PublicInput)
+theorem candidateExecutionFast_eq (prog : LeanIsaProgram) (input : PublicInput)
     (layout : Verifier.Layout) :
     candidateExecutionFast prog input layout =
       candidateExecutionIn (powIndex layout.logMemory) (powIndex prog.logSize) prog input layout := by

@@ -33,7 +33,7 @@ section Words
 variable {κ : ℕ} (L : MemoryImage κ) (fp : K)
 
 /-- The word in frame cell `o`, `0` if none. -/
-noncomputable def wd (o : ℕ) : E := (L.read (fp * gpow o)).getD 0
+noncomputable def wd (o : ℕ) : E := (L.read (fp * addressOfIndex o)).getD 0
 
 /-- The valuation of a check: every value is the word in its cell. -/
 noncomputable def val (loc : Trie ℕ) : Core.Val := fun v ↦ wd L fp (cellOf loc v)
@@ -49,7 +49,7 @@ def BookHolds (B : Book) : Prop := ∀ o, ∀ a ∈ look B o, a.Holds L fp
 
 /-- The bounds hold: `fp[c] = g^e` with `e < n` for each `(c, n)`. -/
 def BndHolds (bnd : List (ℕ × ℕ)) : Prop :=
-  ∀ p ∈ bnd, ∃ e < p.2, L.read (fp * gpow p.1) = some (ofK (gpow e))
+  ∀ p ∈ bnd, ∃ e < p.2, L.read (fp * addressOfIndex p.1) = some (ofK (addressOfIndex e))
 
 end Words
 
@@ -57,7 +57,7 @@ section Basic
 
 variable {κ : ℕ} {L : MemoryImage κ} {fp : K}
 
-theorem wd_of {o : ℕ} {v : E} (h : L.read (fp * gpow o) = some v) : wd L fp o = v := by
+theorem wd_of {o : ℕ} {v : E} (h : L.read (fp * addressOfIndex o) = some v) : wd L fp o = v := by
   simp [wd, h]
 
 theorem look_addKey {a b : Exec.Atom} {B : Book} {o o' : ℕ} (h : b ∈ look (addKey a B o) o') :
@@ -97,7 +97,8 @@ theorem BndHolds.append {b₁ b₂ : List (ℕ × ℕ)} (h₁ : BndHolds L fp b�
   · exact h₁ p hp
   · exact h₂ p hp
 
-theorem nth_eq {α : Type} {l : List α} {n : ℕ} {d : α} (h : n < l.length) : nth l n d = l[n] :=
+theorem nth_eq {α : Type} {l : List α} {n : ℕ} {d : α} (h : n < l.length) : listElementOrDefault l n
+    d = l[n] :=
   Option.some.inj ((nth_eq_getElem? d h).symm.trans (List.getElem?_eq_getElem h))
 
 theorem limb_ofK0 (a : K) : (ofK a).limb 0 = a := by simp
@@ -109,9 +110,10 @@ theorem ofBits_toNat (a : K) : K.ofBits a.toBitVec.toNat = a := by
   simp [K.ofBits, BitVec.ofNat_toNat]
 
 theorem eq_imm_of_limbs {x : E} {k0 k1 k2 : ℕ} (h0 : limbNat x 0 = k0) (h1 : limbNat x 1 = k1)
-    (h2 : limbNat x 2 = k2) : x = OInstr.imm k0 k1 k2 := by
+    (h2 : limbNat x 2 = k2) : x = OffsetInstruction.immediateWord k0 k1 k2 := by
   subst h0 h1 h2
-  rw [OInstr.imm, limbNat, limbNat, limbNat, ofBits_toNat, ofBits_toNat, ofBits_toNat,
+  rw [OffsetInstruction.immediateWord, limbNat, limbNat, limbNat, ofBits_toNat, ofBits_toNat,
+      ofBits_toNat,
     ofLimbs_limb]
 
 end Basic
@@ -123,7 +125,7 @@ section Atoms
 variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {B : Book}
 
 theorem setImm_sound (hB : BookHolds L fp B) {c l0 l1 l2 : ℕ} (h : setImm B c l0 l1 l2 = true) :
-    L.read (fp * gpow c) = some (OInstr.imm l0 l1 l2) := by
+    L.read (fp * addressOfIndex c) = some (OffsetInstruction.immediateWord l0 l1 l2) := by
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
   have hh := hB c a ha
   split at hp
@@ -134,13 +136,13 @@ theorem setImm_sound (hB : BookHolds L fp B) {c l0 l1 l2 : ℕ} (h : setImm B c 
   · simp at hp
 
 theorem setIs_sound (hB : BookHolds L fp B) {c : ℕ} {x : E} (h : setIs B c x = true) :
-    L.read (fp * gpow c) = some x := by
+    L.read (fp * addressOfIndex c) = some x := by
   rw [eq_imm_of_limbs rfl rfl rfl (x := x)]
   exact setImm_sound hB h
 
 theorem perm3_sound {x y z p q r : ℕ} (h : perm3 x y z p q r = true) {vX vY : E}
-    (hx : L.read (fp * gpow x) = some vX) (hy : L.read (fp * gpow y) = some vY)
-    (hz : L.read (fp * gpow z) = some (vX + vY)) : wd L fp r = wd L fp p + wd L fp q := by
+    (hx : L.read (fp * addressOfIndex x) = some vX) (hy : L.read (fp * addressOfIndex y) = some vY)
+    (hz : L.read (fp * addressOfIndex z) = some (vX + vY)) : wd L fp r = wd L fp p + wd L fp q := by
   simp only [perm3, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq] at h
   rcases h with ((((⟨⟨rfl, rfl⟩, rfl⟩ | ⟨⟨rfl, rfl⟩, rfl⟩) | ⟨⟨rfl, rfl⟩, rfl⟩) |
     ⟨⟨rfl, rfl⟩, rfl⟩) | ⟨⟨rfl, rfl⟩, rfl⟩) | ⟨⟨rfl, rfl⟩, rfl⟩
@@ -166,8 +168,8 @@ theorem addOk_sound (hB : BookHolds L fp B) {d a b : ℕ} (h : addOk B d a b = t
   rcases h with (h | h) | h <;> exact xorIn_sound hB h
 
 theorem mulOk_sound (hB : BookHolds L fp B) {d a b : ℕ} (h : mulOk B d a b = true) :
-    ∃ vA vB, L.read (fp * gpow a) = some vA ∧ L.read (fp * gpow b) = some vB ∧
-      L.read (fp * gpow d) = some (vA * vB) := by
+    ∃ vA vB, L.read (fp * addressOfIndex a) = some vA ∧ L.read (fp * addressOfIndex b) = some vB ∧
+      L.read (fp * addressOfIndex d) = some (vA * vB) := by
   obtain ⟨x, hx, hp⟩ := List.any_eq_true.mp h
   have hh := hB d x hx
   split at hp
@@ -205,7 +207,7 @@ theorem sameOk_sound (hB : BookHolds L fp B) {a b : ℕ} (h : sameOk B a b = tru
   · simp at hp
 
 theorem sameOk_read (hB : BookHolds L fp B) {a b : ℕ} (h : sameOk B a b = true) :
-    L.read (fp * gpow a) = L.read (fp * gpow b) := by
+    L.read (fp * addressOfIndex a) = L.read (fp * addressOfIndex b) := by
   simp only [sameOk, Bool.or_eq_true, beq_iff_eq] at h
   rcases h with rfl | h
   · rfl
@@ -225,8 +227,9 @@ theorem sameOk_read (hB : BookHolds L fp B) {a b : ℕ} (h : sameOk B a b = true
   · simp at hp
 
 theorem loadOk_sound (hB : BookHolds L fp B) {d p off : ℕ} (h : loadOk B d p off = true) :
-    ∃ pv, L.read (fp * gpow p) = some pv ∧ IsInK pv ∧
-      ∃ v, L.read (fp * gpow d) = some v ∧ L.read (pv.limb 0 * gpow off) = some v := by
+    ∃ pv, L.read (fp * addressOfIndex p) = some pv ∧ IsInK pv ∧
+      ∃ v, L.read (fp * addressOfIndex d) = some v ∧ L.read (pv.limb 0 * addressOfIndex off) = some
+          v := by
   obtain ⟨x, hx, hp⟩ := List.any_eq_true.mp h
   have hh := hB d x hx
   split at hp
@@ -291,7 +294,8 @@ theorem neOk_sound (hB : BookHolds L fp B) {x i p : ℕ} (h : neOk B x i p = tru
     wd L fp p = wd L fp x * wd L fp i ∧ wd L fp p = 1 := by
   simp only [neOk, Bool.and_eq_true] at h
   refine ⟨mulOk_wd hB h.1, wd_of ?_⟩
-  rw [show (1 : E) = OInstr.imm 1 0 0 from (imm_of_ofBits rfl).trans ofK_one |>.symm]
+  rw [show (1 : E) = OffsetInstruction.immediateWord 1 0 0 from (imm_of_ofBits rfl).trans ofK_one
+      |>.symm]
   exact setImm_sound hB h.2
 
 theorem rangeOk_sound (hB : BookHolds L fp B) {x y t1 t2 k : ℕ}
@@ -302,7 +306,7 @@ theorem rangeOk_sound (hB : BookHolds L fp B) {x y t1 t2 k : ℕ}
   exact ⟨loadOk_holds hB h.1.1, mulOk_wd hB h.1.2, loadOk_holds hB h.2⟩
 
 theorem bounceOk_sound (hB : BookHolds L fp B) {x : ℕ} (h : bounceOk B x = true) :
-    L.read (fp * gpow x) = some (ofK fp) := by
+    L.read (fp * addressOfIndex x) = some (ofK fp) := by
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
   have hh := hB x a ha
   split at hp
@@ -325,7 +329,8 @@ theorem bounceOk_sound (hB : BookHolds L fp B) {x : ℕ} (h : bounceOk B x = tru
   · simp at hp
 
 theorem fpgAt_sound (hB : BookHolds L fp B) {ψ : Trie Sym} (hψ : EnvHolds L fp ψ) {x e : ℕ}
-    (h : fpgAt B ψ x = some e) : L.read (fp * gpow x) = some (ofK (fp * gpow e)) := by
+    (h : fpgAt B ψ x = some e) : L.read (fp * addressOfIndex x) = some (ofK (fp * addressOfIndex
+        e)) := by
   unfold fpgAt at h
   split at h
   · rename_i e' he
@@ -338,7 +343,7 @@ theorem fpgAt_sound (hB : BookHolds L fp B) {ψ : Trie Sym} (hψ : EnvHolds L fp
 
 theorem gpAt_sound {F : Exec.Facts} (hF : F.pows.Ok) (hB : BookHolds L fp B) {ψ : Trie Sym}
     (hψ : EnvHolds L fp ψ) {y e : ℕ} (h : gpAt F B ψ y = some e) :
-    L.read (fp * gpow y) = some (ofK (gpow e)) := by
+    L.read (fp * addressOfIndex y) = some (ofK (addressOfIndex e)) := by
   unfold gpAt at h
   split at h
   · rename_i e' he
@@ -372,7 +377,7 @@ theorem addrOk_sound {F : Exec.Facts} (hF : F.pows.Ok) (hB : BookHolds L fp B) {
     (hψ : EnvHolds L fp ψ) {loc : Trie ℕ} {p : ℕ} {run : List Core.V}
     (h : addrOk F B ψ loc p run = true) :
     IsInK (wd L fp p) ∧ ∀ (k : ℕ) (hk : k < run.length) (w : E),
-      L.read ((wd L fp p).limb 0 * gpow k) = some w → w = val L fp loc run[k] := by
+      L.read ((wd L fp p).limb 0 * addressOfIndex k) = some w → w = val L fp loc run[k] := by
   obtain ⟨a, ha, hq⟩ := List.any_eq_true.mp h
   have hh := hB p a ha
   split at hq
@@ -386,13 +391,16 @@ theorem addrOk_sound {F : Exec.Facts} (hF : F.pows.Ok) (hB : BookHolds L fp B) {
       rw [gpAt_sound hF hB hψ h2] at hy
       obtain rfl := Option.some.inj hx
       obtain rfl := Option.some.inj hy
-      have hp : wd L fp z = ofK (fp * gpow (e1 + e2)) := by
-        rw [wd_of hz, ← ofK_mul, mul_assoc, gpow, gpow, gpow, ← pow_add]
+      have hp : wd L fp z = ofK (fp * addressOfIndex (e1 + e2)) := by
+        rw [wd_of hz, ← ofK_mul, mul_assoc, addressOfIndex, addressOfIndex, addressOfIndex, ←
+            pow_add]
       rw [hp]
       refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, fun k hk w hw ↦ ?_⟩
-      have hl : (ofK (fp * gpow (e1 + e2))).limb 0 = fp * gpow (e1 + e2) := by simp
-      have ha : fp * gpow (e1 + e2) * gpow k = fp * gpow (e1 + e2 + k) := by
-        rw [mul_assoc, gpow, gpow, gpow, ← pow_add]
+      have hl : (ofK (fp * addressOfIndex (e1 + e2))).limb 0 = fp * addressOfIndex (e1 + e2) :=
+          by simp
+      have ha : fp * addressOfIndex (e1 + e2) * addressOfIndex k = fp * addressOfIndex (e1 + e2 +
+          k) := by
+        rw [mul_assoc, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add]
       rw [hl, ha] at hw
       unfold val
       rw [runAt_sound hq k hk]
@@ -437,7 +445,7 @@ noncomputable def frameVal (cert : String → Cert) (f : String) (fp : K) : Core
   valG L fp (cert f)
 
 /-- A frame in a memory of `2^n` words: `fp = g^a`, `a < 2^n`. -/
-def InMem (n : ℕ) (fp : K) : Prop := ∃ a < 2 ^ n, fp = gpow a
+def InMem (n : ℕ) (fp : K) : Prop := ∃ a < 2 ^ n, fp = addressOfIndex a
 
 /-- **The guest's located call relation**: a callee runs at a frame `fp` with `A f fp args rets`,
 its values its certificate's cells there (`Core.Program.RelL`). -/
@@ -445,13 +453,14 @@ noncomputable abbrev RL (cert : String → Cert) (A : String → K → List E �
   P.RelL L.read (frameVal L cert) A
 
 /-- The jump table holds: slot `s` of the frame of `main` (`fp = 1`) holds `g^t`. -/
-def JTHolds : Prop := ∀ s t, G.jt.get s = some t → L.read (gpow s) = some (ofK (gpow t))
+def JTHolds : Prop := ∀ s t, G.jt.get s = some t → L.read (addressOfIndex s) = some (ofK
+    (addressOfIndex t))
 
 /-- Memory bounded through frame cells: for each `(o, len, n)`, the word at `fp[o]·g^c` is `g^e`
 with `e < n` for every `c < len`. -/
 def MemPre (fp : K) (mem : List (ℕ × ℕ × ℕ)) : Prop :=
-  ∀ m ∈ mem, ∀ c < m.2.1, ∃ p, L.read (fp * gpow m.1) = some p ∧ IsInK p ∧
-    ∃ e < m.2.2, L.read (p.limb 0 * gpow c) = some (ofK (gpow e))
+  ∀ m ∈ mem, ∀ c < m.2.1, ∃ p, L.read (fp * addressOfIndex m.1) = some p ∧ IsInK p ∧
+    ∃ e < m.2.2, L.read (p.limb 0 * addressOfIndex c) = some (ofK (addressOfIndex e))
 
 /-- The words of each pair of cells are in the program's semantic relation. -/
 def SemHolds (fp : K) (sems : List (ℕ × ℕ)) : Prop :=
@@ -470,7 +479,7 @@ holds there, and the run from `(g^0, 1)` reaches `j`'s entry at `fp`. The guest'
 run at such frames (`Post`, `RL P L cert (EnteredAt G L)`). -/
 def EnteredAt (f : String) (fp : K) (args rets : List E) : Prop :=
   InMem κ fp ∧ ∃ j, (G.sig j).name = f ∧ Pre G L j fp ∧
-    Reach guestProgram L ⟨gpow 0, 1⟩ ⟨gpow (G.sig j).entry, fp⟩ ∧
+    Reach guestProgram L ⟨addressOfIndex 0, 1⟩ ⟨addressOfIndex (G.sig j).entry, fp⟩ ∧
     frameWords L fp 2 (G.sig j).nargs = args ∧ frameWords L fp (2 + (G.sig j).nargs) (G.sig j).nret = rets
 
 /-- **The body of `f` holds at frame `fp`** on the argument words `args` and the return words
@@ -517,7 +526,7 @@ end Contracts
 
 section Pos
 
-variable {κ : ℕ} (L : MemoryImage κ) (fp : K) (f : CompiledFn) (X : Fx)
+variable {κ : ℕ} (L : MemoryImage κ) (fp : K) (f : CompiledFunction) (X : Fx)
 
 /-- **The run is at a position** with `k` steps left, its segment entered with at most `K`: the
 segment is the executor's, the book, environment and bounds hold, the rest of the segment's
@@ -529,19 +538,21 @@ structure PosOk (K : ℕ) (st : CS) (k : ℕ) : Prop where
   psi : EnvHolds L fp st.psi
   bnd : BndHolds L fp st.bnd
   run : ∃ k₀, k₀ ≤ K ∧ k ≤ k₀ ∧
-    RunK L fp guestProgram f.entry k₀ (st.seg.exit.Reached L fp guestProgram f.entry k₀) st.its k
+    RunK L fp guestProgram f.entryPc k₀ (st.seg.exit.Reached L fp guestProgram f.entryPc k₀)
+        st.its k
   exits : ∀ x, x = st.seg.exit ∨ x ∈ branchExits st.its → x ∈ st.seg.exits
   fresh : ∀ t, st.fresh = some t →
     X.idx.get t = some st.seg ∧ st.seg.start = t ∧ st.its = st.seg.items ∧ st.psi = st.seg.env ∧
-      SafeReached guestProgram L k ⟨gpow (f.entry + t), fp⟩
+      SafeReached guestProgram L k ⟨addressOfIndex (f.entryPc + t), fp⟩
 
 /-- **The run is at the start of the segment at offset `t`**, with `k` steps left; at the
 window's end, where no segment of it starts, in its environment `wenv`. -/
 def SegRun (K t k : ℕ) : Prop :=
-  SafeReached guestProgram L k ⟨gpow (f.entry + t), fp⟩ ∧
+  SafeReached guestProgram L k ⟨addressOfIndex (f.entryPc + t), fp⟩ ∧
   (∀ s, X.idx.get t = some s → s.start = t → s ∈ X.segs ∧ EnvHolds L fp s.env ∧
     ∃ k₀, k₀ ≤ K ∧ k ≤ k₀ ∧
-      RunK L fp guestProgram f.entry k₀ (s.exit.Reached L fp guestProgram f.entry k₀) s.items k) ∧
+      RunK L fp guestProgram f.entryPc k₀ (s.exit.Reached L fp guestProgram f.entryPc k₀)
+          s.items k) ∧
   (t = X.wJ → X.idx.get t = none → EnvHolds L fp X.wenv)
 
 /-- At a window's end `J`, what it hands on holds. -/
@@ -557,7 +568,7 @@ end Pos
 
 section PosLemmas
 
-variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {f : CompiledFn} {X : Fx}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {f : CompiledFunction} {X : Fx}
 
 theorem fwdL_ok {test : Book → Bool} {e k₀ : ℕ} {Q : ℕ → Prop} :
     ∀ (its : List Exec.Item) (B : Book) (k : ℕ), BookHolds L fp B →
@@ -636,7 +647,7 @@ theorem toEnd_ok {K : ℕ} {st : CS} {k : ℕ} (h : PosOk L fp f X K st k) :
 theorem endAt_ok {K : ℕ} {st se : CS} {k : ℕ} (h : PosOk L fp f X K st k)
     (he : endAt st = some se) :
     ∃ k' ≤ k, PosOk L fp f X K se k' ∧ se.seg = st.seg ∧ se.psi = st.psi ∧ se.bnd = st.bnd ∧
-      ∃ k₀ ≤ K, se.seg.exit.Reached L fp guestProgram f.entry k₀ k' := by
+      ∃ k₀ ≤ K, se.seg.exit.Reached L fp guestProgram f.entryPc k₀ k' := by
   obtain ⟨k', hk', hp, hs, hψ, hb⟩ := toEnd_ok h
   unfold endAt at he
   split at he
@@ -651,10 +662,10 @@ theorem endAt_ok {K : ℕ} {st se : CS} {k : ℕ} (h : PosOk L fp f X K st k)
 branch's exit otherwise. -/
 theorem branchAt_ok {K : ℕ} {st st' : CS} {oc : ℕ} {x : Exec.Exit} {k : ℕ}
     (h : PosOk L fp f X K st k) (hb : branchAt st = some (st', oc, x)) :
-    ∃ k' < k, ∃ c, L.read (fp * gpow oc) = some c ∧ IsInK c ∧ x ∈ st.seg.exits ∧
+    ∃ k' < k, ∃ c, L.read (fp * addressOfIndex oc) = some c ∧ IsInK c ∧ x ∈ st.seg.exits ∧
       st'.seg = st.seg ∧ st'.psi = st.psi ∧ st'.bnd = st.bnd ∧ BookHolds L fp st'.book ∧
       ((c = 0 ∧ PosOk L fp f X K st' k') ∨
-        (c ≠ 0 ∧ ∃ k₀ ≤ K, x.Reached L fp guestProgram f.entry k₀ k')) := by
+        (c ≠ 0 ∧ ∃ k₀ ≤ K, x.Reached L fp guestProgram f.entryPc k₀ k')) := by
   obtain ⟨k₁, hk₁, hp, hs, hψ, hbd⟩ := toEnd_ok h
   unfold branchAt at hb
   split at hb
@@ -684,16 +695,16 @@ end PosLemmas
 
 section Segs
 
-variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {f : CompiledFn} {X : Fx}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {f : CompiledFunction} {X : Fx}
 
 /-- What a walk assumes of its context: the executor's facts hold of the frame, the code is the
 program's, the segments are good (an executor's, `exec_good`, `execWin_good`), and the index and
 links are theirs. -/
-structure WalkHyp (L : MemoryImage κ) (fp : K) (f : CompiledFn) (X : Fx) : Prop where
+structure WalkHyp (L : MemoryImage κ) (fp : K) (f : CompiledFunction) (X : Fx) : Prop where
   ctx : Exec.Ctx X.F κ fp
-  fetch : Fetches guestProgram f.entry f.code
-  entry : X.entry = f.entry
-  good : ∀ s ∈ X.segs, SegGood L fp guestProgram f.entry s
+  fetch : Fetches guestProgram f.entryPc f.code
+  entry : X.entry = f.entryPc
+  good : ∀ s ∈ X.segs, SegGood L fp guestProgram f.entryPc s
   idx : X.idx = index X.segs
   linked : linkedWeak X.idx X.segs X.wJ X.wenv = true
 
@@ -719,7 +730,7 @@ theorem linkedWeak_none {idx : Trie Exec.Seg} {segs : List Exec.Seg} {wJ : ℕ} 
 of the segment there. -/
 theorem segRun_of_safe (H : WalkHyp L fp f X) {s : Exec.Seg} (hs : s ∈ X.segs)
     {x : Exec.Exit} (hx : x ∈ s.exits) {t : ℕ} (ht : t ∈ x.succ) (he : EnvHolds L fp x.env)
-    {K k : ℕ} (hk : k ≤ K) (h : SafeReached guestProgram L k ⟨gpow (f.entry + t), fp⟩) :
+    {K k : ℕ} (hk : k ≤ K) (h : SafeReached guestProgram L k ⟨addressOfIndex (f.entryPc + t), fp⟩) :
     SegRun L fp f X K t k := by
   refine ⟨h, fun s' hs' hst ↦ ?_, fun htJ hn ↦ ?_⟩
   swap
@@ -736,7 +747,7 @@ theorem segRun_of_safe (H : WalkHyp L fp f X) {s : Exec.Seg} (hs : s ∈ X.segs)
 /-- A local jump to `t` leaves into the segment at `t`. -/
 theorem segRun_of_next (H : WalkHyp L fp f X) {s : Exec.Seg} (hs : s ∈ X.segs)
     {x : Exec.Exit} (hx : x ∈ s.exits) {t : ℕ} (hk : x.kind = .next t) (ht : x.succ = [t])
-    {K k₀ k : ℕ} (hk₀ : k₀ ≤ K) (h : x.Reached L fp guestProgram f.entry k₀ k) :
+    {K k₀ k : ℕ} (hk₀ : k₀ ≤ K) (h : x.Reached L fp guestProgram f.entryPc k₀ k) :
     SegRun L fp f X K t k := by
   obtain ⟨hlt, he, -, r, hr, hsafe⟩ := h
   rw [hk] at hr
@@ -1026,8 +1037,9 @@ variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {B : Book}
 
 theorem storesOk_sound (hB : BookHolds L fp B) {q : ℕ} :
     ∀ {o : ℕ} {cs : List ℕ}, storesOk B q o cs = true → ∀ i (hi : i < cs.length),
-      ∃ pv, L.read (fp * gpow q) = some pv ∧ IsInK pv ∧
-        ∃ v, L.read (fp * gpow cs[i]) = some v ∧ L.read (pv.limb 0 * gpow (o + i)) = some v
+      ∃ pv, L.read (fp * addressOfIndex q) = some pv ∧ IsInK pv ∧
+        ∃ v, L.read (fp * addressOfIndex cs[i]) = some v ∧ L.read (pv.limb 0 * addressOfIndex (o +
+            i)) = some v
   | _, [], _, _, hi => absurd hi (Nat.not_lt_zero _)
   | o, c :: cs, h, i, hi => by
     simp only [storesOk, Bool.and_eq_true] at h
@@ -1039,7 +1051,7 @@ theorem storesOk_sound (hB : BookHolds L fp B) {q : ℕ} :
 
 /-- Stored cells are the callee frame's words. -/
 theorem storesOk_words (hB : BookHolds L fp B) {q o : ℕ} {cs : List ℕ} (h : storesOk B q o cs = true)
-    {pv : E} (hq : L.read (fp * gpow q) = some pv) :
+    {pv : E} (hq : L.read (fp * addressOfIndex q) = some pv) :
     cs.map (wd L fp) = frameWords L (pv.limb 0) o cs.length := by
   apply List.ext_getElem (by simp [frameWords])
   intro i h1 h2
@@ -1053,9 +1065,10 @@ theorem map_val (loc : Trie ℕ) (vs : List Core.V) :
   simp [cellsOf, val, Function.comp_def]
 
 theorem envOf_holds {env : List (ℕ × Sym)}
-    (h : ∀ p ∈ env, L.read (fp * gpow p.1) = some (p.2.val fp)) : EnvHolds L fp (envOf env) := by
+    (h : ∀ p ∈ env, L.read (fp * addressOfIndex p.1) = some (p.2.val fp)) : EnvHolds L fp (envOf
+        env) := by
   unfold envOf
-  suffices ∀ (l : List (ℕ × Sym)) (t : Trie Sym), EnvHolds L fp t → (∀ p ∈ l, L.read (fp * gpow p.1) = some (p.2.val fp)) →
+  suffices ∀ (l : List (ℕ × Sym)) (t : Trie Sym), EnvHolds L fp t → (∀ p ∈ l, L.read (fp * addressOfIndex p.1) = some (p.2.val fp)) →
       EnvHolds L fp (l.foldl (fun t p ↦ t.set p.2 envDepth p.1) t) from this env .nil EnvHolds.nil h
   intro l
   induction l with
@@ -1065,7 +1078,7 @@ theorem envOf_holds {env : List (ℕ × Sym)}
     exact ih _ (ht.set (hl p List.mem_cons_self)) fun p' hp' ↦ hl p' (List.mem_cons_of_mem _ hp')
 
 theorem envStoresOk_sound (hB : BookHolds L fp B) {q : ℕ} {env : List (ℕ × Sym)}
-    (h : envStoresOk B q env = true) {pv : E} (hq : L.read (fp * gpow q) = some pv)
+    (h : envStoresOk B q env = true) {pv : E} (hq : L.read (fp * addressOfIndex q) = some pv)
     (hK : IsInK pv) : EnvHolds L (pv.limb 0) (envOf env) := by
   apply envOf_holds
   intro p hp
@@ -1083,11 +1096,11 @@ theorem envStoresOk_sound (hB : BookHolds L fp B) {q : ℕ} {env : List (ℕ × 
 /-! ### Selectors bounded by booleanity -/
 
 /-- The bits of `1 + g^k`, `1 ≤ k ≤ 63`: `x^k + 1`, `g` being the polynomial `x`. -/
-theorem ofBits_onePlusPow : ∀ k < 63, K.ofBits (2 ^ (k + 1) + 1) = 1 + gpow (k + 1) := by
+theorem ofBits_onePlusPow : ∀ k < 63, K.ofBits (2 ^ (k + 1) + 1) = 1 + addressOfIndex (k + 1) := by
   decide +kernel
 
 theorem onePlusPow_spec {k0 k : ℕ} (h : onePlusPow k0 = some k) :
-    K.ofBits k0 = 1 + gpow k := by
+    K.ofBits k0 = 1 + addressOfIndex k := by
   obtain ⟨i, hi, hk⟩ := List.exists_of_findSome?_eq_some h
   simp only [Bool.cond_eq_ite, beq_iff_eq] at hk
   split_ifs at hk with he
@@ -1108,7 +1121,7 @@ theorem optIf_eq_some {α : Type} {p : Bool} {o : Option α} {x : α} (h : optIf
   | false => exact absurd h (by simp [optIf])
 
 theorem selConst_sound (hB : BookHolds L fp B) {q k : ℕ} (h : selConst B q = some k) :
-    L.read (fp * gpow q) = some (ofK (1 + gpow k)) := by
+    L.read (fp * addressOfIndex q) = some (ofK (1 + addressOfIndex k)) := by
   obtain ⟨a, ha, hp⟩ := List.exists_of_findSome?_eq_some h
   have hh := hB q a ha
   split at hp
@@ -1121,14 +1134,14 @@ theorem selConst_sound (hB : BookHolds L fp B) {q k : ℕ} (h : selConst B q = s
 
 /-- A cell of a `MUL b = b·b` holds `0` or `1`. -/
 theorem boolCell_sound (hB : BookHolds L fp B) {b : ℕ} (h : mulOk B b b b = true) :
-    ∃ v, L.read (fp * gpow b) = some v ∧ (v = 0 ∨ v = 1) := by
+    ∃ v, L.read (fp * addressOfIndex b) = some v ∧ (v = 0 ∨ v = 1) := by
   obtain ⟨vA, vB, h1, h2, h3⟩ := mulOk_sound hB h
   obtain rfl := Option.some.inj (h1.symm.trans h2)
   have hv : vA * vA = vA := (Option.some.inj (h1.symm.trans h3)).symm
   exact ⟨vA, h1, IsIdempotentElem.iff_eq_zero_or_one.mp hv⟩
 
 theorem boolScaled_sound (hB : BookHolds L fp B) {u k : ℕ} (h : boolScaled B u = some k) :
-    ∃ v, L.read (fp * gpow u) = some v ∧ (v = 0 ∨ v = ofK (1 + gpow k)) := by
+    ∃ v, L.read (fp * addressOfIndex u) = some v ∧ (v = 0 ∨ v = ofK (1 + addressOfIndex k)) := by
   obtain ⟨a, ha, hp⟩ := List.exists_of_findSome?_eq_some h
   have hh := hB u a ha
   split at hp
@@ -1136,9 +1149,9 @@ theorem boolScaled_sound (hB : BookHolds L fp B) {u k : ℕ} (h : boolScaled B u
     obtain ⟨hz, hq⟩ := optIf_eq_some hp
     obtain rfl : z = u := beq_iff_eq.mp hz
     obtain ⟨vX, vY, hx, hy, hu⟩ := hh
-    have key : ∀ {p q : ℕ} {vp vq : E}, L.read (fp * gpow p) = some vp →
-        L.read (fp * gpow q) = some vq → mulOk B p p p = true → selConst B q = some k →
-        vp * vq = 0 ∨ vp * vq = ofK (1 + gpow k) := by
+    have key : ∀ {p q : ℕ} {vp vq : E}, L.read (fp * addressOfIndex p) = some vp →
+        L.read (fp * addressOfIndex q) = some vq → mulOk B p p p = true → selConst B q = some k →
+        vp * vq = 0 ∨ vp * vq = ofK (1 + addressOfIndex k) := by
       intro p q vp vq hp' hq' hb hc
       obtain ⟨v, hv, hv01⟩ := boolCell_sound hB hb
       obtain rfl := Option.some.inj (hp'.symm.trans hv)
@@ -1156,7 +1169,7 @@ theorem boolScaled_sound (hB : BookHolds L fp B) {u k : ℕ} (h : boolScaled B u
   · simp at hp
 
 theorem boolSel_sound (hB : BookHolds L fp B) {c n : ℕ} (h : boolSel B c = some n) :
-    ∃ e < n, L.read (fp * gpow c) = some (ofK (gpow e)) := by
+    ∃ e < n, L.read (fp * addressOfIndex c) = some (ofK (addressOfIndex e)) := by
   obtain ⟨a, ha, hp⟩ := List.exists_of_findSome?_eq_some h
   have hh := hB c a ha
   split at hp
@@ -1164,10 +1177,11 @@ theorem boolSel_sound (hB : BookHolds L fp B) {c n : ℕ} (h : boolSel B c = som
     obtain ⟨hz, hq⟩ := optIf_eq_some hp
     obtain rfl : z = c := beq_iff_eq.mp hz
     obtain ⟨vX, vY, hx, hy, hc⟩ := hh
-    have hone : OInstr.imm 1 0 0 = 1 := (imm_of_ofBits rfl).trans ofK_one
-    have key : ∀ {p q : ℕ} {vp vq : E} {k : ℕ}, L.read (fp * gpow p) = some vp →
-        L.read (fp * gpow q) = some vq → setImm B p 1 0 0 = true → boolScaled B q = some k →
-        ∃ e < k + 1, vp + vq = ofK (gpow e) := by
+    have hone : OffsetInstruction.immediateWord 1 0 0 = 1 := (imm_of_ofBits rfl).trans ofK_one
+    have key : ∀ {p q : ℕ} {vp vq : E} {k : ℕ}, L.read (fp * addressOfIndex p) = some vp →
+        L.read (fp * addressOfIndex q) = some vq → setImm B p 1 0 0 = true → boolScaled B q =
+            some k →
+        ∃ e < k + 1, vp + vq = ofK (addressOfIndex e) := by
       intro p q vp vq k hp' hq' h1 hs
       obtain rfl := Option.some.inj (hp'.symm.trans ((setImm_sound hB h1).trans (by rw [hone])))
       obtain ⟨v, hv, hv0⟩ := boolScaled_sound hB hs
@@ -1189,7 +1203,7 @@ theorem boolSel_sound (hB : BookHolds L fp B) {c n : ℕ} (h : boolSel B c = som
 /-- **A selector bounded by booleanity** is `g^e` with `e` below the bound `selBound` finds. -/
 theorem selBound_sound (hB : BookHolds L fp B) :
     ∀ (fuel : ℕ) {c n : ℕ}, selBound B fuel c = some n →
-      ∃ e < n, L.read (fp * gpow c) = some (ofK (gpow e))
+      ∃ e < n, L.read (fp * addressOfIndex c) = some (ofK (addressOfIndex e))
   | 0, _, _, h => boolSel_sound hB h
   | fuel + 1, c, n, h => by
     rcases orOpt_eq_some h with h | h
@@ -1218,7 +1232,7 @@ theorem selBound_sound (hB : BookHolds L fp B) :
 
 theorem boundOk0_sound {mem : List (ℕ × ℕ × ℕ)} (hm : MemPre L fp mem) (hB : BookHolds L fp B)
     {bnd : List (ℕ × ℕ)} (hb : BndHolds L fp bnd) {c n : ℕ} (h : boundOk0 mem B bnd c n = true) :
-    ∃ e < n, L.read (fp * gpow c) = some (ofK (gpow e)) := by
+    ∃ e < n, L.read (fp * addressOfIndex c) = some (ofK (addressOfIndex e)) := by
   simp only [boundOk0, Bool.or_eq_true] at h
   rcases h with (h | h) | h
   · obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
@@ -1256,7 +1270,7 @@ theorem boundOk0_sound {mem : List (ℕ × ℕ × ℕ)} (hm : MemPre L fp mem) (
 
 theorem boundOk_sound {mem : List (ℕ × ℕ × ℕ)} (hm : MemPre L fp mem) (hB : BookHolds L fp B)
     {bnd : List (ℕ × ℕ)} (hb : BndHolds L fp bnd) {c n : ℕ} (h : boundOk mem B bnd c n = true) :
-    ∃ e < n, L.read (fp * gpow c) = some (ofK (gpow e)) := by
+    ∃ e < n, L.read (fp * addressOfIndex c) = some (ofK (addressOfIndex e)) := by
   simp only [boundOk, Bool.or_eq_true] at h
   rcases h with h | h
   · exact boundOk0_sound hm hB hb h
@@ -1276,11 +1290,12 @@ theorem boundOk_sound {mem : List (ℕ × ℕ × ℕ)} (hm : MemPre L fp mem) (h
 /-- Memory bounded through cells of the frame: for each `(c, len, n)`, every word at
 `fp[c]·g^i`, `i < len`, is `g^e` with `e < n`. -/
 def MemKnown (L : MemoryImage κ) (fp : K) (known : List (ℕ × ℕ × ℕ)) : Prop :=
-  ∀ k ∈ known, ∀ c < k.2.1, ∃ e < k.2.2, Core.LoadHolds L.read (wd L fp k.1) c (ofK (gpow e))
+  ∀ k ∈ known, ∀ c < k.2.1, ∃ e < k.2.2, Core.LoadHolds L.read (wd L fp k.1) c (ofK
+      (addressOfIndex e))
 
 theorem memOk_sound (hB : BookHolds L fp B) {known : List (ℕ × ℕ × ℕ)} (hk : MemKnown L fp known)
     {args : List ℕ} {mem : List (ℕ × ℕ × ℕ)} (h : memOk known args mem = true) {q : ℕ}
-    (hs : storesOk B q 2 args = true) {pv : E} (hq : L.read (fp * gpow q) = some pv) :
+    (hs : storesOk B q 2 args = true) {pv : E} (hq : L.read (fp * addressOfIndex q) = some pv) :
     MemPre L (pv.limb 0) mem := by
   intro m hm c hc
   have := List.all_eq_true.mp h m hm
@@ -1315,7 +1330,7 @@ theorem semOk_sound {G : Glob} {fp' : K} {sems : List (ℕ × ℕ)} (hs : SemHol
 theorem preOk_sound {mem : List (ℕ × ℕ × ℕ)} (hm : MemPre L fp mem) (hB : BookHolds L fp B)
     {bnd : List (ℕ × ℕ)} (hb : BndHolds L fp bnd)
     {args : List ℕ} {pre : List (ℕ × ℕ)} (h : preOk mem B bnd args pre = true) {q : ℕ}
-    (hs : storesOk B q 2 args = true) {pv : E} (hq : L.read (fp * gpow q) = some pv) :
+    (hs : storesOk B q 2 args = true) {pv : E} (hq : L.read (fp * addressOfIndex q) = some pv) :
     BndHolds L (pv.limb 0) pre := by
   intro p hp
   have := List.all_eq_true.mp h p hp
@@ -1330,10 +1345,10 @@ theorem preOk_sound {mem : List (ℕ × ℕ × ℕ)} (hm : MemPre L fp mem) (hB 
   rwa [show 2 + (p.1 - 2) = p.1 by omega] at h3
 
 theorem postBnd_sound {ca cr : List ℕ} {post : List (ℕ × ℕ)} {pv : E}
-    (hs : ∀ i (hi : i < ca.length), ∃ v, L.read (fp * gpow ca[i]) = some v ∧
-      L.read (pv.limb 0 * gpow (2 + i)) = some v)
-    (hl : ∀ i (hi : i < cr.length), ∃ v, L.read (fp * gpow cr[i]) = some v ∧
-      L.read (pv.limb 0 * gpow (2 + ca.length + i)) = some v)
+    (hs : ∀ i (hi : i < ca.length), ∃ v, L.read (fp * addressOfIndex ca[i]) = some v ∧
+      L.read (pv.limb 0 * addressOfIndex (2 + i)) = some v)
+    (hl : ∀ i (hi : i < cr.length), ∃ v, L.read (fp * addressOfIndex cr[i]) = some v ∧
+      L.read (pv.limb 0 * addressOfIndex (2 + ca.length + i)) = some v)
     (hpost : ∀ p ∈ post, 2 ≤ p.1 ∧ p.1 < 2 + ca.length + cr.length)
     (hb : BndHolds L (pv.limb 0) post) : BndHolds L fp (postBnd (ca ++ cr) post) := by
   intro p' hp'
@@ -1393,8 +1408,9 @@ theorem armsOk_get {G : Glob} {entry base : ℕ} :
       simpa using armsOk_get h.2 e (by simpa using he)
 
 theorem tableBase_sound (hB : BookHolds L fp B) {t c base : ℕ} (h : tableBase B t c = some base) :
-    ∃ pv, L.read (fp * gpow c) = some pv ∧ IsInK pv ∧
-      ∃ v, L.read (fp * gpow t) = some v ∧ L.read (pv.limb 0 * gpow base) = some v := by
+    ∃ pv, L.read (fp * addressOfIndex c) = some pv ∧ IsInK pv ∧
+      ∃ v, L.read (fp * addressOfIndex t) = some v ∧ L.read (pv.limb 0 * addressOfIndex base) = some
+          v := by
   obtain ⟨a, ha, hp⟩ := List.exists_of_findSome?_eq_some h
   have hh := hB t a ha
   split at hp
@@ -1446,9 +1462,9 @@ theorem cellsOf_length (loc : Trie ℕ) (vs : List Core.V) : (cellsOf loc vs).le
 
 /-- Stored cells, with the frame they are stored in fixed. -/
 theorem storesOk_at (hB : BookHolds L fp B) {q o : ℕ} {cs : List ℕ} (h : storesOk B q o cs = true)
-    {pv : E} (hq : L.read (fp * gpow q) = some pv) :
-    ∀ i (hi : i < cs.length), ∃ v, L.read (fp * gpow cs[i]) = some v ∧
-      L.read (pv.limb 0 * gpow (o + i)) = some v := by
+    {pv : E} (hq : L.read (fp * addressOfIndex q) = some pv) :
+    ∀ i (hi : i < cs.length), ∃ v, L.read (fp * addressOfIndex cs[i]) = some v ∧
+      L.read (pv.limb 0 * addressOfIndex (o + i)) = some v := by
   intro i hi
   obtain ⟨pv', hq', -, v, h1, h2⟩ := storesOk_sound hB h i hi
   obtain rfl := Option.some.inj (hq'.symm.trans hq)
@@ -1468,7 +1484,7 @@ theorem tailArgsOk_sound {S : ℕ} : ∀ {o : ℕ} {cs : List ℕ}, tailArgsOk B
 
 theorem tailEnvOk_sound (hB : BookHolds L fp B) {env : Trie Sym} (he : EnvHolds L fp env)
     {S o : ℕ} (h : tailEnvOk B env S o = true) :
-    L.read (fp * gpow (S + o)) = some (ofK (fp * gpow S)) := by
+    L.read (fp * addressOfIndex (S + o)) = some (ofK (fp * addressOfIndex S)) := by
   simp only [tailEnvOk, Bool.or_eq_true] at h
   rcases h with h | h
   · split at h
@@ -1499,7 +1515,7 @@ end Calls
 
 section Walk
 
-variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {f : CompiledFn} {X : Fx} {Prog : Core.Program}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {f : CompiledFunction} {X : Fx} {Prog : Core.Program}
   {cert : String → Cert} {A : String → K → List E → List E → Prop}
   {Kb : ℕ}
 
@@ -1512,7 +1528,7 @@ def RetWords (L : MemoryImage κ) (fp : K) (X : Fx) (Kb : ℕ) (rs : List E) : P
 
 /-- What a walk of runs with at most `K` steps assumes: its context, the jump table, and every
 function's contract for runs shorter than `K`. -/
-structure WalkEnv (Prog : Core.Program) (cert : String → Cert) (A : String → K → List E → List E → Prop) (L : MemoryImage κ) (fp : K) (f : CompiledFn) (X : Fx)
+structure WalkEnv (Prog : Core.Program) (cert : String → Cert) (A : String → K → List E → List E → Prop) (L : MemoryImage κ) (fp : K) (f : CompiledFunction) (X : Fx)
     (Kb : ℕ) : Prop where
   hyp : WalkHyp L fp f X
   jt : JTHolds X.G L
@@ -1524,7 +1540,7 @@ structure WalkEnv (Prog : Core.Program) (cert : String → Cert) (A : String →
 /-- **What the walk of a block from a position gives**: the block's core semantics under the
 check's valuation, with any continuation the run's arrival at the join gives; the pending atoms;
 and that the run arrives at the join. -/
-def WalkGood (Prog : Core.Program) (cert : String → Cert) (A : String → K → List E → List E → Prop) (L : MemoryImage κ) (fp : K) (f : CompiledFn) (X : Fx) (Kb : ℕ)
+def WalkGood (Prog : Core.Program) (cert : String → Cert) (A : String → K → List E → List E → Prop) (L : MemoryImage κ) (fp : K) (f : CompiledFunction) (X : Fx) (Kb : ℕ)
     (ss : List Core.Stmt) (st : CS) (P : List Core.Atom) : Prop :=
   ∀ k (N : Prop), PosOk L fp f X Kb st k → chkL X ss st P ≠ .fail →
     (∀ J, chkL X ss st P = .join J → ∀ k', k' ≤ k → SegRun L fp f X Kb J k' → N) →
@@ -1676,8 +1692,8 @@ theorem walk_match (W : WalkEnv Prog cert A L fp f X Kb) (v : Core.V) (arms : Li
   obtain rfl := Option.some.inj (hw.symm.trans hw')
   have heA : e < (t0 :: ts).length := by simp; omega
   have hslot := W.jt _ _ (armsOk_get harms e heA)
-  have hadd : gpow e * gpow base = gpow (base + (0 + e)) := by
-    rw [Nat.zero_add, gpow, gpow, gpow, ← pow_add, Nat.add_comm]
+  have hadd : addressOfIndex e * addressOfIndex base = addressOfIndex (base + (0 + e)) := by
+    rw [Nat.zero_add, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, Nat.add_comm]
   rw [limb_ofK0, hadd, hslot] at hload
   obtain rfl := Option.some.inj hload
   rw [limb_ofK0, W.hyp.entry] at hsafe
@@ -1702,10 +1718,11 @@ theorem call_ok (W : WalkEnv Prog cert A L fp f X Kb) {B : Book} {bnd : List (�
     (hB : BookHolds L fp B) (hbnd : BndHolds L fp bnd) {j q r k1 : ℕ} {f' : String}
     {ca : List ℕ} {nr : ℕ} (hj : calleeAt X (X.G.sig j).entry = some j)
     (hco : callOk X B bnd (X.G.sig j) f' q ca nr = true) {pv : E}
-    (hq : L.read (fp * gpow q) = some pv) (hpK : IsInK pv)
-    (hret : retRegs L (pv.limb 0) = some ⟨gpow r, fp⟩) (hk1 : k1 < Kb)
-    (hsafe : SafeReached guestProgram L k1 ⟨gpow (X.G.sig j).entry, pv.limb 0⟩) :
-    ∃ k2 < k1, Post Prog X.G L cert A j (pv.limb 0) ∧ SafeReached guestProgram L k2 ⟨gpow r, fp⟩ ∧
+    (hq : L.read (fp * addressOfIndex q) = some pv) (hpK : IsInK pv)
+    (hret : retRegs L (pv.limb 0) = some ⟨addressOfIndex r, fp⟩) (hk1 : k1 < Kb)
+    (hsafe : SafeReached guestProgram L k1 ⟨addressOfIndex (X.G.sig j).entry, pv.limb 0⟩) :
+    ∃ k2 < k1, Post Prog X.G L cert A j (pv.limb 0) ∧ SafeReached guestProgram L k2 ⟨addressOfIndex
+        r, fp⟩ ∧
       f' = (X.G.sig j).name ∧ ca.length = (X.G.sig j).nargs ∧ nr = (X.G.sig j).nret ∧
       ca.map (wd L fp) = frameWords L (pv.limb 0) 2 (X.G.sig j).nargs ∧
       (∀ p ∈ (X.G.sig j).post, 2 ≤ p.1 ∧ p.1 < 2 + (X.G.sig j).nargs + (X.G.sig j).nret) ∧
@@ -1799,8 +1816,8 @@ theorem walk_dispatch (W : WalkEnv Prog cert A L fp f X Kb) (v : Core.V) (fs : L
   obtain rfl := Option.some.inj (hcv.symm.trans hce)
   obtain rfl := Option.some.inj (hw.symm.trans hw')
   obtain ⟨pc, j, hslot, hj, hok⟩ := tableCallsOk_get htc e he
-  have hadd : gpow e * gpow base = gpow (base + (0 + e)) := by
-    rw [Nat.zero_add, gpow, gpow, gpow, ← pow_add, Nat.add_comm]
+  have hadd : addressOfIndex e * addressOfIndex base = addressOfIndex (base + (0 + e)) := by
+    rw [Nat.zero_add, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, Nat.add_comm]
   rw [limb_ofK0, hadd, W.jt _ _ hslot] at hload
   obtain rfl := Option.some.inj hload
   rw [limb_ofK0] at hsafe
@@ -1907,7 +1924,7 @@ theorem walk_callIf (W : WalkEnv Prog cert A L fp f X Kb) (c : Core.V) (f' : Str
       simp only [Tgt.Is] at ha hb'
       subst ha hb'
       obtain ⟨hgood, hentry⟩ := calleeAt_some hj
-      have hPre : Pre X.G L j (fp * gpow S) := by
+      have hPre : Pre X.G L j (fp * addressOfIndex S) := by
         refine ⟨hgood, W.jt, envOf_holds fun p hp ↦ ?_, fun p hq0 ↦ ?_,
           by rw [hmem0]; intro p hp; simp at hp, semOk_sound W.sems hsem fun i hi ↦ ?_⟩
         rotate_left
@@ -1919,22 +1936,23 @@ theorem walk_callIf (W : WalkEnv Prog cert A L fp f X Kb) (c : Core.V) (f' : Str
           have hs := sameOk_read hB' (tailArgsOk_sound hargs (p.1 - 2) hlt)
           rw [nth_eq hlt] at hr
           rw [show 2 + (p.1 - 2) = p.1 by omega, hr] at hs
-          rw [mul_assoc, gpow, gpow, ← pow_add, ← gpow]
+          rw [mul_assoc, addressOfIndex, addressOfIndex, ← pow_add, ← addressOfIndex]
           exact hs
         · have := sameOk_sound hB' (tailArgsOk_sound hargs i hi)
           rw [← this]
           unfold wd
-          rw [mul_assoc, gpow, gpow, ← pow_add]
+          rw [mul_assoc, addressOfIndex, addressOfIndex, ← pow_add]
         have := henv p hp
         rw [Sym.beq_eq this.1]
         have h2 := tailEnvOk_sound hB' hxenv this.2
-        rw [mul_assoc, gpow, gpow, ← pow_add, ← gpow]
+        rw [mul_assoc, addressOfIndex, addressOfIndex, ← pow_add, ← addressOfIndex]
         simpa [Sym.val, gpow_zero'] using h2
-      have hret : retRegs L (fp * gpow S) = retRegs L fp := by
+      have hret : retRegs L (fp * addressOfIndex S) = retRegs L fp := by
         have e0 := sameOk_read hB' hr0
         have e1 := sameOk_read hB' hr1
         unfold retRegs
-        rw [mul_assoc, mul_assoc, gpow, gpow, ← pow_add, ← pow_add, ← gpow, ← gpow, e0, e1]
+        rw [mul_assoc, mul_assoc, addressOfIndex, addressOfIndex, ← pow_add, ← pow_add, ←
+            addressOfIndex, ← addressOfIndex, e0, e1]
       rw [← hentry] at hsafe
       obtain ⟨k2, hk2, rr, hrr, hPost, hsafe2⟩ :=
         (W.callees j).tail (by omega) hPre hret hsafe
@@ -1949,7 +1967,7 @@ theorem walk_callIf (W : WalkEnv Prog cert A L fp f X Kb) (c : Core.V) (f' : Str
         have := sameOk_sound hB' (tailArgsOk_sound hargs i (by simpa using h1'))
         rw [← this]
         unfold wd
-        rw [mul_assoc, gpow, gpow, ← pow_add]
+        rw [mul_assoc, addressOfIndex, addressOfIndex, ← pow_add]
       exact ⟨⟨hσ ▸ hcK, fun _ ↦ hcall, hwords ⟨k2, by omega, rr, hrr, hsafe2⟩⟩, hP,
         fun J hJ ↦ by simp at hJ⟩
 
@@ -2041,7 +2059,7 @@ end Reach
 
 section Fn
 
-variable {κ : ℕ} {L : MemoryImage κ} {G : Glob} {f : CompiledFn} {cf : Core.Fn} {C : Cert}
+variable {κ : ℕ} {L : MemoryImage κ} {G : Glob} {f : CompiledFunction} {cf : Core.Fn} {C : Cert}
   {cert : String → Cert} {A : String → K → List E → List E → Prop}
   {Prog : Core.Program}
 
@@ -2088,8 +2106,9 @@ theorem insTrie_get : ∀ (ps : List (ℕ × ℕ × ℕ)) (t : Trie ℕ) {v c : 
       · exact Or.inr (by rwa [getF_eq])
 
 theorem locAt_get {i v c : ℕ} (h : getF (C.locAt i) v = some c) :
-    (∃ m, ∃ hm : m < (nth C.cells i []).length, v = nth C.los i 0 + m ∧ (nth C.cells i [])[m] = c) ∨
-      ∃ j, (v, c, j) ∈ nth C.ins i [] := by
+    (∃ m, ∃ hm : m < (listElementOrDefault C.cells i []).length, v = listElementOrDefault C.los i 0
+        + m ∧ (listElementOrDefault C.cells i [])[m] = c) ∨
+      ∃ j, (v, c, j) ∈ listElementOrDefault C.ins i [] := by
   unfold Cert.locAt at h
   rw [Trie.seq_eq] at h
   rcases insTrie_get _ _ h with hj | h'
@@ -2100,15 +2119,17 @@ theorem locAt_get {i v c : ℕ} (h : getF (C.locAt i) v = some c) :
 
 /-- The windows' cells are consecutive, up to window `n`. -/
 def Cont (C : Cert) (n : ℕ) : Prop :=
-  nth C.los 0 0 = 0 ∧ ∀ i < n, nth C.los (i + 1) 0 = nth C.los i 0 + (nth C.cells i []).length
+  listElementOrDefault C.los 0 0 = 0 ∧ ∀ i < n, listElementOrDefault C.los (i + 1) 0 =
+      listElementOrDefault C.los i 0 + (listElementOrDefault C.cells i []).length
 
-theorem nth_of_le {α : Type} : ∀ {l : List α} {n : ℕ} {d : α}, l.length ≤ n → nth l n d = d
+theorem nth_of_le {α : Type} : ∀ {l : List α} {n : ℕ} {d : α}, l.length ≤ n → listElementOrDefault l
+    n d = d
   | [], _, _, _ => rfl
   | _ :: _, 0, _, h => absurd h (by simp)
   | _ :: as, n + 1, _, h => nth_of_le (l := as) (by simpa using h)
 
 theorem cont_lo {n : ℕ} (h : Cont C n) : ∀ j ≤ n,
-    nth C.los j 0 = ((C.cells.take j).map List.length).sum := by
+    listElementOrDefault C.los j 0 = ((C.cells.take j).map List.length).sum := by
   intro j
   induction j with
   | zero => intro _; simpa using h.1
@@ -2138,20 +2159,22 @@ theorem flatten_getD : ∀ (Ls : List (List ℕ)) (j : ℕ) (hl : j < Ls.length)
 /-- **The cells of a window are the certificate's**: window `j`'s cell `m` is the cell of value
 `los[j] + m`. -/
 theorem cont_locs {n : ℕ} (h : Cont C n) {j : ℕ} (hj : j ≤ n) {m : ℕ}
-    (hm : m < (nth C.cells j []).length) :
-    C.locs.getD (nth C.los j 0 + m) 0 = (nth C.cells j [])[m] := by
+    (hm : m < (listElementOrDefault C.cells j []).length) :
+    C.locs.getD (listElementOrDefault C.los j 0 + m) 0 = (listElementOrDefault C.cells j
+        [])[m] := by
   have hl : j < C.cells.length := by
     by_contra hc
     rw [nth_of_le (by omega)] at hm
     exact absurd hm (Nat.not_lt_zero _)
-  have hc : nth C.cells j [] = C.cells[j] := nth_eq hl
+  have hc : listElementOrDefault C.cells j [] = C.cells[j] := nth_eq hl
   rw [cont_lo h j hj]
   simp only [hc] at hm ⊢
   exact flatten_getD C.cells j hl m hm
 
 
 theorem locAt_val {n : ℕ} (hcont : Cont C n) {i : ℕ} (hi : i ≤ n)
-    (hins : C.insOk (nth C.ins i []) = true) (hn : C.cuts.length = n) {v : Core.V} {c : ℕ}
+    (hins : C.insOk (listElementOrDefault C.ins i []) = true) (hn : C.cuts.length = n) {v : Core.V}
+        {c : ℕ}
     (h : getF (C.locAt i) v.idx = some c) : C.locs.getD v.idx 0 = c := by
   rcases locAt_get h with ⟨m, hm, hv, hc⟩ | ⟨j, hj⟩
   · rw [hv, cont_locs hcont hi hm, hc]
@@ -2159,7 +2182,8 @@ theorem locAt_val {n : ℕ} (hcont : Cont C n) {i : ℕ} (hi : i ≤ n)
     simp only [Bool.and_eq_true, Nat.ble_eq, beq_iff_eq] at this
     obtain ⟨⟨hjn, hlo⟩, hget⟩ := this
     obtain ⟨hm, hget⟩ := List.getElem?_eq_some_iff.mp hget
-    rw [show v.idx = nth C.los j 0 + (v.idx - nth C.los j 0) by omega,
+    rw [show v.idx = listElementOrDefault C.los j 0 + (v.idx - listElementOrDefault C.los j 0)
+        by omega,
       cont_locs hcont (hn ▸ hjn) hm, hget]
 
 /-! ### The valuation of a block -/
@@ -2242,17 +2266,18 @@ end Congr
 
 /-- **The run at window `i`'s start** with `k` steps left: there, its environment and the facts
 and bounds handed on hold. -/
-def WinStart (L : MemoryImage κ) (fp : K) (f : CompiledFn) (C : Cert) (i k : ℕ) : Prop :=
-  SafeReached guestProgram L k ⟨gpow (f.entry + (C.cutAt i).J), fp⟩ ∧ EnvHolds L fp (envOf (C.cutAt i).env) ∧
+def WinStart (L : MemoryImage κ) (fp : K) (f : CompiledFunction) (C : Cert) (i k : ℕ) : Prop :=
+  SafeReached guestProgram L k ⟨addressOfIndex (f.entryPc + (C.cutAt i).J), fp⟩ ∧ EnvHolds L fp (envOf (C.cutAt i).env) ∧
     (∀ p ∈ (C.cutAt i).facts, p.2.Holds L fp) ∧ BndHolds L fp (C.cutAt i).bnd
 
 /-- What a function's return does, in every window's context. -/
-abbrev RetOf (L : MemoryImage κ) (fp : K) (G : Glob) (f : CompiledFn) (cf : Core.Fn) (C : Cert)
+abbrev RetOf (L : MemoryImage κ) (fp : K) (G : Glob) (f : CompiledFunction) (cf : Core.Fn) (C
+    : Cert)
     (main : Bool) (Kb : ℕ) : List E → Prop :=
   RetWords L fp (C.fxAt G f cf main 0 [] .nil .nil) Kb
 
 theorem checkWin_parts {main : Bool} {i : ℕ} (hc : checkWin G f cf C main i = true) :
-    C.contOk i = true ∧ C.insOk (nth C.ins i []) = true := by
+    C.contOk i = true ∧ C.insOk (listElementOrDefault C.ins i []) = true := by
   unfold checkWin at hc
   rcases hR : execWin C.facts f (C.cutAt i).J (C.cutAt i).env (C.endAt f i) with ⟨segs, dead⟩
   rw [hR] at hc
@@ -2408,7 +2433,7 @@ theorem checkWins_run {main : Bool} (hc : ∀ i ≤ C.cuts.length, checkWin G f 
     (hknown : ∀ i ≤ C.cuts.length, 0 < i → Core.Stmt.HoldsList (RL Prog L cert A) L.read
       (valG L fp C) (cf.body.take (C.cutAt i).start) True (fun _ ↦ True) →
         MemKnown L fp (C.cutAt i).known ∧ SemHolds G L fp (C.cutAt i).sems)
-    (hsafe : SafeReached guestProgram L k ⟨gpow f.entry, fp⟩) :
+    (hsafe : SafeReached guestProgram L k ⟨addressOfIndex f.entryPc, fp⟩) :
     BodyHoldsAt Prog L cert A cf.name fp (frameWords L fp 2 cf.params.length)
         (frameWords L fp (2 + cf.params.length) C.nret) ∧ BndHolds L fp C.post ∧
       (main = false → ∃ k' < k, ∃ r, retRegs L fp = some r ∧ SafeReached guestProgram L k' r) ∧
@@ -2470,13 +2495,13 @@ theorem checkWins_run {main : Bool} (hc : ∀ i ≤ C.cuts.length, checkWin G f 
     cases main with
     | true =>
       have h1 : fp = 1 := hfp (checkWin_fpOne (hc 0 (Nat.zero_le _))).symm
-      exact ⟨0, Nat.two_pow_pos _, by rw [h1]; simp [gpow]⟩
+      exact ⟨0, Nat.two_pow_pos _, by rw [h1]; simp [addressOfIndex]⟩
     | false =>
       obtain ⟨-, -, r, hr, -⟩ := hback rfl
       unfold retRegs at hr
       obtain ⟨d, hd, -⟩ := Option.bind_eq_some_iff.mp hr
       obtain ⟨i, hi, -⟩ := (Core.read_some_iff (by omega) L _ d).mp hd
-      exact ⟨i, i.isLt, by simpa [gpow] using hi⟩
+      exact ⟨i, i.isLt, by simpa [addressOfIndex] using hi⟩
   have hval : frameVal L cert cf.name fp = valG L fp C := by rw [frameVal, hcert]
   exact ⟨⟨cf, hfind, hval ▸ hpar, hval ▸ hbody⟩, hpost, fun hm ↦ hback hm, hA, hpar, hbody⟩
 

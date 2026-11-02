@@ -190,25 +190,25 @@ def width : Fin 9 → ℕ
 
 /-- The log-heights: the memory's, the program's, `QKECCAK`'s `τ_KECCAK + 6`, then the opcode
 tables'. -/
-def height (prog : Program) (s : Sizes) : Fin 9 → ℕ
+def height (prog : LeanIsaProgram) (s : Sizes) : Fin 9 → ℕ
   | ⟨0, _⟩ => s.logMem
   | ⟨1, _⟩ => prog.logSize
   | ⟨2, _⟩ => s.τ 5 + 6
   | ⟨j + 3, h⟩ => s.τ ⟨j, by omega⟩
 
 /-- The tables of the instance. -/
-def shape (prog : Program) (s : Sizes) : Shape := ⟨9, height prog s, width⟩
+def shape (prog : LeanIsaProgram) (s : Sizes) : Shape := ⟨9, height prog s, width⟩
 
 /-- The row counts: every row of the memory, bytecode and `QKECCAK` column groups, then the
 announced ones. -/
-def rows (prog : Program) (s : Sizes) : Fin 9 → ℕ
+def rows (prog : LeanIsaProgram) (s : Sizes) : Fin 9 → ℕ
   | ⟨0, _⟩ => 2 ^ s.logMem
   | ⟨1, _⟩ => 2 ^ prog.logSize
   | ⟨2, _⟩ => 2 ^ (s.τ 5 + 6)
   | ⟨j + 3, h⟩ => s.rows ⟨j, by omega⟩
 
 /-- Every table's rows fit in its height. -/
-theorem rows_le (prog : Program) (s : Sizes) : ∀ j, rows prog s j ≤ 2 ^ height prog s j
+theorem rows_le (prog : LeanIsaProgram) (s : Sizes) : ∀ j, rows prog s j ≤ 2 ^ height prog s j
   | ⟨0, _⟩ => le_rfl
   | ⟨1, _⟩ => le_rfl
   | ⟨2, _⟩ => le_rfl
@@ -341,7 +341,7 @@ theorem mem_committedColumns {c : Col} (h : ¬ IsVirtual c) : c ∈ committedCol
 
 /-! ## The stack -/
 
-variable (prog : Program) (s : Sizes)
+variable (prog : LeanIsaProgram) (s : Sizes)
 
 /-- The log-height of a column: its table's. -/
 abbrev kappa (c : Col) : ℕ := height prog s c.1
@@ -485,7 +485,7 @@ def coords {S : Shape} {κ : ℕ} (cs : List (Coord S κ)) : Vector (Coord S κ)
 /-- Column `k` of the program's entries, `bytecode_columns` (`layout.rs:291`): the entry's
 coordinate `k` at every slot, coordinate `3 + k` of the bytecode tuple. -/
 def entryColumn (k : Fin 11) : Column prog.logSize :=
-  ⟨Vector.ofFn fun i ↦ (entry (prog.code i))[k]⟩
+  ⟨Vector.ofFn fun i ↦ (busEntry (prog.instructions i))[k]⟩
 
 /-- The six boundary blocks (`layout.rs:415-461`): the state boundary, the memory seed and
 finalize, the bytecode seed and finalize. -/
@@ -632,7 +632,7 @@ end LeanIsa
 open LeanIsa
 
 /-- The leanISA instance of the public program `prog` at the announced sizes `s`. -/
-abbrev leanIsaInstance (prog : Program) (s : Sizes) : M3Instance where
+abbrev leanIsaInstance (prog : LeanIsaProgram) (s : Sizes) : M3Instance where
   toShape := shape prog s
   Stmt := PublicInput
   constraints := constraints
@@ -660,11 +660,11 @@ namespace LeanIsa
 `python-verifier/verifier.py:891`, and `:1392`): the memory window, the row cap, and the stacked
 size's cap. The bytecode cap is `Program`'s by type, and the stacked size's floor holds by construction
 (`leanIsaμ`). -/
-def Sizes.Admissible (prog : Program) (s : Sizes) : Prop :=
+def Sizes.Admissible (prog : LeanIsaProgram) (s : Sizes) : Prop :=
   minLogMem ≤ s.logMem ∧ s.logMem ≤ maxLogMem ∧ (∀ j, s.rows j ≤ 2 ^ maxLogRows) ∧
     leanIsaμ prog s ≤ maxMu
 
-instance (prog : Program) (s : Sizes) : Decidable (s.Admissible prog) :=
+instance (prog : LeanIsaProgram) (s : Sizes) : Decidable (s.Admissible prog) :=
   inferInstanceAs (Decidable (_ ∧ _))
 
 /-- The WHIR rate check (`pcs/src/whir_config.rs:43-55`): the inverse rate's logarithm is in
@@ -675,7 +675,7 @@ instance (ρ : ℕ) : Decidable (validRate ρ) := inferInstanceAs (Decidable (_ 
 
 /-- The sizes a witness carries: the memory log-size of its image and the row counts of its six
 opcode tables; none when the image has a single word. -/
-def Sizes.ofWitness {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog)) :
+def Sizes.ofWitness {prog : LeanIsaProgram} (w : EnsembleWitness (leanIsaEnsemble prog)) :
     Option Sizes :=
   if h : 0 < (imageOf w.data).1 then
     some ⟨_, h, fun j ↦ (tableAt w ⟨j, by omega⟩).table.length⟩
@@ -685,7 +685,7 @@ def Sizes.ofWitness {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog)
 
 section WitnessOf
 
-variable (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 
 /-- Cell `x` of column `c`, read off the stack. -/
 abbrev cell (c : Col) (x : Fin (2 ^ kappa prog s c)) : K :=
@@ -699,7 +699,7 @@ def opcodeRows (j : Fin 6) : List (Array K) :=
 
 /-- The memory block's rows: the index `g^x`, the finalize count `MFCNT`, the three limbs. -/
 def memBlockRowsOf : List (Array K) :=
-  List.ofFn fun x : Fin (2 ^ s.logMem) ↦ (toElements (⟨gpow x, cell prog s q (memCol 3) x,
+  List.ofFn fun x : Fin (2 ^ s.logMem) ↦ (toElements (⟨addressOfIndex x, cell prog s q (memCol 3) x,
     #v[cell prog s q (memCol 0) x, cell prog s q (memCol 1) x,
       cell prog s q (memCol 2) x]⟩ : MemRow K)).toArray
 
@@ -773,7 +773,7 @@ end WitnessOf
 
 section StackOf
 
-variable (prog : Program) (s : Sizes)
+variable (prog : LeanIsaProgram) (s : Sizes)
 
 /-- Cell `i` of row `x` of a table, `0` when missing. -/
 def cellOf (t : Air.Flat.Table K) (x i : ℕ) : K := ((t.table[x]?).bind (·[i]?)).getD 0
@@ -855,7 +855,7 @@ theorem constrained_pushes : ∀ j : Fin 9, 0 < (LeanIsa.constraints j).length �
     0 < ((LeanIsa.flushes j).filter fun f ↦ decide (f.1 = Side.push)).length := by
   decide +kernel
 
-variable (prog : Program) (s : Sizes)
+variable (prog : LeanIsaProgram) (s : Sizes)
 
 /-- A side's leaf count, from its blocks' log-heights. -/
 private theorem leafCount_eq (I : M3Instance) (k : Fin 3) :

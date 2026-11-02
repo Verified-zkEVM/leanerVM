@@ -28,18 +28,20 @@ variable (parameter : PublicParameter) (results : Index → Option (Counter × E
 
 /-- A root-tree chain input. -/
 def chainInput (leaf : Index) (chain : ChainIndex) (step : ChainStep) (payload : Digest) : HashInput :=
-  tweakableHashInput parameter (.chain topLayer rootTree leaf chain step) (bytesLE 16 payload)
+  tweakableHashInput parameter (.chain topLayer rootTree leaf chain step) (littleEndianBytes 16
+      payload)
 
 /-- A forest chain step input. -/
 def fchainInput (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) (t : FStep)
     (payload : Digest) : HashInput :=
-  tweakableHashInput parameter (.fchain index c s j a i t) (bytesLE 16 payload)
+  tweakableHashInput parameter (.fchain index c s j a i t) (littleEndianBytes 16 payload)
 
 /-- Inputs whose single hit is not a forgery event by itself: a chain step other than a root-tree
 step at or above the prepared word of a landed leaf, and a forest chain step. -/
 def SecondOrderInput (input : HashInput) : Prop :=
   (∃ (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (chain : ChainIndex) (step : ChainStep) (payload : Digest),
-    input = tweakableHashInput parameter (.chain lay tree leaf chain step) (bytesLE 16 payload) ∧
+    input = tweakableHashInput parameter (.chain lay tree leaf chain step) (littleEndianBytes 16
+        payload) ∧
     ¬(lay = topLayer ∧ tree = rootTree ∧ Landed parameter leaf ∧ (preparedWord results leaf chain).val ≤ step.val)) ∨
   ∃ index c s j a i t payload, input = fchainInput parameter index c s j a i t payload
 
@@ -48,7 +50,7 @@ noncomputable def targetsA (tab : TargetAssignment.Table) (input : HashInput) : 
   if SecondOrderInput parameter results input then ∅ else TargetAssignment.targets parameter tab input
 
 /-- The table value at a chain position. -/
-def chainValue (leaf : Index) (chain : ChainIndex) (position : Digit) : Digest :=
+def chainValue (leaf : Index) (chain : ChainIndex) (position : WinternitzDigit) : Digest :=
   table (.chain topLayer rootTree leaf chain position)
 
 /-- The table value at the prepared word: the frontier. -/

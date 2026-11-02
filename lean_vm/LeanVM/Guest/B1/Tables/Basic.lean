@@ -98,17 +98,19 @@ theorem tb_limb0_mul_ofK {p : E} (hp : IsInK p) (c : K) : (p * ofK c).limb 0 = p
 /-- A load through `p·g^j` at offset `k` is the load at offset `j + k`. -/
 theorem tb_loadHolds_mul_gen_pow (rd : Reader) (p : E) (j k : ℕ) (w : E) :
     LoadHolds rd (p * gen ^ j) k w ↔ LoadHolds rd p (j + k) w := by
-  have hg : Parameters.gpow j ≠ 0 := pow_ne_zero _ g_ne_zero
+  have hg : Parameters.addressOfIndex j ≠ 0 := pow_ne_zero _ g_ne_zero
   rw [gen_pow_eq_ofK]
   unfold LoadHolds
   rw [tb_isInK_mul_ofK hg]
   constructor
   · rintro ⟨hp, h⟩
-    rw [tb_limb0_mul_ofK hp, mul_assoc, Parameters.gpow, Parameters.gpow, ← pow_add] at h
+    rw [tb_limb0_mul_ofK hp, mul_assoc, Parameters.addressOfIndex, Parameters.addressOfIndex, ←
+        pow_add] at h
     exact ⟨hp, h⟩
   · rintro ⟨hp, h⟩
     refine ⟨hp, ?_⟩
-    rw [tb_limb0_mul_ofK hp, mul_assoc, Parameters.gpow, Parameters.gpow, ← pow_add]
+    rw [tb_limb0_mul_ofK hp, mul_assoc, Parameters.addressOfIndex, Parameters.addressOfIndex, ←
+        pow_add]
     exact h
 
 /-- One address holds one word. -/
@@ -340,7 +342,7 @@ theorem tb_holds_dispatch {pre : List Stmt} (hnr : Stmt.noRetList pre = true)
     (h : Stmt.HoldsList C rd σ pre True kret) (n : ℕ) (x : V) (fs : List String)
     (args rets : List V)
     (heq : tbStmtsEqb [.dispatch x fs args rets] ((pre.drop n).take 1) = true) :
-    ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (Parameters.gpow j) ∧
+    ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (Parameters.addressOfIndex j) ∧
       C fs[j] (args.map σ) (rets.map σ) := by
   have := tb_holds_slice hnr h n [.dispatch x fs args rets] heq
   simp only [Stmt.HoldsList, Stmt.Holds, and_true] at this

@@ -37,14 +37,14 @@ theorem vbg_loop7_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     {r : E × List E × List E} {cap' : List E}
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
     (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP ePa eD : ℕ} {rd : Reader}
-    {R : ℕ → Prop} (hm : MemLay rd (vbgLay depth cap0 xs (ofK (gpow ec)) eL eR eP ePa eD))
+    {R : ℕ → Prop} (hm : MemLay rd (vbgLay depth cap0 xs (ofK (addressOfIndex ec)) eL eR eP ePa eD))
     (hRx : ∀ i < xs.length, R (ec + i)) (hRL : ∀ i < 17 * (depth + 2), R (eL + i))
     (hRR : ∀ i < 6034, R (eR + i)) (hRr : ∀ i < 1640, R (eP + i)) (hRD : ∀ i < 33, R (eD + i))
     (hm0 : 0 < depth / 2)
-    (h : coreProgram.Rel rd "__loop6" [1, gen ^ (depth / 2), ofK (gpow eD), gen ^ depth,
-      ofK (gpow eL), ofK (gpow eR)] []) :
-    coreProgram.RelIn rd R "__loop6" [1, gen ^ (depth / 2), ofK (gpow eD), gen ^ depth,
-      ofK (gpow eL), ofK (gpow eR)] [] := by
+    (h : coreProgram.Rel rd "__loop6" [1, gen ^ (depth / 2), ofK (addressOfIndex eD), gen ^ depth,
+      ofK (addressOfIndex eL), ofK (addressOfIndex eR)] []) :
+    coreProgram.RelIn rd R "__loop6" [1, gen ^ (depth / 2), ofK (addressOfIndex eD), gen ^ depth,
+      ofK (addressOfIndex eL), ofK (addressOfIndex eR)] [] := by
   obtain ⟨-, -, -, hsteps, -, -, -, -⟩ := gk_walk hrun hc
   obtain ⟨sp, hsp⟩ := hc
   have hsc : capOf sp.state = cap0 := hsp.1
@@ -59,9 +59,9 @@ theorem vbg_loop7_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
   have inv := gkSl_inv (xs := xs) (sh := sh) hcl hcan
   have hpl : ∀ j ≤ m, (gkSl cap0 xs sh j).2.1.point.length = 2 * j + sh :=
     gkSl_point_len (gkSl0_point_len cap0 xs sh hsh2) fun j hj => (hsteps j hj).1
-  have SL : ∀ j ≤ m, GkSlotC rd (ofK (gpow eL)) (2 * j + sh) (gkSl cap0 xs sh j).1
-      (ofK (gpow ec) * gen ^ (gkSl cap0 xs sh j).2.2) (gkSl cap0 xs sh j).2.1
-      (ofK (gpow eP) * gen ^ (40 * (j + sh))) (gen ^ gkPos sh j) (gen ^ (j / 2))
+  have SL : ∀ j ≤ m, GkSlotC rd (ofK (addressOfIndex eL)) (2 * j + sh) (gkSl cap0 xs sh j).1
+      (ofK (addressOfIndex ec) * gen ^ (gkSl cap0 xs sh j).2.2) (gkSl cap0 xs sh j).2.1
+      (ofK (addressOfIndex eP) * gen ^ (40 * (j + sh))) (gen ^ gkPos sh j) (gen ^ (j / 2))
       (bitE (j % 2 = 1)) := fun j hj =>
     gkSlotC_of (inv j).1 (inv j).2.1 (inv j).2.2.1 (inv j).2.2.2 (hpl j hj)
       (by rw [tb_ofK_gpow_mul]
@@ -69,15 +69,15 @@ theorem vbg_loop7_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
       (hmS _ (List.mem_map.mpr ⟨j, List.mem_range.mpr (by omega), rfl⟩))
   -- `depth_shift[depth]`
   have hD := hmT _ (List.mem_cons_of_mem _ List.mem_cons_self)
-  have hsh' : LoadHolds rd (ofK (gpow eD) * gen ^ depth) 0 (gen ^ sh) := by
+  have hsh' : LoadHolds rd (ofK (addressOfIndex eD) * gen ^ depth) 0 (gen ^ sh) := by
     rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]
     have := hD depth (by simp; omega)
     simpa [hsh] using this
-  have hshR : PtrIn R (ofK (gpow eD) * gen ^ depth) 1 := by
+  have hshR : PtrIn R (ofK (addressOfIndex eD) * gen ^ depth) 1 := by
     rw [tb_ofK_gpow_mul]
     exact ptrIn_ofK fun i hi ↦ by rw [Nat.add_assoc]; exact hRD _ (by omega)
   -- the iterations
-  have hit : ∀ j < m, Ly7In rd R (ofK (gpow eL)) (ofK (gpow eR)) sh j := by
+  have hit : ∀ j < m, Ly7In rd R (ofK (addressOfIndex eL)) (ofK (addressOfIndex eR)) sh j := by
     intro j hj
     obtain ⟨hok, hdr⟩ := hsteps j hj
     obtain ⟨-, -, -, -, -, -, -, -, hrow, -, -, hpos, hhalf, hpar⟩ := SL j (by omega)
@@ -94,8 +94,9 @@ theorem vbg_loop7_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     have hp := gkPos_closed sh j
     have hjj : j * j ≤ 15 * 15 := Nat.mul_le_mul (by omega) (by omega)
     have hjs : j * sh ≤ 15 * 1 := Nat.mul_le_mul (by omega) (by omega)
-    refine ⟨ofK (gpow eP) * gen ^ (40 * (j + sh)), gen ^ gkPos sh j,
-      ofK (gpow ec) * gen ^ (gkSl cap0 xs sh j).2.2, ?_, hrow, hpos, hhalf, hpar, ?_, ?_, ?_,
+    refine ⟨ofK (addressOfIndex eP) * gen ^ (40 * (j + sh)), gen ^ gkPos sh j,
+      ofK (addressOfIndex ec) * gen ^ (gkSl cap0 xs sh j).2.2, ?_, hrow, hpos, hhalf, hpar, ?_,
+          ?_, ?_,
       fun r hr ↦ ?_⟩
     · rw [tb_ofK_gpow_mul]
       exact ptrIn_ofK fun i hi ↦ by rw [Nat.add_assoc]; exact hRL _ (by omega)

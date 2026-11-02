@@ -107,7 +107,7 @@ theorem compile_tweakableHash (seed : MasterSeed) (material : Material)
   rfl
 
 theorem compile_messageDigestCall (seed : MasterSeed) (material : Material)
-    (p : PublicParameter) (message : Message) (randomness : Randomness) :
+    (p : PublicParameter) (message : Message) (randomness : Randomizer) :
     simulateQ (compileHash seed material)
       (messageDigestCall p message randomness : OracleComp HashSpec HashOutput) =
         liftM (messageDigestCall p message randomness : OracleComp HashSpec HashOutput) := by
@@ -394,7 +394,7 @@ theorem compiled_signLayer_eq (left right : MasterSeed) (material : Material)
 
 omit [Params] in
 theorem compile_messageDigest (seed : MasterSeed) (material : Material)
-    (p : PublicParameter) (message : Message) (randomness : Randomness) :
+    (p : PublicParameter) (message : Message) (randomness : Randomizer) :
     simulateQ (compileHash seed material)
       (messageDigest p message randomness : OracleComp HashSpec MessageDigest) =
       liftM (messageDigest p message randomness : OracleComp HashSpec MessageDigest) := by
@@ -402,7 +402,7 @@ theorem compile_messageDigest (seed : MasterSeed) (material : Material)
     simulateQ_pure, liftM_bind, liftM_pure]
 
 theorem compiled_finishSign_eq (left right : MasterSeed) (material : Material)
-    (message : Message) (randomness : Randomness) :
+    (message : Message) (randomness : Randomizer) :
     simulateQ (compileHash left material)
       (Randomized.finishSign ⟨left, parameter material⟩ message randomness) =
     simulateQ (compileHash right material)
@@ -419,7 +419,7 @@ theorem compiled_finishSign_eq (left right : MasterSeed) (material : Material)
   cases layer <;> simp only [simulateQ_pure, pure_bind]
 
 theorem compile_signAttempt (seed : MasterSeed) (material : Material)
-    (p : PublicParameter) (message : Message) (randomness : Randomness) :
+    (p : PublicParameter) (message : Message) (randomness : Randomizer) :
     simulateQ (compileHash seed material)
       (Seeded.signAttempt ⟨seed, p⟩ message randomness : OracleComp HashSpec (Option Index)) =
       liftM (Seeded.signAttempt ⟨0, p⟩ message randomness : OracleComp HashSpec (Option Index)) := by
@@ -431,7 +431,7 @@ theorem compile_signAttempt (seed : MasterSeed) (material : Material)
 /-- The scan from a start makes only digest calls, which do not depend on the seed. -/
 theorem compiled_scanLoop_eq (left right : MasterSeed) (material : Material)
     (message : Message) :
-    ∀ (attempts : Nat) (randomness : Randomness),
+    ∀ (attempts : Nat) (randomness : Randomizer),
       simulateQ (compileHash left material)
         (Randomized.scanLoop ⟨left, parameter material⟩ message attempts randomness) =
       simulateQ (compileHash right material)

@@ -259,7 +259,7 @@ theorem jumpTables_honestC {hdr : E × E} {T : Memory.Tree} {rd : Reader}
   obtain ⟨σ, bufs, kids, hT⟩ := hnode
   have hC := tableC_node (I := I) (by rw [hIt, hT]) hq
   have := hH.read_C hI hC
-  rwa [hfp, gpow, pow_zero, one_mul] at this
+  rwa [hfp, addressOfIndex, pow_zero, one_mul] at this
 
 end
 end LeanVM.Guest.B2C

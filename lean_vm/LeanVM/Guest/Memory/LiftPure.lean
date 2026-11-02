@@ -232,7 +232,7 @@ theorem relIn_of_leaf' {lok : Atom → Bool} {g : String} {fn : Fn} {rd : Reader
     {args rets : List E} (hf : coreProgram.find? g = some fn)
     (hleaf : Stmt.leafOkList lok fn.body = true)
     (hload : ∀ σ es vs, fn.params.map σ = args → walk σ fn.body = .ret es vs →
-      (∀ e ∈ es, e.Holds rd σ) → ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧ R i)
+      (∀ e ∈ es, e.Holds rd σ) → ∀ A ∈ loadAddrs σ es, ∃ i, A = addressOfIndex i ∧ R i)
     (h : coreProgram.Rel rd g args rets) : coreProgram.RelIn rd R g args rets := by
   obtain ⟨t, hn, hv, hb⟩ := Program.Rel.tree coreProgram_wf h
   refine ⟨t, hn, hv, hb, ?_⟩
@@ -258,7 +258,7 @@ theorem relIn_of_leaf {lok : Atom → Bool} {g : String} {fn : Fn} {rd : Reader}
     {args rets : List E} (hf : coreProgram.find? g = some fn)
     (hleaf : Stmt.leafOkList lok fn.body = true)
     (hload : ∀ σ es vs, fn.params.map σ = args → walk σ fn.body = .ret es vs →
-      ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧ R i)
+      ∀ A ∈ loadAddrs σ es, ∃ i, A = addressOfIndex i ∧ R i)
     (h : coreProgram.Rel rd g args rets) : coreProgram.RelIn rd R g args rets :=
   relIn_of_leaf' hf hleaf (fun σ es vs hp hw _ ↦ hload σ es vs hp hw) h
 

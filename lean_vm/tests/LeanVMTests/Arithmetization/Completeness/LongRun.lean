@@ -31,7 +31,7 @@ def J : ℕ := 2 ^ 30
 def img (fin : K) : MemoryImage 32 := fun n ↦
   if (n : ℕ) % 4 = 2 then (if (n : ℕ) / 4 = J - 1 then ofK fin else ofK g)
   else if (n : ℕ) % 4 = 3 then
-    (if (n : ℕ) / 4 = J - 1 then ofK 1 else ofK (gpow (4 * ((n : ℕ) / 4 + 1))))
+    (if (n : ℕ) / 4 = J - 1 then ofK 1 else ofK (addressOfIndex (4 * ((n : ℕ) / 4 + 1))))
   else ofK g
 
 /-- The memory of `2^32` cells holds `4 J` cells, `J` frames of four. -/
@@ -39,7 +39,7 @@ theorem two_pow_32 : (2 : ℕ) ^ 32 = 4 * J := by norm_num [J]
 
 /-- Reading the address of a cell of the image gives the cell. -/
 theorem read_img (fin : K) (n : ℕ) (hn : n < 2 ^ 32) :
-    (img fin).read (gpow n) = some (img fin ⟨n, hn⟩) :=
+    (img fin).read (addressOfIndex n) = some (img fin ⟨n, hn⟩) :=
   MemoryImage.read_gpow (by decide) (img fin) ⟨n, hn⟩
 
 /-- Cell `4 j` of the image holds `g`: the operand of the `SET_CONSTANT`. -/
@@ -72,7 +72,7 @@ theorem img_cell2_last (fin : K) :
 
 /-- Cell `4 j + 3` holds the next frame pointer `g^(4 (j + 1))`, except in the last frame. -/
 theorem img_cell3 (fin : K) (j : ℕ) (hj : j < J) (hne : j ≠ J - 1) :
-    img fin ⟨4 * j + 3, by have := two_pow_32; omega⟩ = ofK (gpow (4 * (j + 1))) := by
+    img fin ⟨4 * j + 3, by have := two_pow_32; omega⟩ = ofK (addressOfIndex (4 * (j + 1))) := by
   unfold img
   have h1 : (4 * j + 3) % 4 ≠ 2 := by omega
   have h2 : (4 * j + 3) % 4 = 3 := by omega
@@ -90,95 +90,114 @@ theorem img_cell3_last (fin : K) :
 
 /-- Slots `0 … 32` are `SET_CONSTANT [g^0] g`, slot `33` is `JUMP [g^1, g^2, g^3]`, and the
 sentinel slot lies beyond them. -/
-structure Shape (prog : Program) : Prop where
+structure Shape (prog : LeanIsaProgram) : Prop where
   /-- The first thirty-three slots set the cell at the frame pointer to `g`. -/
-  sets : ∀ s, s ≤ 32 → prog.fetch (gpow s) = some (.setConstant (gpow 0) (ofK g))
+  sets : ∀ s, s ≤ 32 → prog.fetch (addressOfIndex s) = some (.setConstant (addressOfIndex 0)
+      (ofK g))
   /-- Slot `33` jumps to slot `1` in the frame its third cell names. -/
-  jump : prog.fetch (gpow 33) = some (.jump (gpow 1) (gpow 2) (gpow 3))
+  jump : prog.fetch (addressOfIndex 33) = some (.jump (addressOfIndex 1) (addressOfIndex 2)
+      (addressOfIndex 3))
   /-- The program has at least `2^6` slots, so the sentinel is past slot `33`. -/
   big : 6 ≤ prog.logSize
 
 /-- The sentinel counter is none of the slots `0 … 33`. -/
-theorem Shape.pcFinal_ne {prog : Program} (h : Shape prog) {s : ℕ} (hs : s ≤ 33) :
-    prog.pcFinal ≠ gpow s := fun heq ↦
+theorem Shape.pcFinal_ne {prog : LeanIsaProgram} (h : Shape prog) {s : ℕ} (hs : s ≤ 33) :
+    prog.pcFinal ≠ addressOfIndex s := fun heq ↦
   gpow_ne_pcFinal prog (n := s) (by
     have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) h.big
     omega) heq.symm
 
 /-! ## Steps -/
 
-theorem set_step (prog : Program) (fin : K) {s j : ℕ}
-    (hs : prog.fetch (gpow s) = some (.setConstant (gpow 0) (ofK g))) (hj : j < J) :
-    step prog (img fin) ⟨gpow s, gpow (4 * j)⟩ = some ⟨gpow (s + 1), gpow (4 * j)⟩ := by
+theorem set_step (prog : LeanIsaProgram) (fin : K) {s j : ℕ}
+    (hs : prog.fetch (addressOfIndex s) = some (.setConstant (addressOfIndex 0) (ofK g))) (hj :
+        j < J) :
+    step prog (img fin) ⟨addressOfIndex s, addressOfIndex (4 * j)⟩ = some ⟨addressOfIndex (s + 1),
+        addressOfIndex (4 * j)⟩ := by
   have hlt : 4 * j < 2 ^ 32 := by have := two_pow_32; omega
-  have hr : (img fin).read (gpow (4 * j)) = some (ofK g) := by
+  have hr : (img fin).read (addressOfIndex (4 * j)) = some (ofK g) := by
     rw [read_img fin (4 * j) hlt, img_cell0 fin j hj]
-  have hmul : gpow (4 * j) * gpow 0 = gpow (4 * j) := by
+  have hmul : addressOfIndex (4 * j) * addressOfIndex 0 = addressOfIndex (4 * j) := by
     show g ^ (4 * j) * g ^ 0 = g ^ (4 * j)
     rw [pow_zero, mul_one]
-  rw [step_of_fetch_eq_some (r := ⟨gpow s, gpow (4 * j)⟩) hs]
-  have hex := executeWith_set_of_read (read := (img fin).read) (r := ⟨gpow s, gpow (4 * j)⟩) (o := gpow 0)
-    (k := ofK g) (by show (img fin).read (gpow (4 * j) * gpow 0) = _; rw [hmul]; exact hr)
-  show executeWith (img fin).read ⟨gpow s, gpow (4 * j)⟩ (.setConstant (gpow 0) (ofK g)) = _
+  rw [step_of_fetch_eq_some (r := ⟨addressOfIndex s, addressOfIndex (4 * j)⟩) hs]
+  have hex := executeWith_set_of_read (read := (img fin).read) (r := ⟨addressOfIndex s, addressOfIndex (4 * j)⟩) (o := addressOfIndex 0)
+    (k := ofK g) (by show (img fin).read (addressOfIndex (4 * j) * addressOfIndex 0) = _; rw [hmul]; exact hr)
+  show executeWith (img fin).read ⟨addressOfIndex s, addressOfIndex (4 * j)⟩ (.setConstant
+      (addressOfIndex 0) (ofK g)) = _
   rw [hex, gpow_succ]
   rfl
 
 /-- The `JUMP` in frame `4 j` goes to slot `1` in frame `4 (j + 1)`. -/
-theorem jump_loop (prog : Program) (fin : K) {j : ℕ} (hj : j < J) (hne : j ≠ J - 1)
-    (h33 : prog.fetch (gpow 33) = some (.jump (gpow 1) (gpow 2) (gpow 3))) :
-    step prog (img fin) ⟨gpow 33, gpow (4 * j)⟩ = some ⟨gpow 1, gpow (4 * (j + 1))⟩ := by
+theorem jump_loop (prog : LeanIsaProgram) (fin : K) {j : ℕ} (hj : j < J) (hne : j ≠ J - 1)
+    (h33 : prog.fetch (addressOfIndex 33) = some (.jump (addressOfIndex 1) (addressOfIndex 2)
+        (addressOfIndex 3))) :
+    step prog (img fin) ⟨addressOfIndex 33, addressOfIndex (4 * j)⟩ = some ⟨addressOfIndex 1,
+        addressOfIndex (4 * (j + 1))⟩ := by
   have hlt : ∀ o, o ≤ 3 → 4 * j + o < 2 ^ 32 := by intro o ho; have := two_pow_32; omega
-  have m1 : gpow (4 * j) * gpow 1 = gpow (4 * j + 1) := (pow_add g (4 * j) 1).symm
-  have m2 : gpow (4 * j) * gpow 2 = gpow (4 * j + 2) := (pow_add g (4 * j) 2).symm
-  have m3 : gpow (4 * j) * gpow 3 = gpow (4 * j + 3) := (pow_add g (4 * j) 3).symm
-  have hc : (img fin).read (gpow (4 * j) * gpow 1) = some (ofK g) := by
+  have m1 : addressOfIndex (4 * j) * addressOfIndex 1 = addressOfIndex (4 * j + 1) := (pow_add g (4
+      * j) 1).symm
+  have m2 : addressOfIndex (4 * j) * addressOfIndex 2 = addressOfIndex (4 * j + 2) := (pow_add g (4
+      * j) 2).symm
+  have m3 : addressOfIndex (4 * j) * addressOfIndex 3 = addressOfIndex (4 * j + 3) := (pow_add g (4
+      * j) 3).symm
+  have hc : (img fin).read (addressOfIndex (4 * j) * addressOfIndex 1) = some (ofK g) := by
     rw [m1, read_img fin _ (hlt 1 (by norm_num)), img_cell1 fin j hj]
-  have hd : (img fin).read (gpow (4 * j) * gpow 2) = some (ofK g) := by
+  have hd : (img fin).read (addressOfIndex (4 * j) * addressOfIndex 2) = some (ofK g) := by
     rw [m2, read_img fin _ (hlt 2 (by norm_num)), img_cell2 fin j hj hne]
-  have hf : (img fin).read (gpow (4 * j) * gpow 3) = some (ofK (gpow (4 * (j + 1)))) := by
+  have hf : (img fin).read (addressOfIndex (4 * j) * addressOfIndex 3) = some (ofK (addressOfIndex
+      (4 * (j + 1)))) := by
     rw [m3, read_img fin _ (hlt 3 (by norm_num)), img_cell3 fin j hj hne]
-  have hex := executeWith_jump_taken (read := (img fin).read) (r := ⟨gpow 33, gpow (4 * j)⟩)
-    (oc := gpow 1) (od := gpow 2) (of := gpow 3) (c := g) (d := g) (f := gpow (4 * (j + 1)))
+  have hex := executeWith_jump_taken (read := (img fin).read) (r := ⟨addressOfIndex 33,
+      addressOfIndex (4 * j)⟩)
+    (oc := addressOfIndex 1) (od := addressOfIndex 2) (of := addressOfIndex 3) (c := g) (d := g) (f
+        := addressOfIndex (4 * (j + 1)))
     hc hd hf g_ne_zero
-  rw [step_of_fetch_eq_some (r := ⟨gpow 33, gpow (4 * j)⟩) h33]
-  show executeWith (img fin).read ⟨gpow 33, gpow (4 * j)⟩ (.jump (gpow 1) (gpow 2) (gpow 3)) = _
-  rw [hex, show gpow 1 = g from pow_one g]
+  rw [step_of_fetch_eq_some (r := ⟨addressOfIndex 33, addressOfIndex (4 * j)⟩) h33]
+  show executeWith (img fin).read ⟨addressOfIndex 33, addressOfIndex (4 * j)⟩ (.jump (addressOfIndex
+      1) (addressOfIndex 2) (addressOfIndex 3)) = _
+  rw [hex, show addressOfIndex 1 = g from pow_one g]
 
 /-- The `JUMP` in the last frame goes to the sentinel with frame pointer `1`. -/
-theorem jump_last (prog : Program) (fin : K)
-    (h33 : prog.fetch (gpow 33) = some (.jump (gpow 1) (gpow 2) (gpow 3))) :
-    step prog (img fin) ⟨gpow 33, gpow (4 * (J - 1))⟩ = some ⟨fin, 1⟩ := by
+theorem jump_last (prog : LeanIsaProgram) (fin : K)
+    (h33 : prog.fetch (addressOfIndex 33) = some (.jump (addressOfIndex 1) (addressOfIndex 2)
+        (addressOfIndex 3))) :
+    step prog (img fin) ⟨addressOfIndex 33, addressOfIndex (4 * (J - 1))⟩ = some ⟨fin, 1⟩ := by
   have hlt : ∀ o, o ≤ 3 → 4 * (J - 1) + o < 2 ^ 32 := by
     intro o ho; have := two_pow_32; unfold J at *; omega
-  have m1 : gpow (4 * (J - 1)) * gpow 1 = gpow (4 * (J - 1) + 1) :=
+  have m1 : addressOfIndex (4 * (J - 1)) * addressOfIndex 1 = addressOfIndex (4 * (J - 1) + 1) :=
     (pow_add g (4 * (J - 1)) 1).symm
-  have m2 : gpow (4 * (J - 1)) * gpow 2 = gpow (4 * (J - 1) + 2) :=
+  have m2 : addressOfIndex (4 * (J - 1)) * addressOfIndex 2 = addressOfIndex (4 * (J - 1) + 2) :=
     (pow_add g (4 * (J - 1)) 2).symm
-  have m3 : gpow (4 * (J - 1)) * gpow 3 = gpow (4 * (J - 1) + 3) :=
+  have m3 : addressOfIndex (4 * (J - 1)) * addressOfIndex 3 = addressOfIndex (4 * (J - 1) + 3) :=
     (pow_add g (4 * (J - 1)) 3).symm
   have hJ : J - 1 < J := by unfold J; omega
-  have hc : (img fin).read (gpow (4 * (J - 1)) * gpow 1) = some (ofK g) := by
+  have hc : (img fin).read (addressOfIndex (4 * (J - 1)) * addressOfIndex 1) = some (ofK g) := by
     rw [m1, read_img fin _ (hlt 1 (by norm_num)), img_cell1 fin (J - 1) hJ]
-  have hd : (img fin).read (gpow (4 * (J - 1)) * gpow 2) = some (ofK fin) := by
+  have hd : (img fin).read (addressOfIndex (4 * (J - 1)) * addressOfIndex 2) = some (ofK fin) := by
     rw [m2, read_img fin _ (hlt 2 (by norm_num)), img_cell2_last fin]
-  have hf : (img fin).read (gpow (4 * (J - 1)) * gpow 3) = some (ofK (1 : K)) := by
+  have hf : (img fin).read (addressOfIndex (4 * (J - 1)) * addressOfIndex 3) = some (ofK (1 :
+      K)) := by
     rw [m3, read_img fin _ (hlt 3 (by norm_num)), img_cell3_last fin]
-  have hex := executeWith_jump_taken (read := (img fin).read) (r := ⟨gpow 33, gpow (4 * (J - 1))⟩)
-    (oc := gpow 1) (od := gpow 2) (of := gpow 3) (c := g) (d := fin) (f := 1) hc hd hf g_ne_zero
-  rw [step_of_fetch_eq_some (r := ⟨gpow 33, gpow (4 * (J - 1))⟩) h33]
+  have hex := executeWith_jump_taken (read := (img fin).read) (r := ⟨addressOfIndex 33,
+      addressOfIndex (4 * (J - 1))⟩)
+    (oc := addressOfIndex 1) (od := addressOfIndex 2) (of := addressOfIndex 3) (c := g) (d := fin)
+        (f := 1) hc hd hf g_ne_zero
+  rw [step_of_fetch_eq_some (r := ⟨addressOfIndex 33, addressOfIndex (4 * (J - 1))⟩) h33]
   exact hex
 
 /-! ## Runs -/
 
-theorem run_sets (prog : Program) (fin : K) (sh : Shape prog) {j : ℕ} (hj : j < J) :
+theorem run_sets (prog : LeanIsaProgram) (fin : K) (sh : Shape prog) {j : ℕ} (hj : j < J) :
     ∀ m s, s + m ≤ 33 →
-      run prog (img fin) m ⟨gpow s, gpow (4 * j)⟩ = some ⟨gpow (s + m), gpow (4 * j)⟩ := by
+      run prog (img fin) m ⟨addressOfIndex s, addressOfIndex (4 * j)⟩ = some ⟨addressOfIndex (s +
+          m), addressOfIndex (4 * j)⟩ := by
   intro m
   induction m with
   | zero => intro s _; rfl
   | succ m ih =>
     intro s hs
-    have hpc : (⟨gpow s, gpow (4 * j)⟩ : Registers K).pc ≠ prog.pcFinal :=
+    have hpc : (⟨addressOfIndex s, addressOfIndex (4 * j)⟩ : Registers K).pc ≠ prog.pcFinal :=
       fun h ↦ sh.pcFinal_ne (by omega) h.symm
     have h1 := run_one hpc (set_step prog fin (sh.sets s (by omega)) hj)
     have h2 := ih (s + 1) (by omega)
@@ -187,33 +206,36 @@ theorem run_sets (prog : Program) (fin : K) (sh : Shape prog) {j : ℕ} (hj : j 
     exact this
 
 /-- The 32 `SET_CONSTANT`s of an iteration. -/
-theorem run_body (prog : Program) (fin : K) (sh : Shape prog) {j : ℕ} (hj : j < J) :
-    run prog (img fin) 32 ⟨gpow 1, gpow (4 * j)⟩ = some ⟨gpow 33, gpow (4 * j)⟩ :=
+theorem run_body (prog : LeanIsaProgram) (fin : K) (sh : Shape prog) {j : ℕ} (hj : j < J) :
+    run prog (img fin) 32 ⟨addressOfIndex 1, addressOfIndex (4 * j)⟩ = some ⟨addressOfIndex 33,
+        addressOfIndex (4 * j)⟩ :=
   run_sets prog fin sh hj 32 1 (by norm_num)
 
 /-- Slot `33` is not the sentinel. -/
-theorem pc33_ne (prog : Program) (sh : Shape prog) (j : ℕ) :
-    (⟨gpow 33, gpow (4 * j)⟩ : Registers K).pc ≠ prog.pcFinal :=
+theorem pc33_ne (prog : LeanIsaProgram) (sh : Shape prog) (j : ℕ) :
+    (⟨addressOfIndex 33, addressOfIndex (4 * j)⟩ : Registers K).pc ≠ prog.pcFinal :=
   fun h ↦ sh.pcFinal_ne (le_refl 33) h.symm
 
 /-- One iteration that loops. -/
-theorem run_iter (prog : Program) (fin : K) (sh : Shape prog) {j : ℕ} (hj : j < J)
+theorem run_iter (prog : LeanIsaProgram) (fin : K) (sh : Shape prog) {j : ℕ} (hj : j < J)
     (hne : j ≠ J - 1) :
-    run prog (img fin) 33 ⟨gpow 1, gpow (4 * j)⟩ = some ⟨gpow 1, gpow (4 * (j + 1))⟩ :=
+    run prog (img fin) 33 ⟨addressOfIndex 1, addressOfIndex (4 * j)⟩ = some ⟨addressOfIndex 1,
+        addressOfIndex (4 * (j + 1))⟩ :=
   run_trans (run_body prog fin sh hj)
     (run_one (pc33_ne prog sh j) (jump_loop prog fin hj hne sh.jump))
 
 /-- The last iteration, which jumps to the sentinel. -/
-theorem run_last (prog : Program) (fin : K) (sh : Shape prog) :
-    run prog (img fin) 33 ⟨gpow 1, gpow (4 * (J - 1))⟩ = some ⟨fin, 1⟩ := by
+theorem run_last (prog : LeanIsaProgram) (fin : K) (sh : Shape prog) :
+    run prog (img fin) 33 ⟨addressOfIndex 1, addressOfIndex (4 * (J - 1))⟩ = some ⟨fin, 1⟩ := by
   have hJ : J - 1 < J := by unfold J; omega
   exact run_trans (run_body prog fin sh hJ)
     (run_one (pc33_ne prog sh (J - 1)) (jump_last prog fin sh.jump))
 
 /-- `m` looping iterations from slot `1` in frame `0` end at slot `1` in frame `4 m`. -/
-theorem run_iters (prog : Program) (fin : K) (sh : Shape prog) :
+theorem run_iters (prog : LeanIsaProgram) (fin : K) (sh : Shape prog) :
     ∀ m, m ≤ J - 1 →
-      run prog (img fin) (33 * m) ⟨gpow 1, gpow (4 * 0)⟩ = some ⟨gpow 1, gpow (4 * m)⟩ := by
+      run prog (img fin) (33 * m) ⟨addressOfIndex 1, addressOfIndex (4 * 0)⟩ = some ⟨addressOfIndex
+          1, addressOfIndex (4 * m)⟩ := by
   intro m
   induction m with
   | zero => intro _; rfl
@@ -225,14 +247,14 @@ theorem run_iters (prog : Program) (fin : K) (sh : Shape prog) :
     exact this
 
 /-- The whole run: slot `0`, then `J - 1` looping iterations, then the last one. -/
-theorem run_full (prog : Program) (sh : Shape prog) :
+theorem run_full (prog : LeanIsaProgram) (sh : Shape prog) :
     run prog (img prog.pcFinal) (33 * J + 1) Registers.initial = some (Registers.final prog) := by
   have hJ : 0 < J := by unfold J; omega
-  have e : (Registers.initial : Registers K) = ⟨gpow 0, gpow (4 * 0)⟩ := by
+  have e : (Registers.initial : Registers K) = ⟨addressOfIndex 0, addressOfIndex (4 * 0)⟩ := by
     unfold Registers.initial
     rw [Nat.mul_zero]
-    simp [gpow]
-  have hpc : (⟨gpow 0, gpow (4 * 0)⟩ : Registers K).pc ≠ prog.pcFinal :=
+    simp [addressOfIndex]
+  have hpc : (⟨addressOfIndex 0, addressOfIndex (4 * 0)⟩ : Registers K).pc ≠ prog.pcFinal :=
     fun h ↦ sh.pcFinal_ne (by norm_num : 0 ≤ 33) h.symm
   have h0 := run_one hpc (set_step prog prog.pcFinal (sh.sets 0 (by norm_num)) hJ)
   have h1 := run_trans h0 (run_iters prog prog.pcFinal sh (J - 1) le_rfl)
@@ -242,15 +264,15 @@ theorem run_full (prog : Program) (sh : Shape prog) :
 
 /-- **The long valid execution.**  For every program of the shape, a valid execution with more
 than `2^35 = 8 * 2^32` steps. -/
-theorem long_run_valid (prog : Program) (sh : Shape prog) :
-    ∃ (input : PublicInput) (t : Execution prog), ValidExecution prog input t ∧ 2 ^ 35 < t.steps := by
+theorem long_run_valid (prog : LeanIsaProgram) (sh : Shape prog) :
+    ∃ (input : PublicInput) (t : Execution prog), ValidExecution prog input t ∧ 2 ^ 35 < t.stepCount := by
   have hJ : 0 < J := by unfold J; omega
   refine ⟨⟨![g, 0, g, 0]⟩, ⟨32, img prog.pcFinal, 33 * J + 1⟩, ⟨?_, run_full prog sh⟩, ?_⟩
   · refine ⟨by show minLogMem ≤ 32; decide, by show 32 ≤ maxLogMem; decide, ?_, ?_⟩
-    · show (img prog.pcFinal).read (gpow 0) = some (E.ofLimbs g 0 0)
+    · show (img prog.pcFinal).read (addressOfIndex 0) = some (E.ofLimbs g 0 0)
       have hc : img prog.pcFinal ⟨0, by norm_num⟩ = ofK g := img_cell0 prog.pcFinal 0 hJ
       rw [read_img prog.pcFinal 0 (by norm_num), hc, ofK_eq_ofLimbs]
-    · show (img prog.pcFinal).read (gpow 1) = some (E.ofLimbs g 0 0)
+    · show (img prog.pcFinal).read (addressOfIndex 1) = some (E.ofLimbs g 0 0)
       have hc : img prog.pcFinal ⟨1, by norm_num⟩ = ofK g := img_cell1 prog.pcFinal 0 hJ
       rw [read_img prog.pcFinal 1 (by norm_num), hc, ofK_eq_ofLimbs]
   · show 2 ^ 35 < 33 * J + 1
@@ -260,7 +282,7 @@ theorem long_run_valid (prog : Program) (sh : Shape prog) :
 /-! ## Distinct states -/
 
 /-- The register states of a run that halts in the final state are pairwise distinct. -/
-theorem run_inj {κ : ℕ} {prog : Program} {L : MemoryImage κ} {n : ℕ} {r₀ rf : Registers K}
+theorem run_inj {κ : ℕ} {prog : LeanIsaProgram} {L : MemoryImage κ} {n : ℕ} {r₀ rf : Registers K}
     (h : run prog L n r₀ = some rf) (hf : rf = Registers.final prog) {a b : ℕ} {r : Registers K}
     (ha : run prog L a r₀ = some r) (hb : run prog L b r₀ = some r) : a = b := by
   -- no run continues past the final state
@@ -299,10 +321,10 @@ theorem run_inj {κ : ℕ} {prog : Program} {L : MemoryImage κ} {n : ℕ} {r₀
   · exact (key b a hb ha hab).elim
 
 /-- The `k`-th register state of a valid trace is the run's state after `k` steps. -/
-theorem regs_getElem' {prog : Program} {t : Execution prog}
-    (h : run prog t.memory t.steps Registers.initial = some (Registers.final prog)) (k : ℕ)
+theorem regs_getElem' {prog : LeanIsaProgram} {t : Execution prog}
+    (h : run prog t.memory t.stepCount Registers.initial = some (Registers.final prog)) (k : ℕ)
     (hk : k < t.regs.length) : run prog t.memory k Registers.initial = some t.regs[k] := by
-  have hk' : k ≤ t.steps := by
+  have hk' : k ≤ t.stepCount := by
     have := Execution.regs_length h
     omega
   rw [List.getElem_of_eq (regs_eq_map h) hk, List.getElem_map, List.getElem_range]
@@ -316,13 +338,13 @@ theorem regs_ext' {a b : Registers K} (h1 : a.pc = b.pc) (h2 : a.fp = b.fp) : a 
 
 /-- A witness that satisfies `Caps` and represents a valid trace has at least as many rows as the
 trace has steps, over its eight tables: `t.steps ≤ 8 * 2^32`. -/
-theorem steps_le_rows {prog : Program} {input : PublicInput}
+theorem steps_le_rows {prog : LeanIsaProgram} {input : PublicInput}
     {w : EnsembleWitness (leanIsaEnsemble prog)} {t : Execution prog}
     (hv : ValidExecution prog input t) (hc : Caps w) (hr : AssignmentRepresents w t) :
-    t.steps ≤ 8 * 2 ^ 32 := by
+    t.stepCount ≤ 8 * 2 ^ 32 := by
   obtain ⟨-, hrun⟩ := hv
-  have hlen : t.regs.length = t.steps + 1 := Execution.regs_length hrun
-  have hrow : ∀ k : Fin t.steps, ∃ (j : Fin 8) (row : Array K), row ∈ (tableAt w j).table ∧
+  have hlen : t.regs.length = t.stepCount + 1 := Execution.regs_length hrun
+  have hrow : ∀ k : Fin t.stepCount, ∃ (j : Fin 8) (row : Array K), row ∈ (tableAt w j).table ∧
       rowMessagesOn (tableAt w j) row StatePull.toRaw =
         [#[(t.regs[k.val]'(by omega)).pc, (t.regs[k.val]'(by omega)).fp]] := by
     intro k
@@ -331,7 +353,8 @@ theorem steps_le_rows {prog : Program} {input : PublicInput}
     obtain ⟨j, rfl⟩ := mem_tables_iff.mp htb
     exact ⟨j, row, hrow, hpull⟩
   choose j row hmem hmsg using hrow
-  have hinj : Function.Injective fun k : Fin t.steps ↦ (⟨j k, row k⟩ : Σ _ : Fin 8, Array K) := by
+  have hinj : Function.Injective fun k : Fin t.stepCount ↦ (⟨j k, row k⟩ : Σ _ : Fin 8, Array
+      K) := by
     intro k k' h
     have hh := Sigma.mk.inj h
     have hj : j k = j k' := hh.1
@@ -351,7 +374,7 @@ theorem steps_le_rows {prog : Program} {input : PublicInput}
     (Finset.univ : Finset (Fin 8)).sigma fun j ↦ (tableAt w j).table.toFinset
   have hlen' : ∀ j : Fin 8, (tableAt w j).table.length ≤ 2 ^ 32 :=
     fun j ↦ hc.heights (tableAt w j) (mem_tables_iff.mpr ⟨j, rfl⟩)
-  calc t.steps = (Finset.univ : Finset (Fin t.steps)).card := by simp
+  calc t.stepCount = (Finset.univ : Finset (Fin t.stepCount)).card := by simp
     _ ≤ T.card := Finset.card_le_card_of_injOn (fun k ↦ (⟨j k, row k⟩ : Σ _ : Fin 8, Array K))
         (fun k _ ↦ by
           simp only [T, Finset.coe_sigma, Set.mem_sigma_iff, Finset.coe_univ, Set.mem_univ,
@@ -368,7 +391,7 @@ theorem steps_le_rows {prog : Program} {input : PublicInput}
 
 /-- **Completeness fails on long runs without the row cap.**  For every program of the shape, there is a
 valid execution that no witness of `SatisfiedBy` represents. -/
-theorem completeness_fails_on_long_run (prog : Program) (sh : Shape prog) :
+theorem completeness_fails_on_long_run (prog : LeanIsaProgram) (sh : Shape prog) :
     ∃ (input : PublicInput) (t : Execution prog), ValidExecution prog input t ∧
       ¬ ∃ w : EnsembleWitness (leanIsaEnsemble prog),
           SatisfiedBy prog input w ∧ AssignmentRepresents w t := by
@@ -382,9 +405,9 @@ theorem completeness_fails_on_long_run (prog : Program) (sh : Shape prog) :
 
 /-- A program of `2^11` slots with the shape: `SET_CONSTANT [g^0] g` in slots `0 … 32`, the `JUMP`
 in slot `33`, and `SET_CONSTANT` elsewhere, the sentinel included. -/
-def shapeProg : Program :=
+def shapeProg : LeanIsaProgram :=
   ⟨11, by decide, fun i ↦
-    if (i : ℕ) = 33 then .jump (gpow 1) (gpow 2) (gpow 3) else .setConstant (gpow 0) (ofK g)⟩
+    if (i : ℕ) = 33 then .jump (addressOfIndex 1) (addressOfIndex 2) (addressOfIndex 3) else .setConstant (addressOfIndex 0) (ofK g)⟩
 
 /-- It has the shape. -/
 theorem shapeProg_shape : Shape shapeProg where

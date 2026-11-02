@@ -276,8 +276,8 @@ theorem hOnly_openAll (root : Digest) (height width : ℕ) :
     · trivial
 
 /-- **The compiled run keeps the discipline**, from a sponge whose state is an earlier answer. -/
-theorem duplexP_run {α : Type} (P : Prog α) :
-    ∀ (s : ProgState) (h : List KeccakState), s.sponge.state ∈ h →
+theorem duplexP_run {α : Type} (P : VerifierProgram α) :
+    ∀ (s : VerifierProgramState) (h : List KeccakState), s.sponge.state ∈ h →
       DuplexP (Compile.runWithHash callKeccak256 callKeccakF1600 P s) h fun _ _ ↦ True := by
   induction P with
   | ret a => intro s h _; trivial
@@ -323,7 +323,8 @@ theorem duplexP_run {α : Type} (P : Prog α) :
       · exact ih _ _ _ hs
       · trivial
 
-theorem duplexP_runProof (P : Prog Bool) {seed : KeccakState} {h : List KeccakState} (hs : seed ∈ h)
+theorem duplexP_runProof (P : VerifierProgram Bool) {seed : KeccakState} {h : List KeccakState} (hs
+    : seed ∈ h)
     (π : Proof) : DuplexP (runProofWithHash callKeccak256 callKeccakF1600 P seed π) h fun _ _ ↦ True := by
   simp only [runProofWithHash]
   refine (duplexP_run P _ h hs).bind fun r h' _ ↦ ?_
@@ -351,10 +352,10 @@ theorem duplexP_seedWith (bytecode : List K) (publicInput : Digest) (h : List Ke
     ⟨admissibleVm_seedInput _ _ _, fun y ↦ List.mem_cons_self⟩
 
 /-- **The verifier follows the duplex discipline.** -/
-theorem duplexVm_verifier (prog : Program) (input : PublicInput) (proof : Proof) :
+theorem duplexVm_verifier (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) :
     DuplexVm (verifierWithHash callKeccak256 callKeccakF1600 prog input proof) [] := by
   rw [duplexVm_iff_duplexP]
-  change DuplexP (verifyWithHash callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicDigest input) proof) [] _
+  change DuplexP (verifyWithHash callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicInputDigest input) proof) [] _
   simp only [verifyWithHash]
   exact (duplexP_seedWith _ _ []).bind fun seed h' hs ↦ duplexP_runProof _ hs _
 
@@ -399,7 +400,7 @@ theorem duplexP_findNonceM (bits : ℕ) {h : List KeccakState} {sp : Sponge} (hs
   · exact duplexP_searchM bits hs _ _
 
 /-- **The honest prover keeps the discipline**, from a sponge whose state is an earlier answer. -/
-theorem duplexP_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} (P : Prog α) :
+theorem duplexP_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} (P : VerifierProgram α) :
     ∀ (sp : Sponge) (ev : List Ev) (cs : List Tree) (h : List KeccakState), sp.state ∈ h →
       DuplexP (proveFromM callKeccak256 callKeccakF1600 S fuel P sp ev cs) h fun _ _ ↦ True := by
   induction P with
@@ -437,9 +438,10 @@ theorem duplexP_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} (P : Prog α)
     · exact (ih _ _ _ _ _ hs).bind fun _ _ _ ↦ trivial
 
 /-- **The specification's honest prover of any strategy follows the duplex discipline.** -/
-theorem duplexVm_romHonestComp (prog : Program) (input : PublicInput) (S : Strategy) (fuel : ℕ) :
-    DuplexVm (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
-      (leanVmProgram (bytecodeWords prog) (publicDigest input)) S fuel) [] := by
+theorem duplexVm_romHonestComp (prog : LeanIsaProgram) (input : PublicInput) (S : Strategy)
+    (fuel : ℕ) :
+    DuplexVm (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) S fuel) [] := by
   rw [duplexVm_iff_duplexP]
   simp only [Rom.honestComp, seedRun_leanVmSeed, proveM, bind_assoc]
   exact (duplexP_seedWith _ _ []).bind fun seed h' hs ↦

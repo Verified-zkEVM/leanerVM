@@ -64,14 +64,15 @@ example (W : Val → Reader → FrameMap → NodeWitness) {κ : ℕ} (L : Memory
 
 /-- A call's valuation in the frame map is the valuation of the call's frame. -/
 example {κ : ℕ} (L : MemoryImage κ) (f : String) (args rets : List E) :
-    Located.frameV L f args rets = frameVal L certByName f (gpow (Located.frameOf L f args rets)) :=
+    Located.frameV L f args rets = frameVal L certByName f (addressOfIndex (Located.frameOf L f args
+        rets)) :=
   rfl
 
 /-! ## The named form implies the existential one -/
 
 example (W : Val → Reader → FrameMap → NodeWitness) (h : SoundHyps W) (input : PublicInput)
     (t : Execution guestProgram) (hv : ValidExecution guestProgram input t) :
-    ∃ seed s, statementDigest seed s = publicDigest input ∧ s.deferredClaim.HasBytecodeShape bytecode ∧
+    ∃ seed s, statementDigest seed s = publicInputDigest input ∧ s.deferredClaim.HasBytecodeShape bytecode ∧
       ∃ w, NodeRelation bytecode seed s w := by
   obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
   exact ⟨_, _, hd, hrel.2.2.2.2, _, hrel⟩

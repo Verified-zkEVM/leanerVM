@@ -31,13 +31,13 @@ variable {C : CallRel} {rd : Reader}
 
 /-- The byte table's word at `g^v`. -/
 theorem byte_load {bb : E} (hbb : ByteBits rd bb) {v : Nat} (hv : v < 256) :
-    LoadHolds rd (bb * ofK (gpow v)) 0 (word v 0 0) := by
+    LoadHolds rd (bb * ofK (addressOfIndex v)) 0 (word v 0 0) := by
   obtain ⟨hK, hl⟩ := hbb v hv
-  have e : bb * ofK (gpow v) = ofK (bb.limb 0 * gpow v) := by
+  have e : bb * ofK (addressOfIndex v) = ofK (bb.limb 0 * addressOfIndex v) := by
     rw [ofK_mul, ← eq_ofK_limb hK]
   refine ⟨(isInK_iff _).mpr ⟨_, e⟩, ?_⟩
   rw [e]
-  simpa [gpow] using hl
+  simpa [addressOfIndex] using hl
 
 theorem nb_mulS {d : Nat} {x y : V} (hx : NBv d x) (hy : NBv d y) :
     NumBelow (d + 1) (Stmt.valsList [mulS (.n d) x y]) := by
@@ -74,14 +74,14 @@ theorem sByte_nb {mark : V} {bound : E} {b : Nat} (hmk : NBv b mark) :
 /-- **A byte completes**: its mark `g^v`, `v < K ≤ 256`, range checked and read off the table. -/
 theorem sByte_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) {K v : Nat} (hK : K ≤ 256)
     (hv : v < K) (σ : Val) (h1 : σ (.n 1) = bb) {mark : V} {b : Nat} (hb : 2 ≤ b) (hmk : NBv b mark)
-    (hmv : σ mark = ofK (gpow v)) :
-    Completes C rd b (b + 6) (sByte mark (ofK (gpow (K - 1))) b) σ
+    (hmv : σ mark = ofK (addressOfIndex v)) :
+    Completes C rd b (b + 6) (sByte mark (ofK (addressOfIndex (K - 1))) b) σ
       (fun σ' => σ' (.n (b + 5)) = word v 0 0) := by
   rw [sByte]
   refine Completes.append (m := b + 4) (by omega) (by omega) (rangeS_nb mark _ b hmk)
     (rangeS_complete hm hK hv σ mark hmk hmv) (fun σ1 he1 _ => ?_)
   have e1 : σ1 (.n 1) = bb := by rw [he1.apply (Or.inl (by omega))]; exact h1
-  have em : σ1 mark = ofK (gpow v) := by
+  have em : σ1 mark = ofK (addressOfIndex v) := by
     obtain ⟨j, hj, rfl⟩ := hmk
     rw [he1.apply (Or.inl hj)]
     exact hmv
@@ -121,7 +121,7 @@ theorem sFromBytesRest_shape : ∀ (ms : List V) (b : Nat) (val : V), (∀ m ∈
 /-- **The bytes after the top one complete**: from the word of `N`, the word of the folding. -/
 theorem sFromBytesRest_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) :
     ∀ (ms : List V) (vs : List Nat) (b : Nat) (val : V) (N M : Nat) (σ : Val), 2 ≤ b →
-      List.Forall₂ (fun m v => NBv b m ∧ σ m = ofK (gpow v) ∧ v < 256) ms vs →
+      List.Forall₂ (fun m v => NBv b m ∧ σ m = ofK (addressOfIndex v) ∧ v < 256) ms vs →
       NBv b val → σ (.n 1) = bb → σ val = eOfNat N → N < M → M * 256 ^ ms.length ≤ 2 ^ 64 →
       Completes C rd b (b + 9 * ms.length) (sFromBytesRest ms b val).1 σ
         (fun σ' => σ' (sFromBytesRest ms b val).2.2 = eOfNat (bFold N vs))
@@ -186,13 +186,14 @@ theorem sFromBytes_shape (top : V) (rest : List V) (bound : E) (b : Nat) (ht : N
 value the word of the bytes' integer. -/
 theorem sFromBytes_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) {K v0 : Nat}
     (hK : K ≤ 256) (hv0 : v0 < K) (top : V) (rest : List V) (vs : List Nat) (b : Nat) (σ : Val)
-    (hb : 2 ≤ b) (ht : NBv b top) (htv : σ top = ofK (gpow v0))
-    (hf : List.Forall₂ (fun m v => NBv b m ∧ σ m = ofK (gpow v) ∧ v < 256) rest vs)
+    (hb : 2 ≤ b) (ht : NBv b top) (htv : σ top = ofK (addressOfIndex v0))
+    (hf : List.Forall₂ (fun m v => NBv b m ∧ σ m = ofK (addressOfIndex v) ∧ v < 256) rest vs)
     (h1 : σ (.n 1) = bb) (hM : K * 256 ^ rest.length ≤ 2 ^ 64) :
-    Completes C rd b (b + 6 + 9 * rest.length) (sFromBytes top rest (ofK (gpow (K - 1))) b).1 σ
-      (fun σ' => σ' (sFromBytes top rest (ofK (gpow (K - 1))) b).2.2 = eOfNat (bFold v0 vs)) := by
+    Completes C rd b (b + 6 + 9 * rest.length) (sFromBytes top rest (ofK (addressOfIndex (K -
+        1))) b).1 σ
+      (fun σ' => σ' (sFromBytes top rest (ofK (addressOfIndex (K - 1))) b).2.2 = eOfNat (bFold v0 vs)) := by
   show Completes C rd b (b + 6 + 9 * rest.length)
-    (sByte top (ofK (gpow (K - 1))) b ++ (sFromBytesRest rest (b + 6) (.n (b + 5))).1) σ
+    (sByte top (ofK (addressOfIndex (K - 1))) b ++ (sFromBytesRest rest (b + 6) (.n (b + 5))).1) σ
     (fun σ' => σ' (sFromBytesRest rest (b + 6) (.n (b + 5))).2.2 = eOfNat (bFold v0 vs))
   refine Completes.append (m := b + 6) (by omega) (by omega) (sByte_nb ht)
     (sByte_complete hm hbb hK hv0 σ h1 hb ht htv) (fun σ1 he1 hp1 => ?_)

@@ -44,8 +44,8 @@ def memoryVector {κ : ℕ} (L : MemoryImage κ) : Vector E (2 ^ κ) := Vector.o
 /-- The vector of the memory is encoded as the memory (`encodeFiniteFunction`). -/
 theorem encodeValue_memoryVector {κ : ℕ} (L : MemoryImage κ) :
     encodeValue (memoryVector L) = encodeValue L := by
-  show MachineValue.arr ((Vector.ofFn L).toArray.map encodeValue) =
-    MachineValue.arr (Array.ofFn fun i ↦ encodeValue (L i))
+  show MachineValue.array ((Vector.ofFn L).toArray.map encodeValue) =
+    MachineValue.array (Array.ofFn fun i ↦ encodeValue (L i))
   congr 1
   apply Array.ext
   · simp
@@ -55,7 +55,7 @@ theorem encodeValue_memoryVector {κ : ℕ} (L : MemoryImage κ) :
 
 /-- **The address tables**: the memory's `2^κ` addresses (`memT`) and the bytecode's
 (`codeT`), sorted (`Extraction.Fast.powTable`). -/
-def decoderTables (prog : Program) (κ : ℕ) : Array (ℕ × ℕ) × Array (ℕ × ℕ) :=
+def decoderTables (prog : LeanIsaProgram) (κ : ℕ) : Array (ℕ × ℕ) × Array (ℕ × ℕ) :=
   (powTable κ, powTable prog.logSize)
 
 /-- **The reader of the memory vector** through the address table `memT`

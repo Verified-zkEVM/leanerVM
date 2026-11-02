@@ -50,9 +50,10 @@ theorem completeAt_flatOutF {f : String} {fn : Fn} (hf : coreProgram.find? f = s
         Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun r => r = rets fp) ∧
         (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
         ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-          (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
+          (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b)) ∧
         CallsMatch σ ((pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) (kids fp) outs ∧
-        ∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧
+        ∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 =
+            addressOfIndex i ∧
           (RegionL (Lin fp) i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) :
     CompleteAtF fs cert κ f Lin args Out := by
   intro fp

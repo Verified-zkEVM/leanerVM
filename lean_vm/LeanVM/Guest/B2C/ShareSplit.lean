@@ -318,25 +318,28 @@ end Congr3
 /-- A group's cells in window `i`: the window's of the values `lo + gm` on (`gn` of them) packed, those
 of arm `0`'s values `lo + am` on (`an`) and of the values named outside the window in a trie. -/
 noncomputable def locG (C : Cert) (i gm gn am an : ℕ) : Loc :=
-  ⟨nth C.los i 0 + gm, (((nth C.cells i []).drop gm).take gn).length,
-    packCells (((nth C.cells i []).drop gm).take gn),
-    locTrieFrom (((nth C.cells i []).drop am).take an) (nth C.los i 0 + am)
-      (insTrie (nth C.ins i []) .nil)⟩
+  ⟨listElementOrDefault C.los i 0 + gm, (((listElementOrDefault C.cells i []).drop gm).take
+      gn).length,
+    packCells (((listElementOrDefault C.cells i []).drop gm).take gn),
+    locTrieFrom (((listElementOrDefault C.cells i []).drop am).take an) (listElementOrDefault C.los
+        i 0 + am)
+      (insTrie (listElementOrDefault C.ins i []) .nil)⟩
 
 /-- What a window split by arms checks once: its cells below `2^16`, the values it names outside
 it below it, all within the tries' depth. -/
 def shareFits (C : Cert) (i : ℕ) : Bool :=
-  (nth C.cells i []).all (fun c ↦ Nat.blt c 65536) &&
-    Nat.blt (nth C.los i 0 + (nth C.cells i []).length) (2 ^ 19) &&
-    (nth C.ins i []).all fun p ↦ Nat.blt p.1 (nth C.los i 0)
+  (listElementOrDefault C.cells i []).all (fun c ↦ Nat.blt c 65536) &&
+    Nat.blt (listElementOrDefault C.los i 0 + (listElementOrDefault C.cells i []).length) (2
+        ^ 19) &&
+    (listElementOrDefault C.ins i []).all fun p ↦ Nat.blt p.1 (listElementOrDefault C.los i 0)
 
 theorem locG_get {C : Cert} {i gm gn am an : ℕ} (hf : shareFits C i = true)
-    (ha : nth C.los i 0 + am + an < 2 ^ 19) {v c : ℕ}
+    (ha : listElementOrDefault C.los i 0 + am + an < 2 ^ 19) {v c : ℕ}
     (h : (locG C i gm gn am an).get? v = some c) : (locW C i).get? v = some c := by
   simp only [shareFits, Bool.and_eq_true, List.all_eq_true, Nat.blt_eq] at hf
   obtain ⟨⟨hc, hlo⟩, hins⟩ := hf
-  set cells := nth C.cells i []
-  set lo := nth C.los i 0
+  set cells := listElementOrDefault C.cells i []
+  set lo := listElementOrDefault C.los i 0
   have hd : (2 : ℕ) ^ indexDepth = 2 * 2 ^ 19 := by simp [indexDepth]
   -- the window reads `cells[v - lo]` in its range
   have hwin : ∀ (hm : v - lo < cells.length), lo ≤ v → (locW C i).get? v = some cells[v - lo] := by
@@ -346,13 +349,13 @@ theorem locG_get {C : Cert} {i gm gn am an : ℕ} (hf : shareFits C i = true)
       exact ⟨hv, by show v < lo + cells.length; omega⟩
     show (bif Nat.ble lo v && Nat.blt v (Nat.add lo cells.length) then
       some (Nat.mod (Nat.div (packCells cells) (Nat.pow 65536 (Nat.sub v lo))) 65536)
-      else getF (insTrie (nth C.ins i []) .nil) v) = _
+      else getF (insTrie (listElementOrDefault C.ins i []) .nil) v) = _
     rw [hcond, Bool.cond_true]
     exact congrArg some (packCells_digit cells _ hm hc)
   have hg : (locG C i gm gn am an).get? v =
       (bif Nat.ble (lo + gm) v && Nat.blt v ((lo + gm) + ((cells.drop gm).take gn).length) then
         some (packCells ((cells.drop gm).take gn) / 65536 ^ (v - (lo + gm)) % 65536)
-      else getF (locTrieFrom ((cells.drop am).take an) (lo + am) (insTrie (nth C.ins i []) .nil)) v) := rfl
+      else getF (locTrieFrom ((cells.drop am).take an) (lo + am) (insTrie (listElementOrDefault C.ins i []) .nil)) v) := rfl
   rw [hg] at h
   cases hr : (Nat.ble (lo + gm) v && Nat.blt v ((lo + gm) + ((cells.drop gm).take gn).length))
   · rw [hr, Bool.cond_false] at h
@@ -371,7 +374,7 @@ theorem locG_get {C : Cert} {i gm gn am an : ℕ} (hf : shareFits C i = true)
       obtain ⟨hm, hg'⟩ := List.getElem?_eq_some_iff.mp h
       rw [hwin hm (by omega), hg']
     · simp only [ha, ↓reduceIte] at h
-      have hk : v ∈ (nth C.ins i []).map (·.1) := by
+      have hk : v ∈ (listElementOrDefault C.ins i []).map (·.1) := by
         by_contra hk
         rw [insTrie_getF_of_not _ _ v (fun p hp ↦ by have := hins p hp; omega) hk] at h
         simp [getF_eq] at h
@@ -383,7 +386,7 @@ theorem locG_get {C : Cert} {i gm gn am an : ℕ} (hf : shareFits C i = true)
         rw [this, Bool.false_and]
       show (bif Nat.ble lo p.1 && Nat.blt p.1 (Nat.add lo cells.length) then
         some (Nat.mod (Nat.div (packCells cells) (Nat.pow 65536 (Nat.sub p.1 lo))) 65536)
-        else getF (insTrie (nth C.ins i []) .nil) p.1) = _
+        else getF (insTrie (listElementOrDefault C.ins i []) .nil) p.1) = _
       rw [hcond, Bool.cond_false]
       exact h
   · rw [hr, Bool.cond_true] at h
@@ -581,7 +584,7 @@ from the state after the selector (no value pending), each arm's end and that st
 next window's snapshot. Neither the first window nor the last. -/
 noncomputable def shareWinS (j : ℕ) (snaps : List Snap) (k lo hi gm gn am an : ℕ) : Bool :=
   !(k == 0) && Nat.blt k snaps.length &&
-  Nat.blt (nth (certOf j).los (winW snaps k) 0 + am + an) (2 ^ 19) &&
+  Nat.blt (listElementOrDefault (certOf j).los (winW snaps k) 0 + am + an) (2 ^ 19) &&
   (locG (certOf j) (winW snaps k) gm gn am an).seq fun loc ↦ natSeq (bitsOf (plumbOf j).sh) fun sh ↦
   natSeq (tmpCells (plumbOf j)) fun tc ↦ natSeq (fpgCells (plumbOf j)) fun fc ↦
   (byCell (plumbOf j).tmps).seq fun tt ↦
@@ -618,7 +621,8 @@ theorem shareWin_of_split {j k : ℕ} (gs : List (ℕ × ℕ × ℕ × ℕ × �
     exact ⟨g, hg, h1, h2⟩
   -- each group's facts
   have hG : ∀ g ∈ gs, ((k ≠ 0 ∧ k < (snapsOf j).length) ∧
-      nth (certOf j).los (winW (snapsOf j) k) 0 + g.2.2.2.2.1 + g.2.2.2.2.2 < 2 ^ 19) ∧
+      listElementOrDefault (certOf j).los (winW (snapsOf j) k) 0 + g.2.2.2.2.1 + g.2.2.2.2.2 < 2
+          ^ 19) ∧
       (matchAtoms g.1 g.2.1 [Stmt.match_ x (a0 :: as)] = true ∧
         ∀ v ∈ Memory.Stmt.usesList (selStmts g.1 g.2.1 [Stmt.match_ x (a0 :: as)]) ++
             Memory.Stmt.tmpsList (selStmts g.1 g.2.1 [Stmt.match_ x (a0 :: as)]),

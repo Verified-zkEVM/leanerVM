@@ -32,7 +32,7 @@ namespace LeanVM.Guest.B1.Sig
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier (eOfNat gen)
-open Sphincs Sphincs.Concrete
+open Sphincs Sphincs.Verification
 
 @[expose] public section
 
@@ -72,14 +72,14 @@ theorem bound_cell {σ : Val} (hS : ∀ c < 8, cS σ c < 16) (hA : ∀ w < 16, w
 def SRoot (pp : PublicParameter) (m : Sphincs.Message) (sig : Sphincs.Signature)
     (root : Sphincs.Digest) : Prop :=
   ∃ leaf, @otsLeafWithHash Id _ ⟨Node.keccakBits⟩ pp
-      (digestIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pp m sig.randomness))
+      (digestLeafIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pp m sig.randomizer))
       (@forestRecoverWithHash Id _ ⟨Node.keccakBits⟩ pp
-        (digestIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pp m sig.randomness))
-        (digestMarks (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pp m sig.randomness)) sig.forest)
+        (digestLeafIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pp m sig.randomizer))
+        (digestCoordinateSelections (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pp m sig.randomizer)) sig.forestOpening)
       sig.counter sig.chainValues = some leaf ∧
     @treeFoldWithHash Id _ ⟨Node.keccakBits⟩ pp
-      (digestIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pp m sig.randomness))
-      (signaturePath sig) totalHeight leaf = root
+      (digestLeafIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pp m sig.randomizer))
+      (signaturePath sig) treeHeight leaf = root
 
 theorem sphincsVerify_SRoot (pk : PublicKey) (m : Sphincs.Message) (sig : Sphincs.Signature) :
     Node.leanSphincsVerifyWithKeccak pk m sig = true ↔ SRoot pk.parameter m sig pk.root :=
@@ -138,28 +138,28 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
     rw [sMessageDigest_cells sq_keccak (a := σ (.n 4)) (m := smsg (σ (.n 5)) (σ (.n 6)))
       (by rw [hpre.msgAdr]; exact msgAdr_bytes)
       (sphincs_bytesLE_cellPairVal (σ (.n 5)) (σ (.n 6)) :
-        Sphincs.bytesLE 32 (smsg (σ (.n 5)) (σ (.n 6))) = _), ← hpre.digest]
+        Sphincs.littleEndianBytes 32 (smsg (σ (.n 5)) (σ (.n 6))) = _), ← hpre.digest]
     simp only
     rw [c17, c18]
   unfold SRoot
   show ∃ leaf, @otsLeafWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-      (digestIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
+      (digestLeafIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
       (@forestRecoverWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-        (digestIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
-        (digestMarks (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
-        (sphincsSigOf σ).forest)
+        (digestLeafIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
+        (digestCoordinateSelections (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
+        (sphincsSigOf σ).forestOpening)
       (sphincsSigOf σ).counter (sphincsSigOf σ).chainValues =
         some leaf ∧
       @treeFoldWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-        (digestIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
-        (signaturePath (sphincsSigOf σ)) totalHeight leaf = sv (σ sMk.2.2)
+        (digestLeafIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
+        (signaturePath (sphincsSigOf σ)) treeHeight leaf = sv (σ sMk.2.2)
   rw [hmd]
   set D := BitVec.ofNat messageDigestBits (encNat σ + 2 ^ 128 * Vb) with hD
-  have hDidx : (digestIndex D).val = sIdx σ := by rw [hD, digestIndex_ofNat hEnc]; exact hVidx
-  have hleafI : (digestIndex D).val = sIdx σ := hDidx
-  have hmk : ∀ (c : ForestCoordinate) (j : SubtreeIndex), ((digestMarks D c).super).val = cS σ c.val ∧
-      ((digestMarks D c).child j).val = cA σ c.val j.val ∧
-      ((digestMarks D c).word j).val = cT σ c.val j.val := by
+  have hDidx : (digestLeafIndex D).val = sIdx σ := by rw [hD, digestIndex_ofNat hEnc]; exact hVidx
+  have hleafI : (digestLeafIndex D).val = sIdx σ := hDidx
+  have hmk : ∀ (c : ForestCoordinate) (j : SubtreeIndex), ((digestCoordinateSelections D c).superChild).val = cS σ c.val ∧
+      ((digestCoordinateSelections D c).child j).val = cA σ c.val j.val ∧
+      ((digestCoordinateSelections D c).codewordIndex j).val = cT σ c.val j.val := by
     intro c j
     obtain ⟨m1, m2, m3⟩ := digestMarks_ofNat (c1 := Vb) hEnc c j
     have hc8 : c.val < 8 := c.isLt
@@ -172,8 +172,9 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
       simp only [wT, show (2 * c.val + j.val) / 2 = c.val by omega,
         show (2 * c.val + j.val) % 2 = j.val by omega]
   -- the forest key
-  have hK : @forestRecoverWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (digestIndex D) (digestMarks D)
-      (sphincsSigOf σ).forest = fun c => (sv (sT σ (2 * c.val)), sv (sT σ (2 * c.val + 1))) := by
+  have hK : @forestRecoverWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (digestLeafIndex D) (digestCoordinateSelections D)
+      (sphincsSigOf σ).forestOpening = fun c
+          => (sv (sT σ (2 * c.val)), sv (sT σ (2 * c.val + 1))) := by
     rw [forestRecover_id]
     funext c
     have f := hf c.val c.isLt
@@ -190,24 +191,24 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
     exact coordKey_eq hpre f (hmk c 0).1 (hmk c 0).2.1 (hmk c 1).2.1 (hmk c 0).2.2 (hmk c 1).2.2 hDidx
   -- the encoding
   have hE : cellBytes (σ (.n 164)) =
-      tweakBytes (.encoding (digestIndex D)) := by
+      tweakBytes (.encoding (digestLeafIndex D)) := by
     rw [hpre.top1, sNode0_eq hpre]
-    show _ = Sphincs.fieldBytes (Sphincs.tweakFields 4 0 0 (digestIndex D).val)
+    show _ = Sphincs.addressBytes (Sphincs.tweakFields 4 0 0 (digestLeafIndex D).val)
     rw [hleafI]
     exact encAdr_bytes hidx26
-  have hcnt : Sphincs.bytesLE 4 (sphincsSigOf σ).counter =
+  have hcnt : Sphincs.littleEndianBytes 4 (sphincsSigOf σ).counter =
       (cellBytes (σ (.n sFb.2.1))).take 4 :=
     bytesLE_counter (by rw [hx, cellNat_eOfNat (by omega)]; exact hNc32)
   set dig := cwDigit sW 21 (sEnc.2.1 + 10) σ with hdig
   have hdig4 : ∀ j, dig j < 4 := fun j => Nat.mod_lt _ (by norm_num)
-  have hsum123 : ∑ i ∈ Finset.range numChains, dig i = targetSum := by
+  have hsum123 : ∑ i ∈ Finset.range chainCount, dig i = targetSum := by
     have hle : ∑ i ∈ Finset.range (3 * 21 + 1), dig i ≤ ∑ _i ∈ Finset.range (3 * 21 + 1), 3 :=
       Finset.sum_le_sum fun j _ => by have := hdig4 j; omega
     simp only [Finset.sum_const, Finset.card_range, smul_eq_mul] at hle
     show ∑ i ∈ Finset.range (3 * 21 + 1), dig i = 123
     exact Value.gen_pow_inj (by omega) (by norm_num) (hsum.trans sTarget_eq)
   have henc : @encodeWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-      (digestIndex D)
+      (digestLeafIndex D)
       (fun c => (sv (sT σ (2 * c.val)), sv (sT σ (2 * c.val + 1))))
       (sphincsSigOf σ).counter = some fun i => ⟨dig i.val, hdig4 _⟩ := by
     rw [sEncode_cells sq_keccak (sT σ) (fun c => rfl) hE hcnt, ← hpre.top0,
@@ -217,30 +218,30 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
   refine ⟨_, rfl, ?_⟩
   -- the chains and the leaf
   have hrc : (fun i : ChainIndex => @recoverChainWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-      (digestIndex D) i ⟨dig i.val, hdig4 _⟩
+      (digestLeafIndex D) i ⟨dig i.val, hdig4 _⟩
       ((sphincsSigOf σ).chainValues i)) =
       fun i => sv (σ (cwTip sW (sEnc.2.1 + 10) i.val)) := by
     funext i
     show @recoverChainWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-      (digestIndex D) i ⟨dig i.val, hdig4 _⟩
+      (digestLeafIndex D) i ⟨dig i.val, hdig4 _⟩
       (sv (σ (cwStart sW 21 (sEnc.2.1 + 10) σ i.val))) = _
     rw [sRecoverChain_cells sq_keccak (pp := σ sPP)
       (adr := fun st => σ (sNode 0) + word (tw 1 + i.val * hiMul + st * stepMul) 0 0) (fun st => by
         rw [sNode0_eq hpre]
-        show _ = Sphincs.fieldBytes (Sphincs.tweakFields 1 st.val i.val
-          (digestIndex D).val)
+        show _ = Sphincs.addressBytes (Sphincs.tweakFields 1 st.val i.val
+          (digestLeafIndex D).val)
         rw [hleafI]
         exact chainAdr_bytes hidx26 i.isLt st.isLt)]
     rw [(hcw i.val i.isLt).2, chainT_eq_sChain (fun s y => rfl)]
   have haL : cellBytes (σ (.n (sCw.2.1 + 1))) =
-      tweakBytes (.leaf (digestIndex D)) := by
+      tweakBytes (.leaf (digestLeafIndex D)) := by
     rw [hla, sNode0_eq hpre]
-    show _ = Sphincs.fieldBytes (Sphincs.tweakFields 2 0 0 (digestIndex D).val)
+    show _ = Sphincs.addressBytes (Sphincs.tweakFields 2 0 0 (digestLeafIndex D).val)
     rw [hleafI]
     exact leafAdr_bytes hidx26
   rw [hrc, sLeafHash_cells sq_keccak (tips := fun i => σ (cwTip sW (sEnc.2.1 + 10) i)) haL,
     show (hcell (σ sPP :: σ (.n (sCw.2.1 + 1)) ::
-      (List.range numChains).map (fun i => σ (cwTip sW (sEnc.2.1 + 10) i)))).1 = σ (.n sLeaf.2.2)
+      (List.range chainCount).map (fun i => σ (cwTip sW (sEnc.2.1 + 10) i)))).1 = σ (.n sLeaf.2.2)
       from (sLeaf_sound hpre.pad hleafA).symm]
   -- the tree
   have hpath : signaturePath (sphincsSigOf σ) =
@@ -248,20 +249,20 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
     funext l
     unfold signaturePath
     by_cases hl : l < 26
-    · simp only [show totalHeight = 26 from rfl, hl, ↓reduceDIte, ↓reduceIte]
+    · simp only [show treeHeight = 26 from rfl, hl, ↓reduceDIte, ↓reduceIte]
       rfl
-    · simp only [show totalHeight = 26 from rfl, hl, ↓reduceDIte, ↓reduceIte]
+    · simp only [show treeHeight = 26 from rfl, hl, ↓reduceDIte, ↓reduceIte]
       exact cellVal_zero.symm
-  have hA : ∀ l < totalHeight, cellBytes (σ (mAdr sNodeOf l (mBase sNodeOf 0 l sLeaf.2.1))) =
-      tweakBytes (.node (l + 1) ((digestIndex D).val / 2 ^ (l + 1))) := by
+  have hA : ∀ l < treeHeight, cellBytes (σ (mAdr sNodeOf l (mBase sNodeOf 0 l sLeaf.2.1))) =
+      tweakBytes (.node (l + 1) ((digestLeafIndex D).val / 2 ^ (l + 1))) := by
     intro l hl
     have hl26 : l < 26 := hl
     rw [sTree_adr hpre hmkA hl26]
-    show _ = Sphincs.fieldBytes (Sphincs.tweakFields 3 0 (l + 1)
-      ((digestIndex D).val / 2 ^ (l + 1)))
+    show _ = Sphincs.addressBytes (Sphincs.tweakFields 3 0 (l + 1)
+      ((digestLeafIndex D).val / 2 ^ (l + 1)))
     rw [hleafI]
     exact nodeAdr_bytes hidx26 hl26
-  rw [hpath, sTreeFold_cells sq_keccak (pp := σ sPP) hA _ totalHeight le_rfl]
+  rw [hpath, sTreeFold_cells sq_keccak (pp := σ sPP) hA _ treeHeight le_rfl]
   rw [sTree_sound hpre hmkA]
   refine congrArg sv (xFold_congr 26 (fun l hl => ⟨rfl, ?_, ?_⟩) _)
   · rw [hleafI, sIdx, bitsOf, testBit_bitsVal]

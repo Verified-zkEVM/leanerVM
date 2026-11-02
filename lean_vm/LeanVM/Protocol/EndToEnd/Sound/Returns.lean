@@ -48,55 +48,59 @@ variable {α β : Type}
 /-! ## The return invariant -/
 
 /-- Every return of `p` satisfies `Q`. -/
-def RetOK (Q : α → Prop) (p : Prog α) : Prop :=
+def RetOK (Q : α → Prop) (p : VerifierProgram α) : Prop :=
   ∀ (l : List Ev) (a : α), p.after l = some (.ret a) → Q a
 
 /-- A weaker predicate holds of every return. -/
-theorem RetOK.mono {Q Q' : α → Prop} {p : Prog α} (h : RetOK Q p) (hQ : ∀ a, Q a → Q' a) :
+theorem RetOK.mono {Q Q' : α → Prop} {p : VerifierProgram α} (h : RetOK Q p) (hQ : ∀ a, Q a →
+    Q' a) :
     RetOK Q' p :=
   fun l a hl ↦ hQ a (h l a hl)
 
 /-- A program that returns at once returns its value. -/
-theorem RetOK.ret {Q : α → Prop} {a : α} (h : Q a) : RetOK Q (Prog.ret a) := by
+theorem RetOK.ret {Q : α → Prop} {a : α} (h : Q a) : RetOK Q (VerifierProgram.ret a) := by
   intro l b hl
   cases l with
   | nil =>
-    simp only [Prog.after, Option.some.injEq, Prog.ret.injEq] at hl
+    simp only [VerifierProgram.after, Option.some.injEq, VerifierProgram.ret.injEq] at hl
     exact hl ▸ h
-  | cons e l => cases e <;> simp [Prog.after] at hl
+  | cons e l => cases e <;> simp [VerifierProgram.after] at hl
 
 /-- A rejecting program returns nothing. -/
-theorem RetOK.fail {Q : α → Prop} : RetOK Q (Prog.fail : Prog α) := by
+theorem RetOK.fail {Q : α → Prop} : RetOK Q (VerifierProgram.fail : VerifierProgram α) := by
   intro l b hl
   cases l with
-  | nil => simp [Prog.after] at hl
-  | cons e l => cases e <;> simp [Prog.after] at hl
+  | nil => simp [VerifierProgram.after] at hl
+  | cons e l => cases e <;> simp [VerifierProgram.after] at hl
 
 /-- The trivial predicate holds of every return. -/
-theorem RetOK.true (p : Prog α) : RetOK (fun _ ↦ True) p :=
+theorem RetOK.true (p : VerifierProgram α) : RetOK (fun _ ↦ True) p :=
   fun _ _ _ ↦ trivial
 
 /-- A sequence that returns at once: both parts return. -/
-private theorem bind_eq_ret' {p : Prog α} {f : α → Prog β} {b : β} (h : p.bind f = .ret b) :
+private theorem bind_eq_ret' {p : VerifierProgram α} {f : α → VerifierProgram β} {b : β} (h : p.bind
+    f = .ret b) :
     ∃ a, p = .ret a ∧ f a = .ret b := by
-  cases p <;> simp_all [Prog.bind]
+  cases p <;> simp_all [VerifierProgram.bind]
 
 /-- A sequence returns what its continuation returns on a return of its first part. -/
-theorem RetOK.bind {Q' : α → Prop} {Q : β → Prop} {p : Prog α} {f : α → Prog β}
+theorem RetOK.bind {Q' : α → Prop} {Q : β → Prop} {p : VerifierProgram α} {f : α →
+    VerifierProgram β}
     (hp : RetOK Q' p) (hf : ∀ a, Q' a → RetOK Q (f a)) : RetOK Q (p.bind f) := by
   intro l b hl
-  rcases Prog.after_bind_cases f hl with ⟨q, hq, hr⟩ | ⟨a, l₁, l₂, -, h1, -, h2⟩
+  rcases VerifierProgram.after_bind_cases f hl with ⟨q, hq, hr⟩ | ⟨a, l₁, l₂, -, h1, -, h2⟩
   · obtain ⟨a, rfl, hfa⟩ := bind_eq_ret' hr.symm
-    exact hf a (hp l a hq) [] b (by simp [Prog.after, hfa])
+    exact hf a (hp l a hq) [] b (by simp [VerifierProgram.after, hfa])
   · exact hf a (hp l₁ a h1) l₂ b h2
 
 /-- A sequence whose continuation's returns satisfy `Q` whatever the first part returns. -/
-theorem RetOK.bind_true {Q : β → Prop} {p : Prog α} {f : α → Prog β}
+theorem RetOK.bind_true {Q : β → Prop} {p : VerifierProgram α} {f : α → VerifierProgram β}
     (hf : ∀ a, RetOK Q (f a)) : RetOK Q (p.bind f) :=
   (RetOK.true p).bind fun a _ ↦ hf a
 
 /-- `readN n` returns `n` scalars. -/
-theorem RetOK.readN : ∀ n : ℕ, RetOK (fun xs : List E ↦ xs.length = n) (Prog.readScalars n)
+theorem RetOK.readN : ∀ n : ℕ, RetOK (fun xs : List E ↦ xs.length = n)
+    (VerifierProgram.readScalars n)
   | 0 => RetOK.ret rfl
   | n + 1 => RetOK.bind_true fun _ ↦ (RetOK.readN n).bind fun xs hxs ↦
       RetOK.ret (by simp [hxs])
@@ -105,7 +109,7 @@ theorem RetOK.readN : ∀ n : ℕ, RetOK (fun xs : List E ↦ xs.length = n) (Pr
 
 /-- The bus phase returns at most five framework claims. -/
 theorem retOK_verifyBusBalance (layout : Layout) :
-    RetOK (fun bus : BusResult ↦ bus.claims.length ≤ 5) (verifyBusBalance computedValue layout) := by
+    RetOK (fun bus : BusResult ↦ bus.claims.length ≤ 5) (verifyBusBalance computedBytecodeValue layout) := by
   unfold verifyBusBalance
   refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun r ↦ ?_
   obtain ⟨countRoot, point, treeValues⟩ := r
@@ -168,7 +172,7 @@ theorem retOK_tablePhase (layout : Layout) (bus : BusResult) :
 /-- The bus phase and the table sumcheck return at most `5 + 6·90` claims. -/
 theorem retOK_busTable (layout : Layout) :
     RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 545)
-      ((verifyBusBalance computedValue layout).bind (tablePhaseClaims layout)) :=
+      ((verifyBusBalance computedBytecodeValue layout).bind (tablePhaseClaims layout)) :=
   (retOK_verifyBusBalance layout).bind fun bus hb ↦
     (retOK_tablePhase layout bus).mono fun _ h ↦ by omega
 

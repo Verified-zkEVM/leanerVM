@@ -16,7 +16,8 @@ public import LeanVM.Protocol.ToArkLib.Whir.Ood
 /-!
 # Expectations over a group of challenges
 
-`LeanVM.Protocol.Compile.Prog.retExp g h₀ l p` is the expectation, over the challenges `p` draws
+`LeanVM.Protocol.Compile.VerifierProgram.retExp g h₀ l p` is the expectation, over the challenges
+`p` draws
 before its first prover move, of `g` at the return. The joint bounds of `Spec.ofNoMove` are
 expectations of indicators. This module computes them for the move-free fragments of the WHIR
 verifier (`LeanVM.Protocol.Verifier.verifyWhir`, transcribing `verify_whir` at leanVM
@@ -34,7 +35,7 @@ verifier (`LeanVM.Protocol.Verifier.verifyWhir`, transcribing `verify_whir` at l
 
 namespace LeanVM.Protocol.Whir.Sound
 
-open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier Prog Finset
+open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier VerifierProgram Finset
 
 @[expose] public section
 
@@ -44,7 +45,7 @@ variable {α β : Type}
 
 /-- The expectation after a longer local history is the one after the longer base history. -/
 theorem retExp_shift (g : α → List Ev → ENNReal) :
-    ∀ (r : Prog α) (h₀ l m : List Ev), retExp g h₀ (l ++ m) r = retExp g (h₀ ++ l) m r
+    ∀ (r : VerifierProgram α) (h₀ l m : List Ev), retExp g h₀ (l ++ m) r = retExp g (h₀ ++ l) m r
   | .ret a, h₀, l, m => by simp [retExp]
   | .fail, h₀, l, m => by simp [retExp]
   | .read k, h₀, l, m => by simp [retExp]
@@ -61,29 +62,29 @@ theorem retExp_shift (g : α → List Ev → ENNReal) :
     · rfl
 
 /-- **Sequencing** is iterated expectation. -/
-theorem retExp_bind (g : β → List Ev → ENNReal) (f : α → Prog β) :
-    ∀ (q : Prog α) (h₀ l : List Ev),
+theorem retExp_bind (g : β → List Ev → ENNReal) (f : α → VerifierProgram β) :
+    ∀ (q : VerifierProgram α) (h₀ l : List Ev),
       retExp g h₀ l (q.bind f) = retExp (fun a h ↦ retExp g h [] (f a)) h₀ l q
   | .ret a, h₀, l => by
-    simp only [Prog.bind, retExp]
+    simp only [VerifierProgram.bind, retExp]
     rw [← retExp_shift, List.append_nil]
-  | .fail, h₀, l => by simp [Prog.bind, retExp]
-  | .read k, h₀, l => by simp [Prog.bind, retExp]
-  | .grind b k, h₀, l => by simp [Prog.bind, retExp]
-  | .commit ht w k, h₀, l => by simp [Prog.bind, retExp]
+  | .fail, h₀, l => by simp [VerifierProgram.bind, retExp]
+  | .read k, h₀, l => by simp [VerifierProgram.bind, retExp]
+  | .grind b k, h₀, l => by simp [VerifierProgram.bind, retExp]
+  | .commit ht w k, h₀, l => by simp [VerifierProgram.bind, retExp]
   | .sample k, h₀, l => by
-    simp only [Prog.bind, retExp]
+    simp only [VerifierProgram.bind, retExp]
     congr 1
     exact Finset.sum_congr rfl fun c _ ↦ retExp_bind g f (k c) h₀ _
   | .query i ps k, h₀, l => by
-    simp only [Prog.bind, retExp]
+    simp only [VerifierProgram.bind, retExp]
     split
     · exact retExp_bind g f _ h₀ _
     · rfl
 
 /-- Expectations are monotone. -/
 theorem retExp_mono {g g' : α → List Ev → ENNReal} (hg : ∀ a h, g a h ≤ g' a h) :
-    ∀ (q : Prog α) (h₀ l : List Ev), retExp g h₀ l q ≤ retExp g' h₀ l q
+    ∀ (q : VerifierProgram α) (h₀ l : List Ev), retExp g h₀ l q ≤ retExp g' h₀ l q
   | .ret a, h₀, l => by simpa [retExp] using hg a _
   | .fail, h₀, l => by simp [retExp]
   | .read k, h₀, l => by simp [retExp]
@@ -101,7 +102,7 @@ theorem retExp_mono {g g' : α → List Ev → ENNReal} (hg : ∀ a h, g a h ≤
 
 /-- Constants factor out of expectations. -/
 theorem retExp_const_mul (c : ENNReal) (g : α → List Ev → ENNReal) :
-    ∀ (q : Prog α) (h₀ l : List Ev),
+    ∀ (q : VerifierProgram α) (h₀ l : List Ev),
       retExp (fun a h ↦ c * g a h) h₀ l q = c * retExp g h₀ l q
   | .ret a, h₀, l => by simp [retExp]
   | .fail, h₀, l => by simp [retExp]
@@ -136,7 +137,7 @@ theorem answer_append_sample (h : List Ev) (c : E) (i : ℕ) (ps : List ℕ) :
 
 /-- **A function of the commitments is constant along a group.** -/
 theorem retExp_commits (G : α → List (ℕ × ℕ × Word) → ENNReal) :
-    ∀ (q : Prog α) (h₀ l : List Ev),
+    ∀ (q : VerifierProgram α) (h₀ l : List Ev),
       retExp (fun a h ↦ G a (commits h)) h₀ l q =
         retExp (fun a _ ↦ G a (commits (h₀ ++ l))) h₀ l q
   | .ret a, h₀, l => by simp [retExp]
@@ -181,7 +182,7 @@ theorem retExp_sampleN (G : List E → ENNReal) :
     rw [Fintype.sum_unique]
     simp
   | n + 1, h₀, l => by
-    rw [sampleChallenges, show (do let x ← sampleChallenge; let xs ← sampleChallenges n; return x :: xs : Prog (List E)) =
+    rw [sampleChallenges, show (do let x ← sampleChallenge; let xs ← sampleChallenges n; return x :: xs : VerifierProgram (List E)) =
       sampleChallenge.bind fun x ↦ (sampleChallenges n).bind fun xs ↦ ret (x :: xs) from rfl, retExp_bind,
       retExp_sampleE]
     have hin : ∀ c h, retExp (fun v _ ↦ G v) h [] ((sampleChallenges n).bind fun xs ↦ ret (c :: xs)) =

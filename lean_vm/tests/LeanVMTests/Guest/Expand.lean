@@ -210,8 +210,9 @@ cells. A wrong digest fails. -/
 open LeanVM.Protocol.KeccakHash in
 /-- The digest of the first `len` bytes of the cells, as two cells. -/
 def cellsDigest (cells : List E) (len : Nat) : List E :=
-  let d := keccak256 ((cells.flatMap fun c => kBytes (c.limb 0) ++ kBytes (c.limb 1)).take len)
-  [(digestScalars d).1, (digestScalars d).2]
+  let d := keccak256 ((cells.flatMap fun c
+      => K.toBytes (c.limb 0) ++ K.toBytes (c.limb 1)).take len)
+  [(digestHalves d).1, (digestHalves d).2]
 
 /-- Source literals as words. -/
 def lits (ns : List Nat) : List E := ns.map litField
@@ -371,14 +372,14 @@ def keccakAtoms (f : Core.Fn) : List (List Core.V × List Core.V × Bool × Bool
 
 /-- The `KECCAK` instructions of a compiled function: their read and written offsets and
 layouts. -/
-def keccakInstrs (c : CompiledFn) : List (List Nat × List Nat × Bool × Bool) :=
+def keccakInstrs (c : CompiledFunction) : List (List Nat × List Nat × Bool × Bool) :=
   c.chunks.flatten.filterMap fun
     | .keccak m0 m1 m2 m3 tail b8 cap out i o =>
         some (keccakIns m0 m1 m2 m3 tail b8 cap, keccakOuts out, i, o)
     | _ => none
 
 /-- Whether a core function's `KECCAK` atoms are a compiled function's `KECCAK` instructions. -/
-def keccakAgree (f : Core.Fn) (c : CompiledFn) : Bool := Id.run do
+def keccakAgree (f : Core.Fn) (c : CompiledFunction) : Bool := Id.run do
   let as := keccakAtoms f
   let is := keccakInstrs c
   if as.length != is.length then return false

@@ -41,7 +41,8 @@ def cells : List E := (List.range 24).map fun i ↦ (gen ^ i : E)
 
 /-- A small memory: the word at `g^i` is `g^(i+1)` (as `E`) for `i < 64`. -/
 def smallReader (a : K) : Option E :=
-  ((List.range 64).find? fun i ↦ a == LeanVM.Parameters.gpow i).map fun i ↦ (gen ^ (i + 1) : E)
+  ((List.range 64).find? fun i ↦ a == LeanVM.Parameters.addressOfIndex i).map fun i ↦ (gen ^ (i +
+      1) : E)
 cost_compile smallReaderC := smallReader
 
 /-- The reader as a closure value. -/
@@ -88,7 +89,7 @@ def sigmaVal : MachineValue := .closure oneSigmaC.costIdx []
     deferOfCells ((List.range 24).map fun i ↦ (gen ^ (i + 1) : E))⟩ : LeanVM.Node.NodeStatement))
 
 /-- A valuation of `main` whose every value is `g^7`. -/
-def sevenSigma (_ : V) : E := LeanVM.Parameters.ofK (LeanVM.Parameters.gpow 7)
+def sevenSigma (_ : V) : E := LeanVM.Parameters.ofK (LeanVM.Parameters.addressOfIndex 7)
 cost_compile sevenSigmaC := sevenSigma
 
 -- The number of children, `gLog (g^7)`, by the compiled discrete logarithm, its tables given.
@@ -96,22 +97,23 @@ cost_compile sevenSigmaC := sevenSigma
   [dlTables, .closure sevenSigmaC.costIdx []] == some (encodeValue (7 : ℕ))
 
 /-- A memory of `2^3` words, word `i` at address `g^i` being `g^i` (as `E`). -/
-def mem8 : LeanVM.Semantics.MemoryImage 3 := fun i ↦ LeanVM.Parameters.ofK (LeanVM.Parameters.gpow i.val)
+def mem8 : LeanVM.Semantics.MemoryImage 3 := fun i ↦ LeanVM.Parameters.ofK (LeanVM.Parameters.addressOfIndex i.val)
 cost_compile mem8C := mem8
 
 -- The reader through the extractor's address table: the table, `κ`, the memory (a closure), the
 -- address.
 #guard runOn (readTableC.costDeps ++ mem8C.costDeps) readTableC.costIdx
   [encodeValue (LeanVM.Extraction.Fast.powTable 3), encodeValue (3 : ℕ), .closure mem8C.costIdx [],
-    encodeValue (LeanVM.Parameters.gpow 5)] ==
-  some (encodeValue (some (LeanVM.Parameters.ofK (LeanVM.Parameters.gpow 5))))
+    encodeValue (LeanVM.Parameters.addressOfIndex 5)] ==
+  some (encodeValue (some (LeanVM.Parameters.ofK (LeanVM.Parameters.addressOfIndex 5))))
 #guard runOn (readTableC.costDeps ++ mem8C.costDeps) readTableC.costIdx
   [encodeValue (LeanVM.Extraction.Fast.powTable 3), encodeValue (3 : ℕ), .closure mem8C.costIdx [],
-    encodeValue (LeanVM.Parameters.gpow 9)] == some (encodeValue (none : Option E))
+    encodeValue (LeanVM.Parameters.addressOfIndex 9)] == some (encodeValue (none : Option E))
 
 -- The cursor's length: `q = p · g^9` limb by limb.
 #guard runOn cursorLengthC.costDeps cursorLengthC.costIdx
-  [dlTables, encodeValue (1 : E), encodeValue (LeanVM.Parameters.ofK (LeanVM.Parameters.gpow 9))] ==
+  [dlTables, encodeValue (1 : E), encodeValue (LeanVM.Parameters.ofK
+      (LeanVM.Parameters.addressOfIndex 9))] ==
   some (encodeValue (9 : ℕ))
 
 /-! ## The replayed frame map -/
@@ -128,8 +130,8 @@ cost_compile anyPreC := anyPre
 
 /-- Two states: at function `2`'s entry and at function `3`'s, frame pointer `g^4`. -/
 def twoStates : List (LeanVM.Semantics.Registers K) :=
-  [⟨LeanVM.Parameters.gpow (guestEntries.getD 2 0), LeanVM.Parameters.gpow 4⟩,
-    ⟨LeanVM.Parameters.gpow (guestEntries.getD 3 0), LeanVM.Parameters.gpow 4⟩]
+  [⟨LeanVM.Parameters.addressOfIndex (guestEntries.getD 2 0), LeanVM.Parameters.addressOfIndex 4⟩,
+    ⟨LeanVM.Parameters.addressOfIndex (guestEntries.getD 3 0), LeanVM.Parameters.addressOfIndex 4⟩]
 
 -- The entry table of the two states, one sorted array (the table of entries built in the
 -- program).
@@ -142,12 +144,14 @@ def twoStates : List (LeanVM.Semantics.Registers K) :=
 -- A frame's word: function `2`'s call on its words, value `.n 0` (its first cell).
 #guard runOn (frameAtAC.costDeps ++ smallReaderC.costDeps) frameAtAC.costIdx
   [encodeValue (entryArrayT pcTableT anyPre twoStates smallReader), rdVal, encodeValue (2 : ℕ),
-    encodeValue (wordsWith smallReader (LeanVM.Parameters.gpow 4) 2 (guestArgCounts.getD 2 0)),
-    encodeValue (wordsWith smallReader (LeanVM.Parameters.gpow 4) (2 + guestArgCounts.getD 2 0)
+    encodeValue (wordsWith smallReader (LeanVM.Parameters.addressOfIndex 4) 2
+        (guestArgCounts.getD 2 0)),
+    encodeValue (wordsWith smallReader (LeanVM.Parameters.addressOfIndex 4) (2 +
+        guestArgCounts.getD 2 0)
       (guestRetCounts.getD 2 0)), encodeValue (V.n 0)] ==
   some (encodeValue (frameAtA (entryArrayT pcTableT anyPre twoStates smallReader) smallReader 2
-    (wordsWith smallReader (LeanVM.Parameters.gpow 4) 2 (guestArgCounts.getD 2 0))
-    (wordsWith smallReader (LeanVM.Parameters.gpow 4) (2 + guestArgCounts.getD 2 0)
+    (wordsWith smallReader (LeanVM.Parameters.addressOfIndex 4) 2 (guestArgCounts.getD 2 0))
+    (wordsWith smallReader (LeanVM.Parameters.addressOfIndex 4) (2 + guestArgCounts.getD 2 0)
       (guestRetCounts.getD 2 0)) (V.n 0)))
 
 end Frames

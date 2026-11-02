@@ -66,7 +66,7 @@ abbrev MemoryDecoder : Type := ∀ {κ : ℕ}, MemoryImage κ → SeedStatementA
 /-- **Knowledge soundness of the guest program, for a decoder of memories**: from the memory of
 every valid execution of `guest` on a public input, `decode` reads a seed, the node statement the
 input commits to under that seed, and a witness proving it (`ExplainsPublicInput`). -/
-def MemoryGuestKnowledge (guest : Program) (decode : MemoryDecoder) : Prop :=
+def MemoryGuestKnowledge (guest : LeanIsaProgram) (decode : MemoryDecoder) : Prop :=
   ∀ input (t : Execution guest), ValidExecution guest input t →
     ExplainsPublicInput guest input (decode t.memory)
 
@@ -119,7 +119,7 @@ coordinates, which the outer verifier's check that it holds implies) decodes to
 candidates. -/
 theorem decode_binds_of (h : SoundHyps W) {input : PublicInput} {t : Execution guestProgram}
     (hv : ValidExecution guestProgram input t) {iv : Digest} {s₀ : NodeStatement}
-    (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode) (hpub : publicDigest input = statementDigest iv s₀) :
+    (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode) (hpub : publicInputDigest input = statementDigest iv s₀) :
     ((decodeWith W t.memory).seed = iv ∧ (decodeWith W t.memory).statement = s₀) ∨
       HasCollision (collisionCandidates (decodeWith W t.memory).seed
         (decodeWith W t.memory).statement iv s₀) := by
@@ -130,7 +130,7 @@ theorem decode_binds_of (h : SoundHyps W) {input : PublicInput} {t : Execution g
 and a statement of the input's digest of the guest's shape that a witness holds (`NodeRelation`). -/
 theorem guest_sound_of (h : SoundHyps W) (input : PublicInput) (t : Execution guestProgram)
     (hv : ValidExecution guestProgram input t) :
-    ∃ seed s, statementDigest seed s = publicDigest input ∧ s.deferredClaim.HasBytecodeShape bytecode ∧
+    ∃ seed s, statementDigest seed s = publicInputDigest input ∧ s.deferredClaim.HasBytecodeShape bytecode ∧
       ∃ w, NodeRelation bytecode seed s w := by
   obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
   exact ⟨_, _, hd, hrel.2.2.2.2, _, hrel⟩
@@ -160,7 +160,7 @@ theorem guest_knowledge_V {piOf : Reader → Val → FrameMap → Protocol.Compi
 theorem decode_binds_V {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof} (hb2 : B2SoundL)
     (hv : B1.Main.SubSoundW bytecode piOf) {input : PublicInput} {t : Execution guestProgram}
     (hvt : ValidExecution guestProgram input t) {iv : Digest} {s₀ : NodeStatement}
-    (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode) (hpub : publicDigest input = statementDigest iv s₀) :
+    (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode) (hpub : publicInputDigest input = statementDigest iv s₀) :
     ((decodeV piOf t.memory).seed = iv ∧ (decodeV piOf t.memory).statement = s₀) ∨
       HasCollision (collisionCandidates (decodeV piOf t.memory).seed
         (decodeV piOf t.memory).statement iv s₀) :=

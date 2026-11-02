@@ -84,7 +84,7 @@ theorem cap_meaning_at (h : TrFit c tr) (hs : OsSizes c) {μ r : ℕ} {target : 
     {i : ℕ} (hi : i < c.levels.length) (hcdd : (lvAt c i).capDepth ≤ (lvAt c i).depth) :
     MeaningVerifyMerkleCap (lvAt c i).capDepth rd
       [caps * gen ^ (4 * (lvAt c i).capOff), flags * gen ^ (lvAt c i).capOff]
-      [(digestScalars (tr.L i).root).1, (digestScalars (tr.L i).root).2] := by
+      [(digestHalves (tr.L i).root).1, (digestHalves (tr.L i).root).2] := by
   have hil : i < tr.Ls.length := by rw [h.len]; exact hi
   obtain ⟨R, d, hOk⟩ := h.ok i hi
   have hh := hrun.height i hil

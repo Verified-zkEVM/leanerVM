@@ -55,22 +55,23 @@ example (ℓ : Log) (s : KeccakState) :
       ((2 * ℓ.length + 2 : ℕ) : ℝ≥0∞) * 2⁻¹ ^ 256 :=
   sum_badF_div_le ℓ s
 
-example {X : Type} {P : Prog Bool} (D : List Ev → Prop) (σ : Seeds X) (ℓ : Log) (x : Bytes) :
+example {X : Type} {P : VerifierProgram Bool} (D : List Ev → Prop) (σ : Seeds X) (ℓ : Log) (x :
+    Bytes) :
     (∑ u, pot D σ P (ℓ ++ [.inl (x, u)])) / Fintype.card Digest ≤
       pot D σ P ℓ + ((5 + σ.offs.length) * (ℓ.length + 1) : ℕ) / 2 ^ 256 :=
   step_ineqH D ℓ x
 
-example {X : Type} {P : Prog Bool} (C : Cert P) (σ : Seeds X) {εmax : ℝ≥0∞}
+example {X : Type} {P : VerifierProgram Bool} (C : Cert P) (σ : Seeds X) {εmax : ℝ≥0∞}
     (hε : ∀ h, 2⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) (ℓ : Log) (t : KeccakState)
     (ht : lookF ℓ t = none) :
     (∑ u, pot C.D σ P (ℓ ++ [.inr (t, u)])) / Fintype.card KeccakState ≤
       pot C.D σ P ℓ + (εmax + ((5 + σ.offs.length) * (ℓ.length + 1) : ℕ) / 2 ^ 256) :=
   step_ineqF C hε ℓ t ht
 
-example {X : Type} {P : Prog Bool} (C : Cert P) (σ : Seeds X) : pot C.D σ P [] = 0 :=
+example {X : Type} {P : VerifierProgram Bool} (C : Cert P) (σ : Seeds X) : pot C.D σ P [] = 0 :=
   pot_nil C.D σ P
 
-example {X : Type} {P : Prog Bool} (C : Cert P) {σ : Seeds X} {ℓ : Log} (hf : ¬ Fail σ ℓ)
+example {X : Type} {P : VerifierProgram Bool} (C : Cert P) {σ : Seeds X} {ℓ : Log} (hf : ¬ Fail σ ℓ)
     (hε1 : ∀ h, grindBits h = 0 → C.ε h < 1) {x : X} {π : Proof} (hroot : RootOk P (σ.root x))
     (hv : verify (lookH ℓ) (lookF ℓ) (σ.seed x) (nodeAt P (σ.root x)) π = some true)
     (hbad : ∃ h₀, h₀ <+: extractedFrom (lookH ℓ) (lookF ℓ) (σ.seed x) (nodeAt P (σ.root x))
@@ -78,7 +79,7 @@ example {X : Type} {P : Prog Bool} (C : Cert P) {σ : Seeds X} {ℓ : Log} (hf :
     1 ≤ pot C.D σ P ℓ :=
   final_ineq C hf hε1 hroot hv hbad
 
-example {X : Type} (P : Prog Bool) (C : Cert P) (σ : Seeds X)
+example {X : Type} (P : VerifierProgram Bool) (C : Cert P) (σ : Seeds X)
     (hroot : ∀ x, RootOk P (σ.root x)) (εmax : ℝ≥0∞)
     (hε : ∀ h, (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax)
     (A : OracleComp KeccakCalls (X × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA)
@@ -90,18 +91,18 @@ example {X : Type} (P : Prog Bool) (C : Cert P) (σ : Seeds X)
 /-! ## A tiny program and its certificate -/
 
 /-- Read a scalar `x`, sample a challenge `c`, accept iff `c = x`. -/
-def toyProg : Prog Bool := .read fun x ↦ .sample fun c ↦ .ret (decide (c = x))
+def toyProg : VerifierProgram Bool := .read fun x ↦ .sample fun c ↦ .ret (decide (c = x))
 
 /-- Doom: the history is empty or is one scalar (the challenge is still to come). -/
 def toyD (h : List Ev) : Prop := h = [] ∨ ∃ x, h = [Ev.read x]
 
-theorem toy_after_nil : toyProg.after [] = some toyProg := by simp [Prog.after]
+theorem toy_after_nil : toyProg.after [] = some toyProg := by simp [VerifierProgram.after]
 
 theorem toy_after_read (x : E) :
     toyProg.after [Ev.read x] = some (.sample fun c ↦ .ret (decide (c = x))) := by
-  simp [toyProg, Prog.after]
+  simp [toyProg, VerifierProgram.after]
 
-theorem toy_after_of_toyD {h : List Ev} {p : Prog Bool} (hD : toyD h)
+theorem toy_after_of_toyD {h : List Ev} {p : VerifierProgram Bool} (hD : toyD h)
     (ha : toyProg.after h = some p) :
     p = toyProg ∨ ∃ x, p = .sample fun c ↦ .ret (decide (c = x)) := by
   rcases hD with rfl | ⟨x, rfl⟩
@@ -158,11 +159,12 @@ noncomputable def toyCert : Cert toyProg where
 theorem not_cert_of_always_doomed : ¬ ∃ C : Cert toyProg, ∀ h, C.D h := by
   rintro ⟨C, hC⟩
   have hr1 : toyProg.Reachable [Ev.read 0] := by
-    simpa using Prog.Reachable.read (P := toyProg) 0 Prog.Reachable.nil toy_after_nil
+    simpa using VerifierProgram.Reachable.read (P := toyProg) 0 VerifierProgram.Reachable.nil
+        toy_after_nil
   have hr2 : toyProg.Reachable [Ev.read 0, Ev.sample 0] := by
-    simpa using Prog.Reachable.sample (P := toyProg) 0 hr1 (toy_after_read 0)
+    simpa using VerifierProgram.Reachable.sample (P := toyProg) 0 hr1 (toy_after_read 0)
   have ha : toyProg.after [Ev.read 0, Ev.sample 0] = some (.ret true) := by
-    simp [toyProg, Prog.after]
+    simp [toyProg, VerifierProgram.after]
   exact C.final hr2 ha (hC _)
 
 /-! ## The compiled toy verifier -/
@@ -186,7 +188,7 @@ def toySeeds : Seeds Unit where
   inj _ _ x x' _ _ _ _ _ := rfl
 
 theorem toy_rootOk : RootOk toyProg [] :=
-  ⟨Prog.Reachable.nil, trivial, rfl, rfl, by simp [Prog.after]⟩
+  ⟨VerifierProgram.Reachable.nil, trivial, rfl, rfl, by simp [VerifierProgram.after]⟩
 
 theorem nodeAt_toy : nodeAt toyProg [] = toyProg := rfl
 

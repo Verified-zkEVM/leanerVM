@@ -49,7 +49,7 @@ noncomputable def decWitV (σ : Val) (rd : Reader) (V : FrameMap)
 def main_sound_V (bytecode : List K) (piOf : Reader → Val → FrameMap → Proof) : Prop :=
   bytecode.length = 2 ^ bytecodeVars → ∀ (rd : Reader), MemOk rd → ∀ (C : CallRel) (V : FrameMap),
     UnfoldsV rd C V → CallRel.Le C (coreProgram.Rel rd) → ∀ (D : Digest) (σ : Val),
-      LoadHolds rd 1 0 (digestScalars D).1 → LoadHolds rd 1 1 (digestScalars D).2 →
+      LoadHolds rd 1 0 (digestHalves D).1 → LoadHolds rd 1 1 (digestHalves D).2 →
       Stmt.HoldsList C rd σ Data.core0.body False (fun rs ↦ rs = []) →
         statementDigest (decSeed σ) (decStmt σ rd) = D ∧
           NodeRelation bytecode (decSeed σ) (decStmt σ rd) (decWitV σ rd V piOf)

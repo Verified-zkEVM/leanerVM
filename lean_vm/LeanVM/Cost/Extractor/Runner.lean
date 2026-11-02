@@ -76,7 +76,7 @@ theorem keccakRound_shared (a : KeccakState) (rc : UInt64) :
 cost_rewrite keccakRound_shared
 
 /-- `executeWith`, Keccak-f of the cells read computed once. -/
-@[expose] def executeWithShared (read : K → Option E) (r : Registers K) : Instr → Option (Registers K)
+@[expose] def executeWithShared (read : K → Option E) (r : Registers K) : LeanIsaInstruction → Option (Registers K)
   | .xor oA oB oC => do
     let vA ← read (r.fp * oA)
     let vB ← read (r.fp * oB)
@@ -107,13 +107,13 @@ cost_rewrite keccakRound_shared
     guard (IsInK c ∧ IsInK d ∧ IsInK f)
     pure (if c = 0 then r.next else ⟨d.limb 0, f.limb 0⟩)
   | .keccak om otail ob8 ocap oout inOdd outOdd => do
-    let input ← readCells read r.fp (keccakInOffset om otail ob8 ocap)
+    let input ← readCells read r.fp (keccakInputCellOffset om otail ob8 ocap)
     let output ← readCells read r.fp fun c ↦ LeanVM.Parameters.g ^ c.val * oout
     let s := keccakF1600 (stateOfCells input inOdd)
     guard ((∀ c, IsCanonical128 (input c)) ∧ ∀ c, output c = cellsOfState s outOdd c)
     pure r.next
 
-theorem executeWith_shared (read : K → Option E) (r : Registers K) (i : Instr) :
+theorem executeWith_shared (read : K → Option E) (r : Registers K) (i : LeanIsaInstruction) :
     executeWith read r i = executeWithShared read r i := by
   cases i <;> rfl
 

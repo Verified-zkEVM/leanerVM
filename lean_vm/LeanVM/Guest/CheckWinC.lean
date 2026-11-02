@@ -29,7 +29,7 @@ noncomputable def checkWinC (G : Glob) (j : ℕ) (cf : Core.Fn) (C : Cert) (main
     Bool :=
   match execWinC C.facts (fnOf j) (C.cutAt i).J (C.cutAt i).env (C.endAt (fnOf j) i) with
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (C.locAt i).seq fun loc ↦
-      C.contOk i && C.insOk (nth C.ins i []) && covOk loc (C.stmtsAt cf i) &&
+      C.contOk i && C.insOk (listElementOrDefault C.ins i []) && covOk loc (C.stmtsAt cf i) &&
       linkedWeak idx segs (C.fxAt G (fnOf j) cf main i segs idx loc).wJ (C.fxAt G (fnOf j) cf main i segs idx loc).wenv &&
       (bif i == 0 then runAt loc 2 cf.params && main == C.facts.fpOne else true) &&
       (match segAt (C.fxAt G (fnOf j) cf main i segs idx loc) (C.cutAt i).J

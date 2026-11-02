@@ -139,7 +139,7 @@ theorem absorbPure_cost (hP : Includes P absorbPureC.costDeps) (sp : Sponge) (x 
 open LeanVM.Protocol.Compile in
 /-- Reading `n` scalars: at most `148` per scalar. -/
 theorem readPure_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.readPure.c320.costDeps) :
-    ∀ (n : ℕ) (s : ProgState), n < 2 ^ 64 → s.sponge.pending.length ≤ 4 →
+    ∀ (n : ℕ) (s : VerifierProgramState), n < 2 ^ 64 → s.sponge.pending.length ≤ 4 →
       machineCost P Auto.LeanVM.Extraction.Fast.readPure.c320.costIdx [encodeValue n, encodeValue s] ≤ 148 * n + 11
   | 0, s, _, _ => by rw [Auto.LeanVM.Extraction.Fast.readPure.c320.costEq_zero P hP]
   | n + 1, s, hn, hs => by
@@ -169,7 +169,8 @@ theorem digestOfScalars_cost (hP : Includes P digestOfScalarsC.costDeps) (s : E 
 
 open LeanVM.Protocol.Compile in
 /-- Reading the root: at most `11·|roots| + 290`. -/
-theorem commitPure_cost (hP : Includes P commitPureC.costDeps) (height width : ℕ) (s : ProgState)
+theorem commitPure_cost (hP : Includes P commitPureC.costDeps) (height width : ℕ) (s :
+    VerifierProgramState)
     (hs : s.sponge.pending.length ≤ 4) :
     machineCost P commitPureC.costIdx [encodeValue height, encodeValue width, encodeValue s] ≤ 11 * s.roots.length + 290 := by
   rw [commitPureC.costEq P hP]
@@ -180,7 +181,7 @@ theorem commitPure_cost (hP : Includes P commitPureC.costDeps) (height width : �
   · simp
   · simp only
     have hd := digestOfScalars_cost P (by includes) (x0, x1)
-    cases LeanVM.Protocol.KeccakHash.digestOfScalars (x0, x1) with
+    cases LeanVM.Protocol.KeccakHash.digestFromHalves (x0, x1) with
     | none => simp only; omega
     | some root =>
       simp only
@@ -276,28 +277,29 @@ theorem ladder_cost (hP : Includes P ladderC.costDeps) (μ R : ℕ) (hμ : μ < 
     have hq : machineCost P queryTableC.costIdx [] = 1137 := queryTableC.costEq P (by includes)
     have hg1 := getD_cost P (by includes) queryTable (R - 1) [] (by omega)
     have hg2 := getD_cost P (by includes) (queryTable.getD (R - 1) []) (μ - 15) [] (by omega)
-    have hl1 := length_cost P (by includes) (shape μ R) (by
+    have hl1 := length_cost P (by includes) (ladderShape μ R) (by
       have := length_levelsFrom μ (μ - initialFold) initialFold R initialReduction
-      simp only [shape, List.length_cons]; omega)
+      simp only [ladderShape, List.length_cons]; omega)
     have hl2 := length_cost P (by includes) ((queryTable.getD (R - 1) []).getD (μ - 15) []) (by
       have := queryTable_queries_length (R - 1) (μ - 15); omega)
     have hqt : queryTable.length = 4 := by decide +kernel
     have hrow := queryTable_row_length (R - 1)
     have hqq := queryTable_queries_length (R - 1) (μ - 15)
-    have hsl : (shape μ R).length ≤ 29 := by
+    have hsl : (ladderShape μ R).length ≤ 29 := by
       have := length_levelsFrom μ (μ - initialFold) initialFold R initialReduction
-      simp only [shape, List.length_cons]; omega
+      simp only [ladderShape, List.length_cons]; omega
     have hz := listZipWith_le P (by includes) (fun (g : ℕ × ℕ) (q : ℕ) ↦ (⟨g.1, g.2, q⟩ : Level))
       (.closure ladderC.lam0.costIdx []) (fun g q ↦ RunsApp.of_spec (ladderC.lam0.costSpec P (by includes) g q))
-      9 (shape μ R) ((queryTable.getD (R - 1) []).getD (μ - 15) [])
+      9 (ladderShape μ R) ((queryTable.getD (R - 1) []).getD (μ - 15) [])
       (fun g _ q _ ↦ by rw [appCost_fn, List.length_nil, Nat.add_zero, List.nil_append, ladderC.lam0.costEq P (by includes)])
-    have hmin : min (shape μ R).length ((queryTable.getD (R - 1) []).getD (μ - 15) []).length ≤ 6 :=
+    have hmin : min (ladderShape μ R).length ((queryTable.getD (R - 1) []).getD (μ - 15)
+        []).length ≤ 6 :=
       le_trans (min_le_right _ _) hqq
-    rw [limbs_of_lt (by omega : (shape μ R).length < 2 ^ 64),
+    rw [limbs_of_lt (by omega : (ladderShape μ R).length < 2 ^ 64),
       limbs_of_lt (by omega : ((queryTable.getD (R - 1) []).getD (μ - 15) []).length < 2 ^ 64)]
     simp only [h1, h2, h3, h4, and_self, ↓reduceIte, max_self]
     rw [hqt] at hg1
-    by_cases he : (shape μ R).length = ((queryTable.getD (R - 1) []).getD (μ - 15) []).length
+    by_cases he : (ladderShape μ R).length = ((queryTable.getD (R - 1) []).getD (μ - 15) []).length
     · simp only [he, ↓reduceIte] at hz ⊢; omega
     · simp only [he, ↓reduceIte]; omega
   · split_ifs <;> simp_all
@@ -309,7 +311,7 @@ theorem ladder_head {μ R : ℕ} {lv : Level} {rest : List Level}
   dsimp only at h
   split_ifs at h
   obtain h := Option.some.inj h
-  rw [shape] at h
+  rw [ladderShape] at h
   generalize (queryTable.getD (R - minLogInvRate) []).getD (μ - minLogStack) [] = qs at h
   cases qs with
   | nil => simp at h
@@ -321,7 +323,7 @@ theorem ladder_head {μ R : ℕ} {lv : Level} {rest : List Level}
 open LeanVM.Protocol.Compile in
 /-- **Reading the stack's root**: the ladder, then the root at its first level: at most
 `3513 + 11·|roots|`. -/
-theorem commitStackPure_cost (hP : Includes P commitStackPureC.costDeps) (logN R : ℕ) (s : ProgState)
+theorem commitStackPure_cost (hP : Includes P commitStackPureC.costDeps) (logN R : ℕ) (s : VerifierProgramState)
     (hN : logN < 2 ^ 63) (hR : R < 2 ^ 60) (hs : s.sponge.pending.length ≤ 4) :
     machineCost P commitStackPureC.costIdx [encodeValue logN, encodeValue R, encodeValue s] ≤ 11 * s.roots.length + 3513 := by
   rw [commitStackPureC.costEq P hP]
@@ -930,7 +932,8 @@ theorem buildLayoutLite_cost (hP : Includes P buildLayoutLiteC.costDeps) (byteco
 /-! ## The sizes and the root -/
 
 open LeanVM.Protocol.Compile in
-theorem readPure_some : ∀ (n : ℕ) (s : ProgState) (xs : List E) (s' : ProgState),
+theorem readPure_some : ∀ (n : ℕ) (s : VerifierProgramState) (xs : List E) (s' :
+    VerifierProgramState),
     readPure n s = some (xs, s') → xs.length = n ∧ s'.roots = s.roots ∧
       (s.sponge.pending.length ≤ 4 → s'.sponge.pending.length ≤ 4)
   | 0, s, xs, s', h => by
@@ -993,7 +996,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier in
 /-- **The announced sizes**: eight scalars read, the layout built: `8` per bytecode word and at
 most `977124428`. -/
 theorem readSizesLite_cost (hP : Includes P readSizesLiteC.costDeps) (bytecode : List K)
-    (s : ProgState) (hb : bytecode.length < 2 ^ 63) (hs : s.sponge.pending.length ≤ 4) :
+    (s : VerifierProgramState) (hb : bytecode.length < 2 ^ 63) (hs : s.sponge.pending.length ≤ 4) :
     machineCost P readSizesLiteC.costIdx [encodeValue bytecode, encodeValue s] ≤
       8 * bytecode.length + 977124428 := by
   rw [readSizesLiteC.costEq P hP, FastLib.tablesLength, limbs_of_lt (by norm_num : (6 : ℕ) < 2 ^ 64)]
@@ -1062,7 +1065,8 @@ theorem readSizesLite_cost (hP : Includes P readSizesLiteC.costDeps) (bytecode :
     split_ifs <;> omega
 
 open LeanVM.Protocol.Compile in
-theorem readSizesLite_some {bytecode : List K} {s s' : ProgState} {L : LayoutLite} {R : ℕ}
+theorem readSizesLite_some {bytecode : List K} {s s' : VerifierProgramState} {L : LayoutLite}
+    {R : ℕ}
     (h : readSizesLite bytecode s = some ((L, R), s')) :
     R ≤ 4 ∧ L.stackLog ≤ 28 ∧ s'.roots = s.roots ∧
       (s.sponge.pending.length ≤ 4 → s'.sponge.pending.length ≤ 4) := by

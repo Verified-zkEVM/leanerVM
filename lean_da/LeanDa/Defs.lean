@@ -36,22 +36,24 @@ open PqDas
 
 /-- **Wagner's relation for LeanDA**: the cells commit to the root and pass the membership test on
 the challenges the statement carries. -/
-noncomputable def Relation (r : ℕ) (H : List UInt8 → Common.DigestBytes) (stmt : Unit × Common.DigestBytes × Challenges)
+noncomputable def Relation (r : ℕ) (H : List UInt8 → Common.DigestBytes) (stmt : Unit × Common.DigestBytes × MembershipChallenges)
     (c : Fin (r * 128) → Cell) : Bool :=
   decide (commitCellsWithHash H c = stmt.2.1) && membershipCheck stmt.2.2 c
 
 /-- An argument of knowledge for `Relation r H`. -/
 abbrev Argument (r : ℕ) (H : List UInt8 → Common.DigestBytes) (Crs Proof : Type) :=
-  Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof (Relation r H)
+  Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs Proof
+      (Relation r H)
 
 /-- **Verification of an opening** in Wagner's scheme, with a hash `H` and the sponge's
 permutation `P` in any monad: the challenges of the commitment's root from the deployed duplex
 over `P`, the argument's verification, and the opening's. -/
 def verifyRpm {m : Type → Type} [Monad m] (H : List UInt8 → m Common.DigestBytes)
     (P : LeanVM.Semantics.KeccakState → m LeanVM.Semantics.KeccakState)
-    (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
-    (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : Opening) : m Bool := do
+    (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
+    (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) : m
+        Bool := do
   let zs ← membershipChallengesMWithHash H P com.1
   let v ← verifyCellMWithHash H r com.1 p x τ
   pure (ps.verify crs ((), com.1, toChallenges zs) com.2 && v)
@@ -83,9 +85,10 @@ def walk : ℕ → Common.DigestBytes → List Common.DigestBytes → Common.Dig
 /-- **Verification of a cell opening** with a pure hash (`verifyCellM` over `Id`): a path of the
 column tree's height that climbs from the cell's digest to a column root, which hashed after the
 row root gives the commitment. -/
-def verifyCell (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) : Bool :=
+def verifyCell (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) : Bool :=
   decide (τ.path.length = 7 + logPaddedRowCount r) &&
-    decide (H (pairBytes τ.rowRoot (walk H (colIndex p) (cellDigestWithHash H x) τ.path)) = com)
+    decide (H (pairBytes τ.rowRoot (walk H (columnTreeIndex p) (cellDigestWithHash H x)
+        τ.path)) = com)
 
 /-- The hash inputs from a cell's bytes `a` at index `idx` up to the root, the last one
 `rowRoot ‖ colRoot`. -/
@@ -100,10 +103,10 @@ def findCollision : List (List UInt8) → List (List UInt8) → List UInt8 × Li
   | _, _ => ([], [])
 
 /-- The collision two openings of one position give. -/
-def openingsCollision (r : ℕ) (p : Fin (r * 128)) (x : Cell) (τ : Opening) (x' : Cell)
-    (τ' : Opening) : List UInt8 × List UInt8 :=
-  findCollision H (hashInputs H (colIndex p) (cellBytes x) τ.path τ.rowRoot)
-    (hashInputs H (colIndex p) (cellBytes x') τ'.path τ'.rowRoot)
+def openingsCollision (r : ℕ) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) (x' : Cell)
+    (τ' : CellOpening) : List UInt8 × List UInt8 :=
+  findCollision H (hashInputs H (columnTreeIndex p) (cellBytes x) τ.path τ.rowRoot)
+    (hashInputs H (columnTreeIndex p) (cellBytes x') τ'.path τ'.rowRoot)
 
 end LeanDa
 
@@ -116,12 +119,13 @@ open PqDas OracleComp OracleSpec ENNReal Common
 namespace LeanDa
 
 /-- **LeanDA's code checker**: the membership test on challenges `z ∈ E^14`. -/
-noncomputable def checker (r : ℕ) : CodeChecker Cell (r * 128) Challenges := ⟨membershipCheck⟩
+noncomputable def checker (r : ℕ) : CodeChecker Cell (r * 128) MembershipChallenges :=
+    ⟨membershipCheck⟩
 
 /-- **LeanDA's vector commitment** with hash `H`: the root of the two Merkle trees, cells opened
 by their column-tree paths. It needs no key. -/
 def merkleVC (r : ℕ) (H : List UInt8 → Common.DigestBytes) :
-    VectorCommitment Cell (r * 128) Unit Common.DigestBytes Opening where
+    VectorCommitment Cell (r * 128) Unit Common.DigestBytes CellOpening where
   setup := pure ()
   commit _ c := commitCellsWithHash H c
   openAt _ c p := openCellWithHash H c p
@@ -137,7 +141,7 @@ def hashCollisionExp (H : List UInt8 → Common.DigestBytes) (B : ProbComp (List
 /-- **The reduction from position binding to a collision**: run the adversary and climb its two
 openings (`openingsCollision`). -/
 def merkleCollider (r : ℕ) (H : List UInt8 → Common.DigestBytes)
-    (A : VectorCommitment.PosBindingAdv Cell (r * 128) Unit Common.DigestBytes Opening) :
+    (A : VectorCommitment.PosBindingAdv Cell (r * 128) Unit Common.DigestBytes CellOpening) :
     ProbComp (List UInt8 × List UInt8) := do
   let (_, p, x, τ, x', τ') ← A ()
   return openingsCollision H r p x τ x' τ'
@@ -145,7 +149,7 @@ def merkleCollider (r : ℕ) (H : List UInt8 → Common.DigestBytes)
 /-- An argument of knowledge for Wagner's scheme relation of LeanDA (`Relation`, by
 `relation_eq`). -/
 abbrev WArgument (r : ℕ) (H : List UInt8 → Common.DigestBytes) (Crs Proof : Type) :=
-  Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof
+  Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs Proof
     (schemeRel (merkleVC r H) (checker r))
 
 /-! ### Lanes and bytes
@@ -185,14 +189,14 @@ abbrev pKB (L : Lanes) : OracleComp KSpecB Lanes :=
 
 /-- A position-binding adversary on byte states. -/
 abbrev PosBindingAdvB (r : ℕ) (Crs Proof : Type) :=
-  Unit × Crs → OracleComp KSpecB ((Common.DigestBytes × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening)
+  Unit × Crs → OracleComp KSpecB ((Common.DigestBytes × Proof) × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening)
 
 /-- A code-binding adversary on byte states. -/
 abbrev CodeBindingAdvB (r : ℕ) (Crs Proof : Type) :=
-  Unit × Crs → OracleComp KSpecB ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening))
+  Unit × Crs → OracleComp KSpecB ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening))
 
 /-- A knowledge-soundness adversary on byte states. -/
-abbrev KsAdvB (Crs Proof : Type) := Crs → OracleComp KSpecB ((Unit × Common.DigestBytes × Challenges) × Proof)
+abbrev KsAdvB (Crs Proof : Type) := Crs → OracleComp KSpecB ((Unit × Common.DigestBytes × MembershipChallenges) × Proof)
 
 /-! ### The games in the two-oracle form
 
@@ -224,14 +228,16 @@ def permCalls2 : (dSpec2 (List UInt8) DigestBytes KState).Domain → ℕ
 
 section Games
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+      Crs Proof)
 
 /-- The verifier's part of the position-binding game: both openings verify, at two different
 cells. -/
 def posBindingPost (crs : Crs)
-    (out : (Common.DigestBytes × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening) :
+    (out : (Common.DigestBytes × Proof) × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening) :
     OracleComp Rom2 Bool := do
   let b ← verifyRpm hR pR r ps crs out.1 out.2.1 out.2.2.1 out.2.2.2.1
   let b' ← verifyRpm hR pR r ps crs out.1 out.2.1 out.2.2.2.2.1 out.2.2.2.2.2
@@ -249,9 +255,10 @@ noncomputable def posBindingExpRpm (A : PosBindingAdvB r Crs Proof) : ProbComp B
 /-- The verifier's part of the code-binding game: every opening verifies, and no codeword agrees
 with the opened cells. -/
 noncomputable def codeBindingPost (crs : Crs)
-    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) : OracleComp Rom2 Bool := do
+    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) : OracleComp Rom2 Bool := do
   let verdicts ← out.2.mapM fun o ↦ verifyRpm hR pR r ps crs out.1 o.1 o.2.1 o.2.2
-  pure (verdicts.all id && !decide ((code r).Consistent (out.2.map fun o ↦ (o.1, o.2.1))))
+  pure (verdicts.all id && !decide ((leanDaErasureCode r).Consistent (out.2.map fun o ↦ (o.1,
+      o.2.1))))
 
 /-- The code-binding game in the two-oracle form. -/
 noncomputable def codeBindingGame2 (A : CodeBindingAdvB r Crs Proof) :
@@ -264,7 +271,8 @@ noncomputable def codeBindingExpRpm (A : CodeBindingAdvB r Crs Proof) : ProbComp
 
 /-- The verifier's part of the knowledge-soundness game: the proof verifies, and the extracted
 cells do not satisfy the relation (`Relation`), their root hashed with Keccak-256. -/
-noncomputable def ksPost (crs : Crs) (out : (Unit × Common.DigestBytes × Challenges) × Proof) :
+noncomputable def ksPost (crs : Crs) (out : (Unit × Common.DigestBytes × MembershipChallenges) ×
+    Proof) :
     OracleComp Rom2 Bool := do
   let root ← commitCellsMWithHash hR (ext crs out.1 out.2)
   pure (ps.verify crs out.1 out.2 &&
@@ -428,10 +436,11 @@ theorem daBuild_symm_cap (y : KState) (j : Fin 72) :
 
 /-- The scalars the root's words make (`membership_challenges`). -/
 def rootScalars (root : Common.DigestBytes) : List (E × K) :=
-  [(ofLimbs (word root 0) (word root 1) 0, dsObserve), (ofLimbs (word root 2) (word root 3) 0, dsObserve)]
+  [(ofLimbs (digestWord root 0) (digestWord root 1) 0, dsObserve), (ofLimbs (digestWord root 2) (digestWord root 3) 0, dsObserve)]
 
 /-- The initial state: the label's hash in lanes `0 … 3` (`Sponge.new`). -/
-def daInit (iv : Common.DigestBytes) : KState := lanesToState (newInput iv (Vector.replicate 32 0))
+def daInit (iv : Common.DigestBytes) : KState := lanesToState (freshSpongeInput iv
+    (Vector.replicate 32 0))
 
 /-- The state absorbing the root after the answer `y₀`. -/
 def daFirst (root : Common.DigestBytes) (y : KState) : KState :=
@@ -482,12 +491,13 @@ theorem foldr_bytes_digit (l : List UInt8) (t : ℕ) (ht : t < l.length) :
       exact ih t (by simpa using ht)
 
 /-- **Eight bytes read as a word and written back.** -/
-theorem kBytes_ofBytes (l : List UInt8) (hl : l.length = 8) : kBytes (ofBytes l) = l := by
+theorem kBytes_ofBytes (l : List UInt8) (hl : l.length = 8) : symbolBytes (symbolOfBytes l) =
+    l := by
   have hN := foldr_bytes_lt l
   rw [hl] at hN
-  apply List.ext_getElem (by simp [kBytes, hl])
+  apply List.ext_getElem (by simp [symbolBytes, hl])
   intro t h1 h2
-  simp only [kBytes, List.getElem_map, List.getElem_range, ofBytes, K.ofBits,
+  simp only [symbolBytes, List.getElem_map, List.getElem_range, symbolOfBytes, K.ofBits,
     BF64.toBitVec_ofBitVec, BitVec.toNat_ofNat]
   apply UInt8.toNat_inj.mp
   rw [Nat.mod_eq_of_lt (by simpa using hN), Nat.shiftRight_eq_div_pow, pow_mul]
@@ -496,16 +506,17 @@ theorem kBytes_ofBytes (l : List UInt8) (hl : l.length = 8) : kBytes (ofBytes l)
 
 theorem word_bytes (d : Common.DigestBytes) (p : ℕ) (hp : p < 32) :
     d.toList[p]'(by simpa using hp) =
-      (kBytes (word d (p / 8)))[p % 8]'(by simp [kBytes]; omega) := by
+      (symbolBytes (digestWord d (p / 8)))[p % 8]'(by simp [symbolBytes]; omega) := by
   have hlen : ((d.toList.drop (8 * (p / 8))).take 8).length = 8 := by
     simp only [List.length_take, List.length_drop, Vector.length_toList]; omega
-  simp only [word]
+  simp only [digestWord]
   rw [List.getElem_of_eq (kBytes_ofBytes _ hlen), List.getElem_take, List.getElem_drop]
   congr 1
   omega
 
 /-- **A digest is its four words.** -/
-theorem eq_of_words {d d' : Common.DigestBytes} (h : ∀ i < 4, word d i = word d' i) : d = d' := by
+theorem eq_of_words {d d' : Common.DigestBytes} (h : ∀ i < 4, digestWord d i = digestWord d' i) : d
+    = d' := by
   apply Vector.toList_inj.mp
   apply List.ext_getElem (by simp)
   intro p h1 h2
@@ -518,8 +529,8 @@ theorem limb_ofLimbs_0 (a b c : K) : limb (ofLimbs a b c) 0 = a := rfl
 theorem limb_ofLimbs_1 (a b c : K) : limb (ofLimbs a b c) 1 = b := rfl
 
 theorem rateWords_rootScalars (root : Common.DigestBytes) :
-    rateWords (rootScalars root) = [word root 0, word root 1, limb (ofLimbs (word root 0) (word root 1) 0) 2,
-      dsObserve, word root 2, word root 3, limb (ofLimbs (word root 2) (word root 3) 0) 2, dsObserve] := by
+    rateWords (rootScalars root) = [digestWord root 0, digestWord root 1, limb (ofLimbs (digestWord root 0) (digestWord root 1) 0) 2,
+      dsObserve, digestWord root 2, digestWord root 3, limb (ofLimbs (digestWord root 2) (digestWord root 3) 0) 2, dsObserve] := by
   simp only [rateWords, rootScalars, List.flatMap_cons, List.flatMap_nil, List.append_nil,
     limb_ofLimbs_0, limb_ofLimbs_1, List.cons_append, List.nil_append]
 
@@ -568,7 +579,7 @@ theorem daDec_iff (y x : KState) (r : Common.DigestBytes) : daDec y x = some r �
 /-- **LeanDA's challenges as a duplex**: `14` challenges of `E` from the label's hash and the
 root, the capacity lanes `16 … 24` kept by every duplexing. -/
 noncomputable def daDuplex : DuplexSpec (List UInt8) DigestBytes KState Common.DigestBytes E DaW DaCp 14 where
-  label := label
+  label := membershipLabel
   init := daInit
   first := daFirst
   next := daNext
@@ -602,10 +613,10 @@ open scoped ENNReal
 namespace LeanDa
 
 /-- Wagner's oracles: coins and the challenges `G`, a random oracle of the roots. -/
-abbrev WSpec := unifSpec + (Common.DigestBytes →ₒ Challenges)
+abbrev WSpec := unifSpec + (Common.DigestBytes →ₒ MembershipChallenges)
 
 /-- The challenges and `H`. -/
-abbrev TSpec := (Common.DigestBytes →ₒ Challenges) + roSpec (List UInt8) DigestBytes
+abbrev TSpec := (Common.DigestBytes →ₒ MembershipChallenges) + roSpec (List UInt8) DigestBytes
 
 /-- A cache of `H`. -/
 abbrev HCache := (roSpec (List UInt8) DigestBytes).QueryCache
@@ -640,8 +651,9 @@ noncomputable def phiG (h : HTab) :
 
 section Adversary
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
 
 /-- The crs the adversary runs with: the given one when the setup can output it, else one it
 can (the bound on the adversary's queries holds for these). -/
@@ -653,7 +665,7 @@ noncomputable def fixCrs (crs : Crs) : Crs := by
 its permutation queries simulated from `H` and `F`, `F` answered by the duplex lemma's simulator. -/
 noncomputable def advSim (A : CodeBindingAdvB r Crs Proof) (crs : Crs) :
     OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14)
-      ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) :=
+      ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) :=
   (simulateQ (simImpl daDuplex hP gaP) (hQ (St := KState) daDuplex.label >>= fun _ ↦
     advS2 keccakPadding KState.zero (A ((), crs)))).run' SimSt.init
 
@@ -662,7 +674,7 @@ from `h` on short strings and lazily on long ones, and the challenges `G` from W
 oracle. -/
 noncomputable def advH (A : CodeBindingAdvB r Crs Proof) (h : HTab) :
     ErasureCodeCommitment.CodeBindingAdv (OracleComp WSpec) Cell (r * 128) (Unit × Crs)
-      (Common.DigestBytes × Proof) Opening :=
+      (Common.DigestBytes × Proof) CellOpening :=
   fun ck ↦ (simulateQ (phiG h) (advSim r A (fixCrs r ps ck.2))).run' ∅
 
 end Adversary
@@ -672,8 +684,9 @@ section Verify
 variable (r : ℕ) {Crs Proof : Type}
 
 /-- The argument for the relation of a hash `H`, from an argument for any relation. -/
-def argH {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+def argH {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+        Proof rel)
     (H : List UInt8 → Common.DigestBytes) : WArgument r H Crs Proof :=
   ⟨ps.setup, ps.prove, ps.verify⟩
 
@@ -681,20 +694,23 @@ end Verify
 
 section Final
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
 
 /-- Wagner's knowledge-soundness experiment for the table `h`: his reduction `ksReduction` from
 `advH h`, against the argument `ps` for the relation with the hash `Hh h`. -/
 noncomputable def ksExpH
-    (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+    (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+        Crs Proof)
     (A : CodeBindingAdvB r Crs Proof) (h : HTab) : ProbComp Bool :=
   (argH r ps (Hh h)).knowledgeSoundnessExp ext (ksReduction (merkleVC r (Hh h)) (advH r ps A h))
 
 /-- The collision experiment of `Hh h` against Wagner's weak-position-binding reduction from
 `advH h`, through `merkleCollider`. -/
 noncomputable def wpbCollExpH [NeZero r]
-    (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+    (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+        Crs Proof)
     (A : CodeBindingAdvB r Crs Proof) (h : HTab) : ProbComp Bool :=
   hashCollisionExp (Hh h) (merkleCollider r (Hh h)
     ((wpbReduction (argH r ps (Hh h)) ext (advH r ps A h)).toPosBindingAdv (merkleVC r (Hh h))))
@@ -702,10 +718,12 @@ noncomputable def wpbCollExpH [NeZero r]
 /-- The collision experiment of `Hh h` against Wagner's forking reduction from `advH h` (at most
 `Q + 1` queries of the challenges), through `merkleCollider`. -/
 noncomputable def forkCollExpH [NeZero r]
-    (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+    (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+        Crs Proof)
     (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (h : HTab) : ProbComp Bool :=
   hashCollisionExp (Hh h) (merkleCollider r (Hh h)
-    ((CommittedSoundness.forkCollisionReduction (code r) (merkleVC r (Hh h)) (checker r)
+    ((CommittedSoundness.forkCollisionReduction (leanDaErasureCode r) (merkleVC r (Hh h))
+        (checker r)
       (csReduction (argH r ps (Hh h)) ext (advH r ps A h)) (Q + 1)).toPosBindingAdv
         (merkleVC r (Hh h))))
 

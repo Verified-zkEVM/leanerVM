@@ -42,7 +42,7 @@ theorem cellBytes_cellOfBytes {b : List UInt8} (h : 16 ≤ b.length) :
   exact (List.take_add (l := b) (i := 8) (j := 8)).symm
 
 theorem length_claimBytes (r p : BitVec 128) (m : BitVec 256) : (claimBytes r p m).length = 64 := by
-  simp [claimBytes, littleEndianBytes16, HashSig.bytesLE]
+  simp [claimBytes, littleEndianBytes16, HashSig.littleEndianBytes]
 
 theorem kid_claimCells_eq (r p : BitVec 128) (m : BitVec 256) :
     claimCells r p m = [cellOfBytes (claimBytes r p m), cellOfBytes ((claimBytes r p m).drop 16),
@@ -147,10 +147,10 @@ def hKid (c : ℕ) : KidH where
   ex := hEx w c
   es := hEs w c
   base := gen ^ hW s w c
-  cx := (w.children.map fun ch => digestScalars (claimListDigest ch.statement.claims.xmss)).getD c (0, 0)
-  cs := (w.children.map fun ch => digestScalars (claimListDigest ch.statement.claims.sphincs)).getD c
+  cx := (w.children.map fun ch => digestHalves (claimListDigest ch.statement.claims.xmss)).getD c (0, 0)
+  cs := (w.children.map fun ch => digestHalves (claimListDigest ch.statement.claims.sphincs)).getD c
     (0, 0)
-  da := (w.children.map fun ch => digestScalars ch.statement.claims.daDigest).getD c (0, 0)
+  da := (w.children.map fun ch => digestHalves ch.statement.claims.daDigest).getD c (0, 0)
   defer := (w.children.map fun ch => ch.statement.deferredClaim.cells).getD c []
 
 variable {s w}
@@ -166,15 +166,15 @@ theorem hKid_es {c : ℕ} (hc : c < w.children.length) :
     (hKid s w c).es = w.children[c].statement.claims.sphincs.length := getD_map_lt _ _ _ hc
 
 theorem hKid_cx {c : ℕ} (hc : c < w.children.length) :
-    (hKid s w c).cx = digestScalars (claimListDigest w.children[c].statement.claims.xmss) :=
+    (hKid s w c).cx = digestHalves (claimListDigest w.children[c].statement.claims.xmss) :=
   getD_map_lt _ _ _ hc
 
 theorem hKid_cs {c : ℕ} (hc : c < w.children.length) :
-    (hKid s w c).cs = digestScalars (claimListDigest w.children[c].statement.claims.sphincs) :=
+    (hKid s w c).cs = digestHalves (claimListDigest w.children[c].statement.claims.sphincs) :=
   getD_map_lt _ _ _ hc
 
 theorem hKid_da {c : ℕ} (hc : c < w.children.length) :
-    (hKid s w c).da = digestScalars w.children[c].statement.claims.daDigest := getD_map_lt _ _ _ hc
+    (hKid s w c).da = digestHalves w.children[c].statement.claims.daDigest := getD_map_lt _ _ _ hc
 
 theorem hKid_defer {c : ℕ} (hc : c < w.children.length) :
     (hKid s w c).defer = w.children[c].statement.deferredClaim.cells := getD_map_lt _ _ _ hc
@@ -182,8 +182,8 @@ theorem hKid_defer {c : ℕ} (hc : c < w.children.length) :
 /-- **Child `c`'s statement digest**, as `__loop4` computes it, is the child's statement's. -/
 theorem hKid_pi {c : ℕ} (hc : c < w.children.length)
     (hlen : w.children[c].statement.deferredClaim.cells.length = 24) :
-    (hKid s w c).pi (digestScalars seed).1 (digestScalars seed).2 =
-      digestScalars (statementDigest seed w.children[c].statement) := by
+    (hKid s w c).pi (digestHalves seed).1 (digestHalves seed).2 =
+      digestHalves (statementDigest seed w.children[c].statement) := by
   unfold KidH.pi
   rw [hKid_cx hc, hKid_cs hc, hKid_da hc, hKid_defer hc,
     statementDigest_parts (digestBytes_eq_cells seed) (digestBytes_eq_cells _)

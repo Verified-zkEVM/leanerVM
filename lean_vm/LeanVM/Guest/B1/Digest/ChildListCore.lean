@@ -77,9 +77,11 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries cover marks origin limit : 
       (∀ a ∈ cclAtoms k, a.Holds rd σ) ∧
       vs.map σ = digestCells (keccak256 (pre ++ cellsBytes cells)) ∧
       ∀ q ∈ (cclAtoms k).filterMap Memory.atomLoad?,
-        (∃ o < 13, (σ q.1).limb 0 * Parameters.gpow q.2 = Parameters.gpow (sP + o)) ∨
-        (∃ j < k, (σ q.1).limb 0 * Parameters.gpow q.2 = Parameters.gpow (cv + og + os j)) ∨
-        (∃ j < k, ∃ c < 4, (σ q.1).limb 0 * Parameters.gpow q.2 = Parameters.gpow (eP + 4 * os j + c)) := by
+        (∃ o < 13, (σ q.1).limb 0 * Parameters.addressOfIndex q.2 = Parameters.addressOfIndex (sP
+            + o)) ∨
+        (∃ j < k, (σ q.1).limb 0 * Parameters.addressOfIndex q.2 = Parameters.addressOfIndex (cv +
+            og + os j)) ∨
+        (∃ j < k, ∃ c < 4, (σ q.1).limb 0 * Parameters.addressOfIndex q.2 = Parameters.addressOfIndex (eP + 4 * os j + c)) := by
   have hok := ccl_all k hk
   have hcok := ccc_all hk
   set fn := coreProgram.getD (339 + k) default
@@ -192,19 +194,19 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries cover marks origin limit : 
               List.any_eq_true, List.mem_range] at h
             obtain ⟨rfl, j, hj, -, hperm⟩ := h
             refine Or.inr (Or.inl ⟨j, hj, ?_⟩)
-            show (σ p).limb 0 * Parameters.gpow 0 = _
+            show (σ p).limb 0 * Parameters.addressOfIndex 0 = _
             rw [monoPerm_sound hperm hF]
             simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one]
             rw [hwit j hj]
-            show (σ (.n 2) * (σ (.n 4) * gen ^ os j)).limb 0 * Parameters.gpow 0 = _
+            show (σ (.n 2) * (σ (.n 4) * gen ^ os j)).limb 0 * Parameters.addressOfIndex 0 = _
             rw [e2, e4, hcv, hog, ← pow_add, ← pow_add, limb0_gen_pow_mul, Nat.add_zero, Nat.add_assoc]
           · simp only [recSide, hS', decide_false, Bool.false_eq_true, ↓reduceIte, Bool.and_eq_true,
               decide_eq_true_eq, List.any_eq_true, List.mem_range] at h
             obtain ⟨hoff, j, hj, hperm⟩ := h
             refine Or.inr (Or.inr ⟨j, hj, off, hoff, ?_⟩)
-            show (σ p).limb 0 * Parameters.gpow off = _
+            show (σ p).limb 0 * Parameters.addressOfIndex off = _
             rw [cells_ptr hperm hF (hwit j hj)]
-            show (σ (.n 1) * gen ^ (4 * os j)).limb 0 * Parameters.gpow off = _
+            show (σ (.n 1) * gen ^ (4 * os j)).limb 0 * Parameters.addressOfIndex off = _
             rw [e1, hen, ← pow_add, limb0_gen_pow_mul]
       | _ => simp [Memory.atomLoad?] at haq
   · exact absurd hok (by simp)
@@ -227,10 +229,13 @@ theorem l17_core {x N chain entries cover base origin limit : E} {xj chP eP cv o
         [x, N, chain, entries, cover, base, origin, limit] ∧
       (∀ a ∈ atomsIn (loopPre (coreProgram.getD 338 default)), a.Holds rd σ) ∧
       ∀ q ∈ (loopPre (coreProgram.getD 338 default)).filterMap B1.Stmt.loadS,
-        (∃ o < 26, (σ q.1).limb 0 * Parameters.gpow q.2 = Parameters.gpow (chP + 13 * xj + o)) ∨
-        (∃ j < 17, (σ q.1).limb 0 * Parameters.gpow q.2 = Parameters.gpow (cv + og + os j)) ∨
+        (∃ o < 26, (σ q.1).limb 0 * Parameters.addressOfIndex q.2 = Parameters.addressOfIndex (chP +
+            13 * xj + o)) ∨
+        (∃ j < 17, (σ q.1).limb 0 * Parameters.addressOfIndex q.2 = Parameters.addressOfIndex (cv +
+            og + os j)) ∨
         (∃ j < 17, ∃ c < 4,
-          (σ q.1).limb 0 * Parameters.gpow q.2 = Parameters.gpow (eP + 4 * os j + c)) := by
+          (σ q.1).limb 0 * Parameters.addressOfIndex q.2 = Parameters.addressOfIndex (eP + 4 * os j
+              + c)) := by
   have hok := l17_ok
   have hcok := l17c_ok
   have hnb := l17_nb
@@ -344,7 +349,7 @@ theorem l17_core {x N chain entries cover base origin limit : E} {xj chP eP cv o
         rw [hnb, hwc, v13]
         exact hS' ⟨c, hc13⟩
       · exact hside a ha h
-  have h13 : (σ (.n 13)).limb 0 = Parameters.gpow (chP + 13 * xj) := by
+  have h13 : (σ (.n 13)).limb 0 = Parameters.addressOfIndex (chP + 13 * xj) := by
     rw [v13, hch, hx, ← pow_mul, ← pow_add, Memory.limb0_gen_pow, Nat.mul_comm xj 13]
   refine ⟨σ, ?_, fun a ha => hat a (by have := heqA'; simp only [← hAdef] at this; rw [← this]; exact ha), fun q hq => ?_⟩
   · rw [hpar]
@@ -365,7 +370,7 @@ theorem l17_core {x N chain entries cover base origin limit : E} {xj chP eP cv o
       · simp only [isLoadBelow, Bool.and_eq_true, decide_eq_true_eq] at h
         obtain ⟨rfl, ho⟩ := h
         refine Or.inl ⟨off, by omega, ?_⟩
-        show (σ (.n 13)).limb 0 * Parameters.gpow off = _
+        show (σ (.n 13)).limb 0 * Parameters.addressOfIndex off = _
         rw [h13, Memory.gpow_add']
       · obtain ⟨c, hc', he⟩ := List.any_eq_true.mp h
         have hc13 := List.mem_range.mp hc'
@@ -373,26 +378,26 @@ theorem l17_core {x N chain entries cover base origin limit : E} {xj chP eP cv o
         simp only [Atom.load.injEq] at he'
         obtain ⟨-, rfl, rfl⟩ := he'
         refine Or.inl ⟨13 + c, by omega, ?_⟩
-        show (σ (.n 13)).limb 0 * Parameters.gpow (13 + c) = _
+        show (σ (.n 13)).limb 0 * Parameters.addressOfIndex (13 + c) = _
         rw [h13, Memory.gpow_add']
       · by_cases hS' : Atom.load d p off ∈ S
         · simp only [recSide, ← hSdef, hS', decide_true, ↓reduceIte, Bool.and_eq_true, decide_eq_true_eq,
             List.any_eq_true, List.mem_range] at h
           obtain ⟨rfl, j, hj, -, hperm⟩ := h
           refine Or.inr (Or.inl ⟨j, hj, ?_⟩)
-          show (σ p).limb 0 * Parameters.gpow 0 = _
+          show (σ p).limb 0 * Parameters.addressOfIndex 0 = _
           rw [monoPerm_sound hperm hF]
           simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one]
           rw [hwit j hj]
-          show (σ (.n 4) * (σ (.n 6) * gen ^ os j)).limb 0 * Parameters.gpow 0 = _
+          show (σ (.n 4) * (σ (.n 6) * gen ^ os j)).limb 0 * Parameters.addressOfIndex 0 = _
           rw [e4, e6, hcv, hog, ← pow_add, ← pow_add, limb0_gen_pow_mul, Nat.add_zero, Nat.add_assoc]
         · simp only [recSide, ← hSdef, hS', decide_false, Bool.false_eq_true, ↓reduceIte, Bool.and_eq_true,
             decide_eq_true_eq, List.any_eq_true, List.mem_range] at h
           obtain ⟨hoff, j, hj, hperm⟩ := h
           refine Or.inr (Or.inr ⟨j, hj, off, hoff, ?_⟩)
-          show (σ p).limb 0 * Parameters.gpow off = _
+          show (σ p).limb 0 * Parameters.addressOfIndex off = _
           rw [cells_ptr hperm hF (hwit j hj)]
-          show (σ (.n 3) * gen ^ (4 * os j)).limb 0 * Parameters.gpow off = _
+          show (σ (.n 3) * gen ^ (4 * os j)).limb 0 * Parameters.addressOfIndex off = _
           rw [e3, hen, ← pow_add, limb0_gen_pow_mul]
     | _ => simp [B1.Stmt.loadS] at hsq
 

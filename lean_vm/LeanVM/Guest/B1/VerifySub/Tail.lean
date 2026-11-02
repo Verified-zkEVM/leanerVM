@@ -132,7 +132,7 @@ theorem vsTailT_holds (h : Stmt.HoldsList C rd σ vsTailT next kret) :
       (σ (.n 124) * σ (.n 124) * σ (.n 124)) * σ (.n 124)) ∧
     (LoadHolds rd (σ (.n 1901)) 0 (σ (.n 1904)) ∧ word 134217728 0 0 = σ (.n 1901) * σ (.n 1903) ∧
       LoadHolds rd (σ (.n 1903)) 0 (σ (.n 1905))) ∧
-    (∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1901) = ofK (gpow j) ∧
+    (∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1901) = ofK (addressOfIndex j) ∧
       C vsOpenNames[j] [σ (.n 1312), σ (.n 1313), σ (.n 1314), σ (.n 1315), σ (.n 1316),
         σ (.n 1886), σ (.n 537), σ (.n 547), σ (.n 868)]
         [σ (.n 1906), σ (.n 1907), σ (.n 1908), σ (.n 1909), σ (.n 1910)]) ∧
@@ -163,7 +163,8 @@ theorem vsTailT_holds (h : Stmt.HoldsList C rd σ vsTailT next kret) :
 theorem mem_size {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {p : E} {n : ℕ} (hn : n ≤ 2 ^ 32)
     (h : ∀ j < n, ∃ v, LoadHolds L.read p j v) : n ≤ 2 ^ κ := by
   have hκ64 : κ < 64 := by omega
-  have hidx : ∀ j : Fin n, ∃ i : Fin (2 ^ κ), p.limb 0 * Parameters.gpow j = Parameters.gpow i := by
+  have hidx : ∀ j : Fin n, ∃ i : Fin (2 ^ κ), p.limb 0 * Parameters.addressOfIndex j =
+      Parameters.addressOfIndex i := by
     intro j
     obtain ⟨v, -, hv⟩ := h j j.isLt
     obtain ⟨i, hi, -⟩ := (read_some_iff hκ64 L _ _).mp hv

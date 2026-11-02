@@ -97,11 +97,11 @@ theorem vtP_honest (hl : args.length = 22) {W : List E} (hW16 : 16 ≤ W.length)
 
 /-! ## Statements -/
 
-theorem vtB_gpow_isSome {K : ℕ} (hlow : ∀ i < K, (rd (Parameters.gpow i)).isSome) {e : ℕ}
+theorem vtB_gpow_isSome {K : ℕ} (hlow : ∀ i < K, (rd (Parameters.addressOfIndex i)).isSome) {e : ℕ}
     (he : e < K) : ∃ v, LoadHolds rd (gen ^ e) 0 v ∧ rdAt rd (gen ^ e) 0 = v := by
   obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp (hlow e he)
-  have ha : (gen ^ e).limb 0 * Parameters.gpow 0 = Parameters.gpow e := by
-    rw [gen_pow_eq_ofK]; simp [Parameters.gpow]
+  have ha : (gen ^ e).limb 0 * Parameters.addressOfIndex 0 = Parameters.addressOfIndex e := by
+    rw [gen_pow_eq_ofK]; simp [Parameters.addressOfIndex]
   refine ⟨v, ⟨tb_gen_pow_isInK e, by rw [ha, hv]⟩, ?_⟩
   rw [rdAt, ha, hv]; rfl
 
@@ -137,7 +137,7 @@ theorem vshB_rcM (hl : args.length = 22) {x y t1 t2 k : V}
     (hs : Stmt.atom (.rangeCheck x y t1 t2 k) ∈ vtPre)
     (hky : k.idx < y.idx) {K e : ℕ} (hx : vtσ rd w args x = gen ^ e)
     (hk : vtσ rd w args k = gen ^ (K - 1)) (he : e < K)
-    (hlow : ∀ i < K, (rd (Parameters.gpow i)).isSome) :
+    (hlow : ∀ i < K, (rd (Parameters.addressOfIndex i)).isSome) :
     VSH (coreProgram.Rel rd) rd (vtσ rd w args) (.atom (.rangeCheck x y t1 t2 k)) := by
   have hg := vt_goodS (rd := rd) (w := w) hl hs
   simp only [fixNe, GoodS, Good] at hg

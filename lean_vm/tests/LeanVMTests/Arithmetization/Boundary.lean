@@ -40,7 +40,8 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization
 def memWords : Array (Vector K 3) := #[#v[1, K.ofBits 2, K.ofBits 3], #v[K.ofBits 4, K.ofBits 5, K.ofBits 6], #v[K.ofBits 7, K.ofBits 8, K.ofBits 9], #v[0, 0, 0]]
 
 /-- The program: an `XOR` and a `JUMP`, `logSize = 1`, a `Program` value (public, not data). -/
-def bProg : Program := ⟨1, by decide, ![.xor (gpow 2) (gpow 3) (gpow 4), .jump 1 1 1]⟩
+def bProg : LeanIsaProgram := ⟨1,
+    by decide, ![.xor (addressOfIndex 2) (addressOfIndex 3) (addressOfIndex 4), .jump 1 1 1]⟩
 
 /-- The prover data, its one table matched on arity so that the kernel never compares names
 (as in the channel and table tests). -/
@@ -62,16 +63,18 @@ theorem bData_wellShaped : WellShapedData bData where
 theorem read_at (k : ℕ) (v : Vector K 3) (hk : k < 4 := by decide)
     (hv : memWords[k]'(by rw [show memWords.size = 4 from rfl]; exact hk) = v :=
       by decide +kernel) :
-    (imageOf bData).2.read (gpow k) = some (E.ofLimbs v[0] v[1] v[2]) := by
+    (imageOf bData).2.read (addressOfIndex k) = some (E.ofLimbs v[0] v[1] v[2]) := by
   have hk' : k < 2 ^ (imageOf bData).1 := by rw [bData_logSize]; omega
-  rw [show gpow k = gpow ((⟨k, hk'⟩ : Fin (2 ^ (imageOf bData).1)) : ℕ) from rfl,
+  rw [show addressOfIndex k = addressOfIndex ((⟨k, hk'⟩ : Fin (2 ^ (imageOf bData).1)) : ℕ)
+      from rfl,
     MemoryImage.read_gpow (by rw [bData_logSize]; decide), imageOf_apply bData_wellShaped _ hv]
 
 /-- The instruction at `g^i` of the fixture's program. -/
-theorem fetch_at (i : ℕ) (ins : Instr) (hi : i < 2 ^ bProg.logSize := by decide)
-    (hd : bProg.code ⟨i, hi⟩ = ins := by rfl) : bProg.fetch (gpow i) = some ins := by
-  rw [show gpow i = gpow ((⟨i, hi⟩ : Fin (2 ^ bProg.logSize)) : ℕ) from rfl,
-    Program.fetch_gpow, hd]
+theorem fetch_at (i : ℕ) (ins : LeanIsaInstruction) (hi : i < 2 ^ bProg.logSize := by decide)
+    (hd : bProg.instructions ⟨i, hi⟩ = ins :=
+        by rfl) : bProg.fetch (addressOfIndex i) = some ins := by
+  rw [show addressOfIndex i = addressOfIndex ((⟨i, hi⟩ : Fin (2 ^ bProg.logSize)) : ℕ) from rfl,
+    LeanIsaProgram.fetch_gpow, hd]
 
 /-! ## The three blocks are their flushes (`layout.rs:418-461`) -/
 
@@ -93,22 +96,24 @@ example (r : Var BytecodeRow K) : (bytecodeTable.main r).operations 0 =
 
 /-- The verifier of `prog`: push `(1, 1)`, pull `(prog.pcFinal, 1)`, both constants, on the state
 pair (specification §6.1; `layout.rs:420-424`). -/
-example (prog : Program) (pi : Var PublicIO K) : ((leanIsaVerifier prog).main pi).operations 0 =
+example (prog : LeanIsaProgram) (pi : Var PublicIO K) : ((leanIsaVerifier prog).main
+    pi).operations 0 =
     [.interact ⟨StatePush.toRaw, 1, toElements (⟨1, 1⟩ : Registers (Expression K)), false⟩,
      .interact ⟨StatePull.toRaw, -1,
        toElements (⟨Expression.const prog.pcFinal, 1⟩ : Registers (Expression K)), true⟩] :=
   rfl
 
 /-- The seed count is the word `1 = g^0`. -/
-example (env : Environment K) : Expression.eval env (1 : Expression K) = gpow 0 := by
+example (env : Environment K) : Expression.eval env (1 : Expression K) = addressOfIndex 0 := by
   simp only [circuit_norm]; rfl
 
 /-- The verifier has no local witness: the `verifier_length_zero` field of `leanIsaEnsemble`. -/
-example (prog : Program) (pi : Var PublicIO K) : (leanIsaVerifier prog).localLength pi = 0 := by
+example (prog : LeanIsaProgram) (pi : Var PublicIO K) : (leanIsaVerifier prog).localLength pi =
+    0 := by
   simp only [circuit_norm, leanIsaVerifier]
 
 /-- The verifier is complete for every program and public input over every data. -/
-example (prog : Program) (pi : PublicIO K) (data : ProverData K) :
+example (prog : LeanIsaProgram) (pi : PublicIO K) (data : ProverData K) :
     ConstraintsHold.Completeness (rowEnv data)
       (((leanIsaVerifier prog).main (const pi)).operations 0) :=
   ((leanIsaVerifier prog).completeness 0 (rowEnv data) (const pi)
@@ -121,7 +126,8 @@ example (env : Environment K) : eval env (⟨1, 1⟩ : Registers (Expression K))
   verifier_push_eval env
 
 example (env : Environment K) :
-    eval env (⟨Expression.const bProg.pcFinal, 1⟩ : Registers (Expression K)) = ⟨gpow 1, 1⟩ := by
+    eval env (⟨Expression.const bProg.pcFinal, 1⟩ : Registers (Expression K)) = ⟨addressOfIndex 1,
+        1⟩ := by
   rw [verifier_pull_eval]
   rfl
 
@@ -137,7 +143,8 @@ example : size PublicIO = 4 := rfl
 /-! ## The memory block -/
 
 /-- The honest seed row of word `1`: `(g^1, g^3, (4, 5, 6))`, read three times. -/
-def memRow1 : MemRow K := ⟨gpow 1, gpow 3, #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]⟩
+def memRow1 : MemRow K := ⟨addressOfIndex 1, addressOfIndex 3, #v[K.ofBits 4, K.ofBits 5,
+    K.ofBits 6]⟩
 
 /-- The honest row is bound to the image. -/
 theorem memRow1_spec : MemSpec memRow1 bData := ⟨read_at 1 #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]⟩
@@ -147,7 +154,8 @@ bound too. -/
 example : MemSpec { memRow1 with cntFin := 0 } bData := ⟨read_at 1 #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]⟩
 
 /-- The row `memRowOf` builds from the image is the honest row. -/
-example : memRowOf (imageOf bData).2 ⟨1, by rw [bData_logSize]; decide⟩ (gpow 3) = memRow1 := by
+example : memRowOf (imageOf bData).2 ⟨1,
+    by rw [bData_logSize]; decide⟩ (addressOfIndex 3) = memRow1 := by
   rw [memRowOf, imageOf_apply bData_wellShaped _ (v := #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]) (by decide +kernel)]
   simp only [limb_ofLimbs]
   rfl
@@ -156,7 +164,7 @@ example : memRowOf (imageOf bData).2 ⟨1, by rw [bData_logSize]; decide⟩ (gpo
 (`mem_word_complete`), with any count: word `1` at `g^3`, word `3` at `0`. -/
 example : ConstraintsHold.Completeness (rowEnv bData)
     ((memTable.main (const (memRowOf (imageOf bData).2 ⟨1, by rw [bData_logSize]; decide⟩
-      (gpow 3)))).operations 0) :=
+      (addressOfIndex 3)))).operations 0) :=
   mem_word_complete _ _
 
 example : ConstraintsHold.Completeness (rowEnv bData)
@@ -169,7 +177,8 @@ def memRow1' : MemRow K := { memRow1 with m := #v[K.ofBits 4, K.ofBits 5, K.ofBi
 
 theorem memRow1'_not_spec : ¬ MemSpec memRow1' bData := by
   rintro ⟨h⟩
-  rw [show memRow1'.idx = gpow 1 from rfl, read_at 1 #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]] at h
+  rw [show memRow1'.idx = addressOfIndex 1 from rfl, read_at 1 #v[K.ofBits 4, K.ofBits 5, K.ofBits
+      6]] at h
   exact absurd (Option.some.inj h) (by decide +kernel)
 
 /-- … and the constraints `main` emits on it fail in every environment over the data: its pull
@@ -187,7 +196,7 @@ example (cntFin : K) (m : Vector K 3) : ¬ MemSpec ⟨0, cntFin, m⟩ bData := b
   cases h
 
 /-- An address past the image, `g^4` at `κ = 2`, is no address either. -/
-example (cntFin : K) (m : Vector K 3) : ¬ MemSpec ⟨gpow 4, cntFin, m⟩ bData := by
+example (cntFin : K) (m : Vector K 3) : ¬ MemSpec ⟨addressOfIndex 4, cntFin, m⟩ bData := by
   rintro ⟨h⟩
   rw [MemoryImage.read, gLog?_gpow_eq_none (by rw [bData_logSize]; decide) (by decide),
     Option.map_none] at h
@@ -197,16 +206,17 @@ example (cntFin : K) (m : Vector K 3) : ¬ MemSpec ⟨gpow 4, cntFin, m⟩ bData
 
 /-- The honest seed row of slot `0`: the `XOR` entry, executed twice. -/
 def bcRow0 : BytecodeRow K :=
-  ⟨gpow 0, gpow 2, Opcode.xor.code, #v[gpow 2, gpow 3, gpow 4, 0, 0, 0, 0, 0, 0, 0]⟩
+  ⟨addressOfIndex 0, addressOfIndex 2, Opcode.xor.busCode, #v[addressOfIndex 2, addressOfIndex 3,
+      addressOfIndex 4, 0, 0, 0, 0, 0, 0, 0]⟩
 
 /-- The honest row decodes: the block's `Spec`, over no data. -/
 theorem bcRow0_decodes : BytecodeDecodes bcRow0 :=
-  ⟨.xor (gpow 2) (gpow 3) (gpow 4), by decide +kernel⟩
+  ⟨.xor (addressOfIndex 2) (addressOfIndex 3) (addressOfIndex 4), by decide +kernel⟩
 
 /-- … and is the program's: its entry is the instruction fetched at its counter, the per-row
 reading of `BytecodeRowsAreTheProgram`, which the block does not state. -/
 theorem bcRow0_bindings : BytecodeBindings bProg bcRow0 :=
-  ⟨_, fetch_at 0 (.xor (gpow 2) (gpow 3) (gpow 4)), by decide +kernel⟩
+  ⟨_, fetch_at 0 (.xor (addressOfIndex 2) (addressOfIndex 3) (addressOfIndex 4)), by decide +kernel⟩
 
 /-- The two slot indices of the fixture's program. -/
 theorem slot0_lt : 0 < 2 ^ bProg.logSize := by decide
@@ -215,16 +225,17 @@ theorem slot1_lt : 1 < 2 ^ bProg.logSize := by decide
 /-- The row `bytecodeRowOf` builds from the program is the honest row, and slot `1` gives the
 `JUMP` entry with its seven spare slots zero: the block's rows are a function of the program,
 the finalize count aside. -/
-example : bytecodeRowOf bProg ⟨0, slot0_lt⟩ (gpow 2) = bcRow0 := rfl
+example : bytecodeRowOf bProg ⟨0, slot0_lt⟩ (addressOfIndex 2) = bcRow0 := rfl
 
 example : bytecodeRowOf bProg ⟨1, slot1_lt⟩ 1 =
-    ⟨gpow 1, 1, Opcode.jump.code, #v[1, 1, 1, 0, 0, 0, 0, 0, 0, 0]⟩ :=
+    ⟨addressOfIndex 1, 1, Opcode.jump.busCode, #v[1, 1, 1, 0, 0, 0, 0, 0, 0, 0]⟩ :=
   rfl
 
 /-- Every slot of the program has a satisfying seed row from the program alone
 (`bytecode_entry_complete`), with any count, over any data. -/
 example : ConstraintsHold.Completeness (rowEnv bData)
-    ((bytecodeTable.main (const (bytecodeRowOf bProg ⟨0, slot0_lt⟩ (gpow 2)))).operations 0) :=
+    ((bytecodeTable.main (const (bytecodeRowOf bProg ⟨0, slot0_lt⟩ (addressOfIndex
+        2)))).operations 0) :=
   bytecode_entry_complete bProg _ _
 
 example (data : ProverData K) : ConstraintsHold.Completeness (rowEnv data)
@@ -233,22 +244,23 @@ example (data : ProverData K) : ConstraintsHold.Completeness (rowEnv data)
 
 /-- A changed opcode: the row still decodes, so the block accepts it, its `Spec` naming no
 program (leanVM's block carries the program as public columns it does not check) … -/
-def bcRow0' : BytecodeRow K := { bcRow0 with opcode := Opcode.mulNative.code }
+def bcRow0' : BytecodeRow K := { bcRow0 with opcode := Opcode.mulNative.busCode }
 
 example : BytecodeDecodes bcRow0' :=
-  ⟨.mulNative (gpow 2) (gpow 3) (gpow 4), by decide +kernel⟩
+  ⟨.mulNative (addressOfIndex 2) (addressOfIndex 3) (addressOfIndex 4), by decide +kernel⟩
 
 /-- … and it is not the program's: `BytecodeBindings bProg` rejects it, which is where
 `BytecodeRowsAreTheProgram` rejects the witness, never the block. -/
 theorem bcRow0'_not_bound : ¬ BytecodeBindings bProg bcRow0' := by
   rintro ⟨ins, hfetch, hdec⟩
-  rw [show bcRow0'.idx = gpow 0 from rfl, fetch_at 0 (.xor (gpow 2) (gpow 3) (gpow 4))] at hfetch
+  rw [show bcRow0'.idx = addressOfIndex 0 from rfl, fetch_at 0 (.xor (addressOfIndex 2)
+      (addressOfIndex 3) (addressOfIndex 4))] at hfetch
   obtain rfl := Option.some.inj hfetch
   exact absurd hdec (by decide +kernel)
 
 /-- A nonzero spare slot is no instruction: the row decodes to
 nothing, fails the block's `Spec` … -/
-def bcRow0'' : BytecodeRow K := { bcRow0 with op := #v[gpow 2, gpow 3, gpow 4, 0, 0, 0, 0, 0, 0, 1] }
+def bcRow0'' : BytecodeRow K := { bcRow0 with op := #v[addressOfIndex 2, addressOfIndex 3, addressOfIndex 4, 0, 0, 0, 0, 0, 0, 1] }
 
 theorem bcRow0''_not_decodes : ¬ BytecodeDecodes bcRow0'' := by
   rintro ⟨ins, hdec⟩
@@ -267,9 +279,9 @@ example (get : ℕ → K) (data : ProverData K) :
 /-- A counter past the program, `g^2` at `logSize = 1`, fetches nothing: the row is no slot of
 the program, whatever its entry, though the block accepts a decodable one. -/
 example (cntFin opcode : K) (op : Vector K 10) :
-    ¬ BytecodeBindings bProg ⟨gpow 2, cntFin, opcode, op⟩ := by
+    ¬ BytecodeBindings bProg ⟨addressOfIndex 2, cntFin, opcode, op⟩ := by
   rintro ⟨ins, hfetch, -⟩
-  rw [Program.fetch, gLog?_gpow_eq_none (by decide) (by decide), Option.map_none] at hfetch
+  rw [LeanIsaProgram.fetch, gLog?_gpow_eq_none (by decide) (by decide), Option.map_none] at hfetch
   cases hfetch
 
 end LeanVMTests.Arithmetization.Boundary

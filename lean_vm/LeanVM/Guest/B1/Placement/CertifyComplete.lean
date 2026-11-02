@@ -40,10 +40,10 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- The memory is defined below `2^k`. -/
-def LowDefB (k : ℕ) (rd : Reader) : Prop := ∀ i < 2 ^ k, (rd (gpow i)).isSome
+def LowDefB (k : ℕ) (rd : Reader) : Prop := ∀ i < 2 ^ k, (rd (addressOfIndex i)).isSome
 
 /-- The word at `g^a`, or `0`. -/
-noncomputable def rdv (rd : Reader) (a : ℕ) : E := (rd (gpow a)).getD 0
+noncomputable def rdv (rd : Reader) (a : ℕ) : E := (rd (addressOfIndex a)).getD 0
 
 theorem tb_ite_neg {c : Prop} [Decidable c] (h : ¬c) {α : Type} {a b : α} :
     (if c then a else b) = b := by simp [h]
@@ -108,15 +108,15 @@ noncomputable def cpRank0V (j : ℕ) : E :=
   | 2 => gen ^ (98 - c)
   | 3 => rdv rd c
   | 4 => rdv rd (98 - c)
-  | 5 => ofK (gpow e2) * gen ^ c
+  | 5 => ofK (addressOfIndex e2) * gen ^ c
   | 6 => gen ^ k
   | 7 => word 1 0 0
-  | 8 => ofK (gpow e121) * gen ^ c
+  | 8 => ofK (addressOfIndex e121) * gen ^ c
   | 9 => w33
   | 10 => gen ^ (33 - k)
   | 11 => rdv rd k
   | 12 => rdv rd (33 - k)
-  | 13 => ofK (gpow esq) * gen ^ k
+  | 13 => ofK (addressOfIndex esq) * gen ^ k
   | _ => gen ^ 2 ^ k
 
 /-- Rank `r ≥ 1`, value `97 + 26·r + j`. -/
@@ -131,7 +131,7 @@ noncomputable def cpRankV (r j : ℕ) : E :=
   | 2 => gen ^ (98 - c)
   | 3 => rdv rd c
   | 4 => rdv rd (98 - c)
-  | 5 => ofK (gpow e2) * gen ^ c
+  | 5 => ofK (addressOfIndex e2) * gen ^ c
   | 6 => gen ^ k
   | 7 => w33
   | 8 => gen ^ (kp - k)
@@ -144,28 +144,28 @@ noncomputable def cpRankV (r j : ℕ) : E :=
   | 15 => gen ^ (98 - (c - cp))
   | 16 => rdv rd (c - cp)
   | 17 => rdv rd (98 - (c - cp))
-  | 18 => ofK (gpow e121) * gen ^ c
+  | 18 => ofK (addressOfIndex e121) * gen ^ c
   | 19 => w33
   | 20 => gen ^ (33 - k)
   | 21 => rdv rd k
   | 22 => rdv rd (33 - k)
-  | 23 => ofK (gpow esq) * gen ^ k
+  | 23 => ofK (addressOfIndex esq) * gen ^ k
   | 24 => gen ^ 2 ^ k
   | _ => gen ^ cpPre lm hs (r + 1)
 
 /-- The honest words, by value number. -/
 noncomputable def cpF (i : ℕ) : E :=
-  if i = 0 then ofK (gpow ekb)
-  else if i = 1 then ofK (gpow esq)
-  else if i = 2 then ofK (gpow e2)
+  if i = 0 then ofK (addressOfIndex ekb)
+  else if i = 1 then ofK (addressOfIndex esq)
+  else if i = 2 then ofK (addressOfIndex e2)
   else if i < 106 then cpInitV lm hs i
-  else if i = 106 then ofK (gpow e120)
-  else if i = 107 then ofK (gpow e121)
+  else if i = 106 then ofK (addressOfIndex e120)
+  else if i = 107 then ofK (addressOfIndex e121)
   else if i < 123 then cpRank0V lm hs esq e2 e121 rd (i - 108)
   else if i < 2671 then cpRankV lm hs esq e2 e121 rd ((i - 97) / 26) ((i - 97) % 26)
   else if i = 2671 then gen ^ cpPre lm hs 99
-  else if i = 2672 then ofK (gpow e121)
-  else ofK (gpow e2)
+  else if i = 2672 then ofK (addressOfIndex e121)
+  else ofK (addressOfIndex e2)
 
 /-- **The honest valuation.** -/
 noncomputable def cpσ : Val := fun v => cpF lm hs ekb esq e2 e120 e121 rd v.idx
@@ -321,11 +321,12 @@ variable {lm : ℕ} {hs : List ℕ} {ekb esq e2 e120 e121 : ℕ} {rd : Reader}
 
 theorem cp_reads (hl : hs.length = 6)
     (hm : MemLay rd (cpOwn lm hs e2 e120 e121 ++ cpLin lm hs ekb esq)) :
-    (∀ c < 99, LoadHolds rd (ofK (gpow e2)) c (gen ^ (cpKs lm hs).getD c 0)) ∧
-    (∀ r < 99, LoadHolds rd (ofK (gpow e120)) r (gen ^ cpColF lm hs r)) ∧
-    (∀ c < 99, LoadHolds rd (ofK (gpow e121)) c (gen ^ (stackOffsets (cpKs lm hs)).1.getD c 0)) ∧
-    (∀ s < 8, LoadHolds rd (ofK (gpow ekb)) s (gen ^ (0 :: lm :: hs).getD s 0)) ∧
-    (∀ k < 34, LoadHolds rd (ofK (gpow esq)) k (gen ^ 2 ^ k)) := by
+    (∀ c < 99, LoadHolds rd (ofK (addressOfIndex e2)) c (gen ^ (cpKs lm hs).getD c 0)) ∧
+    (∀ r < 99, LoadHolds rd (ofK (addressOfIndex e120)) r (gen ^ cpColF lm hs r)) ∧
+    (∀ c < 99, LoadHolds rd (ofK (addressOfIndex e121)) c (gen ^ (stackOffsets (cpKs lm hs)).1.getD
+        c 0)) ∧
+    (∀ s < 8, LoadHolds rd (ofK (addressOfIndex ekb)) s (gen ^ (0 :: lm :: hs).getD s 0)) ∧
+    (∀ k < 34, LoadHolds rd (ofK (addressOfIndex esq)) k (gen ^ 2 ^ k)) := by
   obtain ⟨ho, hi⟩ := memLay_append.mp hm
   have r2 := tbReadsAt_map_iff.mp (ho (e2, (cpKs lm hs).map (gen ^ ·)) (by simp [cpOwn]))
   have r120 := tbReadsAt_map_iff.mp (ho (e120, (cpOrd lm hs).map (gen ^ ·)) (by simp [cpOwn]))
@@ -360,10 +361,11 @@ variable {lm : ℕ} {hs : List ℕ} {ekb esq e2 e120 e121 : ℕ} {rd : Reader}
 
 /-- Rank `r + 1`'s statements hold. -/
 theorem cp_rank (hlow : LowDefB 7 rd)
-    (rK : ∀ c < 99, LoadHolds rd (ofK (gpow e2)) c (gen ^ (cpKs lm hs).getD c 0))
-    (rO : ∀ r < 99, LoadHolds rd (ofK (gpow e120)) r (gen ^ cpColF lm hs r))
-    (rF : ∀ c < 99, LoadHolds rd (ofK (gpow e121)) c (gen ^ (stackOffsets (cpKs lm hs)).1.getD c 0))
-    (rS : ∀ k < 34, LoadHolds rd (ofK (gpow esq)) k (gen ^ 2 ^ k))
+    (rK : ∀ c < 99, LoadHolds rd (ofK (addressOfIndex e2)) c (gen ^ (cpKs lm hs).getD c 0))
+    (rO : ∀ r < 99, LoadHolds rd (ofK (addressOfIndex e120)) r (gen ^ cpColF lm hs r))
+    (rF : ∀ c < 99, LoadHolds rd (ofK (addressOfIndex e121)) c (gen ^ (stackOffsets (cpKs lm
+        hs)).1.getD c 0))
+    (rS : ∀ k < 34, LoadHolds rd (ofK (addressOfIndex esq)) k (gen ^ 2 ^ k))
     (hK : ∀ r < 99, cpKF lm hs r < 34) {r : ℕ} (hr : r < 98)
     (vR : ∀ j < 26, cpσ lm hs ekb esq e2 e120 e121 rd (.n (97 + 26 * (r + 1) + j)) =
       cpRankV lm hs esq e2 e121 rd (r + 1) j)
@@ -371,10 +373,10 @@ theorem cp_rank (hlow : LowDefB 7 rd)
     (vPc : cpσ lm hs ekb esq e2 e120 e121 rd (.n (cpPc (r + 1))) = gen ^ cpColF lm hs r)
     (vB1 : cpσ lm hs ekb esq e2 e120 e121 rd (.n (97 + 26 * (r + 1) - 1)) =
       gen ^ cpPre lm hs (r + 1))
-    (v1 : cpσ lm hs ekb esq e2 e120 e121 rd (.n 1) = ofK (gpow esq))
-    (v2 : cpσ lm hs ekb esq e2 e120 e121 rd (.n 2) = ofK (gpow e2))
-    (v120 : cpσ lm hs ekb esq e2 e120 e121 rd (.n 106) = ofK (gpow e120))
-    (v121 : cpσ lm hs ekb esq e2 e120 e121 rd (.n 107) = ofK (gpow e121)) :
+    (v1 : cpσ lm hs ekb esq e2 e120 e121 rd (.n 1) = ofK (addressOfIndex esq))
+    (v2 : cpσ lm hs ekb esq e2 e120 e121 rd (.n 2) = ofK (addressOfIndex e2))
+    (v120 : cpσ lm hs ekb esq e2 e120 e121 rd (.n 106) = ofK (addressOfIndex e120))
+    (v121 : cpσ lm hs ekb esq e2 e120 e121 rd (.n 107) = ofK (addressOfIndex e121)) :
     CpRankOk rd (cpσ lm hs ekb esq e2 e120 e121 rd) (r + 1) := by
   set σ := cpσ lm hs ekb esq e2 e120 e121 rd
   have vB : σ (.n (97 + 26 * (r + 1))) = gen ^ cpColF lm hs (r + 1) := vR 0 (by norm_num)
@@ -421,16 +423,16 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
     (hhs : ∀ h ∈ hs, h < 29) (h5 : hs.getD 5 0 ≤ 27) (ekb esq e2 e120 e121 : ℕ) (rd : Reader)
     (hm : MemLay rd (cpOwn lm hs e2 e120 e121 ++ cpLin lm hs ekb esq)) (hlow : LowDefB 7 rd) :
     Stmt.HoldsList (coreProgram.Rel rd) rd (cpσ lm hs ekb esq e2 e120 e121 rd) cpBody False
-      (fun rs => rs = [gen ^ stackTotal (columnKappas lm guestLogBytecode hs), ofK (gpow e121),
-        ofK (gpow e2)]) := by
+      (fun rs => rs = [gen ^ stackTotal (columnKappas lm guestLogBytecode hs), ofK (addressOfIndex e121),
+        ofK (addressOfIndex e2)]) := by
   obtain ⟨rK, rO, rF, rB, rS⟩ := cp_reads hl hm
   have hK : ∀ r < 99, cpKF lm hs r < 34 := fun r hr => cpKs_lt hl hlm hhs h5 (cpColF_lt hr)
   set σ := cpσ lm hs ekb esq e2 e120 e121 rd with hσ
-  have v0 : σ (.n 0) = ofK (gpow ekb) := rfl
-  have v1 : σ (.n 1) = ofK (gpow esq) := rfl
-  have v2 : σ (.n 2) = ofK (gpow e2) := rfl
-  have v120 : σ (.n 106) = ofK (gpow e120) := rfl
-  have v121 : σ (.n 107) = ofK (gpow e121) := rfl
+  have v0 : σ (.n 0) = ofK (addressOfIndex ekb) := rfl
+  have v1 : σ (.n 1) = ofK (addressOfIndex esq) := rfl
+  have v2 : σ (.n 2) = ofK (addressOfIndex e2) := rfl
+  have v120 : σ (.n 106) = ofK (addressOfIndex e120) := rfl
+  have v121 : σ (.n 107) = ofK (addressOfIndex e121) := rfl
   have r0 : ∀ j < 15, σ (.n (108 + j)) = cpRank0V lm hs esq e2 e121 rd j := fun j hj =>
     cpσ_rank0 lm hs ekb esq e2 e120 e121 rd hj
   have hc0 := cpColF_lt (lm := lm) (hs := hs) (r := 0) (by norm_num)
@@ -456,20 +458,20 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
     · by_cases h4' : c = 4
       · subst h4'
         refine ⟨?_, fun _ => ⟨?_, ?_⟩, ?_⟩
-        · show LoadHolds rd (ofK (gpow ekb)) 0 (σ (.n 7))
+        · show LoadHolds rd (ofK (addressOfIndex ekb)) 0 (σ (.n 7))
           rw [show σ (.n 7) = 1 from rfl]
           have := rB 0 (by norm_num); simpa using this
         · rfl
         · show σ (.n 9) = σ (.n 7) * σ (.n 8)
           rw [show σ (.n 9) = gen ^ 19 from rfl, show σ (.n 7) = 1 from rfl,
             show σ (.n 8) = word (2 ^ 19) 0 0 from rfl, one_mul, tb_word_two_pow (by norm_num)]
-        · show LoadHolds rd (ofK (gpow e2)) 4 (σ (.n 9))
+        · show LoadHolds rd (ofK (addressOfIndex e2)) 4 (σ (.n 9))
           rw [show σ (.n 9) = gen ^ 19 from rfl]
           have := rK 4 hc; rwa [hkc] at this
       · by_cases h5' : c = 5
         · subst h5'
           refine ⟨?_, fun _ => ⟨?_, ?_⟩, ?_⟩
-          · show LoadHolds rd (ofK (gpow ekb)) 7 (σ (.n 10))
+          · show LoadHolds rd (ofK (addressOfIndex ekb)) 7 (σ (.n 10))
             rw [show σ (.n 10) = gen ^ hs.getD 5 0 from rfl]
             have := rB 7 (by norm_num); simpa using this
           · rfl
@@ -477,7 +479,7 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
             rw [show σ (.n 12) = gen ^ (hs.getD 5 0 + 6) from rfl,
               show σ (.n 10) = gen ^ hs.getD 5 0 from rfl,
               show σ (.n 11) = word (2 ^ 6) 0 0 from rfl, tb_word_two_pow (by norm_num), pow_add]
-          · show LoadHolds rd (ofK (gpow e2)) 5 (σ (.n 12))
+          · show LoadHolds rd (ofK (addressOfIndex e2)) 5 (σ (.n 12))
             rw [show σ (.n 12) = gen ^ (hs.getD 5 0 + 6) from rfl]
             have := rK 5 hc; rwa [hkc] at this
         · have ew : cpW c = c + 7 := by
@@ -534,12 +536,13 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
   · rw [show σ (.n 110) = gen ^ (98 - cpColF lm hs 0) from r0 2 (by norm_num),
       show σ (.n 112) = rdv rd (98 - cpColF lm hs 0) from r0 4 (by norm_num)]
     exact c3
-  · rw [show σ (.n 113) = ofK (gpow e2) * gen ^ cpColF lm hs 0 from r0 5 (by norm_num), s128,
+  · rw [show σ (.n 113) = ofK (addressOfIndex e2) * gen ^ cpColF lm hs 0 from r0 5
+      (by norm_num), s128,
       tb_loadHolds_mul_gen_pow, Nat.add_zero]
     exact rK _ hc0
   · have h0 := rF _ hc0
     rw [cpOff (r := 0) (by norm_num), cpPre_zero, pow_zero] at h0
-    rw [show σ (.n 116) = ofK (gpow e121) * gen ^ cpColF lm hs 0 from r0 8 (by norm_num),
+    rw [show σ (.n 116) = ofK (addressOfIndex e121) * gen ^ cpColF lm hs 0 from r0 8 (by norm_num),
       show σ (.n 115) = word 1 0 0 from r0 7 (by norm_num), tb_loadHolds_mul_gen_pow,
       Nat.add_zero, tb_word_one]
     exact h0
@@ -549,17 +552,19 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
   · rw [show σ (.n 118) = gen ^ (33 - cpKF lm hs 0) from r0 10 (by norm_num),
       show σ (.n 120) = rdv rd (33 - cpKF lm hs 0) from r0 12 (by norm_num)]
     exact f3
-  · rw [show σ (.n 121) = ofK (gpow esq) * gen ^ cpKF lm hs 0 from r0 13 (by norm_num), s136,
+  · rw [show σ (.n 121) = ofK (addressOfIndex esq) * gen ^ cpKF lm hs 0 from r0 13
+      (by norm_num), s136,
       tb_loadHolds_mul_gen_pow, Nat.add_zero]
     exact rS _ hk0
   · rw [s3048]; rfl
-  · show [gen ^ cpPre lm hs 99, ofK (gpow e121), ofK (gpow e2)] = _
+  · show [gen ^ cpPre lm hs 99, ofK (addressOfIndex e121), ofK (addressOfIndex e2)] = _
     rw [cpPre_total]
 
 /-- **The buffers satisfy `PCtx`** on any memory holding them. -/
 theorem cp_ctx {lm : ℕ} {hs : List ℕ} {e2 e120 e121 : ℕ} {rd : Reader}
     (hm : MemLay rd (cpOwn lm hs e2 e120 e121)) :
-    PCtx rd (columnKappas lm guestLogBytecode hs) (ofK (gpow e121)) (ofK (gpow e2)) :=
+    PCtx rd (columnKappas lm guestLogBytecode hs) (ofK (addressOfIndex e121)) (ofK (addressOfIndex
+        e2)) :=
   ⟨columnKappas_length _ _ _, hm _ List.mem_cons_self,
     hm _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self))⟩
 

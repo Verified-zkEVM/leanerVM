@@ -20,14 +20,14 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.EndToEnd.Sound LeanVM.Protocol.EndToEnd.Front
 open LeanVM.Protocol.KeccakHash LeanVM.Protocol.Rom
-open LeanVM.Protocol.EndToEnd.Complete (publicDigest)
+open LeanVM.Protocol.EndToEnd.Complete (publicInputDigest)
 open OracleComp OracleSpec
 open scoped ENNReal
 
 /-! ## Statement locks -/
 
-noncomputable example (prog : Program) (input : PublicInput) :
-    Spec (leanVmProgram (bytecodeWords prog) (publicDigest input)) (fun _ ↦ False)
+noncomputable example (prog : LeanIsaProgram) (input : PublicInput) :
+    Spec (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) (fun _ ↦ False)
       (fun b _ ↦ b = false) ((2 : ℝ≥0∞)⁻¹ ^ 128) 0 0 :=
   leanVmSpec prog input
 
@@ -55,8 +55,8 @@ example (QA : ℕ) (hQ : QA ≤ 2 ^ 64) :
 /-- The verifier of a statement and a proof is the deployed verifier of that statement. -/
 example (z : Statement × Proof) :
     verifierFam leanVmSeeds anyProgram z =
-      verifierComp (leanVmSeed (bytecodeWords z.1.1) (publicDigest z.1.2))
-        (leanVmProgram (bytecodeWords z.1.1) (publicDigest z.1.2)) z.2 :=
+      verifierComp (leanVmSeed (bytecodeWords z.1.1) (publicInputDigest z.1.2))
+        (leanVmVerifierProgram (bytecodeWords z.1.1) (publicInputDigest z.1.2)) z.2 :=
   verifierFam_leanVm z
 
 example {x x' : Statement} {h : List Ev} (hx : stmtHistory x <+: h)
@@ -65,7 +65,7 @@ example {x x' : Statement} {h : List Ev} (hx : stmtHistory x <+: h)
 
 example : Function.Injective bytecodeWords := bytecodeWords_injective
 
-example : Function.Injective publicDigest :=
+example : Function.Injective publicInputDigest :=
   LeanVM.Protocol.EndToEnd.Complete.publicDigest_injective
 
 /-! ## The trust audit -/

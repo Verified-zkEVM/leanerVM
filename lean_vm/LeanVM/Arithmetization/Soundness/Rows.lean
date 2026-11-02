@@ -105,16 +105,17 @@ the assumptions (the permutation, for `KECCAK`) it is a step under the reduction
 def OpRow (c : Component K) (env : Environment K) : Prop :=
   ∃ x : RowRec, rowSends c env = x.sends ∧ x.reads.length ≤ 26 ∧
     (c.Assumptions env → c.operations.ConstraintsHold env → c.operations.FullGuarantees env →
-      ∃ ins, x.e = entry ins ∧ execute (imageOf env.data).2 x.src ins = some x.next ∧
+      ∃ ins, x.e = busEntry ins ∧ execute (imageOf env.data).2 x.src ins = some x.next ∧
         (ins.opcode ≠ .jump → x.next = ⟨g * x.pc, x.fp⟩)) ∧
     (c.operations.ConstraintsHold env → c.operations.FullGuarantees env →
-      ∃ ins, x.e = entry ins ∧
+      ∃ ins, x.e = busEntry ins ∧
         executeWithB keccakFree (imageOf env.data).2.read x.src ins = some x.next ∧
         (ins.opcode ≠ .jump → x.next = ⟨g * x.pc, x.fp⟩))
 
 /-- **A deployed step is a reduction-blind step**: the cells Keccak-f writes are canonical with
 their free limb zero. -/
-theorem executeWithB_free_of_executeWith {read : K → Option E} {r next : Registers K} {ins : Instr}
+theorem executeWithB_free_of_executeWith {read : K → Option E} {r next : Registers K} {ins :
+    LeanIsaInstruction}
     (h : executeWith read r ins = some next) : executeWithB keccakFree read r ins = some next := by
   cases ins with
   | keccak om otail ob8 ocap oout inOdd outOdd =>
@@ -131,7 +132,7 @@ theorem executeWithB_free_of_executeWith {read : K → Option E} {r next : Regis
 theorem opRow_of_assumptions {c : Component K} {env : Environment K} (hA : c.Assumptions env)
     (h : ∃ x : RowRec, rowSends c env = x.sends ∧ x.reads.length ≤ 26 ∧
       (c.Assumptions env → c.operations.ConstraintsHold env → c.operations.FullGuarantees env →
-        ∃ ins, x.e = entry ins ∧ execute (imageOf env.data).2 x.src ins = some x.next ∧
+        ∃ ins, x.e = busEntry ins ∧ execute (imageOf env.data).2 x.src ins = some x.next ∧
           (ins.opcode ≠ .jump → x.next = ⟨g * x.pc, x.fp⟩))) :
     OpRow c env := by
   obtain ⟨x, hs, hl, hd⟩ := h
@@ -145,12 +146,12 @@ theorem xor_opRow (env : Environment K) : OpRow ⟨xorTable⟩ env := by
   set r := (⟨xorTable⟩ : Component K).rowInput env with hr
   have hx : eval env (varFromOffset XorRow 0) = r := eval_varFromOffset_valueFromOffset ..
   refine opRow_of_assumptions trivial
-    ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc, entry (.xor r.oA r.oB r.oC),
+    ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc, busEntry (.xor r.oA r.oB r.oC),
     [(r.fp * r.oA, r.rA, r.vA), (r.fp * r.oB, r.rB, r.vB),
      (r.fp * r.oC, r.rC, #v[r.vA[0] + r.vB[0], r.vA[1] + r.vB[1], r.vA[2] + r.vB[2]])]⟩,
     ?_, by simp, ?_⟩
   · rw [rowSends_mk, xor_sends_gen _ _ _ _ hx]
-    simp [RowRec.sends, sendsOf, memMsgOf, bcMsgOf, entry]
+    simp [RowRec.sends, sendsOf, memMsgOf, bcMsgOf, busEntry]
   · intro ha hc hg
     obtain ⟨hs, -⟩ := Component.weakSoundness ha hc hg
     have hs' : XorRefines (imageOf env.data).2 r ((⟨xorTable⟩ : Component K).rowOutput env) := hs
@@ -164,7 +165,7 @@ theorem set_opRow (env : Environment K) : OpRow ⟨setTable⟩ env := by
   set r := (⟨setTable⟩ : Component K).rowInput env with hr
   have hx : eval env (varFromOffset SetRow 0) = r := eval_varFromOffset_valueFromOffset ..
   refine opRow_of_assumptions trivial ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc,
-    #v[Opcode.setConstant.code, r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0, 0, 0, 0],
+    #v[Opcode.setConstant.busCode, r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0, 0, 0, 0],
     [(r.fp * r.o, r.r, r.k)]⟩, ?_, by simp, ?_⟩
   · rw [rowSends_mk, set_sends_gen _ _ _ _ hx]
     simp [RowRec.sends, sendsOf, memMsgOf, bcMsgOf]
@@ -172,7 +173,7 @@ theorem set_opRow (env : Environment K) : OpRow ⟨setTable⟩ env := by
     obtain ⟨hs, -⟩ := Component.weakSoundness ha hc hg
     have hs' : SetRefines (imageOf env.data).2 r ((⟨setTable⟩ : Component K).rowOutput env) := hs
     obtain ⟨-, hnext⟩ := (set_refines_iff _ _ _).mp hs'
-    refine ⟨.setConstant r.o (E.ofLimbs r.k[0] r.k[1] r.k[2]), by simp [entry, limb_ofLimbs],
+    refine ⟨.setConstant r.o (E.ofLimbs r.k[0] r.k[1] r.k[2]), by simp [busEntry, limb_ofLimbs],
       ?_, fun _ ↦ rfl⟩
     rw [← show ((⟨setTable⟩ : Component K).rowOutput env) = ⟨g * r.pc, r.fp⟩ from hnext]
     exact hs'.exec_eq
@@ -182,7 +183,7 @@ theorem mul_opRow (env : Environment K) : OpRow ⟨mulTable⟩ env := by
   set r := (⟨mulTable⟩ : Component K).rowInput env with hr
   have hx : eval env (varFromOffset MulRow 0) = r := eval_varFromOffset_valueFromOffset ..
   refine opRow_of_assumptions trivial
-    ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc, entry (.mulNative r.oA r.oB r.oC),
+    ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc, busEntry (.mulNative r.oA r.oB r.oC),
     [(r.fp * r.oA, r.rA, r.vA), (r.fp * r.oB, r.rB, r.vB),
      (r.fp * r.oC, r.rC, #v[r.vA[0] * r.vB[0] + r.vA[1] * r.vB[2] + r.vA[2] * r.vB[1],
           r.vA[0] * r.vB[1] + r.vA[1] * r.vB[0] + r.vA[1] * r.vB[2] + r.vA[2] * r.vB[1] +
@@ -190,7 +191,7 @@ theorem mul_opRow (env : Environment K) : OpRow ⟨mulTable⟩ env := by
           r.vA[0] * r.vB[2] + r.vA[1] * r.vB[1] + r.vA[2] * r.vB[0] + r.vA[2] * r.vB[2]])]⟩,
     ?_, by simp, ?_⟩
   · rw [rowSends_mk, mul_sends_gen _ _ _ _ hx]
-    simp [RowRec.sends, sendsOf, memMsgOf, bcMsgOf, entry]
+    simp [RowRec.sends, sendsOf, memMsgOf, bcMsgOf, busEntry]
   · intro ha hc hg
     obtain ⟨hs, -⟩ := Component.weakSoundness ha hc hg
     have hs' : MulRefines (imageOf env.data).2 r ((⟨mulTable⟩ : Component K).rowOutput env) := hs
@@ -205,7 +206,7 @@ theorem deref_opRow (env : Environment K) : OpRow ⟨derefTable⟩ env := by
   set r := (⟨derefTable⟩ : Component K).rowInput env with hr
   have hx : eval env (varFromOffset DerefRow 0) = r := eval_varFromOffset_valueFromOffset ..
   refine opRow_of_assumptions trivial ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc,
-    #v[Opcode.deref.code, r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0, 0, 0, 0],
+    #v[Opcode.deref.busCode, r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0, 0, 0, 0],
     [(r.fp * r.o1, r.r1, #v[r.p, 0, 0]),
      (r.p * r.o2, r.r2, #v[(1 + r.fpc + r.ffp) * r.v3[0] + r.fpc * (g ^ 2 * r.pc) + r.ffp * r.fp,
           (1 + r.fpc + r.ffp) * r.v3[1], (1 + r.fpc + r.ffp) * r.v3[2]]),
@@ -228,7 +229,7 @@ theorem deref_opRow (env : Environment K) : OpRow ⟨derefTable⟩ env := by
       exact Option.some.inj (h2.symm.trans h1)
     subst hm
     refine ⟨.deref r.o1 r.o2 r.o3 mode', ?_, ?_, fun _ ↦ rfl⟩
-    · simp [entry, hflags]
+    · simp [busEntry, hflags]
     · rw [← show ((⟨derefTable⟩ : Component K).rowOutput env) = ⟨g * r.pc, r.fp⟩ from hnext]
       exact hexec
 
@@ -238,8 +239,8 @@ of a row). -/
 def keccakTableFree : GeneralFormalCircuit K KeccakRow Registers :=
   { keccakTable with
     Assumptions := fun _ _ ↦ True
-    Spec := fun r next data ↦ (∃ inOdd outOdd : Bool, r.oddIn = flagK inOdd ∧
-      r.oddOut = flagK outOdd ∧ KeccakBindings (imageOf data).2 r inOdd outOdd) ∧
+    Spec := fun r next data ↦ (∃ inOdd outOdd : Bool, r.oddIn = layoutFlagWord inOdd ∧
+      r.oddOut = layoutFlagWord outOdd ∧ KeccakBindings (imageOf data).2 r inOdd outOdd) ∧
       next = Registers.next ⟨r.pc, r.fp⟩
     soundness := by
       circuit_proof_start [keccakTable, StatePull, StatePush, MemPull, MemPush, BytecodePull,
@@ -253,29 +254,29 @@ def keccakTableFree : GeneralFormalCircuit K KeccakRow Registers :=
       simp only [hfo] at h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 h25
       refine ⟨⟨inOdd, outOdd, hfi, hfo, ⟨fun c ↦ ?_, fun c ↦ ?_⟩⟩, rfl⟩
       · fin_cases c
-        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, KeccakRow.oms, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h0 ⊢ <;> exact h0
-        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, KeccakRow.oms, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h1 ⊢ <;> exact h1
-        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, KeccakRow.oms, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h2 ⊢ <;> exact h2
-        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, KeccakRow.oms, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h3 ⊢ <;> exact h3
-        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, pow_zero, one_mul] at h4 ⊢ <;> exact h4
-        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul, pow_one] at h5 ⊢ <;> exact h5
-        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h6 ⊢ <;> exact h6
-        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h7 ⊢ <;> exact h7
-        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h8 ⊢ <;> exact h8
-        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, Vector.getElem_map, pow_zero, one_mul] at h9 ⊢ <;> exact h9
-        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, Vector.getElem_map, pow_one] at h10 ⊢ <;> exact h10
-        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, Vector.getElem_map] at h11 ⊢ <;> exact h11
-        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, Vector.getElem_map] at h12 ⊢ <;> exact h12
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, KeccakRow.oms, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h0 ⊢ <;> exact h0
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, KeccakRow.oms, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h1 ⊢ <;> exact h1
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, KeccakRow.oms, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h2 ⊢ <;> exact h2
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, KeccakRow.oms, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h3 ⊢ <;> exact h3
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, pow_zero, one_mul] at h4 ⊢ <;> exact h4
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul, pow_one] at h5 ⊢ <;> exact h5
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h6 ⊢ <;> exact h6
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h7 ⊢ <;> exact h7
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h8 ⊢ <;> exact h8
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, Vector.getElem_map, pow_zero, one_mul] at h9 ⊢ <;> exact h9
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, Vector.getElem_map, pow_one] at h10 ⊢ <;> exact h10
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, Vector.getElem_map] at h11 ⊢ <;> exact h11
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInputCellOffset, KeccakRow.inLanes, Vector.getElem_map] at h12 ⊢ <;> exact h12
       · fin_cases c
-        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, pow_zero, one_mul] at h13 ⊢ <;> exact h13
-        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul, pow_one] at h14 ⊢ <;> exact h14
-        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h15 ⊢ <;> exact h15
-        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h16 ⊢ <;> exact h16
-        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h17 ⊢ <;> exact h17
-        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h18 ⊢ <;> exact h18
-        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h19 ⊢ <;> exact h19
-        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h20 ⊢ <;> exact h20
-        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h21 ⊢ <;> exact h21
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, pow_zero, one_mul] at h13 ⊢ <;> exact h13
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul, pow_one] at h14 ⊢ <;> exact h14
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h15 ⊢ <;> exact h15
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h16 ⊢ <;> exact h16
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h17 ⊢ <;> exact h17
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h18 ⊢ <;> exact h18
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h19 ⊢ <;> exact h19
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h20 ⊢ <;> exact h20
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, layoutFlagWord, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h21 ⊢ <;> exact h21
         · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, Vector.getElem_map] at h22 ⊢ <;> exact h22
         · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, Vector.getElem_map] at h23 ⊢ <;> exact h23
         · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, Vector.getElem_map] at h24 ⊢ <;> exact h24
@@ -298,7 +299,8 @@ theorem keccak_free_exec {κ : ℕ} {mem : MemoryImage κ} {r : KeccakRow K} {in
     executeWithB keccakFree mem.read ⟨r.pc, r.fp⟩
       (.keccak r.oms r.otail r.ob8 r.ocap r.oout inOdd outOdd) =
         some (Registers.next ⟨r.pc, r.fp⟩) := by
-  have hin := (readCells_eq_some_iff mem.read r.fp (keccakInOffset r.oms r.otail r.ob8 r.ocap)
+  have hin := (readCells_eq_some_iff mem.read r.fp (keccakInputCellOffset r.oms r.otail r.ob8
+      r.ocap)
     (laneCells r.inLanes inOdd r.free)).mpr h.in_eq
   have hout := (readCells_eq_some_iff mem.read r.fp (fun c ↦ g ^ c.val * r.oout)
     (laneCells r.outLanes outOdd 0)).mpr h.out_eq
@@ -313,7 +315,7 @@ theorem keccak_opRow (env : Environment K) : OpRow ⟨keccakTable⟩ env := by
   set r := (⟨keccakTable⟩ : Component K).rowInput env with hr
   have hx : eval env (varFromOffset KeccakRow 0) = r := eval_varFromOffset_valueFromOffset ..
   refine ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc,
-    #v[Opcode.keccak.code, r.om[0], r.om[1], r.om[2], r.om[3], r.otail, r.ob8, r.ocap, r.oout,
+    #v[Opcode.keccak.busCode, r.om[0], r.om[1], r.om[2], r.om[3], r.otail, r.ob8, r.ocap, r.oout,
       r.oddIn, r.oddOut],
     [(r.fp * r.om[0], r.cnt[0], #v[r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0], 0]),
      (r.fp * r.om[1], r.cnt[1], #v[r.lin[2] + r.oddIn * r.lin[2] + r.oddIn * r.lin[1], r.lin[3] + r.oddIn * r.lin[3] + r.oddIn * r.lin[2], 0]),
@@ -355,17 +357,17 @@ theorem keccak_opRow (env : Environment K) : OpRow ⟨keccakTable⟩ env := by
       have := congrArg flag? (ho.symm.trans hfo); simpa [flag?_flagK] using this
     subst hi' ho'
     refine ⟨.keccak r.oms r.otail r.ob8 r.ocap r.oout i o, ?_, ?_, fun _ ↦ rfl⟩
-    · simp [entry, hfi, hfo, KeccakRow.oms]
+    · simp [busEntry, hfi, hfo, KeccakRow.oms]
     · rw [← show ((⟨keccakTable⟩ : Component K).rowOutput env) = ⟨g * r.pc, r.fp⟩ from hnext]
       exact hexec
   · intro hc hg
     obtain ⟨⟨⟨inOdd, outOdd, hfi, hfo, hb⟩, -⟩, -⟩ :=
       Component.weakSoundness (component := ⟨keccakTableFree⟩) trivial hc hg
-    have hfi' : r.oddIn = flagK inOdd := hfi
-    have hfo' : r.oddOut = flagK outOdd := hfo
+    have hfi' : r.oddIn = layoutFlagWord inOdd := hfi
+    have hfo' : r.oddOut = layoutFlagWord outOdd := hfo
     have hb' : KeccakBindings (imageOf env.data).2 r inOdd outOdd := hb
     exact ⟨.keccak r.oms r.otail r.ob8 r.ocap r.oout inOdd outOdd,
-      by simp [entry, hfi', hfo', KeccakRow.oms], keccak_free_exec hb', fun _ ↦ rfl⟩
+      by simp [busEntry, hfi', hfo', KeccakRow.oms], keccak_free_exec hb', fun _ ↦ rfl⟩
 
 /-- The output of the `JUMP` row circuit at a row variable that evaluates to `r`: the successor
 selected by the indicator `b`, the local witness at slot `n + 1`. -/
@@ -385,13 +387,13 @@ theorem jump_opRow (env : Environment K) : OpRow ⟨jumpTable⟩ env := by
   have hx : eval env (varFromOffset JumpRow 0) = r := eval_varFromOffset_valueFromOffset ..
   refine opRow_of_assumptions trivial
     ⟨⟨r.pc, r.fp, (⟨jumpTable⟩ : Component K).rowOutput env, r.rbc,
-    entry (.jump r.oc r.od r.of),
+    busEntry (.jump r.oc r.od r.of),
     [(r.fp * r.oc, r.rc, #v[r.vcond, 0, 0]), (r.fp * r.od, r.rd, #v[r.vpc, 0, 0]),
      (r.fp * r.of, r.rf, #v[r.vfp, 0, 0])]⟩, ?_, by simp, ?_⟩
   · have ho : (⟨jumpTable⟩ : Component K).rowOutput env = _ :=
       jump_output_gen _ env (size JumpRow) r hx _ rfl
     rw [rowSends_mk, jump_sends_gen _ _ _ _ hx _ rfl, ho]
-    simp [RowRec.sends, sendsOf, memMsgOf, bcMsgOf, entry]
+    simp [RowRec.sends, sendsOf, memMsgOf, bcMsgOf, busEntry]
   · intro ha hc hg
     obtain ⟨hs, -⟩ := Component.weakSoundness ha hc hg
     have hs' : JumpRefines (imageOf env.data).2 r
@@ -480,7 +482,7 @@ theorem keccak_channelOk : ∀ a ∈ (⟨keccakTable⟩ : Component K).operation
 
 /-! ## The opcode tables of a witness -/
 
-variable {prog : Program}
+variable {prog : LeanIsaProgram}
 
 /-- Each of the first six tables of a witness has rows of the opcode-table shape, and every
 interaction it emits is on one of the six channels. -/

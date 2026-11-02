@@ -58,15 +58,15 @@ def busOut (layout : Verifier.Layout) (alphas : List E) (beta : E)
 
 /-- `verify_bus_balance` reads, then computes `busOut`. -/
 theorem verifyBusBalance_eq (layout : Verifier.Layout) :
-    verifyBusBalance computedValue layout = (do
-      let alphas ← Prog.sampleChallenges busBits
-      let beta ← Prog.sampleChallenge
+    verifyBusBalance computedBytecodeValue layout = (do
+      let alphas ← VerifierProgram.sampleChallenges busBits
+      let beta ← VerifierProgram.sampleChallenge
       let g ← verifyGkrGrandProducts
         (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth
-      Prog.require (g.1 ≠ 0)
-      let memory ← Prog.readScalars 3
-      let memoryFinal ← Prog.readScalar
-      let bytecodeFinal ← Prog.readScalar
+      VerifierProgram.require (g.1 ≠ 0)
+      let memory ← VerifierProgram.readScalars 3
+      let memoryFinal ← VerifierProgram.readScalar
+      let bytecodeFinal ← VerifierProgram.readScalar
       return busOut layout alphas beta g.2.1 g.2.2 memory memoryFinal bytecodeFinal) := by
   rfl
 
@@ -87,24 +87,26 @@ def countBlocks (s : Sizes) : List BusBlock :=
   (List.ofFn fun t : Fin 6 ↦ (tables.getD t default).countColumns.map fun l ↦
     (⟨s.τ t, s.rows t, [Form.col l], t⟩ : BusBlock)).flatten
 
-theorem layout_push (prog : Program) (s : Sizes) : (verifierLayout prog s).push = pushBlocks s := by
+theorem layout_push (prog : LeanIsaProgram) (s : Sizes) : (verifierLayout prog s).push = pushBlocks
+    s := by
   show (busBlocks (tableLogs s) (tableRows s)).1 = _
   rw [busBlocks_eq]; rfl
 
-theorem layout_pull (prog : Program) (s : Sizes) : (verifierLayout prog s).pull = pullBlocks s := by
+theorem layout_pull (prog : LeanIsaProgram) (s : Sizes) : (verifierLayout prog s).pull = pullBlocks
+    s := by
   show (busBlocks (tableLogs s) (tableRows s)).2.1 = _
   rw [busBlocks_eq]; rfl
 
-theorem layout_count (prog : Program) (s : Sizes) :
+theorem layout_count (prog : LeanIsaProgram) (s : Sizes) :
     (verifierLayout prog s).count = countBlocks s := by
   show (busBlocks (tableLogs s) (tableRows s)).2.2 = _
   rw [busBlocks_eq]; rfl
 
 /-- The framework blocks' log-sizes. -/
-def fwLogs (prog : Program) (s : Sizes) : List ℕ := [0, s.logMem, prog.logSize]
+def fwLogs (prog : LeanIsaProgram) (s : Sizes) : List ℕ := [0, s.logMem, prog.logSize]
 
 /-- The bus's depth: the push side's. -/
-def busDepth (prog : Program) (s : Sizes) : ℕ :=
+def busDepth (prog : LeanIsaProgram) (s : Sizes) : ℕ :=
   log2Ceil (blockTotal (sideSizes (fwLogs prog s) (pushBlocks s)))
 
 theorem map_range_getD {α β' : Type} (l : List α) (d : α) (f : α → β') :
@@ -140,14 +142,14 @@ theorem length_countColumns_le :
 theorem pySide_push_ne_nil : ∀ t : Fin 6, pySide t .push ≠ [] := by
   decide +kernel
 
-theorem total_pull (prog : Program) (s : Sizes) :
+theorem total_pull (prog : LeanIsaProgram) (s : Sizes) :
     blockTotal (sideSizes (fwLogs prog s) (pullBlocks s)) =
       blockTotal (sideSizes (fwLogs prog s) (pushBlocks s)) := by
   rw [blockTotal_sideSizes, blockTotal_sideSizes, pullBlocks, pushBlocks, sum_flatten_ofFn,
     sum_flatten_ofFn]
   congr 1
 
-theorem total_count_le (prog : Program) (s : Sizes) :
+theorem total_count_le (prog : LeanIsaProgram) (s : Sizes) :
     blockTotal (sideSizes [] (countBlocks s)) ≤
       blockTotal (sideSizes (fwLogs prog s) (pushBlocks s)) := by
   rw [blockTotal_sideSizes, blockTotal_sideSizes, countBlocks, pushBlocks, sum_flatten_ofFn,
@@ -157,28 +159,30 @@ theorem total_count_le (prog : Program) (s : Sizes) :
   refine le_add_left (Finset.sum_le_sum fun t _ ↦ ?_)
   exact Nat.mul_le_mul_right _ (length_countColumns_le t)
 
-theorem total_le_depth (prog : Program) (s : Sizes) :
+theorem total_le_depth (prog : LeanIsaProgram) (s : Sizes) :
     blockTotal (sideSizes (fwLogs prog s) (pushBlocks s)) ≤ 2 ^ busDepth prog s :=
   blockTotal_le _
 
 /-- A size whose block is in the push side is at most the depth. -/
-theorem le_busDepth (prog : Program) (s : Sizes) {v : ℕ}
+theorem le_busDepth (prog : LeanIsaProgram) (s : Sizes) {v : ℕ}
     (h : 2 ^ v ≤ blockTotal (sideSizes (fwLogs prog s) (pushBlocks s))) : v ≤ busDepth prog s :=
   (Nat.pow_le_pow_iff_right (by norm_num)).mp (h.trans (total_le_depth prog s))
 
-theorem logMem_le_busDepth (prog : Program) (s : Sizes) : s.logMem ≤ busDepth prog s := by
+theorem logMem_le_busDepth (prog : LeanIsaProgram) (s : Sizes) : s.logMem ≤ busDepth prog s := by
   refine le_busDepth prog s ?_
   rw [blockTotal_sideSizes, fwLogs]
   simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, pow_zero]
   exact le_add_right (le_add_left (le_add_right le_rfl))
 
-theorem logSize_le_busDepth (prog : Program) (s : Sizes) : prog.logSize ≤ busDepth prog s := by
+theorem logSize_le_busDepth (prog : LeanIsaProgram) (s : Sizes) : prog.logSize ≤ busDepth prog
+    s := by
   refine le_busDepth prog s ?_
   rw [blockTotal_sideSizes, fwLogs]
   simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, pow_zero]
   exact le_add_right (le_add_left (le_add_left (le_add_right le_rfl)))
 
-theorem tau_le_busDepth (prog : Program) (s : Sizes) (t : Fin 6) : s.τ t ≤ busDepth prog s := by
+theorem tau_le_busDepth (prog : LeanIsaProgram) (s : Sizes) (t : Fin 6) : s.τ t ≤ busDepth prog
+    s := by
   refine le_busDepth prog s ?_
   rw [blockTotal_sideSizes, pushBlocks, sum_flatten_ofFn]
   obtain ⟨c, cs, hc⟩ := List.exists_cons_of_ne_nil (pySide_push_ne_nil t)
@@ -262,7 +266,7 @@ theorem countBlocks_owned :
 
 variable {s}
 
-theorem busLayout_depth_verifier (prog : Program) (s : Sizes) :
+theorem busLayout_depth_verifier (prog : LeanIsaProgram) (s : Sizes) :
     (busLayout [0, (verifierLayout prog s).logMemory, (verifierLayout prog s).logBytecode]
       (verifierLayout prog s).push).depth = busDepth prog s := by
   rw [layout_push, busLayout_depth]

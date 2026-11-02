@@ -50,7 +50,7 @@ theorem vt_take6 (W : List E) (h : 6 ≤ W.length) :
 
 theorem vtWFinalPc_eq : vtWFinalPc = Verifier.gpow (2 ^ 19 - 1) := by
   rw [vtWFinalPc, vt_word_ofK, Verifier.gpow, gen_pow_eq_ofK,
-    show K.ofBits 12261764870545049476 = Parameters.gpow (2 ^ 19 - 1) by decide +kernel]
+    show K.ofBits 12261764870545049476 = Parameters.addressOfIndex (2 ^ 19 - 1) by decide +kernel]
 
 theorem vt_beta1 {rd : Reader} {σ : Val} (h : VtH rd σ) : σ (.n 2853) = σ (.n 15) + 1 := by
   have a1 := h.atomAt 2405 (.const (.n 2852) (word 1 0 0)) (by decide +kernel)

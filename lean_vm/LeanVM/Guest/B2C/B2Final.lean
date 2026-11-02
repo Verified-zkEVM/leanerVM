@@ -45,14 +45,14 @@ theorem b2Hyps : B2Hyps := ⟨cplRun_all, frameHolds_all (sitesApart_all_of Cplw
 /-- **B2**: the honest memory runs from `main`'s entry to the end. -/
 theorem b2cB2 : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
     HonestAt coreProgram fs H C hdr T cert rd [] [] →
-      Reach guestProgram (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Registers.final guestProgram) :=
+      Reach guestProgram (honest coreProgram fs H C hdr T) ⟨addressOfIndex mainEntry, 1⟩ (Registers.final guestProgram) :=
   b2_complete b2Hyps
 
 /-- **B2, counted**: a run of the honest memory to the end is within the counts. -/
 theorem b2cCount : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
     HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ n,
       run guestProgram (honest coreProgram fs H C hdr T) n Registers.initial = some (Registers.final guestProgram) →
-        ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Execution guestProgram).count op ≤ cnt T op :=
+        ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Execution guestProgram).opcodeCount op ≤ cnt T op :=
   b2_count b2Hyps
 
 /-- **Every piece of completeness but `main`'s**, at the deployed instance. -/

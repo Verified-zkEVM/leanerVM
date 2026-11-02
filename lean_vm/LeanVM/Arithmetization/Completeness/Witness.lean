@@ -151,7 +151,7 @@ noncomputable def memBlock {κ : ℕ} (img : MemoryImage κ) (data : ProverData 
     Air.Flat.Table K where
   component := ⟨memTable⟩
   width := size MemRow
-  table := List.ofFn fun i : Fin (2 ^ κ) ↦ rawRow (memRowOf img i (g ^ fin (gpow i)))
+  table := List.ofFn fun i : Fin (2 ^ κ) ↦ rawRow (memRowOf img i (g ^ fin (addressOfIndex i)))
   data := data
   uniform_width := by
     intro r hr
@@ -160,12 +160,12 @@ noncomputable def memBlock {κ : ℕ} (img : MemoryImage κ) (data : ProverData 
     exact rawRow_size _
 
 /-- The bytecode block: one row per slot of the program. -/
-noncomputable def bcBlock (prog : Program) (data : ProverData K) (fin : K → ℕ) :
+noncomputable def bcBlock (prog : LeanIsaProgram) (data : ProverData K) (fin : K → ℕ) :
     Air.Flat.Table K where
   component := ⟨bytecodeTable⟩
   width := size BytecodeRow
   table := List.ofFn fun i : Fin (2 ^ prog.logSize) ↦
-    rawRow (bytecodeRowOf prog i (g ^ fin (gpow i)))
+    rawRow (bytecodeRowOf prog i (g ^ fin (addressOfIndex i)))
   data := data
   uniform_width := by
     intro r hr
@@ -174,7 +174,8 @@ noncomputable def bcBlock (prog : Program) (data : ProverData K) (fin : K → �
     exact rawRow_size _
 
 /-- **The witness of a list of skeletons.** -/
-noncomputable def skelWitness (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemoryImage κ)
+noncomputable def skelWitness (prog : LeanIsaProgram) (input : PublicInput) {κ : ℕ} (img :
+    MemoryImage κ)
     (S : List Skel) : EnsembleWitness (leanIsaEnsemble prog) where
   tables := [opTable img (imageData img) (skelRows img S) .xor,
     opTable img (imageData img) (skelRows img S) .mulNative,

@@ -62,35 +62,35 @@ theorem findCollision_take (H : List UInt8 → Common.DigestBytes) (l₁ : List 
 /-- **The adversary's climb cut one level above the honest climb's height** finds the same
 collision. -/
 theorem openingsCollision_take {r : ℕ} (H : List UInt8 → Common.DigestBytes) (i : Fin (r * 128)) (x : Cell)
-    (τ : Opening) (c : Fin (r * 128) → Cell) :
+    (τ : CellOpening) (c : Fin (r * 128) → Cell) :
     openingsCollision H r i x ⟨τ.rowRoot, τ.path.take (8 + logPaddedRowCount r)⟩ (c i) (openCellWithHash H c i) =
       openingsCollision H r i x τ (c i) (openCellWithHash H c i) := by
-  have hl : (hashInputs H (colIndex i) (cellBytes (c i)) (openCellWithHash H c i).path
+  have hl : (hashInputs H (columnTreeIndex i) (cellBytes (c i)) (openCellWithHash H c i).path
       (openCellWithHash H c i).rowRoot).length = 9 + logPaddedRowCount r := by
     rw [length_hashInputs]; simp [openCellWithHash, length_merklePath]; omega
   simp only [openingsCollision]
   rw [findCollision_take H _ _ (9 + logPaddedRowCount r) hl.le,
-    findCollision_take H (hashInputs H (colIndex i) (cellBytes x) τ.path τ.rowRoot) _ (9 + logPaddedRowCount r)
+    findCollision_take H (hashInputs H (columnTreeIndex i) (cellBytes x) τ.path τ.rowRoot) _ (9 + logPaddedRowCount r)
       hl.le, show 9 + logPaddedRowCount r = (8 + logPaddedRowCount r) + 1 by omega,
     hashInputs_take H τ.path (8 + logPaddedRowCount r)]
 
 theorem shortP_openingsCollision {r : ℕ} (H : List UInt8 → Common.DigestBytes) (i : Fin (r * 128)) (x : Cell)
-    (τ : Opening) (x' : Cell) (τ' : Opening)
+    (τ : CellOpening) (x' : Cell) (τ' : CellOpening)
     (hne : (openingsCollision H r i x τ x' τ').1 ≠ (openingsCollision H r i x τ x' τ').2) :
     shortP (openingsCollision H r i x τ x' τ').1 ∧ shortP (openingsCollision H r i x τ x' τ').2 := by
   obtain ⟨h1, h2⟩ := findCollision_mem H _ _ hne
   exact ⟨shortP_of_mem_hashInputs H _ _ _ _ _ h1, shortP_of_mem_hashInputs H _ _ _ _ _ h2⟩
 
 /-- The climbs of an opening and of the honest one, with `H` as queries, the opening's cut. -/
-def wpbColX (r : ℕ) (c : Fin (r * 128) → Cell) (i : Fin (r * 128)) (x : Cell) (τ : Opening) :
+def wpbColX (r : ℕ) (c : Fin (r * 128) → Cell) (i : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     OracleComp (unifSpec + XS) (List UInt8 × List UInt8) := do
   let τ' ← openCellM hS c i
-  let l₁ ← hashInputsM hS (colIndex i) (cellBytes x) (τ.path.take (8 + logPaddedRowCount r)) τ.rowRoot
-  let l₂ ← hashInputsM hS (colIndex i) (cellBytes (c i)) (τ'.path.take (7 + logPaddedRowCount r)) τ'.rowRoot
+  let l₁ ← hashInputsM hS (columnTreeIndex i) (cellBytes x) (τ.path.take (8 + logPaddedRowCount r)) τ.rowRoot
+  let l₂ ← hashInputsM hS (columnTreeIndex i) (cellBytes (c i)) (τ'.path.take (7 + logPaddedRowCount r)) τ'.rowRoot
   findCollisionM hS l₁ (l₂.take (9 + logPaddedRowCount r))
 
 theorem wpbColX_eval (r : ℕ) (h : HTab) (c : Fin (r * 128) → Cell) (i : Fin (r * 128)) (x : Cell)
-    (τ : Opening) :
+    (τ : CellOpening) :
     simulateQ (col h) (wpbColX r c i x τ) = pure (openingsCollision (Hh h) r i x τ (c i) (openCellWithHash (Hh h) c i)) := by
   have hp : ∀ {α} (a : α), simulateQ (col (Ψ := unifSpec) h) (pure a) = pure a := fun _ ↦ rfl
   have hb : ∀ {α β} (x : OracleComp (unifSpec + XS) α) (f : α → OracleComp (unifSpec + XS) β),
@@ -103,14 +103,15 @@ theorem wpbColX_eval (r : ℕ) (h : HTab) (c : Fin (r * 128) → Cell) (i : Fin 
   congr 1
   have e1 : (openCellWithHash (Hh h) c i).path.take (7 + logPaddedRowCount r) = (openCellWithHash (Hh h) c i).path :=
     List.take_of_length_le (by simp [openCellWithHash, length_merklePath])
-  have e2 : (hashInputs (Hh h) (colIndex i) (cellBytes (c i)) (openCellWithHash (Hh h) c i).path
-      (openCellWithHash (Hh h) c i).rowRoot).take (9 + logPaddedRowCount r) = hashInputs (Hh h) (colIndex i)
+  have e2 : (hashInputs (Hh h) (columnTreeIndex i) (cellBytes (c i)) (openCellWithHash (Hh h) c
+      i).path
+      (openCellWithHash (Hh h) c i).rowRoot).take (9 + logPaddedRowCount r) = hashInputs (Hh h) (columnTreeIndex i)
         (cellBytes (c i)) (openCellWithHash (Hh h) c i).path (openCellWithHash (Hh h) c i).rowRoot :=
     List.take_of_length_le (by rw [length_hashInputs]; simp [openCellWithHash, length_merklePath]; omega)
   simp only [openingsCollision, e1, e2]
 
 theorem isWeightBound_wpbColX (r : ℕ) (c : Fin (r * 128) → Cell) (i : Fin (r * 128)) (x : Cell)
-    (τ : Opening) :
+    (τ : CellOpening) :
     QueryCostAtMost (wpbColX r c i x τ) xCalls
       (openCalls r + (8 + logPaddedRowCount r + 1) + (7 + logPaddedRowCount r + 1) + 2 * (9 + logPaddedRowCount r)) := by
   unfold wpbColX
@@ -127,21 +128,23 @@ theorem isWeightBound_wpbColX (r : ℕ) (c : Fin (r * 128) → Cell) (i : Fin (r
 
 section Wpb
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+      Crs Proof)
   (A : CodeBindingAdvB r Crs Proof)
 
 /-- The adversary then the challenges of its root (`runWithChallenge`), `H` as queries. -/
 noncomputable def rwcX (ck : Unit × Crs) :
-    OracleComp (WSpec + XS) (((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) × Challenges) := do
+    OracleComp (WSpec + XS) (((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) × MembershipChallenges) := do
   let out ← advX r ps A ck
-  let l ← liftL (HasQuery.query (spec := (Common.DigestBytes →ₒ Challenges)) (m := OracleComp WSpec) out.1.1)
+  let l ← liftL (HasQuery.query (spec := (Common.DigestBytes →ₒ MembershipChallenges)) (m := OracleComp WSpec) out.1.1)
   pure (out, l)
 
 theorem simulateRom_runWithChallenge_eq (h : HTab) (ck : Unit × Crs) :
     simulateRom (runWithChallenge (advH r ps A h) ck) =
-      simulateQ (col h) ((simulateQ (extImpl ((Common.DigestBytes →ₒ Challenges).romImpl)) (rwcX r ps A ck)).run' ∅) := by
+      simulateQ (col h) ((simulateQ (extImpl ((Common.DigestBytes →ₒ MembershipChallenges).romImpl)) (rwcX r ps A ck)).run' ∅) := by
   have e : runWithChallenge (advH r ps A h) ck = simulateQ (col h) (rwcX r ps A ck) := by
     simp only [rwcX, simulateQ_bind, simulateQ_col_liftL, ← advH_eq]
     rfl
@@ -151,8 +154,9 @@ theorem simulateRom_runWithChallenge_eq (h : HTab) (ck : Unit × Crs) :
 
 /-- The vector, position, cell and opening of Wagner's weak-position-binding reduction from a run. -/
 def wTup [NeZero r] (crs : Crs)
-    (p : ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)) × Challenges) :
-    (Fin (r * 128) → Cell) × Fin (r * 128) × Cell × Opening :=
+    (p : ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) ×
+        MembershipChallenges) :
+    (Fin (r * 128) → Cell) × Fin (r * 128) × Cell × CellOpening :=
   match p.1.2.find? (fun q ↦ decide (q.2.1 ≠ ext crs ((), p.1.1.1, p.2) p.1.1.2 q.1)) with
   | some q => (ext crs ((), p.1.1.1, p.2) p.1.1.2, q.1, q.2.1, q.2.2)
   | none => (ext crs ((), p.1.1.1, p.2) p.1.1.2, 0, ext crs ((), p.1.1.1, p.2) p.1.1.2 0, default)
@@ -173,7 +177,7 @@ theorem wpbReduction_eq [NeZero r] (h : HTab) :
 /-- **Wagner's weak-position-binding collision search with `H` as queries.** -/
 noncomputable def wpbX [NeZero r] : OracleComp (unifSpec + XS) (List UInt8 × List UInt8) := do
   let crs ← liftL ps.setup
-  let p ← (simulateQ (extImpl ((Common.DigestBytes →ₒ Challenges).romImpl)) (rwcX r ps A ((), crs))).run' ∅
+  let p ← (simulateQ (extImpl ((Common.DigestBytes →ₒ MembershipChallenges).romImpl)) (rwcX r ps A ((), crs))).run' ∅
   let t := wTup r ext crs p
   wpbColX r t.1 t.2.1 t.2.2.1 t.2.2.2
 
@@ -190,8 +194,8 @@ theorem isWeightBound_wpbX [NeZero r] (Q : ℕ)
     ((isWeightBound_advX r ps A Q hQ _).bind fun _ ↦ (isWeightBound_liftL _).bind fun _ ↦
       isWeightBound_pure _ _ 0).mono (by omega)
   have hrun := isWeightBound_run_simulateQ
-    (extImpl (Ψ := unifSpec) ((Common.DigestBytes →ₒ Challenges).romImpl)) xCalls xCalls
-    (isWeightBound_extImpl _) hr (∅ : (Common.DigestBytes →ₒ Challenges).QueryCache)
+    (extImpl (Ψ := unifSpec) ((Common.DigestBytes →ₒ MembershipChallenges).romImpl)) xCalls xCalls
+    (isWeightBound_extImpl _) hr (∅ : (Common.DigestBytes →ₒ MembershipChallenges).QueryCache)
   rw [StateT.run'_eq]
   exact (isWeightBound_map _ hrun).bind fun p ↦ isWeightBound_wpbColX r _ _ _ _
 
@@ -201,7 +205,7 @@ theorem prEvent_pure_le {x y : Bool} (h : x = true → y = true) :
   split_ifs <;> simp_all
 
 /-- The pair Wagner's weak-position-binding reduction compares. -/
-def wpbPair (H : List UInt8 → Common.DigestBytes) (t : (Fin (r * 128) → Cell) × Fin (r * 128) × Cell × Opening) :
+def wpbPair (H : List UInt8 → Common.DigestBytes) (t : (Fin (r * 128) → Cell) × Fin (r * 128) × Cell × CellOpening) :
     List UInt8 × List UInt8 :=
   openingsCollision H r t.2.1 t.2.2.1 t.2.2.2 (t.1 t.2.1) (openCellWithHash H t.1 t.2.1)
 

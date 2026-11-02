@@ -117,8 +117,8 @@ def secretDerivation : SecretPosition → Derivation
 /-- The half of its derivation that is a secret: the half of its parity for a chain start, the first
 half for a surrogate. -/
 def secretHalf : SecretPosition → HashOutput → Digest
-  | .inl (_, _, _, chain) => hashHalf chain.val
-  | .inr (.inl (_, _, _, _, _, i)) => hashHalf i.val
+  | .inl (_, _, _, chain) => hashHalfForChain chain.val
+  | .inr (.inl (_, _, _, _, _, i)) => hashHalfForChain i.val
   | .inr (.inr _) => truncateHash
 
 /-- The hash domain of the derivation that gives a secret. -/
@@ -186,20 +186,21 @@ theorem split_joinHalves (low high : Digest) :
 @[simp] theorem truncateHash_joinHalves (low high : Digest) : truncateHash (joinHalves low high) = low :=
   congrArg Prod.fst (split_joinHalves low high)
 
-@[simp] theorem upperHash_joinHalves (low high : Digest) : upperHash (joinHalves low high) = high :=
+@[simp] theorem upperHash_joinHalves (low high : Digest) : upperHalfOfHash (joinHalves low high) =
+    high :=
   congrArg Prod.snd (split_joinHalves low high)
 
 @[simp] theorem joinHalves_halves (output : HashOutput) :
-    joinHalves (truncateHash output) (upperHash output) = output :=
+    joinHalves (truncateHash output) (upperHalfOfHash output) = output :=
   (splitHashOutputEquiv digestBits (by decide)).symm_apply_apply output
 
 theorem hashHalf_even {n : Nat} (h : n % 2 = 0) (output : HashOutput) :
-    hashHalf n output = truncateHash output := by
-  simp only [hashHalf, h, ↓reduceIte]
+    hashHalfForChain n output = truncateHash output := by
+  simp only [hashHalfForChain, h, ↓reduceIte]
 
 theorem hashHalf_odd {n : Nat} (h : ¬n % 2 = 0) (output : HashOutput) :
-    hashHalf n output = upperHash output := by
-  simp only [hashHalf, h, ↓reduceIte]
+    hashHalfForChain n output = upperHalfOfHash output := by
+  simp only [hashHalfForChain, h, ↓reduceIte]
 
 /-! ### The answers of the derivations -/
 

@@ -63,7 +63,7 @@ open LeanVM.Protocol.EndToEnd.Sound (RetOK RetOK.ret RetOK.bind_true) in
 /-- **A simulation returns what the program returns**: a property of every return of the
 program holds of the simulation's results. -/
 theorem follows_retOK {α β : Type} {R : Commits → α → β → Prop} {Q : β → Prop} :
-    ∀ (H : Script α) (P : Prog β) (cs : Commits), Follows R H P cs → RetOK Q P →
+    ∀ (H : Script α) (P : VerifierProgram β) (cs : Commits), Follows R H P cs → RetOK Q P →
       Follows (fun cs a b ↦ R cs a b ∧ Q b) H P cs := by
   intro H
   induction H with
@@ -74,18 +74,18 @@ theorem follows_retOK {α β : Type} {R : Commits → α → β → Prop} {Q : �
   | send x k ih =>
     intro P cs h hq
     cases P <;> simp only [Follows] at h ⊢
-    exact ih _ _ h fun l a hl ↦ hq (Ev.read x :: l) a (by simpa [Prog.after] using hl)
+    exact ih _ _ h fun l a hl ↦ hq (Ev.read x :: l) a (by simpa [VerifierProgram.after] using hl)
   | sample k ih =>
     intro P cs h hq
     cases P <;> simp only [Follows] at h ⊢
     exact fun c ↦ ih c _ _ (h c) fun l a hl ↦ hq (Ev.sample c :: l) a
-      (by simpa [Prog.after] using hl)
+      (by simpa [VerifierProgram.after] using hl)
   | grind k ih =>
     intro P cs h hq
     cases P with
     | grind b k' =>
       simp only [Follows] at h ⊢
-      exact ih _ _ h fun l a hl ↦ hq (Ev.grind b :: l) a (by simpa [Prog.after] using hl)
+      exact ih _ _ h fun l a hl ↦ hq (Ev.grind b :: l) a (by simpa [VerifierProgram.after] using hl)
     | _ => simp only [Follows] at h
   | commit W k ih =>
     intro P cs h hq
@@ -93,7 +93,7 @@ theorem follows_retOK {α β : Type} {R : Commits → α → β → Prop} {Q : �
     | commit ht w k' =>
       simp only [Follows] at h ⊢
       exact ⟨h.1, ih _ _ h.2 fun l a hl ↦ hq (Ev.commit ht w W :: l) a
-        (by simpa [Prog.after] using hl)⟩
+        (by simpa [VerifierProgram.after] using hl)⟩
     | _ => simp only [Follows] at h
   | query k ih =>
     intro P cs h hq
@@ -102,14 +102,14 @@ theorem follows_retOK {α β : Type} {R : Commits → α → β → Prop} {Q : �
       simp only [Follows] at h ⊢
       obtain ⟨rows, h1, h2⟩ := h
       exact ⟨rows, h1, ih rows _ _ h2 fun l a hl ↦ hq (Ev.query rows :: l) a
-        (by simpa [Prog.after] using hl)⟩
+        (by simpa [VerifierProgram.after] using hl)⟩
     | _ => simp only [Follows] at h
 
 open LeanVM.Protocol.EndToEnd.Sound (RetOK RetOK.ret RetOK.bind_true) in
 /-- The bus phase claims the framework's columns only. -/
 theorem retOK_busColumns (layout : Verifier.Layout) :
     RetOK (fun bus : BusResult ↦ ∀ c ∈ bus.claims, c.column < 6)
-      (verifyBusBalance computedValue layout) := by
+      (verifyBusBalance computedBytecodeValue layout) := by
   unfold verifyBusBalance
   refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun r ↦ ?_
   obtain ⟨countRoot, point, treeValues⟩ := r
@@ -138,7 +138,7 @@ theorem retOK_publicColumns (layout : Verifier.Layout) (publicInput : Digest) :
   have : i < 3 := by simp at hi; omega
   interval_cases i <;> simp [memory0, memory1, memory2]
 
-variable (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 
 /-- The honest stack read on the verifier's layout. -/
 def fromI : Column (verifierLayout prog s).stackLog :=

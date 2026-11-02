@@ -19,7 +19,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-- The sentinel counter of a `2^11`-slot program, as a literal term. The elaborator unifies two
 `K` terms by evaluating powers of `g`, so it is never a definition. -/
-local notation "d₀" => (gpow 2047 : K)
+local notation "d₀" => (addressOfIndex 2047 : K)
 
 /-! ## Arms and runs -/
 
@@ -50,23 +50,24 @@ theorem executeWith_jump_taken {read : K → Option E} {r : Registers K} {oc od 
   simp [executeWith, hc, hd, hf, hin, hne, limb_ofK]
 
 /-- One step from a state away from the last slot is a run of one step. -/
-theorem run_one {κ : ℕ} {prog : Program} {L : MemoryImage κ} {r r' : Registers K}
+theorem run_one {κ : ℕ} {prog : LeanIsaProgram} {L : MemoryImage κ} {r r' : Registers K}
     (hpc : r.pc ≠ prog.pcFinal) (h : step prog L r = some r') : run prog L 1 r = some r' := by
   rw [run_succ_of_ne hpc, h]
   simp only [Option.bind_eq_bind, Option.bind_some]
   rfl
 
 /-- Runs compose. -/
-theorem run_trans {κ : ℕ} {prog : Program} {L : MemoryImage κ} {m n : ℕ} {r r₁ r₂ : Registers K}
+theorem run_trans {κ : ℕ} {prog : LeanIsaProgram} {L : MemoryImage κ} {m n : ℕ} {r r₁ r₂ :
+    Registers K}
     (h1 : run prog L m r = some r₁) (h2 : run prog L n r₁ = some r₂) :
     run prog L (m + n) r = some r₂ := by
   rw [run_add, h1]
   simpa only [Option.bind_eq_bind, Option.bind_some] using h2
 
 /-- A slot below the sentinel is not the sentinel's counter. -/
-theorem gpow_ne_pcFinal (prog : Program) {n : ℕ} (hn : n + 1 < 2 ^ prog.logSize) :
-    gpow n ≠ prog.pcFinal := by
-  unfold Program.pcFinal
+theorem gpow_ne_pcFinal (prog : LeanIsaProgram) {n : ℕ} (hn : n + 1 < 2 ^ prog.logSize) :
+    addressOfIndex n ≠ prog.pcFinal := by
+  unfold LeanIsaProgram.pcFinal
   intro heq
   have hL : prog.logSize ≤ 32 := prog.logSize_le
   have h32 : 2 ^ prog.logSize ≤ 4294967296 := by
@@ -82,7 +83,7 @@ theorem gpow_ne_pcFinal (prog : Program) {n : ℕ} (hn : n + 1 < 2 ^ prog.logSiz
 
 /-- Reading the address of a literal index gives the cell at that index. -/
 theorem read_lit {κ : ℕ} (L : MemoryImage κ) (j : ℕ) (hκ : κ < 64 := by decide)
-    (hj : j < 2 ^ κ := by decide) : L.read (gpow j) = some (L ⟨j, hj⟩) :=
+    (hj : j < 2 ^ κ := by decide) : L.read (addressOfIndex j) = some (L ⟨j, hj⟩) :=
   MemoryImage.read_gpow hκ L ⟨j, hj⟩
 
 /-! ## The image -/
@@ -174,24 +175,26 @@ def zeroImage : MemoryImage minLogMem := fun _ ↦ 0
 /-- Control: the sum-free hypothesis is what blocks the step. On the all-zero image, where
 `0 = 0 + 0`, an `XOR` of three cells executes. -/
 theorem zeroImage_xor :
-    execute zeroImage ⟨gpow 5, 1⟩ (.xor (gpow 0) (gpow 0) (gpow 0)) =
-      some (Registers.next ⟨gpow 5, 1⟩) := by
-  have h : zeroImage.read (((⟨gpow 5, 1⟩ : Registers K).fp) * gpow 0) = some 0 := by
-    show zeroImage.read (1 * gpow 0) = some 0
+    execute zeroImage ⟨addressOfIndex 5, 1⟩ (.xor (addressOfIndex 0) (addressOfIndex 0)
+        (addressOfIndex 0)) =
+      some (Registers.next ⟨addressOfIndex 5, 1⟩) := by
+  have h : zeroImage.read (((⟨addressOfIndex 5, 1⟩ : Registers K).fp) * addressOfIndex 0) = some
+      0 := by
+    show zeroImage.read (1 * addressOfIndex 0) = some 0
     rw [one_mul]
     exact read_lit zeroImage 0
   exact executeWith_xor_of_reads h h h (add_zero 0).symm
 
 /-! ## The trace is valid -/
 
-theorem bad_run (prog : Program) (d : K) (hd : prog.pcFinal = d) (hd0 : d ≠ 0) (hd1 : d ≠ 1)
-    (h0 : prog.fetch 1 = some (.jump (gpow 2) (gpow 2) (gpow 3))) :
+theorem bad_run (prog : LeanIsaProgram) (d : K) (hd : prog.pcFinal = d) (hd0 : d ≠ 0) (hd1 : d ≠ 1)
+    (h0 : prog.fetch 1 = some (.jump (addressOfIndex 2) (addressOfIndex 2) (addressOfIndex 3))) :
     run prog (badImage d) 1 Registers.initial = some (Registers.final prog) := by
   have hne : (Registers.initial : Registers K).pc ≠ prog.pcFinal := by
     rw [hd]; exact fun h ↦ hd1 h.symm
-  have e2 : (badImage d).read (gpow 2) = some (ofK d) := by
+  have e2 : (badImage d).read (addressOfIndex 2) = some (ofK d) := by
     rw [read_lit (badImage d) 2]; rfl
-  have e3 : (badImage d).read (gpow 3) = some (ofK 1) := by
+  have e3 : (badImage d).read (addressOfIndex 3) = some (ofK 1) := by
     rw [read_lit (badImage d) 3]; rfl
   have hin : IsInK (ofK d) := (isInK_iff _).mpr ⟨d, rfl⟩
   have hin1 : IsInK (ofK (1 : K)) := (isInK_iff _).mpr ⟨1, rfl⟩
@@ -201,14 +204,15 @@ theorem bad_run (prog : Program) (d : K) (hd : prog.pcFinal = d) (hd0 : d ≠ 0)
     simp only [limb_ofK, limb_zero] at this
     exact hd0 this
   rw [run_succ_of_ne hne, step_of_fetch_eq_some (r := Registers.initial) h0]
-  show (execute (badImage d) ⟨1, 1⟩ (.jump (gpow 2) (gpow 2) (gpow 3))) >>= _ = _
+  show (execute (badImage d) ⟨1, 1⟩ (.jump (addressOfIndex 2) (addressOfIndex 2) (addressOfIndex
+      3))) >>= _ = _
   simp only [execute, executeWith, one_mul, e2, e3]
   have hin1' : IsInK (1 : E) := by simpa using hin1
   have hl1 : (1 : E).limb 0 = 1 := by simpa using limb_ofK (1 : K) 0
   simp [hin, hin1', hne0, limb_ofK, hl1, run_zero, Registers.final, hd]
 
 /-- The image holds the public words at `g^0` and `g^1`. -/
-theorem bad_boundary {prog : Program} (d : K) (steps : ℕ) :
+theorem bad_boundary {prog : LeanIsaProgram} (d : K) (steps : ℕ) :
     HoldsPublicInput badInput (⟨minLogMem, badImage d, steps⟩ : Execution prog) := by
   refine ⟨le_rfl, (by decide : minLogMem ≤ maxLogMem), ?_, ?_⟩
   · rw [read_lit (badImage d) 0]; rfl
@@ -216,12 +220,12 @@ theorem bad_boundary {prog : Program} (d : K) (steps : ℕ) :
 
 /-- For every `2^11`-slot program whose first instruction is `JUMP [g^2, g^2, g^3]`, one step to
 the sentinel is a valid execution on `badImage d₀`. -/
-theorem bad_valid (prog : Program) (hL : prog.logSize = 11)
-    (h0 : prog.fetch 1 = some (.jump (gpow 2) (gpow 2) (gpow 3))) :
+theorem bad_valid (prog : LeanIsaProgram) (hL : prog.logSize = 11)
+    (h0 : prog.fetch 1 = some (.jump (addressOfIndex 2) (addressOfIndex 2) (addressOfIndex 3))) :
     ValidExecution prog badInput (⟨minLogMem, badImage d₀, 1⟩ : Execution prog) := by
   have hfin : prog.pcFinal = d₀ := by
     have h : 2 ^ prog.logSize - 1 = 2047 := by rw [hL]; norm_num
-    unfold Program.pcFinal
+    unfold LeanIsaProgram.pcFinal
     rw [h]
   exact ⟨bad_boundary d₀ 1, bad_run prog d₀ hfin d₀_ne_zero d₀_ne_one h0⟩
 
@@ -229,15 +233,16 @@ theorem bad_valid (prog : Program) (hL : prog.logSize = 11)
 
 /-- `JUMP [g^2, g^2, g^3]` in slot `0`, `SET_CONSTANT [g^0] 0` in every other slot, the sentinel
 included. -/
-def jumpProg : Program :=
+def jumpProg : LeanIsaProgram :=
   ⟨11, by decide, fun i ↦
-    if (i : ℕ) = 0 then .jump (gpow 2) (gpow 2) (gpow 3) else .setConstant (gpow 0) 0⟩
+    if (i : ℕ) = 0 then .jump (addressOfIndex 2) (addressOfIndex 2) (addressOfIndex 3) else .setConstant (addressOfIndex 0) 0⟩
 
 /-- Its first slot is the `JUMP`. -/
-theorem jumpProg_fetch_one : jumpProg.fetch 1 = some (.jump (gpow 2) (gpow 2) (gpow 3)) := by
-  have h : jumpProg.fetch (gpow 0) = some (jumpProg.code ⟨0, by decide⟩) :=
+theorem jumpProg_fetch_one : jumpProg.fetch 1 = some (.jump (addressOfIndex 2) (addressOfIndex 2)
+    (addressOfIndex 3)) := by
+  have h : jumpProg.fetch (addressOfIndex 0) = some (jumpProg.instructions ⟨0, by decide⟩) :=
     jumpProg.fetch_gpow ⟨0, by decide⟩
-  rw [show gpow 0 = (1 : K) from pow_zero g] at h
+  rw [show addressOfIndex 0 = (1 : K) from pow_zero g] at h
   rw [h]
   simp [jumpProg]
 

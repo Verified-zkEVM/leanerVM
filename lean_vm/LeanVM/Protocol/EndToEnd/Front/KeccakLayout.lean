@@ -33,9 +33,9 @@ def qkOf (layout : Verifier.Layout) (q : Column layout.stackLog) (n : ℕ) : K :
 
 /-- **`QKECCAK`'s placement at the verifier's layout**: `τ_KECCAK + 6` variables at its block's
 offset. -/
-theorem placement_qkeccak (prog : Program) (s : Sizes) :
+theorem placement_qkeccak (prog : LeanIsaProgram) (s : Sizes) :
     (verifierLayout prog s).placement qkeccak =
-      { vars := s.τ 5 + 6, index := (blocks prog s).offset (keccakBlock prog s) } := by
+      { variableCount := s.τ 5 + 6, index := (blocks prog s).offset (keccakBlock prog s) } := by
   rw [← pyCol_keccakCol, placement_committed prog s keccakCol not_isVirtual_keccakCol]
   rfl
 

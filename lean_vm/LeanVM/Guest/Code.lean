@@ -54,39 +54,43 @@ def keccakIns (m0 m1 m2 m3 tail b8 cap : ℕ) : List ℕ :=
 def keccakOuts (out : ℕ) : List ℕ := (List.range 13).map (out + ·)
 
 /-- Whether an instruction is a `JUMP`, the one that may not fall through. -/
-def OInstr.isJump : OInstr → Bool
+def OffsetInstruction.isJump : OffsetInstruction → Bool
   | .jump .. => true
   | _ => false
 
 /-! ## Compiled functions -/
 
 /-- The code as one list. -/
-def CompiledFn.code (f : CompiledFn) : List OInstr := f.chunks.flatten
+def CompiledFunction.code (f : CompiledFunction) : List OffsetInstruction := f.chunks.flatten
 
 /-- The chunks hold `n` instructions, `C` in each but the last. -/
-def chunked (C : ℕ) : List (List OInstr) → ℕ → Bool
+def chunked (C : ℕ) : List (List OffsetInstruction) → ℕ → Bool
   | [], n => n == 0
   | c :: cs, n =>
       if n ≤ C then cs.isEmpty && c.length == n else c.length == C && chunked C cs (n - C)
 
 /-- The chunks hold exactly the function's `len` instructions. -/
-def CompiledFn.WellChunked (f : CompiledFn) : Prop := chunked chunkSize f.chunks f.len = true
+def CompiledFunction.WellChunked (f : CompiledFunction) : Prop := chunked chunkSize f.chunks
+    f.instructionCount = true
 
 /-! ## Assembly -/
 
 /-- The functions are laid out one after another from pc `s`, ending at pc `e`. -/
-def consecutive : ℕ → List CompiledFn → ℕ → Bool
+def consecutive : ℕ → List CompiledFunction → ℕ → Bool
   | s, [], e => s == e
-  | s, f :: fs, e => f.entry == s && consecutive (s + f.len) fs e
+  | s, f :: fs, e => f.entryPc == s && consecutive (s + f.instructionCount) fs e
 
 /-- `assemble` with its instructions computed once, into an array: the same program
 (`assembleArray_eq`), for compiled code that reads every slot (`bytecodeWords` reads each sixteen
 times), where `assemble` would look each slot up again. -/
-def assembleArray (fns : List CompiledFn) (logSize : ℕ) (h : logSize ≤ maxLogBytecode) : Program :=
-  let code : Array Instr := Array.ofFn fun i : Fin (2 ^ logSize) ↦ (lookup fns i).toInstr
+def assembleArray (fns : List CompiledFunction) (logSize : ℕ) (h : logSize ≤ maxLogBytecode) :
+    LeanIsaProgram :=
+  let code : Array LeanIsaInstruction := Array.ofFn fun i : Fin (2 ^ logSize) ↦ (instructionAtPc fns
+      i).toLeanIsaInstruction
   ⟨logSize, h, fun i ↦ code[i.val]'(by simp [code])⟩
 
-theorem assembleArray_eq (fns : List CompiledFn) (logSize : ℕ) (h : logSize ≤ maxLogBytecode) :
+theorem assembleArray_eq (fns : List CompiledFunction) (logSize : ℕ) (h : logSize ≤
+    maxLogBytecode) :
     assembleArray fns logSize h = assemble fns logSize h := by
   simp [assembleArray, assemble]
 
@@ -95,13 +99,16 @@ theorem assembleArray_eq (fns : List CompiledFn) (logSize : ℕ) (h : logSize �
 /-- `KECCAK`'s read offsets in offset form: read cell `c` of the instruction `toInstr` gives is at
 the frame offset `keccakInOff … c`. -/
 theorem keccakInOffset_gpow (m0 m1 m2 m3 tail b8 cap : ℕ) (c : Fin 13) :
-    keccakInOffset ![gpow m0, gpow m1, gpow m2, gpow m3] (gpow tail) (gpow b8) (gpow cap) c =
-      gpow (keccakInOff m0 m1 m2 m3 tail b8 cap c.val) := by
-  fin_cases c <;> simp [keccakInOffset, keccakInOff, gpow, ← pow_add, ← pow_succ', Nat.add_comm]
+    keccakInputCellOffset ![addressOfIndex m0, addressOfIndex m1, addressOfIndex m2, addressOfIndex
+        m3] (addressOfIndex tail) (addressOfIndex b8) (addressOfIndex cap) c =
+      addressOfIndex (keccakInOff m0 m1 m2 m3 tail b8 cap c.val) := by
+  fin_cases c <;> simp [keccakInputCellOffset, keccakInOff, addressOfIndex, ← pow_add, ← pow_succ',
+      Nat.add_comm]
 
 /-- `KECCAK`'s write offsets in offset form: written cell `k` is at `out + k`. -/
-theorem keccakOutOffset_gpow (out k : ℕ) : g ^ k * gpow out = gpow (out + k) := by
-  simp [gpow, ← pow_add, Nat.add_comm]
+theorem keccakOutOffset_gpow (out k : ℕ) : g ^ k * addressOfIndex out = addressOfIndex (out +
+    k) := by
+  simp [addressOfIndex, ← pow_add, Nat.add_comm]
 
 theorem keccakIns_eq (m0 m1 m2 m3 tail b8 cap : ℕ) :
     keccakIns m0 m1 m2 m3 tail b8 cap =
@@ -116,7 +123,7 @@ theorem keccakOuts_getD (out : ℕ) {k : ℕ} (hk : k < 13) : (keccakOuts out).g
   simp [keccakOuts, hk]
 
 theorem nth_eq_getElem? {α : Type} {l : List α} {n : ℕ} (d : α) (h : n < l.length) :
-    l[n]? = some (nth l n d) := by
+    l[n]? = some (listElementOrDefault l n d) := by
   induction l generalizing n with
   | nil => exact absurd h (Nat.not_lt_zero _)
   | cons a as ih =>
@@ -125,9 +132,9 @@ theorem nth_eq_getElem? {α : Type} {l : List α} {n : ℕ} (d : α) (h : n < l.
     | succ n => exact ih (Nat.lt_of_succ_lt_succ h)
 
 /-- Well-chunked code has the stated length, and `chunkAt` reads it. -/
-theorem chunked_spec {C : ℕ} (hC : 0 < C) {cs : List (List OInstr)} {n : ℕ}
+theorem chunked_spec {C : ℕ} (hC : 0 < C) {cs : List (List OffsetInstruction)} {n : ℕ}
     (h : chunked C cs n = true) :
-    cs.flatten.length = n ∧ ∀ i < n, cs.flatten[i]? = some (chunkAt C cs i) := by
+    cs.flatten.length = n ∧ ∀ i < n, cs.flatten[i]? = some (chunkedInstructionAt C cs i) := by
   induction cs generalizing n with
   | nil =>
     have : n = 0 := by simpa [chunked] using h
@@ -140,13 +147,14 @@ theorem chunked_spec {C : ℕ} (hC : 0 < C) {cs : List (List OInstr)} {n : ℕ}
       obtain ⟨rfl, hc⟩ := h
       refine ⟨by simp [hc], fun i hi ↦ ?_⟩
       have hiC : i < C := Nat.lt_of_lt_of_le hi hn
-      rw [chunkAt, Nat.div_eq_of_lt hiC, Nat.mod_eq_of_lt hiC]
-      simpa [nth] using nth_eq_getElem? (l := c) OInstr.pad (by omega)
+      rw [chunkedInstructionAt, Nat.div_eq_of_lt hiC, Nat.mod_eq_of_lt hiC]
+      simpa [listElementOrDefault] using nth_eq_getElem? (l := c) OffsetInstruction.padding
+          (by omega)
     · simp only [Bool.and_eq_true, beq_iff_eq] at h
       obtain ⟨hc, hcs⟩ := h
       obtain ⟨hlen, hget⟩ := ih hcs
       refine ⟨by simp [hlen, hc]; omega, fun i hi ↦ ?_⟩
-      rw [List.flatten_cons, chunkAt]
+      rw [List.flatten_cons, chunkedInstructionAt]
       by_cases hiC : i < C
       · rw [Nat.div_eq_of_lt hiC, Nat.mod_eq_of_lt hiC, List.getElem?_append_left (by omega)]
         exact nth_eq_getElem? _ (by omega)
@@ -155,15 +163,17 @@ theorem chunked_spec {C : ℕ} (hC : 0 < C) {cs : List (List OInstr)} {n : ℕ}
         exact hget (i - C) (by omega)
 
 /-- The code of a well-chunked function has `len` instructions. -/
-theorem CompiledFn.length_code {f : CompiledFn} (h : f.WellChunked) : f.code.length = f.len :=
+theorem CompiledFunction.length_code {f : CompiledFunction} (h : f.WellChunked) : f.code.length =
+    f.instructionCount :=
   (chunked_spec (by decide) h).1
 
 /-- In a well-chunked function, `instrAt` reads the code. -/
-theorem CompiledFn.getElem?_code {f : CompiledFn} (h : f.WellChunked) {i : ℕ} (hi : i < f.len) :
-    f.code[i]? = some (f.instrAt i) :=
+theorem CompiledFunction.getElem?_code {f : CompiledFunction} (h : f.WellChunked) {i : ℕ} (hi : i <
+    f.instructionCount) :
+    f.code[i]? = some (f.instructionAt i) :=
   (chunked_spec (by decide) h).2 i hi
 
-theorem consecutive_le {s e : ℕ} {fns : List CompiledFn} (h : consecutive s fns e = true) :
+theorem consecutive_le {s e : ℕ} {fns : List CompiledFunction} (h : consecutive s fns e = true) :
     s ≤ e := by
   induction fns generalizing s with
   | nil => simp [consecutive] at h; omega
@@ -173,9 +183,10 @@ theorem consecutive_le {s e : ℕ} {fns : List CompiledFn} (h : consecutive s fn
     omega
 
 /-- In a consecutive layout, pc `entry + i` of a function is its instruction `i`. -/
-theorem lookup_of_mem {s e : ℕ} {fns : List CompiledFn} (h : consecutive s fns e = true)
-    {f : CompiledFn} (hf : f ∈ fns) {i : ℕ} (hi : i < f.len) :
-    lookup fns (f.entry + i) = f.instrAt i ∧ s ≤ f.entry ∧ f.entry + i < e := by
+theorem lookup_of_mem {s e : ℕ} {fns : List CompiledFunction} (h : consecutive s fns e = true)
+    {f : CompiledFunction} (hf : f ∈ fns) {i : ℕ} (hi : i < f.instructionCount) :
+    instructionAtPc fns (f.entryPc + i) = f.instructionAt i ∧ s ≤ f.entryPc ∧ f.entryPc + i <
+        e := by
   induction fns generalizing s with
   | nil => exact absurd hf List.not_mem_nil
   | cons f' fs ih =>
@@ -184,49 +195,52 @@ theorem lookup_of_mem {s e : ℕ} {fns : List CompiledFn} (h : consecutive s fns
     have hle := consecutive_le hfs
     rcases List.mem_cons.mp hf with rfl | hf
     · refine ⟨?_, by omega, by omega⟩
-      rw [lookup, ite_eq_left (by omega), Nat.add_sub_cancel_left]
+      rw [instructionAtPc, ite_eq_left (by omega), Nat.add_sub_cancel_left]
     · obtain ⟨hl, hs, he⟩ := ih hfs hf
       refine ⟨?_, by omega, he⟩
-      rw [lookup, ite_eq_right (by omega), hl]
+      rw [instructionAtPc, ite_eq_right (by omega), hl]
 
 /-- In a consecutive layout ending at `e`, every pc from `e` on is padding. -/
-theorem lookup_of_le {s e pc : ℕ} {fns : List CompiledFn} (h : consecutive s fns e = true)
-    (hpc : e ≤ pc) : lookup fns pc = .pad := by
+theorem lookup_of_le {s e pc : ℕ} {fns : List CompiledFunction} (h : consecutive s fns e = true)
+    (hpc : e ≤ pc) : instructionAtPc fns pc = .padding := by
   induction fns generalizing s with
   | nil => rfl
   | cons f fs ih =>
     simp only [consecutive, Bool.and_eq_true, beq_iff_eq] at h
     have := consecutive_le h.2
-    rw [lookup, ite_eq_right (by omega), ih h.2]
+    rw [instructionAtPc, ite_eq_right (by omega), ih h.2]
 
 section
 
-variable {fns : List CompiledFn} {logSize e : ℕ} {hl : logSize ≤ maxLogBytecode}
+variable {fns : List CompiledFunction} {logSize e : ℕ} {hl : logSize ≤ maxLogBytecode}
 
 /-- **The fetch lemma**: in a consecutive layout from pc `0` that fits the program, the
 instruction at pc `entry + i` of a function `f` is `f.instrAt i`. -/
 theorem assemble_fetch (h : consecutive 0 fns e = true) (he : e ≤ 2 ^ logSize)
-    {f : CompiledFn} (hf : f ∈ fns) {i : ℕ} (hi : i < f.len) :
-    (assemble fns logSize hl).fetch (gpow (f.entry + i)) = some (f.instrAt i).toInstr := by
+    {f : CompiledFunction} (hf : f ∈ fns) {i : ℕ} (hi : i < f.instructionCount) :
+    (assemble fns logSize hl).fetch (addressOfIndex (f.entryPc + i)) = some (f.instructionAt
+        i).toLeanIsaInstruction := by
   obtain ⟨hlookup, -, hlt⟩ := lookup_of_mem h hf hi
-  rw [Program.fetch_gpow (assemble fns logSize hl) ⟨f.entry + i, (by omega : f.entry + i < 2 ^ logSize)⟩]
-  exact congrArg (fun ins ↦ some (OInstr.toInstr ins)) hlookup
+  rw [LeanIsaProgram.fetch_gpow (assemble fns logSize hl) ⟨f.entryPc + i, (by omega : f.entryPc + i < 2 ^ logSize)⟩]
+  exact congrArg (fun ins ↦ some (OffsetInstruction.toLeanIsaInstruction ins)) hlookup
 
 /-- `assemble_fetch` at a pc and an instruction given as literals: each side condition is one
 small evaluation (`decide +kernel`). -/
 theorem assemble_fetch_of (h : consecutive 0 fns e = true) (he : e ≤ 2 ^ logSize)
-    {f : CompiledFn} (hf : f ∈ fns) {i pc : ℕ} {ins : OInstr} (hi : i < f.len)
-    (hpc : f.entry + i = pc) (hins : f.instrAt i = ins) :
-    (assemble fns logSize hl).fetch (gpow pc) = some ins.toInstr := by
+    {f : CompiledFunction} (hf : f ∈ fns) {i pc : ℕ} {ins : OffsetInstruction} (hi : i <
+        f.instructionCount)
+    (hpc : f.entryPc + i = pc) (hins : f.instructionAt i = ins) :
+    (assemble fns logSize hl).fetch (addressOfIndex pc) = some ins.toLeanIsaInstruction := by
   rw [← hpc, ← hins]
   exact assemble_fetch h he hf hi
 
 /-- Past the functions, the program holds the padding. -/
 theorem assemble_fetch_pad (h : consecutive 0 fns e = true) {pc : ℕ} (hpc : e ≤ pc)
     (hpc' : pc < 2 ^ logSize) :
-    (assemble fns logSize hl).fetch (gpow pc) = some OInstr.pad.toInstr := by
-  rw [Program.fetch_gpow (assemble fns logSize hl) ⟨pc, hpc'⟩]
-  exact congrArg (fun ins ↦ some (OInstr.toInstr ins)) (lookup_of_le h hpc)
+    (assemble fns logSize hl).fetch (addressOfIndex pc) = some
+        OffsetInstruction.padding.toLeanIsaInstruction := by
+  rw [LeanIsaProgram.fetch_gpow (assemble fns logSize hl) ⟨pc, hpc'⟩]
+  exact congrArg (fun ins ↦ some (OffsetInstruction.toLeanIsaInstruction ins)) (lookup_of_le h hpc)
 
 end
 

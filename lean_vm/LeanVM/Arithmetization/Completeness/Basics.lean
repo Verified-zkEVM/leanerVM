@@ -161,7 +161,7 @@ theorem bytecode_constraints (env : Environment K) :
   simp only [circuit_norm, bytecodeTable, -BitVec.reduceNeg]
 
 /-- The verifier asserts nothing, for any program. -/
-theorem verifier_constraints (prog : Program) (env : Environment K) :
+theorem verifier_constraints (prog : LeanIsaProgram) (env : Environment K) :
     (⟨leanIsaVerifier prog⟩ : Component K).operations.ConstraintsHold env := by
   rw [Component.constraintsHold_iff]
   simp only [circuit_norm, leanIsaVerifier, -BitVec.reduceNeg]

@@ -83,11 +83,11 @@ offset 23 of every input. -/
 theorem fieldInput_ne_of_tag_ne_across (parameter parameter' : PublicParameter)
     {fields1 fields2 : TweakFields} (htag : fields1.tag ≠ fields2.tag)
     (payload1 payload2 : HashInput) :
-    bytesLE 16 parameter ++ fieldBytes fields1 ++ payload1 ≠
-      bytesLE 16 parameter' ++ fieldBytes fields2 ++ payload2 := by
+    littleEndianBytes 16 parameter ++ addressBytes fields1 ++ payload1 ≠
+      littleEndianBytes 16 parameter' ++ addressBytes fields2 ++ payload2 := by
   intro h
   apply htag
-  obtain ⟨hprefix, _⟩ := List.append_inj h (by simp [fieldBytes, bytesLE_length])
+  obtain ⟨hprefix, _⟩ := List.append_inj h (by simp [addressBytes, bytesLE_length])
   obtain ⟨_, hfields⟩ := List.append_inj hprefix (by simp [bytesLE_length])
   rw [SphincsLayered.fieldBytes_injective hfields]
 
@@ -122,7 +122,7 @@ structure StructuralFresh (target : HashInput) : Prop where
 theorem structuralFresh_of_tag (parameter : PublicParameter) (fields : TweakFields)
     (payload : HashInput) (tag : Nat) (htag : tag = 4 ∨ tag = 12)
     (hfields : fields.tag = BitVec.ofNat 5 tag) :
-    StructuralFresh (bytesLE 16 parameter ++ fieldBytes fields ++ payload) := by
+    StructuralFresh (littleEndianBytes 16 parameter ++ addressBytes fields ++ payload) := by
   constructor
   · intro p domain seed
     exact fieldInput_ne_of_tag_ne_across p parameter

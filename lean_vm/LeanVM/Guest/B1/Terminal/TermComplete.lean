@@ -48,7 +48,7 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 /-- Two memories holding a layout agree on its words. -/
 theorem memL_agree {rd rd' : Reader} {L : Main.Layout} (h : MemL rd L) (h' : MemL rd' L) {i : ℕ}
-    (hi : RegionL L i) : rd (gpow i) = rd' (gpow i) := by
+    (hi : RegionL L i) : rd (addressOfIndex i) = rd' (addressOfIndex i) := by
   obtain ⟨q, hq, h1, h2⟩ := hi
   have l := (h q hq (i - q.1) (by omega)).2
   have l' := (h' q hq (i - q.1) (by omega)).2
@@ -56,8 +56,9 @@ theorem memL_agree {rd rd' : Reader} {L : Main.Layout} (h : MemL rd L) (h' : Mem
   exact l.trans l'.symm
 
 theorem readsAt_transfer {rd rd' : Reader} {L : Main.Layout} (h : MemL rd L) (h' : MemL rd' L)
-    {b : ℕ} {xs : List E} (hr : ReadsAt rd (ofK (gpow b)) xs)
-    (hreg : ∀ k < xs.length, RegionL L (b + k)) : ReadsAt rd' (ofK (gpow b)) xs := fun k hk =>
+    {b : ℕ} {xs : List E} (hr : ReadsAt rd (ofK (addressOfIndex b)) xs)
+    (hreg : ∀ k < xs.length, RegionL L (b + k)) : ReadsAt rd' (ofK (addressOfIndex b)) xs :=
+        fun k hk =>
   ⟨(hr k hk).1, by rw [Main.addr_ofK, ← memL_agree h h' (hreg k hk), ← Main.addr_ofK]; exact (hr k hk).2⟩
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
@@ -94,7 +95,7 @@ theorem check_opening_terminal_completeAt (κ : ℕ) (hκ : 6 ≤ κ) (B : TermB
   obtain ⟨hkap, -, -⟩ := hPC
   have hncl : chis.length = nc := gen_pow_inj_le (by omega) (by omega) (hgzc.symm.trans hgz)
   subst hncl
-  have hchis : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (gpow B.chi)) chis :=
+  have hchis : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (addressOfIndex B.chi)) chis :=
     fun rd _ hm => readsAt_transfer hm0 hm hchR fun k hk => hreg _ (by simp only [TermRegion]; omega)
   set kappas := columnKappas layout.logMemory layout.logBytecode layout.tableLogHeights with hkdef
   set KC := Tables.committedKappas kappas with hKCdef
@@ -160,7 +161,7 @@ theorem check_opening_terminal_completeAt (κ : ℕ) (hκ : 6 ≤ κ) (B : TermB
     refine termKids_mem Lin D _ outs hB hLin hLo (hst rd hl hLin) fun q hq => ?_
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl | rfl
-    · show ReadsAt rd (ofK (gpow (B.zv + 39))) ringPoint
+    · show ReadsAt rd (ofK (addressOfIndex (B.zv + 39))) ringPoint
       rw [← ofK_gpow_mul_gen]; exact hrp
     · exact readsAt_take hpt1 _
     · exact hct

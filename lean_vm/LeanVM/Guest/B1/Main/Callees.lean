@@ -135,7 +135,7 @@ theorem main_sound_exists [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signat
     (hs : Sig.verify_sig_lean_sphincs_sound_Spec ss) (hv : SubSound bytecode)
     (hd : Da.da_verify_sound_Spec) (ha : aggregate_claims_sound_Spec)
     (hbl : bytecode.length = 2 ^ bytecodeVars) {rd : Reader} (hm : MemOk rd) {D : Digest}
-    {σ : Val} (hp0 : LoadHolds rd 1 0 (digestScalars D).1) (hp1 : LoadHolds rd 1 1 (digestScalars D).2)
+    {σ : Val} (hp0 : LoadHolds rd 1 0 (digestHalves D).1) (hp1 : LoadHolds rd 1 1 (digestHalves D).2)
     (hb : Stmt.HoldsList (coreProgram.Rel rd) rd σ Data.core0.body False (fun rs => rs = [])) :
     statementDigest (decSeed σ) (decStmt σ rd) = D ∧
       ∃ w, NodeRelation bytecode (decSeed σ) (decStmt σ rd) w := by

@@ -80,14 +80,14 @@ open scoped ENNReal
 
 /-- **The deployed verifier**: `verifier` with Keccak-256 and Keccak-f[1600] (moved here from
 `Statement/LeanVm.lean`; no end statement names it). -/
-def verify (prog : Program) (input : PublicInput) (proof : Proof) : Bool :=
+def verify (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) : Bool :=
   Id.run (verifierWithHash (m := Id) keccak256 keccakF1600 prog input proof)
 
 /-- `verify` is the transcription of the deployed verifier, run with Keccak-256 and
 Keccak-f[1600] (`LeanVM.Protocol.Verifier.verify`, what `lake exe leanvm-verify` runs). -/
-theorem verify_eq (prog : Program) (input : PublicInput) (proof : Proof) :
+theorem verify_eq (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) :
     verify prog input proof =
-      LeanVM.Protocol.Verifier.verify (bytecodeWords prog) (publicDigest input) proof :=
+      LeanVM.Protocol.Verifier.verify (bytecodeWords prog) (publicInputDigest input) proof :=
   rfl
 
 /-- The verifier of the experiment, on a statement and a proof. -/
@@ -126,8 +126,8 @@ theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBoun
     leanVmQueryBound Sound.isTotalQueryBound_leanVmFam
     (fun z ℓ ↦ Fail Sound.leanVmSeeds ℓ ∨
       Rom.verify (lookH ℓ) (lookF ℓ)
-        (leanVmSeed (bytecodeWords z.1.1) (publicDigest z.1.2))
-        (leanVmProgram (bytecodeWords z.1.1) (publicDigest z.1.2)) z.2 ≠ some true ∨
+        (leanVmSeed (bytecodeWords z.1.1) (publicInputDigest z.1.2))
+        (leanVmVerifierProgram (bytecodeWords z.1.1) (publicInputDigest z.1.2)) z.2 ≠ some true ∨
       ¬ Sound.Extracted z.1.1 z.1.2 (cacheOf ℓ) z.2)
     (fun z ℓ hf hv hb ↦ by
       simp only [Sound.leanVmSeeds, Sound.nodeAt_stmtHistory] at hv
@@ -149,8 +149,8 @@ theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBoun
     obtain ⟨hn1, hn2⟩ := hne
     have hf : ¬ Fail Sound.leanVmSeeds w.2.2 := fun h ↦ hn1 ⟨hacc, Or.inl h⟩
     have hv : Rom.verify (lookH w.2.2) (lookF w.2.2)
-        (leanVmSeed (bytecodeWords w.1.1.1.1) (publicDigest w.1.1.1.2))
-        (leanVmProgram (bytecodeWords w.1.1.1.1) (publicDigest w.1.1.1.2))
+        (leanVmSeed (bytecodeWords w.1.1.1.1) (publicInputDigest w.1.1.1.2))
+        (leanVmVerifierProgram (bytecodeWords w.1.1.1.1) (publicInputDigest w.1.1.1.2))
         w.1.1.2 = some true := by
       by_contra h
       exact hn1 ⟨hacc, Or.inr (Or.inl h)⟩

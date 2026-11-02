@@ -36,7 +36,8 @@ variable {rd : Reader}
 argument, gives its core IR. -/
 def da_vector_cell_complete_Spec : Prop :=
   ∀ (rd : Reader) (dg p : E) (ws : List E), ws.length = LeanDa.cellSymbols → IsInK p →
-    (∀ k < LeanDa.cellSymbols, ∀ w, rd (p.limb 0 * Parameters.gpow k) = some w → w = ws.getD k 0) →
+    (∀ k < LeanDa.cellSymbols, ∀ w, rd (p.limb 0 * Parameters.addressOfIndex k) = some w → w =
+        ws.getD k 0) →
     ReadsAt rd dg (digestCells (keccak256 (ws.flatMap Node.extensionElementBytes))) →
     coreProgram.Rel rd "da_vector_cell" [dg] [p]
 

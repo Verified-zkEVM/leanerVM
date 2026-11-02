@@ -31,7 +31,7 @@ level starts from the guest's state. -/
 theorem osHead_sound {c : OsCfg} {fs : List E} {target root0 root1 cur : E} {root : Digest}
     {shape : ℕ × ℕ} (hfs : fs.length = 5)
     (hp : (osParams 9).map σ = fs ++ [target, root0, root1, cur])
-    (hroot : (root0, root1) = digestScalars root)
+    (hroot : (root0, root1) = digestHalves root)
     (hshape : shape = ((c.levels.headD default).depth, lvWidth 0 (c.levels.headD default)))
     (hoff : (c.levels.headD default).foldsOff = 0)
     (hok : AllOk (coreProgram.Rel rd) rd σ (osHead c).1) :

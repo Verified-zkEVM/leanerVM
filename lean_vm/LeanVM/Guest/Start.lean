@@ -40,7 +40,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 theorem bytecode_length : bytecode.length = 2 ^ 23 := by
   simp [bytecode, bytecodeWords, guest_logSize]
 
-theorem publicDigest_publicInputOf (d : Digest) : publicDigest (publicInputOf d) = d := by
+theorem publicDigest_publicInputOf (d : Digest) : publicInputDigest (publicInputOf d) = d := by
   obtain ⟨⟨l⟩, hl⟩ := d
   match l, hl with
   | [_, _, _, _], _ => rfl

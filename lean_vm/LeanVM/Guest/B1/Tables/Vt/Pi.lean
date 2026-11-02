@@ -32,7 +32,7 @@ def vtEvalFs (σ : Val) : Fs := (⟨vtCapV σ 0, []⟩ : Fs).absorbAll (vtEvs σ
 theorem vtW157 : word 174483046400 0 0 = gen ^ 157 := by
   rw [tb_word_eOfNat]
   show ofK (K.ofBits 174483046400) = gen ^ 157
-  rw [gen_pow_eq_ofK, show K.ofBits 174483046400 = Parameters.gpow 157 by decide +kernel]
+  rw [gen_pow_eq_ofK, show K.ofBits 174483046400 = Parameters.addressOfIndex 157 by decide +kernel]
 
 theorem vt_evalFs_eq {rd : Reader} {σ : Val} (h : VtH rd σ) :
     vtEvalFs σ = ⟨vtCapV σ 39, [(σ (.n (vtEvB 156)), dsObserve)]⟩ := by

@@ -188,7 +188,7 @@ theorem verify_sub_sound_w (bytecode : List K) : Main.SubSoundW bytecode vsPiOf 
   have h1 := readSizes_runsTo hbl F.hm16 F.hm32 F.hrowsL F.hh29 F.hl1 F.hl4 hμ28
     (⟨[σ (.n 22), σ (.n 23), σ (.n 24), σ (.n 25), σ (.n 26)], []⟩ : Fs)
   rw [← vsWords_eq F, F.hab8] at h1
-  have hroot' : digestOfScalars (σ (.n 537), σ (.n 547)) = some root := by
+  have hroot' : digestFromHalves (σ (.n 537), σ (.n 547)) = some root := by
     rw [hroot]; exact digestOfScalars_digestScalars root
   have h3 : (((⟨[σ (.n 77), σ (.n 78), σ (.n 79), σ (.n 80), σ (.n 81)],
       [(σ (.n 82), dsObserve), (σ (.n 92), dsObserve), (σ (.n 102), dsObserve),
@@ -201,7 +201,7 @@ theorem verify_sub_sound_w (bytecode : List K) : Main.SubSoundW bytecode vsPiOf 
     (busLayout [0, F.logMem, (Tables.layoutOf bytecode F.logMem F.rowsN).logBytecode]
       (Tables.layoutOf bytecode F.logMem F.rowsN).push).depth from
     (pushDepth_eq hbl F.logMem F.rowsN F.hrowsL).symm] at h5
-  have h6 := F.hrunT (claimedValue (vsFixed σ F.r.2.1)) (by
+  have h6 := F.hrunT (claimedBytecodeValue (vsFixed σ F.r.2.1)) (by
     rw [logBytecode_eq hbl]; exact bytecodeAt_claimed bytecode _ _)
   rw [← F.hcapT] at h6
   have hne : lanesOf F.claims ≠ [] := by intro h; rw [h] at hl25; simp at hl25

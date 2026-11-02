@@ -55,7 +55,7 @@ theorem decWitNStaged_eq : decWitNStaged discreteLogTables readerTabs = decWitN 
 
 open LeanVM.Semantics LeanVM.Extraction.Fast LeanVM.Guest.Located in
 /-- **On the memory vector, `statesVec` is `statesTable`**, the final registers given. -/
-theorem statesVec_eq (memT codeT : Array (ℕ × ℕ)) (prog : LeanVM.Semantics.Program) {κ : ℕ}
+theorem statesVec_eq (memT codeT : Array (ℕ × ℕ)) (prog : LeanVM.Semantics.LeanIsaProgram) {κ : ℕ}
     (mem : Vector E (2 ^ κ)) :
     ∀ fuel r, statesVec memT codeT prog mem (Registers.final prog) fuel r =
       statesTable memT codeT prog mem.get fuel r
@@ -72,9 +72,10 @@ theorem statesVec_eq (memT codeT : Array (ℕ × ℕ)) (prog : LeanVM.Semantics.
 open LeanVM.Semantics LeanVM.Guest.Located in
 /-- **The compiled replay is the decoder's**: the run from `(g^0, 1)` over `replayFuel`
 (`Guest.Fast.decode_eq_numbered`'s `states`), the memory image `mem.get`. -/
-theorem replayStatesOf_eq (memT codeT : Array (ℕ × ℕ)) (prog : LeanVM.Semantics.Program) {κ : ℕ}
+theorem replayStatesOf_eq (memT codeT : Array (ℕ × ℕ)) (prog : LeanVM.Semantics.LeanIsaProgram)
+    {κ : ℕ}
     (mem : Vector E (2 ^ κ)) :
-    replayStatesOf memT codeT prog mem = statesTable memT codeT prog mem.get replayFuel ⟨gpow 0, 1⟩ :=
+    replayStatesOf memT codeT prog mem = statesTable memT codeT prog mem.get replayFuel ⟨addressOfIndex 0, 1⟩ :=
   statesVec_eq memT codeT prog mem replayFuel _
 
 /-! ## The top's ends -/

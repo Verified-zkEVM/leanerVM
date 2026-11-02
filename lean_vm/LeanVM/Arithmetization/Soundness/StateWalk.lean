@@ -56,7 +56,7 @@ namespace LeanVM.Arithmetization
 open LeanVM.Parameters LeanVM.Semantics
 open Air.Flat (Component EnsembleWitness)
 
-variable {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
+variable {prog : LeanIsaProgram} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
 
 /-! ## The rows are steps -/
 
@@ -103,8 +103,8 @@ program holds a `JUMP` there the successor is the fall-through. -/
 theorem opRecs_step (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Array K → RowRec}
     (hf : OpRecs w f) {p : Air.Flat.Table K × Array K} (hp : p ∈ opPairs w) :
     step prog (imageOf w.data).2 (f p).src = some (f p).next ∧
-      ∃ k : Fin (2 ^ prog.logSize), (f p).pc = gpow k ∧
-        ((prog.code k).opcode ≠ .jump → (f p).next = ⟨g * (f p).pc, (f p).fp⟩) := by
+      ∃ k : Fin (2 ^ prog.logSize), (f p).pc = addressOfIndex k ∧
+        ((prog.instructions k).opcode ≠ .jump → (f p).next = ⟨g * (f p).pc, (f p).fp⟩) := by
   obtain ⟨ht, hrow⟩ := mem_opPairs hp
   have ht' := List.mem_of_mem_take ht
   have ha := assumptions_of_keccakRowsValid h.keccak_valid p.1
@@ -112,10 +112,10 @@ theorem opRecs_step (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Arra
   have hc := h.constraints p.1 (w.mem_allTables_of_mem_tables ht') p.2 hrow
   obtain ⟨ins, he, hexec, hnj⟩ := (hf p hp).2.2.2.1 ha hc (opRecs_guarantees h.toB hf hp)
   obtain ⟨k, hpc, hek⟩ := opRecs_bc_sound h.toB hf hp
-  have hins : prog.code k = ins := entry_injective (hek.symm.trans he)
+  have hins : prog.instructions k = ins := entry_injective (hek.symm.trans he)
   refine ⟨?_, k, hpc, fun hj ↦ hnj (hins ▸ hj)⟩
   have hfetch : prog.fetch (f p).src.pc = some ins := by
-    rw [show (f p).src.pc = (f p).pc from rfl, hpc, Program.fetch_gpow, hins]
+    rw [show (f p).src.pc = (f p).pc from rfl, hpc, LeanIsaProgram.fetch_gpow, hins]
   rw [step_of_fetch_eq_some hfetch]
   exact hexec
 
@@ -125,8 +125,8 @@ unless the program holds a `JUMP` there. -/
 def RowsStep (S : KeccakSem) (w : EnsembleWitness (leanIsaEnsemble prog))
     (f : Air.Flat.Table K × Array K → RowRec) : Prop :=
   ∀ p ∈ opPairs w, stepB S prog (imageOf w.data).2 (f p).src = some (f p).next ∧
-    ∃ k : Fin (2 ^ prog.logSize), (f p).pc = gpow k ∧
-      ((prog.code k).opcode ≠ .jump → (f p).next = ⟨g * (f p).pc, (f p).fp⟩)
+    ∃ k : Fin (2 ^ prog.logSize), (f p).pc = addressOfIndex k ∧
+      ((prog.instructions k).opcode ≠ .jump → (f p).next = ⟨g * (f p).pc, (f p).fp⟩)
 
 /-- The rows are steps of the deployed semantics. -/
 theorem rowsStep_deployed (h : SatisfiedBy prog input w)

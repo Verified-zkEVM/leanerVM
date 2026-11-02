@@ -194,7 +194,8 @@ theorem follows_sumcheckRoundPoly (count : ℕ) (claim : E) (mode : Option E) (c
   | none =>
     simp only [RoundSplit, List.sum_cons] at hsplit
     simp only [wire, List.headD_cons, List.drop_succ_cons, List.drop_zero, Script.sendList,
-      sumcheckRoundPoly, Prog.readScalar, Prog.bind_eq, Prog.bind, Follows]
+      sumcheckRoundPoly, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind,
+          Follows]
     rw [← hrest, ← Script.bind_ret (Script.sendList rest)]
     refine Follows.bind (fun cs' _ b h ↦ ?_) _ _ _ (Follows.sendList_readN cs rest)
     obtain ⟨rfl, hb⟩ := h
@@ -205,7 +206,8 @@ theorem follows_sumcheckRoundPoly (count : ℕ) (claim : E) (mode : Option E) (c
     linear_combination (CharTwo.two_eq_zero (R := E)) * (c0 + b.sum)
   | some r =>
     simp only [RoundSplit, List.sum_cons] at hsplit
-    simp only [wire, List.drop_succ_cons, List.drop_zero, sumcheckRoundPoly, Prog.bind_eq]
+    simp only [wire, List.drop_succ_cons, List.drop_zero, sumcheckRoundPoly,
+        VerifierProgram.bind_eq]
     have hl : (c1 :: rest).length = count - 1 := by simp; omega
     rw [← hl, ← Script.bind_ret (Script.sendList (c1 :: rest))]
     refine Follows.bind (fun cs' _ b h ↦ ?_) _ _ _ (Follows.sendList_readN cs (c1 :: rest))
@@ -254,7 +256,7 @@ theorem follows_sumcheck (count : ℕ) (hcount : 2 ≤ count) (claimOf : List E 
         have h := hsplit [] (by simp)
         simp only [List.append_nil, List.length_nil, List.getElem_cons_zero] at h
         rwa [polyEval_coeffsOf hd, polyEval_coeffsOf hd]) cs
-    simp only [hSumcheck, sumcheck, Prog.bind_eq]
+    simp only [hSumcheck, sumcheck, VerifierProgram.bind_eq]
     refine Follows.bind (fun cs₁ _ msg h₁ ↦ ?_) _ _ _ hround
     obtain ⟨rfl, rfl⟩ := h₁
     refine Follows.bind (fun cs₂ c c' h₂ ↦ ?_) _ _ _ (Follows.sampleE_sampleE cs₁)

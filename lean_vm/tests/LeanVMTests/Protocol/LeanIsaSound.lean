@@ -27,18 +27,18 @@ open LeanVM.Protocol.LeanIsa
 open Air.Flat (EnsembleWitness)
 
 /-- The adaptor's soundness. -/
-example (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) (input : PublicInput)
+example (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) (input : PublicInput)
     (hs : s.Admissible prog) (h : M3Holds (leanIsaInstance prog s) input q) :
     SatisfiedBy prog input (witnessOf prog s q) :=
   satisfiedBy_witnessOf prog s q hs h
 
 /-- The `KECCAK` validity needs the Keccak clause alone. -/
-example (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+example (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
     (h : (leanIsaInstance prog s).aux q) : KeccakRowsValid (witnessOf prog s q) :=
   keccakRowsValid_witnessOf prog s q h
 
 /-- The bus as one bus, on any witness. -/
-example (prog : Program) (w : EnsembleWitness (leanIsaEnsemble prog)) :
+example (prog : LeanIsaProgram) (w : EnsembleWitness (leanIsaEnsemble prog)) :
     (sideTuples w .push).Perm (sideTuples w .pull) ↔
       BalancedPair w StatePull.toRaw StatePush.toRaw ∧ BalancedPair w MemPull.toRaw MemPush.toRaw ∧
         BalancedPair w BytecodePull.toRaw BytecodePush.toRaw := by
@@ -46,7 +46,7 @@ example (prog : Program) (w : EnsembleWitness (leanIsaEnsemble prog)) :
   exact ⟨fun h ↦ ⟨h 0, h 1, h 2⟩, fun h k ↦ by fin_cases k; exacts [h.1, h.2.1, h.2.2]⟩
 
 /-- The counts, both ways, on a stack and a witness that agree. -/
-example (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+example (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
     (w : EnsembleWitness (leanIsaEnsemble prog)) (h : Agrees s q w) :
     CountsNonzero w ↔ (leanIsaInstance prog s).CountsNonzero q :=
   countsNonzero_iff h
@@ -54,7 +54,7 @@ example (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
 /-! ## The input lanes' cells -/
 
 /-- Four `XOR` instructions. -/
-def prog4 : Program := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
+def prog4 : LeanIsaProgram := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
 
 /-- The second size vector of the instance tests, the `KECCAK` table at its floor `2^9`. -/
 def s₂ : Sizes := ⟨18, by decide, ![2 ^ 2, 2 ^ 18, 2 ^ 5, 2 ^ 0, 2 ^ 7, 2 ^ 3]⟩

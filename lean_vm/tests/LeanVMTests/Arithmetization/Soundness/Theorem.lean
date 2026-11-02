@@ -59,7 +59,8 @@ info: 'LeanVM.Arithmetization.exists_run_of_balanced' depends on axioms:
 
 /-- Runs from one state that reach the final registers take the same number of steps: the machine
 halts there. -/
-theorem run_steps_unique {κ : ℕ} {prog : Program} {L : MemoryImage κ} {r : Registers K} {m n : ℕ}
+theorem run_steps_unique {κ : ℕ} {prog : LeanIsaProgram} {L : MemoryImage κ} {r : Registers K}
+    {m n : ℕ}
     (hm : run prog L m r = some (Registers.final prog)) (hn : run prog L n r = some (Registers.final prog)) :
     m = n := by
   have key : ∀ a b, run prog L a r = some (Registers.final prog) →
@@ -80,12 +81,12 @@ for `badTrace` satisfies the statement, and soundness extracts from it a valid e
 witness represents, of one step, the run's. -/
 theorem bad_roundtrip :
     ∃ w, SatisfiedBy jumpProg badInput w ∧
-      ∃ t, AssignmentRepresents w t ∧ ValidExecution jumpProg badInput t ∧ t.steps = 1 := by
+      ∃ t, AssignmentRepresents w t ∧ ValidExecution jumpProg badInput t ∧ t.stepCount = 1 := by
   obtain ⟨w, hs, hr'⟩ := constraintCompleteness badTrace_valid (by decide)
   obtain ⟨t, hr, hv⟩ := constraintSoundness hs
   refine ⟨w, hs, t, hr, hv, ?_⟩
   have himg := (assignmentRepresents_image hr).symm.trans (assignmentRepresents_image hr')
-  show t.steps = badTrace.steps
+  show t.stepCount = badTrace.stepCount
   obtain ⟨κ, img, n⟩ := t
   obtain ⟨rfl, himg⟩ := Sigma.mk.inj himg
   obtain rfl := eq_of_heq himg
@@ -105,13 +106,13 @@ example : ¬ ∀ P : List K, (P.map (g * ·)).Perm P → P.length < 2 ^ 64 - 1 �
 /-- The `2^64 - 1` powers of `g` are closed under multiplication by `g`: the read bound is
 load-bearing. -/
 theorem powers_closed :
-    (((List.range (2 ^ 64 - 1)).map gpow).map (g * ·)).Perm
-      ((List.range (2 ^ 64 - 1)).map gpow) := by
-  have e1 : ((List.range (2 ^ 64 - 1)).map gpow).map (g * ·) =
-      (List.range (2 ^ 64 - 1)).map fun i ↦ gpow (i + 1) := by
+    (((List.range (2 ^ 64 - 1)).map addressOfIndex).map (g * ·)).Perm
+      ((List.range (2 ^ 64 - 1)).map addressOfIndex) := by
+  have e1 : ((List.range (2 ^ 64 - 1)).map addressOfIndex).map (g * ·) =
+      (List.range (2 ^ 64 - 1)).map fun i ↦ addressOfIndex (i + 1) := by
     rw [List.map_map]
     exact List.map_congr_left fun i _ ↦ (gpow_succ i).symm
-  have hN : gpow (2 ^ 64 - 2 + 1) = gpow 0 := by
+  have hN : addressOfIndex (2 ^ 64 - 2 + 1) = addressOfIndex 0 := by
     rw [show 2 ^ 64 - 2 + 1 = 2 ^ 64 - 1 by decide]
     exact g_pow_card_sub_one
   rw [e1, show 2 ^ 64 - 1 = (2 ^ 64 - 2) + 1 by decide]

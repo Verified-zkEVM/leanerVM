@@ -15,14 +15,14 @@ attribute [local instance] Classical.propDecidable
 
 inductive Coordinate where
   | chain (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (chainIdx : ChainIndex)
-      (position : Digit)
+      (position : WinternitzDigit)
   | fchain (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain)
       (position : FPos)
   deriving DecidableEq
 
 instance coordinateFintype : Fintype Coordinate where
   elems :=
-    (Finset.univ.image fun x : Layer × TreeIndex × LeafIndex × ChainIndex × Digit =>
+    (Finset.univ.image fun x : Layer × TreeIndex × LeafIndex × ChainIndex × WinternitzDigit =>
       Coordinate.chain x.1 x.2.1 x.2.2.1 x.2.2.2.1 x.2.2.2.2) ∪
     (Finset.univ.image fun x : Index × Coord × SuperIdx × SubIdx × ChildIdx × FChain × FPos =>
       Coordinate.fchain x.1 x.2.1 x.2.2.1 x.2.2.2.1 x.2.2.2.2.1 x.2.2.2.2.2.1 x.2.2.2.2.2.2)
@@ -68,7 +68,7 @@ def candidateActive [Params] (parameter : PublicParameter) (address : Address) :
   PrunedGraph.active parameter address.position
 
 def input (parameter : PublicParameter) (query : Address × Digest) : HashInput :=
-  tweakableHashInput parameter query.1.position.domain (bytesLE 16 query.2)
+  tweakableHashInput parameter query.1.position.domain (littleEndianBytes 16 query.2)
 
 theorem input_injective (parameter : PublicParameter) : Function.Injective (input parameter) := by
   intro left right heq

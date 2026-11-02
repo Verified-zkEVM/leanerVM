@@ -74,7 +74,7 @@ instance : DecidablePred IsCanonical128 :=
 def g : K := K.ofBits 0x2
 
 /-- Exponent addressing: index `i` is the address `g ^ i`. -/
-abbrev gpow (i : ℕ) : K := g ^ i
+abbrev addressOfIndex (i : ℕ) : K := g ^ i
 
 /-- A `K` word from a 64-bit lane: bit `i` of the lane is the coefficient of `x^i`. -/
 def K.ofLane (w : UInt64) : K := BF64.ofBitVec w.toBitVec
@@ -89,16 +89,16 @@ namespace LeanVM.Protocol.KeccakHash
 open LeanVM.Parameters LeanVM.Semantics
 
 /-- The eight little-endian bytes of a `K` word (`K.to_bytes`, `verifier.py:50-52`). -/
-def kBytes (a : K) : List UInt8 := wordBytes a.lane
+def _root_.LeanVM.Parameters.K.toBytes (a : K) : List UInt8 := wordBytes a.lane
 
 /-- A digest as the two field elements a transcript carries it in, its 128-bit halves
 `E(w0, w1)`, `E(w2, w3)` (`Digest.halves`, `verifier.py:225-228`). -/
-def digestScalars (d : Digest) : E × E :=
+def digestHalves (d : Digest) : E × E :=
   (E.ofLimbs (K.ofLane d[0]) (K.ofLane d[1]) 0, E.ofLimbs (K.ofLane d[2]) (K.ofLane d[3]) 0)
 
 /-- The digest two field elements encode, or `none` if either has a nonzero top limb
 (`Digest.from_halves`, `verifier.py:230-233`). -/
-def digestOfScalars (s : E × E) : Option Digest :=
+def digestFromHalves (s : E × E) : Option Digest :=
   if IsCanonical128 s.1 ∧ IsCanonical128 s.2 then
     some #v[(s.1.limb 0).lane, (s.1.limb 1).lane, (s.2.limb 0).lane, (s.2.limb 1).lane]
   else none

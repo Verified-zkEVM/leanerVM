@@ -109,7 +109,7 @@ theorem termKids_getD_sel (Lin : Main.Layout) (D : TermData) (b0 : ℕ) {c : ℕ
 
 theorem termKids_getD_103 (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
     (termKids Lin D b0).getD 103 noKid = fun _ => ⟨"eq_prefix_chain", true,
-      [ofK (gpow (b0 + 105)), word 1 0 0, ofK (gpow D.B.zv), ofK (gpow D.B.pt1), D.gtau * word 64 0 0],
+      [ofK (addressOfIndex (b0 + 105)), word 1 0 0, ofK (addressOfIndex D.B.zv), ofK (addressOfIndex D.B.pt1), D.gtau * word 64 0 0],
       (b0 + 105, eqChain D.outPt ((p1Of D.x).take D.outPt.length)) :: Lin, Returns []⟩ := by
   rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), ite_neg' (by omega),
     ite_neg' (by omega)]
@@ -117,7 +117,8 @@ theorem termKids_getD_103 (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
 
 theorem termKids_getD_104 (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
     (termKids Lin D b0).getD 104 noKid = fun _ => ⟨"ring_switch_weight", true,
-      [ofK (gpow D.B.zv) * word 549755813888 0 0, ofK (gpow D.B.pt1), ofK (gpow D.B.ct),
+      [ofK (addressOfIndex D.B.zv) * word 549755813888 0 0, ofK (addressOfIndex D.B.pt1), ofK
+          (addressOfIndex D.B.ct),
         D.gtau * word 64 0 0],
       [(D.B.zv + 39, D.ringPoint), (D.B.pt1, (p1Of D.x).take (D.τ + 6)), (D.B.ct, D.coeffs)],
       Returns [ringWeight D.ringPoint (((p1Of D.x).take (D.τ + 6)).map (1 + ·)) D.coeffs]⟩ := by
@@ -145,7 +146,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     (outs : List (List E × Main.Layout)) (rd : Reader)
     (P : TermPre rd layout bus claims out lam ringPoint coeffs x
       (termArgs B rm gmu gzcn glm gtau lamOut inner yr target))
-    (hchis : ReadsAt rd (ofK (gpow B.chi)) chis) (hgz : gzcn = gen ^ chis.length)
+    (hchis : ReadsAt rd (ofK (addressOfIndex B.chi)) chis) (hgz : gzcn = gen ^ chis.length)
     (hcl : chis.length ≤ 34)
     (hreg : ∀ i, TermRegion B bus.point.length chis.length (layout.tableLogHeights.getD opKeccak 0) i →
       RegionL Lin i)
@@ -165,11 +166,12 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       (termPre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) =
         [35, 35, 35, 41] ∧
       ((termPre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-        (bases b0 [35, 35, 35, 41]).map (fun b => ofK (gpow b)) ∧
+        (bases b0 [35, 35, 35, 41]).map (fun b => ofK (addressOfIndex b)) ∧
       CallsMatch σ ((termPre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ))
         (kidsAt (termKids Lin (termD B layout bus out ringPoint coeffs x chis rm gmu gzcn glm gtau) b0)
           [] outs) outs ∧
-      ∀ q ∈ termPre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧
+      ∀ q ∈ termPre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 =
+          addressOfIndex i ∧
         (RegionL Lin i ∨ RegionL (bufL b0 [35, 35, 35, 41]
           (termOwn (termD B layout bus out ringPoint coeffs x chis rm gmu gzcn glm gtau))) i ∨
           outRegion (kidsAt (termKids Lin (termD B layout bus out ringPoint coeffs x chis rm gmu gzcn
@@ -200,13 +202,15 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     lt_of_lt_of_le (stackOffsets_lt KC c) (Nat.pow_le_pow_right (by decide) (by rw [hLdef]; omega))
   have hdvd : ∀ c < Tables.nCommittedCols, 2 ^ KC.getD c 0 ∣ (stackOffsets KC).1.getD c 0 :=
     fun c hc ↦ dvd_stackOffset KC (by omega)
-  have hkv' : ∀ c < Tables.nCommittedCols, LoadHolds rd (ofK (gpow B.kap)) c (gen ^ KC.getD c 0) :=
+  have hkv' : ∀ c < Tables.nCommittedCols, LoadHolds rd (ofK (addressOfIndex B.kap)) c (gen ^
+      KC.getD c 0) :=
     fun c hc ↦ by
       have := hKr c (by simp; omega)
       rw [List.getElem_map] at this
       rw [List.getD_eq_getElem _ _ (by omega)]; exact this
   have hoff' : ∀ c < Tables.nCommittedCols,
-      LoadHolds rd (ofK (gpow B.off)) c (gen ^ (stackOffsets KC).1.getD c 0) := fun c hc ↦ by
+      LoadHolds rd (ofK (addressOfIndex B.off)) c (gen ^ (stackOffsets KC).1.getD c 0) := fun c
+          hc ↦ by
     have hl : c < (stackOffsets KC).1.length := by rw [stackOffsets_length]; omega
     have := hOr c (by simpa using hl)
     rw [List.getElem_map] at this
@@ -234,7 +238,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       rw [List.getElem?_map, List.getElem?_eq_getElem (by omega), List.getD_eq_getElem _ _ (by omega)]
       rfl
   let cp : ℕ → ℕ := fun j ↦ (claims.getD j default).point.length
-  have hcpR : ∀ j < 162, LoadHolds rd (ofK (gpow B.cplen)) j (gen ^ cp j) := fun j hj ↦
+  have hcpR : ∀ j < 162, LoadHolds rd (ofK (addressOfIndex B.cplen)) j (gen ^ cp j) := fun j hj ↦
     (hpts j _ (hptj j (by omega))).1 hj
   have hmemj : ∀ j < 165, claims.getD j default ∈ claims := fun j hj ↦ by
     rw [List.getD_eq_getElem _ _ (by omega)]; exact List.getElem_mem _
@@ -270,12 +274,12 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
   have e2 : σ (.n 2) = rm := ea 2 (by omega)
   have e5 : σ (.n 5) = glm := ea 5 (by omega)
   have e6 : σ (.n 6) = gtau := ea 6 (by omega)
-  have e7 : σ (.n 7) = ofK (gpow B.cplen) := ea 7 (by omega)
-  have e9 : σ (.n 9) = ofK (gpow B.lamPool) := ea 9 (by omega)
-  have e10 : σ (.n 10) = ofK (gpow B.off) := ea 10 (by omega)
-  have e11 : σ (.n 11) = ofK (gpow B.kap) := ea 11 (by omega)
-  have e14 : σ (.n 14) = ofK (gpow B.pt) := ea 14 (by omega)
-  have e15 : σ (.n 15) = ofK (gpow B.pt1) := ea 15 (by omega)
+  have e7 : σ (.n 7) = ofK (addressOfIndex B.cplen) := ea 7 (by omega)
+  have e9 : σ (.n 9) = ofK (addressOfIndex B.lamPool) := ea 9 (by omega)
+  have e10 : σ (.n 10) = ofK (addressOfIndex B.off) := ea 10 (by omega)
+  have e11 : σ (.n 11) = ofK (addressOfIndex B.kap) := ea 11 (by omega)
+  have e14 : σ (.n 14) = ofK (addressOfIndex B.pt) := ea 14 (by omega)
+  have e15 : σ (.n 15) = ofK (addressOfIndex B.pt1) := ea 15 (by omega)
   have hS : StoresAt25 [Atom.load (.n 26) (.n 25) 0, .load (.n 28) (.n 25) 1] := by
     intro a ha
     simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
@@ -306,7 +310,8 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     RegionL (bufL b0 [35, 35, 35, 41] (termOwn D)) i ∨
     outRegion (kidsAt (termKids Lin D b0) [] outs) outs i with hR
   have aL : ∀ b k, TermRegion B bus.point.length chis'.length τ (b + k) →
-      AddrIn R (ofK (gpow b)) k := fun b k h => ⟨b + k, Main.addr_ofK b k, Or.inl (hreg _ h)⟩
+      AddrIn R (ofK (addressOfIndex b)) k := fun b k h
+          => ⟨b + k, Main.addr_ofK b k, Or.inl (hreg _ h)⟩
   have hBuf := hB
   rw [termBuf_eq] at hBuf
   have rB : ∀ i, RegionL [(b0, eqChain D.zs ((p1Of D.x).take D.zs.length)),
@@ -457,7 +462,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
   obtain ⟨hCs, hCl⟩ := claimsT_complete (C := TrivC) hS hslot (List.range 165) claimsStart 16
     (by decide) (fun j hj => List.mem_range.mp hj) hin gC
   -- the tail
-  have hchO : LoadHolds rd (ofK (gpow (b0 + 105))) (τ + 6)
+  have hchO : LoadHolds rd (ofK (addressOfIndex (b0 + 105))) (τ + 6)
       ((eqChain out.point ((p1Of x).take out.point.length)).getD (τ + 6) 0) :=
     readsAt_getD (hBuf _ m3) (by rw [eqChain_length]; omega)
   obtain ⟨hTs, hTl, e1993, e1994, e1996, e1998, e2000, e2001, e2003, e2008⟩ :=
@@ -481,7 +486,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     hCp hclH
   rw [show (claimsT (List.range 165) claimsStart 16).2.2 = 1989 by rw [claimsT_end]] at hsum
   -- the context of the claims' terms
-  have hmem0 : (layout.placement memory0).vars = layout.logMemory := by
+  have hmem0 : (layout.placement memory0).variableCount = layout.logMemory := by
     have := placement_committed hkap hP (cc := 0) (by decide)
     rw [committedCols_getD (by decide), show colOfCommitted 0 = 0 from rfl] at this
     rw [show memory0 = 0 from rfl, this, hmem 0 (by decide)]
@@ -647,12 +652,14 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       · rw [termKids_getD_103] at hOK ⊢
         refine ⟨rfl, rfl, fun ht => ⟨?_, (hOK ht).1.symm⟩⟩
         show [σ (.n 1993), σ (.n 1994), σ (.n 12), σ (.n 15), σ (.n 1996)] =
-          [ofK (gpow (b0 + 105)), word 1 0 0, ofK (gpow B.zv), ofK (gpow B.pt1), gtau * word 64 0 0]
+          [ofK (addressOfIndex (b0 + 105)), word 1 0 0, ofK (addressOfIndex B.zv), ofK
+              (addressOfIndex B.pt1), gtau * word 64 0 0]
         rw [e1993, e1994, ea 12 (by omega), e15, e1996, hgtau]; rfl
       · rw [termKids_getD_104] at hOK ⊢
         refine ⟨rfl, rfl, fun ht => ⟨?_, ?_⟩⟩
         · show [σ (.n 1998), σ (.n 15), σ (.n 13), σ (.n 2000)] =
-            [ofK (gpow B.zv) * word 549755813888 0 0, ofK (gpow B.pt1), ofK (gpow B.ct),
+            [ofK (addressOfIndex B.zv) * word 549755813888 0 0, ofK (addressOfIndex B.pt1), ofK
+                (addressOfIndex B.ct),
               gtau * word 64 0 0]
           rw [e1998, ea 12 (by omega), e15, ea 13 (by omega), e2000, hgtau]; rfl
         · show [σ (.n 2001)] = _

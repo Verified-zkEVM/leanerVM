@@ -48,7 +48,7 @@ theorem canon_eOfNat (n : Nat) : IsCanonical128 (eOfNat n) := by
   rw [← word_eq_eOfNat]; exact canon_word n 0
 
 theorem canon_hcell (cs : List E) : IsCanonical128 (hcell cs).1 := by
-  simp [IsCanonical128, hcell, digestScalars]
+  simp [IsCanonical128, hcell, digestHalves]
 
 theorem xStepAddrs_seq {idx : V} {a : Nat} (h : NBv a idx) : SeqOK a (xStepAddrs idx a) (a + 6) :=
   ⟨rfl, ⟨rfl, h.mono' (by omega), ⟨a, by omega, rfl⟩⟩, rfl, ⟨rfl, h.mono' (by omega), ⟨a + 2, by omega, rfl⟩⟩,
@@ -78,7 +78,7 @@ theorem xCore_complete {layer b : Nat} (hA : 211 ≤ xA layer b) (hm : MemOK rd 
         ([cst (xCw layer b).2.1 (word (tw 2) 0 0), addS (.n ((xCw layer b).2.1 + 1)) (xIdx layer b)
           (.n (xCw layer b).2.1)] ++ ((xLeafK layer b).1 ++ (xMk layer b).1)))) σ
       (fun σ' => IsCanonical128 (σ' (xMk layer b).2.2) ∧ ∀ σ'', AgreeBelow (xMk layer b).2.1 σ' σ'' →
-        (∀ q ≤ 19, σ'' (.n (cwState (xW layer b) (xA layer b + 6) q).2.2) = ofK (gpow (nDigits 19 N q))) ∧
+        (∀ q ≤ 19, σ'' (.n (cwState (xW layer b) (xA layer b + 6) q).2.2) = ofK (addressOfIndex (nDigits 19 N q))) ∧
         (∀ i < 58, σ'' (cwPos (xW layer b) 19 (xA layer b + 6) (nDigits 19 N) i) = vals i) ∧
         ∀ l < 16, mSib σ'' (xBitOf layer) l (mBase (xNodeOf layer) 0 l (xLeafK layer b).2.1) = sibs l) := by
   -- the bounds
@@ -189,7 +189,7 @@ theorem xCore_complete {layer b : Nat} (hA : 211 ≤ xA layer b) (hm : MemOK rd 
     show IsCanonical128 (σ4 (.n (kMsg xPad ((xLeafCells layer b).map KC.cell) 960 false none
       ((xCw layer b).2.1 + 2)).2.2))
     rw [this]
-    simp [IsCanonical128, digestScalars]
+    simp [IsCanonical128, digestHalves]
   -- the path
   have hag14 : AgreeBelow (xA layer b) σ σ4 := fun j hj =>
     (hag1 j hj).trans ((hag2 j (by omega)).trans ((hag3 j (by omega)).trans (hag4 j (by omega))))

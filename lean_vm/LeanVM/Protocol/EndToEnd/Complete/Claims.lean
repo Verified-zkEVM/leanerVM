@@ -45,27 +45,27 @@ open LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.Whir.Complete CompPoly CMlPo
 @[expose] public section
 
 /-- The instance the deployed verifier is complete for: leanISA. -/
-abbrev inst (prog : Program) (s : Sizes) : M3Instance :=
+abbrev inst (prog : LeanIsaProgram) (s : Sizes) : M3Instance :=
   leanIsaInstance prog s
 
 /-- The true value of an instance column at a point of its variables: the column's extension,
 the column read off the stack through the instance's layout. -/
-def colEval (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) (c : Col)
+def colEval (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) (c : Col)
     (z : Vector E (kappa prog s c)) : E :=
   eval₂Mle ((inst prog s).column q c).values (algebraMap K E) z
 
 /-- A **true claim**: a verifier column claim on the Python number of an instance column, at a
 point of the column's variables, whose value is the column's true value there. -/
-def TrueClaim (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+def TrueClaim (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
     (cl : Verifier.ColumnClaim) : Prop :=
   ∃ c : Col, ∃ z : Vector E (kappa prog s c), cl = ⟨pyCol c, z.toList, colEval prog s q c z⟩
 
 /-- Every claim of a list is true. -/
-def TrueClaims (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+def TrueClaims (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
     (cls : List Verifier.ColumnClaim) : Prop :=
   ∀ cl ∈ cls, TrueClaim prog s q cl
 
-theorem trueClaims_append {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)}
+theorem trueClaims_append {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ prog s)}
     {a b : List Verifier.ColumnClaim} (ha : TrueClaims prog s q a) (hb : TrueClaims prog s q b) :
     TrueClaims prog s q (a ++ b) := by
   intro cl hcl
@@ -74,7 +74,7 @@ theorem trueClaims_append {prog : Program} {s : Sizes} {q : Column (leanIsaμ pr
 
 /-- A true claim on no output lane, placed on the stack by the verifier's layout, holds of the
 stack. -/
-theorem TrueClaim.holds {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)}
+theorem TrueClaim.holds {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ prog s)}
     {cl : Verifier.ColumnClaim} (h : TrueClaim prog s q cl)
     (hout : cl.column ∉ keccakOutputColumns) :
     StackClaim.Holds (leanIsaμ prog s) (cl.stackClaim (verifierLayout prog s)) q := by
@@ -84,14 +84,14 @@ theorem TrueClaim.holds {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog
 
 /-- The point a claim on a column that is not an output lane is placed at has the stack's
 length. -/
-theorem length_stackPoint (prog : Program) (s : Sizes) (c : Col) (hc : ¬ IsOut c)
+theorem length_stackPoint (prog : LeanIsaProgram) (s : Sizes) (c : Col) (hc : ¬ IsOut c)
     (z : Vector E (kappa prog s c)) :
     (((verifierLayout prog s).placement (pyCol c)).stackPoint z.toList
       (verifierLayout prog s).stackLog).length = leanIsaμ prog s := by
   rw [stackPoint_eq_extend prog s c hc z, Vector.length_toList]
 
 /-- A true claim's weight on no output lane is multilinear on the stack's cube. -/
-theorem TrueClaim.multilinear {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)}
+theorem TrueClaim.multilinear {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ prog s)}
     {cl : Verifier.ColumnClaim} (h : TrueClaim prog s q cl)
     (hout : cl.column ∉ keccakOutputColumns) :
     IsMultilinearFn (leanIsaμ prog s) (cl.stackClaim (verifierLayout prog s)).1 := by

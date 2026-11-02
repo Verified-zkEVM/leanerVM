@@ -21,7 +21,7 @@ open LeanVM.Extraction.Fast LeanVM.Guest.Located LeanVM.Protocol.Halting
 public section
 
 /-- **A run halting after `T` steps lists at most `T + 1` states**, whatever the fuel. -/
-theorem statesIn_length_le {memIdx codeIdx : Std.HashMap UInt64 ℕ} {prog : Program} {κ : ℕ}
+theorem statesIn_length_le {memIdx codeIdx : Std.HashMap UInt64 ℕ} {prog : LeanIsaProgram} {κ : ℕ}
     {L : MemoryImage κ} (hS : ∀ r, stepIn memIdx codeIdx prog L r = step prog L r) :
     ∀ (T fuel : ℕ) (r : Registers K),
       LeanVM.Semantics.run prog L T r = some (Registers.final prog) →
@@ -45,11 +45,11 @@ theorem statesIn_length_le {memIdx codeIdx : Std.HashMap UInt64 ℕ} {prog : Pro
 theorem replayStatesOf_length {input : PublicInput} {t : Execution LeanVM.Guest.guestProgram}
     (hv : ValidExecution LeanVM.Guest.guestProgram input t) :
     (replayStatesOf (powTable t.logMemorySize) (powTable LeanVM.Guest.guestProgram.logSize)
-      LeanVM.Guest.guestProgram (memoryVector t.memory)).length ≤ t.steps + 1 := by
+      LeanVM.Guest.guestProgram (memoryVector t.memory)).length ≤ t.stepCount + 1 := by
   obtain ⟨κ, L, T⟩ := t
   have h32 : κ ≤ maxLogMem := hv.1.2.1
   have hκ : κ < 64 := by unfold maxLogMem at h32; omega
-  have hT : LeanVM.Semantics.run LeanVM.Guest.guestProgram L T ⟨gpow 0, 1⟩ =
+  have hT : LeanVM.Semantics.run LeanVM.Guest.guestProgram L T ⟨addressOfIndex 0, 1⟩ =
       some (Registers.final LeanVM.Guest.guestProgram) :=
     LeanVM.Guest.safe_of_validExecution hv
   show (replayStatesOf (powTable κ) (powTable LeanVM.Guest.guestProgram.logSize) LeanVM.Guest.guestProgram
@@ -61,9 +61,9 @@ theorem replayStatesOf_length {input : PublicInput} {t : Execution LeanVM.Guest.
 /-- **A valid execution of the guest takes fewer than `2^128` steps** (`Located.steps_lt_replayFuel`:
 a halting run repeats no state). -/
 theorem steps_lt_of_valid {input : PublicInput} {t : Execution LeanVM.Guest.guestProgram}
-    (hv : ValidExecution LeanVM.Guest.guestProgram input t) : t.steps < 2 ^ 128 := by
+    (hv : ValidExecution LeanVM.Guest.guestProgram input t) : t.stepCount < 2 ^ 128 := by
   obtain ⟨κ, L, T⟩ := t
-  have hT : LeanVM.Semantics.run LeanVM.Guest.guestProgram L T ⟨gpow 0, 1⟩ =
+  have hT : LeanVM.Semantics.run LeanVM.Guest.guestProgram L T ⟨addressOfIndex 0, 1⟩ =
       some (Registers.final LeanVM.Guest.guestProgram) :=
     LeanVM.Guest.safe_of_validExecution hv
   exact LeanVM.Guest.Located.steps_lt_replayFuel hT

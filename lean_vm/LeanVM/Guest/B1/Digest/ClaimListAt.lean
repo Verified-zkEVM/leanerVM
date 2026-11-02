@@ -101,7 +101,7 @@ noncomputable def clzσ (rd : Reader) (entries : E) : Val :=
 /-- The oracle of the nonempty list's valuation. -/
 noncomputable def clw (m r : ℕ) (chain : E) (D : Digest) (i : ℕ) : E :=
   if i = 23 then gen ^ m else if i = 24 then gen ^ r else if i = 32 then chain
-  else if i = 10 ∨ i = 63 then (digestScalars D).1 else if i = 11 ∨ i = 64 then (digestScalars D).2
+  else if i = 10 ∨ i = 63 then (digestHalves D).1 else if i = 11 ∨ i = 64 then (digestHalves D).2
   else 0
 
 /-- The nonempty list's valuation. -/
@@ -170,8 +170,8 @@ structure ClVals (rd : Reader) (σ : Val) (entries : E) (n : ℕ) (chain : E) (D
   v0 : σ (.n 0) = entries
   v1 : σ (.n 1) = gen ^ n
   v3 : σ (.n 3) = gen ^ n + gen ^ 0
-  v10 : σ (.n 10) = (digestScalars D).1
-  v11 : σ (.n 11) = (digestScalars D).2
+  v10 : σ (.n 10) = (digestHalves D).1
+  v11 : σ (.n 11) = (digestHalves D).2
   v23 : σ (.n 23) = gen ^ (n / 17)
   v24 : σ (.n 24) = gen ^ (n % 17)
   v31 : σ (.n 31) = gen ^ (13 * (n / 17 + 1))
@@ -180,10 +180,10 @@ structure ClVals (rd : Reader) (σ : Val) (entries : E) (n : ℕ) (chain : E) (D
   v48 : σ (.n 48) = 1
   v54 : σ (.n 54) = chain * gen ^ (13 * (n / 17))
   v62 : σ (.n 62) = entries * gen ^ (68 * (n / 17))
-  v63 : σ (.n 63) = (digestScalars D).1
-  v64 : σ (.n 64) = (digestScalars D).2
-  v65 : σ (.n 65) = (digestScalars D).1
-  v66 : σ (.n 66) = (digestScalars D).2
+  v63 : σ (.n 63) = (digestHalves D).1
+  v64 : σ (.n 64) = (digestHalves D).2
+  v65 : σ (.n 65) = (digestHalves D).1
+  v66 : σ (.n 66) = (digestHalves D).2
 
 set_option maxRecDepth 100000 in
 theorem cl_size_atoms : ∀ a ∈ [Atom.const (.n 25) (word 2 0 0), .mul (.n 26) (.n 23) (.n 25),
@@ -212,10 +212,10 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
   have w23 : w 23 = gen ^ m := by rw [hw]; simp [clw]
   have w24 : w 24 = gen ^ r := by rw [hw]; simp [clw]
   have w32 : w 32 = chain := by rw [hw]; simp [clw]
-  have w10 : w 10 = (digestScalars D).1 := by rw [hw]; simp [clw]
-  have w63 : w 63 = (digestScalars D).1 := by rw [hw]; simp [clw]
-  have w11 : w 11 = (digestScalars D).2 := by rw [hw]; simp [clw]
-  have w64 : w 64 = (digestScalars D).2 := by rw [hw]; simp [clw]
+  have w10 : w 10 = (digestHalves D).1 := by rw [hw]; simp [clw]
+  have w63 : w 63 = (digestHalves D).1 := by rw [hw]; simp [clw]
+  have w11 : w 11 = (digestHalves D).2 := by rw [hw]; simp [clw]
+  have w64 : w 64 = (digestHalves D).2 := by rw [hw]; simp [clw]
   obtain ⟨c', hchk⟩ := Option.isSome_iff_exists.mp b2
   let args : List E := [entries, gen ^ n]
   set σ := clσ rd entries n chain D with hσ
@@ -278,14 +278,14 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
     obtain ⟨s, hs, he⟩ := List.any_eq_true.mp b7; rwa [stmtEqb_sound he] at hs
   have gd : ∀ v ∈ [V.n 63, V.n 64], σ v = w v.idx := hgs _ (mP _ hdisp)
   have gc : ∀ v ∈ [V.n 23, V.n 24], σ v = w v.idx := hgs _ (mP _ hcall)
-  have v63 : σ (.n 63) = (digestScalars D).1 := (gd _ (by simp)).trans w63
-  have v64 : σ (.n 64) = (digestScalars D).2 := (gd _ (by simp)).trans w64
+  have v63 : σ (.n 63) = (digestHalves D).1 := (gd _ (by simp)).trans w63
+  have v64 : σ (.n 64) = (digestHalves D).2 := (gd _ (by simp)).trans w64
   have v23 : σ (.n 23) = gen ^ m := (gc _ (by simp)).trans w23
   have v24 : σ (.n 24) = gen ^ r := (gc _ (by simp)).trans w24
-  have v10 : σ (.n 10) = (digestScalars D).1 := by
+  have v10 : σ (.n 10) = (digestHalves D).1 := by
     have : σ (.n 10) = w 10 := hgs _ (mF 6 (by omega))
     rw [this, w10]
-  have v11 : σ (.n 11) = (digestScalars D).2 := by
+  have v11 : σ (.n 11) = (digestHalves D).2 := by
     have : σ (.n 11) = w 11 := hgs _ (mF 7 (by omega))
     rw [this, w11]
   have hatElse : ∀ a ∈ atomsIn cl23Else, a.Holds rd σ := by
@@ -554,7 +554,7 @@ theorem claim_list_digest_completeAt (fs : String → ℕ) (cert : String → V 
     -- the path
     have h3ne : σ (.n 3) ≠ 0 := by
       rw [hV.v3, Ne, e_add_eq_zero_iff, pow_zero, gen_pow_eq_one_iff (by omega)]; omega
-    have hx : σ (.n 24) = ofK (gpow r) := by rw [hV.v24, gen_pow_eq_ofK]
+    have hx : σ (.n 24) = ofK (addressOfIndex r) := by rw [hV.v24, gen_pow_eq_ofK]
     have hb : (if σ (.n 3) = 0 then walk σ cl23Zero else walk σ cl23Else) =
         .fall (clP1.flatMap (Main.slEvs σ) ++ .call clNames[r]! [.n 54, .n 62] [.n 63, .n 64] ::
           clPost.flatMap (Main.slEvs σ)) := by

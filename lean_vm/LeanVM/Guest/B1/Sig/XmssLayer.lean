@@ -180,8 +180,8 @@ theorem atomsOnly_cst_addS (c : Nat) (w : E) (d x y : V) : atomsOnly [cst c w, a
 
 /-- The key of layer `layer` a leaf index signs with. -/
 theorem keyAt_val (L : Nat) (hL : L < 2 ^ 32) (layer : Nat) (hl : layer < 2) :
-    (LeanXmss.keyAt ⟨L, hL⟩ ⟨layer, hl⟩).val = L >>> (16 * layer) := by
-  simp [LeanXmss.keyAt, LeanXmss.layerHeight, Nat.shiftRight_eq_div_pow]
+    (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩).val = L >>> (16 * layer) := by
+  simp [LeanXmss.keyIndexOnLayer, LeanXmss.layerHeight, Nat.shiftRight_eq_div_pow]
 
 theorem chainT_eq_xChain' {f : Nat → Nat → E → E} {pp : E} {adr : Nat → E} {i : Nat}
     (hf : ∀ s y, f i s y = (hcell [pp, adr s, y, eOfNat i]).1) :
@@ -194,11 +194,12 @@ theorem chainT_eq_xChain' {f : Nat → Nat → E → E} {pp : E} {adr : Nat → 
 /-- **The chain step addresses.** -/
 theorem xStepAdr_bytes {L layer s : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) (hs : s < 3) :
     cellBytes (eOfNat (xIdxNat layer L) + word (tw 1 + s * stepMul) 0 0) =
-      LeanXmss.tweakBytes (.chain ⟨layer, hl⟩ (LeanXmss.keyAt ⟨L, hL⟩ ⟨layer, hl⟩) ⟨s, by
+      LeanXmss.tweakBytes (.chain ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩) ⟨s, by
         simp [HashSig.chainLength, HashSig.winternitzBits]; omega⟩) := by
   have hk := key_lt L layer hL
-  rw [show LeanXmss.tweakBytes (.chain ⟨layer, hl⟩ (LeanXmss.keyAt ⟨L, hL⟩ ⟨layer, hl⟩) ⟨s, _⟩) =
-      HashSig.fieldBytes (HashSig.tweakFields 1 s (0 + 2 ^ 23 * layer) (L >>> (16 * layer))) by
+  rw [show LeanXmss.tweakBytes (.chain ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩)
+      ⟨s, _⟩) =
+      HashSig.addressBytes (HashSig.tweakFields 1 s (0 + 2 ^ 23 * layer) (L >>> (16 * layer))) by
       rw [← keyAt_val L hL layer hl]; rfl, fieldBytes_tweakFields, xIdxNat,
     show tw 1 + s * stepMul = 2 ^ 32 * (2 ^ 24 + 2 ^ 29 * s) by simp [tw, stepMul]; ring,
     idx_add_word hk]
@@ -210,10 +211,10 @@ theorem xStepAdr_bytes {L layer s : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) (hs 
 /-- **The leaf address.** -/
 theorem xLeafAdr_bytes {L layer : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) :
     cellBytes (eOfNat (xIdxNat layer L) + word (tw 2) 0 0) =
-      LeanXmss.tweakBytes (.leaf ⟨layer, hl⟩ (LeanXmss.keyAt ⟨L, hL⟩ ⟨layer, hl⟩)) := by
+      LeanXmss.tweakBytes (.leaf ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩)) := by
   have hk := key_lt L layer hL
-  rw [show LeanXmss.tweakBytes (.leaf ⟨layer, hl⟩ (LeanXmss.keyAt ⟨L, hL⟩ ⟨layer, hl⟩)) =
-      HashSig.fieldBytes (HashSig.tweakFields 2 0 (0 + 2 ^ 23 * layer) (L >>> (16 * layer))) by
+  rw [show LeanXmss.tweakBytes (.leaf ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩)) =
+      HashSig.addressBytes (HashSig.tweakFields 2 0 (0 + 2 ^ 23 * layer) (L >>> (16 * layer))) by
       rw [← keyAt_val L hL layer hl]; rfl, fieldBytes_tweakFields, xIdxNat,
     show tw 2 = 2 ^ 32 * 2 ^ 25 by simp [tw], idx_add_word hk]
   congr 2
@@ -224,10 +225,12 @@ theorem xLeafAdr_bytes {L layer : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) :
 /-- **The message address.** -/
 theorem xMsgAdr_bytes {L layer : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) :
     cellBytes (eOfNat (xIdxNat layer L) + word (tw 12) 0 0) =
-      LeanXmss.tweakBytes (.message ⟨layer, hl⟩ (LeanXmss.keyAt ⟨L, hL⟩ ⟨layer, hl⟩)) := by
+      LeanXmss.tweakBytes (.message ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer,
+          hl⟩)) := by
   have hk := key_lt L layer hL
-  rw [show LeanXmss.tweakBytes (.message ⟨layer, hl⟩ (LeanXmss.keyAt ⟨L, hL⟩ ⟨layer, hl⟩)) =
-      HashSig.fieldBytes (HashSig.tweakFields 12 0 (0 + 2 ^ 23 * layer) (L >>> (16 * layer))) by
+  rw [show LeanXmss.tweakBytes (.message ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer,
+      hl⟩)) =
+      HashSig.addressBytes (HashSig.tweakFields 12 0 (0 + 2 ^ 23 * layer) (L >>> (16 * layer))) by
       rw [← keyAt_val L hL layer hl]; rfl, fieldBytes_tweakFields, xIdxNat,
     show tw 12 = 2 ^ 32 * (12 * 2 ^ 24) by simp [tw], idx_add_word hk]
   congr 2
@@ -240,11 +243,11 @@ theorem xNodeAdr_bytes {L layer l : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) (hl1
     cellBytes (word (xAddrOf layer l) 0 0 + (if 16 * layer + l + 1 = 32 then 0 else
         eOfNat (L >>> (16 * layer + l + 1)))) =
       LeanXmss.tweakBytes (.node ⟨layer, hl⟩ (l + 1)
-        ((LeanXmss.keyAt ⟨L, hL⟩ ⟨layer, hl⟩).val / 2 ^ (l + 1))) := by
+        ((LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩).val / 2 ^ (l + 1))) := by
   have hk := key_lt L layer hL
   rw [show LeanXmss.tweakBytes (.node ⟨layer, hl⟩ (l + 1)
-        ((LeanXmss.keyAt ⟨L, hL⟩ ⟨layer, hl⟩).val / 2 ^ (l + 1))) =
-      HashSig.fieldBytes (HashSig.tweakFields 3 0 (l + 1 + 2 ^ 23 * layer)
+        ((LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩).val / 2 ^ (l + 1))) =
+      HashSig.addressBytes (HashSig.tweakFields 3 0 (l + 1 + 2 ^ 23 * layer)
         ((L >>> (16 * layer)) / 2 ^ (l + 1))) by rw [← keyAt_val L hL layer hl]; rfl,
     fieldBytes_tweakFields,
     show xAddrOf layer l = 2 ^ 32 * (3 * 2 ^ 24 + (l + 1) + 2 ^ 23 * layer) by
@@ -275,15 +278,15 @@ theorem xLayerCore_sound (hpre : XPre σ) (hpad : PadOK σ xPad) {layer b : Nat}
     (hidx : σ (xIdx layer b) = eOfNat (xIdxNat layer (xLeaf σ)))
     {msgCells : List E} {M : HashSig.HashInput} (hM : M = msgCells.flatMap cellBytes) {aMsg : E}
     (haMsg : cellBytes aMsg = LeanXmss.tweakBytes
-      (.message ⟨layer, hl⟩ (LeanXmss.keyAt ⟨xLeaf σ, xLeaf_lt σ⟩ ⟨layer, hl⟩)))
+      (.message ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨xLeaf σ, xLeaf_lt σ⟩ ⟨layer, hl⟩)))
     (hd0 : σ (xD0 layer b) = (hcell (σ (.n 1) :: aMsg :: msgCells ++ [σ (xRho layer b)])).1)
     {rest : List Stmt} {next : Prop}
     (h : Stmt.HoldsList C rd σ (xStepAddrs (xIdx layer b) (xA layer b) ++ ((xCw layer b).1 ++
       ([cst (xCw layer b).2.1 (word (tw 2) 0 0), addS (.n ((xCw layer b).2.1 + 1)) (xIdx layer b)
         (.n (xCw layer b).2.1)] ++ ((xLeafK layer b).1 ++ ((xMk layer b).1 ++ rest))))) next kret) :
     Stmt.HoldsList C rd σ rest next kret ∧
-      @LeanXmss.Concrete.layerRootWithHash Id _ ⟨Node.keccakBits⟩ (xpp (σ (.n 1))) ⟨layer, hl⟩
-        (LeanXmss.keyAt ⟨xLeaf σ, xLeaf_lt σ⟩ ⟨layer, hl⟩) M (xPart layer b σ) =
+      @LeanXmss.Verification.layerRootWithHash Id _ ⟨Node.keccakBits⟩ (xpp (σ (.n 1))) ⟨layer, hl⟩
+        (LeanXmss.keyIndexOnLayer ⟨xLeaf σ, xLeaf_lt σ⟩ ⟨layer, hl⟩) M (xPart layer b σ) =
         some (xv (σ (xMk layer b).2.2)) := by
   have s1 := holdsList_split_atoms (xs := xStepAddrs (xIdx layer b) (xA layer b))
     (xStepAddrs_atoms _ _) h
@@ -308,7 +311,7 @@ theorem xLayerCore_sound (hpre : XPre σ) (hpad : PadOK σ xPad) {layer b : Nat}
   refine ⟨s5.2, ?_⟩
   -- the values
   have hL := xLeaf_lt σ
-  set key := LeanXmss.keyAt ⟨xLeaf σ, hL⟩ ⟨layer, hl⟩ with hkey
+  set key := LeanXmss.keyIndexOnLayer ⟨xLeaf σ, hL⟩ ⟨layer, hl⟩ with hkey
   set W := xW layer b with hW
   set K := xA layer b + 6 with hKb
   set dig := cwDigit W 19 K σ with hdig
@@ -376,13 +379,13 @@ theorem xLayerCore_sound (hpre : XPre σ) (hpad : PadOK σ xPad) {layer b : Nat}
       exact hb
   -- the Spec
   rw [layerRoot_id, otsLeaf_id]
-  have hmd : @LeanXmss.Concrete.messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (xpp (σ (.n 1))) ⟨layer, hl⟩ key M
-      (xPart layer b σ).randomness = xv (lit (∑ j ∈ Finset.range 58, dig j * 4 ^ j)) := by
-    rw [show (xPart layer b σ).randomness = xv (σ (xRho layer b)) from rfl,
+  have hmd : @LeanXmss.Verification.messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (xpp (σ (.n 1))) ⟨layer, hl⟩ key M
+      (xPart layer b σ).randomizer = xv (lit (∑ j ∈ Finset.range 58, dig j * 4 ^ j)) := by
+    rw [show (xPart layer b σ).randomizer = xv (σ (xRho layer b)) from rfl,
       messageDigest_cells xq_keccak haMsg hM, ← hd0, hd]
-  rw [hmd, show (58 : Nat) = LeanXmss.numChains from rfl, decode_lit hdig4 hsum', Option.map_some]
+  rw [hmd, show (58 : Nat) = LeanXmss.chainCount from rfl, decode_lit hdig4 hsum', Option.map_some]
   refine congrArg some ?_
-  have hrc : ∀ i : LeanXmss.ChainIndex, @LeanXmss.Concrete.recoverChainWithHash Id _ ⟨Node.keccakBits⟩
+  have hrc : ∀ i : LeanXmss.ChainIndex, @LeanXmss.Verification.recoverChainWithHash Id _ ⟨Node.keccakBits⟩
       (xpp (σ (.n 1))) ⟨layer, hl⟩ key i ⟨dig i.val, hdig4 _⟩ ((xPart layer b σ).chainValues i) =
       xv (σ (cwTip W K i.val)) := by
     intro i
@@ -390,15 +393,15 @@ theorem xLayerCore_sound (hpre : XPre σ) (hpad : PadOK σ xPad) {layer b : Nat}
       recoverChain_cells xq_keccak (pp := σ (.n 1)) (adr := fun s => σ (.n (xA layer b + 2 * s + 1))) hadr]
     have hi : i.val < 3 * 19 + 1 := i.isLt
     rw [(hcw i.val hi).2, chainT_eq_xChain' (fun s y => by rw [hpre.tags i.val i.isLt])]
-  rw [show (fun i : LeanXmss.ChainIndex => @LeanXmss.Concrete.recoverChainWithHash Id _ ⟨Node.keccakBits⟩
+  rw [show (fun i : LeanXmss.ChainIndex => @LeanXmss.Verification.recoverChainWithHash Id _ ⟨Node.keccakBits⟩
       (xpp (σ (.n 1))) ⟨layer, hl⟩ key i ⟨dig i.val, hdig4 _⟩ ((xPart layer b σ).chainValues i)) =
       fun i => xv (σ (cwTip W K i.val)) from funext hrc]
   have hlo' : σ (.n (xLeafK layer b).2.2) = (hcell (σ (.n 1) :: σ (.n ((xCw layer b).2.1 + 1)) ::
-      List.map (fun i => σ (cwTip W K i)) (List.range LeanXmss.numChains))).1 := hlo
+      List.map (fun i => σ (cwTip W K i)) (List.range LeanXmss.chainCount))).1 := hlo
   rw [leafHash_cells xq_keccak (fun i => σ (cwTip W K i)) haLeaf, ← hlo']
   beta_reduce
   rw [
-    show (xPart layer b σ).path = fun l => xv (mSib σ (xBitOf layer) l.val
+    show (xPart layer b σ).authenticationPath = fun l => xv (mSib σ (xBitOf layer) l.val
       (mBase (xNodeOf layer) 0 l.val (xLeafK layer b).2.1)) from rfl,
     treeFold_cells xq_keccak hA (fun l => mSib σ (xBitOf layer) l
       (mBase (xNodeOf layer) 0 l (xLeafK layer b).2.1)) LeanXmss.layerHeight le_rfl, hroot']

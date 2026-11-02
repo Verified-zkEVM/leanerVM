@@ -46,7 +46,7 @@ namespace LeanVM.Protocol.EndToEnd.Sound
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.Whir.Sound LeanVM.Protocol.EndToEnd.Front
-open LeanVM.Protocol.EndToEnd.Complete (publicDigest)
+open LeanVM.Protocol.EndToEnd.Complete (publicInputDigest)
 open LeanVM.Protocol.KeccakHash LeanVM.Protocol.Rom
 open OracleComp OracleSpec
 open scoped ENNReal
@@ -56,13 +56,14 @@ open scoped ENNReal
 /- The enumeration of `Digest` must never be unfolded by unification. -/
 attribute [local irreducible] instFintypeDigest
 
-variable (prog : Program) (input : PublicInput)
+variable (prog : LeanIsaProgram) (input : PublicInput)
 
 /-! ## Doomed runs -/
 
 /-- Some boundary prefix of the extracted history of the seeded verifier's run of `P` on `π`,
 under the answers of the cache `c` to both oracles, is doomed. -/
-def DoomedRun {P : Prog Bool} (C : Cert P) (σ : Seed) (π : Proof) (c : KeccakCalls.QueryCache) :
+def DoomedRun {P : VerifierProgram Bool} (C : Cert P) (σ : Seed) (π : Proof) (c :
+    KeccakCalls.QueryCache) :
     Prop :=
   ∃ h₀, h₀ <+: extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s)) σ P π ∧
     Boundary h₀ ∧ C.D h₀
@@ -73,10 +74,10 @@ def DoomedRun {P : Prog Bool} (C : Cert P) (σ : Seed) (π : Proof) (c : KeccakC
 theorem leanVmSpec_D_nil : ¬ (leanVmSpec prog input).D [] [] := by
   intro hD
   rw [leanVmSpec, Spec.congr_D] at hD
-  have hs : (verifyExecutionClaims computedValue (bytecodeWords prog) (publicDigest input)).retSplit [] = none :=
+  have hs : (verifyExecutionClaims computedBytecodeValue (bytecodeWords prog) (publicInputDigest input)).retSplit [] = none :=
     retSplit_eq_none_of_after rfl (verifyExecution_ne_ret _ _)
   have h1 : (veSpec prog input).D [] [] := (Spec.bindD_none hs).1 hD
-  have hs' : (readSizes (bytecodeWords prog)).retSplit [] = none :=
+  have hs' : (readAnnouncedSizes (bytecodeWords prog)).retSplit [] = none :=
     retSplit_eq_none_of_after rfl (readSizes_ne_ret _)
   exact (Spec.bindD_none hs').1 h1
 
@@ -84,7 +85,7 @@ theorem leanVmSpec_D_nil : ¬ (leanVmSpec prog input).D [] [] := by
 work before its group (`2^-min(b, 64)`), is at most `2^-128`. -/
 theorem leanVmCert_bound (h : List Ev) :
     (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * (leanVmCert prog input).ε h ≤ εLean := by
-  by_cases hr : (leanVmProgram (bytecodeWords prog) (publicDigest input)).Reachable h
+  by_cases hr : (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)).Reachable h
   · rw [min_eq_left (grindBits_le_of_reachable _ _ hr)]
     exact Spec.toCert_bound _ (fun hD ↦ absurd hD (leanVmSpec_D_nil prog input)) h
   · simp only [leanVmCert, Spec.toCert_ε, hr, false_and, ↓reduceIte, mul_zero, zero_le]
@@ -99,7 +100,7 @@ theorem realSpec_D {s : Sizes} {ρ : ℕ}
     (hce : (commitStack (verifierLayout prog s).stackLog ρ).after [e] = some (.ret ()))
     (hpost : CommitPost prog input (verifierLayout prog s, ρ) () (l₁ ++ [e])) :
     (realSpec input hw hlb).D l₁ [e] := by
-  refine (Spec.bindD_some (Prog.retSplit_self hce)).2 ⟨fun _ ↦ ?_, ?_⟩
+  refine (Spec.bindD_some (VerifierProgram.retSplit_self hce)).2 ⟨fun _ ↦ ?_, ?_⟩
   · obtain ⟨q₀, rest, hc, -⟩ := Whir.Complete.exists_ladder hw
     exact (commitSpec_D _ _ hc l₁ e).2 hpost
   · exact (restSpec input hw hlb).start_D _ hpost
@@ -109,28 +110,29 @@ history where `readSizes` returned a good value `a` and the root was committed b
 doom holds if no candidate of the root satisfies the relation and the stack's is the only
 commitment. -/
 theorem leanVmSpec_D_commit {l₁ : List Ev} {a : Verifier.Layout × ℕ}
-    (hl₁ : (readSizes (bytecodeWords prog)).after l₁ = some (.ret a)) {s : Sizes}
+    (hl₁ : (readAnnouncedSizes (bytecodeWords prog)).after l₁ = some (.ret a)) {s : Sizes}
     (hg : Good prog a s) {e : Ev}
     (hce : (commitStack a.1.stackLog a.2).after [e] = some (.ret ()))
     (hpost : CommitPost prog input a () (l₁ ++ [e])) :
     (leanVmSpec prog input).D [] (l₁ ++ [e]) := by
   obtain ⟨lay, ρ⟩ := a
-  have hve : (verifyExecutionClaims computedValue (bytecodeWords prog) (publicDigest input)).after (l₁ ++ [e]) =
-      some ((verifyBusBalance computedValue lay).bind fun bus ↦ (tablePhaseClaims lay bus).bind fun cl ↦
-        (Verifier.publicInputPhase lay (publicDigest input)).bind fun pc ↦
+  have hve : (verifyExecutionClaims computedBytecodeValue (bytecodeWords prog) (publicInputDigest input)).after (l₁ ++ [e]) =
+      some ((verifyBusBalance computedBytecodeValue lay).bind fun bus ↦ (tablePhaseClaims lay bus).bind fun cl ↦
+        (Verifier.publicInputPhase lay (publicInputDigest input)).bind fun pc ↦
         (keccakPhaseClaims lay (cl ++ pc)).bind fun r ↦
         (ringSwitch r.2.1 r.2.2).bind fun y ↦ verifyStackedOpening lay.stackLog ρ
           (ringSwitchClaim lay y.1 y.2 :: r.1.map (·.stackClaim lay))) := by
-    rw [verifyExecution_eq, Prog.after_bind_append _ hl₁]
-    exact Prog.after_bind_append _ hce []
-  have hs : (verifyExecutionClaims computedValue (bytecodeWords prog) (publicDigest input)).retSplit (l₁ ++ [e]) =
+    rw [verifyExecution_eq, VerifierProgram.after_bind_append _ hl₁]
+    exact VerifierProgram.after_bind_append _ hce []
+  have hs : (verifyExecutionClaims computedBytecodeValue (bytecodeWords prog) (publicInputDigest input)).retSplit (l₁ ++ [e]) =
       none := by
     refine retSplit_eq_none_of_after hve fun u h ↦ ?_
     obtain ⟨b, hb, -⟩ := bind_eq_ret_iff h
     exact verifyBusBalance_ne_ret _ _ hb
   rw [leanVmSpec, Spec.congr_D]
   refine (Spec.bindD_none hs).2 ?_
-  refine (Spec.bindD_after (Prog.retSplit_of_after _ l₁ [e] hl₁) (List.cons_ne_nil _ _)).2 ?_
+  refine (Spec.bindD_after (VerifierProgram.retSplit_of_after _ l₁ [e] hl₁) (List.cons_ne_nil _
+      _)).2 ?_
   have hex : ∃ s, Good prog (lay, ρ) s := ⟨s, hg⟩
   have hlay : lay = verifierLayout prog hex.choose := hex.choose_spec.1
   simp only [bodySpec, hex, ↓reduceDIte, Spec.congr_D]
@@ -145,12 +147,13 @@ open Classical in
 `readSizes` returned along a prefix of it (a classical choice; unique, `announced_eq`). -/
 noncomputable def announced (hist : List Ev) : Option (Sizes × ℕ) :=
   if h : ∃ p : Sizes × ℕ, ∃ l₁, l₁ <+: hist ∧
-      (readSizes (bytecodeWords prog)).after l₁ = some (.ret (verifierLayout prog p.1, p.2)) then
+      (readAnnouncedSizes (bytecodeWords prog)).after l₁ = some (.ret (verifierLayout prog p.1,
+          p.2)) then
     some h.choose
   else none
 
 /-- A program returns along at most one prefix of a history. -/
-theorem ret_prefix_unique {α : Type} {p : Prog α} {l l' hist : List Ev} {a a' : α}
+theorem ret_prefix_unique {α : Type} {p : VerifierProgram α} {l l' hist : List Ev} {a a' : α}
     (h1 : l <+: hist) (h2 : l' <+: hist) (ha : p.after l = some (.ret a))
     (ha' : p.after l' = some (.ret a')) : l = l' := by
   rcases le_total l.length l'.length with hlen | hlen
@@ -163,16 +166,17 @@ theorem ret_prefix_unique {α : Type} {p : Prog α} {l l' hist : List Ev} {a a' 
 
 /-- **The announced sizes are the sizes the run announced.** -/
 theorem announced_eq {hist l₁ : List Ev} {a : Verifier.Layout × ℕ} {s : Sizes}
-    (hpre : l₁ <+: hist) (hl₁ : (readSizes (bytecodeWords prog)).after l₁ = some (.ret a))
+    (hpre : l₁ <+: hist) (hl₁ : (readAnnouncedSizes (bytecodeWords prog)).after l₁ = some (.ret a))
     (ha : a.1 = verifierLayout prog s) : announced prog hist = some (s, a.2) := by
   have hex : ∃ p : Sizes × ℕ, ∃ l₁, l₁ <+: hist ∧
-      (readSizes (bytecodeWords prog)).after l₁ = some (.ret (verifierLayout prog p.1, p.2)) :=
+      (readAnnouncedSizes (bytecodeWords prog)).after l₁ = some (.ret (verifierLayout prog p.1,
+          p.2)) :=
     ⟨(s, a.2), l₁, hpre, by rw [hl₁, ← ha]⟩
   simp only [announced, hex, ↓reduceDIte, Option.some.injEq]
   obtain ⟨l', hl'pre, hl'⟩ := hex.choose_spec
   obtain rfl := ret_prefix_unique hl'pre hpre hl' hl₁
   rw [hl₁] at hl'
-  simp only [Option.some.injEq, Prog.ret.injEq] at hl'
+  simp only [Option.some.injEq, VerifierProgram.ret.injEq] at hl'
   have h1 : verifierLayout prog hex.choose.1 = verifierLayout prog s := by rw [← ha, hl']
   have h2 := verifierLayout_injective prog h1
   exact Prod.ext h2 (by rw [hl'])
@@ -186,8 +190,8 @@ the extractor specifies what is extracted, with no claim of efficiency. -/
 noncomputable def extractStack (c : KeccakCalls.QueryCache) (π : Proof) :
     Option (Σ s : Sizes, Column (leanIsaμ prog s)) :=
   let hist := extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
-    (leanVmSeed (bytecodeWords prog) (publicDigest input))
-    (leanVmProgram (bytecodeWords prog) (publicDigest input)) π
+    (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+    (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π
   match announced prog hist, firstWord hist with
   | some (s, ρ), some W =>
     if hq : ∃ q ∈ Candidates (leanIsaμ prog s) ρ (thrOf (leanIsaμ prog s) ρ) W,
@@ -216,14 +220,14 @@ theorem commits_reads_commit (xs : List E) (ht w : ℕ) (W : Word) :
 the stack's root is a boundary at which the certificate's doom holds. -/
 theorem doomed_of_not_extracted {c : KeccakCalls.QueryCache} {π : Proof}
     (hv : Rom.verify (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
-      (leanVmSeed (bytecodeWords prog) (publicDigest input))
-      (leanVmProgram (bytecodeWords prog) (publicDigest input)) π = some true)
+      (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π = some true)
     (hne : ¬ Extracted prog input c π) :
-    DoomedRun (leanVmCert prog input) (leanVmSeed (bytecodeWords prog) (publicDigest input)) π
+    DoomedRun (leanVmCert prog input) (leanVmSeed (bytecodeWords prog) (publicInputDigest input)) π
       c := by
   set hist := extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
-    (leanVmSeed (bytecodeWords prog) (publicDigest input))
-    (leanVmProgram (bytecodeWords prog) (publicDigest input)) π with hhist
+    (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+    (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π with hhist
   obtain ⟨hafter, hws⟩ := after_extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s)) hv
   rw [← hhist] at hafter hws
   rw [leanVmProgram_eq] at hafter

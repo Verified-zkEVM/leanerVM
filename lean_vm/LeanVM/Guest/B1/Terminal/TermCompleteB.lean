@@ -53,14 +53,15 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 words at most `Beqc`. -/
 theorem eqc_kid_completeB (κ : ℕ) (hκ : 6 ≤ κ) {b ba bb : ℕ} {as bs : List E} {cg : E}
     {L : Main.Layout} (hn : as.length ≤ 40) (hbs : bs.length = as.length) (hcg : cg = gen ^ as.length)
-    (hrd : ∀ rd, LowDef κ rd → MemL rd L → ReadsAt rd (ofK (gpow ba)) as ∧ ReadsAt rd (ofK (gpow bb)) bs)
+    (hrd : ∀ rd, LowDef κ rd → MemL rd L → ReadsAt rd (ofK (addressOfIndex ba)) as ∧ ReadsAt rd (ofK (addressOfIndex bb)) bs)
     (hR : ∀ i, (ba ≤ i ∧ i < ba + as.length) ∨ (bb ≤ i ∧ i < bb + as.length) → RegionL L i)
     {Beqc : ℕ} (hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ => Beqc) :
     CompleteAtB fs cert κ "eq_prefix_chain" ((b, eqChain as bs) :: L)
-      [ofK (gpow b), word 1 0 0, ofK (gpow ba), ofK (gpow bb), cg] (Returns []) Beqc := by
+      [ofK (addressOfIndex b), word 1 0 0, ofK (addressOfIndex ba), ofK (addressOfIndex bb), cg]
+          (Returns []) Beqc := by
   refine (completeAtDTB_of_relIn eqc_pure List.mem_cons_self
     (fun rd t rets' hn hv hb => hEqc rd t _ rets' hn hv hb) fun rd hl hm => ?_).toCompleteAtB
-  have hm0 : ReadsAt rd (ofK (gpow b)) (eqChain as bs) := hm _ List.mem_cons_self
+  have hm0 : ReadsAt rd (ofK (addressOfIndex b)) (eqChain as bs) := hm _ List.mem_cons_self
   have hmL : MemL rd L := fun q hq => hm q (List.mem_cons_of_mem _ hq)
   obtain ⟨ha, hb⟩ := hrd rd hl hmL
   subst hcg
@@ -76,19 +77,20 @@ theorem eqc_kid_completeB (κ : ℕ) (hκ : 6 ≤ κ) {b ba bb : ℕ} {as bs : L
 `__loop14`'s words at most `K15` per unit of its end's exponent. -/
 theorem l15_kid_completeB (κ : ℕ) {b bp m : ℕ} {rm glm : E} {ps : List E} {L : Main.Layout}
     (hm2 : 2 ≤ m) (hmo : m < 2 ^ 64 - 1) (hglm : glm = gen ^ m) (hps : m ≤ ps.length)
-    (hrd : ∀ rd, LowDef κ rd → MemL rd L → ReadsAt rd (ofK (gpow bp)) ps)
+    (hrd : ∀ rd, LowDef κ rd → MemL rd L → ReadsAt rd (ofK (addressOfIndex bp)) ps)
     (hR : ∀ i, bp ≤ i ∧ i < bp + m → RegionL L i) {K15 : ℕ}
     (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre fun a => logG (a.getD 1 0) * K15) :
     CompleteAtB fs cert κ "__loop14" ((b, piW rm ps m) :: L)
-      [word 2 0 0, glm, ofK (gpow b), ofK (gpow bp)] (Returns []) (m * K15) := by
-  have hpre : LoopPre [word 2 0 0, glm, ofK (gpow b), ofK (gpow bp)] :=
+      [word 2 0 0, glm, ofK (addressOfIndex b), ofK (addressOfIndex bp)] (Returns []) (m *
+          K15) := by
+  have hpre : LoopPre [word 2 0 0, glm, ofK (addressOfIndex b), ofK (addressOfIndex bp)] :=
     ⟨1, m, by show word 2 0 0 = _; rw [word_gen, ← gen_pow_eq_ofK, pow_one],
       by show glm = _; rw [hglm, gen_pow_eq_ofK], by omega, hmo⟩
   have hlog : logG glm = m := by rw [hglm, gen_pow_eq_ofK, logG_spec hmo]
   refine (completeAtDTB_of_relIn (B := m * K15) l15_pure List.mem_cons_self
     (fun rd t rets' hn hv hb => le_of_le_of_eq (hL15 rd t _ rets' hn hpre hv hb)
       (by show logG glm * K15 = m * K15; rw [hlog])) fun rd hl hm => ?_).toCompleteAtB
-  have hm0 : ReadsAt rd (ofK (gpow b)) (piW rm ps m) := hm _ List.mem_cons_self
+  have hm0 : ReadsAt rd (ofK (addressOfIndex b)) (piW rm ps m) := hm _ List.mem_cons_self
   have hmL : MemL rd L := fun q hq => hm q (List.mem_cons_of_mem _ hq)
   have hstep : ∀ k, 1 ≤ k → k < m →
       (piW rm ps m).getD (k + 1) 0 = (piW rm ps m).getD k 0 * (ps.take m).getD k 0 := by
@@ -112,7 +114,7 @@ theorem cs_completeAtB (k : ℕ) {κ : ℕ} (hκ : κ < 29) {o : ℕ} (ho : o < 
     (hCs : TotalLe coreProgram fs (Tables.lName "column_selector" κ) fun _ => Bcs) :
     CompleteAtB fs cert k (Tables.lName "column_selector" κ)
       (Tables.stOwn ept ept1 ese esg p p1 ++ Tables.stLin ept ept1 p p1)
-      [gen ^ o, ofK (gpow ese), ofK (gpow esg)]
+      [gen ^ o, ofK (addressOfIndex ese), ofK (addressOfIndex esg)]
       (Returns [Tables.bitsEq ((List.range (28 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ)
         (p1.drop κ)]) Bcs :=
   completeAt_of_rel_pureBat cs_pure (colSelNames_mem hκ) (fun rd hm ↦
@@ -144,9 +146,10 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
     (hgz : D.gzcn = gen ^ D.chis.length) (hglm : D.glm = gen ^ D.m) (hgtau : D.gtau = gen ^ D.τ)
     (_hm1 : 1 ≤ D.m) (hm : D.m ≤ 32) (hKC : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 29)
     (hOF : ∀ c < Tables.nCommittedCols, D.OF.getD c 0 < 2 ^ 28 ∧ 2 ^ D.KC.getD c 0 ∣ D.OF.getD c 0)
-    (hrd : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (gpow D.B.zeta)) D.zs ∧
-      ReadsAt rd (ofK (gpow D.B.chi)) D.chis ∧ ReadsAt rd (ofK (gpow D.B.zv)) D.outPt ∧
-      ReadsAt rd (ofK (gpow D.B.pt1)) (p1Of D.x))
+    (hrd : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (addressOfIndex D.B.zeta)) D.zs ∧
+      ReadsAt rd (ofK (addressOfIndex D.B.chi)) D.chis ∧ ReadsAt rd (ofK (addressOfIndex D.B.zv))
+          D.outPt ∧
+      ReadsAt rd (ofK (addressOfIndex D.B.pt1)) (p1Of D.x))
     {Beqc K15 Bcs Brs : ℕ} (hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ => Beqc)
     (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre fun a => logG (a.getD 1 0) * K15)
     (hCs : ∀ κ' < 29, TotalLe coreProgram fs (Tables.lName "column_selector" κ') fun _ => Bcs)
@@ -196,7 +199,8 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
           Tables.stLin D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x) := by
         show @ite _ _ (Classical.propDecidable _) _ _ = _
         rw [@ite_pos' _ _ (Classical.propDecidable _) _ _ ⟨ese, esg, h1, h2⟩, h2]
-      have ha : (selKid D c pv).args = [gen ^ D.OF.getD c 0, ofK (gpow ese), ofK (gpow esg)] := by
+      have ha : (selKid D c pv).args = [gen ^ D.OF.getD c 0, ofK (addressOfIndex ese), ofK
+          (addressOfIndex esg)] := by
         show [_, (stRes pv).1.getD 0 0, (stRes pv).1.getD 1 0] = _
         rw [h1]; rfl
       rw [hL, ha]
@@ -207,16 +211,19 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
       fun pv => ⟨fun _ => ?_, fun h => by simp at h⟩, trivial⟩
     · have e : D.gtau * word 64 0 0 = gen ^ D.outPt.length := by rw [hgtau, hw64, ← pow_add, hol]
       show CompleteAtB fs cert κ "eq_prefix_chain" _
-        [ofK (gpow (b0 + 105)), word 1 0 0, ofK (gpow D.B.zv), ofK (gpow D.B.pt1),
+        [ofK (addressOfIndex (b0 + 105)), word 1 0 0, ofK (addressOfIndex D.B.zv), ofK
+            (addressOfIndex D.B.pt1),
           D.gtau * word 64 0 0] (Returns []) _
       exact eqc_kid_completeB κ hκ (by omega) (by simp; omega) e
         (fun rd hl hm => ⟨(hrd rd hl hm).2.2.1, readsAt_take (hrd rd hl hm).2.2.2 _⟩)
         (fun i hi => hreg i (by simp only [TermRegion]; omega)) hEqc
-    · have e1 : ofK (gpow D.B.zv) * word 549755813888 0 0 = ofK (gpow (D.B.zv + 39)) := by
+    · have e1 : ofK (addressOfIndex D.B.zv) * word 549755813888 0 0 = ofK (addressOfIndex (D.B.zv +
+        39)) := by
         rw [show (549755813888 : ℕ) = 2 ^ 39 by norm_num, word_two_pow (by decide), ofK_gpow_mul_gen]
       have e2 : D.gtau * word 64 0 0 = gen ^ (D.τ + 6) := by rw [hgtau, hw64, ← pow_add]
       show CompleteAtB fs cert κ "ring_switch_weight" _
-        [ofK (gpow D.B.zv) * word 549755813888 0 0, ofK (gpow D.B.pt1), ofK (gpow D.B.ct),
+        [ofK (addressOfIndex D.B.zv) * word 549755813888 0 0, ofK (addressOfIndex D.B.pt1), ofK
+            (addressOfIndex D.B.ct),
           D.gtau * word 64 0 0] _ _
       rw [e1, e2]
       exact (rsw_completeAtB κ (by omega) hrl (by simp; omega) hcf (hrs _ hτ)).mono le_rfl
@@ -269,7 +276,7 @@ theorem check_opening_terminal_completeAtB (κ : ℕ) (hκ : 6 ≤ κ) (B : Term
   obtain ⟨hkap, -, -⟩ := hPC
   have hncl : chis.length = nc := gen_pow_inj_le (by omega) (by omega) (hgzc.symm.trans hgz)
   subst hncl
-  have hchis : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (gpow B.chi)) chis :=
+  have hchis : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (addressOfIndex B.chi)) chis :=
     fun rd _ hm => readsAt_transfer hm0 hm hchR fun k hk => hreg _ (by simp only [TermRegion]; omega)
   set kappas := columnKappas layout.logMemory layout.logBytecode layout.tableLogHeights with hkdef
   set KC := Tables.committedKappas kappas with hKCdef
@@ -337,7 +344,7 @@ theorem check_opening_terminal_completeAtB (κ : ℕ) (hκ : 6 ≤ κ) (B : Term
     refine termKids_mem Lin D _ outs hB hLin hLo (hst rd hl hLin) fun q hq => ?_
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl | rfl
-    · show ReadsAt rd (ofK (gpow (B.zv + 39))) ringPoint
+    · show ReadsAt rd (ofK (addressOfIndex (B.zv + 39))) ringPoint
       rw [← ofK_gpow_mul_gen]; exact hrp
     · exact readsAt_take hpt1 _
     · exact hct

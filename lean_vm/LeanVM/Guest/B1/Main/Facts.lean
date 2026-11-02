@@ -82,9 +82,9 @@ structure MainFacts (C : CallRel) (rd : Reader) (σ : Val) : Prop where
     C "da_verify" [σ (.n 50)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)] ∧
     AllCanonical [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)] ∧
     LoadHolds rd (σ (.n 336)) 0
-      (digestScalars (keccak256 (cellsBytes [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)]))).1 ∧
+      (digestHalves (keccak256 (cellsBytes [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)]))).1 ∧
     LoadHolds rd (σ (.n 336)) 1
-      (digestScalars (keccak256 (cellsBytes [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)]))).2
+      (digestHalves (keccak256 (cellsBytes [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)]))).2
   daz : lg σ 7 = 0 → LoadHolds rd (σ (.n 336)) 0 0 ∧ LoadHolds rd (σ (.n 336)) 1 0
   written0 : LoadHolds rd (σ (.n 380)) 0 (gen ^ (lg σ 2 + lg σ 5))
   children : ∀ c < lg σ 6, KidStepC C rd (σ (.n 380)) (σ (.n 53)) (σ (.n 67)) (σ (.n 40))

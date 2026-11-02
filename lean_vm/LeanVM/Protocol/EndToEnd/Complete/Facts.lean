@@ -38,7 +38,7 @@ open LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.Whir.Complete
 
 /-- Row `x` of opcode table `t` read off the stack, as a function of the local column index (the
 Python's `evaluations.getD · 0`): cell `i` lifted to `E`, `0` past the width. -/
-def rowVal (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) (t : Fin 6)
+def rowVal (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) (t : Fin 6)
     (x : Fin (2 ^ s.τ t)) : ℕ → E :=
   fun i ↦ if h : i < width (opIdx t) then ofK ((inst prog s).row q (opIdx t) x ⟨i, h⟩) else 0
 
@@ -50,7 +50,7 @@ def FormsDeg2 (forms : List (List Form)) : Prop :=
 
 /-- The true total of a side: every table's form for the side, summed over the table's rows
 against the equality weight of the point's first `τ_t` coordinates. -/
-def trueTotal (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) (point : List E)
+def trueTotal (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) (point : List E)
     (forms : List (List Form)) (side : ℕ) : E :=
   ∑ t : Fin 6, ∑ x : Fin (2 ^ s.τ t),
     eqEval (point.take (s.τ t)) (boolPoint (s.τ t) x) *
@@ -58,7 +58,8 @@ def trueTotal (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) (poin
 
 /-- **The bus's result is true**: its claims are true, its point covers every table, it holds one
 degree-two form per table and side, and every side's total is the true total of its forms. -/
-structure BusGood (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) (b : BusResult) :
+structure BusGood (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) (b :
+    BusResult) :
     Prop where
   /-- The framework claims are true. -/
   claims : TrueClaims prog s q b.claims

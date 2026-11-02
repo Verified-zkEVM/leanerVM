@@ -27,7 +27,7 @@ def pubFast (layout : Layout) (cols : Array (Array K)) : Script (List ColumnClai
   Script.sampleE.bind fun r ↦
     .ret (List.zipWith
       (fun column value ↦
-        ⟨column, r :: List.replicate ((layout.placement memory0).vars - 1) 0, value⟩)
+        ⟨column, r :: List.replicate ((layout.placement memory0).variableCount - 1) 0, value⟩)
       [memory0, memory1, memory2]
       [lineAt (cols.getD memory0 #[]) r, lineAt (cols.getD memory1 #[]) r,
         lineAt (cols.getD memory2 #[]) r])

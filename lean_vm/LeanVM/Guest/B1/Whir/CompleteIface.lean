@@ -53,22 +53,22 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## No zero challenge -/
 
 /-- `foldRounds` refusing a zero challenge. -/
-def foldRoundsNZ : ℕ → WhirStateT → List E → Prog (WhirStateT × List E)
+def foldRoundsNZ : ℕ → WhirStateT → List E → VerifierProgram (WhirStateT × List E)
   | 0, s, levelFolds => return (s, levelFolds)
   | n + 1, s, levelFolds => do
-    let challenge ← Prog.sampleChallenge
-    Prog.require (challenge ≠ 0)
+    let challenge ← VerifierProgram.sampleChallenge
+    VerifierProgram.require (challenge ≠ 0)
     let target := polyEval s.quad challenge
     let quad ← sumcheckRoundPoly 3 target none
     foldRoundsNZ n { s with target, quad, folds := s.folds ++ [challenge] }
       (levelFolds ++ [challenge])
 
 /-- `tailRounds` refusing a zero challenge. -/
-def tailRoundsNZ : ℕ → E → List E → Prog (List E × E)
+def tailRoundsNZ : ℕ → E → List E → VerifierProgram (List E × E)
   | 0, target, _ => return ([], target)
   | n + 1, _, quad => do
-    let challenge ← Prog.sampleChallenge
-    Prog.require (challenge ≠ 0)
+    let challenge ← VerifierProgram.sampleChallenge
+    VerifierProgram.require (challenge ≠ 0)
     let target := polyEval quad challenge
     if n = 0 then return ([challenge], target)
     else do
@@ -77,28 +77,29 @@ def tailRoundsNZ : ℕ → E → List E → Prog (List E × E)
       return (challenge :: rest, target)
 
 /-- `whirLevelsOpen` refusing a zero fold, tail or batching challenge. -/
-def whirLevelsOpenNZ (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirStateT → Prog WhirEnd
-  | _, [], _ => Prog.fail
+def whirLevelsOpenNZ (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirStateT → VerifierProgram
+    WhirEnd
+  | _, [], _ => VerifierProgram.fail
   | index, level :: rest, s => do
     let (s, levelFolds) ← foldRoundsNZ level.fold s []
     let messageLog := logN - s.folds.length
     let (residual, pending) ← match rest with
       | [] => do
-        let residual ← Prog.readScalars (2 ^ messageLog)
+        let residual ← VerifierProgram.readScalars (2 ^ messageLog)
         pure (residual, ([] : List (E × List E × (List E → E))))
       | next :: _ => do
         let (height, width) := levelShape messageLog next (3 * 2 ^ next.fold)
-        Prog.readCommitment height width
-        let oodPoint ← Prog.sampleChallenges messageLog
-        let oodValue ← Prog.readScalar
+        VerifierProgram.readCommitment height width
+        let oodPoint ← VerifierProgram.sampleChallenges messageLog
+        let oodValue ← VerifierProgram.readScalar
         let intro ← sumcheckRoundPoly 3 oodValue none
         pure ([], [(oodValue, intro, fun x ↦ eqEval oodPoint x)])
-    Prog.grindProofOfWork Whir.queryGrindingBits
+    VerifierProgram.grindProofOfWork Whir.queryGrindingBits
     let queries ← sampleQueries (messageLog + level.logInvRate) level.queries
-    let lam ← Prog.sampleChallenge
-    Prog.require (lam ≠ 0)
+    let lam ← VerifierProgram.sampleChallenge
+    VerifierProgram.require (lam ≠ 0)
     let queryWeights := powers lam queries.length
-    let words ← Prog.queryOpenings index queries
+    let words ← VerifierProgram.queryOpenings index queries
     let rows : List (List E) :=
       if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
     let enforced := enforcedSum rows levelFolds queryWeights
@@ -118,7 +119,7 @@ def whirLevelsOpenNZ (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirSt
     | _ :: _ => whirLevelsOpenNZ logN laneFolds (index + 1) rest s
 
 /-- `whirOpen` refusing a zero fold, tail or batching challenge. -/
-def whirOpenNZ (logN logInvRate : ℕ) (target : E) : Prog WhirEnd := do
+def whirOpenNZ (logN logInvRate : ℕ) (target : E) : VerifierProgram WhirEnd := do
   let config ← liftOption (Whir.ladder logN logInvRate)
   let quad ← sumcheckRoundPoly 3 target none
   whirLevelsOpenNZ logN ((config.head?.map (·.fold)).getD 0) 0 config ⟨target, quad, [], []⟩
@@ -142,7 +143,7 @@ structure FSt where
 
 /-- **The query steps of a run** (`Compile.run` on the carried sponge, Keccak-256): each `query`
 step as its tree's height and its positions, each with the opening it consumes. -/
-def queryStepsOf {α : Type} : Prog α → FSt → List (ℕ × List (ℕ × Opening))
+def queryStepsOf {α : Type} : VerifierProgram α → FSt → List (ℕ × List (ℕ × Opening))
   | .ret _, _ => []
   | .fail, _ => []
   | .read k, s => match s.stream with
@@ -156,7 +157,7 @@ def queryStepsOf {α : Type} : Prog α → FSt → List (ℕ × List (ℕ × Ope
       if powOk bits n sq.1 then queryStepsOf k { s with sponge := sq.2, stream := xs } else []
   | .commit height width k, s => match s.stream with
     | x0 :: x1 :: xs =>
-      match digestOfScalars (x0, x1) with
+      match digestFromHalves (x0, x1) with
       | some root =>
         queryStepsOf k { s with
           sponge := (s.sponge.absorb x0 dsObserve).absorb x1 dsObserve
@@ -204,7 +205,7 @@ abbrev OsLayout : Type := List (ℕ × List E)
 
 /-- The memory holds the layout. -/
 def HoldsLayout (rd : Reader) (L : OsLayout) : Prop :=
-  ∀ q ∈ L, ∀ j (h : j < q.2.length), rd (gpow (q.1 + j)) = some q.2[j]
+  ∀ q ∈ L, ∀ j (h : j < q.2.length), rd (addressOfIndex (q.1 + j)) = some q.2[j]
 
 /-- The layout lies in the exponents `[b, b + n)`. -/
 def LayoutWithin (L : OsLayout) (b n : ℕ) : Prop :=
@@ -230,8 +231,8 @@ def open_stacked_complete_Spec : Prop :=
         (pt1, w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1) ∈ L ∧
         ∀ rd : Reader, HoldsLayout rd L → ReadsAt rd cur xs →
           coreProgram.Rel rd (openName μ r)
-            (capOf S ++ [target, (digestScalars root).1, (digestScalars root).2, cur])
-            [w.target, ofK (gpow pt), ofK (gpow pt1), w.inner, w.residual]
+            (capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur])
+            [w.target, ofK (addressOfIndex pt), ofK (addressOfIndex pt1), w.inner, w.residual]
 
 end
 end LeanVM.Guest.B1.Whir

@@ -41,7 +41,7 @@ theorem zip_map_append {β γ : Type} (ps : List β) (f : β → γ) (rest : Lis
 
 /-- **The honest proof's query steps are honest batches.** -/
 theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
-    ∀ (p : Prog Bool) (h : List Ev) (sp : Sponge) (xs : List E) (os : List Opening)
+    ∀ (p : VerifierProgram Bool) (h : List Ev) (sp : Sponge) (xs : List E) (os : List Opening)
       (restS : List E) (restO : List Opening),
       S.AcceptsFrom p h → (∀ c ∈ commits h, WellShaped c.2.1 c.2.2) →
       InRange p ((commits h).map (·.1)) (fun _ _ ↦ True) →
@@ -115,8 +115,8 @@ theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
       rintro c (hc | rfl)
       · exact hws c hc
       · exact hw
-    have hdec : digestOfScalars ((digestScalars (treeRoot keccak256 ht (S.word h))).1,
-        (digestScalars (treeRoot keccak256 ht (S.word h))).2) =
+    have hdec : digestFromHalves ((digestHalves (treeRoot keccak256 ht (S.word h))).1,
+        (digestHalves (treeRoot keccak256 ht (S.word h))).2) =
           some (treeRoot keccak256 ht (S.word h)) :=
       digestOfScalars_digestScalars _
     have hroots : rootsOf keccak256 (commits (h ++ [Ev.commit ht w (S.word h)])) =

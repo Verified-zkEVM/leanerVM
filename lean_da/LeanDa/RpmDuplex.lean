@@ -63,7 +63,8 @@ theorem ofFn_eq_ofLimbs (g : Fin 3 → K) :
   simp only [CompPoly.Extension.Ext.ofFn, ofLimbs]
   congr 1
 
-theorem kBytes_ofLane (w : UInt64) : kBytes (K.ofLane w) = LeanVM.Protocol.KeccakHash.wordBytes w :=
+theorem kBytes_ofLane (w : UInt64) : symbolBytes (K.ofLane w) =
+    LeanVM.Protocol.KeccakHash.wordBytes w :=
   rfl
 
 /-- Lane `a` of a state, read as an element of `K`, from its eight bytes. -/
@@ -131,11 +132,11 @@ theorem daDuplex_out (y : KState) :
   daBuild_symm_fst_eq y
 
 theorem samplesM_eq_chainP (k : ℕ) (y : KState) :
-    Sponge.samplesM pR k ⟨stateToLanes y, []⟩ = chainP daDuplex k y := by
+    Sponge.samplesWith pR k ⟨stateToLanes y, []⟩ = chainP daDuplex k y := by
   induction k generalizing y with
   | zero => rfl
   | succ k ih =>
-    simp only [Sponge.samplesM, Sponge.sampleM, Sponge.duplexM, pR, lanePerm, chainP,
+    simp only [Sponge.samplesWith, Sponge.sampleWith, Sponge.duplexWith, pR, lanePerm, chainP,
       map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_apply]
     refine bind_congr fun y' ↦ ?_
     rw [ih, daDuplex_out]
@@ -143,15 +144,16 @@ theorem samplesM_eq_chainP (k : ℕ) (y : KState) :
 /-- **Over `F`, LeanDA's challenges are the duplex's.** -/
 theorem membershipChallengesM_eq_chalP (root : Common.DigestBytes) :
     membershipChallengesMWithHash hR pR root = chalP daDuplex root := by
-  simp only [membershipChallengesMWithHash, Sponge.fromLabelMWithHash, Sponge.newM, Sponge.observeM,
-    Sponge.absorbM, pR, lanePerm, chalP, map_eq_bind_pure_comp, bind_assoc, pure_bind,
+  simp only [membershipChallengesMWithHash, Sponge.fromLabelMWithHash, Sponge.newWith,
+      Sponge.observeWith,
+    Sponge.absorbWith, pR, lanePerm, chalP, map_eq_bind_pure_comp, bind_assoc, pure_bind,
     Function.comp_apply]
   refine bind_congr fun iv ↦ bind_congr fun y₀ ↦ ?_
   have h0 : ¬ ([] : List (E × K)).length = rateScalars := by simp [rateScalars]
   simp only [h0, ↓reduceIte, pure_bind, List.nil_append]
-  show Sponge.samplesM pR (13 + 1) ⟨stateToLanes y₀, rootScalars root⟩ = _
-  rw [Sponge.samplesM]
-  simp only [Sponge.sampleM, Sponge.duplexM, pR, lanePerm,
+  show Sponge.samplesWith pR (13 + 1) ⟨stateToLanes y₀, rootScalars root⟩ = _
+  rw [Sponge.samplesWith]
+  simp only [Sponge.sampleWith, Sponge.duplexWith, pR, lanePerm,
     map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_apply]
   refine bind_congr fun y₁ ↦ ?_
   rw [samplesM_eq_chainP, daDuplex_out]

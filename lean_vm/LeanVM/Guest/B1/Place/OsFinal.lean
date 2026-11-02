@@ -64,7 +64,8 @@ structure OsCfgPlaced (fs : String → ℕ) (cert : String → V → ℕ) (c : O
 
 /-- What `open_stacked` returns and the buffers it hands back. -/
 def OsOut (μ : ℕ) (w : WhirEnd) : List E → Layout → Prop := fun rets Lout ↦
-  ∃ b b1 : ℕ, rets = [w.target, ofK (gpow b), ofK (gpow b1), w.inner, w.residual] ∧
+  ∃ b b1 : ℕ, rets = [w.target, ofK (addressOfIndex b), ofK (addressOfIndex b1), w.inner,
+      w.residual] ∧
     Lout = [(b, w.point ++ List.replicate (pointCap - μ) 0),
       (b1, w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1)]
 
@@ -83,13 +84,13 @@ theorem os_completeAtD_cfg (hrf : Lift.RunsFit fs cert) {c : OsCfg} {μ r : ℕ}
     (hcaps : Whir.CapsAgree μ r target S xs os root)
     {Lin : Layout} (hLin : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd cur xs) :
     CompleteAtD fs cert κ name Lin
-      (capOf S ++ [target, (digestScalars root).1, (digestScalars root).2, cur]) (OsOut μ w) := by
+      (capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur]) (OsOut μ w) := by
   obtain ⟨c0, c2, tr, hfit, hplen, hptC, hpt1C, hbody, hrunT⟩ := osBodyA_honest hF hP.sizes hrun hnz
   have hlen : tr.Ls.length = c.levels.length := hfit.len
   have hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap := by
     rw [hplen]; exact hF.mu40
   have htl : tr.Lf.ml ≤ yrLogCap := by rw [lf_ml hF hfit]; exact hP.sizes.yr
-  set args := capOf S ++ [target, (digestScalars root).1, (digestScalars root).2, cur] with hargs
+  set args := capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur] with hargs
   have hb' : fn.body = osBodyA c ++ [.ret (osFinishRet c (osTlSt c).2.1 (osTlSt c).2.2)] := by
     rw [hb, osBody_split]
   refine os_completeAt_placeJ hfind hloop κ Lin args (OsOut μ w) hb' (osBodyA_straight c)

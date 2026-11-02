@@ -58,7 +58,7 @@ theorem pc_canonical (k : ℕ) : IsCanonical128 (d.pc k) := by
 /-- A level's pair hash is the climb's step. -/
 theorem level_out {l : ℕ} (hl : l < d.sibs.length) {o0 o1 : E}
     (h : HashesPair (d.pc (4 * l)) (d.pc (4 * l + 1)) (d.pc (4 * l + 2)) (d.pc (4 * l + 3)) o0 o1) :
-    (o0, o1) = digestScalars (climbNode d.leaf d.q d.sibs (l + 1)) := by
+    (o0, o1) = digestHalves (climbNode d.leaf d.q d.sibs (l + 1)) := by
   obtain ⟨dl, dr, hl', hr', hp⟩ := hashesPair_digests h
   have hcs : climbNode d.leaf d.q d.sibs (l + 1) =
       if d.q / 2 ^ l % 2 = 0 then hashPair (climbNode d.leaf d.q d.sibs l) (d.sibs.getD l (Vector.replicate 4 0))
@@ -74,13 +74,13 @@ theorem level_out {l : ℕ} (hl : l < d.sibs.length) {o0 o1 : E}
   by_cases hb : d.q.testBit l
   · have hb' : d.q / 2 ^ l % 2 = 1 := by
       rw [Nat.testBit_eq_decide_div_mod_eq] at hb; simpa using hb
-    have c0 : d.pc (4 * l) = (digestScalars (d.sibs.getD l (Vector.replicate 4 0))).1 := by
+    have c0 : d.pc (4 * l) = (digestHalves (d.sibs.getD l (Vector.replicate 4 0))).1 := by
       unfold pc pathCell; simp [i0, hb]
-    have c1 : d.pc (4 * l + 1) = (digestScalars (d.sibs.getD l (Vector.replicate 4 0))).2 := by
+    have c1 : d.pc (4 * l + 1) = (digestHalves (d.sibs.getD l (Vector.replicate 4 0))).2 := by
       unfold pc pathCell; simp [i1, hb]
-    have c2 : d.pc (4 * l + 2) = (digestScalars (climbNode d.leaf d.q d.sibs l)).1 := by
+    have c2 : d.pc (4 * l + 2) = (digestHalves (climbNode d.leaf d.q d.sibs l)).1 := by
       unfold pc pathCell; simp [i2, hb]
-    have c3 : d.pc (4 * l + 3) = (digestScalars (climbNode d.leaf d.q d.sibs l)).2 := by
+    have c3 : d.pc (4 * l + 3) = (digestHalves (climbNode d.leaf d.q d.sibs l)).2 := by
       unfold pc pathCell; simp [i3, hb]
     have edl : dl = d.sibs.getD l (Vector.replicate 4 0) :=
       capDigestScalars_injective (by rw [← hl', c0, c1])
@@ -90,13 +90,13 @@ theorem level_out {l : ℕ} (hl : l < d.sibs.length) {o0 o1 : E}
     simp [hb']
   · have hb' : d.q / 2 ^ l % 2 = 0 := by
       rw [Nat.testBit_eq_decide_div_mod_eq] at hb; simp at hb; omega
-    have c0 : d.pc (4 * l) = (digestScalars (climbNode d.leaf d.q d.sibs l)).1 := by
+    have c0 : d.pc (4 * l) = (digestHalves (climbNode d.leaf d.q d.sibs l)).1 := by
       unfold pc pathCell; simp [i0, hb]
-    have c1 : d.pc (4 * l + 1) = (digestScalars (climbNode d.leaf d.q d.sibs l)).2 := by
+    have c1 : d.pc (4 * l + 1) = (digestHalves (climbNode d.leaf d.q d.sibs l)).2 := by
       unfold pc pathCell; simp [i1, hb]
-    have c2 : d.pc (4 * l + 2) = (digestScalars (d.sibs.getD l (Vector.replicate 4 0))).1 := by
+    have c2 : d.pc (4 * l + 2) = (digestHalves (d.sibs.getD l (Vector.replicate 4 0))).1 := by
       unfold pc pathCell; simp [i2, hb]
-    have c3 : d.pc (4 * l + 3) = (digestScalars (d.sibs.getD l (Vector.replicate 4 0))).2 := by
+    have c3 : d.pc (4 * l + 3) = (digestHalves (d.sibs.getD l (Vector.replicate 4 0))).2 := by
       unfold pc pathCell; simp [i3, hb]
     have edl : dl = climbNode d.leaf d.q d.sibs l :=
       capDigestScalars_injective (by rw [← hl', c0, c1])
@@ -111,16 +111,17 @@ theorem level_out {l : ℕ} (hl : l < d.sibs.length) {o0 o1 : E}
 /-- What the memory holds of an honest query's path and cap leaf (`QueryOpens`). -/
 structure MemOk (d : QD) (rd : Reader) : Prop where
   ppK : IsInK d.pp
-  frame : ∀ k < 4 * d.s.pd, ∀ x, rd (d.pp.limb 0 * Parameters.gpow k) = some x → x = d.pc k
+  frame : ∀ k < 4 * d.s.pd, ∀ x, rd (d.pp.limb 0 * Parameters.addressOfIndex k) = some x → x
+      = d.pc k
   nodes : ∀ l < d.s.pd,
     LoadHolds rd (d.pp * gen ^ (if d.q.testBit l then 2 else 0)) (4 * l)
-      (digestScalars (climbNode d.leaf d.q d.sibs l)).1 ∧
+      (digestHalves (climbNode d.leaf d.q d.sibs l)).1 ∧
     LoadHolds rd (d.pp * gen ^ (if d.q.testBit l then 2 else 0)) (4 * l + 1)
-      (digestScalars (climbNode d.leaf d.q d.sibs l)).2
+      (digestHalves (climbNode d.leaf d.q d.sibs l)).2
   cap0 : LoadHolds rd d.capv (2 * (2 ^ d.s.cd + d.q / 2 ^ d.s.pd))
-    (digestScalars (climbD d.leaf d.q d.sibs)).1
+    (digestHalves (climbD d.leaf d.q d.sibs)).1
   cap1 : LoadHolds rd d.capv (2 * (2 ^ d.s.cd + d.q / 2 ^ d.s.pd) + 1)
-    (digestScalars (climbD d.leaf d.q d.sibs)).2
+    (digestHalves (climbD d.leaf d.q d.sibs)).2
   flag : LoadHolds rd d.flagsv (2 ^ (d.s.cd - 1) + d.q / 2 ^ (d.s.pd + 1)) 1
 
 theorem mem_oqPathT_level' {s : Oq} {bp : V} {pr kL ch l : ℕ} (hl : l < s.pd) {a : Atom}
@@ -176,7 +177,7 @@ theorem nodes_eq (hs : d.s.RowShape) (hpd : 4 * d.s.pd ≤ 80) (hsl : d.sibs.len
     (hv : ∀ i, d.b ≤ i → i < d.z + 11 → σ (.n i) = d.val i)
     (hpad : σ (.n d.prV) = word 1 0 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0 0) :
     ∀ l ≤ d.s.pd, (σ (.n (oqNode d.s d.kL d.ch l 0)), σ (.n (oqNode d.s d.kL d.ch l 1))) =
-      digestScalars (climbNode d.leaf d.q d.sibs l) := by
+      digestHalves (climbNode d.leaf d.q d.sibs l) := by
   obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
   have hz' : ∀ i < 4, σ (.n (d.prV + 1 + i)) = 0 := fun i hi => by rw [hz i hi, word_zero]
   intro l hl
@@ -271,11 +272,11 @@ theorem oqPath_complete (hs : d.s.RowShape) (hpd : 4 * d.s.pd ≤ 80) (hsl : d.s
     · show σ _ = σ _ + σ _
       rw [s2, spp, s1]
     · show LoadHolds _ _ _ _
-      rw [hsel, show σ (.n (oqNode d.s d.kL d.ch l 0)) = (digestScalars (climbNode d.leaf d.q d.sibs l)).1
+      rw [hsel, show σ (.n (oqNode d.s d.kL d.ch l 0)) = (digestHalves (climbNode d.leaf d.q d.sibs l)).1
         by rw [← nd]]
       exact (hm.nodes l hl).1
     · show LoadHolds _ _ _ _
-      rw [hsel, show σ (.n (oqNode d.s d.kL d.ch l 1)) = (digestScalars (climbNode d.leaf d.q d.sibs l)).2
+      rw [hsel, show σ (.n (oqNode d.s d.kL d.ch l 1)) = (digestHalves (climbNode d.leaf d.q d.sibs l)).2
         by rw [← nd]]
       exact (hm.nodes l hl).2
     · exact s3
@@ -401,7 +402,7 @@ theorem oqCap_complete (hs : d.s.RowShape) (hpd : 4 * d.s.pd ≤ 80) (hsl : d.si
   · show σ _ = σ _ * σ _
     rw [t 10 (by omega), t 4 (by omega), t 9 (by omega)]; rfl
   · show LoadHolds _ _ _ _
-    rw [hz10, show σ (.n (oqNode d.s d.kL d.ch d.s.pd 0)) = (digestScalars (climbD d.leaf d.q d.sibs)).1
+    rw [hz10, show σ (.n (oqNode d.s d.kL d.ch d.s.pd 0)) = (digestHalves (climbD d.leaf d.q d.sibs)).1
       by rw [← hnd], loadHolds_mul_gen_pow]
     have := hm.cap0
     rw [hsplit, show 2 * (2 ^ d.s.cd + (2 * Q + (if d.q.testBit d.s.pd then 1 else 0))) =
@@ -409,7 +410,7 @@ theorem oqCap_complete (hs : d.s.RowShape) (hpd : 4 * d.s.pd ≤ 80) (hsl : d.si
         rw [pow_succ]; split <;> ring] at this
     exact this
   · show LoadHolds _ _ _ _
-    rw [hz10, show σ (.n (oqNode d.s d.kL d.ch d.s.pd 1)) = (digestScalars (climbD d.leaf d.q d.sibs)).2
+    rw [hz10, show σ (.n (oqNode d.s d.kL d.ch d.s.pd 1)) = (digestHalves (climbD d.leaf d.q d.sibs)).2
       by rw [← hnd], loadHolds_mul_gen_pow]
     have := hm.cap1
     rw [hsplit, show 2 * (2 ^ d.s.cd + (2 * Q + (if d.q.testBit d.s.pd then 1 else 0))) + 1 =

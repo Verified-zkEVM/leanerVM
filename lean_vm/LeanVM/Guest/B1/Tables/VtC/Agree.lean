@@ -67,7 +67,8 @@ theorem newA_agree {rd1 rd2 : Reader} {w : ℕ → E} {A : ℕ → Bool} {l1 l2 
     (hc : chkA l1.length a = some c') (hd : deadS A (.atom a) = true)
     (haux : ∀ i ∈ auxS (.atom a), A i = true)
     (hrd : ∀ d p off, a = .load d p off →
-      rd1 ((B1.Val.ofArgs l1 p).limb 0 * gpow off) = rd2 ((B1.Val.ofArgs l1 p).limb 0 * gpow off)) :
+      rd1 ((B1.Val.ofArgs l1 p).limb 0 * addressOfIndex off) = rd2 ((B1.Val.ofArgs l1 p).limb 0 *
+          addressOfIndex off)) :
     ∀ j, A (l1.length + j) = false → (newA rd1 w l1 a).getD j 0 = (newA rd2 w l2 a).getD j 0 := by
   intro j hj
   have hσ : ∀ v, A v.idx = false → B1.Val.ofArgs l1 v = B1.Val.ofArgs l2 v := fun v hv ↦
@@ -162,8 +163,8 @@ theorem ev_agree (rd1 rd2 : Reader) (w : ℕ → E) (A : ℕ → Bool) :
       l1.length = l2.length → AgreeOff A l1 l2 → ss.all (deadS A) = true →
       (∀ i ∈ auxIdx ss, A i = true) →
       (∀ d p off, Stmt.atom (.load d p off) ∈ ss →
-        rd1 ((B1.Val.ofArgs (ev rd1 w l1 ss) p).limb 0 * gpow off) =
-          rd2 ((B1.Val.ofArgs (ev rd1 w l1 ss) p).limb 0 * gpow off)) →
+        rd1 ((B1.Val.ofArgs (ev rd1 w l1 ss) p).limb 0 * addressOfIndex off) =
+          rd2 ((B1.Val.ofArgs (ev rd1 w l1 ss) p).limb 0 * addressOfIndex off)) →
       AgreeOff A (ev rd1 w l1 ss) (ev rd2 w l2 ss)
   | [], l1, l2, _, _, _, hl, _, _, _ => hl
   | s :: ss, l1, l2, c', h, hlen, hl, hd, haux, hrd => by

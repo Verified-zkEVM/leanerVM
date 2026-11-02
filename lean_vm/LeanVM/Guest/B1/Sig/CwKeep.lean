@@ -221,13 +221,14 @@ theorem sLoad_at (pos : Nat → V) (vals : Nat → E) (σ : Val) :
 /-- Group `b`'s digits `k` and its arm's starts `vals` loaded. -/
 def gLoad (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k : Nat) (vals : Nat → E)
     (σ : Val) : Val :=
-  Function.update (sLoad (grpPos W first n fold prodIn encIn b k) vals σ n) (.n b) (ofK (gpow k))
+  Function.update (sLoad (grpPos W first n fold prodIn encIn b k) vals σ n) (.n b) (ofK
+      (addressOfIndex k))
 
 /-- **A group's load**: its digits at the base, its starts, changes in its range only. -/
 theorem gLoad_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k : Nat)
     (vals : Nat → E) (σ : Val) (hk : k < 4 ^ n) :
     Ext b (armB W first n fold prodIn encIn b (4 ^ n)) σ (gLoad W first n fold prodIn encIn b k vals σ) ∧
-      gLoad W first n fold prodIn encIn b k vals σ (.n b) = ofK (gpow k) ∧
+      gLoad W first n fold prodIn encIn b k vals σ (.n b) = ofK (addressOfIndex k) ∧
       ∀ t < n, gLoad W first n fold prodIn encIn b k vals σ (grpPos W first n fold prodIn encIn b k t) =
         vals t := by
   have hne : ∀ t < n, grpPos W first n fold prodIn encIn b k t ≠ .n b := by

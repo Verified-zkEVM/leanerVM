@@ -38,7 +38,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 
 theorem holdsArms_some {x : V} : ∀ (arms : List (List Stmt)) (j0 : Nat) {N : Prop},
     Stmt.HoldsArms C rd σ x j0 arms N kret →
-      ∃ (k : Nat) (hk : k < arms.length), σ x = ofK (gpow (j0 + k)) ∧
+      ∃ (k : Nat) (hk : k < arms.length), σ x = ofK (addressOfIndex (j0 + k)) ∧
         Stmt.HoldsList C rd σ arms[k] N kret
   | [], _, _, h => h.elim
   | a :: as, j0, N, h => by
@@ -51,7 +51,7 @@ theorem holdsArms_some {x : V} : ∀ (arms : List (List Stmt)) (j0 : Nat) {N : P
 theorem holdsList_match {x : V} {arms : List (List Stmt)} {rest : List Stmt} {next : Prop}
     (hA : ∀ a ∈ arms, atomsOnly a = true)
     (h : Stmt.HoldsList C rd σ (.match_ x arms :: rest) next kret) :
-    ∃ (j : Nat) (hj : j < arms.length), σ x = ofK (gpow j) ∧ AtomsHold rd σ arms[j] ∧
+    ∃ (j : Nat) (hj : j < arms.length), σ x = ofK (addressOfIndex j) ∧ AtomsHold rd σ arms[j] ∧
       Stmt.HoldsList C rd σ rest next kret := by
   obtain ⟨j, hj, hx, ha⟩ := holdsArms_some arms 0 h
   have hat := hA _ (List.getElem_mem hj)

@@ -91,12 +91,12 @@ variable (depth : ℕ) (cap0 xs : List E) (cur : E) (eP : ℕ)
 /-- Step `j`'s slot's words. -/
 noncomputable def vbgSlotW (j : ℕ) : List E :=
   gkSlotWords (gkSl cap0 xs (depth % 2) j).1 (cur * gen ^ (gkSl cap0 xs (depth % 2) j).2.2)
-    (gkSl cap0 xs (depth % 2) j).2.1 (ofK (gpow eP) * gen ^ (40 * (j + depth % 2)))
+    (gkSl cap0 xs (depth % 2) j).2.1 (ofK (addressOfIndex eP) * gen ^ (40 * (j + depth % 2)))
     (gen ^ gkPos (depth % 2) j) (gen ^ (j / 2)) (bitE (j % 2 = 1))
 
 /-- The root slot's words. -/
 noncomputable def vbgRootW : List E :=
-  gkSlotWords (gkRootS cap0 xs) (cur * gen ^ 2) (gkRootSt xs) (ofK (gpow eP)) 1 1 0
+  gkSlotWords (gkRootS cap0 xs) (cur * gen ^ 2) (gkRootSt xs) (ofK (addressOfIndex eP)) 1 1 0
 
 /-- Level `l`'s seventeen words of `layers`. -/
 noncomputable def vbgLayBlock (l : ℕ) : List E :=

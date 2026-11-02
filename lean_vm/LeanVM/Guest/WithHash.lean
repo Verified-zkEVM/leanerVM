@@ -49,7 +49,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 from the seed `F(H(label) ‖ 0)` (`FiatShamirState::from_label`; the guest program bakes its
 capacity, `AGG_SEED_*`, `aggregation.rs:2511-2514`), the program on the proof. -/
 noncomputable def runBatchingWithHash {m : Type → Type} [Monad m] (H : Bytes → m Digest)
-    (F : KeccakState → m KeccakState) (prog : Prog Bool) (proof : Proof) : m Bool := do
+    (F : KeccakState → m KeccakState) (prog : VerifierProgram Bool) (proof : Proof) : m Bool := do
   let seed ← F (seedInput (← H batchingLabel) (Vector.replicate 4 0))
   runProofWithHash H F prog seed proof
 
@@ -70,10 +70,11 @@ open Coverage
 with every sampled challenge `0` a failure. -/
 def verifierRefusingZeroWithHash {m : Type → Type} [Monad m] (H : Bytes → m Digest)
     (F : KeccakState → m KeccakState)
-    (prog : Program) (input : PublicInput) (proof : Proof) : m Bool := do
-  let seed ← seedWithHash H F (bytecodeWords prog) (publicDigest input)
+    (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) : m Bool := do
+  let seed ← seedWithHash H F (bytecodeWords prog) (publicInputDigest input)
   runProofWithHash H F
-    (leanVmProgram (bytecodeWords prog) (publicDigest input)).refusingZeroChallenge seed proof
+    (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)).refusingZeroChallenge
+        seed proof
 
 /-- Keccak-256 and Keccak-f[1600] answering the calls `KeccakCalls`. -/
 def deployedKeccakCalls : QueryImpl KeccakCalls Id
@@ -82,14 +83,16 @@ def deployedKeccakCalls : QueryImpl KeccakCalls Id
 
 open OracleComp in
 /-- **An honest prover's proof with the deployed Keccak-256 and Keccak-f[1600].** -/
-def honestProofWithDeployedKeccakWithHash (proverWithHash : HonestProverWithHash) (prog : Program)
+def honestProofWithDeployedKeccakWithHash (proverWithHash : HonestProverWithHash) (prog :
+    LeanIsaProgram)
     (input : PublicInput)
     (t : Execution prog) (ρ fuel : ℕ) : Option Proof :=
   Id.run (simulateQ deployedKeccakCalls (proverWithHash prog input t ρ fuel))
 
 open OracleComp OracleSpec in
 /-- **The honest proof of an execution of the guest program is a child the guest program accepts**:
-for the honest prover `LeanVM.prover` (`LeanVm.lean`, `LeanVM.Prover.prove` with the oracle calls),
+for the honest prover `LeanVM.leanVmHonestProver` (`LeanVm.lean`, `LeanVM.Prover.prove` with the
+oracle calls),
 1. in the random-permutation model, at `2^25` nonces per proof of work, it makes no proof, or
    `verifierRefusingZero` rejects its proof, of a valid execution of committed size at most
    `2^28`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`;
@@ -102,7 +105,7 @@ Reading part 1 for the deployed Keccak, so that part 2 applies to the honest pro
 that the deployed Keccak-f[1600] behaves as a random permutation, applied to this prover.
 Proved by `LeanVM.Guest.Budget.guest_child_complete`. -/
 def GuestChildCompleteWithHash : Prop :=
-  (∀ (prog : Program) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
+  (∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
     ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← (simulateQ LeanVM.keccakCallsOverRandomPermutation (do
         match ← LeanVM.proverWithHash prog input t ρ (2 ^ 25) with

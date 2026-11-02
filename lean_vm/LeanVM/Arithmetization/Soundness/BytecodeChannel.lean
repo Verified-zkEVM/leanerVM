@@ -43,7 +43,7 @@ namespace LeanVM.Arithmetization
 open LeanVM.Parameters LeanVM.Semantics
 open Air.Flat (Component EnsembleWitness)
 
-variable {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
+variable {prog : LeanIsaProgram} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
 
 /-! ## Bytecode messages as triples -/
 
@@ -131,10 +131,10 @@ theorem bc_triples_perm (h : SatisfiedByB prog input w) {f : Air.Flat.Table K ×
       memSeedSends (imageOf w.data).2 mfin ++ bcSeedSends prog bfin) :
     (((opPairs w).map fun p ↦ (f p).bcRead).map bumpBc ++
         (List.finRange (2 ^ prog.logSize)).map fun i : Fin _ ↦
-          (gpow i, 1, entry (prog.code i))).Perm
+          (addressOfIndex i, 1, busEntry (prog.instructions i))).Perm
       (((opPairs w).map fun p ↦ (f p).bcRead) ++
         (List.finRange (2 ^ prog.logSize)).map fun i : Fin _ ↦
-          (gpow i, bfin i, entry (prog.code i))) := by
+          (addressOfIndex i, bfin i, busEntry (prog.instructions i))) := by
   have hb := h.bytecode_balanced
   unfold BalancedPair at hb
   rw [messagesOn_eq_chanOf, messagesOn_eq_chanOf, chanOf_allSends _ hall,
@@ -157,7 +157,8 @@ theorem bc_triples_perm (h : SatisfiedByB prog input w) {f : Air.Flat.Table K ×
 the program's entry there. -/
 theorem bc_pulls_seeded (h : SatisfiedByB prog input w) :
     ∀ msg ∈ messagesOn w BytecodePull.toRaw, ∃ x : K × K × Vector K 11, msg = bcMsgOfTriple x ∧
-      ∃ k : Fin (2 ^ prog.logSize), x.1 = gpow k ∧ x.2.2 = entry (prog.code k) := by
+      ∃ k : Fin (2 ^ prog.logSize), x.1 = addressOfIndex k ∧ x.2.2 = busEntry (prog.instructions
+          k) := by
   obtain ⟨f, hf⟩ := exists_opRecs w
   obtain ⟨mfin, bfin, hall⟩ := allSends_eq h hf
   have hperm := bc_triples_perm h hall
@@ -175,8 +176,9 @@ theorem bc_pulls_seeded (h : SatisfiedByB prog input w) :
       exact List.mem_map.mpr ⟨_, List.mem_map_of_mem (List.mem_finRange i), rfl⟩)
   have hkey : ∀ x ∈ ((opPairs w).map fun p ↦ (f p).bcRead) ++
       (List.finRange (2 ^ prog.logSize)).map fun i : Fin _ ↦
-        (gpow i, bfin i, entry (prog.code i)),
-      ∃ k : Fin (2 ^ prog.logSize), x.1 = gpow k ∧ x.2.2 = entry (prog.code k) := by
+        (addressOfIndex i, bfin i, busEntry (prog.instructions i)),
+      ∃ k : Fin (2 ^ prog.logSize), x.1 = addressOfIndex k ∧ x.2.2 = busEntry (prog.instructions
+          k) := by
     intro x hx
     rcases List.mem_append.mp hx with hx | hx
     · obtain ⟨y, hy, hyx⟩ := List.mem_map.mp (hseeded x hx)
@@ -188,7 +190,7 @@ theorem bc_pulls_seeded (h : SatisfiedByB prog input w) :
   have hpull : messagesOn w BytecodePull.toRaw =
       (((opPairs w).map fun p ↦ (f p).bcRead) ++
         (List.finRange (2 ^ prog.logSize)).map fun i : Fin _ ↦
-          (gpow i, bfin i, entry (prog.code i))).map bcMsgOfTriple := by
+          (addressOfIndex i, bfin i, busEntry (prog.instructions i))).map bcMsgOfTriple := by
     rw [messagesOn_eq_chanOf, chanOf_allSends _ hall]
     simp only [Channel.toRaw_name]
     rw [chanOf_verifier_eq_nil (by simp [BytecodePull, StatePull])
@@ -210,8 +212,8 @@ decodes, and is what `constraintSoundness` joins to `execute` by `execute_of_ste
 theorem bytecode_channel_sound (h : SatisfiedByB prog input w) :
     ∀ i ∈ w.interactions, i.channel.name = BytecodePull.name →
       ∀ m : BytecodeMsg K, i.msg = (toElements m).toArray →
-        ∃ k : Fin (2 ^ prog.logSize), m.pc = gpow k ∧
-          #v[m.opcode] ++ m.op = entry (prog.code k) := by
+        ∃ k : Fin (2 ^ prog.logSize), m.pc = addressOfIndex k ∧
+          #v[m.opcode] ++ m.op = busEntry (prog.instructions k) := by
   intro i hi hname m hm
   obtain ⟨x, hx, k, h1, h2⟩ := bc_pulls_seeded h i.msg (mem_messagesOn hi hname)
   rw [hm, toElements_bcMsg] at hx
@@ -225,13 +227,14 @@ theorem bytecode_guarantee (h : SatisfiedByB prog input w) :
       ∀ m : BytecodeMsg K, i.msg = (toElements m).toArray → BytecodePull.Guarantees m w.data := by
   intro i hi hname m hm
   obtain ⟨k, -, he⟩ := bytecode_channel_sound h i hi hname m hm
-  exact ⟨prog.code k, by rw [he]; exact decode_entry _⟩
+  exact ⟨prog.instructions k, by rw [he]; exact decode_entry _⟩
 
 /-- The bytecode read of every row of the six tables is the program's: its counter is `g^k` for a
 slot `k` and its coordinates are the entry there. -/
 theorem opRecs_bc_sound (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec}
     (hf : OpRecs w f) {p : Air.Flat.Table K × Array K} (hp : p ∈ opPairs w) :
-    ∃ k : Fin (2 ^ prog.logSize), (f p).pc = gpow k ∧ (f p).e = entry (prog.code k) := by
+    ∃ k : Fin (2 ^ prog.logSize), (f p).pc = addressOfIndex k ∧ (f p).e = busEntry
+        (prog.instructions k) := by
   obtain ⟨mfin, bfin, hall⟩ := allSends_eq h hf
   have hm : bcMsgOfTriple (f p).bcRead ∈ messagesOn w BytecodePull.toRaw := by
     rw [messagesOn_eq_chanOf, chanOf_allSends _ hall]

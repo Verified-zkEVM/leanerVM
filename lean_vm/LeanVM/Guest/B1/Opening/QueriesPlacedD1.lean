@@ -41,12 +41,13 @@ each query `k < Q` its bit pointer `qptrs[k] = g^(eb k)`, its position's bits th
 def OqLinMem (rd : Reader) (s : Oq) (cap flags wp qptrs : E) (w : ℕ → E) (eb qs : ℕ → ℕ)
     (rows : ℕ → List K) (sibs : ℕ → List Digest) (Q : ℕ) : Prop :=
   (∀ l < s.lo + s.I / s.lo, LoadHolds rd wp l (w l)) ∧
-    ∀ k < Q, LoadHolds rd qptrs k (ofK (Parameters.gpow (eb k))) ∧
-      (∀ l < s.pd + s.cd, LoadHolds rd (ofK (Parameters.gpow (eb k))) l (bitE ((qs k).testBit l))) ∧
+    ∀ k < Q, LoadHolds rd qptrs k (ofK (Parameters.addressOfIndex (eb k))) ∧
+      (∀ l < s.pd + s.cd, LoadHolds rd (ofK (Parameters.addressOfIndex (eb k))) l (bitE ((qs
+          k).testBit l))) ∧
       LoadHolds rd cap (2 * (2 ^ s.cd + qs k / 2 ^ s.pd))
-        (digestScalars (climbD (merkleLeafDigest (rows k)) (qs k) (sibs k))).1 ∧
+        (digestHalves (climbD (merkleLeafDigest (rows k)) (qs k) (sibs k))).1 ∧
       LoadHolds rd cap (2 * (2 ^ s.cd + qs k / 2 ^ s.pd) + 1)
-        (digestScalars (climbD (merkleLeafDigest (rows k)) (qs k) (sibs k))).2 ∧
+        (digestHalves (climbD (merkleLeafDigest (rows k)) (qs k) (sibs k))).2 ∧
       LoadHolds rd flags (2 ^ (s.cd - 1) + qs k / 2 ^ (s.pd + 1)) 1
 
 /-- **Where those words lie**: in the region `R`. -/
@@ -77,14 +78,15 @@ theorem cap_index (q pd cd e : ℕ) :
   rw [hsplit, pow_succ]
   split <;> ring
 
-theorem limb_addr (b k : ℕ) : (ofK (Parameters.gpow b)).limb 0 * Parameters.gpow k =
-    Parameters.gpow (b + k) := Main.addr_ofK b k
+theorem limb_addr (b k : ℕ) : (ofK (Parameters.addressOfIndex b)).limb 0 *
+    Parameters.addressOfIndex k =
+    Parameters.addressOfIndex (b + k) := Main.addr_ofK b k
 
 /-- The query region `OqQReg` from `OqLinReg`. -/
 theorem oqQReg_of {R : ℕ → Prop} {s : Oq} {ecap eflags eqp ewp : ℕ}
     {eb qs : ℕ → ℕ} {Q : ℕ} (h : OqLinReg R s ecap eflags eqp ewp eb qs Q) {k : ℕ} (hk : k < Q) :
-    OqQReg R s (ofK (Parameters.gpow ecap)) (ofK (Parameters.gpow eflags))
-      (ofK (Parameters.gpow ewp)) (ofK (Parameters.gpow (eb k))) (qs k) := by
+    OqQReg R s (ofK (Parameters.addressOfIndex ecap)) (ofK (Parameters.addressOfIndex eflags))
+      (ofK (Parameters.addressOfIndex ewp)) (ofK (Parameters.addressOfIndex (eb k))) (qs k) := by
   obtain ⟨-, b, f, c⟩ := h.2 k hk
   refine ⟨fun off ho ↦ ⟨_, limb_addr _ _, h.1 off ho⟩, fun off ho ↦ ⟨_, limb_addr _ _, b off ho⟩,
     ⟨_, by rw [addr_gpow, Nat.add_assoc], f⟩, fun e he ↦ ⟨_, by rw [addr_gpow], ?_⟩⟩
@@ -116,19 +118,20 @@ theorem oqMain1_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
       (sibs k).length = s.pd)
     (hreg : OqLinReg (RegionL Lin) s ecap eflags eqp ewp eb qs (odd + 2 * N))
     (hmem : ∀ rd, LowDef κ rd → MemL rd Lin →
-      OqLinMem rd s (ofK (Parameters.gpow ecap)) (ofK (Parameters.gpow eflags))
-        (ofK (Parameters.gpow ewp)) (ofK (Parameters.gpow eqp)) w eb qs rows sibs (odd + 2 * N)) :
+      OqLinMem rd s (ofK (Parameters.addressOfIndex ecap)) (ofK (Parameters.addressOfIndex eflags))
+        (ofK (Parameters.addressOfIndex ewp)) (ofK (Parameters.addressOfIndex eqp)) w eb qs rows
+            sibs (odd + 2 * N)) :
     CompleteAtB fs cert κ name Lin
-      [ofK (Parameters.gpow ecap), ofK (Parameters.gpow eflags), lam, lamN,
-        ofK (Parameters.gpow eqp), ofK (Parameters.gpow ewp), gen ^ N]
+      [ofK (Parameters.addressOfIndex ecap), ofK (Parameters.addressOfIndex eflags), lam, lamN,
+        ofK (Parameters.addressOfIndex eqp), ofK (Parameters.addressOfIndex ewp), gen ^ N]
       (Returns [oqChain odd s.base lam⁻¹ (fun k ↦ rowDot s.base s.I (rows k) w) N * lamN])
       (fs name + (N + 1) + (N + 1) * fs loop) := by
   intro fp
   set ds : ℕ → E := fun k ↦ rowDot s.base s.I (rows k) w with hds
-  set cap := ofK (Parameters.gpow ecap)
-  set flags := ofK (Parameters.gpow eflags)
-  set wp := ofK (Parameters.gpow ewp)
-  set qptrs := ofK (Parameters.gpow eqp)
+  set cap := ofK (Parameters.addressOfIndex ecap)
+  set flags := ofK (Parameters.addressOfIndex eflags)
+  set wp := ofK (Parameters.addressOfIndex ewp)
+  set qptrs := ofK (Parameters.addressOfIndex eqp)
   set cm := cert name (.n (oqCh s 13 true)) with hcm
   set c1 := cert loop (.n (oqCh s 11 true)) with hc1
   set c2 := cert loop (.n (oqCh s (oqE1 s + 1) false)) with hc2
@@ -192,7 +195,7 @@ theorem oqMain1_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
   obtain ⟨⟨hmMain, hmChain, hmIt⟩, hmLin⟩ := hm
   obtain ⟨hw, hk⟩ := hmem rd hlow hmLin
   -- the chain buffer
-  have hch : ∀ i ≤ N, LoadHolds rd (ofK (Parameters.gpow (fp + fs name))) i
+  have hch : ∀ i ≤ N, LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs name))) i
       (oqChain odd s.base lam⁻¹ ds i) := by
     intro i hi
     have := hmChain (fp + fs name, oqChainVals odd s.base lam ds N) (by rw [hchainL]; simp) i
@@ -201,12 +204,12 @@ theorem oqMain1_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
   have hRL : ∀ i, RegionL Lin i → RegionL Lin i := fun _ h ↦ h
   refine relAtIn_dmono (D := fun _ ↦ False) ?_ (fun i hi ↦ absurd hi (regionL_nil i))
   refine oqMain1_placed (r := rows 0) (w := w) (q := qs 0) (sb := sibs 0)
-    (bp := ofK (Parameters.gpow (eb 0))) (hNv := oqChain odd s.base lam⁻¹ ds N)
+    (bp := ofK (Parameters.addressOfIndex (eb 0))) (hNv := oqChain odd s.base lam⁻¹ ds N)
     (r1 := fun j ↦ rows (odd + 2 * j)) (r2 := fun j ↦ rows (odd + 2 * j + 1))
     (w1 := fun _ ↦ w) (w2 := fun _ ↦ w) (q1 := fun j ↦ qs (odd + 2 * j))
     (q2 := fun j ↦ qs (odd + 2 * j + 1)) (sb1 := fun j ↦ sibs (odd + 2 * j))
-    (sb2 := fun j ↦ sibs (odd + 2 * j + 1)) (bp1 := fun j ↦ ofK (Parameters.gpow (eb (odd + 2 * j))))
-    (bp2 := fun j ↦ ofK (Parameters.gpow (eb (odd + 2 * j + 1))))
+    (sb2 := fun j ↦ sibs (odd + 2 * j + 1)) (bp1 := fun j ↦ ofK (Parameters.addressOfIndex (eb (odd + 2 * j))))
+    (bp2 := fun j ↦ ofK (Parameters.addressOfIndex (eb (odd + 2 * j + 1))))
     (v := fun j ↦ oqChain odd s.base lam⁻¹ ds j)
     coreProgram_wf fs cert hs hpd hpd1 hcd hcd8 hodd hfm hpm hbm hfl hpl hbl hlp hN hlam
     (fun ho ↦ ?_) (fun ho ↦ ?_) (hch N le_rfl) (fun j hj ↦ ?_)
@@ -214,7 +217,7 @@ theorem oqMain1_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
     subst ho
     obtain ⟨b0, bits0, c00, c01, f0⟩ := hk 0 (by omega)
     obtain ⟨q0, r0, s0⟩ := hst 0 (by omega)
-    have hrun : ReadsAt rd (ofK (Parameters.gpow (fp + cm))) (oqRunCells s.pd (rows 0) (qs 0) (sibs 0)) :=
+    have hrun : ReadsAt rd (ofK (Parameters.addressOfIndex (fp + cm))) (oqRunCells s.pd (rows 0) (qs 0) (sibs 0)) :=
       hmMain (fp + cm, oqRunCells s.pd (rows 0) (qs 0) (sibs 0)) (by rw [hmainRun]; simp)
     refine ⟨b0, bits0, qdOk_of_run r0 s0 q0 hrun hw c00 c01 f0, ?_,
       ⟨_, limb_addr _ _, (hreg.2 0 (by omega)).1⟩, oqQReg_of hreg (by omega)⟩
@@ -227,7 +230,7 @@ theorem oqMain1_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
     have hk2 := hk (odd + 2 * j + 1) (by omega)
     obtain ⟨qa, ra, sa⟩ := hst (odd + 2 * j) (by omega)
     obtain ⟨qb, rb, sb⟩ := hst (odd + 2 * j + 1) (by omega)
-    have hrun : ∀ x ∈ blk j, ReadsAt rd (ofK (Parameters.gpow x.1)) x.2 := fun x hx ↦
+    have hrun : ∀ x ∈ blk j, ReadsAt rd (ofK (Parameters.addressOfIndex x.1)) x.2 := fun x hx ↦
       hmIt x (by rw [hiters]; exact List.mem_flatMap.mpr ⟨j, List.mem_range.mpr hj, hx⟩)
     have hra := hrun (bL + j * fs loop + c1, oqRunCells s.pd (rows (odd + 2 * j)) (qs (odd + 2 * j))
       (sibs (odd + 2 * j))) (by rw [hblk]; simp)

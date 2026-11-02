@@ -41,7 +41,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protoc
 
 @[expose] public section
 
-variable {X : Type} {σ : Seeds X} {P : Prog Bool}
+variable {X : Type} {σ : Seeds X} {P : VerifierProgram Bool}
 
 /-! ## Recording decodings -/
 
@@ -55,13 +55,14 @@ theorem setInfo_self (f : (Fin 9 → UInt64) → Option Info) (c : Fin 9 → UIn
     setInfo f c (some i) c = some i := by
   simp [setInfo]
 
-theorem decode_take_succ (σ : Seeds X) (P : Prog Bool) (ℓ : Log) {j : ℕ} (hj : j < ℓ.length) :
+theorem decode_take_succ (σ : Seeds X) (P : VerifierProgram Bool) (ℓ : Log) {j : ℕ} (hj : j <
+    ℓ.length) :
     decode σ P (ℓ.take (j + 1)) = decStep σ P (ℓ.take j) (decode σ P (ℓ.take j)) ℓ[j] := by
   rw [← List.take_append_getElem hj]
   exact decode_append σ P _ ℓ[j]
 
 /-- The records of a log extend the records of every prefix. -/
-theorem kinds_prefix (σ : Seeds X) (P : Prog Bool) (l r : Log) :
+theorem kinds_prefix (σ : Seeds X) (P : VerifierProgram Bool) (l r : Log) :
     (decode σ P l).kinds <+: (decode σ P (l ++ r)).kinds := by
   induction r using List.reverseRecOn with
   | nil => simp
@@ -72,7 +73,7 @@ theorem kinds_prefix (σ : Seeds X) (P : Prog Bool) (l r : Log) :
     · rw [kinds_decode_append_inr]
       exact ih.trans (List.prefix_append _ _)
 
-theorem kinds_mem_of_take (σ : Seeds X) (P : Prog Bool) (ℓ : Log) (j : ℕ)
+theorem kinds_mem_of_take (σ : Seeds X) (P : VerifierProgram Bool) (ℓ : Log) (j : ℕ)
     {κ : Shape × KeccakState} (h : κ ∈ (decode σ P (ℓ.take j)).kinds) :
     κ ∈ (decode σ P ℓ).kinds := by
   have := kinds_prefix σ P (ℓ.take j) (ℓ.drop j)
@@ -88,7 +89,8 @@ def HalfOk (s : KeccakState) (inf : Info) : Prop :=
 
 /-- The capacity `c` is the capacity of the output of the permutation entry `m` of `ℓ`, and every
 prefix of `ℓ` past that entry decodes it as `inf`. -/
-def Known (σ : Seeds X) (P : Prog Bool) (ℓ : Log) (c : Fin 9 → UInt64) (inf : Info) : Prop :=
+def Known (σ : Seeds X) (P : VerifierProgram Bool) (ℓ : Log) (c : Fin 9 → UInt64) (inf : Info) :
+    Prop :=
   ∃ (m : ℕ) (hm : m < ℓ.length) (s u : KeccakState), ℓ[m] = .inr (s, u) ∧ capOf u = c ∧
     HalfOk s inf ∧ ∀ j, m < j → j ≤ ℓ.length → (decode σ P (ℓ.take j)).info c = some inf
 
@@ -125,7 +127,8 @@ theorem slot_of_parsePending {t : KeccakState} {i : ℕ} (hi : i < (parsePending
 /-- A consumption that ends in the middle of a commitment ended with the root's first half, of
 tag `1`, unless nothing was consumed. -/
 theorem consume_done_half {W : Digest → ℕ → ℕ → Word} :
-    ∀ (ps : List (E × ℕ)) (h : List Ev) (pos : Pos) {h' : List Ev} {ht w : ℕ} {k : Prog Bool}
+    ∀ (ps : List (E × ℕ)) (h : List Ev) (pos : Pos) {h' : List Ev} {ht w : ℕ} {k :
+        VerifierProgram Bool}
       {x₀ : E}, consume W h pos ps = .done h' (.half ht w k x₀) →
         ps = [] ∨ ps.getLast? = some (x₀, 1)
   | [], _, _, _, _, _, _, _, _ => Or.inl rfl
@@ -222,11 +225,11 @@ def prePos : Pos → List (E × ℕ)
 /-- The roots adjacent scalars of tag `1` encode. -/
 def rootsList (l : List (E × ℕ)) : List Digest :=
   (l.zip l.tail).filterMap fun ab ↦
-    if ab.1.2 = 1 ∧ ab.2.2 = 1 then digestOfScalars (ab.1.1, ab.2.1) else none
+    if ab.1.2 = 1 ∧ ab.2.2 = 1 then digestFromHalves (ab.1.1, ab.2.1) else none
 
 theorem rootsList_cons_cons (a b : E × ℕ) (l : List (E × ℕ)) :
     rootsList (a :: b :: l) =
-      (if a.2 = 1 ∧ b.2 = 1 then digestOfScalars (a.1, b.1) else none).toList ++
+      (if a.2 = 1 ∧ b.2 = 1 then digestFromHalves (a.1, b.1) else none).toList ++
         rootsList (b :: l) := by
   simp only [rootsList, List.tail_cons, List.zip_cons_cons, List.filterMap_cons]
   split <;> simp_all
@@ -280,7 +283,7 @@ theorem consume_congr {W W' : Digest → ℕ → ℕ → Word} :
 
 theorem mem_rootsList {l : List (E × ℕ)} {r : Digest} (hr : r ∈ rootsList l) :
     ∃ (i : ℕ) (hi : i + 1 < l.length), l[i].2 = 1 ∧ l[i + 1].2 = 1 ∧
-      digestOfScalars (l[i].1, l[i + 1].1) = some r := by
+      digestFromHalves (l[i].1, l[i + 1].1) = some r := by
   induction l with
   | nil => simp [rootsList] at hr
   | cons a l ih =>
@@ -311,7 +314,7 @@ theorem rootOf_of_mem_rootsList {ℓ' : Log} {c : Fin 9 → UInt64} {ps : List (
   have hslot : ∀ i (hi : i < ps.length), slotE (duplexOf c ps) i = ps[i].1 := fun i hi ↦
     slotE_duplexOf c ps hi (by have := hv.1; omega)
   have hpair : ∀ i (hi : i + 1 < ps.length), ps[i].2 = 1 → ps[i + 1].2 = 1 →
-      digestOfScalars (ps[i].1, ps[i + 1].1) = some r → RootOf ℓ' (duplexOf c ps) r := by
+      digestFromHalves (ps[i].1, ps[i + 1].1) = some r → RootOf ℓ' (duplexOf c ps) r := by
     intro i hi h1 h2 h3
     refine Or.inl ⟨i, by have := hv.1; omega, ?_⟩
     simp only [pairRoot, htag i (by omega) h1, htag (i + 1) hi h2, and_self, ↓reduceIte,

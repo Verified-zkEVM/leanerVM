@@ -133,8 +133,8 @@ def pairHashOk (atoms : List Atom) (a b c d p : V) : Bool :=
 theorem pairHash_sound {rd : Reader} {σ : Val} {atoms : List Atom} {a b c d p : V}
     (h : pairHashOk atoms a b c d p = true) (hat : ∀ x ∈ atoms, x.Holds rd σ) :
     AllCanonical [σ a, σ b, σ c, σ d] ∧
-      LoadHolds rd (σ p) 0 (digestScalars (keccak256 (cellsBytes [σ a, σ b, σ c, σ d]))).1 ∧
-      LoadHolds rd (σ p) 1 (digestScalars (keccak256 (cellsBytes [σ a, σ b, σ c, σ d]))).2 := by
+      LoadHolds rd (σ p) 0 (digestHalves (keccak256 (cellsBytes [σ a, σ b, σ c, σ d]))).1 ∧
+      LoadHolds rd (σ p) 1 (digestHalves (keccak256 (cellsBytes [σ a, σ b, σ c, σ d]))).2 := by
   simp only [pairHashOk, Bool.and_eq_true] at h
   obtain ⟨⟨hc, h0⟩, h1⟩ := h
   obtain ⟨hd, hcan⟩ := chain_final hc rfl hat (pre := []) (n := 0) rfl

@@ -68,7 +68,7 @@ def mkDecoded (seed : LeanVM.Protocol.Digest) (s : NodeStatement) (w : NodeWitne
 cost_compile mkDecoded := mkDecoded
 
 def layerSwap (r : BitVec 128) (σ : LeanXmss.LayerSignature) : LeanXmss.LayerSignature :=
-  ⟨r, σ.chainValues, σ.path⟩
+  ⟨r, σ.chainValues, σ.authenticationPath⟩
 cost_compile layerSwap := layerSwap
 
 def xmssLeaf (σ : LeanXmss.Signature) : ℕ := σ.leafIndex.val

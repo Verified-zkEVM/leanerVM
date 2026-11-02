@@ -137,12 +137,13 @@ theorem relAtInWT_of_walk (hP : P.Wf) {R D Dk : ℕ → Prop} {fp N : ℕ} {f : 
     {args rets : List E} {fn : Fn} {es : List Ev} {vs : List V} (hf : P.find? f = some fn)
     (hl : P.loop f = false ∨ calls es = []) (hp : fn.params.map σ = args)
     (hw : walk σ fn.body = .ret es vs) (hr : vs.map σ = rets) (hes : ∀ e ∈ es, e.Holds rd σ)
-    (hbuf : (allocDsts es).map σ = (bases (fp + fs f) (allocs σ es)).map fun b => ofK (gpow b))
-    (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (gpow (fp + cert f q.2)))
+    (hbuf : (allocDsts es).map σ = (bases (fp + fs f) (allocs σ es)).map fun b
+        => ofK (addressOfIndex b))
+    (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + cert f q.2)))
     (Ts : List (Tree → Prop))
     (hk : KidsFromInT P fs cert rd σ (fun i => R i ∨ ownData cert fp (fp + fs f) f (allocs σ es) es i)
       (fun _ => False) (calls es) Ts (fp + fs f + (allocs σ es).sum) N Dk)
-    (hload : ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧
+    (hload : ∀ A ∈ loadAddrs σ es, ∃ i, A = addressOfIndex i ∧
       (ownData cert fp (fp + fs f) f (allocs σ es) es i ∨ R i ∨ Dk i))
     (hD : ∀ i, D i → ownData cert fp (fp + fs f) f (allocs σ es) es i ∨ Dk i) :
     ∃ t : Tree, (t.name = f ∧ t.Valid P rd args rets ∧ t.BufsOk P ∧ t.Placed P fs cert fp ∧
@@ -220,13 +221,14 @@ theorem relAtInWT_of_walk_loop (hP : P.Wf) {R D Dk Rt Dt : ℕ → Prop} {fp m N
     (hc : calls es = cs ++ [c])
     (htail : if c.taken then RelAtInT P fs cert rd Rt Dt (fp + fs f) m c.f (c.args.map σ) (c.rets.map σ) Tt
       else m = fs c.f)
-    (hbuf : (allocDsts es).map σ = (bases (fp + fs f + m) (allocs σ es)).map fun b => ofK (gpow b))
-    (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (gpow (fp + cert f q.2)))
+    (hbuf : (allocDsts es).map σ = (bases (fp + fs f + m) (allocs σ es)).map fun b
+        => ofK (addressOfIndex b))
+    (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + cert f q.2)))
     (hTs : Ts.length = cs.length)
     (hk : KidsFromInT P fs cert rd σ (fun i => R i ∨ ownData cert fp (fp + fs f + m) f (allocs σ es) es i)
       (fun _ => False) cs Ts (fp + fs f + m + (allocs σ es).sum) N Dk)
     (hRt : ∀ i, Rt i → R i ∨ ownData cert fp (fp + fs f + m) f (allocs σ es) es i ∨ Dk i)
-    (hload : ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧
+    (hload : ∀ A ∈ loadAddrs σ es, ∃ i, A = addressOfIndex i ∧
       (ownData cert fp (fp + fs f + m) f (allocs σ es) es i ∨ R i ∨ Dk i ∨ (c.taken = true ∧ Dt i)))
     (hD : ∀ i, D i → ownData cert fp (fp + fs f + m) f (allocs σ es) es i ∨ Dk i ∨
       (c.taken = true ∧ Dt i)) :

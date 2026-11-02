@@ -50,11 +50,11 @@ open scoped ENNReal
 /- The enumerations of `Digest` and `KState` must never be unfolded by unification. -/
 attribute [local irreducible] instFintypeDigest instFintypeKState
 
-variable {X : Type} {σ : Seeds X} {P : Prog Bool}
+variable {X : Type} {σ : Seeds X} {P : VerifierProgram Bool}
 
 /-- The certificate's bound at a doomed boundary, discounted by the proof of work before it. -/
 theorem ind_mul_esc_le (C : Cert P) {εmax : ℝ≥0∞}
-    (hε : ∀ h, 2⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) {h : List Ev} {p : Prog Bool}
+    (hε : ∀ h, 2⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) {h : List Ev} {p : VerifierProgram Bool}
     (hr : P.Reachable h) (hb : Boundary h) (ha : P.after h = some p) :
     ind (C.D h) * (2⁻¹ ^ min (grindBits h) 64 * esc C.D h p) ≤ εmax := by
   by_cases hD : C.D h

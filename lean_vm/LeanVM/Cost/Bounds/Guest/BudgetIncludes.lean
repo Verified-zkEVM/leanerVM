@@ -17,71 +17,79 @@ open LeanVM.Cost LeanVM.Cost.Decoder
 
 public section
 
-theorem includes_budget_readerClosure : Includes decoderProgram Decoder.decTopTablesC.lam0.costDeps := by
+theorem includes_budget_readerClosure : Includes compiledGuestWitnessDecoder Decoder.decTopTablesC.lam0.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_discreteLogWith : Includes decoderProgram Decoder.discreteLogWithC.costDeps := by
+theorem includes_budget_discreteLogWith : Includes compiledGuestWitnessDecoder Decoder.discreteLogWithC.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_powBelow : Includes decoderProgram powBelowC.costDeps := by
+theorem includes_budget_powBelow : Includes compiledGuestWitnessDecoder powBelowC.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_preTestLam : Includes decoderProgram Decoder.decTopStatesC.lam1.costDeps := by
+theorem includes_budget_preTestLam : Includes compiledGuestWitnessDecoder Decoder.decTopStatesC.lam1.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_preTestAt : Includes decoderProgram preTestAtC.costDeps := by
+theorem includes_budget_preTestAt : Includes compiledGuestWitnessDecoder preTestAtC.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_entryArrayT : Includes decoderProgram entryArrayTC.costDeps := by
+theorem includes_budget_entryArrayT : Includes compiledGuestWitnessDecoder
+    entryArrayTC.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_getPc : Includes decoderProgram getPcC.costDeps := by
+theorem includes_budget_getPc : Includes compiledGuestWitnessDecoder getPcC.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_frameAtA : Includes decoderProgram Decoder.frameAtAC.costDeps := by
+theorem includes_budget_frameAtA : Includes compiledGuestWitnessDecoder
+    Decoder.frameAtAC.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_mainValLam : Includes decoderProgram Decoder.decTopStatesC.lam0.costDeps := by
+theorem includes_budget_mainValLam : Includes compiledGuestWitnessDecoder Decoder.decTopStatesC.lam0.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_mainVal : Includes decoderProgram Decoder.mainValC.costDeps := by
+theorem includes_budget_mainVal : Includes compiledGuestWitnessDecoder
+    Decoder.mainValC.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_decWitN : Includes decoderProgram Decoder.decWitNC.costDeps := by
+theorem includes_budget_decWitN : Includes compiledGuestWitnessDecoder
+    Decoder.decWitNC.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_frameLam : Includes decoderProgram Decoder.decTopFramesC.lam0.costDeps := by
+theorem includes_budget_frameLam : Includes compiledGuestWitnessDecoder
+    Decoder.decTopFramesC.lam0.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_cursorLam : Includes decoderProgram Decoder.decTopFramesC.lam1.costDeps := by
+theorem includes_budget_cursorLam : Includes compiledGuestWitnessDecoder Decoder.decTopFramesC.lam1.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_gLogD : Includes decoderProgram Decoder.gLogDC.costDeps := by
+theorem includes_budget_gLogD : Includes compiledGuestWitnessDecoder Decoder.gLogDC.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_cursorLength : Includes decoderProgram cursorLengthC.costDeps := by
+theorem includes_budget_cursorLength : Includes compiledGuestWitnessDecoder
+    cursorLengthC.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_preTable : Includes decoderProgram Decoder.preTableC.costDeps := by
+theorem includes_budget_preTable : Includes compiledGuestWitnessDecoder
+    Decoder.preTableC.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_pcTableT : Includes decoderProgram Decoder.pcTableTC.costDeps := by
+theorem includes_budget_pcTableT : Includes compiledGuestWitnessDecoder
+    Decoder.pcTableTC.costDeps := by
   have := decoderProgram_includes
   includes
 

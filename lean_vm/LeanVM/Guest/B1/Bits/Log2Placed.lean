@@ -49,10 +49,10 @@ def bitWords (N : ℕ) : List E := (List.range 34).map fun j ↦ bitE (N.testBit
 def psWords (N : ℕ) : List E := (List.range 35).map fun j ↦ eOfNat (N % 2 ^ j)
 
 theorem memL_single {rd : Reader} {b : ℕ} {w : List E} (h : MemL rd [(b, w)]) :
-    ReadsAt rd (ofK (Parameters.gpow b)) w := h _ (List.mem_singleton_self _)
+    ReadsAt rd (ofK (Parameters.addressOfIndex b)) w := h _ (List.mem_singleton_self _)
 
 theorem expTables_of_memL {rd : Reader} {lpE sqE : ℕ} (h : MemL rd (log2Lin lpE sqE)) :
-    ExpTables rd (ofK (Parameters.gpow lpE)) (ofK (Parameters.gpow sqE)) := by
+    ExpTables rd (ofK (Parameters.addressOfIndex lpE)) (ofK (Parameters.addressOfIndex sqE)) := by
   have h1 := h _ (List.mem_cons_self ..)
   have h2 := h _ (List.mem_cons_of_mem _ (List.mem_singleton_self _))
   intro j hj
@@ -64,11 +64,13 @@ theorem expTables_of_memL {rd : Reader} {lpE sqE : ℕ} (h : MemL rd (log2Lin lp
     simpa [Tables.gSquaresList] using this
 
 theorem limb_ofK_gpow_mul (b off : ℕ) :
-    (ofK (Parameters.gpow b)).limb 0 * Parameters.gpow off = Parameters.gpow (b + off) := by
+    (ofK (Parameters.addressOfIndex b)).limb 0 * Parameters.addressOfIndex off =
+        Parameters.addressOfIndex (b + off) := by
   rw [limb_ofK]; simp only [Fin.isValue, Fin.val_zero, ↓reduceIte]; exact gpow_add' b off
 
 theorem limb_ofK_gpow_gen (b L : ℕ) :
-    (ofK (Parameters.gpow b) * gen ^ L).limb 0 * Parameters.gpow 0 = Parameters.gpow (b + L) := by
+    (ofK (Parameters.addressOfIndex b) * gen ^ L).limb 0 * Parameters.addressOfIndex 0 =
+        Parameters.addressOfIndex (b + L) := by
   rw [gen_pow_eq_ofK, ← ofK_mul, limb_ofK]
   simp only [Fin.isValue, Fin.val_zero, ↓reduceIte]
   rw [gpow_add', gpow_add', Nat.add_zero]
@@ -213,23 +215,28 @@ theorem vlc_completeAtB (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
     (hb : fn.body = vlBody fl) (hl : coreProgram.loop name = false) (κ : ℕ) (hκ6 : 6 ≤ κ)
     (bitsE lpE sqE N : ℕ) (hN : N < 2 ^ 34) (hL : max fl (log2Ceil N) < 34) :
     CompleteAtB fs cert κ name ([(bitsE, bitWords N)] ++ log2Lin lpE sqE)
-      [ofK (Parameters.gpow bitsE), ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)]
+      [ofK (Parameters.addressOfIndex bitsE), ofK (Parameters.addressOfIndex lpE), ofK
+          (Parameters.addressOfIndex sqE)]
       (Returns [gen ^ max fl (log2Ceil N), gen ^ N]) (fs name + 35) := by
   have h := completeAt_leafB (fs := fs) (cert := cert) hf hl κ
     ([(bitsE, bitWords N)] ++ log2Lin lpE sqE)
-    [ofK (Parameters.gpow bitsE), ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)]
+    [ofK (Parameters.addressOfIndex bitsE), ofK (Parameters.addressOfIndex lpE), ofK
+        (Parameters.addressOfIndex sqE)]
     [gen ^ max fl (log2Ceil N), gen ^ N] [35] (fun _ => [psWords N])
     (fun _ => List.Forall₂.cons (by simp [psWords]) List.Forall₂.nil) ?_
   · exact h
   intro fp rd hlow hown hLin
-  have hps0 : ReadsAt rd (ofK (Parameters.gpow (fp + fs name))) (psWords N) := memL_single hown
-  have hps : ∀ j ≤ 34, LoadHolds rd (ofK (Parameters.gpow (fp + fs name))) j (eOfNat (N % 2 ^ j)) :=
+  have hps0 : ReadsAt rd (ofK (Parameters.addressOfIndex (fp + fs name))) (psWords N) :=
+      memL_single hown
+  have hps : ∀ j ≤ 34, LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs name))) j (eOfNat (N %
+      2 ^ j)) :=
     fun j hj => by
       have := hps0 j (by simp [psWords]; omega)
       simpa [psWords] using this
   obtain ⟨hbL, hlin⟩ := Main.memL_append.mp hLin
   have hbits0 := memL_single hbL
-  have hbits : ∀ j < 34, LoadHolds rd (ofK (Parameters.gpow bitsE)) j (bitE (N.testBit j)) :=
+  have hbits : ∀ j < 34, LoadHolds rd (ofK (Parameters.addressOfIndex bitsE)) j (bitE
+      (N.testBit j)) :=
     fun j hj => by
       have := hbits0 j (by simp [bitWords]; omega)
       simpa [bitWords] using this
@@ -353,13 +360,14 @@ theorem lce_completeAtB (fl : ℕ) (hfl : fl < 34) {name callee : String} {fn cf
     (hcb : cfn.body = vlBody fl) (hcl : coreProgram.loop callee = false) (κ : ℕ) (hκ6 : 6 ≤ κ)
     (N lpE sqE : ℕ) (hN : N < 2 ^ 34) (hL : max fl (log2Ceil N) < 34) :
     CompleteAtB fs cert κ name (log2Lin lpE sqE)
-      [gen ^ N, ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)]
+      [gen ^ N, ofK (Parameters.addressOfIndex lpE), ofK (Parameters.addressOfIndex sqE)]
       (Returns [gen ^ max fl (log2Ceil N)]) (fs name + 34 + (fs callee + 35)) := by
   intro fp
   set L := max fl (log2Ceil N) with hLdef
   set b := fp + fs name with hbdef
   let kid : Kid := ⟨callee, true,
-    [ofK (Parameters.gpow b), ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)],
+    [ofK (Parameters.addressOfIndex b), ofK (Parameters.addressOfIndex lpE), ofK
+        (Parameters.addressOfIndex sqE)],
     [(b, bitWords N)] ++ log2Lin lpE sqE, Returns [gen ^ L, gen ^ N]⟩
   have hown34 : List.Forall₂ (fun c s => c.length ≤ s) [bitWords N] [34] :=
     List.Forall₂.cons (by simp [bitWords]) List.Forall₂.nil
@@ -380,13 +388,14 @@ theorem lce_completeAtB (fl : ℕ) (hfl : fl < 34) {name callee : String} {fn cf
   obtain ⟨hLm, hLin⟩ := Main.memL_append.mp hL'
   obtain ⟨hB, hLk⟩ := Main.memL_append.mp hLm
   -- the valuation
-  set σ : Val := setl (Val.ofArgs [gen ^ N, ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)]) 3
-    [word (2 ^ 34) 0 0, ofK (Parameters.gpow b), gen ^ L, gen ^ N, gen ^ L] with hσ
+  set σ : Val := setl (Val.ofArgs [gen ^ N, ofK (Parameters.addressOfIndex lpE), ofK
+      (Parameters.addressOfIndex sqE)]) 3
+    [word (2 ^ 34) 0 0, ofK (Parameters.addressOfIndex b), gen ^ L, gen ^ N, gen ^ L] with hσ
   have s0 : σ (.n 0) = gen ^ N := by simp only [hσ]; b1_look
-  have s1 : σ (.n 1) = ofK (Parameters.gpow lpE) := by simp only [hσ]; b1_look
-  have s2 : σ (.n 2) = ofK (Parameters.gpow sqE) := by simp only [hσ]; b1_look
+  have s1 : σ (.n 1) = ofK (Parameters.addressOfIndex lpE) := by simp only [hσ]; b1_look
+  have s2 : σ (.n 2) = ofK (Parameters.addressOfIndex sqE) := by simp only [hσ]; b1_look
   have s3 : σ (.n 3) = word (2 ^ 34) 0 0 := by simp only [hσ]; b1_look
-  have s4 : σ (.n 4) = ofK (Parameters.gpow b) := by simp only [hσ]; b1_look
+  have s4 : σ (.n 4) = ofK (Parameters.addressOfIndex b) := by simp only [hσ]; b1_look
   have s5 : σ (.n 5) = gen ^ L := by simp only [hσ]; b1_look
   have s6 : σ (.n 6) = gen ^ N := by simp only [hσ]; b1_look
   have s7 : σ (.n 7) = gen ^ L := by simp only [hσ]; b1_look
@@ -437,7 +446,8 @@ theorem lce_completeAtB (fl : ℕ) (hfl : fl < 34) {name callee : String} {fn cf
   rw [hb'] at hk
   have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL (log2Lin lpE sqE))
     (D := RegionL []) (Dk := fun i => False ∨ outRegion [kid] [o] i) (N := Nk) (fp := fp)
-    (args := [gen ^ N, ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)]) (rets := [gen ^ L])
+    (args := [gen ^ N, ofK (Parameters.addressOfIndex lpE), ofK (Parameters.addressOfIndex sqE)])
+        (rets := [gen ^ L])
     coreProgram_wf hf (Or.inl hl) (by rw [hp]; simp [s0, s1, s2]) hw (by simp [s7])
     (fun e he => by
       simp only [hes, lcPre, List.flatMap_cons, List.flatMap_nil, Main.slEvs, List.cons_append,

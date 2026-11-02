@@ -58,28 +58,29 @@ theorem gkr_capOf {depth : ℕ} (hd : 1 ≤ depth) {cap0 xs : List E} {r : E × 
     exact squeezeN_capOf 1 _
 
 /-- A property of nothing a program returns, after a step that ensures it. -/
-theorem always_const {α β : Type} {Q : Prop} {p : Prog α} {f : α → Prog β}
+theorem always_const {α β : Type} {Q : Prop} {p : VerifierProgram α} {f : α → VerifierProgram β}
     (hp : Always p fun _ ↦ Q) : Always (p.bind f) fun _ ↦ Q :=
   Always.bind (fun _ hq ↦ Always.mono (fun _ _ ↦ hq) _ (always_true _)) p hp
 
 /-- **The claimed evaluator is asked at its point.** -/
 theorem claimed_point {c : BytecodeClaim} {L : Layout} {pi : Digest} {alphas : List E} {beta : E}
     {point values : List E} {s s' : Fs} {xs : List E} {bc : BusResult × List ColumnClaim}
-    (h : RunsTo (Tables.tablesSeg (claimedValue c) L pi alphas beta point values) s xs bc s')
+    (h : RunsTo (Tables.tablesSeg (claimedBytecodeValue c) L pi alphas beta point values) s
+        xs bc s')
     (hc : ∃ sp, s.Carries sp) : c.bytecodePoint = point.take L.logBytecode ++ alphas := by
   obtain ⟨sp, hsp⟩ := hc
   refine (RunsTo.always (P := fun _ ↦ point.take L.logBytecode ++ alphas = c.bytecodePoint) h hsp
     ?_).symm
   unfold Tables.tablesSeg
-  simp only [Prog.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   refine always_const ?_
   unfold Tables.busRest
-  simp only [Prog.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   refine Always.bind (fun _ _ ↦ ?_) _ (always_true _)
   refine Always.bind (fun _ _ ↦ ?_) _ (always_true _)
   refine Always.bind (fun _ _ ↦ ?_) _ (always_true _)
   refine always_const ?_
-  simp only [claimedValue, Prog.bind_eq]
+  simp only [claimedBytecodeValue, VerifierProgram.bind_eq]
   exact Always.bind (fun _ hq ↦ by show _ = _; exact hq) _ (always_require _)
 
 /-- **`keccakSeg` returns one committed outputs' claim, on `q_keccak`.** -/
@@ -89,28 +90,28 @@ theorem keccakSeg_shape {τ : ℕ} {inst out : List E} {s t : Fs} {xs : List E}
     ∃ op word, km.1.1 = [⟨qkeccak, op, word⟩] := by
   obtain ⟨sp, hsp⟩ := hc
   obtain ⟨sp', -, e⟩ := h sp hsp [] [] []
-  have hr := Prog.returns_of_run keccak256 keccakF1600 e
+  have hr := VerifierProgram.returns_of_run keccak256 keccakF1600 e
   unfold keccakSeg at hr
-  obtain ⟨r, hr1, hr2⟩ := Prog.returns_bind hr
-  obtain ⟨m, -, hr2⟩ := Prog.returns_bind hr2
-  rw [Prog.returns_ret hr2]
+  obtain ⟨r, hr1, hr2⟩ := VerifierProgram.returns_bind hr
+  obtain ⟨m, -, hr2⟩ := VerifierProgram.returns_bind hr2
+  rw [VerifierProgram.returns_ret hr2]
   unfold verifyKeccak at hr1
-  obtain ⟨_, -, hr1⟩ := Prog.returns_bind hr1
-  obtain ⟨_, -, hr1⟩ := Prog.returns_bind hr1
-  obtain ⟨_, -, hr1⟩ := Prog.returns_bind hr1
-  obtain ⟨_, -, hr1⟩ := Prog.returns_bind hr1
-  obtain ⟨⟨slot, weights, value⟩, -, hr1⟩ := Prog.returns_bind hr1
+  obtain ⟨_, -, hr1⟩ := VerifierProgram.returns_bind hr1
+  obtain ⟨_, -, hr1⟩ := VerifierProgram.returns_bind hr1
+  obtain ⟨_, -, hr1⟩ := VerifierProgram.returns_bind hr1
+  obtain ⟨_, -, hr1⟩ := VerifierProgram.returns_bind hr1
+  obtain ⟨⟨slot, weights, value⟩, -, hr1⟩ := VerifierProgram.returns_bind hr1
   dsimp only at hr1
-  obtain ⟨word, -, hr1⟩ := Prog.returns_bind hr1
-  obtain ⟨_, -, hr1⟩ := Prog.returns_bind hr1
-  obtain ⟨outs, ho, hr1⟩ := Prog.returns_bind hr1
+  obtain ⟨word, -, hr1⟩ := VerifierProgram.returns_bind hr1
+  obtain ⟨_, -, hr1⟩ := VerifierProgram.returns_bind hr1
+  obtain ⟨outs, ho, hr1⟩ := VerifierProgram.returns_bind hr1
   cases ho
-  obtain ⟨⟨low, value'⟩, -, hr1⟩ := Prog.returns_bind hr1
+  obtain ⟨⟨low, value'⟩, -, hr1⟩ := VerifierProgram.returns_bind hr1
   dsimp only at hr1
-  obtain ⟨⟨slot', weights', value''⟩, -, hr1⟩ := Prog.returns_bind hr1
+  obtain ⟨⟨slot', weights', value''⟩, -, hr1⟩ := VerifierProgram.returns_bind hr1
   dsimp only at hr1
-  obtain ⟨_, -, hr1⟩ := Prog.returns_bind hr1
-  obtain ⟨_, -, hr1⟩ := Prog.returns_bind hr1
+  obtain ⟨_, -, hr1⟩ := VerifierProgram.returns_bind hr1
+  obtain ⟨_, -, hr1⟩ := VerifierProgram.returns_bind hr1
   cases hr1
   exact ⟨_, _, rfl⟩
 
@@ -120,7 +121,7 @@ theorem keccakSeg_end {τ : ℕ} {inst out : List E} {s t : Fs} {xs : List E}
     (h : RunsTo (keccakSeg τ inst out) s xs km t) (hc : ∃ sp, s.Carries sp) :
     t = ⟨t.cap, []⟩ := by
   unfold keccakSeg at h
-  simp only [Prog.bind_eq] at h
+  simp only [VerifierProgram.bind_eq] at h
   obtain ⟨r, xs1, xs2, t1, -, h1, h2⟩ := Tables.RunsTo.unbind h hc
   have c1 := Tables.RunsTo.carries h1 hc
   obtain ⟨m, ys1, ys2, u1, hy, q1, q2⟩ := Tables.RunsTo.unbind h2 c1
@@ -136,7 +137,7 @@ theorem keccakSeg_capOf {τ : ℕ} {inst out : List E} {s t : Fs} {xs : List E}
     (h : RunsTo (keccakSeg τ inst out) s xs km t) (hc : ∃ sp, s.Carries sp) :
     ∃ K, t = ⟨capOf K, []⟩ := by
   unfold keccakSeg at h
-  simp only [Prog.bind_eq] at h
+  simp only [VerifierProgram.bind_eq] at h
   obtain ⟨r, xs1, xs2, t1, -, h1, h2⟩ := Tables.RunsTo.unbind h hc
   have c1 := Tables.RunsTo.carries h1 hc
   obtain ⟨m, ys1, ys2, u1, hy, q1, q2⟩ := Tables.RunsTo.unbind h2 c1

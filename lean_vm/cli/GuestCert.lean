@@ -35,9 +35,9 @@ open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Exec LeanVM.Guest.Check
 
 namespace GuestCert
 
-instance : Inhabited OInstr := ⟨.pad⟩
+instance : Inhabited OffsetInstruction := ⟨.padding⟩
 instance : Inhabited Exec.Atom := ⟨.nz 0⟩
-instance : Inhabited CompiledFn := ⟨⟨"", 0, 0, []⟩⟩
+instance : Inhabited CompiledFunction := ⟨⟨"", 0, 0, []⟩⟩
 
 def dataDir : System.FilePath := "LeanVM/Guest/Data"
 
@@ -107,7 +107,7 @@ def learn (e : Env) (o : ℕ) (v : Sym) : Env := if e.contains o then e else e.i
 structure GSt where
   env : Env
   mem : List (ℕ × ℕ × Sym)
-  prev : List (ℕ × OInstr)
+  prev : List (ℕ × OffsetInstruction)
 
 structure GCur where
   start : ℕ
@@ -116,9 +116,9 @@ structure GCur where
   st : GSt
 
 /-- `Exec.exec` with hash maps, over offsets `a` to `b`, starting with `env0`. -/
-def execG (F : GFacts) (f : CompiledFn) (a b : ℕ) (env0 : Env) : Array GSeg := Id.run do
+def execG (F : GFacts) (f : CompiledFunction) (a b : ℕ) (env0 : Env) : Array GSeg := Id.run do
   let code := f.code.toArray
-  let E := f.entry
+  let E := f.entryPc
   let n := code.size
   let selff : Tgt → Bool := fun t => t == .fpg 0 || (t == .gp 0 && F.fpOne)
   let mut cur : Option GCur := some ⟨a, env0, #[], ⟨env0, [], []⟩⟩
@@ -232,13 +232,13 @@ def execG (F : GFacts) (f : CompiledFn) (a b : ℕ) (env0 : Env) : Array GSeg :=
 /-! ## The program's tables -/
 
 /-- Immediate bits of `SET`s that are powers of `g`, each function's. -/
-def setPows (f : CompiledFn) : List (ℕ × ℕ) :=
+def setPows (f : CompiledFunction) : List (ℕ × ℕ) :=
   f.code.filterMap fun
     | .set _ k0 0 0 => if k0 == 0 || k0 == 1 then none else (logTable.get? k0).map (k0, ·)
     | _ => none
 
 /-- The jump table: slot to target pc, from `__jump_tables`. -/
-def jumpTable (f0 : CompiledFn) : Std.HashMap ℕ ℕ :=
+def jumpTable (f0 : CompiledFunction) : Std.HashMap ℕ ℕ :=
   f0.code.foldl (fun m ins => match ins with
     | .set s k0 0 0 => match logTable.get? k0 with
       | some e => m.insert s e
@@ -247,7 +247,7 @@ def jumpTable (f0 : CompiledFn) : Std.HashMap ℕ ℕ :=
 
 /-- The table bases of every table jump `DEREF *(fp[x]·g^t) = fp[c]; JUMP .., fp[c], ..`, and the
 size of each table region, up to the next base. -/
-def tableRegions (fns : List CompiledFn) (jtEnd : ℕ) : Std.HashMap ℕ ℕ := Id.run do
+def tableRegions (fns : List CompiledFunction) (jtEnd : ℕ) : Std.HashMap ℕ ℕ := Id.run do
   let mut bases : Array ℕ := #[]
   for f in fns do
     let c := f.code.toArray
@@ -263,7 +263,7 @@ def tableRegions (fns : List CompiledFn) (jtEnd : ℕ) : Std.HashMap ℕ ℕ := 
 
 /-- The self frame pointer cell of each loop, by entry pc: a callee frame `fp[q]` storing itself
 at `fp[q]·g^o` before the jump into it. -/
-def selfCells (fns : List CompiledFn) : Std.HashMap ℕ ℕ := Id.run do
+def selfCells (fns : List CompiledFunction) : Std.HashMap ℕ ℕ := Id.run do
   let mut m : Std.HashMap ℕ ℕ := {}
   for f in fns do
     let c := f.code.toArray
@@ -610,14 +610,14 @@ partial def block (ss : List Core.Stmt) (p : Pos) (facts : Array Exec.Atom) (top
 end
 
 /-- The cells of a function's values, by number, `0` for a value on no path. -/
-def inferLocs (segs : Array GSeg) (f : CompiledFn) (cf : Core.Fn) (main : Bool) :
+def inferLocs (segs : Array GSeg) (f : CompiledFunction) (cf : Core.Fn) (main : Bool) :
     Except String (List ℕ × ℕ × Array (ℕ × Pos × ℕ × Option (ℕ × ℕ × ℕ)) × Array Exec.Atom ×
       Array (ℕ × ℕ)) := do
   let segMap := segs.foldl (fun m s => m.insert s.start s) ({} : Std.HashMap ℕ GSeg)
   let setCells := f.code.foldl (fun m ins => match ins with
     | .set o k0 k1 k2 => m.insert (k0, k1, k2) (o :: (m.get? (k0, k1, k2)).getD [])
     | _ => m) ({} : Std.HashMap (ℕ × ℕ × ℕ) (List ℕ))
-  let ctx : WCtx := ⟨segMap, setCells, f.entry, cf.params.length, main⟩
+  let ctx : WCtx := ⟨segMap, setCells, f.entryPc, cf.params.length, main⟩
   let loc0 : Loc := (cf.params.zipIdx.map fun (v, i) => (vi v, 2 + i)).foldl
     (fun m (v, c) => m.insert v c) {}
   let init : WSt := { loc := loc0 }
@@ -690,7 +690,7 @@ structure Tables where
   regions : Std.HashMap ℕ ℕ
   self : Std.HashMap ℕ ℕ
 
-def tables (fns : List CompiledFn) : Tables :=
+def tables (fns : List CompiledFunction) : Tables :=
   let f0 := fns.head!
   let jt := jumpTable f0
   let jtEnd := (jt.fold (fun m s _ => max m s) 0) + 1
@@ -698,10 +698,10 @@ def tables (fns : List CompiledFn) : Tables :=
   ⟨pows, jt, tableRegions fns jtEnd, selfCells fns⟩
 
 /-- The executor's facts of a function. -/
-def factsOf (T : Tables) (f : CompiledFn) (main : Bool) : GFacts := Id.run do
+def factsOf (T : Tables) (f : CompiledFunction) (main : Bool) : GFacts := Id.run do
   let c := f.code.toArray
   let n := c.size
-  let env := match T.self.get? f.entry with
+  let env := match T.self.get? f.entryPc with
     | some o => [(o, Sym.fpg 0)]
     | none => []
   let mut arms : Std.HashMap ℕ (List ℕ) := {}
@@ -711,8 +711,8 @@ def factsOf (T : Tables) (f : CompiledFn) (main : Bool) : GFacts := Id.run do
       if o3 == od then
         let size := (T.regions.get? t).getD 0
         let tg := (List.range size).map fun s => (T.jt.get? (t + s)).getD 0
-        if tg.all fun x => f.entry < x && x < f.entry + n then
-          arms := arms.insert i (tg.map (· - f.entry))
+        if tg.all fun x => f.entryPc < x && x < f.entryPc + n then
+          arms := arms.insert i (tg.map (· - f.entryPc))
     | _, _ => pure ()
   return ⟨T.pows, env, main, arms⟩
 
@@ -808,7 +808,7 @@ def modeText : LeanVM.Semantics.DerefMode → String
   | .fp => ".fp"
   | .pc => ".pc"
 
-def instrText : OInstr → String
+def instrText : OffsetInstruction → String
   | .xor a b c => s!"(.xor {a} {b} {c})"
   | .mul a b c => s!"(.mul {a} {b} {c})"
   | .set o k0 k1 k2 => s!"(.set {o} {k0} {k1} {k2})"
@@ -909,7 +909,7 @@ partial def laterNeeds (cellOf : Core.V → ℕ) : List Core.Stmt → List ℕ �
 /-- The windows of a function: a cut before each statement in `forced` (with the memory bounds
 and semantic pairs it starts knowing), and, in a function longer than `maxWin` and a half (`coarse`:
 three times `maxWin`), wherever the next window would grow past it. -/
-def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs : List ℕ)
+def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) (locs : List ℕ)
     (marks : Array (ℕ × Pos × ℕ × Option (ℕ × ℕ × ℕ))) (spine : Array Exec.Atom)
     (uses : Array (ℕ × ℕ)) (segMap : Std.HashMap ℕ GSeg)
     (pre : List (ℕ × ℕ)) (forced : List (ℕ × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ))) :
@@ -922,15 +922,15 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs 
     | .set o k0 k1 k2 => if m.contains (o, k0, k1, k2) then m else m.insert (o, k0, k1, k2) i
     | _ => m) {}
   let constAt : Array ℕ := (cf.body.toArray.map fun
-    | .atom (.const v x) => let (k0, k1, k2) := limbsOfE x; (setAt.get? (cellOf v, k0, k1, k2)).getD f.len
+    | .atom (.const v x) => let (k0, k1, k2) := limbsOfE x; (setAt.get? (cellOf v, k0, k1, k2)).getD f.instructionCount
     | _ => 0)
   let constMax : Array ℕ := constAt.foldl (fun acc o => acc.push (max o (acc.back?.getD 0))) #[0]
-  let cands := marks.filterMap fun m => (cutAtMark segMap f.entry m).bind fun c =>
+  let cands := marks.filterMap fun m => (cutAtMark segMap f.entryPc m).bind fun c =>
     if constMax.getD m.1 0 < c.1 then some (m.1, c) else none
   for (i, _, _) in forced do
     unless cands.any (·.1 == i) do throw s!"{f.name}: no window can start at statement {i}"
   let mw := maxWin coarse f.name
-  let big := if coarse then f.len > 3 * mw else f.len > mw + mw / 2
+  let big := if coarse then f.instructionCount > 3 * mw else f.instructionCount > mw + mw / 2
   let mut a := 0
   let mut env : List (ℕ × Sym) := F.env
   let mut known : List (ℕ × ℕ × ℕ) := []
@@ -942,13 +942,13 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs 
   for k in [0:cands.size] do
     let (idx, J, b, extra) := cands[k]!
     let force := forced.find? (·.1 == idx)
-    let nextJ := if k + 1 < cands.size then cands[k + 1]!.2.1 else f.len
+    let nextJ := if k + 1 < cands.size then cands[k + 1]!.2.1 else f.instructionCount
     -- a `match` of many arms is a window of its own, which `Check.checkWinS` splits by arms
     let isBig (i : ℕ) : Bool := match cf.body[i]? with
       | some (.match_ _ arms) => arms.length > 4 * armGroup f.name
       | _ => false
     let bigCut := isBig idx || (idx > 0 && isBig (idx - 1))
-    unless force.isSome || bigCut || (big && nextJ - a > mw && J ≥ a + mw / 4 && f.len - J > mw / 4) do continue
+    unless force.isSome || bigCut || (big && nextJ - a > mw && J ≥ a + mw / 4 && f.instructionCount - J > mw / 4) do continue
     if J ≤ a then
       if bigCut && force.isNone then continue
       throw s!"{f.name}: cut {idx} at {J} not after {a}"
@@ -998,7 +998,7 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs 
   return out.toList
 
 /-- The largest frame cell an instruction names. -/
-def offTop : OInstr → ℕ
+def offTop : OffsetInstruction → ℕ
   | .xor a b c | .mul a b c | .jump a b c => max a (max b c)
   | .set o _ _ _ => o
   | .deref o1 _ o3 _ => max o1 o3
@@ -1023,13 +1023,13 @@ def certMark : String := "--@cert\n"
 def locChunk : ℕ := 2000
 
 /-- The certificate of function `j`, its windows `coarse` or not (`planCuts`). -/
-def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFn) (index : Std.HashMap String ℕ) (j : ℕ)
+def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : Std.HashMap String ℕ) (j : ℕ)
     (cf : Core.Fn) : Except String (String × List ℕ × ℕ × List ℕ × Array GSeg ×
       (Array ℕ × Array ℕ × Array ℕ × Array (List (ℕ × ℕ × ℕ))) × List (ℕ × List (ℕ × Sym) × ℕ)) := do
   let f := fns[j]!
   let main := j == 1
   let F := factsOf T f main
-  let segs := execG F f 0 f.len (F.env.foldl (fun m (o, s) => m.insert o s) {})
+  let segs := execG F f 0 f.instructionCount (F.env.foldl (fun m (o, s) => m.insert o s) {})
   let (locs, nr, marks, spine, uses) ← (inferLocs segs f cf main).mapError (s!"{f.name}: " ++ ·)
   let callees := ((calleesOf cf.body).filterMap index.get?).eraseDups.mergeSort
   let (pre, post, mem, _) := bounds f.name
@@ -1090,13 +1090,13 @@ def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFn) (index : Std.Ha
     cellT := cellT.push (if chunks.isEmpty then "[]" else s!"cert{j}_w{w}_0")
   let insT := listText (insW.toList.map fun l => listText (l.map fun (v, c, h) => s!"({v}, {c}, {h})"))
   let starts := 0 :: cuts.map (·.J)
-  let stops := cuts.map (·.b) ++ [f.len]
+  let stops := cuts.map (·.b) ++ [f.instructionCount]
   let sizes := (starts.zip stops).map fun (a, b) => b - a
   -- the frame size: a loop helper's is where its tail call puts the next frame, any other's past
   -- every frame cell its code names
   let tailS : Option ℕ := segs.toList.findSome? fun s =>
     let tail (x : GExit) : Option ℕ := match x.kind with
-      | .jump (.gp e) (.fpg S) => if e == f.entry then some S else none
+      | .jump (.gp e) (.fpg S) => if e == f.entryPc then some S else none
       | _ => none
     (tail s.exit).orElse fun _ => s.items.toList.findSome? fun
       | .branch _ _ _ x => tail x
@@ -1229,7 +1229,7 @@ structure St where
   frames : Std.HashMap ℕ (List (ℕ × FC)) := {}
   targets : Std.HashMap ℕ (ℕ × ℕ) := {}
   next : List (ℕ × FC) := []
-  passed : Array OInstr := #[]
+  passed : Array OffsetInstruction := #[]
   /-- The instructions passed on this path, per opcode. -/
   cnt : List ℕ := [0, 0, 0, 0, 0, 0]
   /-- The callee frame pointer and dispatch target cells set up on this path, a bit set. -/
@@ -1256,7 +1256,7 @@ structure Out where
 abbrev M := ReaderT Ctx (StateT Out (Except String))
 
 /-- The opcode index of an instruction (`Opcode`'s constructor order). -/
-def opIdx : OInstr → ℕ
+def opIdx : OffsetInstruction → ℕ
   | .xor .. => 0
   | .mul .. => 1
   | .set .. => 2
@@ -1401,7 +1401,7 @@ def sameW (c : Ctx) (st : St) (a b : ℕ) : Bool :=
         (cd == a && cs == b) || (cd == b && cs == a)
     | _ => false
 
-def justify (c : Ctx) (st : St) (pc : ℕ) (ins : OInstr) : Bool :=
+def justify (c : Ctx) (st : St) (pc : ℕ) (ins : OffsetInstruction) : Bool :=
   let cell := c.cell
   match ins with
   | .set o k0 k1 k2 => contentK c st o == some (k0, k1, k2)
@@ -1752,7 +1752,7 @@ end
 end Cpl
 
 /-- Static plumbing of a function: its non-value cells' contents. -/
-def plumbOf (f : CompiledFn) (F : GFacts) (vcells : Std.HashSet ℕ) (pows : Std.HashMap ℕ ℕ)
+def plumbOf (f : CompiledFunction) (F : GFacts) (vcells : Std.HashSet ℕ) (pows : Std.HashMap ℕ ℕ)
     (constCell : ℕ → (ℕ × ℕ × ℕ) → Bool) :
     Std.HashMap ℕ Cpl.PC × List String := Id.run do
   let code := f.code.toArray
@@ -2079,7 +2079,7 @@ def armedFns : List String := ["verify_lean_xmss"]
 
 /-- The completeness data of function `j`: the fixed cells, call sites, table jumps, temporaries
 and runs, as a `B2C.Plumb` literal; fails if the completeness walk does. -/
-def plumbOfFn (T : Tables) (fns : Array CompiledFn) (selfByEntry : Std.HashMap ℕ (List ℕ))
+def plumbOfFn (T : Tables) (fns : Array CompiledFunction) (selfByEntry : Std.HashMap ℕ (List ℕ))
     (expTable : Std.HashMap ℕ ℕ) (j : ℕ) (cf : Core.Fn) (locs : List ℕ) (segs : Array GSeg)
     (fsz : ℕ) : Except String (String × List (ℕ × Cpl.PC) × List ℕ × List (ℕ × ℕ) × List (ℕ × ℕ) ×
       Array (ℕ × Pos × List ℕ × ℕ × ℕ) × (ℕ → List Core.Stmt → GSeg → ℕ → ℕ) ×
@@ -2105,7 +2105,7 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFn) (selfByEntry : Std.HashMap �
   let plumb := plumb.filter fun o _ => o < fsz
   let segMap := segs.foldl (fun m s => m.insert s.start s) ({} : Std.HashMap ℕ GSeg)
   let cell (v : ℕ) : ℕ := locA.getD v 0
-  let ctx : Cpl.Ctx := ⟨f.name, cell, vcells, plumb, T.pows, segMap, f.entry, cf.params.length,
+  let ctx : Cpl.Ctx := ⟨f.name, cell, vcells, plumb, T.pows, segMap, f.entryPc, cf.params.length,
     j == 1, fun e => selfByEntry.getD e [], fsz, fun r => expTable.getD r 0,
     if armedFns.contains f.name then (cf.body.filterMap fun
       | .match_ v _ => some v.idx
@@ -2766,7 +2766,7 @@ def insAt (m : ℕ × Pos × List ℕ × ℕ × ℕ) : ℕ := m.2.2.1.foldl (· 
 
 /-- **The parts of function `j`'s windows** (`starts` their first statements, `offs` their code
 offsets, `sizes` their instructions), from the completeness walk's marks. -/
-def partsOf (j : ℕ) (f : CompiledFn) (F : GFacts) (cf : Core.Fn) (segs : Array GSeg) (starts : Array ℕ)
+def partsOf (j : ℕ) (f : CompiledFunction) (F : GFacts) (cf : Core.Fn) (segs : Array GSeg) (starts : Array ℕ)
     (wins0 : List (ℕ × List (ℕ × Sym) × ℕ)) (sizes : List ℕ) (marks : Array (ℕ × Pos × List ℕ × ℕ × ℕ))
     (stopAt : ℕ → List Core.Stmt → GSeg → ℕ → ℕ) : FnParts := Id.run do
   let segMap := segs.foldl (fun m s => m.insert s.start s) ({} : Std.HashMap ℕ GSeg)
@@ -2782,7 +2782,7 @@ def partsOf (j : ℕ) (f : CompiledFn) (F : GFacts) (cf : Core.Fn) (segs : Array
     let b := if w + 1 < nw then starts[w + 1]! else body.size
     let (c0, u0) := if w == 0 then (zero, 0) else
       match marks[a]? with
-      | some m => atOffset segMap f.entry (offs.getD w 0) m
+      | some m => atOffset segMap f.entryPc (offs.getD w 0) m
       | none => (zero, 0)
     let cost (s e : ℕ) : ℕ :=
       let ins (t : ℕ) : ℕ := (marks[t]?.map insAt).getD (insAt (marks.back?.getD (0, (0, 0), zero, 0, 0)))
@@ -2840,7 +2840,7 @@ def partsOf (j : ℕ) (f : CompiledFn) (F : GFacts) (cf : Core.Fn) (segs : Array
           | none => (J, cS, uS)
         if pc > partCost && 2 * len ≥ se - sa then
           -- the window's own segments, as the kernel's walk has them
-          let (J0, env0, e0) := wins0.getD w (0, [], f.len)
+          let (J0, env0, e0) := wins0.getD w (0, [], f.instructionCount)
           let segW := execG F f J0 e0 (env0.foldl (fun m (o, s) => m.insert o s) {})
           if let some s0 := segW.find? (·.start == sg) then
             let nm := (pc + partCost - 1) / partCost
@@ -3009,7 +3009,7 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
   let mut wins : Array (ℕ × ℕ × ℕ) := #[]
   let mut frames : Array ℕ := #[0]
   let selfByEntry : Std.HashMap ℕ (List ℕ) := (fns.toList.drop 1).foldl (fun m f =>
-    m.insert f.entry ((factsOf T f false).env.map (·.1))) {}
+    m.insert f.entryPc ((factsOf T f false).env.map (·.1))) {}
   let expTable : Std.HashMap ℕ ℕ := logTable.fold (fun m k e => m.insert e k) {}
   let mut shareWins : Array (ℕ × ℕ × ℕ) := #[]
   let mut shareStatics : Array (ℕ × ℕ) := #[]

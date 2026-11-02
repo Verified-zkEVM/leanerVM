@@ -75,7 +75,8 @@ def Log2CompleteAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
     Prop :=
   ∀ (N lpE sqE : ℕ), N < 2 ^ 34 → max fl (log2Ceil N) < 34 →
     CompleteAtD fs cert κ name (expTablesL lpE sqE)
-      [gen ^ N, ofK (gpow lpE), ofK (gpow sqE)] (Returns [gen ^ max fl (log2Ceil N)])
+      [gen ^ N, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE)] (Returns [gen ^ max fl
+          (log2Ceil N)])
 
 /-- **`verify_keccak`, placed**: from a carried canonical capacity `f`, on the transcript words `xs`
 at the cursor, the table sumcheck's point `chis` (at least `τ` of them) at `chi`, the output lanes'
@@ -92,15 +93,17 @@ def VkCompleteAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) 
     CompleteAtD fs cert κ "verify_keccak"
       [(curE, xs), (chiE, chis), (olE, outs), (zvE, op), (zvE + qkeccakVarsCap, point),
         (slE, slices)]
-      (f ++ [ofK (gpow curE), gen ^ τ, ofK (gpow chiE), ofK (gpow olE), ofK (gpow zvE),
-        ofK (gpow slE)])
-      (Returns (cap' ++ [ofK (gpow curE) * gen ^ xs.length, word, m0]))
+      (f ++ [ofK (addressOfIndex curE), gen ^ τ, ofK (addressOfIndex chiE), ofK (addressOfIndex
+          olE), ofK (addressOfIndex zvE),
+        ofK (addressOfIndex slE)])
+      (Returns (cap' ++ [ofK (addressOfIndex curE) * gen ^ xs.length, word, m0]))
 
 /-- **`ring_switch_target`, placed** (as fork B1-d-c3's `rst_completeAt` states it). -/
 def RstCompleteAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) : Prop :=
   ∀ (bs bm : ℕ) (s chs : List E), s.length = 64 → chs.length = 6 →
     CompleteAtD fs cert κ "ring_switch_target" [(bs, s), (bm, chs)]
-      [ofK (gpow bs), ofK (gpow bm)] (Returns [polyEval (s.map (phiMap · chs)) gen])
+      [ofK (addressOfIndex bs), ofK (addressOfIndex bm)] (Returns [polyEval (s.map
+          (phiMap · chs)) gen])
 
 end
 end LeanVM.Guest.B1.VerifySub

@@ -38,7 +38,7 @@ namespace LeanVM.Protocol.EndToEnd.Sound
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.Whir LeanVM.Protocol.EndToEnd.Front
-open LeanVM.Protocol.EndToEnd.Complete (publicDigest)
+open LeanVM.Protocol.EndToEnd.Complete (publicInputDigest)
 open LeanVM.Protocol.KeccakHash LeanVM.Protocol.Rom
 open OracleComp OracleSpec
 
@@ -47,7 +47,7 @@ open OracleComp OracleSpec
 /- The enumerations of `Digest` and `KState` must never be unfolded by unification. -/
 attribute [local irreducible] instFintypeDigest instFintypeKState
 
-variable {prog : Program} {input : PublicInput}
+variable {prog : LeanIsaProgram} {input : PublicInput}
 
 /-- **The hash inputs of a log cover its hash answers.** -/
 theorem keysCover_lookH (ℓ : Log) : Extraction.MerkleProofs.KeysCover (lookH ℓ) (hIns ℓ) := by
@@ -67,8 +67,8 @@ candidate is a candidate of the word the root commits to, whose word is the hist
 (`ExtractProofs.extract_of_candidate`). -/
 theorem extractor_of_extracted {X : Type} (σ : Seeds X) {ℓ : Log} {k : ℕ} {π : Proof}
     (hf : ¬ Fail σ ℓ)
-    (hv : Rom.verify (lookH ℓ) (lookF ℓ) (leanVmSeed (bytecodeWords prog) (publicDigest input))
-      (leanVmProgram (bytecodeWords prog) (publicDigest input)) π = some true)
+    (hv : Rom.verify (lookH ℓ) (lookF ℓ) (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π = some true)
     (hroot : ∀ r, announcedRoot prog π = some r → ∀ x, .inl (x, r) ∉ ℓ.drop k)
     (hx : Extracted prog input (cacheOf ℓ) π) :
     ∃ t, LeanVM.extractor prog input (cacheOf (ℓ.take k)) π = some t ∧

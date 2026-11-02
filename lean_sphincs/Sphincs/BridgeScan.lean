@@ -18,11 +18,11 @@ set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 /-- The successor of a randomizer. -/
-def nextRand : Equiv.Perm Randomness := Equiv.addRight 1
+def nextRand : Equiv.Perm Randomizer := Equiv.addRight 1
 
-theorem nextRand_apply (ρ : Randomness) : nextRand ρ = ρ + 1 := rfl
+theorem nextRand_apply (ρ : Randomizer) : nextRand ρ = ρ + 1 := rfl
 
-theorem nextRand_pow (j : ℕ) (ρ : Randomness) : (nextRand ^ j) ρ = ρ + (j : Randomness) := by
+theorem nextRand_pow (j : ℕ) (ρ : Randomizer) : (nextRand ^ j) ρ = ρ + (j : Randomizer) := by
   induction j with
   | zero => simp
   | succ j ih =>
@@ -31,10 +31,10 @@ theorem nextRand_pow (j : ℕ) (ρ : Randomness) : (nextRand ^ j) ρ = ρ + (j :
       ring
 
 /-- The scan does not return to a randomizer within `2^128` steps. -/
-theorem nextRand_pow_ne (ρ : Randomness) (j : ℕ) (h0 : 0 < j) (hj : j < 2 ^ 128) : (nextRand ^ j) ρ ≠ ρ := by
+theorem nextRand_pow_ne (ρ : Randomizer) (j : ℕ) (h0 : 0 < j) (hj : j < 2 ^ 128) : (nextRand ^ j) ρ ≠ ρ := by
   rw [nextRand_pow]
   intro h
-  have h1 : (j : Randomness) = 0 := add_left_cancel (a := ρ) (h.trans (add_zero ρ).symm)
+  have h1 : (j : Randomizer) = 0 := add_left_cancel (a := ρ) (h.trans (add_zero ρ).symm)
   have h2 := congrArg BitVec.toNat h1
   rw [BitVec.natCast_eq_ofNat, BitVec.toNat_ofNat] at h2
   have h3 : j % 2 ^ digestBits = j := Nat.mod_eq_of_lt (by simpa [digestBits] using hj)
@@ -45,7 +45,7 @@ theorem nextRand_pow_ne (ρ : Randomness) (j : ℕ) (h0 : 0 < j) (hj : j < 2 ^ 1
 variable [Params]
 
 theorem signCostSourceLoop_succ (parameter : PublicParameter) (data : PublicData) (message : Message)
-    (attempts : ℕ) (randomness : Randomness) :
+    (attempts : ℕ) (randomness : Randomizer) :
     signCostSourceLoop parameter data message (attempts + 1) randomness =
       liftM (CostSpec.query (.inl (.inr (.inl
         (Security.digestInput parameter message randomness))))) >>= fun first =>
@@ -61,15 +61,15 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
   (parameter : PublicParameter) (data : PublicData) (message : Message)
 
 /-- The status of the randomizers of the message in a state. -/
-noncomputable def stOf (s : DebtState HashInput HashOutput Coordinate) (ρ : Randomness) : St :=
+noncomputable def stOf (s : DebtState HashInput HashOutput Coordinate) (ρ : Randomizer) : St :=
   (s.cache (blk parameter data message ρ)).elim .fresh fun u0 =>
     if Landed parameter (blockIndex u0) then .hit else .miss
 
 /-- **One trial of the scan**, with any continuation. -/
 theorem trial_boundS
     (hparse : ∀ ρ, model.parse (blk parameter data message ρ) = none)
-    (reference : DebtState HashInput HashOutput Coordinate) (ρ : Randomness)
-    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomness → Lifetime.KeptDigestView → ℝ≥0∞)
+    (reference : DebtState HashInput HashOutput Coordinate) (ρ : Randomizer)
+    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomizer → Lifetime.KeptDigestView → ℝ≥0∞)
     (W : Option (Option Signature) → DebtState HashInput HashOutput Coordinate → ℝ≥0∞)
     (hWabort : ∀ s', W none s' = 0)
     (hWfin : ∀ (s' : DebtState HashInput HashOutput Coordinate) (u0 : HashOutput) (b : ℕ),
@@ -154,12 +154,12 @@ average. The state may differ from the reference by rejected blocks behind the s
 theorem scan_boundW
     (hparse : ∀ ρ, model.parse (blk parameter data message ρ) = none)
     (reference : DebtState HashInput HashOutput Coordinate)
-    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomness → Lifetime.KeptDigestView → ℝ≥0∞)
+    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomizer → Lifetime.KeptDigestView → ℝ≥0∞)
     (W : Option (Option Signature) → DebtState HashInput HashOutput Coordinate → ℝ≥0∞)
     (hWabort : ∀ s', W none s' = 0)
     (hWnone : ∀ s' : DebtState HashInput HashOutput Coordinate, Related parameter data message reference s' →
       W (some none) s' = 0)
-    (hWfin : ∀ (ρ : Randomness) (s' : DebtState HashInput HashOutput Coordinate) (u0 : HashOutput) (b : ℕ),
+    (hWfin : ∀ (ρ : Randomizer) (s' : DebtState HashInput HashOutput Coordinate) (u0 : HashOutput) (b : ℕ),
       RelatedOff parameter data message reference s' ρ → s'.cache (blk parameter data message ρ) = some u0 →
       ∀ out ∈ support (interp tg initial model (finishCostSource parameter data message ρ) b s'),
         W out.1.1 out.2 ≤ (if out.1.1.isSome then (out.2.cache (blk parameter data message ρ)).elim 0
@@ -244,7 +244,7 @@ theorem scan_post (hparse : ∀ ρ, model.parse (blk parameter data message ρ) 
     (hfail : ∀ ρ digest budget (s1 : DebtState HashInput HashOutput Coordinate), Prepared initial s1 →
       ∀ out ∈ support (interp tg initial model (finishRest parameter data message ρ digest) budget s1),
         out.1.1 = some none → (Lifetime.localDigestView digest).1 ∈ Fail) :
-    ∀ attempts budget (s : DebtState HashInput HashOutput Coordinate) (ρ : Randomness), Prepared initial s →
+    ∀ attempts budget (s : DebtState HashInput HashOutput Coordinate) (ρ : Randomizer), Prepared initial s →
       ∀ out ∈ support (interp tg initial model (signCostSourceLoop parameter data message attempts ρ) budget s),
         ∀ r, out.1.1 = some r → SignPost parameter data message Fail s out.2 out.1.2.1 r := by
   intro attempts

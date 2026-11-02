@@ -69,10 +69,10 @@ theorem vtPad5_check :
     tbStmtsEqb (vtPad5T 2710) ((vtPre.drop 2245).take (vtPad5T 2710).length) = true := by
   simp only [vtPre_drop]; decide +kernel
 
-theorem vtW28_eq : vtW28 = ofK (Parameters.gpow 28) := by
+theorem vtW28_eq : vtW28 = ofK (Parameters.addressOfIndex 28) := by
   rw [vtW28, tb_word_eOfNat]
-  show ofK (K.ofBits 268435456) = ofK (Parameters.gpow 28)
-  rw [show K.ofBits 268435456 = Parameters.gpow 28 by decide +kernel]
+  show ofK (K.ofBits 268435456) = ofK (Parameters.addressOfIndex 28)
+  rw [show K.ofBits 268435456 = Parameters.addressOfIndex 28 by decide +kernel]
 
 /-- Table `t`'s padding weight's value. -/
 def vtPadV (t : ℕ) : ℕ := 2646 + 14 * t
@@ -87,7 +87,7 @@ def VtPadOk (rd : Reader) (σ : Val) (t : ℕ) : Prop :=
 /-- The dispatch on `τ_g = g^τ` runs arm `τ`. -/
 theorem vt_pad_arm {rd : Reader} {σ : Val} {v : ℕ} {τ : ℕ} (hτ : τ < 29) (hv : σ (.n v) = gen ^ τ)
     {args rets : List V}
-    (hd : ∃ (j : ℕ) (h : j < vtPadNames.length), σ (.n v) = ofK (Parameters.gpow j) ∧
+    (hd : ∃ (j : ℕ) (h : j < vtPadNames.length), σ (.n v) = ofK (Parameters.addressOfIndex j) ∧
       coreProgram.Rel rd vtPadNames[j] (args.map σ) (rets.map σ)) :
     PadWeightOut τ rd (args.map σ) (rets.map σ) := by
   obtain ⟨j, hj, hjv, hrel⟩ := hd

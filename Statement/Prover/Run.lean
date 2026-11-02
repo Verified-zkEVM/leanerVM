@@ -64,7 +64,7 @@ variable {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
 
 /-- The leaf digests of the `2^height` rows of a matrix (`hash_words`). -/
 def leafDigestsM (height : ℕ) (word : Word) : m (Array Digest) :=
-  (Array.range (2 ^ height)).mapM fun i ↦ keccak256With F ((word i).flatMap kBytes)
+  (Array.range (2 ^ height)).mapM fun i ↦ keccak256With F ((word i).flatMap K.toBytes)
 
 /-- The first `n` parents of a level: parent `j` hashes nodes `2j` and `2j + 1`
 (`hash_pair`). -/
@@ -165,7 +165,7 @@ so far: the scalars and the openings the proof holds from there on, or `none` if
 search finds no nonce below `fuel`. A rejection, and an opening of a missing commitment, end the
 proof. -/
 def runFrom (fuel : ℕ) {α β : Type} :
-    Prog α → Option (Script β) → Sponge → List Tree → m (Option (List E × List Opening))
+    VerifierProgram α → Option (Script β) → Sponge → List Tree → m (Option (List E × List Opening))
   | .ret _, _, _, _ => pure (some ([], []))
   | .fail, _, _, _ => pure (some ([], []))
   | .read k, S, sp, cs => do
@@ -184,10 +184,10 @@ def runFrom (fuel : ℕ) {α β : Type} :
       pure (t.map fun t ↦ (n :: t.1, t.2))
   | .commit ht _ k, S, sp, cs => do
     let tree ← buildTreeM F ht (Script.wordOf S)
-    let sp0 ← absorb F sp (digestScalars tree.root).1 dsObserve
-    let sp1 ← absorb F sp0 (digestScalars tree.root).2 dsObserve
+    let sp0 ← absorb F sp (digestHalves tree.root).1 dsObserve
+    let sp1 ← absorb F sp0 (digestHalves tree.root).2 dsObserve
     let r ← runFrom fuel k (Script.afterCommit S) sp1 (cs ++ [tree])
-    pure (r.map fun t ↦ ((digestScalars tree.root).1 :: (digestScalars tree.root).2 :: t.1, t.2))
+    pure (r.map fun t ↦ ((digestHalves tree.root).1 :: (digestHalves tree.root).2 :: t.1, t.2))
   | .query i ps k, S, sp, cs => match cs[i]? with
     | none => pure (some ([], []))
     | some tree => do
@@ -197,7 +197,7 @@ def runFrom (fuel : ℕ) {α β : Type} :
 
 /-- **A proof from a script**: the script run against the program from the seed, or `none` if a
 proof-of-work search finds no nonce below `fuel`. -/
-def runScript (P : Prog Bool) {β : Type} (S : Script β) (seed : KeccakState) (fuel : ℕ) :
+def runScript (P : VerifierProgram Bool) {β : Type} (S : Script β) (seed : KeccakState) (fuel : ℕ) :
     m (Option Proof) := do
   let r ← runFrom F fuel P (some S) ⟨seed, []⟩ []
   pure (r.map fun t ↦ (⟨t.1, t.2⟩ : Proof))

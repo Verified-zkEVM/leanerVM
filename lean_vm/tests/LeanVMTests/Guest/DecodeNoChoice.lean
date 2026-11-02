@@ -77,7 +77,7 @@ run_meta do
 #guard_msgs in
 run_meta do
   let reads : List Name := [``LeanVM.Semantics.addressIndex?, ``LeanVM.Semantics.MemoryImage.read,
-    ``LeanVM.Semantics.Program.fetch, ``LeanVM.Guest.Located.frameOf]
+    ``LeanVM.Semantics.LeanIsaProgram.fetch, ``LeanVM.Guest.Located.frameOf]
   let (_, hits) ← traverse ``LeanVM.Guest.End.decode (reads.contains ·)
   logInfo (showHits hits)
 

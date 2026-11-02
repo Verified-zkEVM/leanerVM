@@ -36,11 +36,11 @@ public section
 /-- **The decoder's entry body**: the input's program, the execution's `κ` and its memory's array
 passed to function `j`, whose output is the program's. -/
 @[expose] def decoderEntryBody (j : ℕ) : Term :=
-  .case (.var 0) [.case (.var 1) [.call j [.var 3, .var 0, .var 1]]]
+  .case (.position 0) [.case (.position 1) [.call j [.position 3, .position 0, .position 1]]]
 
 /-- **The entry runs the top** on the input's fields: at `13` more than the call. -/
 theorem runsBody_decoderEntry {P : MachineProgram} {j : ℕ}
-    (hentry : P[0]? = some (decoderEntryBody j)) (prog : Program) (t : Execution prog)
+    (hentry : P[0]? = some (decoderEntryBody j)) (prog : LeanIsaProgram) (t : Execution prog)
     {v : MachineValue} {e : ℕ}
     (h : RunsBody P j [encodeValue prog, encodeValue t.logMemorySize,
       encodeValue (memoryVector t.memory)] v e) :
@@ -49,25 +49,28 @@ theorem runsBody_decoderEntry {P : MachineProgram} {j : ℕ}
   let x := encodeGuestWitnessDecoderInput prog t
   let env1 : List MachineValue := [encodeValue prog, encodeValue t, x]
   let env2 : List MachineValue :=
-    [encodeValue t.logMemorySize, encodeValue t.memory, encodeValue t.steps] ++ env1
-  have hargs : RunsList P env2 [.var 3, .var 0, .var 1]
+    [encodeValue t.logMemorySize, encodeValue t.memory, encodeValue t.stepCount] ++ env1
+  have hargs : RunsList P env2 [.position 3, .position 0, .position 1]
       [encodeValue prog, encodeValue t.logMemorySize, encodeValue t.memory] 3 :=
     RunsList.cons (Runs.var rfl) (RunsList.cons (Runs.var rfl)
       (RunsList.cons (Runs.var rfl) RunsList.nil))
   have hcall := Runs.call hargs h
-  have ht : Runs P env1 (.var 1)
-      (.ctor 0 [encodeValue t.logMemorySize, encodeValue t.memory, encodeValue t.steps]) 1 :=
+  have ht : Runs P env1 (.position 1)
+      (.constructor 0 [encodeValue t.logMemorySize, encodeValue t.memory, encodeValue
+          t.stepCount]) 1 :=
     Runs.var rfl
-  have hinner := Runs.case (alts := [.call j [.var 3, .var 0, .var 1]]) ht rfl hcall
-  have hx : Runs P [x] (.var 0) (.ctor 0 [encodeValue prog, encodeValue t]) 1 := Runs.var rfl
-  have houter := Runs.case (alts := [.case (.var 1) [.call j [.var 3, .var 0, .var 1]]]) hx rfl
+  have hinner := Runs.case (alts := [.call j [.position 3, .position 0, .position 1]]) ht rfl hcall
+  have hx : Runs P [x] (.position 0) (.constructor 0 [encodeValue prog, encodeValue t]) 1 :=
+      Runs.var rfl
+  have houter := Runs.case (alts := [.case (.position 1) [.call j [.position 3, .position 0,
+      .position 1]]]) hx rfl
     hinner
   exact RunsBody.intro hentry (houter.cost_eq (by simp only [List.length_cons, List.length_nil]; omega))
 
 /-- **The program's output is the top's**, within a budget covering the top's price and the
 entry's `13`, of a program within the size bound `s`. -/
 theorem outputWithin_decoderEntry {P : MachineProgram} {j s : ℕ} (hs : MachineProgram.size P ≤ s)
-    (hentry : P[0]? = some (decoderEntryBody j)) (prog : Program) (t : Execution prog)
+    (hentry : P[0]? = some (decoderEntryBody j)) (prog : LeanIsaProgram) (t : Execution prog)
     {v : MachineValue} {e b : ℕ}
     (h : RunsBody P j [encodeValue prog, encodeValue t.logMemorySize,
       encodeValue (memoryVector t.memory)] v e) (hb : e + 13 ≤ b) :

@@ -115,7 +115,7 @@ theorem mem_oqLeafT {s : Oq} {b pr kL k : ℕ} (hk : k < s.B) {a : Atom}
 /-- The packed cells' bytes are the row's words' bytes. -/
 theorem cellsBytes_packed (row : List K) (n : ℕ) (hn : row.length = 2 * n) :
     cellsBytes ((List.range n).map fun j ↦ E.ofLimbs (row.getD (2 * j) 0) (row.getD (2 * j + 1) 0) 0) =
-      row.flatMap kBytes := by
+      row.flatMap K.toBytes := by
   induction n generalizing row with
   | zero => simp_all
   | succ n ih =>
@@ -159,7 +159,7 @@ theorem oqLeaf_sound {s : Oq} (hs : s.RowShape) {b pr kL : ℕ} {row : List K}
     (hpk : ∀ j < s.ncells,
       σ (.n (oqPk b s.R j)) = E.ofLimbs (row.getD (2 * j) 0) (row.getD (2 * j + 1) 0) 0) :
     (σ (.n (oqOut s kL (s.B - 1) 0)), σ (.n (oqOut s kL (s.B - 1) 1))) =
-      digestScalars (merkleLeafDigest row) := by
+      digestHalves (merkleLeafDigest row) := by
   have hL := leafShape_of s hs
   have hn9 : 9 ≤ s.ncells := by have := hL.mid 0 (by have := hL.B2; omega); omega
   set cells := (List.range s.ncells).map fun j ↦ σ (.n (oqPk b s.R j)) with hcells

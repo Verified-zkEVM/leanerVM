@@ -548,7 +548,7 @@ theorem kMsg_sound {pad : Nat} (hp : PadOK σ pad) {cells : List KC} {len : Nat}
     (hz : ∀ j, len ≤ j → (cellsBytes (cells.map (KC.val σ))).getD j 0 = 0) :
     (σ (.n (kMsg pad cells len tailRun out b).2.2),
         σ (.n ((kMsg pad cells len tailRun out b).2.2 + 1))) =
-      digestScalars (keccak256 ((cellsBytes (cells.map (KC.val σ))).take len)) := by
+      digestHalves (keccak256 ((cellsBytes (cells.map (KC.val σ))).take len)) := by
   simp only [kMsg] at h ⊢
   simp only [kMsgCells] at htr
   set B := kBlocksOf len with hB

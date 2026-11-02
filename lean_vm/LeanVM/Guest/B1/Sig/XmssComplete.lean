@@ -49,12 +49,13 @@ theorem cellPairVal_cellOf128 (m : HashSig.Message) :
 /-- **A layer's root exists only when its message digest decodes.** -/
 theorem layerRoot_decode {P : HashSig.PublicParameter} {lay : LeanXmss.Layer} {key : LeanXmss.KeyIndex}
     {M : HashSig.HashInput} {part : LeanXmss.LayerSignature} {r : HashSig.Digest}
-    (h : @LeanXmss.Concrete.layerRootWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part = some r) :
+    (h : @LeanXmss.Verification.layerRootWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part =
+        some r) :
     ∃ enc, LeanXmss.Codeword.decode
-      (@LeanXmss.Concrete.messageDigestWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part.randomness) = some enc := by
+      (@LeanXmss.Verification.messageDigestWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part.randomizer) = some enc := by
   rw [layerRoot_id, otsLeaf_id] at h
   cases hd : LeanXmss.Codeword.decode
-      (@LeanXmss.Concrete.messageDigestWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part.randomness) with
+      (@LeanXmss.Verification.messageDigestWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part.randomizer) with
   | none => rw [hd] at h; simp at h
   | some enc => exact ⟨enc, rfl⟩
 
@@ -64,7 +65,7 @@ def xVals (part : LeanXmss.LayerSignature) (i : Nat) : E :=
 
 /-- A layer's siblings as cells. -/
 def xSibs (part : LeanXmss.LayerSignature) (l : Nat) : E :=
-  if h : l < 16 then cellOf128 (part.path ⟨l, h⟩) else 0
+  if h : l < 16 then cellOf128 (part.authenticationPath ⟨l, h⟩) else 0
 
 theorem xVals_canon (part : LeanXmss.LayerSignature) (i : Nat) : IsCanonical128 (xVals part i) := by
   unfold xVals; split
@@ -79,8 +80,9 @@ theorem xSibs_canon (part : LeanXmss.LayerSignature) (l : Nat) : IsCanonical128 
 /-- **The frame holds the layer's signature** when it holds its randomizer, its digits, its starts
 and its siblings. -/
 theorem xPart_eq {layer b : Nat} {σ : Val} {part : LeanXmss.LayerSignature} {K : Nat → Nat}
-    (hK : ∀ q ≤ 19, K q < 4 ^ cwN 19 q) (hr : σ (xRho layer b) = cellOf128 part.randomness)
-    (hd : ∀ q ≤ 19, σ (.n (cwState (xW layer b) (xA layer b + 6) q).2.2) = ofK (gpow (K q)))
+    (hK : ∀ q ≤ 19, K q < 4 ^ cwN 19 q) (hr : σ (xRho layer b) = cellOf128 part.randomizer)
+    (hd : ∀ q ≤ 19, σ (.n (cwState (xW layer b) (xA layer b + 6) q).2.2) = ofK (addressOfIndex
+        (K q)))
     (hs : ∀ i < 58, σ (cwPos (xW layer b) 19 (xA layer b + 6) K i) = xVals part i)
     (hp : ∀ l < 16, mSib σ (xBitOf layer) l (mBase (xNodeOf layer) 0 l (xLeafK layer b).2.1) = xSibs part l) :
     xPart layer b σ = part := by
@@ -170,7 +172,7 @@ theorem verify_lean_xmss_complete_holds : verify_lean_xmss_complete_Spec := by
   -- the prologue and the bottom layer
   have hA : Completes C rd 34 E0 (xPrologue ++ (xLayer 0 196 (.n 0)).1) σ0
       (fun σ' => IsCanonical128 (σ' R0) ∧ ∀ σ'', AgreeBelow E0 σ' σ'' →
-        σ'' (.n 196) = cellOf128 (sig.layers LeanXmss.bottomLayer).randomness ∧
+        σ'' (.n 196) = cellOf128 (sig.layers LeanXmss.bottomLayer).randomizer ∧
         σ'' (.n 199) = cellOf128 (m.extractLsb' 0 128) ∧ σ'' (.n 200) = cellOf128 (m.extractLsb' 128 128) ∧
         xPart 0 196 σ'' = sig.layers LeanXmss.bottomLayer) := by
     refine Completes.append (m := 196) (by norm_num) (by omega) xPreSeq_nb
@@ -187,20 +189,22 @@ theorem verify_lean_xmss_complete_holds : verify_lean_xmss_complete_Spec := by
       rw [hpre.nodes 0 (by norm_num), hleaf1]; rfl
     -- the digest decodes
     obtain ⟨enc, hdec⟩ := layerRoot_decode h0
-    have hM : HashSig.bytesLE 32 m = [cellOf128 (m.extractLsb' 0 128), cellOf128 (m.extractLsb' 128 128)].flatMap
+    have hM : HashSig.littleEndianBytes 32 m = [cellOf128 (m.extractLsb' 0 128), cellOf128 (m.extractLsb' 128 128)].flatMap
         cellBytes := by
-      calc HashSig.bytesLE 32 m = HashSig.bytesLE 32 (cellPairVal (cellOf128 (m.extractLsb' 0 128))
+      calc HashSig.littleEndianBytes 32 m = HashSig.littleEndianBytes 32 (cellPairVal (cellOf128
+          (m.extractLsb' 0 128))
             (cellOf128 (m.extractLsb' 128 128))) := by rw [cellPairVal_cellOf128]
         _ = _ := by rw [bytesLE_cellPairVal]; simp
     have ha : cellBytes (σ1 (xNode 0) + word (tw 12) 0 0) = LeanXmss.tweakBytes
-        (.message LeanXmss.bottomLayer (LeanXmss.keyAt sig.leafIndex LeanXmss.bottomLayer)) := by
+        (.message LeanXmss.bottomLayer (LeanXmss.keyIndexOnLayer sig.leafIndex
+            LeanXmss.bottomLayer)) := by
       rw [hn0, ← xIdxNat_zero sig.leafIndex.val]
       exact xMsgAdr_bytes hL (by norm_num)
     have hmd := messageDigest_cells xq_keccak (pp := cellOf128 pk.parameter)
-      (rho := cellOf128 (sig.layers LeanXmss.bottomLayer).randomness) ha hM
+      (rho := cellOf128 (sig.layers LeanXmss.bottomLayer).randomizer) ha hM
     rw [show xpp (cellOf128 pk.parameter) = pk.parameter from cellVal_cellOf128 _,
-      show xv (cellOf128 (sig.layers LeanXmss.bottomLayer).randomness) =
-        (sig.layers LeanXmss.bottomLayer).randomness from cellVal_cellOf128 _] at hmd
+      show xv (cellOf128 (sig.layers LeanXmss.bottomLayer).randomizer) =
+        (sig.layers LeanXmss.bottomLayer).randomizer from cellVal_cellOf128 _] at hmd
     rw [hmd] at hdec
     have hl0 := xLayer0_complete (C := C) (rd := rd) hm σ1 hpre (by rw [hP1]; exact isCanonical128_cellOf128 _)
       (isCanonical128_cellOf128 _) (isCanonical128_cellOf128 _) (isCanonical128_cellOf128 _)
@@ -252,17 +256,18 @@ theorem verify_lean_xmss_complete_holds : verify_lean_xmss_complete_Spec := by
     obtain ⟨enc, hdec⟩ := layerRoot_decode h1
     have hn16 : σ2 (xNode 16) = eOfNat (sig.leafIndex.val >>> 16) := by
       rw [hpre2.nodes 16 (by norm_num), hleaf2]
-    have hM : HashSig.bytesLE 16 r0 = [σ2 R0].flatMap cellBytes := by
+    have hM : HashSig.littleEndianBytes 16 r0 = [σ2 R0].flatMap cellBytes := by
       rw [← hr0, bytesLE_xv]; simp
     have ha : cellBytes (σ2 (xNode 16) + word lxTop 0 0 + word (tw 12) 0 0) = LeanXmss.tweakBytes
-        (.message LeanXmss.topLayer (LeanXmss.keyAt sig.leafIndex LeanXmss.topLayer)) := by
+        (.message LeanXmss.topLayer (LeanXmss.keyIndexOnLayer sig.leafIndex
+            LeanXmss.topLayer)) := by
       rw [hn16, xIdxNat_one hL]
       exact xMsgAdr_bytes hL (by norm_num)
     have hmd := messageDigest_cells xq_keccak (pp := cellOf128 pk.parameter)
-      (rho := cellOf128 (sig.layers LeanXmss.topLayer).randomness) ha hM
+      (rho := cellOf128 (sig.layers LeanXmss.topLayer).randomizer) ha hM
     rw [show xpp (cellOf128 pk.parameter) = pk.parameter from cellVal_cellOf128 _,
-      show xv (cellOf128 (sig.layers LeanXmss.topLayer).randomness) =
-        (sig.layers LeanXmss.topLayer).randomness from cellVal_cellOf128 _] at hmd
+      show xv (cellOf128 (sig.layers LeanXmss.topLayer).randomizer) =
+        (sig.layers LeanXmss.topLayer).randomizer from cellVal_cellOf128 _] at hmd
     rw [hmd] at hdec
     have hl1 := xLayer1_complete (C := C) (rd := rd) (b := E0) (root := R0) (by omega) ⟨jR0, hR0, eR0⟩ hm σ2
       hpre2 hpad2 (by rw [hP2]; exact isCanonical128_cellOf128 _) hc2 (isCanonical128_cellOf128 _)

@@ -68,11 +68,11 @@ theorem length_nodeLeaves (r L : ℕ) (syms : ℕ → ℕ → List K) (j : ℕ) 
     (nodeLeaves r L syms j).length = 2 ^ L := by simp [nodeLeaves]
 
 theorem nodeLeaves_getD (r L : ℕ) (syms : ℕ → ℕ → List K) (j : ℕ) {i : ℕ} (hi : i < 2 ^ L) :
-    (nodeLeaves r L syms j).getD i 0 = digestScalars (cellLeaf r syms j i) := by
+    (nodeLeaves r L syms j).getD i 0 = digestHalves (cellLeaf r syms j i) := by
   simp [nodeLeaves, List.getD_eq_getElem?_getD, hi]
 
 theorem canon_scalars_map {α : Type} (f : α → Digest) (l : List α) :
-    AllCanonical (pairCells (l.map fun i => digestScalars (f i))) := by
+    AllCanonical (pairCells (l.map fun i => digestHalves (f i))) := by
   intro c hc
   simp only [pairCells, List.mem_flatMap, List.mem_map] at hc
   obtain ⟨_, ⟨a, -, rfl⟩, hc⟩ := hc
@@ -131,15 +131,15 @@ theorem colm_vec (hwl : ∀ j, (ws j).length = 256) (hj : j < 128) :
 /-- A row's words: its cell check, its running sum's step and its cell's words at the node. -/
 theorem colm_row (hrL : r ≤ 2 ^ L) (hsl : ∀ i j, (syms i j).length = 256)
     (hwl : ∀ j, (ws j).length = 256) (hj : j < 128) : ∀ i < r, (coreProgram.Rel rd "da_verify_cell" [P.lv j]
-      [(digestScalars (cellD syms i j)).1, (digestScalars (cellD syms i j)).2, cellDot syms ws i j]) ∧
+      [(digestHalves (cellD syms i j)).1, (digestHalves (cellD syms i j)).2, cellDot syms ws i j]) ∧
       LoadHolds rd (P.rb * gen ^ i) 0 (P.acc * (gen ^ i) ^ 129) ∧
       LoadHolds rd (P.acc * (gen ^ i) ^ 129 * gen ^ j) 0 (accSum syms ws i j) ∧
       LoadHolds rd (P.acc * (gen ^ i) ^ 129 * gen ^ j) 1
         (accSum syms ws i j + cellDot syms ws i j) ∧
-      LoadHolds rd (P.node j * (gen ^ i * gen ^ i)) 0 (digestScalars (cellD syms i j)).1 ∧
-      LoadHolds rd (P.node j * (gen ^ i * gen ^ i)) 1 (digestScalars (cellD syms i j)).2 := by
+      LoadHolds rd (P.node j * (gen ^ i * gen ^ i)) 0 (digestHalves (cellD syms i j)).1 ∧
+      LoadHolds rd (P.node j * (gen ^ i * gen ^ i)) 1 (digestHalves (cellD syms i j)).2 := by
   have hcellR : ∀ i < r, coreProgram.Rel rd "da_verify_cell" [P.lv j]
-      [(digestScalars (cellD syms i j)).1, (digestScalars (cellD syms i j)).2, cellDot syms ws i j] := by
+      [(digestHalves (cellD syms i j)).1, (digestHalves (cellD syms i j)).2, cellDot syms ws i j] := by
     intro i hi
     have := da_verify_cell_complete rd (P.lv j) (syms i j) (ws j) (by simp [LeanDa.cellSymbols, hsl])
       (by simp [LeanDa.cellSymbols, hwl]) hm.lv
@@ -170,8 +170,8 @@ theorem colm_row (hrL : r ≤ 2 ^ L) (hsl : ∀ i j, (syms i j).length = 256)
 
 /-- A row's prefix words, the first `64` columns. -/
 theorem colm_pre : ∀ i < r, j < 64 → LoadHolds rd (P.pb * gen ^ i) 0 (P.pd * (gen ^ i) ^ 128) ∧
-    LoadHolds rd (P.pd * (gen ^ i) ^ 128 * (gen ^ j * gen ^ j)) 0 (digestScalars (cellD syms i j)).1 ∧
-    LoadHolds rd (P.pd * (gen ^ i) ^ 128 * (gen ^ j * gen ^ j)) 1 (digestScalars (cellD syms i j)).2 := by
+    LoadHolds rd (P.pd * (gen ^ i) ^ 128 * (gen ^ j * gen ^ j)) 0 (digestHalves (cellD syms i j)).1 ∧
+    LoadHolds rd (P.pd * (gen ^ i) ^ 128 * (gen ^ j * gen ^ j)) 1 (digestHalves (cellD syms i j)).2 := by
   intro i hi h64
   have q0 := reads_pair (hm.pcells i hi) (f := fun j => digestCells (cellD syms i j))
     (fun _ => rfl) h64 (k := 0) (by omega)
@@ -183,9 +183,9 @@ theorem colm_pre : ∀ i < r, j < 64 → LoadHolds rd (P.pb * gen ^ i) 0 (P.pd *
 /-- A padding row's words at the node. -/
 theorem colm_gap : ∀ d < 2 ^ L - r,
     LoadHolds rd (P.node j * (gen ^ r * gen ^ r) * (gen ^ d * gen ^ d)) 0
-      (digestScalars daPadCellDigest).1 ∧
+      (digestHalves daPadCellDigest).1 ∧
     LoadHolds rd (P.node j * (gen ^ r * gen ^ r) * (gen ^ d * gen ^ d)) 1
-      (digestScalars daPadCellDigest).2 := by
+      (digestHalves daPadCellDigest).2 := by
   intro d hd
   have hrd : r + d < 2 ^ L := by omega
   obtain ⟨n0, n1⟩ := treeMem_leaf hm.node (length_nodeLeaves r L syms j) hrd
@@ -206,10 +206,10 @@ theorem colm_lev (hL : L ≤ 10) :
 theorem colm_ct (hj : j < 128) :
     LoadHolds rd (P.ct * (gen ^ j * gen ^ j)) 0 (cellRoot L (nodeLeaves r L syms j)).1 ∧
       LoadHolds rd (P.ct * (gen ^ j * gen ^ j)) 1 (cellRoot L (nodeLeaves r L syms j)).2 := by
-  have hroot : cellRoot L (nodeLeaves r L syms j) = digestScalars (mRoot L (cellLeaf r syms j)) := by
+  have hroot : cellRoot L (nodeLeaves r L syms j) = digestHalves (mRoot L (cellLeaf r syms j)) := by
     rw [nodeLeaves]; exact cellRoot_mRoot L _
   have hct := treeMem_leaf hm.ct (by simp [colLeaves]) (i := j) (by norm_num; omega)
-  have hcj : (colLeaves r L syms).getD j 0 = digestScalars (mRoot L (cellLeaf r syms j)) := by
+  have hcj : (colLeaves r L syms).getD j 0 = digestHalves (mRoot L (cellLeaf r syms j)) := by
     simp [colLeaves, List.getD_eq_getElem?_getD, hj]
   rw [hcj, ← hroot, ← gen_sq] at hct
   exact hct

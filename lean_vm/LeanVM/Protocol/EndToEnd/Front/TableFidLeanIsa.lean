@@ -85,7 +85,7 @@ theorem cpsOf_eq (ξ : E) : cpsOf ξ = [1, ξ] := by
 theorem fpsOf_eq (ξ : E) : fpsOf ξ = [ξ ^ 2, ξ ^ 3, ξ ^ 4] := by
   simp [fpsOf, nCons_eq, powers, powersFrom_eq, List.range_succ]
 
-variable (prog : Program) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
+variable (prog : LeanIsaProgram) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
   (input : PublicInput)
 
 /-! ## The rounds and the target -/
@@ -634,25 +634,26 @@ open LeanVM.Protocol.Compile
 variable {εmax : ℝ≥0∞}
 
 /-- `n` challenges are a list of `n`: continuations that agree on such lists give one program. -/
-theorem sampleN_bind_congr {β : Type} : ∀ (n : ℕ) (k k' : List E → Prog β),
-    (∀ as, as.length = n → k as = k' as) → (Prog.sampleChallenges n).bind k = (Prog.sampleChallenges n).bind k'
+theorem sampleN_bind_congr {β : Type} : ∀ (n : ℕ) (k k' : List E → VerifierProgram β),
+    (∀ as, as.length = n → k as = k' as) → (VerifierProgram.sampleChallenges n).bind k = (VerifierProgram.sampleChallenges n).bind k'
   | 0, k, k', h => h [] rfl
   | n + 1, k, k', h => by
-    simp only [Prog.sampleChallenges, Prog.bind_eq, Prog.bind_assoc]
-    exact congrArg (Prog.sampleChallenge.bind ·) (funext fun x ↦
+    simp only [VerifierProgram.sampleChallenges, VerifierProgram.bind_eq,
+        VerifierProgram.bind_assoc]
+    exact congrArg (VerifierProgram.sampleChallenge.bind ·) (funext fun x ↦
       sampleN_bind_congr n _ _ fun as has ↦ h (x :: as) (by simp [has]))
 
 /-- The guard that the fingerprint challenges are four. -/
-def abGuard (ab : List E × E) : Prog (List E × E) :=
-  if ab.1.length = 4 then Prog.ret ab else Prog.fail
+def abGuard (ab : List E × E) : VerifierProgram (List E × E) :=
+  if ab.1.length = 4 then VerifierProgram.ret ab else VerifierProgram.fail
 
 /-- The wire's fingerprint challenges are four: guarding it changes nothing. -/
 theorem abProg_bind_guard : abProg.bind abGuard = abProg := by
   unfold abProg
-  rw [Prog.bind_assoc]
+  rw [VerifierProgram.bind_assoc]
   refine sampleN_bind_congr 4 _ _ fun as has ↦ ?_
-  rw [Prog.bind_assoc]
-  refine congrArg (Prog.sampleChallenge.bind ·) (funext fun b ↦ ?_)
+  rw [VerifierProgram.bind_assoc]
+  refine congrArg (VerifierProgram.sampleChallenge.bind ·) (funext fun b ↦ ?_)
   simp [abGuard, has]
 
 variable (I : M3Instance) (hI : Bus.Conditions I) (cands : Word → Set (∀ i, TheOracle I i))
@@ -671,15 +672,15 @@ noncomputable def abSpec4 {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
   let G : ∀ ab : List E × E, Spec (abGuard ab)
       (fun h ↦ HDoom cands (Bus.afterChallenge I) (input, (toAlpha ab.1, ab.2)) h) P4 εmax 0 0 :=
     fun ab ↦ if h : ab.1.length = 4 then
-      Spec.congr (p := Prog.ret ab) (by simp [abGuard, h])
+      Spec.congr (p := VerifierProgram.ret ab) (by simp [abGuard, h])
         ((Spec.ret (Post := P4) ab).mono (fun _ hp ↦ ⟨h, hp⟩) (fun _ _ hq ↦ hq) le_rfl le_rfl
           le_rfl)
-    else Spec.congr (p := Prog.fail) (by simp [abGuard, h]) Spec.fail
+    else Spec.congr (p := VerifierProgram.fail) (by simp [abGuard, h]) Spec.fail
   Spec.congr abProg_bind_guard ((abSpec I cands input hI hfin hcard hlt (T := 0)).bind' G)
 
 /-- **The bus phase's tail, then a continuation**, `busTailSpec` for continuations specified at
 reads whose fingerprint challenges are four. -/
-noncomputable def busTailSpec4 {β : Type} {k : BusWit → Prog β} {Q : β → List Ev → Prop}
+noncomputable def busTailSpec4 {β : Type} {k : BusWit → VerifierProgram β} {Q : β → List Ev → Prop}
     {Lk T : ℝ≥0∞} (hLk : Lk ≤ εmax)
     (K : ∀ w : BusWit, w.alphas.length = 4 → Spec (k w) (BusAt I hI cands input w) Q εmax Lk T)
     (alphas : List E) (halpha : alphas.length = 4) (beta : E) (r : E × List E × List E) :
@@ -704,7 +705,8 @@ noncomputable def busTailSpec4 {β : Type} {k : BusWit → Prog β} {Q : β → 
 
 /-- **The bus phase, then a continuation**, `busThenSpec` for continuations specified at reads
 whose fingerprint challenges are four. -/
-noncomputable def busThenSpec4 {β : Type} {f : BusResult → Prog β} {Q : β → List Ev → Prop}
+noncomputable def busThenSpec4 {β : Type} {f : BusResult → VerifierProgram β} {Q : β → List Ev
+    → Prop}
     {Lk T : ℝ≥0∞} (hLk : Lk ≤ εmax)
     (K : ∀ w : BusWit, w.alphas.length = 4 →
       Spec (f (w.result layout)) (BusAt I hI cands input w) Q εmax Lk T)
@@ -713,7 +715,8 @@ noncomputable def busThenSpec4 {β : Type} {f : BusResult → Prog β} {Q : β �
     (hdepth : (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth = I.μBus)
     (hab : abError I L₀ < 1) (he : roundError L₀ 4 ≤ εmax)
     (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax) (hlam : lambdaError L₀ + 0 ≤ εmax) :
-    Spec ((verifyBusBalance computedValue layout).bind f) (HDoom cands (Seam.commit I) input) Q εmax
+    Spec ((verifyBusBalance computedBytecodeValue layout).bind f) (HDoom cands (Seam.commit I)
+        input) Q εmax
       (abError I L₀ + 0) T :=
   Spec.congr (verifyBusBalance_bind_eq layout f).symm
     ((abSpec4 I hI cands input hfin hcard hab).bind' fun ab ↦
@@ -745,7 +748,7 @@ noncomputable def busTableSpec_leanIsa {L₀ : ℕ} (hfin : ∀ W, (cands W).Fin
     (hTf : T ≤ εmax)
     (hxi : xiError (leanIsaWith prog s fl) L₀ + sumcheckLead
       (List.replicate ((verifierLayout prog s).tableLogHeights.foldl max 0) none) T ≤ εmax) :
-    Spec ((verifyBusBalance computedValue (verifierLayout prog s)).bind (tablePhaseClaims (verifierLayout prog s)))
+    Spec ((verifyBusBalance computedBytecodeValue (verifierLayout prog s)).bind (tablePhaseClaims (verifierLayout prog s)))
       (HDoom cands (Seam.commit (leanIsaWith prog s fl)) input)
       (TablePost (leanIsaWith prog s fl) cands input pyCol) εmax
       (abError (leanIsaWith prog s fl) L₀ + 0) T :=

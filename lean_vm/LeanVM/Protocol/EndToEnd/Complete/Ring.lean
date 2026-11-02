@@ -47,7 +47,7 @@ open LeanVM.Protocol.LeanIsa LeanVM.Protocol.Whir.Complete LeanVM.Protocol.Kecca
 where the layout places `q_keccak`, the program's ring claim holds of the stack, for any
 coefficients. -/
 theorem ringClaim_holds_of_slicesTrue {layout : Verifier.Layout} {h₅ off μ : ℕ}
-    (hpl : layout.placement qkeccak = { vars := h₅ + 6, index := off })
+    (hpl : layout.placement qkeccak = { variableCount := h₅ + 6, index := off })
     (hal : 2 ^ (h₅ + 6) ∣ off) (hfit : off + 2 ^ (h₅ + 6) ≤ 2 ^ μ) (q : Column μ)
     {pt sv ch : List E} (hs : slicesTrue h₅ (Front.qkAt off q) pt sv) (hch : ch.length = 6) :
     StackClaim.Holds μ (ringSwitchClaim layout (polyEval (sv.map (phiMap · ch)) gen)
@@ -71,14 +71,14 @@ def hRing (point slices : List E) : Script (E × (List E → E)) := do
 for every challenge, and the claim the program opens on the stack holds of it with a multilinear
 weight. -/
 theorem follows_ringSwitch {layout : Verifier.Layout} {h₅ off μ : ℕ}
-    (hpl : layout.placement qkeccak = { vars := h₅ + 6, index := off })
+    (hpl : layout.placement qkeccak = { variableCount := h₅ + 6, index := off })
     (hal : 2 ^ (h₅ + 6) ∣ off) (hfit : off + 2 ^ (h₅ + 6) ≤ 2 ^ μ) {q : Column μ}
     (r : List E × List E) (hr : slicesTrue h₅ (Front.qkAt off q) r.1 r.2) (cs : Commits) :
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧
         StackClaim.Holds μ (ringSwitchClaim layout b.1 b.2) q ∧
         IsMultilinearFn μ (ringSwitchClaim layout b.1 b.2).1)
       (hRing r.1 r.2) (ringSwitch r.1 r.2) cs := by
-  simp only [hRing, ringSwitch, Script.bind_eq, Prog.bind_eq]
+  simp only [hRing, ringSwitch, Script.bind_eq, VerifierProgram.bind_eq]
   refine Follows.bind (fun cs' a b h ↦ ?_) _ _ _ (Follows.sampleN_sampleN cs _)
   obtain ⟨rfl, rfl, hl⟩ := h
   have hch : a.length = 6 := hl
@@ -88,7 +88,8 @@ theorem follows_ringSwitch {layout : Verifier.Layout} {h₅ off μ : ℕ}
 /-- **Completeness of ring switching at the verifier's layout**, for a stack of the leanISA
 instance: the true slices of its `q_keccak` block (`τ_KECCAK + 6` variables at the block's
 offset). -/
-theorem follows_ringSwitch_leanIsa {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)}
+theorem follows_ringSwitch_leanIsa {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ
+    prog s)}
     (r : List E × List E)
     (hr : slicesTrue (s.τ 5) (Front.qkAt ((blocks prog s).offset (keccakBlock prog s)) q) r.1 r.2)
     (cs : Commits) :

@@ -80,12 +80,12 @@ Each digest is Keccak-256 of its preimage; the preimages are also the inputs of 
 collisions (`collisionCandidates`, `LeanVmGuest.lean`). -/
 
 /-- The 16 bytes of a 128-bit value, least significant byte first: a cell's two limbs. -/
-def littleEndianBytes16 (value : BitVec 128) : List UInt8 := HashSig.bytesLE 16 value
+def littleEndianBytes16 (value : BitVec 128) : List UInt8 := HashSig.littleEndianBytes 16 value
 
 /-- A claim as the `64` bytes its list hashes: the key's root and parameter, then the message
 (`claim_cells`, `aggregation.rs:217-224`). -/
 def claimBytes (root parameter : BitVec 128) (message : BitVec 256) : List UInt8 :=
-  littleEndianBytes16 root ++ littleEndianBytes16 parameter ++ HashSig.bytesLE 32 message
+  littleEndianBytes16 root ++ littleEndianBytes16 parameter ++ HashSig.littleEndianBytes 32 message
 
 /-- The bytes `claimListDigest claims` hashes. Both schemes' keys are a root and a parameter
 (`LeanXmssClaim` and `LeanSphincsClaim` are one type). -/
@@ -111,7 +111,7 @@ def zeroDigest : Digest := Vector.replicate 4 0
 
 /-- The 24 bytes of a field element, its three limbs. -/
 def extensionElementBytes (x : E) : List UInt8 :=
-  kBytes (x.limb 0) ++ kBytes (x.limb 1) ++ kBytes (x.limb 2)
+  K.toBytes (x.limb 0) ++ K.toBytes (x.limb 1) ++ K.toBytes (x.limb 2)
 
 /-- The deferred claim's cells, an odd count paired with a zero cell. -/
 def paddedDeferredClaimCells (claim : DeferredClaim) : List E :=
@@ -160,7 +160,7 @@ structure ChildClaims where
 /-- The words the batching absorbs of a child: its public input's two cells, its proof's claim,
 the claim its statement defers (`AGG_CHILD_WORDS`, `lean_ethereum.py:337`). -/
 def ChildClaims.words (child : ChildClaims) : List E :=
-  [(digestScalars child.publicInput).1, (digestScalars child.publicInput).2] ++
+  [(digestHalves child.publicInput).1, (digestHalves child.publicInput).2] ++
     DeferredClaim.cells child.freshClaim ++ child.carriedClaim.cells
 
 /-- The prover's part of a batching: the sumcheck's rounds and the bytecode's value at its end
@@ -215,7 +215,7 @@ def zerosToWholeRate (wordCount : ℕ) : ℕ := (rateScalars - wordCount % rateS
 /-- A child read off its words (`ChildClaims.words`); `none` where the public input does not
 decode. -/
 def parseChild (bytecodeVariableCount : ℕ) (words : List E) : Option ChildClaims := do
-  let publicInput ← digestOfScalars (words.getD 0 0, words.getD 1 0)
+  let publicInput ← digestFromHalves (words.getD 0 0, words.getD 1 0)
   let claimWords := words.drop 2
   let carriedWords := claimWords.drop (bytecodeVariableCount + 1)
   return ⟨publicInput,
@@ -223,14 +223,14 @@ def parseChild (bytecodeVariableCount : ℕ) (words : List E) : Option ChildClai
     ⟨carriedWords.take bytecodeVariableCount, carriedWords.getD bytecodeVariableCount 0⟩⟩
 
 /-- Read a child: its words, then the zeros to a whole rate. -/
-def readChild (bytecodeVariableCount : ℕ) : Prog ChildClaims := do
+def readChild (bytecodeVariableCount : ℕ) : VerifierProgram ChildClaims := do
   let wordCount := childWordCount bytecodeVariableCount
-  let words ← Prog.readScalars (wordCount + zerosToWholeRate wordCount)
-  Prog.require (words.drop wordCount = List.replicate (zerosToWholeRate wordCount) 0)
+  let words ← VerifierProgram.readScalars (wordCount + zerosToWholeRate wordCount)
+  VerifierProgram.require (words.drop wordCount = List.replicate (zerosToWholeRate wordCount) 0)
   liftOption (parseChild bytecodeVariableCount words)
 
 /-- Read `childCount` children. -/
-def readChildren (bytecodeVariableCount : ℕ) : (childCount : ℕ) → Prog (List ChildClaims)
+def readChildren (bytecodeVariableCount : ℕ) : (childCount : ℕ) → VerifierProgram (List ChildClaims)
   | 0 => pure []
   | childCount + 1 => do
     let child ← readChild bytecodeVariableCount
@@ -239,12 +239,12 @@ def readChildren (bytecodeVariableCount : ℕ) : (childCount : ℕ) → Prog (Li
 
 /-- `roundCount` rounds of the batching sumcheck from `claim`: read `g(1)` and `g(∞)`, sample the
 challenge, fold (`sumcheckRoundPolynomial`). The challenges and the final claim. -/
-def sumcheckRoundsProgram : (claim : E) → (roundCount : ℕ) → Prog (List E × E)
+def sumcheckRoundsProgram : (claim : E) → (roundCount : ℕ) → VerifierProgram (List E × E)
   | claim, 0 => pure ([], claim)
   | claim, roundCount + 1 => do
-    let g1 ← Prog.readScalar
-    let gInfinity ← Prog.readScalar
-    let challenge ← Prog.sampleChallenge
+    let g1 ← VerifierProgram.readScalar
+    let gInfinity ← VerifierProgram.readScalar
+    let challenge ← VerifierProgram.sampleChallenge
     let rest ← sumcheckRoundsProgram (sumcheckRoundPolynomial claim (g1, gInfinity) challenge)
       roundCount
     return (challenge :: rest.1, rest.2)
@@ -255,18 +255,18 @@ sumcheck's `log₂ |bytecode|` rounds, the final value (`bc_star_hint`, read aft
 challenge: no challenge follows), the final check, and `deferredClaimCheck` of the deferred
 claim. -/
 noncomputable def batchingAfterChildren (deferredClaimCheck : DeferredClaim → Prop)
-    (bytecode : List K) (children : List ChildClaims) : Prog Bool := do
-  let challenge ← Prog.sampleChallenge
+    (bytecode : List K) (children : List ChildClaims) : VerifierProgram Bool := do
+  let challenge ← VerifierProgram.sampleChallenge
   let lambdas := lambdaPowers challenge children.length
   let rounds ← sumcheckRoundsProgram (batchedClaim children lambdas) (Nat.log2 bytecode.length)
-  let finalValue ← Prog.readScalar
-  Prog.require (rounds.2 = finalValue * batchedBytecodeWeight children lambdas rounds.1 ∧
+  let finalValue ← VerifierProgram.readScalar
+  VerifierProgram.require (rounds.2 = finalValue * batchedBytecodeWeight children lambdas rounds.1 ∧
     deferredClaimCheck ⟨rounds.1, finalValue⟩)
   return true
 
 /-- **The batching of `childCount` children.** -/
 noncomputable def batchingProgram (deferredClaimCheck : DeferredClaim → Prop) (bytecode : List K)
-    (childCount : ℕ) : Prog Bool := do
+    (childCount : ℕ) : VerifierProgram Bool := do
   let children ← readChildren (Nat.log2 bytecode.length) childCount
   batchingAfterChildren deferredClaimCheck bytecode children
 
@@ -283,16 +283,16 @@ def cellsBeforeChallenge (children : List ChildClaims) : List E :=
 /-- **The batching of a node's `childCount` children** (`aggregate_claims`): the count's cells,
 then the batching of `childCount`, its deferred claim meeting `deferredClaimCheck`. -/
 noncomputable def nodeBatchingProgram (deferredClaimCheck : DeferredClaim → Prop)
-    (bytecode : List K) (childCount : ℕ) : Prog Bool := do
-  let words ← Prog.readScalars rateScalars
-  Prog.require (words = childCountCells childCount)
+    (bytecode : List K) (childCount : ℕ) : VerifierProgram Bool := do
+  let words ← VerifierProgram.readScalars rateScalars
+  VerifierProgram.require (words = childCountCells childCount)
   batchingProgram deferredClaimCheck bytecode childCount
 
 /-- **The batching transcript run**, over a permutation `π` in any monad: from the seed
 `π(H(label) ‖ 0)`, `H` Keccak-256 over `π` (`FiatShamirState::from_label`; the guest program bakes
 its capacity, `AGG_SEED_*`, `aggregation.rs:2511-2514`), the program on the proof. -/
 noncomputable def runBatching {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
-    (program : Prog Bool) (proof : Proof) : m Bool := do
+    (program : VerifierProgram Bool) (proof : Proof) : m Bool := do
   let seed ← π (seedInput (← keccak256With π batchingLabel) (Vector.replicate 4 0))
   runProof π program seed proof
 

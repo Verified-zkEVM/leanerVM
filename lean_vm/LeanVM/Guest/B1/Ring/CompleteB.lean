@@ -47,14 +47,15 @@ theorem rst_completeAtB (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length
     (hc : chs.length = 6) {B14 : ℕ}
     (hl14 : TotalLeOn coreProgram fs "__loop13" (fun a => a.getD 0 0 = 1) fun _ => B14) :
     CompleteAtB fs cert κ "ring_switch_target" [(bs, s), (bm, chs)]
-      [ofK (Parameters.gpow bs), ofK (Parameters.gpow bm)]
+      [ofK (Parameters.addressOfIndex bs), ofK (Parameters.addressOfIndex bm)]
       (Returns [polyEval (s.map (phiMap · chs)) gen]) (fs "ring_switch_target" + 18 + B14) := by
   have e : fs "ring_switch_target" + 18 + B14 = fs "ring_switch_target" + [18].sum + B14 := by simp
   rw [e]
   refine B1.CompleteAtDTB.toCompleteAtB (completeAt_flatDTB (fs := fs) (cert := cert) find_rst
     rst_not_loop κ _ _ _ rst_body' rst_flat rst_addrs [18] (fun _ ↦ [chainWords s chs]) (fun _ ↦ by simp [chainWords_length])
-    (fun fp ↦ [⟨"__loop13", true, [1, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm),
-      ofK (Parameters.gpow (fp + fs "ring_switch_target"))], l14Lin bs bm (fp + fs "ring_switch_target") s chs, Returns []⟩])
+    (fun fp ↦ [⟨"__loop13", true, [1, ofK (Parameters.addressOfIndex bs), ofK
+        (Parameters.addressOfIndex bm),
+      ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))], l14Lin bs bm (fp + fs "ring_switch_target") s chs, Returns []⟩])
     (fun _ => True) [fun _ => True] [B14] B14 ?_ (fun _ => by simp [kidsBoundL]) (fun _ => le_rfl)
     ?_ ?_ ?_)
   · -- the loop, placed, within `B14`
@@ -84,9 +85,9 @@ theorem rst_completeAtB (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length
     · exact hB (fp + fs "ring_switch_target", chainWords s chs) (by simp [bufL, bases])
   · -- the honest valuation
     intro fp outs ho rd _ hB hLin
-    have hsl : ReadsAt rd (ofK (Parameters.gpow bs)) s := hLin (bs, s) (by simp)
-    have hmc : ReadsAt rd (ofK (Parameters.gpow bm)) chs := hLin (bm, chs) (by simp)
-    have hch : ReadsAt rd (ofK (Parameters.gpow (fp + fs "ring_switch_target"))) (chainWords s chs) :=
+    have hsl : ReadsAt rd (ofK (Parameters.addressOfIndex bs)) s := hLin (bs, s) (by simp)
+    have hmc : ReadsAt rd (ofK (Parameters.addressOfIndex bm)) chs := hLin (bm, chs) (by simp)
+    have hch : ReadsAt rd (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))) (chainWords s chs) :=
       hB (fp + fs "ring_switch_target", chainWords s chs) (by simp [bufL, bases])
     rcases outs with _ | ⟨o, _ | ⟨o', os⟩⟩
     · exact absurd ho (by simp [OutsOk])
@@ -96,8 +97,8 @@ theorem rst_completeAtB (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length
     obtain ⟨ho1, -⟩ := ho' rfl
     have hw16 : word 65536 0 0 = gen ^ 16 := by
       rw [show (65536 : ℕ) = 2 ^ 16 from rfl]; exact word_two_pow (by decide)
-    refine ⟨rstσ (ofK (Parameters.gpow bs)) (ofK (Parameters.gpow bm))
-      (ofK (Parameters.gpow (fp + fs "ring_switch_target"))) (polyEval (s.map (phiMap · chs)) gen), rfl, ?_, ?_, ?_, ?_,
+    refine ⟨rstσ (ofK (Parameters.addressOfIndex bs)) (ofK (Parameters.addressOfIndex bm))
+      (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))) (polyEval (s.map (phiMap · chs)) gen), rfl, ?_, ?_, ?_, ?_,
       ?_, ?_, trivial⟩
     · intro st hst
       simp only [rstPre, List.mem_cons, List.not_mem_nil, or_false] at hst
@@ -108,16 +109,19 @@ theorem rst_completeAtB (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length
       rcases hst with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
       · trivial
       · rfl
-      · show LoadHolds rd (ofK (Parameters.gpow (fp + fs "ring_switch_target"))) 0 (word 1 0 0)
+      · show LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))) 0
+          (word 1 0 0)
         have := chain_load hch (k := 0) (by norm_num)
         simpa [word_one] using this
       · rfl
-      · show LoadHolds rd (ofK (Parameters.gpow (fp + fs "ring_switch_target"))) 1 (word 0 0 0)
+      · show LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))) 1
+          (word 0 0 0)
         have := chain_load hch (k := 1) (by norm_num)
         simpa [word_zero, runL] using this
       · rfl
-      · show coreProgram.Rel rd "__loop13" [word 1 0 0, ofK (Parameters.gpow bs),
-          ofK (Parameters.gpow bm), ofK (Parameters.gpow (fp + fs "ring_switch_target"))] []
+      · show coreProgram.Rel rd "__loop13" [word 1 0 0, ofK (Parameters.addressOfIndex bs),
+          ofK (Parameters.addressOfIndex bm), ofK (Parameters.addressOfIndex (fp + fs
+              "ring_switch_target"))] []
         rw [word_one]
         exact (l14_relIn_lin hs hc (fun q hq ↦ by
           simp only [l14Lin, List.mem_cons, List.not_mem_nil, or_false] at hq
@@ -127,7 +131,8 @@ theorem rst_completeAtB (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length
           · exact hch)).rel
       · rfl
       · rfl
-      · show LoadHolds rd (ofK (Parameters.gpow (fp + fs "ring_switch_target")) * word 65536 0 0) 1
+      · show LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target")) * word
+          65536 0 0) 1
           (polyEval (s.map (phiMap · chs)) gen)
         rw [hw16, loadHolds_mul_gen_pow, ← runL_eight hs]
         have := chain_load hch (k := 17) (by norm_num)
@@ -137,8 +142,8 @@ theorem rst_completeAtB (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length
     · unfold flatCalls
       rw [rst_callSF]
       refine ⟨rfl, rfl, fun _ ↦ ⟨?_, ?_⟩, trivial⟩
-      · change [word 1 0 0, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm),
-          ofK (Parameters.gpow (fp + fs "ring_switch_target"))] = _
+      · change [word 1 0 0, ofK (Parameters.addressOfIndex bs), ofK (Parameters.addressOfIndex bm),
+          ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))] = _
         rw [word_one]
       · change [] = o.1
         rw [ho1]
@@ -156,7 +161,7 @@ theorem rst_completeAtB (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length
       · refine ⟨fp + fs "ring_switch_target" + 16 + 1, ?_, Or.inr
           ⟨(fp + fs "ring_switch_target", chainWords s chs), by simp [bufL, bases],
             by simp only [chainWords_length]; omega⟩⟩
-        show (ofK (Parameters.gpow (fp + fs "ring_switch_target")) * word 65536 0 0).limb 0 * Parameters.gpow 1 = _
+        show (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target")) * word 65536 0 0).limb 0 * Parameters.addressOfIndex 1 = _
         rw [hw16, rt_addr_mul]
 
 
@@ -167,7 +172,7 @@ theorem rsw_completeAtB (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (h
     (hz : zs.length = count) (hp : ps.length = count) (hc : cs.length = 64) {Brs : ℕ}
     (hrs : TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ count) fun _ => Brs) :
     CompleteAtB fs cert κ "ring_switch_weight" [(bz, zs), (bp, ps), (bc, cs)]
-      [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count]
+      [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK (addressOfIndex bc), gen ^ count]
       (Returns [ringWeight zs (ps.map (1 + ·)) cs])
       (fs "ring_switch_weight" + 64 * (count + 1) + Brs) := by
   have e : fs "ring_switch_weight" + 64 * (count + 1) + Brs =
@@ -176,9 +181,10 @@ theorem rsw_completeAtB (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (h
   refine B1.CompleteAtDTB.toCompleteAtB (completeAt_flatDTB (fs := fs) (cert := cert) find_rsw
     rsw_not_loop κ _ _ _ rsw_body' rsw_flat rsw_addrs [64 * (count + 1)] (fun _ ↦ [rswChain zs ps count])
     (fun _ ↦ by simpa using rswChain_le zs ps count)
-    (fun fp ↦ [⟨"rs_eq_run", true, [ofK (gpow (fp + fs "ring_switch_weight")), ofK (gpow bz),
-      ofK (gpow bp), gen ^ count], rsLin (fp + fs "ring_switch_weight") bz bp count zs ps,
-      Returns [ofK (gpow (fp + fs "ring_switch_weight")) * gen ^ (64 * rswH count)]⟩])
+    (fun fp ↦ [⟨"rs_eq_run", true, [ofK (addressOfIndex (fp + fs "ring_switch_weight")), ofK
+        (addressOfIndex bz),
+      ofK (addressOfIndex bp), gen ^ count], rsLin (fp + fs "ring_switch_weight") bz bp count zs ps,
+      Returns [ofK (addressOfIndex (fp + fs "ring_switch_weight")) * gen ^ (64 * rswH count)]⟩])
     (fun _ => True) [fun _ => True] [Brs] Brs ?_ (fun _ => by simp [kidsBoundL]) (fun _ => le_rfl)
     ?_ ?_ ?_)
   · intro fp
@@ -204,10 +210,11 @@ theorem rsw_completeAtB (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (h
     · exact hLin (bz, zs) (by simp)
     · exact hLin (bp, ps) (by simp)
   · intro fp outs ho rd _ hB hLin
-    have hzs : ReadsAt rd (ofK (gpow bz)) zs := hLin (bz, zs) (by simp)
-    have hps : ReadsAt rd (ofK (gpow bp)) ps := hLin (bp, ps) (by simp)
-    have hcs : ReadsAt rd (ofK (gpow bc)) cs := hLin (bc, cs) (by simp)
-    have hch : ReadsAt rd (ofK (gpow (fp + fs "ring_switch_weight"))) (rswChain zs ps count) :=
+    have hzs : ReadsAt rd (ofK (addressOfIndex bz)) zs := hLin (bz, zs) (by simp)
+    have hps : ReadsAt rd (ofK (addressOfIndex bp)) ps := hLin (bp, ps) (by simp)
+    have hcs : ReadsAt rd (ofK (addressOfIndex bc)) cs := hLin (bc, cs) (by simp)
+    have hch : ReadsAt rd (ofK (addressOfIndex (fp + fs "ring_switch_weight"))) (rswChain zs ps
+        count) :=
       hB (fp + fs "ring_switch_weight", rswChain zs ps count) (by simp [bufL, bases])
     rcases outs with _ | ⟨o, _ | ⟨o', os⟩⟩
     · exact absurd ho (by simp [OutsOk])
@@ -215,15 +222,18 @@ theorem rsw_completeAtB (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (h
     · exact absurd ho.2 (by simp [OutsOk])
     obtain ⟨ho', -⟩ := ho
     obtain ⟨ho1, -⟩ := ho' rfl
-    obtain ⟨σ, hσdef⟩ : ∃ σ, σ = rswσ rd [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count]
+    obtain ⟨σ, hσdef⟩ : ∃ σ, σ = rswσ rd [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK
+        (addressOfIndex bc), gen ^ count]
         (fp + fs "ring_switch_weight") (rswH count) := ⟨_, rfl⟩
     obtain ⟨hat, h11, e12, e77, e333⟩ := rsw_block hcount hz hp hc hzs hps hcs hch
     rw [← hσdef] at hat h11 e12 e77 e333
     have hpar : ∀ i (hi : i < 4), σ (.n i) =
-        [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count].getD i 0 := by
+        [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK (addressOfIndex bc), gen ^
+            count].getD i 0 := by
       intro i hi
       rw [hσdef]
-      exact ev_params rd _ (l := [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count]) rsw_chk
+      exact ev_params rd _ (l := [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK
+          (addressOfIndex bc), gen ^ count]) rsw_chk
         (by simpa using hi)
     have e0 := hpar 0 (by omega)
     have e1 := hpar 1 (by omega)

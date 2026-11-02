@@ -179,7 +179,7 @@ next commitment's root (not the last level). -/
 structure Ok (R : List (Digest × ℕ × ℕ)) (d : Digest) : Prop where
   xf : L.xf.length = 2 * L.level.fold
   chs : ∀ c ∈ L.chs, c ≠ 0
-  digest : L.fin = false → digestOfScalars (L.ra, L.rb) = some d
+  digest : L.fin = false → digestFromHalves (L.ra, L.rb) = some d
   powNf : L.fin = false → powOk Whir.queryGrindingBits L.nonce
     (challengeOf (cF2 L.F1 L.ra L.rb L.ml L.y L.c0 L.c2 L.nonce).perm) = true
   ms : L.fin = true → L.ms.length = 2 ^ L.ml
@@ -203,10 +203,11 @@ end SpLv
 theorem rest_inv {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} {ws1 : WhirStateT}
     {pending : List (E × List E × (List E → E))} {F2 : Fs} {xs : List E} {os : List Opening}
     {R : List (Digest × ℕ × ℕ)} {r : β × FSt} (hd : 1 ≤ 192 / (ml + level.logInvRate))
-    {K : WhirStateT → Prog β}
+    {K : WhirStateT → VerifierProgram β}
     (h : runF ((sampleQueries (ml + level.logInvRate) level.queries).bind fun queries ↦
-      Prog.sampleChallenge.bind fun lam ↦ (Prog.require (lam ≠ 0)).bind fun _ ↦
-        (Prog.queryOpenings index queries).bind fun words ↦
+      VerifierProgram.sampleChallenge.bind fun lam ↦ (VerifierProgram.require (lam ≠ 0)).bind
+          fun _ ↦
+        (VerifierProgram.queryOpenings index queries).bind fun words ↦
           (sumcheckRoundPoly 3 (enforcedSum (if index = 0 then words.map fun row ↦ row.reverse.map ofK
             else words.map extRow) lf (powers lam queries.length)) none).bind fun intro ↦
             K (glueT lam ws1 (pending ++ [(enforcedSum (if index = 0 then
@@ -247,12 +248,12 @@ theorem rest_inv {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E}
 
 /-- A level's queries and glue after its proof of work, refusing a zero `λ`. -/
 def levelRestNZ (ml index : ℕ) (level : Whir.Level) (lf : List E) (s : WhirStateT)
-    (pending : List (E × List E × (List E → E))) : Prog WhirStateT := do
+    (pending : List (E × List E × (List E → E))) : VerifierProgram WhirStateT := do
   let queries ← sampleQueries (ml + level.logInvRate) level.queries
-  let lam ← Prog.sampleChallenge
-  Prog.require (lam ≠ 0)
+  let lam ← VerifierProgram.sampleChallenge
+  VerifierProgram.require (lam ≠ 0)
   let queryWeights := powers lam queries.length
-  let words ← Prog.queryOpenings index queries
+  let words ← VerifierProgram.queryOpenings index queries
   let rows : List (List E) :=
     if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
   let enforced := enforcedSum rows lf queryWeights
@@ -261,7 +262,7 @@ def levelRestNZ (ml index : ℕ) (level : Whir.Level) (lf : List E) (s : WhirSta
     [(enforced, intro, fun x ↦ inducedWeight ml queries queryWeights x)])
 
 /-- The last level's tail, refusing a zero challenge. -/
-def levelTailNZ (lane ml : ℕ) (residual : List E) (s : WhirStateT) : Prog WhirEnd := do
+def levelTailNZ (lane ml : ℕ) (residual : List E) (s : WhirStateT) : VerifierProgram WhirEnd := do
   let (tailFolds, target) ← tailRoundsNZ ml s.target s.quad
   let point := s.folds ++ tailFolds
   let inner := s.glued.foldl
@@ -274,18 +275,19 @@ theorem whirLevelsOpenNZ_last (logN lane index : ℕ) (level : Whir.Level) (s : 
     whirLevelsOpenNZ logN lane index [level] s = (do
       let (s, levelFolds) ← foldRoundsNZ level.fold s []
       let messageLog := logN - s.folds.length
-      let residual ← Prog.readScalars (2 ^ messageLog)
-      Prog.grindProofOfWork Whir.queryGrindingBits
+      let residual ← VerifierProgram.readScalars (2 ^ messageLog)
+      VerifierProgram.grindProofOfWork Whir.queryGrindingBits
       let s ← levelRestNZ messageLog index level levelFolds s []
       levelTailNZ lane messageLog residual s) := by
   rw [whirLevelsOpenNZ]
-  simp only [levelRestNZ, levelTailNZ, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+  simp only [levelRestNZ, levelTailNZ, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+      VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
 
 /-- `rest_inv` on `levelRestNZ`. -/
 theorem rest_inv' {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} {ws1 : WhirStateT}
     {pending : List (E × List E × (List E → E))} {F2 : Fs} {xs : List E} {os : List Opening}
     {R : List (Digest × ℕ × ℕ)} {r : β × FSt} (hd : 1 ≤ 192 / (ml + level.logInvRate))
-    {K : WhirStateT → Prog β}
+    {K : WhirStateT → VerifierProgram β}
     (h : runF ((levelRestNZ ml index level lf ws1 pending).bind K) ⟨F2, xs, os, R⟩ = some r) :
     let nsq := ceilDiv level.queries (192 / (ml + level.logInvRate))
     let qs := queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
@@ -304,7 +306,8 @@ theorem rest_inv' {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E
             lf (powers lam qs.length) + ic2, ic2],
           fun x ↦ inducedWeight ml qs (powers lam qs.length) x)])))
         ⟨foldStep (F2.squeezeN nsq).2 ic0 ic2, xsR, osR, R⟩ = some r := by
-  simp only [levelRestNZ, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind] at h
+  simp only [levelRestNZ, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+      VerifierProgram.bind_assoc, VerifierProgram.ret_bind] at h
   exact rest_inv hd h
 
 end

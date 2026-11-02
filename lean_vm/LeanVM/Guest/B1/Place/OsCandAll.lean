@@ -78,7 +78,7 @@ def open_stacked_completeAtD_Spec : Prop :=
         Whir.NoZeroChallenge μ r target S xs os root → Whir.CapsAgree μ r target S xs os root →
         ∀ Lin : Layout, (∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd cur xs) →
           CompleteAtD fs cert κ (openName μ r) Lin
-            (capOf S ++ [target, (digestScalars root).1, (digestScalars root).2, cur]) (OsOut μ w)
+            (capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur]) (OsOut μ w)
 
 theorem osCfg_lvAt (m i : ℕ) (h : i < (osCfg m).levels.length) : lvAt (osCfg m) i = osLv m i := by
   rw [lvAt, lv_getD h, osCfg_levels_getElem _ _ h]

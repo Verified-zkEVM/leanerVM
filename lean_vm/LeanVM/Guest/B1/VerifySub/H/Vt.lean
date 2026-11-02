@@ -29,7 +29,8 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- **A run reads the words every run reads**: when the program runs on every `k` words, a run of
 it reads `k` words. -/
-theorem runsTo_len {α : Type} {p : Prog α} {s t : Fs} {xs : List E} {a : α} (h : RunsTo p s xs a t)
+theorem runsTo_len {α : Type} {p : VerifierProgram α} {s t : Fs} {xs : List E} {a : α} (h : RunsTo p
+    s xs a t)
     (hc : ∃ sp, s.Carries sp) {k : ℕ}
     (hall : ∀ ys : List E, ys.length = k → ∃ (b : α) (u : Fs), RunsTo p s ys b u) :
     xs.length = k := by
@@ -104,7 +105,8 @@ theorem tableTerms_any (cp fp point : List E) (hs : List ℕ) (fs : List (List F
 
 /-- **`verify_tables`' honest data of a run of `tablesSeg`** on the words `xs`. -/
 noncomputable def vtHOf (bc : List K) (lm : ℕ) (pi : Digest) (alphas point values : List E)
-    (beta : E) (rows : List ℕ) (f : List E) (ev : (List K → List E → Prog E)) (bv : E) (xs : List E)
+    (beta : E) (rows : List ℕ) (f : List E) (ev : (List K → List E → VerifierProgram E)) (bv : E)
+        (xs : List E)
     (bus : BusResult) (claims : List ColumnClaim) (cap' : List E) : VtHonest :=
   ⟨bc, lm, pi, alphas, point, values, beta, rows, f, ev, bv, xs.take 5,
     (xs.drop 5).take (3 * (tableHeightsOf rows).foldl max 0),
@@ -123,7 +125,7 @@ theorem rowsT_fst (H : VtHonest) (hr : H.rows.length = 6) : H.rowsT.map (·.1) =
 /-- **A run of `tablesSeg` is `verify_tables`' honest run**: its words cut in place, `Ok`, and
 nothing waiting at its end. -/
 theorem vtH_run {bc : List K} {lm : ℕ} {pi : Digest} {alphas point values : List E} {beta : E}
-    {rows : List ℕ} {f : List E} {ev : (List K → List E → Prog E)} {bv : E} {xs : List E} {bus : BusResult}
+    {rows : List ℕ} {f : List E} {ev : (List K → List E → VerifierProgram E)} {bv : E} {xs : List E} {bus : BusResult}
     {claims : List ColumnClaim} {s' : Fs} (hr : rows.length = 6)
     (h : RunsTo (tablesSeg ev (layoutOf bc lm rows) pi alphas beta point values) ⟨f, []⟩ xs
       (bus, claims) s')

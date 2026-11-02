@@ -110,12 +110,12 @@ theorem flatMap_inj_of_length {α β : Type} {f : α → List β} {n : ℕ}
     obtain ⟨h1, h2⟩ := List.append_inj h (by rw [hlen, hlen])
     rw [hf h1, ih (by simpa using hl) h2]
 
-theorem kBytes_injective : Function.Injective kBytes := fun _ _ h ↦
+theorem kBytes_injective : Function.Injective K.toBytes := fun _ _ h ↦
   K.lane_injective (wordBytes_injective h)
 
 /-- Two lists of `K` words of one length with the same bytes are equal. -/
 theorem flatMap_kBytes_inj {ws ws' : List K} (hl : ws.length = ws'.length)
-    (h : ws.flatMap kBytes = ws'.flatMap kBytes) : ws = ws' :=
+    (h : ws.flatMap K.toBytes = ws'.flatMap K.toBytes) : ws = ws' :=
   flatMap_inj_of_length kBytes_length kBytes_injective hl h
 
 /-- The input of a Merkle node: two digests. -/

@@ -40,7 +40,7 @@ theorem limbs_le_three {x : ℕ} (h : x < 2 ^ 192) : limbCount x ≤ 3 := by
 /-- **The replay's rounds** (`statesVecC`): each state replayed at most the step's price `S` and
 `48`, on a fuel of at most `2^128`. -/
 theorem statesVec_cost (hP : Includes P statesVecC.costDeps)
-    (memT codeT : Array (ℕ × ℕ)) (prog : Semantics.Program) {κ : ℕ} (mem : Vector E (2 ^ κ))
+    (memT codeT : Array (ℕ × ℕ)) (prog : Semantics.LeanIsaProgram) {κ : ℕ} (mem : Vector E (2 ^ κ))
     (fin : Registers K) (S : ℕ)
     (hS : ∀ r : Registers K, machineCost P Auto.LeanVM.Extraction.Fast.stepVec.c258.costIdx
       [encodeValue memT, encodeValue codeT, encodeValue prog, encodeValue κ, encodeValue mem,
@@ -79,7 +79,8 @@ theorem statesVec_cost (hP : Includes P statesVecC.costDeps)
 /-- **The replay of the run** (`replayStatesOfC`) on the address tables of the memory (`2^κ`
 words) and the bytecode: `|states|` rounds, each at most one step's price
 `runnerStepPrice κ ℓ` and `46`, and `2456` once. -/
-theorem replayStatesOf_cost (hP : Includes P replayStatesOfC.costDeps) (prog : Semantics.Program)
+theorem replayStatesOf_cost (hP : Includes P replayStatesOfC.costDeps) (prog :
+    Semantics.LeanIsaProgram)
     {κ : ℕ} (hκ : κ ≤ 62) (mem : Vector E (2 ^ κ)) :
     machineCost P replayStatesOfC.costIdx
         [encodeValue (powTable κ), encodeValue (powTable prog.logSize), encodeValue prog,
@@ -87,7 +88,7 @@ theorem replayStatesOf_cost (hP : Includes P replayStatesOfC.costDeps) (prog : S
       (runnerStepPrice κ prog.logSize + 46) *
           (replayStatesOf (powTable κ) (powTable prog.logSize) prog mem).length + 2456 := by
   have hls : prog.logSize ≤ 32 := prog.logSize_le
-  rw [replayStatesOfC.costEq P hP, Auto.LeanVM.Semantics.Program.pcFinal.c242.costEq P (by includes),
+  rw [replayStatesOfC.costEq P hP, Auto.LeanVM.Semantics.LeanIsaProgram.pcFinal.c242.costEq P (by includes),
     replayFuelC.costEq P (by includes)]
   have h1 := statesVec_cost P (by includes) (powTable κ) (powTable prog.logSize) prog mem
     (Registers.final prog) (runnerStepPrice κ prog.logSize) (fun r ↦ by
@@ -95,7 +96,7 @@ theorem replayStatesOf_cost (hP : Includes P replayStatesOfC.costDeps) (prog : S
         (wordTable_powTable hκ) (wordTable_powTable (by omega)) prog (by omega) mem r
       rw [powTable_size, powTable_size, Nat.log2_two_pow, Nat.log2_two_pow] at this
       unfold runnerStepPrice
-      omega) replayFuel ⟨gpow 0, 1⟩ (le_of_eq rfl)
+      omega) replayFuel ⟨addressOfIndex 0, 1⟩ (le_of_eq rfl)
   have hp : 2 ^ prog.logSize ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hls
   have hp0 : 0 < 2 ^ prog.logSize := Nat.two_pow_pos _
   have h2 := powSq_cost P (by includes) g (2 ^ prog.logSize - 1) (by omega)

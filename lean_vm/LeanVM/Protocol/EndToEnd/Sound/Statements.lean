@@ -44,7 +44,7 @@ namespace LeanVM.Protocol.EndToEnd.Sound
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.EndToEnd.Front
-open LeanVM.Protocol.EndToEnd.Complete (publicDigest publicDigest_injective)
+open LeanVM.Protocol.EndToEnd.Complete (publicInputDigest publicDigest_injective)
 open LeanVM.Protocol.KeccakHash LeanVM.Protocol.Rom
 open OracleComp OracleSpec
 open scoped ENNReal
@@ -57,23 +57,23 @@ attribute [local irreducible] instFintypeDigest
 /-! ## Histories of reads -/
 
 /-- A history of reads: the program's node at it, if any, is reached through read nodes. -/
-theorem reachable_of_after_reads {P : Prog Bool} :
-    ∀ (l : List E) {p : Prog Bool}, P.after (l.map Ev.read) = some p →
+theorem reachable_of_after_reads {P : VerifierProgram Bool} :
+    ∀ (l : List E) {p : VerifierProgram Bool}, P.after (l.map Ev.read) = some p →
       P.Reachable (l.map Ev.read) := by
   intro l
   induction l using List.reverseRecOn with
-  | nil => intros; exact Prog.Reachable.nil
+  | nil => intros; exact VerifierProgram.Reachable.nil
   | append_singleton l e ih =>
     intro p hp
-    rw [List.map_append, List.map_singleton, Prog.after_append] at hp
+    rw [List.map_append, List.map_singleton, VerifierProgram.after_append] at hp
     rcases hq : P.after (l.map Ev.read) with _ | q
     · rw [hq] at hp; cases hp
     · rw [hq, Option.bind_some] at hp
       cases q with
       | read k =>
         rw [List.map_append, List.map_singleton]
-        exact Prog.Reachable.read e (ih hq) hq
-      | _ => simp [Prog.after] at hp
+        exact VerifierProgram.Reachable.read e (ih hq) hq
+      | _ => simp [VerifierProgram.after] at hp
 
 theorem commits_map_read (l : List E) : commits (l.map Ev.read) = [] := by
   induction l with
@@ -84,7 +84,7 @@ theorem commits_map_read (l : List E) : commits (l.map Ev.read) = [] := by
 
 section Transport
 
-variable {P p : Prog Bool} {h₀ : List Ev}
+variable {P p : VerifierProgram Bool} {h₀ : List Ev}
 
 theorem answer_append (hc : commits h₀ = []) (h : List Ev) (i : ℕ) (ps : List ℕ) :
     answer (h₀ ++ h) i ps = answer h i ps := by
@@ -99,68 +99,68 @@ theorem reachable_drop (ha : P.after h₀ = some p) (hc : commits h₀ = []) :
   | nil =>
     intro h' he
     obtain ⟨rfl, rfl⟩ := List.append_eq_nil_iff.mp he.symm
-    exact Prog.Reachable.nil
+    exact VerifierProgram.Reachable.nil
   | @read h k x hr hk ih =>
     intro h' he
     rcases List.eq_nil_or_concat h' with rfl | ⟨h'', e, rfl⟩
-    · exact Prog.Reachable.nil
+    · exact VerifierProgram.Reachable.nil
     · rw [List.concat_eq_append, ← List.append_assoc] at he
       rw [List.concat_eq_append]
       obtain ⟨rfl, he2⟩ := List.append_inj' he rfl
       obtain rfl := List.singleton_inj.mp he2
-      refine Prog.Reachable.read (k := k) x (ih h'' rfl) ?_
-      rwa [Prog.after_append, ha, Option.bind_some] at hk
+      refine VerifierProgram.Reachable.read (k := k) x (ih h'' rfl) ?_
+      rwa [VerifierProgram.after_append, ha, Option.bind_some] at hk
   | @sample h k c hr hk ih =>
     intro h' he
     rcases List.eq_nil_or_concat h' with rfl | ⟨h'', e, rfl⟩
-    · exact Prog.Reachable.nil
+    · exact VerifierProgram.Reachable.nil
     · rw [List.concat_eq_append, ← List.append_assoc] at he
       rw [List.concat_eq_append]
       obtain ⟨rfl, he2⟩ := List.append_inj' he rfl
       obtain rfl := List.singleton_inj.mp he2
-      refine Prog.Reachable.sample (k := k) c (ih h'' rfl) ?_
-      rwa [Prog.after_append, ha, Option.bind_some] at hk
+      refine VerifierProgram.Reachable.sample (k := k) c (ih h'' rfl) ?_
+      rwa [VerifierProgram.after_append, ha, Option.bind_some] at hk
   | @grind h b k hr hk ih =>
     intro h' he
     rcases List.eq_nil_or_concat h' with rfl | ⟨h'', e, rfl⟩
-    · exact Prog.Reachable.nil
+    · exact VerifierProgram.Reachable.nil
     · rw [List.concat_eq_append, ← List.append_assoc] at he
       rw [List.concat_eq_append]
       obtain ⟨rfl, he2⟩ := List.append_inj' he rfl
       obtain rfl := List.singleton_inj.mp he2
-      refine Prog.Reachable.grind (k := k) (ih h'' rfl) ?_
-      rwa [Prog.after_append, ha, Option.bind_some] at hk
+      refine VerifierProgram.Reachable.grind (k := k) (ih h'' rfl) ?_
+      rwa [VerifierProgram.after_append, ha, Option.bind_some] at hk
   | @commit h ht w k word hr hk hw ih =>
     intro h' he
     rcases List.eq_nil_or_concat h' with rfl | ⟨h'', e, rfl⟩
-    · exact Prog.Reachable.nil
+    · exact VerifierProgram.Reachable.nil
     · rw [List.concat_eq_append, ← List.append_assoc] at he
       rw [List.concat_eq_append]
       obtain ⟨rfl, he2⟩ := List.append_inj' he rfl
       obtain rfl := List.singleton_inj.mp he2
-      refine Prog.Reachable.commit (k := k) word (ih h'' rfl) ?_ hw
-      rwa [Prog.after_append, ha, Option.bind_some] at hk
+      refine VerifierProgram.Reachable.commit (k := k) word (ih h'' rfl) ?_ hw
+      rwa [VerifierProgram.after_append, ha, Option.bind_some] at hk
   | @query h i ps k rows hr hk hans ih =>
     intro h' he
     rcases List.eq_nil_or_concat h' with rfl | ⟨h'', e, rfl⟩
-    · exact Prog.Reachable.nil
+    · exact VerifierProgram.Reachable.nil
     · rw [List.concat_eq_append, ← List.append_assoc] at he
       rw [List.concat_eq_append]
       obtain ⟨rfl, he2⟩ := List.append_inj' he rfl
       obtain rfl := List.singleton_inj.mp he2
-      refine Prog.Reachable.query (i := i) (ps := ps) (k := k) (ih h'' rfl) ?_ ?_
-      · rwa [Prog.after_append, ha, Option.bind_some] at hk
+      refine VerifierProgram.Reachable.query (i := i) (ps := ps) (k := k) (ih h'' rfl) ?_ ?_
+      · rwa [VerifierProgram.after_append, ha, Option.bind_some] at hk
       · rwa [answer_append hc] at hans
 
 theorem after_drop (ha : P.after h₀ = some p) (h' : List Ev) :
     P.after (h₀ ++ h') = p.after h' := by
-  rw [Prog.after_append, ha, Option.bind_some]
+  rw [VerifierProgram.after_append, ha, Option.bind_some]
 
 /-- Escape probabilities past a prefix without commitments, for doom predicates that agree
 past it. -/
 theorem esc_drop (hc : commits h₀ = []) {D D' : List Ev → Prop}
     (hD : ∀ h', D (h₀ ++ h') ↔ D' h') :
-    ∀ (h' : List Ev) (q : Prog Bool), esc D (h₀ ++ h') q = esc D' h' q
+    ∀ (h' : List Ev) (q : VerifierProgram Bool), esc D (h₀ ++ h') q = esc D' h' q
   | h', .sample k => by
     rw [esc_sample, esc_sample]
     congr 1
@@ -218,7 +218,7 @@ end Transport
 /-! ## The statements and their program -/
 
 /-- A statement: a program and a public input. -/
-abbrev Statement : Type := Program × PublicInput
+abbrev Statement : Type := LeanIsaProgram × PublicInput
 
 /-- A word as a scalar: its first limb. -/
 def wordE (k : K) : E := E.ofLimbs k 0 0
@@ -227,16 +227,16 @@ def wordE (k : K) : E := E.ofLimbs k 0 0
 def kNat (k : K) : ℕ := k.toBitVec.toNat
 
 /-- Read `n` words, one per scalar's first limb, then continue with them. -/
-def readWords : ℕ → (List K → Prog Bool) → Prog Bool
+def readWords : ℕ → (List K → VerifierProgram Bool) → VerifierProgram Bool
   | 0, k => k []
   | n + 1, k => .read fun e ↦ readWords n fun ws ↦ k (e.limb 0 :: ws)
 
 /-- **The verifier program of every statement**: the bytecode's length and words and the
 public input's four lanes, read as scalars, then the leanVM verifier program of that bytecode and
 public input. -/
-def anyProgram : Prog Bool :=
+def anyProgram : VerifierProgram Bool :=
   .read fun n ↦ readWords (kNat (n.limb 0)) fun ws ↦ readWords 4 fun ls ↦
-    leanVmProgram ws (publicDigest ⟨fun i ↦ ls.getD i 0⟩)
+    leanVmVerifierProgram ws (publicInputDigest ⟨fun i ↦ ls.getD i 0⟩)
 
 /-- The scalars of a statement: the bytecode's length and words, and the public input's lanes. -/
 def stmtScalars (x : Statement) : List E :=
@@ -248,16 +248,17 @@ def stmtHistory (x : Statement) : List Ev := (stmtScalars x).map Ev.read
 
 theorem limb_wordE (k : K) : (wordE k).limb 0 = k := by simp [wordE]
 
-theorem after_readWords (k : List K → Prog Bool) :
+theorem after_readWords (k : List K → VerifierProgram Bool) :
     ∀ (ws : List K) (rest : List Ev),
       (readWords ws.length k).after ((ws.map wordE).map Ev.read ++ rest) = (k ws).after rest
   | [], rest => rfl
   | w :: ws, rest => by
-    simp only [List.length_cons, readWords, List.map_cons, List.cons_append, Prog.after]
+    simp only [List.length_cons, readWords, List.map_cons, List.cons_append, VerifierProgram.after]
     rw [limb_wordE]
     exact after_readWords (fun ws' ↦ k (w :: ws')) ws rest
 
-theorem after_readWords' (k : List K → Prog Bool) {n : ℕ} (ws : List K) (hn : ws.length = n)
+theorem after_readWords' (k : List K → VerifierProgram Bool) {n : ℕ} (ws : List K) (hn :
+    ws.length = n)
     (rest : List Ev) :
     (readWords n k).after ((ws.map wordE).map Ev.read ++ rest) = (k ws).after rest := by
   subst hn
@@ -267,7 +268,7 @@ theorem kNat_ofBits {n : ℕ} (hn : n < 2 ^ 64) : kNat (K.ofBits n) = n := by
   change (BitVec.ofNat 64 n).toNat = n
   rw [BitVec.toNat_ofNat, Nat.mod_eq_of_lt hn]
 
-theorem length_bytecodeWords_lt (prog : Program) : (bytecodeWords prog).length < 2 ^ 64 := by
+theorem length_bytecodeWords_lt (prog : LeanIsaProgram) : (bytecodeWords prog).length < 2 ^ 64 := by
   rw [length_bytecodeWords]
   have := prog.logSize_le
   unfold maxLogBytecode at this
@@ -276,8 +277,8 @@ theorem length_bytecodeWords_lt (prog : Program) : (bytecodeWords prog).length <
 /-- **The root of a statement leads to the statement's verifier program.** -/
 theorem after_stmtHistory (x : Statement) :
     anyProgram.after (stmtHistory x) =
-      some (leanVmProgram (bytecodeWords x.1) (publicDigest x.2)) := by
-  simp only [stmtHistory, stmtScalars, List.map_cons, anyProgram, Prog.after, limb_wordE,
+      some (leanVmVerifierProgram (bytecodeWords x.1) (publicInputDigest x.2)) := by
+  simp only [stmtHistory, stmtScalars, List.map_cons, anyProgram, VerifierProgram.after, limb_wordE,
     kNat_ofBits (length_bytecodeWords_lt x.1), List.map_append]
   rw [after_readWords]
   rw [← List.append_nil ((List.map Ev.read (List.map wordE (List.ofFn x.2.lanes)))),
@@ -291,7 +292,8 @@ theorem after_stmtHistory (x : Statement) :
   rfl
 
 theorem nodeAt_stmtHistory (x : Statement) :
-    nodeAt anyProgram (stmtHistory x) = leanVmProgram (bytecodeWords x.1) (publicDigest x.2) := by
+    nodeAt anyProgram (stmtHistory x) = leanVmVerifierProgram (bytecodeWords x.1) (publicInputDigest
+        x.2) := by
   simp [nodeAt, after_stmtHistory]
 
 theorem boundary_map_read {l : List E} (hl : l ≠ []) : Boundary (l.map Ev.read) := by
@@ -363,7 +365,7 @@ theorem stmt_eq_of_prefix {x x' : Statement} {h : List Ev} (hx : stmtHistory x <
 
 /-! ## The seedings -/
 
-theorem length_flatMap_kBytes (ws : List K) : (ws.flatMap kBytes).length = 8 * ws.length := by
+theorem length_flatMap_kBytes (ws : List K) : (ws.flatMap K.toBytes).length = 8 * ws.length := by
   induction ws with
   | nil => rfl
   | cons w ws ih => simp [List.flatMap_cons, kBytes_length, ih]; ring
@@ -385,7 +387,7 @@ theorem length_leanVmSeed_hs (bytecode : List K) (pd : Digest) :
 tag and the bytecode, then the permutation of the IV and the public digest) and root. The IV is
 the permutation input's first four lanes. -/
 def leanVmSeeds : Seeds Statement where
-  seed x := leanVmSeed (bytecodeWords x.1) (publicDigest x.2)
+  seed x := leanVmSeed (bytecodeWords x.1) (publicInputDigest x.2)
   root := stmtHistory
   offs := []
   refs x ds hds i hi := by
@@ -394,7 +396,7 @@ def leanVmSeeds : Seeds Statement where
     rw [hds] at hi
     interval_cases i
     left
-    show laneDigest (seedInput (ds.getD 0 default) (publicDigest x.2)) = ds[0]
+    show laneDigest (seedInput (ds.getD 0 default) (publicInputDigest x.2)) = ds[0]
     rw [laneDigest_seedInput, hd0]
   cap0 x ds := capOf_seedInput _ _
   inj H hH x x' ds ds' ha ha' he := by
@@ -403,7 +405,7 @@ def leanVmSeeds : Seeds Statement where
     have hiv : ds.getD 0 default = ds'.getD 0 default := by
       have := congrArg laneDigest he
       simpa [leanVmSeed, laneDigest_seedInput] using this
-    have hpd : publicDigest x.2 = publicDigest x'.2 := by
+    have hpd : publicInputDigest x.2 = publicInputDigest x'.2 := by
       have := congrArg pdOf he
       simpa [leanVmSeed, pdOf_seedInput] using this
     obtain ⟨f0, hf0, hH0⟩ := ha.2 0 (by omega)
@@ -524,8 +526,8 @@ theorem anyCert_bound (h : List Ev) :
 /-- The verifier of the statement and proof `z` is the compiled leanVM verifier. -/
 theorem verifierFam_leanVm (z : Statement × Proof) :
     verifierFam leanVmSeeds anyProgram z =
-      verifierComp (leanVmSeed (bytecodeWords z.1.1) (publicDigest z.1.2))
-        (leanVmProgram (bytecodeWords z.1.1) (publicDigest z.1.2)) z.2 := by
+      verifierComp (leanVmSeed (bytecodeWords z.1.1) (publicInputDigest z.1.2))
+        (leanVmVerifierProgram (bytecodeWords z.1.1) (publicInputDigest z.1.2)) z.2 := by
   simp only [verifierFam, leanVmSeeds, nodeAt_stmtHistory]
 
 theorem isTotalQueryBound_leanVmFam (z : Statement × Proof) :
@@ -537,7 +539,7 @@ theorem isTotalQueryBound_leanVmFam (z : Statement × Proof) :
 
 /-- A compiled run from a longer history extends the same history. -/
 theorem xrun_append_hist (H : Bytes → Option Digest) (F : KeccakState → Option KeccakState) {α : Type} :
-    ∀ (p : Prog α) (s : ProgState) (h₀ h : List Ev),
+    ∀ (p : VerifierProgram α) (s : VerifierProgramState) (h₀ h : List Ev),
       xrun H F p s (h₀ ++ h) = (xrun H F p s h).map fun r ↦ (r.1, r.2.1, h₀ ++ r.2.2)
   | .ret a, s, h₀, h => rfl
   | .fail, s, h₀, h => rfl
@@ -592,7 +594,7 @@ theorem xrun_append_hist (H : Bytes → Option Digest) (F : KeccakState → Opti
 /-- The extracted history of a run from a statement's root is the root followed by the
 extracted history from the empty history. -/
 theorem extractedFrom_eq (H : Bytes → Option Digest) (F : KeccakState → Option KeccakState) (σ : Seed)
-    (p : Prog Bool) (h₀ : List Ev) (π : Proof) (hv : Rom.verify H F σ p π = some true) :
+    (p : VerifierProgram Bool) (h₀ : List Ev) (π : Proof) (hv : Rom.verify H F σ p π = some true) :
     extractedFrom H F σ p h₀ π = h₀ ++ extractedHistory H F σ p π := by
   obtain ⟨seed, s, hseed, hx⟩ := xrun_of_verify hv
   have hx' := xrun_append_hist H F p ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ h₀ []
@@ -602,9 +604,9 @@ theorem extractedFrom_eq (H : Bytes → Option Digest) (F : KeccakState → Opti
 /-- **A statement's doom is doom for every statement.** -/
 theorem doomed_of_doomedRun {x : Statement} {π : Proof} {c : KeccakCalls.QueryCache}
     (hv : Rom.verify (fun y ↦ c (.inl y)) (fun t ↦ c (.inr t))
-      (leanVmSeed (bytecodeWords x.1) (publicDigest x.2))
-      (leanVmProgram (bytecodeWords x.1) (publicDigest x.2)) π = some true)
-    (hd : DoomedRun (leanVmCert x.1 x.2) (leanVmSeed (bytecodeWords x.1) (publicDigest x.2)) π
+      (leanVmSeed (bytecodeWords x.1) (publicInputDigest x.2))
+      (leanVmVerifierProgram (bytecodeWords x.1) (publicInputDigest x.2)) π = some true)
+    (hd : DoomedRun (leanVmCert x.1 x.2) (leanVmSeed (bytecodeWords x.1) (publicInputDigest x.2)) π
       c) :
     Doomed anyCert leanVmSeeds (x, π) c := by
   obtain ⟨h₀, hh₀, hb, hD⟩ := hd
@@ -612,7 +614,7 @@ theorem doomed_of_doomedRun {x : Statement} {π : Proof} {c : KeccakCalls.QueryC
     by show (stmtHistory x).length ≤ _; rw [List.length_append]; omega, ?_,
     (anyD_iff x h₀).mpr hD⟩
   · change stmtHistory x ++ h₀ <+: extractedFrom (fun y ↦ c (.inl y)) (fun t ↦ c (.inr t))
-      (leanVmSeed (bytecodeWords x.1) (publicDigest x.2)) (nodeAt anyProgram (stmtHistory x))
+      (leanVmSeed (bytecodeWords x.1) (publicInputDigest x.2)) (nodeAt anyProgram (stmtHistory x))
       (stmtHistory x) π
     rw [nodeAt_stmtHistory, extractedFrom_eq _ _ _ _ _ _ hv]
     exact (List.prefix_append_right_inj _).mpr hh₀

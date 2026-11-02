@@ -11,7 +11,8 @@ Read before the two schemes: the tweakable hash `Th(P, A, M) = Truncate_n(H(P �
 16-byte address and the types around it, which `crates/signatures/src/tweak.rs` gives both schemes
 (namespace `HashSig`); the hash `H`, Keccak-256 over a permutation `π` of the Keccak state in any
 monad (`keccakHash`), and the hash chains, Merkle paths and Merkle trees every chain, path and tree
-of both schemes instantiates (`walkChain`, `foldPath`, `buildTree`, namespace `HashSig.Concrete`).
+of both schemes instantiates (`walkChain`, `foldPath`, `buildTree`, namespace
+`HashSig.OverPermutation`).
 `Statement/LeanSphincs.lean` exports them into `Sphincs`.
 -/
 
@@ -40,9 +41,9 @@ abbrev Message := BitVec 256
 /-- The public parameter `P`, `128` bits, prefixed to every hash call. -/
 abbrev PublicParameter := BitVec 128
 /-- A signature's randomizer, one digest. -/
-abbrev Randomness := Digest
+abbrev Randomizer := Digest
 /-- A Winternitz digit, a chain's position: `0` to `chainLength - 1`. -/
-abbrev Digit := Fin chainLength
+abbrev WinternitzDigit := Fin chainLength
 /-- A step along a chain, from position `t` to `t + 1`: `0` to `chainLength - 2`. -/
 abbrev ChainStep := Fin (chainLength - 1)
 /-- A hash call's input bytes. -/
@@ -53,13 +54,13 @@ def truncateHash (output : HashOutput) : Digest :=
   output.extractLsb' 0 digestBits
 
 /-- The second 16 bytes of a hash output. Only the seed derivations of chain starts use them. -/
-def upperHash (output : HashOutput) : Digest :=
+def upperHalfOfHash (output : HashOutput) : Digest :=
   output.extractLsb' digestBits digestBits
 
 /-- The half of a hash output that starts chain `n`: the first for even `n`, the second for odd `n`.
 -/
-def hashHalf (n : Nat) (output : HashOutput) : Digest :=
-  if n % 2 = 0 then truncateHash output else upperHash output
+def hashHalfForChain (n : Nat) (output : HashOutput) : Digest :=
+  if n % 2 = 0 then truncateHash output else upperHalfOfHash output
 
 /-- `pk = (root, P)`. -/
 structure PublicKey where
@@ -70,7 +71,7 @@ structure PublicKey where
 deriving DecidableEq
 
 /-- Serialize a bit vector into a fixed number of bytes, least significant byte first. -/
-def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
+def littleEndianBytes (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
   List.ofFn fun index : Fin byteCount =>
     UInt8.ofBitVec (value.extractLsb' (8 * index.val) 8)
 
@@ -88,8 +89,9 @@ structure TweakFields where
 deriving DecidableEq
 
 /-- The 16 address bytes `lo || hi || (tag + 32 * step) || 0^8`. -/
-def fieldBytes (fields : TweakFields) : HashInput :=
-  bytesLE 4 fields.lo ++ bytesLE 3 fields.hi ++ bytesLE 1 (fields.step ++ fields.tag) ++ bytesLE 8 0
+def addressBytes (fields : TweakFields) : HashInput :=
+  littleEndianBytes 4 fields.lo ++ littleEndianBytes 3 fields.hi ++ littleEndianBytes 1 (fields.step
+      ++ fields.tag) ++ littleEndianBytes 8 0
 
 /-- Convert the four integer fields to their fixed widths. -/
 def tweakFields (tag step hi lo : Nat) : TweakFields :=
@@ -99,14 +101,14 @@ def tweakFields (tag step hi lo : Nat) : TweakFields :=
 (`hasher`, `tweak.rs`). -/
 def thInput (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) :
     HashInput :=
-  bytesLE 16 parameter ++ fieldBytes fields ++ payload
+  littleEndianBytes 16 parameter ++ addressBytes fields ++ payload
 
 /-- **The key's seed `S_0`**, sampled uniformly. -/
 noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
   letI := SampleableType.ofFintype MasterSeed
   $ᵗ MasterSeed
 
-namespace Concrete
+namespace OverPermutation
 
 open LeanVM.Semantics (KeccakState)
 
@@ -133,7 +135,7 @@ def walkChain {m : Type → Type} [Monad m] {top : Nat} (step : Fin top → Dige
 
 /-- The two children of a Merkle node. -/
 def nodePayload (left right : Digest) : HashInput :=
-  bytesLE 16 left ++ bytesLE 16 right
+  littleEndianBytes 16 left ++ littleEndianBytes 16 right
 
 /-- Fold the leaf at index `idx` and its path, the sibling at level `l` being `path l`, up `levels`
 levels: the node at level `l + 1` is `node l (idx / 2^(l + 1))` of its children in index order. -/
@@ -158,9 +160,9 @@ def buildTree {m : Type → Type} [Monad m] (leaf : Nat → m Digest)
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-- **The hash `H`**: Keccak-256 over the permutation `π` (`keccak256With`), its digest's 32 bytes
-read as a little-endian number (`Common.SufCma.digestBitVec`). -/
+read as a little-endian number (`Common.SufCma.digestBytesEquivBitVec`). -/
 def keccakHash (input : HashInput) : m HashOutput :=
-  (fun d ↦ Common.SufCma.digestBitVec d.toBytes) <$>
+  (fun d ↦ Common.SufCma.digestBytesEquivBitVec d.toBytes) <$>
     LeanVM.Protocol.KeccakHash.keccak256With π input
 
 /-- `Th(P, A, M) = Truncate_n(H(P || A || M))` (`th`, `tweak.rs`). -/
@@ -174,8 +176,8 @@ def thPair (parameter : PublicParameter) (fields : TweakFields) (payload : HashI
 
 /-- `H(tag || S_0)`, all 32 bytes (`tagged_seed`): the seed `S` a scheme derives from. -/
 def taggedSeed (tag : HashInput) (seed : MasterSeed) : m MasterSeed :=
-  keccakHash π (tag ++ bytesLE 32 seed)
+  keccakHash π (tag ++ littleEndianBytes 32 seed)
 
-end Concrete
+end OverPermutation
 
 end HashSig

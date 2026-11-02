@@ -46,12 +46,13 @@ noncomputable def decTopStates (D : DiscreteLogTables) (T : Array (Option FnPre)
 /-- The decoding off the address tables and the memory. -/
 noncomputable def decTopTables (D : DiscreteLogTables) (T : Array (Option FnPre)) (Pw : Array E)
     (R : ReaderTabs) (pcT : SortedMap ℕ (List ℕ)) (tabs : Array (ℕ × ℕ) × Array (ℕ × ℕ))
-    (prog : LeanVM.Semantics.Program) {κ : ℕ} (mem : Vector E (2 ^ κ)) : SeedStatementAndWitness :=
+    (prog : LeanVM.Semantics.LeanIsaProgram) {κ : ℕ} (mem : Vector E (2 ^ κ)) :
+        SeedStatementAndWitness :=
   decTopStates D T Pw R pcT (memReader tabs.1 mem) (replayStatesOf tabs.1 tabs.2 prog mem)
 
 /-- **The decoder's top**: the decoding of an execution of `prog`, its memory the vector `mem` of
 `2^κ` words. -/
-noncomputable def decTop (prog : LeanVM.Semantics.Program) (κ : ℕ) (mem : Vector E (2 ^ κ)) :
+noncomputable def decTop (prog : LeanVM.Semantics.LeanIsaProgram) (κ : ℕ) (mem : Vector E (2 ^ κ)) :
     SeedStatementAndWitness :=
   decTopTables discreteLogTables preTable genPows readerTabs pcTableT (decoderTables prog κ) prog
     mem

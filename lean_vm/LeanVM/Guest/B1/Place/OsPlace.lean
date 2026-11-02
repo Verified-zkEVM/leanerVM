@@ -32,7 +32,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 /-- **A word every memory holding `M` holds at `A` lies in `M`'s region.** -/
 theorem os_addr_in_regionL {κ : ℕ} {M : Layout} {A : K} {v : E}
     (hall : ∀ rd, LowDef κ rd → MemL rd M → rd A = some v) {rd : Reader} (hlow : LowDef κ rd)
-    (hL : MemL rd M) : ∃ i, A = gpow i ∧ RegionL M i := by
+    (hL : MemL rd M) : ∃ i, A = addressOfIndex i ∧ RegionL M i := by
   classical
   by_contra hn
   simp only [not_exists, not_and] at hn
@@ -45,7 +45,8 @@ theorem os_addr_in_regionL {κ : ℕ} {M : Layout} {A : K} {v : E}
     intro q hq k hk
     refine ⟨(hL q hq k hk).1, ?_⟩
     rw [Main.addr_ofK]
-    have hne : gpow (q.1 + k) ≠ A := fun he => hn (q.1 + k) he.symm ⟨q, hq, by omega, by omega⟩
+    have hne : addressOfIndex (q.1 + k) ≠ A := fun he
+        => hn (q.1 + k) he.symm ⟨q, hq, by omega, by omega⟩
     simp only [rd2, hne, ↓reduceIte]
     rw [← Main.addr_ofK]; exact (hL q hq k hk).2
   have := hall rd2 hlow2 hL2
@@ -128,7 +129,7 @@ theorem os_completeAt_placeJ {f : String} {fn : Fn} (hf : coreProgram.find? f = 
         Stmt.HoldsList C rd σ fn.body False (fun r => r = rets) ∧
         (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
         ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-          (bases (fp + fs f) sizes).map (fun b => ofK (gpow b))) ∧
+          (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b))) ∧
       ∀ rd, LowDef κ rd → MemL rd (bufL (fp + fs f) sizes own) → MemL rd L → MemL rd Lin →
         KidsFromIn coreProgram fs cert rd σ
           (fun i => RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes own) i)
@@ -196,7 +197,7 @@ theorem os_completeAt_placeJ {f : String} {fn : Fn} (hf : coreProgram.find? f = 
       simp only [Ev.loadAddr?, Option.some.injEq] at hea
       subst hea
       have hall : ∀ rd', LowDef κ rd' → MemL rd' (B ++ Lin) →
-          rd' ((σ p).limb 0 * gpow off) = some (σ d) := fun rd' h1 h2 => by
+          rd' ((σ p).limb 0 * addressOfIndex off) = some (σ d) := fun rd' h1 h2 => by
         obtain ⟨h21, h22⟩ := Main.memL_append.mp h2
         exact ((hsat rd' h1 h21 h22).1 _ he).2
       obtain ⟨i, hi, hreg⟩ := os_addr_in_regionL hall hlow (Main.memL_append.mpr ⟨hB1, hLin⟩)

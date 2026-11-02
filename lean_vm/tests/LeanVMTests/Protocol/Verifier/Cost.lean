@@ -28,16 +28,18 @@ open LeanVM.Protocol.Compile.Rom LeanVM.Protocol.KeccakHash LeanVM.Semantics
 /-! ## The calculus -/
 
 /-- A read, a commitment of height `3`, and an opening of two positions. -/
-def small : Prog Bool := do
-  let _ ← Prog.readScalar
-  Prog.readCommitment 3 1
-  let _ ← Prog.queryOpenings 0 [5, 6]
+def small : VerifierProgram Bool := do
+  let _ ← VerifierProgram.readScalar
+  VerifierProgram.readCommitment 3 1
+  let _ ← VerifierProgram.queryOpenings 0 [5, 6]
   return true
 
 /-- Its cost at height `3`, in quarters: `1 + 2 + 4 · 2 · (1 + 3) = 35`. -/
 theorem small_cost : small.CostLE 3 35 :=
-  Prog.Costs.seq Prog.Costs.readE (fun _ _ ↦ Prog.Costs.seq (Prog.Costs.commitP 1 le_rfl)
-    (fun _ _ ↦ Prog.Costs.seq (Prog.Costs.queryP 0 _) (fun _ _ ↦ trivial) (by decide))
+  VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦ VerifierProgram.Costs.seq
+      (VerifierProgram.Costs.commitP 1 le_rfl)
+    (fun _ _ ↦ VerifierProgram.Costs.seq (VerifierProgram.Costs.queryP 0 _) (fun _ _ ↦ trivial)
+        (by decide))
     (by decide)) (by decide)
 
 /-- Its query bound against the random oracles, with a seed of one permutation. -/
@@ -53,11 +55,12 @@ example : ¬ small.CostLE 3 34 := by
   exact absurd (h.1) (by decide)
 
 /-- A commitment taller than the height bound is refuted, whatever the budget. -/
-example (n : ℕ) : ¬ (Prog.readCommitment 5 1).CostLE 4 n := fun h ↦ absurd h.1 (by decide)
+example (n : ℕ) : ¬ (VerifierProgram.readCommitment 5 1).CostLE 4 n := fun h ↦ absurd h.1
+    (by decide)
 
 /-- An opening is charged one leaf and one level per position: two positions at height `3` cost
 `8` queries, `32` quarters, not `31`. -/
-example : ¬ (Prog.queryOpenings 0 [0, 1]).CostLE 3 31 := fun h ↦ absurd h.1 (by decide)
+example : ¬ (VerifierProgram.queryOpenings 0 [0, 1]).CostLE 3 31 := fun h ↦ absurd h.1 (by decide)
 
 /-! ## The leanVM constants -/
 

@@ -13,7 +13,8 @@ public import LeanVM.Protocol.Compile.Prog
 /-!
 # Specifications of verifier programs
 
-A `Cert` (`LeanVM.Protocol.Compile.Prog`) is stated on whole histories of a whole program. The
+A `Cert` (`LeanVM.Protocol.Compile.VerifierProgram`) is stated on whole histories of a whole
+program. The
 leanVM verifier is a long `do`-block of sub-programs (sumcheck rounds, the bus, the WHIR levels),
 and its groups of challenges straddle sub-programs (the ring-switching challenges and the
 opening's batching challenge; the query positions and the level's `λ`). `Spec` is a
@@ -58,10 +59,10 @@ variable {α β : Type}
 
 /-! ## Local runs -/
 
-namespace Prog
+namespace VerifierProgram
 
 /-- The node is a prover move: a read, a proof of work or a commitment. -/
-def IsMove : Prog α → Prop
+def IsMove : VerifierProgram α → Prop
   | read _ => True
   | grind _ _ => True
   | commit _ _ _ => True
@@ -69,7 +70,7 @@ def IsMove : Prog α → Prop
 
 /-- The runs of `p` started after the history `h₀`: local histories, every opening answered from
 the words committed in `h₀` and before it in the run. -/
-inductive Reach (p : Prog α) (h₀ : List Ev) : List Ev → Prop where
+inductive Reach (p : VerifierProgram α) (h₀ : List Ev) : List Ev → Prop where
   | nil : Reach p h₀ []
   | read {l k} (x : E) : Reach p h₀ l → p.after l = some (read k) →
       Reach p h₀ (l ++ [Ev.read x])
@@ -82,7 +83,7 @@ inductive Reach (p : Prog α) (h₀ : List Ev) : List Ev → Prop where
   | query {l i ps k rows} : Reach p h₀ l → p.after l = some (query i ps k) →
       answer (h₀ ++ l) i ps = some rows → Reach p h₀ (l ++ [Ev.query rows])
 
-end Prog
+end VerifierProgram
 
 /-- A local history ends with a prover move. -/
 def EndsMove (l : List Ev) : Prop :=
@@ -95,7 +96,7 @@ def EndsMove (l : List Ev) : Prop :=
 /-! ## Specifications -/
 
 /-- A **specification** of the sub-program `p`: see the module docstring. -/
-structure Spec (p : Prog α) (Pre : List Ev → Prop) (Post : α → List Ev → Prop)
+structure Spec (p : VerifierProgram α) (Pre : List Ev → Prop) (Post : α → List Ev → Prop)
     (εmax L T : ENNReal) where
   /-- Doom, on the local history after `h₀`. -/
   D : List Ev → List Ev → Prop

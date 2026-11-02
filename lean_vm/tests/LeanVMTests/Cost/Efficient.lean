@@ -21,18 +21,21 @@ namespace LeanVMTests.Cost
 open LeanVM.Cost LeanVM.Cost.Extractor
 
 /-- A stand-in callee: `some` of its first argument. -/
-def standIn : Term := .ctor 1 [.var 0]
+def standIn : Term := .constructor 1 [.position 0]
 
 /-- The entry calling the stand-in. -/
 def entryProgram : MachineProgram := MachineProgram.ofList [(0, entryBody 1), (1, standIn)]
 
-#guard (run entryProgram 20 (.ctor 0 [.nat 5, .nat 6, .nat 7, .nat 8])).map (·.1) == some (.nat 5)
+#guard (runMachineProgram entryProgram 20 (.constructor 0 [.nat 5, .nat 6, .nat 7, .nat 8])).map
+    (·.1) == some (.nat 5)
 -- the stand-in's body costs `3` (a variable, a constructor of one field), the entry `14` more
-#guard (run entryProgram 20 (.ctor 0 [.nat 5, .nat 6, .nat 7, .nat 8])).map (·.2) == some 17
-#guard outputWithin entryProgram 100 (.ctor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) 17 == some (.nat 5)
-#guard outputWithin entryProgram 100 (.ctor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) 16 == none
+#guard (runMachineProgram entryProgram 20 (.constructor 0 [.nat 5, .nat 6, .nat 7, .nat 8])).map
+    (·.2) == some 17
+#guard outputWithin entryProgram 100 (.constructor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) 17 == some
+    (.nat 5)
+#guard outputWithin entryProgram 100 (.constructor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) 16 == none
 -- a program above the size bound outputs nothing
-#guard outputWithin entryProgram 1 (.ctor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) 17 == none
+#guard outputWithin entryProgram 1 (.constructor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) 17 == none
 
 /-- The bodies of the inverse in `K`, and the entry calling it. -/
 def invProgramBodies : List (ℕ × Term) :=
@@ -49,7 +52,7 @@ theorem invProgram_size : (MachineProgram.ofList invProgramBodies).size ≤ 2 ^ 
 
 #guard extractorProgramBodies.length == 699
 #guard (extractorProgramBodies.map (·.1)).foldr max 0 == 710
-#guard extractorProgram.size == 14125
+#guard compiledKnowledgeExtractor.size == 14125
 #guard (extractorProgramBodies.map fun p ↦ p.2.size).sum == 14101
 
 /-- info: 'LeanVM.Cost.extractorOf_extractorProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/

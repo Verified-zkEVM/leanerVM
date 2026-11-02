@@ -72,7 +72,8 @@ theorem CLoc.seq_eq {β : Type} (L : CLoc) (k : CLoc → β) : L.seq k = k L := 
 
 /-- Window `i`'s cells in certificate `C`. -/
 def clocW (C : Cert) (i : ℕ) : CLoc :=
-  ⟨nth C.los i 0, (nth C.cells i []).length, packC (nth C.cells i []), nth C.ins i []⟩
+  ⟨listElementOrDefault C.los i 0, (listElementOrDefault C.cells i []).length, packC
+      (listElementOrDefault C.cells i []), listElementOrDefault C.ins i []⟩
 
 /-! ## Counts -/
 
@@ -106,7 +107,7 @@ theorem Cnt.seq_eq {β : Type} (c : Cnt) (k : Cnt → β) : c.seq k = k c := by
   simp only [Cnt.seq, natSeq_eq]
 
 /-- One more instruction of `ins`'s opcode. -/
-def Cnt.bump (c : Cnt) : OInstr → Cnt
+def Cnt.bump (c : Cnt) : OffsetInstruction → Cnt
   | .xor .. => { c with x := c.x + 1 }
   | .mul .. => { c with m := c.m + 1 }
   | .set .. => { c with s := c.s + 1 }
@@ -128,7 +129,7 @@ def Cnt.le (c c' : Cnt) : Bool :=
     Nat.ble c.kc c'.kc
 
 /-- Counts from a list in `Opcode`'s order. -/
-def Cnt.ofList (l : List ℕ) : Cnt := ⟨nth l 0 0, nth l 1 0, nth l 2 0, nth l 3 0, nth l 4 0, nth l 5 0⟩
+def Cnt.ofList (l : List ℕ) : Cnt := ⟨listElementOrDefault l 0 0, listElementOrDefault l 1 0, listElementOrDefault l 2 0, listElementOrDefault l 3 0, listElementOrDefault l 4 0, listElementOrDefault l 5 0⟩
 
 /-- No instructions. -/
 def Cnt.zero : Cnt := ⟨0, 0, 0, 0, 0, 0⟩
@@ -394,7 +395,7 @@ noncomputable def frameHas (o1 o2 : ℕ) (fc : FC) : Bool :=
 
 /-- **An instruction at pc `pc` holds** on the frame: by a fact on its cells, the fixed cells,
 a callee frame in flight, a table read, or the next frame. -/
-noncomputable def justI (pc : ℕ) : OInstr → Bool
+noncomputable def justI (pc : ℕ) : OffsetInstruction → Bool
   | .set o k0 k1 k2 => decide (cplCstAt X st o = some (k0, k1, k2))
   | .xor a b d =>
     addAt st a b d d || addAt st a b d a || addAt st a b d b ||
@@ -513,17 +514,18 @@ inductive RC where
   | fail (code : ℕ)
 
 /-- What a caller knows of a function, from its code, core function and certificate (`sigOf`). -/
-def mkSig (f : CompiledFn) (c : Core.Fn) (k : Cert) : Sig :=
-  ⟨c.name, f.entry, c.params.length, k.nret, k.facts.env, k.pre, k.post, k.mem, k.sem⟩
+def mkSig (f : CompiledFunction) (c : Core.Fn) (k : Cert) : Sig :=
+  ⟨c.name, f.entryPc, c.params.length, k.nret, k.facts.env, k.pre, k.post, k.mem, k.sem⟩
 
 /-- The functions `fs` with their core functions `cs` and certificates `ks`, numbered from `i`,
 filed under their entries (one pass, by the recursor, for the kernel). -/
-noncomputable def sigT (fs : List CompiledFn) : List Core.Fn → List Cert → ℕ → Trie (ℕ × Sig) →
+noncomputable def sigT (fs : List CompiledFunction) : List Core.Fn → List Cert → ℕ → Trie (ℕ
+    × Sig) →
     Trie (ℕ × Sig) :=
   List.rec (motive := fun _ ↦ List Core.Fn → List Cert → ℕ → Trie (ℕ × Sig) → Trie (ℕ × Sig))
     (fun _ _ _ t ↦ t)
     (fun f _ r cs ks i t ↦ (setF (i, mkSig f (cs.headD default) (ks.headD default)) indexDepth t
-      f.entry).seq fun t ↦ r cs.tail ks.tail (i + 1) t) fs
+      f.entryPc).seq fun t ↦ r cs.tail ks.tail (i + 1) t) fs
 
 /-- Every function but `__jump_tables`, with what a caller knows of it, by its entry. -/
 @[irreducible] noncomputable def sigTrie : Trie (ℕ × Sig) :=
@@ -556,7 +558,7 @@ def armKeyD (acs : List (ℕ × List (List ℕ))) (x : ℕ) : Option (List Cnt) 
 /-- Arm `k` within its count, if counted separately. -/
 def armChkK (key : Option (List Cnt)) (k : ℕ) (c : Cnt) : Bool :=
   match key with
-  | some cs => c.le (nth cs k Cnt.zero)
+  | some cs => c.le (listElementOrDefault cs k Cnt.zero)
   | none => true
 
 /-- The position the arms start from: the counts restarted if the arms are counted separately. -/
@@ -828,26 +830,31 @@ noncomputable def statT (n : ℕ) : List (ℕ × PC) → Trie PC → Trie PC
 /-- The parts of window `i` of function `j`, `[s, J, counts, set-up cells, m]` each, `m` (absent:
 `0`) the items of the segment at `J` before the part (none: one part from the window's start with
 nothing handed on). -/
-noncomputable def partsOf (j i : ℕ) : List (List ℕ) := nth (nth Data.cplParts j []) i []
+noncomputable def partsOf (j i : ℕ) : List (List ℕ) := listElementOrDefault (listElementOrDefault
+    Data.cplParts j []) i []
 
 /-- The number of parts of a window. -/
 noncomputable def nParts (j i : ℕ) : ℕ := Nat.max 1 (partsOf j i).length
 
 /-- The window statement part `k` starts at. -/
-noncomputable def partS (j i k : ℕ) : ℕ := nth (nth (partsOf j i) k []) 0 0
+noncomputable def partS (j i k : ℕ) : ℕ := listElementOrDefault (listElementOrDefault (partsOf j i)
+    k []) 0 0
 
 /-- The code offset part `k` starts at: the window's start for the first. -/
 noncomputable def partJ (j i k : ℕ) : ℕ :=
-  bif Nat.beq k 0 then ((certOf j).cutAt i).J else nth (nth (partsOf j i) k []) 1 0
+  bif Nat.beq k 0 then ((certOf j).cutAt i).J else listElementOrDefault (listElementOrDefault (partsOf j i) k []) 1 0
 
 /-- The counts at part `k`'s start. -/
-noncomputable def partC (j i k : ℕ) : Cnt := Cnt.ofList ((nth (partsOf j i) k []).drop 2)
+noncomputable def partC (j i k : ℕ) : Cnt := Cnt.ofList ((listElementOrDefault (partsOf j i) k
+    []).drop 2)
 
 /-- The set-up site cells at part `k`'s start. -/
-noncomputable def partU (j i k : ℕ) : ℕ := nth (nth (partsOf j i) k []) 8 0
+noncomputable def partU (j i k : ℕ) : ℕ := listElementOrDefault (listElementOrDefault (partsOf j i)
+    k []) 8 0
 
 /-- The items of its segment part `k` starts after (`0`: at the segment's start). -/
-noncomputable def partM (j i k : ℕ) : ℕ := nth (nth (partsOf j i) k []) 9 0
+noncomputable def partM (j i k : ℕ) : ℕ := listElementOrDefault (listElementOrDefault (partsOf j i)
+    k []) 9 0
 
 /-- Where part `k` stops: inside a segment, if the next part starts there. -/
 noncomputable def stopOf (j i k : ℕ) : Option (ℕ × ℕ) :=
@@ -864,10 +871,10 @@ noncomputable def partStmts (j i k : ℕ) : List Core.Stmt :=
 /-- The context of window `i` of function `j`. -/
 noncomputable def cxOf (j : ℕ) (idx : Trie Exec.Seg) (loc : CLoc) (stat : Trie PC) (nv : ℕ)
     (stop : Option (ℕ × ℕ)) : CX :=
-  ⟨glob, (certOf j).facts, (fnOf j).entry, idx, loc, fsN j, stat, j == 1, (coreOf j).name,
+  ⟨glob, (certOf j).facts, (fnOf j).entryPc, idx, loc, fsN j, stat, j == 1, (coreOf j).name,
     (coreOf j).params.length, (certOf j).nret, (certOf j).callees, (plumbOf j).sites,
     (plumbOf j).arms, (certOf j).facts.env.map (·.1), Cnt.ofList (plumbOf j).pmax, nv, stop,
-    nth Data.cplArms j []⟩
+    listElementOrDefault Data.cplArms j []⟩
 
 /-- The renumbered values a block's own atoms name. -/
 def nvOf : List Core.Stmt → ℕ → ℕ
@@ -916,7 +923,7 @@ def lastOkC : List Core.Stmt → Bool
 starts with nothing handed on, its parameters `V.n 0, V.n 1, …` and its self frame pointer cells
 fixed. -/
 noncomputable def winOkC (j i : ℕ) : Bool :=
-  (nth (certOf j).cells i []).all (fun c ↦ Nat.blt c 65536) &&
+  (listElementOrDefault (certOf j).cells i []).all (fun c ↦ Nat.blt c 65536) &&
   Nat.beq (partS j i 0) 0 && Nat.beq (partM j i 0) 0 &&
   (coreOf j).params == (List.range (coreOf j).params.length).map V.n &&
   (bif Nat.beq i 0 then (partC j 0 0).le Cnt.zero && Nat.beq (partU j 0 0) 0 &&

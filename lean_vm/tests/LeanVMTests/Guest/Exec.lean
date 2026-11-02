@@ -47,7 +47,7 @@ theorem canonical_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
   simp only [Prod.mk.injEq] at he
   obtain ⟨h0, henv, hb, hatoms, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
-  have hentry : Data.f2.entry + s.start = 9203 := by rw [h0]; rfl
+  have hentry : Data.f2.entryPc + s.start = 9203 := by rw [h0]; rfl
   have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 2) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=
@@ -59,9 +59,9 @@ theorem canonical_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
 
 /-- Its `KECCAK`: the thirteen cells `fp[37], fp[20], fp[21], fp[22]`, `fp[23..26]`, `fp[39]`,
 `fp[28..31]`, in the even layout, to `fp[6..18]`, in the even layout. -/
-def hashIns : OInstr := .keccak 37 20 21 22 23 39 28 6 false false
+def hashIns : OffsetInstruction := .keccak 37 20 21 22 23 39 28 6 false false
 
-theorem hash_name : Data.f322.name = "claim_list_last__L0" ∧ Data.f322.entry = 269652 := by
+theorem hash_name : Data.f322.name = "claim_list_last__L0" ∧ Data.f322.entryPc = 269652 := by
   decide +kernel
 
 theorem hash_shape : (exec F0 Data.f322).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
@@ -74,15 +74,16 @@ returns, in fewer steps, with its `KECCAK` holding: the cells it reads hold a st
 Keccak-f[1600] the cells it writes hold. -/
 theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
     FunSpecReached guestProgram L 269652 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
-      (∀ c : Fin 13, L.read (fp * gpow (keccakInOff 37 20 21 22 23 39 28 c.val)) = some (input c)) ∧
-      (∀ c : Fin 13, L.read (fp * gpow (6 + c.val)) = some (output c)) ∧
+      (∀ c : Fin 13, L.read (fp * addressOfIndex (keccakInOff 37 20 21 22 23 39 28 c.val)) = some
+          (input c)) ∧
+      (∀ c : Fin 13, L.read (fp * addressOfIndex (6 + c.val)) = some (output c)) ∧
       KeccakCellsRelation input false output false) := by
   intro fp k _ h
   obtain ⟨s, hs, he⟩ := List.mem_map.mp (hash_shape ▸ List.mem_singleton_self _)
   simp only [Prod.mk.injEq] at he
   obtain ⟨h0, henv, hb, hmem, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
-  have hentry : Data.f322.entry + s.start = 269652 := by rw [h0]; rfl
+  have hentry : Data.f322.entryPc + s.start = 269652 := by rw [h0]; rfl
   have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 322) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=
@@ -94,7 +95,7 @@ theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
 
 open LeanVM.Guest.Check in
 /-- The atoms of every path of a function, filed in one book. -/
-noncomputable def bookOf (f : CompiledFn) : Book :=
+noncomputable def bookOf (f : CompiledFunction) : Book :=
   ((exec F0 f).segs.flatMap fun s ↦ s.items.filterMap Item.atom?).foldl addFact .nil
 
 theorem names : Data.f10.name = "shared_selector_tables" ∧ Data.f13.name = "verify_keccak" := by

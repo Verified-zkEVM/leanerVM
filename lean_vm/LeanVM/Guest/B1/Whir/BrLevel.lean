@@ -30,8 +30,8 @@ open LeanVM.Protocol.Verifier
 
 /-- **A level's honest data**, from the trace's level `L`. -/
 def spDat (L : SpLv) (d : Digest) (sqz wp : E) : LvDat :=
-  ⟨L.xf, L.ms, L.ra, L.rb, L.y, L.c0, L.c2, L.nonce, d, sqz, wp, (digestScalars L.root).1,
-    (digestScalars L.root).2, L.enforced, L.ic0, L.ic2⟩
+  ⟨L.xf, L.ms, L.ra, L.rb, L.y, L.c0, L.c2, L.nonce, d, sqz, wp, (digestHalves L.root).1,
+    (digestHalves L.root).2, L.enforced, L.ic0, L.ic2⟩
 
 /-- The level's row against the trace's level. -/
 structure SpLvFit (c : OsCfg) (lvl : ℕ) (lv : OsLv) (L : SpLv) : Prop where

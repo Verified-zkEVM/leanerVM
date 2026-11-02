@@ -626,11 +626,11 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
         let enc ← mkAppM ``MachineEncoding.encodeValue #[e]
         let hget ← mkEqRefl (← mkAppM ``Option.some #[enc])
         let pf ← mkAppOptM ``Rule.var #[ctx.P, ctx.env, none, none, mkNatLit i, e, hget]
-        return (mkApp (mkConst ``Term.var) (mkNatLit i), mkNatLit 1, pf)
+        return (mkApp (mkConst ``Term.position) (mkNatLit i), mkNatLit 1, pf)
   -- a natural number literal
   if let some n ← natLit? e then
     let pf ← mkAppOptM ``Rule.natLit #[ctx.P, ctx.env, mkNatLit n]
-    let code ← mkAppM ``Term.val #[← mkAppM ``MachineValue.nat #[mkNatLit n]]
+    let code ← mkAppM ``Term.literal #[← mkAppM ``MachineValue.nat #[mkNatLit n]]
     return (code, mkNatLit 1, pf)
   -- a literal of `K`, `UInt64` or `UInt8`: the natural number it encodes as, evaluated
   if e.isAppOfArity ``OfNat.ofNat 3 && !e.hasFVar then
@@ -887,7 +887,7 @@ partial def decideUnfolded (ctx : Ctx) (e : Expr) : MetaM (Option (Expr × Expr 
 partial def encodesAsCtor (x : Expr) (j : Nat) : MetaM Bool := do
   try
     let v ← whnfD (← mkAppM ``MachineEncoding.encodeValue #[x])
-    unless v.isAppOfArity ``MachineValue.ctor 2 do return false
+    unless v.isAppOfArity ``MachineValue.constructor 2 do return false
     let tag ← whnfD (← instantiateMVars v.appFn!.appArg!)
     return tag.nat? == some j || tag.rawNatLit? == some j
   catch _ => return false
@@ -910,7 +910,7 @@ partial def translateCtor (ctx : Ctx) (ci : ConstructorVal) (e : Expr) :
   let dataFs := (fields.zip mask).filterMap fun (f, m) ↦ if m then some f else none
   let (ts, vs, c, pl) ← translateList ctx (dataFs.toList.map .inl)
   let pf := mkAppN (mkConst ``Runs.ctor) #[ctx.P, ctx.env, mkNatLit ci.cidx, ts, vs, c, pl]
-  let code := mkApp2 (mkConst ``Term.ctor) (mkNatLit ci.cidx) ts
+  let code := mkApp2 (mkConst ``Term.constructor) (mkNatLit ci.cidx) ts
   let cost ← mkAppM ``HAdd.hAdd #[← mkAppM ``HAdd.hAdd #[c, mkNatLit dataFs.size], mkNatLit 1]
   let ty := mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, code, ← mkAppM ``MachineEncoding.encodeValue #[e], cost]
   return some (code, cost, ← mkExpectedTypeHint pf ty)
@@ -941,7 +941,7 @@ partial def translateProj (ctx : Ctx) (ctorName : Name) (i : Nat) (s e : Expr) :
   let (t, c, p) ← translate ctx s
   let fs ← encList projs
   let hCtor ← mkExpectedTypeHint p
-    (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t, mkApp2 (mkConst ``MachineValue.ctor) (mkNatLit 0) fs, c])
+    (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t, mkApp2 (mkConst ``MachineValue.constructor) (mkNatLit 0) fs, c])
   let v ← mkAppM ``MachineEncoding.encodeValue #[e]
   let hi ← mkEqRefl (← mkAppM ``Option.some #[v])
   let pf := mkAppN (mkConst ``Runs.field) #[ctx.P, ctx.env, mkNatLit k, mkNatLit 0, t, fs, v, c,
@@ -1012,7 +1012,7 @@ partial def translateCasesCore (ctx : Ctx) (major : Expr) (bodyOf : Nat → Arra
           mkLambdaFVars #[z] (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t0, ← mkAppM ``MachineEncoding.encodeValue #[z], c0])
         let h0 ← mkEqNDRec rmotive p0 hx
         let h0 ← mkExpectedTypeHint h0
-          (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t0, mkApp2 (mkConst ``MachineValue.ctor) (mkNatLit j) fs, c0])
+          (mkAppN (mkConst ``Runs) #[ctx.P, ctx.env, t0, mkApp2 (mkConst ``MachineValue.constructor) (mkNatLit j) fs, c0])
         let ha ← mkEqRefl (← mkAppM ``Option.some #[alts[j]!])
         let pj := pfLams[j]!.beta (fields.push hx)
         let pjTy ← inferType pj
@@ -1289,7 +1289,7 @@ partial def closureOf (ctx : Ctx) (f : Expr) (arity : Nat) :
       if g == f then
         let hget ← mkEqRefl (← mkAppM ``Option.some #[v])
         let pv ← mkAppOptM ``Rule.rawVar #[ctx.P, ctx.env, mkNatLit i, v, hget]
-        return (mkApp (mkConst ``Term.var) (mkNatLit i), v, mkNatLit 1, pv, hf)
+        return (mkApp (mkConst ``Term.position) (mkNatLit i), v, mkNatLit 1, pv, hf)
   -- a lambda: lifted
   let fty ← inferType f
   forallBoundedTelescope fty arity fun ps _ ↦ do
@@ -1877,7 +1877,7 @@ elab "cost_enc " id:ident : command => Command.liftTermElabM do
             let dataFs ← fields.filterM fun f ↦ do return !(← isProp (← inferType f))
             let vs ← dataFs.foldrM (fun f l ↦ do mkAppM ``List.cons #[← mkAppM ``MachineEncoding.encodeValue #[f], l])
               (← mkAppOptM ``List.nil #[mkConst ``MachineValue])
-            mkLambdaFVars fields (mkApp2 (mkConst ``MachineValue.ctor) (mkNatLit j) vs)
+            mkLambdaFVars fields (mkApp2 (mkConst ``MachineValue.constructor) (mkNatLit j) vs)
           minors := minors.push minor
         let body := mkAppN (mkConst (mkCasesOnName T) (Level.one :: lvls)) (params ++ #[motive, x] ++ minors)
         mkLambdaFVars #[x] body

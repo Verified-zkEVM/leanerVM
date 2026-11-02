@@ -6674,45 +6674,45 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Completeness.probEvent_accept
 
-/-- info: 'Sphincs.Concrete.chainWalk_eq_succ' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Verification.chainWalk_eq_succ' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.chainWalk_eq_succ
+#print axioms Sphincs.Verification.chainWalk_eq_succ
 
-/-- info: 'Sphincs.Concrete.chainWalk_eq_zero' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Verification.chainWalk_eq_zero' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.chainWalk_eq_zero
+#print axioms Sphincs.Verification.chainWalk_eq_zero
 
-/-- info: 'Sphincs.Concrete.forestWalk_eq_succ' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Verification.forestWalk_eq_succ' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.forestWalk_eq_succ
+#print axioms Sphincs.Verification.forestWalk_eq_succ
 
-/-- info: 'Sphincs.Concrete.forestWalk_eq_zero' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Verification.forestWalk_eq_zero' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.forestWalk_eq_zero
+#print axioms Sphincs.Verification.forestWalk_eq_zero
 
-/-- info: 'Sphincs.Concrete.subFold_eq_succ' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Verification.subFold_eq_succ' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.subFold_eq_succ
+#print axioms Sphincs.Verification.subFold_eq_succ
 
-/-- info: 'Sphincs.Concrete.subFold_eq_zero' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Verification.subFold_eq_zero' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.subFold_eq_zero
+#print axioms Sphincs.Verification.subFold_eq_zero
 
-/-- info: 'Sphincs.Concrete.topFold_eq_succ' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Verification.topFold_eq_succ' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.topFold_eq_succ
+#print axioms Sphincs.Verification.topFold_eq_succ
 
-/-- info: 'Sphincs.Concrete.topFold_eq_zero' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Verification.topFold_eq_zero' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.topFold_eq_zero
+#print axioms Sphincs.Verification.topFold_eq_zero
 
-/-- info: 'Sphincs.Concrete.treeFold_eq_succ' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Verification.treeFold_eq_succ' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.treeFold_eq_succ
+#print axioms Sphincs.Verification.treeFold_eq_succ
 
-/-- info: 'Sphincs.Concrete.treeFold_eq_zero' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Verification.treeFold_eq_zero' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.treeFold_eq_zero
+#print axioms Sphincs.Verification.treeFold_eq_zero
 
 /-- info: 'SphincsLayered.Concrete.digestMarks_eq' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -12182,185 +12182,185 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms SphincsLayered.Cost.verification_permutations_le
 
-/-- info: 'Sphincs.Concrete.simulateQ_chainWalkWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_chainWalkWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_chainWalkWithHash
+#print axioms Sphincs.Verification.simulateQ_chainWalkWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_childLeafHashWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_childLeafHashWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_childLeafHashWithHash
+#print axioms Sphincs.Verification.simulateQ_childLeafHashWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_childRecoverWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_childRecoverWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_childRecoverWithHash
+#print axioms Sphincs.Verification.simulateQ_childRecoverWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_coordRecoverWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_coordRecoverWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_coordRecoverWithHash
+#print axioms Sphincs.Verification.simulateQ_coordRecoverWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_encodeWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_encodeWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_encodeWithHash
+#print axioms Sphincs.Verification.simulateQ_encodeWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_forestRecoverChainWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_forestRecoverChainWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_forestRecoverChainWithHash
+#print axioms Sphincs.Verification.simulateQ_forestRecoverChainWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_forestRecoverWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_forestRecoverWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_forestRecoverWithHash
+#print axioms Sphincs.Verification.simulateQ_forestRecoverWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_forestWalkWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_forestWalkWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_forestWalkWithHash
+#print axioms Sphincs.Verification.simulateQ_forestWalkWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_leafHashWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_leafHashWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_leafHashWithHash
+#print axioms Sphincs.Verification.simulateQ_leafHashWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_messageDigestCallWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_messageDigestCallWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_messageDigestCallWithHash
+#print axioms Sphincs.Verification.simulateQ_messageDigestCallWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_messageDigestWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_messageDigestWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_messageDigestWithHash
+#print axioms Sphincs.Verification.simulateQ_messageDigestWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_otsLeafWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_otsLeafWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_otsLeafWithHash
+#print axioms Sphincs.Verification.simulateQ_otsLeafWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_recoverChainWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_recoverChainWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_recoverChainWithHash
+#print axioms Sphincs.Verification.simulateQ_recoverChainWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_subFoldWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_subFoldWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_subFoldWithHash
+#print axioms Sphincs.Verification.simulateQ_subFoldWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_subNodeHashWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_subNodeHashWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_subNodeHashWithHash
+#print axioms Sphincs.Verification.simulateQ_subNodeHashWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_superHashWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_superHashWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_superHashWithHash
+#print axioms Sphincs.Verification.simulateQ_superHashWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_topFoldWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_topFoldWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_topFoldWithHash
+#print axioms Sphincs.Verification.simulateQ_topFoldWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_topNodeHashWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_topNodeHashWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_topNodeHashWithHash
+#print axioms Sphincs.Verification.simulateQ_topNodeHashWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_treeFoldWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_treeFoldWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_treeFoldWithHash
+#print axioms Sphincs.Verification.simulateQ_treeFoldWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_tweakableHashWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_tweakableHashWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_tweakableHashWithHash
+#print axioms Sphincs.Verification.simulateQ_tweakableHashWithHash
 
-/-- info: 'Sphincs.Concrete.simulateQ_verifyWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Verification.simulateQ_verifyWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Concrete.simulateQ_verifyWithHash
+#print axioms Sphincs.Verification.simulateQ_verifyWithHash
 
 /-- info: 'Sphincs.Lifetimes.leanSphincsStronglyUnforgeable_of_withHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Lifetimes.leanSphincsStronglyUnforgeable_of_withHash
 
-/-- info: 'Sphincs.Rpm.scheme_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.RandomPermutationModel.scheme_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Rpm.scheme_eq
+#print axioms Sphincs.RandomPermutationModel.scheme_eq
 
-/-- info: 'Sphincs.Seeded.simulateQ_childLeafWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_childLeafWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_childLeafWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_childLeafWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_coordOpenWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_coordOpenWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_coordOpenWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_coordOpenWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_forestKeyWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_forestKeyWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_forestKeyWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_forestKeyWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_forestOpenWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_forestOpenWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_forestOpenWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_forestOpenWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_forestSecretsWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_forestSecretsWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_forestSecretsWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_forestSecretsWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_keygenFromMasterWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_keygenFromMasterWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_keygenFromMasterWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_keygenFromMasterWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_keygenFromSeedWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_keygenFromSeedWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_keygenFromSeedWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_keygenFromSeedWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_oneTimePublicKeyWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_oneTimePublicKeyWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_oneTimePublicKeyWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_oneTimePublicKeyWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_otsSecretsWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_otsSecretsWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_otsSecretsWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_otsSecretsWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_otsSignFromWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_otsSignFromWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_otsSignFromWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_otsSignFromWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_otsSignWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_otsSignWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_otsSignWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_otsSignWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_signAttemptWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_signAttemptWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_signAttemptWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_signAttemptWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_signDigestLoopWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_signDigestLoopWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_signDigestLoopWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_signDigestLoopWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_signWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_signWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_signWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_signWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_spineNodeWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_spineNodeWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_spineNodeWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_spineNodeWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_subNodeWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_subNodeWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_subNodeWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_subNodeWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_superNodeWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_superNodeWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_superNodeWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_superNodeWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_surrogateWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_surrogateWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_surrogateWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_surrogateWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_topNodeWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_topNodeWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_topNodeWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_topNodeWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_treeNodeWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_treeNodeWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_treeNodeWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_treeNodeWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_treePathWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_treePathWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_treePathWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_treePathWithHash
 
-/-- info: 'Sphincs.Seeded.simulateQ_treeRootWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.KeyGenerationAndSigning.simulateQ_treeRootWithHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.simulateQ_treeRootWithHash
+#print axioms Sphincs.KeyGenerationAndSigning.simulateQ_treeRootWithHash
 
 /-- info: 'SphincsLayered.Completeness.run_lift_prob' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

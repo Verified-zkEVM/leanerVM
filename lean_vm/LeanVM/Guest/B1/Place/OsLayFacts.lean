@@ -208,7 +208,7 @@ theorem osOwnL_getD_rc (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) {i : ℕ
 theorem memL_readsAt {rd : Reader} {b : ℕ} {sizes : List ℕ} {own : List (List E)}
     (hf : List.Forall₂ (fun c s ↦ c.length ≤ s) own sizes) (hm : MemL rd (bufL b sizes own))
     {j : ℕ} (hj : j < sizes.length) :
-    ReadsAt rd (ofK (gpow ((bases b sizes).getD j 0))) (own.getD j []) := by
+    ReadsAt rd (ofK (addressOfIndex ((bases b sizes).getD j 0))) (own.getD j []) := by
   have e := os_bufL_getD (b := b) hf hj
   have hlen : j < (bufL b sizes own).length := by
     simp only [bufL, List.length_zip, os_length_bases, hf.length_eq, Nat.min_self]; exact hj
@@ -309,7 +309,8 @@ theorem osLk_memL {rd : Reader} {b : ℕ} {bp : ℕ → ℕ → E} {Lin : Layout
 
 
 theorem loadHolds_shift {rd : Reader} {B off k : ℕ} {v : E}
-    (h : LoadHolds rd (ofK (gpow B)) (off + k) v) : LoadHolds rd (ofK (gpow (B + off))) k v := by
+    (h : LoadHolds rd (ofK (addressOfIndex B)) (off + k) v) : LoadHolds rd (ofK (addressOfIndex (B +
+        off))) k v := by
   refine ⟨ofK_isInK _, ?_⟩
   rw [Main.addr_ofK, Nat.add_assoc]
   have := h.2

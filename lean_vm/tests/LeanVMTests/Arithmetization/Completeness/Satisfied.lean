@@ -22,7 +22,7 @@ open LeanVMTests.Arithmetization.Completeness.Fixture
 open LeanVMTests.Arithmetization.Completeness.Rows
 
 /-- The sentinel counter of a `2^11`-slot program, as a literal term, as in `Fixture`. -/
-local notation "d₀" => (gpow 2047 : K)
+local notation "d₀" => (addressOfIndex 2047 : K)
 
 /-! ## The `JUMP` constraints -/
 
@@ -60,9 +60,9 @@ theorem zero_image_not_satisfied (S : List Skel) :
     ¬ SatisfiedBy jumpProg badInput (skelWitness jumpProg badInput zeroImage S) := by
   intro h
   have hw := h.word0_eq
-  change (imageOf (imageData zeroImage)).2.read (gpow 0) = some badInput.word0 at hw
+  change (imageOf (imageData zeroImage)).2.read (addressOfIndex 0) = some badInput.word0 at hw
   rw [imageOf_imageData _ (by decide)] at hw
-  have h0 : zeroImage.read (gpow 0) = some 0 := read_lit zeroImage 0
+  have h0 : zeroImage.read (addressOfIndex 0) = some 0 := read_lit zeroImage 0
   have := h0.symm.trans hw
   have h1 := congrArg (fun e : Option E ↦ e.map (·.limb 1)) this
   simp [badInput, PublicInput.word0, limb_zero] at h1
@@ -71,17 +71,20 @@ theorem zero_image_not_satisfied (S : List Skel) :
 a state nobody pulls. `skelWitness_satisfiedBy` takes the balance as a hypothesis, and the run's
 rotation with the boundary is what discharges it (`Completeness.Theorem`). -/
 theorem lone_skeleton_state_unbalanced :
-    ¬ (#[1, 1] :: ([(⟨gpow 5, 1, .xor (gpow 0) (gpow 0) (gpow 0)⟩ : Skel)].map fun sk ↦
+    ¬ (#[1, 1] :: ([(⟨addressOfIndex 5, 1, .xor (addressOfIndex 0) (addressOfIndex 0)
+        (addressOfIndex 0)⟩ : Skel)].map fun sk ↦
         #[(nextOf zeroImage sk).pc, (nextOf zeroImage sk).fp])).Perm
-      (#[jumpProg.pcFinal, 1] :: ([(⟨gpow 5, 1, .xor (gpow 0) (gpow 0) (gpow 0)⟩ : Skel)].map
+      (#[jumpProg.pcFinal, 1] :: ([(⟨addressOfIndex 5, 1, .xor (addressOfIndex 0) (addressOfIndex 0)
+          (addressOfIndex 0)⟩ : Skel)].map
         fun sk ↦ #[sk.pc, sk.fp])) := by
   intro h
   have hmem : (#[1, 1] : Array K) ∈ (#[jumpProg.pcFinal, 1] ::
-      ([(⟨gpow 5, 1, .xor (gpow 0) (gpow 0) (gpow 0)⟩ : Skel)].map fun sk ↦ #[sk.pc, sk.fp])) :=
+      ([(⟨addressOfIndex 5, 1, .xor (addressOfIndex 0) (addressOfIndex 0) (addressOfIndex 0)⟩ :
+          Skel)].map fun sk ↦ #[sk.pc, sk.fp])) :=
     h.mem_iff.mp List.mem_cons_self
   simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hmem
   have hfin : jumpProg.pcFinal = d₀ := by
-    unfold Program.pcFinal
+    unfold LeanIsaProgram.pcFinal
     rw [show 2 ^ jumpProg.logSize - 1 = 2047 by decide]
   rcases hmem with h1 | h1
   · have h4 := congrArg Array.toList h1

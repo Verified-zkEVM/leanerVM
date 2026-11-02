@@ -54,7 +54,7 @@ theorem decode_eq_numbered {dl : K → Option ℕ} (hdl : DiscreteLogSpec dl) {�
       let memT := Extraction.Fast.powTable κ
       let rd := readTable memT L
       let states := statesTable memT (Extraction.Fast.powTable guestProgram.logSize) guestProgram L
-        replayFuel ⟨gpow 0, 1⟩
+        replayFuel ⟨addressOfIndex 0, 1⟩
       let σ := End.mainValWith rd
       ⟨B1.Main.decSeed σ, B1.Main.decStmt σ rd,
         decWitN σ rd (frameVFastN (preTest rd) states rd) (cursorLenWith dl)⟩ := by

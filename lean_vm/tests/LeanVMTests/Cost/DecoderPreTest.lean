@@ -20,7 +20,7 @@ def runOn (deps : List (ℕ × Term)) (i : ℕ) (vs : List MachineValue) : Optio
 
 /-- A small memory: the word at `g^i` is `g^(i+1)` (as `E`) for `i < 64`. -/
 def smallReader (a : K) : Option E :=
-  ((List.range 64).find? fun i ↦ a == gpow i).map fun i ↦ ofK (gpow (i + 1))
+  ((List.range 64).find? fun i ↦ a == addressOfIndex i).map fun i ↦ ofK (addressOfIndex (i + 1))
 cost_compile smallReaderC := smallReader
 
 /-- A table: function `2` checks cell `6` holds `g^7` and cell `3` holds `g^e`, `e < 10`; `3` that
@@ -45,8 +45,9 @@ def check (j : ℕ) (fp : K) : Bool :=
 #guard !preTestAt D smallTable genPows smallReader 6 1 && check 6 1
 #guard preTestAt D smallTable genPows smallReader 7 1 && check 7 1
 #guard !preTestAt D smallTable genPows smallReader 1 1 && check 1 1
-#guard preTestAt D smallTable genPows smallReader 2 (gpow 0) && check 2 (gpow 0)
-#guard !preTestAt D smallTable genPows smallReader 2 (gpow 1) && check 2 (gpow 1)
+#guard preTestAt D smallTable genPows smallReader 2 (addressOfIndex 0) && check 2 (addressOfIndex 0)
+#guard !preTestAt D smallTable genPows smallReader 2 (addressOfIndex 1) && check 2
+    (addressOfIndex 1)
 
 -- The powers table, compiled: `gen^(2^j)`, `j < 34`, by squarings.
 #guard runOn genPowsC.costDeps genPowsC.costIdx [] == some (encodeValue genPows)

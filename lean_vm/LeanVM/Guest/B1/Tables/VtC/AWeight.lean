@@ -71,7 +71,7 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 8 ≤ κ) {H : VtHonest} (
         (vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B) s)) = H.sizes ∧
       ((vtPre.filterMap Main.Stmt.allocSz).map Prod.fst).map
         (vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B)) =
-        (bases (fp + fs "verify_tables") H.sizes).map (fun b => ofK (gpow b)) ∧
+        (bases (fp + fs "verify_tables") H.sizes).map (fun b => ofK (addressOfIndex b)) ∧
       vtRets.map (vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B)) = H.retsH B := by
     intro fp rd hlow hL
     have hlow8 : LowDefB 8 rd := hlow.mono hκ

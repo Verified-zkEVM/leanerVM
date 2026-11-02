@@ -22,15 +22,15 @@ open LeanVM.Cost LeanVM.Extraction.Fast LeanVM.Parameters
 @[expose] public section
 
 instance : MachineEncoding Hits where
-  encodeValue | .none => .ctor 0 [] | .one x => .ctor 1 [encodeValue x] | .many => .ctor 2 []
+  encodeValue | .none => .constructor 0 [] | .one x => .constructor 1 [encodeValue x] | .many => .constructor 2 []
 
 instance {α β : Type} [Ord α] [MachineEncoding α] [MachineEncoding β] : MachineEncoding (Level α β) :=
-  ⟨fun l ↦ .ctor 0 [encodeValue l.weight, encodeValue l.entries]⟩
+  ⟨fun l ↦ .constructor 0 [encodeValue l.weight, encodeValue l.entries]⟩
 
 instance {α β : Type} [Ord α] [MachineEncoding α] [MachineEncoding β] : MachineEncoding (SortedMap α β) :=
-  ⟨fun m ↦ .ctor 0 [encodeValue m.levels]⟩
+  ⟨fun m ↦ .constructor 0 [encodeValue m.levels]⟩
 
-instance : MachineEncoding ReplayFast := ⟨fun τ ↦ .ctor 0 [encodeValue τ.fwd, encodeValue τ.inv, encodeValue τ.caps, encodeValue τ.paths]⟩
+instance : MachineEncoding ReplayFast := ⟨fun τ ↦ .constructor 0 [encodeValue τ.fwd, encodeValue τ.inv, encodeValue τ.caps, encodeValue τ.paths]⟩
 
 instance {R : Type} [Zero R] [MachineEncoding R] : MachineEncoding (CompPoly.CBivariate R) :=
   inferInstanceAs (MachineEncoding (CompPoly.CPolynomial (CompPoly.CPolynomial R)))
@@ -42,7 +42,7 @@ cost_enc CompPoly.PolynomialMatrix.RowChoice
 cost_enc CompPoly.GuruswamiSudan.LeeOSullivan.RowChoice
 cost_enc CompPoly.CBivariate.Monomial
 cost_enc LeanVM.Protocol.Compile.Sponge
-cost_enc LeanVM.Protocol.Compile.ProgState
+cost_enc LeanVM.Protocol.Compile.VerifierProgramState
 cost_enc LeanVM.Protocol.Verifier.Placement
 cost_enc LeanVM.Protocol.Verifier.Form
 cost_enc LeanVM.Protocol.Verifier.BusBlock
@@ -133,7 +133,7 @@ cost_rewrite keccakSlotOfLit
 
 open LeanVM.Semantics in
 /-- The opcodes' bus codes `g^0, …, g^5` as words. -/
-theorem opcodeCodeLit (o : Opcode) : Opcode.code o = K.ofLane (match o with
+theorem opcodeCodeLit (o : Opcode) : Opcode.busCode o = K.ofLane (match o with
     | .xor => 1 | .mulNative => 2 | .setConstant => 4 | .deref => 8 | .jump => 16
     | .keccak => 32) := by
   cases o <;> decide +kernel

@@ -21,7 +21,7 @@ open Concrete Seeded
 def encodeInput (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (message : ForestKey) (c : Nat) : HashInput :=
   tweakableHashInput parameter (.encoding lay tree leaf)
-    (rootsPayload message ++ bytesLE 4 (BitVec.ofNat counterBits c))
+    (rootsPayload message ++ littleEndianBytes 4 (BitVec.ofNat counterBits c))
 
 theorem encodeInput_inj (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
     (leaf : LeafIndex) (message : ForestKey) {c c' : Nat}

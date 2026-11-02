@@ -87,7 +87,7 @@ def smallPowBound : ℕ := 128
 /-- **`g^o`, read off the powers table `Pw`** at `34 + o` for `o < 128`, else by squaring
 (`gpowAt_genPows`: at `Pw = genPows` it is `gpow o`, on every input). -/
 def gpowAt (Pw : Array E) (o : ℕ) : K :=
-  if o < smallPowBound then (Pw.getD (B1.sizeBits + o) 0).limb 0 else gpow o
+  if o < smallPowBound then (Pw.getD (B1.sizeBits + o) 0).limb 0 else addressOfIndex o
 
 /-- A known word's value (`Sym.val`), the powers read off `Pw`. -/
 def symValAt (Pw : Array E) (fp : K) : Sym → E
@@ -191,13 +191,13 @@ theorem powsFrom_getD : ∀ (n : ℕ) (y : K) (o : ℕ), o < n →
 
 /-- **Entry `34 + o`, `o < 128`, of the powers table is `g^o`.** -/
 theorem genPows_getD_small {o : ℕ} (ho : o < smallPowBound) :
-    genPows.getD (B1.sizeBits + o) 0 = ofK (gpow o) := by
+    genPows.getD (B1.sizeBits + o) 0 = ofK (addressOfIndex o) := by
   rw [genPows, Array.getD_eq_getD_getElem?, List.getElem?_toArray, ← List.getD_eq_getElem?_getD,
     List.getD_append_right _ _ _ _ (by rw [length_squaresFrom]; omega), length_squaresFrom,
     Nat.add_sub_cancel_left, powsFrom_getD _ _ _ ho, one_mul]
 
 /-- **The power read off the powers table is `g^o`**, on every input. -/
-theorem gpowAt_genPows (o : ℕ) : gpowAt genPows o = gpow o := by
+theorem gpowAt_genPows (o : ℕ) : gpowAt genPows o = addressOfIndex o := by
   unfold gpowAt
   split_ifs with ho
   · rw [genPows_getD_small ho]; simp [limb_ofK]
@@ -211,7 +211,7 @@ theorem wordAt_genPows : wordAt genPows = wordWith := by
   simp [wordAt, wordWith, gpowAt_genPows]
 
 theorem envOne_eq (rd : Reader) (fp : K) (p : ℕ × Sym) :
-    envOne genPows rd fp p = decide (rd (fp * gpow p.1) = some (p.2.val fp)) := by
+    envOne genPows rd fp p = decide (rd (fp * addressOfIndex p.1) = some (p.2.val fp)) := by
   rw [envOne, gpowAt_genPows, symValAt_genPows]
   exact readIs_eq _ _
 
@@ -240,7 +240,7 @@ theorem twoPowScan_iff (w : ℕ) : ∀ (e m : ℕ), twoPowScan w e m = true ↔ 
 theorem gLanes_take : gLanes.take 34 = (List.range 34).map (2 ^ ·) := by decide +kernel
 
 /-- **The lane of `g^k` is `2^k`**, `k < 34`. -/
-theorem lane_gpow {k : ℕ} (hk : k < 34) : (gpow k).lane.toNat = 2 ^ k := by
+theorem lane_gpow {k : ℕ} (hk : k < 34) : (addressOfIndex k).lane.toNat = 2 ^ k := by
   have h : (gLanes.take 34)[k]? = some (2 ^ k) := by rw [gLanes_take]; simp [hk]
   rw [gLanes_eq] at h
   simp [hk] at h
@@ -249,7 +249,7 @@ theorem lane_gpow {k : ℕ} (hk : k < 34) : (gpow k).lane.toNat = 2 ^ k := by
 
 /-- The lanes' scan finds `x` among `g^e`, `e < n ≤ 34`. -/
 theorem twoPowScan_iff_gpow (x : K) {n : ℕ} (hn : n ≤ 34) :
-    twoPowScan x.lane.toNat 0 n = true ↔ ∃ e < n, gpow e = x := by
+    twoPowScan x.lane.toNat 0 n = true ↔ ∃ e < n, addressOfIndex e = x := by
   rw [twoPowScan_iff]
   refine exists_congr fun e ↦ and_congr_right fun he ↦ ?_
   rw [Nat.zero_add, ← lane_gpow (by omega), lane_toNat_inj]

@@ -29,7 +29,8 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem Ref.bind_refl {α β : Type} (p : Prog α) {f' f : α → Prog β} (hf : ∀ a, Ref (f' a) (f a)) :
+theorem Ref.bind_refl {α β : Type} (p : VerifierProgram α) {f' f : α → VerifierProgram β} (hf : ∀ a,
+    Ref (f' a) (f a)) :
     Ref (p.bind f') (p.bind f) := Ref.bind (Ref.refl p) hf
 
 /-- **`foldRoundsNZ` refines `foldRounds`.** -/
@@ -37,7 +38,7 @@ theorem foldRoundsNZ_ref : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
     Ref (foldRoundsNZ n s lf) (foldRoundsT n s lf)
   | 0, s, lf => Ref.refl _
   | n + 1, s, lf => by
-    simp only [foldRoundsNZ, foldRoundsT, Prog.bind_eq]
+    simp only [foldRoundsNZ, foldRoundsT, VerifierProgram.bind_eq]
     refine Ref.bind_refl _ fun c ↦ Ref.require _ (Ref.bind_refl _ fun q ↦ ?_)
     exact foldRoundsNZ_ref n _ _
 
@@ -46,7 +47,7 @@ theorem tailRoundsNZ_ref : ∀ (n : ℕ) (t : E) (quad : List E),
     Ref (tailRoundsNZ n t quad) (tailRoundsT n t quad)
   | 0, t, quad => Ref.refl _
   | n + 1, t, quad => by
-    simp only [tailRoundsNZ, tailRoundsT, Prog.bind_eq, Prog.pure_eq]
+    simp only [tailRoundsNZ, tailRoundsT, VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     refine Ref.bind_refl _ fun c ↦ Ref.require _ ?_
     by_cases hn : n = 0
     · simp only [hn, ↓reduceIte]; exact Ref.refl _
@@ -59,11 +60,11 @@ theorem whirLevelsOpenNZ_ref (logN lane : ℕ) : ∀ (index : ℕ) (levels : Lis
       (whirLevelsOpen logN lane index levels s)
   | _, [], _ => Ref.refl _
   | index, level :: rest, s => by
-    simp only [whirLevelsOpenNZ, whirLevelsOpen, Prog.bind_eq, Prog.pure_eq]
+    simp only [whirLevelsOpenNZ, whirLevelsOpen, VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     refine Ref.bind (foldRoundsNZ_ref _ _ _) fun p ↦ ?_
     obtain ⟨s1, lf⟩ := p
     rcases rest with _ | ⟨next, rest⟩
-    all_goals simp only [Prog.ret_bind]
+    all_goals simp only [VerifierProgram.ret_bind]
     all_goals repeat' (first
       | exact Ref.refl _
       | exact whirLevelsOpenNZ_ref logN lane (index + 1) _ _
@@ -74,7 +75,7 @@ theorem whirLevelsOpenNZ_ref (logN lane : ℕ) : ∀ (index : ℕ) (levels : Lis
 /-- **`whirOpenNZ` refines `whirOpen`.** -/
 theorem whirOpenNZ_ref (logN logInvRate : ℕ) (target : E) :
     Ref (whirOpenNZ logN logInvRate target) (whirOpen logN logInvRate target) := by
-  simp only [whirOpenNZ, whirOpen, Prog.bind_eq]
+  simp only [whirOpenNZ, whirOpen, VerifierProgram.bind_eq]
   exact Ref.bind_refl _ fun config ↦ Ref.bind_refl _ fun quad ↦ whirLevelsOpenNZ_ref _ _ _ _ _
 
 /-- The start of `open_stacked`'s run: the caller's sponge state, nothing waiting, the stack's

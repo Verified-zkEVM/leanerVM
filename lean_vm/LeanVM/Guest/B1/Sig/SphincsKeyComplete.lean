@@ -24,7 +24,7 @@ namespace LeanVM.Guest.B1.Sig
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier (eOfNat gen)
-open Sphincs Sphincs.Concrete
+open Sphincs Sphincs.Verification
 
 @[expose] public section
 
@@ -39,8 +39,9 @@ theorem sKey_eq {σ : Val} (hpre : SPre rd σ)
     {N17 N18 : Nat} (hN17 : N17 < 2 ^ 128) (hidx : sIdx σ = N18 % 2 ^ 26) (E1 E2 : Nat → E)
     (hpost : ∀ k < 8, CoordPost (E1 k) (E2 k) k (cSt k).1 (cSt k).2.1 (cSt k).2.2 (sH sig N17 N18 k) σ) :
     @forestRecoverWithHash Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-      (digestIndex (BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18)))
-      (digestMarks (BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18))) sig.forest =
+      (digestLeafIndex (BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18)))
+      (digestCoordinateSelections (BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18)))
+          sig.forestOpening =
       fun c => (sv (sT σ (2 * c.val)), sv (sT σ (2 * c.val + 1))) := by
   rw [forestRecover_id]
   funext c
@@ -57,7 +58,8 @@ theorem sKey_eq {σ : Val} (hpre : SPre rd σ)
     unfold sT
     rw [show sCs = sCoords 8 0 (cSt 0).1 (cSt 0).2.1 (cSt 0).2.2 from rfl, e, hp.2, Nat.zero_add]
   rw [t1, t2]
-  have hop : coordOpening σ c.val (cSt c.val).1 (cSt c.val).2.1 (cSt c.val).2.2 = sig.forest c := by
+  have hop : coordOpening σ c.val (cSt c.val).1 (cSt c.val).2.1 (cSt c.val).2.2 = sig.forestOpening
+      c := by
     rw [coordOpening_eq (dS_lt _ _) (dT_lt _ _) (dA_lt _ _) (dT_lt _ _) (dA_lt _ _) hP]
     congr 1
     exact Fin.ext (Nat.mod_eq_of_lt hc8)
@@ -79,9 +81,9 @@ theorem sKey_eq {σ : Val} (hpre : SPre rd σ)
 /-- **What verification reads fixes the root.** -/
 theorem SRoot_unique {pp : PublicParameter} {m : Sphincs.Message}
     {sig sig' : Sphincs.Signature} {r r' : Sphincs.Digest} (h : SRoot pp m sig r) (h' : SRoot pp m sig' r')
-    (hr : sig'.randomness = sig.randomness) (hf : sig'.forest = sig.forest)
+    (hr : sig'.randomizer = sig.randomizer) (hf : sig'.forestOpening = sig.forestOpening)
     (hc : sig'.counter = sig.counter) (hv : sig'.chainValues = sig.chainValues)
-    (hl : sig'.path = sig.path) : r' = r := by
+    (hl : sig'.authenticationPath = sig.authenticationPath) : r' = r := by
   obtain ⟨leaf, h1, h2⟩ := h
   obtain ⟨leaf', h1', h2'⟩ := h'
   rw [hr, hf, hc, hv] at h1'

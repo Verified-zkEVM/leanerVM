@@ -36,15 +36,15 @@ def Fall : List Item → Prop
   | .ins a :: its => a.Holds L fp ∧ Fall its
   | .fact _ :: its => Fall its
   | .branch oc od of _ :: its =>
-      (Atom.jump oc od of).Holds L fp ∧ L.read (fp * gpow oc) = some 0 ∧ Fall its
+      (Atom.jump oc od of).Holds L fp ∧ L.read (fp * addressOfIndex oc) = some 0 ∧ Fall its
 
 /-- **A branch is taken**: its cells hold words of `K`, its condition is not `0`. -/
 def Taken (oc od of : ℕ) : Prop :=
-  (Atom.jump oc od of).Holds L fp ∧ ∃ v, L.read (fp * gpow oc) = some v ∧ v ≠ 0
+  (Atom.jump oc od of).Holds L fp ∧ ∃ v, L.read (fp * addressOfIndex oc) = some v ∧ v ≠ 0
 
 /-- A counted run from `s` to `r` within the instructions of `its`, the exit `x`'s environment
 holding. -/
-def ToC (prog : Program) (s r : Registers K) (its : List Item) (x : Exit) : Prop :=
+def ToC (prog : LeanIsaProgram) (s r : Registers K) (its : List Item) (x : Exit) : Prop :=
   ∃ c, RunC prog L s r c ∧ (∀ op, c op ≤ itemOps its op) ∧ EnvHolds L fp x.env
 
 end Defs
@@ -74,7 +74,7 @@ end
 
 section Pass
 
-variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : Program} {entry len : ℕ}
+variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {F : Facts} {prog : LeanIsaProgram} {entry len : ℕ}
 
 theorem reachC_trans {s t u : Registers K} {l₁ l₂ : List Item} (h₁ : ReachC L prog s t l₁)
     (h₂ : ReachC L prog t u l₂) : ReachC L prog s u (l₁ ++ l₂) := by
@@ -93,19 +93,19 @@ theorem toC_after {s t r : Registers K} {l₁ l₂ : List Item} {x : Exit} (h₁
   exact Nat.add_le_add (hle₁ op) (hle op)
 
 /-- What an instruction's result gives along a path. -/
-def ResZ (L : MemoryImage κ) (fp : K) (prog : Program) (entry i : ℕ) : Res → Prop
+def ResZ (L : MemoryImage κ) (fp : K) (prog : LeanIsaProgram) (entry i : ℕ) : Res → Prop
   | .go its st =>
     (Fall L fp its → St.Holds L fp st ∧
-      ReachC L prog ⟨gpow (entry + i), fp⟩ ⟨gpow (entry + i + 1), fp⟩ its) ∧
+      ReachC L prog ⟨addressOfIndex (entry + i), fp⟩ ⟨addressOfIndex (entry + i + 1), fp⟩ its) ∧
     ∀ pre oc od of x post, its = pre ++ .branch oc od of x :: post → Fall L fp pre →
       Taken L fp oc od of → ∀ r, x.kind.Regs L fp entry r →
-        ToC L fp prog ⟨gpow (entry + i), fp⟩ r (pre ++ [.branch oc od of x]) x
+        ToC L fp prog ⟨addressOfIndex (entry + i), fp⟩ r (pre ++ [.branch oc od of x]) x
   | .stop its x => Fall L fp its → ∀ r, x.kind.Regs L fp entry r →
-      ToC L fp prog ⟨gpow (entry + i), fp⟩ r its x
+      ToC L fp prog ⟨addressOfIndex (entry + i), fp⟩ r its x
 
 /-- **One instruction along a path.** -/
-theorem stepI_z (hctx : Ctx F κ fp) {i : ℕ} {st : St} {ins : OInstr}
-    (hf : prog.fetch (gpow (entry + i)) = some ins.toInstr)
+theorem stepI_z (hctx : Ctx F κ fp) {i : ℕ} {st : St} {ins : OffsetInstruction}
+    (hf : prog.fetch (addressOfIndex (entry + i)) = some ins.toLeanIsaInstruction)
     (hpc : entry + i < 2 ^ prog.logSize - 1) (hst : St.Holds L fp st) :
     ResZ L fp prog entry i (stepI F entry len i st ins) := by
   cases hj : ins.isJump with
@@ -130,10 +130,11 @@ theorem stepI_z (hctx : Ctx F κ fp) {i : ℕ} {st : St} {ins : OInstr}
         intro a ha op
         rw [itemOps_cons, itemOps_nil, ha]
         exact Nat.le_add_right _ _
-      have hgo : ∀ {c d f : E} {r : Registers K}, L.read (fp * gpow oc) = some c →
-          L.read (fp * gpow od) = some d → L.read (fp * gpow of) = some f → IsInK c → IsInK d →
+      have hgo : ∀ {c d f : E} {r : Registers K}, L.read (fp * addressOfIndex oc) = some c →
+          L.read (fp * addressOfIndex od) = some d → L.read (fp * addressOfIndex of) = some f →
+              IsInK c → IsInK d →
           IsInK f → c ≠ 0 → (jumpExit F entry len i st od of).kind.Regs L fp entry r →
-          RunC prog L ⟨gpow (entry + i), fp⟩ r (fun op ↦ if op = .jump then 1 else 0) ∧
+          RunC prog L ⟨addressOfIndex (entry + i), fp⟩ r (fun op ↦ if op = .jump then 1 else 0) ∧
             EnvHolds L fp (jumpExit F entry len i st od of).env := by
         intro c d f r hc hd hf' hcK hdK hfK hc0 hr
         obtain ⟨hreg, -⟩ := jumpKind_holds (entry := entry) (len := len) (i := i) hctx.fpOne hst
@@ -142,9 +143,10 @@ theorem stepI_z (hctx : Ctx F κ fp) {i : ℕ} {st : St} {ins : OInstr}
         obtain rfl := Kind.regs_unique hr hreg
         exact ⟨runC_jump hf hpc ⟨c, d, f, hc, hd, hf', hcK, hdK, hfK, by rw [ite_eq_right hc0]⟩,
           hst.1⟩
-      have hnext : ∀ {d f : E}, L.read (fp * gpow oc) = some 0 → L.read (fp * gpow od) = some d →
-          L.read (fp * gpow of) = some f → IsInK d → IsInK f →
-          RunC prog L ⟨gpow (entry + i), fp⟩ ⟨gpow (entry + i + 1), fp⟩
+      have hnext : ∀ {d f : E}, L.read (fp * addressOfIndex oc) = some 0 → L.read (fp *
+          addressOfIndex od) = some d →
+          L.read (fp * addressOfIndex of) = some f → IsInK d → IsInK f →
+          RunC prog L ⟨addressOfIndex (entry + i), fp⟩ ⟨addressOfIndex (entry + i + 1), fp⟩
             (fun op ↦ if op = .jump then 1 else 0) := by
         intro d f hc hd hf' hdK hfK
         exact runC_jump hf hpc ⟨0, d, f, hc, hd, hf', (isInK_iff _).mpr ⟨0, ofK_zero.symm⟩, hdK,
@@ -180,26 +182,28 @@ theorem stepI_z (hctx : Ctx F κ fp) {i : ℕ} {st : St} {ins : OInstr}
             exfalso
             simp only [List.cons_append, List.cons.injEq] at he
             simp at he
-    | _ => simp [OInstr.isJump] at hj
+    | _ => simp [OffsetInstruction.isJump] at hj
 
 /-- A segment being walked, at offset `i`, along a path. -/
-def CurZ (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (c : Cur) (i : ℕ) : Prop :=
+def CurZ (L : MemoryImage κ) (fp : K) (prog : LeanIsaProgram) (entry : ℕ) (c : Cur) (i : ℕ) :
+    Prop :=
   EnvHolds L fp c.env →
     (Fall L fp c.acc.reverse → St.Holds L fp c.st ∧
-      ReachC L prog ⟨gpow (entry + c.start), fp⟩ ⟨gpow (entry + i), fp⟩ c.acc.reverse) ∧
+      ReachC L prog ⟨addressOfIndex (entry + c.start), fp⟩ ⟨addressOfIndex (entry + i), fp⟩
+          c.acc.reverse) ∧
     ∀ pre oc od of x post, c.acc.reverse = pre ++ .branch oc od of x :: post → Fall L fp pre →
       Taken L fp oc od of → ∀ r, x.kind.Regs L fp entry r →
-        ToC L fp prog ⟨gpow (entry + c.start), fp⟩ r (pre ++ [.branch oc od of x]) x
+        ToC L fp prog ⟨addressOfIndex (entry + c.start), fp⟩ r (pre ++ [.branch oc od of x]) x
 
 /-- **A segment along a path**: all its items holding, it reaches its exit's registers; leaving
 by a taken branch, that branch's, each with that exit's environment holding. -/
-def SegZ (L : MemoryImage κ) (fp : K) (prog : Program) (entry : ℕ) (s : Seg) : Prop :=
+def SegZ (L : MemoryImage κ) (fp : K) (prog : LeanIsaProgram) (entry : ℕ) (s : Seg) : Prop :=
   EnvHolds L fp s.env →
     (Fall L fp s.items → ∀ r, s.exit.kind.Regs L fp entry r →
-      ToC L fp prog ⟨gpow (entry + s.start), fp⟩ r s.items s.exit) ∧
+      ToC L fp prog ⟨addressOfIndex (entry + s.start), fp⟩ r s.items s.exit) ∧
     ∀ pre oc od of x post, s.items = pre ++ .branch oc od of x :: post → Fall L fp pre →
       Taken L fp oc od of → ∀ r, x.kind.Regs L fp entry r →
-        ToC L fp prog ⟨gpow (entry + s.start), fp⟩ r (pre ++ [.branch oc od of x]) x
+        ToC L fp prog ⟨addressOfIndex (entry + s.start), fp⟩ r (pre ++ [.branch oc od of x]) x
 
 theorem curZ_init (i : ℕ) (env : Trie Sym) : CurZ L fp prog entry (Cur.init i env) i := by
   intro he
@@ -230,8 +234,9 @@ theorem split_branch {A B pre post : List Item} {it : Item} (h : A ++ B = pre ++
       obtain ⟨rfl, rfl⟩ := hB
       exact Or.inl ⟨c', hA⟩
 
-theorem curZ_go (hctx : Ctx F κ fp) {c : Cur} {i : ℕ} {ins : OInstr}
-    (hc : CurZ L fp prog entry c i) (hf : prog.fetch (gpow (entry + i)) = some ins.toInstr)
+theorem curZ_go (hctx : Ctx F κ fp) {c : Cur} {i : ℕ} {ins : OffsetInstruction}
+    (hc : CurZ L fp prog entry c i) (hf : prog.fetch (addressOfIndex (entry + i)) = some
+        ins.toLeanIsaInstruction)
     (hpc : entry + i < 2 ^ prog.logSize - 1) {its : List Item} {st : St}
     (hs : stepI F entry len i c.st ins = .go its st) :
     CurZ L fp prog entry
@@ -259,8 +264,9 @@ theorem curZ_go (hctx : Ctx F κ fp) {c : Cur} {i : ℕ} {ins : OInstr}
       rw [List.append_assoc]
       exact toC_after h h'
 
-theorem segZ_stop (hctx : Ctx F κ fp) {c : Cur} {i : ℕ} {ins : OInstr}
-    (hc : CurZ L fp prog entry c i) (hf : prog.fetch (gpow (entry + i)) = some ins.toInstr)
+theorem segZ_stop (hctx : Ctx F κ fp) {c : Cur} {i : ℕ} {ins : OffsetInstruction}
+    (hc : CurZ L fp prog entry c i) (hf : prog.fetch (addressOfIndex (entry + i)) = some
+        ins.toLeanIsaInstruction)
     (hpc : entry + i < 2 ^ prog.logSize - 1) {its : List Item} {x : Exit}
     (hs : stepI F entry len i c.st ins = .stop its x) : SegZ L fp prog entry (c.close its x) := by
   intro he
@@ -320,7 +326,8 @@ theorem atJoinZ_good {i : ℕ} {cur : Option Cur} {pend : Pend} {out : List Seg}
   · exact ⟨hcur, hout⟩
 
 /-- **The walk produces segments complete along every path.** -/
-theorem passZ_good (hctx : Ctx F κ fp) : ∀ (code : List OInstr) (i : ℕ) (cur : Option Cur)
+theorem passZ_good (hctx : Ctx F κ fp) : ∀ (code : List OffsetInstruction) (i : ℕ) (cur :
+    Option Cur)
     (pend : Pend) (out : List Seg) (dead : ℕ), Fetches prog (entry + i) code →
     (∀ c, cur = some c → CurZ L fp prog entry c i) →
     (∀ s ∈ out, SegZ L fp prog entry s) →
@@ -369,9 +376,9 @@ theorem passZ_good (hctx : Ctx F κ fp) : ∀ (code : List OInstr) (i : ℕ) (cu
         · exact hout' s hs'
 
 /-- **Every segment of a window is complete along every path.** -/
-theorem execWin_z (hctx : Ctx F κ fp) {f : CompiledFn} (hf : Fetches prog f.entry f.code)
+theorem execWin_z (hctx : Ctx F κ fp) {f : CompiledFunction} (hf : Fetches prog f.entryPc f.code)
     {a b : ℕ} {env : List (ℕ × Sym)} {s : Seg} (hs : s ∈ (execWin F f a env b).segs) :
-    SegZ L fp prog f.entry s :=
+    SegZ L fp prog f.entryPc s :=
   passZ_good hctx _ a _ [] [] 0 (hf.window a (b - a))
     (fun _ h ↦ Option.some.inj h ▸ curZ_init a _) (fun _ h ↦ by cases h) s hs
 

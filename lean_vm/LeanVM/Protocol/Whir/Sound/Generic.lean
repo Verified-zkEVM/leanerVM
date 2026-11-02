@@ -27,7 +27,7 @@ predicate is kept by every move but a commitment, where the new word is appended
 
 namespace LeanVM.Protocol.Whir.Sound
 
-open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier Prog
+open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier VerifierProgram
 
 @[expose] public section
 

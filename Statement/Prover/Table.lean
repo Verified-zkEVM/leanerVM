@@ -73,7 +73,7 @@ def Cubic.add (a b : Cubic) : Cubic :=
 /-- `JUMP`'s constraints batched by `cp`, as monomials: `cp₀·(b + cond·w) + cp₁·cond·(b + 1)`
 (`_jump_constraints`, `jumpConstraints`). -/
 def jumpTerms (cp : List E) : List (List ℕ × E) :=
-  let c := colIdx jumpColumns
+  let c := columnIndexByName jumpColumns
   [([c "b"], cp.getD 0 0), ([c "v_cond", c "w"], cp.getD 0 0),
     ([c "v_cond", c "b"], cp.getD 1 0), ([c "v_cond"], cp.getD 1 0)]
 

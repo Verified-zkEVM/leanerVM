@@ -39,18 +39,18 @@ theorem rsRun_length : ∀ (rounds : List (E × E)) (claim : E) (sp : Sponge),
 
 /-- **The rounds read their messages**: a run of `k` rounds, then a continuation, on a stream
 reads `2k` scalars and runs the continuation on the rest. -/
-theorem runD_roundsProg_bind {β : Type} (f : List E × E → Prog β) :
+theorem runD_roundsProg_bind {β : Type} (f : List E × E → VerifierProgram β) :
     ∀ (k : ℕ) (claim : E) (sp : Sponge) (zs : List E) (os : List Opening)
-      (roots : List (Digest × ℕ × ℕ)) {r : β × ProgState},
+      (roots : List (Digest × ℕ × ℕ)) {r : β × VerifierProgramState},
       runD ((sumcheckRoundsProgram claim k).bind f) ⟨sp, zs, os, roots⟩ = some r →
         2 * k ≤ zs.length ∧ ∃ x sp', runD (f x) ⟨sp', zs.drop (2 * k), os, roots⟩ = some r
   | 0, claim, sp, zs, os, roots, r, h => ⟨by omega, _, _, h⟩
   | k + 1, claim, sp, zs, os, roots, r, h => by
     rcases zs with _ | ⟨g1, _ | ⟨gInf, zs⟩⟩
-    · exact absurd h (by simp [sumcheckRoundsProgram, Prog.readScalar, Prog.bind_eq, Prog.bind, runD, Compile.runWithHash])
-    · exact absurd h (by simp [sumcheckRoundsProgram, Prog.readScalar, Prog.bind_eq, Prog.bind, runD, Compile.runWithHash])
-    · simp only [sumcheckRoundsProgram, Prog.readScalar, Prog.sampleChallenge, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc,
-        Prog.ret_bind] at h
+    · exact absurd h (by simp [sumcheckRoundsProgram, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash])
+    · exact absurd h (by simp [sumcheckRoundsProgram, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash])
+    · simp only [sumcheckRoundsProgram, VerifierProgram.readScalar, VerifierProgram.sampleChallenge, VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
+        VerifierProgram.ret_bind] at h
       obtain ⟨hlen, x, sp', hx⟩ := runD_roundsProg_bind _ k _ _ zs os roots h
       have e : (g1 :: gInf :: zs).drop (2 * (k + 1)) = zs.drop (2 * k) := by
         rw [show 2 * (k + 1) = 2 * k + 2 by ring]
@@ -85,13 +85,14 @@ theorem runD_batchOf (check : DeferredClaim → Prop) {bytecode : List K}
 
 /-- The tail of the batching: the final value read, the check, acceptance. -/
 theorem runD_tail_accepts {c : E → Prop} {dc : DecidablePred c} {sp : Sponge} {zs : List E}
-    {s : ProgState} (h : runD (Prog.readScalar >>= fun bv ↦ @Prog.require (c bv) (dc bv) >>= fun _ ↦
-      (pure true : Prog Bool)) ⟨sp, zs, [], []⟩ = some (true, s)) (hs : s.stream = []) :
+    {s : VerifierProgramState} (h : runD (VerifierProgram.readScalar >>= fun bv ↦
+        @VerifierProgram.require (c bv) (dc bv) >>= fun _ ↦
+      (pure true : VerifierProgram Bool)) ⟨sp, zs, [], []⟩ = some (true, s)) (hs : s.stream = []) :
     zs.length = 1 := by
   rcases zs with _ | ⟨v, ws⟩
-  · exact absurd h (by simp [Prog.readScalar, Prog.bind_eq, Prog.bind, runD, Compile.runWithHash])
-  · have e := runD_bind_of_runsTo (f := fun bv ↦ @Prog.require (c bv) (dc bv) >>= fun _ ↦
-      (pure true : Prog Bool)) (runsTo_readE sp v) ws [] []
+  · exact absurd h (by simp [VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash])
+  · have e := runD_bind_of_runsTo (f := fun bv ↦ @VerifierProgram.require (c bv) (dc bv) >>= fun _ ↦
+      (pure true : VerifierProgram Bool)) (runsTo_readE sp v) ws [] []
     simp only [List.singleton_append] at e
     rw [e, @runD_require_true (c v) (dc v)] at h
     split_ifs at h with hc

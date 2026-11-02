@@ -348,9 +348,9 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)
     (hl : DeployedLimits s w)
     (hV : ∀ c (hc : c < w.children.length), CompleteAtD fs cert 16 "verify_sub" (hLmain fs fp seed s w)
-      [(digestScalars (statementDigest seed w.children[c].statement)).1,
-        (digestScalars (statementDigest seed w.children[c].statement)).2,
-        (digestScalars seed).1, (digestScalars seed).2, (hm fs fp seed s w).et1,
+      [(digestHalves (statementDigest seed w.children[c].statement)).1,
+        (digestHalves (statementDigest seed w.children[c].statement)).2,
+        (digestHalves seed).1, (digestHalves seed).2, (hm fs fp seed s w).et1,
         (hm fs fp seed s w).et2, (hm fs fp seed s w).a400 * gen ^ (24 * c)] (Returns []))
     {c : ℕ} (hc : c < w.children.length) :
     KidOkC fs cert (hLmain fs fp seed s w) (hP fs fp seed s w 8) (hP fs fp seed s w 4)
@@ -358,7 +358,7 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
       (hm fs fp seed s w).a77 (hm fs fp seed s w).a117
       (gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd)) (hm fs fp seed s w).a80
       (gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd))
-      (digestScalars seed).1 (digestScalars seed).2 (hm fs fp seed s w).et1 (hm fs fp seed s w).et2
+      (digestHalves seed).1 (digestHalves seed).2 (hm fs fp seed s w).et1 (hm fs fp seed s w).et2
       (hm fs fp seed s w).a400 c (hKid s w c) := by
   have hsh := kid_shapes hbl hrel
   have hb : bytecodeVars = 23 := rfl

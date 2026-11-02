@@ -135,9 +135,9 @@ theorem depth_ge {logMem : ℕ} {hs : List ℕ} (hl : hs.length = 6) :
 /-! ## The claimed bytecode -/
 
 theorem bytecodeAt_claimed (bytecode : List K) (pt : List E) (v : E) :
-    Tables.BytecodeAt (claimedValue ⟨pt, v⟩) bytecode pt v := by
+    Tables.BytecodeAt (claimedBytecodeValue ⟨pt, v⟩) bytecode pt v := by
   intro s
-  simp [claimedValue, Tables.tbRun, Prog.require, Compile.runWithHash]
+  simp [claimedBytecodeValue, Tables.tbRun, VerifierProgram.require, Compile.runWithHash]
   rfl
 
 /-! ## The stack's log -/

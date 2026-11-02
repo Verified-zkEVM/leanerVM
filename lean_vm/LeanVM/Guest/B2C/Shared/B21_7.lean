@@ -15,92 +15,92 @@ namespace LeanVM.Guest.B2C.Shared
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 44's cells. -/
-theorem lb21_44 : bitsFrom (nth locBits21 44 0) (nth (certOf 21).cells 44 []) = nth locBits21 45 0 := by
+theorem lb21_44 : bitsFrom (listElementOrDefault locBits21 44 0) (listElementOrDefault (certOf 21).cells 44 []) = listElementOrDefault locBits21 45 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 45's cells. -/
-theorem lb21_45 : bitsFrom (nth locBits21 45 0) (nth (certOf 21).cells 45 []) = nth locBits21 46 0 := by
+theorem lb21_45 : bitsFrom (listElementOrDefault locBits21 45 0) (listElementOrDefault (certOf 21).cells 45 []) = listElementOrDefault locBits21 46 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 46's cells. -/
-theorem lb21_46 : bitsFrom (nth locBits21 46 0) (nth (certOf 21).cells 46 []) = nth locBits21 47 0 := by
+theorem lb21_46 : bitsFrom (listElementOrDefault locBits21 46 0) (listElementOrDefault (certOf 21).cells 46 []) = listElementOrDefault locBits21 47 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 47's cells. -/
-theorem lb21_47 : bitsFrom (nth locBits21 47 0) (nth (certOf 21).cells 47 []) = nth locBits21 48 0 := by
+theorem lb21_47 : bitsFrom (listElementOrDefault locBits21 47 0) (listElementOrDefault (certOf 21).cells 47 []) = listElementOrDefault locBits21 48 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 48's cells. -/
-theorem lb21_48 : bitsFrom (nth locBits21 48 0) (nth (certOf 21).cells 48 []) = nth locBits21 49 0 := by
+theorem lb21_48 : bitsFrom (listElementOrDefault locBits21 48 0) (listElementOrDefault (certOf 21).cells 48 []) = listElementOrDefault locBits21 49 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 49's cells. -/
-theorem lb21_49 : bitsFrom (nth locBits21 49 0) (nth (certOf 21).cells 49 []) = nth locBits21 50 0 := by
+theorem lb21_49 : bitsFrom (listElementOrDefault locBits21 49 0) (listElementOrDefault (certOf 21).cells 49 []) = listElementOrDefault locBits21 50 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 50's cells. -/
-theorem lb21_50 : bitsFrom (nth locBits21 50 0) (nth (certOf 21).cells 50 []) = nth locBits21 51 0 := by
+theorem lb21_50 : bitsFrom (listElementOrDefault locBits21 50 0) (listElementOrDefault (certOf 21).cells 50 []) = listElementOrDefault locBits21 51 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 51's cells. -/
-theorem lb21_51 : bitsFrom (nth locBits21 51 0) (nth (certOf 21).cells 51 []) = nth locBits21 52 0 := by
+theorem lb21_51 : bitsFrom (listElementOrDefault locBits21 51 0) (listElementOrDefault (certOf 21).cells 51 []) = listElementOrDefault locBits21 52 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 52's cells. -/
-theorem lb21_52 : bitsFrom (nth locBits21 52 0) (nth (certOf 21).cells 52 []) = nth locBits21 53 0 := by
+theorem lb21_52 : bitsFrom (listElementOrDefault locBits21 52 0) (listElementOrDefault (certOf 21).cells 52 []) = listElementOrDefault locBits21 53 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 53's cells. -/
-theorem lb21_53 : bitsFrom (nth locBits21 53 0) (nth (certOf 21).cells 53 []) = nth locBits21 54 0 := by
+theorem lb21_53 : bitsFrom (listElementOrDefault locBits21 53 0) (listElementOrDefault (certOf 21).cells 53 []) = listElementOrDefault locBits21 54 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 54's cells. -/
-theorem lb21_54 : bitsFrom (nth locBits21 54 0) (nth (certOf 21).cells 54 []) = nth locBits21 55 0 := by
+theorem lb21_54 : bitsFrom (listElementOrDefault locBits21 54 0) (listElementOrDefault (certOf 21).cells 54 []) = listElementOrDefault locBits21 55 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 55's cells. -/
-theorem lb21_55 : bitsFrom (nth locBits21 55 0) (nth (certOf 21).cells 55 []) = nth locBits21 56 0 := by
+theorem lb21_55 : bitsFrom (listElementOrDefault locBits21 55 0) (listElementOrDefault (certOf 21).cells 55 []) = listElementOrDefault locBits21 56 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 56's cells. -/
-theorem lb21_56 : bitsFrom (nth locBits21 56 0) (nth (certOf 21).cells 56 []) = nth locBits21 57 0 := by
+theorem lb21_56 : bitsFrom (listElementOrDefault locBits21 56 0) (listElementOrDefault (certOf 21).cells 56 []) = listElementOrDefault locBits21 57 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 57's cells. -/
-theorem lb21_57 : bitsFrom (nth locBits21 57 0) (nth (certOf 21).cells 57 []) = nth locBits21 58 0 := by
+theorem lb21_57 : bitsFrom (listElementOrDefault locBits21 57 0) (listElementOrDefault (certOf 21).cells 57 []) = listElementOrDefault locBits21 58 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 58's cells. -/
-theorem lb21_58 : bitsFrom (nth locBits21 58 0) (nth (certOf 21).cells 58 []) = nth locBits21 59 0 := by
+theorem lb21_58 : bitsFrom (listElementOrDefault locBits21 58 0) (listElementOrDefault (certOf 21).cells 58 []) = listElementOrDefault locBits21 59 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 59's cells. -/
-theorem lb21_59 : bitsFrom (nth locBits21 59 0) (nth (certOf 21).cells 59 []) = nth locBits21 60 0 := by
+theorem lb21_59 : bitsFrom (listElementOrDefault locBits21 59 0) (listElementOrDefault (certOf 21).cells 59 []) = listElementOrDefault locBits21 60 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 60's cells. -/
-theorem lb21_60 : bitsFrom (nth locBits21 60 0) (nth (certOf 21).cells 60 []) = nth locBits21 61 0 := by
+theorem lb21_60 : bitsFrom (listElementOrDefault locBits21 60 0) (listElementOrDefault (certOf 21).cells 60 []) = listElementOrDefault locBits21 61 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 61's cells. -/
-theorem lb21_61 : bitsFrom (nth locBits21 61 0) (nth (certOf 21).cells 61 []) = nth locBits21 62 0 := by
+theorem lb21_61 : bitsFrom (listElementOrDefault locBits21 61 0) (listElementOrDefault (certOf 21).cells 61 []) = listElementOrDefault locBits21 62 0 := by
   decide +kernel
 
 end

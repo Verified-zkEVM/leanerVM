@@ -85,7 +85,7 @@ theorem gen4 (s : ℕ) : gen ^ s * gen ^ s * (gen ^ s * gen ^ s) = gen ^ (4 * s)
   simp only [← pow_add]; congr 1; ring
 
 theorem low_read {rd : Reader} (hl : LowDef 16 rd) {e : ℕ} (he : e < 2 ^ 16) :
-    LoadHolds rd (gen ^ e) 0 ((rd (gpow e)).getD 0) := by
+    LoadHolds rd (gen ^ e) 0 ((rd (addressOfIndex e)).getD 0) := by
   rw [gen_pow_eq_ofK]; exact B1.loadHolds_low hl he
 
 theorem guard_taken {i n : ℕ} (hn : n < 2 ^ 34) (hi : i + 1 ≤ n) :
@@ -100,7 +100,8 @@ theorem guard_taken {i n : ℕ} (hn : n < 2 ^ 34) (hi : i + 1 ≤ n) :
 /-- `__loop2`'s valuation at the counter `g^i`. -/
 noncomputable def l3σ (rd : Reader) (i nrx X cv tb s : ℕ) : Val :=
   Val.ofArgs [gen ^ i, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb, gen ^ s, ginvW, gen ^ X * ginvW,
-    gen ^ (X - 1 - s), (rd (gpow s)).getD 0, (rd (gpow (X - 1 - s))).getD 0, gen ^ cv * gen ^ s,
+    gen ^ (X - 1 - s), (rd (addressOfIndex s)).getD 0, (rd (addressOfIndex (X - 1 - s))).getD 0, gen
+        ^ cv * gen ^ s,
     gen ^ s * gen ^ s, gen ^ s * gen ^ s * (gen ^ s * gen ^ s),
     gen ^ tb * (gen ^ s * gen ^ s * (gen ^ s * gen ^ s)), word 2 0 0, gen ^ i * word 2 0 0,
     gen ^ i * word 2 0 0 + gen ^ nrx, word 2 0 0, gen ^ i * word 2 0 0]
@@ -142,7 +143,7 @@ theorem rawX_relIn (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ}
         simp only [List.map_cons, List.map_nil, List.mem_singleton] at hA
         subst hA
         refine ⟨cv + s, ?_, D.regCover i (by omega)⟩
-        show (gen ^ cv * gen ^ s).limb 0 * gpow 0 = _
+        show (gen ^ cv * gen ^ s).limb 0 * addressOfIndex 0 = _
         rw [← pow_add, limb0_gen_pow_mul]; rfl
       · rw [hpc, show l3Pre.filterMap Main.Stmt.callS = [(none, "verify_lean_xmss", [.n 14], []),
           (some (.n 17), "__loop2", [.n 19, .n 1, .n 2, .n 3, .n 4], [])] from rfl] at hcm
@@ -181,8 +182,8 @@ theorem rawX_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
 /-- `__loop3`'s valuation at the counter `g^j`. -/
 noncomputable def l4σ (rd : Reader) (j nrs Y cv X nrx tb bb s : ℕ) : Val :=
   Val.ofArgs [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ cv, gen ^ X, gen ^ nrx, gen ^ tb, gen ^ bb,
-    gen ^ s, ginvW, gen ^ Y * ginvW, gen ^ (Y - 1 - s), (rd (gpow s)).getD 0,
-    (rd (gpow (Y - 1 - s))).getD 0, gen ^ nrx * gen ^ j, gen ^ X * gen ^ s,
+    gen ^ s, ginvW, gen ^ Y * ginvW, gen ^ (Y - 1 - s), (rd (addressOfIndex s)).getD 0,
+    (rd (addressOfIndex (Y - 1 - s))).getD 0, gen ^ nrx * gen ^ j, gen ^ X * gen ^ s,
     gen ^ cv * (gen ^ X * gen ^ s), gen ^ s * gen ^ s, gen ^ s * gen ^ s * (gen ^ s * gen ^ s),
     gen ^ tb * (gen ^ s * gen ^ s * (gen ^ s * gen ^ s)), word 2 0 0, gen ^ j * word 2 0 0,
     gen ^ j * word 2 0 0 + gen ^ nrs, word 2 0 0, gen ^ j * word 2 0 0]
@@ -227,7 +228,7 @@ theorem rawS_relIn (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec)
         simp only [List.map_cons, List.map_nil, List.mem_singleton] at hA
         subst hA
         refine ⟨cv + (X + s), ?_, D.regCover j (by omega)⟩
-        show (gen ^ cv * (gen ^ X * gen ^ s)).limb 0 * gpow 0 = _
+        show (gen ^ cv * (gen ^ X * gen ^ s)).limb 0 * addressOfIndex 0 = _
         rw [← pow_add, ← pow_add, limb0_gen_pow_mul]; rfl
       · rw [hpc, show l4Pre.filterMap Main.Stmt.callS =
           [(none, "verify_sig_lean_sphincs", [.n 19, .n 7], []),

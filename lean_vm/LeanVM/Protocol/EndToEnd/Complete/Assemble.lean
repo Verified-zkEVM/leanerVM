@@ -67,11 +67,11 @@ structure Phases where
 
 /-- **The phases are honest** for the stack `q`: each follows its sub-program of the verifier
 program, at the verifier's layout, to true data. -/
-structure Phases.Honest (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+structure Phases.Honest (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
     (P : Phases) : Prop where
   /-- The bus phase ends in a true result. -/
   bus : ∀ cs, Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ BusGood prog s q b) P.bus
-    (verifyBusBalance computedValue (verifierLayout prog s)) cs
+    (verifyBusBalance computedBytecodeValue (verifierLayout prog s)) cs
   /-- The table sumcheck, from a true bus result, ends in true claims, its claims on the output
   lanes the honest ones. -/
   table : ∀ bus, BusGood prog s q bus → ∀ cs,
@@ -95,14 +95,15 @@ structure Phases.Honest (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog
       (P.ring r.1 r.2) (ringSwitch r.1 r.2) cs
 
 /-- The claims the opening receives from the honest run. -/
-def openingClaims (prog : Program) (s : Sizes) (rs : E × (List E → E))
+def openingClaims (prog : LeanIsaProgram) (s : Sizes) (rs : E × (List E → E))
     (claims : List Verifier.ColumnClaim) : List StackClaim :=
   ringSwitchClaim (verifierLayout prog s) rs.1 rs.2 ::
     claims.map (·.stackClaim (verifierLayout prog s))
 
 /-- **The honest run of `verify_execution`**: announce, commit, then the phases in order, then
 the stacked opening of every claim the run accumulated. -/
-noncomputable def honestRun (prog : Program) (s : Sizes) (ρ : ℕ) (q : Column (leanIsaμ prog s))
+noncomputable def honestRun (prog : LeanIsaProgram) (s : Sizes) (ρ : ℕ) (q : Column (leanIsaμ
+    prog s))
     (P : Phases) : Script Unit :=
   (Script.sendList (announce s ρ)).bind fun _ ↦
   (Script.commitS (stackWord (leanIsaμ prog s) q)).bind fun _ ↦
@@ -117,14 +118,15 @@ noncomputable def honestRun (prog : Program) (s : Sizes) (ρ : ℕ) (q : Column 
 rate, a stack satisfying `M3Holds` of the leanISA instance and honest phases, the honest run
 follows the verifier program from no commitment: every `require` passes, whatever the
 challenges. -/
-theorem follows_verifyExecution {prog : Program} {s : Sizes} {input : PublicInput} {ρ : ℕ}
+theorem follows_verifyExecution {prog : LeanIsaProgram} {s : Sizes} {input : PublicInput} {ρ : ℕ}
     {q : Column (leanIsaμ prog s)} (hs : s.Admissible prog) (hρ : validRate ρ)
     (hq : M3Holds (inst prog s) input q) (P : Phases) (hP : P.Honest prog s q) :
     Follows (fun _ _ _ ↦ True) (honestRun prog s ρ q P)
-      (verifyExecutionClaims computedValue (bytecodeWords prog) (publicDigest input)) [] := by
+      (verifyExecutionClaims computedBytecodeValue (bytecodeWords prog) (publicInputDigest input))
+          [] := by
   have hadm := whirAdmissible prog hs hρ
   unfold verifyExecutionClaims honestRun
-  simp only [Prog.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   refine Follows.bind (fun cs₁ _ b hb ↦ ?_) _ _ _ (follows_readSizes prog hs hρ [])
   obtain ⟨rfl, rfl⟩ := hb
   simp only [stackLog_verifierLayout]
@@ -159,33 +161,34 @@ theorem follows_verifyExecution {prog : Program} {s : Sizes} {input : PublicInpu
 /-! ## The whole program -/
 
 /-- The honest prover of the whole verifier program: the honest run, then accept. -/
-noncomputable def honestProver (prog : Program) (s : Sizes) (ρ : ℕ) (q : Column (leanIsaμ prog s))
+noncomputable def honestProver (prog : LeanIsaProgram) (s : Sizes) (ρ : ℕ) (q : Column (leanIsaμ
+    prog s))
     (P : Phases) : Script Unit :=
   honestRun prog s ρ q P >>= fun _ ↦ Script.ret ()
 
 /-- The honest strategy: the replay of the honest prover from the empty history. -/
-noncomputable def honestStrategy (prog : Program) (s : Sizes) (ρ : ℕ)
+noncomputable def honestStrategy (prog : LeanIsaProgram) (s : Sizes) (ρ : ℕ)
     (q : Column (leanIsaμ prog s)) (P : Phases) : Strategy :=
   Strategy.ofScript (honestProver prog s ρ q P) 0
 
 /-- The honest prover follows `leanVmProgram` to `true`. -/
-theorem follows_leanVmProgram {prog : Program} {s : Sizes} {input : PublicInput} {ρ : ℕ}
+theorem follows_leanVmProgram {prog : LeanIsaProgram} {s : Sizes} {input : PublicInput} {ρ : ℕ}
     {q : Column (leanIsaμ prog s)} (hs : s.Admissible prog) (hρ : validRate ρ)
     (hq : M3Holds (inst prog s) input q) (P : Phases) (hP : P.Honest prog s q) :
     Follows (fun _ _ b ↦ b = true) (honestProver prog s ρ q P)
-      (leanVmProgram (bytecodeWords prog) (publicDigest input)) [] := by
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) [] := by
   rw [leanVmProgram_eq]
   exact Follows.bind_of (follows_verifyExecution hs hρ hq P hP) fun _ _ _ _ ↦ rfl
 
 /-- **The honest strategy wins every interactive run** of the verifier program, with
 well-shaped words, from honest phases. -/
-theorem runI_leanVmProgram_of {prog : Program} {s : Sizes} {input : PublicInput} {ρ : ℕ}
+theorem runI_leanVmProgram_of {prog : LeanIsaProgram} {s : Sizes} {input : PublicInput} {ρ : ℕ}
     {q : Column (leanIsaμ prog s)} (hs : s.Admissible prog) (hρ : validRate ρ)
     (hq : M3Holds (inst prog s) input q) (P : Phases) (hP : P.Honest prog s q)
     (chal : List Ev → E) :
-    runI (leanVmProgram (bytecodeWords prog) (publicDigest input))
+    runI (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
         (honestStrategy prog s ρ q P) chal = some true ∧
-      shapedI (leanVmProgram (bytecodeWords prog) (publicDigest input))
+      shapedI (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
         (honestStrategy prog s ρ q P) chal := by
   obtain ⟨⟨b, hb, _, _, rfl⟩, hsh⟩ := runFrom_of_follows' (h₀ := [])
     (honestStrategy prog s ρ q P) chal (ofScript_agrees _ []) (follows_leanVmProgram hs hρ hq P hP)

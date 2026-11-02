@@ -29,7 +29,8 @@ open LeanVM.Guest.Check LeanVM.Guest.Memory
 @[expose] public section
 
 /-- The function's entry registers. -/
-noncomputable def entryRegs (j fp : ℕ) : Registers K := ⟨gpow (fnOf j).entry, gpow fp⟩
+noncomputable def entryRegs (j fp : ℕ) : Registers K := ⟨addressOfIndex (fnOf j).entryPc,
+    addressOfIndex fp⟩
 
 /-- Where part `k` of window `i` starts in the body. -/
 noncomputable def partPos (j i k : ℕ) : ℕ := ((certOf j).cutAt i).start + partS j i k
@@ -48,18 +49,18 @@ run is at the part's start within its counts and the callees' before it. -/
 def PartReach {κ : ℕ} (L : MemoryImage κ) (j fp : ℕ) (σ : Val) (es : List Ev) (vs : List V)
     (ck : List (Opcode → ℕ)) (i k : ℕ) : Prop :=
   ∃ ebef erest xc, walk σ ((coreOf j).body.drop (partPos j i k)) = .ret erest vs ∧ es = ebef ++ erest ∧
-    xc + costW (nth Data.cplArms j []) σ ((coreOf j).body.drop (partPos j i k)) =
-      costW (nth Data.cplArms j []) σ (coreOf j).body ∧
+    xc + costW (listElementOrDefault Data.cplArms j []) σ ((coreOf j).body.drop (partPos j i k)) =
+      costW (listElementOrDefault Data.cplArms j []) σ (coreOf j).body ∧
     PartArr L j fp ck i k (calls ebef).length xc
 
 /-- What `CplRun` concludes of one path. -/
 def CplGoal {κ : ℕ} (L : MemoryImage κ) (j fp : ℕ) (σ : Val) (vs : List V) (ck : List (Opcode → ℕ)) :
     Prop :=
-  ∃ (r : Registers K) (c : Opcode → ℕ), (if j = 1 then r = Registers.final guestProgram else retRegs L (gpow fp) = some r) ∧
-    RunC guestProgram L ⟨gpow (fnOf j).entry, gpow fp⟩ r c ∧
+  ∃ (r : Registers K) (c : Opcode → ℕ), (if j = 1 then r = Registers.final guestProgram else retRegs L (addressOfIndex fp) = some r) ∧
+    RunC guestProgram L ⟨addressOfIndex (fnOf j).entryPc, addressOfIndex fp⟩ r c ∧
     (∀ op, c op ≤ pathCount j σ op + (ck.map (· op)).sum) ∧
     ∀ k (hk : k < vs.length),
-      L.read (gpow (fp + (2 + (coreOf j).params.length + k))) = some (σ vs[k])
+      L.read (addressOfIndex (fp + (2 + (coreOf j).params.length + k))) = some (σ vs[k])
 
 /-! ## Pieces -/
 
@@ -268,7 +269,7 @@ theorem arr_win (F : FnH L j fp σ es vs kfps hdr ck) {i k : ℕ} (hi : i < (cer
   obtain ⟨s0, hs0, -, hsub0⟩ := hc2.2.2.2.1
   have hwJ : wJW j i = ((certOf j).cutAt (i + 1)).J := by simp only [wJW, hb, Bool.cond_true]
   have hwenv : wenvW j i = envOf ((certOf j).cutAt (i + 1)).env := by simp only [wenvW, hb, Bool.cond_true]
-  have hE : EnvHolds L (gpow fp) (envOf ((certOf j).cutAt (i + 1)).env) := by
+  have hE : EnvHolds L (addressOfIndex fp) (envOf ((certOf j).cutAt (i + 1)).env) := by
     cases hg : getF (index (segsW j i)) ((certOf j).cutAt (i + 1)).J with
     | none =>
       rw [← hwenv]
@@ -293,7 +294,7 @@ theorem reach_zero (F : FnH L j fp σ es vs kfps hdr ck) : PartReach L j fp σ e
   simp only [winOkC, Bool.and_eq_true, Nat.beq_refl, Bool.cond_true] at hw0
   have henv := hw0.2.2
   have hX := cxOk F.frame F.pows (index (segsW j 0)) (clocW (certOf j) 0) (nvOf (partStmts j 0 0) 0) none
-  have hE : EnvHolds L (gpow fp) (envOf (certOf j).facts.env) := by
+  have hE : EnvHolds L (addressOfIndex fp) (envOf (certOf j).facts.env) := by
     refine envOf_holds fun p hp ↦ ?_
     have := List.all_eq_true.mp henv p hp
     simp only [Bool.and_eq_true, decide_eq_true_eq] at this
@@ -356,8 +357,8 @@ theorem part_mid (F : FnH L j fp σ es vs kfps hdr ck)
     (hi : i ≤ (certOf j).cuts.length) (hk : k < nParts j i) (hr : PartReach L j fp σ es vs ck i k)
     (hnr : Stmt.noRetList (partStmts j i k) = true) :
     ∃ ebef erest xc, walk σ ((coreOf j).body.drop (nextPos j i k)) = .ret erest vs ∧ es = ebef ++ erest ∧
-      xc + costW (nth Data.cplArms j []) σ ((coreOf j).body.drop (nextPos j i k)) =
-        costW (nth Data.cplArms j []) σ (coreOf j).body ∧
+      xc + costW (listElementOrDefault Data.cplArms j []) σ ((coreOf j).body.drop (nextPos j i k)) =
+        costW (listElementOrDefault Data.cplArms j []) σ (coreOf j).body ∧
       ((∃ J c u, cplRes j i k = .join J c u ∧
         Arr L fp (Xp j i k) (wJW j i) (wenvW j i) ck (entryRegs j fp) J c (calls ebef).length xc) ∨
        (∃ J m c u, cplRes j i k = .mid J m c u ∧
@@ -444,7 +445,7 @@ theorem part_last (F : FnH L j fp σ es vs kfps hdr ck)
   · have h1 := hcr op
     have h2 := ksum_le_sum ck (calls (ebef ++ erest)).length op
     have h3 : (xc + costW (Xp j i k).acs σ (partStmts j i k)) op =
-        costW (nth Data.cplArms j []) σ (coreOf j).body op := congrFun hxc op
+        costW (listElementOrDefault Data.cplArms j []) σ (coreOf j).body op := congrFun hxc op
     rw [pmax_get j i k op, h3] at h1
     unfold pathCount
     omega

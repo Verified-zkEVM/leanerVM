@@ -69,7 +69,7 @@ theorem vs_push_ptr (hl : args.length = 7) {logMem : ℕ} {hs : List ℕ} (hsl :
 /-- **Every load reads the caller's words or the own buffers.** -/
 theorem vs_loads {σ : Val} {bs : List ℕ} {own Lin : Main.Layout} {ownW : List (List E)}
     (hown : ∀ k < 16, (bs.getD k 0, ownW.getD k []) ∈ own)
-    (hptr : ∀ k < 16, σ (.n (vsAllocVars.getD k 0)) = ofK (gpow (bs.getD k 0)))
+    (hptr : ∀ k < 16, σ (.n (vsAllocVars.getD k 0)) = ofK (addressOfIndex (bs.getD k 0)))
     (hlen : 165 ≤ (ownW.getD 0 []).length ∧ 10 ≤ (ownW.getD 2 []).length ∧
       6 ≤ (ownW.getD 3 []).length ∧ 7 ≤ (ownW.getD 4 []).length ∧ 8 ≤ (ownW.getD 5 []).length ∧
       153 ≤ (ownW.getD 6 []).length ∧ 19 ≤ (ownW.getD 7 []).length ∧
@@ -77,17 +77,18 @@ theorem vs_loads {σ : Val} {bs : List ℕ} {own Lin : Main.Layout} {ownW : List
       6 ≤ (ownW.getD 13 []).length ∧ 64 ≤ (ownW.getD 14 []).length ∧
       165 ≤ (ownW.getD 15 []).length)
     {outE sqE : ℕ} {cells : List E} (houtL : (outE, cells) ∈ Lin) (hcl : 24 ≤ cells.length)
-    (h6 : σ (.n 6) = ofK (gpow outE))
+    (h6 : σ (.n 6) = ofK (addressOfIndex outE))
     (hsqL : (sqE, Tables.gSquaresList) ∈ Lin)
-    (hpush : ∀ b < 54, ∃ κ < 34, σ (.n (vsPushPtr b)) = ofK (gpow (sqE + κ))) {X : ℕ → Prop} :
-    ∀ q ∈ vsCPre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * Parameters.gpow q.2 = Parameters.gpow i ∧
+    (hpush : ∀ b < 54, ∃ κ < 34, σ (.n (vsPushPtr b)) = ofK (addressOfIndex (sqE + κ))) {X : ℕ →
+        Prop} :
+    ∀ q ∈ vsCPre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * Parameters.addressOfIndex q.2 = Parameters.addressOfIndex i ∧
       (Main.RegionL Lin i ∨ Main.RegionL own i ∨ X i) := by
   intro q hq
   have hc := List.all_eq_true.mp vs_loads_class q hq
   obtain ⟨p, off⟩ := q
   obtain ⟨l0, l2, l3, l4, l5, l6, l7, l8, l9, l13, l14, l15⟩ := hlen
   have own' : ∀ k < 16, ∀ (hk : off < (ownW.getD k []).length), p = .n (vsAllocVars.getD k 0) →
-      ∃ i, (σ p).limb 0 * Parameters.gpow off = Parameters.gpow i ∧ (Main.RegionL Lin i ∨ Main.RegionL own i ∨ X i) :=
+      ∃ i, (σ p).limb 0 * Parameters.addressOfIndex off = Parameters.addressOfIndex i ∧ (Main.RegionL Lin i ∨ Main.RegionL own i ∨ X i) :=
     fun k hk hoff hp ↦ ⟨bs.getD k 0 + off, by rw [hp, hptr k hk, Main.addr_ofK],
       Or.inr (Or.inl ⟨_, hown k hk, Nat.le_add_right _ _, Nat.add_lt_add_left hoff _⟩)⟩
   simp only [vsLoadOk, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq,

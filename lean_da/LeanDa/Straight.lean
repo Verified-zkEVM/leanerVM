@@ -45,31 +45,33 @@ open scoped ENNReal
 namespace LeanDa
 
 /-- A code-binding adversary's output: a commitment with its proof, and the opened cells. -/
-abbrev CbOut (r : ℕ) (Proof : Type) := (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × Opening)
+abbrev CbOut (r : ℕ) (Proof : Type) := (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)
 
 /-! ## The straight-line verdict -/
 
 section Tail
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+      Crs Proof)
 
 /-- The first opened cell that disagrees with a matrix. -/
-def firstBad (w : Fin (r * 128) → Cell) (l : List (Fin (r * 128) × Cell × Opening)) :
-    Option (Fin (r * 128) × Cell × Opening) :=
+def firstBad (w : Fin (r * 128) → Cell) (l : List (Fin (r * 128) × Cell × CellOpening)) :
+    Option (Fin (r * 128) × Cell × CellOpening) :=
   l.find? fun o ↦ decide (o.2.1 ≠ w o.1)
 
 open Classical in
 /-- **The straight-line verdict**, `H` an oracle: the extracted matrix's root; when the proof
 verifies and the matrix satisfies the relation, whether it is not a codeword, or else whether the
 first opening that disagrees with it verifies (with a path of the tree's height). -/
-noncomputable def tailH (crs : Crs) (out : CbOut r Proof) (l : Challenges) :
+noncomputable def tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenges) :
     OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool := do
   let root ← commitCellsMWithHash hH (ext crs ((), out.1.1, l) out.1.2)
   if ps.verify crs ((), out.1.1, l) out.1.2 = true ∧ root = out.1.1 ∧
       membershipCheck l (ext crs ((), out.1.1, l) out.1.2) = true then
-    if ext crs ((), out.1.1, l) out.1.2 ∈ (code r).code then
+    if ext crs ((), out.1.1, l) out.1.2 ∈ (leanDaErasureCode r).code then
       match firstBad r (ext crs ((), out.1.1, l) out.1.2) out.2 with
       | some o =>
         if o.2.2.path.length = 7 + logPaddedRowCount r then verifyCellMWithHash hH r out.1.1 o.1 o.2.1 o.2.2
@@ -80,11 +82,12 @@ noncomputable def tailH (crs : Crs) (out : CbOut r Proof) (l : Challenges) :
 
 open Classical in
 /-- The straight-line verdict with the hash of the table `h`. -/
-noncomputable def tailP (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Challenges) : Bool :=
+noncomputable def tailP (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenges) :
+    Bool :=
   if ps.verify crs ((), out.1.1, l) out.1.2 = true ∧
       commitCellsWithHash (Hh h) (ext crs ((), out.1.1, l) out.1.2) = out.1.1 ∧
       membershipCheck l (ext crs ((), out.1.1, l) out.1.2) = true then
-    if ext crs ((), out.1.1, l) out.1.2 ∈ (code r).code then
+    if ext crs ((), out.1.1, l) out.1.2 ∈ (leanDaErasureCode r).code then
       match firstBad r (ext crs ((), out.1.1, l) out.1.2) out.2 with
       | some o =>
         if o.2.2.path.length = 7 + logPaddedRowCount r then verifyCell (Hh h) r out.1.1 o.1 o.2.1 o.2.2
@@ -93,7 +96,8 @@ noncomputable def tailP (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Challe
     else true
   else false
 
-theorem run_tailH_phiG (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Challenges) (s : HCache) :
+theorem run_tailH_phiG (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenges) (s :
+    HCache) :
     (simulateQ (phiG h) (simulateQ embG (tailH r ps ext crs out l))).run s =
       pure (tailP r ps ext h crs out l, s) := by
   classical
@@ -124,7 +128,7 @@ theorem run_tailH_phiG (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Challen
   by_cases hc : ps.verify crs ((), out.1.1, l) out.1.2 = true ∧ commitCellsWithHash (Hh h) w = out.1.1 ∧
       membershipCheck l w = true
   · rw [ite_eq_left hc, ite_eq_left hc]
-    by_cases hw : w ∈ (code r).code
+    by_cases hw : w ∈ (leanDaErasureCode r).code
     · rw [ite_eq_left hw, ite_eq_left hw]
       rcases firstBad r w out.2 with _ | o
       · simp only [hp]; rfl
@@ -139,7 +143,7 @@ theorem run_tailH_phiG (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Challen
 
 /-- **A code-binding win is a knowledge-soundness break or a true straight-line verdict**, with
 `H` from a table. -/
-theorem postP_imp (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Challenges)
+theorem postP_imp (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenges)
     (hwin : postP r ps h crs out l = true) :
     ksP r ps ext h crs out l = true ∨ tailP r ps ext h crs out l = true := by
   classical
@@ -156,12 +160,13 @@ theorem postP_imp (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Challenges)
   obtain ⟨hcom, hm⟩ := hk
   unfold tailP
   rw [← hwdef, ite_eq_left ⟨hver, hcom, hm⟩]
-  by_cases hw : w ∈ (code r).code
+  by_cases hw : w ∈ (leanDaErasureCode r).code
   · rw [ite_eq_left hw]
     rcases hfb : firstBad r w out.2 with _ | o
     · exfalso
       simp only [firstBad] at hfb
-      refine hinc ((code r).consistent_iff_exists_codeword _ |>.mpr ⟨w, hw, fun p hp ↦ ?_⟩)
+      refine hinc ((leanDaErasureCode r).consistent_iff_exists_codeword _
+          |>.mpr ⟨w, hw, fun p hp ↦ ?_⟩)
       obtain ⟨o, ho, rfl⟩ := List.mem_map.mp hp
       have := List.find?_eq_none.mp hfb o ho
       exact (by simpa using this : o.2.1 = w o.1).symm
@@ -211,7 +216,7 @@ theorem noCoins_walkM (path : List Common.DigestBytes) :
   | nil => intro idx node; exact noCoins_pure _
   | cons s rest ih => intro idx node; exact noCoins_bind (hHc _) fun _ ↦ ih _ _
 
-theorem noCoins_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
+theorem noCoins_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     NoCoins (verifyCellMWithHash H r com p x τ) :=
   noCoins_bind (hHc _) fun _ ↦ noCoins_bind (noCoins_walkM H hHc _ _ _) fun _ ↦
     noCoins_bind (hHc _) fun _ ↦ noCoins_pure _
@@ -220,7 +225,7 @@ omit hHc
 
 theorem noCoins_hH (a : List UInt8) : NoCoins (LeanDa.hH a) := fun _ ↦ trivial
 
-theorem noCoins_tailH (crs : Crs) (out : CbOut r Proof) (l : Challenges) :
+theorem noCoins_tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenges) :
     NoCoins (tailH r ps ext crs out l) := by
   classical
   unfold tailH
@@ -287,7 +292,7 @@ theorem replay_toV_embG (c : VCache) {α : Type}
   · simp only [QueryImpl.apply_compose, embG, hP, simulateQ_spec_query, toV]
     simp [replayImpl, lookupH]
 
-theorem replay_toV_readVec (c : VCache) (d : Common.DigestBytes) (l : Challenges)
+theorem replay_toV_readVec (c : VCache) (d : Common.DigestBytes) (l : MembershipChallenges)
     (h : simulateQ (replayImpl c) (simulateQ toV (readVec (Msg := List UInt8) (Dg := DigestBytes)
       (n := 14) d)) = some l) : c (.inr d) = some l := by
   rw [readVec, simulateQ_map, simulateQ_map,
@@ -296,7 +301,7 @@ theorem replay_toV_readVec (c : VCache) (d : Common.DigestBytes) (l : Challenges
     mapM_map (fun x ↦ simulateQ (replayImpl c) x) (fun a ↦ simulateQ_pure _ a)
       (fun x f ↦ simulateQ_bind _ x f)] at h
   have hq : ∀ j : Fin 14, simulateQ (replayImpl c) (simulateQ toV
-      (gaP (Msg := List UInt8) (Dg := DigestBytes) (Z := E) d j)) = (fun v : Challenges ↦ v j) <$> c (.inr d) := by
+      (gaP (Msg := List UInt8) (Dg := DigestBytes) (Z := E) d j)) = (fun v : MembershipChallenges ↦ v j) <$> c (.inr d) := by
     intro j
     simp only [gaP, simulateQ_spec_query, toV, simulateQ_map]
     rfl
@@ -305,7 +310,8 @@ theorem replay_toV_readVec (c : VCache) (d : Common.DigestBytes) (l : Challenges
   · rw [hd] at h
     simp [List.finRange_succ] at h
   · rw [hd] at h
-    have hm : ∀ l : List (Fin 14), l.mapM (fun j : Fin 14 ↦ (fun v : Challenges ↦ v j) <$> some v) =
+    have hm : ∀ l : List (Fin 14), l.mapM (fun j : Fin 14 ↦ (fun v : MembershipChallenges ↦ v j) <$>
+        some v) =
         some (l.map fun j ↦ v j) := by
       intro l
       induction l with
@@ -320,9 +326,11 @@ theorem replay_toV_readVec (c : VCache) (d : Common.DigestBytes) (l : Challenges
     rw [List.getD_eq_getElem _ _ (by simp), List.getElem_map, List.getElem_finRange]
     rfl
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+      Crs Proof)
 
 /-- The tail of the simulated world: the challenges of the root, then the straight-line verdict. -/
 noncomputable def tailV (crs : Crs) (out : CbOut r Proof) :

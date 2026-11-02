@@ -38,7 +38,8 @@ theorem osTail_sound (hC : ∀ args rets, C "opening_fold" args rets → Meaning
     (ht : ws.target = σ (.n st.t)) (hok : AllOk C rd σ (osTail c st).1) :
     ∃ (xs chs : List E) (F' : Fs), xs.length = 2 * (c.yrLog - 1) ∧ chs.length = c.yrLog ∧
       ReadsAt rd (st.cur σ) xs ∧
-      RunsTo ((tailRoundsT c.yrLog ws.target ws.quad).bind fun r ↦ Prog.ret ([] ++ r.1, r.2))
+      RunsTo ((tailRoundsT c.yrLog ws.target ws.quad).bind fun r ↦ VerifierProgram.ret ([] ++
+          r.1, r.2))
         (st.F σ) xs (chs, σ (.n (osTail c st).2.1.t)) F' ∧
       (∀ i (hi : i < chs.length), LoadHolds rd (σ (.n (osTail c st).2.2)) i chs[i]) ∧
       (∀ i, i < yrLogCap - c.yrLog → LoadHolds rd (σ (.n (osTail c st).2.2)) (c.yrLog + i) 0) := by
@@ -83,13 +84,15 @@ theorem osTail_sound (hC : ∀ args rets, C "opening_fold" args rets → Meaning
     simp only [OsSt.quad, polyEval, List.foldr_cons, List.foldr_nil]
     ring
   -- the Spec's side
-  have h2 : RunsTo (Prog.sampleChallenge.bind fun cc ↦ Prog.ret (([] ++ chs) ++ [cc],
+  have h2 : RunsTo (VerifierProgram.sampleChallenge.bind fun cc ↦ VerifierProgram.ret (([] ++ chs)
+      ++ [cc],
       polyEval (f2.quad σ) cc)) (f2.F σ) ([] ++ []) (([] ++ chs) ++ [σ (.n (j + 42))],
       σ (.n (j + 47))) (f2.F σ).squeeze.2 := by
     rw [hchv, hclaim]
     exact RunsTo.bind' (runsTo_sampleE _) (runsTo_ret _ _)
-  have h3 := RunsTo.bind' (f := fun pp : WhirStateT × List E ↦ Prog.sampleChallenge.bind fun cc ↦
-    Prog.ret (pp.2 ++ [cc], polyEval pp.1.quad cc)) hrun h2
+  have h3 := RunsTo.bind' (f := fun pp : WhirStateT × List E ↦ VerifierProgram.sampleChallenge.bind
+      fun cc ↦
+    VerifierProgram.ret (pp.2 ++ [cc], polyEval pp.1.quad cc)) hrun h2
   have e := tailRounds_eq n ws.target ws.quad ws.folds ws.glued []
   refine ⟨xs, chs ++ [σ (.n (j + 42))], (f2.F σ).squeeze.2, by rw [hxl], by simp [hcl, hn], hrd, ?_, ?_, ?_⟩
   · rw [hn, e]

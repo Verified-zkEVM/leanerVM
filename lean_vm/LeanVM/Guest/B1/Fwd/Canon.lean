@@ -226,7 +226,8 @@ def SHolds (C : CallRel) (rd : Reader) (σ : Val) : Stmt → Prop
   | .call f args rets => C f (args.map σ) (rets.map σ)
   | .callIf c f args => IsInK (σ c) ∧ (σ c ≠ 0 → C f (args.map σ) [])
   | .dispatch x fs args rets =>
-      ∃ (j : Nat) (h : j < fs.length), σ x = ofK (gpow j) ∧ C fs[j] (args.map σ) (rets.map σ)
+      ∃ (j : Nat) (h : j < fs.length), σ x = ofK (addressOfIndex j) ∧ C fs[j] (args.map σ)
+          (rets.map σ)
   | _ => False
 
 /-- **A straight block then a `ret` holds.** -/

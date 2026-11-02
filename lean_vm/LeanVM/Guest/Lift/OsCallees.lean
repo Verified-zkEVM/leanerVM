@@ -54,7 +54,7 @@ def CompleteRelRegD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ
 
 /-- The callee's loads: from argument `j`'s pointer, offsets below `n`, for each `(j, n) ∈ spec`. -/
 def RegPtrs (spec : List (ℕ × ℕ)) (args : List E) (R : ℕ → Prop) : Prop :=
-  ∀ p ∈ spec, ∀ t < p.2, ∃ i, (args.getD p.1 0).limb 0 * gpow t = gpow i ∧ R i
+  ∀ p ∈ spec, ∀ t < p.2, ∃ i, (args.getD p.1 0).limb 0 * addressOfIndex t = addressOfIndex i ∧ R i
 
 /-- A load of parameter `.n j` at an offset below `n`, `(j, n) ∈ spec`; no other load. -/
 def specLoad (spec : List (ℕ × ℕ)) : Atom → Bool
@@ -69,7 +69,8 @@ def LeafSpecOk (f : String) (spec : List (ℕ × ℕ)) : Prop :=
 
 theorem loads_spec {spec : List (ℕ × ℕ)} {σ : Val} {es : List Ev}
     (h : ∀ e ∈ es, Lift.EvLeafOk (specLoad spec) e) :
-    ∀ A ∈ loadAddrs σ es, ∃ q ∈ spec, ∃ off < q.2, A = (σ (.n q.1)).limb 0 * gpow off := by
+    ∀ A ∈ loadAddrs σ es, ∃ q ∈ spec, ∃ off < q.2, A = (σ (.n q.1)).limb 0 * addressOfIndex
+        off := by
   intro A hA
   obtain ⟨e, he, hea⟩ := List.mem_filterMap.mp hA
   have hok := h e he

@@ -121,12 +121,12 @@ theorem forsOpen (index : Index) (marks : Coord → CoordMark) :
   simp only [Seeded.forestOpen, Seeded.coordOpen, eval_sequenceFin, evalWithAnswerFn_bind,
     evalWithAnswerFn_pure, h.forestSecrets, h.forestChain, h.subNode, h.topNode]
 
-theorem digestCall (message : Message) (randomness : Randomness) :
+theorem digestCall (message : Message) (randomness : Randomizer) :
     evalWithAnswerFn left (messageDigestCall parameter message randomness : OracleComp HashSpec HashOutput) =
       evalWithAnswerFn right (messageDigestCall parameter message randomness : OracleComp HashSpec HashOutput) :=
   h.hash .message (messageDigestPayload message randomness)
 
-theorem digest (message : Message) (randomness : Randomness) :
+theorem digest (message : Message) (randomness : Randomizer) :
     evalWithAnswerFn left (messageDigest parameter message randomness : OracleComp HashSpec MessageDigest) =
       evalWithAnswerFn right (messageDigest parameter message randomness : OracleComp HashSpec MessageDigest) := by
   simp only [messageDigest, evalWithAnswerFn_bind, h.digestCall, evalWithAnswerFn_pure]

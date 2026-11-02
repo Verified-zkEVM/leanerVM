@@ -22,31 +22,31 @@ open LeanVM.Protocol.LeanIsa
 open Air.Flat (EnsembleWitness)
 
 /-- A witness satisfying the constraint system has its sizes. -/
-example (prog : Program) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog))
+example (prog : LeanIsaProgram) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog))
     (h : SatisfiedBy prog input w) : ∃ s, Sizes.ofWitness w = some s :=
   sizes_of_satisfiedBy h
 
 /-- The adaptor's completeness. -/
-example (prog : Program) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog))
+example (prog : LeanIsaProgram) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog))
     (s : Sizes) (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s) :
     M3Holds (leanIsaInstance prog s) input (stackOf prog s w) :=
   m3Holds_stackOf h hs
 
 /-- With honest padding. -/
-example (prog : Program) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog))
+example (prog : LeanIsaProgram) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog))
     (s : Sizes) (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s) :
     M3Honest (leanIsaInstance prog s) input (stackOf prog s w) :=
   m3Honest_stackOf h hs
 
 /-- The round trip: completeness, then soundness on admissible sizes. -/
-example (prog : Program) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog))
+example (prog : LeanIsaProgram) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog))
     (s : Sizes) (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s)
     (hadm : s.Admissible prog) :
     SatisfiedBy prog input (witnessOf prog s (stackOf prog s w)) :=
   satisfiedBy_witnessOf prog s _ hadm (m3Holds_stackOf h hs)
 
 /-- The witness read back has the witness's public input and image. -/
-example (prog : Program) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog))
+example (prog : LeanIsaProgram) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog))
     (s : Sizes) (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s) :
     (witnessOf prog s (stackOf prog s w)).publicInput = w.publicInput ∧
       imageOf (witnessOf prog s (stackOf prog s w)).data = imageOf w.data :=
@@ -59,7 +59,7 @@ example : ∃ s q, M3Honest (leanIsaInstance LeanVMTests.Arithmetization.Stateme
   ⟨s, _, m3Honest_stackOf LeanVMTests.Arithmetization.Statement.walk_satisfiedBy hs⟩
 
 /-- The bus phase's conditions and the degree bound, at every size. -/
-example (prog : Program) (s : Sizes) :
+example (prog : LeanIsaProgram) (s : Sizes) :
     Bus.Conditions (leanIsaInstance prog s) ∧ (leanIsaInstance prog s).d ≤ 2 :=
   ⟨leanIsa_conditions prog s, le_rfl⟩
 

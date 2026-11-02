@@ -42,14 +42,15 @@ open LeanVM.Protocol.EndToEnd.Complete (termsPure)
 /-! ## Determinism -/
 
 /-- **Runs of one program from one sponge on one stream agree.** -/
-theorem runsTo_det {α : Type} {p : Prog α} {s t1 t2 : Fs} {xs1 xs2 r1 r2 : List E} {a b : α}
+theorem runsTo_det {α : Type} {p : VerifierProgram α} {s t1 t2 : Fs} {xs1 xs2 r1 r2 : List E}
+    {a b : α}
     (h1 : RunsTo p s xs1 a t1) (h2 : RunsTo p s xs2 b t2) (hc : ∃ sp, s.Carries sp)
     (he : xs1 ++ r1 = xs2 ++ r2) : a = b ∧ t1 = t2 ∧ r1 = r2 := by
   obtain ⟨sp, hsp⟩ := hc
   obtain ⟨sp1, c1, e1⟩ := h1 sp hsp r1 [] []
   obtain ⟨sp2, c2, e2⟩ := h2 sp hsp r2 [] []
   rw [he, e2] at e1
-  simp only [Option.some.injEq, Prod.mk.injEq, ProgState.mk.injEq] at e1
+  simp only [Option.some.injEq, Prod.mk.injEq, VerifierProgramState.mk.injEq] at e1
   obtain ⟨rfl, rfl, rfl, -⟩ := e1
   refine ⟨rfl, ?_, rfl⟩
   obtain ⟨c1a, c1b⟩ := c1
@@ -59,7 +60,7 @@ theorem runsTo_det {α : Type} {p : Prog α} {s t1 t2 : Fs} {xs1 xs2 r1 r2 : Lis
   exact ⟨c1a.symm.trans c2a, c1b.symm.trans c2b⟩
 
 /-- A run carries a sponge to its end. -/
-theorem RunsTo.carries {α : Type} {p : Prog α} {s t : Fs} {xs : List E} {a : α}
+theorem RunsTo.carries {α : Type} {p : VerifierProgram α} {s t : Fs} {xs : List E} {a : α}
     (h : RunsTo p s xs a t) (hc : ∃ sp, s.Carries sp) : ∃ sp, t.Carries sp := by
   obtain ⟨sp, hsp⟩ := hc
   obtain ⟨sp1, c1, -⟩ := h sp hsp [] [] []
@@ -67,16 +68,17 @@ theorem RunsTo.carries {α : Type} {p : Prog α} {s t : Fs} {xs : List E} {a : �
 
 /-- **An accepting run checked its requirement.** -/
 theorem runsTo_require_inv {c : Prop} [Decidable c] {s t : Fs} {xs : List E} {u : Unit}
-    (h : RunsTo (Prog.require c) s xs u t) (hc : ∃ sp, s.Carries sp) : c := by
+    (h : RunsTo (VerifierProgram.require c) s xs u t) (hc : ∃ sp, s.Carries sp) : c := by
   by_contra hn
   obtain ⟨sp, hsp⟩ := hc
   obtain ⟨sp1, -, e⟩ := h sp hsp [] [] []
-  simp only [Prog.require, hn, ↓reduceIte] at e
+  simp only [VerifierProgram.require, hn, ↓reduceIte] at e
   exact absurd e (by simp [runId, Compile.runWithHash])
 
 /-- A run of a return returns its word, reading nothing. -/
 theorem runsTo_ret_inv {α : Type} {x a : α} {s t : Fs} {xs : List E}
-    (h : RunsTo (Prog.ret x) s xs a t) (hc : ∃ sp, s.Carries sp) : a = x ∧ t = s ∧ xs = [] := by
+    (h : RunsTo (VerifierProgram.ret x) s xs a t) (hc : ∃ sp, s.Carries sp) : a = x ∧ t = s ∧ xs =
+        [] := by
   obtain ⟨e1, e2, e3⟩ := runsTo_det h (runsTo_ret x s) hc (r1 := []) (r2 := xs) (by simp)
   refine ⟨e1, e2, ?_⟩
   simpa using e3.symm
@@ -104,7 +106,7 @@ structure VtHonest where
   /-- The carried capacity. -/
   f : List E
   /-- The evaluator. -/
-  ev : (List K → List E → Prog E)
+  ev : (List K → List E → VerifierProgram E)
   /-- Its bytecode value. -/
   bv : E
   /-- The five framework words. -/
@@ -179,10 +181,10 @@ noncomputable def terms : E × List ColumnClaim :=
 /-- The public input's claims. -/
 noncomputable def pclaims : List ColumnClaim :=
   List.zipWith (fun column value ↦ ⟨column, H.rm ::
-    List.replicate ((H.L.placement memory0).vars - 1) 0, value⟩)
+    List.replicate ((H.L.placement memory0).variableCount - 1) 0, value⟩)
     [memory0, memory1, memory2] (([0, 1, 2] : List (Fin 3)).map fun limb ↦
-      multilinearEval [ofK ((digestScalars H.pi).1.limb limb),
-        ofK ((digestScalars H.pi).2.limb limb)] [H.rm])
+      multilinearEval [ofK ((digestHalves H.pi).1.limb limb),
+        ofK ((digestHalves H.pi).2.limb limb)] [H.rm])
 
 /-- **The specification accepts the honest data.** -/
 structure Ok : Prop where

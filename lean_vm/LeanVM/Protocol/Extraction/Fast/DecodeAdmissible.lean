@@ -144,7 +144,7 @@ theorem decodeStacksDistinct_eq {μ R : ℕ} (h : Whir.Admissible μ R) (W : ℕ
 /-- **The layouts `afterRootDirect` returns are admissible**: `readSizesPure` checks the rate
 exponent and the stack size. -/
 theorem admissible_of_afterRootDirect {bytecode : List K} {π : Proof} {layout : Layout} {R : ℕ}
-    {st : ProgState} (h : afterRootDirect bytecode π = some ((layout, R), st)) :
+    {st : VerifierProgramState} (h : afterRootDirect bytecode π = some ((layout, R), st)) :
     Whir.Admissible layout.stackLog R := by
   unfold afterRootDirect at h
   obtain ⟨r, hr, hc⟩ := Option.bind_eq_some_iff.1 h
@@ -165,7 +165,7 @@ theorem admissible_of_afterRootDirect {bytecode : List K} {π : Proof} {layout :
 
 /-- **The lighter layouts `afterRootLite` returns are admissible.** -/
 theorem admissible_of_afterRootLite {bytecode : List K} {π : Proof} {layout : LayoutLite} {R : ℕ}
-    {st : ProgState} (h : afterRootLite bytecode π = some ((layout, R), st)) :
+    {st : VerifierProgramState} (h : afterRootLite bytecode π = some ((layout, R), st)) :
     Whir.Admissible layout.stackLog R := by
   rw [afterRootLite_eq, ← afterRootDirect_eq] at h
   obtain ⟨⟨⟨full, R'⟩, st'⟩, hr, hl⟩ := Option.map_eq_some_iff.1 h

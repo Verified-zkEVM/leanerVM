@@ -40,7 +40,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash
 def yE : E := E.ofLimbs 0 1 0
 
 /-- `KECCAK_OUT` (`verifier.py:942`): the local column of output lane `0`. -/
-def keccakOut : ℕ := colIdx keccakColumns "out_0"
+def keccakOut : ℕ := columnIndexByName keccakColumns "out_0"
 
 /-- `PACK_BITS` (`verifier.py:1224`): a pack is `2 ^ PACK_BITS` consecutive steps. -/
 def packBits : ℕ := 4
@@ -57,7 +57,8 @@ def seed (bytecode : List K) (publicInput : Digest) : KeccakState :=
 /-- **The deployed leanVM verifier**: the program's compiled reading with Keccak-256 and
 Keccak-f[1600], from the deployed seed. -/
 def verify (bytecode : List K) (publicInput : Digest) (π : Proof) : Bool :=
-  Id.run (runProofWithHash (m := Id) keccak256 keccakF1600 (leanVmProgram bytecode publicInput)
+  Id.run (runProofWithHash (m := Id) keccak256 keccakF1600 (leanVmVerifierProgram bytecode
+      publicInput)
     (seed bytecode publicInput) π)
 
 end

@@ -161,7 +161,7 @@ structure Witness where
   stack : Array K
 
 /-- The prover's data of the run `steps` of `t`. -/
-def buildWitness (prog : Program) (t : Execution prog) (memIdx : Std.HashMap UInt64 ℕ)
+def buildWitness (prog : LeanIsaProgram) (t : Execution prog) (memIdx : Std.HashMap UInt64 ℕ)
     (steps : Array Step) : Witness :=
   let acc := rowsOf memIdx t.memory prog.logSize steps
   let rows := acc.tabs.toList.map (·.size)
@@ -174,7 +174,7 @@ def buildWitness (prog : Program) (t : Execution prog) (memIdx : Std.HashMap UIn
 /-- **The prover's data of an execution**, after the check of `checkTrace`, from the same run:
 `none` when the trace is no valid execution of `prog` on `input` within `2^28` committed
 cells. -/
-def witness? (prog : Program) (input : PublicInput) (t : Execution prog) : Option Witness :=
+def witness? (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) : Option Witness :=
   if boundaryOK input t then
     let memIdx := powIndex t.logMemorySize
     match runSteps memIdx (powIndex prog.logSize) prog t with

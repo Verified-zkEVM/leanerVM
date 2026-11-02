@@ -74,8 +74,8 @@ theorem kid_sub {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → 
   simp only [List.cons.injEq, and_true] at hargs
   obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := hargs
   have hseed : decSeed σ = seed := by
-    unfold decSeed; rw [show σ (.n 47) = (digestScalars seed).1 by rw [← hs],
-      show σ (.n 48) = (digestScalars seed).2 by rw [← hs], digestOfCells_scalars]
+    unfold decSeed; rw [show σ (.n 47) = (digestHalves seed).1 by rw [← hs],
+      show σ (.n 48) = (digestHalves seed).2 by rw [← hs], digestOfCells_scalars]
   have hpi : pi = statementDigest (decSeed σ) (kidStmt rd σ c) := by
     apply digestCells_inj
     rw [← kid_digest MF hK hW hC hc, digestCells, ← hp]
@@ -101,7 +101,7 @@ theorem main_sound_C {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVa
     {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
     (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) {D : Digest}
-    (hp0 : LoadHolds rd 1 0 (digestScalars D).1) (hp1 : LoadHolds rd 1 1 (digestScalars D).2)
+    (hp0 : LoadHolds rd 1 0 (digestHalves D).1) (hp1 : LoadHolds rd 1 1 (digestHalves D).2)
     (hb : Stmt.HoldsList C rd σ Data.core0.body False (fun rs => rs = [])) :
     statementDigest (decSeed σ) (decStmt σ rd) = D ∧
       NodeRelation bytecode (decSeed σ) (decStmt σ rd) (decWit σ rd wX wS wD wV wA) := by
@@ -180,10 +180,10 @@ theorem main_sound_C {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVa
       · show (deferOfCells (readCells rd (σ (.n 377) * gen ^ (24 * c)) 24)).bytecodePoint.length = _
         exact deferOfCells_point (length_readCells _ _ _)
       · show LoadHolds rd (σ (.n 365)) (2 * c)
-          (digestScalars (statementDigest (decSeed σ) (kidStmt rd σ c))).1
+          (digestHalves (statementDigest (decSeed σ) (kidStmt rd σ c))).1
         rw [← hkd.1]; exact k.pi0
       · show LoadHolds rd (σ (.n 365)) (2 * c + 1)
-          (digestScalars (statementDigest (decSeed σ) (kidStmt rd σ c))).2
+          (digestHalves (statementDigest (decSeed σ) (kidStmt rd σ c))).2
         rw [← hkd.2]; exact k.pi1
       · show ReadsAt rd _ (deferOfCells (readCells rd (σ (.n 377) * gen ^ (24 * c)) 24)).cells
         rw [readCells_of_readsAt k.defreads k.deflen, deferOfCells_cells k.deflen]

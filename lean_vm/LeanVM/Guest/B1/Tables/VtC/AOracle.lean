@@ -41,7 +41,7 @@ def vtWKeys : List ℕ :=
 
 /-- **Their honest words.** -/
 noncomputable def vtWVals (H : VtHonest) (B : VtBases) : List E :=
-  (H.ownB B).map (fun b ↦ ofK (gpow b)) ++
+  (H.ownB B).map (fun b ↦ ofK (addressOfIndex b)) ++
     ((List.range 6).flatMap fun t ↦ [paddingWeight (H.point.take (H.τ t)) (vtRw H.rows t),
       PadLead (H.τ t) (vtRw H.rows t), PadRest (H.τ t) (vtRw H.rows t)]) ++
     [0, H.bv, gen ^ H.n, indexMle (H.point.take H.lm), indexMle (H.point.take 19)] ++
@@ -77,7 +77,7 @@ section
 variable (H : VtHonest) (B : VtBases)
 
 theorem vtWVals_split :
-    vtWVals H B = (H.ownB B).map (fun b ↦ ofK (gpow b)) ++
+    vtWVals H B = (H.ownB B).map (fun b ↦ ofK (addressOfIndex b)) ++
       (((List.range 6).flatMap fun t ↦ [paddingWeight (H.point.take (H.τ t)) (vtRw H.rows t),
       PadLead (H.τ t) (vtRw H.rows t), PadRest (H.τ t) (vtRw H.rows t)]) ++
       ([0, H.bv, gen ^ H.n, indexMle (H.point.take H.lm), indexMle (H.point.take 19)] ++
@@ -89,14 +89,14 @@ theorem vtWVals_split :
       gen ^ H.offC.getD i 0]))))) := by
   simp only [vtWVals, List.append_assoc]
 
-theorem ownB_map_length : ((H.ownB B).map (fun b ↦ ofK (gpow b))).length = 110 := by
+theorem ownB_map_length : ((H.ownB B).map (fun b ↦ ofK (addressOfIndex b))).length = 110 := by
   simp [VtHonest.ownB, VtHonest.sizes, LeanVM.Guest.Memory.length_bases]
 
 set_option maxRecDepth 100000 in
 theorem vtWKeys_alloc : ∀ j < 110, vtWKeys.idxOf (vtAllocVars.getD j 0) = j := by decide +kernel
 
 theorem vtW_alloc {j : ℕ} (hj : j < 110) :
-    vtW H B (vtAllocVars.getD j 0) = ofK (gpow ((H.ownB B).getD j 0)) := by
+    vtW H B (vtAllocVars.getD j 0) = ofK (addressOfIndex ((H.ownB B).getD j 0)) := by
   rw [vtW, vtWKeys_alloc j hj, vtWVals_split, List.getD_append _ _ _ _
     (by rw [ownB_map_length]; exact hj), List.getD_eq_getElem _ _ (by rw [ownB_map_length]; exact hj),
     List.getD_eq_getElem _ _ (by

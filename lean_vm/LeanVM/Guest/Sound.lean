@@ -53,7 +53,7 @@ def VsKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
     B1.ExpTables L.read (σ (.n 4)) (σ (.n 5)) →
     Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 2098) True (fun _ ↦ True) →
-      ∀ c < 99, ∃ e < 29, LoadHolds L.read (σ (.n 1889)) c (ofK (gpow e))
+      ∀ c < 99, ∃ e < 29, LoadHolds L.read (σ (.n 1889)) c (ofK (addressOfIndex e))
 
 /-- **`exponent_tables`' relation** (B1's): its two returned pointers hold the exponent tables. -/
 def ExpTablesSound : Prop :=
@@ -142,7 +142,7 @@ theorem b2_mainL (hexp : ExpTablesSound) :
     ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → JumpTables L → ∀ k,
       (∀ j, FunSpecLtReached guestProgram L k (glob.sig j).entry (Check.Pre glob L j)
         (Check.Post coreProgram glob L certByName (EnteredAt glob L) j)) →
-      SafeReached guestProgram L k ⟨gpow mainEntry, 1⟩ →
+      SafeReached guestProgram L k ⟨addressOfIndex mainEntry, 1⟩ →
         Stmt.HoldsList (RL coreProgram L certByName (EnteredAt glob L)) L.read (valG L 1 (certOf 1)) (coreOf 1).body
           False (fun rs ↦ rs = []) := by
   intro κ L _ h32 hjtab k hlt hsafe

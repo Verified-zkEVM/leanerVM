@@ -53,9 +53,9 @@ namespace Common.SufCma
 
 /-- Bits `8 i … 8 i + 7` of a digest's bit vector are its byte `i`. -/
 theorem digestBitVec_symm_getElem (b : BitVec 256) (i : Fin 32) :
-    (digestBitVec.symm b)[i] = UInt8.ofBitVec (b.extractLsb' (8 * i) 8) := by
+    (digestBytesEquivBitVec.symm b)[i] = UInt8.ofBitVec (b.extractLsb' (8 * i) 8) := by
   apply UInt8.toNat_inj.mp
-  simp only [digestBitVec, Equiv.symm_trans_apply, uInt8EquivFin, arrayVectorEquivFin]
+  simp only [digestBytesEquivBitVec, Equiv.symm_trans_apply, uInt8EquivFin, arrayVectorEquivFin]
   simp
   change ((finFunctionFinEquiv (m := 256) (n := 32)).symm b.toFin i : ℕ) = _
   rw [finFunctionFinEquiv_symm_apply_val, Nat.shiftRight_eq_div_pow, pow_mul]
@@ -63,8 +63,8 @@ theorem digestBitVec_symm_getElem (b : BitVec 256) (i : Fin 32) :
 
 /-- Bits `8 i … 8 i + 7` of a digest's bit vector are its byte `i`. -/
 theorem digestBitVec_extract (d : DigestBytes) (i : Fin 32) :
-    (digestBitVec d).extractLsb' (8 * i) 8 = d[i].toBitVec := by
-  have h := digestBitVec_symm_getElem (digestBitVec d) i
+    (digestBytesEquivBitVec d).extractLsb' (8 * i) 8 = d[i].toBitVec := by
+  have h := digestBitVec_symm_getElem (digestBytesEquivBitVec d) i
   rw [Equiv.symm_apply_apply] at h
   rw [h]
 
@@ -670,7 +670,7 @@ theorem simulateQ_writer_run_comm {ι ι₁ ι₂ ι₃ : Type} {spec : OracleSp
 
 /-- The hash of the game with the hash oracle, read on byte states. -/
 theorem simulateQ_relabel_hashK {β : Type} (X : OracleComp (SchemeHashSpec) β) :
-    simulateQ relabel (simulateQ (hashKH) X) = simulateQ (hashKB digestBitVec) X := by
+    simulateQ relabel (simulateQ (hashKH) X) = simulateQ (hashKB digestBytesEquivBitVec) X := by
   rw [← QueryImpl.simulateQ_compose]
   congr 1
 
@@ -679,12 +679,13 @@ against the adversary with its permutation queries read on bytes. -/
 theorem rpmGame_relabel (S : SchemeWithHash Seed PK SK Req Resp F)
     (main : PK → OracleComp (KSpecH + (Req →ₒ Resp)) F) :
     simulateQ relabel (rpmGameH S main) =
-      rpmGameB digestBitVec S fun pk ↦ simulateQ relabelS (main pk) := by
+      rpmGameB digestBytesEquivBitVec S fun pk ↦ simulateQ relabelS (main pk) := by
   have hmid : ∀ (sk : SK) {α : Type} (oa : OracleComp (KSpecH + (Req →ₒ Resp)) α),
       simulateQ relabel ((simulateQ (QueryImpl.ofLift KSpecH
         (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecH)) + signingOracleKH S sk) oa).run) =
       (simulateQ (QueryImpl.ofLift KSpecB
-        (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecB)) + signingOracleKB digestBitVec S sk)
+        (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecB)) + signingOracleKB
+            digestBytesEquivBitVec S sk)
           (simulateQ relabelS oa)).run := by
     intro sk α oa
     refine simulateQ_writer_run_comm _ _ _ _ (fun t ↦ ?_) oa
@@ -693,7 +694,7 @@ theorem rpmGame_relabel (S : SchemeWithHash Seed PK SK Req Resp F)
           signingOracleKH S sk) (.inl t)).run =
             (·, ∅) <$> (liftM (KSpecH.query t) : OracleComp KSpecH _) := rfl
       have h5 : (QueryImpl.ofLift KSpecB (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecB)) +
-          signingOracleKB digestBitVec S sk) ∘ₛ (fun u ↦ liftM ((KSpecB + (Req →ₒ Resp)).query (.inl u)) :
+          signingOracleKB digestBytesEquivBitVec S sk) ∘ₛ (fun u ↦ liftM ((KSpecB + (Req →ₒ Resp)).query (.inl u)) :
             QueryImpl KSpecB (OracleComp (KSpecB + (Req →ₒ Resp)))) =
           QueryImpl.ofLift KSpecB (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecB)) := by
         funext u
@@ -707,8 +708,8 @@ theorem rpmGame_relabel (S : SchemeWithHash Seed PK SK Req Resp F)
             simulateQ (hashKH) (S.sign sk r) := by
         simp [signingOracleKH]
       have h3' : ((QueryImpl.ofLift KSpecB (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecB)) +
-          signingOracleKB digestBitVec S sk) (.inr r)).run = (fun u ↦ (u, [⟨r, u⟩])) <$>
-            simulateQ (hashKB digestBitVec) (S.sign sk r) := by
+          signingOracleKB digestBytesEquivBitVec S sk) (.inr r)).run = (fun u ↦ (u, [⟨r, u⟩])) <$>
+            simulateQ (hashKB digestBytesEquivBitVec) (S.sign sk r) := by
         simp [signingOracleKB]
       rw [h3, simulateQ_map, simulateQ_relabel_hashK, relabelS, simulateQ_spec_query, h3']
   simp only [rpmGameH, rpmGameB, simulateQ_bind, simulateQ_pure, simulateQ_relabel_hashK, hmid]
@@ -717,7 +718,7 @@ theorem rpmGame_relabel (S : SchemeWithHash Seed PK SK Req Resp F)
 /-- The RPM experiment with the hash oracle is the experiment on byte states, in distribution. -/
 theorem rpmExperiment_relabel (S : SchemeWithHash Seed PK SK Req Resp F)
     (main : PK → OracleComp (KSpecH + (Req →ₒ Resp)) F) :
-    rpmExperimentH S main =ᵈ rpmExperimentB digestBitVec S fun pk ↦ simulateQ relabelS (main pk) := by
+    rpmExperimentH S main =ᵈ rpmExperimentB digestBytesEquivBitVec S fun pk ↦ simulateQ relabelS (main pk) := by
   rw [rpmExperimentH, rpmExperimentB, ← rpmGame_relabel]
   exact runK_relabel _
 
@@ -741,7 +742,7 @@ theorem rpm_bound (S : SchemeWithHash Seed PK SK Req Resp F) (bits : ℕ)
     (fun _ ↦ le_rfl) hQ
   rw [rpmGame_relabel] at hq' hQ'
   rw [(rpmExperiment_relabel S main).prEvent_eq]
-  exact rpm_boundB digestBitVec S bits hrom _ q Q hq1 hq' hQ'
+  exact rpm_boundB digestBytesEquivBitVec S bits hrom _ q Q hq1 hq' hQ'
 
 /-- **The RPM bound in permutation calls alone**: `Q / 2^bits + Q² / 2^509` for an adversary
 whose game makes at most `Q ≥ 1` permutation calls on every path. -/

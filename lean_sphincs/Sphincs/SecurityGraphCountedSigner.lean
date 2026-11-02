@@ -155,7 +155,7 @@ theorem fixed_forestCostSource (f : QueryImpl HashSpec Id) (table : HiddenGraph.
 variable [Params]
 
 noncomputable def finishCostSource (parameter : PublicParameter) (data : PublicData)
-    (message : Message) (randomness : Randomness) : OracleComp CostSpec (Option Signature) := do
+    (message : Message) (randomness : Randomizer) : OracleComp CostSpec (Option Signature) := do
   let digest ← liftM (messageDigest parameter message randomness :
     OracleComp HashSpec MessageDigest)
   HiddenCost.tick 118080
@@ -170,7 +170,7 @@ noncomputable def finishCostSource (parameter : PublicParameter) (data : PublicD
   return some ⟨randomness, opening, Fin.cases top (fun i => Fin.elim0 i)⟩
 
 theorem fixed_finishCostSource (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (data : PublicData) (table : HiddenGraph.Table) (message : Message) (randomness : Randomness) :
+    (data : PublicData) (table : HiddenGraph.Table) (message : Message) (randomness : Randomizer) :
     simulateQ (fixedCostSource f table) (finishCostSource parameter data message randomness) =
       WriterT.mk (PMF.pure (assembled f parameter data table message randomness,
         Multiplicative.ofAdd (finishHashCost f parameter data message randomness))) := by
@@ -201,7 +201,7 @@ theorem fixed_finishCostSource (f : QueryImpl HashSpec Id) (parameter : PublicPa
 theorem finishCostSource_correct (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (seed : MasterSeed) (data : PublicData) (table : HiddenGraph.Table)
     (hdata : DataCorrect f parameter seed data) (htable : CoordinatesCorrect f parameter seed table)
-    (message : Message) (randomness : Randomness)
+    (message : Message) (randomness : Randomizer)
     (hland : Landed parameter (digestIndex (evalWithAnswerFn f
       (messageDigest parameter message randomness : OracleComp HashSpec MessageDigest)))) :
     simulateQ (fixedCostSource f table) (finishCostSource parameter data message randomness) =
@@ -214,7 +214,7 @@ theorem finishCostSource_correct (f : QueryImpl HashSpec Id) (parameter : Public
 
 /-- The scan from a start: no randomness. -/
 noncomputable def signCostSourceLoop (parameter : PublicParameter) (data : PublicData)
-    (message : Message) : Nat → Randomness → OracleComp CostSpec (Option Signature)
+    (message : Message) : Nat → Randomizer → OracleComp CostSpec (Option Signature)
   | 0, _ => pure none
   | attempts + 1, randomness => do
       let first ← liftM (messageDigestCall parameter message randomness :
@@ -226,7 +226,7 @@ noncomputable def signCostSourceLoop (parameter : PublicParameter) (data : Publi
 /-- One uniform start, then the scan. -/
 noncomputable def signCostSource (parameter : PublicParameter) (data : PublicData)
     (message : Message) : OracleComp CostSpec (Option Signature) := do
-  let start ← liftM ($ᵗ Randomness : ProbComp Randomness)
+  let start ← liftM ($ᵗ Randomizer : ProbComp Randomizer)
   signCostSourceLoop parameter data message digestAttemptLimit start
 
 end SphincsLayered.Security.GraphView

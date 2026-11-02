@@ -119,7 +119,7 @@ def fchC : List E := (List.range c.nFolds).map fun j ↦ tr.Fall.getD j 0
 
 /-- `level_roots`: each level's root's two cells. -/
 def rootsC : List E := (List.range (2 * c.levels.length)).map fun k ↦
-  if k % 2 = 0 then (digestScalars (tr.L (k / 2)).root).1 else (digestScalars (tr.L (k / 2)).root).2
+  if k % 2 = 0 then (digestHalves (tr.L (k / 2)).root).1 else (digestHalves (tr.L (k / 2)).root).2
 
 /-- `level_betas`. -/
 def betasC : List E := (List.range c.levels.length).map fun i ↦

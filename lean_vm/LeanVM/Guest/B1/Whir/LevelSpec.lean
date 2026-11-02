@@ -29,11 +29,11 @@ open LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 /-- A level's queries and glue after its proof of work (V:1812-1823). -/
 def levelRest (messageLog index : ℕ) (level : Whir.Level) (levelFolds : List E)
-    (s : WhirStateT) (pending : List (E × List E × (List E → E))) : Prog WhirStateT := do
+    (s : WhirStateT) (pending : List (E × List E × (List E → E))) : VerifierProgram WhirStateT := do
   let queries ← sampleQueries (messageLog + level.logInvRate) level.queries
-  let lam ← Prog.sampleChallenge
+  let lam ← VerifierProgram.sampleChallenge
   let queryWeights := powers lam queries.length
-  let words ← Prog.queryOpenings index queries
+  let words ← VerifierProgram.queryOpenings index queries
   let rows : List (List E) :=
     if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
   let enforced := enforcedSum rows levelFolds queryWeights
@@ -44,16 +44,16 @@ def levelRest (messageLog index : ℕ) (level : Whir.Level) (levelFolds : List E
 theorem levelQueries_eq (messageLog index : ℕ) (level : Whir.Level) (levelFolds : List E)
     (s : WhirStateT) (pending : List (E × List E × (List E → E))) :
     levelQueries messageLog index level levelFolds s pending =
-      (Prog.grindProofOfWork Whir.queryGrindingBits).bind fun _ ↦
+      (VerifierProgram.grindProofOfWork Whir.queryGrindingBits).bind fun _ ↦
         levelRest messageLog index level levelFolds s pending := rfl
 
 /-- A level up to its glued state: the residual (read at the last level), the message log after
 the level's folds and the state. -/
 def levelHead (logN index : ℕ) (level : Whir.Level) (rest : List Whir.Level) (s : WhirStateT) :
-    Prog (List E × ℕ × WhirStateT) := do
+    VerifierProgram (List E × ℕ × WhirStateT) := do
   let (s, levelFolds) ← foldRoundsT level.fold s []
   let (residual, pending) ← levelMid (logN - s.folds.length) rest
-  Prog.grindProofOfWork Whir.queryGrindingBits
+  VerifierProgram.grindProofOfWork Whir.queryGrindingBits
   let s' ← levelRest (logN - s.folds.length) index level levelFolds s pending
   return (residual, logN - s.folds.length, s')
 
@@ -66,8 +66,9 @@ theorem whirLevelsOpen_head (logN laneFolds index : ℕ) (level : Whir.Level)
         | _ :: _ => whirLevelsOpen logN laneFolds (index + 1) rest r.2.2 := by
   rw [whirLevelsOpen_cons]
   rcases rest with _ | ⟨next, rest⟩ <;>
-    simp only [levelHead, levelQueries_eq, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc,
-      Prog.ret_bind]
+    simp only [levelHead, levelQueries_eq, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+        VerifierProgram.bind_assoc,
+      VerifierProgram.ret_bind]
 
 end
 end LeanVM.Guest.B1.Whir

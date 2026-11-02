@@ -31,26 +31,27 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 /-- What `selector_tables` returns: its buffers' pointers, and the buffers holding `stOwn`. -/
 def stOut (ept ept1 : ℕ) (p p1 : List E) : List E → Layout → Prop := fun rets L =>
-  ∃ ese esg : ℕ, rets = [ofK (gpow ese), ofK (gpow esg)] ∧ L = stOwn ept ept1 ese esg p p1
+  ∃ ese esg : ℕ, rets = [ofK (addressOfIndex ese), ofK (addressOfIndex esg)] ∧ L = stOwn ept ept1
+      ese esg p p1
 
 theorem stVal_param (ept ept1 ese esg : ℕ) (p p1 : List E) :
-    stVal ept ept1 ese esg p p1 (.n 0) = ofK (gpow ept) ∧
-      stVal ept ept1 ese esg p p1 (.n 1) = ofK (gpow ept1) :=
-  ⟨ev_params _ _ (l := [ofK (gpow ept), ofK (gpow ept1)]) st_chk (by norm_num),
-    ev_params _ _ (l := [ofK (gpow ept), ofK (gpow ept1)]) st_chk (by norm_num)⟩
+    stVal ept ept1 ese esg p p1 (.n 0) = ofK (addressOfIndex ept) ∧
+      stVal ept ept1 ese esg p p1 (.n 1) = ofK (addressOfIndex ept1) :=
+  ⟨ev_params _ _ (l := [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)]) st_chk (by norm_num),
+    ev_params _ _ (l := [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)]) st_chk (by norm_num)⟩
 
 theorem stVal_bufs (ept ept1 ese esg : ℕ) (p p1 : List E) :
-    stVal ept ept1 ese esg p p1 (.n 2) = ofK (gpow ese) ∧
-      stVal ept ept1 ese esg p p1 (.n 3) = ofK (gpow esg) ∧
-      stVal ept ept1 ese esg p p1 (.n 368) = ofK (gpow ese) ∧
-      stVal ept ept1 ese esg p p1 (.n 369) = ofK (gpow esg) := by
+    stVal ept ept1 ese esg p p1 (.n 2) = ofK (addressOfIndex ese) ∧
+      stVal ept ept1 ese esg p p1 (.n 3) = ofK (addressOfIndex esg) ∧
+      stVal ept ept1 ese esg p p1 (.n 368) = ofK (addressOfIndex ese) ∧
+      stVal ept ept1 ese esg p p1 (.n 369) = ofK (addressOfIndex esg) := by
   have hg : ∀ s ∈ stPre, GoodS (layRd (stLin ept ept1 p p1)) (storesOf 2 stPre) (stW ese esg)
       (stVal ept ept1 ese esg p p1) s :=
     (ev_spec (layRd (stLin ept ept1 p p1)) (stW ese esg) stPre
-      [ofK (gpow ept), ofK (gpow ept1)] st_chk).2.2
-  have e2 : stVal ept ept1 ese esg p p1 (.n 2) = ofK (gpow ese) := by
+      [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)] st_chk).2.2
+  have e2 : stVal ept ept1 ese esg p p1 (.n 2) = ofK (addressOfIndex ese) := by
     simpa [GoodS, Good, stW] using hg _ st_alloc_mem.1
-  have e3 : stVal ept ept1 ese esg p p1 (.n 3) = ofK (gpow esg) := by
+  have e3 : stVal ept ept1 ese esg p p1 (.n 3) = ofK (addressOfIndex esg) := by
     simpa [GoodS, Good, stW] using hg _ st_alloc_mem.2
   have c1 := hg _ (show Stmt.atom (.copy (.n 368) (.n 2)) ∈ stPre by simp [stPre])
   have c2 := hg _ (show Stmt.atom (.copy (.n 369) (.n 3)) ∈ stPre by simp [stPre])
@@ -71,7 +72,8 @@ set_option maxRecDepth 10000 in
 buffers at the bump allocator's positions, returned. -/
 theorem selector_tables_completeAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ)
     (ept ept1 : ℕ) (p p1 : List E) (hl : p.length = 28) (hl1 : p1.length = 28) :
-    CompleteAtD fs cert k "selector_tables" (stLin ept ept1 p p1) [ofK (gpow ept), ofK (gpow ept1)]
+    CompleteAtD fs cert k "selector_tables" (stLin ept ept1 p p1) [ofK (addressOfIndex ept), ofK
+        (addressOfIndex ept1)]
       (stOut ept ept1 p p1) := by
   obtain ⟨fn, hf, hp, hb⟩ := stFound
   set f := "selector_tables"
@@ -83,7 +85,8 @@ theorem selector_tables_completeAt (fs : String → ℕ) (cert : String → V �
         stOwn ept ept1 (fp + fs f) (fp + fs f + 210) p p1 := by
     intro fp; simp [bufL, bases, stOwn]
   refine completeAt_flatOutD (fs := fs) (cert := cert) hf st_not_loop k (stLin ept ept1 p p1) _
-    (fun fp ↦ [ofK (gpow (fp + fs f)), ofK (gpow (fp + fs f + 210))]) _ hb st_flat st_addrs
+    (fun fp ↦ [ofK (addressOfIndex (fp + fs f)), ofK (addressOfIndex (fp + fs f + 210))]) _ hb
+        st_flat st_addrs
     [210, 112] (fun fp ↦ [stEqWords (stVal ept ept1 (fp + fs f) (fp + fs f + 210) p p1), stGWords])
     hown (fun fp ↦ ⟨_, _, rfl, hbuf fp⟩) (fun _ ↦ []) (fun _ _ h ↦ absurd h (by simp))
     (fun _ _ h ↦ absurd h (by simp)) (fun _ _ _ _ _ h ↦ absurd h (by simp)) ?_
@@ -144,7 +147,7 @@ set_option maxRecDepth 10000 in
 buffers at the bump allocator's positions, returned. -/
 theorem selector_tables_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ)
     (ept ept1 : ℕ) (p p1 : List E) (hl : p.length = 28) (hl1 : p1.length = 28) :
-    CompleteAtDTB fs cert k "selector_tables" (stLin ept ept1 p p1) [ofK (gpow ept), ofK (gpow ept1)]
+    CompleteAtDTB fs cert k "selector_tables" (stLin ept ept1 p p1) [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)]
       (stOut ept ept1 p p1) (fun _ ↦ True)
       (fs "selector_tables" + [210, 112].sum) := by
   obtain ⟨fn, hf, hp, hb⟩ := stFound
@@ -157,7 +160,8 @@ theorem selector_tables_completeAtB (fs : String → ℕ) (cert : String → V �
         stOwn ept ept1 (fp + fs f) (fp + fs f + 210) p p1 := by
     intro fp; simp [bufL, bases, stOwn]
   refine (completeAt_flatOutDTB (fs := fs) (cert := cert) hf st_not_loop k (stLin ept ept1 p p1) _
-    (fun fp ↦ [ofK (gpow (fp + fs f)), ofK (gpow (fp + fs f + 210))]) _ hb st_flat st_addrs
+    (fun fp ↦ [ofK (addressOfIndex (fp + fs f)), ofK (addressOfIndex (fp + fs f + 210))]) _ hb
+        st_flat st_addrs
     [210, 112] (fun fp ↦ [stEqWords (stVal ept ept1 (fp + fs f) (fp + fs f + 210) p p1), stGWords])
     hown (fun fp ↦ ⟨_, _, rfl, hbuf fp⟩) (fun _ ↦ []) (fun _ ↦ True) [] [] 0 (fun _ ↦ trivial) (fun _ ↦ le_rfl)
     (fun _ ↦ le_rfl) (fun _ _ h ↦ absurd h (by simp)) (fun _ _ _ _ _ h ↦ absurd h (by simp)) ?_).mono

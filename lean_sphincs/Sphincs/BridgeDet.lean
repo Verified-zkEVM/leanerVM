@@ -253,7 +253,7 @@ theorem preparedCache_randomizer (material : Material) (seed : MasterSeed) (answ
     · have := congrArg List.length h
       simp [randomizerHashInput_length, secretInput, keygenHashInput_length] at this
   · simp only [canonicalGraphInput, tweakableHashInput, tweakBytes, randomizerHashInput] at h
-    rw [List.append_assoc (bytesLE 16 parameter ++ fieldBytes _)] at h
+    rw [List.append_assoc (littleEndianBytes 16 parameter ++ addressBytes _)] at h
     refine Completeness.fieldInput_ne_of_tag_ne_across parameter (SeedModel.parameter material)
       (fields1 := ⟨7#5, 0#3, 0#24, 0#32⟩) (fields2 := hashDomainFields position.domain) ?_ _ _ h
     exact hashDomain_tag_ne_seven position.domain

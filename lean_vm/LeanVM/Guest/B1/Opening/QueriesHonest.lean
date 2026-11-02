@@ -163,7 +163,7 @@ cells, `5`, the step. -/
 def preV (o : ℕ) : E :=
   if o < 4 * d.s.pd then d.pc o
   else if o = 4 * d.s.pd then d.pp
-  else if o < 81 then (d.rd (d.pp.limb 0 * Parameters.gpow (o - 1))).getD 0
+  else if o < 81 then (d.rd (d.pp.limb 0 * Parameters.addressOfIndex (o - 1))).getD 0
   else if o = 81 then word 5 0 0
   else d.pp * word 5 0 0
 

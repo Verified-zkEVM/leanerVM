@@ -105,7 +105,7 @@ variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState
 script ends at the runner's node, the run from there is the commit-once honest prover of the
 script's replay, in every monad, for every hash and permutation. -/
 theorem runFrom_eq_proveFromM (fuel : ℕ) {α β : Type} (Hs : Script β) :
-    ∀ (P : Prog α) (S : Option (Script β)) (sp : Sponge) (h : List Ev) (cs : List Tree),
+    ∀ (P : VerifierProgram α) (S : Option (Script β)) (sp : Sponge) (h : List Ev) (cs : List Tree),
       Hs.walk h = S →
       runFromWithHash H F fuel P S sp cs = proveFromM H F (Strategy.ofScript Hs 0) fuel P sp h cs := by
   intro P
@@ -156,7 +156,8 @@ theorem runFrom_eq_proveFromM (fuel : ℕ) {α β : Type} (Hs : Script β) :
 
 /-- **From a seed**: the runner's proof is the honest prover's of the script's replay, `none`
 where a proof of work fails. -/
-theorem runScript_eq_proveM (P : Prog Bool) {β : Type} (Hs : Script β) (seed : KeccakState)
+theorem runScript_eq_proveM (P : VerifierProgram Bool) {β : Type} (Hs : Script β) (seed :
+    KeccakState)
     (fuel : ℕ) :
     runScriptWithHash H F P Hs seed fuel = proveM H F P (Strategy.ofScript Hs 0) seed fuel := by
   unfold runScriptWithHash proveM
@@ -171,7 +172,8 @@ section Commute
 variable {r : Type → Type} [Monad r] [LawfulMonad r] (impl : QueryImpl KeccakCalls r)
 
 /-- **The runner commutes with simulation.** -/
-theorem simulateQ_runScript (P : Prog Bool) {β : Type} (Hs : Script β) (seed : KeccakState)
+theorem simulateQ_runScript (P : VerifierProgram Bool) {β : Type} (Hs : Script β) (seed :
+    KeccakState)
     (fuel : ℕ) :
     simulateQ impl (runScriptWithHash callKeccak256 callKeccakF1600 P Hs seed fuel) =
       runScriptWithHash (implH impl) (implF impl) P Hs seed fuel := by
@@ -184,7 +186,8 @@ theorem simulateQ_seedWith (bytecode : List K) (publicInput : Digest) :
   rw [← seedRun_leanVmSeed, ← seedRun_leanVmSeed, simulateQ_seedRun]
 
 /-- **The seed, then the runner, commute with simulation.** -/
-theorem simulateQ_seedRunScript (bytecode : List K) (publicInput : Digest) (P : Prog Bool)
+theorem simulateQ_seedRunScript (bytecode : List K) (publicInput : Digest) (P :
+    VerifierProgram Bool)
     {β : Type} (Hs : Script β) (fuel : ℕ) :
     simulateQ impl (do
         let seed ← seedWithHash callKeccak256 callKeccakF1600 bytecode publicInput

@@ -28,7 +28,7 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
   (parameter : PublicParameter) (data : PublicData) (message : Message)
 
 /-- **Final assembly, one cached block, weighted.** -/
-theorem finish_bound₁W (randomness : Randomness)
+theorem finish_bound₁W (randomness : Randomizer)
     (hparse : model.parse (blk parameter data message randomness) = none)
     (state : DebtState HashInput HashOutput Coordinate) (u0 : HashOutput)
     (hc0 : state.cache (blk parameter data message randomness) = some u0)
@@ -76,8 +76,8 @@ theorem trials_sum_le (gf : Lifetime.KeptDigestView → ℝ≥0∞) (bound : ℝ
 theorem trial_boundSW
     (hparse : ∀ ρ, model.parse (blk parameter data message ρ) = none)
     (hkind : ∀ ρ, tg.kind (blk parameter data message ρ) = .none)
-    (reference : DebtState HashInput HashOutput Coordinate) (ρ : Randomness)
-    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomness → Lifetime.KeptDigestView → ℝ≥0∞)
+    (reference : DebtState HashInput HashOutput Coordinate) (ρ : Randomizer)
+    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomizer → Lifetime.KeptDigestView → ℝ≥0∞)
     (V : Option (Option Signature) → DebtState HashInput HashOutput Coordinate → ℝ≥0∞)
     (hVabort : ∀ s', V none s' = 0)
     (hVfin : ∀ (s' : DebtState HashInput HashOutput Coordinate) (u0 : HashOutput) (b : ℕ),
@@ -171,12 +171,12 @@ theorem loop_boundSW
     (hparse : ∀ ρ, model.parse (blk parameter data message ρ) = none)
     (hkind : ∀ ρ, tg.kind (blk parameter data message ρ) = .none)
     (reference : DebtState HashInput HashOutput Coordinate)
-    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomness → Lifetime.KeptDigestView → ℝ≥0∞)
+    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomizer → Lifetime.KeptDigestView → ℝ≥0∞)
     (V : Option (Option Signature) → DebtState HashInput HashOutput Coordinate → ℝ≥0∞)
     (hVabort : ∀ s', V none s' = 0)
     (hVnone : ∀ s' : DebtState HashInput HashOutput Coordinate, Related parameter data message reference s' →
       V (some none) s' = 0)
-    (hVfin : ∀ (ρ : Randomness) (s' : DebtState HashInput HashOutput Coordinate) (u0 : HashOutput) (b : ℕ),
+    (hVfin : ∀ (ρ : Randomizer) (s' : DebtState HashInput HashOutput Coordinate) (u0 : HashOutput) (b : ℕ),
       RelatedOff parameter data message reference s' ρ → s'.cache (blk parameter data message ρ) = some u0 →
       ∀ out ∈ support (interp tg initial model (finishCostSource parameter data message ρ) b s'),
         V out.1.1 out.2 ≤ (if out.1.1.isSome then (out.2.cache (blk parameter data message ρ)).elim 0
@@ -236,7 +236,7 @@ theorem loop_boundSW
 
 /-- The combined weight of a non-signing outcome vanishes. -/
 theorem comb_none (reference : DebtState HashInput HashOutput Coordinate)
-    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomness → Lifetime.KeptDigestView → ℝ≥0∞)
+    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomizer → Lifetime.KeptDigestView → ℝ≥0∞)
     (s' : DebtState HashInput HashOutput Coordinate) (hrel : Related parameter data message reference s') :
     freshNewWeight parameter data message reference gf ((some none, [], [], []), s') +
       outWeight parameter data message reference 0 gp ((some none, [], [], []), s') = 0 := by
@@ -251,8 +251,8 @@ theorem comb_none (reference : DebtState HashInput HashOutput Coordinate)
 /-- The combined weight of a completed assembly is the weight of its own pair. -/
 theorem comb_fin (hparse : ∀ ρ, model.parse (blk parameter data message ρ) = none)
     (reference : DebtState HashInput HashOutput Coordinate)
-    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomness → Lifetime.KeptDigestView → ℝ≥0∞)
-    (ρ : Randomness) (s' : DebtState HashInput HashOutput Coordinate) (u0 : HashOutput) (b : ℕ)
+    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomizer → Lifetime.KeptDigestView → ℝ≥0∞)
+    (ρ : Randomizer) (s' : DebtState HashInput HashOutput Coordinate) (u0 : HashOutput) (b : ℕ)
     (hoff : RelatedOff parameter data message reference s' ρ) (hs0 : s'.cache (blk parameter data message ρ) = some u0)
     (out : Run HashInput Coordinate (Option Signature) × DebtState HashInput HashOutput Coordinate)
     (hout : out ∈ support (interp tg initial model (finishCostSource parameter data message ρ) b s')) :
@@ -302,7 +302,7 @@ theorem loop_bound_combSW
     (hparse : ∀ ρ, model.parse (blk parameter data message ρ) = none)
     (hkind : ∀ ρ, tg.kind (blk parameter data message ρ) = .none)
     (reference : DebtState HashInput HashOutput Coordinate)
-    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomness → Lifetime.KeptDigestView → ℝ≥0∞) :
+    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomizer → Lifetime.KeptDigestView → ℝ≥0∞) :
     ∀ attempts, attempts ≤ 2 ^ 128 → ∀ budget state ρ, Related parameter data message reference state →
       (∀ i, i < attempts → state.cache (blk parameter data message ((nextRand ^ i) ρ)) =
         reference.cache (blk parameter data message ((nextRand ^ i) ρ))) →

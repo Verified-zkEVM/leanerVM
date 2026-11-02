@@ -71,7 +71,7 @@ theorem flatMap_inj {α β : Type} {f : α → List β} {n : ℕ} (hn : 0 < n)
     obtain ⟨h1, h2⟩ := List.append_inj h (by rw [hlen, hlen])
     rw [hf a b h1, flatMap_inj hn hlen hf h2]
 
-theorem kBytes_inj {a b : K} (h : kBytes a = kBytes b) : a = b :=
+theorem kBytes_inj {a b : K} (h : K.toBytes a = K.toBytes b) : a = b :=
   K.lane_injective (wordBytes_injective h)
 
 theorem length_eBytes (x : E) : (extensionElementBytes x).length = 24 := rfl
@@ -87,11 +87,11 @@ theorem eBytes_inj {x y : E} (h : extensionElementBytes x = extensionElementByte
   | 2, _ => exact kBytes_inj h3
   | n + 3, hi => exact absurd hi (by simp)
 
-theorem length_bytesLE (n : ℕ) (v : BitVec (8 * n)) : (HashSig.bytesLE n v).length = n :=
+theorem length_bytesLE (n : ℕ) (v : BitVec (8 * n)) : (HashSig.littleEndianBytes n v).length = n :=
   List.length_ofFn
 
 theorem bytesLE_inj {n : ℕ} {v v' : BitVec (8 * n)}
-    (h : HashSig.bytesLE n v = HashSig.bytesLE n v') : v = v' := by
+    (h : HashSig.littleEndianBytes n v = HashSig.littleEndianBytes n v') : v = v' := by
   have hf := List.ofFn_injective h
   apply BitVec.eq_of_getLsbD_eq
   intro j hj
@@ -208,8 +208,8 @@ the same digest. Then the decoded seed is `iv` and `s` is `s₀`, or a candidate
 Keccak-256 collision. -/
 theorem decoded_binds {b : List K} {iv seed : Digest} {s₀ s : NodeStatement}
     {input : PublicInput} (hs₀ : s₀.deferredClaim.HasBytecodeShape b) (hs : s.deferredClaim.HasBytecodeShape b)
-    (hpub : publicDigest input = statementDigest iv s₀)
-    (hdec : statementDigest seed s = publicDigest input) :
+    (hpub : publicInputDigest input = statementDigest iv s₀)
+    (hdec : statementDigest seed s = publicInputDigest input) :
     (seed = iv ∧ s = s₀) ∨ HasCollision (collisionCandidates seed s iv s₀) :=
   statementDigest_binds hs hs₀ (hdec.trans hpub)
 
@@ -219,8 +219,8 @@ theorem decoded_binds {b : List K} {iv seed : Digest} {s₀ s : NodeStatement}
 theorem decoded_binds_of_nodeRel {bytecode : List K} {iv seed : Digest} {s₀ s : NodeStatement}
     {w : NodeWitness} {input : PublicInput} (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode)
     (hrel : NodeRelation bytecode seed s w)
-    (hpub : publicDigest input = statementDigest iv s₀)
-    (hdec : statementDigest seed s = publicDigest input) :
+    (hpub : publicInputDigest input = statementDigest iv s₀)
+    (hdec : statementDigest seed s = publicInputDigest input) :
     (seed = iv ∧ s = s₀) ∨ HasCollision (collisionCandidates seed s iv s₀) :=
   decoded_binds hs₀ hrel.2.2.2.2 hpub hdec
 

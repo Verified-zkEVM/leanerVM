@@ -111,7 +111,7 @@ def padLast : UInt8 := 0x80
 
 /-- The little-endian 64-bit word of bytes `8i` to `8i + 7` of a byte string, missing bytes `0`
 (`unpack("<17Q", ...)`). -/
-def leLane (bytes : List UInt8) (i : ℕ) : UInt64 :=
+def littleEndianLane (bytes : List UInt8) (i : ℕ) : UInt64 :=
   (List.range 8).foldl (fun acc k ↦ acc ||| ((bytes.getD (8 * i + k) 0).toUInt64 <<<
       (8 * k).toUInt64)) 0
 
@@ -123,7 +123,7 @@ variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 then permute (`verifier.py:207-208`). -/
 def absorbBlockWith (state : KeccakState) (block : List UInt8) : m KeccakState :=
   π (Vector.ofFn fun i ↦
-    if i.val < 17 then Keccak.lane state i ^^^ leLane block i else Keccak.lane state i)
+    if i.val < 17 then Keccak.lane state i ^^^ littleEndianLane block i else Keccak.lane state i)
 
 /-- The last block: the remaining `0` to `135` bytes, `PAD_FIRST` after them, zeros, and
 `PAD_LAST` XORed into the block's last byte (one byte `0x81` when `135` bytes remain)

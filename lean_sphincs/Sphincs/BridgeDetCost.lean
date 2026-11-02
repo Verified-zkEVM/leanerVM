@@ -46,7 +46,7 @@ noncomputable def costGameDet (parameter : PublicParameter) (data : PublicData) 
   costRestDet parameter data rnd adversary
 
 /-- The deterministic signer from a scan of `attempts` trials starting at `start`. -/
-def seededFrom (sk : Seeded.SecretKey) (message : Message) (attempts : Nat) (start : Randomness) :
+def seededFrom (sk : Seeded.SecretKey) (message : Message) (attempts : Nat) (start : Randomizer) :
     OracleComp HashSpec (Option Signature) := do
   let some (randomness, _) ← Seeded.signDigestLoop sk message attempts start | return none
   Randomized.finishSign sk message randomness
@@ -54,7 +54,7 @@ def seededFrom (sk : Seeded.SecretKey) (message : Message) (attempts : Nat) (sta
 omit [Params] in
 theorem eval_deriveRandomizer (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (seed : MasterSeed) (message : Message) :
-    evalWithAnswerFn f (deriveRandomizer parameter seed message : OracleComp HashSpec Randomness) =
+    evalWithAnswerFn f (deriveRandomizer parameter seed message : OracleComp HashSpec Randomizer) =
       truncateHash (f (randomizerHashInput parameter seed message)) := by
   simp only [deriveRandomizer, evalWithAnswerFn_bind, evalWithAnswerFn_pure]
   rfl
@@ -62,11 +62,11 @@ theorem eval_deriveRandomizer (f : QueryImpl HashSpec Id) (parameter : PublicPar
 omit [Params] in
 theorem hashCalls_deriveRandomizer (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (seed : MasterSeed) (message : Message) :
-    hashCalls f (deriveRandomizer parameter seed message : OracleComp HashSpec Randomness) = 1 := by
+    hashCalls f (deriveRandomizer parameter seed message : OracleComp HashSpec Randomizer) = 1 := by
   simp only [deriveRandomizer, hashCalls_bind, hashCalls_oracleHash, hashCalls_pure]
 
 theorem eval_signAttempt (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) (message : Message)
-    (randomness : Randomness) :
+    (randomness : Randomizer) :
     evalWithAnswerFn f (Seeded.signAttempt sk message randomness : OracleComp HashSpec (Option Index)) =
       if Landed sk.parameter (blockIndex (evalWithAnswerFn f
           (messageDigestCall sk.parameter message randomness : OracleComp HashSpec HashOutput)))
@@ -81,7 +81,7 @@ any start. -/
 theorem fixed_signCostDetLoop (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (seed : MasterSeed) (data : PublicData) (table : HiddenGraph.Table)
     (hdata : DataCorrect f parameter seed data) (htable : CoordinatesCorrect f parameter seed table)
-    (message : Message) (attempts : Nat) (start : Randomness) :
+    (message : Message) (attempts : Nat) (start : Randomizer) :
     simulateQ (fixedCostSource f table) (signCostSourceLoop parameter data message attempts start) =
       simulateQ (fixedWorldCost f) (liftM (seededFrom ⟨seed, parameter⟩ message attempts start) :
         OracleComp OracleWorld (Option Signature)) := by
@@ -131,7 +131,7 @@ theorem signCostDet_correct (f : QueryImpl HashSpec Id) (parameter : PublicParam
         OracleComp HashSpec (Option Signature)) : OracleComp OracleWorld (Option Signature)) := by
   have hX : (Seeded.sign ⟨seed, parameter⟩ message :
       OracleComp HashSpec (Option Signature)) =
-      (deriveRandomizer parameter seed message : OracleComp HashSpec Randomness) >>= fun base =>
+      (deriveRandomizer parameter seed message : OracleComp HashSpec Randomizer) >>= fun base =>
         seededFrom ⟨seed, parameter⟩ message digestAttemptLimit base := by
     rw [seededSign_eq]
     rfl

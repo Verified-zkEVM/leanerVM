@@ -34,27 +34,27 @@ open LeanVM.Guest.Check
 /-- The number of compiled functions. -/
 def nFns : ℕ := 879
 
-instance : Inhabited CompiledFn := ⟨⟨"", 0, 0, []⟩⟩
+instance : Inhabited CompiledFunction := ⟨⟨"", 0, 0, []⟩⟩
 
 instance : Inhabited Cert := ⟨⟨{}, [], [], [], 0, [], [], [], [], [], [], []⟩⟩
 
 /-- Compiled function `j`. -/
-def fnOf (j : ℕ) : CompiledFn := nth Data.functions j default
+def fnOf (j : ℕ) : CompiledFunction := listElementOrDefault Data.functions j default
 
 /-- The core IR function of compiled function `j ≥ 1`. -/
-noncomputable def coreOf (j : ℕ) : Core.Fn := nth coreProgram (j - 1) default
+noncomputable def coreOf (j : ℕ) : Core.Fn := listElementOrDefault coreProgram (j - 1) default
 
 /-- The certificate of compiled function `j`, with the guest's powers of `g` (`Data.powTree`,
 checked once) as its executor's. -/
 noncomputable def certOf (j : ℕ) : Cert :=
-  match nth Data.certs j default with
+  match listElementOrDefault Data.certs j default with
   | ⟨⟨env, fpOne, _, arms, scaled⟩, los, cells, ins, nret, callees, pre, post, mem, sem, cuts, ends⟩ =>
     ⟨⟨env, fpOne, Data.powTree, arms, scaled⟩, los, cells, ins, nret, callees, pre, post, mem, sem, cuts,
       ends⟩
 
 /-- What a caller knows of function `j`. -/
 noncomputable def sigOf (j : ℕ) : Sig :=
-  ⟨(coreOf j).name, (fnOf j).entry, (coreOf j).params.length, (certOf j).nret,
+  ⟨(coreOf j).name, (fnOf j).entryPc, (coreOf j).params.length, (certOf j).nret,
     (certOf j).facts.env, (certOf j).pre, (certOf j).post, (certOf j).mem, (certOf j).sem⟩
 
 /-- The callees: every function but `__jump_tables` and `main`. -/

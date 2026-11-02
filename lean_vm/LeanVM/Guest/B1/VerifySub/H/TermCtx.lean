@@ -34,7 +34,7 @@ namespace VtHonest
 noncomputable def ptsP (H : VtHonest) (j : ℕ) : List E :=
   if j < 4 then H.point.take H.lm else if j = 4 then H.point.take 19
   else if j < 162 then H.chiW.take (vtHt H.rows (vtEvTab (j - 5)))
-  else H.rm :: List.replicate ((H.L.placement memory0).vars - 1) 0
+  else H.rm :: List.replicate ((H.L.placement memory0).variableCount - 1) 0
 
 variable {H : VtHonest}
 
@@ -171,7 +171,7 @@ theorem vtH_hlen (h : H.Ok) (hs : VtShape H) (hlm1 : 1 ≤ H.lm) :
   have hl : H.claims.length = 165 := by
     rw [← List.length_map (f := (·.column)), hcol]; decide +kernel
   -- the public input's point
-  have hmem0 : (H.L.placement memory0).vars = H.lm := by
+  have hmem0 : (H.L.placement memory0).variableCount = H.lm := by
     have hk : (columnKappas H.L.logMemory H.L.logBytecode H.L.tableLogHeights).length = 163 :=
       columnKappas_length _ _ _
     have := VerifySub.placement_committed (layout := H.L) hk rfl (cc := 0) (by decide)

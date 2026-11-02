@@ -20,40 +20,41 @@ namespace Sphincs
 
 @[expose] public section
 
-namespace Concrete
+namespace Verification
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m] (parameter : PublicParameter)
 
-theorem chainWalk_eq_zero (leaf : Index) (chainIdx : ChainIndex) (start : Nat) (value : Digest) :
+theorem chainWalk_eq_zero (leaf : LeafIndex) (chainIdx : ChainIndex) (start : Nat) (value :
+    Digest) :
     chainWalkWithHash (m := m) parameter leaf chainIdx start 0 value = pure value := rfl
 
-theorem chainWalk_eq_succ (leaf : Index) (chainIdx : ChainIndex) (start steps : Nat)
+theorem chainWalk_eq_succ (leaf : LeafIndex) (chainIdx : ChainIndex) (start steps : Nat)
     (value : Digest) :
     chainWalkWithHash (m := m) parameter leaf chainIdx start (steps + 1) value = (do
       let previous ← chainWalkWithHash parameter leaf chainIdx start steps value
       if hstep : start + steps < chainLength - 1 then
         tweakableHashWithHash parameter (.chain leaf chainIdx ⟨start + steps, hstep⟩)
-          (bytesLE 16 previous)
+          (littleEndianBytes 16 previous)
       else
         pure 0) := rfl
 
-theorem forestWalk_eq_zero (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex)
+theorem forestWalk_eq_zero (index : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex)
     (i : ForestChainIndex) (start : Nat) (value : Digest) :
     forestWalkWithHash (m := m) parameter index c s j a i start 0 value = pure value := rfl
 
-theorem forestWalk_eq_succ (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex)
+theorem forestWalk_eq_succ (index : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex)
     (i : ForestChainIndex) (start steps : Nat) (value : Digest) :
     forestWalkWithHash (m := m) parameter index c s j a i start (steps + 1) value = (do
       let previous ← forestWalkWithHash parameter index c s j a i start steps value
-      if hstep : start + steps < chainTop then
-        tweakableHashWithHash parameter (.forestChain index c s j a i ⟨start + steps, hstep⟩) (bytesLE 16 previous)
+      if hstep : start + steps < forestChainTop then
+        tweakableHashWithHash parameter (.forestChain index c s j a i ⟨start + steps, hstep⟩) (littleEndianBytes 16 previous)
       else
         pure 0) := rfl
 
-theorem treeFold_eq_zero (leaf : Index) (path : Nat → Digest) (value : Digest) :
+theorem treeFold_eq_zero (leaf : LeafIndex) (path : Nat → Digest) (value : Digest) :
     treeFoldWithHash (m := m) parameter leaf path 0 value = pure value := rfl
 
-theorem treeFold_eq_succ (leaf : Index) (path : Nat → Digest) (levels : Nat) (value : Digest) :
+theorem treeFold_eq_succ (leaf : LeafIndex) (path : Nat → Digest) (levels : Nat) (value : Digest) :
     treeFoldWithHash (m := m) parameter leaf path (levels + 1) value = (do
       let current ← treeFoldWithHash parameter leaf path levels value
       let sibling := path levels
@@ -67,62 +68,62 @@ theorem treeFold_eq_succ (leaf : Index) (path : Nat → Digest) (levels : Nat) (
   funext current
   split <;> rfl
 
-theorem subFold_eq_zero (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex)
-    (path : Fin subHeight → Digest) (value : Digest) :
+theorem subFold_eq_zero (index : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex)
+    (path : Fin forestSubtreeHeight → Digest) (value : Digest) :
     subFoldWithHash (m := m) parameter index c s j a path 0 value = pure value := rfl
 
-theorem subFold_eq_succ (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex)
-    (path : Fin subHeight → Digest) (levels : Nat) (value : Digest) :
+theorem subFold_eq_succ (index : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex)
+    (path : Fin forestSubtreeHeight → Digest) (levels : Nat) (value : Digest) :
     subFoldWithHash (m := m) parameter index c s j a path (levels + 1) value = (do
       let current ← subFoldWithHash parameter index c s j a path levels value
-      if hlevel : levels < subHeight then
+      if hlevel : levels < forestSubtreeHeight then
         let sibling := path ⟨levels, hlevel⟩
         let node : ChildIndex := ⟨a.val / 2 ^ (levels + 1),
           Nat.lt_of_le_of_lt (Nat.div_le_self _ _) a.isLt⟩
         if a.val.testBit levels then
-          tweakableHashWithHash parameter (.subNode index c s j ⟨levels, hlevel⟩ node) (nodePayload sibling current)
+          tweakableHashWithHash parameter (.subtreeNode index c s j ⟨levels, hlevel⟩ node) (nodePayload sibling current)
         else
-          tweakableHashWithHash parameter (.subNode index c s j ⟨levels, hlevel⟩ node) (nodePayload current sibling)
+          tweakableHashWithHash parameter (.subtreeNode index c s j ⟨levels, hlevel⟩ node) (nodePayload current sibling)
       else
         pure 0) := by
   show _ >>= _ = _ >>= _
   congr 1
   funext current
-  have hnode : a.val / 2 ^ (levels + 1) % 2 ^ subHeight = a.val / 2 ^ (levels + 1) :=
+  have hnode : a.val / 2 ^ (levels + 1) % 2 ^ forestSubtreeHeight = a.val / 2 ^ (levels + 1) :=
     Nat.mod_eq_of_lt (Nat.lt_of_le_of_lt (Nat.div_le_self _ _) a.isLt)
   simp only [subNodeHashWithHash, hnode]
   split
   · split <;> rfl
   · rfl
 
-theorem topFold_eq_zero (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (path : Fin topHeight → Digest)
+theorem topFold_eq_zero (index : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex) (path : Fin topTreeHeight → Digest)
     (value : Digest) : topFoldWithHash (m := m) parameter index c s path 0 value = pure value := rfl
 
-theorem topFold_eq_succ (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (path : Fin topHeight → Digest)
+theorem topFold_eq_succ (index : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex) (path : Fin topTreeHeight → Digest)
     (levels : Nat) (value : Digest) :
     topFoldWithHash (m := m) parameter index c s path (levels + 1) value = (do
       let current ← topFoldWithHash parameter index c s path levels value
-      if hlevel : levels < topHeight then
+      if hlevel : levels < topTreeHeight then
         let sibling := path ⟨levels, hlevel⟩
         let node : SuperChildIndex := ⟨s.val / 2 ^ (levels + 1),
           Nat.lt_of_le_of_lt (Nat.div_le_self _ _) s.isLt⟩
         if s.val.testBit levels then
-          tweakableHashWithHash parameter (.topNode index c ⟨levels, hlevel⟩ node) (nodePayload sibling current)
+          tweakableHashWithHash parameter (.topTreeNode index c ⟨levels, hlevel⟩ node) (nodePayload sibling current)
         else
-          tweakableHashWithHash parameter (.topNode index c ⟨levels, hlevel⟩ node) (nodePayload current sibling)
+          tweakableHashWithHash parameter (.topTreeNode index c ⟨levels, hlevel⟩ node) (nodePayload current sibling)
       else
         pure 0) := by
   show _ >>= _ = _ >>= _
   congr 1
   funext current
-  have hnode : s.val / 2 ^ (levels + 1) % 2 ^ topHeight = s.val / 2 ^ (levels + 1) :=
+  have hnode : s.val / 2 ^ (levels + 1) % 2 ^ topTreeHeight = s.val / 2 ^ (levels + 1) :=
     Nat.mod_eq_of_lt (Nat.lt_of_le_of_lt (Nat.div_le_self _ _) s.isLt)
   simp only [topNodeHashWithHash, hnode]
   split
   · split <;> rfl
   · rfl
 
-end Concrete
+end Verification
 
 end
 

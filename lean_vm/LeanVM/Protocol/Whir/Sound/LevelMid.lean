@@ -38,7 +38,7 @@ query group (`escRet_queryFrag_le`), given a specification of the next level.
 namespace LeanVM.Protocol.Whir.Sound
 
 open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-  LeanVM.Protocol.Whir Prog Finset
+  LeanVM.Protocol.Whir VerifierProgram Finset
 
 @[expose] public section
 
@@ -62,12 +62,12 @@ def glueMid (r : WhirStateT × List E) (z : List E) (y : E) (hy : List E) (qs : 
 
 /-- After the query group: the query intro polynomial, then the next level. -/
 def midFinish (r : WhirStateT × List E) (z : List E) (y : E) (hy : List E) (qs : List ℕ) (lam : E)
-    (words : List (List K)) : Prog Unit :=
+    (words : List (List K)) : VerifierProgram Unit :=
   (sumcheckRoundPoly 3 (enfOf i r.2 qs lam words) none).bind fun hq ↦
     whirLevelsT μ ℓ₀ w (i + 1) (next :: rest) (glueMid μ i r z y hy qs lam words hq)
 
 /-- After the fold rounds. -/
-def midTail (r : WhirStateT × List E) : Prog Unit :=
+def midTail (r : WhirStateT × List E) : VerifierProgram Unit :=
   (readCommitment (μ - r.1.folds.length - next.fold + next.logInvRate) (3 * 2 ^ next.fold)).bind fun _ ↦
   (sampleChallenges (μ - r.1.folds.length)).bind fun z ↦ readScalar.bind fun y ↦
   (sumcheckRoundPoly 3 y none).bind fun hy ↦
@@ -77,7 +77,7 @@ def midTail (r : WhirStateT × List E) : Prog Unit :=
     midFinish μ ℓ₀ w i next rest r z y hy qs lam words
 
 /-- The level, unfolded. -/
-def midProg (s : WhirStateT) : Prog Unit :=
+def midProg (s : WhirStateT) : VerifierProgram Unit :=
   (foldRoundsT level.fold s []).bind fun r ↦ midTail μ ℓ₀ w i level next rest r
 
 /-- **`whirLevels` on a level with a next commitment is `midProg`.** -/
@@ -85,10 +85,10 @@ theorem whirLevels_mid (s : WhirStateT) :
     whirLevelsT μ ℓ₀ w i (level :: next :: rest) s = midProg μ ℓ₀ w i level next rest s := rfl
 
 /-- The query group as one fragment. -/
-theorem query_bind (d t : ℕ) (K : List ℕ → E → List (List K) → Prog Unit) :
+theorem query_bind (d t : ℕ) (K : List ℕ → E → List (List K) → VerifierProgram Unit) :
     ((sampleQueries d t).bind fun qs ↦ sampleChallenge.bind fun lam ↦ (queryOpenings i qs).bind fun words ↦
       K qs lam words) = (queryFrag d t i).bind fun g ↦ K g.1 g.2.1 g.2.2 := by
-  simp only [queryFrag, bind_eq, Prog.bind_assoc, Prog.ret_bind]
+  simp only [queryFrag, bind_eq, VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
 
 end Program
 

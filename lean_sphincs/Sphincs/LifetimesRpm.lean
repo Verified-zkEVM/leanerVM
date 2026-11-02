@@ -97,7 +97,7 @@ proved lifetime, an adversary whose game makes at most `Q` permutation calls, `1
 forges with probability at most `(Q + 1) · 2^-127`: the layered presentation's theorem above,
 through the bijection of the signatures (`Sphincs.OneLayer.requestedSecurityRpm_iff`); the
 statement's scheme hashes with Keccak-256 over `π`, the hash-query scheme with each query so answered
-(`Sphincs.Rpm.scheme_eq`). -/
+(`Sphincs.RandomPermutationModel.scheme_eq`). -/
 theorem Sphincs.Lifetimes.requestedSecurityRpm : Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable :=
   Sphincs.Lifetimes.leanSphincsStronglyUnforgeable_of_withHash
     (Sphincs.OneLayer.requestedSecurityRpm_iff.mpr SphincsLayered.Lifetimes.requestedSecurityRpm)

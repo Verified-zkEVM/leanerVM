@@ -48,8 +48,9 @@ theorem relAtIn_atoms {f : String} {fn : Fn} {as : List Atom} {vs : List V}
     (hl : coreProgram.loop f = false) (hna : as.all (fun a => !atomAllocB a) = true)
     {rd : Reader} {σ : Val} {args rets : List E} {fp : ℕ} {R D : ℕ → Prop}
     (hp : fn.params.map σ = args) (hh : ∀ a ∈ as, a.Holds rd σ) (hr : vs.map σ = rets)
-    (haddr : ∀ q ∈ as.filterMap atomAddr?, σ q.1 = ofK (gpow (fp + cert f q.2)))
-    (hload : ∀ q ∈ as.filterMap atomLoad?, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧
+    (haddr : ∀ q ∈ as.filterMap atomAddr?, σ q.1 = ofK (addressOfIndex (fp + cert f q.2)))
+    (hload : ∀ q ∈ as.filterMap atomLoad?, ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 =
+        addressOfIndex i ∧
       (R i ∨ RunIn cert fp f as i))
     (hD : ∀ i, D i → RunIn cert fp f as i) :
     RelAtIn coreProgram fs cert rd R D fp (fs f) f args rets := by
@@ -176,7 +177,8 @@ theorem exists_of_length_succ {α : Type} {l : List α} {n : ℕ} (h : l.length 
   | nil => simp at h
   | cons a t => exact ⟨a, t, rfl, by simpa using h⟩
 
-theorem limb0_gen_pow_mul (b k : ℕ) : (gen ^ b).limb 0 * gpow k = gpow (b + k) := by
+theorem limb0_gen_pow_mul (b k : ℕ) : (gen ^ b).limb 0 * addressOfIndex k = addressOfIndex (b +
+    k) := by
   rw [gen_pow_eq_ofK, Main.addr_ofK]
 
 end

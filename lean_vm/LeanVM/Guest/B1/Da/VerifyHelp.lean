@@ -70,17 +70,17 @@ theorem leaves_of_reads {tree : E} {n : ℕ} {leaves : List (E × E)} {f : ℕ �
 
 /-- **A dispatched `da_levels` run over digests' cells returns the root's cells.** -/
 theorem levels_root_of {tree c0 c1 : E} {k L : ℕ} (hk : k < 11) (hL : L ≤ 10)
-    (hkL : ofK (Parameters.gpow k) = gen ^ L)
+    (hkL : ofK (Parameters.addressOfIndex k) = gen ^ L)
     (hrel : coreProgram.Rel rd (daLevelsName k) [tree] [c0, c1]) {g : ℕ → Digest}
-    (hf : ∀ i < 2 ^ L, LoadHolds rd tree (2 * i) (digestScalars (g i)).1 ∧
-      LoadHolds rd tree (2 * i + 1) (digestScalars (g i)).2) :
-    (c0, c1) = digestScalars (mRoot L g) := by
+    (hf : ∀ i < 2 ^ L, LoadHolds rd tree (2 * i) (digestHalves (g i)).1 ∧
+      LoadHolds rd tree (2 * i + 1) (digestHalves (g i)).2) :
+    (c0, c1) = digestHalves (mRoot L g) := by
   have hkl : k = L := by
     rw [← gen_pow_eq_ofK] at hkL
     exact gen_pow_inj (by omega) (by omega) hkL
   subst hkl
   obtain ⟨leaves, hl, hr, -, hrets⟩ := da_levels_holds k (by omega) rd _ _ hrel
-  have := leaves_of_reads (f := fun i => digestScalars (g i)) hl hr hf
+  have := leaves_of_reads (f := fun i => digestHalves (g i)) hl hr hf
   simp only [List.cons.injEq, and_true] at hrets
   rw [hrets.1, hrets.2, this, cellRoot_mRoot]
 

@@ -45,7 +45,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
 noncomputable def idxOf (f : String) : Option ℕ := (coreProgram.indexOf? f).map (· + 1)
 
 /-- The completeness data of compiled function `j`. -/
-noncomputable def plumbOf (j : ℕ) : Plumb := nth Data.plumbs j {}
+noncomputable def plumbOf (j : ℕ) : Plumb := listElementOrDefault Data.plumbs j {}
 
 /-- **The certificate's cell** of each value of each function. -/
 noncomputable def cert (f : String) (v : V) : ℕ :=
@@ -71,8 +71,8 @@ def fsN (j : ℕ) : ℕ := bif Nat.beq j 1 then mainFrame else max 2 (fsAt j)
 
 /-- A fixed cell's word in the frame at `fp`. -/
 def PC.word (fp : ℕ) : PC → E
-  | .k k0 k1 k2 => OInstr.imm k0 k1 k2
-  | .fpg e => ofK (gpow (fp + e))
+  | .k k0 k1 k2 => OffsetInstruction.immediateWord k0 k1 k2
+  | .fpg e => ofK (addressOfIndex (fp + e))
 
 /-- The cells of values. -/
 noncomputable def valE (f : String) (σ : Val) (vs : List V) : List (ℕ × E) := vs.map fun v => (cert f v, σ v)
@@ -102,20 +102,20 @@ noncomputable def siteOf (j : ℕ) (c : Call) : Option Site :=
 /-- The entry pc of a function, by name. -/
 noncomputable def entryOf (f : String) : ℕ :=
   match idxOf f with
-  | some j => (fnOf j).entry
+  | some j => (fnOf j).entryPc
   | none => 0
 
 /-- The callee frame pointer and dispatch target of each call on a path. -/
 noncomputable def siteE (j : ℕ) (I : Inst) (es : List Ev) : List (ℕ × E) :=
   ((calls es).zip I.kidFps).flatMap fun p => match siteOf j p.1 with
-    | some s => (s.q, ofK (gpow p.2)) ::
-        (if s.tgt = 0 then [] else [(s.tgt, ofK (gpow (entryOf p.1.f)))])
+    | some s => (s.q, ofK (addressOfIndex p.2)) ::
+        (if s.tgt = 0 then [] else [(s.tgt, ofK (addressOfIndex (entryOf p.1.f)))])
     | none => []
 
 open Classical in
 /-- The jump table's word at the slot of selector `x`, `base` the table's first slot. -/
 noncomputable def armWord (σ : Val) (x base : ℕ) : E :=
-  if h : ∃ i, i < 2 ^ 64 ∧ σ (V.n x) = ofK (gpow i) then
+  if h : ∃ i, i < 2 ^ 64 ∧ σ (V.n x) = ofK (addressOfIndex i) then
     ((tableCells.find? fun q => q.1 == base + Nat.find h).map Prod.snd).getD 0
   else 0
 
@@ -139,7 +139,7 @@ noncomputable def nodeE (j : ℕ) (f : String) (σ : Val) (I : Inst) : List (ℕ
 
 /-- The candidate cells of a phantom of function `j`: what its caller writes. -/
 noncomputable def phantomE (j : ℕ) (f : String) (σ : Val) (I : Inst) : List (ℕ × E) :=
-  valE f σ (coreOf j).params ++ (certOf j).facts.env.map fun p => (p.1, ofK (gpow I.fp))
+  valE f σ (coreOf j).params ++ (certOf j).facts.env.map fun p => (p.1, ofK (addressOfIndex I.fp))
 
 /-- **The cells of each frame of the honest memory.** -/
 noncomputable def C (I : Inst) : List (ℕ × E) :=
@@ -157,7 +157,7 @@ noncomputable def H (I : Inst) (i : ℕ) : E × E :=
     | some c =>
       if coreProgram.loop f = true ∧ i + 1 = (calls (I.t.events coreProgram)).length then I.hdr
       else match siteOf j c with
-        | some s => (ofK (gpow s.r), ofK (gpow I.fp))
+        | some s => (ofK (addressOfIndex s.r), ofK (addressOfIndex I.fp))
         | none => (0, 0)
     | none => (0, 0)
   | _, _ => (0, 0)
@@ -205,9 +205,9 @@ noncomputable def costW (acs : List (ℕ × List (List ℕ))) (σ : Val) : List 
 noncomputable def costArms (acs : List (ℕ × List (List ℕ))) (σ : Val) (x : V)
     (key : Option (List (List ℕ))) : ℕ → List (List Stmt) → Opcode → ℕ
   | _, [] => 0
-  | k, a :: as => if σ x = ofK (gpow k) then
+  | k, a :: as => if σ x = ofK (addressOfIndex k) then
       (fun op ↦ match key with
-        | some cs => (nth cs k []).getD (opIdx op) 0
+        | some cs => (listElementOrDefault cs k []).getD (opIdx op) 0
         | none => 0) + costW acs σ a
     else costArms acs σ x key (k + 1) as
 end
@@ -215,7 +215,8 @@ end
 /-- **The count of function `j`'s path under `σ`**: the most a path runs, and the separately
 counted arms it passes. -/
 noncomputable def pathCount (j : ℕ) (σ : Val) (op : Opcode) : ℕ :=
-  (plumbOf j).pmax.getD (opIdx op) 0 + costW (nth Data.cplArms j []) σ (coreOf j).body op
+  (plumbOf j).pmax.getD (opIdx op) 0 + costW (listElementOrDefault Data.cplArms j []) σ (coreOf
+      j).body op
 
 /-- `pathCount`, by function name. -/
 noncomputable def pathCountN (f : String) (σ : Val) (op : Opcode) : ℕ :=

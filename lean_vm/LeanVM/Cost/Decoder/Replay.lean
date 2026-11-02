@@ -46,7 +46,7 @@ open LeanVM.Cost LeanVM.Parameters LeanVM.Semantics LeanVM.Extraction.Fast LeanV
 `mem.get`): `r`, then, unless `r` is `fin`, the states from its step (the extractor's
 `stepVec`), for `fuel` steps at most. Each round costs a comparison with `fin` and one
 `stepVec`: the replay's price is its number of steps times the step's price. -/
-def statesVec (memT codeT : Array (ℕ × ℕ)) (prog : Program) {κ : ℕ} (mem : Vector E (2 ^ κ))
+def statesVec (memT codeT : Array (ℕ × ℕ)) (prog : LeanIsaProgram) {κ : ℕ} (mem : Vector E (2 ^ κ))
     (fin : Registers K) : ℕ → Registers K → List (Registers K)
   | 0, r => [r]
   | n + 1, r => r :: if r = fin then [] else
@@ -57,9 +57,9 @@ def statesVec (memT codeT : Array (ℕ × ℕ)) (prog : Program) {κ : ℕ} (mem
 /-- **The replay of the run from `(g^0, 1)` over its fuel**, on the memory vector, the final
 registers computed once. Its price is the run's steps times the step's price (the module's
 docstring). -/
-def replayStatesOf (memT codeT : Array (ℕ × ℕ)) (prog : Program) {κ : ℕ}
+def replayStatesOf (memT codeT : Array (ℕ × ℕ)) (prog : LeanIsaProgram) {κ : ℕ}
     (mem : Vector E (2 ^ κ)) : List (Registers K) :=
-  statesVec memT codeT prog mem (Registers.final prog) replayFuel ⟨gpow 0, 1⟩
+  statesVec memT codeT prog mem (Registers.final prog) replayFuel ⟨addressOfIndex 0, 1⟩
 
 -- the fuel, under a name of its own (its name then does not depend on the program's indices)
 cost_compile replayFuelC := replayFuel

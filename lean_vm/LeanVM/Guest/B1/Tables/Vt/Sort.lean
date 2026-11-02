@@ -26,10 +26,10 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-theorem vtW152_eq : vtW152 = ofK (Parameters.gpow 152) := by
+theorem vtW152_eq : vtW152 = ofK (Parameters.addressOfIndex 152) := by
   rw [vtW152, tb_word_eOfNat]
-  show ofK (K.ofBits 5452595200) = ofK (Parameters.gpow 152)
-  rw [show K.ofBits 5452595200 = Parameters.gpow 152 by decide +kernel]
+  show ofK (K.ofBits 5452595200) = ofK (Parameters.addressOfIndex 152)
+  rw [show K.ofBits 5452595200 = Parameters.addressOfIndex 152 by decide +kernel]
 
 /-- Rank `r`'s offset written: the side's first rank writes `1`, the others the running value. -/
 def vtGin (v0 r : ℕ) : ℕ := if r = 0 then v0 + 10 else if r = 1 then v0 + 13 else vtRv v0 (r - 1) + 24
@@ -59,7 +59,7 @@ variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
 theorem vt_rc {σ : Val} {x y t1 t2 k : V} {K : ℕ} (hK1 : 1 ≤ K) (hK : K ≤ 2 ^ 33)
-    (hk : σ k = ofK (Parameters.gpow (K - 1)))
+    (hk : σ k = ofK (Parameters.addressOfIndex (K - 1)))
     (h : (Atom.rangeCheck x y t1 t2 k).Holds Lm.read σ) : ∃ e < K, σ x = gen ^ e :=
   tb_rc_sound' hμ Lm hK1 hK hk h.1 h.2.1 h.2.2
 

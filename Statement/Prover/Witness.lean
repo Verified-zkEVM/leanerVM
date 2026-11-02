@@ -55,14 +55,15 @@ def gLogIn (idx : Std.HashMap UInt64 ℕ) (κ : ℕ) (a : K) : Option (Fin (2 ^ 
 /-- One step (`step`, computed) with the memory index `memIdx` and the bytecode index `codeIdx`:
 fetch the instruction at `pc`, then execute it (`executeWith`), reading the memory through
 `memIdx`. -/
-def stepIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) {κ : ℕ} (L : MemoryImage κ)
+def stepIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram) {κ : ℕ} (L :
+    MemoryImage κ)
     (r : Registers K) : Option (Registers K) :=
-  (gLogIn codeIdx prog.logSize r.pc).map prog.code >>=
+  (gLogIn codeIdx prog.logSize r.pc).map prog.instructions >>=
     executeWith (fun a ↦ (gLogIn memIdx κ a).map L) r
 
 /-- **The public boundary** (`HoldsPublicInput`), decided: the memory has between `2^16` and
 `2^32` words, and words `0` and `1` (at the addresses `g^0`, `g^1`) hold the public input. -/
-def boundaryOK {prog : Program} (input : PublicInput) (t : Execution prog) : Bool :=
+def boundaryOK {prog : LeanIsaProgram} (input : PublicInput) (t : Execution prog) : Bool :=
   if h : minLogMem ≤ t.logMemorySize ∧ t.logMemorySize ≤ maxLogMem then
     decide (t.memory ⟨0, Nat.two_pow_pos t.logMemorySize⟩ = input.word0) &&
       decide (t.memory ⟨1, Nat.one_lt_two_pow (by unfold minLogMem at h; omega)⟩ = input.word1)
@@ -87,7 +88,7 @@ structure Step where
   /-- The bytecode slot of `pc`: `pc = g^slot`. -/
   slot : ℕ
   /-- The instruction fetched at `pc`. -/
-  ins : Instr
+  ins : LeanIsaInstruction
 
 /-- The memory reader through the index `memIdx` (`MemoryImage.read`, computed). -/
 def readIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (a : K) : Option E :=
@@ -96,8 +97,8 @@ def readIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (
 /-- `n` steps from `r` (`run`, computed through the indices, the instruction of slot `i` read
 from `code`, `prog.code` tabulated), the steps taken pushed on `acc`: the steps and the state
 reached; `none` if a step fails or the machine halts first. -/
-def stepsFrom (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program)
-    (code : Vector Instr (2 ^ prog.logSize)) {κ : ℕ} (img : MemoryImage κ) :
+def stepsFrom (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram)
+    (code : Vector LeanIsaInstruction (2 ^ prog.logSize)) {κ : ℕ} (img : MemoryImage κ) :
     ℕ → Registers K → Array Step → Option (Array Step × Registers K)
   | 0, r, acc => some (acc, r)
   | n + 1, r, acc =>
@@ -113,9 +114,10 @@ def stepsFrom (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program)
 
 /-- **The run of a trace**: its `t.steps` steps from the initial state, when they end in the
 final state; `none` otherwise. The program's instructions are tabulated once. -/
-def runSteps (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) (t : Execution prog) :
+def runSteps (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram) (t : Execution prog) :
     Option (Array Step) :=
-  match stepsFrom memIdx codeIdx prog (Vector.ofFn prog.code) t.memory t.steps Registers.initial
+  match stepsFrom memIdx codeIdx prog (Vector.ofFn prog.instructions) t.memory t.stepCount
+      Registers.initial
     #[] with
   | some (acc, r) => if r = Registers.final prog then some acc else none
   | none => none
@@ -138,7 +140,7 @@ def maxCommitted : ℕ := 2 ^ 28
 
 /-- **The check of a trace**: it has the public boundary of `input`, its run ends in the final
 state, and its committed size is at most `2^28`; one run through the address indices. -/
-def checkTrace (prog : Program) (input : PublicInput) (t : Execution prog) : Bool :=
+def checkTrace (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) : Bool :=
   boundaryOK input t &&
     match runSteps (powIndex t.logMemorySize) (powIndex prog.logSize) prog t with
     | some steps => decide (committedSizeOf prog.logSize t.logMemorySize (opCount steps) ≤ maxCommitted)
@@ -155,7 +157,7 @@ def limbsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) 
 /-- The cells an instruction reads, in the order its row's reads carry them (`readAddrs`,
 computed). -/
 def addrsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (fp : K) :
-    Instr → List K
+    LeanIsaInstruction → List K
   | .xor oA oB oC => [fp * oA, fp * oB, fp * oC]
   | .mulNative oA oB oC => [fp * oA, fp * oB, fp * oC]
   | .setConstant o _ => [fp * o]
@@ -203,7 +205,7 @@ def countReads (memIdx : Std.HashMap UInt64 ℕ) (κ : ℕ) :
 (`keccakInputCells`, computed). -/
 def keccakInputIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (fp : K)
     (om : Fin 4 → K) (otail ob8 ocap : K) (c : Fin 13) : E :=
-  (readIn memIdx img (fp * keccakInOffset om otail ob8 ocap c)).getD 0
+  (readIn memIdx img (fp * keccakInputCellOffset om otail ob8 ocap c)).getD 0
 
 /-- The lane `l` of a state, as a `K` word. -/
 def laneK (S : KeccakState) (l : ℕ) : K := K.ofLane (Keccak.lane S l)
@@ -211,7 +213,7 @@ def laneK (S : KeccakState) (l : ℕ) : K := K.ofLane (Keccak.lane S l)
 /-- The raw row of an instruction executed from `(pc, fp)` (`rowOf`, computed): the typed row of
 its table as an array, with the read counts `c 0, c 1, …` and the bytecode count `rbc`. -/
 def rowIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (pc fp : K) (c : ℕ → K)
-    (rbc : K) : Instr → Array K
+    (rbc : K) : LeanIsaInstruction → Array K
   | .xor oA oB oC =>
     let vA := limbsIn memIdx img (fp * oA)
     let vB := limbsIn memIdx img (fp * oB)
@@ -234,7 +236,8 @@ def rowIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (p
     let input := keccakInputIn memIdx img fp om otail ob8 ocap
     let S := stateOfCells input inOdd
     let out := keccakF1600 S
-    #[pc, fp, om 0, om 1, om 2, om 3, otail, ob8, ocap, oout, flagK inOdd, flagK outOdd,
+    #[pc, fp, om 0, om 1, om 2, om 3, otail, ob8, ocap, oout, layoutFlagWord inOdd, layoutFlagWord
+        outOdd,
         if inOdd then (input 0).limb 0 else (input 8).limb 1] ++
       Array.ofFn (fun l : Fin 25 ↦ laneK S l) ++ Array.ofFn (fun l : Fin 25 ↦ laneK out l) ++
       Array.ofFn (fun j : Fin 26 ↦ c j) ++ #[rbc]

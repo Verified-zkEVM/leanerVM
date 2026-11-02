@@ -156,7 +156,7 @@ def whirOpeningShapes (logN : ℕ) : List Whir.Level → List (ℕ × ℕ)
 
 /-- The shape of every opening `verify` makes on a proof with this stream, in order. -/
 def openingShapes (bytecode : List K) (stream : List E) : Option (List (ℕ × ℕ)) := do
-  let (layout, logInverseRate) ← announced bytecode stream
+  let (layout, logInverseRate) ← announcedLayoutAndRate bytecode stream
   let config ← Whir.ladder layout.stackLog logInverseRate
   return whirOpeningShapes layout.stackLog config
 

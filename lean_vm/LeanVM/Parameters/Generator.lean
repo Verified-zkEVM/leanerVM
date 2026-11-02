@@ -90,15 +90,15 @@ theorem orderOf_g : orderOf g = 2 ^ 64 - 1 := by
 /-! ## Exponent addressing -/
 
 /-- Distinct indices below `2^64 - 1` are distinct addresses. -/
-theorem gpow_injOn : Set.InjOn gpow (Set.Iio (2 ^ 64 - 1)) := by
+theorem gpow_injOn : Set.InjOn addressOfIndex (Set.Iio (2 ^ 64 - 1)) := by
   rw [← orderOf_g]
   exact pow_injOn_Iio_orderOf
 
 /-- The fall-through successor: `g ^ (i + 1) = g · g ^ i`. -/
-theorem gpow_succ (i : ℕ) : gpow (i + 1) = g * gpow i := pow_succ' g i
+theorem gpow_succ (i : ℕ) : addressOfIndex (i + 1) = g * addressOfIndex i := pow_succ' g i
 
 /-- `0` is not an address: no power of `g` vanishes. -/
-theorem gpow_ne_zero (i : ℕ) : gpow i ≠ 0 := pow_ne_zero i g_ne_zero
+theorem gpow_ne_zero (i : ℕ) : addressOfIndex i ≠ 0 := pow_ne_zero i g_ne_zero
 
 end
 end LeanVM.Parameters

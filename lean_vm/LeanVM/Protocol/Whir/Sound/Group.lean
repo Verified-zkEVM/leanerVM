@@ -27,7 +27,7 @@ The calculus bounds a move-free fragment jointly (`Spec.ofNoMove`). This module 
 
 namespace LeanVM.Protocol.Whir.Sound
 
-open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier Prog Finset
+open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier VerifierProgram Finset
 
 @[expose] public section
 
@@ -36,39 +36,40 @@ variable {α β : Type}
 /-! ## Move-free programs -/
 
 /-- Every node of the program is a sample, an opening, a return or a rejection. -/
-inductive NoMoves : Prog α → Prop where
-  | ret (a : α) : NoMoves (Prog.ret a)
-  | fail : NoMoves Prog.fail
-  | sample {k : E → Prog α} : (∀ c, NoMoves (k c)) → NoMoves (Prog.sample k)
-  | query {i : ℕ} {ps : List ℕ} {k : List (List K) → Prog α} :
-      (∀ rows, NoMoves (k rows)) → NoMoves (Prog.query i ps k)
+inductive NoMoves : VerifierProgram α → Prop where
+  | ret (a : α) : NoMoves (VerifierProgram.ret a)
+  | fail : NoMoves VerifierProgram.fail
+  | sample {k : E → VerifierProgram α} : (∀ c, NoMoves (k c)) → NoMoves (VerifierProgram.sample k)
+  | query {i : ℕ} {ps : List ℕ} {k : List (List K) → VerifierProgram α} :
+      (∀ rows, NoMoves (k rows)) → NoMoves (VerifierProgram.query i ps k)
 
-theorem NoMoves.after {p q : Prog α} (hp : NoMoves p) :
+theorem NoMoves.after {p q : VerifierProgram α} (hp : NoMoves p) :
     ∀ {l : List Ev}, p.after l = some q → NoMoves q := by
   intro l
   induction l generalizing p with
-  | nil => intro h; simp [Prog.after] at h; exact h ▸ hp
+  | nil => intro h; simp [VerifierProgram.after] at h; exact h ▸ hp
   | cons e l ih =>
     intro h
     cases hp with
-    | ret a => cases e <;> simp [Prog.after] at h
-    | fail => cases e <;> simp [Prog.after] at h
+    | ret a => cases e <;> simp [VerifierProgram.after] at h
+    | fail => cases e <;> simp [VerifierProgram.after] at h
     | sample hk =>
-      cases e <;> simp [Prog.after] at h
+      cases e <;> simp [VerifierProgram.after] at h
       exact ih (hk _) h
     | query hk =>
-      cases e <;> simp [Prog.after] at h
+      cases e <;> simp [VerifierProgram.after] at h
       exact ih (hk _) h
 
-theorem NoMoves.not_isMove {q : Prog α} (hq : NoMoves q) : ¬ q.IsMove := by
-  cases hq <;> simp [Prog.IsMove]
+theorem NoMoves.not_isMove {q : VerifierProgram α} (hq : NoMoves q) : ¬ q.IsMove := by
+  cases hq <;> simp [VerifierProgram.IsMove]
 
 /-- The hypothesis of `Spec.ofNoMove`. -/
-theorem NoMoves.noMove {p : Prog α} (hp : NoMoves p) :
-    ∀ {h₀ l : List Ev} {q : Prog α}, p.Reach h₀ l → p.after l = some q → ¬ q.IsMove :=
+theorem NoMoves.noMove {p : VerifierProgram α} (hp : NoMoves p) :
+    ∀ {h₀ l : List Ev} {q : VerifierProgram α}, p.Reach h₀ l → p.after l = some q → ¬ q.IsMove :=
   fun _ ha ↦ (hp.after ha).not_isMove
 
-theorem NoMoves.bind {p : Prog α} {f : α → Prog β} (hp : NoMoves p) (hf : ∀ a, NoMoves (f a)) :
+theorem NoMoves.bind {p : VerifierProgram α} {f : α → VerifierProgram β} (hp : NoMoves p) (hf : ∀ a,
+    NoMoves (f a)) :
     NoMoves (p.bind f) := by
   induction hp with
   | ret a => exact hf a
@@ -117,7 +118,7 @@ theorem retExp_sampleQueriesAux_restrict_len (depth : ℕ) (h1 : 1 ≤ depth) (h
         le_min ((Nat.one_le_div_iff (by omega)).mpr h192) (by omega)
       have hnr : min (192 / depth) rem ≤ rem := min_le_right _ _
       simp only [bind_eq, pure_eq]
-      rw [show sampleChallenge = (sample ret : Prog E) from rfl, Prog.bind]
+      rw [show sampleChallenge = (sample ret : VerifierProgram E) from rfl, VerifierProgram.bind]
       simp only [retExp, ret_bind]
       congr 1
       refine Finset.sum_congr rfl fun c _ ↦ ?_
@@ -145,9 +146,9 @@ theorem retExp_sampleQueriesAux_restrict_len (depth : ℕ) (h1 : 1 ≤ depth) (h
 /-! ## The query group -/
 
 /-- The query group: positions, `λ`, the opening of commitment `i`. -/
-def queryFrag (depth t i : ℕ) : Prog (List ℕ × E × List (List K)) :=
+def queryFrag (depth t i : ℕ) : VerifierProgram (List ℕ × E × List (List K)) :=
   sampleQueries depth t >>= fun qs ↦ sampleChallenge >>= fun lam ↦ queryOpenings i qs >>= fun words ↦
-    Prog.ret (qs, lam, words)
+    VerifierProgram.ret (qs, lam, words)
 
 theorem noMoves_queryFrag (depth t i : ℕ) : NoMoves (queryFrag depth t i) :=
   (noMoves_sampleQueriesAux depth t t).bind fun _ ↦ noMoves_sampleE.bind fun _ ↦
@@ -169,7 +170,7 @@ theorem retExp_queryFrag_le (depth t i : ℕ) (h1 : 1 ≤ depth) (h192 : depth �
   rw [retExp_bind]
   -- The inner expectation depends on the history only through its commitments.
   have hin : ∀ qs h, retExp (fun a _ ↦ F a) h []
-      ((sampleChallenge.bind fun lam ↦ (queryOpenings i qs).bind fun words ↦ Prog.ret (qs, lam, words))) =
+      ((sampleChallenge.bind fun lam ↦ (queryOpenings i qs).bind fun words ↦ VerifierProgram.ret (qs, lam, words))) =
       (Fintype.card E : ENNReal)⁻¹ * ∑ lam : E,
         (match answer h i qs with
           | some rows => F (qs, lam, rows)

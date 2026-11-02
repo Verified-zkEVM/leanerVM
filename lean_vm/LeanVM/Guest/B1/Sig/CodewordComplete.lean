@@ -92,7 +92,7 @@ theorem groupT_load {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape 
     (hei : NBv B encIn) (hpw : ∀ j, NBv B (W.power j)) (vals : Nat → E)
     (hv : ∀ t < n, IsCanonical128 (vals t)) (σ : Val) (hg : good σ) :
     Completes C rd b (groupT W first n fold prodIn encIn b).2 (groupT W first n fold prodIn encIn b).1 σ
-      (fun σ' => σ' (.n b) = ofK (gpow k) ∧ (∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) ∧
+      (fun σ' => σ' (.n b) = ofK (addressOfIndex k) ∧ (∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) ∧
         ∀ t < n, σ' (grpPos W first n fold prodIn encIn b k t) = vals t) := by
   obtain ⟨hl1, hl2, hl3⟩ := gLoad_spec W first n fold prodIn encIn b k vals σ hk
   rw [← groupT_snd_eq] at hl1
@@ -125,7 +125,7 @@ theorem groupsT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepS
     ∀ m p, p + m ≤ G → ∀ σ, good σ →
       Completes C rd (cwState W b p).2.2 (cwState W b (p + m)).2.2
         (groupsT W m p (cwState W b p).1 (cwState W b p).2.1 (cwState W b p).2.2).1 σ
-        (fun σ' => good σ' ∧ ∀ q, p ≤ q → q < p + m → σ' (.n (cwState W b q).2.2) = ofK (gpow (K q)) ∧
+        (fun σ' => good σ' ∧ ∀ q, p ≤ q → q < p + m → σ' (.n (cwState W b q).2.2) = ofK (addressOfIndex (K q)) ∧
           (∀ t < 3, IsCanonical128 (σ' (.n (slotsT W (q == 0) (cwState W b q).2.2 t 2)))) ∧
           ∀ t < 3, σ' (cwPos W G b K (3 * q + t)) = vals (3 * q + t))
   | 0, p, _, σ, hg => ⟨σ, Ext.refl _ _ _, ⟨hg, fun q h1 h2 => by omega⟩, fun _ _ hn => hn⟩
@@ -150,11 +150,12 @@ theorem groupsT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepS
       have hg1 := hc.1 _ _ hag hg
       have ih := groupsT_complete hW hc hb0 hB hm hpw K hK vals hv m (p + 1) (by omega) σ1 hg1
       rw [show p + (m + 1) = p + 1 + m by omega]
-      refine (ih.keep (Q := fun σ => σ (.n (cwState W b p).2.2) = ofK (gpow (K p)) ∧ (∀ t < 3,
+      refine (ih.keep (Q := fun σ
+          => σ (.n (cwState W b p).2.2) = ofK (addressOfIndex (K p)) ∧ (∀ t < 3,
           IsCanonical128 (σ (.n (slotsT W (p == 0) (cwState W b p).2.2 t 2)))) ∧
           ∀ t < 3, σ (grpPos W (3 * p) 3 (p == 0) (cwState W b p).1 (cwState W b p).2.1
             (cwState W b p).2.2 (K p) t) = vals (3 * p + t))
-        (Q' := fun σ => σ (.n (cwState W b p).2.2) = ofK (gpow (K p)) ∧ (∀ t < 3,
+        (Q' := fun σ => σ (.n (cwState W b p).2.2) = ofK (addressOfIndex (K p)) ∧ (∀ t < 3,
           IsCanonical128 (σ (.n (slotsT W (p == 0) (cwState W b p).2.2 t 2)))) ∧
           ∀ t < 3, σ (grpPos W (3 * p) 3 (p == 0) (cwState W b p).1 (cwState W b p).2.1
             (cwState W b p).2.2 (K p) t) = vals (3 * p + t))
@@ -237,7 +238,7 @@ theorem codewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Ste
     (hd0v : σ d0 = lit (∑ i ∈ Finset.range (3 * G + 1), digK K i * 4 ^ i)) :
     Completes C rd b (codewordT W G target d0 b).2.1 (codewordT W G target d0 b).1 σ
       (fun σ' => good σ' ∧ (∀ i < 3 * G + 1, IsCanonical128 (σ' (cwTip W b i))) ∧
-        (∀ q ≤ G, σ' (.n (cwState W b q).2.2) = ofK (gpow (K q))) ∧
+        (∀ q ≤ G, σ' (.n (cwState W b q).2.2) = ofK (addressOfIndex (K q))) ∧
         ∀ i < 3 * G + 1, σ' (cwPos W G b K i) = vals i) := by
   have hbG := cwState_mono W b G
   obtain ⟨hpiG, heiG⟩ := cwState_in W hb0 G
@@ -279,7 +280,7 @@ theorem codewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Ste
       (cwState W b G).2.2).2
       ((groupsT W G 0 (cwState W b 0).1 (cwState W b 0).2.1 (cwState W b 0).2.2).1 ++
         (groupT W (3 * G) 1 false (cwState W b G).1 (cwState W b G).2.1 (cwState W b G).2.2).1) σ
-      (fun σ' => good σ' ∧ (∀ q ≤ G, σ' (.n (cwState W b q).2.2) = ofK (gpow (K q))) ∧
+      (fun σ' => good σ' ∧ (∀ q ≤ G, σ' (.n (cwState W b q).2.2) = ofK (addressOfIndex (K q))) ∧
         (∀ i < 3 * G + 1, IsCanonical128 (σ' (cwTip W b i))) ∧
         ∀ i < 3 * G + 1, σ' (cwPos W G b K i) = vals i) := by
     have hgc := groupsT_complete (C := C) (rd := rd) hW hc hb0 hB hm hpw K hK3 vals hv G 0 (by omega) σ hg
@@ -291,10 +292,10 @@ theorem codewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Ste
       (hW.mono (show B ≤ (cwState W b G).2.2 by omega)) (hc.mono (show B ≤ (cwState W b G).2.2 by omega))
       (by norm_num) (show K G < 4 ^ 1 by simpa [hnG] using hK G le_rfl) hm le_rfl hpiG heiG hpwG
       (fun t => vals (3 * G + t)) (fun t _ => hv _) σ1 hg1
-    refine (hlast.keep (Q := fun σ => good σ ∧ ∀ q < G, σ (.n (cwState W b q).2.2) = ofK (gpow (K q)) ∧
+    refine (hlast.keep (Q := fun σ => good σ ∧ ∀ q < G, σ (.n (cwState W b q).2.2) = ofK (addressOfIndex (K q)) ∧
         (∀ t < 3, IsCanonical128 (σ (.n (slotsT W (q == 0) (cwState W b q).2.2 t 2)))) ∧
         ∀ t < 3, σ (cwPos W G b K (3 * q + t)) = vals (3 * q + t))
-      (Q' := fun σ => good σ ∧ ∀ q < G, σ (.n (cwState W b q).2.2) = ofK (gpow (K q)) ∧
+      (Q' := fun σ => good σ ∧ ∀ q < G, σ (.n (cwState W b q).2.2) = ofK (addressOfIndex (K q)) ∧
         (∀ t < 3, IsCanonical128 (σ (.n (slotsT W (q == 0) (cwState W b q).2.2 t 2)))) ∧
         ∀ t < 3, σ (cwPos W G b K (3 * q + t)) = vals (3 * q + t))
       ⟨hg1, fun q hq => hq1 q (by omega) (by omega)⟩ (fun σ' he' hq => ⟨?_, fun q hqG => ?_⟩)).mono
@@ -344,7 +345,7 @@ theorem codewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Ste
     (cwState W b G).2.2).2) (by omega) (Nat.le_succ _) hnb1 hgl.withHolds (fun σ1 he1 hp1 => ?_)
   obtain ⟨⟨hg1, hk1, ht1, hkept1⟩, hhold⟩ := hp1
   -- the groups' facts
-  have hgrp : ∀ p ≤ G, ∃ k < 4 ^ cwN G p, σ1 (.n (cwState W b p).2.2) = ofK (gpow k) ∧
+  have hgrp : ∀ p ≤ G, ∃ k < 4 ^ cwN G p, σ1 (.n (cwState W b p).2.2) = ofK (addressOfIndex k) ∧
       AtomsHold rd σ1 (cwArm W G b p k).1 := by
     obtain ⟨h1, hg⟩ := groupsT_sound (rd := rd) (σ := σ1) (C := C) hWa b G 0 hhold
     obtain ⟨-, kL, hkL, hxL, haL⟩ := groupT_sound (rest := []) hWa (by simpa using h1)

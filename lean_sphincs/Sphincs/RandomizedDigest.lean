@@ -15,7 +15,7 @@ variable [Params]
 /-- Exact operational law of one step of the scan: the digest of the current randomizer is answered
 by the consistent random oracle; on a miss the scan continues from the next randomizer. -/
 theorem run_randomizedDigest_succ (sk : Seeded.SecretKey) (message : Message) (n : Nat)
-    (ρ : Randomness) (cache : QueryCache HashSpec) :
+    (ρ : Randomizer) (cache : QueryCache HashSpec) :
     (simulateQ randomOracle (Randomized.scanLoop sk message (n + 1) ρ)).run cache =
       (randomOracle (spec := HashSpec) (msgInput sk message ρ)).run cache >>= fun r =>
         if Landed sk.parameter (blockIndex r.1) then pure (some ρ, r.2)
@@ -32,7 +32,7 @@ scan runs against the shared random oracle. -/
 theorem run_randomizedDigest_start (sk : Seeded.SecretKey) (message : Message) (n : Nat)
     (cache : QueryCache HashSpec) :
     (simulateQ romImpl (Randomized.signDigestLoop sk message n)).run cache =
-      ($ᵗ Randomness : ProbComp Randomness) >>= fun ρ =>
+      ($ᵗ Randomizer : ProbComp Randomizer) >>= fun ρ =>
         (simulateQ randomOracle (Randomized.scanLoop sk message n ρ)).run cache := by
   rw [Randomized.signDigestLoop, simulateQ_bind, StateT.run_bind, run_lift_prob]
   simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_def]
@@ -41,25 +41,25 @@ theorem run_randomizedDigest_start (sk : Seeded.SecretKey) (message : Message) (
   rw [simulate_lift_hash]
 
 omit [Params] in
-theorem tsum_randomness_ite (P : Randomness → Prop) [DecidablePred P] (x y : ℝ≥0∞) :
-    ∑' ρ : Randomness, (Fintype.card Randomness : ℝ≥0∞)⁻¹ * (if P ρ then x else y) =
-      x * Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[P x] +
-        y * Pr{let ρ ← ($ᵗ Randomness : ProbComp Randomness)}[¬P ρ] := by
-  rw [OracleComp.prEvent_eq_tsum_ite ($ᵗ Randomness : ProbComp Randomness) P,
-    OracleComp.prEvent_eq_tsum_ite ($ᵗ Randomness : ProbComp Randomness) (fun ρ => ¬P ρ),
+theorem tsum_randomness_ite (P : Randomizer → Prop) [DecidablePred P] (x y : ℝ≥0∞) :
+    ∑' ρ : Randomizer, (Fintype.card Randomizer : ℝ≥0∞)⁻¹ * (if P ρ then x else y) =
+      x * Pr{let x ← ($ᵗ Randomizer : ProbComp Randomizer)}[P x] +
+        y * Pr{let ρ ← ($ᵗ Randomizer : ProbComp Randomizer)}[¬P ρ] := by
+  rw [OracleComp.prEvent_eq_tsum_ite ($ᵗ Randomizer : ProbComp Randomizer) P,
+    OracleComp.prEvent_eq_tsum_ite ($ᵗ Randomizer : ProbComp Randomizer) (fun ρ => ¬P ρ),
     ← ENNReal.tsum_mul_left, ← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
   refine tsum_congr fun ρ => ?_
   rw [SampleableType.prEvent_uniformSample_eq_singleton]
   by_cases h : P ρ <;> simp [h, mul_comm]
 
 omit [Params] in
-theorem randomness_add_succ (ρ : Randomness) (i : Nat) :
+theorem randomness_add_succ (ρ : Randomizer) (i : Nat) :
     ρ + 1 + BitVec.ofNat digestBits i = ρ + BitVec.ofNat digestBits (i + 1) := by
   rw [BitVec.ofNat_add, BitVec.add_assoc, BitVec.add_comm 1 _]
   rfl
 
 omit [Params] in
-theorem randomness_add_ne (ρ : Randomness) {i : Nat} (hpos : 0 < i) (hi : i < 2 ^ 128) :
+theorem randomness_add_ne (ρ : Randomizer) {i : Nat} (hpos : 0 < i) (hi : i < 2 ^ 128) :
     ρ + BitVec.ofNat digestBits i ≠ ρ := by
   intro h
   have hzero : BitVec.ofNat digestBits i = 0#digestBits := by
@@ -74,15 +74,15 @@ theorem randomness_add_ne (ρ : Randomness) {i : Nat} (hpos : 0 < i) (hi : i < 2
 omit [Params] in
 /-- A uniform start puts one of its `n` scanned randomizers in a set `R` with probability at most
 `n |R| / 2^128`. -/
-theorem probEvent_randomness_mem_le (R : Finset Randomness) (n : Nat) :
-    Pr{let ρ ← ($ᵗ Randomness : ProbComp Randomness)}[∃ i < n, ρ + BitVec.ofNat digestBits i ∈ R] ≤
+theorem probEvent_randomness_mem_le (R : Finset Randomizer) (n : Nat) :
+    Pr{let ρ ← ($ᵗ Randomizer : ProbComp Randomizer)}[∃ i < n, ρ + BitVec.ofNat digestBits i ∈ R] ≤
       ((n * R.card : Nat) : ℝ≥0∞) / (2 : ℝ≥0∞) ^ 128 := by
   classical
   rw [SampleableType.prEvent_uniformSample,
-    show Fintype.card Randomness = 2 ^ 128 by simp [digestBits], Nat.cast_pow, Nat.cast_ofNat]
+    show Fintype.card Randomizer = 2 ^ 128 by simp [digestBits], Nat.cast_pow, Nat.cast_ofNat]
   refine ENNReal.div_le_div_right (Nat.cast_le.mpr ?_) _
-  calc (Finset.univ.filter fun ρ : Randomness => ∃ i < n, ρ + BitVec.ofNat digestBits i ∈ R).card
-      ≤ ((Finset.range n ×ˢ R).image fun p : Nat × Randomness =>
+  calc (Finset.univ.filter fun ρ : Randomizer => ∃ i < n, ρ + BitVec.ofNat digestBits i ∈ R).card
+      ≤ ((Finset.range n ×ˢ R).image fun p : Nat × Randomizer =>
           p.2 - BitVec.ofNat digestBits p.1).card := by
         refine Finset.card_le_card fun ρ hρ => ?_
         obtain ⟨i, hi, hmem⟩ := (Finset.mem_filter.mp hρ).2
@@ -95,7 +95,7 @@ theorem probEvent_randomness_mem_le (R : Finset Randomness) (n : Nat) :
 probability at most the rejection share to the `n`. The cache hypothesis concerns digest inputs
 only: `R` holds the randomizers whose digest may already be cached. -/
 theorem probEvent_scanLoop (sk : Seeded.SecretKey) (message : Message) :
-    ∀ (n : Nat) (ρ : Randomness) (cache : QueryCache HashSpec) (R : Finset Randomness),
+    ∀ (n : Nat) (ρ : Randomizer) (cache : QueryCache HashSpec) (R : Finset Randomizer),
       n ≤ 2 ^ 128 →
       (∀ ρ', ρ' ∉ R → cache (msgInput sk message ρ') = none) →
       (∀ i < n, ρ + BitVec.ofNat digestBits i ∉ R) →
@@ -131,14 +131,14 @@ theorem probEvent_scanLoop (sk : Seeded.SecretKey) (message : Message) :
 to the `n`, plus the chance `n |R| / 2^128` that the scan meets a randomizer whose digest input may
 already be cached. -/
 theorem probEvent_randomizedDigest (sk : Seeded.SecretKey) (message : Message)
-    (n : Nat) (cache : QueryCache HashSpec) (R : Finset Randomness) (hn : n ≤ 2 ^ 128)
+    (n : Nat) (cache : QueryCache HashSpec) (R : Finset Randomizer) (hn : n ≤ 2 ^ 128)
     (hmsg : ∀ ρ, ρ ∉ R → cache (msgInput sk message ρ) = none) :
     Pr{let r ← (simulateQ romImpl (Randomized.signDigestLoop sk message n)).run cache}[r.1 = none]
     ≤ digestReject sk.parameter ^ n + ((n * R.card : Nat) : ℝ≥0∞) / (2 : ℝ≥0∞) ^ 128 := by
   classical
   rw [run_randomizedDigest_start, OracleComp.prEvent_bind_eq_tsum]
   simp only [SampleableType.prEvent_uniformSample_eq_singleton]
-  refine (ENNReal.tsum_le_tsum (g := fun ρ => (Fintype.card Randomness : ℝ≥0∞)⁻¹ *
+  refine (ENNReal.tsum_le_tsum (g := fun ρ => (Fintype.card Randomizer : ℝ≥0∞)⁻¹ *
     (if ∃ i < n, ρ + BitVec.ofNat digestBits i ∈ R then 1
       else digestReject sk.parameter ^ n))
     fun ρ => mul_le_mul_right ?_ _).trans ?_

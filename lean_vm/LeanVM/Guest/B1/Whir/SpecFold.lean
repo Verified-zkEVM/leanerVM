@@ -68,11 +68,13 @@ theorem openAll_inv (root : Digest) (height width : ℕ) :
 
 /-! ## The fold rounds -/
 
-theorem sumcheck3_bind {β : Type} (claim : E) (k : List E → Prog β) :
+theorem sumcheck3_bind {β : Type} (claim : E) (k : List E → VerifierProgram β) :
     (sumcheckRoundPoly 3 claim none).bind k =
-      Prog.readScalar.bind fun d0 ↦ Prog.readScalar.bind fun d2 ↦ k [d0, claim + d2, d2] := by
-  simp only [sumcheckRoundPoly, Prog.readScalars, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc,
-    Prog.ret_bind, sumE_single]
+      VerifierProgram.readScalar.bind fun d0 ↦ VerifierProgram.readScalar.bind fun d2 ↦ k [d0, claim
+          + d2, d2] := by
+  simp only [sumcheckRoundPoly, VerifierProgram.readScalars, VerifierProgram.bind_eq,
+      VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
+    VerifierProgram.ret_bind, sumE_single]
 
 /-- Two words read after a squeeze leave `foldStep`. -/
 theorem squeeze_absorb_two (F : Fs) (d0 d2 : E) :
@@ -80,7 +82,7 @@ theorem squeeze_absorb_two (F : Fs) (d0 d2 : E) :
   simp [Fs.absorb, Fs.squeeze, foldStep, rateScalars]
 
 /-- **The fold rounds, backwards.** -/
-theorem foldsNZ_inv {β : Type} {K : WhirStateT × List E → Prog β} :
+theorem foldsNZ_inv {β : Type} {K : WhirStateT × List E → VerifierProgram β} :
     ∀ (n : ℕ) (ws : WhirStateT) (lf : List E) (F : Fs) (xs : List E) (os : List Opening)
       (R : List (Digest × ℕ × ℕ)) (r : β × FSt),
       runF ((foldRoundsNZ n ws lf).bind K) ⟨F, xs, os, R⟩ = some r →
@@ -96,13 +98,13 @@ theorem foldsNZ_inv {β : Type} {K : WhirStateT × List E → Prog β} :
     simp only [foldsTr, List.append_nil, Nat.mul_zero, List.drop_zero]
     simpa [foldRoundsNZ] using h
   | n + 1, ws, lf, F, xs, os, R, r, h => by
-    have e : (foldRoundsNZ (n + 1) ws lf).bind K = Prog.sampleChallenge.bind fun c ↦
-        (Prog.require (c ≠ 0)).bind fun _ ↦ Prog.readScalar.bind fun d0 ↦ Prog.readScalar.bind fun d2 ↦
+    have e : (foldRoundsNZ (n + 1) ws lf).bind K = VerifierProgram.sampleChallenge.bind fun c ↦
+        (VerifierProgram.require (c ≠ 0)).bind fun _ ↦ VerifierProgram.readScalar.bind fun d0 ↦ VerifierProgram.readScalar.bind fun d2 ↦
           (foldRoundsNZ n { ws with
             target := polyEval ws.quad c
             quad := [d0, polyEval ws.quad c + d2, d2]
             folds := ws.folds ++ [c] } (lf ++ [c])).bind K := by
-      simp only [foldRoundsNZ, Prog.bind_eq, Prog.bind_assoc]
+      simp only [foldRoundsNZ, VerifierProgram.bind_eq, VerifierProgram.bind_assoc]
       congr 1; funext c; congr 1; funext u
       rw [sumcheck3_bind]
     rw [e, runF_sampleE_bind] at h
@@ -153,7 +155,7 @@ theorem tailTr_length : ∀ (n : ℕ) (F : Fs) (q : List E) (t : E) (xs : List E
   | n + 2, F, q, t, xs => by simp [tailTr, tailTr_length (n + 1)]
 
 /-- **The tail rounds, backwards.** -/
-theorem tailNZ_inv {β : Type} {K : List E × E → Prog β} :
+theorem tailNZ_inv {β : Type} {K : List E × E → VerifierProgram β} :
     ∀ (n : ℕ) (t : E) (q : List E) (F : Fs) (xs : List E) (os : List Opening)
       (R : List (Digest × ℕ × ℕ)) (r : β × FSt),
       runF ((tailRoundsNZ n t q).bind K) ⟨F, xs, os, R⟩ = some r →
@@ -164,8 +166,9 @@ theorem tailNZ_inv {β : Type} {K : List E × E → Prog β} :
     refine ⟨by simp, fun c hc ↦ by simp [tailTr] at hc, ?_⟩
     simpa [tailRoundsNZ, tailTr] using h
   | 1, t, q, F, xs, os, R, r, h => by
-    simp only [tailRoundsNZ, ↓reduceIte, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc,
-      Prog.ret_bind] at h
+    simp only [tailRoundsNZ, ↓reduceIte, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+        VerifierProgram.bind_assoc,
+      VerifierProgram.ret_bind] at h
     rw [runF_sampleE_bind] at h
     obtain ⟨hc, h⟩ := runF_require_bind h
     refine ⟨by simp, fun c hc' ↦ ?_, by simpa [tailTr] using h⟩
@@ -173,8 +176,9 @@ theorem tailNZ_inv {β : Type} {K : List E × E → Prog β} :
     rw [hc']; exact hc
   | n + 2, t, q, F, xs, os, R, r, h => by
     rw [tailRoundsNZ] at h
-    simp only [Nat.add_one_ne_zero, ↓reduceIte, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc,
-      Prog.ret_bind] at h
+    simp only [Nat.add_one_ne_zero, ↓reduceIte, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+        VerifierProgram.bind_assoc,
+      VerifierProgram.ret_bind] at h
     rw [runF_sampleE_bind] at h
     obtain ⟨hc, h⟩ := runF_require_bind h
     rw [sumcheck3_bind] at h

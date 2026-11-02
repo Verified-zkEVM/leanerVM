@@ -31,14 +31,14 @@ open LeanVM.Protocol.Halting LeanVM.Protocol.Verifier LeanVM.Protocol.EndToEnd.F
 
 @[expose] public section
 
-variable {prog : Program} {κ : ℕ}
+variable {prog : LeanIsaProgram} {κ : ℕ}
 
 /-- The skeleton of a step. -/
 def Step.toSkel (st : Step) : Skel := ⟨st.pc, st.fp, st.ins⟩
 
 /-- The step taken from the state `r`: its registers, the bytecode slot of its counter (`0` if
 none) and the instruction fetched there (`skAt`'s default if none). -/
-noncomputable def stepOf (prog : Program) (r : Registers K) : Step :=
+noncomputable def stepOf (prog : LeanIsaProgram) (r : Registers K) : Step :=
   ⟨r.pc, r.fp, ((addressIndex? prog.logSize r.pc).map Fin.val).getD 0,
     (prog.fetch r.pc).getD (.setConstant 0 0)⟩
 
@@ -46,7 +46,8 @@ noncomputable def stepOf (prog : Program) (r : Registers K) : Step :=
 through. -/
 theorem stepsFrom_eq (hκ : κ < 64) (img : MemoryImage κ) :
     ∀ (n : ℕ) (r : Registers K) (acc : Array Step),
-      stepsFrom (powIndex κ) (powIndex prog.logSize) prog (Vector.ofFn prog.code) img n r acc =
+      stepsFrom (powIndex κ) (powIndex prog.logSize) prog (Vector.ofFn prog.instructions) img n
+          r acc =
         (run prog img n r).map fun rf ↦
           (acc ++ ((List.range n).map fun k ↦
             stepOf prog ((run prog img k r).getD Registers.initial)).toArray, rf)
@@ -62,48 +63,48 @@ theorem stepsFrom_eq (hκ : κ < 64) (img : MemoryImage κ) :
         rw [gLogIn_powIndex hκ]
       cases hg : addressIndex? prog.logSize r.pc with
       | none =>
-        simp [step, Program.fetch, hg]
+        simp [step, LeanIsaProgram.fetch, hg]
       | some i =>
-        have hstep : step prog img r = execute img r (prog.code i) := by
-          simp [step, Program.fetch, hg]
+        have hstep : step prog img r = execute img r (prog.instructions i) := by
+          simp [step, LeanIsaProgram.fetch, hg]
         rw [hstep]
-        have hci : (Vector.ofFn prog.code)[i] = prog.code i := by simp
+        have hci : (Vector.ofFn prog.instructions)[i] = prog.instructions i := by simp
         simp only [hread, hci]
-        cases he : execute img r (prog.code i) with
+        cases he : execute img r (prog.instructions i) with
         | none =>
-          have he' : executeWith img.read r (prog.code i) = none := he
+          have he' : executeWith img.read r (prog.instructions i) = none := he
           simp [he']
         | some r' =>
-          have he' : executeWith img.read r (prog.code i) = some r' := he
+          have he' : executeWith img.read r (prog.instructions i) = some r' := he
           simp only [he']
           rw [stepsFrom_eq hκ img n r' _]
           refine Option.map_congr fun rf _ ↦ ?_
           congr 1
           rw [List.range_succ_eq_map, List.map_cons, List.map_map]
           have h0 : stepOf prog ((run prog img 0 r).getD Registers.initial) =
-              ⟨r.pc, r.fp, i.val, prog.code i⟩ := by
-            simp [stepOf, hg, Program.fetch]
+              ⟨r.pc, r.fp, i.val, prog.instructions i⟩ := by
+            simp [stepOf, hg, LeanIsaProgram.fetch]
           have hk : ∀ k, (run prog img (k + 1) r) = run prog img k r' := fun k ↦ by
             rw [run_succ_of_ne_final hr]
-            simp [step, Program.fetch, hg, execute, he']
+            simp [step, LeanIsaProgram.fetch, hg, execute, he']
           simp only [h0, Function.comp_def, hk]
           rw [List.toArray_cons, ← Array.append_assoc]
           rfl
 
 /-- The steps of a trace: the steps taken from its first `t.steps` states. -/
 noncomputable def traceSteps (t : Execution prog) : List Step :=
-  (List.range t.steps).map fun k ↦ stepOf prog ((run prog t.memory k Registers.initial).getD
+  (List.range t.stepCount).map fun k ↦ stepOf prog ((run prog t.memory k Registers.initial).getD
     Registers.initial)
 
 /-- **The run of a trace** through the indices: its steps when it ends in the final state. -/
 theorem runSteps_eq (t : Execution prog) (hκ : t.logMemorySize < 64) :
     runSteps (powIndex t.logMemorySize) (powIndex prog.logSize) prog t =
-      if run prog t.memory t.steps Registers.initial = some (Registers.final prog) then
+      if run prog t.memory t.stepCount Registers.initial = some (Registers.final prog) then
         some (traceSteps t).toArray
       else none := by
   unfold runSteps
   rw [stepsFrom_eq hκ]
-  cases h : run prog t.memory t.steps Registers.initial with
+  cases h : run prog t.memory t.stepCount Registers.initial with
   | none => simp
   | some rf =>
     by_cases hf : rf = Registers.final prog
@@ -112,26 +113,26 @@ theorem runSteps_eq (t : Execution prog) (hκ : t.logMemorySize < 64) :
 
 /-- The skeletons of the steps of a valid run are the run's. -/
 theorem runSkels_eq_steps {t : Execution prog}
-    (hv : run prog t.memory t.steps Registers.initial = some (Registers.final prog)) :
+    (hv : run prog t.memory t.stepCount Registers.initial = some (Registers.final prog)) :
     (traceSteps t).map Step.toSkel = t.runSkels := by
   rw [runSkels_eq hv, traceSteps, List.map_map]
   rfl
 
 /-- A step of a valid run: its slot is its counter's, it fetches its instruction there, and the
 instruction executes. -/
-def StepOk (prog : Program) {κ : ℕ} (img : MemoryImage κ) (st : Step) : Prop :=
-  ∃ h : st.slot < 2 ^ prog.logSize, st.pc = Parameters.gpow st.slot ∧
-    prog.code ⟨st.slot, h⟩ = st.ins ∧ ∃ next, execute img st.toSkel.regs st.ins = some next
+def StepOk (prog : LeanIsaProgram) {κ : ℕ} (img : MemoryImage κ) (st : Step) : Prop :=
+  ∃ h : st.slot < 2 ^ prog.logSize, st.pc = Parameters.addressOfIndex st.slot ∧
+    prog.instructions ⟨st.slot, h⟩ = st.ins ∧ ∃ next, execute img st.toSkel.regs st.ins = some next
 
 /-- Every step of a valid run is sound. -/
 theorem stepOk_traceSteps {t : Execution prog}
-    (hv : run prog t.memory t.steps Registers.initial = some (Registers.final prog)) :
+    (hv : run prog t.memory t.stepCount Registers.initial = some (Registers.final prog)) :
     ∀ st ∈ traceSteps t, StepOk prog t.memory st := by
   intro st hst
   obtain ⟨k, hk, rfl⟩ := List.mem_map.mp hst
   have hk' := List.mem_range.mp hk
   obtain ⟨ins, hf, hex⟩ := stateAt_exec hv hk'
-  obtain ⟨i, hi, hci⟩ := (Program.fetch_eq_some_iff prog).mp hf
+  obtain ⟨i, hi, hci⟩ := (LeanIsaProgram.fetch_eq_some_iff prog).mp hf
   have hg : addressIndex? prog.logSize (stateAt t k).pc = some i :=
     (gLog?_spec (LeanVM.Protocol.Halting.logSize_lt prog)).mpr hi
   have hs : stateAt t k = (run prog t.memory k Registers.initial).getD Registers.initial := rfl
@@ -144,8 +145,9 @@ theorem stepOk_traceSteps {t : Execution prog}
 
 /-- The counts of the steps of a valid run are `Execution.count`. -/
 theorem opCount_traceSteps {t : Execution prog}
-    (hv : run prog t.memory t.steps Registers.initial = some (Registers.final prog)) (op : Opcode) :
-    opCount (traceSteps t).toArray op = t.count op := by
+    (hv : run prog t.memory t.stepCount Registers.initial = some (Registers.final prog)) (op :
+        Opcode) :
+    opCount (traceSteps t).toArray op = t.opcodeCount op := by
   rw [Execution.count_eq_runRows hv, ← Execution.count_runSkels, ← runSkels_eq_steps hv]
   unfold opCount Skel.count Skel.onTable
   rw [List.countP_toArray, List.countP_eq_length_filter, List.filter_map, List.length_map]
@@ -153,7 +155,7 @@ theorem opCount_traceSteps {t : Execution prog}
 
 /-- The executable committed size is `Execution.committedSize` at the trace's counts. -/
 theorem committedSizeOf_eq (t : Execution prog) {count : Opcode → ℕ}
-    (h : ∀ op, count op = t.count op) :
+    (h : ∀ op, count op = t.opcodeCount op) :
     committedSizeOf prog.logSize t.logMemorySize count = t.committedSize := by
   simp only [committedSizeOf, Execution.committedSize, log2Ceil_eq_clog, h]
 
@@ -165,7 +167,7 @@ theorem checkTrace_iff (input : PublicInput) (t : Execution prog) :
   · have hB := (boundaryOK_iff input t).mp hb
     have hκ : t.logMemorySize < 64 := by have := hB.2.1; unfold maxLogMem at this; omega
     rw [hb, Bool.true_and, runSteps_eq t hκ]
-    by_cases hr : run prog t.memory t.steps Registers.initial = some (Registers.final prog)
+    by_cases hr : run prog t.memory t.stepCount Registers.initial = some (Registers.final prog)
     · rw [ite_eq_left hr]
       simp only [decide_eq_true_eq]
       rw [committedSizeOf_eq t (opCount_traceSteps hr)]

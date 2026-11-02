@@ -28,7 +28,7 @@ samples `c ∈ E` and reads `int(c)` (`eToNat`, the three limbs as one 192-bit i
 
 namespace LeanVM.Protocol.Whir.Sound
 
-open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier Prog Finset
+open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier VerifierProgram Finset
   LeanVM.Protocol.Whir
 
 @[expose] public section
@@ -189,7 +189,7 @@ theorem retExp_sampleQueriesAux_le (depth : ℕ) (h1 : 1 ≤ depth) (h192 : dept
       (Nat.mul_le_mul_right _ (min_le_left _ _)).trans (Nat.div_mul_le_self 192 depth)
     have hnr : n ≤ rem := min_le_right _ _
     simp only [sampleQueriesAux, h0, ite_false, bind_eq, pure_eq]
-    rw [show sampleChallenge = (sample ret : Prog E) from rfl, Prog.bind]
+    rw [show sampleChallenge = (sample ret : VerifierProgram E) from rfl, VerifierProgram.bind]
     simp only [retExp, ret_bind]
     have hin : ∀ c : E,
         retExp (fun qs _ ↦ allIn S qs) h₀ (l ++ [Ev.sample c])

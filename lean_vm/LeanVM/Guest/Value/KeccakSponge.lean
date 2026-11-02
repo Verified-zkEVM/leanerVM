@@ -65,7 +65,7 @@ theorem absorbBlock_take (S : KeccakState) (bs : List UInt8) :
   split
   · rename_i hi
     congr 1
-    unfold leLane
+    unfold littleEndianLane
     refine foldl_congr_mem _ _ fun acc k hk ↦ ?_
     have hk := List.mem_range.mp hk
     have h8 : 8 * i.val + k < rate := by simp only [rate]; omega
@@ -234,7 +234,7 @@ def padCells (cells : List E) (len : ℕ) : List E :=
 /-! ## Bytes of cells, one at a time -/
 
 /-- Byte `b < 16` of a cell. -/
-def cellByte (c : E) (b : ℕ) : UInt8 := (kBytes (c.limb ⟨b / 8 % 2, by omega⟩)).getD (b % 8) 0
+def cellByte (c : E) (b : ℕ) : UInt8 := (K.toBytes (c.limb ⟨b / 8 % 2, by omega⟩)).getD (b % 8) 0
 
 theorem getD_append_left' {l l' : List UInt8} {j : ℕ} (h : j < l.length) :
     (l ++ l').getD j 0 = l.getD j 0 := by
@@ -247,7 +247,7 @@ theorem getD_append_right' {l l' : List UInt8} {j : ℕ} (h : l.length ≤ j) :
 theorem getD_of_length_le {l : List UInt8} {j : ℕ} (h : l.length ≤ j) : l.getD j 0 = 0 := by
   simp [List.getD_eq_getElem?_getD, List.getElem?_eq_none h]
 
-theorem kBytes_zero : kBytes 0 = List.replicate 8 0 := rfl
+theorem kBytes_zero : K.toBytes 0 = List.replicate 8 0 := rfl
 
 /-- The bytes past the cells read zero (the hypothesis `hz` of `keccak_final` for a message of
 whole cells). -/
@@ -271,11 +271,11 @@ theorem getD_cellsBytes (cs : List E) (j : ℕ) :
         Nat.mod_eq_of_lt hj]
       simp only [List.getD_cons_zero, cellByte]
       by_cases h8 : j < 8
-      · rw [getD_append_left' (by simpa [kBytes] using h8), Nat.mod_eq_of_lt h8]
+      · rw [getD_append_left' (by simpa [K.toBytes] using h8), Nat.mod_eq_of_lt h8]
         simp [Nat.div_eq_of_lt h8]
-      · rw [getD_append_right' (by simp [kBytes]; omega)]
+      · rw [getD_append_right' (by simp [K.toBytes]; omega)]
         have : j / 8 % 2 = 1 := by omega
-        simp only [this, kBytes, length_wordBytes]
+        simp only [this, K.toBytes, length_wordBytes]
         congr 1; omega
     · rw [getD_append_right' (by simp; omega), ih, length_cellBytes,
         show (c :: cs).getD (j / 16) 0 = cs.getD ((j - 16) / 16) 0 by
@@ -288,7 +288,7 @@ theorem getD_wordBytes (w : UInt64) {k : ℕ} (hk : k < 8) :
 
 /-- A byte of a sum of cells is the `XOR` of their bytes. -/
 theorem cellByte_add (c d : E) (b : ℕ) : cellByte (c + d) b = cellByte c b ^^^ cellByte d b := by
-  simp only [cellByte, limb_add, kBytes, lane_add, getD_wordBytes _ (Nat.mod_lt b (by norm_num))]
+  simp only [cellByte, limb_add, K.toBytes, lane_add, getD_wordBytes _ (Nat.mod_lt b (by norm_num))]
   apply UInt8.toNat_inj.mp
   simp only [UInt64.toNat_toUInt8, UInt64.toNat_shiftRight, UInt64.toNat_xor, UInt8.toNat_xor,
     Nat.shiftRight_xor_distrib, Nat.xor_mod_two_pow]
@@ -487,7 +487,7 @@ theorem keccak256_append (pre data : List UInt8) (n : ℕ) (h : pre.length = rat
 
 /-- A digest's two cells are the first two cells of the state, in the even layout. -/
 theorem digestScalars_digestOf (S : KeccakState) :
-    digestScalars (digestOf S) = (cellsOfState S false 0, cellsOfState S false 1) := rfl
+    digestHalves (digestOf S) = (cellsOfState S false 0, cellsOfState S false 1) := rfl
 
 /-- **A `final` chain computes Keccak-256** (`keccak(...)` and `keccak_cells(...)` with the
 default `final`, `builtins.rs:208-249`). The message is the first `len` bytes of `cells`, its
@@ -523,7 +523,7 @@ theorem keccak_final_digest {cells : List E} {len : ℕ} {pre : List UInt8} {n :
     (hK : ∀ k < len / rate + 1,
       KeccakCellsRelation (I k) (inLayout k) (O (k + 1)) (outLayout (len / rate + 1) k)) :
     (O (len / rate + 1) 0, O (len / rate + 1) 1) =
-      digestScalars (keccak256 (pre ++ (cellsBytes cells).take len)) := by
+      digestHalves (keccak256 (pre ++ (cellsBytes cells).take len)) := by
   have hdata : ((cellsBytes cells).take len).length = len := by simp; omega
   rw [keccak_final hpre hlen hz h0 hrate hcap hK, keccak256_append _ _ _ hpre, hdata,
     ← absorbChunks_append _ _ _ _ _ hpre, digestScalars_digestOf]
@@ -538,7 +538,7 @@ theorem keccak_one {cells : List E} {len : ℕ} {I O : Fin 13 → E}
     (hcap : ∀ c : Fin 13, 9 ≤ c.val → I c = 0)
     (hK : KeccakCellsRelation I false O false) :
     O = cellsOfState (absorbChunks 1 zeroState (padBytes ((cellsBytes cells).take len))) false ∧
-      (O 0, O 1) = digestScalars (keccak256 ((cellsBytes cells).take len)) := by
+      (O 0, O 1) = digestHalves (keccak256 ((cellsBytes cells).take len)) := by
   have hB : len / rate + 1 = 1 := by rw [Nat.div_eq_of_lt hlt]
   let O' : ℕ → Fin 13 → E := fun k ↦ if k = 0 then cellsOfState zeroState false else O
   let I' : ℕ → Fin 13 → E := fun _ ↦ I
@@ -586,8 +586,8 @@ theorem keccak_whole {cells : List E} {pre : List UInt8} {n B : ℕ} {I O : ℕ 
 `verify_sub`): one block of the digests' cells, zero-extended, is
 `keccakF (Compile.seedInput iv pi)`. -/
 theorem absorbChunks_seed (iv pi : Digest) :
-    absorbChunks 1 zeroState (cellsBytes [(digestScalars iv).1, (digestScalars iv).2,
-      (digestScalars pi).1, (digestScalars pi).2]) = keccakF1600 (Compile.seedInput iv pi) := by
+    absorbChunks 1 zeroState (cellsBytes [(digestHalves iv).1, (digestHalves iv).2,
+      (digestHalves pi).1, (digestHalves pi).2]) = keccakF1600 (Compile.seedInput iv pi) := by
   rw [absorbChunks, absorbChunks, absorbBlock_take, absorbBlock_eq]
   congr 1
   apply Vector.ext
@@ -596,7 +596,7 @@ theorem absorbChunks_seed (iv pi : Digest) :
   split
   · rename_i h17
     rw [leLane_cellsBytes, lane_zeroState, UInt64.zero_xor]
-    interval_cases i <;> simp [digestScalars, limb_zero]
+    interval_cases i <;> simp [digestHalves, limb_zero]
   · rename_i h17
     rw [dite_eq_right (by omega), dite_eq_right (by omega), lane_zeroState]
 

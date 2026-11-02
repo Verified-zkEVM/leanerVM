@@ -275,9 +275,9 @@ def channelDir (c : RawChannel K) : Direction :=
 `tables.rs:94-96`): `g^0` for the state pair, `g^1` for memory, `g^2` for bytecode, and `0`,
 which is no separator, for any other channel. -/
 def channelSep (c : RawChannel K) : K :=
-  if c.name = StatePull.name ∨ c.name = StatePush.name then gpow 0
-  else if c.name = MemPull.name ∨ c.name = MemPush.name then gpow 1
-  else if c.name = BytecodePull.name ∨ c.name = BytecodePush.name then gpow 2
+  if c.name = StatePull.name ∨ c.name = StatePush.name then addressOfIndex 0
+  else if c.name = MemPull.name ∨ c.name = MemPush.name then addressOfIndex 1
+  else if c.name = BytecodePull.name ∨ c.name = BytecodePush.name then addressOfIndex 2
   else 0
 
 /-- The sixteen-slot bus tuple of a message on a channel: the channel's separator, then the

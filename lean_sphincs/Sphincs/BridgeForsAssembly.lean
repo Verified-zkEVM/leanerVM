@@ -314,7 +314,7 @@ theorem finishRest_fail (parameterOutput : HashOutput) (fixed : HiddenGraph.Tabl
     (remaining : RemainingOutputs)
     (prepared : (Index → Option (Counter × Encoding)) × QueryCache HashSpec)
     (hprepared : prepared ∈ support (preparation parameterOutput fixed highs remaining))
-    (tg : Targeting HashInput HashOutput Coordinate) (m : Message) (ρ : Randomness) (digest : MessageDigest)
+    (tg : Targeting HashInput HashOutput Coordinate) (m : Message) (ρ : Randomizer) (digest : MessageDigest)
     (budget : ℕ) (s1 : State) (hprep : Prepared prepared.2 s1)
     (out : Run HashInput Coordinate (Option Signature) × State)
     (hout : out ∈ support (interp tg prepared.2 (sampleModel parameterOutput highs)
@@ -460,7 +460,7 @@ theorem search_eq_searchLoop (parameter : PublicParameter) (lay : Layer) (tree :
     (message : ForestKey) : ∀ (n t : ℕ),
     (ReferenceChoice.search parameter lay tree leaf message n t : OracleComp HashSpec (Option (Counter × Encoding))) =
       searchLoop (fun c => tweakableHashInput parameter (.encoding lay tree leaf)
-          (rootsPayload message ++ bytesLE 4 (BitVec.ofNat counterBits c)))
+          (rootsPayload message ++ littleEndianBytes 4 (BitVec.ofNat counterBits c)))
         (fun out => TargetSum.decodeDigest (truncateHash out))
         (fun c encoding => pure (BitVec.ofNat counterBits c, encoding)) n t := by
   intro n

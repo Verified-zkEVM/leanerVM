@@ -48,8 +48,8 @@ structure LvMem (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (
     (sqz cur : E) : Prop where
   words : ReadsAt rd cur L.words
   fch : ∀ j < lv.folds, LoadHolds rd P.fch (lv.foldsOff + j) (L.chs.getD j 0)
-  r0 : LoadHolds rd P.roots (2 * lvl) (digestScalars L.root).1
-  r1 : LoadHolds rd P.roots (2 * lvl + 1) (digestScalars L.root).2
+  r0 : LoadHolds rd P.roots (2 * lvl) (digestHalves L.root).1
+  r1 : LoadHolds rd P.roots (2 * lvl + 1) (digestHalves L.root).2
   rows : ∀ j ≤ lv.squeezes, ∀ i < 5, LoadHolds rd sqz (5 * j + i)
     ((L.F2.squeezeN j).2.cap.getD i 0)
   qw : ∀ i < lv.queries, LoadHolds rd P.qw (lvl * c.maxQ + i) (L.lam ^ i)
@@ -79,7 +79,7 @@ structure LvCallsOk (C : CallRel) (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : 
     [P.fch * gen ^ lv.foldsOff, wp] []
   cap : C ("verify_merkle_cap__L" ++ natStr lv.capDepth)
     [P.caps * gen ^ (4 * lv.capOff), P.flags * gen ^ lv.capOff]
-    [(digestScalars L.root).1, (digestScalars L.root).2]
+    [(digestHalves L.root).1, (digestHalves L.root).2]
   queries : C (osQueriesName lvl lv) [P.caps * gen ^ (4 * lv.capOff),
     P.flags * gen ^ lv.capOff, L.lam, L.lam ^ lv.queries, P.qbp * gen ^ lv.posOff, wp,
     gen ^ (lv.queries / (1 + if lvl = 0 then 1 else 0))] [L.enforced]
@@ -99,7 +99,7 @@ theorem lvH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {c : OsCfg} {lvl : ℕ} 
     (h : SpLvFit c lvl lv L) (hb : LvB c lvl lv L.level lv.logCols)
     (hlvl : lvl ≠ c.yrLevel → (lvl + 1) * ligColsCap < u128Bound)
     (hyl : lvl = c.yrLevel → 2 ^ lv.logCols = c.yrLen)
-    (hOk : L.Ok R d') (hdd : L.fin = false → digestOfScalars (L.ra, L.rb) = some d)
+    (hOk : L.Ok R d') (hdd : L.fin = false → digestFromHalves (L.ra, L.rb) = some d)
     (hm : LvMem rd P c lvl lv L sqz cur) (hc : LvCallsOk C rd P c lvl lv L sqz wp) :
     LvH C rd P c lvl lv (spDat L d sqz wp) L.F L.ws.quad L.ws.target cur := by
   have hR := spDat_lvR h.fold d sqz wp

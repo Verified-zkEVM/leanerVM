@@ -57,12 +57,12 @@ open OracleComp OracleSpec in
 (`Statement/Corollaries.lean`) with the decoding of the extracted execution read off its memory by
 `decode` instead of output by a decoder program; `LeanVM/Guest/DecoderProgram.lean` relates the
 two. -/
-def MemoryAggregateSound (guest : Program) (decode : MemoryDecoder)
+def MemoryAggregateSound (guest : LeanIsaProgram) (decode : MemoryDecoder)
     (extractor : StraightLineExtractor) : Prop :=
   ∀ (A : RandomPermutationAdversary) (Q : ℕ),
     Common.QueryCostAtMost A Common.permutationCallCost Q → Q ≤ 2 ^ 128 →
-    Pr{let z ← soundnessExperiment A}[∃ s : NodeStatement, z.accepted ∧ z.program = guest ∧
-      publicDigest z.input = statementDigest (deployedSeed guest) s ∧
+    Pr{let z ← knowledgeSoundnessExperiment A}[∃ s : NodeStatement, z.accepted ∧ z.program = guest ∧
+      publicInputDigest z.input = statementDigest (deployedSeed guest) s ∧
       s.deferredClaim.HasBytecodeShape (bytecodeWords guest) ∧
       ¬ ∃ t, extractor z.program z.input z.transcript z.proof = some t ∧
         ExplainsStatement guest s (decode t.memory)] ≤
@@ -87,7 +87,7 @@ the guest from which no execution is extracted, or the extracted one does not de
 theorem aggregate_knowledge_dec {dec : MemoryDecoder} (h : MemoryGuestKnowledge guestProgram dec)
     (A : RandomPermutationAdversary) (Q : ℕ)
     (hA : Common.QueryCostAtMost A Common.permutationCallCost Q) (hQ : Q ≤ 2 ^ 128) :
-    Pr{let z ← soundnessExperiment A}[z.accepted ∧ z.program = guestProgram ∧
+    Pr{let z ← knowledgeSoundnessExperiment A}[z.accepted ∧ z.program = guestProgram ∧
       ¬ ∃ t, transcriptExtractor z.program z.input z.transcript z.proof = some t ∧
         ExplainsPublicInput guestProgram z.input (dec t.memory)] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
@@ -103,7 +103,7 @@ theorem aggregate_knowledge_dec {dec : MemoryDecoder} (h : MemoryGuestKnowledge 
 /-- **The aggregate's soundness, its witness named**, for `main`'s witness function `W`. -/
 theorem aggregate_knowledge_of (h : SoundHyps W) (A : RandomPermutationAdversary) (Q : ℕ)
     (hA : Common.QueryCostAtMost A Common.permutationCallCost Q) (hQ : Q ≤ 2 ^ 128) :
-    Pr{let z ← soundnessExperiment A}[z.accepted ∧ z.program = guestProgram ∧
+    Pr{let z ← knowledgeSoundnessExperiment A}[z.accepted ∧ z.program = guestProgram ∧
       ¬ ∃ t, transcriptExtractor z.program z.input z.transcript z.proof = some t ∧
         ExplainsPublicInput guestProgram z.input (decodeWith W t.memory)] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
@@ -153,7 +153,7 @@ execution is extracted, or the extracted one does not decode (`ExplainsPublicInp
 most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, for `Q ≤ 2^128`. -/
 theorem aggregate_knowledge (A : RandomPermutationAdversary) (Q : ℕ)
     (hA : Common.QueryCostAtMost A Common.permutationCallCost Q) (hQ : Q ≤ 2 ^ 128) :
-    Pr{let z ← soundnessExperiment A}[z.accepted ∧ z.program = guestProgram ∧
+    Pr{let z ← knowledgeSoundnessExperiment A}[z.accepted ∧ z.program = guestProgram ∧
       ¬ ∃ t, transcriptExtractor z.program z.input z.transcript z.proof = some t ∧
         ExplainsPublicInput guestProgram z.input (decode t.memory)] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +

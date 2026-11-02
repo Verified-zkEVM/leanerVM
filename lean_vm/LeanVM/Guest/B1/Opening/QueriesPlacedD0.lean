@@ -43,11 +43,12 @@ theorem oqMain0_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
     (hst : ∀ k < N, qs k < 2 ^ (s.pd + s.cd) ∧ (rows k).length = s.R ∧ (sibs k).length = s.pd)
     (hreg : OqLinReg (RegionL Lin) s ecap eflags eqp ewp eb qs N)
     (hmem : ∀ rd, LowDef κ rd → MemL rd Lin →
-      OqLinMem rd s (ofK (Parameters.gpow ecap)) (ofK (Parameters.gpow eflags))
-        (ofK (Parameters.gpow ewp)) (ofK (Parameters.gpow eqp)) w eb qs rows sibs N) :
+      OqLinMem rd s (ofK (Parameters.addressOfIndex ecap)) (ofK (Parameters.addressOfIndex eflags))
+        (ofK (Parameters.addressOfIndex ewp)) (ofK (Parameters.addressOfIndex eqp)) w eb qs rows
+            sibs N) :
     CompleteAtB fs cert κ name Lin
-      [ofK (Parameters.gpow ecap), ofK (Parameters.gpow eflags), lam, lamN,
-        ofK (Parameters.gpow eqp), ofK (Parameters.gpow ewp), gen ^ N]
+      [ofK (Parameters.addressOfIndex ecap), ofK (Parameters.addressOfIndex eflags), lam, lamN,
+        ofK (Parameters.addressOfIndex eqp), ofK (Parameters.addressOfIndex ewp), gen ^ N]
       (Returns [oqChain 0 s.base lam⁻¹ (fun k ↦ rowDot s.base s.I (rows k) w) N * lamN])
       (fs name + (N + 1) + (N + 1) * fs loop) := by
   intro fp
@@ -86,7 +87,7 @@ theorem oqMain0_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
   rw [List.nil_append, Main.memL_append, Main.memL_append] at hm
   obtain ⟨⟨hmChain, hmIt⟩, hmLin⟩ := hm
   obtain ⟨hw, hk⟩ := hmem rd hlow hmLin
-  have hch : ∀ i ≤ N, LoadHolds rd (ofK (Parameters.gpow (fp + fs name))) i
+  have hch : ∀ i ≤ N, LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs name))) i
       (oqChain 0 s.base lam⁻¹ ds i) := by
     intro i hi
     have := hmChain (fp + fs name, oqChainVals 0 s.base lam ds N) (by rw [hchainL]; simp) i
@@ -95,12 +96,13 @@ theorem oqMain0_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
   refine relAtIn_dmono (D := fun _ ↦ False) ?_ (fun i hi ↦ absurd hi (regionL_nil i))
   refine oqMain0_placed (hNv := oqChain 0 s.base lam⁻¹ ds N)
     (r := rows) (w := fun _ ↦ w) (q := qs) (sb := sibs)
-    (bp := fun j ↦ ofK (Parameters.gpow (eb j))) (v := fun j ↦ oqChain 0 s.base lam⁻¹ ds j)
+    (bp := fun j ↦ ofK (Parameters.addressOfIndex (eb j))) (v := fun j ↦ oqChain 0 s.base
+        lam⁻¹ ds j)
     coreProgram_wf fs cert hs hpd hpd1 hcd hcd8 hfm hpm hbm hfl hpl hbl hlp hN hlam
     (by simpa [oqChain] using hch 0 (by omega)) (hch N le_rfl) (fun j hj ↦ ?_)
   have hk1 := hk j hj
   obtain ⟨qa, ra, sa⟩ := hst j hj
-  have hra : ReadsAt rd (ofK (Parameters.gpow (bL + j * fs loop + c1)))
+  have hra : ReadsAt rd (ofK (Parameters.addressOfIndex (bL + j * fs loop + c1)))
       (oqRunCells s.pd (rows j) (qs j) (sibs j)) :=
     hmIt (bL + j * fs loop + c1, oqRunCells s.pd (rows j) (qs j) (sibs j))
       (by rw [hiters]; exact List.mem_flatMap.mpr ⟨j, List.mem_range.mpr hj, by rw [hblk]; simp⟩)

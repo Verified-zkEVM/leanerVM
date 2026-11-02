@@ -31,7 +31,7 @@ open LeanVM.Guest.B1.Fwd
 abbrev TLay : Type := List (ℕ × List E)
 
 /-- The memory holds the layout. -/
-def MemLay (rd : Reader) (L : TLay) : Prop := ∀ q ∈ L, TbReadsAt rd (ofK (gpow q.1)) q.2
+def MemLay (rd : Reader) (L : TLay) : Prop := ∀ q ∈ L, TbReadsAt rd (ofK (addressOfIndex q.1)) q.2
 
 theorem memLay_append {rd : Reader} {L L' : TLay} :
     MemLay rd (L ++ L') ↔ MemLay rd L ∧ MemLay rd L' := by
@@ -39,14 +39,15 @@ theorem memLay_append {rd : Reader} {L L' : TLay} :
   exact ⟨fun h => ⟨fun q hq => h q (Or.inl hq), fun q hq => h q (Or.inr hq)⟩,
     fun h q hq => hq.elim (h.1 q) (h.2 q)⟩
 
-theorem tb_addr_ofK (e j : ℕ) : (ofK (gpow e)).limb 0 * gpow j = gpow (e + j) := by
+theorem tb_addr_ofK (e j : ℕ) : (ofK (addressOfIndex e)).limb 0 * addressOfIndex j = addressOfIndex
+    (e + j) := by
   rw [limb_ofK]; exact (pow_add _ _ _).symm
 
 theorem tb_isInK_ofK (a : K) : IsInK (ofK a) := by
   simp [IsInK]
 
 /-- An address of the layout. -/
-def InLay (L : TLay) (a : K) : Prop := ∃ q ∈ L, ∃ j < q.2.length, a = gpow (q.1 + j)
+def InLay (L : TLay) (a : K) : Prop := ∃ q ∈ L, ∃ j < q.2.length, a = addressOfIndex (q.1 + j)
 
 open Classical in
 /-- A reader holding the layout: an address of a run, one of its words there; else nothing. -/
@@ -56,7 +57,7 @@ noncomputable def layRd (L : TLay) : Reader := fun a =>
   else none
 
 theorem memLay_read {rd : Reader} {L : TLay} (hm : MemLay rd L) {q : ℕ × List E} (hq : q ∈ L)
-    {j : ℕ} (hj : j < q.2.length) : rd (gpow (q.1 + j)) = some (q.2.getD j 0) := by
+    {j : ℕ} (hj : j < q.2.length) : rd (addressOfIndex (q.1 + j)) = some (q.2.getD j 0) := by
   have := (hm q hq j hj).2
   rw [tb_addr_ofK] at this
   rw [this, List.getD_eq_getElem _ _ hj]
@@ -91,7 +92,8 @@ theorem tb_pairwise_mem {α : Type} {R : α → α → Prop} :
 
 theorem lay_same {L : TLay} (hd : DisjLay L) (hl : LowLay L) {q q' : ℕ × List E} (hq : q ∈ L)
     (hq' : q' ∈ L) {j j' : ℕ} (hj : j < q.2.length) (hj' : j' < q'.2.length)
-    (he : gpow (q.1 + j) = gpow (q'.1 + j')) : q'.2.getD j' 0 = q.2.getD j 0 := by
+    (he : addressOfIndex (q.1 + j) = addressOfIndex (q'.1 + j')) : q'.2.getD j' 0 = q.2.getD j
+        0 := by
   have hq1 := hl q hq
   have hq1' := hl q' hq'
   have hij : q.1 + j = q'.1 + j' := gpow_injOn (by simp only [Set.mem_Iio]; omega)
@@ -108,7 +110,7 @@ theorem memLay_layRd {L : TLay} (hd : DisjLay L) (hl : LowLay L) : MemLay (layRd
   intro q hq j hj
   refine ⟨tb_isInK_ofK _, ?_⟩
   rw [tb_addr_ofK]
-  have ha : InLay L (gpow (q.1 + j)) := ⟨q, hq, j, hj, rfl⟩
+  have ha : InLay L (addressOfIndex (q.1 + j)) := ⟨q, hq, j, hj, rfl⟩
   unfold layRd
   simp only [ha, ↓reduceDIte]
   obtain ⟨hqL, hex⟩ := Classical.choose_spec ha
@@ -118,7 +120,8 @@ theorem memLay_layRd {L : TLay} (hd : DisjLay L) (hl : LowLay L) : MemLay (layRd
 /-- **A word of a run read on one memory holding it is the word on any other.** -/
 theorem lay_transfer {rd rd' : Reader} {L : TLay} (hm : MemLay rd L) (hm' : MemLay rd' L)
     {q : ℕ × List E} (hq : q ∈ L) {i : ℕ} (hi : i < q.2.length) {v : E}
-    (h : LoadHolds rd (ofK (gpow q.1)) i v) : LoadHolds rd' (ofK (gpow q.1)) i v := by
+    (h : LoadHolds rd (ofK (addressOfIndex q.1)) i v) : LoadHolds rd' (ofK (addressOfIndex q.1)) i
+        v := by
   have e1 := tb_loadHolds_unique h (hm q hq i hi)
   rw [e1]; exact hm' q hq i hi
 

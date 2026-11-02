@@ -44,8 +44,8 @@ def vsAlphas (σ : Val) : List E := [σ (.n 579), σ (.n 599), σ (.n 619), σ (
 structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : Type where
   seed : Digest
   pi : Digest
-  hseed : (σ (.n 2), σ (.n 3)) = digestScalars seed
-  hpi : (σ (.n 0), σ (.n 1)) = digestScalars pi
+  hseed : (σ (.n 2), σ (.n 3)) = digestHalves seed
+  hpi : (σ (.n 0), σ (.n 1)) = digestHalves pi
   hcap0 : [σ (.n 22), σ (.n 23), σ (.n 24), σ (.n 25), σ (.n 26)] =
     capOf (keccakF1600 (seedInput seed pi))
   h10 : σ (.n 10) = 0

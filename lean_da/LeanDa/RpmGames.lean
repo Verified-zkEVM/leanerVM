@@ -48,19 +48,20 @@ variable {m n : Type → Type} [Monad m] [LawfulMonad m] [Monad n] [LawfulMonad 
 include hpure hbind
 
 theorem samplesM_map (k : ℕ) : ∀ s : Sponge,
-    φ (Sponge.samplesM P k s) = Sponge.samplesM (fun L ↦ φ (P L)) k s := by
+    φ (Sponge.samplesWith P k s) = Sponge.samplesWith (fun L ↦ φ (P L)) k s := by
   induction k with
   | zero => intro s; exact hpure _
   | succ k ih =>
     intro s
-    simp only [Sponge.samplesM, Sponge.sampleM, Sponge.duplexM, hbind, hpure, ih]
+    simp only [Sponge.samplesWith, Sponge.sampleWith, Sponge.duplexWith, hbind, hpure, ih]
 
-theorem duplexM_map (s : Sponge) : φ (Sponge.duplexM P s) = Sponge.duplexM (fun L ↦ φ (P L)) s := by
-  simp only [Sponge.duplexM, hbind, hpure]
+theorem duplexM_map (s : Sponge) : φ (Sponge.duplexWith P s) = Sponge.duplexWith (fun L ↦ φ (P L))
+    s := by
+  simp only [Sponge.duplexWith, hbind, hpure]
 
 theorem absorbM_map (s : Sponge) (x : E) (tag : K) :
-    φ (Sponge.absorbM P s x tag) = Sponge.absorbM (fun L ↦ φ (P L)) s x tag := by
-  unfold Sponge.absorbM
+    φ (Sponge.absorbWith P s x tag) = Sponge.absorbWith (fun L ↦ φ (P L)) s x tag := by
+  unfold Sponge.absorbWith
   rw [hbind]
   split_ifs
   · simp only [duplexM_map φ hpure hbind, hpure]
@@ -70,7 +71,7 @@ theorem absorbM_map (s : Sponge) (x : E) (tag : K) :
 theorem membershipChallengesM_map (root : Common.DigestBytes) :
     φ (membershipChallengesMWithHash H P root) =
       membershipChallengesMWithHash (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) root := by
-  simp only [membershipChallengesMWithHash, Sponge.fromLabelMWithHash, Sponge.newM, Sponge.observeM, hbind,
+  simp only [membershipChallengesMWithHash, Sponge.fromLabelMWithHash, Sponge.newWith, Sponge.observeWith, hbind,
     hpure, absorbM_map φ hpure hbind P, samplesM_map φ hpure hbind P, bind_assoc]
 
 theorem walkM_map (idx : ℕ) (node : Common.DigestBytes) (path : List Common.DigestBytes) :
@@ -80,7 +81,7 @@ theorem walkM_map (idx : ℕ) (node : Common.DigestBytes) (path : List Common.Di
   | cons s rest ih =>
     simp only [walkMWithHash, hbind, ih]
 
-theorem verifyCellM_map (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
+theorem verifyCellM_map (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     φ (verifyCellMWithHash H r com p x τ) = verifyCellMWithHash (fun a ↦ φ (H a)) r com p x τ := by
   simp only [verifyCellMWithHash, hbind, hpure, walkM_map φ hpure hbind]
 
@@ -110,9 +111,9 @@ theorem commitCellsM_map {r : ℕ} (c : Fin (r * 128) → Cell) :
 
 /-- **The verification through a monad morphism.** -/
 theorem verifyRpm_map (r : ℕ) {Crs Proof : Type}
-    {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
-    (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
+    {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
+    (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     φ (verifyRpm H P r ps crs com p x τ) =
       verifyRpm (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) r ps crs com p x τ := by
   simp only [verifyRpm, hbind, hpure, membershipChallengesM_map φ hpure hbind,
@@ -136,9 +137,9 @@ theorem toK_pR (L : Lanes) : simulateQ toK (pR L) = pKB L := by
 
 /-- The verifier's programs through `toK` are those of the games on byte states. -/
 theorem toK_verifyRpm (r : ℕ) {Crs Proof : Type}
-    {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
-    (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
+    {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
+    (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     simulateQ toK (verifyRpm hR pR r ps crs com p x τ) = verifyRpm hKB pKB r ps crs com p x τ := by
   rw [verifyRpm_map (fun x ↦ simulateQ toK x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]
@@ -201,9 +202,11 @@ theorem isWeightBound_toOne_iff {α : Type} (D : OracleComp (dSpec2 (List UInt8)
 
 section Games
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Common.DigestBytes × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+      Proof rel)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+      Crs Proof)
 
 /-! ### The statement's oracles, read on byte states -/
 
@@ -220,7 +223,7 @@ theorem relabel_commitCellsM (c : Fin (r * 128) → Cell) :
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [relabel_hK]
 
-theorem relabel_verifyCellM (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
+theorem relabel_verifyCellM (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     simulateQ relabel (verifyCellMWithHash hK r com p x τ) = verifyCellMWithHash hKB r com p x τ := by
   rw [verifyCellM_map (fun x ↦ simulateQ relabel x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]

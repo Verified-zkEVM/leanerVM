@@ -64,12 +64,12 @@ theorem guard_vals {σ : Val} {P : List Stmt} {gc : V} {f : String} {one N : V} 
   · exact absurd ha (by simp)
 
 theorem colLeaves_root (r L : ℕ) (syms : ℕ → ℕ → List K) :
-    cellRoot 7 (colLeaves r L syms) = digestScalars (mRoot 7 fun j => mRoot L (cellLeaf r syms j)) := by
+    cellRoot 7 (colLeaves r L syms) = digestHalves (mRoot 7 fun j => mRoot L (cellLeaf r syms j)) := by
   rw [colLeaves, show (128 : ℕ) = 2 ^ 7 from rfl]
   exact cellRoot_mRoot 7 _
 
 theorem rowLeaves_root (r L : ℕ) (syms : ℕ → ℕ → List K) :
-    cellRoot L (rowLeaves r L syms) = digestScalars (mRoot L (rowLeaf r syms)) := by
+    cellRoot L (rowLeaves r L syms) = digestHalves (mRoot L (rowLeaf r syms)) := by
   rw [rowLeaves]; exact cellRoot_mRoot L _
 
 theorem prefixCells_bytes (syms : ℕ → ℕ → List K) (i : ℕ) :
@@ -207,9 +207,9 @@ theorem dv_core {gsq : E} {r L : ℕ}
     rw [good_load_of_any rfl hg (List.any_eq_true.mpr ⟨a, ha, hp⟩), v17,
       rdAt_of_load (hcd i (by rw [cdCells_length]; exact hi)),
       List.getD_eq_getElem _ _ (by rw [cdCells_length]; exact hi)]
-  have hcr : cr = digestScalars (mRoot 7 fun j => mRoot L (cellLeaf r syms j)) :=
+  have hcr : cr = digestHalves (mRoot 7 fun j => mRoot L (cellLeaf r syms j)) :=
     colLeaves_root r L syms
-  have hrr : rr = digestScalars (mRoot L (rowLeaf r syms)) := rowLeaves_root r L syms
+  have hrr : rr = digestHalves (mRoot L (rowLeaf r syms)) := rowLeaves_root r L syms
   have hA : ∀ i ∈ [37, 38, 48, 49] ++ (List.range 256).map (69 + ·), IsCanonical128 (σ (.n i)) := by
     intro i hi
     simp only [List.cons_append, List.mem_cons, List.nil_append, List.mem_map,
@@ -240,10 +240,10 @@ theorem dv_core {gsq : E} {r L : ℕ}
         [σ (.n 48), σ (.n 49), σ (.n 37), σ (.n 38)] := by
       simp [rootSpec, ChainSpec.vals, srcVal]
     rw [hv, List.nil_append, v48, v49, v37, v38, hrr, hcr] at hd
-    have hb : cellsBytes [(digestScalars (mRoot L (rowLeaf r syms))).1,
-        (digestScalars (mRoot L (rowLeaf r syms))).2,
-        (digestScalars (mRoot 7 fun j => mRoot L (cellLeaf r syms j))).1,
-        (digestScalars (mRoot 7 fun j => mRoot L (cellLeaf r syms j))).2] =
+    have hb : cellsBytes [(digestHalves (mRoot L (rowLeaf r syms))).1,
+        (digestHalves (mRoot L (rowLeaf r syms))).2,
+        (digestHalves (mRoot 7 fun j => mRoot L (cellLeaf r syms j))).1,
+        (digestHalves (mRoot 7 fun j => mRoot L (cellLeaf r syms j))).2] =
         digestBytes (mRoot L (rowLeaf r syms)) ++
           digestBytes (mRoot 7 fun j => mRoot L (cellLeaf r syms j)) := by
       rw [digestBytes_eq_cells, digestBytes_eq_cells]

@@ -51,8 +51,8 @@ theorem decoderProgram_indices_increasing :
 /-- **The guest's frame cells' literal**: its size, its rows' (`guestLocsList_rowSize`, the
 chunks of `DecoderSize/Locs.lean`), the array's and `Term.val`'s. -/
 theorem guestLocsTable_size : guestLocsTableC.costBody.size = 749836 := by
-  have h : guestLocsTableC.costBody = Term.val (MachineValue.arr
-      (guestLocsList.map fun r ↦ MachineValue.arr (r.map encodeValue).toArray).toArray) := rfl
+  have h : guestLocsTableC.costBody = Term.literal (MachineValue.array
+      (guestLocsList.map fun r ↦ MachineValue.array (r.map encodeValue).toArray).toArray) := rfl
   rw [h, literal_size, guestLocsList_rowSize]
 
 /-- The sum of a function over a list: over the entries `p` keeps and over the others. -/

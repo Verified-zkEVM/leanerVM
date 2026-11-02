@@ -204,7 +204,7 @@ theorem calls_atoms (as : List Atom) : calls (as.map Ev.atom) = [] := by
   | cons a as ih => simp [calls, Ev.call?]
 
 theorem loadAddrs_atoms (σ : Val) (as : List Atom) :
-    loadAddrs σ (as.map Ev.atom) = (as.filterMap atomLoad?).map fun q => (σ q.1).limb 0 * gpow q.2 := by
+    loadAddrs σ (as.map Ev.atom) = (as.filterMap atomLoad?).map fun q => (σ q.1).limb 0 * addressOfIndex q.2 := by
   induction as with
   | nil => rfl
   | cons a as ih =>
@@ -219,11 +219,11 @@ theorem holds_atoms {rd : Reader} {σ : Val} {as : List Atom} (h : ∀ a ∈ as,
   exact h a ha
 
 /-- The word `g^e`'s first limb. -/
-theorem limb0_gen_pow (e : ℕ) : (gen ^ e).limb 0 = gpow e := by
+theorem limb0_gen_pow (e : ℕ) : (gen ^ e).limb 0 = addressOfIndex e := by
   rw [gen_pow_eq_ofK]; simp
 
-theorem gpow_add' (a b : ℕ) : gpow a * gpow b = gpow (a + b) := by
-  simp [Parameters.gpow, pow_add]
+theorem gpow_add' (a b : ℕ) : addressOfIndex a * addressOfIndex b = addressOfIndex (a + b) := by
+  simp [Parameters.addressOfIndex, pow_add]
 
 /-! ## Straight bodies with calls -/
 
@@ -233,7 +233,7 @@ def stmtLoad? : Stmt → Option (V × ℕ)
   | _ => none
 
 theorem loadAddrs_straight (σ : Val) : ∀ pre : List Stmt, pre.all Stmt.straight = true →
-    loadAddrs σ (pre.flatMap (slEvs σ)) = (pre.filterMap stmtLoad?).map fun q => (σ q.1).limb 0 * gpow q.2
+    loadAddrs σ (pre.flatMap (slEvs σ)) = (pre.filterMap stmtLoad?).map fun q => (σ q.1).limb 0 * addressOfIndex q.2
   | [], _ => rfl
   | s :: pre, h => by
     simp only [List.all_cons, Bool.and_eq_true] at h
@@ -271,13 +271,13 @@ theorem runs_straight (σ : Val) : ∀ pre : List Stmt, pre.all Stmt.straight = 
 /-! ## A fused dispatch between straight runs -/
 
 theorem pick_eq (σ : Val) (x : V) (args rets : List V) : ∀ (fs : List String) (j i : ℕ),
-    i < fs.length → j + fs.length ≤ 2 ^ 64 - 1 → σ x = ofK (gpow (j + i)) →
+    i < fs.length → j + fs.length ≤ 2 ^ 64 - 1 → σ x = ofK (addressOfIndex (j + i)) →
     pick σ x args rets j fs = .fall [.call fs[i]! args rets]
   | [], _, _, hi, _, _ => absurd hi (by simp)
   | f :: fs, j, i, hi, hb, hx => by
     simp only [List.length_cons] at hi hb
     unfold pick
-    by_cases hxj : σ x = ofK (gpow j)
+    by_cases hxj : σ x = ofK (addressOfIndex j)
     · rw [ite_eq_left hxj]
       obtain rfl : i = 0 := by
         by_contra h0
@@ -294,7 +294,8 @@ theorem pick_eq (σ : Val) (x : V) (args rets : List V) : ∀ (fs : List String)
 the callee the selector picks. -/
 theorem walk_dispatch (σ : Val) (pre post : List Stmt) (hpre : pre.all Stmt.straight = true)
     (hpost : post.all Stmt.straight = true) (x : V) (fs : List String) (args rets vs : List V)
-    {i : ℕ} (hi : i < fs.length) (hfl : fs.length ≤ 2 ^ 64 - 1) (hx : σ x = ofK (gpow i)) :
+    {i : ℕ} (hi : i < fs.length) (hfl : fs.length ≤ 2 ^ 64 - 1) (hx : σ x = ofK
+        (addressOfIndex i)) :
     walk σ (pre ++ .dispatch x fs args rets :: (post ++ [.ret vs])) =
       .ret (pre.flatMap (slEvs σ) ++ .call fs[i]! args rets :: post.flatMap (slEvs σ)) vs := by
   induction pre with
@@ -321,7 +322,8 @@ theorem walk_straight_fall (σ : Val) : ∀ pre : List Stmt, pre.all Stmt.straig
 /-- A dispatch between straight runs, without a `ret`, falls through with the chosen call. -/
 theorem walk_dispatch_fall (σ : Val) (pre post : List Stmt) (hpre : pre.all Stmt.straight = true)
     (hpost : post.all Stmt.straight = true) (x : V) (fs : List String) (args rets : List V)
-    {i : ℕ} (hi : i < fs.length) (hfl : fs.length ≤ 2 ^ 64 - 1) (hx : σ x = ofK (gpow i)) :
+    {i : ℕ} (hi : i < fs.length) (hfl : fs.length ≤ 2 ^ 64 - 1) (hx : σ x = ofK
+        (addressOfIndex i)) :
     walk σ (pre ++ .dispatch x fs args rets :: post) =
       .fall (pre.flatMap (slEvs σ) ++ .call fs[i]! args rets :: post.flatMap (slEvs σ)) := by
   induction pre with

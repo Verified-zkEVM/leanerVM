@@ -79,7 +79,7 @@ theorem always_tableTerms (cP fP point : List E) (hK : ℕ) :
   | [], _, _, _, _, hc => hc
   | (table, height, forms, weight) :: rest, cursor, final, claims, hrows, hc => by
     unfold tableTermsClaims
-    simp only [Prog.bind_eq]
+    simp only [VerifierProgram.bind_eq]
     refine Always.bind (fun evs hevs ↦ ?_) _ (always_readN table.width)
     refine always_tableTerms cP fP point hK rest _ _ _
       (fun r hr ↦ hrows r (List.mem_cons_of_mem _ hr)) fun c hcm hout ↦ ?_
@@ -99,7 +99,7 @@ theorem always_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
       ∃ pt : List E, pt.length = heights.foldl max 0 ∧
         ∀ c ∈ claims, c.column ∈ keccakOutputColumns → c.point = pt.take (heights.getD opKeccak 0) := by
   unfold tableSumcheckClaims
-  simp only [Prog.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   refine Always.bind (fun r hr ↦ ?_) _ (always_sumcheck 4 _ target)
   obtain ⟨chs, cl⟩ := r
   simp only [List.length_replicate] at hr
@@ -112,12 +112,13 @@ theorem always_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
 
 /-! ## The segment -/
 
-theorem always_busRest (ev : (List K → List E → Prog E)) (L : Layout) (alphas : List E) (beta : E)
+theorem always_busRest (ev : (List K → List E → VerifierProgram E)) (L : Layout) (alphas : List E)
+    (beta : E)
     (point tv : List E) :
     Always (Tables.busRest ev L alphas beta point tv) fun bus ↦
       ∀ c ∈ bus.claims, c.column ∉ keccakOutputColumns := by
   unfold Tables.busRest
-  simp only [Prog.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   refine Always.bind (fun memory _ ↦ ?_) _ (always_true _)
   refine Always.bind (fun mf _ ↦ ?_) _ (always_true _)
   refine Always.bind (fun bf _ ↦ ?_) _ (always_true _)
@@ -139,7 +140,7 @@ theorem always_tablePhase (L : Layout) (bus : BusResult)
         ∀ c ∈ claims, c.column ∈ keccakOutputColumns →
           c.point = pt.take (L.tableLogHeights.getD opKeccak 0) := by
   unfold tablePhaseClaims
-  simp only [Prog.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   refine Always.bind (fun xi _ ↦ ?_) _ (always_true _)
   refine Always.bind (fun cl hcl ↦ ?_) _ (always_tableSumcheck _ _ _ _ _ _)
   obtain ⟨pt, hpt, hc⟩ := hcl
@@ -152,7 +153,7 @@ theorem always_tablePhase (L : Layout) (bus : BusResult)
 theorem always_publicInputPhase (L : Layout) (pi : Digest) :
     Always (publicInputPhase L pi) fun claims ↦ ∀ c ∈ claims, c.column ∉ keccakOutputColumns := by
   unfold publicInputPhase
-  simp only [Prog.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   refine Always.bind (fun ch _ ↦ ?_) _ (always_true _)
   intro c hc
   refine framework_not_lanes _ ?_
@@ -162,14 +163,14 @@ theorem always_publicInputPhase (L : Layout) (pi : Digest) :
 
 /-- **The output lanes' point**: every claim `tablesSeg` returns on a `KECCAK` output lane is at
 the table sumcheck's point cut to the `KECCAK` table's height. -/
-theorem tablesSeg_lanes (ev : (List K → List E → Prog E)) (L : Layout) (pi : Digest) (alphas : List E)
+theorem tablesSeg_lanes (ev : (List K → List E → VerifierProgram E)) (L : Layout) (pi : Digest) (alphas : List E)
     (beta : E) (point tv : List E) :
     Always (Tables.tablesSeg ev L pi alphas beta point tv) fun bc ↦
       ∃ pt : List E, pt.length = L.tableLogHeights.foldl max 0 ∧
         ∀ c ∈ bc.2, c.column ∈ keccakOutputColumns →
           c.point = pt.take (L.tableLogHeights.getD opKeccak 0) := by
   unfold Tables.tablesSeg
-  simp only [Prog.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   refine Always.bind (fun bus hb ↦ ?_) _ (always_busRest ev L alphas beta point tv)
   refine Always.bind (fun cl hcl ↦ ?_) _ (always_tablePhase L bus hb)
   refine Always.bind (fun pc hpc ↦ ?_) _ (always_publicInputPhase L pi)

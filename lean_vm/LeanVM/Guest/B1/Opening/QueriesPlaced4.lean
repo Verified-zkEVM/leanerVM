@@ -26,20 +26,21 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- What a query of an iteration reads from the caller's region: its weights, its bit run, its
 flag and its cap leaf. -/
 structure OqQReg (R : ℕ → Prop) (s : Oq) (cap flags wp bp : E) (q : ℕ) : Prop where
-  w : ∀ off < s.lo + s.I / s.lo, OqIn R (wp.limb 0 * Parameters.gpow off)
-  b : ∀ off < s.pd + s.cd, OqIn R (bp.limb 0 * Parameters.gpow off)
-  f : OqIn R ((flags * gen ^ (q / 2 ^ (s.pd + 1))).limb 0 * Parameters.gpow (2 ^ (s.cd - 1)))
+  w : ∀ off < s.lo + s.I / s.lo, OqIn R (wp.limb 0 * Parameters.addressOfIndex off)
+  b : ∀ off < s.pd + s.cd, OqIn R (bp.limb 0 * Parameters.addressOfIndex off)
+  f : OqIn R ((flags * gen ^ (q / 2 ^ (s.pd + 1))).limb 0 * Parameters.addressOfIndex (2 ^
+      (s.cd - 1)))
   c : ∀ e < 2, OqIn R ((cap * gen ^ (4 * (q / 2 ^ (s.pd + 1)) +
-    (if q.testBit s.pd then 2 else 0))).limb 0 * Parameters.gpow (2 ^ (s.cd + 1) + e))
+    (if q.testBit s.pd then 2 else 0))).limb 0 * Parameters.addressOfIndex (2 ^ (s.cd + 1) + e))
 
 /-- A query's load reads the caller's region or its frame run. -/
 theorem oqQLoad_in {R : ℕ → Prop} (cert : String → V → ℕ) {fp : ℕ} {f : String} {D : QD}
     {σ : Val} (hv : ∀ i, D.b ≤ i → i < D.z + 11 → σ (.n i) = D.val i)
     (hpd : 4 * D.s.pd ≤ 80) (hcd : 2 ≤ D.s.cd) (hcd8 : D.s.cd ≤ 8) (hq : D.q < 2 ^ (D.s.pd + D.s.cd))
     {bp wp : V} (hreg : OqQReg R D.s D.capv D.flagsv (σ wp) (σ bp) D.q)
-    (hpp : D.pp = ofK (Parameters.gpow (fp + cert f (.n D.ch)))) {p : V} {off : ℕ}
+    (hpp : D.pp = ofK (Parameters.addressOfIndex (fp + cert f (.n D.ch)))) {p : V} {off : ℕ}
     (hl : OqQLoad D.s bp wp D.ch p off) :
-    ∃ i, (σ p).limb 0 * Parameters.gpow off = Parameters.gpow i ∧
+    ∃ i, (σ p).limb 0 * Parameters.addressOfIndex off = Parameters.addressOfIndex i ∧
       (R i ∨ (fp + cert f (.n D.ch) ≤ i ∧ i < fp + cert f (.n D.ch) + 80)) := by
   rcases hl with ⟨rfl, ho⟩ | ⟨rfl, ho⟩ | ⟨l, hl, rfl, ho⟩ | ⟨rfl, rfl⟩ | ⟨rfl, ho⟩
   · obtain ⟨i, hi, hr⟩ := hreg.w off ho
@@ -70,9 +71,11 @@ theorem oqIter1_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Stri
     {rd : Reader} {R : ℕ → Prop} {fp m j : ℕ} {N qptrs cap flags wp ch mu : E}
     {r1 r2 : List K} {w1 w2 : ℕ → E} {q1 q2 : ℕ} {sb1 sb2 : List Digest} {bp1 bp2 v : E}
     (hok1 : (⟨s, 11, true, 0, r1, w1, q1, sb1,
-      ofK (Parameters.gpow (fp + cert loop (.n (oqCh s 11 true)))), cap, flags, rd⟩ : QD).Ok rd wp)
+      ofK (Parameters.addressOfIndex (fp + cert loop (.n (oqCh s 11 true)))), cap, flags, rd⟩ :
+          QD).Ok rd wp)
     (hok2 : (⟨s, oqE1 s + 1, false, oqK1 11 s.R + s.D, r2, w2, q2, sb2,
-      ofK (Parameters.gpow (fp + cert loop (.n (oqCh s (oqE1 s + 1) false)))), cap, flags, rd⟩ :
+      ofK (Parameters.addressOfIndex (fp + cert loop (.n (oqCh s (oqE1 s + 1) false)))), cap,
+          flags, rd⟩ :
         QD).Ok rd wp)
     (hb1 : LoadHolds rd qptrs (2 * j + odd) bp1)
     (hbits1 : ∀ l < s.pd + s.cd, LoadHolds rd bp1 l (bitE (q1.testBit l)))
@@ -86,17 +89,19 @@ theorem oqIter1_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Stri
       RelAtIn coreProgram fs cert rd R (fun _ => False) (fp + fs loop) m loop
         [gen ^ j * gen, N, qptrs, cap, flags, wp, ch, mu] []
       else m = fs loop)
-    (hRq : ∀ e < 2, OqIn R ((qptrs * gen ^ j * gen ^ j).limb 0 * Parameters.gpow (odd + e)))
+    (hRq : ∀ e < 2, OqIn R ((qptrs * gen ^ j * gen ^ j).limb 0 * Parameters.addressOfIndex
+        (odd + e)))
     (hR1 : OqQReg R s cap flags wp bp1 q1) (hR2 : OqQReg R s cap flags wp bp2 q2)
-    (hRc : ∀ e < 2, OqIn R ((ch * gen ^ j).limb 0 * Parameters.gpow e)) :
+    (hRc : ∀ e < 2, OqIn R ((ch * gen ^ j).limb 0 * Parameters.addressOfIndex e)) :
     RelAtIn coreProgram fs cert rd R (fun _ => False) fp (fs loop + m) loop
       [gen ^ j, N, qptrs, cap, flags, wp, ch, mu] [] := by
   set c01 := fp + cert loop (.n (oqCh s 11 true)) with hc01
   set c02 := fp + cert loop (.n (oqCh s (oqE1 s + 1) false)) with hc02
-  set D1 : QD := ⟨s, 11, true, 0, r1, w1, q1, sb1, ofK (Parameters.gpow c01), cap, flags, rd⟩
+  set D1 : QD := ⟨s, 11, true, 0, r1, w1, q1, sb1, ofK (Parameters.addressOfIndex c01), cap,
+      flags, rd⟩
     with hD1
   set D2 : QD := ⟨s, oqE1 s + 1, false, oqK1 11 s.R + s.D, r2, w2, q2, sb2,
-    ofK (Parameters.gpow c02), cap, flags, rd⟩ with hD2
+    ofK (Parameters.addressOfIndex c02), cap, flags, rd⟩ with hD2
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, ∀ w : V, σ w = oqIter1F s [gen ^ j, N, qptrs, cap, flags, wp, ch, mu]
       D1 D2 bp1 bp2 v w.idx := ⟨_, fun _ ↦ rfl⟩
   obtain ⟨hpar, hA, eQ1, eQ2, e9, e10, eE1, eC0, eC6, eC9, eC11⟩ :=
@@ -164,7 +169,7 @@ theorem oqIter1_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Stri
   have hown2 : ∀ i, c02 ≤ i → i < c02 + 80 →
       ownData cert fp (fp + fs loop + m) loop (allocs σ es) es i :=
     fun i h1 h2 ↦ Or.inr ⟨_, hrun2, h1, h2⟩
-  have inR : ∀ A, OqIn R A → ∃ i, A = Parameters.gpow i ∧
+  have inR : ∀ A, OqIn R A → ∃ i, A = Parameters.addressOfIndex i ∧
       (ownData cert fp (fp + fs loop + m) loop (allocs σ es) es i ∨ R i ∨ False ∨
         ((⟨loop, [.n (oqC1 s + 11), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7], [],
           decide (σ (.n (oqC1 s + 9)) ≠ 0)⟩ : Call).taken = true ∧ False)) :=

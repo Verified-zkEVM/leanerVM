@@ -185,13 +185,13 @@ section
 variable {H : VtHonest} {B : VtBases} {w : ℕ → E} {rd : Reader}
 
 theorem ptr_lin {q : ℕ × List E} (hq : q ∈ H.linL B) {j n : ℕ} (h : j + n ≤ q.2.length) :
-    PtrIn (H.reg B) (ofK (gpow q.1) * gen ^ j) n := by
+    PtrIn (H.reg B) (ofK (addressOfIndex q.1) * gen ^ j) n := by
   refine ptrIn_mul (ptrIn_ofK fun i hi ↦ ?_)
   unfold VtHonest.reg RegionL
   exact ⟨q, List.mem_append_left _ hq, by omega, by omega⟩
 
 theorem ptr_lin0 {q : ℕ × List E} (hq : q ∈ H.linL B) {n : ℕ} (h : n ≤ q.2.length) :
-    PtrIn (H.reg B) (ofK (gpow q.1)) n := by
+    PtrIn (H.reg B) (ofK (addressOfIndex q.1)) n := by
   simpa using ptr_lin hq (j := 0) (n := n) (by omega)
 
 theorem ptr_own (hw : VtWOk H B w) {j v : ℕ} (hj : j < 110) (hv : vtAllocVars.getD j 0 = v)
@@ -219,13 +219,13 @@ local notation "σv" => vtσ rd w (H.args B)
 
 theorem vt_p {i : ℕ} (hi : i < 22) : σv (.n i) = (H.args B).getD i 0 := vt_param rfl hi
 
-theorem vt_s8 : σv (.n 8) = ofK (gpow B.zeta) := vt_p (by norm_num)
+theorem vt_s8 : σv (.n 8) = ofK (addressOfIndex B.zeta) := vt_p (by norm_num)
 
 theorem vt_s9 : σv (.n 9) = gen ^ H.μ := vt_p (by norm_num)
 
-theorem vt_s13 : σv (.n 13) = ofK (gpow B.sq) := vt_p (by norm_num)
+theorem vt_s13 : σv (.n 13) = ofK (addressOfIndex B.sq) := vt_p (by norm_num)
 
-theorem vt_s18 : σv (.n 18) = ofK (gpow B.chi) := vt_p (by norm_num)
+theorem vt_s18 : σv (.n 18) = ofK (addressOfIndex B.chi) := vt_p (by norm_num)
 
 theorem vt_alloc' {v : ℕ} (hv : v ∈ vtAllocVars) : σv (.n v) = w v := vt_alloc_var rfl hv
 
@@ -262,16 +262,16 @@ theorem gen_div {a b : ℕ} (h : b ≤ a) : gen ^ a * (gen ^ b)⁻¹ = gen ^ (a 
 
 theorem vt_dims (I : VtIn H B w rd) : ∀ t < 6, LoadHolds rd (σv (.n 10)) (t + 1) (gen ^ H.τ t) := by
   intro t ht
-  rw [vt_p (by norm_num), show (H.args B).getD 10 0 = ofK (gpow B.dims) from rfl]
-  have mDims : TbReadsAt rd (ofK (gpow B.dims)) H.dimsW :=
+  rw [vt_p (by norm_num), show (H.args B).getD 10 0 = ofK (addressOfIndex B.dims) from rfl]
+  have mDims : TbReadsAt rd (ofK (addressOfIndex B.dims)) H.dimsW :=
     vt_lin_reads (q := (B.dims, H.dimsW)) I.hm (by simp [VtHonest.linL])
   have := tb_load_of mDims (k := t + 1) (by simp [VtHonest.dimsW, vtTauList]; omega)
   simpa [VtHonest.dimsW, vtTauList, List.getD_eq_getElem?_getD, ht] using this
 
 theorem vt_bk (I : VtIn H B w rd) : ∀ b < 153, LoadHolds rd (σv (.n 12)) b (gen ^ H.κ b) := by
   intro b hb
-  rw [vt_p (by norm_num), show (H.args B).getD 12 0 = ofK (gpow B.bk) from rfl]
-  have mBk : TbReadsAt rd (ofK (gpow B.bk)) H.bkW :=
+  rw [vt_p (by norm_num), show (H.args B).getD 12 0 = ofK (addressOfIndex B.bk) from rfl]
+  have mBk : TbReadsAt rd (ofK (addressOfIndex B.bk)) H.bkW :=
     vt_lin_reads (q := (B.bk, H.bkW)) I.hm (by simp [VtHonest.linL])
   have := tb_load_of mBk (k := b) (by simp [VtHonest.bkW, blockKappaWords]; omega)
   rwa [VtHonest.bkW, vt_kappa_word _ _ hb] at this
@@ -576,7 +576,7 @@ theorem vt_loop_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv loop
   obtain ⟨d, hd⟩ := hc
   -- the rounds' cursor words
   have hR : TbReadsAt rd (w 5912)
-      (zcRoundsW H.cap0 H.target (ofK (gpow B.cur) * gen ^ 5) H.xsR H.n) := by
+      (zcRoundsW H.cap0 H.target (ofK (addressOfIndex B.cur) * gen ^ 5) H.xsR H.n) := by
     have := vt_own_reads I.hm I.hw (j := 107 + 0) (by norm_num)
     rw [ownW_getD_Z H B (k := 0) (by norm_num), show vtAllocVars.getD (107 + 0) 0 = 5912 by decide]
       at this
@@ -588,7 +588,7 @@ theorem vt_loop_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv loop
     have hl5 := cap0_length H
     have l5 := tb_load_of r (k := 5) (by simp [zcRecW_len hl5])
     rw [zcRecW, List.getD_append_right _ _ _ _ (by simp [zcRec_len hl5]), zcRec_len hl5] at l5
-    have e : c = ofK (gpow B.cur) * gen ^ (5 + 3 * k) := by
+    have e : c = ofK (addressOfIndex B.cur) * gen ^ (5 + 3 * k) := by
       rw [Option.some.inj (hcl.2.symm.trans l5.2)]
       simp [mul_assoc, pow_add]
     rw [e]

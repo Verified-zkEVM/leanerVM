@@ -55,14 +55,15 @@ theorem Aff.eval_le_of_leB {a b : Aff} (h : a.leB b = true) (args : List E) : a.
   simp only [Aff.eval, h.2]
   omega
 
-theorem constOk_spec {w : E} {e : ℕ} (h : constOk w e = true) : w = ofK (gpow e) ∧ e < 2 ^ 20 := by
+theorem constOk_spec {w : E} {e : ℕ} (h : constOk w e = true) : w = ofK (addressOfIndex e) ∧ e < 2 ^
+    20 := by
   simp only [constOk, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨⟨he, h1⟩, h2⟩, h0⟩ := h
-  have h0' : w.limb 0 = gpow e := by
+  have h0' : w.limb 0 = addressOfIndex e := by
     split at h0
     · rename_i h64
       rw [decide_eq_true_eq] at h0
-      rw [h0, Parameters.gpow, g_pow_eq_ofBits h64]
+      rw [h0, Parameters.addressOfIndex, g_pow_eq_ofBits h64]
     · rw [decide_eq_true_eq] at h0
       rw [h0, Pow.gpowW_eq he]
   refine ⟨E.ext fun i => ?_, he⟩
@@ -72,10 +73,10 @@ theorem constOk_spec {w : E} {e : ℕ} (h : constOk w e = true) : w = ofK (gpow 
   · simpa using h1
   · simpa using h2
 
-theorem logG_ofK {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (ofK (gpow e)) = e := logG_spec he
+theorem logG_ofK {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (ofK (addressOfIndex e)) = e := logG_spec he
 
 /-- Known constants hold: `σ v = g^e` below the order of `g`. -/
-def EnvOk (σ : Val) (ρ : Env) : Prop := ∀ q ∈ ρ, σ q.1 = ofK (gpow q.2) ∧ q.2 < 2 ^ 64 - 1
+def EnvOk (σ : Val) (ρ : Env) : Prop := ∀ q ∈ ρ, σ q.1 = ofK (addressOfIndex q.2) ∧ q.2 < 2 ^ 64 - 1
 
 theorem lookup_mem {ρ : List (V × ℕ)} {v : V} {e : ℕ} : vlookup v ρ = some e → (v, e) ∈ ρ := by
   induction ρ with
@@ -108,7 +109,7 @@ section Cls
 variable {σ : Val} {ρ : Env} {ps : List V} {args : List E}
 
 theorem cls_pow (hρ : EnvOk σ ρ) {v : V} {e : ℕ} (h : cls ρ ps v = .pow e) :
-    σ v = ofK (gpow e) ∧ e < 2 ^ 64 - 1 := by
+    σ v = ofK (addressOfIndex e) ∧ e < 2 ^ 64 - 1 := by
   unfold cls at h
   split at h
   · rename_i e' he'
@@ -149,30 +150,34 @@ theorem blookup_mem {β : BEnv} {v : V} {b : Aff} : blookup v β = some b → (v
       · exact List.mem_cons_of_mem _ (ih h)
 
 /-- **`logG` of a product by `g^c`**: at most `c` more (a non-power stays one). -/
-theorem logG_mul_le (w : E) (c : ℕ) : logG (w * ofK (gpow c)) ≤ logG w + c := by
+theorem logG_mul_le (w : E) (c : ℕ) : logG (w * ofK (addressOfIndex c)) ≤ logG w + c := by
   classical
   have hmul : ∀ a b : K, ofK (a * b) = ofK a * ofK b := fun a b => map_mul (algebraMap K E) a b
-  have hgp : ∀ a b : ℕ, ofK (gpow a) * ofK (gpow b) = ofK (gpow (a + b)) := by
-    intro a b; rw [← hmul, gpow, gpow, gpow, pow_add]
-  by_cases hw : ∃ e, w = ofK (gpow e)
+  have hgp : ∀ a b : ℕ, ofK (addressOfIndex a) * ofK (addressOfIndex b) = ofK (addressOfIndex (a +
+      b)) := by
+    intro a b; rw [← hmul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
+  by_cases hw : ∃ e, w = ofK (addressOfIndex e)
   · have hs := Nat.find_spec hw
     have hlw : logG w = Nat.find hw := by rw [logG, dite_eq_left hw]
     rw [hlw]
     generalize Nat.find hw = n at hs
-    have hp : ∃ e, w * ofK (gpow c) = ofK (gpow e) := ⟨n + c, by rw [hs, hgp]⟩
+    have hp : ∃ e, w * ofK (addressOfIndex c) = ofK (addressOfIndex e) := ⟨n + c, by rw [hs, hgp]⟩
     rw [logG, dite_eq_left hp]
     exact Nat.find_min' hp (by rw [hs, hgp])
-  · have hn : ¬ ∃ e, w * ofK (gpow c) = ofK (gpow e) := by
+  · have hn : ¬ ∃ e, w * ofK (addressOfIndex c) = ofK (addressOfIndex e) := by
       rintro ⟨m, hm⟩
       apply hw
       refine ⟨m + ((2 ^ 64 - 1) * c - c), ?_⟩
-      have h1 : ofK (gpow c) * ofK (gpow ((2 ^ 64 - 1) * c - c)) = 1 := by
-        rw [hgp, Nat.add_sub_cancel' (Nat.le_mul_of_pos_left c (by norm_num)), gpow, pow_mul,
+      have h1 : ofK (addressOfIndex c) * ofK (addressOfIndex ((2 ^ 64 - 1) * c - c)) = 1 := by
+        rw [hgp, Nat.add_sub_cancel' (Nat.le_mul_of_pos_left c
+            (by norm_num)), addressOfIndex, pow_mul,
           g_pow_card_sub_one, one_pow]
         exact map_one (algebraMap K E)
-      calc w = w * (ofK (gpow c) * ofK (gpow ((2 ^ 64 - 1) * c - c))) := by rw [h1, mul_one]
-        _ = (w * ofK (gpow c)) * ofK (gpow ((2 ^ 64 - 1) * c - c)) := by rw [mul_assoc]
-        _ = ofK (gpow (m + ((2 ^ 64 - 1) * c - c))) := by rw [hm, hgp]
+      calc w = w * (ofK (addressOfIndex c) * ofK (addressOfIndex ((2 ^ 64 - 1) * c - c))) :=
+          by rw [h1, mul_one]
+        _ = (w * ofK (addressOfIndex c)) * ofK (addressOfIndex ((2 ^ 64 - 1) * c - c)) :=
+            by rw [mul_assoc]
+        _ = ofK (addressOfIndex (m + ((2 ^ 64 - 1) * c - c))) := by rw [hm, hgp]
     rw [logG, dite_eq_right hn]
     exact Nat.zero_le _
 
@@ -251,7 +256,8 @@ theorem termB_sound (hρ : EnvOk σ ρ) (hp : ps.map σ = args) {q : ℕ × ℕ}
 
 theorem preB_sound (hρ : EnvOk σ ρ) (hp : ps.map σ = args) {q : ℕ × ℕ} {r : Acc}
     (h : preB ρ ps a q = some r) (hpre : ArgsPre r.2 args) :
-    (∃ b, q.2 < b ∧ b < 2 ^ 64 - 1 ∧ (a.map σ).getD q.1 0 = ofK (gpow b)) ∧ r.1.eval args = 0 := by
+    (∃ b, q.2 < b ∧ b < 2 ^ 64 - 1 ∧ (a.map σ).getD q.1 0 = ofK (addressOfIndex b)) ∧ r.1.eval args
+        = 0 := by
   unfold preB at h
   split at h
   · rename_i v hv
@@ -351,7 +357,7 @@ end
 /-- A loop's end: its parameter 1, or `g^e`. -/
 def endOf (endc : Option ℕ) (args : List E) : E :=
   match endc with
-  | some e => ofK (gpow e)
+  | some e => ofK (addressOfIndex e)
   | none => args.getD 1 0
 
 /-- **What a certificate claims of a tree** of its function on `args`. -/
@@ -360,7 +366,9 @@ def Bound (P : Core.Program) (α : Bool) (cert : String → Cert) (ω : String �
   match cert t.name with
   | .none => True
   | .stat pre b _ => ArgsPre pre args → t.cost P α ω ≤ b.eval args
-  | .loop endc pre b _ => ∀ a0 e, args.getD 0 0 = ofK (gpow a0) → endOf endc args = ofK (gpow e) →
+  | .loop endc pre b _
+      => ∀ a0 e, args.getD 0 0 = ofK (addressOfIndex a0) → endOf endc args = ofK
+      (addressOfIndex e) →
       a0 < e → e < 2 ^ 64 - 1 → ArgsPre pre args → t.cost P α ω ≤ (e - a0) * b.eval args
 
 /-- **A call site's bound bounds its callee**, a tree satisfying its certificate. -/
@@ -393,7 +401,7 @@ theorem siteB_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω 
             split at h
             · rename_i hlt
               obtain ⟨R, hR, rfl⟩ := Option.map_eq_some_iff.mp h
-              have hend : endOf endc (a.map σ) = ofK (gpow e) := by
+              have hend : endOf endc (a.map σ) = ofK (addressOfIndex e) := by
                 revert he
                 cases endc with
                 | some e' => intro he; cases he; rfl
@@ -420,7 +428,7 @@ theorem siteB_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω 
                 obtain ⟨eb, heb1, heb2, heb3⟩ := hr' _ List.mem_cons_self
                 simp only at heb1 heb3
                 have hR2 : ArgsPre R.2 args := fun q hq => hr' q (List.mem_cons_of_mem _ hq)
-                have hend : endOf endc (a.map σ) = ofK (gpow eb) := by
+                have hend : endOf endc (a.map σ) = ofK (addressOfIndex eb) := by
                   revert hk
                   cases endc with
                   | some e' => intro hk; cases hk
@@ -1225,8 +1233,8 @@ theorem defAtom_const {d x : V} {w : E} : ∀ {l : List Stmt}, defAtom d l = som
 
 theorem ofK_mulS (a b : K) : ofK (a * b) = ofK a * ofK b := map_mul (algebraMap K E) a b
 
-theorem gpow_succ' (a : ℕ) : gpow a * gpow 1 = gpow (a + 1) := by
-  simp [Parameters.gpow, pow_add]
+theorem gpow_succ' (a : ℕ) : addressOfIndex a * addressOfIndex 1 = addressOfIndex (a + 1) := by
+  simp [Parameters.addressOfIndex, pow_add]
 
 variable {rd : Reader} {pre : List Stmt} {es : List Ev}
 
@@ -1238,7 +1246,7 @@ theorem defAtom_holds (hn : Stmt.noRetListS pre = true) (hw : walk σ pre = .fal
 theorem isG_val (hn : Stmt.noRetListS pre = true) (hw : walk σ pre = .fall es) (hh : HoldsAll rd σ es)
     {z : V} (h : (match defAtom z pre with
       | some (.const _ w) => constOk w 1
-      | _ => false) = true) : σ z = ofK (gpow 1) := by
+      | _ => false) = true) : σ z = ofK (addressOfIndex 1) := by
   split at h
   · rename_i x w hd
     have := defAtom_holds hn hw hh hd
@@ -1247,7 +1255,8 @@ theorem isG_val (hn : Stmt.noRetListS pre = true) (hw : walk σ pre = .fall es) 
   · cases h
 
 theorem isStep_val (hn : Stmt.noRetListS pre = true) (hw : walk σ pre = .fall es)
-    (hh : HoldsAll rd σ es) {p d : V} (h : isStep pre p d = true) : σ d = σ p * ofK (gpow 1) := by
+    (hh : HoldsAll rd σ es) {p d : V} (h : isStep pre p d = true) : σ d = σ p * ofK (addressOfIndex
+        1) := by
   unfold isStep at h
   split at h
   · rename_i x y z hd
@@ -1261,7 +1270,7 @@ theorem isStep_val (hn : Stmt.noRetListS pre = true) (hw : walk σ pre = .fall e
 
 theorem isEnd_val (hn : Stmt.noRetListS pre = true) (hw : walk σ pre = .fall es)
     (hh : HoldsAll rd σ es) {p1 : Option V} {endc : Option ℕ} {y : V} (h : isEnd pre p1 endc y = true) :
-    (endc = none → p1 = some y) ∧ ∀ e, endc = some e → σ y = ofK (gpow e) := by
+    (endc = none → p1 = some y) ∧ ∀ e, endc = some e → σ y = ofK (addressOfIndex e) := by
   unfold isEnd at h
   cases endc with
   | none => exact ⟨fun _ => (by simpa using h), fun _ he => (by cases he)⟩
@@ -1415,8 +1424,8 @@ theorem chk_sound {X : String → Prop} (hchk : CheckedExcept P α cert ω X)
                     Bool.not_true, Bool.not_false] <;> rfl
                 rw [hcalls] at hk2
                 have hargs : args = σ p0 :: prest.map σ := by rw [← hp, hps, List.map_cons]
-                have hp0 : σ p0 = ofK (gpow a0) := by rw [← h0, hargs]; rfl
-                have hi' : σ i' = ofK (gpow (a0 + 1)) := by
+                have hp0 : σ p0 = ofK (addressOfIndex a0) := by rw [← h0, hargs]; rfl
+                have hi' : σ i' = ofK (addressOfIndex (a0 + 1)) := by
                   rw [isStep_val hnr hw1 hes1 hst, hp0, ← ofK_mulS, gpow_succ']
                 have hM : 1 ≤ e - a0 := by omega
                 match ks2, hk2 with
@@ -1453,7 +1462,7 @@ theorem chk_sound {X : String → Prop} (hchk : CheckedExcept P α cert ω X)
                       cases endc with
                       | some _ => rfl
                       | none => exact hget 1 (by omega)
-                    have hyv : ∀ {z : V}, isEnd pre' prest.head? endc z = true → σ z = ofK (gpow e) := by
+                    have hyv : ∀ {z : V}, isEnd pre' prest.head? endc z = true → σ z = ofK (addressOfIndex e) := by
                       intro z hz
                       obtain ⟨h1, h2⟩ := isEnd_val hnr hw1 hes1 hz
                       cases endc with
@@ -1517,8 +1526,9 @@ theorem cost_le_of_loop {X : String → Prop} (hchk : CheckedExcept P α cert ω
       t.BufsOk P → Bound P α cert ω t args) {f : String}
     {endc : Option ℕ} {pre : List (ℕ × ℕ)} {b : Aff} {ks : List (V × ℕ)}
     (hcf : cert f = .loop endc pre b ks) {t : Tree} {args rets : List E} (hn : t.name = f)
-    (hv : t.Valid P rd args rets) (hb : t.BufsOk P) {a e : ℕ} (ha : args.getD 0 0 = ofK (gpow a))
-    (he : endOf endc args = ofK (gpow e)) (hae : a < e) (heo : e < 2 ^ 64 - 1)
+    (hv : t.Valid P rd args rets) (hb : t.BufsOk P) {a e : ℕ} (ha : args.getD 0 0 = ofK
+        (addressOfIndex a))
+    (he : endOf endc args = ofK (addressOfIndex e)) (hae : a < e) (heo : e < 2 ^ 64 - 1)
     (hpre : ArgsPre pre args) : t.cost P α ω ≤ (e - a) * b.eval args := by
   have := chk_sound hchk hX t.count t args rets le_rfl hv hb
   unfold Bound at this
@@ -1547,8 +1557,9 @@ theorem weightLe_of_stat (hchk : Checked P false cert ω) {f : String} {B : ℕ}
 theorem weight_le_of_loop (hchk : Checked P false cert ω) {f : String}
     {endc : Option ℕ} {pre : List (ℕ × ℕ)} {b : Aff} {ks : List (V × ℕ)}
     (hcf : cert f = .loop endc pre b ks) {t : Tree} {args rets : List E} (hn : t.name = f)
-    (hv : t.Valid P rd args rets) (hb : t.BufsOk P) {a e : ℕ} (ha : args.getD 0 0 = ofK (gpow a))
-    (he : endOf endc args = ofK (gpow e)) (hae : a < e) (heo : e < 2 ^ 64 - 1)
+    (hv : t.Valid P rd args rets) (hb : t.BufsOk P) {a e : ℕ} (ha : args.getD 0 0 = ofK
+        (addressOfIndex a))
+    (he : endOf endc args = ofK (addressOfIndex e)) (hae : a < e) (heo : e < 2 ^ 64 - 1)
     (hpre : ArgsPre pre args) : t.weight ω ≤ (e - a) * b.eval args := by
   rw [← cost_false (P := P)]; exact cost_le_of_loop hchk noHand hcf hn hv hb ha he hae heo hpre
 

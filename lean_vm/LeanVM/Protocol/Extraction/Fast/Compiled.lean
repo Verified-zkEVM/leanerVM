@@ -47,7 +47,7 @@ public section
 gives an execution) the decoder's, `slow ()`. A function of its own so that the extractor passes it
 the stacks as values: the compiled extractor's proof, with the tables and the fast path's stacks in
 the same call, does not fit the kernel's check (the main session's log, §11). -/
-@[expose] def runBoth (prog : Program) (input : PublicInput) (layout : LayoutLite)
+@[expose] def runBoth (prog : LeanIsaProgram) (input : PublicInput) (layout : LayoutLite)
     (fastSts : List (Vector K (2 ^ layout.stackLog)))
     (slow : Unit → List (Vector K (2 ^ layout.stackLog))) : Option (Execution prog) :=
   let tabs := runnerTables prog layout
@@ -70,35 +70,36 @@ interpolation on `pmSolver` (`decodeStacksDistinctPM`, `Fast/LanePM.lean`). -/
   subtreeLeavesWith (preimageIn (transcriptIndex qs (max 64 (8 * w)))) w h root
 
 /-- The candidate runs from the committed leaves: the fast path's stacks, then the decoder's. -/
-@[expose] def runFromLeaves (prog : Program) (input : PublicInput) (layout : LayoutLite) (R : ℕ)
+@[expose] def runFromLeaves (prog : LeanIsaProgram) (input : PublicInput) (layout : LayoutLite)
+    (R : ℕ)
     (leaves : Array (List K)) (h w : ℕ) : Option (Execution prog) :=
   runBoth prog input layout (fastOf layout.stackLog R leaves h w)
     fun _ ↦ decOf layout.stackLog R leaves h w
 
 /-- The runs at a root `t = (root, height, width)`: the committed leaves, then the candidate runs. -/
-@[expose] def stageT (prog : Program) (input : PublicInput) (layout : LayoutLite) (R : ℕ)
+@[expose] def stageT (prog : LeanIsaProgram) (input : PublicInput) (layout : LayoutLite) (R : ℕ)
     (qs : List (PermutationQuery KeccakState × KeccakState)) (t : Digest × ℕ × ℕ) :
     Option (Execution prog) :=
   runFromLeaves prog input layout R (leavesOf qs t.2.2 t.2.1 t.1) t.2.1 t.2.2
 
 /-- After the replay: the first root, then `stageT` at it. -/
-@[expose] def afterRootStage (prog : Program) (input : PublicInput)
+@[expose] def afterRootStage (prog : LeanIsaProgram) (input : PublicInput)
     (qs : List (PermutationQuery KeccakState × KeccakState))
-    (r : (LayoutLite × ℕ) × ProgState) : Option (Execution prog) :=
+    (r : (LayoutLite × ℕ) × VerifierProgramState) : Option (Execution prog) :=
   r.2.roots.head?.bind (stageT prog input r.1.1 r.1.2 qs)
 
 /-- **The extractor the cost machine runs**, on the transcript's permutation queries. Each step a
 function of its own, passed by partial application, the tuples read by projections: with a lambda
 or a match around a heavy call (or the runs' pieces inline) at this level, the compiled extractor's
 proof does not fit the kernel's check (the main session's log, §11). -/
-@[expose] def extractorTop (prog : Program) (input : PublicInput)
+@[expose] def extractorTop (prog : LeanIsaProgram) (input : PublicInput)
     (qs : List (PermutationQuery KeccakState × KeccakState)) (π : Proof) :
     Option (Execution prog) :=
   (afterRootLite (bytecodeWords prog) π).bind (afterRootStage prog input qs)
 
 /-- `extractorTop` on the full layout (`afterRootDirect`), with `decodeStacksFast` (whose lanes keep
 the full decoder's branch). -/
-@[expose] def extractorTopFull (prog : Program) (input : PublicInput)
+@[expose] def extractorTopFull (prog : LeanIsaProgram) (input : PublicInput)
     (qs : List (PermutationQuery KeccakState × KeccakState)) (π : Proof) :
     Option (Execution prog) := do
   let ((layout, logInverseRate), state) ← afterRootDirect (bytecodeWords prog) π
@@ -113,7 +114,7 @@ the full decoder's branch). -/
 /-- `afterRootLite` is `afterRootDirect`, the layout cut to the fields the extractor reads
 (`afterRootLite_eq`); the replay's layouts are admissible (`admissible_of_afterRootLite`), where
 the decoder without the full decoder is the fast one (`decodeStacksDistinct_eq`). -/
-theorem extractorTop_eq_full (prog : Program) (input : PublicInput)
+theorem extractorTop_eq_full (prog : LeanIsaProgram) (input : PublicInput)
     (qs : List (PermutationQuery KeccakState × KeccakState)) (π : Proof) :
     extractorTop prog input qs π = extractorTopFull prog input qs π := by
   unfold extractorTop extractorTopFull afterRootStage stageT runFromLeaves leavesOf runBoth fastOf decOf
@@ -126,7 +127,8 @@ theorem extractorTop_eq_full (prog : Program) (input : PublicInput)
   simp only [layoutLite_stackLog, decodeStacksDistinctPM_eq_fast hadm, runWithTables_runnerTables]
 
 /-- **The extractor the cost machine runs is `transcriptExtractor`.** -/
-theorem extractorTop_eq (prog : Program) (input : PublicInput) (T : OracleQueryLog) (π : Proof) :
+theorem extractorTop_eq (prog : LeanIsaProgram) (input : PublicInput) (T : OracleQueryLog) (π :
+    Proof) :
     extractorTop prog input (permutationQueries T) π = transcriptExtractor prog input T π := by
   rw [extractorTop_eq_full, ← transcriptExtractorFast_eq, transcriptExtractorFast, extractorTopFull,
     extractWith, afterRootDirect_eq_afterRoot]

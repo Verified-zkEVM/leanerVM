@@ -79,17 +79,17 @@ noncomputable def MainIn.ownDa (m : MainIn) : List E :=
 /-- **`main`'s oracle**: hints, `HeapBuf`s, calls' returns. -/
 noncomputable def mOrc (m : MainIn) (j : ℕ) : E :=
   if j < 8 then gen ^ m.cnt.getD j 0
-  else if j = 47 then (digestScalars m.seed).1 else if j = 48 then (digestScalars m.seed).2
+  else if j = 47 then (digestHalves m.seed).1 else if j = 48 then (digestHalves m.seed).2
   else if j = 49 then m.et1 else if j = 50 then m.et2
   else if j = 53 then m.a77 else if j = 56 then m.a80
-  else if j = 57 then (digestScalars m.xd).1 else if j = 58 then (digestScalars m.xd).2
-  else if j = 59 then (digestScalars m.sd).1 else if j = 60 then (digestScalars m.sd).2
+  else if j = 57 then (digestHalves m.xd).1 else if j = 58 then (digestHalves m.xd).2
+  else if j = 59 then (digestHalves m.sd).1 else if j = 60 then (digestHalves m.sd).2
   else if j = 67 then m.a117 else if j = 68 then m.a119 else if j = 334 then m.aDa
   else if 339 ≤ j ∧ j < 343 then m.daR.getD (j - 339) 0
   else if j = 365 then m.a394 else if j = 371 then m.a400 else if j = 377 then m.a406
   else if j = 380 then m.a409 else if j = 387 then gen ^ m.pick else if j = 402 then m.a417
   else if j = 405 then m.leaf
-  else if j = 431 then (digestScalars m.sdg).1 else if j = 432 then (digestScalars m.sdg).2
+  else if j = 431 then (digestHalves m.sdg).1 else if j = 432 then (digestHalves m.sdg).2
   else 0
 
 /-- **`main`'s honest valuation.** -/
@@ -118,8 +118,8 @@ structure MainMem (rd : Reader) (m : MainIn) : Prop where
   own : ReadsAt rd (m.aDa * gen ^ (2 * m.nc)) m.ownDa
   dap : ReadsAt rd (m.aDa * gen ^ (2 * m.pick)) (digestCells m.dap)
   leaf : m.nc = 0 → ReadsAt rd m.a417 (List.replicate 23 0 ++ [m.leaf])
-  h0 : LoadHolds rd 1 0 (digestScalars m.sdg).1
-  h1 : LoadHolds rd gen 0 (digestScalars m.sdg).2
+  h0 : LoadHolds rd 1 0 (digestHalves m.sdg).1
+  h1 : LoadHolds rd gen 0 (digestHalves m.sdg).2
 
 /-- **What holds of `main`'s honest valuation.** -/
 structure MVals (rd : Reader) (σ : Val) (m : MainIn) : Prop where
@@ -157,8 +157,8 @@ structure MVals (rd : Reader) (σ : Val) (m : MainIn) : Prop where
   v385 : σ (.n 385) = m.a409 * gen ^ m.nc
   v401 : σ (.n 401) = m.aDa * gen ^ (2 * m.pick)
   v404 : σ (.n 404) = gen ^ m.nc + 1
-  r429 : σ (.n 429) = (digestScalars m.dap).1
-  r430 : σ (.n 430) = (digestScalars m.dap).2
+  r429 : σ (.n 429) = (digestHalves m.dap).1
+  r430 : σ (.n 430) = (digestHalves m.dap).2
   v433 : σ (.n 433) = 1
   v437 : σ (.n 437) = gen
 
@@ -173,8 +173,9 @@ theorem atom_mem_of_atomsIn' {ss : List Stmt} {a : Atom} (h : a ∈ atomsIn ss) 
   subst hsa
   exact hs
 
-theorem gpow_mul_zero (e : ℕ) : (gen ^ e).limb 0 * Parameters.gpow 0 = Parameters.gpow e := by
-  rw [gen_pow_eq_ofK]; simp [Parameters.gpow]
+theorem gpow_mul_zero (e : ℕ) : (gen ^ e).limb 0 * Parameters.addressOfIndex 0 =
+    Parameters.addressOfIndex e := by
+  rw [gen_pow_eq_ofK]; simp [Parameters.addressOfIndex]
 
 /-- A range check of `g^e` against `g^K` passes on a memory defined below `2^16`. -/
 theorem rc_side {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} (hl : Sig.MemOK rd (2 ^ 16))

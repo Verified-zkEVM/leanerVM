@@ -59,7 +59,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 def MemOk (rd : Reader) : Prop := ∃ κ, 16 ≤ κ ∧ κ ≤ 32 ∧ ∃ L : MemoryImage κ, rd = L.read
 
 /-- A digest's two cells (`digestScalars`), as a list. -/
-def digestCells (d : Digest) : List E := [(digestScalars d).1, (digestScalars d).2]
+def digestCells (d : Digest) : List E := [(digestHalves d).1, (digestHalves d).2]
 
 /-- `x = g^e` with `e` below the log of the bound `b`, as a range check against `b · g⁻¹`
 establishes on a memory image of at most `2^32` words: `b = g^(e + e' + 1)`, `e, e' < 2^32`. -/

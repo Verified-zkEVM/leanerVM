@@ -103,7 +103,7 @@ theorem subE_atoms (c j : Nat) (enc : Option V) (b : Nat) : atomsOnly (subE c j 
   · rfl
   · split <;> rfl
 
-theorem logG_of_match {x : E} {j n : Nat} (hj : j < n) (hn : n ≤ 2 ^ 64 - 1) (hx : x = ofK (gpow j)) :
+theorem logG_of_match {x : E} {j n : Nat} (hj : j < n) (hn : n ≤ 2 ^ 64 - 1) (hx : x = ofK (addressOfIndex j)) :
     logG x n = j := logG_eq hj hn hx
 
 /-- **A sub-tree, sound.** -/

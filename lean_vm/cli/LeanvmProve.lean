@@ -29,7 +29,7 @@ namespace LeanvmProve
 
 /-- The opcode of a code. -/
 def opcodeOf? (c : K) : Option Opcode :=
-  [Opcode.xor, .mulNative, .setConstant, .deref, .jump, .keccak].find? (·.code = c)
+  [Opcode.xor, .mulNative, .setConstant, .deref, .jump, .keccak].find? (·.busCode = c)
 
 /-- A flag word. -/
 def flagOf? (c : K) : Option Bool :=
@@ -43,7 +43,7 @@ def derefModeOf? (fpc ffp : K) : Option DerefMode :=
   else none
 
 /-- The instruction of a bus entry (the inverse of `entry`, where it is one). -/
-def instrOf? (e : Array K) : Option Instr := do
+def instrOf? (e : Array K) : Option LeanIsaInstruction := do
   let op ← opcodeOf? (e.getD 0 0)
   let x (i : ℕ) : K := e.getD i 0
   match op with
@@ -61,18 +61,18 @@ def instrOf? (e : Array K) : Option Instr := do
 
 /-- The program a bytecode table encodes: `16 · 2^logSize` words, word `i + 2^logSize · s` slot
 `s` of instruction `i`; checked to re-encode to the same words. -/
-def decodeProgram (words : Array K) : Except String Program := do
+def decodeProgram (words : Array K) : Except String LeanIsaProgram := do
   let n := words.size / 16
   let logSize := Nat.log2 n
   unless 16 * 2 ^ logSize = words.size do throw "the bytecode is not 16 · 2^k words"
   if h : logSize ≤ maxLogBytecode then
-    let mut code : Array Instr := #[]
+    let mut code : Array LeanIsaInstruction := #[]
     for i in [0:n] do
       let e := (Array.range 11).map fun j ↦ words.getD (i + n * (3 + j)) 0
       match instrOf? e with
       | some ins => code := code.push ins
       | none => throw s!"instruction {i} does not decode"
-    let prog : Program := ⟨logSize, h, fun i ↦ code.getD i.val (.jump 0 0 0)⟩
+    let prog : LeanIsaProgram := ⟨logSize, h, fun i ↦ code.getD i.val (.jump 0 0 0)⟩
     unless (LeanVM.bytecodeWords prog).toArray == words do throw "the bytecode does not re-encode"
     return prog
   else throw "the bytecode is too long"
@@ -116,7 +116,7 @@ def main (args : List String) : IO UInt32 := do
           is invalid, or a proof of work found no nonce below {fuel})"
         return 1
     let stream := proof.stream.flatMap scalarBytes
-    let openings := proof.openings.flatMap fun o ↦ o.leaf.flatMap kBytes ++ o.path.flatMap digestBytes
+    let openings := proof.openings.flatMap fun o ↦ o.leaf.flatMap K.toBytes ++ o.path.flatMap digestBytes
     IO.FS.writeBinFile (dir ++ "/lean_stream.bin") ⟨stream.toArray⟩
     IO.FS.writeBinFile (dir ++ "/lean_merkle_openings.bin") ⟨openings.toArray⟩
     let stop ← IO.monoMsNow

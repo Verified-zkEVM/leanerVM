@@ -462,7 +462,7 @@ theorem chain_final {s : ChainSpec} {atoms : List Atom} (h : s.check atoms = tru
     (hpre : pre.length = rate * n)
     (h0 : ∀ c : Fin 13, s.initCell σ c = cellsOfState (absorbChunks n zeroState pre) false c) :
     (σ (s.outV (s.nb - 1) 0), σ (s.outV (s.nb - 1) 1)) =
-        digestScalars (keccak256 (pre ++ cellsBytes ((s.vals σ).take (s.len / 16)))) ∧
+        digestHalves (keccak256 (pre ++ cellsBytes ((s.vals σ).take (s.len / 16)))) ∧
       AllCanonical ((s.vals σ).take (s.len / 16)) := by
   obtain ⟨hs, -⟩ := check_parts h
   have hs' := hs

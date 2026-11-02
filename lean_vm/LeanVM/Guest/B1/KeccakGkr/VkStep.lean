@@ -287,7 +287,8 @@ theorem flipsT_holdsL {s b : ℕ} (hs : s ≠ 0) {lp sl : E} {lanes eZ : List E}
 theorem dispatch_layer {first : ℕ} (hf : first < 2) {x : V} {o : ℕ} (ho : o < 2)
     (hx : σ x = gen ^ o) {args rets : List E}
     (hd : ∃ (j : ℕ) (h : j < [layerName first 0, layerName first 1].length),
-      σ x = ofK (gpow j) ∧ coreProgram.Rel rd [layerName first 0, layerName first 1][j] args rets) :
+      σ x = ofK (addressOfIndex j) ∧ coreProgram.Rel rd [layerName first 0, layerName first 1][j]
+          args rets) :
     MeaningKeccakLayer first o rd args rets := by
   obtain ⟨j, hj, e, hc⟩ := hd
   simp only [List.length_cons, List.length_nil] at hj

@@ -393,28 +393,28 @@ theorem commit_unique {S : Set (List UInt8)} (hinj : Set.InjOn f S) {c c' : Fin 
 variable (f)
 
 /-- **The inputs an opening's check hashes**: the cell's bytes, the climb's and the root's. -/
-def verifyIn (p : Fin (r * 128)) (x : Cell) (τ : Opening) : Set (List UInt8) :=
-  insert (cellBytes x) (insert (pairBytes τ.rowRoot (walk f (colIndex p) (cellDigestWithHash f x) τ.path))
-    (walkIn f (colIndex p) (cellDigestWithHash f x) τ.path))
+def verifyIn (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) : Set (List UInt8) :=
+  insert (cellBytes x) (insert (pairBytes τ.rowRoot (walk f (columnTreeIndex p) (cellDigestWithHash f x) τ.path))
+    (walkIn f (columnTreeIndex p) (cellDigestWithHash f x) τ.path))
 
 variable {f}
 
 /-- **An opening that verifies against a matrix's root opens the matrix's cell**, over a hash
 injective on a set holding the commitment's and the check's inputs. -/
 theorem verifyCell_agree {S : Set (List UInt8)} (hinj : Set.InjOn f S)
-    {c : Fin (r * 128) → Cell} {p : Fin (r * 128)} {x : Cell} {τ : Opening}
+    {c : Fin (r * 128) → Cell} {p : Fin (r * 128)} {x : Cell} {τ : CellOpening}
     (hc : commitIn f c ⊆ S) (hv : verifyIn f p x τ ⊆ S)
     (hver : verifyCell f r (commitCellsWithHash f c) p x τ = true) : x = c p := by
   simp only [verifyCell, Bool.and_eq_true, decide_eq_true_eq] at hver
   obtain ⟨hlen, hroot⟩ := hver
   have hp := pairBytes_injective (hinj (hv (Set.mem_insert_of_mem _ (Set.mem_insert _ _)))
     (hc (rootInput_mem f c)) hroot)
-  have hleaf := walk_eq_leaf hinj τ.path (7 + logPaddedRowCount r) (colLeavesWithHash f c) (colIndex p)
+  have hleaf := walk_eq_leaf hinj τ.path (7 + logPaddedRowCount r) (colLeavesWithHash f c) (columnTreeIndex p)
     (cellDigestWithHash f x) hlen (colIndex_lt p)
     (fun a ha ↦ hv (Set.mem_insert_of_mem _ (Set.mem_insert_of_mem _ ha)))
     (fun a ha ↦ hc (colTree_sub f c ha)) hp.2
   have hrow : (positionRow p : ℕ) < paddedRowCount r := lt_of_lt_of_le (positionRow p).isLt (le_nPad r)
-  rw [show colIndex p = (positionCell p : ℕ) * paddedRowCount r + positionRow p from rfl,
+  rw [show columnTreeIndex p = (positionCell p : ℕ) * paddedRowCount r + positionRow p from rfl,
     colLeaves_eq_cell f c _ _ hrow] at hleaf
   have hx := cellBytes_injective (hinj (hv (Set.mem_insert _ _))
     (hc (cellIn_sub f c ⟨_, hrow, _, (positionCell p).isLt, rfl⟩)) hleaf)
@@ -543,7 +543,7 @@ theorem walkM_some (path : List Common.DigestBytes) :
 
 /-- **An opening's check over a partial hash that returns** returns the pure check, its inputs
 in the hash's domain. -/
-theorem verifyCellM_some {r : ℕ} (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening)
+theorem verifyCellM_some {r : ℕ} (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening)
     (b : Bool) (hb : verifyCellMWithHash g r com p x τ = some b) :
     b = verifyCell f r com p x τ ∧ ∀ a ∈ verifyIn f p x τ, g a ≠ none := by
   simp only [verifyCellMWithHash, Option.bind_eq_bind', Option.pure_def, Option.bind_eq_some_iff, Option.some.injEq] at hb

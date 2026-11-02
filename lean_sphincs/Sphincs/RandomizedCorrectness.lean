@@ -16,13 +16,13 @@ attribute [local irreducible] Seeded.signLayer Seeded.forestOpen Seeded.treePath
 
 /-- Successful assembly has the same WOTS, forest and path invariants as seeded signing. -/
 theorem finishSign_spec (secretKey : Seeded.SecretKey) (message : Message)
-    (randomness : Randomness) {signature : Signature}
+    (randomness : Randomizer) {signature : Signature}
     (hland : Landed secretKey.parameter (digestIndex (digestValue f secretKey message randomness)))
     (h : evalWithAnswerFn f (Randomized.finishSign secretKey message randomness) = some signature) :
     Landed secretKey.parameter (digestIndex (digestValue f secretKey message signature.randomness))
       ∧ signature.forest = evalWithAnswerFn f (Seeded.forestOpen secretKey.parameter
           (digestIndex (digestValue f secretKey message signature.randomness))
-          (digestMarks (digestValue f secretKey message signature.randomness)) secretKey.seed
+          (digestMarks (digestValue f secretKey message signature.randomness)) secretKey.schemeSeed
           : OracleComp HashSpec (Coord → CoordOpening))
       ∧ ∀ lay : Layer, evalWithAnswerFn f (Seeded.signLayer secretKey
           (digestIndex (digestValue f secretKey message signature.randomness)) lay
@@ -38,9 +38,9 @@ theorem finishSign_spec (secretKey : Seeded.SecretKey) (message : Message)
 
 /-- Every signature assembled after a randomizer lands verifies for the generated root. -/
 theorem verify_of_finishSign (secretKey : Seeded.SecretKey) (message : Message)
-    (randomness : Randomness) {signature : Signature}
+    (randomness : Randomizer) {signature : Signature}
     {root : Digest} (hroot : root = evalWithAnswerFn f (Seeded.treeRoot secretKey.parameter topLayer
-      rootTree secretKey.seed : OracleComp HashSpec Digest))
+      rootTree secretKey.schemeSeed : OracleComp HashSpec Digest))
     (hland : Landed secretKey.parameter (digestIndex (digestValue f secretKey message randomness)))
     (h : evalWithAnswerFn f (Randomized.finishSign secretKey message randomness) = some signature) :
     evalWithAnswerFn f (Concrete.verify ⟨root, secretKey.parameter⟩ message signature

@@ -68,7 +68,7 @@ variable {depth : ℕ} {cap0 xs : List E} {cur : E} {eP : ℕ}
 /-- `layers`' level-0 slot's cursor and row. -/
 theorem vbgLayBlock0 (hcl : cap0.length = 5) (hcan : AllCanonical cap0) :
     (vbgLayBlock depth cap0 xs cur eP 0).getD 5 0 = cur * gen ^ 2 ∧
-      (vbgLayBlock depth cap0 xs cur eP 0).getD 9 0 = ofK (gpow eP) := by
+      (vbgLayBlock depth cap0 xs cur eP 0).getD 9 0 = ofK (addressOfIndex eP) := by
   have inv := gkSl_inv (xs := xs) (sh := depth % 2) hcl hcan 0
   unfold vbgLayBlock
   by_cases h : 0 % 2 = depth % 2 ∧ 0 ≤ depth

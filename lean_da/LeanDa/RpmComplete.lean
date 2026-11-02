@@ -48,8 +48,8 @@ theorem leanDa_perfectlyComplete_rpmH : PerfectlyCompleteRpmH := by
   simp only [completenessExpRpmH, support_bind, Set.mem_iUnion, support_pure,
     Set.mem_singleton_iff, exists_prop] at hb
   obtain ⟨crs, hcrs, ok, hok, rfl⟩ := hb
-  set c := (code r).encode msg
-  have hcode : c ∈ (code r).code := ⟨msg, rfl⟩
+  set c := (leanDaErasureCode r).encode msg
+  have hcode : c ∈ (leanDaErasureCode r).code := ⟨msg, rfl⟩
   have hcomm : commitCellsMWithHash (m := Id) (fun a ↦ pure (keccak256WithPermutation π a)) c =
       pure (commitCellsWithHash (keccak256WithPermutation π) c) :=
     commitCellsM_eval (fun x ↦ x) (fun _ ↦ rfl) (fun _ _ ↦ rfl) _ _ (fun _ ↦ rfl) c

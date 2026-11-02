@@ -28,17 +28,17 @@ rejection, a `false` verdict, and an opening of a missing commitment escape noth
 
 namespace LeanVM.Protocol.Compile
 
-open LeanVM.Parameters Prog
+open LeanVM.Parameters VerifierProgram
 
 @[expose] public section
 
 namespace Spec
 
-variable {P : Prog Bool} {εmax L : ENNReal}
+variable {P : VerifierProgram Bool} {εmax L : ENNReal}
 
 /-- The escape probability of a group is at most the potential. -/
 theorem esc_le (S : Spec P (fun _ ↦ False) (fun b _ ↦ b = false) εmax L 0) :
-    ∀ (q : Prog Bool) {l : List Ev}, P.Reachable l → P.after l = some q →
+    ∀ (q : VerifierProgram Bool) {l : List Ev}, P.Reachable l → P.after l = some q →
       esc (S.D []) l q ≤ S.V [] l
   | .ret true, l, hl, ha => by
     simp only [esc]

@@ -85,7 +85,7 @@ section
 variable (r L : ℕ) (syms : ℕ → ℕ → List K) (ws : ℕ → List E)
 
 /-- Cell `(i, j)`'s digest. -/
-def cellD (i j : ℕ) : Digest := keccak256 ((syms i j).flatMap kBytes)
+def cellD (i j : ℕ) : Digest := keccak256 ((syms i j).flatMap K.toBytes)
 
 /-- Row `i`'s digest: the hash of its `64` payload cells' digests. -/
 def rowD (i : ℕ) : Digest := keccak256 ((List.range 64).flatMap fun j => digestBytes (cellD syms i j))
@@ -141,7 +141,7 @@ theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List K} {ws : ℕ → List 
     fun i j hj => block_eq (syms i) 256 (hsyms i) hj 0
   have hlcd : ∀ i, ∀ j < 128, LeanDa.listCellDigestWithHash LeanVM.Da.keccak256Bytes
       ((List.range 128).flatMap (syms i)) j = LeanVM.Protocol.Digest.toBytes (cellD syms i j) := fun i j hj => by
-    rw [LeanDa.listCellDigestWithHash, hcell i j hj, keccak_eq, cellD, show LeanDa.kBytes = kBytes from
+    rw [LeanDa.listCellDigestWithHash, hcell i j hj, keccak_eq, cellD, show LeanDa.symbolBytes = K.toBytes from
       funext kBytes_eq]
   have hlen : (daRows r syms).length = r := by simp [daRows]
   -- the row tree

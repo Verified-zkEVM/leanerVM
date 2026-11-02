@@ -31,14 +31,14 @@ open LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile.Rom
 /-! ## The serializers -/
 
 /-- The 24 bytes of a scalar (`E.to_bytes`). -/
-def eBytes (x : E) : Bytes := kBytes (x.limb 0) ++ kBytes (x.limb 1) ++ kBytes (x.limb 2)
+def eBytes (x : E) : Bytes := K.toBytes (x.limb 0) ++ K.toBytes (x.limb 1) ++ K.toBytes (x.limb 2)
 
 /-- The stream's bytes. -/
 def encodeScalars (xs : List E) : Bytes := xs.flatMap eBytes
 
 /-- An opening's bytes: its leaf's words, then its siblings from the leaf up
 (`Transcript.merkle`). -/
-def openingBytes (o : Opening) : Bytes := o.leaf.flatMap kBytes ++ o.path.flatMap digestBytes
+def openingBytes (o : Opening) : Bytes := o.leaf.flatMap K.toBytes ++ o.path.flatMap digestBytes
 
 /-- The openings file's bytes. -/
 def encodeOpenings (os : List Opening) : Bytes := os.flatMap openingBytes
@@ -80,15 +80,15 @@ theorem wordBytes_laneOfBytes {b : Bytes} (h : 8 ≤ b.length) :
       simp only [UInt64.toNat_toUInt8, UInt64.toNat_shiftRight, Nat.shiftRight_eq_div_pow] <;> norm_num at h0 h1 h2 h3 h4 h5 h6 h7 ⊢ <;> omega
 
 /-- A `K` word is read back from the head of its bytes. -/
-theorem kOfBytes_kBytes_append (a : K) (rest : Bytes) : kOfBytes (kBytes a ++ rest) = a := by
-  simp only [kOfBytes, kBytes, laneOfBytes_wordBytes_append, K.ofLane_lane]
+theorem kOfBytes_kBytes_append (a : K) (rest : Bytes) : kOfBytes (K.toBytes a ++ rest) = a := by
+  simp only [kOfBytes, K.toBytes, laneOfBytes_wordBytes_append, K.ofLane_lane]
 
-theorem kOfBytes_kBytes (a : K) : kOfBytes (kBytes a) = a := by
+theorem kOfBytes_kBytes (a : K) : kOfBytes (K.toBytes a) = a := by
   simpa using kOfBytes_kBytes_append a []
 
 /-- The bytes of the word read from the head of a byte string are its first eight. -/
-theorem kBytes_kOfBytes {b : Bytes} (h : 8 ≤ b.length) : kBytes (kOfBytes b) = b.take 8 := by
-  simp only [kOfBytes, kBytes, K.lane_ofLane, wordBytes_laneOfBytes h]
+theorem kBytes_kOfBytes {b : Bytes} (h : 8 ≤ b.length) : K.toBytes (kOfBytes b) = b.take 8 := by
+  simp only [kOfBytes, K.toBytes, K.lane_ofLane, wordBytes_laneOfBytes h]
 
 theorem digestOfBytes_digestBytes (d : Digest) : digestOfBytes (digestBytes d) = d := by
   obtain ⟨⟨l⟩, hl⟩ := d
@@ -167,7 +167,7 @@ end ReadMany
 
 /-! ### The files -/
 
-theorem kBytes_kOfBytes_of_length {c : Bytes} (h : c.length = 8) : kBytes (kOfBytes c) = c := by
+theorem kBytes_kOfBytes_of_length {c : Bytes} (h : c.length = 8) : K.toBytes (kOfBytes c) = c := by
   rw [kBytes_kOfBytes (by omega), List.take_of_length_le (by omega)]
 
 theorem digestBytes_length' (d : Digest) : (digestBytes d).length = 32 := digestBytes_length d

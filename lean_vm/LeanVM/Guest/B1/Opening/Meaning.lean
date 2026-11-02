@@ -178,7 +178,7 @@ the sibling on the other. -/
 def pathCell (leaf : Digest) (q : ℕ) (sibs : List Digest) (k : ℕ) : E :=
   let d := if (k % 4) / 2 = (if q.testBit (k / 4) then 1 else 0) then climbNode leaf q sibs (k / 4)
     else sibs.getD (k / 4) (Vector.replicate 4 0)
-  if k % 2 = 0 then (digestScalars d).1 else (digestScalars d).2
+  if k % 2 = 0 then (digestHalves d).1 else (digestHalves d).2
 
 /-- **One query** (`opening_query`, G:1172-1236, with `verify_merkle_path`, G:1021-1036; TRIAGE
 #33, #39) at the position `q`: the hinted row of `I` (`base = 1`) or `3I` words of `K`, hashed
@@ -193,17 +193,17 @@ def QueryOpens (rd : Reader) (base I depth cd : ℕ) (cap flags wp : E) (q : ℕ
     ∃ (sibs : List Digest) (w : ℕ → E) (pp : E), sibs.length = depth - cd ∧
       (∀ l < rowLo I + I / rowLo I, LoadHolds rd wp l (w l)) ∧
       IsInK pp ∧
-      (∀ k < 4 * (depth - cd), ∀ x, rd (pp.limb 0 * Parameters.gpow k) = some x →
+      (∀ k < 4 * (depth - cd), ∀ x, rd (pp.limb 0 * Parameters.addressOfIndex k) = some x →
         x = pathCell (merkleLeafDigest row) q sibs k) ∧
       (∀ l < depth - cd,
         LoadHolds rd (pp * gen ^ (if q.testBit l then 2 else 0)) (4 * l)
-          (digestScalars (climbNode (merkleLeafDigest row) q sibs l)).1 ∧
+          (digestHalves (climbNode (merkleLeafDigest row) q sibs l)).1 ∧
         LoadHolds rd (pp * gen ^ (if q.testBit l then 2 else 0)) (4 * l + 1)
-          (digestScalars (climbNode (merkleLeafDigest row) q sibs l)).2) ∧
+          (digestHalves (climbNode (merkleLeafDigest row) q sibs l)).2) ∧
       LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)))
-        (digestScalars (climbD (merkleLeafDigest row) q sibs)).1 ∧
+        (digestHalves (climbD (merkleLeafDigest row) q sibs)).1 ∧
       LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)) + 1)
-        (digestScalars (climbD (merkleLeafDigest row) q sibs)).2 ∧
+        (digestHalves (climbD (merkleLeafDigest row) q sibs)).2 ∧
       LoadHolds rd flags (2 ^ (cd - 1) + q / 2 ^ (depth - cd + 1)) 1 ∧
       d = rowDot base I row w
 

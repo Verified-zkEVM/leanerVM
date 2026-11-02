@@ -201,7 +201,7 @@ theorem accumulateSide_total (forms : List (List Form)) (side : ℕ) (fw : List 
 
 section Leaves
 
-variable (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 
 /-- Row `x` of table `t`, for natural-number indices: `rowVal`, `0` outside the tables. -/
 def rowAt (t x : ℕ) : ℕ → E :=

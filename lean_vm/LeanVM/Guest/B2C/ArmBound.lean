@@ -51,11 +51,11 @@ def costMaxArms (acs : List (ℕ × List (List ℕ))) (op : Opcode) : List (List
 end
 
 theorem nth_getD_le_foldr (i : ℕ) : ∀ (cs : List (List ℕ)) (k : ℕ),
-    (nth cs k []).getD i 0 ≤ (cs.map fun l => l.getD i 0).foldr max 0
-  | [], _ => by simp [nth]
-  | c :: cs, 0 => by simp [nth]
+    (listElementOrDefault cs k []).getD i 0 ≤ (cs.map fun l => l.getD i 0).foldr max 0
+  | [], _ => by simp [listElementOrDefault]
+  | c :: cs, 0 => by simp [listElementOrDefault]
   | c :: cs, k + 1 => by
-    simp only [nth, List.map_cons, List.foldr_cons]
+    simp only [listElementOrDefault, List.map_cons, List.foldr_cons]
     exact (nth_getD_le_foldr i cs k).trans (le_max_right _ _)
 
 section Le
@@ -107,14 +107,14 @@ def xmssArmC (op : Opcode) : ℕ := [40, 80, 40, 0, 40, 348].getD (opIdx op) 0
 
 set_option maxRecDepth 100000 in
 theorem costMaxW_xmss (op : Opcode) :
-    costMaxW (nth Data.cplArms 20 []) op (coreOf 20).body = xmssArmC op := by
+    costMaxW (listElementOrDefault Data.cplArms 20 []) op (coreOf 20).body = xmssArmC op := by
   cases op <;> decide +kernel
 
 /-- **`cnt_le_weight_arm`'s `hC` at `xmssArmC`**: `verify_lean_xmss`'s arms within `xmssArmC`, on
 every valuation. -/
 theorem xmssArmC_spec : ∀ op σ bufs kids rd args rets,
     (Memory.Tree.node "verify_lean_xmss" σ bufs kids).Valid coreProgram rd args rets →
-      costW (nth Data.cplArms 20 []) σ (coreOf 20).body op ≤ xmssArmC op :=
+      costW (listElementOrDefault Data.cplArms 20 []) σ (coreOf 20).body op ≤ xmssArmC op :=
   fun op σ _ _ _ _ _ _ => (costW_le_max _ σ op _).trans (costMaxW_xmss op).le
 
 end

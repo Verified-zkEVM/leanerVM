@@ -61,10 +61,10 @@ def MainGoalL4B : Prop :=
 
 def MainGoalStB : Prop :=
   CompleteAtDTB fs cert 16 "statement_digest" (hLmain fs fp seed s w)
-    [(digestScalars (hm fs fp seed s w).seed).1, (digestScalars (hm fs fp seed s w).seed).2,
-      (digestScalars (hm fs fp seed s w).xd).1, (digestScalars (hm fs fp seed s w).xd).2,
-      (digestScalars (hm fs fp seed s w).sd).1, (digestScalars (hm fs fp seed s w).sd).2,
-      (digestScalars (hm fs fp seed s w).dap).1, (digestScalars (hm fs fp seed s w).dap).2,
+    [(digestHalves (hm fs fp seed s w).seed).1, (digestHalves (hm fs fp seed s w).seed).2,
+      (digestHalves (hm fs fp seed s w).xd).1, (digestHalves (hm fs fp seed s w).xd).2,
+      (digestHalves (hm fs fp seed s w).sd).1, (digestHalves (hm fs fp seed s w).sd).2,
+      (digestHalves (hm fs fp seed s w).dap).1, (digestHalves (hm fs fp seed s w).dap).2,
       (hm fs fp seed s w).a417] (Returns (B1.Digest.digestCells (hm fs fp seed s w).sdg)) (fun _ => True)
     (SB "statement_digest")
 

@@ -483,8 +483,8 @@ theorem proverSp_absorb {sp sp' : Sponge} (hsp : ProverSp sp) {x : E}
 answered in `Option`, fails, then some proof-of-work search along the program fails, at a sponge
 the honest prover keeps. -/
 theorem proveFromM_eq_some_none {H : Bytes → Option Digest} (S : Strategy) (fuel : ℕ)
-    {P : Prog Bool} :
-    ∀ (p : Prog Bool) (sp : Sponge) (h : List Ev) (cs : List Tree), P.after h = some p →
+    {P : VerifierProgram Bool} :
+    ∀ (p : VerifierProgram Bool) (sp : Sponge) (h : List Ev) (cs : List Tree), P.after h = some p →
       ProverSp sp → proveFromM H F S fuel p sp h cs = some none →
       ∃ h' bits k sp', P.after h' = some (.grind bits k) ∧ ProverSp sp' ∧
         findNonceM F bits sp' fuel = some none
@@ -551,14 +551,14 @@ end Failure
 /-- **The honest prover of the random-oracle model**: seed the sponge by `σ`, then run the honest
 prover with every hash and permutation a query; the empty proof if a proof-of-work search
 fails. -/
-def honestComp (σ : Seed) (P : Prog Bool) (S : Strategy) (fuel : ℕ) :
+def honestComp (σ : Seed) (P : VerifierProgram Bool) (S : Strategy) (fuel : ℕ) :
     OracleComp KeccakCalls Proof := do
   let seed ← σ.run callKeccak256 callKeccakF1600
   let r ← proveM callKeccak256 callKeccakF1600 P S seed fuel
   pure (r.getD ⟨[], []⟩)
 
 /-- The honest prover makes at most `|σ.hs| + 1 + n · proverFactor height fuel` queries. -/
-theorem isTotalQueryBound_honestComp {σ : Seed} {P : Prog Bool} {height n : ℕ}
+theorem isTotalQueryBound_honestComp {σ : Seed} {P : VerifierProgram Bool} {height n : ℕ}
     (hP : P.CostLE height n) (S : Strategy) (fuel : ℕ) :
     IsTotalQueryBound (honestComp σ P S fuel) (σ.hs.length + 1 + n * proverFactor height fuel) :=
   isTotalQueryBound_bind (isTotalQueryBound_seedRun σ) fun seed ↦ by
@@ -568,7 +568,7 @@ theorem isTotalQueryBound_honestComp {σ : Seed} {P : Prog Bool} {height n : ℕ
 
 /-- **The final inequality.** On every reachable outcome of the logged experiment in which the
 verifier rejects the honest prover's proof, the potential of the final log is at least `1`. -/
-theorem one_le_powPot {σ : Seed} {P : Prog Bool} {S : Strategy} {bits fuel : ℕ}
+theorem one_le_powPot {σ : Seed} {P : VerifierProgram Bool} {S : Strategy} {bits fuel : ℕ}
     (hfuel : fuel ≤ 2 ^ 64) (hfuel0 : fuel ≠ 0)
     (hc : ∀ chal, runI P S chal = some true) (hs : ∀ chal, shapedI P S chal)
     (hg : ∀ h b k, P.after h = some (.grind b k) → b = bits)
@@ -625,7 +625,8 @@ theorem one_le_powPot {σ : Seed} {P : Prog Bool} {S : Strategy} {bits fuel : �
       | none => exact ht
       | some _ => cases hr
     obtain ⟨h', b', k, sp, ha, hsp, hf⟩ :=
-      proveFromM_eq_some_none S fuel P ⟨seed, []⟩ [] [] (Prog.after.eq_1 P) ⟨by simp, by simp⟩ hr'
+      proveFromM_eq_some_none S fuel P ⟨seed, []⟩ [] [] (VerifierProgram.after.eq_1 P)
+          ⟨by simp, by simp⟩ hr'
     rw [hg h' b' k ha] at hf
     obtain ⟨-, hall⟩ := findNonceM_eq_some_none hf
     -- The position of the search, the same for every nonce.
@@ -680,7 +681,7 @@ all ask for `bits ∈ [1, 64]` bits, a strategy `S` that wins every interactive 
 well-shaped words, the seeding `σ`, and a fuel of at most `2^64` nonces: with `Q` the queries of
 the honest prover and the verifier together, the verifier rejects the honest prover's proof with
 probability at most `Q · (1 - 2^-bits)^fuel`. -/
-theorem romComplete (P : Prog Bool) (S : Strategy) (σ : Seed) {bits fuel height n : ℕ}
+theorem romComplete (P : VerifierProgram Bool) (S : Strategy) (σ : Seed) {bits fuel height n : ℕ}
     (hb0 : bits ≠ 0) (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64)
     (hg : ∀ h b k, P.after h = some (.grind b k) → b = bits)
     (hc : ∀ chal, runI P S chal = some true) (hs : ∀ chal, shapedI P S chal)

@@ -37,7 +37,7 @@ cost_compile sumScaled at 6 := sumScaled
 
 /-- The program: the bodies at their indices. -/
 def toyProgram : MachineProgram :=
-  #[.val (.nat 0), double.costBody, quad.costBody, sumTo.costBody, len.costBody,
+  #[.literal (.nat 0), double.costBody, quad.costBody, sumTo.costBody, len.costBody,
     foldlNat.costBody, sumScaled.costBody, sumScaled.lam0.costBody]
 
 #guard (evaluateFunctionBody toyProgram 10 2 [MachineEncoding.encodeValue (5 : ℕ)]).map (·.1) == some (MachineEncoding.encodeValue (quad 5))

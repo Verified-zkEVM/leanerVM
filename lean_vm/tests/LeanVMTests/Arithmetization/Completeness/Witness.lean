@@ -16,7 +16,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization
 open LeanVMTests.Arithmetization.Completeness.Fixture
 
 /-- The sentinel counter of a `2^11`-slot program, as a literal term, as in `Fixture`. -/
-local notation "d₀" => (gpow 2047 : K)
+local notation "d₀" => (addressOfIndex 2047 : K)
 
 /-! ## The prover data of an image -/
 

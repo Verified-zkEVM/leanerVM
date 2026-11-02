@@ -30,19 +30,19 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-theorem gpow_addC (a b : ℕ) : gpow (a + b) = gpow a * gpow b := by
-  simp [Parameters.gpow, pow_add]
+theorem gpow_addC (a b : ℕ) : addressOfIndex (a + b) = addressOfIndex a * addressOfIndex b := by
+  simp [Parameters.addressOfIndex, pow_add]
 
 theorem isInK_ofK (a : K) : IsInK (ofK a) := (isInK_iff _).mpr ⟨a, rfl⟩
 
-theorem imm_one : OInstr.imm 1 0 0 = 1 := (imm_of_ofBits rfl).trans ofK_one
+theorem imm_one : OffsetInstruction.immediateWord 1 0 0 = 1 := (imm_of_ofBits rfl).trans ofK_one
 
 section Sem
 
 variable {κ : ℕ} (L : MemoryImage κ) (fp : ℕ)
 
 /-- The word of frame cell `o`. -/
-noncomputable abbrev rdc (o : ℕ) : Option E := L.read (gpow fp * gpow o)
+noncomputable abbrev rdc (o : ℕ) : Option E := L.read (addressOfIndex fp * addressOfIndex o)
 
 /-- **What a fact on frame cells says.** -/
 def LHolds : LAtom → Prop
@@ -51,19 +51,20 @@ def LHolds : LAtom → Prop
   | .mul d a b => ∃ va vb, rdc L fp a = some va ∧ rdc L fp b = some vb ∧ rdc L fp d = some (va * vb)
   | .same a b => ∃ v, rdc L fp a = some v ∧ rdc L fp b = some v
   | .load d p off => ∃ pv vd, rdc L fp p = some pv ∧ IsInK pv ∧ rdc L fp d = some vd ∧
-      L.read (pv.limb 0 * gpow off) = some vd
+      L.read (pv.limb 0 * addressOfIndex off) = some vd
   | .ne x i p => ∃ vx vi, rdc L fp x = some vx ∧ rdc L fp i = some vi ∧
       rdc L fp p = some (vx * vi) ∧ vx * vi = 1
   | .range x y t1 t2 k => ∃ vx vy v1 v2, rdc L fp x = some vx ∧ IsInK vx ∧ rdc L fp y = some vy ∧
       IsInK vy ∧ rdc L fp t1 = some v1 ∧ rdc L fp t2 = some v2 ∧
-      L.read (vx.limb 0 * gpow 0) = some v1 ∧ L.read (vy.limb 0 * gpow 0) = some v2 ∧
+      L.read (vx.limb 0 * addressOfIndex 0) = some v1 ∧ L.read (vy.limb 0 * addressOfIndex 0) =
+          some v2 ∧
       rdc L fp k = some (vx * vy)
   | .inK a b => ∃ va vb, rdc L fp a = some va ∧ IsInK va ∧ rdc L fp b = some vb ∧ IsInK vb
   | .keccak ins outs inOdd outOdd => outs.length = 13 ∧ ∃ input output : Fin 13 → E,
       (∀ c : Fin 13, rdc L fp (ins.getD c 0) = some (input c)) ∧
       (∀ c : Fin 13, rdc L fp (outs.getD c 0) = some (output c)) ∧
       KeccakCellsRelation input inOdd output outOdd
-  | .addr p run => ∃ c0 rest, run = c0 :: rest ∧ rdc L fp p = some (ofK (gpow (fp + c0)))
+  | .addr p run => ∃ c0 rest, run = c0 :: rest ∧ rdc L fp p = some (ofK (addressOfIndex (fp + c0)))
   | .none => True
 
 /-- The facts filed in a book hold, under their keys. -/
@@ -71,27 +72,28 @@ def BookOk (B : BookC) : Prop := ∀ o a, a ∈ lookC B o → LHolds L fp a ∧ 
 
 /-- **What a callee frame's cell `o` holds**, the frame at `kfp`. -/
 def FCHolds (kfp o : ℕ) : FC → Prop
-  | .val c => ∃ v, rdc L fp c = some v ∧ L.read (gpow kfp * gpow o) = some v
-  | .self => L.read (gpow kfp * gpow o) = some (ofK (gpow kfp))
-  | .fp => L.read (gpow kfp * gpow o) = some (ofK (gpow fp))
-  | .pc r => L.read (gpow kfp * gpow o) = some (ofK (gpow r))
-  | .hdr i => ∃ v, rdc L fp i = some v ∧ L.read (gpow kfp * gpow o) = some v
+  | .val c => ∃ v, rdc L fp c = some v ∧ L.read (addressOfIndex kfp * addressOfIndex o) = some v
+  | .self => L.read (addressOfIndex kfp * addressOfIndex o) = some (ofK (addressOfIndex kfp))
+  | .fp => L.read (addressOfIndex kfp * addressOfIndex o) = some (ofK (addressOfIndex fp))
+  | .pc r => L.read (addressOfIndex kfp * addressOfIndex o) = some (ofK (addressOfIndex r))
+  | .hdr i => ∃ v, rdc L fp i = some v ∧ L.read (addressOfIndex kfp * addressOfIndex o) = some v
 
 /-- The frames in flight: each pointer cell holds its frame, whose cells hold what is said. -/
 def FrOk (fr : List (ℕ × List (ℕ × FC))) : Prop :=
-  ∀ q ∈ fr, ∃ kfp, rdc L fp q.1 = some (ofK (gpow kfp)) ∧ ∀ p ∈ q.2, FCHolds L fp kfp p.1 p.2
+  ∀ q ∈ fr, ∃ kfp, rdc L fp q.1 = some (ofK (addressOfIndex kfp)) ∧ ∀ p ∈ q.2, FCHolds L fp kfp
+      p.1 p.2
 
 /-- The table reads: the target cell holds, in `K`, the word read through the selector. -/
 def TgOk (tg : List (ℕ × ℕ × ℕ)) : Prop :=
   ∀ t ∈ tg, ∃ p w, rdc L fp t.2.1 = some p ∧ IsInK p ∧ rdc L fp t.1 = some w ∧ IsInK w ∧
-    L.read (p.limb 0 * gpow t.2.2) = some w
+    L.read (p.limb 0 * addressOfIndex t.2.2) = some w
 
 /-- The next frame, `n` cells on, holds what is said. -/
 def NxOk (n : ℕ) (nx : List (ℕ × FC)) : Prop := ∀ p ∈ nx, FCHolds L fp (fp + n) p.1 p.2
 
 /-- **The walk's state holds.** -/
 structure CWOk (X : CX) (st : CW) : Prop where
-  env : EnvHolds L (gpow fp) st.seg.env
+  env : EnvHolds L (addressOfIndex fp) st.seg.env
   book : BookOk L fp st.book
   fr : FrOk L fp st.fr
   tg : TgOk L fp st.tg
@@ -205,7 +207,7 @@ theorem statAt_sound (hX : CXOk L fp X) {o : ℕ} {p : PC} (h : statAt X o = som
     rdc L fp o = some (p.word fp) := hX.stat o p h
 
 theorem gpE_sound (hX : CXOk L fp X) {k0 e : ℕ} (h : gpE X k0 = some e) :
-    OInstr.imm k0 0 0 = ofK (gpow e) := by
+    OffsetInstruction.immediateWord k0 0 0 = ofK (addressOfIndex e) := by
   unfold gpE at h
   cases hb : Nat.beq k0 1
   · rw [hb] at h
@@ -216,7 +218,8 @@ theorem gpE_sound (hX : CXOk L fp X) {k0 e : ℕ} (h : gpE X k0 = some e) :
     rw [imm_one, gpow_zero', ofK_one]
 
 theorem cplCstAt_sound (hX : CXOk L fp X) (hst : BookOk L fp st.book) {o k0 k1 k2 : ℕ}
-    (h : cplCstAt X st o = some (k0, k1, k2)) : rdc L fp o = some (OInstr.imm k0 k1 k2) := by
+    (h : cplCstAt X st o = some (k0, k1, k2)) : rdc L fp o = some (OffsetInstruction.immediateWord
+        k0 k1 k2) := by
   unfold cplCstAt at h
   split at h
   · rename_i a b c hs
@@ -264,7 +267,7 @@ theorem isO_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {o : ℕ} (h : isO X
     · rename_i hc
       rw [cplCstAt_sound hX hst.book hc, imm_one]
     · cases h
-  · obtain ⟨v, hv, h1⟩ := isOne_val h (gpow fp)
+  · obtain ⟨v, hv, h1⟩ := isOne_val h (addressOfIndex fp)
     rw [← h1]
     exact hst.env o v hv
 
@@ -321,7 +324,7 @@ theorem pairEq_sound {x y a b : ℕ} (h : pairEq x y a b = true) : (x = a ∧ y 
 /-- A product of two cells, in either order. -/
 theorem mul_pair {pc a b x y d : ℕ} (h : (x = a ∧ y = b) ∨ (x = b ∧ y = a)) {vx vy : E}
     (hx : rdc L fp x = some vx) (hy : rdc L fp y = some vy) (hd : rdc L fp d = some (vx * vy)) :
-    Guest.Holds L pc (gpow fp) (.mul a b d) := by
+    Guest.Holds L pc (addressOfIndex fp) (.mul a b d) := by
   unfold Guest.Holds
   rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
   · exact ⟨vx, vy, hx, hy, hd⟩
@@ -329,14 +332,14 @@ theorem mul_pair {pc a b x y d : ℕ} (h : (x = a ∧ y = b) ∨ (x = b ∧ y = 
 
 theorem holds_xor_of {pc a b d : ℕ} {va vb vd : E} (ha : rdc L fp a = some va)
     (hb : rdc L fp b = some vb) (hd : rdc L fp d = some vd) (h : vd = va + vb) :
-    Guest.Holds L pc (gpow fp) (.xor a b d) := by
+    Guest.Holds L pc (addressOfIndex fp) (.xor a b d) := by
   unfold Guest.Holds
   exact ⟨va, vb, ha, hb, h ▸ hd⟩
 
 /-- An `XOR` over a permutation of a sum's cells holds, in characteristic two. -/
 theorem perm3_holds {pc a b d p q r : ℕ} (h : perm3 a b d p q r = true) {vx vy : E}
     (hq : rdc L fp q = some vx) (hr : rdc L fp r = some vy) (hp : rdc L fp p = some (vx + vy)) :
-    Guest.Holds L pc (gpow fp) (.xor a b d) := by
+    Guest.Holds L pc (addressOfIndex fp) (.xor a b d) := by
   simp only [perm3, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq] at h
   rcases h with ((((⟨⟨rfl, rfl⟩, rfl⟩ | ⟨⟨rfl, rfl⟩, rfl⟩) | ⟨⟨rfl, rfl⟩, rfl⟩) |
     ⟨⟨rfl, rfl⟩, rfl⟩) | ⟨⟨rfl, rfl⟩, rfl⟩) | ⟨⟨rfl, rfl⟩, rfl⟩
@@ -350,8 +353,9 @@ theorem perm3_holds {pc a b d p q r : ℕ} (h : perm3 a b d p q r = true) {vx vy
 theorem char2C (a : E) : a + a = 0 := CharTwo.add_self_eq_zero a
 
 theorem xor_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc a b d : ℕ}
-    (h : justI X st pc (.xor a b d) = true) : Guest.Holds L pc (gpow fp) (.xor a b d) := by
-  have hA : ∀ c, addAt st a b d c = true → Guest.Holds L pc (gpow fp) (.xor a b d) := by
+    (h : justI X st pc (.xor a b d) = true) : Guest.Holds L pc (addressOfIndex fp) (.xor a b
+        d) := by
+  have hA : ∀ c, addAt st a b d c = true → Guest.Holds L pc (addressOfIndex fp) (.xor a b d) := by
     intro c h
     obtain ⟨x, hx, hp⟩ := List.any_eq_true.mp h
     have hh := (hst.book c x hx).1
@@ -376,11 +380,12 @@ theorem xor_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc a b d : ℕ}
     obtain ⟨v, hv⟩ := known_sound hX hst.book hk
     exact holds_xor_of (zeroBy_sound hX hst hz) hv hv (zero_add v).symm
 
-theorem fpg_word (e : ℕ) : PC.word fp (.fpg e) = ofK (gpow fp * gpow e) := by
+theorem fpg_word (e : ℕ) : PC.word fp (.fpg e) = ofK (addressOfIndex fp * addressOfIndex e) := by
   simp only [PC.word, gpow_addC]
 
 theorem mul_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc a b d : ℕ}
-    (h : justI X st pc (.mul a b d) = true) : Guest.Holds L pc (gpow fp) (.mul a b d) := by
+    (h : justI X st pc (.mul a b d) = true) : Guest.Holds L pc (addressOfIndex fp) (.mul a b
+        d) := by
   simp only [justI, Bool.or_eq_true, Bool.and_eq_true] at h
   rcases h with (((((h | h) | ⟨ho, hs⟩) | ⟨ho, hs⟩) | h) | ⟨⟨hle, ho⟩, hn⟩)
   rotate_left
@@ -459,7 +464,8 @@ theorem mul_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc a b d : ℕ}
     · cases h
   · have hle := Nat.le_of_ble_eq_true hle
     have hb := isO_sound hX hst ho
-    have haddr : gpow (fp + X.fs) * gpow (d - X.fs) = gpow fp * gpow d := by
+    have haddr : addressOfIndex (fp + X.fs) * addressOfIndex (d - X.fs) = addressOfIndex fp *
+        addressOfIndex d := by
       rw [← gpow_addC, ← gpow_addC, show fp + X.fs + (d - X.fs) = fp + d by omega]
     unfold nextMul at hn
     split at hn
@@ -508,7 +514,7 @@ theorem mul_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc a b d : ℕ}
 
 theorem frame_find {fr : List (ℕ × List (ℕ × FC))} (h : FrOk L fp fr) {o1 : ℕ}
     {q : ℕ × List (ℕ × FC)} (hf : fr.find? (fun q ↦ Nat.beq q.1 o1) = some q) :
-    ∃ kfp, rdc L fp o1 = some (ofK (gpow kfp)) ∧ ∀ p ∈ q.2, FCHolds L fp kfp p.1 p.2 := by
+    ∃ kfp, rdc L fp o1 = some (ofK (addressOfIndex kfp)) ∧ ∀ p ∈ q.2, FCHolds L fp kfp p.1 p.2 := by
   have h1 : q.1 = o1 := by
     have := List.find?_some hf
     exact Nat.eq_of_beq_eq_true this
@@ -517,7 +523,7 @@ theorem frame_find {fr : List (ℕ × List (ℕ × FC))} (h : FrOk L fp fr) {o1 
 
 theorem frameHas_sound (hst : CWOk L fp X st) {o1 o2 : ℕ} {fc : FC}
     (h : frameHas st o1 o2 fc = true) :
-    ∃ kfp, rdc L fp o1 = some (ofK (gpow kfp)) ∧ FCHolds L fp kfp o2 fc := by
+    ∃ kfp, rdc L fp o1 = some (ofK (addressOfIndex kfp)) ∧ FCHolds L fp kfp o2 fc := by
   unfold frameHas at h
   split at h
   · rename_i o fcs hf
@@ -531,14 +537,15 @@ theorem frameHas_sound (hst : CWOk L fp X st) {o1 o2 : ℕ} {fc : FC}
 
 theorem deref_holds {pc o1 o2 o3 : ℕ} {mode : DerefMode} {p v3 : E}
     (h1 : rdc L fp o1 = some p) (hK : IsInK p) (h3 : rdc L fp o3 = some v3)
-    (h2 : L.read (p.limb 0 * gpow o2) = some (derefSource mode ⟨gpow pc, gpow fp⟩ v3)) :
-    Guest.Holds L pc (gpow fp) (.deref o1 o2 o3 mode) := by
+    (h2 : L.read (p.limb 0 * addressOfIndex o2) = some (derefSource mode ⟨addressOfIndex pc,
+        addressOfIndex fp⟩ v3)) :
+    Guest.Holds L pc (addressOfIndex fp) (.deref o1 o2 o3 mode) := by
   unfold Guest.Holds
   exact ⟨p, v3, h1, hK, h3, h2⟩
 
 theorem derefCell_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc o1 o2 o3 : ℕ}
     (h : justI X st pc (.deref o1 o2 o3 .cell) = true) :
-    Guest.Holds L pc (gpow fp) (.deref o1 o2 o3 .cell) := by
+    Guest.Holds L pc (addressOfIndex fp) (.deref o1 o2 o3 .cell) := by
   simp only [justI, Bool.or_eq_true, Bool.and_eq_true] at h
   rcases h with (((h | h) | h) | h) | ⟨⟨h0, hs⟩, hk⟩
   · obtain ⟨x, hx, hp⟩ := List.any_eq_true.mp h
@@ -622,7 +629,7 @@ theorem derefCell_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc o1 o2 o3 :
 
 theorem derefFp_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc o1 o2 o3 : ℕ}
     (h : justI X st pc (.deref o1 o2 o3 .fp) = true) :
-    Guest.Holds L pc (gpow fp) (.deref o1 o2 o3 .fp) := by
+    Guest.Holds L pc (addressOfIndex fp) (.deref o1 o2 o3 .fp) := by
   simp only [justI, Bool.or_eq_true, Bool.and_eq_true] at h
   obtain ⟨hk, h | ⟨h0, h⟩⟩ := h
   · obtain ⟨v, hv⟩ := known_sound hX hst.book hk
@@ -644,7 +651,7 @@ theorem derefFp_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc o1 o2 o3 : �
 
 theorem derefPc_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc o1 o2 o3 : ℕ}
     (h : justI X st pc (.deref o1 o2 o3 .pc) = true) :
-    Guest.Holds L pc (gpow fp) (.deref o1 o2 o3 .pc) := by
+    Guest.Holds L pc (addressOfIndex fp) (.deref o1 o2 o3 .pc) := by
   simp only [justI, Bool.and_eq_true] at h
   obtain ⟨hk, h⟩ := h
   obtain ⟨v, hv⟩ := known_sound hX hst.book hk
@@ -654,7 +661,7 @@ theorem derefPc_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc o1 o2 o3 : �
 theorem keccak_sound (hst : CWOk L fp X st) {pc m0 m1 m2 m3 tail b8 cap out : ℕ}
     {inOdd outOdd : Bool}
     (h : justI X st pc (.keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd) = true) :
-    Guest.Holds L pc (gpow fp) (.keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd) := by
+    Guest.Holds L pc (addressOfIndex fp) (.keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd) := by
   obtain ⟨x, hx, hp⟩ := List.any_eq_true.mp h
   have hh := (hst.book out x hx).1
   split at hp
@@ -669,8 +676,8 @@ theorem keccak_sound (hst : CWOk L fp X st) {pc m0 m1 m2 m3 tail b8 cap out : �
   · cases hp
 
 /-- **A justified instruction holds.** -/
-theorem justI_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc : ℕ} {ins : OInstr}
-    (h : justI X st pc ins = true) : Guest.Holds L pc (gpow fp) ins := by
+theorem justI_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc : ℕ} {ins : OffsetInstruction}
+    (h : justI X st pc ins = true) : Guest.Holds L pc (addressOfIndex fp) ins := by
   cases ins with
   | set o k0 k1 k2 =>
     unfold Guest.Holds
@@ -746,8 +753,8 @@ theorem cellK_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {o : ℕ} (h : cel
 
 /-! ## Passing items -/
 
-theorem Cnt.get_bump (c : Cnt) (ins : OInstr) (op : Opcode) :
-    (c.bump ins).get op = c.get op + if op = ins.toInstr.opcode then 1 else 0 := by
+theorem Cnt.get_bump (c : Cnt) (ins : OffsetInstruction) (op : Opcode) :
+    (c.bump ins).get op = c.get op + if op = ins.toLeanIsaInstruction.opcode then 1 else 0 := by
   cases ins <;> cases op <;> rfl
 
 theorem Cnt.get_bumpJ (c : Cnt) (op : Opcode) :
@@ -758,7 +765,7 @@ theorem Cnt.get_bumpJ (c : Cnt) (op : Opcode) :
 or the end, its counts those of the items passed. -/
 theorem passL_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) :
     ∀ (its : List Item) (c : Cnt) {its' : List Item} {c' : Cnt}, passL X st its c = .ok (its', c') →
-      ∃ pre, pre ++ its' = its ∧ Fall L (gpow fp) pre ∧
+      ∃ pre, pre ++ its' = its ∧ Fall L (addressOfIndex fp) pre ∧
         (∀ op, c'.get op = c.get op + itemOps pre op) ∧
         (its' = [] ∨ ∃ oc od of x rest, its' = .branch oc od of x :: rest)
   | [], c, its', c', h => by

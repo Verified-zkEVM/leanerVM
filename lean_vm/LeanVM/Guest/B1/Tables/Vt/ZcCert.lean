@@ -26,7 +26,7 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 /-- `g^32`, as the data writes it. -/
 abbrev vtW32 : E := word 4294967296 0 0
 
-theorem vtW32_eq : vtW32 = ofK (Parameters.gpow 32) := by
+theorem vtW32_eq : vtW32 = ofK (Parameters.addressOfIndex 32) := by
   rw [vtW32, show (4294967296 : ℕ) = 2 ^ 32 by norm_num, tb_word_two_pow (by norm_num),
     gen_pow_eq_ofK]
 

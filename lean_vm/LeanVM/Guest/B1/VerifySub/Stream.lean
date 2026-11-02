@@ -30,7 +30,8 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 theorem mem_size_big {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {p : E} {n : ℕ} (hn : n ≤ 2 ^ 33)
     (h : ∀ j < n, ∃ v, LoadHolds L.read p j v) : n ≤ 2 ^ κ := by
   have hκ64 : κ < 64 := by omega
-  have hidx : ∀ j : Fin n, ∃ i : Fin (2 ^ κ), p.limb 0 * Parameters.gpow j = Parameters.gpow i := by
+  have hidx : ∀ j : Fin n, ∃ i : Fin (2 ^ κ), p.limb 0 * Parameters.addressOfIndex j =
+      Parameters.addressOfIndex i := by
     intro j
     obtain ⟨v, -, hv⟩ := h j j.isLt
     obtain ⟨i, hi, -⟩ := (read_some_iff hκ64 L _ _).mp hv

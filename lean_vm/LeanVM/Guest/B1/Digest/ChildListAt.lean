@@ -217,7 +217,7 @@ theorem child_claim_list_digest_completeAt (fs : String → ℕ) (cert : String 
     -- the path
     have h7ne : σ (.n 7) ≠ 0 := by
       rw [hV.v7, Ne, e_add_eq_zero_iff, pow_zero, gen_pow_eq_one_iff (by omega)]; omega
-    have hx : σ (.n 28) = ofK (gpow r) := by rw [hV.v28, gen_pow_eq_ofK]
+    have hx : σ (.n 28) = ofK (addressOfIndex r) := by rw [hV.v28, gen_pow_eq_ofK]
     have hb : (if σ (.n 7) = 0 then walk σ cc24Zero else walk σ cc24Else) =
         .fall (ccP1.flatMap (Main.slEvs σ) ++ .call cclNames[r]! [.n 58, .n 0, .n 1, .n 64, .n 3, .n 4]
           [.n 65, .n 66] :: ccPost.flatMap (Main.slEvs σ)) := by

@@ -50,7 +50,7 @@ def OsDecodeRegAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ)
     RegPtrs [(1, 192 / d), (2, 192 / d)] [w, pos, ptrs] (RegionL Lin) →
     (∀ rd, LowDef k rd → MemL rd Lin → ∀ j < 192 / d,
       LoadHolds rd pos j (eOfNat ((eToNat w >>> (j * d)) % 2 ^ d)) ∧
-        LoadHolds rd ptrs j (ofK (gpow (fp + cert name (.n 3))) * gen ^ (j * d))) →
+        LoadHolds rd ptrs j (ofK (addressOfIndex (fp + cert name (.n 3))) * gen ^ (j * d))) →
     ∃ Lown : Layout, Within (dqRunL cert name fp w ++ Lown) fp (fs name) ∧
       DisjL (dqRunL cert name fp w ++ Lown) ∧
       ∀ rd, LowDef k rd → MemL rd (dqRunL cert name fp w ++ Lown ++ Lin) →
@@ -209,7 +209,7 @@ theorem osDecodeRegAtD_of {name : String} {d : ℕ} (hfit : Lift.RunsFit fs cert
     obtain ⟨hR, hLin⟩ := Main.memL_append.mp hL
     -- the meaning, at the run's address
     have hmean : MeaningDecodeQueryBits d rd [w, pos, ptrs] [] := by
-      refine ⟨rfl, ofK (gpow (fp + cert name (.n 3))), ⟨(isInK_iff _).mpr ⟨_, rfl⟩,
+      refine ⟨rfl, ofK (addressOfIndex (fp + cert name (.n 3))), ⟨(isInK_iff _).mpr ⟨_, rfl⟩,
         fun j hj v hv => ?_⟩, hpre rd hlow hLin⟩
       have h := (hR _ (List.mem_singleton_self _) j (by simpa using hj)).2
       rw [hv, Option.some.injEq] at h
@@ -241,7 +241,7 @@ theorem osDecodeRegAtD_of {name : String} {d : ℕ} (hfit : Lift.RunsFit fs cert
         rw [allocDsts, List.filterMap_map]
         exact List.filterMap_eq_nil_iff.mpr fun a ha => (dq_alloc (σ := σ) (hS.atoms a ha)).2
       -- the `frameAddr` pointer: the load of `.n 195` from `ptrs[0]`
-      have h195 : σ (.n 195) = ofK (gpow (fp + cert name (.n 3))) := by
+      have h195 : σ (.n 195) = ofK (addressOfIndex (fp + cert name (.n 3))) := by
         have hl := (hes _ (List.mem_map_of_mem hS.load)).2
         have hl' := ((hpre rd hlow hLin 0 hS.pos).2).2
         rw [h2] at hl
@@ -266,9 +266,11 @@ theorem osDecodeRegAtD_of {name : String} {d : ℕ} (hfit : Lift.RunsFit fs cert
         rw [← hi]
         simp only [dqSpec, List.mem_cons, List.mem_nil_iff, or_false] at hq
         rcases hq with rfl | rfl
-        · show (σ (.n 1)).limb 0 * Parameters.gpow off = pos.limb 0 * Parameters.gpow off
+        · show (σ (.n 1)).limb 0 * Parameters.addressOfIndex off = pos.limb 0 *
+            Parameters.addressOfIndex off
           rw [h1]
-        · show (σ (.n 2)).limb 0 * Parameters.gpow off = ptrs.limb 0 * Parameters.gpow off
+        · show (σ (.n 2)).limb 0 * Parameters.addressOfIndex off = ptrs.limb 0 *
+            Parameters.addressOfIndex off
           rw [h2]
       · obtain ⟨q, hq, hq1, hq2⟩ := hi
         simp only [dqRunL, List.mem_singleton] at hq

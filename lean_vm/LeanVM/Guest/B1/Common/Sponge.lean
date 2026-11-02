@@ -108,13 +108,14 @@ end Fs
 /-! ## Runs of the Spec's programs -/
 
 /-- The deployed reading of a Spec program: `Compile.run` at Keccak-256 and Keccak-f. -/
-abbrev runId {α : Type} (p : Prog α) (st : ProgState) : Option (α × ProgState) :=
+abbrev runId {α : Type} (p : VerifierProgram α) (st : VerifierProgramState) : Option (α ×
+    VerifierProgramState) :=
   Compile.runWithHash (m := Id) keccak256 keccakF1600 p st
 
 /-- From any Spec sponge the guest carries as `s`, the program `p` reads exactly the stream words
 `xs` and returns `a`, leaving a sponge the guest carries as `s'`, on any rest of the stream, any
 openings and any roots. -/
-def RunsTo {α : Type} (p : Prog α) (s : Fs) (xs : List E) (a : α) (s' : Fs) : Prop :=
+def RunsTo {α : Type} (p : VerifierProgram α) (s : Fs) (xs : List E) (a : α) (s' : Fs) : Prop :=
   ∀ sp : Sponge, s.Carries sp → ∀ (rest : List E) (os : List Opening)
     (roots : List (Digest × ℕ × ℕ)), ∃ sp' : Sponge, s'.Carries sp' ∧
       runId p ⟨sp, xs ++ rest, os, roots⟩ = some (a, ⟨sp', rest, os, roots⟩)

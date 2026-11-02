@@ -22,7 +22,7 @@ variable [Params]
 
 /-- The scan from a start: no randomness. -/
 def scanLoop (sk : Seeded.SecretKey) (message : Message) :
-    Nat → Randomness → OracleComp HashSpec (Option Randomness)
+    Nat → Randomizer → OracleComp HashSpec (Option Randomizer)
   | 0, _ => pure none
   | attempts + 1, randomness => do
       let result ← Seeded.signAttempt sk message randomness
@@ -32,16 +32,16 @@ def scanLoop (sk : Seeded.SecretKey) (message : Message) :
 
 /-- One uniform start, then the scan. -/
 noncomputable def signDigestLoop (sk : Seeded.SecretKey) (message : Message) (attempts : Nat) :
-    OracleComp OracleWorld (Option Randomness) := do
-  let start ← liftM ($ᵗ Randomness : ProbComp Randomness)
+    OracleComp OracleWorld (Option Randomizer) := do
+  let start ← liftM ($ᵗ Randomizer : ProbComp Randomizer)
   liftM (scanLoop sk message attempts start)
 
 /-- Assemble the signature after a randomizer lands, using the reference hash layouts. -/
-def finishSign (sk : Seeded.SecretKey) (message : Message) (randomness : Randomness) :
+def finishSign (sk : Seeded.SecretKey) (message : Message) (randomness : Randomizer) :
     OracleComp HashSpec (Option Signature) := do
   let digest ← messageDigest sk.parameter message randomness
   let index := digestIndex digest
-  let opening ← Seeded.forestOpen sk.parameter index (digestMarks digest) sk.seed
+  let opening ← Seeded.forestOpen sk.parameter index (digestMarks digest) sk.schemeSeed
   let some layers ← sequenceLayers (fun lay => Seeded.signLayer sk index lay) | return none
   return some ⟨randomness, opening, layers⟩
 

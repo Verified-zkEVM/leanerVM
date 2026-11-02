@@ -61,7 +61,7 @@ open LeanVM.Protocol.Whir.Complete Finset
 
 section Honest
 
-variable (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 
 /-- The push side's leaf tables, in the side's block order: the framework, then the tables. -/
 def pushTabs (β : E) (w : List E) : ℕ → List E
@@ -608,27 +608,28 @@ end Honest
 /-- The verifier's bus phase after the GKR: the count root's check, the framework values, the
 result. -/
 def busK3 (L : Verifier.Layout) (alphas : List E) (beta : E) (g : E × List E × List E) :
-    Prog BusResult :=
-  (Prog.require (g.1 ≠ 0)).bind fun _ ↦ (Prog.readScalars 3).bind fun memory ↦
-    Prog.readScalar.bind fun memoryFinal ↦ Prog.readScalar.bind fun bytecodeFinal ↦
-      Prog.ret (busOut L alphas beta g.2.1 g.2.2 memory memoryFinal bytecodeFinal)
+    VerifierProgram BusResult :=
+  (VerifierProgram.require (g.1 ≠ 0)).bind fun _ ↦ (VerifierProgram.readScalars 3).bind fun memory ↦
+    VerifierProgram.readScalar.bind fun memoryFinal ↦ VerifierProgram.readScalar.bind
+        fun bytecodeFinal ↦
+      VerifierProgram.ret (busOut L alphas beta g.2.1 g.2.2 memory memoryFinal bytecodeFinal)
 
 /-- The verifier's bus phase after `β`. -/
-def busK2 (L : Verifier.Layout) (D : ℕ) (alphas : List E) (beta : E) : Prog BusResult :=
+def busK2 (L : Verifier.Layout) (D : ℕ) (alphas : List E) (beta : E) : VerifierProgram BusResult :=
   (verifyGkrGrandProducts D).bind (busK3 L alphas beta)
 
 /-- The verifier's bus phase after `α`. -/
-def busK1 (L : Verifier.Layout) (D : ℕ) (alphas : List E) : Prog BusResult :=
-  Prog.sampleChallenge.bind (busK2 L D alphas)
+def busK1 (L : Verifier.Layout) (D : ℕ) (alphas : List E) : VerifierProgram BusResult :=
+  VerifierProgram.sampleChallenge.bind (busK2 L D alphas)
 
 theorem verifyBusBalance_eq' (L : Verifier.Layout) :
-    verifyBusBalance computedValue L = (Prog.sampleChallenges busBits).bind
+    verifyBusBalance computedBytecodeValue L = (VerifierProgram.sampleChallenges busBits).bind
       (busK1 L (busLayout [0, L.logMemory, L.logBytecode] L.push).depth) := by
   rw [verifyBusBalance_eq]
   rfl
 
 /-- The honest prover after the GKR: the framework values, then the result. -/
-noncomputable def hBusK3 (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+noncomputable def hBusK3 (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
     (alphas : List E) (beta : E) (g : E × List E × List E) : Script BusResult :=
   (Script.sendList (memVals prog s q g.2.1)).bind fun _ ↦
     (Script.sendE (mfVal prog s q g.2.1)).bind fun _ ↦
@@ -636,20 +637,20 @@ noncomputable def hBusK3 (prog : Program) (s : Sizes) (q : Column (leanIsaμ pro
         .ret (honestBus prog s q alphas beta g.2.1)
 
 /-- The honest prover after `β`: the GKR over the honest leaves. -/
-noncomputable def hBusK2 (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+noncomputable def hBusK2 (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
     (alphas : List E) (beta : E) : Script BusResult :=
   (hGkr (busDepth prog s) (pushLeaves prog s q alphas beta) (pullLeaves prog s q alphas beta)
     (countLeaves prog s q)).bind (hBusK3 prog s q alphas beta)
 
 /-- The honest prover after `α`. -/
-noncomputable def hBusK1 (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
+noncomputable def hBusK1 (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
     (alphas : List E) : Script BusResult :=
   Script.sampleE.bind (hBusK2 prog s q alphas)
 
 /-- **The honest prover of the bus phase**: receive the fingerprint challenges `α` and `β`, run
 the honest GKR over the three sides' leaves, then send the memory limbs' and the two finalize
 counts' extensions at the bus point; return the verifier's bus result. -/
-noncomputable def hBus (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) :
+noncomputable def hBus (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) :
     Script BusResult :=
   (Script.sampleN busBits).bind (hBusK1 prog s q)
 
@@ -658,11 +659,11 @@ attribute [local irreducible] Follows in
 relation, the honest prover follows the verifier program's bus phase at the verifier's layout:
 every `require` holds (the shared root and the nonzero count root), and the result is true
 (`BusGood`): true framework claims, and totals that are the true totals of the forms. -/
-theorem follows_verifyBusBalance {prog : Program} {s : Sizes} {input : PublicInput}
+theorem follows_verifyBusBalance {prog : LeanIsaProgram} {s : Sizes} {input : PublicInput}
     {q : Column (leanIsaμ prog s)} (_hs : s.Admissible prog)
     (hq : M3Honest (inst prog s) input q) (cs : Commits) :
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ BusGood prog s q b) (hBus prog s q)
-      (verifyBusBalance computedValue (verifierLayout prog s)) cs := by
+      (verifyBusBalance computedBytecodeValue (verifierLayout prog s)) cs := by
   obtain ⟨⟨-, hbal, hcnt, -, -⟩, hP⟩ := hq
   rw [verifyBusBalance_eq', busLayout_depth_verifier, hBus]
   refine Follows.bind (fun cs₁ a b h ↦ ?_) _ _ _ (Follows.sampleN_sampleN cs busBits)
@@ -678,7 +679,8 @@ theorem follows_verifyBusBalance {prog : Program} {s : Sizes} {input : PublicInp
   obtain ⟨rfl, rfl, hcr, hpl, htv⟩ := h
   have hne : g.1 ≠ 0 := hcr ▸ prod_countLeaves_ne_zero prog s q hcnt
   rw [hBusK3, busK3]
-  simp only [Prog.require, hne, ne_eq, not_false_eq_true, ↓reduceIte, Prog.ret_bind]
+  simp only [VerifierProgram.require, hne, ne_eq, not_false_eq_true, ↓reduceIte,
+      VerifierProgram.ret_bind]
   refine Follows.bind (fun cs₄ _ mem h ↦ ?_) _ _ _
     (Follows.sendList_readN cs₃ (memVals prog s q g.2.1))
   obtain ⟨rfl, rfl⟩ := h

@@ -75,9 +75,10 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
     (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
     let K := fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.μ)) lpE sqE
     let own := fun fp ↦ bufL (fp + fs "verify_sub") (vsSizes S.μ) S.ownW
-    let args := [(digestScalars (statementDigest seed c.statement)).1,
-      (digestScalars (statementDigest seed c.statement)).2, (digestScalars seed).1,
-      (digestScalars seed).2, ofK (gpow lpE), ofK (gpow sqE), ofK (gpow outE)]
+    let args := [(digestHalves (statementDigest seed c.statement)).1,
+      (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
+      (digestHalves seed).2, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE), ofK
+          (addressOfIndex outE)]
     (∀ fp outs, OutsOk (kidsAt (K fp) [] outs) outs →
       RegionsOk (fun i ↦ Main.RegionL Lin i ∨ Main.RegionL (own fp) i) (fun _ ↦ False)
         (kidsAt (K fp) [] outs) outs) ∧
@@ -93,10 +94,10 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
         (vsCPre.filterMap Main.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦ logG (σ s)) =
           vsSizes S.μ ∧
         ((vsCPre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-          (bases (fp + fs "verify_sub") (vsSizes S.μ)).map (fun b ↦ ofK (gpow b)) ∧
+          (bases (fp + fs "verify_sub") (vsSizes S.μ)).map (fun b ↦ ofK (addressOfIndex b)) ∧
         CallsMatch σ ((vsCPre.filterMap (Stmt.callSF σ)).map (mkCall σ))
           (kidsAt (K fp) [] outs) outs ∧
-        ∀ q ∈ vsCPre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * Parameters.gpow q.2 = Parameters.gpow i ∧
+        ∀ q ∈ vsCPre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * Parameters.addressOfIndex q.2 = Parameters.addressOfIndex i ∧
           (Main.RegionL Lin i ∨ Main.RegionL (own fp) i ∨
             outRegion (kidsAt (K fp) [] outs) outs i)) := by
   intro K own args
@@ -168,7 +169,8 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
     have hl13 : outs.length = 13 := by rw [hlen]; rfl
     have O := vs_outs S (bases (fp + fs "verify_sub") (vsSizes S.μ)) lpE sqE outs hl13 ho
     have hmem : ∀ i < 16, ReadsAt rd
-        (ofK (gpow ((bases (fp + fs "verify_sub") (vsSizes S.μ)).getD i 0))) (S.ownW.getD i []) :=
+        (ofK (addressOfIndex ((bases (fp + fs "verify_sub") (vsSizes S.μ)).getD i 0))) (S.ownW.getD
+            i []) :=
       fun i hi ↦ hB _ (vs_own_mem S _ hi)
     have hlp := hL _ (hexpL _ (by simp [log2Lin]) : (lpE, (List.range 34).map fun j ↦
       eOfNat (2 ^ j)) ∈ Lin)

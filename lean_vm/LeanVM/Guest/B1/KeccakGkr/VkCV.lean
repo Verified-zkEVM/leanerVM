@@ -45,9 +45,10 @@ def VkCompleteAtK (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
     CompleteAtD fs cert κ "verify_keccak"
       [(curE, xs), (chiE, chis), (olE, outs), (zvE, op), (zvE + qkeccakVarsCap, point),
         (slE, slices)]
-      (f ++ [ofK (Parameters.gpow curE), gen ^ τ, ofK (Parameters.gpow chiE),
-        ofK (Parameters.gpow olE), ofK (Parameters.gpow zvE), ofK (Parameters.gpow slE)])
-      (Returns (cap' ++ [ofK (Parameters.gpow curE) * gen ^ xs.length, word, m0]))
+      (f ++ [ofK (Parameters.addressOfIndex curE), gen ^ τ, ofK (Parameters.addressOfIndex chiE),
+        ofK (Parameters.addressOfIndex olE), ofK (Parameters.addressOfIndex zvE), ofK
+            (Parameters.addressOfIndex slE)])
+      (Returns (cap' ++ [ofK (Parameters.addressOfIndex curE) * gen ^ xs.length, word, m0]))
 
 theorem vk_noLoadIte : vkPre.all noLoadIte = true := by decide +kernel
 
@@ -104,11 +105,11 @@ theorem vk_obl {D : VkData} (h : D.Ok) {cap' : List E} {m0 : E} (hfin : D.fin = 
         (fun r ↦ r = cap' ++ [ptr curE * gen ^ D.xs.length, D.word, m0]) ∧
       (vkPre.filterMap Main.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦ logG (σ s)) = D.sizes ∧
       ((vkPre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-        (bases (fp + fs "verify_keccak") D.sizes).map (fun b ↦ ofK (Parameters.gpow b)) ∧
+        (bases (fp + fs "verify_keccak") D.sizes).map (fun b ↦ ofK (Parameters.addressOfIndex b)) ∧
       CallsMatch σ ((vkPre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ))
         (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE) fps) outs ∧
-      ∀ q ∈ vkPre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * Parameters.gpow q.2 =
-        Parameters.gpow i ∧
+      ∀ q ∈ vkPre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * Parameters.addressOfIndex q.2 =
+        Parameters.addressOfIndex i ∧
         (RegionL (D.lin curE chiE olE zvE slE) i ∨
           RegionL (bufL (fp + fs "verify_keccak") D.sizes
             (D.own (fp + fs "verify_keccak") (D.lsOf fs fps))) i ∨

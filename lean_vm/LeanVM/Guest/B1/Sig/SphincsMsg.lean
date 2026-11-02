@@ -83,7 +83,7 @@ theorem bytes_past_counter (cs : List E) (hl : cs.length = 18) {N : Nat} (hN : N
 
 /-- A message's bytes are its two cells', the first low. -/
 theorem sphincs_bytesLE_cellPairVal (c d : E) :
-    Sphincs.bytesLE 32 (cellPairVal c d) = cellBytes c ++ cellBytes d := by
+    Sphincs.littleEndianBytes 32 (cellPairVal c d) = cellBytes c ++ cellBytes d := by
   have h0 := cellNat_lt c
   have h1 := cellNat_lt d
   have ht : (cellPairVal c d).toNat = cellNat c + 2 ^ 128 * cellNat d := by
