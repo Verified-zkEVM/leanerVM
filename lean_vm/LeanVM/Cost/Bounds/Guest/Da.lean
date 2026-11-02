@@ -12,22 +12,22 @@ once; the powers of `g` in `K`), in the price `S` of an application of `da_verif
 and the price `F` of an application of the frame map `Vn` (a frame's valuation at a variable), the
 matrix's rows `r ≤ 2^k`, `k ≤ 34` (`r < 2^34`, `gLogD_lt`):
 
-* a column's valuation (`dvColVN_cost`: `F + 8·S + 33261`), its two words (`dvColWords_cost`:
-  `2·F + 16·S + 66561`), **the `128` columns' words** (`dvCols_cost`: `256·F + 2048·S + 8524051`);
-* a row's valuation (`dvRowVW_cost`: `F + 3·S + 535·k + 3842`), a cell's `256` symbols at a row's
-  valuation (`cellSymsAt_cost`: `3·Rw + 256·F + 12096`, `Rw` the row's price), a cell
-  (`dvSymsCell_cost`: `259·F + 9·S + 1605·k + 23658`), a cell of the padded matrix
-  (`dvSymsCols_cost`: `259·F + 9·S + 1605·k + 23693`);
-* a column's weights (`dvWsCols_cost`: `256·F + S + 16916`), the rows (`daRows_cost`, any
+* a column's valuation (`dvColVN_cost`: `F + 8·S + 4378`), its two words (`dvColWords_cost`:
+  `2·F + 16·S + 8801`), **the `128` columns' words** (`dvCols_cost`: `256·F + 2048·S + 1131026`);
+* a row's valuation (`dvRowVW_cost`: `F + 3·S + 73·k + 607`), a cell's `256` symbols at a row's
+  valuation (`cellSymsAt_cost`: `3·Rw + 256·F + 12863`, `Rw` the row's price), a cell
+  (`dvSymsCell_cost`: `259·F + 9·S + 219·k + 14735`), a cell of the padded matrix
+  (`dvSymsCols_cost`: `259·F + 9·S + 219·k + 14768`);
+* a column's weights (`dvWsCols_cost`: `256·F + S + 13298`), the rows (`daRows_cost`, any
   symbols);
 * the witness, its columns' words given (`dvWitNCols_cost`), and built (`dvWitNAt_cost`: at most
-  `dvWitNRowsPrice k F S = (33152·F + 1152·S + 205440·k + 3333810)·2^k + 33024·F + 2176·S +
-  10989648`);
+  `dvWitNRowsPrice k F S = (33152·F + 1152·S + 28032·k + 2257970)·2^k + 33024·F + 2176·S +
+  3199693`);
 * **`dvWitN_cost_1024`**: one logarithm (`GLogBound P D G`), the count clamped to `1024`
-  (`daRowCount`, `daRowCount_cost`: `6`), the rows: at most `S + G + dvWitNRowsPrice 10 F S + 21`
+  (`daRowCount`, `daRowCount_cost`: `7`), the rows: at most `S + G + dvWitNRowsPrice 10 F S + 22`
   on every input; `dvWitN_cost`: below `S + G + dvWitNAtPrice F S + 14`, `dvWitNAtPrice F S =
   dvWitNRowsPrice 34 F S`; `dvWitN_cost_of_le`: at a clamped count `≤ 2^k`,
-  `S + G + dvWitNRowsPrice k F S + 21`.
+  `S + G + dvWitNRowsPrice k F S + 22`.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest

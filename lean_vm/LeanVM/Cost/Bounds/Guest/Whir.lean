@@ -14,8 +14,8 @@ cursor's length at most `L` and its price at most `C`:
 * the levels' shapes (`OqOK`, `callOK_osCallsTab`: the table's every call, by kernel evaluation),
   the tables as arrays (`WhirTabsOK`, `whirTabs_ok`), the shape's numbers (`Oq.R`, `Oq.D`, …:
   constants);
-* consecutive words, the address stepped by `g` (`wordsFrom_cost`: `R + 286` a word, against
-  `R + 17398` by `g^k` before), a query's position (`bitsW_cost`, `posOfW_cost`), row
+* consecutive words, the address stepped by `g` (`wordsFrom_cost`: `R + 56` a word), a query's
+  position (`bitsW_cost`, `posOfW_cost`), row
   (`oqRow_cost`) and siblings (`oqSibsOf_cost`), a query, its position read once
   (`oqQueryAt_cost`, `oqQueryA_cost`), an iteration (`oqIterA_cost`), the loop, its frames at the
   next power of `g` (`oqItersFrom_cost`), the queries (`oqsOfA_cost`), a query's opening
