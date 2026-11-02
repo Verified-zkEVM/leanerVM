@@ -268,6 +268,10 @@ structure FFTPlan where
   twiddles : Array (Array K)
   /-- The powers `2^t`, `t < j`. -/
   pows : Array ℕ
+  /-- Level `i`'s `(s_{i,·}, β_i)`, `i < j` (`linData i`), for the monomial-to-novel passes. -/
+  convFwd : Array (Array K × K)
+  /-- Level `i`'s `((s_{i,t}·β_i^{-1})_{t<i}, β_i^{-1})`, for the novel-to-monomial passes. -/
+  convInv : Array (Array K × K)
 
 /-- Stage `i`'s twiddles of size `2^j` from `(s_{i,·}, β_i^{-1})`: the subset sums of
 `Ŵ_i(x^{i+1+b}) = W_i(x^{i+1+b})·β_i^{-1}`, `b < j − i − 1`. -/
@@ -284,7 +288,11 @@ structure FFTPlan where
     tableInv := tabInv
     twiddles := Array.ofFn fun i : Fin j ↦
       stageTwiddles j i.val (tabInv.getD (j - 1 - i.val) (#[], 0))
-    pows := Array.ofFn fun t : Fin j ↦ 2 ^ t.val }
+    pows := Array.ofFn fun t : Fin j ↦ 2 ^ t.val
+    convFwd := Array.ofFn fun i : Fin j ↦ tab.getD (j - 1 - i.val) (#[], 0)
+    convInv := Array.ofFn fun i : Fin j ↦
+      let d := tabInv.getD (j - 1 - i.val) (#[], 0)
+      (Array.ofFn fun t : Fin i.val ↦ d.1.getD t.val 0 * d.2, d.2) }
 
 theorem mkPlan_pows {j t : ℕ} (ht : t < j) : (mkPlan j).pows.getD t 0 = 2 ^ t := by
   simp [mkPlan, Array.getD, ht]
@@ -319,6 +327,23 @@ theorem getD_reverse_range {α : Type} (g : ℕ → α) (d : α) {j i : ℕ} (hi
   omega
 
 /-- The twiddles by additivity are lean_vm's. -/
+theorem mkPlan_convFwd {j i : ℕ} (hi : i < j) :
+    (mkPlan j).convFwd.getD i (#[], 0) = linData i := by
+  simp only [mkPlan]
+  rw [Array.getD_eq_getD_getElem?, Array.getElem?_ofFn]
+  simp only [hi, dite_true, Option.getD_some]
+  rw [tableUpTo_eq, getD_reverse_range _ _ hi]
+
+theorem mkPlan_convInv {j i : ℕ} (hj : j ≤ 64) (hi : i < j) :
+    (mkPlan j).convInv.getD i (#[], 0) =
+      (Array.ofFn fun t : Fin i ↦ (linData i).1.getD t.val 0 * (linData i).2⁻¹, (linData i).2⁻¹) := by
+  have h := mkPlan_tableInv hj
+  simp only [mkPlan] at h ⊢
+  rw [Array.getD_eq_getD_getElem?, Array.getElem?_ofFn]
+  simp only [hi, dite_true, Option.getD_some]
+  rw [h, tableInvUpTo, tableUpTo_eq, List.map_map, getD_reverse_range _ _ hi]
+  rfl
+
 theorem stageTwiddles_eq (j i : ℕ) :
     stageTwiddles j i ((linData i).1, (linData i).2⁻¹) = novelTwiddles j i := by
   set f : ℕ → K := fun w ↦ normSubspacePoly i (K.ofBits (w * 2 ^ (i + 1))) with hf
